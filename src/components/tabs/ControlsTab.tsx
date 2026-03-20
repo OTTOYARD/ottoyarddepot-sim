@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { simulationEngine } from '@/engine/SimulationEngine';
+import { injectRandomIncident } from '@/engine/IncidentInjector';
 import {
   Truck, Users, Zap, Clock, Cloud, Play, Pause, RotateCcw, AlertTriangle,
 } from 'lucide-react';
