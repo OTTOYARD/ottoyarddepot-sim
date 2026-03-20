@@ -1,48 +1,45 @@
 
 
-# On-Demand AI Summary (Post-Run Only)
+# L2 Charger Utilization & DCFC/L2 Overflow
 
-## What Changes
+## Problem
+1. **Fleet vehicles always use DCFC** — never L2, even when all 10 DCFC stalls are occupied and 40 L2 stalls sit empty
+2. **No overflow logic** — vehicles wait indefinitely in queue for their assigned charger type instead of falling back
+3. **Consumer split is fixed at 30/70 DCFC/L2** — no user control over the mix
 
-Remove all live AI observations during simulation. Instead, after a run completes, the user visits the AI Summary tab and clicks "Generate Summary" to get a one-time analysis. The summary can be downloaded as a text file.
+## Changes
 
-## Files to Modify
+### `src/engine/ArrivalGenerator.ts` — Smarter service queue assignment
+- Fleet vehicles: Use SoC to decide charger type. If SoC > 40%, assign `l2_charge` instead of always `dcfc_charge` (~30% of fleet will naturally go L2)
+- Consumer vehicles: Use config-driven DCFC/L2 ratio instead of hardcoded 30%
+- Add `dcfcVsL2Ratio` to SimulationConfig (0-100 slider, default 30 = "30% DCFC / 70% L2")
 
-### `src/engine/SimulationEngine.ts`
-- **Remove** the entire block at lines 310-319 (live AI observations every 60 sim-seconds)
-- **Remove** the auto `requestAnalysis('run_summary')` call from `stop()` (line 86) — summary is now user-triggered
+### `src/engine/SimulationEngine.ts` — DCFC→L2 overflow
+In step 4 (stall assignment), after failing to find an available stall of the needed type:
+- If the needed service is `dcfc_charge` and no DCFC stalls are available, check for available `l2` stalls
+- If found, reassign the vehicle's current service to `l2_charge` and assign the L2 stall
+- This creates natural overflow behavior — DCFC fills up, vehicles spill into L2
 
-### `src/lib/aiAnalysis.ts`
-- Remove `live_observation` mode entirely
-- Simplify `requestAnalysis` to only support `run_summary`
-- Remove throttle logic (no longer needed — single on-demand call)
-- Keep `collectContext` but only for `run_summary` mode
+### `src/store/simulationStore.ts`
+- Add `dcfcVsL2Ratio: number` (default 30) to `SimulationConfig` and `defaultConfig`
 
-### `src/store/aiStore.ts`
-- Remove `observations`, `addObservation`, `isLoadingObservation`, `setLoadingObservation`, `lastObservationSimTime`, `setLastObservationSimTime`
-- Keep: `runSummary`, `isLoadingSummary`, `apiCallCount`, `error`
+### `src/components/tabs/ControlsTab.tsx`
+- Add a slider in the Fleet section: "DCFC / L2 Split" (0-100, where value = % preferring DCFC)
+- Label shows e.g. "30% DCFC / 70% L2"
 
-### `src/components/tabs/AISummaryTab.tsx` — Full rebuild
-New layout:
-- **Empty state** (no summary yet, sim idle): "Run a simulation, then generate an AI summary here"
-- **Post-run state** (sim paused/idle, no summary): Show a "Generate Summary" button with Brain icon. Below it, brief text: "Analyze your last simulation run with AI"
-- **Loading state**: Pulsing dots + "Analyzing run data..."
-- **Summary state**: Rendered markdown summary with:
-  - "Copy" button (clipboard)
-  - "Download" button — downloads as `.md` file with run name and timestamp
-  - "Regenerate" button to request a new summary
-- Remove all live observation rendering (ObservationBubble, observation list)
+### `src/engine/scheduling/priorityWeighted.ts` (and other schedulers)
+- No changes needed — overflow is handled at the assignment level, not scoring
 
-### `supabase/functions/analyze-simulation/index.ts`
-- Update system prompt: remove "live observations" language, focus on run summary format
-- Keep the same API structure (receives context, returns analysis)
+## Behavior Summary
+```text
+Vehicle arrives → buildServiceQueue assigns charger type based on:
+  - Fleet: SoC ≤ 40% → DCFC, else L2
+  - Consumer: random based on dcfcVsL2Ratio slider
 
-## Download Feature
-- "Download Summary" button generates a `.md` file
-- Filename: `OTTOYARD-Summary-{date}.md`
-- Content includes a header with run config + the AI-generated summary
-- Uses `Blob` + `URL.createObjectURL` + programmatic `<a>` click
+Vehicle queued → engine tries to assign matching stall
+  - If DCFC needed but none available → overflow to L2 stall
+  - If L2 needed but none available → wait (L2 has 40 stalls, unlikely)
+```
 
-## AI Model
-Uses the existing Lovable AI gateway with `google/gemini-3-flash-preview` (already configured and working). Anthropic models are not available through this gateway — the closest equivalent would be `openai/gpt-5` or `google/gemini-2.5-pro` for higher quality summaries.
+This means L2 stalls get used both by direct assignment AND by DCFC overflow, creating the natural utilization pattern you're looking for.
 
