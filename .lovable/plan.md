@@ -1,101 +1,48 @@
 
 
-# Final Polish, Branding & Demo Mode
+# On-Demand AI Summary (Post-Run Only)
 
-## Overview
-Apply OTTOYARD branding, loading states, demo mode, responsive behavior, keyboard shortcuts, canvas enhancements, and meta tags.
+## What Changes
 
-## Files to Create
-
-### 1. `src/store/demoStore.ts`
-Zustand store:
-- `isDemoMode: boolean`
-- `isLoading: boolean` (for startup overlay)
-- `isSaving: boolean` (for save indicator)
-- Actions: `enterDemo`, `exitDemo`, `setLoading`, `setSaving`
-
-### 2. `src/components/canvas/LoadingOverlay.tsx`
-Full-screen overlay on canvas with pulsing hexagon logo + "Initializing Fleet Command..." text. Shown for 1.5s when simulation starts. Fades out via CSS transition.
-
-### 3. `src/components/canvas/DemoBanner.tsx`
-Semi-transparent banner at top of canvas: "DEMO MODE — OTTOYARD Depot Simulation" with "Exit Demo" button. Only rendered when `isDemoMode`.
-
-### 4. `src/components/canvas/CanvasWatermark.tsx`
-Low-opacity hexagon SVG centered in canvas. Subtle animated gradient border around depot perimeter that pulses when running.
-
-### 5. `src/hooks/useKeyboardShortcuts.ts`
-Global keyboard listener (useEffect in App):
-- Space: play/pause, R: reset, D: demo toggle, P: panel toggle
-- 1-5: switch tabs, +/-: speed adjust
-- Only fires when no input/textarea is focused.
-
-### 6. `src/components/layout/ResponsiveGuard.tsx`
-- `< 900px`: Full-screen message "For the best experience, use a desktop browser..."
-- `< 1200px`: Auto-collapse side panel, show floating toggle button
-- Uses `useIsMobile` pattern with ResizeObserver.
-
-### 7. `public/favicon.svg`
-Small red hexagon SVG for favicon.
+Remove all live AI observations during simulation. Instead, after a run completes, the user visits the AI Summary tab and clicks "Generate Summary" to get a one-time analysis. The summary can be downloaded as a text file.
 
 ## Files to Modify
 
-### `index.html`
-- Title: "OTTOYARD | Depot Simulator"
-- OG tags: title "OTTOYARD Depot Simulator", description "AI-powered fleet depot simulation platform..."
-- Favicon link to `/favicon.svg`
+### `src/engine/SimulationEngine.ts`
+- **Remove** the entire block at lines 310-319 (live AI observations every 60 sim-seconds)
+- **Remove** the auto `requestAnalysis('run_summary')` call from `stop()` (line 86) — summary is now user-triggered
 
-### `src/components/layout/TopBar.tsx`
-- Replace text "OTTOYARD" with inline hexagon SVG (28px) + "OTTOYARD" in bold 20px otto-red tracking-[2px]
-- Add tagline "Depot Simulation Platform" in 10px otto-gray, hidden on narrow screens
-- Add "Demo Mode" button (Presentation icon) left of play/pause
-- Add saving indicator (spinner → checkmark) when `isSaving`
-- Wire demo mode: sets config, speed 30x, opens KPIs tab, starts sim
+### `src/lib/aiAnalysis.ts`
+- Remove `live_observation` mode entirely
+- Simplify `requestAnalysis` to only support `run_summary`
+- Remove throttle logic (no longer needed — single on-demand call)
+- Keep `collectContext` but only for `run_summary` mode
 
-### `src/store/simulationStore.ts`
-- Add `controlsLocked: boolean` field + `setControlsLocked` action
+### `src/store/aiStore.ts`
+- Remove `observations`, `addObservation`, `isLoadingObservation`, `setLoadingObservation`, `lastObservationSimTime`, `setLastObservationSimTime`
+- Keep: `runSummary`, `isLoadingSummary`, `apiCallCount`, `error`
 
-### `src/components/tabs/ControlsTab.tsx`
-- When `controlsLocked` (demo mode), add `pointer-events-none opacity-50` to all controls
-- Show a small "Controls locked during demo" notice
+### `src/components/tabs/AISummaryTab.tsx` — Full rebuild
+New layout:
+- **Empty state** (no summary yet, sim idle): "Run a simulation, then generate an AI summary here"
+- **Post-run state** (sim paused/idle, no summary): Show a "Generate Summary" button with Brain icon. Below it, brief text: "Analyze your last simulation run with AI"
+- **Loading state**: Pulsing dots + "Analyzing run data..."
+- **Summary state**: Rendered markdown summary with:
+  - "Copy" button (clipboard)
+  - "Download" button — downloads as `.md` file with run name and timestamp
+  - "Regenerate" button to request a new summary
+- Remove all live observation rendering (ObservationBubble, observation list)
 
-### `src/components/tabs/AISummaryTab.tsx`
-- Replace loading spinner with typing indicator (three pulsing dots) when `isLoadingObservation`
+### `supabase/functions/analyze-simulation/index.ts`
+- Update system prompt: remove "live observations" language, focus on run summary format
+- Keep the same API structure (receives context, returns analysis)
 
-### `src/components/canvas/DepotCanvas.tsx`
-- Add `<LoadingOverlay />`, `<DemoBanner />`, `<CanvasWatermark />`
-- The watermark and animated border go inside/around the SVG container
+## Download Feature
+- "Download Summary" button generates a `.md` file
+- Filename: `OTTOYARD-Summary-{date}.md`
+- Content includes a header with run config + the AI-generated summary
+- Uses `Blob` + `URL.createObjectURL` + programmatic `<a>` click
 
-### `src/components/canvas/DepotSVG.tsx`
-- Add low-opacity hexagon watermark at center (SVG element)
-- Add animated gradient border `<rect>` around depot perimeter, conditional on simulation running
-- Add shimmer effect on solar canopy dashed outline during daytime (6AM-6PM)
-
-### `src/App.tsx`
-- Add `useKeyboardShortcuts()` hook
-- Wrap with `<ResponsiveGuard>`
-
-### `src/index.css`
-- Add keyframes: `typing-dot` pulse for AI loading dots
-- Add keyframes: `border-glow` for depot perimeter animation
-- Add keyframes: `shimmer` for solar canopy
-
-### `tailwind.config.ts`
-- Add new animation entries for `border-glow`, `typing-dot`
-
-## Demo Mode Flow
-1. User clicks "Demo Mode" → `demoStore.enterDemo()`
-2. Set preset config (50 fleet, 150 consumer, Priority-Weighted, 10 DCFC / 40 L2)
-3. Lock controls (`controlsLocked = true`)
-4. Show loading overlay for 1.5s
-5. Set speed to 30x, open KPIs tab
-6. Auto-start simulation
-7. Show demo banner on canvas
-8. "Exit Demo" → unlock controls, hide banner, sim keeps running
-
-## Key Details
-- Keyboard shortcuts ignore events when user is typing in inputs
-- Responsive guard uses `window.innerWidth` with resize listener
-- Canvas watermark is pure SVG, no extra DOM
-- Demo config values match the spec exactly
-- Saving indicator subscribes to `demoStore.isSaving`, set by `runPersistence.saveRun()`
+## AI Model
+Uses the existing Lovable AI gateway with `google/gemini-3-flash-preview` (already configured and working). Anthropic models are not available through this gateway — the closest equivalent would be `openai/gpt-5` or `google/gemini-2.5-pro` for higher quality summaries.
 
