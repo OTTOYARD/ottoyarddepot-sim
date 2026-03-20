@@ -2,13 +2,8 @@ import { forwardRef } from 'react';
 import { useDepotStore } from '@/store/depotStore';
 import { useVehicleStore } from '@/store/vehicleStore';
 import { Stall } from './Stall';
-
-const VEHICLE_COLORS: Record<string, string> = {
-  fleet: '#00B4A6',
-  elite: '#FFD700',
-  concierge: '#FF8C00',
-  core: '#87CEEB',
-};
+import { VehicleDot } from './VehicleDot';
+import { ZoneBadges } from './ZoneBadges';
 
 export const DepotSVG = forwardRef<SVGSVGElement>((_, ref) => {
   const stalls = useDepotStore((s) => s.stalls);
