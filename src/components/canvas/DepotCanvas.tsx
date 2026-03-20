@@ -6,6 +6,8 @@ import { StallTooltip } from './StallTooltip';
 import { StallPopup } from './StallPopup';
 import { VehicleTooltip } from './VehicleTooltip';
 import { AlertToasts } from './AlertToasts';
+import { LoadingOverlay } from './LoadingOverlay';
+import { DemoBanner } from './DemoBanner';
 import { useEngineLifecycle } from '@/hooks/useEngineLifecycle';
 
 export const DepotCanvas = () => {
@@ -15,6 +17,7 @@ export const DepotCanvas = () => {
   return (
     <div className="flex-1 flex flex-col min-w-0">
       <div className="flex-1 relative overflow-hidden">
+        <DemoBanner />
         <div className="absolute inset-0 flex items-center justify-center p-2">
           <DepotSVG ref={svgRef} />
         </div>
@@ -23,6 +26,7 @@ export const DepotCanvas = () => {
         <VehicleTooltip svgRef={svgRef} />
         <AlertToasts />
         <DepotLegend />
+        <LoadingOverlay />
       </div>
       <BottomBar />
     </div>

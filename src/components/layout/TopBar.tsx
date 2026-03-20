@@ -1,6 +1,7 @@
-import { Play, Pause, RotateCcw, Settings } from 'lucide-react';
+import { Play, Pause, RotateCcw, Settings, Presentation, Loader2, Check } from 'lucide-react';
 import { useSimulationStore } from '@/store/simulationStore';
 import { useVehicleStore } from '@/store/vehicleStore';
+import { useDemoStore } from '@/store/demoStore';
 import { simulationEngine } from '@/engine/SimulationEngine';
 
 const formatTime = (seconds: number) => {
@@ -24,11 +25,30 @@ const StatusPill = ({ status }: { status: 'idle' | 'running' | 'paused' }) => {
   );
 };
 
+const HexLogo = () => (
+  <svg viewBox="0 0 100 100" fill="#C00000" className="h-7 w-7 shrink-0">
+    <path d="M50 5 L93 27.5 L93 72.5 L50 95 L7 72.5 L7 27.5 Z" />
+    <path d="M50 20 L78 35 L78 65 L50 80 L22 65 L22 35 Z" fill="none" stroke="white" strokeWidth="3" />
+  </svg>
+);
+
+const SaveIndicator = () => {
+  const isSaving = useDemoStore((s) => s.isSaving);
+  if (!isSaving) return null;
+  return (
+    <div className="flex items-center gap-1 text-otto-teal">
+      <Loader2 size={12} className="animate-spin" />
+      <span className="text-[10px]">Saving…</span>
+    </div>
+  );
+};
+
 export const TopBar = () => {
   const { status, simTime, simSpeed } = useSimulationStore();
   const vehiclesProcessed = useVehicleStore((s) => s.vehiclesProcessed);
   const queueDepth = useVehicleStore((s) => s.queueDepth);
   const vehicleCount = useVehicleStore((s) => s.vehicles.length);
+  const isDemoMode = useDemoStore((s) => s.isDemoMode);
 
   const togglePlayPause = () => {
     if (status === 'running') simulationEngine.stop();
@@ -42,8 +62,15 @@ export const TopBar = () => {
   return (
     <div className="h-14 bg-otto-dark border-b-2 border-otto-red flex items-center px-4 shrink-0 z-20">
       <div className="flex items-center gap-3">
-        <span className="text-otto-red font-bold text-xl tracking-tight">OTTOYARD</span>
+        <div className="flex items-center gap-2">
+          <HexLogo />
+          <div className="flex flex-col">
+            <span className="text-otto-red font-bold text-xl tracking-[2px] leading-tight">OTTOYARD</span>
+            <span className="text-otto-gray text-[10px] leading-tight hidden xl:block">Depot Simulation Platform</span>
+          </div>
+        </div>
         <StatusPill status={status} />
+        <SaveIndicator />
       </div>
 
       <div className="flex-1 flex items-center justify-center gap-4">
@@ -55,6 +82,19 @@ export const TopBar = () => {
       </div>
 
       <div className="flex items-center gap-1">
+        {!isDemoMode && (
+          <button
+            onClick={() => {
+              // Demo mode is triggered via keyboard shortcut or external function
+              // We dispatch a custom event to trigger it from App
+              window.dispatchEvent(new CustomEvent('ottoyard-demo'));
+            }}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-otto-amber hover:text-white hover:bg-otto-amber/10 rounded-md transition-colors border border-otto-amber/30"
+          >
+            <Presentation size={14} />
+            <span className="hidden lg:inline">Demo</span>
+          </button>
+        )}
         <button onClick={togglePlayPause} className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-md transition-colors">
           {status === 'running' ? <Pause size={18} /> : <Play size={18} />}
         </button>
