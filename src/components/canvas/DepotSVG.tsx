@@ -120,7 +120,7 @@ export const DepotSVG = forwardRef<SVGSVGElement>((_, ref) => {
       </g>
 
       <text x={150} y={50} textAnchor="middle" fontSize={5} fill="#C00000" fontWeight="bold" opacity={0.6}>DCFC CHARGING</text>
-      <text x={150} y={115} textAnchor="middle" fontSize={5} fill="#00B4A6" fontWeight="bold" opacity={0.6}>L2 CHARGING</text>
+      <text x={150} y={72} textAnchor="middle" fontSize={5} fill="#00B4A6" fontWeight="bold" opacity={0.6}>L2 CHARGING</text>
       <text x={215} y={28} textAnchor="middle" fontSize={3.5} fill="#2196F3" fontWeight="bold" opacity={0.6}>WASH</text>
       <text x={150} y={167} textAnchor="middle" fontSize={5} fill="#F59E0B" fontWeight="bold" opacity={0.6}>STAGING</text>
       <text x={120} y={2.5} textAnchor="middle" fontSize={3.5} fill="#ffffff" fontWeight="bold" opacity={0.5}>OPERATIONS</text>
