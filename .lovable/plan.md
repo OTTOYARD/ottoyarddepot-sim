@@ -1,81 +1,94 @@
 
 
-# Real-Time Alert System
+# Supabase Persistence & History Tab
 
 ## Overview
-Build an alert engine that monitors simulation state every tick, generates categorized alerts (critical/warning/info), displays toast notifications on the canvas, and populates the AlertsTab with a filterable alert log. Wire up the "Inject Incident" button.
+Create a `simulation_runs` table, auto-save runs on pause/stop, and build the History tab with run list, comparison view, and config loading.
+
+## Database Migration
+
+Create `simulation_runs` table with RLS policies allowing anonymous insert/select/delete (no auth required — this is a single-user simulation tool):
+
+```sql
+create table simulation_runs (
+  id uuid default gen_random_uuid() primary key,
+  created_at timestamp with time zone default now(),
+  name text,
+  duration_seconds integer,
+  config jsonb,
+  kpi_results jsonb,
+  ai_summary text,
+  vehicles_processed integer,
+  avg_turnaround_minutes numeric,
+  peak_queue_depth integer,
+  peak_power_draw_kw numeric,
+  alert_count_critical integer default 0,
+  alert_count_warning integer default 0,
+  alert_count_info integer default 0
+);
+
+alter table simulation_runs enable row level security;
+
+create policy "Allow all access" on simulation_runs
+  for all using (true) with check (true);
+```
 
 ## Files to Create
 
-### 1. `src/store/alertStore.ts`
-Zustand store with:
-- `alerts: Alert[]` (id, timestamp, severity, title, message, acknowledged)
-- Actions: `addAlert`, `acknowledgeAlert`, `clearAlerts`, `reset`
-- Dedup logic: don't add duplicate alerts within 60 sim-seconds (same title)
+### 1. `src/store/historyStore.ts`
+Zustand store managing:
+- `runs: SimulationRun[]` — fetched from database
+- `selectedForCompare: [string?, string?]` — up to 2 run IDs
+- `compareMode: boolean`
+- `isLoading: boolean`
+- Actions: `fetchRuns`, `deleteRun`, `toggleCompare`, `setCompareMode`, `renameRun`
 
-### 2. `src/engine/AlertEngine.ts`
-Pure function `checkAlerts(vehicles, config, stalls, simTime, kpis)` called every tick from SimulationEngine. Tracks internal state (timers for sustained conditions) via module-level variables.
-
-**Critical checks:**
-- Queue overflow: queue depth > 15 sustained for 5 sim-minutes (300s)
-- Charger failure: random roll per tick based on `equipmentFailureRate`, marks a random occupied stall as 'offline'
-- Demand spike: total power > `utilityService * 1000` kW
-- BESS depleted: bessSOC < 10% during 7AM-9PM
-
-**Warning checks:**
-- High utilization: DCFC or L2 > 85% for 10 sim-minutes
-- Fleet block incoming: 15 min before dcfcBlockStart, check available DCFC stalls
-- Weather impact: weather !== 'Clear' → one-time warning
-- Staff shortage: servicing vehicles > staffingLevel * 3
-
-**Info checks:**
-- VIP override, OTTO-Q reroute, BESS discharge start, maintenance bay available
-- Triggered contextually when relevant state changes occur
-
-Includes `resetAlertEngine()` for clearing internal timers.
-
-### 3. `src/components/canvas/AlertToasts.tsx`
-Positioned absolute in top-right of canvas area. Subscribes to alertStore, shows last 3 unacknowledged alerts as toast cards:
-- Critical: red bg, white text, auto-dismiss 8s
-- Warning: amber bg, dark text, auto-dismiss 5s
-- Info: teal bg, white text, auto-dismiss 3s
-- Slide-in-right animation, stack vertically, X button to dismiss
-- Uses internal state to track visible toasts with timers
-
-### 4. `src/components/tabs/AlertsTab.tsx` — Full rebuild
-- **Summary bar**: Color-coded badge counts (Critical | Warning | Info)
-- **Filter toggles**: 3 toggle buttons to show/hide each severity
-- **Alert list**: ScrollArea, reverse chronological, each card has severity icon + color left border, sim time, title (bold), message, "Acknowledge" button
-- Unacknowledged critical alerts get `animate-pulse` on left border
-- Acknowledged alerts dim to 50% opacity
-
-### 5. `src/engine/IncidentInjector.ts`
-`injectRandomIncident()` function that randomly picks one of:
-- Charger failure: set random occupied stall to 'offline', add critical alert
-- Vehicle breakdown: remove random in-service vehicle, add critical alert
-- Power fluctuation: temporarily flag in kpiStore (reduces available power 20% for 5 sim-min)
-- Queue surge: spawn 5 vehicles into queue simultaneously
+### 2. `src/lib/runPersistence.ts`
+- `saveRun()`: Collects final state from simulationStore, kpiStore, aiStore, alertStore, vehicleStore. Computes peak queue depth (track in vehicleStore or kpiStore). Inserts row via Supabase client. Returns the saved run. Shows toast on success.
+- `deleteRun(id)`: Deletes from Supabase.
+- `fetchRuns()`: Select all, order by created_at desc.
+- `loadConfig(run)`: Parses config JSON, calls `simulationStore.updateConfig()` and `depotStore.regenerateStalls()`. Shows toast.
 
 ## Files to Modify
 
 ### `src/engine/SimulationEngine.ts`
-- Import and call `checkAlerts()` at end of tick loop (after KPI calculation)
-- On reset, call `alertStore.reset()` and `resetAlertEngine()`
+- In `stop()`: After triggering AI analysis, call `saveRun()` (async, fire-and-forget with error handling)
+- Track `peakQueueDepth` during the tick loop — add to kpiStore
 
-### `src/components/tabs/ControlsTab.tsx`
-- Wire "Inject Incident" button onClick to call `injectRandomIncident()`
+### `src/store/kpiStore.ts`
+- Add `peakQueueDepth: number` and `peakPowerDraw: number` fields, updated each tick if current value exceeds stored peak
 
-### `src/components/canvas/DepotCanvas.tsx`
-- Add `<AlertToasts />` component inside the canvas relative container
+### `src/components/tabs/HistoryTab.tsx` — Full rebuild
+**Run List View:**
+- Fetch runs on mount via `historyStore.fetchRuns()`
+- Each card: run name (editable on click), date, duration, key stats row (vehicles, turnaround, uptime), truncated AI summary
+- Buttons: "Load Config", "Compare" checkbox, "Delete" (with confirm dialog)
+- Top bar: "Compare Runs" button (enabled when exactly 2 selected)
 
-### `src/store/simulationStore.ts`
-- No changes needed (activeTab already supports 'alerts')
+**Comparison View:**
+- Side-by-side columns for Run A and Run B
+- KPI rows with values and delta arrows (green = improved, red = worse, direction-aware)
+- Config diff section highlighting differences in amber
+- AI summaries side by side
+- "Back to List" button
 
-## Alert Deduplication
-Same alert title won't fire again within 60 sim-seconds to prevent spam during sustained conditions.
+## Component Hierarchy
+```text
+HistoryTab
+├── RunListView (default)
+│   ├── CompareButton (top, enabled when 2 selected)
+│   └── ScrollArea
+│       └── RunCard[] (name, stats, Load/Compare/Delete)
+└── ComparisonView (when compareMode)
+    ├── BackButton
+    ├── KPIComparisonGrid
+    ├── ConfigDiffSection
+    └── AISummaryComparison
+```
 
-## Performance
-- Alert checks are O(n) over vehicles + stalls, negligible cost
-- AlertToasts renders max 3 items
-- AlertsTab only renders when active tab is 'alerts'
+## Key Details
+- No auth required — RLS allows all access (public simulation tool)
+- Graceful degradation: if Supabase calls fail, show error in tab, simulation unaffected
+- Auto-generated run names: `Run #N - Mar 19 2:30PM` format
+- Peak queue depth tracked via new kpiStore field updated each tick
 
