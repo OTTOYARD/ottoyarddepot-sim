@@ -253,7 +253,7 @@ export class SimulationEngine {
 
     // 6. Remove departed vehicles
     const departing = vehicles.filter(
-      (v) => v.status === 'departing' && !v.targetPosition
+      (v) => v.status === 'departing' && !v.targetPosition && (!v.waypoints || v.waypoints.length === 0)
     );
     if (departing.length > 0) {
       const departedIds = new Set(departing.map((v) => v.id));
