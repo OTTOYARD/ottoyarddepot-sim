@@ -11,6 +11,7 @@ export interface SimulationConfig {
   avgBatterySocArrival: number;
   targetSocDeparture: number;
   avgBatteryCapacity: number;
+  dcfcVsL2Ratio: number; // 0-100, percentage preferring DCFC
 
   // Consumer/VIP
   activeConsumerMembers: number;
