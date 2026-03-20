@@ -54,7 +54,7 @@ export async function saveRun(): Promise<void> {
       duration_seconds: Math.round(duration),
       config: sim.config as unknown as Record<string, unknown>,
       kpi_results: kpiResults as unknown as Record<string, unknown>,
-      ai_summary: ai.latestSummary || null,
+      ai_summary: ai.runSummary || null,
       vehicles_processed: vehicles.vehiclesProcessed,
       avg_turnaround_minutes: Math.round(kpi.avgTurnaroundMin * 100) / 100,
       peak_queue_depth: kpi.peakQueueDepth,
