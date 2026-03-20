@@ -3,6 +3,7 @@ import { useSimulationStore } from '@/store/simulationStore';
 import { useVehicleStore } from '@/store/vehicleStore';
 import { useDemoStore } from '@/store/demoStore';
 import { simulationEngine } from '@/engine/SimulationEngine';
+import logo from '@/assets/logo.png';
 
 const formatTime = (seconds: number) => {
   const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
@@ -24,13 +25,6 @@ const StatusPill = ({ status }: { status: 'idle' | 'running' | 'paused' }) => {
     </span>
   );
 };
-
-const HexLogo = () => (
-  <svg viewBox="0 0 100 100" fill="#C00000" className="h-7 w-7 shrink-0">
-    <path d="M50 5 L93 27.5 L93 72.5 L50 95 L7 72.5 L7 27.5 Z" />
-    <path d="M50 20 L78 35 L78 65 L50 80 L22 65 L22 35 Z" fill="none" stroke="white" strokeWidth="3" />
-  </svg>
-);
 
 const SaveIndicator = () => {
   const isSaving = useDemoStore((s) => s.isSaving);
