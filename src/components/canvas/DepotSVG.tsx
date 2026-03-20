@@ -81,21 +81,10 @@ export const DepotSVG = forwardRef<SVGSVGElement>((_, ref) => {
 
       {/* Vehicle dots */}
       {vehicles.map((v) => (
-        <circle
-          key={v.id}
-          cx={v.position.x}
-          cy={v.position.y}
-          r={2.5}
-          fill={VEHICLE_COLORS[v.type] || '#87CEEB'}
-          stroke="#ffffff"
-          strokeWidth={0.3}
-          opacity={0.9}
-        >
-          {v.status === 'charging' && (
-            <animate attributeName="r" values="2.5;3.2;2.5" dur="1.5s" repeatCount="indefinite" />
-          )}
-        </circle>
+        <VehicleDot key={v.id} vehicle={v} />
       ))}
+
+      <ZoneBadges />
 
       <text x={150} y={50} textAnchor="middle" fontSize={5} fill="#C00000" fontWeight="bold" opacity={0.6}>DCFC CHARGING</text>
       <text x={150} y={115} textAnchor="middle" fontSize={5} fill="#00B4A6" fontWeight="bold" opacity={0.6}>L2 CHARGING</text>

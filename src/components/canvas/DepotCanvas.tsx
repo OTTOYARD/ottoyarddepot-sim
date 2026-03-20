@@ -19,6 +19,7 @@ export const DepotCanvas = () => {
         </div>
         <StallTooltip svgRef={svgRef} />
         <StallPopup svgRef={svgRef} />
+        <VehicleTooltip svgRef={svgRef} />
         <DepotLegend />
       </div>
       <BottomBar />
