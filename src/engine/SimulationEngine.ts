@@ -7,7 +7,9 @@ import { SERVICE_TO_STALL_TYPE, EGRESS, QUEUE_Y } from './types';
 import type { Vehicle, VehicleStatus } from './types';
 import type { StallState } from '@/store/depotStore';
 
-const LERP_SPEED = 4; // SVG units per sim-second
+const LERP_SPEED = 30; // SVG units per sim-second
+const LEFT_AISLE_X = 30;
+const RIGHT_AISLE_X = 275;
 
 function getServiceDuration(vehicle: Vehicle, config: ReturnType<typeof useSimulationStore.getState>['config']): number {
   const service = vehicle.serviceQueue[vehicle.currentServiceIndex];
