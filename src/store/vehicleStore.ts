@@ -5,11 +5,13 @@ interface VehicleState {
   vehicles: Vehicle[];
   vehiclesProcessed: number;
   queueDepth: number;
+  hoveredVehicleId: string | null;
   addVehicle: (v: Vehicle) => void;
   removeVehicle: (id: string) => void;
   setVehicles: (vehicles: Vehicle[]) => void;
   incrementProcessed: () => void;
   setQueueDepth: (n: number) => void;
+  setHoveredVehicle: (id: string | null) => void;
   reset: () => void;
 }
 
