@@ -236,7 +236,13 @@ export class SimulationEngine {
 
           if (v.currentServiceIndex >= v.serviceQueue.length) {
             v.status = 'departing';
-            v.targetPosition = { ...EGRESS };
+            // Waypoint path: current pos → right aisle → south → egress
+            v.waypoints = [
+              { x: RIGHT_AISLE_X, y: v.position.y },
+              { x: RIGHT_AISLE_X, y: 215 },
+              { ...EGRESS },
+            ];
+            v.targetPosition = v.waypoints.shift()!;
           } else {
             v.status = 'queued'; // re-queue for next service
           }
