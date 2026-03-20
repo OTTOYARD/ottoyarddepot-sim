@@ -130,7 +130,7 @@ export const ControlsTab = () => {
   const allSections = ['fleet', 'consumer', 'infra', 'service', 'env', 'sim'];
 
   return (
-    <ScrollArea className="flex-1">
+    <ScrollArea className="flex-1 depot-controls">
       <Accordion type="multiple" defaultValue={allSections} className="w-full">
         {/* ── Section 1: Fleet ── */}
         <Section value="fleet" icon={Truck} title="Fleet Configuration">
