@@ -6,7 +6,7 @@ import { useDepotStore } from '@/store/depotStore';
 import { useAIStore } from '@/store/aiStore';
 
 export interface SimulationContext {
-  mode: 'live_observation' | 'run_summary';
+  mode: 'run_summary';
   simTime: string;
   elapsed: number;
   config: {
@@ -44,18 +44,18 @@ function countStalls(stalls: { type: string; status: string }[], type: string) {
   };
 }
 
-export function collectContext(mode: 'live_observation' | 'run_summary'): SimulationContext {
+export function collectContext(): SimulationContext {
   const sim = useSimulationStore.getState();
   const kpi = useKPIStore.getState();
   const vehicles = useVehicleStore.getState();
   const depot = useDepotStore.getState();
 
-  const startTime = 50400; // 14:00 default
+  const startTime = 50400;
   let elapsed = (sim.simTime - startTime) / 60;
   if (elapsed < 0) elapsed += 1440;
 
   return {
-    mode,
+    mode: 'run_summary',
     simTime: formatSimTime(sim.simTime),
     elapsed: Math.round(elapsed),
     config: {
@@ -91,23 +91,16 @@ export function collectContext(mode: 'live_observation' | 'run_summary'): Simula
   };
 }
 
-export async function requestAnalysis(mode: 'live_observation' | 'run_summary'): Promise<void> {
+export async function requestAnalysis(): Promise<void> {
   const aiStore = useAIStore.getState();
-  const now = Date.now();
 
-  // Real-time throttle: 10 seconds minimum between calls
-  if (now - aiStore.lastRealCallTime < 10000) return;
+  if (aiStore.isLoadingSummary) return;
 
-  const isLoading = mode === 'live_observation' ? aiStore.isLoadingObservation : aiStore.isLoadingSummary;
-  if (isLoading) return;
-
-  const setLoading = mode === 'live_observation' ? aiStore.setLoadingObservation : aiStore.setLoadingSummary;
-  setLoading(true);
-  aiStore.setLastRealCallTime(now);
+  aiStore.setLoadingSummary(true);
   aiStore.setError(null);
 
   try {
-    const context = collectContext(mode);
+    const context = collectContext();
     const { data, error } = await supabase.functions.invoke('analyze-simulation', {
       body: { context },
     });
@@ -117,20 +110,11 @@ export async function requestAnalysis(mode: 'live_observation' | 'run_summary'):
 
     const text = data?.analysis || 'No analysis returned.';
     aiStore.incrementCallCount();
-
-    if (mode === 'live_observation') {
-      aiStore.addObservation({
-        simTime: context.simTime,
-        text,
-        timestamp: now,
-      });
-    } else {
-      aiStore.setRunSummary(text);
-    }
+    aiStore.setRunSummary(text);
   } catch (e: any) {
     console.error('AI analysis error:', e);
     aiStore.setError(e?.message || 'AI analysis failed');
   } finally {
-    setLoading(false);
+    aiStore.setLoadingSummary(false);
   }
 }
