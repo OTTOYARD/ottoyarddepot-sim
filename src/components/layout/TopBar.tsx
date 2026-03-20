@@ -3,6 +3,7 @@ import { useSimulationStore } from '@/store/simulationStore';
 import { useVehicleStore } from '@/store/vehicleStore';
 import { useDemoStore } from '@/store/demoStore';
 import { simulationEngine } from '@/engine/SimulationEngine';
+import logo from '@/assets/logo.png';
 
 const formatTime = (seconds: number) => {
   const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
@@ -24,13 +25,6 @@ const StatusPill = ({ status }: { status: 'idle' | 'running' | 'paused' }) => {
     </span>
   );
 };
-
-const HexLogo = () => (
-  <svg viewBox="0 0 100 100" fill="#C00000" className="h-7 w-7 shrink-0">
-    <path d="M50 5 L93 27.5 L93 72.5 L50 95 L7 72.5 L7 27.5 Z" />
-    <path d="M50 20 L78 35 L78 65 L50 80 L22 65 L22 35 Z" fill="none" stroke="white" strokeWidth="3" />
-  </svg>
-);
 
 const SaveIndicator = () => {
   const isSaving = useDemoStore((s) => s.isSaving);
@@ -63,7 +57,7 @@ export const TopBar = () => {
     <div className="h-14 bg-otto-dark border-b-2 border-otto-red flex items-center px-4 shrink-0 z-20">
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
-          <HexLogo />
+          <img src={logo} alt="OTTOYARD" className="h-8 w-8 shrink-0" />
           <div className="flex flex-col">
             <span className="text-otto-red font-bold text-xl tracking-[2px] leading-tight">OTTOYARD</span>
             <span className="text-otto-gray text-[10px] leading-tight hidden xl:block">Depot Simulation Platform</span>
