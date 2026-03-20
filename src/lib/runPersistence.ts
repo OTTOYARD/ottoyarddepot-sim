@@ -13,6 +13,8 @@ import { format } from 'date-fns';
 let runCounter = 0;
 
 export async function saveRun(): Promise<void> {
+  const demo = useDemoStore.getState();
+  demo.setSaving(true);
   try {
     const sim = useSimulationStore.getState();
     const kpi = useKPIStore.getState();
