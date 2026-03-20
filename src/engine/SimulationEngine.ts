@@ -1,8 +1,10 @@
 import { useSimulationStore } from '@/store/simulationStore';
 import { useDepotStore } from '@/store/depotStore';
 import { useVehicleStore } from '@/store/vehicleStore';
+import { useKPIStore } from '@/store/kpiStore';
 import { generateArrivals, resetArrivalGenerator } from './ArrivalGenerator';
 import { getScheduler } from './scheduling';
+import { calculateKPIs } from './KPICalculator';
 import { SERVICE_TO_STALL_TYPE, EGRESS, QUEUE_Y } from './types';
 import type { Vehicle, VehicleStatus } from './types';
 import type { StallState } from '@/store/depotStore';
@@ -81,6 +83,7 @@ export class SimulationEngine {
     this.stop();
     resetArrivalGenerator();
     useVehicleStore.getState().reset();
+    useKPIStore.getState().reset();
     const simStore = useSimulationStore.getState();
     simStore.setStatus('idle');
     simStore.setSimTime(50400);
@@ -263,8 +266,12 @@ export class SimulationEngine {
     if (departing.length > 0) {
       const departedIds = new Set(departing.map((v) => v.id));
       vehicles = vehicles.filter((v) => !departedIds.has(v.id));
-      for (let i = 0; i < departing.length; i++) {
+      const kpiState = useKPIStore.getState();
+      for (const dv of departing) {
         vehicleState.incrementProcessed();
+        let turnaround = newSimTime - dv.arrivalTime;
+        if (turnaround < 0) turnaround += 86400;
+        kpiState.recordDeparture(turnaround);
       }
       changed = true;
     }
@@ -274,6 +281,9 @@ export class SimulationEngine {
       vehicleState.setVehicles(vehicles);
     }
     vehicleState.setQueueDepth(vehicles.filter((v) => v.status === 'queued').length);
+
+    // 8. Calculate KPIs
+    calculateKPIs(vehicles, config, depotState.stalls, newSimTime, vehicleState.vehiclesProcessed);
 
     this.rafId = requestAnimationFrame(this.loop);
   };
