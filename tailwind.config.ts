@@ -57,6 +57,13 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        'otto-charcoal': '#2D2D2D',
+        'otto-red': '#C00000',
+        'otto-teal': '#00B4A6',
+        'otto-amber': '#F59E0B',
+        'otto-white': '#FFFFFF',
+        'otto-gray': '#666666',
+        'otto-dark': '#1A1A2E',
       },
       borderRadius: {
         lg: "var(--radius)",
