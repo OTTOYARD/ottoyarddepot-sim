@@ -1,79 +1,52 @@
 
 
-# Depot Canvas — Full 2D SVG Rendering
+# Build ControlsTab with Accordion Sections
 
 ## Overview
-Replace the DepotCanvas placeholder with an interactive SVG-based top-down depot layout (~300x220ft) showing all zones, stalls, buildings, and infrastructure.
+Replace the placeholder ControlsTab with a fully functional controls panel containing 6 collapsible accordion sections, all wired to a new `config` object in the simulation store.
 
-## Files to Create
+## Files to Modify/Create
 
-### 1. `src/store/depotStore.ts` — Depot state (Zustand)
-- `StallState` interface: id, type, status, vehicleId, position (x, y, angle)
-- `DepotConfig` interface: counts + stalls array
-- `selectedStallId: string | null` for click selection
-- `hoveredStallId: string | null` for tooltip
-- `initStalls()` — generates all 68 stalls with calculated positions:
-  - 10 DCFC (y: 40-75, single row)
-  - 40 L2 (y: 75-155, 4 rows of 10)
-  - 3 Wash (y: 25-45, right of building)
-  - 15 Staging (y: 155-190, single row)
-- All stalls start as `available`
-- `setStallStatus(id, status)` action
-- `selectStall(id)` / `clearSelection()` actions
+### 1. `src/store/simulationStore.ts` — Add config object
+Add a `SimulationConfig` interface with all ~45 variables organized by section (fleet, consumer, infrastructure, serviceTimes, environment, simControl). Add `config` state and `updateConfig(partial)` action. Infrastructure count changes (`dcfcCount`, `l2Count`, `washBayCount`, `stagingCount`) will also call `useDepotStore`'s regeneration logic. `simSpeed` changes sync to the existing top-level `simSpeed`.
 
-### 2. `src/components/canvas/Stall.tsx` — Reusable SVG stall component
-- Props: StallState data
-- Renders a parallelogram (60° angle) via `<polygon>` with transform
-- Status-based fill: available=15% type color, occupied=50%, charging=80% + CSS pulse, servicing=blue 60%, offline=red + crosshatch `<pattern>`, reserved=amber outline only
-- Hover: sets hoveredStallId in store
-- Click: sets selectedStallId in store
-- Small label text showing stall ID
+### 2. `src/store/depotStore.ts` — Add regenerateStalls action
+Expose `generateStalls` as a parameterized function accepting counts, and add a `regenerateStalls(dcfc, l2, wash, staging)` action that rebuilds the stalls array and updates counts.
 
-### 3. `src/components/canvas/DepotSVG.tsx` — Main SVG depot layout
-- SVG viewBox="0 0 300 220", preserveAspectRatio="xMidYMid meet"
-- **Defs section**: crosshatch pattern, pulse animation keyframes
-- **Grid background**: 10ft grid lines at ~5% opacity
-- **Layers rendered bottom-to-top**:
-  - Street/road strip (y: 215-220, dark gray)
-  - Gates: Ingress (x=100) and Egress (x=200) markers with labels + arrows
-  - Landscape buffer (y: 190-200, green strip)
-  - Drive aisles (24ft wide, #333, directional arrows)
-  - Staging zone stalls (15x, amber)
-  - L2 charging field stalls (40x, teal) + dashed solar canopy rect
-  - DCFC charging field stalls (10x, red)
-  - Operations building (70x50ft, #3A3A3A, white border, internal subdivisions)
-  - Wash bays (3x, blue)
-  - Utility zone: BESS, Transformer, Switchgear rectangles (#9E9E9E, labeled)
-  - Zone labels (colored text per spec)
-- Iterates over `stalls` from depotStore, renders `<Stall>` for each
+### 3. `src/components/tabs/ControlsTab.tsx` — Full rebuild
+Scrollable container with 6 `Accordion` sections (using shadcn Accordion). Each section header: otto-charcoal bg, white text, 3px otto-red left border, lucide icon + label.
 
-### 4. `src/components/canvas/StallTooltip.tsx` — Hover tooltip
-- HTML overlay positioned based on SVG coordinates (using a ref to convert SVG→screen coords)
-- Shows: stall ID, type badge, status, vehicle info placeholder
+**Controls inside each section** use compact layout (8px gaps, text-xs gray labels, white values):
+- **Sliders**: shadcn Slider with custom teal track / red thumb styles (via CSS overrides in index.css targeting Radix slider parts)
+- **Dropdowns**: shadcn Select with dark bg styling
+- **Toggles**: shadcn Switch
+- **Tier Mix**: 3 linked sliders with proportional adjustment logic
+- **Time pickers**: Two simple HH:MM inputs for DCFC block schedule
 
-### 5. `src/components/canvas/StallPopup.tsx` — Click popup card
-- Small card overlay near the clicked stall
-- Shows detailed info + close button
+**Section 6** includes the Run/Pause button (full-width, otto-red bg), Reset (ghost), and Inject Incident (amber outline).
 
-### 6. `src/components/canvas/DepotLegend.tsx` — Floating legend
-- Positioned bottom-left of canvas (HTML overlay)
-- Color swatches: DCFC (red), L2 (teal), Wash (blue), Staging (amber)
-- Status indicators: available, occupied, charging, servicing, offline, reserved
+### 4. `src/index.css` — Slider styling overrides
+Add CSS for Radix slider track (otto-teal) and thumb (otto-red) to match the design spec. Style Select dropdown with dark background.
 
-### 7. Update `src/components/canvas/DepotCanvas.tsx`
-- Replace placeholder with `<DepotSVG />`, `<DepotLegend />`, tooltip/popup overlays
-- Keep BottomBar at bottom
-- Container uses `relative` for overlay positioning
+## Key Behaviors
+- All control changes immediately update `simulationStore.config`
+- Infrastructure slider changes (DCFC/L2/Wash/Staging counts) call `depotStore.regenerateStalls()` to re-render the canvas
+- Sim speed slider syncs to `simulationStore.simSpeed` (updates TopBar display)
+- Run button sets `status: 'running'`, toggles to Pause when running
+- Tier mix sliders: when one changes, redistribute the difference proportionally across the other two, always summing to 100
 
-## Position Calculation Logic
-For 60° angled stalls in a row at base y, spacing ~9ft apart:
-- `x = startX + i * stallSpacing`
-- `y = rowBaseY`
-- `angle = 60`
-- Polygon points calculated from angle + stall dimensions (9w x 18d)
+## Component Structure
+```text
+ControlsTab
+└── ScrollArea
+    └── Accordion (type="multiple", defaultValue=all open)
+        ├── Section 1: Fleet Configuration (Truck icon)
+        ├── Section 2: Consumer/VIP (Users icon)
+        ├── Section 3: Infrastructure (Zap icon)
+        ├── Section 4: Service Times (Clock icon)
+        ├── Section 5: Environment & Ops (Cloud icon)
+        └── Section 6: Simulation Control (Play icon)
+```
 
-## Styling
-- Pulse animation for "charging" status via CSS `@keyframes` in `index.css`
-- Crosshatch SVG pattern defined in `<defs>`
-- All zone fills use rgba for specified opacities
+Each control row: `<div className="flex items-center justify-between gap-2">` with label left, control + value right.
 
