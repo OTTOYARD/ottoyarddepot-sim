@@ -1,27 +1,15 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import Index from "./pages/Index.tsx";
-import NotFound from "./pages/NotFound.tsx";
-
-const queryClient = new QueryClient();
+import { TopBar } from '@/components/layout/TopBar';
+import { SidePanel } from '@/components/layout/SidePanel';
+import { DepotCanvas } from '@/components/canvas/DepotCanvas';
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <div className="h-screen w-screen flex flex-col overflow-hidden bg-otto-dark">
+    <TopBar />
+    <div className="flex-1 flex min-h-0">
+      <DepotCanvas />
+      <SidePanel />
+    </div>
+  </div>
 );
 
 export default App;
