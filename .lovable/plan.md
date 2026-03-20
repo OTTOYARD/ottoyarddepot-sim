@@ -1,18 +1,14 @@
 
 
-# Move L2 CHARGING Label Above the Stalls
+# Reposition L2 CHARGING Label and Badge
 
-## Change
-In `src/components/canvas/DepotSVG.tsx`, move the "L2 CHARGING" text label from `y={115}` (middle of the L2 zone, where stalls cover it) to `y={72}` — just above the L2 charging area so it's clearly visible and not overlapped by stall elements.
+## Changes
 
-## File: `src/components/canvas/DepotSVG.tsx` (line 123)
-```
-// Before
-<text x={150} y={115} ...>L2 CHARGING</text>
+### `src/components/canvas/DepotSVG.tsx` (line 123)
+Move "L2 CHARGING" label from `y={72}` to `y={80}` — below DCFC stalls (y=57) and above L2 rows (y=85).
 
-// After
-<text x={150} y={72} ...>L2 CHARGING</text>
-```
+### `src/components/canvas/ZoneBadges.tsx`
+Move the L2 badge from `x={185} y={113}` to `x={210} y={78}` — placing it right beside the "L2 CHARGING" label text at the same vertical level.
 
-One-line change.
+Two one-line changes.
 
