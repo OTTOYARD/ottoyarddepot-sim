@@ -79,6 +79,8 @@ export class SimulationEngine {
       this.rafId = null;
     }
     useSimulationStore.getState().setStatus('paused');
+    // Trigger run summary analysis
+    requestAnalysis('run_summary');
   }
 
   reset() {
