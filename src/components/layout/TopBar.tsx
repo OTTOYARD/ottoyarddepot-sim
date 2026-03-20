@@ -1,10 +1,12 @@
 import { Play, Pause, RotateCcw, Settings } from 'lucide-react';
 import { useSimulationStore } from '@/store/simulationStore';
+import { useVehicleStore } from '@/store/vehicleStore';
+import { simulationEngine } from '@/engine/SimulationEngine';
 
 const formatTime = (seconds: number) => {
   const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
   const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
-  const s = (seconds % 60).toString().padStart(2, '0');
+  const s = Math.floor(seconds % 60).toString().padStart(2, '0');
   return `${h}:${m}:${s}`;
 };
 
@@ -23,16 +25,18 @@ const StatusPill = ({ status }: { status: 'idle' | 'running' | 'paused' }) => {
 };
 
 export const TopBar = () => {
-  const { status, simTime, simSpeed, setStatus } = useSimulationStore();
+  const { status, simTime, simSpeed } = useSimulationStore();
+  const vehiclesProcessed = useVehicleStore((s) => s.vehiclesProcessed);
+  const queueDepth = useVehicleStore((s) => s.queueDepth);
+  const vehicleCount = useVehicleStore((s) => s.vehicles.length);
 
   const togglePlayPause = () => {
-    if (status === 'running') setStatus('paused');
-    else setStatus('running');
+    if (status === 'running') simulationEngine.stop();
+    else simulationEngine.start();
   };
 
   const reset = () => {
-    setStatus('idle');
-    useSimulationStore.getState().setSimTime(50400);
+    simulationEngine.reset();
   };
 
   return (
@@ -42,9 +46,12 @@ export const TopBar = () => {
         <StatusPill status={status} />
       </div>
 
-      <div className="flex-1 flex items-center justify-center gap-3">
+      <div className="flex-1 flex items-center justify-center gap-4">
         <span className="font-mono text-white text-lg tracking-widest">{formatTime(simTime)}</span>
         <span className="text-otto-teal text-sm font-medium">{simSpeed}x</span>
+        <span className="text-otto-gray text-xs">
+          🚗 {vehicleCount} | ⏳ {queueDepth} | ✅ {vehiclesProcessed}
+        </span>
       </div>
 
       <div className="flex items-center gap-1">

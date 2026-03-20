@@ -1,10 +1,19 @@
 import { forwardRef } from 'react';
 import { useDepotStore } from '@/store/depotStore';
+import { useVehicleStore } from '@/store/vehicleStore';
 import { Stall } from './Stall';
+
+const VEHICLE_COLORS: Record<string, string> = {
+  fleet: '#00B4A6',
+  elite: '#FFD700',
+  concierge: '#FF8C00',
+  core: '#87CEEB',
+};
 
 export const DepotSVG = forwardRef<SVGSVGElement>((_, ref) => {
   const stalls = useDepotStore((s) => s.stalls);
   const selectStall = useDepotStore((s) => s.selectStall);
+  const vehicles = useVehicleStore((s) => s.vehicles);
 
   return (
     <svg
@@ -73,6 +82,24 @@ export const DepotSVG = forwardRef<SVGSVGElement>((_, ref) => {
 
       {stalls.map((stall) => (
         <Stall key={stall.id} stall={stall} />
+      ))}
+
+      {/* Vehicle dots */}
+      {vehicles.map((v) => (
+        <circle
+          key={v.id}
+          cx={v.position.x}
+          cy={v.position.y}
+          r={2.5}
+          fill={VEHICLE_COLORS[v.type] || '#87CEEB'}
+          stroke="#ffffff"
+          strokeWidth={0.3}
+          opacity={0.9}
+        >
+          {v.status === 'charging' && (
+            <animate attributeName="r" values="2.5;3.2;2.5" dur="1.5s" repeatCount="indefinite" />
+          )}
+        </circle>
       ))}
 
       <text x={150} y={50} textAnchor="middle" fontSize={5} fill="#C00000" fontWeight="bold" opacity={0.6}>DCFC CHARGING</text>
