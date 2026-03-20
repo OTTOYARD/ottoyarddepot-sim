@@ -125,20 +125,17 @@ export class SimulationEngine {
       changed = true;
     }
 
-    // 3. Move approaching vehicles to queue
+    // 3. Move approaching vehicles to queue via waypoints
     for (const v of vehicles) {
-      if (v.status === 'approaching') {
+      if (v.status === 'approaching' && !v.targetPosition && !v.waypoints?.length) {
         const queueX = 50 + (vehicles.filter((vv) => vv.status === 'queued').length % 15) * 15;
-        v.targetPosition = { x: queueX, y: QUEUE_Y };
-        // Check if close enough to queue position
-        const dx = (v.targetPosition.x - v.position.x);
-        const dy = (v.targetPosition.y - v.position.y);
-        if (Math.abs(dx) < 2 && Math.abs(dy) < 2) {
-          v.status = 'queued';
-          v.position = { ...v.targetPosition };
-          v.targetPosition = null;
-          changed = true;
-        }
+        // Waypoint path: ingress → left aisle → north → queue position
+        v.waypoints = [
+          { x: LEFT_AISLE_X, y: 215 },
+          { x: LEFT_AISLE_X, y: QUEUE_Y },
+          { x: queueX, y: QUEUE_Y },
+        ];
+        v.targetPosition = v.waypoints.shift()!;
       }
     }
 
