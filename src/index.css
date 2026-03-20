@@ -103,3 +103,12 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+@keyframes stall-pulse {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 0.4; }
+}
+
+.stall-charging-pulse polygon {
+  animation: stall-pulse 2s ease-in-out infinite;
+}
