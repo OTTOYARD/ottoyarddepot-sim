@@ -4,6 +4,7 @@ import { DepotSVG } from './DepotSVG';
 import { DepotLegend } from './DepotLegend';
 import { StallTooltip } from './StallTooltip';
 import { StallPopup } from './StallPopup';
+import { VehicleTooltip } from './VehicleTooltip';
 import { useEngineLifecycle } from '@/hooks/useEngineLifecycle';
 
 export const DepotCanvas = () => {
