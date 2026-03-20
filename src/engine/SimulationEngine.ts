@@ -266,8 +266,12 @@ export class SimulationEngine {
     if (departing.length > 0) {
       const departedIds = new Set(departing.map((v) => v.id));
       vehicles = vehicles.filter((v) => !departedIds.has(v.id));
-      for (let i = 0; i < departing.length; i++) {
+      const kpiState = useKPIStore.getState();
+      for (const dv of departing) {
         vehicleState.incrementProcessed();
+        let turnaround = newSimTime - dv.arrivalTime;
+        if (turnaround < 0) turnaround += 86400;
+        kpiState.recordDeparture(turnaround);
       }
       changed = true;
     }
@@ -277,6 +281,9 @@ export class SimulationEngine {
       vehicleState.setVehicles(vehicles);
     }
     vehicleState.setQueueDepth(vehicles.filter((v) => v.status === 'queued').length);
+
+    // 8. Calculate KPIs
+    calculateKPIs(vehicles, config, depotState.stalls, newSimTime, vehicleState.vehiclesProcessed);
 
     this.rafId = requestAnimationFrame(this.loop);
   };
