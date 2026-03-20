@@ -160,11 +160,18 @@ export class SimulationEngine {
         if (availableStall) {
           v.assignedStall = availableStall.id;
           v.status = serviceToVehicleStatus(neededService);
-          v.targetPosition = {
+          const stallTarget = {
             x: availableStall.position.x + 4,
             y: availableStall.position.y + 8,
           };
-          v.serviceStartTime = null; // will start when vehicle arrives at stall
+          // Waypoint path: current → left aisle at current y → left aisle at stall y → stall
+          v.waypoints = [
+            { x: LEFT_AISLE_X, y: v.position.y },
+            { x: LEFT_AISLE_X, y: stallTarget.y },
+            stallTarget,
+          ];
+          v.targetPosition = v.waypoints.shift()!;
+          v.serviceStartTime = null;
           v.serviceDuration = getServiceDuration(v, config);
           depotState.setStallStatus(availableStall.id, v.status === 'charging' ? 'charging' : 'servicing');
           changed = true;
