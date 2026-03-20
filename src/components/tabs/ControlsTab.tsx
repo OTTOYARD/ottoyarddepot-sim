@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { simulationEngine } from '@/engine/SimulationEngine';
 import {
   Truck, Users, Zap, Clock, Cloud, Play, Pause, RotateCcw, AlertTriangle,
 } from 'lucide-react';
