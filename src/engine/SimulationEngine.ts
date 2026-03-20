@@ -200,13 +200,13 @@ export class SimulationEngine {
             v.targetPosition = null;
 
             // If approaching and arrived at final waypoint, become queued
-            if (v.status === 'approaching') {
+            if ((v.status as string) === 'approaching') {
               v.status = 'queued';
             }
 
             // If at a service stall, start the timer
             if (v.assignedStall && v.serviceStartTime === null &&
-              v.status !== 'departing' && v.status !== 'queued' && v.status !== 'approaching') {
+              v.status !== 'departing' && v.status !== 'queued') {
               v.serviceStartTime = newSimTime;
             }
           }
