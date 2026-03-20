@@ -55,7 +55,9 @@ function createVehicle(type: VehicleType, simTime: number, config: SimulationCon
     targetSoC: config.targetSocDeparture,
     status: 'approaching',
     assignedStall: null,
-    serviceQueue: buildServiceQueue(type),
+    serviceQueue: buildServiceQueue(type, isFleet
+      ? config.avgBatterySocArrival + rand(-10, 10)
+      : config.consumerAvgSoc + rand(-10, 10), config),
     currentServiceIndex: 0,
     serviceStartTime: null,
     serviceDuration: null,
