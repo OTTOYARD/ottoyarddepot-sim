@@ -208,9 +208,10 @@ export const ControlsTab = () => {
         <Section value="sim" icon={Play} title="Simulation Control">
           <SliderRow
             label="Speed"
-            value={config.dcfcCount > -1 ? useSimulationStore.getState().simSpeed : 10}
+            value={simSpeed}
             min={1} max={60} suffix="x"
             onChange={(v) => { setSimSpeed(v); }}
+          />
           />
           <div className="flex gap-2 pt-2">
             <Button
