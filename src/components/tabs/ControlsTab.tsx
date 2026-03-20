@@ -84,7 +84,7 @@ const Section = ({
 /* ── main component ── */
 
 export const ControlsTab = () => {
-  const { config, updateConfig, status, setStatus, setSimSpeed, resetConfig } = useSimulationStore();
+  const { config, updateConfig, status, setStatus, setSimSpeed, resetConfig, simSpeed } = useSimulationStore();
   const regenerateStalls = useDepotStore((s) => s.regenerateStalls);
 
   const upd = useCallback(
