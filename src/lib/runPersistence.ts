@@ -6,6 +6,7 @@ import { useAlertStore } from '@/store/alertStore';
 import { useVehicleStore } from '@/store/vehicleStore';
 import { useDepotStore } from '@/store/depotStore';
 import { useHistoryStore } from '@/store/historyStore';
+import { useDemoStore } from '@/store/demoStore';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 
