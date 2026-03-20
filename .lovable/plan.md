@@ -1,94 +1,66 @@
 
 
-# Simulation Engine Implementation
+# Vehicle Rendering & Animation
 
 ## Overview
-Build a discrete-event simulation engine that spawns vehicles, queues them via OTTO-Q scheduling algorithms, assigns them to stalls, runs service timers, and moves vehicles through a complete lifecycle — all driven by `requestAnimationFrame` and the speed multiplier.
+Replace the simple circle vehicle dots with rich VehicleDot components featuring car-shaped rounded rectangles, status-based animations, vehicle tooltips, and zone occupancy badges.
 
 ## Files to Create
 
-### 1. `src/engine/types.ts` — Vehicle & service types
-- `Vehicle` interface (id, type, priority, batteryCapacity, currentSoC, targetSoC, status, assignedStall, serviceQueue, currentServiceIndex, serviceStartTime, arrivalTime, position, targetPosition)
-- `ServiceType` union: `'dcfc_charge' | 'l2_charge' | 'exterior_wash' | 'interior_detail' | 'maintenance' | 'staging'`
-- Vehicle status union: `'approaching' | 'queued' | 'charging' | 'washing' | 'detailing' | 'maintenance' | 'staging' | 'departing'`
+### 1. `src/components/canvas/VehicleDot.tsx` — Memoized SVG vehicle component
+- Rounded rect (8x5 units) oriented by travel direction, colored by type (fleet=#00B4A6, core=#FFFFFF, concierge=#C0C0C0, elite=#FFD700)
+- Darker stroke derived from fill color
+- Opacity: 0.9 default, 0.6 for queued/staging
+- Status effects via SVG animations:
+  - **Charging**: `<animateTransform>` pulse (scale 1.0→1.1), plus a small teal glow `<circle>` with animated opacity
+  - **Washing**: Expanding/fading ripple rings using `<circle>` with `<animate>` on r and opacity
+  - **Approaching**: fade-in via `<animate>` on opacity from 0→0.9
+  - **Departing**: fade-out via `<animate>` on opacity from 0.9→0
+  - **Queued**: small clock icon (tiny SVG circle+hands) badge offset from vehicle
+- Rotation: calculate angle from position→targetPosition, or default 0 (facing north)
+- Wrapped in `React.memo` comparing id, position.x, position.y, status, currentSoC
 
-### 2. `src/engine/scheduling/fifo.ts`
-Score = negative arrival time (earlier = higher score).
+### 2. `src/components/canvas/VehicleTooltip.tsx` — Hover tooltip for vehicles
+- HTML overlay positioned via SVG→screen coordinate transform (same pattern as StallTooltip)
+- Shows: vehicle ID, type with color dot, mini battery bar (red <20%, amber 20-50%, teal 50%+), status + remaining service time, services completed/total
+- Add `hoveredVehicleId` to vehicleStore
 
-### 3. `src/engine/scheduling/priorityWeighted.ts`
-Score = `(priority * 3) + (waitTime / 60) + (fleet ? 5 : 0) + (elite ? 3 : concierge ? 1 : 0)`.
-
-### 4. `src/engine/scheduling/socOptimized.ts`
-Score = `(100 - currentSoC) + (priority * 2)`.
-
-### 5. `src/engine/scheduling/revenueMax.ts`
-Fleet first, then Elite > Concierge > Core. Within tier, FIFO.
-
-### 6. `src/engine/scheduling/index.ts`
-Exports a `getScheduler(algorithm: string)` function that returns the appropriate scoring function.
-
-### 7. `src/engine/ArrivalGenerator.ts`
-- `shouldSpawnVehicle(simTime, config, existingCount)` — returns vehicles to spawn this tick
-- **Staggered Blocks:** Fleet vehicles in groups during DCFC block window, consumers spread outside
-- **Continuous:** Steady rate throughout the day
-- **Overnight Batch:** 80% fleet between 22:00-02:00, consumers daytime only
-- Randomizes vehicle properties (SoC, battery capacity, service queue) based on config
-
-### 8. `src/engine/SimulationEngine.ts` — Core engine class
-- Holds `rafId`, `lastTimestamp`, reference to stores
-- `start()`: begins rAF loop, sets status to 'running'
-- `stop()`: cancels rAF, sets status to 'paused'
-- `reset()`: clears vehicles, resets time, resets stalls
-- `tick(timestamp)`: the per-frame function:
-  1. Calculate `deltaSimSeconds = (realDeltaMs / 1000) * simSpeed`
-  2. Advance `simTime`
-  3. Call ArrivalGenerator for new spawns
-  4. Run OTTO-Q: find queued vehicles, score them, match to available stalls
-  5. Update service timers — decrement remaining time for occupied stalls
-  6. Handle service completion — advance to next service or depart
-  7. Animate vehicle positions (lerp toward target)
-  8. Sync stall statuses to depotStore
-  9. Update KPI counters
-
-### 9. `src/store/vehicleStore.ts` — New Zustand store for vehicle state
-- `vehicles: Vehicle[]`
-- `vehiclesProcessed: number`
-- `queueDepth: number`
-- Actions: `addVehicle`, `removeVehicle`, `updateVehicle`, `updateVehicles` (batch), `reset`
-- Kept separate from simulationStore to avoid excessive re-renders
+### 3. `src/components/canvas/ZoneBadges.tsx` — Zone occupancy counters
+- SVG `<g>` elements positioned in each zone showing "occupied/total" counts
+- DCFC badge (red) near zone label, L2 badge (teal), Wash (blue), Staging (amber), Queue (white)
+- Reads from vehicleStore (vehicles by status/assignedStall) and depotStore (stall counts)
+- Memoized, recalculates only when vehicles array reference changes
 
 ## Files to Modify
 
-### `src/store/simulationStore.ts`
-- No new vehicle state here (it stays in vehicleStore)
-- The `resetConfig` action will also call engine reset
-
-### `src/components/layout/TopBar.tsx`
-- Wire Play/Pause to `engine.start()`/`engine.stop()`
-- Wire Reset to `engine.reset()`
-
-### `src/components/tabs/ControlsTab.tsx`
-- Wire Run/Pause button to engine start/stop
-- Wire Reset button to engine reset
+### `src/store/vehicleStore.ts`
+- Add `hoveredVehicleId: string | null` and `setHoveredVehicle(id)` action
 
 ### `src/components/canvas/DepotSVG.tsx`
-- Render vehicle dots from vehicleStore — small colored circles at each vehicle's position
-- Fleet = teal dot, consumer tiers = varying shades
+- Replace the simple `<circle>` vehicle rendering with `<VehicleDot>` components
+- Add `<ZoneBadges />` after zone labels
+- Remove inline VEHICLE_COLORS constant (moved to VehicleDot)
 
 ### `src/components/canvas/DepotCanvas.tsx`
-- Import and instantiate engine via a `useEffect` that creates/destroys the engine singleton
+- Add `<VehicleTooltip svgRef={svgRef} />` alongside existing tooltips
 
-## Engine Singleton Pattern
-The engine is instantiated once in `DepotCanvas` via `useEffect`. It reads from stores directly (not via hooks) using `useSimulationStore.getState()` and `useDepotStore.getState()`. It writes to stores via their actions. This avoids React render coupling in the hot loop.
+### `src/engine/SimulationEngine.ts`
+- Increase LERP_SPEED from 4 to 30 SVG units per sim-second (per spec)
+- Add waypoint-based pathing: vehicles move to left aisle (x:30) first when approaching, right aisle (x:275) when departing, rather than direct diagonal movement
+- Add `waypoints: {x,y}[]` field usage — when targetPosition is reached and waypoints remain, pop next waypoint as new target
 
-## Key Calculations
-- **Charge time:** `(targetSoC - currentSoC) / 100 * batteryCapacity / chargerPower * 60` minutes, clamped to config min/max
-- **Vehicle position lerp:** Move 2 units/sim-second toward target position
-- **Spawn rate:** Derived from `activeFleetSize` and `activeConsumerMembers` spread across configured arrival windows
+### `src/engine/types.ts`
+- Add optional `waypoints?: {x:number; y:number}[]` to Vehicle interface
+- Add optional `opacity?: number` for fade in/out tracking
 
-## Technical Details
-- Stall positions from depotStore are used as target positions for assigned vehicles
-- Ingress gate position: `{x: 100, y: 215}`, Egress: `{x: 200, y: 215}`
-- Queue area positions: spread along staging zone y~175
-- Service-to-stall type mapping: `dcfc_charge → dcfc`, `l2_charge → l2`, `exterior_wash/interior_detail → wash`, `staging → staging`
+## Movement Path Logic (in SimulationEngine)
+- **Approaching**: Spawn at ingress (100,215) → waypoint to left aisle (30, 215) → north along aisle (30, QUEUE_Y) → queue position
+- **Assigned to stall**: queue pos → left aisle x:30 at current y → left aisle x:30 at stall y → stall position
+- **Departing**: stall → right aisle x:275 at stall y → south along aisle (275, 215) → egress (200, 215)
+- Engine pops waypoints sequentially as each is reached
+
+## Performance
+- VehicleDot: `React.memo` with shallow compare on id + position + status + currentSoC
+- ZoneBadges: `React.memo`, derives counts via `useMemo`
+- VehicleTooltip: only renders when hoveredVehicleId is set
 
