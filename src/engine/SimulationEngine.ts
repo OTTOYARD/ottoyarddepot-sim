@@ -294,6 +294,9 @@ export class SimulationEngine {
     // 8. Calculate KPIs
     calculateKPIs(vehicles, config, depotState.stalls, newSimTime, vehicleState.vehiclesProcessed);
 
+    // 8b. Check alerts
+    checkAlerts(vehicles, config, depotState.stalls, newSimTime);
+
     // 9. AI observations every 60 sim-seconds
     const aiState = useAIStore.getState();
     const simMinuteNow = Math.floor(newSimTime / 60);

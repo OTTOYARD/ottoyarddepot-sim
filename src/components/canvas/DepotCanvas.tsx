@@ -5,6 +5,7 @@ import { DepotLegend } from './DepotLegend';
 import { StallTooltip } from './StallTooltip';
 import { StallPopup } from './StallPopup';
 import { VehicleTooltip } from './VehicleTooltip';
+import { AlertToasts } from './AlertToasts';
 import { useEngineLifecycle } from '@/hooks/useEngineLifecycle';
 
 export const DepotCanvas = () => {
@@ -20,6 +21,7 @@ export const DepotCanvas = () => {
         <StallTooltip svgRef={svgRef} />
         <StallPopup svgRef={svgRef} />
         <VehicleTooltip svgRef={svgRef} />
+        <AlertToasts />
         <DepotLegend />
       </div>
       <BottomBar />

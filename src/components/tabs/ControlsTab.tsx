@@ -228,7 +228,10 @@ export const ControlsTab = () => {
           <Button
             variant="outline"
             className="w-full border-otto-amber text-otto-amber hover:bg-otto-amber/10"
-            onClick={() => {/* placeholder */}}
+            onClick={() => {
+              const { injectRandomIncident } = require('@/engine/IncidentInjector');
+              injectRandomIncident();
+            }}
           >
             <AlertTriangle size={14} /> Inject Incident
           </Button>
