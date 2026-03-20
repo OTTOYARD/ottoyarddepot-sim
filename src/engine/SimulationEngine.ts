@@ -297,6 +297,13 @@ export class SimulationEngine {
     // 8. Calculate KPIs
     calculateKPIs(vehicles, config, depotState.stalls, newSimTime, vehicleState.vehiclesProcessed);
 
+    // 8a. Track peak values
+    const kpiState = useKPIStore.getState();
+    const currentQueueDepth = vehicles.filter((v) => v.status === 'queued').length;
+    if (currentQueueDepth > kpiState.peakQueueDepth) {
+      kpiState.updateKPIs({ peakQueueDepth: currentQueueDepth });
+    }
+
     // 8b. Check alerts
     checkAlerts(vehicles, config, depotState.stalls, newSimTime);
 
