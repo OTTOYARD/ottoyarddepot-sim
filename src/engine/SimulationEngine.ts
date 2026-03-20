@@ -2,9 +2,11 @@ import { useSimulationStore } from '@/store/simulationStore';
 import { useDepotStore } from '@/store/depotStore';
 import { useVehicleStore } from '@/store/vehicleStore';
 import { useKPIStore } from '@/store/kpiStore';
+import { useAIStore } from '@/store/aiStore';
 import { generateArrivals, resetArrivalGenerator } from './ArrivalGenerator';
 import { getScheduler } from './scheduling';
 import { calculateKPIs } from './KPICalculator';
+import { requestAnalysis } from '@/lib/aiAnalysis';
 import { SERVICE_TO_STALL_TYPE, EGRESS, QUEUE_Y } from './types';
 import type { Vehicle, VehicleStatus } from './types';
 import type { StallState } from '@/store/depotStore';
@@ -77,6 +79,8 @@ export class SimulationEngine {
       this.rafId = null;
     }
     useSimulationStore.getState().setStatus('paused');
+    // Trigger run summary analysis
+    requestAnalysis('run_summary');
   }
 
   reset() {
@@ -84,6 +88,7 @@ export class SimulationEngine {
     resetArrivalGenerator();
     useVehicleStore.getState().reset();
     useKPIStore.getState().reset();
+    useAIStore.getState().reset();
     const simStore = useSimulationStore.getState();
     simStore.setStatus('idle');
     simStore.setSimTime(50400);
@@ -284,6 +289,17 @@ export class SimulationEngine {
 
     // 8. Calculate KPIs
     calculateKPIs(vehicles, config, depotState.stalls, newSimTime, vehicleState.vehiclesProcessed);
+
+    // 9. AI observations every 60 sim-seconds
+    const aiState = useAIStore.getState();
+    const simMinuteNow = Math.floor(newSimTime / 60);
+    const lastObsMinute = Math.floor(aiState.lastObservationSimTime / 60);
+    if (aiState.lastObservationSimTime < 0 || simMinuteNow - lastObsMinute >= 1) {
+      if (vehicles.length > 0) {
+        aiState.setLastObservationSimTime(newSimTime);
+        requestAnalysis('live_observation');
+      }
+    }
 
     this.rafId = requestAnimationFrame(this.loop);
   };
