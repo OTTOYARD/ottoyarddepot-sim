@@ -171,12 +171,26 @@ export class SimulationEngine {
           continue;
         }
         const stallType = SERVICE_TO_STALL_TYPE[neededService];
-        const availableStall = depotState.stalls.find(
+        let availableStall = depotState.stalls.find(
           (s) => s.type === stallType && s.status === 'available'
         );
+
+        // DCFC→L2 overflow: if no DCFC stall available, try L2
+        let overflowed = false;
+        if (!availableStall && neededService === 'dcfc_charge') {
+          availableStall = depotState.stalls.find(
+            (s) => s.type === 'l2' && s.status === 'available'
+          );
+          if (availableStall) {
+            v.serviceQueue[v.currentServiceIndex] = 'l2_charge';
+            overflowed = true;
+          }
+        }
+
         if (availableStall) {
           v.assignedStall = availableStall.id;
-          v.status = serviceToVehicleStatus(neededService);
+          const actualService = overflowed ? 'l2_charge' : neededService;
+          v.status = serviceToVehicleStatus(actualService);
           const stallTarget = {
             x: availableStall.position.x + 4,
             y: availableStall.position.y + 8,

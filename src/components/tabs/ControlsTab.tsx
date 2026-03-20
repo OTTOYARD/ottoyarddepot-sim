@@ -155,6 +155,20 @@ export const ControlsTab = () => {
           <SliderRow label="Avg SoC on Arrival" value={config.avgBatterySocArrival} min={5} max={80} suffix="%" onChange={(v) => upd({ avgBatterySocArrival: v })} />
           <SliderRow label="Target SoC Departure" value={config.targetSocDeparture} min={80} max={100} suffix="%" onChange={(v) => upd({ targetSocDeparture: v })} />
           <SliderRow label="Avg Battery (kWh)" value={config.avgBatteryCapacity} min={40} max={150} onChange={(v) => upd({ avgBatteryCapacity: v })} />
+          <div className="pt-1 border-t border-white/5">
+            <Row label={`DCFC / L2 Split`}>
+              <Slider
+                className="w-28"
+                min={0} max={100} step={1}
+                value={[config.dcfcVsL2Ratio]}
+                onValueChange={([v]) => upd({ dcfcVsL2Ratio: v })}
+              />
+              <span className="text-white text-xs font-medium tabular-nums w-20 text-right shrink-0">
+                {config.dcfcVsL2Ratio}% / {100 - config.dcfcVsL2Ratio}%
+              </span>
+            </Row>
+            <span className="text-[10px] text-otto-gray">Consumer DCFC vs L2 preference. Fleet uses SoC-based routing.</span>
+          </div>
         </Section>
 
         {/* ── Section 2: Consumer/VIP ── */}

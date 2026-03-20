@@ -11,6 +11,7 @@ export interface SimulationConfig {
   avgBatterySocArrival: number;
   targetSocDeparture: number;
   avgBatteryCapacity: number;
+  dcfcVsL2Ratio: number; // 0-100, percentage preferring DCFC
 
   // Consumer/VIP
   activeConsumerMembers: number;
@@ -85,6 +86,7 @@ const defaultConfig: SimulationConfig = {
   avgBatterySocArrival: 25,
   targetSocDeparture: 90,
   avgBatteryCapacity: 75,
+  dcfcVsL2Ratio: 30,
 
   activeConsumerMembers: 100,
   tierCore: 65,
