@@ -129,6 +129,10 @@ All colors MUST be HSL.
   50% { opacity: 0.6; transform: scale(0.95); }
 }
 
+.stall-charging-pulse polygon {
+  animation: stall-pulse 2s ease-in-out infinite;
+}
+
 /* ── Depot Controls: Slider overrides ── */
 .depot-controls [data-radix-slider-track] {
   background: hsl(174 100% 35% / 0.3);
