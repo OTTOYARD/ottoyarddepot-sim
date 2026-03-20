@@ -63,6 +63,7 @@ interface SimulationState {
   isPanelOpen: boolean;
   activeTab: 'controls' | 'kpis' | 'ai-summary' | 'alerts' | 'history';
   config: SimulationConfig;
+  controlsLocked: boolean;
   setStatus: (status: SimulationState['status']) => void;
   togglePanel: () => void;
   setActiveTab: (tab: SimulationState['activeTab']) => void;
@@ -71,6 +72,7 @@ interface SimulationState {
   tick: () => void;
   updateConfig: (partial: Partial<SimulationConfig>) => void;
   resetConfig: () => void;
+  setControlsLocked: (locked: boolean) => void;
 }
 
 const defaultConfig: SimulationConfig = {
