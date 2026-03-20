@@ -216,7 +216,7 @@ export const ControlsTab = () => {
           <div className="flex gap-2 pt-2">
             <Button
               className="flex-1 bg-otto-red hover:bg-otto-red/90 text-white font-medium"
-              onClick={() => setStatus(status === 'running' ? 'paused' : 'running')}
+              onClick={() => status === 'running' ? simulationEngine.stop() : simulationEngine.start()}
             >
               {status === 'running' ? <><Pause size={14} /> Pause</> : <><Play size={14} /> Run Simulation</>}
             </Button>
