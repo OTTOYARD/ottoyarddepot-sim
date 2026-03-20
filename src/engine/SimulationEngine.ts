@@ -84,6 +84,8 @@ export class SimulationEngine {
     useSimulationStore.getState().setStatus('paused');
     // Trigger run summary analysis
     requestAnalysis('run_summary');
+    // Auto-save the run
+    saveRun();
   }
 
   reset() {
