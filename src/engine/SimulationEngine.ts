@@ -192,12 +192,23 @@ export class SimulationEngine {
         // Check if arrived at target
         if (Math.abs(newX - v.targetPosition.x) < 1 && Math.abs(newY - v.targetPosition.y) < 1) {
           v.position = { ...v.targetPosition };
-          v.targetPosition = null;
 
-          // If at a service stall, start the timer
-          if (v.assignedStall && v.serviceStartTime === null &&
-            v.status !== 'departing' && v.status !== 'queued' && v.status !== 'approaching') {
-            v.serviceStartTime = newSimTime;
+          // Pop next waypoint if available
+          if (v.waypoints && v.waypoints.length > 0) {
+            v.targetPosition = v.waypoints.shift()!;
+          } else {
+            v.targetPosition = null;
+
+            // If approaching and arrived at final waypoint, become queued
+            if (v.status === 'approaching') {
+              v.status = 'queued';
+            }
+
+            // If at a service stall, start the timer
+            if (v.assignedStall && v.serviceStartTime === null &&
+              v.status !== 'departing' && v.status !== 'queued' && v.status !== 'approaching') {
+              v.serviceStartTime = newSimTime;
+            }
           }
           changed = true;
         }
