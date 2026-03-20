@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { simulationEngine } from '@/engine/SimulationEngine';
+import { injectRandomIncident } from '@/engine/IncidentInjector';
 import {
   Truck, Users, Zap, Clock, Cloud, Play, Pause, RotateCcw, AlertTriangle,
 } from 'lucide-react';
@@ -228,7 +229,7 @@ export const ControlsTab = () => {
           <Button
             variant="outline"
             className="w-full border-otto-amber text-otto-amber hover:bg-otto-amber/10"
-            onClick={() => {/* placeholder */}}
+            onClick={injectRandomIncident}
           >
             <AlertTriangle size={14} /> Inject Incident
           </Button>

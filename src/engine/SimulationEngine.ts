@@ -3,9 +3,11 @@ import { useDepotStore } from '@/store/depotStore';
 import { useVehicleStore } from '@/store/vehicleStore';
 import { useKPIStore } from '@/store/kpiStore';
 import { useAIStore } from '@/store/aiStore';
+import { useAlertStore } from '@/store/alertStore';
 import { generateArrivals, resetArrivalGenerator } from './ArrivalGenerator';
 import { getScheduler } from './scheduling';
 import { calculateKPIs } from './KPICalculator';
+import { checkAlerts, resetAlertEngine } from './AlertEngine';
 import { requestAnalysis } from '@/lib/aiAnalysis';
 import { SERVICE_TO_STALL_TYPE, EGRESS, QUEUE_Y } from './types';
 import type { Vehicle, VehicleStatus } from './types';
@@ -86,9 +88,11 @@ export class SimulationEngine {
   reset() {
     this.stop();
     resetArrivalGenerator();
+    resetAlertEngine();
     useVehicleStore.getState().reset();
     useKPIStore.getState().reset();
     useAIStore.getState().reset();
+    useAlertStore.getState().reset();
     const simStore = useSimulationStore.getState();
     simStore.setStatus('idle');
     simStore.setSimTime(50400);
@@ -289,6 +293,9 @@ export class SimulationEngine {
 
     // 8. Calculate KPIs
     calculateKPIs(vehicles, config, depotState.stalls, newSimTime, vehicleState.vehiclesProcessed);
+
+    // 8b. Check alerts
+    checkAlerts(vehicles, config, depotState.stalls, newSimTime);
 
     // 9. AI observations every 60 sim-seconds
     const aiState = useAIStore.getState();
