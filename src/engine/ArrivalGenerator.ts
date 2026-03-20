@@ -47,9 +47,9 @@ function createVehicle(type: VehicleType, simTime: number, config: SimulationCon
     type,
     priority,
     batteryCapacity: config.avgBatteryCapacity + rand(-15, 15),
-    currentSoC: isFleet
+    currentSoC: Math.max(5, Math.min(95, isFleet
       ? config.avgBatterySocArrival + rand(-10, 10)
-      : config.consumerAvgSoc + rand(-10, 10),
+      : config.consumerAvgSoc + rand(-10, 10))),
     targetSoC: config.targetSocDeparture,
     status: 'approaching',
     assignedStall: null,
@@ -63,10 +63,10 @@ function createVehicle(type: VehicleType, simTime: number, config: SimulationCon
   };
 }
 
-/**
- * Determines how many vehicles should spawn this tick.
- * Returns an array of new Vehicle objects.
- */
+export function resetArrivalGenerator() {
+  _nextId = 1;
+}
+
 export function generateArrivals(
   simTime: number,
   deltaSeconds: number,
@@ -81,22 +81,22 @@ export function generateArrivals(
   const blockEnd = timeToSeconds(config.dcfcBlockEnd);
   const arrivals: Vehicle[] = [];
 
-  // Fleet arrival rate: spread activeFleetSize arrivals over their window
   const fleetWindow = pattern === 'Overnight Batch'
-    ? 4 * 3600 // 22:00-02:00
+    ? 4 * 3600
     : pattern === 'Staggered Blocks'
       ? Math.max(blockEnd - blockStart, 3600)
-      : 86400; // Continuous = all day
+      : 86400;
 
-  const fleetRate = config.activeFleetSize / fleetWindow; // vehicles per sim-second
-  const consumerRate = config.activeConsumerMembers / 86400 * 2; // ~2x to fill faster
+  const fleetRate = config.activeFleetSize / fleetWindow;
+  const consumerWindow = config.consumerArrivalDist === 'Uniform' ? 86400 : 6 * 3600;
+  const consumerRate = config.activeConsumerMembers / consumerWindow;
 
   // Fleet spawns
   let shouldSpawnFleet = false;
   if (pattern === 'Staggered Blocks') {
     shouldSpawnFleet = simTime >= blockStart && simTime <= blockEnd;
   } else if (pattern === 'Overnight Batch') {
-    shouldSpawnFleet = simTime >= 79200 || simTime <= 7200; // 22:00-02:00
+    shouldSpawnFleet = simTime >= 79200 || simTime <= 7200;
   } else if (pattern === 'Continuous') {
     shouldSpawnFleet = true;
   }
@@ -105,23 +105,19 @@ export function generateArrivals(
     arrivals.push(createVehicle('fleet', simTime, config));
   }
 
-  // Consumer spawns (based on distribution)
+  // Consumer spawns
   let consumerActive = true;
   if (config.consumerArrivalDist === 'Morning Rush') {
-    consumerActive = simTime >= 25200 && simTime <= 36000; // 7-10am
+    consumerActive = simTime >= 25200 && simTime <= 36000;
   } else if (config.consumerArrivalDist === 'Midday') {
-    consumerActive = simTime >= 36000 && simTime <= 50400; // 10am-2pm
+    consumerActive = simTime >= 36000 && simTime <= 50400;
   } else if (config.consumerArrivalDist === 'Evening') {
-    consumerActive = simTime >= 54000 && simTime <= 75600; // 3-9pm
+    consumerActive = simTime >= 54000 && simTime <= 75600;
   }
-  // Uniform = always active
 
   if (consumerActive && config.activeConsumerMembers > 0 && Math.random() < consumerRate * deltaSeconds) {
-    arrivals.push(createVehicle(pickConsumerType(simTime, config), simTime, config));
+    arrivals.push(createVehicle(pickConsumerType(config), simTime, config));
   }
 
   return arrivals;
 }
-
-// Fix: pickConsumerType only takes config
-function _unused() {} // replaced below
