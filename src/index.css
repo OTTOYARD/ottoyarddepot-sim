@@ -112,3 +112,47 @@ All colors MUST be HSL.
 .stall-charging-pulse polygon {
   animation: stall-pulse 2s ease-in-out infinite;
 }
+
+/* ── Depot Controls: Slider overrides ── */
+.depot-controls [data-radix-slider-track] {
+  background: hsl(174 100% 35% / 0.3);
+}
+.depot-controls [data-radix-slider-range] {
+  background: hsl(174 100% 35%);
+}
+.depot-controls [data-radix-slider-thumb] {
+  background: hsl(0 100% 38%);
+  border-color: hsl(0 100% 38%);
+  width: 14px;
+  height: 14px;
+}
+
+/* ── Depot Controls: Select overrides ── */
+.depot-select {
+  background: #1A1A2E;
+  color: white;
+  border-color: hsl(0 0% 100% / 0.1);
+}
+.depot-select:focus {
+  --tw-ring-color: hsl(0 100% 38%);
+}
+.depot-select-content {
+  background: #1A1A2E;
+  color: white;
+  border-color: hsl(0 0% 100% / 0.1);
+}
+
+/* ── Depot Controls: Input overrides ── */
+.depot-input {
+  background: #1A1A2E;
+  color: white;
+  border-color: hsl(0 0% 100% / 0.1);
+}
+
+/* ── Depot Controls: Switch overrides ── */
+.depot-switch[data-state="checked"] {
+  background: hsl(174 100% 35%);
+}
+.depot-switch[data-state="unchecked"] {
+  background: hsl(0 0% 40%);
+}

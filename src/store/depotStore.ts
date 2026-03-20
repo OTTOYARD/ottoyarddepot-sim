@@ -22,40 +22,40 @@ interface DepotState {
   setStallStatus: (id: string, status: StallStatus) => void;
   selectStall: (id: string | null) => void;
   setHoveredStall: (id: string | null) => void;
+  regenerateStalls: (dcfc: number, l2: number, wash: number, staging: number) => void;
 }
 
-function generateStalls(): StallState[] {
+function generateStalls(dcfcCount = 10, l2Count = 40, washCount = 3, stagingCount = 15): StallState[] {
   const stalls: StallState[] = [];
   const angle = 60;
 
-  // DCFC: 10 stalls, single row, y ~57, spread across x 40-260
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < dcfcCount; i++) {
     stalls.push({
       id: `DCFC-${String(i + 1).padStart(2, '0')}`,
       type: 'dcfc',
       status: 'available',
       vehicleId: null,
-      position: { x: 45 + i * 22, y: 57, angle },
+      position: { x: 45 + i * Math.min(22, 200 / dcfcCount), y: 57, angle },
     });
   }
 
-  // L2: 40 stalls, 4 rows of 10, y rows at 85, 105, 125, 145
   const l2Rows = [85, 105, 125, 145];
-  for (let row = 0; row < 4; row++) {
-    for (let col = 0; col < 10; col++) {
-      const idx = row * 10 + col + 1;
+  const l2PerRow = Math.ceil(l2Count / 4);
+  let l2Idx = 0;
+  for (let row = 0; row < 4 && l2Idx < l2Count; row++) {
+    for (let col = 0; col < l2PerRow && l2Idx < l2Count; col++) {
+      l2Idx++;
       stalls.push({
-        id: `L2-${String(idx).padStart(2, '0')}`,
+        id: `L2-${String(l2Idx).padStart(2, '0')}`,
         type: 'l2',
         status: 'available',
         vehicleId: null,
-        position: { x: 45 + col * 22, y: l2Rows[row], angle },
+        position: { x: 45 + col * Math.min(22, 200 / l2PerRow), y: l2Rows[row], angle },
       });
     }
   }
 
-  // Wash: 3 bays, right of building, y ~33
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < washCount; i++) {
     stalls.push({
       id: `WASH-${String(i + 1).padStart(2, '0')}`,
       type: 'wash',
@@ -65,14 +65,13 @@ function generateStalls(): StallState[] {
     });
   }
 
-  // Staging: 15 stalls, single row, y ~172
-  for (let i = 0; i < 15; i++) {
+  for (let i = 0; i < stagingCount; i++) {
     stalls.push({
       id: `STAGE-${String(i + 1).padStart(2, '0')}`,
       type: 'staging',
       status: 'available',
       vehicleId: null,
-      position: { x: 25 + i * 17, y: 172, angle },
+      position: { x: 25 + i * Math.min(17, 250 / stagingCount), y: 172, angle },
     });
   }
 
@@ -93,4 +92,14 @@ export const useDepotStore = create<DepotState>((set) => ({
     })),
   selectStall: (id) => set({ selectedStallId: id }),
   setHoveredStall: (id) => set({ hoveredStallId: id }),
+  regenerateStalls: (dcfc, l2, wash, staging) =>
+    set({
+      dcfcCount: dcfc,
+      l2Count: l2,
+      washBayCount: wash,
+      stagingCount: staging,
+      stalls: generateStalls(dcfc, l2, wash, staging),
+      selectedStallId: null,
+      hoveredStallId: null,
+    }),
 }));
