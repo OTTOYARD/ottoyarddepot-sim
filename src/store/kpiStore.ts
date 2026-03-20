@@ -27,6 +27,8 @@ export interface KPIState {
   ottoQAccuracy: number;
   serviceCompletionRate: number;
   bayIdleTime: { dcfc: number; l2: number; wash: number };
+  peakQueueDepth: number;
+  peakPowerDraw: number;
   costPerVehicle: number;
   monthlyEBITDA: number;
   paybackYears: number;
