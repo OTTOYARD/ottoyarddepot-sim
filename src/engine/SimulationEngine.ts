@@ -7,7 +7,9 @@ import { SERVICE_TO_STALL_TYPE, EGRESS, QUEUE_Y } from './types';
 import type { Vehicle, VehicleStatus } from './types';
 import type { StallState } from '@/store/depotStore';
 
-const LERP_SPEED = 4; // SVG units per sim-second
+const LERP_SPEED = 30; // SVG units per sim-second
+const LEFT_AISLE_X = 30;
+const RIGHT_AISLE_X = 275;
 
 function getServiceDuration(vehicle: Vehicle, config: ReturnType<typeof useSimulationStore.getState>['config']): number {
   const service = vehicle.serviceQueue[vehicle.currentServiceIndex];
@@ -123,20 +125,17 @@ export class SimulationEngine {
       changed = true;
     }
 
-    // 3. Move approaching vehicles to queue
+    // 3. Move approaching vehicles to queue via waypoints
     for (const v of vehicles) {
-      if (v.status === 'approaching') {
+      if (v.status === 'approaching' && !v.targetPosition && !v.waypoints?.length) {
         const queueX = 50 + (vehicles.filter((vv) => vv.status === 'queued').length % 15) * 15;
-        v.targetPosition = { x: queueX, y: QUEUE_Y };
-        // Check if close enough to queue position
-        const dx = (v.targetPosition.x - v.position.x);
-        const dy = (v.targetPosition.y - v.position.y);
-        if (Math.abs(dx) < 2 && Math.abs(dy) < 2) {
-          v.status = 'queued';
-          v.position = { ...v.targetPosition };
-          v.targetPosition = null;
-          changed = true;
-        }
+        // Waypoint path: ingress → left aisle → north → queue position
+        v.waypoints = [
+          { x: LEFT_AISLE_X, y: 215 },
+          { x: LEFT_AISLE_X, y: QUEUE_Y },
+          { x: queueX, y: QUEUE_Y },
+        ];
+        v.targetPosition = v.waypoints.shift()!;
       }
     }
 
@@ -150,7 +149,12 @@ export class SimulationEngine {
         const neededService = v.serviceQueue[v.currentServiceIndex];
         if (!neededService) {
           v.status = 'departing';
-          v.targetPosition = { ...EGRESS };
+          v.waypoints = [
+            { x: RIGHT_AISLE_X, y: v.position.y },
+            { x: RIGHT_AISLE_X, y: 215 },
+            { ...EGRESS },
+          ];
+          v.targetPosition = v.waypoints.shift()!;
           changed = true;
           continue;
         }
@@ -161,11 +165,18 @@ export class SimulationEngine {
         if (availableStall) {
           v.assignedStall = availableStall.id;
           v.status = serviceToVehicleStatus(neededService);
-          v.targetPosition = {
+          const stallTarget = {
             x: availableStall.position.x + 4,
             y: availableStall.position.y + 8,
           };
-          v.serviceStartTime = null; // will start when vehicle arrives at stall
+          // Waypoint path: current → left aisle at current y → left aisle at stall y → stall
+          v.waypoints = [
+            { x: LEFT_AISLE_X, y: v.position.y },
+            { x: LEFT_AISLE_X, y: stallTarget.y },
+            stallTarget,
+          ];
+          v.targetPosition = v.waypoints.shift()!;
+          v.serviceStartTime = null;
           v.serviceDuration = getServiceDuration(v, config);
           depotState.setStallStatus(availableStall.id, v.status === 'charging' ? 'charging' : 'servicing');
           changed = true;
@@ -186,12 +197,23 @@ export class SimulationEngine {
         // Check if arrived at target
         if (Math.abs(newX - v.targetPosition.x) < 1 && Math.abs(newY - v.targetPosition.y) < 1) {
           v.position = { ...v.targetPosition };
-          v.targetPosition = null;
 
-          // If at a service stall, start the timer
-          if (v.assignedStall && v.serviceStartTime === null &&
-            v.status !== 'departing' && v.status !== 'queued' && v.status !== 'approaching') {
-            v.serviceStartTime = newSimTime;
+          // Pop next waypoint if available
+          if (v.waypoints && v.waypoints.length > 0) {
+            v.targetPosition = v.waypoints.shift()!;
+          } else {
+            v.targetPosition = null;
+
+            // If approaching and arrived at final waypoint, become queued
+            if ((v.status as string) === 'approaching') {
+              v.status = 'queued';
+            }
+
+            // If at a service stall, start the timer
+            if (v.assignedStall && v.serviceStartTime === null &&
+              v.status !== 'departing' && v.status !== 'queued') {
+              v.serviceStartTime = newSimTime;
+            }
           }
           changed = true;
         }
@@ -219,7 +241,13 @@ export class SimulationEngine {
 
           if (v.currentServiceIndex >= v.serviceQueue.length) {
             v.status = 'departing';
-            v.targetPosition = { ...EGRESS };
+            // Waypoint path: current pos → right aisle → south → egress
+            v.waypoints = [
+              { x: RIGHT_AISLE_X, y: v.position.y },
+              { x: RIGHT_AISLE_X, y: 215 },
+              { ...EGRESS },
+            ];
+            v.targetPosition = v.waypoints.shift()!;
           } else {
             v.status = 'queued'; // re-queue for next service
           }
@@ -230,7 +258,7 @@ export class SimulationEngine {
 
     // 6. Remove departed vehicles
     const departing = vehicles.filter(
-      (v) => v.status === 'departing' && !v.targetPosition
+      (v) => v.status === 'departing' && !v.targetPosition && (!v.waypoints || v.waypoints.length === 0)
     );
     if (departing.length > 0) {
       const departedIds = new Set(departing.map((v) => v.id));

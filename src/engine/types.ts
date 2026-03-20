@@ -28,6 +28,7 @@ export interface Vehicle {
   arrivalTime: number; // simTime
   position: { x: number; y: number };
   targetPosition: { x: number; y: number } | null;
+  waypoints?: { x: number; y: number }[];
 }
 
 export const SERVICE_TO_STALL_TYPE: Record<ServiceType, string> = {

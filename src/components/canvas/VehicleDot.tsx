@@ -1,0 +1,135 @@
+import React from 'react';
+import type { Vehicle } from '@/engine/types';
+import { useVehicleStore } from '@/store/vehicleStore';
+
+const VEHICLE_COLORS: Record<string, string> = {
+  fleet: '#00B4A6',
+  core: '#FFFFFF',
+  concierge: '#C0C0C0',
+  elite: '#FFD700',
+};
+
+const STROKE_COLORS: Record<string, string> = {
+  fleet: '#008A7F',
+  core: '#BBBBBB',
+  concierge: '#909090',
+  elite: '#CCA800',
+};
+
+function getRotation(v: Vehicle): number {
+  if (v.targetPosition) {
+    const dx = v.targetPosition.x - v.position.x;
+    const dy = v.targetPosition.y - v.position.y;
+    if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
+      return (Math.atan2(dy, dx) * 180) / Math.PI + 90;
+    }
+  }
+  return 0;
+}
+
+interface Props {
+  vehicle: Vehicle;
+}
+
+const VehicleDotInner = ({ vehicle: v }: Props) => {
+  const setHoveredVehicle = useVehicleStore((s) => s.setHoveredVehicle);
+  const fill = VEHICLE_COLORS[v.type] || '#87CEEB';
+  const stroke = STROKE_COLORS[v.type] || '#666666';
+  const isLowOpacity = v.status === 'queued' || v.status === 'staging';
+  const baseOpacity = v.status === 'approaching' ? 0.7 : v.status === 'departing' ? 0.5 : isLowOpacity ? 0.6 : 0.9;
+  const rotation = getRotation(v);
+
+  return (
+    <g
+      transform={`translate(${v.position.x}, ${v.position.y})`}
+      onMouseEnter={() => setHoveredVehicle(v.id)}
+      onMouseLeave={() => setHoveredVehicle(null)}
+      style={{ cursor: 'pointer' }}
+    >
+      {/* Charging glow ring */}
+      {v.status === 'charging' && (
+        <circle r={6} fill="none" stroke="#00B4A6" strokeWidth={0.5}>
+          <animate attributeName="opacity" values="0.6;0.15;0.6" dur="2s" repeatCount="indefinite" />
+          <animate attributeName="r" values="5;7;5" dur="2s" repeatCount="indefinite" />
+        </circle>
+      )}
+
+      {/* Washing ripple rings */}
+      {v.status === 'washing' && (
+        <>
+          <circle r={4} fill="none" stroke="#2196F3" strokeWidth={0.3}>
+            <animate attributeName="r" values="4;9;4" dur="2.5s" repeatCount="indefinite" />
+            <animate attributeName="opacity" values="0.5;0;0.5" dur="2.5s" repeatCount="indefinite" />
+          </circle>
+          <circle r={4} fill="none" stroke="#2196F3" strokeWidth={0.3}>
+            <animate attributeName="r" values="4;9;4" dur="2.5s" begin="1.25s" repeatCount="indefinite" />
+            <animate attributeName="opacity" values="0.5;0;0.5" dur="2.5s" begin="1.25s" repeatCount="indefinite" />
+          </circle>
+        </>
+      )}
+
+      {/* Vehicle body - rotated rounded rect */}
+      <g transform={`rotate(${rotation})`}>
+        <rect
+          x={-2.5}
+          y={-4}
+          width={5}
+          height={8}
+          rx={1.5}
+          ry={1.5}
+          fill={fill}
+          stroke={stroke}
+          strokeWidth={0.4}
+          opacity={baseOpacity}
+        >
+          {v.status === 'charging' && (
+            <animateTransform
+              attributeName="transform"
+              type="scale"
+              values="1;1.1;1"
+              dur="2s"
+              repeatCount="indefinite"
+            />
+          )}
+          {v.status === 'approaching' && (
+            <animate attributeName="opacity" from="0" to={String(baseOpacity)} dur="0.3s" fill="freeze" />
+          )}
+        </rect>
+
+        {/* Windshield detail */}
+        <rect x={-1.5} y={-3} width={3} height={1.5} rx={0.5} fill={stroke} opacity={0.4} />
+
+        {/* Charging bolt icon */}
+        {v.status === 'charging' && (
+          <polygon points="0.5,-1.5 -0.5,0.3 0.3,0.3 -0.5,2 0.5,-0.2 -0.3,-0.2" fill="#FFD700" opacity={0.9} />
+        )}
+      </g>
+
+      {/* Queued clock icon */}
+      {v.status === 'queued' && (
+        <g transform="translate(3.5, -3.5)">
+          <circle r={1.8} fill="#2D2D2D" stroke="#FFFFFF" strokeWidth={0.3} opacity={0.8} />
+          <line x1={0} y1={0} x2={0} y2={-1} stroke="#FFFFFF" strokeWidth={0.3} opacity={0.8} />
+          <line x1={0} y1={0} x2={0.8} y2={0} stroke="#FFFFFF" strokeWidth={0.3} opacity={0.8} />
+        </g>
+      )}
+    </g>
+  );
+};
+
+export const VehicleDot = React.memo(VehicleDotInner, (prev, next) => {
+  const pv = prev.vehicle;
+  const nv = next.vehicle;
+  return (
+    pv.id === nv.id &&
+    pv.position.x === nv.position.x &&
+    pv.position.y === nv.position.y &&
+    pv.status === nv.status &&
+    pv.currentSoC === nv.currentSoC &&
+    pv.type === nv.type &&
+    pv.targetPosition?.x === nv.targetPosition?.x &&
+    pv.targetPosition?.y === nv.targetPosition?.y
+  );
+});
+
+VehicleDot.displayName = 'VehicleDot';
