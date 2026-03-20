@@ -77,6 +77,8 @@ export async function saveRun(): Promise<void> {
     useHistoryStore.getState().fetchRuns();
   } catch (err) {
     console.error('Failed to save run:', err);
+  } finally {
+    demo.setSaving(false);
   }
 }
 

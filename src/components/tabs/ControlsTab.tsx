@@ -241,6 +241,7 @@ export const ControlsTab = () => {
           </Button>
         </Section>
       </Accordion>
+      </div>
     </ScrollArea>
   );
 };

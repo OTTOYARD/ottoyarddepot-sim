@@ -107,7 +107,11 @@ export const AISummaryTab = () => {
         {/* Loading indicator for live observation */}
         {isLoadingObservation && (
           <div className="flex items-center gap-2 mb-2 px-2 py-1.5 rounded bg-otto-dark/50 border border-white/5">
-            <Loader2 className="w-3 h-3 animate-spin text-otto-teal" />
+            <div className="flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-otto-teal animate-[typing-dot_1.2s_ease-in-out_infinite]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-otto-teal animate-[typing-dot_1.2s_ease-in-out_0.2s_infinite]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-otto-teal animate-[typing-dot_1.2s_ease-in-out_0.4s_infinite]" />
+            </div>
             <span className="text-[10px] text-otto-gray">Generating observation…</span>
           </div>
         )}
