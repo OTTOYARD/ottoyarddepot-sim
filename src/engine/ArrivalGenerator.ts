@@ -20,15 +20,17 @@ function pickConsumerType(config: SimulationConfig): VehicleType {
   return 'core';
 }
 
-function buildServiceQueue(type: VehicleType): ServiceType[] {
+function buildServiceQueue(type: VehicleType, soc: number, config: SimulationConfig): ServiceType[] {
   const queue: ServiceType[] = [];
   if (type === 'fleet') {
-    queue.push('dcfc_charge');
+    // Fleet: low SoC → DCFC, higher SoC → L2 (they have more time)
+    queue.push(soc <= 40 ? 'dcfc_charge' : 'l2_charge');
     if (Math.random() < 0.4) queue.push('exterior_wash');
     if (Math.random() < 0.1) queue.push('maintenance');
     queue.push('staging');
   } else {
-    queue.push(Math.random() < 0.3 ? 'dcfc_charge' : 'l2_charge');
+    // Consumer: use config-driven DCFC/L2 ratio
+    queue.push(Math.random() * 100 < config.dcfcVsL2Ratio ? 'dcfc_charge' : 'l2_charge');
     if (Math.random() < 0.25) queue.push('exterior_wash');
     if (Math.random() < 0.1) queue.push('interior_detail');
   }
