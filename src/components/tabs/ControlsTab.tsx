@@ -212,7 +212,6 @@ export const ControlsTab = () => {
             min={1} max={60} suffix="x"
             onChange={(v) => { setSimSpeed(v); }}
           />
-          />
           <div className="flex gap-2 pt-2">
             <Button
               className="flex-1 bg-otto-red hover:bg-otto-red/90 text-white font-medium"
