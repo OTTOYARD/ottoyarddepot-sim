@@ -4,9 +4,11 @@ import { DepotSVG } from './DepotSVG';
 import { DepotLegend } from './DepotLegend';
 import { StallTooltip } from './StallTooltip';
 import { StallPopup } from './StallPopup';
+import { useEngineLifecycle } from '@/hooks/useEngineLifecycle';
 
 export const DepotCanvas = () => {
   const svgRef = useRef<SVGSVGElement>(null);
+  useEngineLifecycle();
 
   return (
     <div className="flex-1 flex flex-col min-w-0">

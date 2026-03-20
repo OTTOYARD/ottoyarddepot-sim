@@ -123,6 +123,7 @@ export const ControlsTab = () => {
   };
 
   const handleReset = () => {
+    simulationEngine.reset();
     resetConfig();
     setSimSpeed(10);
     regenerateStalls(10, 40, 3, 15);
