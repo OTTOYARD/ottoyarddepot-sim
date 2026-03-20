@@ -14,7 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      simulation_runs: {
+        Row: {
+          ai_summary: string | null
+          alert_count_critical: number | null
+          alert_count_info: number | null
+          alert_count_warning: number | null
+          avg_turnaround_minutes: number | null
+          config: Json | null
+          created_at: string | null
+          duration_seconds: number | null
+          id: string
+          kpi_results: Json | null
+          name: string | null
+          peak_power_draw_kw: number | null
+          peak_queue_depth: number | null
+          vehicles_processed: number | null
+        }
+        Insert: {
+          ai_summary?: string | null
+          alert_count_critical?: number | null
+          alert_count_info?: number | null
+          alert_count_warning?: number | null
+          avg_turnaround_minutes?: number | null
+          config?: Json | null
+          created_at?: string | null
+          duration_seconds?: number | null
+          id?: string
+          kpi_results?: Json | null
+          name?: string | null
+          peak_power_draw_kw?: number | null
+          peak_queue_depth?: number | null
+          vehicles_processed?: number | null
+        }
+        Update: {
+          ai_summary?: string | null
+          alert_count_critical?: number | null
+          alert_count_info?: number | null
+          alert_count_warning?: number | null
+          avg_turnaround_minutes?: number | null
+          config?: Json | null
+          created_at?: string | null
+          duration_seconds?: number | null
+          id?: string
+          kpi_results?: Json | null
+          name?: string | null
+          peak_power_draw_kw?: number | null
+          peak_queue_depth?: number | null
+          vehicles_processed?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

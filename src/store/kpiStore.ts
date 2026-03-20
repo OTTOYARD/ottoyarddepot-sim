@@ -27,6 +27,8 @@ export interface KPIState {
   ottoQAccuracy: number;
   serviceCompletionRate: number;
   bayIdleTime: { dcfc: number; l2: number; wash: number };
+  peakQueueDepth: number;
+  peakPowerDraw: number;
   costPerVehicle: number;
   monthlyEBITDA: number;
   paybackYears: number;
@@ -59,6 +61,8 @@ const initialState = {
   ottoQAccuracy: 0,
   serviceCompletionRate: 0,
   bayIdleTime: { dcfc: 0, l2: 0, wash: 0 },
+  peakQueueDepth: 0,
+  peakPowerDraw: 0,
   costPerVehicle: 0,
   monthlyEBITDA: 0,
   paybackYears: 0,

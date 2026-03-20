@@ -9,6 +9,7 @@ import { getScheduler } from './scheduling';
 import { calculateKPIs } from './KPICalculator';
 import { checkAlerts, resetAlertEngine } from './AlertEngine';
 import { requestAnalysis } from '@/lib/aiAnalysis';
+import { saveRun } from '@/lib/runPersistence';
 import { SERVICE_TO_STALL_TYPE, EGRESS, QUEUE_Y } from './types';
 import type { Vehicle, VehicleStatus } from './types';
 import type { StallState } from '@/store/depotStore';
@@ -83,6 +84,8 @@ export class SimulationEngine {
     useSimulationStore.getState().setStatus('paused');
     // Trigger run summary analysis
     requestAnalysis('run_summary');
+    // Auto-save the run
+    saveRun();
   }
 
   reset() {
@@ -293,6 +296,13 @@ export class SimulationEngine {
 
     // 8. Calculate KPIs
     calculateKPIs(vehicles, config, depotState.stalls, newSimTime, vehicleState.vehiclesProcessed);
+
+    // 8a. Track peak values
+    const kpiState = useKPIStore.getState();
+    const currentQueueDepth = vehicles.filter((v) => v.status === 'queued').length;
+    if (currentQueueDepth > kpiState.peakQueueDepth) {
+      kpiState.updateKPIs({ peakQueueDepth: currentQueueDepth });
+    }
 
     // 8b. Check alerts
     checkAlerts(vehicles, config, depotState.stalls, newSimTime);
