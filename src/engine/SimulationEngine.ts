@@ -83,6 +83,7 @@ export class SimulationEngine {
     this.stop();
     resetArrivalGenerator();
     useVehicleStore.getState().reset();
+    useKPIStore.getState().reset();
     const simStore = useSimulationStore.getState();
     simStore.setStatus('idle');
     simStore.setSimTime(50400);
