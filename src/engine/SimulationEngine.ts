@@ -1,8 +1,10 @@
 import { useSimulationStore } from '@/store/simulationStore';
 import { useDepotStore } from '@/store/depotStore';
 import { useVehicleStore } from '@/store/vehicleStore';
+import { useKPIStore } from '@/store/kpiStore';
 import { generateArrivals, resetArrivalGenerator } from './ArrivalGenerator';
 import { getScheduler } from './scheduling';
+import { calculateKPIs } from './KPICalculator';
 import { SERVICE_TO_STALL_TYPE, EGRESS, QUEUE_Y } from './types';
 import type { Vehicle, VehicleStatus } from './types';
 import type { StallState } from '@/store/depotStore';
