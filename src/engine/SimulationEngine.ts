@@ -9,6 +9,7 @@ import { getScheduler } from './scheduling';
 import { calculateKPIs } from './KPICalculator';
 import { checkAlerts, resetAlertEngine } from './AlertEngine';
 import { requestAnalysis } from '@/lib/aiAnalysis';
+import { saveRun } from '@/lib/runPersistence';
 import { SERVICE_TO_STALL_TYPE, EGRESS, QUEUE_Y } from './types';
 import type { Vehicle, VehicleStatus } from './types';
 import type { StallState } from '@/store/depotStore';

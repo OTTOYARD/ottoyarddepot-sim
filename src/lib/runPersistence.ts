@@ -22,7 +22,7 @@ export async function saveRun(): Promise<void> {
     runCounter++;
     const name = `Run #${runCounter} - ${format(new Date(), 'MMM d h:mma')}`;
 
-    const startTime = 50400; // default start
+    const startTime = 50400;
     let duration = sim.simTime - startTime;
     if (duration < 0) duration += 86400;
 
@@ -52,8 +52,8 @@ export async function saveRun(): Promise<void> {
     const row = {
       name,
       duration_seconds: Math.round(duration),
-      config: sim.config as unknown as Record<string, unknown>,
-      kpi_results: kpiResults as unknown as Record<string, unknown>,
+      config: sim.config,
+      kpi_results: kpiResults,
       ai_summary: ai.runSummary || null,
       vehicles_processed: vehicles.vehiclesProcessed,
       avg_turnaround_minutes: Math.round(kpi.avgTurnaroundMin * 100) / 100,
@@ -64,14 +64,13 @@ export async function saveRun(): Promise<void> {
       alert_count_info: alertList.filter((a) => a.severity === 'info').length,
     };
 
-    const { error } = await supabase.from('simulation_runs').insert(row as never);
+    const { error } = await (supabase as any).from('simulation_runs').insert(row);
     if (error) {
       console.error('Failed to save run:', error);
       return;
     }
 
     toast({ title: 'Run saved', description: name });
-    // Refresh history
     useHistoryStore.getState().fetchRuns();
   } catch (err) {
     console.error('Failed to save run:', err);
@@ -83,7 +82,7 @@ export async function loadConfig(run: { config: Record<string, unknown> | null; 
   const sim = useSimulationStore.getState();
   const depot = useDepotStore.getState();
 
-  sim.updateConfig(run.config as never);
+  sim.updateConfig(run.config as any);
   const cfg = run.config as Record<string, number>;
   if (cfg.dcfcCount || cfg.l2Count || cfg.washBayCount || cfg.stagingStalls) {
     depot.regenerateStalls(

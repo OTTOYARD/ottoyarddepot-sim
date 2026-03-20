@@ -32,7 +32,7 @@ interface HistoryState {
   reset: () => void;
 }
 
-export const useHistoryStore = create<HistoryState>((set, get) => ({
+export const useHistoryStore = create<HistoryState>((set) => ({
   runs: [],
   selectedForCompare: [],
   compareMode: false,
@@ -41,19 +41,23 @@ export const useHistoryStore = create<HistoryState>((set, get) => ({
 
   fetchRuns: async () => {
     set({ isLoading: true, error: null });
-    const { data, error } = await supabase
-      .from('simulation_runs')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (error) {
-      set({ isLoading: false, error: error.message });
-    } else {
-      set({ runs: (data as unknown as SimulationRun[]) ?? [], isLoading: false });
+    try {
+      const { data, error } = await (supabase as any)
+        .from('simulation_runs')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) {
+        set({ isLoading: false, error: error.message });
+      } else {
+        set({ runs: (data as SimulationRun[]) ?? [], isLoading: false });
+      }
+    } catch (err: any) {
+      set({ isLoading: false, error: err?.message || 'Failed to fetch runs' });
     }
   },
 
   deleteRun: async (id) => {
-    await supabase.from('simulation_runs').delete().eq('id', id);
+    await (supabase as any).from('simulation_runs').delete().eq('id', id);
     set((s) => ({
       runs: s.runs.filter((r) => r.id !== id),
       selectedForCompare: s.selectedForCompare.filter((sid) => sid !== id),
@@ -61,7 +65,7 @@ export const useHistoryStore = create<HistoryState>((set, get) => ({
   },
 
   renameRun: async (id, name) => {
-    await supabase.from('simulation_runs').update({ name } as never).eq('id', id);
+    await (supabase as any).from('simulation_runs').update({ name }).eq('id', id);
     set((s) => ({
       runs: s.runs.map((r) => (r.id === id ? { ...r, name } : r)),
     }));
