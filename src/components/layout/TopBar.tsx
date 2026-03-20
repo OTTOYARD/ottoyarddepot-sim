@@ -57,7 +57,7 @@ export const TopBar = () => {
     <div className="h-14 bg-otto-dark border-b-2 border-otto-red flex items-center px-4 shrink-0 z-20">
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
-          <HexLogo />
+          <img src={logo} alt="OTTOYARD" className="h-8 w-8 shrink-0" />
           <div className="flex flex-col">
             <span className="text-otto-red font-bold text-xl tracking-[2px] leading-tight">OTTOYARD</span>
             <span className="text-otto-gray text-[10px] leading-tight hidden xl:block">Depot Simulation Platform</span>
