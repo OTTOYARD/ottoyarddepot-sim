@@ -1,1 +1,4 @@
 project_id = "hfjaofyfxsyniohdfacg"
+
+[functions.analyze-simulation]
+verify_jwt = false

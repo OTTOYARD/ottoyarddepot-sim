@@ -290,6 +290,17 @@ export class SimulationEngine {
     // 8. Calculate KPIs
     calculateKPIs(vehicles, config, depotState.stalls, newSimTime, vehicleState.vehiclesProcessed);
 
+    // 9. AI observations every 60 sim-seconds
+    const aiState = useAIStore.getState();
+    const simMinuteNow = Math.floor(newSimTime / 60);
+    const lastObsMinute = Math.floor(aiState.lastObservationSimTime / 60);
+    if (aiState.lastObservationSimTime < 0 || simMinuteNow - lastObsMinute >= 1) {
+      if (vehicles.length > 0) {
+        aiState.setLastObservationSimTime(newSimTime);
+        requestAnalysis('live_observation');
+      }
+    }
+
     this.rafId = requestAnimationFrame(this.loop);
   };
 }
