@@ -6,12 +6,15 @@ import { useAlertStore } from '@/store/alertStore';
 import { useVehicleStore } from '@/store/vehicleStore';
 import { useDepotStore } from '@/store/depotStore';
 import { useHistoryStore } from '@/store/historyStore';
+import { useDemoStore } from '@/store/demoStore';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 
 let runCounter = 0;
 
 export async function saveRun(): Promise<void> {
+  const demo = useDemoStore.getState();
+  demo.setSaving(true);
   try {
     const sim = useSimulationStore.getState();
     const kpi = useKPIStore.getState();
@@ -74,6 +77,8 @@ export async function saveRun(): Promise<void> {
     useHistoryStore.getState().fetchRuns();
   } catch (err) {
     console.error('Failed to save run:', err);
+  } finally {
+    demo.setSaving(false);
   }
 }
 

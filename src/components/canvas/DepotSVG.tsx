@@ -1,6 +1,7 @@
 import { forwardRef } from 'react';
 import { useDepotStore } from '@/store/depotStore';
 import { useVehicleStore } from '@/store/vehicleStore';
+import { useSimulationStore } from '@/store/simulationStore';
 import { Stall } from './Stall';
 import { VehicleDot } from './VehicleDot';
 import { ZoneBadges } from './ZoneBadges';
@@ -9,6 +10,11 @@ export const DepotSVG = forwardRef<SVGSVGElement>((_, ref) => {
   const stalls = useDepotStore((s) => s.stalls);
   const selectStall = useDepotStore((s) => s.selectStall);
   const vehicles = useVehicleStore((s) => s.vehicles);
+  const status = useSimulationStore((s) => s.status);
+  const simTime = useSimulationStore((s) => s.simTime);
+
+  const isRunning = status === 'running';
+  const isDaytime = simTime >= 21600 && simTime < 64800; // 6AM-6PM
 
   return (
     <svg
@@ -23,6 +29,12 @@ export const DepotSVG = forwardRef<SVGSVGElement>((_, ref) => {
           <rect width="4" height="4" fill="#C0000033" />
           <line x1="0" y1="0" x2="0" y2="4" stroke="#C00000" strokeWidth="1" opacity="0.5" />
         </pattern>
+        {/* Animated gradient for border glow */}
+        <linearGradient id="borderGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#00B4A6" stopOpacity="0.6" />
+          <stop offset="50%" stopColor="#00B4A6" stopOpacity="0.1" />
+          <stop offset="100%" stopColor="#00B4A6" stopOpacity="0.6" />
+        </linearGradient>
       </defs>
 
       <rect width="300" height="220" fill="#1A1A2E" />
@@ -33,6 +45,15 @@ export const DepotSVG = forwardRef<SVGSVGElement>((_, ref) => {
       {Array.from({ length: 23 }, (_, i) => (
         <line key={`gh${i}`} x1={0} y1={i * 10} x2={300} y2={i * 10} stroke="#ffffff" strokeWidth={0.2} opacity={0.05} />
       ))}
+
+      {/* Animated border glow when running */}
+      {isRunning && (
+        <rect
+          x={2} y={2} width={296} height={216} rx={2}
+          fill="none" stroke="url(#borderGlow)" strokeWidth={1.5}
+          className="animate-[border-glow_3s_ease-in-out_infinite]"
+        />
+      )}
 
       <rect x={0} y={215} width={300} height={5} fill="#444444" />
       <line x1={0} y1={217.5} x2={300} y2={217.5} stroke="#F59E0B" strokeWidth={0.3} strokeDasharray="6,4" />
@@ -45,7 +66,12 @@ export const DepotSVG = forwardRef<SVGSVGElement>((_, ref) => {
       <text x={200} y={209} textAnchor="middle" fontSize={3.5} fill="#C00000" fontWeight="bold">EGRESS</text>
       <polygon points="200,211 198,213 202,213" fill="#C00000" />
 
-      <rect x={0} y={190} width={300} height={10} fill="#2D5A2D" opacity={0.3} />
+      {/* Solar canopy with shimmer during daytime */}
+      <rect
+        x={0} y={190} width={300} height={10}
+        fill="#2D5A2D" opacity={0.3}
+        className={isDaytime ? 'animate-[shimmer_4s_ease-in-out_infinite]' : ''}
+      />
 
       <rect x={20} y={40} width={20} height={160} fill="#333333" opacity={0.5} />
       <rect x={265} y={40} width={20} height={160} fill="#333333" opacity={0.5} />
@@ -79,12 +105,19 @@ export const DepotSVG = forwardRef<SVGSVGElement>((_, ref) => {
         <Stall key={stall.id} stall={stall} />
       ))}
 
-      {/* Vehicle dots */}
       {vehicles.map((v) => (
         <VehicleDot key={v.id} vehicle={v} />
       ))}
 
       <ZoneBadges />
+
+      {/* Watermark hexagon */}
+      <g opacity={0.04} transform="translate(130, 85)">
+        <svg viewBox="0 0 100 100" width="40" height="40">
+          <path d="M50 5 L93 27.5 L93 72.5 L50 95 L7 72.5 L7 27.5 Z" fill="#C00000" />
+          <path d="M50 20 L78 35 L78 65 L50 80 L22 65 L22 35 Z" fill="none" stroke="white" strokeWidth="3" />
+        </svg>
+      </g>
 
       <text x={150} y={50} textAnchor="middle" fontSize={5} fill="#C00000" fontWeight="bold" opacity={0.6}>DCFC CHARGING</text>
       <text x={150} y={115} textAnchor="middle" fontSize={5} fill="#00B4A6" fontWeight="bold" opacity={0.6}>L2 CHARGING</text>

@@ -63,6 +63,7 @@ interface SimulationState {
   isPanelOpen: boolean;
   activeTab: 'controls' | 'kpis' | 'ai-summary' | 'alerts' | 'history';
   config: SimulationConfig;
+  controlsLocked: boolean;
   setStatus: (status: SimulationState['status']) => void;
   togglePanel: () => void;
   setActiveTab: (tab: SimulationState['activeTab']) => void;
@@ -71,6 +72,7 @@ interface SimulationState {
   tick: () => void;
   updateConfig: (partial: Partial<SimulationConfig>) => void;
   resetConfig: () => void;
+  setControlsLocked: (locked: boolean) => void;
 }
 
 const defaultConfig: SimulationConfig = {
@@ -131,6 +133,7 @@ export const useSimulationStore = create<SimulationState>((set) => ({
   isPanelOpen: true,
   activeTab: 'controls',
   config: { ...defaultConfig },
+  controlsLocked: false,
   setStatus: (status) => set({ status }),
   togglePanel: () => set((s) => ({ isPanelOpen: !s.isPanelOpen })),
   setActiveTab: (activeTab) => set({ activeTab }),
@@ -138,5 +141,6 @@ export const useSimulationStore = create<SimulationState>((set) => ({
   setSimTime: (simTime) => set({ simTime: Math.max(0, Math.min(86399, simTime)) }),
   tick: () => set((s) => ({ simTime: (s.simTime + s.simSpeed) % 86400 })),
   updateConfig: (partial) => set((s) => ({ config: { ...s.config, ...partial } })),
-  resetConfig: () => set({ config: { ...defaultConfig }, simSpeed: 10, status: 'idle', simTime: 50400 }),
+  resetConfig: () => set({ config: { ...defaultConfig }, simSpeed: 10, status: 'idle', simTime: 50400, controlsLocked: false }),
+  setControlsLocked: (controlsLocked) => set({ controlsLocked }),
 }));

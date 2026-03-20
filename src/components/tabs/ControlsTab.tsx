@@ -86,7 +86,7 @@ const Section = ({
 /* ── main component ── */
 
 export const ControlsTab = () => {
-  const { config, updateConfig, status, setStatus, setSimSpeed, resetConfig, simSpeed } = useSimulationStore();
+  const { config, updateConfig, status, setStatus, setSimSpeed, resetConfig, simSpeed, controlsLocked } = useSimulationStore();
   const regenerateStalls = useDepotStore((s) => s.regenerateStalls);
 
   const upd = useCallback(
@@ -134,6 +134,12 @@ export const ControlsTab = () => {
 
   return (
     <ScrollArea className="flex-1 depot-controls">
+      {controlsLocked && (
+        <div className="px-3 py-1.5 bg-otto-amber/10 border-b border-otto-amber/20 text-center">
+          <span className="text-[10px] text-otto-amber">🔒 Controls locked during demo mode</span>
+        </div>
+      )}
+      <div className={controlsLocked ? 'pointer-events-none opacity-50' : ''}>
       <Accordion type="multiple" defaultValue={allSections} className="w-full">
         {/* ── Section 1: Fleet ── */}
         <Section value="fleet" icon={Truck} title="Fleet Configuration">
@@ -235,6 +241,7 @@ export const ControlsTab = () => {
           </Button>
         </Section>
       </Accordion>
+      </div>
     </ScrollArea>
   );
 };
