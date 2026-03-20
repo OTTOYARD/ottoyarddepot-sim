@@ -149,7 +149,12 @@ export class SimulationEngine {
         const neededService = v.serviceQueue[v.currentServiceIndex];
         if (!neededService) {
           v.status = 'departing';
-          v.targetPosition = { ...EGRESS };
+          v.waypoints = [
+            { x: RIGHT_AISLE_X, y: v.position.y },
+            { x: RIGHT_AISLE_X, y: 215 },
+            { ...EGRESS },
+          ];
+          v.targetPosition = v.waypoints.shift()!;
           changed = true;
           continue;
         }
