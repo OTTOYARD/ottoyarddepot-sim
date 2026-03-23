@@ -310,6 +310,7 @@ export class SimulationEngine {
     // 4b. cuOpt async scheduling (fire-and-forget, every 30 sim-seconds)
     runSchedulingCycle(newSimTime, config);
 
+    // 5. Update positions (lerp) and service timers
     const step = LERP_SPEED * deltaSeconds;
     for (const v of vehicles) {
       if (v.targetPosition) {
