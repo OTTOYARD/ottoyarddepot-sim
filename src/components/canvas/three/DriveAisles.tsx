@@ -1,46 +1,36 @@
-import { toWorld } from './coordUtils';
-
 export function DriveAisles() {
-  // Left aisle: 2D x=20-40, y=40-200
-  const [lx, , lz] = toWorld({ x: 30, y: 120 }, 0);
-  // Right aisle: 2D x=265-285, y=40-200
-  const [rx, , rz] = toWorld({ x: 275, y: 120 }, 0);
-
   return (
     <group>
-      {/* Left aisle */}
-      <mesh position={[lx, 0.02, lz]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[20, 160]} />
-        <meshStandardMaterial color="#333333" opacity={0.5} transparent />
-      </mesh>
-
-      {/* Right aisle */}
-      <mesh position={[rx, 0.02, rz]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[20, 160]} />
-        <meshStandardMaterial color="#333333" opacity={0.5} transparent />
-      </mesh>
-
-      {/* Direction arrows - left aisle (down/south) */}
-      {[60, 100, 140, 180].map((y2d) => {
-        const [ax, , az] = toWorld({ x: 30, y: y2d }, 0);
-        return (
-          <mesh key={`al-${y2d}`} position={[ax, 0.1, az]} rotation={[-Math.PI / 2, 0, Math.PI]}>
-            <coneGeometry args={[1.5, 3, 3]} />
-            <meshStandardMaterial color="#ffffff" opacity={0.1} transparent />
+      {[[-110,0.03,0],[110,0.03,0]].map((pos,i)=>(
+        <mesh key={i} rotation-x={-Math.PI/2} position={pos as any}>
+          <planeGeometry args={[20,180]} />
+          <meshStandardMaterial color='#1e1e1e' roughness={0.95} />
+        </mesh>
+      ))}
+      {[-110,110].map((x,i)=>(
+        Array.from({length:5},(_,j)=>(
+          <mesh key={`a${i}${j}`} rotation-x={-Math.PI/2}
+            position={[x,0.06,-60+j*30]}
+            rotation-z={i===0?0:Math.PI}>
+            <circleGeometry args={[1.5,3]} />
+            <meshStandardMaterial color='#333' emissive='#444'
+              emissiveIntensity={0.3} />
           </mesh>
-        );
-      })}
-
-      {/* Direction arrows - right aisle (up/north) */}
-      {[60, 100, 140, 180].map((y2d) => {
-        const [ax, , az] = toWorld({ x: 275, y: y2d }, 0);
-        return (
-          <mesh key={`ar-${y2d}`} position={[ax, 0.1, az]} rotation={[-Math.PI / 2, 0, 0]}>
-            <coneGeometry args={[1.5, 3, 3]} />
-            <meshStandardMaterial color="#ffffff" opacity={0.1} transparent />
-          </mesh>
-        );
-      })}
+        ))
+      ))}
+      {/* Gates */}
+      {[[-110,-95,'#00B4A6'],[110,-95,'#C00000']].map(([x,z,col],i)=>(
+        <group key={i} position={[x as number,0,z as number]}>
+          {[-4,4].map((px,j)=>(
+            <mesh key={j} position={[px,2,0]} castShadow>
+              <boxGeometry args={[0.5,4,0.5]} />
+              <meshStandardMaterial color={col as string} />
+            </mesh>
+          ))}
+          <pointLight position={[0,3,0]} color={col as string}
+            intensity={0.4} distance={10} />
+        </group>
+      ))}
     </group>
   );
 }
