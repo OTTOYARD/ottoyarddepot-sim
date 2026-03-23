@@ -25,8 +25,7 @@ const CAMERA_PRESETS = {
 
 export default function DepotScene3D() {
   const vehicles = useVehicleStore((s) => s.vehicles);
-  const weather = useSimulationStore((s) => s.config.weather);
-  const solarCanopy = useSimulationStore((s) => s.config.solarCanopy);
+  const config = useSimulationStore((s) => s.config);
   const simTime = useSimulationStore((s) => s.simTime);
   const simSpeed = useSimulationStore((s) => s.simSpeed);
   const controlsRef = useRef<OrbitControlsImpl>(null);
