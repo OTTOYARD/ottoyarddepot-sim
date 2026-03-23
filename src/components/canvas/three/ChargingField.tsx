@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import { useDepotStore } from '@/store/depotStore';
@@ -17,8 +17,11 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export function ChargingField({ type, count }: Props) {
-  const stalls = useDepotStore(s =>
-    s.stalls.filter(st => st.type === type));
+  const allStalls = useDepotStore((s) => s.stalls);
+  const stalls = useMemo(
+    () => allStalls.filter((st) => st.type === type),
+    [allStalls, type],
+  );
   const isDCFC = type === 'dcfc';
   const baseCol = isDCFC ? '#C00000' : '#00B4A6';
 
