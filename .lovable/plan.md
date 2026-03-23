@@ -1,20 +1,19 @@
 
 
-# Replace DepotGround with Simplified Version
+# Replace DepotBuilding with Enhanced Version
 
 ## Overview
-Replace the current `DepotGround` component (which uses `toWorld`, `Html`, refs, gridHelper, and detailed road/ingress/egress markers) with a cleaner, simpler version using only basic mesh planes.
+Replace the current `DepotBuilding` component with the user's provided version featuring a service wing, two-story lounge corner, glass facade, green wall, service bay doors, and an OTTOYARD sign.
 
 ## Changes
 
-### `src/components/canvas/three/DepotGround.tsx` — Full replace
-Replace entire file with user's provided code:
-- Main dark ground plane (300×220)
-- Lighter inner depot area (220×120, offset z=10)
-- Two green landscape strips at x=±145
-- South green border at z=-105
-- Road strip at z=-115
-- No more `toWorld`, `Html`, `useRef`, gridHelper, ingress/egress markers, or dashed road lines
-
-Single file change, no other files affected.
+### `src/components/canvas/three/DepotBuilding.tsx` — Full replace
+Replace entire file with user's provided code. The new version removes `toWorld` coordinate mapping and uses direct 3D positions instead. Key elements:
+- Service wing box with dark material
+- Two-story lounge corner with slightly different height
+- Glass facade (transparent cyan plane)
+- Green wall accent
+- Two service bay doors (dark openings)
+- Red OTTOYARD sign box
+- "OPERATIONS BUILDING" label via `<Html>`
 
