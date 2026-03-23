@@ -1,34 +1,17 @@
 
 
-# Add 2D/3D View Toggle with React Three Fiber
+# Create 3D Coordinate Utility
 
 ## Overview
-Install 3D packages, add `viewMode` to simulation store, add a 2D/3D toggle in the TopBar, and conditionally render either the existing SVG depot or a placeholder 3D component.
+Create `src/components/canvas/three/coordUtils.ts` — a utility that converts 2D SVG coordinates (0-300 x, 0-220 y) into 3D world coordinates centered at the origin. This is foundational for mapping all existing depot positions (stalls, vehicles, ingress/egress) into the upcoming 3D scene.
 
-## Package Installation
-- `@react-three/fiber@^8.18`
-- `@react-three/drei@^9.122.0`
-- `three@>=0.133`
-- `@types/three` (dev)
+## File to Create
 
-## Files to Modify
+### `src/components/canvas/three/coordUtils.ts`
+Exactly as provided — a `toWorld` function that:
+- Takes a 2D position `{x, y}` and optional height
+- Returns `[x3d, y3d, z3d]` tuple: `x - 150`, `height`, `110 - y`
+- Centers the 300×220 SVG coordinate space at the 3D origin
 
-### `src/store/simulationStore.ts`
-- Add `viewMode: '2d' | '3d'` (default `'2d'`) to state interface and initial state
-- Add `setViewMode` action
-
-### `src/components/layout/TopBar.tsx`
-- Add 2D/3D toggle button group between the play controls and the Settings icon
-- Active button: `bg-[#C00000] text-white rounded`, Inactive: `bg-transparent text-gray-500 border border-gray-700`
-
-### `src/components/canvas/DepotCanvas.tsx`
-- Read `viewMode` from store
-- Conditionally render `<DepotSVG>` (with tooltips, overlays) for 2D, or `<DepotScene3D>` for 3D
-- Lazy-load DepotScene3D with `React.lazy` + `Suspense`
-
-## Files to Create
-
-### `src/components/canvas/DepotScene3D.tsx`
-- Placeholder component: dark background div with "3D Loading..." text
-- Exported as default for lazy loading
+One new file, no modifications to existing files.
 
