@@ -1,27 +1,53 @@
 
 
-# Add NVIDIA cuOpt Integration via Edge Function
+# Integrate NVIDIA cuOpt into SimulationEngine Scheduling
 
 ## Problem
-The provided code calls the NVIDIA API directly from the client using `import.meta.env.VITE_NVIDIA_API_KEY`. The key is stored as a **runtime secret** (not a VITE_ env var), so it's only accessible from edge functions. Exposing API keys client-side is also a security risk.
+The user wants to wire the cuOpt optimizer into the engine's scheduling loop (step 4), replacing/augmenting the existing OTTO-Q assignment logic with async NVIDIA-powered scheduling every 30 sim-seconds.
 
-## Approach
-Split into an edge function (holds the key, calls NVIDIA) and a client-side library (calls the edge function, provides fallback).
+## Key Architecture Constraint
+The engine loop runs synchronously via `requestAnimationFrame`. The cuOpt call is async. We cannot `await` inside the RAF loop. Instead, we'll fire-and-forget the scheduling cycle and apply assignments when the response arrives.
 
 ## Changes
 
-### 1. `supabase/functions/cuopt-optimize/index.ts` — New edge function
-- Reads `NVIDIA_API_KEY` from `Deno.env`
-- Accepts the same `DepotOptRequest` payload
-- Builds the cuOpt request, calls NVIDIA API, returns parsed results
-- Returns fallback result if API fails or key missing
+### `src/engine/SimulationEngine.ts`
 
-### 2. `src/lib/nvidia-cuopt.ts` — New client library
-- Same types/interfaces as user provided
-- `optimizeDepotSchedule()` calls the edge function via `supabase.functions.invoke('cuopt-optimize', ...)`
-- Contains the `fallback()` function for when the edge function fails
-- No direct API key reference
+**Add import** at top:
+```ts
+import { optimizeDepotSchedule } from '@/lib/nvidia-cuopt';
+```
 
-### 3. No integration into SimulationEngine yet
-This creates the library. A follow-up step would wire it into the scheduling system or add a "cuOpt" option to the algorithm dropdown.
+**Add module-level state** (near constants):
+```ts
+let lastScheduleTime = 0;
+let cuoptPending = false;
+```
+
+**Add helper function** `getServiceTime`:
+```ts
+function getServiceTime(stallType: string, config: SimulationConfig): number {
+  const map: Record<string, number> = {
+    dcfc: config.dcfcChargeTime || 25,
+    l2: (config.l2ChargeTime || 4) * 60,
+    wash: config.exteriorWash || 10,
+    staging: 5,
+  };
+  return map[stallType] || 30;
+}
+```
+
+**Add async function** `runSchedulingCycle` that:
+- Debounces to every 30 sim-seconds
+- Gathers queued vehicles and available stalls from current state
+- Calls `optimizeDepotSchedule` (which falls back to local if no API key)
+- Applies returned assignments by finding the vehicle and stall in current state and performing the same assignment logic (set status, waypoints, stall status) as the existing code
+
+**Modify step 4** in the loop:
+- Keep the existing synchronous OTTO-Q logic as the **immediate** assignment path
+- Additionally call `runSchedulingCycle(newSimTime, config)` (non-blocking) which will apply cuOpt assignments on next tick when results arrive
+- The cuOpt results override/supplement the local scheduler — vehicles already assigned won't be re-assigned
+
+**Reset** `lastScheduleTime` and `cuoptPending` in the `reset()` method.
+
+### No other files change
 
