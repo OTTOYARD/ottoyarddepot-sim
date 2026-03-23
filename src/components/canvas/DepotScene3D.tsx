@@ -60,7 +60,7 @@ export default function DepotScene3D() {
           <DepotOverlays />
 
           {vehicles.map((v) => (
-            <Vehicle3D key={v.id} vehicle={v} />
+            <Vehicle3D key={v.id} vehicle={v} simSpeed={simSpeed} />
           ))}
 
           <WeatherEffects weather={weather} />
