@@ -319,6 +319,8 @@ export class SimulationEngine {
 
     // 4b. cuOpt async scheduling (fire-and-forget, every 30 sim-seconds)
     runSchedulingCycle(newSimTime, config);
+    // 4c. Apply any pending cuOpt assignments from previous cycle
+    applyCuOptAssignments();
 
     // 5. Update positions (lerp) and service timers
     const step = LERP_SPEED * deltaSeconds;
