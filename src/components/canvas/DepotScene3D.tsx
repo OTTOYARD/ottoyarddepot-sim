@@ -25,8 +25,7 @@ const CAMERA_PRESETS = {
 
 export default function DepotScene3D() {
   const vehicles = useVehicleStore((s) => s.vehicles);
-  const weather = useSimulationStore((s) => s.config.weather);
-  const solarCanopy = useSimulationStore((s) => s.config.solarCanopy);
+  const config = useSimulationStore((s) => s.config);
   const simTime = useSimulationStore((s) => s.simTime);
   const simSpeed = useSimulationStore((s) => s.simSpeed);
   const controlsRef = useRef<OrbitControlsImpl>(null);
@@ -52,8 +51,9 @@ export default function DepotScene3D() {
 
           <DepotGround />
           <DepotBuilding />
-          <SolarCanopy solarKWdc={solarCanopy} />
-          <ChargingField />
+          <SolarCanopy solarKWdc={config.solarCanopy} />
+          <ChargingField type="dcfc" count={config.dcfcCount} />
+          <ChargingField type="l2" count={config.l2Count} />
           <WashBays />
           <StagingZone />
           <DriveAisles />
@@ -64,7 +64,7 @@ export default function DepotScene3D() {
             <Vehicle3D key={v.id} vehicle={v} simSpeed={simSpeed} />
           ))}
 
-          <WeatherEffects weather={weather} />
+          <WeatherEffects weather={config.weather} />
           <ContactShadows position={[0, 0, 0]} opacity={0.3} scale={300} blur={2} far={20} />
           <OrbitControls
             ref={controlsRef}
