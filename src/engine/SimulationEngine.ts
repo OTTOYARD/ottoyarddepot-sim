@@ -184,6 +184,8 @@ export class SimulationEngine {
     this.stop();
     resetArrivalGenerator();
     resetAlertEngine();
+    lastScheduleTime = 0;
+    cuoptPending = false;
     useVehicleStore.getState().reset();
     useKPIStore.getState().reset();
     useAIStore.getState().reset();
