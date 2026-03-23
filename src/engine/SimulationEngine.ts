@@ -196,6 +196,7 @@ export class SimulationEngine {
     resetAlertEngine();
     lastScheduleTime = 0;
     cuoptPending = false;
+    pendingCuOptAssignments = null;
     useVehicleStore.getState().reset();
     useKPIStore.getState().reset();
     useAIStore.getState().reset();
