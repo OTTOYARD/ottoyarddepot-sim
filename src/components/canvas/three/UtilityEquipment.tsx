@@ -1,35 +1,50 @@
-import { toWorld } from './coordUtils';
 import { Html } from '@react-three/drei';
+import { useKPIStore } from '@/store/kpiStore';
 
-interface EquipBox {
-  label: string;
-  pos2d: { x: number; y: number };
-  size: [number, number, number];
-}
+export function UtilityEquipment({ bessCapacity, bessPower }:
+  { bessCapacity: number; bessPower: number }) {
+  const soc = useKPIStore(s => s.bessSOC);
+  const socCol = soc > 20 ? '#00ff88' : soc > 10 ? '#ffaa00' : '#ff4444';
 
-const equipment: EquipBox[] = [
-  { label: 'BESS', pos2d: { x: 255, y: 10 }, size: [20, 5, 10] },
-  { label: 'XFMR', pos2d: { x: 255, y: 21 }, size: [20, 4, 8] },
-  { label: 'SWGR', pos2d: { x: 279, y: 9 }, size: [18, 4, 8] },
-];
-
-export function UtilityEquipment() {
   return (
-    <group>
-      {equipment.map((eq) => {
-        const [x, , z] = toWorld(eq.pos2d);
-        return (
-          <group key={eq.label} position={[x, 0, z]}>
-            <mesh position={[0, eq.size[1] / 2, 0]} castShadow>
-              <boxGeometry args={eq.size} />
-              <meshStandardMaterial color="#9E9E9E" roughness={0.4} metalness={0.5} opacity={0.6} transparent />
-            </mesh>
-            <Html position={[0, eq.size[1] + 1, 0]} center>
-              <span className="text-[7px] text-[#9E9E9E] font-mono">{eq.label}</span>
-            </Html>
-          </group>
-        );
-      })}
+    <group position={[120, 0, -80]}>
+      {/* Transformer */}
+      <mesh position={[0, 4, 0]} castShadow>
+        <boxGeometry args={[12, 8, 8]} />
+        <meshStandardMaterial color="#5a5a5a" roughness={0.4} metalness={0.6} />
+      </mesh>
+      <Html position={[0, 9, 0]} center>
+        <span className="text-[7px] text-otto-gray font-mono">XFMR</span>
+      </Html>
+      {/* Switchgear */}
+      <mesh position={[18, 3.5, 0]} castShadow>
+        <boxGeometry args={[10, 7, 6]} />
+        <meshStandardMaterial color="#4a4a4a" roughness={0.5} metalness={0.5} />
+      </mesh>
+      <Html position={[18, 8, 0]} center>
+        <span className="text-[7px] text-otto-gray font-mono">SWGR</span>
+      </Html>
+      {/* BESS - size scales with slider */}
+      <mesh position={[0, 4, 14]} castShadow>
+        <boxGeometry args={[14 * Math.min(bessCapacity, 4), 8, 8]} />
+        <meshStandardMaterial color="#3a3a3a" roughness={0.3} metalness={0.7} />
+      </mesh>
+      <mesh position={[0, 1, 18.5]}>
+        <boxGeometry args={[14 * Math.min(bessCapacity, 4) * (soc / 100), 2, 0.3]} />
+        <meshStandardMaterial color={socCol} emissive={socCol} emissiveIntensity={0.5} />
+      </mesh>
+      <Html position={[0, 9, 14]} center>
+        <span className="text-[7px] text-otto-gray font-mono">
+          BESS {bessCapacity}MWh | {Math.round(soc)}%
+        </span>
+      </Html>
+      {/* Solar inverters */}
+      {[0, 8, 16].map((x, i) => (
+        <mesh key={i} position={[-10 + x, 2, -10]} castShadow>
+          <boxGeometry args={[3, 4, 2]} />
+          <meshStandardMaterial color="#2a2a2a" roughness={0.4} metalness={0.6} />
+        </mesh>
+      ))}
     </group>
   );
 }
