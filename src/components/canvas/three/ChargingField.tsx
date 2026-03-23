@@ -37,40 +37,69 @@ export function ChargingField({ type, count }: Props) {
 
         return (
           <group key={stall.id} position={[wx, 0, wz]}>
-            {/* Charger pedestal */}
-            <mesh position={[0, 1.5, 0]} castShadow>
-              <boxGeometry args={[1.5, 3, 1]} />
-              <meshStandardMaterial color="#2a2a2a" roughness={0.5} metalness={0.3} />
+            {/* Charger pedestal — sleek rounded form */}
+            <mesh position={[0, 1.8, 0]} castShadow>
+              <cylinderGeometry args={[0.6, 0.7, 3.6, 16]} />
+              <meshPhysicalMaterial
+                color="#e8e8e8"
+                roughness={0.25}
+                metalness={0.15}
+                clearcoat={0.3}
+                clearcoatRoughness={0.2}
+              />
             </mesh>
-            {/* Type indicator strip */}
-            <mesh position={[0, 3.1, 0]}>
-              <boxGeometry args={[1.6, 0.3, 1.1]} />
+
+            {/* Dark screen face */}
+            <mesh position={[0, 2.4, 0.62]}>
+              <planeGeometry args={[0.8, 1.2]} />
+              <meshPhysicalMaterial color="#0a0a0a" roughness={0.1} metalness={0.3} />
+            </mesh>
+
+            {/* Status LED ring on top */}
+            <mesh position={[0, 3.65, 0]} rotation-x={Math.PI / 2}>
+              <torusGeometry args={[0.5, 0.06, 8, 24]} />
+              <meshStandardMaterial
+                color={isChrg ? '#00FF88' : statusColor}
+                emissive={isChrg ? '#00FF88' : statusColor}
+                emissiveIntensity={isOcc ? 1.5 : 0.3}
+              />
+            </mesh>
+
+            {/* Type indicator base strip */}
+            <mesh position={[0, 0.15, 0]}>
+              <cylinderGeometry args={[0.85, 0.85, 0.3, 16]} />
               <meshStandardMaterial
                 color={baseCol}
                 emissive={baseCol}
-                emissiveIntensity={isOcc ? 0.5 : 0.1}
+                emissiveIntensity={isOcc ? 0.6 : 0.15}
               />
             </mesh>
-            {/* Status glow sphere */}
-            <mesh position={[0, 3.5, 0.6]}>
-              <sphereGeometry args={[0.2, 8, 8]} />
-              <meshStandardMaterial
-                color={statusColor}
-                emissive={isChrg ? '#00FF88' : statusColor}
-                emissiveIntensity={isOcc ? 1 : 0.2}
-              />
+
+            {/* Cable arm */}
+            <mesh position={[0.7, 2.5, 0]} rotation-z={0.3}>
+              <cylinderGeometry args={[0.04, 0.04, 1.5, 6]} />
+              <meshPhysicalMaterial color="#222" roughness={0.6} metalness={0.3} />
             </mesh>
+
+            {/* Ground bollard */}
+            <mesh position={[1.2, 0.3, 0]} castShadow>
+              <cylinderGeometry args={[0.15, 0.18, 0.6, 8]} />
+              <meshPhysicalMaterial color="#F59E0B" roughness={0.4} metalness={0.3} />
+            </mesh>
+
             {isOff && <OfflineBeacon />}
           </group>
         );
       })}
+
       {/* Zone label */}
       <Html position={[stalls.length > 0 ? toWorld(stalls[0].position)[0] - 8 : 0, 6, 0]}
         center distanceFactor={80}>
         <div style={{
-          background: 'rgba(0,0,0,0.7)', color: isDCFC ? '#C00000' : '#00B4A6',
-          padding: '2px 6px', borderRadius: 4, fontSize: 10, fontFamily: 'monospace',
-          whiteSpace: 'nowrap',
+          background: 'rgba(0,0,0,0.75)', color: isDCFC ? '#C00000' : '#00B4A6',
+          padding: '2px 8px', borderRadius: 4, fontSize: 10, fontFamily: 'monospace',
+          whiteSpace: 'nowrap', backdropFilter: 'blur(4px)',
+          border: `1px solid ${isDCFC ? 'rgba(192,0,0,0.3)' : 'rgba(0,180,166,0.3)'}`,
         }}>
           {isDCFC ? 'DCFC' : 'L2'}{' '}
           {stalls.filter(s => s.status !== 'available').length}/{count}
@@ -87,11 +116,11 @@ function OfflineBeacon() {
   });
   return (
     <>
-      <mesh position={[0, 4, 0]}>
-        <sphereGeometry args={[0.15, 8, 8]} />
-        <meshStandardMaterial color="#ff0000" emissive="#ff0000" emissiveIntensity={1} />
+      <mesh position={[0, 4.2, 0]}>
+        <sphereGeometry args={[0.12, 8, 8]} />
+        <meshStandardMaterial color="#ff0000" emissive="#ff0000" emissiveIntensity={1.5} />
       </mesh>
-      <pointLight ref={ref} position={[0, 4, 0]} color="#ff0000" intensity={1} distance={5} />
+      <pointLight ref={ref} position={[0, 4.2, 0]} color="#ff0000" intensity={1} distance={5} />
     </>
   );
 }

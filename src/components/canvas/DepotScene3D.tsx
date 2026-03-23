@@ -1,6 +1,7 @@
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, ContactShadows } from '@react-three/drei';
+import { OrbitControls, Environment, AccumulativeShadows, RandomizedLight } from '@react-three/drei';
 import { Suspense, useCallback, useRef } from 'react';
+import { ACESFilmicToneMapping, SRGBColorSpace } from 'three';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { useVehicleStore } from '@/store/vehicleStore';
 import { useSimulationStore } from '@/store/simulationStore';
@@ -16,6 +17,7 @@ import { Vehicle3D } from './three/Vehicle3D';
 import { DepotOverlays } from './three/DepotOverlays';
 import { WeatherEffects } from './three/WeatherEffects';
 import { DayNightLighting } from './three/DayNightLighting';
+import { PostProcessing } from './three/PostProcessing';
 
 const CAMERA_PRESETS = {
   'Bird Eye': { position: [0, 180, 10] as [number, number, number], target: [0, 0, 0] as [number, number, number] },
@@ -44,10 +46,18 @@ export default function DepotScene3D() {
       <Canvas
         shadows
         camera={{ position: [0, 180, 10], fov: 45, near: 1, far: 500 }}
-        gl={{ antialias: true }}
+        gl={{
+          antialias: true,
+          toneMapping: ACESFilmicToneMapping,
+          toneMappingExposure: 1.2,
+          outputColorSpace: SRGBColorSpace,
+          powerPreference: 'high-performance',
+        }}
+        dpr={Math.min(window.devicePixelRatio, 2)}
       >
         <Suspense fallback={null}>
           <DayNightLighting simTime={simTime} />
+          <Environment preset="city" background={false} environmentIntensity={0.4} />
 
           <DepotGround />
           <DepotBuilding />
@@ -65,7 +75,15 @@ export default function DepotScene3D() {
           ))}
 
           <WeatherEffects weather={config.weather} />
-          <ContactShadows position={[0, 0, 0]} opacity={0.3} scale={300} blur={2} far={20} />
+
+          <AccumulativeShadows temporal frames={60} alphaTest={0.65} opacity={0.6}
+            scale={300} position={[0, 0.01, 0]}>
+            <RandomizedLight amount={8} radius={8} ambient={0.5}
+              position={[50, 80, 30]} bias={0.001} />
+          </AccumulativeShadows>
+
+          <PostProcessing />
+
           <OrbitControls
             ref={controlsRef}
             enableDamping
