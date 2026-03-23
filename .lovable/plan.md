@@ -1,21 +1,17 @@
 
 
-# Replace DayNightLighting with useFrame-based Version
-
-## Overview
-Replace the current `DayNightLighting` component (which uses `useMemo` and reads `simTime` from the store directly) with the user's provided version that uses `useFrame` for per-frame light updates and accepts `simTime` as a prop.
+# Replace WeatherEffects with Prop-Based Version
 
 ## Changes
 
-### `src/components/canvas/three/DayNightLighting.tsx` — Full replace
+### `src/components/canvas/three/WeatherEffects.tsx` — Full replace
 Replace with user's provided code:
-- Accepts `simTime` as a prop instead of reading from store
-- Uses `useFrame` + refs for smooth per-frame light updates
-- More nuanced sunrise (6-8), daytime (8-17), sunset (17-20), night phases
-- Higher shadow map resolution (2048)
-- Adds themed point lights: teal accent, warm building light, red OTTO-branded glow
+- Accepts `weather` as a prop instead of reading from `useSimulationStore`
+- Supports Rain (3000 particles, fast fall), Snow (1500 particles, slow drift), Extreme Heat (warm fog), and Clear (nothing)
+- Uses `useFrame` + ref for per-frame particle animation
+- Adds fog effects for Rain and Extreme Heat
 
-### `src/components/canvas/DepotScene3D.tsx` — Pass simTime prop
-- Read `simTime` from `useSimulationStore`
-- Change `<DayNightLighting />` to `<DayNightLighting simTime={simTime} />`
+### `src/components/canvas/DepotScene3D.tsx` — Pass weather prop
+- Read `weather` from `useSimulationStore(s => s.config.weather)`
+- Change `<WeatherEffects />` to `<WeatherEffects weather={weather} />`
 
