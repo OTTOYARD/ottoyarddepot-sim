@@ -1,20 +1,28 @@
 
 
-# Replace SolarCanopy with Prop-Based Version
+# Replace ChargingField with Prop-Based Version
 
 ## Overview
-Replace the current `SolarCanopy` component with the user's provided version that accepts `solarKWdc` as a prop, scales dynamically based on solar capacity, and features detailed panel geometry with LED edge lights.
+Replace the current `ChargingField` component (which reads stalls from `depotStore`) with the user's provided version that accepts `type` and `count` props and reads stalls from `simulationStore`. Update `DepotScene3D` to render two separate instances for DCFC and L2.
+
+## Issue
+The new component reads `s.stalls` from `useSimulationStore`, but that store has no `stalls` property. It should continue reading from `useDepotStore`. The plan will use `useDepotStore` instead.
 
 ## Changes
 
-### `src/components/canvas/three/SolarCanopy.tsx` — Full replace
-Replace with user's provided code:
-- Accepts `solarKWdc` prop; returns null when 0
-- Dynamically scales width/depth/columns based on `solarKWdc / 500`
-- Detailed structure: roof slab, solar panel rows, cylindrical support columns, teal LED edge lights with pulsing via `useFrame`
-- Teal point light underneath
+### `src/components/canvas/three/ChargingField.tsx` — Full replace
+- Accepts `{ type: 'dcfc'|'l2', count: number }` props
+- Reads stalls from `useDepotStore` (not simulationStore, which lacks stalls)
+- Renders charger pedestals with type-colored indicator strips (red for DCFC, teal for L2)
+- Status-based glow sphere per stall
+- `OfflineBeacon` sub-component with pulsing red light for offline stalls
+- Zone label via `<Html>` showing occupied/total count
 
-### `src/components/canvas/DepotScene3D.tsx` — Pass prop
-- Read `config.solarCanopy` from `useSimulationStore`
-- Change `<SolarCanopy />` to `<SolarCanopy solarKWdc={config.solarCanopy} />`
+### `src/components/canvas/DepotScene3D.tsx` — Split into two instances
+- Read `dcfcCount` and `l2Count` from `useSimulationStore(s => s.config)`
+- Replace single `<ChargingField />` with:
+  ```
+  <ChargingField type="dcfc" count={config.dcfcCount} />
+  <ChargingField type="l2" count={config.l2Count} />
+  ```
 
