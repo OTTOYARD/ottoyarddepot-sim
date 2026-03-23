@@ -26,6 +26,7 @@ const CAMERA_PRESETS = {
 export default function DepotScene3D() {
   const vehicles = useVehicleStore((s) => s.vehicles);
   const weather = useSimulationStore((s) => s.config.weather);
+  const simTime = useSimulationStore((s) => s.simTime);
   const controlsRef = useRef<OrbitControlsImpl>(null);
 
   const handleCameraPreset = useCallback((preset: keyof typeof CAMERA_PRESETS) => {
