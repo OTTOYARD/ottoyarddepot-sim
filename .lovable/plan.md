@@ -1,25 +1,16 @@
 
 
-# Replace WashBays and StagingZone with Prop-Based Versions
+# Replace DriveAisles with Simplified Version
 
 ## Changes
 
-### `src/components/canvas/three/WashBays.tsx` — Full replace
+### `src/components/canvas/three/DriveAisles.tsx` — Full replace
 Replace with user's provided code:
-- Accepts `count` prop instead of reading from `useDepotStore`
-- Renders wash bay structures with roofs, wall supports, and door openings using direct 3D positioning
-- "WASH BAYS" label via `<Html>`
-- Removes `toWorld` and depot store dependency
+- Removes `toWorld` dependency and uses direct 3D coordinates
+- Two drive aisle planes at x=±110
+- Directional arrow markers (circle geometry triangles) along each aisle
+- Entry/exit gates with colored posts (teal for entry, red for exit) and point lights
 
-### `src/components/canvas/three/StagingZone.tsx` — Full replace
-Replace with user's provided code:
-- Accepts `count` prop instead of reading from `useDepotStore`
-- Renders flat amber-colored ground markers arranged in a row
-- "STAGING / QUEUE" label via `<Html>`
-- Removes `toWorld` and depot store dependency
-
-### `src/components/canvas/DepotScene3D.tsx` — Pass count props
-- Read `washBayCount` and `stagingStalls` from `config`
-- Change `<WashBays />` to `<WashBays count={config.washBayCount} />`
-- Change `<StagingZone />` to `<StagingZone count={config.stagingStalls} />`
+### No other files affected
+`DepotScene3D.tsx` already renders `<DriveAisles />` with no props — no changes needed.
 
