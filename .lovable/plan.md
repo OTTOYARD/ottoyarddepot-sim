@@ -1,16 +1,19 @@
 
 
-# Replace DriveAisles with Simplified Version
+# Replace UtilityEquipment with Prop-Based Version
+
+## Issue
+The user's code reads `s.kpis` from `useSimulationStore`, but that store has no `kpis` property. The BESS SoC is in `useKPIStore`. Will fix this in implementation.
 
 ## Changes
 
-### `src/components/canvas/three/DriveAisles.tsx` — Full replace
-Replace with user's provided code:
-- Removes `toWorld` dependency and uses direct 3D coordinates
-- Two drive aisle planes at x=±110
-- Directional arrow markers (circle geometry triangles) along each aisle
-- Entry/exit gates with colored posts (teal for entry, red for exit) and point lights
+### `src/components/canvas/three/UtilityEquipment.tsx` — Full replace
+Replace with user's provided code, but use `useKPIStore` for `bessSOC` instead of `useSimulationStore(s => s.kpis)`:
+- Accepts `bessCapacity` and `bessPower` props
+- Renders transformer, switchgear, BESS (scaled by capacity), and solar inverters
+- BESS shows SoC bar with color coding (green/yellow/red)
+- Labels via `<Html>`
 
-### No other files affected
-`DepotScene3D.tsx` already renders `<DriveAisles />` with no props — no changes needed.
+### `src/components/canvas/DepotScene3D.tsx` — Pass props
+- Change `<UtilityEquipment />` to `<UtilityEquipment bessCapacity={config.bessCapacity} bessPower={config.bessPower} />`
 
