@@ -46,7 +46,7 @@ export default function DepotScene3D() {
         gl={{ antialias: true }}
       >
         <Suspense fallback={null}>
-          <DayNightLighting />
+          <DayNightLighting simTime={simTime} />
 
           <DepotGround />
           <DepotBuilding />
