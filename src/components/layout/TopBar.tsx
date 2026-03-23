@@ -79,8 +79,6 @@ export const TopBar = () => {
         {!isDemoMode && (
           <button
             onClick={() => {
-              // Demo mode is triggered via keyboard shortcut or external function
-              // We dispatch a custom event to trigger it from App
               window.dispatchEvent(new CustomEvent('ottoyard-demo'));
             }}
             className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-otto-amber hover:text-white hover:bg-otto-amber/10 rounded-md transition-colors border border-otto-amber/30"
@@ -95,6 +93,9 @@ export const TopBar = () => {
         <button onClick={reset} className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-md transition-colors">
           <RotateCcw size={18} />
         </button>
+
+        <ViewModeToggle />
+
         <button className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-md transition-colors">
           <Settings size={18} />
         </button>
