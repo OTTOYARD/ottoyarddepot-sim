@@ -32,13 +32,19 @@ function getServiceTimeForStall(stallType: string, config: SimulationConfig): nu
   return map[stallType] || 30;
 }
 
-function applyCuOptAssignments(assignments: { vehicleId: string; stallId: string; startTime: number }[]) {
+let pendingCuOptAssignments: { vehicleId: string; stallId: string; startTime: number }[] | null = null;
+
+function applyCuOptAssignments() {
+  if (!pendingCuOptAssignments || pendingCuOptAssignments.length === 0) return;
+  const assignments = pendingCuOptAssignments;
+  pendingCuOptAssignments = null;
+
   const vehicleState = useVehicleStore.getState();
   const depotState = useDepotStore.getState();
   const config = useSimulationStore.getState().config;
-  const simTime = useSimulationStore.getState().simTime;
   let vehicles = [...vehicleState.vehicles];
   let changed = false;
+  const stallUpdates: { id: string; status: 'charging' | 'servicing' }[] = [];
 
   for (const a of assignments) {
     const v = vehicles.find(vv => vv.id === a.vehicleId && vv.status === 'queued');
@@ -60,12 +66,16 @@ function applyCuOptAssignments(assignments: { vehicleId: string; stallId: string
     v.targetPosition = v.waypoints.shift()!;
     v.serviceStartTime = null;
     v.serviceDuration = getServiceDuration(v, config);
-    depotState.setStallStatus(stall.id, v.status === 'charging' ? 'charging' : 'servicing');
+    stallUpdates.push({ id: stall.id, status: v.status === 'charging' ? 'charging' : 'servicing' });
     changed = true;
   }
 
+  // Batch: update vehicles once, then stalls
   if (changed) {
     vehicleState.setVehicles(vehicles);
+    for (const su of stallUpdates) {
+      depotState.setStallStatus(su.id, su.status);
+    }
   }
 }
 
@@ -104,7 +114,7 @@ function runSchedulingCycle(simTime: number, config: SimulationConfig) {
       prioritizeFleet: config.fleetPriorityLevel === 'Always Priority',
     },
   }).then(result => {
-    applyCuOptAssignments(result.assignments);
+    pendingCuOptAssignments = result.assignments;
   }).catch(err => {
     console.error('cuOpt scheduling cycle error:', err);
   }).finally(() => {
@@ -186,6 +196,7 @@ export class SimulationEngine {
     resetAlertEngine();
     lastScheduleTime = 0;
     cuoptPending = false;
+    pendingCuOptAssignments = null;
     useVehicleStore.getState().reset();
     useKPIStore.getState().reset();
     useAIStore.getState().reset();
@@ -309,6 +320,8 @@ export class SimulationEngine {
 
     // 4b. cuOpt async scheduling (fire-and-forget, every 30 sim-seconds)
     runSchedulingCycle(newSimTime, config);
+    // 4c. Apply any pending cuOpt assignments from previous cycle
+    applyCuOptAssignments();
 
     // 5. Update positions (lerp) and service timers
     const step = LERP_SPEED * deltaSeconds;
