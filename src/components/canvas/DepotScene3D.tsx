@@ -52,7 +52,7 @@ export default function DepotScene3D() {
 
           <DepotGround />
           <DepotBuilding />
-          <SolarCanopy />
+          <SolarCanopy solarKWdc={solarCanopy} />
           <ChargingField />
           <WashBays />
           <StagingZone />
