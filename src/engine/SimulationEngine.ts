@@ -1,4 +1,5 @@
 import { useSimulationStore } from '@/store/simulationStore';
+import type { SimulationConfig } from '@/store/simulationStore';
 import { useDepotStore } from '@/store/depotStore';
 import { useVehicleStore } from '@/store/vehicleStore';
 import { useKPIStore } from '@/store/kpiStore';
@@ -9,6 +10,7 @@ import { getScheduler } from './scheduling';
 import { calculateKPIs } from './KPICalculator';
 import { checkAlerts, resetAlertEngine } from './AlertEngine';
 import { saveRun } from '@/lib/runPersistence';
+import { optimizeDepotSchedule } from '@/lib/nvidia-cuopt';
 import { SERVICE_TO_STALL_TYPE, EGRESS, QUEUE_Y } from './types';
 import type { Vehicle, VehicleStatus } from './types';
 import type { StallState } from '@/store/depotStore';
@@ -16,6 +18,99 @@ import type { StallState } from '@/store/depotStore';
 const LERP_SPEED = 30; // SVG units per sim-second
 const LEFT_AISLE_X = 30;
 const RIGHT_AISLE_X = 275;
+
+let lastScheduleTime = 0;
+let cuoptPending = false;
+
+function getServiceTimeForStall(stallType: string, config: SimulationConfig): number {
+  const map: Record<string, number> = {
+    dcfc: config.dcfcChargeTime || 25,
+    l2: (config.l2ChargeTime || 4) * 60,
+    wash: config.exteriorWash || 10,
+    staging: 5,
+  };
+  return map[stallType] || 30;
+}
+
+function applyCuOptAssignments(assignments: { vehicleId: string; stallId: string; startTime: number }[]) {
+  const vehicleState = useVehicleStore.getState();
+  const depotState = useDepotStore.getState();
+  const config = useSimulationStore.getState().config;
+  const simTime = useSimulationStore.getState().simTime;
+  let vehicles = [...vehicleState.vehicles];
+  let changed = false;
+
+  for (const a of assignments) {
+    const v = vehicles.find(vv => vv.id === a.vehicleId && vv.status === 'queued');
+    if (!v) continue;
+    const stall = depotState.stalls.find(s => s.id === a.stallId && s.status === 'available');
+    if (!stall) continue;
+
+    const neededService = v.serviceQueue[v.currentServiceIndex];
+    if (!neededService) continue;
+
+    v.assignedStall = stall.id;
+    v.status = serviceToVehicleStatus(neededService);
+    const stallTarget = { x: stall.position.x + 4, y: stall.position.y + 8 };
+    v.waypoints = [
+      { x: LEFT_AISLE_X, y: v.position.y },
+      { x: LEFT_AISLE_X, y: stallTarget.y },
+      stallTarget,
+    ];
+    v.targetPosition = v.waypoints.shift()!;
+    v.serviceStartTime = null;
+    v.serviceDuration = getServiceDuration(v, config);
+    depotState.setStallStatus(stall.id, v.status === 'charging' ? 'charging' : 'servicing');
+    changed = true;
+  }
+
+  if (changed) {
+    vehicleState.setVehicles(vehicles);
+  }
+}
+
+function runSchedulingCycle(simTime: number, config: SimulationConfig) {
+  if (cuoptPending) return;
+  if (simTime - lastScheduleTime < 30 && lastScheduleTime !== 0) return;
+  lastScheduleTime = simTime;
+
+  const vehicleState = useVehicleStore.getState();
+  const depotState = useDepotStore.getState();
+  const queued = vehicleState.vehicles.filter(v => v.status === 'queued');
+  if (queued.length === 0) return;
+  const available = depotState.stalls.filter(s => s.status === 'available');
+  if (available.length === 0) return;
+
+  cuoptPending = true;
+  optimizeDepotSchedule({
+    vehicles: queued.map(v => ({
+      id: v.id,
+      type: v.type,
+      currentSoC: v.currentSoC,
+      targetSoC: v.targetSoC,
+      servicesNeeded: v.serviceQueue.slice(v.currentServiceIndex),
+      priority: v.priority,
+      arrivalTime: v.arrivalTime,
+    })),
+    stalls: available.map(s => ({
+      id: s.id,
+      type: s.type,
+      available: true,
+      serviceTime: getServiceTimeForStall(s.type, config),
+    })),
+    config: {
+      algorithm: config.ottoQAlgorithm || 'Priority-Weighted',
+      maxQueueWait: 10,
+      prioritizeFleet: config.fleetPriorityLevel === 'Always Priority',
+    },
+  }).then(result => {
+    applyCuOptAssignments(result.assignments);
+  }).catch(err => {
+    console.error('cuOpt scheduling cycle error:', err);
+  }).finally(() => {
+    cuoptPending = false;
+  });
+}
 
 function getServiceDuration(vehicle: Vehicle, config: ReturnType<typeof useSimulationStore.getState>['config']): number {
   const service = vehicle.serviceQueue[vehicle.currentServiceIndex];
@@ -89,6 +184,8 @@ export class SimulationEngine {
     this.stop();
     resetArrivalGenerator();
     resetAlertEngine();
+    lastScheduleTime = 0;
+    cuoptPending = false;
     useVehicleStore.getState().reset();
     useKPIStore.getState().reset();
     useAIStore.getState().reset();
@@ -209,6 +306,9 @@ export class SimulationEngine {
         }
       }
     }
+
+    // 4b. cuOpt async scheduling (fire-and-forget, every 30 sim-seconds)
+    runSchedulingCycle(newSimTime, config);
 
     // 5. Update positions (lerp) and service timers
     const step = LERP_SPEED * deltaSeconds;
