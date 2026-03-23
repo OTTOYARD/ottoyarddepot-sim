@@ -1,54 +1,67 @@
 import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { useSimulationStore } from '@/store/simulationStore';
 
-export function WeatherEffects() {
-  const weather = useSimulationStore((s) => s.config.weather);
-  const pointsRef = useRef<THREE.Points>(null);
+export function WeatherEffects({ weather }: { weather: string }) {
+  const ref = useRef<THREE.Points>(null);
+  const count = weather === 'Rain' ? 3000 : weather === 'Snow' ? 1500 : 0;
 
-  const rainPositions = useMemo(() => {
-    const count = 2000;
-    const positions = new Float32Array(count * 3);
+  const positions = useMemo(() => {
+    const a = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
-      positions[i * 3] = (Math.random() - 0.5) * 300;
-      positions[i * 3 + 1] = Math.random() * 60;
-      positions[i * 3 + 2] = (Math.random() - 0.5) * 220;
+      a[i * 3] = (Math.random() - 0.5) * 300;
+      a[i * 3 + 1] = Math.random() * 60;
+      a[i * 3 + 2] = (Math.random() - 0.5) * 220;
     }
-    return positions;
-  }, []);
+    return a;
+  }, [count]);
 
   useFrame(() => {
-    if (weather !== 'Rain' || !pointsRef.current) return;
-    const positions = pointsRef.current.geometry.attributes.position;
-    const arr = positions.array as Float32Array;
-    for (let i = 0; i < arr.length / 3; i++) {
-      arr[i * 3 + 1] -= 0.8;
+    if (!ref.current || count === 0) return;
+    const arr = ref.current.geometry.attributes.position.array as Float32Array;
+    const spd = weather === 'Rain' ? 1.2 : 0.3;
+    const drift = weather === 'Snow' ? 0.15 : 0;
+    for (let i = 0; i < count; i++) {
+      arr[i * 3 + 1] -= spd;
+      arr[i * 3] += (Math.random() - 0.5) * drift;
       if (arr[i * 3 + 1] < 0) {
-        arr[i * 3 + 1] = 60;
+        arr[i * 3 + 1] = 50 + Math.random() * 10;
+        arr[i * 3] = (Math.random() - 0.5) * 300;
+        arr[i * 3 + 2] = (Math.random() - 0.5) * 220;
       }
     }
-    positions.needsUpdate = true;
+    ref.current.geometry.attributes.position.needsUpdate = true;
   });
 
   if (weather === 'Clear') return null;
 
-  if (weather === 'Rain') {
-    return (
-      <points ref={pointsRef}>
-        <bufferGeometry>
-          <bufferAttribute
-            attach="attributes-position"
-            count={rainPositions.length / 3}
-            array={rainPositions}
-            itemSize={3}
+  return (
+    <group>
+      {count > 0 && (
+        <points ref={ref}>
+          <bufferGeometry>
+            <bufferAttribute
+              attach="attributes-position"
+              count={count}
+              array={positions}
+              itemSize={3}
+            />
+          </bufferGeometry>
+          <pointsMaterial
+            size={weather === 'Rain' ? 0.3 : 0.6}
+            color={weather === 'Rain' ? '#aaccee' : '#ffffff'}
+            transparent
+            opacity={weather === 'Rain' ? 0.5 : 0.7}
+            sizeAttenuation
           />
-        </bufferGeometry>
-        <pointsMaterial color="#88CCFF" size={0.3} transparent opacity={0.4} sizeAttenuation />
-      </points>
-    );
-  }
-
-  // Overcast - just return fog hint (actual fog set in scene)
-  return null;
+        </points>
+      )}
+      {weather === 'Extreme Heat' && (
+        <fog attach="fog" args={['#2a1500', 80, 250]} />
+      )}
+      {weather === 'Rain' && (
+        <fog attach="fog" args={['#0a0a1a', 100, 200]} />
+      )}
+    </group>
+  );
 }
