@@ -64,7 +64,7 @@ export default function DepotScene3D() {
             <Vehicle3D key={v.id} vehicle={v} simSpeed={simSpeed} />
           ))}
 
-          <WeatherEffects weather={weather} />
+          <WeatherEffects weather={config.weather} />
           <ContactShadows position={[0, 0, 0]} opacity={0.3} scale={300} blur={2} far={20} />
           <OrbitControls
             ref={controlsRef}
