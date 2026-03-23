@@ -27,6 +27,7 @@ export default function DepotScene3D() {
   const vehicles = useVehicleStore((s) => s.vehicles);
   const weather = useSimulationStore((s) => s.config.weather);
   const simTime = useSimulationStore((s) => s.simTime);
+  const simSpeed = useSimulationStore((s) => s.simSpeed);
   const controlsRef = useRef<OrbitControlsImpl>(null);
 
   const handleCameraPreset = useCallback((preset: keyof typeof CAMERA_PRESETS) => {
@@ -59,7 +60,7 @@ export default function DepotScene3D() {
           <DepotOverlays />
 
           {vehicles.map((v) => (
-            <Vehicle3D key={v.id} vehicle={v} />
+            <Vehicle3D key={v.id} vehicle={v} simSpeed={simSpeed} />
           ))}
 
           <WeatherEffects weather={weather} />
