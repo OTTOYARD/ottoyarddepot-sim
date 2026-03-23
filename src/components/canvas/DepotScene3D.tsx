@@ -53,7 +53,8 @@ export default function DepotScene3D() {
           <DepotGround />
           <DepotBuilding />
           <SolarCanopy solarKWdc={solarCanopy} />
-          <ChargingField />
+          <ChargingField type="dcfc" count={solarCanopy ? useSimulationStore.getState().config.dcfcCount : 10} />
+          <ChargingField type="l2" count={useSimulationStore.getState().config.l2Count} />
           <WashBays />
           <StagingZone />
           <DriveAisles />
