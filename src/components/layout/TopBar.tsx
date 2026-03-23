@@ -37,6 +37,23 @@ const SaveIndicator = () => {
   );
 };
 
+const ViewModeToggle = () => {
+  const viewMode = useSimulationStore((s) => s.viewMode);
+  const setViewMode = useSimulationStore((s) => s.setViewMode);
+
+  const btnClass = (mode: '2d' | '3d') =>
+    viewMode === mode
+      ? 'px-2 py-1 text-xs font-bold bg-otto-red text-white rounded transition-colors'
+      : 'px-2 py-1 text-xs font-bold bg-transparent text-otto-gray border border-otto-gray/30 rounded transition-colors hover:text-white';
+
+  return (
+    <div className="flex items-center gap-0.5 mx-1">
+      <button className={btnClass('2d')} onClick={() => setViewMode('2d')}>2D</button>
+      <button className={btnClass('3d')} onClick={() => setViewMode('3d')}>3D</button>
+    </div>
+  );
+};
+
 export const TopBar = () => {
   const { status, simTime, simSpeed } = useSimulationStore();
   const vehiclesProcessed = useVehicleStore((s) => s.vehiclesProcessed);
@@ -79,8 +96,6 @@ export const TopBar = () => {
         {!isDemoMode && (
           <button
             onClick={() => {
-              // Demo mode is triggered via keyboard shortcut or external function
-              // We dispatch a custom event to trigger it from App
               window.dispatchEvent(new CustomEvent('ottoyard-demo'));
             }}
             className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-otto-amber hover:text-white hover:bg-otto-amber/10 rounded-md transition-colors border border-otto-amber/30"
@@ -95,6 +110,9 @@ export const TopBar = () => {
         <button onClick={reset} className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-md transition-colors">
           <RotateCcw size={18} />
         </button>
+
+        <ViewModeToggle />
+
         <button className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-md transition-colors">
           <Settings size={18} />
         </button>

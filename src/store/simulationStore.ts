@@ -64,8 +64,10 @@ interface SimulationState {
   isPanelOpen: boolean;
   activeTab: 'controls' | 'kpis' | 'ai-summary' | 'alerts' | 'history';
   config: SimulationConfig;
+  viewMode: '2d' | '3d';
   controlsLocked: boolean;
   setStatus: (status: SimulationState['status']) => void;
+  setViewMode: (mode: '2d' | '3d') => void;
   togglePanel: () => void;
   setActiveTab: (tab: SimulationState['activeTab']) => void;
   setSimSpeed: (speed: number) => void;
@@ -135,8 +137,10 @@ export const useSimulationStore = create<SimulationState>((set) => ({
   isPanelOpen: true,
   activeTab: 'controls',
   config: { ...defaultConfig },
+  viewMode: '2d',
   controlsLocked: false,
   setStatus: (status) => set({ status }),
+  setViewMode: (mode) => set({ viewMode: mode }),
   togglePanel: () => set((s) => ({ isPanelOpen: !s.isPanelOpen })),
   setActiveTab: (activeTab) => set({ activeTab }),
   setSimSpeed: (simSpeed) => set({ simSpeed }),
