@@ -57,7 +57,7 @@ export default function DepotScene3D() {
           <WashBays count={config.washBayCount} />
           <StagingZone count={config.stagingStalls} />
           <DriveAisles />
-          <UtilityEquipment />
+          <UtilityEquipment bessCapacity={config.bessCapacity} bessPower={config.bessPower} />
           <DepotOverlays />
 
           {vehicles.map((v) => (
