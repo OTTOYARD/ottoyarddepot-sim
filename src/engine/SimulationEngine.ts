@@ -114,7 +114,7 @@ function runSchedulingCycle(simTime: number, config: SimulationConfig) {
       prioritizeFleet: config.fleetPriorityLevel === 'Always Priority',
     },
   }).then(result => {
-    applyCuOptAssignments(result.assignments);
+    pendingCuOptAssignments = result.assignments;
   }).catch(err => {
     console.error('cuOpt scheduling cycle error:', err);
   }).finally(() => {
