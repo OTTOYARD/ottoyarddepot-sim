@@ -1,26 +1,27 @@
 
 
-# Replace DepotOverlays with Live Status HUD
+# Add NVIDIA cuOpt Integration via Edge Function
 
-## Issue
-The user's code reads `s.kpis`, `s.vehicles`, and `s.stalls` from `useSimulationStore`, but those properties don't exist there. They live in separate stores:
-- KPIs → `useKPIStore` (has `fleetUptimePct`, `peakPowerDraw`, etc. — note: no `currentPowerDraw` or `fleetUptime`, will map to closest equivalents)
-- Vehicles → `useVehicleStore`
-- Stalls → `useDepotStore`
-- Status → `useSimulationStore`
+## Problem
+The provided code calls the NVIDIA API directly from the client using `import.meta.env.VITE_NVIDIA_API_KEY`. The key is stored as a **runtime secret** (not a VITE_ env var), so it's only accessible from edge functions. Exposing API keys client-side is also a security risk.
+
+## Approach
+Split into an edge function (holds the key, calls NVIDIA) and a client-side library (calls the edge function, provides fallback).
 
 ## Changes
 
-### `src/components/canvas/three/DepotOverlays.tsx` — Full replace
-Replace with user's provided code, correcting store references:
-- `useSimulationStore(s => s.status)` — kept as-is
-- `useKPIStore` for KPI data: `fleetUptimePct`, `avgTurnaroundMin`, `avgQueueWaitMin`, `peakPowerDraw`
-- `useVehicleStore` for vehicles (queue count)
-- `useDepotStore` for stalls (DCFC/L2 occupancy)
-- Map `kpis?.fleetUptime` → `fleetUptimePct`, `kpis?.currentPowerDraw` → `peakPowerDraw`
-- Renders two floating HUD panels: "Live Depot Status" with KPIs and utilization bars, and "Power" with current draw
-- Hidden when simulation is idle
+### 1. `supabase/functions/cuopt-optimize/index.ts` — New edge function
+- Reads `NVIDIA_API_KEY` from `Deno.env`
+- Accepts the same `DepotOptRequest` payload
+- Builds the cuOpt request, calls NVIDIA API, returns parsed results
+- Returns fallback result if API fails or key missing
 
-### No changes to `DepotScene3D.tsx`
-Already renders `<DepotOverlays />` with no props.
+### 2. `src/lib/nvidia-cuopt.ts` — New client library
+- Same types/interfaces as user provided
+- `optimizeDepotSchedule()` calls the edge function via `supabase.functions.invoke('cuopt-optimize', ...)`
+- Contains the `fallback()` function for when the edge function fails
+- No direct API key reference
+
+### 3. No integration into SimulationEngine yet
+This creates the library. A follow-up step would wire it into the scheduling system or add a "cuOpt" option to the algorithm dropdown.
 
