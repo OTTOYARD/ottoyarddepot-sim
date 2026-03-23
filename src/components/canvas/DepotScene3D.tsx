@@ -43,7 +43,6 @@ export default function DepotScene3D() {
         shadows
         camera={{ position: [0, 180, 10], fov: 45, near: 1, far: 500 }}
         gl={{ antialias: true }}
-        {...(weather === 'Overcast' ? { scene: { fog: { color: '#1A1A2E', near: 100, far: 300 } } } : {})}
       >
         <Suspense fallback={null}>
           <DayNightLighting />
