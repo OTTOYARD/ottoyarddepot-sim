@@ -37,6 +37,23 @@ const SaveIndicator = () => {
   );
 };
 
+const ViewModeToggle = () => {
+  const viewMode = useSimulationStore((s) => s.viewMode);
+  const setViewMode = useSimulationStore((s) => s.setViewMode);
+
+  const btnClass = (mode: '2d' | '3d') =>
+    viewMode === mode
+      ? 'px-2 py-1 text-xs font-bold bg-otto-red text-white rounded transition-colors'
+      : 'px-2 py-1 text-xs font-bold bg-transparent text-otto-gray border border-otto-gray/30 rounded transition-colors hover:text-white';
+
+  return (
+    <div className="flex items-center gap-0.5 mx-1">
+      <button className={btnClass('2d')} onClick={() => setViewMode('2d')}>2D</button>
+      <button className={btnClass('3d')} onClick={() => setViewMode('3d')}>3D</button>
+    </div>
+  );
+};
+
 export const TopBar = () => {
   const { status, simTime, simSpeed } = useSimulationStore();
   const vehiclesProcessed = useVehicleStore((s) => s.vehiclesProcessed);
