@@ -5,12 +5,12 @@ export const PostProcessing = forwardRef<any, Record<string, never>>(function Po
   return (
     <EffectComposer ref={ref} multisampling={0} enableNormalPass={false}>
       <Bloom
-        luminanceThreshold={0.95}
+        luminanceThreshold={0.98}
         luminanceSmoothing={0.55}
-        intensity={0.18}
+        intensity={0.12}
         mipmapBlur
       />
-      <Vignette offset={0.35} darkness={0.06} />
+      <Vignette offset={0.28} darkness={0.02} />
     </EffectComposer>
   );
 });
