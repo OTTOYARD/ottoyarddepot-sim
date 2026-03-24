@@ -40,7 +40,7 @@ export function DayNightLighting({ simTime }: { simTime: number }) {
 
   return (
     <>
-      <ambientLight ref={ambRef} intensity={ambI} color="#4a5568" />
+      <ambientLight ref={ambRef} intensity={ambI} color="#8899aa" />
       <hemisphereLight ref={hemiRef} color={skyCol} groundColor={gndCol} intensity={hemiI} />
       <directionalLight
         ref={dirRef}

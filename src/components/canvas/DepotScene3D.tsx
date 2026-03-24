@@ -57,7 +57,7 @@ export default function DepotScene3D() {
       >
         <Suspense fallback={null}>
           <DayNightLighting simTime={simTime} />
-          <Environment preset="city" background={false} environmentIntensity={0.4} />
+          <Environment preset="city" background={false} environmentIntensity={0.8} />
 
           <DepotGround />
           <DepotBuilding />
