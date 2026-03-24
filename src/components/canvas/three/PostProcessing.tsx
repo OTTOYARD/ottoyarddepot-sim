@@ -3,7 +3,7 @@ import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 
 export const PostProcessing = forwardRef<any, Record<string, never>>(function PostProcessing(_, ref) {
   return (
-    <EffectComposer ref={ref} multisampling={0} disableNormalPass>
+    <EffectComposer ref={ref} multisampling={0} enableNormalPass={false}>
       <Bloom
         luminanceThreshold={0.95}
         luminanceSmoothing={0.55}
