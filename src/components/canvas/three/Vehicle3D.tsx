@@ -45,10 +45,10 @@ export function Vehicle3D({ vehicle, simSpeed }: { vehicle: Vehicle; simSpeed: n
         <boxGeometry args={[2.6, 1, 5]} />
         <meshPhysicalMaterial
           color={col}
-          roughness={0.18}
-          metalness={0.7}
-          clearcoat={1.0}
-          clearcoatRoughness={0.08}
+          roughness={0.25}
+          metalness={0.35}
+          clearcoat={0.8}
+          clearcoatRoughness={0.12}
           opacity={fx.op}
           transparent={fx.op < 1}
         />

@@ -8,16 +8,16 @@ export function UtilityEquipment({ bessCapacity, bessPower }:
 
   return (
     <group position={[120, 0, -80]}>
-      {/* Transformer with cooling fins */}
+      {/* Transformer */}
       <mesh position={[0, 4, 0]} castShadow>
         <boxGeometry args={[12, 8, 8]} />
-        <meshPhysicalMaterial color="#5a5a5a" roughness={0.35} metalness={0.65} />
+        <meshStandardMaterial color="#666666" roughness={0.6} metalness={0.2} />
       </mesh>
       {/* Cooling fins */}
       {Array.from({ length: 6 }, (_, i) => (
         <mesh key={`fin${i}`} position={[6.15, 2 + i * 1, 0]}>
           <boxGeometry args={[0.15, 0.6, 7]} />
-          <meshPhysicalMaterial color="#4a4a4a" roughness={0.3} metalness={0.7} />
+          <meshStandardMaterial color="#555555" roughness={0.5} metalness={0.2} />
         </mesh>
       ))}
       <Html position={[0, 9, 0]} center>
@@ -27,35 +27,32 @@ export function UtilityEquipment({ bessCapacity, bessPower }:
       {/* Switchgear */}
       <mesh position={[18, 3.5, 0]} castShadow>
         <boxGeometry args={[10, 7, 6]} />
-        <meshPhysicalMaterial color="#4a4a4a" roughness={0.4} metalness={0.55} />
+        <meshStandardMaterial color="#555555" roughness={0.6} metalness={0.2} />
       </mesh>
-      {/* Ventilation louvers */}
       {Array.from({ length: 4 }, (_, i) => (
         <mesh key={`louver${i}`} position={[18, 2 + i * 1.2, 3.05]}>
           <boxGeometry args={[8, 0.2, 0.1]} />
-          <meshPhysicalMaterial color="#333" roughness={0.5} metalness={0.6} />
+          <meshStandardMaterial color="#444444" roughness={0.6} metalness={0.2} />
         </mesh>
       ))}
       <Html position={[18, 8, 0]} center>
         <span className="text-[7px] font-mono" style={{ color: '#666' }}>SWGR</span>
       </Html>
 
-      {/* BESS containers — corrugated texture */}
+      {/* BESS containers */}
       <mesh position={[0, 4, 14]} castShadow>
         <boxGeometry args={[14 * Math.min(bessCapacity, 4), 8, 8]} />
-        <meshPhysicalMaterial color="#353535" roughness={0.25} metalness={0.7} />
+        <meshStandardMaterial color="#4a4a4a" roughness={0.5} metalness={0.2} />
       </mesh>
-      {/* Corrugated ridges */}
       {Array.from({ length: Math.min(bessCapacity, 4) * 7 }, (_, i) => (
         <mesh key={`ridge${i}`} position={[-7 * Math.min(bessCapacity, 4) + 1 + i * 2, 4, 18.05]}>
           <boxGeometry args={[0.3, 7, 0.1]} />
-          <meshPhysicalMaterial color="#3d3d3d" roughness={0.3} metalness={0.6} />
+          <meshStandardMaterial color="#555555" roughness={0.5} metalness={0.2} />
         </mesh>
       ))}
-      {/* BESS door detail */}
       <mesh position={[-4, 3, 18.1]}>
         <boxGeometry args={[3, 5, 0.05]} />
-        <meshPhysicalMaterial color="#2a2a2a" roughness={0.5} metalness={0.4} />
+        <meshStandardMaterial color="#3a3a3a" roughness={0.6} metalness={0.1} />
       </mesh>
       {/* SoC bar */}
       <mesh position={[0, 1, 18.5]}>
@@ -80,7 +77,7 @@ export function UtilityEquipment({ bessCapacity, bessPower }:
       {[0, 8, 16].map((x, i) => (
         <mesh key={`inv${i}`} position={[-10 + x, 2, -10]} castShadow>
           <boxGeometry args={[3, 4, 2]} />
-          <meshPhysicalMaterial color="#2a2a2a" roughness={0.35} metalness={0.6} />
+          <meshStandardMaterial color="#3a3a3a" roughness={0.6} metalness={0.2} />
         </mesh>
       ))}
     </group>

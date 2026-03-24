@@ -23,46 +23,40 @@ export function SolarCanopy({ solarKWdc }: { solarKWdc: number }) {
       {/* Main canopy structure */}
       <mesh position={[0, h, 0]} castShadow receiveShadow>
         <boxGeometry args={[w, 0.35, d]} />
-        <meshPhysicalMaterial color="#1a2a3a" roughness={0.25} metalness={0.7} />
+        <meshStandardMaterial color="#3a4a5a" roughness={0.5} metalness={0.3} />
       </mesh>
 
-      {/* Solar panel rows — dark reflective */}
+      {/* Solar panel rows */}
       {Array.from({ length: Math.floor(w / 16) }, (_, i) => (
         <group key={`panel${i}`}>
           <mesh position={[-w / 2 + 8 + i * 16, h + 0.22, 0]}>
             <boxGeometry args={[14.5, 0.06, d - 4]} />
-            <meshPhysicalMaterial
-              color="#0a1520"
-              roughness={0.12}
-              metalness={0.65}
-              clearcoat={0.4}
-              clearcoatRoughness={0.15}
-            />
+            <meshStandardMaterial color="#1a2530" roughness={0.3} metalness={0.2} />
           </mesh>
           {/* Aluminum edge frame */}
           <mesh position={[-w / 2 + 8 + i * 16, h + 0.22, (d - 4) / 2]}>
             <boxGeometry args={[14.8, 0.1, 0.15]} />
-            <meshPhysicalMaterial color="#aaaaaa" roughness={0.2} metalness={0.9} />
+            <meshStandardMaterial color="#aaaaaa" roughness={0.3} metalness={0.5} />
           </mesh>
           <mesh position={[-w / 2 + 8 + i * 16, h + 0.22, -(d - 4) / 2]}>
             <boxGeometry args={[14.8, 0.1, 0.15]} />
-            <meshPhysicalMaterial color="#aaaaaa" roughness={0.2} metalness={0.9} />
+            <meshStandardMaterial color="#aaaaaa" roughness={0.3} metalness={0.5} />
           </mesh>
         </group>
       ))}
 
-      {/* Brushed steel columns */}
+      {/* Columns */}
       {Array.from({ length: cols }, (_, i) => {
         const x = -w / 2 + 10 + i * ((w - 20) / (cols - 1));
         return [d / 2 - 5, -d / 2 + 5].map((z, j) => (
           <mesh key={`c${i}${j}`} position={[x, h / 2, z]} castShadow>
             <cylinderGeometry args={[0.3, 0.4, h, 12]} />
-            <meshPhysicalMaterial color="#606060" roughness={0.35} metalness={0.7} />
+            <meshStandardMaterial color="#707070" roughness={0.5} metalness={0.3} />
           </mesh>
         ));
       })}
 
-      {/* Under-canopy warm downlights */}
+      {/* Under-canopy downlights */}
       {Array.from({ length: Math.floor(w / 30) }, (_, i) => (
         <pointLight
           key={`dl${i}`}

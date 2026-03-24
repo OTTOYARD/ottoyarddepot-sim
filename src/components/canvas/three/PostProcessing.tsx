@@ -1,17 +1,15 @@
-import { EffectComposer, Bloom, Vignette, ToneMapping } from '@react-three/postprocessing';
-import { ToneMappingMode } from 'postprocessing';
+import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 
 export function PostProcessing() {
   return (
     <EffectComposer multisampling={0}>
       <Bloom
-        luminanceThreshold={0.85}
-        luminanceSmoothing={0.3}
-        intensity={0.5}
+        luminanceThreshold={0.9}
+        luminanceSmoothing={0.4}
+        intensity={0.35}
         mipmapBlur
       />
-      <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
-      <Vignette offset={0.3} darkness={0.5} />
+      <Vignette offset={0.4} darkness={0.25} />
     </EffectComposer>
   );
 }
