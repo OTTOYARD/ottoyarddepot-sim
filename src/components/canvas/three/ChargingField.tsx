@@ -41,18 +41,18 @@ export function ChargingField({ type, count }: Props) {
             <mesh position={[0, 1.8, 0]} castShadow>
               <cylinderGeometry args={[0.6, 0.7, 3.6, 16]} />
               <meshPhysicalMaterial
-                color="hsl(0, 0%, 91%)"
-                roughness={0.45}
+                color="#e8e8e8"
+                roughness={0.4}
                 metalness={0.08}
                 clearcoat={0.3}
-                clearcoatRoughness={0.32}
+                clearcoatRoughness={0.25}
               />
             </mesh>
 
             {/* Dark screen face */}
             <mesh position={[0, 2.4, 0.62]}>
               <planeGeometry args={[0.8, 1.2]} />
-              <meshPhysicalMaterial color="hsl(220, 18%, 12%)" roughness={0.18} metalness={0.08} />
+              <meshPhysicalMaterial color="#161c28" roughness={0.18} metalness={0.08} />
             </mesh>
 
             {/* Status LED ring on top */}
@@ -78,13 +78,13 @@ export function ChargingField({ type, count }: Props) {
             {/* Cable arm */}
             <mesh position={[0.7, 2.5, 0]} rotation-z={0.3}>
               <cylinderGeometry args={[0.04, 0.04, 1.5, 6]} />
-              <meshPhysicalMaterial color="hsl(220, 6%, 22%)" roughness={0.75} metalness={0.05} />
+              <meshPhysicalMaterial color="#333638" roughness={0.75} metalness={0.05} />
             </mesh>
 
             {/* Ground bollard */}
             <mesh position={[1.2, 0.3, 0]} castShadow>
               <cylinderGeometry args={[0.15, 0.18, 0.6, 8]} />
-              <meshPhysicalMaterial color="hsl(38, 90%, 52%)" roughness={0.65} metalness={0.08} />
+              <meshPhysicalMaterial color="#F59E0B" roughness={0.55} metalness={0.08} />
             </mesh>
 
             {isOff && <OfflineBeacon />}

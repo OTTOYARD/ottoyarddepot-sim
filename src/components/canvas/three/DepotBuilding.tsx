@@ -6,27 +6,27 @@ export function DepotBuilding() {
       {/* Main steel frame structure */}
       <mesh position={[0, 4, -90]} castShadow receiveShadow>
         <boxGeometry args={[120, 8, 35]} />
-        <meshStandardMaterial color="hsl(220, 8%, 40%)" roughness={0.82} metalness={0.06} />
+        <meshStandardMaterial color="#5e6470" roughness={0.82} metalness={0.06} />
       </mesh>
 
       {/* Two-story corner wing */}
       <mesh position={[-52, 4.5, -90]} castShadow receiveShadow>
         <boxGeometry args={[15, 9, 12]} />
-        <meshStandardMaterial color="hsl(220, 8%, 36%)" roughness={0.78} metalness={0.06} />
+        <meshStandardMaterial color="#555b66" roughness={0.78} metalness={0.06} />
       </mesh>
 
       {/* Glass curtain wall — front facade */}
       <mesh position={[0, 4, -72.3]}>
         <planeGeometry args={[118, 7.5]} />
         <meshPhysicalMaterial
-          color="hsl(205, 45%, 72%)"
-          roughness={0.12}
-          metalness={0.04}
+          color="#8abbd8"
+          roughness={0.15}
+          metalness={0.05}
           transmission={0.85}
           ior={1.5}
           thickness={0.5}
           transparent
-          opacity={0.3}
+          opacity={0.35}
         />
       </mesh>
 
@@ -34,13 +34,13 @@ export function DepotBuilding() {
       {Array.from({ length: 15 }, (_, i) => (
         <mesh key={`mul${i}`} position={[-56 + i * 8, 4, -72.2]}>
           <boxGeometry args={[0.15, 7.5, 0.1]} />
-          <meshStandardMaterial color="hsl(220, 8%, 28%)" roughness={0.65} metalness={0.15} />
+          <meshStandardMaterial color="#3e4450" roughness={0.65} metalness={0.15} />
         </mesh>
       ))}
       {/* Horizontal transom */}
       <mesh position={[0, 7.8, -72.2]}>
         <boxGeometry args={[118, 0.12, 0.1]} />
-        <meshStandardMaterial color="hsl(220, 8%, 28%)" roughness={0.65} metalness={0.15} />
+        <meshStandardMaterial color="#3e4450" roughness={0.65} metalness={0.15} />
       </mesh>
 
       {/* Interior warm glow */}
@@ -63,11 +63,11 @@ export function DepotBuilding() {
         <group key={`bay${i}`}>
           <mesh position={[x, 2.5, -72.15]}>
             <boxGeometry args={[9, 5.5, 0.3]} />
-            <meshStandardMaterial color="hsl(220, 10%, 20%)" roughness={0.85} metalness={0.04} />
+            <meshStandardMaterial color="#2e3340" roughness={0.85} metalness={0.04} />
           </mesh>
           <mesh position={[x, 2.5, -72.1]}>
             <boxGeometry args={[9.5, 6, 0.08]} />
-            <meshStandardMaterial color="hsl(220, 8%, 38%)" roughness={0.55} metalness={0.12} />
+            <meshStandardMaterial color="#585e68" roughness={0.55} metalness={0.12} />
           </mesh>
         </group>
       ))}
@@ -75,11 +75,11 @@ export function DepotBuilding() {
       {/* OTTOYARD backlit signage */}
       <mesh position={[0, 9.2, -90]}>
         <boxGeometry args={[22, 1.8, 0.4]} />
-        <meshStandardMaterial color="hsl(0, 50%, 14%)" roughness={0.6} metalness={0.08} />
+        <meshStandardMaterial color="#361515" roughness={0.6} metalness={0.08} />
       </mesh>
       <mesh position={[0, 9.2, -89.7]}>
         <boxGeometry args={[20, 1.4, 0.05]} />
-        <meshStandardMaterial color="hsl(0, 100%, 38%)" emissive="hsl(0, 100%, 38%)" emissiveIntensity={1.2} />
+        <meshStandardMaterial color="#C00000" emissive="#C00000" emissiveIntensity={1.2} />
       </mesh>
 
       <Html position={[0, 11, -89]} center>
