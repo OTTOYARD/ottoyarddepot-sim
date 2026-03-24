@@ -49,7 +49,7 @@ export default function DepotScene3D() {
         gl={{
           antialias: true,
           toneMapping: ACESFilmicToneMapping,
-          toneMappingExposure: 1.5,
+          toneMappingExposure: 1.8,
           outputColorSpace: SRGBColorSpace,
           powerPreference: 'high-performance',
         }}

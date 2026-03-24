@@ -6,13 +6,13 @@ export function DepotBuilding() {
       {/* Main steel frame structure */}
       <mesh position={[0, 4, -90]} castShadow receiveShadow>
         <boxGeometry args={[120, 8, 35]} />
-        <meshPhysicalMaterial color="#2a2a2a" roughness={0.3} metalness={0.8} />
+        <meshStandardMaterial color="#444444" roughness={0.6} metalness={0.3} />
       </mesh>
 
       {/* Two-story corner wing */}
       <mesh position={[-52, 4.5, -90]} castShadow receiveShadow>
         <boxGeometry args={[15, 9, 12]} />
-        <meshPhysicalMaterial color="#252525" roughness={0.25} metalness={0.85} />
+        <meshStandardMaterial color="#3a3a3a" roughness={0.55} metalness={0.3} />
       </mesh>
 
       {/* Glass curtain wall — front facade */}
@@ -30,20 +30,20 @@ export function DepotBuilding() {
         />
       </mesh>
 
-      {/* Glass mullions — vertical steel dividers */}
+      {/* Glass mullions */}
       {Array.from({ length: 15 }, (_, i) => (
         <mesh key={`mul${i}`} position={[-56 + i * 8, 4, -72.2]}>
           <boxGeometry args={[0.15, 7.5, 0.1]} />
-          <meshPhysicalMaterial color="#1a1a1a" roughness={0.3} metalness={0.9} />
+          <meshStandardMaterial color="#333333" roughness={0.4} metalness={0.5} />
         </mesh>
       ))}
       {/* Horizontal transom */}
       <mesh position={[0, 7.8, -72.2]}>
         <boxGeometry args={[118, 0.12, 0.1]} />
-        <meshPhysicalMaterial color="#1a1a1a" roughness={0.3} metalness={0.9} />
+        <meshStandardMaterial color="#333333" roughness={0.4} metalness={0.5} />
       </mesh>
 
-      {/* Interior warm glow visible through glass */}
+      {/* Interior warm glow */}
       <pointLight position={[0, 4, -80]} color="#ffddaa" intensity={0.6} distance={25} />
       <pointLight position={[-30, 3, -82]} color="#ffeebb" intensity={0.3} distance={15} />
       <pointLight position={[30, 3, -82]} color="#ffeebb" intensity={0.3} distance={15} />
@@ -58,17 +58,16 @@ export function DepotBuilding() {
         <meshStandardMaterial color="#00B4A6" emissive="#00B4A6" emissiveIntensity={0.4} />
       </mesh>
 
-      {/* Service bay doors — dark recessed panels */}
+      {/* Service bay doors */}
       {[-20, 10].map((x, i) => (
         <group key={`bay${i}`}>
           <mesh position={[x, 2.5, -72.15]}>
             <boxGeometry args={[9, 5.5, 0.3]} />
-            <meshPhysicalMaterial color="#0a0a0a" roughness={0.8} metalness={0.2} />
+            <meshStandardMaterial color="#1a1a1a" roughness={0.8} metalness={0.1} />
           </mesh>
-          {/* Door frame */}
           <mesh position={[x, 2.5, -72.1]}>
             <boxGeometry args={[9.5, 6, 0.08]} />
-            <meshPhysicalMaterial color="#333333" roughness={0.3} metalness={0.7} />
+            <meshStandardMaterial color="#444444" roughness={0.4} metalness={0.4} />
           </mesh>
         </group>
       ))}
@@ -76,15 +75,11 @@ export function DepotBuilding() {
       {/* OTTOYARD backlit signage */}
       <mesh position={[0, 9.2, -90]}>
         <boxGeometry args={[22, 1.8, 0.4]} />
-        <meshPhysicalMaterial color="#1a0000" roughness={0.3} metalness={0.5} />
+        <meshStandardMaterial color="#2a0000" roughness={0.4} metalness={0.2} />
       </mesh>
       <mesh position={[0, 9.2, -89.7]}>
         <boxGeometry args={[20, 1.4, 0.05]} />
-        <meshStandardMaterial
-          color="#C00000"
-          emissive="#C00000"
-          emissiveIntensity={1.2}
-        />
+        <meshStandardMaterial color="#C00000" emissive="#C00000" emissiveIntensity={1.2} />
       </mesh>
 
       <Html position={[0, 11, -89]} center>
