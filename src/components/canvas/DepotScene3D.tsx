@@ -1,5 +1,5 @@
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Environment, AccumulativeShadows, RandomizedLight } from '@react-three/drei';
+import { OrbitControls, Environment } from '@react-three/drei';
 import { Suspense, useCallback, useRef } from 'react';
 import { ACESFilmicToneMapping, SRGBColorSpace } from 'three';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
@@ -76,11 +76,6 @@ export default function DepotScene3D() {
 
           <WeatherEffects weather={config.weather} />
 
-          <AccumulativeShadows temporal frames={60} alphaTest={0.65} opacity={0.6}
-            scale={300} position={[0, 0.01, 0]}>
-            <RandomizedLight amount={8} radius={8} ambient={0.5}
-              position={[50, 80, 30]} bias={0.001} />
-          </AccumulativeShadows>
 
           <PostProcessing />
 
