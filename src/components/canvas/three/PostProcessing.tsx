@@ -1,15 +1,16 @@
+import { forwardRef } from 'react';
 import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 
-export function PostProcessing() {
+export const PostProcessing = forwardRef<any, Record<string, never>>(function PostProcessing(_, ref) {
   return (
-    <EffectComposer multisampling={0}>
+    <EffectComposer ref={ref} multisampling={0} disableNormalPass>
       <Bloom
-        luminanceThreshold={0.75}
-        luminanceSmoothing={0.4}
-        intensity={0.25}
+        luminanceThreshold={0.95}
+        luminanceSmoothing={0.55}
+        intensity={0.18}
         mipmapBlur
       />
-      <Vignette offset={0.5} darkness={0.15} />
+      <Vignette offset={0.35} darkness={0.06} />
     </EffectComposer>
   );
-}
+});

@@ -1,7 +1,7 @@
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Environment } from '@react-three/drei';
 import { Suspense, useCallback, useRef } from 'react';
-import { ACESFilmicToneMapping, SRGBColorSpace } from 'three';
+import { ACESFilmicToneMapping, PointLight, SRGBColorSpace } from 'three';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { useVehicleStore } from '@/store/vehicleStore';
 import { useSimulationStore } from '@/store/simulationStore';
@@ -24,6 +24,16 @@ const CAMERA_PRESETS = {
   'Street Level': { position: [0, 15, -130] as [number, number, number], target: [0, 0, 20] as [number, number, number] },
   'Operator': { position: [-120, 60, -80] as [number, number, number], target: [0, 0, 0] as [number, number, number] },
 };
+
+function CameraFillLight() {
+  const ref = useRef<PointLight>(null);
+
+  useFrame(({ camera }) => {
+    ref.current?.position.copy(camera.position);
+  });
+
+  return <pointLight ref={ref} color="#f7fbff" intensity={0.42} distance={280} decay={2} />;
+}
 
 export default function DepotScene3D() {
   const vehicles = useVehicleStore((s) => s.vehicles);
@@ -49,7 +59,7 @@ export default function DepotScene3D() {
         gl={{
           antialias: true,
           toneMapping: ACESFilmicToneMapping,
-          toneMappingExposure: 2.6,
+          toneMappingExposure: 1.85,
           outputColorSpace: SRGBColorSpace,
           powerPreference: 'high-performance',
         }}
@@ -57,7 +67,8 @@ export default function DepotScene3D() {
       >
         <Suspense fallback={null}>
           <DayNightLighting simTime={simTime} />
-          <Environment preset="sunset" background={false} environmentIntensity={1.0} />
+          <CameraFillLight />
+          <Environment preset="sunset" background={false} environmentIntensity={0.9} />
 
           <DepotGround />
           <DepotBuilding />
@@ -75,8 +86,6 @@ export default function DepotScene3D() {
           ))}
 
           <WeatherEffects weather={config.weather} />
-
-
           <PostProcessing />
 
           <OrbitControls
@@ -90,7 +99,6 @@ export default function DepotScene3D() {
         </Suspense>
       </Canvas>
 
-      {/* Camera preset buttons */}
       <div className="absolute bottom-4 right-4 flex gap-1.5">
         {(Object.keys(CAMERA_PRESETS) as (keyof typeof CAMERA_PRESETS)[]).map((label) => (
           <button
