@@ -54,7 +54,7 @@ export default function DepotScene3D() {
   return (
     <div className="absolute inset-0 bg-otto-dark">
       <Canvas
-        shadows="soft"
+        shadows
         camera={{ position: [0, 180, 10], fov: 45, near: 1, far: 420 }}
         gl={{
           antialias: true,
@@ -68,7 +68,7 @@ export default function DepotScene3D() {
         <Suspense fallback={null}>
           <DayNightLighting simTime={simTime} />
           <CameraFillLight />
-          <Environment preset="park" background={false} environmentIntensity={0.55} />
+          <Environment preset="city" background={false} environmentIntensity={0.7} />
 
           <DepotGround />
           <DepotBuilding />
