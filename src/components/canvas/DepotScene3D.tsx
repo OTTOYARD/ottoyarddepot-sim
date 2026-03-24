@@ -17,7 +17,6 @@ import { Vehicle3D } from './three/Vehicle3D';
 import { DepotOverlays } from './three/DepotOverlays';
 import { WeatherEffects } from './three/WeatherEffects';
 import { DayNightLighting } from './three/DayNightLighting';
-import { PostProcessing } from './three/PostProcessing';
 
 const CAMERA_PRESETS = {
   'Bird Eye': { position: [0, 180, 10] as [number, number, number], target: [0, 0, 0] as [number, number, number] },
@@ -86,7 +85,6 @@ export default function DepotScene3D() {
           ))}
 
           <WeatherEffects weather={config.weather} />
-          {/* <PostProcessing /> */}
 
           <OrbitControls
             ref={controlsRef}
