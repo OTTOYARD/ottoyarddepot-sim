@@ -49,7 +49,7 @@ export default function DepotScene3D() {
         gl={{
           antialias: true,
           toneMapping: ACESFilmicToneMapping,
-          toneMappingExposure: 1.8,
+          toneMappingExposure: 2.6,
           outputColorSpace: SRGBColorSpace,
           powerPreference: 'high-performance',
         }}
@@ -57,7 +57,7 @@ export default function DepotScene3D() {
       >
         <Suspense fallback={null}>
           <DayNightLighting simTime={simTime} />
-          <Environment preset="sunset" background={false} environmentIntensity={0.5} />
+          <Environment preset="sunset" background={false} environmentIntensity={1.0} />
 
           <DepotGround />
           <DepotBuilding />
