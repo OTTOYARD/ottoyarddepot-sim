@@ -1,26 +1,21 @@
 
 
-# Brighten Daytime Lighting
+# Fix 3D Scene Flashing
 
-## Problem
-The 3D scene is too dark during daytime hours (8:00–17:00). Three values need bumping.
+## Root Cause
+
+`AccumulativeShadows` with `temporal` mode accumulates shadow samples over 60 frames, visibly transitioning from dark to clear each cycle. Meanwhile, `DayNightLighting` updates the directional light's position and intensity every frame via `useFrame`, which invalidates the shadow accumulation — causing it to restart repeatedly, producing a constant dark-flash-clear loop.
+
+## Solution
+
+Remove `AccumulativeShadows` entirely from `DepotScene3D.tsx`. The directional light in `DayNightLighting` already has `castShadow` enabled with a 4096x4096 shadow map, which provides proper real-time shadows without flicker.
 
 ## Changes
 
-### 1. `src/components/canvas/DepotScene3D.tsx`
-- Increase `environmentIntensity` from `0.4` → `0.8`
-- Increase `toneMappingExposure` from `1.2` → `1.5`
+### `src/components/canvas/DepotScene3D.tsx`
+- Remove `AccumulativeShadows` and `RandomizedLight` imports from `@react-three/drei`
+- Delete the `<AccumulativeShadows>` block (lines 79–83)
+- Keep all other scene elements unchanged
 
-### 2. `src/components/canvas/three/DayNightLighting.tsx`
-Boost the daytime (8–17h) lighting values:
-- `sunI`: `0.9` → `1.8` (directional sun)
-- `ambI`: `0.25` → `0.5` (ambient)
-- `hemiI`: `0.3` → `0.5` (hemisphere)
-- `sunCol`: `'#ffeedd'` → `'#fff5e6'` (slightly warmer/brighter white)
-- Ambient light base color: `'#4a5568'` → `'#8899aa'` (lighter gray-blue)
-
-Also proportionally adjust sunrise/sunset transitions so they blend smoothly into the brighter daytime values.
-
-### Technical Detail
-Only two files touched, only numeric/color constants changed. No structural or architectural changes.
+One file, ~5 lines removed. No structural changes.
 
