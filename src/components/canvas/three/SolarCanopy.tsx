@@ -23,7 +23,7 @@ export function SolarCanopy({ solarKWdc }: { solarKWdc: number }) {
       {/* Main canopy structure */}
       <mesh position={[0, h, 0]} castShadow receiveShadow>
         <boxGeometry args={[w, 0.35, d]} />
-        <meshStandardMaterial color="#3a4a5a" roughness={0.5} metalness={0.3} />
+        <meshStandardMaterial color="hsl(212, 18%, 42%)" roughness={0.72} metalness={0.08} />
       </mesh>
 
       {/* Solar panel rows */}
@@ -31,16 +31,16 @@ export function SolarCanopy({ solarKWdc }: { solarKWdc: number }) {
         <group key={`panel${i}`}>
           <mesh position={[-w / 2 + 8 + i * 16, h + 0.22, 0]}>
             <boxGeometry args={[14.5, 0.06, d - 4]} />
-            <meshStandardMaterial color="#1a2530" roughness={0.3} metalness={0.2} />
+            <meshStandardMaterial color="hsl(210, 28%, 24%)" roughness={0.55} metalness={0.05} />
           </mesh>
           {/* Aluminum edge frame */}
           <mesh position={[-w / 2 + 8 + i * 16, h + 0.22, (d - 4) / 2]}>
             <boxGeometry args={[14.8, 0.1, 0.15]} />
-            <meshStandardMaterial color="#aaaaaa" roughness={0.3} metalness={0.5} />
+            <meshStandardMaterial color="hsl(210, 8%, 70%)" roughness={0.5} metalness={0.15} />
           </mesh>
           <mesh position={[-w / 2 + 8 + i * 16, h + 0.22, -(d - 4) / 2]}>
             <boxGeometry args={[14.8, 0.1, 0.15]} />
-            <meshStandardMaterial color="#aaaaaa" roughness={0.3} metalness={0.5} />
+            <meshStandardMaterial color="hsl(210, 8%, 70%)" roughness={0.5} metalness={0.15} />
           </mesh>
         </group>
       ))}
@@ -51,7 +51,7 @@ export function SolarCanopy({ solarKWdc }: { solarKWdc: number }) {
         return [d / 2 - 5, -d / 2 + 5].map((z, j) => (
           <mesh key={`c${i}${j}`} position={[x, h / 2, z]} castShadow>
             <cylinderGeometry args={[0.3, 0.4, h, 12]} />
-            <meshStandardMaterial color="#707070" roughness={0.5} metalness={0.3} />
+            <meshStandardMaterial color="hsl(210, 6%, 56%)" roughness={0.68} metalness={0.1} />
           </mesh>
         ));
       })}

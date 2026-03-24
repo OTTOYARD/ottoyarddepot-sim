@@ -45,10 +45,10 @@ export function Vehicle3D({ vehicle, simSpeed }: { vehicle: Vehicle; simSpeed: n
         <boxGeometry args={[2.6, 1, 5]} />
         <meshPhysicalMaterial
           color={col}
-          roughness={0.25}
-          metalness={0.35}
-          clearcoat={0.8}
-          clearcoatRoughness={0.12}
+          roughness={0.48}
+          metalness={0.12}
+          clearcoat={0.45}
+          clearcoatRoughness={0.2}
           opacity={fx.op}
           transparent={fx.op < 1}
         />
@@ -58,14 +58,14 @@ export function Vehicle3D({ vehicle, simSpeed }: { vehicle: Vehicle; simSpeed: n
       <mesh position={[0, 1.4, -0.3]}>
         <boxGeometry args={[2.2, 0.7, 2.8]} />
         <meshPhysicalMaterial
-          color="#1a2233"
-          roughness={0.05}
-          metalness={0.1}
-          transmission={0.6}
+          color="hsl(218, 26%, 20%)"
+          roughness={0.18}
+          metalness={0.05}
+          transmission={0.35}
           ior={1.5}
           thickness={0.3}
           transparent
-          opacity={0.5}
+          opacity={0.35}
         />
       </mesh>
 
@@ -74,12 +74,12 @@ export function Vehicle3D({ vehicle, simSpeed }: { vehicle: Vehicle; simSpeed: n
         <group key={i} position={pos}>
           <mesh rotation={[0, 0, Math.PI / 2]}>
             <torusGeometry args={[0.3, 0.12, 8, 16]} />
-            <meshPhysicalMaterial color="#1a1a1a" roughness={0.85} metalness={0.1} />
+            <meshPhysicalMaterial color="hsl(220, 8%, 15%)" roughness={0.9} metalness={0.04} />
           </mesh>
           {/* Rim */}
           <mesh rotation={[0, 0, Math.PI / 2]}>
             <cylinderGeometry args={[0.2, 0.2, 0.22, 8]} />
-            <meshPhysicalMaterial color="#888888" roughness={0.2} metalness={0.8} />
+            <meshPhysicalMaterial color="hsl(210, 6%, 62%)" roughness={0.45} metalness={0.25} />
           </mesh>
         </group>
       ))}

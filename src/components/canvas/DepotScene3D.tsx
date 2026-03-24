@@ -29,10 +29,10 @@ function CameraFillLight() {
   const ref = useRef<PointLight>(null);
 
   useFrame(({ camera }) => {
-    ref.current?.position.copy(camera.position);
+    ref.current?.position.set(camera.position.x, camera.position.y + 12, camera.position.z + 8);
   });
 
-  return <pointLight ref={ref} color="#f7fbff" intensity={0.42} distance={280} decay={2} />;
+  return <pointLight ref={ref} color="hsl(210, 100%, 98%)" intensity={0.72} distance={360} decay={1.8} />;
 }
 
 export default function DepotScene3D() {
@@ -54,12 +54,12 @@ export default function DepotScene3D() {
   return (
     <div className="absolute inset-0 bg-otto-dark">
       <Canvas
-        shadows
-        camera={{ position: [0, 180, 10], fov: 45, near: 1, far: 500 }}
+        shadows="soft"
+        camera={{ position: [0, 180, 10], fov: 45, near: 1, far: 420 }}
         gl={{
           antialias: true,
           toneMapping: ACESFilmicToneMapping,
-          toneMappingExposure: 1.85,
+          toneMappingExposure: 1.55,
           outputColorSpace: SRGBColorSpace,
           powerPreference: 'high-performance',
         }}
@@ -68,7 +68,7 @@ export default function DepotScene3D() {
         <Suspense fallback={null}>
           <DayNightLighting simTime={simTime} />
           <CameraFillLight />
-          <Environment preset="sunset" background={false} environmentIntensity={0.9} />
+          <Environment preset="park" background={false} environmentIntensity={0.55} />
 
           <DepotGround />
           <DepotBuilding />
