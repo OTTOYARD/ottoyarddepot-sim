@@ -1,61 +1,71 @@
 import { Html } from '@react-three/drei';
+import { useMemo } from 'react';
+import { MATERIALS } from './materials';
 
 export function DepotBuilding() {
+  const mullionCount = 15;
+
   return (
     <group>
-      {/* Main steel frame structure */}
+      {/* Main body — dark cladding */}
       <mesh position={[0, 4, -90]} castShadow receiveShadow>
         <boxGeometry args={[120, 8, 35]} />
-        <meshStandardMaterial color="#5e6470" roughness={0.82} metalness={0.06} />
+        <meshPhysicalMaterial {...MATERIALS.darkCladding()} />
       </mesh>
 
       {/* Two-story corner wing */}
       <mesh position={[-52, 4.5, -90]} castShadow receiveShadow>
         <boxGeometry args={[15, 9, 12]} />
-        <meshStandardMaterial color="#555b66" roughness={0.78} metalness={0.06} />
+        <meshPhysicalMaterial {...MATERIALS.darkCladding()} />
+      </mesh>
+
+      {/* Roof overhang slab */}
+      <mesh position={[0, 8.05, -90]} castShadow receiveShadow>
+        <boxGeometry args={[121.5, 0.15, 36.5]} />
+        <meshPhysicalMaterial {...MATERIALS.darkCladding()} />
       </mesh>
 
       {/* Glass curtain wall — front facade */}
       <mesh position={[0, 4, -72.3]}>
         <planeGeometry args={[118, 7.5]} />
-        <meshPhysicalMaterial
-          color="#8abbd8"
-          roughness={0.15}
-          metalness={0.05}
-          transmission={0.85}
-          ior={1.5}
-          thickness={0.5}
-          transparent
-          opacity={0.35}
-        />
+        <meshPhysicalMaterial {...MATERIALS.architecturalGlass()} />
       </mesh>
 
-      {/* Glass mullions */}
-      {Array.from({ length: 15 }, (_, i) => (
+      {/* Side glass */}
+      <mesh position={[60, 4, -90]} rotation-y={-Math.PI / 2}>
+        <planeGeometry args={[33, 7.5]} />
+        <meshPhysicalMaterial {...MATERIALS.architecturalGlass()} />
+      </mesh>
+
+      {/* Glass mullions — vertical */}
+      {Array.from({ length: mullionCount }, (_, i) => (
         <mesh key={`mul${i}`} position={[-56 + i * 8, 4, -72.2]}>
-          <boxGeometry args={[0.15, 7.5, 0.1]} />
-          <meshStandardMaterial color="#3e4450" roughness={0.65} metalness={0.15} />
+          <boxGeometry args={[0.04, 7.5, 0.04]} />
+          <meshPhysicalMaterial {...MATERIALS.brushedAluminum()} />
         </mesh>
       ))}
-      {/* Horizontal transom */}
-      <mesh position={[0, 7.8, -72.2]}>
-        <boxGeometry args={[118, 0.12, 0.1]} />
-        <meshStandardMaterial color="#3e4450" roughness={0.65} metalness={0.15} />
+      {/* Horizontal mullion at 60% height */}
+      <mesh position={[0, 4.8, -72.2]}>
+        <boxGeometry args={[118, 0.04, 0.04]} />
+        <meshPhysicalMaterial {...MATERIALS.brushedAluminum()} />
       </mesh>
 
-      {/* Interior warm glow */}
-      <pointLight position={[0, 4, -80]} color="#ffddaa" intensity={0.6} distance={25} />
-      <pointLight position={[-30, 3, -82]} color="#ffeebb" intensity={0.3} distance={15} />
-      <pointLight position={[30, 3, -82]} color="#ffeebb" intensity={0.3} distance={15} />
-
-      {/* Roof parapet with teal LED accent strip */}
-      <mesh position={[0, 8.15, -72.5]}>
-        <boxGeometry args={[120, 0.3, 0.3]} />
-        <meshStandardMaterial color="#00B4A6" emissive="#00B4A6" emissiveIntensity={0.8} />
+      {/* Entrance canopy */}
+      <mesh position={[0, 3.2, -72]} castShadow>
+        <boxGeometry args={[4, 0.08, 3]} />
+        <meshPhysicalMaterial {...MATERIALS.structuralSteel()} />
       </mesh>
-      <mesh position={[0, 8.15, -107.5]}>
-        <boxGeometry args={[120, 0.3, 0.3]} />
-        <meshStandardMaterial color="#00B4A6" emissive="#00B4A6" emissiveIntensity={0.4} />
+
+      {/* Wood accent panel at entrance */}
+      <mesh position={[0, 1.5, -72.15]}>
+        <boxGeometry args={[3, 3, 0.04]} />
+        <meshPhysicalMaterial {...MATERIALS.woodAccent()} />
+      </mesh>
+
+      {/* Teal LED roofline strip */}
+      <mesh position={[0, 8.15, -72.3]}>
+        <boxGeometry args={[120, 0.03, 0.03]} />
+        <meshPhysicalMaterial {...MATERIALS.tealLED(2.0)} />
       </mesh>
 
       {/* Service bay doors */}
@@ -63,23 +73,28 @@ export function DepotBuilding() {
         <group key={`bay${i}`}>
           <mesh position={[x, 2.5, -72.15]}>
             <boxGeometry args={[9, 5.5, 0.3]} />
-            <meshStandardMaterial color="#2e3340" roughness={0.85} metalness={0.04} />
+            <meshPhysicalMaterial {...MATERIALS.chargerHousing()} />
           </mesh>
           <mesh position={[x, 2.5, -72.1]}>
             <boxGeometry args={[9.5, 6, 0.08]} />
-            <meshStandardMaterial color="#585e68" roughness={0.55} metalness={0.12} />
+            <meshPhysicalMaterial {...MATERIALS.brushedAluminum()} />
           </mesh>
         </group>
       ))}
 
+      {/* Interior warm glow */}
+      <pointLight position={[0, 5, -82]} color="#FFE8CC" intensity={3} distance={15} />
+      <pointLight position={[-30, 3, -82]} color="#ffeebb" intensity={1} distance={12} />
+      <pointLight position={[30, 3, -82]} color="#ffeebb" intensity={1} distance={12} />
+
       {/* OTTOYARD backlit signage */}
       <mesh position={[0, 9.2, -90]}>
         <boxGeometry args={[22, 1.8, 0.4]} />
-        <meshStandardMaterial color="#361515" roughness={0.6} metalness={0.08} />
+        <meshPhysicalMaterial {...MATERIALS.chargerHousing()} />
       </mesh>
       <mesh position={[0, 9.2, -89.7]}>
         <boxGeometry args={[20, 1.4, 0.05]} />
-        <meshStandardMaterial color="#C00000" emissive="#C00000" emissiveIntensity={1.2} />
+        <meshPhysicalMaterial color="#C00000" emissive="#C00000" emissiveIntensity={1.5} roughness={0.3} metalness={0} toneMapped={false} />
       </mesh>
 
       <Html position={[0, 11, -89]} center>
