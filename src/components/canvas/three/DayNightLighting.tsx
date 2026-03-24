@@ -13,15 +13,15 @@ export function DayNightLighting({ simTime }: { simTime: number }) {
 
   if (hour >= 6 && hour < 8) {
     const t = (hour - 6) / 2;
-    sunI = t * 0.7; ambI = 0.1 + t * 0.15; sunCol = '#ffaa66'; sunY = 20 + t * 60;
-    skyCol = '#ff8855'; gndCol = '#221111'; hemiI = 0.1 + t * 0.15;
+    sunI = t * 1.4; ambI = 0.1 + t * 0.4; sunCol = '#ffaa66'; sunY = 20 + t * 60;
+    skyCol = '#ff8855'; gndCol = '#221111'; hemiI = 0.1 + t * 0.4;
   } else if (hour >= 8 && hour < 17) {
-    sunI = 0.9; ambI = 0.25; sunCol = '#ffeedd'; sunY = 80;
-    skyCol = '#87CEEB'; gndCol = '#2a2a2a'; hemiI = 0.3;
+    sunI = 1.8; ambI = 0.5; sunCol = '#fff5e6'; sunY = 80;
+    skyCol = '#87CEEB'; gndCol = '#2a2a2a'; hemiI = 0.5;
   } else if (hour >= 17 && hour < 20) {
     const t = (hour - 17) / 3;
-    sunI = 0.9 * (1 - t); ambI = 0.25 - t * 0.17; sunCol = '#ff8844'; sunY = 80 - t * 60;
-    skyCol = '#ff6633'; gndCol = '#1a0a0a'; hemiI = 0.3 - t * 0.25;
+    sunI = 1.8 * (1 - t); ambI = 0.5 - t * 0.42; sunCol = '#ff8844'; sunY = 80 - t * 60;
+    skyCol = '#ff6633'; gndCol = '#1a0a0a'; hemiI = 0.5 - t * 0.45;
   }
 
   useFrame(() => {
