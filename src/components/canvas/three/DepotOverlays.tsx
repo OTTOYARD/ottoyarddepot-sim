@@ -1,10 +1,12 @@
+import { forwardRef } from 'react';
 import { Html } from '@react-three/drei';
+import type { Group } from 'three';
 import { useSimulationStore } from '@/store/simulationStore';
 import { useKPIStore } from '@/store/kpiStore';
 import { useVehicleStore } from '@/store/vehicleStore';
 import { useDepotStore } from '@/store/depotStore';
 
-export function DepotOverlays() {
+export const DepotOverlays = forwardRef<Group>(function DepotOverlays(_, ref) {
   const fleetUptimePct = useKPIStore((s) => s.fleetUptimePct);
   const avgTurnaroundMin = useKPIStore((s) => s.avgTurnaroundMin);
   const avgQueueWaitMin = useKPIStore((s) => s.avgQueueWaitMin);
@@ -22,7 +24,7 @@ export function DepotOverlays() {
   const qc = vehicles.filter((v) => v.status === 'queued').length;
 
   return (
-    <group>
+    <group ref={ref}>
       <Html position={[-130, 30, -80]} center>
         <div className="bg-black/80 backdrop-blur-sm rounded-lg p-3 border border-white/10 min-w-[180px]">
           <p className="text-[10px] font-bold text-otto-teal tracking-wider mb-2">Live Depot Status</p>
@@ -56,7 +58,7 @@ export function DepotOverlays() {
       </Html>
     </group>
   );
-}
+});
 
 function Kpi({ l, v, c }: { l: string; v: string; c: string }) {
   return (
