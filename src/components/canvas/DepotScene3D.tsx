@@ -86,7 +86,7 @@ export default function DepotScene3D() {
           ))}
 
           <WeatherEffects weather={config.weather} />
-          <PostProcessing />
+          {/* <PostProcessing /> */}
 
           <OrbitControls
             ref={controlsRef}
