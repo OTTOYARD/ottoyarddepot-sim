@@ -1,63 +1,99 @@
+import { useMemo } from 'react';
+import { MATERIALS } from './materials';
+
 export function DepotGround() {
+  const mats = useMemo(() => ({
+    grass: MATERIALS.grass(),
+    asphalt: MATERIALS.asphalt(),
+    concrete: MATERIALS.polishedConcrete(),
+    epoxy: MATERIALS.epoxyFloor(),
+    curb: MATERIALS.curbing(),
+    gravel: MATERIALS.gravel(),
+    whiteLine: MATERIALS.laneMarkingWhite(),
+    tealLine: MATERIALS.laneMarkingTeal(),
+  }), []);
+
   return (
     <group>
-      {/* Main concrete pad */}
+      {/* Outer grass */}
       <mesh rotation-x={-Math.PI / 2} position={[0, -0.05, 0]} receiveShadow>
+        <planeGeometry args={[400, 400]} />
+        <primitive object={mats.grass} attach="material" />
+      </mesh>
+
+      {/* Full asphalt pad */}
+      <mesh rotation-x={-Math.PI / 2} position={[0, 0, 0]} receiveShadow>
         <planeGeometry args={[300, 220]} />
-        <meshStandardMaterial color="#6a6e72" roughness={0.92} metalness={0} />
+        <primitive object={mats.asphalt} attach="material" />
       </mesh>
 
-      {/* Driving surface — slightly lighter */}
-      <mesh rotation-x={-Math.PI / 2} position={[0, 0.08, 10]} receiveShadow>
-        <planeGeometry args={[220, 120]} />
-        <meshStandardMaterial color="#787e84" roughness={0.86} metalness={0} />
+      {/* Polished concrete depot floor */}
+      <mesh rotation-x={-Math.PI / 2} position={[0, 0.01, 10]} receiveShadow>
+        <planeGeometry args={[220, 140]} />
+        <primitive object={mats.concrete} attach="material" />
       </mesh>
 
-      {/* Expansion joints */}
-      {Array.from({ length: 11 }, (_, i) => (
-        <mesh key={`hj${i}`} rotation-x={-Math.PI / 2} position={[-100 + i * 20, 0.12, 10]}>
-          <planeGeometry args={[0.15, 120]} />
-          <meshStandardMaterial color="#454a50" roughness={1} />
-        </mesh>
-      ))}
-      {Array.from({ length: 7 }, (_, i) => (
-        <mesh key={`vj${i}`} rotation-x={-Math.PI / 2} position={[0, 0.12, -50 + i * 20]}>
-          <planeGeometry args={[220, 0.15]} />
-          <meshStandardMaterial color="#454a50" roughness={1} />
+      {/* Epoxy floor strips at charging bays */}
+      {Array.from({ length: 20 }, (_, i) => (
+        <mesh key={`epoxy${i}`} rotation-x={-Math.PI / 2}
+          position={[-95 + i * 10, 0.02, 20]} receiveShadow>
+          <planeGeometry args={[3.2, 6]} />
+          <primitive object={mats.epoxy} attach="material" />
         </mesh>
       ))}
 
-      {/* Perimeter landscaping strips */}
+      {/* Gravel border strips */}
       {[-145, 145].map((x, i) => (
-        <mesh key={i} rotation-x={-Math.PI / 2} position={[x, 0.15, 0]}>
-          <planeGeometry args={[12, 220]} />
-          <meshStandardMaterial color="#3a5a3a" roughness={0.95} metalness={0} />
+        <mesh key={`gv${i}`} rotation-x={-Math.PI / 2} position={[x, 0.005, 0]} receiveShadow>
+          <planeGeometry args={[10, 220]} />
+          <primitive object={mats.gravel} attach="material" />
         </mesh>
       ))}
-      <mesh rotation-x={-Math.PI / 2} position={[0, 0.15, -105]}>
-        <planeGeometry args={[300, 12]} />
-        <meshStandardMaterial color="#3a5a3a" roughness={0.95} metalness={0} />
+      <mesh rotation-x={-Math.PI / 2} position={[0, 0.005, -105]} receiveShadow>
+        <planeGeometry args={[300, 10]} />
+        <primitive object={mats.gravel} attach="material" />
+      </mesh>
+      <mesh rotation-x={-Math.PI / 2} position={[0, 0.005, 105]} receiveShadow>
+        <planeGeometry args={[300, 10]} />
+        <primitive object={mats.gravel} attach="material" />
       </mesh>
 
-      {/* Perimeter road/curb */}
-      <mesh rotation-x={-Math.PI / 2} position={[0, 0.05, -115]}>
-        <planeGeometry args={[320, 14]} />
-        <meshStandardMaterial color="#5e6266" roughness={0.84} metalness={0} />
+      {/* Concrete curbing — 3D boxes */}
+      {[-140, 140].map((x, i) => (
+        <mesh key={`curbV${i}`} position={[x, 0.1, 0]} castShadow receiveShadow>
+          <boxGeometry args={[0.3, 0.2, 220]} />
+          <primitive object={mats.curb} attach="material" />
+        </mesh>
+      ))}
+      <mesh position={[0, 0.1, -100]} castShadow receiveShadow>
+        <boxGeometry args={[280, 0.2, 0.3]} />
+        <primitive object={mats.curb} attach="material" />
+      </mesh>
+      <mesh position={[0, 0.1, 100]} castShadow receiveShadow>
+        <boxGeometry args={[280, 0.2, 0.3]} />
+        <primitive object={mats.curb} attach="material" />
       </mesh>
 
-      {/* Lane markings */}
-      {Array.from({ length: 12 }, (_, i) => (
-        <mesh key={`lm${i}`} rotation-x={-Math.PI / 2} position={[0, 0.14, -50 + i * 10]}>
-          <planeGeometry args={[0.3, 4]} />
-          <meshStandardMaterial color="#d4ccb8" emissive="#faf4e8" emissiveIntensity={0.05} />
+      {/* White lane marking lines between stalls */}
+      {Array.from({ length: 21 }, (_, i) => (
+        <mesh key={`wl${i}`} rotation-x={-Math.PI / 2}
+          position={[-100 + i * 10, 0.025, 20]} receiveShadow>
+          <planeGeometry args={[0.08, 6]} />
+          <primitive object={mats.whiteLine} attach="material" />
         </mesh>
       ))}
 
-      {/* Curb edges */}
-      {[-139, 139].map((x, i) => (
-        <mesh key={`curb${i}`} position={[x, 0.2, 0]}>
-          <boxGeometry args={[0.5, 0.3, 220]} />
-          <meshStandardMaterial color="#969a9e" roughness={0.75} metalness={0} />
+      {/* Teal center-line stripe */}
+      <mesh rotation-x={-Math.PI / 2} position={[0, 0.025, 0]} receiveShadow>
+        <planeGeometry args={[220, 0.15]} />
+        <primitive object={mats.tealLine} attach="material" />
+      </mesh>
+
+      {/* Expansion joints on concrete */}
+      {Array.from({ length: 11 }, (_, i) => (
+        <mesh key={`ej${i}`} rotation-x={-Math.PI / 2} position={[-100 + i * 20, 0.015, 10]}>
+          <planeGeometry args={[0.08, 140]} />
+          <meshPhysicalMaterial color="#2a2a30" roughness={1} />
         </mesh>
       ))}
     </group>

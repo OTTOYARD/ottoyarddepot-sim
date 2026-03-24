@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { toWorld } from './coordUtils';
+import { MATERIALS } from './materials';
 import type { Vehicle } from '@/engine/types';
 
 const COLORS: Record<string, string> = {
@@ -22,7 +23,7 @@ const FX: Record<string, { glow: string; pulse: number; op: number }> = {
 export function Vehicle3D({ vehicle, simSpeed }: { vehicle: Vehicle; simSpeed: number }) {
   const grp = useRef<THREE.Group>(null);
   const glw = useRef<THREE.Mesh>(null);
-  const col = COLORS[vehicle.type] || '#fff';
+  const col = COLORS[vehicle.type] || '#E8E8E8';
   const fx = FX[vehicle.status] || FX.staging;
   const [tx, , tz] = toWorld(vehicle.position);
 
@@ -33,78 +34,66 @@ export function Vehicle3D({ vehicle, simSpeed }: { vehicle: Vehicle; simSpeed: n
     p.x = THREE.MathUtils.lerp(p.x, tx, rate);
     p.z = THREE.MathUtils.lerp(p.z, tz, rate);
     if (glw.current && fx.pulse > 0) {
-      (glw.current.material as THREE.MeshStandardMaterial)
+      (glw.current.material as THREE.MeshPhysicalMaterial)
         .emissiveIntensity = 0.4 + Math.sin(Date.now() * 0.001 * fx.pulse) * 0.6;
     }
   });
 
   return (
     <group ref={grp} position={[tx, 0, tz]}>
-      {/* Body — clearcoat automotive paint */}
-      <mesh position={[0, 0.65, 0]} castShadow>
+      {/* Body — automotive clearcoat paint */}
+      <mesh position={[0, 0.65, 0]} castShadow receiveShadow>
         <boxGeometry args={[2.6, 1, 5]} />
-        <meshPhysicalMaterial
-          color={col}
-          roughness={0.4}
-          metalness={0.1}
-          clearcoat={0.5}
-          clearcoatRoughness={0.2}
-          opacity={fx.op}
-          transparent={fx.op < 1}
-        />
+        <meshPhysicalMaterial {...MATERIALS.automotivePaint(col)} opacity={fx.op} transparent={fx.op < 1} />
       </mesh>
 
-      {/* Cabin — tinted glass */}
-      <mesh position={[0, 1.4, -0.3]}>
+      {/* Cabin — auto glass */}
+      <mesh position={[0, 1.4, -0.3]} castShadow receiveShadow>
         <boxGeometry args={[2.2, 0.7, 2.8]} />
-        <meshPhysicalMaterial
-          color="#1a2233"
-          roughness={0.12}
-          metalness={0.06}
-          transmission={0.5}
-          ior={1.5}
-          thickness={0.3}
-          transparent
-          opacity={0.4}
-        />
+        <meshPhysicalMaterial {...MATERIALS.autoGlass()} />
       </mesh>
 
-      {/* Wheels — torus tires */}
+      {/* Wheels — torus tires + chrome rims */}
       {([[-1.3, .35, 2], [1.3, .35, 2], [-1.3, .35, -2], [1.3, .35, -2]] as [number, number, number][]).map((pos, i) => (
         <group key={i} position={pos}>
-          <mesh rotation={[0, 0, Math.PI / 2]}>
+          <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
             <torusGeometry args={[0.3, 0.12, 8, 16]} />
-            <meshPhysicalMaterial color="#222428" roughness={0.88} metalness={0.05} />
+            <meshPhysicalMaterial {...MATERIALS.tireRubber()} />
           </mesh>
-          {/* Rim */}
-          <mesh rotation={[0, 0, Math.PI / 2]}>
+          <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
             <cylinderGeometry args={[0.2, 0.2, 0.22, 8]} />
-            <meshPhysicalMaterial color="#969a9e" roughness={0.35} metalness={0.3} />
+            <meshPhysicalMaterial {...MATERIALS.chromeTrim()} />
           </mesh>
         </group>
       ))}
 
       {/* Headlights */}
       {([[-0.9, .65, 2.55], [0.9, .65, 2.55]] as [number, number, number][]).map((pos, i) => (
-        <mesh key={`hl${i}`} position={pos}>
+        <mesh key={`hl${i}`} position={pos} castShadow>
           <sphereGeometry args={[0.18, 8, 8]} />
-          <meshStandardMaterial color="#FFFFEE" emissive="#FFFFCC" emissiveIntensity={0.8} />
+          <meshPhysicalMaterial {...MATERIALS.headlightLens()} />
         </mesh>
       ))}
 
       {/* Tail lights */}
       {([[-0.9, .65, -2.55], [0.9, .65, -2.55]] as [number, number, number][]).map((pos, i) => (
-        <mesh key={`tl${i}`} position={pos}>
+        <mesh key={`tl${i}`} position={pos} castShadow>
           <boxGeometry args={[0.4, 0.15, 0.05]} />
-          <meshStandardMaterial color="#ff0000" emissive="#ff0000" emissiveIntensity={0.6} />
+          <meshPhysicalMaterial color="#ff0000" emissive="#ff0000" emissiveIntensity={2} roughness={0.2} metalness={0} toneMapped={false} />
         </mesh>
       ))}
+
+      {/* Chrome trim strip */}
+      <mesh position={[0, 0.18, 0]} castShadow>
+        <boxGeometry args={[2.65, 0.03, 5.05]} />
+        <meshPhysicalMaterial {...MATERIALS.chromeTrim()} />
+      </mesh>
 
       {/* Status glow */}
       {fx.glow && (
         <mesh ref={glw} position={[0, 2.2, 0]}>
           <sphereGeometry args={[1.8, 12, 12]} />
-          <meshStandardMaterial color={fx.glow} emissive={fx.glow} emissiveIntensity={0.5} transparent opacity={0.12} />
+          <meshPhysicalMaterial color={fx.glow} emissive={fx.glow} emissiveIntensity={0.5} transparent opacity={0.12} roughness={1} metalness={0} toneMapped={false} />
         </mesh>
       )}
 
