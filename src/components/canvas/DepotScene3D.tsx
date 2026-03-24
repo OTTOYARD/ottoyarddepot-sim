@@ -1,5 +1,5 @@
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Environment, AccumulativeShadows, RandomizedLight } from '@react-three/drei';
+import { OrbitControls, Environment } from '@react-three/drei';
 import { Suspense, useCallback, useRef } from 'react';
 import { ACESFilmicToneMapping, SRGBColorSpace } from 'three';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
