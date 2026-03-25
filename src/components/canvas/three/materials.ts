@@ -10,236 +10,256 @@ export const BRAND = {
   charcoal: new THREE.Color('#2C2C3A'),
 };
 
+// Singleton cache
+const _cache = new Map<string, THREE.MeshPhysicalMaterial>();
+const _paintCache = new Map<string, THREE.MeshPhysicalMaterial>();
+
+function cached(key: string, factory: () => THREE.MeshPhysicalMaterial): THREE.MeshPhysicalMaterial {
+  let mat = _cache.get(key);
+  if (!mat) {
+    mat = factory();
+    _cache.set(key, mat);
+  }
+  return mat;
+}
+
 // ===================== GROUND & PAVING =====================
 
 export function polishedConcrete() {
-  return new THREE.MeshPhysicalMaterial({
+  return cached('polishedConcrete', () => new THREE.MeshPhysicalMaterial({
     color: '#3a3a42', roughness: 0.35, metalness: 0.0,
     clearcoat: 0.1, clearcoatRoughness: 0.4,
     reflectivity: 0.5, envMapIntensity: 0.8,
-  });
+  }));
 }
 
 export function asphalt() {
-  return new THREE.MeshPhysicalMaterial({
+  return cached('asphalt', () => new THREE.MeshPhysicalMaterial({
     color: '#1f1f24', roughness: 0.9, metalness: 0.0, envMapIntensity: 0.2,
-  });
+  }));
 }
 
 export function epoxyFloor() {
-  return new THREE.MeshPhysicalMaterial({
+  return cached('epoxyFloor', () => new THREE.MeshPhysicalMaterial({
     color: '#2a2a35', roughness: 0.15, metalness: 0.0,
     clearcoat: 0.6, clearcoatRoughness: 0.1,
     reflectivity: 0.8, envMapIntensity: 1.2,
-  });
+  }));
 }
 
 export function laneMarkingWhite() {
-  return new THREE.MeshPhysicalMaterial({
+  return cached('laneMarkingWhite', () => new THREE.MeshPhysicalMaterial({
     color: '#E8E8E0', roughness: 0.6, metalness: 0.0, envMapIntensity: 0.3,
-  });
+  }));
 }
 
 export function laneMarkingTeal() {
-  return new THREE.MeshPhysicalMaterial({
+  return cached('laneMarkingTeal', () => new THREE.MeshPhysicalMaterial({
     color: '#00D4AA', roughness: 0.5, metalness: 0.0,
     emissive: new THREE.Color('#00D4AA'), emissiveIntensity: 0.15,
     envMapIntensity: 0.4,
-  });
+  }));
 }
 
 // ===================== STRUCTURAL METALS =====================
 
 export function structuralSteel() {
-  return new THREE.MeshPhysicalMaterial({
+  return cached('structuralSteel', () => new THREE.MeshPhysicalMaterial({
     color: '#1A1A2E', roughness: 0.4, metalness: 0.85, envMapIntensity: 1.0,
-  });
+  }));
 }
 
 export function brushedAluminum() {
-  return new THREE.MeshPhysicalMaterial({
+  return cached('brushedAluminum', () => new THREE.MeshPhysicalMaterial({
     color: '#8899AA', roughness: 0.3, metalness: 0.9, envMapIntensity: 1.5,
-  });
+  }));
 }
 
 export function darkCladding() {
-  return new THREE.MeshPhysicalMaterial({
+  return cached('darkCladding', () => new THREE.MeshPhysicalMaterial({
     color: '#1A1A24', roughness: 0.3, metalness: 0.1,
     envMapIntensity: 0.8, clearcoat: 0.15, clearcoatRoughness: 0.4,
-  });
+  }));
 }
 
 export function anodizedPanel() {
-  return new THREE.MeshPhysicalMaterial({
+  return cached('anodizedPanel', () => new THREE.MeshPhysicalMaterial({
     color: '#1C1C28', roughness: 0.25, metalness: 0.7,
     envMapIntensity: 1.2, clearcoat: 0.2, clearcoatRoughness: 0.3,
-  });
+  }));
 }
 
 export function cortenSteel() {
-  return new THREE.MeshPhysicalMaterial({
+  return cached('cortenSteel', () => new THREE.MeshPhysicalMaterial({
     color: '#8B4513', roughness: 0.8, metalness: 0.6, envMapIntensity: 0.5,
-  });
+  }));
 }
 
 // ===================== GLASS =====================
 
 export function architecturalGlass() {
-  return new THREE.MeshPhysicalMaterial({
+  return cached('architecturalGlass', () => new THREE.MeshPhysicalMaterial({
     color: '#88CCBB', roughness: 0.05, metalness: 0.0,
     transmission: 0.85, thickness: 0.5, ior: 1.52,
     envMapIntensity: 2.0, transparent: true, opacity: 0.9,
     side: THREE.DoubleSide,
     attenuationColor: new THREE.Color('#00D4AA'), attenuationDistance: 5,
-  });
+  }));
 }
 
 export function screenGlass() {
-  return new THREE.MeshPhysicalMaterial({
+  return cached('screenGlass', () => new THREE.MeshPhysicalMaterial({
     color: '#0A0A1A', roughness: 0.02, metalness: 0.0,
     transmission: 0.3, thickness: 0.3, ior: 1.52,
     envMapIntensity: 2.5, transparent: true,
     clearcoat: 1.0, clearcoatRoughness: 0.05,
-  });
+  }));
 }
 
 export function solarPanelGlass() {
-  return new THREE.MeshPhysicalMaterial({
+  return cached('solarPanelGlass', () => new THREE.MeshPhysicalMaterial({
     color: '#0A1525', roughness: 0.08, metalness: 0.1,
     envMapIntensity: 1.8, clearcoat: 0.8, clearcoatRoughness: 0.1,
     emissive: new THREE.Color('#000820'), emissiveIntensity: 0.05,
-  });
+  }));
 }
 
 // ===================== VEHICLES =====================
 
 export function automotivePaint(color = '#1a1a1a') {
-  return new THREE.MeshPhysicalMaterial({
-    color, roughness: 0.15, metalness: 0.4,
-    clearcoat: 1.0, clearcoatRoughness: 0.03,
-    envMapIntensity: 2.0, reflectivity: 1.0,
-    sheen: 0.3, sheenRoughness: 0.2,
-    sheenColor: new THREE.Color('#333344'),
-  });
+  let mat = _paintCache.get(color);
+  if (!mat) {
+    mat = new THREE.MeshPhysicalMaterial({
+      color, roughness: 0.15, metalness: 0.4,
+      clearcoat: 1.0, clearcoatRoughness: 0.03,
+      envMapIntensity: 2.0, reflectivity: 1.0,
+      sheen: 0.3, sheenRoughness: 0.2,
+      sheenColor: new THREE.Color('#333344'),
+    });
+    _paintCache.set(color, mat);
+  }
+  return mat;
 }
 
 export function autoGlass() {
-  return new THREE.MeshPhysicalMaterial({
+  return cached('autoGlass', () => new THREE.MeshPhysicalMaterial({
     color: '#224444', roughness: 0.02, metalness: 0.0,
     transmission: 0.7, thickness: 0.4, ior: 1.52,
     envMapIntensity: 2.5, transparent: true, side: THREE.DoubleSide,
-  });
+  }));
 }
 
 export function chromeTrim() {
-  return new THREE.MeshPhysicalMaterial({
+  return cached('chromeTrim', () => new THREE.MeshPhysicalMaterial({
     color: '#CCCCCC', roughness: 0.05, metalness: 1.0,
     envMapIntensity: 3.0, reflectivity: 1.0,
-  });
+  }));
 }
 
 export function tireRubber() {
-  return new THREE.MeshPhysicalMaterial({
+  return cached('tireRubber', () => new THREE.MeshPhysicalMaterial({
     color: '#1A1A1A', roughness: 0.85, metalness: 0.0, envMapIntensity: 0.3,
-  });
+  }));
 }
 
 export function headlightLens() {
-  return new THREE.MeshPhysicalMaterial({
+  return cached('headlightLens', () => new THREE.MeshPhysicalMaterial({
     color: '#FFFFFF', roughness: 0.02, metalness: 0.0,
     transmission: 0.9, thickness: 0.2, ior: 1.49,
     envMapIntensity: 2.0, transparent: true,
     clearcoat: 1.0, clearcoatRoughness: 0.02,
-  });
+  }));
 }
 
 // ===================== EMISSIVE / LEDs =====================
 
 export function tealLED(intensity = 3.0) {
-  return new THREE.MeshPhysicalMaterial({
+  const key = `tealLED_${intensity}`;
+  return cached(key, () => new THREE.MeshPhysicalMaterial({
     color: '#00D4AA',
     emissive: new THREE.Color('#00D4AA'), emissiveIntensity: intensity,
     roughness: 0.3, metalness: 0.0, toneMapped: false,
-  });
+  }));
 }
 
 export function whiteLED(intensity = 2.0) {
-  return new THREE.MeshPhysicalMaterial({
+  const key = `whiteLED_${intensity}`;
+  return cached(key, () => new THREE.MeshPhysicalMaterial({
     color: '#F5F5F0',
     emissive: new THREE.Color('#F5F5F0'), emissiveIntensity: intensity,
     roughness: 0.4, metalness: 0.0, toneMapped: false,
-  });
+  }));
 }
 
 export function greenIndicator() {
-  return new THREE.MeshPhysicalMaterial({
+  return cached('greenIndicator', () => new THREE.MeshPhysicalMaterial({
     color: '#00FF66',
     emissive: new THREE.Color('#00FF66'), emissiveIntensity: 4.0,
     roughness: 0.2, metalness: 0.0, toneMapped: false,
-  });
+  }));
 }
 
 export function amberIndicator() {
-  return new THREE.MeshPhysicalMaterial({
+  return cached('amberIndicator', () => new THREE.MeshPhysicalMaterial({
     color: '#FFAA00',
     emissive: new THREE.Color('#FFAA00'), emissiveIntensity: 4.0,
     roughness: 0.2, metalness: 0.0, toneMapped: false,
-  });
+  }));
 }
 
 // ===================== BUILDING =====================
 
 export function concreteBlock() {
-  return new THREE.MeshPhysicalMaterial({
+  return cached('concreteBlock', () => new THREE.MeshPhysicalMaterial({
     color: '#555560', roughness: 0.75, metalness: 0.0, envMapIntensity: 0.3,
-  });
+  }));
 }
 
 export function woodAccent() {
-  return new THREE.MeshPhysicalMaterial({
+  return cached('woodAccent', () => new THREE.MeshPhysicalMaterial({
     color: '#8B6914', roughness: 0.6, metalness: 0.0, envMapIntensity: 0.4,
     sheen: 0.2, sheenRoughness: 0.5, sheenColor: new THREE.Color('#AA8833'),
-  });
+  }));
 }
 
 // ===================== CHARGER EQUIPMENT =====================
 
 export function chargerHousing() {
-  return new THREE.MeshPhysicalMaterial({
+  return cached('chargerHousing', () => new THREE.MeshPhysicalMaterial({
     color: '#1A1A24', roughness: 0.5, metalness: 0.2, envMapIntensity: 0.6,
-  });
+  }));
 }
 
 export function chargerCable() {
-  return new THREE.MeshPhysicalMaterial({
+  return cached('chargerCable', () => new THREE.MeshPhysicalMaterial({
     color: '#222222', roughness: 0.7, metalness: 0.0, envMapIntensity: 0.3,
-  });
+  }));
 }
 
 export function chargerConnector() {
-  return new THREE.MeshPhysicalMaterial({
+  return cached('chargerConnector', () => new THREE.MeshPhysicalMaterial({
     color: '#444444', roughness: 0.2, metalness: 0.8, envMapIntensity: 1.2,
-  });
+  }));
 }
 
 // ===================== LANDSCAPING =====================
 
 export function grass() {
-  return new THREE.MeshPhysicalMaterial({
+  return cached('grass', () => new THREE.MeshPhysicalMaterial({
     color: '#2D5A1E', roughness: 0.85, metalness: 0.0, envMapIntensity: 0.3,
-  });
+  }));
 }
 
 export function gravel() {
-  return new THREE.MeshPhysicalMaterial({
+  return cached('gravel', () => new THREE.MeshPhysicalMaterial({
     color: '#7A7568', roughness: 0.95, metalness: 0.0, envMapIntensity: 0.2,
-  });
+  }));
 }
 
 export function curbing() {
-  return new THREE.MeshPhysicalMaterial({
+  return cached('curbing', () => new THREE.MeshPhysicalMaterial({
     color: '#999999', roughness: 0.7, metalness: 0.0, envMapIntensity: 0.3,
-  });
+  }));
 }
 
 export const MATERIALS = {

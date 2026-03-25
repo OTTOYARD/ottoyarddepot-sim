@@ -11,19 +11,19 @@ const CONFIGS: Record<PPMode, {
   vignette: { offset: number; darkness: number };
 }> = {
   interactive: {
-    ao: { intensity: 1.5, aoRadius: 0.5, distanceFalloff: 0.4, halfRes: true, quality: 'medium' },
-    bloom: { intensity: 0.3, luminanceThreshold: 0.92, luminanceSmoothing: 0.2, kernelSize: KernelSize.LARGE },
-    vignette: { offset: 0.3, darkness: 0.3 },
+    ao: { intensity: 1.0, aoRadius: 0.4, distanceFalloff: 0.4, halfRes: true, quality: 'low' },
+    bloom: { intensity: 0.25, luminanceThreshold: 0.92, luminanceSmoothing: 0.2, kernelSize: KernelSize.MEDIUM },
+    vignette: { offset: 0.3, darkness: 0.15 },
   },
   hero: {
-    ao: { intensity: 2.5, aoRadius: 0.8, distanceFalloff: 0.6, halfRes: false, quality: 'ultra' },
-    bloom: { intensity: 0.4, luminanceThreshold: 0.88, luminanceSmoothing: 0.15, kernelSize: KernelSize.HUGE },
-    vignette: { offset: 0.25, darkness: 0.4 },
+    ao: { intensity: 2.0, aoRadius: 0.6, distanceFalloff: 0.6, halfRes: true, quality: 'medium' },
+    bloom: { intensity: 0.35, luminanceThreshold: 0.88, luminanceSmoothing: 0.15, kernelSize: KernelSize.LARGE },
+    vignette: { offset: 0.25, darkness: 0.2 },
   },
   night: {
-    ao: { intensity: 1.5, aoRadius: 0.5, distanceFalloff: 0.4, halfRes: true, quality: 'medium' },
-    bloom: { intensity: 0.6, luminanceThreshold: 0.7, luminanceSmoothing: 0.25, kernelSize: KernelSize.LARGE },
-    vignette: { offset: 0.2, darkness: 0.5 },
+    ao: { intensity: 1.0, aoRadius: 0.4, distanceFalloff: 0.4, halfRes: true, quality: 'low' },
+    bloom: { intensity: 0.5, luminanceThreshold: 0.7, luminanceSmoothing: 0.25, kernelSize: KernelSize.MEDIUM },
+    vignette: { offset: 0.2, darkness: 0.25 },
   },
 };
 

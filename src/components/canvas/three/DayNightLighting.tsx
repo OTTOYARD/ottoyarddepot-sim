@@ -65,14 +65,7 @@ export function DayNightLighting({ simTime }: { simTime: number }) {
         color="#d8e4f0"
       />
 
-      {/* Teal accent fill */}
-      <pointLight position={[0, 15, 0]} intensity={0.15} color="#00B4A6" distance={60} />
-      {/* Warm fill from building */}
-      <pointLight position={[-80, 8, 96]} color="#ffcc88" intensity={0.3} distance={30} />
-      {/* OTTOYARD signage glow */}
-      <pointLight position={[0, 16, 83]} color="#C00000" intensity={0.5} distance={20} />
-
-      {/* Night pole lights */}
+      {/* Night pole lights — emissive mesh only, NO pointLights */}
       {[[-80, 0, -40], [80, 0, -40], [-80, 0, 40], [80, 0, 40]].map((pos, i) => (
         <group key={`pole${i}`} position={pos as [number, number, number]}>
           <mesh position={[0, 6, 0]} castShadow>
@@ -83,13 +76,16 @@ export function DayNightLighting({ simTime }: { simTime: number }) {
             <boxGeometry args={[2, 0.3, 1]} />
             <meshStandardMaterial color="#555" roughness={0.4} metalness={0.3} />
           </mesh>
-          <pointLight
-            position={[0, 12, 0]}
-            color="#ffeedd"
-            intensity={l.hour < 6 || l.hour >= 20 ? 1.5 : 0}
-            distance={40}
-            decay={2}
-          />
+          {/* Emissive fixture instead of pointLight */}
+          <mesh position={[0, 11.9, 0]}>
+            <boxGeometry args={[1.6, 0.08, 0.6]} />
+            <meshStandardMaterial
+              color="#ffeedd"
+              emissive="#ffeedd"
+              emissiveIntensity={l.hour < 6 || l.hour >= 20 ? 3.0 : 0}
+              toneMapped={false}
+            />
+          </mesh>
         </group>
       ))}
     </>

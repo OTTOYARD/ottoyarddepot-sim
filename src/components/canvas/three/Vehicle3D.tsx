@@ -44,55 +44,55 @@ export function Vehicle3D({ vehicle, simSpeed }: { vehicle: Vehicle; simSpeed: n
       {/* Body — automotive clearcoat paint */}
       <mesh position={[0, 0.65, 0]} castShadow receiveShadow>
         <boxGeometry args={[2.6, 1, 5]} />
-        <meshPhysicalMaterial {...MATERIALS.automotivePaint(col)} opacity={fx.op} transparent={fx.op < 1} />
+        <primitive object={MATERIALS.automotivePaint(col)} attach="material" />
       </mesh>
 
       {/* Cabin — auto glass */}
       <mesh position={[0, 1.4, -0.3]} castShadow receiveShadow>
         <boxGeometry args={[2.2, 0.7, 2.8]} />
-        <meshPhysicalMaterial {...MATERIALS.autoGlass()} />
+        <primitive object={MATERIALS.autoGlass()} attach="material" />
       </mesh>
 
       {/* Wheels — torus tires + chrome rims */}
       {([[-1.3, .35, 2], [1.3, .35, 2], [-1.3, .35, -2], [1.3, .35, -2]] as [number, number, number][]).map((pos, i) => (
         <group key={i} position={pos}>
-          <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
-            <torusGeometry args={[0.3, 0.12, 8, 16]} />
-            <meshPhysicalMaterial {...MATERIALS.tireRubber()} />
+          <mesh rotation={[0, 0, Math.PI / 2]}>
+            <torusGeometry args={[0.3, 0.12, 6, 12]} />
+            <primitive object={MATERIALS.tireRubber()} attach="material" />
           </mesh>
-          <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
-            <cylinderGeometry args={[0.2, 0.2, 0.22, 8]} />
-            <meshPhysicalMaterial {...MATERIALS.chromeTrim()} />
+          <mesh rotation={[0, 0, Math.PI / 2]}>
+            <cylinderGeometry args={[0.2, 0.2, 0.22, 6]} />
+            <primitive object={MATERIALS.chromeTrim()} attach="material" />
           </mesh>
         </group>
       ))}
 
-      {/* Headlights */}
+      {/* Headlights — no castShadow, reduced segments */}
       {([[-0.9, .65, 2.55], [0.9, .65, 2.55]] as [number, number, number][]).map((pos, i) => (
-        <mesh key={`hl${i}`} position={pos} castShadow>
-          <sphereGeometry args={[0.18, 8, 8]} />
-          <meshPhysicalMaterial {...MATERIALS.headlightLens()} />
+        <mesh key={`hl${i}`} position={pos}>
+          <sphereGeometry args={[0.18, 6, 6]} />
+          <primitive object={MATERIALS.headlightLens()} attach="material" />
         </mesh>
       ))}
 
-      {/* Tail lights */}
+      {/* Tail lights — no castShadow */}
       {([[-0.9, .65, -2.55], [0.9, .65, -2.55]] as [number, number, number][]).map((pos, i) => (
-        <mesh key={`tl${i}`} position={pos} castShadow>
+        <mesh key={`tl${i}`} position={pos}>
           <boxGeometry args={[0.4, 0.15, 0.05]} />
           <meshPhysicalMaterial color="#ff0000" emissive="#ff0000" emissiveIntensity={2} roughness={0.2} metalness={0} toneMapped={false} />
         </mesh>
       ))}
 
-      {/* Chrome trim strip */}
-      <mesh position={[0, 0.18, 0]} castShadow>
+      {/* Chrome trim strip — no castShadow */}
+      <mesh position={[0, 0.18, 0]}>
         <boxGeometry args={[2.65, 0.03, 5.05]} />
-        <meshPhysicalMaterial {...MATERIALS.chromeTrim()} />
+        <primitive object={MATERIALS.chromeTrim()} attach="material" />
       </mesh>
 
       {/* Status glow */}
       {fx.glow && (
         <mesh ref={glw} position={[0, 2.2, 0]}>
-          <sphereGeometry args={[1.8, 12, 12]} />
+          <sphereGeometry args={[1.8, 8, 8]} />
           <meshPhysicalMaterial color={fx.glow} emissive={fx.glow} emissiveIntensity={0.5} transparent opacity={0.12} roughness={1} metalness={0} toneMapped={false} />
         </mesh>
       )}
