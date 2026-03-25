@@ -77,8 +77,8 @@ export function brushedAluminum() {
 
 export function darkCladding() {
   return cached('darkCladding', () => new THREE.MeshPhysicalMaterial({
-    color: '#1A1A24', roughness: 0.3, metalness: 0.1,
-    envMapIntensity: 0.8, clearcoat: 0.15, clearcoatRoughness: 0.4,
+    color: '#2A2A34', roughness: 0.4, metalness: 0.05,
+    envMapIntensity: 0.5, clearcoat: 0.1, clearcoatRoughness: 0.5,
   }));
 }
 
