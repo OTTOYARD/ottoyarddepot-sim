@@ -201,14 +201,6 @@ export default function DepotScene3D() {
             {label}
           </button>
         ))}
-        <button
-          onClick={() => setPpEnabled(!ppEnabled)}
-          className={`px-2 py-1 text-[10px] font-mono rounded border transition-colors ${
-            ppEnabled ? 'bg-[#00D4AA]/15 text-[#00D4AA] border-[#00D4AA]/30' : 'bg-black/60 text-gray-500 border-white/10'
-          }`}
-        >
-          FX {ppEnabled ? 'ON' : 'OFF'}
-        </button>
       </div>
     </div>
   );
