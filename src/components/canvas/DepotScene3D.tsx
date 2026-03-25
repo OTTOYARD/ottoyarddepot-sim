@@ -17,7 +17,6 @@ import { Vehicle3D } from './three/Vehicle3D';
 import { DepotOverlays } from './three/DepotOverlays';
 import { WeatherEffects } from './three/WeatherEffects';
 import { DayNightLighting } from './three/DayNightLighting';
-import { DepotPostProcessing } from './three/DepotPostProcessing';
 import { MATERIALS } from './three/materials';
 
 const CAMERA_PRESETS = {
