@@ -131,9 +131,6 @@ export default function DepotScene3D() {
     ctrl.update();
   }, []);
 
-  const hour = (simTime / 3600) % 24;
-  const ppMode = hour < 6 || hour > 20 ? 'night' : 'interactive';
-
   return (
     <div className="absolute inset-0 bg-otto-dark">
       <Canvas
