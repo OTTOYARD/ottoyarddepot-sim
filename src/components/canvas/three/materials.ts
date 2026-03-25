@@ -84,8 +84,8 @@ export function darkCladding() {
 
 export function anodizedPanel() {
   return cached('anodizedPanel', () => new THREE.MeshPhysicalMaterial({
-    color: '#1C1C28', roughness: 0.25, metalness: 0.7,
-    envMapIntensity: 1.2, clearcoat: 0.2, clearcoatRoughness: 0.3,
+    color: '#2C2C38', roughness: 0.35, metalness: 0.3,
+    envMapIntensity: 0.6, clearcoat: 0.15, clearcoatRoughness: 0.4,
   }));
 }
 
