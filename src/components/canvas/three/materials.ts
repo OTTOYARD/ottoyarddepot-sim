@@ -65,7 +65,7 @@ export function laneMarkingTeal() {
 
 export function structuralSteel() {
   return cached('structuralSteel', () => new THREE.MeshPhysicalMaterial({
-    color: '#1A1A2E', roughness: 0.4, metalness: 0.85, envMapIntensity: 1.0,
+    color: '#2A2A3E', roughness: 0.5, metalness: 0.4, envMapIntensity: 0.6,
   }));
 }
 
