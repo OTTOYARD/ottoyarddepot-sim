@@ -160,7 +160,7 @@ export default function DepotScene3D() {
             </mesh>
           </Environment>
 
-          <DepotPostProcessing mode={ppMode} enabled={ppEnabled} />
+          
 
           <DepotGround />
           <DepotBuilding />
