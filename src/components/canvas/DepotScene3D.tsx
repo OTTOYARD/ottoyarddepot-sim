@@ -185,7 +185,7 @@ export default function DepotScene3D() {
         onCreated={({ gl, scene }) => {
           gl.shadowMap.enabled = true;
           gl.shadowMap.type = PCFSoftShadowMap;
-          scene.fog = new FogExp2('#1a1a2e', 0.004);
+          scene.fog = new FogExp2('#1a1a2e', 0.002);
         }}
       >
         <Suspense fallback={null}>
