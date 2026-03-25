@@ -7,7 +7,6 @@ const _dummy = new THREE.Object3D();
 
 export function SolarCanopy({ solarKWdc }: { solarKWdc: number }) {
   const led = useRef<THREE.Mesh>(null);
-  if (solarKWdc === 0) return null;
 
   const s = solarKWdc / 500;
   const w = 180 * Math.min(s, 1.6);
