@@ -192,8 +192,8 @@ export default function DepotScene3D() {
           <DayNightLighting simTime={simTime} />
           <CameraFillLight />
           <TealAccentLights />
-          <hemisphereLight args={['#87CEEB', '#2D5A1E', 0.3]} />
-          <Environment preset="city" background={false} environmentIntensity={0.7} />
+          <hemisphereLight args={['#87CEEB', '#2D5A1E', 0.6]} />
+          <Environment preset="city" background={false} environmentIntensity={1.0} />
 
           <DepotPostProcessing mode={ppMode} enabled={ppEnabled} />
 
