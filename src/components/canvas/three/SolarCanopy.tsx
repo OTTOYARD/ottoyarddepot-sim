@@ -64,6 +64,8 @@ export function SolarCanopy({ solarKWdc }: { solarKWdc: number }) {
         .emissiveIntensity = 2.0 + Math.sin(clock.elapsedTime * 2) * 1.0;
   });
 
+  if (solarKWdc === 0) return null;
+
   return (
     <group position={[0, 0, 20]}>
       {/* HSS Columns with base plates and cap brackets */}
