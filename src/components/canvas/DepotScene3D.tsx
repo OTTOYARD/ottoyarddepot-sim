@@ -193,7 +193,12 @@ export default function DepotScene3D() {
           <CameraFillLight />
           <TealAccentLights />
           <hemisphereLight args={['#87CEEB', '#2D5A1E', 0.6]} />
-          <Environment preset="city" background={false} environmentIntensity={1.0} />
+          <Environment background={false} environmentIntensity={1.0}>
+            <mesh scale={50}>
+              <sphereGeometry args={[1, 32, 32]} />
+              <meshBasicMaterial color="#87CEEB" side={1} />
+            </mesh>
+          </Environment>
 
           <DepotPostProcessing mode={ppMode} enabled={ppEnabled} />
 
