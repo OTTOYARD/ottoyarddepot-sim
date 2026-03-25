@@ -65,27 +65,27 @@ export function laneMarkingTeal() {
 
 export function structuralSteel() {
   return cached('structuralSteel', () => new THREE.MeshPhysicalMaterial({
-    color: '#1A1A2E', roughness: 0.4, metalness: 0.85, envMapIntensity: 1.0,
+    color: '#2A2A3E', roughness: 0.5, metalness: 0.4, envMapIntensity: 0.6,
   }));
 }
 
 export function brushedAluminum() {
   return cached('brushedAluminum', () => new THREE.MeshPhysicalMaterial({
-    color: '#8899AA', roughness: 0.3, metalness: 0.9, envMapIntensity: 1.5,
+    color: '#AABBCC', roughness: 0.4, metalness: 0.5, envMapIntensity: 0.8,
   }));
 }
 
 export function darkCladding() {
   return cached('darkCladding', () => new THREE.MeshPhysicalMaterial({
-    color: '#1A1A24', roughness: 0.3, metalness: 0.1,
-    envMapIntensity: 0.8, clearcoat: 0.15, clearcoatRoughness: 0.4,
+    color: '#2A2A34', roughness: 0.4, metalness: 0.05,
+    envMapIntensity: 0.5, clearcoat: 0.1, clearcoatRoughness: 0.5,
   }));
 }
 
 export function anodizedPanel() {
   return cached('anodizedPanel', () => new THREE.MeshPhysicalMaterial({
-    color: '#1C1C28', roughness: 0.25, metalness: 0.7,
-    envMapIntensity: 1.2, clearcoat: 0.2, clearcoatRoughness: 0.3,
+    color: '#2C2C38', roughness: 0.35, metalness: 0.3,
+    envMapIntensity: 0.6, clearcoat: 0.15, clearcoatRoughness: 0.4,
   }));
 }
 
@@ -118,9 +118,9 @@ export function screenGlass() {
 
 export function solarPanelGlass() {
   return cached('solarPanelGlass', () => new THREE.MeshPhysicalMaterial({
-    color: '#0A1525', roughness: 0.08, metalness: 0.1,
-    envMapIntensity: 1.8, clearcoat: 0.8, clearcoatRoughness: 0.1,
-    emissive: new THREE.Color('#000820'), emissiveIntensity: 0.05,
+    color: '#1A2535', roughness: 0.15, metalness: 0.05,
+    envMapIntensity: 0.8, clearcoat: 0.6, clearcoatRoughness: 0.15,
+    emissive: new THREE.Color('#001020'), emissiveIntensity: 0.05,
   }));
 }
 

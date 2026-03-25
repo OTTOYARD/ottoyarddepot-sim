@@ -160,17 +160,10 @@ function ChargerPedestal({ isChrg, isOcc, ledRef }: {
 }
 
 function OfflineBeacon() {
-  const ref = useRef<THREE.PointLight>(null);
-  useFrame(({ clock }) => {
-    if (ref.current) ref.current.intensity = Math.sin(clock.elapsedTime * 6) > 0 ? 2 : 0.1;
-  });
   return (
-    <>
-      <mesh position={[0, 1.6, 0]}>
-        <sphereGeometry args={[0.08, 6, 6]} />
-        <meshPhysicalMaterial color="#ff0000" emissive="#ff0000" emissiveIntensity={3} toneMapped={false} roughness={0.2} metalness={0} />
-      </mesh>
-      <pointLight ref={ref} position={[0, 1.6, 0]} color="#ff0000" intensity={1} distance={5} />
-    </>
+    <mesh position={[0, 1.6, 0]}>
+      <sphereGeometry args={[0.08, 6, 6]} />
+      <meshPhysicalMaterial color="#ff0000" emissive="#ff0000" emissiveIntensity={3} toneMapped={false} roughness={0.2} metalness={0} />
+    </mesh>
   );
 }

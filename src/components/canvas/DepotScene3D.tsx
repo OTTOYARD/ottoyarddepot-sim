@@ -1,6 +1,6 @@
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Environment } from '@react-three/drei';
-import { Suspense, useCallback, useRef, useState, useMemo } from 'react';
+import { Suspense, useCallback, useRef, useMemo } from 'react';
 import { ACESFilmicToneMapping, PCFSoftShadowMap, FogExp2, SRGBColorSpace } from 'three';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { useVehicleStore } from '@/store/vehicleStore';
@@ -17,7 +17,6 @@ import { Vehicle3D } from './three/Vehicle3D';
 import { DepotOverlays } from './three/DepotOverlays';
 import { WeatherEffects } from './three/WeatherEffects';
 import { DayNightLighting } from './three/DayNightLighting';
-import { DepotPostProcessing } from './three/DepotPostProcessing';
 import { MATERIALS } from './three/materials';
 
 const CAMERA_PRESETS = {
@@ -121,7 +120,7 @@ export default function DepotScene3D() {
   const simTime = useSimulationStore((s) => s.simTime);
   const simSpeed = useSimulationStore((s) => s.simSpeed);
   const controlsRef = useRef<OrbitControlsImpl>(null);
-  const [ppEnabled, setPpEnabled] = useState(true);
+  
 
   const handleCameraPreset = useCallback((preset: keyof typeof CAMERA_PRESETS) => {
     const ctrl = controlsRef.current;
@@ -131,9 +130,6 @@ export default function DepotScene3D() {
     ctrl.target.set(...target);
     ctrl.update();
   }, []);
-
-  const hour = (simTime / 3600) % 24;
-  const ppMode = hour < 6 || hour > 20 ? 'night' : 'interactive';
 
   return (
     <div className="absolute inset-0 bg-otto-dark">
@@ -164,7 +160,7 @@ export default function DepotScene3D() {
             </mesh>
           </Environment>
 
-          <DepotPostProcessing mode={ppMode} enabled={ppEnabled} />
+          
 
           <DepotGround />
           <DepotBuilding />
@@ -205,14 +201,6 @@ export default function DepotScene3D() {
             {label}
           </button>
         ))}
-        <button
-          onClick={() => setPpEnabled(!ppEnabled)}
-          className={`px-2 py-1 text-[10px] font-mono rounded border transition-colors ${
-            ppEnabled ? 'bg-[#00D4AA]/15 text-[#00D4AA] border-[#00D4AA]/30' : 'bg-black/60 text-gray-500 border-white/10'
-          }`}
-        >
-          FX {ppEnabled ? 'ON' : 'OFF'}
-        </button>
       </div>
     </div>
   );
