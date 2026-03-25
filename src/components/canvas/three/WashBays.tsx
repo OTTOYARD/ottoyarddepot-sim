@@ -9,29 +9,29 @@ export function WashBays({ count }: { count: number }) {
           {/* Structure walls — dark cladding */}
           <mesh position={[0, 3, 0]} castShadow receiveShadow>
             <boxGeometry args={[14, 6, 10]} />
-            <meshPhysicalMaterial {...MATERIALS.darkCladding()} />
+            <primitive object={MATERIALS.darkCladding()} attach="material" />
           </mesh>
 
           {/* Steel frame edges */}
           {[[-7, 3, 0], [7, 3, 0]].map(([x, y, z], j) => (
             <mesh key={`frame${j}`} position={[x, y, z]} castShadow>
               <boxGeometry args={[0.15, 6, 10.2]} />
-              <meshPhysicalMaterial {...MATERIALS.structuralSteel()} />
+              <primitive object={MATERIALS.structuralSteel()} attach="material" />
             </mesh>
           ))}
 
-          {/* Entrance pillars — aluminum */}
+          {/* Entrance pillars */}
           {[-5.5, 5.5].map((x, j) => (
             <mesh key={`pil${j}`} position={[x, 1.5, 5.5]} castShadow>
               <boxGeometry args={[1, 3, 1]} />
-              <meshPhysicalMaterial {...MATERIALS.brushedAluminum()} />
+              <primitive object={MATERIALS.brushedAluminum()} attach="material" />
             </mesh>
           ))}
 
-          {/* Roll-up door frame — aluminum */}
+          {/* Roll-up door frame */}
           <mesh position={[0, 5.5, 5.1]}>
             <boxGeometry args={[11, 0.3, 0.15]} />
-            <meshPhysicalMaterial {...MATERIALS.brushedAluminum()} />
+            <primitive object={MATERIALS.brushedAluminum()} attach="material" />
           </mesh>
 
           {/* Interior opening */}
@@ -43,21 +43,20 @@ export function WashBays({ count }: { count: number }) {
           {/* Wet concrete floor */}
           <mesh rotation-x={-Math.PI / 2} position={[0, 0.02, 0]} receiveShadow>
             <planeGeometry args={[13, 9]} />
-            <meshPhysicalMaterial color="#3a3a42" roughness={0.25} metalness={0} clearcoat={0.3} clearcoatRoughness={0.2} reflectivity={0.6} envMapIntensity={1.0} />
+            <primitive object={MATERIALS.polishedConcrete()} attach="material" />
           </mesh>
 
           {/* Teal LED strip along bay opening top */}
           <mesh position={[0, 5.8, 5.1]}>
             <boxGeometry args={[10.5, 0.04, 0.02]} />
-            <meshPhysicalMaterial {...MATERIALS.tealLED(2.0)} />
+            <primitive object={MATERIALS.tealLED(2.0)} attach="material" />
           </mesh>
 
-          {/* Interior lights */}
+          {/* Interior light — emissive mesh only, NO pointLight */}
           <mesh position={[0, 5.5, 0]}>
             <boxGeometry args={[1, 0.05, 0.3]} />
-            <meshPhysicalMaterial {...MATERIALS.whiteLED(2.0)} />
+            <primitive object={MATERIALS.whiteLED(2.0)} attach="material" />
           </mesh>
-          <pointLight position={[0, 5, 0]} color="#E8E4F0" intensity={2} distance={10} decay={2} />
 
           {/* Water drainage grate */}
           {Array.from({ length: 8 }, (_, g) => (

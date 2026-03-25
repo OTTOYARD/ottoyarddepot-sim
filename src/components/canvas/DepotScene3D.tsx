@@ -1,7 +1,7 @@
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Environment } from '@react-three/drei';
 import { Suspense, useCallback, useRef, useState, useMemo } from 'react';
-import { ACESFilmicToneMapping, PCFSoftShadowMap, FogExp2, PointLight, SRGBColorSpace } from 'three';
+import { ACESFilmicToneMapping, PCFSoftShadowMap, FogExp2, SRGBColorSpace } from 'three';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { useVehicleStore } from '@/store/vehicleStore';
 import { useSimulationStore } from '@/store/simulationStore';
@@ -29,29 +29,6 @@ const CAMERA_PRESETS = {
   'Night Showcase': { position: [30, 8, -25] as [number, number, number], target: [0, 3, 0] as [number, number, number] },
 };
 
-function CameraFillLight() {
-  const ref = useRef<PointLight>(null);
-  useFrame(({ camera }) => {
-    ref.current?.position.set(camera.position.x, camera.position.y + 12, camera.position.z + 8);
-  });
-  return <pointLight ref={ref} color="hsl(210, 100%, 98%)" intensity={0.72} distance={360} decay={1.8} />;
-}
-
-function TealAccentLights() {
-  const positions: [number, number, number][] = [
-    [-25, 6, 0], [25, 6, 0], [0, 6, -20], [0, 6, 20],
-    [-15, 1, -10], [-15, 1, 0], [-15, 1, 10],
-    [15, 1, -10], [15, 1, 0], [15, 1, 10],
-  ];
-  return (
-    <>
-      {positions.map((pos, i) => (
-        <pointLight key={i} position={pos} color="#00D4AA" intensity={0.3} distance={15} decay={2} />
-      ))}
-    </>
-  );
-}
-
 // Seeded random for consistent tree placement
 function seededRandom(seed: number) {
   const x = Math.sin(seed * 127.1) * 43758.5453;
@@ -61,7 +38,6 @@ function seededRandom(seed: number) {
 function Landscaping() {
   const trees = useMemo(() => {
     const t: { pos: [number, number, number]; h: number }[] = [];
-    // Perimeter trees
     const positions: [number, number][] = [
       [-145, -80], [-145, -40], [-145, 0], [-145, 40], [-145, 80],
       [145, -80], [145, -40], [145, 0], [145, 40], [145, 80],
@@ -80,25 +56,22 @@ function Landscaping() {
 
   return (
     <group>
-      {/* Trees */}
       {trees.map((tree, i) => {
         const trunkH = tree.h * 0.6;
         const crownR = 1.8 + seededRandom(i + 50) * 1.2;
         return (
           <group key={`tree${i}`} position={tree.pos}>
-            {/* Trunk */}
             <mesh position={[0, trunkH / 2, 0]} castShadow>
-              <cylinderGeometry args={[0.15, 0.25, trunkH, 8]} />
+              <cylinderGeometry args={[0.15, 0.25, trunkH, 6]} />
               <meshPhysicalMaterial color="#4A3522" roughness={0.85} metalness={0} envMapIntensity={0.3} />
             </mesh>
-            {/* Crown — 3 overlapping spheres */}
             {[
               [0, trunkH + crownR * 0.6, 0] as [number, number, number],
               [-crownR * 0.3, trunkH + crownR * 0.3, crownR * 0.2] as [number, number, number],
               [crownR * 0.25, trunkH + crownR * 0.4, -crownR * 0.15] as [number, number, number],
             ].map((p, j) => (
               <mesh key={j} position={p} castShadow>
-                <sphereGeometry args={[crownR * (0.8 + seededRandom(i * 3 + j) * 0.4), 12, 12]} />
+                <sphereGeometry args={[crownR * (0.8 + seededRandom(i * 3 + j) * 0.4), 8, 8]} />
                 <meshPhysicalMaterial color="#2D5A1E" roughness={0.85} metalness={0} envMapIntensity={0.3} />
               </mesh>
             ))}
@@ -106,44 +79,37 @@ function Landscaping() {
         );
       })}
 
-      {/* Corten steel planters */}
       {planterPositions.map((pos, i) => (
         <group key={`planter${i}`} position={pos}>
           <mesh position={[0, 0.3, 0]} castShadow receiveShadow>
             <boxGeometry args={[2, 0.6, 2]} />
-            <meshPhysicalMaterial {...MATERIALS.cortenSteel()} />
+            <primitive object={MATERIALS.cortenSteel()} attach="material" />
           </mesh>
           <mesh rotation-x={-Math.PI / 2} position={[0, 0.61, 0]}>
             <planeGeometry args={[1.8, 1.8]} />
-            <meshPhysicalMaterial {...MATERIALS.grass()} />
+            <primitive object={MATERIALS.grass()} attach="material" />
           </mesh>
         </group>
       ))}
 
-      {/* Brand Signage */}
+      {/* Brand Signage — emissive only, no pointLight */}
       <group position={[0, 9.5, -115]}>
-        {/* Dark panel */}
         <mesh castShadow>
           <boxGeometry args={[12, 1.8, 0.15]} />
           <meshPhysicalMaterial color="#0A0A0F" roughness={0.3} metalness={0.1} envMapIntensity={0.5} />
         </mesh>
-        {/* Teal LED border — top */}
         <mesh position={[0, 0.92, 0]}>
           <boxGeometry args={[12.2, 0.04, 0.02]} />
-          <meshPhysicalMaterial {...MATERIALS.tealLED(5.0)} />
+          <primitive object={MATERIALS.tealLED(5.0)} attach="material" />
         </mesh>
-        {/* Teal LED border — bottom */}
         <mesh position={[0, -0.92, 0]}>
           <boxGeometry args={[12.2, 0.04, 0.02]} />
-          <meshPhysicalMaterial {...MATERIALS.tealLED(5.0)} />
+          <primitive object={MATERIALS.tealLED(5.0)} attach="material" />
         </mesh>
-        {/* Teal glowing bar — OTTOYARD text representation */}
         <mesh position={[0, 0, 0.08]}>
           <boxGeometry args={[8, 0.8, 0.02]} />
-          <meshPhysicalMaterial {...MATERIALS.tealLED(5.0)} />
+          <primitive object={MATERIALS.tealLED(5.0)} attach="material" />
         </mesh>
-        {/* Backlight */}
-        <pointLight position={[0, 0, -2]} color="#00D4AA" intensity={10} distance={20} decay={2} />
       </group>
     </group>
   );
@@ -177,26 +143,24 @@ export default function DepotScene3D() {
         gl={{
           antialias: true,
           toneMapping: ACESFilmicToneMapping,
-          toneMappingExposure: 1.8,
+          toneMappingExposure: 2.2,
           outputColorSpace: SRGBColorSpace,
           powerPreference: 'high-performance',
         }}
-        dpr={Math.min(window.devicePixelRatio, 2)}
+        dpr={Math.min(window.devicePixelRatio, 1.5)}
         onCreated={({ gl, scene }) => {
           gl.shadowMap.enabled = true;
           gl.shadowMap.type = PCFSoftShadowMap;
-          scene.fog = new FogExp2('#1a1a2e', 0.002);
+          scene.fog = new FogExp2('#4a5568', 0.0015);
         }}
       >
         <Suspense fallback={null}>
           <DayNightLighting simTime={simTime} />
-          <CameraFillLight />
-          <TealAccentLights />
-          <hemisphereLight args={['#87CEEB', '#2D5A1E', 0.6]} />
-          <Environment background={false} environmentIntensity={1.0}>
+          <hemisphereLight args={['#87CEEB', '#2D5A1E', 0.9]} />
+          <Environment background={false} environmentIntensity={1.5}>
             <mesh scale={50}>
-              <sphereGeometry args={[1, 32, 32]} />
-              <meshBasicMaterial color="#87CEEB" side={1} />
+              <sphereGeometry args={[1, 16, 16]} />
+              <meshBasicMaterial color="#9BB8D0" side={1} />
             </mesh>
           </Environment>
 

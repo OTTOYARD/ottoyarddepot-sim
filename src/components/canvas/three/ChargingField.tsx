@@ -8,15 +8,6 @@ import { MATERIALS } from './materials';
 
 interface Props { type: 'dcfc' | 'l2'; count: number; }
 
-const STATUS_COLORS: Record<string, string> = {
-  available: '#333333',
-  occupied: '#F59E0B',
-  charging: '#00FF88',
-  servicing: '#2196F3',
-  offline: '#1a1a1a',
-  reserved: '#9C27B0',
-};
-
 // Cable curve
 const cablePts = [
   new THREE.Vector3(0.23, 0.5, 0.1),
@@ -35,17 +26,38 @@ export function ChargingField({ type, count }: Props) {
   );
   const isDCFC = type === 'dcfc';
 
+  // Batch LED animation — single useFrame for all chargers
+  const ledRefs = useRef<(THREE.Mesh | null)[]>([]);
+  const chargingFlags = useRef<boolean[]>([]);
+
+  useFrame(({ clock }) => {
+    const intensity = 2.0 + Math.sin(clock.elapsedTime * 3) * 2.0;
+    for (let i = 0; i < ledRefs.current.length; i++) {
+      const mesh = ledRefs.current[i];
+      if (mesh && chargingFlags.current[i]) {
+        (mesh.material as THREE.MeshPhysicalMaterial).emissiveIntensity = intensity;
+      }
+    }
+  });
+
   return (
     <group>
-      {stalls.slice(0, count).map((stall) => {
+      {stalls.slice(0, count).map((stall, idx) => {
         const [wx, , wz] = toWorld(stall.position);
         const isChrg = stall.status === 'charging';
         const isOcc = stall.status === 'occupied' || isChrg || stall.status === 'servicing';
         const isOff = stall.status === 'offline';
 
+        // Track charging state for batched animation
+        chargingFlags.current[idx] = isChrg;
+
         return (
           <group key={stall.id} position={[wx, 0, wz]}>
-            <ChargerPedestal isChrg={isChrg} isOcc={isOcc} stall={stall} />
+            <ChargerPedestal
+              isChrg={isChrg}
+              isOcc={isOcc}
+              ledRef={(el) => { ledRefs.current[idx] = el; }}
+            />
             {isOff && <OfflineBeacon />}
           </group>
         );
@@ -68,84 +80,78 @@ export function ChargingField({ type, count }: Props) {
   );
 }
 
-function ChargerPedestal({ isChrg, isOcc, stall }: { isChrg: boolean; isOcc: boolean; stall: any }) {
-  const ledRef = useRef<THREE.Mesh>(null);
-
-  useFrame(({ clock }) => {
-    if (ledRef.current && isChrg) {
-      (ledRef.current.material as THREE.MeshPhysicalMaterial).emissiveIntensity =
-        2.0 + Math.sin(clock.elapsedTime * 3) * 2.0;
-    }
-  });
-
+function ChargerPedestal({ isChrg, isOcc, ledRef }: {
+  isChrg: boolean;
+  isOcc: boolean;
+  ledRef: (el: THREE.Mesh | null) => void;
+}) {
   return (
     <group>
       {/* Base plate */}
       <mesh position={[0, 0.02, 0]} castShadow receiveShadow>
         <boxGeometry args={[0.6, 0.04, 0.5]} />
-        <meshPhysicalMaterial {...MATERIALS.brushedAluminum()} />
+        <primitive object={MATERIALS.brushedAluminum()} attach="material" />
       </mesh>
 
       {/* Body */}
       <mesh position={[0, 0.7, 0]} castShadow receiveShadow>
         <boxGeometry args={[0.45, 1.36, 0.3]} />
-        <meshPhysicalMaterial {...MATERIALS.chargerHousing()} />
+        <primitive object={MATERIALS.chargerHousing()} attach="material" />
       </mesh>
 
       {/* Top cap */}
       <mesh position={[0, 1.4, 0]} castShadow>
         <boxGeometry args={[0.5, 0.04, 0.35]} />
-        <meshPhysicalMaterial {...MATERIALS.brushedAluminum()} />
+        <primitive object={MATERIALS.brushedAluminum()} attach="material" />
       </mesh>
 
       {/* Screen */}
       <mesh position={[0, 1.05, 0.16]}>
         <boxGeometry args={[0.32, 0.5, 0.01]} />
-        <meshPhysicalMaterial {...MATERIALS.screenGlass()} />
+        <primitive object={MATERIALS.screenGlass()} attach="material" />
       </mesh>
       {/* Screen backlight */}
       <mesh position={[0, 1.05, 0.165]}>
         <planeGeometry args={[0.28, 0.46]} />
-        <meshPhysicalMaterial {...MATERIALS.tealLED(1.5)} />
+        <primitive object={MATERIALS.tealLED(1.5)} attach="material" />
       </mesh>
 
-      {/* Status LED */}
+      {/* Status LED — reduced segments */}
       <mesh ref={ledRef} position={[0, 1.32, 0.16]}>
-        <cylinderGeometry args={[0.04, 0.04, 0.02, 16]} />
-        <meshPhysicalMaterial {...(isChrg || isOcc ? MATERIALS.greenIndicator() : MATERIALS.amberIndicator())} />
+        <cylinderGeometry args={[0.04, 0.04, 0.02, 8]} />
+        <primitive object={isChrg || isOcc ? MATERIALS.greenIndicator() : MATERIALS.amberIndicator()} attach="material" />
       </mesh>
 
       {/* Teal accent strips on front edges */}
       {[-0.225, 0.225].map((x, i) => (
         <mesh key={`acc${i}`} position={[x, 0.7, 0.151]}>
           <boxGeometry args={[0.015, 1.0, 0.005]} />
-          <meshPhysicalMaterial {...MATERIALS.tealLED(2.0)} />
+          <primitive object={MATERIALS.tealLED(2.0)} attach="material" />
         </mesh>
       ))}
 
-      {/* Charging cable via TubeGeometry */}
-      <mesh castShadow>
-        <tubeGeometry args={[cableCurve, 20, 0.02, 8, false]} />
-        <meshPhysicalMaterial {...MATERIALS.chargerCable()} />
+      {/* Charging cable — reduced segments */}
+      <mesh>
+        <tubeGeometry args={[cableCurve, 12, 0.02, 6, false]} />
+        <primitive object={MATERIALS.chargerCable()} attach="material" />
       </mesh>
 
-      {/* Cable connector head */}
-      <mesh position={[0.25, 0.05, 0.3]} castShadow>
-        <cylinderGeometry args={[0.025, 0.03, 0.08, 12]} />
-        <meshPhysicalMaterial {...MATERIALS.chargerConnector()} />
+      {/* Cable connector head — reduced segments */}
+      <mesh position={[0.25, 0.05, 0.3]}>
+        <cylinderGeometry args={[0.025, 0.03, 0.08, 6]} />
+        <primitive object={MATERIALS.chargerConnector()} attach="material" />
       </mesh>
 
-      {/* Bollards */}
+      {/* Bollards — reduced segments, no castShadow */}
       {[-0.5, 0.5].map((x, i) => (
         <group key={`boll${i}`} position={[x, 0, 0.3]}>
-          <mesh position={[0, 0.35, 0]} castShadow>
-            <cylinderGeometry args={[0.06, 0.06, 0.7, 12]} />
-            <meshPhysicalMaterial {...MATERIALS.chargerHousing()} />
+          <mesh position={[0, 0.35, 0]}>
+            <cylinderGeometry args={[0.06, 0.06, 0.7, 6]} />
+            <primitive object={MATERIALS.chargerHousing()} attach="material" />
           </mesh>
-          {/* Teal cap */}
           <mesh position={[0, 0.715, 0]}>
-            <cylinderGeometry args={[0.065, 0.065, 0.03, 12]} />
-            <meshPhysicalMaterial {...MATERIALS.tealLED(2.0)} />
+            <cylinderGeometry args={[0.065, 0.065, 0.03, 6]} />
+            <primitive object={MATERIALS.tealLED(2.0)} attach="material" />
           </mesh>
         </group>
       ))}
@@ -161,7 +167,7 @@ function OfflineBeacon() {
   return (
     <>
       <mesh position={[0, 1.6, 0]}>
-        <sphereGeometry args={[0.08, 8, 8]} />
+        <sphereGeometry args={[0.08, 6, 6]} />
         <meshPhysicalMaterial color="#ff0000" emissive="#ff0000" emissiveIntensity={3} toneMapped={false} roughness={0.2} metalness={0} />
       </mesh>
       <pointLight ref={ref} position={[0, 1.6, 0]} color="#ff0000" intensity={1} distance={5} />
