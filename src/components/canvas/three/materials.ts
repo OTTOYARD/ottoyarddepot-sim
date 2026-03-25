@@ -71,7 +71,7 @@ export function structuralSteel() {
 
 export function brushedAluminum() {
   return cached('brushedAluminum', () => new THREE.MeshPhysicalMaterial({
-    color: '#8899AA', roughness: 0.3, metalness: 0.9, envMapIntensity: 1.5,
+    color: '#AABBCC', roughness: 0.4, metalness: 0.5, envMapIntensity: 0.8,
   }));
 }
 
