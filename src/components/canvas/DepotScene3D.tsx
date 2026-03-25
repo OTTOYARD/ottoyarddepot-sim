@@ -120,7 +120,7 @@ export default function DepotScene3D() {
   const simTime = useSimulationStore((s) => s.simTime);
   const simSpeed = useSimulationStore((s) => s.simSpeed);
   const controlsRef = useRef<OrbitControlsImpl>(null);
-  const [ppEnabled, setPpEnabled] = useState(true);
+  
 
   const handleCameraPreset = useCallback((preset: keyof typeof CAMERA_PRESETS) => {
     const ctrl = controlsRef.current;
