@@ -177,7 +177,7 @@ export default function DepotScene3D() {
         gl={{
           antialias: true,
           toneMapping: ACESFilmicToneMapping,
-          toneMappingExposure: 1.55,
+          toneMappingExposure: 1.8,
           outputColorSpace: SRGBColorSpace,
           powerPreference: 'high-performance',
         }}
@@ -185,15 +185,15 @@ export default function DepotScene3D() {
         onCreated={({ gl, scene }) => {
           gl.shadowMap.enabled = true;
           gl.shadowMap.type = PCFSoftShadowMap;
-          scene.fog = new FogExp2('#1a1a2e', 0.004);
+          scene.fog = new FogExp2('#1a1a2e', 0.002);
         }}
       >
         <Suspense fallback={null}>
           <DayNightLighting simTime={simTime} />
           <CameraFillLight />
           <TealAccentLights />
-          <hemisphereLight args={['#87CEEB', '#2D5A1E', 0.3]} />
-          <Environment preset="city" background={false} environmentIntensity={0.7} />
+          <hemisphereLight args={['#87CEEB', '#2D5A1E', 0.6]} />
+          <Environment preset="city" background={false} environmentIntensity={1.0} />
 
           <DepotPostProcessing mode={ppMode} enabled={ppEnabled} />
 
