@@ -118,9 +118,9 @@ export function screenGlass() {
 
 export function solarPanelGlass() {
   return cached('solarPanelGlass', () => new THREE.MeshPhysicalMaterial({
-    color: '#0A1525', roughness: 0.08, metalness: 0.1,
-    envMapIntensity: 1.8, clearcoat: 0.8, clearcoatRoughness: 0.1,
-    emissive: new THREE.Color('#000820'), emissiveIntensity: 0.05,
+    color: '#1A2535', roughness: 0.15, metalness: 0.05,
+    envMapIntensity: 0.8, clearcoat: 0.6, clearcoatRoughness: 0.15,
+    emissive: new THREE.Color('#001020'), emissiveIntensity: 0.05,
   }));
 }
 
