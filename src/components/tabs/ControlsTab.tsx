@@ -193,7 +193,7 @@ export const ControlsTab = () => {
           <SliderRow label="DCFC Power (kW)" value={config.dcfcPowerPerStall} min={50} max={350} onChange={(v) => upd({ dcfcPowerPerStall: v })} />
           <SliderRow label="L2 Power (kW)" value={config.l2PowerPerStall} min={7} max={19.2} step={0.1} onChange={(v) => upd({ l2PowerPerStall: v })} />
           <SliderRow label="Wash Bays" value={config.washBayCount} min={1} max={6} onChange={(v) => upd({ washBayCount: v })} />
-          <SliderRow label="Staging Stalls" value={config.stagingStalls} min={5} max={30} onChange={(v) => upd({ stagingStalls: v })} />
+          <SliderRow label="Staging Stalls" value={config.stagingStalls} min={5} max={100} onChange={(v) => upd({ stagingStalls: v })} />
           <SliderRow label="Solar (kWdc)" value={config.solarCanopy} min={0} max={800} onChange={(v) => upd({ solarCanopy: v })} />
           <SliderRow label="BESS (MWh)" value={config.bessCapacity} min={0} max={5} step={0.5} onChange={(v) => upd({ bessCapacity: v })} />
           <SliderRow label="BESS Power (MW)" value={config.bessPower} min={0} max={3} step={0.5} onChange={(v) => upd({ bessPower: v })} />

@@ -22,8 +22,21 @@ const FX: Record<string, { glow: string; pulse: number; op: number }> = {
   departing: { glow: '', pulse: 0, op: 0.85 },
 };
 
-// Body-related material name fragments to tint per vehicle type
 const BODY_HINTS = ['body', 'paint', 'car', 'exterior', 'shell', 'hood', 'door', 'fender', 'bumper', 'trunk'];
+
+/**
+ * Compute vehicle Y-rotation so it faces toward the depot center / its charger.
+ * Left-side vehicles face right (+X), right-side face left (-X),
+ * front vehicles face north (-Z toward building), back vehicles face south (+Z).
+ */
+function getFacingRotation(pos2d: { x: number; y: number }): number {
+  const cx = 150; // depot center X in 2D coords
+  const cy = 110; // depot center Y in 2D coords
+  const dx = cx - pos2d.x;
+  const dy = cy - pos2d.y;
+  // atan2 gives angle from vehicle to center; add PI/2 because model faces +X at rotation 0
+  return Math.atan2(dx, dy);
+}
 
 export function Vehicle3D({ vehicle, simSpeed }: { vehicle: Vehicle; simSpeed: number }) {
   const grp = useRef<THREE.Group>(null);
@@ -31,24 +44,29 @@ export function Vehicle3D({ vehicle, simSpeed }: { vehicle: Vehicle; simSpeed: n
   const col = COLORS[vehicle.type] || '#E8E8E8';
   const fx = FX[vehicle.status] || FX.staging;
   const [tx, , tz] = toWorld(vehicle.position);
+  const facingRotation = getFacingRotation(vehicle.position);
 
   const { scene } = useGLTF(MODEL_PATH);
 
-  // Clone the scene so each vehicle instance is independent
-  const clone = useMemo(() => {
+  // Clone scene and compute ground offset
+  const { clone, yOffset } = useMemo(() => {
     const c = scene.clone(true);
     c.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
         mesh.castShadow = true;
         mesh.receiveShadow = true;
-        // Clone material so tinting doesn't affect other instances
         if (mesh.material) {
           mesh.material = (mesh.material as THREE.Material).clone();
         }
       }
     });
-    return c;
+
+    // Compute bounding box to find how far below origin the model extends
+    const box = new THREE.Box3().setFromObject(c);
+    const offset = -box.min.y; // raise by this amount so bottom sits at y=0
+
+    return { clone: c, yOffset: offset };
   }, [scene]);
 
   // Apply vehicle-type color tint to body meshes
@@ -72,20 +90,16 @@ export function Vehicle3D({ vehicle, simSpeed }: { vehicle: Vehicle; simSpeed: n
     const rate = Math.min(delta * 2 * Math.max(simSpeed, 1), 1);
     p.x = THREE.MathUtils.lerp(p.x, tx, rate);
     p.z = THREE.MathUtils.lerp(p.z, tz, rate);
-    if (glw.current && fx.pulse > 0) {
-      (glw.current.material as THREE.MeshPhysicalMaterial)
-        .emissiveIntensity = 0.4 + Math.sin(Date.now() * 0.001 * fx.pulse) * 0.6;
-    }
   });
 
   return (
     <group ref={grp} position={[tx, 0, tz]}>
-      {/* Tesla Model 3 — scaled to ~5 units long */}
+      {/* Tesla Model 3 — raised by yOffset so wheels sit on ground, rotated to face charger */}
       <primitive
         object={clone}
         scale={[1.2, 1.2, 1.2]}
-        rotation={[0, Math.PI / 2, 0]}
-        position={[0, 0, 0]}
+        rotation={[0, facingRotation, 0]}
+        position={[0, yOffset * 1.2, 0]}
       />
 
       {/* Status glow */}
