@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type StallType = 'dcfc' | 'l2' | 'wash' | 'staging';
+export type StallType = 'dcfc' | 'l2' | 'wash' | 'staging' | 'service';
 export type StallStatus = 'available' | 'occupied' | 'charging' | 'servicing' | 'offline' | 'reserved';
 
 export interface StallState {
