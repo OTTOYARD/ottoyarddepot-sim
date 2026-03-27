@@ -30,6 +30,7 @@ export interface SimulationConfig {
   l2PowerPerStall: number;
   washBayCount: number;
   stagingStalls: number;
+  serviceBayCount: number;
   solarCanopy: number;
   bessCapacity: number;
   bessPower: number;
