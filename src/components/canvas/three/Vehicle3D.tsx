@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { Html, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { toWorld } from './coordUtils';
+import { useDepotStore } from '@/store/depotStore';
 import type { Vehicle } from '@/engine/types';
 
 const MODEL_PATH = '/models/tesla_model3.glb';
@@ -25,17 +26,27 @@ const FX: Record<string, { glow: string; pulse: number; op: number }> = {
 const BODY_HINTS = ['body', 'paint', 'car', 'exterior', 'shell', 'hood', 'door', 'fender', 'bumper', 'trunk'];
 
 /**
- * Compute vehicle Y-rotation so it faces toward the depot center / its charger.
- * Left-side vehicles face right (+X), right-side face left (-X),
- * front vehicles face north (-Z toward building), back vehicles face south (+Z).
+ * Compute vehicle Y-rotation so its hood (front) faces toward its assigned stall/charger.
+ * Falls back to facing depot center for vehicles without an assigned stall.
  */
-function getFacingRotation(pos2d: { x: number; y: number }): number {
-  const cx = 150; // depot center X in 2D coords
-  const cy = 110; // depot center Y in 2D coords
-  const dx = cx - pos2d.x;
-  const dy = cy - pos2d.y;
-  // atan2 gives angle from vehicle to center; add PI/2 because model faces +X at rotation 0
-  return Math.atan2(dx, dy);
+function getFacingRotation(
+  vehiclePos2d: { x: number; y: number },
+  stallPos2d: { x: number; y: number } | null
+): number {
+  // Target: stall position if assigned, otherwise depot center
+  const tx = stallPos2d ? stallPos2d.x : 150;
+  const ty = stallPos2d ? stallPos2d.y : 110;
+
+  // Convert both to 3D (XZ plane)
+  const [vx, , vz] = toWorld(vehiclePos2d);
+  const [sx, , sz] = toWorld({ x: tx, y: ty });
+
+  const dx = sx - vx;
+  const dz = sz - vz;
+
+  // atan2(dx, dz) gives angle in XZ plane; model's default forward is +X,
+  // so we use atan2(dx, dz) which aligns the model front toward the target
+  return Math.atan2(dx, dz);
 }
 
 export function Vehicle3D({ vehicle, simSpeed }: { vehicle: Vehicle; simSpeed: number }) {
@@ -44,7 +55,16 @@ export function Vehicle3D({ vehicle, simSpeed }: { vehicle: Vehicle; simSpeed: n
   const col = COLORS[vehicle.type] || '#E8E8E8';
   const fx = FX[vehicle.status] || FX.staging;
   const [tx, , tz] = toWorld(vehicle.position);
-  const facingRotation = getFacingRotation(vehicle.position);
+
+  // Look up assigned stall position from depot store
+  const stalls = useDepotStore((s) => s.stalls);
+  const stallPos2d = useMemo(() => {
+    if (!vehicle.assignedStall) return null;
+    const stall = stalls.find((s) => s.id === vehicle.assignedStall);
+    return stall ? { x: stall.position.x, y: stall.position.y } : null;
+  }, [vehicle.assignedStall, stalls]);
+
+  const facingRotation = getFacingRotation(vehicle.position, stallPos2d);
 
   const { scene } = useGLTF(MODEL_PATH);
 
@@ -62,9 +82,8 @@ export function Vehicle3D({ vehicle, simSpeed }: { vehicle: Vehicle; simSpeed: n
       }
     });
 
-    // Compute bounding box to find how far below origin the model extends
     const box = new THREE.Box3().setFromObject(c);
-    const offset = -box.min.y; // raise by this amount so bottom sits at y=0
+    const offset = -box.min.y;
 
     return { clone: c, yOffset: offset };
   }, [scene]);
@@ -94,7 +113,6 @@ export function Vehicle3D({ vehicle, simSpeed }: { vehicle: Vehicle; simSpeed: n
 
   return (
     <group ref={grp} position={[tx, 0, tz]}>
-      {/* Tesla Model 3 — raised by yOffset so wheels sit on ground, rotated to face charger */}
       <primitive
         object={clone}
         scale={[1.2, 1.2, 1.2]}
