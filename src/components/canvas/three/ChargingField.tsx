@@ -53,12 +53,14 @@ export function ChargingField({ type, count }: Props) {
 
         return (
           <group key={stall.id} position={[wx, 0, wz]}>
+           <group scale={[2.5, 2.5, 2.5]}>
             <ChargerPedestal
               isChrg={isChrg}
               isOcc={isOcc}
               ledRef={(el) => { ledRefs.current[idx] = el; }}
             />
             {isOff && <OfflineBeacon />}
+           </group>
           </group>
         );
       })}
