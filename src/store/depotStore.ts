@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type StallType = 'dcfc' | 'l2' | 'wash' | 'staging';
+export type StallType = 'dcfc' | 'l2' | 'wash' | 'staging' | 'service';
 export type StallStatus = 'available' | 'occupied' | 'charging' | 'servicing' | 'offline' | 'reserved';
 
 export interface StallState {
@@ -16,16 +16,17 @@ interface DepotState {
   l2Count: number;
   washBayCount: number;
   stagingCount: number;
+  serviceBayCount: number;
   stalls: StallState[];
   selectedStallId: string | null;
   hoveredStallId: string | null;
   setStallStatus: (id: string, status: StallStatus) => void;
   selectStall: (id: string | null) => void;
   setHoveredStall: (id: string | null) => void;
-  regenerateStalls: (dcfc: number, l2: number, wash: number, staging: number) => void;
+  regenerateStalls: (dcfc: number, l2: number, wash: number, staging: number, service?: number) => void;
 }
 
-function generateStalls(dcfcCount = 10, l2Count = 40, washCount = 3, stagingCount = 15): StallState[] {
+function generateStalls(dcfcCount = 10, l2Count = 40, washCount = 3, stagingCount = 50, serviceCount = 2): StallState[] {
   const stalls: StallState[] = [];
   const angle = 60;
 
@@ -75,6 +76,16 @@ function generateStalls(dcfcCount = 10, l2Count = 40, washCount = 3, stagingCoun
     });
   }
 
+  for (let i = 0; i < serviceCount; i++) {
+    stalls.push({
+      id: `SVC-${String(i + 1).padStart(2, '0')}`,
+      type: 'service',
+      status: 'available',
+      vehicleId: null,
+      position: { x: 235 + i * 20, y: 10, angle: 0 },
+    });
+  }
+
   return stalls;
 }
 
@@ -82,7 +93,8 @@ export const useDepotStore = create<DepotState>((set) => ({
   dcfcCount: 10,
   l2Count: 40,
   washBayCount: 3,
-  stagingCount: 15,
+  stagingCount: 50,
+  serviceBayCount: 2,
   stalls: generateStalls(),
   selectedStallId: null,
   hoveredStallId: null,
@@ -92,13 +104,14 @@ export const useDepotStore = create<DepotState>((set) => ({
     })),
   selectStall: (id) => set({ selectedStallId: id }),
   setHoveredStall: (id) => set({ hoveredStallId: id }),
-  regenerateStalls: (dcfc, l2, wash, staging) =>
+  regenerateStalls: (dcfc, l2, wash, staging, service = 2) =>
     set({
       dcfcCount: dcfc,
       l2Count: l2,
       washBayCount: wash,
       stagingCount: staging,
-      stalls: generateStalls(dcfc, l2, wash, staging),
+      serviceBayCount: service,
+      stalls: generateStalls(dcfc, l2, wash, staging, service),
       selectedStallId: null,
       hoveredStallId: null,
     }),

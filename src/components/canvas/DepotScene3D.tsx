@@ -10,6 +10,7 @@ import { DepotBuilding } from './three/DepotBuilding';
 import { SolarCanopy } from './three/SolarCanopy';
 import { ChargingField } from './three/ChargingField';
 import { WashBays } from './three/WashBays';
+import { ServiceBays } from './three/ServiceBays';
 import { StagingZone } from './three/StagingZone';
 import { DriveAisles } from './three/DriveAisles';
 import { UtilityEquipment } from './three/UtilityEquipment';
@@ -164,6 +165,7 @@ export default function DepotScene3D() {
 
           <DepotGround />
           <DepotBuilding />
+          <ServiceBays />
           <SolarCanopy solarKWdc={config.solarCanopy} />
           <ChargingField type="dcfc" count={config.dcfcCount} />
           <ChargingField type="l2" count={config.l2Count} />

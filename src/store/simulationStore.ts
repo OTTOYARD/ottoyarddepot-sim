@@ -30,6 +30,7 @@ export interface SimulationConfig {
   l2PowerPerStall: number;
   washBayCount: number;
   stagingStalls: number;
+  serviceBayCount: number;
   solarCanopy: number;
   bessCapacity: number;
   bessPower: number;
@@ -104,7 +105,8 @@ const defaultConfig: SimulationConfig = {
   dcfcPowerPerStall: 200,
   l2PowerPerStall: 11.5,
   washBayCount: 3,
-  stagingStalls: 15,
+  stagingStalls: 50,
+  serviceBayCount: 2,
   solarCanopy: 500,
   bessCapacity: 2,
   bessPower: 1,
