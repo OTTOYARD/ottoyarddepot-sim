@@ -31,16 +31,16 @@ export function StagingZone({ count = 100 }: { count?: number }) {
     const backRight = count - left - right - front - backLeft;
 
     return [
-      // Left/west side — along Z axis
-      { origin: [-120, 0, -50], rotation: 0, count: left, spacing: 5.5, direction: 'z' as const },
-      // Right/east side — along Z axis
-      { origin: [120, 0, -50], rotation: Math.PI, count: right, spacing: 5.5, direction: 'z' as const },
-      // Front/south edge — along X axis
-      { origin: [-((front - 1) * 5.5) / 2, 0, 85], rotation: 0, count: front, spacing: 5.5, direction: 'x' as const },
-      // Back-left wing (north-west, avoids building) — along Z axis
-      { origin: [-85, 0, -75], rotation: 0, count: backLeft, spacing: 5.5, direction: 'z' as const },
-      // Back-right wing (north-east, avoids building) — along Z axis
-      { origin: [85, 0, -75], rotation: Math.PI, count: backRight, spacing: 5.5, direction: 'z' as const },
+      // Left/west side — along Z axis, hugging perimeter at X=-130
+      { origin: [-130, 0, -80], rotation: 0, count: left, spacing: 5.5, direction: 'z' as const },
+      // Right/east side — along Z axis, hugging perimeter at X=+130
+      { origin: [130, 0, -80], rotation: Math.PI, count: right, spacing: 5.5, direction: 'z' as const },
+      // Front/south edge — along X axis at Z=+90
+      { origin: [-((front - 1) * 5.5) / 2, 0, 90], rotation: 0, count: front, spacing: 5.5, direction: 'x' as const },
+      // Back-left wing (north-west, avoids building) — along X axis at Z=-90
+      { origin: [-130, 0, -90], rotation: 0, count: backLeft, spacing: 5.5, direction: 'x' as const },
+      // Back-right wing (north-east, avoids building) — along X axis at Z=-90
+      { origin: [130 - (backRight - 1) * 5.5, 0, -90], rotation: 0, count: backRight, spacing: 5.5, direction: 'x' as const },
     ];
   }, [count]);
 
