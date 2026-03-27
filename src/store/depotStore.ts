@@ -26,7 +26,7 @@ interface DepotState {
   regenerateStalls: (dcfc: number, l2: number, wash: number, staging: number, service?: number) => void;
 }
 
-function generateStalls(dcfcCount = 10, l2Count = 40, washCount = 3, stagingCount = 15): StallState[] {
+function generateStalls(dcfcCount = 10, l2Count = 40, washCount = 3, stagingCount = 50, serviceCount = 2): StallState[] {
   const stalls: StallState[] = [];
   const angle = 60;
 
@@ -73,6 +73,16 @@ function generateStalls(dcfcCount = 10, l2Count = 40, washCount = 3, stagingCoun
       status: 'available',
       vehicleId: null,
       position: { x: 25 + i * Math.min(17, 250 / stagingCount), y: 172, angle },
+    });
+  }
+
+  for (let i = 0; i < serviceCount; i++) {
+    stalls.push({
+      id: `SVC-${String(i + 1).padStart(2, '0')}`,
+      type: 'service',
+      status: 'available',
+      vehicleId: null,
+      position: { x: 235 + i * 20, y: 10, angle: 0 },
     });
   }
 
