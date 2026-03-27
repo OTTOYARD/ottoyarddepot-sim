@@ -66,13 +66,48 @@ function generateStalls(dcfcCount = 10, l2Count = 40, washCount = 3, stagingCoun
     });
   }
 
-  for (let i = 0; i < stagingCount; i++) {
+  // U-shaped perimeter staging: west side → south edge → east side
+  const westCount = Math.round(stagingCount * 0.26);
+  const eastCount = Math.round(stagingCount * 0.26);
+  const southCount = stagingCount - westCount - eastCount;
+  let stageIdx = 0;
+
+  // West side: x≈25, y from 50 down to 195
+  for (let i = 0; i < westCount; i++) {
+    stageIdx++;
+    const yPos = 50 + (i / Math.max(westCount - 1, 1)) * 145;
     stalls.push({
-      id: `STAGE-${String(i + 1).padStart(2, '0')}`,
+      id: `STAGE-${String(stageIdx).padStart(2, '0')}`,
       type: 'staging',
       status: 'available',
       vehicleId: null,
-      position: { x: 25 + i * Math.min(17, 250 / stagingCount), y: 172, angle },
+      position: { x: 25, y: yPos, angle: 0 },
+    });
+  }
+
+  // South edge: y≈200, x from 25 to 275
+  for (let i = 0; i < southCount; i++) {
+    stageIdx++;
+    const xPos = 25 + (i / Math.max(southCount - 1, 1)) * 250;
+    stalls.push({
+      id: `STAGE-${String(stageIdx).padStart(2, '0')}`,
+      type: 'staging',
+      status: 'available',
+      vehicleId: null,
+      position: { x: xPos, y: 200, angle },
+    });
+  }
+
+  // East side: x≈275, y from 195 up to 50
+  for (let i = 0; i < eastCount; i++) {
+    stageIdx++;
+    const yPos = 195 - (i / Math.max(eastCount - 1, 1)) * 145;
+    stalls.push({
+      id: `STAGE-${String(stageIdx).padStart(2, '0')}`,
+      type: 'staging',
+      status: 'available',
+      vehicleId: null,
+      position: { x: 275, y: yPos, angle: 0 },
     });
   }
 

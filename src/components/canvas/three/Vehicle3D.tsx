@@ -54,7 +54,19 @@ export function Vehicle3D({ vehicle, simSpeed }: { vehicle: Vehicle; simSpeed: n
   const glw = useRef<THREE.Mesh>(null);
   const col = COLORS[vehicle.type] || '#E8E8E8';
   const fx = FX[vehicle.status] || FX.staging;
-  const [tx, , tz] = toWorld(vehicle.position);
+  // Check if vehicle is assigned to a wash bay — override 3D target position
+  const isWashAssigned = vehicle.assignedStall?.startsWith('WASH-');
+  const washBayIndex = isWashAssigned
+    ? parseInt(vehicle.assignedStall!.replace('WASH-', ''), 10) - 1
+    : -1;
+
+  // Wash bay world coords from WashBays.tsx: group at [80, 0, -60], each bay offset i*16
+  const washWorldX = 80 + washBayIndex * 16;
+  const washWorldZ = -60;
+
+  const [defaultTx, , defaultTz] = toWorld(vehicle.position);
+  const tx = isWashAssigned ? washWorldX : defaultTx;
+  const tz = isWashAssigned ? washWorldZ : defaultTz;
 
   // Look up assigned stall position from depot store
   const stalls = useDepotStore((s) => s.stalls);
@@ -64,7 +76,10 @@ export function Vehicle3D({ vehicle, simSpeed }: { vehicle: Vehicle; simSpeed: n
     return stall ? { x: stall.position.x, y: stall.position.y } : null;
   }, [vehicle.assignedStall, stalls]);
 
-  const facingRotation = getFacingRotation(vehicle.position, stallPos2d);
+  // For wash vehicles, face into the bay (toward +Z / south wall)
+  const facingRotation = isWashAssigned
+    ? Math.PI  // face into the wash bay opening
+    : getFacingRotation(vehicle.position, stallPos2d);
 
   const { scene } = useGLTF(MODEL_PATH);
 
