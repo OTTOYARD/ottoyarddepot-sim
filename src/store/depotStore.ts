@@ -16,13 +16,14 @@ interface DepotState {
   l2Count: number;
   washBayCount: number;
   stagingCount: number;
+  serviceBayCount: number;
   stalls: StallState[];
   selectedStallId: string | null;
   hoveredStallId: string | null;
   setStallStatus: (id: string, status: StallStatus) => void;
   selectStall: (id: string | null) => void;
   setHoveredStall: (id: string | null) => void;
-  regenerateStalls: (dcfc: number, l2: number, wash: number, staging: number) => void;
+  regenerateStalls: (dcfc: number, l2: number, wash: number, staging: number, service?: number) => void;
 }
 
 function generateStalls(dcfcCount = 10, l2Count = 40, washCount = 3, stagingCount = 15): StallState[] {
