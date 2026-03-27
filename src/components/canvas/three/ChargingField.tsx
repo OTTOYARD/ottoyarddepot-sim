@@ -60,6 +60,7 @@ export function ChargingField({ type, count }: Props) {
               ledRef={(el) => { ledRefs.current[idx] = el; }}
             />
             {isOff && <OfflineBeacon />}
+           </group>
           </group>
         );
       })}
