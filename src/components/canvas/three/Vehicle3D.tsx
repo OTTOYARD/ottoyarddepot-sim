@@ -1,10 +1,12 @@
-import { useRef } from 'react';
+import { useRef, useMemo, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Html } from '@react-three/drei';
+import { Html, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { toWorld } from './coordUtils';
-import { MATERIALS } from './materials';
 import type { Vehicle } from '@/engine/types';
+
+const MODEL_PATH = '/models/tesla_model3.glb';
+useGLTF.preload(MODEL_PATH);
 
 const COLORS: Record<string, string> = {
   fleet: '#00B4A6', core: '#E0E0E0', concierge: '#A0A0A0', elite: '#FFD700'
@@ -20,12 +22,49 @@ const FX: Record<string, { glow: string; pulse: number; op: number }> = {
   departing: { glow: '', pulse: 0, op: 0.85 },
 };
 
+// Body-related material name fragments to tint per vehicle type
+const BODY_HINTS = ['body', 'paint', 'car', 'exterior', 'shell', 'hood', 'door', 'fender', 'bumper', 'trunk'];
+
 export function Vehicle3D({ vehicle, simSpeed }: { vehicle: Vehicle; simSpeed: number }) {
   const grp = useRef<THREE.Group>(null);
   const glw = useRef<THREE.Mesh>(null);
   const col = COLORS[vehicle.type] || '#E8E8E8';
   const fx = FX[vehicle.status] || FX.staging;
   const [tx, , tz] = toWorld(vehicle.position);
+
+  const { scene } = useGLTF(MODEL_PATH);
+
+  // Clone the scene so each vehicle instance is independent
+  const clone = useMemo(() => {
+    const c = scene.clone(true);
+    c.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh;
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        // Clone material so tinting doesn't affect other instances
+        if (mesh.material) {
+          mesh.material = (mesh.material as THREE.Material).clone();
+        }
+      }
+    });
+    return c;
+  }, [scene]);
+
+  // Apply vehicle-type color tint to body meshes
+  useEffect(() => {
+    const tint = new THREE.Color(col);
+    clone.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh;
+        const mat = mesh.material as THREE.MeshStandardMaterial;
+        const name = (mat.name || mesh.name || '').toLowerCase();
+        if (BODY_HINTS.some((h) => name.includes(h))) {
+          mat.color.copy(tint);
+        }
+      }
+    });
+  }, [clone, col]);
 
   useFrame((_, delta) => {
     if (!grp.current) return;
@@ -41,53 +80,13 @@ export function Vehicle3D({ vehicle, simSpeed }: { vehicle: Vehicle; simSpeed: n
 
   return (
     <group ref={grp} position={[tx, 0, tz]}>
-      {/* Body — automotive clearcoat paint */}
-      <mesh position={[0, 0.65, 0]} castShadow receiveShadow>
-        <boxGeometry args={[2.6, 1, 5]} />
-        <primitive object={MATERIALS.automotivePaint(col)} attach="material" />
-      </mesh>
-
-      {/* Cabin — auto glass */}
-      <mesh position={[0, 1.4, -0.3]} castShadow receiveShadow>
-        <boxGeometry args={[2.2, 0.7, 2.8]} />
-        <primitive object={MATERIALS.autoGlass()} attach="material" />
-      </mesh>
-
-      {/* Wheels — torus tires + chrome rims */}
-      {([[-1.3, .35, 2], [1.3, .35, 2], [-1.3, .35, -2], [1.3, .35, -2]] as [number, number, number][]).map((pos, i) => (
-        <group key={i} position={pos}>
-          <mesh rotation={[0, 0, Math.PI / 2]}>
-            <torusGeometry args={[0.3, 0.12, 6, 12]} />
-            <primitive object={MATERIALS.tireRubber()} attach="material" />
-          </mesh>
-          <mesh rotation={[0, 0, Math.PI / 2]}>
-            <cylinderGeometry args={[0.2, 0.2, 0.22, 6]} />
-            <primitive object={MATERIALS.chromeTrim()} attach="material" />
-          </mesh>
-        </group>
-      ))}
-
-      {/* Headlights — no castShadow, reduced segments */}
-      {([[-0.9, .65, 2.55], [0.9, .65, 2.55]] as [number, number, number][]).map((pos, i) => (
-        <mesh key={`hl${i}`} position={pos}>
-          <sphereGeometry args={[0.18, 6, 6]} />
-          <primitive object={MATERIALS.headlightLens()} attach="material" />
-        </mesh>
-      ))}
-
-      {/* Tail lights — no castShadow */}
-      {([[-0.9, .65, -2.55], [0.9, .65, -2.55]] as [number, number, number][]).map((pos, i) => (
-        <mesh key={`tl${i}`} position={pos}>
-          <boxGeometry args={[0.4, 0.15, 0.05]} />
-          <meshPhysicalMaterial color="#ff0000" emissive="#ff0000" emissiveIntensity={2} roughness={0.2} metalness={0} toneMapped={false} />
-        </mesh>
-      ))}
-
-      {/* Chrome trim strip — no castShadow */}
-      <mesh position={[0, 0.18, 0]}>
-        <boxGeometry args={[2.65, 0.03, 5.05]} />
-        <primitive object={MATERIALS.chromeTrim()} attach="material" />
-      </mesh>
+      {/* Tesla Model 3 — scaled to ~5 units long */}
+      <primitive
+        object={clone}
+        scale={[1.2, 1.2, 1.2]}
+        rotation={[0, Math.PI / 2, 0]}
+        position={[0, 0, 0]}
+      />
 
       {/* Status glow */}
       {fx.glow && (
