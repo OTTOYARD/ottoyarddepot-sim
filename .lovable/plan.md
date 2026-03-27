@@ -1,39 +1,48 @@
 
 
-# Fix Staging Stall Placement — Align to Depot Perimeter
+# Redesign Staging Zone as a Continuous U-Shape
 
 ## Problem
-- Back-right staging row (X=85, Z=-75) overlaps with wash bays (X=80, Z=-60)
-- Back-left staging row (X=-85, Z=-75) is too far inward
-- Some staging rows extend through charging stall areas
-- Staging needs to be along the **outer edge of the asphalt perimeter**, not mixed into the interior
+- Stalls 25–50 extend off the depot asphalt (right/east row goes too far)
+- Stalls 66–100 are placed near the operations center / building instead of on the opposite side
+- Stalls are not in chronological order around the perimeter
 
-## Depot Layout Reference
-- Asphalt pad: 300×220, centered at origin → edges at X=±150, Z=±110
-- Curbing: X=±140, Z=±100
-- Building/lounge: roughly X ∈ [-60, 60], Z ≈ -72 to -108 (north side)
-- Wash bays: X=80, Z=-60
-- Charging fields: central area (X ≈ -105 to +95, Z ≈ -35 to +53)
-- Service bays: attached to building on right side
+## Solution
+Replace the current 5-segment layout with a single continuous **U-shaped path** that traces the asphalt perimeter chronologically from stall 1 to 100, avoiding the building (X ∈ [-60,60] at Z≈-90) and wash bays (X=80, Z=-60).
 
-## Fix: `src/components/canvas/three/StagingZone.tsx`
+### U-Path (top-down, tracing clockwise from northwest)
 
-Reposition all 5 rows to hug the perimeter, just inside the curbing at X=±130 and Z=±90, with the building exclusion zone maintained:
+```text
+        BUILDING (avoid)
+    ┌───────────────────────┐
+    │  ← stalls go north    │
+    │                        │
+    │ East side (74-100)     │
+    │                        │
+    │                        │ Wash bays (interior, clear)
+    │                        │
+    └────────────────────────┘
+         South edge (27-73)
+    ┌────────────────────────┐
+    │                        │
+    │ West side (1-26)       │
+    │  ↓ stalls go south     │
+    │                        │
+    └────────────────────────┘
+```
 
-| Row | Position | Direction | Notes |
-|-----|----------|-----------|-------|
-| Left/west | X=-130, Z from -80 to +80 | along Z | Far west edge, clear of chargers |
-| Right/east | X=+130, Z from -80 to +80 | along Z | Far east edge, clear of wash bays |
-| Front/south | Z=+90, X centered | along X | South perimeter |
-| Back-left wing | X=-130 to -70, Z=-90 | along X | North perimeter, west of building |
-| Back-right wing | X=+70 to +130, Z=-90 | along X | North perimeter, east of building |
+**Segment 1 — West side (stalls 1–26):** X=-130, Z from -60 → +85 (going south), direction='z', ~26 stalls  
+**Segment 2 — South edge (stalls 27–73):** Z=+90, X from -130 → +130 (going east), direction='x', ~47 stalls  
+**Segment 3 — East side (stalls 74–100):** X=+130, Z from +85 → -60 (going north), direction='z' reversed, ~27 stalls
 
-Key changes:
-- Move left/right rows from X=±120 to X=±130 (closer to curb)
-- Move back wings from vertical (Z-direction) rows at X=±85 to **horizontal (X-direction) rows along Z=-90** on either side of the building gap
-- Keep front row at Z=90 (just inside south curbing)
-- All rows now trace the asphalt perimeter with no interior overlap
+### Key changes in `src/components/canvas/three/StagingZone.tsx`
+- Remove all 5 current rows
+- Compute 3 U-segments with stall counts proportional to edge length
+- For the east side (segment 3), reverse the Z-direction so numbering continues chronologically from south to north
+- Each stall remains within the asphalt pad (300×220, edges at X=±150, Z=±110)
+- All stalls stay well inside curbing at X=±130, Z≈±90
+- No stalls near the building zone (north center) or overlapping wash bays
 
-## Files Modified
-- `src/components/canvas/three/StagingZone.tsx` — update all 5 row origin positions and directions
+### Files modified
+- `src/components/canvas/three/StagingZone.tsx` — complete rewrite of row layout logic
 
