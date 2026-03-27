@@ -1,35 +1,33 @@
 
 
-# Replace Box Vehicles with Tesla Model 3 GLB
+# Fix Vehicle Ground Clipping, Orientation, Staging Layout + Slider Max
 
-## What changes
+## Issues to fix
 
-### 1. Copy the GLB model into the project
-Copy `user-uploads://2023_tesla_model_3_performance.glb` to `public/models/tesla_model3.glb` so it can be loaded at runtime via URL.
+1. **Vehicles rendering underground** — the GLB model's origin is likely at the center of the car, not the bottom. Need to raise the Y position so wheels sit on the ground.
+2. **Vehicle orientation** — vehicles should face their respective charger/stall, not all face the same direction.
+3. **Staging stalls layout** — should wrap around the entire depot perimeter *except* near the building/lounge (north side, Z ≈ -72 to -108).
+4. **Staging slider max** — currently capped at 30, needs to go up to 100.
 
-### 2. Rewrite `src/components/canvas/three/Vehicle3D.tsx`
-- Remove all the hand-built box/torus geometry (body, cabin, wheels, headlights, taillights, chrome trim)
-- Use `useGLTF` from `@react-three/drei` to load the Tesla GLB model
-- Call `useGLTF.preload('/models/tesla_model3.glb')` at module level so the model is cached and shared across all vehicle instances
-- Clone the loaded scene per vehicle instance so each can animate independently
-- Scale the model to match the current vehicle footprint (~5 units long, ~2.6 wide) — GLB models vary in native scale so we'll normalize with a `scale` prop on the group
-- Keep all existing logic unchanged:
-  - `useFrame` lerp animation for smooth position transitions
-  - Status glow sphere (charging/washing/maintenance pulse)
-  - SoC badge HTML overlay
-  - Color tinting per vehicle type (apply tint to the cloned model's body meshes by traversing the scene and setting material color on mesh nodes)
+## Changes
 
-### 3. No other files change
-- `DepotScene3D.tsx` already renders `<Vehicle3D>` — no import changes needed
-- Store, engine, and types remain the same
+### 1. `src/components/canvas/three/Vehicle3D.tsx`
+- **Fix ground clipping**: Change the primitive's Y position from `0` to a positive offset (e.g. `0.8` to `1.2`) so the model sits on the ground rather than being half-buried. The exact offset depends on the GLB's bounding box — will compute via `new THREE.Box3().setFromObject(clone)` in the useMemo and use `box.min.y` to auto-correct.
+- **Fix orientation**: Compute a facing rotation based on vehicle status/position. Vehicles at chargers should face the charger pedestal (toward the charger row center). Add a `rotation-y` to the primitive that derives from the vehicle's 2D position relative to the depot center — left-side vehicles face right, right-side face left, etc.
 
-## Technical details
-- `useGLTF` caches the GLB; cloning via `scene.clone(true)` gives each vehicle its own scene graph while sharing geometry/textures in GPU memory
-- The model's native orientation may need a Y-axis rotation (typically GLB cars face +Z or -Z) — will rotate to align with the depot's coordinate system
-- Shadow casting preserved on the cloned meshes via `traverse` setting `castShadow = true`
-- Vehicle type color tinting: traverse cloned scene, find mesh nodes whose material name suggests "body" or "paint", and set `material.color` to the type color
+### 2. `src/components/canvas/three/StagingZone.tsx`
+- **Expand to full perimeter**: Add a 4th row along the back/north edge but offset to avoid the building zone (building spans X ≈ -60 to +60, Z ≈ -72 to -108). Place back-edge stalls at Z ≈ -50 only on the far left (X < -65) and far right (X > 65) wings, or wrap stalls along the east and west sides extending further north.
+- Distribution with `count=100`: ~25 left, ~25 right, ~15 front/south, ~20 back-left wing, ~15 back-right wing.
 
-## Files
-- **Copy**: `user-uploads://...glb` → `public/models/tesla_model3.glb`
-- **Rewrite**: `src/components/canvas/three/Vehicle3D.tsx`
+### 3. `src/components/tabs/ControlsTab.tsx`
+- Change staging stalls slider max from `30` to `100`.
+
+### 4. `src/store/simulationStore.ts`
+- Update default `stagingStalls` from current value to `50` (reasonable default for 100 max).
+
+## Files modified
+- `src/components/canvas/three/Vehicle3D.tsx` — Y offset fix + orientation logic
+- `src/components/canvas/three/StagingZone.tsx` — full perimeter layout with building exclusion
+- `src/components/tabs/ControlsTab.tsx` — slider max 30 → 100
+- `src/store/simulationStore.ts` — default staging stalls update
 
