@@ -10,6 +10,7 @@ import { DepotBuilding } from './three/DepotBuilding';
 import { SolarCanopy } from './three/SolarCanopy';
 import { ChargingField } from './three/ChargingField';
 import { WashBays } from './three/WashBays';
+import { ServiceBays } from './three/ServiceBays';
 import { StagingZone } from './three/StagingZone';
 import { DriveAisles } from './three/DriveAisles';
 import { UtilityEquipment } from './three/UtilityEquipment';
