@@ -165,6 +165,7 @@ export default function DepotScene3D() {
 
           <DepotGround />
           <DepotBuilding />
+          <ServiceBays />
           <SolarCanopy solarKWdc={config.solarCanopy} />
           <ChargingField type="dcfc" count={config.dcfcCount} />
           <ChargingField type="l2" count={config.l2Count} />

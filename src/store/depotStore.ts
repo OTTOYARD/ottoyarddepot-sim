@@ -93,7 +93,8 @@ export const useDepotStore = create<DepotState>((set) => ({
   dcfcCount: 10,
   l2Count: 40,
   washBayCount: 3,
-  stagingCount: 15,
+  stagingCount: 50,
+  serviceBayCount: 2,
   stalls: generateStalls(),
   selectedStallId: null,
   hoveredStallId: null,
@@ -103,13 +104,14 @@ export const useDepotStore = create<DepotState>((set) => ({
     })),
   selectStall: (id) => set({ selectedStallId: id }),
   setHoveredStall: (id) => set({ hoveredStallId: id }),
-  regenerateStalls: (dcfc, l2, wash, staging) =>
+  regenerateStalls: (dcfc, l2, wash, staging, service = 2) =>
     set({
       dcfcCount: dcfc,
       l2Count: l2,
       washBayCount: wash,
       stagingCount: staging,
-      stalls: generateStalls(dcfc, l2, wash, staging),
+      serviceBayCount: service,
+      stalls: generateStalls(dcfc, l2, wash, staging, service),
       selectedStallId: null,
       hoveredStallId: null,
     }),
