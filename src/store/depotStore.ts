@@ -94,7 +94,7 @@ function generateStalls(dcfcCount = 10, l2Count = 40, washCount = 3, stagingCoun
       type: 'staging',
       status: 'available',
       vehicleId: null,
-      position: { x: xPos, y: 195, angle: 0 },
+      position: { x: xPos, y: 188, angle: 0 },
     });
   }
 
@@ -117,7 +117,7 @@ function generateStalls(dcfcCount = 10, l2Count = 40, washCount = 3, stagingCoun
       type: 'service',
       status: 'available',
       vehicleId: null,
-      position: { x: 75 + i * 20, y: 10, angle: 0 },
+      position: { x: 75 + i * 20, y: 25, angle: 0 },
     });
   }
 
