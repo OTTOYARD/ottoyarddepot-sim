@@ -117,7 +117,7 @@ function generateStalls(dcfcCount = 10, l2Count = 40, washCount = 3, stagingCoun
       type: 'service',
       status: 'available',
       vehicleId: null,
-      position: { x: 235 + i * 20, y: 10, angle: 0 },
+      position: { x: 75 + i * 20, y: 10, angle: 0 },
     });
   }
 
