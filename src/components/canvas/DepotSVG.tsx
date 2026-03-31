@@ -85,14 +85,14 @@ export const DepotSVG = forwardRef<SVGSVGElement>((_, ref) => {
 
       <rect x={40} y={75} width={220} height={80} fill="none" stroke="#00B4A6" strokeWidth={0.4} strokeDasharray="4,2" opacity={0.3} />
 
-      <rect x={60} y={5} width={120} height={35} fill="#3A3A3A" stroke="#ffffff" strokeWidth={0.5} rx={1} />
-      <rect x={60} y={5} width={40} height={35} fill="#3A3A3A" stroke="#ffffff" strokeWidth={0.3} opacity={0.5} />
-      <line x1={60} y1={22} x2={100} y2={22} stroke="#ffffff" strokeWidth={0.2} opacity={0.3} />
-      <text x={80} y={15} textAnchor="middle" fontSize={3} fill="#ffffff" opacity={0.5}>SERVICE</text>
-      <text x={80} y={30} textAnchor="middle" fontSize={2.5} fill="#ffffff" opacity={0.4}>2 BAYS</text>
-      <text x={140} y={25} textAnchor="middle" fontSize={3} fill="#ffffff" opacity={0.5}>CONTROL ROOM</text>
-      <rect x={60} y={5} width={15} height={12} fill="#3A3A3A" stroke="#87CEEB" strokeWidth={0.3} opacity={0.4} />
-      <text x={67} y={12} textAnchor="middle" fontSize={2} fill="#87CEEB" opacity={0.5}>LOUNGE</text>
+      <rect x={70} y={5} width={120} height={35} fill="#3A3A3A" stroke="#ffffff" strokeWidth={0.5} rx={1} />
+      <rect x={70} y={5} width={40} height={35} fill="#3A3A3A" stroke="#ffffff" strokeWidth={0.3} opacity={0.5} />
+      <line x1={70} y1={22} x2={110} y2={22} stroke="#ffffff" strokeWidth={0.2} opacity={0.3} />
+      <text x={90} y={15} textAnchor="middle" fontSize={3} fill="#ffffff" opacity={0.5}>SERVICE</text>
+      <text x={90} y={30} textAnchor="middle" fontSize={2.5} fill="#ffffff" opacity={0.4}>2 BAYS</text>
+      <text x={150} y={25} textAnchor="middle" fontSize={3} fill="#ffffff" opacity={0.5}>CONTROL ROOM</text>
+      <rect x={70} y={5} width={15} height={12} fill="#3A3A3A" stroke="#87CEEB" strokeWidth={0.3} opacity={0.4} />
+      <text x={77} y={12} textAnchor="middle" fontSize={2} fill="#87CEEB" opacity={0.5}>LOUNGE</text>
 
       <rect x={245} y={5} width={20} height={10} fill="#9E9E9E" opacity={0.3} stroke="#9E9E9E" strokeWidth={0.3} rx={0.5} />
       <text x={255} y={12} textAnchor="middle" fontSize={2.5} fill="#9E9E9E">BESS</text>
@@ -121,9 +121,9 @@ export const DepotSVG = forwardRef<SVGSVGElement>((_, ref) => {
 
       <text x={140} y={50} textAnchor="middle" fontSize={5} fill="#C00000" fontWeight="bold" opacity={0.6}>DCFC CHARGING</text>
       <text x={150} y={80} textAnchor="middle" fontSize={5} fill="#00B4A6" fontWeight="bold" opacity={0.6}>L2 CHARGING</text>
-      <text x={40} y={15} textAnchor="middle" fontSize={3.5} fill="#2196F3" fontWeight="bold" opacity={0.6}>WASH</text>
+      <text x={25} y={15} textAnchor="middle" fontSize={3.5} fill="#2196F3" fontWeight="bold" opacity={0.6}>WASH</text>
       <text x={150} y={207} textAnchor="middle" fontSize={5} fill="#F59E0B" fontWeight="bold" opacity={0.6}>STAGING</text>
-      <text x={120} y={2.5} textAnchor="middle" fontSize={3.5} fill="#ffffff" fontWeight="bold" opacity={0.5}>OPERATIONS</text>
+      <text x={130} y={2.5} textAnchor="middle" fontSize={3.5} fill="#ffffff" fontWeight="bold" opacity={0.5}>OPERATIONS</text>
     </svg>
   );
 });

@@ -5,7 +5,7 @@ export function DepotBuilding() {
   const mullionCount = 15;
 
   return (
-    <group>
+    <group position={[10, 0, 0]}>
       {/* Main body — dark cladding */}
       <mesh position={[0, 4, -90]} castShadow receiveShadow>
         <boxGeometry args={[120, 8, 35]} />
