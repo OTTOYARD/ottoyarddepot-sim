@@ -60,9 +60,9 @@ export function Vehicle3D({ vehicle, simSpeed }: { vehicle: Vehicle; simSpeed: n
     ? parseInt(vehicle.assignedStall!.replace('WASH-', ''), 10) - 1
     : -1;
 
-  // Wash bay world coords from WashBays.tsx: group at [80, 0, -60], each bay offset i*16
-  const washWorldX = 80 + washBayIndex * 16;
-  const washWorldZ = -60;
+  // Wash bay world coords from WashBays.tsx: group at [-90, 0, -80], each bay offset i*16
+  const washWorldX = -90 + washBayIndex * 16;
+  const washWorldZ = -80;
 
   const [defaultTx, , defaultTz] = toWorld(vehicle.position);
   const tx = isWashAssigned ? washWorldX : defaultTx;
