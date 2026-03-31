@@ -85,7 +85,7 @@ function generateStalls(dcfcCount = 10, l2Count = 40, washCount = 3, stagingCoun
     });
   }
 
-  // South edge: y≈200, x from 25 to 275
+  // South edge: y≈195, x from 25 to 275 (rectangles, shifted up above ingress/egress)
   for (let i = 0; i < southCount; i++) {
     stageIdx++;
     const xPos = 25 + (i / Math.max(southCount - 1, 1)) * 250;
@@ -94,7 +94,7 @@ function generateStalls(dcfcCount = 10, l2Count = 40, washCount = 3, stagingCoun
       type: 'staging',
       status: 'available',
       vehicleId: null,
-      position: { x: xPos, y: 200, angle },
+      position: { x: xPos, y: 195, angle: 0 },
     });
   }
 
@@ -117,7 +117,7 @@ function generateStalls(dcfcCount = 10, l2Count = 40, washCount = 3, stagingCoun
       type: 'service',
       status: 'available',
       vehicleId: null,
-      position: { x: 235 + i * 20, y: 10, angle: 0 },
+      position: { x: 75 + i * 20, y: 10, angle: 0 },
     });
   }
 

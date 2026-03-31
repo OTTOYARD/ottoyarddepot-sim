@@ -6,6 +6,7 @@ const TYPE_LABELS: Record<string, string> = {
   l2: 'L2',
   wash: 'Wash Bay',
   staging: 'Staging',
+  service: 'Service Bay',
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -37,13 +38,23 @@ export const StallTooltip = ({ svgRef }: Props) => {
   const screenPt = pt.matrixTransform(svg.getScreenCTM()!);
   const rect = svg.getBoundingClientRect();
 
-  const left = screenPt.x - rect.left;
-  const top = screenPt.y - rect.top - 60;
+  const TOOLTIP_W = 160;
+  const TOOLTIP_H = 65;
+  const PADDING = 8;
+
+  let left = screenPt.x - rect.left;
+  let top = screenPt.y - rect.top - TOOLTIP_H;
+
+  // Clamp within SVG container bounds
+  if (left + TOOLTIP_W > rect.width - PADDING) left = rect.width - TOOLTIP_W - PADDING;
+  if (left < PADDING) left = PADDING;
+  if (top < PADDING) top = screenPt.y - rect.top + 10; // flip below if above clips
+  if (top + TOOLTIP_H > rect.height - PADDING) top = rect.height - TOOLTIP_H - PADDING;
 
   return (
     <div
       className="absolute z-50 pointer-events-none bg-otto-charcoal border border-otto-gray/30 rounded-md px-3 py-2 shadow-lg"
-      style={{ left, top, minWidth: 140 }}
+      style={{ left, top, minWidth: TOOLTIP_W }}
     >
       <div className="flex items-center gap-2 mb-1">
         <span className="text-otto-white text-xs font-bold">{stall.id}</span>
