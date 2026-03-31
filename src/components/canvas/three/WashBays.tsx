@@ -3,7 +3,7 @@ import { MATERIALS } from './materials';
 
 export function WashBays({ count }: { count: number }) {
   return (
-    <group position={[80, 0, -60]}>
+    <group position={[-90, 0, -80]}>
       {Array.from({ length: count }, (_, i) => (
         <group key={i} position={[i * 16, 0, 0]}>
           {/* Structure walls — dark cladding */}
