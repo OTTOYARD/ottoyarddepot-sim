@@ -64,6 +64,18 @@ export default {
         'otto-white': '#FFFFFF',
         'otto-gray': '#666666',
         'otto-dark': '#1A1A2E',
+
+        // ── OTTO-TWIN Command Center design system (OTTOYARD brand + restrained-instrument) ──
+        // See OTTOQ_DESIGN_SYSTEM.md. Migrate components off otto-* onto these over phases.
+        canvas: { base: '#06070A', raised: '#0A0B0E', panel: '#111317', elev: '#14161A', line2: '#1A1C22' },
+        ink:    { DEFAULT: '#E7EAF0', dim: '#8A8F99', faint: '#4A4E57' },
+        brand:  { red: '#C8102E', deep: '#8E0B20', hot: '#E8293F' },
+        state:  { go: '#C9E0D4', info: '#D8DDFF', warn: '#FFEBC9', crit: '#FF8A80' },
+      },
+      fontFamily: {
+        display: ['"Chakra Petch"', 'system-ui', 'sans-serif'],
+        ui:      ['"Inter Tight"', 'system-ui', 'sans-serif'],
+        mono:    ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
       },
       borderRadius: {
         lg: "var(--radius)",
