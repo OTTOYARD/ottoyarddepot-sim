@@ -100,9 +100,15 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    /* OTTO-TWIN Command Center: near-black canvas, cool-grey ink, Inter Tight UI */
+    @apply bg-canvas-base text-ink font-ui;
   }
 }
+
+/* Command Center utilities */
+.cc-hairline { border-color: rgba(255,255,255,0.06); }
+.cc-divider  { border-color: rgba(255,255,255,0.12); }
+.cc-num      { font-variant-numeric: tabular-nums; }
 
 @keyframes stall-pulse {
   0%, 100% { opacity: 0.8; }

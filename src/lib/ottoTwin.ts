@@ -1,0 +1,103 @@
+// ============================================================================
+// OTTO-TWIN backend client — talks to the server-authoritative twin
+// (Supabase edge function `otto-twin-control`). READS are public; CONTROL
+// actions require an operator key stored in localStorage('otto_operator_key').
+// ============================================================================
+
+const BASE = "https://gxdrcyphqjzjsuhxuqtg.supabase.co/functions/v1/otto-twin-control";
+export const NASHVILLE_DEPOT = "11111111-1111-1111-1111-111111111111";
+
+// ── Types (mirror ottoq_twin_snapshot / ottoq_twin_depot_layout) ──
+export interface TwinStall {
+  id: string; code: string; type: string; zone: string | null;
+  canopy: string | null; covered: boolean | null;
+  x: number; y: number; heading: number; connector_kw: number | null;
+}
+export interface TwinStructure {
+  code: string; kind: string; title: string;
+  x_ft: number; y_ft: number; width_ft: number; length_ft: number; rotation_deg: number;
+}
+export interface TwinLayout {
+  depot: { id: string; name: string; origin_lat: number; origin_lng: number } | null;
+  structures: TwinStructure[];
+  stalls: TwinStall[];
+}
+
+export interface TwinVehicle {
+  id: string; av_id: string; make: string; platform: string;
+  state: string; soc: number; stall_id: string | null;
+}
+export interface TwinSnapshot {
+  run: {
+    sim_run_id: string; scenario: string; status: string;
+    sim_clock: string; tick_count: number; time_scale: number; seed: number;
+  };
+  fleet: { counts: Record<string, number>; total: number; vehicles: TwinVehicle[] };
+  stalls_status: { id: string; status: string; vehicle_id: string | null }[];
+  energy: Record<string, number | string | null> | null;
+  bess: Record<string, number | string | null> | null;
+  weather: Record<string, number | string | null> | null;
+  grid: Record<string, number | string | boolean | null> | null;
+  counters: Record<string, number>;
+  recent_events: { type: string; severity: string; at: string; entity: string; payload: unknown }[];
+  variability: Record<string, unknown>;
+  error?: string;
+}
+
+export interface Scenario {
+  scenario_code: string; title: string; description: string;
+  default_duration_hours: number; default_time_scale: number; status: string;
+  fleet_overrides: Record<string, unknown>; weather_overrides: Record<string, unknown>;
+  grid_overrides: Record<string, unknown>;
+}
+
+// ── Auth ──
+export function getOperatorKey(): string | null {
+  return localStorage.getItem("otto_operator_key");
+}
+export function setOperatorKey(key: string): void {
+  if (key) localStorage.setItem("otto_operator_key", key);
+  else localStorage.removeItem("otto_operator_key");
+}
+
+// ── Transport ──
+async function get<T>(path: string): Promise<T> {
+  const r = await fetch(`${BASE}${path}`, { headers: { "content-type": "application/json" } });
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error || `GET ${path} failed`);
+  return j.data as T;
+}
+async function send<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const key = getOperatorKey();
+  const r = await fetch(`${BASE}${path}`, {
+    method,
+    headers: {
+      "content-type": "application/json",
+      ...(key ? { authorization: `Bearer ${key}` } : {}),
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error || `${method} ${path} failed`);
+  return j.data as T;
+}
+
+// ── API ──
+export const twin = {
+  // reads (public)
+  layout:    (depotId = NASHVILLE_DEPOT) => get<TwinLayout>(`/depot/${depotId}/layout`),
+  snapshot:  (simRunId: string)          => get<TwinSnapshot>(`/sim_runs/${simRunId}/snapshot`),
+  scenarios: ()                          => get<{ scenarios: Scenario[] }>(`/scenarios`),
+  templates: ()                          => get<{ templates: { name: string; knobs: Record<string, unknown>; notes: string }[] }>(`/variability/templates`),
+  health:    ()                          => get<{ service: string; version: string; time: string }>(`/health`),
+
+  // controls (operator key) — used in Phase 2+
+  start:          (scenario_code: string, seed?: number) => send<{ sim_run_id: string; scenario_code: string }>("POST", `/scenarios/start`, { scenario_code, seed }),
+  stop:           (sim_run_id: string)        => send("POST", `/scenarios/stop`, { sim_run_id }),
+  tick:           (simRunId: string)          => send("POST", `/sim_runs/${simRunId}/tick`),
+  status:         (simRunId: string)          => send("GET", `/sim_runs/${simRunId}/status`),
+  getVariability: (simRunId: string)          => send("GET", `/sim_runs/${simRunId}/variability`),
+  setVariability: (simRunId: string, body: object) => send("PUT", `/sim_runs/${simRunId}/variability`, body),
+  injectFault:    (simRunId: string, body: object) => send("POST", `/sim_runs/${simRunId}/inject_fault`, body),
+  injectDrCall:   (simRunId: string, body: object) => send("POST", `/sim_runs/${simRunId}/inject_dr_call`, body),
+};

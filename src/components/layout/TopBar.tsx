@@ -1,120 +1,151 @@
-import { Play, Pause, RotateCcw, Settings, Presentation, Loader2, Check } from 'lucide-react';
+import { Play, Pause, RotateCcw, Settings, Truck, BatteryCharging, Layers, DollarSign, Battery, Sun, Radio } from 'lucide-react';
 import { useSimulationStore } from '@/store/simulationStore';
-import { useVehicleStore } from '@/store/vehicleStore';
-import { useDemoStore } from '@/store/demoStore';
+import { useTwinStore } from '@/store/twinStore';
 import { simulationEngine } from '@/engine/SimulationEngine';
 import logo from '@/assets/logo.png';
 
-const formatTime = (seconds: number) => {
-  const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
-  const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
-  const s = Math.floor(seconds % 60).toString().padStart(2, '0');
-  return `${h}:${m}:${s}`;
+// ── helpers ──
+const fmtClock = (iso?: string) => {
+  if (!iso) return '--:--';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '--:--';
+  return `${d.getUTCHours().toString().padStart(2, '0')}:${d.getUTCMinutes().toString().padStart(2, '0')}`;
 };
+const fmtDate = (iso?: string) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+};
+const n = (v: unknown, digits = 0): string =>
+  typeof v === 'number' && isFinite(v) ? v.toFixed(digits) : '—';
 
-const StatusPill = ({ status }: { status: 'idle' | 'running' | 'paused' }) => {
-  const config = {
-    idle: 'bg-otto-gray/30 text-otto-gray',
-    running: 'bg-otto-teal/20 text-otto-teal animate-pulse',
-    paused: 'bg-otto-amber/20 text-otto-amber',
+// ── telemetry cell ──
+const Cell = ({ icon: Icon, label, value, unit }: {
+  icon: React.ElementType; label: string; value: string; unit?: string;
+}) => (
+  <div className="flex items-center gap-2 px-3 border-l border-white/[0.06] first:border-l-0">
+    <Icon size={14} className="text-ink-dim shrink-0" />
+    <div className="flex flex-col leading-none">
+      <span className="font-display text-[9px] uppercase tracking-[0.08em] text-ink-faint">{label}</span>
+      <span className="font-mono text-[13px] text-ink cc-num">
+        {value}{unit && <span className="text-ink-dim text-[10px] ml-0.5">{unit}</span>}
+      </span>
+    </div>
+  </div>
+);
+
+const StatusChip = ({ status }: { status?: string }) => {
+  const map: Record<string, string> = {
+    running:   'text-state-go border-state-go/30 bg-state-go/5',
+    completed: 'text-ink-dim border-white/10 bg-white/5',
+    paused:    'text-state-warn border-state-warn/30 bg-state-warn/5',
   };
-  const labels = { idle: 'Idle', running: 'Running', paused: 'Paused' };
+  const cls = map[status ?? ''] ?? 'text-ink-dim border-white/10 bg-white/5';
   return (
-    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${config[status]}`}>
-      {labels[status]}
+    <span className={`px-2 py-0.5 rounded border font-mono text-[10px] uppercase tracking-wide ${cls}`}>
+      {status ?? 'idle'}
     </span>
   );
 };
 
-const SaveIndicator = () => {
-  const isSaving = useDemoStore((s) => s.isSaving);
-  if (!isSaving) return null;
-  return (
-    <div className="flex items-center gap-1 text-otto-teal">
-      <Loader2 size={12} className="animate-spin" />
-      <span className="text-[10px]">Saving…</span>
-    </div>
-  );
-};
-
-const ViewModeToggle = () => {
-  const viewMode = useSimulationStore((s) => s.viewMode);
-  const setViewMode = useSimulationStore((s) => s.setViewMode);
-
-  const btnClass = (mode: '2d' | '3d') =>
-    viewMode === mode
-      ? 'px-2 py-1 text-xs font-bold bg-otto-red text-white rounded transition-colors'
-      : 'px-2 py-1 text-xs font-bold bg-transparent text-otto-gray border border-otto-gray/30 rounded transition-colors hover:text-white';
-
-  return (
-    <div className="flex items-center gap-0.5 mx-1">
-      <button className={btnClass('2d')} onClick={() => setViewMode('2d')}>2D</button>
-      <button className={btnClass('3d')} onClick={() => setViewMode('3d')}>3D</button>
-    </div>
-  );
-};
-
 export const TopBar = () => {
-  const { status, simTime, simSpeed } = useSimulationStore();
-  const vehiclesProcessed = useVehicleStore((s) => s.vehiclesProcessed);
-  const queueDepth = useVehicleStore((s) => s.queueDepth);
-  const vehicleCount = useVehicleStore((s) => s.vehicles.length);
-  const isDemoMode = useDemoStore((s) => s.isDemoMode);
+  const { viewMode, setViewMode, status: legacyStatus } = useSimulationStore();
+  const snapshot  = useTwinStore((s) => s.snapshot);
+  const connected = useTwinStore((s) => s.connected);
 
-  const togglePlayPause = () => {
-    if (status === 'running') simulationEngine.stop();
-    else simulationEngine.start();
-  };
-
-  const reset = () => {
-    simulationEngine.reset();
-  };
+  const run = snapshot?.run;
+  const counts = snapshot?.fleet?.counts ?? {};
+  const deployed = counts['deployed'] ?? 0;
+  const charging = (counts['charging_dcfc'] ?? 0) + (counts['charging_l2'] ?? 0);
+  const staged   = counts['staged_awaiting_service'] ?? 0;
+  const lmp     = snapshot?.grid?.['lmp_usd_mwh'];
+  const bessSoc = snapshot?.bess?.['soc_pct'];
+  const solar   = snapshot?.energy?.['solar_kw'];
 
   return (
-    <div className="h-14 bg-otto-dark border-b-2 border-otto-red flex items-center px-4 shrink-0 z-20">
-      <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2">
-          <img src={logo} alt="OTTOYARD" className="h-8 w-8 shrink-0" />
-          <div className="flex flex-col">
-            <span className="text-white font-bold text-xl tracking-[2px] leading-tight">OTTOYARD</span>
-            <span className="text-otto-gray text-[10px] leading-tight hidden xl:block">Depot Simulation Platform</span>
-          </div>
+    <div className="h-14 bg-canvas-raised border-b border-white/[0.06] flex items-center px-4 shrink-0 z-20">
+      {/* Brand */}
+      <div className="flex items-center gap-3 shrink-0">
+        <img src={logo} alt="OTTOYARD" className="h-7 w-7 shrink-0" />
+        <div className="flex flex-col leading-none">
+          <span className="font-display text-white font-semibold text-[17px] tracking-tight">OTTOYARD</span>
+          <span className="font-display text-ink-faint text-[9px] uppercase tracking-[0.14em]">OTTO-TWIN · Command Center</span>
         </div>
-        <StatusPill status={status} />
-        <SaveIndicator />
-      </div>
-
-      <div className="flex-1 flex items-center justify-center gap-4">
-        <span className="font-mono text-white text-lg tracking-widest">{formatTime(simTime)}</span>
-        <span className="text-otto-teal text-sm font-medium">{simSpeed}x</span>
-        <span className="text-otto-gray text-xs">
-          🚗 {vehicleCount} | ⏳ {queueDepth} | ✅ {vehiclesProcessed}
-        </span>
-      </div>
-
-      <div className="flex items-center gap-1">
-        {!isDemoMode && (
-          <button
-            onClick={() => {
-              window.dispatchEvent(new CustomEvent('ottoyard-demo'));
-            }}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-otto-amber hover:text-white hover:bg-otto-amber/10 rounded-md transition-colors border border-otto-amber/30"
-          >
-            <Presentation size={14} />
-            <span className="hidden lg:inline">Demo</span>
-          </button>
+        {run?.scenario && (
+          <span className="ml-1 px-2 py-0.5 rounded border border-white/[0.06] bg-canvas-elev font-mono text-[10px] text-ink-dim">
+            {run.scenario}
+          </span>
         )}
-        <button onClick={togglePlayPause} className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-md transition-colors">
-          {status === 'running' ? <Pause size={18} /> : <Play size={18} />}
-        </button>
-        <button onClick={reset} className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-md transition-colors">
-          <RotateCcw size={18} />
-        </button>
+        <StatusChip status={run?.status ?? (legacyStatus !== 'idle' ? legacyStatus : undefined)} />
+      </div>
 
-        <ViewModeToggle />
+      {/* Clock */}
+      <div className="flex items-center gap-3 ml-5 shrink-0">
+        <div className="flex items-baseline gap-1.5">
+          <span className="font-mono text-white text-lg tracking-wide cc-num">{fmtClock(run?.sim_clock)}</span>
+          <span className="font-mono text-ink-faint text-[10px]">{fmtDate(run?.sim_clock)}</span>
+        </div>
+        {run && (
+          <span className="font-mono text-ink-dim text-[11px] cc-num">
+            t{run.tick_count} · {run.time_scale}×
+          </span>
+        )}
+      </div>
 
-        <button className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-md transition-colors">
-          <Settings size={18} />
+      {/* Telemetry strip */}
+      <div className="flex-1 flex items-center justify-center">
+        <div className="flex items-center bg-canvas-panel/60 border border-white/[0.06] rounded-md py-1">
+          <Cell icon={Truck}           label="Deployed" value={n(deployed)} />
+          <Cell icon={BatteryCharging} label="Charging" value={n(charging)} />
+          <Cell icon={Layers}          label="Staged"   value={n(staged)} />
+          <Cell icon={DollarSign}      label="LMP"      value={n(lmp, 0)} unit="$/MWh" />
+          <Cell icon={Battery}         label="BESS"     value={n(bessSoc, 0)} unit="%" />
+          <Cell icon={Sun}             label="Solar"    value={n(solar, 0)} unit="kW" />
+        </div>
+      </div>
+
+      {/* Right: connection + view + legacy controls */}
+      <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 px-2">
+          <Radio size={13} className={connected ? 'text-state-go' : 'text-ink-faint'} />
+          <span className={`font-mono text-[10px] ${connected ? 'text-state-go' : 'text-ink-faint'}`}>
+            {connected ? 'LIVE' : '—'}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-0.5">
+          {(['2d', '3d'] as const).map((m) => (
+            <button
+              key={m}
+              onClick={() => setViewMode(m)}
+              className={`px-2 py-1 text-[11px] font-mono rounded transition-colors ${
+                viewMode === m
+                  ? 'bg-brand-red text-white'
+                  : 'text-ink-dim border border-white/[0.06] hover:text-ink'
+              }`}
+            >
+              {m.toUpperCase()}
+            </button>
+          ))}
+        </div>
+
+        {/* Legacy offline-demo controls (client engine) */}
+        <button
+          onClick={() => legacyStatus === 'running' ? simulationEngine.stop() : simulationEngine.start()}
+          title="Offline demo engine"
+          className="p-2 text-ink-dim hover:text-ink hover:bg-white/5 rounded-md transition-colors"
+        >
+          {legacyStatus === 'running' ? <Pause size={16} /> : <Play size={16} />}
+        </button>
+        <button
+          onClick={() => simulationEngine.reset()}
+          className="p-2 text-ink-dim hover:text-ink hover:bg-white/5 rounded-md transition-colors"
+        >
+          <RotateCcw size={16} />
+        </button>
+        <button className="p-2 text-ink-dim hover:text-ink hover:bg-white/5 rounded-md transition-colors">
+          <Settings size={16} />
         </button>
       </div>
     </div>
