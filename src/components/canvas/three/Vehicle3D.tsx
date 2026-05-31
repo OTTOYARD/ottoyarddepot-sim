@@ -12,6 +12,10 @@ useGLTF.preload(MODEL_PATH);
 const COLORS: Record<string, string> = {
   fleet: '#00B4A6', core: '#E0E0E0', concierge: '#A0A0A0', elite: '#FFD700'
 };
+// OEM platform palette — matches VehicleDot.tsx / DepotLegend.tsx
+const OEM_COLORS: Record<string, string> = {
+  waymo: '#5B9BFF', tesla: '#FF453A', zoox: '#B06BFF',
+};
 const FX: Record<string, { glow: string; pulse: number; op: number }> = {
   approaching: { glow: '', pulse: 0, op: 0.85 },
   queued: { glow: '', pulse: 0, op: 0.6 },
@@ -52,7 +56,7 @@ function getFacingRotation(
 export function Vehicle3D({ vehicle, simSpeed }: { vehicle: Vehicle; simSpeed: number }) {
   const grp = useRef<THREE.Group>(null);
   const glw = useRef<THREE.Mesh>(null);
-  const col = COLORS[vehicle.type] || '#E8E8E8';
+  const col = OEM_COLORS[(vehicle.oem || '').toLowerCase()] || COLORS[vehicle.type] || '#E8E8E8';
   const fx = FX[vehicle.status] || FX.staging;
   // Check if vehicle is assigned to a wash bay — override 3D target position
   const isWashAssigned = vehicle.assignedStall?.startsWith('WASH-');

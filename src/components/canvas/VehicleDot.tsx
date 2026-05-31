@@ -16,6 +16,19 @@ const STROKE_COLORS: Record<string, string> = {
   elite: '#CCA800',
 };
 
+// OEM platform palette — bright fills that read clearly over the dark depot
+// zones (DCFC red / L2 teal / staging amber / wash blue).
+const OEM_COLORS: Record<string, string> = {
+  waymo: '#5B9BFF', // Waymo blue
+  tesla: '#FF453A', // Tesla red
+  zoox: '#B06BFF',  // Zoox violet
+};
+const OEM_STROKE: Record<string, string> = {
+  waymo: '#2E6BD6',
+  tesla: '#C32B22',
+  zoox: '#7E3FCF',
+};
+
 function getRotation(v: Vehicle): number {
   if (v.targetPosition) {
     const dx = v.targetPosition.x - v.position.x;
@@ -33,18 +46,25 @@ interface Props {
 
 const VehicleDotInner = ({ vehicle: v }: Props) => {
   const setHoveredVehicle = useVehicleStore((s) => s.setHoveredVehicle);
-  const fill = VEHICLE_COLORS[v.type] || '#87CEEB';
-  const stroke = STROKE_COLORS[v.type] || '#666666';
+  const oem = (v.oem || '').toLowerCase();
+  const fill = OEM_COLORS[oem] || VEHICLE_COLORS[v.type] || '#87CEEB';
+  const stroke = OEM_STROKE[oem] || STROKE_COLORS[v.type] || '#666666';
   const isLowOpacity = v.status === 'queued' || v.status === 'staging';
   const baseOpacity = v.status === 'approaching' ? 0.7 : v.status === 'departing' ? 0.5 : isLowOpacity ? 0.6 : 0.9;
   const rotation = getRotation(v);
 
   return (
     <g
-      transform={`translate(${v.position.x}, ${v.position.y})`}
+      // CSS transform (in viewBox user units) + transition = vehicles GLIDE
+      // between stalls each poll instead of teleporting. First mount has no
+      // prior value, so it places without a fly-in from the origin.
+      style={{
+        transform: `translate(${v.position.x}px, ${v.position.y}px)`,
+        transition: 'transform 0.9s cubic-bezier(0.4, 0.1, 0.2, 1)',
+        cursor: 'pointer',
+      }}
       onMouseEnter={() => setHoveredVehicle(v.id)}
       onMouseLeave={() => setHoveredVehicle(null)}
-      style={{ cursor: 'pointer' }}
     >
       {/* Charging glow ring */}
       {v.status === 'charging' && (
@@ -127,6 +147,7 @@ export const VehicleDot = React.memo(VehicleDotInner, (prev, next) => {
     pv.status === nv.status &&
     pv.currentSoC === nv.currentSoC &&
     pv.type === nv.type &&
+    pv.oem === nv.oem &&
     pv.targetPosition?.x === nv.targetPosition?.x &&
     pv.targetPosition?.y === nv.targetPosition?.y
   );

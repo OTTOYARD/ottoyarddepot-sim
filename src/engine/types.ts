@@ -29,6 +29,7 @@ export interface Vehicle {
   position: { x: number; y: number };
   targetPosition: { x: number; y: number } | null;
   waypoints?: { x: number; y: number }[];
+  oem?: string; // backend platform (waymo|tesla|zoox|…) for OEM-colored rendering
 }
 
 export const SERVICE_TO_STALL_TYPE: Record<ServiceType, string> = {

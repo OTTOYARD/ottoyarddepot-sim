@@ -9,6 +9,14 @@ const TYPE_COLORS: Record<string, string> = {
   elite: '#FFD700',
 };
 
+// OEM platform palette — matches VehicleDot.tsx / Vehicle3D.tsx / DepotLegend.tsx
+const OEM_COLORS: Record<string, string> = {
+  waymo: '#5B9BFF', tesla: '#FF453A', zoox: '#B06BFF',
+};
+const OEM_LABELS: Record<string, string> = {
+  waymo: 'Waymo', tesla: 'Tesla', zoox: 'Zoox',
+};
+
 interface Props {
   svgRef: React.RefObject<SVGSVGElement>;
 }
@@ -32,6 +40,9 @@ export const VehicleTooltip = ({ svgRef }: Props) => {
   const left = screenPt.x - rect.left;
   const top = screenPt.y - rect.top - 90;
 
+  const oem = (v.oem || '').toLowerCase();
+  const oemColor = OEM_COLORS[oem] || TYPE_COLORS[v.type];
+  const oemLabel = OEM_LABELS[oem] || v.type;
   const socColor = v.currentSoC < 20 ? '#C00000' : v.currentSoC < 50 ? '#F59E0B' : '#00B4A6';
   const remaining = v.serviceStartTime !== null && v.serviceDuration !== null
     ? Math.max(0, v.serviceDuration - (simTime - v.serviceStartTime))
@@ -54,11 +65,11 @@ export const VehicleTooltip = ({ svgRef }: Props) => {
       <div className="flex items-center gap-2 mb-1">
         <span
           className="inline-block w-2 h-2 rounded-full"
-          style={{ backgroundColor: TYPE_COLORS[v.type] }}
+          style={{ backgroundColor: oemColor }}
         />
         <span className="text-xs font-bold" style={{ color: '#FFFFFF' }}>{v.id}</span>
-        <Badge className="text-[10px] px-1.5 py-0" style={{ backgroundColor: TYPE_COLORS[v.type] + '33', color: TYPE_COLORS[v.type] }}>
-          {v.type}
+        <Badge className="text-[10px] px-1.5 py-0 capitalize" style={{ backgroundColor: oemColor + '33', color: oemColor }}>
+          {oemLabel}
         </Badge>
       </div>
 
@@ -81,9 +92,11 @@ export const VehicleTooltip = ({ svgRef }: Props) => {
         )}
       </div>
 
-      <div className="text-[10px] mt-0.5" style={{ color: '#666666' }}>
-        Services: {completedServices}/{totalServices}
-      </div>
+      {totalServices > 0 && (
+        <div className="text-[10px] mt-0.5" style={{ color: '#666666' }}>
+          Services: {completedServices}/{totalServices}
+        </div>
+      )}
     </div>
   );
 };

@@ -17,6 +17,13 @@ const statuses = [
   { label: 'Reserved', color: 'transparent', border: '#F59E0B' },
 ];
 
+// OEM dot colors — must match OEM_COLORS in VehicleDot.tsx / Vehicle3D.tsx
+const oems = [
+  { label: 'Waymo', color: '#5B9BFF' },
+  { label: 'Tesla', color: '#FF453A' },
+  { label: 'Zoox', color: '#B06BFF' },
+];
+
 export const DepotLegend = () => {
   const [expanded, setExpanded] = useState(true);
 
@@ -63,6 +70,15 @@ export const DepotLegend = () => {
                     style={{ backgroundColor: s.color, border: `1px solid ${s.border}`, opacity: 0.8 }}
                   />
                   <span className="text-otto-white/70">{s.label}</span>
+                </div>
+              ))}
+            </div>
+            <div className="space-y-1">
+              <div className="text-otto-gray font-semibold mb-0.5">OEM</div>
+              {oems.map((o) => (
+                <div key={o.label} className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: o.color }} />
+                  <span className="text-otto-white/70">{o.label}</span>
                 </div>
               ))}
             </div>
