@@ -1,7 +1,6 @@
-import { Play, Pause, RotateCcw, Settings, Truck, BatteryCharging, Layers, DollarSign, Battery, Sun, Radio } from 'lucide-react';
+import { Settings, Truck, BatteryCharging, Layers, DollarSign, Battery, Sun, Radio } from 'lucide-react';
 import { useSimulationStore } from '@/store/simulationStore';
 import { useTwinStore } from '@/store/twinStore';
-import { simulationEngine } from '@/engine/SimulationEngine';
 import logo from '@/assets/logo.png';
 
 // ── helpers ──
@@ -105,7 +104,10 @@ export const TopBar = () => {
         </div>
       </div>
 
-      {/* Right: connection + view + legacy controls */}
+      {/* Right: connection status + view toggle. Run transport lives in the
+          Run Control tab (Start = create run · Play/Pause/Step = advance time).
+          The legacy offline-demo engine buttons were removed — they drove a
+          separate fake client engine and conflicted with the live backend. */}
       <div className="flex items-center gap-2 shrink-0">
         <div className="flex items-center gap-1.5 px-2">
           <Radio size={13} className={connected ? 'text-state-go' : 'text-ink-faint'} />
@@ -130,21 +132,7 @@ export const TopBar = () => {
           ))}
         </div>
 
-        {/* Legacy offline-demo controls (client engine) */}
-        <button
-          onClick={() => legacyStatus === 'running' ? simulationEngine.stop() : simulationEngine.start()}
-          title="Offline demo engine"
-          className="p-2 text-ink-dim hover:text-ink hover:bg-white/5 rounded-md transition-colors"
-        >
-          {legacyStatus === 'running' ? <Pause size={16} /> : <Play size={16} />}
-        </button>
-        <button
-          onClick={() => simulationEngine.reset()}
-          className="p-2 text-ink-dim hover:text-ink hover:bg-white/5 rounded-md transition-colors"
-        >
-          <RotateCcw size={16} />
-        </button>
-        <button className="p-2 text-ink-dim hover:text-ink hover:bg-white/5 rounded-md transition-colors">
+        <button className="p-2 text-ink-dim hover:text-ink hover:bg-white/5 rounded-md transition-colors" title="Settings">
           <Settings size={16} />
         </button>
       </div>
