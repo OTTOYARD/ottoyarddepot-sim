@@ -51,7 +51,24 @@ export interface Scenario {
   grid_overrides: Record<string, unknown>;
 }
 
-// ── Auth ──
+// ── Variability catalog (the registry the console renders from) ──
+export type KnobType = "shift" | "spread" | "floor" | "ceiling" | "rate" | "select";
+export interface CatalogVar {
+  var_key: string; domain: string; label: string; definition: string;
+  unit: string | null; kind: "continuous" | "rate" | "policy";
+  knob_types: KnobType[];
+  neutral_value: number | null; min_value: number | null; max_value: number | null; step: number | null;
+  select_options: string[] | null; is_primary: boolean; wired: boolean; display_order: number;
+}
+export const DOMAIN_LABELS: Record<string, string> = {
+  environment: "Environment & Weather",
+  fleet_demand: "Fleet & Demand",
+  energy_grid: "Energy & Grid",
+  reliability: "Reliability & Faults",
+  operations: "Operations & Service",
+};
+
+// ── Auth (demo: open on private link; key optional, not required) ──
 export function getOperatorKey(): string | null {
   return localStorage.getItem("otto_operator_key");
 }
@@ -89,6 +106,7 @@ export const twin = {
   snapshot:  (simRunId: string)          => get<TwinSnapshot>(`/sim_runs/${simRunId}/snapshot`),
   scenarios: ()                          => get<{ scenarios: Scenario[] }>(`/scenarios`),
   templates: ()                          => get<{ templates: { name: string; knobs: Record<string, unknown>; notes: string }[] }>(`/variability/templates`),
+  catalog:   ()                          => get<{ catalog: CatalogVar[] }>(`/variability/catalog`),
   health:    ()                          => get<{ service: string; version: string; time: string }>(`/health`),
 
   // controls (operator key) — used in Phase 2+
