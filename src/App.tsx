@@ -9,6 +9,7 @@ import { useDemoStore } from '@/store/demoStore';
 import { useDepotStore } from '@/store/depotStore';
 import { simulationEngine } from '@/engine/SimulationEngine';
 import { useTwinFeed } from '@/hooks/useTwinFeed';
+import { useTwinSceneBridge } from '@/hooks/useTwinSceneBridge';
 
 const App = () => {
   const enterDemo = useCallback(() => {
@@ -58,6 +59,8 @@ const App = () => {
 
   // Attach the server-authoritative twin feed (loads layout, polls snapshots).
   useTwinFeed();
+  // CC-P2b: drive the depot scene (stalls + vehicles) from the live snapshot.
+  useTwinSceneBridge();
 
   return (
     <ResponsiveGuard>
