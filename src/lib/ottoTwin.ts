@@ -51,6 +51,21 @@ export interface Scenario {
   grid_overrides: Record<string, unknown>;
 }
 
+// ── Run-history ledger (mirrors ottoq_twin_run_list) ──
+export interface TwinRunCounters {
+  dispatches_total: number; dispatches_active: number; telemetry_packets: number;
+  events_total: number; incidents_open: number; incidents_total: number;
+  faults: number; charge_sessions: number;
+}
+export interface TwinRunSummary {
+  sim_run_id: string; scenario: string; status: string;
+  started_at: string | null; ended_at: string | null;
+  sim_clock_start: string | null; sim_clock_current: string | null;
+  tick_count: number; time_scale: number; seed: number; sim_minutes: number;
+  counters: TwinRunCounters;
+  variability: { spread_mult: number; rate_mult: number; tuned_knobs: number; notes: string | null } | null;
+}
+
 // ── Variability catalog (the registry the console renders from) ──
 export type KnobType = "shift" | "spread" | "floor" | "ceiling" | "rate" | "select";
 export interface CatalogVar {
@@ -105,6 +120,7 @@ export const twin = {
   layout:    (depotId = NASHVILLE_DEPOT) => get<TwinLayout>(`/depot/${depotId}/layout`),
   snapshot:  (simRunId: string)          => get<TwinSnapshot>(`/sim_runs/${simRunId}/snapshot`),
   scenarios: ()                          => get<{ scenarios: Scenario[] }>(`/scenarios`),
+  runs:      (limit = 25)                => get<{ runs: TwinRunSummary[] }>(`/sim_runs?limit=${limit}`),
   templates: ()                          => get<{ templates: { name: string; knobs: Record<string, unknown>; notes: string }[] }>(`/variability/templates`),
   catalog:   ()                          => get<{ catalog: CatalogVar[] }>(`/variability/catalog`),
   health:    ()                          => get<{ service: string; version: string; time: string }>(`/health`),
