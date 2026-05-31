@@ -2,17 +2,17 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useSimulationStore } from '@/store/simulationStore';
 import { TabBar } from './TabBar';
 import { OperatorConsole } from '@/components/cockpit/OperatorConsole';
-import { KPIsTab } from '@/components/tabs/KPIsTab';
+import { TwinKpisTab } from '@/components/tabs/TwinKpisTab';
 import { AISummaryTab } from '@/components/tabs/AISummaryTab';
-import { AlertsTab } from '@/components/tabs/AlertsTab';
+import { TwinAlertsTab } from '@/components/tabs/TwinAlertsTab';
 import { HistoryTab } from '@/components/tabs/HistoryTab';
 
 const tabComponents = {
   controls: OperatorConsole,   // AV-only backend-driven console (replaces legacy ControlsTab)
-  kpis: KPIsTab,
-  'ai-summary': AISummaryTab,
-  alerts: AlertsTab,
-  history: HistoryTab,
+  kpis: TwinKpisTab,           // live backend KPIs (replaces legacy KPIsTab)
+  'ai-summary': AISummaryTab,  // TODO: rewire context to backend snapshot
+  alerts: TwinAlertsTab,       // live backend event feed (replaces legacy AlertsTab)
+  history: HistoryTab,         // TODO: backend sim_run list
 };
 
 export const SidePanel = () => {
