@@ -122,8 +122,8 @@ function VarControl({ v, knobs, expanded, onToggleExpand, commit }: {
         {header}
         <Select value={getPolicy(knobs, v.var_key)} onValueChange={(val) => commit(withPolicy(knobs, v.var_key, val))}>
           <SelectTrigger className="h-7 text-xs bg-canvas-elev border-white/[0.06]"><SelectValue /></SelectTrigger>
-          <SelectContent className="bg-canvas-panel border-white/10">
-            {(v.select_options ?? ["calibrated"]).map((o) => <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>)}
+          <SelectContent className="bg-canvas-panel border-white/10 text-ink">
+            {(v.select_options ?? ["calibrated"]).map((o) => <SelectItem key={o} value={o} className="text-xs text-ink focus:bg-white/10 focus:text-white">{o}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
@@ -170,17 +170,24 @@ function VarControl({ v, knobs, expanded, onToggleExpand, commit }: {
   );
 }
 
-// ── section wrapper ──
-const Group = ({ icon: Icon, title, children, right }: { icon: React.ElementType; title: string; children: React.ReactNode; right?: React.ReactNode }) => (
-  <div className="border-b border-white/[0.06]">
-    <div className="flex items-center gap-2 px-3 py-2 bg-canvas-elev/40 border-l-2 border-l-brand-red">
-      <Icon size={13} className="text-brand-red" />
-      <span className="font-display text-[11px] uppercase tracking-[0.08em] text-ink">{title}</span>
-      {right}
+// ── collapsible section wrapper ──
+const Group = ({ icon: Icon, title, children, right, defaultOpen = true }: {
+  icon: React.ElementType; title: string; children: React.ReactNode; right?: React.ReactNode; defaultOpen?: boolean;
+}) => {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="border-b border-white/[0.06]">
+      <button onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center gap-2 px-3 py-2 bg-canvas-elev/40 border-l-2 border-l-brand-red hover:bg-canvas-elev/70 transition-colors">
+        {open ? <ChevronDown size={12} className="text-ink-dim" /> : <ChevronRight size={12} className="text-ink-dim" />}
+        <Icon size={13} className="text-brand-red" />
+        <span className="font-display text-[11px] uppercase tracking-[0.08em] text-ink">{title}</span>
+        {right}
+      </button>
+      {open && <div className="px-3 py-2.5 flex flex-col gap-2">{children}</div>}
     </div>
-    <div className="px-3 py-2.5 flex flex-col gap-2">{children}</div>
-  </div>
-);
+  );
+};
 
 // ── main ──
 export const OperatorConsole = () => {
@@ -261,8 +268,8 @@ export const OperatorConsole = () => {
         <div className="flex items-center gap-2">
           <Select value={selected} onValueChange={setSelected}>
             <SelectTrigger className="h-8 flex-1 text-xs bg-canvas-elev border-white/[0.06]"><SelectValue /></SelectTrigger>
-            <SelectContent className="bg-canvas-panel border-white/10">
-              {scenarios.map((s) => <SelectItem key={s.scenario_code} value={s.scenario_code} className="text-xs">{s.title}</SelectItem>)}
+            <SelectContent className="bg-canvas-panel border-white/10 text-ink">
+              {scenarios.map((s) => <SelectItem key={s.scenario_code} value={s.scenario_code} className="text-xs text-ink focus:bg-white/10 focus:text-white">{s.title}</SelectItem>)}
             </SelectContent>
           </Select>
           <Button onClick={startScenario} disabled={busy === "start"} className="h-8 bg-brand-red hover:bg-brand-deep text-white text-xs">Start</Button>
