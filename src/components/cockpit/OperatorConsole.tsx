@@ -60,10 +60,80 @@ function withCont(k: Knobs, key: string, kt: KnobType, v: number, neutral: numbe
 function rangeFor(v: CatalogVar, kt: KnobType): { min: number; max: number; step: number; neutral: number } {
   if (kt === "spread")  return { min: 0.5, max: 3, step: 0.1, neutral: 1 };
   if (kt === "rate")    return { min: v.min_value ?? 0, max: v.max_value ?? 5, step: v.step ?? 0.25, neutral: v.neutral_value ?? 1 };
-  // shift / floor / ceiling use the catalog's defined range
-  return { min: v.min_value ?? 0, max: v.max_value ?? 100, step: v.step ?? 1, neutral: kt === "shift" ? (v.neutral_value ?? 0) : (v.min_value ?? 0) };
+  // shift / floor / ceiling use the catalog's defined range. Defaults (= "off"):
+  // shift→neutral, floor→min (no lower clamp), ceiling→max (no upper clamp).
+  const neutral = kt === "shift" ? (v.neutral_value ?? 0) : kt === "ceiling" ? (v.max_value ?? 100) : (v.min_value ?? 0);
+  return { min: v.min_value ?? 0, max: v.max_value ?? 100, step: v.step ?? 1, neutral };
 }
 const fmt = (n: number, step: number) => (step < 1 ? n.toFixed(step < 0.1 ? 2 : 1) : String(n));
+const fmtAxis = (n: number) => (Math.abs(n) >= 100 ? Math.round(n).toString() : Math.abs(n) >= 1 ? n.toFixed(0) : n.toFixed(1));
+
+// inverse standard-normal CDF (Acklam) — lets us deterministically inverse-CDF
+// sample a base distribution, exactly like the backend's sample_shaped().
+function invNorm(p: number): number {
+  const a = [-3.969683028665376e1, 2.209460984245205e2, -2.759285104469687e2, 1.38357751867269e2, -3.066479806614716e1, 2.506628277459239];
+  const b = [-5.447609879822406e1, 1.615858368580409e2, -1.556989798598866e2, 6.680131188771972e1, -1.328068155288572e1];
+  const c = [-7.784894002430293e-3, -3.223964580411365e-1, -2.400758277161838, -2.549732539343734, 4.374664141464968, 2.938163982698783];
+  const d = [7.784695709041462e-3, 3.224671290700398e-1, 2.445134137142996, 3.754408661907416];
+  const pl = 0.02425;
+  if (p < pl) { const q = Math.sqrt(-2 * Math.log(p)); return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) / ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); }
+  if (p <= 1 - pl) { const q = p - 0.5, r = q*q; return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q / (((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1); }
+  const q = Math.sqrt(-2 * Math.log(1 - p)); return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) / ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);
+}
+
+// Build a histogram of the SHAPED distribution: base Gaussian around the
+// calibrated neutral, then mean + (x-mean)*spread + shift, clamped to floor/ceiling
+// — mirrors the backend apply_profile(). Illustrative base spread; recomputes live.
+function shapedBins(v: CatalogVar, knobs: Knobs, bins = 22, samples = 200) {
+  const lo = v.min_value ?? 0, hi = v.max_value ?? 100;
+  if (!(hi > lo)) return null;
+  const mean = v.neutral_value ?? (lo + hi) / 2;
+  const baseSigma = (hi - lo) * 0.15;
+  const k = knobs?.[v.var_key] ?? {};
+  const globalSpread = Number(knobs?._global?.spread_mult ?? 1);
+  const shift = Number(k.shift ?? 0);
+  const spread = Number(k.spread ?? 1) * globalSpread;
+  const floor = k.floor != null ? Number(k.floor) : lo;
+  const ceil = k.ceiling != null ? Number(k.ceiling) : hi;
+  const counts = new Array(bins).fill(0);
+  for (let i = 0; i < samples; i++) {
+    const p = (i + 0.5) / samples;
+    let x = mean + invNorm(p) * baseSigma;
+    x = mean + (x - mean) * spread + shift;     // shape
+    x = Math.min(ceil, Math.max(floor, x));      // clamp
+    let bi = Math.floor(((x - lo) / (hi - lo)) * bins);
+    bi = Math.min(bins - 1, Math.max(0, bi));
+    counts[bi]++;
+  }
+  const maxC = Math.max(...counts, 1);
+  return { counts, maxC, lo, hi, mean };
+}
+
+// ── live "shape preview" histogram for a continuous variable ──
+function ShapeHistogram({ v, knobs }: { v: CatalogVar; knobs: Knobs }) {
+  const sig = JSON.stringify(knobs?.[v.var_key] ?? {}) + (knobs?._global?.spread_mult ?? 1);
+  const data = useMemo(() => shapedBins(v, knobs), [v, sig]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!data) return null;
+  const { counts, maxC, lo, hi, mean } = data;
+  const W = 100, H = 30, bw = W / counts.length;
+  const meanX = ((mean - lo) / (hi - lo)) * W;
+  return (
+    <div className="mt-1.5">
+      <span className="text-[9px] text-ink-faint uppercase tracking-wide">shape preview · sampled distribution</span>
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="w-full h-8 bg-white/[0.02] rounded mt-0.5">
+        {counts.map((c: number, i: number) => {
+          const h = (c / maxC) * (H - 2);
+          return <rect key={i} x={i * bw + 0.4} y={H - h} width={bw - 0.8} height={h} fill="#C8102E" opacity={0.3 + 0.55 * (c / maxC)} rx={0.4} />;
+        })}
+        <line x1={meanX} y1={0} x2={meanX} y2={H} stroke="#E7EAF0" strokeWidth={0.5} strokeDasharray="1.5 1.5" opacity={0.5} />
+      </svg>
+      <div className="flex justify-between text-[8px] text-ink-faint font-mono">
+        <span>{fmtAxis(lo)}{v.unit ?? ""}</span>
+        <span>{fmtAxis(hi)}{v.unit ?? ""}</span>
+      </div>
+    </div>
+  );
+}
 
 // ── one slider row ──
 function KnobSlider({ label, value, min, max, step, neutral, unit, onCommit }: {
@@ -164,6 +234,7 @@ function VarControl({ v, knobs, expanded, onToggleExpand, commit }: {
               unit={kt === "shift" ? v.unit : kt === "spread" ? "×" : v.unit}
               onCommit={(val) => commit(withCont(knobs, v.var_key, kt, val, r.neutral))} />;
           })}
+          <ShapeHistogram v={v} knobs={knobs} />
         </div>
       )}
     </div>
