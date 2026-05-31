@@ -73,7 +73,8 @@ export function useTwinSceneBridge() {
 
       vehicles.push({
         id: bv.id,
-        type: "fleet",                       // all contracted AVs (uniform teal); OEM-coloring = later polish
+        type: "fleet",                       // all contracted AVs; OEM platform drives the render color
+        oem: bv.platform,                    // waymo | tesla | zoox → OEM-colored dot
         priority: 5,
         batteryCapacity: 100,
         currentSoC: bv.soc ?? 0,
