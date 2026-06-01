@@ -293,7 +293,8 @@ export const OperatorConsole = () => {
     try {
       const res = await twin.start(selected);
       setActiveSimRunId(res.sim_run_id);
-      toast.success(`Started ${selected}`);
+      ctrl.play();   // Start also begins the clock — "press Start and watch it run"
+      toast.success(`Started ${selected} — running`);
     } catch (e: any) { toast.error("Start failed", { description: e.message }); }
     finally { setBusy(null); }
   };
