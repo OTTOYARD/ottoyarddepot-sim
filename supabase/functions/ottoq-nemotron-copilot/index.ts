@@ -27,14 +27,16 @@ function summarize(rows: any[]) {
   const byCtx: Record<string, number> = {};
   const byOutcome: Record<string, number> = {};
   const overrideRules: Record<string, number> = {};
+  const bySource: Record<string, number> = {};
   let overridden = 0, enacted = 0;
   for (const r of rows) {
     byCtx[r.action_context] = (byCtx[r.action_context] || 0) + 1;
     byOutcome[r.outcome_status] = (byOutcome[r.outcome_status] || 0) + 1;
     if (r.overridden) { overridden++; for (const c of (r.override_rule_codes || [])) overrideRules[c] = (overrideRules[c] || 0) + 1; }
     if (r.outcome_status === "enacted") enacted++;
+    const src = r.proposed_action?.source; if (src) bySource[src] = (bySource[src] || 0) + 1;
   }
-  return { total: rows.length, enacted, overridden, by_context: byCtx, by_outcome: byOutcome, top_override_rules: overrideRules };
+  return { total: rows.length, enacted, overridden, by_context: byCtx, by_outcome: byOutcome, top_override_rules: overrideRules, by_proposal_source: bySource };
 }
 
 serve(async (req) => {
@@ -52,7 +54,7 @@ serve(async (req) => {
 
     const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const { data: rows } = await sb.from("ottoq_decisions")
-      .select("action_context, outcome_status, overridden, override_rule_codes")
+      .select("action_context, outcome_status, overridden, override_rule_codes, proposed_action")
       .eq("sim_run_id", sim_run_id).order("created_at", { ascending: false }).limit(limit);
     if (!rows || rows.length === 0) return json({ error: "no decisions for this run yet" }, 404);
 

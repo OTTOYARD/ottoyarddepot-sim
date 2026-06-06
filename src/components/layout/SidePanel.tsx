@@ -7,6 +7,7 @@ import { TwinAiSummaryTab } from '@/components/tabs/TwinAiSummaryTab';
 import { TwinAlertsTab } from '@/components/tabs/TwinAlertsTab';
 import { TwinHistoryTab } from '@/components/tabs/TwinHistoryTab';
 import { TwinSwapTestTab } from '@/components/tabs/TwinSwapTestTab';
+import { TwinCopilotTab } from '@/components/tabs/TwinCopilotTab';
 
 const tabComponents = {
   controls: OperatorConsole,       // AV-only backend-driven console (replaces legacy ControlsTab)
@@ -15,6 +16,7 @@ const tabComponents = {
   alerts: TwinAlertsTab,           // live backend event feed (replaces legacy AlertsTab)
   history: TwinHistoryTab,         // backend run-history ledger + compare
   'swap-test': TwinSwapTestTab,    // OTTO-Q safety proof: calm-vs-stress A/B scoreboard (view)
+  copilot: TwinCopilotTab,         // agentic copilot: Nemotron 3 Ultra audit of OTTO-Q decisions
 };
 
 export const SidePanel = () => {
