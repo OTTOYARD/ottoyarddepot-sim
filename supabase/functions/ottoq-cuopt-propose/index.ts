@@ -49,12 +49,13 @@ serve(async (req) => {
     if (cands.length === 0 || freeStalls.length === 0)
       return json({ proposed: 0, candidates: cands.length, stalls: freeStalls.length, source: "none" });
 
-    const apiKey = Deno.env.get("NVIDIA_API_KEY");
+    const apiKey = Deno.env.get("NVIDIA_API_KEY_CUOPT") ?? Deno.env.get("NVIDIA_API_KEY");
     let assignments: { vehicleId: string; stallId: string; stallType: string }[] = [];
     let source = "cuopt_fallback";
+    let cuoptError: string | null = apiKey ? null : "no NVIDIA_API_KEY_CUOPT";
     if (apiKey) {
       try { assignments = await cuoptAssign(apiKey, cands, freeStalls); source = "cuopt"; }
-      catch (e) { console.error("cuOpt call failed; heuristic fallback:", e); assignments = heuristic(cands, freeStalls); source = "cuopt_fallback"; }
+      catch (e) { cuoptError = e instanceof Error ? e.message : String(e); console.error("cuOpt call failed; heuristic fallback:", cuoptError); assignments = heuristic(cands, freeStalls); source = "cuopt_fallback"; }
     } else {
       assignments = heuristic(cands, freeStalls);
     }
@@ -70,7 +71,7 @@ serve(async (req) => {
       });
       if (!error) proposed++; else console.error("submit proposal error:", error.message);
     }
-    return json({ proposed, candidates: cands.length, stalls: freeStalls.length, source });
+    return json({ proposed, candidates: cands.length, stalls: freeStalls.length, source, cuopt_error: cuoptError });
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : "unknown" }, 500);
   }
@@ -101,18 +102,20 @@ async function cuoptAssign(apiKey: string, vehicles: any[], stalls: any[]) {
   const payload = {
     action: "cuOpt_OptimizedRouting",
     data: {
-      task_data: { task_locations: vehicles.map((_, i) => i), demand: vehicles.map(() => [1]),
+      task_data: { task_locations: vehicles.map((_, i) => i), demand: [vehicles.map(() => 1)],
         task_time_windows: vehicles.map(() => [0, 86400]), service_times: vehicles.map(() => 1) },
-      fleet_data: { vehicle_locations: stalls.map((_, i) => [n + i, n + i]), capacities: stalls.map(() => [1]),
-        vehicle_time_windows: stalls.map(() => [0, 86400]) },
-      cost_matrix_data: { cost_matrix: cost },
+      fleet_data: { vehicle_locations: stalls.map((_, i) => [n + i, n + i]), capacities: [stalls.map(() => 1)],
+        vehicle_types: stalls.map(() => 0), vehicle_time_windows: stalls.map(() => [0, 86400]) },
+      cost_matrix_data: { data: { "0": cost } },
       solver_config: { time_limit: 5 },
     },
   };
   const res = await fetch(CUOPT_ENDPOINT, { method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` }, body: JSON.stringify(payload) });
-  if (!res.ok) throw new Error("cuOpt " + res.status + " " + (await res.text()).slice(0, 160));
-  const result = await res.json();
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}`, Accept: "application/json" }, body: JSON.stringify(payload) });
+  const rawText = await res.text();
+  if (!res.ok) throw new Error("HTTP " + res.status + ": " + rawText.slice(0, 220));
+  let result: any;
+  try { result = JSON.parse(rawText); } catch { throw new Error("non-JSON (" + res.status + "): " + rawText.slice(0, 160)); }
   const out: any[] = [];
   const vd = result?.response?.solver_response?.vehicle_data;
   if (vd) for (const [sIdx, route] of Object.entries<any>(vd)) {
@@ -121,6 +124,6 @@ async function cuoptAssign(apiKey: string, vehicles: any[], stalls: any[]) {
       if (v && s) out.push({ vehicleId: v.id, stallId: s.id, stallType: s.stall_type });
     }
   }
-  if (out.length === 0) throw new Error("cuOpt returned no assignments");
+  if (out.length === 0) throw new Error("no assignments; HTTP " + res.status + " topkeys=[" + Object.keys(result || {}).join(",") + "] body=" + rawText.slice(0, 180));
   return out;
 }
