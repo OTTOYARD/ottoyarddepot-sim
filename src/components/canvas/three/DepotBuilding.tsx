@@ -1,107 +1,99 @@
-import { Html } from '@react-three/drei';
+import { useMemo } from 'react';
+import * as THREE from 'three';
 import { MATERIALS } from './materials';
+import { BUILDING } from '@/lib/sitePlan';
+import { toWorld } from './coordUtils';
 
+/**
+ * Office + operations building with 2 attached PULL-THROUGH service bays
+ * (south entry doors, north rear exits into the rear lane). Rooftop PV.
+ * Geometry from the shared site plan.
+ */
 export function DepotBuilding() {
-  const mullionCount = 15;
+  const H = 13;
+  const [cx, , cz] = toWorld({ x: BUILDING.x + BUILDING.w / 2, y: BUILDING.y + BUILDING.h / 2 }, 0);
+  const w = BUILDING.w, d = BUILDING.h;
+
+  const mats = useMemo(() => ({
+    cladding: MATERIALS.darkCladding(),
+    panel: MATERIALS.anodizedPanel(),
+    glass: MATERIALS.architecturalGlass(),
+    steel: MATERIALS.structuralSteel(),
+    trim: MATERIALS.brushedAluminum(),
+    door: MATERIALS.darkCladding(),
+    sign: MATERIALS.tealLED(3.0),
+    led: MATERIALS.whiteLED(1.6),
+  }), []);
+
+  // rooftop PV (instanced)
+  const pv = useMemo(() => {
+    const cols = Math.floor((w - 6) / 4.4), rows = Math.floor((d - 6) / 4.4);
+    const inst = new THREE.InstancedMesh(
+      new THREE.BoxGeometry(4.0, 0.14, 4.0), MATERIALS.solarPanelGlass(), cols * rows,
+    );
+    const dm = new THREE.Object3D();
+    let i = 0;
+    for (let a = 0; a < cols; a++) for (let b = 0; b < rows; b++) {
+      dm.position.set(-w / 2 + 3 + (a + 0.5) * 4.4, H + 0.35, -d / 2 + 3 + (b + 0.5) * 4.4);
+      dm.updateMatrix(); inst.setMatrixAt(i++, dm.matrix);
+    }
+    inst.instanceMatrix.needsUpdate = true;
+    return inst;
+  }, [w, d]);
+
+  // service bay door x-centers in WORLD space (site plan: SVC stalls at x 120, 138)
+  const doors = [120, 138].map((x) => x - 150 - cx); // local offset within the group
 
   return (
-    <group position={[10, 0, 0]}>
-      {/* Main body — dark cladding */}
-      <mesh position={[0, 4, -90]} castShadow receiveShadow>
-        <boxGeometry args={[120, 8, 35]} />
-        <primitive object={MATERIALS.darkCladding()} attach="material" />
+    <group position={[cx, 0, cz]}>
+      {/* main mass */}
+      <mesh position={[0, H / 2, 0]} castShadow receiveShadow material={mats.cladding}>
+        <boxGeometry args={[w, H, d]} />
+      </mesh>
+      {/* parapet trim */}
+      <mesh position={[0, H + 0.1, 0]} material={mats.trim}>
+        <boxGeometry args={[w + 0.4, 0.25, d + 0.4]} />
+      </mesh>
+      <primitive object={pv} />
+
+      {/* office glass front (south face, west portion) */}
+      <mesh position={[-w / 2 + 19, 4.6, -d / 2 - 0.06]} material={mats.glass}>
+        <boxGeometry args={[34, 8.2, 0.12]} />
+      </mesh>
+      <mesh position={[-w / 2 + 19, 9.6, -d / 2 - 0.1]} material={mats.trim}>
+        <boxGeometry args={[35, 0.3, 0.1]} />
       </mesh>
 
-      {/* Two-story corner wing */}
-      <mesh position={[-52, 4.5, -90]} castShadow receiveShadow>
-        <boxGeometry args={[15, 9, 12]} />
-        <primitive object={MATERIALS.darkCladding()} attach="material" />
+      {/* OTTOYARD sign */}
+      <mesh position={[-w / 2 + 19, H - 1.2, -d / 2 - 0.12]} material={mats.sign}>
+        <boxGeometry args={[18, 1.6, 0.08]} />
       </mesh>
 
-      {/* Roof overhang slab */}
-      <mesh position={[0, 8.05, -90]} castShadow receiveShadow>
-        <boxGeometry args={[121.5, 0.15, 36.5]} />
-        <primitive object={MATERIALS.darkCladding()} attach="material" />
-      </mesh>
-
-      {/* Glass curtain wall — front facade */}
-      <mesh position={[0, 4, -72.3]}>
-        <planeGeometry args={[118, 7.5]} />
-        <primitive object={MATERIALS.architecturalGlass()} attach="material" />
-      </mesh>
-
-      {/* Side glass */}
-      <mesh position={[60, 4, -90]} rotation-y={-Math.PI / 2}>
-        <planeGeometry args={[33, 7.5]} />
-        <primitive object={MATERIALS.architecturalGlass()} attach="material" />
-      </mesh>
-
-      {/* Glass mullions — vertical */}
-      {Array.from({ length: mullionCount }, (_, i) => (
-        <mesh key={`mul${i}`} position={[-56 + i * 8, 4, -72.2]}>
-          <boxGeometry args={[0.04, 7.5, 0.04]} />
-          <primitive object={MATERIALS.brushedAluminum()} attach="material" />
-        </mesh>
-      ))}
-      {/* Horizontal mullion at 60% height */}
-      <mesh position={[0, 4.8, -72.2]}>
-        <boxGeometry args={[118, 0.04, 0.04]} />
-        <primitive object={MATERIALS.brushedAluminum()} attach="material" />
-      </mesh>
-
-      {/* Entrance canopy */}
-      <mesh position={[0, 3.2, -72]} castShadow>
-        <boxGeometry args={[4, 0.08, 3]} />
-        <primitive object={MATERIALS.structuralSteel()} attach="material" />
-      </mesh>
-
-      {/* Wood accent panel at entrance */}
-      <mesh position={[0, 1.5, -72.15]}>
-        <boxGeometry args={[3, 3, 0.04]} />
-        <primitive object={MATERIALS.woodAccent()} attach="material" />
-      </mesh>
-
-      {/* Teal LED roofline strip */}
-      <mesh position={[0, 8.15, -72.3]}>
-        <boxGeometry args={[120, 0.03, 0.03]} />
-        <primitive object={MATERIALS.tealLED(2.0)} attach="material" />
-      </mesh>
-
-      {/* Service bay doors */}
-      {[-20, 10].map((x, i) => (
-        <group key={`bay${i}`}>
-          <mesh position={[x, 2.5, -72.15]}>
-            <boxGeometry args={[9, 5.5, 0.3]} />
-            <primitive object={MATERIALS.chargerHousing()} attach="material" />
+      {/* 2 service bays — south entry + north rear exit (pull-through) */}
+      {doors.map((dx, i) => (
+        <group key={i}>
+          {/* south door (open: panel raised into header) */}
+          <mesh position={[dx, H - 2.2, -d / 2 - 0.05]} material={mats.door}>
+            <boxGeometry args={[12, 3.4, 0.3]} />
           </mesh>
-          <mesh position={[x, 2.5, -72.1]}>
-            <boxGeometry args={[9.5, 6, 0.08]} />
-            <primitive object={MATERIALS.brushedAluminum()} attach="material" />
+          <mesh position={[dx, H - 0.4, -d / 2 - 0.15]} material={mats.trim}>
+            <boxGeometry args={[13, 0.5, 0.2]} />
+          </mesh>
+          {/* opening reveal (dark interior visible) */}
+          <mesh position={[dx, 4.2, -d / 2 - 0.02]}>
+            <boxGeometry args={[12, 8.4, 0.06]} />
+            <meshPhysicalMaterial color="#07090c" roughness={0.95} metalness={0} />
+          </mesh>
+          {/* rear exit door (closed panel) */}
+          <mesh position={[dx, 4.6, d / 2 + 0.08]} material={mats.door}>
+            <boxGeometry args={[12, 9.2, 0.25]} />
+          </mesh>
+          {/* bay number light */}
+          <mesh position={[dx - 7.2, 9.4, -d / 2 - 0.12]} material={mats.led}>
+            <boxGeometry args={[0.9, 1.6, 0.08]} />
           </mesh>
         </group>
       ))}
-
-      {/* Interior warm glow — emissive mesh only, NO pointLights */}
-      <mesh position={[0, 7.5, -82]}>
-        <boxGeometry args={[40, 0.1, 10]} />
-        <primitive object={MATERIALS.whiteLED(1.5)} attach="material" />
-      </mesh>
-
-      {/* OTTOYARD backlit signage */}
-      <mesh position={[0, 9.2, -90]}>
-        <boxGeometry args={[22, 1.8, 0.4]} />
-        <primitive object={MATERIALS.chargerHousing()} attach="material" />
-      </mesh>
-      <mesh position={[0, 9.2, -89.7]}>
-        <boxGeometry args={[20, 1.4, 0.05]} />
-        <meshPhysicalMaterial color="#C00000" emissive="#C00000" emissiveIntensity={1.5} roughness={0.3} metalness={0} toneMapped={false} />
-      </mesh>
-
-      <Html position={[0, 11, -89]} center>
-        <span className="text-[8px] text-white/40 font-mono tracking-[0.3em]">
-          OPERATIONS CENTER
-        </span>
-      </Html>
     </group>
   );
 }

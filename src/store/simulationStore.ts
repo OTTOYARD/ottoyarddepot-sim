@@ -101,11 +101,11 @@ const defaultConfig: SimulationConfig = {
   conciergeRate: 3,
 
   dcfcCount: 10,
-  l2Count: 40,
+  l2Count: 30,
   dcfcPowerPerStall: 200,
   l2PowerPerStall: 11.5,
   washBayCount: 3,
-  stagingStalls: 100,
+  stagingStalls: 97,
   serviceBayCount: 2,
   solarCanopy: 500,
   bessCapacity: 2,

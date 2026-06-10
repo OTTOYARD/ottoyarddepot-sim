@@ -18,15 +18,16 @@ import { Vehicle3D } from './three/Vehicle3D';
 import { DepotOverlays } from './three/DepotOverlays';
 import { WeatherEffects } from './three/WeatherEffects';
 import { DayNightLighting } from './three/DayNightLighting';
+import { DepotPostProcessing } from './three/DepotPostProcessing';
 import { MATERIALS } from './three/materials';
 
 const CAMERA_PRESETS = {
-  'Bird Eye': { position: [0, 180, 10] as [number, number, number], target: [0, 0, 0] as [number, number, number] },
-  'Street Level': { position: [0, 15, -130] as [number, number, number], target: [0, 0, 20] as [number, number, number] },
-  'Operator': { position: [-120, 60, -80] as [number, number, number], target: [0, 0, 0] as [number, number, number] },
-  'Hero': { position: [55, 12, 40] as [number, number, number], target: [0, 4, 0] as [number, number, number] },
-  'Approach': { position: [-80, 3, 0] as [number, number, number], target: [0, 3, 0] as [number, number, number] },
-  'Night Showcase': { position: [30, 8, -25] as [number, number, number], target: [0, 3, 0] as [number, number, number] },
+  'Bird Eye': { position: [0, 210, 60] as [number, number, number], target: [0, 0, 4] as [number, number, number] },
+  'Entrance': { position: [-50, 6, -135] as [number, number, number], target: [-50, 3, -70] as [number, number, number] },
+  'Canopy': { position: [-75, 7, -50] as [number, number, number], target: [-47, 5, 30] as [number, number, number] },
+  'Operator': { position: [-170, 90, -120] as [number, number, number], target: [0, 0, 20] as [number, number, number] },
+  'Service': { position: [-10, 9, 30] as [number, number, number], target: [-25, 6, 75] as [number, number, number] },
+  'Hero': { position: [95, 14, -75] as [number, number, number], target: [47, 6, 25] as [number, number, number] },
 };
 
 // Seeded random for consistent tree placement
@@ -38,11 +39,12 @@ function seededRandom(seed: number) {
 function Landscaping() {
   const trees = useMemo(() => {
     const t: { pos: [number, number, number]; h: number }[] = [];
+    // perimeter ring OUTSIDE the security fence (lot is x ±144, z -96..104)
     const positions: [number, number][] = [
-      [-145, -80], [-145, -40], [-145, 0], [-145, 40], [-145, 80],
-      [145, -80], [145, -40], [145, 0], [145, 40], [145, 80],
-      [-60, -110], [-20, -110], [20, -110], [60, -110],
-      [-60, 105], [20, 105],
+      [-130, 112], [-95, 112], [-60, 112], [-25, 112], [10, 112], [45, 112], [80, 112], [115, 112],
+      [-130, -118], [-90, -118], [0, -118], [130, -118],
+      [-152, -70], [-152, -35], [-152, 0], [-152, 35], [-152, 70], [-152, 95],
+      [152, -70], [152, -35], [152, 0], [152, 35], [152, 70], [152, 95],
     ];
     positions.forEach(([x, z], i) => {
       t.push({ pos: [x, 0, z], h: 5 + seededRandom(i) * 3 });
@@ -51,7 +53,8 @@ function Landscaping() {
   }, []);
 
   const planterPositions: [number, number, number][] = useMemo(() => [
-    [-110, 0, -95], [110, 0, -95], [-50, 0, -72], [50, 0, -72], [-80, 0, 60], [80, 0, 60],
+    [-62, 0, -90], [-38, 0, -90], [38, 0, -90], [62, 0, -90],  // gate plazas
+    [-85, 0, 60], [66, 0, 60],                                  // building/wash flanks
   ], []);
 
   return (
@@ -92,25 +95,6 @@ function Landscaping() {
         </group>
       ))}
 
-      {/* Brand Signage — emissive only, no pointLight */}
-      <group position={[0, 9.5, -115]}>
-        <mesh castShadow>
-          <boxGeometry args={[12, 1.8, 0.15]} />
-          <meshPhysicalMaterial color="#0A0A0F" roughness={0.3} metalness={0.1} envMapIntensity={0.5} />
-        </mesh>
-        <mesh position={[0, 0.92, 0]}>
-          <boxGeometry args={[12.2, 0.04, 0.02]} />
-          <primitive object={MATERIALS.tealLED(5.0)} attach="material" />
-        </mesh>
-        <mesh position={[0, -0.92, 0]}>
-          <boxGeometry args={[12.2, 0.04, 0.02]} />
-          <primitive object={MATERIALS.tealLED(5.0)} attach="material" />
-        </mesh>
-        <mesh position={[0, 0, 0.08]}>
-          <boxGeometry args={[8, 0.8, 0.02]} />
-          <primitive object={MATERIALS.tealLED(5.0)} attach="material" />
-        </mesh>
-      </group>
     </group>
   );
 }
@@ -181,6 +165,7 @@ export default function DepotScene3D() {
           ))}
 
           <WeatherEffects weather={config.weather} />
+          <DepotPostProcessing mode="interactive" />
 
           <OrbitControls
             ref={controlsRef}

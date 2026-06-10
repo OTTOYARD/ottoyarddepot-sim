@@ -29,61 +29,26 @@ const FX: Record<string, { glow: string; pulse: number; op: number }> = {
 
 const BODY_HINTS = ['body', 'paint', 'car', 'exterior', 'shell', 'hood', 'door', 'fender', 'bumper', 'trunk'];
 
-/**
- * Compute vehicle Y-rotation so its hood (front) faces toward its assigned stall/charger.
- * Falls back to facing depot center for vehicles without an assigned stall.
- */
-function getFacingRotation(
-  vehiclePos2d: { x: number; y: number },
-  stallPos2d: { x: number; y: number } | null
-): number {
-  // Target: stall position if assigned, otherwise depot center
-  const tx = stallPos2d ? stallPos2d.x : 150;
-  const ty = stallPos2d ? stallPos2d.y : 110;
-
-  // Convert both to 3D (XZ plane)
-  const [vx, , vz] = toWorld(vehiclePos2d);
-  const [sx, , sz] = toWorld({ x: tx, y: ty });
-
-  const dx = sx - vx;
-  const dz = sz - vz;
-
-  // atan2(dx, dz) gives angle in XZ plane; model's default forward is +X,
-  // so we use atan2(dx, dz) which aligns the model front toward the target
-  return Math.atan2(dx, dz);
-}
+// Vehicles face their direction of travel while moving (one-way circulation),
+// then settle to their stall's site-plan angle when parked.
 
 export function Vehicle3D({ vehicle, simSpeed }: { vehicle: Vehicle; simSpeed: number }) {
   const grp = useRef<THREE.Group>(null);
   const glw = useRef<THREE.Mesh>(null);
   const col = OEM_COLORS[(vehicle.oem || '').toLowerCase()] || COLORS[vehicle.type] || '#E8E8E8';
   const fx = FX[vehicle.status] || FX.staging;
-  // Check if vehicle is assigned to a wash bay — override 3D target position
-  const isWashAssigned = vehicle.assignedStall?.startsWith('WASH-');
-  const washBayIndex = isWashAssigned
-    ? parseInt(vehicle.assignedStall!.replace('WASH-', ''), 10) - 1
-    : -1;
+  // Stall coordinates come from the shared site plan via the store — no
+  // per-zone world-coordinate overrides needed.
+  const [tx, , tz] = toWorld(vehicle.position);
 
-  // Wash bay world coords from WashBays.tsx: group at [-90, 0, -80], each bay offset i*16
-  const washWorldX = -110 + washBayIndex * 16;
-  const washWorldZ = -80;
-
-  const [defaultTx, , defaultTz] = toWorld(vehicle.position);
-  const tx = isWashAssigned ? washWorldX : defaultTx;
-  const tz = isWashAssigned ? washWorldZ : defaultTz;
-
-  // Look up assigned stall position from depot store
+  // Parked orientation = the assigned stall's site-plan angle
   const stalls = useDepotStore((s) => s.stalls);
-  const stallPos2d = useMemo(() => {
-    if (!vehicle.assignedStall) return null;
+  const stallAngle = useMemo(() => {
+    if (!vehicle.assignedStall) return Math.PI; // default: face south
     const stall = stalls.find((s) => s.id === vehicle.assignedStall);
-    return stall ? { x: stall.position.x, y: stall.position.y } : null;
+    return stall ? (stall.position.angle * Math.PI) / 180 : Math.PI;
   }, [vehicle.assignedStall, stalls]);
-
-  // For wash vehicles, face into the bay (toward +Z / south wall)
-  const facingRotation = isWashAssigned
-    ? Math.PI  // face into the wash bay opening
-    : getFacingRotation(vehicle.position, stallPos2d);
+  const heading = useRef(stallAngle);
 
   const { scene } = useGLTF(MODEL_PATH);
 
@@ -126,8 +91,15 @@ export function Vehicle3D({ vehicle, simSpeed }: { vehicle: Vehicle; simSpeed: n
     if (!grp.current) return;
     const p = grp.current.position;
     const rate = Math.min(delta * 2 * Math.max(simSpeed, 1), 1);
+    const dx = tx - p.x;
+    const dz = tz - p.z;
     p.x = THREE.MathUtils.lerp(p.x, tx, rate);
     p.z = THREE.MathUtils.lerp(p.z, tz, rate);
+    // Face the direction of travel while moving; settle to stall angle parked.
+    const desired = Math.hypot(dx, dz) > 0.8 ? Math.atan2(dx, dz) : stallAngle;
+    const diff = ((desired - heading.current + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+    heading.current += diff * Math.min(1, delta * 5);
+    grp.current.rotation.y = heading.current;
   });
 
   return (
@@ -135,7 +107,7 @@ export function Vehicle3D({ vehicle, simSpeed }: { vehicle: Vehicle; simSpeed: n
       <primitive
         object={clone}
         scale={[1.2, 1.2, 1.2]}
-        rotation={[0, facingRotation, 0]}
+        rotation={[0, 0, 0]}
         position={[0, yOffset * 1.2, 0]}
       />
 

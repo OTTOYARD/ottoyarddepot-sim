@@ -1,113 +1,99 @@
-import { Html } from '@react-three/drei';
 import { useMemo } from 'react';
+import * as THREE from 'three';
 import { MATERIALS } from './materials';
-
-interface StallPos {
-  position: [number, number, number];
-  direction: 'x' | 'z';
-}
+import { PARK_RUNS } from '@/lib/sitePlan';
+import { toWorld } from './coordUtils';
 
 /**
- * Staging stalls arranged in a continuous U-shape around the depot perimeter.
- * Numbering goes chronologically 1→100:
- *   Segment 1 (west):  X=-130, Z from -60 south to +85  (stalls 1–26)
- *   Segment 2 (south): Z=+90,  X from -130 east to +130 (stalls 27–73)
- *   Segment 3 (east):  X=+130, Z from +85 north to -60  (stalls 74–100)
+ * Perimeter parking: painted stall lines + SOLAR CARPORTS over every run
+ * (weather cover + extra PV capacity). Geometry from the site plan.
  */
-export function StagingZone({ count = 100 }: { count?: number }) {
-  const stalls = useMemo<StallPos[]>(() => {
-    const SPACING = 5.5;
+export function StagingZone({ count: _count }: { count: number }) {
+  const mats = useMemo(() => ({
+    roof: MATERIALS.darkCladding(),
+    steel: MATERIALS.structuralSteel(),
+  }), []);
 
-    // Segment lengths (in world units)
-    const westLen = 85 - (-60);   // 145
-    const southLen = 130 - (-130); // 260
-    const eastLen = 85 - (-60);    // 145
-    const totalLen = westLen + southLen + eastLen; // 550
-
-    // Distribute stalls proportionally
-    const westCount = Math.round(count * (westLen / totalLen));
-    const eastCount = Math.round(count * (eastLen / totalLen));
-    const southCount = count - westCount - eastCount;
-
-    const result: StallPos[] = [];
-
-    // Segment 1 — West side: X=-130, Z goes from -60 → +85 (south)
-    const westSpacing = westLen / Math.max(westCount - 1, 1);
-    for (let i = 0; i < westCount; i++) {
-      const z = -60 + i * westSpacing;
-      result.push({ position: [-130, 0, z], direction: 'z' });
+  // instanced stall side-lines (2 per stall)
+  const stripes = useMemo(() => {
+    const total = PARK_RUNS.reduce((n, r) => n + r.n, 0) * 2;
+    const inst = new THREE.InstancedMesh(
+      new THREE.BoxGeometry(0.28, 0.05, 10.5), MATERIALS.laneMarkingWhite(), total,
+    );
+    const d = new THREE.Object3D();
+    let i = 0;
+    for (const run of PARK_RUNS) {
+      const across = run.angle === 90; // stalls along a column → car oriented east-west
+      for (let k = 0; k < run.n; k++) {
+        const x = run.x0 + k * run.dx, y = run.y0 + k * run.dy;
+        const [wx, , wz] = toWorld({ x, y }, 0);
+        for (const side of [-1, 1]) {
+          if (across) {
+            d.position.set(wx, 0.05, wz + side * 2.9);
+            d.rotation.set(0, Math.PI / 2, 0);
+          } else {
+            d.position.set(wx + side * 2.9, 0.05, wz);
+            d.rotation.set(0, 0, 0);
+          }
+          d.updateMatrix();
+          inst.setMatrixAt(i++, d.matrix);
+        }
+      }
     }
+    inst.instanceMatrix.needsUpdate = true;
+    return inst;
+  }, []);
 
-    // Segment 2 — South edge: Z=+90, X goes from -130 → +130 (east)
-    const southSpacing = southLen / Math.max(southCount - 1, 1);
-    for (let i = 0; i < southCount; i++) {
-      const x = -130 + i * southSpacing;
-      result.push({ position: [x, 0, 90], direction: 'x' });
+  // carports: roof + flush PV + posts
+  const carports = useMemo(() => PARK_RUNS.map((run) => {
+    const r = run.carport;
+    const [cx, , cz] = toWorld({ x: r.x + r.w / 2, y: r.y + r.h / 2 }, 0);
+    const H = 8;
+    const cols = Math.max(1, Math.floor((r.w - 1.5) / 4.4));
+    const rows = Math.max(1, Math.floor((r.h - 1.5) / 4.4));
+    const pv = new THREE.InstancedMesh(
+      new THREE.BoxGeometry(4.0, 0.13, 4.0), MATERIALS.solarPanelGlass(), cols * rows,
+    );
+    const d = new THREE.Object3D();
+    let i = 0;
+    for (let a = 0; a < cols; a++) for (let b = 0; b < rows; b++) {
+      d.position.set(
+        -r.w / 2 + 0.75 + (a + 0.5) * ((r.w - 1.5) / cols),
+        H + 0.5,
+        -r.h / 2 + 0.75 + (b + 0.5) * ((r.h - 1.5) / rows),
+      );
+      d.rotation.set(0, 0, 0);
+      d.updateMatrix();
+      pv.setMatrixAt(i++, d.matrix);
     }
+    pv.instanceMatrix.needsUpdate = true;
 
-    // Segment 3 — East side: X=+130, Z goes from +85 → -60 (north)
-    const eastSpacing = eastLen / Math.max(eastCount - 1, 1);
-    for (let i = 0; i < eastCount; i++) {
-      const z = 85 - i * eastSpacing;
-      result.push({ position: [130, 0, z], direction: 'z' });
+    // posts along the inner edge (single row, cantilever style)
+    const posts: [number, number][] = [];
+    if (r.w >= r.h) {
+      for (let x = -r.w / 2 + 4; x <= r.w / 2 - 4; x += 20) posts.push([x, 0]);
+    } else {
+      for (let z = -r.h / 2 + 4; z <= r.h / 2 - 4; z += 20) posts.push([0, z]);
     }
-
-    return result;
-  }, [count]);
+    return { id: run.id, cx, cz, w: r.w, d: r.h, H, pv, posts };
+  }), []);
 
   return (
     <group>
-      {stalls.map((stall, i) => {
-        const globalIdx = i + 1;
-        const d = stall.direction;
-        return (
-          <group key={i} position={stall.position}>
-            {/* Asphalt pad */}
-            <mesh rotation-x={-Math.PI / 2} position={[0, 0.01, 0]} receiveShadow>
-              <planeGeometry args={d === 'z' ? [5, 4.5] : [4.5, 5]} />
-              <primitive object={MATERIALS.asphalt()} attach="material" />
+      <primitive object={stripes} />
+      {carports.map((c) => (
+        <group key={c.id} position={[c.cx, 0, c.cz]}>
+          <mesh position={[0, c.H, 0]} castShadow material={mats.roof}>
+            <boxGeometry args={[c.w, 0.5, c.d]} />
+          </mesh>
+          <primitive object={c.pv} />
+          {c.posts.map(([px, pz], i) => (
+            <mesh key={i} position={[px, c.H / 2, pz]} castShadow material={mats.steel}>
+              <boxGeometry args={[0.8, c.H, 0.8]} />
             </mesh>
-            {/* Left lane marking */}
-            <mesh rotation-x={-Math.PI / 2} position={d === 'z' ? [-2, 0.02, 0] : [0, 0.02, -2]}>
-              <planeGeometry args={d === 'z' ? [0.08, 4.5] : [4.5, 0.08]} />
-              <primitive object={MATERIALS.laneMarkingWhite()} attach="material" />
-            </mesh>
-            {/* Right lane marking */}
-            <mesh rotation-x={-Math.PI / 2} position={d === 'z' ? [2, 0.02, 0] : [0, 0.02, 2]}>
-              <planeGeometry args={d === 'z' ? [0.08, 4.5] : [4.5, 0.08]} />
-              <primitive object={MATERIALS.laneMarkingWhite()} attach="material" />
-            </mesh>
-            {/* Teal accent */}
-            <mesh rotation-x={-Math.PI / 2} position={d === 'z' ? [0, 0.025, -2.2] : [-2.2, 0.025, 0]}>
-              <planeGeometry args={d === 'z' ? [3.8, 0.12] : [0.12, 3.8]} />
-              <primitive object={MATERIALS.laneMarkingTeal()} attach="material" />
-            </mesh>
-            {/* Stall number */}
-            <Html position={[0, 0.05, 0]} center style={{ pointerEvents: 'none' }}>
-              <span className="text-[6px] font-mono font-bold" style={{ color: 'rgba(0,212,170,0.45)' }}>
-                S{String(globalIdx).padStart(2, '0')}
-              </span>
-            </Html>
-          </group>
-        );
-      })}
-
-      {/* Section labels */}
-      <Html position={[-130, 5, 12]} center>
-        <span className="text-[9px] font-bold tracking-wider" style={{ color: 'rgba(0,212,170,0.6)' }}>
-          STAGING / QUEUE
-        </span>
-      </Html>
-      <Html position={[0, 5, 90]} center>
-        <span className="text-[9px] font-bold tracking-wider" style={{ color: 'rgba(0,212,170,0.6)' }}>
-          STAGING / QUEUE
-        </span>
-      </Html>
-      <Html position={[130, 5, 12]} center>
-        <span className="text-[9px] font-bold tracking-wider" style={{ color: 'rgba(0,212,170,0.6)' }}>
-          STAGING / QUEUE
-        </span>
-      </Html>
+          ))}
+        </group>
+      ))}
     </group>
   );
 }

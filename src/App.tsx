@@ -7,7 +7,10 @@ import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useSimulationStore } from '@/store/simulationStore';
 import { useDemoStore } from '@/store/demoStore';
 import { useDepotStore } from '@/store/depotStore';
+import { useVehicleStore } from '@/store/vehicleStore';
 import { simulationEngine } from '@/engine/SimulationEngine';
+import { createQueueVehicle } from '@/engine/IncidentInjector';
+import { INGRESS } from '@/engine/types';
 import { useTwinFeed } from '@/hooks/useTwinFeed';
 import { useTwinSceneBridge } from '@/hooks/useTwinSceneBridge';
 
@@ -20,18 +23,33 @@ const App = () => {
     // Reset first
     simulationEngine.reset();
 
-    // Set demo config
+    // Set demo config (site-plan counts; continuous arrivals so the depot is alive immediately)
     sim.updateConfig({
       activeFleetSize: 50,
       activeConsumerMembers: 150,
       ottoQAlgorithm: 'Priority-Weighted',
       turnaroundMode: 'Standard',
+      fleetArrivalPattern: 'Continuous',
+      consumerArrivalDist: 'Uniform',
       dcfcCount: 10,
-      l2Count: 40,
+      l2Count: 30,
       washBayCount: 3,
-      stagingStalls: 15,
+      stagingStalls: 97,
     });
-    depot.regenerateStalls(10, 40, 3, 15);
+    depot.regenerateStalls(10, 30, 3, 97);
+
+    // Seed an opening wave: half already holding on the queue row, half
+    // driving in through the ingress gate (full one-way choreography).
+    const simTime = sim.simTime;
+    const seed = Array.from({ length: 12 }, (_, i) => {
+      const v = createQueueVehicle(simTime, i);
+      if (i >= 6) {
+        v.status = 'approaching';
+        v.position = { x: INGRESS.x, y: INGRESS.y + (i - 6) * 4 };
+      }
+      return v;
+    });
+    useVehicleStore.getState().setVehicles(seed);
 
     // Lock controls, set speed, open KPIs
     sim.setControlsLocked(true);
