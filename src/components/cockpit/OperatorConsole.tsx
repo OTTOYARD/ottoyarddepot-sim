@@ -291,7 +291,23 @@ export const OperatorConsole = () => {
   const startScenario = async () => {
     setBusy("start");
     try {
-      const res = await twin.start(selected);
+      let res;
+      try {
+        res = await twin.start(selected);
+      } catch (e: any) {
+        // If a run is already active for this depot, stop it and retry once.
+        const msg = String(e?.message || "");
+        if (/one_running_run_per_depot|already.*running|duplicate key/i.test(msg)) {
+          try {
+            const { runs } = await twin.runs(10);
+            const active = runs.find((r) => r.status === "running" || r.status === "active");
+            if (active) await twin.stop(active.sim_run_id);
+          } catch { /* best-effort */ }
+          res = await twin.start(selected);
+        } else {
+          throw e;
+        }
+      }
       setActiveSimRunId(res.sim_run_id);
       ctrl.play();   // Start also begins the clock — "press Start and watch it run"
       toast.success(`Started ${selected} — running`);
