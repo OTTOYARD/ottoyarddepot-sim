@@ -53,32 +53,44 @@ export function SiteDetails() {
     return inst;
   }, [stalls]);
 
-  // ---- instanced bollards: canopy lane ends, bay door flanks, BESS gate ----
-  const bollards = useMemo(() => {
-    const pts: { x: number; y: number }[] = [];
+  // ---- instanced bollards ----
+  // BRIGHT ORANGE pylons guard every canopy LEG (charging zone); yellow
+  // bollards keep the bay door flanks, rear corners, and BESS gate.
+  const bollardSets = useMemo(() => {
+    const mk = (pts: { x: number; y: number }[], mat: THREE.Material) => {
+      const inst = new THREE.InstancedMesh(
+        new THREE.CylinderGeometry(0.42, 0.42, 2.6, 10), mat, Math.max(1, pts.length),
+      );
+      const d = new THREE.Object3D();
+      pts.forEach((p, i) => {
+        const [wx, , wz] = toWorld(p, 0);
+        d.position.set(wx, 1.3, wz);
+        d.updateMatrix();
+        inst.setMatrixAt(i, d.matrix);
+      });
+      inst.instanceMatrix.needsUpdate = true;
+      return inst;
+    };
+
+    // orange: one pylon beside each canopy post (posts sit every 22 units
+    // along both roof edges — mirror SolarCanopy's placement, nudged into
+    // the stall side so the legs read protected from the charge lanes)
+    const orange: { x: number; y: number }[] = [];
     for (const c of CANOPIES) {
-      for (const side of [-7, 7]) {
-        pts.push({ x: c.cx + side, y: c.y - 3 });
-        pts.push({ x: c.cx + side, y: c.y + c.h + 3 });
+      for (let yy = c.y + 5; yy <= c.y + c.h - 5; yy += 22) {
+        orange.push({ x: c.cx - 12, y: yy });
+        orange.push({ x: c.cx + 12, y: yy });
       }
     }
-    // bay-front door flanks (forecourt edge) + rear-corner protection on the apron
-    for (const dx of [120, 138]) { pts.push({ x: dx - 7.5, y: 57.5 }); pts.push({ x: dx + 7.5, y: 57.5 }); }
-    for (const dx of [168, 186, 204]) { pts.push({ x: dx - 7, y: 57.5 }); pts.push({ x: dx + 7, y: 57.5 }); }
-    for (const dx of [120, 138, 168, 186, 204]) { pts.push({ x: dx - 7, y: 24.5 }); pts.push({ x: dx + 7, y: 24.5 }); }
-    pts.push({ x: BESS_YARD.x + BESS_YARD.w + 2, y: BESS_YARD.y + BESS_YARD.h + 2 });
-    const inst = new THREE.InstancedMesh(
-      new THREE.CylinderGeometry(0.42, 0.42, 2.6, 10), MATERIALS.safetyYellow(), pts.length,
-    );
-    const d = new THREE.Object3D();
-    pts.forEach((p, i) => {
-      const [wx, , wz] = toWorld(p, 0);
-      d.position.set(wx, 1.3, wz);
-      d.updateMatrix();
-      inst.setMatrixAt(i, d.matrix);
-    });
-    inst.instanceMatrix.needsUpdate = true;
-    return inst;
+
+    // yellow: bay-front door flanks (forecourt edge), rear corners, BESS gate
+    const yellow: { x: number; y: number }[] = [];
+    for (const dx of [120, 138]) { yellow.push({ x: dx - 7.5, y: 57.5 }); yellow.push({ x: dx + 7.5, y: 57.5 }); }
+    for (const dx of [168, 186, 204]) { yellow.push({ x: dx - 7, y: 57.5 }); yellow.push({ x: dx + 7, y: 57.5 }); }
+    for (const dx of [120, 138, 168, 186, 204]) { yellow.push({ x: dx - 7, y: 24.5 }); yellow.push({ x: dx + 7, y: 24.5 }); }
+    yellow.push({ x: BESS_YARD.x + BESS_YARD.w + 2, y: BESS_YARD.y + BESS_YARD.h + 2 });
+
+    return [mk(orange, MATERIALS.safetyOrange()), mk(yellow, MATERIALS.safetyYellow())];
   }, []);
 
   // ---- oil stains under ~30% of charging stalls ----
@@ -146,7 +158,8 @@ export function SiteDetails() {
   return (
     <group>
       <primitive object={wheelStops} />
-      <primitive object={bollards} />
+      <primitive object={bollardSets[0]} />
+      <primitive object={bollardSets[1]} />
 
       {/* oil stains */}
       {stains.map((s) => (

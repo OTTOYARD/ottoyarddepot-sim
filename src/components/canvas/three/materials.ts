@@ -268,6 +268,14 @@ export function safetyYellow() {
   }));
 }
 
+export function safetyOrange() {
+  return cached('safetyOrange', () => new THREE.MeshPhysicalMaterial({
+    color: '#ff5f1f', roughness: 0.4, metalness: 0.0, envMapIntensity: 0.7,
+    clearcoat: 0.35, clearcoatRoughness: 0.25,
+    emissive: new THREE.Color('#ff5f1f'), emissiveIntensity: 0.18,
+  }));
+}
+
 export function gravel() {
   return cached('gravel', () => new THREE.MeshPhysicalMaterial({
     color: '#7A7568', roughness: 0.95, metalness: 0.0, envMapIntensity: 0.2,
@@ -288,5 +296,5 @@ export const MATERIALS = {
   tealLED, whiteLED, greenIndicator, amberIndicator,
   concreteBlock, woodAccent,
   chargerHousing, chargerCable, chargerConnector,
-  grass, gravel, curbing, shrubGreen, safetyYellow,
+  grass, gravel, curbing, shrubGreen, safetyYellow, safetyOrange,
 } as const;

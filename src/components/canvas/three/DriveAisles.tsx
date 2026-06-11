@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { MATERIALS } from './materials';
 import {
   WEST_AISLE_X, EAST_AISLE_X, NORTH_LANE_Y, SOUTH_LANE_Y, REAR_LANE_Y, FORECOURT_Y,
-  WEST_LINK_X, GAP_LANES, TEMP_LANE_X, INGRESS, EGRESS,
+  WEST_LINK_X, GAP_LANES, TEMP_LANE_X, CANOPIES, INGRESS, EGRESS,
 } from '@/lib/sitePlan';
 import { toWorld } from './coordUtils';
 
@@ -81,11 +81,26 @@ export function DriveAisles() {
       {/* north collector — two-way (east lane / west lane) */}
       {[64, 112, 160, 208, 252].map((x) => <Arrow key={`ne${x}`} x={x} y={NORTH_LANE_Y + 3.2} headingDeg={90} />)}
       {[88, 136, 184, 232].map((x) => <Arrow key={`nw${x}`} x={x} y={NORTH_LANE_Y - 3.2} headingDeg={270} />)}
-      {/* forecourt — entry guidance into each pull-through bay */}
-      {[120, 138, 168, 186, 204].map((x) => <Arrow key={`f${x}`} x={x} y={FORECOURT_Y} headingDeg={0} />)}
-      {/* rear apron — exits swing left (west link) or right (east aisle) */}
-      {[180, 230].map((x) => <Arrow key={`re${x}`} x={x} y={REAR_LANE_Y} headingDeg={90} />)}
-      {[90, 110].map((x) => <Arrow key={`rw${x}`} x={x} y={REAR_LANE_Y} headingDeg={270} />)}
+      {/* charging lanes — pull-forward guidance flanking every charger column,
+          pointing north toward the collector / service & wash */}
+      {CANOPIES.map((c) => (
+        [c.cx - 7, c.cx + 7].map((x) => (
+          [c.y + 26, c.y + 62].map((y) => <Arrow key={`cl${x}-${y}`} x={x} y={y} headingDeg={0} />)
+        ))
+      ))}
+      {/* forecourt — entry guidance into each pull-through bay (approach + threshold) */}
+      {[120, 138, 168, 186, 204].map((x) => <Arrow key={`f${x}`} x={x} y={FORECOURT_Y + 3} headingDeg={0} />)}
+      {[120, 138, 168, 186, 204].map((x) => <Arrow key={`ft${x}`} x={x} y={FORECOURT_Y - 3.4} headingDeg={0} />)}
+      {/* bay REAR exits — paired left/right arrows just out the rear door */}
+      {[120, 138, 168, 186, 204].map((x) => (
+        <group key={`rx${x}`}>
+          <Arrow x={x - 3} y={21.5} headingDeg={270} />
+          <Arrow x={x + 3} y={21.5} headingDeg={90} />
+        </group>
+      ))}
+      {/* rear apron — through-traffic swings left (west link) or right (east aisle) */}
+      {[225].map((x) => <Arrow key={`re${x}`} x={x} y={REAR_LANE_Y} headingDeg={90} />)}
+      {[95].map((x) => <Arrow key={`rw${x}`} x={x} y={REAR_LANE_Y} headingDeg={270} />)}
       {/* west link — southbound from the apron to the collector */}
       <Arrow x={WEST_LINK_X} y={36} headingDeg={180} />
       <Arrow x={WEST_LINK_X} y={58} headingDeg={180} />
