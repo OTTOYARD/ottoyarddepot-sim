@@ -16,7 +16,10 @@ import { routeToStall, routeToEgress, routeToQueue } from '@/lib/sitePlan';
 import type { Vehicle, VehicleStatus } from './types';
 import type { StallState } from '@/store/depotStore';
 
-const LERP_SPEED = 30; // SVG units per sim-second
+// Travel speed in logical units per sim-second. 1 u ≈ 1.57 ft, so 11 u/s
+// ≈ 17 ft/s ≈ 12 mph — a realistic depot crawl that keeps the gate→charge→
+// bay→egress choreography readable at demo sim speeds.
+const LERP_SPEED = 11;
 
 let lastScheduleTime = 0;
 let cuoptPending = false;

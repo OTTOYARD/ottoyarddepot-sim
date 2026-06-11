@@ -38,22 +38,23 @@ const App = () => {
     });
     depot.regenerateStalls(10, 30, 3, 115);
 
-    // Seed an opening wave: half already holding on the queue row, half
-    // driving in through the ingress gate (full one-way choreography).
+    // Seed an opening wave: a staggered stream arriving through the ingress
+    // gate (3 already queued so OTTO-Q assigns immediately), so the full
+    // gate → charge → bay → egress choreography is visible from the start.
     const simTime = sim.simTime;
     const seed = Array.from({ length: 12 }, (_, i) => {
       const v = createQueueVehicle(simTime, i);
-      if (i >= 6) {
+      if (i >= 3) {
         v.status = 'approaching';
-        v.position = { x: INGRESS.x, y: INGRESS.y + (i - 6) * 4 };
+        v.position = { x: INGRESS.x, y: INGRESS.y + (i - 3) * 9 };
       }
       return v;
     });
     useVehicleStore.getState().setVehicles(seed);
 
-    // Lock controls, set speed, open KPIs
+    // Lock controls, set a watchable speed (flow stays readable), open KPIs
     sim.setControlsLocked(true);
-    sim.setSimSpeed(30);
+    sim.setSimSpeed(8);
     sim.setActiveTab('kpis');
 
     // Show loading overlay

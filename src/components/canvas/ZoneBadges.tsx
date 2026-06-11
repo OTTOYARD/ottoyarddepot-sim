@@ -23,11 +23,12 @@ const ZoneBadgesInner = () => {
 
   return (
     <>
-      <Badge x={185} y={48} label={`${counts.dcfcOccupied}/${counts.dcfcTotal}`} bg="#C00000" />
-      <Badge x={195} y={78} label={`${counts.l2Occupied}/${counts.l2Total}`} bg="#00B4A6" />
-      <Badge x={50} y={15} label={`${counts.washOccupied}/${counts.washTotal}`} bg="#2196F3" />
-      <Badge x={195} y={165} label={`${counts.stagingOccupied}/${counts.stagingTotal}`} bg="#F59E0B" />
-      <Badge x={150} y={197} label={String(counts.queued)} bg="#FFFFFF" textColor="#1A1A2E" />
+      {/* positions follow the v2 site plan zones */}
+      <Badge x={103} y={73} label={`${counts.dcfcOccupied}/${counts.dcfcTotal}`} bg="#C00000" />
+      <Badge x={174} y={73} label={`${counts.l2Occupied}/${counts.l2Total}`} bg="#00B4A6" />
+      <Badge x={186} y={23} label={`${counts.washOccupied}/${counts.washTotal}`} bg="#2196F3" />
+      <Badge x={150} y={188} label={`${counts.stagingOccupied}/${counts.stagingTotal}`} bg="#F59E0B" />
+      <Badge x={62} y={184} label={`Q ${counts.queued}`} bg="#FFFFFF" textColor="#1A1A2E" />
     </>
   );
 };
