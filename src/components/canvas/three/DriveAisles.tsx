@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { MATERIALS } from './materials';
 import {
   WEST_AISLE_X, EAST_AISLE_X, NORTH_LANE_Y, SOUTH_LANE_Y, REAR_LANE_Y, FORECOURT_Y,
-  WEST_LINK_X, GAP_LANES, INGRESS, EGRESS,
+  WEST_LINK_X, GAP_LANES, TEMP_LANE_X, INGRESS, EGRESS,
 } from '@/lib/sitePlan';
 import { toWorld } from './coordUtils';
 
@@ -89,6 +89,9 @@ export function DriveAisles() {
       {/* west link — southbound from the apron to the collector */}
       <Arrow x={WEST_LINK_X} y={36} headingDeg={180} />
       <Arrow x={WEST_LINK_X} y={58} headingDeg={180} />
+      {/* temp/overflow block — two-way central access aisle */}
+      <Arrow x={TEMP_LANE_X} y={98} headingDeg={180} />
+      <Arrow x={TEMP_LANE_X} y={148} headingDeg={0} />
       {/* east aisle — southbound */}
       {[60, 100, 140].map((y) => <Arrow key={`e${y}`} x={EAST_AISLE_X} y={y} headingDeg={180} />)}
       {/* south collector — two-way */}

@@ -38,9 +38,10 @@ export function SiteDetails() {
     );
     const d = new THREE.Object3D();
     parking.forEach((s, i) => {
-      const across = s.position.angle === 90;
-      // stop sits at the fence-side end of the stall
-      const offX = across ? (s.position.x < 150 ? -3.4 : 3.4) : 0;
+      const a = s.position.angle;
+      const across = a === 90 || a === 270;
+      // stop sits at the stall head (away from its access aisle)
+      const offX = a === 270 ? -3.4 : a === 90 ? (s.position.x < 150 ? -3.4 : 3.4) : 0;
       const offY = across ? 0 : (s.position.y < 110 ? -3.4 : 3.4);
       const [wx, , wz] = toWorld({ x: s.position.x + offX, y: s.position.y + offY }, 0);
       d.position.set(wx, 0.25, wz);
@@ -107,8 +108,10 @@ export function SiteDetails() {
   // Islands sit only where no vehicle path runs: the forecourt east cap
   // (x>220, off the bay frontage), and two south-fence pads clear of the
   // queue row and gate throats.
+  // Relocated out of the NE overflow zone: tucked against the east fence,
+  // north of the parking column, clear of the east aisle and apron swing.
   const islands = useMemo(() => ([
-    { x: 244, y: 62, w: 12, d: 8, n: 4 },     // forecourt east cap — the only in-lot island
+    { x: 286, y: 33, w: 9, d: 11, n: 4 },
   ]).map((r, k) => {
     const [wx, , wz] = toWorld({ x: r.x, y: r.y }, 0);
     const shrubs = Array.from({ length: r.n }, (_, i) => ({

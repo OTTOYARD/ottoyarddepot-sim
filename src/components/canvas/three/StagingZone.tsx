@@ -23,7 +23,7 @@ export function StagingZone({ count: _count }: { count: number }) {
     const d = new THREE.Object3D();
     let i = 0;
     for (const run of PARK_RUNS) {
-      const across = run.angle === 90; // stalls along a column → car oriented east-west
+      const across = run.angle === 90 || run.angle === 270; // car oriented east-west
       for (let k = 0; k < run.n; k++) {
         const x = run.x0 + k * run.dx, y = run.y0 + k * run.dy;
         const [wx, , wz] = toWorld({ x, y }, 0);
@@ -44,9 +44,9 @@ export function StagingZone({ count: _count }: { count: number }) {
     return inst;
   }, []);
 
-  // carports: roof + flush PV + posts
-  const carports = useMemo(() => PARK_RUNS.map((run) => {
-    const r = run.carport;
+  // carports: roof + flush PV + posts (overflow/temp runs are open-air)
+  const carports = useMemo(() => PARK_RUNS.filter((run) => run.carport).map((run) => {
+    const r = run.carport!;
     const [cx, , cz] = toWorld({ x: r.x + r.w / 2, y: r.y + r.h / 2 }, 0);
     const H = 8;
     const cols = Math.max(1, Math.floor((r.w - 1.5) / 4.4));

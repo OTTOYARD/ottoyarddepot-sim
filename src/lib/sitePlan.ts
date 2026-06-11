@@ -70,31 +70,41 @@ export const CANOPIES: CanopyDef[] = [
   { id: 'C', cx: 197, x: 182, w: 30, y: 80, h: 84, kind: 'l2' },
 ];
 
-// Perimeter parking runs (solar carports above each)
+// Perimeter parking runs (solar carports above each; temp/overflow runs are open-air)
 export interface ParkRun {
   id: string;
   // first stall center + per-stall step
   x0: number; y0: number; dx: number; dy: number; n: number;
-  angle: number; // parked car orientation (deg, 0 = facing north/south axis)
-  carport: { x: number; y: number; w: number; h: number };
+  angle: number; // parked car orientation (deg: 0=N, 90=E, 180=S, 270=W)
+  carport?: { x: number; y: number; w: number; h: number };
 }
+// Central access aisle of the temporary/overflow staging block (retail-style
+// double-loaded: facing stall columns pull in off this aisle from both sides).
+export const TEMP_LANE_X = 247;
 // NOTE: no parking abuts the rear apron — bay-rear exits need clear
-// maneuvering room before any stall (north strip stays empty by design).
+// maneuvering room before any stall. W/E columns stop short of the south
+// rows so corner stalls never overlap.
 export const PARK_RUNS: ParkRun[] = [
-  { id: 'W',  x0: 15.5, y0: 58,  dx: 0,   dy: 5.7, n: 26, angle: 90, carport: { x: 9,   y: 54,  w: 13, h: 152 } },
-  { id: 'E',  x0: 284.5, y0: 46, dx: 0,   dy: 5.7, n: 28, angle: 90, carport: { x: 278, y: 42,  w: 13, h: 164 } },
-  { id: 'S1', x0: 24,  y0: 197,  dx: 6.4, dy: 0,   n: 11, angle: 0,  carport: { x: 20,  y: 191, w: 72, h: 13 } },
-  { id: 'S2', x0: 112, y0: 197,  dx: 6.9, dy: 0,   n: 12, angle: 0,  carport: { x: 108, y: 191, w: 84, h: 13 } },
-  { id: 'S3', x0: 212, y0: 197,  dx: 6.4, dy: 0,   n: 10, angle: 0,  carport: { x: 208, y: 191, w: 68, h: 13 } },
+  { id: 'W',  x0: 15.5, y0: 58,  dx: 0,   dy: 5.7, n: 24, angle: 90,  carport: { x: 9,   y: 54,  w: 13, h: 141 } },
+  { id: 'E',  x0: 284.5, y0: 46, dx: 0,   dy: 5.7, n: 25, angle: 90,  carport: { x: 278, y: 42,  w: 13, h: 147 } },
+  { id: 'S1', x0: 24,  y0: 197,  dx: 6.4, dy: 0,   n: 11, angle: 0,   carport: { x: 20,  y: 191, w: 72, h: 13 } },
+  { id: 'S2', x0: 112, y0: 197,  dx: 6.9, dy: 0,   n: 12, angle: 0,   carport: { x: 108, y: 191, w: 84, h: 13 } },
+  { id: 'S3', x0: 212, y0: 197,  dx: 6.4, dy: 0,   n: 10, angle: 0,   carport: { x: 208, y: 191, w: 68, h: 13 } },
+  // open-air overflow, NE zone: a short row south of the rear-apron buffer…
+  { id: 'N1', x0: 228, y0: 36,   dx: 6,   dy: 0,   n: 7,  angle: 0 },
+  // …and the retail-style temp block: two facing columns off the central aisle
+  { id: 'TW', x0: 234, y0: 86,   dx: 0,   dy: 6,   n: 13, angle: 270 },
+  { id: 'TE', x0: 260, y0: 86,   dx: 0,   dy: 6,   n: 13, angle: 90 },
 ];
 
-// Overhead site lighting (24/7 ops)
+// Overhead site lighting (24/7 ops) — placed at zone edges, never in a lane
+// (the apron swing at y≈16 and the West Link at x=66 stay clear).
 export const LIGHT_POLES: { x: number; y: number }[] = [
   { x: 36, y: 60 }, { x: 36, y: 120 }, { x: 36, y: 174 },
   { x: 268, y: 60 }, { x: 268, y: 120 }, { x: 268, y: 174 },
   { x: 126, y: 60 }, { x: 174, y: 60 },
   { x: 126, y: 172 }, { x: 174, y: 172 },
-  { x: 66, y: 16 }, { x: 218, y: 16 },
+  { x: 52, y: 9 }, { x: 218, y: 29 },
 ];
 
 // ---- Stall generation (consumed by depotStore.generateStalls) ----
@@ -168,7 +178,7 @@ function stagingStalls(count: number): StallState[] {
 }
 
 export function generateStallsV2(
-  dcfcCount = 10, l2Count = 30, washCount = 3, stagingCount = 87, serviceCount = 2,
+  dcfcCount = 10, l2Count = 30, washCount = 3, stagingCount = 115, serviceCount = 2,
 ): StallState[] {
   return [
     ...chargingStalls(dcfcCount, l2Count),
@@ -187,8 +197,10 @@ export function generateStallsV2(
 
 type Pt = { x: number; y: number };
 
-const inCanopy = (p: Pt) => p.y >= CANOPIES[0].y - 2 && p.y <= CANOPIES[0].y + CANOPIES[0].h + 2 && p.x > 60 && p.x < 240;
+const inCanopy = (p: Pt) => p.y >= CANOPIES[0].y - 2 && p.y <= CANOPIES[0].y + CANOPIES[0].h + 2 && p.x > 60 && p.x < 222;
 const inBays = (p: Pt) => p.y < FORECOURT_Y - 6 && p.y > REAR_LANE_Y + 6 && p.x > 64 && p.x < 220;
+// NE overflow zone: the N1 row + the TW/TE temp block, all served by TEMP_LANE_X
+const inTemp = (p: Pt) => p.x > 222 && p.x < 272 && p.y > 28 && p.y < 164;
 
 /** Legs from a position onto the NORTH collector (the main artery). */
 function toCollector(from: Pt): Pt[] {
@@ -199,6 +211,13 @@ function toCollector(from: Pt): Pt[] {
       { x: from.x, y: REAR_LANE_Y },
       { x: exitX, y: REAR_LANE_Y },
       { x: exitX, y: NORTH_LANE_Y },
+    ];
+  }
+  if (inTemp(from)) {
+    // overflow zone: sidestep into the central aisle, then north
+    return [
+      { x: TEMP_LANE_X, y: from.y },
+      { x: TEMP_LANE_X, y: NORTH_LANE_Y },
     ];
   }
   if (inCanopy(from)) {
@@ -239,6 +258,14 @@ function fromCollector(stall: Pt): Pt[] {
     // bays: straight in through the forecourt throat
     return [
       { x: stall.x, y: NORTH_LANE_Y },
+      { x: stall.x, y: stall.y },
+    ];
+  }
+  if (inTemp(stall)) {
+    // overflow zone: ride the central aisle to depth, sidestep in
+    return [
+      { x: TEMP_LANE_X, y: NORTH_LANE_Y },
+      { x: TEMP_LANE_X, y: stall.y },
       { x: stall.x, y: stall.y },
     ];
   }

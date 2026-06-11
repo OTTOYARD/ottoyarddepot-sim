@@ -105,7 +105,7 @@ const defaultConfig: SimulationConfig = {
   dcfcPowerPerStall: 200,
   l2PowerPerStall: 11.5,
   washBayCount: 3,
-  stagingStalls: 87,
+  stagingStalls: 115,
   serviceBayCount: 2,
   solarCanopy: 500,
   bessCapacity: 2,

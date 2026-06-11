@@ -34,9 +34,9 @@ const App = () => {
       dcfcCount: 10,
       l2Count: 30,
       washBayCount: 3,
-      stagingStalls: 87,
+      stagingStalls: 115,
     });
-    depot.regenerateStalls(10, 30, 3, 87);
+    depot.regenerateStalls(10, 30, 3, 115);
 
     // Seed an opening wave: half already holding on the queue row, half
     // driving in through the ingress gate (full one-way choreography).
