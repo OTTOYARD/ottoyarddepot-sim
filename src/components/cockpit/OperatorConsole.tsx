@@ -291,23 +291,20 @@ export const OperatorConsole = () => {
   const startScenario = async () => {
     setBusy("start");
     try {
-      let res;
+      let res: { sim_run_id: string; scenario_code: string } | null = null;
       try {
         res = await twin.start(selected);
       } catch (e: any) {
         // If a run is already active for this depot, stop it and retry once.
-        const msg = String(e?.message || "");
-        if (/one_running_run_per_depot|already.*running|duplicate key/i.test(msg)) {
-          try {
-            const { runs } = await twin.runs(10);
-            const active = runs.find((r) => r.status === "running" || r.status === "active");
-            if (active) await twin.stop(active.sim_run_id);
-          } catch { /* best-effort */ }
-          res = await twin.start(selected);
-        } else {
-          throw e;
-        }
+        const msg = String(e?.message || e || "");
+        if (!/one_running_run_per_depot|already.*running|duplicate key|scenario start failed/i.test(msg)) throw e;
+
+        const { runs } = await twin.runs(25);
+        const activeRuns = runs.filter((r) => ["running", "active", "paused"].includes(String(r.status).toLowerCase()));
+        await Promise.all(activeRuns.map((run) => twin.stop(run.sim_run_id).catch(() => null)));
+        res = await twin.start(selected);
       }
+      if (!res) throw new Error("scenario start failed");
       setActiveSimRunId(res.sim_run_id);
       ctrl.play();   // Start also begins the clock — "press Start and watch it run"
       toast.success(`Started ${selected} — running`);
