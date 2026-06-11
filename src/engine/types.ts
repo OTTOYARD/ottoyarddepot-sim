@@ -37,12 +37,12 @@ export const SERVICE_TO_STALL_TYPE: Record<ServiceType, string> = {
   l2_charge: 'l2',
   exterior_wash: 'wash',
   interior_detail: 'wash',
-  maintenance: 'wash',
+  maintenance: 'service',
   staging: 'staging',
 };
 
-export const INGRESS = { x: 100, y: 215 };
-export const EGRESS = { x: 200, y: 215 };
-export const QUEUE_Y = 185;
+// Flow geometry lives in the shared site plan (single source of truth for the
+// engine, the 2D SVG, the 3D scene, and any future renderer).
+export { INGRESS, EGRESS, QUEUE_Y } from '@/lib/sitePlan';
 
 export type ScoringFn = (vehicle: Vehicle, simTime: number) => number;

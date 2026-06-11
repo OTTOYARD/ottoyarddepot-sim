@@ -11,13 +11,15 @@ import { calculateKPIs } from './KPICalculator';
 import { checkAlerts, resetAlertEngine } from './AlertEngine';
 import { saveRun } from '@/lib/runPersistence';
 import { optimizeDepotSchedule } from '@/lib/nvidia-cuopt';
-import { SERVICE_TO_STALL_TYPE, EGRESS, QUEUE_Y } from './types';
+import { SERVICE_TO_STALL_TYPE } from './types';
+import { routeToStall, routeToEgress, routeToQueue } from '@/lib/sitePlan';
 import type { Vehicle, VehicleStatus } from './types';
 import type { StallState } from '@/store/depotStore';
 
-const LERP_SPEED = 30; // SVG units per sim-second
-const LEFT_AISLE_X = 30;
-const RIGHT_AISLE_X = 275;
+// Travel speed in logical units per sim-second. 1 u ≈ 1.57 ft, so 11 u/s
+// ≈ 17 ft/s ≈ 12 mph — a realistic depot crawl that keeps the gate→charge→
+// bay→egress choreography readable at demo sim speeds.
+const LERP_SPEED = 11;
 
 let lastScheduleTime = 0;
 let cuoptPending = false;
@@ -27,6 +29,7 @@ function getServiceTimeForStall(stallType: string, config: SimulationConfig): nu
     dcfc: config.dcfcChargeTime || 25,
     l2: (config.l2ChargeTime || 4) * 60,
     wash: config.exteriorWash || 10,
+    service: 45,
     staging: 5,
   };
   return map[stallType] || 30;
@@ -57,12 +60,7 @@ function applyCuOptAssignments() {
 
     v.assignedStall = stall.id;
     v.status = serviceToVehicleStatus(neededService);
-    const stallTarget = { x: stall.position.x + 4, y: stall.position.y + 8 };
-    v.waypoints = [
-      { x: LEFT_AISLE_X, y: v.position.y },
-      { x: LEFT_AISLE_X, y: stallTarget.y },
-      stallTarget,
-    ];
+    v.waypoints = routeToStall(v.position, stall.position);
     v.targetPosition = v.waypoints.shift()!;
     v.serviceStartTime = null;
     v.serviceDuration = getServiceDuration(v, config);
@@ -249,12 +247,7 @@ export class SimulationEngine {
     for (const v of vehicles) {
       if (v.status === 'approaching' && !v.targetPosition && !v.waypoints?.length) {
         const queueX = 50 + (vehicles.filter((vv) => vv.status === 'queued').length % 15) * 15;
-        // Waypoint path: ingress → left aisle → north → queue position
-        v.waypoints = [
-          { x: LEFT_AISLE_X, y: 215 },
-          { x: LEFT_AISLE_X, y: QUEUE_Y },
-          { x: queueX, y: QUEUE_Y },
-        ];
+        v.waypoints = routeToQueue(queueX);
         v.targetPosition = v.waypoints.shift()!;
       }
     }
@@ -269,11 +262,7 @@ export class SimulationEngine {
         const neededService = v.serviceQueue[v.currentServiceIndex];
         if (!neededService) {
           v.status = 'departing';
-          v.waypoints = [
-            { x: RIGHT_AISLE_X, y: v.position.y },
-            { x: RIGHT_AISLE_X, y: 215 },
-            { ...EGRESS },
-          ];
+          v.waypoints = routeToEgress(v.position);
           v.targetPosition = v.waypoints.shift()!;
           changed = true;
           continue;
@@ -299,16 +288,7 @@ export class SimulationEngine {
           v.assignedStall = availableStall.id;
           const actualService = overflowed ? 'l2_charge' : neededService;
           v.status = serviceToVehicleStatus(actualService);
-          const stallTarget = {
-            x: availableStall.position.x + 4,
-            y: availableStall.position.y + 8,
-          };
-          // Waypoint path: current → left aisle at current y → left aisle at stall y → stall
-          v.waypoints = [
-            { x: LEFT_AISLE_X, y: v.position.y },
-            { x: LEFT_AISLE_X, y: stallTarget.y },
-            stallTarget,
-          ];
+          v.waypoints = routeToStall(v.position, availableStall.position);
           v.targetPosition = v.waypoints.shift()!;
           v.serviceStartTime = null;
           v.serviceDuration = getServiceDuration(v, config);
@@ -380,12 +360,7 @@ export class SimulationEngine {
 
           if (v.currentServiceIndex >= v.serviceQueue.length) {
             v.status = 'departing';
-            // Waypoint path: current pos → right aisle → south → egress
-            v.waypoints = [
-              { x: RIGHT_AISLE_X, y: v.position.y },
-              { x: RIGHT_AISLE_X, y: 215 },
-              { ...EGRESS },
-            ];
+            v.waypoints = routeToEgress(v.position);
             v.targetPosition = v.waypoints.shift()!;
           } else {
             v.status = 'queued'; // re-queue for next service

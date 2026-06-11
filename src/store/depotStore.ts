@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { generateStallsV2 } from '@/lib/sitePlan';
 
 export type StallType = 'dcfc' | 'l2' | 'wash' | 'staging' | 'service';
 export type StallStatus = 'available' | 'occupied' | 'charging' | 'servicing' | 'offline' | 'reserved';
@@ -26,109 +27,18 @@ interface DepotState {
   regenerateStalls: (dcfc: number, l2: number, wash: number, staging: number, service?: number) => void;
 }
 
-function generateStalls(dcfcCount = 10, l2Count = 40, washCount = 3, stagingCount = 50, serviceCount = 2): StallState[] {
-  const stalls: StallState[] = [];
-  const angle = 60;
-
-  for (let i = 0; i < dcfcCount; i++) {
-    stalls.push({
-      id: `DCFC-${String(i + 1).padStart(2, '0')}`,
-      type: 'dcfc',
-      status: 'available',
-      vehicleId: null,
-      position: { x: 45 + i * Math.min(22, 200 / dcfcCount), y: 57, angle },
-    });
-  }
-
-  const l2Rows = [85, 105, 125, 145];
-  const l2PerRow = Math.ceil(l2Count / 4);
-  let l2Idx = 0;
-  for (let row = 0; row < 4 && l2Idx < l2Count; row++) {
-    for (let col = 0; col < l2PerRow && l2Idx < l2Count; col++) {
-      l2Idx++;
-      stalls.push({
-        id: `L2-${String(l2Idx).padStart(2, '0')}`,
-        type: 'l2',
-        status: 'available',
-        vehicleId: null,
-        position: { x: 45 + col * Math.min(22, 200 / l2PerRow), y: l2Rows[row], angle },
-      });
-    }
-  }
-
-  for (let i = 0; i < washCount; i++) {
-    stalls.push({
-      id: `WASH-${String(i + 1).padStart(2, '0')}`,
-      type: 'wash',
-      status: 'available',
-      vehicleId: null,
-      position: { x: 15 + i * 16, y: 20, angle: 0 },
-    });
-  }
-
-  // U-shaped perimeter staging: west side → south edge → east side
-  const westCount = Math.round(stagingCount * 0.26);
-  const eastCount = Math.round(stagingCount * 0.26);
-  const southCount = stagingCount - westCount - eastCount;
-  let stageIdx = 0;
-
-  // West side: x≈25, y from 50 down to 195
-  for (let i = 0; i < westCount; i++) {
-    stageIdx++;
-    const yPos = 50 + (i / Math.max(westCount - 1, 1)) * 145;
-    stalls.push({
-      id: `STAGE-${String(stageIdx).padStart(2, '0')}`,
-      type: 'staging',
-      status: 'available',
-      vehicleId: null,
-      position: { x: 25, y: yPos, angle: 0 },
-    });
-  }
-
-  // South edge: y≈195, x from 25 to 275 (rectangles, shifted up above ingress/egress)
-  for (let i = 0; i < southCount; i++) {
-    stageIdx++;
-    const xPos = 25 + (i / Math.max(southCount - 1, 1)) * 250;
-    stalls.push({
-      id: `STAGE-${String(stageIdx).padStart(2, '0')}`,
-      type: 'staging',
-      status: 'available',
-      vehicleId: null,
-      position: { x: xPos, y: 188, angle: 0 },
-    });
-  }
-
-  // East side: x≈275, y from 195 up to 50
-  for (let i = 0; i < eastCount; i++) {
-    stageIdx++;
-    const yPos = 195 - (i / Math.max(eastCount - 1, 1)) * 145;
-    stalls.push({
-      id: `STAGE-${String(stageIdx).padStart(2, '0')}`,
-      type: 'staging',
-      status: 'available',
-      vehicleId: null,
-      position: { x: 275, y: yPos, angle: 0 },
-    });
-  }
-
-  for (let i = 0; i < serviceCount; i++) {
-    stalls.push({
-      id: `SVC-${String(i + 1).padStart(2, '0')}`,
-      type: 'service',
-      status: 'available',
-      vehicleId: null,
-      position: { x: 75 + i * 20, y: 25, angle: 0 },
-    });
-  }
-
-  return stalls;
+// All stall geometry comes from the shared site plan (src/lib/sitePlan.ts) —
+// the engine, the 2D SVG, the 3D scene, and any future renderer consume the
+// same coordinates so layout can never drift between layers.
+function generateStalls(dcfcCount = 10, l2Count = 30, washCount = 3, stagingCount = 115, serviceCount = 2): StallState[] {
+  return generateStallsV2(dcfcCount, l2Count, washCount, stagingCount, serviceCount);
 }
 
 export const useDepotStore = create<DepotState>((set) => ({
   dcfcCount: 10,
-  l2Count: 40,
+  l2Count: 30,
   washBayCount: 3,
-  stagingCount: 50,
+  stagingCount: 115,
   serviceBayCount: 2,
   stalls: generateStalls(),
   selectedStallId: null,

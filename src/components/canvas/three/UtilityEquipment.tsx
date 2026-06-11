@@ -1,109 +1,107 @@
-import { forwardRef } from 'react';
-import { Html } from '@react-three/drei';
-import type { Group } from 'three';
-import { useKPIStore } from '@/store/kpiStore';
+import { useMemo } from 'react';
+import * as THREE from 'three';
 import { MATERIALS } from './materials';
+import { BESS_YARD, LIGHT_POLES } from '@/lib/sitePlan';
+import { toWorld } from './coordUtils';
 
 interface UtilityEquipmentProps {
   bessCapacity: number;
   bessPower: number;
 }
 
-export const UtilityEquipment = forwardRef<Group, UtilityEquipmentProps>(function UtilityEquipment(
-  { bessCapacity, bessPower },
-  ref,
-) {
-  const soc = useKPIStore(s => s.bessSOC);
-  const socCol = soc > 20 ? '#00ff88' : soc > 10 ? '#ffaa00' : '#ff4444';
+/**
+ * Secured BESS yard (NW corner, own fence + hazard placard) and the
+ * overhead commercial light poles for 24/7 operations. From the site plan.
+ */
+export function UtilityEquipment({ bessCapacity, bessPower }: UtilityEquipmentProps) {
+  const mats = useMemo(() => ({
+    bess: MATERIALS.darkCladding(),
+    panel: MATERIALS.anodizedPanel(),
+    steel: MATERIALS.structuralSteel(),
+    teal: MATERIALS.tealLED(1.6),
+    amber: MATERIALS.amberIndicator(),
+    pole: MATERIALS.structuralSteel(),
+    head: MATERIALS.whiteLED(1.8),
+  }), []);
+
+  const [bx, , bz] = toWorld({ x: BESS_YARD.x + BESS_YARD.w / 2, y: BESS_YARD.y + BESS_YARD.h / 2 }, 0);
+  const containers = Math.max(2, Math.min(4, Math.round(bessCapacity)));
+
+  // BESS yard fence
+  const fence = useMemo(() => {
+    const w = BESS_YARD.w, d = BESS_YARD.h;
+    const pts: { x: number; z: number; len: number; rot: number }[] = [
+      { x: 0, z: -d / 2, len: w, rot: 0 },
+      { x: 0, z: d / 2, len: w, rot: 0 },
+      { x: -w / 2, z: 0, len: d, rot: Math.PI / 2 },
+      { x: w / 2, z: 0, len: d, rot: Math.PI / 2 },
+    ];
+    return pts;
+  }, []);
 
   return (
-    <group ref={ref} position={[120, 0, -80]}>
-      {/* Transformer — structural steel */}
-      <mesh position={[0, 4, 0]} castShadow receiveShadow>
-        <boxGeometry args={[12, 8, 8]} />
-        <meshPhysicalMaterial {...MATERIALS.structuralSteel()} />
-      </mesh>
-      {/* Transformer fins */}
-      {Array.from({ length: 6 }, (_, i) => (
-        <mesh key={`fin${i}`} position={[6.15, 2 + i * 1, 0]} castShadow>
-          <boxGeometry args={[0.15, 0.6, 7]} />
-          <meshPhysicalMaterial {...MATERIALS.brushedAluminum()} />
+    <group>
+      {/* ---- BESS yard ---- */}
+      <group position={[bx, 0, bz]}>
+        {/* concrete pad */}
+        <mesh rotation-x={-Math.PI / 2} position={[0, 0.06, 0]} receiveShadow>
+          <planeGeometry args={[BESS_YARD.w - 2, BESS_YARD.h - 2]} />
+          <primitive object={MATERIALS.polishedConcrete()} attach="material" />
         </mesh>
-      ))}
-      {/* Concrete pad */}
-      <mesh rotation-x={-Math.PI / 2} position={[0, 0.02, 0]} receiveShadow>
-        <planeGeometry args={[14, 10]} />
-        <meshPhysicalMaterial {...MATERIALS.polishedConcrete()} />
-      </mesh>
-      <Html position={[0, 9, 0]} center>
-        <span className="text-[7px] font-mono" style={{ color: '#666' }}>XFMR</span>
-      </Html>
+        {/* battery containers */}
+        {Array.from({ length: containers }, (_, i) => (
+          <group key={i} position={[-BESS_YARD.w / 2 + 9 + i * 11, 0, 0]}>
+            <mesh position={[0, 3.2, 0]} castShadow material={mats.bess}>
+              <boxGeometry args={[9, 6.4, 16]} />
+            </mesh>
+            <mesh position={[0, 6.5, 0]} material={mats.steel}>
+              <boxGeometry args={[9.2, 0.2, 16.2]} />
+            </mesh>
+            <mesh position={[4.55, 3.6, 0]} material={mats.teal}>
+              <boxGeometry args={[0.06, 0.5, 12]} />
+            </mesh>
+          </group>
+        ))}
+        {/* inverter cabinets */}
+        {[0, 1].map((i) => (
+          <mesh key={i} position={[BESS_YARD.w / 2 - 5, 2, -6 + i * 12]} castShadow material={mats.panel}>
+            <boxGeometry args={[5, 4, 4]} />
+          </mesh>
+        ))}
+        {/* securing fence + hazard placard */}
+        {fence.map((f, i) => (
+          <group key={i} position={[f.x, 0, f.z]} rotation={[0, f.rot, 0]}>
+            <mesh position={[0, 2.6, 0]} material={mats.steel}>
+              <boxGeometry args={[f.len, 0.12, 0.1]} />
+            </mesh>
+            <mesh position={[0, 1.5, 0]}>
+              <boxGeometry args={[f.len, 2.6, 0.03]} />
+              <meshPhysicalMaterial color="#15181d" roughness={0.8} metalness={0.6} transparent opacity={0.3} />
+            </mesh>
+          </group>
+        ))}
+        <mesh position={[0, 3.4, BESS_YARD.h / 2 + 0.08]} material={mats.amber}>
+          <boxGeometry args={[7, 1.6, 0.08]} />
+        </mesh>
+      </group>
 
-      {/* Switchgear — anodized panels */}
-      <mesh position={[18, 3.5, 0]} castShadow receiveShadow>
-        <boxGeometry args={[10, 7, 6]} />
-        <meshPhysicalMaterial {...MATERIALS.anodizedPanel()} />
-      </mesh>
-      {Array.from({ length: 4 }, (_, i) => (
-        <mesh key={`louver${i}`} position={[18, 2 + i * 1.2, 3.05]} castShadow>
-          <boxGeometry args={[8, 0.2, 0.1]} />
-          <meshPhysicalMaterial {...MATERIALS.brushedAluminum()} />
-        </mesh>
-      ))}
-      <Html position={[18, 8, 0]} center>
-        <span className="text-[7px] font-mono" style={{ color: '#666' }}>SWGR</span>
-      </Html>
-
-      {/* BESS — structural steel frame + anodized panel faces */}
-      <mesh position={[0, 4, 14]} castShadow receiveShadow>
-        <boxGeometry args={[14 * Math.min(bessCapacity, 4), 8, 8]} />
-        <meshPhysicalMaterial {...MATERIALS.structuralSteel()} />
-      </mesh>
-      {/* Anodized face panels */}
-      {Array.from({ length: Math.min(bessCapacity, 4) * 7 }, (_, i) => (
-        <mesh key={`ridge${i}`} position={[-7 * Math.min(bessCapacity, 4) + 1 + i * 2, 4, 18.05]} castShadow>
-          <boxGeometry args={[0.3, 7, 0.1]} />
-          <meshPhysicalMaterial {...MATERIALS.anodizedPanel()} />
-        </mesh>
-      ))}
-      {/* Control panel */}
-      <mesh position={[-4, 3, 18.1]} castShadow>
-        <boxGeometry args={[3, 5, 0.05]} />
-        <meshPhysicalMaterial {...MATERIALS.chargerHousing()} />
-      </mesh>
-      {/* SOC bar — green indicator */}
-      <mesh position={[0, 1, 18.5]}>
-        <boxGeometry args={[14 * Math.min(bessCapacity, 4) * (soc / 100), 2, 0.3]} />
-        <meshPhysicalMaterial
-          color={socCol}
-          emissive={socCol}
-          emissiveIntensity={2}
-          roughness={0.2}
-          metalness={0}
-          toneMapped={false}
-        />
-      </mesh>
-      <Html position={[0, 9, 14]} center>
-        <span className="text-[7px] font-mono" style={{ color: '#666' }}>
-          BESS {bessCapacity}MWh | {Math.round(soc)}%
-        </span>
-      </Html>
-
-      {/* Conduits */}
-      {[[0, 0.5, 9, '#C00000'], [18, 0.5, 5, '#00D4AA'], [9, 0.5, -2, '#F59E0B']].map(([x, y, z, c], i) => (
-        <mesh key={`conduit${i}`} position={[x as number, y as number, z as number]} castShadow>
-          <cylinderGeometry args={[0.08, 0.08, 10, 6]} />
-          <meshPhysicalMaterial color={c as string} emissive={c as string} emissiveIntensity={0.4} roughness={0.5} metalness={0.3} />
-        </mesh>
-      ))}
-
-      {/* Inverters */}
-      {[0, 8, 16].map((x, i) => (
-        <mesh key={`inv${i}`} position={[-10 + x, 2, -10]} castShadow receiveShadow>
-          <boxGeometry args={[3, 4, 2]} />
-          <meshPhysicalMaterial {...MATERIALS.anodizedPanel()} />
-        </mesh>
-      ))}
+      {/* ---- site light poles (24/7 ops) ---- */}
+      {LIGHT_POLES.map((p, i) => {
+        const [wx, , wz] = toWorld({ x: p.x, y: p.y }, 0);
+        return (
+          <group key={i} position={[wx, 0, wz]}>
+            <mesh position={[0, 9, 0]} castShadow material={mats.pole}>
+              <cylinderGeometry args={[0.28, 0.4, 18, 8]} />
+            </mesh>
+            <mesh position={[2.6, 17.7, 0]} material={mats.pole}>
+              <boxGeometry args={[5.2, 0.3, 0.3]} />
+            </mesh>
+            <mesh position={[5, 17.5, 0]} material={mats.head}>
+              <boxGeometry args={[2.6, 0.5, 1.3]} />
+            </mesh>
+          </group>
+        );
+      })}
     </group>
   );
-});
+}

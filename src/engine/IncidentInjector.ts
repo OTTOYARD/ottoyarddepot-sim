@@ -5,7 +5,7 @@ import { useSimulationStore } from '@/store/simulationStore';
 import { INGRESS, QUEUE_Y } from './types';
 import type { Vehicle, VehicleType, ServiceType } from './types';
 
-function createQueueVehicle(simTime: number, index: number): Vehicle {
+export function createQueueVehicle(simTime: number, index: number): Vehicle {
   const types: VehicleType[] = ['fleet', 'core', 'concierge'];
   const type = types[Math.floor(Math.random() * types.length)];
   return {
