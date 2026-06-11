@@ -25,7 +25,7 @@ export const DepotOverlays = forwardRef<Group>(function DepotOverlays(_, ref) {
 
   return (
     <group ref={ref}>
-      <Html position={[-130, 30, -80]} center>
+      <Html position={[-118, 34, 92]} center>
         <div className="bg-black/80 backdrop-blur-sm rounded-lg p-3 border border-white/10 min-w-[180px]">
           <p className="text-[10px] font-bold text-otto-teal tracking-wider mb-2">Live Depot Status</p>
           <div className="space-y-1.5">

@@ -4,18 +4,26 @@ import { Html, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { toWorld } from './coordUtils';
 import { useDepotStore } from '@/store/depotStore';
+import { MATERIALS } from './materials';
 import type { Vehicle } from '@/engine/types';
 
 const MODEL_PATH = '/models/tesla_model3.glb';
 useGLTF.preload(MODEL_PATH);
 
-const COLORS: Record<string, string> = {
-  fleet: '#00B4A6', core: '#E0E0E0', concierge: '#A0A0A0', elite: '#FFD700'
-};
-// OEM platform palette — matches VehicleDot.tsx / DepotLegend.tsx
-const OEM_COLORS: Record<string, string> = {
-  waymo: '#5B9BFF', tesla: '#FF453A', zoox: '#B06BFF',
-};
+// Realistic fleet paint mix (weights ≈ real-world car-color distribution),
+// picked stably per vehicle id. Ops color-coding stays on the 2D dots/badges.
+const PAINTS: [string, number][] = [
+  ['#e9eaec', 28], ['#101216', 20], ['#c4c8cd', 14], ['#6d7178', 12],
+  ['#1b3a6b', 9], ['#7a1622', 8], ['#0e6f63', 5], ['#2e4a31', 4],
+];
+const PAINT_TOTAL = PAINTS.reduce((n, p) => n + p[1], 0);
+function paintFor(id: string): string {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  let r = h % PAINT_TOTAL;
+  for (const [c, w] of PAINTS) { if (r < w) return c; r -= w; }
+  return PAINTS[0][0];
+}
 const FX: Record<string, { glow: string; pulse: number; op: number }> = {
   approaching: { glow: '', pulse: 0, op: 0.85 },
   queued: { glow: '', pulse: 0, op: 0.6 },
@@ -35,7 +43,7 @@ const BODY_HINTS = ['body', 'paint', 'car', 'exterior', 'shell', 'hood', 'door',
 export function Vehicle3D({ vehicle, simSpeed }: { vehicle: Vehicle; simSpeed: number }) {
   const grp = useRef<THREE.Group>(null);
   const glw = useRef<THREE.Mesh>(null);
-  const col = OEM_COLORS[(vehicle.oem || '').toLowerCase()] || COLORS[vehicle.type] || '#E8E8E8';
+  const col = paintFor(vehicle.id);
   const fx = FX[vehicle.status] || FX.staging;
   // Stall coordinates come from the shared site plan via the store — no
   // per-zone world-coordinate overrides needed.
@@ -72,16 +80,16 @@ export function Vehicle3D({ vehicle, simSpeed }: { vehicle: Vehicle; simSpeed: n
     return { clone: c, yOffset: offset };
   }, [scene]);
 
-  // Apply vehicle-type color tint to body meshes
+  // Swap body panels to a true clearcoat automotive paint (shared per color)
   useEffect(() => {
-    const tint = new THREE.Color(col);
+    const paint = MATERIALS.automotivePaint(col);
     clone.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
         const mat = mesh.material as THREE.MeshStandardMaterial;
         const name = (mat.name || mesh.name || '').toLowerCase();
         if (BODY_HINTS.some((h) => name.includes(h))) {
-          mat.color.copy(tint);
+          mesh.material = paint;
         }
       }
     });

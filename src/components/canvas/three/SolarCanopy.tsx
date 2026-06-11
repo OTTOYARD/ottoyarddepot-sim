@@ -62,6 +62,16 @@ export function SolarCanopy({ solarKWdc }: { solarKWdc: number }) {
           <mesh position={[0, H - 0.42, 0]} material={mats.trim}>
             <boxGeometry args={[c.w + 0.3, 0.14, c.h + 0.3]} />
           </mesh>
+          {/* purlin beams under the deck */}
+          {Array.from({ length: Math.floor(c.h / 11) }, (_, i) => (
+            <mesh key={`pu${i}`} position={[0, H - 0.75, -c.h / 2 + 6 + i * 11]} material={mats.steel}>
+              <boxGeometry args={[c.w - 1.2, 0.5, 0.35]} />
+            </mesh>
+          ))}
+          {/* primary girder along the spine */}
+          <mesh position={[0, H - 0.85, 0]} material={mats.steel}>
+            <boxGeometry args={[1.1, 0.7, c.h - 2]} />
+          </mesh>
           {/* PV array */}
           <primitive object={c.inst} />
           {/* posts */}

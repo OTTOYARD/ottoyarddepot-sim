@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { asphaltTexture, pvCellTexture, concreteTexture } from './textures';
 
 export const BRAND = {
   teal: new THREE.Color('#00D4AA'),
@@ -27,15 +28,18 @@ function cached(key: string, factory: () => THREE.MeshPhysicalMaterial): THREE.M
 
 export function polishedConcrete() {
   return cached('polishedConcrete', () => new THREE.MeshPhysicalMaterial({
-    color: '#3a3a42', roughness: 0.35, metalness: 0.0,
-    clearcoat: 0.1, clearcoatRoughness: 0.4,
-    reflectivity: 0.5, envMapIntensity: 0.8,
+    map: concreteTexture(),
+    color: '#c9cbcd', roughness: 0.65, metalness: 0.0,
+    clearcoat: 0.06, clearcoatRoughness: 0.5,
+    reflectivity: 0.4, envMapIntensity: 0.6,
   }));
 }
 
 export function asphalt() {
   return cached('asphalt', () => new THREE.MeshPhysicalMaterial({
-    color: '#1f1f24', roughness: 0.9, metalness: 0.0, envMapIntensity: 0.2,
+    map: asphaltTexture(),
+    color: '#bcbcc4', // multiplies the texture — keeps it dark but alive
+    roughness: 0.92, metalness: 0.0, envMapIntensity: 0.3,
   }));
 }
 
@@ -118,9 +122,10 @@ export function screenGlass() {
 
 export function solarPanelGlass() {
   return cached('solarPanelGlass', () => new THREE.MeshPhysicalMaterial({
-    color: '#1A2535', roughness: 0.15, metalness: 0.05,
-    envMapIntensity: 0.8, clearcoat: 0.6, clearcoatRoughness: 0.15,
-    emissive: new THREE.Color('#001020'), emissiveIntensity: 0.05,
+    map: pvCellTexture(),
+    color: '#e8edf2', // near-white multiplier; the cell texture carries the blue
+    roughness: 0.22, metalness: 0.05,
+    envMapIntensity: 1.1, clearcoat: 0.8, clearcoatRoughness: 0.12,
   }));
 }
 
@@ -246,7 +251,20 @@ export function chargerConnector() {
 
 export function grass() {
   return cached('grass', () => new THREE.MeshPhysicalMaterial({
-    color: '#2D5A1E', roughness: 0.85, metalness: 0.0, envMapIntensity: 0.3,
+    color: '#4a7a36', roughness: 0.9, metalness: 0.0, envMapIntensity: 0.35,
+  }));
+}
+
+export function shrubGreen() {
+  return cached('shrubGreen', () => new THREE.MeshPhysicalMaterial({
+    color: '#3c6b2e', roughness: 0.9, metalness: 0.0, envMapIntensity: 0.35,
+  }));
+}
+
+export function safetyYellow() {
+  return cached('safetyYellow', () => new THREE.MeshPhysicalMaterial({
+    color: '#f2b705', roughness: 0.45, metalness: 0.0, envMapIntensity: 0.6,
+    clearcoat: 0.3, clearcoatRoughness: 0.3,
   }));
 }
 
@@ -270,5 +288,5 @@ export const MATERIALS = {
   tealLED, whiteLED, greenIndicator, amberIndicator,
   concreteBlock, woodAccent,
   chargerHousing, chargerCable, chargerConnector,
-  grass, gravel, curbing,
+  grass, gravel, curbing, shrubGreen, safetyYellow,
 } as const;

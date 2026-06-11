@@ -1,8 +1,20 @@
 import { useMemo } from 'react';
+import * as THREE from 'three';
 import { useDepotStore } from '@/store/depotStore';
 import { CANOPIES } from '@/lib/sitePlan';
 import { toWorld } from './coordUtils';
 import { MATERIALS } from './materials';
+
+// charge cable arc, built per side (toward = ±1 points at the canopy spine)
+function cableGeo(toward: number): THREE.TubeGeometry {
+  const curve = new THREE.QuadraticBezierCurve3(
+    new THREE.Vector3(-toward * 0.8, 2.1, 0.15),
+    new THREE.Vector3(-toward * 2.4, 0.9, 0.55),
+    new THREE.Vector3(-toward * 4.0, 1.5, 0.35),
+  );
+  return new THREE.TubeGeometry(curve, 14, 0.09, 6);
+}
+const CABLES: Record<number, THREE.TubeGeometry> = { 1: cableGeo(1), [-1]: cableGeo(-1) };
 
 interface Props { type: 'dcfc' | 'l2'; count: number; }
 
@@ -69,6 +81,12 @@ export function ChargingField({ type }: Props) {
             {isDC && (
               <mesh position={[0, H + 0.5, 0]} castShadow material={mats.cap}>
                 <boxGeometry args={[W + 0.25, 0.35, 0.85]} />
+              </mesh>
+            )}
+            {/* charge cable arcs to the car while the stall is live */}
+            {(s.status === 'charging' || s.status === 'occupied' || s.status === 'servicing') && (
+              <mesh geometry={CABLES[toward as 1 | -1]}>
+                <primitive object={MATERIALS.chargerCable()} attach="material" />
               </mesh>
             )}
           </group>

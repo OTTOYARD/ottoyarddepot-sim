@@ -1,5 +1,5 @@
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Environment } from '@react-three/drei';
+import { OrbitControls } from '@react-three/drei';
 import { Suspense, useCallback, useRef, useMemo } from 'react';
 import { ACESFilmicToneMapping, PCFSoftShadowMap, FogExp2, SRGBColorSpace } from 'three';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
@@ -19,7 +19,9 @@ import { DepotOverlays } from './three/DepotOverlays';
 import { WeatherEffects } from './three/WeatherEffects';
 import { DayNightLighting } from './three/DayNightLighting';
 import { DepotPostProcessing } from './three/DepotPostProcessing';
+import { SiteDetails } from './three/SiteDetails';
 import { MATERIALS } from './three/materials';
+import { skyTexture } from './three/textures';
 
 const CAMERA_PRESETS = {
   'Bird Eye': { position: [0, 210, 60] as [number, number, number], target: [0, 0, 4] as [number, number, number] },
@@ -132,20 +134,17 @@ export default function DepotScene3D() {
         onCreated={({ gl, scene }) => {
           gl.shadowMap.enabled = true;
           gl.shadowMap.type = PCFSoftShadowMap;
-          scene.fog = new FogExp2('#4a5568', 0.0015);
+          scene.fog = new FogExp2('#b9cde4', 0.00065);
+          // Procedural gradient sky: backdrop + PBR environment in one
+          const sky = skyTexture();
+          scene.background = sky;
+          scene.environment = sky;
         }}
       >
         <Suspense fallback={null}>
           <DayNightLighting simTime={simTime} />
-          <hemisphereLight args={['#87CEEB', '#2D5A1E', 0.9]} />
-          <Environment background={false} environmentIntensity={1.5}>
-            <mesh scale={50}>
-              <sphereGeometry args={[1, 16, 16]} />
-              <meshBasicMaterial color="#9BB8D0" side={1} />
-            </mesh>
-          </Environment>
 
-          
+
 
           <DepotGround />
           <DepotBuilding />
@@ -159,6 +158,7 @@ export default function DepotScene3D() {
           <UtilityEquipment bessCapacity={config.bessCapacity} bessPower={config.bessPower} />
           <DepotOverlays />
           <Landscaping />
+          <SiteDetails />
 
           {vehicles.map((v) => (
             <Vehicle3D key={v.id} vehicle={v} simSpeed={simSpeed} />
