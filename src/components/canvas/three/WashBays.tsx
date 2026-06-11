@@ -64,9 +64,16 @@ export function WashBays({ count }: { count: number }) {
           <mesh position={[dx, H - 1.6, -d / 2 - 0.06]} material={mats.door}>
             <boxGeometry args={[11.6, 2.4, 0.25]} />
           </mesh>
-          {/* rear exit */}
-          <mesh position={[dx, 4.0, d / 2 + 0.06]} material={mats.door}>
-            <boxGeometry args={[11, 8, 0.22]} />
+          {/* REAR pull-through exit — open reveal + raised panel (mirrors the front) */}
+          <mesh position={[dx, 3.6, d / 2 + 0.02]}>
+            <boxGeometry args={[11, 7.2, 0.06]} />
+            <meshPhysicalMaterial color="#07090c" roughness={0.95} metalness={0} />
+          </mesh>
+          <mesh position={[dx, H - 1.6, d / 2 + 0.06]} material={mats.door}>
+            <boxGeometry args={[11.6, 2.4, 0.25]} />
+          </mesh>
+          <mesh position={[dx, H - 2.6, d / 2 + 0.35]} material={mats.led}>
+            <boxGeometry args={[1.4, 0.3, 0.4]} />
           </mesh>
           {/* status lamp */}
           <mesh position={[dx + 6.4, 7.6, -d / 2 - 0.1]} material={mats.led}>

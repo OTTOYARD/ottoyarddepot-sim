@@ -3,15 +3,17 @@ import * as THREE from 'three';
 import { MATERIALS } from './materials';
 import {
   WEST_AISLE_X, EAST_AISLE_X, NORTH_LANE_Y, SOUTH_LANE_Y, REAR_LANE_Y, FORECOURT_Y,
-  INGRESS, EGRESS,
+  WEST_LINK_X, GAP_LANES, INGRESS, EGRESS,
 } from '@/lib/sitePlan';
 import { toWorld } from './coordUtils';
 
 /**
- * One-way circulation markings for the continuous-flow plan:
- *   west aisle (north) → NORTH COLLECTOR (east) → down a charging lane, or
- *   turn into the FORECOURT throat → through a bay → REAR LANE (east) →
- *   east aisle (south) → SOUTH COLLECTOR (east) → egress gate.
+ * Continuous-flow lane markings:
+ *  - flanking PULL-OUT lanes beside every canopy (northbound to the collector)
+ *  - two-way NORTH + SOUTH collectors (directional arrows in both lanes)
+ *  - FORECOURT throat arrows into every pull-through bay
+ *  - 30ft REAR APRON arrows (left to the west link, right to the east aisle)
+ *  - one-way west (N) / east (S) aisles, gate throats
  */
 
 function Arrow({ x, y, headingDeg }: { x: number; y: number; headingDeg: number }) {
@@ -32,20 +34,23 @@ function Arrow({ x, y, headingDeg }: { x: number; y: number; headingDeg: number 
 }
 
 export function DriveAisles() {
-  // dashed lane edges
   const dashes = useMemo(() => {
     const segs: { x: number; y: number; horiz: boolean }[] = [];
     // west + east aisle edges
-    for (let y = 78; y <= 196; y += 9) segs.push({ x: WEST_AISLE_X + 6, y, horiz: false });
-    for (let y = 60; y <= 196; y += 9) segs.push({ x: EAST_AISLE_X - 6, y, horiz: false });
-    // north collector edges (both sides)
+    for (let y = 86; y <= 196; y += 9) segs.push({ x: WEST_AISLE_X + 6, y, horiz: false });
+    for (let y = 52; y <= 196; y += 9) segs.push({ x: EAST_AISLE_X - 6, y, horiz: false });
+    // north collector: edge dashes + center split (two-way)
     for (let x = 44; x <= 262; x += 9) segs.push({ x, y: NORTH_LANE_Y - 6, horiz: true });
     for (let x = 44; x <= 262; x += 9) segs.push({ x, y: NORTH_LANE_Y + 6, horiz: true });
-    // forecourt / collector divider (short dashes across the bay frontage)
+    for (let x = 48; x <= 258; x += 12) segs.push({ x, y: NORTH_LANE_Y, horiz: true });
+    // forecourt divider
     for (let x = 66; x <= 218; x += 7) segs.push({ x, y: FORECOURT_Y + 6.5, horiz: true });
-    // south collector edges
+    // south collector: edges + center split (two-way)
     for (let x = 44; x <= 250; x += 9) segs.push({ x, y: SOUTH_LANE_Y - 7, horiz: true });
     for (let x = 44; x <= 196; x += 9) segs.push({ x, y: SOUTH_LANE_Y + 7, horiz: true });
+    for (let x = 48; x <= 246; x += 12) segs.push({ x, y: SOUTH_LANE_Y, horiz: true });
+    // rear apron south edge (the bays' rear wall line is the north edge)
+    for (let x = 70; x <= 260; x += 9) segs.push({ x, y: 26, horiz: true });
     const inst = new THREE.InstancedMesh(
       new THREE.BoxGeometry(0.3, 0.04, 4.2), MATERIALS.laneMarkingWhite(), segs.length,
     );
@@ -61,22 +66,34 @@ export function DriveAisles() {
     return inst;
   }, []);
 
+  const gapLanes = [GAP_LANES.westOfA, GAP_LANES.AB, GAP_LANES.BC, GAP_LANES.eastOfC];
+
   return (
     <group>
       <primitive object={dashes} />
 
       {/* west aisle — northbound */}
-      {[172, 142, 112, 86].map((y) => <Arrow key={`w${y}`} x={WEST_AISLE_X} y={y} headingDeg={0} />)}
-      {/* north collector — eastbound (the main artery) */}
-      {[60, 100, 140, 180, 220, 255].map((x) => <Arrow key={`n${x}`} x={x} y={NORTH_LANE_Y} headingDeg={90} />)}
+      {[176, 146, 116, 90].map((y) => <Arrow key={`w${y}`} x={WEST_AISLE_X} y={y} headingDeg={0} />)}
+      {/* canopy pull-out lanes — northbound to the collector */}
+      {gapLanes.map((x) => (
+        [100, 128, 156].map((y) => <Arrow key={`g${x}-${y}`} x={x} y={y} headingDeg={0} />)
+      ))}
+      {/* north collector — two-way (east lane / west lane) */}
+      {[64, 112, 160, 208, 252].map((x) => <Arrow key={`ne${x}`} x={x} y={NORTH_LANE_Y + 3.2} headingDeg={90} />)}
+      {[88, 136, 184, 232].map((x) => <Arrow key={`nw${x}`} x={x} y={NORTH_LANE_Y - 3.2} headingDeg={270} />)}
       {/* forecourt — entry guidance into each pull-through bay */}
       {[120, 138, 168, 186, 204].map((x) => <Arrow key={`f${x}`} x={x} y={FORECOURT_Y} headingDeg={0} />)}
-      {/* rear lane — eastbound behind the bays (pull-through egress) */}
-      {[100, 150, 195].map((x) => <Arrow key={`r${x}`} x={x} y={REAR_LANE_Y} headingDeg={90} />)}
+      {/* rear apron — exits swing left (west link) or right (east aisle) */}
+      {[180, 230].map((x) => <Arrow key={`re${x}`} x={x} y={REAR_LANE_Y} headingDeg={90} />)}
+      {[90, 110].map((x) => <Arrow key={`rw${x}`} x={x} y={REAR_LANE_Y} headingDeg={270} />)}
+      {/* west link — southbound from the apron to the collector */}
+      <Arrow x={WEST_LINK_X} y={36} headingDeg={180} />
+      <Arrow x={WEST_LINK_X} y={58} headingDeg={180} />
       {/* east aisle — southbound */}
-      {[85, 120, 155].map((y) => <Arrow key={`e${y}`} x={EAST_AISLE_X} y={y} headingDeg={180} />)}
-      {/* south collector — eastbound toward egress */}
-      {[60, 110, 160].map((x) => <Arrow key={`s${x}`} x={x} y={SOUTH_LANE_Y} headingDeg={90} />)}
+      {[60, 100, 140].map((y) => <Arrow key={`e${y}`} x={EAST_AISLE_X} y={y} headingDeg={180} />)}
+      {/* south collector — two-way */}
+      {[64, 118, 164].map((x) => <Arrow key={`se${x}`} x={x} y={SOUTH_LANE_Y + 3.4} headingDeg={90} />)}
+      {[90, 144].map((x) => <Arrow key={`sw${x}`} x={x} y={SOUTH_LANE_Y - 3.4} headingDeg={270} />)}
       {/* gate throats */}
       <Arrow x={INGRESS.x} y={198} headingDeg={0} />
       <Arrow x={EGRESS.x} y={192} headingDeg={180} />

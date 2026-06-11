@@ -84,9 +84,20 @@ export function DepotBuilding() {
             <boxGeometry args={[12, 8.4, 0.06]} />
             <meshPhysicalMaterial color="#07090c" roughness={0.95} metalness={0} />
           </mesh>
-          {/* rear exit door (closed panel) */}
-          <mesh position={[dx, 4.6, d / 2 + 0.08]} material={mats.door}>
-            <boxGeometry args={[12, 9.2, 0.25]} />
+          {/* REAR pull-through exit — open reveal + raised panel (mirrors the front) */}
+          <mesh position={[dx, 4.2, d / 2 + 0.02]}>
+            <boxGeometry args={[12, 8.4, 0.06]} />
+            <meshPhysicalMaterial color="#07090c" roughness={0.95} metalness={0} />
+          </mesh>
+          <mesh position={[dx, H - 2.2, d / 2 + 0.05]} material={mats.door}>
+            <boxGeometry args={[12, 3.4, 0.3]} />
+          </mesh>
+          <mesh position={[dx, H - 0.4, d / 2 + 0.15]} material={mats.trim}>
+            <boxGeometry args={[13, 0.5, 0.2]} />
+          </mesh>
+          {/* rear wall-pack light over the exit */}
+          <mesh position={[dx, H - 1.8, d / 2 + 0.4]} material={mats.led}>
+            <boxGeometry args={[1.6, 0.35, 0.5]} />
           </mesh>
           {/* bay number light */}
           <mesh position={[dx - 7.2, 9.4, -d / 2 - 0.12]} material={mats.led}>

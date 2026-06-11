@@ -61,8 +61,10 @@ export function SiteDetails() {
         pts.push({ x: c.cx + side, y: c.y + c.h + 3 });
       }
     }
-    for (const dx of [120, 138]) { pts.push({ x: dx - 7.5, y: 47.5 }); pts.push({ x: dx + 7.5, y: 47.5 }); }
-    for (const dx of [168, 186, 204]) { pts.push({ x: dx - 7, y: 47.5 }); pts.push({ x: dx + 7, y: 47.5 }); }
+    // bay-front door flanks (forecourt edge) + rear-corner protection on the apron
+    for (const dx of [120, 138]) { pts.push({ x: dx - 7.5, y: 57.5 }); pts.push({ x: dx + 7.5, y: 57.5 }); }
+    for (const dx of [168, 186, 204]) { pts.push({ x: dx - 7, y: 57.5 }); pts.push({ x: dx + 7, y: 57.5 }); }
+    for (const dx of [120, 138, 168, 186, 204]) { pts.push({ x: dx - 7, y: 24.5 }); pts.push({ x: dx + 7, y: 24.5 }); }
     pts.push({ x: BESS_YARD.x + BESS_YARD.w + 2, y: BESS_YARD.y + BESS_YARD.h + 2 });
     const inst = new THREE.InstancedMesh(
       new THREE.CylinderGeometry(0.42, 0.42, 2.6, 10), MATERIALS.safetyYellow(), pts.length,
@@ -100,12 +102,13 @@ export function SiteDetails() {
     return bars;
   }, []);
 
-  // ---- planted islands: forecourt end-caps + buffer strips in the canopy gaps ----
+  // ---- planted islands ----
+  // FLOW AUDIT: the canopy gaps are PULL-OUT LANES — nothing lives in them.
+  // Islands sit only where no vehicle path runs: the forecourt east cap
+  // (x>220, off the bay frontage), and two south-fence pads clear of the
+  // queue row and gate throats.
   const islands = useMemo(() => ([
-    { x: 62, y: 53, w: 10, d: 10, n: 4 },     // forecourt west cap
-    { x: 240, y: 53, w: 12, d: 8, n: 4 },     // forecourt east cap (clear of the 214 corridor)
-    { x: 126.5, y: 116, w: 5, d: 78, n: 9 },  // canopy gap A|B
-    { x: 173.5, y: 116, w: 5, d: 78, n: 9 },  // canopy gap B|C
+    { x: 244, y: 62, w: 12, d: 8, n: 4 },     // forecourt east cap — the only in-lot island
   ]).map((r, k) => {
     const [wx, , wz] = toWorld({ x: r.x, y: r.y }, 0);
     const shrubs = Array.from({ length: r.n }, (_, i) => ({
@@ -163,9 +166,13 @@ export function SiteDetails() {
           <planeGeometry args={[16, 14]} />
         </mesh>
       ))}
-      {/* concrete forecourt strip — the full bay approach throat (y 46..60) */}
-      <mesh rotation-x={-Math.PI / 2} position={[-8, 0.035, 57]} material={mats.concrete} receiveShadow>
-        <planeGeometry args={[156, 14]} />
+      {/* concrete forecourt strip — the full bay approach throat (y 56..68) */}
+      <mesh rotation-x={-Math.PI / 2} position={[-8, 0.035, 48]} material={mats.concrete} receiveShadow>
+        <planeGeometry args={[156, 12]} />
+      </mesh>
+      {/* concrete rear apron — 30ft clear maneuvering zone behind the bays */}
+      <mesh rotation-x={-Math.PI / 2} position={[15, 0.035, 94]} material={mats.concrete} receiveShadow>
+        <planeGeometry args={[258, 20]} />
       </mesh>
 
       {/* planted islands */}
@@ -214,7 +221,7 @@ export function SiteDetails() {
         </mesh>
       ))}
       {[120, 138, 168, 186, 204].map((dx) => {
-        const [wx, , wz] = toWorld({ x: dx, y: 46 }, 0); // south face of the bay row
+        const [wx, , wz] = toWorld({ x: dx, y: 56 }, 0); // south face of the bay row
         const h = dx < 160 ? 11.2 : 8.6;                 // building vs wash parapet heights
         return (
           <mesh key={`wp${dx}`} position={[wx, h, wz - 0.4]} material={mats.led}>

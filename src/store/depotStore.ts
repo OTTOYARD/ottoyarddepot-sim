@@ -30,7 +30,7 @@ interface DepotState {
 // All stall geometry comes from the shared site plan (src/lib/sitePlan.ts) —
 // the engine, the 2D SVG, the 3D scene, and any future renderer consume the
 // same coordinates so layout can never drift between layers.
-function generateStalls(dcfcCount = 10, l2Count = 30, washCount = 3, stagingCount = 97, serviceCount = 2): StallState[] {
+function generateStalls(dcfcCount = 10, l2Count = 30, washCount = 3, stagingCount = 87, serviceCount = 2): StallState[] {
   return generateStallsV2(dcfcCount, l2Count, washCount, stagingCount, serviceCount);
 }
 
@@ -38,7 +38,7 @@ export const useDepotStore = create<DepotState>((set) => ({
   dcfcCount: 10,
   l2Count: 30,
   washBayCount: 3,
-  stagingCount: 97,
+  stagingCount: 87,
   serviceBayCount: 2,
   stalls: generateStalls(),
   selectedStallId: null,
