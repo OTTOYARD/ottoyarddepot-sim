@@ -96,7 +96,7 @@ export function setOperatorKey(key: string): void {
 async function get<T>(path: string): Promise<T> {
   const r = await fetch(`${BASE}${path}`, { headers: { "content-type": "application/json" } });
   const j = await r.json();
-  if (!j.ok) throw new Error(j.error || `GET ${path} failed`);
+  if (!j.ok) throw new Error([j.error, j.details].filter(Boolean).join(": ") || `GET ${path} failed`);
   return j.data as T;
 }
 async function send<T>(method: string, path: string, body?: unknown): Promise<T> {
@@ -110,7 +110,7 @@ async function send<T>(method: string, path: string, body?: unknown): Promise<T>
     body: body ? JSON.stringify(body) : undefined,
   });
   const j = await r.json();
-  if (!j.ok) throw new Error(j.error || `${method} ${path} failed`);
+  if (!j.ok) throw new Error([j.error, j.details].filter(Boolean).join(": ") || `${method} ${path} failed`);
   return j.data as T;
 }
 
