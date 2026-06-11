@@ -20,12 +20,16 @@ import type { StallState } from '@/store/depotStore';
 // ---- Flow constants (consumed by SimulationEngine / ArrivalGenerator) ----
 export const INGRESS = { x: 100, y: 215 };
 export const EGRESS = { x: 200, y: 215 };
-export const QUEUE_Y = 185;
+export const QUEUE_Y = 184;
 export const WEST_AISLE_X = 30;   // one-way northbound
 export const EAST_AISLE_X = 275;  // one-way southbound (to egress)
-export const NORTH_LANE_Y = 56;   // travel lane between buildings and canopies
-export const SOUTH_LANE_Y = 180;  // collector lane south of canopies
-export const REAR_LANE_Y = 10;    // pull-through lane behind service/wash bays
+// North block, top to bottom: rear egress lane (behind the bays) → bay row →
+// concrete FORECOURT (dedicated approach throat into the bay fronts) → the
+// NORTH COLLECTOR (main east-west artery off the charging lanes).
+export const REAR_LANE_Y = 11;    // pull-through lane behind service/wash bays (y 8..16)
+export const FORECOURT_Y = 53;    // bay approach throat (y 46..60)
+export const NORTH_LANE_Y = 67;   // main collector (y 60..74)
+export const SOUTH_LANE_Y = 168;  // south collector (y 160..176)
 
 // ---- Zone rectangles (logical coords; w/h in logical units) ----
 export const LOT = { x: 6, y: 6, w: 288, h: 200 };
@@ -42,9 +46,9 @@ export interface CanopyDef {
   kind: 'dcfc' | 'l2';
 }
 export const CANOPIES: CanopyDef[] = [
-  { id: 'A', cx: 103, x: 88, w: 30, y: 64, h: 92, kind: 'dcfc' },
-  { id: 'B', cx: 150, x: 135, w: 30, y: 64, h: 92, kind: 'l2' },
-  { id: 'C', cx: 197, x: 182, w: 30, y: 64, h: 92, kind: 'l2' },
+  { id: 'A', cx: 103, x: 88, w: 30, y: 74, h: 84, kind: 'dcfc' },
+  { id: 'B', cx: 150, x: 135, w: 30, y: 74, h: 84, kind: 'l2' },
+  { id: 'C', cx: 197, x: 182, w: 30, y: 74, h: 84, kind: 'l2' },
 ];
 
 // Perimeter parking runs (solar carports above each)
@@ -84,26 +88,26 @@ function chargingStalls(dcfcCount: number, l2Count: number): StallState[] {
     position: { x, y, angle: 180 },
   });
 
-  // Canopy A — DCFC, 2 columns × 5 (step 18 = roomy pull-through)
+  // Canopy A — DCFC, 2 columns × 5 (step 16 = roomy pull-through)
   const A = CANOPIES[0];
   let n = 0;
   for (const side of [-7, 7]) {
     for (let i = 0; i < 5 && n < dcfcCount; i++) {
       n++;
-      stalls.push(mk(`DCFC-${String(n).padStart(2, '0')}`, 'dcfc', A.cx + side, 72 + i * 18));
+      stalls.push(mk(`DCFC-${String(n).padStart(2, '0')}`, 'dcfc', A.cx + side, 82 + i * 16));
     }
   }
 
-  // Canopies B & C — L2, west column 8 (step 12) + east column 7 (step 12)
+  // Canopies B & C — L2, west column 8 + east column 7
   let l2 = 0;
   for (const c of [CANOPIES[1], CANOPIES[2]]) {
     for (let i = 0; i < 8 && l2 < l2Count; i++) {
       l2++;
-      stalls.push(mk(`L2-${String(l2).padStart(2, '0')}`, 'l2', c.cx - 7, 70 + i * 12));
+      stalls.push(mk(`L2-${String(l2).padStart(2, '0')}`, 'l2', c.cx - 7, 80 + i * 10.3));
     }
     for (let i = 0; i < 7 && l2 < l2Count; i++) {
       l2++;
-      stalls.push(mk(`L2-${String(l2).padStart(2, '0')}`, 'l2', c.cx + 7, 76 + i * 12));
+      stalls.push(mk(`L2-${String(l2).padStart(2, '0')}`, 'l2', c.cx + 7, 85 + i * 11));
     }
   }
   return stalls;

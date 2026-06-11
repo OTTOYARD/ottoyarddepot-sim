@@ -61,8 +61,8 @@ export function SiteDetails() {
         pts.push({ x: c.cx + side, y: c.y + c.h + 3 });
       }
     }
-    for (const dx of [120, 138]) { pts.push({ x: dx - 7.5, y: 48.5 }); pts.push({ x: dx + 7.5, y: 48.5 }); }
-    for (const dx of [168, 186, 204]) { pts.push({ x: dx - 7, y: 48.5 }); pts.push({ x: dx + 7, y: 48.5 }); }
+    for (const dx of [120, 138]) { pts.push({ x: dx - 7.5, y: 47.5 }); pts.push({ x: dx + 7.5, y: 47.5 }); }
+    for (const dx of [168, 186, 204]) { pts.push({ x: dx - 7, y: 47.5 }); pts.push({ x: dx + 7, y: 47.5 }); }
     pts.push({ x: BESS_YARD.x + BESS_YARD.w + 2, y: BESS_YARD.y + BESS_YARD.h + 2 });
     const inst = new THREE.InstancedMesh(
       new THREE.CylinderGeometry(0.42, 0.42, 2.6, 10), MATERIALS.safetyYellow(), pts.length,
@@ -100,19 +100,18 @@ export function SiteDetails() {
     return bars;
   }, []);
 
-  // ---- planted islands (curb + grass + shrubs) ----
+  // ---- planted islands: forecourt end-caps + buffer strips in the canopy gaps ----
   const islands = useMemo(() => ([
-    { x: 60, y: 188, w: 22, d: 7 },
-    { x: 150, y: 62, w: 18, d: 6 },
-    { x: 240, y: 188, w: 22, d: 7 },
-    { x: 76, y: 52, w: 14, d: 6 },
-    { x: 224, y: 52, w: 14, d: 6 },
+    { x: 62, y: 53, w: 10, d: 10, n: 4 },     // forecourt west cap
+    { x: 240, y: 53, w: 12, d: 8, n: 4 },     // forecourt east cap (clear of the 214 corridor)
+    { x: 126.5, y: 116, w: 5, d: 78, n: 9 },  // canopy gap A|B
+    { x: 173.5, y: 116, w: 5, d: 78, n: 9 },  // canopy gap B|C
   ]).map((r, k) => {
     const [wx, , wz] = toWorld({ x: r.x, y: r.y }, 0);
-    const shrubs = Array.from({ length: 5 }, (_, i) => ({
-      px: (seeded(k * 11 + i) - 0.5) * (r.w - 4),
+    const shrubs = Array.from({ length: r.n }, (_, i) => ({
+      px: (seeded(k * 11 + i) - 0.5) * (r.w - 3),
       pz: (seeded(k * 17 + i) - 0.5) * (r.d - 3),
-      s: 0.9 + seeded(k * 23 + i) * 1.3,
+      s: 0.9 + seeded(k * 23 + i) * 1.2,
     }));
     return { ...r, wx, wz, shrubs, key: k };
   }), []);
@@ -164,9 +163,9 @@ export function SiteDetails() {
           <planeGeometry args={[16, 14]} />
         </mesh>
       ))}
-      {/* bay forecourt apron (service + wash frontage) */}
-      <mesh rotation-x={-Math.PI / 2} position={[bWx + 32, 0.035, bWz - 21]} material={mats.concrete} receiveShadow>
-        <planeGeometry args={[110, 12]} />
+      {/* concrete forecourt strip — the full bay approach throat (y 46..60) */}
+      <mesh rotation-x={-Math.PI / 2} position={[-8, 0.035, 57]} material={mats.concrete} receiveShadow>
+        <planeGeometry args={[156, 14]} />
       </mesh>
 
       {/* planted islands */}
