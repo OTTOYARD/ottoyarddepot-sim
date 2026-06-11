@@ -67,6 +67,8 @@ function rangeFor(v: CatalogVar, kt: KnobType): { min: number; max: number; step
 }
 const fmt = (n: number, step: number) => (step < 1 ? n.toFixed(step < 0.1 ? 2 : 1) : String(n));
 const fmtAxis = (n: number) => (Math.abs(n) >= 100 ? Math.round(n).toString() : Math.abs(n) >= 1 ? n.toFixed(0) : n.toFixed(1));
+const isLiveRunStatus = (status: string) => ["running", "active", "paused"].includes(status.toLowerCase());
+const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
 // inverse standard-normal CDF (Acklam) — lets us deterministically inverse-CDF
 // sample a base distribution, exactly like the backend's sample_shaped().
@@ -291,6 +293,17 @@ export const OperatorConsole = () => {
   const startScenario = async () => {
     setBusy("start");
     try {
+      const stopLiveRuns = async () => {
+        const { runs } = await twin.runs(50);
+        const liveRuns = runs.filter((run) => isLiveRunStatus(String(run.status)));
+        if (!liveRuns.length) return;
+
+        await Promise.all(liveRuns.map((run) => twin.stop(run.sim_run_id)));
+        await wait(400);
+      };
+
+      await stopLiveRuns();
+
       let res: { sim_run_id: string; scenario_code: string } | null = null;
       try {
         res = await twin.start(selected);
@@ -299,9 +312,7 @@ export const OperatorConsole = () => {
         const msg = String(e?.message || e || "");
         if (!/one_running_run_per_depot|already.*running|duplicate key|scenario start failed/i.test(msg)) throw e;
 
-        const { runs } = await twin.runs(25);
-        const activeRuns = runs.filter((r) => ["running", "active", "paused"].includes(String(r.status).toLowerCase()));
-        await Promise.all(activeRuns.map((run) => twin.stop(run.sim_run_id).catch(() => null)));
+        await stopLiveRuns();
         res = await twin.start(selected);
       }
       if (!res) throw new Error("scenario start failed");
