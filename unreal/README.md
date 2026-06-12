@@ -15,10 +15,15 @@ re-export, re-run the builder: every renderer stays in lockstep.
 
 ## Build / rebuild the depot
 
-3. Window → **Output Log**. In the console row at the bottom, click the
-   dropdown that says `Cmd` and switch it to **Python**.
-4. Paste (adjust the path if your repo lives elsewhere) and press Enter:
+3. Window → **Output Log** → find the console input row at the bottom.
+4. Run the script — pick whichever matches the console-mode dropdown:
 
+   **If the dropdown says `Python`** (paste this exactly):
+   ```
+   exec(open("/Users/chaseballenger/Desktop/ottoyarddepot-sim/unreal/ottoq_ue_build.py").read())
+   ```
+
+   **If the dropdown says `Cmd`**:
    ```
    py "/Users/chaseballenger/Desktop/ottoyarddepot-sim/unreal/ottoq_ue_build.py"
    ```
