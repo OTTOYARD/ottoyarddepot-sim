@@ -194,6 +194,18 @@ _thread = None
 
 def ottoq_bridge_start():
     global _handle, _thread
+    # Sweep stale vehicle actors first — if the level was saved while the
+    # bridge ran, last session's cubes persist and would double-spawn.
+    swept = 0
+    for a in list(_eas.get_all_level_actors()):
+        try:
+            if unreal.Name(TAG) in list(a.tags):
+                _eas.destroy_actor(a)
+                swept += 1
+        except Exception:
+            pass
+    if swept:
+        unreal.log(f"[OTTOQ bridge] swept {swept} stale vehicle actors")
     _state["stop"] = False
     _thread = threading.Thread(target=_poll_loop, daemon=True)
     _thread.start()

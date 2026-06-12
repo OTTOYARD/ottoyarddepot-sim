@@ -77,7 +77,9 @@ def make_world_aligned(name, texset, size_cm):
         if normal:
             ts.set_editor_property("sampler_type", unreal.MaterialSamplerType.SAMPLERTYPE_NORMAL)
         elif "ORM" in tex_path:
-            ts.set_editor_property("sampler_type", unreal.MaterialSamplerType.SAMPLERTYPE_LINEAR_COLOR)
+            # Megascans ORM imports as TC_Masks — sampler must match or the
+            # material fails to compile ("should be Masks").
+            ts.set_editor_property("sampler_type", unreal.MaterialSamplerType.SAMPLERTYPE_MASKS)
         MEL.connect_material_expressions(div, "", ts, "UVs")
         return ts
 
