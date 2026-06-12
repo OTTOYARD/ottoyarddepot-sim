@@ -21,7 +21,13 @@ import unreal
 # ----------------------------------------------------------------------------
 U = 48.0          # cm per logical unit
 TAG = "OTTOQ"
-JSON_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sitePlan.json")
+# __file__ is undefined when run via exec(open(...).read()) in the Python
+# console — fall back to the repo's standard location.
+try:
+    _HERE = os.path.dirname(os.path.abspath(__file__))
+except NameError:
+    _HERE = os.path.expanduser("~/Desktop/ottoyarddepot-sim/unreal")
+JSON_PATH = os.path.join(_HERE, "sitePlan.json")
 
 eas = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
 les = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
@@ -95,9 +101,12 @@ def spawn_class(cls, loc=unreal.Vector(0, 0, 0), rot=unreal.Rotator(0, 0, 0), la
     return a
 
 def lighting_rig():
-    sun = spawn_class(unreal.DirectionalLight, unreal.Vector(0, 0, 8000), unreal.Rotator(-42, 35, 0), "OTTOQ_Sun")
+    # unreal.Rotator is (ROLL, PITCH, YAW) — pitch must be negative to aim
+    # the sun DOWN. (Getting this wrong lights the sky and leaves the
+    # ground pitch black.)
+    sun = spawn_class(unreal.DirectionalLight, unreal.Vector(0, 0, 8000), unreal.Rotator(0.0, -42.0, 35.0), "OTTOQ_Sun")
     try:
-        sun.light_component.set_intensity(8.0)
+        sun.light_component.set_intensity(10.0)
         sun.light_component.set_editor_property("atmosphere_sun_light", True)
     except Exception:
         pass
