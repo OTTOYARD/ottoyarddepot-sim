@@ -326,6 +326,59 @@ def build(plan):
         cyl(f"OTTOQ_Pole{i + 1}", p["x"], p["y"], 0.32, 18, M["steel"])
         box(f"OTTOQ_PoleHead{i + 1}", p["x"] + 2.5, p["y"], 5, 0.5, 0.4, M["gold"], z0=17.6)
 
+    # ---- METRO CITY SURROUNDINGS: skyline massing + perimeter trees + sidewalk ----
+    SPHERE = unreal.load_asset("/Engine/BasicShapes/Sphere.Sphere")
+
+    def rnd(i):  # deterministic 0..1 (stable across runs)
+        v = math.sin(i * 12.9898) * 43758.5453
+        return v - math.floor(v)
+
+    def sph(name, x, y, dia, z_cm, mat):
+        a = eas.spawn_actor_from_object(SPHERE, W(x, y, z_cm), unreal.Rotator(0, 0, 0))
+        a.set_actor_scale3d(unreal.Vector(dia * U / 100.0, dia * U / 100.0, dia * U / 100.0))
+        a.set_actor_label(name)
+        a.tags = [unreal.Name(TAG)]
+        try:
+            a.static_mesh_component.set_material(0, mat)
+        except Exception:
+            pass
+        return a
+
+    def tree(tid, x, y, s=1.0):
+        cyl(f"OTTOQ_TreeTrunk_{tid}", x, y, 0.32 * s, 3.2 * s, M["wall"])
+        sph(f"OTTOQ_TreeFol_{tid}a", x, y, 3.4 * s, 4.4 * s * U, M["grass"])
+        sph(f"OTTOQ_TreeFol_{tid}b", x + 0.7 * s, y + 0.5 * s, 2.6 * s, 5.8 * s * U, M["grass"])
+
+    # city blocks ringing the site (varied heights, mid-rise → tower)
+    blocks = []
+    for i in range(8):   # north (behind)
+        blocks.append((18 + i * 36, -42 - rnd(i) * 70, 20 + rnd(i + 1) * 12, 20 + rnd(i + 2) * 14))
+    for i in range(6):   # west
+        blocks.append((-48 - rnd(i + 10) * 55, 24 + i * 32, 20 + rnd(i + 11) * 12, 22 + rnd(i + 12) * 10))
+    for i in range(6):   # east
+        blocks.append((346 + rnd(i + 20) * 55, 24 + i * 32, 20 + rnd(i + 21) * 12, 22 + rnd(i + 22) * 10))
+    for i in range(5):   # south, across the road
+        blocks.append((34 + i * 58, 252 + rnd(i + 30) * 28, 24 + rnd(i + 31) * 12, 18 + rnd(i + 32) * 8))
+    for j, (cx, cy, cw, cd) in enumerate(blocks):
+        ch = 16 + rnd(j) * 48
+        tag = "OTTOQ_City_B" if j % 3 == 0 else "OTTOQ_City_A"
+        box(f"{tag}_{j}", cx, cy, cw, cd, ch, M["wall"])
+        box(f"OTTOQ_RoofDark_City{j}", cx, cy, cw + 0.5, cd + 0.5, 0.6, M["darkmetal"], z0=ch)
+
+    # perimeter tree rows (just outside the fence on the grass apron) + north row
+    ti, yy = 0, 30
+    while yy <= 200:
+        tree(ti, -3, yy, 1.0 + rnd(ti) * 0.4); ti += 1
+        tree(ti, 299, yy, 1.0 + rnd(ti + 7) * 0.4); ti += 1
+        yy += 22
+    xx = 30
+    while xx <= 270:
+        tree(ti, xx, -14, 1.0 + rnd(ti) * 0.4); ti += 1
+        xx += 34
+
+    # frontage sidewalk along the public road
+    box("OTTOQ_Walk_S", 150, 208.5, 288, 2.5, 0.12, M["concrete"], z0=0.03)
+
     unreal.log("[OTTOQ] depot geometry complete")
 
 def main():

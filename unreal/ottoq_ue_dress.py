@@ -148,6 +148,103 @@ def make_grass(name):
     MEL.recompile_material(m)
     return m
 
+def make_city_facade(name, frame_color, glass_color, emissive,
+                     rough_win=0.07, rough_frame=0.55, metal=0.2,
+                     floor_cm=360.0, col_cm=300.0, lo=0.16, hi=0.84, sharp=9.0):
+    """Procedural glass-curtainwall facade for the background city massing.
+    Horizontal floor banding (WorldZ) crossed with vertical mullions (WorldX or
+    WorldY, picked by the face normal so columns read correctly on every side)
+    define the window panes; panes take the glass color + a subtle emissive
+    interior glow while the frame stays matte. Turns blank massing boxes into
+    towers that read from the aerial and glow at dusk — no textures, no cost."""
+    m = _new_mat(name)
+
+    def E(cls, x, y):
+        return MEL.create_material_expression(m, cls, x, y)
+    def CC(v, x, y):
+        c = E(unreal.MaterialExpressionConstant, x, y); c.set_editor_property("r", v); return c
+    def C3(col, x, y):
+        c = E(unreal.MaterialExpressionConstant3Vector, x, y)
+        c.set_editor_property("constant", unreal.LinearColor(col[0], col[1], col[2], 1.0)); return c
+    def MASK(src, r, g, b, x, y):
+        k = E(unreal.MaterialExpressionComponentMask, x, y)
+        k.set_editor_property("r", r); k.set_editor_property("g", g)
+        k.set_editor_property("b", b); k.set_editor_property("a", False)
+        MEL.connect_material_expressions(src, "", k, ""); return k
+    def MUL(a, b, x, y):
+        n = E(unreal.MaterialExpressionMultiply, x, y)
+        MEL.connect_material_expressions(a, "", n, "A")
+        MEL.connect_material_expressions(b, "", n, "B"); return n
+    def SCALE(a, k, x, y):
+        n = E(unreal.MaterialExpressionMultiply, x, y)
+        MEL.connect_material_expressions(a, "", n, "A")
+        n.set_editor_property("const_b", float(k)); return n
+    def SUBK(a, k, x, y):     # a - k
+        n = E(unreal.MaterialExpressionSubtract, x, y)
+        MEL.connect_material_expressions(a, "", n, "A")
+        n.set_editor_property("const_b", float(k)); return n
+    def KSUB(k, a, x, y):     # k - a
+        n = E(unreal.MaterialExpressionSubtract, x, y)
+        n.set_editor_property("const_a", float(k))
+        MEL.connect_material_expressions(a, "", n, "B"); return n
+    def ADDK(a, k, x, y):
+        n = E(unreal.MaterialExpressionAdd, x, y)
+        MEL.connect_material_expressions(a, "", n, "A")
+        n.set_editor_property("const_b", float(k)); return n
+    def FRAC(a, x, y):
+        n = E(unreal.MaterialExpressionFrac, x, y)
+        MEL.connect_material_expressions(a, "", n, ""); return n
+    def SAT(a, x, y):
+        n = E(unreal.MaterialExpressionSaturate, x, y)
+        MEL.connect_material_expressions(a, "", n, ""); return n
+    def ABSN(a, x, y):
+        n = E(unreal.MaterialExpressionAbs, x, y)
+        MEL.connect_material_expressions(a, "", n, ""); return n
+    def LERP(a, b, alpha, x, y):
+        n = E(unreal.MaterialExpressionLinearInterpolate, x, y)
+        MEL.connect_material_expressions(a, "", n, "A")
+        MEL.connect_material_expressions(b, "", n, "B")
+        MEL.connect_material_expressions(alpha, "", n, "Alpha"); return n
+
+    def pulse(coord, period, x, y):
+        # 1 inside a window pane, 0 in the frame gap, soft-edged via saturate
+        f = FRAC(SCALE(coord, 1.0 / period, x, y), x + 120, y)
+        loM = SAT(SCALE(SUBK(f, lo, x + 260, y - 40), sharp, x + 400, y - 40), x + 540, y - 40)
+        hiM = SAT(SCALE(KSUB(hi, f, x + 260, y + 60), sharp, x + 400, y + 60), x + 540, y + 60)
+        return MUL(loM, hiM, x + 700, y)
+
+    wp = E(unreal.MaterialExpressionWorldPosition, -2400, 0)
+    wx = MASK(wp, True, False, False, -2200, -300)
+    wy = MASK(wp, False, True, False, -2200, -100)
+    wz = MASK(wp, False, False, True, -2200, 140)
+
+    rows = pulse(wz, floor_cm, -2000, 140)
+    colX = pulse(wx, col_cm, -2000, -300)
+    colY = pulse(wy, col_cm, -2000, 420)
+
+    # pick the in-plane horizontal axis from the face normal (cube = hard normals)
+    nrm = E(unreal.MaterialExpressionVertexNormalWS, -2200, 760)
+    nx = ABSN(MASK(nrm, True, False, False, -2040, 720), -1900, 720)
+    ny = ABSN(MASK(nrm, False, True, False, -2040, 840), -1900, 840)
+    dif = E(unreal.MaterialExpressionSubtract, -1740, 780)
+    MEL.connect_material_expressions(ny, "", dif, "A")
+    MEL.connect_material_expressions(nx, "", dif, "B")
+    sel = SAT(ADDK(SCALE(dif, 8.0, -1580, 780), 0.5, -1440, 780), -1300, 780)
+    cols = LERP(colY, colX, sel, -1100, 520)
+
+    win = MUL(rows, cols, -850, 280)
+
+    baseC = LERP(C3(frame_color, -650, -260), C3(glass_color, -650, -110), win, -420, -180)
+    MEL.connect_material_property(baseC, "", unreal.MaterialProperty.MP_BASE_COLOR)
+    emi = MUL(C3(emissive, -650, 60), win, -420, 60)
+    MEL.connect_material_property(emi, "", unreal.MaterialProperty.MP_EMISSIVE_COLOR)
+    rgh = LERP(CC(rough_frame, -650, 240), CC(rough_win, -650, 320), win, -420, 270)
+    MEL.connect_material_property(rgh, "", unreal.MaterialProperty.MP_ROUGHNESS)
+    mtl = CC(metal, -650, 440)
+    MEL.connect_material_property(mtl, "", unreal.MaterialProperty.MP_METALLIC)
+    MEL.recompile_material(m)
+    return m
+
 # --------------------------------------------------------------- authoring --
 unreal.log("[OTTOQ dress] building materials…")
 asph_tex = find_scan_textures("Asphalt")
@@ -169,6 +266,17 @@ M_INTERIOR = make_pbr("M_OTTOQ_Interior", (0.95, 0.86, 0.66), 0.5, 0.0, emissive
 M_SIGN = make_pbr("M_OTTOQ_Sign", (0.0, 0.83, 0.66), 0.3, 0.0, emissive=(0.0, 1.5, 1.18))
 M_SCREEN = make_pbr("M_OTTOQ_Screen", (0.02, 0.06, 0.14), 0.1, 0.0, emissive=(0.06, 0.30, 0.85))
 M_BARRIER = make_pbr("M_OTTOQ_Barrier", (0.80, 0.10, 0.06), 0.4, 0.0, emissive=(0.30, 0.02, 0.0))
+# Background skyline: glass towers (City_A, 2/3) + warmer concrete mid-rises (City_B).
+M_CITY = make_city_facade("M_OTTOQ_City",
+                          frame_color=(0.15, 0.16, 0.19), glass_color=(0.30, 0.42, 0.55),
+                          emissive=(0.10, 0.13, 0.20), rough_win=0.06, metal=0.30,
+                          floor_cm=360.0, col_cm=300.0)
+M_CITY_B = make_city_facade("M_OTTOQ_CityB",
+                            frame_color=(0.35, 0.33, 0.30), glass_color=(0.22, 0.27, 0.31),
+                            emissive=(0.16, 0.12, 0.06), rough_win=0.11, metal=0.12,
+                            floor_cm=300.0, col_cm=340.0)
+M_TRUNK = make_pbr("M_OTTOQ_Trunk", (0.26, 0.17, 0.09), 0.85, 0.0)
+M_FOLIAGE = make_pbr("M_OTTOQ_Foliage", (0.13, 0.30, 0.10), 0.88, 0.0)
 
 # ----------------------------------------------------------- assignment -----
 # RULES are matched by startswith in order — list more-specific prefixes first.
@@ -191,6 +299,9 @@ RULES = [
     ("OTTOQ_Carport", M_DARK),
     ("OTTOQ_RoofDark", M_DARK),
     ("OTTOQ_PoleHead", M_LED), ("OTTOQ_Pole", M_STEEL),
+    ("OTTOQ_City_B", M_CITY_B), ("OTTOQ_City", M_CITY),
+    ("OTTOQ_TreeTrunk", M_TRUNK), ("OTTOQ_TreeFol", M_FOLIAGE),
+    ("OTTOQ_Walk", M_CONCRETE),
 ]
 SPECIAL_PV = "_PV"
 SPECIAL_POST = "_Post"
