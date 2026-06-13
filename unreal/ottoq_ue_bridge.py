@@ -226,13 +226,27 @@ def _apply(delta):
         del _actors[vid]
 
 # ----------------------------------------------------------------- control --
-_handle = None
-_thread = None
+# Persistent registry stashed on the `unreal` module so that re-exec'ing this
+# file in the console (fresh namespace each time) can find and REPLACE the
+# prior run's tick callback instead of orphaning it (orphans = duplicate
+# _apply callbacks firing forever against mismatched data).
+_REG = getattr(unreal, "_OTTOQ_REG", None)
+if _REG is None:
+    _REG = {"handle": None}
+    setattr(unreal, "_OTTOQ_REG", _REG)
+
+def _unregister_prior():
+    h = _REG.get("handle")
+    if h is not None:
+        try:
+            unreal.unregister_slate_post_tick_callback(h)
+        except Exception:
+            pass
+        _REG["handle"] = None
 
 def ottoq_bridge_start():
-    global _handle, _thread
-    # Sweep stale vehicle actors first — if the level was saved while the
-    # bridge ran, last session's cubes persist and would double-spawn.
+    _unregister_prior()
+    # Sweep stale vehicle actors — saved levels / prior runs leave OTTOQV actors.
     swept = 0
     for a in list(_eas.get_all_level_actors()):
         try:
@@ -243,19 +257,16 @@ def ottoq_bridge_start():
             pass
     if swept:
         unreal.log(f"[OTTOQ bridge] swept {swept} stale vehicle actors")
+    _actors.clear()
     _calibrate_sedan()
     _state["stop"] = False
-    _thread = threading.Thread(target=_poll_loop, daemon=True)
-    _thread.start()
-    _handle = unreal.register_slate_post_tick_callback(_apply)
+    threading.Thread(target=_poll_loop, daemon=True).start()
+    _REG["handle"] = unreal.register_slate_post_tick_callback(_apply)
     unreal.log("[OTTOQ bridge] started — polling twin, vehicles incoming")
 
 def ottoq_bridge_stop():
-    global _handle
     _state["stop"] = True
-    if _handle:
-        unreal.unregister_slate_post_tick_callback(_handle)
-        _handle = None
+    _unregister_prior()
     for vid in list(_actors):
         try:
             _eas.destroy_actor(_actors[vid][0])
