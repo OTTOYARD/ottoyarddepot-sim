@@ -45,6 +45,7 @@ for s in PLAN["stalls"]:
         LANES[s["type"]].append((s["position"]["x"], s["position"]["y"], s["position"].get("angle", 180)))
 
 GATE = (PLAN["ingress"]["x"], 198)
+WEST_AISLE = PLAN["lanes"]["westAisleX"]   # one-way entry aisle — used as the arrival queue
 
 STATE_MAP = {
     "charging_dcfc": ("dcfc", (0.05, 0.85, 0.35)),
@@ -110,9 +111,11 @@ def _poll_loop():
                     continue
                 lane, color = m
                 if lane == "gate":
-                    x = GATE[0] - 14 + (gate_n % 5) * 7
-                    y = GATE[1] + (gate_n // 5) * 8
-                    ang = 0  # arriving cars face north into the depot
+                    # queue single-file up the west (entry) aisle — never parked in
+                    # the gate opening or against the perimeter fence.
+                    x = WEST_AISLE
+                    y = 196 - gate_n * 6
+                    ang = 0  # facing north, into the depot
                     gate_n += 1
                 else:
                     slots = LANES[lane]

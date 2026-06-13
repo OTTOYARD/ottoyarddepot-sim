@@ -168,6 +168,7 @@ M_LED = make_pbr("M_OTTOQ_LED", (0.9, 0.92, 0.95), 0.3, 0.0, emissive=(2.2, 2.2,
 M_INTERIOR = make_pbr("M_OTTOQ_Interior", (0.95, 0.86, 0.66), 0.5, 0.0, emissive=(1.15, 0.95, 0.68))
 M_SIGN = make_pbr("M_OTTOQ_Sign", (0.0, 0.83, 0.66), 0.3, 0.0, emissive=(0.0, 1.5, 1.18))
 M_SCREEN = make_pbr("M_OTTOQ_Screen", (0.02, 0.06, 0.14), 0.1, 0.0, emissive=(0.06, 0.30, 0.85))
+M_BARRIER = make_pbr("M_OTTOQ_Barrier", (0.80, 0.10, 0.06), 0.4, 0.0, emissive=(0.30, 0.02, 0.0))
 
 # ----------------------------------------------------------- assignment -----
 # RULES are matched by startswith in order — list more-specific prefixes first.
@@ -179,7 +180,7 @@ RULES = [
     ("OTTOQ_BESS_Pad", M_CONCRETE),
     ("OTTOQ_BESS_Inverter", M_STEEL),
     ("OTTOQ_BESS_", M_DARK),
-    ("OTTOQ_Fence", M_DARK), ("OTTOQ_Gate", M_STEEL),
+    ("OTTOQ_Fence", M_DARK), ("OTTOQ_GateArm", M_BARRIER), ("OTTOQ_Gate", M_STEEL),
     ("OTTOQ_Sign", M_SIGN), ("OTTOQ_LitInterior", M_INTERIOR),
     ("OTTOQ_Building_Glass", M_GLASS),
     ("OTTOQ_Building", M_CLAD), ("OTTOQ_Wash", M_CLAD),

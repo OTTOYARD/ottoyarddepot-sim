@@ -167,6 +167,18 @@ def build(plan):
         for s in (-1, 1):
             box(f"OTTOQ_Gate{nm}_Post{'L' if s < 0 else 'R'}", gx + s * gw / 2, y1, 1.2, 1.2, 6.2, M["steel"])
 
+    # ---- guard booths + boom-barrier gates (security layer) ----
+    for gx, nm in [(inx, "In"), (egx, "Out")]:
+        side = 1.0 if gx < 150 else -1.0            # booth toward the median between the two gates
+        bxp = gx + side * (gw / 2 + 4.0)            # beside the gate gap, clear of the drive lane
+        box(f"OTTOQ_Building_Guard{nm}", bxp, y1 - 4.5, 3.6, 3.8, 3.6, M["wall"])
+        box(f"OTTOQ_RoofDark_Guard{nm}", bxp, y1 - 4.5, 4.2, 4.4, 0.4, M["darkmetal"], z0=3.6)
+        box(f"OTTOQ_Building_Glass_Guard{nm}", bxp - side * 1.85, y1 - 4.5, 0.2, 3.0, 1.8, M["glass"], z0=1.4)
+        # boom barrier: pivot post at the gap edge + arm across the lane
+        # (named OTTOQ_GateArm_* for later raise/lower animation)
+        box(f"OTTOQ_Gate_Boom{nm}", gx - gw / 2 + 0.6, y1 - 0.5, 0.9, 0.9, 2.6, M["steel"])
+        box(f"OTTOQ_GateArm_{nm}", gx, y1 - 0.5, gw - 1.5, 0.4, 0.4, M["gold"], z0=1.8)
+
     # ---- BESS yard ----
     b = plan["bessYard"]
     box("OTTOQ_BESS_Pad", b["x"] + b["w"] / 2, b["y"] + b["h"] / 2, b["w"] - 2, b["h"] - 2, 0.08, M["concrete"])
