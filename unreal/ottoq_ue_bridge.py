@@ -38,10 +38,11 @@ except NameError:
 with open(os.path.join(_HERE, "sitePlan.json")) as f:
     PLAN = json.load(f)
 
+# each slot = (x, y, angle) — angle is the stall's compass facing (0=N,90=E,180=S,270=W)
 LANES = {"dcfc": [], "l2": [], "wash": [], "service": [], "staging": []}
 for s in PLAN["stalls"]:
     if s["type"] in LANES:
-        LANES[s["type"]].append((s["position"]["x"], s["position"]["y"]))
+        LANES[s["type"]].append((s["position"]["x"], s["position"]["y"], s["position"].get("angle", 180)))
 
 GATE = (PLAN["ingress"]["x"], 198)
 
@@ -111,6 +112,7 @@ def _poll_loop():
                 if lane == "gate":
                     x = GATE[0] - 14 + (gate_n % 5) * 7
                     y = GATE[1] + (gate_n // 5) * 8
+                    ang = 0  # arriving cars face north into the depot
                     gate_n += 1
                 else:
                     slots = LANES[lane]
@@ -118,8 +120,8 @@ def _poll_loop():
                     if i >= len(slots):
                         continue
                     cursors[lane] += 1
-                    x, y = slots[i]
-                placements[v["id"]] = (x, y, color, v["state"])
+                    x, y, ang = slots[i]
+                placements[v["id"]] = (x, y, color, v["state"], ang)
             with _lock:
                 _state["placements"] = placements
                 _state["tick"] = snap["run"]["tick_count"]
@@ -158,9 +160,15 @@ def _calibrate_sedan():
     _norm["done"] = True
     unreal.log(f"[OTTOQ bridge] sedan calibrated scale={_norm['scale']:.3f} yaw={_norm['yaw']} z={_norm['zrest']:.1f}")
 
-def _spawn_car(veh_id, x, y, color):
+def _yaw_for(ang):
+    """Stall compass angle (0=N,90=E,180=S,270=W) → UE actor yaw, accounting
+    for the mesh's calibrated base yaw (length aligned N-S). E/W stalls add 90."""
+    extra = 90.0 if (ang % 180) == 90 else 0.0
+    return _norm["yaw"] + extra
+
+def _spawn_car(veh_id, x, y, color, yaw):
     mesh = SEDAN or CUBE
-    a = _eas.spawn_actor_from_object(mesh, _w(x, y, _norm["zrest"]), unreal.Rotator(0, 0, _norm["yaw"]))
+    a = _eas.spawn_actor_from_object(mesh, _w(x, y, _norm["zrest"]), unreal.Rotator(0, 0, yaw))
     if mesh is CUBE:
         a.set_actor_scale3d(unreal.Vector(4.7 * U / 100.0, 10.2 * U / 100.0, 2.1 * U / 100.0))
         try:
@@ -181,10 +189,11 @@ def _apply(delta):
     with _lock:
         placements = dict(_state["placements"])
     seen = set()
-    for vid, (x, y, color, st) in placements.items():
+    for vid, (x, y, color, st, ang) in placements.items():
         seen.add(vid)
+        yaw = _yaw_for(ang)
         if vid not in _actors:
-            a, mid = _spawn_car(vid, x, y, color)
+            a, mid = _spawn_car(vid, x, y, color, yaw)
             _actors[vid] = [a, mid, [x, y], color]
             continue
         rec = _actors[vid]
@@ -198,7 +207,8 @@ def _apply(delta):
             cur[0] += dx * t
             cur[1] += dy * t
             try:
-                a.set_actor_location(_w(cur[0], cur[1], 1.1 * U), False, False)
+                a.set_actor_location(_w(cur[0], cur[1], _norm["zrest"]), False, False)
+                a.set_actor_rotation(unreal.Rotator(0, 0, yaw), False)
             except Exception:
                 pass
         if mid and color != old_color:

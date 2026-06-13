@@ -15,6 +15,7 @@ Scale: 1 logical unit = 48 cm (~1.57 ft). Lot ≈ 138 m × 96 m.
 """
 
 import json
+import math
 import os
 import unreal
 
@@ -63,6 +64,19 @@ def box(name, x, y, w, d, h, mat, z0=0.0):
     """Axis-aligned box from logical rect (center x,y; logical w/d; h + z0 in logical units)."""
     a = eas.spawn_actor_from_object(CUBE, W(x, y, (z0 + h / 2.0) * U), unreal.Rotator(0, 0, 0))
     a.set_actor_scale3d(unreal.Vector(max(w, 0.05) * U / 100.0, max(d, 0.05) * U / 100.0, max(h, 0.05) * U / 100.0))
+    a.set_actor_label(name)
+    a.tags = [unreal.Name(TAG)]
+    try:
+        a.static_mesh_component.set_material(0, mat)
+    except Exception:
+        pass
+    return a
+
+def tbox(name, x, y, w, d, thick, mat, center_z_u, pitch_deg):
+    """Tilted slab: box centered at logical (x,y) and height center_z_u (logical
+    units), pitched pitch_deg about the world Y axis. Used for sloped roofs."""
+    a = eas.spawn_actor_from_object(CUBE, W(x, y, center_z_u * U), unreal.Rotator(0.0, pitch_deg, 0.0))
+    a.set_actor_scale3d(unreal.Vector(max(w, 0.05) * U / 100.0, max(d, 0.05) * U / 100.0, max(thick, 0.05) * U / 100.0))
     a.set_actor_label(name)
     a.tags = [unreal.Name(TAG)]
     try:
@@ -175,16 +189,27 @@ def build(plan):
         box(f"OTTOQ_W{i + 1}_Front", dx, wsh["y"] + wsh["h"] - 0.1, 11, 0.4, 7.4, M["glass"])
         box(f"OTTOQ_W{i + 1}_Rear", dx, wsh["y"] + 0.1, 11, 0.4, 7.4, M["darkmetal"])
 
-    # ---- charging canopies + PV ----
+    # ---- charging canopies: CENTRAL-SPINE BUTTERFLY ----
+    # Columns run ONLY down the center spine so AVs pull in/out from both sides
+    # with nothing in their path; the roof cantilevers out as two PV slopes that
+    # peak at the ridge and fall to the eaves (matches the ref renders).
+    R, E = 13.0, 10.5  # ridge (center) and eave (outer) heights, logical units
     for c in plan["canopies"]:
         cy = c["y"] + c["h"] / 2
-        box(f"OTTOQ_Canopy{c['id']}_Roof", c["cx"], cy, c["w"], c["h"], 0.7, M["darkmetal"], z0=11)
-        box(f"OTTOQ_Canopy{c['id']}_PV", c["cx"], cy, c["w"] - 1.5, c["h"] - 1.5, 0.18, M["darkmetal"], z0=11.8)
-        yy = c["y"] + 5
-        while yy <= c["y"] + c["h"] - 5:
-            for s in (-1, 1):
-                box(f"OTTOQ_Canopy{c['id']}_Post", c["cx"] + s * (c["w"] / 2 - 1.4), yy, 1.0, 1.0, 11, M["steel"])
-            yy += 22
+        half = c["w"] / 2.0
+        theta = math.degrees(math.atan2(R - E, half))
+        # central column spine — single row at cx
+        yy = c["y"] + 6
+        while yy <= c["y"] + c["h"] - 6:
+            box(f"OTTOQ_Canopy{c['id']}_Post_Col", c["cx"], yy, 1.5, 1.5, R, M["steel"])
+            yy += 19
+        # ridge beam along the spine
+        box(f"OTTOQ_Canopy{c['id']}_Post_Ridge", c["cx"], cy, 1.8, c["h"], 0.9, M["steel"], z0=R - 0.5)
+        # two tilted PV roof slopes: inner edge high at ridge, outer low at eave
+        for side in (-1, 1):
+            tbox(f"OTTOQ_Canopy{c['id']}_PVSlope_{'E' if side > 0 else 'W'}",
+                 c["cx"] + side * (half / 2.0), cy, half + 1.5, c["h"] + 1.5, 0.5,
+                 M["darkmetal"], (R + E) / 2.0, -side * theta)
 
     # ---- charger pedestals (beside each charging stall, toward its canopy spine) ----
     for s in plan["stalls"]:
