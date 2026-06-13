@@ -165,22 +165,28 @@ M_CLAD = make_pbr("M_OTTOQ_Cladding", (0.50, 0.51, 0.53), 0.55, 0.08)
 M_GLASS = make_pbr("M_OTTOQ_Glass", (0.10, 0.22, 0.24), 0.06, 0.25, translucent=True, opacity=0.42)
 M_PAINT = make_pbr("M_OTTOQ_Paint", (0.85, 0.86, 0.84), 0.55, 0.0)
 M_LED = make_pbr("M_OTTOQ_LED", (0.9, 0.92, 0.95), 0.3, 0.0, emissive=(2.2, 2.2, 2.3))
+M_INTERIOR = make_pbr("M_OTTOQ_Interior", (0.95, 0.86, 0.66), 0.5, 0.0, emissive=(1.15, 0.95, 0.68))
+M_SIGN = make_pbr("M_OTTOQ_Sign", (0.0, 0.83, 0.66), 0.3, 0.0, emissive=(0.0, 1.5, 1.18))
 
 # ----------------------------------------------------------- assignment -----
+# RULES are matched by startswith in order — list more-specific prefixes first.
 RULES = [
     ("OTTOQ_Grass", M_GRASS),
     ("OTTOQ_Lot", M_ASPHALT), ("OTTOQ_Road", M_ASPHALT),
     ("OTTOQ_Forecourt", M_CONCRETE), ("OTTOQ_RearApron", M_CONCRETE),
+    ("OTTOQ_BayFloor", M_DARK),
     ("OTTOQ_BESS_Pad", M_CONCRETE),
     ("OTTOQ_BESS_Inverter", M_STEEL),
     ("OTTOQ_BESS_", M_DARK),
     ("OTTOQ_Fence", M_DARK), ("OTTOQ_Gate", M_STEEL),
+    ("OTTOQ_Sign", M_SIGN), ("OTTOQ_LitInterior", M_INTERIOR),
     ("OTTOQ_Building_Glass", M_GLASS),
     ("OTTOQ_Building", M_CLAD), ("OTTOQ_Wash", M_CLAD),
-    ("OTTOQ_SVC", M_DARK), ("OTTOQ_W1_", M_GLASS), ("OTTOQ_W2_", M_GLASS), ("OTTOQ_W3_", M_GLASS),
+    ("OTTOQ_SVC", M_DARK),
     ("OTTOQ_Canopy", M_DARK),          # roof + posts default…
     ("OTTOQ_CH_", M_STEEL),
     ("OTTOQ_Carport", M_DARK),
+    ("OTTOQ_RoofDark", M_DARK),
     ("OTTOQ_PoleHead", M_LED), ("OTTOQ_Pole", M_STEEL),
 ]
 SPECIAL_PV = "_PV"

@@ -174,20 +174,65 @@ def build(plan):
         box(f"OTTOQ_BESS_{i + 1}", b["x"] + 9 + i * 15, b["y"] + b["h"] / 2, 11, 16, 6.4, M["darkmetal"])
     box("OTTOQ_BESS_Inverter", b["x"] + b["w"] - 5, b["y"] + b["h"] / 2, 5, 8, 4, M["steel"])
 
-    # ---- operations building + service bays ----
-    bl = plan["building"]
-    box("OTTOQ_Building", bl["x"] + bl["w"] / 2, bl["y"] + bl["h"] / 2, bl["w"], bl["h"], 13, M["wall"])
-    box("OTTOQ_Building_Glass", bl["x"] + 19, bl["y"] + bl["h"] - 0.2, 34, 0.3, 8, M["glass"], z0=0.6)
-    for i, dx in enumerate([120, 138]):
-        box(f"OTTOQ_SVC{i + 1}_Front", dx, bl["y"] + bl["h"] - 0.1, 12, 0.4, 8.4, M["darkmetal"])
-        box(f"OTTOQ_SVC{i + 1}_Rear", dx, bl["y"] + 0.1, 12, 0.4, 8.4, M["darkmetal"])
+    # ---- OPEN PULL-THROUGH BAY SHED (reused for service + wash) ----
+    # Open front & rear (roll-up doors shown retracted), side/end walls, a
+    # ridge of partitions between bays, dark interior + equipment. No solid
+    # front wall below the lintel — AVs pull straight in, techs work inside.
+    def open_bay(prefix, x0, y0, w, h, height, door_xs, ohalf, kind):
+        cxx, cyy = x0 + w / 2.0, y0 + h / 2.0
+        yN, yS = y0, y0 + h
+        DH = height - 1.4  # door-opening height
+        dark, wall, steel = M["darkmetal"], M["wall"], M["steel"]
+        box(f"{prefix}_Roof", cxx, cyy, w, h, 0.7, dark, z0=height)
+        box(f"{prefix}_Wall_W", x0 + 0.5, cyy, 1.0, h, height, wall)
+        box(f"{prefix}_Wall_E", x0 + w - 0.5, cyy, 1.0, h, height, wall)
+        box(f"{prefix}_Wall_LintelS", cxx, yS - 0.4, w, 0.8, height - DH, wall, z0=DH)
+        box(f"{prefix}_Wall_LintelN", cxx, yN + 0.4, w, 0.8, height - DH, wall, z0=DH)
+        for i in range(len(door_xs) - 1):
+            bx = (door_xs[i] + door_xs[i + 1]) / 2.0
+            box(f"{prefix}_Wall_Part{i}", bx, cyy, 0.8, h, DH, wall)
+        for dx in door_xs:
+            di = int(dx)
+            box(f"OTTOQ_BayFloor_{di}", dx, cyy, 2 * ohalf, h - 1.6, 0.12, dark, z0=0.05)
+            # retracted roll-up doors tucked under the lintel (front + rear)
+            box(f"{prefix}_DoorS_{di}", dx, yS - 0.5, 2 * ohalf - 0.4, 0.35, 1.1, dark, z0=DH - 1.1)
+            box(f"{prefix}_DoorN_{di}", dx, yN + 0.5, 2 * ohalf - 0.4, 0.35, 1.1, dark, z0=DH - 1.1)
+            if kind == "wash":
+                # overhead wash gantry (inverted-U) + a sprayer boom
+                box(f"{prefix}_Post_GantL_{di}", dx - ohalf + 0.8, cyy, 0.4, 0.4, height - 1.8, steel)
+                box(f"{prefix}_Post_GantR_{di}", dx + ohalf - 0.8, cyy, 0.4, 0.4, height - 1.8, steel)
+                box(f"{prefix}_Post_GantTop_{di}", dx, cyy, 2 * ohalf - 1.4, 0.6, 0.5, steel, z0=height - 1.8)
+                box(f"{prefix}_Post_Spray_{di}", dx, cyy, 0.3, h - 7, 0.3, steel, z0=height - 2.6)
+            else:
+                # two-post vehicle lift
+                box(f"{prefix}_Post_LiftL_{di}", dx - 3.5, cyy, 0.6, 0.6, 6.2, steel)
+                box(f"{prefix}_Post_LiftR_{di}", dx + 3.5, cyy, 0.6, 0.6, 6.2, steel)
+                box(f"{prefix}_Post_LiftArm_{di}", dx, cyy, 7.6, 0.5, 0.3, steel, z0=5.6)
 
-    # ---- wash bays ----
+    # ---- operations building: GLASS office hub (west) + open service bays (east) ----
+    bl = plan["building"]
+    ox, oy, oh = bl["x"], bl["y"], bl["h"]
+    ow = 40.0
+    ocx, ocy = ox + ow / 2.0, oy + oh / 2.0
+    OH = 14.0
+    box("OTTOQ_Building_Core", ocx, oy + oh * 0.30, ow, oh * 0.55, OH, M["wall"])
+    box("OTTOQ_RoofDark_Office", ocx, ocy, ow, oh, 0.7, M["darkmetal"], z0=OH)
+    box("OTTOQ_LitInterior_Office", ocx, oy + oh - 1.8, ow - 3, 0.3, OH - 3.5, M["glass"], z0=1.6)
+    box("OTTOQ_Building_Glass_S", ocx, oy + oh - 0.3, ow - 1.5, 0.4, OH - 1.2, M["glass"], z0=0.6)
+    box("OTTOQ_Building_Glass_W", ox + 0.3, ocy, 0.4, oh - 1.5, OH - 1.2, M["glass"], z0=0.6)
+    box("OTTOQ_Building_Floor2", ocx, oy + oh - 0.2, ow - 1.5, 0.5, 0.4, M["darkmetal"], z0=OH / 2.0)
+    mx = ox + 4
+    while mx <= ox + ow - 4:
+        box(f"OTTOQ_Building_Post_Mul_{int(mx)}", mx, oy + oh - 0.05, 0.3, 0.3, OH - 1.2, M["steel"], z0=0.6)
+        mx += 5
+    box("OTTOQ_Sign_Office", ocx, oy + oh - 0.05, 20, 0.5, 2.2, M["gold"], z0=OH - 3.0)
+    # 2 open service bays (east half of the building footprint)
+    open_bay("OTTOQ_SVC", 110.0, oy, 40.0, oh, 11.0, [120, 138], 6.0, "service")
+
+    # ---- wash / detailing bays (open self-serve, retractable doors) ----
     wsh = plan["wash"]
-    box("OTTOQ_Wash", wsh["x"] + wsh["w"] / 2, wsh["y"] + wsh["h"] / 2, wsh["w"], wsh["h"], 10, M["wall"])
-    for i, dx in enumerate([168, 186, 204]):
-        box(f"OTTOQ_W{i + 1}_Front", dx, wsh["y"] + wsh["h"] - 0.1, 11, 0.4, 7.4, M["glass"])
-        box(f"OTTOQ_W{i + 1}_Rear", dx, wsh["y"] + 0.1, 11, 0.4, 7.4, M["darkmetal"])
+    open_bay("OTTOQ_Wash", wsh["x"], wsh["y"], wsh["w"], wsh["h"], 10.0, [168, 186, 204], 6.0, "wash")
+    box("OTTOQ_Sign_Wash", wsh["x"] + wsh["w"] / 2.0, wsh["y"] + wsh["h"] - 0.05, 16, 0.5, 1.8, M["gold"], z0=10.2)
 
     # ---- charging canopies: CENTRAL-SPINE BUTTERFLY ----
     # Columns run ONLY down the center spine so AVs pull in/out from both sides
