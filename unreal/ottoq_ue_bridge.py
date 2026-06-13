@@ -129,24 +129,51 @@ def _poll_loop():
 
 # ------------------------------------------------------------- actor pool ---
 CUBE = unreal.load_asset("/Engine/BasicShapes/Cube.Cube")
+SEDAN = unreal.load_asset("/Game/Fab/Generic_Sedan_Car/generic_sedan_car/StaticMeshes/generic_sedan_car")
 _eas = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
-_actors = {}   # veh_id -> (actor, mid, [cur_x, cur_y], color)
+_actors = {}   # veh_id -> [actor, _, [cur_x, cur_y], color]
 
-def _spawn_car(veh_id, x, y, color):
-    a = _eas.spawn_actor_from_object(CUBE, _w(x, y, 1.1 * U), unreal.Rotator(0, 0, 0))
-    a.set_actor_scale3d(unreal.Vector(4.7 * U / 100.0, 10.2 * U / 100.0, 2.1 * U / 100.0))
-    a.set_actor_label(f"OTTOQV_{veh_id[:8]}")
-    a.tags = [unreal.Name(TAG)]
-    mid = None
-    try:
-        mid = a.static_mesh_component.create_dynamic_material_instance(0)
-        mid.set_vector_parameter_value("Color", unreal.LinearColor(*color, 1.0))
-    except Exception:
-        pass
-    return a, mid
+TARGET_LEN_CM = 480.0   # a ~15.7 ft sedan
+_norm = {"scale": 1.0, "yaw": 0.0, "zrest": 1.1 * U, "done": False}
 
 def _w(x, y, z_cm):
     return unreal.Vector((x - 150.0) * U, (y - 110.0) * U, z_cm)
+
+def _calibrate_sedan():
+    """Measure the imported glTF mesh ONCE → uniform scale to a real car
+    length, base yaw so the car's length runs along the depot's N-S lanes,
+    and a rest-on-ground Z. Avoids guessing at glTF units/orientation."""
+    if SEDAN is None or _norm["done"]:
+        return
+    tmp = _eas.spawn_actor_from_object(SEDAN, unreal.Vector(0, 0, 0), unreal.Rotator(0, 0, 0))
+    try:
+        origin, ext = tmp.get_actor_bounds(False)
+        longest = max(ext.x, ext.y)
+        _norm["scale"] = TARGET_LEN_CM / (2.0 * longest) if longest > 1 else 1.0
+        # if the long (length) axis is X, rotate 90° so it runs along world Y (N-S lanes)
+        _norm["yaw"] = 90.0 if ext.x >= ext.y else 0.0
+        _norm["zrest"] = (ext.z - origin.z) * _norm["scale"] + 1.0
+    finally:
+        _eas.destroy_actor(tmp)
+    _norm["done"] = True
+    unreal.log(f"[OTTOQ bridge] sedan calibrated scale={_norm['scale']:.3f} yaw={_norm['yaw']} z={_norm['zrest']:.1f}")
+
+def _spawn_car(veh_id, x, y, color):
+    mesh = SEDAN or CUBE
+    a = _eas.spawn_actor_from_object(mesh, _w(x, y, _norm["zrest"]), unreal.Rotator(0, 0, _norm["yaw"]))
+    if mesh is CUBE:
+        a.set_actor_scale3d(unreal.Vector(4.7 * U / 100.0, 10.2 * U / 100.0, 2.1 * U / 100.0))
+        try:
+            mid = a.static_mesh_component.create_dynamic_material_instance(0)
+            mid.set_vector_parameter_value("Color", unreal.LinearColor(*color, 1.0))
+        except Exception:
+            pass
+    else:
+        s = _norm["scale"]
+        a.set_actor_scale3d(unreal.Vector(s, s, s))   # real car keeps its imported paint
+    a.set_actor_label(f"OTTOQV_{veh_id[:8]}")
+    a.tags = [unreal.Name(TAG)]
+    return a, None
 
 def _apply(delta):
     if _state["stop"]:
@@ -206,6 +233,7 @@ def ottoq_bridge_start():
             pass
     if swept:
         unreal.log(f"[OTTOQ bridge] swept {swept} stale vehicle actors")
+    _calibrate_sedan()
     _state["stop"] = False
     _thread = threading.Thread(target=_poll_loop, daemon=True)
     _thread.start()
