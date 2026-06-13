@@ -193,21 +193,27 @@ def build(plan):
             box(f"{prefix}_Wall_Part{i}", bx, cyy, 0.8, h, DH, wall)
         for dx in door_xs:
             di = int(dx)
-            box(f"OTTOQ_BayFloor_{di}", dx, cyy, 2 * ohalf, h - 1.6, 0.12, dark, z0=0.05)
-            # retracted roll-up doors tucked under the lintel (front + rear)
-            box(f"{prefix}_DoorS_{di}", dx, yS - 0.5, 2 * ohalf - 0.4, 0.35, 1.1, dark, z0=DH - 1.1)
-            box(f"{prefix}_DoorN_{di}", dx, yN + 0.5, 2 * ohalf - 0.4, 0.35, 1.1, dark, z0=DH - 1.1)
+            box(f"OTTOQ_BayFloor_{di}", dx, cyy, 2 * ohalf, h - 1.0, 0.12, dark, z0=0.05)
+            # RETRACTABLE roll-up doors — shown retracted to a coil under the
+            # lintel, with vertical side tracks on both jambs (front + rear).
+            # The bay is hollow front-to-back; doors are named for later
+            # open/close animation. Nothing spans the opening = clean pull-through.
+            for ye, tag in ((yS - 0.45, "S"), (yN + 0.45, "N")):
+                box(f"{prefix}_Door{tag}_{di}", dx, ye, 2 * ohalf - 0.4, 0.55, 1.0, dark, z0=DH - 1.0)
+                box(f"{prefix}_Post_Trk{tag}L_{di}", dx - ohalf + 0.2, ye, 0.25, 0.45, DH, steel)
+                box(f"{prefix}_Post_Trk{tag}R_{di}", dx + ohalf - 0.2, ye, 0.25, 0.45, DH, steel)
             if kind == "wash":
-                # overhead wash gantry (inverted-U) + a sprayer boom
-                box(f"{prefix}_Post_GantL_{di}", dx - ohalf + 0.8, cyy, 0.4, 0.4, height - 1.8, steel)
-                box(f"{prefix}_Post_GantR_{di}", dx + ohalf - 0.8, cyy, 0.4, 0.4, height - 1.8, steel)
-                box(f"{prefix}_Post_GantTop_{di}", dx, cyy, 2 * ohalf - 1.4, 0.6, 0.5, steel, z0=height - 1.8)
+                # overhead wash gantry + sprayer boom — ALL above vehicle height
+                box(f"{prefix}_Post_GantL_{di}", dx - ohalf + 0.7, cyy, 0.4, 0.4, height - 1.8, steel)
+                box(f"{prefix}_Post_GantR_{di}", dx + ohalf - 0.7, cyy, 0.4, 0.4, height - 1.8, steel)
+                box(f"{prefix}_Post_GantTop_{di}", dx, cyy, 2 * ohalf - 1.2, 0.6, 0.5, steel, z0=height - 1.8)
                 box(f"{prefix}_Post_Spray_{di}", dx, cyy, 0.3, h - 7, 0.3, steel, z0=height - 2.6)
             else:
-                # two-post vehicle lift
-                box(f"{prefix}_Post_LiftL_{di}", dx - 3.5, cyy, 0.6, 0.6, 6.2, steel)
-                box(f"{prefix}_Post_LiftR_{di}", dx + 3.5, cyy, 0.6, 0.6, 6.2, steel)
-                box(f"{prefix}_Post_LiftArm_{di}", dx, cyy, 7.6, 0.5, 0.3, steel, z0=5.6)
+                # two-post lift: posts at the bay EDGES + overhead cross-arm,
+                # so the center lane stays clear for pull-through.
+                box(f"{prefix}_Post_LiftL_{di}", dx - ohalf + 0.7, cyy + 2, 0.5, 0.5, 6.2, steel)
+                box(f"{prefix}_Post_LiftR_{di}", dx + ohalf - 0.7, cyy + 2, 0.5, 0.5, 6.2, steel)
+                box(f"{prefix}_Post_LiftArm_{di}", dx, cyy + 2, 2 * ohalf - 1.4, 0.4, 0.3, steel, z0=6.0)
 
     # ---- operations building: GLASS office hub (west) + open service bays (east) ----
     bl = plan["building"]
@@ -256,15 +262,26 @@ def build(plan):
                  c["cx"] + side * (half / 2.0), cy, half + 1.5, c["h"] + 1.5, 0.5,
                  M["darkmetal"], (R + E) / 2.0, -side * theta)
 
-    # ---- charger pedestals (beside each charging stall, toward its canopy spine) ----
+    # ---- charger pedestals: realistic DCFC / L2 units beside each stall ----
+    # housing + chamfered cap, a car-facing screen, a teal status strip, and a
+    # connector holster — DCFC taller/wider than L2.
     for s in plan["stalls"]:
         if s["type"] not in ("dcfc", "l2"):
             continue
         sx, sy = s["position"]["x"], s["position"]["y"]
         spine = min(plan["canopies"], key=lambda c: abs(c["cx"] - sx))["cx"]
         px = sx + (4.5 if spine > sx else -4.5)
-        hh = 3.6 if s["type"] == "dcfc" else 2.8
-        box(f"OTTOQ_CH_{s['id']}", px, sy, 1.3, 0.7, hh, M["steel"])
+        sgn = 1.0 if sx > px else -1.0  # +1 = car is to the +x side of the pedestal
+        sid = s["id"]
+        is_dc = s["type"] == "dcfc"
+        hh = 3.8 if is_dc else 2.8
+        ww = 1.4 if is_dc else 1.0
+        box(f"OTTOQ_CH_{sid}_Base", px, sy, ww + 0.7, 1.3, 0.25, M["steel"])
+        box(f"OTTOQ_CH_{sid}", px, sy, ww, 0.9, hh, M["steel"], z0=0.25)
+        box(f"OTTOQ_CH_{sid}_Cap", px, sy, ww + 0.25, 1.1, 0.4, M["steel"], z0=hh + 0.25)
+        box(f"OTTOQ_ChScr_{sid}", px + sgn * (ww / 2 + 0.04), sy, 0.12, 0.55, 0.8, M["glass"], z0=hh * 0.6)
+        box(f"OTTOQ_ChLED_{sid}", px, sy, ww * 0.85, 0.95, 0.16, M["gold"], z0=hh - 0.15)
+        box(f"OTTOQ_CH_{sid}_Hol", px + sgn * (ww / 2 + 0.05), sy + 0.45, 0.3, 0.3, 0.9, M["steel"], z0=hh * 0.45)
 
     # ---- perimeter carports ----
     for run in plan["parkRuns"]:
