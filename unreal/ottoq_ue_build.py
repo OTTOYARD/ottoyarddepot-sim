@@ -188,32 +188,37 @@ def build(plan):
         box(f"{prefix}_Wall_E", x0 + w - 0.5, cyy, 1.0, h, height, wall)
         box(f"{prefix}_Wall_LintelS", cxx, yS - 0.4, w, 0.8, height - DH, wall, z0=DH)
         box(f"{prefix}_Wall_LintelN", cxx, yN + 0.4, w, 0.8, height - DH, wall, z0=DH)
-        for i in range(len(door_xs) - 1):
-            bx = (door_xs[i] + door_xs[i + 1]) / 2.0
-            box(f"{prefix}_Wall_Part{i}", bx, cyy, 0.8, h, DH, wall)
-        for dx in door_xs:
+        # bay boundaries: end walls + midpoints between adjacent doors. Each bay's
+        # opening (door, floor, equipment) is sized to its actual span so the door
+        # matches the full opening width — not a fixed guess.
+        bounds = [x0] + [(door_xs[i] + door_xs[i + 1]) / 2.0 for i in range(len(door_xs) - 1)] + [x0 + w]
+        for i in range(1, len(bounds) - 1):
+            box(f"{prefix}_Wall_Part{i}", bounds[i], cyy, 0.8, h, DH, wall)
+        for i, dx in enumerate(door_xs):
             di = int(dx)
-            box(f"OTTOQ_BayFloor_{di}", dx, cyy, 2 * ohalf, h - 1.0, 0.12, dark, z0=0.05)
-            # RETRACTABLE roll-up doors — shown retracted to a coil under the
-            # lintel, with vertical side tracks on both jambs (front + rear).
-            # The bay is hollow front-to-back; doors are named for later
-            # open/close animation. Nothing spans the opening = clean pull-through.
+            bcx = (bounds[i] + bounds[i + 1]) / 2.0       # true bay center
+            opening = (bounds[i + 1] - bounds[i]) - 1.6   # clear opening between partitions/walls
+            hw = opening / 2.0
+            box(f"OTTOQ_BayFloor_{di}", bcx, cyy, opening + 0.6, h - 1.0, 0.12, dark, z0=0.05)
+            # RETRACTABLE roll-up doors — retracted to a coil under the lintel,
+            # door spans the FULL opening, with side tracks on both jambs (front +
+            # rear). Bay is hollow front-to-back; named for later open/close anim.
             for ye, tag in ((yS - 0.45, "S"), (yN + 0.45, "N")):
-                box(f"{prefix}_Door{tag}_{di}", dx, ye, 2 * ohalf - 0.4, 0.55, 1.0, dark, z0=DH - 1.0)
-                box(f"{prefix}_Post_Trk{tag}L_{di}", dx - ohalf + 0.2, ye, 0.25, 0.45, DH, steel)
-                box(f"{prefix}_Post_Trk{tag}R_{di}", dx + ohalf - 0.2, ye, 0.25, 0.45, DH, steel)
+                box(f"{prefix}_Door{tag}_{di}", bcx, ye, opening, 0.55, 1.0, dark, z0=DH - 1.0)
+                box(f"{prefix}_Post_Trk{tag}L_{di}", bcx - hw - 0.15, ye, 0.25, 0.45, DH, steel)
+                box(f"{prefix}_Post_Trk{tag}R_{di}", bcx + hw + 0.15, ye, 0.25, 0.45, DH, steel)
             if kind == "wash":
                 # overhead wash gantry + sprayer boom — ALL above vehicle height
-                box(f"{prefix}_Post_GantL_{di}", dx - ohalf + 0.7, cyy, 0.4, 0.4, height - 1.8, steel)
-                box(f"{prefix}_Post_GantR_{di}", dx + ohalf - 0.7, cyy, 0.4, 0.4, height - 1.8, steel)
-                box(f"{prefix}_Post_GantTop_{di}", dx, cyy, 2 * ohalf - 1.2, 0.6, 0.5, steel, z0=height - 1.8)
-                box(f"{prefix}_Post_Spray_{di}", dx, cyy, 0.3, h - 7, 0.3, steel, z0=height - 2.6)
+                box(f"{prefix}_Post_GantL_{di}", bcx - hw + 0.5, cyy, 0.4, 0.4, height - 1.8, steel)
+                box(f"{prefix}_Post_GantR_{di}", bcx + hw - 0.5, cyy, 0.4, 0.4, height - 1.8, steel)
+                box(f"{prefix}_Post_GantTop_{di}", bcx, cyy, opening - 1.0, 0.6, 0.5, steel, z0=height - 1.8)
+                box(f"{prefix}_Post_Spray_{di}", bcx, cyy, 0.3, h - 7, 0.3, steel, z0=height - 2.6)
             else:
                 # two-post lift: posts at the bay EDGES + overhead cross-arm,
                 # so the center lane stays clear for pull-through.
-                box(f"{prefix}_Post_LiftL_{di}", dx - ohalf + 0.7, cyy + 2, 0.5, 0.5, 6.2, steel)
-                box(f"{prefix}_Post_LiftR_{di}", dx + ohalf - 0.7, cyy + 2, 0.5, 0.5, 6.2, steel)
-                box(f"{prefix}_Post_LiftArm_{di}", dx, cyy + 2, 2 * ohalf - 1.4, 0.4, 0.3, steel, z0=6.0)
+                box(f"{prefix}_Post_LiftL_{di}", bcx - hw + 0.6, cyy + 2, 0.5, 0.5, 6.2, steel)
+                box(f"{prefix}_Post_LiftR_{di}", bcx + hw - 0.6, cyy + 2, 0.5, 0.5, 6.2, steel)
+                box(f"{prefix}_Post_LiftArm_{di}", bcx, cyy + 2, opening - 1.2, 0.4, 0.3, steel, z0=6.0)
 
     # ---- operations building: GLASS office hub (west) + open service bays (east) ----
     bl = plan["building"]
@@ -221,12 +226,16 @@ def build(plan):
     ow = 40.0
     ocx, ocy = ox + ow / 2.0, oy + oh / 2.0
     OH = 14.0
-    box("OTTOQ_Building_Core", ocx, oy + oh * 0.30, ow, oh * 0.55, OH, M["wall"])
+    # Uniform glass curtain wall wrapping S + W + E (corner-to-corner, no side
+    # gap); opaque rear (north) wall + roof; a single interior glow volume so
+    # all glass faces read consistently lit.
+    box("OTTOQ_Building_Core", ocx, oy + 0.7, ow, 1.4, OH, M["wall"])               # rear (north) wall
     box("OTTOQ_RoofDark_Office", ocx, ocy, ow, oh, 0.7, M["darkmetal"], z0=OH)
-    box("OTTOQ_LitInterior_Office", ocx, oy + oh - 1.8, ow - 3, 0.3, OH - 3.5, M["glass"], z0=1.6)
-    box("OTTOQ_Building_Glass_S", ocx, oy + oh - 0.3, ow - 1.5, 0.4, OH - 1.2, M["glass"], z0=0.6)
-    box("OTTOQ_Building_Glass_W", ox + 0.3, ocy, 0.4, oh - 1.5, OH - 1.2, M["glass"], z0=0.6)
-    box("OTTOQ_Building_Floor2", ocx, oy + oh - 0.2, ow - 1.5, 0.5, 0.4, M["darkmetal"], z0=OH / 2.0)
+    box("OTTOQ_LitInterior_Office", ocx, ocy + 1.0, ow - 4, oh - 5, OH - 4.0, M["glass"], z0=1.6)
+    box("OTTOQ_Building_Glass_S", ocx, oy + oh - 0.3, ow, 0.5, OH - 1.0, M["glass"], z0=0.6)
+    box("OTTOQ_Building_Glass_W", ox + 0.3, ocy, 0.5, oh, OH - 1.0, M["glass"], z0=0.6)
+    box("OTTOQ_Building_Glass_E", ox + ow - 0.3, ocy, 0.5, oh, OH - 1.0, M["glass"], z0=0.6)
+    box("OTTOQ_Building_Floor2", ocx, oy + oh - 0.25, ow, 0.6, 0.4, M["darkmetal"], z0=OH / 2.0)
     mx = ox + 4
     while mx <= ox + ow - 4:
         box(f"OTTOQ_Building_Post_Mul_{int(mx)}", mx, oy + oh - 0.05, 0.3, 0.3, OH - 1.2, M["steel"], z0=0.6)
