@@ -7,14 +7,16 @@
 //   1. holds a STABLE per-vehicle stall assignment (no re-shuffle jitter), and
 //   2. when a vehicle's target changes (gate→charge→wash→stage→egress), routes
 //      it along the real depot lanes (sitePlan.routeToStall / routeToEgress).
-// A rAF loop then interpolates each vehicle's position along its waypoints at a
-// realistic depot crawl, and Vehicle3D/VehicleDot render the result. This is the
-// same motion model as the offline SimulationEngine, but every state TRANSITION
-// is sourced from the backend instead of a local arrival generator.
+//
+// Motion is driven by Yuka steering (FollowPath + Arrive + Separation): vehicles
+// follow the lane path at speed, decelerate smoothly into the stall, and push
+// apart so they never overlap/clump (e.g. at the gate). The renderer reads the
+// resulting position; Vehicle3D faces the travel direction.
 //
 // Runs only in backend-twin mode (active sim_run + offline engine NOT running)
 // so it never fights the offline-demo engine for the vehicle/depot stores.
 // ============================================================================
+import { EntityManager, Vehicle as YukaVehicle, Path, FollowPathBehavior, SeparationBehavior, Vector3 } from "yuka";
 import { useDepotStore, type StallStatus } from "@/store/depotStore";
 import { useVehicleStore } from "@/store/vehicleStore";
 import { useSimulationStore } from "@/store/simulationStore";
@@ -25,11 +27,13 @@ import { routeToStall, routeToEgress, INGRESS, EGRESS } from "@/lib/sitePlan";
 type Lane = "dcfc" | "l2" | "wash" | "service" | "staging";
 
 // Base travel speed in logical units / sim-second (1 u ≈ 1.57 ft → ~13 u/s ≈
-// 14 mph), scaled by the operator's sim speed. Mirrors SimulationEngine.
-const LERP_SPEED = 13;
+// 14 mph), scaled by the operator's sim speed. Yuka maxSpeed uses this.
+const BASE_SPEED = 13;
+// How close (logical units) before a vehicle is considered "arrived" at its
+// final destination, and the gate fan / separation spacing.
+const ARRIVE_EPS = 1.6;
+const NEIGHBORHOOD = 9;
 
-// Gate holding apron just inside the ingress gate — fresh arrivals wait here
-// (fanned out) until OTTO-Q assigns them a stall, then they drive across.
 function gatePos(id: string): { x: number; y: number } {
   const n = hash(id) % 24;
   return { x: INGRESS.x - 30 + (n % 8) * 8, y: INGRESS.y - 16 - Math.floor(n / 8) * 7 };
@@ -60,12 +64,6 @@ function mapState(
   }
 }
 
-function lerp(cur: number, target: number, maxStep: number): number {
-  const d = target - cur;
-  if (Math.abs(d) <= maxStep) return target;
-  return cur + Math.sign(d) * maxStep;
-}
-
 // destination = the last point a vehicle is currently headed for
 function destOf(v: Vehicle): { x: number; y: number } {
   if (v.waypoints && v.waypoints.length) return v.waypoints[v.waypoints.length - 1];
@@ -73,11 +71,20 @@ function destOf(v: Vehicle): { x: number; y: number } {
   return v.position;
 }
 
+interface YukaEntry {
+  yv: YukaVehicle;
+  follow: FollowPathBehavior | null;
+  pathRef: unknown;            // identity of the waypoint set the current path was built from
+  final: { x: number; y: number } | null;
+}
+
 class TwinMotionDriver {
   private rafId: number | null = null;
   private last: number | null = null;
   private vehicles = new Map<string, Vehicle>();
   private assign = new Map<string, { lane: Lane; stallId: string }>(); // vehicle → claimed stall
+  private em = new EntityManager();
+  private yuka = new Map<string, YukaEntry>();
 
   start() {
     if (this.rafId !== null) return;
@@ -92,6 +99,8 @@ class TwinMotionDriver {
     this.stop();
     this.vehicles.clear();
     this.assign.clear();
+    this.yuka.clear();
+    this.em = new EntityManager();
   }
 
   /** Reconcile render state against a fresh backend snapshot (sets routes). */
@@ -101,7 +110,6 @@ class TwinMotionDriver {
     const byLane: Record<string, typeof stalls> = { dcfc: [], l2: [], wash: [], service: [], staging: [] };
     for (const s of stalls) (byLane[s.type] ??= []).push(s);
 
-    // stalls currently claimed by a still-assigned vehicle
     const claimed = new Set<string>();
     for (const a of this.assign.values()) claimed.add(a.stallId);
 
@@ -141,8 +149,6 @@ class TwinMotionDriver {
       // ---- create or update the render vehicle ----
       let v = this.vehicles.get(bv.id);
       if (!v) {
-        // appear in place (no stampede on first paint); motion happens on the
-        // NEXT state change the backend reports.
         v = {
           id: bv.id, type: "fleet", oem: bv.platform, priority: 5,
           batteryCapacity: 100, currentSoC: bv.soc ?? 0, targetSoC: 90,
@@ -187,6 +193,25 @@ class TwinMotionDriver {
     this.flush();
   }
 
+  /** Get-or-create the Yuka entity backing a render vehicle. */
+  private yukaFor(v: Vehicle): YukaEntry {
+    let e = this.yuka.get(v.id);
+    if (!e) {
+      const yv = new YukaVehicle();
+      yv.position.set(v.position.x, v.position.y, 0);
+      yv.maxSpeed = BASE_SPEED;
+      yv.updateNeighborhood = true;
+      yv.neighborhoodRadius = NEIGHBORHOOD;
+      const sep = new SeparationBehavior();
+      sep.weight = 2.2;          // push apart so cars never overlap / clump at the gate
+      yv.steering.add(sep);
+      this.em.add(yv);
+      e = { yv, follow: null, pathRef: null, final: null };
+      this.yuka.set(v.id, e);
+    }
+    return e;
+  }
+
   private loop = (ts: number) => {
     if (this.last === null) {
       this.last = ts;
@@ -195,27 +220,71 @@ class TwinMotionDriver {
     }
     const dt = Math.min(ts - this.last, 100) / 1000;
     this.last = ts;
-    const simSpeed = Math.max(useSimulationStore.getState().simSpeed ?? 1, 1);
-    const step = LERP_SPEED * dt * Math.min(simSpeed, 8);
+    this.tickMotion(dt);
+    this.rafId = requestAnimationFrame(this.loop);
+  };
 
+  /** One motion step of `dt` seconds. Public so the Yuka motion can be
+   *  unit-tested directly (the rAF loop just calls this each frame). */
+  tickMotion(dt: number) {
+    const simSpeed = Math.max(useSimulationStore.getState().simSpeed ?? 1, 1);
+    const speed = BASE_SPEED * Math.min(simSpeed, 8);
+
+    // Sync Yuka entities to the render vehicles' current routes.
+    for (const v of this.vehicles.values()) {
+      const e = this.yukaFor(v);
+      e.yv.maxSpeed = speed;
+      if (v.targetPosition) {
+        const full = [v.targetPosition, ...(v.waypoints ?? [])];
+        // (re)build the path only when the route actually changed
+        if (e.pathRef !== v.waypoints || !e.follow) {
+          const path = new Path();
+          for (const p of full) path.add(new Vector3(p.x, p.y, 0));
+          if (e.follow) e.yv.steering.remove(e.follow);
+          e.follow = new FollowPathBehavior(path, 3);
+          e.follow.weight = 1;
+          e.yv.steering.add(e.follow);
+          e.pathRef = v.waypoints;
+          e.final = full[full.length - 1];
+        }
+      }
+    }
+
+    // Advance all steering.
+    this.em.update(dt);
+
+    // Read positions back; handle arrivals + departures.
     let moved = false;
     const remove: string[] = [];
     for (const v of this.vehicles.values()) {
-      if (!v.targetPosition) continue;
-      const nx = lerp(v.position.x, v.targetPosition.x, step);
-      const ny = lerp(v.position.y, v.targetPosition.y, step);
-      if (nx !== v.position.x || ny !== v.position.y) { v.position = { x: nx, y: ny }; moved = true; }
-      if (Math.abs(nx - v.targetPosition.x) < 0.6 && Math.abs(ny - v.targetPosition.y) < 0.6) {
-        v.position = { ...v.targetPosition };
-        if (v.waypoints && v.waypoints.length) v.targetPosition = v.waypoints.shift()!;
-        else { v.targetPosition = null; if (v.status === "departing") remove.push(v.id); }
-        moved = true;
+      const e = this.yuka.get(v.id);
+      if (!e) continue;
+      if (v.targetPosition && e.final) {
+        const nx = e.yv.position.x, ny = e.yv.position.y;
+        if (nx !== v.position.x || ny !== v.position.y) { v.position = { x: nx, y: ny }; moved = true; }
+        if (Math.abs(nx - e.final.x) < ARRIVE_EPS && Math.abs(ny - e.final.y) < ARRIVE_EPS) {
+          // arrived at the final destination
+          v.position = { ...e.final };
+          e.yv.velocity.set(0, 0, 0);
+          if (e.follow) { e.yv.steering.remove(e.follow); e.follow = null; }
+          e.pathRef = null; e.final = null;
+          if (v.status === "departing") remove.push(v.id);
+          else { v.targetPosition = null; v.waypoints = []; }
+          moved = true;
+        }
+      } else {
+        // parked: keep the Yuka entity pinned to the render position
+        e.yv.position.set(v.position.x, v.position.y, 0);
+        e.yv.velocity.set(0, 0, 0);
       }
     }
-    for (const id of remove) this.vehicles.delete(id);
+    for (const id of remove) {
+      const e = this.yuka.get(id);
+      if (e) { this.em.remove(e.yv); this.yuka.delete(id); }
+      this.vehicles.delete(id);
+    }
     if (moved || remove.length) this.flush();
-    this.rafId = requestAnimationFrame(this.loop);
-  };
+  }
 
   private flush() {
     const arr = Array.from(this.vehicles.values()).map((v) => ({ ...v, position: { ...v.position } }));
