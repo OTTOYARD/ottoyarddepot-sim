@@ -65,10 +65,10 @@ interface SimulationState {
   isPanelOpen: boolean;
   activeTab: 'controls' | 'kpis' | 'ai-summary' | 'alerts' | 'history' | 'swap-test' | 'scorekeeper' | 'copilot';
   config: SimulationConfig;
-  viewMode: '2d' | '3d';
+  viewMode: '2d' | '3d' | 'photoreal';
   controlsLocked: boolean;
   setStatus: (status: SimulationState['status']) => void;
-  setViewMode: (mode: '2d' | '3d') => void;
+  setViewMode: (mode: '2d' | '3d' | 'photoreal') => void;
   togglePanel: () => void;
   setActiveTab: (tab: SimulationState['activeTab']) => void;
   setSimSpeed: (speed: number) => void;
