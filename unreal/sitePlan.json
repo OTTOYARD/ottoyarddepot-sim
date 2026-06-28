@@ -1,0 +1,2007 @@
+{
+  "meta": {
+    "source": "src/lib/sitePlan.ts",
+    "exportedAt": "2026-06-11T18:02:47.545Z",
+    "units": {
+      "logical": 1,
+      "feet": 1.57,
+      "ueCm": 48
+    },
+    "coords": "logical x 0..300 west->east, y 0..220 north->south"
+  },
+  "lot": {
+    "x": 6,
+    "y": 6,
+    "w": 288,
+    "h": 200
+  },
+  "gateW": 14,
+  "ingress": {
+    "x": 100,
+    "y": 215
+  },
+  "egress": {
+    "x": 200,
+    "y": 215
+  },
+  "bessYard": {
+    "x": 12,
+    "y": 12,
+    "w": 50,
+    "h": 36
+  },
+  "building": {
+    "x": 70,
+    "y": 26,
+    "w": 80,
+    "h": 30
+  },
+  "wash": {
+    "x": 160,
+    "y": 26,
+    "w": 52,
+    "h": 30
+  },
+  "canopies": [
+    {
+      "id": "A",
+      "cx": 103,
+      "x": 88,
+      "w": 30,
+      "y": 80,
+      "h": 84,
+      "kind": "dcfc"
+    },
+    {
+      "id": "B",
+      "cx": 150,
+      "x": 135,
+      "w": 30,
+      "y": 80,
+      "h": 84,
+      "kind": "l2"
+    },
+    {
+      "id": "C",
+      "cx": 197,
+      "x": 182,
+      "w": 30,
+      "y": 80,
+      "h": 84,
+      "kind": "l2"
+    }
+  ],
+  "parkRuns": [
+    {
+      "id": "W",
+      "x0": 15.5,
+      "y0": 58,
+      "dx": 0,
+      "dy": 5.7,
+      "n": 24,
+      "angle": 90,
+      "carport": {
+        "x": 9,
+        "y": 54,
+        "w": 13,
+        "h": 141
+      }
+    },
+    {
+      "id": "E",
+      "x0": 284.5,
+      "y0": 46,
+      "dx": 0,
+      "dy": 5.7,
+      "n": 25,
+      "angle": 90,
+      "carport": {
+        "x": 278,
+        "y": 42,
+        "w": 13,
+        "h": 147
+      }
+    },
+    {
+      "id": "S1",
+      "x0": 24,
+      "y0": 197,
+      "dx": 6.4,
+      "dy": 0,
+      "n": 11,
+      "angle": 0,
+      "carport": {
+        "x": 20,
+        "y": 191,
+        "w": 72,
+        "h": 13
+      }
+    },
+    {
+      "id": "S2",
+      "x0": 112,
+      "y0": 197,
+      "dx": 6.9,
+      "dy": 0,
+      "n": 12,
+      "angle": 0,
+      "carport": {
+        "x": 108,
+        "y": 191,
+        "w": 84,
+        "h": 13
+      }
+    },
+    {
+      "id": "S3",
+      "x0": 212,
+      "y0": 197,
+      "dx": 6.4,
+      "dy": 0,
+      "n": 10,
+      "angle": 0,
+      "carport": {
+        "x": 208,
+        "y": 191,
+        "w": 68,
+        "h": 13
+      }
+    },
+    {
+      "id": "N1",
+      "x0": 228,
+      "y0": 36,
+      "dx": 6,
+      "dy": 0,
+      "n": 7,
+      "angle": 0
+    },
+    {
+      "id": "TW",
+      "x0": 234,
+      "y0": 86,
+      "dx": 0,
+      "dy": 6,
+      "n": 13,
+      "angle": 270
+    },
+    {
+      "id": "TE",
+      "x0": 260,
+      "y0": 86,
+      "dx": 0,
+      "dy": 6,
+      "n": 13,
+      "angle": 90
+    }
+  ],
+  "lightPoles": [
+    {
+      "x": 36,
+      "y": 60
+    },
+    {
+      "x": 36,
+      "y": 120
+    },
+    {
+      "x": 36,
+      "y": 174
+    },
+    {
+      "x": 268,
+      "y": 60
+    },
+    {
+      "x": 268,
+      "y": 120
+    },
+    {
+      "x": 268,
+      "y": 174
+    },
+    {
+      "x": 126,
+      "y": 60
+    },
+    {
+      "x": 174,
+      "y": 60
+    },
+    {
+      "x": 126,
+      "y": 172
+    },
+    {
+      "x": 174,
+      "y": 172
+    },
+    {
+      "x": 52,
+      "y": 9
+    },
+    {
+      "x": 218,
+      "y": 29
+    }
+  ],
+  "lanes": {
+    "westAisleX": 30,
+    "eastAisleX": 275,
+    "northLaneY": 74,
+    "southLaneY": 172,
+    "rearLaneY": 16,
+    "forecourtY": 62,
+    "westLinkX": 66,
+    "tempLaneX": 247,
+    "gapLanes": {
+      "westOfA": 80,
+      "AB": 126.5,
+      "BC": 173.5,
+      "eastOfC": 220
+    },
+    "queueY": 184
+  },
+  "stalls": [
+    {
+      "id": "DCFC-01",
+      "type": "dcfc",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 96,
+        "y": 88,
+        "angle": 180
+      }
+    },
+    {
+      "id": "DCFC-02",
+      "type": "dcfc",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 96,
+        "y": 104,
+        "angle": 180
+      }
+    },
+    {
+      "id": "DCFC-03",
+      "type": "dcfc",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 96,
+        "y": 120,
+        "angle": 180
+      }
+    },
+    {
+      "id": "DCFC-04",
+      "type": "dcfc",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 96,
+        "y": 136,
+        "angle": 180
+      }
+    },
+    {
+      "id": "DCFC-05",
+      "type": "dcfc",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 96,
+        "y": 152,
+        "angle": 180
+      }
+    },
+    {
+      "id": "DCFC-06",
+      "type": "dcfc",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 110,
+        "y": 88,
+        "angle": 180
+      }
+    },
+    {
+      "id": "DCFC-07",
+      "type": "dcfc",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 110,
+        "y": 104,
+        "angle": 180
+      }
+    },
+    {
+      "id": "DCFC-08",
+      "type": "dcfc",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 110,
+        "y": 120,
+        "angle": 180
+      }
+    },
+    {
+      "id": "DCFC-09",
+      "type": "dcfc",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 110,
+        "y": 136,
+        "angle": 180
+      }
+    },
+    {
+      "id": "DCFC-10",
+      "type": "dcfc",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 110,
+        "y": 152,
+        "angle": 180
+      }
+    },
+    {
+      "id": "L2-01",
+      "type": "l2",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 143,
+        "y": 86,
+        "angle": 180
+      }
+    },
+    {
+      "id": "L2-02",
+      "type": "l2",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 143,
+        "y": 96.3,
+        "angle": 180
+      }
+    },
+    {
+      "id": "L2-03",
+      "type": "l2",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 143,
+        "y": 106.6,
+        "angle": 180
+      }
+    },
+    {
+      "id": "L2-04",
+      "type": "l2",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 143,
+        "y": 116.9,
+        "angle": 180
+      }
+    },
+    {
+      "id": "L2-05",
+      "type": "l2",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 143,
+        "y": 127.2,
+        "angle": 180
+      }
+    },
+    {
+      "id": "L2-06",
+      "type": "l2",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 143,
+        "y": 137.5,
+        "angle": 180
+      }
+    },
+    {
+      "id": "L2-07",
+      "type": "l2",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 143,
+        "y": 147.8,
+        "angle": 180
+      }
+    },
+    {
+      "id": "L2-08",
+      "type": "l2",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 143,
+        "y": 158.10000000000002,
+        "angle": 180
+      }
+    },
+    {
+      "id": "L2-09",
+      "type": "l2",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 157,
+        "y": 91,
+        "angle": 180
+      }
+    },
+    {
+      "id": "L2-10",
+      "type": "l2",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 157,
+        "y": 102,
+        "angle": 180
+      }
+    },
+    {
+      "id": "L2-11",
+      "type": "l2",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 157,
+        "y": 113,
+        "angle": 180
+      }
+    },
+    {
+      "id": "L2-12",
+      "type": "l2",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 157,
+        "y": 124,
+        "angle": 180
+      }
+    },
+    {
+      "id": "L2-13",
+      "type": "l2",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 157,
+        "y": 135,
+        "angle": 180
+      }
+    },
+    {
+      "id": "L2-14",
+      "type": "l2",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 157,
+        "y": 146,
+        "angle": 180
+      }
+    },
+    {
+      "id": "L2-15",
+      "type": "l2",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 157,
+        "y": 157,
+        "angle": 180
+      }
+    },
+    {
+      "id": "L2-16",
+      "type": "l2",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 190,
+        "y": 86,
+        "angle": 180
+      }
+    },
+    {
+      "id": "L2-17",
+      "type": "l2",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 190,
+        "y": 96.3,
+        "angle": 180
+      }
+    },
+    {
+      "id": "L2-18",
+      "type": "l2",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 190,
+        "y": 106.6,
+        "angle": 180
+      }
+    },
+    {
+      "id": "L2-19",
+      "type": "l2",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 190,
+        "y": 116.9,
+        "angle": 180
+      }
+    },
+    {
+      "id": "L2-20",
+      "type": "l2",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 190,
+        "y": 127.2,
+        "angle": 180
+      }
+    },
+    {
+      "id": "L2-21",
+      "type": "l2",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 190,
+        "y": 137.5,
+        "angle": 180
+      }
+    },
+    {
+      "id": "L2-22",
+      "type": "l2",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 190,
+        "y": 147.8,
+        "angle": 180
+      }
+    },
+    {
+      "id": "L2-23",
+      "type": "l2",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 190,
+        "y": 158.10000000000002,
+        "angle": 180
+      }
+    },
+    {
+      "id": "L2-24",
+      "type": "l2",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 204,
+        "y": 91,
+        "angle": 180
+      }
+    },
+    {
+      "id": "L2-25",
+      "type": "l2",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 204,
+        "y": 102,
+        "angle": 180
+      }
+    },
+    {
+      "id": "L2-26",
+      "type": "l2",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 204,
+        "y": 113,
+        "angle": 180
+      }
+    },
+    {
+      "id": "L2-27",
+      "type": "l2",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 204,
+        "y": 124,
+        "angle": 180
+      }
+    },
+    {
+      "id": "L2-28",
+      "type": "l2",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 204,
+        "y": 135,
+        "angle": 180
+      }
+    },
+    {
+      "id": "L2-29",
+      "type": "l2",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 204,
+        "y": 146,
+        "angle": 180
+      }
+    },
+    {
+      "id": "L2-30",
+      "type": "l2",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 204,
+        "y": 157,
+        "angle": 180
+      }
+    },
+    {
+      "id": "SVC-01",
+      "type": "service",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 120,
+        "y": 41,
+        "angle": 0
+      }
+    },
+    {
+      "id": "SVC-02",
+      "type": "service",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 138,
+        "y": 41,
+        "angle": 0
+      }
+    },
+    {
+      "id": "WASH-01",
+      "type": "wash",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 168,
+        "y": 41,
+        "angle": 0
+      }
+    },
+    {
+      "id": "WASH-02",
+      "type": "wash",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 186,
+        "y": 41,
+        "angle": 0
+      }
+    },
+    {
+      "id": "WASH-03",
+      "type": "wash",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 204,
+        "y": 41,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-01",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 15.5,
+        "y": 58,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-02",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 15.5,
+        "y": 63.7,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-03",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 15.5,
+        "y": 69.4,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-04",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 15.5,
+        "y": 75.1,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-05",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 15.5,
+        "y": 80.8,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-06",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 15.5,
+        "y": 86.5,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-07",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 15.5,
+        "y": 92.2,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-08",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 15.5,
+        "y": 97.9,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-09",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 15.5,
+        "y": 103.6,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-10",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 15.5,
+        "y": 109.30000000000001,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-11",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 15.5,
+        "y": 115,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-12",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 15.5,
+        "y": 120.7,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-13",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 15.5,
+        "y": 126.4,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-14",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 15.5,
+        "y": 132.10000000000002,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-15",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 15.5,
+        "y": 137.8,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-16",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 15.5,
+        "y": 143.5,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-17",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 15.5,
+        "y": 149.2,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-18",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 15.5,
+        "y": 154.9,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-19",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 15.5,
+        "y": 160.60000000000002,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-20",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 15.5,
+        "y": 166.3,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-21",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 15.5,
+        "y": 172,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-22",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 15.5,
+        "y": 177.7,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-23",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 15.5,
+        "y": 183.4,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-24",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 15.5,
+        "y": 189.1,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-25",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 284.5,
+        "y": 46,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-26",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 284.5,
+        "y": 51.7,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-27",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 284.5,
+        "y": 57.4,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-28",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 284.5,
+        "y": 63.1,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-29",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 284.5,
+        "y": 68.8,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-30",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 284.5,
+        "y": 74.5,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-31",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 284.5,
+        "y": 80.2,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-32",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 284.5,
+        "y": 85.9,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-33",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 284.5,
+        "y": 91.6,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-34",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 284.5,
+        "y": 97.30000000000001,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-35",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 284.5,
+        "y": 103,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-36",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 284.5,
+        "y": 108.7,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-37",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 284.5,
+        "y": 114.4,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-38",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 284.5,
+        "y": 120.10000000000001,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-39",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 284.5,
+        "y": 125.8,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-40",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 284.5,
+        "y": 131.5,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-41",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 284.5,
+        "y": 137.2,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-42",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 284.5,
+        "y": 142.9,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-43",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 284.5,
+        "y": 148.60000000000002,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-44",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 284.5,
+        "y": 154.3,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-45",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 284.5,
+        "y": 160,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-46",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 284.5,
+        "y": 165.7,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-47",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 284.5,
+        "y": 171.4,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-48",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 284.5,
+        "y": 177.1,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-49",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 284.5,
+        "y": 182.8,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-50",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 24,
+        "y": 197,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-51",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 30.4,
+        "y": 197,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-52",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 36.8,
+        "y": 197,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-53",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 43.2,
+        "y": 197,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-54",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 49.6,
+        "y": 197,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-55",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 56,
+        "y": 197,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-56",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 62.400000000000006,
+        "y": 197,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-57",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 68.80000000000001,
+        "y": 197,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-58",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 75.2,
+        "y": 197,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-59",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 81.6,
+        "y": 197,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-60",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 88,
+        "y": 197,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-61",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 112,
+        "y": 197,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-62",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 118.9,
+        "y": 197,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-63",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 125.8,
+        "y": 197,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-64",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 132.7,
+        "y": 197,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-65",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 139.6,
+        "y": 197,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-66",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 146.5,
+        "y": 197,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-67",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 153.4,
+        "y": 197,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-68",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 160.3,
+        "y": 197,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-69",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 167.2,
+        "y": 197,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-70",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 174.1,
+        "y": 197,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-71",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 181,
+        "y": 197,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-72",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 187.9,
+        "y": 197,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-73",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 212,
+        "y": 197,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-74",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 218.4,
+        "y": 197,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-75",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 224.8,
+        "y": 197,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-76",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 231.2,
+        "y": 197,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-77",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 237.6,
+        "y": 197,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-78",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 244,
+        "y": 197,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-79",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 250.4,
+        "y": 197,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-80",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 256.8,
+        "y": 197,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-81",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 263.2,
+        "y": 197,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-82",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 269.6,
+        "y": 197,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-83",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 228,
+        "y": 36,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-84",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 234,
+        "y": 36,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-85",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 240,
+        "y": 36,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-86",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 246,
+        "y": 36,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-87",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 252,
+        "y": 36,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-88",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 258,
+        "y": 36,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-89",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 264,
+        "y": 36,
+        "angle": 0
+      }
+    },
+    {
+      "id": "STAGE-90",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 234,
+        "y": 86,
+        "angle": 270
+      }
+    },
+    {
+      "id": "STAGE-91",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 234,
+        "y": 92,
+        "angle": 270
+      }
+    },
+    {
+      "id": "STAGE-92",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 234,
+        "y": 98,
+        "angle": 270
+      }
+    },
+    {
+      "id": "STAGE-93",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 234,
+        "y": 104,
+        "angle": 270
+      }
+    },
+    {
+      "id": "STAGE-94",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 234,
+        "y": 110,
+        "angle": 270
+      }
+    },
+    {
+      "id": "STAGE-95",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 234,
+        "y": 116,
+        "angle": 270
+      }
+    },
+    {
+      "id": "STAGE-96",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 234,
+        "y": 122,
+        "angle": 270
+      }
+    },
+    {
+      "id": "STAGE-97",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 234,
+        "y": 128,
+        "angle": 270
+      }
+    },
+    {
+      "id": "STAGE-98",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 234,
+        "y": 134,
+        "angle": 270
+      }
+    },
+    {
+      "id": "STAGE-99",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 234,
+        "y": 140,
+        "angle": 270
+      }
+    },
+    {
+      "id": "STAGE-100",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 234,
+        "y": 146,
+        "angle": 270
+      }
+    },
+    {
+      "id": "STAGE-101",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 234,
+        "y": 152,
+        "angle": 270
+      }
+    },
+    {
+      "id": "STAGE-102",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 234,
+        "y": 158,
+        "angle": 270
+      }
+    },
+    {
+      "id": "STAGE-103",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 260,
+        "y": 86,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-104",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 260,
+        "y": 92,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-105",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 260,
+        "y": 98,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-106",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 260,
+        "y": 104,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-107",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 260,
+        "y": 110,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-108",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 260,
+        "y": 116,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-109",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 260,
+        "y": 122,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-110",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 260,
+        "y": 128,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-111",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 260,
+        "y": 134,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-112",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 260,
+        "y": 140,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-113",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 260,
+        "y": 146,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-114",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 260,
+        "y": 152,
+        "angle": 90
+      }
+    },
+    {
+      "id": "STAGE-115",
+      "type": "staging",
+      "status": "available",
+      "vehicleId": null,
+      "position": {
+        "x": 260,
+        "y": 158,
+        "angle": 90
+      }
+    }
+  ]
+}
