@@ -15,7 +15,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Play, Pause, StepForward, Square, Zap, CloudRain, BatteryWarning, AlertTriangle,
-  RotateCcw, ChevronRight, ChevronDown, Activity, FlaskConical, Info,
+  RotateCcw, ChevronRight, ChevronDown, Activity, FlaskConical, Info, Sun, Snowflake, Gauge,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Slider } from "@/components/ui/slider";
@@ -262,6 +262,18 @@ const Group = ({ icon: Icon, title, children, right, defaultOpen = true }: {
   );
 };
 
+// Curated quick-launch scenarios (operator one-click) — each spotlights a
+// specific OTTO-Q edge; the full deck stays in the picker below. A chip is
+// hidden if its deck isn't present in the backend scenario list.
+const FEATURED: { code: string; label: string; icon: React.ElementType; tint: string }[] = [
+  { code: "normal_day",                  label: "Normal Day",     icon: Activity,       tint: "text-ink-dim" },
+  { code: "heat_wave",                   label: "Heat Wave",      icon: Sun,            tint: "text-brand-hot" },
+  { code: "winter_storm",                label: "Winter Storm",   icon: Snowflake,      tint: "text-state-info" },
+  { code: "dr_event_cascade",            label: "Demand Charge",  icon: BatteryWarning, tint: "text-state-warn" },
+  { code: "charger_outage_morning_rush", label: "Charger Outage", icon: AlertTriangle,  tint: "text-state-warn" },
+  { code: "aggressive_fleet_turnover",   label: "Peak Turnover",  icon: Gauge,          tint: "text-brand-red" },
+];
+
 // ── main ──
 export const OperatorConsole = () => {
   const activeSimRunId = useTwinStore((s) => s.activeSimRunId);
@@ -290,7 +302,7 @@ export const OperatorConsole = () => {
     catch (e: any) { toast.error("Update failed", { description: e.message }); }
   }, [runId]);
 
-  const startScenario = async () => {
+  const startScenario = async (code: string = selected) => {
     setBusy("start");
     try {
       const stopLiveRuns = async () => {
@@ -306,22 +318,24 @@ export const OperatorConsole = () => {
 
       let res: { sim_run_id: string; scenario_code: string } | null = null;
       try {
-        res = await twin.start(selected);
+        res = await twin.start(code);
       } catch (e: any) {
         // If a run is already active for this depot, stop it and retry once.
         const msg = String(e?.message || e || "");
         if (!/one_running_run_per_depot|already.*running|duplicate key|scenario start failed/i.test(msg)) throw e;
 
         await stopLiveRuns();
-        res = await twin.start(selected);
+        res = await twin.start(code);
       }
       if (!res) throw new Error("scenario start failed");
       setActiveSimRunId(res.sim_run_id);
       ctrl.play();   // Start also begins the clock — "press Start and watch it run"
-      toast.success(`Started ${selected} — running`);
+      const title = scenarios.find((s) => s.scenario_code === code)?.title ?? code;
+      toast.success(`Started ${title} — running`);
     } catch (e: any) { toast.error("Start failed", { description: e.message }); }
     finally { setBusy(null); }
   };
+  const quickLaunch = (code: string) => { setSelected(code); startScenario(code); };
   const stopRun = async () => { if (!runId) return; setBusy("stop"); try { await twin.stop(runId); ctrl.pause(); toast.success("Run stopped"); } catch (e: any) { toast.error("Stop failed", { description: e.message }); } finally { setBusy(null); } };
 
   const toggleChaos = async (on: boolean) => {
@@ -361,6 +375,20 @@ export const OperatorConsole = () => {
     <ScrollArea className="flex-1">
       {/* RUN CONTROL */}
       <Group icon={Activity} title="Run Control">
+        {/* Featured quick-launch — one click starts that scenario + the clock */}
+        <span className="text-[10px] text-ink-faint uppercase tracking-wide">Quick launch</span>
+        <div className="grid grid-cols-2 gap-1.5 pb-1">
+          {FEATURED.filter((f) => scenarios.some((s) => s.scenario_code === f.code)).map((f) => {
+            const active = !!runId && snapshot?.run?.scenario === f.code;
+            return (
+              <button key={f.code} onClick={() => quickLaunch(f.code)} disabled={busy === "start"}
+                className={`flex items-center gap-1.5 h-9 px-2 rounded border text-[11px] text-left transition-colors disabled:opacity-50 ${active ? "border-brand-red bg-brand-red/10 text-ink" : "border-white/[0.06] bg-canvas-elev hover:bg-white/10 text-ink-dim hover:text-ink"}`}>
+                <f.icon size={13} className={f.tint} />
+                <span className="truncate">{f.label}</span>
+              </button>
+            );
+          })}
+        </div>
         <div className="flex items-center gap-2">
           <Select value={selected} onValueChange={setSelected}>
             <SelectTrigger className="h-8 flex-1 text-xs bg-canvas-elev border-white/[0.06]"><SelectValue /></SelectTrigger>
