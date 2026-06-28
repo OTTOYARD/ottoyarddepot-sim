@@ -117,7 +117,7 @@ export const TopBar = () => {
         </div>
 
         <div className="flex items-center gap-0.5">
-          {(['2d', '3d'] as const).map((m) => (
+          {(['2d', '3d', 'photoreal'] as const).map((m) => (
             <button
               key={m}
               onClick={() => setViewMode(m)}
@@ -127,7 +127,7 @@ export const TopBar = () => {
                   : 'text-ink-dim border border-white/[0.06] hover:text-ink'
               }`}
             >
-              {m.toUpperCase()}
+              {m === 'photoreal' ? 'RTX' : m.toUpperCase()}
             </button>
           ))}
         </div>
