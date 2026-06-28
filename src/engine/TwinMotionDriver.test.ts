@@ -86,4 +86,18 @@ describe("TwinMotionDriver — twin-driven lane motion", () => {
     expect(v!.status).toBe("departing");
     expect(v!.targetPosition).not.toBeNull();
   });
+
+  it("Yuka motion steers a routed vehicle toward its stall (runtime-validates the integration)", () => {
+    twinMotionDriver.reconcile(snap([{ id: "v1", state: "arrived_at_gate" }]));
+    twinMotionDriver.reconcile(snap([{ id: "v1", state: "charging_dcfc" }])); // assigns + routes it
+    const v0 = find("v1")!;
+    const stall = useDepotStore.getState().stalls.find((s) => s.id === v0.assignedStall)!;
+    const start = { ...v0.position };
+    const d0 = Math.hypot(start.x - stall.position.x, start.y - stall.position.y);
+    expect(d0).toBeGreaterThan(2); // starts at the gate, away from the stall
+    for (let i = 0; i < 40; i++) twinMotionDriver.tickMotion(0.1); // ~4s of steering — must not throw
+    const end = find("v1")!.position;
+    const d1 = Math.hypot(end.x - stall.position.x, end.y - stall.position.y);
+    expect(d1).toBeLessThan(d0); // Yuka steered it measurably closer to the stall
+  });
 });
