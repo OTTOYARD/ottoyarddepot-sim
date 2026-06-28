@@ -305,29 +305,39 @@ export const OperatorConsole = () => {
   const startScenario = async (code: string = selected) => {
     setBusy("start");
     try {
-      const stopLiveRuns = async () => {
-        const { runs } = await twin.runs(50);
-        const liveRuns = runs.filter((run) => isLiveRunStatus(String(run.status)));
-        if (!liveRuns.length) return;
-
-        await Promise.all(liveRuns.map((run) => twin.stop(run.sim_run_id)));
-        await wait(400);
+      // Stop any live run for this depot and POLL until it's actually released,
+      // so a new scenario never races the one-run-per-depot lock (and we survive
+      // a transient/empty run-list read instead of skipping the stop).
+      const clearLiveRuns = async () => {
+        for (let i = 0; i < 6; i++) {
+          let live: { sim_run_id: string }[] = [];
+          try {
+            const { runs } = await twin.runs(50);
+            live = runs.filter((run) => isLiveRunStatus(String(run.status)));
+          } catch { /* list hiccup — treat as not-clear and retry */ }
+          if (!live.length) return;
+          await Promise.allSettled(live.map((run) => twin.stop(run.sim_run_id)));
+          await wait(500);
+        }
       };
 
-      await stopLiveRuns();
-
+      // Start, retrying on a one-run-per-depot conflict — re-clear and back off
+      // each time in case the backend lock hasn't released yet.
       let res: { sim_run_id: string; scenario_code: string } | null = null;
-      try {
-        res = await twin.start(code);
-      } catch (e: any) {
-        // If a run is already active for this depot, stop it and retry once.
-        const msg = String(e?.message || e || "");
-        if (!/one_running_run_per_depot|already.*running|duplicate key|scenario start failed/i.test(msg)) throw e;
-
-        await stopLiveRuns();
-        res = await twin.start(code);
+      let lastErr: unknown = null;
+      for (let attempt = 0; attempt < 4 && !res; attempt++) {
+        await clearLiveRuns();
+        if (attempt > 0) await wait(500 * attempt);
+        try {
+          res = await twin.start(code);
+        } catch (e: any) {
+          lastErr = e;
+          const msg = String(e?.message || e || "");
+          if (!/one_running_run_per_depot|already.*running|duplicate key|scenario start failed/i.test(msg)) throw e;
+        }
       }
-      if (!res) throw new Error("scenario start failed");
+      if (!res) throw lastErr ?? new Error("scenario start failed");
+
       setActiveSimRunId(res.sim_run_id);
       ctrl.play();   // Start also begins the clock — "press Start and watch it run"
       const title = scenarios.find((s) => s.scenario_code === code)?.title ?? code;
