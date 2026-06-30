@@ -19,8 +19,12 @@ function snap(vehicles: { id: string; state: string; soc?: number; platform?: st
 
 const fleet = () => useVehicleStore.getState().vehicles;
 const find = (id: string) => fleet().find((v) => v.id === id);
+const distToStall = (v: { position: { x: number; y: number } }, stallId: string) => {
+  const s = useDepotStore.getState().stalls.find((st) => st.id === stallId)!;
+  return Math.hypot(v.position.x - s.position.x, v.position.y - s.position.y);
+};
 
-describe("TwinMotionDriver — twin-driven lane motion", () => {
+describe("TwinMotionDriver — kinematic motion off the twin", () => {
   beforeEach(() => {
     twinMotionDriver.clear();
     useVehicleStore.getState().reset();
@@ -29,29 +33,25 @@ describe("TwinMotionDriver — twin-driven lane motion", () => {
 
   it("a fresh arrival appears at the gate, NOT teleported to a stall", () => {
     twinMotionDriver.reconcile(snap([{ id: "v1", state: "arrived_at_gate" }]));
-    const v = find("v1");
-    expect(v).toBeTruthy();
-    expect(v!.status).toBe("queued");
-    expect(v!.targetPosition).toBeNull();         // no route yet — waits at the gate
-    expect(v!.position.y).toBeGreaterThan(150);    // ingress apron (south)
+    const v = find("v1")!;
+    expect(v.status).toBe("queued");
+    expect(v.assignedStall ?? null).toBeNull();
+    expect(v.position.y).toBeGreaterThan(150); // south ingress apron
+    expect(typeof v.heading).toBe("number");   // has a real body heading
   });
 
-  it("on a state change it ROUTES along the lanes (multi-leg path), not a teleport", () => {
+  it("on a state change it reserves a stall and ROUTES (does not teleport onto it)", () => {
     twinMotionDriver.reconcile(snap([{ id: "v1", state: "arrived_at_gate" }]));
     twinMotionDriver.reconcile(snap([{ id: "v1", state: "charging_dcfc" }]));
     const v = find("v1")!;
     expect(v.status).toBe("charging");
     expect(v.assignedStall).toMatch(/^DCFC-/);
-    expect(v.targetPosition).not.toBeNull();
-    expect(v.waypoints?.length ?? 0).toBeGreaterThanOrEqual(2);   // a real path, not one hop
+    expect(distToStall(v, v.assignedStall!)).toBeGreaterThan(20); // still at the gate, will drive
     const stall = useDepotStore.getState().stalls.find((s) => s.id === v.assignedStall)!;
-    const last = v.waypoints![v.waypoints!.length - 1];
-    expect(Math.abs(last.x - stall.position.x)).toBeLessThan(1);  // path ends AT the stall
-    expect(Math.abs(last.y - stall.position.y)).toBeLessThan(1);
-    expect(stall.status).toBe("charging");                        // stall reserved
+    expect(stall.status).toBe("charging"); // stall reserved
   });
 
-  it("keeps a STABLE stall assignment across repeated snapshots (no jitter)", () => {
+  it("keeps a STABLE stall assignment across repeated snapshots", () => {
     twinMotionDriver.reconcile(snap([{ id: "v1", state: "charging_dcfc" }]));
     const first = find("v1")!.assignedStall;
     twinMotionDriver.reconcile(snap([{ id: "v1", state: "charging_dcfc" }]));
@@ -59,16 +59,14 @@ describe("TwinMotionDriver — twin-driven lane motion", () => {
     expect(find("v1")!.assignedStall).toBe(first);
   });
 
-  it("re-routes to a new lane when the backend moves the vehicle (charge → wash)", () => {
+  it("re-assigns + frees the old stall when the backend moves it (charge → wash)", () => {
     twinMotionDriver.reconcile(snap([{ id: "v1", state: "charging_dcfc" }]));
     const dcfc = find("v1")!.assignedStall!;
     twinMotionDriver.reconcile(snap([{ id: "v1", state: "in_wash_bay" }]));
     const v = find("v1")!;
     expect(v.status).toBe("washing");
     expect(v.assignedStall).toMatch(/^WASH-/);
-    expect(v.assignedStall).not.toBe(dcfc);
-    expect(v.waypoints?.length ?? 0).toBeGreaterThanOrEqual(1);
-    expect(useDepotStore.getState().stalls.find((s) => s.id === dcfc)!.status).toBe("available"); // old stall freed
+    expect(useDepotStore.getState().stalls.find((s) => s.id === dcfc)!.status).toBe("available");
   });
 
   it("never double-books a stall", () => {
@@ -82,22 +80,19 @@ describe("TwinMotionDriver — twin-driven lane motion", () => {
   it("a vehicle the backend drops heads for the egress gate", () => {
     twinMotionDriver.reconcile(snap([{ id: "v1", state: "charging_dcfc" }]));
     twinMotionDriver.reconcile(snap([])); // gone from the backend
-    const v = find("v1");
-    expect(v!.status).toBe("departing");
-    expect(v!.targetPosition).not.toBeNull();
+    expect(find("v1")!.status).toBe("departing");
   });
 
-  it("Yuka motion steers a routed vehicle toward its stall (runtime-validates the integration)", () => {
+  it("kinematically DRIVES a routed vehicle toward its stall (no teleport, no slide)", () => {
     twinMotionDriver.reconcile(snap([{ id: "v1", state: "arrived_at_gate" }]));
-    twinMotionDriver.reconcile(snap([{ id: "v1", state: "charging_dcfc" }])); // assigns + routes it
+    twinMotionDriver.reconcile(snap([{ id: "v1", state: "charging_dcfc" }]));
     const v0 = find("v1")!;
-    const stall = useDepotStore.getState().stalls.find((s) => s.id === v0.assignedStall)!;
-    const start = { ...v0.position };
-    const d0 = Math.hypot(start.x - stall.position.x, start.y - stall.position.y);
-    expect(d0).toBeGreaterThan(2); // starts at the gate, away from the stall
-    for (let i = 0; i < 40; i++) twinMotionDriver.tickMotion(0.1); // ~4s of steering — must not throw
-    const end = find("v1")!.position;
-    const d1 = Math.hypot(end.x - stall.position.x, end.y - stall.position.y);
-    expect(d1).toBeLessThan(d0); // Yuka steered it measurably closer to the stall
+    const stallId = v0.assignedStall!;
+    const d0 = distToStall(v0, stallId);
+    expect(d0).toBeGreaterThan(20);
+    for (let i = 0; i < 500; i++) twinMotionDriver.tickMotion(0.05); // ~25s of driving
+    const d1 = distToStall(find("v1")!, stallId);
+    expect(d1).toBeLessThan(d0); // drove measurably closer to its stall
+    expect(d1).toBeLessThan(6);  // and effectively arrived
   });
 });

@@ -29,6 +29,10 @@ export interface Vehicle {
   position: { x: number; y: number };
   targetPosition: { x: number; y: number } | null;
   waypoints?: { x: number; y: number }[];
+  /** True body heading (radians, 0 = +x/east, CCW, y-down frame) from the
+   *  kinematic motion model. Renderers face the car by this, not by guessing
+   *  from movement deltas. */
+  heading?: number;
   oem?: string; // backend platform (waymo|tesla|zoox|…) for OEM-colored rendering
 }
 
