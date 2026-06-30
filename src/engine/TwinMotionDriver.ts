@@ -255,6 +255,13 @@ class TwinMotionDriver {
           e.pathRef = v.waypoints;
           e.final = full[full.length - 1];
         }
+        // Pull-in: ease the speed down over the last ~16 units so the car
+        // decelerates smoothly into its stall (a real parking maneuver) instead
+        // of driving full-speed then snapping to a dead stop.
+        if (e.final) {
+          const dist = Math.hypot(v.position.x - e.final.x, v.position.y - e.final.y);
+          e.yv.maxSpeed = speed * Math.max(0.22, Math.min(1, dist / 16));
+        }
       }
     }
 
