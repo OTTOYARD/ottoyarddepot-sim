@@ -55,6 +55,7 @@ const VehicleDotInner = ({ vehicle: v }: Props) => {
 
   return (
     <g
+      data-vid={v.id}
       // CSS transform (in viewBox user units) + transition = vehicles GLIDE
       // between stalls each poll instead of teleporting. First mount has no
       // prior value, so it places without a fly-in from the origin.

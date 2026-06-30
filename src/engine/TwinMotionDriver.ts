@@ -19,7 +19,6 @@
 import { EntityManager, Vehicle as YukaVehicle, Path, FollowPathBehavior, SeparationBehavior, Vector3 } from "yuka";
 import { useDepotStore, type StallStatus } from "@/store/depotStore";
 import { useVehicleStore } from "@/store/vehicleStore";
-import { useSimulationStore } from "@/store/simulationStore";
 import type { Vehicle, VehicleStatus } from "@/engine/types";
 import type { TwinSnapshot } from "@/lib/ottoTwin";
 import { routeToStall, routeToEgress, INGRESS, EGRESS } from "@/lib/sitePlan";
@@ -230,10 +229,14 @@ class TwinMotionDriver {
   /** One motion step of `dt` seconds. Public so the Yuka motion can be
    *  unit-tested directly (the rAF loop just calls this each frame). */
   tickMotion(dt: number) {
-    const simSpeed = Math.max(useSimulationStore.getState().simSpeed ?? 1, 1);
-    // Motion speed tracks the sim clock so cars don't fall behind their backend
-    // state (the anti-slide fix is the low separation weight, not a speed cap).
-    const speed = BASE_SPEED * Math.min(simSpeed, 8);
+    // Cars ALWAYS drive at a believable depot taxi speed (~14 mph), DECOUPLED
+    // from the simulation clock. The twin runs at 60x for the energy/throughput
+    // math (correct, untouched) — but a car animated at 60x looks like a
+    // teleporting slide/swarm. At BASE_SPEED a full route takes a realistic
+    // ~15-20s of real time and the car then SITS PARKED until its next backend
+    // state change — which reads as real pacing, not teleport. Cars still reach
+    // their stall well within one ~30s twin tick, so they don't fall behind.
+    const speed = BASE_SPEED;
 
     // Sync Yuka entities to the render vehicles' current routes.
     for (const v of this.vehicles.values()) {
