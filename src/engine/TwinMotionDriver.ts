@@ -2,188 +2,193 @@
 // TwinMotionDriver — Tier-A hyperreal motion off the LIVE backend twin.
 //
 // The twin (OTTO-Q) owns the DISCRETE truth: which vehicle is in which state /
-// stall, and what's next. This driver owns only the SMOOTH MOTION between those
-// states — it never invents world state. On every snapshot it:
-//   1. holds a STABLE per-vehicle stall assignment (no re-shuffle jitter), and
-//   2. when a vehicle's target changes (gate→charge→wash→stage→egress), routes
-//      it along the real depot lanes (sitePlan.routeToStall / routeToEgress).
+// stall. This driver owns the PHYSICAL MOTION between those states, using the
+// real car-driving stack in src/engine/motion:
+//   • KinematicCar  — rear-axle bicycle model (no lateral slide, real arc-turns)
+//   • PathTracker   — pure-pursuit steering along the one-way LaneGraph routes
+//   • idm           — Intelligent Driver Model: keeps gaps, queues, never stacks
+//   • traffic       — leader-finding + a StallLedger (one car per stall)
 //
-// Motion is driven by Yuka steering (FollowPath + Arrive + Separation): vehicles
-// follow the lane path at speed, decelerate smoothly into the stall, and push
-// apart so they never overlap/clump (e.g. at the gate). The renderer reads the
-// resulting position; Vehicle3D faces the travel direction.
+// On each snapshot it holds a stable per-vehicle stall assignment and, on a
+// state change, routes the car along the real one-way lanes to its new stall;
+// the rAF loop then DRIVES it there with the kinematic + IDM stack. Vehicles
+// arrive at the gate, taxi in, queue behind each other, and park facing the
+// right way — they never teleport, slide, or overlap.
 //
-// Runs only in backend-twin mode (active sim_run + offline engine NOT running)
-// so it never fights the offline-demo engine for the vehicle/depot stores.
+// Runs only in backend-twin mode (active sim_run + offline engine NOT running).
 // ============================================================================
-import { EntityManager, Vehicle as YukaVehicle, Path, FollowPathBehavior, SeparationBehavior, Vector3 } from "yuka";
+import { KinematicCar, DEFAULT_CAR_PARAMS } from "./motion/KinematicCar";
+import { PathTracker, type Pt } from "./motion/PathTracker";
+import { idmAccel } from "./motion/idm";
+import { findLeader, StallLedger, type MovingCar } from "./motion/traffic";
+import { buildDepotLanes } from "./motion/LaneGraph";
 import { useDepotStore, type StallStatus } from "@/store/depotStore";
 import { useVehicleStore } from "@/store/vehicleStore";
 import type { Vehicle, VehicleStatus } from "@/engine/types";
 import type { TwinSnapshot } from "@/lib/ottoTwin";
-import { routeToStall, routeToEgress, INGRESS, EGRESS } from "@/lib/sitePlan";
+import { INGRESS, EGRESS, gapLaneX, SOUTH_LANE_Y } from "@/lib/sitePlan";
 
 type Lane = "dcfc" | "l2" | "wash" | "service" | "staging";
 
-// Base travel speed in logical units / sim-second (1 u ≈ 1.57 ft → ~13 u/s ≈
-// 14 mph), scaled by the operator's sim speed. Yuka maxSpeed uses this.
-const BASE_SPEED = 13;
-// How close (logical units) before a vehicle is considered "arrived" at its
-// final destination, and the gate fan / separation spacing.
-const ARRIVE_EPS = 1.6;
-const NEIGHBORHOOD = 9;
+const LOOKAHEAD_MIN = 5;
+const LOOKAHEAD_K = 0.45;
+const ARRIVE_EPS = 1.8;
+const NORTH = -Math.PI / 2; // facing north (−y) in the y-down logical frame
 
-function gatePos(id: string): { x: number; y: number } {
-  const n = hash(id) % 24;
-  return { x: INGRESS.x - 30 + (n % 8) * 8, y: INGRESS.y - 16 - Math.floor(n / 8) * 7 };
-}
 function hash(id: string): number {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
   return h;
 }
+/** A spread-out holding spot on the south ingress apron for an arriving car. */
+function gatePos(id: string): Pt {
+  const n = hash(id) % 24;
+  return { x: INGRESS.x - 30 + (n % 8) * 8, y: INGRESS.y - 16 - Math.floor(n / 8) * 7 };
+}
 
 // backend vehicle_state → { lane, render status, stall status }
-function mapState(
-  state: string,
-): { lane: Lane | "gate" | null; vstatus: VehicleStatus; sstatus: StallStatus } | null {
+function mapState(state: string): { lane: Lane | "gate" | null; vstatus: VehicleStatus; sstatus: StallStatus } | null {
   switch (state) {
-    case "charging_dcfc":            return { lane: "dcfc",    vstatus: "charging",    sstatus: "charging" };
-    case "charging_l2":              return { lane: "l2",      vstatus: "charging",    sstatus: "charging" };
-    case "in_wash_bay":              return { lane: "wash",    vstatus: "washing",     sstatus: "servicing" };
-    case "in_detail_bay":            return { lane: "wash",    vstatus: "detailing",   sstatus: "servicing" };
-    case "in_service_bay":           return { lane: "service", vstatus: "maintenance", sstatus: "servicing" };
+    case "charging_dcfc": return { lane: "dcfc", vstatus: "charging", sstatus: "charging" };
+    case "charging_l2": return { lane: "l2", vstatus: "charging", sstatus: "charging" };
+    case "in_wash_bay": return { lane: "wash", vstatus: "washing", sstatus: "servicing" };
+    case "in_detail_bay": return { lane: "wash", vstatus: "detailing", sstatus: "servicing" };
+    case "in_service_bay": return { lane: "service", vstatus: "maintenance", sstatus: "servicing" };
     case "charge_complete_holding":
     case "service_complete_holding":
     case "staged_awaiting_service":
-    case "staged_for_departure":     return { lane: "staging", vstatus: "staging",     sstatus: "occupied" };
-    case "arrived_at_gate":          return { lane: "gate",    vstatus: "queued",      sstatus: "available" };
-    // deployed / en_route_* / offline / tow → off-map (handled as departures)
-    default: return null;
+    case "staged_for_departure": return { lane: "staging", vstatus: "staging", sstatus: "occupied" };
+    case "arrived_at_gate": return { lane: "gate", vstatus: "queued", sstatus: "available" };
+    default: return null; // deployed / en_route / offline / tow → off-map (departure)
   }
 }
 
-// destination = the last point a vehicle is currently headed for
-function destOf(v: Vehicle): { x: number; y: number } {
-  if (v.waypoints && v.waypoints.length) return v.waypoints[v.waypoints.length - 1];
-  if (v.targetPosition) return v.targetPosition;
-  return v.position;
+/** Parked heading for a stall: chargers face NORTH (toward the bays); others use
+ *  the sitePlan stall angle (0=N,90=E,180=S,270=W → heading = (deg−90)°). */
+function parkedHeading(lane: Lane, angleDeg: number): number {
+  if (lane === "dcfc" || lane === "l2" || lane === "wash" || lane === "service") return NORTH;
+  return ((angleDeg - 90) * Math.PI) / 180;
 }
 
-interface YukaEntry {
-  yv: YukaVehicle;
-  follow: FollowPathBehavior | null;
-  pathRef: unknown;            // identity of the waypoint set the current path was built from
-  final: { x: number; y: number } | null;
+interface Entry {
+  car: KinematicCar;
+  tracker: PathTracker | null; // null = parked
+  lane: Lane | "gate" | null;
+  stallId: string | null;
+  stallHeading: number;
+  vstatus: VehicleStatus;
+  oem: string;
+  soc: number;
 }
 
 class TwinMotionDriver {
   private rafId: number | null = null;
+  private intervalId: ReturnType<typeof setInterval> | null = null;
   private last: number | null = null;
-  private vehicles = new Map<string, Vehicle>();
-  private assign = new Map<string, { lane: Lane; stallId: string }>(); // vehicle → claimed stall
-  private em = new EntityManager();
-  private yuka = new Map<string, YukaEntry>();
+  private graph = buildDepotLanes();
+  private ledger = new StallLedger();
+  private entries = new Map<string, Entry>();
 
   start() {
-    if (this.rafId !== null) return;
+    if (this.rafId !== null || this.intervalId !== null) return;
     this.last = null;
     this.rafId = requestAnimationFrame(this.loop);
+    // Fallback driver: browsers PAUSE requestAnimationFrame for hidden/background
+    // tabs, which would freeze the depot. A setInterval keeps motion advancing
+    // regardless; dt comes from real timestamps so both paths agree and a depot
+    // in a background tab (or a headless preview) still moves.
+    this.intervalId = setInterval(() => this.step(performance.now()), 33);
   }
   stop() {
     if (this.rafId !== null) cancelAnimationFrame(this.rafId);
+    if (this.intervalId !== null) clearInterval(this.intervalId);
     this.rafId = null;
+    this.intervalId = null;
   }
   clear() {
     this.stop();
-    this.vehicles.clear();
-    this.assign.clear();
-    this.yuka.clear();
-    this.em = new EntityManager();
+    this.entries.clear();
+    this.ledger.clear();
   }
 
-  /** Reconcile render state against a fresh backend snapshot (sets routes). */
+  private createEntry(pose: { x: number; y: number; heading: number }, lane: Lane | "gate", vstatus: VehicleStatus, oem: string, soc: number): Entry {
+    return {
+      car: new KinematicCar(pose, DEFAULT_CAR_PARAMS),
+      tracker: null, lane, stallId: null, stallHeading: pose.heading, vstatus, oem, soc,
+    };
+  }
+
+  /** Route a drivable path from `pose` to a stall along the one-way lanes. Charging
+   *  stalls are reached via their northbound gap lane (car ends facing north). */
+  private routeToStall(pose: { x: number; y: number }, lane: Lane, stall: { x: number; y: number }): Pt[] {
+    if (lane === "dcfc" || lane === "l2") {
+      const gx = gapLaneX(stall.x);
+      const toGap = this.graph.route(pose, { x: gx, y: SOUTH_LANE_Y - 2 });
+      return [...toGap, { x: gx, y: stall.y }, { x: stall.x, y: stall.y }];
+    }
+    return this.graph.route(pose, { x: stall.x, y: stall.y });
+  }
+
+  /** Reconcile render state + routes against a fresh backend snapshot. */
   reconcile(snap: TwinSnapshot) {
     const depot = useDepotStore.getState();
     const stalls = depot.stalls;
     const byLane: Record<string, typeof stalls> = { dcfc: [], l2: [], wash: [], service: [], staging: [] };
     for (const s of stalls) (byLane[s.type] ??= []).push(s);
 
-    const claimed = new Set<string>();
-    for (const a of this.assign.values()) claimed.add(a.stallId);
-
     const present = new Set<string>();
     const desiredStatus = new Map<string, StallStatus>();
 
     for (const bv of snap.fleet?.vehicles ?? []) {
       const m = mapState(bv.state);
-      if (!m) continue; // off-map → departure pass below
+      if (!m) continue;
       present.add(bv.id);
-
-      // ---- resolve this vehicle's target render position ----
-      let target: { x: number; y: number };
-      let assignedStall: string | null = null;
+      let e = this.entries.get(bv.id);
+      const oem = bv.platform ?? e?.oem ?? "waymo";
+      const soc = bv.soc ?? e?.soc ?? 0;
 
       if (m.lane === "gate") {
-        const prev = this.assign.get(bv.id);
-        if (prev) { claimed.delete(prev.stallId); this.assign.delete(bv.id); }
-        target = gatePos(bv.id);
+        this.ledger.release(bv.id);
+        const gp = gatePos(bv.id);
+        if (!e) e = this.createEntry({ ...gp, heading: NORTH }, "gate", m.vstatus, oem, soc);
+        e.lane = "gate"; e.stallId = null; e.tracker = null; e.vstatus = m.vstatus;
       } else {
-        const lane = m.lane;
-        let a = this.assign.get(bv.id);
-        if (!a || a.lane !== lane) {
-          if (a) claimed.delete(a.stallId);
-          const slot = (byLane[lane] ?? []).find((s) => !claimed.has(s.id));
-          if (!slot) { this.assign.delete(bv.id); continue; } // lane full → overflow off-map
-          claimed.add(slot.id);
-          a = { lane, stallId: slot.id };
-          this.assign.set(bv.id, a);
+        const cands = (byLane[m.lane] ?? []).map((s) => s.id);
+        const stallId = this.ledger.claimFirstFree(bv.id, cands);
+        if (!stallId) continue; // lane full → overflow off-map this tick
+        const stall = stalls.find((s) => s.id === stallId)!;
+        const sp = { x: stall.position.x, y: stall.position.y };
+        const sh = parkedHeading(m.lane, stall.position.angle);
+        if (!e) {
+          // first seen already in-state → place parked AT the stall
+          e = this.createEntry({ ...sp, heading: sh }, m.lane, m.vstatus, oem, soc);
+          e.stallId = stallId; e.stallHeading = sh;
+        } else if (e.stallId !== stallId || e.lane === "gate") {
+          // newly assigned (or leaving the gate) → ROUTE there and drive
+          e.tracker = new PathTracker(this.routeToStall(e.car.pose, m.lane, sp));
+          e.stallId = stallId; e.stallHeading = sh;
         }
-        const slot = stalls.find((s) => s.id === a.stallId)!;
-        assignedStall = a.stallId;
-        target = { x: slot.position.x, y: slot.position.y };
-        desiredStatus.set(a.stallId, m.sstatus);
+        e.lane = m.lane;
+        e.vstatus = m.vstatus;
+        desiredStatus.set(stallId, m.sstatus);
       }
-
-      // ---- create or update the render vehicle ----
-      let v = this.vehicles.get(bv.id);
-      if (!v) {
-        v = {
-          id: bv.id, type: "fleet", oem: bv.platform, priority: 5,
-          batteryCapacity: 100, currentSoC: bv.soc ?? 0, targetSoC: 90,
-          status: m.vstatus, assignedStall, serviceQueue: [], currentServiceIndex: 0,
-          serviceStartTime: null, serviceDuration: null, arrivalTime: 0,
-          position: { ...target }, targetPosition: null,
-        };
-        this.vehicles.set(bv.id, v);
-      } else {
-        v.currentSoC = bv.soc ?? v.currentSoC;
-        v.oem = bv.platform ?? v.oem;
-        v.status = m.vstatus;
-        v.assignedStall = assignedStall;
-        const d = destOf(v);
-        if (Math.abs(d.x - target.x) > 1.5 || Math.abs(d.y - target.y) > 1.5) {
-          // target moved → route along the real lanes
-          v.waypoints = m.lane === "gate" ? [target] : routeToStall(v.position, target);
-          v.targetPosition = v.waypoints.shift() ?? { ...target };
-        }
-      }
+      e.oem = oem;
+      e.soc = soc;
+      this.entries.set(bv.id, e);
     }
 
-    // ---- departures: vehicles we render but the backend no longer holds ----
-    for (const [id, v] of this.vehicles) {
+    // departures: rendered but no longer held by the backend → drive to egress
+    for (const [id, e] of this.entries) {
       if (present.has(id)) continue;
-      const a = this.assign.get(id);
-      if (a) { claimed.delete(a.stallId); this.assign.delete(id); }
-      if (v.status !== "departing") {
-        v.status = "departing";
-        v.assignedStall = null;
-        v.waypoints = routeToEgress(v.position);
-        v.targetPosition = v.waypoints.shift() ?? { ...EGRESS };
+      this.ledger.release(id);
+      if (e.vstatus !== "departing") {
+        e.vstatus = "departing";
+        e.stallId = null;
+        e.tracker = new PathTracker(this.graph.route(e.car.pose, { x: EGRESS.x, y: EGRESS.y }));
       }
     }
 
-    // ---- apply stall statuses (reserved/charging/servicing vs available) ----
+    // stall statuses
     for (const s of stalls) {
       const want = desiredStatus.get(s.id) ?? "available";
       if (s.status !== want) depot.setStallStatus(s.id, want);
@@ -192,117 +197,86 @@ class TwinMotionDriver {
     this.flush();
   }
 
-  /** Get-or-create the Yuka entity backing a render vehicle. */
-  private yukaFor(v: Vehicle): YukaEntry {
-    let e = this.yuka.get(v.id);
-    if (!e) {
-      const yv = new YukaVehicle();
-      yv.position.set(v.position.x, v.position.y, 0);
-      yv.maxSpeed = BASE_SPEED;
-      yv.updateNeighborhood = true;
-      yv.neighborhoodRadius = NEIGHBORHOOD;
-      const sep = new SeparationBehavior();
-      // Gentle anti-overlap ONLY — must stay well below the FollowPath weight (1)
-      // so cars hold their lane polyline instead of being shoved sideways off the
-      // lanes and over structures. (Sparse start = little clustering to resolve.)
-      sep.weight = 0.35;
-      yv.steering.add(sep);
-      this.em.add(yv);
-      e = { yv, follow: null, pathRef: null, final: null };
-      this.yuka.set(v.id, e);
-    }
-    return e;
-  }
-
   private loop = (ts: number) => {
-    if (this.last === null) {
-      this.last = ts;
-      this.rafId = requestAnimationFrame(this.loop);
-      return;
-    }
-    const dt = Math.min(ts - this.last, 100) / 1000;
-    this.last = ts;
-    this.tickMotion(dt);
+    this.step(ts);
     this.rafId = requestAnimationFrame(this.loop);
   };
 
-  /** One motion step of `dt` seconds. Public so the Yuka motion can be
-   *  unit-tested directly (the rAF loop just calls this each frame). */
-  tickMotion(dt: number) {
-    // Cars ALWAYS drive at a believable depot taxi speed (~14 mph), DECOUPLED
-    // from the simulation clock. The twin runs at 60x for the energy/throughput
-    // math (correct, untouched) — but a car animated at 60x looks like a
-    // teleporting slide/swarm. At BASE_SPEED a full route takes a realistic
-    // ~15-20s of real time and the car then SITS PARKED until its next backend
-    // state change — which reads as real pacing, not teleport. Cars still reach
-    // their stall well within one ~30s twin tick, so they don't fall behind.
-    const speed = BASE_SPEED;
-
-    // Sync Yuka entities to the render vehicles' current routes.
-    for (const v of this.vehicles.values()) {
-      const e = this.yukaFor(v);
-      e.yv.maxSpeed = speed;
-      if (v.targetPosition) {
-        const full = [v.targetPosition, ...(v.waypoints ?? [])];
-        // (re)build the path only when the route actually changed
-        if (e.pathRef !== v.waypoints || !e.follow) {
-          const path = new Path();
-          for (const p of full) path.add(new Vector3(p.x, p.y, 0));
-          if (e.follow) e.yv.steering.remove(e.follow);
-          e.follow = new FollowPathBehavior(path, 3);
-          e.follow.weight = 1;
-          e.yv.steering.add(e.follow);
-          e.pathRef = v.waypoints;
-          e.final = full[full.length - 1];
-        }
-        // Pull-in: ease the speed down over the last ~16 units so the car
-        // decelerates smoothly into its stall (a real parking maneuver) instead
-        // of driving full-speed then snapping to a dead stop.
-        if (e.final) {
-          const dist = Math.hypot(v.position.x - e.final.x, v.position.y - e.final.y);
-          e.yv.maxSpeed = speed * Math.max(0.22, Math.min(1, dist / 16));
-        }
-      }
+  /** Advance motion by the real elapsed time since the last step. Driven by both
+   *  the rAF loop (smooth 60fps when visible) and the setInterval fallback (when
+   *  hidden). dt-from-timestamp + the <=0 guard make overlapping fires harmless. */
+  private step(ts: number) {
+    if (this.last === null) {
+      this.last = ts;
+      return;
     }
+    const dt = Math.min(ts - this.last, 100) / 1000;
+    if (dt <= 0) return;
+    this.last = ts;
+    this.tickMotion(dt);
+  }
 
-    // Advance all steering.
-    this.em.update(dt);
+  /** One physical motion step of `dt` seconds. Public for unit testing. */
+  tickMotion(dt: number) {
+    // snapshot all car poses for leader-finding
+    const moving: MovingCar[] = [];
+    for (const [id, e] of this.entries) moving.push({ id, pose: e.car.pose, speed: e.car.speed });
 
-    // Read positions back; handle arrivals + departures.
-    let moved = false;
+    let changed = false;
     const remove: string[] = [];
-    for (const v of this.vehicles.values()) {
-      const e = this.yuka.get(v.id);
-      if (!e) continue;
-      if (v.targetPosition && e.final) {
-        const nx = e.yv.position.x, ny = e.yv.position.y;
-        if (nx !== v.position.x || ny !== v.position.y) { v.position = { x: nx, y: ny }; moved = true; }
-        if (Math.abs(nx - e.final.x) < ARRIVE_EPS && Math.abs(ny - e.final.y) < ARRIVE_EPS) {
-          // arrived at the final destination
-          v.position = { ...e.final };
-          e.yv.velocity.set(0, 0, 0);
-          if (e.follow) { e.yv.steering.remove(e.follow); e.follow = null; }
-          e.pathRef = null; e.final = null;
-          if (v.status === "departing") remove.push(v.id);
-          else { v.targetPosition = null; v.waypoints = []; }
-          moved = true;
+    for (const [id, e] of this.entries) {
+      if (e.tracker) {
+        // lateral: pure-pursuit steering along the lane route (advances the cursor)
+        const look = LOOKAHEAD_MIN + LOOKAHEAD_K * e.car.speed;
+        const { steer, remaining } = e.tracker.steer(e.car.pose, look, e.car.params.wheelbase);
+        // longitudinal: follow the leader (IDM) ...
+        const lead = findLeader({ id, pose: e.car.pose, speed: e.car.speed }, moving);
+        const accel = idmAccel(e.car.speed, lead.gap, lead.leaderSpeed);
+        let desiredSpeed = Math.max(0, e.car.speed + accel * dt);
+        // ... AND ease to a precise stop exactly at the path end (the stall):
+        // v = sqrt(2·b·remaining) decelerates to 0 right at remaining = 0.
+        desiredSpeed = Math.min(desiredSpeed, Math.sqrt(2 * 7 * Math.max(0, remaining)));
+        e.car.step(dt, desiredSpeed, steer);
+        changed = true;
+        if (e.tracker.atEnd(ARRIVE_EPS) && e.car.speed < 0.5) {
+          if (e.vstatus === "departing") {
+            remove.push(id);
+          } else {
+            if (e.stallId) {
+              const st = useDepotStore.getState().stalls.find((s) => s.id === e.stallId);
+              if (st) { e.car.x = st.position.x; e.car.y = st.position.y; }
+            }
+            e.car.heading = e.stallHeading;
+            e.car.speed = 0;
+            e.car.steer = 0;
+            e.tracker = null;
+          }
         }
-      } else {
-        // parked: keep the Yuka entity pinned to the render position
-        e.yv.position.set(v.position.x, v.position.y, 0);
-        e.yv.velocity.set(0, 0, 0);
+      } else if (e.car.speed !== 0) {
+        e.car.speed = 0; // parked: hold still
+        changed = true;
       }
     }
     for (const id of remove) {
-      const e = this.yuka.get(id);
-      if (e) { this.em.remove(e.yv); this.yuka.delete(id); }
-      this.vehicles.delete(id);
+      this.ledger.release(id);
+      this.entries.delete(id);
+      changed = true;
     }
-    if (moved || remove.length) this.flush();
+    if (changed) this.flush();
   }
 
   private flush() {
-    const arr = Array.from(this.vehicles.values()).map((v) => ({ ...v, position: { ...v.position } }));
+    const arr: Vehicle[] = [];
+    for (const [id, e] of this.entries) {
+      arr.push({
+        id, type: "fleet", oem: e.oem, priority: 5,
+        batteryCapacity: 100, currentSoC: e.soc, targetSoC: 90,
+        status: e.vstatus, assignedStall: e.stallId, serviceQueue: [], currentServiceIndex: 0,
+        serviceStartTime: null, serviceDuration: null, arrivalTime: 0,
+        position: { x: e.car.x, y: e.car.y }, heading: e.car.heading,
+        targetPosition: null, waypoints: [],
+      });
+    }
     const store = useVehicleStore.getState();
     store.setVehicles(arr);
     store.setQueueDepth(arr.filter((v) => v.status === "queued").length);

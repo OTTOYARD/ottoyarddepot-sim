@@ -30,6 +30,11 @@ const OEM_STROKE: Record<string, string> = {
 };
 
 function getRotation(v: Vehicle): number {
+  // Prefer the kinematic model's true body heading (0 = +x/east). The SVG body
+  // is drawn pointing "up", so rotation = heading + 90°.
+  if (typeof v.heading === "number") {
+    return (v.heading * 180) / Math.PI + 90;
+  }
   if (v.targetPosition) {
     const dx = v.targetPosition.x - v.position.x;
     const dy = v.targetPosition.y - v.position.y;

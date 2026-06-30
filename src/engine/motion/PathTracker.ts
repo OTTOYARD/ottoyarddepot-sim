@@ -132,6 +132,10 @@ export class PathTracker {
   get progress(): number {
     return this.s;
   }
+  /** Arc length remaining from the current cursor to the path end. */
+  get remaining(): number {
+    return this.total - this.s;
+  }
   /** True once the cursor has reached (within eps of) the path end. */
   atEnd(eps = 1.6): boolean {
     return this.total - this.s <= eps;
