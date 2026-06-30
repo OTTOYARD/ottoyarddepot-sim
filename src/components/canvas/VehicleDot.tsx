@@ -59,8 +59,11 @@ const VehicleDotInner = ({ vehicle: v }: Props) => {
       // between stalls each poll instead of teleporting. First mount has no
       // prior value, so it places without a fly-in from the origin.
       style={{
+        // The motion driver feeds smooth per-frame positions; keep only a tiny
+        // transition to absorb React render-cadence jitter (the old 0.9s value
+        // lagged the live motion and looked like sliding).
         transform: `translate(${v.position.x}px, ${v.position.y}px)`,
-        transition: 'transform 0.9s cubic-bezier(0.4, 0.1, 0.2, 1)',
+        transition: 'transform 0.12s linear',
         cursor: 'pointer',
       }}
       onMouseEnter={() => setHoveredVehicle(v.id)}

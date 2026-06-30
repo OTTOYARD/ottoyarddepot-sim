@@ -203,7 +203,10 @@ class TwinMotionDriver {
       yv.updateNeighborhood = true;
       yv.neighborhoodRadius = NEIGHBORHOOD;
       const sep = new SeparationBehavior();
-      sep.weight = 2.2;          // push apart so cars never overlap / clump at the gate
+      // Gentle anti-overlap ONLY — must stay well below the FollowPath weight (1)
+      // so cars hold their lane polyline instead of being shoved sideways off the
+      // lanes and over structures. (Sparse start = little clustering to resolve.)
+      sep.weight = 0.35;
       yv.steering.add(sep);
       this.em.add(yv);
       e = { yv, follow: null, pathRef: null, final: null };
@@ -228,6 +231,8 @@ class TwinMotionDriver {
    *  unit-tested directly (the rAF loop just calls this each frame). */
   tickMotion(dt: number) {
     const simSpeed = Math.max(useSimulationStore.getState().simSpeed ?? 1, 1);
+    // Motion speed tracks the sim clock so cars don't fall behind their backend
+    // state (the anti-slide fix is the low separation weight, not a speed cap).
     const speed = BASE_SPEED * Math.min(simSpeed, 8);
 
     // Sync Yuka entities to the render vehicles' current routes.
