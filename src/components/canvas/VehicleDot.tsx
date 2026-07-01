@@ -61,15 +61,12 @@ const VehicleDotInner = ({ vehicle: v }: Props) => {
   return (
     <g
       data-vid={v.id}
-      // CSS transform (in viewBox user units) + transition = vehicles GLIDE
-      // between stalls each poll instead of teleporting. First mount has no
-      // prior value, so it places without a fly-in from the origin.
+      // Position/rotation are driven IMPERATIVELY from the poseStore by a single
+      // rAF in DepotSVG (see there) — never through React state — so 132 moving
+      // dots don't re-render the tree each frame. This style is just the initial
+      // mount placement; no CSS transition (the physics pose is already smooth).
       style={{
-        // The motion driver feeds smooth per-frame positions; keep only a tiny
-        // transition to absorb React render-cadence jitter (the old 0.9s value
-        // lagged the live motion and looked like sliding).
         transform: `translate(${v.position.x}px, ${v.position.y}px)`,
-        transition: 'transform 0.12s linear',
         cursor: 'pointer',
       }}
       onMouseEnter={() => setHoveredVehicle(v.id)}
@@ -97,8 +94,8 @@ const VehicleDotInner = ({ vehicle: v }: Props) => {
         </>
       )}
 
-      {/* Vehicle body - rotated rounded rect */}
-      <g transform={`rotate(${rotation})`}>
+      {/* Vehicle body - rotated rounded rect (rotation set imperatively too) */}
+      <g data-body transform={`rotate(${rotation})`}>
         <rect
           x={-2.5}
           y={-4}

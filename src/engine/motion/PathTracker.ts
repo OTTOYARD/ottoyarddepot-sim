@@ -136,6 +136,10 @@ export class PathTracker {
   get remaining(): number {
     return this.total - this.s;
   }
+  /** The final point of the path (a car parks exactly here — no overshoot). */
+  get endPoint(): Pt {
+    return this.path[this.path.length - 1];
+  }
   /** True once the cursor has reached (within eps of) the path end. */
   atEnd(eps = 1.6): boolean {
     return this.total - this.s <= eps;

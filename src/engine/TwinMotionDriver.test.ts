@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { twinMotionDriver } from "./TwinMotionDriver";
 import { useDepotStore } from "@/store/depotStore";
 import { useVehicleStore } from "@/store/vehicleStore";
+import { poseStore } from "./motion/poseStore";
 import type { TwinSnapshot } from "@/lib/ottoTwin";
 
 // Minimal snapshot carrying only what the driver reads (fleet.vehicles).
@@ -86,13 +87,32 @@ describe("TwinMotionDriver — kinematic motion off the twin", () => {
   it("kinematically DRIVES a routed vehicle toward its stall (no teleport, no slide)", () => {
     twinMotionDriver.reconcile(snap([{ id: "v1", state: "arrived_at_gate" }]));
     twinMotionDriver.reconcile(snap([{ id: "v1", state: "charging_dcfc" }]));
-    const v0 = find("v1")!;
-    const stallId = v0.assignedStall!;
-    const d0 = distToStall(v0, stallId);
+    const stallId = find("v1")!.assignedStall!;
+    const stall = useDepotStore.getState().stalls.find((s) => s.id === stallId)!;
+    // live position comes from the imperative poseStore, not the React roster
+    const d = () => { const lp = poseStore.get("v1")!; return Math.hypot(lp.x - stall.position.x, lp.y - stall.position.y); };
+    const d0 = d();
     expect(d0).toBeGreaterThan(20);
     for (let i = 0; i < 500; i++) twinMotionDriver.tickMotion(0.05); // ~25s of driving
-    const d1 = distToStall(find("v1")!, stallId);
+    const d1 = d();
     expect(d1).toBeLessThan(d0); // drove measurably closer to its stall
     expect(d1).toBeLessThan(6);  // and effectively arrived
+  });
+
+  it("arrivals queue single-file at the gate and NEVER overlap/stack", () => {
+    twinMotionDriver.reconcile(snap([
+      { id: "a", state: "arrived_at_gate" }, { id: "b", state: "arrived_at_gate" },
+      { id: "c", state: "arrived_at_gate" }, { id: "d", state: "arrived_at_gate" },
+      { id: "e", state: "arrived_at_gate" },
+    ]));
+    for (let i = 0; i < 240; i++) twinMotionDriver.tickMotion(0.05); // let the queue settle
+    const ids = ["a", "b", "c", "d", "e"];
+    const ps = ids.map((id) => poseStore.get(id)!);
+    for (let i = 0; i < ps.length; i++) {
+      for (let j = i + 1; j < ps.length; j++) {
+        const gap = Math.hypot(ps[i].x - ps[j].x, ps[i].y - ps[j].y);
+        expect(gap).toBeGreaterThan(6); // no two cars occupy the same spot
+      }
+    }
   });
 });

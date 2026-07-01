@@ -61,6 +61,45 @@ export function findLeader(
 }
 
 /**
+ * Local avoidance — a GENTLE steering nudge away from any car that gets within
+ * `radius`, on top of the lane pure-pursuit. This is the thin local-avoidance
+ * layer (Reynolds separation, mapped to steering so it respects the car
+ * kinematics) that keeps converging / side-by-side cars from touching WITHOUT
+ * shoving them off their lane — the weight is small and it only bites up close.
+ * Returns a steering-angle delta (radians) to ADD to the pursuit steer.
+ */
+export function separationSteer(
+  me: MovingCar,
+  others: Iterable<MovingCar>,
+  radius = 5.5,
+  weight = 0.5,
+): number {
+  let ax = 0;
+  let ay = 0;
+  let n = 0;
+  for (const o of others) {
+    if (o.id === me.id) continue;
+    const dx = me.pose.x - o.pose.x;
+    const dy = me.pose.y - o.pose.y;
+    const d = Math.hypot(dx, dy);
+    if (d < 1e-3 || d > radius) continue;
+    const w = (radius - d) / radius; // 0 at the edge, 1 when touching
+    ax += (dx / d) * w; // sum of away-vectors, weighted by closeness
+    ay += (dy / d) * w;
+    n++;
+  }
+  if (!n) return 0;
+  // steer from the current heading toward the "away" direction, gently, and only
+  // for the sideways component (the leader/IDM handles straight-ahead slowing).
+  const away = Math.atan2(ay, ax);
+  let diff = (away - me.pose.heading) % (Math.PI * 2);
+  if (diff > Math.PI) diff -= Math.PI * 2;
+  else if (diff <= -Math.PI) diff += Math.PI * 2;
+  const clamped = diff < -0.6 ? -0.6 : diff > 0.6 ? 0.6 : diff;
+  return clamped * weight;
+}
+
+/**
  * Stall ledger — guarantees at most ONE vehicle per stall (no double-booking),
  * the spatial half of the no-stacking guarantee.
  */

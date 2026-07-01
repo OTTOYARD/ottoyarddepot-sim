@@ -20,8 +20,9 @@
 import { KinematicCar, DEFAULT_CAR_PARAMS } from "./motion/KinematicCar";
 import { PathTracker, type Pt } from "./motion/PathTracker";
 import { idmAccel } from "./motion/idm";
-import { findLeader, StallLedger, type MovingCar } from "./motion/traffic";
+import { findLeader, separationSteer, StallLedger, type MovingCar } from "./motion/traffic";
 import { buildDepotLanes } from "./motion/LaneGraph";
+import { poseStore } from "./motion/poseStore";
 import { useDepotStore, type StallStatus } from "@/store/depotStore";
 import { useVehicleStore } from "@/store/vehicleStore";
 import type { Vehicle, VehicleStatus } from "@/engine/types";
@@ -34,17 +35,6 @@ const LOOKAHEAD_MIN = 5;
 const LOOKAHEAD_K = 0.45;
 const ARRIVE_EPS = 1.8;
 const NORTH = -Math.PI / 2; // facing north (−y) in the y-down logical frame
-
-function hash(id: string): number {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
-  return h;
-}
-/** A spread-out holding spot on the south ingress apron for an arriving car. */
-function gatePos(id: string): Pt {
-  const n = hash(id) % 24;
-  return { x: INGRESS.x - 30 + (n % 8) * 8, y: INGRESS.y - 16 - Math.floor(n / 8) * 7 };
-}
 
 // backend vehicle_state → { lane, render status, stall status }
 function mapState(state: string): { lane: Lane | "gate" | null; vstatus: VehicleStatus; sstatus: StallStatus } | null {
@@ -88,6 +78,8 @@ class TwinMotionDriver {
   private graph = buildDepotLanes();
   private ledger = new StallLedger();
   private entries = new Map<string, Entry>();
+  /** roster fingerprint (ids+status+stall+soc) — setVehicles only fires when it changes */
+  private lastRosterKey = "";
 
   start() {
     if (this.rafId !== null || this.intervalId !== null) return;
@@ -109,6 +101,8 @@ class TwinMotionDriver {
     this.stop();
     this.entries.clear();
     this.ledger.clear();
+    poseStore.clear();
+    this.lastRosterKey = "";
   }
 
   private createEntry(pose: { x: number; y: number; heading: number }, lane: Lane | "gate", vstatus: VehicleStatus, oem: string, soc: number): Entry {
@@ -127,6 +121,16 @@ class TwinMotionDriver {
       return [...toGap, { x: gx, y: stall.y }, { x: stall.x, y: stall.y }];
     }
     return this.graph.route(pose, { x: stall.x, y: stall.y });
+  }
+
+  /** Y of the current ingress-queue tail; a new arrival spawns one car-length
+   *  behind it so arrivals line up single-file up to the gate (no stacking). */
+  private gateQueueTailY(): number {
+    let maxY = INGRESS.y + 2;
+    for (const e of this.entries.values()) {
+      if (e.lane === "gate" && e.car.y + 11 > maxY) maxY = e.car.y + 11;
+    }
+    return maxY;
   }
 
   /** Reconcile render state + routes against a fresh backend snapshot. */
@@ -149,9 +153,15 @@ class TwinMotionDriver {
 
       if (m.lane === "gate") {
         this.ledger.release(bv.id);
-        const gp = gatePos(bv.id);
-        if (!e) e = this.createEntry({ ...gp, heading: NORTH }, "gate", m.vstatus, oem, soc);
-        e.lane = "gate"; e.stallId = null; e.tracker = null; e.vstatus = m.vstatus;
+        if (!e) {
+          // Spawn at the TAIL of the ingress queue and route up to the hold point.
+          // IDM then lines arrivals up single-file behind each other — they never
+          // overlap or stack at the entrance; the front car holds until assigned.
+          const tailY = this.gateQueueTailY();
+          e = this.createEntry({ x: INGRESS.x, y: tailY, heading: NORTH }, "gate", m.vstatus, oem, soc);
+          e.tracker = new PathTracker([{ x: INGRESS.x, y: tailY }, { x: INGRESS.x, y: INGRESS.y - 6 }]);
+        }
+        e.lane = "gate"; e.stallId = null; e.vstatus = m.vstatus;
       } else {
         const cands = (byLane[m.lane] ?? []).map((s) => s.id);
         const stallId = this.ledger.claimFirstFree(bv.id, cands);
@@ -229,22 +239,36 @@ class TwinMotionDriver {
         // lateral: pure-pursuit steering along the lane route (advances the cursor)
         const look = LOOKAHEAD_MIN + LOOKAHEAD_K * e.car.speed;
         const { steer, remaining } = e.tracker.steer(e.car.pose, look, e.car.params.wheelbase);
-        // longitudinal: follow the leader (IDM) ...
-        const lead = findLeader({ id, pose: e.car.pose, speed: e.car.speed }, moving);
-        const accel = idmAccel(e.car.speed, lead.gap, lead.leaderSpeed);
+        // local avoidance: a gentle steer away from any car within touching range
+        const sep = separationSteer({ id, pose: e.car.pose, speed: e.car.speed }, moving);
+        // longitudinal: follow the LANE leader (narrow cone) AND yield to any
+        // close cross-traffic cutting across just ahead (wider, shorter cone), so
+        // cars at merges/gates never drive THROUGH one another. Most restrictive wins.
+        const self = { id, pose: e.car.pose, speed: e.car.speed };
+        const lead = findLeader(self, moving, 3.2, 34);
+        const cross = findLeader(self, moving, 4.8, 12);
+        const gap = Math.min(lead.gap, cross.gap);
+        const leadSpeed = lead.gap <= cross.gap ? lead.leaderSpeed : cross.leaderSpeed;
+        const accel = idmAccel(e.car.speed, gap, leadSpeed);
         let desiredSpeed = Math.max(0, e.car.speed + accel * dt);
         // ... AND ease to a precise stop exactly at the path end (the stall):
         // v = sqrt(2·b·remaining) decelerates to 0 right at remaining = 0.
         desiredSpeed = Math.min(desiredSpeed, Math.sqrt(2 * 7 * Math.max(0, remaining)));
         e.car.step(dt, desiredSpeed, steer);
         changed = true;
-        if (e.tracker.atEnd(ARRIVE_EPS) && e.car.speed < 0.5) {
+        if (e.tracker.atEnd(ARRIVE_EPS)) {
           if (e.vstatus === "departing") {
             remove.push(id);
           } else {
+            // snap EXACTLY to the target (stall pose, else the path end) so a car
+            // never overshoots or oscillates at the end of its route.
             if (e.stallId) {
               const st = useDepotStore.getState().stalls.find((s) => s.id === e.stallId);
               if (st) { e.car.x = st.position.x; e.car.y = st.position.y; }
+            } else {
+              const ep = e.tracker.endPoint;
+              e.car.x = ep.x;
+              e.car.y = ep.y;
             }
             e.car.heading = e.stallHeading;
             e.car.speed = 0;
@@ -260,12 +284,24 @@ class TwinMotionDriver {
     for (const id of remove) {
       this.ledger.release(id);
       this.entries.delete(id);
+      poseStore.delete(id);
       changed = true;
     }
     if (changed) this.flush();
   }
 
   private flush() {
+    // (1) live poses → the mutable channel EVERY tick (no React, no allocation).
+    // The renderers read these imperatively in their own frame loop.
+    let key = "";
+    for (const [id, e] of this.entries) {
+      poseStore.set(id, e.car.x, e.car.y, e.car.heading);
+      key += `${id}:${e.vstatus}:${e.stallId ?? ""}:${Math.round(e.soc)};`;
+    }
+    // (2) the React roster → only when the SET / status / stall / soc changes,
+    // so movement never triggers a re-render.
+    if (key === this.lastRosterKey) return;
+    this.lastRosterKey = key;
     const arr: Vehicle[] = [];
     for (const [id, e] of this.entries) {
       arr.push({

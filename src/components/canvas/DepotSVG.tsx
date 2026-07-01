@@ -1,7 +1,8 @@
-import { forwardRef } from 'react';
+import { forwardRef, useRef, useEffect } from 'react';
 import { useDepotStore } from '@/store/depotStore';
 import { useVehicleStore } from '@/store/vehicleStore';
 import { useSimulationStore } from '@/store/simulationStore';
+import { poseStore } from '@/engine/motion/poseStore';
 import { Stall } from './Stall';
 import { VehicleDot } from './VehicleDot';
 import { ZoneBadges } from './ZoneBadges';
@@ -24,9 +25,42 @@ export const DepotSVG = forwardRef<SVGSVGElement>((_, ref) => {
 
   const isRunning = status === 'running';
 
+  // Merge the forwarded ref with a local one so we can drive the dots imperatively.
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const setRefs = (el: SVGSVGElement | null) => {
+    svgRef.current = el;
+    if (typeof ref === 'function') ref(el);
+    else if (ref) (ref as React.MutableRefObject<SVGSVGElement | null>).current = el;
+  };
+
+  // IMPERATIVE dot motion: one rAF reads each vehicle's live pose from the
+  // poseStore and writes the transform straight onto the DOM — so 132 moving dots
+  // never re-render the React tree (that was the frame-by-frame jank). React only
+  // re-renders VehicleDot when the roster/status changes.
+  useEffect(() => {
+    let raf = 0;
+    const tick = () => {
+      const svg = svgRef.current;
+      if (svg) {
+        const nodes = svg.querySelectorAll<SVGGElement>('g[data-vid]');
+        for (let i = 0; i < nodes.length; i++) {
+          const g = nodes[i];
+          const lp = poseStore.get(g.getAttribute('data-vid') || '');
+          if (!lp) continue;
+          g.style.transform = `translate(${lp.x}px, ${lp.y}px)`;
+          const body = g.querySelector('[data-body]');
+          if (body) body.setAttribute('transform', `rotate(${(lp.heading * 180) / Math.PI + 90})`);
+        }
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
   return (
     <svg
-      ref={ref}
+      ref={setRefs}
       viewBox="0 0 300 220"
       preserveAspectRatio="xMidYMid meet"
       className="w-full h-full"
