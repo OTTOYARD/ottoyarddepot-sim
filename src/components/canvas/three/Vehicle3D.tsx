@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { Html, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { toWorld } from './coordUtils';
-import { useDepotStore } from '@/store/depotStore';
+import { poseStore } from '@/engine/motion/poseStore';
 import { MATERIALS } from './materials';
 import type { Vehicle } from '@/engine/types';
 
@@ -40,23 +40,14 @@ const BODY_HINTS = ['body', 'paint', 'car', 'exterior', 'shell', 'hood', 'door',
 // Vehicles face their direction of travel while moving (one-way circulation),
 // then settle to their stall's site-plan angle when parked.
 
-export function Vehicle3D({ vehicle, simSpeed }: { vehicle: Vehicle; simSpeed: number }) {
+export function Vehicle3D({ vehicle }: { vehicle: Vehicle; simSpeed: number }) {
   const grp = useRef<THREE.Group>(null);
   const glw = useRef<THREE.Mesh>(null);
   const col = paintFor(vehicle.id);
   const fx = FX[vehicle.status] || FX.staging;
-  // Stall coordinates come from the shared site plan via the store — no
-  // per-zone world-coordinate overrides needed.
+  // Initial mount position only; the LIVE pose is driven imperatively from the
+  // poseStore in useFrame below (no React re-render on movement).
   const [tx, , tz] = toWorld(vehicle.position);
-
-  // Parked orientation = the assigned stall's site-plan angle
-  const stalls = useDepotStore((s) => s.stalls);
-  const stallAngle = useMemo(() => {
-    if (!vehicle.assignedStall) return Math.PI; // default: face south
-    const stall = stalls.find((s) => s.id === vehicle.assignedStall);
-    return stall ? (stall.position.angle * Math.PI) / 180 : Math.PI;
-  }, [vehicle.assignedStall, stalls]);
-  const heading = useRef(stallAngle);
 
   const { scene } = useGLTF(MODEL_PATH);
 
@@ -95,19 +86,20 @@ export function Vehicle3D({ vehicle, simSpeed }: { vehicle: Vehicle; simSpeed: n
     });
   }, [clone, col]);
 
-  useFrame((_, delta) => {
-    if (!grp.current) return;
-    const p = grp.current.position;
-    const rate = Math.min(delta * 2 * Math.max(simSpeed, 1), 1);
-    const dx = tx - p.x;
-    const dz = tz - p.z;
-    p.x = THREE.MathUtils.lerp(p.x, tx, rate);
-    p.z = THREE.MathUtils.lerp(p.z, tz, rate);
-    // Face the direction of travel while moving; settle to stall angle parked.
-    const desired = Math.hypot(dx, dz) > 0.8 ? Math.atan2(dx, dz) : stallAngle;
-    const diff = ((desired - heading.current + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
-    heading.current += diff * Math.min(1, delta * 5);
-    grp.current.rotation.y = heading.current;
+  useFrame(() => {
+    const g = grp.current;
+    if (!g) return;
+    const lp = poseStore.get(vehicle.id);
+    if (!lp) return;
+    // Faithful render of the physics pose: the driver already integrates a smooth
+    // 60fps kinematic pose, so we set it DIRECTLY — no lerp (lerp was the slide) —
+    // and face by the TRUE steering heading, not a guess from the frame delta.
+    const [wx, , wz] = toWorld({ x: lp.x, y: lp.y });
+    g.position.x = wx;
+    g.position.z = wz;
+    // logical heading θ (0=+x, y-down) → world travel (cosθ, −sinθ); model forward
+    // at rot.y=0 is +Z, so rot.y = atan2(worldDX, worldDZ) = atan2(cosθ, −sinθ).
+    g.rotation.y = Math.atan2(Math.cos(lp.heading), -Math.sin(lp.heading));
   });
 
   return (

@@ -22,6 +22,7 @@ import { PathTracker, type Pt } from "./motion/PathTracker";
 import { idmAccel } from "./motion/idm";
 import { findLeader, StallLedger, type MovingCar } from "./motion/traffic";
 import { buildDepotLanes } from "./motion/LaneGraph";
+import { poseStore } from "./motion/poseStore";
 import { useDepotStore, type StallStatus } from "@/store/depotStore";
 import { useVehicleStore } from "@/store/vehicleStore";
 import type { Vehicle, VehicleStatus } from "@/engine/types";
@@ -88,6 +89,8 @@ class TwinMotionDriver {
   private graph = buildDepotLanes();
   private ledger = new StallLedger();
   private entries = new Map<string, Entry>();
+  /** roster fingerprint (ids+status+stall+soc) — setVehicles only fires when it changes */
+  private lastRosterKey = "";
 
   start() {
     if (this.rafId !== null || this.intervalId !== null) return;
@@ -109,6 +112,8 @@ class TwinMotionDriver {
     this.stop();
     this.entries.clear();
     this.ledger.clear();
+    poseStore.clear();
+    this.lastRosterKey = "";
   }
 
   private createEntry(pose: { x: number; y: number; heading: number }, lane: Lane | "gate", vstatus: VehicleStatus, oem: string, soc: number): Entry {
@@ -260,12 +265,24 @@ class TwinMotionDriver {
     for (const id of remove) {
       this.ledger.release(id);
       this.entries.delete(id);
+      poseStore.delete(id);
       changed = true;
     }
     if (changed) this.flush();
   }
 
   private flush() {
+    // (1) live poses → the mutable channel EVERY tick (no React, no allocation).
+    // The renderers read these imperatively in their own frame loop.
+    let key = "";
+    for (const [id, e] of this.entries) {
+      poseStore.set(id, e.car.x, e.car.y, e.car.heading);
+      key += `${id}:${e.vstatus}:${e.stallId ?? ""}:${Math.round(e.soc)};`;
+    }
+    // (2) the React roster → only when the SET / status / stall / soc changes,
+    // so movement never triggers a re-render.
+    if (key === this.lastRosterKey) return;
+    this.lastRosterKey = key;
     const arr: Vehicle[] = [];
     for (const [id, e] of this.entries) {
       arr.push({
