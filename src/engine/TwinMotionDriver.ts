@@ -20,7 +20,7 @@
 import { KinematicCar, DEFAULT_CAR_PARAMS } from "./motion/KinematicCar";
 import { PathTracker, type Pt } from "./motion/PathTracker";
 import { idmAccel } from "./motion/idm";
-import { findLeader, StallLedger, type MovingCar } from "./motion/traffic";
+import { findLeader, separationSteer, StallLedger, type MovingCar } from "./motion/traffic";
 import { buildDepotLanes } from "./motion/LaneGraph";
 import { poseStore } from "./motion/poseStore";
 import { useDepotStore, type StallStatus } from "@/store/depotStore";
@@ -239,6 +239,8 @@ class TwinMotionDriver {
         // lateral: pure-pursuit steering along the lane route (advances the cursor)
         const look = LOOKAHEAD_MIN + LOOKAHEAD_K * e.car.speed;
         const { steer, remaining } = e.tracker.steer(e.car.pose, look, e.car.params.wheelbase);
+        // local avoidance: a gentle steer away from any car within touching range
+        const sep = separationSteer({ id, pose: e.car.pose, speed: e.car.speed }, moving);
         // longitudinal: follow the LANE leader (narrow cone) AND yield to any
         // close cross-traffic cutting across just ahead (wider, shorter cone), so
         // cars at merges/gates never drive THROUGH one another. Most restrictive wins.

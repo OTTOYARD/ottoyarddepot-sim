@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { findLeader, StallLedger, CAR_LENGTH, type MovingCar } from "./traffic";
+import { findLeader, separationSteer, StallLedger, CAR_LENGTH, type MovingCar } from "./traffic";
 
 const car = (id: string, x: number, y: number, heading = 0, speed = 0): MovingCar => ({
   id, pose: { x, y, heading }, speed,
@@ -27,6 +27,21 @@ describe("findLeader — forward-cone leader detection", () => {
     const lead = findLeader(me, [car("far", 30, 0, 0, 1), car("near", 15, 0, 0, 2)]);
     expect(lead.gap).toBeCloseTo(15 - CAR_LENGTH, 5);
     expect(lead.leaderSpeed).toBe(2);
+  });
+});
+
+describe("separationSteer — thin local avoidance", () => {
+  it("is zero when no car is within range", () => {
+    expect(separationSteer(car("me", 0, 0, 0), [car("a", 40, 40, 0)])).toBe(0);
+  });
+  it("produces a nonzero nudge when a car is within touching range", () => {
+    const s = separationSteer(car("me", 0, 0, 0), [car("a", 2, 3, 0)]);
+    expect(Math.abs(s)).toBeGreaterThan(0);
+  });
+  it("stays gentle (bounded) so it never overrides lane-following", () => {
+    // a car right on top → still a small, bounded steering delta
+    const s = separationSteer(car("me", 0, 0, 0), [car("a", 0.5, 0, 0)]);
+    expect(Math.abs(s)).toBeLessThanOrEqual(0.31); // |clamp(0.6)*weight(0.5)| = 0.3
   });
 });
 
