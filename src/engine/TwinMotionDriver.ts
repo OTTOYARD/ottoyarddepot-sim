@@ -114,13 +114,18 @@ class TwinMotionDriver {
 
   /** Route a drivable path from `pose` to a stall along the one-way lanes. Charging
    *  stalls are reached via their northbound gap lane (car ends facing north). */
-  private routeToStall(pose: { x: number; y: number }, lane: Lane, stall: { x: number; y: number }): Pt[] {
+  private routeToStall(pose: { x: number; y: number }, lane: Lane, stall: { x: number; y: number }, facing: number): Pt[] {
     if (lane === "dcfc" || lane === "l2") {
       const gx = gapLaneX(stall.x);
       const toGap = this.graph.route(pose, { x: gx, y: SOUTH_LANE_Y - 2 });
       return [...toGap, { x: gx, y: stall.y }, { x: stall.x, y: stall.y }];
     }
-    return this.graph.route(pose, { x: stall.x, y: stall.y });
+    // parking / bays: approach a point one car-length BEHIND the parked heading,
+    // then pull straight in — each car fans to its own stall and noses in facing
+    // `facing`, instead of trailing others into a shared approach spot.
+    const ax = stall.x - Math.cos(facing) * 9;
+    const ay = stall.y - Math.sin(facing) * 9;
+    return [...this.graph.route(pose, { x: ax, y: ay }), { x: stall.x, y: stall.y }];
   }
 
   /** Reconcile render state + routes against a fresh backend snapshot. */
@@ -169,10 +174,10 @@ class TwinMotionDriver {
         e = this.createEntry(start, lane, m.vstatus, oem, soc);
         e.stallId = stallId;
         e.stallHeading = sh;
-        if (entering) e.tracker = new PathTracker(this.routeToStall(start, lane, sp));
+        if (entering) e.tracker = new PathTracker(this.routeToStall(start, lane, sp, sh));
       } else if (e.stallId !== stallId) {
         // re-assigned to a new stall → taxi there
-        e.tracker = new PathTracker(this.routeToStall(e.car.pose, lane, sp));
+        e.tracker = new PathTracker(this.routeToStall(e.car.pose, lane, sp, sh));
         e.stallId = stallId;
         e.stallHeading = sh;
       }
