@@ -4,6 +4,7 @@ import { Html, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { toWorld } from './coordUtils';
 import { poseStore } from '@/engine/motion/poseStore';
+import { useVehicleStore } from '@/store/vehicleStore';
 import { MATERIALS } from './materials';
 import type { Vehicle } from '@/engine/types';
 
@@ -45,6 +46,11 @@ export function Vehicle3D({ vehicle }: { vehicle: Vehicle; simSpeed: number }) {
   const glw = useRef<THREE.Mesh>(null);
   const col = paintFor(vehicle.id);
   const fx = FX[vehicle.status] || FX.staging;
+  // Only the HOVERED car shows its data badge — one <Html> instead of 132 (drei
+  // re-projects every Html label to screen each frame, a huge cost at fleet size).
+  // Selector returns a bool, so a car only re-renders when ITS hover state flips.
+  const isHovered = useVehicleStore((s) => s.hoveredVehicleId === vehicle.id);
+  const setHovered = useVehicleStore((s) => s.setHoveredVehicle);
   // Initial mount position only; the LIVE pose is driven imperatively from the
   // poseStore in useFrame below (no React re-render on movement).
   const [tx, , tz] = toWorld(vehicle.position);
@@ -103,7 +109,12 @@ export function Vehicle3D({ vehicle }: { vehicle: Vehicle; simSpeed: number }) {
   });
 
   return (
-    <group ref={grp} position={[tx, 0, tz]}>
+    <group
+      ref={grp}
+      position={[tx, 0, tz]}
+      onPointerOver={(e) => { e.stopPropagation(); setHovered(vehicle.id); }}
+      onPointerOut={() => setHovered(null)}
+    >
       <primitive
         object={clone}
         scale={[1.2, 1.2, 1.2]}
@@ -119,22 +130,24 @@ export function Vehicle3D({ vehicle }: { vehicle: Vehicle; simSpeed: number }) {
         </mesh>
       )}
 
-      {/* SoC badge */}
-      <Html position={[0, 3.2, 0]} center>
-        <div className="px-1.5 py-0.5 rounded text-[7px] font-mono bg-black/80 text-white whitespace-nowrap border border-white/10 flex items-center gap-1"
-          style={{ backdropFilter: 'blur(4px)' }}>
-          <div className="w-6 h-1 bg-white/20 rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full"
-              style={{
-                width: `${vehicle.currentSoC}%`,
-                backgroundColor: vehicle.currentSoC > 60 ? '#22c55e' : vehicle.currentSoC > 30 ? '#eab308' : '#ef4444',
-              }}
-            />
+      {/* SoC badge — only on the hovered car (keeps the scene photoreal + fast) */}
+      {isHovered && (
+        <Html position={[0, 3.2, 0]} center>
+          <div className="px-1.5 py-0.5 rounded text-[7px] font-mono bg-black/80 text-white whitespace-nowrap border border-white/10 flex items-center gap-1"
+            style={{ backdropFilter: 'blur(4px)' }}>
+            <div className="w-6 h-1 bg-white/20 rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full"
+                style={{
+                  width: `${vehicle.currentSoC}%`,
+                  backgroundColor: vehicle.currentSoC > 60 ? '#22c55e' : vehicle.currentSoC > 30 ? '#eab308' : '#ef4444',
+                }}
+              />
+            </div>
+            {Math.round(vehicle.currentSoC)}%
           </div>
-          {Math.round(vehicle.currentSoC)}%
-        </div>
-      </Html>
+        </Html>
+      )}
     </group>
   );
 }
