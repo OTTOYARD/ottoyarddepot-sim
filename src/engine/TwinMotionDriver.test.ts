@@ -98,4 +98,21 @@ describe("TwinMotionDriver — kinematic motion off the twin", () => {
     expect(d1).toBeLessThan(d0); // drove measurably closer to its stall
     expect(d1).toBeLessThan(6);  // and effectively arrived
   });
+
+  it("arrivals queue single-file at the gate and NEVER overlap/stack", () => {
+    twinMotionDriver.reconcile(snap([
+      { id: "a", state: "arrived_at_gate" }, { id: "b", state: "arrived_at_gate" },
+      { id: "c", state: "arrived_at_gate" }, { id: "d", state: "arrived_at_gate" },
+      { id: "e", state: "arrived_at_gate" },
+    ]));
+    for (let i = 0; i < 240; i++) twinMotionDriver.tickMotion(0.05); // let the queue settle
+    const ids = ["a", "b", "c", "d", "e"];
+    const ps = ids.map((id) => poseStore.get(id)!);
+    for (let i = 0; i < ps.length; i++) {
+      for (let j = i + 1; j < ps.length; j++) {
+        const gap = Math.hypot(ps[i].x - ps[j].x, ps[i].y - ps[j].y);
+        expect(gap).toBeGreaterThan(6); // no two cars occupy the same spot
+      }
+    }
+  });
 });
