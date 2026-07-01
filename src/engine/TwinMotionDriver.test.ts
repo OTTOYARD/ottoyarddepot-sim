@@ -32,13 +32,15 @@ describe("TwinMotionDriver — kinematic motion off the twin", () => {
     useDepotStore.getState().regenerateStalls(10, 30, 3, 115, 2);
   });
 
-  it("a fresh arrival appears at the gate, NOT teleported to a stall", () => {
+  it("a fresh arrival enters at the ingress and drives to a STAGING stall (no line)", () => {
     twinMotionDriver.reconcile(snap([{ id: "v1", state: "arrived_at_gate" }]));
     const v = find("v1")!;
-    expect(v.status).toBe("queued");
-    expect(v.assignedStall ?? null).toBeNull();
-    expect(v.position.y).toBeGreaterThan(150); // south ingress apron
-    expect(typeof v.heading).toBe("number");   // has a real body heading
+    expect(v.status).toBe("staging");                // parked in staging, not lined up
+    expect(v.assignedStall).toMatch(/^STAGE-/);      // targets a real staging stall
+    expect(v.position.y).toBeGreaterThan(150);        // starts at the south ingress (not teleported north)
+    const st = useDepotStore.getState().stalls.find((s) => s.id === v.assignedStall)!;
+    expect(Math.hypot(v.position.x - st.position.x, v.position.y - st.position.y)).toBeGreaterThan(5); // still driving to it
+    expect(typeof v.heading).toBe("number");
   });
 
   it("on a state change it reserves a stall and ROUTES (does not teleport onto it)", () => {
@@ -99,20 +101,17 @@ describe("TwinMotionDriver — kinematic motion off the twin", () => {
     expect(d1).toBeLessThan(6);  // and effectively arrived
   });
 
-  it("arrivals queue single-file at the gate and NEVER overlap/stack", () => {
-    twinMotionDriver.reconcile(snap([
-      { id: "a", state: "arrived_at_gate" }, { id: "b", state: "arrived_at_gate" },
-      { id: "c", state: "arrived_at_gate" }, { id: "d", state: "arrived_at_gate" },
-      { id: "e", state: "arrived_at_gate" },
-    ]));
-    for (let i = 0; i < 240; i++) twinMotionDriver.tickMotion(0.05); // let the queue settle
+  it("arrivals disperse to separate staging stalls and drive in (no shared line)", () => {
     const ids = ["a", "b", "c", "d", "e"];
+    twinMotionDriver.reconcile(snap(ids.map((id) => ({ id, state: "arrived_at_gate" }))));
+    // each arrival gets its OWN staging stall — never a shared queue line
+    const stalls = ids.map((id) => find(id)!.assignedStall!);
+    expect(new Set(stalls).size).toBe(ids.length);
+    expect(stalls.every((s) => /^STAGE-/.test(s))).toBe(true);
+    // and they enter from the ingress and spread across the depot toward those stalls
+    for (let i = 0; i < 300; i++) twinMotionDriver.tickMotion(0.05);
     const ps = ids.map((id) => poseStore.get(id)!);
-    for (let i = 0; i < ps.length; i++) {
-      for (let j = i + 1; j < ps.length; j++) {
-        const gap = Math.hypot(ps[i].x - ps[j].x, ps[i].y - ps[j].y);
-        expect(gap).toBeGreaterThan(6); // no two cars occupy the same spot
-      }
-    }
+    const spread = Math.max(...ps.map((p) => p.y)) - Math.min(...ps.map((p) => p.y));
+    expect(spread).toBeGreaterThan(8); // dispersed, not stacked in one spot
   });
 });

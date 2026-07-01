@@ -48,7 +48,7 @@ function mapState(state: string): { lane: Lane | "gate" | null; vstatus: Vehicle
     case "service_complete_holding":
     case "staged_awaiting_service":
     case "staged_for_departure": return { lane: "staging", vstatus: "staging", sstatus: "occupied" };
-    case "arrived_at_gate": return { lane: "gate", vstatus: "queued", sstatus: "available" };
+    case "arrived_at_gate": return { lane: "gate", vstatus: "staging", sstatus: "occupied" };
     default: return null; // deployed / en_route / offline / tow → off-map (departure)
   }
 }
@@ -123,22 +123,16 @@ class TwinMotionDriver {
     return this.graph.route(pose, { x: stall.x, y: stall.y });
   }
 
-  /** Y of the current ingress-queue tail; a new arrival spawns one car-length
-   *  behind it so arrivals line up single-file up to the gate (no stacking). */
-  private gateQueueTailY(): number {
-    let maxY = INGRESS.y + 2;
-    for (const e of this.entries.values()) {
-      if (e.lane === "gate" && e.car.y + 11 > maxY) maxY = e.car.y + 11;
-    }
-    return maxY;
-  }
-
   /** Reconcile render state + routes against a fresh backend snapshot. */
   reconcile(snap: TwinSnapshot) {
     const depot = useDepotStore.getState();
     const stalls = depot.stalls;
     const byLane: Record<string, typeof stalls> = { dcfc: [], l2: [], wash: [], service: [], staging: [] };
     for (const s of stalls) (byLane[s.type] ??= []).push(s);
+    // OTTO-Q spatial policy: charging fills NORTH-first (nearest the wash/service
+    // bays), so cars pool toward the top and only spill south as it fills.
+    byLane.dcfc?.sort((a, b) => a.position.y - b.position.y);
+    byLane.l2?.sort((a, b) => a.position.y - b.position.y);
 
     const present = new Set<string>();
     const desiredStatus = new Map<string, StallStatus>();
@@ -151,37 +145,35 @@ class TwinMotionDriver {
       const oem = bv.platform ?? e?.oem ?? "waymo";
       const soc = bv.soc ?? e?.soc ?? 0;
 
-      if (m.lane === "gate") {
-        this.ledger.release(bv.id);
-        if (!e) {
-          // Spawn at the TAIL of the ingress queue and route up to the hold point.
-          // IDM then lines arrivals up single-file behind each other — they never
-          // overlap or stack at the entrance; the front car holds until assigned.
-          const tailY = this.gateQueueTailY();
-          e = this.createEntry({ x: INGRESS.x, y: tailY, heading: NORTH }, "gate", m.vstatus, oem, soc);
-          e.tracker = new PathTracker([{ x: INGRESS.x, y: tailY }, { x: INGRESS.x, y: INGRESS.y - 6 }]);
-        }
-        e.lane = "gate"; e.stallId = null; e.vstatus = m.vstatus;
-      } else {
-        const cands = (byLane[m.lane] ?? []).map((s) => s.id);
-        const stallId = this.ledger.claimFirstFree(bv.id, cands);
-        if (!stallId) continue; // lane full → overflow off-map this tick
-        const stall = stalls.find((s) => s.id === stallId)!;
-        const sp = { x: stall.position.x, y: stall.position.y };
-        const sh = parkedHeading(m.lane, stall.position.angle);
-        if (!e) {
-          // first seen already in-state → place parked AT the stall
-          e = this.createEntry({ ...sp, heading: sh }, m.lane, m.vstatus, oem, soc);
-          e.stallId = stallId; e.stallHeading = sh;
-        } else if (e.stallId !== stallId || e.lane === "gate") {
-          // newly assigned (or leaving the gate) → ROUTE there and drive
-          e.tracker = new PathTracker(this.routeToStall(e.car.pose, m.lane, sp));
-          e.stallId = stallId; e.stallHeading = sh;
-        }
-        e.lane = m.lane;
-        e.vstatus = m.vstatus;
-        desiredStatus.set(stallId, m.sstatus);
+      // NO QUEUE LINES: a vehicle is ALWAYS in a stall (charging/wash/service/
+      // staging) or TAXIING between them. An arriving car ("gate") drives in from
+      // the ingress and PARKS in a free staging stall; OTTO-Q then taxis it to its
+      // sequenced service stall. So "entering" simply targets a staging stall.
+      const entering = m.lane === "gate";
+      const lane: Lane = entering ? "staging" : (m.lane as Lane);
+      const cands = (byLane[lane] ?? []).map((s) => s.id);
+      const stallId = this.ledger.claimFirstFree(bv.id, cands);
+      if (!stallId) { this.entries.set(bv.id, e ?? this.createEntry({ x: INGRESS.x, y: INGRESS.y, heading: NORTH }, lane, m.vstatus, oem, soc)); continue; }
+      const stall = stalls.find((s) => s.id === stallId)!;
+      const sp = { x: stall.position.x, y: stall.position.y };
+      const sh = parkedHeading(lane, stall.position.angle);
+      if (!e) {
+        // first seen: an ENTERING car starts at the ingress and DRIVES to its
+        // stall; a car already in-state is placed parked AT its stall.
+        const start = entering ? { x: INGRESS.x, y: INGRESS.y - 4, heading: NORTH } : { x: sp.x, y: sp.y, heading: sh };
+        e = this.createEntry(start, lane, m.vstatus, oem, soc);
+        e.stallId = stallId;
+        e.stallHeading = sh;
+        if (entering) e.tracker = new PathTracker(this.routeToStall(start, lane, sp));
+      } else if (e.stallId !== stallId) {
+        // re-assigned to a new stall → taxi there
+        e.tracker = new PathTracker(this.routeToStall(e.car.pose, lane, sp));
+        e.stallId = stallId;
+        e.stallHeading = sh;
       }
+      e.lane = lane;
+      e.vstatus = m.vstatus;
+      desiredStatus.set(stallId, m.sstatus);
       e.oem = oem;
       e.soc = soc;
       this.entries.set(bv.id, e);
