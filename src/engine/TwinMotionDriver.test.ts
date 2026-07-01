@@ -111,7 +111,8 @@ describe("TwinMotionDriver — kinematic motion off the twin", () => {
     // and they enter from the ingress and spread across the depot toward those stalls
     for (let i = 0; i < 300; i++) twinMotionDriver.tickMotion(0.05);
     const ps = ids.map((id) => poseStore.get(id)!);
-    const spread = Math.max(...ps.map((p) => p.y)) - Math.min(...ps.map((p) => p.y));
-    expect(spread).toBeGreaterThan(8); // dispersed, not stacked in one spot
+    const spreadX = Math.max(...ps.map((p) => p.x)) - Math.min(...ps.map((p) => p.x));
+    const spreadY = Math.max(...ps.map((p) => p.y)) - Math.min(...ps.map((p) => p.y));
+    expect(Math.max(spreadX, spreadY)).toBeGreaterThan(12); // dispersed, not stacked in one spot
   });
 });

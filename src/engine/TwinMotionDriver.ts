@@ -133,6 +133,11 @@ class TwinMotionDriver {
     // bays), so cars pool toward the top and only spill south as it fills.
     byLane.dcfc?.sort((a, b) => a.position.y - b.position.y);
     byLane.l2?.sort((a, b) => a.position.y - b.position.y);
+    // Staging fills nearest the INGRESS first, so an arriving car parks close to
+    // the entrance (short taxi, fans across the south rows) instead of trekking to
+    // a far corner and bunching in a shared approach.
+    const dIn = (s: (typeof stalls)[number]) => Math.hypot(s.position.x - INGRESS.x, s.position.y - INGRESS.y);
+    byLane.staging?.sort((a, b) => dIn(a) - dIn(b));
 
     const present = new Set<string>();
     const desiredStatus = new Map<string, StallStatus>();
