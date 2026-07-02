@@ -48,8 +48,10 @@ function mapState(state: string): { lane: Lane | "gate" | null; vstatus: Vehicle
     case "service_complete_holding":
     case "staged_awaiting_service":
     case "staged_for_departure": return { lane: "staging", vstatus: "staging", sstatus: "occupied" };
+    // incident triage: a retrieved (towed-in) vehicle docks in its reserved staging stall
+    case "emergency_staged": return { lane: "staging", vstatus: "maintenance", sstatus: "occupied" };
     case "arrived_at_gate": return { lane: "gate", vstatus: "staging", sstatus: "occupied" };
-    default: return null; // deployed / en_route / offline / tow → off-map (departure)
+    default: return null; // deployed / en_route / offline → off-map (departure)
   }
 }
 
@@ -80,6 +82,11 @@ class TwinMotionDriver {
   private entries = new Map<string, Entry>();
   /** roster fingerprint (ids+status+stall+soc) — setVehicles only fires when it changes */
   private lastRosterKey = "";
+  /** false until the first reconcile after clear(): the initial snapshot places the
+   *  existing fleet parked in-place; after that, ANY newly-seen vehicle drives in
+   *  from the ingress (kills the mid-run teleport-spawn when a state hop lands
+   *  between two polls, e.g. deployed → charging). */
+  private primed = false;
 
   start() {
     if (this.rafId !== null || this.intervalId !== null) return;
@@ -103,6 +110,9 @@ class TwinMotionDriver {
     this.ledger.clear();
     poseStore.clear();
     this.lastRosterKey = "";
+    this.primed = false;
+    // push an empty roster so no ghost fleet lingers after leaving twin mode
+    useVehicleStore.getState().setVehicles([]);
   }
 
   private createEntry(pose: { x: number; y: number; heading: number }, lane: Lane | "gate", vstatus: VehicleStatus, oem: string, soc: number): Entry {
@@ -148,6 +158,22 @@ class TwinMotionDriver {
     const desiredStatus = new Map<string, StallStatus>();
 
     for (const bv of snap.fleet?.vehicles ?? []) {
+      // Incident: a tow-requested vehicle CANNOT drive. If it's on-map, freeze it
+      // exactly where it is (keeping its stall claim) until the twin retrieves it
+      // (emergency_staged) or removes it; if it was never rendered (road incident
+      // while deployed), it stays off-map until retrieval.
+      if (bv.state === "tow_requested") {
+        const te = this.entries.get(bv.id);
+        if (te) {
+          present.add(bv.id);
+          te.tracker = null;
+          te.car.speed = 0;
+          te.vstatus = "maintenance";
+          if (te.stallId) desiredStatus.set(te.stallId, "offline");
+          this.entries.set(bv.id, te);
+        }
+        continue;
+      }
       const m = mapState(bv.state);
       if (!m) continue;
       present.add(bv.id);
@@ -163,18 +189,34 @@ class TwinMotionDriver {
       const lane: Lane = entering ? "staging" : (m.lane as Lane);
       const cands = (byLane[lane] ?? []).map((s) => s.id);
       const stallId = this.ledger.claimFirstFree(bv.id, cands);
-      if (!stallId) { this.entries.set(bv.id, e ?? this.createEntry({ x: INGRESS.x, y: INGRESS.y, heading: NORTH }, lane, m.vstatus, oem, soc)); continue; }
+      if (!stallId) {
+        // overflow (no free stall in the target lane): hold on the public road
+        // shoulder outside the gate, SPREAD by id so cars never stack on one
+        // point — and keep the entry's fields fresh (status/soc/oem).
+        if (!e) {
+          let h = 0;
+          for (let i = 0; i < bv.id.length; i++) h = (h * 31 + bv.id.charCodeAt(i)) >>> 0;
+          e = this.createEntry({ x: INGRESS.x + ((h % 48) - 24), y: INGRESS.y + 3, heading: NORTH }, lane, m.vstatus, oem, soc);
+        }
+        e.vstatus = m.vstatus;
+        e.oem = oem;
+        e.soc = soc;
+        this.entries.set(bv.id, e);
+        continue;
+      }
       const stall = stalls.find((s) => s.id === stallId)!;
       const sp = { x: stall.position.x, y: stall.position.y };
       const sh = parkedHeading(lane, stall.position.angle);
       if (!e) {
-        // first seen: an ENTERING car starts at the ingress and DRIVES to its
-        // stall; a car already in-state is placed parked AT its stall.
-        const start = entering ? { x: INGRESS.x, y: INGRESS.y - 4, heading: NORTH } : { x: sp.x, y: sp.y, heading: sh };
+        // first seen: entering cars — and, once primed, ANY newly-appearing car
+        // (state hop between polls) — start at the ingress and DRIVE to their
+        // stall; only the initial snapshot places the fleet parked in-place.
+        const driveIn = entering || this.primed;
+        const start = driveIn ? { x: INGRESS.x, y: INGRESS.y - 4, heading: NORTH } : { x: sp.x, y: sp.y, heading: sh };
         e = this.createEntry(start, lane, m.vstatus, oem, soc);
         e.stallId = stallId;
         e.stallHeading = sh;
-        if (entering) e.tracker = new PathTracker(this.routeToStall(start, lane, sp, sh));
+        if (driveIn) e.tracker = new PathTracker(this.routeToStall(start, lane, sp, sh));
       } else if (e.stallId !== stallId) {
         // re-assigned to a new stall → taxi there
         e.tracker = new PathTracker(this.routeToStall(e.car.pose, lane, sp, sh));
@@ -206,6 +248,7 @@ class TwinMotionDriver {
       if (s.status !== want) depot.setStallStatus(s.id, want);
     }
 
+    this.primed = true; // initial placement done — newcomers drive in from here on
     this.flush();
   }
 
@@ -230,9 +273,17 @@ class TwinMotionDriver {
 
   /** One physical motion step of `dt` seconds. Public for unit testing. */
   tickMotion(dt: number) {
-    // snapshot all car poses for leader-finding
+    // snapshot car poses for leader-finding — split MOVERS from PARKED so a docked
+    // car just off the driving line (stall offset ≈2.4u) can never become a
+    // permanent phantom leader that freezes passing traffic forever.
     const moving: MovingCar[] = [];
-    for (const [id, e] of this.entries) moving.push({ id, pose: e.car.pose, speed: e.car.speed });
+    const movers: MovingCar[] = [];
+    const parked: MovingCar[] = [];
+    for (const [id, e] of this.entries) {
+      const mc = { id, pose: e.car.pose, speed: e.car.speed };
+      moving.push(mc);
+      (e.tracker ? movers : parked).push(mc);
+    }
 
     let changed = false;
     const remove: string[] = [];
@@ -243,14 +294,16 @@ class TwinMotionDriver {
         const { steer, remaining } = e.tracker.steer(e.car.pose, look, e.car.params.wheelbase);
         // local avoidance: a gentle steer away from any car within touching range
         const sep = separationSteer({ id, pose: e.car.pose, speed: e.car.speed }, moving);
-        // longitudinal: follow the LANE leader (narrow cone) AND yield to any
-        // close cross-traffic cutting across just ahead (wider, shorter cone), so
-        // cars at merges/gates never drive THROUGH one another. Most restrictive wins.
+        // longitudinal: follow the LANE leader (narrow cone over MOVERS), yield to
+        // close cross-traffic (wider/shorter cone), and only brake for a PARKED
+        // car when it genuinely blocks the lane (tighter 2.1u band < stall offset).
+        // Most restrictive wins.
         const self = { id, pose: e.car.pose, speed: e.car.speed };
-        const lead = findLeader(self, moving, 3.2, 34);
-        const cross = findLeader(self, moving, 4.8, 12);
-        const gap = Math.min(lead.gap, cross.gap);
-        const leadSpeed = lead.gap <= cross.gap ? lead.leaderSpeed : cross.leaderSpeed;
+        const lead = findLeader(self, movers, 3.2, 34);
+        const cross = findLeader(self, movers, 4.8, 12);
+        const block = findLeader(self, parked, 2.1, 20);
+        const gap = Math.min(lead.gap, cross.gap, block.gap);
+        const leadSpeed = gap === block.gap ? 0 : gap === lead.gap ? lead.leaderSpeed : cross.leaderSpeed;
         const accel = idmAccel(e.car.speed, gap, leadSpeed);
         let desiredSpeed = Math.max(0, e.car.speed + accel * dt);
         // ... AND ease to a precise stop exactly at the path end (the stall):
