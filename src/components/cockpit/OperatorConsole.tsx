@@ -292,6 +292,23 @@ export const OperatorConsole = () => {
 
   useEffect(() => { twin.catalog().then((d) => setCatalog(d.catalog)).catch(() => {}); }, []);
   useEffect(() => { twin.scenarios().then((d) => setScenarios(d.scenarios)).catch(() => {}); }, []);
+  // Auto-attach on load: if the backend already has a live run (page reload,
+  // second screen, cron-driven production run), JOIN it instead of showing an
+  // idle depot — the twin owns run lifecycle, not this tab. Running runs also
+  // resume the tick clock; a paused run attaches frozen.
+  useEffect(() => {
+    let cancelled = false;
+    twin.runs(10).then(({ runs }) => {
+      if (cancelled || useTwinStore.getState().activeSimRunId) return;
+      const live = runs.find((r) => isLiveRunStatus(String(r.status)));
+      if (!live) return;
+      setActiveSimRunId(live.sim_run_id);
+      if (String(live.status).toLowerCase() !== "paused") ctrl.play();
+      toast.success("Joined live run", { description: live.scenario_code });
+    }).catch(() => {});
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // sync local knobs from the live profile whenever the run/profile changes
   useEffect(() => { if (snapshot?.variability) setKnobs(snapshot.variability as Knobs); }, [snapshot?.variability, runId]);
 

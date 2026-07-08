@@ -115,10 +115,13 @@ export function Vehicle3D({ vehicle }: { vehicle: Vehicle; simSpeed: number }) {
       onPointerOver={(e) => { e.stopPropagation(); setHovered(vehicle.id); }}
       onPointerOut={() => setHovered(null)}
     >
+      {/* The GLB's nose points -Z, but all heading math assumes forward = +Z —
+          so every car rendered tail-first ("driving in reverse") in BOTH the old
+          and new engines. Flip the MODEL once; the heading math stays truthful. */}
       <primitive
         object={clone}
         scale={[1.2, 1.2, 1.2]}
-        rotation={[0, 0, 0]}
+        rotation={[0, Math.PI, 0]}
         position={[0, yOffset * 1.2, 0]}
       />
 

@@ -224,6 +224,10 @@ class TwinMotionDriver {
 
     const present = new Set<string>();
     const desiredStatus = new Map<string, StallStatus>();
+    // several vehicles can appear in ONE snapshot (twin ticks cover 30 sim-min):
+    // stagger their spawn points back along the entrance road so they never
+    // materialize stacked on top of each other at the gate.
+    let spawnIdx = 0;
 
     for (const bv of snap.fleet?.vehicles ?? []) {
       // Incident: a tow-requested vehicle CANNOT drive. If it's on-map, freeze it
@@ -297,7 +301,19 @@ class TwinMotionDriver {
         // (state hop between polls) — start at the ingress and DRIVE to their
         // stall; only the initial snapshot places the fleet parked in-place.
         const driveIn = entering || this.primed;
-        const start = driveIn ? { x: INGRESS.x, y: INGRESS.y - 4, heading: NORTH } : { x: sp.x, y: sp.y, heading: sh };
+        if (driveIn && spawnIdx >= 10) {
+          // spawn row full this poll — defer this arrival to the next snapshot
+          // rather than materializing off-map (release the claim it took).
+          this.ledger.release(bv.id);
+          continue;
+        }
+        // alternate east/west along the entrance road: 0, +9, -9, +18, -18 …
+        // always on asphalt, never past the lot edge.
+        const off = Math.ceil(spawnIdx / 2) * 9 * (spawnIdx % 2 === 0 ? -1 : 1);
+        const start = driveIn
+          ? { x: INGRESS.x + off, y: INGRESS.y - 4, heading: NORTH }
+          : { x: sp.x, y: sp.y, heading: sh };
+        if (driveIn) spawnIdx++;
         e = this.createEntry(start, lane, m.vstatus, oem, soc);
         e.stallId = stallId;
         e.stallHeading = sh;
