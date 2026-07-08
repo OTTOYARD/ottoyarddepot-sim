@@ -9,6 +9,12 @@
 //
 // Only runs in backend-twin mode (an active sim_run + the legacy client engine
 // NOT running) so it never fights the offline-demo engine for the stores.
+//
+// Snapshot ordering: the driver BUFFERS snapshots until the exact-stall layout
+// fetch settles (expectLayout → setTwinStallMap/layoutFailed), so the fleet is
+// placed on OTTO-Q's exact stalls from frame one — never a zone-based placement
+// followed by a fleet-wide reshuffle. The gate lives in the driver (no extra
+// React state → the app's hook order never changes).
 // ============================================================================
 import { useEffect } from "react";
 import { useTwinStore } from "@/store/twinStore";
@@ -28,15 +34,18 @@ export function useTwinSceneBridge() {
       twinMotionDriver.clear();
       return;
     }
+    twinMotionDriver.expectLayout(); // buffer snapshots until the layout settles
     twinMotionDriver.start();
-    // Exact-stall fidelity: load the twin's depot layout once per run so the
-    // driver can park each car in OTTO-Q's EXACT assigned stall (uuid → code).
     let cancelled = false;
     twin.layout()
       .then((l) => {
-        if (!cancelled && l?.stalls?.length) twinMotionDriver.setTwinStallMap(l.stalls);
+        if (cancelled) return;
+        if (l?.stalls?.length) twinMotionDriver.setTwinStallMap(l.stalls);
+        else twinMotionDriver.layoutFailed();
       })
-      .catch(() => { /* layout unavailable → zone-based fallback still works */ });
+      .catch(() => {
+        if (!cancelled) twinMotionDriver.layoutFailed();
+      });
     return () => {
       cancelled = true;
       twinMotionDriver.stop();

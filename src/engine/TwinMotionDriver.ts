@@ -87,6 +87,13 @@ class TwinMotionDriver {
    *  renderer park each car in the twin's EXACT assigned stall, so OTTO-Q's
    *  spatial decisions (nearest-wash, cuOpt picks) are literally what you see. */
   private twinStall = new Map<string, string>();
+  /** Layout gate: when a run activates, the bridge calls expectLayout() and
+   *  snapshots BUFFER until the layout fetch settles — otherwise the first
+   *  snapshot places the fleet on zone stalls and the layout's arrival triggers
+   *  a fleet-wide reshuffle (everyone backing out at once). Defaults true so
+   *  tests / standalone use need no ceremony. */
+  private layoutSettled = true;
+  private pendingSnap: TwinSnapshot | null = null;
   /** roster fingerprint (ids+status+stall+soc) — setVehicles only fires when it changes */
   private lastRosterKey = "";
   /** false until the first reconcile after clear(): the initial snapshot places the
@@ -118,6 +125,8 @@ class TwinMotionDriver {
     poseStore.clear();
     this.lastRosterKey = "";
     this.primed = false;
+    this.layoutSettled = true;
+    this.pendingSnap = null;
     // push an empty roster so no ghost fleet lingers after leaving twin mode
     useVehicleStore.getState().setVehicles([]);
   }
@@ -136,6 +145,24 @@ class TwinMotionDriver {
       const m = /(\d+)\s*$/.exec(s.code ?? "");
       if (!p || !m) continue;
       this.twinStall.set(s.id, `${p}-${String(parseInt(m[1], 10)).padStart(2, "0")}`);
+    }
+    this.settleLayout();
+  }
+
+  /** Bridge calls this when a run activates: buffer snapshots until the layout
+   *  fetch settles (setTwinStallMap on success, layoutFailed on error). */
+  expectLayout() {
+    this.layoutSettled = false;
+  }
+  layoutFailed() {
+    this.settleLayout(); // zone-based fallback still works
+  }
+  private settleLayout() {
+    this.layoutSettled = true;
+    if (this.pendingSnap) {
+      const s = this.pendingSnap;
+      this.pendingSnap = null;
+      this.reconcile(s);
     }
   }
 
@@ -177,6 +204,10 @@ class TwinMotionDriver {
 
   /** Reconcile render state + routes against a fresh backend snapshot. */
   reconcile(snap: TwinSnapshot) {
+    if (!this.layoutSettled) {
+      this.pendingSnap = snap; // hold until the exact-stall map settles
+      return;
+    }
     const depot = useDepotStore.getState();
     const stalls = depot.stalls;
     const byLane: Record<string, typeof stalls> = { dcfc: [], l2: [], wash: [], service: [], staging: [] };
@@ -224,6 +255,18 @@ class TwinMotionDriver {
       // sequenced service stall. So "entering" simply targets a staging stall.
       const entering = m.lane === "gate";
       const lane: Lane = entering ? "staging" : (m.lane as Lane);
+      // STABILITY BIAS: once a car holds a stall in this lane, it KEEPS it.
+      // Migrating parked/en-route cars to a "better" stall caused fleet-wide
+      // reshuffles (everyone backing out at once). Reassignment happens ONLY on
+      // a lane change (a real new service step).
+      if (e && e.lane === lane && e.stallId) {
+        desiredStatus.set(e.stallId, m.sstatus);
+        e.vstatus = m.vstatus;
+        e.oem = oem;
+        e.soc = soc;
+        this.entries.set(bv.id, e);
+        continue;
+      }
       const cands = (byLane[lane] ?? []).map((s) => s.id);
       // EXACT-STALL FIDELITY: if the twin named this vehicle's stall and it maps
       // to a renderer stall in the right zone, claim exactly that one — what you
@@ -234,18 +277,16 @@ class TwinMotionDriver {
       if (exact && cands.includes(exact) && this.ledger.claim(bv.id, exact)) stallId = exact;
       if (!stallId) stallId = this.ledger.claimFirstFree(bv.id, cands);
       if (!stallId) {
-        // overflow (no free stall in the target lane): hold on the public road
-        // shoulder outside the gate, SPREAD by id so cars never stack on one
-        // point — and keep the entry's fields fresh (status/soc/oem).
-        if (!e) {
-          let h = 0;
-          for (let i = 0; i < bv.id.length; i++) h = (h * 31 + bv.id.charCodeAt(i)) >>> 0;
-          e = this.createEntry({ x: INGRESS.x + ((h % 48) - 24), y: INGRESS.y + 3, heading: NORTH }, lane, m.vstatus, oem, soc);
+        // overflow (no free stall in the target lane): a car with nowhere to be
+        // is NOT drawn — it stays off-map (conceptually still arriving) until a
+        // stall frees. Spawning it loose on the public road caused the stacked
+        // pileups at the entrance. Existing cars just keep their fields fresh.
+        if (e) {
+          e.vstatus = m.vstatus;
+          e.oem = oem;
+          e.soc = soc;
+          this.entries.set(bv.id, e);
         }
-        e.vstatus = m.vstatus;
-        e.oem = oem;
-        e.soc = soc;
-        this.entries.set(bv.id, e);
         continue;
       }
       const stall = stalls.find((s) => s.id === stallId)!;
@@ -365,7 +406,10 @@ class TwinMotionDriver {
         const self = { id, pose: e.car.pose, speed: e.car.speed };
         const lead = findLeader(self, movers, 3.2, 34);
         const cross = findLeader(self, movers, 4.8, 12);
-        const block = findLeader(self, parked, 2.1, 20);
+        // parked-blocker band: 3.0 > a car's 2.5 half-width (2.1 let movers CLIP
+        // THROUGH parked bodies) yet < the 4.6u offset of docked charger rows, so
+        // stall occupants still never phantom-block the driving lanes.
+        const block = findLeader(self, parked, 3.0, 20);
         const gap = Math.min(lead.gap, cross.gap, block.gap);
         const leadSpeed = gap === block.gap ? 0 : gap === lead.gap ? lead.leaderSpeed : cross.leaderSpeed;
         const accel = idmAccel(e.car.speed, gap, leadSpeed);
