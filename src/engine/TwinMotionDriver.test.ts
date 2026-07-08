@@ -117,6 +117,20 @@ describe("TwinMotionDriver — kinematic motion off the twin", () => {
     expect(find("v3")!.assignedStall).not.toBe("DCFC-07"); // no double-book
   });
 
+  it("NEVER migrates a car to a 'better' stall in the same lane (stability bias)", () => {
+    // v1 gets a zone-based stall first (no layout map yet)
+    twinMotionDriver.reconcile(snap([{ id: "v1", state: "charging_dcfc" }]));
+    const first = find("v1")!.assignedStall!;
+    // the twin then names a DIFFERENT dcfc stall — same lane → must NOT reshuffle
+    twinMotionDriver.setTwinStallMap([{ id: "uuid-d9", code: "NASH-DCFC-STALL-09", type: "dcfc" }]);
+    twinMotionDriver.reconcile(snap([{ id: "v1", state: "charging_dcfc", stall_id: "uuid-d9" }]));
+    expect(find("v1")!.assignedStall).toBe(first); // stays put — no fleet reshuffles
+    // but a LANE CHANGE still honors the twin's exact stall
+    twinMotionDriver.setTwinStallMap([{ id: "uuid-w2", code: "NASH-WASH-BAY-02", type: "wash_bay" }]);
+    twinMotionDriver.reconcile(snap([{ id: "v1", state: "in_wash_bay", stall_id: "uuid-w2" }]));
+    expect(find("v1")!.assignedStall).toBe("WASH-02");
+  });
+
   it("a parked car whose route starts BEHIND it backs out in reverse first", () => {
     // initial snapshot: car parked in a south staging stall, facing NORTH
     twinMotionDriver.reconcile(snap([{ id: "v1", state: "charge_complete_holding" }]));

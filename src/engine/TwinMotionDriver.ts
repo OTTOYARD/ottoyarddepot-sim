@@ -224,6 +224,18 @@ class TwinMotionDriver {
       // sequenced service stall. So "entering" simply targets a staging stall.
       const entering = m.lane === "gate";
       const lane: Lane = entering ? "staging" : (m.lane as Lane);
+      // STABILITY BIAS: once a car holds a stall in this lane, it KEEPS it.
+      // Migrating parked/en-route cars to a "better" stall caused fleet-wide
+      // reshuffles (everyone backing out at once). Reassignment happens ONLY on
+      // a lane change (a real new service step).
+      if (e && e.lane === lane && e.stallId) {
+        desiredStatus.set(e.stallId, m.sstatus);
+        e.vstatus = m.vstatus;
+        e.oem = oem;
+        e.soc = soc;
+        this.entries.set(bv.id, e);
+        continue;
+      }
       const cands = (byLane[lane] ?? []).map((s) => s.id);
       // EXACT-STALL FIDELITY: if the twin named this vehicle's stall and it maps
       // to a renderer stall in the right zone, claim exactly that one — what you
@@ -234,18 +246,16 @@ class TwinMotionDriver {
       if (exact && cands.includes(exact) && this.ledger.claim(bv.id, exact)) stallId = exact;
       if (!stallId) stallId = this.ledger.claimFirstFree(bv.id, cands);
       if (!stallId) {
-        // overflow (no free stall in the target lane): hold on the public road
-        // shoulder outside the gate, SPREAD by id so cars never stack on one
-        // point — and keep the entry's fields fresh (status/soc/oem).
-        if (!e) {
-          let h = 0;
-          for (let i = 0; i < bv.id.length; i++) h = (h * 31 + bv.id.charCodeAt(i)) >>> 0;
-          e = this.createEntry({ x: INGRESS.x + ((h % 48) - 24), y: INGRESS.y + 3, heading: NORTH }, lane, m.vstatus, oem, soc);
+        // overflow (no free stall in the target lane): a car with nowhere to be
+        // is NOT drawn — it stays off-map (conceptually still arriving) until a
+        // stall frees. Spawning it loose on the public road caused the stacked
+        // pileups at the entrance. Existing cars just keep their fields fresh.
+        if (e) {
+          e.vstatus = m.vstatus;
+          e.oem = oem;
+          e.soc = soc;
+          this.entries.set(bv.id, e);
         }
-        e.vstatus = m.vstatus;
-        e.oem = oem;
-        e.soc = soc;
-        this.entries.set(bv.id, e);
         continue;
       }
       const stall = stalls.find((s) => s.id === stallId)!;
@@ -365,7 +375,10 @@ class TwinMotionDriver {
         const self = { id, pose: e.car.pose, speed: e.car.speed };
         const lead = findLeader(self, movers, 3.2, 34);
         const cross = findLeader(self, movers, 4.8, 12);
-        const block = findLeader(self, parked, 2.1, 20);
+        // parked-blocker band: 3.0 > a car's 2.5 half-width (2.1 let movers CLIP
+        // THROUGH parked bodies) yet < the 4.6u offset of docked charger rows, so
+        // stall occupants still never phantom-block the driving lanes.
+        const block = findLeader(self, parked, 3.0, 20);
         const gap = Math.min(lead.gap, cross.gap, block.gap);
         const leadSpeed = gap === block.gap ? 0 : gap === lead.gap ? lead.leaderSpeed : cross.leaderSpeed;
         const accel = idmAccel(e.car.speed, gap, leadSpeed);

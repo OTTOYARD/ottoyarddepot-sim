@@ -10,7 +10,7 @@
 // Only runs in backend-twin mode (an active sim_run + the legacy client engine
 // NOT running) so it never fights the offline-demo engine for the stores.
 // ============================================================================
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useTwinStore } from "@/store/twinStore";
 import { useSimulationStore } from "@/store/simulationStore";
 import { twinMotionDriver } from "@/engine/TwinMotionDriver";
@@ -20,33 +20,42 @@ export function useTwinSceneBridge() {
   const snapshot = useTwinStore((s) => s.snapshot);
   const activeSimRunId = useTwinStore((s) => s.activeSimRunId);
   const legacyStatus = useSimulationStore((s) => s.status);
+  // Reconciling is GATED on the layout attempt finishing: if the first snapshot
+  // landed before the exact-stall map, the whole fleet would be placed on
+  // zone-based stalls and then MASS-REASSIGNED when the layout arrived — a
+  // fleet-wide reshuffle (every parked car backing out at once). Never again.
+  const [layoutSettled, setLayoutSettled] = useState(false);
 
   // Start/stop the motion loop with the mode. Clear render state when we leave
   // twin mode or the offline engine takes over (it owns the stores then).
   useEffect(() => {
     if (!activeSimRunId || legacyStatus === "running") {
       twinMotionDriver.clear();
+      setLayoutSettled(false);
       return;
     }
     twinMotionDriver.start();
-    // Exact-stall fidelity: load the twin's depot layout once per run so the
-    // driver can park each car in OTTO-Q's EXACT assigned stall (uuid → code).
     let cancelled = false;
+    // Exact-stall fidelity: load the twin's depot layout BEFORE the first
+    // reconcile so cars are placed on OTTO-Q's exact stalls from frame one.
     twin.layout()
       .then((l) => {
         if (!cancelled && l?.stalls?.length) twinMotionDriver.setTwinStallMap(l.stalls);
       })
-      .catch(() => { /* layout unavailable → zone-based fallback still works */ });
+      .catch(() => { /* layout unavailable → zone-based fallback still works */ })
+      .finally(() => {
+        if (!cancelled) setLayoutSettled(true);
+      });
     return () => {
       cancelled = true;
       twinMotionDriver.stop();
     };
   }, [activeSimRunId, legacyStatus]);
 
-  // Reconcile routes against each fresh snapshot.
+  // Reconcile routes against each fresh snapshot (only once the layout settled).
   useEffect(() => {
-    if (!activeSimRunId || !snapshot) return;
+    if (!activeSimRunId || !snapshot || !layoutSettled) return;
     if (legacyStatus === "running") return;
     twinMotionDriver.reconcile(snapshot);
-  }, [snapshot, activeSimRunId, legacyStatus]);
+  }, [snapshot, activeSimRunId, legacyStatus, layoutSettled]);
 }
