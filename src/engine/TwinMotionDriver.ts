@@ -87,6 +87,13 @@ class TwinMotionDriver {
    *  renderer park each car in the twin's EXACT assigned stall, so OTTO-Q's
    *  spatial decisions (nearest-wash, cuOpt picks) are literally what you see. */
   private twinStall = new Map<string, string>();
+  /** Layout gate: when a run activates, the bridge calls expectLayout() and
+   *  snapshots BUFFER until the layout fetch settles — otherwise the first
+   *  snapshot places the fleet on zone stalls and the layout's arrival triggers
+   *  a fleet-wide reshuffle (everyone backing out at once). Defaults true so
+   *  tests / standalone use need no ceremony. */
+  private layoutSettled = true;
+  private pendingSnap: TwinSnapshot | null = null;
   /** roster fingerprint (ids+status+stall+soc) — setVehicles only fires when it changes */
   private lastRosterKey = "";
   /** false until the first reconcile after clear(): the initial snapshot places the
@@ -118,6 +125,8 @@ class TwinMotionDriver {
     poseStore.clear();
     this.lastRosterKey = "";
     this.primed = false;
+    this.layoutSettled = true;
+    this.pendingSnap = null;
     // push an empty roster so no ghost fleet lingers after leaving twin mode
     useVehicleStore.getState().setVehicles([]);
   }
@@ -136,6 +145,24 @@ class TwinMotionDriver {
       const m = /(\d+)\s*$/.exec(s.code ?? "");
       if (!p || !m) continue;
       this.twinStall.set(s.id, `${p}-${String(parseInt(m[1], 10)).padStart(2, "0")}`);
+    }
+    this.settleLayout();
+  }
+
+  /** Bridge calls this when a run activates: buffer snapshots until the layout
+   *  fetch settles (setTwinStallMap on success, layoutFailed on error). */
+  expectLayout() {
+    this.layoutSettled = false;
+  }
+  layoutFailed() {
+    this.settleLayout(); // zone-based fallback still works
+  }
+  private settleLayout() {
+    this.layoutSettled = true;
+    if (this.pendingSnap) {
+      const s = this.pendingSnap;
+      this.pendingSnap = null;
+      this.reconcile(s);
     }
   }
 
@@ -177,6 +204,10 @@ class TwinMotionDriver {
 
   /** Reconcile render state + routes against a fresh backend snapshot. */
   reconcile(snap: TwinSnapshot) {
+    if (!this.layoutSettled) {
+      this.pendingSnap = snap; // hold until the exact-stall map settles
+      return;
+    }
     const depot = useDepotStore.getState();
     const stalls = depot.stalls;
     const byLane: Record<string, typeof stalls> = { dcfc: [], l2: [], wash: [], service: [], staging: [] };

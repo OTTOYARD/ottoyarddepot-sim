@@ -9,8 +9,14 @@
 //
 // Only runs in backend-twin mode (an active sim_run + the legacy client engine
 // NOT running) so it never fights the offline-demo engine for the stores.
+//
+// Snapshot ordering: the driver BUFFERS snapshots until the exact-stall layout
+// fetch settles (expectLayout → setTwinStallMap/layoutFailed), so the fleet is
+// placed on OTTO-Q's exact stalls from frame one — never a zone-based placement
+// followed by a fleet-wide reshuffle. The gate lives in the driver (no extra
+// React state → the app's hook order never changes).
 // ============================================================================
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useTwinStore } from "@/store/twinStore";
 import { useSimulationStore } from "@/store/simulationStore";
 import { twinMotionDriver } from "@/engine/TwinMotionDriver";
@@ -20,31 +26,25 @@ export function useTwinSceneBridge() {
   const snapshot = useTwinStore((s) => s.snapshot);
   const activeSimRunId = useTwinStore((s) => s.activeSimRunId);
   const legacyStatus = useSimulationStore((s) => s.status);
-  // Reconciling is GATED on the layout attempt finishing: if the first snapshot
-  // landed before the exact-stall map, the whole fleet would be placed on
-  // zone-based stalls and then MASS-REASSIGNED when the layout arrived — a
-  // fleet-wide reshuffle (every parked car backing out at once). Never again.
-  const [layoutSettled, setLayoutSettled] = useState(false);
 
   // Start/stop the motion loop with the mode. Clear render state when we leave
   // twin mode or the offline engine takes over (it owns the stores then).
   useEffect(() => {
     if (!activeSimRunId || legacyStatus === "running") {
       twinMotionDriver.clear();
-      setLayoutSettled(false);
       return;
     }
+    twinMotionDriver.expectLayout(); // buffer snapshots until the layout settles
     twinMotionDriver.start();
     let cancelled = false;
-    // Exact-stall fidelity: load the twin's depot layout BEFORE the first
-    // reconcile so cars are placed on OTTO-Q's exact stalls from frame one.
     twin.layout()
       .then((l) => {
-        if (!cancelled && l?.stalls?.length) twinMotionDriver.setTwinStallMap(l.stalls);
+        if (cancelled) return;
+        if (l?.stalls?.length) twinMotionDriver.setTwinStallMap(l.stalls);
+        else twinMotionDriver.layoutFailed();
       })
-      .catch(() => { /* layout unavailable → zone-based fallback still works */ })
-      .finally(() => {
-        if (!cancelled) setLayoutSettled(true);
+      .catch(() => {
+        if (!cancelled) twinMotionDriver.layoutFailed();
       });
     return () => {
       cancelled = true;
@@ -52,10 +52,10 @@ export function useTwinSceneBridge() {
     };
   }, [activeSimRunId, legacyStatus]);
 
-  // Reconcile routes against each fresh snapshot (only once the layout settled).
+  // Reconcile routes against each fresh snapshot.
   useEffect(() => {
-    if (!activeSimRunId || !snapshot || !layoutSettled) return;
+    if (!activeSimRunId || !snapshot) return;
     if (legacyStatus === "running") return;
     twinMotionDriver.reconcile(snapshot);
-  }, [snapshot, activeSimRunId, legacyStatus, layoutSettled]);
+  }, [snapshot, activeSimRunId, legacyStatus]);
 }
