@@ -17,7 +17,7 @@
 //
 // Runs only in backend-twin mode (active sim_run + offline engine NOT running).
 // ============================================================================
-import { KinematicCar, DEFAULT_CAR_PARAMS } from "./motion/KinematicCar";
+import { KinematicCar, DEFAULT_CAR_PARAMS, wrapAngle } from "./motion/KinematicCar";
 import { PathTracker, type Pt } from "./motion/PathTracker";
 import { idmAccel } from "./motion/idm";
 import { findLeader, separationSteer, StallLedger, type MovingCar } from "./motion/traffic";
@@ -65,6 +65,9 @@ function parkedHeading(lane: Lane, angleDeg: number): number {
 interface Entry {
   car: KinematicCar;
   tracker: PathTracker | null; // null = parked
+  /** active back-out maneuver: reverse on a fixed arc for `remaining` distance
+   *  (with a rear-clearance hold), then hand over to the tracker. */
+  reverse: { remaining: number; steer: number } | null;
   lane: Lane | "gate" | null;
   stallId: string | null;
   stallHeading: number;
@@ -139,8 +142,21 @@ class TwinMotionDriver {
   private createEntry(pose: { x: number; y: number; heading: number }, lane: Lane | "gate", vstatus: VehicleStatus, oem: string, soc: number): Entry {
     return {
       car: new KinematicCar(pose, DEFAULT_CAR_PARAMS),
-      tracker: null, lane, stallId: null, stallHeading: pose.heading, vstatus, oem, soc,
+      tracker: null, reverse: null, lane, stallId: null, stallHeading: pose.heading, vstatus, oem, soc,
     };
+  }
+
+  /** A car leaving a stall it nosed INTO must BACK OUT first: if the new route
+   *  starts behind the parked heading (>~100°), begin a reverse arc that swings
+   *  the nose toward the route side; pure-pursuit takes over after. (In reverse,
+   *  heading rotates OPPOSITE the steer sign, hence -sign(angleToRoute).) */
+  private maybeStartReverse(e: Entry) {
+    if (!e.tracker) return;
+    const probe = e.tracker.pointAtArc(Math.min(8, e.tracker.total));
+    const ang = wrapAngle(Math.atan2(probe.y - e.car.y, probe.x - e.car.x) - e.car.heading);
+    if (Math.abs(ang) > 1.75) {
+      e.reverse = { remaining: 11, steer: -Math.sign(ang || 1) * 0.35 };
+    }
   }
 
   /** Route a drivable path from `pose` to a stall along the one-way lanes. Charging
@@ -246,8 +262,11 @@ class TwinMotionDriver {
         e.stallHeading = sh;
         if (driveIn) e.tracker = new PathTracker(this.routeToStall(start, lane, sp, sh));
       } else if (e.stallId !== stallId) {
-        // re-assigned to a new stall → taxi there
+        // re-assigned to a new stall → taxi there (backing out first if it was
+        // parked and the route starts behind its nose)
+        const wasParked = e.tracker === null;
         e.tracker = new PathTracker(this.routeToStall(e.car.pose, lane, sp, sh));
+        if (wasParked) this.maybeStartReverse(e);
         e.stallId = stallId;
         e.stallHeading = sh;
       }
@@ -264,9 +283,11 @@ class TwinMotionDriver {
       if (present.has(id)) continue;
       this.ledger.release(id);
       if (e.vstatus !== "departing") {
+        const wasParked = e.tracker === null;
         e.vstatus = "departing";
         e.stallId = null;
         e.tracker = new PathTracker(this.graph.route(e.car.pose, { x: EGRESS.x, y: EGRESS.y }));
+        if (wasParked) this.maybeStartReverse(e);
       }
     }
 
@@ -316,6 +337,21 @@ class TwinMotionDriver {
     let changed = false;
     const remove: string[] = [];
     for (const [id, e] of this.entries) {
+      if (e.tracker && e.reverse) {
+        // BACK-OUT maneuver: reverse on a fixed arc (nose swings toward the route)
+        // with a rear-clearance hold — never backs into passing traffic.
+        const rearPose = { x: e.car.x, y: e.car.y, heading: wrapAngle(e.car.heading + Math.PI) };
+        const rear = findLeader({ id, pose: rearPose, speed: 0 }, moving, 2.6, 12);
+        const vRev = rear.gap < 6 ? 0 : -e.car.params.maxReverseSpeed * 0.8;
+        e.car.step(dt, vRev, e.reverse.steer);
+        e.reverse.remaining -= Math.abs(e.car.speed) * dt;
+        if (e.reverse.remaining <= 0) {
+          e.reverse = null; // cusp: stop steering hard, hand over to pure-pursuit
+          e.car.steer = 0;
+        }
+        changed = true;
+        continue;
+      }
       if (e.tracker) {
         // lateral: pure-pursuit steering along the lane route (advances the cursor)
         const look = LOOKAHEAD_MIN + LOOKAHEAD_K * e.car.speed;
@@ -357,6 +393,7 @@ class TwinMotionDriver {
             e.car.speed = 0;
             e.car.steer = 0;
             e.tracker = null;
+            e.reverse = null;
           }
         }
       } else if (e.car.speed !== 0) {

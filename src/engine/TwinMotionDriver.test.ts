@@ -117,6 +117,24 @@ describe("TwinMotionDriver — kinematic motion off the twin", () => {
     expect(find("v3")!.assignedStall).not.toBe("DCFC-07"); // no double-book
   });
 
+  it("a parked car whose route starts BEHIND it backs out in reverse first", () => {
+    // initial snapshot: car parked in a south staging stall, facing NORTH
+    twinMotionDriver.reconcile(snap([{ id: "v1", state: "charge_complete_holding" }]));
+    const p0 = { ...poseStore.get("v1")! };
+    expect(Math.abs(p0.heading - -Math.PI / 2)).toBeLessThan(0.01); // facing north
+    // backend releases it → departure route to the egress (SOUTH = behind its nose)
+    twinMotionDriver.reconcile(snap([]));
+    for (let i = 0; i < 20; i++) twinMotionDriver.tickMotion(0.05); // ~1s
+    const p1 = poseStore.get("v1")!;
+    // it REVERSED: moved south (y grew) while still facing broadly north —
+    // i.e. displacement opposite the heading, a true back-out (not a pivot)
+    expect(p1.y).toBeGreaterThan(p0.y + 0.8);
+    const disp = { x: p1.x - p0.x, y: p1.y - p0.y };
+    const fwdDot = disp.x * Math.cos(p1.heading) + disp.y * Math.sin(p1.heading);
+    expect(fwdDot).toBeLessThan(0);
+    expect(isFinite(p1.x) && isFinite(p1.y) && isFinite(p1.heading)).toBe(true);
+  });
+
   it("arrivals disperse to separate staging stalls and drive in (no shared line)", () => {
     const ids = ["a", "b", "c", "d", "e"];
     twinMotionDriver.reconcile(snap(ids.map((id) => ({ id, state: "arrived_at_gate" }))));
