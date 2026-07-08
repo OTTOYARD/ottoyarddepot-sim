@@ -8,7 +8,6 @@ import { VehicleTooltip } from './VehicleTooltip';
 import { AlertToasts } from './AlertToasts';
 import { LoadingOverlay } from './LoadingOverlay';
 import { DemoBanner } from './DemoBanner';
-import { DepotEmptyState } from './DepotEmptyState';
 import { useEngineLifecycle } from '@/hooks/useEngineLifecycle';
 import { useSimulationStore } from '@/store/simulationStore';
 
@@ -48,7 +47,6 @@ export const DepotCanvas = () => {
             )}
             <AlertToasts />
             <DepotLegend />
-            <DepotEmptyState />
             <LoadingOverlay />
           </>
         )}
