@@ -80,6 +80,10 @@ class TwinMotionDriver {
   private graph = buildDepotLanes();
   private ledger = new StallLedger();
   private entries = new Map<string, Entry>();
+  /** twin stall uuid → renderer stall id (from the depot layout) — lets the
+   *  renderer park each car in the twin's EXACT assigned stall, so OTTO-Q's
+   *  spatial decisions (nearest-wash, cuOpt picks) are literally what you see. */
+  private twinStall = new Map<string, string>();
   /** roster fingerprint (ids+status+stall+soc) — setVehicles only fires when it changes */
   private lastRosterKey = "";
   /** false until the first reconcile after clear(): the initial snapshot places the
@@ -113,6 +117,23 @@ class TwinMotionDriver {
     this.primed = false;
     // push an empty roster so no ghost fleet lingers after leaving twin mode
     useVehicleStore.getState().setVehicles([]);
+  }
+
+  /** Ingest the twin depot layout: map each twin stall uuid to the renderer's
+   *  stall id by TYPE + the code's trailing number (e.g. twin 'NASH-L2-STALL-26'
+   *  type 'l2' → renderer 'L2-26'). Unmappable stalls (e.g. twin L2-31..35 when
+   *  the scene draws 30) simply fall back to zone-based assignment. */
+  setTwinStallMap(stalls: { id: string; code: string; type: string }[]) {
+    const prefix: Record<string, string> = {
+      dcfc: "DCFC", l2: "L2", wash_bay: "WASH", service_bay: "SVC", staging: "STAGE",
+    };
+    this.twinStall.clear();
+    for (const s of stalls) {
+      const p = prefix[s.type];
+      const m = /(\d+)\s*$/.exec(s.code ?? "");
+      if (!p || !m) continue;
+      this.twinStall.set(s.id, `${p}-${String(parseInt(m[1], 10)).padStart(2, "0")}`);
+    }
   }
 
   private createEntry(pose: { x: number; y: number; heading: number }, lane: Lane | "gate", vstatus: VehicleStatus, oem: string, soc: number): Entry {
@@ -188,7 +209,14 @@ class TwinMotionDriver {
       const entering = m.lane === "gate";
       const lane: Lane = entering ? "staging" : (m.lane as Lane);
       const cands = (byLane[lane] ?? []).map((s) => s.id);
-      const stallId = this.ledger.claimFirstFree(bv.id, cands);
+      // EXACT-STALL FIDELITY: if the twin named this vehicle's stall and it maps
+      // to a renderer stall in the right zone, claim exactly that one — what you
+      // see is literally OTTO-Q's assignment. Zone-based pick is the fallback
+      // (unmapped stall, renderer/twin drift, or stale local claim).
+      let stallId: string | null = null;
+      const exact = bv.stall_id ? this.twinStall.get(bv.stall_id) : undefined;
+      if (exact && cands.includes(exact) && this.ledger.claim(bv.id, exact)) stallId = exact;
+      if (!stallId) stallId = this.ledger.claimFirstFree(bv.id, cands);
       if (!stallId) {
         // overflow (no free stall in the target lane): hold on the public road
         // shoulder outside the gate, SPREAD by id so cars never stack on one

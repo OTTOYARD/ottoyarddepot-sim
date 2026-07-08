@@ -6,7 +6,7 @@ import { poseStore } from "./motion/poseStore";
 import type { TwinSnapshot } from "@/lib/ottoTwin";
 
 // Minimal snapshot carrying only what the driver reads (fleet.vehicles).
-function snap(vehicles: { id: string; state: string; soc?: number; platform?: string }[]): TwinSnapshot {
+function snap(vehicles: { id: string; state: string; soc?: number; platform?: string; stall_id?: string | null }[]): TwinSnapshot {
   return {
     run: { sim_run_id: "t", scenario: "t", status: "running", sim_clock: "", tick_count: 1, time_scale: 1, seed: 1 },
     fleet: {
@@ -99,6 +99,22 @@ describe("TwinMotionDriver — kinematic motion off the twin", () => {
     const d1 = d();
     expect(d1).toBeLessThan(d0); // drove measurably closer to its stall
     expect(d1).toBeLessThan(6);  // and effectively arrived
+  });
+
+  it("parks a vehicle in the twin's EXACT assigned stall when the layout maps it", () => {
+    twinMotionDriver.setTwinStallMap([
+      { id: "uuid-dcfc-7", code: "NASH-DCFC-STALL-07", type: "dcfc" },
+      { id: "uuid-stage-42", code: "NASH-STAGING-STALL-42", type: "staging" },
+    ]);
+    twinMotionDriver.reconcile(snap([
+      { id: "v1", state: "charging_dcfc", stall_id: "uuid-dcfc-7" },
+      { id: "v2", state: "arrived_at_gate", stall_id: "uuid-stage-42" }, // brain's congestion park
+      { id: "v3", state: "charging_dcfc", stall_id: "uuid-unknown" },    // unmapped → fallback
+    ]));
+    expect(find("v1")!.assignedStall).toBe("DCFC-07");   // OTTO-Q's exact pick, rendered
+    expect(find("v2")!.assignedStall).toBe("STAGE-42");  // exact staging park too
+    expect(find("v3")!.assignedStall).toMatch(/^DCFC-/); // graceful zone fallback
+    expect(find("v3")!.assignedStall).not.toBe("DCFC-07"); // no double-book
   });
 
   it("arrivals disperse to separate staging stalls and drive in (no shared line)", () => {
