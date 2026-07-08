@@ -1,9 +1,13 @@
 // ============================================================================
-// useTwinControl — client-driven Play/Pause/Step for the live twin.
+// useTwinControl — Play/Pause/Step for the live twin.
 // When "playing", repeatedly POSTs /tick (keyless) so the sim advances in real
 // time; the snapshot poll (useTwinFeed) renders each new frame. Speed controls
-// tick cadence. Pausing stops the loop. (Closing the tab pauses — fine for a
-// demo the operator runs.)
+// tick cadence.
+//
+// Pause is WORLD-level, not tab-level: it also flips the run to status
+// 'paused' on the backend, which every advance path honors (other open tabs'
+// tick loops no-op, and the 2-min pg_cron decide/wave loop skips it). Without
+// that, any second tab kept the world moving and Pause looked broken.
 // ============================================================================
 import { useCallback, useEffect, useRef, useState } from "react";
 import { twin } from "@/lib/ottoTwin";
@@ -44,11 +48,25 @@ export function useTwinControl() {
   // Auto-pause if the run goes away
   useEffect(() => { if (!activeSimRunId) setPlaying(false); }, [activeSimRunId]);
 
+  // Backend calls are fire-and-forget: a 409 just means the run was already
+  // in that state (e.g. play() right after starting a fresh run).
+  const play = useCallback(() => {
+    setPlaying(true);
+    if (activeSimRunId) twin.resume(activeSimRunId).catch(() => {});
+  }, [activeSimRunId]);
+
+  const pause = useCallback(() => {
+    setPlaying(false);
+    if (activeSimRunId) twin.pause(activeSimRunId).catch(() => {});
+  }, [activeSimRunId]);
+
+  const toggle = useCallback(() => (playing ? pause() : play()), [playing, play, pause]);
+
   return {
     playing, speed, busy,
-    play: () => setPlaying(true),
-    pause: () => setPlaying(false),
-    toggle: () => setPlaying((p) => !p),
+    play,
+    pause,
+    toggle,
     step: stepOnce,
     setSpeed,
   };
