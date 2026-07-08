@@ -6,7 +6,7 @@ import { poseStore } from "./motion/poseStore";
 import type { TwinSnapshot } from "@/lib/ottoTwin";
 
 // Minimal snapshot carrying only what the driver reads (fleet.vehicles).
-function snap(vehicles: { id: string; state: string; soc?: number; platform?: string }[]): TwinSnapshot {
+function snap(vehicles: { id: string; state: string; soc?: number; platform?: string; stall_id?: string | null }[]): TwinSnapshot {
   return {
     run: { sim_run_id: "t", scenario: "t", status: "running", sim_clock: "", tick_count: 1, time_scale: 1, seed: 1 },
     fleet: {
@@ -32,13 +32,15 @@ describe("TwinMotionDriver — kinematic motion off the twin", () => {
     useDepotStore.getState().regenerateStalls(10, 30, 3, 115, 2);
   });
 
-  it("a fresh arrival appears at the gate, NOT teleported to a stall", () => {
+  it("a fresh arrival enters at the ingress and drives to a STAGING stall (no line)", () => {
     twinMotionDriver.reconcile(snap([{ id: "v1", state: "arrived_at_gate" }]));
     const v = find("v1")!;
-    expect(v.status).toBe("queued");
-    expect(v.assignedStall ?? null).toBeNull();
-    expect(v.position.y).toBeGreaterThan(150); // south ingress apron
-    expect(typeof v.heading).toBe("number");   // has a real body heading
+    expect(v.status).toBe("staging");                // parked in staging, not lined up
+    expect(v.assignedStall).toMatch(/^STAGE-/);      // targets a real staging stall
+    expect(v.position.y).toBeGreaterThan(150);        // starts at the south ingress (not teleported north)
+    const st = useDepotStore.getState().stalls.find((s) => s.id === v.assignedStall)!;
+    expect(Math.hypot(v.position.x - st.position.x, v.position.y - st.position.y)).toBeGreaterThan(5); // still driving to it
+    expect(typeof v.heading).toBe("number");
   });
 
   it("on a state change it reserves a stall and ROUTES (does not teleport onto it)", () => {
@@ -99,20 +101,52 @@ describe("TwinMotionDriver — kinematic motion off the twin", () => {
     expect(d1).toBeLessThan(6);  // and effectively arrived
   });
 
-  it("arrivals queue single-file at the gate and NEVER overlap/stack", () => {
+  it("parks a vehicle in the twin's EXACT assigned stall when the layout maps it", () => {
+    twinMotionDriver.setTwinStallMap([
+      { id: "uuid-dcfc-7", code: "NASH-DCFC-STALL-07", type: "dcfc" },
+      { id: "uuid-stage-42", code: "NASH-STAGING-STALL-42", type: "staging" },
+    ]);
     twinMotionDriver.reconcile(snap([
-      { id: "a", state: "arrived_at_gate" }, { id: "b", state: "arrived_at_gate" },
-      { id: "c", state: "arrived_at_gate" }, { id: "d", state: "arrived_at_gate" },
-      { id: "e", state: "arrived_at_gate" },
+      { id: "v1", state: "charging_dcfc", stall_id: "uuid-dcfc-7" },
+      { id: "v2", state: "arrived_at_gate", stall_id: "uuid-stage-42" }, // brain's congestion park
+      { id: "v3", state: "charging_dcfc", stall_id: "uuid-unknown" },    // unmapped → fallback
     ]));
-    for (let i = 0; i < 240; i++) twinMotionDriver.tickMotion(0.05); // let the queue settle
+    expect(find("v1")!.assignedStall).toBe("DCFC-07");   // OTTO-Q's exact pick, rendered
+    expect(find("v2")!.assignedStall).toBe("STAGE-42");  // exact staging park too
+    expect(find("v3")!.assignedStall).toMatch(/^DCFC-/); // graceful zone fallback
+    expect(find("v3")!.assignedStall).not.toBe("DCFC-07"); // no double-book
+  });
+
+  it("a parked car whose route starts BEHIND it backs out in reverse first", () => {
+    // initial snapshot: car parked in a south staging stall, facing NORTH
+    twinMotionDriver.reconcile(snap([{ id: "v1", state: "charge_complete_holding" }]));
+    const p0 = { ...poseStore.get("v1")! };
+    expect(Math.abs(p0.heading - -Math.PI / 2)).toBeLessThan(0.01); // facing north
+    // backend releases it → departure route to the egress (SOUTH = behind its nose)
+    twinMotionDriver.reconcile(snap([]));
+    for (let i = 0; i < 20; i++) twinMotionDriver.tickMotion(0.05); // ~1s
+    const p1 = poseStore.get("v1")!;
+    // it REVERSED: moved south (y grew) while still facing broadly north —
+    // i.e. displacement opposite the heading, a true back-out (not a pivot)
+    expect(p1.y).toBeGreaterThan(p0.y + 0.8);
+    const disp = { x: p1.x - p0.x, y: p1.y - p0.y };
+    const fwdDot = disp.x * Math.cos(p1.heading) + disp.y * Math.sin(p1.heading);
+    expect(fwdDot).toBeLessThan(0);
+    expect(isFinite(p1.x) && isFinite(p1.y) && isFinite(p1.heading)).toBe(true);
+  });
+
+  it("arrivals disperse to separate staging stalls and drive in (no shared line)", () => {
     const ids = ["a", "b", "c", "d", "e"];
+    twinMotionDriver.reconcile(snap(ids.map((id) => ({ id, state: "arrived_at_gate" }))));
+    // each arrival gets its OWN staging stall — never a shared queue line
+    const stalls = ids.map((id) => find(id)!.assignedStall!);
+    expect(new Set(stalls).size).toBe(ids.length);
+    expect(stalls.every((s) => /^STAGE-/.test(s))).toBe(true);
+    // and they enter from the ingress and spread across the depot toward those stalls
+    for (let i = 0; i < 300; i++) twinMotionDriver.tickMotion(0.05);
     const ps = ids.map((id) => poseStore.get(id)!);
-    for (let i = 0; i < ps.length; i++) {
-      for (let j = i + 1; j < ps.length; j++) {
-        const gap = Math.hypot(ps[i].x - ps[j].x, ps[i].y - ps[j].y);
-        expect(gap).toBeGreaterThan(6); // no two cars occupy the same spot
-      }
-    }
+    const spreadX = Math.max(...ps.map((p) => p.x)) - Math.min(...ps.map((p) => p.x));
+    const spreadY = Math.max(...ps.map((p) => p.y)) - Math.min(...ps.map((p) => p.y));
+    expect(Math.max(spreadX, spreadY)).toBeGreaterThan(12); // dispersed, not stacked in one spot
   });
 });

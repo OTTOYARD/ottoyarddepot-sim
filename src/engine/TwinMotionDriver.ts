@@ -17,7 +17,7 @@
 //
 // Runs only in backend-twin mode (active sim_run + offline engine NOT running).
 // ============================================================================
-import { KinematicCar, DEFAULT_CAR_PARAMS } from "./motion/KinematicCar";
+import { KinematicCar, DEFAULT_CAR_PARAMS, wrapAngle } from "./motion/KinematicCar";
 import { PathTracker, type Pt } from "./motion/PathTracker";
 import { idmAccel } from "./motion/idm";
 import { findLeader, separationSteer, StallLedger, type MovingCar } from "./motion/traffic";
@@ -48,8 +48,10 @@ function mapState(state: string): { lane: Lane | "gate" | null; vstatus: Vehicle
     case "service_complete_holding":
     case "staged_awaiting_service":
     case "staged_for_departure": return { lane: "staging", vstatus: "staging", sstatus: "occupied" };
-    case "arrived_at_gate": return { lane: "gate", vstatus: "queued", sstatus: "available" };
-    default: return null; // deployed / en_route / offline / tow → off-map (departure)
+    // incident triage: a retrieved (towed-in) vehicle docks in its reserved staging stall
+    case "emergency_staged": return { lane: "staging", vstatus: "maintenance", sstatus: "occupied" };
+    case "arrived_at_gate": return { lane: "gate", vstatus: "staging", sstatus: "occupied" };
+    default: return null; // deployed / en_route / offline → off-map (departure)
   }
 }
 
@@ -63,6 +65,9 @@ function parkedHeading(lane: Lane, angleDeg: number): number {
 interface Entry {
   car: KinematicCar;
   tracker: PathTracker | null; // null = parked
+  /** active back-out maneuver: reverse on a fixed arc for `remaining` distance
+   *  (with a rear-clearance hold), then hand over to the tracker. */
+  reverse: { remaining: number; steer: number } | null;
   lane: Lane | "gate" | null;
   stallId: string | null;
   stallHeading: number;
@@ -78,8 +83,17 @@ class TwinMotionDriver {
   private graph = buildDepotLanes();
   private ledger = new StallLedger();
   private entries = new Map<string, Entry>();
+  /** twin stall uuid → renderer stall id (from the depot layout) — lets the
+   *  renderer park each car in the twin's EXACT assigned stall, so OTTO-Q's
+   *  spatial decisions (nearest-wash, cuOpt picks) are literally what you see. */
+  private twinStall = new Map<string, string>();
   /** roster fingerprint (ids+status+stall+soc) — setVehicles only fires when it changes */
   private lastRosterKey = "";
+  /** false until the first reconcile after clear(): the initial snapshot places the
+   *  existing fleet parked in-place; after that, ANY newly-seen vehicle drives in
+   *  from the ingress (kills the mid-run teleport-spawn when a state hop lands
+   *  between two polls, e.g. deployed → charging). */
+  private primed = false;
 
   start() {
     if (this.rafId !== null || this.intervalId !== null) return;
@@ -103,34 +117,62 @@ class TwinMotionDriver {
     this.ledger.clear();
     poseStore.clear();
     this.lastRosterKey = "";
+    this.primed = false;
+    // push an empty roster so no ghost fleet lingers after leaving twin mode
+    useVehicleStore.getState().setVehicles([]);
+  }
+
+  /** Ingest the twin depot layout: map each twin stall uuid to the renderer's
+   *  stall id by TYPE + the code's trailing number (e.g. twin 'NASH-L2-STALL-26'
+   *  type 'l2' → renderer 'L2-26'). Unmappable stalls (e.g. twin L2-31..35 when
+   *  the scene draws 30) simply fall back to zone-based assignment. */
+  setTwinStallMap(stalls: { id: string; code: string; type: string }[]) {
+    const prefix: Record<string, string> = {
+      dcfc: "DCFC", l2: "L2", wash_bay: "WASH", service_bay: "SVC", staging: "STAGE",
+    };
+    this.twinStall.clear();
+    for (const s of stalls) {
+      const p = prefix[s.type];
+      const m = /(\d+)\s*$/.exec(s.code ?? "");
+      if (!p || !m) continue;
+      this.twinStall.set(s.id, `${p}-${String(parseInt(m[1], 10)).padStart(2, "0")}`);
+    }
   }
 
   private createEntry(pose: { x: number; y: number; heading: number }, lane: Lane | "gate", vstatus: VehicleStatus, oem: string, soc: number): Entry {
     return {
       car: new KinematicCar(pose, DEFAULT_CAR_PARAMS),
-      tracker: null, lane, stallId: null, stallHeading: pose.heading, vstatus, oem, soc,
+      tracker: null, reverse: null, lane, stallId: null, stallHeading: pose.heading, vstatus, oem, soc,
     };
+  }
+
+  /** A car leaving a stall it nosed INTO must BACK OUT first: if the new route
+   *  starts behind the parked heading (>~100°), begin a reverse arc that swings
+   *  the nose toward the route side; pure-pursuit takes over after. (In reverse,
+   *  heading rotates OPPOSITE the steer sign, hence -sign(angleToRoute).) */
+  private maybeStartReverse(e: Entry) {
+    if (!e.tracker) return;
+    const probe = e.tracker.pointAtArc(Math.min(8, e.tracker.total));
+    const ang = wrapAngle(Math.atan2(probe.y - e.car.y, probe.x - e.car.x) - e.car.heading);
+    if (Math.abs(ang) > 1.75) {
+      e.reverse = { remaining: 11, steer: -Math.sign(ang || 1) * 0.35 };
+    }
   }
 
   /** Route a drivable path from `pose` to a stall along the one-way lanes. Charging
    *  stalls are reached via their northbound gap lane (car ends facing north). */
-  private routeToStall(pose: { x: number; y: number }, lane: Lane, stall: { x: number; y: number }): Pt[] {
+  private routeToStall(pose: { x: number; y: number }, lane: Lane, stall: { x: number; y: number }, facing: number): Pt[] {
     if (lane === "dcfc" || lane === "l2") {
       const gx = gapLaneX(stall.x);
       const toGap = this.graph.route(pose, { x: gx, y: SOUTH_LANE_Y - 2 });
       return [...toGap, { x: gx, y: stall.y }, { x: stall.x, y: stall.y }];
     }
-    return this.graph.route(pose, { x: stall.x, y: stall.y });
-  }
-
-  /** Y of the current ingress-queue tail; a new arrival spawns one car-length
-   *  behind it so arrivals line up single-file up to the gate (no stacking). */
-  private gateQueueTailY(): number {
-    let maxY = INGRESS.y + 2;
-    for (const e of this.entries.values()) {
-      if (e.lane === "gate" && e.car.y + 11 > maxY) maxY = e.car.y + 11;
-    }
-    return maxY;
+    // parking / bays: approach a point one car-length BEHIND the parked heading,
+    // then pull straight in — each car fans to its own stall and noses in facing
+    // `facing`, instead of trailing others into a shared approach spot.
+    const ax = stall.x - Math.cos(facing) * 9;
+    const ay = stall.y - Math.sin(facing) * 9;
+    return [...this.graph.route(pose, { x: ax, y: ay }), { x: stall.x, y: stall.y }];
   }
 
   /** Reconcile render state + routes against a fresh backend snapshot. */
@@ -139,11 +181,36 @@ class TwinMotionDriver {
     const stalls = depot.stalls;
     const byLane: Record<string, typeof stalls> = { dcfc: [], l2: [], wash: [], service: [], staging: [] };
     for (const s of stalls) (byLane[s.type] ??= []).push(s);
+    // OTTO-Q spatial policy: charging fills NORTH-first (nearest the wash/service
+    // bays), so cars pool toward the top and only spill south as it fills.
+    byLane.dcfc?.sort((a, b) => a.position.y - b.position.y);
+    byLane.l2?.sort((a, b) => a.position.y - b.position.y);
+    // Staging fills nearest the INGRESS first, so an arriving car parks close to
+    // the entrance (short taxi, fans across the south rows) instead of trekking to
+    // a far corner and bunching in a shared approach.
+    const dIn = (s: (typeof stalls)[number]) => Math.hypot(s.position.x - INGRESS.x, s.position.y - INGRESS.y);
+    byLane.staging?.sort((a, b) => dIn(a) - dIn(b));
 
     const present = new Set<string>();
     const desiredStatus = new Map<string, StallStatus>();
 
     for (const bv of snap.fleet?.vehicles ?? []) {
+      // Incident: a tow-requested vehicle CANNOT drive. If it's on-map, freeze it
+      // exactly where it is (keeping its stall claim) until the twin retrieves it
+      // (emergency_staged) or removes it; if it was never rendered (road incident
+      // while deployed), it stays off-map until retrieval.
+      if (bv.state === "tow_requested") {
+        const te = this.entries.get(bv.id);
+        if (te) {
+          present.add(bv.id);
+          te.tracker = null;
+          te.car.speed = 0;
+          te.vstatus = "maintenance";
+          if (te.stallId) desiredStatus.set(te.stallId, "offline");
+          this.entries.set(bv.id, te);
+        }
+        continue;
+      }
       const m = mapState(bv.state);
       if (!m) continue;
       present.add(bv.id);
@@ -151,37 +218,61 @@ class TwinMotionDriver {
       const oem = bv.platform ?? e?.oem ?? "waymo";
       const soc = bv.soc ?? e?.soc ?? 0;
 
-      if (m.lane === "gate") {
-        this.ledger.release(bv.id);
+      // NO QUEUE LINES: a vehicle is ALWAYS in a stall (charging/wash/service/
+      // staging) or TAXIING between them. An arriving car ("gate") drives in from
+      // the ingress and PARKS in a free staging stall; OTTO-Q then taxis it to its
+      // sequenced service stall. So "entering" simply targets a staging stall.
+      const entering = m.lane === "gate";
+      const lane: Lane = entering ? "staging" : (m.lane as Lane);
+      const cands = (byLane[lane] ?? []).map((s) => s.id);
+      // EXACT-STALL FIDELITY: if the twin named this vehicle's stall and it maps
+      // to a renderer stall in the right zone, claim exactly that one — what you
+      // see is literally OTTO-Q's assignment. Zone-based pick is the fallback
+      // (unmapped stall, renderer/twin drift, or stale local claim).
+      let stallId: string | null = null;
+      const exact = bv.stall_id ? this.twinStall.get(bv.stall_id) : undefined;
+      if (exact && cands.includes(exact) && this.ledger.claim(bv.id, exact)) stallId = exact;
+      if (!stallId) stallId = this.ledger.claimFirstFree(bv.id, cands);
+      if (!stallId) {
+        // overflow (no free stall in the target lane): hold on the public road
+        // shoulder outside the gate, SPREAD by id so cars never stack on one
+        // point — and keep the entry's fields fresh (status/soc/oem).
         if (!e) {
-          // Spawn at the TAIL of the ingress queue and route up to the hold point.
-          // IDM then lines arrivals up single-file behind each other — they never
-          // overlap or stack at the entrance; the front car holds until assigned.
-          const tailY = this.gateQueueTailY();
-          e = this.createEntry({ x: INGRESS.x, y: tailY, heading: NORTH }, "gate", m.vstatus, oem, soc);
-          e.tracker = new PathTracker([{ x: INGRESS.x, y: tailY }, { x: INGRESS.x, y: INGRESS.y - 6 }]);
+          let h = 0;
+          for (let i = 0; i < bv.id.length; i++) h = (h * 31 + bv.id.charCodeAt(i)) >>> 0;
+          e = this.createEntry({ x: INGRESS.x + ((h % 48) - 24), y: INGRESS.y + 3, heading: NORTH }, lane, m.vstatus, oem, soc);
         }
-        e.lane = "gate"; e.stallId = null; e.vstatus = m.vstatus;
-      } else {
-        const cands = (byLane[m.lane] ?? []).map((s) => s.id);
-        const stallId = this.ledger.claimFirstFree(bv.id, cands);
-        if (!stallId) continue; // lane full → overflow off-map this tick
-        const stall = stalls.find((s) => s.id === stallId)!;
-        const sp = { x: stall.position.x, y: stall.position.y };
-        const sh = parkedHeading(m.lane, stall.position.angle);
-        if (!e) {
-          // first seen already in-state → place parked AT the stall
-          e = this.createEntry({ ...sp, heading: sh }, m.lane, m.vstatus, oem, soc);
-          e.stallId = stallId; e.stallHeading = sh;
-        } else if (e.stallId !== stallId || e.lane === "gate") {
-          // newly assigned (or leaving the gate) → ROUTE there and drive
-          e.tracker = new PathTracker(this.routeToStall(e.car.pose, m.lane, sp));
-          e.stallId = stallId; e.stallHeading = sh;
-        }
-        e.lane = m.lane;
         e.vstatus = m.vstatus;
-        desiredStatus.set(stallId, m.sstatus);
+        e.oem = oem;
+        e.soc = soc;
+        this.entries.set(bv.id, e);
+        continue;
       }
+      const stall = stalls.find((s) => s.id === stallId)!;
+      const sp = { x: stall.position.x, y: stall.position.y };
+      const sh = parkedHeading(lane, stall.position.angle);
+      if (!e) {
+        // first seen: entering cars — and, once primed, ANY newly-appearing car
+        // (state hop between polls) — start at the ingress and DRIVE to their
+        // stall; only the initial snapshot places the fleet parked in-place.
+        const driveIn = entering || this.primed;
+        const start = driveIn ? { x: INGRESS.x, y: INGRESS.y - 4, heading: NORTH } : { x: sp.x, y: sp.y, heading: sh };
+        e = this.createEntry(start, lane, m.vstatus, oem, soc);
+        e.stallId = stallId;
+        e.stallHeading = sh;
+        if (driveIn) e.tracker = new PathTracker(this.routeToStall(start, lane, sp, sh));
+      } else if (e.stallId !== stallId) {
+        // re-assigned to a new stall → taxi there (backing out first if it was
+        // parked and the route starts behind its nose)
+        const wasParked = e.tracker === null;
+        e.tracker = new PathTracker(this.routeToStall(e.car.pose, lane, sp, sh));
+        if (wasParked) this.maybeStartReverse(e);
+        e.stallId = stallId;
+        e.stallHeading = sh;
+      }
+      e.lane = lane;
+      e.vstatus = m.vstatus;
+      desiredStatus.set(stallId, m.sstatus);
       e.oem = oem;
       e.soc = soc;
       this.entries.set(bv.id, e);
@@ -192,9 +283,11 @@ class TwinMotionDriver {
       if (present.has(id)) continue;
       this.ledger.release(id);
       if (e.vstatus !== "departing") {
+        const wasParked = e.tracker === null;
         e.vstatus = "departing";
         e.stallId = null;
         e.tracker = new PathTracker(this.graph.route(e.car.pose, { x: EGRESS.x, y: EGRESS.y }));
+        if (wasParked) this.maybeStartReverse(e);
       }
     }
 
@@ -204,6 +297,7 @@ class TwinMotionDriver {
       if (s.status !== want) depot.setStallStatus(s.id, want);
     }
 
+    this.primed = true; // initial placement done — newcomers drive in from here on
     this.flush();
   }
 
@@ -228,27 +322,52 @@ class TwinMotionDriver {
 
   /** One physical motion step of `dt` seconds. Public for unit testing. */
   tickMotion(dt: number) {
-    // snapshot all car poses for leader-finding
+    // snapshot car poses for leader-finding — split MOVERS from PARKED so a docked
+    // car just off the driving line (stall offset ≈2.4u) can never become a
+    // permanent phantom leader that freezes passing traffic forever.
     const moving: MovingCar[] = [];
-    for (const [id, e] of this.entries) moving.push({ id, pose: e.car.pose, speed: e.car.speed });
+    const movers: MovingCar[] = [];
+    const parked: MovingCar[] = [];
+    for (const [id, e] of this.entries) {
+      const mc = { id, pose: e.car.pose, speed: e.car.speed };
+      moving.push(mc);
+      (e.tracker ? movers : parked).push(mc);
+    }
 
     let changed = false;
     const remove: string[] = [];
     for (const [id, e] of this.entries) {
+      if (e.tracker && e.reverse) {
+        // BACK-OUT maneuver: reverse on a fixed arc (nose swings toward the route)
+        // with a rear-clearance hold — never backs into passing traffic.
+        const rearPose = { x: e.car.x, y: e.car.y, heading: wrapAngle(e.car.heading + Math.PI) };
+        const rear = findLeader({ id, pose: rearPose, speed: 0 }, moving, 2.6, 12);
+        const vRev = rear.gap < 6 ? 0 : -e.car.params.maxReverseSpeed * 0.8;
+        e.car.step(dt, vRev, e.reverse.steer);
+        e.reverse.remaining -= Math.abs(e.car.speed) * dt;
+        if (e.reverse.remaining <= 0) {
+          e.reverse = null; // cusp: stop steering hard, hand over to pure-pursuit
+          e.car.steer = 0;
+        }
+        changed = true;
+        continue;
+      }
       if (e.tracker) {
         // lateral: pure-pursuit steering along the lane route (advances the cursor)
         const look = LOOKAHEAD_MIN + LOOKAHEAD_K * e.car.speed;
         const { steer, remaining } = e.tracker.steer(e.car.pose, look, e.car.params.wheelbase);
         // local avoidance: a gentle steer away from any car within touching range
         const sep = separationSteer({ id, pose: e.car.pose, speed: e.car.speed }, moving);
-        // longitudinal: follow the LANE leader (narrow cone) AND yield to any
-        // close cross-traffic cutting across just ahead (wider, shorter cone), so
-        // cars at merges/gates never drive THROUGH one another. Most restrictive wins.
+        // longitudinal: follow the LANE leader (narrow cone over MOVERS), yield to
+        // close cross-traffic (wider/shorter cone), and only brake for a PARKED
+        // car when it genuinely blocks the lane (tighter 2.1u band < stall offset).
+        // Most restrictive wins.
         const self = { id, pose: e.car.pose, speed: e.car.speed };
-        const lead = findLeader(self, moving, 3.2, 34);
-        const cross = findLeader(self, moving, 4.8, 12);
-        const gap = Math.min(lead.gap, cross.gap);
-        const leadSpeed = lead.gap <= cross.gap ? lead.leaderSpeed : cross.leaderSpeed;
+        const lead = findLeader(self, movers, 3.2, 34);
+        const cross = findLeader(self, movers, 4.8, 12);
+        const block = findLeader(self, parked, 2.1, 20);
+        const gap = Math.min(lead.gap, cross.gap, block.gap);
+        const leadSpeed = gap === block.gap ? 0 : gap === lead.gap ? lead.leaderSpeed : cross.leaderSpeed;
         const accel = idmAccel(e.car.speed, gap, leadSpeed);
         let desiredSpeed = Math.max(0, e.car.speed + accel * dt);
         // ... AND ease to a precise stop exactly at the path end (the stall):
@@ -274,6 +393,7 @@ class TwinMotionDriver {
             e.car.speed = 0;
             e.car.steer = 0;
             e.tracker = null;
+            e.reverse = null;
           }
         }
       } else if (e.car.speed !== 0) {

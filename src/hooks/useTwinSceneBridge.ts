@@ -14,6 +14,7 @@ import { useEffect } from "react";
 import { useTwinStore } from "@/store/twinStore";
 import { useSimulationStore } from "@/store/simulationStore";
 import { twinMotionDriver } from "@/engine/TwinMotionDriver";
+import { twin } from "@/lib/ottoTwin";
 
 export function useTwinSceneBridge() {
   const snapshot = useTwinStore((s) => s.snapshot);
@@ -28,7 +29,18 @@ export function useTwinSceneBridge() {
       return;
     }
     twinMotionDriver.start();
-    return () => twinMotionDriver.stop();
+    // Exact-stall fidelity: load the twin's depot layout once per run so the
+    // driver can park each car in OTTO-Q's EXACT assigned stall (uuid → code).
+    let cancelled = false;
+    twin.layout()
+      .then((l) => {
+        if (!cancelled && l?.stalls?.length) twinMotionDriver.setTwinStallMap(l.stalls);
+      })
+      .catch(() => { /* layout unavailable → zone-based fallback still works */ });
+    return () => {
+      cancelled = true;
+      twinMotionDriver.stop();
+    };
   }, [activeSimRunId, legacyStatus]);
 
   // Reconcile routes against each fresh snapshot.
