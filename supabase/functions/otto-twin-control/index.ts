@@ -101,6 +101,16 @@ async function startScenario(req: Request) {
     p_run_by:        body.run_by ?? "otto_twin_control_api"
   });
   if (error) return err("scenario start failed", 500, error.message);
+
+  // Feed-agent fleet: fire-and-forget the genetic variable layer for this run.
+  // Each registered variable's agent (Nemotron 3 Ultra) reviews its corpus +
+  // realized outcomes and activates its sampling plan. Never blocks run start.
+  fetch(`${SUPABASE_URL}/functions/v1/ottoq-feed-agents`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${SERVICE_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ sim_run_id: data }),
+  }).catch(() => {});
+
   return ok({ sim_run_id: data, scenario_code: body.scenario_code });
 }
 
@@ -473,7 +483,7 @@ serve(async (req: Request) => {
 
   // Health probe
   if (method === "GET" && (parts[0] === "" || parts[0] === "health")) {
-    return ok({ service: "otto-twin-control", version: "1.6.0-pause", time: new Date().toISOString() });
+    return ok({ service: "otto-twin-control", version: "1.7.0-feed-agents", time: new Date().toISOString() });
   }
 
   return err(`route not found: ${method} /${parts.join("/")}`, 404);
