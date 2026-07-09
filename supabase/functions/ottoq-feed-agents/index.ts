@@ -77,6 +77,10 @@ const WHITELIST: Record<string, Record<string, [number, number] | "clamp_in_plan
     "repair.mode_multipliers.fault.thermal_emergency": [0.5, 4.0],
     "repair.mode_multipliers.fault.session_aborted_other": [0.05, 2.0],
   },
+  // Tariff rates are FACTS from the utility's published schedule — nothing is
+  // model-adjustable. The agent audits freshness, schedule fit, and the
+  // GSA-3 vs EVC crossover for the run's realized load factor.
+  tariff_demand_charge: {},
 };
 
 function getPath(obj: any, path: string): any {
@@ -125,7 +129,7 @@ function clampFor(plan: any, varKey: string, path: string): [number, number] | n
 }
 
 // ── evidence dossiers: what each agent SEES (corpus truth + realized outcomes)
-async function evidenceFor(sb: any, varKey: string): Promise<any> {
+async function evidenceFor(sb: any, varKey: string, runId: string): Promise<any> {
   if (varKey === "charger_fault_repair") {
     const [{ data: dists }, { data: sessions }, { count: downNow }] = await Promise.all([
       sb.from("ottoq_calibration_distributions")
@@ -146,6 +150,21 @@ async function evidenceFor(sb: any, varKey: string): Promise<any> {
       chargers_down_now: downNow ?? 0,
     };
   }
+  if (varKey === "tariff_demand_charge") {
+    // Realized load shape → schedule-fit + GSA-3 vs EVC crossover inputs.
+    const [{ data: tariffs }, { data: cost }] = await Promise.all([
+      sb.from("ottoq_depot_tariffs")
+        .select("schedule_code, season, demand_first_block_usd_kw, demand_excess_usd_kw, block_kw, fixed_monthly_usd, energy_base_cents_kwh, effective_from")
+        .eq("active", true),
+      sb.rpc("ottoq_energy_cost_for_run", { p_sim_run_id: runId }),
+    ]);
+    const c = Array.isArray(cost) ? cost[0] : cost;
+    return {
+      active_tariff_rows: tariffs ?? [],
+      run_billing_so_far: c ?? null,
+      crossover_hint: "EVC alternative: $0 demand charge, 21.773 c/kWh flat energy. Monthly crossover: GSA-3 total (demand + ~8.75 c/kWh all-in energy + $2,091.71 fixed) vs EVC (21.773 c/kWh + fuel adj + $100 fixed). Higher load factor favors GSA-3.",
+    };
+  }
   return {};
 }
 
@@ -160,7 +179,7 @@ Respond with STRICT JSON only, no prose outside the JSON.`;
 async function runAgent(sb: any, keys: [string, string][], run: any, planRow: any, dryRun: boolean) {
   const varKey = planRow.var_key;
   const t0 = Date.now();
-  const evidence = await evidenceFor(sb, varKey);
+  const evidence = await evidenceFor(sb, varKey, run.sim_run_id);
   const whitelist = Object.keys(WHITELIST[varKey] ?? {});
 
   const prompt = `VARIABLE: ${varKey}
