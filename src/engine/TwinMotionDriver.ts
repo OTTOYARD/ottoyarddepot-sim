@@ -36,6 +36,18 @@ const LOOKAHEAD_K = 0.45;
 const ARRIVE_EPS = 1.8;
 const NORTH = -Math.PI / 2; // facing north (−y) in the y-down logical frame
 
+// ---- anti-deadlock ladder (seconds stuck behind a STATIONARY blocker) ----
+// A yield graph with cycles (A yields to B yields to A) or an overlapped spawn
+// can otherwise freeze the whole depot permanently. Legit queues (blocker is
+// MOVING) never accumulate stuck-time, so normal car-following is untouched.
+const RELAX_AFTER = 8;    // ignore cross-traffic + parked-blocker gates, creep
+const ESCAPE_AFTER = 20;  // ignore ALL gaps, crawl free (separation still steers)
+const REROUTE_AFTER = 40; // rebuild the route from the current pose
+const REVERSE_HOLD_MAX = 6;   // give up a blocked back-out, go forward instead
+const DEPART_TTL = 90;        // a departing car that can't reach egress despawns
+const MAX_ACTIVE_DEPARTING = 12; // deploy waves leave in packets, not all at once
+const SPAWN_CLEARANCE = 6;    // don't materialize a car onto another one
+
 // backend vehicle_state → { lane, render status, stall status }
 function mapState(state: string): { lane: Lane | "gate" | null; vstatus: VehicleStatus; sstatus: StallStatus } | null {
   switch (state) {
@@ -74,6 +86,12 @@ interface Entry {
   vstatus: VehicleStatus;
   oem: string;
   soc: number;
+  /** seconds stopped behind a STATIONARY blocker (deadlock-breaker ladder) */
+  stuckFor: number;
+  /** seconds a reverse maneuver has been held by rear traffic */
+  holdFor: number;
+  /** seconds spent in 'departing' (TTL-despawned so a cork can never persist) */
+  departFor: number;
 }
 
 class TwinMotionDriver {
@@ -96,6 +114,12 @@ class TwinMotionDriver {
   private pendingSnap: TwinSnapshot | null = null;
   /** roster fingerprint (ids+status+stall+soc) — setVehicles only fires when it changes */
   private lastRosterKey = "";
+  /** run the current entries belong to — a snapshot from a DIFFERENT run resets
+   *  the scene instead of flooding 100+ stale cars toward the egress at once */
+  private runId: string | null = null;
+  /** deploy-wave stagger: departures beyond MAX_ACTIVE_DEPARTING wait parked
+   *  here and are released as active departers reach the egress */
+  private departQueue: string[] = [];
   /** false until the first reconcile after clear(): the initial snapshot places the
    *  existing fleet parked in-place; after that, ANY newly-seen vehicle drives in
    *  from the ingress (kills the mid-run teleport-spawn when a state hop lands
@@ -127,8 +151,22 @@ class TwinMotionDriver {
     this.primed = false;
     this.layoutSettled = true;
     this.pendingSnap = null;
+    this.runId = null;
+    this.departQueue = [];
     // push an empty roster so no ghost fleet lingers after leaving twin mode
     useVehicleStore.getState().setVehicles([]);
+  }
+
+  /** Reset the SCENE but keep the loop running — used when the snapshot stream
+   *  switches to a different sim run: the old fleet must vanish, not become a
+   *  100-car ghost wave all routing to the egress at once. */
+  private resetScene() {
+    this.entries.clear();
+    this.ledger.clear();
+    poseStore.clear();
+    this.lastRosterKey = "";
+    this.primed = false;
+    this.departQueue = [];
   }
 
   /** Ingest the twin depot layout: map each twin stall uuid to the renderer's
@@ -170,6 +208,7 @@ class TwinMotionDriver {
     return {
       car: new KinematicCar(pose, DEFAULT_CAR_PARAMS),
       tracker: null, reverse: null, lane, stallId: null, stallHeading: pose.heading, vstatus, oem, soc,
+      stuckFor: 0, holdFor: 0, departFor: 0,
     };
   }
 
@@ -184,6 +223,15 @@ class TwinMotionDriver {
     if (Math.abs(ang) > 1.75) {
       e.reverse = { remaining: 11, steer: -Math.sign(ang || 1) * 0.35 };
     }
+  }
+
+  /** Launch a departure: release the stall and route to the egress. */
+  private startDeparture(id: string, e: Entry) {
+    this.ledger.release(id);
+    e.stallId = null;
+    const wasParked = e.tracker === null;
+    e.tracker = new PathTracker(this.graph.route(e.car.pose, { x: EGRESS.x, y: EGRESS.y }));
+    if (wasParked) this.maybeStartReverse(e);
   }
 
   /** Route a drivable path from `pose` to a stall along the one-way lanes. Charging
@@ -208,6 +256,12 @@ class TwinMotionDriver {
       this.pendingSnap = snap; // hold until the exact-stall map settles
       return;
     }
+    // run switch: this snapshot belongs to a DIFFERENT sim run than the scene —
+    // the old fleet's ids will never match again, so reset instead of letting
+    // every old car flood the egress simultaneously (instant gridlock).
+    const rid = snap.run?.sim_run_id ?? null;
+    if (rid && this.runId && rid !== this.runId) this.resetScene();
+    if (rid) this.runId = rid;
     const depot = useDepotStore.getState();
     const stalls = depot.stalls;
     const byLane: Record<string, typeof stalls> = { dcfc: [], l2: [], wash: [], service: [], staging: [] };
@@ -301,19 +355,32 @@ class TwinMotionDriver {
         // (state hop between polls) — start at the ingress and DRIVE to their
         // stall; only the initial snapshot places the fleet parked in-place.
         const driveIn = entering || this.primed;
-        if (driveIn && spawnIdx >= 10) {
-          // spawn row full this poll — defer this arrival to the next snapshot
-          // rather than materializing off-map (release the claim it took).
-          this.ledger.release(bv.id);
-          continue;
+        let spawn: { x: number; y: number } | null = null;
+        if (driveIn) {
+          // alternate east/west along the entrance road: 0, +9, -9, +18, -18 …
+          // ADMISSION CONTROL: only take a spot that's physically CLEAR. Every
+          // poll reuses the same offsets, so spawning blind dropped new arrivals
+          // ON TOP of still-taxiing ones — an overlapped plug at the ingress that
+          // gridlocked the whole depot. No clear spot → defer to the next poll.
+          for (let i = spawnIdx; i < 10 && !spawn; i++) {
+            const off = Math.ceil(i / 2) * 9 * (i % 2 === 0 ? -1 : 1);
+            const p = { x: INGRESS.x + off, y: INGRESS.y - 4 };
+            let clear = true;
+            for (const [, other] of this.entries) {
+              if (Math.hypot(other.car.x - p.x, other.car.y - p.y) < SPAWN_CLEARANCE) { clear = false; break; }
+            }
+            if (clear) { spawn = p; spawnIdx = i + 1; }
+          }
+          if (!spawn) {
+            // spawn row full/blocked this poll — defer this arrival to the next
+            // snapshot rather than materializing off-map or on another car.
+            this.ledger.release(bv.id);
+            continue;
+          }
         }
-        // alternate east/west along the entrance road: 0, +9, -9, +18, -18 …
-        // always on asphalt, never past the lot edge.
-        const off = Math.ceil(spawnIdx / 2) * 9 * (spawnIdx % 2 === 0 ? -1 : 1);
-        const start = driveIn
-          ? { x: INGRESS.x + off, y: INGRESS.y - 4, heading: NORTH }
+        const start = driveIn && spawn
+          ? { x: spawn.x, y: spawn.y, heading: NORTH }
           : { x: sp.x, y: sp.y, heading: sh };
-        if (driveIn) spawnIdx++;
         e = this.createEntry(start, lane, m.vstatus, oem, soc);
         e.stallId = stallId;
         e.stallHeading = sh;
@@ -335,16 +402,30 @@ class TwinMotionDriver {
       this.entries.set(bv.id, e);
     }
 
-    // departures: rendered but no longer held by the backend → drive to egress
+    // departures: rendered but no longer held by the backend → drive to egress.
+    // STAGGERED: a deploy wave can release 50+ vehicles in one snapshot; routing
+    // them all simultaneously saturates the perimeter road and gridlocks the
+    // depot. Only MAX_ACTIVE_DEPARTING drive at once — the rest wait parked
+    // (keeping their stall so nobody is routed into an occupied spot) and are
+    // released from the queue as active departers reach the egress.
+    let activeDeparting = 0;
+    for (const [, e] of this.entries) {
+      if (e.vstatus === "departing" && e.tracker) activeDeparting++;
+    }
     for (const [id, e] of this.entries) {
       if (present.has(id)) continue;
-      this.ledger.release(id);
       if (e.vstatus !== "departing") {
-        const wasParked = e.tracker === null;
         e.vstatus = "departing";
-        e.stallId = null;
-        e.tracker = new PathTracker(this.graph.route(e.car.pose, { x: EGRESS.x, y: EGRESS.y }));
-        if (wasParked) this.maybeStartReverse(e);
+        e.departFor = 0;
+        if (activeDeparting < MAX_ACTIVE_DEPARTING) {
+          activeDeparting++;
+          this.startDeparture(id, e);
+        } else {
+          e.tracker = null; // wait parked, stall claim kept — released on launch
+          e.reverse = null;
+          e.car.speed = 0;
+          this.departQueue.push(id);
+        }
       }
     }
 
@@ -396,10 +477,24 @@ class TwinMotionDriver {
     for (const [id, e] of this.entries) {
       if (e.tracker && e.reverse) {
         // BACK-OUT maneuver: reverse on a fixed arc (nose swings toward the route)
-        // with a rear-clearance hold — never backs into passing traffic.
+        // with a rear-clearance hold — never backs into passing traffic. The hold
+        // is TIMED: two cars backing toward each other (or a stopped queue behind)
+        // would otherwise hold each other forever — after REVERSE_HOLD_MAX the car
+        // gives up the back-out and lets pure-pursuit take it forward instead.
         const rearPose = { x: e.car.x, y: e.car.y, heading: wrapAngle(e.car.heading + Math.PI) };
         const rear = findLeader({ id, pose: rearPose, speed: 0 }, moving, 2.6, 12);
-        const vRev = rear.gap < 6 ? 0 : -e.car.params.maxReverseSpeed * 0.8;
+        const blocked = rear.gap < 6;
+        if (blocked) {
+          e.holdFor += dt;
+          if (e.holdFor > REVERSE_HOLD_MAX) {
+            e.reverse = null;
+            e.car.steer = 0;
+            e.holdFor = 0;
+            changed = true;
+            continue;
+          }
+        } else e.holdFor = 0;
+        const vRev = blocked ? 0 : -e.car.params.maxReverseSpeed * 0.8;
         e.car.step(dt, vRev, e.reverse.steer);
         e.reverse.remaining -= Math.abs(e.car.speed) * dt;
         if (e.reverse.remaining <= 0) {
@@ -407,6 +502,13 @@ class TwinMotionDriver {
           e.car.steer = 0;
         }
         changed = true;
+        continue;
+      }
+      // a QUEUED departer (waiting parked for a departure slot) still ages out:
+      // the backend already dropped it, so it never lingers past the TTL.
+      if (!e.tracker && e.vstatus === "departing") {
+        e.departFor += dt;
+        if (e.departFor > DEPART_TTL) remove.push(id);
         continue;
       }
       if (e.tracker) {
@@ -426,15 +528,60 @@ class TwinMotionDriver {
         // THROUGH parked bodies) yet < the 4.6u offset of docked charger rows, so
         // stall occupants still never phantom-block the driving lanes.
         const block = findLeader(self, parked, 3.0, 20);
-        const gap = Math.min(lead.gap, cross.gap, block.gap);
-        const leadSpeed = gap === block.gap ? 0 : gap === lead.gap ? lead.leaderSpeed : cross.leaderSpeed;
+        const fullGap = Math.min(lead.gap, cross.gap, block.gap);
+        const fullLeadSpeed = fullGap === block.gap ? 0 : fullGap === lead.gap ? lead.leaderSpeed : cross.leaderSpeed;
+        // DEADLOCK LADDER: mutual yields (A waits on B, B waits on A) and
+        // overlapped bodies have no head to unwind from, so a car pinned behind
+        // a STATIONARY blocker escalates: after RELAX_AFTER it stops yielding to
+        // cross-traffic/parked bodies and creeps behind its lane leader only;
+        // after ESCAPE_AFTER it ignores gaps entirely and crawls free (separation
+        // steer still pushes it around bodies). Normal queues (moving leader)
+        // never accumulate stuck-time, so realistic following is untouched.
+        let gap = fullGap;
+        let leadSpeed = fullLeadSpeed;
+        if (e.stuckFor >= ESCAPE_AFTER) {
+          gap = Infinity;
+          leadSpeed = 0;
+        } else if (e.stuckFor >= RELAX_AFTER) {
+          gap = lead.gap;
+          leadSpeed = lead.leaderSpeed;
+        }
         const accel = idmAccel(e.car.speed, gap, leadSpeed);
         let desiredSpeed = Math.max(0, e.car.speed + accel * dt);
+        if (e.stuckFor >= ESCAPE_AFTER) desiredSpeed = Math.min(desiredSpeed, 1.2);
+        else if (e.stuckFor >= RELAX_AFTER) desiredSpeed = Math.min(desiredSpeed, 2.0);
         // ... AND ease to a precise stop exactly at the path end (the stall):
         // v = sqrt(2·b·remaining) decelerates to 0 right at remaining = 0.
         desiredSpeed = Math.min(desiredSpeed, Math.sqrt(2 * 7 * Math.max(0, remaining)));
-        e.car.step(dt, desiredSpeed, steer);
+        e.car.step(dt, desiredSpeed, steer + sep);
         changed = true;
+        // stuck bookkeeping off the FULL (unrelaxed) picture: accumulate while
+        // pinned; reset only when genuinely free again (blocker gone or moving);
+        // HOLD during the escape crawl itself so the ladder can't oscillate.
+        // `remaining > 4` keeps the normal ease-in to a stall from ever tripping it.
+        const pinned = e.car.speed < 0.15 && fullGap < 8 && fullLeadSpeed < 0.1 && remaining > 4;
+        if (pinned) e.stuckFor += dt;
+        else if (fullGap > 10 || fullLeadSpeed >= 0.1 || remaining <= 4) e.stuckFor = 0;
+        if (e.stuckFor >= REROUTE_AFTER) {
+          // last rung: a fresh route from the current pose often resolves a
+          // geometric wedge the ladder can't (drop back to RELAX, not zero,
+          // so a still-stuck car re-escalates quickly instead of re-freezing).
+          if (e.vstatus === "departing") {
+            e.tracker = new PathTracker(this.graph.route(e.car.pose, { x: EGRESS.x, y: EGRESS.y }));
+          } else if (e.stallId && e.lane && e.lane !== "gate") {
+            const st = useDepotStore.getState().stalls.find((s) => s.id === e.stallId);
+            if (st) e.tracker = new PathTracker(this.routeToStall(e.car.pose, e.lane as Lane, { x: st.position.x, y: st.position.y }, e.stallHeading));
+          }
+          e.reverse = null;
+          e.stuckFor = RELAX_AFTER;
+        }
+        if (e.vstatus === "departing") {
+          e.departFor += dt;
+          if (e.departFor > DEPART_TTL) {
+            remove.push(id); // cork insurance: a departer NEVER outlives its TTL
+            continue;
+          }
+        }
         if (e.tracker.atEnd(ARRIVE_EPS)) {
           if (e.vstatus === "departing") {
             remove.push(id);
@@ -466,6 +613,24 @@ class TwinMotionDriver {
       this.entries.delete(id);
       poseStore.delete(id);
       changed = true;
+    }
+    // top up the departure packet: as active departers reach the egress (or age
+    // out), release the next queued ones so a deploy wave drains continuously
+    // without ever saturating the perimeter road.
+    if (this.departQueue.length) {
+      let active = 0;
+      for (const [, e] of this.entries) {
+        if (e.vstatus === "departing" && e.tracker) active++;
+      }
+      while (active < MAX_ACTIVE_DEPARTING && this.departQueue.length) {
+        const id = this.departQueue.shift()!;
+        const e = this.entries.get(id);
+        // skip ids that despawned or were re-adopted by the backend since queuing
+        if (!e || e.vstatus !== "departing" || e.tracker) continue;
+        this.startDeparture(id, e);
+        active++;
+        changed = true;
+      }
     }
     if (changed) this.flush();
   }
@@ -500,3 +665,9 @@ class TwinMotionDriver {
 }
 
 export const twinMotionDriver = new TwinMotionDriver();
+
+// dev-only debug handle: HMR can leave module duplicates, so console/tooling
+// probes must reach the instance the APP is actually driving.
+if (import.meta.env.DEV && typeof window !== "undefined") {
+  (window as unknown as Record<string, unknown>).__twinDriver = twinMotionDriver;
+}
