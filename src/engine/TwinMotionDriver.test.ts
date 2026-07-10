@@ -6,9 +6,9 @@ import { poseStore } from "./motion/poseStore";
 import type { TwinSnapshot } from "@/lib/ottoTwin";
 
 // Minimal snapshot carrying only what the driver reads (fleet.vehicles).
-function snap(vehicles: { id: string; state: string; soc?: number; platform?: string; stall_id?: string | null }[]): TwinSnapshot {
+function snap(vehicles: { id: string; state: string; soc?: number; platform?: string; stall_id?: string | null }[], runId = "t"): TwinSnapshot {
   return {
-    run: { sim_run_id: "t", scenario: "t", status: "running", sim_clock: "", tick_count: 1, time_scale: 1, seed: 1 },
+    run: { sim_run_id: runId, scenario: "t", status: "running", sim_clock: "", tick_count: 1, time_scale: 1, seed: 1 },
     fleet: {
       counts: {}, total: vehicles.length,
       vehicles: vehicles.map((v) => ({ av_id: v.id, make: "x", stall_id: null, soc: 50, platform: "waymo", ...v })),
@@ -147,6 +147,49 @@ describe("TwinMotionDriver — kinematic motion off the twin", () => {
     const fwdDot = disp.x * Math.cos(p1.heading) + disp.y * Math.sin(p1.heading);
     expect(fwdDot).toBeLessThan(0);
     expect(isFinite(p1.x) && isFinite(p1.y) && isFinite(p1.heading)).toBe(true);
+  });
+
+  it("a RUN SWITCH resets the scene — the old fleet vanishes instead of ghost-departing", () => {
+    twinMotionDriver.reconcile(snap([{ id: "old1", state: "charge_complete_holding" }], "run-A"));
+    expect(find("old1")).toBeDefined();
+    twinMotionDriver.reconcile(snap([{ id: "new1", state: "charge_complete_holding" }], "run-B"));
+    expect(find("old1")).toBeUndefined();          // no 100-car ghost wave to the egress
+    expect(poseStore.get("old1")).toBeUndefined();
+    expect(find("new1")).toBeDefined();            // the new run's fleet is placed
+  });
+
+  it("a deploy wave departs in STAGGERED packets and always fully drains", () => {
+    const ids = Array.from({ length: 30 }, (_, i) => `w${i}`);
+    twinMotionDriver.reconcile(snap(ids.map((id) => ({ id, state: "staged_for_departure" }))));
+    expect(fleet().length).toBe(30);
+    twinMotionDriver.reconcile(snap([])); // the twin deploys ALL of them at once
+    // only a packet drives at a time — the rest wait parked (no perimeter flood)
+    const entries = (twinMotionDriver as unknown as { entries: Map<string, { vstatus: string; tracker: unknown }> }).entries;
+    let active = 0;
+    for (const [, e] of entries) if (e.vstatus === "departing" && e.tracker) active++;
+    expect(active).toBeGreaterThan(0);
+    expect(active).toBeLessThanOrEqual(12);
+    // and the wave GUARANTEED-drains (egress arrivals + TTL backstop): ~130s sim
+    for (let i = 0; i < 2600; i++) twinMotionDriver.tickMotion(0.05);
+    expect(fleet().length).toBe(0);
+    expect(poseStore.get("w0")).toBeUndefined();
+  });
+
+  it("spawn ADMISSION CONTROL: arrivals never materialize on top of each other", () => {
+    const first = Array.from({ length: 8 }, (_, i) => `a${i}`);
+    twinMotionDriver.reconcile(snap(first.map((id) => ({ id, state: "arrived_at_gate" }))));
+    // second poll lands while the first batch still sits at the ingress —
+    // blocked spots defer their arrivals instead of stacking cars
+    const second = Array.from({ length: 8 }, (_, i) => `b${i}`);
+    twinMotionDriver.reconcile(snap([...first, ...second].map((id) => ({ id, state: "arrived_at_gate" }))));
+    const poses = fleet().map((v) => poseStore.get(v.id)!).filter(Boolean);
+    expect(poses.length).toBeLessThan(16); // some were deferred, not stacked
+    for (let i = 0; i < poses.length; i++) {
+      for (let j = i + 1; j < poses.length; j++) {
+        const d = Math.hypot(poses[i].x - poses[j].x, poses[i].y - poses[j].y);
+        expect(d).toBeGreaterThan(2); // no two cars share a spawn spot
+      }
+    }
   });
 
   it("arrivals disperse to separate staging stalls and drive in (no shared line)", () => {

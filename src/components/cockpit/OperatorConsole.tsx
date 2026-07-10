@@ -293,9 +293,8 @@ export const OperatorConsole = () => {
   useEffect(() => { twin.catalog().then((d) => setCatalog(d.catalog)).catch(() => {}); }, []);
   useEffect(() => { twin.scenarios().then((d) => setScenarios(d.scenarios)).catch(() => {}); }, []);
   // Auto-attach on load: if the backend already has a live run (page reload,
-  // second screen, cron-driven production run), JOIN it instead of showing an
-  // idle depot — the twin owns run lifecycle, not this tab. Running runs also
-  // resume the tick clock; a paused run attaches frozen.
+  // second screen), JOIN it FROZEN — show the world, but never start the clock
+  // without an explicit Play (Chase: the sim must not auto-start on its own).
   useEffect(() => {
     let cancelled = false;
     twin.runs(10).then(({ runs }) => {
@@ -303,8 +302,7 @@ export const OperatorConsole = () => {
       const live = runs.find((r) => isLiveRunStatus(String(r.status)));
       if (!live) return;
       setActiveSimRunId(live.sim_run_id);
-      if (String(live.status).toLowerCase() !== "paused") ctrl.play();
-      toast.success("Joined live run", { description: live.scenario_code });
+      toast.success("Live run found — press Play to resume", { description: live.scenario_code });
     }).catch(() => {});
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
