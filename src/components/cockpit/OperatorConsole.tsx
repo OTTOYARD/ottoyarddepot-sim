@@ -422,7 +422,9 @@ export const OperatorConsole = () => {
               {scenarios.map((s) => <SelectItem key={s.scenario_code} value={s.scenario_code} className="text-xs text-ink focus:bg-white/10 focus:text-white">{s.title}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Button onClick={startScenario} disabled={busy === "start"} className="h-8 bg-brand-red hover:bg-brand-deep text-white text-xs">Start</Button>
+          {/* Explicit no-arg call: onClick passes the click EVENT as the first
+              argument, which used to land in `code` and silently break Start. */}
+          <Button onClick={() => startScenario()} disabled={busy === "start"} className="h-8 bg-brand-red hover:bg-brand-deep text-white text-xs">Start</Button>
           <Button onClick={stopRun} disabled={!runId} variant="outline" className="h-8 border-white/[0.06] text-ink-dim hover:text-ink"><Square size={13} /></Button>
         </div>
         {/* ONE transport control: Start begins the whole world (twin + viewer);
