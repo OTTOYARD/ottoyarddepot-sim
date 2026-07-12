@@ -1,15 +1,17 @@
-import { useRef, useMemo, useEffect } from 'react';
+import { memo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Html, useGLTF } from '@react-three/drei';
+import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { toWorld } from './coordUtils';
 import { poseStore } from '@/engine/motion/poseStore';
 import { useVehicleStore } from '@/store/vehicleStore';
-import { MATERIALS } from './materials';
 import type { Vehicle } from '@/engine/types';
 
-const MODEL_PATH = '/models/tesla_model3.glb';
-useGLTF.preload(MODEL_PATH);
+// ── PERF: the fleet used to clone a 22.5MB GLB per car (176 meshes / 684k tris
+// EACH → ~20,000 draw calls + ~79M triangles/frame at 115 cars, drawn AGAIN by
+// the shadow pass). Every car is now a shared low-poly sedan: ~6 draw calls and
+// ~300 triangles per car, ONE geometry + material set shared fleet-wide, and
+// only the body casts a shadow. The 22.5MB model download is gone entirely.
 
 // Realistic fleet paint mix (weights ≈ real-world car-color distribution),
 // picked stably per vehicle id. Ops color-coding stays on the 2D dots/badges.
@@ -36,14 +38,45 @@ const FX: Record<string, { glow: string; pulse: number; op: number }> = {
   departing: { glow: '', pulse: 0, op: 0.85 },
 };
 
-const BODY_HINTS = ['body', 'paint', 'car', 'exterior', 'shell', 'hood', 'door', 'fender', 'bumper', 'trunk'];
+// Shared geometries + materials — created ONCE for the whole fleet.
+const GEO = {
+  body: new THREE.BoxGeometry(2.2, 0.85, 4.9),
+  cabin: new THREE.BoxGeometry(1.9, 0.62, 2.5),
+  wheel: new THREE.CylinderGeometry(0.42, 0.42, 0.3, 10),
+  glow: new THREE.SphereGeometry(1.8, 8, 8),
+};
+GEO.wheel.rotateZ(Math.PI / 2); // axle along X
+const MAT = {
+  glass: new THREE.MeshStandardMaterial({ color: '#0c1116', roughness: 0.12, metalness: 0.9 }),
+  wheel: new THREE.MeshStandardMaterial({ color: '#15171a', roughness: 0.9 }),
+  paints: new Map<string, THREE.MeshStandardMaterial>(),
+  glows: new Map<string, THREE.MeshPhysicalMaterial>(),
+};
+function paintMat(col: string): THREE.MeshStandardMaterial {
+  let m = MAT.paints.get(col);
+  if (!m) {
+    m = new THREE.MeshStandardMaterial({ color: col, roughness: 0.35, metalness: 0.75 });
+    MAT.paints.set(col, m);
+  }
+  return m;
+}
+function glowMat(col: string): THREE.MeshPhysicalMaterial {
+  let m = MAT.glows.get(col);
+  if (!m) {
+    m = new THREE.MeshPhysicalMaterial({ color: col, emissive: col, emissiveIntensity: 0.5, transparent: true, opacity: 0.12, roughness: 1, metalness: 0, toneMapped: false });
+    MAT.glows.set(col, m);
+  }
+  return m;
+}
+const WHEELS: [number, number, number][] = [
+  [-1.05, 0.42, 1.55], [1.05, 0.42, 1.55], [-1.05, 0.42, -1.55], [1.05, 0.42, -1.55],
+];
 
 // Vehicles face their direction of travel while moving (one-way circulation),
 // then settle to their stall's site-plan angle when parked.
 
-export function Vehicle3D({ vehicle }: { vehicle: Vehicle; simSpeed: number }) {
+function Vehicle3DInner({ vehicle }: { vehicle: Vehicle; simSpeed: number }) {
   const grp = useRef<THREE.Group>(null);
-  const glw = useRef<THREE.Mesh>(null);
   const col = paintFor(vehicle.id);
   const fx = FX[vehicle.status] || FX.staging;
   // Only the HOVERED car shows its data badge — one <Html> instead of 132 (drei
@@ -54,43 +87,6 @@ export function Vehicle3D({ vehicle }: { vehicle: Vehicle; simSpeed: number }) {
   // Initial mount position only; the LIVE pose is driven imperatively from the
   // poseStore in useFrame below (no React re-render on movement).
   const [tx, , tz] = toWorld(vehicle.position);
-
-  const { scene } = useGLTF(MODEL_PATH);
-
-  // Clone scene and compute ground offset
-  const { clone, yOffset } = useMemo(() => {
-    const c = scene.clone(true);
-    c.traverse((child) => {
-      if ((child as THREE.Mesh).isMesh) {
-        const mesh = child as THREE.Mesh;
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-        if (mesh.material) {
-          mesh.material = (mesh.material as THREE.Material).clone();
-        }
-      }
-    });
-
-    const box = new THREE.Box3().setFromObject(c);
-    const offset = -box.min.y;
-
-    return { clone: c, yOffset: offset };
-  }, [scene]);
-
-  // Swap body panels to a true clearcoat automotive paint (shared per color)
-  useEffect(() => {
-    const paint = MATERIALS.automotivePaint(col);
-    clone.traverse((child) => {
-      if ((child as THREE.Mesh).isMesh) {
-        const mesh = child as THREE.Mesh;
-        const mat = mesh.material as THREE.MeshStandardMaterial;
-        const name = (mat.name || mesh.name || '').toLowerCase();
-        if (BODY_HINTS.some((h) => name.includes(h))) {
-          mesh.material = paint;
-        }
-      }
-    });
-  }, [clone, col]);
 
   useFrame(() => {
     const g = grp.current;
@@ -115,25 +111,19 @@ export function Vehicle3D({ vehicle }: { vehicle: Vehicle; simSpeed: number }) {
       onPointerOver={(e) => { e.stopPropagation(); setHovered(vehicle.id); }}
       onPointerOut={() => setHovered(null)}
     >
-      {/* The GLB's nose points -Z, but all heading math assumes forward = +Z —
-          so every car rendered tail-first ("driving in reverse") in BOTH the old
-          and new engines. Flip the MODEL once; the heading math stays truthful. */}
-      <primitive
-        object={clone}
-        scale={[1.2, 1.2, 1.2]}
-        rotation={[0, Math.PI, 0]}
-        position={[0, yOffset * 1.2, 0]}
-      />
+      {/* body — the ONLY shadow caster on the car (shadow pass stays cheap) */}
+      <mesh geometry={GEO.body} material={paintMat(col)} position={[0, 0.85, 0]} castShadow />
+      <mesh geometry={GEO.cabin} material={MAT.glass} position={[0, 1.5, -0.25]} />
+      {WHEELS.map((p, i) => (
+        <mesh key={i} geometry={GEO.wheel} material={MAT.wheel} position={p} />
+      ))}
 
       {/* Status glow */}
       {fx.glow && (
-        <mesh ref={glw} position={[0, 2.2, 0]}>
-          <sphereGeometry args={[1.8, 8, 8]} />
-          <meshPhysicalMaterial color={fx.glow} emissive={fx.glow} emissiveIntensity={0.5} transparent opacity={0.12} roughness={1} metalness={0} toneMapped={false} />
-        </mesh>
+        <mesh geometry={GEO.glow} material={glowMat(fx.glow)} position={[0, 2.2, 0]} />
       )}
 
-      {/* SoC badge — only on the hovered car (keeps the scene photoreal + fast) */}
+      {/* SoC badge — only on the hovered car (keeps the scene fast) */}
       {isHovered && (
         <Html position={[0, 3.2, 0]} center>
           <div className="px-1.5 py-0.5 rounded text-[7px] font-mono bg-black/80 text-white whitespace-nowrap border border-white/10 flex items-center gap-1"
@@ -154,3 +144,11 @@ export function Vehicle3D({ vehicle }: { vehicle: Vehicle; simSpeed: number }) {
     </group>
   );
 }
+
+// PERF: the roster array is rebuilt on every twin poll (new object identities);
+// live position comes from poseStore, so a car only needs to re-render when its
+// id / status / coarse SoC actually change.
+export const Vehicle3D = memo(Vehicle3DInner, (a, b) =>
+  a.vehicle.id === b.vehicle.id &&
+  a.vehicle.status === b.vehicle.status &&
+  Math.round(a.vehicle.currentSoC / 5) === Math.round(b.vehicle.currentSoC / 5));
