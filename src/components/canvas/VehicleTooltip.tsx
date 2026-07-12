@@ -67,7 +67,7 @@ export const VehicleTooltip = ({ svgRef }: Props) => {
           className="inline-block w-2 h-2 rounded-full"
           style={{ backgroundColor: oemColor }}
         />
-        <span className="text-xs font-bold" style={{ color: '#FFFFFF' }}>{v.id}</span>
+        <span className="text-xs font-bold" style={{ color: '#FFFFFF' }}>{v.label ?? v.id}</span>
         <Badge className="text-[10px] px-1.5 py-0 capitalize" style={{ backgroundColor: oemColor + '33', color: oemColor }}>
           {oemLabel}
         </Badge>

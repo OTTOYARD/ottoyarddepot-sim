@@ -14,6 +14,8 @@ export type VehicleType = 'fleet' | 'core' | 'concierge' | 'elite';
 
 export interface Vehicle {
   id: string;
+  /** human fleet name for display ("twin-sim-026 · Waymo") — id stays internal */
+  label?: string;
   type: VehicleType;
   priority: number; // 1-10
   batteryCapacity: number; // kWh

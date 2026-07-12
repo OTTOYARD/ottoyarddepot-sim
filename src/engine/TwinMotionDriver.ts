@@ -89,6 +89,10 @@ interface Entry {
   vstatus: VehicleStatus;
   oem: string;
   soc: number;
+  /** human fleet id + make from the twin (av_id 'twin-sim-026', 'Waymo') —
+   *  the tooltip shows THESE, never the raw uuid */
+  avId: string;
+  make: string;
   /** seconds stopped behind a STATIONARY blocker (deadlock-breaker ladder) */
   stuckFor: number;
   /** seconds a reverse maneuver has been held by rear traffic */
@@ -170,6 +174,10 @@ class TwinMotionDriver {
     this.departQueue = [];
     // push an empty roster so no ghost fleet lingers after leaving twin mode
     useVehicleStore.getState().setVehicles([]);
+    // ...and no stale stall paint on an empty depot (gap G6): an emptied scene
+    // must not keep last run's charging/occupied colors
+    const depot = useDepotStore.getState();
+    for (const s of depot.stalls) if (s.status !== "available") depot.setStallStatus(s.id, "available");
   }
 
   /** Reset the SCENE but keep the loop running — used when the snapshot stream
@@ -223,6 +231,7 @@ class TwinMotionDriver {
     return {
       car: new KinematicCar(pose, DEFAULT_CAR_PARAMS),
       tracker: null, reverse: null, lane, stallId: null, stallHeading: pose.heading, vstatus, oem, soc,
+      avId: "", make: "",
       stuckFor: 0, holdFor: 0, departFor: 0, rerouted: false,
       blockerId: null, pinnedRaw: false, mouthRaw: false, freeRaw: false, cycleWith: null,
     };
@@ -294,6 +303,19 @@ class TwinMotionDriver {
 
     const present = new Set<string>();
     const desiredStatus = new Map<string, StallStatus>();
+    // TWIN STALL TRUTH (gaps G2/G7): stalls_status is the twin's authoritative
+    // stall feed — the ONLY source for conditions no on-map vehicle explains
+    // (faulted/offline chargers, reservations for inbound cars). Faulted stalls
+    // recolor, WIN over vehicle-derived colors, and leave the assignment pool
+    // so no car is ever routed onto a dead charger.
+    const twinFaulted = new Set<string>();
+    for (const ss of snap.stalls_status ?? []) {
+      const rsid = this.twinStall.get(ss.id);
+      if (!rsid) continue;
+      const st = String(ss.status ?? "").toLowerCase();
+      if (st === "faulted" || st === "offline") twinFaulted.add(rsid);
+      else if (st === "reserved") desiredStatus.set(rsid, "reserved");
+    }
     // several vehicles can appear in ONE snapshot (twin ticks cover 30 sim-min):
     // stagger their spawn points back along the entrance road so they never
     // materialize stacked on top of each other at the gate.
@@ -345,6 +367,8 @@ class TwinMotionDriver {
         e.vstatus = m.vstatus;
         e.oem = oem;
         e.soc = soc;
+        if (bv.av_id) e.avId = bv.av_id;
+        if (bv.make) e.make = bv.make;
         // MOTION-RESIDUE REPAIR: a car can be tracker-nulled AWAY from its stall
         // (departure-stagger wait, tow freeze) and then re-adopted by the backend
         // into the same lane. This branch used to keep it frozen mid-lane at a
@@ -366,7 +390,7 @@ class TwinMotionDriver {
         this.entries.set(bv.id, e);
         continue;
       }
-      const cands = (byLane[lane] ?? []).map((s) => s.id);
+      const cands = (byLane[lane] ?? []).map((s) => s.id).filter((sid) => !twinFaulted.has(sid));
       // EXACT-STALL FIDELITY: if the twin named this vehicle's stall and it maps
       // to a renderer stall in the right zone, claim exactly that one — what you
       // see is literally OTTO-Q's assignment. Zone-based pick is the fallback
@@ -383,7 +407,7 @@ class TwinMotionDriver {
         // defect): pull it out to a staging spot to wait its turn instead.
         if (e) {
           if (e.lane !== lane && lane !== "staging") {
-            const stageCands = (byLane.staging ?? []).map((s) => s.id);
+            const stageCands = (byLane.staging ?? []).map((s) => s.id).filter((sid) => !twinFaulted.has(sid));
             const st2 = this.ledger.claimFirstFree(bv.id, stageCands);
             // GUARD (mirror of the stall-unchanged check below): claimFirstFree
             // returns the car's OWN staging stall on every later poll while the
@@ -463,6 +487,8 @@ class TwinMotionDriver {
           ? { x: spawn.x, y: spawn.y, heading: spawnHeading }
           : { x: sp.x, y: sp.y, heading: sh };
         e = this.createEntry(start, lane, m.vstatus, oem, soc);
+        e.avId = bv.av_id ?? "";
+        e.make = bv.make ?? "";
         e.stallId = stallId;
         e.stallHeading = sh;
         if (driveIn) e.tracker = new PathTracker(this.routeToStall(start, lane, sp, sh));
@@ -510,14 +536,22 @@ class TwinMotionDriver {
             e.reverse = null;
             e.car.speed = 0;
           }
+          // a waiting departer still SITS on its stall — keep it painted
+          // occupied (was: green "available" under a parked car, gap G6)
+          if (e.stallId) desiredStatus.set(e.stallId, "occupied");
           this.departQueue.push(id);
         }
       }
     }
 
-    // stall statuses
+    // stall statuses — queued departers still SIT on their stalls (repaint every
+    // poll, gap G6); twin-faulted stalls WIN over everything (gap G2).
+    for (const qid of this.departQueue) {
+      const qe = this.entries.get(qid);
+      if (qe && !qe.tracker && qe.stallId) desiredStatus.set(qe.stallId, "occupied");
+    }
     for (const s of stalls) {
-      const want = desiredStatus.get(s.id) ?? "available";
+      const want: StallStatus = twinFaulted.has(s.id) ? "offline" : (desiredStatus.get(s.id) ?? "available");
       if (s.status !== want) depot.setStallStatus(s.id, want);
     }
 
@@ -596,7 +630,14 @@ class TwinMotionDriver {
       // the backend already dropped it, so it never lingers past the TTL.
       if (!e.tracker && e.vstatus === "departing") {
         e.departFor += dt;
-        if (e.departFor > DEPART_TTL) remove.push(id);
+        if (e.departFor > DEPART_TTL) {
+          // TTL while queued: DRIVE OUT (cap-exempt) instead of vanishing in
+          // place on a stall (gap G6). Bounded second life: the tracked-departer
+          // TTL below still despawns it if the egress stays jammed.
+          this.startDeparture(id, e);
+          e.departFor = DEPART_TTL * 0.5;
+          changed = true;
+        }
         continue;
       }
       if (e.tracker) {
@@ -819,7 +860,8 @@ class TwinMotionDriver {
     const arr: Vehicle[] = [];
     for (const [id, e] of this.entries) {
       arr.push({
-        id, type: "fleet", oem: e.oem, priority: 5,
+        id, label: e.avId ? (e.make ? `${e.avId} · ${e.make}` : e.avId) : undefined,
+        type: "fleet", oem: e.oem, priority: 5,
         batteryCapacity: 100, currentSoC: e.soc, targetSoC: 90,
         status: e.vstatus, assignedStall: e.stallId, serviceQueue: [], currentServiceIndex: 0,
         serviceStartTime: null, serviceDuration: null, arrivalTime: 0,
