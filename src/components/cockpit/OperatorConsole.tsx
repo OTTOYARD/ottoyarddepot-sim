@@ -355,6 +355,7 @@ export const OperatorConsole = () => {
 
       setActiveSimRunId(res.sim_run_id);
       ctrl.play();   // Start also begins the clock — "press Start and watch it run"
+      ctrl.setSpeed(1); // fresh runs open at 1× (slider + twin time_scale in sync)
       const title = scenarios.find((s) => s.scenario_code === code)?.title ?? code;
       toast.success(`Started ${title} — running`);
     } catch (e: any) { toast.error("Start failed", { description: e.message }); }

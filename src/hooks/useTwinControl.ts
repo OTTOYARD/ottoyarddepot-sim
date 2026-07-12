@@ -16,10 +16,24 @@ import { useTwinStore } from "@/store/twinStore";
 export function useTwinControl() {
   const activeSimRunId = useTwinStore((s) => s.activeSimRunId);
   const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState(1);          // 1–10×; ALWAYS start at 1× real pace
+  const [speed, setSpeedState] = useState(1);     // 1–10×; ALWAYS start at 1× real pace
   const [busy, setBusy] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inFlight = useRef(false);
+
+  // HONEST SPEED: the slider drives the twin's real time-compression
+  // (time_scale = 60 × slider, sim-minutes per tick; server metronome keeps
+  // tick RATE steady). Debounced so dragging doesn't spam the API. The old
+  // behavior (only shrinking the ms between browser tick posts) was a no-op
+  // next to 11-20s server ticks — the slider provably did nothing.
+  const setSpeed = useCallback((v: number) => {
+    setSpeedState(v);
+    if (tsTimer.current) clearTimeout(tsTimer.current);
+    tsTimer.current = setTimeout(() => {
+      if (activeSimRunId) twin.setTimeScale(activeSimRunId, Math.min(480, Math.max(15, 60 * v))).catch(() => {});
+    }, 400);
+  }, [activeSimRunId]);
 
   const stepOnce = useCallback(async () => {
     if (!activeSimRunId || inFlight.current) return;
