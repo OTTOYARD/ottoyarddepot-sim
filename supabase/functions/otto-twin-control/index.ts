@@ -144,6 +144,27 @@ async function pauseRun(simRunId: string) {
   return ok({ paused: simRunId });
 }
 
+// HONEST SPEED CONTROL: time_scale = sim-minutes compressed into each tick
+// (advance computes tick_interval_seconds × time_scale / 60). The server-side
+// metronome keeps the TICK RATE steady; this dial changes how much sim-time
+// each tick covers — the real "1×/2×/4×" the viewer slider promises. 60 = 1×.
+async function setTimeScale(simRunId: string, req: Request) {
+  let body: { time_scale?: number } = {};
+  try { body = await req.json(); } catch { /* validated below */ }
+  const ts = Number(body.time_scale);
+  if (!Number.isFinite(ts) || ts < 15 || ts > 480) {
+    return err("time_scale must be a number in [15, 480] (60 = 1×)", 400);
+  }
+  const { data, error } = await supabase.from("ottoq_sim_runs")
+    .update({ time_scale: ts })
+    .eq("sim_run_id", simRunId)
+    .in("status", ["running", "paused"])
+    .select("sim_run_id");
+  if (error) return err("time_scale update failed", 500, error.message);
+  if (!data?.length) return err("run is not live", 409);
+  return ok({ sim_run_id: simRunId, time_scale: ts });
+}
+
 async function resumeRun(simRunId: string) {
   // next_tick_due_at moves to now so a long pause never looks "overdue"
   const { data, error } = await supabase
@@ -456,6 +477,9 @@ serve(async (req: Request) => {
   if (method === "POST" && parts[0] === "sim_runs" && parts[2] === "pause") return pauseRun(parts[1]);
   if (method === "POST" && parts[0] === "sim_runs" && parts[2] === "resume") return resumeRun(parts[1]);
 
+  // PUT /sim_runs/:id/time_scale  (honest speed: sim-minutes per tick; 60 = 1×)
+  if (method === "PUT" && parts[0] === "sim_runs" && parts[2] === "time_scale") return setTimeScale(parts[1], req);
+
   // POST /sim_runs/:id/inject_dr_call
   if (method === "POST" && parts[0] === "sim_runs" && parts[2] === "inject_dr_call") return injectDrCall(parts[1], req);
 
@@ -483,7 +507,7 @@ serve(async (req: Request) => {
 
   // Health probe
   if (method === "GET" && (parts[0] === "" || parts[0] === "health")) {
-    return ok({ service: "otto-twin-control", version: "1.7.0-feed-agents", time: new Date().toISOString() });
+    return ok({ service: "otto-twin-control", version: "1.8.0-time-scale", time: new Date().toISOString() });
   }
 
   return err(`route not found: ${method} /${parts.join("/")}`, 404);

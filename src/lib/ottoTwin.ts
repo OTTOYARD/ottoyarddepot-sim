@@ -131,6 +131,9 @@ export const twin = {
   tick:           (simRunId: string)          => send("POST", `/sim_runs/${simRunId}/tick`),
   pause:          (simRunId: string)          => send("POST", `/sim_runs/${simRunId}/pause`),
   resume:         (simRunId: string)          => send("POST", `/sim_runs/${simRunId}/resume`),
+  /** honest speed: sim-minutes per tick (60 = 1×). The server metronome keeps
+   *  the tick RATE steady; this changes how much sim-time each tick covers. */
+  setTimeScale:   (simRunId: string, ts: number) => send("PUT", `/sim_runs/${simRunId}/time_scale`, { time_scale: ts }),
   status:         (simRunId: string)          => send("GET", `/sim_runs/${simRunId}/status`),
   getVariability: (simRunId: string)          => send("GET", `/sim_runs/${simRunId}/variability`),
   setVariability: (simRunId: string, body: object) => send("PUT", `/sim_runs/${simRunId}/variability`, body),
