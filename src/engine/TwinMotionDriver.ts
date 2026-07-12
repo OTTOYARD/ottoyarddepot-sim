@@ -634,15 +634,19 @@ class TwinMotionDriver {
           // them apart); nobody ever crawls through legitimate traffic.
           const noCycle = (arr: MovingCar[]) =>
             e.cycleWith ? arr.filter((c) => c.id !== e.cycleWith) : arr;
+          // NARROW band (1.6): only a body truly IN my path stays solid. The
+          // charger-column driving line runs 2.4u beside parked column-mates —
+          // a 3.0 band made every occupied stall block the stalls behind it
+          // (cars looped forever and NEVER docked to charge). Side-by-side
+          // passes clear at 2.4; head-on bodies are still impassable.
           const l2 = findLeader(self, noCycle(movers), 3.2, 34);
-          const s2 = findLeader(self, noCycle(stationary), 3.0, 20);
+          const s2 = findLeader(self, noCycle(stationary), 1.6, 20);
           gap = Math.min(l2.gap, s2.gap);
           leadSpeed = gap === s2.gap ? 0 : l2.leaderSpeed;
         } else if (e.stuckFor >= RELAX_AFTER) {
-          // relax: drop cross-traffic yields only — keep the lane leader AND a
-          // hard gap to every STATIONARY body (the old rung dropped parked
-          // bodies from the gap and creeped cars INTO their neighbors).
-          const s2 = findLeader(self, stationary, 3.0, 20);
+          // relax: drop cross-traffic yields; keep the lane leader and any
+          // body directly in the path (narrow 1.6 band — see escape note).
+          const s2 = findLeader(self, stationary, 1.6, 20);
           gap = Math.min(lead.gap, s2.gap);
           leadSpeed = gap === s2.gap ? 0 : lead.leaderSpeed;
         }
@@ -754,7 +758,14 @@ class TwinMotionDriver {
           }
         }
       }
-      if (accrue) {
+      // SLOW-BURN VALVE: even a "legitimate" queue must not hold a car forever
+      // (a stalled head froze whole charging convoys). Non-deadlock pins accrue
+      // at quarter rate — real queues drain long before ~72s; pathological ones
+      // self-heal via the reroute rung.
+      if (!accrue && (e.pinnedRaw || e.mouthRaw)) {
+        e.stuckFor += dt * 0.25;
+        if (e.mouthRaw && !e.pinnedRaw) e.stuckFor = Math.min(e.stuckFor, REROUTE_AFTER + 1);
+      } else if (accrue) {
         e.stuckFor += dt;
         // mouth-blocked cars escalate to REROUTE only — never creep/escape
         if (e.mouthRaw && !e.pinnedRaw) e.stuckFor = Math.min(e.stuckFor, REROUTE_AFTER + 1);
