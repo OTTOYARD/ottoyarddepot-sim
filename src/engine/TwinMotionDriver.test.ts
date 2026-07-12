@@ -240,6 +240,17 @@ describe("TwinMotionDriver — kinematic motion off the twin", () => {
     expect(entries.get("v1")!.tracker).not.toBeNull();
   });
 
+  it("TWIN STALL TRUTH: a faulted stall recolors offline and repels assignment", () => {
+    // map a twin stall uuid onto the renderer's first L2 stall, then fault it
+    (twinMotionDriver as unknown as { twinStall: Map<string, string> }).twinStall.set("uuid-l2-01", "L2-01");
+    const s = snap([{ id: "v1", state: "charging_l2" }]);
+    (s as unknown as { stalls_status: { id: string; status: string; vehicle_id: string | null }[] }).stalls_status =
+      [{ id: "uuid-l2-01", status: "faulted", vehicle_id: null }];
+    twinMotionDriver.reconcile(s);
+    expect(useDepotStore.getState().stalls.find((x) => x.id === "L2-01")!.status).toBe("offline");
+    expect(find("v1")!.assignedStall).not.toBe("L2-01"); // routed around the dead charger
+  });
+
   it("arrivals disperse to separate staging stalls and drive in (no shared line)", () => {
     const ids = ["a", "b", "c", "d", "e"];
     twinMotionDriver.reconcile(snap(ids.map((id) => ({ id, state: "arrived_at_gate" }))));
