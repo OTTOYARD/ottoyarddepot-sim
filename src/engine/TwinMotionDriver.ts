@@ -808,7 +808,9 @@ class TwinMotionDriver {
     let key = "";
     for (const [id, e] of this.entries) {
       poseStore.set(id, e.car.x, e.car.y, e.car.heading);
-      key += `${id}:${e.vstatus}:${e.stallId ?? ""}:${Math.round(e.soc)};`;
+      // SoC bucketed to 5% — per-percent churn used to invalidate the roster on
+      // nearly every poll and re-render the whole SVG tree + every 3D car.
+      key += `${id}:${e.vstatus}:${e.stallId ?? ""}:${Math.round(e.soc / 5)};`;
     }
     // (2) the React roster → only when the SET / status / stall / soc changes,
     // so movement never triggers a re-render.
