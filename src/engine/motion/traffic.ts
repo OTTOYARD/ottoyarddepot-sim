@@ -26,6 +26,7 @@ export const CAR_LENGTH = 9;
 export interface Leader {
   gap: number;        // bumper-to-bumper distance (>=0), Infinity if none
   leaderSpeed: number;
+  leaderId: string | null; // who the blocker is (deadlock-cycle detection)
 }
 
 /**
@@ -43,6 +44,7 @@ export function findLeader(
   const fy = Math.sin(me.pose.heading);
   let bestGap = Infinity;
   let leaderSpeed = 0;
+  let leaderId: string | null = null;
   for (const o of others) {
     if (o.id === me.id) continue;
     const dx = o.pose.x - me.pose.x;
@@ -55,9 +57,10 @@ export function findLeader(
     if (gap < bestGap) {
       bestGap = gap;
       leaderSpeed = o.speed;
+      leaderId = o.id;
     }
   }
-  return { gap: Math.max(bestGap, 0), leaderSpeed: bestGap === Infinity ? 0 : leaderSpeed };
+  return { gap: Math.max(bestGap, 0), leaderSpeed: bestGap === Infinity ? 0 : leaderSpeed, leaderId };
 }
 
 /**

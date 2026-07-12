@@ -192,6 +192,54 @@ describe("TwinMotionDriver — kinematic motion off the twin", () => {
     }
   });
 
+  it("STAGGER never freezes a mid-taxi car mid-lane (no diagonal statues)", () => {
+    // three arrival waves so >12 entries exist, the last wave still mid-drive
+    const wave = (p: string, n: number) => Array.from({ length: n }, (_, i) => `${p}${i}`);
+    const a = wave("a", 6), b = wave("b", 6), c = wave("c", 6);
+    const arrived = (id: string) => ({ id, state: "arrived_at_gate" });
+    twinMotionDriver.reconcile(snap(a.map(arrived)));
+    for (let i = 0; i < 200; i++) twinMotionDriver.tickMotion(0.05);
+    twinMotionDriver.reconcile(snap([...a, ...b].map(arrived)));
+    for (let i = 0; i < 200; i++) twinMotionDriver.tickMotion(0.05);
+    twinMotionDriver.reconcile(snap([...a, ...b, ...c].map(arrived)));
+    for (let i = 0; i < 40; i++) twinMotionDriver.tickMotion(0.05);
+    // the twin deploys ALL of them → the stagger may queue the excess, but a
+    // queued MID-TAXI car keeps its route (finishes its pull-in) — a tracker-
+    // null "waiting" car must always be physically AT its stall, never mid-lane
+    twinMotionDriver.reconcile(snap([]));
+    const entries = (twinMotionDriver as unknown as {
+      entries: Map<string, { vstatus: string; tracker: unknown; stallId: string | null; car: { x: number; y: number } }>;
+    }).entries;
+    const statues = [...entries.entries()].filter(([, e]) => {
+      if (e.vstatus !== "departing" || e.tracker || !e.stallId) return false;
+      const st = useDepotStore.getState().stalls.find((s) => s.id === e.stallId)!;
+      return Math.hypot(e.car.x - st.position.x, e.car.y - st.position.y) > 3;
+    });
+    expect(statues.length).toBe(0);
+    // and the wave still fully drains (packets + TTL backstop)
+    for (let i = 0; i < 3200; i++) twinMotionDriver.tickMotion(0.05);
+    expect(fleet().length).toBe(0);
+  });
+
+  it("RE-ADOPTION REPAIR: a tracker-less car away from its stall is re-routed when the backend re-adopts it", () => {
+    twinMotionDriver.reconcile(snap([{ id: "v1", state: "arrived_at_gate" }]));
+    for (let i = 0; i < 60; i++) twinMotionDriver.tickMotion(0.05);
+    const entries = (twinMotionDriver as unknown as {
+      entries: Map<string, { vstatus: string; tracker: unknown; reverse: unknown; stallId: string | null; car: { x: number; y: number; speed: number } }>;
+    }).entries;
+    const e = entries.get("v1")!;
+    expect(e.stallId).toMatch(/^STAGE-/);
+    // manufacture the legacy frozen state (tow-freeze / any tracker-null residue):
+    // mid-lane, mid-turn heading, no route
+    e.tracker = null;
+    e.reverse = null;
+    e.car.speed = 0;
+    // same-lane snapshot again → the stability-bias branch must detect the car
+    // is NOT at its stall pose and re-issue a route instead of keeping it frozen
+    twinMotionDriver.reconcile(snap([{ id: "v1", state: "arrived_at_gate" }]));
+    expect(entries.get("v1")!.tracker).not.toBeNull();
+  });
+
   it("arrivals disperse to separate staging stalls and drive in (no shared line)", () => {
     const ids = ["a", "b", "c", "d", "e"];
     twinMotionDriver.reconcile(snap(ids.map((id) => ({ id, state: "arrived_at_gate" }))));

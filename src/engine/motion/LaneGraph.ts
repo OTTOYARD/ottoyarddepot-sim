@@ -157,6 +157,12 @@ export class LaneGraph {
     let center: Pt[];
     if (np.length >= 2) {
       center = [{ ...from }, ...this.centerline(np), { ...to }];
+    } else if (a && a === b) {
+      // both endpoints collapse to ONE node: route VIA it. The old straight
+      // from→to beeline here is what sent gate arrivals diagonally across the
+      // fence/crosswalk and overflow cars looping over the entrance road.
+      const n = this.nodes.get(a)!;
+      center = [{ ...from }, { x: n.x, y: n.y }, { ...to }];
     } else {
       center = [{ ...from }, { ...to }];
     }

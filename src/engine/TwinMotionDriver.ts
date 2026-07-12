@@ -48,6 +48,7 @@ const ESCAPE_AFTER = 28;  // last resort: ignore MOVING blockers only — a car 
 const REVERSE_HOLD_MAX = 6;   // give up a blocked back-out, go forward instead
 const DEPART_TTL = 90;        // a departing car that can't reach egress despawns
 const MAX_ACTIVE_DEPARTING = 12; // deploy waves leave in packets, not all at once
+const MAX_ACTIVE_ENTERING = 6;   // arrival waves enter in packets too (gate backpressure)
 const SPAWN_CLEARANCE = 6;    // don't materialize a car onto another one
 
 // backend vehicle_state → { lane, render status, stall status }
@@ -96,6 +97,16 @@ interface Entry {
   departFor: number;
   /** one reroute per stuck episode — cleared when the car frees up */
   rerouted: boolean;
+  /** who blocked me this tick (min-gap body) — deadlock-cycle analysis */
+  blockerId: string | null;
+  /** raw pinned/mouth/free observations this tick; the post-loop pass turns
+   *  them into stuckFor accrual ONLY for true deadlocks (cycle) or wedges
+   *  (parked blocker) — a legitimately stopped queue never escalates. */
+  pinnedRaw: boolean;
+  mouthRaw: boolean;
+  freeRaw: boolean;
+  /** my mutual-deadlock partner (escape may pass THIS body only) */
+  cycleWith: string | null;
 }
 
 class TwinMotionDriver {
@@ -213,6 +224,7 @@ class TwinMotionDriver {
       car: new KinematicCar(pose, DEFAULT_CAR_PARAMS),
       tracker: null, reverse: null, lane, stallId: null, stallHeading: pose.heading, vstatus, oem, soc,
       stuckFor: 0, holdFor: 0, departFor: 0, rerouted: false,
+      blockerId: null, pinnedRaw: false, mouthRaw: false, freeRaw: false, cycleWith: null,
     };
   }
 
@@ -286,6 +298,13 @@ class TwinMotionDriver {
     // stagger their spawn points back along the entrance road so they never
     // materialize stacked on top of each other at the gate.
     let spawnIdx = 0;
+    // GATE BACKPRESSURE: cap how many drive-ins may be in the entry pipeline at
+    // once (still routed + still in the south gate band). Beyond the cap, new
+    // arrivals defer to the next poll instead of flooding the entrance road.
+    let enteringActive = 0;
+    for (const [, te] of this.entries) {
+      if (te.tracker && te.car.y > 195 && te.vstatus !== "departing") enteringActive++;
+    }
 
     for (const bv of snap.fleet?.vehicles ?? []) {
       // Incident: a tow-requested vehicle CANNOT drive. If it's on-map, freeze it
@@ -326,6 +345,24 @@ class TwinMotionDriver {
         e.vstatus = m.vstatus;
         e.oem = oem;
         e.soc = soc;
+        // MOTION-RESIDUE REPAIR: a car can be tracker-nulled AWAY from its stall
+        // (departure-stagger wait, tow freeze) and then re-adopted by the backend
+        // into the same lane. This branch used to keep it frozen mid-lane at a
+        // mid-turn heading forever — the "diagonal car between stalls" defect.
+        // If it has no route and isn't physically at its stall pose, re-route it.
+        if (!e.tracker && !e.reverse) {
+          const st = stalls.find((s) => s.id === e.stallId);
+          if (st) {
+            const off = Math.hypot(e.car.x - st.position.x, e.car.y - st.position.y);
+            let dh = Math.abs(e.car.heading - e.stallHeading) % (2 * Math.PI);
+            if (dh > Math.PI) dh = 2 * Math.PI - dh;
+            if (off > ARRIVE_EPS || dh > 0.2) {
+              e.tracker = new PathTracker(this.routeToStall(e.car.pose, lane,
+                { x: st.position.x, y: st.position.y }, e.stallHeading));
+              e.departFor = 0;
+            }
+          }
+        }
         this.entries.set(bv.id, e);
         continue;
       }
@@ -348,7 +385,13 @@ class TwinMotionDriver {
           if (e.lane !== lane && lane !== "staging") {
             const stageCands = (byLane.staging ?? []).map((s) => s.id);
             const st2 = this.ledger.claimFirstFree(bv.id, stageCands);
-            if (st2) {
+            // GUARD (mirror of the stall-unchanged check below): claimFirstFree
+            // returns the car's OWN staging stall on every later poll while the
+            // target lane stays full — rebuilding the route each time made the
+            // car perpetually back out, loop over the gate road and re-park
+            // (diagonal bodies in the staging rows + entrance-road churn).
+            // Only route when the claimed stall is genuinely NEW.
+            if (st2 && st2 !== e.stallId) {
               const s2 = stalls.find((s) => s.id === st2)!;
               const sh2 = parkedHeading("staging", s2.position.angle);
               const wasParked = e.tracker === null;
@@ -357,6 +400,10 @@ class TwinMotionDriver {
               if (wasParked) this.maybeStartReverse(e);
               e.stallId = st2;
               e.stallHeading = sh2;
+              e.lane = "staging";
+              desiredStatus.set(st2, "occupied");
+            } else if (st2) {
+              // already waiting in this very stall — just keep it held
               e.lane = "staging";
               desiredStatus.set(st2, "occupied");
             }
@@ -378,6 +425,11 @@ class TwinMotionDriver {
         const driveIn = entering || this.primed;
         let spawn: { x: number; y: number } | null = null;
         if (driveIn) {
+          if (enteringActive >= MAX_ACTIVE_ENTERING) {
+            // gate pipeline full — defer this arrival to the next snapshot
+            this.ledger.release(bv.id);
+            continue;
+          }
           // alternate east/west along the entrance road: 0, +9, -9, +18, -18 …
           // ADMISSION CONTROL: only take a spot that's physically CLEAR. Every
           // poll reuses the same offsets, so spawning blind dropped new arrivals
@@ -398,9 +450,17 @@ class TwinMotionDriver {
             this.ledger.release(bv.id);
             continue;
           }
+          enteringActive++;
         }
+        // off-gate spawns face ALONG the road toward the gate (a car facing
+        // NORTH into the fence 5u away can't make the turn — min radius ~11u
+        // swept it across the fence line); only the on-axis spot faces north.
+        const spawnHeading = !spawn ? NORTH
+          : spawn.x - INGRESS.x > 4 ? Math.PI
+          : spawn.x - INGRESS.x < -4 ? 0
+          : NORTH;
         const start = driveIn && spawn
-          ? { x: spawn.x, y: spawn.y, heading: NORTH }
+          ? { x: spawn.x, y: spawn.y, heading: spawnHeading }
           : { x: sp.x, y: sp.y, heading: sh };
         e = this.createEntry(start, lane, m.vstatus, oem, soc);
         e.stallId = stallId;
@@ -442,9 +502,14 @@ class TwinMotionDriver {
           activeDeparting++;
           this.startDeparture(id, e);
         } else {
-          e.tracker = null; // wait parked, stall claim kept — released on launch
-          e.reverse = null;
-          e.car.speed = 0;
+          // wait for a slot. A PARKED car waits in place (stall claim kept).
+          // A MID-TAXI car must NOT be frozen at its mid-turn pose (that made
+          // diagonal statues between stalls) — it keeps its route, finishes
+          // the pull-in, parks, and departs when the queue releases it.
+          if (!e.tracker) {
+            e.reverse = null;
+            e.car.speed = 0;
+          }
           this.departQueue.push(id);
         }
       }
@@ -487,10 +552,12 @@ class TwinMotionDriver {
     const moving: MovingCar[] = [];
     const movers: MovingCar[] = [];
     const parked: MovingCar[] = [];
+    const stationary: MovingCar[] = []; // EVERY stopped body: parked OR queued
     for (const [id, e] of this.entries) {
       const mc = { id, pose: e.car.pose, speed: e.car.speed };
       moving.push(mc);
       (e.tracker ? movers : parked).push(mc);
+      if (Math.abs(e.car.speed) < 0.1) stationary.push(mc);
     }
 
     let changed = false;
@@ -561,14 +628,23 @@ class TwinMotionDriver {
         let gap = fullGap;
         let leadSpeed = fullLeadSpeed;
         if (e.stuckFor >= ESCAPE_AFTER) {
-          // escape: ignore MOVING blockers (mutual deadlocks dissolve as both
-          // creep) but ALWAYS respect parked bodies — never phase through a
-          // parked row; the earlier reroute is the way around those.
-          gap = block.gap;
-          leadSpeed = 0;
+          // escape: pass ONLY my mutual-deadlock partner (cycleWith); every
+          // other body — parked row or stopped queue — stays solid. The pair
+          // dissolves as both creep past each other (separation steer pushes
+          // them apart); nobody ever crawls through legitimate traffic.
+          const noCycle = (arr: MovingCar[]) =>
+            e.cycleWith ? arr.filter((c) => c.id !== e.cycleWith) : arr;
+          const l2 = findLeader(self, noCycle(movers), 3.2, 34);
+          const s2 = findLeader(self, noCycle(stationary), 3.0, 20);
+          gap = Math.min(l2.gap, s2.gap);
+          leadSpeed = gap === s2.gap ? 0 : l2.leaderSpeed;
         } else if (e.stuckFor >= RELAX_AFTER) {
-          gap = lead.gap;
-          leadSpeed = lead.leaderSpeed;
+          // relax: drop cross-traffic yields only — keep the lane leader AND a
+          // hard gap to every STATIONARY body (the old rung dropped parked
+          // bodies from the gap and creeped cars INTO their neighbors).
+          const s2 = findLeader(self, stationary, 3.0, 20);
+          gap = Math.min(lead.gap, s2.gap);
+          leadSpeed = gap === s2.gap ? 0 : lead.leaderSpeed;
         }
         const accel = idmAccel(e.car.speed, gap, leadSpeed);
         let desiredSpeed = Math.max(0, e.car.speed + accel * dt);
@@ -579,13 +655,20 @@ class TwinMotionDriver {
         desiredSpeed = Math.min(desiredSpeed, Math.sqrt(2 * 7 * Math.max(0, remaining)));
         e.car.step(dt, desiredSpeed, steer + sep);
         changed = true;
-        // stuck bookkeeping off the FULL (unrelaxed) picture: accumulate while
-        // pinned; reset only when genuinely free again (blocker gone or moving);
-        // HOLD during the escape crawl itself so the ladder can't oscillate.
-        // `remaining > 4` keeps the normal ease-in to a stall from ever tripping it.
-        const pinned = e.car.speed < 0.15 && fullGap < 8 && fullLeadSpeed < 0.1 && remaining > 4;
-        if (pinned) e.stuckFor += dt;
-        else if (fullGap > 10 || fullLeadSpeed >= 0.1 || remaining <= 4) { e.stuckFor = 0; e.rerouted = false; }
+        // RAW stuck observations off the FULL (unrelaxed) picture. The post-loop
+        // deadlock pass (cycle/wedge analysis over blocker ids) decides whether
+        // stuckFor actually accrues — a legitimately stopped queue never
+        // escalates, so the ladder can't mass-fire at the gate anymore.
+        e.blockerId =
+          fullGap === block.gap ? block.leaderId :
+          fullGap === lead.gap ? lead.leaderId : cross.leaderId;
+        e.pinnedRaw = e.car.speed < 0.15 && fullGap < 8 && fullLeadSpeed < 0.1 && remaining > 4;
+        // stall-mouth: blocked in the final 4u of a pull-in used to RESET the
+        // ladder (a car wedged half-into its stall waited forever) — now it may
+        // escalate, but only as far as the REROUTE rung (never creep/escape,
+        // so a normal ease-in beside parked neighbors can't clip them).
+        e.mouthRaw = e.car.speed < 0.15 && fullGap < 5 && fullLeadSpeed < 0.1 && remaining <= 4;
+        e.freeRaw = fullGap > 10 || fullLeadSpeed >= 0.1;
         if (e.stuckFor >= REROUTE_AFTER && !e.rerouted) {
           // last rung: a fresh route from the current pose often resolves a
           // geometric wedge the ladder can't (drop back to RELAX, not zero,
@@ -607,8 +690,19 @@ class TwinMotionDriver {
           }
         }
         if (e.tracker.atEnd(ARRIVE_EPS)) {
-          if (e.vstatus === "departing") {
+          if (e.vstatus === "departing" && !this.departQueue.includes(id)) {
             remove.push(id);
+          } else if (e.vstatus === "departing" && e.stallId) {
+            // a QUEUED departer that was mid-taxi finishes its pull-in and waits
+            // PARKED at its stall (the release loop launches it when a slot frees)
+            const st = useDepotStore.getState().stalls.find((s) => s.id === e.stallId);
+            if (st) { e.car.x = st.position.x; e.car.y = st.position.y; }
+            e.car.heading = e.stallHeading;
+            e.car.speed = 0;
+            e.car.steer = 0;
+            e.tracker = null;
+            e.reverse = null;
+            e.stuckFor = 0;
           } else {
             // snap EXACTLY to the target (stall pose, else the path end) so a car
             // never overshoots or oscillates at the end of its route.
@@ -625,11 +719,56 @@ class TwinMotionDriver {
             e.car.steer = 0;
             e.tracker = null;
             e.reverse = null;
+            e.stuckFor = 0;
           }
         }
       } else if (e.car.speed !== 0) {
         e.car.speed = 0; // parked: hold still
         changed = true;
+      }
+    }
+    // DEADLOCK ANALYSIS: stuckFor accrues ONLY for a true deadlock — my blocker
+    // chain CYCLES back to me (mutual yield) — or a WEDGE (a parked, tracker-
+    // less body blocks me; reroute is the way around). A car queued behind a
+    // stopped-but-routed car is just traffic: it waits, like a real car. This
+    // is what stops the whole gate queue from "escaping" through itself.
+    for (const [id, e] of this.entries) {
+      if (!e.tracker || e.reverse) { e.cycleWith = null; continue; }
+      let accrue = false;
+      e.cycleWith = null;
+      if ((e.pinnedRaw || e.mouthRaw) && e.blockerId) {
+        const b = this.entries.get(e.blockerId);
+        if (!b || !b.tracker) {
+          accrue = true; // wedge: a parked/foreign body blocks me
+        } else {
+          // walk my blocker chain — accrue only if it comes back to ME
+          let cur: string | null = e.blockerId;
+          const seen = new Set<string>();
+          for (let hop = 0; cur && hop < 8; hop++) {
+            if (cur === id) { accrue = true; e.cycleWith = e.blockerId; break; }
+            if (seen.has(cur)) break; // a foreign cycle ahead — their ladder resolves it
+            seen.add(cur);
+            const ce = this.entries.get(cur);
+            // reversing/parked links terminate the chain (they resolve themselves)
+            cur = ce && ce.tracker && !ce.reverse ? ce.blockerId : null;
+          }
+        }
+      }
+      if (accrue) {
+        e.stuckFor += dt;
+        // mouth-blocked cars escalate to REROUTE only — never creep/escape
+        if (e.mouthRaw && !e.pinnedRaw) e.stuckFor = Math.min(e.stuckFor, REROUTE_AFTER + 1);
+        // a WEDGE (parked blocker, no cycle) can't creep through — escape
+        // respects stationary bodies — so it retries the reroute PERIODICALLY:
+        // the depot changes underneath it (the blocker gets dispatched, other
+        // stalls free up) and a later attempt finds a way. Cycles keep escaping.
+        if (!e.cycleWith && e.stuckFor >= ESCAPE_AFTER + REROUTE_AFTER) {
+          e.stuckFor = REROUTE_AFTER;
+          e.rerouted = false;
+        }
+      } else if (e.freeRaw) {
+        e.stuckFor = 0;
+        e.rerouted = false;
       }
     }
     for (const id of remove) {
@@ -646,15 +785,19 @@ class TwinMotionDriver {
       for (const [, e] of this.entries) {
         if (e.vstatus === "departing" && e.tracker) active++;
       }
+      const stillDriving: string[] = [];
       while (active < MAX_ACTIVE_DEPARTING && this.departQueue.length) {
         const id = this.departQueue.shift()!;
         const e = this.entries.get(id);
         // skip ids that despawned or were re-adopted by the backend since queuing
-        if (!e || e.vstatus !== "departing" || e.tracker) continue;
+        if (!e || e.vstatus !== "departing") continue;
+        // a queued car still finishing its pull-in stays queued until parked
+        if (e.tracker) { stillDriving.push(id); continue; }
         this.startDeparture(id, e);
         active++;
         changed = true;
       }
+      this.departQueue.push(...stillDriving);
     }
     if (changed) this.flush();
   }
