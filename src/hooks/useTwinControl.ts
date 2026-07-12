@@ -1,13 +1,9 @@
 // ============================================================================
-// useTwinControl — Play/Pause/Step for the live twin.
-// When "playing", repeatedly POSTs /tick (keyless) so the sim advances in real
-// time; the snapshot poll (useTwinFeed) renders each new frame. Speed controls
-// tick cadence.
-//
-// Pause is WORLD-level, not tab-level: it also flips the run to status
-// 'paused' on the backend, which every advance path honors (other open tabs'
-// tick loops no-op, and the 2-min pg_cron decide/wave loop skips it). Without
-// that, any second tab kept the world moving and Pause looked broken.
+// useTwinControl — Pause/Resume + speed for the live twin.
+// The WORLD CLOCK is server-side (pg_cron metronome advances every running
+// run); this hook never posts ticks. Pause/Resume flip the run's status on
+// the backend (every advance path honors it — the metronome skips paused
+// runs), and Speed sets the run's real time-compression (time_scale).
 // ============================================================================
 import { useCallback, useEffect, useRef, useState } from "react";
 import { twin } from "@/lib/ottoTwin";
@@ -17,10 +13,7 @@ export function useTwinControl() {
   const activeSimRunId = useTwinStore((s) => s.activeSimRunId);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeedState] = useState(1);     // 1–10×; ALWAYS start at 1× real pace
-  const [busy, setBusy] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const inFlight = useRef(false);
 
   // HONEST SPEED: the slider drives the twin's real time-compression
   // (time_scale = 60 × slider, sim-minutes per tick; server metronome keeps
@@ -35,29 +28,13 @@ export function useTwinControl() {
     }, 400);
   }, [activeSimRunId]);
 
-  const stepOnce = useCallback(async () => {
-    if (!activeSimRunId || inFlight.current) return;
-    inFlight.current = true;
-    setBusy(true);
-    try { await twin.tick(activeSimRunId); }
-    catch { /* surfaced via snapshot connected=false */ }
-    finally { inFlight.current = false; setBusy(false); }
-  }, [activeSimRunId]);
-
-  // Play loop: cadence = clamp(2400/speed) ms, min 600ms
-  useEffect(() => {
-    if (!playing || !activeSimRunId) return;
-    let cancelled = false;
-    const loop = async () => {
-      if (cancelled) return;
-      await stepOnce();
-      if (cancelled) return;
-      const delay = Math.max(600, Math.round(2400 / speed));
-      timer.current = setTimeout(loop, delay);
-    };
-    loop();
-    return () => { cancelled = true; if (timer.current) clearTimeout(timer.current); };
-  }, [playing, speed, activeSimRunId, stepOnce]);
+  // NO BROWSER TICK LOOP. The server-side metronome (pg_cron →
+  // ottoq_demo_metronome) owns the world clock: it advances every running run
+  // ~2-5×/min, tab-independent. The old client loop POSTed /tick in parallel
+  // and COLLIDED with the metronome's run lock — every collision surfaced as a
+  // "tick failed: lock/statement timeout" 500 error modal on the deployed
+  // site. Play/Pause below still control the WORLD (server resume/pause);
+  // speed controls the world's real time-compression (time_scale).
 
   // Auto-pause if the run goes away
   useEffect(() => { if (!activeSimRunId) setPlaying(false); }, [activeSimRunId]);
@@ -77,11 +54,10 @@ export function useTwinControl() {
   const toggle = useCallback(() => (playing ? pause() : play()), [playing, play, pause]);
 
   return {
-    playing, speed, busy,
+    playing, speed,
     play,
     pause,
     toggle,
-    step: stepOnce,
     setSpeed,
   };
 }
