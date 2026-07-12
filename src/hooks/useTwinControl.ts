@@ -16,7 +16,7 @@ import { useTwinStore } from "@/store/twinStore";
 export function useTwinControl() {
   const activeSimRunId = useTwinStore((s) => s.activeSimRunId);
   const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState(4);          // 1–10×; higher = more frequent ticks
+  const [speed, setSpeed] = useState(1);          // 1–10×; ALWAYS start at 1× real pace
   const [busy, setBusy] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inFlight = useRef(false);

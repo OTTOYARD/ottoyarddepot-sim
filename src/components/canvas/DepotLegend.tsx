@@ -25,7 +25,7 @@ const oems = [
 ];
 
 export const DepotLegend = () => {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false); // collapsed by default — expand on demand
 
   return (
     <div className="absolute bottom-14 left-2 z-40 flex items-end gap-0">

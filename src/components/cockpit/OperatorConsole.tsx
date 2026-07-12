@@ -14,7 +14,7 @@
 // ============================================================================
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Play, Pause, StepForward, Square, Zap, CloudRain, BatteryWarning, AlertTriangle,
+  Play, Pause, Square, Zap, CloudRain, BatteryWarning, AlertTriangle,
   RotateCcw, ChevronRight, ChevronDown, Activity, FlaskConical, Info, Sun, Snowflake, Gauge,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -360,7 +360,8 @@ export const OperatorConsole = () => {
     } catch (e: any) { toast.error("Start failed", { description: e.message }); }
     finally { setBusy(null); }
   };
-  const quickLaunch = (code: string) => { setSelected(code); startScenario(code); };
+  // Quick cards only SELECT the scenario — nothing runs until Start is pressed.
+  const quickLaunch = (code: string) => setSelected(code);
   const stopRun = async () => { if (!runId) return; setBusy("stop"); try { await twin.stop(runId); ctrl.pause(); toast.success("Run stopped"); } catch (e: any) { toast.error("Stop failed", { description: e.message }); } finally { setBusy(null); } };
 
   const toggleChaos = async (on: boolean) => {
@@ -400,11 +401,11 @@ export const OperatorConsole = () => {
     <ScrollArea className="flex-1">
       {/* RUN CONTROL */}
       <Group icon={Activity} title="Run Control">
-        {/* Featured quick-launch — one click starts that scenario + the clock */}
-        <span className="text-[10px] text-ink-faint uppercase tracking-wide">Quick launch</span>
+        {/* Featured scenarios — a click SELECTS; press Start to run it */}
+        <span className="text-[10px] text-ink-faint uppercase tracking-wide">Scenario</span>
         <div className="grid grid-cols-2 gap-1.5 pb-1">
           {FEATURED.filter((f) => scenarios.some((s) => s.scenario_code === f.code)).map((f) => {
-            const active = !!runId && snapshot?.run?.scenario === f.code;
+            const active = selected === f.code;
             return (
               <button key={f.code} onClick={() => quickLaunch(f.code)} disabled={busy === "start"}
                 className={`flex items-center gap-1.5 h-9 px-2 rounded border text-[11px] text-left transition-colors disabled:opacity-50 ${active ? "border-brand-red bg-brand-red/10 text-ink" : "border-white/[0.06] bg-canvas-elev hover:bg-white/10 text-ink-dim hover:text-ink"}`}>
@@ -424,12 +425,12 @@ export const OperatorConsole = () => {
           <Button onClick={startScenario} disabled={busy === "start"} className="h-8 bg-brand-red hover:bg-brand-deep text-white text-xs">Start</Button>
           <Button onClick={stopRun} disabled={!runId} variant="outline" className="h-8 border-white/[0.06] text-ink-dim hover:text-ink"><Square size={13} /></Button>
         </div>
-        {/* transport */}
+        {/* ONE transport control: Start begins the whole world (twin + viewer);
+            this button pauses/resumes ALL of it. No separate Play. */}
         <div className="flex items-center gap-2 pt-1">
           <Button onClick={ctrl.toggle} disabled={!runId} className="h-8 flex-1 bg-canvas-elev hover:bg-white/10 text-ink text-xs border border-white/[0.06]">
-            {ctrl.playing ? <><Pause size={14} /> Pause</> : <><Play size={14} /> Play</>}
+            {ctrl.playing ? <><Pause size={14} /> Pause simulation</> : <><Play size={14} /> Resume</>}
           </Button>
-          <Button onClick={ctrl.step} disabled={!runId || ctrl.playing} variant="outline" className="h-8 border-white/[0.06] text-ink-dim hover:text-ink"><StepForward size={14} /></Button>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-ink-faint uppercase tracking-wide w-10">Speed</span>
