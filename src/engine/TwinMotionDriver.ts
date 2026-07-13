@@ -62,11 +62,22 @@ function mapState(state: string): { lane: Lane | "gate" | null; vstatus: Vehicle
   }
 }
 
-/** Parked heading for a stall: chargers face NORTH (toward the bays); others use
- *  the sitePlan stall angle (0=N,90=E,180=S,270=W → heading = (deg−90)°). */
-function parkedHeading(lane: Lane, angleDeg: number): number {
+// depot center (LOT {x:6,y:6,w:288,h:200}) — perimeter cars nose OUTWARD from it
+const DEPOT_CX = 150;
+const DEPOT_CY = 106;
+
+/** Parked heading for a stall. Chargers/bays face NORTH (toward the bays).
+ *  Perimeter staging columns/rows nose OUTWARD (away from the depot center)
+ *  along their orientation axis, so the pull-in approach point (9u BEHIND the
+ *  nose) always lands on the INTERIOR, drivable side — never off the lot edge.
+ *  (The old sitePlan-angle heading pointed the west column INWARD, putting its
+ *  approach point past the west edge at x≈7, unreachable → cars detoured to the
+ *  far edge and crept.) */
+function parkedHeading(lane: Lane, angleDeg: number, sx: number, sy: number): number {
   if (lane === "dcfc" || lane === "l2" || lane === "wash" || lane === "service") return NORTH;
-  return ((angleDeg - 90) * Math.PI) / 180;
+  const vertical = angleDeg === 90 || angleDeg === 270; // east-west oriented column
+  if (vertical) return sx < DEPOT_CX ? Math.PI : 0;      // west edge→face W, east→face E
+  return sy < DEPOT_CY ? NORTH : Math.PI / 2;            // north edge→face N, south→face S
 }
 
 interface Entry {
@@ -433,7 +444,7 @@ class TwinMotionDriver {
             // Only route when the claimed stall is genuinely NEW.
             if (st2 && st2 !== e.stallId) {
               const s2 = stalls.find((s) => s.id === st2)!;
-              const sh2 = parkedHeading("staging", s2.position.angle);
+              const sh2 = parkedHeading("staging", s2.position.angle, s2.position.x, s2.position.y);
               this.assignRail(e, { kind: "stall", lane: "staging", x: s2.position.x, y: s2.position.y, heading: sh2 });
               e.stallId = st2;
               e.stallHeading = sh2;
@@ -454,7 +465,7 @@ class TwinMotionDriver {
       }
       const stall = stalls.find((s) => s.id === stallId)!;
       const sp = { x: stall.position.x, y: stall.position.y };
-      const sh = parkedHeading(lane, stall.position.angle);
+      const sh = parkedHeading(lane, stall.position.angle, stall.position.x, stall.position.y);
       if (!e) {
         // first seen: entering cars — and, once primed, ANY newly-appearing car
         // (state hop between polls) — start at the ingress and DRIVE to their
