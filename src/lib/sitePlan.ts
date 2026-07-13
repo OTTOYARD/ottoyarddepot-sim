@@ -21,11 +21,17 @@
 import type { StallState } from '@/store/depotStore';
 
 // ---- Flow constants (consumed by SimulationEngine / ArrivalGenerator) ----
-export const INGRESS = { x: 100, y: 215 };
-export const EGRESS = { x: 200, y: 215 };
+// INGRESS is the EAST opening — deliberately co-located with the east-side
+// temp/overflow staging block (TEMP_LANE_X ≈ 247) and OPPOSITE the west BESS/
+// switchgear yard, so an arriving car has a short taxi to staging and departing
+// bay cars route east (away from the fenced battery yard). EGRESS is the WEST
+// opening. Both are single-sourced: the LaneGraph, spawns, staging-fill order,
+// and the 2D labels all read these, so the two stay in lockstep.
+export const INGRESS = { x: 200, y: 215 };  // EAST (right) — same side as temp staging
+export const EGRESS = { x: 100, y: 215 };   // WEST (left)
 export const QUEUE_Y = 184;
-export const WEST_AISLE_X = 30;   // one-way northbound
-export const EAST_AISLE_X = 275;  // one-way southbound (to egress)
+export const WEST_AISLE_X = 30;   // west avenue (two-way divided; drains to west EGRESS)
+export const EAST_AISLE_X = 275;  // east avenue (two-way divided; feeds from east INGRESS)
 // North block, top to bottom: REAR APRON (full-width 30ft+ maneuvering zone
 // behind the pull-through bays — no parking abuts it) → bay row → concrete
 // FORECOURT (approach throat into the bay fronts) → NORTH COLLECTOR (two-way

@@ -27,7 +27,7 @@ import { useDepotStore, type StallStatus } from "@/store/depotStore";
 import { useVehicleStore } from "@/store/vehicleStore";
 import type { Vehicle, VehicleStatus } from "@/engine/types";
 import type { TwinSnapshot } from "@/lib/ottoTwin";
-import { INGRESS, EGRESS, gapLaneX, SOUTH_LANE_Y } from "@/lib/sitePlan";
+import { INGRESS, EGRESS, gapLaneX, SOUTH_LANE_Y, REAR_LANE_Y } from "@/lib/sitePlan";
 
 type Lane = "dcfc" | "l2" | "wash" | "service" | "staging";
 
@@ -275,11 +275,26 @@ class TwinMotionDriver {
     return buildRail(pts, this.graph.nodes.values(), mouth);
   }
 
+  /** If `pose` sits inside a pull-through wash/service bay, return the FORWARD
+   *  pull-out-the-rear lead segment + the rear-apron point to route onward from.
+   *  A serviced car thus leaves out the REAR (north) and rides the one-way apron
+   *  EAST — it never reverses south out the bay front, and never heads west
+   *  toward the fenced BESS yard. Returns null when the car isn't in a bay. */
+  private bayExit(pose: { x: number; y: number }): { lead: Pt[]; start: { x: number; y: number } } | null {
+    const inBay = pose.y > 30 && pose.y < 54 && pose.x > 108 && pose.x < 216;
+    if (!inBay) return null;
+    const start = { x: pose.x, y: REAR_LANE_Y };
+    return { lead: [{ x: pose.x, y: pose.y }, start], start };
+  }
+
   /** Rebuild the rail toward the entry's current destination from its ACTUAL pose. */
   private rebuildRail(e: Entry): Rail | null {
     if (!e.dest) return null;
     if (e.dest.kind === "egress") {
-      return buildRail(this.graph.route(e.car.pose, { x: EGRESS.x, y: EGRESS.y }), this.graph.nodes.values(), null);
+      const be = this.bayExit(e.car.pose);
+      const route = this.graph.route(be?.start ?? e.car.pose, { x: EGRESS.x, y: EGRESS.y });
+      const pts = be ? [...be.lead, ...route] : route;
+      return buildRail(pts, this.graph.nodes.values(), null);
     }
     return this.railTo(e.car.pose, e.dest.lane, e.dest, e.dest.heading);
   }
@@ -326,17 +341,21 @@ class TwinMotionDriver {
   /** Route a drivable path from `pose` to a stall along the one-way lanes. Charging
    *  stalls are reached via their northbound gap lane (car ends facing north). */
   private routeToStall(pose: { x: number; y: number }, lane: Lane, stall: { x: number; y: number }, facing: number): Pt[] {
+    // leaving a bay? pull FORWARD out the rear first, then route from the apron.
+    const be = this.bayExit(pose);
+    const lead = be?.lead ?? [];
+    const start = be?.start ?? pose;
     if (lane === "dcfc" || lane === "l2") {
       const gx = gapLaneX(stall.x);
-      const toGap = this.graph.route(pose, { x: gx, y: SOUTH_LANE_Y - 2 });
-      return [...toGap, { x: gx, y: stall.y }, { x: stall.x, y: stall.y }];
+      const toGap = this.graph.route(start, { x: gx, y: SOUTH_LANE_Y - 2 });
+      return [...lead, ...toGap, { x: gx, y: stall.y }, { x: stall.x, y: stall.y }];
     }
     // parking / bays: approach a point one car-length BEHIND the parked heading,
     // then pull straight in — each car fans to its own stall and noses in facing
     // `facing`, instead of trailing others into a shared approach spot.
     const ax = stall.x - Math.cos(facing) * 9;
     const ay = stall.y - Math.sin(facing) * 9;
-    return [...this.graph.route(pose, { x: ax, y: ay }), { x: stall.x, y: stall.y }];
+    return [...lead, ...this.graph.route(start, { x: ax, y: ay }), { x: stall.x, y: stall.y }];
   }
 
   /** Reconcile render state + routes against a fresh backend snapshot. */

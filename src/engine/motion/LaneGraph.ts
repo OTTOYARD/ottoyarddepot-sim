@@ -23,6 +23,7 @@
 import type { Pt } from "./PathTracker";
 import {
   GAP_LANES, NORTH_LANE_Y, SOUTH_LANE_Y, WEST_AISLE_X, EAST_AISLE_X, INGRESS, EGRESS,
+  REAR_LANE_Y,
 } from "@/lib/sitePlan";
 
 interface Lane {
@@ -218,6 +219,19 @@ export function buildDepotLanes(): LaneGraph {
   // --- gates ---
   g.addLane("ingress", "S_in"); // drive in
   g.addLane("S_eg", "egress");  // drive out
+
+  // --- REAR APRON behind the pull-through wash/service bays: ONE-WAY EASTBOUND.
+  // Bays are full pull-through — a serviced car pulls FORWARD out the rear (north)
+  // into this apron, then it drains EAST to the east avenue and down to the east-
+  // side staging block. It deliberately spans only the bay x-range and connects
+  // ONLY at its EAST end: there is NO lane west of the westmost bay, because that
+  // way lies the fenced BESS / switchgear yard — so the graph can never route a
+  // car toward the battery equipment. Cars join it mid-span via the bay-exit
+  // pull-through maneuver (TwinMotionDriver), not from the south. */
+  const rearXs = [120, 138, 156, 174, 192, 210, EAST_AISLE_X];
+  rearXs.forEach((x, i) => g.addNode(`R${i}`, x, REAR_LANE_Y));
+  for (let i = 1; i < rearXs.length; i++) g.addLane(`R${i - 1}`, `R${i}`); // eastbound only
+  g.addLane(`R${rearXs.length - 1}`, "NE"); // rear-east corner → down the east avenue
 
   return g;
 }
