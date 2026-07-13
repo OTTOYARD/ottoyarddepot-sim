@@ -70,6 +70,8 @@ function parkedHeading(lane: Lane, angleDeg: number): number {
 }
 
 interface Entry {
+  id: string; // stable vehicle id (also the map key) — lets any rail-swap
+              // release this car's node/mouth locks without threading the id
   car: KinematicCar;
   tracker: Rail | null; // the RAIL the car is riding; null = parked
   /** active back-out maneuver: reverse on a fixed arc for `remaining` distance
@@ -212,8 +214,9 @@ class TwinMotionDriver {
     }
   }
 
-  private createEntry(pose: { x: number; y: number; heading: number }, lane: Lane | "gate", vstatus: VehicleStatus, oem: string, soc: number): Entry {
+  private createEntry(id: string, pose: { x: number; y: number; heading: number }, lane: Lane | "gate", vstatus: VehicleStatus, oem: string, soc: number): Entry {
     return {
+      id,
       car: new KinematicCar(pose, DEFAULT_CAR_PARAMS),
       tracker: null, reverse: null, dest: null,
       lane, stallId: null, stallHeading: pose.heading, vstatus, oem, soc,
@@ -244,6 +247,11 @@ class TwinMotionDriver {
    *  immediately, or at the reverse cusp (the rail must start from the true
    *  post-maneuver pose or the car would teleport back). */
   private assignRail(e: Entry, dest: NonNullable<Entry["dest"]>) {
+    // CRITICAL: the old route is abandoned, so drop any node/mouth locks this
+    // car held on it. Without this, a lock on a node the NEW route doesn't
+    // traverse is never released (stepRail only releases nodes it revisits) —
+    // a stale lock that stops every car routed through it, seizing the depot.
+    this.locks.releaseAll(e.id);
     e.dest = dest;
     const wasParked = e.tracker === null && !e.reverse;
     const rail = this.rebuildRail(e);
@@ -491,7 +499,7 @@ class TwinMotionDriver {
         const start = driveIn && spawn
           ? { x: spawn.x, y: spawn.y, heading: spawnHeading }
           : { x: sp.x, y: sp.y, heading: sh };
-        e = this.createEntry(start, lane, m.vstatus, oem, soc);
+        e = this.createEntry(bv.id, start, lane, m.vstatus, oem, soc);
         e.avId = bv.av_id ?? "";
         e.make = bv.make ?? "";
         e.stallId = stallId;

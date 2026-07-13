@@ -27,7 +27,11 @@ export interface Rail {
   s: number;              // arc position
   v: number;              // speed (u/s)
   mouthKey: string | null; // charger-column mouth this route ends in (if any)
-  stationaryFor: number;  // watchdog: seconds at ~zero speed
+  stationaryFor: number;  // watchdog: seconds since the car last made real
+                          // ARC PROGRESS (not just "since v≈0") — a car creeping
+                          // at ~1 u/s behind a stale lock never fully stops, so
+                          // a velocity-only watchdog would miss it
+  progressS: number;      // arc position at the last progress checkpoint
 }
 
 const LANE_HALF = 1.7;    // half-width that counts as "in my path"
@@ -61,8 +65,10 @@ export function buildRail(
     if (best <= 9) nodes.push({ id: n.id, s: bestS });
   }
   nodes.sort((a, b) => a.s - b.s);
-  return { pts, cum, total, nodes, s: 0, v: 0, mouthKey, stationaryFor: 0 };
+  return { pts, cum, total, nodes, s: 0, v: 0, mouthKey, stationaryFor: 0, progressS: 0 };
 }
+
+const PROGRESS_STEP = 4; // advancing this far resets the no-progress watchdog
 
 export function pointAt(pts: Pt[], cum: number[], s: number): Pt & { heading: number } {
   if (pts.length < 2) return { x: pts[0]?.x ?? 0, y: pts[0]?.y ?? 0, heading: 0 };
@@ -152,7 +158,10 @@ export function stepRail(
   // ease to a stop exactly at the route end
   r.v = Math.min(r.v, Math.sqrt(2 * 7 * Math.max(0, r.total - r.s)));
   r.s += r.v * dt;
-  r.stationaryFor = r.v < 0.05 ? r.stationaryFor + dt : 0;
+  // no-PROGRESS watchdog: reset only when the car has actually advanced
+  // PROGRESS_STEP along the route; creeping in place still accrues stuck-time.
+  if (r.s - r.progressS >= PROGRESS_STEP) { r.progressS = r.s; r.stationaryFor = 0; }
+  else r.stationaryFor += dt;
 
   if (r.s >= r.total - 0.3) return null; // arrived — caller docks/snaps
   return pointAt(r.pts, r.cum, r.s);
