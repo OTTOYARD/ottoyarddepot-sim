@@ -237,7 +237,10 @@ describe("TwinMotionDriver — kinematic motion off the twin", () => {
     // same-lane snapshot again → the stability-bias branch must detect the car
     // is NOT at its stall pose and re-issue a route instead of keeping it frozen
     twinMotionDriver.reconcile(snap([{ id: "v1", state: "arrived_at_gate" }]));
-    expect(entries.get("v1")!.tracker).not.toBeNull();
+    // repaired: either routed directly (rail) or backing out first (reverse,
+    // with the rail rebuilt at the cusp) — never left frozen
+    const e2 = entries.get("v1")! as unknown as { tracker: unknown; reverse: unknown };
+    expect(e2.tracker !== null || e2.reverse !== null).toBe(true);
   });
 
   it("TWIN STALL TRUTH: a faulted stall recolors offline and repels assignment", () => {

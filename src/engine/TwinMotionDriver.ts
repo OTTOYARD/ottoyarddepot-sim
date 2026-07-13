@@ -18,9 +18,9 @@
 // Runs only in backend-twin mode (active sim_run + offline engine NOT running).
 // ============================================================================
 import { KinematicCar, DEFAULT_CAR_PARAMS, wrapAngle } from "./motion/KinematicCar";
-import { PathTracker, type Pt } from "./motion/PathTracker";
-import { idmAccel } from "./motion/idm";
-import { findLeader, separationSteer, StallLedger, type MovingCar } from "./motion/traffic";
+import { type Pt } from "./motion/PathTracker";
+import { buildRail, pointAt, stepRail, RailLocks, type Rail, type RailBody } from "./motion/RailFlow";
+import { findLeader, StallLedger, type MovingCar } from "./motion/traffic";
 import { buildDepotLanes } from "./motion/LaneGraph";
 import { poseStore } from "./motion/poseStore";
 import { useDepotStore, type StallStatus } from "@/store/depotStore";
@@ -31,20 +31,12 @@ import { INGRESS, EGRESS, gapLaneX, SOUTH_LANE_Y } from "@/lib/sitePlan";
 
 type Lane = "dcfc" | "l2" | "wash" | "service" | "staging";
 
-const LOOKAHEAD_MIN = 5;
-const LOOKAHEAD_K = 0.45;
-const ARRIVE_EPS = 1.8;
 const NORTH = -Math.PI / 2; // facing north (−y) in the y-down logical frame
 
-// ---- anti-deadlock ladder (seconds stuck behind a STATIONARY blocker) ----
-// A yield graph with cycles (A yields to B yields to A) or an overlapped spawn
-// can otherwise freeze the whole depot permanently. Legit queues (blocker is
-// MOVING) never accumulate stuck-time, so normal car-following is untouched.
-const RELAX_AFTER = 8;    // ignore cross-traffic + parked-blocker gates, creep
-const REROUTE_AFTER = 18; // rebuild the route from the current pose (path around it)
-const ESCAPE_AFTER = 28;  // last resort: ignore MOVING blockers only — a car may
-                          // crawl past a mutually-stuck mover, but NEVER through
-                          // a parked body (phase-through read as "collisions")
+// Taxi motion is RAIL-CONSTRAINED (see motion/RailFlow.ts): pose = arc position
+// on the route polyline; following/intersections/column-docking are enforced by
+// projection + locks. There is no steering heuristic and no deadlock ladder —
+// lane discipline and no-overlap are structural.
 const REVERSE_HOLD_MAX = 6;   // give up a blocked back-out, go forward instead
 const DEPART_TTL = 90;        // a departing car that can't reach egress despawns
 const MAX_ACTIVE_DEPARTING = 12; // deploy waves leave in packets, not all at once
@@ -79,10 +71,13 @@ function parkedHeading(lane: Lane, angleDeg: number): number {
 
 interface Entry {
   car: KinematicCar;
-  tracker: PathTracker | null; // null = parked
+  tracker: Rail | null; // the RAIL the car is riding; null = parked
   /** active back-out maneuver: reverse on a fixed arc for `remaining` distance
-   *  (with a rear-clearance hold), then hand over to the tracker. */
+   *  (with a rear-clearance hold); the rail is rebuilt at the cusp. */
   reverse: { remaining: number; steer: number } | null;
+  /** where this car is headed — rails are rebuilt toward this after reverses
+   *  and watchdog re-routes */
+  dest: { kind: "stall"; lane: Lane; x: number; y: number; heading: number } | { kind: "egress" } | null;
   lane: Lane | "gate" | null;
   stallId: string | null;
   stallHeading: number;
@@ -93,24 +88,10 @@ interface Entry {
    *  the tooltip shows THESE, never the raw uuid */
   avId: string;
   make: string;
-  /** seconds stopped behind a STATIONARY blocker (deadlock-breaker ladder) */
-  stuckFor: number;
   /** seconds a reverse maneuver has been held by rear traffic */
   holdFor: number;
   /** seconds spent in 'departing' (TTL-despawned so a cork can never persist) */
   departFor: number;
-  /** one reroute per stuck episode — cleared when the car frees up */
-  rerouted: boolean;
-  /** who blocked me this tick (min-gap body) — deadlock-cycle analysis */
-  blockerId: string | null;
-  /** raw pinned/mouth/free observations this tick; the post-loop pass turns
-   *  them into stuckFor accrual ONLY for true deadlocks (cycle) or wedges
-   *  (parked blocker) — a legitimately stopped queue never escalates. */
-  pinnedRaw: boolean;
-  mouthRaw: boolean;
-  freeRaw: boolean;
-  /** my mutual-deadlock partner (escape may pass THIS body only) */
-  cycleWith: string | null;
 }
 
 class TwinMotionDriver {
@@ -119,6 +100,8 @@ class TwinMotionDriver {
   private last: number | null = null;
   private graph = buildDepotLanes();
   private ledger = new StallLedger();
+  /** intersection-node + charger-column-mouth locks (rails traffic control) */
+  private locks = new RailLocks();
   private entries = new Map<string, Entry>();
   /** twin stall uuid → renderer stall id (from the depot layout) — lets the
    *  renderer park each car in the twin's EXACT assigned stall, so OTTO-Q's
@@ -172,6 +155,7 @@ class TwinMotionDriver {
     this.pendingSnap = null;
     this.runId = null;
     this.departQueue = [];
+    this.locks = new RailLocks();
     // push an empty roster so no ghost fleet lingers after leaving twin mode
     useVehicleStore.getState().setVehicles([]);
     // ...and no stale stall paint on an empty depot (gap G6): an emptied scene
@@ -190,6 +174,7 @@ class TwinMotionDriver {
     this.lastRosterKey = "";
     this.primed = false;
     this.departQueue = [];
+    this.locks = new RailLocks();
   }
 
   /** Ingest the twin depot layout: map each twin stall uuid to the renderer's
@@ -230,33 +215,57 @@ class TwinMotionDriver {
   private createEntry(pose: { x: number; y: number; heading: number }, lane: Lane | "gate", vstatus: VehicleStatus, oem: string, soc: number): Entry {
     return {
       car: new KinematicCar(pose, DEFAULT_CAR_PARAMS),
-      tracker: null, reverse: null, lane, stallId: null, stallHeading: pose.heading, vstatus, oem, soc,
+      tracker: null, reverse: null, dest: null,
+      lane, stallId: null, stallHeading: pose.heading, vstatus, oem, soc,
       avId: "", make: "",
-      stuckFor: 0, holdFor: 0, departFor: 0, rerouted: false,
-      blockerId: null, pinnedRaw: false, mouthRaw: false, freeRaw: false, cycleWith: null,
+      holdFor: 0, departFor: 0,
     };
   }
 
-  /** A car leaving a stall it nosed INTO must BACK OUT first: if the new route
-   *  starts behind the parked heading (>~100°), begin a reverse arc that swings
-   *  the nose toward the route side; pure-pursuit takes over after. (In reverse,
-   *  heading rotates OPPOSITE the steer sign, hence -sign(angleToRoute).) */
-  private maybeStartReverse(e: Entry) {
-    if (!e.tracker) return;
-    const probe = e.tracker.pointAtArc(Math.min(8, e.tracker.total));
-    const ang = wrapAngle(Math.atan2(probe.y - e.car.y, probe.x - e.car.x) - e.car.heading);
-    if (Math.abs(ang) > 1.75) {
-      e.reverse = { remaining: 11, steer: -Math.sign(ang || 1) * 0.35 };
+  /** Build a rail to a stall (charger columns get a MOUTH key so only one car
+   *  docks/undocks in a column throat at a time). */
+  private railTo(from: { x: number; y: number }, lane: Lane, stall: { x: number; y: number }, facing: number): Rail {
+    const pts = this.routeToStall(from, lane, stall, facing);
+    const mouth = lane === "dcfc" || lane === "l2" ? `${lane}:${Math.round(stall.x)}` : null;
+    return buildRail(pts, this.graph.nodes.values(), mouth);
+  }
+
+  /** Rebuild the rail toward the entry's current destination from its ACTUAL pose. */
+  private rebuildRail(e: Entry): Rail | null {
+    if (!e.dest) return null;
+    if (e.dest.kind === "egress") {
+      return buildRail(this.graph.route(e.car.pose, { x: EGRESS.x, y: EGRESS.y }), this.graph.nodes.values(), null);
     }
+    return this.railTo(e.car.pose, e.dest.lane, e.dest, e.dest.heading);
+  }
+
+  /** Point a car at a new destination: sets dest, BACKS OUT first if it is
+   *  parked nose-in (>~100° from the route direction), and builds the rail —
+   *  immediately, or at the reverse cusp (the rail must start from the true
+   *  post-maneuver pose or the car would teleport back). */
+  private assignRail(e: Entry, dest: NonNullable<Entry["dest"]>) {
+    e.dest = dest;
+    const wasParked = e.tracker === null && !e.reverse;
+    const rail = this.rebuildRail(e);
+    if (!rail) return;
+    if (wasParked) {
+      const probe = pointAt(rail.pts, rail.cum, Math.min(8, rail.total));
+      const ang = wrapAngle(Math.atan2(probe.y - e.car.y, probe.x - e.car.x) - e.car.heading);
+      if (Math.abs(ang) > 1.75) {
+        e.reverse = { remaining: 11, steer: -Math.sign(ang || 1) * 0.35 };
+        e.tracker = null;
+        return;
+      }
+    }
+    e.tracker = rail;
   }
 
   /** Launch a departure: release the stall and route to the egress. */
   private startDeparture(id: string, e: Entry) {
     this.ledger.release(id);
+    this.locks.releaseAll(id);
     e.stallId = null;
-    const wasParked = e.tracker === null;
-    e.tracker = new PathTracker(this.graph.route(e.car.pose, { x: EGRESS.x, y: EGRESS.y }));
-    if (wasParked) this.maybeStartReverse(e);
+    this.assignRail(e, { kind: "egress" });
   }
 
   /** Route a drivable path from `pose` to a stall along the one-way lanes. Charging
@@ -380,9 +389,8 @@ class TwinMotionDriver {
             const off = Math.hypot(e.car.x - st.position.x, e.car.y - st.position.y);
             let dh = Math.abs(e.car.heading - e.stallHeading) % (2 * Math.PI);
             if (dh > Math.PI) dh = 2 * Math.PI - dh;
-            if (off > ARRIVE_EPS || dh > 0.2) {
-              e.tracker = new PathTracker(this.routeToStall(e.car.pose, lane,
-                { x: st.position.x, y: st.position.y }, e.stallHeading));
+            if (off > 1.8 || dh > 0.2) {
+              this.assignRail(e, { kind: "stall", lane: lane as Lane, x: st.position.x, y: st.position.y, heading: e.stallHeading });
               e.departFor = 0;
             }
           }
@@ -418,10 +426,7 @@ class TwinMotionDriver {
             if (st2 && st2 !== e.stallId) {
               const s2 = stalls.find((s) => s.id === st2)!;
               const sh2 = parkedHeading("staging", s2.position.angle);
-              const wasParked = e.tracker === null;
-              e.tracker = new PathTracker(this.routeToStall(e.car.pose, "staging",
-                { x: s2.position.x, y: s2.position.y }, sh2));
-              if (wasParked) this.maybeStartReverse(e);
+              this.assignRail(e, { kind: "stall", lane: "staging", x: s2.position.x, y: s2.position.y, heading: sh2 });
               e.stallId = st2;
               e.stallHeading = sh2;
               e.lane = "staging";
@@ -491,13 +496,11 @@ class TwinMotionDriver {
         e.make = bv.make ?? "";
         e.stallId = stallId;
         e.stallHeading = sh;
-        if (driveIn) e.tracker = new PathTracker(this.routeToStall(start, lane, sp, sh));
+        if (driveIn) this.assignRail(e, { kind: "stall", lane, x: sp.x, y: sp.y, heading: sh });
       } else if (e.stallId !== stallId) {
         // re-assigned to a new stall → taxi there (backing out first if it was
         // parked and the route starts behind its nose)
-        const wasParked = e.tracker === null;
-        e.tracker = new PathTracker(this.routeToStall(e.car.pose, lane, sp, sh));
-        if (wasParked) this.maybeStartReverse(e);
+        this.assignRail(e, { kind: "stall", lane, x: sp.x, y: sp.y, heading: sh });
         e.stallId = stallId;
         e.stallHeading = sh;
       }
@@ -580,48 +583,47 @@ class TwinMotionDriver {
 
   /** One physical motion step of `dt` seconds. Public for unit testing. */
   tickMotion(dt: number) {
-    // snapshot car poses for leader-finding — split MOVERS from PARKED so a docked
-    // car just off the driving line (stall offset ≈2.4u) can never become a
-    // permanent phantom leader that freezes passing traffic forever.
+    // every physical body on the lot, one entry each — rail cars project these
+    // onto their own forward windows (RailFlow); `moving` is kept only for the
+    // reverse maneuver's rear-clearance check.
+    const bodies: RailBody[] = [];
     const moving: MovingCar[] = [];
-    const movers: MovingCar[] = [];
-    const parked: MovingCar[] = [];
-    const stationary: MovingCar[] = []; // EVERY stopped body: parked OR queued
     for (const [id, e] of this.entries) {
-      const mc = { id, pose: e.car.pose, speed: e.car.speed };
-      moving.push(mc);
-      (e.tracker ? movers : parked).push(mc);
-      if (Math.abs(e.car.speed) < 0.1) stationary.push(mc);
+      bodies.push({ id, x: e.car.x, y: e.car.y });
+      moving.push({ id, pose: e.car.pose, speed: e.car.speed });
     }
 
     let changed = false;
     const remove: string[] = [];
     for (const [id, e] of this.entries) {
-      if (e.tracker && e.reverse) {
+      if (e.reverse) {
         // BACK-OUT maneuver: reverse on a fixed arc (nose swings toward the route)
         // with a rear-clearance hold — never backs into passing traffic. The hold
         // is TIMED: two cars backing toward each other (or a stopped queue behind)
         // would otherwise hold each other forever — after REVERSE_HOLD_MAX the car
-        // gives up the back-out and lets pure-pursuit take it forward instead.
+        // gives up the back-out and drives forward from wherever it is instead.
         const rearPose = { x: e.car.x, y: e.car.y, heading: wrapAngle(e.car.heading + Math.PI) };
         const rear = findLeader({ id, pose: rearPose, speed: 0 }, moving, 2.6, 12);
         const blocked = rear.gap < 6;
+        let done = false;
         if (blocked) {
           e.holdFor += dt;
-          if (e.holdFor > REVERSE_HOLD_MAX) {
-            e.reverse = null;
-            e.car.steer = 0;
-            e.holdFor = 0;
-            changed = true;
-            continue;
-          }
+          if (e.holdFor > REVERSE_HOLD_MAX) done = true;
         } else e.holdFor = 0;
-        const vRev = blocked ? 0 : -e.car.params.maxReverseSpeed * 0.8;
-        e.car.step(dt, vRev, e.reverse.steer);
-        e.reverse.remaining -= Math.abs(e.car.speed) * dt;
-        if (e.reverse.remaining <= 0) {
-          e.reverse = null; // cusp: stop steering hard, hand over to pure-pursuit
+        if (!done) {
+          const vRev = blocked ? 0 : -e.car.params.maxReverseSpeed * 0.8;
+          e.car.step(dt, vRev, e.reverse.steer);
+          e.reverse.remaining -= Math.abs(e.car.speed) * dt;
+          if (e.reverse.remaining <= 0) done = true;
+        }
+        if (done) {
+          // cusp: the rail must start from the ACTUAL post-maneuver pose —
+          // rebuild it now (building it earlier would teleport the car back).
+          e.reverse = null;
           e.car.steer = 0;
+          e.holdFor = 0;
+          const next = this.rebuildRail(e);
+          if (next) e.tracker = next;
         }
         changed = true;
         continue;
@@ -641,88 +643,12 @@ class TwinMotionDriver {
         continue;
       }
       if (e.tracker) {
-        // lateral: pure-pursuit steering along the lane route (advances the cursor)
-        const look = LOOKAHEAD_MIN + LOOKAHEAD_K * e.car.speed;
-        const { steer, remaining } = e.tracker.steer(e.car.pose, look, e.car.params.wheelbase);
-        // local avoidance: a gentle steer away from any car within touching range
-        const sep = separationSteer({ id, pose: e.car.pose, speed: e.car.speed }, moving);
-        // longitudinal: follow the LANE leader (narrow cone over MOVERS), yield to
-        // close cross-traffic (wider/shorter cone), and only brake for a PARKED
-        // car when it genuinely blocks the lane (tighter 2.1u band < stall offset).
-        // Most restrictive wins.
-        const self = { id, pose: e.car.pose, speed: e.car.speed };
-        const lead = findLeader(self, movers, 3.2, 34);
-        const cross = findLeader(self, movers, 4.8, 12);
-        // parked-blocker band: 3.0 > a car's 2.5 half-width (2.1 let movers CLIP
-        // THROUGH parked bodies) yet < the 4.6u offset of docked charger rows, so
-        // stall occupants still never phantom-block the driving lanes.
-        const block = findLeader(self, parked, 3.0, 20);
-        const fullGap = Math.min(lead.gap, cross.gap, block.gap);
-        const fullLeadSpeed = fullGap === block.gap ? 0 : fullGap === lead.gap ? lead.leaderSpeed : cross.leaderSpeed;
-        // DEADLOCK LADDER: mutual yields (A waits on B, B waits on A) and
-        // overlapped bodies have no head to unwind from, so a car pinned behind
-        // a STATIONARY blocker escalates: after RELAX_AFTER it stops yielding to
-        // cross-traffic/parked bodies and creeps behind its lane leader only;
-        // after ESCAPE_AFTER it ignores gaps entirely and crawls free (separation
-        // steer still pushes it around bodies). Normal queues (moving leader)
-        // never accumulate stuck-time, so realistic following is untouched.
-        let gap = fullGap;
-        let leadSpeed = fullLeadSpeed;
-        if (e.stuckFor >= ESCAPE_AFTER) {
-          // escape: pass ONLY my mutual-deadlock partner (cycleWith); every
-          // other body — parked row or stopped queue — stays solid. The pair
-          // dissolves as both creep past each other (separation steer pushes
-          // them apart); nobody ever crawls through legitimate traffic.
-          const noCycle = (arr: MovingCar[]) =>
-            e.cycleWith ? arr.filter((c) => c.id !== e.cycleWith) : arr;
-          const l2 = findLeader(self, noCycle(movers), 3.2, 34);
-          const s2 = findLeader(self, noCycle(stationary), 3.0, 20);
-          gap = Math.min(l2.gap, s2.gap);
-          leadSpeed = gap === s2.gap ? 0 : l2.leaderSpeed;
-        } else if (e.stuckFor >= RELAX_AFTER) {
-          // relax: drop cross-traffic yields only — keep the lane leader AND a
-          // hard gap to every STATIONARY body (the old rung dropped parked
-          // bodies from the gap and creeped cars INTO their neighbors).
-          const s2 = findLeader(self, stationary, 3.0, 20);
-          gap = Math.min(lead.gap, s2.gap);
-          leadSpeed = gap === s2.gap ? 0 : lead.leaderSpeed;
-        }
-        const accel = idmAccel(e.car.speed, gap, leadSpeed);
-        let desiredSpeed = Math.max(0, e.car.speed + accel * dt);
-        if (e.stuckFor >= ESCAPE_AFTER) desiredSpeed = Math.min(desiredSpeed, 1.2);
-        else if (e.stuckFor >= RELAX_AFTER) desiredSpeed = Math.min(desiredSpeed, 2.0);
-        // ... AND ease to a precise stop exactly at the path end (the stall):
-        // v = sqrt(2·b·remaining) decelerates to 0 right at remaining = 0.
-        desiredSpeed = Math.min(desiredSpeed, Math.sqrt(2 * 7 * Math.max(0, remaining)));
-        e.car.step(dt, desiredSpeed, steer + sep);
-        changed = true;
-        // RAW stuck observations off the FULL (unrelaxed) picture. The post-loop
-        // deadlock pass (cycle/wedge analysis over blocker ids) decides whether
-        // stuckFor actually accrues — a legitimately stopped queue never
-        // escalates, so the ladder can't mass-fire at the gate anymore.
-        e.blockerId =
-          fullGap === block.gap ? block.leaderId :
-          fullGap === lead.gap ? lead.leaderId : cross.leaderId;
-        e.pinnedRaw = e.car.speed < 0.15 && fullGap < 8 && fullLeadSpeed < 0.1 && remaining > 4;
-        // stall-mouth: blocked in the final 4u of a pull-in used to RESET the
-        // ladder (a car wedged half-into its stall waited forever) — now it may
-        // escalate, but only as far as the REROUTE rung (never creep/escape,
-        // so a normal ease-in beside parked neighbors can't clip them).
-        e.mouthRaw = e.car.speed < 0.15 && fullGap < 5 && fullLeadSpeed < 0.1 && remaining <= 4;
-        e.freeRaw = fullGap > 10 || fullLeadSpeed >= 0.1;
-        if (e.stuckFor >= REROUTE_AFTER && !e.rerouted) {
-          // last rung: a fresh route from the current pose often resolves a
-          // geometric wedge the ladder can't (drop back to RELAX, not zero,
-          // so a still-stuck car re-escalates quickly instead of re-freezing).
-          if (e.vstatus === "departing") {
-            e.tracker = new PathTracker(this.graph.route(e.car.pose, { x: EGRESS.x, y: EGRESS.y }));
-          } else if (e.stallId && e.lane && e.lane !== "gate") {
-            const st = useDepotStore.getState().stalls.find((s) => s.id === e.stallId);
-            if (st) e.tracker = new PathTracker(this.routeToStall(e.car.pose, e.lane as Lane, { x: st.position.x, y: st.position.y }, e.stallHeading));
-          }
-          e.reverse = null;
-          e.rerouted = true; // one reroute per episode; ladder continues to escape if still stuck
-        }
+        // RAILS: the car IS at its route's arc position — pose comes from the
+        // polyline (tangent heading), speed from IDM against every body
+        // projected onto MY forward window, plus intersection-node locks and
+        // charger-column mouth locks (see RailFlow). Lane discipline and
+        // no-overlap are STRUCTURAL: a rail car cannot leave its lane or pass
+        // through a body. No steering heuristics, no deadlock ladder.
         if (e.vstatus === "departing") {
           e.departFor += dt;
           if (e.departFor > DEPART_TTL) {
@@ -730,37 +656,39 @@ class TwinMotionDriver {
             continue;
           }
         }
-        if (e.tracker.atEnd(ARRIVE_EPS)) {
+        const pose = stepRail(id, e.tracker, dt, bodies, this.locks);
+        changed = true;
+        if (pose) {
+          e.car.x = pose.x;
+          e.car.y = pose.y;
+          e.car.heading = pose.heading;
+          e.car.speed = e.tracker.v;
+          // watchdog: stationary far too long (a dead body ON the lane, a stale
+          // lock) → drop my locks and re-route from the current pose. Bounded
+          // self-heal; never creeps, never phases through anything.
+          if (e.tracker.stationaryFor > 45) {
+            this.locks.releaseAll(id);
+            const next = this.rebuildRail(e);
+            if (next) e.tracker = next;
+            e.tracker.stationaryFor = 0;
+          }
+        } else {
+          // ARRIVED at the rail end
+          this.locks.releaseAll(id);
           if (e.vstatus === "departing" && !this.departQueue.includes(id)) {
             remove.push(id);
-          } else if (e.vstatus === "departing" && e.stallId) {
-            // a QUEUED departer that was mid-taxi finishes its pull-in and waits
-            // PARKED at its stall (the release loop launches it when a slot frees)
-            const st = useDepotStore.getState().stalls.find((s) => s.id === e.stallId);
-            if (st) { e.car.x = st.position.x; e.car.y = st.position.y; }
-            e.car.heading = e.stallHeading;
-            e.car.speed = 0;
-            e.car.steer = 0;
-            e.tracker = null;
-            e.reverse = null;
-            e.stuckFor = 0;
           } else {
-            // snap EXACTLY to the target (stall pose, else the path end) so a car
-            // never overshoots or oscillates at the end of its route.
+            // snap EXACTLY to the stall pose — a car never overshoots; queued
+            // departers wait PARKED at their stall for a launch slot.
             if (e.stallId) {
               const st = useDepotStore.getState().stalls.find((s) => s.id === e.stallId);
               if (st) { e.car.x = st.position.x; e.car.y = st.position.y; }
-            } else {
-              const ep = e.tracker.endPoint;
-              e.car.x = ep.x;
-              e.car.y = ep.y;
             }
             e.car.heading = e.stallHeading;
             e.car.speed = 0;
             e.car.steer = 0;
             e.tracker = null;
             e.reverse = null;
-            e.stuckFor = 0;
           }
         }
       } else if (e.car.speed !== 0) {
@@ -768,52 +696,9 @@ class TwinMotionDriver {
         changed = true;
       }
     }
-    // DEADLOCK ANALYSIS: stuckFor accrues ONLY for a true deadlock — my blocker
-    // chain CYCLES back to me (mutual yield) — or a WEDGE (a parked, tracker-
-    // less body blocks me; reroute is the way around). A car queued behind a
-    // stopped-but-routed car is just traffic: it waits, like a real car. This
-    // is what stops the whole gate queue from "escaping" through itself.
-    for (const [id, e] of this.entries) {
-      if (!e.tracker || e.reverse) { e.cycleWith = null; continue; }
-      let accrue = false;
-      e.cycleWith = null;
-      if ((e.pinnedRaw || e.mouthRaw) && e.blockerId) {
-        const b = this.entries.get(e.blockerId);
-        if (!b || !b.tracker) {
-          accrue = true; // wedge: a parked/foreign body blocks me
-        } else {
-          // walk my blocker chain — accrue only if it comes back to ME
-          let cur: string | null = e.blockerId;
-          const seen = new Set<string>();
-          for (let hop = 0; cur && hop < 8; hop++) {
-            if (cur === id) { accrue = true; e.cycleWith = e.blockerId; break; }
-            if (seen.has(cur)) break; // a foreign cycle ahead — their ladder resolves it
-            seen.add(cur);
-            const ce = this.entries.get(cur);
-            // reversing/parked links terminate the chain (they resolve themselves)
-            cur = ce && ce.tracker && !ce.reverse ? ce.blockerId : null;
-          }
-        }
-      }
-      if (accrue) {
-        e.stuckFor += dt;
-        // mouth-blocked cars escalate to REROUTE only — never creep/escape
-        if (e.mouthRaw && !e.pinnedRaw) e.stuckFor = Math.min(e.stuckFor, REROUTE_AFTER + 1);
-        // a WEDGE (parked blocker, no cycle) can't creep through — escape
-        // respects stationary bodies — so it retries the reroute PERIODICALLY:
-        // the depot changes underneath it (the blocker gets dispatched, other
-        // stalls free up) and a later attempt finds a way. Cycles keep escaping.
-        if (!e.cycleWith && e.stuckFor >= ESCAPE_AFTER + REROUTE_AFTER) {
-          e.stuckFor = REROUTE_AFTER;
-          e.rerouted = false;
-        }
-      } else if (e.freeRaw) {
-        e.stuckFor = 0;
-        e.rerouted = false;
-      }
-    }
     for (const id of remove) {
       this.ledger.release(id);
+      this.locks.releaseAll(id);
       this.entries.delete(id);
       poseStore.delete(id);
       changed = true;
