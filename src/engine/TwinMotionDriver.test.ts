@@ -307,6 +307,31 @@ describe("TwinMotionDriver — kinematic motion off the twin", () => {
     expect(entries.get("v1")!.vstatus).toBe("departing");
   });
 
+  it("MASS CHARGE: a batch of staged cars all assigned to chargers at once eventually DOCK (stagger drains, no gridlock)", () => {
+    const entries = (twinMotionDriver as unknown as {
+      entries: Map<string, { lane: string; playback: string; tracker: unknown }>;
+    }).entries;
+    const ids = Array.from({ length: 12 }, (_, i) => `c${i}`);
+    const chargeState = (i: number) => (i % 3 === 0 ? "charging_dcfc" : "charging_l2");
+    // arrive + let them settle into staging stalls
+    twinMotionDriver.reconcile(snap(ids.map((id) => ({ id, state: "arrived_at_gate" }))));
+    for (let i = 0; i < 600; i++) twinMotionDriver.tickMotion(0.05);
+    // BATCH-assign the whole set to chargers in one snapshot (the gridlock trigger)
+    twinMotionDriver.reconcile(snap(ids.map((id, i) => ({ id, state: chargeState(i) }))));
+    // drive a long time, re-reconciling so the stagger releases deferred cars as
+    // earlier ones dock and free approach slots
+    for (let round = 0; round < 40; round++) {
+      for (let i = 0; i < 200; i++) twinMotionDriver.tickMotion(0.05);
+      twinMotionDriver.reconcile(snap(ids.map((id, i) => ({ id, state: chargeState(i) }))));
+    }
+    let docked = 0;
+    for (const id of ids) {
+      const e = entries.get(id);
+      if (e && (e.lane === "dcfc" || e.lane === "l2") && e.playback === "docked" && !e.tracker) docked++;
+    }
+    expect(docked).toBeGreaterThanOrEqual(10); // the batch drains + docks, no gridlock
+  });
+
   it("arrivals disperse to separate staging stalls and drive in (no shared line)", () => {
     const ids = ["a", "b", "c", "d", "e"];
     twinMotionDriver.reconcile(snap(ids.map((id) => ({ id, state: "arrived_at_gate" }))));
