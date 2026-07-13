@@ -83,6 +83,28 @@ describe("TwinMotionDriver — kinematic motion off the twin", () => {
     expect(useDepotStore.getState().stalls.find((s) => s.id === dcfc)!.status).toBe("available");
   });
 
+  it("REAR EXIT: a serviced bay car pulls out the rear (north) and routes EAST, never west toward the BESS", () => {
+    // the initial snapshot places v1 parked IN a wash bay (no drive-in)
+    twinMotionDriver.reconcile(snap([{ id: "v1", state: "in_wash_bay" }]));
+    expect(find("v1")!.assignedStall).toMatch(/^WASH-/);
+    const bay = poseStore.get("v1")!;
+    expect(bay.y).toBeGreaterThan(34);   // seated in the bay row (y≈41)
+    expect(bay.y).toBeLessThan(50);
+    // the twin sends it on to staging → it must LEAVE the bay
+    twinMotionDriver.reconcile(snap([{ id: "v1", state: "charge_complete_holding" }]));
+    passDwell("v1");
+    twinMotionDriver.reconcile(snap([{ id: "v1", state: "charge_complete_holding" }]));
+    let minX = Infinity, reachedApron = false;
+    for (let i = 0; i < 400; i++) {
+      twinMotionDriver.tickMotion(0.05);
+      const p = poseStore.get("v1")!;
+      minX = Math.min(minX, p.x);
+      if (p.y < 30) reachedApron = true;   // pulled forward out the rear into the apron
+    }
+    expect(reachedApron).toBe(true);        // exited the REAR (north), not reversed out the front
+    expect(minX).toBeGreaterThan(110);      // never headed WEST toward the fenced BESS / switchgear
+  });
+
   it("never double-books a stall", () => {
     twinMotionDriver.reconcile(snap([
       { id: "a", state: "charging_dcfc" },
@@ -108,7 +130,10 @@ describe("TwinMotionDriver — kinematic motion off the twin", () => {
     const d = () => { const lp = poseStore.get("v1")!; return Math.hypot(lp.x - stall.position.x, lp.y - stall.position.y); };
     const d0 = d();
     expect(d0).toBeGreaterThan(20);
-    for (let i = 0; i < 500; i++) twinMotionDriver.tickMotion(0.05); // ~25s of driving
+    // east ingress → a west-of-center DCFC stall is the depot's LONGEST arrival
+    // route (across the south boulevard, up the far gap lane), so allow the full
+    // taxi time — the point is it DRIVES the whole way and docks, no teleport.
+    for (let i = 0; i < 1400; i++) twinMotionDriver.tickMotion(0.05); // ~70s of driving
     const d1 = d();
     expect(d1).toBeLessThan(d0); // drove measurably closer to its stall
     expect(d1).toBeLessThan(6);  // and effectively arrived
@@ -147,24 +172,25 @@ describe("TwinMotionDriver — kinematic motion off the twin", () => {
     expect(find("v1")!.assignedStall).toBe("WASH-02");
   });
 
-  it("a parked car whose route starts BEHIND it backs out in reverse first", () => {
-    // car parked in a WASH bay, nosed NORTH (toward the bays)
+  it("a serviced bay car pulls THROUGH forward (no reverse) — bays are pull-through, not back-out", () => {
+    // car parked in a WASH bay, nosed NORTH (toward the rear apron)
     twinMotionDriver.reconcile(snap([{ id: "v1", state: "in_wash_bay" }]));
     const p0 = { ...poseStore.get("v1")! };
     expect(Math.abs(p0.heading - -Math.PI / 2)).toBeLessThan(0.01); // facing north
-    // backend stages it SOUTH (behind its north nose) — after the wash dwell,
-    // moving to staging must back out first
+    // the twin stages it onward — a pull-through bay is exited FORWARD out the
+    // rear (north), never reversed out the front
     twinMotionDriver.reconcile(snap([{ id: "v1", state: "charge_complete_holding" }])); // held (dwell)
     passDwell("v1");
     twinMotionDriver.reconcile(snap([{ id: "v1", state: "charge_complete_holding" }])); // released → staging
     const entries = (twinMotionDriver as unknown as {
       entries: Map<string, { reverse: unknown }>;
     }).entries;
-    expect(entries.get("v1")!.reverse).not.toBeNull(); // a back-out was initiated
-    // and it plays out cleanly (finite pose, no NaN) through the maneuver
+    expect(entries.get("v1")!.reverse).toBeNull(); // NO back-out — pulls forward out the rear
+    // and it plays out cleanly (finite pose, no NaN), advancing NORTH into the apron
     for (let i = 0; i < 40; i++) twinMotionDriver.tickMotion(0.05);
     const p1 = poseStore.get("v1")!;
     expect(isFinite(p1.x) && isFinite(p1.y) && isFinite(p1.heading)).toBe(true);
+    expect(p1.y).toBeLessThan(p0.y); // moved north toward the rear apron, not south
   });
 
   it("a RUN SWITCH resets the scene — the old fleet vanishes instead of ghost-departing", () => {

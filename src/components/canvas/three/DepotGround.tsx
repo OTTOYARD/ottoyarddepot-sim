@@ -138,8 +138,10 @@ export function DepotGround() {
       <Gate x={xIn} label="IN" />
       <Gate x={xOut} label="OUT" />
 
-      {/* OTTOYARD entrance sign wall (west of ingress) */}
-      <group position={[-78, 0, -88]}>
+      {/* OTTOYARD entrance sign wall — beside the IN gate. Positioned relative
+          to INGRESS (world x = INGRESS.x-150, offset ~28u toward mid-lot) so it
+          tracks the entrance instead of stranding by the egress if the gate moves. */}
+      <group position={[INGRESS.x - 178, 0, -88]}>
         <mesh position={[0, 2.6, 0]} castShadow material={mats.cladding}>
           <boxGeometry args={[24, 5.2, 1.6]} />
         </mesh>
