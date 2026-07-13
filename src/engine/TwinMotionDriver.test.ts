@@ -20,6 +20,13 @@ function snap(vehicles: { id: string; state: string; soc?: number; platform?: st
 
 const fleet = () => useVehicleStore.getState().vehicles;
 const find = (id: string) => fleet().find((v) => v.id === id);
+// commit-and-hold: fast-forward a docked service car past its visible-dwell floor
+const passDwell = (id: string) => {
+  const e = (twinMotionDriver as unknown as {
+    entries: Map<string, { dwellStartMs: number | null }>;
+  }).entries.get(id);
+  if (e && e.dwellStartMs != null) e.dwellStartMs -= 13000;
+};
 const distToStall = (v: { position: { x: number; y: number } }, stallId: string) => {
   const s = useDepotStore.getState().stalls.find((st) => st.id === stallId)!;
   return Math.hypot(v.position.x - s.position.x, v.position.y - s.position.y);
@@ -65,7 +72,11 @@ describe("TwinMotionDriver — kinematic motion off the twin", () => {
   it("re-assigns + frees the old stall when the backend moves it (charge → wash)", () => {
     twinMotionDriver.reconcile(snap([{ id: "v1", state: "charging_dcfc" }]));
     const dcfc = find("v1")!.assignedStall!;
-    twinMotionDriver.reconcile(snap([{ id: "v1", state: "in_wash_bay" }]));
+    // commit-and-hold: the car is SEEN charging first, then moves to wash after
+    // its visible dwell — advance past the floor to observe the transition
+    twinMotionDriver.reconcile(snap([{ id: "v1", state: "in_wash_bay" }])); // held at charger
+    passDwell("v1");
+    twinMotionDriver.reconcile(snap([{ id: "v1", state: "in_wash_bay" }])); // released → wash
     const v = find("v1")!;
     expect(v.status).toBe("washing");
     expect(v.assignedStall).toMatch(/^WASH-/);
@@ -82,7 +93,9 @@ describe("TwinMotionDriver — kinematic motion off the twin", () => {
 
   it("a vehicle the backend drops heads for the egress gate", () => {
     twinMotionDriver.reconcile(snap([{ id: "v1", state: "charging_dcfc" }]));
-    twinMotionDriver.reconcile(snap([])); // gone from the backend
+    twinMotionDriver.reconcile(snap([])); // gone from the backend (mid-dwell → held)
+    passDwell("v1");
+    twinMotionDriver.reconcile(snap([])); // floor met → departs
     expect(find("v1")!.status).toBe("departing");
   });
 
@@ -125,9 +138,12 @@ describe("TwinMotionDriver — kinematic motion off the twin", () => {
     twinMotionDriver.setTwinStallMap([{ id: "uuid-d9", code: "NASH-DCFC-STALL-09", type: "dcfc" }]);
     twinMotionDriver.reconcile(snap([{ id: "v1", state: "charging_dcfc", stall_id: "uuid-d9" }]));
     expect(find("v1")!.assignedStall).toBe(first); // stays put — no fleet reshuffles
-    // but a LANE CHANGE still honors the twin's exact stall
+    // but a LANE CHANGE still honors the twin's exact stall (after the charge
+    // dwell — commit-and-hold keeps it at the charger until the floor)
     twinMotionDriver.setTwinStallMap([{ id: "uuid-w2", code: "NASH-WASH-BAY-02", type: "wash_bay" }]);
-    twinMotionDriver.reconcile(snap([{ id: "v1", state: "in_wash_bay", stall_id: "uuid-w2" }]));
+    twinMotionDriver.reconcile(snap([{ id: "v1", state: "in_wash_bay", stall_id: "uuid-w2" }])); // held
+    passDwell("v1");
+    twinMotionDriver.reconcile(snap([{ id: "v1", state: "in_wash_bay", stall_id: "uuid-w2" }])); // → wash
     expect(find("v1")!.assignedStall).toBe("WASH-02");
   });
 
@@ -136,8 +152,11 @@ describe("TwinMotionDriver — kinematic motion off the twin", () => {
     twinMotionDriver.reconcile(snap([{ id: "v1", state: "in_wash_bay" }]));
     const p0 = { ...poseStore.get("v1")! };
     expect(Math.abs(p0.heading - -Math.PI / 2)).toBeLessThan(0.01); // facing north
-    // backend stages it SOUTH (behind its north nose) → must back out first
-    twinMotionDriver.reconcile(snap([{ id: "v1", state: "charge_complete_holding" }]));
+    // backend stages it SOUTH (behind its north nose) — after the wash dwell,
+    // moving to staging must back out first
+    twinMotionDriver.reconcile(snap([{ id: "v1", state: "charge_complete_holding" }])); // held (dwell)
+    passDwell("v1");
+    twinMotionDriver.reconcile(snap([{ id: "v1", state: "charge_complete_holding" }])); // released → staging
     const entries = (twinMotionDriver as unknown as {
       entries: Map<string, { reverse: unknown }>;
     }).entries;
@@ -251,6 +270,41 @@ describe("TwinMotionDriver — kinematic motion off the twin", () => {
     twinMotionDriver.reconcile(s);
     expect(useDepotStore.getState().stalls.find((x) => x.id === "L2-01")!.status).toBe("offline");
     expect(find("v1")!.assignedStall).not.toBe("L2-01"); // routed around the dead charger
+  });
+
+  it("COMMIT-AND-HOLD: a car keeps its charger through a downstream flip until the dwell floor, then releases", () => {
+    const entries = (twinMotionDriver as unknown as {
+      entries: Map<string, { playback: string; dwellStartMs: number | null }>;
+    }).entries;
+    // placed at a DCFC charger — docked immediately (initial in-place placement)
+    twinMotionDriver.reconcile(snap([{ id: "v1", state: "charging_dcfc" }]));
+    const dcfc = find("v1")!.assignedStall!;
+    expect(dcfc).toMatch(/^DCFC-/);
+    expect(entries.get("v1")!.playback).toBe("docked");
+    // twin flips it downstream (charge done → holding=staging) BEFORE the floor →
+    // the car must HOLD its charger (be SEEN charging), not snap to staging
+    twinMotionDriver.reconcile(snap([{ id: "v1", state: "charge_complete_holding" }]));
+    expect(find("v1")!.assignedStall).toBe(dcfc);
+    expect(entries.get("v1")!.playback).not.toBe("released");
+    // once the visible-dwell floor has elapsed, the next poll RELEASES it to truth
+    entries.get("v1")!.dwellStartMs! -= 13000;
+    twinMotionDriver.reconcile(snap([{ id: "v1", state: "charge_complete_holding" }]));
+    expect(find("v1")!.assignedStall).toMatch(/^STAGE-/); // moved on to staging
+  });
+
+  it("COMMIT-AND-HOLD: a mid-dwell car that vanishes from the snapshot is not launched until the floor", () => {
+    const entries = (twinMotionDriver as unknown as {
+      entries: Map<string, { playback: string; dwellStartMs: number | null; vstatus: string }>;
+    }).entries;
+    twinMotionDriver.reconcile(snap([{ id: "v1", state: "charging_l2" }]));
+    expect(entries.get("v1")!.playback).toBe("docked");
+    // twin drops it (deployed) mid-dwell → must NOT depart yet
+    twinMotionDriver.reconcile(snap([]));
+    expect(entries.get("v1")!.vstatus).not.toBe("departing");
+    // after the floor, it departs
+    entries.get("v1")!.dwellStartMs! -= 13000;
+    twinMotionDriver.reconcile(snap([]));
+    expect(entries.get("v1")!.vstatus).toBe("departing");
   });
 
   it("arrivals disperse to separate staging stalls and drive in (no shared line)", () => {

@@ -38,9 +38,20 @@ const NORTH = -Math.PI / 2; // facing north (−y) in the y-down logical frame
 // projection + locks. There is no steering heuristic and no deadlock ladder —
 // lane discipline and no-overlap are structural.
 const REVERSE_HOLD_MAX = 6;   // give up a blocked back-out, go forward instead
+// COMMIT-AND-HOLD (physical service dwell): the twin advances on big ticks, so a
+// charge often COMPLETES in the backend before the renderer finishes the drive-in
+// — the car used to get yanked to staging mid-approach and never visibly dock.
+// A car committed to a service stall must ARRIVE + dwell a real-time FLOOR before
+// any downstream state flip re-lanes it; then it resyncs to the CURRENT twin state
+// (bounded catch-up, never a leg replay). CAP bounds the hold under extreme churn.
+const DWELL_FLOOR_MS = 12000; // min visible dock — a charge/wash is always SEEN
+const DWELL_CAP_MS = 45000;   // hard ceiling on the hold (Phase-2 also uses this)
 const DEPART_TTL = 90;        // a departing car that can't reach egress despawns
 const MAX_ACTIVE_DEPARTING = 12; // deploy waves leave in packets, not all at once
 const MAX_ACTIVE_ENTERING = 6;   // arrival waves enter in packets too (gate backpressure)
+const MAX_ACTIVE_SERVICE_APPROACH = 5; // batch charger/bay reassignments back out
+                                       // in packets — else every parked staging
+                                       // car reverses at once into mutual gridlock
 const SPAWN_CLEARANCE = 6;    // don't materialize a car onto another one
 
 // backend vehicle_state → { lane, render status, stall status }
@@ -65,6 +76,11 @@ function mapState(state: string): { lane: Lane | "gate" | null; vstatus: Vehicle
 // depot center (LOT {x:6,y:6,w:288,h:200}) — perimeter cars nose OUTWARD from it
 const DEPOT_CX = 150;
 const DEPOT_CY = 106;
+
+// lanes where a car parks to be SERVICED (must be seen docked before moving on)
+const SERVICE_LANES = new Set<Lane>(["dcfc", "l2", "wash", "service"]);
+const isServiceLane = (l: Lane | "gate" | null): boolean =>
+  l != null && SERVICE_LANES.has(l as Lane);
 
 /** Parked heading for a stall. Chargers/bays face NORTH (toward the bays).
  *  Perimeter staging columns/rows nose OUTWARD (away from the depot center)
@@ -105,6 +121,11 @@ interface Entry {
   holdFor: number;
   /** seconds spent in 'departing' (TTL-despawned so a cork can never persist) */
   departFor: number;
+  /** commit-and-hold service dwell: "enroute" = driving to a service stall,
+   *  "docked" = arrived + dwelling, "released" = floor met, truth flows again */
+  playback: "enroute" | "docked" | "released";
+  /** performance.now() when the car docked at its service stall (null until) */
+  dwellStartMs: number | null;
 }
 
 class TwinMotionDriver {
@@ -233,7 +254,17 @@ class TwinMotionDriver {
       lane, stallId: null, stallHeading: pose.heading, vstatus, oem, soc,
       avId: "", make: "",
       holdFor: 0, departFor: 0,
+      playback: "released", dwellStartMs: null,
     };
+  }
+
+  /** the visible-dwell floor has elapsed since this car docked */
+  private floorMet(e: Entry): boolean {
+    return e.dwellStartMs != null && performance.now() - e.dwellStartMs >= DWELL_FLOOR_MS;
+  }
+  /** the hard cap has elapsed (release even if the twin never moved it) */
+  private dwellCapped(e: Entry): boolean {
+    return e.dwellStartMs != null && performance.now() - e.dwellStartMs >= DWELL_CAP_MS;
   }
 
   /** Build a rail to a stall (charger columns get a MOUTH key so only one car
@@ -284,6 +315,11 @@ class TwinMotionDriver {
     this.ledger.release(id);
     this.locks.releaseAll(id);
     e.stallId = null;
+    // clear any commit-and-hold service state — a departer is no longer docked
+    // to / driving toward a service stall (else it keeps a stale service lane +
+    // playback and the dwell guard misfires on it).
+    e.playback = "released";
+    e.dwellStartMs = null;
     this.assignRail(e, { kind: "egress" });
   }
 
@@ -352,8 +388,13 @@ class TwinMotionDriver {
     // once (still routed + still in the south gate band). Beyond the cap, new
     // arrivals defer to the next poll instead of flooding the entrance road.
     let enteringActive = 0;
+    // cars currently backing out of / driving to a SERVICE stall — a batch
+    // charger reassignment must NOT release them all at once (mutual-reverse
+    // gridlock in the staging rows), so approaches are metered like the gate.
+    let serviceApproaching = 0;
     for (const [, te] of this.entries) {
       if (te.tracker && te.car.y > 195 && te.vstatus !== "departing") enteringActive++;
+      if (isServiceLane(te.lane) && te.playback === "enroute" && te.vstatus !== "departing") serviceApproaching++;
     }
 
     for (const bv of snap.fleet?.vehicles ?? []) {
@@ -379,6 +420,31 @@ class TwinMotionDriver {
       let e = this.entries.get(bv.id);
       const oem = bv.platform ?? e?.oem ?? "waymo";
       const soc = bv.soc ?? e?.soc ?? 0;
+
+      // COMMIT-AND-HOLD: a car driving to / dwelling at a SERVICE stall must be
+      // SEEN docked (the charge/wash) before a downstream twin flip re-lanes it.
+      // While committed and inside the dwell floor, suppress the lane change:
+      // keep the car on its service rail, keep its service paint/dot, just
+      // refresh identity + SoC. Once the floor elapses we flip to "released" and
+      // the normal reconcile below resyncs to the CURRENT twin state (a bounded
+      // catch-up — never a leg replay), taking the car to staging or its next
+      // service leg per live truth.
+      if (e && isServiceLane(e.lane) && e.playback !== "released") {
+        const newLane: Lane | "gate" | null = m.lane === "gate" ? "staging" : m.lane;
+        const stillSameDock = newLane === e.lane;
+        if (!stillSameDock && !this.floorMet(e)) {
+          e.soc = soc;
+          e.oem = oem;
+          if (bv.av_id) e.avId = bv.av_id;
+          if (bv.make) e.make = bv.make;
+          if (e.stallId) {
+            desiredStatus.set(e.stallId, e.lane === "dcfc" || e.lane === "l2" ? "charging" : "servicing");
+          }
+          this.entries.set(bv.id, e);
+          continue;
+        }
+        if (this.floorMet(e)) e.playback = "released";
+      }
 
       // NO QUEUE LINES: a vehicle is ALWAYS in a stall (charging/wash/service/
       // staging) or TAXIING between them. An arriving car ("gate") drives in from
@@ -515,19 +581,53 @@ class TwinMotionDriver {
         e.make = bv.make ?? "";
         e.stallId = stallId;
         e.stallHeading = sh;
-        if (driveIn) this.assignRail(e, { kind: "stall", lane, x: sp.x, y: sp.y, heading: sh });
+        if (driveIn) {
+          this.assignRail(e, { kind: "stall", lane, x: sp.x, y: sp.y, heading: sh });
+          if (isServiceLane(lane)) serviceApproaching++;
+        }
       } else if (e.stallId !== stallId) {
+        // SERVICE-APPROACH STAGGER: a parked car reassigned to a charger/bay
+        // waits its turn — releasing a whole batch at once makes them all back
+        // out simultaneously into a mutual-reverse gridlock in the staging rows.
+        const parked = e.tracker === null && !e.reverse;
+        if (isServiceLane(lane) && parked && serviceApproaching >= MAX_ACTIVE_SERVICE_APPROACH) {
+          e.soc = soc;
+          e.oem = oem;
+          if (bv.av_id) e.avId = bv.av_id;
+          if (bv.make) e.make = bv.make;
+          if (e.stallId) desiredStatus.set(e.stallId, "occupied"); // holds its staging spot
+          this.entries.set(bv.id, e);
+          continue; // retry next poll when a slot frees
+        }
         // re-assigned to a new stall → taxi there (backing out first if it was
         // parked and the route starts behind its nose)
         this.assignRail(e, { kind: "stall", lane, x: sp.x, y: sp.y, heading: sh });
         e.stallId = stallId;
         e.stallHeading = sh;
+        if (isServiceLane(lane)) serviceApproaching++;
       }
       e.lane = lane;
       e.vstatus = m.vstatus;
       desiredStatus.set(stallId, m.sstatus);
       e.oem = oem;
       e.soc = soc;
+      // COMMIT-AND-HOLD state (this path only runs on a NEW/RE-assignment; the
+      // stability branch above already `continue`d): a car assigned to a SERVICE
+      // stall is "enroute" while it drives there, or "docked" if it was placed
+      // parked in-place at it (initial snapshot of a mid-charge car). Any
+      // non-service assignment releases the hold.
+      if (isServiceLane(lane)) {
+        if (e.tracker || e.reverse) {
+          e.playback = "enroute";
+          e.dwellStartMs = null;
+        } else {
+          e.playback = "docked";
+          e.dwellStartMs = performance.now();
+        }
+      } else {
+        e.playback = "released";
+        e.dwellStartMs = null;
+      }
       this.entries.set(bv.id, e);
     }
 
@@ -543,6 +643,13 @@ class TwinMotionDriver {
     }
     for (const [id, e] of this.entries) {
       if (present.has(id)) continue;
+      // COMMIT-AND-HOLD: a car mid-service-dwell that vanishes from the snapshot
+      // (twin already deployed it) must still be SEEN docked for the floor before
+      // it departs — hold one more poll, keep its stall painted, don't launch.
+      if (e.playback === "docked" && !this.floorMet(e) && !this.dwellCapped(e)) {
+        if (e.stallId) desiredStatus.set(e.stallId, e.lane === "dcfc" || e.lane === "l2" ? "charging" : "servicing");
+        continue;
+      }
       if (e.vstatus !== "departing") {
         e.vstatus = "departing";
         e.departFor = 0;
@@ -708,6 +815,13 @@ class TwinMotionDriver {
             e.car.steer = 0;
             e.tracker = null;
             e.reverse = null;
+            // COMMIT-AND-HOLD: a car that just docked at a SERVICE stall starts
+            // its visible dwell clock now — the charge/wash is SEEN before any
+            // downstream flip can move it (guarded in reconcile).
+            if (isServiceLane(e.lane) && e.playback === "enroute") {
+              e.playback = "docked";
+              e.dwellStartMs = performance.now();
+            }
           }
         }
       } else if (e.car.speed !== 0) {
