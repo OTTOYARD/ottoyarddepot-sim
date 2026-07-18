@@ -18,21 +18,29 @@ export const TabBar = () => {
   const { activeTab, setActiveTab } = useSimulationStore();
 
   return (
-    <div className="flex border-b border-white/[0.06]">
-      {tabs.map((tab) => (
-        <button
-          key={tab.id}
-          onClick={() => setActiveTab(tab.id)}
-          className={`px-4 py-3 text-xs font-display uppercase tracking-[0.06em] transition-colors relative ${
-            activeTab === tab.id ? 'text-ink' : 'text-ink-faint hover:text-ink-dim'
-          }`}
-        >
-          {tab.label}
-          {activeTab === tab.id && (
-            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-red" />
-          )}
-        </button>
-      ))}
+    // flex-wrap so all tabs stay visible in the fixed-width panel — a single
+    // non-wrapping row clipped the rightmost tabs (incl. Black Box) off-screen.
+    <div className="flex flex-wrap border-b border-white/[0.06]">
+      {tabs.map((tab) => {
+        const isBlackbox = tab.id === 'blackbox';
+        return (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`px-3 py-2.5 text-xs font-display uppercase tracking-[0.06em] transition-colors relative inline-flex items-center gap-1.5 ${
+              activeTab === tab.id ? 'text-ink' : 'text-ink-faint hover:text-ink-dim'
+            }`}
+          >
+            {/* Black Box is the founder-side flight recorder — give it a red dot
+                so the eye finds it immediately. */}
+            {isBlackbox && <span className="w-1.5 h-1.5 rounded-full bg-brand-red shrink-0" />}
+            {tab.label}
+            {activeTab === tab.id && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-red" />
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 };

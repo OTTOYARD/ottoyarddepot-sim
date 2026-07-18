@@ -15,7 +15,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Play, Pause, Square, Zap, CloudRain, BatteryWarning, AlertTriangle,
-  RotateCcw, ChevronRight, ChevronDown, Activity, FlaskConical, Info, Sun, Snowflake, Gauge,
+  RotateCcw, ChevronRight, ChevronDown, Activity, FlaskConical, Info, Sun, Snowflake, Gauge, Loader2,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Slider } from "@/components/ui/slider";
@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { twin, DOMAIN_LABELS, type CatalogVar, type Scenario, type KnobType } from "@/lib/ottoTwin";
 import { startDemoRun, stopAndReset } from "@/lib/blackbox";
 import { useTwinStore } from "@/store/twinStore";
+import { useSimulationStore } from "@/store/simulationStore";
 import { useTwinControl } from "@/hooks/useTwinControl";
 
 // ── knob helpers (read/write the profile JSONB shape) ──
@@ -342,7 +343,10 @@ export const OperatorConsole = () => {
     try {
       await stopAndReset(runId);
       ctrl.pause();
-      toast.success("Run stopped — depot reset", { description: "Download it from the Black Box tab." });
+      // Jump to the Black Box tab so the download is right in front of them —
+      // Chase: "I don't see where the black box download panel is at that point."
+      useSimulationStore.getState().setActiveTab("blackbox");
+      toast.success("Run stopped — depot reset", { description: "Black Box is armed below — press Download." });
     } catch (e: any) { toast.error("Stop failed", { description: e.message }); }
     finally { setBusy(null); }
   };
@@ -398,25 +402,37 @@ export const OperatorConsole = () => {
             );
           })}
         </div>
-        <div className="flex items-center gap-2">
-          <Select value={selected} onValueChange={setSelected}>
-            <SelectTrigger className="h-8 flex-1 text-xs bg-canvas-elev border-white/[0.06]"><SelectValue /></SelectTrigger>
-            <SelectContent className="bg-canvas-panel border-white/10 text-ink">
-              {scenarios.map((s) => <SelectItem key={s.scenario_code} value={s.scenario_code} className="text-xs text-ink focus:bg-white/10 focus:text-white">{s.title}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          {/* Explicit no-arg call: onClick passes the click EVENT as the first
-              argument, which used to land in `code` and silently break Start. */}
-          <Button onClick={() => startScenario()} disabled={busy === "start"} className="h-8 bg-brand-red hover:bg-brand-deep text-white text-xs">Start</Button>
-          <Button onClick={stopRun} disabled={!runId} variant="outline" className="h-8 border-white/[0.06] text-ink-dim hover:text-ink"><Square size={13} /></Button>
-        </div>
-        {/* ONE transport control: Start begins the whole world (twin + viewer);
-            this button pauses/resumes ALL of it. No separate Play. */}
-        <div className="flex items-center gap-2 pt-1">
-          <Button onClick={ctrl.toggle} disabled={!runId} className="h-8 flex-1 bg-canvas-elev hover:bg-white/10 text-ink text-xs border border-white/[0.06]">
-            {ctrl.playing ? <><Pause size={14} /> Pause simulation</> : <><Play size={14} /> Resume</>}
+        {/* Scenario picker — Start runs this selection. */}
+        <Select value={selected} onValueChange={setSelected}>
+          <SelectTrigger className="h-8 w-full text-xs bg-canvas-elev border-white/[0.06]"><SelectValue /></SelectTrigger>
+          <SelectContent className="bg-canvas-panel border-white/10 text-ink">
+            {scenarios.map((s) => <SelectItem key={s.scenario_code} value={s.scenario_code} className="text-xs text-ink focus:bg-white/10 focus:text-white">{s.title}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        {/* ONE state-driven transport, no stray always-visible Play button:
+              · no run  → Start simulation
+              · running → Pause + Stop
+              · paused  → Resume + Stop
+            Start uses an explicit no-arg call — onClick otherwise passes the
+            click EVENT as `code` and silently broke Start. */}
+        {!runId ? (
+          <Button onClick={() => startScenario()} disabled={busy === "start"}
+            className="h-9 w-full bg-brand-red hover:bg-brand-deep text-white text-xs font-display uppercase tracking-[0.06em]">
+            {busy === "start" ? <Loader2 size={15} className="animate-spin" /> : <Play size={15} />}
+            {busy === "start" ? "Starting…" : "Start simulation"}
           </Button>
-        </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Button onClick={ctrl.toggle}
+              className="h-9 flex-1 bg-canvas-elev hover:bg-white/10 text-ink text-xs border border-white/[0.06]">
+              {ctrl.playing ? <><Pause size={14} /> Pause</> : <><Play size={14} /> Resume</>}
+            </Button>
+            <Button onClick={stopRun} disabled={busy === "stop"} variant="outline"
+              className="h-9 border-white/[0.06] text-ink-dim hover:text-ink text-xs">
+              {busy === "stop" ? <Loader2 size={14} className="animate-spin" /> : <Square size={13} />} Stop
+            </Button>
+          </div>
+        )}
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-ink-faint uppercase tracking-wide w-10">Speed</span>
           <Slider className="flex-1" min={1} max={10} step={1} value={[ctrl.speed]} onValueChange={([v]) => ctrl.setSpeed(v)} />

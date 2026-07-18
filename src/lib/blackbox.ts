@@ -102,16 +102,14 @@ export async function stopAndReset(
 }
 
 // ── Discover the active / last operator run (mount + refresh) ──
+// Uses a narrow SECURITY DEFINER RPC, not a direct table select: RLS blocks
+// anon SELECT on ottoq_sim_runs (it returns [] with a 200), which left the
+// panel permanently on "idle" and hid the Stop/Download states after a remount
+// or when the run was started from the Operator Console instead.
 export async function fetchLatestRun(): Promise<BlackboxRun | null> {
-  const { data, error } = await ottoQ
-    .from("ottoq_sim_runs")
-    .select("sim_run_id,scenario_code,status,tick_count,demo_speed_x")
-    .eq("run_by", "operator_demo")
-    .order("started_at", { ascending: false })
-    .limit(1);
+  const { data, error } = await ottoQ.rpc("ottoq_blackbox_latest_run");
   if (error) throw new Error(error.message);
-  const row = data?.[0];
-  return row ? (row as BlackboxRun) : null;
+  return (data as BlackboxRun | null) ?? null;
 }
 
 // ── Download the forensic bundle ──
