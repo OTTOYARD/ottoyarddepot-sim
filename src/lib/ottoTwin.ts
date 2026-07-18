@@ -4,7 +4,15 @@
 // actions require an operator key stored in localStorage('otto_operator_key').
 // ============================================================================
 
-const BASE = "https://gxdrcyphqjzjsuhxuqtg.supabase.co/functions/v1/otto-twin-control";
+// The OTTO-Q / OTTO-TWIN backend (Supabase project gxdrcyphqjzjsuhxuqtg).
+// The anon key is public by design (safe to ship in the client bundle) — it is
+// the single source of truth for both the twin edge-function calls below and
+// the supabase-js client in ottoQClient.ts (RPCs + the Black Box download).
+export const OTTOQ_SUPABASE_URL = "https://gxdrcyphqjzjsuhxuqtg.supabase.co";
+export const OTTOQ_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd4ZHJjeXBocWp6anN1aHh1cXRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMjk3MDMsImV4cCI6MjA5MDkwNTcwM30.v7erbnrlciPknvx_EpUpewXrvR9-F3D-hH-jWmTW0zI";
+
+const BASE = `${OTTOQ_SUPABASE_URL}/functions/v1/otto-twin-control`;
 export const NASHVILLE_DEPOT = "11111111-1111-1111-1111-111111111111";
 
 // ── Types (mirror ottoq_twin_snapshot / ottoq_twin_depot_layout) ──

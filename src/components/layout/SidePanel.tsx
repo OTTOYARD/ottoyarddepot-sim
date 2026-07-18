@@ -9,6 +9,7 @@ import { TwinHistoryTab } from '@/components/tabs/TwinHistoryTab';
 import { TwinSwapTestTab } from '@/components/tabs/TwinSwapTestTab';
 import { TwinScorekeeperTab } from '@/components/tabs/TwinScorekeeperTab';
 import { TwinCopilotTab } from '@/components/tabs/TwinCopilotTab';
+import { BlackBoxPanel } from '@/components/cockpit/BlackBoxPanel';
 
 const tabComponents = {
   controls: OperatorConsole,       // AV-only backend-driven console (replaces legacy ControlsTab)
@@ -19,6 +20,7 @@ const tabComponents = {
   'swap-test': TwinSwapTestTab,    // OTTO-Q safety proof: calm-vs-stress A/B scoreboard (view)
   'scorekeeper': TwinScorekeeperTab, // OTTO-Q vs manual/FIFO: throughput + safety A/B race (U5e)
   copilot: TwinCopilotTab,         // agentic copilot: Nemotron 3 Ultra audit of OTTO-Q decisions
+  blackbox: BlackBoxPanel,         // flight recorder: Play/Stop/Download run-audit bundle
 };
 
 export const SidePanel = () => {

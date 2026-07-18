@@ -1,6 +1,6 @@
 import { useSimulationStore } from '@/store/simulationStore';
 
-type Tab = { id: 'controls' | 'kpis' | 'ai-summary' | 'alerts' | 'history' | 'swap-test' | 'scorekeeper' | 'copilot'; label: string };
+type Tab = { id: 'controls' | 'kpis' | 'ai-summary' | 'alerts' | 'history' | 'swap-test' | 'scorekeeper' | 'copilot' | 'blackbox'; label: string };
 
 const tabs: Tab[] = [
   { id: 'controls', label: 'Controls' },
@@ -11,6 +11,7 @@ const tabs: Tab[] = [
   { id: 'swap-test', label: 'Swap-Test' },
   { id: 'scorekeeper', label: 'Scorekeeper' },
   { id: 'copilot', label: 'Copilot' },
+  { id: 'blackbox', label: 'Black Box' },
 ];
 
 export const TabBar = () => {

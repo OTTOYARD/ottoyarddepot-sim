@@ -63,7 +63,7 @@ interface SimulationState {
   simTime: number;
   simSpeed: number;
   isPanelOpen: boolean;
-  activeTab: 'controls' | 'kpis' | 'ai-summary' | 'alerts' | 'history' | 'swap-test' | 'scorekeeper' | 'copilot';
+  activeTab: 'controls' | 'kpis' | 'ai-summary' | 'alerts' | 'history' | 'swap-test' | 'scorekeeper' | 'copilot' | 'blackbox';
   config: SimulationConfig;
   viewMode: '2d' | '3d' | 'photoreal';
   controlsLocked: boolean;
