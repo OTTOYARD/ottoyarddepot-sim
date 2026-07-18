@@ -24,9 +24,12 @@ export function useTwinControl() {
     setSpeedState(v);
     if (tsTimer.current) clearTimeout(tsTimer.current);
     tsTimer.current = setTimeout(() => {
-      if (activeSimRunId) twin.setTimeScale(activeSimRunId, Math.min(480, Math.max(15, 60 * v))).catch(() => {});
+      // Read the run id FRESH from the store: Start seeds the run and adopts its
+      // id in the same handler, so a value closed over at render time is stale.
+      const id = useTwinStore.getState().activeSimRunId;
+      if (id) twin.setTimeScale(id, Math.min(480, Math.max(15, 60 * v))).catch(() => {});
     }, 400);
-  }, [activeSimRunId]);
+  }, []);
 
   // NO BROWSER TICK LOOP. The server-side metronome (pg_cron →
   // ottoq_demo_metronome) owns the world clock: it advances every running run
@@ -43,13 +46,16 @@ export function useTwinControl() {
   // in that state (e.g. play() right after starting a fresh run).
   const play = useCallback(() => {
     setPlaying(true);
-    if (activeSimRunId) twin.resume(activeSimRunId).catch(() => {});
-  }, [activeSimRunId]);
+    // Fresh read (see setSpeed): the run may have just been adopted this handler.
+    const id = useTwinStore.getState().activeSimRunId;
+    if (id) twin.resume(id).catch(() => {});
+  }, []);
 
   const pause = useCallback(() => {
     setPlaying(false);
-    if (activeSimRunId) twin.pause(activeSimRunId).catch(() => {});
-  }, [activeSimRunId]);
+    const id = useTwinStore.getState().activeSimRunId;
+    if (id) twin.pause(id).catch(() => {});
+  }, []);
 
   const toggle = useCallback(() => (playing ? pause() : play()), [playing, play, pause]);
 
