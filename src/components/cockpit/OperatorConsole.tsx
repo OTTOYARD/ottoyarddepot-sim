@@ -25,6 +25,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { twin, DOMAIN_LABELS, type CatalogVar, type Scenario, type KnobType } from "@/lib/ottoTwin";
+import { startDemoRun, stopAndReset } from "@/lib/blackbox";
 import { useTwinStore } from "@/store/twinStore";
 import { useTwinControl } from "@/hooks/useTwinControl";
 
@@ -68,7 +69,6 @@ function rangeFor(v: CatalogVar, kt: KnobType): { min: number; max: number; step
 const fmt = (n: number, step: number) => (step < 1 ? n.toFixed(step < 0.1 ? 2 : 1) : String(n));
 const fmtAxis = (n: number) => (Math.abs(n) >= 100 ? Math.round(n).toString() : Math.abs(n) >= 1 ? n.toFixed(0) : n.toFixed(1));
 const isLiveRunStatus = (status: string) => ["running", "active", "paused"].includes(status.toLowerCase());
-const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
 // inverse standard-normal CDF (Acklam) — lets us deterministically inverse-CDF
 // sample a base distribution, exactly like the backend's sample_shaped().
@@ -320,50 +320,32 @@ export const OperatorConsole = () => {
   const startScenario = async (code: string = selected) => {
     setBusy("start");
     try {
-      // Stop any live run for this depot and POLL until it's actually released,
-      // so a new scenario never races the one-run-per-depot lock (and we survive
-      // a transient/empty run-list read instead of skipping the stop).
-      const clearLiveRuns = async () => {
-        for (let i = 0; i < 6; i++) {
-          let live: { sim_run_id: string }[] = [];
-          try {
-            const { runs } = await twin.runs(50);
-            live = runs.filter((run) => isLiveRunStatus(String(run.status)));
-          } catch { /* list hiccup — treat as not-clear and retry */ }
-          if (!live.length) return;
-          await Promise.allSettled(live.map((run) => twin.stop(run.sim_run_id)));
-          await wait(500);
-        }
-      };
-
-      // Start, retrying on a one-run-per-depot conflict — re-clear and back off
-      // each time in case the backend lock hasn't released yet.
-      let res: { sim_run_id: string; scenario_code: string } | null = null;
-      let lastErr: unknown = null;
-      for (let attempt = 0; attempt < 4 && !res; attempt++) {
-        await clearLiveRuns();
-        if (attempt > 0) await wait(500 * attempt);
-        try {
-          res = await twin.start(code);
-        } catch (e: any) {
-          lastErr = e;
-          const msg = String(e?.message || e || "");
-          if (!/one_running_run_per_depot|already.*running|duplicate key|scenario start failed/i.test(msg)) throw e;
-        }
-      }
-      if (!res) throw lastErr ?? new Error("scenario start failed");
-
-      setActiveSimRunId(res.sim_run_id);
-      ctrl.play();   // Start also begins the clock — "press Start and watch it run"
+      // ONE authoritative start path, shared with the Black Box recorder:
+      // ottoq_start_demo_run purges the prior run's data AND seeds a fresh one,
+      // so there is no one-run-per-depot race to clear-and-retry. startDemoRun
+      // adopts the new sim_run_id into the twin store (feed begins rendering).
+      await startDemoRun(code, 1);
+      ctrl.play();      // Start also begins the clock — "press Start and watch it run"
       ctrl.setSpeed(1); // fresh runs open at 1× (slider + twin time_scale in sync)
       const title = scenarios.find((s) => s.scenario_code === code)?.title ?? code;
-      toast.success(`Started ${title} — running`);
+      toast.success(`Started ${title} — recording`);
     } catch (e: any) { toast.error("Start failed", { description: e.message }); }
     finally { setBusy(null); }
   };
   // Quick cards only SELECT the scenario — nothing runs until Start is pressed.
   const quickLaunch = (code: string) => setSelected(code);
-  const stopRun = async () => { if (!runId) return; setBusy("stop"); try { await twin.stop(runId); ctrl.pause(); toast.success("Run stopped"); } catch (e: any) { toast.error("Stop failed", { description: e.message }); } finally { setBusy(null); } };
+  // ONE authoritative stop path: ottoq_sim_stop_and_reset freezes the run,
+  // empties the depot (clears the active run), and arms the Black Box download.
+  const stopRun = async () => {
+    if (!runId) return;
+    setBusy("stop");
+    try {
+      await stopAndReset(runId);
+      ctrl.pause();
+      toast.success("Run stopped — depot reset", { description: "Download it from the Black Box tab." });
+    } catch (e: any) { toast.error("Stop failed", { description: e.message }); }
+    finally { setBusy(null); }
+  };
 
   const toggleChaos = async (on: boolean) => {
     if (!runId) { toast.error("Start a run first"); return; }
