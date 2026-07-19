@@ -54,8 +54,12 @@ const MAX_ACTIVE_SERVICE_APPROACH = 5; // batch charger/bay reassignments back o
                                        // car reverses at once into mutual gridlock
 const SPAWN_CLEARANCE = 6;    // don't materialize a car onto another one
 
-// backend vehicle_state → { lane, render status, stall status }
-function mapState(state: string): { lane: Lane | "gate" | null; vstatus: VehicleStatus; sstatus: StallStatus } | null {
+// backend vehicle_state (+ any stall it already holds) → { lane, render status,
+// stall status }. The stall matters for ONE case — see 'arrived_at_gate' below.
+function mapState(
+  state: string,
+  stallId?: string | null,
+): { lane: Lane | "gate" | null; vstatus: VehicleStatus; sstatus: StallStatus } | null {
   switch (state) {
     case "charging_dcfc": return { lane: "dcfc", vstatus: "charging", sstatus: "charging" };
     case "charging_l2": return { lane: "l2", vstatus: "charging", sstatus: "charging" };
@@ -68,7 +72,17 @@ function mapState(state: string): { lane: Lane | "gate" | null; vstatus: Vehicle
     case "staged_for_departure": return { lane: "staging", vstatus: "staging", sstatus: "occupied" };
     // incident triage: a retrieved (towed-in) vehicle docks in its reserved staging stall
     case "emergency_staged": return { lane: "staging", vstatus: "maintenance", sstatus: "occupied" };
-    case "arrived_at_gate": return { lane: "gate", vstatus: "staging", sstatus: "occupied" };
+    // ENTRANCE PILEUP FIX: OTTO-Q's congestion fallback PARKS a gate arrival in a
+    // staging stall (sets current_stall_id) but deliberately KEEPS the state
+    // 'arrived_at_gate' so decide_tick retries it for a charger every tick.
+    // Mapping on state alone drew every one of those already-parked cars stacked
+    // on the entrance road — the "massive pile up at the gate". If the car
+    // already holds a stall, it is NOT waiting at the gate: render it AT the
+    // stall it was parked in.
+    case "arrived_at_gate":
+      return stallId
+        ? { lane: "staging", vstatus: "staging", sstatus: "occupied" }
+        : { lane: "gate", vstatus: "staging", sstatus: "occupied" };
     default: return null; // deployed / en_route / offline → off-map (departure)
   }
 }
@@ -433,7 +447,7 @@ class TwinMotionDriver {
         }
         continue;
       }
-      const m = mapState(bv.state);
+      const m = mapState(bv.state, bv.stall_id);
       if (!m) continue;
       present.add(bv.id);
       let e = this.entries.get(bv.id);
@@ -563,14 +577,19 @@ class TwinMotionDriver {
             this.ledger.release(bv.id);
             continue;
           }
-          // alternate east/west along the entrance road: 0, +9, -9, +18, -18 …
+          // ORDERLY GATE QUEUE: line arrivals up SINGLE-FILE receding EAST along
+          // the approach road (arrivals enter east, depart west — so the queue
+          // never mixes with the egress stream). The old placement alternated
+          // ±9 east/west, which parked cars ABREAST across the entrance — a row
+          // shoulder-to-shoulder at the gate reads as a pile-up; a line receding
+          // back up the approach reads as a queue, which is what a real depot
+          // does. Clamped to stay on-map.
           // ADMISSION CONTROL: only take a spot that's physically CLEAR. Every
           // poll reuses the same offsets, so spawning blind dropped new arrivals
           // ON TOP of still-taxiing ones — an overlapped plug at the ingress that
           // gridlocked the whole depot. No clear spot → defer to the next poll.
           for (let i = spawnIdx; i < 10 && !spawn; i++) {
-            const off = Math.ceil(i / 2) * 9 * (i % 2 === 0 ? -1 : 1);
-            const p = { x: INGRESS.x + off, y: INGRESS.y - 4 };
+            const p = { x: Math.min(292, INGRESS.x + 6 + i * 8), y: INGRESS.y - 2 };
             let clear = true;
             for (const [, other] of this.entries) {
               if (Math.hypot(other.car.x - p.x, other.car.y - p.y) < SPAWN_CLEARANCE) { clear = false; break; }
