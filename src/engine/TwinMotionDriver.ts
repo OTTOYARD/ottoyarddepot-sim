@@ -54,8 +54,12 @@ const MAX_ACTIVE_SERVICE_APPROACH = 5; // batch charger/bay reassignments back o
                                        // car reverses at once into mutual gridlock
 const SPAWN_CLEARANCE = 6;    // don't materialize a car onto another one
 
-// backend vehicle_state → { lane, render status, stall status }
-function mapState(state: string): { lane: Lane | "gate" | null; vstatus: VehicleStatus; sstatus: StallStatus } | null {
+// backend vehicle_state (+ any stall it already holds) → { lane, render status,
+// stall status }. The stall matters for ONE case — see 'arrived_at_gate' below.
+function mapState(
+  state: string,
+  stallId?: string | null,
+): { lane: Lane | "gate" | null; vstatus: VehicleStatus; sstatus: StallStatus } | null {
   switch (state) {
     case "charging_dcfc": return { lane: "dcfc", vstatus: "charging", sstatus: "charging" };
     case "charging_l2": return { lane: "l2", vstatus: "charging", sstatus: "charging" };
@@ -68,7 +72,17 @@ function mapState(state: string): { lane: Lane | "gate" | null; vstatus: Vehicle
     case "staged_for_departure": return { lane: "staging", vstatus: "staging", sstatus: "occupied" };
     // incident triage: a retrieved (towed-in) vehicle docks in its reserved staging stall
     case "emergency_staged": return { lane: "staging", vstatus: "maintenance", sstatus: "occupied" };
-    case "arrived_at_gate": return { lane: "gate", vstatus: "staging", sstatus: "occupied" };
+    // ENTRANCE PILEUP FIX: OTTO-Q's congestion fallback PARKS a gate arrival in a
+    // staging stall (sets current_stall_id) but deliberately KEEPS the state
+    // 'arrived_at_gate' so decide_tick retries it for a charger every tick.
+    // Mapping on state alone drew every one of those already-parked cars stacked
+    // on the entrance road — the "massive pile up at the gate". If the car
+    // already holds a stall, it is NOT waiting at the gate: render it AT the
+    // stall it was parked in.
+    case "arrived_at_gate":
+      return stallId
+        ? { lane: "staging", vstatus: "staging", sstatus: "occupied" }
+        : { lane: "gate", vstatus: "staging", sstatus: "occupied" };
     default: return null; // deployed / en_route / offline → off-map (departure)
   }
 }
@@ -433,7 +447,7 @@ class TwinMotionDriver {
         }
         continue;
       }
-      const m = mapState(bv.state);
+      const m = mapState(bv.state, bv.stall_id);
       if (!m) continue;
       present.add(bv.id);
       let e = this.entries.get(bv.id);
