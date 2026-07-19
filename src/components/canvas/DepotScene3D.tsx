@@ -12,7 +12,11 @@ import { ChargingField } from './three/ChargingField';
 import { WashBays } from './three/WashBays';
 import { ServiceBays } from './three/ServiceBays';
 import { StagingZone } from './three/StagingZone';
-import { DriveAisles } from './three/DriveAisles';
+// RAILS P2: right-of-way paint generated from the directed LaneGraph. Replaces
+// the hand-drawn DriveAisles arrows, which claimed the west/east avenues were
+// one-way when the graph actually makes them two-way divided — the markings
+// were contradicting the rules the cars route on.
+import { Lanes3D } from './three/Lanes3D';
 import { UtilityEquipment } from './three/UtilityEquipment';
 import { Vehicle3D } from './three/Vehicle3D';
 import { DepotOverlays } from './three/DepotOverlays';
@@ -154,7 +158,7 @@ export default function DepotScene3D() {
           <ChargingField type="l2" count={config.l2Count} />
           <WashBays count={config.washBayCount} />
           <StagingZone count={config.stagingStalls} />
-          <DriveAisles />
+          <Lanes3D />
           <UtilityEquipment bessCapacity={config.bessCapacity} bessPower={config.bessPower} />
           <DepotOverlays />
           <Landscaping />

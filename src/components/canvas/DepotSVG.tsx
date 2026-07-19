@@ -6,6 +6,7 @@ import { poseStore } from '@/engine/motion/poseStore';
 import { Stall } from './Stall';
 import { VehicleDot } from './VehicleDot';
 import { ZoneBadges } from './ZoneBadges';
+import { LaneOverlay } from './LaneOverlay';
 import {
   LOT, BESS_YARD, BUILDING, WASH, CANOPIES, PARK_RUNS, GATE_W,
   INGRESS, EGRESS,
@@ -115,13 +116,12 @@ export const DepotSVG = forwardRef<SVGSVGElement>((_, ref) => {
       <rect x={TEMP_LANE_X - 5} y={80} width={10} height={84} fill="#262635" opacity={0.8} />
       <rect x={WEST_LINK_X - 4} y={16} width={8} height={52} fill="#262635" opacity={0.8} />
 
-      {/* one-way arrows on the aisles */}
-      {[100, 130, 160].map((y) => (
-        <polygon key={`wa${y}`} points={`${WEST_AISLE_X},${y} ${WEST_AISLE_X - 2},${y + 4} ${WEST_AISLE_X + 2},${y + 4}`} fill="#ffffff" opacity={0.18} />
-      ))}
-      {[60, 100, 140].map((y) => (
-        <polygon key={`ea${y}`} points={`${EAST_AISLE_X},${y + 4} ${EAST_AISLE_X - 2},${y} ${EAST_AISLE_X + 2},${y}`} fill="#ffffff" opacity={0.18} />
-      ))}
+      {/* ---- RIGHT-OF-WAY paint (RAILS P2) ----
+           Generated from the SAME directed LaneGraph the cars route on, so the
+           markings can never drift from the rules. (The old hand-drawn aisle
+           arrows claimed the avenues were one-way; the graph actually makes them
+           two-way divided — the picture was contradicting the traffic rules.) */}
+      <LaneOverlay />
 
       {/* ---- structures ---- */}
       {/* BESS yard */}
