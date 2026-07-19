@@ -63,6 +63,21 @@ export class LaneGraph {
     const id = `${a}>${b}`;
     this.lanes.set(id, { id, from: a, to: b, pts, length: L });
     na.out.push(id);
+    this.inDeg = null; // topology changed — recompute lazily
+  }
+
+  /** in-degree per node, cached. Lets route() tell a real ring node from an
+   *  entry/exit SPUR: the ingress stub has in-degree 0 (you can only be there by
+   *  spawning), the egress stub has out-degree 0 (nothing ever leaves it). */
+  private inDeg: Map<string, number> | null = null;
+  private inDegree(id: string): number {
+    if (!this.inDeg) {
+      const m = new Map<string, number>();
+      for (const n of this.nodes.keys()) m.set(n, 0);
+      for (const l of this.lanes.values()) m.set(l.to, (m.get(l.to) ?? 0) + 1);
+      this.inDeg = m;
+    }
+    return this.inDeg.get(id) ?? 0;
   }
   /** Two opposing directed lanes on the same centerline (a divided road). */
   addRoad(a: string, b: string) {
@@ -152,8 +167,45 @@ export class LaneGraph {
    * Falls back to a straight segment if the graph can't connect them.
    */
   route(from: Pt, to: Pt): Pt[] {
-    const a = this.nearestNode(from);
-    const b = this.nearestNode(to);
+    // ENTRY/EXIT SPURS ARE NOT WAYPOINTS. The ingress stub sits at (200,210) —
+    // Euclidean-closer to the east/south staging block than any real ring node —
+    // so an unfiltered nearestNode picked it as the route ORIGIN for departures
+    // out of exactly the block the renderer fills first. Those cars drove
+    // BACKWARDS to the entrance gate before they could leave, and the departure
+    // TTL then despawned them in place: "a taxi drives down the road to the
+    // entrance gate and disappears at the gate."
+    //
+    // Told apart structurally, not by name, so this survives graph edits:
+    //   in-degree 0  => source spur (ingress). You can only be there by spawning,
+    //                   so it is a legal ORIGIN only if the car is genuinely on it,
+    //                   and never a legal DESTINATION (Dijkstra cannot reach it).
+    //   out-degree 0 => sink (egress). Never a legal ORIGIN — no path leaves it.
+    // A plain radius cannot tell the two apart: the gate queue lines up 6..92
+    // units east of the ingress stub while the east staging block sits only ~18
+    // units from it. DIRECTION can. A source spur is a legal origin only for a
+    // car approaching from OUTSIDE it — on the far side from where the spur
+    // leads. Queue cars sit outward of the entrance (legal); parked cars inside
+    // the lot sit inward of it (illegal, and were the ones driving backwards).
+    const SPUR_SLACK = 4;
+    const outwardOf = (n: Node, p: Pt) => {
+      const lane = this.lanes.get(n.out[0]);
+      const tgt = lane && this.nodes.get(lane.to);
+      if (!tgt) return false;
+      const dx = n.x - tgt.x;
+      const dy = n.y - tgt.y;
+      const m = Math.hypot(dx, dy) || 1;
+      return ((p.x - n.x) * dx + (p.y - n.y) * dy) / m >= -SPUR_SLACK;
+    };
+    const originOk = (n: Node) =>
+      n.out.length > 0 && (this.inDegree(n.id) > 0 || outwardOf(n, from));
+    const destOk = (n: Node) => this.inDegree(n.id) > 0;
+
+    let a = this.nearestNode(from, originOk);
+    let b = this.nearestNode(to, destOk);
+    // never strand a car: if the filters admit nothing, fall back to the old
+    // unfiltered pick rather than degrading to a beeline across the lot.
+    if (!a) a = this.nearestNode(from);
+    if (!b) b = this.nearestNode(to);
     const np = a && b ? this.nodePath(a, b) : [];
     let center: Pt[];
     if (np.length >= 2) {

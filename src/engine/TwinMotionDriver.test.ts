@@ -208,9 +208,15 @@ describe("TwinMotionDriver — kinematic motion off the twin", () => {
     expect(fleet().length).toBe(30);
     twinMotionDriver.reconcile(snap([])); // the twin deploys ALL of them at once
     // only a packet drives at a time — the rest wait parked (no perimeter flood)
-    const entries = (twinMotionDriver as unknown as { entries: Map<string, { vstatus: string; tracker: unknown }> }).entries;
+    const entries = (twinMotionDriver as unknown as { entries: Map<string, { vstatus: string; tracker: unknown; reverse: unknown }> }).entries;
+    // A released departer is one that has STARTED leaving — which means a rail
+    // OR a back-out maneuver. Cars parked nose-in toward the south apron must
+    // reverse out before they can head north to the ring, and during that cusp
+    // they legitimately hold no tracker yet. (Counting only `tracker` used to
+    // work by accident, back when departures mis-routed FORWARD toward the
+    // entrance spur and never needed to reverse.)
     let active = 0;
-    for (const [, e] of entries) if (e.vstatus === "departing" && e.tracker) active++;
+    for (const [, e] of entries) if (e.vstatus === "departing" && (e.tracker || e.reverse)) active++;
     expect(active).toBeGreaterThan(0);
     expect(active).toBeLessThanOrEqual(12);
     // and the wave GUARANTEED-drains (egress arrivals + TTL backstop): ~130s sim
