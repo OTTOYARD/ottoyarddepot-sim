@@ -44,8 +44,13 @@ export function useTwinControl() {
 
   // Backend calls are fire-and-forget: a 409 just means the run was already
   // in that state (e.g. play() right after starting a fresh run).
+  // Pause/Resume must move BOTH halves of the world: the server run (which owns
+  // the clock) and the renderer's interpolation (which owns what the eye sees).
+  // Flipping only the run left the cars gliding on for a world that had already
+  // stopped — the driver reads twinStore.paused via useTwinSceneBridge.
   const play = useCallback(() => {
     setPlaying(true);
+    useTwinStore.getState().setPaused(false);
     // Fresh read (see setSpeed): the run may have just been adopted this handler.
     const id = useTwinStore.getState().activeSimRunId;
     if (id) twin.resume(id).catch(() => {});
@@ -53,6 +58,7 @@ export function useTwinControl() {
 
   const pause = useCallback(() => {
     setPlaying(false);
+    useTwinStore.getState().setPaused(true);
     const id = useTwinStore.getState().activeSimRunId;
     if (id) twin.pause(id).catch(() => {});
   }, []);

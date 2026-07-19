@@ -372,4 +372,53 @@ describe("TwinMotionDriver — kinematic motion off the twin", () => {
     const spreadY = Math.max(...ps.map((p) => p.y)) - Math.min(...ps.map((p) => p.y));
     expect(Math.max(spreadX, spreadY)).toBeGreaterThan(12); // dispersed, not stacked in one spot
   });
+
+  it("PAUSE freezes every car in place, and RESUME continues without a catch-up jump", () => {
+    const ids = ["p1", "p2", "p3"];
+    twinMotionDriver.reconcile(snap(ids.map((id) => ({ id, state: "arrived_at_gate" }))));
+    for (let i = 0; i < 60; i++) twinMotionDriver.tickMotion(0.05); // get them rolling
+    const moving = ids.map((id) => ({ ...poseStore.get(id)! }));
+    expect(moving.some((p, i) => Math.hypot(p.x - moving[i].x, p.y - moving[i].y) >= 0)).toBe(true);
+
+    // held: the world stops dead, however long the operator leaves it paused
+    twinMotionDriver.setPaused(true);
+    const held = ids.map((id) => ({ ...poseStore.get(id)! }));
+    for (let i = 0; i < 200; i++) twinMotionDriver.tickMotion(0.05);
+    ids.forEach((id, i) => {
+      const p = poseStore.get(id)!;
+      expect(p.x).toBeCloseTo(held[i].x, 6);
+      expect(p.y).toBeCloseTo(held[i].y, 6);
+    });
+
+    // a snapshot arriving DURING the hold must not shift anyone: freezing motion
+    // (not data) is what lets Resume pick up smoothly instead of teleporting
+    twinMotionDriver.reconcile(snap(ids.map((id) => ({ id, state: "charging_dcfc" }))));
+    ids.forEach((id, i) => {
+      const p = poseStore.get(id)!;
+      expect(Math.hypot(p.x - held[i].x, p.y - held[i].y)).toBeLessThan(1e-6);
+    });
+
+    // released: motion resumes and the depot does NOT lurch forward by the length
+    // of the pause. Driven through the real loop entry point (step), because that
+    // is where a stale `last` timestamp would turn a 30s hold into one huge dt.
+    const drv = twinMotionDriver as unknown as { step: (ts: number) => void };
+    twinMotionDriver.setPaused(false);
+    const before = ids.map((id) => ({ ...poseStore.get(id)! }));
+    drv.step(1_000_000);          // wall clock jumped 30s during the hold
+    drv.step(1_000_050);          // one ordinary 50ms frame after it
+    const resumed = ids.map((id, i) => {
+      const p = poseStore.get(id)!;
+      return Math.hypot(p.x - before[i].x, p.y - before[i].y);
+    });
+    // a 30-second catch-up would fling a car clear across the 300-unit site;
+    // a correctly re-seeded clock moves it a fraction of a lane
+    expect(Math.max(...resumed)).toBeLessThan(5);
+
+    for (let i = 0; i < 60; i++) twinMotionDriver.tickMotion(0.05);
+    const after = ids.map((id, i) => {
+      const p = poseStore.get(id)!;
+      return Math.hypot(p.x - before[i].x, p.y - before[i].y);
+    });
+    expect(Math.max(...after)).toBeGreaterThan(1); // genuinely moving again
+  });
 });

@@ -94,18 +94,28 @@ const VehicleDotInner = ({ vehicle: v }: Props) => {
         </>
       )}
 
-      {/* Vehicle body - rotated rounded rect (rotation set imperatively too) */}
+      {/* Vehicle body — rotated rounded rect (rotation set imperatively too).
+          FOOTPRINT IS LOAD-BEARING, not cosmetic. The plan is drawn to real
+          dimensions at 1 unit = 0.4785 m (sitePlan.ts), and two opposing travel
+          lanes sit 2 x rightOffset = 4.8 units apart (LaneGraph.ts). The old
+          5.0-unit-wide body was WIDER than half that gap, so two cars passing in
+          opposite directions overlapped by 0.2 units of body (0.6 with stroke) —
+          negative clearance. That is the "they look like they're heading right
+          for each other" artefact: the cars were tracking their lanes correctly
+          and still colliding, because the paint was honest and the body was not.
+          4.2 x 10.2 units = 2.01 m x 4.88 m — a real robotaxi footprint — and
+          leaves 0.6 units (0.29 m) of daylight between passing bodies. */}
       <g data-body transform={`rotate(${rotation})`}>
         <rect
-          x={-2.5}
-          y={-4}
-          width={5}
-          height={8}
-          rx={1.5}
-          ry={1.5}
+          x={-2.1}
+          y={-5.1}
+          width={4.2}
+          height={10.2}
+          rx={1.4}
+          ry={1.4}
           fill={fill}
           stroke={stroke}
-          strokeWidth={0.4}
+          strokeWidth={0.25}
           opacity={baseOpacity}
         >
           {v.status === 'charging' && (
