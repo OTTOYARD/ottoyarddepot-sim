@@ -175,6 +175,20 @@ class TwinMotionDriver {
    *  from the ingress (kills the mid-run teleport-spawn when a state hop lands
    *  between two polls, e.g. deployed → charging). */
   private primed = false;
+  /** operator hold. Motion is frozen in place (poses HOLD exactly where they are,
+   *  mid-lane) while true; snapshot reconcile still runs, so a car whose backend
+   *  state changed while paused simply resumes toward its new target instead of
+   *  teleporting. */
+  private paused = false;
+
+  /** Freeze/unfreeze on-screen motion. Dropping `last` on resume means the first
+   *  frame back re-seeds the clock instead of applying one giant catch-up dt —
+   *  without it the whole depot would lurch forward by the length of the pause. */
+  setPaused(v: boolean) {
+    if (this.paused === v) return;
+    this.paused = v;
+    if (!v) this.last = null;
+  }
 
   start() {
     if (this.rafId !== null || this.intervalId !== null) return;
@@ -735,6 +749,12 @@ class TwinMotionDriver {
    *  the rAF loop (smooth 60fps when visible) and the setInterval fallback (when
    *  hidden). dt-from-timestamp + the <=0 guard make overlapping fires harmless. */
   private step(ts: number) {
+    // Operator hold: keep the clock rolling forward but integrate nothing, so
+    // every car stops dead the frame Pause is pressed and no dt accumulates.
+    if (this.paused) {
+      this.last = ts;
+      return;
+    }
     if (this.last === null) {
       this.last = ts;
       return;
@@ -747,6 +767,9 @@ class TwinMotionDriver {
 
   /** One physical motion step of `dt` seconds. Public for unit testing. */
   tickMotion(dt: number) {
+    // Single chokepoint for ALL motion: guarding here (not just in step) means
+    // no caller — loop, interval, or test — can advance a held depot.
+    if (this.paused) return;
     // every physical body on the lot, one entry each — rail cars project these
     // onto their own forward windows (RailFlow); `moving` is kept only for the
     // reverse maneuver's rear-clearance check.

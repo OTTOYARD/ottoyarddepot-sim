@@ -24,12 +24,19 @@ interface TwinState {
   lastFrameAt: number | null;   // Date.now() of last successful snapshot
   offlineDemo: boolean;         // when true, fall back to the legacy client engine
   energyHistory: EnergyPoint[]; // rolling buffer accumulated from snapshots (KPI chart)
+  /** TRUE only while the operator explicitly holds Pause. The world clock is
+   *  server-side, so pausing the run stops the twin advancing — but the renderer
+   *  interpolates between snapshots on its own rAF loop and would keep the cars
+   *  gliding for a frozen world. The scene bridge mirrors this flag onto the
+   *  motion driver so Pause halts motion on screen the instant it is pressed. */
+  paused: boolean;
 
   setActiveSimRunId: (id: string | null) => void;
   setLayout: (layout: TwinLayout | null) => void;
   setSnapshot: (snap: TwinSnapshot | null) => void;
   setConnected: (c: boolean) => void;
   setOfflineDemo: (v: boolean) => void;
+  setPaused: (v: boolean) => void;
   reset: () => void;
 }
 
@@ -41,9 +48,19 @@ export const useTwinStore = create<TwinState>((set) => ({
   lastFrameAt: null,
   offlineDemo: false,
   energyHistory: [],
+  paused: false,
 
+  // Adopting a DIFFERENT run always clears the operator hold. Stop pauses the
+  // run on its way out and lands the operator on the Black Box tab, whose start
+  // button only sets the run id — without this, Pause → Stop → Start Recording
+  // would render the fresh run permanently frozen. Guarded on an actual id
+  // change so a re-adopt of the same run can't silently cancel a live Pause.
   setActiveSimRunId: (activeSimRunId) =>
-    set({ activeSimRunId, energyHistory: [] }),   // fresh chart per run
+    set((s) =>
+      s.activeSimRunId === activeSimRunId
+        ? { activeSimRunId }
+        : { activeSimRunId, energyHistory: [], paused: false },   // fresh chart + never born held
+    ),
   setLayout: (layout) => set({ layout }),
   setSnapshot: (snapshot) =>
     set((s) => {
@@ -69,5 +86,6 @@ export const useTwinStore = create<TwinState>((set) => ({
     }),
   setConnected: (connected) => set({ connected }),
   setOfflineDemo: (offlineDemo) => set({ offlineDemo }),
-  reset: () => set({ activeSimRunId: null, layout: null, snapshot: null, connected: false, lastFrameAt: null, energyHistory: [] }),
+  setPaused: (paused) => set({ paused }),
+  reset: () => set({ activeSimRunId: null, layout: null, snapshot: null, connected: false, lastFrameAt: null, energyHistory: [], paused: false }),
 }));

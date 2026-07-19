@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { simulationEngine } from '@/engine/SimulationEngine';
 import { useSimulationStore } from '@/store/simulationStore';
 import { useDemoStore } from '@/store/demoStore';
+import { useTwinStore } from '@/store/twinStore';
+import { twin } from '@/lib/ottoTwin';
 
 export function useKeyboardShortcuts(enterDemoFn: () => void) {
   useEffect(() => {
@@ -11,15 +13,27 @@ export function useKeyboardShortcuts(enterDemoFn: () => void) {
 
       const sim = useSimulationStore.getState();
 
+      // When a live twin run owns the board, the legacy offline engine must stay
+      // out of it: starting it wipes the twin fleet and animates vehicles that
+      // the twin's Pause has no authority over. Space is the natural "pause"
+      // key, so in twin mode it drives the TWIN hold (world + renderer) instead.
+      const tw = useTwinStore.getState();
+      const twinLive = !!tw.activeSimRunId && !tw.offlineDemo;
+
       switch (e.key) {
         case ' ':
           e.preventDefault();
-          if (sim.status === 'running') simulationEngine.stop();
+          if (twinLive) {
+            const next = !tw.paused;
+            tw.setPaused(next);
+            if (next) twin.pause(tw.activeSimRunId!).catch(() => {});
+            else twin.resume(tw.activeSimRunId!).catch(() => {});
+          } else if (sim.status === 'running') simulationEngine.stop();
           else simulationEngine.start();
           break;
         case 'r':
         case 'R':
-          simulationEngine.reset();
+          if (!twinLive) simulationEngine.reset();  // never reset the board out from under a live run
           break;
         case 'd':
         case 'D': {

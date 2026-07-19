@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { buildDepotLanes, LaneGraph } from "./LaneGraph";
-import { GAP_LANES, NORTH_LANE_Y, SOUTH_LANE_Y, INGRESS } from "@/lib/sitePlan";
+import { GAP_LANES, NORTH_LANE_Y, SOUTH_LANE_Y, INGRESS, EGRESS } from "@/lib/sitePlan";
 
 function pathLen(pts: { x: number; y: number }[]): number {
   let L = 0;
@@ -33,6 +33,34 @@ describe("LaneGraph — one-way depot routing", () => {
     const direct = SOUTH_LANE_Y - NORTH_LANE_Y;
     const L = pathLen(g.route(from, to));
     expect(L).toBeGreaterThan(direct * 1.5); // had to go around
+  });
+
+  it("a departure from the east/south staging block never routes BACKWARDS through the entrance", () => {
+    // The block the renderer fills first (S3 row, ~x 212 y 197) sits Euclidean-
+    // closer to the ingress stub (200,210) than to any real ring node, so the old
+    // unfiltered nearestNode made the ENTRANCE the origin of every departure out
+    // of it — the car drove to the gate and was despawned there by the TTL.
+    const from = { x: 212, y: 197 };
+    const path = g.route(from, { x: EGRESS.x, y: EGRESS.y });
+    expect(path.length).toBeGreaterThan(2);
+    // it must never double back onto the ingress stub...
+    const nearIngress = path.filter(
+      (p) => Math.hypot(p.x - INGRESS.x, p.y - (INGRESS.y - 5)) < 6,
+    );
+    expect(nearIngress).toHaveLength(0);
+    // ...and must actually reach the egress
+    const end = path[path.length - 1];
+    expect(Math.hypot(end.x - EGRESS.x, end.y - EGRESS.y)).toBeLessThan(8);
+    // a straight shot east→west is ~112 units; anything near 2x means it detoured
+    // out to the gate and back
+    expect(pathLen(path)).toBeLessThan((from.x - EGRESS.x) * 1.8);
+  });
+
+  it("still routes a car that is genuinely AT the ingress out of the ingress", () => {
+    // the spur filter must not strand a just-spawned arrival
+    const path = g.route({ x: INGRESS.x, y: INGRESS.y - 5 }, { x: GAP_LANES.AB, y: 100 });
+    expect(path.length).toBeGreaterThan(2);
+    expect(pathLen(path)).toBeGreaterThan(20);
   });
 
   it("drive paths are offset to the right of travel (lanes separated, no head-on)", () => {

@@ -25,7 +25,17 @@ import { twin } from "@/lib/ottoTwin";
 export function useTwinSceneBridge() {
   const snapshot = useTwinStore((s) => s.snapshot);
   const activeSimRunId = useTwinStore((s) => s.activeSimRunId);
+  const paused = useTwinStore((s) => s.paused);
   const legacyStatus = useSimulationStore((s) => s.status);
+
+  // Operator hold. The server metronome skips paused runs, but the driver
+  // interpolates on its own rAF clock and would keep animating toward the last
+  // snapshot's targets — so Pause has to reach the renderer too, or the depot
+  // keeps moving after the world has stopped. Reconcile deliberately stays live
+  // (below): freezing motion, not data, means Resume never teleports a car.
+  useEffect(() => {
+    twinMotionDriver.setPaused(paused);
+  }, [paused]);
 
   // Start/stop the motion loop with the mode. Clear render state when we leave
   // twin mode or the offline engine takes over (it owns the stores then).
