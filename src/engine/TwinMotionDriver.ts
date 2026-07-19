@@ -577,14 +577,19 @@ class TwinMotionDriver {
             this.ledger.release(bv.id);
             continue;
           }
-          // alternate east/west along the entrance road: 0, +9, -9, +18, -18 …
+          // ORDERLY GATE QUEUE: line arrivals up SINGLE-FILE receding EAST along
+          // the approach road (arrivals enter east, depart west — so the queue
+          // never mixes with the egress stream). The old placement alternated
+          // ±9 east/west, which parked cars ABREAST across the entrance — a row
+          // shoulder-to-shoulder at the gate reads as a pile-up; a line receding
+          // back up the approach reads as a queue, which is what a real depot
+          // does. Clamped to stay on-map.
           // ADMISSION CONTROL: only take a spot that's physically CLEAR. Every
           // poll reuses the same offsets, so spawning blind dropped new arrivals
           // ON TOP of still-taxiing ones — an overlapped plug at the ingress that
           // gridlocked the whole depot. No clear spot → defer to the next poll.
           for (let i = spawnIdx; i < 10 && !spawn; i++) {
-            const off = Math.ceil(i / 2) * 9 * (i % 2 === 0 ? -1 : 1);
-            const p = { x: INGRESS.x + off, y: INGRESS.y - 4 };
+            const p = { x: Math.min(292, INGRESS.x + 6 + i * 8), y: INGRESS.y - 2 };
             let clear = true;
             for (const [, other] of this.entries) {
               if (Math.hypot(other.car.x - p.x, other.car.y - p.y) < SPAWN_CLEARANCE) { clear = false; break; }
