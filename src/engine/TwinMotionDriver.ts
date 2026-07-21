@@ -54,6 +54,23 @@ const MAX_ACTIVE_SERVICE_APPROACH = 5; // batch charger/bay reassignments back o
                                        // car reverses at once into mutual gridlock
 const SPAWN_CLEARANCE = 6;    // don't materialize a car onto another one
 
+// SMOOTHNESS: a rail car's pose heading is the raw segment TANGENT, which jumps
+// discontinuously at every polyline vertex (a lane corner, the charger pull-in).
+// Applied straight to the body that reads as a single-frame heading SNAP of up to
+// ~110°. Instead we ease the rendered heading toward the tangent at a bounded
+// angular rate so a corner sweeps as a quick believable turn. This is PURELY
+// cosmetic: the car's x/y still track the rail exactly and following/no-overlap
+// are position-based (RailFlow), so lane discipline and the no-gridlock
+// guarantees are untouched.
+const MAX_TURN_RATE = 3.0; // rad/s — a 90° corner sweeps in ~0.5s
+function easeHeading(current: number, target: number, dt: number): number {
+  const d = wrapAngle(target - current);
+  const maxStep = MAX_TURN_RATE * dt;
+  if (d > maxStep) return wrapAngle(current + maxStep);
+  if (d < -maxStep) return wrapAngle(current - maxStep);
+  return target;
+}
+
 // backend vehicle_state (+ any stall it already holds) → { lane, render status,
 // stall status }. The stall matters for ONE case — see 'arrived_at_gate' below.
 function mapState(
@@ -350,6 +367,10 @@ class TwinMotionDriver {
         return;
       }
     }
+    // seed the new rail's speed from the car's current speed so a MOVING car
+    // re-railed mid-taxi (a lane change) eases on instead of braking to 0 and
+    // re-accelerating (a visible stop-start). stepRail clamps it next tick.
+    rail.v = Math.max(0, e.car.speed);
     e.tracker = rail;
   }
 
@@ -848,7 +869,9 @@ class TwinMotionDriver {
         if (pose) {
           e.car.x = pose.x;
           e.car.y = pose.y;
-          e.car.heading = pose.heading;
+          // rate-limit the heading toward the rail tangent so a sharp corner
+          // vertex reads as a turn, not a one-frame snap (position is exact).
+          e.car.heading = easeHeading(e.car.heading, pose.heading, dt);
           e.car.speed = e.tracker.v;
           // watchdog: stationary far too long (a dead body ON the lane, a stale
           // lock) → drop my locks and re-route from the current pose. Bounded
@@ -871,7 +894,10 @@ class TwinMotionDriver {
               const st = useDepotStore.getState().stalls.find((s) => s.id === e.stallId);
               if (st) { e.car.x = st.position.x; e.car.y = st.position.y; }
             }
-            e.car.heading = e.stallHeading;
+            // ease into the parked heading (the last frames of the pull-in,
+            // esp. the charger sideways→north dock) — the parked branch below
+            // finishes any residual rotation so it never snaps.
+            e.car.heading = easeHeading(e.car.heading, e.stallHeading, dt);
             e.car.speed = 0;
             e.car.steer = 0;
             e.tracker = null;
@@ -885,9 +911,15 @@ class TwinMotionDriver {
             }
           }
         }
-      } else if (e.car.speed !== 0) {
-        e.car.speed = 0; // parked: hold still
-        changed = true;
+      } else {
+        // parked: hold position, but finish easing any residual heading into the
+        // stall heading so the final degrees of a pull-in settle as a smooth turn
+        // (converges then stops flushing — no idle churn).
+        if (e.car.speed !== 0) { e.car.speed = 0; changed = true; }
+        if (Math.abs(wrapAngle(e.stallHeading - e.car.heading)) > 1e-3) {
+          e.car.heading = easeHeading(e.car.heading, e.stallHeading, dt);
+          changed = true;
+        }
       }
     }
     for (const id of remove) {
