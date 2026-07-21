@@ -3,6 +3,7 @@ import { useSimulationStore } from '@/store/simulationStore';
 import { TabBar } from './TabBar';
 import { OperatorConsole } from '@/components/cockpit/OperatorConsole';
 import { TwinKpisTab } from '@/components/tabs/TwinKpisTab';
+import { TwinOrchestrationTab } from '@/components/tabs/TwinOrchestrationTab';
 import { TwinAiSummaryTab } from '@/components/tabs/TwinAiSummaryTab';
 import { TwinAlertsTab } from '@/components/tabs/TwinAlertsTab';
 import { TwinHistoryTab } from '@/components/tabs/TwinHistoryTab';
@@ -13,6 +14,7 @@ import { BlackBoxPanel } from '@/components/cockpit/BlackBoxPanel';
 
 const tabComponents = {
   controls: OperatorConsole,       // AV-only backend-driven console (replaces legacy ControlsTab)
+  orchestration: TwinOrchestrationTab, // OTTO-Q appointment/reservation/servicing seam (investor view)
   kpis: TwinKpisTab,               // live backend KPIs (replaces legacy KPIsTab)
   'ai-summary': TwinAiSummaryTab,  // OTTO-Q self-analysis from the live snapshot
   alerts: TwinAlertsTab,           // live backend event feed (replaces legacy AlertsTab)
