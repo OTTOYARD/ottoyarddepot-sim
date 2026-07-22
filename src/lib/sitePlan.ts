@@ -109,11 +109,13 @@ export const PARK_RUNS: ParkRun[] = [
 export const LIGHT_POLES: { x: number; y: number }[] = [
   { x: 36, y: 60 }, { x: 36, y: 120 }, { x: 36, y: 174 },
   { x: 268, y: 60 }, { x: 268, y: 120 }, { x: 268, y: 174 },
-  // Canopy end-cap poles: on each canopy's CENTRAL SPINE (cx 103/150/197), at
-  // its north cap — lights the charging-lane entrance WITHOUT standing in the
-  // gap lanes. (Replaces the two poles that sat in the gap-lane mouths at
-  // x=126/174, y=60 — the "poles in the middle of the charging-lane entrance".)
-  { x: 103, y: 84 }, { x: 150, y: 84 }, { x: 197, y: 84 },
+  // Canopy end-cap poles: one per canopy, on its centre spine (cx 103/150/197)
+  // at the SOUTH cap. y=166 is just SOUTH of the roof (which spans y≈79→165) so
+  // the 18u pole never pokes through the canopy roof, and it's at the canopy's
+  // end — clear of the flanking gap lanes AND the entrance forecourt. (The two
+  // originals sat in the gap-lane mouths at x=126/174, y=60 = "in the lane"; the
+  // first move to y=84 put them UNDER the roof — this fixes both.)
+  { x: 103, y: 166 }, { x: 150, y: 166 }, { x: 197, y: 166 },
   { x: 52, y: 9 }, { x: 218, y: 29 },
 ];
 
