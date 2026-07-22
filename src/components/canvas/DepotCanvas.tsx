@@ -9,6 +9,7 @@ import { AlertToasts } from './AlertToasts';
 import { LoadingOverlay } from './LoadingOverlay';
 import { DemoBanner } from './DemoBanner';
 import { useEngineLifecycle } from '@/hooks/useEngineLifecycle';
+import { useAppointments } from '@/hooks/useAppointments';
 import { useSimulationStore } from '@/store/simulationStore';
 
 const DepotScene3D = lazy(() => import('./DepotScene3D'));
@@ -20,6 +21,7 @@ export const DepotCanvas = () => {
   const svgRef = useRef<SVGSVGElement>(null);
   const viewMode = useSimulationStore((s) => s.viewMode);
   useEngineLifecycle();
+  useAppointments(); // poll the reservation seam so the on-map glow stays live
 
   return (
     <div className="flex-1 flex flex-col min-w-0">

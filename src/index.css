@@ -139,6 +139,16 @@ All colors MUST be HSL.
   animation: stall-pulse 2s ease-in-out infinite;
 }
 
+/* Reservation glow: a stall held EMPTY for an inbound car pulses gently so it
+   reads as intentional (held for a reason) rather than idle/wasted. */
+@keyframes reservation-hold-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+.reservation-hold-glow {
+  animation: reservation-hold-pulse 2.4s ease-in-out infinite;
+}
+
 /* ── Depot Controls: Slider overrides ── */
 .depot-controls [data-radix-slider-track] {
   background: hsl(174 100% 35% / 0.3);
