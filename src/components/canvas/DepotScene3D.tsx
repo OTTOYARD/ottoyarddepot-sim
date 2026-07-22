@@ -27,13 +27,17 @@ import { SiteDetails } from './three/SiteDetails';
 import { MATERIALS } from './three/materials';
 import { skyTexture } from './three/textures';
 
+// toWorld negates X (east=-X) to un-mirror the scene. Bird Eye views from the
+// SOUTH (z<0) so it is north-up / east-right, matching the 2D. Oblique presets
+// negate their X so they frame the same physical subject in the flipped world.
+// (Tuned + live-verified per camera 2026-07-22.)
 const CAMERA_PRESETS = {
-  'Bird Eye': { position: [0, 210, 60] as [number, number, number], target: [0, 0, 4] as [number, number, number] },
-  'Entrance': { position: [-50, 6, -135] as [number, number, number], target: [-50, 3, -70] as [number, number, number] },
-  'Canopy': { position: [-75, 7, -50] as [number, number, number], target: [-47, 5, 30] as [number, number, number] },
-  'Operator': { position: [-170, 90, -120] as [number, number, number], target: [0, 0, 20] as [number, number, number] },
-  'Service': { position: [-10, 9, 30] as [number, number, number], target: [-25, 6, 75] as [number, number, number] },
-  'Hero': { position: [95, 14, -75] as [number, number, number], target: [47, 6, 25] as [number, number, number] },
+  'Bird Eye': { position: [0, 210, -60] as [number, number, number], target: [0, 0, -4] as [number, number, number] },
+  'Entrance': { position: [50, 6, -135] as [number, number, number], target: [50, 3, -70] as [number, number, number] },
+  'Canopy': { position: [75, 7, -50] as [number, number, number], target: [47, 5, 30] as [number, number, number] },
+  'Operator': { position: [170, 90, -120] as [number, number, number], target: [0, 0, 20] as [number, number, number] },
+  'Service': { position: [10, 9, 30] as [number, number, number], target: [25, 6, 75] as [number, number, number] },
+  'Hero': { position: [-95, 14, -75] as [number, number, number], target: [-47, 6, 25] as [number, number, number] },
 };
 
 // Seeded random for consistent tree placement
@@ -126,7 +130,7 @@ export default function DepotScene3D() {
     <div className="absolute inset-0 bg-otto-dark">
       <Canvas
         shadows
-        camera={{ position: [0, 180, 10], fov: 45, near: 1, far: 500 }}
+        camera={{ position: [0, 180, -10], fov: 45, near: 1, far: 500 }}
         gl={{
           antialias: true,
           toneMapping: ACESFilmicToneMapping,
