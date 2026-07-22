@@ -7,6 +7,7 @@ import { Stall } from './Stall';
 import { VehicleDot } from './VehicleDot';
 import { ZoneBadges } from './ZoneBadges';
 import { LaneOverlay } from './LaneOverlay';
+import { ReservationGlow } from './ReservationGlow';
 import {
   LOT, BESS_YARD, BUILDING, WASH, CANOPIES, PARK_RUNS, GATE_W,
   INGRESS, EGRESS,
@@ -187,6 +188,9 @@ export const DepotSVG = forwardRef<SVGSVGElement>((_, ref) => {
       {stalls.map((stall) => (
         <Stall key={stall.id} stall={stall} />
       ))}
+      {/* OTTO-Q reservation glow — over the stalls, UNDER the vehicles so a car
+          and its number are never obscured. Held-for-inbound stalls pulse red. */}
+      <ReservationGlow />
       {vehicles.map((v) => (
         <VehicleDot key={v.id} vehicle={v} />
       ))}
