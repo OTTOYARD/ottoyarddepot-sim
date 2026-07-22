@@ -103,13 +103,17 @@ export const PARK_RUNS: ParkRun[] = [
   { id: 'TE', x0: 260, y0: 86,   dx: 0,   dy: 6,   n: 13, angle: 90 },
 ];
 
-// Overhead site lighting (24/7 ops) — placed at zone edges, never in a lane
-// (the apron swing at y≈16 and the West Link at x=66 stay clear).
+// Overhead site lighting (24/7 ops) — placed at zone edges + canopy end-caps,
+// NEVER in a travel lane (the apron swing at y≈16, the West Link at x=66, and
+// the flanking gap lanes at x≈80/126.5/173.5/220 all stay clear).
 export const LIGHT_POLES: { x: number; y: number }[] = [
   { x: 36, y: 60 }, { x: 36, y: 120 }, { x: 36, y: 174 },
   { x: 268, y: 60 }, { x: 268, y: 120 }, { x: 268, y: 174 },
-  { x: 126, y: 60 }, { x: 174, y: 60 },
-  { x: 126, y: 172 }, { x: 174, y: 172 },
+  // Canopy end-cap poles: on each canopy's CENTRAL SPINE (cx 103/150/197), at
+  // its north cap — lights the charging-lane entrance WITHOUT standing in the
+  // gap lanes. (Replaces the two poles that sat in the gap-lane mouths at
+  // x=126/174, y=60 — the "poles in the middle of the charging-lane entrance".)
+  { x: 103, y: 84 }, { x: 150, y: 84 }, { x: 197, y: 84 },
   { x: 52, y: 9 }, { x: 218, y: 29 },
 ];
 

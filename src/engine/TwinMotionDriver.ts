@@ -314,8 +314,8 @@ class TwinMotionDriver {
 
   /** Build a rail to a stall (charger columns get a MOUTH key so only one car
    *  docks/undocks in a column throat at a time). */
-  private railTo(from: { x: number; y: number }, lane: Lane, stall: { x: number; y: number }, facing: number): Rail {
-    const pts = this.routeToStall(from, lane, stall, facing);
+  private railTo(from: { x: number; y: number }, lane: Lane, stall: { x: number; y: number }, facing: number, lead: Pt[] = []): Rail {
+    const pts = [...lead, ...this.routeToStall(from, lane, stall, facing)];
     const mouth = lane === "dcfc" || lane === "l2" ? `${lane}:${Math.round(stall.x)}` : null;
     return buildRail(pts, this.graph.nodes.values(), mouth);
   }
@@ -332,16 +332,22 @@ class TwinMotionDriver {
     return { lead: [{ x: pose.x, y: pose.y }, start], start };
   }
 
-  /** Rebuild the rail toward the entry's current destination from its ACTUAL pose. */
-  private rebuildRail(e: Entry): Rail | null {
+  /** Rebuild the rail toward the entry's current destination. Normally routes
+   *  from the car's ACTUAL pose; pass `lead` to prepend a short FORWARD stub and
+   *  move the routing origin to its last point (the reverse-course fix: the car
+   *  eases forward along the stub, then the graph route picks up ahead of it). */
+  private rebuildRail(e: Entry, lead?: Pt[]): Rail | null {
     if (!e.dest) return null;
+    const hasLead = !!lead && lead.length > 0;
+    const origin = hasLead ? lead![lead!.length - 1] : e.car.pose;
+    const pre = hasLead ? lead! : [];
     if (e.dest.kind === "egress") {
-      const be = this.bayExit(e.car.pose);
-      const route = this.graph.route(be?.start ?? e.car.pose, { x: EGRESS.x, y: EGRESS.y });
-      const pts = be ? [...be.lead, ...route] : route;
-      return buildRail(pts, this.graph.nodes.values(), null);
+      const be = this.bayExit(origin);
+      const route = this.graph.route(be?.start ?? origin, { x: EGRESS.x, y: EGRESS.y });
+      const tail = be ? [...be.lead, ...route] : route;
+      return buildRail([...pre, ...tail], this.graph.nodes.values(), null);
     }
-    return this.railTo(e.car.pose, e.dest.lane, e.dest, e.dest.heading);
+    return this.railTo(origin, e.dest.lane, e.dest, e.dest.heading, pre);
   }
 
   /** Point a car at a new destination: sets dest, BACKS OUT first if it is
@@ -356,16 +362,28 @@ class TwinMotionDriver {
     this.locks.releaseAll(e.id);
     e.dest = dest;
     const wasParked = e.tracker === null && !e.reverse;
-    const rail = this.rebuildRail(e);
+    let rail = this.rebuildRail(e);
     if (!rail) return;
+    // angle between the car's heading and the new route's first ~8u
+    const probe = pointAt(rail.pts, rail.cum, Math.min(8, rail.total));
+    const ang = wrapAngle(Math.atan2(probe.y - e.car.y, probe.x - e.car.x) - e.car.heading);
     if (wasParked) {
-      const probe = pointAt(rail.pts, rail.cum, Math.min(8, rail.total));
-      const ang = wrapAngle(Math.atan2(probe.y - e.car.y, probe.x - e.car.x) - e.car.heading);
+      // PARKED nose-in car: back out on a fixed arc before pulling away (unchanged).
       if (Math.abs(ang) > 1.75) {
         e.reverse = { remaining: 11, steer: -Math.sign(ang || 1) * 0.35 };
         e.tracker = null;
         return;
       }
+    } else if (Math.abs(ang) > 1.75) {
+      // MOVING re-rail (a mid-taxi reassignment): the new route's first segment
+      // points >100° behind the car — following it verbatim drives the car
+      // BACKWARD toward a graph node behind it (the reverse-course-mid-taxi bug).
+      // Rebuild from a point one car-length AHEAD and PREPEND the car's real pose,
+      // so the rail's first segment goes FORWARD; easeHeading then sweeps the turn.
+      // Position starts exactly at the car (no teleport) and the car never reverses.
+      const fwd = { x: e.car.x + Math.cos(e.car.heading) * 9, y: e.car.y + Math.sin(e.car.heading) * 9 };
+      const forward = this.rebuildRail(e, [{ x: e.car.x, y: e.car.y }, fwd]);
+      if (forward) rail = forward;
     }
     // seed the new rail's speed from the car's current speed so a MOVING car
     // re-railed mid-taxi (a lane change) eases on instead of braking to 0 and
