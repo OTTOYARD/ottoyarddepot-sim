@@ -58,7 +58,7 @@ export interface LanePaint {
 
 const ARROW_SPACING = 18; // world units between chevrons
 const ARROW_EDGE_MARGIN = 6; // don't paint arrows right on an intersection
-const LANE_WIDTH = 4.8; // visual lane width (2 × rightOffset)
+const LANE_WIDTH = 6.4; // visual lane width (2 × rightOffset = 2 × 3.2)
 
 function dist(a: Pt, b: Pt) {
   return Math.hypot(a.x - b.x, a.y - b.y);

@@ -17,7 +17,14 @@ import type { Pt } from "./PathTracker";
 import { CAR_LENGTH } from "./traffic";
 import { idmAccel } from "./idm";
 
-export interface RailBody { id: string; x: number; y: number; }
+export interface RailBody {
+  id: string; x: number; y: number;
+  /** travel heading (rad) + whether it is a moving/taxiing car. A MOVING car
+   *  heading against my path is ONCOMING (a pass on the divided road) or CROSSING
+   *  at a node — it must NOT count as a leader to brake for (real crossings are
+   *  serialized by the node LOCKS). A parked body always blocks. */
+  heading?: number; moving?: boolean;
+}
 
 export interface Rail {
   pts: Pt[];
@@ -42,6 +49,11 @@ const NODE_STOP = 4;      // stop bar distance before an unheld node
 const NODE_RELEASE = 10;  // release once this far past
 const MOUTH_ZONE = 18;    // column mouth = final stretch of the route
 const MAX_SPEED = 8;
+const HEADING_LA = 6;     // look-ahead (u) for the rendered heading — aims a few
+                         // units down the rail so a corner rounds off smoothly
+                         // instead of snapping the body 90° at each vertex
+const ONCOMING_DOT = 0.15; // cos of the path/​body heading angle below which a
+                          // MOVING body is oncoming/crossing (ignored as a leader)
 
 export function buildRail(
   pts: Pt[],
@@ -123,9 +135,14 @@ export function stepRail(
     for (const b of bodies) {
       if (b.id === id) continue;
       const dx = b.x - p.x, dy = b.y - p.y;
-      if (dx * dx + dy * dy <= LANE_HALF * LANE_HALF) {
-        gap = Math.min(gap, d - CAR_LENGTH * 0.55);
-      }
+      if (dx * dx + dy * dy > LANE_HALF * LANE_HALF) continue;
+      // a MOVING body heading AGAINST my path here is oncoming (a pass on the
+      // divided road) or crossing at a node — real crossings are serialized by
+      // the node LOCK (below), so braking for it here was the pass-freeze /
+      // ingress pileup. A parked (non-moving) body always blocks.
+      if (b.moving && b.heading !== undefined &&
+          Math.cos(b.heading - p.heading) < ONCOMING_DOT) continue;
+      gap = Math.min(gap, d - CAR_LENGTH * 0.55);
     }
     if (gap < Infinity) break; // nearest sample wins; no need to look further
   }
@@ -164,5 +181,17 @@ export function stepRail(
   else r.stationaryFor += dt;
 
   if (r.s >= r.total - 0.3) return null; // arrived — caller docks/snaps
-  return pointAt(r.pts, r.cum, r.s);
+  const here = pointAt(r.pts, r.cum, r.s);
+  // SMOOTH HEADING: aim toward a point HEADING_LA ahead on the rail instead of
+  // the raw segment tangent (which snapped 90° at each vertex → the diagonal
+  // crab-slide). The look-ahead makes the body ROUND each corner, anticipating
+  // the turn so heading stays aligned with motion; TwinMotionDriver still
+  // rate-limits toward it via easeHeading.
+  const la = Math.min(r.total - r.s, HEADING_LA);
+  if (la > 0.75) {
+    const ahead = pointAt(r.pts, r.cum, r.s + la);
+    const hx = ahead.x - here.x, hy = ahead.y - here.y;
+    if (hx * hx + hy * hy > 1e-3) here.heading = Math.atan2(hy, hx);
+  }
+  return here;
 }
