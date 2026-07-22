@@ -47,8 +47,11 @@ function len(a: Pt, b: Pt): number {
 export class LaneGraph {
   nodes = new Map<string, Node>();
   lanes = new Map<string, Lane>();
-  /** how far to shift the centerline to the right of travel (lane half-width). */
-  rightOffset = 2.4;
+  /** how far to shift the centerline to the right of travel (lane half-width).
+   *  Opposing directions on a divided road end up 2×this apart. Widened from 2.4
+   *  (4.8u apart — a 5u car had ~0 passing clearance) to 3.2 (6.4u apart) so
+   *  cars sit centred in their own lane with real clearance when passing. */
+  rightOffset = 3.2;
 
   addNode(id: string, x: number, y: number) {
     if (!this.nodes.has(id)) this.nodes.set(id, { id, x, y, out: [] });

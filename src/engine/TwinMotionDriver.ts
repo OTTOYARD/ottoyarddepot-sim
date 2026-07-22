@@ -815,7 +815,10 @@ class TwinMotionDriver {
     const bodies: RailBody[] = [];
     const moving: MovingCar[] = [];
     for (const [id, e] of this.entries) {
-      bodies.push({ id, x: e.car.x, y: e.car.y });
+      // heading + moving flag let a rail car ignore ONCOMING/crossing traffic as
+      // a leader (real crossings are serialized by node locks) — kills the
+      // pass-freeze + ingress pileup. A tracker means the car is taxiing.
+      bodies.push({ id, x: e.car.x, y: e.car.y, heading: e.car.heading, moving: !!e.tracker });
       moving.push({ id, pose: e.car.pose, speed: e.car.speed });
     }
 
