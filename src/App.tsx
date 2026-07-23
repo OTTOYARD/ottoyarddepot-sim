@@ -13,6 +13,7 @@ import { createQueueVehicle } from '@/engine/IncidentInjector';
 import { INGRESS } from '@/engine/types';
 import { useTwinFeed } from '@/hooks/useTwinFeed';
 import { useTwinSceneBridge } from '@/hooks/useTwinSceneBridge';
+import { RunBootSplash } from '@/components/canvas/RunBootSplash';
 
 const App = () => {
   const enterDemo = useCallback(() => {
@@ -85,9 +86,11 @@ const App = () => {
     <ResponsiveGuard>
       <div className="h-screen w-screen flex flex-col overflow-hidden bg-canvas-base">
         <TopBar />
-        <div className="flex-1 flex min-h-0">
+        <div className="relative flex-1 flex min-h-0">
           <DepotCanvas />
           <SidePanel />
+          {/* CARD-2: the Monte Carlo boot-draw loading screen (auto-dismisses) */}
+          <RunBootSplash />
         </div>
       </div>
     </ResponsiveGuard>
