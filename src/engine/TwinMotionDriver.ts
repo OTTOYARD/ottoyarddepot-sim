@@ -89,6 +89,11 @@ function mapState(
     case "staged_for_departure": return { lane: "staging", vstatus: "staging", sstatus: "occupied" };
     // incident triage: a retrieved (towed-in) vehicle docks in its reserved staging stall
     case "emergency_staged": return { lane: "staging", vstatus: "maintenance", sstatus: "occupied" };
+    // INTERRUPTED WORKFLOW (parking doctrine case 3): an out-of-service vehicle
+    // inside the depot parks VISIBLY with maintenance status — the one case that
+    // wants stationary parking. Previously fell through to the off-map default
+    // and the car vanished frame-to-frame mid-depot.
+    case "out_of_service": return { lane: "staging", vstatus: "maintenance", sstatus: "occupied" };
     // ENTRANCE PILEUP FIX: OTTO-Q's congestion fallback PARKS a gate arrival in a
     // staging stall (sets current_stall_id) but deliberately KEEPS the state
     // 'arrived_at_gate' so decide_tick retries it for a charger every tick.
@@ -450,6 +455,25 @@ class TwinMotionDriver {
     // a far corner and bunching in a shared approach.
     const dIn = (s: (typeof stalls)[number]) => Math.hypot(s.position.x - INGRESS.x, s.position.y - INGRESS.y);
     byLane.staging?.sort((a, b) => dIn(a) - dIn(b));
+    // PARKING DOCTRINE (MOTION-3): a car may PARK only for overnight staging, a
+    // temporary hold, or an interrupted workflow. The renderer expresses that by
+    // WHERE each NEW staging claim lands: DAYTIME holds fill the NE temp/overflow
+    // block first (TW/TE columns + N1 row — reads as short-term congestion
+    // staging, not overnight parking); deploy-ready cars pool toward the EGRESS
+    // (west) so departures stage by the exit; OVERNIGHT (22:00–04:59 depot time)
+    // everything may fill the perimeter carports — the real overnight park.
+    // STABILITY BIAS is untouched: existing stall claims are never reshuffled;
+    // ordering applies to NEW claims / lane changes only.
+    const hourFmt = new Intl.DateTimeFormat("en-US", { hour: "numeric", hour12: false, timeZone: "America/Chicago" });
+    const simHour = snap.run?.sim_clock ? Number(hourFmt.format(new Date(snap.run.sim_clock))) % 24 : 12;
+    const overnight = simHour >= 22 || simHour < 5;
+    const isTempSpot = (s: (typeof stalls)[number]) =>
+      s.position.x >= 226 && s.position.x <= 268 && s.position.y < 165; // TW/TE columns + N1 row (NE zone)
+    const dOut = (s: (typeof stalls)[number]) => Math.hypot(s.position.x - EGRESS.x, s.position.y - EGRESS.y);
+    const stagingTempFirst = [...(byLane.staging ?? [])].sort(
+      (a, b) => Number(isTempSpot(b)) - Number(isTempSpot(a)) || dIn(a) - dIn(b));
+    const stagingByEgress = [...(byLane.staging ?? [])].sort((a, b) => dOut(a) - dOut(b));
+    const DAY_HOLD_STATES = new Set(["charge_complete_holding", "service_complete_holding", "staged_awaiting_service"]);
 
     const present = new Set<string>();
     const desiredStatus = new Map<string, StallStatus>();
@@ -569,7 +593,14 @@ class TwinMotionDriver {
         this.entries.set(bv.id, e);
         continue;
       }
-      const cands = (byLane[lane] ?? []).map((s) => s.id).filter((sid) => !twinFaulted.has(sid));
+      // doctrine-aware staging pool: deploy-ready cars pool by the EGRESS, daytime
+      // holds fill the NE temp block first, overnight + arrivals keep the
+      // ingress-ordered default (perimeter carports = the overnight park).
+      const stagingPool = lane !== "staging" ? null
+        : !overnight && bv.state === "staged_for_departure" ? stagingByEgress
+        : !overnight && DAY_HOLD_STATES.has(bv.state) ? stagingTempFirst
+        : null;
+      const cands = (stagingPool ?? byLane[lane] ?? []).map((s) => s.id).filter((sid) => !twinFaulted.has(sid));
       // EXACT-STALL FIDELITY: if the twin named this vehicle's stall and it maps
       // to a renderer stall in the right zone, claim exactly that one — what you
       // see is literally OTTO-Q's assignment. Zone-based pick is the fallback
@@ -586,7 +617,9 @@ class TwinMotionDriver {
         // defect): pull it out to a staging spot to wait its turn instead.
         if (e) {
           if (e.lane !== lane && lane !== "staging") {
-            const stageCands = (byLane.staging ?? []).map((s) => s.id).filter((sid) => !twinFaulted.has(sid));
+            // temporary congestion hold (doctrine case 2): wait in the NE temp
+            // block, not the overnight carports
+            const stageCands = stagingTempFirst.map((s) => s.id).filter((sid) => !twinFaulted.has(sid));
             const st2 = this.ledger.claimFirstFree(bv.id, stageCands);
             // GUARD (mirror of the stall-unchanged check below): claimFirstFree
             // returns the car's OWN staging stall on every later poll while the
@@ -608,7 +641,9 @@ class TwinMotionDriver {
               desiredStatus.set(st2, "occupied");
             }
           }
-          e.vstatus = m.vstatus;
+          // HONEST HOLD: while overflow-waiting in a staging spot, show 'staging'
+          // — never draw a car as charging/washing while it sits in a carport.
+          e.vstatus = e.lane === "staging" && isServiceLane(lane) ? "staging" : m.vstatus;
           e.oem = oem;
           e.soc = soc;
           this.entries.set(bv.id, e);
