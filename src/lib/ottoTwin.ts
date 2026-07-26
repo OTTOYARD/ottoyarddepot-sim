@@ -39,6 +39,22 @@ export interface TwinSnapshot {
   run: {
     sim_run_id: string; scenario: string; status: string;
     sim_clock: string; tick_count: number; time_scale: number; seed: number;
+    /** PLAYBACK CONTRACT (backend `ottoq_set_playback`).
+     *  'live'  = 1 real second advances the sim clock by speed_x sim seconds (1:1 at 1x)
+     *  'fixed' = historical tick_interval_seconds * time_scale (certs/benchmarks) */
+    playback_mode?: 'live' | 'fixed';
+    /** 1..3. Capped backend-side; beyond 3 the operator JUMPS instead of speeding up. */
+    speed_x?: number;
+    /** Present ONLY while a fast-forward is in flight — drives the planning pause. */
+    jump?: {
+      status: 'planning';
+      target_sim_clock: string;
+      from_sim_clock: string;
+      prev_mode: 'live' | 'fixed';
+    } | null;
+    last_tick_at?: string | null;
+    next_tick_due_at?: string | null;
+    server_now?: string;
   };
   fleet: { counts: Record<string, number>; total: number; vehicles: TwinVehicle[] };
   stalls_status: { id: string; status: string; vehicle_id: string | null }[];

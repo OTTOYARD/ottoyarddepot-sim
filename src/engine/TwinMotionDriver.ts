@@ -212,6 +212,19 @@ class TwinMotionDriver {
     if (!v) this.last = null;
   }
 
+  /** On-screen speed multiplier, mirrored from the backend playback contract
+   *  (snapshot.run.speed_x). 1 = true 1:1 — a car crosses the yard at 8.6 mph, a
+   *  charge session takes as long as a charge session. Hard-capped at 3: past that
+   *  the depot stops being motion-faithful and OTTO-Q cannot keep up with decisions,
+   *  which is what JUMP is for. */
+  private viewMult = 1;
+  setViewMult(v: number) {
+    const next = Math.max(1, Math.min(3, Number.isFinite(v) ? v : 1));
+    if (this.viewMult === next) return;
+    this.viewMult = next;
+    this.last = null; // re-seed so the change never applies one giant catch-up dt
+  }
+
   start() {
     if (this.rafId !== null || this.intervalId !== null) return;
     this.last = null;
@@ -836,7 +849,20 @@ class TwinMotionDriver {
     const dt = Math.min(ts - this.last, 100) / 1000;
     if (dt <= 0) return;
     this.last = ts;
-    this.tickMotion(dt);
+
+    // VIEW MULTIPLIER (founder spec 2026-07-25: 1x is true 1:1, 2-3x for a livelier
+    // demo, hard cap 3x because OTTO-Q cannot decide faster than that — beyond it you
+    // JUMP, you don't speed up).
+    //
+    // Applied as N FIXED SUB-STEPS rather than one big dt. RailFlow samples the lane at
+    // SAMPLE=2 units; at MAX_SPEED=8 u/s a single 3x dt can advance a car far enough to
+    // step THROUGH a body before the leader scan sees it. Sub-stepping preserves the
+    // car-following and turn-radius maths for free.
+    const mult = this.viewMult;
+    if (mult <= 1.0001) { this.tickMotion(dt); return; }
+    const steps = Math.min(6, Math.ceil(mult));
+    const sub = (dt * mult) / steps;
+    for (let i = 0; i < steps; i++) this.tickMotion(sub);
   }
 
   /** One physical motion step of `dt` seconds. Public for unit testing. */

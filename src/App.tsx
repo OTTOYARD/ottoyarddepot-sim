@@ -6,6 +6,7 @@ import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useTwinFeed } from '@/hooks/useTwinFeed';
 import { useTwinSceneBridge } from '@/hooks/useTwinSceneBridge';
 import { RunBootSplash } from '@/components/canvas/RunBootSplash';
+import { JumpPlanningOverlay } from '@/components/canvas/JumpPlanningOverlay';
 
 const App = () => {
   // TRUTH-2 (founder rule 2026-07-25): everything that plays on screen must be
@@ -30,6 +31,8 @@ const App = () => {
           <SidePanel />
           {/* CARD-2: the Monte Carlo boot-draw loading screen (auto-dismisses) */}
           <RunBootSplash />
+          {/* fast-forward: the planning moment while OTTO-Q batch-processes the skip */}
+          <JumpPlanningOverlay />
         </div>
       </div>
     </ResponsiveGuard>
