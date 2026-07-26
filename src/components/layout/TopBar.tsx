@@ -87,7 +87,17 @@ export const TopBar = () => {
         </div>
         {run && (
           <span className="font-mono text-ink-dim text-[11px] cc-num">
-            t{run.tick_count} · {run.time_scale}×
+            {/* TRUTH: show the rate the world is ACTUALLY advancing at. In 'live'
+                playback the clock tracks wall time × speed_x (1× = true 1:1), so
+                printing time_scale here claimed "60×" while the depot ran at 1:1. */}
+            t{run.tick_count} ·{' '}
+            {run.jump?.status === 'planning'
+              ? 'JUMP'
+              : run.playback_mode === 'live'
+                ? (run.speed_x ?? 1) === 1
+                  ? '1:1'
+                  : `${run.speed_x}×`
+                : `${run.time_scale}×`}
           </span>
         )}
       </div>

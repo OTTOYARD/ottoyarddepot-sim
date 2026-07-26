@@ -15,19 +15,24 @@ export function useTwinControl() {
   const [speed, setSpeedState] = useState(1);     // 1–10×; ALWAYS start at 1× real pace
   const tsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // HONEST SPEED: the slider drives the twin's real time-compression
-  // (time_scale = 60 × slider, sim-minutes per tick; server metronome keeps
-  // tick RATE steady). Debounced so dragging doesn't spam the API. The old
-  // behavior (only shrinking the ms between browser tick posts) was a no-op
-  // next to 11-20s server ticks — the slider provably did nothing.
+  // PLAYBACK SPEED (founder spec 2026-07-25). The slider now drives the real
+  // playback contract — `ottoq_set_playback(run,'live',speed_x)` — where 1× is TRUE
+  // 1:1 (one real second = one sim second) and the backend hard-caps at 3×.
+  //
+  // It previously drove `time_scale` (sim-MINUTES per tick), which was backwards for
+  // this goal: raising it gave the same crawl with BIGGER jumps, and its client floor
+  // of 15 pinned the minimum at 75× real time — 1:1 was unreachable. Anything faster
+  // than 3× is a JUMP (ottoq_sim_jump_forward), not a speed change.
+  // Debounced so dragging doesn't spam the API.
   const setSpeed = useCallback((v: number) => {
-    setSpeedState(v);
+    const clamped = Math.min(3, Math.max(1, v));
+    setSpeedState(clamped);
     if (tsTimer.current) clearTimeout(tsTimer.current);
     tsTimer.current = setTimeout(() => {
       // Read the run id FRESH from the store: Start seeds the run and adopts its
       // id in the same handler, so a value closed over at render time is stale.
       const id = useTwinStore.getState().activeSimRunId;
-      if (id) twin.setTimeScale(id, Math.min(480, Math.max(15, 60 * v))).catch(() => {});
+      if (id) twin.setPlayback(id, 'live', clamped).catch(() => {});
     }, 400);
   }, []);
 

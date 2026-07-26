@@ -327,7 +327,7 @@ export const OperatorConsole = () => {
       // adopts the new sim_run_id into the twin store (feed begins rendering).
       await startDemoRun(code, 1);
       ctrl.play();      // Start also begins the clock — "press Start and watch it run"
-      ctrl.setSpeed(1); // fresh runs open at 1× (slider + twin time_scale in sync)
+      ctrl.setSpeed(1); // fresh runs open at TRUE 1:1 (playback_mode='live', speed_x=1)
       const title = scenarios.find((s) => s.scenario_code === code)?.title ?? code;
       toast.success(`Started ${title} — recording`);
     } catch (e: any) { toast.error("Start failed", { description: e.message }); }
@@ -435,7 +435,7 @@ export const OperatorConsole = () => {
         )}
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-ink-faint uppercase tracking-wide w-10">Speed</span>
-          <Slider className="flex-1" min={1} max={10} step={1} value={[ctrl.speed]} onValueChange={([v]) => ctrl.setSpeed(v)} />
+          <Slider className="flex-1" min={1} max={3} step={1} value={[ctrl.speed]} onValueChange={([v]) => ctrl.setSpeed(v)} />
           <span className="font-mono text-[11px] text-ink cc-num w-7 text-right">{ctrl.speed}×</span>
         </div>
         {runId && <div className="text-[10px] font-mono text-ink-faint">run {runId.slice(0,8)} · {snapshot?.run?.status ?? "—"} · t{snapshot?.run?.tick_count ?? 0}{ctrl.playing && " · ▶ live"}</div>}

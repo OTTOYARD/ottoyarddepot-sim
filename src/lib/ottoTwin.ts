@@ -158,6 +158,34 @@ export const twin = {
   /** honest speed: sim-minutes per tick (60 = 1×). The server metronome keeps
    *  the tick RATE steady; this changes how much sim-time each tick covers. */
   setTimeScale:   (simRunId: string, ts: number) => send("PUT", `/sim_runs/${simRunId}/time_scale`, { time_scale: ts }),
+  /** PLAYBACK CONTRACT. mode 'live' = 1 real second advances the sim clock by
+   *  speed_x sim seconds (1× is true 1:1). speed_x is hard-capped at 3 backend-side;
+   *  faster than that is a JUMP, not a speed change. Calls the RPC directly rather
+   *  than the control edge function, which has no playback route. */
+  setPlayback:    (simRunId: string, mode: 'live' | 'fixed', speedX: number) =>
+    fetch(`${OTTOQ_SUPABASE_URL}/rest/v1/rpc/ottoq_set_playback`, {
+      method: "POST",
+      headers: {
+        apikey: OTTOQ_ANON_KEY,
+        Authorization: `Bearer ${OTTOQ_ANON_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ p_sim_run_id: simRunId, p_mode: mode, p_speed_x: speedX }),
+    }).then((r) => r.json()),
+  /** Fast-forward. Bounded + resumable: call until `done`, showing the planning
+   *  pause (snapshot.run.jump) while OTTO-Q batch-processes the skipped queue. */
+  jumpForward:    (simRunId: string, simMinutes: number, maxSeconds = 5) =>
+    fetch(`${OTTOQ_SUPABASE_URL}/rest/v1/rpc/ottoq_sim_jump_forward`, {
+      method: "POST",
+      headers: {
+        apikey: OTTOQ_ANON_KEY,
+        Authorization: `Bearer ${OTTOQ_ANON_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        p_sim_run_id: simRunId, p_sim_minutes: simMinutes, p_max_seconds: maxSeconds,
+      }),
+    }).then((r) => r.json()),
   status:         (simRunId: string)          => send("GET", `/sim_runs/${simRunId}/status`),
   getVariability: (simRunId: string)          => send("GET", `/sim_runs/${simRunId}/variability`),
   setVariability: (simRunId: string, body: object) => send("PUT", `/sim_runs/${simRunId}/variability`, body),
