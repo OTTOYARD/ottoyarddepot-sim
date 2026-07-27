@@ -11,10 +11,12 @@ import { TwinSwapTestTab } from '@/components/tabs/TwinSwapTestTab';
 import { TwinScorekeeperTab } from '@/components/tabs/TwinScorekeeperTab';
 import { TwinCopilotTab } from '@/components/tabs/TwinCopilotTab';
 import { BlackBoxPanel } from '@/components/cockpit/BlackBoxPanel';
+import { WorldContractTab } from '@/components/tabs/WorldContractTab';
 
 const tabComponents = {
   controls: OperatorConsole,       // AV-only backend-driven console (replaces legacy ControlsTab)
   orchestration: TwinOrchestrationTab, // OTTO-Q appointment/reservation/servicing seam (investor view)
+  world: WorldContractTab,         // world-load gate, channel integrity, coverage, decision trace
   kpis: TwinKpisTab,               // live backend KPIs (replaces legacy KPIsTab)
   'ai-summary': TwinAiSummaryTab,  // OTTO-Q self-analysis from the live snapshot
   alerts: TwinAlertsTab,           // live backend event feed (replaces legacy AlertsTab)

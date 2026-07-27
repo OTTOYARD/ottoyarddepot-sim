@@ -422,9 +422,12 @@ all once the twin is the sole authority — is still open.
 **4.11 Consume the render contract** (§2.9). Add `legs`/`legs_meta` to `TwinSnapshot`, drive
 `TwinMotionDriver` from them, and close the coverage ratio the server is already computing.
 
-**4.12 Surface the boot report in the cockpit.** `worldStore.phase` is populated and nothing
-renders it. A world-load panel — per-channel status, coverage headline, blockers — is a
-strong demo artifact: it shows an OEM you *measure* your twin's completeness.
+**4.12 Surface the boot report in the cockpit.** ✅ **Done** — new **World** tab
+(`WorldContractTab`): boot stages with timings, per-channel integrity bars with the exact
+missing fields, the honest coverage number with an expandable list of every variable OTTO-Q
+cannot see, the live decision trace layer by layer, and — deliberately — every command the
+shield **refused**, with the rule that caught it. A panel showing only successes would be a
+worse demo artifact, not a better one.
 
 **4.13 Attach the boot report to the Black Box bundle.** A run whose forensic download
 includes its own load manifest and channel-integrity record is auditable. That is the V1
