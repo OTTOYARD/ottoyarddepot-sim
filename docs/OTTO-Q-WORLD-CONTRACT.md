@@ -189,6 +189,123 @@ working. It goes green when §4.1 and §4.2 land.
 
 ---
 
+## 3b. The outbound path — one funnel, one wire
+
+The audit above is about what flows *into* OTTO-Q. This section is the other
+half: what flows *out*, and how.
+
+### The doctrine
+
+**OTTO-Q orchestrates. It never actuates.**
+
+It says *"vehicle AV-14 is assigned stall D-07, arrive between 14:10 and 14:25."*
+It does not say where the car is, how fast to drive, or which path to take — the
+twin's motion system owns all of that, exactly as a real AV's autonomy stack
+would. Same for energy: OTTO-Q says *"discharge starting in 20 minutes, demand is
+peaking"* and the site energy controller decides ramp rate and converter
+setpoints.
+
+This is enforced, not just documented. `FORBIDDEN_ACTUATION_KEYS` lists the field
+names that would turn a directive into an actuation (`waypoint`, `heading`,
+`speed_kmh`, `setpoint_kw`, `contactor`, …), and the shield scans every command
+recursively before it can be issued. A command carrying one is rejected with
+rule `no_actuation`.
+
+### The funnel
+
+```
+   L3  ADVISORS   cuOpt · Nemotron · deterministic heuristics
+                  each PROPOSES; none can emit a command
+        ↓
+   L2  ARBITER    merges every proposal into ONE plan; resolves contention,
+                  ranks, materializes envelopes with a chain of custody
+        ↓
+   L1  SHIELD     Simplex-style gate. Admits or REMOVES. Cannot create
+                  or modify a command — that is the whole guarantee.
+        ↓
+   L0  COMMS      one batch, one sequence space, one ledger
+        ↓
+                  the twin executes
+```
+
+Nothing bypasses this. There is exactly one place a command can be born, one
+place it can be vetoed, and one sequence number space — so "what did OTTO-Q tell
+that vehicle, and did it comply" is always answerable from a single record.
+
+### Wire realism
+
+Each command class is shaped after the protocol its real-world counterpart
+speaks, so the twin rehearses a real integration rather than a bespoke one:
+
+| Class | Modeled on |
+|---|---|
+| `vehicle.orchestration` | fleet dispatch API — JSON envelope, idempotency key, issued/expires window, async ack then terminal status |
+| `energy.orchestration` | **OpenADR 2.0b** event semantics — event id, signal, interval. What a utility or EMS already speaks |
+| `charger.orchestration` | **OCPP 2.0.1** smart charging — a *profile* (a ceiling over a period), never an instantaneous setpoint |
+| `depot.orchestration` | work-order semantics against an ops queue |
+
+### The three sentences, in code
+
+`advisors.ts → energyAdvisor()` is the reference implementation and emits exactly
+what was asked for:
+
+| Situation | Command | Reason code |
+|---|---|---|
+| "grid price is low" | `charge_bess` | `price_low` |
+| "expensive and demand is high" | `discharge_bess` | `price_high` / `peak_demand` |
+| "demand is really high — discharge in 20 min" | `discharge_bess`, `start_offset_s: 1200` | `peak_demand` |
+
+Precedence is itself the policy: an active DR call outranks price (compliance
+first), a depleted reserve outranks price (you cannot answer a DR call with an
+empty battery), and only then does arbitrage apply.
+
+### What the shield actually stops
+
+Twelve rules, each a named predicate with a reason. The ones that matter most:
+
+- `stale_world` — refuses the **entire batch** when the input bundle is
+  `not_ready`. This is the join with the inbound half: the boot gate measures
+  whether OTTO-Q can see the world, and the shield refuses to let it act when it
+  cannot.
+- `no_actuation` — the doctrine check above.
+- `respects_dr_cap` — will not charge the battery *from the grid* during a
+  demand-response call (charging from solar surplus is allowed).
+- `bess_soc_bounds` — no discharge below the floor, no charge above the ceiling.
+- `stall_exists_and_is_free` — no double-booking, within a batch or against the world.
+- `target_not_saturated` — one open command per target; stops command thrash.
+- `ceiling_within_rating` — no charger ceiling above the hardware rating.
+
+Every suppression is reported with its rule and detail. "Why didn't OTTO-Q assign
+that stall?" always has an answer.
+
+### Files
+
+| File | Role |
+|---|---|
+| `commands.ts` | outbound contract — envelopes, intents, lifecycle, actuation blacklist |
+| `advisors.ts` | L3 — energy policy, charge assignment, charger health, plus the adapter that plugs cuOpt/Nemotron in as peers |
+| `pipeline.ts` | L2 arbiter + the full L3→L0 pass |
+| `shield.ts` | L1 |
+| `commandBus.ts` | L0 — ledger, sequencing, idempotency, ack/outcome tracking, and the twin executor |
+| `../../hooks/useOrchestration.ts` | runs one pass per tick |
+| `../../store/orchestrationStore.ts` | the decision trace |
+
+49 tests cover this path. Determinism is tested directly: the same world frame
+produces byte-identical command ids regardless of the order advisors reply in.
+
+### What the twin honestly cannot do yet
+
+`twinExecutor` **rejects** commands for which no subscriber exists, with a reason
+naming the missing piece. Today that is most of them: the motion system does not
+consume `assign_stall` (it infers motion from stall state — backlog 4.11), and
+there is no energy controller listening for a BESS directive.
+
+That is deliberate. A rejection here is the twin telling the truth about its own
+capabilities, which is exactly what a real fleet API does. Wiring the two
+subscribers is backlog items **4.16** and **4.17** below.
+
+---
+
 ## 4. Build backlog — ordered by leverage
 
 ### P0 — the world must load, and OTTO-Q must see it
@@ -243,11 +360,30 @@ authoritative.
 the four uncovered plans. Zero activations in the table means the self-calibration loop has
 never closed.
 
+### P0b — let the twin actually carry out what OTTO-Q sends
+
+These two turn the outbound path from a contract into a working loop. Until they land,
+`twinExecutor` correctly rejects nearly every command it is handed.
+
+**4.16 Subscribe the motion system to `vehicle.orchestration`.**
+`assign_stall` carries a stall and a `not_after_sim` deadline. `TwinMotionDriver` should
+take that as its goal and own everything else — pathing, speed, spacing. This is the
+single change that makes the demo narrative real: OTTO-Q says *where and by when*, the twin
+moves the car. Pairs naturally with 4.11 (the twin already publishes timed legs).
+
+**4.17 Subscribe an energy controller to `energy.orchestration`.**
+`charge_bess` / `discharge_bess` / `curtail_site` carry an average power over a window and a
+reason code. A controller needs to accept those, own the ramp, and report back. The
+backend already has `ottoq_sim_bess_step` and `ottoq_energy_commands` — this is wiring, not
+new physics.
+
 ### P2 — one world, one clock
 
-**4.10 Decide the authority between the two engines** (§2.8). Recommendation: backend twin
-is the product; `SimulationEngine` becomes an explicitly-labelled offline demo. At minimum,
-seed it (`ArrivalGenerator` needs the run seed) so it is reproducible.
+**4.10 Decide the authority between the two engines** (§2.8). ✅ **Partially done.**
+`SimulationEngine` is now explicitly labelled the offline demo, and every draw in the
+client engine routes through a seeded generator (`src/engine/rng.ts`), so a demo run is
+reproducible from its seed. The remaining decision — whether the client engine survives at
+all once the twin is the sole authority — is still open.
 
 **4.11 Consume the render contract** (§2.9). Add `legs`/`legs_meta` to `TwinSnapshot`, drive
 `TwinMotionDriver` from them, and close the coverage ratio the server is already computing.
@@ -263,27 +399,40 @@ validation story.
 ### P3 — before external exposure
 
 **4.14 Close the control-API auth gate** (§2.9) — the hardening TODO at
-`otto-twin-control/index.ts:452`.
+`otto-twin-control/index.ts:452`. Deferred by decision: acceptable for a private demo link.
 
-**4.15 Fix `OperatorConsole.tsx:306`** (`scenario_code` → `scenario`).
+**4.15 Fix `OperatorConsole.tsx:306`** (`scenario_code` → `scenario`). ✅ **Done** — the
+auto-attach toast was rendering `undefined`; `tsc --noEmit` is now clean.
 
 ---
 
-## 5. Open questions
+## 5. Decisions taken
 
-1. **Where does OTTO-Q V1 actually run?** `ottoq_decide_tick` (in-database) and the
-   `ottoq-cuopt-propose` external-proposal seam are two different orchestrators. Which one
-   is "OTTO-Q V1" for the OEM narrative? The channel contract should point at that one.
-2. **Should the channel bundle be pushed or pulled?** This change packs client-side from the
-   existing snapshot poll — zero backend risk, works today. The durable answer is a backend
-   `ottoq_api_twin_channels(sim_run_id)` RPC returning the same five envelopes, so any
-   consumer (cockpit, cuOpt seam, an OEM integration) gets identical bytes. Say the word and
-   I will write it against the `contracts.ts` shapes.
-3. **Is `ready: false` allowed to block Start?** Right now the gate reports; it does not
-   enforce. Enforcing is a one-line change once §4.1/§4.2 land.
-4. **Which OEM telemetry schema should `fleet_telemetry` mirror?** If there is a target
-   (Waymo/Zoox webhook shape, or an internal AV API), the channel should be shaped to it now
-   rather than translated later. `ottoq_oem_webhook_patterns` suggests one may already exist.
+1. **One funnel, one wire.** Everything — cuOpt, Nemotron, deterministic rules — passes
+   through L3→L2→L1→L0 and leaves by a single transport. See §3b. The in-database
+   `ottoq_decide_tick` and the `ottoq-cuopt-propose` seam become *advisors* behind that
+   funnel rather than parallel orchestrators.
+2. **Advisory, never actuating.** OTTO-Q communicates orchestration intent with a time
+   window. The twin's motion system moves vehicles; the energy controller moves electrons.
+   Enforced by the `no_actuation` shield rule.
+3. **Client-side packing for now.** The bundle is packed in the cockpit from the existing
+   snapshot poll — no backend risk, works today. The durable version is a backend
+   `ottoq_api_twin_channels(sim_run_id)` RPC returning the same five envelopes so every
+   consumer gets identical bytes. Written against the `contracts.ts` shapes when wanted.
+4. **Inbound realism target.** `fleet_telemetry` is shaped on the common denominator of AV
+   fleet telemetry (identity, state machine, SoC, stall binding, health). If a specific OEM
+   schema is the target, `ottoq_oem_webhook_patterns` on the backend appears to hold real
+   patterns — worth reading before the shape hardens.
+
+## 6. Open questions
+
+1. **How strict should the readiness gate be?** Today the shield vetoes a batch only when a
+   required channel is entirely `missing`. Flipping `requireUndegradedBundle` to true would
+   also refuse a merely *degraded* world — safer, but it suppresses everything until
+   backlog 4.1 and 4.2 land. One-line change when ready.
+2. **Should the price thresholds be fitted rather than fixed?** `DEFAULT_ENERGY_POLICY`
+   uses $25/$60 per MWh. Percentiles of the run's own price distribution would adapt to the
+   scenario instead of assuming a typical day.
 
 ---
 

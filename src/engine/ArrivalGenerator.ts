@@ -1,6 +1,7 @@
 import type { Vehicle, ServiceType, VehicleType } from './types';
 import { INGRESS } from './types';
 import type { SimulationConfig } from '@/store/simulationStore';
+import { demoRandom } from './rng';
 
 let _nextId = 1;
 
@@ -9,12 +10,14 @@ function timeToSeconds(t: string): number {
   return h * 3600 + m * 60;
 }
 
+// All randomness routes through the seeded demo generator, so a run is
+// reproducible from its seed. See src/engine/rng.ts.
 function rand(min: number, max: number) {
-  return min + Math.random() * (max - min);
+  return demoRandom().range(min, max);
 }
 
 function pickConsumerType(config: SimulationConfig): VehicleType {
-  const r = Math.random() * 100;
+  const r = demoRandom().next() * 100;
   if (r < config.tierElite) return 'elite';
   if (r < config.tierElite + config.tierConcierge) return 'concierge';
   return 'core';
@@ -25,24 +28,25 @@ function buildServiceQueue(type: VehicleType, soc: number, config: SimulationCon
   if (type === 'fleet') {
     // Fleet: low SoC → DCFC, higher SoC → L2 (they have more time)
     queue.push(soc <= 40 ? 'dcfc_charge' : 'l2_charge');
-    if (Math.random() < 0.4) queue.push('exterior_wash');
-    if (Math.random() < 0.1) queue.push('maintenance');
+    if (demoRandom().chance(0.4)) queue.push('exterior_wash');
+    if (demoRandom().chance(0.1)) queue.push('maintenance');
     queue.push('staging');
   } else {
     // Consumer: use config-driven DCFC/L2 ratio
-    queue.push(Math.random() * 100 < config.dcfcVsL2Ratio ? 'dcfc_charge' : 'l2_charge');
-    if (Math.random() < 0.25) queue.push('exterior_wash');
-    if (Math.random() < 0.1) queue.push('interior_detail');
+    queue.push(demoRandom().next() * 100 < config.dcfcVsL2Ratio ? 'dcfc_charge' : 'l2_charge');
+    if (demoRandom().chance(0.25)) queue.push('exterior_wash');
+    if (demoRandom().chance(0.1)) queue.push('interior_detail');
   }
   return queue;
 }
 
 function createVehicle(type: VehicleType, simTime: number, config: SimulationConfig): Vehicle {
   const isFleet = type === 'fleet';
-  const priority = isFleet ? 7 + Math.floor(Math.random() * 4) :
-    type === 'elite' ? 6 + Math.floor(Math.random() * 3) :
-    type === 'concierge' ? 4 + Math.floor(Math.random() * 3) :
-    1 + Math.floor(Math.random() * 4);
+  const rng = demoRandom();
+  const priority = isFleet ? rng.int(7, 10) :
+    type === 'elite' ? rng.int(6, 8) :
+    type === 'concierge' ? rng.int(4, 6) :
+    rng.int(1, 4);
 
   return {
     id: `V-${String(_nextId++).padStart(4, '0')}`,
@@ -105,7 +109,7 @@ export function generateArrivals(
     shouldSpawnFleet = true;
   }
 
-  if (shouldSpawnFleet && Math.random() < fleetRate * deltaSeconds) {
+  if (shouldSpawnFleet && demoRandom().chance(fleetRate * deltaSeconds)) {
     arrivals.push(createVehicle('fleet', simTime, config));
   }
 
@@ -119,7 +123,7 @@ export function generateArrivals(
     consumerActive = simTime >= 54000 && simTime <= 75600;
   }
 
-  if (consumerActive && config.activeConsumerMembers > 0 && Math.random() < consumerRate * deltaSeconds) {
+  if (consumerActive && config.activeConsumerMembers > 0 && demoRandom().chance(consumerRate * deltaSeconds)) {
     arrivals.push(createVehicle(pickConsumerType(config), simTime, config));
   }
 

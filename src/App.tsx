@@ -13,6 +13,7 @@ import { createQueueVehicle } from '@/engine/IncidentInjector';
 import { INGRESS } from '@/engine/types';
 import { useTwinFeed } from '@/hooks/useTwinFeed';
 import { useWorldBoot } from '@/hooks/useWorldBoot';
+import { useOrchestration } from '@/hooks/useOrchestration';
 import { useTwinSceneBridge } from '@/hooks/useTwinSceneBridge';
 
 const App = () => {
@@ -82,6 +83,8 @@ const App = () => {
   // Load the complete world for each adopted run and grade its channels before
   // OTTO-Q is asked to orchestrate in it (worldStore.phase).
   useWorldBoot();
+  // Run the OTTO-Q funnel once per tick: advisors → arbiter → shield → wire.
+  useOrchestration();
   // CC-P2b: drive the depot scene (stalls + vehicles) from the live snapshot.
   useTwinSceneBridge();
 
