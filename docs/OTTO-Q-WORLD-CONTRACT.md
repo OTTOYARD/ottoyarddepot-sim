@@ -293,16 +293,49 @@ that stall?" always has an answer.
 49 tests cover this path. Determinism is tested directly: the same world frame
 produces byte-identical command ids regardless of the order advisors reply in.
 
-### What the twin honestly cannot do yet
+### The subscribers — the loop is closed
 
-`twinExecutor` **rejects** commands for which no subscriber exists, with a reason
-naming the missing piece. Today that is most of them: the motion system does not
-consume `assign_stall` (it infers motion from stall state — backlog 4.11), and
-there is no energy controller listening for a BESS directive.
+Two executors are now wired, so a command changes the world instead of being
+politely refused.
 
-That is deliberate. A rejection here is the twin telling the truth about its own
-capabilities, which is exactly what a real fleet API does. Wiring the two
-subscribers is backlog items **4.16** and **4.17** below.
+**Motion** (`executors.motionSubscriber` → `TwinMotionDriver`). OTTO-Q names a
+stall and a deadline; the motion stack owns route, speed, spacing and parked
+heading. In `reconcile`, an accepted command outranks the twin's own stall pick,
+so what is on screen is literally the decision the funnel emitted.
+
+Conflict handling is the interesting part. The twin's state machine still decides
+*what service* a vehicle needs; a command names a stall *inside* that decision.
+The candidate list is already filtered to the lane the twin's state implies, so a
+command naming a stall in the wrong lane is simply not a candidate — the vehicle
+follows the twin and the mismatch is recorded. Fighting the backend would
+recreate the two-systems-one-vehicle problem the single funnel exists to prevent.
+
+It refuses honestly, by name: vehicle not in the scene, stall the renderer does
+not draw, stall already held by another vehicle (naming it), layout not loaded
+yet. On arrival it reports back — and arriving at a *different* stall than
+commanded is reported as a **rejection**, because that is a completed drive but a
+failed instruction, and the ledger must show which.
+
+**Energy** (`energyController.SiteEnergyController`). OTTO-Q sends an average
+power, a window, a state-of-charge bound and a reason code. The controller owns
+everything OTTO-Q deliberately does not say:
+
+- **Ramp** — power moves at 30 kW/s. A commanded 400 kW step takes ~13s, because
+  an instant step would be a fault on real hardware.
+- **Bounds** — it stops at the tighter of the command's declared bound and its own
+  hardware limits, and it *anticipates its own stopping distance* so the ramp-down
+  lands on the bound rather than through it.
+- **Derate** — a hot pack cannot deliver nameplate; the controller cuts power and
+  **reports** the derate instead of silently under-delivering.
+- **Arbitration** — one battery directive at a time; a new one supersedes the old
+  and the old is closed in the ledger, never left dangling.
+
+It is a model, not a passthrough: state of charge integrates over the sim clock,
+so a discharge actually drains the battery and the *next* world frame reflects it.
+That closes the loop — OTTO-Q's decision changes the world it reads next tick.
+
+`charger.orchestration` and `depot.orchestration` still have no subscriber, and
+`twinExecutor` refuses those by name.
 
 ---
 
@@ -362,20 +395,21 @@ never closed.
 
 ### P0b — let the twin actually carry out what OTTO-Q sends
 
-These two turn the outbound path from a contract into a working loop. Until they land,
-`twinExecutor` correctly rejects nearly every command it is handed.
+**4.16 Subscribe the motion system to `vehicle.orchestration`.** ✅ **Done** — see §3b.
+`assign_stall` now outranks the twin's own stall pick in `reconcile`, and the driver reports
+arrival (or the reason it could not). Remaining gap: `hold`, `depart` and `requeue` have no
+handler and are refused by name.
 
-**4.16 Subscribe the motion system to `vehicle.orchestration`.**
-`assign_stall` carries a stall and a `not_after_sim` deadline. `TwinMotionDriver` should
-take that as its goal and own everything else — pathing, speed, spacing. This is the
-single change that makes the demo narrative real: OTTO-Q says *where and by when*, the twin
-moves the car. Pairs naturally with 4.11 (the twin already publishes timed legs).
+**4.17 Subscribe an energy controller to `energy.orchestration`.** ✅ **Done** — see §3b.
+`SiteEnergyController` accepts battery and curtailment directives, owns ramp/derate/bounds,
+and integrates state of charge so the decision shows up in the next world frame. Remaining
+gap: it is a **client-side model**. The backend has `ottoq_sim_bess_step` and
+`ottoq_energy_commands`; pointing the subscriber at those makes the battery state
+server-authoritative like the rest of the world.
 
-**4.17 Subscribe an energy controller to `energy.orchestration`.**
-`charge_bess` / `discharge_bess` / `curtail_site` carry an average power over a window and a
-reason code. A controller needs to accept those, own the ramp, and report back. The
-backend already has `ottoq_sim_bess_step` and `ottoq_energy_commands` — this is wiring, not
-new physics.
+**4.18 Subscribe the charger manager to `charger.orchestration`.** `set_power_ceiling`,
+`quarantine` and pause/resume are all refused today. Depends on 4.2 (charger health has to
+be observable before ceilings mean anything).
 
 ### P2 — one world, one clock
 
