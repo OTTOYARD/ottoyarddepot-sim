@@ -19,6 +19,10 @@ import { useEffect, useRef } from "react";
 import { CommandBus, twinExecutor } from "@/lib/ottoq/commandBus";
 import { defaultAdvisors } from "@/lib/ottoq/advisors";
 import { runPipeline } from "@/lib/ottoq/pipeline";
+import {
+  drainEnergyOutcomes, drainMotionOutcomes, energySubscriber, motionSubscriber,
+} from "@/lib/ottoq/executors";
+import { SiteEnergyController } from "@/lib/ottoq/energyController";
 import { useWorldStore } from "@/store/worldStore";
 import { useOrchestrationStore } from "@/store/orchestrationStore";
 
@@ -26,6 +30,7 @@ export function useOrchestration(enabled = true) {
   const bundle = useWorldStore((s) => s.bundle);
   const phase = useWorldStore((s) => s.phase);
   const busRef = useRef<CommandBus | null>(null);
+  const energyRef = useRef<SiteEnergyController | null>(null);
   const lastTickRef = useRef<number | null>(null);
   const runIdRef = useRef<string | null>(null);
   const inFlightRef = useRef(false);
@@ -42,7 +47,20 @@ export function useOrchestration(enabled = true) {
     // meaningful within one run.
     if (runIdRef.current !== bundle.sim_run_id) {
       runIdRef.current = bundle.sim_run_id;
-      busRef.current = new CommandBus(twinExecutor({}, "twin"));
+      // Seed the energy controller from the world's own battery so its model
+      // starts where the twin actually is, not at a guess.
+      const controller = new SiteEnergyController(
+        bundle.channels.energy_grid.payload.bess.soc_pct ?? 60,
+      );
+      energyRef.current = controller;
+      busRef.current = new CommandBus(
+        twinExecutor({
+          vehicle: motionSubscriber(),
+          energy: energySubscriber(controller),
+          // charger + depot still have no subscriber; twinExecutor refuses
+          // those by name rather than pretending they landed.
+        }, "twin"),
+      );
       lastTickRef.current = null;
       useOrchestrationStore.getState().reset();
     }
@@ -58,6 +76,19 @@ export function useOrchestration(enabled = true) {
 
     (async () => {
       try {
+        // 0. advance the energy controller to this frame's clock BEFORE
+        //    deciding, so the ramp and the state-of-charge integration reflect
+        //    the last directive by the time the advisors read the world.
+        const controller = energyRef.current!;
+        controller.step(bundle.sim_clock, bundle.channels.energy_grid.payload.bess.temp_c);
+
+        // 1. close out anything the executors finished or refused since the
+        //    last pass, then expire whatever timed out. Both free their targets
+        //    before the shield counts open commands against them.
+        const atSim = bundle.sim_clock ?? "";
+        for (const outcome of [...drainMotionOutcomes(atSim), ...drainEnergyOutcomes(controller, atSim)]) {
+          bus.complete(outcome);
+        }
         const expired = bus.expireStale(bundle.sim_clock);
 
         const result = await runPipeline({
@@ -69,6 +100,7 @@ export function useOrchestration(enabled = true) {
 
         const transmit = await bus.transmit(result.batch);
         store.recordPass({
+          energy: controller.state,
           tick: bundle.tick,
           batch: result.batch,
           advisorRuns: result.advisorRuns,

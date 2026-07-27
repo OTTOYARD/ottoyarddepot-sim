@@ -13,6 +13,7 @@ import { create } from "zustand";
 import type { CommandBatch } from "@/lib/ottoq/commands";
 import type { AdvisorRun } from "@/lib/ottoq/pipeline";
 import type { LedgerStats, TransmitResult } from "@/lib/ottoq/commandBus";
+import type { EnergyControllerState } from "@/lib/ottoq/energyController";
 
 export interface OrchestrationPass {
   tick: number;
@@ -23,6 +24,8 @@ export interface OrchestrationPass {
   /** commands that timed out at the start of this pass */
   expired: number;
   ledger: LedgerStats;
+  /** what the site energy controller is actually delivering this frame */
+  energy: EnergyControllerState;
 }
 
 const HISTORY_LIMIT = 60;

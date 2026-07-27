@@ -96,26 +96,56 @@ AS $function$
         ) ORDER BY s.id)
         FROM stalls s WHERE s.depot_id = r.depot_id
       ), '[]'::jsonb),
-      -- NEW: per-visit service timing, from the open dwell legs. Unblocks
-      -- charge_time / wash_time / detail_time / maintenance_time, four
-      -- variables the card engine deals every visit and that reach nothing.
+      -- NEW: per-visit service timing. Unblocks charge_time / wash_time /
+      -- detail_time / maintenance_time — four variables the card engine deals
+      -- on every visit and that currently reach nothing.
+      --
+      -- FILTER: everything that is NOT travel. An earlier draft of this file
+      -- enumerated the service kinds instead and silently matched zero rows,
+      -- because `duration_basis->>'kind'` does not classify the SERVICE — it
+      -- records how the DURATION WAS DERIVED:
+      --     charge_curve   physical charge model (soc, charger_kw, pack_kwh)
+      --     distribution   sampled from a fitted corpus (atom, base_min)
+      --     flow_contract  policy/contract (reason)
+      --     travel         taxiing between places — the only non-service kind
+      -- `leg_type` is the real service classifier (charge_l2, charge_dcfc,
+      -- detail, service, inspect, interior_tidy, sensor_clean, …). Excluding
+      -- travel rather than listing services means a NEW service kind arrives
+      -- included, instead of vanishing until someone notices.
       'service_timers', COALESCE((
         SELECT jsonb_agg(jsonb_build_object(
           'vehicle_id',       l.vehicle_id,
           'stall_id',         COALESCE(l.to_stall_id, l.from_stall_id),
-          'leg_type',         l.leg_type,
-          'intent',           l.duration_basis->>'intent',
+          -- WHAT service this is
+          'service',          l.leg_type,
+          'detail',           COALESCE(l.duration_basis->>'atom', l.duration_basis->>'reason'),
+          -- HOW its duration was derived — provenance for the estimate
+          'duration_basis',   l.duration_basis->>'kind',
+          'status',           l.status,
+          -- WHEN
           'started_sim',      COALESCE(l.actual_start_sim, l.planned_start_sim),
           'expected_end_sim', l.planned_end_sim,
           'planned_s',        l.planned_duration_s,
           'elapsed_s',   GREATEST(0, EXTRACT(EPOCH FROM
                            (r.sim_clock_current - COALESCE(l.actual_start_sim, l.planned_start_sim)))::int),
           'remaining_s', GREATEST(0, EXTRACT(EPOCH FROM
-                           (l.planned_end_sim - r.sim_clock_current))::int)
+                           (l.planned_end_sim - r.sim_clock_current))::int),
+          -- charge legs carry the curve inputs; null on every other service.
+          -- This is what lets OTTO-Q reason about whether a charge will finish
+          -- in time rather than only that one is running.
+          'charge', CASE WHEN l.duration_basis->>'kind' = 'charge_curve'
+            THEN jsonb_build_object(
+              'start_soc',      (l.duration_basis->>'start_soc')::numeric,
+              'target_soc',     (l.duration_basis->>'target_soc')::numeric,
+              'charger_kw',     (l.duration_basis->>'charger_kw')::numeric,
+              'vehicle_kw',     (l.duration_basis->>'vehicle_kw')::numeric,
+              'pack_kwh',       (l.duration_basis->>'pack_kwh')::numeric,
+              'battery_temp_c', (l.duration_basis->>'battery_temp_c')::numeric)
+            ELSE NULL END
         ) ORDER BY l.vehicle_id, l.seq)
         FROM ottoq_itinerary_legs l
        WHERE l.sim_run_id = r.sim_run_id
-         AND COALESCE(l.duration_basis->>'kind', 'dwell') = 'dwell'
+         AND COALESCE(l.duration_basis->>'kind', '') <> 'travel'
          AND l.status NOT IN ('done', 'amended', 'skipped')
       ), '[]'::jsonb),
       'incidents_open', COALESCE((

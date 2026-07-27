@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "mcp__Supabase__execute_sql",
+      "mcp__Supabase__list_tables",
+      "mcp__Supabase__list_projects",
+      "mcp__Supabase__list_branches",
+      "mcp__Supabase__list_migrations",
+      "mcp__Supabase__list_extensions",
+      "mcp__Supabase__list_edge_functions",
+      "mcp__Supabase__get_edge_function",
+      "mcp__Supabase__list_organizations",
+      "mcp__Supabase__get_organization",
+      "mcp__Supabase__get_project",
+      "mcp__Supabase__get_project_url",
+      "mcp__Supabase__get_advisors",
+      "mcp__Supabase__get_logs",
+      "mcp__Supabase__get_cost",
+      "mcp__Supabase__search_docs",
+      "mcp__Supabase__generate_typescript_types",
+
+      "mcp__821b36d8-3d00-4463-89ed-1947ab016f4f__execute_sql",
+      "mcp__821b36d8-3d00-4463-89ed-1947ab016f4f__list_tables",
+      "mcp__821b36d8-3d00-4463-89ed-1947ab016f4f__list_projects",
+      "mcp__821b36d8-3d00-4463-89ed-1947ab016f4f__list_branches",
+      "mcp__821b36d8-3d00-4463-89ed-1947ab016f4f__list_migrations",
+      "mcp__821b36d8-3d00-4463-89ed-1947ab016f4f__list_extensions",
+      "mcp__821b36d8-3d00-4463-89ed-1947ab016f4f__list_edge_functions",
+      "mcp__821b36d8-3d00-4463-89ed-1947ab016f4f__get_edge_function",
+      "mcp__821b36d8-3d00-4463-89ed-1947ab016f4f__list_organizations",
+      "mcp__821b36d8-3d00-4463-89ed-1947ab016f4f__get_organization",
+      "mcp__821b36d8-3d00-4463-89ed-1947ab016f4f__get_project",
+      "mcp__821b36d8-3d00-4463-89ed-1947ab016f4f__get_project_url",
+      "mcp__821b36d8-3d00-4463-89ed-1947ab016f4f__get_advisors",
+      "mcp__821b36d8-3d00-4463-89ed-1947ab016f4f__get_logs",
+      "mcp__821b36d8-3d00-4463-89ed-1947ab016f4f__get_cost",
+      "mcp__821b36d8-3d00-4463-89ed-1947ab016f4f__search_docs",
+      "mcp__821b36d8-3d00-4463-89ed-1947ab016f4f__generate_typescript_types"
+    ]
+  }
+}
