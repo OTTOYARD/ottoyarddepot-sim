@@ -130,6 +130,10 @@ export type ServiceStage =
   | "servicing"
   | "staged"
   | "departing"
+  /** physically present but NOT assignable — towed, awaiting tow, or withdrawn.
+   *  Distinct from off_site: the vehicle occupies depot space and consumes
+   *  attention, but must never be counted as available capacity. */
+  | "out_of_service"
   | "unknown";
 
 export interface FleetVehicleSignal {
@@ -326,9 +330,12 @@ export interface ChargerSystemsPayload {
   committed_kw: number | null;
   counts: {
     total: number;
+    /** derived from the occupying vehicle's state, not the stall status —
+     *  the backend's stall status carries no power information */
     charging: number;
     available: number;
-    faulted: number;
+    /** NULL when fault state is not observable on this frame. Never 0-as-unknown. */
+    faulted: number | null;
   };
   sessions_total: number | null;
   /**

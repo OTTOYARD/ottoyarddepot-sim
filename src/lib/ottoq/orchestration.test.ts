@@ -47,7 +47,7 @@ interface WorldOpts {
 function world(o: WorldOpts = {}): ChannelBundle {
   const vehicles = o.vehicles ?? [
     { id: "v1", state: "arrived_at_gate", soc: 12 },
-    { id: "v2", state: "queued", soc: 48 },
+    { id: "v2", state: "staged_awaiting_service", soc: 48 },
   ];
   const snap = {
     run: { sim_run_id: "run-1", scenario: "normal_day", status: "running", sim_clock: CLOCK, tick_count: 12, time_scale: 60, seed: 7 },
@@ -300,18 +300,18 @@ describe("charge assignment advisor", () => {
   });
 
   it("never proposes the same stall twice", () => {
-    const many = Array.from({ length: 6 }, (_, i) => ({ id: `v${i}`, state: "queued", soc: 10 + i }));
+    const many = Array.from({ length: 6 }, (_, i) => ({ id: `v${i}`, state: "staged_awaiting_service", soc: 10 + i }));
     const stalls = run(world({ vehicles: many })).map((x) => (x.params as { stall_id: string }).stall_id);
     expect(new Set(stalls).size).toBe(stalls.length);
   });
 
   it("stays silent rather than queueing noise when the depot is full", () => {
-    const many = Array.from({ length: 20 }, (_, i) => ({ id: `v${i}`, state: "queued", soc: 20 }));
+    const many = Array.from({ length: 20 }, (_, i) => ({ id: `v${i}`, state: "staged_awaiting_service", soc: 20 }));
     expect(run(world({ vehicles: many })).length).toBeLessThanOrEqual(4); // 2 dcfc + 2 l2
   });
 
   it("ignores vehicles that are not waiting", () => {
-    expect(run(world({ vehicles: [{ id: "v9", state: "charging", soc: 10, stall: "d0" }] }))).toHaveLength(0);
+    expect(run(world({ vehicles: [{ id: "v9", state: "charging_dcfc", soc: 10, stall: "d0" }] }))).toHaveLength(0);
   });
 });
 

@@ -32,8 +32,8 @@ function fullSnapshot(): TwinSnapshot {
   return {
     run: { sim_run_id: "run-1", scenario: "normal_day", status: "running", sim_clock: CLOCK, tick_count: 5, time_scale: 60, seed: 7 },
     fleet: {
-      counts: { charging: 1 }, total: 1,
-      vehicles: [{ id: "v1", av_id: "AV-1", make: "waymo", platform: "jag", state: "charging", soc: 40, stall_id: "s0" }],
+      counts: { charging_dcfc: 1 }, total: 1,
+      vehicles: [{ id: "v1", av_id: "AV-1", make: "waymo", platform: "jag", state: "charging_dcfc", soc: 40, stall_id: "s0" }],
     },
     stalls_status: [{ id: "s0", status: "charging", vehicle_id: "v1" }],
     energy: { grid_import_kw: 100, grid_export_kw: 0, solar_kw: 10, bess_output_kw: 0, ev_charging_kw: 80, building_kw: 30, peak_15min_kw: 120, tariff: "GSA-3", rate_per_kwh: 0.08, at: CLOCK },

@@ -43,42 +43,67 @@ import {
 } from "./contracts";
 
 // ── state → stage vocabulary ────────────────────────────────────────────────
-// The backend's vehicle state machine is its own; OTTO-Q reasons over a stable
-// normalized stage. Unmapped states are surfaced (`stage_unmapped`) rather than
-// bucketed into "unknown" and forgotten — a new backend state should show up as
-// a visible gap, not vanish.
+// THIS MAP IS THE `vehicle_state` ENUM, VERBATIM. All 17 values, read from
+// pg_enum on the live backend. Do not add speculative aliases here.
+//
+// The first version of this file was written from guesswork — plausible names
+// like "charging", "queued", "departing". Only FOUR of them existed. Both real
+// charging states (`charging_dcfc`, `charging_l2`) fell through to "unknown",
+// so `counts_by_stage.charging` was permanently 0, `queue.waiting` was
+// permanently 0, and the charge advisor — which filters on at_gate/queued —
+// could never propose anything at all. The channel looked healthy and reported
+// a fleet that was doing nothing.
+//
+// That is the same failure as the `dwell` filter in the proposed migration:
+// a guess about VALUES sails through every type check and quietly returns
+// nothing. When this enum gains a value, the new state lands in "unknown" and
+// is reported via `stage_unmapped` + a channel note — visible, not silent.
 const STATE_TO_STAGE: Record<string, ServiceStage> = {
-  off_site: "off_site",
+  // not at the depot / not usable
+  offline: "off_site",
   deployed: "off_site",
-  in_service: "off_site",
-  returning: "inbound",
-  inbound: "inbound",
+  en_route_to_deployment: "departing",
   en_route_to_depot: "inbound",
+  // at the depot, awaiting disposition
   arrived_at_gate: "at_gate",
-  at_gate: "at_gate",
-  queued: "queued",
-  waiting: "queued",
-  moving_to_stall: "moving",
-  moving: "moving",
-  taxiing: "moving",
-  charging: "charging",
-  in_charge: "charging",
-  servicing: "servicing",
+  staged_awaiting_service: "queued",
+  // receiving energy
+  charging_dcfc: "charging",
+  charging_l2: "charging",
+  // receiving a service
+  in_wash_bay: "servicing",
+  in_detail_bay: "servicing",
   in_service_bay: "servicing",
-  washing: "servicing",
-  detailing: "servicing",
-  maintenance: "servicing",
-  staged: "staged",
-  ready: "staged",
-  idle: "staged",
-  departing: "departing",
-  exiting: "departing",
+  // done, holding a stall, ready to move on
+  charge_complete_holding: "staged",
+  service_complete_holding: "staged",
+  staged_for_departure: "staged",
+  // present but NOT assignable — must never be counted as available capacity
+  emergency_staged: "out_of_service",
+  tow_requested: "out_of_service",
+  out_of_service: "out_of_service",
 };
 
 const ALL_STAGES: ServiceStage[] = [
   "off_site", "inbound", "at_gate", "queued", "moving",
-  "charging", "servicing", "staged", "departing", "unknown",
+  "charging", "servicing", "staged", "departing", "out_of_service", "unknown",
 ];
+
+// ── stall status vocabulary ─────────────────────────────────────────────────
+// The backend `stalls.status` only ever holds 'available' or 'occupied'
+// (verified against the live table). It carries NO charging or fault state.
+//
+// The renderer's own store uses a richer set (charging / servicing / offline /
+// reserved), and the first version of this file matched on THOSE — so
+// `counts.charging` and `counts.faulted` were structurally always 0.
+// Both are now derived instead: charging from the vehicle occupying the stall,
+// faults not at all (see packChargerSystems).
+const OCCUPIED_STATUSES = new Set(["occupied", "reserved", "charging", "servicing"]);
+/** Statuses meaning "cannot accept a vehicle". The backend emits none of these
+ *  today; kept so a renderer-sourced status is still classified correctly. */
+const OFFLINE_STATUSES = new Set(["offline", "faulted", "fault", "out_of_service", "maintenance"]);
+/** Vehicle stages that mean the vehicle is drawing power at its stall. */
+const CHARGING_STAGES = new Set<ServiceStage>(["charging"]);
 
 export function normalizeStage(state: string | null | undefined): {
   stage: ServiceStage;
@@ -89,11 +114,6 @@ export function normalizeStage(state: string | null | undefined): {
   const hit = STATE_TO_STAGE[key];
   return hit ? { stage: hit, unmapped: false } : { stage: "unknown", unmapped: true };
 }
-
-/** Stall statuses that mean "this asset cannot take a vehicle right now". */
-const OFFLINE_STATUSES = new Set(["offline", "faulted", "fault", "out_of_service", "maintenance"]);
-const OCCUPIED_STATUSES = new Set(["occupied", "charging", "servicing", "reserved"]);
-const CHARGING_STATUSES = new Set(["charging"]);
 
 const num = (v: unknown): number | null => {
   if (v === null || v === undefined || v === "") return null;
@@ -422,8 +442,10 @@ export function packDepotOps(
 
 // ── charger_systems ─────────────────────────────────────────────────────────
 
-/** Stall types that are electrical assets rather than service bays. */
-const CHARGER_TYPES = new Set(["dcfc", "l2", "charger", "evse"]);
+/** The two `stall_type` enum values that are electrical assets. Verified
+ *  against pg_enum: dcfc, l2, wash_bay, detail_bay, service_bay, staging,
+ *  parking, safety. Only the first two deliver power. */
+const CHARGER_TYPES = new Set(["dcfc", "l2"]);
 
 export function packChargerSystems(
   snap: TwinSnapshot,
@@ -438,22 +460,38 @@ export function packChargerSystems(
     CHARGER_TYPES.has(String(s.type ?? "").toLowerCase()),
   );
 
+  // A stall's status cannot tell us whether power is flowing — the backend only
+  // says available/occupied. Derive it from the VEHICLE in the stall instead:
+  // a charger is delivering when its occupant is in a charging state.
+  const stageByVehicle = new Map(
+    (snap.fleet?.vehicles ?? []).map((v) => [String(v.id), normalizeStage(v.state).stage]),
+  );
+
   const chargers: ChargerSignal[] = layoutStalls.map((ls) => {
     const st = statusById.get(String(ls.id));
     const status = st ? String(st.status) : "available";
+    const vehicle_id = st ? str(st.vehicle_id) : null;
     return {
       stall_id: String(ls.id),
       code: str(ls.code),
       type: str(ls.type),
       rated_kw: num(ls.connector_kw),
       status,
-      vehicle_id: st ? str(st.vehicle_id) : null,
+      vehicle_id,
+      // Fault state is NOT observable on this frame — the backend keeps it in
+      // ottoq_ocpp_chargers.station_state, which the snapshot does not publish.
+      // Reporting `false` here would assert every charger is healthy on no
+      // evidence, which is precisely the "absent rendered as zero" failure this
+      // contract exists to prevent. It stays false only when a renderer-sourced
+      // status positively says so; the honest unknown is carried by
+      // `counts.faulted === null` and the ocpp integrity gap below.
       faulted: OFFLINE_STATUSES.has(status.toLowerCase()),
     };
   });
 
-  const charging = chargers.filter((c) => CHARGING_STATUSES.has(c.status.toLowerCase()));
-  const faulted = chargers.filter((c) => c.faulted);
+  const charging = chargers.filter(
+    (c) => c.vehicle_id !== null && CHARGING_STAGES.has(stageByVehicle.get(c.vehicle_id) ?? "unknown"),
+  );
   const ratedKnown = chargers.filter((c) => c.rated_kw !== null);
 
   const fleet_capacity_kw = ratedKnown.length
@@ -483,7 +521,11 @@ export function packChargerSystems(
       total: chargers.length,
       charging: charging.length,
       available: chargers.filter((c) => !c.faulted && !OCCUPIED_STATUSES.has(c.status.toLowerCase())).length,
-      faulted: faulted.length,
+      // NULL, not 0. Charger faults live in ottoq_ocpp_chargers.station_state,
+      // which this frame does not carry — so the true answer is "we cannot
+      // see". A 0 here would read as "no chargers are faulted" and let the
+      // orchestrator keep assigning vehicles to dead hardware.
+      faulted: null,
     },
     sessions_total: num(snap.counters?.charge_sessions),
     ocpp: [],

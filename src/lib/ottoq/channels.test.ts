@@ -37,10 +37,10 @@ function snapshot(over: Partial<TwinSnapshot> = {}): TwinSnapshot {
       sim_clock: CLOCK, tick_count: 12, time_scale: 60, seed: 990099,
     },
     fleet: {
-      counts: { charging: 1, arrived_at_gate: 1 },
+      counts: { charging_dcfc: 1, arrived_at_gate: 1 },
       total: 2,
       vehicles: [
-        { id: "v1", av_id: "AV-1", make: "waymo", platform: "jaguar", state: "charging", soc: 41.5, stall_id: "s0" },
+        { id: "v1", av_id: "AV-1", make: "waymo", platform: "jaguar", state: "charging_dcfc", soc: 41.5, stall_id: "s0" },
         { id: "v2", av_id: "AV-2", make: "tesla", platform: "model3", state: "arrived_at_gate", soc: 12, stall_id: null },
       ],
     },
@@ -72,14 +72,47 @@ function snapshot(over: Partial<TwinSnapshot> = {}): TwinSnapshot {
 
 describe("normalizeStage", () => {
   it("maps known backend states to the contract vocabulary", () => {
+    // Real `vehicle_state` enum values, not plausible-sounding invented ones.
     expect(normalizeStage("arrived_at_gate")).toEqual({ stage: "at_gate", unmapped: false });
-    expect(normalizeStage("CHARGING")).toEqual({ stage: "charging", unmapped: false });
+    expect(normalizeStage("CHARGING_DCFC")).toEqual({ stage: "charging", unmapped: false });
+    expect(normalizeStage("charging_l2")).toEqual({ stage: "charging", unmapped: false });
+    expect(normalizeStage("staged_awaiting_service")).toEqual({ stage: "queued", unmapped: false });
+    expect(normalizeStage("in_wash_bay")).toEqual({ stage: "servicing", unmapped: false });
+    // present but unassignable — must not read as available capacity
+    expect(normalizeStage("tow_requested")).toEqual({ stage: "out_of_service", unmapped: false });
   });
 
   it("flags unknown states instead of silently bucketing them", () => {
     const r = normalizeStage("teleporting");
     expect(r.stage).toBe("unknown");
     expect(r.unmapped).toBe(true);
+  });
+
+  // REGRESSION GUARD. The first version of STATE_TO_STAGE was written from
+  // guesswork and covered 4 of these 17. Both charging states fell through to
+  // "unknown", so the fleet channel reported zero vehicles charging and zero
+  // queued — for every frame, forever, while looking perfectly healthy.
+  //
+  // This is the full `vehicle_state` enum read from pg_enum on the live
+  // backend. If the backend adds a value, add it here deliberately; do not
+  // relax the assertion.
+  const VEHICLE_STATE_ENUM = [
+    "offline", "deployed", "en_route_to_depot", "arrived_at_gate",
+    "staged_awaiting_service", "charging_dcfc", "charging_l2",
+    "charge_complete_holding", "in_wash_bay", "in_detail_bay", "in_service_bay",
+    "service_complete_holding", "staged_for_departure", "en_route_to_deployment",
+    "emergency_staged", "tow_requested", "out_of_service",
+  ];
+
+  it("maps every value of the real vehicle_state enum", () => {
+    const unmapped = VEHICLE_STATE_ENUM.filter((s) => normalizeStage(s).unmapped);
+    expect(unmapped).toEqual([]);
+  });
+
+  it("never lets an unassignable vehicle read as available capacity", () => {
+    for (const s of ["emergency_staged", "tow_requested", "out_of_service"]) {
+      expect(normalizeStage(s).stage).toBe("out_of_service");
+    }
   });
 });
 
