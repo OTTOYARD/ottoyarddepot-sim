@@ -149,6 +149,75 @@ to switch between them.
 Two engines called "the simulation" is a liability in an OEM conversation. One of them
 should become the authority and the other should become explicitly a demo fallback.
 
+### 2.8b The production schema cannot be rebuilt from its migration history
+
+Found while attempting the branch test for the proposed migrations. A Supabase
+branch replays the tracked migration history onto an empty database. The branch
+came back **`MIGRATIONS_FAILED` with 0 tables, 0 functions, 0 migrations applied** —
+it failed on the very first one.
+
+The cause: the tracked history starts mid-stream. The earliest migration,
+`20260618035454 hw001_charging_scope_guard`, opens with
+
+```sql
+CREATE OR REPLACE FUNCTION public.ottoq_eval_hw_001_connector_compatibility(...)
+  RETURNS ottoq_rule_result
+```
+
+`ottoq_rule_result` is never created by any migration, and neither are the 160
+base tables or the `vehicle_state` / `stall_type` enums. All 300+ tracked
+migrations *assume* a schema that was built outside migrations — dashboard, MCP,
+or an untracked script.
+
+Three consequences, in increasing order of seriousness:
+
+1. **Proposed migrations cannot be branch-tested.** There is no way to stand up a
+   throwaway copy of the schema to apply them against.
+2. **No new environment can be created from source** — no staging, no OEM
+   sandbox, no second depot deployment.
+3. **The database is not reconstructible.** If `otto-q-core` were lost, the
+   migration history would not rebuild it. Only a point-in-time restore would,
+   which makes backup retention a single point of failure for the entire twin.
+
+Fix: dump the current schema (`supabase db dump --schema public`) and land it as
+a baseline migration ordered *before* `20260618035454`, so the history is
+replayable from zero. That is a prerequisite for branch-testing anything —
+including the two proposals in `supabase/proposed/`.
+
+### 2.8c The channel packer's vocabularies were invented, not read
+
+The first version of `channels.ts` mapped backend states and stall statuses from
+**plausible-sounding guesses**. Verified against `pg_enum` on the live backend:
+
+| vocabulary | reality | the original map |
+|---|---|---|
+| `vehicle_state` | 17 values | matched **4** |
+| `stalls.status` | only `available`, `occupied` | matched on `charging`, `faulted`, `servicing`, `reserved`, `offline` — **none of which exist** |
+| `stall_type` | 8 values | invented `charger`, `evse` |
+
+Both charging states (`charging_dcfc`, `charging_l2`) fell through to `unknown`.
+The consequences were total and silent:
+
+- `counts_by_stage.charging` — permanently 0
+- `queue.waiting` / `queue.in_service` — permanently 0
+- `chargeAssignmentAdvisor` filters on `at_gate`/`queued` → **could never propose
+  a single assignment**
+- `charger_systems.counts.charging` and `committed_kw` — permanently 0
+- `chargerHealthAdvisor` filters on faulted → **could never fire**
+
+Every one of those passed type-checking and 174 tests, because the tests were
+written from the same guesses. This is the identical failure mode as the `dwell`
+filter in §4.1: an assumption about **values** sails through every structural
+check and quietly returns nothing.
+
+Fixed: `STATE_TO_STAGE` is now the enum verbatim; charger "charging" is derived
+from the occupying vehicle's state rather than a stall status that carries no
+power information; and `counts.faulted` is **`null`, not 0**, because charger
+fault state genuinely is not observable on this frame — reporting 0 would assert
+every charger is healthy on no evidence. A new `out_of_service` stage keeps
+towed and withdrawn vehicles from reading as available capacity. A regression
+test pins all 17 enum values.
+
 ### 2.9 Smaller findings
 
 - **The render contract is published and ignored.** `ottoq_twin_snapshot` emits `legs` — a

@@ -55,7 +55,28 @@ gaps table it creates do not already exist. Total samples the mapping connects:
     precip_mm                3,691     ─────────────────────────
                                        TOTAL         3,551,769
 
-## Review checklist before applying
+## ⚠️ Branch testing is currently IMPOSSIBLE — attempted 2026-07-27, blocked
+
+The intended review path was: create a Supabase branch, apply both files there, run a
+scenario, diff against live. **That cannot be done today.**
+
+A branch replays the tracked migration history onto an empty database. The attempt returned
+`MIGRATIONS_FAILED` with **0 tables, 0 functions, 0 migrations applied** — it failed on the
+first one. The earliest tracked migration (`20260618035454 hw001_charging_scope_guard`)
+opens with `CREATE FUNCTION ... RETURNS ottoq_rule_result`, a type no migration creates.
+The 160 base tables and the `vehicle_state` / `stall_type` enums are likewise absent from
+the history — the whole tracked sequence assumes a schema built outside migrations.
+
+The branch was deleted immediately (~4 minutes billed, well under a cent).
+
+See `docs/OTTO-Q-WORLD-CONTRACT.md` §2.8b — the broader consequence is that this database
+is **not reconstructible from source**, which matters far beyond these two files.
+
+**Prerequisite before either file is applied anywhere:** land a baseline schema dump as a
+migration ordered before `20260618035454`, so the history replays from zero. Then the
+checklist below becomes runnable.
+
+## Review checklist — runnable only after the baseline migration exists
 
 1. Run each file against a Supabase **branch**, not the main project (`create_branch`).
 2. Start one `normal_day` run on the branch and diff `ottoq_twin_run_list` counters against
@@ -63,3 +84,21 @@ gaps table it creates do not already exist. Total samples the mapping connects:
 3. For `002`, confirm `ottoq_calibration_gaps` stops recording fallbacks for the six mapped
    variables — that is the proof the mapping resolved.
 4. Only then merge the branch.
+
+## What IS verified today, without a branch
+
+Both files had every read path executed as plain `SELECT`s against production with real
+data — no writes, no DDL. That is what caught the `dwell` bug in `001` (0 rows → 205 after
+the fix). It validates column names, joins, and result shapes.
+
+What it does **not** validate, and what stays unverified until a branch is possible:
+
+- that the DDL in either file applies cleanly (`ALTER TABLE`, `CREATE TABLE`, the
+  `CREATE OR REPLACE FUNCTION` bodies)
+- that `002`'s replacement of `ottoq_twin_deal` behaves identically to the live version on
+  the paths it does not change — this is the real risk, since every run depends on that
+  function and a regression there breaks card dealing globally
+- the `minutes_until_change` arithmetic in `001` against overlapping tariff windows.
+  Live data has `peak` (13–20) overlapping `super_peak` (17–19), and duplicate rows for
+  every label, so the `LIMIT 1` picks nondeterministically between them. Worth resolving
+  before `001` is applied.
