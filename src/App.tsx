@@ -12,6 +12,7 @@ import { simulationEngine } from '@/engine/SimulationEngine';
 import { createQueueVehicle } from '@/engine/IncidentInjector';
 import { INGRESS } from '@/engine/types';
 import { useTwinFeed } from '@/hooks/useTwinFeed';
+import { useWorldBoot } from '@/hooks/useWorldBoot';
 import { useTwinSceneBridge } from '@/hooks/useTwinSceneBridge';
 
 const App = () => {
@@ -78,6 +79,9 @@ const App = () => {
 
   // Attach the server-authoritative twin feed (loads layout, polls snapshots).
   useTwinFeed();
+  // Load the complete world for each adopted run and grade its channels before
+  // OTTO-Q is asked to orchestrate in it (worldStore.phase).
+  useWorldBoot();
   // CC-P2b: drive the depot scene (stalls + vehicles) from the live snapshot.
   useTwinSceneBridge();
 
