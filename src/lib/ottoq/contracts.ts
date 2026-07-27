@@ -270,14 +270,40 @@ export interface DepotOpsPayload {
   service_timers: ServiceTimer[];
 }
 
+/**
+ * One in-flight service leg. Shape verified against `ottoq_itinerary_legs` on
+ * the live backend — see supabase/proposed/001_decision_frame_channels.sql.
+ *
+ * `service` is the real classifier (charge_l2, charge_dcfc, detail, service,
+ * inspect, interior_tidy, sensor_clean, …). `duration_basis` is separate and
+ * says how the estimate was DERIVED, which is what tells OTTO-Q how much to
+ * trust it:
+ *   charge_curve   a physical charge model — `charge` below is populated
+ *   distribution   sampled from a fitted real-world corpus
+ *   flow_contract  a policy or contract, not a measurement
+ */
 export interface ServiceTimer {
   vehicle_id: string;
   stall_id: string | null;
-  stage: ServiceStage;
+  service: string;
+  /** service atom or hold reason: interior_deep_clean, fault_repair, … */
+  detail: string | null;
+  duration_basis: "charge_curve" | "distribution" | "flow_contract" | string | null;
+  status: string;
   started_sim: string | null;
   expected_end_sim: string | null;
+  planned_s: number | null;
   elapsed_s: number | null;
   remaining_s: number | null;
+  /** populated only on charge legs; null on every other service */
+  charge: {
+    start_soc: number | null;
+    target_soc: number | null;
+    charger_kw: number | null;
+    vehicle_kw: number | null;
+    pack_kwh: number | null;
+    battery_temp_c: number | null;
+  } | null;
 }
 
 // ── charger_systems ─────────────────────────────────────────────────────────

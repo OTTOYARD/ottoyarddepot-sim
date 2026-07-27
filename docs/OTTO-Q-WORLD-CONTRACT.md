@@ -345,10 +345,17 @@ That closes the loop — OTTO-Q's decision changes the world it reads next tick.
 
 **4.1 Feed service timing into `depot_ops`.** *(unblocks 5 catalog variables)*
 `charge_time`, `wash_time`, `detail_time`, `maintenance_time` are dealt every visit and
-reach nothing. The twin knows service start and expected end — `ottoq_itinerary_legs` has
-`planned_start_sim`/`planned_end_sim`/`planned_duration_s` per leg. Add a `service_timers`
-array to `ottoq_twin_snapshot` (and to the decision frame) built from the open dwell legs.
-`DepotOpsPayload.service_timers` is already typed and waiting.
+reach nothing. Written and **verified** in `supabase/proposed/001` — 205 in-flight service
+legs across 82 of 100 vehicles on the reference run, carrying the service type, the
+duration's provenance, and the charge-curve inputs. Still needs the same array added to
+`ottoq_twin_snapshot` so the client packer has a source too;
+`DepotOpsPayload.service_timers` is typed and waiting.
+
+> ⚠️ **Do not filter these legs on `duration_basis->>'kind'`.** That field records how the
+> duration was *derived* (`charge_curve` / `distribution` / `flow_contract` / `travel`), not
+> what the service is — `leg_type` does that. An earlier draft filtered on a `dwell` kind
+> that does not exist and matched zero rows while looking correct. Exclude `travel`; do not
+> enumerate services.
 
 **4.2 Publish OCPP charger health.** *(unblocks the charger channel)*
 `ottoq_ocpp_chargers` (21 cols: `station_state`, error codes, heartbeat) and
