@@ -6,6 +6,9 @@
 import { useEffect } from "react";
 import { twin, NASHVILLE_DEPOT } from "@/lib/ottoTwin";
 import { useTwinStore } from "@/store/twinStore";
+import { useWorldStore } from "@/store/worldStore";
+import { packChannels } from "@/lib/ottoq/channels";
+import { auditCoverage } from "@/lib/ottoq/coverage";
 
 const POLL_MS = 1500;
 const DISCOVER_MS = 4000;
@@ -76,6 +79,17 @@ export function useTwinFeed(depotId: string = NASHVILLE_DEPOT) {
         } else {
           setSnapshot(snap);
           setConnected(true);
+          // Same frame, second consumer: pack it into the OTTO-Q channel
+          // bundle. Done here rather than in a separate poll so the renderer
+          // and the orchestrator can never disagree about which tick they are
+          // looking at. Packing is pure and cheap; a throw must not kill the
+          // render feed, so it is contained.
+          try {
+            const bundle = packChannels(snap, useTwinStore.getState().layout);
+            useWorldStore.getState().publishFrame(bundle, auditCoverage(bundle));
+          } catch (err) {
+            console.error("channel packing failed", err);
+          }
         }
       } catch (e) {
         if (!cancelled) setConnected(false);

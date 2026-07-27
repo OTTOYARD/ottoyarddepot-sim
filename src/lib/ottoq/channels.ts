@@ -1,0 +1,585 @@
+// ============================================================================
+// channels — pack the twin's single render-shaped snapshot into the five
+// OTTO-Q channel packets defined in contracts.ts.
+//
+// Pure functions, no I/O, no store reads: snapshot in, packets out. That makes
+// the contract testable frame-by-frame and lets the same packer run in the
+// browser, in an edge function, or in a replay harness over a Black Box bundle.
+//
+// TWO STRUCTURAL FACTS ABOUT THE SNAPSHOT DRIVE THIS FILE:
+//
+//   1. `stalls_status` is a PARTIAL feed. ottoq_twin_snapshot filters it to
+//      `status <> 'available'` to keep the payload light. So stall inventory
+//      MUST come from the layout, with anything absent from the status feed
+//      marked `assumed_available` — an inference, flagged as one, never
+//      laundered into an observation.
+//
+//   2. `energy`, `weather` and `grid` are single LATEST rows, not per-tick
+//      values. They can lag the world clock (or be absent entirely at tick 0).
+//      Every one of them therefore carries its own staleness, computed against
+//      the sim clock rather than wall time.
+// ============================================================================
+
+import type { TwinLayout, TwinSnapshot, TwinStall } from "@/lib/ottoTwin";
+import {
+  buildIntegrity,
+  stalenessSeconds,
+  CHANNEL_CONTRACT_VERSION,
+  REQUIRED_CHANNELS,
+  type ChannelBundle,
+  type ChannelBundleStatus,
+  type ChannelEnvelope,
+  type ChannelId,
+  type ChargerSignal,
+  type ChargerSystemsPayload,
+  type DepotOpsPayload,
+  type EnergyGridPayload,
+  type EnvironmentPayload,
+  type FleetTelemetryPayload,
+  type FleetVehicleSignal,
+  type ServiceStage,
+  type StallSignal,
+  type StallTypeCapacity,
+} from "./contracts";
+
+// ── state → stage vocabulary ────────────────────────────────────────────────
+// The backend's vehicle state machine is its own; OTTO-Q reasons over a stable
+// normalized stage. Unmapped states are surfaced (`stage_unmapped`) rather than
+// bucketed into "unknown" and forgotten — a new backend state should show up as
+// a visible gap, not vanish.
+const STATE_TO_STAGE: Record<string, ServiceStage> = {
+  off_site: "off_site",
+  deployed: "off_site",
+  in_service: "off_site",
+  returning: "inbound",
+  inbound: "inbound",
+  en_route_to_depot: "inbound",
+  arrived_at_gate: "at_gate",
+  at_gate: "at_gate",
+  queued: "queued",
+  waiting: "queued",
+  moving_to_stall: "moving",
+  moving: "moving",
+  taxiing: "moving",
+  charging: "charging",
+  in_charge: "charging",
+  servicing: "servicing",
+  in_service_bay: "servicing",
+  washing: "servicing",
+  detailing: "servicing",
+  maintenance: "servicing",
+  staged: "staged",
+  ready: "staged",
+  idle: "staged",
+  departing: "departing",
+  exiting: "departing",
+};
+
+const ALL_STAGES: ServiceStage[] = [
+  "off_site", "inbound", "at_gate", "queued", "moving",
+  "charging", "servicing", "staged", "departing", "unknown",
+];
+
+export function normalizeStage(state: string | null | undefined): {
+  stage: ServiceStage;
+  unmapped: boolean;
+} {
+  if (!state) return { stage: "unknown", unmapped: true };
+  const key = String(state).trim().toLowerCase();
+  const hit = STATE_TO_STAGE[key];
+  return hit ? { stage: hit, unmapped: false } : { stage: "unknown", unmapped: true };
+}
+
+/** Stall statuses that mean "this asset cannot take a vehicle right now". */
+const OFFLINE_STATUSES = new Set(["offline", "faulted", "fault", "out_of_service", "maintenance"]);
+const OCCUPIED_STATUSES = new Set(["occupied", "charging", "servicing", "reserved"]);
+const CHARGING_STATUSES = new Set(["charging"]);
+
+const num = (v: unknown): number | null => {
+  if (v === null || v === undefined || v === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+};
+const str = (v: unknown): string | null =>
+  v === null || v === undefined ? null : String(v);
+
+/** Track which required fields resolved, so integrity is derived not asserted. */
+class FieldTracker {
+  readonly present: string[] = [];
+  readonly missing: string[] = [];
+  /** Records `path` as present when `value` is non-null, missing otherwise. */
+  take<T>(path: string, value: T | null): T | null {
+    if (value === null || value === undefined) this.missing.push(path);
+    else this.present.push(path);
+    return value ?? null;
+  }
+}
+
+interface EnvelopeMeta {
+  sim_run_id: string;
+  scenario: string;
+  seed: number;
+  tick: number;
+  sim_clock: string | null;
+  emitted_at: string;
+}
+
+function envelope<T>(
+  channel: ChannelId,
+  meta: EnvelopeMeta,
+  staleness_s: number | null,
+  tracker: FieldTracker,
+  sources: string[],
+  notes: string[],
+  payload: T,
+): ChannelEnvelope<T> {
+  return {
+    channel,
+    contract_version: CHANNEL_CONTRACT_VERSION,
+    sim_run_id: meta.sim_run_id,
+    scenario: meta.scenario,
+    seed: meta.seed,
+    tick: meta.tick,
+    sim_clock: meta.sim_clock,
+    emitted_at: meta.emitted_at,
+    staleness_s,
+    integrity: buildIntegrity(tracker.present, tracker.missing, sources, notes),
+    payload,
+  };
+}
+
+// ── fleet_telemetry ─────────────────────────────────────────────────────────
+
+export function packFleetTelemetry(
+  snap: TwinSnapshot,
+  meta: EnvelopeMeta,
+): ChannelEnvelope<FleetTelemetryPayload> {
+  const t = new FieldTracker();
+  const notes: string[] = [];
+  const raw = snap.fleet?.vehicles ?? [];
+
+  const vehicles: FleetVehicleSignal[] = raw.map((v) => {
+    const { stage, unmapped } = normalizeStage(v.state);
+    return {
+      id: String(v.id),
+      av_id: str(v.av_id),
+      oem: str(v.make),
+      platform: str(v.platform),
+      state: String(v.state ?? ""),
+      stage,
+      soc_pct: num(v.soc),
+      stall_id: str(v.stall_id),
+      stage_unmapped: unmapped,
+    };
+  });
+
+  const unmapped = [...new Set(vehicles.filter((v) => v.stage_unmapped).map((v) => v.state))];
+  if (unmapped.length) {
+    notes.push(`unmapped vehicle states (add to STATE_TO_STAGE): ${unmapped.join(", ")}`);
+  }
+
+  const counts_by_stage = Object.fromEntries(ALL_STAGES.map((s) => [s, 0])) as Record<
+    ServiceStage,
+    number
+  >;
+  for (const v of vehicles) counts_by_stage[v.stage]++;
+
+  const socs = vehicles.map((v) => v.soc_pct).filter((s): s is number => s !== null).sort((a, b) => a - b);
+  const soc = {
+    reporting: socs.length,
+    missing: vehicles.length - socs.length,
+    min: socs.length ? socs[0] : null,
+    p50: socs.length ? socs[Math.floor((socs.length - 1) / 2)] : null,
+    mean: socs.length ? Math.round((socs.reduce((a, b) => a + b, 0) / socs.length) * 10) / 10 : null,
+    max: socs.length ? socs[socs.length - 1] : null,
+    below_20: socs.filter((s) => s < 20).length,
+  };
+
+  // Required fields: the engine cannot schedule without a fleet roster and SoC.
+  t.take("fleet.vehicles", vehicles.length > 0 ? vehicles.length : null);
+  t.take("fleet.counts", Object.keys(snap.fleet?.counts ?? {}).length > 0 ? 1 : null);
+  t.take("fleet.soc", socs.length > 0 ? socs.length : null);
+  t.take("fleet.stall_binding", vehicles.some((v) => v.stall_id !== null) ? 1 : null);
+
+  if (soc.missing > 0) notes.push(`${soc.missing} vehicle(s) reported no SoC`);
+
+  const payload: FleetTelemetryPayload = {
+    fleet_size: Number(snap.fleet?.total ?? vehicles.length),
+    counts_by_state: (snap.fleet?.counts ?? {}) as Record<string, number>,
+    counts_by_stage,
+    vehicles,
+    soc,
+    telemetry_packets_total: num(snap.counters?.telemetry_packets),
+  };
+
+  // Vehicle rows are read live off the depot, not stamped per observation, so
+  // the whole channel is exactly as fresh as the tick that produced it.
+  return envelope("fleet_telemetry", meta, 0, t, ["vehicles", "ottoq_telemetry_packets"], notes, payload);
+}
+
+// ── energy_grid ─────────────────────────────────────────────────────────────
+
+export function packEnergyGrid(
+  snap: TwinSnapshot,
+  meta: EnvelopeMeta,
+): ChannelEnvelope<EnergyGridPayload> {
+  const t = new FieldTracker();
+  const notes: string[] = [];
+  const e = (snap.energy ?? {}) as Record<string, unknown>;
+  const b = (snap.bess ?? {}) as Record<string, unknown>;
+  const g = (snap.grid ?? {}) as Record<string, unknown>;
+
+  if (!snap.energy) notes.push("no site_energy_snapshots row within this run's sim window");
+  if (!snap.grid) notes.push("no ottoq_grid_snapshots row for this run");
+
+  const grid_import_kw = t.take("site.grid_import_kw", num(e.grid_import_kw));
+  const grid_export_kw = t.take("site.grid_export_kw", num(e.grid_export_kw));
+  const solar_kw = t.take("site.solar_kw", num(e.solar_kw));
+  const bess_output_kw = t.take("site.bess_output_kw", num(e.bess_output_kw));
+  const ev_charging_kw = t.take("site.ev_charging_kw", num(e.ev_charging_kw));
+  const building_kw = t.take("site.building_kw", num(e.building_kw));
+  const peak_15min_kw = num(e.peak_15min_kw);
+  const energyAt = str(e.at);
+
+  const net_grid_kw =
+    grid_import_kw === null || grid_export_kw === null ? null : grid_import_kw - grid_export_kw;
+
+  // Conservation check: supply - draw should be ~0. Publishing the residual
+  // makes an unbalanced site model visible instead of quietly wrong.
+  const supplyKnown = [grid_import_kw, solar_kw, bess_output_kw].every((v) => v !== null);
+  const drawKnown = [grid_export_kw, ev_charging_kw, building_kw].every((v) => v !== null);
+  const balance_residual_kw =
+    supplyKnown && drawKnown
+      ? Math.round(
+          ((grid_import_kw! + solar_kw! + bess_output_kw!) -
+            (grid_export_kw! + ev_charging_kw! + building_kw!)) * 10,
+        ) / 10
+      : null;
+  if (balance_residual_kw !== null && Math.abs(balance_residual_kw) > 25) {
+    notes.push(`site power balance residual ${balance_residual_kw} kW — model does not close`);
+  }
+
+  const bess_soc = t.take("bess.soc_pct", num(b.soc_pct));
+  const lmp = t.take("grid.lmp_usd_mwh", num(g.lmp_usd_mwh));
+  const tariff_label = t.take("tariff.label", str(e.tariff) ?? str(g.tariff));
+  const rate_per_kwh = t.take("tariff.rate_per_kwh", num(e.rate_per_kwh));
+
+  const dr_active = Boolean(g.dr_active);
+  const cap_kw = num(g.dr_cap_kw);
+  const load_kw =
+    ev_charging_kw === null || building_kw === null ? null : ev_charging_kw + building_kw;
+  const headroom_kw = cap_kw === null || load_kw === null ? null : Math.round((cap_kw - load_kw) * 10) / 10;
+  if (dr_active && cap_kw === null) notes.push("DR call active but no cap_kw published — cannot shed to a target");
+
+  const gridAt = str(g.at);
+  // The channel is only as fresh as its OLDEST constituent observation.
+  const staleness = maxStaleness([
+    stalenessSeconds(energyAt, meta.sim_clock),
+    stalenessSeconds(gridAt, meta.sim_clock),
+  ]);
+
+  const payload: EnergyGridPayload = {
+    site: {
+      grid_import_kw, grid_export_kw, solar_kw, bess_output_kw,
+      ev_charging_kw, building_kw, peak_15min_kw, net_grid_kw,
+      balance_residual_kw, observed_at: energyAt,
+    },
+    bess: {
+      soc_pct: bess_soc,
+      power_kw: num(b.power_kw),
+      state: str(b.state),
+      temp_c: num(b.temp_c),
+      soh_pct: num(b.soh_pct),
+    },
+    tariff: { label: tariff_label, rate_per_kwh },
+    grid: {
+      lmp_usd_mwh: lmp,
+      carbon_gco2_kwh: num(g.carbon_gco2_kwh),
+      voltage_status: str(g.voltage_status),
+      frequency_hz: num(g.frequency_hz),
+      reserve_margin_pct: num(g.reserve_margin_pct),
+      observed_at: gridAt,
+    },
+    demand_response: { active: dr_active, cap_kw, headroom_kw },
+  };
+
+  return envelope(
+    "energy_grid", meta, staleness, t,
+    ["site_energy_snapshots", "ottoq_bess_units", "ottoq_grid_snapshots", "ottoq_dr_calls"],
+    notes, payload,
+  );
+}
+
+// ── depot_ops ───────────────────────────────────────────────────────────────
+
+export function packDepotOps(
+  snap: TwinSnapshot,
+  layout: TwinLayout | null,
+  meta: EnvelopeMeta,
+): ChannelEnvelope<DepotOpsPayload> {
+  const t = new FieldTracker();
+  const notes: string[] = [];
+
+  const layoutStalls: TwinStall[] = layout?.stalls ?? [];
+  const statusById = new Map(
+    (snap.stalls_status ?? []).map((s) => [String(s.id), s]),
+  );
+
+  // Reconstruct the FULL inventory from the layout. The status feed only carries
+  // non-available stalls, so anything not in it is available BY INFERENCE.
+  let stalls: StallSignal[];
+  if (layoutStalls.length > 0) {
+    stalls = layoutStalls.map((ls) => {
+      const st = statusById.get(String(ls.id));
+      return {
+        id: String(ls.id),
+        code: str(ls.code),
+        type: str(ls.type),
+        zone: str(ls.zone),
+        status: st ? String(st.status) : "available",
+        vehicle_id: st ? str(st.vehicle_id) : null,
+        connector_kw: num(ls.connector_kw),
+        assumed_available: !st,
+      };
+    });
+  } else {
+    // No layout yet: we can only see the non-available stalls. Report exactly
+    // that — a partial inventory — rather than pretending the depot is tiny.
+    stalls = (snap.stalls_status ?? []).map((s) => ({
+      id: String(s.id),
+      code: null, type: null, zone: null,
+      status: String(s.status),
+      vehicle_id: str(s.vehicle_id),
+      connector_kw: null,
+      assumed_available: false,
+    }));
+    notes.push("layout not loaded — stall inventory is PARTIAL (occupied stalls only)");
+  }
+
+  const isOffline = (s: StallSignal) => OFFLINE_STATUSES.has(s.status.toLowerCase());
+  const isOccupied = (s: StallSignal) => OCCUPIED_STATUSES.has(s.status.toLowerCase());
+
+  const occupied = stalls.filter(isOccupied).length;
+  const offline = stalls.filter(isOffline).length;
+  const available = stalls.filter((s) => !isOccupied(s) && !isOffline(s)).length;
+  const usable = occupied + available;
+
+  const byTypeMap = new Map<string, StallTypeCapacity>();
+  for (const s of stalls) {
+    const type = s.type ?? "unknown";
+    const row = byTypeMap.get(type) ?? { type, total: 0, occupied: 0, available: 0, offline: 0, utilization: 0 };
+    row.total++;
+    if (isOffline(s)) row.offline++;
+    else if (isOccupied(s)) row.occupied++;
+    else row.available++;
+    byTypeMap.set(type, row);
+  }
+  const by_type = [...byTypeMap.values()].map((r) => ({
+    ...r,
+    utilization: r.occupied + r.available > 0
+      ? Math.round((r.occupied / (r.occupied + r.available)) * 1000) / 1000
+      : 0,
+  })).sort((a, b) => a.type.localeCompare(b.type));
+
+  // Queue pressure comes from the fleet's normalized stages, not from stalls.
+  const fleet = snap.fleet?.vehicles ?? [];
+  const stages = fleet.map((v) => normalizeStage(v.state).stage);
+  const waiting = stages.filter((s) => s === "at_gate" || s === "queued").length;
+  const in_service = stages.filter((s) => s === "charging" || s === "servicing").length;
+  const pressure_ratio = available > 0 ? Math.round((waiting / available) * 1000) / 1000 : null;
+  if (available === 0 && waiting > 0) notes.push(`${waiting} vehicle(s) waiting with zero available stalls`);
+
+  t.take("stalls.inventory", stalls.length > 0 ? stalls.length : null);
+  t.take("stalls.types", by_type.some((r) => r.type !== "unknown") ? 1 : null);
+  t.take("capacity.available", stalls.length > 0 ? available : null);
+  t.take("queue.waiting", fleet.length > 0 ? waiting : null);
+  // Declared-but-unfed: name the gap explicitly so completeness reflects it.
+  t.take("service_timers", null);
+  notes.push("service_timers unavailable: the twin snapshot publishes no per-visit service start/expected-end");
+
+  const payload: DepotOpsPayload = {
+    depot_id: layout?.depot?.id ?? null,
+    stalls,
+    capacity: {
+      total: stalls.length,
+      occupied, available, offline,
+      utilization: usable > 0 ? Math.round((occupied / usable) * 1000) / 1000 : 0,
+      by_type,
+    },
+    queue: { waiting, in_service, pressure_ratio },
+    incidents_open: num(snap.counters?.open_incidents),
+    dispatches_active: num(snap.counters?.dispatches_active),
+    dispatches_total: num(snap.counters?.dispatches_total),
+    service_timers: [],
+  };
+
+  return envelope(
+    "depot_ops", meta, 0, t,
+    ["stalls", "ottoq_twin_depot_layout", "vehicles", "ottoq_vehicle_dispatches", "ottoq_vehicle_incidents"],
+    notes, payload,
+  );
+}
+
+// ── charger_systems ─────────────────────────────────────────────────────────
+
+/** Stall types that are electrical assets rather than service bays. */
+const CHARGER_TYPES = new Set(["dcfc", "l2", "charger", "evse"]);
+
+export function packChargerSystems(
+  snap: TwinSnapshot,
+  layout: TwinLayout | null,
+  meta: EnvelopeMeta,
+): ChannelEnvelope<ChargerSystemsPayload> {
+  const t = new FieldTracker();
+  const notes: string[] = [];
+
+  const statusById = new Map((snap.stalls_status ?? []).map((s) => [String(s.id), s]));
+  const layoutStalls = (layout?.stalls ?? []).filter((s) =>
+    CHARGER_TYPES.has(String(s.type ?? "").toLowerCase()),
+  );
+
+  const chargers: ChargerSignal[] = layoutStalls.map((ls) => {
+    const st = statusById.get(String(ls.id));
+    const status = st ? String(st.status) : "available";
+    return {
+      stall_id: String(ls.id),
+      code: str(ls.code),
+      type: str(ls.type),
+      rated_kw: num(ls.connector_kw),
+      status,
+      vehicle_id: st ? str(st.vehicle_id) : null,
+      faulted: OFFLINE_STATUSES.has(status.toLowerCase()),
+    };
+  });
+
+  const charging = chargers.filter((c) => CHARGING_STATUSES.has(c.status.toLowerCase()));
+  const faulted = chargers.filter((c) => c.faulted);
+  const ratedKnown = chargers.filter((c) => c.rated_kw !== null);
+
+  const fleet_capacity_kw = ratedKnown.length
+    ? Math.round(ratedKnown.reduce((a, c) => a + (c.rated_kw ?? 0), 0) * 10) / 10
+    : null;
+  const committed_kw = charging.every((c) => c.rated_kw !== null)
+    ? Math.round(charging.reduce((a, c) => a + (c.rated_kw ?? 0), 0) * 10) / 10
+    : null;
+
+  if (chargers.length === 0) notes.push("no charger stalls resolved — layout missing or has no dcfc/l2 stalls");
+  if (ratedKnown.length !== chargers.length) {
+    notes.push(`${chargers.length - ratedKnown.length} charger(s) have no connector_kw in the layout`);
+  }
+
+  t.take("chargers.inventory", chargers.length > 0 ? chargers.length : null);
+  t.take("chargers.rated_kw", ratedKnown.length > 0 ? ratedKnown.length : null);
+  t.take("chargers.status", snap.stalls_status ? 1 : null);
+  // Declared-but-unfed — see contracts.ts ChargerSystemsPayload.ocpp.
+  t.take("ocpp.health", null);
+  notes.push("ocpp health unavailable: ottoq_ocpp_chargers is not published on the twin snapshot");
+
+  const payload: ChargerSystemsPayload = {
+    chargers,
+    fleet_capacity_kw,
+    committed_kw,
+    counts: {
+      total: chargers.length,
+      charging: charging.length,
+      available: chargers.filter((c) => !c.faulted && !OCCUPIED_STATUSES.has(c.status.toLowerCase())).length,
+      faulted: faulted.length,
+    },
+    sessions_total: num(snap.counters?.charge_sessions),
+    ocpp: [],
+  };
+
+  return envelope(
+    "charger_systems", meta, 0, t,
+    ["stalls", "ottoq_twin_depot_layout", "ocpp_sessions"],
+    notes, payload,
+  );
+}
+
+// ── environment ─────────────────────────────────────────────────────────────
+
+export function packEnvironment(
+  snap: TwinSnapshot,
+  meta: EnvelopeMeta,
+): ChannelEnvelope<EnvironmentPayload> {
+  const t = new FieldTracker();
+  const notes: string[] = [];
+  const w = (snap.weather ?? {}) as Record<string, unknown>;
+  if (!snap.weather) notes.push("no ottoq_weather_snapshots row for this run");
+
+  const temp_c = t.take("temp_c", num(w.temp_c));
+  const cloud_pct = t.take("cloud_pct", num(w.cloud_pct));
+  const ghi_wm2 = t.take("ghi_wm2", num(w.ghi_wm2));
+  const wind_kmh = t.take("wind_kmh", num(w.wind_kmh));
+  const solar_elevation_deg = t.take("solar_elev_deg", num(w.solar_elev_deg));
+  const observed_at = str(w.at);
+
+  const payload: EnvironmentPayload = {
+    temp_c, cloud_pct,
+    conditions: str(w.conditions),
+    precip_state: str(w.precip),
+    ghi_wm2, wind_kmh, solar_elevation_deg,
+    observed_at,
+    daylight: solar_elevation_deg === null ? null : solar_elevation_deg > 0,
+  };
+
+  return envelope(
+    "environment", meta, stalenessSeconds(observed_at, meta.sim_clock), t,
+    ["ottoq_weather_snapshots", "ottoq_solar_output"], notes, payload,
+  );
+}
+
+// ── bundle ──────────────────────────────────────────────────────────────────
+
+function maxStaleness(values: (number | null)[]): number | null {
+  const known = values.filter((v): v is number => v !== null);
+  return known.length ? Math.max(...known) : null;
+}
+
+/**
+ * Pack a twin frame into the full channel bundle.
+ *
+ * `now` is injectable so tests are deterministic; it is only ever used for
+ * `emitted_at` (transport diagnostics), never for staleness.
+ */
+export function packChannels(
+  snap: TwinSnapshot,
+  layout: TwinLayout | null,
+  now: Date = new Date(),
+): ChannelBundle {
+  const meta: EnvelopeMeta = {
+    sim_run_id: String(snap.run?.sim_run_id ?? ""),
+    scenario: String(snap.run?.scenario ?? ""),
+    seed: Number(snap.run?.seed ?? 0),
+    tick: Number(snap.run?.tick_count ?? 0),
+    sim_clock: snap.run?.sim_clock ? String(snap.run.sim_clock) : null,
+    emitted_at: now.toISOString(),
+  };
+
+  const channels = {
+    fleet_telemetry: packFleetTelemetry(snap, meta),
+    energy_grid: packEnergyGrid(snap, meta),
+    depot_ops: packDepotOps(snap, layout, meta),
+    charger_systems: packChargerSystems(snap, layout, meta),
+    environment: packEnvironment(snap, meta),
+  };
+
+  // Bundle status is decided by the REQUIRED channels only. A missing weather
+  // row degrades realism; a missing fleet roster makes orchestration invalid.
+  const requiredStatuses = REQUIRED_CHANNELS.map((id) => channels[id].integrity.status);
+  const status: ChannelBundleStatus = requiredStatuses.includes("missing")
+    ? "not_ready"
+    : requiredStatuses.includes("degraded")
+      ? "degraded"
+      : "ready";
+
+  return {
+    contract_version: CHANNEL_CONTRACT_VERSION,
+    sim_run_id: meta.sim_run_id,
+    tick: meta.tick,
+    sim_clock: meta.sim_clock,
+    emitted_at: meta.emitted_at,
+    status,
+    channels,
+  };
+}

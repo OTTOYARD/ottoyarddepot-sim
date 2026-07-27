@@ -2,6 +2,7 @@ import type { Vehicle } from './types';
 import type { SimulationConfig } from '@/store/simulationStore';
 import type { StallState } from '@/store/depotStore';
 import { useKPIStore } from '@/store/kpiStore';
+import { demoRandom } from './rng';
 
 const MONTHLY_OPEX = 106064;
 const CAPEX = 3_200_000;
@@ -138,7 +139,7 @@ export function calculateKPIs(
   // Maintenance score (slowly varies)
   const maintenanceScore = Math.max(
     0,
-    Math.min(100, kpiStore.maintenanceScore + (Math.random() - 0.5) * 0.5),
+    Math.min(100, kpiStore.maintenanceScore + (demoRandom().next() - 0.5) * 0.5),
   );
 
   kpiStore.updateKPIs({

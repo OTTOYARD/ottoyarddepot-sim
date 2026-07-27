@@ -303,7 +303,9 @@ export const OperatorConsole = () => {
       const live = runs.find((r) => isLiveRunStatus(String(r.status)));
       if (!live) return;
       setActiveSimRunId(live.sim_run_id);
-      toast.success("Live run found — press Play to resume", { description: live.scenario_code });
+      // TwinRunSummary's field is `scenario`, not `scenario_code` — the old
+      // name type-errored and rendered the toast description as "undefined".
+      toast.success("Live run found — press Play to resume", { description: live.scenario });
     }).catch(() => {});
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps

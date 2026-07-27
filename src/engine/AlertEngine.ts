@@ -4,6 +4,7 @@ import { useKPIStore } from '@/store/kpiStore';
 import type { Vehicle } from './types';
 import type { SimulationConfig } from '@/store/simulationStore';
 import type { StallState } from '@/store/depotStore';
+import { demoRandom } from './rng';
 
 // Internal timers for sustained-condition checks
 let queueOverflowStart: number | null = null;
@@ -68,13 +69,13 @@ export function checkAlerts(
     lastFailureCheckTime = simTime;
     // Roll once per sim-minute, probability = failureRate% / 60 (per minute chance scaled to hourly)
     const failProb = config.equipmentFailureRate / 100 / 60;
-    if (Math.random() < failProb) {
+    if (demoRandom().next() < failProb) {
       const depotStore = useDepotStore.getState();
       const occupiedStalls = depotStore.stalls.filter(
         (s) => (s.type === 'dcfc' || s.type === 'l2') && s.status !== 'offline' && s.status !== 'available'
       );
       if (occupiedStalls.length > 0) {
-        const target = occupiedStalls[Math.floor(Math.random() * occupiedStalls.length)];
+        const target = occupiedStalls[demoRandom().int(0, occupiedStalls.length - 1)];
         depotStore.setStallStatus(target.id, 'offline');
         addAlert({
           timestamp: simTime,
