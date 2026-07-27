@@ -246,19 +246,37 @@ AS $function$
         ), jsonb_build_object('active', FALSE, 'cap_kw', NULL)),
         -- NEW: the tariff WINDOW, not just the label. Knowing that off-peak
         -- starts in 40 minutes is what turns "charge now" into "wait".
+        --
+        -- WINDOWS OVERLAP, AND THAT IS CORRECT. Live data has peak 13-20 with
+        -- super_peak 17-19 nested inside it — that is how utilities write rate
+        -- schedules: a surcharge window layered within a broader one. The
+        -- binding rate at 18:00 is super_peak, not peak.
+        --
+        -- So: order by window WIDTH ascending and take the narrowest match.
+        -- An earlier draft used a bare LIMIT 1, which picked arbitrarily
+        -- between overlapping rows AND between the duplicate rows the table
+        -- carries for every label — meaning the frame could report a different
+        -- rate on consecutive ticks with nothing having changed. Ordering by
+        -- (width, rate desc, label) makes it deterministic and correct:
+        -- narrowest wins, and duplicates collapse to the same answer.
+        --
+        -- `minutes_until_change` is measured to the end of the BINDING window,
+        -- which is what an optimizer deciding "charge now or wait" needs.
         'tariff_window', (
           SELECT jsonb_build_object(
             'label', t.label, 'rate_usd_per_kwh', t.rate_usd_per_kwh,
             'hour_start', t.hour_start, 'hour_end', t.hour_end, 'season', t.season,
-            'minutes_until_change', (
-              ((t.hour_end - EXTRACT(HOUR FROM r.sim_clock_current)::int + 24) % 24) * 60
-              - EXTRACT(MINUTE FROM r.sim_clock_current)::int))
+            'window_hours', (t.hour_end - t.hour_start),
+            'minutes_until_change',
+              (t.hour_end - EXTRACT(HOUR FROM r.sim_clock_current)::int) * 60
+              - EXTRACT(MINUTE FROM r.sim_clock_current)::int)
             FROM ottoq_tariff_windows t
            WHERE t.depot_id = r.depot_id AND t.active
-             AND EXTRACT(HOUR FROM r.sim_clock_current)::int
-                 >= t.hour_start
-             AND EXTRACT(HOUR FROM r.sim_clock_current)::int
-                 <  t.hour_end
+             AND EXTRACT(HOUR FROM r.sim_clock_current)::int >= t.hour_start
+             AND EXTRACT(HOUR FROM r.sim_clock_current)::int <  t.hour_end
+           ORDER BY (t.hour_end - t.hour_start) ASC,
+                    t.rate_usd_per_kwh DESC NULLS LAST,
+                    t.label ASC
            LIMIT 1)
       )
     ),
