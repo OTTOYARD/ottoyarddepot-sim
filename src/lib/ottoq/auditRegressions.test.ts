@@ -724,6 +724,30 @@ describe("coverage must not over-report on a world that published nothing", () =
     expect(auditCoverage(b).variables.find((v) => v.var_key === "scheduling_algorithm")?.verdict).toBe("dark");
   });
 
+  it("keeps the headline honest: registry count is not coverage", () => {
+    // THE NUMBER THAT STARTED THIS AUDIT. The Operator Console rendered
+    // `wiredCount / catalog.length`, and every catalog row carries wired=true,
+    // so it read "47/47 live" while a third of those knobs moved a world
+    // OTTO-Q could not observe. The two numbers answer different questions and
+    // must never be interchangeable.
+    const b = bundleWith({});                 // snapshot only: no extra feeds
+    const r = auditCoverage(b);
+
+    // the registry would say "all of them"; the measurement must not
+    expect(r.total).toBe(47);
+    expect(r.observed).toBeLessThan(r.total);
+    expect(r.observed + r.dark + r.unobservable).toBe(r.total);
+    // ratio is observed/total — the honest headline, never wired/total.
+    // (rounded to 3dp by the report, so compare at that precision)
+    expect(r.ratio).toBeCloseTo(r.observed / r.total, 3);
+
+    // and every variable carries a verdict the UI can render per-slider, so a
+    // knob that does nothing can say so at the point of use
+    for (const v of r.variables)
+      expect(["observed", "dark", "unobservable"]).toContain(v.verdict);
+    expect(r.variables.find((v) => v.var_key === "charging_staff")?.verdict).toBe("unobservable");
+  });
+
   it("reports drift as UNKNOWN when the catalog could not be read", () => {
     const r = auditCoverage(bundleWith({ dr: false }));       // no catalog passed
     expect(r.unbound_catalog_keys).toBeNull();

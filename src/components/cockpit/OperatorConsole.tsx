@@ -28,6 +28,8 @@ import { twin, DOMAIN_LABELS, type CatalogVar, type Scenario, type KnobType } fr
 import { startDemoRun, stopAndReset } from "@/lib/blackbox";
 import { useTwinStore } from "@/store/twinStore";
 import { useSimulationStore } from "@/store/simulationStore";
+import { useWorldStore } from "@/store/worldStore";
+import type { CoverageVerdict } from "@/lib/ottoq/coverage";
 import { useTwinControl } from "@/hooks/useTwinControl";
 
 // ── knob helpers (read/write the profile JSONB shape) ──
@@ -164,9 +166,11 @@ function KnobSlider({ label, value, min, max, step, neutral, unit, onCommit }: {
 }
 
 // ── one variable control (rate / continuous+expand / policy) ──
-function VarControl({ v, knobs, expanded, onToggleExpand, commit }: {
+function VarControl({ v, knobs, expanded, onToggleExpand, commit, verdict }: {
   v: CatalogVar; knobs: Knobs; expanded: boolean; onToggleExpand: () => void;
   commit: (next: Knobs) => void;
+  /** whether this knob's effect actually reaches OTTO-Q on the live frame */
+  verdict?: CoverageVerdict;
 }) {
   const dirty = useMemo(() => {
     if (!v.wired) return false;
@@ -184,6 +188,34 @@ function VarControl({ v, knobs, expanded, onToggleExpand, commit }: {
         <TooltipContent className="max-w-[240px] bg-canvas-elev border-white/10 text-ink text-[11px]">{v.definition}</TooltipContent>
       </Tooltip></TooltipProvider>
       {!v.wired && <span className="ml-auto text-[9px] text-ink-faint border border-white/10 rounded px-1">engine support coming</span>}
+      {/*
+        `wired` is a REGISTRY flag — it says the variable is registered, not
+        that moving it changes anything OTTO-Q can see. These badges carry the
+        measured verdict from the live frame instead, so a slider that does
+        nothing says so at the point of use rather than looking operational.
+      */}
+      {v.wired && verdict === "unobservable" && (
+        <TooltipProvider><Tooltip>
+          <TooltipTrigger asChild>
+            <span className="ml-auto text-[9px] text-brand-red/80 border border-brand-red/30 rounded px-1 cursor-default">no effect</span>
+          </TooltipTrigger>
+          <TooltipContent className="max-w-[260px] bg-canvas-elev border-white/10 text-ink text-[11px]">
+            Registered, but nothing on any OTTO-Q channel moves when this changes.
+            Adjusting it will not alter what the orchestrator sees.
+          </TooltipContent>
+        </Tooltip></TooltipProvider>
+      )}
+      {v.wired && verdict === "dark" && (
+        <TooltipProvider><Tooltip>
+          <TooltipTrigger asChild>
+            <span className="ml-auto text-[9px] text-ink-faint border border-white/10 rounded px-1 cursor-default">unlit</span>
+          </TooltipTrigger>
+          <TooltipContent className="max-w-[260px] bg-canvas-elev border-white/10 text-ink text-[11px]">
+            This variable has a channel field, but it has not resolved on the current
+            frame — usually because the run has not produced that signal yet.
+          </TooltipContent>
+        </Tooltip></TooltipProvider>
+      )}
     </div>
   );
 
@@ -380,8 +412,24 @@ export const OperatorConsole = () => {
   }, [catalog]);
   const wiredCount = catalog.filter((v) => v.wired).length;
 
+  // THE NUMBER THIS PANEL USED TO SHOW WAS `wiredCount/catalog.length` — the
+  // registry counting itself, which reads 47/47 while a third of those knobs
+  // moved a world OTTO-Q could not observe. Show the MEASURED coverage from the
+  // live frame instead, and keep the registry count only as a secondary note.
+  const coverage = useWorldStore((s) => s.coverage);
+  const verdictOf = useMemo(() => {
+    const m: Record<string, CoverageVerdict> = {};
+    for (const v of coverage?.variables ?? []) m[v.var_key] = v.verdict;
+    return m;
+  }, [coverage]);
+  const domainCoverage = useMemo(() => {
+    const m: Record<string, { observed: number; total: number }> = {};
+    for (const d of coverage?.by_domain ?? []) m[d.domain] = { observed: d.observed, total: d.total };
+    return m;
+  }, [coverage]);
+
   const renderVar = (v: CatalogVar) => (
-    <VarControl key={v.var_key} v={v} knobs={knobs} expanded={expandedVars.has(v.var_key)}
+    <VarControl key={v.var_key} v={v} knobs={knobs} verdict={verdictOf[v.var_key]} expanded={expandedVars.has(v.var_key)}
       onToggleExpand={() => setExpandedVars((s) => { const n = new Set(s); n.has(v.var_key) ? n.delete(v.var_key) : n.add(v.var_key); return n; })}
       commit={commit} />
   );
@@ -459,7 +507,24 @@ export const OperatorConsole = () => {
 
       {/* VARIABILITY — COMPACT (primary) */}
       <Group icon={Activity} title="Variability — Primary"
-        right={<span className="ml-auto font-mono text-[9px] text-ink-faint">{wiredCount}/{catalog.length} live</span>}>
+        right={
+          <TooltipProvider><Tooltip>
+            <TooltipTrigger asChild>
+              <span className="ml-auto font-mono text-[9px] text-ink-faint cursor-default">
+                {coverage
+                  ? `${coverage.observed}/${coverage.total} observable`
+                  : `${wiredCount}/${catalog.length} registered`}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-[300px] bg-canvas-elev border-white/10 text-ink text-[11px]">
+              {coverage
+                ? `Measured on the live frame: ${coverage.observed} of ${coverage.total} variables have an effect
+                   OTTO-Q can actually see. ${coverage.dark} unlit, ${coverage.unobservable} with no channel at all.
+                   (${wiredCount}/${catalog.length} are registered as wired — a different question.)`
+                : "No live frame yet — showing the registry count, which says a variable exists, not that its effect reaches OTTO-Q."}
+            </TooltipContent>
+          </Tooltip></TooltipProvider>
+        }>
         {primary.map(renderVar)}
         <span className="text-[10px] text-ink-faint pt-1">Each slider reshapes a real-world distribution the engine samples every tick — neutral = calibrated. Expand a variable for shift / spread / floor / ceiling.</span>
       </Group>
@@ -473,7 +538,11 @@ export const OperatorConsole = () => {
               className="w-full flex items-center gap-2 px-3 py-2 hover:bg-white/[0.02]">
               {open ? <ChevronDown size={13} className="text-ink-dim" /> : <ChevronRight size={13} className="text-ink-dim" />}
               <span className="font-display text-[11px] uppercase tracking-[0.06em] text-ink-dim">{DOMAIN_LABELS[d]}</span>
-              <span className="ml-auto font-mono text-[9px] text-ink-faint">{byDomain[d].filter((v) => v.wired).length}/{byDomain[d].length}</span>
+              <span className="ml-auto font-mono text-[9px] text-ink-faint">
+                {domainCoverage[d]
+                  ? `${domainCoverage[d].observed}/${domainCoverage[d].total}`
+                  : `${byDomain[d].filter((v) => v.wired).length}/${byDomain[d].length}`}
+              </span>
             </button>
             {open && <div className="px-3 pb-3 flex flex-col gap-1">{byDomain[d].map(renderVar)}</div>}
           </div>
