@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { CatalogVar, Scenario, TwinLayout, TwinSnapshot } from "@/lib/ottoTwin";
+import type { CatalogVar, Scenario, TwinEventsWindow, TwinLayout, TwinSnapshot } from "@/lib/ottoTwin";
 import { bootWorld, type BootTransport } from "./worldBoot";
 
 const CLOCK = "2026-07-27T14:00:00.000Z";
@@ -46,12 +46,37 @@ function fullSnapshot(): TwinSnapshot {
   } as unknown as TwinSnapshot;
 }
 
+/** A run that has logged nothing yet — present, so every count is a real 0. */
+function emptyEventsWindow(): TwinEventsWindow {
+  return {
+    window: { basis: "run_to_date", signal_events: 0, first_at: null, last_at: null, sim_minutes_elapsed: null },
+    by_type: {}, by_severity: {},
+    reliability: {
+      charge_sessions: 0, charge_faults: 0, charge_fault_rate: null, fault_reasons: {},
+      repair_minutes_total: null, arrival_delays: 0, delay_min_p50: null, delay_causes: {},
+      stranded_recharges: 0, tow_events: 0, exceptions_by_severity: {},
+      faults_per_sim_hour: null, delays_per_sim_hour: null,
+    },
+    charging: {
+      target_soc_p50: null, soc_start_p50: null, charge_curve_ratio_p50: null,
+      battery_temp_c_p50: null, battery_soh_pct_p50: null, sessions_completed: 0,
+      energy_kwh_total: null, avg_power_kw_p50: null, session_duration_s_p50: null,
+      auto_rerouted: 0,
+    },
+    demand_forecast: null,
+    throughput: { valve_holds: 0, held_total: null, released_total: null, cap_last: null },
+  };
+}
+
 function transport(over: Partial<BootTransport> = {}): BootTransport {
   return {
     layout: async () => layout,
     catalog: async () => ({ catalog }),
     scenarios: async () => ({ scenarios }),
     snapshot: async () => fullSnapshot(),
+    // Optional stage: several tests below deliberately drive a world with no
+    // event history, so the default fixture is an EMPTY-but-present window.
+    eventsWindow: async () => emptyEventsWindow(),
     ...over,
   };
 }
@@ -62,7 +87,8 @@ describe("bootWorld", () => {
   it("runs every stage and reports each one", async () => {
     const { report } = await bootWorld({ ...opts, transport: transport() });
     expect(report.stages.map((s) => s.id)).toEqual([
-      "geometry", "registry", "scenarios", "first_frame", "variability_profile", "channels",
+      "geometry", "registry", "scenarios", "first_frame",
+      "variability_profile", "events_window", "channels",
     ]);
     expect(report.sim_run_id).toBe("run-1");
     expect(report.scenario).toBe("normal_day");

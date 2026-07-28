@@ -20,7 +20,7 @@
 //      the sim clock rather than wall time.
 // ============================================================================
 
-import type { TwinLayout, TwinSnapshot, TwinStall } from "@/lib/ottoTwin";
+import type { TwinEventsWindow, TwinLayout, TwinSnapshot, TwinStall } from "@/lib/ottoTwin";
 import {
   buildIntegrity,
   stalenessSeconds,
@@ -30,9 +30,13 @@ import {
   type ChannelBundleStatus,
   type ChannelEnvelope,
   type ChannelId,
+  type ChargerReliability,
   type ChargerSignal,
   type ChargerSystemsPayload,
+  type DemandForecast,
   type DepotOpsPayload,
+  type DepotReliability,
+  type ObservedCharging,
   type EnergyGridPayload,
   type EnvironmentPayload,
   type FleetTelemetryPayload,
@@ -345,6 +349,7 @@ export function packDepotOps(
   snap: TwinSnapshot,
   layout: TwinLayout | null,
   meta: EnvelopeMeta,
+  events?: TwinEventsWindow | null,
 ): ChannelEnvelope<DepotOpsPayload> {
   const t = new FieldTracker();
   const notes: string[] = [];
@@ -476,6 +481,49 @@ export function packDepotOps(
     notes.push(`no service legs in flight (${legs.length} leg(s) on frame, all travel or closed)`);
   }
 
+  // The events window is a SEPARATE fetch from the snapshot, so it can be
+  // absent while everything else is fine. When it is, forecast and reliability
+  // report the honest shape of "we did not look" — nulls and zero-length
+  // records — and the integrity record names them, rather than the frame
+  // quietly asserting a calm depot.
+  const er = events?.reliability;
+  const th = events?.throughput;
+  t.take("events.window", events ? 1 : null);
+  if (!events) notes.push("events window not fetched — reliability rates and demand forecast unavailable");
+  else if (!events.demand_forecast) notes.push("run has emitted no arrival forecast yet");
+
+  const demand_forecast: DemandForecast | null = events?.demand_forecast
+    ? {
+        at: str(events.demand_forecast.at),
+        horizon_min: num(events.demand_forecast.horizon_min),
+        incoming_count: num(events.demand_forecast.incoming_count),
+        charge_needed_count: num(events.demand_forecast.charge_needed_count),
+        predicted_charge_kw: num(events.demand_forecast.predicted_charge_kw),
+        predicted_charge_kwh: num(events.demand_forecast.predicted_charge_kwh),
+      }
+    : null;
+
+  const reliability: DepotReliability | null = er
+    ? {
+        arrival_delays: er.arrival_delays,
+        delay_min_p50: num(er.delay_min_p50),
+        delay_causes: er.delay_causes ?? {},
+        delays_per_sim_hour: num(er.delays_per_sim_hour),
+        stranded_recharges: er.stranded_recharges,
+        tow_events: er.tow_events,
+        exceptions_by_severity: er.exceptions_by_severity ?? {},
+      }
+    : null;
+
+  const throughput = th
+    ? {
+        holds: th.valve_holds,
+        held_total: num(th.held_total),
+        released_total: num(th.released_total),
+        cap: num(th.cap_last),
+      }
+    : null;
+
   const payload: DepotOpsPayload = {
     depot_id: layout?.depot?.id ?? null,
     stalls,
@@ -494,12 +542,15 @@ export function packDepotOps(
     // far realized travel drifts from plan; that IS the observable for arrival
     // ETA delay, and it was being discarded with the rest of the leg feed.
     plan_deviation_s: num(snap.legs_meta?.median_deviation_s),
+    demand_forecast,
+    reliability,
+    throughput,
   };
 
   return envelope(
     "depot_ops", meta, 0, t,
     ["stalls", "ottoq_twin_depot_layout", "vehicles", "ottoq_vehicle_dispatches",
-     "ottoq_vehicle_incidents", "ottoq_itinerary_legs"],
+     "ottoq_vehicle_incidents", "ottoq_itinerary_legs", "ottoq_events"],
     notes, payload,
   );
 }
@@ -515,6 +566,7 @@ export function packChargerSystems(
   snap: TwinSnapshot,
   layout: TwinLayout | null,
   meta: EnvelopeMeta,
+  events?: TwinEventsWindow | null,
 ): ChannelEnvelope<ChargerSystemsPayload> {
   const t = new FieldTracker();
   const notes: string[] = [];
@@ -577,6 +629,46 @@ export function packChargerSystems(
   t.take("ocpp.health", null);
   notes.push("ocpp health unavailable: ottoq_ocpp_chargers is not published on the twin snapshot");
 
+  // PER-CHARGER health is still dark (above). POPULATION charging behaviour is
+  // not: the charge-session event log carries the observed curve, the fault
+  // rate and the repair burden. These are different claims and the frame now
+  // makes both, separately — a healthy population statistic must never be read
+  // as evidence that a particular charger is alive.
+  const ec = events?.charging;
+  const erel = events?.reliability;
+  t.take("charging.observed", ec ? 1 : null);
+  if (!events) notes.push("events window not fetched — charge curve and fault rate unavailable");
+  if (ec && ec.battery_soh_pct_p50 === null && ec.sessions_started > 0) {
+    notes.push("battery SoH absent from every charge session — the twin models no fleet battery health");
+  }
+
+  const observed_charging: ObservedCharging | null = ec
+    ? {
+        target_soc_p50: num(ec.target_soc_p50),
+        soc_start_p50: num(ec.soc_start_p50),
+        charge_curve_ratio_p50: num(ec.charge_curve_ratio_p50),
+        battery_temp_c_p50: num(ec.battery_temp_c_p50),
+        battery_soh_pct_p50: num(ec.battery_soh_pct_p50),
+        sessions_started: erel?.charge_sessions ?? 0,
+        sessions_completed: ec.sessions_completed,
+        energy_kwh_total: num(ec.energy_kwh_total),
+        avg_power_kw_p50: num(ec.avg_power_kw_p50),
+        session_duration_s_p50: num(ec.session_duration_s_p50),
+        auto_rerouted: ec.auto_rerouted,
+      }
+    : null;
+
+  const chargerReliability: ChargerReliability | null = erel
+    ? {
+        sessions: erel.charge_sessions,
+        faults: erel.charge_faults,
+        fault_rate: num(erel.charge_fault_rate),
+        fault_reasons: erel.fault_reasons ?? {},
+        repair_minutes_total: num(erel.repair_minutes_total),
+        faults_per_sim_hour: num(erel.faults_per_sim_hour),
+      }
+    : null;
+
   const payload: ChargerSystemsPayload = {
     chargers,
     fleet_capacity_kw,
@@ -593,11 +685,13 @@ export function packChargerSystems(
     },
     sessions_total: num(snap.counters?.charge_sessions),
     ocpp: [],
+    observed_charging,
+    reliability: chargerReliability,
   };
 
   return envelope(
     "charger_systems", meta, 0, t,
-    ["stalls", "ottoq_twin_depot_layout", "ocpp_sessions"],
+    ["stalls", "ottoq_twin_depot_layout", "ocpp_sessions", "ottoq_events"],
     notes, payload,
   );
 }
@@ -647,11 +741,17 @@ function maxStaleness(values: (number | null)[]): number | null {
  *
  * `now` is injectable so tests are deterministic; it is only ever used for
  * `emitted_at` (transport diagnostics), never for staleness.
+ *
+ * `events` comes from a second, parallel fetch (RPC `ottoq_twin_events_window`)
+ * and is optional on purpose: a frame packed without it is still a valid frame,
+ * it just reports its reliability and forecast blocks as NULL. Callers that
+ * have it get rates; callers that do not are never told the depot is quiet.
  */
 export function packChannels(
   snap: TwinSnapshot,
   layout: TwinLayout | null,
   now: Date = new Date(),
+  events?: TwinEventsWindow | null,
 ): ChannelBundle {
   const meta: EnvelopeMeta = {
     sim_run_id: String(snap.run?.sim_run_id ?? ""),
@@ -665,8 +765,8 @@ export function packChannels(
   const channels = {
     fleet_telemetry: packFleetTelemetry(snap, meta),
     energy_grid: packEnergyGrid(snap, meta),
-    depot_ops: packDepotOps(snap, layout, meta),
-    charger_systems: packChargerSystems(snap, layout, meta),
+    depot_ops: packDepotOps(snap, layout, meta, events),
+    charger_systems: packChargerSystems(snap, layout, meta, events),
     environment: packEnvironment(snap, meta),
   };
 

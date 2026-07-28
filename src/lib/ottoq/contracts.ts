@@ -287,6 +287,55 @@ export interface DepotOpsPayload {
    * only ETA-quality signal on the frame.
    */
   plan_deviation_s: number | null;
+  /**
+   * The twin's own look-ahead, from `ottoq.arrival_forecast`. NULL when the run
+   * has not emitted one. This is the only forward-looking signal on any frame —
+   * everything else describes the world as it already is, which is too late to
+   * pre-position against.
+   */
+  demand_forecast: DemandForecast | null;
+  /**
+   * Depot-level reliability, aggregated run-to-date from the event log.
+   *
+   * NULL — not a zeroed record — when the events window was not fetched. The
+   * counts inside are honest zeros only once we have actually looked; a record
+   * of zeros on an unfetched window would assert a calm depot on no evidence,
+   * which is the exact failure this contract exists to prevent.
+   */
+  reliability: DepotReliability | null;
+  /** the rush valve: how hard the depot throttles its own intake. NULL = not fetched. */
+  throughput: {
+    holds: number;
+    held_total: number | null;
+    released_total: number | null;
+    /** last observed concurrent-intake cap */
+    cap: number | null;
+  } | null;
+}
+
+export interface DemandForecast {
+  at: string | null;
+  horizon_min: number | null;
+  incoming_count: number | null;
+  charge_needed_count: number | null;
+  predicted_charge_kw: number | null;
+  predicted_charge_kwh: number | null;
+}
+
+/**
+ * Counts are run-to-date; `*_per_sim_hour` normalizes them so a 2-hour run and
+ * a 24-hour run are comparable. Rates are NULL when the sim clock never
+ * advanced — a rate over zero elapsed time is not zero, it is undefined.
+ */
+export interface DepotReliability {
+  arrival_delays: number;
+  delay_min_p50: number | null;
+  delay_causes: Record<string, number>;
+  delays_per_sim_hour: number | null;
+  stranded_recharges: number;
+  /** vehicles towed in rather than driven in — the breakdown signal */
+  tow_events: number;
+  exceptions_by_severity: Record<string, number>;
 }
 
 /**
@@ -359,6 +408,57 @@ export interface ChargerSystemsPayload {
    * gap is legible to OTTO-Q rather than looking like "all chargers healthy".
    */
   ocpp: ChargerOcppHealth[];
+  /**
+   * What charging ACTUALLY did this run, aggregated from the charge-session
+   * event log. `ocpp` above is per-charger health and is still empty; this is
+   * the population-level behaviour, and it is the only place a charge curve or
+   * a fault rate reaches OTTO-Q.
+   *
+   * NULL when the events window was not fetched, for the same reason
+   * `DepotOpsPayload.reliability` is nullable: a record of zeros would claim we
+   * looked and saw nothing.
+   */
+  observed_charging: ObservedCharging | null;
+  /** charger fault rate and repair burden, run-to-date. NULL = not fetched. */
+  reliability: ChargerReliability | null;
+}
+
+export interface ObservedCharging {
+  /** median SoC the fleet is actually charging TO — not the policy target */
+  target_soc_p50: number | null;
+  soc_start_p50: number | null;
+  /**
+   * initial_rate_kw / max_rate_kw. How far off nameplate vehicles actually
+   * pull: the charge-curve scalar OBSERVED rather than declared. 1.0 means the
+   * fleet hits rated power; 0.84 means it does not.
+   */
+  charge_curve_ratio_p50: number | null;
+  battery_temp_c_p50: number | null;
+  /**
+   * NULL, always, on contract 1.1. The twin emits the key on every session and
+   * never populates it, so there is no fleet battery health anywhere in the
+   * world model. Published as NULL so the absence is a fact OTTO-Q can read
+   * instead of a field nobody notices is missing.
+   */
+  battery_soh_pct_p50: number | null;
+  sessions_started: number;
+  sessions_completed: number;
+  energy_kwh_total: number | null;
+  avg_power_kw_p50: number | null;
+  session_duration_s_p50: number | null;
+  /** sessions the twin moved to a different charger mid-flight */
+  auto_rerouted: number;
+}
+
+export interface ChargerReliability {
+  sessions: number;
+  faults: number;
+  /** faults / sessions; NULL when no session ever started — no denominator */
+  fault_rate: number | null;
+  fault_reasons: Record<string, number>;
+  /** total charger downtime the depot is carrying, minutes */
+  repair_minutes_total: number | null;
+  faults_per_sim_hour: number | null;
 }
 
 export interface ChargerOcppHealth {

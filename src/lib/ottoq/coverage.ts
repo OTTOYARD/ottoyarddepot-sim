@@ -75,11 +75,16 @@ export const VARIABLE_BINDINGS: VariableBinding[] = [
 
   // ── fleet_demand ──────────────────────────────────────────────────────────
   { var_key: "arrival", domain: "fleet_demand", label: "Arrival / dispatch rate", channel: "depot_ops", observable: "dispatches_active" },
+  // NOTE: depot_ops.demand_forecast.incoming_count is a second, forward-looking
+  // witness for this same knob. `arrival` stays bound to the realized count —
+  // a forecast is a claim about the future, not an observation of the world.
   // UNLOCKED. The twin measures plan-vs-realized travel drift itself
   // (legs_meta.median_deviation_s) and it was being discarded with the legs.
   { var_key: "eta_delay", domain: "fleet_demand", label: "Arrival ETA delay", channel: "depot_ops", observable: "plan_deviation_s" },
   { var_key: "soc_on_arrival", domain: "fleet_demand", label: "SoC on arrival", channel: "fleet_telemetry", observable: "soc.p50" },
-  { var_key: "target_soc", domain: "fleet_demand", label: "Target SoC", channel: null, observable: null, note: "target_soc exists on the vehicles table and on the decision frame, but is absent from the twin snapshot's fleet rows" },
+  // UNLOCKED. Not from the fleet rows — which still carry no target — but from
+  // the charge-session event log, which records soc_target on every session.
+  { var_key: "target_soc", domain: "fleet_demand", label: "Target SoC", channel: "charger_systems", observable: "observed_charging.target_soc_p50", note: "population median from charge.session_started; per-vehicle target is still absent from the fleet rows" },
   { var_key: "trip_duration", domain: "fleet_demand", label: "Trip duration", channel: null, observable: null, note: "off-site trip time never surfaces on a depot-scoped frame" },
   { var_key: "oem_mix_tesla", domain: "fleet_demand", label: "Tesla share", channel: "fleet_telemetry", observable: "vehicles[].oem" },
   { var_key: "idle_fraction", domain: "fleet_demand", label: "Drive-activity level", channel: null, observable: null, note: "drive activity shapes arrival SoC but is not itself observable" },
@@ -106,18 +111,33 @@ export const VARIABLE_BINDINGS: VariableBinding[] = [
   // gap that might resolve on the next frame and kept it out of the structural
   // backlog it actually belongs in. Re-bind to ocpp[].station_state the moment
   // charger health reaches the frame and this flips to observed on its own.
-  { var_key: "charger_fault", domain: "reliability", label: "Charger fault rate", channel: null, observable: null, note: "no source on this frame — ottoq_ocpp_chargers.station_state is not published by ottoq_twin_snapshot" },
+  // UNLOCKED as a RATE. Per-charger health is still dark — ottoq_ocpp_chargers
+  // remains unpublished and counts.faulted is still null — but the variable is
+  // "Charger fault rate", and the fault rate is now measured from the session
+  // log. These are different claims: the population rate says nothing about
+  // whether charger B-NASH-L2-27 is alive right now.
+  { var_key: "charger_fault", domain: "reliability", label: "Charger fault rate", channel: "charger_systems", observable: "reliability.fault_rate", note: "population fault rate from charge.session_faulted; PER-CHARGER station_state is still unpublished" },
   { var_key: "dtc", domain: "reliability", label: "DTC / fault-code rate", channel: null, observable: null, note: "DTC codes are emitted into telemetry packets but never reach a frame" },
   { var_key: "incident", domain: "reliability", label: "Incident rate", channel: "depot_ops", observable: "incidents_open" },
-  { var_key: "incident_severity", domain: "reliability", label: "Incident severity", channel: null, observable: null, note: "only the open-incident COUNT is published, never severity" },
+  // UNLOCKED. vehicle.exception_* events carry a severity classifier.
+  { var_key: "incident_severity", domain: "reliability", label: "Incident severity", channel: "depot_ops", observable: "reliability.exceptions_by_severity", note: "severity histogram from vehicle.exception_* events; ottoq_vehicle_incidents still publishes only a count" },
   { var_key: "telemetry_dropout", domain: "reliability", label: "Telemetry dropout", channel: "fleet_telemetry", observable: "soc.missing", note: "dropout shows up as vehicles reporting no SoC" },
   { var_key: "soh_spread", domain: "reliability", label: "Battery-health spread", channel: null, observable: null, note: "per-vehicle SoH is not on the fleet rows" },
-  { var_key: "breakdown_rate", domain: "reliability", label: "Breakdown / tow rate", channel: null, observable: null },
+  // UNLOCKED. A vehicle towed in did not drive in — vehicle.tow_* is the only
+  // breakdown signal anywhere in the world model.
+  { var_key: "breakdown_rate", domain: "reliability", label: "Breakdown / tow rate", channel: "depot_ops", observable: "reliability.tow_events" },
 
   // ── vehicle ───────────────────────────────────────────────────────────────
-  { var_key: "veh_battery_soh_pct", domain: "vehicle", label: "Battery health (SoH)", channel: null, observable: null, note: "the whole vehicle domain is dealt per-run and never published per-vehicle" },
+  // STILL UNOBSERVABLE, now provably so rather than by omission: every
+  // charge.session_started event carries a battery_soh_pct key and every one of
+  // them is null. The twin models no fleet battery health.
+  { var_key: "veh_battery_soh_pct", domain: "vehicle", label: "Battery health (SoH)", channel: null, observable: null, note: "charge.session_started emits battery_soh_pct on every session and never populates it" },
   { var_key: "veh_consumption_scalar", domain: "vehicle", label: "Energy consumption scalar", channel: null, observable: null },
-  { var_key: "veh_charge_curve_scalar", domain: "vehicle", label: "Charge-curve scalar", channel: null, observable: null },
+  // UNLOCKED at the population level. initial_rate_kw / max_rate_kw is the
+  // charge-curve scalar OBSERVED rather than declared. The knob is dealt
+  // per-vehicle; only the fleet median comes back, so this proves the knob
+  // moved the world without proving which vehicle it moved.
+  { var_key: "veh_charge_curve_scalar", domain: "vehicle", label: "Charge-curve scalar", channel: "charger_systems", observable: "observed_charging.charge_curve_ratio_p50", note: "fleet median only — the twin models no per-vehicle attributes at all" },
   { var_key: "veh_soil_rate", domain: "vehicle", label: "Soiling rate", channel: null, observable: null },
   { var_key: "veh_pm_interval_km", domain: "vehicle", label: "PM interval", channel: null, observable: null },
   { var_key: "veh_calib_interval_h", domain: "vehicle", label: "Sensor calibration interval", channel: null, observable: null },
@@ -131,12 +151,24 @@ export const VARIABLE_BINDINGS: VariableBinding[] = [
  * Resolve a dot-path against a payload. `[]` means "descend into an array and
  * succeed if ANY element resolves the rest of the path to a non-null value".
  * Booleans count as resolved (false is an observation); null/undefined do not.
+ *
+ * AN EMPTY CONTAINER IS NOT EVIDENCE. A path landing on `{}` or `[]` resolves
+ * FALSE. This matters for the histogram observables (`delay_causes`,
+ * `exceptions_by_severity`): the packer emits `{}` both for "we aggregated and
+ * found none" and — before nullability was tightened — for "we never looked".
+ * Since an empty histogram cannot demonstrate that a knob moved anything, it
+ * must not be allowed to score as coverage. Scalar `0` still resolves true: a
+ * measured zero is a measurement, an empty bag is not.
  */
 export function resolveObservable(payload: unknown, path: string): boolean {
+  const isEmptyContainer = (v: unknown): boolean =>
+    (Array.isArray(v) && v.length === 0) ||
+    (typeof v === "object" && v !== null && !Array.isArray(v) && Object.keys(v).length === 0);
+
   const segments = path.split(".");
   const walk = (node: unknown, i: number): boolean => {
     if (node === null || node === undefined) return false;
-    if (i >= segments.length) return true;
+    if (i >= segments.length) return !isEmptyContainer(node);
     const seg = segments[i];
     if (seg.endsWith("[]")) {
       const key = seg.slice(0, -2);

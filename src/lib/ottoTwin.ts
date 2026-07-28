@@ -97,6 +97,77 @@ export interface TwinSnapshot {
   error?: string;
 }
 
+// ── Events window (RPC `ottoq_twin_events_window`) ──
+//
+// `TwinSnapshot.recent_events` is a 15-row tail: a UI ticker. It cannot express
+// a RATE, and rates are most of what a reliability model is. This aggregate is
+// the same event log read as a SIGNAL: run-to-date counts, fault and delay
+// rates, the observed charge curve, and the twin's own arrival forecast.
+//
+// Every derived statistic is `null` when its source set was empty. "We saw no
+// faults" and "there were no sessions to fault" are different claims and must
+// stay distinguishable — a 0 here would collapse them.
+
+/** Latest `ottoq.arrival_forecast` — the twin's look-ahead, previously unread. */
+export interface TwinDemandForecast {
+  at: string | null;
+  horizon_min: number | null;
+  incoming_count: number | null;
+  charge_needed_count: number | null;
+  predicted_charge_kw: number | null;
+  predicted_charge_kwh: number | null;
+}
+
+export interface TwinEventsWindow {
+  window: {
+    basis: string;
+    signal_events: number;
+    first_at: string | null;
+    last_at: string | null;
+    /** run's sim-time span; turns any count into a per-sim-hour rate */
+    sim_minutes_elapsed: number | null;
+  };
+  by_type: Record<string, number>;
+  by_severity: Record<string, number>;
+  reliability: {
+    charge_sessions: number;
+    charge_faults: number;
+    /** faults / sessions; null when nothing ever started */
+    charge_fault_rate: number | null;
+    fault_reasons: Record<string, number>;
+    repair_minutes_total: number | null;
+    arrival_delays: number;
+    delay_min_p50: number | null;
+    delay_causes: Record<string, number>;
+    stranded_recharges: number;
+    exceptions_by_severity: Record<string, number>;
+    faults_per_sim_hour: number | null;
+    delays_per_sim_hour: number | null;
+  };
+  charging: {
+    target_soc_p50: number | null;
+    soc_start_p50: number | null;
+    /** initial_rate_kw / max_rate_kw — the charge curve OBSERVED, not declared */
+    charge_curve_ratio_p50: number | null;
+    battery_temp_c_p50: number | null;
+    /** null today: the twin records the key and never fills it */
+    battery_soh_pct_p50: number | null;
+    sessions_completed: number;
+    energy_kwh_total: number | null;
+    avg_power_kw_p50: number | null;
+    session_duration_s_p50: number | null;
+    auto_rerouted: number;
+  };
+  demand_forecast: TwinDemandForecast | null;
+  throughput: {
+    valve_holds: number;
+    held_total: number | null;
+    released_total: number | null;
+    cap_last: number | null;
+  };
+  error?: string;
+}
+
 export interface Scenario {
   scenario_code: string; title: string; description: string;
   default_duration_hours: number; default_time_scale: number; status: string;
@@ -167,6 +238,28 @@ async function send<T>(method: string, path: string, body?: unknown): Promise<T>
   return j.data as T;
 }
 
+/**
+ * PostgREST RPC, not the twin edge function.
+ *
+ * Deliberate: folding this into `ottoq_twin_snapshot` would mean a
+ * CREATE OR REPLACE of a 200-line function that every renderer surface depends
+ * on, to add one key. The RPC is granted to `anon` and fetches in parallel with
+ * the snapshot, so the aggregate carries none of that blast radius.
+ */
+async function rpc<T>(fn: string, body: Record<string, unknown>): Promise<T> {
+  const r = await fetch(`${OTTOQ_SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+    method: "POST",
+    headers: {
+      apikey: OTTOQ_ANON_KEY,
+      authorization: `Bearer ${OTTOQ_ANON_KEY}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error(`rpc ${fn} failed: ${r.status} ${await r.text()}`);
+  return (await r.json()) as T;
+}
+
 // ── API ──
 export const twin = {
   // reads (public)
@@ -176,6 +269,7 @@ export const twin = {
   runs:      (limit = 25)                => get<{ runs: TwinRunSummary[] }>(`/sim_runs?limit=${limit}`),
   templates: ()                          => get<{ templates: { name: string; knobs: Record<string, unknown>; notes: string }[] }>(`/variability/templates`),
   catalog:   ()                          => get<{ catalog: CatalogVar[] }>(`/variability/catalog`),
+  eventsWindow: (simRunId: string)       => rpc<TwinEventsWindow>("ottoq_twin_events_window", { p_sim_run_id: simRunId }),
   health:    ()                          => get<{ service: string; version: string; time: string }>(`/health`),
 
   // controls (operator key) — used in Phase 2+

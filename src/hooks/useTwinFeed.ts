@@ -3,8 +3,8 @@
 // snapshot frame every POLL_MS. Server-authoritative state; the renderer
 // interpolates between frames (Phase 2). Sets connected=false on error.
 // ============================================================================
-import { useEffect } from "react";
-import { twin, NASHVILLE_DEPOT } from "@/lib/ottoTwin";
+import { useEffect, useRef } from "react";
+import { twin, NASHVILLE_DEPOT, type TwinEventsWindow } from "@/lib/ottoTwin";
 import { useTwinStore } from "@/store/twinStore";
 import { useWorldStore } from "@/store/worldStore";
 import { packChannels } from "@/lib/ottoq/channels";
@@ -12,6 +12,11 @@ import { auditCoverage } from "@/lib/ottoq/coverage";
 
 const POLL_MS = 1500;
 const DISCOVER_MS = 4000;
+// The events window is a run-to-date AGGREGATE over the whole event log, so it
+// is far heavier than a snapshot and its numbers move slowly — a fault rate
+// does not change between two 1.5s frames. Refresh it on its own slower clock
+// and reuse the last one in between.
+const EVENTS_MS = 15000;
 const isLiveRunStatus = (s: string) =>
   ["running", "active", "paused"].includes(String(s).toLowerCase());
 
@@ -61,6 +66,10 @@ export function useTwinFeed(depotId: string = NASHVILLE_DEPOT) {
     return () => { cancelled = true; clearTimeout(timer); };
   }, []);
 
+  // Latest events-window aggregate + when we last asked for one.
+  const events = useRef<TwinEventsWindow | null>(null);
+  const eventsAt = useRef(0);
+
   // Poll snapshot while a run is active
   useEffect(() => {
     if (!activeSimRunId) {
@@ -69,9 +78,23 @@ export function useTwinFeed(depotId: string = NASHVILLE_DEPOT) {
     }
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout>;
+    // A new run has its own event history; carrying the previous run's rates
+    // into it would attribute one world's faults to another.
+    events.current = null;
+    eventsAt.current = 0;
 
     const poll = async () => {
       try {
+        // Refresh the aggregate on its own cadence, and NEVER let it break the
+        // frame: on failure the last known window is reused, and if there has
+        // never been one the bundle packs with null reliability blocks — which
+        // the coverage audit grades dark rather than calm.
+        if (Date.now() - eventsAt.current >= EVENTS_MS) {
+          eventsAt.current = Date.now();
+          twin.eventsWindow(activeSimRunId)
+            .then((w) => { if (!w?.error) events.current = w; })
+            .catch(() => { /* keep the previous window; it carries its own last_at */ });
+        }
         const snap = await twin.snapshot(activeSimRunId);
         if (cancelled) return;
         if (snap.error) {
@@ -85,7 +108,7 @@ export function useTwinFeed(depotId: string = NASHVILLE_DEPOT) {
           // looking at. Packing is pure and cheap; a throw must not kill the
           // render feed, so it is contained.
           try {
-            const bundle = packChannels(snap, useTwinStore.getState().layout);
+            const bundle = packChannels(snap, useTwinStore.getState().layout, new Date(), events.current);
             // Pass the catalog captured at boot so per-frame coverage can still
             // detect registry drift; recomputing without it silently dropped
             // that signal on every frame after the first.

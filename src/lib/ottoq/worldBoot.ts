@@ -29,7 +29,7 @@
 // auto-starting runs it had not finished loading.
 // ============================================================================
 
-import { twin, NASHVILLE_DEPOT, type CatalogVar, type Scenario, type TwinLayout, type TwinSnapshot } from "@/lib/ottoTwin";
+import { twin, NASHVILLE_DEPOT, type CatalogVar, type Scenario, type TwinEventsWindow, type TwinLayout, type TwinSnapshot } from "@/lib/ottoTwin";
 import { packChannels } from "./channels";
 import { auditCoverage, type CoverageReport } from "./coverage";
 import {
@@ -46,6 +46,7 @@ export type BootStageId =
   | "registry"
   | "scenarios"
   | "first_frame"
+  | "events_window"
   | "variability_profile"
   | "channels";
 
@@ -108,6 +109,12 @@ export interface BootTransport {
   catalog: () => Promise<{ catalog: CatalogVar[] }>;
   scenarios: () => Promise<{ scenarios: Scenario[] }>;
   snapshot: (simRunId: string) => Promise<TwinSnapshot>;
+  /**
+   * Run-to-date reliability / charging / forecast aggregates. Separate from
+   * `snapshot` because it is a separate RPC and is allowed to fail on its own:
+   * a boot without it is degraded, not broken.
+   */
+  eventsWindow: (simRunId: string) => Promise<TwinEventsWindow>;
 }
 
 export const defaultTransport: BootTransport = {
@@ -115,6 +122,7 @@ export const defaultTransport: BootTransport = {
   catalog: () => twin.catalog(),
   scenarios: () => twin.scenarios(),
   snapshot: (id) => twin.snapshot(id),
+  eventsWindow: (id) => twin.eventsWindow(id),
 };
 
 export interface BootOptions {
@@ -135,6 +143,7 @@ const CHANNEL_STAGE_LABEL: Record<BootStageId, string> = {
   registry: "Variability registry",
   scenarios: "Scenario deck",
   first_frame: "First world frame",
+  events_window: "Event signal window",
   variability_profile: "Run variability profile",
   channels: "Channel bundle",
 };
@@ -271,11 +280,31 @@ export async function bootWorld(opts: BootOptions): Promise<BootedWorld> {
   });
   stages.push(profile.report);
 
+  // ── events window: rates the snapshot cannot express ─────────────────────
+  // NOT required. If this fails the frame still packs; the reliability and
+  // forecast blocks come back NULL and the coverage audit grades their
+  // variables dark. A boot that silently reported a calm depot because one RPC
+  // 500'd would be worse than a boot that says it could not see.
+  let eventsWindow: TwinEventsWindow | null = null;
+  const events = await stage("events_window", false, now, async () => {
+    const w = await transport.eventsWindow(simRunId);
+    if (w?.error) throw new Error(String(w.error));
+    eventsWindow = w;
+    const n = w?.window?.signal_events ?? 0;
+    return {
+      value: w, count: n, empty: n === 0,
+      detail: n === 0
+        ? "run has logged no signal events yet"
+        : `${n} signal events · ${w.reliability.charge_sessions} charge session(s) · ${w.reliability.arrival_delays} delay(s)`,
+    };
+  });
+  stages.push(events.report);
+
   // ── channels: pack the frame and grade it ────────────────────────────────
   let bundle: ChannelBundle | null = null;
   const packed = await stage("channels", true, now, async () => {
     if (!snapshot) throw new Error("cannot pack channels without a frame");
-    const b = packChannels(snapshot, geometry.value, now());
+    const b = packChannels(snapshot, geometry.value, now(), eventsWindow);
     bundle = b;
     const ok = CHANNEL_IDS.filter((c) => b.channels[c].integrity.status === "ok").length;
     return {

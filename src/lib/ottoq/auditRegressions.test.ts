@@ -12,11 +12,11 @@
 // worse than a crash. Each test below is named for the lie it prevents.
 // ============================================================================
 import { describe, it, expect } from "vitest";
-import type { TwinLayout, TwinSnapshot } from "@/lib/ottoTwin";
+import type { TwinEventsWindow, TwinLayout, TwinSnapshot } from "@/lib/ottoTwin";
 import { packChannels } from "./channels";
 import { SiteEnergyController } from "./energyController";
 import { applyShield } from "./shield";
-import { auditCoverage } from "./coverage";
+import { auditCoverage, resolveObservable } from "./coverage";
 import { runPipeline } from "./pipeline";
 import { energyAdvisor } from "./advisors";
 import { CommandBus, twinExecutor } from "./commandBus";
@@ -55,6 +55,49 @@ function bundleWith(over: { dr?: boolean | undefined; dropGrid?: boolean; lmp?: 
   } as unknown as TwinSnapshot;
   return packChannels(snap, layout, new Date(CLOCK));
 }
+
+/** A bare frame with no events window — the "we did not look" case. */
+const SNAP = {
+  run: { sim_run_id: "run-1", scenario: "normal_day", status: "running", sim_clock: CLOCK, tick_count: 12, time_scale: 60, seed: 7 },
+  fleet: {
+    counts: {}, total: 1,
+    vehicles: [{ id: "v1", av_id: "AV-1", make: "waymo", platform: "j", state: "arrived_at_gate", soc: 15, stall_id: null }],
+  },
+  stalls_status: [], energy: null, bess: null, weather: null, grid: null,
+  counters: { dispatches_active: 1, dispatches_total: 5, telemetry_packets: 10, charge_sessions: 1, events_total: 5, open_incidents: 0 },
+  recent_events: [], variability: {},
+} as unknown as TwinSnapshot;
+
+/**
+ * Shape and values lifted verbatim from `ottoq_twin_events_window` on live run
+ * 6256a99f (144 sessions, 2 faults, 21 delays over 1440 sim-minutes). Pinned to
+ * REAL numbers on purpose: the last three defects in this file were all
+ * assumptions about VALUES that passed every type check.
+ */
+const EVENTS: TwinEventsWindow = {
+  window: { basis: "run_to_date", signal_events: 1206, first_at: CLOCK, last_at: CLOCK, sim_minutes_elapsed: 1440 },
+  by_type: { "charge.session_started": 144, "fleet.arrival_delayed": 21 },
+  by_severity: { info: 1143, debug: 33, warning: 30 },
+  reliability: {
+    charge_sessions: 144, charge_faults: 2, charge_fault_rate: 0.0139,
+    fault_reasons: { "fault.thermal_emergency": 1, "fault.session_aborted_other": 1 },
+    repair_minutes_total: 242, arrival_delays: 21, delay_min_p50: 17,
+    delay_causes: { accident: 2, congestion: 14, heavy_traffic: 5 },
+    stranded_recharges: 4, tow_events: 1, exceptions_by_severity: { major: 2 },
+    faults_per_sim_hour: 0.083, delays_per_sim_hour: 0.875,
+  },
+  charging: {
+    target_soc_p50: 80, soc_start_p50: 30, charge_curve_ratio_p50: 0.844,
+    battery_temp_c_p50: 28.6, battery_soh_pct_p50: null,
+    sessions_completed: 119, energy_kwh_total: 6209.28, avg_power_kw_p50: 16.56,
+    session_duration_s_p50: 5400, auto_rerouted: 0,
+  },
+  demand_forecast: {
+    at: CLOCK, horizon_min: 60, incoming_count: 25, charge_needed_count: 25,
+    predicted_charge_kw: 2873, predicted_charge_kwh: 1024,
+  },
+  throughput: { valve_holds: 20, held_total: 111, released_total: 120, cap_last: 6 },
+};
 
 // ── L1: the worst one ───────────────────────────────────────────────────────
 
@@ -341,9 +384,66 @@ describe("coverage must not over-report on a world that published nothing", () =
     expect(r.observed).toBe(0);
   });
 
-  it("reports charger_fault as structurally unobservable, not transiently dark", () => {
-    const r = auditCoverage(bundleWith({ dr: false }));
-    expect(r.variables.find((v) => v.var_key === "charger_fault")?.verdict).toBe("unobservable");
+  it("keeps the charger fault RATE separate from per-charger health", () => {
+    // charger_fault used to be structurally unobservable: nothing on any frame
+    // carried it. The events window changed that — but only for the POPULATION
+    // rate. Per-charger station_state is still unpublished, so counts.faulted
+    // must stay null no matter how healthy the rate looks. A frame that says
+    // "fault rate 1.4%" and "0 chargers faulted" would let the orchestrator
+    // keep assigning vehicles to dead hardware, which is the failure the null
+    // exists to prevent.
+    const b = bundleWith({ dr: false });
+    expect(b.channels.charger_systems.payload.counts.faulted).toBeNull();
+    expect(b.channels.charger_systems.payload.ocpp).toEqual([]);
+    // No events window was fetched for this bundle, so the rate is dark —
+    // absent, not zero. The two blocks disagree about nothing.
+    expect(b.channels.charger_systems.payload.reliability).toBeNull();
+    expect(b.channels.charger_systems.payload.observed_charging).toBeNull();
+    const r = auditCoverage(b);
+    expect(r.variables.find((v) => v.var_key === "charger_fault")?.verdict).toBe("dark");
+  });
+
+  it("never reports a quiet depot on an events window that was never fetched", () => {
+    // THE ZERO-AS-ABSENT TRAP, one level up. Every count in these blocks is a
+    // natural 0 on a calm run, so a zeroed record is indistinguishable from no
+    // record — and a zeroed record asserts "we looked and the depot is fine".
+    // The blocks are therefore NULL until the window is actually fetched.
+    const b = packChannels(SNAP, null, new Date(CLOCK));   // no events argument
+    expect(b.channels.depot_ops.payload.reliability).toBeNull();
+    expect(b.channels.depot_ops.payload.throughput).toBeNull();
+    expect(b.channels.depot_ops.payload.demand_forecast).toBeNull();
+    expect(b.channels.depot_ops.integrity.missing).toContain("events.window");
+
+    const r = auditCoverage(b);
+    for (const key of ["breakdown_rate", "incident_severity", "charger_fault", "target_soc"]) {
+      expect(r.variables.find((v) => v.var_key === key)?.verdict).toBe("dark");
+    }
+  });
+
+  it("counts a measured zero as evidence but an empty histogram as none", () => {
+    // `tow_events: 0` means we counted and found none — a measurement.
+    // `delay_causes: {}` is an empty bag: it cannot demonstrate that the knob
+    // driving delay causes moved anything, so it must not score as coverage.
+    expect(resolveObservable({ tow_events: 0 }, "tow_events")).toBe(true);
+    expect(resolveObservable({ causes: {} }, "causes")).toBe(false);
+    expect(resolveObservable({ causes: { congestion: 3 } }, "causes")).toBe(true);
+    expect(resolveObservable({ list: [] }, "list")).toBe(false);
+    // false is still an observation
+    expect(resolveObservable({ active: false }, "active")).toBe(true);
+  });
+
+  it("publishes the charge curve the fleet actually pulled, not its nameplate", () => {
+    // initial_rate_kw / max_rate_kw. If this ever reads exactly 1.0 across a
+    // whole run, the twin has stopped modelling ramp and is echoing nameplate.
+    const b = packChannels(SNAP, null, new Date(CLOCK), EVENTS);
+    const oc = b.channels.charger_systems.payload.observed_charging;
+    expect(oc?.charge_curve_ratio_p50).toBeCloseTo(0.844, 3);
+    expect(b.channels.charger_systems.payload.reliability?.fault_rate).toBeCloseTo(0.0139, 4);
+    // SoH is emitted on every session and never populated. Reporting the
+    // absence is the point: it must not silently become a number.
+    expect(oc?.battery_soh_pct_p50).toBeNull();
+    expect(auditCoverage(b).variables.find((v) => v.var_key === "veh_battery_soh_pct")?.verdict)
+      .toBe("unobservable");
   });
 
   it("reports drift as UNKNOWN when the catalog could not be read", () => {
