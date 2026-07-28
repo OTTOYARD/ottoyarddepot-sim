@@ -126,13 +126,16 @@ export const VARIABLE_BINDINGS: VariableBinding[] = [
   // (the cap is their product), so it binds to the same observable. That is the
   // honest limit of what one frame can prove.
   { var_key: "staffing_level", domain: "operations", label: "Staffing level", channel: "depot_ops", observable: "labor.lanes.service_cap", note: "master multiplier; the cap is staffing_level x service_staff x physical, so the two are not separable from the cap alone" },
-  // NOT UNLOCKED, and not for want of a channel. `charging_staff` is read by NO
-  // function in the database — verified by scanning every pg_proc body. It is a
-  // registered, operator-adjustable knob that the simulation ignores entirely,
-  // so there is no realized effect for any channel to carry. Publishing the
-  // slider's own value would be reporting the setting as though it were an
-  // outcome. Fix belongs in the sim, not here.
-  { var_key: "charging_staff", domain: "operations", label: "Charging-assist staff", channel: null, observable: null, note: "INERT: no sim function reads this knob — moving it changes nothing in the world" },
+  // UNLOCKED — but by changing the SIMULATION, not the pipe. This knob was
+  // read by no function in the database: moving the slider changed nothing.
+  // ottoq_decide_tick now gates charge admission on it, the same way
+  // ottoq_sim_advance_service_flow gates wash lanes on cleaning_staff.
+  //
+  // Bound to the resulting cap. NOTE this observable is COMPUTED from the knob
+  // rather than stamped by the sim (there is no charge equivalent of
+  // twin.staging_overflow), which is weaker evidence than the other three lane
+  // caps — `labor.lanes.charge_cap_basis` carries that caveat on the wire.
+  { var_key: "charging_staff", domain: "operations", label: "Charging-assist staff", channel: "depot_ops", observable: "labor.lanes.charge_cap", note: "gates charge admission in ottoq_decide_tick; cap is recomputed from the knob, not stamped under contention" },
   { var_key: "cleaning_staff", domain: "operations", label: "Cleaning staff", channel: "depot_ops", observable: "labor.lanes.wash_cap", note: "ottoq_sim_lane_capacity('cleaning_staff', 3) — gates concurrent wash/detail lanes" },
   { var_key: "service_staff", domain: "operations", label: "Service/maint staff", channel: "depot_ops", observable: "labor.lanes.service_cap", note: "ottoq_sim_lane_capacity('service_staff', 2)" },
   { var_key: "deploy_staff", domain: "operations", label: "Deploy-prep staff", channel: "depot_ops", observable: "labor.lanes.deploy_cap", note: "ottoq_sim_lane_capacity('deploy_staff', 20)" },

@@ -16,7 +16,7 @@ import type { TwinEventsWindow, TwinLayout, TwinSnapshot } from "@/lib/ottoTwin"
 import { packChannels } from "./channels";
 import { SiteEnergyController } from "./energyController";
 import { applyShield } from "./shield";
-import { auditCoverage, resolveObservable } from "./coverage";
+import { auditCoverage, resolveObservable, VARIABLE_BINDINGS } from "./coverage";
 import { runPipeline } from "./pipeline";
 import { energyAdvisor } from "./advisors";
 import { CommandBus, twinExecutor } from "./commandBus";
@@ -555,20 +555,68 @@ describe("coverage must not over-report on a world that published nothing", () =
       expect(r.variables.find((v) => v.var_key === k)?.verdict).toBe("observed");
   });
 
-  it("will not dress an inert knob up as an observable one", () => {
-    // `charging_staff` is registered, operator-adjustable, and marked wired in
-    // the catalog — and NO function in the database reads it (verified across
-    // every pg_proc body). Moving that slider changes nothing in the world.
+  it("binds a staffing knob to its realized cap, never to its own setting", () => {
+    // HISTORY: `charging_staff` was registered wired=true and read by NO
+    // function in the database. It was left `unobservable` on purpose, because
+    // the tempting fix — publishing the knob's own value — reports a SETTING as
+    // an OUTCOME, which is the failure this whole audit exists to catch.
     //
-    // The tempting fix is to publish the knob's own value so the domain scores
-    // 5/5. That would report a SETTING as though it were an OUTCOME, which is
-    // the exact failure this whole audit exists to prevent. It stays
-    // unobservable until the sim actually reads it.
-    const r = auditCoverage(bundleWith({}));
-    const v = r.variables.find((x) => x.var_key === "charging_staff");
-    expect(v?.verdict).toBe("unobservable");
-    expect(v?.channel).toBeNull();
-    expect(v?.note).toContain("no sim function reads this knob");
+    // It is now wired in the SIMULATION (ottoq_decide_tick gates charge
+    // admission on it), so it binds to the resulting CAP. The doctrine is
+    // unchanged: the witness is the cap the world computes, not the slider.
+    const binding = VARIABLE_BINDINGS.find((v) => v.var_key === "charging_staff");
+    expect(binding?.observable).toBe("labor.lanes.charge_cap");
+    expect(binding?.observable).not.toContain("knobs.");   // never the setting
+
+    // and with no labor feed it is DARK (unproven), not observed
+    expect(auditCoverage(bundleWith({})).variables
+      .find((v) => v.var_key === "charging_staff")?.verdict).toBe("dark");
+  });
+
+  it("says so when charge admission is staffing-capped below the stall count", () => {
+    // The point of the knob: free stalls stop meaning available throughput.
+    const capped = {
+      window: { basis: "run_to_date", sim_minutes_elapsed: 60 },
+      staffing: { general_tech: 10 },
+      knobs: { staffing_level: null, charging_staff: 0.2, cleaning_staff: null,
+               service_staff: null, deploy_staff: null, any_set: true },
+      lanes: { wash_cap: 3, service_cap: 2, deploy_cap: 20,
+               charge_cap: 9, charge_stalls_physical: 45,
+               charge_cap_basis: "computed_from_knob",
+               patience_min: 10, observed_at: CLOCK },
+      overflow: { events: 0, vehicles_total: 0, vehicles_max: null, escalated: 0, per_sim_hour: 0 },
+      backlog: { started: 0, completed: 0, open: 0, by_service: {}, bay_bound: 0, digital: 0, blocks_dispatch: 0 },
+    };
+    const b = packChannels(SNAP, layout, new Date(CLOCK), null, null, capped as never);
+    expect(b.channels.depot_ops.payload.labor?.lanes.charge_cap).toBe(9);
+    expect(b.channels.depot_ops.integrity.notes.join(" "))
+      .toContain("charge admission is staffing-capped at 9 of 45");
+    expect(auditCoverage(b).variables
+      .find((v) => v.var_key === "charging_staff")?.verdict).toBe("observed");
+  });
+
+  it("keeps the recomputed charge cap distinguishable from a stamped one", () => {
+    // wash/service/deploy caps are READ from twin.staging_overflow — values the
+    // sim stamped under contention. There is no charge equivalent, so charge_cap
+    // is RECOMPUTED from the knob. That is weaker evidence and the payload must
+    // keep saying so rather than letting a reader assume it was measured.
+    const neutral = {
+      window: { basis: "run_to_date", sim_minutes_elapsed: 60 },
+      staffing: { general_tech: 10 },
+      knobs: { staffing_level: null, charging_staff: null, cleaning_staff: null,
+               service_staff: null, deploy_staff: null, any_set: false },
+      lanes: { wash_cap: 3, service_cap: 2, deploy_cap: 20,
+               charge_cap: 45, charge_stalls_physical: 45,
+               charge_cap_basis: "computed_from_knob",
+               patience_min: 10, observed_at: CLOCK },
+      overflow: { events: 0, vehicles_total: 0, vehicles_max: null, escalated: 0, per_sim_hour: 0 },
+      backlog: { started: 0, completed: 0, open: 0, by_service: {}, bay_bound: 0, digital: 0, blocks_dispatch: 0 },
+    };
+    const b = packChannels(SNAP, layout, new Date(CLOCK), null, null, neutral as never);
+    expect(b.channels.depot_ops.payload.labor?.lanes.charge_cap_basis).toBe("computed_from_knob");
+    // cap == physical means neutral staffing: the gate is NOT binding, so no alarm
+    expect(b.channels.depot_ops.integrity.notes.join(" "))
+      .not.toContain("staffing-capped");
   });
 
   it("does not read an unstamped lane cap as unlimited capacity", () => {
@@ -745,7 +793,6 @@ describe("coverage must not over-report on a world that published nothing", () =
     // knob that does nothing can say so at the point of use
     for (const v of r.variables)
       expect(["observed", "dark", "unobservable"]).toContain(v.verdict);
-    expect(r.variables.find((v) => v.var_key === "charging_staff")?.verdict).toBe("unobservable");
   });
 
   it("reports drift as UNKNOWN when the catalog could not be read", () => {

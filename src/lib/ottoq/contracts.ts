@@ -451,6 +451,22 @@ export interface LaborPayload {
     wash_cap: number | null;
     service_cap: number | null;
     deploy_cap: number | null;
+    /**
+     * Charge admission cap from `charging_staff`.
+     *
+     * PROVENANCE DIFFERS from the three above: those are READ from
+     * twin.staging_overflow, i.e. values the sim stamped under contention.
+     * There is no stamped event for charging, so this is RECOMPUTED by calling
+     * ottoq_sim_lane_capacity with the arguments the tick uses. Same function,
+     * same inputs — but a recomputation, not an observation, and
+     * `charge_cap_basis` says so rather than letting a reader assume.
+     *
+     * Equal to `charge_stalls_physical` means staffing is neutral and the gate
+     * is not binding.
+     */
+    charge_cap: number | null;
+    charge_stalls_physical: number | null;
+    charge_cap_basis: string | null;
     /** minutes a vehicle waits in staging before escalating */
     patience_min: number | null;
     observed_at: string | null;

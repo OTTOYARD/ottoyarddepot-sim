@@ -706,6 +706,14 @@ export function packDepotOps(
   t.take("labor.lane_caps", labor?.lanes?.wash_cap ?? null);
   if (!labor) {
     notes.push("labor feed not fetched — staffing-imposed lane limits are unobservable on this frame");
+  } else if (labor.lanes.charge_cap != null
+             && labor.lanes.charge_stalls_physical != null
+             && labor.lanes.charge_cap < labor.lanes.charge_stalls_physical) {
+    notes.push(
+      `charge admission is staffing-capped at ${labor.lanes.charge_cap} of ` +
+      `${labor.lanes.charge_stalls_physical} charge stalls — free stalls overstate ` +
+      "how many vehicles can actually be put on charge",
+    );
   } else if (labor.lanes.wash_cap === null) {
     notes.push(
       "no lane cap observed yet: the sim stamps effective capacity only when a lane is contended. " +
