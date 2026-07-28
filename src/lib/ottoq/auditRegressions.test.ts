@@ -16,6 +16,7 @@ import type { TwinLayout, TwinSnapshot } from "@/lib/ottoTwin";
 import { packChannels } from "./channels";
 import { SiteEnergyController } from "./energyController";
 import { applyShield } from "./shield";
+import { auditCoverage } from "./coverage";
 import { runPipeline } from "./pipeline";
 import { energyAdvisor } from "./advisors";
 import { CommandBus, twinExecutor } from "./commandBus";
@@ -317,3 +318,74 @@ describe("L5 — a suppressed command must not burn a sequence number", () => {
 
 // keep the imports honest
 void commandId; void simPlus;
+
+// ── second batch: honesty of the coverage number and the shield's own floors ─
+
+describe("coverage must not over-report on a world that published nothing", () => {
+  it("grades variables dark when their channel resolved nothing", () => {
+    // queue.waiting and soc.missing are array-length counters — 0, not absent,
+    // on an empty world. They used to grade "observed" while the channel's own
+    // integrity record listed the field as missing, in the very number built
+    // to replace an inflated "47/47 live".
+    const empty = {
+      run: { sim_run_id: "r", scenario: "s", status: "running", sim_clock: CLOCK, tick_count: 1, time_scale: 60, seed: 1 },
+      fleet: { counts: {}, total: 0, vehicles: [] },
+      stalls_status: [], energy: null, bess: null, weather: null, grid: null,
+      counters: {}, recent_events: [], variability: {},
+    } as unknown as TwinSnapshot;
+    const b = packChannels(empty, null, new Date(CLOCK));
+    const r = auditCoverage(b);
+    expect(b.channels.fleet_telemetry.integrity.status).toBe("missing");
+    expect(r.variables.find((v) => v.var_key === "telemetry_dropout")?.verdict).toBe("dark");
+    expect(r.variables.find((v) => v.var_key === "queue_patience")?.verdict).toBe("dark");
+    expect(r.observed).toBe(0);
+  });
+
+  it("reports charger_fault as structurally unobservable, not transiently dark", () => {
+    const r = auditCoverage(bundleWith({ dr: false }));
+    expect(r.variables.find((v) => v.var_key === "charger_fault")?.verdict).toBe("unobservable");
+  });
+
+  it("reports drift as UNKNOWN when the catalog could not be read", () => {
+    const r = auditCoverage(bundleWith({ dr: false }));       // no catalog passed
+    expect(r.unbound_catalog_keys).toBeNull();
+    expect(r.stale_bindings).toBeNull();
+    const empty = auditCoverage(bundleWith({ dr: false }), []); // failed fetch
+    expect(empty.stale_bindings).toBeNull();
+  });
+});
+
+describe("the shield must not delegate its own floors", () => {
+  function bess(intent: string, params: object): OttoQCommand {
+    return {
+      command_id: "c1", contract_version: "1.0.0", command_class: "energy.orchestration",
+      intent, authority: "directive", sim_run_id: "run-1", tick: 12,
+      issued_sim: CLOCK, issued_at: CLOCK, sequence: 0,
+      target: { kind: "bess", id: "site_bess" },
+      window: { not_before_sim: CLOCK, not_after_sim: at(3600), expires_sim: at(3600) },
+      params, priority: 500, correlation_id: "p",
+      provenance: { advisor: "t", layers: [], input_tick: 12, input_contract_version: "1.0.0", input_bundle_status: "degraded", rationale: "t", confidence: 1 },
+      ack_required: true,
+    } as unknown as OttoQCommand;
+  }
+
+  it("refuses a discharge declaring a floor below the shield's own", () => {
+    const r = applyShield([bess("discharge_bess", { power_kw: -400, soc_bound_pct: 5 })],
+      { bundle: bundleWith({ dr: false }), openCommands: new Map() });
+    expect(r.admitted).toHaveLength(0);
+    expect(r.suppressed[0].detail).toContain("below the shield's");
+  });
+
+  it("refuses an unbounded discharge outright", () => {
+    const r = applyShield([bess("discharge_bess", { power_kw: -400 })],
+      { bundle: bundleWith({ dr: false }), openCommands: new Map() });
+    expect(r.admitted).toHaveLength(0);
+    expect(r.suppressed[0].detail).toContain("unbounded discharge");
+  });
+
+  it("still admits a discharge that respects the floor", () => {
+    const r = applyShield([bess("discharge_bess", { power_kw: -400, soc_bound_pct: 20 })],
+      { bundle: bundleWith({ dr: false }), openCommands: new Map() });
+    expect(r.admitted).toHaveLength(1);
+  });
+});

@@ -318,7 +318,9 @@ export async function bootWorld(opts: BootOptions): Promise<BootedWorld> {
     }
   }
 
-  const catalogKeys = (registry.value ?? []).map((v) => v.var_key);
+  // undefined, NOT [] — a failed registry stage must read as "drift unknown",
+  // not as "the catalog is empty and every binding is stale".
+  const catalogKeys = registry.value ? registry.value.map((v) => v.var_key) : undefined;
   const coverage = bundle ? auditCoverage(bundle, catalogKeys) : null;
 
   const finished = now();

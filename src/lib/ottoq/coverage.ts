@@ -96,7 +96,13 @@ export const VARIABLE_BINDINGS: VariableBinding[] = [
   { var_key: "scheduling_algorithm", domain: "operations", label: "OTTO-Q scheduling policy", channel: null, observable: null, note: "the policy in force is not echoed back on any frame — OTTO-Q cannot confirm which policy the world believes it is running" },
 
   // ── reliability ───────────────────────────────────────────────────────────
-  { var_key: "charger_fault", domain: "reliability", label: "Charger fault rate", channel: "charger_systems", observable: "counts.faulted" },
+  // UNOBSERVABLE, not dark. counts.faulted is hardcoded null because charger
+  // fault state lives in ottoq_ocpp_chargers.station_state, which the twin
+  // snapshot does not publish at all. Grading it "dark" implied a transient
+  // gap that might resolve on the next frame and kept it out of the structural
+  // backlog it actually belongs in. Re-bind to ocpp[].station_state the moment
+  // charger health reaches the frame and this flips to observed on its own.
+  { var_key: "charger_fault", domain: "reliability", label: "Charger fault rate", channel: null, observable: null, note: "no source on this frame — ottoq_ocpp_chargers.station_state is not published by ottoq_twin_snapshot" },
   { var_key: "dtc", domain: "reliability", label: "DTC / fault-code rate", channel: null, observable: null, note: "DTC codes are emitted into telemetry packets but never reach a frame" },
   { var_key: "incident", domain: "reliability", label: "Incident rate", channel: "depot_ops", observable: "incidents_open" },
   { var_key: "incident_severity", domain: "reliability", label: "Incident severity", channel: null, observable: null, note: "only the open-incident COUNT is published, never severity" },
@@ -169,10 +175,12 @@ export interface CoverageReport {
   ratio: number;
   by_domain: DomainCoverage[];
   variables: VariableCoverage[];
-  /** catalog var_keys the backend reports that this file does not bind */
-  unbound_catalog_keys: string[];
-  /** var_keys bound here that the backend catalog no longer lists */
-  stale_bindings: string[];
+  /** catalog var_keys the backend reports that this file does not bind.
+   *  NULL when the catalog could not be read — unknown is not "none". */
+  unbound_catalog_keys: string[] | null;
+  /** var_keys bound here that the backend catalog no longer lists. NULL when
+   *  the catalog could not be read. */
+  stale_bindings: string[] | null;
 }
 
 /**
@@ -185,8 +193,26 @@ export function auditCoverage(
 ): CoverageReport {
   const variables: VariableCoverage[] = VARIABLE_BINDINGS.map((b) => {
     if (!b.channel || !b.observable) return { ...b, verdict: "unobservable" as const };
-    const payload = bundle.channels[b.channel]?.payload;
-    const hit = resolveObservable(payload, b.observable);
+    const env = bundle.channels[b.channel];
+
+    // A CHANNEL THAT PUBLISHED NOTHING CANNOT EVIDENCE ANYTHING.
+    //
+    // Several observables point at fields the packer derives from array
+    // lengths — `queue.waiting`, `soc.missing` — which are `0`, not absent,
+    // on an empty world. `resolveObservable` correctly treats 0 as a real
+    // observation, so those variables graded "observed" on a frame that
+    // published no fleet at all, while the channel's own integrity record two
+    // sections above said the field was missing. The honest-coverage number,
+    // built specifically to replace an inflated "47/47 live", was itself
+    // inflated.
+    //
+    // The channel's integrity is the authority on whether there was anything
+    // to see. If it resolved nothing, every variable riding on it is dark.
+    if (env?.integrity.status === "missing") {
+      return { ...b, verdict: "dark" as const };
+    }
+
+    const hit = resolveObservable(env?.payload, b.observable);
     return { ...b, verdict: hit ? ("observed" as const) : ("dark" as const) };
   });
 
@@ -206,6 +232,7 @@ export function auditCoverage(
 
   const observed = variables.filter((v) => v.verdict === "observed").length;
   const bound = new Set(VARIABLE_BINDINGS.map((b) => b.var_key));
+  const hasCatalog = Array.isArray(catalogKeys) && catalogKeys.length > 0;
 
   return {
     contract_version: bundle.contract_version,
@@ -218,10 +245,14 @@ export function auditCoverage(
     ratio: variables.length ? Math.round((observed / variables.length) * 1000) / 1000 : 0,
     by_domain,
     variables,
-    unbound_catalog_keys: (catalogKeys ?? []).filter((k) => !bound.has(k)).sort(),
-    stale_bindings: catalogKeys
-      ? VARIABLE_BINDINGS.map((b) => b.var_key).filter((k) => !catalogKeys.includes(k)).sort()
-      : [],
+    // An EMPTY array is truthy, so a failed registry fetch used to report all
+    // 47 bindings as "stale" — the boot report announcing total registry drift
+    // because a network call failed. Drift is only computable against a
+    // catalog we actually have.
+    unbound_catalog_keys: hasCatalog ? catalogKeys!.filter((k) => !bound.has(k)).sort() : null,
+    stale_bindings: hasCatalog
+      ? VARIABLE_BINDINGS.map((b) => b.var_key).filter((k) => !catalogKeys!.includes(k)).sort()
+      : null,
   };
 }
 

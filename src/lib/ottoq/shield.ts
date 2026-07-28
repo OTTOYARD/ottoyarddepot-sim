@@ -118,6 +118,10 @@ interface EvalContext {
   admittedCeilingKw: number;
 }
 
+/** Statuses meaning "not assignable" in the RENDERER's richer vocabulary. The
+ *  backend emits only available/occupied; this is a secondary guard. */
+const OFFLINE_STATUS_NAMES = new Set(["offline", "faulted", "fault", "out_of_service", "maintenance"]);
+
 const targetKey = (t: CommandTarget) => `${t.kind}:${t.id}`;
 const parseSim = (s: string | null) => (s ? Date.parse(s) : NaN);
 
@@ -246,7 +250,20 @@ const RULES: Rule[] = [
       if (occupant && occupant !== cmd.target.id) {
         return `stall is occupied by ${occupant}`;
       }
-      if (["offline", "faulted", "fault", "out_of_service", "maintenance"].includes(stall.status.toLowerCase())) {
+      // The backend's stalls.status only ever holds 'available' or 'occupied'
+      // (verified against pg_enum + live data). The old blacklist named five
+      // values that never occur and never checked the one that does, so
+      // occupancy rested entirely on a nullable vehicle_id — an occupied stall
+      // whose vehicle_id had not yet been populated read as free.
+      //
+      // Be POSITIVE about the real vocabulary: anything not 'available' is not
+      // assignable. The blacklist stays as a secondary guard for
+      // renderer-sourced statuses, which use a richer set.
+      const st = stall.status.toLowerCase();
+      if (st !== "available") {
+        return `stall status is ${stall.status}, not available`;
+      }
+      if (OFFLINE_STATUS_NAMES.has(st)) {
         return `stall status is ${stall.status}`;
       }
       // Two vehicles cannot be given the same stall in one plan.
@@ -286,6 +303,22 @@ const RULES: Rule[] = [
       }
       if (cmd.intent === "charge_bess" && soc >= ctx.cfg.bessCeilingPct) {
         return `BESS at ${soc}% is at or above the ${ctx.cfg.bessCeilingPct}% charge ceiling`;
+      }
+
+      // The shield checked WHERE THE BATTERY IS but never what the command
+      // ASKED FOR. A discharge declaring soc_bound_pct: 5 — below the shield's
+      // own 15% floor — was admitted whole, and the only thing standing between
+      // it and a deep discharge was the controller choosing to be stricter than
+      // the gate. The gate must not delegate its own floor.
+      const bound = (cmd.params as EnergyParams).soc_bound_pct;
+      if (cmd.intent === "discharge_bess") {
+        if (bound === null || bound === undefined) return "discharge_bess declares no soc_bound_pct — an unbounded discharge is not admissible";
+        if (bound < ctx.cfg.bessFloorPct) return `declared floor ${bound}% is below the shield's ${ctx.cfg.bessFloorPct}% discharge floor`;
+      }
+      if (cmd.intent === "charge_bess") {
+        if (bound !== null && bound !== undefined && bound > ctx.cfg.bessCeilingPct) {
+          return `declared ceiling ${bound}% is above the shield's ${ctx.cfg.bessCeilingPct}% charge ceiling`;
+        }
       }
       return null;
     },
@@ -375,7 +408,16 @@ const RULES: Rule[] = [
       if (want === null || want === undefined) return "set_power_ceiling carries no power_ceiling_kw";
       if (want < 0) return "power ceiling is negative";
       const hit = ctx.bundle.channels.charger_systems.payload.chargers.find((c) => c.stall_id === cmd.target.id);
-      if (hit?.rated_kw !== null && hit?.rated_kw !== undefined && want > hit.rated_kw) {
+      // An UNKNOWN rating is not permission. This used to skip the check
+      // entirely when the charger was absent from the channel or carried no
+      // connector_kw — the inverse of its sibling connector_compatible, which
+      // correctly refuses on a null rating. A ceiling cannot be bounded
+      // against a rating nobody published.
+      if (!hit) return "charger is not in the charger systems channel — cannot bound a ceiling against an unknown rating";
+      if (hit.rated_kw === null || hit.rated_kw === undefined) {
+        return "charger has no rated power on this frame — cannot bound a ceiling against an unknown rating";
+      }
+      if (want > hit.rated_kw) {
         return `ceiling ${want}kW exceeds the charger's ${hit.rated_kw}kW rating`;
       }
       return null;

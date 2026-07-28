@@ -100,6 +100,18 @@ function mapState(
       return stallId
         ? { lane: "staging", vstatus: "staging", sstatus: "occupied" }
         : { lane: "gate", vstatus: "staging", sstatus: "occupied" };
+    // WITHDRAWN, BUT STILL HERE. `out_of_service` and `tow_requested` mean the
+    // vehicle is physically in the depot and NOT assignable — not that it
+    // left. Falling through to the default treated them as a departure: the
+    // car drove to the egress and despawned, and any open OTTO-Q command was
+    // closed with the false reason "vehicle left the depot before reaching the
+    // commanded stall". It never left; it was withdrawn.
+    //
+    // Freeze it in place holding its stall, which is what an unassignable
+    // vehicle actually does to depot capacity.
+    case "out_of_service":
+    case "tow_requested":
+      return { lane: "staging", vstatus: "maintenance", sstatus: "occupied" };
     default: return null; // deployed / en_route / offline → off-map (departure)
   }
 }

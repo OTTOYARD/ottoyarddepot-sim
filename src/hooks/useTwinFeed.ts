@@ -86,7 +86,11 @@ export function useTwinFeed(depotId: string = NASHVILLE_DEPOT) {
           // render feed, so it is contained.
           try {
             const bundle = packChannels(snap, useTwinStore.getState().layout);
-            useWorldStore.getState().publishFrame(bundle, auditCoverage(bundle));
+            // Pass the catalog captured at boot so per-frame coverage can still
+            // detect registry drift; recomputing without it silently dropped
+            // that signal on every frame after the first.
+            const keys = useWorldStore.getState().catalogKeys ?? undefined;
+            useWorldStore.getState().publishFrame(bundle, auditCoverage(bundle, keys));
           } catch (err) {
             console.error("channel packing failed", err);
           }
