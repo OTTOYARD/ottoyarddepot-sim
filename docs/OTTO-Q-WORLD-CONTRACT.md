@@ -512,7 +512,12 @@ one). `charging_staff` is inert in the simulation — a twin-side fix, not a pip
 
 ### P0 — the world must load, and OTTO-Q must see it
 
-**4.1 Feed service timing into `depot_ops`.** *(unblocks 5 catalog variables)*
+**4.1 Feed service timing into `depot_ops`.** ✅ **DONE 2026-07-28 — but not the way this
+item proposed.** No snapshot change was needed: the twin already publishes timed itinerary
+legs on every snapshot (`legs` + `legs_meta`) and the client was discarding them.
+`depot_ops.service_timers` is built from those, which also unlocked `eta_delay` via
+`legs_meta.median_deviation_s`. The `supabase/proposed/001` array remains a valid
+server-side alternative but is no longer required. *(unblocks 5 catalog variables)*
 `charge_time`, `wash_time`, `detail_time`, `maintenance_time` are dealt every visit and
 reach nothing. Written and **verified** in `supabase/proposed/001` — 205 in-flight service
 legs across 82 of 100 vehicles on the reference run, carrying the service type, the
@@ -526,7 +531,9 @@ duration's provenance, and the charge-curve inputs. Still needs the same array a
 > that does not exist and matched zero rows while looking correct. Exclude `travel`; do not
 > enumerate services.
 
-**4.2 Publish OCPP charger health.** *(unblocks the charger channel)*
+**4.2 Publish OCPP charger health.** ⬜ **STILL OPEN** — `ocpp.health` is the one field
+still named in `charger_systems.integrity.missing` on every live frame. *(unblocks the
+charger channel)*
 `ottoq_ocpp_chargers` (21 cols: `station_state`, error codes, heartbeat) and
 `charger_health_scores` exist and are on no frame. `ChargerSystemsPayload.ocpp` is typed and
 empty. Without it, a faulted charger is indistinguishable from an idle one.
