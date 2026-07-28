@@ -29,13 +29,19 @@ export function useWorldBoot(depotId: string = NASHVILLE_DEPOT) {
     world.beginBoot();
 
     bootWorld({ simRunId: activeSimRunId, depotId })
-      .then(({ report, bundle, layout }) => {
+      .then(({ report, bundle, layout, catalog }) => {
         if (cancelled) return;
         // The boot already paid for the layout fetch; hand it to the twin store
         // so useTwinFeed's own layout effect is not the only source and the
         // renderer is never left waiting on a second round trip.
         if (layout && !useTwinStore.getState().layout) useTwinStore.getState().setLayout(layout);
-        useWorldStore.getState().completeBoot(report, bundle);
+        // Cache the catalog so per-frame coverage can keep checking registry
+        // drift. Without it the drift signal was computed once at boot and
+        // then overwritten 1.5s later by a frame report that had no catalog.
+        const keys = report.stages.find((s) => s.id === "registry")?.status === "ok"
+          ? catalog.map((v) => v.var_key)
+          : null;
+        useWorldStore.getState().completeBoot(report, bundle, keys);
       })
       .catch((e) => {
         if (!cancelled) {

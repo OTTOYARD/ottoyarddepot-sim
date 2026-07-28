@@ -215,6 +215,39 @@ export const WorldContractTab = () => {
         {coverage && (
           <>
             <div className="text-[10px] text-ink-dim leading-snug">{coverageHeadline(coverage)}</div>
+
+            {/* REGISTRY DRIFT. Computed since the first version and rendered
+                nowhere — so the one signal that our bindings and the backend
+                catalog have diverged was invisible. Either direction is a
+                defect the operator needs to see: an unbound key means the
+                backend gained a variable we do not measure, a stale binding
+                means we are measuring one that no longer exists. */}
+            {coverage.unbound_catalog_keys === null ? (
+              <div className="text-[9px] text-state-warn leading-snug">
+                registry drift unknown — the variability catalog could not be read this run
+              </div>
+            ) : (coverage.unbound_catalog_keys.length > 0 || (coverage.stale_bindings?.length ?? 0) > 0) ? (
+              <div className="rounded border border-state-warn/20 bg-state-warn/[0.04] px-2 py-1.5">
+                <div className="flex items-center gap-1.5 pb-0.5">
+                  <AlertTriangle size={10} className="text-state-warn" />
+                  <span className="text-[9px] font-display uppercase tracking-wide text-state-warn">registry drift</span>
+                </div>
+                {coverage.unbound_catalog_keys.length > 0 && (
+                  <div className="text-[9px] text-ink-dim leading-snug">
+                    backend has {coverage.unbound_catalog_keys.length} variable(s) we do not measure:{" "}
+                    {coverage.unbound_catalog_keys.slice(0, 6).join(", ")}
+                    {coverage.unbound_catalog_keys.length > 6 ? "…" : ""}
+                  </div>
+                )}
+                {(coverage.stale_bindings?.length ?? 0) > 0 && (
+                  <div className="text-[9px] text-ink-dim leading-snug">
+                    we measure {coverage.stale_bindings!.length} variable(s) the backend no longer lists:{" "}
+                    {coverage.stale_bindings!.slice(0, 6).join(", ")}
+                    {coverage.stale_bindings!.length > 6 ? "…" : ""}
+                  </div>
+                )}
+              </div>
+            ) : null}
             {coverage.by_domain.map((d) => (
               <div key={d.domain} className="flex flex-col gap-1 py-0.5">
                 <div className="flex items-baseline justify-between">
