@@ -884,7 +884,11 @@ export function packChargerSystems(
   const erel = events?.reliability;
   t.take("charging.observed", ec ? 1 : null);
   if (!events) notes.push("events window not fetched — charge curve and fault rate unavailable");
-  if (ec && ec.battery_soh_pct_p50 === null && ec.sessions_started > 0) {
+  // `sessions_started` is emitted by NOTHING — it appears in no live events
+  // window. `undefined > 0` is false, so this note could never fire and the
+  // "twin models no battery health" finding was unreportable. Guarded on
+  // sessions_completed, which the backend does emit.
+  if (ec && ec.battery_soh_pct_p50 === null && (ec.sessions_completed ?? 0) > 0) {
     notes.push("battery SoH absent from every charge session — the twin models no fleet battery health");
   }
 
