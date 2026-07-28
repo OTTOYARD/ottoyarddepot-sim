@@ -20,6 +20,12 @@ build. Every claim below is backed by a query against the live backend or a file
 3. **The rich world that *does* exist is fed to the renderer, not to OTTO-Q.** The
    orchestrator reads a narrower frame than the 3D scene does.
 
+> **STATUS 2026-07-28.** Point 3 was the real problem and is now largely closed —
+> coverage 23/47 → 45/47, see §3c. Points 1 and 2 were **partly wrong** and are corrected in
+> §2.1 / §2.2: a boot draw exists and works on the operator-demo path; it is the *benchmark*
+> runs that never draw a fleet, which is a narrower but more damaging defect than the one
+> originally reported.
+
 The architecture you described — load the world model, bundle it into channels, hand those
 to OTTO-Q — is the right one. It is not what is running today.
 
@@ -27,17 +33,46 @@ to OTTO-Q — is the right one. It is not what is running today.
 
 ## 2. Evidence
 
-### 2.1 There is no boot draw
+### 2.1 There is a boot draw — on one start path out of five
 
-`ottoq_twin_boot_manifest()` returns `payload->'boot_draw'`. Across **every run in the
-table**, `payload ? 'boot_draw'` is `false`. The manifest reads a key nothing writes.
+> **CORRECTED 2026-07-28.** The original finding read *"there is no boot draw ... across
+> every run in the table `payload ? 'boot_draw'` is false"*. That was wrong, and wrong in a
+> way that mattered: it was generalised from the sample of runs then on hand. The boot draw
+> exists (`ottoq_run_boot_draw`), works, and is reached from `ottoq_start_demo_run` via
+> `ottoq_sim_run_scenario`. Re-measured across all 131 runs:
+
+| `run_by` | runs | with `boot_draw` | fleet carrying condition |
+|---|---|---|---|
+| `operator_demo` | 15 | **15** | 116 / 116 |
+| `benchmark` | 72 | 0 | **0 / 100** |
+| `production_live` | 6 | 0 | 116 / 116 *(inherited)* |
+| `tick_invariance` / cert harnesses | 38 | 0 | — |
+
+The real defect is narrower and worse than "no boot draw":
+
+1. **The 72 benchmark runs — the A/B policy comparisons — run on a perfectly uniform
+   fleet.** No SoH spread, no consumption variance, no charge-curve variance. The
+   heterogeneity that makes scheduling *hard* is absent from exactly the runs whose purpose
+   is to tell two schedulers apart.
+2. **`production_live` runs inherit whatever the last demo run drew.** `vehicles.config` is
+   one mutable row per vehicle, so those runs wear another run's fleet and are not
+   reproducible from their own seed. `fleet_telemetry.condition_provenance.drawn_for_this_run`
+   now detects this per frame, and it fires on real runs.
+
+The demo path — the one an OEM or investor sees — is correct.
 
 Variables are dealt by `ottoq_twin_deal()`, which is a **lazy, memoized card dealer**: on
 first request for `(var_key, scope_instance, bucket)` it draws a card and caches it. Nothing
 calls it at t=0. A variable no code path touches is never drawn, and its absence is
 indistinguishable from a neutral value.
 
-### 2.2 37 of 47 registered variables produced nothing
+### 2.2 37 of 47 registered variables produced nothing *(on the run sampled)*
+
+> **QUALIFIED 2026-07-28.** True of run `6256a99f`, which was a `benchmark` run — and per
+> §2.1 those never draw a fleet, so "all 8 vehicle vars never dealt" was a property of that
+> start path, not of the twin. On an `operator_demo` run all eight are dealt at boot
+> (928 cards = 8 × 116). The variables were not missing; the runs sampled were the ones that
+> skip the draw, and nothing published the result either way.
 
 Newest run `6256a99f` — 233 ticks, 15,330 telemetry packets, 2,805 decisions:
 
@@ -405,6 +440,71 @@ That closes the loop — OTTO-Q's decision changes the world it reads next tick.
 
 `charger.orchestration` and `depot.orchestration` still have no subscriber, and
 `twinExecutor` refuses those by name.
+
+---
+
+## 3c. Closing the observability gap — 2026-07-28
+
+Coverage measured on live runs went **23/47 → 45/47**. Every gain came from data the twin
+was already producing and nothing was reading. No simulation behaviour was changed.
+
+| Feed | RPC | Unlocked |
+|---|---|---|
+| Per-vehicle condition | `ottoq_twin_fleet_condition` | all 8 `veh_*` + `soh_spread` |
+| Depot labour | `ottoq_twin_labor_window` | `staffing_level`, `cleaning_staff`, `service_staff`, `deploy_staff` |
+| Off-site trips | `ottoq_twin_offsite_window` | `trip_duration`, `idle_fraction`, better `soc_on_arrival` |
+| Wear & DTC | `ottoq_twin_wear_window` | `dtc`, and PM/calibration intervals made actionable |
+| Run identity | `ottoq_twin_run_context` | `scheduling_algorithm`, plus the depot fix below |
+| Humidity | one column added to `ottoq_twin_snapshot` | `humidity_pct` |
+
+### The worst defect found, and it was live
+
+The client fetched the depot layout for a **hardcoded** `NASHVILLE_DEPOT` while a run may
+belong to another depot — the snapshot publishes no `depot_id`. The two seeded depots have
+150 stalls each and **zero overlapping stall ids**, and 72 of 131 runs are on the benchmark
+one. Measured on run `6256a99f`: **25 of 25 occupied stalls and 25 of 25 vehicle
+stall-bindings resolved to nothing.**
+
+Nothing threw. Every stall fell back to `assumed_available`, so the frame reported a
+pristine 150-stall depot with nobody in it, no chargers delivering, and integrity `ok` — a
+completely coherent description of a building that was not being simulated. Against the
+correct depot's layout all 25 resolve. `depot_ops.layout_matches_run` now makes it a named
+channel failure in both `depot_ops` and `charger_systems`.
+
+### Three numbers deliberately *not* published
+
+The coverage score is exactly the kind of metric that invites gaming. Each of these would
+have raised it and degraded the signal:
+
+- **`charging_staff`** — registered `wired = true`, read by **no function in the database**
+  (verified across every `pg_proc` body). Publishing the knob's own value would report a
+  *setting* as an *outcome*. Left `unobservable`; the console now marks it **"no effect"**.
+- **`energy_consumed_kwh`** — null in all 17,619 dispatch rows. Publishing it would report a
+  fleet that drove 17,000 trips on no energy, and unlike a missing field a plausible `0`
+  invites arithmetic. Drive energy ships as a SoC-delta proxy, labelled as one.
+- **`arrival_jitter_min` p50** — 0 on 97.5% of trips while reaching 120 min when it fires.
+  Binding `eta_delay` to it would grade "observed" every run while saying nothing. The count
+  and max ship instead, where the sparsity is legible.
+
+### One column that was actively dangerous
+
+`ottoq_vehicle_wear.worst_open_dtc_rank` uses **99 as a sentinel for "no open DTC"**
+(confirmed in `ottoq_wear_mark_serviced`; all 11,085 rows at rank 99 have zero DTCs) on an
+**inverted scale where 0 is worst**. Passed through raw, a perfectly healthy fleet reports
+*severity 99* to any consumer assuming higher-is-worse — the most alarming possible reading
+of the least alarming possible state. The sentinel maps to `null` and the payload states
+which way the scale runs.
+
+### The headline number is now measured
+
+`OperatorConsole` rendered `wiredCount / catalog.length` — the registry counting itself,
+reading **"47/47 live"**. It now shows `observed/total` from the live coverage report, with
+per-domain counts and a per-slider verdict, so a knob that does nothing says so at the point
+of use. `wired` answers *"is this registered"*; the panel implied it answered *"does moving
+this change what OTTO-Q sees"*.
+
+**Remaining: 2 of 47.** `eta_delay` is dark only on completed runs (it resolves on a live
+one). `charging_staff` is inert in the simulation — a twin-side fix, not a pipe fix.
 
 ---
 
