@@ -122,27 +122,38 @@ export const VARIABLE_BINDINGS: VariableBinding[] = [
   // UNLOCKED. vehicle.exception_* events carry a severity classifier.
   { var_key: "incident_severity", domain: "reliability", label: "Incident severity", channel: "depot_ops", observable: "reliability.exceptions_by_severity", note: "severity histogram from vehicle.exception_* events; ottoq_vehicle_incidents still publishes only a count" },
   { var_key: "telemetry_dropout", domain: "reliability", label: "Telemetry dropout", channel: "fleet_telemetry", observable: "soc.missing", note: "dropout shows up as vehicles reporting no SoC" },
-  { var_key: "soh_spread", domain: "reliability", label: "Battery-health spread", channel: null, observable: null, note: "per-vehicle SoH is not on the fleet rows" },
+  // UNLOCKED. This is a DISPERSION knob, so it binds to the dispersion stat,
+  // not a median — a widening distribution is invisible in a p50.
+  { var_key: "soh_spread", domain: "reliability", label: "Battery-health spread", channel: "fleet_telemetry", observable: "condition_spread.battery_soh_pct.spread" },
   // UNLOCKED. A vehicle towed in did not drive in — vehicle.tow_* is the only
   // breakdown signal anywhere in the world model.
   { var_key: "breakdown_rate", domain: "reliability", label: "Breakdown / tow rate", channel: "depot_ops", observable: "reliability.tow_events" },
 
   // ── vehicle ───────────────────────────────────────────────────────────────
-  // STILL UNOBSERVABLE, now provably so rather than by omission: every
-  // charge.session_started event carries a battery_soh_pct key and every one of
-  // them is null. The twin models no fleet battery health.
-  { var_key: "veh_battery_soh_pct", domain: "vehicle", label: "Battery health (SoH)", channel: null, observable: null, note: "charge.session_started emits battery_soh_pct on every session and never populates it" },
-  { var_key: "veh_consumption_scalar", domain: "vehicle", label: "Energy consumption scalar", channel: null, observable: null },
-  // UNLOCKED at the population level. initial_rate_kw / max_rate_kw is the
-  // charge-curve scalar OBSERVED rather than declared. The knob is dealt
-  // per-vehicle; only the fleet median comes back, so this proves the knob
-  // moved the world without proving which vehicle it moved.
-  { var_key: "veh_charge_curve_scalar", domain: "vehicle", label: "Charge-curve scalar", channel: "charger_systems", observable: "observed_charging.charge_curve_ratio_p50", note: "fleet median only — the twin models no per-vehicle attributes at all" },
-  { var_key: "veh_soil_rate", domain: "vehicle", label: "Soiling rate", channel: null, observable: null },
-  { var_key: "veh_pm_interval_km", domain: "vehicle", label: "PM interval", channel: null, observable: null },
-  { var_key: "veh_calib_interval_h", domain: "vehicle", label: "Sensor calibration interval", channel: null, observable: null },
-  { var_key: "veh_service_speed_scalar", domain: "vehicle", label: "Service duration scalar", channel: null, observable: null },
-  { var_key: "veh_wash_cadence_cycles", domain: "vehicle", label: "Wash cadence", channel: null, observable: null },
+  // ALL EIGHT UNLOCKED, and the earlier note on this domain was WRONG.
+  //
+  // It said the vehicle domain "is dealt per-run and never published
+  // per-vehicle". The first half is right, the second was a conclusion drawn
+  // from searching information_schema for columns named `soh`/`consumption` and
+  // finding none. The attributes are not columns — they live in the
+  // `vehicles.config` jsonb, drawn per vehicle at every run boot by
+  // `ottoq_run_boot_draw` (928 cards = 8 vars x 116 vehicles, seeded and
+  // reproducible). The fleet was never uniform: SoH spans 88.2-100.0 and soil
+  // rate varies four-fold.
+  //
+  // What was actually missing was the PIPE — ottoq_twin_snapshot publishes
+  // seven scalar fields per vehicle and drops `config`. These now bind to the
+  // fleet-condition feed, which carries the real per-vehicle values.
+  { var_key: "veh_battery_soh_pct", domain: "vehicle", label: "Battery health (SoH)", channel: "fleet_telemetry", observable: "vehicles[].condition.battery_soh_pct" },
+  { var_key: "veh_consumption_scalar", domain: "vehicle", label: "Energy consumption scalar", channel: "fleet_telemetry", observable: "vehicles[].condition.consumption_scalar" },
+  // Per-VEHICLE now, superseding the charger-population median. A median cannot
+  // tell the scheduler which car will accept power slowly; this can.
+  { var_key: "veh_charge_curve_scalar", domain: "vehicle", label: "Charge-curve scalar", channel: "fleet_telemetry", observable: "vehicles[].condition.charge_curve_scalar" },
+  { var_key: "veh_soil_rate", domain: "vehicle", label: "Soiling rate", channel: "fleet_telemetry", observable: "vehicles[].condition.soil_rate" },
+  { var_key: "veh_pm_interval_km", domain: "vehicle", label: "PM interval", channel: "fleet_telemetry", observable: "vehicles[].condition.pm_interval_km" },
+  { var_key: "veh_calib_interval_h", domain: "vehicle", label: "Sensor calibration interval", channel: "fleet_telemetry", observable: "vehicles[].condition.calib_interval_h" },
+  { var_key: "veh_service_speed_scalar", domain: "vehicle", label: "Service duration scalar", channel: "fleet_telemetry", observable: "vehicles[].condition.service_speed_scalar" },
+  { var_key: "veh_wash_cadence_cycles", domain: "vehicle", label: "Wash cadence", channel: "fleet_telemetry", observable: "vehicles[].condition.wash_cadence_cycles" },
 ];
 
 // ── path resolution ─────────────────────────────────────────────────────────

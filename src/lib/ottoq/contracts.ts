@@ -149,6 +149,44 @@ export interface FleetVehicleSignal {
   stall_id: string | null;
   /** true when the backend state string did not map to a known stage */
   stage_unmapped: boolean;
+  /**
+   * Per-vehicle condition dealt at run boot. NULL when the fleet-condition
+   * feed was not fetched, or when this vehicle drew none — the fleet is NOT
+   * uniform and must never be treated as uniform by omission.
+   */
+  condition: VehicleCondition | null;
+}
+
+/**
+ * The eight `veh_*` catalog knobs, per vehicle. Every one is marked
+ * `wired: true` in the registry and every one was invisible to OTTO-Q until
+ * now: the twin draws them into `vehicles.config` at boot and the snapshot's
+ * fleet rows drop that column.
+ *
+ * These do not change during a run (`lifespan = 'run'`), so they are fetched
+ * once and joined onto each frame rather than re-shipped every tick.
+ */
+export interface VehicleCondition {
+  battery_soh_pct: number | null;
+  consumption_scalar: number | null;
+  charge_curve_scalar: number | null;
+  soil_rate: number | null;
+  pm_interval_km: number | null;
+  calib_interval_h: number | null;
+  service_speed_scalar: number | null;
+  wash_cadence_cycles: number | null;
+  cycles_since_wash: number | null;
+  /** cycles_since_wash / wash_cadence_cycles; >= 1 means a wash is due */
+  wash_due_ratio: number | null;
+}
+
+/** min / p50 / max / (max-min) for one attribute across the fleet. */
+export interface SpreadStat {
+  n: number;
+  min: number | null;
+  p50: number | null;
+  max: number | null;
+  spread: number | null;
 }
 
 export interface FleetTelemetryPayload {
@@ -171,6 +209,22 @@ export interface FleetTelemetryPayload {
   };
   /** packets the twin has emitted this run — a liveness signal, not a rate */
   telemetry_packets_total: number | null;
+  /**
+   * Fleet-wide DISPERSION of the per-vehicle condition attributes, keyed by
+   * attribute. This is what the spread knobs actually move — a median alone
+   * cannot show a distribution widening. NULL when condition was not fetched.
+   */
+  condition_spread: Record<string, SpreadStat> | null;
+  /**
+   * How many vehicles on this frame carry a condition, and whether it was
+   * drawn for THIS run. `drawn_for_this_run === false` means the fleet is
+   * wearing another run's condition — reproducibility is broken and any claim
+   * about "this run's fleet" is wrong.
+   */
+  condition_provenance: {
+    with_condition: number;
+    drawn_for_this_run: boolean | null;
+  } | null;
 }
 
 // ── energy_grid ─────────────────────────────────────────────────────────────
@@ -255,6 +309,19 @@ export interface StallTypeCapacity {
 
 export interface DepotOpsPayload {
   depot_id: string | null;
+  /**
+   * Do the run's stall IDs resolve against the layout we were handed?
+   *
+   * FALSE means the layout belongs to a DIFFERENT depot than the run, and every
+   * capacity/utilization/charging number on this frame is describing the wrong
+   * building. NULL means there was nothing to cross-check (no layout, or no
+   * occupied stalls yet). TRUE means at least one occupied stall resolved.
+   *
+   * This exists because the failure is otherwise invisible: an unresolvable
+   * status feed silently yields a depot that looks completely empty and
+   * perfectly healthy.
+   */
+  layout_matches_run: boolean | null;
   stalls: StallSignal[];
   capacity: {
     total: number;

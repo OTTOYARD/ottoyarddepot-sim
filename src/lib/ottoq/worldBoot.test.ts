@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { CatalogVar, Scenario, TwinEventsWindow, TwinLayout, TwinSnapshot } from "@/lib/ottoTwin";
+import type { CatalogVar, Scenario, TwinEventsWindow, TwinFleetCondition, TwinLayout, TwinSnapshot } from "@/lib/ottoTwin";
 import { bootWorld, type BootTransport } from "./worldBoot";
 
 const CLOCK = "2026-07-27T14:00:00.000Z";
@@ -68,6 +68,14 @@ function emptyEventsWindow(): TwinEventsWindow {
   };
 }
 
+/** A fleet whose condition was never drawn — every attribute honestly absent. */
+function emptyFleetCondition(): TwinFleetCondition {
+  return {
+    fleet_size: 1, with_condition: 0, drawn_for_this_run: null,
+    drawn_run_ids: null, vehicles: [], spread: {},
+  };
+}
+
 function transport(over: Partial<BootTransport> = {}): BootTransport {
   return {
     layout: async () => layout,
@@ -77,6 +85,12 @@ function transport(over: Partial<BootTransport> = {}): BootTransport {
     // Optional stage: several tests below deliberately drive a world with no
     // event history, so the default fixture is an EMPTY-but-present window.
     eventsWindow: async () => emptyEventsWindow(),
+    runContext: async () => ({
+      sim_run_id: "run-1", depot_id: "d1", depot_name: "Nashville",
+      scenario: "normal_day", status: "running", seed: 7,
+      stall_count: 2, fleet_count: 1,
+    }),
+    fleetCondition: async () => emptyFleetCondition(),
     ...over,
   };
 }
@@ -87,8 +101,8 @@ describe("bootWorld", () => {
   it("runs every stage and reports each one", async () => {
     const { report } = await bootWorld({ ...opts, transport: transport() });
     expect(report.stages.map((s) => s.id)).toEqual([
-      "geometry", "registry", "scenarios", "first_frame",
-      "variability_profile", "events_window", "channels",
+      "run_context", "geometry", "registry", "scenarios", "first_frame",
+      "variability_profile", "fleet_condition", "events_window", "channels",
     ]);
     expect(report.sim_run_id).toBe("run-1");
     expect(report.scenario).toBe("normal_day");

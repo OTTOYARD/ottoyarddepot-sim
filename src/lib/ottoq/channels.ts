@@ -20,7 +20,7 @@
 //      the sim clock rather than wall time.
 // ============================================================================
 
-import type { TwinEventsWindow, TwinLayout, TwinSnapshot, TwinStall } from "@/lib/ottoTwin";
+import type { TwinEventsWindow, TwinFleetCondition, TwinLayout, TwinSnapshot, TwinStall } from "@/lib/ottoTwin";
 import {
   buildIntegrity,
   stalenessSeconds,
@@ -178,13 +178,23 @@ function envelope<T>(
 export function packFleetTelemetry(
   snap: TwinSnapshot,
   meta: EnvelopeMeta,
+  condition?: TwinFleetCondition | null,
 ): ChannelEnvelope<FleetTelemetryPayload> {
   const t = new FieldTracker();
   const notes: string[] = [];
   const raw = snap.fleet?.vehicles ?? [];
 
+  // Per-vehicle condition is dealt ONCE at run boot and constant thereafter, so
+  // it arrives on its own feed and is joined on here rather than re-shipped
+  // every tick. Key on vehicle_id; the fleet rows and the condition rows come
+  // from the same `vehicles` table so the ids are the same ids.
+  const condById = new Map(
+    (condition?.vehicles ?? []).map((c) => [String(c.vehicle_id), c]),
+  );
+
   const vehicles: FleetVehicleSignal[] = raw.map((v) => {
     const { stage, unmapped } = normalizeStage(v.state);
+    const c = condById.get(String(v.id));
     return {
       id: String(v.id),
       av_id: str(v.av_id),
@@ -195,8 +205,42 @@ export function packFleetTelemetry(
       soc_pct: num(v.soc),
       stall_id: str(v.stall_id),
       stage_unmapped: unmapped,
+      condition: c
+        ? {
+            battery_soh_pct: num(c.battery_soh_pct),
+            consumption_scalar: num(c.consumption_scalar),
+            charge_curve_scalar: num(c.charge_curve_scalar),
+            soil_rate: num(c.soil_rate),
+            pm_interval_km: num(c.pm_interval_km),
+            calib_interval_h: num(c.calib_interval_h),
+            service_speed_scalar: num(c.service_speed_scalar),
+            wash_cadence_cycles: num(c.wash_cadence_cycles),
+            cycles_since_wash: num(c.cycles_since_wash),
+            wash_due_ratio: num(c.wash_due_ratio),
+          }
+        : null,
     };
   });
+
+  const matchedCondition = vehicles.filter((v) => v.condition !== null).length;
+  t.take("fleet.condition", condition ? matchedCondition || null : null);
+  if (!condition) {
+    notes.push("fleet condition not fetched — the 8 per-vehicle veh_* attributes are unobservable on this frame");
+  } else if (matchedCondition === 0 && raw.length > 0) {
+    notes.push(
+      `fleet condition fetched but NONE of the ${raw.length} vehicles matched — ` +
+      `the condition feed describes a different fleet (depot mismatch?)`,
+    );
+  } else if (matchedCondition < raw.length) {
+    notes.push(`${raw.length - matchedCondition} of ${raw.length} vehicles carry no drawn condition`);
+  }
+  if (condition?.drawn_for_this_run === false) {
+    notes.push(
+      "FLEET CONDITION BELONGS TO ANOTHER RUN: vehicles.config was drawn for " +
+      `${(condition.drawn_run_ids ?? []).join(", ") || "an unknown run"}. ` +
+      "This run is not reproducible from its seed.",
+    );
+  }
 
   const unmapped = [...new Set(vehicles.filter((v) => v.stage_unmapped).map((v) => v.state))];
   if (unmapped.length) {
@@ -235,6 +279,13 @@ export function packFleetTelemetry(
     vehicles,
     soc,
     telemetry_packets_total: num(snap.counters?.telemetry_packets),
+    condition_spread: condition?.spread ?? null,
+    condition_provenance: condition
+      ? {
+          with_condition: condition.with_condition,
+          drawn_for_this_run: condition.drawn_for_this_run,
+        }
+      : null,
   };
 
   // Vehicle rows are read live off the depot, not stamped per observation, so
@@ -390,6 +441,46 @@ export function packDepotOps(
     notes.push("layout not loaded — stall inventory is PARTIAL (occupied stalls only)");
   }
 
+  // ── LAYOUT/FLEET IDENTITY GUARD ─────────────────────────────────────────
+  //
+  // The stall IDs the run reports MUST resolve against the layout we were
+  // handed. When they do not, every status row is silently dropped: the
+  // reconstruction above marks all 150 stalls `assumed_available`, capacity
+  // reads 150/150 free, `counts.charging` reads 0, and the renderer draws the
+  // occupied cars nowhere. Every tracked field still resolves, so integrity
+  // reports "ok" on a frame describing a depot that does not exist.
+  //
+  // This is exactly how it failed in practice: the client fetches the layout
+  // for a HARDCODED depot while a run may belong to another one (there are two
+  // seeded depots with 150 stalls each and ZERO id overlap). 25 of 25 occupied
+  // stalls resolved to nothing and the frame looked healthy.
+  //
+  // A mismatch is now a first-class, named failure. Note the asymmetry: a
+  // status feed that resolves NOTHING while claiming occupancy is a wrong
+  // layout; a partial miss is a stall added or removed mid-run, which is worth
+  // a note but not a channel failure.
+  const statusRows = snap.stalls_status ?? [];
+  const layoutIds = new Set(layoutStalls.map((s) => String(s.id)));
+  const resolvedStatus = statusRows.filter((s) => layoutIds.has(String(s.id))).length;
+  const layoutMatchesRun =
+    layoutStalls.length === 0 || statusRows.length === 0
+      ? null                                   // nothing to cross-check yet
+      : resolvedStatus > 0;
+  t.take("layout.matches_run", layoutMatchesRun === true ? 1 : null);
+  if (layoutMatchesRun === false) {
+    notes.push(
+      `LAYOUT DOES NOT BELONG TO THIS RUN: 0 of ${statusRows.length} occupied stall(s) ` +
+      `resolve against the ${layoutStalls.length}-stall layout for depot ` +
+      `${layout?.depot?.id ?? "unknown"}. Capacity, utilization and charging counts ` +
+      `on this frame describe a different depot and must not be acted on.`,
+    );
+  } else if (layoutMatchesRun === true && resolvedStatus < statusRows.length) {
+    notes.push(
+      `${statusRows.length - resolvedStatus} of ${statusRows.length} occupied stall(s) ` +
+      `are absent from the layout — layout may be stale`,
+    );
+  }
+
   const isOffline = (s: StallSignal) => OFFLINE_STATUSES.has(s.status.toLowerCase());
   const isOccupied = (s: StallSignal) => OCCUPIED_STATUSES.has(s.status.toLowerCase());
 
@@ -526,6 +617,7 @@ export function packDepotOps(
 
   const payload: DepotOpsPayload = {
     depot_id: layout?.depot?.id ?? null,
+    layout_matches_run: layoutMatchesRun,
     stalls,
     capacity: {
       total: stalls.length,
@@ -625,6 +717,23 @@ export function packChargerSystems(
   t.take("chargers.inventory", chargers.length > 0 ? chargers.length : null);
   t.take("chargers.rated_kw", ratedKnown.length > 0 ? ratedKnown.length : null);
   t.take("chargers.status", snap.stalls_status ? 1 : null);
+
+  // Same identity guard as depot_ops — this channel performs the same join and
+  // fails the same silent way, reporting every charger free and none charging.
+  const statusRows = snap.stalls_status ?? [];
+  const allLayoutIds = new Set((layout?.stalls ?? []).map((s) => String(s.id)));
+  const layoutMatchesRun =
+    allLayoutIds.size === 0 || statusRows.length === 0
+      ? null
+      : statusRows.some((s) => allLayoutIds.has(String(s.id)));
+  t.take("layout.matches_run", layoutMatchesRun === true ? 1 : null);
+  if (layoutMatchesRun === false) {
+    notes.push(
+      `LAYOUT DOES NOT BELONG TO THIS RUN: none of the ${statusRows.length} occupied ` +
+      `stall(s) exist in depot ${layout?.depot?.id ?? "unknown"}'s layout. ` +
+      `Charger occupancy and committed kW on this frame are meaningless.`,
+    );
+  }
   // Declared-but-unfed — see contracts.ts ChargerSystemsPayload.ocpp.
   t.take("ocpp.health", null);
   notes.push("ocpp health unavailable: ottoq_ocpp_chargers is not published on the twin snapshot");
@@ -752,6 +861,7 @@ export function packChannels(
   layout: TwinLayout | null,
   now: Date = new Date(),
   events?: TwinEventsWindow | null,
+  condition?: TwinFleetCondition | null,
 ): ChannelBundle {
   const meta: EnvelopeMeta = {
     sim_run_id: String(snap.run?.sim_run_id ?? ""),
@@ -763,7 +873,7 @@ export function packChannels(
   };
 
   const channels = {
-    fleet_telemetry: packFleetTelemetry(snap, meta),
+    fleet_telemetry: packFleetTelemetry(snap, meta, condition),
     energy_grid: packEnergyGrid(snap, meta),
     depot_ops: packDepotOps(snap, layout, meta, events),
     charger_systems: packChargerSystems(snap, layout, meta, events),

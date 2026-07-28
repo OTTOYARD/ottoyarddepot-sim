@@ -168,6 +168,79 @@ export interface TwinEventsWindow {
   error?: string;
 }
 
+/**
+ * Which depot a run actually simulates (RPC `ottoq_twin_run_context`).
+ *
+ * `ottoq_twin_snapshot` publishes the run block WITHOUT depot_id, so the client
+ * hardcoded NASHVILLE_DEPOT for the layout while the run could belong to
+ * another depot. The backend has two seeded 150-stall depots that share no
+ * stall ids — a run on the wrong one yields a fully coherent description of a
+ * building nobody is simulating. Resolve the depot from the run, always.
+ */
+export interface TwinRunContext {
+  sim_run_id: string;
+  depot_id: string;
+  depot_name: string | null;
+  scenario: string;
+  status: string;
+  seed: number | null;
+  stall_count: number;
+  fleet_count: number;
+  error?: string;
+}
+
+/** min / p50 / max for one condition attribute across the fleet. */
+export interface TwinSpreadStat {
+  n: number;
+  min: number | null;
+  p50: number | null;
+  max: number | null;
+  spread: number | null;
+}
+
+/**
+ * Per-vehicle condition dealt at run boot (RPC `ottoq_twin_fleet_condition`).
+ *
+ * The twin has drawn all eight of these per vehicle since `ottoq_run_boot_draw`
+ * shipped — seeded and reproducible, into `vehicles.config`. The snapshot's
+ * fleet rows publish seven scalars and drop `config`, so every one of those
+ * knobs moved a world OTTO-Q could not see.
+ *
+ * `lifespan = 'run'`: dealt once at boot, constant after. Fetch ONCE, not per
+ * tick.
+ */
+export interface TwinVehicleCondition {
+  vehicle_id: string;
+  av_id: string | null;
+  battery_soh_pct: number | null;
+  consumption_scalar: number | null;
+  charge_curve_scalar: number | null;
+  soil_rate: number | null;
+  pm_interval_km: number | null;
+  calib_interval_h: number | null;
+  service_speed_scalar: number | null;
+  wash_cadence_cycles: number | null;
+  cycles_since_wash: number | null;
+  /** cycles_since_wash / wash_cadence_cycles; >= 1 means a wash is due */
+  wash_due_ratio: number | null;
+}
+
+export interface TwinFleetCondition {
+  fleet_size: number;
+  with_condition: number;
+  /**
+   * TRUE only when every vehicle drew its condition for THIS run.
+   * `vehicles.config` is one mutable row per vehicle, overwritten by the next
+   * run's draw, so it can legitimately belong to a different run. FALSE means
+   * this fleet's condition is someone else's. NULL means nothing was drawn.
+   */
+  drawn_for_this_run: boolean | null;
+  drawn_run_ids: string[] | null;
+  vehicles: TwinVehicleCondition[];
+  spread: Record<string, TwinSpreadStat>;
+  error?: string;
+}
+
 export interface Scenario {
   scenario_code: string; title: string; description: string;
   default_duration_hours: number; default_time_scale: number; status: string;
@@ -270,6 +343,8 @@ export const twin = {
   templates: ()                          => get<{ templates: { name: string; knobs: Record<string, unknown>; notes: string }[] }>(`/variability/templates`),
   catalog:   ()                          => get<{ catalog: CatalogVar[] }>(`/variability/catalog`),
   eventsWindow: (simRunId: string)       => rpc<TwinEventsWindow>("ottoq_twin_events_window", { p_sim_run_id: simRunId }),
+  runContext: (simRunId: string)         => rpc<TwinRunContext>("ottoq_twin_run_context", { p_sim_run_id: simRunId }),
+  fleetCondition: (simRunId: string)     => rpc<TwinFleetCondition>("ottoq_twin_fleet_condition", { p_sim_run_id: simRunId }),
   health:    ()                          => get<{ service: string; version: string; time: string }>(`/health`),
 
   // controls (operator key) — used in Phase 2+

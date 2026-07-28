@@ -29,7 +29,7 @@
 // auto-starting runs it had not finished loading.
 // ============================================================================
 
-import { twin, NASHVILLE_DEPOT, type CatalogVar, type Scenario, type TwinEventsWindow, type TwinLayout, type TwinSnapshot } from "@/lib/ottoTwin";
+import { twin, NASHVILLE_DEPOT, type CatalogVar, type Scenario, type TwinEventsWindow, type TwinFleetCondition, type TwinLayout, type TwinRunContext, type TwinSnapshot } from "@/lib/ottoTwin";
 import { packChannels } from "./channels";
 import { auditCoverage, type CoverageReport } from "./coverage";
 import {
@@ -45,8 +45,10 @@ export type BootStageId =
   | "geometry"
   | "registry"
   | "scenarios"
+  | "run_context"
   | "first_frame"
   | "events_window"
+  | "fleet_condition"
   | "variability_profile"
   | "channels";
 
@@ -115,6 +117,10 @@ export interface BootTransport {
    * a boot without it is degraded, not broken.
    */
   eventsWindow: (simRunId: string) => Promise<TwinEventsWindow>;
+  /** which depot this run actually simulates — the layout must follow it */
+  runContext: (simRunId: string) => Promise<TwinRunContext>;
+  /** per-vehicle condition, dealt once at run boot */
+  fleetCondition: (simRunId: string) => Promise<TwinFleetCondition>;
 }
 
 export const defaultTransport: BootTransport = {
@@ -123,6 +129,8 @@ export const defaultTransport: BootTransport = {
   scenarios: () => twin.scenarios(),
   snapshot: (id) => twin.snapshot(id),
   eventsWindow: (id) => twin.eventsWindow(id),
+  runContext: (id) => twin.runContext(id),
+  fleetCondition: (id) => twin.fleetCondition(id),
 };
 
 export interface BootOptions {
@@ -142,8 +150,10 @@ const CHANNEL_STAGE_LABEL: Record<BootStageId, string> = {
   geometry: "Depot geometry",
   registry: "Variability registry",
   scenarios: "Scenario deck",
+  run_context: "Run depot binding",
   first_frame: "First world frame",
   events_window: "Event signal window",
+  fleet_condition: "Per-vehicle condition",
   variability_profile: "Run variability profile",
   channels: "Channel bundle",
 };
@@ -204,10 +214,30 @@ export async function bootWorld(opts: BootOptions): Promise<BootedWorld> {
   const started = now();
   const stages: BootStageReport[] = [];
 
+  // ── which depot does this run simulate? ───────────────────────────────────
+  //
+  // MUST come before geometry. `ottoq_twin_snapshot` publishes no depot_id, so
+  // the layout used to be fetched for a hardcoded depot. The backend has two
+  // seeded 150-stall depots sharing ZERO stall ids ("Nashville Flagship" and
+  // "Benchmark (CRN A/B)"), and most runs are on the second — so the layout and
+  // the fleet routinely described different buildings, and nothing said so.
+  let resolvedDepotId = depotId;
+  const context = await stage("run_context", false, now, async () => {
+    const c = await transport.runContext(simRunId);
+    if (c?.error) throw new Error(String(c.error));
+    if (c?.depot_id) resolvedDepotId = c.depot_id;
+    return {
+      value: c, count: c.stall_count,
+      detail: `${c.depot_name ?? c.depot_id} · ${c.stall_count} stalls · ${c.fleet_count} vehicles`
+        + (c.depot_id !== depotId ? ` (overrides requested depot ${depotId})` : ""),
+    };
+  });
+  stages.push(context.report);
+
   // ── static assets, in parallel ────────────────────────────────────────────
   const [geometry, registry, scenarioDeck] = await Promise.all([
     stage("geometry", true, now, async () => {
-      const l = await transport.layout(depotId);
+      const l = await transport.layout(resolvedDepotId);
       const n = l?.stalls?.length ?? 0;
       return {
         value: l, count: n, empty: n === 0,
@@ -285,6 +315,28 @@ export async function bootWorld(opts: BootOptions): Promise<BootedWorld> {
   // forecast blocks come back NULL and the coverage audit grades their
   // variables dark. A boot that silently reported a calm depot because one RPC
   // 500'd would be worse than a boot that says it could not see.
+  let fleetCondition: TwinFleetCondition | null = null;
+  const condition = await stage("fleet_condition", false, now, async () => {
+    const c = await transport.fleetCondition(simRunId);
+    if (c?.error) throw new Error(String(c.error));
+    fleetCondition = c;
+    // A fleet wearing ANOTHER run's condition is not a soft warning: the run is
+    // no longer reproducible from its seed, and any per-vehicle claim about it
+    // is about different vehicles. Fail the stage so it shows up in the report.
+    if (c.drawn_for_this_run === false) {
+      throw new Error(
+        `fleet condition was drawn for ${(c.drawn_run_ids ?? []).join(", ") || "another run"}, not this run`,
+      );
+    }
+    return {
+      value: c, count: c.with_condition, empty: c.with_condition === 0,
+      detail: c.with_condition === 0
+        ? `no condition drawn for any of ${c.fleet_size} vehicles`
+        : `${c.with_condition}/${c.fleet_size} vehicles · SoH spread ${c.spread?.battery_soh_pct?.spread ?? "?"} pts`,
+    };
+  });
+  stages.push(condition.report);
+
   let eventsWindow: TwinEventsWindow | null = null;
   const events = await stage("events_window", false, now, async () => {
     const w = await transport.eventsWindow(simRunId);
@@ -304,7 +356,7 @@ export async function bootWorld(opts: BootOptions): Promise<BootedWorld> {
   let bundle: ChannelBundle | null = null;
   const packed = await stage("channels", true, now, async () => {
     if (!snapshot) throw new Error("cannot pack channels without a frame");
-    const b = packChannels(snapshot, geometry.value, now(), eventsWindow);
+    const b = packChannels(snapshot, geometry.value, now(), eventsWindow, fleetCondition);
     bundle = b;
     const ok = CHANNEL_IDS.filter((c) => b.channels[c].integrity.status === "ok").length;
     return {
@@ -355,7 +407,7 @@ export async function bootWorld(opts: BootOptions): Promise<BootedWorld> {
   const finished = now();
   const report: WorldBootReport = {
     contract_version: CHANNEL_CONTRACT_VERSION,
-    depot_id: depotId,
+    depot_id: resolvedDepotId,
     sim_run_id: simRunId,
     scenario: snapshot?.run?.scenario ?? null,
     seed: snapshot?.run?.seed ?? null,

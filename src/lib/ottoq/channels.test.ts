@@ -129,7 +129,50 @@ describe("packFleetTelemetry", () => {
     expect(env.payload.soc.reporting).toBe(2);
     expect(env.payload.soc.min).toBe(12);
     expect(env.payload.soc.below_20).toBe(1);
-    expect(env.integrity.status).toBe("ok");
+    // DEGRADED, not ok: no fleet-condition feed was passed, so the eight
+    // per-vehicle veh_* attributes are unseen on this frame. Same rule as
+    // depot_ops' service_timers — an unfetched feed is a named gap, never a
+    // healthy channel.
+    expect(env.integrity.status).toBe("degraded");
+    expect(env.integrity.missing).toContain("fleet.condition");
+    expect(env.payload.condition_spread).toBeNull();
+    expect(env.payload.vehicles.every((v) => v.condition === null)).toBe(true);
+  });
+
+  it("joins per-vehicle condition onto the fleet rows when the feed is present", () => {
+    // The twin has drawn these per vehicle at every run boot since
+    // ottoq_run_boot_draw shipped; the snapshot just never carried them.
+    const snap = snapshot();
+    const env = packFleetTelemetry(snap, meta, {
+      fleet_size: 2, with_condition: 2, drawn_for_this_run: true, drawn_run_ids: ["run-1"],
+      vehicles: [{
+        vehicle_id: snap.fleet.vehicles[0].id, av_id: "AV-1",
+        battery_soh_pct: 91.4, consumption_scalar: 1.07, charge_curve_scalar: 0.88,
+        soil_rate: 1.74, pm_interval_km: 8450, calib_interval_h: 300,
+        service_speed_scalar: 1.085, wash_cadence_cycles: 4, cycles_since_wash: 1,
+        wash_due_ratio: 0.25,
+      }],
+      spread: { battery_soh_pct: { n: 2, min: 91.4, p50: 95, max: 100, spread: 8.6 } },
+    });
+    expect(env.payload.vehicles[0].condition?.battery_soh_pct).toBe(91.4);
+    expect(env.payload.vehicles[0].condition?.charge_curve_scalar).toBe(0.88);
+    expect(env.payload.condition_spread?.battery_soh_pct.spread).toBe(8.6);
+    expect(env.payload.condition_provenance?.drawn_for_this_run).toBe(true);
+    // the second vehicle drew none — that is per-vehicle absence, not uniformity
+    expect(env.payload.vehicles[1].condition).toBeNull();
+    expect(env.integrity.notes.join(" ")).toContain("carry no drawn condition");
+  });
+
+  it("says so when the fleet is wearing another run's condition", () => {
+    // vehicles.config is one mutable row per vehicle, overwritten by the next
+    // run's draw. A stale draw reads exactly like a fresh one unless we check.
+    const snap = snapshot();
+    const env = packFleetTelemetry(snap, meta, {
+      fleet_size: 2, with_condition: 2, drawn_for_this_run: false,
+      drawn_run_ids: ["some-other-run"], vehicles: [], spread: {},
+    });
+    expect(env.payload.condition_provenance?.drawn_for_this_run).toBe(false);
+    expect(env.integrity.notes.join(" ")).toContain("BELONGS TO ANOTHER RUN");
   });
 
   it("counts vehicles with no SoC as missing rather than zero", () => {

@@ -439,11 +439,82 @@ describe("coverage must not over-report on a world that published nothing", () =
     const oc = b.channels.charger_systems.payload.observed_charging;
     expect(oc?.charge_curve_ratio_p50).toBeCloseTo(0.844, 3);
     expect(b.channels.charger_systems.payload.reliability?.fault_rate).toBeCloseTo(0.0139, 4);
-    // SoH is emitted on every session and never populated. Reporting the
-    // absence is the point: it must not silently become a number.
+    // SoH is absent from every charge SESSION and must not become a number
+    // there. It is not absent from the world — it lives on the fleet-condition
+    // feed — so the variable grades dark (a feed we did not fetch), not
+    // unobservable (nothing anywhere carries it).
     expect(oc?.battery_soh_pct_p50).toBeNull();
     expect(auditCoverage(b).variables.find((v) => v.var_key === "veh_battery_soh_pct")?.verdict)
-      .toBe("unobservable");
+      .toBe("dark");
+  });
+
+  it("refuses to describe a depot the run does not belong to", () => {
+    // THE WORST ONE FOUND SO FAR, and it was live.
+    //
+    // The cockpit fetches the layout for a HARDCODED depot while a run may
+    // belong to a different one. The backend has two seeded depots with 150
+    // stalls each and ZERO id overlap ("OTTOYARD Nashville Flagship" and
+    // "OTTOYARD Benchmark (CRN A/B)"), and the majority of runs are on the
+    // second. On the reference run, 25 of 25 occupied stalls and 25 of 25
+    // vehicle stall-bindings resolved to NOTHING.
+    //
+    // Nothing threw. Every stall fell back to `assumed_available`, so the
+    // frame reported a pristine 150-stall depot with nobody in it, zero
+    // chargers delivering, and integrity "ok" — a completely coherent
+    // description of a building that was not being simulated.
+    const mismatched = {
+      run: { sim_run_id: "run-1", scenario: "normal_day", status: "running", sim_clock: CLOCK, tick_count: 12, time_scale: 60, seed: 7 },
+      fleet: {
+        counts: {}, total: 1,
+        vehicles: [{ id: "v1", av_id: "AV-1", make: "waymo", platform: "j", state: "charging_dcfc", soc: 40, stall_id: "OTHER-DEPOT-STALL" }],
+      },
+      // occupied stalls from a depot whose ids the layout has never heard of
+      stalls_status: [
+        { id: "OTHER-DEPOT-STALL", status: "occupied", vehicle_id: "v1" },
+        { id: "OTHER-DEPOT-STALL-2", status: "occupied", vehicle_id: "v2" },
+      ],
+      energy: null, bess: null, weather: null, grid: null,
+      counters: {}, recent_events: [], variability: {},
+    } as unknown as TwinSnapshot;
+
+    const b = packChannels(mismatched, layout, new Date(CLOCK));
+    const dep = b.channels.depot_ops;
+
+    // The lie the old code told: a perfectly healthy, perfectly empty depot.
+    expect(dep.payload.capacity.occupied).toBe(0);   // still structurally true...
+    // ...but it must NEVER be presentable as fact.
+    expect(dep.payload.layout_matches_run).toBe(false);
+    expect(dep.integrity.status).not.toBe("ok");
+    expect(dep.integrity.missing).toContain("layout.matches_run");
+    expect(dep.integrity.notes.join(" ")).toContain("LAYOUT DOES NOT BELONG TO THIS RUN");
+
+    // The charger channel performs the same join and must fail the same way,
+    // rather than reporting every charger free.
+    const cs = b.channels.charger_systems;
+    expect(cs.integrity.missing).toContain("layout.matches_run");
+    expect(cs.integrity.notes.join(" ")).toContain("LAYOUT DOES NOT BELONG TO THIS RUN");
+  });
+
+  it("does not cry mismatch when the layout genuinely matches", () => {
+    // The guard must stay silent on a healthy frame, and stay NULL rather than
+    // false when there is simply nothing occupied yet to cross-check.
+    const b = bundleWith({ dr: false });   // stalls_status: [] — nothing to check
+    expect(b.channels.depot_ops.payload.layout_matches_run).toBeNull();
+    expect(b.channels.depot_ops.integrity.notes.join(" "))
+      .not.toContain("LAYOUT DOES NOT BELONG");
+
+    const matched = {
+      run: { sim_run_id: "run-1", scenario: "normal_day", status: "running", sim_clock: CLOCK, tick_count: 12, time_scale: 60, seed: 7 },
+      fleet: { counts: {}, total: 1, vehicles: [{ id: "v1", av_id: "AV-1", make: "waymo", platform: "j", state: "charging_dcfc", soc: 40, stall_id: "s0" }] },
+      stalls_status: [{ id: "s0", status: "occupied", vehicle_id: "v1" }],
+      energy: null, bess: null, weather: null, grid: null,
+      counters: {}, recent_events: [], variability: {},
+    } as unknown as TwinSnapshot;
+    const ok = packChannels(matched, layout, new Date(CLOCK));
+    expect(ok.channels.depot_ops.payload.layout_matches_run).toBe(true);
+    expect(ok.channels.depot_ops.payload.capacity.occupied).toBe(1);
+    // and the vehicle in it is seen to be charging
+    expect(ok.channels.charger_systems.payload.counts.charging).toBe(1);
   });
 
   it("reports drift as UNKNOWN when the catalog could not be read", () => {
