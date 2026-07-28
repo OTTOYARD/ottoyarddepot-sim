@@ -96,11 +96,26 @@ export const VARIABLE_BINDINGS: VariableBinding[] = [
   { var_key: "wash_time", domain: "operations", label: "Wash duration", channel: "depot_ops", observable: "service_timers[].planned_s" },
   { var_key: "detail_time", domain: "operations", label: "Detail duration", channel: "depot_ops", observable: "service_timers[].planned_s" },
   { var_key: "maintenance_time", domain: "operations", label: "Maintenance duration", channel: "depot_ops", observable: "service_timers[].planned_s" },
-  { var_key: "staffing_level", domain: "operations", label: "Staffing level", channel: null, observable: null, note: "ottoq_depot_staffing is on neither the snapshot nor the decision frame" },
-  { var_key: "charging_staff", domain: "operations", label: "Charging-assist staff", channel: null, observable: null },
-  { var_key: "cleaning_staff", domain: "operations", label: "Cleaning staff", channel: null, observable: null },
-  { var_key: "service_staff", domain: "operations", label: "Service/maint staff", channel: null, observable: null },
-  { var_key: "deploy_staff", domain: "operations", label: "Deploy-prep staff", channel: null, observable: null },
+  // STAFFING UNLOCKED (4 of 5). `ottoq_sim_lane_capacity` turns these knobs into
+  // hard concurrency limits — physical x staffing_level x lane_staff — consumed
+  // by the FIFO tick, both L2 proposers and the itinerary planner. The sim
+  // stamps the EFFECTIVE caps it used onto every `twin.staging_overflow` event,
+  // so these bind to what the world did, not to a recomputation.
+  //
+  // The master multiplier is not separable from a lane knob by the cap alone
+  // (the cap is their product), so it binds to the same observable. That is the
+  // honest limit of what one frame can prove.
+  { var_key: "staffing_level", domain: "operations", label: "Staffing level", channel: "depot_ops", observable: "labor.lanes.service_cap", note: "master multiplier; the cap is staffing_level x service_staff x physical, so the two are not separable from the cap alone" },
+  // NOT UNLOCKED, and not for want of a channel. `charging_staff` is read by NO
+  // function in the database — verified by scanning every pg_proc body. It is a
+  // registered, operator-adjustable knob that the simulation ignores entirely,
+  // so there is no realized effect for any channel to carry. Publishing the
+  // slider's own value would be reporting the setting as though it were an
+  // outcome. Fix belongs in the sim, not here.
+  { var_key: "charging_staff", domain: "operations", label: "Charging-assist staff", channel: null, observable: null, note: "INERT: no sim function reads this knob — moving it changes nothing in the world" },
+  { var_key: "cleaning_staff", domain: "operations", label: "Cleaning staff", channel: "depot_ops", observable: "labor.lanes.wash_cap", note: "ottoq_sim_lane_capacity('cleaning_staff', 3) — gates concurrent wash/detail lanes" },
+  { var_key: "service_staff", domain: "operations", label: "Service/maint staff", channel: "depot_ops", observable: "labor.lanes.service_cap", note: "ottoq_sim_lane_capacity('service_staff', 2)" },
+  { var_key: "deploy_staff", domain: "operations", label: "Deploy-prep staff", channel: "depot_ops", observable: "labor.lanes.deploy_cap", note: "ottoq_sim_lane_capacity('deploy_staff', 20)" },
   { var_key: "queue_patience", domain: "operations", label: "Queue patience", channel: "depot_ops", observable: "queue.waiting", note: "patience is only visible through the queue length it produces" },
   { var_key: "scheduling_algorithm", domain: "operations", label: "OTTO-Q scheduling policy", channel: null, observable: null, note: "the policy in force is not echoed back on any frame — OTTO-Q cannot confirm which policy the world believes it is running" },
 

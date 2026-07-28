@@ -307,8 +307,72 @@ export interface StallTypeCapacity {
   utilization: number;
 }
 
+/**
+ * The depot's LABOR constraint — concurrency limits that staffing imposes on
+ * top of the physical stall count.
+ *
+ * `ottoq_sim_lane_capacity` turns the staffing knobs into hard limits
+ * (physical x staffing_level x lane_staff) consumed by the tick, both L2
+ * proposers and the itinerary planner. Understaffing does not slow a lane down,
+ * it stops the lane from opening. Routing a vehicle to wash because "3 wash
+ * stalls are free" is wrong when only 1 wash lane is staffed — the vehicle
+ * takes the stall and waits.
+ *
+ * The caps here are READ from `twin.staging_overflow`, which stamps the caps
+ * the sim actually used. They are therefore what the world DID, not what we
+ * recomputed — and they are null until the first contention event, because an
+ * uncontended lane never stamps them.
+ */
+export interface LaborPayload {
+  /** rostered headcount by role, from ottoq_depot_staffing */
+  staffing: Record<string, number>;
+  /**
+   * Staffing knobs in force this run. NULL means the knob was never set, which
+   * `ottoq_sim_lane_capacity` treats as neutral 1.0 — `any_set` distinguishes
+   * "nobody touched staffing" from "staffing is deliberately at 1.0".
+   */
+  knobs: {
+    staffing_level: number | null;
+    charging_staff: number | null;
+    cleaning_staff: number | null;
+    service_staff: number | null;
+    deploy_staff: number | null;
+    any_set: boolean;
+  };
+  /** effective concurrent lanes, as the sim computed them */
+  lanes: {
+    wash_cap: number | null;
+    service_cap: number | null;
+    deploy_cap: number | null;
+    /** minutes a vehicle waits in staging before escalating */
+    patience_min: number | null;
+    observed_at: string | null;
+  };
+  /** how often labor actually bound, and how hard */
+  overflow: {
+    events: number;
+    vehicles_total: number;
+    vehicles_max: number | null;
+    escalated: number;
+    per_sim_hour: number | null;
+  };
+  /** work the depot owes, split by whether labor gates it */
+  backlog: {
+    started: number;
+    completed: number;
+    open: number;
+    by_service: Record<string, { started: number; est_min_p50: number | null; requires_bay: string | null }>;
+    /** bay-bound work is what labor gates; digital work runs regardless */
+    bay_bound: number;
+    digital: number;
+    blocks_dispatch: number;
+  };
+}
+
 export interface DepotOpsPayload {
   depot_id: string | null;
+  /** labor-side concurrency limits; null when the feed was not fetched */
+  labor: LaborPayload | null;
   /**
    * Do the run's stall IDs resolve against the layout we were handed?
    *

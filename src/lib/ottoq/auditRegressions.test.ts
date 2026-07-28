@@ -517,6 +517,81 @@ describe("coverage must not over-report on a world that published nothing", () =
     expect(ok.channels.charger_systems.payload.counts.charging).toBe(1);
   });
 
+  it("does not let stall availability speak for real throughput", () => {
+    // Staffing is a HARD concurrency limit, not a slowdown: ottoq_sim_lane_capacity
+    // gates how many wash/service/deploy lanes can be open at all. A depot with 3
+    // free wash stalls and 1 staffed wash lane will accept one vehicle and park
+    // the rest. OTTO-Q saw only the stalls.
+    const snap = {
+      run: { sim_run_id: "run-1", scenario: "normal_day", status: "running", sim_clock: CLOCK, tick_count: 12, time_scale: 60, seed: 7 },
+      fleet: { counts: {}, total: 1, vehicles: [{ id: "v1", av_id: "AV-1", make: "waymo", platform: "j", state: "staged_awaiting_service", soc: 55, stall_id: null }] },
+      stalls_status: [], energy: null, bess: null, weather: null, grid: null,
+      counters: {}, recent_events: [], variability: {},
+    } as unknown as TwinSnapshot;
+
+    const labor = {
+      window: { basis: "run_to_date", sim_minutes_elapsed: 1440 },
+      staffing: { general_tech: 10, service_tech: 3, wash_supervisor: 2 },
+      knobs: { staffing_level: null, charging_staff: null, cleaning_staff: null,
+               service_staff: null, deploy_staff: null, any_set: false },
+      // real values lifted from twin.staging_overflow on run 89439eb8
+      lanes: { wash_cap: 3, service_cap: 2, deploy_cap: 20, patience_min: 10, observed_at: CLOCK },
+      overflow: { events: 8, vehicles_total: 31, vehicles_max: 7, escalated: 0, per_sim_hour: 0.333 },
+      backlog: { started: 20, completed: 20, open: 0,
+                 by_service: { exterior_wash: { started: 12, est_min_p50: 9.5, requires_bay: "wash_bay" } },
+                 bay_bound: 17, digital: 3, blocks_dispatch: 0 },
+    };
+
+    const b = packChannels(snap, layout, new Date(CLOCK), null, null, labor as never);
+    const dep = b.channels.depot_ops;
+    expect(dep.payload.labor?.lanes.wash_cap).toBe(3);
+    expect(dep.payload.labor?.lanes.service_cap).toBe(2);
+    // the pressure must be stated, not left for the reader to infer
+    expect(dep.integrity.notes.join(" ")).toContain("labor bound 8x");
+    expect(dep.integrity.notes.join(" ")).toContain("overstates real throughput");
+
+    const r = auditCoverage(b);
+    for (const k of ["staffing_level", "cleaning_staff", "service_staff", "deploy_staff"])
+      expect(r.variables.find((v) => v.var_key === k)?.verdict).toBe("observed");
+  });
+
+  it("will not dress an inert knob up as an observable one", () => {
+    // `charging_staff` is registered, operator-adjustable, and marked wired in
+    // the catalog — and NO function in the database reads it (verified across
+    // every pg_proc body). Moving that slider changes nothing in the world.
+    //
+    // The tempting fix is to publish the knob's own value so the domain scores
+    // 5/5. That would report a SETTING as though it were an OUTCOME, which is
+    // the exact failure this whole audit exists to prevent. It stays
+    // unobservable until the sim actually reads it.
+    const r = auditCoverage(bundleWith({}));
+    const v = r.variables.find((x) => x.var_key === "charging_staff");
+    expect(v?.verdict).toBe("unobservable");
+    expect(v?.channel).toBeNull();
+    expect(v?.note).toContain("no sim function reads this knob");
+  });
+
+  it("does not read an unstamped lane cap as unlimited capacity", () => {
+    // The sim stamps effective caps only when a lane is CONTENDED. A run with
+    // no contention yet has null caps — which means "not yet observed", not
+    // "unbounded". Defaulting that to a large number would invite OTTO-Q to
+    // flood a lane it has never seen fill.
+    const quiet = {
+      window: { basis: "run_to_date", sim_minutes_elapsed: 60 },
+      staffing: { general_tech: 10 },
+      knobs: { staffing_level: null, charging_staff: null, cleaning_staff: null,
+               service_staff: null, deploy_staff: null, any_set: false },
+      lanes: { wash_cap: null, service_cap: null, deploy_cap: null, patience_min: null, observed_at: null },
+      overflow: { events: 0, vehicles_total: 0, vehicles_max: null, escalated: 0, per_sim_hour: 0 },
+      backlog: { started: 0, completed: 0, open: 0, by_service: {}, bay_bound: 0, digital: 0, blocks_dispatch: 0 },
+    };
+    const b = packChannels(SNAP, layout, new Date(CLOCK), null, null, quiet as never);
+    expect(b.channels.depot_ops.payload.labor?.lanes.wash_cap).toBeNull();
+    expect(b.channels.depot_ops.integrity.missing).toContain("labor.lane_caps");
+    expect(b.channels.depot_ops.integrity.notes.join(" "))
+      .toContain("Absence means no contention, NOT unlimited capacity");
+  });
+
   it("reports drift as UNKNOWN when the catalog could not be read", () => {
     const r = auditCoverage(bundleWith({ dr: false }));       // no catalog passed
     expect(r.unbound_catalog_keys).toBeNull();

@@ -20,7 +20,7 @@
 //      the sim clock rather than wall time.
 // ============================================================================
 
-import type { TwinEventsWindow, TwinFleetCondition, TwinLayout, TwinSnapshot, TwinStall } from "@/lib/ottoTwin";
+import type { TwinEventsWindow, TwinFleetCondition, TwinLaborWindow, TwinLayout, TwinSnapshot, TwinStall } from "@/lib/ottoTwin";
 import {
   buildIntegrity,
   stalenessSeconds,
@@ -35,6 +35,7 @@ import {
   type ChargerSystemsPayload,
   type DemandForecast,
   type DepotOpsPayload,
+  type LaborPayload,
   type DepotReliability,
   type ObservedCharging,
   type EnergyGridPayload,
@@ -401,6 +402,7 @@ export function packDepotOps(
   layout: TwinLayout | null,
   meta: EnvelopeMeta,
   events?: TwinEventsWindow | null,
+  labor?: TwinLaborWindow | null,
 ): ChannelEnvelope<DepotOpsPayload> {
   const t = new FieldTracker();
   const notes: string[] = [];
@@ -615,8 +617,41 @@ export function packDepotOps(
       }
     : null;
 
+  // ── LABOR ────────────────────────────────────────────────────────────────
+  // Staffing imposes concurrency limits ON TOP OF the physical stall count, and
+  // OTTO-Q could not see them. The caps come from `twin.staging_overflow`,
+  // which stamps what the sim actually used — so they are null until a lane is
+  // first contended. That is a real distinction: "no cap observed" means the
+  // lane never filled, NOT that it is unlimited.
+  const laborPayload: LaborPayload | null = labor
+    ? {
+        staffing: labor.staffing ?? {},
+        knobs: labor.knobs,
+        lanes: labor.lanes,
+        overflow: labor.overflow,
+        backlog: labor.backlog,
+      }
+    : null;
+  t.take("labor.staffing", labor && Object.keys(labor.staffing ?? {}).length > 0 ? 1 : null);
+  t.take("labor.lane_caps", labor?.lanes?.wash_cap ?? null);
+  if (!labor) {
+    notes.push("labor feed not fetched — staffing-imposed lane limits are unobservable on this frame");
+  } else if (labor.lanes.wash_cap === null) {
+    notes.push(
+      "no lane cap observed yet: the sim stamps effective capacity only when a lane is contended. " +
+      "Absence means no contention, NOT unlimited capacity.",
+    );
+  }
+  if (labor && labor.overflow.events > 0) {
+    notes.push(
+      `labor bound ${labor.overflow.events}x (${labor.overflow.vehicles_total} vehicle-waits, ` +
+      `peak ${labor.overflow.vehicles_max}) — stall availability overstates real throughput`,
+    );
+  }
+
   const payload: DepotOpsPayload = {
     depot_id: layout?.depot?.id ?? null,
+    labor: laborPayload,
     layout_matches_run: layoutMatchesRun,
     stalls,
     capacity: {
@@ -862,6 +897,7 @@ export function packChannels(
   now: Date = new Date(),
   events?: TwinEventsWindow | null,
   condition?: TwinFleetCondition | null,
+  labor?: TwinLaborWindow | null,
 ): ChannelBundle {
   const meta: EnvelopeMeta = {
     sim_run_id: String(snap.run?.sim_run_id ?? ""),
@@ -875,7 +911,7 @@ export function packChannels(
   const channels = {
     fleet_telemetry: packFleetTelemetry(snap, meta, condition),
     energy_grid: packEnergyGrid(snap, meta),
-    depot_ops: packDepotOps(snap, layout, meta, events),
+    depot_ops: packDepotOps(snap, layout, meta, events, labor),
     charger_systems: packChargerSystems(snap, layout, meta, events),
     environment: packEnvironment(snap, meta),
   };

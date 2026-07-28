@@ -1,0 +1,34 @@
+-- ============================================================================
+-- ottoq_twin_labor_window — the depot's LABOR constraint.
+--
+-- WHY THIS MATTERS MORE THAN IT SOUNDS
+-- Staffing is not a cosmetic slider. `ottoq_sim_lane_capacity` turns the
+-- staffing knobs into HARD concurrency limits:
+--
+--     effective_lanes = floor(physical x staffing_level x lane_staff)
+--
+-- and those limits are consumed by ottoq_fifo_tick, both L2 proposers, the
+-- itinerary planner and the service flow. Understaffing does not slow a lane
+-- down — it stops the lane from opening at all.
+--
+-- OTTO-Q could see only STALLS. Routing a vehicle to wash because "3 wash
+-- stalls are free" is wrong when 1 wash lane is staffed: the vehicle takes a
+-- stall and waits. On run 89439eb8 the twin recorded 8 overflow events,
+-- 31 vehicle-waits and a peak of 7 vehicles waiting on labor, none of which
+-- reached the orchestrator.
+--
+-- NOTHING HERE IS RECOMPUTED. The caps are READ from `twin.staging_overflow`,
+-- which stamps the caps the sim actually used (svc_cap/wash_cap/deploy_cap) —
+-- so this reports what the world DID, not what we think it should have done.
+-- The consequence is that caps are NULL until a lane is first contended: the
+-- sim only stamps them under contention. "No cap observed" means no
+-- contention, NOT unlimited capacity, and the client is required to keep that
+-- distinction (see the depot_ops note and its regression test).
+--
+-- A KNOB THAT DOES NOTHING
+-- `charging_staff` is registered in ottoq_variability_catalog with
+-- wired = true, and is read by NO function in this database — verified by
+-- scanning every pg_proc body. It is deliberately NOT published here: giving
+-- it an observable would report a slider's own setting as though it were an
+-- outcome. It stays unobservable until the simulation actually reads it.
+-- ============================================================================

@@ -29,7 +29,7 @@
 // auto-starting runs it had not finished loading.
 // ============================================================================
 
-import { twin, NASHVILLE_DEPOT, type CatalogVar, type Scenario, type TwinEventsWindow, type TwinFleetCondition, type TwinLayout, type TwinRunContext, type TwinSnapshot } from "@/lib/ottoTwin";
+import { twin, NASHVILLE_DEPOT, type CatalogVar, type Scenario, type TwinEventsWindow, type TwinFleetCondition, type TwinLaborWindow, type TwinLayout, type TwinRunContext, type TwinSnapshot } from "@/lib/ottoTwin";
 import { packChannels } from "./channels";
 import { auditCoverage, type CoverageReport } from "./coverage";
 import {
@@ -49,6 +49,7 @@ export type BootStageId =
   | "first_frame"
   | "events_window"
   | "fleet_condition"
+  | "labor"
   | "variability_profile"
   | "channels";
 
@@ -121,6 +122,8 @@ export interface BootTransport {
   runContext: (simRunId: string) => Promise<TwinRunContext>;
   /** per-vehicle condition, dealt once at run boot */
   fleetCondition: (simRunId: string) => Promise<TwinFleetCondition>;
+  /** staffing-imposed lane limits and the service backlog */
+  labor: (simRunId: string) => Promise<TwinLaborWindow>;
 }
 
 export const defaultTransport: BootTransport = {
@@ -131,6 +134,7 @@ export const defaultTransport: BootTransport = {
   eventsWindow: (id) => twin.eventsWindow(id),
   runContext: (id) => twin.runContext(id),
   fleetCondition: (id) => twin.fleetCondition(id),
+  labor: (id) => twin.labor(id),
 };
 
 export interface BootOptions {
@@ -154,6 +158,7 @@ const CHANNEL_STAGE_LABEL: Record<BootStageId, string> = {
   first_frame: "First world frame",
   events_window: "Event signal window",
   fleet_condition: "Per-vehicle condition",
+  labor: "Staffing & lane limits",
   variability_profile: "Run variability profile",
   channels: "Channel bundle",
 };
@@ -337,6 +342,21 @@ export async function bootWorld(opts: BootOptions): Promise<BootedWorld> {
   });
   stages.push(condition.report);
 
+  let laborWindow: TwinLaborWindow | null = null;
+  const laborStage = await stage("labor", false, now, async () => {
+    const l = await transport.labor(simRunId);
+    if (l?.error) throw new Error(String(l.error));
+    laborWindow = l;
+    const caps = l.lanes?.wash_cap === null
+      ? "no lane contended yet — caps unstamped"
+      : `wash ${l.lanes.wash_cap} · service ${l.lanes.service_cap} · deploy ${l.lanes.deploy_cap}`;
+    return {
+      value: l, count: l.overflow?.events ?? 0,
+      detail: `${caps} · ${l.overflow?.events ?? 0} overflow event(s), ${l.backlog?.open ?? 0} open backlog`,
+    };
+  });
+  stages.push(laborStage.report);
+
   let eventsWindow: TwinEventsWindow | null = null;
   const events = await stage("events_window", false, now, async () => {
     const w = await transport.eventsWindow(simRunId);
@@ -356,7 +376,7 @@ export async function bootWorld(opts: BootOptions): Promise<BootedWorld> {
   let bundle: ChannelBundle | null = null;
   const packed = await stage("channels", true, now, async () => {
     if (!snapshot) throw new Error("cannot pack channels without a frame");
-    const b = packChannels(snapshot, geometry.value, now(), eventsWindow, fleetCondition);
+    const b = packChannels(snapshot, geometry.value, now(), eventsWindow, fleetCondition, laborWindow);
     bundle = b;
     const ok = CHANNEL_IDS.filter((c) => b.channels[c].integrity.status === "ok").length;
     return {

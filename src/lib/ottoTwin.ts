@@ -241,6 +241,30 @@ export interface TwinFleetCondition {
   error?: string;
 }
 
+export interface TwinLaborWindow {
+  window: { basis: string; sim_minutes_elapsed: number | null };
+  staffing: Record<string, number>;
+  knobs: {
+    staffing_level: number | null; charging_staff: number | null;
+    cleaning_staff: number | null; service_staff: number | null;
+    deploy_staff: number | null; any_set: boolean;
+  };
+  lanes: {
+    wash_cap: number | null; service_cap: number | null;
+    deploy_cap: number | null; patience_min: number | null; observed_at: string | null;
+  };
+  overflow: {
+    events: number; vehicles_total: number; vehicles_max: number | null;
+    escalated: number; per_sim_hour: number | null;
+  };
+  backlog: {
+    started: number; completed: number; open: number;
+    by_service: Record<string, { started: number; est_min_p50: number | null; requires_bay: string | null }>;
+    bay_bound: number; digital: number; blocks_dispatch: number;
+  };
+  error?: string;
+}
+
 export interface Scenario {
   scenario_code: string; title: string; description: string;
   default_duration_hours: number; default_time_scale: number; status: string;
@@ -344,6 +368,7 @@ export const twin = {
   catalog:   ()                          => get<{ catalog: CatalogVar[] }>(`/variability/catalog`),
   eventsWindow: (simRunId: string)       => rpc<TwinEventsWindow>("ottoq_twin_events_window", { p_sim_run_id: simRunId }),
   runContext: (simRunId: string)         => rpc<TwinRunContext>("ottoq_twin_run_context", { p_sim_run_id: simRunId }),
+  labor: (simRunId: string)              => rpc<TwinLaborWindow>("ottoq_twin_labor_window", { p_sim_run_id: simRunId }),
   fleetCondition: (simRunId: string)     => rpc<TwinFleetCondition>("ottoq_twin_fleet_condition", { p_sim_run_id: simRunId }),
   health:    ()                          => get<{ service: string; version: string; time: string }>(`/health`),
 
