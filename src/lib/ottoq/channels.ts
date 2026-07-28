@@ -20,7 +20,7 @@
 //      the sim clock rather than wall time.
 // ============================================================================
 
-import type { TwinEventsWindow, TwinFleetCondition, TwinLaborWindow, TwinLayout, TwinSnapshot, TwinStall } from "@/lib/ottoTwin";
+import type { TwinEventsWindow, TwinFleetCondition, TwinLaborWindow, TwinLayout, TwinOffsiteWindow, TwinSnapshot, TwinStall } from "@/lib/ottoTwin";
 import {
   buildIntegrity,
   stalenessSeconds,
@@ -42,6 +42,7 @@ import {
   type EnvironmentPayload,
   type FleetTelemetryPayload,
   type FleetVehicleSignal,
+  type OffsitePayload,
   type ServiceStage,
   type ServiceTimer,
   type StallSignal,
@@ -180,6 +181,7 @@ export function packFleetTelemetry(
   snap: TwinSnapshot,
   meta: EnvelopeMeta,
   condition?: TwinFleetCondition | null,
+  offsite?: TwinOffsiteWindow | null,
 ): ChannelEnvelope<FleetTelemetryPayload> {
   const t = new FieldTracker();
   const notes: string[] = [];
@@ -273,7 +275,49 @@ export function packFleetTelemetry(
 
   if (soc.missing > 0) notes.push(`${soc.missing} vehicle(s) reported no SoC`);
 
+  // ── OFF-SITE ─────────────────────────────────────────────────────────────
+  // The depot-scoped feeds go blind the moment a vehicle leaves. This is the
+  // other half of the fleet, and the headline is that the PLAN IS NOT WHAT
+  // HAPPENS — trips run ~3.6x their planned duration and most vehicles return
+  // because the battery forces them to, not because a schedule said so.
+  const offsitePayload: OffsitePayload | null = offsite
+    ? {
+        dispatches: offsite.dispatches,
+        off_site_now: offsite.off_site_now,
+        duration: offsite.duration,
+        activity: offsite.activity,
+        soc: offsite.soc,
+        arrival_jitter_min_p50: offsite.arrival_jitter_min_p50,
+        arrival_jitter_delayed_n: offsite.arrival_jitter_delayed_n ?? 0,
+        arrival_jitter_min_max: offsite.arrival_jitter_min_max ?? null,
+        by_return_trigger: offsite.by_return_trigger ?? {},
+      }
+    : null;
+  t.take("fleet.offsite", offsite ? offsite.dispatches?.total ?? null : null);
+  if (!offsite) {
+    notes.push("off-site feed not fetched — trip duration and drive activity are unobservable on this frame");
+  } else if ((offsite.dispatches?.completed ?? 0) === 0) {
+    notes.push("no completed trips yet — trip statistics describe nothing until a vehicle returns");
+  }
+  // A plan that is wrong by more than half is worth saying out loud: an
+  // orchestrator that pre-stages for the planned return will staff for a fleet
+  // that is not coming.
+  if (offsite?.duration?.ratio_p50 != null && offsite.duration.ratio_p50 > 1.5) {
+    notes.push(
+      `trips run ${offsite.duration.ratio_p50}x their planned duration ` +
+      `(${offsite.duration.overran_plan} of ${offsite.dispatches.completed} overran) — ` +
+      "planned_duration_min is not a usable predictor",
+    );
+  }
+  if (offsite?.arrival_jitter_delayed_n) {
+    notes.push(
+      `${offsite.arrival_jitter_delayed_n} of ${offsite.dispatches.completed} arrivals carried jitter ` +
+      `(max ${offsite.arrival_jitter_min_max} min) — the p50 of ${offsite.arrival_jitter_min_p50} hides the tail`,
+    );
+  }
+
   const payload: FleetTelemetryPayload = {
+    offsite: offsitePayload,
     fleet_size: Number(snap.fleet?.total ?? vehicles.length),
     counts_by_state: (snap.fleet?.counts ?? {}) as Record<string, number>,
     counts_by_stage,
@@ -898,6 +942,7 @@ export function packChannels(
   events?: TwinEventsWindow | null,
   condition?: TwinFleetCondition | null,
   labor?: TwinLaborWindow | null,
+  offsite?: TwinOffsiteWindow | null,
 ): ChannelBundle {
   const meta: EnvelopeMeta = {
     sim_run_id: String(snap.run?.sim_run_id ?? ""),
@@ -909,7 +954,7 @@ export function packChannels(
   };
 
   const channels = {
-    fleet_telemetry: packFleetTelemetry(snap, meta, condition),
+    fleet_telemetry: packFleetTelemetry(snap, meta, condition, offsite),
     energy_grid: packEnergyGrid(snap, meta),
     depot_ops: packDepotOps(snap, layout, meta, events, labor),
     charger_systems: packChargerSystems(snap, layout, meta, events),

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { CatalogVar, Scenario, TwinEventsWindow, TwinFleetCondition, TwinLaborWindow, TwinLayout, TwinSnapshot } from "@/lib/ottoTwin";
+import type { CatalogVar, Scenario, TwinEventsWindow, TwinFleetCondition, TwinLaborWindow, TwinLayout, TwinOffsiteWindow, TwinSnapshot } from "@/lib/ottoTwin";
 import { bootWorld, type BootTransport } from "./worldBoot";
 
 const CLOCK = "2026-07-27T14:00:00.000Z";
@@ -91,6 +91,16 @@ function transport(over: Partial<BootTransport> = {}): BootTransport {
       stall_count: 2, fleet_count: 1,
     }),
     fleetCondition: async () => emptyFleetCondition(),
+    offsite: async () => ({
+      dispatches: { total: 0, completed: 0, active: 0 },
+      off_site_now: { count: 0, elapsed_min_p50: null, return_eta_min_p50: null, soc_at_dispatch_p50: null },
+      duration: { planned_min_p50: null, actual_min_p50: null, actual_min_p90: null,
+                  drift_min_p50: null, overran_plan: 0, ratio_p50: null },
+      activity: { miles_p50: null, miles_per_trip_min_p50: null,
+                  soc_drop_pct_per_hour_p50: null, energy_basis: "soc_delta_proxy" },
+      soc: { at_dispatch_p50: null, at_return_p50: null, at_return_p10: null, returned_below_20: 0 },
+      arrival_jitter_min_p50: null, by_return_trigger: {},
+    }),
     labor: async () => ({
       window: { basis: "run_to_date", sim_minutes_elapsed: 60 },
       staffing: { general_tech: 10 },
@@ -113,7 +123,7 @@ describe("bootWorld", () => {
     const { report } = await bootWorld({ ...opts, transport: transport() });
     expect(report.stages.map((s) => s.id)).toEqual([
       "run_context", "geometry", "registry", "scenarios", "first_frame",
-      "variability_profile", "fleet_condition", "labor", "events_window", "channels",
+      "variability_profile", "fleet_condition", "labor", "offsite", "events_window", "channels",
     ]);
     expect(report.sim_run_id).toBe("run-1");
     expect(report.scenario).toBe("normal_day");

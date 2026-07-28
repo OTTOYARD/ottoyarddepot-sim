@@ -4,7 +4,7 @@
 // interpolates between frames (Phase 2). Sets connected=false on error.
 // ============================================================================
 import { useEffect, useRef } from "react";
-import { twin, NASHVILLE_DEPOT, type TwinEventsWindow, type TwinFleetCondition, type TwinLaborWindow } from "@/lib/ottoTwin";
+import { twin, NASHVILLE_DEPOT, type TwinEventsWindow, type TwinFleetCondition, type TwinLaborWindow, type TwinOffsiteWindow } from "@/lib/ottoTwin";
 import { useTwinStore } from "@/store/twinStore";
 import { useWorldStore } from "@/store/worldStore";
 import { packChannels } from "@/lib/ottoq/channels";
@@ -98,6 +98,7 @@ export function useTwinFeed(depotId: string = NASHVILLE_DEPOT) {
   // Labor changes only as the run accumulates overflow, so it rides the same
   // slow cadence as the events window rather than the 1.5s snapshot poll.
   const labor = useRef<TwinLaborWindow | null>(null);
+  const offsite = useRef<TwinOffsiteWindow | null>(null);
 
   // Poll snapshot while a run is active
   useEffect(() => {
@@ -113,6 +114,7 @@ export function useTwinFeed(depotId: string = NASHVILLE_DEPOT) {
     eventsAt.current = 0;
     condition.current = null;
     labor.current = null;
+    offsite.current = null;
     twin.fleetCondition(activeSimRunId)
       .then((c) => { if (!cancelled && !c?.error) condition.current = c; })
       .catch(() => { /* frame packs without it; the audit grades the domain dark */ });
@@ -131,6 +133,9 @@ export function useTwinFeed(depotId: string = NASHVILLE_DEPOT) {
           twin.labor(activeSimRunId)
             .then((l) => { if (!l?.error) labor.current = l; })
             .catch(() => { /* same rule: stale labor beats no labor, and it is dated */ });
+          twin.offsite(activeSimRunId)
+            .then((o) => { if (!o?.error) offsite.current = o; })
+            .catch(() => { /* trip stats are run-to-date; a stale copy is still true of the past */ });
         }
         const snap = await twin.snapshot(activeSimRunId);
         if (cancelled) return;
@@ -145,7 +150,7 @@ export function useTwinFeed(depotId: string = NASHVILLE_DEPOT) {
           // looking at. Packing is pure and cheap; a throw must not kill the
           // render feed, so it is contained.
           try {
-            const bundle = packChannels(snap, useTwinStore.getState().layout, new Date(), events.current, condition.current, labor.current);
+            const bundle = packChannels(snap, useTwinStore.getState().layout, new Date(), events.current, condition.current, labor.current, offsite.current);
             // Pass the catalog captured at boot so per-frame coverage can still
             // detect registry drift; recomputing without it silently dropped
             // that signal on every frame after the first.

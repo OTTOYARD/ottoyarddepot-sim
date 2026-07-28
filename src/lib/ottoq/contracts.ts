@@ -189,8 +189,66 @@ export interface SpreadStat {
   spread: number | null;
 }
 
+/**
+ * The off-site half of the fleet — trips, and why they end.
+ *
+ * The plan is not what happens: on measured runs the median trip runs ~3.6x its
+ * planned duration, and the dominant return reason is the battery, not the
+ * schedule. Reported BY RETURN TRIGGER because a single fleet-wide average
+ * describes no vehicle — `low_soc_reserve` trips ran 356 min against a 58-min
+ * plan while `sensor_soil` trips ran 75 against 71.
+ */
+export interface OffsitePayload {
+  dispatches: { total: number; completed: number; active: number };
+  off_site_now: {
+    count: number;
+    elapsed_min_p50: number | null;
+    return_eta_min_p50: number | null;
+    soc_at_dispatch_p50: number | null;
+  };
+  duration: {
+    planned_min_p50: number | null;
+    actual_min_p50: number | null;
+    actual_min_p90: number | null;
+    drift_min_p50: number | null;
+    overran_plan: number;
+    /** actual / planned; > 1 means trips run long */
+    ratio_p50: number | null;
+  };
+  activity: {
+    miles_p50: number | null;
+    /** what `idle_fraction` moves: a vehicle that idles covers fewer miles/min */
+    miles_per_trip_min_p50: number | null;
+    soc_drop_pct_per_hour_p50: number | null;
+    /** always "soc_delta_proxy" — the sim never writes metered trip energy */
+    energy_basis: string;
+  };
+  soc: {
+    at_dispatch_p50: number | null;
+    /** the real SoC-on-arrival, measured per trip rather than over the yard */
+    at_return_p50: number | null;
+    at_return_p10: number | null;
+    returned_below_20: number;
+  };
+  arrival_jitter_min_p50: number | null;
+  /**
+   * Arrival jitter is SPARSE — 282 of 11,274 trips carry any, but it reaches
+   * 120 min when it fires. The p50 is 0 and that is true of a typical trip and
+   * useless about the risk, so the count and the max travel with it. This is
+   * also why `eta_delay` is NOT bound to that p50.
+   */
+  arrival_jitter_delayed_n: number;
+  arrival_jitter_min_max: number | null;
+  by_return_trigger: Record<string, {
+    n: number; planned_min_p50: number | null; actual_min_p50: number | null;
+    drift_min_p50: number | null; soc_at_return_p50: number | null;
+  }>;
+}
+
 export interface FleetTelemetryPayload {
   fleet_size: number;
+  /** off-site trips; null when the feed was not fetched */
+  offsite: OffsitePayload | null;
   /** counts keyed by raw backend state (what the twin reports) */
   counts_by_state: Record<string, number>;
   /** counts keyed by normalized stage (what OTTO-Q reasons over) */

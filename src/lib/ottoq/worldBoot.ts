@@ -29,7 +29,7 @@
 // auto-starting runs it had not finished loading.
 // ============================================================================
 
-import { twin, NASHVILLE_DEPOT, type CatalogVar, type Scenario, type TwinEventsWindow, type TwinFleetCondition, type TwinLaborWindow, type TwinLayout, type TwinRunContext, type TwinSnapshot } from "@/lib/ottoTwin";
+import { twin, NASHVILLE_DEPOT, type CatalogVar, type Scenario, type TwinEventsWindow, type TwinFleetCondition, type TwinLaborWindow, type TwinLayout, type TwinOffsiteWindow, type TwinRunContext, type TwinSnapshot } from "@/lib/ottoTwin";
 import { packChannels } from "./channels";
 import { auditCoverage, type CoverageReport } from "./coverage";
 import {
@@ -50,6 +50,7 @@ export type BootStageId =
   | "events_window"
   | "fleet_condition"
   | "labor"
+  | "offsite"
   | "variability_profile"
   | "channels";
 
@@ -124,6 +125,8 @@ export interface BootTransport {
   fleetCondition: (simRunId: string) => Promise<TwinFleetCondition>;
   /** staffing-imposed lane limits and the service backlog */
   labor: (simRunId: string) => Promise<TwinLaborWindow>;
+  /** trips, and why they end — the half of the fleet that is not here */
+  offsite: (simRunId: string) => Promise<TwinOffsiteWindow>;
 }
 
 export const defaultTransport: BootTransport = {
@@ -135,6 +138,7 @@ export const defaultTransport: BootTransport = {
   runContext: (id) => twin.runContext(id),
   fleetCondition: (id) => twin.fleetCondition(id),
   labor: (id) => twin.labor(id),
+  offsite: (id) => twin.offsite(id),
 };
 
 export interface BootOptions {
@@ -159,6 +163,7 @@ const CHANNEL_STAGE_LABEL: Record<BootStageId, string> = {
   events_window: "Event signal window",
   fleet_condition: "Per-vehicle condition",
   labor: "Staffing & lane limits",
+  offsite: "Off-site trips",
   variability_profile: "Run variability profile",
   channels: "Channel bundle",
 };
@@ -357,6 +362,23 @@ export async function bootWorld(opts: BootOptions): Promise<BootedWorld> {
   });
   stages.push(laborStage.report);
 
+  let offsiteWindow: TwinOffsiteWindow | null = null;
+  const offsiteStage = await stage("offsite", false, now, async () => {
+    const o = await transport.offsite(simRunId);
+    if (o?.error) throw new Error(String(o.error));
+    offsiteWindow = o;
+    const ratio = o.duration?.ratio_p50;
+    return {
+      value: o, count: o.dispatches?.total ?? 0,
+      empty: (o.dispatches?.total ?? 0) === 0,
+      detail: (o.dispatches?.completed ?? 0) === 0
+        ? `${o.dispatches?.active ?? 0} out now, none returned yet`
+        : `${o.dispatches.completed} trips · median ${o.duration.actual_min_p50} min`
+          + (ratio != null ? ` (${ratio}x plan)` : ""),
+    };
+  });
+  stages.push(offsiteStage.report);
+
   let eventsWindow: TwinEventsWindow | null = null;
   const events = await stage("events_window", false, now, async () => {
     const w = await transport.eventsWindow(simRunId);
@@ -376,7 +398,7 @@ export async function bootWorld(opts: BootOptions): Promise<BootedWorld> {
   let bundle: ChannelBundle | null = null;
   const packed = await stage("channels", true, now, async () => {
     if (!snapshot) throw new Error("cannot pack channels without a frame");
-    const b = packChannels(snapshot, geometry.value, now(), eventsWindow, fleetCondition, laborWindow);
+    const b = packChannels(snapshot, geometry.value, now(), eventsWindow, fleetCondition, laborWindow, offsiteWindow);
     bundle = b;
     const ok = CHANNEL_IDS.filter((c) => b.channels[c].integrity.status === "ok").length;
     return {

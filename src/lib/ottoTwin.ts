@@ -241,6 +241,59 @@ export interface TwinFleetCondition {
   error?: string;
 }
 
+/**
+ * What the fleet does once it LEAVES (RPC `ottoq_twin_offsite_window`).
+ *
+ * Every other feed is depot-scoped, so a vehicle vanished the moment it drove
+ * off and reappeared at the gate. `ottoq_vehicle_dispatches` has recorded
+ * 17,619 dispatches with planned vs actual duration, miles, SoC out and back,
+ * and a return-reason taxonomy — and nothing read it.
+ *
+ * NOTE `energy_consumed_kwh` exists on that table and is NEVER written (0 of
+ * 17,619 rows), so it is not published. Drive energy here is a SoC-delta proxy,
+ * labelled as such.
+ */
+export interface TwinOffsiteWindow {
+  dispatches: { total: number; completed: number; active: number };
+  off_site_now: {
+    count: number;
+    elapsed_min_p50: number | null;
+    return_eta_min_p50: number | null;
+    soc_at_dispatch_p50: number | null;
+  };
+  duration: {
+    planned_min_p50: number | null;
+    actual_min_p50: number | null;
+    actual_min_p90: number | null;
+    /** median of per-trip differences, not the difference of medians */
+    drift_min_p50: number | null;
+    overran_plan: number;
+    ratio_p50: number | null;
+  };
+  activity: {
+    miles_p50: number | null;
+    miles_per_trip_min_p50: number | null;
+    soc_drop_pct_per_hour_p50: number | null;
+    energy_basis: string;
+  };
+  soc: {
+    at_dispatch_p50: number | null;
+    at_return_p50: number | null;
+    at_return_p10: number | null;
+    returned_below_20: number;
+  };
+  arrival_jitter_min_p50: number | null;
+  /** trips with ANY jitter — 2.5% fleet-wide, so the p50 alone reads as "never late" */
+  arrival_jitter_delayed_n: number;
+  arrival_jitter_min_max: number | null;
+  /** why vehicles came back, and the duration each reason implies */
+  by_return_trigger: Record<string, {
+    n: number; planned_min_p50: number | null; actual_min_p50: number | null;
+    drift_min_p50: number | null; soc_at_return_p50: number | null;
+  }>;
+  error?: string;
+}
+
 export interface TwinLaborWindow {
   window: { basis: string; sim_minutes_elapsed: number | null };
   staffing: Record<string, number>;
@@ -369,6 +422,7 @@ export const twin = {
   eventsWindow: (simRunId: string)       => rpc<TwinEventsWindow>("ottoq_twin_events_window", { p_sim_run_id: simRunId }),
   runContext: (simRunId: string)         => rpc<TwinRunContext>("ottoq_twin_run_context", { p_sim_run_id: simRunId }),
   labor: (simRunId: string)              => rpc<TwinLaborWindow>("ottoq_twin_labor_window", { p_sim_run_id: simRunId }),
+  offsite: (simRunId: string)            => rpc<TwinOffsiteWindow>("ottoq_twin_offsite_window", { p_sim_run_id: simRunId }),
   fleetCondition: (simRunId: string)     => rpc<TwinFleetCondition>("ottoq_twin_fleet_condition", { p_sim_run_id: simRunId }),
   health:    ()                          => get<{ service: string; version: string; time: string }>(`/health`),
 

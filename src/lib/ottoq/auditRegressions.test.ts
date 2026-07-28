@@ -592,6 +592,66 @@ describe("coverage must not over-report on a world that published nothing", () =
       .toContain("Absence means no contention, NOT unlimited capacity");
   });
 
+  it("does not let a plan stand in for what the fleet actually did", () => {
+    // Values lifted verbatim from ottoq_twin_offsite_window on run a044dab4.
+    // The finding they encode: trips run 3.6x their planned duration, and the
+    // dominant return reason is the BATTERY, not the schedule. An orchestrator
+    // that pre-stages for planned_duration_min staffs for a fleet that is not
+    // coming — so the frame has to say the plan is not usable.
+    const offsite = {
+      dispatches: { total: 270, completed: 239, active: 0 },
+      off_site_now: { count: 0, elapsed_min_p50: null, return_eta_min_p50: null, soc_at_dispatch_p50: null },
+      duration: { planned_min_p50: 66.4, actual_min_p50: 270, actual_min_p90: 480,
+                  drift_min_p50: 206.1, overran_plan: 195, ratio_p50: 3.638 },
+      activity: { miles_p50: 3.17, miles_per_trip_min_p50: 0.0112,
+                  soc_drop_pct_per_hour_p50: 9.23, energy_basis: "soc_delta_proxy" },
+      soc: { at_dispatch_p50: 90, at_return_p50: 41.8, at_return_p10: 33.6, returned_below_20: 0 },
+      arrival_jitter_min_p50: 0,
+      by_return_trigger: {
+        low_soc_reserve: { n: 122, planned_min_p50: 58.4, actual_min_p50: 355.7, drift_min_p50: 279.9, soc_at_return_p50: 37.1 },
+        sensor_soil:     { n: 70,  planned_min_p50: 71.3, actual_min_p50: 75,    drift_min_p50: 28.6,  soc_at_return_p50: 76.8 },
+      },
+    };
+
+    const b = packChannels(SNAP, layout, new Date(CLOCK), null, null, null, offsite as never);
+    const ft = b.channels.fleet_telemetry;
+    expect(ft.payload.offsite?.duration.ratio_p50).toBe(3.638);
+    expect(ft.integrity.notes.join(" ")).toContain("3.638x their planned duration");
+    expect(ft.integrity.notes.join(" ")).toContain("not a usable predictor");
+
+    // The per-trigger breakdown must survive: a fleet-wide average would hide
+    // that low_soc trips run 356 min while soil trips run 75.
+    expect(ft.payload.offsite?.by_return_trigger.low_soc_reserve.actual_min_p50).toBe(355.7);
+
+    const r = auditCoverage(b);
+    expect(r.variables.find((v) => v.var_key === "trip_duration")?.verdict).toBe("observed");
+    expect(r.variables.find((v) => v.var_key === "idle_fraction")?.verdict).toBe("observed");
+    // soc_on_arrival now reads the RETURNING trip, not the whole yard
+    expect(r.variables.find((v) => v.var_key === "soc_on_arrival")?.verdict).toBe("observed");
+    expect(ft.payload.offsite?.soc.at_return_p50).toBe(41.8);
+    expect(resolveObservable(ft.payload, "offsite.soc.at_return_p50")).toBe(true);
+  });
+
+  it("never sources trip energy from a column the sim does not write", () => {
+    // ottoq_vehicle_dispatches.energy_consumed_kwh is NULL in all 17,619 rows.
+    // Publishing it would report a fleet that drove 17,000 trips on no energy —
+    // and unlike a missing field, a plausible 0 invites arithmetic. The payload
+    // carries a SoC-delta proxy and says so in the data itself.
+    const b = packChannels(SNAP, layout, new Date(CLOCK), null, null, null, {
+      dispatches: { total: 1, completed: 1, active: 0 },
+      off_site_now: { count: 0, elapsed_min_p50: null, return_eta_min_p50: null, soc_at_dispatch_p50: null },
+      duration: { planned_min_p50: 60, actual_min_p50: 62, actual_min_p90: 70, drift_min_p50: 2, overran_plan: 1, ratio_p50: 1.03 },
+      activity: { miles_p50: 3, miles_per_trip_min_p50: 0.05, soc_drop_pct_per_hour_p50: 9, energy_basis: "soc_delta_proxy" },
+      soc: { at_dispatch_p50: 90, at_return_p50: 80, at_return_p10: 75, returned_below_20: 0 },
+      arrival_jitter_min_p50: 0, by_return_trigger: {},
+    } as never);
+    const act = b.channels.fleet_telemetry.payload.offsite?.activity as Record<string, unknown>;
+    expect(act.energy_basis).toBe("soc_delta_proxy");
+    expect(act).not.toHaveProperty("energy_kwh_p50");
+    // and the plan is close enough here that no warning should fire
+    expect(b.channels.fleet_telemetry.integrity.notes.join(" ")).not.toContain("not a usable predictor");
+  });
+
   it("reports drift as UNKNOWN when the catalog could not be read", () => {
     const r = auditCoverage(bundleWith({ dr: false }));       // no catalog passed
     expect(r.unbound_catalog_keys).toBeNull();

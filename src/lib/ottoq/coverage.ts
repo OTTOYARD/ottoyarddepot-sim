@@ -78,16 +78,33 @@ export const VARIABLE_BINDINGS: VariableBinding[] = [
   // NOTE: depot_ops.demand_forecast.incoming_count is a second, forward-looking
   // witness for this same knob. `arrival` stays bound to the realized count —
   // a forecast is a claim about the future, not an observation of the world.
-  // UNLOCKED. The twin measures plan-vs-realized travel drift itself
-  // (legs_meta.median_deviation_s) and it was being discarded with the legs.
-  { var_key: "eta_delay", domain: "fleet_demand", label: "Arrival ETA delay", channel: "depot_ops", observable: "plan_deviation_s" },
-  { var_key: "soc_on_arrival", domain: "fleet_demand", label: "SoC on arrival", channel: "fleet_telemetry", observable: "soc.p50" },
+  // UNLOCKED earlier from legs_meta.median_deviation_s, which the twin has
+  // always published and the client discarded. It STAYS on the leg deviation,
+  // deliberately. ottoq_vehicle_dispatches has an
+  // arrival_jitter_min column that looks like a perfect fit — and it is 0 on
+  // 97.5% of trips (282 of 11,274 carry any). Binding to its p50 would grade
+  // this "observed" on every run while telling OTTO-Q nothing. The count and
+  // max are published on fleet_telemetry.offsite instead, where the sparsity
+  // is legible.
+  { var_key: "eta_delay", domain: "fleet_demand", label: "Arrival ETA delay", channel: "depot_ops", observable: "plan_deviation_s", note: "leg plan-vs-realized drift; the dispatch arrival_jitter p50 is 0 on 97.5% of trips and would be a false positive" },
+  // REBOUND to the per-trip measurement. `soc.p50` is the SoC of every vehicle
+  // in the yard — mostly vehicles that have been charging for hours — which is
+  // not "SoC on arrival" in any useful sense. The dispatch record has the real
+  // thing: the SoC each vehicle actually came back with.
+  { var_key: "soc_on_arrival", domain: "fleet_demand", label: "SoC on arrival", channel: "fleet_telemetry", observable: "offsite.soc.at_return_p50", note: "measured per returning trip; the yard-wide soc.p50 it replaced was dominated by vehicles mid-charge" },
   // UNLOCKED. Not from the fleet rows — which still carry no target — but from
   // the charge-session event log, which records soc_target on every session.
   { var_key: "target_soc", domain: "fleet_demand", label: "Target SoC", channel: "charger_systems", observable: "observed_charging.target_soc_p50", note: "population median from charge.session_started; per-vehicle target is still absent from the fleet rows" },
-  { var_key: "trip_duration", domain: "fleet_demand", label: "Trip duration", channel: null, observable: null, note: "off-site trip time never surfaces on a depot-scoped frame" },
+  // UNLOCKED. Not from the depot frame — from ottoq_vehicle_dispatches, which
+  // has recorded planned vs actual duration for 17,619 trips and was never read.
+  { var_key: "trip_duration", domain: "fleet_demand", label: "Trip duration", channel: "fleet_telemetry", observable: "offsite.duration.actual_min_p50" },
   { var_key: "oem_mix_tesla", domain: "fleet_demand", label: "Tesla share", channel: "fleet_telemetry", observable: "vehicles[].oem" },
-  { var_key: "idle_fraction", domain: "fleet_demand", label: "Drive-activity level", channel: null, observable: null, note: "drive activity shapes arrival SoC but is not itself observable" },
+  // UNLOCKED via the realized activity rate. idle_fraction multiplies the
+  // active-driving fraction, so a vehicle that idles covers fewer miles per
+  // minute away — that ratio is the effect, and it is measured per trip.
+  // NOT bound to energy_consumed_kwh: that column is never written (0 of
+  // 17,619 rows), so it would report a fleet that used no energy.
+  { var_key: "idle_fraction", domain: "fleet_demand", label: "Drive-activity level", channel: "fleet_telemetry", observable: "offsite.activity.miles_per_trip_min_p50" },
 
   // ── operations ────────────────────────────────────────────────────────────
   // UNLOCKED. depot_ops.service_timers is now built from the twin's timed-leg
