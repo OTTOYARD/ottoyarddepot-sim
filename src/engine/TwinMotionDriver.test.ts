@@ -428,3 +428,116 @@ describe("TwinMotionDriver — kinematic motion off the twin", () => {
     expect(Math.max(...after)).toBeGreaterThan(1); // genuinely moving again
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// T4 RENDER CONTRACT — OTTO-Q's timed legs pace the motion.
+// The contract supplies WHAT moves and by WHEN; the physics still supplies HOW it
+// looks getting there (rails, IDM car-following, node locks). These tests pin the
+// two properties that make that true, and the one that must never be true.
+// ─────────────────────────────────────────────────────────────────────────────
+describe("T4 — timed-leg contract paces motion", () => {
+  type Priv = {
+    legs: Map<string, unknown>;
+    simAnchorClock: number;
+    simAnchorAt: number;
+    simSpeedX: number;
+    simNow(): number;
+    contractPace(id: string, rail: { total: number; s: number }): number | undefined;
+  };
+  const priv = () => twinMotionDriver as unknown as Priv;
+
+  beforeEach(() => {
+    twinMotionDriver.clear();
+    useVehicleStore.getState().reset();
+    useDepotStore.getState().regenerateStalls(10, 30, 3, 115, 2);
+  });
+
+  const leg = (vehicle_id: string, endInSec: number, nowIso: string) => ({
+    leg_id: `L-${vehicle_id}`, vehicle_id, seq: 1, leg_type: "taxi",
+    intent: "taxi_to_charger", kind: "travel",
+    from_stall: null, to_stall: null,
+    from_x: null, from_y: null, to_x: null, to_y: null,
+    start_sim: nowIso,
+    end_sim: new Date(Date.parse(nowIso) + endInSec * 1000).toISOString(),
+    duration_s: endInSec, status: "active", geometry: "measured",
+  });
+
+  it("SIM CLOCK runs off the WALL clock — motion continues when the feed stalls", () => {
+    const iso = "2026-07-27T12:00:00.000Z";
+    const s = snap([{ id: "V1", state: "staged_for_departure" }]);
+    s.run.sim_clock = iso;
+    s.run.speed_x = 1;
+    twinMotionDriver.reconcile(s);
+
+    // simNow() is already extrapolating, so it is a hair past the anchor by the
+    // time we read it — that is the mechanism working, not drift. Allow a few ms.
+    const t0 = priv().simNow();
+    expect(Math.abs(t0 - Date.parse(iso))).toBeLessThan(50);
+    // advance the wall clock only — NO new snapshot arrives
+    priv().simAnchorAt -= 5000;
+    const t1 = priv().simNow();
+    expect(t1 - t0).toBeGreaterThanOrEqual(4900);
+    expect(t1 - t0).toBeLessThanOrEqual(5100);
+  });
+
+  it("speed_x scales the sim clock (2x view = 2 sim seconds per real second)", () => {
+    const iso = "2026-07-27T12:00:00.000Z";
+    const s = snap([{ id: "V1", state: "staged_for_departure" }]);
+    s.run.sim_clock = iso; s.run.speed_x = 2;
+    twinMotionDriver.reconcile(s);
+    priv().simAnchorAt -= 1000;             // one real second
+    expect(priv().simNow() - Date.parse(iso)).toBeGreaterThanOrEqual(1900); // ~2 sim seconds
+  });
+
+  it("PACE lands the car at planned_end_sim: 60u of rail with 30s left => ~2 u/s", () => {
+    const iso = "2026-07-27T12:00:00.000Z";
+    const s = snap([{ id: "V1", state: "staged_for_departure" }]);
+    s.run.sim_clock = iso; s.run.speed_x = 1;
+    s.legs = [leg("V1", 30, iso)] as never;
+    twinMotionDriver.reconcile(s);
+    const v = priv().contractPace("V1", { total: 60, s: 0 });
+    expect(v).toBeDefined();
+    expect(v!).toBeGreaterThan(1.8);
+    expect(v!).toBeLessThan(2.2);
+  });
+
+  it("an OVERDUE leg is UNCAPPED — a late car catches up instead of crawling forever", () => {
+    const iso = "2026-07-27T12:00:00.000Z";
+    const s = snap([{ id: "V1", state: "staged_for_departure" }]);
+    s.run.sim_clock = iso; s.run.speed_x = 1;
+    s.legs = [leg("V1", -60, iso)] as never;   // ended a minute ago
+    twinMotionDriver.reconcile(s);
+    expect(priv().contractPace("V1", { total: 60, s: 0 })).toBeUndefined();
+  });
+
+  it("a car with NO leg is uncapped — pre-T4 behaviour is exactly preserved", () => {
+    const iso = "2026-07-27T12:00:00.000Z";
+    const s = snap([{ id: "V1", state: "staged_for_departure" }]);
+    s.run.sim_clock = iso;
+    twinMotionDriver.reconcile(s);
+    expect(priv().contractPace("V1", { total: 60, s: 0 })).toBeUndefined();
+  });
+
+  it("DWELL legs never steer motion — only kind='travel' is a movement", () => {
+    const iso = "2026-07-27T12:00:00.000Z";
+    const s = snap([{ id: "V1", state: "charging_dcfc" }]);
+    s.run.sim_clock = iso;
+    s.legs = [{ ...leg("V1", 30, iso), kind: "charge_curve", leg_type: "charge_dcfc" }] as never;
+    twinMotionDriver.reconcile(s);
+    expect(priv().legs.size).toBe(0);
+    expect(priv().contractPace("V1", { total: 60, s: 0 })).toBeUndefined();
+  });
+
+  it("a RUN SWITCH drops the contract — stale legs never pace a new fleet", () => {
+    const iso = "2026-07-27T12:00:00.000Z";
+    const a = snap([{ id: "V1", state: "staged_for_departure" }], "runA");
+    a.run.sim_clock = iso; a.legs = [leg("V1", 30, iso)] as never;
+    twinMotionDriver.reconcile(a);
+    expect(priv().legs.size).toBe(1);
+
+    const b = snap([{ id: "V9", state: "staged_for_departure" }], "runB");
+    b.run.sim_clock = iso;                    // different run, no legs
+    twinMotionDriver.reconcile(b);
+    expect(priv().legs.has("V1")).toBe(false);
+  });
+});

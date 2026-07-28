@@ -39,6 +39,13 @@ export interface Rail {
                           // at ~1 u/s behind a stale lock never fully stops, so
                           // a velocity-only watchdog would miss it
   progressS: number;      // arc position at the last progress checkpoint
+  /** T4 CONTRACT PACING (optional). Speed ceiling in u/s derived from OTTO-Q's
+   *  timed leg: remaining arc / remaining sim-seconds until planned_end_sim. It is
+   *  a CEILING ONLY — it can slow a car so it arrives when the contract says, but
+   *  it can never make one exceed MAX_SPEED, and it never overrides IDM braking,
+   *  node locks or the mouth lock (those clamp v downward and still win). Undefined
+   *  = uncapped, i.e. exactly the pre-T4 behaviour. */
+  vCap?: number;
 }
 
 const LANE_HALF = 1.7;    // half-width that counts as "in my path"
@@ -171,7 +178,12 @@ export function stepRail(
 
   // 4) IDM speed + advance along the rail
   const accel = idmAccel(r.v, Math.max(0, gap), 0);
-  r.v = Math.max(0, Math.min(MAX_SPEED, r.v + accel * dt));
+  // T4: the contract's pace is a CEILING layered on top of the physics ceiling.
+  // Traffic (IDM gap), node locks and the mouth lock all clamp v downward below
+  // and still win — so honouring OTTO-Q's timing can never push a car through a
+  // car in front of it or through a held intersection.
+  const vMax = Math.min(MAX_SPEED, r.vCap ?? MAX_SPEED);
+  r.v = Math.max(0, Math.min(vMax, r.v + accel * dt));
   // ease to a stop exactly at the route end
   r.v = Math.min(r.v, Math.sqrt(2 * 7 * Math.max(0, r.total - r.s)));
   r.s += r.v * dt;

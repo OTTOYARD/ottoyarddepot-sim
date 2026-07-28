@@ -35,6 +35,26 @@ export interface TwinVehicle {
   id: string; av_id: string; make: string; platform: string;
   state: string; soc: number; stall_id: string | null;
 }
+/** One timed leg of OTTO-Q's plan for a vehicle. `kind:'travel'` legs are movements
+ *  (the renderer drives them); every other kind is a DWELL at a location. */
+export interface TwinLeg {
+  leg_id: string;
+  vehicle_id: string;
+  seq: number;
+  leg_type: string;              // taxi | depart | arrive | stage | charge_* | wash | ...
+  intent: string | null;         // taxi_to_charger | taxi_to_gate | taxi_to_wash | exit_*_to_staging
+  kind: string;                  // 'travel' = a movement; anything else is a dwell
+  from_stall: string | null;     // NULL on a travel leg = entering from OFF-MAP (drive in via the gate)
+  to_stall: string | null;
+  from_x: number | null; from_y: number | null;   // backend frame — diagnostics only, see note above
+  to_x: number | null;   to_y: number | null;
+  start_sim: string;             // planned_start_sim (ISO)
+  end_sim: string;               // planned_end_sim   (ISO)
+  duration_s: number | null;
+  status: string;                // planned | active | done | skipped | amended
+  geometry: string;              // measured | arrival_from_offmap | origin_unresolved | bay_geometry_missing
+}
+
 export interface TwinSnapshot {
   run: {
     sim_run_id: string; scenario: string; status: string;
@@ -56,6 +76,17 @@ export interface TwinSnapshot {
     next_tick_due_at?: string | null;
     server_now?: string;
   };
+  /** T3/T4 RENDER CONTRACT. Timed legs published by the backend
+   *  (`ottoq_itinerary_legs` via `ottoq_twin_snapshot`). The renderer INTERPOLATES
+   *  these; it must never invent a movement the contract did not specify.
+   *
+   *  ⚠️ USE `to_stall` / `from_stall`, NOT `to_x` / `to_y`. The coordinates are in the
+   *  BACKEND's site frame (feet, SW origin) which is a DIFFERENT depot layout from
+   *  the renderer's sitePlan — no transform exists between them. The stall UUIDs are
+   *  the only safe join, via TwinMotionDriver.setTwinStallMap (matched on stall_code).
+   *  The x/y are carried for diagnostics and for a future Isaac consumer that renders
+   *  in the backend frame. */
+  legs?: TwinLeg[];
   fleet: { counts: Record<string, number>; total: number; vehicles: TwinVehicle[] };
   stalls_status: { id: string; status: string; vehicle_id: string | null }[];
   energy: Record<string, number | string | null> | null;

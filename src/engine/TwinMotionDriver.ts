@@ -26,7 +26,7 @@ import { poseStore } from "./motion/poseStore";
 import { useDepotStore, type StallStatus } from "@/store/depotStore";
 import { useVehicleStore } from "@/store/vehicleStore";
 import type { Vehicle, VehicleStatus } from "@/engine/types";
-import type { TwinSnapshot } from "@/lib/ottoTwin";
+import type { TwinSnapshot, TwinLeg } from "@/lib/ottoTwin";
 import { INGRESS, EGRESS, gapLaneX, SOUTH_LANE_Y, REAR_LANE_Y } from "@/lib/sitePlan";
 
 type Lane = "dcfc" | "l2" | "wash" | "service" | "staging";
@@ -225,6 +225,56 @@ class TwinMotionDriver {
     this.last = null; // re-seed so the change never applies one giant catch-up dt
   }
 
+  // ─── T4 RENDER CONTRACT: OTTO-Q's timed legs pace the motion ────────────────
+  /** Active TRAVEL legs from the last snapshot, keyed by vehicle id. */
+  private legs = new Map<string, TwinLeg>();
+  /** Sim clock (ms) carried by the last snapshot, and the performance.now() at
+   *  which it arrived. simNow() extrapolates between snapshots off the WALL clock,
+   *  so motion keeps running — correctly — when the feed stalls or is unplugged.
+   *  That is the whole point: the poll becomes a correction channel, not the driver. */
+  private simAnchorClock = 0;
+  private simAnchorAt = 0;
+  private simSpeedX = 1;
+
+  /** #173 (D) — CONTRACT COVERAGE. Only the renderer knows how many cars are
+   *  physically taxiing, so only it can close this ratio. `paced` counts cars whose
+   *  motion is actually governed by an OTTO-Q leg; `taxiing` counts every car in
+   *  motion. Anything in the gap is the renderer moving a car the contract never
+   *  described — the exact thing T3/T4 exist to eliminate. It measured 0/22 when
+   *  first surfaced; without this number that was invisible. */
+  coverage(): { taxiing: number; paced: number; ratio: number; legs: number } {
+    let taxiing = 0, paced = 0;
+    for (const e of this.entries.values()) {
+      if (!e.tracker) continue;
+      taxiing++;
+      if (e.tracker.vCap != null || this.legs.has(e.id)) paced++;
+    }
+    return { taxiing, paced, ratio: taxiing ? paced / taxiing : 1, legs: this.legs.size };
+  }
+
+  /** Current sim time in ms, extrapolated from the last snapshot. */
+  private simNow(): number {
+    if (!this.simAnchorClock) return 0;
+    return this.simAnchorClock + (performance.now() - this.simAnchorAt) * this.simSpeedX;
+  }
+
+  /** Speed ceiling (u/s) that lands this car at its leg's planned_end_sim.
+   *  Returns undefined when there is no contract to honour, when the leg is already
+   *  due (let it run flat out to catch up), or when the numbers are not finite —
+   *  in every one of those cases the car falls back to pre-T4 behaviour. */
+  private contractPace(id: string, rail: Rail): number | undefined {
+    const leg = this.legs.get(id);
+    if (!leg || this.simAnchorClock === 0) return undefined;
+    const endMs = Date.parse(leg.end_sim);
+    if (!Number.isFinite(endMs)) return undefined;
+    const remainingSec = (endMs - this.simNow()) / 1000;
+    if (!(remainingSec > 0.5)) return undefined;      // due or overdue → uncapped
+    const remainingArc = Math.max(0, rail.total - rail.s);
+    if (remainingArc <= 0.5) return undefined;
+    const v = remainingArc / remainingSec;
+    return Number.isFinite(v) && v > 0 ? v : undefined;
+  }
+
   start() {
     if (this.rafId !== null || this.intervalId !== null) return;
     this.last = null;
@@ -272,6 +322,11 @@ class TwinMotionDriver {
     this.primed = false;
     this.departQueue = [];
     this.locks = new RailLocks();
+    // T4: a run switch invalidates the contract — stale legs would otherwise pace
+    // the NEW fleet against the OLD run's clock (ids never match, so a car would
+    // be held to a deadline from a different world).
+    this.legs.clear();
+    this.simAnchorClock = 0;
   }
 
   /** Ingest the twin depot layout: map each twin stall uuid to the renderer's
@@ -455,6 +510,24 @@ class TwinMotionDriver {
     const rid = snap.run?.sim_run_id ?? null;
     if (rid && this.runId && rid !== this.runId) this.resetScene();
     if (rid) this.runId = rid;
+
+    // ─── T4: re-anchor the sim clock and refresh the leg contract ─────────────
+    // Between snapshots simNow() runs off the WALL clock, so motion continues
+    // (and stays correctly paced) if the feed stalls. This is the correction.
+    const clockMs = Date.parse(snap.run?.sim_clock ?? "");
+    if (Number.isFinite(clockMs)) {
+      this.simAnchorClock = clockMs;
+      this.simAnchorAt = performance.now();
+      this.simSpeedX = Math.max(0.1, Number(snap.run?.speed_x ?? 1) || 1);
+    }
+    // Only TRAVEL legs steer motion; dwell legs describe what happens once parked.
+    // Newest wins per vehicle, so a re-planned move supersedes the one it replaced.
+    this.legs.clear();
+    for (const l of snap.legs ?? []) {
+      if (l?.kind !== "travel" || !l.vehicle_id) continue;
+      const prev = this.legs.get(l.vehicle_id);
+      if (!prev || (l.seq ?? 0) >= (prev.seq ?? 0)) this.legs.set(l.vehicle_id, l);
+    }
     const depot = useDepotStore.getState();
     const stalls = depot.stalls;
     const byLane: Record<string, typeof stalls> = { dcfc: [], l2: [], wash: [], service: [], staging: [] };
@@ -946,6 +1019,9 @@ class TwinMotionDriver {
             continue;
           }
         }
+        // T4: pace this car so it ARRIVES when OTTO-Q's leg says it should. A
+        // ceiling only — traffic, node locks and the mouth lock still clamp below.
+        e.tracker.vCap = this.contractPace(id, e.tracker);
         const pose = stepRail(id, e.tracker, dt, bodies, this.locks);
         changed = true;
         if (pose) {
