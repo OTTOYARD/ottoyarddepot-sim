@@ -652,6 +652,78 @@ describe("coverage must not over-report on a world that published nothing", () =
     expect(b.channels.fleet_telemetry.integrity.notes.join(" ")).not.toContain("not a usable predictor");
   });
 
+  it("never republishes the DTC sentinel as a severity", () => {
+    // ottoq_vehicle_wear.worst_open_dtc_rank uses 99 to mean "NO open DTC" —
+    // confirmed in ottoq_wear_mark_serviced, which sets it to 99 when a repair
+    // clears the codes, and by the data (all 11,085 rows at rank 99 have
+    // open_dtc_count = 0). The scale is also INVERTED: 0 is worst, 4 mildest.
+    //
+    // Passed through raw, a perfectly healthy fleet reports "severity 99" to
+    // any consumer that assumes higher-is-worse — the most alarming possible
+    // reading of the least alarming possible state.
+    const clean = {
+      fleet_size: 91,
+      wear: { drive_km_p50: 198.5, drive_hours_p50: 5.5, soil_index_p50: 0.22, soil_index_max: 0.507, cabin_litter_total: 138 },
+      due: { pm_due_ratio_p50: 0.026, pm_overdue: 0, pm_due_soon: 0, calib_due_ratio_p50: 0.025, calib_overdue: 0, measurable: 91 },
+      dtc: { open_total: 0, vehicles_with_open: 0, worst_rank: null, rank_scale: "lower_is_worse",
+             rank_sentinel_note: "99 means none", by_rank: {} },
+      attention: [],
+    };
+    const b = packChannels(SNAP, layout, new Date(CLOCK), null, null, null, null, clean as never);
+    const w = b.channels.fleet_telemetry.payload.wear;
+    expect(w?.dtc.worst_rank).toBeNull();       // NOT 99
+    expect(w?.dtc.rank_scale).toBe("lower_is_worse");
+    // and a clean fleet raises no alarm note
+    expect(b.channels.fleet_telemetry.integrity.notes.join(" ")).not.toContain("open DTC");
+
+    // a genuinely faulted fleet reports the real rank and says which way it runs
+    const faulted = { ...clean, dtc: { open_total: 1, vehicles_with_open: 1, worst_rank: 2,
+      rank_scale: "lower_is_worse", rank_sentinel_note: "99 means none", by_rank: { "2": 1 } } };
+    const b2 = packChannels(SNAP, layout, new Date(CLOCK), null, null, null, null, faulted as never);
+    expect(b2.channels.fleet_telemetry.payload.wear?.dtc.worst_rank).toBe(2);
+    expect(b2.channels.fleet_telemetry.integrity.notes.join(" ")).toContain("lower is worse");
+    expect(auditCoverage(b2).variables.find((v) => v.var_key === "dtc")?.verdict).toBe("observed");
+  });
+
+  it("proves the scheduling policy from decisions, not from configuration", () => {
+    // ottoq_sim_runs.policy is what the run was CONFIGURED with. Binding to it
+    // would let OTTO-Q report a policy the world may never have run — the same
+    // failure as reporting a slider's value as an outcome. The witness is the
+    // policy stamped on each logged deploy decision.
+    const ctx = {
+      sim_run_id: "run-1", depot_id: "d1", depot_name: "Nashville", scenario: "normal_day",
+      status: "running", seed: 7, stall_count: 2, fleet_count: 1,
+      policy_configured: "otto_q", policy_observed: "greedy", policy_decisions: 322,
+      policy_variants: { greedy: 322 }, policy_matches_config: false,
+    };
+    const b = packChannels(SNAP, layout, new Date(CLOCK), null, null, null, null, null, ctx as never);
+    const dep = b.channels.depot_ops;
+    expect(dep.payload.policy?.observed).toBe("greedy");
+    expect(dep.payload.policy?.configured).toBe("otto_q");
+    // A benchmark that ran a policy it was not configured for is not a
+    // benchmark. Saying nothing would make an A/B comparison meaningless.
+    expect(dep.integrity.notes.join(" ")).toContain("POLICY MISMATCH");
+    expect(dep.integrity.notes.join(" ")).toContain("not a valid benchmark");
+    // the variable binds to the OBSERVED value, never the configured one
+    expect(auditCoverage(b).variables.find((v) => v.var_key === "scheduling_algorithm")?.verdict).toBe("observed");
+  });
+
+  it("treats a configured-but-never-run policy as unproven, not as fact", () => {
+    const ctx = {
+      sim_run_id: "run-1", depot_id: "d1", depot_name: "N", scenario: "normal_day",
+      status: "running", seed: 7, stall_count: 2, fleet_count: 1,
+      policy_configured: "otto_q", policy_observed: null, policy_decisions: 0,
+      policy_variants: null, policy_matches_config: null,
+    };
+    const b = packChannels(SNAP, layout, new Date(CLOCK), null, null, null, null, null, ctx as never);
+    expect(b.channels.depot_ops.payload.policy?.configured).toBe("otto_q");
+    expect(b.channels.depot_ops.payload.policy?.observed).toBeNull();
+    expect(b.channels.depot_ops.integrity.missing).toContain("policy.observed");
+    expect(b.channels.depot_ops.integrity.notes.join(" ")).toContain("policy in force is unproven");
+    // configured alone must NOT satisfy the variable
+    expect(auditCoverage(b).variables.find((v) => v.var_key === "scheduling_algorithm")?.verdict).toBe("dark");
+  });
+
   it("reports drift as UNKNOWN when the catalog could not be read", () => {
     const r = auditCoverage(bundleWith({ dr: false }));       // no catalog passed
     expect(r.unbound_catalog_keys).toBeNull();

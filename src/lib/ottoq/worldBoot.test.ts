@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { CatalogVar, Scenario, TwinEventsWindow, TwinFleetCondition, TwinLaborWindow, TwinLayout, TwinOffsiteWindow, TwinSnapshot } from "@/lib/ottoTwin";
+import type { CatalogVar, Scenario, TwinEventsWindow, TwinFleetCondition, TwinLaborWindow, TwinLayout, TwinOffsiteWindow, TwinWearWindow, TwinSnapshot } from "@/lib/ottoTwin";
 import { bootWorld, type BootTransport } from "./worldBoot";
 
 const CLOCK = "2026-07-27T14:00:00.000Z";
@@ -89,8 +89,18 @@ function transport(over: Partial<BootTransport> = {}): BootTransport {
       sim_run_id: "run-1", depot_id: "d1", depot_name: "Nashville",
       scenario: "normal_day", status: "running", seed: 7,
       stall_count: 2, fleet_count: 1,
+      policy_configured: "otto_q", policy_observed: "otto_q", policy_decisions: 3,
+      policy_variants: { otto_q: 3 }, policy_matches_config: true,
     }),
     fleetCondition: async () => emptyFleetCondition(),
+    wear: async () => ({
+      fleet_size: 1,
+      wear: { drive_km_p50: 10, drive_hours_p50: 1, soil_index_p50: 0.1, soil_index_max: 0.2, cabin_litter_total: 0 },
+      due: { pm_due_ratio_p50: 0.1, pm_overdue: 0, pm_due_soon: 0, calib_due_ratio_p50: 0.1, calib_overdue: 0, measurable: 1 },
+      dtc: { open_total: 0, vehicles_with_open: 0, worst_rank: null, rank_scale: "lower_is_worse",
+             rank_sentinel_note: "99 means none", by_rank: {} },
+      attention: [],
+    }),
     offsite: async () => ({
       dispatches: { total: 0, completed: 0, active: 0 },
       off_site_now: { count: 0, elapsed_min_p50: null, return_eta_min_p50: null, soc_at_dispatch_p50: null },
@@ -123,7 +133,7 @@ describe("bootWorld", () => {
     const { report } = await bootWorld({ ...opts, transport: transport() });
     expect(report.stages.map((s) => s.id)).toEqual([
       "run_context", "geometry", "registry", "scenarios", "first_frame",
-      "variability_profile", "fleet_condition", "labor", "offsite", "events_window", "channels",
+      "variability_profile", "fleet_condition", "labor", "offsite", "wear", "events_window", "channels",
     ]);
     expect(report.sim_run_id).toBe("run-1");
     expect(report.scenario).toBe("normal_day");

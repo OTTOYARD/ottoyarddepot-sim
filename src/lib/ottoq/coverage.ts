@@ -69,7 +69,10 @@ export const VARIABLE_BINDINGS: VariableBinding[] = [
   { var_key: "precip_mm", domain: "environment", label: "Precipitation (daily)", channel: "environment", observable: "precip_state" },
   { var_key: "cloud_cover_pct", domain: "environment", label: "Cloud cover", channel: "environment", observable: "cloud_pct" },
   { var_key: "wind_speed_kmh", domain: "environment", label: "Wind speed", channel: "environment", observable: "wind_kmh" },
-  { var_key: "humidity_pct", domain: "environment", label: "Humidity", channel: null, observable: null, note: "humidity is sampled but never published on any frame" },
+  // UNLOCKED. It was never "unsampled" — ottoq_weather_snapshots has recorded
+  // relative_humidity_pct for 8,553 rows (30.7-99.3%) and ottoq_twin_snapshot
+  // read that exact row while selecting every column except this one.
+  { var_key: "humidity_pct", domain: "environment", label: "Humidity", channel: "environment", observable: "humidity_pct" },
   { var_key: "precip_rate", domain: "environment", label: "Precipitation rate", channel: "environment", observable: "precip_state" },
   { var_key: "solar_soiling", domain: "environment", label: "Solar soiling", channel: "energy_grid", observable: "site.solar_kw", note: "soiling only shows as a solar-output deficit; the soiling factor itself is not published" },
 
@@ -134,7 +137,12 @@ export const VARIABLE_BINDINGS: VariableBinding[] = [
   { var_key: "service_staff", domain: "operations", label: "Service/maint staff", channel: "depot_ops", observable: "labor.lanes.service_cap", note: "ottoq_sim_lane_capacity('service_staff', 2)" },
   { var_key: "deploy_staff", domain: "operations", label: "Deploy-prep staff", channel: "depot_ops", observable: "labor.lanes.deploy_cap", note: "ottoq_sim_lane_capacity('deploy_staff', 20)" },
   { var_key: "queue_patience", domain: "operations", label: "Queue patience", channel: "depot_ops", observable: "queue.waiting", note: "patience is only visible through the queue length it produces" },
-  { var_key: "scheduling_algorithm", domain: "operations", label: "OTTO-Q scheduling policy", channel: null, observable: null, note: "the policy in force is not echoed back on any frame — OTTO-Q cannot confirm which policy the world believes it is running" },
+  // UNLOCKED via EVIDENCE, not configuration. ottoq_sim_runs.policy is a
+  // setting, and binding to it would report a policy the world may not have
+  // used; ottoq_deploy_log stamps the policy that actually made each deploy
+  // decision (18,663 of them across 128 runs). `policy.observed` is that, and
+  // `policy.matches_config` says whether the run honoured its own config.
+  { var_key: "scheduling_algorithm", domain: "operations", label: "OTTO-Q scheduling policy", channel: "depot_ops", observable: "policy.observed", note: "observed from stamped deploy decisions; the configured value ships alongside but is never the witness" },
 
   // ── reliability ───────────────────────────────────────────────────────────
   // UNOBSERVABLE, not dark. counts.faulted is hardcoded null because charger
@@ -149,7 +157,12 @@ export const VARIABLE_BINDINGS: VariableBinding[] = [
   // log. These are different claims: the population rate says nothing about
   // whether charger B-NASH-L2-27 is alive right now.
   { var_key: "charger_fault", domain: "reliability", label: "Charger fault rate", channel: "charger_systems", observable: "reliability.fault_rate", note: "population fault rate from charge.session_faulted; PER-CHARGER station_state is still unpublished" },
-  { var_key: "dtc", domain: "reliability", label: "DTC / fault-code rate", channel: null, observable: null, note: "DTC codes are emitted into telemetry packets but never reach a frame" },
+  // UNLOCKED from ottoq_vehicle_wear, which counts open DTCs per vehicle per
+  // run. Bound to the realized COUNT: if the spawn rate rises, this rises.
+  // Republished with the sentinel stripped — the raw worst_open_dtc_rank uses
+  // 99 for "no DTC" on an INVERTED scale where 0 is worst, so a clean fleet
+  // reads as severity 99 to anyone assuming higher-is-worse.
+  { var_key: "dtc", domain: "reliability", label: "DTC / fault-code rate", channel: "fleet_telemetry", observable: "wear.dtc.open_total" },
   { var_key: "incident", domain: "reliability", label: "Incident rate", channel: "depot_ops", observable: "incidents_open" },
   // UNLOCKED. vehicle.exception_* events carry a severity classifier.
   { var_key: "incident_severity", domain: "reliability", label: "Incident severity", channel: "depot_ops", observable: "reliability.exceptions_by_severity", note: "severity histogram from vehicle.exception_* events; ottoq_vehicle_incidents still publishes only a count" },

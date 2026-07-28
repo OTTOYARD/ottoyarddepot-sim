@@ -29,7 +29,7 @@
 // auto-starting runs it had not finished loading.
 // ============================================================================
 
-import { twin, NASHVILLE_DEPOT, type CatalogVar, type Scenario, type TwinEventsWindow, type TwinFleetCondition, type TwinLaborWindow, type TwinLayout, type TwinOffsiteWindow, type TwinRunContext, type TwinSnapshot } from "@/lib/ottoTwin";
+import { twin, NASHVILLE_DEPOT, type CatalogVar, type Scenario, type TwinEventsWindow, type TwinFleetCondition, type TwinLaborWindow, type TwinLayout, type TwinOffsiteWindow, type TwinWearWindow, type TwinRunContext, type TwinSnapshot } from "@/lib/ottoTwin";
 import { packChannels } from "./channels";
 import { auditCoverage, type CoverageReport } from "./coverage";
 import {
@@ -51,6 +51,7 @@ export type BootStageId =
   | "fleet_condition"
   | "labor"
   | "offsite"
+  | "wear"
   | "variability_profile"
   | "channels";
 
@@ -127,6 +128,8 @@ export interface BootTransport {
   labor: (simRunId: string) => Promise<TwinLaborWindow>;
   /** trips, and why they end — the half of the fleet that is not here */
   offsite: (simRunId: string) => Promise<TwinOffsiteWindow>;
+  /** realized wear, service-due state and open DTCs */
+  wear: (simRunId: string) => Promise<TwinWearWindow>;
 }
 
 export const defaultTransport: BootTransport = {
@@ -139,6 +142,7 @@ export const defaultTransport: BootTransport = {
   fleetCondition: (id) => twin.fleetCondition(id),
   labor: (id) => twin.labor(id),
   offsite: (id) => twin.offsite(id),
+  wear: (id) => twin.wear(id),
 };
 
 export interface BootOptions {
@@ -164,6 +168,7 @@ const CHANNEL_STAGE_LABEL: Record<BootStageId, string> = {
   fleet_condition: "Per-vehicle condition",
   labor: "Staffing & lane limits",
   offsite: "Off-site trips",
+  wear: "Wear & service due",
   variability_profile: "Run variability profile",
   channels: "Channel bundle",
 };
@@ -379,6 +384,19 @@ export async function bootWorld(opts: BootOptions): Promise<BootedWorld> {
   });
   stages.push(offsiteStage.report);
 
+  let wearWindow: TwinWearWindow | null = null;
+  const wearStage = await stage("wear", false, now, async () => {
+    const wv = await transport.wear(simRunId);
+    if (wv?.error) throw new Error(String(wv.error));
+    wearWindow = wv;
+    return {
+      value: wv, count: wv.fleet_size, empty: wv.fleet_size === 0,
+      detail: `${wv.fleet_size} vehicles · ${wv.due?.pm_overdue ?? 0} PM overdue · `
+        + `${wv.dtc?.open_total ?? 0} open DTC`,
+    };
+  });
+  stages.push(wearStage.report);
+
   let eventsWindow: TwinEventsWindow | null = null;
   const events = await stage("events_window", false, now, async () => {
     const w = await transport.eventsWindow(simRunId);
@@ -398,7 +416,7 @@ export async function bootWorld(opts: BootOptions): Promise<BootedWorld> {
   let bundle: ChannelBundle | null = null;
   const packed = await stage("channels", true, now, async () => {
     if (!snapshot) throw new Error("cannot pack channels without a frame");
-    const b = packChannels(snapshot, geometry.value, now(), eventsWindow, fleetCondition, laborWindow, offsiteWindow);
+    const b = packChannels(snapshot, geometry.value, now(), eventsWindow, fleetCondition, laborWindow, offsiteWindow, wearWindow, context.value);
     bundle = b;
     const ok = CHANNEL_IDS.filter((c) => b.channels[c].integrity.status === "ok").length;
     return {

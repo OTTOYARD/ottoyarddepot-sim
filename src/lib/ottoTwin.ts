@@ -186,6 +186,61 @@ export interface TwinRunContext {
   seed: number | null;
   stall_count: number;
   fleet_count: number;
+  /** what the run was CONFIGURED to use — a setting, not evidence */
+  policy_configured: string | null;
+  /**
+   * What actually made the decisions, from ottoq_deploy_log (every deploy
+   * decision is stamped with the policy that made it). NULL when no decision
+   * was logged — an unrun policy is not a policy in force.
+   */
+  policy_observed: string | null;
+  policy_decisions: number;
+  /** more than one entry means the run switched policy mid-flight */
+  policy_variants: Record<string, number> | null;
+  /** false means the benchmark is broken: it ran a policy it was not configured for */
+  policy_matches_config: boolean | null;
+  error?: string;
+}
+
+/**
+ * Realized wear and service-due state (RPC `ottoq_twin_wear_window`).
+ *
+ * Pairs with TwinFleetCondition: that carries the DRAWN intervals, this carries
+ * the progress against them. An interval alone is inert — "PM every 8,450 km"
+ * means nothing until you know the vehicle has driven 8,200.
+ */
+export interface TwinWearWindow {
+  fleet_size: number;
+  wear: {
+    drive_km_p50: number | null;
+    drive_hours_p50: number | null;
+    soil_index_p50: number | null;
+    soil_index_max: number | null;
+    cabin_litter_total: number;
+  };
+  due: {
+    pm_due_ratio_p50: number | null;
+    pm_overdue: number;
+    pm_due_soon: number;
+    calib_due_ratio_p50: number | null;
+    calib_overdue: number;
+    measurable: number;
+  };
+  dtc: {
+    open_total: number;
+    vehicles_with_open: number;
+    /** NULL when the fleet is clean. The raw column uses 99 for "none". */
+    worst_rank: number | null;
+    /** always "lower_is_worse" — the raw scale is inverted and unlabelled */
+    rank_scale: string;
+    rank_sentinel_note: string;
+    by_rank: Record<string, number>;
+  };
+  attention: {
+    av_id: string | null; vehicle_id: string;
+    pm_due_ratio: number | null; calib_due_ratio: number | null;
+    soil_index: number | null; open_dtc_count: number; worst_dtc_rank: number | null;
+  }[];
   error?: string;
 }
 
@@ -423,6 +478,7 @@ export const twin = {
   runContext: (simRunId: string)         => rpc<TwinRunContext>("ottoq_twin_run_context", { p_sim_run_id: simRunId }),
   labor: (simRunId: string)              => rpc<TwinLaborWindow>("ottoq_twin_labor_window", { p_sim_run_id: simRunId }),
   offsite: (simRunId: string)            => rpc<TwinOffsiteWindow>("ottoq_twin_offsite_window", { p_sim_run_id: simRunId }),
+  wear: (simRunId: string)               => rpc<TwinWearWindow>("ottoq_twin_wear_window", { p_sim_run_id: simRunId }),
   fleetCondition: (simRunId: string)     => rpc<TwinFleetCondition>("ottoq_twin_fleet_condition", { p_sim_run_id: simRunId }),
   health:    ()                          => get<{ service: string; version: string; time: string }>(`/health`),
 

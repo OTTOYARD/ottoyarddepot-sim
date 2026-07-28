@@ -245,10 +245,59 @@ export interface OffsitePayload {
   }>;
 }
 
+/**
+ * Realized wear, and what it means for service due.
+ *
+ * Pairs with VehicleCondition: that carries the DRAWN intervals, this the
+ * progress against them. "PM every 8,450 km" is inert until you know the
+ * vehicle has driven 8,200 of them.
+ */
+export interface WearPayload {
+  fleet_size: number;
+  wear: {
+    drive_km_p50: number | null;
+    drive_hours_p50: number | null;
+    soil_index_p50: number | null;
+    soil_index_max: number | null;
+    cabin_litter_total: number;
+  };
+  due: {
+    /** >= 1 means overdue against that vehicle's own drawn interval */
+    pm_due_ratio_p50: number | null;
+    pm_overdue: number;
+    pm_due_soon: number;
+    calib_due_ratio_p50: number | null;
+    calib_overdue: number;
+    measurable: number;
+  };
+  dtc: {
+    open_total: number;
+    vehicles_with_open: number;
+    /**
+     * NULL when the fleet is clean. The raw ottoq_vehicle_wear column uses 99
+     * as a sentinel for "no open DTC" and runs 0 = WORST — publishing it raw
+     * would read as severity 99 on a perfectly healthy fleet.
+     */
+    worst_rank: number | null;
+    /** always "lower_is_worse"; stated because the raw scale is inverted */
+    rank_scale: string;
+    rank_sentinel_note: string;
+    by_rank: Record<string, number>;
+  };
+  /** the worst-off vehicles, so the signal is actionable rather than a summary */
+  attention: {
+    av_id: string | null; vehicle_id: string;
+    pm_due_ratio: number | null; calib_due_ratio: number | null;
+    soil_index: number | null; open_dtc_count: number; worst_dtc_rank: number | null;
+  }[];
+}
+
 export interface FleetTelemetryPayload {
   fleet_size: number;
   /** off-site trips; null when the feed was not fetched */
   offsite: OffsitePayload | null;
+  /** realized wear and service-due state; null when the feed was not fetched */
+  wear: WearPayload | null;
   /** counts keyed by raw backend state (what the twin reports) */
   counts_by_state: Record<string, number>;
   /** counts keyed by normalized stage (what OTTO-Q reasons over) */
@@ -427,8 +476,28 @@ export interface LaborPayload {
   };
 }
 
+/**
+ * Which scheduling policy the world ACTUALLY ran.
+ *
+ * `ottoq_sim_runs.policy` is a setting; publishing it alone would let OTTO-Q
+ * report a policy the world may not have used. `ottoq_deploy_log` stamps every
+ * deploy decision with the policy that made it, which is evidence. Both travel,
+ * plus whether they agree — a run configured `otto_q` whose decisions were all
+ * stamped `greedy` is a broken benchmark, and silence would make an A/B
+ * comparison meaningless.
+ */
+export interface PolicyPayload {
+  configured: string | null;
+  observed: string | null;
+  decisions: number;
+  variants: Record<string, number> | null;
+  matches_config: boolean | null;
+}
+
 export interface DepotOpsPayload {
   depot_id: string | null;
+  /** scheduling policy in force; null when run context was not fetched */
+  policy: PolicyPayload | null;
   /** labor-side concurrency limits; null when the feed was not fetched */
   labor: LaborPayload | null;
   /**
@@ -663,6 +732,13 @@ export interface ChargerOcppHealth {
 export interface EnvironmentPayload {
   temp_c: number | null;
   cloud_pct: number | null;
+  /**
+   * Relative humidity. The twin recorded this for 8,553 rows (30.7-99.3%) while
+   * ottoq_twin_snapshot selected every other column of that same row — so it
+   * shaped fog/visibility and perception faults while being unobservable for
+   * want of one line.
+   */
+  humidity_pct: number | null;
   conditions: string | null;
   precip_state: string | null;
   ghi_wm2: number | null;

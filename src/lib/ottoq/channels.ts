@@ -20,7 +20,7 @@
 //      the sim clock rather than wall time.
 // ============================================================================
 
-import type { TwinEventsWindow, TwinFleetCondition, TwinLaborWindow, TwinLayout, TwinOffsiteWindow, TwinSnapshot, TwinStall } from "@/lib/ottoTwin";
+import type { TwinEventsWindow, TwinFleetCondition, TwinLaborWindow, TwinLayout, TwinOffsiteWindow, TwinRunContext, TwinSnapshot, TwinStall, TwinWearWindow } from "@/lib/ottoTwin";
 import {
   buildIntegrity,
   stalenessSeconds,
@@ -43,6 +43,8 @@ import {
   type FleetTelemetryPayload,
   type FleetVehicleSignal,
   type OffsitePayload,
+  type PolicyPayload,
+  type WearPayload,
   type ServiceStage,
   type ServiceTimer,
   type StallSignal,
@@ -182,6 +184,7 @@ export function packFleetTelemetry(
   meta: EnvelopeMeta,
   condition?: TwinFleetCondition | null,
   offsite?: TwinOffsiteWindow | null,
+  wear?: TwinWearWindow | null,
 ): ChannelEnvelope<FleetTelemetryPayload> {
   const t = new FieldTracker();
   const notes: string[] = [];
@@ -316,8 +319,30 @@ export function packFleetTelemetry(
     );
   }
 
+  // ── WEAR / SERVICE DUE ───────────────────────────────────────────────────
+  // The drawn intervals are already on each vehicle's condition; this is the
+  // progress against them, plus open DTCs. Note the DTC rank is republished
+  // with its sentinel removed — see WearPayload.
+  const wearPayload: WearPayload | null = wear
+    ? { fleet_size: wear.fleet_size, wear: wear.wear, due: wear.due,
+        dtc: wear.dtc, attention: wear.attention ?? [] }
+    : null;
+  t.take("fleet.wear", wear ? wear.fleet_size || null : null);
+  if (!wear) {
+    notes.push("wear feed not fetched — DTCs and service-due state are unobservable on this frame");
+  } else {
+    if (wear.due?.pm_overdue) notes.push(`${wear.due.pm_overdue} vehicle(s) past their drawn PM interval`);
+    if (wear.dtc?.open_total) {
+      notes.push(
+        `${wear.dtc.open_total} open DTC(s) on ${wear.dtc.vehicles_with_open} vehicle(s), ` +
+        `worst rank ${wear.dtc.worst_rank} (lower is worse)`,
+      );
+    }
+  }
+
   const payload: FleetTelemetryPayload = {
     offsite: offsitePayload,
+    wear: wearPayload,
     fleet_size: Number(snap.fleet?.total ?? vehicles.length),
     counts_by_state: (snap.fleet?.counts ?? {}) as Record<string, number>,
     counts_by_stage,
@@ -447,6 +472,7 @@ export function packDepotOps(
   meta: EnvelopeMeta,
   events?: TwinEventsWindow | null,
   labor?: TwinLaborWindow | null,
+  runContext?: TwinRunContext | null,
 ): ChannelEnvelope<DepotOpsPayload> {
   const t = new FieldTracker();
   const notes: string[] = [];
@@ -693,8 +719,31 @@ export function packDepotOps(
     );
   }
 
+  // Which scheduling policy actually ran. `configured` is a setting; `observed`
+  // comes from the policy stamped on every logged deploy decision.
+  const policyPayload: PolicyPayload | null = runContext
+    ? {
+        configured: runContext.policy_configured ?? null,
+        observed: runContext.policy_observed ?? null,
+        decisions: runContext.policy_decisions ?? 0,
+        variants: runContext.policy_variants ?? null,
+        matches_config: runContext.policy_matches_config ?? null,
+      }
+    : null;
+  t.take("policy.observed", policyPayload?.observed ?? null);
+  if (policyPayload?.matches_config === false) {
+    notes.push(
+      `POLICY MISMATCH: run configured '${policyPayload.configured}' but ` +
+      `${JSON.stringify(policyPayload.variants)} made the decisions — this run is not a valid ` +
+      "benchmark of the configured policy",
+    );
+  } else if (runContext && !policyPayload?.observed) {
+    notes.push("no deploy decision has been logged yet — the policy in force is unproven");
+  }
+
   const payload: DepotOpsPayload = {
     depot_id: layout?.depot?.id ?? null,
+    policy: policyPayload,
     labor: laborPayload,
     layout_matches_run: layoutMatchesRun,
     stalls,
@@ -721,6 +770,7 @@ export function packDepotOps(
   return envelope(
     "depot_ops", meta, 0, t,
     ["stalls", "ottoq_twin_depot_layout", "vehicles", "ottoq_vehicle_dispatches",
+    "ottoq_vehicle_wear",
      "ottoq_vehicle_incidents", "ottoq_itinerary_legs", "ottoq_events"],
     notes, payload,
   );
@@ -897,13 +947,16 @@ export function packEnvironment(
 
   const temp_c = t.take("temp_c", num(w.temp_c));
   const cloud_pct = t.take("cloud_pct", num(w.cloud_pct));
+  // Humidity: the twin recorded it on this very row all along and the snapshot
+  // selected every other column. Now published (see the snapshot migration).
+  const humidity_pct = t.take("humidity_pct", num(w.humidity_pct));
   const ghi_wm2 = t.take("ghi_wm2", num(w.ghi_wm2));
   const wind_kmh = t.take("wind_kmh", num(w.wind_kmh));
   const solar_elevation_deg = t.take("solar_elev_deg", num(w.solar_elev_deg));
   const observed_at = str(w.at);
 
   const payload: EnvironmentPayload = {
-    temp_c, cloud_pct,
+    temp_c, cloud_pct, humidity_pct,
     conditions: str(w.conditions),
     precip_state: str(w.precip),
     ghi_wm2, wind_kmh, solar_elevation_deg,
@@ -943,6 +996,8 @@ export function packChannels(
   condition?: TwinFleetCondition | null,
   labor?: TwinLaborWindow | null,
   offsite?: TwinOffsiteWindow | null,
+  wear?: TwinWearWindow | null,
+  runContext?: TwinRunContext | null,
 ): ChannelBundle {
   const meta: EnvelopeMeta = {
     sim_run_id: String(snap.run?.sim_run_id ?? ""),
@@ -954,9 +1009,9 @@ export function packChannels(
   };
 
   const channels = {
-    fleet_telemetry: packFleetTelemetry(snap, meta, condition, offsite),
+    fleet_telemetry: packFleetTelemetry(snap, meta, condition, offsite, wear),
     energy_grid: packEnergyGrid(snap, meta),
-    depot_ops: packDepotOps(snap, layout, meta, events, labor),
+    depot_ops: packDepotOps(snap, layout, meta, events, labor, runContext),
     charger_systems: packChargerSystems(snap, layout, meta, events),
     environment: packEnvironment(snap, meta),
   };
