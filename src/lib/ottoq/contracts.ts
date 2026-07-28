@@ -276,12 +276,17 @@ export interface DepotOpsPayload {
   dispatches_active: number | null;
   dispatches_total: number | null;
   /**
-   * Per-vehicle service timing. EMPTY in contract 1.0 — the twin does not yet
-   * publish per-visit service start/expected-end on the snapshot. Declared here
-   * so the shape is fixed and the gap is visible rather than silently absent.
-   * See docs/OTTO-Q-WORLD-CONTRACT.md → "Service timing is not observable".
+   * Per-vehicle service timing, built from the twin's timed-leg feed. Was empty
+   * in contract 1.0 on the mistaken belief that the snapshot carried no
+   * per-visit timing — it has published `legs` all along.
    */
   service_timers: ServiceTimer[];
+  /**
+   * Median drift between planned and realized travel, seconds; negative = early.
+   * The twin computes this itself (legs_meta.median_deviation_s) and it is the
+   * only ETA-quality signal on the frame.
+   */
+  plan_deviation_s: number | null;
 }
 
 /**

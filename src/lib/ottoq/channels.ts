@@ -38,6 +38,7 @@ import {
   type FleetTelemetryPayload,
   type FleetVehicleSignal,
   type ServiceStage,
+  type ServiceTimer,
   type StallSignal,
   type StallTypeCapacity,
 } from "./contracts";
@@ -417,13 +418,63 @@ export function packDepotOps(
   const pressure_ratio = available > 0 ? Math.round((waiting / available) * 1000) / 1000 : null;
   if (available === 0 && waiting > 0) notes.push(`${waiting} vehicle(s) waiting with zero available stalls`);
 
+  // ── SERVICE TIMERS, from the twin's timed-leg feed ────────────────────────
+  //
+  // This was declared-but-unfed for the whole life of the contract, on the
+  // belief that the snapshot carried no per-visit timing. It does — the T3
+  // render contract has published `legs` on every frame since the t3_*
+  // migrations, and the client discarded them. A measured run carries ~73 legs
+  // per frame.
+  //
+  // Filter by EXCLUDING travel rather than enumerating services: `kind` records
+  // how the duration was derived (charge_curve / distribution / flow_contract /
+  // travel), not what the service is. Listing services is what produced the
+  // `dwell` bug that matched zero rows — a new service kind must arrive
+  // included, not vanish.
+  const clockMs = meta.sim_clock ? Date.parse(meta.sim_clock) : NaN;
+  const legs = snap.legs ?? [];
+  const serviceLegs = legs.filter(
+    (l) => String(l.kind ?? "") !== "travel" && !["done", "amended", "skipped"].includes(String(l.status)),
+  );
+  const secondsBetween = (a: string | null, b: number) => {
+    if (!a || !Number.isFinite(b)) return null;
+    const t0 = Date.parse(a);
+    return Number.isFinite(t0) ? Math.round((b - t0) / 1000) : null;
+  };
+  const service_timers: ServiceTimer[] = serviceLegs.map((l) => {
+    const elapsed = secondsBetween(l.start_sim, clockMs);
+    const endMs = l.end_sim ? Date.parse(l.end_sim) : NaN;
+    return {
+      vehicle_id: String(l.vehicle_id),
+      stall_id: str(l.to_stall) ?? str(l.from_stall),
+      service: String(l.leg_type ?? "unknown"),
+      detail: str(l.intent),
+      duration_basis: str(l.kind),
+      status: String(l.status),
+      started_sim: str(l.start_sim),
+      expected_end_sim: str(l.end_sim),
+      planned_s: num(l.duration_s),
+      elapsed_s: elapsed === null ? null : Math.max(0, elapsed),
+      remaining_s: Number.isFinite(endMs) && Number.isFinite(clockMs)
+        ? Math.max(0, Math.round((endMs - clockMs) / 1000))
+        : null,
+      // charge-curve inputs are not on the snapshot's leg projection; the
+      // decision-frame migration carries them. Declared null rather than
+      // fabricated so the gap stays visible.
+      charge: null,
+    };
+  });
+
   t.take("stalls.inventory", stalls.length > 0 ? stalls.length : null);
   t.take("stalls.types", by_type.some((r) => r.type !== "unknown") ? 1 : null);
   t.take("capacity.available", stalls.length > 0 ? available : null);
   t.take("queue.waiting", fleet.length > 0 ? waiting : null);
-  // Declared-but-unfed: name the gap explicitly so completeness reflects it.
-  t.take("service_timers", null);
-  notes.push("service_timers unavailable: the twin snapshot publishes no per-visit service start/expected-end");
+  t.take("service_timers", snap.legs === undefined ? null : service_timers.length);
+  if (snap.legs === undefined) {
+    notes.push("snapshot carried no legs array — service timing unavailable on this frame");
+  } else if (service_timers.length === 0) {
+    notes.push(`no service legs in flight (${legs.length} leg(s) on frame, all travel or closed)`);
+  }
 
   const payload: DepotOpsPayload = {
     depot_id: layout?.depot?.id ?? null,
@@ -438,12 +489,17 @@ export function packDepotOps(
     incidents_open: num(snap.counters?.open_incidents),
     dispatches_active: num(snap.counters?.dispatches_active),
     dispatches_total: num(snap.counters?.dispatches_total),
-    service_timers: [],
+    service_timers,
+    // Server half of the render-contract coverage ratio. The twin measures how
+    // far realized travel drifts from plan; that IS the observable for arrival
+    // ETA delay, and it was being discarded with the rest of the leg feed.
+    plan_deviation_s: num(snap.legs_meta?.median_deviation_s),
   };
 
   return envelope(
     "depot_ops", meta, 0, t,
-    ["stalls", "ottoq_twin_depot_layout", "vehicles", "ottoq_vehicle_dispatches", "ottoq_vehicle_incidents"],
+    ["stalls", "ottoq_twin_depot_layout", "vehicles", "ottoq_vehicle_dispatches",
+     "ottoq_vehicle_incidents", "ottoq_itinerary_legs"],
     notes, payload,
   );
 }

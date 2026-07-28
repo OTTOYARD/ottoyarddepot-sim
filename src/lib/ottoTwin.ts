@@ -35,11 +35,56 @@ export interface TwinVehicle {
   id: string; av_id: string; make: string; platform: string;
   state: string; soc: number; stall_id: string | null;
 }
+/**
+ * One timed leg of a vehicle's itinerary — the twin's T3 RENDER CONTRACT.
+ *
+ * The backend has published these on every snapshot since the t3_* migrations
+ * and the client ignored them entirely, inventing motion from stall state
+ * instead. They are also the only per-visit SERVICE TIMING on the wire, which
+ * is what `depot_ops.service_timers` is built from.
+ *
+ * `kind` records how the DURATION WAS DERIVED, not what the service is:
+ *   charge_curve   a physical charge model
+ *   distribution   sampled from a fitted real-world corpus
+ *   flow_contract  a policy or contract
+ *   travel         taxiing between places — the only non-service kind
+ * `leg_type` is the actual service classifier.
+ */
+export interface TwinLeg {
+  leg_id: string;
+  vehicle_id: string;
+  seq: number;
+  leg_type: string;
+  intent: string | null;
+  kind: string;
+  from_stall: string | null;
+  to_stall: string | null;
+  from_x: number | null; from_y: number | null;
+  to_x: number | null; to_y: number | null;
+  start_sim: string | null;
+  end_sim: string | null;
+  duration_s: number | null;
+  status: string;
+  geometry: string;
+}
+
+/** Server half of the render-contract coverage ratio. */
+export interface TwinLegsMeta {
+  open_travel_legs: number;
+  vehicles_with_open_leg: number;
+  closed_this_run: number;
+  /** how far realized travel drifted from plan, seconds; negative = early */
+  median_deviation_s: number | null;
+}
+
 export interface TwinSnapshot {
   run: {
     sim_run_id: string; scenario: string; status: string;
     sim_clock: string; tick_count: number; time_scale: number; seed: number;
   };
+  /** timed itinerary legs, filtered server-side to the active window */
+  legs?: TwinLeg[];
+  legs_meta?: TwinLegsMeta;
   fleet: { counts: Record<string, number>; total: number; vehicles: TwinVehicle[] };
   stalls_status: { id: string; status: string; vehicle_id: string | null }[];
   energy: Record<string, number | string | null> | null;

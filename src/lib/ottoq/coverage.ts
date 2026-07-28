@@ -75,7 +75,9 @@ export const VARIABLE_BINDINGS: VariableBinding[] = [
 
   // ── fleet_demand ──────────────────────────────────────────────────────────
   { var_key: "arrival", domain: "fleet_demand", label: "Arrival / dispatch rate", channel: "depot_ops", observable: "dispatches_active" },
-  { var_key: "eta_delay", domain: "fleet_demand", label: "Arrival ETA delay", channel: null, observable: null, note: "no ETA is published per vehicle; the twin's itinerary legs carry it but the snapshot's legs array is not consumed" },
+  // UNLOCKED. The twin measures plan-vs-realized travel drift itself
+  // (legs_meta.median_deviation_s) and it was being discarded with the legs.
+  { var_key: "eta_delay", domain: "fleet_demand", label: "Arrival ETA delay", channel: "depot_ops", observable: "plan_deviation_s" },
   { var_key: "soc_on_arrival", domain: "fleet_demand", label: "SoC on arrival", channel: "fleet_telemetry", observable: "soc.p50" },
   { var_key: "target_soc", domain: "fleet_demand", label: "Target SoC", channel: null, observable: null, note: "target_soc exists on the vehicles table and on the decision frame, but is absent from the twin snapshot's fleet rows" },
   { var_key: "trip_duration", domain: "fleet_demand", label: "Trip duration", channel: null, observable: null, note: "off-site trip time never surfaces on a depot-scoped frame" },
@@ -83,10 +85,12 @@ export const VARIABLE_BINDINGS: VariableBinding[] = [
   { var_key: "idle_fraction", domain: "fleet_demand", label: "Drive-activity level", channel: null, observable: null, note: "drive activity shapes arrival SoC but is not itself observable" },
 
   // ── operations ────────────────────────────────────────────────────────────
-  { var_key: "charge_time", domain: "operations", label: "Charge duration", channel: null, observable: null, note: "requires depot_ops.service_timers, which the snapshot does not feed" },
-  { var_key: "wash_time", domain: "operations", label: "Wash duration", channel: null, observable: null, note: "requires depot_ops.service_timers" },
-  { var_key: "detail_time", domain: "operations", label: "Detail duration", channel: null, observable: null, note: "requires depot_ops.service_timers" },
-  { var_key: "maintenance_time", domain: "operations", label: "Maintenance duration", channel: null, observable: null, note: "requires depot_ops.service_timers" },
+  // UNLOCKED. depot_ops.service_timers is now built from the twin's timed-leg
+  // feed, which the snapshot has published all along and the client discarded.
+  { var_key: "charge_time", domain: "operations", label: "Charge duration", channel: "depot_ops", observable: "service_timers[].planned_s" },
+  { var_key: "wash_time", domain: "operations", label: "Wash duration", channel: "depot_ops", observable: "service_timers[].planned_s" },
+  { var_key: "detail_time", domain: "operations", label: "Detail duration", channel: "depot_ops", observable: "service_timers[].planned_s" },
+  { var_key: "maintenance_time", domain: "operations", label: "Maintenance duration", channel: "depot_ops", observable: "service_timers[].planned_s" },
   { var_key: "staffing_level", domain: "operations", label: "Staffing level", channel: null, observable: null, note: "ottoq_depot_staffing is on neither the snapshot nor the decision frame" },
   { var_key: "charging_staff", domain: "operations", label: "Charging-assist staff", channel: null, observable: null },
   { var_key: "cleaning_staff", domain: "operations", label: "Cleaning staff", channel: null, observable: null },
