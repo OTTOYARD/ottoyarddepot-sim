@@ -80,15 +80,15 @@ describe("auditCoverage", () => {
 
   it("marks variables with no channel as unobservable", () => {
     const r = auditCoverage(bundle);
-    // staffing_level now BINDS (to the effective lane cap the sim stamps), so
-    // it grades dark on a frame with no labor feed rather than unobservable.
-    // `charging_staff` is the one that stays unobservable — and not for want of
-    // a channel: no function in the database reads that knob at all.
-    const staffing = r.variables.find((v) => v.var_key === "staffing_level");
-    expect(staffing?.verdict).toBe("dark");
-    const inert = r.variables.find((v) => v.var_key === "charging_staff");
-    expect(inert?.verdict).toBe("unobservable");
-    expect(inert?.note).toContain("INERT");
+    // All five staffing knobs now BIND — charging_staff last, once
+    // ottoq_decide_tick was taught to gate charge admission on it. With no
+    // labor feed on this bundle they grade DARK (a feed we did not fetch),
+    // which is the distinction that matters: dark means "unproven this frame",
+    // unobservable means "nothing anywhere carries it".
+    for (const k of ["staffing_level", "charging_staff", "cleaning_staff",
+                     "service_staff", "deploy_staff"]) {
+      expect(r.variables.find((v) => v.var_key === k)?.verdict).toBe("dark");
+    }
     const vehicleDomain = r.by_domain.find((d) => d.domain === "vehicle");
     expect(vehicleDomain?.observed).toBe(0);
   });

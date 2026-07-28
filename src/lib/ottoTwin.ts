@@ -359,7 +359,12 @@ export interface TwinLaborWindow {
   };
   lanes: {
     wash_cap: number | null; service_cap: number | null;
-    deploy_cap: number | null; patience_min: number | null; observed_at: string | null;
+    deploy_cap: number | null;
+    /** COMPUTED from the knob, not stamped by the sim — see charge_cap_basis */
+    charge_cap: number | null;
+    charge_stalls_physical: number | null;
+    charge_cap_basis: string | null;
+    patience_min: number | null; observed_at: string | null;
   };
   overflow: {
     events: number; vehicles_total: number; vehicles_max: number | null;

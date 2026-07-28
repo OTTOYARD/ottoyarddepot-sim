@@ -109,3 +109,35 @@ END;
 $function$;
 
 GRANT EXECUTE ON FUNCTION public.ottoq_twin_labor_window(uuid) TO anon, authenticated, service_role;
+
+-- ============================================================================
+-- 2026-07-28 UPDATE — `charging_staff` is no longer inert.
+--
+-- The header above documented it as "A KNOB THAT DOES NOTHING". That is now
+-- fixed in the SIMULATION, not the pipe: ottoq_decide_tick gates charge
+-- admission on it, the same way ottoq_sim_advance_service_flow gates wash lanes
+-- on cleaning_staff. Physical = the depot's own dcfc + l2 stall count (45 at
+-- Nashville).
+--
+-- THE NEUTRAL GUARD IS THE WHOLE SAFETY ARGUMENT. At neutral staffing the cap
+-- equals the physical stall count, and the inserted LIMIT takes an unbounded
+-- branch, so behaviour is byte-identical to before. A naive `cap - in_charge`
+-- would have changed behaviour in one edge case — when all 45 chargers are
+-- busy the cursor would yield nothing where today it yields vehicles that each
+-- get a decision row explaining the deferral — silently altering decision
+-- counts on every existing run. The knob binds ONLY when someone reduces
+-- staffing; until then this change is a no-op.
+--
+-- Applied as a guarded rewrite of the live ottoq_decide_tick definition
+-- (migration decide_tick_honour_charging_staff): the guard asserts the
+-- stall-assignment cursor anchor appears exactly once and that the gate is not
+-- already present, so a drifted body aborts instead of being overwritten.
+--
+-- labor.lanes gains `charge_cap`, `charge_stalls_physical` and
+-- `charge_cap_basis`. NOTE the provenance is weaker than the other three caps:
+-- wash/service/deploy are READ from twin.staging_overflow (stamped by the sim
+-- under contention); there is no charge equivalent, so charge_cap is
+-- RECOMPUTED by calling ottoq_sim_lane_capacity with the arguments the tick
+-- uses. `charge_cap_basis: 'computed_from_knob'` carries that caveat on the
+-- wire instead of letting a reader assume it was measured.
+-- ============================================================================
