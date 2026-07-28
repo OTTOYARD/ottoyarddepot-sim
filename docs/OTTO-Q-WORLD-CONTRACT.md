@@ -9,6 +9,14 @@ build. Every claim below is backed by a query against the live backend or a file
 
 ---
 
+> **ARCHITECTURE DECISION 2026-07-28 — read `OTTOQ-TWIN-BOUNDARY.md` first.**
+> OTTO-Q and the twin currently share one Supabase project and one `public`
+> schema, so the boundary between the intelligence layer and the world is a
+> naming convention rather than a boundary. The agreed target is to separate
+> them — twin owns what is TRUE, OTTO-Q owns what SHOULD HAPPEN, OTTO-Q never
+> writes world state, and the twin must be able to refuse an instruction. That
+> document supersedes anything below which assumes a single combined system.
+
 ## 1. Verdict
 
 **No.** Three separate things are true, and all three matter:
