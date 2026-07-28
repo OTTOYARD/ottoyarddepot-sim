@@ -140,6 +140,10 @@ export interface TwinEventsWindow {
     delay_min_p50: number | null;
     delay_causes: Record<string, number>;
     stranded_recharges: number;
+    /** vehicles towed this run. Emitted by the backend on every window (verified
+     *  0/1/2 across live fixtures); it was missing from THIS type while
+     *  contracts.ts declared it, so channels.ts read it and CI caught the gap. */
+    tow_events: number;
     exceptions_by_severity: Record<string, number>;
     faults_per_sim_hour: number | null;
     delays_per_sim_hour: number | null;
