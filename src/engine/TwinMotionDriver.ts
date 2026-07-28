@@ -1112,7 +1112,19 @@ class TwinMotionDriver {
                   : order.laneMismatch ??
                     `vehicle docked at ${e.stallId} instead of the commanded ${order.renderStallId}`,
               });
-              if (onTarget) this.commanded.delete(id);
+              // ALWAYS drop the order once it has resolved, on-target or not.
+              //
+              // It used to be deleted only on success, so a command already
+              // closed as `rejected` in the L0 ledger stayed in this map and
+              // went on overriding the twin's own stall pick — past its own
+              // window, with no further report, because `arrived` was already
+              // true. On the mainline gate-assignment flow that fired routinely:
+              // the advisor targets vehicles at the gate, whose lane never
+              // contains the commanded charger stall, so the first arrival
+              // always mismatched and the dead order then steered the car.
+              //
+              // A resolved command is finished. It does not get to keep driving.
+              this.commanded.delete(id);
             }
           }
         }

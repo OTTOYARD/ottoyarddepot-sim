@@ -212,7 +212,17 @@ export interface EnergyGridPayload {
     observed_at: string | null;
   };
   demand_response: {
-    active: boolean;
+    /**
+     * TRUE / FALSE / **NULL for "we cannot see"**.
+     *
+     * This was a plain boolean, and an absent grid row was published as
+     * `false` — the positive assertion "no demand-response call in progress"
+     * derived from no data at all. Every DR protection in the shield keys off
+     * it, so a missing grid row silently disarmed all of them and the batch
+     * reported zero suppressions. Unknown must be representable, or the
+     * orchestrator cannot tell safety from ignorance.
+     */
+    active: boolean | null;
     /** required load cap while a DR call is live */
     cap_kw: number | null;
     /** headroom under the cap: cap - (ev + building). null when either unknown. */

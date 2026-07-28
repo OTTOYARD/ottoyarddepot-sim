@@ -84,6 +84,10 @@ export interface ShieldResult {
   /** true when the shield refused the entire batch (bad world state) */
   vetoedAll: boolean;
   vetoReason: string | null;
+  /** open commands displaced by a strictly higher-priority admission. The
+   *  shield only removes; the CALLER closes these in the ledger so a preempted
+   *  command does not linger as a phantom hold on its target. */
+  preempted: PreemptedCommand[];
 }
 
 /** A rule inspects one command against the world; a string means "remove it". */
@@ -92,10 +96,20 @@ interface Rule {
   check: (cmd: OttoQCommand, ctx: EvalContext) => string | null;
 }
 
+/** An open command displaced by a strictly higher-priority admission. */
+export interface PreemptedCommand {
+  command_id: string;
+  by: string;
+  target: CommandTarget;
+}
+
 interface EvalContext {
   bundle: ChannelBundle;
   cfg: ShieldConfig;
   openByTarget: Map<string, number>;
+  /** highest-priority open command per target, for cross-tick preemption */
+  openByPriority: Map<string, { command_id: string; priority: number }>;
+  preempted: PreemptedCommand[];
   /** stall_id → vehicle_id already claimed by an admitted command this batch */
   claimedStalls: Map<string, string>;
   /** vehicle ids already commanded this batch */
@@ -117,7 +131,20 @@ const RULES: Rule[] = [
   {
     name: "no_actuation",
     check: (cmd) => {
-      const hits = findActuationFields(cmd.params);
+      // Scan the WHOLE command, not just params. `materialize` copies the
+      // advisor's `target` object onto the envelope by reference, so a target
+      // carrying a waypoint/heading/speed sailed straight through and the
+      // batch was reported clean — in the one rule that exists to make that
+      // impossible. The doc claimed the scan was recursive over the command;
+      // now it is.
+      //
+      // Scanning the envelope means skipping the fields the contract itself
+      // owns; none of them can carry actuation, and `window`/`provenance` are
+      // free text an advisor could otherwise trip the scan with.
+      const hits = [
+        ...findActuationFields(cmd.params, "params"),
+        ...findActuationFields(cmd.target, "target"),
+      ];
       return hits.length
         ? `command carries actuation field(s) ${hits.join(", ")} — OTTO-Q orchestrates, it does not actuate`
         : null;
@@ -153,11 +180,33 @@ const RULES: Rule[] = [
   {
     name: "target_not_saturated",
     check: (cmd, ctx) => {
-      const open = ctx.openByTarget.get(targetKey(cmd.target)) ?? 0;
-      if (open >= ctx.cfg.maxOpenPerTarget) {
-        return `target already has ${open} open command(s); limit is ${ctx.cfg.maxOpenPerTarget}`;
+      const key = targetKey(cmd.target);
+      const open = ctx.openByTarget.get(key) ?? 0;
+      if (open < ctx.cfg.maxOpenPerTarget) return null;
+
+      // PRIORITY MUST SURVIVE ACROSS TICKS.
+      //
+      // This limit exists to stop command thrash, and it did that — but it was
+      // a bare count, and the priority sort below it only orders commands
+      // WITHIN one batch. Across ticks a stale low-priority command outranked
+      // everything: an open `charge_bess` (priority ~268) vetoed the
+      // demand-response `discharge_bess` (priority 1000) on the same battery
+      // for the full hour of its window, so the site kept importing into the
+      // battery straight through a DR event. The operator trace blamed command
+      // thrash rather than a compliance conflict, and the doctrine that
+      // "compliance outranks price" held only inside the advisor.
+      //
+      // A strictly higher-priority command now PREEMPTS the open one. The
+      // displaced command is recorded so the caller can supersede it in the
+      // ledger — the shield still only removes, it just records what its
+      // admission implies.
+      const incumbent = ctx.openByPriority.get(key);
+      if (incumbent && cmd.priority > incumbent.priority) {
+        ctx.preempted.push({ command_id: incumbent.command_id, by: cmd.command_id, target: cmd.target });
+        return null;
       }
-      return null;
+      return `target already has ${open} open command(s); limit is ${ctx.cfg.maxOpenPerTarget}`
+        + (incumbent ? ` (held by priority ${incumbent.priority}, this is ${cmd.priority})` : "");
     },
   },
   {
@@ -248,6 +297,27 @@ const RULES: Rule[] = [
       // draw MORE. Charging the battery from the grid under a DR call is
       // exactly the mistake this rule exists to prevent.
       const dr = ctx.bundle.channels.energy_grid.payload.demand_response;
+
+      // UNKNOWN IS NOT "NO CALL". `active` is now tri-state, and a missing grid
+      // row lands here as null. Treating that as false is what silently
+      // disarmed this entire rule: with no grid observation the shield admitted
+      // a +250 kW grid charge during a live demand-response event and reported
+      // zero suppressions.
+      //
+      // Under uncertainty the shield refuses the action that is only safe if
+      // the uncertainty resolves favourably. Charging from the grid is exactly
+      // that action; everything else proceeds.
+      if (dr.active === null) {
+        if (cmd.intent === "charge_bess") {
+          const kw = (cmd.params as EnergyParams).power_kw ?? 0;
+          const solar = ctx.bundle.channels.energy_grid.payload.site.solar_kw;
+          if (solar === null || kw > solar) {
+            return "demand-response state is unknown (no grid observation) — grid charging is not permitted until it can be confirmed";
+          }
+        }
+        return null;
+      }
+
       if (!dr.active) return null;
       if (cmd.intent === "charge_bess") {
         const kw = (cmd.params as EnergyParams).power_kw ?? 0;
@@ -336,6 +406,7 @@ export function applyShield(
     })),
     vetoedAll: true,
     vetoReason: detail,
+    preempted: [],
   });
 
   // ── batch-level vetoes ───────────────────────────────────────────────────
@@ -357,17 +428,32 @@ export function applyShield(
 
   // ── per-command evaluation ───────────────────────────────────────────────
   const openByTarget = new Map<string, number>();
+  const openByPriority = new Map<string, { command_id: string; priority: number }>();
+  // Stalls already claimed by commands still in flight from EARLIER ticks.
+  // Without this, only within-batch contention was tracked, so a second
+  // vehicle could be commanded to a stall an in-flight command already owned.
+  const claimedStalls = new Map<string, string>();
   for (const rec of ctx.openCommands.values()) {
     if (TERMINAL_STATUSES.includes(rec.status)) continue;
     const k = targetKey(rec.command.target);
     openByTarget.set(k, (openByTarget.get(k) ?? 0) + 1);
+    const cur = openByPriority.get(k);
+    if (!cur || rec.command.priority > cur.priority) {
+      openByPriority.set(k, { command_id: rec.command.command_id, priority: rec.command.priority });
+    }
+    if (rec.command.intent === "assign_stall") {
+      const sid = (rec.command.params as VehicleParams).stall_id;
+      if (sid) claimedStalls.set(sid, rec.command.target.id);
+    }
   }
 
   const evalCtx: EvalContext = {
     bundle: ctx.bundle,
     cfg,
     openByTarget,
-    claimedStalls: new Map(),
+    openByPriority,
+    preempted: [],
+    claimedStalls,
     commandedVehicles: new Set(),
     admittedCeilingKw: 0,
   };
@@ -405,7 +491,7 @@ export function applyShield(
     evalCtx.openByTarget.set(k, (evalCtx.openByTarget.get(k) ?? 0) + 1);
   }
 
-  return { admitted, suppressed, vetoedAll: false, vetoReason: null };
+  return { admitted, suppressed, vetoedAll: false, vetoReason: null, preempted: evalCtx.preempted };
 }
 
 /** One-line operator summary of what the shield did. */

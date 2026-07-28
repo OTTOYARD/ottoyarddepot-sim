@@ -51,6 +51,10 @@ export function useOrchestration(enabled = true) {
       // starts where the twin actually is, not at a guess.
       const controller = new SiteEnergyController(
         bundle.channels.energy_grid.payload.bess.soc_pct ?? 60,
+        {},
+        // anchor the integration clock now, or the first tick after a run
+        // starts is lost — a whole sim-hour at the twin's coarse tick sizes
+        bundle.sim_clock,
       );
       energyRef.current = controller;
       busRef.current = new CommandBus(
@@ -80,7 +84,19 @@ export function useOrchestration(enabled = true) {
         //    deciding, so the ramp and the state-of-charge integration reflect
         //    the last directive by the time the advisors read the world.
         const controller = energyRef.current!;
-        controller.step(bundle.sim_clock, bundle.channels.energy_grid.payload.bess.temp_c);
+        const eg = bundle.channels.energy_grid.payload;
+        // The twin owns the battery. Reconcile before deciding, or the model
+        // drifts and then answers confidently from a state the world left long
+        // ago. Also hand it the other site load, which a curtailment cap has
+        // to be shared with.
+        const otherLoadKw =
+          eg.site.ev_charging_kw === null && eg.site.building_kw === null
+            ? null
+            : (eg.site.ev_charging_kw ?? 0) + (eg.site.building_kw ?? 0);
+        controller.syncFromWorld(eg.bess.soc_pct, otherLoadKw);
+        // A curtailment nobody can lift is a permanent false constraint.
+        controller.releaseCurtailmentIfClear(eg.demand_response.active === true);
+        controller.step(bundle.sim_clock, eg.bess.temp_c);
 
         // 1. close out anything the executors finished or refused since the
         //    last pass, then expire whatever timed out. Both free their targets
@@ -97,6 +113,14 @@ export function useOrchestration(enabled = true) {
           openCommands: bus.openCommands,
           sequenceStart: bus.sequenceStart,
         });
+
+        // Close anything the shield displaced. The shield only removes; without
+        // this the preempted command stays open forever, holding its target and
+        // re-blocking the very command that outranked it. `supersede` existed
+        // and had no caller until now.
+        for (const p of result.shield.preempted) {
+          bus.supersede(p.command_id, atSim, p.by);
+        }
 
         const transmit = await bus.transmit(result.batch);
         store.recordPass({

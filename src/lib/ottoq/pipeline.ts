@@ -211,6 +211,9 @@ export function arbitrate(
     kept.push(sp);
   }
 
+  // Sequence is a PLACEHOLDER here. The shield may remove any of these, and a
+  // suppressed command must not consume a number — see runPipeline, where the
+  // survivors are numbered contiguously.
   const candidates = kept.map((sp, i) =>
     materialize(sp.proposal, sp.advisor, bundle, sequenceStart + i),
   );
@@ -348,6 +351,20 @@ export async function runPipeline(opts: PipelineOptions): Promise<PipelineResult
   // ── L1 ──
   const shield = applyShield(candidates, { bundle, openCommands, config: shieldConfig });
   trace.push(`L1 ${shieldHeadline(shield)}`);
+
+  // SEQUENCE NUMBERS ARE ASSIGNED HERE, AFTER THE SHIELD — NOT IN THE ARBITER.
+  //
+  // They used to be stamped during materialization, before the shield ran, so
+  // every suppressed candidate burned a number it never used. The bus then
+  // reported those holes as `sequenceGaps`, and the World tab printed them in
+  // red as "N sequence gap(s) — commands were lost in transit". Nothing was
+  // lost. A deliberate, correct suppression was being displayed as a transport
+  // failure, and the one signal that distinguishes a dropped batch from a quiet
+  // tick was made useless — the count only ever grew.
+  //
+  // Numbering the survivors keeps the sequence contiguous, so a real gap means
+  // what it says.
+  shield.admitted.forEach((c, i) => { c.sequence = sequenceStart + i; });
 
   // ── L0 ── assemble. Suppressions from BOTH layers ride along, so the batch
   // is a complete account of the decision, not just its survivors.

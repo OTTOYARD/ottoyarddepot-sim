@@ -284,7 +284,15 @@ export function packEnergyGrid(
   const tariff_label = t.take("tariff.label", str(e.tariff) ?? str(g.tariff));
   const rate_per_kwh = t.take("tariff.rate_per_kwh", num(e.rate_per_kwh));
 
-  const dr_active = Boolean(g.dr_active);
+  // Unknown is not false. With no grid row there is no DR observation, and
+  // asserting "no call in progress" from absent data disarms every downstream
+  // protection. Tracked as a required field so the integrity record shows it.
+  const dr_active = t.take<boolean>(
+    "demand_response.active",
+    snap.grid == null || g.dr_active === undefined || g.dr_active === null
+      ? null
+      : Boolean(g.dr_active),
+  );
   const cap_kw = num(g.dr_cap_kw);
   const load_kw =
     ev_charging_kw === null || building_kw === null ? null : ev_charging_kw + building_kw;
