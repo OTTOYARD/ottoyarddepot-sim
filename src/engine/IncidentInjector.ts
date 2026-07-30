@@ -4,16 +4,17 @@ import { useAlertStore } from '@/store/alertStore';
 import { useSimulationStore } from '@/store/simulationStore';
 import { INGRESS, QUEUE_Y } from './types';
 import type { Vehicle, VehicleType, ServiceType } from './types';
+import { demoRandom } from './rng';
 
 export function createQueueVehicle(simTime: number, index: number): Vehicle {
   const types: VehicleType[] = ['fleet', 'core', 'concierge'];
-  const type = types[Math.floor(Math.random() * types.length)];
+  const type = types[demoRandom().int(0, types.length - 1)];
   return {
     id: `INC-${Date.now()}-${index}`,
     type,
-    priority: 3 + Math.floor(Math.random() * 5),
-    batteryCapacity: 60 + Math.random() * 40,
-    currentSoC: 10 + Math.random() * 30,
+    priority: 3 + demoRandom().int(0, 4),
+    batteryCapacity: 60 + demoRandom().next() * 40,
+    currentSoC: 10 + demoRandom().next() * 30,
     targetSoC: 90,
     status: 'queued',
     assignedStall: null,
@@ -31,7 +32,7 @@ export function injectRandomIncident() {
   const simTime = useSimulationStore.getState().simTime;
   const addAlert = useAlertStore.getState().addAlert;
   const incidents = ['charger_failure', 'vehicle_breakdown', 'power_fluctuation', 'queue_surge'];
-  const pick = incidents[Math.floor(Math.random() * incidents.length)];
+  const pick = incidents[demoRandom().int(0, incidents.length - 1)];
 
   switch (pick) {
     case 'charger_failure': {
@@ -40,7 +41,7 @@ export function injectRandomIncident() {
         (s) => (s.type === 'dcfc' || s.type === 'l2') && s.status !== 'offline'
       );
       if (active.length > 0) {
-        const target = active[Math.floor(Math.random() * active.length)];
+        const target = active[demoRandom().int(0, active.length - 1)];
         depot.setStallStatus(target.id, 'offline');
         addAlert({
           timestamp: simTime,
@@ -57,7 +58,7 @@ export function injectRandomIncident() {
         (v) => !['approaching', 'queued', 'departing'].includes(v.status)
       );
       if (inService.length > 0) {
-        const target = inService[Math.floor(Math.random() * inService.length)];
+        const target = inService[demoRandom().int(0, inService.length - 1)];
         // Free the stall
         if (target.assignedStall) {
           useDepotStore.getState().setStallStatus(target.assignedStall, 'available');
@@ -86,7 +87,7 @@ export function injectRandomIncident() {
       );
       const toOffline = Math.ceil(activeChargers.length * 0.2);
       for (let i = 0; i < toOffline && i < activeChargers.length; i++) {
-        const idx = Math.floor(Math.random() * activeChargers.length);
+        const idx = demoRandom().int(0, activeChargers.length - 1);
         depot.setStallStatus(activeChargers[idx].id, 'offline');
         activeChargers.splice(idx, 1);
       }

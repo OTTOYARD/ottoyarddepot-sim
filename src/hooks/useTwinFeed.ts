@@ -3,12 +3,20 @@
 // snapshot frame every POLL_MS. Server-authoritative state; the renderer
 // interpolates between frames (Phase 2). Sets connected=false on error.
 // ============================================================================
-import { useEffect } from "react";
-import { twin, NASHVILLE_DEPOT } from "@/lib/ottoTwin";
+import { useEffect, useRef } from "react";
+import { twin, NASHVILLE_DEPOT, type TwinEventsWindow, type TwinFleetCondition, type TwinLaborWindow, type TwinOffsiteWindow, type TwinRunContext, type TwinWearWindow } from "@/lib/ottoTwin";
 import { useTwinStore } from "@/store/twinStore";
+import { useWorldStore } from "@/store/worldStore";
+import { packChannels } from "@/lib/ottoq/channels";
+import { auditCoverage } from "@/lib/ottoq/coverage";
 
 const POLL_MS = 1500;
 const DISCOVER_MS = 4000;
+// The events window is a run-to-date AGGREGATE over the whole event log, so it
+// is far heavier than a snapshot and its numbers move slowly — a fault rate
+// does not change between two 1.5s frames. Refresh it on its own slower clock
+// and reuse the last one in between.
+const EVENTS_MS = 15000;
 const isLiveRunStatus = (s: string) =>
   ["running", "active", "paused"].includes(String(s).toLowerCase());
 
@@ -18,14 +26,37 @@ export function useTwinFeed(depotId: string = NASHVILLE_DEPOT) {
   const setSnapshot = useTwinStore((s) => s.setSnapshot);
   const setConnected = useTwinStore((s) => s.setConnected);
 
-  // Load static layout once per depot
+  // Load the static layout for the depot THIS RUN actually simulates.
+  //
+  // It used to load `depotId` (default NASHVILLE_DEPOT) unconditionally. The
+  // backend has two seeded 150-stall depots that share ZERO stall ids, and most
+  // runs are on the benchmark one — so the layout and the fleet described
+  // different buildings. Every occupied stall failed to resolve, the depot
+  // rendered pristine and empty, and integrity said "ok". Resolve the depot
+  // from the run and fall back to the prop only when there is no run yet.
   useEffect(() => {
     let cancelled = false;
-    twin.layout(depotId)
-      .then((l) => { if (!cancelled) setLayout(l); })
-      .catch((e) => { console.error("twin.layout failed", e); });
+    const load = async () => {
+      let target = depotId;
+      if (activeSimRunId) {
+        try {
+          const ctx = await twin.runContext(activeSimRunId);
+          if (ctx?.depot_id) target = ctx.depot_id;
+        } catch (e) {
+          console.error("twin.runContext failed — falling back to default depot", e);
+        }
+      }
+      if (cancelled) return;
+      try {
+        const l = await twin.layout(target);
+        if (!cancelled) setLayout(l);
+      } catch (e) {
+        console.error("twin.layout failed", e);
+      }
+    };
+    load();
     return () => { cancelled = true; };
-  }, [depotId, setLayout]);
+  }, [depotId, activeSimRunId, setLayout]);
 
   // Robust active-run discovery (ALWAYS-ON — the OperatorConsole auto-attach only
   // runs while the side panel is mounted, so a collapsed panel left the twin IDLE
@@ -58,6 +89,20 @@ export function useTwinFeed(depotId: string = NASHVILLE_DEPOT) {
     return () => { cancelled = true; clearTimeout(timer); };
   }, []);
 
+  // Latest events-window aggregate + when we last asked for one.
+  const events = useRef<TwinEventsWindow | null>(null);
+  const eventsAt = useRef(0);
+  // Condition has lifespan 'run': dealt once at boot, constant after. Fetched
+  // once per run, never polled.
+  const condition = useRef<TwinFleetCondition | null>(null);
+  // Labor changes only as the run accumulates overflow, so it rides the same
+  // slow cadence as the events window rather than the 1.5s snapshot poll.
+  const labor = useRef<TwinLaborWindow | null>(null);
+  const offsite = useRef<TwinOffsiteWindow | null>(null);
+  const wear = useRef<TwinWearWindow | null>(null);
+  // Run context is run-level and static; fetched once per run alongside condition.
+  const runCtx = useRef<TwinRunContext | null>(null);
+
   // Poll snapshot while a run is active
   useEffect(() => {
     if (!activeSimRunId) {
@@ -66,9 +111,43 @@ export function useTwinFeed(depotId: string = NASHVILLE_DEPOT) {
     }
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout>;
+    // A new run has its own event history; carrying the previous run's rates
+    // into it would attribute one world's faults to another.
+    events.current = null;
+    eventsAt.current = 0;
+    condition.current = null;
+    labor.current = null;
+    offsite.current = null;
+    wear.current = null;
+    runCtx.current = null;
+    twin.runContext(activeSimRunId)
+      .then((c) => { if (!cancelled && !c?.error) runCtx.current = c; })
+      .catch(() => { /* policy provenance stays null; the audit grades it dark */ });
+    twin.fleetCondition(activeSimRunId)
+      .then((c) => { if (!cancelled && !c?.error) condition.current = c; })
+      .catch(() => { /* frame packs without it; the audit grades the domain dark */ });
 
     const poll = async () => {
       try {
+        // Refresh the aggregate on its own cadence, and NEVER let it break the
+        // frame: on failure the last known window is reused, and if there has
+        // never been one the bundle packs with null reliability blocks — which
+        // the coverage audit grades dark rather than calm.
+        if (Date.now() - eventsAt.current >= EVENTS_MS) {
+          eventsAt.current = Date.now();
+          twin.eventsWindow(activeSimRunId)
+            .then((w) => { if (!w?.error) events.current = w; })
+            .catch(() => { /* keep the previous window; it carries its own last_at */ });
+          twin.labor(activeSimRunId)
+            .then((l) => { if (!l?.error) labor.current = l; })
+            .catch(() => { /* same rule: stale labor beats no labor, and it is dated */ });
+          twin.offsite(activeSimRunId)
+            .then((o) => { if (!o?.error) offsite.current = o; })
+            .catch(() => { /* trip stats are run-to-date; a stale copy is still true of the past */ });
+          twin.wear(activeSimRunId)
+            .then((wv) => { if (!wv?.error) wear.current = wv; })
+            .catch(() => { /* wear accrues slowly; the previous window remains true of the past */ });
+        }
         const snap = await twin.snapshot(activeSimRunId);
         if (cancelled) return;
         if (snap.error) {
@@ -76,6 +155,21 @@ export function useTwinFeed(depotId: string = NASHVILLE_DEPOT) {
         } else {
           setSnapshot(snap);
           setConnected(true);
+          // Same frame, second consumer: pack it into the OTTO-Q channel
+          // bundle. Done here rather than in a separate poll so the renderer
+          // and the orchestrator can never disagree about which tick they are
+          // looking at. Packing is pure and cheap; a throw must not kill the
+          // render feed, so it is contained.
+          try {
+            const bundle = packChannels(snap, useTwinStore.getState().layout, new Date(), events.current, condition.current, labor.current, offsite.current, wear.current, runCtx.current);
+            // Pass the catalog captured at boot so per-frame coverage can still
+            // detect registry drift; recomputing without it silently dropped
+            // that signal on every frame after the first.
+            const keys = useWorldStore.getState().catalogKeys ?? undefined;
+            useWorldStore.getState().publishFrame(bundle, auditCoverage(bundle, keys));
+          } catch (err) {
+            console.error("channel packing failed", err);
+          }
         }
       } catch (e) {
         if (!cancelled) setConnected(false);

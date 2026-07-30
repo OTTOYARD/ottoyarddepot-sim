@@ -1,5 +1,22 @@
+// ============================================================================
+// SimulationEngine — the OFFLINE DEMO engine.
+//
+// ⚠️ THIS IS NOT THE AUTHORITY. The server-side OTTO-TWIN (Supabase project
+// otto-q-core) owns the world model: run seeds, common-random-number
+// discipline, a fitted real-world corpus, and the channel feed OTTO-Q
+// orchestrates against. See src/lib/ottoq/ and docs/OTTO-Q-WORLD-CONTRACT.md.
+//
+// This engine exists so the cockpit still shows a moving depot when the backend
+// is unreachable (twinStore.offlineDemo). It is a demonstration, not a
+// validation instrument, and nothing it produces should be presented as a
+// simulation result.
+//
+// It is at least REPRODUCIBLE: every draw routes through the seeded generator
+// in ./rng, re-seeded on each reset, so the same seed replays the same demo.
+// ============================================================================
 import { useSimulationStore } from '@/store/simulationStore';
 import type { SimulationConfig } from '@/store/simulationStore';
+import { seedDemoRng, currentDemoSeed } from './rng';
 import { useDepotStore } from '@/store/depotStore';
 import { useVehicleStore } from '@/store/vehicleStore';
 import { useKPIStore } from '@/store/kpiStore';
@@ -167,9 +184,27 @@ function lerp(current: number, target: number, maxStep: number): number {
   return current + Math.sign(diff) * maxStep;
 }
 
+/** Default demo seed. Stable so an unconfigured demo replays identically. */
+const DEFAULT_DEMO_SEED = 20260727;
+
 export class SimulationEngine {
   private rafId: number | null = null;
   private lastTimestamp: number | null = null;
+  private seed = DEFAULT_DEMO_SEED;
+
+  /**
+   * Set the seed for the NEXT reset. Two runs with the same seed and the same
+   * config produce the same demo — which is the minimum bar for comparing two
+   * scheduling policies against each other.
+   */
+  setSeed(seed: number) {
+    this.seed = seed >>> 0;
+  }
+
+  /** Seed currently driving the demo — record it alongside any saved run. */
+  get currentSeed(): number {
+    return currentDemoSeed();
+  }
 
   start() {
     if (this.rafId !== null) return;
@@ -190,6 +225,9 @@ export class SimulationEngine {
 
   reset() {
     this.stop();
+    // Re-seed FIRST: every generator below draws from this stream, so seeding
+    // after any of them would leave the run's opening moments unreproducible.
+    seedDemoRng(this.seed);
     resetArrivalGenerator();
     resetAlertEngine();
     lastScheduleTime = 0;

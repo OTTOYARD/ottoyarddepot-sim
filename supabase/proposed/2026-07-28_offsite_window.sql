@@ -1,0 +1,39 @@
+-- ============================================================================
+-- ottoq_twin_offsite_window — what the fleet does once it LEAVES.
+--
+-- Every feed OTTO-Q had was depot-scoped, so a vehicle vanished the moment it
+-- drove off the lot and reappeared at the gate. `trip_duration` and
+-- `idle_fraction` were graded unobservable for exactly that reason.
+--
+-- They were never unobservable. `ottoq_vehicle_dispatches` has recorded 17,619
+-- dispatches across 125 runs with planned vs actual duration, miles, SoC out
+-- and back, arrival jitter and a return-reason taxonomy. Nothing read it.
+--
+-- WHAT THE DATA SAYS, AND WHY IT IS REPORTED BY TRIGGER
+-- Trips overrun their plan massively, and how much depends entirely on WHY the
+-- vehicle came back. On run a044dab4 (239 completed trips):
+--     low_soc_reserve    plan  58 min -> actual 356 min   (n=122)
+--     overnight_prestage plan  89 min -> actual 150 min   (n=14)
+--     sensor_soil        plan  71 min -> actual  75 min   (n=70)
+-- Median overall: 3.6x plan, 195 of 239 trips overran. A single fleet-wide
+-- "trip duration" averages those into a number that describes no vehicle, so
+-- the per-trigger breakdown travels with the aggregate.
+--
+-- The headline reading: `planned_duration_min` is not a usable predictor, and
+-- most vehicles return because their BATTERY forces them to, not because a
+-- plan said so. An orchestrator that pre-stages for the planned return staffs
+-- for a fleet that is not coming.
+--
+-- TWO COLUMNS DELIBERATELY NOT PUBLISHED AS THEY APPEAR
+--
+-- 1. energy_consumed_kwh is NEVER WRITTEN — 0 of 17,619 rows. Publishing it
+--    would report a fleet that drove 17,000 trips on no energy, and unlike a
+--    missing field a plausible 0 invites arithmetic. Drive energy is exposed
+--    as a SoC-delta proxy, labelled `energy_basis: 'soc_delta_proxy'`.
+--
+-- 2. arrival_jitter_min is SPARSE — 282 of 11,274 trips (2.5%) carry any, but
+--    it reaches 120 min when it fires, so both p50 and p90 are 0. The count
+--    and the max are published alongside the p50 so the tail is legible, and
+--    `eta_delay` is NOT rebound to that p50: it would grade "observed" on
+--    every run while telling OTTO-Q nothing.
+-- ============================================================================

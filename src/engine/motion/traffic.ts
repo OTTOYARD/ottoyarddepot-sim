@@ -143,6 +143,11 @@ export class StallLedger {
   isHeld(stallId: string): boolean {
     return this.byStall.has(stallId);
   }
+  /** Which car holds `stallId`, if any. Lets a refusal name the blocker
+   *  ("already held by AV-12") instead of just saying no. */
+  holderOf(stallId: string): string | undefined {
+    return this.byStall.get(stallId);
+  }
   clear() {
     this.byStall.clear();
     this.byCar.clear();

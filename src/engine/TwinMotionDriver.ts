@@ -109,6 +109,18 @@ function mapState(
       return stallId
         ? { lane: "staging", vstatus: "staging", sstatus: "occupied" }
         : { lane: "gate", vstatus: "staging", sstatus: "occupied" };
+    // WITHDRAWN, BUT STILL HERE. `out_of_service` and `tow_requested` mean the
+    // vehicle is physically in the depot and NOT assignable — not that it
+    // left. Falling through to the default treated them as a departure: the
+    // car drove to the egress and despawned, and any open OTTO-Q command was
+    // closed with the false reason "vehicle left the depot before reaching the
+    // commanded stall". It never left; it was withdrawn.
+    //
+    // Freeze it in place holding its stall, which is what an unassignable
+    // vehicle actually does to depot capacity.
+    case "out_of_service":
+    case "tow_requested":
+      return { lane: "staging", vstatus: "maintenance", sstatus: "occupied" };
     default: return null; // deployed / en_route / offline → off-map (departure)
   }
 }
@@ -168,6 +180,31 @@ interface Entry {
   dwellStartMs: number | null;
 }
 
+/** An OTTO-Q stall assignment the driver has accepted and is now honouring. */
+interface CommandedStall {
+  command_id: string;
+  /** RENDERER stall id (already translated from the twin uuid at accept time) */
+  renderStallId: string;
+  /** sim instant by which the vehicle should have arrived; null = no deadline */
+  notAfterSim: string | null;
+  /** wall clock when the command was accepted — the basis for arrival deviation */
+  acceptedAtMs: number;
+  /** true once the vehicle has physically docked at the commanded stall */
+  arrived: boolean;
+  /** set when the twin's state put the vehicle in a lane this stall is not in */
+  laneMismatch: string | null;
+}
+
+/** What the driver reports back up the wire once a command resolves. */
+export interface MotionOutcome {
+  command_id: string;
+  vehicle_id: string;
+  status: "completed" | "rejected";
+  /** seconds between accepting the command and physically docking */
+  transit_s: number;
+  reason: string | null;
+}
+
 class TwinMotionDriver {
   private rafId: number | null = null;
   private intervalId: ReturnType<typeof setInterval> | null = null;
@@ -214,6 +251,120 @@ class TwinMotionDriver {
    *  state changed while paused simply resumes toward its new target instead of
    *  teleporting. */
   private paused = false;
+  // ── OTTO-Q ORCHESTRATION INBOX ────────────────────────────────────────────
+  // OTTO-Q says WHICH STALL and BY WHEN. Everything else — the route, the
+  // speed, the spacing, the parked heading — stays here, in the motion stack,
+  // exactly as an AV's own autonomy would own it. The orchestrator never
+  // touches a pose.
+  //
+  // The twin's own state machine still decides WHAT SERVICE a vehicle needs
+  // (charging vs washing vs staging). A command names a stall INSIDE that
+  // decision. If OTTO-Q names a stall in a lane the twin's state does not
+  // support, the command is not forced — the mismatch is recorded and the
+  // vehicle follows the twin. Fighting the backend would produce exactly the
+  // two-systems-one-vehicle problem the single funnel exists to prevent.
+  private commanded = new Map<string, CommandedStall>();
+  /** arrival reports waiting to be drained by the command bus */
+  private motionOutcomes: MotionOutcome[] = [];
+
+  // ── OTTO-Q command subscriber ─────────────────────────────────────────────
+
+  /**
+   * Accept (or decline) an `assign_stall` directive.
+   *
+   * Returns `true` on acceptance, or a REASON STRING on refusal. Refusing is a
+   * first-class outcome, not a failure: the motion system is the authority on
+   * what it can physically do, and a real fleet API refuses the same way. Every
+   * refusal names the thing that is missing so the operator is never left
+   * guessing why a car did not move.
+   *
+   * Deliberately does NOT route the car here. Routing happens in `reconcile`
+   * against the next world frame, so a command and a snapshot can never race to
+   * assign the same vehicle two different rails.
+   */
+  acceptStallCommand(input: {
+    command_id: string;
+    vehicle_id: string;
+    /** TWIN stall uuid — translated to a renderer stall id here */
+    twin_stall_id: string | null | undefined;
+    not_after_sim: string | null;
+  }): true | string {
+    const { command_id, vehicle_id, twin_stall_id, not_after_sim } = input;
+
+    if (!twin_stall_id) return "command carries no stall id";
+    if (!this.entries.has(vehicle_id)) {
+      return "vehicle is not present in the rendered scene — nothing to move";
+    }
+    if (this.twinStall.size === 0) {
+      return "depot layout has not loaded — stall ids cannot be resolved yet";
+    }
+    const renderStallId = this.twinStall.get(twin_stall_id);
+    if (!renderStallId) {
+      return `stall ${twin_stall_id} does not map to a rendered stall — the scene draws fewer stalls than the twin defines`;
+    }
+
+    // The ledger is the one-car-per-stall authority. If another vehicle already
+    // holds this stall, accepting would let the renderer park two cars in one
+    // place — refuse rather than produce a scene that lies.
+    const holder = this.ledger.holderOf(renderStallId);
+    if (holder && holder !== vehicle_id) {
+      return `stall ${renderStallId} is already held by ${holder}`;
+    }
+
+    // Re-issue of a command already being honoured: accept idempotently.
+    const existing = this.commanded.get(vehicle_id);
+    if (existing && existing.command_id === command_id) return true;
+
+    // A NEW command for a vehicle that already had one supersedes it. The old
+    // one is reported so the bus can close its record instead of leaking it.
+    if (existing && !existing.arrived) {
+      this.motionOutcomes.push({
+        command_id: existing.command_id,
+        vehicle_id,
+        status: "rejected",
+        transit_s: (performance.now() - existing.acceptedAtMs) / 1000,
+        reason: `superseded by ${command_id} before the vehicle arrived`,
+      });
+    }
+
+    this.commanded.set(vehicle_id, {
+      command_id,
+      renderStallId,
+      notAfterSim: not_after_sim,
+      acceptedAtMs: performance.now(),
+      arrived: false,
+      laneMismatch: null,
+    });
+    return true;
+  }
+
+  /**
+   * Hand back every command that has resolved since the last call, and clear
+   * them. The bus turns these into terminal ledger entries.
+   */
+  drainMotionOutcomes(): MotionOutcome[] {
+    const out = this.motionOutcomes;
+    this.motionOutcomes = [];
+    return out;
+  }
+
+  /** Which stall a vehicle currently holds, if any. */
+  stallHeldBy(vehicleId: string): string | undefined {
+    return this.ledger.stallOf(vehicleId);
+  }
+
+  /** Live view of what OTTO-Q has asked for — for the operator's decision trace. */
+  get commandedAssignments(): { vehicle_id: string; stall_id: string; arrived: boolean }[] {
+    return [...this.commanded.entries()].map(([vehicle_id, c]) => ({
+      vehicle_id, stall_id: c.renderStallId, arrived: c.arrived,
+    }));
+  }
+
+  /** Drop every outstanding assignment — called when the run changes. */
+  private clearCommands() {
+    this.commanded.clear();
+    this.motionOutcomes = [];
+  }
 
   /** Freeze/unfreeze on-screen motion. Dropping `last` on resume means the first
    *  frame back re-seeds the clock instead of applying one giant catch-up dt —
@@ -307,9 +458,15 @@ class TwinMotionDriver {
     this.stop();
     this.entries.clear();
     this.ledger.clear();
+    this.clearCommands();
     poseStore.clear();
     this.lastRosterKey = "";
     this.primed = false;
+    // Drop the twin→renderer stall mapping too. The bridge re-fetches the
+    // layout on every re-entry (expectLayout → setTwinStallMap), so keeping the
+    // old map only creates the chance of resolving a stall id against a layout
+    // that is no longer on screen.
+    this.twinStall.clear();
     this.layoutSettled = true;
     this.pendingSnap = null;
     this.runId = null;
@@ -329,6 +486,7 @@ class TwinMotionDriver {
   private resetScene() {
     this.entries.clear();
     this.ledger.clear();
+    this.clearCommands();
     poseStore.clear();
     this.lastRosterKey = "";
     this.primed = false;
@@ -723,8 +881,24 @@ class TwinMotionDriver {
       // see is literally OTTO-Q's assignment. Zone-based pick is the fallback
       // (unmapped stall, renderer/twin drift, or stale local claim).
       let stallId: string | null = null;
+      // OTTO-Q FIRST. An accepted orchestration command outranks the twin's own
+      // stall pick, so what you see on screen is literally the decision the
+      // funnel emitted. `cands` is already filtered to the lane the twin's state
+      // implies, so a commanded stall in the WRONG lane simply is not a
+      // candidate — the car follows the twin and the mismatch is recorded
+      // rather than fought.
+      const order = this.commanded.get(bv.id);
+      if (order) {
+        if (cands.includes(order.renderStallId) && this.ledger.claim(bv.id, order.renderStallId)) {
+          stallId = order.renderStallId;
+          order.laneMismatch = null;
+        } else if (!order.arrived) {
+          order.laneMismatch =
+            `commanded stall ${order.renderStallId} is not available in the ${lane} lane the twin put this vehicle in`;
+        }
+      }
       const exact = bv.stall_id ? this.twinStall.get(bv.stall_id) : undefined;
-      if (exact && cands.includes(exact) && this.ledger.claim(bv.id, exact)) stallId = exact;
+      if (!stallId && exact && cands.includes(exact) && this.ledger.claim(bv.id, exact)) stallId = exact;
       if (!stallId) stallId = this.ledger.claimFirstFree(bv.id, cands);
       if (!stallId) {
         // overflow (no free stall in the target lane): a NEW car stays off-map
@@ -1098,6 +1272,40 @@ class TwinMotionDriver {
               e.playback = "docked";
               e.dwellStartMs = performance.now();
             }
+            // OTTO-Q ARRIVAL REPORT. The command asked for a stall by a
+            // deadline; the car has now physically reached one. Report the
+            // truth either way — arriving at a DIFFERENT stall than commanded
+            // is a completed drive but a failed instruction, and the ledger
+            // must show which.
+            const order = this.commanded.get(id);
+            if (order && !order.arrived) {
+              const onTarget = e.stallId === order.renderStallId;
+              const transit_s = (performance.now() - order.acceptedAtMs) / 1000;
+              order.arrived = true;
+              this.motionOutcomes.push({
+                command_id: order.command_id,
+                vehicle_id: id,
+                status: onTarget ? "completed" : "rejected",
+                transit_s: Math.round(transit_s * 10) / 10,
+                reason: onTarget
+                  ? null
+                  : order.laneMismatch ??
+                    `vehicle docked at ${e.stallId} instead of the commanded ${order.renderStallId}`,
+              });
+              // ALWAYS drop the order once it has resolved, on-target or not.
+              //
+              // It used to be deleted only on success, so a command already
+              // closed as `rejected` in the L0 ledger stayed in this map and
+              // went on overriding the twin's own stall pick — past its own
+              // window, with no further report, because `arrived` was already
+              // true. On the mainline gate-assignment flow that fired routinely:
+              // the advisor targets vehicles at the gate, whose lane never
+              // contains the commanded charger stall, so the first arrival
+              // always mismatched and the dead order then steered the car.
+              //
+              // A resolved command is finished. It does not get to keep driving.
+              this.commanded.delete(id);
+            }
           }
         }
       } else {
@@ -1112,6 +1320,19 @@ class TwinMotionDriver {
       }
     }
     for (const id of remove) {
+      // A despawn with a live order must not leave that command dangling in the
+      // bus ledger forever — close it with the reason it can no longer be met.
+      const order = this.commanded.get(id);
+      if (order && !order.arrived) {
+        this.motionOutcomes.push({
+          command_id: order.command_id,
+          vehicle_id: id,
+          status: "rejected",
+          transit_s: Math.round(((performance.now() - order.acceptedAtMs) / 1000) * 10) / 10,
+          reason: "vehicle left the depot before reaching the commanded stall",
+        });
+      }
+      this.commanded.delete(id);
       this.ledger.release(id);
       this.locks.releaseAll(id);
       this.entries.delete(id);

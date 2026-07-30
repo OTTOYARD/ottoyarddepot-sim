@@ -1,0 +1,43 @@
+-- ============================================================================
+-- THREE GAPS CLOSED. All three were data the twin already had.
+--
+-- 1. HUMIDITY — one unselected column.
+--    ottoq_weather_snapshots has recorded relative_humidity_pct for 8,553 rows
+--    (30.7-99.3%), and ottoq_twin_snapshot reads that exact row while selecting
+--    every other column. The catalog documents humidity as driving fog and
+--    perception-fault likelihood, so it shaped the world while being
+--    unobservable for want of one line.
+--
+--    Applied as a targeted rewrite of the LIVE definition (see the migration
+--    snapshot_publish_humidity) rather than a hand-retyped copy of a large
+--    function: the guard asserts the anchor appears exactly once and raises
+--    otherwise, so a drifted body aborts instead of being silently replaced by
+--    a stale transcription.
+--
+-- 2. DTC — ottoq_twin_wear_window, below. Two traps in the source table:
+--      · worst_open_dtc_rank uses 99 as a SENTINEL for "no open DTC"
+--        (confirmed in ottoq_wear_mark_serviced, which sets 99 on repair; all
+--        11,085 rows at rank 99 have open_dtc_count = 0)
+--      · the scale is INVERTED — 0 is worst, 4 mildest
+--    Raw, a clean fleet reports "severity 99" to anyone assuming higher-is-
+--    worse: the most alarming reading of the least alarming state. The RPC maps
+--    the sentinel to NULL and states the scale direction in the payload.
+--
+--    The wear feed also makes the drawn maintenance intervals ACTIONABLE.
+--    veh_pm_interval_km was already observable, but an interval alone is inert:
+--    "PM every 8,450 km" means nothing until you know the vehicle has driven
+--    8,200. pm_due_ratio joins the two.
+--
+-- 3. SCHEDULING POLICY — proven from evidence, not configuration.
+--    ottoq_sim_runs.policy is a SETTING; binding to it would let OTTO-Q report
+--    a policy the world may never have run. ottoq_deploy_log stamps the policy
+--    that actually made each deploy decision (18,663 across 128 runs). Both are
+--    published plus whether they agree — a run configured otto_q whose
+--    decisions were stamped greedy is a broken benchmark, and silence about it
+--    would make an A/B comparison meaningless.
+--
+-- STILL NOT PUBLISHED, DELIBERATELY: charging_staff. It is registered
+-- wired = true and read by NO function in this database. Giving it an
+-- observable would report a slider's own setting as an outcome. It stays
+-- unobservable until the simulation reads it — the fix belongs in the sim.
+-- ============================================================================

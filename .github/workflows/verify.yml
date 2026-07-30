@@ -1,0 +1,52 @@
+# Runs on every push and pull request.
+#
+# WHY THIS EXISTS: this repo's regression guards only protect us if something
+# actually runs them. The test that pins all 17 backend vehicle states was
+# written because a wrong vocabulary silently made the whole fleet channel
+# report zeros while passing every type check. A guard nobody runs is not a
+# guard — it is a comment.
+#
+# Deliberately boring and fast: install, typecheck, test, build. No deploy, no
+# secrets, no database. Nothing here can touch production.
+name: Verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A new push to the same branch cancels the previous run — no point verifying
+# a commit that has already been superseded.
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # `npm ci` (not install) so the lockfile is authoritative and a run can
+      # never silently pick up a different dependency tree than we tested.
+      - name: Install
+        run: npm ci
+
+      # Vite's build does NOT typecheck — it strips types with esbuild. Without
+      # this step a real type error ships green. That has already happened once
+      # in this repo (OperatorConsole reading a field that did not exist).
+      - name: Typecheck
+        run: npx tsc -p tsconfig.app.json --noEmit
+
+      - name: Test
+        run: npx vitest run
+
+      - name: Build
+        run: npx vite build

@@ -4,6 +4,8 @@ import { DepotCanvas } from '@/components/canvas/DepotCanvas';
 import { ResponsiveGuard } from '@/components/layout/ResponsiveGuard';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useTwinFeed } from '@/hooks/useTwinFeed';
+import { useWorldBoot } from '@/hooks/useWorldBoot';
+import { useOrchestration } from '@/hooks/useOrchestration';
 import { useTwinSceneBridge } from '@/hooks/useTwinSceneBridge';
 import { RunBootSplash } from '@/components/canvas/RunBootSplash';
 import { JumpPlanningOverlay } from '@/components/canvas/JumpPlanningOverlay';
@@ -19,6 +21,11 @@ const App = () => {
 
   // Attach the server-authoritative twin feed (loads layout, polls snapshots).
   useTwinFeed();
+  // Load the complete world for each adopted run and grade its channels before
+  // OTTO-Q is asked to orchestrate in it (worldStore.phase).
+  useWorldBoot();
+  // Run the OTTO-Q funnel once per tick: advisors → arbiter → shield → wire.
+  useOrchestration();
   // CC-P2b: drive the depot scene (stalls + vehicles) from the live snapshot.
   useTwinSceneBridge();
 
