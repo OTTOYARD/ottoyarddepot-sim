@@ -26,7 +26,7 @@ import { poseStore } from "./motion/poseStore";
 import { useDepotStore, type StallStatus } from "@/store/depotStore";
 import { useVehicleStore } from "@/store/vehicleStore";
 import type { Vehicle, VehicleStatus } from "@/engine/types";
-import type { TwinSnapshot } from "@/lib/ottoTwin";
+import type { TwinSnapshot, TwinLeg } from "@/lib/ottoTwin";
 import { INGRESS, EGRESS, gapLaneX, SOUTH_LANE_Y, REAR_LANE_Y } from "@/lib/sitePlan";
 
 type Lane = "dcfc" | "l2" | "wash" | "service" | "staging";
@@ -53,6 +53,10 @@ const MAX_ACTIVE_SERVICE_APPROACH = 5; // batch charger/bay reassignments back o
                                        // in packets — else every parked staging
                                        // car reverses at once into mutual gridlock
 const SPAWN_CLEARANCE = 6;    // don't materialize a car onto another one
+/** run statuses that still own the depot. Must match isLiveRunStatus in
+ *  OperatorConsole / useTwinFeed — `paused` is LIVE, so a pause holds the scene
+ *  and only a terminal status (completed / aborted) clears it. */
+const LIVE_RUN_STATUSES = new Set(["running", "active", "paused"]);
 
 // SMOOTHNESS: a rail car's pose heading is the raw segment TANGENT, which jumps
 // discontinuously at every polyline vertex (a lane corner, the charger pull-in).
@@ -89,6 +93,11 @@ function mapState(
     case "staged_for_departure": return { lane: "staging", vstatus: "staging", sstatus: "occupied" };
     // incident triage: a retrieved (towed-in) vehicle docks in its reserved staging stall
     case "emergency_staged": return { lane: "staging", vstatus: "maintenance", sstatus: "occupied" };
+    // INTERRUPTED WORKFLOW (parking doctrine case 3): an out-of-service vehicle
+    // inside the depot parks VISIBLY with maintenance status — the one case that
+    // wants stationary parking. Previously fell through to the off-map default
+    // and the car vanished frame-to-frame mid-depot.
+    case "out_of_service": return { lane: "staging", vstatus: "maintenance", sstatus: "occupied" };
     // ENTRANCE PILEUP FIX: OTTO-Q's congestion fallback PARKS a gate arrival in a
     // staging stall (sets current_stall_id) but deliberately KEEPS the state
     // 'arrived_at_gate' so decide_tick retries it for a charger every tick.
@@ -221,6 +230,14 @@ class TwinMotionDriver {
   /** run the current entries belong to — a snapshot from a DIFFERENT run resets
    *  the scene instead of flooding 100+ stale cars toward the egress at once */
   private runId: string | null = null;
+  /** was the last-seen run live? A run that STOPS keeps the same sim_run_id, so
+   *  the run-switch check below never fires and the scene kept drawing the last
+   *  known car positions forever — which read as "Stop doesn't clear the depot".
+   *  The backend does empty the depot on stop; only the renderer lagged.
+   *  Tracked as live-vs-terminal, NOT as `=== "running"`: `paused` is a LIVE
+   *  status (see isLiveRunStatus / useTwinFeed) and pausing must hold the scene
+   *  exactly where it is, never clear it. */
+  private lastRunLive: boolean | null = null;
   /** deploy-wave stagger: departures beyond MAX_ACTIVE_DEPARTING wait parked
    *  here and are released as active departers reach the egress */
   private departQueue: string[] = [];
@@ -358,6 +375,69 @@ class TwinMotionDriver {
     if (!v) this.last = null;
   }
 
+  /** On-screen speed multiplier, mirrored from the backend playback contract
+   *  (snapshot.run.speed_x). 1 = true 1:1 — a car crosses the yard at 8.6 mph, a
+   *  charge session takes as long as a charge session. Hard-capped at 3: past that
+   *  the depot stops being motion-faithful and OTTO-Q cannot keep up with decisions,
+   *  which is what JUMP is for. */
+  private viewMult = 1;
+  setViewMult(v: number) {
+    const next = Math.max(1, Math.min(3, Number.isFinite(v) ? v : 1));
+    if (this.viewMult === next) return;
+    this.viewMult = next;
+    this.last = null; // re-seed so the change never applies one giant catch-up dt
+  }
+
+  // ─── T4 RENDER CONTRACT: OTTO-Q's timed legs pace the motion ────────────────
+  /** Active TRAVEL legs from the last snapshot, keyed by vehicle id. */
+  private legs = new Map<string, TwinLeg>();
+  /** Sim clock (ms) carried by the last snapshot, and the performance.now() at
+   *  which it arrived. simNow() extrapolates between snapshots off the WALL clock,
+   *  so motion keeps running — correctly — when the feed stalls or is unplugged.
+   *  That is the whole point: the poll becomes a correction channel, not the driver. */
+  private simAnchorClock = 0;
+  private simAnchorAt = 0;
+  private simSpeedX = 1;
+
+  /** #173 (D) — CONTRACT COVERAGE. Only the renderer knows how many cars are
+   *  physically taxiing, so only it can close this ratio. `paced` counts cars whose
+   *  motion is actually governed by an OTTO-Q leg; `taxiing` counts every car in
+   *  motion. Anything in the gap is the renderer moving a car the contract never
+   *  described — the exact thing T3/T4 exist to eliminate. It measured 0/22 when
+   *  first surfaced; without this number that was invisible. */
+  coverage(): { taxiing: number; paced: number; ratio: number; legs: number } {
+    let taxiing = 0, paced = 0;
+    for (const e of this.entries.values()) {
+      if (!e.tracker) continue;
+      taxiing++;
+      if (e.tracker.vCap != null || this.legs.has(e.id)) paced++;
+    }
+    return { taxiing, paced, ratio: taxiing ? paced / taxiing : 1, legs: this.legs.size };
+  }
+
+  /** Current sim time in ms, extrapolated from the last snapshot. */
+  private simNow(): number {
+    if (!this.simAnchorClock) return 0;
+    return this.simAnchorClock + (performance.now() - this.simAnchorAt) * this.simSpeedX;
+  }
+
+  /** Speed ceiling (u/s) that lands this car at its leg's planned_end_sim.
+   *  Returns undefined when there is no contract to honour, when the leg is already
+   *  due (let it run flat out to catch up), or when the numbers are not finite —
+   *  in every one of those cases the car falls back to pre-T4 behaviour. */
+  private contractPace(id: string, rail: Rail): number | undefined {
+    const leg = this.legs.get(id);
+    if (!leg || this.simAnchorClock === 0) return undefined;
+    const endMs = Date.parse(leg.end_sim);
+    if (!Number.isFinite(endMs)) return undefined;
+    const remainingSec = (endMs - this.simNow()) / 1000;
+    if (!(remainingSec > 0.5)) return undefined;      // due or overdue → uncapped
+    const remainingArc = Math.max(0, rail.total - rail.s);
+    if (remainingArc <= 0.5) return undefined;
+    const v = remainingArc / remainingSec;
+    return Number.isFinite(v) && v > 0 ? v : undefined;
+  }
+
   start() {
     if (this.rafId !== null || this.intervalId !== null) return;
     this.last = null;
@@ -412,6 +492,18 @@ class TwinMotionDriver {
     this.primed = false;
     this.departQueue = [];
     this.locks = new RailLocks();
+    // T4: a run switch invalidates the contract — stale legs would otherwise pace
+    // the NEW fleet against the OLD run's clock (ids never match, so a car would
+    // be held to a deadline from a different world).
+    this.legs.clear();
+    this.simAnchorClock = 0;
+    // clearing driver state is not enough on its own: the painted fleet and the
+    // stall colors live in the stores, and an EMPTY roster produces the same
+    // fingerprint as the reset lastRosterKey, so the push below would be skipped
+    // and last run's cars would stay on screen. Empty both explicitly.
+    useVehicleStore.getState().setVehicles([]);
+    const depot = useDepotStore.getState();
+    for (const s of depot.stalls) if (s.status !== "available") depot.setStallStatus(s.id, "available");
   }
 
   /** Ingest the twin depot layout: map each twin stall uuid to the renderer's
@@ -595,6 +687,36 @@ class TwinMotionDriver {
     const rid = snap.run?.sim_run_id ?? null;
     if (rid && this.runId && rid !== this.runId) this.resetScene();
     if (rid) this.runId = rid;
+
+    // run STOP: same sim_run_id, but the run has gone terminal. The backend
+    // empties the depot (ottoq_sim_stop_and_reset unplaces every vehicle and
+    // clears every stall), so holding the last positions here is stale fiction.
+    // Reset once on the live -> terminal edge, not on every poll thereafter.
+    // `paused` counts as LIVE, so Pause holds the scene instead of clearing it.
+    const status = snap.run?.status ?? null;
+    if (status) {
+      const live = LIVE_RUN_STATUSES.has(status.toLowerCase());
+      if (this.lastRunLive === true && !live) this.resetScene();
+      this.lastRunLive = live;
+    }
+
+    // ─── T4: re-anchor the sim clock and refresh the leg contract ─────────────
+    // Between snapshots simNow() runs off the WALL clock, so motion continues
+    // (and stays correctly paced) if the feed stalls. This is the correction.
+    const clockMs = Date.parse(snap.run?.sim_clock ?? "");
+    if (Number.isFinite(clockMs)) {
+      this.simAnchorClock = clockMs;
+      this.simAnchorAt = performance.now();
+      this.simSpeedX = Math.max(0.1, Number(snap.run?.speed_x ?? 1) || 1);
+    }
+    // Only TRAVEL legs steer motion; dwell legs describe what happens once parked.
+    // Newest wins per vehicle, so a re-planned move supersedes the one it replaced.
+    this.legs.clear();
+    for (const l of snap.legs ?? []) {
+      if (l?.kind !== "travel" || !l.vehicle_id) continue;
+      const prev = this.legs.get(l.vehicle_id);
+      if (!prev || (l.seq ?? 0) >= (prev.seq ?? 0)) this.legs.set(l.vehicle_id, l);
+    }
     const depot = useDepotStore.getState();
     const stalls = depot.stalls;
     const byLane: Record<string, typeof stalls> = { dcfc: [], l2: [], wash: [], service: [], staging: [] };
@@ -608,6 +730,25 @@ class TwinMotionDriver {
     // a far corner and bunching in a shared approach.
     const dIn = (s: (typeof stalls)[number]) => Math.hypot(s.position.x - INGRESS.x, s.position.y - INGRESS.y);
     byLane.staging?.sort((a, b) => dIn(a) - dIn(b));
+    // PARKING DOCTRINE (MOTION-3): a car may PARK only for overnight staging, a
+    // temporary hold, or an interrupted workflow. The renderer expresses that by
+    // WHERE each NEW staging claim lands: DAYTIME holds fill the NE temp/overflow
+    // block first (TW/TE columns + N1 row — reads as short-term congestion
+    // staging, not overnight parking); deploy-ready cars pool toward the EGRESS
+    // (west) so departures stage by the exit; OVERNIGHT (22:00–04:59 depot time)
+    // everything may fill the perimeter carports — the real overnight park.
+    // STABILITY BIAS is untouched: existing stall claims are never reshuffled;
+    // ordering applies to NEW claims / lane changes only.
+    const hourFmt = new Intl.DateTimeFormat("en-US", { hour: "numeric", hour12: false, timeZone: "America/Chicago" });
+    const simHour = snap.run?.sim_clock ? Number(hourFmt.format(new Date(snap.run.sim_clock))) % 24 : 12;
+    const overnight = simHour >= 22 || simHour < 5;
+    const isTempSpot = (s: (typeof stalls)[number]) =>
+      s.position.x >= 226 && s.position.x <= 268 && s.position.y < 165; // TW/TE columns + N1 row (NE zone)
+    const dOut = (s: (typeof stalls)[number]) => Math.hypot(s.position.x - EGRESS.x, s.position.y - EGRESS.y);
+    const stagingTempFirst = [...(byLane.staging ?? [])].sort(
+      (a, b) => Number(isTempSpot(b)) - Number(isTempSpot(a)) || dIn(a) - dIn(b));
+    const stagingByEgress = [...(byLane.staging ?? [])].sort((a, b) => dOut(a) - dOut(b));
+    const DAY_HOLD_STATES = new Set(["charge_complete_holding", "service_complete_holding", "staged_awaiting_service"]);
 
     const present = new Set<string>();
     const desiredStatus = new Map<string, StallStatus>();
@@ -727,7 +868,14 @@ class TwinMotionDriver {
         this.entries.set(bv.id, e);
         continue;
       }
-      const cands = (byLane[lane] ?? []).map((s) => s.id).filter((sid) => !twinFaulted.has(sid));
+      // doctrine-aware staging pool: deploy-ready cars pool by the EGRESS, daytime
+      // holds fill the NE temp block first, overnight + arrivals keep the
+      // ingress-ordered default (perimeter carports = the overnight park).
+      const stagingPool = lane !== "staging" ? null
+        : !overnight && bv.state === "staged_for_departure" ? stagingByEgress
+        : !overnight && DAY_HOLD_STATES.has(bv.state) ? stagingTempFirst
+        : null;
+      const cands = (stagingPool ?? byLane[lane] ?? []).map((s) => s.id).filter((sid) => !twinFaulted.has(sid));
       // EXACT-STALL FIDELITY: if the twin named this vehicle's stall and it maps
       // to a renderer stall in the right zone, claim exactly that one — what you
       // see is literally OTTO-Q's assignment. Zone-based pick is the fallback
@@ -760,7 +908,9 @@ class TwinMotionDriver {
         // defect): pull it out to a staging spot to wait its turn instead.
         if (e) {
           if (e.lane !== lane && lane !== "staging") {
-            const stageCands = (byLane.staging ?? []).map((s) => s.id).filter((sid) => !twinFaulted.has(sid));
+            // temporary congestion hold (doctrine case 2): wait in the NE temp
+            // block, not the overnight carports
+            const stageCands = stagingTempFirst.map((s) => s.id).filter((sid) => !twinFaulted.has(sid));
             const st2 = this.ledger.claimFirstFree(bv.id, stageCands);
             // GUARD (mirror of the stall-unchanged check below): claimFirstFree
             // returns the car's OWN staging stall on every later poll while the
@@ -782,7 +932,9 @@ class TwinMotionDriver {
               desiredStatus.set(st2, "occupied");
             }
           }
-          e.vstatus = m.vstatus;
+          // HONEST HOLD: while overflow-waiting in a staging spot, show 'staging'
+          // — never draw a car as charging/washing while it sits in a carport.
+          e.vstatus = e.lane === "staging" && isServiceLane(lane) ? "staging" : m.vstatus;
           e.oem = oem;
           e.soc = soc;
           this.entries.set(bv.id, e);
@@ -975,7 +1127,20 @@ class TwinMotionDriver {
     const dt = Math.min(ts - this.last, 100) / 1000;
     if (dt <= 0) return;
     this.last = ts;
-    this.tickMotion(dt);
+
+    // VIEW MULTIPLIER (founder spec 2026-07-25: 1x is true 1:1, 2-3x for a livelier
+    // demo, hard cap 3x because OTTO-Q cannot decide faster than that — beyond it you
+    // JUMP, you don't speed up).
+    //
+    // Applied as N FIXED SUB-STEPS rather than one big dt. RailFlow samples the lane at
+    // SAMPLE=2 units; at MAX_SPEED=8 u/s a single 3x dt can advance a car far enough to
+    // step THROUGH a body before the leader scan sees it. Sub-stepping preserves the
+    // car-following and turn-radius maths for free.
+    const mult = this.viewMult;
+    if (mult <= 1.0001) { this.tickMotion(dt); return; }
+    const steps = Math.min(6, Math.ceil(mult));
+    const sub = (dt * mult) / steps;
+    for (let i = 0; i < steps; i++) this.tickMotion(sub);
   }
 
   /** One physical motion step of `dt` seconds. Public for unit testing. */
@@ -1059,6 +1224,9 @@ class TwinMotionDriver {
             continue;
           }
         }
+        // T4: pace this car so it ARRIVES when OTTO-Q's leg says it should. A
+        // ceiling only — traffic, node locks and the mouth lock still clamp below.
+        e.tracker.vCap = this.contractPace(id, e.tracker);
         const pose = stepRail(id, e.tracker, dt, bodies, this.locks);
         changed = true;
         if (pose) {

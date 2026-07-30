@@ -1,11 +1,10 @@
 import { useEffect } from 'react';
-import { simulationEngine } from '@/engine/SimulationEngine';
 import { useSimulationStore } from '@/store/simulationStore';
 import { useDemoStore } from '@/store/demoStore';
 import { useTwinStore } from '@/store/twinStore';
 import { twin } from '@/lib/ottoTwin';
 
-export function useKeyboardShortcuts(enterDemoFn: () => void) {
+export function useKeyboardShortcuts() {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName;
@@ -13,10 +12,13 @@ export function useKeyboardShortcuts(enterDemoFn: () => void) {
 
       const sim = useSimulationStore.getState();
 
-      // When a live twin run owns the board, the legacy offline engine must stay
-      // out of it: starting it wipes the twin fleet and animates vehicles that
-      // the twin's Pause has no authority over. Space is the natural "pause"
-      // key, so in twin mode it drives the TWIN hold (world + renderer) instead.
+      // TRUTH-2 (founder rule 2026-07-25): everything that moves on screen must be
+      // OTTO-Q actually firing. The legacy offline engine is a MOCK — 12 hand-seeded
+      // vehicles on locally regenerated stalls, no brain in the loop. Every keyboard
+      // path that could start it has been severed:
+      //   · 'D' entered the mock UNGUARDED — it would wipe a live twin fleet mid-demo.
+      //   · Space started the mock whenever the twin run had not attached yet.
+      // Space now only ever drives the TWIN hold; nothing here can start the mock.
       const tw = useTwinStore.getState();
       const twinLive = !!tw.activeSimRunId && !tw.offlineDemo;
 
@@ -28,21 +30,17 @@ export function useKeyboardShortcuts(enterDemoFn: () => void) {
             tw.setPaused(next);
             if (next) twin.pause(tw.activeSimRunId!).catch(() => {});
             else twin.resume(tw.activeSimRunId!).catch(() => {});
-          } else if (sim.status === 'running') simulationEngine.stop();
-          else simulationEngine.start();
-          break;
-        case 'r':
-        case 'R':
-          if (!twinLive) simulationEngine.reset();  // never reset the board out from under a live run
+          }
+          // no twin run yet => do nothing. Starting the mock here is what made
+          // "the play button" show vehicles that no OTTO-Q decision produced.
           break;
         case 'd':
         case 'D': {
+          // Exit-only. There is no longer any way IN to the offline mock.
           const demo = useDemoStore.getState();
           if (demo.isDemoMode) {
             demo.exitDemo();
             sim.setControlsLocked(false);
-          } else {
-            enterDemoFn();
           }
           break;
         }
@@ -77,5 +75,5 @@ export function useKeyboardShortcuts(enterDemoFn: () => void) {
 
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [enterDemoFn]);
+  }, []);
 }

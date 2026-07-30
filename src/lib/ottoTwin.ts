@@ -49,23 +49,27 @@ export interface TwinVehicle {
  *   flow_contract  a policy or contract
  *   travel         taxiing between places — the only non-service kind
  * `leg_type` is the actual service classifier.
+ *
+ * So `kind:'travel'` legs are the movements the renderer drives; every other
+ * kind is a DWELL at a location.
  */
 export interface TwinLeg {
   leg_id: string;
   vehicle_id: string;
   seq: number;
-  leg_type: string;
-  intent: string | null;
-  kind: string;
-  from_stall: string | null;
+  leg_type: string;              // taxi | depart | arrive | stage | charge_* | wash | ...
+  intent: string | null;         // taxi_to_charger | taxi_to_gate | taxi_to_wash | exit_*_to_staging
+  kind: string;                  // 'travel' = a movement; anything else is a dwell
+  from_stall: string | null;     // NULL on a travel leg = entering from OFF-MAP (drive in via the gate)
   to_stall: string | null;
-  from_x: number | null; from_y: number | null;
-  to_x: number | null; to_y: number | null;
-  start_sim: string | null;
-  end_sim: string | null;
+  from_x: number | null; from_y: number | null;   // backend frame — diagnostics only, see note above
+  to_x: number | null;   to_y: number | null;
+  // nullable on the wire: a leg can be published before its window is stamped
+  start_sim: string | null;      // planned_start_sim (ISO)
+  end_sim: string | null;        // planned_end_sim   (ISO)
   duration_s: number | null;
-  status: string;
-  geometry: string;
+  status: string;                // planned | active | done | skipped | amended
+  geometry: string;              // measured | arrival_from_offmap | origin_unresolved | bay_geometry_missing
 }
 
 /** Server half of the render-contract coverage ratio. */
@@ -81,8 +85,34 @@ export interface TwinSnapshot {
   run: {
     sim_run_id: string; scenario: string; status: string;
     sim_clock: string; tick_count: number; time_scale: number; seed: number;
+    /** PLAYBACK CONTRACT (backend `ottoq_set_playback`).
+     *  'live'  = 1 real second advances the sim clock by speed_x sim seconds (1:1 at 1x)
+     *  'fixed' = historical tick_interval_seconds * time_scale (certs/benchmarks) */
+    playback_mode?: 'live' | 'fixed';
+    /** 1..3. Capped backend-side; beyond 3 the operator JUMPS instead of speeding up. */
+    speed_x?: number;
+    /** Present ONLY while a fast-forward is in flight — drives the planning pause. */
+    jump?: {
+      status: 'planning';
+      target_sim_clock: string;
+      from_sim_clock: string;
+      prev_mode: 'live' | 'fixed';
+    } | null;
+    last_tick_at?: string | null;
+    next_tick_due_at?: string | null;
+    server_now?: string;
   };
-  /** timed itinerary legs, filtered server-side to the active window */
+  /** T3/T4 RENDER CONTRACT. Timed legs published by the backend
+   *  (`ottoq_itinerary_legs` via `ottoq_twin_snapshot`), filtered server-side to
+   *  the active window. The renderer INTERPOLATES these; it must never invent a
+   *  movement the contract did not specify.
+   *
+   *  ⚠️ USE `to_stall` / `from_stall`, NOT `to_x` / `to_y`. The coordinates are in the
+   *  BACKEND's site frame (feet, SW origin) which is a DIFFERENT depot layout from
+   *  the renderer's sitePlan — no transform exists between them. The stall UUIDs are
+   *  the only safe join, via TwinMotionDriver.setTwinStallMap (matched on stall_code).
+   *  The x/y are carried for diagnostics and for a future Isaac consumer that renders
+   *  in the backend frame. */
   legs?: TwinLeg[];
   legs_meta?: TwinLegsMeta;
   fleet: { counts: Record<string, number>; total: number; vehicles: TwinVehicle[] };
@@ -500,6 +530,34 @@ export const twin = {
   /** honest speed: sim-minutes per tick (60 = 1×). The server metronome keeps
    *  the tick RATE steady; this changes how much sim-time each tick covers. */
   setTimeScale:   (simRunId: string, ts: number) => send("PUT", `/sim_runs/${simRunId}/time_scale`, { time_scale: ts }),
+  /** PLAYBACK CONTRACT. mode 'live' = 1 real second advances the sim clock by
+   *  speed_x sim seconds (1× is true 1:1). speed_x is hard-capped at 3 backend-side;
+   *  faster than that is a JUMP, not a speed change. Calls the RPC directly rather
+   *  than the control edge function, which has no playback route. */
+  setPlayback:    (simRunId: string, mode: 'live' | 'fixed', speedX: number) =>
+    fetch(`${OTTOQ_SUPABASE_URL}/rest/v1/rpc/ottoq_set_playback`, {
+      method: "POST",
+      headers: {
+        apikey: OTTOQ_ANON_KEY,
+        Authorization: `Bearer ${OTTOQ_ANON_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ p_sim_run_id: simRunId, p_mode: mode, p_speed_x: speedX }),
+    }).then((r) => r.json()),
+  /** Fast-forward. Bounded + resumable: call until `done`, showing the planning
+   *  pause (snapshot.run.jump) while OTTO-Q batch-processes the skipped queue. */
+  jumpForward:    (simRunId: string, simMinutes: number, maxSeconds = 5) =>
+    fetch(`${OTTOQ_SUPABASE_URL}/rest/v1/rpc/ottoq_sim_jump_forward`, {
+      method: "POST",
+      headers: {
+        apikey: OTTOQ_ANON_KEY,
+        Authorization: `Bearer ${OTTOQ_ANON_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        p_sim_run_id: simRunId, p_sim_minutes: simMinutes, p_max_seconds: maxSeconds,
+      }),
+    }).then((r) => r.json()),
   status:         (simRunId: string)          => send("GET", `/sim_runs/${simRunId}/status`),
   getVariability: (simRunId: string)          => send("GET", `/sim_runs/${simRunId}/variability`),
   setVariability: (simRunId: string, body: object) => send("PUT", `/sim_runs/${simRunId}/variability`, body),

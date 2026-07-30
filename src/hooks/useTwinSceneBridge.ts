@@ -33,9 +33,19 @@ export function useTwinSceneBridge() {
   // snapshot's targets — so Pause has to reach the renderer too, or the depot
   // keeps moving after the world has stopped. Reconcile deliberately stays live
   // (below): freezing motion, not data, means Resume never teleports a car.
+  // PLAYBACK: mirror the backend's speed onto the renderer, and FREEZE motion while a
+  // fast-forward is being processed. During a jump the backend is batch-running ticks
+  // with coarse resolution — animating toward those targets would show cars teleporting,
+  // so the depot holds on a planning pause and resumes when the jump lands.
+  const jumping = snapshot?.run?.jump?.status === 'planning';
+  const speedX = snapshot?.run?.speed_x ?? 1;
   useEffect(() => {
-    twinMotionDriver.setPaused(paused);
-  }, [paused]);
+    twinMotionDriver.setViewMult(speedX);
+  }, [speedX]);
+  useEffect(() => {
+    // operator Pause still wins; this only adds the jump hold on top of it
+    twinMotionDriver.setPaused(paused || jumping);
+  }, [paused, jumping]);
 
   // Start/stop the motion loop with the mode. Clear render state when we leave
   // twin mode or the offline engine takes over (it owns the stores then).

@@ -8,7 +8,6 @@ import { VehicleTooltip } from './VehicleTooltip';
 import { AlertToasts } from './AlertToasts';
 import { LoadingOverlay } from './LoadingOverlay';
 import { DemoBanner } from './DemoBanner';
-import { useEngineLifecycle } from '@/hooks/useEngineLifecycle';
 import { useAppointments } from '@/hooks/useAppointments';
 import { useSimulationStore } from '@/store/simulationStore';
 
@@ -20,7 +19,7 @@ const OmniverseViewer = lazy(() =>
 export const DepotCanvas = () => {
   const svgRef = useRef<SVGSVGElement>(null);
   const viewMode = useSimulationStore((s) => s.viewMode);
-  useEngineLifecycle();
+
   useAppointments(); // poll the reservation seam so the on-map glow stays live
 
   return (
