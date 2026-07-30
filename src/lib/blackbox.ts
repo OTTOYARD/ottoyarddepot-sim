@@ -14,6 +14,7 @@
 import { ottoQ } from "@/lib/ottoQClient";
 import { OTTOQ_SUPABASE_URL, OTTOQ_ANON_KEY } from "@/lib/ottoTwin";
 import { useTwinStore } from "@/store/twinStore";
+import { twinMotionDriver } from "@/engine/TwinMotionDriver";
 
 // ── The 8 scenario decks the operator can record (scenario picker) ──
 export interface Deck { code: string; label: string }
@@ -96,6 +97,15 @@ export async function stopAndReset(
   // feed stops polling. The run stays in ottoq_sim_runs (status completed) for
   // the Black Box download.
   useTwinStore.getState().setActiveSimRunId(null);
+  // …and drop the last frame with it. Polling stops here, so a retained snapshot
+  // freezes forever: the top bar kept reporting "Deployed 17 · Charging 24" over
+  // a depot the backend had already emptied to 0/10 and 0/30. Every consumer of
+  // `snapshot` reads the same stale frame, so clear it at the source.
+  useTwinStore.getState().setSnapshot(null);
+  // Clearing the scene must NOT depend on one more snapshot arriving: polling has
+  // just stopped, so the driver may never see the run go terminal. Tear the scene
+  // down here — empty roster, released stall paint, driver loop stopped.
+  twinMotionDriver.clear();
   return (data as StopResult) ?? {
     ok: true, depot_reset_to_empty: true, vehicles_unplaced: 0, sessions_ended: 0, blackbox_ready: true,
   };

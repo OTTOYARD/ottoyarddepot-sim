@@ -430,6 +430,54 @@ describe("TwinMotionDriver — kinematic motion off the twin", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// RUN LIFECYCLE — Stop clears the depot, Pause holds it.
+// A stopped run keeps its sim_run_id, so the run-SWITCH check can't see it and
+// the scene used to draw the last known positions forever ("Stop doesn't clear
+// the depot"). The fix keys on live→terminal — and must NOT fire on `paused`,
+// which is a live status the operator expects to freeze the scene, not wipe it.
+// ─────────────────────────────────────────────────────────────────────────────
+describe("run lifecycle — stop clears, pause holds", () => {
+  const withStatus = (s: TwinSnapshot, status: string): TwinSnapshot => ({
+    ...s, run: { ...(s.run as object), status },
+  } as unknown as TwinSnapshot);
+
+  beforeEach(() => {
+    twinMotionDriver.clear();
+    useVehicleStore.getState().reset();
+    useDepotStore.getState().regenerateStalls(10, 30, 3, 115, 2);
+  });
+
+  it("STOP (running → completed) clears the scene", () => {
+    twinMotionDriver.reconcile(snap([{ id: "v1", state: "charging_dcfc" }]));
+    expect(fleet().length).toBeGreaterThan(0);
+    // backend has emptied the depot: same run id, terminal status, no vehicles
+    twinMotionDriver.reconcile(withStatus(snap([], "t"), "completed"));
+    expect(fleet().length).toBe(0);
+    expect(poseStore.get("v1")).toBeUndefined();
+  });
+
+  it("PAUSE (running → paused) does NOT clear the scene", () => {
+    twinMotionDriver.reconcile(snap([{ id: "v1", state: "charging_dcfc" }]));
+    const before = fleet().length;
+    expect(before).toBeGreaterThan(0);
+    // a paused run still reports its fleet — the scene must survive untouched
+    twinMotionDriver.reconcile(withStatus(snap([{ id: "v1", state: "charging_dcfc" }]), "paused"));
+    expect(fleet().length).toBe(before);
+    expect(find("v1")).toBeDefined();
+    // and resuming from pause must not clear either
+    twinMotionDriver.reconcile(withStatus(snap([{ id: "v1", state: "charging_dcfc" }]), "running"));
+    expect(find("v1")).toBeDefined();
+  });
+
+  it("a run already terminal on first sight does not spuriously reset", () => {
+    // fresh cockpit load against a completed run: nothing to clear, and the
+    // first snapshot must not be treated as a live→terminal edge
+    twinMotionDriver.reconcile(withStatus(snap([{ id: "v9", state: "charging_dcfc" }]), "completed"));
+    expect(find("v9")).toBeDefined();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // T4 RENDER CONTRACT — OTTO-Q's timed legs pace the motion.
 // The contract supplies WHAT moves and by WHEN; the physics still supplies HOW it
 // looks getting there (rails, IDM car-following, node locks). These tests pin the

@@ -53,6 +53,10 @@ const MAX_ACTIVE_SERVICE_APPROACH = 5; // batch charger/bay reassignments back o
                                        // in packets — else every parked staging
                                        // car reverses at once into mutual gridlock
 const SPAWN_CLEARANCE = 6;    // don't materialize a car onto another one
+/** run statuses that still own the depot. Must match isLiveRunStatus in
+ *  OperatorConsole / useTwinFeed — `paused` is LIVE, so a pause holds the scene
+ *  and only a terminal status (completed / aborted) clears it. */
+const LIVE_RUN_STATUSES = new Set(["running", "active", "paused"]);
 
 // SMOOTHNESS: a rail car's pose heading is the raw segment TANGENT, which jumps
 // discontinuously at every polyline vertex (a lane corner, the charger pull-in).
@@ -189,6 +193,14 @@ class TwinMotionDriver {
   /** run the current entries belong to — a snapshot from a DIFFERENT run resets
    *  the scene instead of flooding 100+ stale cars toward the egress at once */
   private runId: string | null = null;
+  /** was the last-seen run live? A run that STOPS keeps the same sim_run_id, so
+   *  the run-switch check below never fires and the scene kept drawing the last
+   *  known car positions forever — which read as "Stop doesn't clear the depot".
+   *  The backend does empty the depot on stop; only the renderer lagged.
+   *  Tracked as live-vs-terminal, NOT as `=== "running"`: `paused` is a LIVE
+   *  status (see isLiveRunStatus / useTwinFeed) and pausing must hold the scene
+   *  exactly where it is, never clear it. */
+  private lastRunLive: boolean | null = null;
   /** deploy-wave stagger: departures beyond MAX_ACTIVE_DEPARTING wait parked
    *  here and are released as active departers reach the egress */
   private departQueue: string[] = [];
@@ -327,6 +339,13 @@ class TwinMotionDriver {
     // be held to a deadline from a different world).
     this.legs.clear();
     this.simAnchorClock = 0;
+    // clearing driver state is not enough on its own: the painted fleet and the
+    // stall colors live in the stores, and an EMPTY roster produces the same
+    // fingerprint as the reset lastRosterKey, so the push below would be skipped
+    // and last run's cars would stay on screen. Empty both explicitly.
+    useVehicleStore.getState().setVehicles([]);
+    const depot = useDepotStore.getState();
+    for (const s of depot.stalls) if (s.status !== "available") depot.setStallStatus(s.id, "available");
   }
 
   /** Ingest the twin depot layout: map each twin stall uuid to the renderer's
@@ -510,6 +529,18 @@ class TwinMotionDriver {
     const rid = snap.run?.sim_run_id ?? null;
     if (rid && this.runId && rid !== this.runId) this.resetScene();
     if (rid) this.runId = rid;
+
+    // run STOP: same sim_run_id, but the run has gone terminal. The backend
+    // empties the depot (ottoq_sim_stop_and_reset unplaces every vehicle and
+    // clears every stall), so holding the last positions here is stale fiction.
+    // Reset once on the live -> terminal edge, not on every poll thereafter.
+    // `paused` counts as LIVE, so Pause holds the scene instead of clearing it.
+    const status = snap.run?.status ?? null;
+    if (status) {
+      const live = LIVE_RUN_STATUSES.has(status.toLowerCase());
+      if (this.lastRunLive === true && !live) this.resetScene();
+      this.lastRunLive = live;
+    }
 
     // ─── T4: re-anchor the sim clock and refresh the leg contract ─────────────
     // Between snapshots simNow() runs off the WALL clock, so motion continues
