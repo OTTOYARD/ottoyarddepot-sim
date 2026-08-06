@@ -225,7 +225,29 @@ export class LaneGraph {
     // de-dupe
     const clean: Pt[] = [];
     for (const p of center) if (!clean.length || len(clean[clean.length - 1], p) > 0.5) clean.push(p);
-    return LaneGraph.offsetRight(clean, this.rightOffset);
+    const shifted = LaneGraph.offsetRight(clean, this.rightOffset);
+    // THE ENDPOINTS ARE PHYSICAL POSITIONS, NOT CENTERLINES. `from` is where the
+    // car actually IS and `to` is the exact point it must reach; only the road
+    // vertices in between are centerlines that need the drive-on-the-right shift.
+    //
+    // Offsetting the whole polyline moved both by the full rightOffset (3.2u),
+    // which broke two things at once. A car starting a route was teleported 3.2u
+    // SIDEWAYS onto a rail that did not begin where it stood — and since the
+    // perimeter/temp park runs pitch stalls only 5.7u apart, that put its body
+    // most of the way into the neighbouring stall (the "vehicles pile into each
+    // other"). Worse, from that displaced start its own forward window then ran
+    // within RailFlow's LANE_HALF of the parked neighbour, so IDM read a negative
+    // gap and pinned v at 0: the car never advanced past s=0 and sat wedged until
+    // the 45s watchdog, which rebuilt the same rail from the same place. Every
+    // wedged car observed in the busy_day fixture replay was stuck at s=0 with no
+    // node lock and no mouth lock — this was why.
+    //
+    // Restoring the two ends leaves every interior shift byte-identical (the
+    // normals are still computed from the same neighbours); the car simply merges
+    // onto the lane from where it stands, and pulls off it onto the exact target.
+    shifted[0] = clean[0];
+    shifted[shifted.length - 1] = clean[clean.length - 1];
+    return shifted;
   }
 }
 

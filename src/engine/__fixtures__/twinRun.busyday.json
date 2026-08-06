@@ -1,0 +1,3653 @@
+{
+"_source": "READ-ONLY capture of sim_run 1fe94791-8887-44b4-ac2f-c63bb41d6b4f (scenario busy_day, 77 ticks, 2026-08-05T23:19:58Z..23:25:32Z), reconstructed from public.vehicle_state_log + public.stalls. No writes were made to the database.",
+"_shape": "roster = every vehicle in the run. frames[i].changes = the (state, stall_id) transitions at that instant; a frame's full fleet is the running fold of all changes up to and including it \u2014 exactly what ottoq_twin_snapshot would have returned at that wall instant.",
+"runId": "1fe94791-8887-44b4-ac2f-c63bb41d6b4f",
+"stalls": [
+{
+"id": "765adddb-3dc3-4cd4-be62-28c76ed8e737",
+"code": "NASH-DCFC-STALL-01",
+"type": "dcfc"
+},
+{
+"id": "609910b1-c888-4624-8077-76c2fc83615f",
+"code": "NASH-DCFC-STALL-02",
+"type": "dcfc"
+},
+{
+"id": "bcff04b2-ad01-40fe-89fd-3c262af75305",
+"code": "NASH-DCFC-STALL-03",
+"type": "dcfc"
+},
+{
+"id": "51a1c43b-8982-4023-ae3e-b9ef41cf0b89",
+"code": "NASH-DCFC-STALL-04",
+"type": "dcfc"
+},
+{
+"id": "364caf8d-6757-43c7-88e7-b4a0f9582751",
+"code": "NASH-DCFC-STALL-05",
+"type": "dcfc"
+},
+{
+"id": "91ebbf41-666a-4127-aea7-aad80f8f0adc",
+"code": "NASH-DCFC-STALL-06",
+"type": "dcfc"
+},
+{
+"id": "c8049eb3-5ff8-478d-8a33-78fdd037ab35",
+"code": "NASH-DCFC-STALL-07",
+"type": "dcfc"
+},
+{
+"id": "9753cfd9-7abe-4bfd-a5a0-fa3b33de442c",
+"code": "NASH-DCFC-STALL-08",
+"type": "dcfc"
+},
+{
+"id": "3a7310ac-5dfe-45fc-af3a-82d169345f30",
+"code": "NASH-DCFC-STALL-09",
+"type": "dcfc"
+},
+{
+"id": "0c916ac0-cecd-418f-9f0e-b086597489f3",
+"code": "NASH-DCFC-STALL-10",
+"type": "dcfc"
+},
+{
+"id": "a643de50-a12a-417d-b677-f7f9acf6e303",
+"code": "NASH-L2-STALL-01",
+"type": "l2"
+},
+{
+"id": "53b217b7-1d89-429a-9030-6295438ad32c",
+"code": "NASH-L2-STALL-02",
+"type": "l2"
+},
+{
+"id": "fe18413d-9273-4199-8ae3-b063d633b27d",
+"code": "NASH-L2-STALL-03",
+"type": "l2"
+},
+{
+"id": "70fa3080-2092-4d54-bd94-4f874bf3d161",
+"code": "NASH-L2-STALL-04",
+"type": "l2"
+},
+{
+"id": "ab17cc0e-479d-484b-8ccf-e0aba55b7078",
+"code": "NASH-L2-STALL-05",
+"type": "l2"
+},
+{
+"id": "55fe979e-00b1-44e7-bbcf-066f787976cd",
+"code": "NASH-L2-STALL-06",
+"type": "l2"
+},
+{
+"id": "74f716c7-77dd-475c-bd59-54b9ee2b200e",
+"code": "NASH-L2-STALL-07",
+"type": "l2"
+},
+{
+"id": "fbb3a3df-d872-41e5-b834-a304186f82f2",
+"code": "NASH-L2-STALL-08",
+"type": "l2"
+},
+{
+"id": "d5b7d268-e4d5-4141-b3f6-1d00df5e6357",
+"code": "NASH-L2-STALL-09",
+"type": "l2"
+},
+{
+"id": "7d9cedda-5016-4a47-9c29-b5a53651a9ef",
+"code": "NASH-L2-STALL-10",
+"type": "l2"
+},
+{
+"id": "ccac745f-a9ca-47eb-94f4-8a3a1080d79c",
+"code": "NASH-L2-STALL-11",
+"type": "l2"
+},
+{
+"id": "ce92a558-430f-4b2e-b248-621c568415ba",
+"code": "NASH-L2-STALL-12",
+"type": "l2"
+},
+{
+"id": "95fe1b50-7e51-4b47-813f-b87774d53642",
+"code": "NASH-L2-STALL-13",
+"type": "l2"
+},
+{
+"id": "baded1fa-b635-43a1-9745-30f5ea1e3932",
+"code": "NASH-L2-STALL-14",
+"type": "l2"
+},
+{
+"id": "f7ac0175-e8b2-4a15-a9aa-c29537ab78da",
+"code": "NASH-L2-STALL-15",
+"type": "l2"
+},
+{
+"id": "56f6854b-63f7-46db-b145-6e445ee4eb3b",
+"code": "NASH-L2-STALL-16",
+"type": "l2"
+},
+{
+"id": "e9952b02-4f4c-4c4e-bb4b-fdd130f3051c",
+"code": "NASH-L2-STALL-17",
+"type": "l2"
+},
+{
+"id": "f0d61886-45fa-4187-acb0-9560f85390cb",
+"code": "NASH-L2-STALL-18",
+"type": "l2"
+},
+{
+"id": "87f204a1-c4eb-43ba-85f9-5d967f91b706",
+"code": "NASH-L2-STALL-19",
+"type": "l2"
+},
+{
+"id": "d01cc4ff-a0dd-4db0-a6ec-f8e5b95d7be7",
+"code": "NASH-L2-STALL-20",
+"type": "l2"
+},
+{
+"id": "5662dd8d-1e34-4b36-8f18-2e06df54314f",
+"code": "NASH-L2-STALL-21",
+"type": "l2"
+},
+{
+"id": "f63670a0-9919-4245-b367-58be79db88fc",
+"code": "NASH-L2-STALL-22",
+"type": "l2"
+},
+{
+"id": "e9183852-2ed1-4ea8-a820-ad37f9f3b0d3",
+"code": "NASH-L2-STALL-23",
+"type": "l2"
+},
+{
+"id": "dec662ae-5d8c-428a-bdb9-592aea7aaaa0",
+"code": "NASH-L2-STALL-24",
+"type": "l2"
+},
+{
+"id": "d9d89fe2-5537-4960-97bd-7045b3f97015",
+"code": "NASH-L2-STALL-25",
+"type": "l2"
+},
+{
+"id": "254d40a1-4c83-4b4f-a1b5-477300c3bc3f",
+"code": "NASH-L2-STALL-26",
+"type": "l2"
+},
+{
+"id": "6b043f2d-e7b5-485b-beb1-3e7b7c283964",
+"code": "NASH-L2-STALL-27",
+"type": "l2"
+},
+{
+"id": "c957b07b-8481-446d-af1b-974421a10641",
+"code": "NASH-L2-STALL-28",
+"type": "l2"
+},
+{
+"id": "c1808c59-6c55-406e-9821-25ba548698bc",
+"code": "NASH-L2-STALL-29",
+"type": "l2"
+},
+{
+"id": "3f2338b8-5844-4bc3-a7d9-152439279fcd",
+"code": "NASH-L2-STALL-30",
+"type": "l2"
+},
+{
+"id": "bed6e8cf-4816-4451-b6ee-5294291912cd",
+"code": "NASH-L2-STALL-31",
+"type": "l2"
+},
+{
+"id": "1bcc7405-d157-43ae-ac0c-ccb88791a451",
+"code": "NASH-L2-STALL-32",
+"type": "l2"
+},
+{
+"id": "f517a13e-c512-485f-af8b-4e92e9aae972",
+"code": "NASH-L2-STALL-33",
+"type": "l2"
+},
+{
+"id": "f99a8657-b524-46a5-9080-c37f25c6a33d",
+"code": "NASH-L2-STALL-34",
+"type": "l2"
+},
+{
+"id": "35c6e6f3-8291-42e6-95a0-a9a4dc7daec1",
+"code": "NASH-L2-STALL-35",
+"type": "l2"
+},
+{
+"id": "edd32618-2500-46bd-ac2b-ad3cd5621152",
+"code": "NASH-STG-B001",
+"type": "staging"
+},
+{
+"id": "aa9576a8-9785-41fc-bffd-9aef6056cdfa",
+"code": "NASH-STG-B002",
+"type": "staging"
+},
+{
+"id": "f40b19b9-b46a-4be0-b178-991dfa3803da",
+"code": "NASH-STG-B003",
+"type": "staging"
+},
+{
+"id": "321e4142-0afc-447c-a9ab-5b764d6b74d0",
+"code": "NASH-STG-B004",
+"type": "staging"
+},
+{
+"id": "9b1306c1-ceb7-46ed-904a-c4a27f09bd8b",
+"code": "NASH-STG-B005",
+"type": "staging"
+},
+{
+"id": "9c3a5d66-7d0c-4a0c-97c2-e570593cb62a",
+"code": "NASH-STG-B006",
+"type": "staging"
+},
+{
+"id": "06acce00-803c-4b41-b53c-43dcf092ff3d",
+"code": "NASH-STG-B007",
+"type": "staging"
+},
+{
+"id": "7b62a825-f2ee-42d5-9ff2-e384aae06190",
+"code": "NASH-STG-B008",
+"type": "staging"
+},
+{
+"id": "e0f2bf3a-04ca-48c7-81db-56a1217355b7",
+"code": "NASH-STG-B009",
+"type": "staging"
+},
+{
+"id": "a06d087f-d3d9-40c5-b390-096db034768c",
+"code": "NASH-STG-B010",
+"type": "staging"
+},
+{
+"id": "72a4c5cf-693e-4e21-ba64-99ab5da46c34",
+"code": "NASH-STG-B011",
+"type": "staging"
+},
+{
+"id": "ddedafd3-916d-4476-abfb-97291b6691ba",
+"code": "NASH-STG-B012",
+"type": "staging"
+},
+{
+"id": "02db917d-e6cf-44ed-b899-0f7dbdca9752",
+"code": "NASH-STG-B013",
+"type": "staging"
+},
+{
+"id": "a74d1388-fcb8-4853-922b-605484f11b20",
+"code": "NASH-STG-B014",
+"type": "staging"
+},
+{
+"id": "ea308bdd-5116-4447-824d-9e950f760834",
+"code": "NASH-STG-E001",
+"type": "staging"
+},
+{
+"id": "cddbeec9-9dc7-441d-a77d-3719cc21cf8f",
+"code": "NASH-STG-E002",
+"type": "staging"
+},
+{
+"id": "cf20d99e-6cf7-4cc5-882d-0c1d8f9f0ae1",
+"code": "NASH-STG-E003",
+"type": "staging"
+},
+{
+"id": "ed7a3d5b-3fbc-42bf-abad-d82e23241489",
+"code": "NASH-STG-E004",
+"type": "staging"
+},
+{
+"id": "52ca8378-da6d-48de-8576-f98919e71325",
+"code": "NASH-STG-E005",
+"type": "staging"
+},
+{
+"id": "705a5923-50b1-48d3-b7a6-fb0bd96a07bb",
+"code": "NASH-STG-E006",
+"type": "staging"
+},
+{
+"id": "9001b2d9-c967-4e4f-b346-720144be4b9d",
+"code": "NASH-STG-E007",
+"type": "staging"
+},
+{
+"id": "df3abf1b-de55-4797-9055-a02fcd5203ac",
+"code": "NASH-STG-E008",
+"type": "staging"
+},
+{
+"id": "b351e468-4d12-45ec-bf8e-ee46d3aa7f04",
+"code": "NASH-STG-E009",
+"type": "staging"
+},
+{
+"id": "43470598-0664-4f5e-b8cc-bb045e69215a",
+"code": "NASH-STG-E010",
+"type": "staging"
+},
+{
+"id": "3e6aa7d1-ca74-4945-8977-1cae630189a6",
+"code": "NASH-STG-E011",
+"type": "staging"
+},
+{
+"id": "84856861-9704-4ebe-87e7-2eebaa30cd62",
+"code": "NASH-STG-E012",
+"type": "staging"
+},
+{
+"id": "3b632e63-5438-499e-8c8e-c8dc4f18550f",
+"code": "NASH-STG-E013",
+"type": "staging"
+},
+{
+"id": "9454f83f-2427-4de8-bd2c-5cdf4a275f5f",
+"code": "NASH-STG-E014",
+"type": "staging"
+},
+{
+"id": "4c28b133-6d52-4a78-844c-f83351cd52be",
+"code": "NASH-STG-E015",
+"type": "staging"
+},
+{
+"id": "8f32ff01-cd1c-41ab-96aa-2c3c215e0d88",
+"code": "NASH-STG-E016",
+"type": "staging"
+},
+{
+"id": "565826f1-4e43-441f-b2db-ee795d329160",
+"code": "NASH-STG-E017",
+"type": "staging"
+},
+{
+"id": "16229eb4-693b-405d-924e-ef413ca4df24",
+"code": "NASH-STG-I001",
+"type": "staging"
+},
+{
+"id": "d9274bd6-5bb5-4194-8150-a033cf1995b7",
+"code": "NASH-STG-I002",
+"type": "staging"
+},
+{
+"id": "75f94ee9-691c-4503-b469-629d1f3af1fb",
+"code": "NASH-STG-I003",
+"type": "staging"
+},
+{
+"id": "908e94ac-03bd-4c50-90d4-96b879db552a",
+"code": "NASH-STG-I004",
+"type": "staging"
+},
+{
+"id": "7c20e64e-f19c-48c2-be75-20d49f4a86f8",
+"code": "NASH-STG-I005",
+"type": "staging"
+},
+{
+"id": "a13d155b-adb0-4ae5-9954-45246fdc0737",
+"code": "NASH-STG-I006",
+"type": "staging"
+},
+{
+"id": "f4d2620e-09b9-4266-8879-df60e3f2f4f8",
+"code": "NASH-STG-I007",
+"type": "staging"
+},
+{
+"id": "2073cfe4-b9cf-4d53-89d6-db2d1cbbd53a",
+"code": "NASH-STG-I008",
+"type": "staging"
+},
+{
+"id": "6ff2fbd6-737d-4646-ae47-446ac8ce30b3",
+"code": "NASH-STG-I009",
+"type": "staging"
+},
+{
+"id": "bf082cbd-f0c3-450e-8b04-80dd8815cb11",
+"code": "NASH-STG-I010",
+"type": "staging"
+},
+{
+"id": "d31325c3-8090-4213-9ba0-241a37aa8d41",
+"code": "NASH-STG-I011",
+"type": "staging"
+},
+{
+"id": "aaab302d-dedb-4841-ad21-bc1af8be9a3e",
+"code": "NASH-STG-I012",
+"type": "staging"
+},
+{
+"id": "283f3867-65ad-45e9-be06-d557912bee8a",
+"code": "NASH-STG-I013",
+"type": "staging"
+},
+{
+"id": "95a5bfe9-a556-495f-8256-7680bf16ad22",
+"code": "NASH-STG-I014",
+"type": "staging"
+},
+{
+"id": "0b717fd2-3162-497f-8593-d702256f1e27",
+"code": "NASH-STG-N001",
+"type": "staging"
+},
+{
+"id": "bcfce849-19aa-4cfd-8288-b2829016e3a4",
+"code": "NASH-STG-N002",
+"type": "staging"
+},
+{
+"id": "9f2e801c-f75f-4b91-8d4d-5891a8bc0827",
+"code": "NASH-STG-N003",
+"type": "staging"
+},
+{
+"id": "600f3ed0-a59d-465a-9cb1-31d201bfa496",
+"code": "NASH-STG-N004",
+"type": "staging"
+},
+{
+"id": "c3302229-dc31-4625-a376-e6b22d2cdfdf",
+"code": "NASH-STG-N005",
+"type": "staging"
+},
+{
+"id": "e1e25a56-7cc0-426b-a5c6-5b7b2de7ac95",
+"code": "NASH-STG-N006",
+"type": "staging"
+},
+{
+"id": "53c971c7-6339-44fe-9329-e34388dc8cae",
+"code": "NASH-STG-N007",
+"type": "staging"
+},
+{
+"id": "64337de3-e511-4ca6-8a75-d4654dddc4c7",
+"code": "NASH-STG-N008",
+"type": "staging"
+},
+{
+"id": "7f2dad9b-16e6-46c0-9395-670bb14f1bc9",
+"code": "NASH-STG-N009",
+"type": "staging"
+},
+{
+"id": "2b5e3934-a836-468b-8cfa-d2947295b5cd",
+"code": "NASH-STG-N010",
+"type": "staging"
+},
+{
+"id": "0b1ce992-6eb8-41cf-88ad-bf96b77dc01b",
+"code": "NASH-STG-N011",
+"type": "staging"
+},
+{
+"id": "3bfa7361-187d-4b75-9e0b-072a91a3b279",
+"code": "NASH-STG-N012",
+"type": "staging"
+},
+{
+"id": "9cc9c0aa-3f79-4580-8183-c53dfea20bfc",
+"code": "NASH-STG-N013",
+"type": "staging"
+},
+{
+"id": "a7c459b3-5340-4069-8204-c320fb8e73dc",
+"code": "NASH-STG-N014",
+"type": "staging"
+},
+{
+"id": "b5660c4c-1e8c-491d-9c33-6a77d8a2a014",
+"code": "NASH-STG-N015",
+"type": "staging"
+},
+{
+"id": "bc469f6a-edfd-46b9-b71f-be3d9e249c74",
+"code": "NASH-STG-N016",
+"type": "staging"
+},
+{
+"id": "ef90f15d-5f7b-4435-841a-9b43db798e28",
+"code": "NASH-STG-N017",
+"type": "staging"
+},
+{
+"id": "6ef1c4c5-4deb-4a6f-98c5-9fa90ff57586",
+"code": "NASH-STG-N018",
+"type": "staging"
+},
+{
+"id": "0c20ea1d-81bf-4eb5-8bdd-0216a304d5b2",
+"code": "NASH-STG-N019",
+"type": "staging"
+},
+{
+"id": "c11a019a-066e-4575-a2ae-75bcef7dfadc",
+"code": "NASH-STG-S001",
+"type": "staging"
+},
+{
+"id": "c2502ade-7735-49e0-9d37-f01a6e315998",
+"code": "NASH-STG-S002",
+"type": "staging"
+},
+{
+"id": "37ea4a5e-c417-42f4-b75e-f585d7eace68",
+"code": "NASH-STG-S003",
+"type": "staging"
+},
+{
+"id": "1d72edc7-bb12-4e02-bf21-3f810d270e19",
+"code": "NASH-STG-S004",
+"type": "staging"
+},
+{
+"id": "0882c6bf-edb3-448d-867a-10309e732cad",
+"code": "NASH-STG-S005",
+"type": "staging"
+},
+{
+"id": "4125e6a3-254b-4627-9108-b644eb432fb8",
+"code": "NASH-STG-S006",
+"type": "staging"
+},
+{
+"id": "4d079d35-abfe-405d-8492-5f8c9713d3eb",
+"code": "NASH-STG-S007",
+"type": "staging"
+},
+{
+"id": "5a4a589f-bd06-46cf-80bc-f0bda77c3394",
+"code": "NASH-STG-S008",
+"type": "staging"
+},
+{
+"id": "3b74da73-9bba-4c95-b498-3c56f5236495",
+"code": "NASH-STG-S009",
+"type": "staging"
+},
+{
+"id": "3621b5a6-0271-4750-8c9b-1c9fab123cd2",
+"code": "NASH-STG-S010",
+"type": "staging"
+},
+{
+"id": "064cd348-4530-44a1-bc9f-9c2eb6eb55e3",
+"code": "NASH-STG-S011",
+"type": "staging"
+},
+{
+"id": "d1389961-9c82-432f-a503-6b65c763d180",
+"code": "NASH-STG-S012",
+"type": "staging"
+},
+{
+"id": "b8b5b980-ef54-4611-a6a9-6e29f49f0693",
+"code": "NASH-STG-S013",
+"type": "staging"
+},
+{
+"id": "8d393775-d68e-4222-b4ab-f237e61ae6fc",
+"code": "NASH-STG-S014",
+"type": "staging"
+},
+{
+"id": "04d65645-3c56-493b-b745-d7c8e60695d0",
+"code": "NASH-STG-S015",
+"type": "staging"
+},
+{
+"id": "1e3aae00-3613-4e31-a217-0785bb5332a1",
+"code": "NASH-STG-S016",
+"type": "staging"
+},
+{
+"id": "28b2f4fa-ff9a-4d16-954b-d22c9304506d",
+"code": "NASH-STG-S017",
+"type": "staging"
+},
+{
+"id": "c747ff79-0d45-4d45-97c6-385b9130e62b",
+"code": "NASH-STG-S018",
+"type": "staging"
+},
+{
+"id": "2059acb2-53ae-42b1-b056-2220dc26e44a",
+"code": "NASH-STG-S019",
+"type": "staging"
+},
+{
+"id": "e49d641c-3103-425d-867f-5d42d30ab85d",
+"code": "NASH-STG-W001",
+"type": "staging"
+},
+{
+"id": "0f40a5ce-e1f1-4e20-a9be-f0739f72d8fc",
+"code": "NASH-STG-W002",
+"type": "staging"
+},
+{
+"id": "f39d9e37-af8f-4cea-861f-cb0a2657ecf3",
+"code": "NASH-STG-W003",
+"type": "staging"
+},
+{
+"id": "da2bbed2-a874-47cf-8c04-550155e48243",
+"code": "NASH-STG-W004",
+"type": "staging"
+},
+{
+"id": "66752732-3230-451d-b292-54c71dddb2ca",
+"code": "NASH-STG-W005",
+"type": "staging"
+},
+{
+"id": "b589dc72-8399-42c5-b7c0-e4e71889253b",
+"code": "NASH-STG-W006",
+"type": "staging"
+},
+{
+"id": "4c017eb1-8753-47a6-8c65-29ad5a85b0a8",
+"code": "NASH-STG-W007",
+"type": "staging"
+},
+{
+"id": "f44b8c6f-91f0-40ed-8d69-80d82c71e4e1",
+"code": "NASH-STG-W008",
+"type": "staging"
+},
+{
+"id": "86ccfc5f-ade1-4e29-bc6c-48e63cdfab69",
+"code": "NASH-STG-W009",
+"type": "staging"
+},
+{
+"id": "57511667-f4f1-44fa-9896-174cd3e02dd6",
+"code": "NASH-STG-W010",
+"type": "staging"
+},
+{
+"id": "8d100030-d211-42a9-a933-3386dfe39b78",
+"code": "NASH-STG-W011",
+"type": "staging"
+},
+{
+"id": "a44afde8-3ae9-4357-acba-e86fd21aec29",
+"code": "NASH-STG-W012",
+"type": "staging"
+},
+{
+"id": "65af8ebd-4db3-4664-936f-1e4ee0946592",
+"code": "NASH-STG-W013",
+"type": "staging"
+},
+{
+"id": "4d656095-9645-496c-b6ce-b6407a397c08",
+"code": "NASH-STG-W014",
+"type": "staging"
+},
+{
+"id": "31b80354-e50d-4f93-81dd-9199c2cf696c",
+"code": "NASH-STG-W015",
+"type": "staging"
+},
+{
+"id": "479b38df-870b-47b6-9145-24e53e2ec9b0",
+"code": "NASH-STG-W016",
+"type": "staging"
+},
+{
+"id": "ff709acf-ab3f-49fc-be39-37e8867a4b6b",
+"code": "NASH-STG-W017",
+"type": "staging"
+},
+{
+"id": "6ff1e0a5-aef0-4b3f-b8bb-b7b5f0e90402",
+"code": "NASH-SVC-01",
+"type": "service_bay"
+},
+{
+"id": "e8c670f7-cace-4615-8c46-26d1e1c17881",
+"code": "NASH-SVC-02",
+"type": "service_bay"
+},
+{
+"id": "c9466ca6-5dca-487d-be44-f6c45f5eb6a3",
+"code": "NASH-WSH-01",
+"type": "wash_bay"
+},
+{
+"id": "6277d0cc-da92-49a2-8f0c-e0d534e6fb1a",
+"code": "NASH-WSH-02",
+"type": "wash_bay"
+},
+{
+"id": "ec443362-dbf3-4a73-aa5b-a597bc837c66",
+"code": "NASH-WSH-03",
+"type": "wash_bay"
+}
+],
+"roster": [
+{
+"id": "99ddf4ff-96d7-4257-b1ce-cb9437335ce8",
+"av_id": "twin-sim-042",
+"make": "Tesla",
+"platform": "tesla",
+"soc": 60
+},
+{
+"id": "dd1579b1-5ab4-407f-a648-f05cc56f401b",
+"av_id": "twin-sim-029",
+"make": "Waymo",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "a1111111-0001-0001-0001-000000000002",
+"av_id": null,
+"make": "Jaguar",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "0cb1b8c6-c948-4937-8bf6-187442a7be1a",
+"av_id": "twin-sim-020",
+"make": "Waymo",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "b97789b5-3963-497d-9ca7-5b65e0168234",
+"av_id": "twin-sim-076",
+"make": "Zoox",
+"platform": "zoox",
+"soc": 60
+},
+{
+"id": "ec5d2c18-bc65-400e-a9db-811be2b75659",
+"av_id": "twin-sim-056",
+"make": "Tesla",
+"platform": "tesla",
+"soc": 60
+},
+{
+"id": "b73b5763-07e4-48e3-9e8c-3158301af418",
+"av_id": "twin-sim-050",
+"make": "Tesla",
+"platform": "tesla",
+"soc": 60
+},
+{
+"id": "9be45c35-ab40-4b47-8ea6-c4eecb5860b4",
+"av_id": "twin-sim-049",
+"make": "Tesla",
+"platform": "tesla",
+"soc": 60
+},
+{
+"id": "05b0de6f-7dee-43d7-99d2-7be9cecfeb86",
+"av_id": "twin-sim-100",
+"make": "Zoox",
+"platform": "zoox",
+"soc": 60
+},
+{
+"id": "7ec698b8-b6ac-4e77-b9f8-a3a42a34e2c7",
+"av_id": "twin-sim-043",
+"make": "Tesla",
+"platform": "tesla",
+"soc": 60
+},
+{
+"id": "8f680446-212c-4aca-bf07-f55b7fa0223e",
+"av_id": "twin-sim-083",
+"make": "Zoox",
+"platform": "zoox",
+"soc": 60
+},
+{
+"id": "34eff65e-af05-485c-bcc6-df10f99c219a",
+"av_id": "twin-sim-019",
+"make": "Waymo",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "5fe5fe42-3237-4734-b819-37876ceb4454",
+"av_id": "twin-sim-033",
+"make": "Waymo",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "db9d7b6e-e17c-44db-86d8-cebcf99e24d7",
+"av_id": "twin-sim-086",
+"make": "Zoox",
+"platform": "zoox",
+"soc": 60
+},
+{
+"id": "ef0b46c0-5029-4ff9-989a-c80e3e8227f2",
+"av_id": "twin-sim-068",
+"make": "Tesla",
+"platform": "tesla",
+"soc": 60
+},
+{
+"id": "03726c33-e4fb-4af4-b498-16f4dc5335b9",
+"av_id": "twin-sim-097",
+"make": "Zoox",
+"platform": "zoox",
+"soc": 60
+},
+{
+"id": "5cee8fb3-d21e-46e2-88b1-5223114b1578",
+"av_id": "twin-sim-053",
+"make": "Tesla",
+"platform": "tesla",
+"soc": 60
+},
+{
+"id": "73e86c55-4eeb-43b3-943d-f700b40386af",
+"av_id": "twin-sim-001",
+"make": "Waymo",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "da022fb5-45f9-4a77-9fb8-d14db1e3a5b3",
+"av_id": "twin-sim-023",
+"make": "Waymo",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "0ea2ccfe-bbb0-4da0-b3c3-d4a9ef9a1fb7",
+"av_id": "twin-sim-006",
+"make": "Waymo",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "cadd7c81-433d-4158-90ac-b08ecbdcdf7a",
+"av_id": "twin-sim-010",
+"make": "Waymo",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "2bc9a4a0-5f7d-4f1c-bdcd-d9a96efa9fc5",
+"av_id": "twin-sim-077",
+"make": "Zoox",
+"platform": "zoox",
+"soc": 60
+},
+{
+"id": "a1111111-0001-0001-0001-000000000004",
+"av_id": null,
+"make": "Jaguar",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "d5dd0338-bbbb-4fd1-b529-d0fba31da0cd",
+"av_id": "twin-sim-048",
+"make": "Tesla",
+"platform": "tesla",
+"soc": 60
+},
+{
+"id": "ebd4669f-9227-44b6-9956-f2fa5472ed5d",
+"av_id": "twin-sim-095",
+"make": "Zoox",
+"platform": "zoox",
+"soc": 60
+},
+{
+"id": "37aee690-ce21-4aed-b9c1-12ff83521fa9",
+"av_id": "twin-sim-081",
+"make": "Zoox",
+"platform": "zoox",
+"soc": 60
+},
+{
+"id": "641d765e-a547-44d2-a837-66484268f1c3",
+"av_id": "twin-sim-087",
+"make": "Zoox",
+"platform": "zoox",
+"soc": 60
+},
+{
+"id": "9458a4a5-a209-4e6d-a45b-470c4d664cbe",
+"av_id": "twin-sim-066",
+"make": "Tesla",
+"platform": "tesla",
+"soc": 60
+},
+{
+"id": "229f655b-803c-47c0-95fd-ca8adb9d8ef0",
+"av_id": "twin-sim-084",
+"make": "Zoox",
+"platform": "zoox",
+"soc": 60
+},
+{
+"id": "6fdd7f85-9754-43fc-8b73-bafcfef54374",
+"av_id": "twin-sim-058",
+"make": "Tesla",
+"platform": "tesla",
+"soc": 60
+},
+{
+"id": "02ff42a9-de41-42d2-bfb9-00b681c02178",
+"av_id": "twin-sim-054",
+"make": "Tesla",
+"platform": "tesla",
+"soc": 60
+},
+{
+"id": "5e93a514-8ab0-4ac1-94d6-bede2a8b4f56",
+"av_id": "twin-sim-064",
+"make": "Tesla",
+"platform": "tesla",
+"soc": 60
+},
+{
+"id": "1225f10e-1355-45d5-ae28-2fdffd243425",
+"av_id": "twin-sim-035",
+"make": "Waymo",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "cb4faba2-c3d5-467f-a1b9-e8f69f266401",
+"av_id": "twin-sim-011",
+"make": "Waymo",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "72ccc3d4-87f6-47d2-be7f-044ac67e7cc0",
+"av_id": "twin-sim-040",
+"make": "Waymo",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "a0ef8ae7-a873-4ec3-a040-1adb3e30b3d4",
+"av_id": "twin-sim-024",
+"make": "Waymo",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "c3333333-0003-0003-0003-000000000004",
+"av_id": null,
+"make": "Zoox",
+"platform": "zoox",
+"soc": 60
+},
+{
+"id": "a1111111-0001-0001-0001-000000000005",
+"av_id": null,
+"make": "Zeekr",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "c3333333-0003-0003-0003-000000000001",
+"av_id": null,
+"make": "Zoox",
+"platform": "zoox",
+"soc": 60
+},
+{
+"id": "b19025e6-7990-4ab9-93a5-31eb9734e50b",
+"av_id": "twin-sim-051",
+"make": "Tesla",
+"platform": "tesla",
+"soc": 60
+},
+{
+"id": "c8c7cd10-99de-40ca-a0b2-03324d11ebaa",
+"av_id": "twin-sim-079",
+"make": "Zoox",
+"platform": "zoox",
+"soc": 60
+},
+{
+"id": "12cb06f0-cf74-436f-a37a-e660a52dc7e6",
+"av_id": "twin-sim-016",
+"make": "Waymo",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "c3333333-0003-0003-0003-000000000003",
+"av_id": null,
+"make": "Zoox",
+"platform": "zoox",
+"soc": 60
+},
+{
+"id": "87098f16-b5b8-417b-bb6a-95e1ea02f619",
+"av_id": "twin-sim-073",
+"make": "Zoox",
+"platform": "zoox",
+"soc": 60
+},
+{
+"id": "5f8af8a5-0a29-42e7-90d6-a933a2b56e64",
+"av_id": "twin-sim-055",
+"make": "Tesla",
+"platform": "tesla",
+"soc": 60
+},
+{
+"id": "a24e3f67-3653-4bd0-9362-2dcfd3d6abe9",
+"av_id": "twin-sim-052",
+"make": "Tesla",
+"platform": "tesla",
+"soc": 60
+},
+{
+"id": "58f68551-abe5-439c-9835-f1c46612ca05",
+"av_id": "twin-sim-099",
+"make": "Zoox",
+"platform": "zoox",
+"soc": 60
+},
+{
+"id": "b2222222-0002-0002-0002-000000000004",
+"av_id": null,
+"make": "Tesla",
+"platform": "tesla",
+"soc": 60
+},
+{
+"id": "a45682eb-242b-42d2-9b15-703b54a3e4cc",
+"av_id": "twin-sim-057",
+"make": "Tesla",
+"platform": "tesla",
+"soc": 60
+},
+{
+"id": "7a138260-7c7d-40f9-9aaa-f41286a0aa6a",
+"av_id": "twin-sim-063",
+"make": "Tesla",
+"platform": "tesla",
+"soc": 60
+},
+{
+"id": "b696f1b8-35a6-4ca6-8453-6d7c6005daa2",
+"av_id": "twin-sim-018",
+"make": "Waymo",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "1e6aa7f6-c47a-40fa-9d8e-8ea38d5f6173",
+"av_id": "twin-sim-032",
+"make": "Waymo",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "f5c7d2a9-f6b6-46bb-8e61-5da2ec54b7db",
+"av_id": "twin-sim-039",
+"make": "Waymo",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "f0077a3a-5a40-4d50-bbe9-95a81a4acc8d",
+"av_id": "twin-sim-061",
+"make": "Tesla",
+"platform": "tesla",
+"soc": 60
+},
+{
+"id": "03d72f9c-de16-42ad-a6a2-2434511781c5",
+"av_id": "twin-sim-074",
+"make": "Zoox",
+"platform": "zoox",
+"soc": 60
+},
+{
+"id": "c7d24f18-164f-46f1-88aa-6f747c6668fc",
+"av_id": "twin-sim-009",
+"make": "Waymo",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "3d51937e-a289-4132-9fa6-07c0ed2fdbef",
+"av_id": "twin-sim-015",
+"make": "Waymo",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "a1111111-0001-0001-0001-000000000006",
+"av_id": null,
+"make": "Zeekr",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "0cb0532c-6fbb-4ec7-abfb-69e7681e6630",
+"av_id": "twin-sim-026",
+"make": "Waymo",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "236edd3e-abd5-45f5-a053-7f66ab682162",
+"av_id": "twin-sim-078",
+"make": "Zoox",
+"platform": "zoox",
+"soc": 60
+},
+{
+"id": "8eeaaef3-086f-40c8-9e90-1b91d50d3333",
+"av_id": "twin-sim-005",
+"make": "Waymo",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "3db69802-2cd3-433b-85ed-4f24ad8be006",
+"av_id": "twin-sim-003",
+"make": "Waymo",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "091fa637-9f10-4cef-81e1-3ac58ee652a4",
+"av_id": "twin-sim-037",
+"make": "Waymo",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "c8ae20e3-3613-4ad1-b003-274321c4a101",
+"av_id": "twin-sim-007",
+"make": "Waymo",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "9e209f49-b30d-4544-a310-c76b3fbe8529",
+"av_id": "twin-sim-046",
+"make": "Tesla",
+"platform": "tesla",
+"soc": 60
+},
+{
+"id": "b2222222-0002-0002-0002-000000000005",
+"av_id": null,
+"make": "Tesla",
+"platform": "tesla",
+"soc": 60
+},
+{
+"id": "b2222222-0002-0002-0002-000000000006",
+"av_id": null,
+"make": "Tesla",
+"platform": "tesla",
+"soc": 60
+},
+{
+"id": "2cd2cbf3-9de8-48c0-9bd8-935aedb744d7",
+"av_id": "twin-sim-004",
+"make": "Waymo",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "b2222222-0002-0002-0002-000000000001",
+"av_id": null,
+"make": "Tesla",
+"platform": "tesla",
+"soc": 60
+},
+{
+"id": "bbf2928f-0364-4f7d-a6cd-7ffd9510c6e2",
+"av_id": "twin-sim-022",
+"make": "Waymo",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "a1111111-0001-0001-0001-000000000001",
+"av_id": null,
+"make": "Jaguar",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "137ab789-9a83-4ee9-9610-7fcd8238fe43",
+"av_id": "twin-sim-031",
+"make": "Waymo",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "b2222222-0002-0002-0002-000000000003",
+"av_id": null,
+"make": "Tesla",
+"platform": "tesla",
+"soc": 60
+},
+{
+"id": "d9d2a011-ac98-4567-87bd-ad70810ded40",
+"av_id": "twin-sim-090",
+"make": "Zoox",
+"platform": "zoox",
+"soc": 60
+},
+{
+"id": "4c3a7261-79d3-43bf-a498-1971ad39b937",
+"av_id": "twin-sim-060",
+"make": "Tesla",
+"platform": "tesla",
+"soc": 60
+},
+{
+"id": "a8cb8731-fb8b-4b96-8f24-52064752feb8",
+"av_id": "twin-sim-045",
+"make": "Tesla",
+"platform": "tesla",
+"soc": 60
+},
+{
+"id": "ab7adca4-c402-4577-aca1-8a420eea3b8f",
+"av_id": "twin-sim-069",
+"make": "Tesla",
+"platform": "tesla",
+"soc": 60
+},
+{
+"id": "8ef51846-f36e-47a8-8082-016079ed724c",
+"av_id": "twin-sim-028",
+"make": "Waymo",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "ca2624fc-c97d-4033-af1b-bf97756d3ad9",
+"av_id": "twin-sim-075",
+"make": "Zoox",
+"platform": "zoox",
+"soc": 60
+},
+{
+"id": "aee7a860-ffee-4629-bfda-3ffc5b74dd38",
+"av_id": "twin-sim-025",
+"make": "Waymo",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "c9746783-5432-47a5-aaf9-1f8a2978d03c",
+"av_id": "twin-sim-059",
+"make": "Tesla",
+"platform": "tesla",
+"soc": 60
+},
+{
+"id": "0d43459d-a82f-4d46-9579-43fc89feb981",
+"av_id": "twin-sim-038",
+"make": "Waymo",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "814c9bc7-cf99-4028-93ba-1896279b574a",
+"av_id": "twin-sim-047",
+"make": "Tesla",
+"platform": "tesla",
+"soc": 60
+},
+{
+"id": "9e05d00e-41f2-4334-b25d-be7588560e82",
+"av_id": "twin-sim-092",
+"make": "Zoox",
+"platform": "zoox",
+"soc": 60
+},
+{
+"id": "44444820-2eae-438b-8058-c3b01b89fef6",
+"av_id": "twin-sim-089",
+"make": "Zoox",
+"platform": "zoox",
+"soc": 60
+},
+{
+"id": "30892fc2-9078-4ec6-a8dc-006bc667cea3",
+"av_id": "twin-sim-093",
+"make": "Zoox",
+"platform": "zoox",
+"soc": 60
+},
+{
+"id": "616a06de-9b62-4c6a-8d87-70dd2a5a1aa0",
+"av_id": "twin-sim-044",
+"make": "Tesla",
+"platform": "tesla",
+"soc": 60
+},
+{
+"id": "b14db297-e308-4ce6-8cce-88edbafce40e",
+"av_id": "twin-sim-062",
+"make": "Tesla",
+"platform": "tesla",
+"soc": 60
+},
+{
+"id": "aff36072-eff1-4a55-be44-a55f5f8891e7",
+"av_id": "twin-sim-065",
+"make": "Tesla",
+"platform": "tesla",
+"soc": 60
+},
+{
+"id": "77ecd026-12cb-458e-900a-4602511728d8",
+"av_id": "twin-sim-017",
+"make": "Waymo",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "1ad24ec9-3039-4ab4-9b78-68c35a26f603",
+"av_id": "twin-sim-014",
+"make": "Waymo",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "28417bea-eb30-4e9f-8ad8-3da0f1842398",
+"av_id": "twin-sim-098",
+"make": "Zoox",
+"platform": "zoox",
+"soc": 60
+},
+{
+"id": "96b10b07-87e0-4dd5-8a2b-376532cbd8ec",
+"av_id": "twin-sim-027",
+"make": "Waymo",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "c3333333-0003-0003-0003-000000000002",
+"av_id": null,
+"make": "Zoox",
+"platform": "zoox",
+"soc": 60
+},
+{
+"id": "fd6ec8c7-3bcc-4882-b77e-4b1fab99a064",
+"av_id": "twin-sim-091",
+"make": "Zoox",
+"platform": "zoox",
+"soc": 60
+},
+{
+"id": "54aeb4ca-1a75-491a-8dcd-974035642eb7",
+"av_id": "twin-sim-071",
+"make": "Zoox",
+"platform": "zoox",
+"soc": 60
+},
+{
+"id": "2d2c46af-6b02-4b6e-95df-2cf9742bd376",
+"av_id": "twin-sim-094",
+"make": "Zoox",
+"platform": "zoox",
+"soc": 60
+},
+{
+"id": "6ef374e7-4d63-4d9e-a14b-8976ef9c9786",
+"av_id": "twin-sim-072",
+"make": "Zoox",
+"platform": "zoox",
+"soc": 60
+},
+{
+"id": "4b179b26-a48b-4f65-aad1-74ce3179a85d",
+"av_id": "twin-sim-088",
+"make": "Zoox",
+"platform": "zoox",
+"soc": 60
+},
+{
+"id": "54ec9dcb-76c1-4a7a-84e5-43ea4b3a7c8a",
+"av_id": "twin-sim-002",
+"make": "Waymo",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "23cd462c-e81e-499c-ad8f-f9d57ea03fa9",
+"av_id": "twin-sim-013",
+"make": "Waymo",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "1b9b6ea1-ed97-4a07-9b72-4be8a7189792",
+"av_id": "twin-sim-070",
+"make": "Tesla",
+"platform": "tesla",
+"soc": 60
+},
+{
+"id": "675dfb5c-66ec-466b-b0bf-d2bd9d519538",
+"av_id": "twin-sim-012",
+"make": "Waymo",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "d0887837-3455-4e45-945a-2d9dd7f4bfbb",
+"av_id": "twin-sim-036",
+"make": "Waymo",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "bfbaf0b2-48ad-4283-8391-80f301eda2be",
+"av_id": "twin-sim-085",
+"make": "Zoox",
+"platform": "zoox",
+"soc": 60
+},
+{
+"id": "b9ef130e-5de8-4084-a334-4ad8191bc096",
+"av_id": "twin-sim-008",
+"make": "Waymo",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "5ea53696-baea-4459-8201-53059e64b6ec",
+"av_id": "twin-sim-030",
+"make": "Waymo",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "00cc3d0a-2518-446b-b9b7-e025e293e37b",
+"av_id": "twin-sim-021",
+"make": "Waymo",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "9f5d69bb-e932-4fa9-a659-4417bc861d00",
+"av_id": "twin-sim-096",
+"make": "Zoox",
+"platform": "zoox",
+"soc": 60
+},
+{
+"id": "380f0f38-a540-4f24-9ee3-a7112d4c6f23",
+"av_id": "twin-sim-067",
+"make": "Tesla",
+"platform": "tesla",
+"soc": 60
+},
+{
+"id": "b2222222-0002-0002-0002-000000000002",
+"av_id": null,
+"make": "Tesla",
+"platform": "tesla",
+"soc": 60
+},
+{
+"id": "bc55d859-82ba-4e2c-a5dd-83cbb5281906",
+"av_id": "twin-sim-080",
+"make": "Zoox",
+"platform": "zoox",
+"soc": 60
+},
+{
+"id": "252ba623-b097-4ac4-8c0b-3cffa951448e",
+"av_id": "twin-sim-041",
+"make": "Tesla",
+"platform": "tesla",
+"soc": 60
+},
+{
+"id": "73e4a749-9f4f-4586-8c73-7351786ca4a9",
+"av_id": "twin-sim-034",
+"make": "Waymo",
+"platform": "waymo",
+"soc": 60
+},
+{
+"id": "5604331f-284d-4768-a521-b60693aebe25",
+"av_id": "twin-sim-082",
+"make": "Zoox",
+"platform": "zoox",
+"soc": 60
+},
+{
+"id": "a1111111-0001-0001-0001-000000000003",
+"av_id": null,
+"make": "Jaguar",
+"platform": "waymo",
+"soc": 60
+}
+],
+"frames": [
+{
+"t": "2026-08-05T23:19:58.804705+00:00",
+"changes": [
+{
+"id": "99ddf4ff-96d7-4257-b1ce-cb9437335ce8",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "dd1579b1-5ab4-407f-a648-f05cc56f401b",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "a1111111-0001-0001-0001-000000000002",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "0cb1b8c6-c948-4937-8bf6-187442a7be1a",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "b97789b5-3963-497d-9ca7-5b65e0168234",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "ec5d2c18-bc65-400e-a9db-811be2b75659",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "b73b5763-07e4-48e3-9e8c-3158301af418",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "9be45c35-ab40-4b47-8ea6-c4eecb5860b4",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "05b0de6f-7dee-43d7-99d2-7be9cecfeb86",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "7ec698b8-b6ac-4e77-b9f8-a3a42a34e2c7",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "8f680446-212c-4aca-bf07-f55b7fa0223e",
+"state": "en_route_to_depot",
+"stall_id": null
+},
+{
+"id": "34eff65e-af05-485c-bcc6-df10f99c219a",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "5fe5fe42-3237-4734-b819-37876ceb4454",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "db9d7b6e-e17c-44db-86d8-cebcf99e24d7",
+"state": "en_route_to_depot",
+"stall_id": null
+},
+{
+"id": "ef0b46c0-5029-4ff9-989a-c80e3e8227f2",
+"state": "en_route_to_depot",
+"stall_id": null
+},
+{
+"id": "03726c33-e4fb-4af4-b498-16f4dc5335b9",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "5cee8fb3-d21e-46e2-88b1-5223114b1578",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "73e86c55-4eeb-43b3-943d-f700b40386af",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "da022fb5-45f9-4a77-9fb8-d14db1e3a5b3",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "0ea2ccfe-bbb0-4da0-b3c3-d4a9ef9a1fb7",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "cadd7c81-433d-4158-90ac-b08ecbdcdf7a",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "2bc9a4a0-5f7d-4f1c-bdcd-d9a96efa9fc5",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "a1111111-0001-0001-0001-000000000004",
+"state": "staged_awaiting_service",
+"stall_id": null
+},
+{
+"id": "d5dd0338-bbbb-4fd1-b529-d0fba31da0cd",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "ebd4669f-9227-44b6-9956-f2fa5472ed5d",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "37aee690-ce21-4aed-b9c1-12ff83521fa9",
+"state": "charge_complete_holding",
+"stall_id": null
+},
+{
+"id": "641d765e-a547-44d2-a837-66484268f1c3",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "9458a4a5-a209-4e6d-a45b-470c4d664cbe",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "229f655b-803c-47c0-95fd-ca8adb9d8ef0",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "6fdd7f85-9754-43fc-8b73-bafcfef54374",
+"state": "en_route_to_depot",
+"stall_id": null
+},
+{
+"id": "02ff42a9-de41-42d2-bfb9-00b681c02178",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "5e93a514-8ab0-4ac1-94d6-bede2a8b4f56",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "1225f10e-1355-45d5-ae28-2fdffd243425",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "cb4faba2-c3d5-467f-a1b9-e8f69f266401",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "72ccc3d4-87f6-47d2-be7f-044ac67e7cc0",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "a0ef8ae7-a873-4ec3-a040-1adb3e30b3d4",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "c3333333-0003-0003-0003-000000000004",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "a1111111-0001-0001-0001-000000000005",
+"state": "en_route_to_depot",
+"stall_id": null
+},
+{
+"id": "c3333333-0003-0003-0003-000000000001",
+"state": "staged_awaiting_service",
+"stall_id": null
+},
+{
+"id": "b19025e6-7990-4ab9-93a5-31eb9734e50b",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "c8c7cd10-99de-40ca-a0b2-03324d11ebaa",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "12cb06f0-cf74-436f-a37a-e660a52dc7e6",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "c3333333-0003-0003-0003-000000000003",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "87098f16-b5b8-417b-bb6a-95e1ea02f619",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "5f8af8a5-0a29-42e7-90d6-a933a2b56e64",
+"state": "en_route_to_depot",
+"stall_id": null
+},
+{
+"id": "a24e3f67-3653-4bd0-9362-2dcfd3d6abe9",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "58f68551-abe5-439c-9835-f1c46612ca05",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "b2222222-0002-0002-0002-000000000004",
+"state": "staged_awaiting_service",
+"stall_id": null
+},
+{
+"id": "a45682eb-242b-42d2-9b15-703b54a3e4cc",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "7a138260-7c7d-40f9-9aaa-f41286a0aa6a",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "b696f1b8-35a6-4ca6-8453-6d7c6005daa2",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "1e6aa7f6-c47a-40fa-9d8e-8ea38d5f6173",
+"state": "charge_complete_holding",
+"stall_id": null
+},
+{
+"id": "f5c7d2a9-f6b6-46bb-8e61-5da2ec54b7db",
+"state": "arrived_at_gate",
+"stall_id": null
+},
+{
+"id": "f0077a3a-5a40-4d50-bbe9-95a81a4acc8d",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "03d72f9c-de16-42ad-a6a2-2434511781c5",
+"state": "charge_complete_holding",
+"stall_id": null
+},
+{
+"id": "c7d24f18-164f-46f1-88aa-6f747c6668fc",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "3d51937e-a289-4132-9fa6-07c0ed2fdbef",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "a1111111-0001-0001-0001-000000000006",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "0cb0532c-6fbb-4ec7-abfb-69e7681e6630",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "236edd3e-abd5-45f5-a053-7f66ab682162",
+"state": "staged_awaiting_service",
+"stall_id": null
+},
+{
+"id": "8eeaaef3-086f-40c8-9e90-1b91d50d3333",
+"state": "en_route_to_depot",
+"stall_id": null
+},
+{
+"id": "3db69802-2cd3-433b-85ed-4f24ad8be006",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "091fa637-9f10-4cef-81e1-3ac58ee652a4",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "c8ae20e3-3613-4ad1-b003-274321c4a101",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "9e209f49-b30d-4544-a310-c76b3fbe8529",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "b2222222-0002-0002-0002-000000000005",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "b2222222-0002-0002-0002-000000000006",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "2cd2cbf3-9de8-48c0-9bd8-935aedb744d7",
+"state": "charge_complete_holding",
+"stall_id": null
+},
+{
+"id": "b2222222-0002-0002-0002-000000000001",
+"state": "charge_complete_holding",
+"stall_id": null
+},
+{
+"id": "bbf2928f-0364-4f7d-a6cd-7ffd9510c6e2",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "a1111111-0001-0001-0001-000000000001",
+"state": "charge_complete_holding",
+"stall_id": null
+},
+{
+"id": "137ab789-9a83-4ee9-9610-7fcd8238fe43",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "b2222222-0002-0002-0002-000000000003",
+"state": "charge_complete_holding",
+"stall_id": null
+},
+{
+"id": "d9d2a011-ac98-4567-87bd-ad70810ded40",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "4c3a7261-79d3-43bf-a498-1971ad39b937",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "a8cb8731-fb8b-4b96-8f24-52064752feb8",
+"state": "charge_complete_holding",
+"stall_id": null
+},
+{
+"id": "ab7adca4-c402-4577-aca1-8a420eea3b8f",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "8ef51846-f36e-47a8-8082-016079ed724c",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "ca2624fc-c97d-4033-af1b-bf97756d3ad9",
+"state": "charge_complete_holding",
+"stall_id": null
+},
+{
+"id": "aee7a860-ffee-4629-bfda-3ffc5b74dd38",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "c9746783-5432-47a5-aaf9-1f8a2978d03c",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "0d43459d-a82f-4d46-9579-43fc89feb981",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "814c9bc7-cf99-4028-93ba-1896279b574a",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "9e05d00e-41f2-4334-b25d-be7588560e82",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "44444820-2eae-438b-8058-c3b01b89fef6",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "30892fc2-9078-4ec6-a8dc-006bc667cea3",
+"state": "charge_complete_holding",
+"stall_id": null
+},
+{
+"id": "616a06de-9b62-4c6a-8d87-70dd2a5a1aa0",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "b14db297-e308-4ce6-8cce-88edbafce40e",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "aff36072-eff1-4a55-be44-a55f5f8891e7",
+"state": "arrived_at_gate",
+"stall_id": null
+},
+{
+"id": "77ecd026-12cb-458e-900a-4602511728d8",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "1ad24ec9-3039-4ab4-9b78-68c35a26f603",
+"state": "staged_awaiting_service",
+"stall_id": null
+},
+{
+"id": "28417bea-eb30-4e9f-8ad8-3da0f1842398",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "96b10b07-87e0-4dd5-8a2b-376532cbd8ec",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "c3333333-0003-0003-0003-000000000002",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "fd6ec8c7-3bcc-4882-b77e-4b1fab99a064",
+"state": "charge_complete_holding",
+"stall_id": null
+},
+{
+"id": "54aeb4ca-1a75-491a-8dcd-974035642eb7",
+"state": "charge_complete_holding",
+"stall_id": null
+},
+{
+"id": "2d2c46af-6b02-4b6e-95df-2cf9742bd376",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "6ef374e7-4d63-4d9e-a14b-8976ef9c9786",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "4b179b26-a48b-4f65-aad1-74ce3179a85d",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "54ec9dcb-76c1-4a7a-84e5-43ea4b3a7c8a",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "23cd462c-e81e-499c-ad8f-f9d57ea03fa9",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "1b9b6ea1-ed97-4a07-9b72-4be8a7189792",
+"state": "staged_awaiting_service",
+"stall_id": null
+},
+{
+"id": "675dfb5c-66ec-466b-b0bf-d2bd9d519538",
+"state": "charge_complete_holding",
+"stall_id": null
+},
+{
+"id": "d0887837-3455-4e45-945a-2d9dd7f4bfbb",
+"state": "charge_complete_holding",
+"stall_id": null
+},
+{
+"id": "bfbaf0b2-48ad-4283-8391-80f301eda2be",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "b9ef130e-5de8-4084-a334-4ad8191bc096",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "5ea53696-baea-4459-8201-53059e64b6ec",
+"state": "en_route_to_depot",
+"stall_id": null
+},
+{
+"id": "00cc3d0a-2518-446b-b9b7-e025e293e37b",
+"state": "staged_awaiting_service",
+"stall_id": null
+},
+{
+"id": "9f5d69bb-e932-4fa9-a659-4417bc861d00",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "380f0f38-a540-4f24-9ee3-a7112d4c6f23",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "b2222222-0002-0002-0002-000000000002",
+"state": "staged_awaiting_service",
+"stall_id": null
+},
+{
+"id": "bc55d859-82ba-4e2c-a5dd-83cbb5281906",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "252ba623-b097-4ac4-8c0b-3cffa951448e",
+"state": "charge_complete_holding",
+"stall_id": null
+},
+{
+"id": "73e4a749-9f4f-4586-8c73-7351786ca4a9",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "5604331f-284d-4768-a521-b60693aebe25",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "a1111111-0001-0001-0001-000000000003",
+"state": "staged_for_departure",
+"stall_id": null
+}
+]
+},
+{
+"t": "2026-08-05T23:21:00.357948+00:00",
+"changes": [
+{
+"id": "8f680446-212c-4aca-bf07-f55b7fa0223e",
+"state": "arrived_at_gate",
+"stall_id": null
+},
+{
+"id": "db9d7b6e-e17c-44db-86d8-cebcf99e24d7",
+"state": "arrived_at_gate",
+"stall_id": null
+},
+{
+"id": "ef0b46c0-5029-4ff9-989a-c80e3e8227f2",
+"state": "arrived_at_gate",
+"stall_id": null
+},
+{
+"id": "a1111111-0001-0001-0001-000000000004",
+"state": "in_service_bay",
+"stall_id": null
+},
+{
+"id": "37aee690-ce21-4aed-b9c1-12ff83521fa9",
+"state": "staged_awaiting_service",
+"stall_id": null
+},
+{
+"id": "229f655b-803c-47c0-95fd-ca8adb9d8ef0",
+"state": "arrived_at_gate",
+"stall_id": null
+},
+{
+"id": "6fdd7f85-9754-43fc-8b73-bafcfef54374",
+"state": "arrived_at_gate",
+"stall_id": null
+},
+{
+"id": "5e93a514-8ab0-4ac1-94d6-bede2a8b4f56",
+"state": "arrived_at_gate",
+"stall_id": null
+},
+{
+"id": "a1111111-0001-0001-0001-000000000005",
+"state": "arrived_at_gate",
+"stall_id": null
+},
+{
+"id": "b19025e6-7990-4ab9-93a5-31eb9734e50b",
+"state": "arrived_at_gate",
+"stall_id": null
+},
+{
+"id": "5f8af8a5-0a29-42e7-90d6-a933a2b56e64",
+"state": "arrived_at_gate",
+"stall_id": null
+},
+{
+"id": "1e6aa7f6-c47a-40fa-9d8e-8ea38d5f6173",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "03d72f9c-de16-42ad-a6a2-2434511781c5",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "8eeaaef3-086f-40c8-9e90-1b91d50d3333",
+"state": "arrived_at_gate",
+"stall_id": null
+},
+{
+"id": "b2222222-0002-0002-0002-000000000005",
+"state": "arrived_at_gate",
+"stall_id": null
+},
+{
+"id": "2cd2cbf3-9de8-48c0-9bd8-935aedb744d7",
+"state": "staged_awaiting_service",
+"stall_id": null
+},
+{
+"id": "b2222222-0002-0002-0002-000000000001",
+"state": "staged_awaiting_service",
+"stall_id": null
+},
+{
+"id": "a1111111-0001-0001-0001-000000000001",
+"state": "staged_awaiting_service",
+"stall_id": null
+},
+{
+"id": "b2222222-0002-0002-0002-000000000003",
+"state": "staged_awaiting_service",
+"stall_id": null
+},
+{
+"id": "4c3a7261-79d3-43bf-a498-1971ad39b937",
+"state": "arrived_at_gate",
+"stall_id": null
+},
+{
+"id": "a8cb8731-fb8b-4b96-8f24-52064752feb8",
+"state": "staged_awaiting_service",
+"stall_id": null
+},
+{
+"id": "ca2624fc-c97d-4033-af1b-bf97756d3ad9",
+"state": "staged_awaiting_service",
+"stall_id": null
+},
+{
+"id": "30892fc2-9078-4ec6-a8dc-006bc667cea3",
+"state": "staged_awaiting_service",
+"stall_id": null
+},
+{
+"id": "77ecd026-12cb-458e-900a-4602511728d8",
+"state": "en_route_to_depot",
+"stall_id": null
+},
+{
+"id": "fd6ec8c7-3bcc-4882-b77e-4b1fab99a064",
+"state": "staged_awaiting_service",
+"stall_id": null
+},
+{
+"id": "54aeb4ca-1a75-491a-8dcd-974035642eb7",
+"state": "staged_awaiting_service",
+"stall_id": null
+},
+{
+"id": "1b9b6ea1-ed97-4a07-9b72-4be8a7189792",
+"state": "in_service_bay",
+"stall_id": null
+},
+{
+"id": "675dfb5c-66ec-466b-b0bf-d2bd9d519538",
+"state": "staged_awaiting_service",
+"stall_id": null
+},
+{
+"id": "d0887837-3455-4e45-945a-2d9dd7f4bfbb",
+"state": "staged_awaiting_service",
+"stall_id": null
+},
+{
+"id": "5ea53696-baea-4459-8201-53059e64b6ec",
+"state": "arrived_at_gate",
+"stall_id": null
+},
+{
+"id": "252ba623-b097-4ac4-8c0b-3cffa951448e",
+"state": "staged_for_departure",
+"stall_id": null
+}
+]
+},
+{
+"t": "2026-08-05T23:21:02.455578+00:00",
+"changes": [
+{
+"id": "8f680446-212c-4aca-bf07-f55b7fa0223e",
+"state": "charging_l2",
+"stall_id": "53b217b7-1d89-429a-9030-6295438ad32c"
+},
+{
+"id": "34eff65e-af05-485c-bcc6-df10f99c219a",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "db9d7b6e-e17c-44db-86d8-cebcf99e24d7",
+"state": "charging_l2",
+"stall_id": "ce92a558-430f-4b2e-b248-621c568415ba"
+},
+{
+"id": "ef0b46c0-5029-4ff9-989a-c80e3e8227f2",
+"state": "charging_l2",
+"stall_id": "6b043f2d-e7b5-485b-beb1-3e7b7c283964"
+},
+{
+"id": "37aee690-ce21-4aed-b9c1-12ff83521fa9",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "229f655b-803c-47c0-95fd-ca8adb9d8ef0",
+"state": "charging_l2",
+"stall_id": "c957b07b-8481-446d-af1b-974421a10641"
+},
+{
+"id": "6fdd7f85-9754-43fc-8b73-bafcfef54374",
+"state": "charging_dcfc",
+"stall_id": "765adddb-3dc3-4cd4-be62-28c76ed8e737"
+},
+{
+"id": "5e93a514-8ab0-4ac1-94d6-bede2a8b4f56",
+"state": "charging_dcfc",
+"stall_id": "9753cfd9-7abe-4bfd-a5a0-fa3b33de442c"
+},
+{
+"id": "a1111111-0001-0001-0001-000000000005",
+"state": "charging_dcfc",
+"stall_id": "51a1c43b-8982-4023-ae3e-b9ef41cf0b89"
+},
+{
+"id": "c3333333-0003-0003-0003-000000000001",
+"state": "charging_l2",
+"stall_id": "254d40a1-4c83-4b4f-a1b5-477300c3bc3f"
+},
+{
+"id": "b19025e6-7990-4ab9-93a5-31eb9734e50b",
+"state": "charging_l2",
+"stall_id": "a643de50-a12a-417d-b677-f7f9acf6e303"
+},
+{
+"id": "87098f16-b5b8-417b-bb6a-95e1ea02f619",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "5f8af8a5-0a29-42e7-90d6-a933a2b56e64",
+"state": "charging_l2",
+"stall_id": "fe18413d-9273-4199-8ae3-b063d633b27d"
+},
+{
+"id": "b2222222-0002-0002-0002-000000000004",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "a45682eb-242b-42d2-9b15-703b54a3e4cc",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "f5c7d2a9-f6b6-46bb-8e61-5da2ec54b7db",
+"state": "charging_dcfc",
+"stall_id": "91ebbf41-666a-4127-aea7-aad80f8f0adc"
+},
+{
+"id": "236edd3e-abd5-45f5-a053-7f66ab682162",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "8eeaaef3-086f-40c8-9e90-1b91d50d3333",
+"state": "charging_dcfc",
+"stall_id": "609910b1-c888-4624-8077-76c2fc83615f"
+},
+{
+"id": "b2222222-0002-0002-0002-000000000005",
+"state": "charging_dcfc",
+"stall_id": "364caf8d-6757-43c7-88e7-b4a0f9582751"
+},
+{
+"id": "2cd2cbf3-9de8-48c0-9bd8-935aedb744d7",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "b2222222-0002-0002-0002-000000000001",
+"state": "in_wash_bay",
+"stall_id": "6277d0cc-da92-49a2-8f0c-e0d534e6fb1a"
+},
+{
+"id": "a1111111-0001-0001-0001-000000000001",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "b2222222-0002-0002-0002-000000000003",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "4c3a7261-79d3-43bf-a498-1971ad39b937",
+"state": "charging_dcfc",
+"stall_id": "3a7310ac-5dfe-45fc-af3a-82d169345f30"
+},
+{
+"id": "a8cb8731-fb8b-4b96-8f24-52064752feb8",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "ca2624fc-c97d-4033-af1b-bf97756d3ad9",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "aee7a860-ffee-4629-bfda-3ffc5b74dd38",
+"state": "en_route_to_depot",
+"stall_id": null
+},
+{
+"id": "30892fc2-9078-4ec6-a8dc-006bc667cea3",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "aff36072-eff1-4a55-be44-a55f5f8891e7",
+"state": "charging_dcfc",
+"stall_id": "bcff04b2-ad01-40fe-89fd-3c262af75305"
+},
+{
+"id": "1ad24ec9-3039-4ab4-9b78-68c35a26f603",
+"state": "charging_l2",
+"stall_id": "ccac745f-a9ca-47eb-94f4-8a3a1080d79c"
+},
+{
+"id": "fd6ec8c7-3bcc-4882-b77e-4b1fab99a064",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "54aeb4ca-1a75-491a-8dcd-974035642eb7",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "2d2c46af-6b02-4b6e-95df-2cf9742bd376",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "675dfb5c-66ec-466b-b0bf-d2bd9d519538",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "d0887837-3455-4e45-945a-2d9dd7f4bfbb",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "b9ef130e-5de8-4084-a334-4ad8191bc096",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "5ea53696-baea-4459-8201-53059e64b6ec",
+"state": "charging_dcfc",
+"stall_id": "c8049eb3-5ff8-478d-8a33-78fdd037ab35"
+},
+{
+"id": "00cc3d0a-2518-446b-b9b7-e025e293e37b",
+"state": "staged_for_departure",
+"stall_id": null
+},
+{
+"id": "b2222222-0002-0002-0002-000000000002",
+"state": "in_detail_bay",
+"stall_id": "c9466ca6-5dca-487d-be44-f6c45f5eb6a3"
+},
+{
+"id": "5604331f-284d-4768-a521-b60693aebe25",
+"state": "deployed",
+"stall_id": null
+}
+]
+},
+{
+"t": "2026-08-05T23:21:10.129954+00:00",
+"changes": [
+{
+"id": "ec5d2c18-bc65-400e-a9db-811be2b75659",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "5cee8fb3-d21e-46e2-88b1-5223114b1578",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "d5dd0338-bbbb-4fd1-b529-d0fba31da0cd",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "3d51937e-a289-4132-9fa6-07c0ed2fdbef",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "3db69802-2cd3-433b-85ed-4f24ad8be006",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "137ab789-9a83-4ee9-9610-7fcd8238fe43",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "1ad24ec9-3039-4ab4-9b78-68c35a26f603",
+"state": "staged_for_departure",
+"stall_id": null
+}
+]
+},
+{
+"t": "2026-08-05T23:21:20.210524+00:00",
+"changes": [
+{
+"id": "0d43459d-a82f-4d46-9579-43fc89feb981",
+"state": "en_route_to_depot",
+"stall_id": null
+}
+]
+},
+{
+"t": "2026-08-05T23:21:41.82242+00:00",
+"changes": [
+{
+"id": "641d765e-a547-44d2-a837-66484268f1c3",
+"state": "en_route_to_depot",
+"stall_id": null
+}
+]
+},
+{
+"t": "2026-08-05T23:22:21.967429+00:00",
+"changes": [
+{
+"id": "9458a4a5-a209-4e6d-a45b-470c4d664cbe",
+"state": "en_route_to_depot",
+"stall_id": null
+}
+]
+},
+{
+"t": "2026-08-05T23:22:27.461082+00:00",
+"changes": [
+{
+"id": "641d765e-a547-44d2-a837-66484268f1c3",
+"state": "staged_awaiting_service",
+"stall_id": "1e3aae00-3613-4e31-a217-0785bb5332a1"
+}
+]
+},
+{
+"t": "2026-08-05T23:22:29.890647+00:00",
+"changes": [
+{
+"id": "641d765e-a547-44d2-a837-66484268f1c3",
+"state": "staged_for_departure",
+"stall_id": "1e3aae00-3613-4e31-a217-0785bb5332a1"
+},
+{
+"id": "2cd2cbf3-9de8-48c0-9bd8-935aedb744d7",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "b2222222-0002-0002-0002-000000000003",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "30892fc2-9078-4ec6-a8dc-006bc667cea3",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "96b10b07-87e0-4dd5-8a2b-376532cbd8ec",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "54aeb4ca-1a75-491a-8dcd-974035642eb7",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "d0887837-3455-4e45-945a-2d9dd7f4bfbb",
+"state": "deployed",
+"stall_id": null
+}
+]
+},
+{
+"t": "2026-08-05T23:22:35.971927+00:00",
+"changes": [
+{
+"id": "03726c33-e4fb-4af4-b498-16f4dc5335b9",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "7a138260-7c7d-40f9-9aaa-f41286a0aa6a",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "03d72f9c-de16-42ad-a6a2-2434511781c5",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "236edd3e-abd5-45f5-a053-7f66ab682162",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "9e05d00e-41f2-4334-b25d-be7588560e82",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "252ba623-b097-4ac4-8c0b-3cffa951448e",
+"state": "deployed",
+"stall_id": null
+}
+]
+},
+{
+"t": "2026-08-05T23:22:41.433077+00:00",
+"changes": [
+{
+"id": "a24e3f67-3653-4bd0-9362-2dcfd3d6abe9",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "96b10b07-87e0-4dd5-8a2b-376532cbd8ec",
+"state": "en_route_to_depot",
+"stall_id": null
+},
+{
+"id": "fd6ec8c7-3bcc-4882-b77e-4b1fab99a064",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "54ec9dcb-76c1-4a7a-84e5-43ea4b3a7c8a",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "bfbaf0b2-48ad-4283-8391-80f301eda2be",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "bc55d859-82ba-4e2c-a5dd-83cbb5281906",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "a1111111-0001-0001-0001-000000000003",
+"state": "deployed",
+"stall_id": null
+}
+]
+},
+{
+"t": "2026-08-05T23:22:46.992046+00:00",
+"changes": [
+{
+"id": "0ea2ccfe-bbb0-4da0-b3c3-d4a9ef9a1fb7",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "cadd7c81-433d-4158-90ac-b08ecbdcdf7a",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "a24e3f67-3653-4bd0-9362-2dcfd3d6abe9",
+"state": "en_route_to_depot",
+"stall_id": null
+},
+{
+"id": "b2222222-0002-0002-0002-000000000004",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "a1111111-0001-0001-0001-000000000006",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "23cd462c-e81e-499c-ad8f-f9d57ea03fa9",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "73e4a749-9f4f-4586-8c73-7351786ca4a9",
+"state": "deployed",
+"stall_id": null
+}
+]
+},
+{
+"t": "2026-08-05T23:23:16.188402+00:00",
+"changes": [
+{
+"id": "b73b5763-07e4-48e3-9e8c-3158301af418",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "ebd4669f-9227-44b6-9956-f2fa5472ed5d",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "37aee690-ce21-4aed-b9c1-12ff83521fa9",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "a8cb8731-fb8b-4b96-8f24-52064752feb8",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "ca2624fc-c97d-4033-af1b-bf97756d3ad9",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "00cc3d0a-2518-446b-b9b7-e025e293e37b",
+"state": "deployed",
+"stall_id": null
+}
+]
+},
+{
+"t": "2026-08-05T23:23:22.510778+00:00",
+"changes": [
+{
+"id": "99ddf4ff-96d7-4257-b1ce-cb9437335ce8",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "1e6aa7f6-c47a-40fa-9d8e-8ea38d5f6173",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "c9746783-5432-47a5-aaf9-1f8a2978d03c",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "616a06de-9b62-4c6a-8d87-70dd2a5a1aa0",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "b14db297-e308-4ce6-8cce-88edbafce40e",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "6ef374e7-4d63-4d9e-a14b-8976ef9c9786",
+"state": "deployed",
+"stall_id": null
+}
+]
+},
+{
+"t": "2026-08-05T23:23:25.551898+00:00",
+"changes": [
+{
+"id": "96b10b07-87e0-4dd5-8a2b-376532cbd8ec",
+"state": "staged_awaiting_service",
+"stall_id": "28b2f4fa-ff9a-4d16-954b-d22c9304506d"
+}
+]
+},
+{
+"t": "2026-08-05T23:23:28.034289+00:00",
+"changes": [
+{
+"id": "da022fb5-45f9-4a77-9fb8-d14db1e3a5b3",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "cb4faba2-c3d5-467f-a1b9-e8f69f266401",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "b696f1b8-35a6-4ca6-8453-6d7c6005daa2",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "a1111111-0001-0001-0001-000000000001",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "96b10b07-87e0-4dd5-8a2b-376532cbd8ec",
+"state": "staged_for_departure",
+"stall_id": "28b2f4fa-ff9a-4d16-954b-d22c9304506d"
+},
+{
+"id": "4b179b26-a48b-4f65-aad1-74ce3179a85d",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "675dfb5c-66ec-466b-b0bf-d2bd9d519538",
+"state": "deployed",
+"stall_id": null
+}
+]
+},
+{
+"t": "2026-08-05T23:23:33.63077+00:00",
+"changes": [
+{
+"id": "05b0de6f-7dee-43d7-99d2-7be9cecfeb86",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "c3333333-0003-0003-0003-000000000003",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "bbf2928f-0364-4f7d-a6cd-7ffd9510c6e2",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "ab7adca4-c402-4577-aca1-8a420eea3b8f",
+"state": "deployed",
+"stall_id": null
+}
+]
+},
+{
+"t": "2026-08-05T23:23:36.505556+00:00",
+"changes": [
+{
+"id": "a24e3f67-3653-4bd0-9362-2dcfd3d6abe9",
+"state": "staged_awaiting_service",
+"stall_id": "c747ff79-0d45-4d45-97c6-385b9130e62b"
+}
+]
+},
+{
+"t": "2026-08-05T23:23:39.017264+00:00",
+"changes": [
+{
+"id": "a24e3f67-3653-4bd0-9362-2dcfd3d6abe9",
+"state": "staged_for_departure",
+"stall_id": "c747ff79-0d45-4d45-97c6-385b9130e62b"
+}
+]
+},
+{
+"t": "2026-08-05T23:24:03.82711+00:00",
+"changes": [
+{
+"id": "b2222222-0002-0002-0002-000000000001",
+"state": "staged_awaiting_service",
+"stall_id": "6277d0cc-da92-49a2-8f0c-e0d534e6fb1a"
+}
+]
+},
+{
+"t": "2026-08-05T23:24:05.722757+00:00",
+"changes": [
+{
+"id": "f0077a3a-5a40-4d50-bbe9-95a81a4acc8d",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "c8ae20e3-3613-4ad1-b003-274321c4a101",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "b2222222-0002-0002-0002-000000000001",
+"state": "in_detail_bay",
+"stall_id": "6277d0cc-da92-49a2-8f0c-e0d534e6fb1a"
+},
+{
+"id": "1ad24ec9-3039-4ab4-9b78-68c35a26f603",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "c3333333-0003-0003-0003-000000000002",
+"state": "deployed",
+"stall_id": null
+},
+{
+"id": "b9ef130e-5de8-4084-a334-4ad8191bc096",
+"state": "en_route_to_depot",
+"stall_id": null
+},
+{
+"id": "380f0f38-a540-4f24-9ee3-a7112d4c6f23",
+"state": "deployed",
+"stall_id": null
+}
+]
+},
+{
+"t": "2026-08-05T23:24:16.509551+00:00",
+"changes": [
+{
+"id": "9be45c35-ab40-4b47-8ea6-c4eecb5860b4",
+"state": "en_route_to_depot",
+"stall_id": null
+}
+]
+},
+{
+"t": "2026-08-05T23:24:28.734636+00:00",
+"changes": [
+{
+"id": "6ef374e7-4d63-4d9e-a14b-8976ef9c9786",
+"state": "en_route_to_depot",
+"stall_id": null
+}
+]
+},
+{
+"t": "2026-08-05T23:24:42.276961+00:00",
+"changes": [
+{
+"id": "9be45c35-ab40-4b47-8ea6-c4eecb5860b4",
+"state": "staged_awaiting_service",
+"stall_id": "f39d9e37-af8f-4cea-861f-cb0a2657ecf3"
+}
+]
+},
+{
+"t": "2026-08-05T23:24:44.871597+00:00",
+"changes": [
+{
+"id": "9be45c35-ab40-4b47-8ea6-c4eecb5860b4",
+"state": "staged_for_departure",
+"stall_id": "f39d9e37-af8f-4cea-861f-cb0a2657ecf3"
+}
+]
+},
+{
+"t": "2026-08-05T23:25:07.40948+00:00",
+"changes": [
+{
+"id": "b9ef130e-5de8-4084-a334-4ad8191bc096",
+"state": "staged_awaiting_service",
+"stall_id": "e49d641c-3103-425d-867f-5d42d30ab85d"
+}
+]
+},
+{
+"t": "2026-08-05T23:25:11.635871+00:00",
+"changes": [
+{
+"id": "3d51937e-a289-4132-9fa6-07c0ed2fdbef",
+"state": "en_route_to_depot",
+"stall_id": null
+},
+{
+"id": "b9ef130e-5de8-4084-a334-4ad8191bc096",
+"state": "staged_for_departure",
+"stall_id": "e49d641c-3103-425d-867f-5d42d30ab85d"
+}
+]
+},
+{
+"t": "2026-08-05T23:25:14.692008+00:00",
+"changes": [
+{
+"id": "6ef374e7-4d63-4d9e-a14b-8976ef9c9786",
+"state": "staged_awaiting_service",
+"stall_id": "da2bbed2-a874-47cf-8c04-550155e48243"
+}
+]
+},
+{
+"t": "2026-08-05T23:25:17.312999+00:00",
+"changes": [
+{
+"id": "6ef374e7-4d63-4d9e-a14b-8976ef9c9786",
+"state": "staged_for_departure",
+"stall_id": "da2bbed2-a874-47cf-8c04-550155e48243"
+}
+]
+},
+{
+"t": "2026-08-05T23:25:28.042454+00:00",
+"changes": [
+{
+"id": "fd6ec8c7-3bcc-4882-b77e-4b1fab99a064",
+"state": "en_route_to_depot",
+"stall_id": null
+}
+]
+},
+{
+"t": "2026-08-05T23:25:32.755847+00:00",
+"changes": [
+{
+"id": "99ddf4ff-96d7-4257-b1ce-cb9437335ce8",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "dd1579b1-5ab4-407f-a648-f05cc56f401b",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "a1111111-0001-0001-0001-000000000002",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "0cb1b8c6-c948-4937-8bf6-187442a7be1a",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "b97789b5-3963-497d-9ca7-5b65e0168234",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "ec5d2c18-bc65-400e-a9db-811be2b75659",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "b73b5763-07e4-48e3-9e8c-3158301af418",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "9be45c35-ab40-4b47-8ea6-c4eecb5860b4",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "05b0de6f-7dee-43d7-99d2-7be9cecfeb86",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "7ec698b8-b6ac-4e77-b9f8-a3a42a34e2c7",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "8f680446-212c-4aca-bf07-f55b7fa0223e",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "34eff65e-af05-485c-bcc6-df10f99c219a",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "5fe5fe42-3237-4734-b819-37876ceb4454",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "db9d7b6e-e17c-44db-86d8-cebcf99e24d7",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "ef0b46c0-5029-4ff9-989a-c80e3e8227f2",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "03726c33-e4fb-4af4-b498-16f4dc5335b9",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "5cee8fb3-d21e-46e2-88b1-5223114b1578",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "73e86c55-4eeb-43b3-943d-f700b40386af",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "da022fb5-45f9-4a77-9fb8-d14db1e3a5b3",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "0ea2ccfe-bbb0-4da0-b3c3-d4a9ef9a1fb7",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "cadd7c81-433d-4158-90ac-b08ecbdcdf7a",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "2bc9a4a0-5f7d-4f1c-bdcd-d9a96efa9fc5",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "a1111111-0001-0001-0001-000000000004",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "d5dd0338-bbbb-4fd1-b529-d0fba31da0cd",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "ebd4669f-9227-44b6-9956-f2fa5472ed5d",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "37aee690-ce21-4aed-b9c1-12ff83521fa9",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "641d765e-a547-44d2-a837-66484268f1c3",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "9458a4a5-a209-4e6d-a45b-470c4d664cbe",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "229f655b-803c-47c0-95fd-ca8adb9d8ef0",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "6fdd7f85-9754-43fc-8b73-bafcfef54374",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "02ff42a9-de41-42d2-bfb9-00b681c02178",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "5e93a514-8ab0-4ac1-94d6-bede2a8b4f56",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "1225f10e-1355-45d5-ae28-2fdffd243425",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "cb4faba2-c3d5-467f-a1b9-e8f69f266401",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "72ccc3d4-87f6-47d2-be7f-044ac67e7cc0",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "a0ef8ae7-a873-4ec3-a040-1adb3e30b3d4",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "c3333333-0003-0003-0003-000000000004",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "a1111111-0001-0001-0001-000000000005",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "c3333333-0003-0003-0003-000000000001",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "b19025e6-7990-4ab9-93a5-31eb9734e50b",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "c8c7cd10-99de-40ca-a0b2-03324d11ebaa",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "12cb06f0-cf74-436f-a37a-e660a52dc7e6",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "c3333333-0003-0003-0003-000000000003",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "87098f16-b5b8-417b-bb6a-95e1ea02f619",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "5f8af8a5-0a29-42e7-90d6-a933a2b56e64",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "a24e3f67-3653-4bd0-9362-2dcfd3d6abe9",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "58f68551-abe5-439c-9835-f1c46612ca05",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "b2222222-0002-0002-0002-000000000004",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "a45682eb-242b-42d2-9b15-703b54a3e4cc",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "7a138260-7c7d-40f9-9aaa-f41286a0aa6a",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "b696f1b8-35a6-4ca6-8453-6d7c6005daa2",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "1e6aa7f6-c47a-40fa-9d8e-8ea38d5f6173",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "f5c7d2a9-f6b6-46bb-8e61-5da2ec54b7db",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "f0077a3a-5a40-4d50-bbe9-95a81a4acc8d",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "03d72f9c-de16-42ad-a6a2-2434511781c5",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "c7d24f18-164f-46f1-88aa-6f747c6668fc",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "3d51937e-a289-4132-9fa6-07c0ed2fdbef",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "a1111111-0001-0001-0001-000000000006",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "0cb0532c-6fbb-4ec7-abfb-69e7681e6630",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "236edd3e-abd5-45f5-a053-7f66ab682162",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "8eeaaef3-086f-40c8-9e90-1b91d50d3333",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "3db69802-2cd3-433b-85ed-4f24ad8be006",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "091fa637-9f10-4cef-81e1-3ac58ee652a4",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "c8ae20e3-3613-4ad1-b003-274321c4a101",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "9e209f49-b30d-4544-a310-c76b3fbe8529",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "b2222222-0002-0002-0002-000000000005",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "b2222222-0002-0002-0002-000000000006",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "2cd2cbf3-9de8-48c0-9bd8-935aedb744d7",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "b2222222-0002-0002-0002-000000000001",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "bbf2928f-0364-4f7d-a6cd-7ffd9510c6e2",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "a1111111-0001-0001-0001-000000000001",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "137ab789-9a83-4ee9-9610-7fcd8238fe43",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "b2222222-0002-0002-0002-000000000003",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "d9d2a011-ac98-4567-87bd-ad70810ded40",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "4c3a7261-79d3-43bf-a498-1971ad39b937",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "a8cb8731-fb8b-4b96-8f24-52064752feb8",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "ab7adca4-c402-4577-aca1-8a420eea3b8f",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "8ef51846-f36e-47a8-8082-016079ed724c",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "ca2624fc-c97d-4033-af1b-bf97756d3ad9",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "aee7a860-ffee-4629-bfda-3ffc5b74dd38",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "c9746783-5432-47a5-aaf9-1f8a2978d03c",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "0d43459d-a82f-4d46-9579-43fc89feb981",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "814c9bc7-cf99-4028-93ba-1896279b574a",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "9e05d00e-41f2-4334-b25d-be7588560e82",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "44444820-2eae-438b-8058-c3b01b89fef6",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "30892fc2-9078-4ec6-a8dc-006bc667cea3",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "616a06de-9b62-4c6a-8d87-70dd2a5a1aa0",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "b14db297-e308-4ce6-8cce-88edbafce40e",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "aff36072-eff1-4a55-be44-a55f5f8891e7",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "77ecd026-12cb-458e-900a-4602511728d8",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "1ad24ec9-3039-4ab4-9b78-68c35a26f603",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "28417bea-eb30-4e9f-8ad8-3da0f1842398",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "96b10b07-87e0-4dd5-8a2b-376532cbd8ec",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "c3333333-0003-0003-0003-000000000002",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "fd6ec8c7-3bcc-4882-b77e-4b1fab99a064",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "54aeb4ca-1a75-491a-8dcd-974035642eb7",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "2d2c46af-6b02-4b6e-95df-2cf9742bd376",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "6ef374e7-4d63-4d9e-a14b-8976ef9c9786",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "4b179b26-a48b-4f65-aad1-74ce3179a85d",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "54ec9dcb-76c1-4a7a-84e5-43ea4b3a7c8a",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "23cd462c-e81e-499c-ad8f-f9d57ea03fa9",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "1b9b6ea1-ed97-4a07-9b72-4be8a7189792",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "675dfb5c-66ec-466b-b0bf-d2bd9d519538",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "d0887837-3455-4e45-945a-2d9dd7f4bfbb",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "bfbaf0b2-48ad-4283-8391-80f301eda2be",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "b9ef130e-5de8-4084-a334-4ad8191bc096",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "5ea53696-baea-4459-8201-53059e64b6ec",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "00cc3d0a-2518-446b-b9b7-e025e293e37b",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "9f5d69bb-e932-4fa9-a659-4417bc861d00",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "380f0f38-a540-4f24-9ee3-a7112d4c6f23",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "b2222222-0002-0002-0002-000000000002",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "bc55d859-82ba-4e2c-a5dd-83cbb5281906",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "252ba623-b097-4ac4-8c0b-3cffa951448e",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "73e4a749-9f4f-4586-8c73-7351786ca4a9",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "5604331f-284d-4768-a521-b60693aebe25",
+"state": "offline",
+"stall_id": null
+},
+{
+"id": "a1111111-0001-0001-0001-000000000003",
+"state": "offline",
+"stall_id": null
+}
+]
+}
+]
+}

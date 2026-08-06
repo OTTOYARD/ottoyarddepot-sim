@@ -365,18 +365,34 @@ describe("TwinMotionDriver — kinematic motion off the twin", () => {
   });
 
   it("arrivals disperse to separate staging stalls and drive in (no shared line)", () => {
-    const ids = ["a", "b", "c", "d", "e"];
-    twinMotionDriver.reconcile(snap(ids.map((id) => ({ id, state: "arrived_at_gate" }))));
+    // The gate queue holds FOUR cars per poll, not six. A car body is 10.2u long
+    // and the queue may not extend past x≈247, where the SE ring corner replaces
+    // the ingress stub as the nearest lane node and an arrival would route the
+    // wrong way around the ring (see QUEUE_MAX_X in TwinMotionDriver). Six only
+    // ever fit because they were spaced 8u apart — i.e. overlapping. The fifth
+    // is DEFERRED, not dropped, which the next poll asserts.
+    const ids = ["a", "b", "c", "d"];
+    twinMotionDriver.reconcile(snap([...ids, "e"].map((id) => ({ id, state: "arrived_at_gate" }))));
     // each arrival gets its OWN staging stall — never a shared queue line
     const stalls = ids.map((id) => find(id)!.assignedStall!);
     expect(new Set(stalls).size).toBe(ids.length);
     expect(stalls.every((s) => /^STAGE-/.test(s))).toBe(true);
+    // ...and no two of them are drawn inside each other (bodies are 10.2u long)
+    const qs = ids.map((id) => poseStore.get(id)!);
+    for (let i = 0; i < qs.length; i++) {
+      for (let j = i + 1; j < qs.length; j++) {
+        expect(Math.hypot(qs[i].x - qs[j].x, qs[i].y - qs[j].y)).toBeGreaterThan(10.2);
+      }
+    }
     // and they enter from the ingress and spread across the depot toward those stalls
     for (let i = 0; i < 300; i++) twinMotionDriver.tickMotion(0.05);
     const ps = ids.map((id) => poseStore.get(id)!);
     const spreadX = Math.max(...ps.map((p) => p.x)) - Math.min(...ps.map((p) => p.x));
     const spreadY = Math.max(...ps.map((p) => p.y)) - Math.min(...ps.map((p) => p.y));
     expect(Math.max(spreadX, spreadY)).toBeGreaterThan(12); // dispersed, not stacked in one spot
+    // the deferred fifth arrival is not lost — it enters on the next poll
+    twinMotionDriver.reconcile(snap([...ids, "e"].map((id) => ({ id, state: "arrived_at_gate" }))));
+    expect(poseStore.get("e")).toBeDefined();
   });
 
   it("PAUSE freezes every car in place, and RESUME continues without a catch-up jump", () => {
