@@ -12,6 +12,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc -p tsconfig.app.json --noEmit",
+    "layout:seed": "node scripts/exportSitePlan.mjs && node scripts/buildLayoutSeed.mjs",
+    "layout:check": "node scripts/checkLayoutGeometry.mjs",
+    "layout:verify": "node scripts/buildLayoutSeed.mjs && git diff --exit-code -- unreal/layoutSeed.sql unreal/layoutSeed.json && node scripts/checkLayoutGeometry.mjs",
     "verify": "npm run typecheck && npx vitest run && npx vite build"
   },
   "dependencies": {
