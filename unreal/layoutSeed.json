@@ -33,7 +33,7 @@
   },
   "lanes": {
     "west_aisle_x": 37.677165354330704,
-    "east_aisle_x": 422.29822834645665,
+    "east_aisle_x": 417.9810531496063,
     "north_lane_y": 207.22440944881888,
     "south_lane_y": 53.3759842519685,
     "rear_lane_y": 298.2775590551181,
@@ -45,6 +45,14 @@
       "AB": 189.1707677165354,
       "BC": 262.95521653543307,
       "eastOfC": 335.9547244094488
+    },
+    "right_offset_ft": 5.0236220472440944,
+    "lane_body_width_ft": 6.6,
+    "ring_ft": {
+      "avenue_y0": 53.3759842519685,
+      "avenue_y1": 207.22440944881888,
+      "collector_x0": 37.677165354330704,
+      "collector_x1": 417.9810531496063
     }
   },
   "stalls": [
@@ -4118,22 +4126,24 @@
     "NASH-L2-STALL-22",
     "NASH-L2-STALL-23",
     "NASH-L2-STALL-24",
-    "NASH-L2-STALL-25",
-    "NASH-STG-N008",
-    "NASH-STG-N009",
-    "NASH-STG-N010",
-    "NASH-STG-N011",
-    "NASH-STG-N012",
-    "NASH-STG-N013",
-    "NASH-STG-N014",
-    "NASH-STG-N015",
-    "NASH-STG-N016",
-    "NASH-STG-N017",
-    "NASH-STG-N018",
-    "NASH-STG-N019",
-    "NASH-STG-I014",
-    "NASH-STG-B014"
+    "NASH-L2-STALL-25"
   ],
+  "rehomed_stalls": {
+    "NASH-STG-B014": "NASH-STG-E018",
+    "NASH-STG-I014": "NASH-STG-E019",
+    "NASH-STG-N008": "NASH-STG-E020",
+    "NASH-STG-N009": "NASH-STG-E021",
+    "NASH-STG-N010": "NASH-STG-E022",
+    "NASH-STG-N011": "NASH-STG-E023",
+    "NASH-STG-N012": "NASH-STG-E024",
+    "NASH-STG-N013": "NASH-STG-E025",
+    "NASH-STG-N014": "NASH-STG-S020",
+    "NASH-STG-N015": "NASH-STG-S021",
+    "NASH-STG-N016": "NASH-STG-S022",
+    "NASH-STG-N017": "NASH-STG-S023",
+    "NASH-STG-N018": "NASH-STG-S024",
+    "NASH-STG-N019": "NASH-STG-S025"
+  },
   "retired_structures": [
     "CANOPY-04",
     "METAL-CANOPY-PERIM"

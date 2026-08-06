@@ -110,6 +110,11 @@ const CLEARANCE_FT = 0.5;
 /** Design vehicle used for the fit report (a robotaxi-class sedan/crossover). */
 const DESIGN_VEHICLE_FT = { width: 6.6, length: 16.0 };
 
+// LaneGraph.rightOffset, in render units. Opposing directions on a divided road end
+// up 2x this apart. Kept in step with src/engine/motion/LaneGraph.ts by the assertion
+// in scripts/checkLayoutGeometry.mjs, which reads the real class.
+const LANE_RIGHT_OFFSET = 3.2;
+
 /**
  * Nominal footprints. Charging and staging match what the database already
  * declares (depots.site_layout.stall_dims_ft = charging "10x20", parking "10x18").
@@ -644,15 +649,83 @@ for (const [k, v] of Object.entries(INVENTORY)) {
 }
 if (stalls.length !== 160) throw new Error(`expected 160 stalls, built ${stalls.length}`);
 
-/** Codes present in the database today that this layout no longer uses. */
+// ---------------------------------------------------------------------------
+// Codes the database holds today that this layout no longer uses
+// ---------------------------------------------------------------------------
+//
+// RULE (the one this generator previously broke): a stall ROW may only be DELETED
+// if it is referenced by NOTHING. stalls.id is pointed at by 17 foreign keys, and
+// three of those cascade (ottoq_stall_bookings, charger_cooldowns,
+// charger_health_scores) while four more SET NULL. A delete on a referenced row
+// therefore does not error -- it silently destroys or blanks history. Measured on
+// the live database before this change: the 12 NASH-STG-N008..N019 rows plus
+// NASH-STG-B014 carried 13 released bookings, and NASH-STG-N010/N011/N019 carried
+// 11 vehicle_state_log rows.
+//
+// The prep's own design already said staging is FUNGIBLE and re-homing beats
+// retiring. This is that design, actually implemented:
+//
+//   * STAGING codes that leave the layout are RE-HOMED. The row keeps its id -- and
+//     therefore every booking, every state-log line, every mission pointing at it --
+//     and is UPDATEd onto one of the staging positions this layout mints. 14 staging
+//     codes leave; 29 staging codes are minted; so every one of the 14 has a home.
+//   * L2 21..25 are genuinely DELETED. There is no spare L2 code to re-home onto
+//     (the layout has 30 L2 and all 30 codes already exist), and they are provably
+//     unreferenced: 0 rows in all 17 FK columns, 0 bookings in the pre-import
+//     snapshot, 0 occupied/reserved.
+//
+// "Retire in place" (status='closed') is NOT an option for the L2 five:
+// ottoq_plan_overnight_wave counts stall_type='l2' with no status filter, so a
+// closed row keeps broadcasting charger capacity that does not exist.
+//
+// The migration re-derives the reference counts at APPLY time and RAISEs if any row
+// it is about to delete is referenced by anything. This list is a declaration of
+// intent; the database gets the final vote.
+
+/** Staging codes that leave the layout -> the minted staging code each is re-homed onto. */
+const REHOMED_STAGING_SOURCES = [
+  ...Array.from({ length: 12 }, (_, i) => `NASH-STG-N${String(i + 8).padStart(3, '0')}`),
+  'NASH-STG-I014',
+  'NASH-STG-B014',
+];
+
+/** Codes DELETED outright. Must be provably unreferenced; the migration re-checks. */
 const RETIRED = {
   l2: ['NASH-L2-STALL-21', 'NASH-L2-STALL-22', 'NASH-L2-STALL-23', 'NASH-L2-STALL-24', 'NASH-L2-STALL-25'],
-  staging_north: Array.from({ length: 12 }, (_, i) => `NASH-STG-N${String(i + 8).padStart(3, '0')}`),
-  arrival_inspection: ['NASH-STG-I014'],
-  staging_buffer: ['NASH-STG-B014'],
 };
-const RETIRED_ALL = [...RETIRED.l2, ...RETIRED.staging_north, ...RETIRED.arrival_inspection, ...RETIRED.staging_buffer];
+const RETIRED_ALL = [...RETIRED.l2];
 const RETIRED_STRUCTURES = ['CANOPY-04', 'METAL-CANOPY-PERIM'];
+
+// The database's staging codes today (100 per depot), derived from the same prefix
+// runs the pre-0010 layout used. Anything here that this layout does not mint must
+// be re-homed, never dropped.
+const PRE0010_STAGING = [];
+for (const [p, n] of [['B', 14], ['E', 17], ['I', 14], ['N', 19], ['S', 19], ['W', 17]]) {
+  for (let i = 1; i <= n; i++) PRE0010_STAGING.push(`NASH-STG-${p}${String(i).padStart(3, '0')}`);
+}
+const SEED_CODES = new Set(stalls.map((s) => s.stall_code));
+const LEAVING_STAGING = PRE0010_STAGING.filter((c) => !SEED_CODES.has(c));
+const MINTED_STAGING = stalls
+  .filter((s) => s.stall_type === 'staging' && !PRE0010_STAGING.includes(s.stall_code))
+  .map((s) => s.stall_code)
+  .sort();
+
+// The declared source list must BE the computed one -- otherwise the re-home table
+// silently misses a row and the migration deletes it.
+{
+  const a = [...LEAVING_STAGING].sort().join(',');
+  const b = [...REHOMED_STAGING_SOURCES].sort().join(',');
+  if (a !== b) throw new Error(`re-home source list drifted.\n  computed: ${a}\n  declared: ${b}`);
+  if (MINTED_STAGING.length < LEAVING_STAGING.length) {
+    throw new Error(`cannot re-home: ${LEAVING_STAGING.length} staging codes leaving but only ${MINTED_STAGING.length} minted`);
+  }
+  for (const c of RETIRED_ALL) {
+    if (SEED_CODES.has(c)) throw new Error(`${c} is marked for deletion but the layout still mints it`);
+  }
+}
+
+/** Deterministic pairing: leaving codes in code order -> minted codes in code order. */
+const REHOME_PAIRS = [...LEAVING_STAGING].sort().map((from, i) => [from, MINTED_STAGING[i]]);
 
 // ---------------------------------------------------------------------------
 // Emit
@@ -691,7 +764,8 @@ L.push(`-- relative_y = (${FRAME_Y0} - render_y) * UNIT_FT     [0 .. ${fixed(lot
 L.push('--');
 L.push(`-- Stalls:     ${stalls.length}  (staging ${INVENTORY.staging}, l2 ${INVENTORY.l2}, dcfc ${INVENTORY.dcfc}, wash ${INVENTORY.wash_bay}, service ${INVENTORY.service_bay})`);
 L.push(`-- Structures: ${structures.length}`);
-L.push(`-- Retired stall codes:     ${RETIRED_ALL.length}`);
+L.push(`-- Re-homed stall codes:    ${REHOME_PAIRS.length}  (staging; row + id + history kept, position moved)`);
+L.push(`-- Deleted stall codes:     ${RETIRED_ALL.length}  (must be referenced by nothing)`);
 L.push(`-- Retired structure codes: ${RETIRED_STRUCTURES.length}  (${RETIRED_STRUCTURES.join(', ')})`);
 L.push('--');
 L.push(`-- SEED MD5: ${SEED_MD5}`);
@@ -771,7 +845,27 @@ L.push(structures.map((s) => '  (' + [
   fixed(s.absolute_lat, 8), fixed(s.absolute_lng, 8), jb(s.properties),
 ].join(', ') + ')').join(',\n') + ';');
 L.push('');
-L.push('-- Codes the database holds today that this layout no longer uses.');
+L.push('-- Staging codes that leave the layout. These rows are RE-HOMED, never deleted:');
+L.push('-- the row keeps its id, so every booking / state-log line / mission that points');
+L.push('-- at it survives. Staging is fungible, so the position is what changes.');
+L.push('CREATE TEMP TABLE ottoq_layout_seed_rehome (');
+L.push('  from_code text PRIMARY KEY,');
+L.push('  to_code   text NOT NULL UNIQUE,');
+L.push('  reason    text NOT NULL');
+L.push(') ON COMMIT DROP;');
+L.push('');
+L.push('INSERT INTO ottoq_layout_seed_rehome (from_code, to_code, reason) VALUES');
+L.push(REHOME_PAIRS.map(([f, t]) => {
+  const why = f.startsWith('NASH-STG-N')
+    ? 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'
+    : f === 'NASH-STG-I014'
+      ? 'arrival_inspection resized 14 -> 13 to match temp block column TE'
+      : 'staging_buffer resized 14 -> 13 to match temp block column TW';
+  return `  (${q(f)}, ${q(t)}, ${q(why)})`;
+}).join(',\n') + ';');
+L.push('');
+L.push('-- Codes DELETED outright. Only rows referenced by NOTHING may appear here; the');
+L.push('-- migration re-counts all 17 foreign keys at apply time and RAISEs on any hit.');
 L.push('CREATE TEMP TABLE ottoq_layout_seed_retired (');
 L.push('  stall_code text PRIMARY KEY,');
 L.push('  reason     text NOT NULL');
@@ -779,10 +873,7 @@ L.push(') ON COMMIT DROP;');
 L.push('');
 L.push('INSERT INTO ottoq_layout_seed_retired (stall_code, reason) VALUES');
 L.push([
-  ...RETIRED.l2.map((c) => [c, 'phantom L2 capacity: overran canopy 2 to the south, 10 of the 54 overlapping pairs, one stacked on a staging space']),
-  ...RETIRED.staging_north.map((c) => [c, 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7']),
-  ...RETIRED.arrival_inspection.map((c) => [c, 'arrival_inspection resized 14 -> 13 to match temp block column TE']),
-  ...RETIRED.staging_buffer.map((c) => [c, 'staging_buffer resized 14 -> 13 to match temp block column TW']),
+  ...RETIRED.l2.map((c) => [c, 'phantom L2 capacity: overran canopy 2 to the south, was among the overlapping pairs, one stacked on a staging space. Deleted not closed: ottoq_plan_overnight_wave counts stall_type=l2 with no status filter, so a closed row would keep broadcasting capacity. Provably unreferenced across all 17 FK columns.']),
 ].map(([c, r]) => `  (${q(c)}, ${q(r)})`).join(',\n') + ';');
 L.push('');
 L.push('CREATE TEMP TABLE ottoq_layout_seed_retired_structures (');
@@ -824,10 +915,25 @@ const json = {
     rear_lane_y: toY(sp.REAR_LANE_Y), forecourt_y: toY(sp.FORECOURT_Y),
     west_link_x: toX(sp.WEST_LINK_X), temp_lane_x: toX(sp.TEMP_LANE_X),
     gap_lanes_x: Object.fromEntries(Object.entries(sp.GAP_LANES).map(([k, v]) => [k, toX(v)])),
+    // A divided avenue carries two opposing lanes, each offset this far from the
+    // centreline. Exported so the geometry guards (JS check 7, migration 0010
+    // section 6.6) can test stall-vs-LANE clearance -- the class of defect that let
+    // the east avenue's northbound lane sit 0.9u inside the E-column stalls.
+    right_offset_ft: LANE_RIGHT_OFFSET * UNIT_FT,
+    lane_body_width_ft: DESIGN_VEHICLE_FT.width,
+    // The divided RING, as the four straight runs the guards test. The two avenues
+    // are vertical and span between the collectors; the two collectors are
+    // horizontal and span between the avenues. Gate-approach diagonals are NOT in
+    // here and are NOT claimed to be tested.
+    ring_ft: {
+      avenue_y0: toY(sp.SOUTH_LANE_Y), avenue_y1: toY(sp.NORTH_LANE_Y),
+      collector_x0: toX(sp.WEST_AISLE_X), collector_x1: toX(sp.EAST_AISLE_X),
+    },
   },
   stalls,
   structures,
   retired_stalls: RETIRED_ALL,
+  rehomed_stalls: Object.fromEntries(REHOME_PAIRS),
   retired_structures: RETIRED_STRUCTURES,
 };
 

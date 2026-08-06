@@ -10,7 +10,8 @@
 --
 -- Stalls:     160  (staging 115, l2 30, dcfc 10, wash 3, service 2)
 -- Structures: 26
--- Retired stall codes:     19
+-- Re-homed stall codes:    14  (staging; row + id + history kept, position moved)
+-- Deleted stall codes:     5  (must be referenced by nothing)
 -- Retired structure codes: 2  (CANOPY-04, METAL-CANOPY-PERIM)
 --
 -- SEED MD5: 89943752f32f98da4ef80b6baedb3174
@@ -257,32 +258,44 @@ VALUES
   ('SIGN-OTTOYARD-FRONT', 'sign', 'OTTOYARD Front Wall Signage', 196.0630, 3.0000, 60.0000, 1.0000, 8.0000, 0.0000, 'active', 36.13970962, -86.77203097, '{"mount":"concrete_wall","illuminated":true}'::jsonb),
   ('WASH-01-BLDG', 'wash_building', 'Wash & Detail Building', 241.7618, 235.4823, 81.6339, 47.0965, 18.0000, 0.0000, 'active', 36.14041162, -86.77183872, '{"encloses_stall_codes":["NASH-WSH-01","NASH-WSH-02","NASH-WSH-03"],"enclosure_intentional":true,"wash_bays":[{"code":"NASH-WSH-01","drive_through":true},{"code":"NASH-WSH-02","drive_through":true},{"code":"NASH-WSH-03","drive_through":true}]}'::jsonb);
 
--- Codes the database holds today that this layout no longer uses.
+-- Staging codes that leave the layout. These rows are RE-HOMED, never deleted:
+-- the row keeps its id, so every booking / state-log line / mission that points
+-- at it survives. Staging is fungible, so the position is what changes.
+CREATE TEMP TABLE ottoq_layout_seed_rehome (
+  from_code text PRIMARY KEY,
+  to_code   text NOT NULL UNIQUE,
+  reason    text NOT NULL
+) ON COMMIT DROP;
+
+INSERT INTO ottoq_layout_seed_rehome (from_code, to_code, reason) VALUES
+  ('NASH-STG-B014', 'NASH-STG-E018', 'staging_buffer resized 14 -> 13 to match temp block column TW'),
+  ('NASH-STG-I014', 'NASH-STG-E019', 'arrival_inspection resized 14 -> 13 to match temp block column TE'),
+  ('NASH-STG-N008', 'NASH-STG-E020', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
+  ('NASH-STG-N009', 'NASH-STG-E021', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
+  ('NASH-STG-N010', 'NASH-STG-E022', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
+  ('NASH-STG-N011', 'NASH-STG-E023', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
+  ('NASH-STG-N012', 'NASH-STG-E024', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
+  ('NASH-STG-N013', 'NASH-STG-E025', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
+  ('NASH-STG-N014', 'NASH-STG-S020', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
+  ('NASH-STG-N015', 'NASH-STG-S021', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
+  ('NASH-STG-N016', 'NASH-STG-S022', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
+  ('NASH-STG-N017', 'NASH-STG-S023', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
+  ('NASH-STG-N018', 'NASH-STG-S024', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
+  ('NASH-STG-N019', 'NASH-STG-S025', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7');
+
+-- Codes DELETED outright. Only rows referenced by NOTHING may appear here; the
+-- migration re-counts all 17 foreign keys at apply time and RAISEs on any hit.
 CREATE TEMP TABLE ottoq_layout_seed_retired (
   stall_code text PRIMARY KEY,
   reason     text NOT NULL
 ) ON COMMIT DROP;
 
 INSERT INTO ottoq_layout_seed_retired (stall_code, reason) VALUES
-  ('NASH-L2-STALL-21', 'phantom L2 capacity: overran canopy 2 to the south, 10 of the 54 overlapping pairs, one stacked on a staging space'),
-  ('NASH-L2-STALL-22', 'phantom L2 capacity: overran canopy 2 to the south, 10 of the 54 overlapping pairs, one stacked on a staging space'),
-  ('NASH-L2-STALL-23', 'phantom L2 capacity: overran canopy 2 to the south, 10 of the 54 overlapping pairs, one stacked on a staging space'),
-  ('NASH-L2-STALL-24', 'phantom L2 capacity: overran canopy 2 to the south, 10 of the 54 overlapping pairs, one stacked on a staging space'),
-  ('NASH-L2-STALL-25', 'phantom L2 capacity: overran canopy 2 to the south, 10 of the 54 overlapping pairs, one stacked on a staging space'),
-  ('NASH-STG-N008', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
-  ('NASH-STG-N009', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
-  ('NASH-STG-N010', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
-  ('NASH-STG-N011', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
-  ('NASH-STG-N012', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
-  ('NASH-STG-N013', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
-  ('NASH-STG-N014', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
-  ('NASH-STG-N015', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
-  ('NASH-STG-N016', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
-  ('NASH-STG-N017', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
-  ('NASH-STG-N018', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
-  ('NASH-STG-N019', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
-  ('NASH-STG-I014', 'arrival_inspection resized 14 -> 13 to match temp block column TE'),
-  ('NASH-STG-B014', 'staging_buffer resized 14 -> 13 to match temp block column TW');
+  ('NASH-L2-STALL-21', 'phantom L2 capacity: overran canopy 2 to the south, was among the overlapping pairs, one stacked on a staging space. Deleted not closed: ottoq_plan_overnight_wave counts stall_type=l2 with no status filter, so a closed row would keep broadcasting capacity. Provably unreferenced across all 17 FK columns.'),
+  ('NASH-L2-STALL-22', 'phantom L2 capacity: overran canopy 2 to the south, was among the overlapping pairs, one stacked on a staging space. Deleted not closed: ottoq_plan_overnight_wave counts stall_type=l2 with no status filter, so a closed row would keep broadcasting capacity. Provably unreferenced across all 17 FK columns.'),
+  ('NASH-L2-STALL-23', 'phantom L2 capacity: overran canopy 2 to the south, was among the overlapping pairs, one stacked on a staging space. Deleted not closed: ottoq_plan_overnight_wave counts stall_type=l2 with no status filter, so a closed row would keep broadcasting capacity. Provably unreferenced across all 17 FK columns.'),
+  ('NASH-L2-STALL-24', 'phantom L2 capacity: overran canopy 2 to the south, was among the overlapping pairs, one stacked on a staging space. Deleted not closed: ottoq_plan_overnight_wave counts stall_type=l2 with no status filter, so a closed row would keep broadcasting capacity. Provably unreferenced across all 17 FK columns.'),
+  ('NASH-L2-STALL-25', 'phantom L2 capacity: overran canopy 2 to the south, was among the overlapping pairs, one stacked on a staging space. Deleted not closed: ottoq_plan_overnight_wave counts stall_type=l2 with no status filter, so a closed row would keep broadcasting capacity. Provably unreferenced across all 17 FK columns.');
 
 CREATE TEMP TABLE ottoq_layout_seed_retired_structures (
   structure_code text PRIMARY KEY,

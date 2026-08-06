@@ -81,7 +81,7 @@ const DESIGN_VEHICLE_WIDTH_FT = 6.6;
 
 const path = process.argv[2] || 'unreal/layoutSeed.json';
 const plan = JSON.parse(readFileSync(path, 'utf8'));
-const { stalls, structures, inventory, lot_ft: lot, meta } = plan;
+const { stalls, structures, inventory, lot_ft: lot, meta, lanes } = plan;
 
 const results = [];
 const pass = (name, detail) => results.push({ name, ok: true, detail, offenders: [] });
@@ -364,7 +364,88 @@ const boxes = new Map(measured.map((s) => [s.stall_code, box(s)]));
         `tightest charging ${tightCharge.code} at ${tightCharge.clear.toFixed(1)} ft (needs 24 ft)`);
 }
 
-// ---- 7. Design-vehicle fit (REPORT ONLY) ------------------------------------
+// ---- 7. Stall vs LANE clearance ---------------------------------------------
+//
+// Checks 3 and 4 test stall-vs-stall and stall-vs-structure. Nothing tested
+// stall-vs-LANE, so a travel lane could be routed straight through a parked car and
+// every check would still report PASS. That is not hypothetical: the east avenue's
+// northbound lane overlapped the E-column stalls by 0.90 render units (1.41 ft), on
+// every single northbound pass, and this guard blessed it.
+//
+// A divided avenue carries two opposing lanes, each `right_offset_ft` from the
+// centreline. A car in one of them occupies a body `lane_body_width_ft` wide about
+// that lane. That body must not intersect a parked car's footprint.
+//
+// BLOCKING bar is overlap, i.e. clearance < 0 -- a lane may abut a stall (that is
+// how a parking aisle works) but it may never cut into one. Anything positive but
+// below the west avenue's proven 6.44 ft is reported as a WARN, not a failure: the
+// west is the reference the renderer has actually run, not a standard the founder
+// has accepted, and the east's corridor is physically too narrow to match it.
+{
+  const ln = lanes ?? {};
+  const off = ln.right_offset_ft;
+  const bodyHalf = (ln.lane_body_width_ft ?? meta.design_vehicle_ft?.width ?? 0) / 2;
+  const WEST_REFERENCE_FT = 6.44;
+
+  const ring = ln.ring_ft ?? {};
+  const haveRing = ['avenue_y0', 'avenue_y1', 'collector_x0', 'collector_x1'].every((k) => Number.isFinite(ring[k]));
+
+  if (!Number.isFinite(off) || !Number.isFinite(ln.west_aisle_x) || !Number.isFinite(ln.east_aisle_x) ||
+      !Number.isFinite(ln.north_lane_y) || !Number.isFinite(ln.south_lane_y) || bodyHalf <= 0 || !haveRing) {
+    // NOT ESTABLISHED, never a silent pass.
+    fail('stall vs lane clearance',
+      'lane geometry missing from the seed (lanes.right_offset_ft / lane_body_width_ft / *_aisle_x / *_lane_y / ring_ft) — NOT ESTABLISHED', []);
+  } else {
+    // Each run of the divided ring is a RECTANGLE: a lane body of finite length, not
+    // an infinite band. Modelling the avenues as full-height bands would flag the
+    // south perimeter row, which sits well south of where the avenue actually runs.
+    const [ay0, ay1] = [Math.min(ring.avenue_y0, ring.avenue_y1), Math.max(ring.avenue_y0, ring.avenue_y1)];
+    const [cx0, cx1] = [Math.min(ring.collector_x0, ring.collector_x1), Math.max(ring.collector_x0, ring.collector_x1)];
+    const rects = [];
+    for (const [nm, cx] of [['west avenue', ln.west_aisle_x], ['east avenue', ln.east_aisle_x]]) {
+      for (const d of [-1, +1]) {
+        const c = cx + d * off;
+        rects.push({ name: `${nm} ${d > 0 ? 'northbound' : 'southbound'}`, x0: c - bodyHalf, x1: c + bodyHalf, y0: ay0, y1: ay1 });
+      }
+    }
+    for (const [nm, cy] of [['north collector', ln.north_lane_y], ['south collector', ln.south_lane_y]]) {
+      for (const d of [-1, +1]) {
+        const c = cy + d * off;
+        rects.push({ name: `${nm} ${d > 0 ? 'eastbound' : 'westbound'}`, x0: cx0, x1: cx1, y0: c - bodyHalf, y1: c + bodyHalf });
+      }
+    }
+
+    const overlaps = [];
+    let tightest = null;
+    for (const s of measured) {
+      const b = boxes.get(s.stall_code);
+      for (const L of rects) {
+        const dx = Math.max(L.x0 - b.x1, b.x0 - L.x1);
+        const dy = Math.max(L.y0 - b.y1, b.y0 - L.y1);
+        // Separated on either axis => clear. Overlapping on BOTH => the lane cuts in.
+        const gap = (dx >= 0 || dy >= 0) ? Math.max(dx, dy) : Math.max(dx, dy);
+        if (dx < 0 && dy < 0) {
+          overlaps.push(`${s.stall_code} (x ${b.x0.toFixed(1)}..${b.x1.toFixed(1)}, y ${b.y0.toFixed(1)}..${b.y1.toFixed(1)}) ` +
+                        `overlaps ${L.name} by ${Math.min(-dx, -dy).toFixed(2)} ft`);
+        } else if (!tightest || gap < tightest.gap) {
+          tightest = { gap, code: s.stall_code, lane: L.name };
+        }
+      }
+    }
+
+    if (overlaps.length) {
+      fail('stall vs lane clearance', `${overlaps.length} stall/lane overlap(s) — a travel lane cuts into a parked car`, overlaps);
+    } else {
+      const detail = `tightest ${tightest.code} vs ${tightest.lane}: ${tightest.gap.toFixed(2)} ft clear ` +
+                     `(west avenue reference ${WEST_REFERENCE_FT} ft)`;
+      tightest.gap < WEST_REFERENCE_FT
+        ? info('stall vs lane clearance', `no overlap; tightest is below the west avenue's proven clearance. ${detail}`, [])
+        : pass('stall vs lane clearance', detail);
+    }
+  }
+}
+
+// ---- 8. Design-vehicle fit (REPORT ONLY) ------------------------------------
 //
 // Not a hard failure. The declared footprints are derived from the renderer's own
 // pitch, and the founder has reviewed and approved that layout, so a stall being
