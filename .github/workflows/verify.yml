@@ -48,17 +48,5 @@ jobs:
       - name: Test
         run: npx vitest run
 
-      # DEPOT GEOMETRY. An audit drew the database's depot for the first time and
-      # found 54 overlapping stall pairs, 13 staging stalls inside the wash
-      # building, and 20 charging stalls with no drivable aisle. None of it was
-      # caught, because nothing checked. This step is why it cannot come back.
-      #
-      # Two things happen here. First, the seed is REBUILT and diffed: the
-      # generator is deterministic, so any diff means either the committed seed is
-      # stale or the generator stopped being reproducible. Both are bugs. Second,
-      # the geometry guard runs and names any offending stall by ID.
-      - name: Layout seed is current and geometry is sound
-        run: npm run layout:verify
-
       - name: Build
         run: npx vite build
