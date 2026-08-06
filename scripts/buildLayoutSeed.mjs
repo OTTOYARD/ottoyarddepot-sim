@@ -845,6 +845,40 @@ L.push(structures.map((s) => '  (' + [
   fixed(s.absolute_lat, 8), fixed(s.absolute_lng, 8), jb(s.properties),
 ].join(', ') + ')').join(',\n') + ';');
 L.push('');
+L.push('-- The divided ring, as the four straight runs the geometry guard tests. Emitted');
+L.push('-- from sitePlan.ts so the migration never hardcodes a lane coordinate -- the');
+L.push('-- single-source rule that applies to stalls applies to lanes too. Each run is a');
+L.push('-- lane BODY (one design vehicle wide) offset from its centreline; no stall');
+L.push('-- footprint may intersect one. Gate-approach diagonals are NOT modelled here.');
+L.push('CREATE TEMP TABLE ottoq_layout_seed_lanes (');
+L.push('  lane_name text PRIMARY KEY,');
+L.push('  x0 numeric NOT NULL, y0 numeric NOT NULL,');
+L.push('  x1 numeric NOT NULL, y1 numeric NOT NULL');
+L.push(') ON COMMIT DROP;');
+L.push('');
+{
+  const off = LANE_RIGHT_OFFSET * UNIT_FT;
+  const half = DESIGN_VEHICLE_FT.width / 2;
+  const wx = toX(sp.WEST_AISLE_X), ex = toX(sp.EAST_AISLE_X);
+  const ny = toY(sp.NORTH_LANE_Y), sy = toY(sp.SOUTH_LANE_Y);
+  const ay0 = Math.min(ny, sy), ay1 = Math.max(ny, sy);
+  const cx0 = Math.min(wx, ex), cx1 = Math.max(wx, ex);
+  const rows = [];
+  for (const [nm, cx] of [['west avenue', wx], ['east avenue', ex]]) {
+    for (const [d, s] of [['northbound', 1], ['southbound', -1]]) {
+      rows.push([`${nm} ${d}`, cx + s * off - half, ay0, cx + s * off + half, ay1]);
+    }
+  }
+  for (const [nm, cy] of [['north collector', ny], ['south collector', sy]]) {
+    for (const [d, s] of [['eastbound', 1], ['westbound', -1]]) {
+      rows.push([`${nm} ${d}`, cx0, cy + s * off - half, cx1, cy + s * off + half]);
+    }
+  }
+  L.push('INSERT INTO ottoq_layout_seed_lanes (lane_name, x0, y0, x1, y1) VALUES');
+  L.push(rows.map(([n, a, b2, c, d]) =>
+    `  (${q(n)}, ${fixed(a)}, ${fixed(b2)}, ${fixed(c)}, ${fixed(d)})`).join(',\n') + ';');
+  L.push('');
+}
 L.push('-- Staging codes that leave the layout. These rows are RE-HOMED, never deleted:');
 L.push('-- the row keeps its id, so every booking / state-log line / mission that points');
 L.push('-- at it survives. Staging is fungible, so the position is what changes.');

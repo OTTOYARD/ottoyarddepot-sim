@@ -258,6 +258,27 @@ VALUES
   ('SIGN-OTTOYARD-FRONT', 'sign', 'OTTOYARD Front Wall Signage', 196.0630, 3.0000, 60.0000, 1.0000, 8.0000, 0.0000, 'active', 36.13970962, -86.77203097, '{"mount":"concrete_wall","illuminated":true}'::jsonb),
   ('WASH-01-BLDG', 'wash_building', 'Wash & Detail Building', 241.7618, 235.4823, 81.6339, 47.0965, 18.0000, 0.0000, 'active', 36.14041162, -86.77183872, '{"encloses_stall_codes":["NASH-WSH-01","NASH-WSH-02","NASH-WSH-03"],"enclosure_intentional":true,"wash_bays":[{"code":"NASH-WSH-01","drive_through":true},{"code":"NASH-WSH-02","drive_through":true},{"code":"NASH-WSH-03","drive_through":true}]}'::jsonb);
 
+-- The divided ring, as the four straight runs the geometry guard tests. Emitted
+-- from sitePlan.ts so the migration never hardcodes a lane coordinate -- the
+-- single-source rule that applies to stalls applies to lanes too. Each run is a
+-- lane BODY (one design vehicle wide) offset from its centreline; no stall
+-- footprint may intersect one. Gate-approach diagonals are NOT modelled here.
+CREATE TEMP TABLE ottoq_layout_seed_lanes (
+  lane_name text PRIMARY KEY,
+  x0 numeric NOT NULL, y0 numeric NOT NULL,
+  x1 numeric NOT NULL, y1 numeric NOT NULL
+) ON COMMIT DROP;
+
+INSERT INTO ottoq_layout_seed_lanes (lane_name, x0, y0, x1, y1) VALUES
+  ('west avenue northbound', 39.4008, 53.3760, 46.0008, 207.2244),
+  ('west avenue southbound', 29.3535, 53.3760, 35.9535, 207.2244),
+  ('east avenue northbound', 419.7047, 53.3760, 426.3047, 207.2244),
+  ('east avenue southbound', 409.6574, 53.3760, 416.2574, 207.2244),
+  ('north collector eastbound', 37.6772, 208.9480, 417.9811, 215.5480),
+  ('north collector westbound', 37.6772, 198.9008, 417.9811, 205.5008),
+  ('south collector eastbound', 37.6772, 55.0996, 417.9811, 61.6996),
+  ('south collector westbound', 37.6772, 45.0524, 417.9811, 51.6524);
+
 -- Staging codes that leave the layout. These rows are RE-HOMED, never deleted:
 -- the row keeps its id, so every booking / state-log line / mission that points
 -- at it survives. Staging is fungible, so the position is what changes.
