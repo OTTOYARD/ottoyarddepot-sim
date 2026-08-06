@@ -31,7 +31,21 @@ export const INGRESS = { x: 200, y: 215 };  // EAST (right) — same side as tem
 export const EGRESS = { x: 100, y: 215 };   // WEST (left)
 export const QUEUE_Y = 184;
 export const WEST_AISLE_X = 30;   // west avenue (two-way divided; drains to west EGRESS)
-export const EAST_AISLE_X = 275;  // east avenue (two-way divided; feeds from east INGRESS)
+// East avenue centreline. Was 275, which put the NORTHBOUND lane body (centreline
+// 275+3.2, half a design vehicle = 2.10u each side => x 276.10..280.30) 0.90u INSIDE
+// the E-column stalls (centre 284.5, a 16ft car lying on the x axis => 279.40..289.60).
+// Every northbound pass clipped a parked car by ~1.4 ft. The west avenue has 4.10u
+// (6.44 ft) of clearance and shows no such hotspot.
+//
+// Mirroring the west exactly is IMPOSSIBLE here: the east avenue runs in a corridor
+// only 14.31u wide (TE column ends 265.10, E column starts 279.40), the divided road
+// itself needs 10.60u, and 4.10u of clearance on both sides would need 18.80u.
+// So the road is CENTRED in its corridor instead: 272.25 gives +1.85u (2.91 ft) to
+// the E column and +1.85u to the TE column -- overlap removed, both sides symmetric.
+// The lane offset stays 3.2 (it was deliberately widened from 2.4 for passing
+// clearance, and lanePaint tracks it). checkLayoutGeometry.mjs check 7 and migration
+// 0010 section 6.6 now both assert stall-vs-lane clearance, so this cannot regress.
+export const EAST_AISLE_X = 272.25;  // east avenue (two-way divided; feeds from east INGRESS)
 // North block, top to bottom: REAR APRON (full-width 30ft+ maneuvering zone
 // behind the pull-through bays — no parking abuts it) → bay row → concrete
 // FORECOURT (approach throat into the bay fronts) → NORTH COLLECTOR (two-way
