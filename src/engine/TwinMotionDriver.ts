@@ -52,7 +52,24 @@ const MAX_ACTIVE_ENTERING = 6;   // arrival waves enter in packets too (gate bac
 const MAX_ACTIVE_SERVICE_APPROACH = 5; // batch charger/bay reassignments back out
                                        // in packets — else every parked staging
                                        // car reverses at once into mutual gridlock
-const SPAWN_CLEARANCE = 6;    // don't materialize a car onto another one
+// GATE QUEUE GEOMETRY. A rendered car body is 10.2 units long (VehicleDot draws
+// 4.2 x 10.2), so both of these must clear a full car length or arrivals
+// materialize INTERPENETRATING nose-to-tail on the approach road — which is what
+// the busy_day fixture replay showed: queue pairs 7.2–8.0u apart, bodies exactly
+// parallel (|cos| = 1.00), overlapping by ~2u each. They were 6 and 8.
+const SPAWN_CLEARANCE = 11;   // don't materialize a car onto another one
+const SPAWN_PITCH = 11;       // one car length + ~0.8u of visible gap
+// …AND THE QUEUE MUST STAY INSIDE THE INGRESS GATE'S CATCHMENT.
+// LaneGraph.route() takes the NEAREST lane node as a car's origin, and on the
+// approach road (y = 213) the ingress stub (200, 210) stops being nearest past
+//   (x-200)² + 3² = (275-x)² + 41²   →   x = 247.1
+// where the SE ring corner (275, 172) takes over. A car spawned east of that
+// routes AROUND the outside of the ring instead of in through the gate; because
+// its first route segment then points ~180° behind it, it starts a back-out it
+// can never finish while boxed in by the queue, and it sits frozen at the gate
+// holding a stall claim for a stall 120u away. Widening the pitch alone pushed
+// the tail of the queue to x = 290 and produced exactly that.
+const QUEUE_MAX_X = 244;      // last slot: 200 + 6 + 3*11 = 239, comfortably inside
 /** run statuses that still own the depot. Must match isLiveRunStatus in
  *  OperatorConsole / useTwinFeed — `paused` is LIVE, so a pause holds the scene
  *  and only a terminal status (completed / aborted) clears it. */
@@ -968,7 +985,8 @@ class TwinMotionDriver {
           // ON TOP of still-taxiing ones — an overlapped plug at the ingress that
           // gridlocked the whole depot. No clear spot → defer to the next poll.
           for (let i = spawnIdx; i < 10 && !spawn; i++) {
-            const p = { x: Math.min(292, INGRESS.x + 6 + i * 8), y: INGRESS.y - 2 };
+            const p = { x: INGRESS.x + 6 + i * SPAWN_PITCH, y: INGRESS.y - 2 };
+            if (p.x > QUEUE_MAX_X) break; // past the gate's catchment — defer instead
             let clear = true;
             for (const [, other] of this.entries) {
               if (Math.hypot(other.car.x - p.x, other.car.y - p.y) < SPAWN_CLEARANCE) { clear = false; break; }
