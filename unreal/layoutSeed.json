@@ -7,6 +7,7 @@
     "origin_lat": 36.1397,
     "origin_lng": -86.7728,
     "clearance_ft": 0.5,
+    "seed_md5": "89943752f32f98da4ef80b6baedb3174",
     "design_vehicle_ft": {
       "width": 6.6,
       "length": 16

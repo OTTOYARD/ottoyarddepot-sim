@@ -85,6 +85,7 @@
 import { build } from 'esbuild';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { createHash } from 'node:crypto';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -657,6 +658,26 @@ const RETIRED_STRUCTURES = ['CANOPY-04', 'METAL-CANOPY-PERIM'];
 // Emit
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Seed checksum — the migration's md5 guard compares against this
+// ---------------------------------------------------------------------------
+//
+// The migration recomputes this hash in SQL, from the temp table it just loaded, and
+// refuses to run if it differs. That makes a hand-edited seed fail loudly instead of
+// quietly reshaping the depot.
+//
+// The canonical string below is byte-for-byte what Postgres produces from
+//   string_agg(stall_code||'|'||stall_type||'|'||relative_x::text||...,  E'\n'
+//              ORDER BY stall_code)
+// which is only true because those columns are NUMERIC in the seed's temp table.
+const CANON = stalls
+  .map((s) => [
+    s.stall_code, s.stall_type, fixed(s.relative_x), fixed(s.relative_y),
+    String(s.heading_degrees), fixed(s.stall_width_ft), fixed(s.stall_depth_ft),
+  ].join('|'))
+  .join('\n');
+const SEED_MD5 = createHash('md5').update(CANON, 'utf8').digest('hex');
+
 const L = [];
 L.push('-- =============================================================================');
 L.push('-- ottoq_layout_seed  —  GENERATED FILE, DO NOT EDIT BY HAND');
@@ -672,6 +693,11 @@ L.push(`-- Stalls:     ${stalls.length}  (staging ${INVENTORY.staging}, l2 ${INV
 L.push(`-- Structures: ${structures.length}`);
 L.push(`-- Retired stall codes:     ${RETIRED_ALL.length}`);
 L.push(`-- Retired structure codes: ${RETIRED_STRUCTURES.length}  (${RETIRED_STRUCTURES.join(', ')})`);
+L.push('--');
+L.push(`-- SEED MD5: ${SEED_MD5}`);
+L.push('--   md5 over stall_code|stall_type|relative_x|relative_y|heading|width|depth,');
+L.push('--   newline-joined, ordered by stall_code. Migration 0010 recomputes this in SQL');
+L.push('--   and aborts on mismatch, so a hand-edited seed cannot reshape the depot.');
 L.push('-- =============================================================================');
 L.push('');
 L.push('-- The seed is DEPOT-AGNOSTIC. stall_code is the natural key; the migration');
@@ -686,13 +712,17 @@ L.push('  stall_kind       text        NOT NULL,');
 L.push('  zone             text        NOT NULL,');
 L.push('  staging_role     text,');
 L.push('  display_name     text        NOT NULL,');
-L.push('  relative_x       double precision NOT NULL,');
-L.push('  relative_y       double precision NOT NULL,');
+// NOTE: relative_x/y are NUMERIC here even though public.stalls stores them as
+// double precision. numeric round-trips through ::text exactly, which is what makes
+// the migration's md5 guard reproducible; a double can print as 141.28940000000001.
+// The migration casts to double precision on the way in.
+L.push('  relative_x       numeric     NOT NULL,');
+L.push('  relative_y       numeric     NOT NULL,');
 L.push('  heading_degrees  smallint    NOT NULL,');
 L.push('  stall_width_ft   numeric     NOT NULL,');
 L.push('  stall_depth_ft   numeric     NOT NULL,');
-L.push('  absolute_lat     double precision NOT NULL,');
-L.push('  absolute_lng     double precision NOT NULL,');
+L.push('  absolute_lat     numeric     NOT NULL,');
+L.push('  absolute_lng     numeric     NOT NULL,');
 L.push('  canopy_code      text,');
 L.push('  canopy_side      text,');
 L.push('  covered          boolean     NOT NULL,');
@@ -778,6 +808,7 @@ const json = {
     origin_lat: ORIGIN_LAT,
     origin_lng: ORIGIN_LNG,
     clearance_ft: CLEARANCE_FT,
+    seed_md5: SEED_MD5,
     design_vehicle_ft: DESIGN_VEHICLE_FT,
   },
   lot_ft: lotRect,
@@ -807,6 +838,7 @@ writeFileSync('unreal/layoutSeed.json', JSON.stringify(json, null, 2) + '\n');
 console.log(`BUILT unreal/layoutSeed.sql  — ${stalls.length} stalls, ${structures.length} structures, ${RETIRED_ALL.length} retired codes`);
 console.log(`      lot ${fixed(lotRect.width_ft, 2)} x ${fixed(lotRect.length_ft, 2)} ft = ${fixed(json.site.site_acres, 3)} acres`);
 console.log(`      unit conversion ${UNIT_FT.toFixed(8)} ft/unit`);
+console.log(`      SEED MD5 ${SEED_MD5}   <- bake this into migration 0010`);
 if (CORNER_TRIMS.length) {
   console.log(`      ${CORNER_TRIMS.length} corner clip(s) resolved by trimming declared footprints:`);
   for (const t of CORNER_TRIMS) console.log(`        - ${t}`);

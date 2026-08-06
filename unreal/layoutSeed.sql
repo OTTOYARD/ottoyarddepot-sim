@@ -12,6 +12,11 @@
 -- Structures: 26
 -- Retired stall codes:     19
 -- Retired structure codes: 2  (CANOPY-04, METAL-CANOPY-PERIM)
+--
+-- SEED MD5: 89943752f32f98da4ef80b6baedb3174
+--   md5 over stall_code|stall_type|relative_x|relative_y|heading|width|depth,
+--   newline-joined, ordered by stall_code. Migration 0010 recomputes this in SQL
+--   and aborts on mismatch, so a hand-edited seed cannot reshape the depot.
 -- =============================================================================
 
 -- The seed is DEPOT-AGNOSTIC. stall_code is the natural key; the migration
@@ -26,13 +31,13 @@ CREATE TEMP TABLE ottoq_layout_seed_stalls (
   zone             text        NOT NULL,
   staging_role     text,
   display_name     text        NOT NULL,
-  relative_x       double precision NOT NULL,
-  relative_y       double precision NOT NULL,
+  relative_x       numeric     NOT NULL,
+  relative_y       numeric     NOT NULL,
   heading_degrees  smallint    NOT NULL,
   stall_width_ft   numeric     NOT NULL,
   stall_depth_ft   numeric     NOT NULL,
-  absolute_lat     double precision NOT NULL,
-  absolute_lng     double precision NOT NULL,
+  absolute_lat     numeric     NOT NULL,
+  absolute_lng     numeric     NOT NULL,
   canopy_code      text,
   canopy_side      text,
   covered          boolean     NOT NULL,
