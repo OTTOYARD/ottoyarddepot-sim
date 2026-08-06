@@ -88,8 +88,60 @@ const pass = (name, detail) => results.push({ name, ok: true, detail, offenders:
 const fail = (name, detail, offenders) => results.push({ name, ok: false, detail, offenders });
 const info = (name, detail, offenders) => results.push({ name, ok: true, warn: true, detail, offenders });
 
+// ---------------------------------------------------------------------------
+// MEASURABILITY — read this before changing any geometry check.
+//
+// A stall with a NULL or non-finite width, depth or coordinate has NO FOOTPRINT.
+// It cannot be overlapped, enclosed, fenced or reached, because there is nothing
+// there to test. That is not a passing stall; it is an UNTESTED one.
+//
+// This distinction is not hypothetical — it is the exact shape of the bug that
+// made migration 0010 necessary. The live database's five bays carry NULL width
+// and depth, and both halves of this guard originally mishandled them, in
+// opposite directions:
+//
+//   * here, `null / 2` evaluates to 0, so a NULL-dimension stall collapsed to a
+//     zero-area POINT. Checks 3-6 then found nothing wrong with it and printed
+//     PASS. Worse, check 4 concluded the five founder-confirmed exemptions were
+//     STALE and advised deleting them — which would have permanently disarmed the
+//     one exemption the founder explicitly asked for.
+//
+//   * in the SQL twin, LEAST()/GREATEST() SKIP nulls rather than propagating
+//     them, so the same five stalls collided with everything: the overlap count
+//     read 779 per depot instead of the true 54, while the fence check silently
+//     dropped them.
+//
+// So: geometric checks run over MEASURABLE stalls only, and any check whose
+// subject set was reduced reports FAIL — "not established" — naming what it could
+// not assess. A check that silently skips its hardest input is worse than no
+// check, because it reports confidence it has not earned.
+// ---------------------------------------------------------------------------
+
+const DIMS = ['relative_x', 'relative_y', 'stall_width_ft', 'stall_depth_ft', 'heading_degrees'];
+
+/** A stall is measurable only if every dimension is a finite number and the
+ *  footprint is positive. Anything else has no geometry to test. */
+function measurable(s) {
+  return DIMS.every((k) => s[k] !== null && s[k] !== undefined && Number.isFinite(s[k]))
+    && s.stall_width_ft > 0 && s.stall_depth_ft > 0;
+}
+
+const measured = stalls.filter(measurable);
+const unmeasured = stalls.filter((s) => !measurable(s)).map((s) => s.stall_code);
+
+/** Wrap a geometric verdict so it can never claim more than it tested. */
+function conclude(name, bad, passDetail) {
+  if (bad.length) return fail(name, `${bad.length} violation(s)`, bad);
+  if (unmeasured.length) {
+    return fail(name, `NOT ESTABLISHED — ${unmeasured.length} stall(s) have no usable ` +
+      `footprint and were not assessed (see check 1); the rest are clear`, unmeasured);
+  }
+  return pass(name, passDetail);
+}
+
 /** Axis-aligned footprint of a stall, in database feet. A heading of 0 or 180 puts
- *  the vehicle's LENGTH on the y axis; 90 or 270 puts it on the x axis. */
+ *  the vehicle's LENGTH on the y axis; 90 or 270 puts it on the x axis.
+ *  Only ever called on measurable stalls. */
 function box(s) {
   const lengthOnY = s.heading_degrees === 0 || s.heading_degrees === 180;
   const ex = (lengthOnY ? s.stall_width_ft : s.stall_depth_ft) / 2;
@@ -107,7 +159,7 @@ function overlap(a, b) {
   return ox > 0 && oy > 0 ? Math.min(ox, oy) : 0;
 }
 
-const boxes = new Map(stalls.map((s) => [s.stall_code, box(s)]));
+const boxes = new Map(measured.map((s) => [s.stall_code, box(s)]));
 
 // ---- 1. NULL / non-finite ---------------------------------------------------
 {
@@ -142,15 +194,14 @@ const boxes = new Map(stalls.map((s) => [s.stall_code, box(s)]));
 // ---- 3. Overlapping stall pairs --------------------------------------------
 {
   const bad = [];
-  for (let i = 0; i < stalls.length; i++) {
-    for (let j = i + 1; j < stalls.length; j++) {
-      const o = overlap(boxes.get(stalls[i].stall_code), boxes.get(stalls[j].stall_code));
-      if (o > 1e-6) bad.push(`${stalls[i].stall_code} <-> ${stalls[j].stall_code} (overlap ${o.toFixed(2)} ft)`);
+  for (let i = 0; i < measured.length; i++) {
+    for (let j = i + 1; j < measured.length; j++) {
+      const o = overlap(boxes.get(measured[i].stall_code), boxes.get(measured[j].stall_code));
+      if (o > 1e-6) bad.push(`${measured[i].stall_code} <-> ${measured[j].stall_code} (overlap ${o.toFixed(2)} ft)`);
     }
   }
-  bad.length
-    ? fail('zero overlapping stall pairs', `${bad.length} overlapping pair(s)`, bad)
-    : pass('zero overlapping stall pairs', `all ${(stalls.length * (stalls.length - 1)) / 2} pairs clear`);
+  conclude('zero overlapping stall pairs', bad,
+    `all ${(measured.length * (measured.length - 1)) / 2} pairs clear`);
 }
 
 // ---- 4. Stalls inside structures -------------------------------------------
@@ -161,7 +212,7 @@ const boxes = new Map(stalls.map((s) => [s.stall_code, box(s)]));
   const allowed = new Set(ENCLOSURE_WHITELIST.map((w) => `${w.stall_code}|${w.structure_code}`));
   const bad = [];
   const exempted = [];
-  for (const s of stalls) {
+  for (const s of measured) {
     const b = boxes.get(s.stall_code);
     for (const t of solid) {
       const r = { x0: +t.origin_x_ft, y0: +t.origin_y_ft, x1: +t.origin_x_ft + +t.width_ft, y1: +t.origin_y_ft + +t.length_ft };
@@ -171,32 +222,40 @@ const boxes = new Map(stalls.map((s) => [s.stall_code, box(s)]));
       else bad.push(`${s.stall_code} inside ${t.structure_code} (${t.structure_kind}, "${t.title}")`);
     }
   }
+  // A whitelist entry that no longer matches means the layout moved out from under
+  // the exemption. Surface it — a stale exemption is how a real overlap gets hidden.
+  //
+  // But only say STALE when the stall was actually MEASURED and found to be outside.
+  // An unmeasurable stall has no footprint, so it is not outside its structure — it
+  // is untested. Calling that "stale, remove it" would talk an operator into deleting
+  // the founder's exemption to silence a NULL, which is precisely backwards.
+  const unmeasuredCodes = new Set(unmeasured);
   const missing = [...allowed].filter((k) => !exempted.includes(k));
-  if (missing.length) {
-    // A whitelist entry that no longer matches means the layout moved under the
-    // exemption. Surface it — a stale exemption is how a real overlap gets hidden.
-    bad.push(...missing.map((k) => `STALE WHITELIST ENTRY: ${k} is no longer enclosed; remove it`));
+  for (const k of missing) {
+    const code = k.split('|')[0];
+    bad.push(unmeasuredCodes.has(code)
+      ? `${k}: exemption NOT VERIFIABLE — ${code} has no usable footprint (see check 1). ` +
+        `Fix the dimensions; do NOT remove the exemption.`
+      : `STALE WHITELIST ENTRY: ${k} is no longer enclosed; remove it`);
   }
   bad.length
     ? fail('zero stalls inside a structure footprint', `${bad.length} violation(s)`, bad)
-    : pass('zero stalls inside a structure footprint',
+    : conclude('zero stalls inside a structure footprint', [],
         `${exempted.length} founder-confirmed exemption(s): ${exempted.join(', ')}`);
 }
 
 // ---- 5. Inside the fence ----------------------------------------------------
 {
   const bad = [];
-  for (const s of stalls) {
+  for (const s of measured) {
     const b = boxes.get(s.stall_code);
     if (b.x0 < lot.origin_x_ft - 1e-6 || b.y0 < lot.origin_y_ft - 1e-6 ||
         b.x1 > lot.origin_x_ft + lot.width_ft + 1e-6 || b.y1 > lot.origin_y_ft + lot.length_ft + 1e-6) {
       bad.push(`${s.stall_code} (x ${b.x0.toFixed(1)}..${b.x1.toFixed(1)}, y ${b.y0.toFixed(1)}..${b.y1.toFixed(1)})`);
     }
   }
-  bad.length
-    ? fail('every stall inside the perimeter fence', `${bad.length} outside`, bad)
-    : pass('every stall inside the perimeter fence',
-        `lot ${lot.width_ft.toFixed(1)} x ${lot.length_ft.toFixed(1)} ft`);
+  conclude('every stall inside the perimeter fence', bad,
+    `lot ${lot.width_ft.toFixed(1)} x ${lot.length_ft.toFixed(1)} ft`);
 }
 
 // ---- 6. Drivable aisle ------------------------------------------------------
@@ -264,7 +323,7 @@ const boxes = new Map(stalls.map((s) => [s.stall_code, box(s)]));
       const d = (dx > 0 || dy > 0) ? near - edge : edge - far;
       if (d >= -1e-6 && d < clear) { clear = Math.max(0, d); blocker = code; }
     };
-    for (const o of stalls) {
+    for (const o of measured) {
       if (o.stall_code === s.stall_code) continue;
       const ob = boxes.get(o.stall_code);
       dx !== 0 ? consider(ob.x0, ob.x1, ob.y0, ob.y1, o.stall_code)
@@ -278,7 +337,7 @@ const boxes = new Map(stalls.map((s) => [s.stall_code, box(s)]));
   }
 
   const rows = [];
-  for (const s of stalls) {
+  for (const s of measured) {
     // best of the four faces — the side the car actually uses to get in
     let best = { clear: -1, blocker: null, side: null };
     for (const side of SIDES) {
@@ -299,7 +358,7 @@ const boxes = new Map(stalls.map((s) => [s.stall_code, box(s)]));
   const tightCharge = rows.filter((r) => r.twoWay).reduce((m, r) => (r.clear < m.clear ? r : m), rows.find((r) => r.twoWay));
   bad.length
     ? fail('minimum drivable aisle', `${bad.length} stall(s) below standard`, bad)
-    : pass('minimum drivable aisle',
+    : conclude('minimum drivable aisle', [],
         `tightest overall ${tightest.code} at ${tightest.clear.toFixed(1)} ft ` +
         `(needs ${tightest.min.toFixed(0)} ft, ${tightest.twoWay ? 'two-way' : 'one-way'}); ` +
         `tightest charging ${tightCharge.code} at ${tightCharge.clear.toFixed(1)} ft (needs 24 ft)`);
