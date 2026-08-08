@@ -54,10 +54,15 @@ export const TopBar = () => {
   const connected = useTwinStore((s) => s.connected);
 
   const run = snapshot?.run;
+  // Only show fleet numbers when a live snapshot actually carries them; without
+  // this a missing/errored frame renders a literal "0" that reads as "nothing
+  // is charging/deployed" — indistinguishable from a real zero. `undefined`
+  // makes n() render "—" instead, so an empty feed is honest.
+  const hasFleet = !!snapshot?.fleet?.counts;
   const counts = snapshot?.fleet?.counts ?? {};
-  const deployed = counts['deployed'] ?? 0;
-  const charging = (counts['charging_dcfc'] ?? 0) + (counts['charging_l2'] ?? 0);
-  const staged   = counts['staged_awaiting_service'] ?? 0;
+  const deployed = hasFleet ? (counts['deployed'] ?? 0) : undefined;
+  const charging = hasFleet ? ((counts['charging_dcfc'] ?? 0) + (counts['charging_l2'] ?? 0)) : undefined;
+  const staged   = hasFleet ? (counts['staged_awaiting_service'] ?? 0) : undefined;
   const lmp     = snapshot?.grid?.['lmp_usd_mwh'];
   const bessSoc = snapshot?.bess?.['soc_pct'];
   const solar   = snapshot?.energy?.['solar_kw'];
