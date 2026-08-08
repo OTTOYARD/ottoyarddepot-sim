@@ -31,9 +31,11 @@ import fixture from "./__fixtures__/twinRun.busyday.json";
 
 type Internals = {
   entries: Map<string, {
-    car: { x: number; y: number; heading: number };
+    car: { x: number; y: number; heading: number; speed: number };
     tracker: { s: number; total: number; stationaryFor: number } | null;
+    lane: string | null;
     stallId: string | null;
+    playback: string;
   }>;
 };
 
@@ -250,15 +252,6 @@ const F = fixture as unknown as {
 
 const CHARGE_STATES = new Set(["charging_dcfc", "charging_l2"]);
 
-type Internals = {
-  entries: Map<string, {
-    car: { x: number; y: number; heading: number; speed: number };
-    tracker: { s: number; total: number; stationaryFor: number } | null;
-    lane: string | null;
-    stallId: string | null;
-    playback: string;
-  }>;
-};
 
 function snapshotAt(states: Map<string, FixChange>, t: string): TwinSnapshot {
   const vehicles = F.roster.filter((r) => states.has(r.id)).map((r) => {
