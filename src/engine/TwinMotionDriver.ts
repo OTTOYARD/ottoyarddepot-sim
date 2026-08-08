@@ -874,9 +874,21 @@ class TwinMotionDriver {
           const st = stalls.find((s) => s.id === e.stallId);
           if (st) {
             const off = Math.hypot(e.car.x - st.position.x, e.car.y - st.position.y);
-            let dh = Math.abs(e.car.heading - e.stallHeading) % (2 * Math.PI);
-            if (dh > Math.PI) dh = 2 * Math.PI - dh;
-            if (off > 1.8 || dh > 0.2) {
+            // POSITION residue only. The heading disjunct that used to sit here
+            // (`|| dh > 0.2`) fired on cars that had just docked PERFECTLY.
+            // A charger pull-in ends with the nose still swinging: the car
+            // arrives heading west along the column and settles to the stall's
+            // north heading via the parked branch in tickMotion, which eases it
+            // to within 1e-3 every tick. Reconcile polls far faster than that
+            // ease converges, so it caught freshly-docked cars mid-rotation
+            // (measured: off=0.00, dh=0.221) and re-railed them — and because
+            // such a car is parked nose-in, assignRail answered with an 11u
+            // REVERSE back-out plus a ~140u loop back to the stall it was
+            // already sitting in. In a saturated charger column the parked
+            // neighbours block that loop, so the car wedged ~2.4u OUTSIDE its
+            // own stall permanently, with the 45s watchdog rebuilding a route
+            // it could never drive. Heading self-heals; position does not.
+            if (off > 1.8) {
               this.assignRail(e, { kind: "stall", lane: lane as Lane, x: st.position.x, y: st.position.y, heading: e.stallHeading });
               e.departFor = 0;
             }
