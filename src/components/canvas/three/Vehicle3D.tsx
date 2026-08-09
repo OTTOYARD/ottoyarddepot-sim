@@ -39,14 +39,16 @@ const FX: Record<string, { glow: string; pulse: number; op: number }> = {
 };
 
 // Shared geometries + materials — created ONCE for the whole fleet.
-// Scaled 2× from the original metre values to match the plan-unit scene grid
-// (1 plan unit = 0.4785 m). Body now matches the 2D car body (4.2 × 10.2 u).
+// Scaled by factor 10.2 / 4.9 ≈ 2.08 from the original metre values to match the 2D car size (10.2 plan units long).
+// (1 plan unit = 0.4785 m).
+const SCALE = 10.2 / 4.9;
 const GEO = {
-  body: new THREE.BoxGeometry(4.4, 1.7, 9.8),
-  cabin: new THREE.BoxGeometry(3.8, 1.24, 5.0),
-  wheel: new THREE.CylinderGeometry(0.84, 0.84, 0.6, 10),
-  glow: new THREE.SphereGeometry(3.6, 8, 8),
+  body: new THREE.BoxGeometry(2.2 * SCALE, 0.85 * SCALE, 4.9 * SCALE),
+  cabin: new THREE.BoxGeometry(3.8 / 2.0 * SCALE, 1.24 / 2.0 * SCALE, 5.0 / 2.0 * SCALE),
+  wheel: new THREE.CylinderGeometry(0.84 / 2.0 * SCALE, 0.84 / 2.0 * SCALE, 0.6 / 2.0 * SCALE, 10),
+  glow: new THREE.SphereGeometry(3.6 / 2.0 * SCALE, 8, 8),
 };
+GEO.wheel.rotateZ(Math.PI / 2); // axle along X
 GEO.wheel.rotateZ(Math.PI / 2); // axle along X
 const MAT = {
   glass: new THREE.MeshStandardMaterial({ color: '#0c1116', roughness: 0.12, metalness: 0.9 }),
