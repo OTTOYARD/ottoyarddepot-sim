@@ -87,15 +87,17 @@ describe("TwinMotionDriver — replay of a captured busy_day run", () => {
   const STUCK_BUDGET = 145;    // measured 130. TARGET 0.
 
   it("SYMPTOM 2a: body-overlap stays within the ratchet (target 0)", () => {
-    // WHAT IS LEFT: the dominant hotspot is the east avenue running alongside the
-    // E carport. EAST_AISLE_X is 275 and LaneGraph.rightOffset is 3.2, so the
-    // northbound lane centre is x=278.2 and a 4.2u-wide body spans 276.1..280.3;
-    // an E-column car parked nosing east spans 279.4..289.6. They interpenetrate
-    // by 0.9u on EVERY northbound pass. Closing it needs either the carport moved
-    // (layout) or rightOffset dropped to <= 2.3 (it was deliberately raised from
-    // 2.4 to 3.2 for passing clearance, and lanePaint.LANE_WIDTH tracks it) — so
-    // it is a right-of-way decision, not a motion bug to patch here. The west
-    // avenue has 4.1u of clearance and shows no such hotspot.
+    // WHAT IS LEFT: the dominant hotspots are around the TE temp-staging block
+    // (260,130  x75 and 260,140  x45). The east avenue clearance hole is CLOSED:
+    // EAST_AISLE_X was moved from 275 → 272.25 to centre the avenue in its
+    // corridor (commit ebb5a14). Northbound lane centre is now x=275.45, body
+    // 273.35..277.55; E-column parked car spans 279.4..289.6 — 1.85u (2.91 ft)
+    // clear, up from −0.90u (1.41 ft into the stall). The west avenue has 6.44 ft
+    // of clearance; the east cannot fully match it because its corridor between
+    // the TE and E columns is only 14.31u wide. The lane offset stays 3.2 (it was
+    // deliberately widened from 2.4 for passing clearance and lanePaint tracks
+    // it), and checkLayoutGeometry.mjs check 7 now asserts stall-vs-lane clearance
+    // so this cannot regress.
     expect(report.totals.overlapPairSamples).toBeLessThanOrEqual(OVERLAP_BUDGET);
   });
 
