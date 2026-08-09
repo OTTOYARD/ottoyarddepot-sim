@@ -39,13 +39,14 @@ const FX: Record<string, { glow: string; pulse: number; op: number }> = {
 };
 
 // Shared geometries + materials — created ONCE for the whole fleet.
-// Scaled 2× from the original metre values to match the plan-unit scene grid
-// (1 plan unit = 0.4785 m). Body now matches the 2D car body (4.2 × 10.2 u).
+// Scaled by factor 10.2 / 4.9 ≈ 2.08 from the original metre values to match the 2D car size (10.2 plan units long).
+// (1 plan unit = 0.4785 m).
+const SCALE = 10.2 / 4.9;
 const GEO = {
-  body: new THREE.BoxGeometry(4.4, 1.7, 9.8),
-  cabin: new THREE.BoxGeometry(3.8, 1.24, 5.0),
-  wheel: new THREE.CylinderGeometry(0.84, 0.84, 0.6, 10),
-  glow: new THREE.SphereGeometry(3.6, 8, 8),
+  body: new THREE.BoxGeometry(2.2 * SCALE, 0.85 * SCALE, 4.9 * SCALE),
+  cabin: new THREE.BoxGeometry(3.8 / 2.0 * SCALE, 1.24 / 2.0 * SCALE, 5.0 / 2.0 * SCALE),
+  wheel: new THREE.CylinderGeometry(0.84 / 2.0 * SCALE, 0.84 / 2.0 * SCALE, 0.6 / 2.0 * SCALE, 10),
+  glow: new THREE.SphereGeometry(3.6 / 2.0 * SCALE, 8, 8),
 };
 GEO.wheel.rotateZ(Math.PI / 2); // axle along X
 const MAT = {
@@ -71,7 +72,7 @@ function glowMat(col: string): THREE.MeshPhysicalMaterial {
   return m;
 }
 const WHEELS: [number, number, number][] = [
-  [-2.1, 0.42, 3.1], [2.1, 0.42, 3.1], [-2.1, 0.42, -3.1], [2.1, 0.42, -3.1],
+  [-2.19, 0.87, 3.23], [2.19, 0.87, 3.23], [-2.19, 0.87, -3.23], [2.19, 0.87, -3.23],
 ];
 
 // Vehicles face their direction of travel while moving (one-way circulation),
@@ -114,20 +115,20 @@ function Vehicle3DInner({ vehicle }: { vehicle: Vehicle; simSpeed: number }) {
       onPointerOut={() => setHovered(null)}
     >
       {/* body — the ONLY shadow caster on the car (shadow pass stays cheap) */}
-      <mesh geometry={GEO.body} material={paintMat(col)} position={[0, 1.7, 0]} castShadow />
-      <mesh geometry={GEO.cabin} material={MAT.glass} position={[0, 3.0, -0.5]} />
+      <mesh geometry={GEO.body} material={paintMat(col)} position={[0, 1.77, 0]} castShadow />
+      <mesh geometry={GEO.cabin} material={MAT.glass} position={[0, 3.12, -0.52]} />
       {WHEELS.map((p, i) => (
         <mesh key={i} geometry={GEO.wheel} material={MAT.wheel} position={p} />
       ))}
 
       {/* Status glow */}
       {fx.glow && (
-        <mesh geometry={GEO.glow} material={glowMat(fx.glow)} position={[0, 4.4, 0]} />
+        <mesh geometry={GEO.glow} material={glowMat(fx.glow)} position={[0, 4.58, 0]} />
       )}
 
       {/* SoC badge — only on the hovered car (keeps the scene fast) */}
       {isHovered && (
-        <Html position={[0, 6.4, 0]} center>
+        <Html position={[0, 6.66, 0]} center>
           <div className="px-1.5 py-0.5 rounded text-[7px] font-mono bg-black/80 text-white whitespace-nowrap border border-white/10 flex items-center gap-1"
             style={{ backdropFilter: 'blur(4px)' }}>
             <div className="w-6 h-1 bg-white/20 rounded-full overflow-hidden">
