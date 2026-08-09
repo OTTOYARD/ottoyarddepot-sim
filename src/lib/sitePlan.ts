@@ -114,8 +114,8 @@ export const PARK_RUNS: ParkRun[] = [
   // open-air overflow, NE zone: a short row south of the rear-apron buffer…
   { id: 'N1', x0: 228, y0: 36,   dx: 6,   dy: 0,   n: 7,  angle: 0 },
   // …and the retail-style temp block: two facing columns off the central aisle
-  { id: 'TW', x0: 234, y0: 86,   dx: 0,   dy: 6,   n: 13, angle: 270 },
-  { id: 'TE', x0: 260, y0: 86,   dx: 0,   dy: 6,   n: 13, angle: 90 },
+  { id: 'TW', x0: 234, y0: 86, dx: 0, dy: 7, n: 13, angle: 270 },
+  { id: 'TE', x0: 260, y0: 86, dx: 0, dy: 7, n: 13, angle: 90 },
 ];
 
 // Overhead site lighting (24/7 ops) — placed at zone edges + canopy end-caps,
