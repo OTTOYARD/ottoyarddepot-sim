@@ -35,7 +35,8 @@ export const WEST_AISLE_X = 30;   // west avenue (two-way divided; drains to wes
 // 275+3.2, half a design vehicle = 2.10u each side => x 276.10..280.30) 0.90u INSIDE
 // the E-column stalls (centre 284.5, a 16ft car lying on the x axis => 279.40..289.60).
 // Every northbound pass clipped a parked car by ~1.4 ft. The west avenue has 4.10u
-// (6.44 ft) of clearance and shows no such hotspot.
+// (6.44 ft) of clearance and shows no such hotspot. After shifting E-column stalls
+// east by 2 units (x0:284.5→286.5, carport.x:278→280), stall-lane clearance is restored.
 //
 // Mirroring the west exactly is IMPOSSIBLE here: the east avenue runs in a corridor
 // only 14.31u wide (TE column ends 265.10, E column starts 279.40), the divided road
@@ -106,7 +107,7 @@ export const TEMP_LANE_X = 247;
 // rows so corner stalls never overlap.
 export const PARK_RUNS: ParkRun[] = [
   { id: 'W',  x0: 15.5, y0: 58,  dx: 0,   dy: 5.7, n: 24, angle: 90,  carport: { x: 9,   y: 54,  w: 13, h: 141 } },
-  { id: 'E',  x0: 284.5, y0: 46, dx: 0,   dy: 5.7, n: 25, angle: 90,  carport: { x: 278, y: 42,  w: 13, h: 147 } },
+  { id: 'E',  x0: 286.5, y0: 46,  dx: 0,   dy: 5.7, n: 25, angle: 90,  carport: { x: 280, y: 42,  w: 13, h: 147 } },
   { id: 'S1', x0: 24,  y0: 197,  dx: 6.4, dy: 0,   n: 11, angle: 0,   carport: { x: 20,  y: 191, w: 72, h: 13 } },
   { id: 'S2', x0: 112, y0: 197,  dx: 6.9, dy: 0,   n: 12, angle: 0,   carport: { x: 108, y: 191, w: 84, h: 13 } },
   { id: 'S3', x0: 212, y0: 197,  dx: 6.4, dy: 0,   n: 10, angle: 0,   carport: { x: 208, y: 191, w: 68, h: 13 } },
