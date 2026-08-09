@@ -49,7 +49,6 @@ const GEO = {
   glow: new THREE.SphereGeometry(3.6 / 2.0 * SCALE, 8, 8),
 };
 GEO.wheel.rotateZ(Math.PI / 2); // axle along X
-GEO.wheel.rotateZ(Math.PI / 2); // axle along X
 const MAT = {
   glass: new THREE.MeshStandardMaterial({ color: '#0c1116', roughness: 0.12, metalness: 0.9 }),
   wheel: new THREE.MeshStandardMaterial({ color: '#15171a', roughness: 0.9 }),
