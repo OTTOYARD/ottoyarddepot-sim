@@ -72,7 +72,7 @@ function glowMat(col: string): THREE.MeshPhysicalMaterial {
   return m;
 }
 const WHEELS: [number, number, number][] = [
-  [-2.1, 0.42, 3.1], [2.1, 0.42, 3.1], [-2.1, 0.42, -3.1], [2.1, 0.42, -3.1],
+  [-2.19, 0.87, 3.23], [2.19, 0.87, 3.23], [-2.19, 0.87, -3.23], [2.19, 0.87, -3.23],
 ];
 
 // Vehicles face their direction of travel while moving (one-way circulation),
@@ -115,20 +115,20 @@ function Vehicle3DInner({ vehicle }: { vehicle: Vehicle; simSpeed: number }) {
       onPointerOut={() => setHovered(null)}
     >
       {/* body — the ONLY shadow caster on the car (shadow pass stays cheap) */}
-      <mesh geometry={GEO.body} material={paintMat(col)} position={[0, 1.7, 0]} castShadow />
-      <mesh geometry={GEO.cabin} material={MAT.glass} position={[0, 3.0, -0.5]} />
+      <mesh geometry={GEO.body} material={paintMat(col)} position={[0, 1.77, 0]} castShadow />
+      <mesh geometry={GEO.cabin} material={MAT.glass} position={[0, 3.12, -0.52]} />
       {WHEELS.map((p, i) => (
         <mesh key={i} geometry={GEO.wheel} material={MAT.wheel} position={p} />
       ))}
 
       {/* Status glow */}
       {fx.glow && (
-        <mesh geometry={GEO.glow} material={glowMat(fx.glow)} position={[0, 4.4, 0]} />
+        <mesh geometry={GEO.glow} material={glowMat(fx.glow)} position={[0, 4.58, 0]} />
       )}
 
       {/* SoC badge — only on the hovered car (keeps the scene fast) */}
       {isHovered && (
-        <Html position={[0, 6.4, 0]} center>
+        <Html position={[0, 6.66, 0]} center>
           <div className="px-1.5 py-0.5 rounded text-[7px] font-mono bg-black/80 text-white whitespace-nowrap border border-white/10 flex items-center gap-1"
             style={{ backdropFilter: 'blur(4px)' }}>
             <div className="w-6 h-1 bg-white/20 rounded-full overflow-hidden">
