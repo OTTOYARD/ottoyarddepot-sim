@@ -22,21 +22,6 @@ import { DepotPostProcessing } from './three/DepotPostProcessing';
 import { SiteDetails } from './three/SiteDetails';
 import { MATERIALS } from './three/materials';
 import { skyTexture } from './three/textures';
-import { StagingZone } from './three/StagingZone';
-// RAILS P2: right-of-way paint generated from the directed LaneGraph. Replaces
-// the hand-drawn DriveAisles arrows, which claimed the west/east avenues were
-// one-way when the graph actually makes them two-way divided — the markings
-// were contradicting the rules the cars route on.
-import { Lanes3D } from './three/Lanes3D';
-import { UtilityEquipment } from './three/UtilityEquipment';
-import { Vehicle3D } from './three/Vehicle3D';
-import { DepotOverlays } from './three/DepotOverlays';
-import { WeatherEffects } from './three/WeatherEffects';
-import { DayNightLighting } from './three/DayNightLighting';
-import { DepotPostProcessing } from './three/DepotPostProcessing';
-import { SiteDetails } from './three/SiteDetails';
-import { MATERIALS } from './three/materials';
-import { skyTexture } from './three/textures';
 
 // toWorld negates X (east=-X) to un-mirror the scene. Bird Eye views from the
 // SOUTH (z<0) so it is north-up / east-right, matching the 2D. Oblique presets
@@ -175,6 +160,7 @@ export default function DepotScene3D() {
           <StagingZone count={config.stagingStalls} />
           <Lanes3D />
           <UtilityEquipment bessCapacity={config.bessCapacity} bessPower={config.bessPower} />
+
 
           <DepotOverlays />
           <Landscaping />
