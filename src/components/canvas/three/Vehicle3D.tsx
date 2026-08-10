@@ -41,7 +41,7 @@ const FX: Record<string, { glow: string; pulse: number; op: number }> = {
 // Shared geometries + materials — created ONCE for the whole fleet.
 // Scaled by factor 10.2 / 4.9 ≈ 2.08 from the original metre values to match the 2D car size (10.2 plan units long).
 // (1 plan unit = 0.4785 m).
-const SCALE = 9.0 / 4.9;
+const SCALE = 7.5 / 4.9;
 const GEO = {
   body: new THREE.BoxGeometry(2.2 * SCALE, 0.85 * SCALE, 4.9 * SCALE),
   cabin: new THREE.BoxGeometry(3.8 / 2.0 * SCALE, 1.24 / 2.0 * SCALE, 5.0 / 2.0 * SCALE),

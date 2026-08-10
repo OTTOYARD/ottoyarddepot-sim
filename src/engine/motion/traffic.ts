@@ -21,7 +21,7 @@ export interface MovingCar {
 }
 
 /** Logical car length (bumper-to-bumper bookkeeping for the IDM gap). */
-export const CAR_LENGTH = 9.0;
+export const CAR_LENGTH = 7.5;
 
 export interface Leader {
   gap: number;        // bumper-to-bumper distance (>=0), Infinity if none

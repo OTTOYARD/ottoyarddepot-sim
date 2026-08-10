@@ -45,8 +45,8 @@ interpolation.** Zero world logic client-side.
 - **Keep Yuka's `SeparationBehavior.weight` low (0.35).** At 2.2 it was *stronger* than
   path-following and shoved cars sideways off the lanes.
 - **Known open:** the 3D car uses `BoxGeometry(2.2, 0.85, 4.9)` — **metres dropped into unit-space**,
-  so it renders at ~48%. Three different car lengths coexist (2D 10.2u, 3D 4.9m, physics
-  `CAR_LENGTH = 9`). ⚠️ Changing `rightOffset` or `CAR_LENGTH` moves routed motion and needs a
+  so it renders at ~48%. Three different car lengths coexist (2D 7.5u, 3D 4.9m, physics
+  `CAR_LENGTH = 7.5`). ⚠️ Changing `rightOffset` or `CAR_LENGTH` moves routed motion and needs a
   certified pass, not a drive-by edit.
 - **`ResponsiveGuard` requires ≥1200px.** Test at 1440×900 or larger.
 - **The RTX tab needs the AWS Isaac box running.** Blank is normal when it is stopped. IP override:
