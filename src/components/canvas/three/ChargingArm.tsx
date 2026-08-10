@@ -3,7 +3,19 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useVehicleStore } from '@/store/vehicleStore';
 import { useDepotStore } from '@/store/depotStore';
-import { toWorld } from '@/lib/sitePlan';
+import { toWorld } from './coordUtils';
+
+/**
+ * ChargingArm — realistic articulated robotic arm for EV charging.
+ * Modeled after industrial arms (Flexiv Rizon style): silver metallic body,
+ * multiple articulated joints with LED rings, extends to vehicle charge port.
+ *
+ * Behavior:
+ *   - Folded at rest beside the charging pedestal
+ *   - Vehicle arrives in stall → arm extends to charge port
+ *   - Charging active → joint LEDs pulse glow
+ *   - Charge complete → arm retracts to folded position
+ */
 
 interface ChargingArmProps {
   stallId: string;
@@ -12,88 +24,132 @@ interface ChargingArmProps {
 }
 
 export function ChargingArm({ stallId, stallType, position: override }: ChargingArmProps) {
-  const upperRef = useRef<THREE.Group>(null);
-  const forearmRef = useRef<THREE.Group>(null);
+  const groupRef = useRef<THREE.Group>(null);
+  const shoulderRef = useRef<THREE.Group>(null);
+  const elbowRef = useRef<THREE.Group>(null);
+  const wristRef = useRef<THREE.Group>(null);
   const connectorRef = useRef<THREE.Mesh>(null);
 
-  const color = stallType === 'dcfc' ? '#00BCD4' : '#FFC107';
-  const metal = useMemo(() => new THREE.MeshStandardMaterial({ color, metalness: 0.85, roughness: 0.3 }), [color]);
-  const darkMetal = useMemo(() => new THREE.MeshStandardMaterial({ color: '#1A1A2E', metalness: 0.9, roughness: 0.2 }), []);
+  const accentColor = stallType === 'dcfc' ? '#00BCD4' : '#FFC107';
 
-  // Resolve stall position from depot store
+  // Materials
+  const silverBody = useMemo(() => new THREE.MeshStandardMaterial({
+    color: '#C0C0C0', metalness: 0.9, roughness: 0.25,
+  }), []);
+  const darkMetal = useMemo(() => new THREE.MeshStandardMaterial({
+    color: '#2A2A2A', metalness: 0.95, roughness: 0.15,
+  }), []);
+  const connectorMat = useMemo(() => new THREE.MeshStandardMaterial({
+    color: '#F5F5F5', metalness: 0.3, roughness: 0.4,
+  }), []);
+  const ledRing = useMemo(() => new THREE.MeshStandardMaterial({
+    color: accentColor, emissive: accentColor, emissiveIntensity: 0.8,
+    metalness: 0.2, roughness: 0.3,
+  }), [accentColor]);
+
+  // Resolve stall position
   const stalls = useDepotStore(s => s.stalls);
-  const stall = stalls.find(s => s.id === stallId || s.code === stallId);
-  
-  // Use actual stall position, falling back to override
+  const stall = stalls.find(s => s.id === stallId);
   const pos: [number, number, number] = override || (
-    stall 
+    stall
       ? (() => { const w = toWorld({ x: stall.position.x, y: stall.position.y }, 0); return [w[0], 0, w[1]] as [number, number, number]; })()
       : [0, 0, 0]
   );
 
+  // Charging state
   const vehicles = useVehicleStore(s => s.vehicles);
-  const vehicleAtStall = vehicles.find(v => v.assignedStall === stallId && v.status === 'charging');
-  const isCharging = !!vehicleAtStall;
+  const vehicleAtStall = vehicles.find(v => v.assignedStall === stallId);
+  const isCharging = vehicleAtStall?.status === 'charging';
   const chargePct = vehicleAtStall?.currentSoC ?? 0;
   const isTargetReached = chargePct >= (vehicleAtStall?.targetSoC ?? 80);
 
-  const targetRef = useRef({ shoulder: 0, elbow: 0 });
+  // Animation targets
+  const animRef = useRef({ shoulder: 0, elbow: 0 });
+  const glowRef = useRef(0);
 
   useFrame((_, delta) => {
-    if (!upperRef.current || !forearmRef.current) return;
-    const speed = 3;
+    if (!shoulderRef.current || !elbowRef.current) return;
 
     if (isCharging && !isTargetReached) {
-      targetRef.current.shoulder = Math.PI / 3;
-      targetRef.current.elbow = -Math.PI / 4;
+      animRef.current.shoulder = -Math.PI / 2.5;  // rotate forward
+      animRef.current.elbow = Math.PI / 3;         // bend down toward car
     } else {
-      targetRef.current.shoulder = 0;
-      targetRef.current.elbow = 0;
+      animRef.current.shoulder = 0;
+      animRef.current.elbow = 0;
     }
 
-    const t = Math.min(speed * delta, 1);
-    upperRef.current.rotation.x = THREE.MathUtils.lerp(upperRef.current.rotation.x, targetRef.current.shoulder, t);
-    forearmRef.current.rotation.x = THREE.MathUtils.lerp(forearmRef.current.rotation.x, targetRef.current.elbow, t);
+    const t = Math.min(4 * delta, 1);
+    shoulderRef.current.rotation.x = THREE.MathUtils.lerp(shoulderRef.current.rotation.x, animRef.current.shoulder, t);
+    elbowRef.current.rotation.x = THREE.MathUtils.lerp(elbowRef.current.rotation.x, animRef.current.elbow, t);
 
-    if (connectorRef.current) {
-      const mat = connectorRef.current.material as THREE.MeshStandardMaterial;
-      mat.emissive = new THREE.Color(color);
-      mat.emissiveIntensity = isCharging && !isTargetReached ? 0.7 : 0;
-    }
+    // Pulse LED glow during charging
+    glowRef.current = isCharging ? 0.6 + Math.sin(Date.now() * 0.005) * 0.4 : 0;
+    ledRing.emissiveIntensity = glowRef.current;
   });
 
   return (
-    <group position={pos}>
-      {/* Wall mount plate */}
-      <mesh position={[0, 1.5, 0]} material={darkMetal}>
-        <boxGeometry args={[0.4, 0.25, 0.08]} />
+    <group ref={groupRef} position={pos} rotation={[0, Math.PI / 2, 0]}>
+      {/* Base pedestal */}
+      <mesh position={[0, 0.6, 0]} material={darkMetal}>
+        <boxGeometry args={[0.3, 1.2, 0.3]} />
       </mesh>
-      {/* Base pivot */}
-      <group position={[0, 1.7, 0]}>
+      {/* Base plate */}
+      <mesh position={[0, 0.05, 0]} material={darkMetal}>
+        <cylinderGeometry args={[0.25, 0.28, 0.1, 16]} />
+      </mesh>
+
+      {/* Shoulder joint (turret) */}
+      <group position={[0, 1.2, 0]}>
+        {/* Joint housing */}
         <mesh material={darkMetal}>
-          <cylinderGeometry args={[0.1, 0.12, 0.15, 16]} />
+          <cylinderGeometry args={[0.15, 0.15, 0.2, 24]} />
         </mesh>
-        {/* Upper arm */}
-        <group ref={upperRef} position={[0, 0.08, 0]}>
-          <mesh position={[0, 1.0, 0]} material={metal}>
-            <boxGeometry args={[0.06, 2.0, 0.06]} />
+        {/* LED ring around joint */}
+        <mesh position={[0, 0, 0]} material={ledRing}>
+          <torusGeometry args={[0.16, 0.02, 8, 24]} />
+        </mesh>
+
+        {/* Upper arm — rotates on X */}
+        <group ref={shoulderRef} position={[0, 0.1, 0]}>
+          {/* Arm segment */}
+          <mesh position={[0, 1.2, 0]} material={silverBody}>
+            <boxGeometry args={[0.08, 2.4, 0.08]} />
           </mesh>
+
           {/* Elbow joint */}
-          <group position={[0, 2.0, 0]}>
+          <group position={[0, 2.4, 0]}>
             <mesh material={darkMetal}>
-              <cylinderGeometry args={[0.06, 0.06, 0.12, 12]} />
+              <cylinderGeometry args={[0.1, 0.12, 0.15, 24]} />
             </mesh>
-            {/* Forearm */}
-            <group ref={forearmRef} position={[0, 0.06, 0]}>
-              <mesh position={[0, 0.8, 0.4]} material={metal}>
-                <boxGeometry args={[0.05, 1.6, 0.05]} />
+            <mesh material={ledRing}>
+              <torusGeometry args={[0.13, 0.015, 8, 24]} />
+            </mesh>
+
+            {/* Forearm — rotates on X */}
+            <group ref={elbowRef} position={[0, 0.08, 0]}>
+              {/* Forearm segment */}
+              <mesh position={[0, 0.7, -0.3]} rotation={[0.3, 0, 0]} material={silverBody}>
+                <boxGeometry args={[0.06, 1.4, 0.06]} />
               </mesh>
-              {/* Connector */}
-              <mesh ref={connectorRef} position={[0, 1.6, 0.4]} material={
-                new THREE.MeshStandardMaterial({ color, metalness: 0.7, roughness: 0.3 })
-              }>
-                <cylinderGeometry args={[0.05, 0.03, 0.16, 12]} />
-              </mesh>
+
+              {/* Wrist joint */}
+              <group ref={wristRef} position={[0, 1.4, -0.6]}>
+                <mesh material={darkMetal}>
+                  <cylinderGeometry args={[0.05, 0.06, 0.1, 20]} />
+                </mesh>
+                <mesh material={ledRing}>
+                  <torusGeometry args={[0.07, 0.012, 8, 20]} />
+                </mesh>
+
+                {/* Connector plug */}
+                <mesh ref={connectorRef} position={[0, 0.15, 0]} rotation={[Math.PI/2, 0, 0]} material={connectorMat}>
+                  <cylinderGeometry args={[0.04, 0.04, 0.18, 16]} />
+                </mesh>
+                {/* Plug tip */}
+                <mesh position={[0, 0.25, 0]} material={connectorMat}>
+                  <sphereGeometry args={[0.05, 12, 8]} />
+                </mesh>
+              </group>
             </group>
           </group>
         </group>
