@@ -497,6 +497,11 @@ export function packDepotOps(
         vehicle_id: st ? str(st.vehicle_id) : null,
         connector_kw: num(ls.connector_kw),
         assumed_available: !st,
+        // A stall absent from the status feed is available BY INFERENCE, and an
+        // available stall is never tethered — so !st resolving to false is correct,
+        // not a guess.
+        tethered: st ? st.tethered === true : false,
+        tether_until: st ? str(st.tether_until) : null,
       };
     });
   } else {
@@ -509,6 +514,8 @@ export function packDepotOps(
       vehicle_id: str(s.vehicle_id),
       connector_kw: null,
       assumed_available: false,
+      tethered: s.tethered === true,
+      tether_until: str(s.tether_until),
     }));
     notes.push("layout not loaded — stall inventory is PARTIAL (occupied stalls only)");
   }

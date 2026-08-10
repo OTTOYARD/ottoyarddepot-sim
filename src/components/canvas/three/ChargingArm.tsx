@@ -7,7 +7,8 @@ import { useSimulationStore } from '@/store/simulationStore';
 import { buildCobot, makeCobotMaterials, type CobotHandles } from '@/lib/ottoChargeArm/buildCobot';
 import { OTTO_CHARGE_ARM, METRES_PER_PLAN_UNIT } from '@/lib/ottoChargeArm/cobotSpec';
 import { CAR_WIDTH } from '@/engine/motion/traffic';
-import { statusColor, isTethered, vehicleMayMove } from '@/lib/ottoChargeArm/armStateMachine';
+import { statusColor, isTethered, vehicleMayMove, PHASE_SECONDS } from '@/lib/ottoChargeArm/armStateMachine';
+import { twinMotionDriver } from '@/engine/TwinMotionDriver';
 import { poseFor, type ArmTarget } from '@/lib/ottoChargeArm/armMotion';
 import { placeArm, portInArmFrame } from '@/lib/ottoChargeArm/depotPlacement';
 import { portFor } from '@/lib/ottoChargeArm/chargePort';
@@ -127,6 +128,35 @@ export function ChargingArm({ stallId, stallType }: ChargingArmProps) {
       const r = phaseAt(elapsed, v.serviceDuration);
       phase = r.phase;
       t = r.t;
+    }
+
+    // ── OTTO-Q OVERRIDES THE LOCAL CLOCK WHILE THE ROBOT IS MATED ──────────────
+    //
+    // Everything above is a LOCAL animation driven off serviceStartTime; it has no
+    // idea what the orchestrator decided. The backend publishes the authoritative
+    // answer per stall, and the two can disagree: the local cycle can reach 'clear'
+    // while OTTO-Q is still holding the car for the demate, which would draw a car
+    // free — and shortly driving away — with the connector still in its inlet.
+    //
+    // The override is deliberately ONE-WAY. It can only ever say "still mated"; it
+    // never releases an arm the local cycle believes is mated. A backend that omits
+    // the field, or a stall the driver cannot resolve, therefore changes nothing.
+    const tetherLeft = twinMotionDriver.stallTetherRemainingS(stallId);
+    if (tetherLeft !== null) {
+      // Walk the real demate against OTTO-Q's deadline rather than a free clock, so
+      // the retract finishes exactly when the orchestrator frees the stall.
+      const { unlatch, extract, retract } = PHASE_SECONDS;
+      if (tetherLeft > extract + retract) {
+        phase = 'unlatch';
+        t = 1 - (tetherLeft - extract - retract) / unlatch;
+      } else if (tetherLeft > retract) {
+        phase = 'extract';
+        t = 1 - (tetherLeft - retract) / extract;
+      } else {
+        phase = 'retract';
+        t = 1 - tetherLeft / retract;
+      }
+      t = Math.min(1, Math.max(0, t));
     }
 
     // Target: this vehicle's modelled inlet, in the arm's base frame, metres.

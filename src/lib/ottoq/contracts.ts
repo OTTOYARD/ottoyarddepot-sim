@@ -403,6 +403,12 @@ export interface StallSignal {
   connector_kw: number | null;
   /** true when the stall is in the layout but absent from the status feed */
   assumed_available: boolean;
+  /** OTTO-CHARGE ARM still mated to the car in this stall: the charge session has
+   *  ENDED but the robot has not finished demating, so the vehicle may not move.
+   *  Absent from the feed reads as false — never as unknown. */
+  tethered: boolean;
+  /** Sim-clock instant the arm finishes retracting, or null when not tethered. */
+  tether_until: string | null;
 }
 
 export interface StallTypeCapacity {

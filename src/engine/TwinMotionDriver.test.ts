@@ -4,6 +4,7 @@ import { useDepotStore } from "@/store/depotStore";
 import { useVehicleStore } from "@/store/vehicleStore";
 import { poseStore } from "./motion/poseStore";
 import type { TwinSnapshot } from "@/lib/ottoTwin";
+import { DISCONNECT_SECONDS } from "@/lib/ottoChargeArm/armStateMachine";
 
 // Minimal snapshot carrying only what the driver reads (fleet.vehicles).
 function snap(vehicles: { id: string; state: string; soc?: number; platform?: string; stall_id?: string | null }[], runId = "t"): TwinSnapshot {
@@ -603,5 +604,76 @@ describe("T4 — timed-leg contract paces motion", () => {
     b.run.sim_clock = iso;                    // different run, no legs
     twinMotionDriver.reconcile(b);
     expect(priv().legs.has("V1")).toBe(false);
+  });
+});
+
+describe("robotic tether (OTTO-CHARGE ARM still mated)", () => {
+  // A DCFC stall is robot-served, and StopTransaction is NOT the unplug: OTTO-Q holds
+  // the vehicle for ~11.5 s while the arm demates. The renderer has to be told, because
+  // its own arm animation runs off a local clock that can finish first — and a car shown
+  // driving out of a stall the orchestrator has locked is the exact lie this prevents.
+  const tetherSnap = (
+    rows: { id: string; tethered?: boolean; tether_until?: string | null }[],
+    simClock = "2026-08-11T00:12:30.134Z",
+  ): TwinSnapshot => {
+    const s = snap([]);
+    (s as unknown as { run: { sim_clock: string } }).run.sim_clock = simClock;
+    (s as unknown as { stalls_status: unknown[] }).stalls_status = rows.map((r) => ({
+      id: r.id, status: "occupied", vehicle_id: "v1", ...r,
+    }));
+    return s;
+  };
+
+  beforeEach(() => {
+    twinMotionDriver.clear();
+    useVehicleStore.getState().reset();
+    useDepotStore.getState().regenerateStalls(10, 30, 3, 115, 2);
+    twinMotionDriver.setTwinStallMap([{ id: "twin-1", code: "NASH-DCFC-STALL-08", type: "dcfc" }]);
+  });
+
+  it("resolves a tethered stall and the demate time still owed", () => {
+    twinMotionDriver.reconcile(tetherSnap([
+      { id: "twin-1", tethered: true, tether_until: "2026-08-11T00:12:41.634Z" },
+    ]));
+    expect(twinMotionDriver.isStallTethered("DCFC-08")).toBe(true);
+    // 00:12:41.634 - 00:12:30.134 = the 11.5 s demate window
+    expect(twinMotionDriver.stallTetherRemainingS("DCFC-08")).toBeCloseTo(11.5, 3);
+  });
+
+  it("reports NOT tethered for an untethered stall, an absent flag and an unknown id", () => {
+    twinMotionDriver.reconcile(tetherSnap([{ id: "twin-1" }]));
+    expect(twinMotionDriver.isStallTethered("DCFC-08")).toBe(false);
+    expect(twinMotionDriver.stallTetherRemainingS("DCFC-08")).toBeNull();
+    // a stall the layout cannot resolve must not answer "tethered" by accident
+    expect(twinMotionDriver.isStallTethered("DCFC-99")).toBe(false);
+    expect(twinMotionDriver.stallTetherRemainingS("DCFC-99")).toBeNull();
+  });
+
+  it("clears the tether as soon as a later snapshot drops it", () => {
+    // The window is ~11.5 s. A tether left standing from a previous snapshot would
+    // draw a cable on a car that has already driven away, so the set is rebuilt
+    // wholesale every reconcile rather than merged.
+    twinMotionDriver.reconcile(tetherSnap([
+      { id: "twin-1", tethered: true, tether_until: "2026-08-11T00:12:41.634Z" },
+    ]));
+    expect(twinMotionDriver.isStallTethered("DCFC-08")).toBe(true);
+    twinMotionDriver.reconcile(tetherSnap([{ id: "twin-1", tethered: false }]));
+    expect(twinMotionDriver.isStallTethered("DCFC-08")).toBe(false);
+  });
+
+  it("falls back to a full demate when the deadline is unusable", () => {
+    // Showing the connector a moment too long is a much smaller lie than releasing
+    // a car OTTO-Q still has locked, so an unparseable deadline errs toward mated.
+    twinMotionDriver.reconcile(tetherSnap([
+      { id: "twin-1", tethered: true, tether_until: null },
+    ]));
+    expect(twinMotionDriver.stallTetherRemainingS("DCFC-08")).toBeCloseTo(DISCONNECT_SECONDS, 3);
+  });
+
+  it("never reports negative time once the deadline has passed", () => {
+    twinMotionDriver.reconcile(tetherSnap([
+      { id: "twin-1", tethered: true, tether_until: "2026-08-11T00:12:20.000Z" },
+    ]));
+    expect(twinMotionDriver.stallTetherRemainingS("DCFC-08")).toBe(0);
   });
 });
