@@ -176,21 +176,6 @@ export default function DepotScene3D() {
           <Lanes3D />
           <UtilityEquipment bessCapacity={config.bessCapacity} bessPower={config.bessPower} />
 
-          {/* Charging arms for each stall */}
-          {config.dcfcCount > 0 && (
-            <group>
-              {Array.from({ length: config.dcfcCount }, (_, i) => (
-                <ChargingArm key={`dcfc-arm-${i}`} stallId={`DCFC-${String(i + 1).padStart(2, '0')}`} stallType="dcfc" />
-              ))}
-            </group>
-          )}
-          {config.l2Count > 0 && (
-            <group>
-              {Array.from({ length: config.l2Count }, (_, i) => (
-                <ChargingArm key={`l2-arm-${i}`} stallId={`L2-${String(i + 1).padStart(2, '0')}`} stallType="l2" />
-              ))}
-            </group>
-          )}
           <DepotOverlays />
           <Landscaping />
           <SiteDetails />
