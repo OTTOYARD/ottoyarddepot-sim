@@ -21,7 +21,7 @@ import { DayNightLighting } from './three/DayNightLighting';
 import { DepotPostProcessing } from './three/DepotPostProcessing';
 import { SiteDetails } from './three/SiteDetails';
 import { MATERIALS } from './three/materials';
-import { skyTexture } from './three/textures';import { ChargingArm } from './three/ChargingArm';import { ChargingArm } from './three/ChargingArm';import { ChargingArm } from './three/ChargingArm';import { ChargingArm } from './three/ChargingArm';
+import { skyTexture } from './three/textures';
 
 // toWorld negates X (east=-X) to un-mirror the scene. Bird Eye views from the
 // SOUTH (z<0) so it is north-up / east-right, matching the 2D. Oblique presets
