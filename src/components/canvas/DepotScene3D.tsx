@@ -12,6 +12,17 @@ import { ChargingField } from './three/ChargingField';
 import { WashBays } from './three/WashBays';
 import { ServiceBays } from './three/ServiceBays';
 import { StagingZone } from './three/StagingZone';
+import { Lanes3D } from './three/Lanes3D';
+import { UtilityEquipment } from './three/UtilityEquipment';
+import { Vehicle3D } from './three/Vehicle3D';
+import { DepotOverlays } from './three/DepotOverlays';
+import { WeatherEffects } from './three/WeatherEffects';
+import { DayNightLighting } from './three/DayNightLighting';
+import { DepotPostProcessing } from './three/DepotPostProcessing';
+import { SiteDetails } from './three/SiteDetails';
+import { MATERIALS } from './three/materials';
+import { skyTexture } from './three/textures';
+import { StagingZone } from './three/StagingZone';
 // RAILS P2: right-of-way paint generated from the directed LaneGraph. Replaces
 // the hand-drawn DriveAisles arrows, which claimed the west/east avenues were
 // one-way when the graph actually makes them two-way divided — the markings
@@ -164,6 +175,22 @@ export default function DepotScene3D() {
           <StagingZone count={config.stagingStalls} />
           <Lanes3D />
           <UtilityEquipment bessCapacity={config.bessCapacity} bessPower={config.bessPower} />
+
+          {/* Charging arms for each stall */}
+          {config.dcfcCount > 0 && (
+            <group>
+              {Array.from({ length: config.dcfcCount }, (_, i) => (
+                <ChargingArm key={`dcfc-arm-${i}`} stallId={`DCFC-${String(i + 1).padStart(2, '0')}`} stallType="dcfc" />
+              ))}
+            </group>
+          )}
+          {config.l2Count > 0 && (
+            <group>
+              {Array.from({ length: config.l2Count }, (_, i) => (
+                <ChargingArm key={`l2-arm-${i}`} stallId={`L2-${String(i + 1).padStart(2, '0')}`} stallType="l2" />
+              ))}
+            </group>
+          )}
           <DepotOverlays />
           <Landscaping />
           <SiteDetails />
