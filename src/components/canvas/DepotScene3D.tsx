@@ -12,6 +12,7 @@ import { ChargingField } from './three/ChargingField';
 import { WashBays } from './three/WashBays';
 import { ServiceBays } from './three/ServiceBays';
 import { StagingZone } from './three/StagingZone';
+import { ChargingArm } from './three/ChargingArm';
 import { Lanes3D } from './three/Lanes3D';
 import { UtilityEquipment } from './three/UtilityEquipment';
 import { Vehicle3D } from './three/Vehicle3D';
@@ -160,8 +161,12 @@ export default function DepotScene3D() {
           <StagingZone count={config.stagingStalls} />
           <Lanes3D />
           <UtilityEquipment bessCapacity={config.bessCapacity} bessPower={config.bessPower} />
-
-
+          {[...Array(10)].map((_, i) => (
+            <ChargingArm key={`arm-dcfc-${i}`} stallId={`DCFC-${String(i+1).padStart(2, '0')}`} stallType="dcfc" position={[30+i*2, 0, i*1.5]} />
+          ))}
+          {[...Array(20)].map((_, i) => (
+            <ChargingArm key={`arm-l2-${i}`} stallId={`L2-${String(i+1).padStart(2, '0')}`} stallType="l2" position={[10+i*2, 0, i*1.5]} />
+          ))}
           <DepotOverlays />
           <Landscaping />
           <SiteDetails />
