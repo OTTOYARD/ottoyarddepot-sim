@@ -19,6 +19,7 @@ import type { SimulationConfig } from '@/store/simulationStore';
 import { seedDemoRng, currentDemoSeed } from './rng';
 import { useDepotStore } from '@/store/depotStore';
 import { useVehicleStore } from '@/store/vehicleStore';
+import { ROBOTIC_OVERHEAD_SECONDS } from '@/lib/ottoChargeArm/roboticService';
 import { useKPIStore } from '@/store/kpiStore';
 import { useAIStore } from '@/store/aiStore';
 import { useAlertStore } from '@/store/alertStore';
@@ -143,7 +144,13 @@ function getServiceDuration(vehicle: Vehicle, config: ReturnType<typeof useSimul
   switch (service) {
     case 'dcfc_charge': {
       const chargeTime = (vehicle.targetSoC - vehicle.currentSoC) / 100 * vehicle.batteryCapacity / config.dcfcPowerPerStall * 60;
-      return Math.max(10, Math.min(config.dcfcChargeTime, chargeTime)) * 60; // convert min to seconds
+      const charge = Math.max(10, Math.min(config.dcfcChargeTime, chargeTime)) * 60; // min -> seconds
+      // DCFC stalls are robot-served. The arm's connect and retract time is
+      // REAL stall occupancy, so it belongs inside the service duration rather
+      // than being animated over the top of it. Two consequences, both wanted:
+      // the vehicle structurally cannot depart before the arm has retracted,
+      // and every forward reservation OTTO-Q makes already carries the cost.
+      return charge + ROBOTIC_OVERHEAD_SECONDS;
     }
     case 'l2_charge':
       return config.l2ChargeTime * 3600; // hours to seconds
