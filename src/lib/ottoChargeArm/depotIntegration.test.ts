@@ -8,17 +8,20 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import * as THREE from 'three';
 import { generateStallsV2, CANOPIES } from '@/lib/sitePlan';
-import { placeArm, portInArmFrame, PEDESTAL_OFFSET_PU } from './depotPlacement';
+import { placeArm, portInArmFrame, portInVehicleFrame, PEDESTAL_OFFSET_PU } from './depotPlacement';
 import { portFor } from './chargePort';
 import { solveIK, forwardTCP } from './cobotIK';
 import { OTTO_CHARGE_ARM, PLAN_UNITS_PER_METRE, METRES_PER_PLAN_UNIT, MOUNT_HEIGHT_M } from './cobotSpec';
 import { phaseAt, chargeProgress, ROBOTIC_OVERHEAD_SECONDS, stallHasArm } from './roboticService';
 import { vehicleMayMove, isTethered, NOMINAL_SEQUENCE } from './armStateMachine';
 import { poseFor } from './armMotion';
+import { CAR_WIDTH } from '@/engine/motion/traffic';
+import { DECK_Y } from '@/components/canvas/three/coordUtils';
 
 const spec = OTTO_CHARGE_ARM;
-const CAR_HALF_WIDTH_M = (2.2 * (7.5 / 4.9) * METRES_PER_PLAN_UNIT) / 2;
+const CAR_HALF_WIDTH_M = (CAR_WIDTH * METRES_PER_PLAN_UNIT) / 2;
 const dcfc = () => generateStallsV2().filter((s) => s.type === 'dcfc');
 
 describe('arm placement in the depot', () => {
@@ -66,8 +69,9 @@ describe('arm placement in the depot', () => {
     const p = placeArm('DCFC-01', CANOPIES[0].cx - 7, 88);
     expect(p.scale).toBeCloseTo(1 / 0.4785, 6);
     expect(p.scale).toBeGreaterThan(2);
-    // mount height must be expressed in plan units too
-    expect(p.world[1]).toBeCloseTo(MOUNT_HEIGHT_M * PLAN_UNITS_PER_METRE, 6);
+    // mount height must be expressed in plan units too, and measured from the
+    // asphalt DECK — the grade the vehicles' tyres rest on — not from y=0.
+    expect(p.world[1]).toBeCloseTo(DECK_Y + MOUNT_HEIGHT_M * PLAN_UNITS_PER_METRE, 6);
   });
 });
 
@@ -76,10 +80,11 @@ describe('the arm actually reaches every vehicle it is asked to serve', () => {
     const oems = ['tesla', 'waymo', 'zoox', 'cruise', 'motional', 'van', null, 'unknown-oem'];
     let checked = 0;
     for (const s of dcfc()) {
+      const { toward } = placeArm(s.id, s.position.x, s.position.y);
       for (let i = 0; i < 12; i++) {
         for (const oem of oems) {
           const port = portFor(`veh-${s.id}-${i}`, oem);
-          const target = portInArmFrame(port.along, port.height, CAR_HALF_WIDTH_M);
+          const target = portInArmFrame(port.along, port.height, CAR_HALF_WIDTH_M, toward);
           const sol = solveIK(target, { x: 0, y: 0, z: -1 }, spec);
           expect(sol.reachable, `${s.id} ${oem} along=${port.along} h=${port.height}`).toBe(true);
           const tip = forwardTCP(sol, spec);
@@ -89,6 +94,60 @@ describe('the arm actually reaches every vehicle it is asked to serve', () => {
       }
     }
     expect(checked).toBeGreaterThan(900);
+  });
+
+  /**
+   * THE ONE THAT MATTERS ON CAMERA: the charge-port ring Vehicle3D draws on the
+   * flank and the point ChargingArm solves its IK to must be the SAME WORLD
+   * POINT. They are reached by completely different routes — one through the
+   * vehicle's own frame in plan units, the other through the arm group's
+   * rotate-and-scale in metres — so nothing but an assertion keeps them equal.
+   *
+   * This is what caught two real defects: the arm mounting off y=0 while the
+   * cars rest on the 0.26 asphalt deck, and portInArmFrame passing `along`
+   * through unsigned so half the stalls mated to the wrong end of the car.
+   */
+  it('mates the arm to the port you can actually SEE', () => {
+    const CAR_HALF_W_PU = CAR_WIDTH / 2;
+    const oems = ['tesla', 'waymo', 'zoox', 'cruise', 'motional', 'van', null];
+    let checked = 0;
+
+    for (const s of dcfc()) {
+      const p = placeArm(s.id, s.position.x, s.position.y);
+
+      // How ChargingArm places the arm: group at world, Ry(rotationY), scaled.
+      const armGroup = new THREE.Object3D();
+      armGroup.position.set(...p.world);
+      armGroup.rotation.y = p.rotationY;
+      armGroup.scale.setScalar(p.scale);
+      armGroup.updateMatrixWorld(true);
+
+      // How Vehicle3D places the vehicle: at the stall, facing NORTH (world +Z),
+      // which parkedHeading() gives every dcfc/l2/wash/service stall.
+      const carGroup = new THREE.Object3D();
+      carGroup.position.set(p.carWorld[0], 0, p.carWorld[2]);
+      carGroup.rotation.y = 0;
+      carGroup.updateMatrixWorld(true);
+
+      for (const oem of oems) {
+        const port = portFor(`veh-${s.id}-${oem}`, oem);
+
+        const solved = armGroup.localToWorld(new THREE.Vector3().copy(
+          portInArmFrame(port.along, port.height, CAR_HALF_WIDTH_M, p.toward) as THREE.Vector3Like,
+        ));
+        // Vehicle3D presents the port on the flank facing the pedestal.
+        const side = -p.toward as 1 | -1;
+        const drawn = carGroup.localToWorld(new THREE.Vector3().copy(
+          portInVehicleFrame(port.along, port.height, CAR_HALF_W_PU, side) as THREE.Vector3Like,
+        ));
+
+        expect(solved.distanceTo(drawn), `${s.id} ${oem}`).toBeLessThan(1e-9);
+        // and it really is on the pedestal's side of the car, not the far flank
+        expect(Math.sign(drawn.x - p.carWorld[0])).toBe(Math.sign(p.world[0] - p.carWorld[0]));
+        checked++;
+      }
+    }
+    expect(checked).toBe(70);
   });
 
   it('gives the same vehicle the same port every time', () => {
@@ -171,7 +230,7 @@ describe('poses are physically sane throughout a real cycle', () => {
     const DURATION = 1200 + ROBOTIC_OVERHEAD_SECONDS;
     const port = portFor('veh-pose', 'waymo');
     const target = {
-      port: portInArmFrame(port.along, port.height, CAR_HALF_WIDTH_M),
+      port: portInArmFrame(port.along, port.height, CAR_HALF_WIDTH_M, 1),
       normal: { x: 0, y: 0, z: -1 },
     };
     const L = spec.limits;
@@ -193,7 +252,7 @@ describe('poses are physically sane throughout a real cycle', () => {
 
   it('refuses an out-of-envelope port instead of straining through the vehicle', () => {
     const target = {
-      port: portInArmFrame(2.4, 0.75, CAR_HALF_WIDTH_M), // way past the window
+      port: portInArmFrame(2.4, 0.75, CAR_HALF_WIDTH_M, 1), // way past the window
       normal: { x: 0, y: 0, z: -1 },
     };
     const pose = poseFor({ phase: 'charging', t: 0.5, elapsed: 0 }, target, spec);

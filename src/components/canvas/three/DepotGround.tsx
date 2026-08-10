@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import * as THREE from 'three';
 import { MATERIALS } from './materials';
 import { LOT, INGRESS, EGRESS, GATE_W } from '@/lib/sitePlan';
-import { toWorld } from './coordUtils';
+import { toWorld, DECK_Y } from './coordUtils';
 
 /**
  * Ground plane, asphalt lot, perimeter security fence with ingress/egress
@@ -114,7 +114,7 @@ export function DepotGround() {
         <boxGeometry args={[lot.w + 1.6, 0.24, lot.d + 1.6]} />
         <meshPhysicalMaterial color="#6b7077" roughness={0.9} metalness={0} />
       </mesh>
-      <mesh rotation-x={-Math.PI / 2} position={[lot.cx, 0.26, lot.cz]} receiveShadow material={mats.asphalt}>
+      <mesh rotation-x={-Math.PI / 2} position={[lot.cx, DECK_Y, lot.cz]} receiveShadow material={mats.asphalt}>
         <planeGeometry args={[lot.w, lot.d]} />
       </mesh>
 

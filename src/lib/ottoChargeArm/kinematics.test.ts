@@ -22,9 +22,10 @@ import {
   OTTO_CHARGE_ARM, MOUNT_HEIGHT_M, PEDESTAL_TO_CAR_CENTRE_M, METRES_PER_PLAN_UNIT,
   SERVICE_WINDOW, maxReach,
 } from './cobotSpec';
+import { CAR_WIDTH } from '@/engine/motion/traffic';
 
 const spec = OTTO_CHARGE_ARM;
-const CAR_HALF_W = (2.2 * (7.5 / 4.9) * METRES_PER_PLAN_UNIT) / 2;
+const CAR_HALF_W = (CAR_WIDTH * METRES_PER_PLAN_UNIT) / 2;
 const FLANK = PEDESTAL_TO_CAR_CENTRE_M - CAR_HALF_W;
 const d3 = (a: Vec3, b: Vec3) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
 
