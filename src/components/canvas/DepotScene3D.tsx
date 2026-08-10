@@ -113,7 +113,11 @@ export default function DepotScene3D() {
   const simTime = useSimulationStore((s) => s.simTime);
   const simSpeed = useSimulationStore((s) => s.simSpeed);
   const stalls = useDepotStore((s) => s.stalls);
-  const chargingStalls = useMemo(() => stalls.filter(s => s.type === 'dcfc' || s.type === 'l2'), [stalls]);
+  // Robotic arms are DCFC-only (10 stalls, canopy A). High-power fast charging
+  // with hard turnaround pressure is what justifies the hardware; fitting all
+  // 30 L2 trickle stalls would inflate the capex story and cost 40 IK solves a
+  // frame for arms nobody would buy.
+  const roboticStalls = useMemo(() => stalls.filter((s) => s.type === 'dcfc'), [stalls]);
   const controlsRef = useRef<OrbitControlsImpl>(null);
   
 
@@ -164,7 +168,7 @@ export default function DepotScene3D() {
           <StagingZone count={config.stagingStalls} />
           <Lanes3D />
           <UtilityEquipment bessCapacity={config.bessCapacity} bessPower={config.bessPower} />
-          {chargingStalls.map((s) => (
+          {roboticStalls.map((s) => (
             <ChargingArm key={`arm-${s.id}`} stallId={s.id} stallType={s.type as 'dcfc' | 'l2'} />
           ))}
           <DepotOverlays />

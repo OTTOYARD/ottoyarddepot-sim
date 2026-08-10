@@ -1,159 +1,199 @@
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useVehicleStore } from '@/store/vehicleStore';
 import { useDepotStore } from '@/store/depotStore';
-import { toWorld } from './coordUtils';
+import { useSimulationStore } from '@/store/simulationStore';
+import { buildCobot, makeCobotMaterials, type CobotHandles } from '@/lib/ottoChargeArm/buildCobot';
+import { OTTO_CHARGE_ARM, PLAN_UNITS_PER_METRE } from '@/lib/ottoChargeArm/cobotSpec';
+import { statusColor, isTethered, vehicleMayMove } from '@/lib/ottoChargeArm/armStateMachine';
+import { poseFor, type ArmTarget } from '@/lib/ottoChargeArm/armMotion';
+import { placeArm, portInArmFrame } from '@/lib/ottoChargeArm/depotPlacement';
+import { portFor } from '@/lib/ottoChargeArm/chargePort';
+import { phaseAt, stallHasArm } from '@/lib/ottoChargeArm/roboticService';
 
 /**
- * ChargingArm — realistic articulated robotic arm for EV charging.
- * Modeled after industrial arms (Flexiv Rizon style): silver metallic body,
- * multiple articulated joints with LED rings, extends to vehicle charge port.
+ * OTTO-CHARGE ARM — robotic DCFC connection, mounted on the charger pedestal.
  *
- * Behavior:
- *   - Folded at rest beside the charging pedestal
- *   - Vehicle arrives in stall → arm extends to charge port
- *   - Charging active → joint LEDs pulse glow
- *   - Charge complete → arm retracts to folded position
+ * Replaces the previous placeholder arm, which had four defects that made it
+ * decorative rather than functional:
+ *
+ *   1. It was anchored at `stall.position` — the CAR's parking spot — while
+ *      ChargingField.tsx puts the pedestal 4.5 plan units to the side. Every
+ *      arm grew out of the middle of a parking space.
+ *   2. Its rotation was hardcoded to [0, PI/2, 0] regardless of which side of
+ *      the canopy spine the stall sat on, so half of them faced away.
+ *   3. Its geometry was authored in metres and dropped into a plan-unit world
+ *      (1 unit = 0.4785 m) with no scale factor — the same ~48% shrink that
+ *      made Vehicle3D a toy car.
+ *   4. Its joint angles were fixed constants, so the connector never actually
+ *      arrived at a charge port.
+ *
+ * This one solves real IK to the vehicle's modelled inlet, enters along the
+ * port axis, and reports when a target is out of its envelope instead of
+ * faking a pose. Mounted on DCFC stalls only.
  */
+
+const spec = OTTO_CHARGE_ARM;
+
+/**
+ * ONE template, cloned per stall. buildCobot allocates fresh geometry on every
+ * call; ten independent builds would be ten times the buffers for ten
+ * identical machines. Object3D.clone() shares geometry and material by
+ * reference, so the whole canopy costs one arm's worth of GPU memory.
+ *
+ * Built at 'depot' detail: fasteners, cooling ribs, connector pins and sensor
+ * glass are dropped. They are sub-centimetre features on a 1.9 m arm viewed
+ * from tens of metres, and they account for two thirds of the mesh count.
+ */
+const TEMPLATE: CobotHandles = buildCobot(spec, { withPlinth: true, lod: 'depot' });
+
+/** Rendered vehicle half-width in metres, from Vehicle3D's SCALE = 7.5/4.9. */
+const CAR_HALF_WIDTH_M = (2.2 * (7.5 / 4.9) * 0.4785) / 2;
 
 interface ChargingArmProps {
   stallId: string;
   stallType: 'dcfc' | 'l2';
-  position?: [number, number, number];
 }
 
-export function ChargingArm({ stallId, stallType, position: override }: ChargingArmProps) {
+export function ChargingArm({ stallId, stallType }: ChargingArmProps) {
   const groupRef = useRef<THREE.Group>(null);
-  const shoulderRef = useRef<THREE.Group>(null);
-  const elbowRef = useRef<THREE.Group>(null);
-  const wristRef = useRef<THREE.Group>(null);
-  const connectorRef = useRef<THREE.Mesh>(null);
+  const cableRef = useRef<THREE.Mesh>(null);
 
-  const accentColor = stallType === 'dcfc' ? '#00BCD4' : '#FFC107';
+  const stalls = useDepotStore((s) => s.stalls);
+  const stall = useMemo(() => stalls.find((s) => s.id === stallId), [stalls, stallId]);
 
-  // Materials
-  const silverBody = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#C0C0C0', metalness: 0.9, roughness: 0.25,
-  }), []);
-  const darkMetal = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#2A2A2A', metalness: 0.95, roughness: 0.15,
-  }), []);
-  const connectorMat = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#F5F5F5', metalness: 0.3, roughness: 0.4,
-  }), []);
-  const ledRing = useMemo(() => new THREE.MeshStandardMaterial({
-    color: accentColor, emissive: accentColor, emissiveIntensity: 0.8,
-    metalness: 0.2, roughness: 0.3,
-  }), [accentColor]);
-
-  // Resolve stall position
-  const stalls = useDepotStore(s => s.stalls);
-  const stall = stalls.find(s => s.id === stallId);
-  const pos: [number, number, number] = override || (
-    stall
-      ? (() => { const w = toWorld({ x: stall.position.x, y: stall.position.y }, 0); return [w[0], 0, w[1]] as [number, number, number]; })()
-      : [0, 0, 0]
+  const placement = useMemo(
+    () => (stall ? placeArm(stall.id, stall.position.x, stall.position.y) : null),
+    [stall],
   );
 
-  // Charging state
-  const vehicles = useVehicleStore(s => s.vehicles);
-  const vehicleAtStall = vehicles.find(v => v.assignedStall === stallId);
-  const isCharging = vehicleAtStall?.status === 'charging';
-  const chargePct = vehicleAtStall?.currentSoC ?? 0;
-  const isTargetReached = chargePct >= (vehicleAtStall?.targetSoC ?? 80);
+  // Per-instance clone with its own status material (the LED colour differs by
+  // phase, so it cannot be shared with the other nine arms).
+  const rig = useMemo(() => {
+    const root = TEMPLATE.root.clone(true);
+    const statusMaterial = TEMPLATE.statusMaterial.clone();
+    root.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (m.isMesh && m.material === TEMPLATE.statusMaterial) m.material = statusMaterial;
+    });
+    const byName = (n: string) => root.getObjectByName(n) as THREE.Group;
+    return {
+      root,
+      j1: byName('J1_BaseYaw'),
+      j2: byName('J2_Shoulder'),
+      j3: byName('J3_Elbow'),
+      j4: byName('J4_ForearmRoll'),
+      j5: byName('J5_WristPitch'),
+      j6: byName('J6_ToolRoll'),
+      tcp: root.getObjectByName('TCP_ConnectorTip') as THREE.Object3D,
+      latch: byName('Connector_Latch'),
+      statusMaterial,
+    };
+  }, []);
 
-  // Animation targets
-  const animRef = useRef({ shoulder: 0, elbow: 0 });
-  const glowRef = useRef(0);
+  useEffect(() => () => { rig.statusMaterial.dispose(); }, [rig]);
 
-  useFrame((_, delta) => {
-    if (!shoulderRef.current || !elbowRef.current) return;
+  const cableMat = useMemo(
+    () => new THREE.MeshStandardMaterial({ color: 0x101216, roughness: 0.85, metalness: 0.05 }),
+    [],
+  );
+  useEffect(() => () => { cableMat.dispose(); }, [cableMat]);
 
-    if (isCharging && !isTargetReached) {
-      animRef.current.shoulder = -Math.PI / 2.5;  // rotate forward
-      animRef.current.elbow = Math.PI / 3;         // bend down toward car
-    } else {
-      animRef.current.shoulder = 0;
-      animRef.current.elbow = 0;
+  // Reusable scratch objects — allocating per frame across ten arms is how a
+  // 3D scene quietly acquires a GC stutter.
+  const scratch = useMemo(() => ({
+    tip: new THREE.Vector3(),
+    gland: new THREE.Vector3(),
+    a: new THREE.Vector3(),
+    b: new THREE.Vector3(),
+  }), []);
+
+  useFrame(() => {
+    if (!placement || !stall || !rig.root) return;
+
+    const simTime = useSimulationStore.getState().simTime;
+    const vehicles = useVehicleStore.getState().vehicles;
+    const v = vehicles.find((x) => x.assignedStall === stallId);
+
+    // Resolve the phase. No vehicle, or a vehicle that is not mid-service here,
+    // means the arm is home.
+    let phase: ReturnType<typeof phaseAt>['phase'] = 'stowed';
+    let t = 1;
+    if (v && v.serviceStartTime !== null && v.serviceDuration !== null) {
+      let elapsed = simTime - v.serviceStartTime;
+      if (elapsed < 0) elapsed += 86400; // the sim clock wraps at midnight
+      const r = phaseAt(elapsed, v.serviceDuration);
+      phase = r.phase;
+      t = r.t;
     }
 
-    const t = Math.min(4 * delta, 1);
-    shoulderRef.current.rotation.x = THREE.MathUtils.lerp(shoulderRef.current.rotation.x, animRef.current.shoulder, t);
-    elbowRef.current.rotation.x = THREE.MathUtils.lerp(elbowRef.current.rotation.x, animRef.current.elbow, t);
+    // Target: this vehicle's modelled inlet, in the arm's base frame, metres.
+    const port = v ? portFor(v.id, v.oem) : { along: 0, height: 0.75, family: '' };
+    const target: ArmTarget = {
+      port: portInArmFrame(port.along, port.height, CAR_HALF_WIDTH_M),
+      normal: { x: 0, y: 0, z: -1 },
+    };
 
-    // Pulse LED glow during charging
-    glowRef.current = isCharging ? 0.6 + Math.sin(Date.now() * 0.005) * 0.4 : 0;
-    ledRing.emissiveIntensity = glowRef.current;
+    const pose = poseFor({ phase, t, elapsed: 0 }, target, spec);
+
+    rig.j1.rotation.set(0, pose.angles.j1, 0);
+    rig.j2.rotation.set(pose.angles.j2, 0, 0);
+    rig.j3.rotation.set(pose.angles.j3, 0, 0);
+    rig.j4.rotation.set(0, pose.angles.j4, 0);
+    rig.j5.rotation.set(pose.angles.j5, 0, 0);
+    rig.j6.rotation.set(0, pose.angles.j6, 0);
+
+    const s = 1 - 0.28 * pose.latch;
+    rig.latch.scale.set(s, 1, s);
+
+    const col = pose.ok ? statusColor(phase) : 0xff2d2d;
+    rig.statusMaterial.color.setHex(col);
+    rig.statusMaterial.emissive.setHex(col);
+    rig.statusMaterial.emissiveIntensity = phase === 'charging'
+      ? 1.0 + Math.sin(simTime * 2.2) * 0.45
+      : 1.3;
+
+    // Charge cable, drawn only while the connector is actually mated. Ten live
+    // catenaries every frame would be wasteful; at most a handful are mated at
+    // once, and a cable hanging off a stowed arm would be wrong anyway.
+    const cable = cableRef.current;
+    if (cable) {
+      const show = isTethered(phase);
+      cable.visible = show;
+      if (show) {
+        rig.tcp.getWorldPosition(scratch.tip);
+        rig.root.getWorldPosition(scratch.gland);
+        // local space of the arm group, so the tube follows the arm's transform
+        rig.root.worldToLocal(scratch.tip);
+        const tip = scratch.tip;
+        const mid1 = scratch.a.set(tip.x * 0.35, tip.y * 0.35 - 0.9, tip.z * 0.35 - 0.25);
+        const mid2 = scratch.b.set(tip.x * 0.72, tip.y * 0.72 - 0.5, tip.z * 0.72 - 0.1);
+        const curve = new THREE.CatmullRomCurve3([
+          new THREE.Vector3(0, -0.05, -0.28), mid1.clone(), mid2.clone(), tip.clone(),
+        ]);
+        cable.geometry.dispose();
+        cable.geometry = new THREE.TubeGeometry(curve, 16, 0.045, 6, false);
+      }
+    }
   });
 
+  if (!stallHasArm(stallType) || !placement) return null;
+
   return (
-    <group ref={groupRef} position={pos} rotation={[0, Math.PI / 2, 0]}>
-      {/* Base pedestal */}
-      <mesh position={[0, 0.6, 0]} material={darkMetal}>
-        <boxGeometry args={[0.3, 1.2, 0.3]} />
+    <group
+      ref={groupRef}
+      position={placement.world}
+      rotation={[0, placement.rotationY, 0]}
+      scale={placement.scale}
+    >
+      <primitive object={rig.root} />
+      <mesh ref={cableRef} material={cableMat} visible={false}>
+        <bufferGeometry />
       </mesh>
-      {/* Base plate */}
-      <mesh position={[0, 0.05, 0]} material={darkMetal}>
-        <cylinderGeometry args={[0.25, 0.28, 0.1, 16]} />
-      </mesh>
-
-      {/* Shoulder joint (turret) */}
-      <group position={[0, 1.2, 0]}>
-        {/* Joint housing */}
-        <mesh material={darkMetal}>
-          <cylinderGeometry args={[0.15, 0.15, 0.2, 24]} />
-        </mesh>
-        {/* LED ring around joint */}
-        <mesh position={[0, 0, 0]} material={ledRing}>
-          <torusGeometry args={[0.16, 0.02, 8, 24]} />
-        </mesh>
-
-        {/* Upper arm — rotates on X */}
-        <group ref={shoulderRef} position={[0, 0.1, 0]}>
-          {/* Arm segment */}
-          <mesh position={[0, 1.2, 0]} material={silverBody}>
-            <boxGeometry args={[0.08, 2.4, 0.08]} />
-          </mesh>
-
-          {/* Elbow joint */}
-          <group position={[0, 2.4, 0]}>
-            <mesh material={darkMetal}>
-              <cylinderGeometry args={[0.1, 0.12, 0.15, 24]} />
-            </mesh>
-            <mesh material={ledRing}>
-              <torusGeometry args={[0.13, 0.015, 8, 24]} />
-            </mesh>
-
-            {/* Forearm — rotates on X */}
-            <group ref={elbowRef} position={[0, 0.08, 0]}>
-              {/* Forearm segment */}
-              <mesh position={[0, 0.7, -0.3]} rotation={[0.3, 0, 0]} material={silverBody}>
-                <boxGeometry args={[0.06, 1.4, 0.06]} />
-              </mesh>
-
-              {/* Wrist joint */}
-              <group ref={wristRef} position={[0, 1.4, -0.6]}>
-                <mesh material={darkMetal}>
-                  <cylinderGeometry args={[0.05, 0.06, 0.1, 20]} />
-                </mesh>
-                <mesh material={ledRing}>
-                  <torusGeometry args={[0.07, 0.012, 8, 20]} />
-                </mesh>
-
-                {/* Connector plug */}
-                <mesh ref={connectorRef} position={[0, 0.15, 0]} rotation={[Math.PI/2, 0, 0]} material={connectorMat}>
-                  <cylinderGeometry args={[0.04, 0.04, 0.18, 16]} />
-                </mesh>
-                {/* Plug tip */}
-                <mesh position={[0, 0.25, 0]} material={connectorMat}>
-                  <sphereGeometry args={[0.05, 12, 8]} />
-                </mesh>
-              </group>
-            </group>
-          </group>
-        </group>
-      </group>
     </group>
   );
 }
+
+/** Re-exported so callers can gate movement without importing the state machine. */
+export { vehicleMayMove };
