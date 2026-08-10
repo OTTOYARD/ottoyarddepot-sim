@@ -20,9 +20,11 @@ import { buildCobot } from './buildCobot';
 import { solveIK, forwardTCP, STOWED, type Vec3, type JointAngles } from './cobotIK';
 import {
   OTTO_CHARGE_ARM, MOUNT_HEIGHT_M, PEDESTAL_TO_CAR_CENTRE_M, METRES_PER_PLAN_UNIT,
-  SERVICE_WINDOW, maxReach,
+  SERVICE_WINDOW, maxReach, ARM_SCALE,
 } from './cobotSpec';
 import { CAR_WIDTH } from '@/engine/motion/traffic';
+import { poseFor } from './armMotion';
+import { phaseAt, ROBOTIC_OVERHEAD_SECONDS } from './roboticService';
 
 const spec = OTTO_CHARGE_ARM;
 const CAR_HALF_W = (CAR_WIDTH * METRES_PER_PLAN_UNIT) / 2;
@@ -71,6 +73,49 @@ describe('inverse kinematics', () => {
 
   it('has reach consistent with its own spec', () => {
     expect(maxReach(spec)).toBeCloseTo(spec.upperArm + spec.forearm + spec.wrist + spec.tool, 9);
+  });
+
+  /**
+   * ARM_SCALE exists to make the robot legible on camera, and legibility has no
+   * natural stopping point — the next person to be told "make it bigger" has no
+   * reason to suspect there is a wall. There is.
+   *
+   * chargePort.ts, roboticService.ts and the backend stall gate all rest on the
+   * claim that a pedestal arm CANNOT serve the far flank. Scale the arm past
+   * ~1.59 and that stops being true: the robot can sweep over the car, the
+   * "present your inlet to the charger" constraint quietly evaporates, and
+   * OTTO-Q is enforcing a rule its hardware no longer needs. Nothing else in
+   * the suite would notice, because every other test asks about the NEAR flank.
+   *
+   * So the ceiling is recomputed here from the spec instead of trusted from a
+   * comment, and it is checked against the WHOLE far-flank port band rather
+   * than the single abeam point the test above uses.
+   */
+  it('stays under the scale at which it could reach ACROSS the vehicle', () => {
+    const farFlank = PEDESTAL_TO_CAR_CENTRE_M + CAR_HALF_W;
+    const toolLen = spec.wrist + spec.tool;
+
+    // closest any far-flank port in the service band brings the wrist centre
+    let closest = Infinity;
+    for (let a = SERVICE_WINDOW.alongMin; a <= SERVICE_WINDOW.alongMax + 1e-9; a += 0.02) {
+      for (let h = SERVICE_WINDOW.heightMin; h <= SERVICE_WINDOW.heightMax + 1e-9; h += 0.02) {
+        const wcz = farFlank - toolLen;
+        const up = (h - MOUNT_HEIGHT_M) - spec.shoulderHeight;
+        closest = Math.min(closest, Math.hypot(Math.hypot(a, wcz), up));
+      }
+    }
+
+    const twoLink = spec.upperArm + spec.forearm;
+    expect(
+      closest,
+      `ARM_SCALE=${ARM_SCALE} lets the arm reach the FAR flank — that breaks the ` +
+      `orchestration constraint in chargePort.ts, not just the look. Scale down.`,
+    ).toBeGreaterThan(twoLink);
+
+    // and say how much room is left, so the next bump is an informed one
+    const headroom = ARM_SCALE * (closest / twoLink);
+    expect(headroom).toBeGreaterThan(ARM_SCALE);
+    expect(headroom).toBeLessThan(1.75); // ~1.59 today; a sanity bound on the maths
   });
 });
 
@@ -134,6 +179,33 @@ describe('built geometry agrees with the analytic model', () => {
     pose(STOWED);
     const box = new THREE.Box3().setFromObject(rig.root);
     expect(box.max.z).toBeLessThan(FLANK);
+  });
+
+  /**
+   * The arm hangs off a 0.70 m plinth and reaches DOWN to low ports. Every
+   * centimetre added by ARM_SCALE is a centimetre closer to the tarmac, and an
+   * elbow sunk through the deck is the kind of thing that only shows up on
+   * camera at one specific phase of one specific port height. Sweeping the
+   * whole duty cycle is cheap; noticing it in a screenshot is not.
+   */
+  it('never dips below grade at any point in the duty cycle', () => {
+    const DURATION = 900 + ROBOTIC_OVERHEAD_SECONDS;
+    let lowest = Infinity;
+    let worst = '';
+    for (const h of [SERVICE_WINDOW.heightMin + 0.06, 0.75, SERVICE_WINDOW.heightMax - 0.06]) {
+      for (const along of [SERVICE_WINDOW.alongMin + 0.06, 0, SERVICE_WINDOW.alongMax - 0.06]) {
+        const target = { port: { x: along, y: h - MOUNT_HEIGHT_M, z: FLANK }, normal: { x: 0, y: 0, z: -1 } };
+        for (let t = 0; t <= DURATION; t += 6) {
+          const r = phaseAt(t, DURATION);
+          const p = poseFor({ phase: r.phase, t: r.t, elapsed: t }, target, spec);
+          pose(p.angles);
+          const y = new THREE.Box3().setFromObject(rig.root).min.y;
+          if (y < lowest) { lowest = y; worst = `${r.phase} h=${h} along=${along}`; }
+        }
+      }
+    }
+    // arm frame origin sits at MOUNT_HEIGHT_M above the deck
+    expect(MOUNT_HEIGHT_M + lowest, `lowest at ${worst}`).toBeGreaterThan(0.05);
   });
 
   it('depot LOD keeps the kinematics identical while shedding meshes', () => {

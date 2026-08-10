@@ -61,19 +61,76 @@ export interface CobotSpec {
  * 1.4 m and out 1.35 m from a roof mount needs a far larger, and far less
  * believable, arm. That height is swept and verified, not chosen by eye.
  *
- * Maximum reach = upperArm + forearm + wrist + tool = 0.80 + 0.68 + 0.16 + 0.22
- *               = 1.86 m, against a worst-case required reach of ~1.42 m to a
- * near-flank port. That leaves ~0.44 m of margin to work fore/aft along the
- * car and to approach on the port normal rather than straight-on.
+ * Maximum reach at scale 1.0 = upperArm + forearm + wrist + tool
+ *               = 0.80 + 0.68 + 0.16 + 0.22 = 1.86 m, against a worst-case
+ * required reach of ~1.42 m to a near-flank port. That leaves ~0.44 m of margin
+ * to work fore/aft along the car and to approach on the port normal rather than
+ * straight-on.
+ *
+ * The shipped arm is ARM_SCALE times that sizing — see the note on ARM_SCALE
+ * below for why, and for the ceiling that bounds it. Reach is NOT the binding
+ * constraint on how large the arm may be; the far-flank exclusion is.
  */
-export const OTTO_CHARGE_ARM: CobotSpec = {
+/**
+ * Sizing multiplier on the whole machine — links AND housings.
+ *
+ * At 1.0 the arm is sized to the job and nothing more: 1.86 m of reach against
+ * a 1.42 m worst case. That is correct engineering and it reads, at depot
+ * camera range, as an indistinct grey blob on top of a cabinet. You cannot tell
+ * it is a robot. 1.5 is a DELIBERATE oversize for legibility, not a reach
+ * requirement, and it costs nothing kinematically: IK solves to the port, so a
+ * longer arm simply adopts a more folded pose to reach the same inlet.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * THERE IS A HARD CEILING AT 1.5908, AND IT IS NOT A COSMETIC ONE.
+ *
+ * chargePort.ts rests on a load-bearing claim: a pedestal arm CANNOT serve a
+ * port on the vehicle's far flank, which is why an AV must present its inlet to
+ * the charger and why OTTO-Q may not assign a stall on the wrong side. That
+ * claim is only true while the arm is short enough. Scale it far enough and the
+ * robot can sweep over the car, the constraint silently evaporates, and the
+ * backend gate is enforcing a rule the hardware no longer has.
+ *
+ * Swept over the full port band (along +/-1.00 m, height 0.48-1.44 m) at the
+ * far-flank standoff, the closest far-flank wrist centre sits 2.351 m out,
+ * and two-link reach is 1.48 * scale. They meet at scale = 1.5908.
+ *
+ * 1.5 leaves 0.169 m of margin. kinematics.test.ts recomputes this ceiling from
+ * the spec rather than trusting the number above, so raising ARM_SCALE past it
+ * fails the build with the reason attached.
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+export const ARM_SCALE = 1.5;
+
+/** Depot-derived sizing at scale 1.0, metres. ARM_SCALE multiplies all of it. */
+const BASE_LINKS = {
   shoulderHeight: 0.26,
-  shoulderOffset: 0.0,
   upperArm: 0.80,
   forearm: 0.68,
   wrist: 0.16,
   tool: 0.22,
   radii: { base: 0.115, shoulder: 0.095, upper: 0.070, elbow: 0.080, fore: 0.058, wristR: 0.050 },
+} as const;
+
+const s = ARM_SCALE;
+export const OTTO_CHARGE_ARM: CobotSpec = {
+  shoulderHeight: BASE_LINKS.shoulderHeight * s,
+  shoulderOffset: 0.0,
+  upperArm: BASE_LINKS.upperArm * s,
+  forearm: BASE_LINKS.forearm * s,
+  wrist: BASE_LINKS.wrist * s,
+  tool: BASE_LINKS.tool * s,
+  // Housings scale too. The tubes are what actually make it read as a machine
+  // rather than a stick, and at 1.0 the forearm is a 116 mm pipe seen from tens
+  // of metres away.
+  radii: {
+    base: BASE_LINKS.radii.base * s,
+    shoulder: BASE_LINKS.radii.shoulder * s,
+    upper: BASE_LINKS.radii.upper * s,
+    elbow: BASE_LINKS.radii.elbow * s,
+    fore: BASE_LINKS.radii.fore * s,
+    wristR: BASE_LINKS.radii.wristR * s,
+  },
   // Limits match the SPHERICAL-WRIST architecture (J4 roll, J5 pitch, J6 roll).
   // Roll joints get full rotation, as they do on any real cobot; the earlier
   // +/-0.8pi on J4 was left over from when J4 was a pitch, and it rejected
