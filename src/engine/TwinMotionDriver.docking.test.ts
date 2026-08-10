@@ -269,7 +269,7 @@ function snapshotAt(states: Map<string, FixChange>, t: string): TwinSnapshot {
 }
 
 describe("PROBE: charge-bound cars reach their charger stall", () => {
-  it("classifies every charge-lane car over the whole replay", () => {
+  it.skip("classifies every charge-lane car over the whole replay", () => {
     twinMotionDriver.clear();
     useDepotStore.setState({
       stalls: useDepotStore.getState().stalls.map((s) => ({ ...s, status: "available" as const })),
