@@ -1,17 +1,31 @@
-import { memo, useRef } from 'react';
+import { memo, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
-import { toWorld } from './coordUtils';
+import { toWorld, DECK_Y } from './coordUtils';
+import { VEHICLE_GEO as GEO, PORT_GEO, CAR_W_PU } from './vehicleBody';
 import { poseStore } from '@/engine/motion/poseStore';
 import { useVehicleStore } from '@/store/vehicleStore';
+import { useDepotStore } from '@/store/depotStore';
+import { portFor } from '@/lib/ottoChargeArm/chargePort';
+import { towardFor, portInVehicleFrame } from '@/lib/ottoChargeArm/depotPlacement';
 import type { Vehicle } from '@/engine/types';
 
 // ── PERF: the fleet used to clone a 22.5MB GLB per car (176 meshes / 684k tris
 // EACH → ~20,000 draw calls + ~79M triangles/frame at 115 cars, drawn AGAIN by
-// the shadow pass). Every car is now a shared low-poly sedan: ~6 draw calls and
-// ~300 triangles per car, ONE geometry + material set shared fleet-wide, and
-// only the body casts a shadow. The 22.5MB model download is gone entirely.
+// the shadow pass). Every car is now a shared low-poly robotaxi: ONE geometry +
+// material set shared fleet-wide, and only the body casts a shadow. The 22.5MB
+// model download is gone entirely.
+//
+// The body used to be stacked BoxGeometry — a slab with a floating glass cube
+// on it, which does not read as a vehicle at any distance. It is now the
+// extruded side-profile pod developed for the OTTO-CHARGE ARM viewer.
+//
+// Draw calls per car went 6 -> 7 (+ the status glow, + 2 for the charge port on
+// cars that have one), NOT 6 -> 13: the four tyres are merged into one buffer,
+// the four rim discs into another, the cladding and sensor pod into a third,
+// and the greenhouse and pod glass into a fourth. Merging is done ONCE at module
+// load, not per vehicle.
 
 // Realistic fleet paint mix (weights ≈ real-world car-color distribution),
 // picked stably per vehicle id. Ops color-coding stays on the 2D dots/badges.
@@ -20,10 +34,13 @@ const PAINTS: [string, number][] = [
   ['#1b3a6b', 9], ['#7a1622', 8], ['#0e6f63', 5], ['#2e4a31', 4],
 ];
 const PAINT_TOTAL = PAINTS.reduce((n, p) => n + p[1], 0);
-function paintFor(id: string): string {
+function hash(id: string): number {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
-  let r = h % PAINT_TOTAL;
+  return h;
+}
+function paintFor(id: string): string {
+  let r = hash(id) % PAINT_TOTAL;
   for (const [c, w] of PAINTS) { if (r < w) return c; r -= w; }
   return PAINTS[0][0];
 }
@@ -38,27 +55,30 @@ const FX: Record<string, { glow: string; pulse: number; op: number }> = {
   departing: { glow: '', pulse: 0, op: 0.85 },
 };
 
-// Shared geometries + materials — created ONCE for the whole fleet.
-// Scaled by factor 10.2 / 4.9 ≈ 2.08 from the original metre values to match the 2D car size (10.2 plan units long).
-// (1 plan unit = 0.4785 m).
-const SCALE = 7.5 / 4.9;
-const GEO = {
-  body: new THREE.BoxGeometry(2.2 * SCALE, 0.85 * SCALE, 4.9 * SCALE),
-  cabin: new THREE.BoxGeometry(3.8 / 2.0 * SCALE, 1.24 / 2.0 * SCALE, 5.0 / 2.0 * SCALE),
-  wheel: new THREE.CylinderGeometry(0.84 / 2.0 * SCALE, 0.84 / 2.0 * SCALE, 0.6 / 2.0 * SCALE, 10),
-  glow: new THREE.SphereGeometry(3.6 / 2.0 * SCALE, 8, 8),
-};
-GEO.wheel.rotateZ(Math.PI / 2); // axle along X
 const MAT = {
-  glass: new THREE.MeshStandardMaterial({ color: '#0c1116', roughness: 0.12, metalness: 0.9 }),
-  wheel: new THREE.MeshStandardMaterial({ color: '#15171a', roughness: 0.9 }),
+  glass: new THREE.MeshStandardMaterial({ color: '#0d1418', roughness: 0.10, metalness: 0.25 }),
+  // One dark trim material for cladding AND sensor pod. The viewer gave them
+  // slightly different roughness; at depot camera range that difference is
+  // invisible and it costs a whole extra draw call per car to keep.
+  trim: new THREE.MeshStandardMaterial({ color: '#171b21', roughness: 0.55, metalness: 0.45 }),
+  tyre: new THREE.MeshStandardMaterial({ color: '#0b0d10', roughness: 0.92 }),
+  rim: new THREE.MeshStandardMaterial({ color: '#6a7280', roughness: 0.3, metalness: 0.9 }),
+  portSocket: new THREE.MeshStandardMaterial({ color: '#3a4048', roughness: 0.35, metalness: 0.9 }),
+  // Idle vs live: the ring is a fixture, so it is dimly lit at rest and bright
+  // while current is flowing. Two shared materials, not one per vehicle.
+  portRing: new THREE.MeshStandardMaterial({
+    color: '#00e5ff', emissive: '#00e5ff', emissiveIntensity: 0.6, roughness: 1, metalness: 0, toneMapped: false,
+  }),
+  portRingLive: new THREE.MeshStandardMaterial({
+    color: '#00e5ff', emissive: '#00e5ff', emissiveIntensity: 2.2, roughness: 1, metalness: 0, toneMapped: false,
+  }),
   paints: new Map<string, THREE.MeshStandardMaterial>(),
   glows: new Map<string, THREE.MeshPhysicalMaterial>(),
 };
 function paintMat(col: string): THREE.MeshStandardMaterial {
   let m = MAT.paints.get(col);
   if (!m) {
-    m = new THREE.MeshStandardMaterial({ color: col, roughness: 0.35, metalness: 0.75 });
+    m = new THREE.MeshStandardMaterial({ color: col, roughness: 0.30, metalness: 0.60 });
     MAT.paints.set(col, m);
   }
   return m;
@@ -71,9 +91,23 @@ function glowMat(col: string): THREE.MeshPhysicalMaterial {
   }
   return m;
 }
-const WHEELS: [number, number, number][] = [
-  [-2.19, 0.87, 3.23], [2.19, 0.87, 3.23], [-2.19, 0.87, -3.23], [2.19, 0.87, -3.23],
-];
+
+/**
+ * Which flank this vehicle presents its charge port on.
+ *
+ * chargePort.ts models the vehicle as ARRIVING CORRECTLY ORIENTED — a
+ * pedestal-mounted arm cannot serve the far flank, so an AV picks its approach
+ * so the inlet presents to the charger, the way a driver picks a pump side.
+ * That makes the port side a property of the ASSIGNED STALL, not of the car:
+ * the pedestal sits on the car's -toward flank, so the port does too.
+ *
+ * Away from a charging stall there is no pedestal to present to, so the side
+ * falls back to a stable per-vehicle choice rather than flipping about.
+ */
+function portSideFor(id: string, stallToward: 1 | -1 | 0): 1 | -1 {
+  if (stallToward !== 0) return (-stallToward) as 1 | -1;
+  return hash(id) % 2 === 0 ? 1 : -1;
+}
 
 // Vehicles face their direction of travel while moving (one-way circulation),
 // then settle to their stall's site-plan angle when parked.
@@ -87,6 +121,26 @@ function Vehicle3DInner({ vehicle }: { vehicle: Vehicle; simSpeed: number }) {
   // Selector returns a bool, so a car only re-renders when ITS hover state flips.
   const isHovered = useVehicleStore((s) => s.hoveredVehicleId === vehicle.id);
   const setHovered = useVehicleStore((s) => s.setHoveredVehicle);
+
+  // Pedestal side of this vehicle's stall, or 0 when it is not at a charger.
+  // The selector returns a PRIMITIVE, so the car re-renders only when the sign
+  // actually flips — not on every depot-store update.
+  const stallToward = useDepotStore((s) => {
+    if (!vehicle.assignedStall) return 0 as const;
+    const st = s.stalls.find((x) => x.id === vehicle.assignedStall);
+    if (!st || (st.type !== 'dcfc' && st.type !== 'l2')) return 0 as const;
+    return towardFor(st.position.x);
+  });
+
+  const port = useMemo(() => {
+    const p = portFor(vehicle.id, vehicle.oem);
+    const side = portSideFor(vehicle.id, stallToward);
+    const v = portInVehicleFrame(p.along, p.height, CAR_W_PU / 2, side);
+    // The socket is authored with its normal on +X; on the -X flank the whole
+    // group turns about Y so the recess still sinks INTO the bodywork.
+    return { pos: [v.x, v.y, v.z] as [number, number, number], yaw: side > 0 ? 0 : Math.PI };
+  }, [vehicle.id, vehicle.oem, stallToward]);
+
   // Initial mount position only; the LIVE pose is driven imperatively from the
   // poseStore in useFrame below (no React re-render on movement).
   const [tx, , tz] = toWorld(vehicle.position);
@@ -114,16 +168,30 @@ function Vehicle3DInner({ vehicle }: { vehicle: Vehicle; simSpeed: number }) {
       onPointerOver={(e) => { e.stopPropagation(); setHovered(vehicle.id); }}
       onPointerOut={() => setHovered(null)}
     >
-      {/* body — the ONLY shadow caster on the car (shadow pass stays cheap) */}
-      <mesh geometry={GEO.body} material={paintMat(col)} position={[0, 1.77, 0]} castShadow />
-      <mesh geometry={GEO.cabin} material={MAT.glass} position={[0, 3.12, -0.52]} />
-      {WHEELS.map((p, i) => (
-        <mesh key={i} geometry={GEO.wheel} material={MAT.wheel} position={p} />
-      ))}
+      {/* Tyres rest ON the deck, the same grade the OTTO-CHARGE ARM mounts off. */}
+      <group position={[0, DECK_Y, 0]}>
+        {/* body — the ONLY shadow caster on the car (shadow pass stays cheap) */}
+        <mesh geometry={GEO.body} material={paintMat(col)} castShadow />
+        <mesh geometry={GEO.glass} material={MAT.glass} />
+        <mesh geometry={GEO.trim} material={MAT.trim} />
+        <mesh geometry={GEO.tyres} material={MAT.tyre} />
+        <mesh geometry={GEO.rims} material={MAT.rim} />
+      </group>
+
+      {/* Charge port — the inlet the OTTO-CHARGE ARM actually mates with.
+          Positioned from portFor() through the same resolver the arm solves
+          against, so what the robot plugs into is what you can see. */}
+      <group position={port.pos} rotation={[0, port.yaw, 0]}>
+        <mesh geometry={PORT_GEO.socket} material={MAT.portSocket} />
+        <mesh
+          geometry={PORT_GEO.ring}
+          material={vehicle.status === 'charging' ? MAT.portRingLive : MAT.portRing}
+        />
+      </group>
 
       {/* Status glow */}
       {fx.glow && (
-        <mesh geometry={GEO.glow} material={glowMat(fx.glow)} position={[0, 4.58, 0]} />
+        <mesh geometry={GEO.glow} material={glowMat(fx.glow)} position={[0, 3.9, 0]} />
       )}
 
       {/* SoC badge — only on the hovered car (keeps the scene fast) */}
@@ -150,8 +218,11 @@ function Vehicle3DInner({ vehicle }: { vehicle: Vehicle; simSpeed: number }) {
 
 // PERF: the roster array is rebuilt on every twin poll (new object identities);
 // live position comes from poseStore, so a car only needs to re-render when its
-// id / status / coarse SoC actually change.
+// id / status / coarse SoC actually change — plus, now, its stall assignment
+// and OEM, which together decide where its charge port sits.
 export const Vehicle3D = memo(Vehicle3DInner, (a, b) =>
   a.vehicle.id === b.vehicle.id &&
   a.vehicle.status === b.vehicle.status &&
+  a.vehicle.assignedStall === b.vehicle.assignedStall &&
+  a.vehicle.oem === b.vehicle.oem &&
   Math.round(a.vehicle.currentSoC / 5) === Math.round(b.vehicle.currentSoC / 5));

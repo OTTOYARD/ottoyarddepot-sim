@@ -17,6 +17,18 @@ export function toWorld(
   return [x3d, height, z3d];
 }
 
+/**
+ * Y of the DRIVABLE SURFACE — the asphalt overlay DepotGround lays over the
+ * perimeter curb slab (curb top 0.24 + 0.02 of paving). Plan units.
+ *
+ * This is the depot's GRADE, and it has to be stated once rather than guessed
+ * per component. Vehicle3D rests its tyres here and hangs the visible charge
+ * port off it; depotPlacement mounts the OTTO-CHARGE ARM off the same datum.
+ * When those two disagreed, the arm's connector arrived 0.26 units (12 cm)
+ * below the port ring — nearly two ring radii, i.e. plainly wrong on camera.
+ */
+export const DECK_Y = 0.26;
+
 // Verification (post-flip): east = -X, so viewed north-up east falls on the right.
 // INGRESS {200,215} east => [-50, h, -105]
 // EGRESS  {100,215} west => [ 50, h, -105]

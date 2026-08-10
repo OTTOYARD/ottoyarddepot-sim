@@ -5,7 +5,8 @@ import { useVehicleStore } from '@/store/vehicleStore';
 import { useDepotStore } from '@/store/depotStore';
 import { useSimulationStore } from '@/store/simulationStore';
 import { buildCobot, makeCobotMaterials, type CobotHandles } from '@/lib/ottoChargeArm/buildCobot';
-import { OTTO_CHARGE_ARM, PLAN_UNITS_PER_METRE } from '@/lib/ottoChargeArm/cobotSpec';
+import { OTTO_CHARGE_ARM, METRES_PER_PLAN_UNIT } from '@/lib/ottoChargeArm/cobotSpec';
+import { CAR_WIDTH } from '@/engine/motion/traffic';
 import { statusColor, isTethered, vehicleMayMove } from '@/lib/ottoChargeArm/armStateMachine';
 import { poseFor, type ArmTarget } from '@/lib/ottoChargeArm/armMotion';
 import { placeArm, portInArmFrame } from '@/lib/ottoChargeArm/depotPlacement';
@@ -48,8 +49,8 @@ const spec = OTTO_CHARGE_ARM;
  */
 const TEMPLATE: CobotHandles = buildCobot(spec, { withPlinth: true, lod: 'depot' });
 
-/** Rendered vehicle half-width in metres, from Vehicle3D's SCALE = 7.5/4.9. */
-const CAR_HALF_WIDTH_M = (2.2 * (7.5 / 4.9) * 0.4785) / 2;
+/** Rendered vehicle half-width in metres, from the shared plan-unit footprint. */
+const CAR_HALF_WIDTH_M = (CAR_WIDTH * METRES_PER_PLAN_UNIT) / 2;
 
 interface ChargingArmProps {
   stallId: string;
@@ -131,7 +132,7 @@ export function ChargingArm({ stallId, stallType }: ChargingArmProps) {
     // Target: this vehicle's modelled inlet, in the arm's base frame, metres.
     const port = v ? portFor(v.id, v.oem) : { along: 0, height: 0.75, family: '' };
     const target: ArmTarget = {
-      port: portInArmFrame(port.along, port.height, CAR_HALF_WIDTH_M),
+      port: portInArmFrame(port.along, port.height, CAR_HALF_WIDTH_M, placement.toward),
       normal: { x: 0, y: 0, z: -1 },
     };
 

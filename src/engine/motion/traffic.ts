@@ -23,6 +23,16 @@ export interface MovingCar {
 /** Logical car length (bumper-to-bumper bookkeeping for the IDM gap). */
 export const CAR_LENGTH = 7.5;
 
+/**
+ * Logical car width, plan units — the same 3.367 the 3D body is built to.
+ *
+ * Stated here beside CAR_LENGTH because it was previously an unnamed
+ * `2.2 * (7.5 / 4.9)` copied into the renderer, the arm component and two test
+ * files. One of those copies drifting would put the OTTO-CHARGE ARM's standoff
+ * on a different flank plane from the flank it is aiming at.
+ */
+export const CAR_WIDTH = 2.2 * (CAR_LENGTH / 4.9);
+
 export interface Leader {
   gap: number;        // bumper-to-bumper distance (>=0), Infinity if none
   leaderSpeed: number;

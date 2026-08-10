@@ -7,7 +7,9 @@ import { componentTagger } from "lovable-tagger";
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
-    port: 8080,
+    // 8080 stays the default; PORT lets a second dev server (a parallel review
+    // session, a preview harness) run without colliding with the first.
+    port: Number(process.env.PORT) || 8080,
     hmr: {
       overlay: false,
     },

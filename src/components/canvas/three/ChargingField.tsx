@@ -1,16 +1,26 @@
 import { useMemo } from 'react';
 import * as THREE from 'three';
 import { useDepotStore } from '@/store/depotStore';
-import { CANOPIES } from '@/lib/sitePlan';
+import { towardFor, PEDESTAL_OFFSET_PU } from '@/lib/ottoChargeArm/depotPlacement';
 import { toWorld } from './coordUtils';
 import { MATERIALS } from './materials';
 
-// charge cable arc, built per side (toward = ±1 points at the canopy spine)
+/**
+ * Charge cable arc, built per side.
+ *
+ * SIGN: `toward` is the plan-space direction of the canopy spine, and toWorld
+ * negates X, so in WORLD space the car sits at +toward from its pedestal —
+ * the same convention placeArm() derives its rotation from. This arced the
+ * cable to -toward, i.e. out into empty tarmac on the far side of the pedestal,
+ * away from the car it is supposedly plugged into. Same mirror as the screen
+ * below. It never read as wrong because both stall columns have a pedestal, so
+ * every stray cable had a neighbouring pedestal to look like it belonged to.
+ */
 function cableGeo(toward: number): THREE.TubeGeometry {
   const curve = new THREE.QuadraticBezierCurve3(
-    new THREE.Vector3(-toward * 0.8, 2.1, 0.15),
-    new THREE.Vector3(-toward * 2.4, 0.9, 0.55),
-    new THREE.Vector3(-toward * 4.0, 1.5, 0.35),
+    new THREE.Vector3(toward * 0.8, 2.1, 0.15),
+    new THREE.Vector3(toward * 2.4, 0.9, 0.55),
+    new THREE.Vector3(toward * 4.0, 1.5, 0.35),
   );
   return new THREE.TubeGeometry(curve, 14, 0.09, 6);
 }
@@ -51,11 +61,11 @@ export function ChargingField({ type }: Props) {
   return (
     <group>
       {list.map((s) => {
-        // pedestal sits between the car and its canopy spine
-        const canopy = CANOPIES.reduce((best, c) =>
-          Math.abs(c.cx - s.position.x) < Math.abs(best.cx - s.position.x) ? c : best, CANOPIES[0]);
-        const toward = Math.sign(canopy.cx - s.position.x) || 1;
-        const px = s.position.x + toward * 4.5;
+        // pedestal sits between the car and its canopy spine — one shared rule,
+        // so the cabinet, its arm and the vehicle's charge port cannot disagree
+        // about which flank they are all on.
+        const toward = towardFor(s.position.x);
+        const px = s.position.x + toward * PEDESTAL_OFFSET_PU;
         const [wx, , wz] = toWorld({ x: px, y: s.position.y }, 0);
 
         return (
@@ -69,8 +79,12 @@ export function ChargingField({ type }: Props) {
             <mesh position={[0, H / 2 + 0.16, 0]} castShadow material={mats.body}>
               <boxGeometry args={[W, H, 0.7]} />
             </mesh>
-            {/* screen (faces the car) */}
-            <mesh position={[toward * -(W / 2 + 0.02), H * 0.68, 0]} rotation={[0, toward < 0 ? Math.PI / 2 : -Math.PI / 2, 0]} material={mats.screen}>
+            {/* screen — on the car's flank of the cabinet, facing it. Ry(theta)
+                sends +Z to (sin, 0, cos), so aiming at the car needs
+                sin(theta) = toward: exactly the rotation placeArm() gives the
+                OTTO-CHARGE ARM on the same pedestal. It used to be mounted on
+                the BACK face, pointed at the next row over. */}
+            <mesh position={[toward * (W / 2 + 0.02), H * 0.68, 0]} rotation={[0, toward * (Math.PI / 2), 0]} material={mats.screen}>
               <planeGeometry args={[0.55, 0.8]} />
             </mesh>
             {/* status LED strip */}
