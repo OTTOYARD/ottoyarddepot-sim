@@ -5,6 +5,7 @@ import { ACESFilmicToneMapping, PCFSoftShadowMap, FogExp2, SRGBColorSpace } from
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { useVehicleStore } from '@/store/vehicleStore';
 import { useSimulationStore } from '@/store/simulationStore';
+import { useDepotStore } from '@/store/depotStore';
 import { DepotGround } from './three/DepotGround';
 import { DepotBuilding } from './three/DepotBuilding';
 import { SolarCanopy } from './three/SolarCanopy';
@@ -111,6 +112,8 @@ export default function DepotScene3D() {
   const config = useSimulationStore((s) => s.config);
   const simTime = useSimulationStore((s) => s.simTime);
   const simSpeed = useSimulationStore((s) => s.simSpeed);
+  const stalls = useDepotStore((s) => s.stalls);
+  const chargingStalls = useMemo(() => stalls.filter(s => s.type === 'dcfc' || s.type === 'l2'), [stalls]);
   const controlsRef = useRef<OrbitControlsImpl>(null);
   
 
@@ -161,11 +164,8 @@ export default function DepotScene3D() {
           <StagingZone count={config.stagingStalls} />
           <Lanes3D />
           <UtilityEquipment bessCapacity={config.bessCapacity} bessPower={config.bessPower} />
-          {[...Array(10)].map((_, i) => (
-            <ChargingArm key={`arm-dcfc-${i}`} stallId={`DCFC-${String(i+1).padStart(2, '0')}`} stallType="dcfc" position={[30+i*2, 0, i*1.5]} />
-          ))}
-          {[...Array(20)].map((_, i) => (
-            <ChargingArm key={`arm-l2-${i}`} stallId={`L2-${String(i+1).padStart(2, '0')}`} stallType="l2" position={[10+i*2, 0, i*1.5]} />
+          {chargingStalls.map((s) => (
+            <ChargingArm key={`arm-${s.id}`} stallId={s.id} stallType={s.type as 'dcfc' | 'l2'} />
           ))}
           <DepotOverlays />
           <Landscaping />
