@@ -8,22 +8,18 @@
 //   • amber dashes   = the centre divider of a two-way road
 //   • white bars     = stop line at a one-way lane mouth
 //
-// Heading note: the plan frame is y-DOWN (south = +y) and the 3D frame maps
-// z = 110 - y, so a 2D heading θ becomes the 3D direction (cos θ, -sin θ) and
-// the Y-rotation is atan2(cos θ, -sin θ).
+// Heading note: the plan->world yaw transform is yawFromHeading2D in
+// coordUtils, next to the position transform it has to agree with. This file
+// used to re-derive it inline and was left behind by d879a23's X negation, so
+// the chevrons on every EAST/WEST lane pointed against the traffic they mark.
 // ============================================================================
 import { useMemo } from "react";
 import * as THREE from "three";
 import { buildDepotLanes } from "@/engine/motion/LaneGraph";
 import { paintLanes, LANE_PAINT_WIDTH } from "@/engine/motion/lanePaint";
-import { toWorld } from "./coordUtils";
+import { toWorld, yawFromHeading2D } from "./coordUtils";
 
 const Y_PAINT = 0.055; // just above the tarmac, below the cars
-
-function rotYFrom2D(angle: number) {
-  // 2D heading -> 3D direction (cos, -sin) in (x, z); Y-rotation to face it
-  return Math.atan2(Math.cos(angle), -Math.sin(angle));
-}
 
 export function Lanes3D() {
   const paint = useMemo(() => paintLanes(buildDepotLanes()), []);
@@ -62,7 +58,7 @@ export function Lanes3D() {
         for (let d = 3; d < segLen - 3; d += step) {
           const t = d / segLen;
           const [wx, , wz] = toWorld({ x: a.x + dx * t, y: a.y + dy * t }, 0);
-          out.push({ x: wx, z: wz, rotY: rotYFrom2D(angle), len: 3 });
+          out.push({ x: wx, z: wz, rotY: yawFromHeading2D(angle), len: 3 });
         }
       }
     }
@@ -76,7 +72,7 @@ export function Lanes3D() {
         const [wx, , wz] = toWorld({ x: a.x, y: a.y }, 0);
         const mat = a.oneWay ? materials.oneWay : materials.twoWay;
         return (
-          <group key={`ch${i}`} position={[wx, Y_PAINT, wz]} rotation={[0, rotYFrom2D(a.angle), 0]}>
+          <group key={`ch${i}`} position={[wx, Y_PAINT, wz]} rotation={[0, yawFromHeading2D(a.angle), 0]}>
             <mesh geometry={chevron.left} material={mat} />
             <mesh geometry={chevron.right} material={mat} />
           </group>
@@ -102,7 +98,7 @@ export function Lanes3D() {
           <mesh
             key={`sb${i}`}
             position={[wx, Y_PAINT, wz]}
-            rotation={[0, rotYFrom2D(b.angle), 0]}
+            rotation={[0, yawFromHeading2D(b.angle), 0]}
             material={materials.stop}
           >
             <boxGeometry args={[LANE_PAINT_WIDTH, 0.03, 0.5]} />
