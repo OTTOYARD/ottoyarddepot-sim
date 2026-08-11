@@ -28,7 +28,7 @@ import { useVehicleStore } from "@/store/vehicleStore";
 import { useSimulationStore } from "@/store/simulationStore";
 import type { Vehicle, VehicleStatus } from "@/engine/types";
 import type { TwinSnapshot, TwinLeg } from "@/lib/ottoTwin";
-import { INGRESS, EGRESS, gapLaneX, SOUTH_LANE_Y, REAR_LANE_Y } from "@/lib/sitePlan";
+import { INGRESS, EGRESS, gapLaneX, SOUTH_LANE_Y, REAR_LANE_Y, PARK_RUNS, TEMP_LANE_X } from "@/lib/sitePlan";
 import { DISCONNECT_SECONDS } from "@/lib/ottoChargeArm/armStateMachine";
 
 type Lane = "dcfc" | "l2" | "wash" | "service" | "staging";
@@ -173,6 +173,31 @@ function mapState(
 // depot center (LOT {x:6,y:6,w:288,h:200}) — perimeter cars nose OUTWARD from it
 const DEPOT_CX = 150;
 const DEPOT_CY = 106;
+
+/** Is this staging stall under a PERIMETER CARPORT (the W/E/S runs)?
+ *
+ *  Tested against the SAME PARK_RUNS carport rectangles the stalls are generated
+ *  from, not an id range: STAGE-01..82 happens to be the carports today and stops
+ *  being true the moment the staging count changes. The NE block (N1 row, TW/TE
+ *  columns) has no carport rect and is therefore open intake staging. */
+function isCarportStall(x: number, y: number): boolean {
+  for (const r of PARK_RUNS) {
+    const c = r.carport;
+    if (!c) continue;
+    if (x >= c.x && x <= c.x + c.w && y >= c.y && y <= c.y + c.h) return true;
+  }
+  return false;
+}
+
+/** Renderer stall TYPE → motion lane.
+ *
+ *  A Record lookup, never `as Lane`. An unknown stall type must be unable to
+ *  reach a cast — this codebase has twice been taken down by an unmapped enum
+ *  value sailing through a seam — so it yields undefined and the caller falls
+ *  back to intake staging, which is the safe side. */
+const STALL_TYPE_LANE: Record<string, Lane | undefined> = {
+  dcfc: "dcfc", l2: "l2", wash: "wash", service: "service", staging: "staging",
+};
 
 // lanes where a car parks to be SERVICED (must be seen docked before moving on)
 const SERVICE_LANES = new Set<Lane>(["dcfc", "l2", "wash", "service"]);
@@ -603,12 +628,17 @@ class TwinMotionDriver {
    *
    *  • UNITS. PHASE_SECONDS in armStateMachine are REAL robot seconds, and this
    *    window is in SIM seconds — the same domain, because a sim second IS a
-   *    second of depot world time. Playback speed (`speed_x`, mirrored onto the
-   *    motion multiplier and hard-capped at 3) scales the arm and the cars by
-   *    the identical factor, so a 3x run shows an 18.5 s mate in ~6 wall
-   *    seconds, in step with the car that just parked. Feeding it wall seconds
-   *    instead would mate the arm at playback speed while the depot moved at
+   *    second of depot world time. At 3x an 18.5 s mate plays in ~6 wall
+   *    seconds, in step with the car that just parked. Feeding the arm WALL
+   *    seconds instead would mate it at playback speed while the depot moved at
    *    sim speed.
+   *
+   *    The arm is paced against simNow(), which is the same clock contractPace
+   *    uses to hold the CARS to their leg deadlines — so above setViewMult's 3x
+   *    motion ceiling (the continuous-play ceiling is now 8x, raised in 9449c2c)
+   *    the arm and the cars fall behind the clock together, by the same factor.
+   *    That divergence belongs to the motion multiplier, not to the arm, and
+   *    giving the arm its own private rate would only hide it.
    */
   private serviceWindow(e: Entry): { start: number; duration: number } | null {
     if (!e.stallId || e.playback !== "docked" || e.dwellStartMs == null) return null;
@@ -1016,7 +1046,11 @@ class TwinMotionDriver {
     const depot = useDepotStore.getState();
     const stalls = depot.stalls;
     const byLane: Record<string, typeof stalls> = { dcfc: [], l2: [], wash: [], service: [], staging: [] };
-    for (const s of stalls) (byLane[s.type] ??= []).push(s);
+    const stallType = new Map<string, string>();
+    for (const s of stalls) {
+      (byLane[s.type] ??= []).push(s);
+      stallType.set(s.id, s.type);
+    }
     // OTTO-Q spatial policy: charging fills NORTH-first (nearest the wash/service
     // bays), so cars pool toward the top and only spill south as it fills.
     byLane.dcfc?.sort((a, b) => a.position.y - b.position.y);
@@ -1035,16 +1069,57 @@ class TwinMotionDriver {
     // everything may fill the perimeter carports — the real overnight park.
     // STABILITY BIAS is untouched: existing stall claims are never reshuffled;
     // ordering applies to NEW claims / lane changes only.
+    //
+    // STAGING IS NOT ONE UNDIFFERENTIATED LIST. The renderer draws 115 staging
+    // stalls in two physically different places, and the ordering below is the
+    // only thing that decides which a car gets:
+    //   • CARPORT — the W/E/S perimeter runs under carports, 82 of the 115.
+    //     This is the OVERNIGHT park. Daytime parking here is a failure state.
+    //   • INTAKE  — the open NE block (N1 row + the TW/TE columns off the
+    //     central aisle), 33 stalls. Short-hold pit-stop staging: temp holds,
+    //     congestion waits, a car whose bay is not free yet.
+    // Three orderings are built from those two zones, one per PURPOSE. Each is a
+    // full PERMUTATION of the staging list, never a subset: a stall OTTO-Q named
+    // by name must stay claimable, and the carports are a real overflow this
+    // depot runs into whenever the 33-stall intake block fills — which, at the
+    // 94-car staging peak the busy_day replay reaches, is most of the day.
     const hourFmt = new Intl.DateTimeFormat("en-US", { hour: "numeric", hour12: false, timeZone: "America/Chicago" });
     const simHour = snap.run?.sim_clock ? Number(hourFmt.format(new Date(snap.run.sim_clock))) % 24 : 12;
     const overnight = simHour >= 22 || simHour < 5;
-    const isTempSpot = (s: (typeof stalls)[number]) =>
-      s.position.x >= 226 && s.position.x <= 268 && s.position.y < 165; // TW/TE columns + N1 row (NE zone)
     const dOut = (s: (typeof stalls)[number]) => Math.hypot(s.position.x - EGRESS.x, s.position.y - EGRESS.y);
-    const stagingTempFirst = [...(byLane.staging ?? [])].sort(
-      (a, b) => Number(isTempSpot(b)) - Number(isTempSpot(a)) || dIn(a) - dIn(b));
-    const stagingByEgress = [...(byLane.staging ?? [])].sort((a, b) => dOut(a) - dOut(b));
-    const DAY_HOLD_STATES = new Set(["charge_complete_holding", "service_complete_holding", "staged_awaiting_service"]);
+    /** INTAKE / temp hold — congestion holds and cars waiting for a bay. A car
+     *  parked on the perimeter in daylight because it could not get what it
+     *  needed is the failure state; it belongs in TEMP staging. Open NE block
+     *  first, nearest the INGRESS within a zone; overnight the preference flips,
+     *  because the perimeter carports ARE the overnight park. */
+    /** The southernmost stall of each temp column sits IN the throat of the
+     *  block's single aisle. Filling the throat first constricts entry to the
+     *  whole block: measured on the busy_day replay, promoting just those two
+     *  stalls ahead of the rest moved body-overlap 4090 -> 4538 samples (+11%)
+     *  and wedged-car time 1977 -> 2137. Fill them last. */
+    const atAisleMouth = (s: (typeof stalls)[number]) =>
+      s.position.x > 222 && s.position.x < 272 && s.position.y > 165;
+    const stagingIntake = [...(byLane.staging ?? [])].sort((a, b) => {
+      const ca = Number(isCarportStall(a.position.x, a.position.y));
+      const cb = Number(isCarportStall(b.position.x, b.position.y));
+      if (ca !== cb) return overnight ? cb - ca : ca - cb;
+      const ma = Number(atAisleMouth(a)), mb = Number(atAisleMouth(b));
+      if (ma !== mb) return ma - mb;
+      return dIn(a) - dIn(b);
+    });
+    /** ARRIVAL FALLBACK — an arrival OTTO-Q reserved nothing for. Ingress-first:
+     *  the shortest taxi from the gate. Deliberately NOT the intake pool — the
+     *  measurement is in the pool selector below. */
+    const stagingIngressFirst = [...(byLane.staging ?? [])].sort((a, b) => dIn(a) - dIn(b));
+    /** DEPLOY-READY — a car about to leave stages by the EXIT, and the
+     *  nearest-to-egress stalls happen to be the west/south carports. That is a
+     *  different thing from a car stranded on the perimeter and it is left
+     *  alone: deliberately NO carport penalty here, so deploy-ready cars stop
+     *  consuming the 33-stall intake block. Measured on the busy_day replay:
+     *  penalising this pool too did not move deploy-ready cars off the perimeter
+     *  — there is nowhere else for ~90 of them to be — it only pushed them into
+     *  the intake block, and arrivals still landed 9/13 on the perimeter. */
+    const stagingDeparture = [...(byLane.staging ?? [])].sort((a, b) => dOut(a) - dOut(b));
 
     const present = new Set<string>();
     const desiredStatus = new Map<string, StallStatus>();
@@ -1152,10 +1227,33 @@ class TwinMotionDriver {
 
       // NO QUEUE LINES: a vehicle is ALWAYS in a stall (charging/wash/service/
       // staging) or TAXIING between them. An arriving car ("gate") drives in from
-      // the ingress and PARKS in a free staging stall; OTTO-Q then taxis it to its
-      // sequenced service stall. So "entering" simply targets a staging stall.
+      // the ingress; "entering" therefore means "spawn at the gate and drive".
       const entering = m.lane === "gate";
-      const lane: Lane = entering ? "staging" : (m.lane as Lane);
+      // WHAT THE ARRIVAL ACTUALLY NEEDS — not an invented park.
+      //
+      // 'arrived_at_gate' is a vehicle_state WORD. It says nothing about the work
+      // the car came in for, so mapState (which can only see the word) reports
+      // gate/staging. OTTO-Q's real answer is the STALL it reserved, and the lane
+      // was hardcoded to "staging" here, throwing that away: a car with a
+      // charger held for it was given a parking space instead. The depot is a
+      // PIT STOP — ~90% of returns are a quick DCFC turnaround — so this sent a
+      // stream of arrivals to park rather than to the work they came in for.
+      //
+      // The stall's TYPE is the lane. Only when OTTO-Q reserved nothing does the
+      // car fall back to staging, and then to INTAKE staging, never the perimeter.
+      const reservedStall = bv.stall_id ? this.twinStall.get(bv.stall_id) : undefined;
+      const reservedLane = reservedStall
+        ? STALL_TYPE_LANE[stallType.get(reservedStall) ?? ""] ?? null
+        : null;
+      let lane: Lane;
+      if (bv.state === "arrived_at_gate") {
+        lane = reservedLane ?? "staging";
+      } else if (m.lane === "gate") {
+        // no other state maps to "gate" today; a TOTAL fallback, not a cast
+        lane = "staging";
+      } else {
+        lane = m.lane;
+      }
       // STABILITY BIAS: once a car holds a stall in this lane, it KEEPS it.
       // Migrating parked/en-route cars to a "better" stall caused fleet-wide
       // reshuffles (everyone backing out at once). Reassignment happens ONLY on
@@ -1199,13 +1297,32 @@ class TwinMotionDriver {
         this.entries.set(bv.id, e);
         continue;
       }
-      // doctrine-aware staging pool: deploy-ready cars pool by the EGRESS, daytime
-      // holds fill the NE temp block first, overnight + arrivals keep the
-      // ingress-ordered default (perimeter carports = the overnight park).
+      // THREE POOLS, NOT ONE LIST. Previously this named only two states and let
+      // EVERYTHING else fall through to the raw ingress-sorted list, whose
+      // nearest-to-INGRESS entries are the SOUTH PERIMETER CARPORT rows. Every
+      // unnamed staging state — arrivals, emergency-staged, out-of-service —
+      // therefore got a perimeter park by default.
+      //
+      // The unreserved arrival deliberately keeps the ingress-first ordering, and
+      // this is the honest part: routing it to the NE intake block MEASURES WORSE.
+      // Replaying the captured busy_day run (116 vehicles, 94 simultaneous
+      // staging claims against 33 non-carport staging stalls) with arrivals sent
+      // to intake: wedged-car time 1977 -> 2383 samples (+21%), because the block
+      // is reached up the EAST AVENUE — the 14.31u corridor between the TE and E
+      // columns that the fixture's own ratchet comment names as an unclosed
+      // clearance conflict — and it is already full of day holds. An arrival
+      // queued in the depot's narrowest corridor is worse for it and for
+      // everyone behind it than a short taxi to the carport row beside the gate.
+      // The structural fix is depot capacity (33 short-hold stalls cannot serve a
+      // 94-car staging peak), not a different sort order here.
+      //
+      // What DOES move the arrival off the perimeter is the lane fix above: an
+      // arrival OTTO-Q reserved a charger or bay for now drives to it and never
+      // asks this pool at all.
       const stagingPool = lane !== "staging" ? null
-        : !overnight && bv.state === "staged_for_departure" ? stagingByEgress
-        : !overnight && DAY_HOLD_STATES.has(bv.state) ? stagingTempFirst
-        : null;
+        : bv.state === "staged_for_departure" ? stagingDeparture
+        : bv.state === "arrived_at_gate" ? stagingIngressFirst
+        : stagingIntake;
       const cands = (stagingPool ?? byLane[lane] ?? []).map((s) => s.id).filter((sid) => !twinFaulted.has(sid));
       // EXACT-STALL FIDELITY: if the twin named this vehicle's stall and it maps
       // to a renderer stall in the right zone, claim exactly that one — what you
@@ -1241,7 +1358,7 @@ class TwinMotionDriver {
           if (e.lane !== lane && lane !== "staging") {
             // temporary congestion hold (doctrine case 2): wait in the NE temp
             // block, not the overnight carports
-            const stageCands = stagingTempFirst.map((s) => s.id).filter((sid) => !twinFaulted.has(sid));
+            const stageCands = stagingIntake.map((s) => s.id).filter((sid) => !twinFaulted.has(sid));
             const st2 = this.ledger.claimFirstFree(bv.id, stageCands);
             // GUARD (mirror of the stall-unchanged check below): claimFirstFree
             // returns the car's OWN staging stall on every later poll while the

@@ -6,6 +6,7 @@ import { useSimulationStore } from "@/store/simulationStore";
 import { poseStore } from "./motion/poseStore";
 import type { TwinSnapshot } from "@/lib/ottoTwin";
 import { DISCONNECT_SECONDS } from "@/lib/ottoChargeArm/armStateMachine";
+import { PARK_RUNS } from "@/lib/sitePlan";
 
 // Minimal snapshot carrying only what the driver reads (fleet.vehicles).
 function snap(vehicles: { id: string; state: string; soc?: number; platform?: string; stall_id?: string | null }[], runId = "t"): TwinSnapshot {
@@ -33,6 +34,17 @@ const distToStall = (v: { position: { x: number; y: number } }, stallId: string)
   const s = useDepotStore.getState().stalls.find((st) => st.id === stallId)!;
   return Math.hypot(v.position.x - s.position.x, v.position.y - s.position.y);
 };
+/** Is this stall under a PERIMETER CARPORT (the W/E/S runs)? Daytime parking
+ *  there is the failure state the founder named; the open NE block is intake. */
+const isPerimeterCarport = (stallId: string | null | undefined) => {
+  const s = useDepotStore.getState().stalls.find((st) => st.id === stallId);
+  if (!s) return false;
+  return PARK_RUNS.some((r) => {
+    const c = r.carport;
+    return !!c && s.position.x >= c.x && s.position.x <= c.x + c.w
+      && s.position.y >= c.y && s.position.y <= c.y + c.h;
+  });
+};
 
 describe("TwinMotionDriver — kinematic motion off the twin", () => {
   beforeEach(() => {
@@ -41,7 +53,12 @@ describe("TwinMotionDriver — kinematic motion off the twin", () => {
     useDepotStore.getState().regenerateStalls(10, 30, 3, 115, 2);
   });
 
-  it("a fresh arrival enters at the ingress and drives to a STAGING stall (no line)", () => {
+  it("an arrival OTTO-Q reserved NOTHING for drives to a staging stall (no line)", () => {
+    // UPDATED (A3) — scope narrowed on purpose. This test used to stand for
+    // "an arrival gets a STAGE- stall", which is the defect: it got one ALWAYS,
+    // even when OTTO-Q had a charger reserved for it. Staging is right only when
+    // nothing was reserved, which is what this now says; the reserved case is
+    // covered in "arrivals go to what they need" below.
     twinMotionDriver.reconcile(snap([{ id: "v1", state: "arrived_at_gate" }]));
     const v = find("v1")!;
     expect(v.status).toBe("staging");                // parked in staging, not lined up
@@ -316,7 +333,7 @@ describe("TwinMotionDriver — kinematic motion off the twin", () => {
       entries: Map<string, { vstatus: string; tracker: unknown; reverse: unknown; stallId: string | null; car: { x: number; y: number; speed: number } }>;
     }).entries;
     const e = entries.get("v1")!;
-    expect(e.stallId).toMatch(/^STAGE-/);
+    expect(e.stallId).toMatch(/^STAGE-/); // nothing reserved for it → staging
     // manufacture the legacy frozen state (tow-freeze / any tracker-null residue):
     // mid-lane, mid-turn heading, no route
     e.tracker = null;
@@ -414,7 +431,7 @@ describe("TwinMotionDriver — kinematic motion off the twin", () => {
     // each arrival gets its OWN staging stall — never a shared queue line
     const stalls = ids.map((id) => find(id)!.assignedStall!);
     expect(new Set(stalls).size).toBe(ids.length);
-    expect(stalls.every((s) => /^STAGE-/.test(s))).toBe(true);
+    expect(stalls.every((s) => /^STAGE-/.test(s))).toBe(true); // none reserved
     // ...and no two of them are drawn inside each other (bodies are 10.2u long)
     const qs = ids.map((id) => poseStore.get(id)!);
     for (let i = 0; i < qs.length; i++) {
@@ -873,7 +890,6 @@ describe("SoC reaches the roster at full resolution", () => {
   // badge's own comparator is downstream of it.
   const socSnap = (soc: number): TwinSnapshot =>
     snap([{ id: "v1", state: "charging_dcfc", soc }]);
-
   beforeEach(() => {
     twinMotionDriver.clear();
     useVehicleStore.getState().reset();
@@ -909,6 +925,29 @@ describe("the depot clock stops when the run does", () => {
     const s = snap([{ id: "v1", state: "charging_dcfc" }]);
     (s as unknown as { run: Record<string, unknown> }).run.status = status;
     (s as unknown as { run: Record<string, unknown> }).run.sim_clock = clock;
+
+// ============================================================================
+// A3 — WHERE AN ARRIVAL ACTUALLY GOES.
+//
+// reconcile() hardcoded `const lane = entering ? "staging" : ...`, so an arrival
+// could only ever be given a parking space and OTTO-Q's real assignment was
+// discarded. And because 'arrived_at_gate' was named in neither doctrine-aware
+// pool, it fell through to the raw ingress-sorted staging list, whose
+// nearest-to-INGRESS entries are the SOUTH PERIMETER CARPORT rows.
+//
+// The depot is a PIT STOP: an arriving car goes to the work it came in for, or
+// to TEMP intake staging — never to the perimeter in daylight.
+// ============================================================================
+describe("arrivals go to what they need, not to an invented perimeter park", () => {
+  const dayClock = "2026-08-11T17:00:00.000Z";   // 12:00 depot time — daytime
+  const nightClock = "2026-08-12T04:00:00.000Z"; // 23:00 depot time — overnight
+
+  const at = (
+    vehicles: { id: string; state: string; stall_id?: string | null }[],
+    clock = dayClock,
+  ): TwinSnapshot => {
+    const s = snap(vehicles);
+    (s as unknown as { run: { sim_clock: string } }).run.sim_clock = clock;
     return s;
   };
 
@@ -936,5 +975,79 @@ describe("the depot clock stops when the run does", () => {
     twinMotionDriver.reconcile(runSnap("completed", "2026-08-11T12:30:00.000Z"));
     for (let i = 0; i < 20; i++) twinMotionDriver.tickMotion(0.05);
     expect(useSimulationStore.getState().simTime).toBe(frozen);
+
+  it("an arrival with a CHARGER reserved is taken to the charger, not to a parking space", () => {
+    twinMotionDriver.setTwinStallMap([{ id: "twin-d5", code: "NASH-DCFC-STALL-05", type: "dcfc" }]);
+    twinMotionDriver.reconcile(at([{ id: "v1", state: "arrived_at_gate", stall_id: "twin-d5" }]));
+    // OTTO-Q reserved DCFC-05 for this car; the renderer used to park it in
+    // staging and throw that away.
+    expect(find("v1")!.assignedStall).toBe("DCFC-05");
+  });
+
+  it("an arrival with a WASH BAY reserved is taken to the bay", () => {
+    twinMotionDriver.setTwinStallMap([{ id: "twin-w1", code: "NASH-WSH-01", type: "wash_bay" }]);
+    twinMotionDriver.reconcile(at([{ id: "v1", state: "arrived_at_gate", stall_id: "twin-w1" }]));
+    expect(find("v1")!.assignedStall).toBe("WASH-01");
+  });
+
+  it("an arrival with NOTHING reserved takes the shortest taxi from the gate", () => {
+    // MEASURED, and deliberately NOT the intake block. Sending unreserved
+    // arrivals to the NE block raised wedged-car time 21% on the busy_day replay:
+    // the block is reached up the depot's narrowest corridor and is already full
+    // of day holds. The structural fix is capacity (33 short-hold stalls against
+    // a 94-car staging peak), not a sort order. See the pool selector.
+    twinMotionDriver.reconcile(at([{ id: "v1", state: "arrived_at_gate" }]));
+    const stall = find("v1")!.assignedStall!;
+    expect(stall).toMatch(/^STAGE-/);
+    const s = useDepotStore.getState().stalls.find((x) => x.id === stall)!;
+    expect(Math.hypot(s.position.x - 200, s.position.y - 215)).toBeLessThan(40); // INGRESS
+  });
+
+  it("OVERNIGHT the perimeter carports are first-class again — night is not day", () => {
+    // Overnight flips the intake pool's zone preference. A day HOLD is the case
+    // that exercises it (the arrival path is ingress-first at every hour).
+    twinMotionDriver.reconcile(at([{ id: "h1", state: "charge_complete_holding" }], nightClock));
+    expect(isPerimeterCarport(find("h1")!.assignedStall)).toBe(true);
+  });
+
+  it("day HOLDS stay off the perimeter too (charge-complete, service-complete, awaiting service)", () => {
+    twinMotionDriver.reconcile(at([
+      { id: "h1", state: "charge_complete_holding" },
+      { id: "h2", state: "service_complete_holding" },
+      { id: "h3", state: "staged_awaiting_service" },
+    ]));
+    for (const id of ["h1", "h2", "h3"]) {
+      expect(isPerimeterCarport(find(id)!.assignedStall)).toBe(false);
+    }
+  });
+
+  it("a DEPLOY-READY car still stages by the EXIT — that path is doctrine-endorsed, not the failure state", () => {
+    // The founder's failure state is a car STRANDED on the perimeter, not a car
+    // about to leave staging next to the gate it leaves through. Measured on the
+    // captured busy_day run: penalising this pool too did not move deploy-ready
+    // cars off the perimeter (there is nowhere else for ~90 of them to be), it
+    // just made them eat the 33-stall intake block the arrivals need.
+    twinMotionDriver.reconcile(at([{ id: "d1", state: "staged_for_departure" }]));
+    const s = useDepotStore.getState().stalls.find((x) => x.id === find("d1")!.assignedStall)!;
+    const dOut = Math.hypot(s.position.x - 100, s.position.y - 215); // EGRESS
+    expect(dOut).toBeLessThan(60); // pooled by the exit, not scattered
+  });
+
+  it("an UNKNOWN stall type can never reach a lane cast — it falls back to staging", () => {
+    // The guard has to be a TOTAL function. This codebase has twice been taken
+    // down by an unmapped enum value sailing through a seam into a cast.
+    useDepotStore.setState({
+      stalls: [
+        ...useDepotStore.getState().stalls,
+        { id: "MYSTERY-01", type: "hydrogen" as never, status: "available",
+          vehicleId: null, position: { x: 150, y: 106, angle: 0 } },
+      ],
+    });
+    twinMotionDriver.setTwinStallMap([{ id: "twin-x", code: "NASH-MYSTERY-01", type: "staging" }]);
+    (twinMotionDriver as unknown as { twinStall: Map<string, string> }).twinStall
+      .set("twin-x", "MYSTERY-01");
+    twinMotionDriver.reconcile(at([{ id: "v1", state: "arrived_at_gate", stall_id: "twin-x" }]));
+    // no crash, no car parked on an unknown stall type — it lands in staging
+    expect(find("v1")!.assignedStall).toMatch(/^STAGE-/);
   });
 });
