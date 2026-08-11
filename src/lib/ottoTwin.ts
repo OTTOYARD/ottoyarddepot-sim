@@ -31,9 +31,67 @@ export interface TwinLayout {
   stalls: TwinStall[];
 }
 
+/**
+ * One service ATOM on a visit — OTTO-Q's own unit of work, published verbatim
+ * from `ottoq_visit_needs.atoms`. This is the bullet list on the vehicle card,
+ * and `status` is its checkbox.
+ *
+ * `status` is an OPEN SET, deliberately typed as `string`. The backend
+ * lower-cases it and defaults a missing key to 'pending' — the same
+ * COALESCE(status,'pending') the decision loop itself uses — but new states can
+ * appear in the sim before they appear here, and a renderer that narrowed this
+ * to a union would either crash or silently mis-file them. Classify with
+ * `readVisitWorkflow` in `@/lib/visitWorkflow`, which is total over any string.
+ * Observed today: pending | in_progress | done | cancelled | skipped.
+ */
+export interface TwinVisitAtom {
+  svc: string;
+  status: string;
+  must_do: boolean;
+  /** OTTO-Q's estimate for this atom, minutes. NULL when the atom carried none. */
+  est_min: number | null;
+}
+
+/**
+ * The OPEN visit for one vehicle — what OTTO-Q decided this car came in for and
+ * how far through that plan it is.
+ *
+ * Every field is READ, never derived client-side: `target_soc`, `urgency` and
+ * `archetype` are columns on `ottoq_visit_needs`; `soc_at_arrival` is stamped
+ * into `meta` by the needs generator; `est_charge_min` is lifted off the CHARGE
+ * atom's own `est_min`, so the number on the card is the number OTTO-Q planned
+ * against rather than a second opinion computed here.
+ */
+export interface TwinVisitCard {
+  visit_id: string;
+  /** 'open' | 'in_progress' — the ROW's status, not any atom's. */
+  visit_status: string;
+  archetype: string | null;
+  urgency: string | null;
+  arrived_at: string | null;
+  target_soc: number | null;
+  /** SoC the vehicle ENTERED the depot on. NULL when the visit never stamped it. */
+  soc_at_arrival: number | null;
+  /** NULL is meaningful: this visit has no charge atom, i.e. no charge planned. */
+  est_charge_min: number | null;
+  atoms: TwinVisitAtom[];
+}
+
 export interface TwinVehicle {
   id: string; av_id: string; make: string; platform: string;
   state: string; soc: number; stall_id: string | null;
+  /**
+   * The vehicle's open visit workflow. THREE distinct readings, and collapsing
+   * any two of them would put a claim on screen that OTTO-Q never made:
+   *   `undefined` — the backend predates this field. NOTHING is known about the
+   *                 car's workflow. Render "no workflow published".
+   *   `null`      — the backend published, and this car has NO open visit for
+   *                 this run (it is off-site, or between visits).
+   *   an object   — the open visit, atoms and all.
+   * An open visit whose `atoms` array is empty is a fourth, real state: OTTO-Q
+   * opened a visit and put no work on it. That is not the same as `null`.
+   */
+  visit?: TwinVisitCard | null;
 }
 /**
  * One timed leg of a vehicle's itinerary — the twin's T3 RENDER CONTRACT.
