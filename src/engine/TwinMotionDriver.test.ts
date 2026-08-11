@@ -900,3 +900,41 @@ describe("SoC reaches the roster at full resolution", () => {
     expect(seen).toEqual([40, 41, 42, 43, 44, 45, 46]);
   });
 });
+
+describe("the depot clock stops when the run does", () => {
+  // A run that ENDS kept simClockLive true and simTime advancing over a wiped depot.
+  // A clock ticking on an empty scene is the same class of lie as a car drawn where
+  // none is — and it left the manual scrub slider disabled indefinitely.
+  const runSnap = (status: string, clock: string): TwinSnapshot => {
+    const s = snap([{ id: "v1", state: "charging_dcfc" }]);
+    (s as unknown as { run: Record<string, unknown> }).run.status = status;
+    (s as unknown as { run: Record<string, unknown> }).run.sim_clock = clock;
+    return s;
+  };
+
+  beforeEach(() => {
+    twinMotionDriver.clear();
+    useVehicleStore.getState().reset();
+    useDepotStore.getState().regenerateStalls(10, 30, 3, 115, 2);
+  });
+
+  // The clock reaches the store on the MOTION tick, not on reconcile — so a live run
+  // has to actually tick before simClockLive can be true.
+  it("releases the live clock when the run reaches a terminal status", () => {
+    twinMotionDriver.reconcile(runSnap("running", "2026-08-11T12:00:00.000Z"));
+    twinMotionDriver.tickMotion(0.05);
+    expect(useSimulationStore.getState().simClockLive).toBe(true);
+    twinMotionDriver.reconcile(runSnap("completed", "2026-08-11T12:05:00.000Z"));
+    expect(useSimulationStore.getState().simClockLive).toBe(false);
+  });
+
+  it("does not keep advancing sim time over a wiped depot", () => {
+    twinMotionDriver.reconcile(runSnap("running", "2026-08-11T12:00:00.000Z"));
+    twinMotionDriver.tickMotion(0.05);
+    twinMotionDriver.reconcile(runSnap("completed", "2026-08-11T12:05:00.000Z"));
+    const frozen = useSimulationStore.getState().simTime;
+    twinMotionDriver.reconcile(runSnap("completed", "2026-08-11T12:30:00.000Z"));
+    for (let i = 0; i < 20; i++) twinMotionDriver.tickMotion(0.05);
+    expect(useSimulationStore.getState().simTime).toBe(frozen);
+  });
+});

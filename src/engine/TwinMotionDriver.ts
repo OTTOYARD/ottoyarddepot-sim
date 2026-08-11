@@ -718,6 +718,13 @@ class TwinMotionDriver {
     this.primed = false;
     this.departQueue = [];
     this.locks = new RailLocks();
+    // HAND THE CLOCK BACK. clear() already does this; resetScene did not, so a run that
+    // ENDED left simClockLive true and simTime still advancing over a wiped depot
+    // (measured: 43200 -> 43500 after a 'completed' snapshot). A clock running on an
+    // empty scene is the same class of lie as a car drawn where none is — and it left
+    // the manual scrub slider disabled while the depot kept getting later with nothing
+    // in it. Re-anchoring below only happens for a LIVE run, so this is safe to do first.
+    useSimulationStore.getState().releaseLiveSimTime();
     // T4: a run switch invalidates the contract — stale legs would otherwise pace
     // the NEW fleet against the OLD run's clock (ids never match, so a car would
     // be held to a deadline from a different world).
@@ -964,17 +971,25 @@ class TwinMotionDriver {
     // Reset once on the live -> terminal edge, not on every poll thereafter.
     // `paused` counts as LIVE, so Pause holds the scene instead of clearing it.
     const status = snap.run?.status ?? null;
+    // Hoisted: the clock re-anchor below must not run for a TERMINAL run. A run with no
+    // status at all is treated as live, which is the pre-existing behaviour for feeds
+    // that omit it — absence must not silently stop the world.
+    let runIsLive = true;
     if (status) {
       const live = LIVE_RUN_STATUSES.has(status.toLowerCase());
       if (this.lastRunLive === true && !live) this.resetScene();
       this.lastRunLive = live;
+      runIsLive = live;
     }
 
     // ─── T4: re-anchor the sim clock and refresh the leg contract ─────────────
     // Between snapshots simNow() runs off the WALL clock, so motion continues
     // (and stays correctly paced) if the feed stalls. This is the correction.
     const clockMs = Date.parse(snap.run?.sim_clock ?? "");
-    if (Number.isFinite(clockMs)) {
+    // `runIsLive` gate: resetScene() just handed the clock back, and re-anchoring from a
+    // TERMINATED run's sim_clock took it straight back again — the depot kept getting
+    // later over a wiped scene and the scrub slider stayed disabled.
+    if (runIsLive && Number.isFinite(clockMs)) {
       this.simAnchorClock = clockMs;
       this.simAnchorAt = performance.now();
       this.simSpeedX = Math.max(0.1, Number(snap.run?.speed_x ?? 1) || 1);
