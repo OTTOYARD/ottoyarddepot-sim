@@ -1128,3 +1128,184 @@ describe("an arrival follows OTTO-Q's COMMAND, not its current stall", () => {
     expect(find("v3")?.assignedStall).toMatch(/^STAGE-/);
   });
 });
+
+// ============================================================================
+// THE DEPART GATE — the third clause of the founder's arm rule.
+//
+//   "stay connected the entire time until the car is at desired SoC and then the
+//    arm gets ready to disconnect and retract back … and THEN the vehicle can
+//    move."
+//
+// `vehicleMayMove` in armStateMachine has always been the definition of that
+// last clause, and until armGate.ts nothing in the motion path called it: a car
+// could pull out of a DCFC stall with the connector still in its port. These
+// tests exercise it through the real driver, not through the gate in isolation.
+//
+// MEASURED, not asserted: with armReleases() stubbed back to a constant `true`
+// (pre-change behaviour) three of these five fail, and they fail on the thing
+// that matters —
+//   · the re-tasked car is on STAGE-101 instead of its charger DCFC-01;
+//   · the release never passes through unlatch/extract/retract at all;
+//   · the DEPARTING car travels 92.0 units with the connector still in its port.
+// The other two are the controls (an L2 car, and a car whose arm never mated);
+// they pass either way, which is the point of them.
+// ============================================================================
+describe("TwinMotionDriver — the depart gate (a car may not drive through the arm)", () => {
+  const T0 = Date.parse("2026-08-10T12:00:00.000Z");
+  const iso = (ms: number) => new Date(ms).toISOString();
+
+  /** A snapshot carrying a real DWELL leg — the only thing on the wire that
+   *  publishes a service window, and therefore the proof the car is parked that
+   *  the arm needs before it will reach for the port. */
+  function armSnap(state: string, clockMs: number, lane: "dcfc" | "l2" = "dcfc"): TwinSnapshot {
+    return {
+      run: {
+        sim_run_id: "arm-run", scenario: "t", status: "running",
+        sim_clock: iso(clockMs), tick_count: 1, time_scale: 1, seed: 1, speed_x: 1,
+      },
+      legs: [{
+        leg_id: "leg-1", vehicle_id: "v1", seq: 1,
+        leg_type: lane === "dcfc" ? "charge_dcfc" : "charge_l2", intent: null,
+        kind: "charge_curve",
+        from_stall: null, to_stall: null,
+        from_x: null, from_y: null, to_x: null, to_y: null,
+        start_sim: iso(T0), end_sim: iso(T0 + 1_800_000), duration_s: 1800,
+        status: "active", geometry: "measured",
+      }],
+      fleet: {
+        counts: {}, total: 1,
+        vehicles: [{
+          id: "v1", av_id: "twin-sim-001", make: "Jaguar", platform: "waymo",
+          state, soc: 42, stall_id: null,
+        }],
+      },
+      stalls_status: [], energy: null, bess: null, weather: null, grid: null,
+      counters: {}, recent_events: [], variability: {},
+    } as unknown as TwinSnapshot;
+  }
+
+  /** Poll + tick. The arms are paced by the SIM clock (same choice ChargingArm
+   *  makes), and only a snapshot moves it — so a poll is how sim time passes. */
+  function pollTo(state: string, clockMs: number, lane: "dcfc" | "l2" = "dcfc") {
+    twinMotionDriver.reconcile(armSnap(state, clockMs, lane));
+    twinMotionDriver.tickMotion(0.05);
+  }
+
+  beforeEach(() => {
+    twinMotionDriver.clear();
+    useVehicleStore.getState().reset();
+    useDepotStore.getState().regenerateStalls(10, 30, 3, 113, 2);
+  });
+
+  /** Dock a car on a charger and run its arm all the way in. Returns the stall. */
+  function mateOnCharger(): string {
+    twinMotionDriver.reconcile(armSnap("charging_dcfc", T0));
+    const stall = find("v1")!.assignedStall!;
+    expect(stall).toMatch(/^DCFC-/);
+    // walk the 18.5 s reach: unstow → approach → align → insert → latch → charging
+    for (let i = 1; i <= 12; i++) pollTo("charging_dcfc", T0 + i * 5000);
+    expect(twinMotionDriver.armPhaseAt(stall)).toBe("charging");
+    return stall;
+  }
+
+  it("HOLDS a re-tasked car on its charger until the arm has retracted", () => {
+    const stall = mateOnCharger();
+    expect(twinMotionDriver.armHolds).toEqual([stall]);
+
+    // the twin re-tasks the car (the ordinary end of a pit stop). Clear the
+    // commit-and-hold dwell floor so it is the ARM, and only the arm, holding it.
+    passDwell("v1");
+    const before = { ...poseStore.get("v1")! }; // COPY: poseStore mutates in place
+    pollTo("charge_complete_holding", T0 + 70_000);
+
+    // OTTO-Q's decision IS published — that flip is what tells the arm to let go —
+    // but the car has not been given a stall to drive to and has not moved.
+    expect(find("v1")!.status).toBe("staging");
+    expect(find("v1")!.assignedStall).toBe(stall);
+    for (let i = 0; i < 400; i++) twinMotionDriver.tickMotion(0.05);
+    const after = poseStore.get("v1")!;
+    expect(Math.hypot(after.x - before.x, after.y - before.y)).toBeLessThan(0.01);
+    expect(twinMotionDriver.armHolds).toEqual([stall]);
+  });
+
+  it("RELEASES it once the arm reports clear — and not one phase earlier", () => {
+    const stall = mateOnCharger();
+    passDwell("v1");
+    let t = T0 + 70_000;
+    pollTo("charge_complete_holding", t);
+
+    // watch every phase of the release. The car must still be on its charger for
+    // all of unlatch / extract / retract, and may only be re-assigned after.
+    const seen: string[] = [twinMotionDriver.armPhaseAt(stall)!];
+    let releasedAtPhase: string | null = null;
+    for (let i = 0; i < 20 && releasedAtPhase === null; i++) {
+      // the phase the NEXT poll's gate decision will be taken against — read
+      // before the poll, because a released car stops being an arm's problem and
+      // the gate rightly forgets the stall the instant it leaves.
+      const deciding = twinMotionDriver.armPhaseAt(stall);
+      t += 5000;
+      pollTo("charge_complete_holding", t);
+      if (!find("v1")!.assignedStall?.startsWith("DCFC-")) { releasedAtPhase = deciding; break; }
+      const phase = twinMotionDriver.armPhaseAt(stall);
+      if (phase && seen[seen.length - 1] !== phase) seen.push(phase);
+    }
+    expect(seen).toEqual(["unlatch", "extract", "retract", "clear"]);
+    expect(releasedAtPhase).toBe("clear");
+    expect(find("v1")!.assignedStall).toMatch(/^STAGE-/);
+  });
+
+  it("holds a DEPARTING car too — the departure launch is the other door out", () => {
+    const stall = mateOnCharger();
+    passDwell("v1");
+    const before = { ...poseStore.get("v1")! }; // COPY: poseStore mutates in place
+    // the twin drops the vehicle entirely (deployed): a departure, not a re-task
+    twinMotionDriver.reconcile({
+      ...armSnap("charging_dcfc", T0 + 70_000),
+      fleet: { counts: {}, total: 0, vehicles: [] },
+    } as unknown as TwinSnapshot);
+    expect(find("v1")!.status).toBe("departing"); // the release IS requested…
+    for (let i = 0; i < 400; i++) twinMotionDriver.tickMotion(0.05);
+    const after = poseStore.get("v1")!;
+    expect(Math.hypot(after.x - before.x, after.y - before.y)).toBeLessThan(0.01);
+    expect(twinMotionDriver.armHolds).toEqual([stall]); // …and still refused
+
+    // let the demate play out, then it drives to the egress
+    for (let i = 1; i <= 12; i++) {
+      twinMotionDriver.reconcile({
+        ...armSnap("charging_dcfc", T0 + 70_000 + i * 5000),
+        fleet: { counts: {}, total: 0, vehicles: [] },
+      } as unknown as TwinSnapshot);
+      twinMotionDriver.tickMotion(0.05);
+    }
+    expect(twinMotionDriver.armHolds).toEqual([]);
+    for (let i = 0; i < 200; i++) twinMotionDriver.tickMotion(0.05);
+    const gone = poseStore.get("v1");
+    expect(gone === undefined || Math.hypot(gone.x - before.x, gone.y - before.y) > 1).toBe(true);
+  });
+
+  it("an L2 car is COMPLETELY unaffected — only DCFC stalls have an arm", () => {
+    twinMotionDriver.reconcile(armSnap("charging_l2", T0, "l2"));
+    const stall = find("v1")!.assignedStall!;
+    expect(stall).toMatch(/^L2-/);
+    for (let i = 1; i <= 12; i++) pollTo("charging_l2", T0 + i * 5000, "l2");
+    expect(twinMotionDriver.armPhaseAt(stall)).toBeNull();
+    expect(twinMotionDriver.armHolds).toEqual([]);
+    passDwell("v1");
+    pollTo("charge_complete_holding", T0 + 70_000, "l2");
+    expect(find("v1")!.assignedStall).toMatch(/^STAGE-/); // re-assigned immediately
+  });
+
+  it("never holds a car because a signal is ABSENT: no dwell leg, no arm, no hold", () => {
+    // the wire carried no service window, so the arm never mated and there is
+    // nothing to wait for. Publishing absence, not inventing a connection.
+    twinMotionDriver.reconcile(snap([{ id: "v1", state: "charging_dcfc" }], "no-legs"));
+    const stall = find("v1")!.assignedStall!;
+    expect(stall).toMatch(/^DCFC-/);
+    for (let i = 0; i < 50; i++) twinMotionDriver.tickMotion(0.05);
+    expect(twinMotionDriver.armPhaseAt(stall)).toBe("stowed");
+    passDwell("v1");
+    twinMotionDriver.reconcile(snap([{ id: "v1", state: "charge_complete_holding" }], "no-legs"));
+    expect(find("v1")!.assignedStall).toMatch(/^STAGE-/);
+    expect(twinMotionDriver.armHolds).toEqual([]);
+  });
+});

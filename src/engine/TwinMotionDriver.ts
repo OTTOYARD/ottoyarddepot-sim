@@ -22,6 +22,7 @@ import { type Pt } from "./motion/PathTracker";
 import { buildRail, pointAt, stepRail, RailLocks, type Rail, type RailBody } from "./motion/RailFlow";
 import { findLeader, StallLedger, type MovingCar } from "./motion/traffic";
 import { buildDepotLanes } from "./motion/LaneGraph";
+import { ArmGate, type ArmStallInput } from "./motion/armGate";
 import { poseStore } from "./motion/poseStore";
 import { useDepotStore, type StallStatus } from "@/store/depotStore";
 import { useVehicleStore } from "@/store/vehicleStore";
@@ -32,7 +33,7 @@ import {
   INGRESS, EGRESS, gapLaneX, SOUTH_LANE_Y, REAR_LANE_Y, PARK_RUNS, TEMP_LANE_X,
   WEST_AISLE_X, EAST_AISLE_X, NORTH_LANE_Y, N1_LANE_Y, QUEUE_Y,
 } from "@/lib/sitePlan";
-import { DISCONNECT_SECONDS } from "@/lib/ottoChargeArm/armStateMachine";
+import { DISCONNECT_SECONDS, type ArmPhase } from "@/lib/ottoChargeArm/armStateMachine";
 
 type Lane = "dcfc" | "l2" | "wash" | "service" | "staging";
 
@@ -360,6 +361,18 @@ class TwinMotionDriver {
    *  a backend sim timestamp into the renderer's seconds-of-day frame — mixing those two
    *  domains is a bug this codebase has paid for repeatedly. */
   private twinTetherLeftS = new Map<string, number>();
+  /** THE DEPART GATE. One arm session per DCFC stall, stepped against the sim
+   *  clock in tickMotion; a car may not begin to move out of a stall whose arm
+   *  is not in a movement-permitted phase. See motion/armGate.ts. */
+  private armGate = new ArmGate();
+  /** sim-clock instant (ms) at which the arm sessions were last stepped. The arms
+   *  are paced by the SIM clock, not by the motion dt — same choice ChargingArm
+   *  makes, and the reason a 3x view multiplier does not run the robot at 3x. */
+  private armSimMs: number | null = null;
+  /** Renderer stall ids → stall type, refreshed each reconcile. The gate needs the
+   *  TYPE (only dcfc carries an arm) every motion tick, and tickMotion must not be
+   *  re-scanning the depot store's 158 stalls to find it. */
+  private stallTypes = new Map<string, string>();
   /** Layout gate: when a run activates, the bridge calls expectLayout() and
    *  snapshots BUFFER until the layout fetch settles — otherwise the first
    *  snapshot places the fleet on zone stalls and the layout's arrival triggers
@@ -516,6 +529,110 @@ class TwinMotionDriver {
 
   stallHeldBy(vehicleId: string): string | undefined {
     return this.ledger.stallOf(vehicleId);
+  }
+
+  // ── THE DEPART GATE ────────────────────────────────────────────────────────
+  //
+  // Founder, on the OTTO-CHARGE ARM: "stay connected the entire time until the
+  // car is at desired SoC and then the arm gets ready to disconnect and retract
+  // back … and THEN the vehicle can move."
+  //
+  // The last clause is this. `vehicleMayMove` has always been the definition of
+  // it and nothing in the motion path called it, so a car could pull out of a
+  // DCFC stall with the connector still in its port. The three places a parked
+  // car can start moving — a lane re-assignment, a departure launch, and the
+  // departure queue's drain — all ask armReleases() first.
+  //
+  // Deliberately NOT a hold on the ORCHESTRATOR's decision. OTTO-Q may re-task a
+  // car whenever it likes; what is gated is the MOTION. That ordering is what
+  // makes the gate terminate: the re-task is published (the roster status flips
+  // to the twin's new truth), the flip is what tells the arm the session is over,
+  // the arm demates, and only then does the car roll. Withholding the decision
+  // instead would keep the arm latched forever waiting for a release that the
+  // hold itself was suppressing.
+
+  /**
+   * May this car physically begin to move?
+   *
+   * TOTAL and fail-SAFE-open, in the sense the brief requires: a car that is not
+   * in a DCFC stall, a stall no arm serves, a stall the gate has never seen, or a
+   * car that is already rolling, is NOT held. Only a car sitting in an
+   * arm-served stall whose arm is mid-cycle is. An L2 or staging car is
+   * completely unaffected, and no absent signal can freeze anything.
+   */
+  private armReleases(e: Entry): boolean {
+    if (e.lane !== "dcfc" || !e.stallId) return true;
+    if (this.armGate.mayMove(e.stallId)) return true;
+    this.armRefusals++;
+    return false;
+  }
+
+  /** Stalls whose arm is currently holding its car — for the operator trace. */
+  get armHolds(): string[] {
+    return this.armGate.holding();
+  }
+
+  /**
+   * How many times the depart gate has refused to start a car moving.
+   *
+   * Kept because it is the ONLY evidence the gate is doing anything at all. A
+   * guard that is silently inert looks exactly like a guard that is working, and
+   * this codebase has already shipped one of those (a cron reporting success
+   * while every decision aborted). A zero here on a run with cars leaving
+   * chargers means the gate is not engaging and something upstream — a missing
+   * dwell window, an arm that never mated — should be looked at.
+   */
+  get armHoldRefusals(): number {
+    return this.armRefusals;
+  }
+  private armRefusals = 0;
+
+  /** What the arm on this stall is doing, or null when no arm session covers it.
+   *  Null is an ANSWER — "this driver is not tracking an arm here" — and callers
+   *  must read it that way rather than as a phase. */
+  armPhaseAt(rendererStallId: string): ArmPhase | null {
+    return this.armGate.phase(rendererStallId);
+  }
+
+  /**
+   * Advance every arm session by the SIM-clock delta since the last motion tick.
+   *
+   * Paced by simNow(), not by the motion dt: PHASE_SECONDS are real robot seconds
+   * and a sim second IS a second of depot world time, so an 18.5 s mate plays in
+   * 18.5 sim seconds whatever the view multiplier is doing. This is the same
+   * clock ChargingArm reads through simClockTod(), which is what keeps the two
+   * evaluations of the cycle in step.
+   *
+   * Before any snapshot has anchored the clock there is no sim time to step, so
+   * every session simply holds — and a session that never advances never claims
+   * an arm is engaged, because IDLE_SESSION is 'stowed'.
+   */
+  private stepArms() {
+    const nowMs = this.simNow();
+    let simDt = 0;
+    if (nowMs) {
+      if (this.armSimMs !== null) simDt = (nowMs - this.armSimMs) / 1000;
+      this.armSimMs = nowMs;
+    }
+    // Feed EVERY dcfc stall the driver currently has a car in. A stall whose car
+    // has gone (deployed off-map, despawned) drops out of this list, the gate
+    // forgets it, and it stops holding anything — the arm has no car to be
+    // attached to.
+    const inputs: ArmStallInput[] = [];
+    for (const [id, e] of this.entries) {
+      if (!e.stallId || e.lane !== "dcfc") continue;
+      inputs.push({
+        stallId: e.stallId,
+        stallType: this.stallTypes.get(e.stallId),
+        vehicleId: id,
+        // EXACTLY what ChargingArm reads off the roster for this car — the roster
+        // is the shared fact that starts and ends both evaluations of the cycle.
+        chargingState: e.vstatus === "charging",
+        parked: this.serviceWindow(e) !== null,
+        tetherRemainingS: this.stallTetherRemainingS(e.stallId),
+      });
+    }
+    this.armGate.step(simDt, inputs);
   }
 
   /** Live view of what OTTO-Q has asked for — for the operator's decision trace. */
@@ -779,6 +896,12 @@ class TwinMotionDriver {
     this.dwells.clear();
     this.simAnchorClock = 0;
     this.lastPublishedTod = -1;
+    // arms belong to the scene, not to the process: leaving twin mode must not
+    // leave a stall holding a car that no longer exists.
+    this.armGate.clear();
+    this.armSimMs = null;
+    this.armRefusals = 0;
+    this.stallTypes.clear();
     // hand the depot clock back to manual control — leaving twin mode means no
     // backend owns it any more, and a slider left disabled would be a dead UI.
     useSimulationStore.getState().releaseLiveSimTime();
@@ -816,6 +939,10 @@ class TwinMotionDriver {
     this.dwells.clear();
     this.simAnchorClock = 0;
     this.lastPublishedTod = -1;
+    // a run switch invalidates every arm session too — the stall ids survive but
+    // the cars they were mated to do not.
+    this.armGate.clear();
+    this.armSimMs = null;
     // clearing driver state is not enough on its own: the painted fleet and the
     // stall colors live in the stores, and an EMPTY roster produces the same
     // fingerprint as the reset lastRosterKey, so the push below would be skipped
@@ -1128,6 +1255,8 @@ class TwinMotionDriver {
       (byLane[s.type] ??= []).push(s);
       stallType.set(s.id, s.type);
     }
+    // the depart gate reads stall TYPE every motion tick — keep it off the store
+    this.stallTypes = stallType;
     // OTTO-Q spatial policy: charging fills NORTH-first (nearest the wash/service
     // bays), so cars pool toward the top and only spill south as it fills.
     byLane.dcfc?.sort((a, b) => a.position.y - b.position.y);
@@ -1391,6 +1520,31 @@ class TwinMotionDriver {
         this.entries.set(bv.id, e);
         continue;
       }
+      // ── DEPART GATE (1 of 3): A LANE CHANGE OFF A CHARGER ────────────────────
+      // The twin has re-tasked this car — charge → wash, charge → staging, the
+      // ordinary end of a pit stop — and it is sitting PARKED in a DCFC stall
+      // with the OTTO-CHARGE ARM still on it. Hold the MOTION here, before any
+      // stall is claimed, so the car keeps its charger and nothing is routed
+      // onto the space its body is occupying.
+      //
+      // The twin's new status IS published, and that is not a leak in the gate,
+      // it is the mechanism: the roster flip away from 'charging' is exactly what
+      // tells both this driver's arm session and ChargingArm's that the charge
+      // session is over and the demate may begin. Suppress it and the arm stays
+      // latched forever, waiting on a release the hold is itself preventing.
+      // The stall stays painted 'charging' because it truthfully still is —
+      // there is a car on it with a connector in its port.
+      if (e && lane !== e.lane && e.lane === "dcfc" && e.stallId
+          && !e.tracker && !e.reverse && !this.armReleases(e)) {
+        e.vstatus = m.vstatus;
+        e.oem = oem;
+        e.soc = soc;
+        if (bv.av_id) e.avId = bv.av_id;
+        if (bv.make) e.make = bv.make;
+        desiredStatus.set(e.stallId, "charging");
+        this.entries.set(bv.id, e);
+        continue; // retry next poll; the demate is bounded (armGate HOLD_CAP_S)
+      }
       // THREE POOLS, NOT ONE LIST. Previously this named only two states and let
       // EVERYTHING else fall through to the raw ingress-sorted list, whose
       // nearest-to-INGRESS entries are the SOUTH PERIMETER CARPORT rows. Every
@@ -1611,9 +1765,14 @@ class TwinMotionDriver {
         continue;
       }
       if (e.vstatus !== "departing") {
+        // ── DEPART GATE (2 of 3): THE DEPARTURE LAUNCH ─────────────────────────
+        // Flip the status FIRST — that is what ends the charge session and starts
+        // the demate on both evaluations of the arm cycle — then refuse to launch
+        // while the arm is still on the car. A held departer takes the same path
+        // as one waiting for a departure slot: parked, stall claim kept, queued.
         e.vstatus = "departing";
         e.departFor = 0;
-        if (activeDeparting < MAX_ACTIVE_DEPARTING) {
+        if (activeDeparting < MAX_ACTIVE_DEPARTING && this.armReleases(e)) {
           activeDeparting++;
           this.startDeparture(id, e);
         } else {
@@ -1696,6 +1855,11 @@ class TwinMotionDriver {
     // running clock (an arm mid-mate on a stationary car must not freeze), and
     // a PAUSED depot freezes the clock with everything else via the guard above.
     this.publishSimClock();
+    // …and so do the OTTO-CHARGE ARMS, for the same reason: an arm mid-demate on
+    // a stationary car must keep retracting, and the depart gate below is only as
+    // current as the sessions behind it. Stepped BEFORE any car is moved, so no
+    // car can be released against a stale phase.
+    this.stepArms();
     // every physical body on the lot, one entry each — rail cars project these
     // onto their own forward windows (RailFlow); `moving` is kept only for the
     // reverse maneuver's rear-clearance check.
@@ -1748,7 +1912,12 @@ class TwinMotionDriver {
       // the backend already dropped it, so it never lingers past the TTL.
       if (!e.tracker && e.vstatus === "departing") {
         e.departFor += dt;
-        if (e.departFor > DEPART_TTL) {
+        // TOTALITY: this is the third door out of a stall (the TTL's forced
+        // launch). It is only reachable after 90 s, and the gate's own cap frees
+        // a car after at most 45 sim-seconds, so it should never be the binding
+        // constraint — but a gate that is enforced on two paths out of three is
+        // not a gate.
+        if (e.departFor > DEPART_TTL && this.armReleases(e)) {
           // TTL while queued: DRIVE OUT (cap-exempt) instead of vanishing in
           // place on a stall (gap G6). Bounded second life: the tracked-departer
           // TTL below still despawns it if the egress stays jammed.
@@ -1903,6 +2072,11 @@ class TwinMotionDriver {
         if (!e || e.vstatus !== "departing") continue;
         // a queued car still finishing its pull-in stays queued until parked
         if (e.tracker) { stillDriving.push(id); continue; }
+        // ── DEPART GATE (3 of 3): THE QUEUE DRAIN ────────────────────────────
+        // The queue is drained here, not in reconcile, so this is the second door
+        // out of a stall and it needs the same lock. Stays queued — it does not
+        // lose its place — until its arm reports clear.
+        if (!this.armReleases(e)) { stillDriving.push(id); continue; }
         this.startDeparture(id, e);
         active++;
         changed = true;
