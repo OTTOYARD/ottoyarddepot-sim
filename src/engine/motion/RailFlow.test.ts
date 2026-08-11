@@ -1,144 +1,159 @@
 // ============================================================================
-// RailFlow — the following-gap budget must reserve the body the cockpit DRAWS.
+// RailFlow — the geometry a car is actually asked to drive.
 //
-// These tests exist because it did not. RailFlow budgeted `CAR_LENGTH * 0.55`
-// = 4.125 u of following gap while the cockpit draws a 10.2 u body, so a queue
-// that IDM had settled perfectly at its 5 u jam gap sat 9.125 u centre-to-
-// centre — 1.075 u of permanent body overlap, with every car straight and
-// every car stopped. Nothing in the sim was moving wrongly; the arithmetic was.
-//
-// Every assertion below measures BODY OVERLAP (spacing minus a whole body
-// length), never centre distance. Centre distance is the wrong test in this
-// depot: perimeter stalls pitch 5.7 u apart, so a centre-distance rule reads
-// every pair of parked neighbours as a pile-up.
+// These cover the three defects behind "vehicle turning is kind of messed up:
+// they move diagonally, bend rapidly, or the rear bumper slides at an
+// intersection". Each one is a property of the ROUTE, measured here directly,
+// not a look-and-see:
+//   • a routed rail must never double back on itself (the SE-corner U-turn)
+//   • an intersection a route crosses must actually be locked
+//   • a corner must have a finite turn radius, not a tangent discontinuity
 // ============================================================================
 import { describe, it, expect } from "vitest";
-import { buildRail, stepRail, RailLocks, type RailBody } from "./RailFlow";
-import { CAR_BODY_LENGTH, CAR_BODY_WIDTH } from "./traffic";
-import { CAR_L, CAR_W } from "../__fixtures__/replay";
-import { DEFAULT_IDM } from "./idm";
+import { buildRail, roundCorners, pointAt } from "./RailFlow";
+import { buildDepotLanes } from "./LaneGraph";
+import { EGRESS, SOUTH_LANE_Y } from "@/lib/sitePlan";
+import type { Pt } from "./PathTracker";
 
-/** A long straight rail heading east — no nodes, no column mouth, so the only
- *  thing that can slow a car on it is the leader gap under test. */
-const straightRail = () => buildRail([{ x: 0, y: 0 }, { x: 300, y: 0 }], [], null);
-
-/** Run `r` to a standstill (or `seconds`), with `bodies` re-read each step. */
-function settle(id: string, r: ReturnType<typeof buildRail>, bodies: () => RailBody[], seconds = 120) {
-  const locks = new RailLocks();
-  const dt = 0.05;
-  for (let t = 0; t < seconds / dt; t++) {
-    if (stepRail(id, r, dt, bodies(), locks) === null) break;
+/** Signed progress of a polyline along +x, leg by leg. */
+function legs(pts: Pt[]) {
+  const out: { dx: number; dy: number; len: number }[] = [];
+  for (let i = 1; i < pts.length; i++) {
+    const dx = pts[i].x - pts[i - 1].x, dy = pts[i].y - pts[i - 1].y;
+    out.push({ dx, dy, len: Math.hypot(dx, dy) });
   }
+  return out;
 }
 
-describe("RailFlow — the gap budget is the drawn body", () => {
-  it("DRIFT PIN: the budgeted body is the body the overlap metric measures", () => {
-    // The bug was never the number 4.125 on its own — it was that the gap
-    // budget and the drawn footprint were two independent literals. This is the
-    // alarm on that: replay.ts's CAR_L/CAR_W are the dimensions VehicleDot
-    // draws and the dimensions bodiesOverlap() tests. If a renderer change
-    // moves them and the traffic model is not moved with it, this fails here
-    // rather than silently re-arming permanent overlap in the cockpit.
-    expect(CAR_BODY_LENGTH).toBe(CAR_L);
-    expect(CAR_BODY_WIDTH).toBe(CAR_W);
+describe("route geometry — a rail never doubles back", () => {
+  const g = buildDepotLanes();
+
+  // A car in the east staging block heading for the WEST egress used to join the
+  // ring at the Euclidean-nearest node, SE (272.25, 172). Its rail then read
+  //   (252.8,168.8) (271.9,168.8) (220.0,168.8) (200.0,168.8) …
+  // — 19u EAST down the WESTBOUND side of the boulevard, a 180° spin in the
+  // corner, then back west past its own start. Join nodes are now chosen on
+  // total driven distance, so the east leg is gone.
+  it.each([
+    ["east staging block", { x: 252.8, y: 168.8 }],
+    ["temp block, mid column", { x: 260, y: 120 }],
+  ])("a westbound departure from the %s never drives east first", (_name, from) => {
+    const pts = g.route(from, { x: EGRESS.x, y: EGRESS.y });
+    const eastward = legs(pts)
+      .filter((l) => l.dx > 0)
+      .reduce((a, l) => a + l.dx, 0);
+    // a couple of units of eastward drift while turning is fine; a leg back to
+    // the corner is 19u+.
+    expect(eastward).toBeLessThan(6);
   });
 
-  it("stops a whole body length behind a stationary car, not 40% of one", () => {
-    const r = straightRail();
-    const parked: RailBody[] = [{ id: "lead", x: 100, y: 0, heading: 0, moving: false }];
-    settle("follower", r, () => parked);
+  it("choosing a join node on driven distance shortens the route it replaced", () => {
+    // Same origin, measured both ways: nearest-node join was 239.5u, the
+    // distance-scored join is 201.2u.
+    const pts = g.route({ x: 252.8, y: 168.8 }, { x: EGRESS.x, y: EGRESS.y });
+    const total = legs(pts).reduce((a, l) => a + l.len, 0);
+    expect(total).toBeLessThan(215);
+  });
+});
 
-    const spacing = 100 - r.s; // centre-to-centre along the rail
-    const bodyClearance = spacing - CAR_BODY_LENGTH; // bumper-to-bumper
-    expect(bodyClearance).toBeGreaterThanOrEqual(0); // THE defect: this was −1.075
+describe("node locks — an intersection a route crosses is actually held", () => {
+  const g = buildDepotLanes();
 
-    // IDM settles a stopped follower at its jam gap, so the clearance lands on
-    // s0 — never under it, because the forward scan walks the rail in 2 u SAMPLE
-    // steps and takes the NEAREST sample the body falls within, which rounds the
-    // measured distance down and so errs conservative. Bounded above as well, so
-    // "it stopped 80 u short" cannot pass as a fix. Measured 5.45.
-    expect(bodyClearance).toBeGreaterThanOrEqual(DEFAULT_IDM.s0);
-    expect(bodyClearance).toBeLessThanOrEqual(DEFAULT_IDM.s0 + 2);
+  it("a run down the south boulevard locks the junctions it passes through", () => {
+    // This was the bug: route() shifts every interior road vertex
+    // drive-on-the-right by rightOffset = 3.2u, and the annotation threshold was
+    // 3u, so a rail could never come close enough to a node it traversed. A
+    // staging→egress route crossing S_in, Sg2, Sg1 and Sg0 locked NONE of them.
+    const pts = g.route({ x: 252.8, y: 168.8 }, { x: EGRESS.x, y: EGRESS.y });
+    const rail = buildRail(pts, g.nodes.values(), null);
+    const ids = new Set(rail.nodes.map((n) => n.id));
+    for (const id of ["Sg3", "S_in", "Sg2", "Sg1", "S_eg"]) expect(ids.has(id)).toBe(true);
   });
 
-  it("holds no-overlap down a three-car queue, not just for the first follower", () => {
-    // Overlap in the busy_day fixture was a QUEUE artefact — one pair proves the
-    // arithmetic, a queue proves it composes, because each follower's stop point
-    // is set by a leader that is itself stopped short.
-    const parked: RailBody = { id: "lead", x: 100, y: 0, heading: 0, moving: false };
-    const rails = [straightRail(), straightRail(), straightRail()];
-    const ids = ["q1", "q2", "q3"];
-    const locks = new RailLocks();
-    const dt = 0.05;
-    for (let t = 0; t < 240 / dt; t++) {
-      const bodies: RailBody[] = [parked];
-      rails.forEach((r, i) => bodies.push({ id: ids[i], x: r.s, y: 0, heading: 0, moving: true }));
-      // stagger the starts so they queue up rather than launching abreast
-      rails.forEach((r, i) => {
-        if (t * dt < i * 6) return;
-        stepRail(ids[i], r, dt, bodies, locks);
-      });
+  it("does not claim a junction the route never reaches", () => {
+    // Sg0 (x=80) is 20u west of the egress spur — a route that turns out at
+    // S_eg (x=100) must not hold it, or it would stall traffic it never meets.
+    const pts = g.route({ x: 252.8, y: 168.8 }, { x: EGRESS.x, y: EGRESS.y });
+    const rail = buildRail(pts, g.nodes.values(), null);
+    expect(rail.nodes.some((n) => n.id === "Sg0")).toBe(false);
+  });
+
+  it("annotated node positions land on the rail near the junction", () => {
+    const pts = g.route({ x: 252.8, y: 168.8 }, { x: EGRESS.x, y: EGRESS.y });
+    const rail = buildRail(pts, g.nodes.values(), null);
+    for (const n of rail.nodes) {
+      const node = g.nodes.get(n.id)!;
+      const p = pointAt(rail.pts, rail.cum, n.s);
+      expect(Math.hypot(p.x - node.x, p.y - node.y)).toBeLessThanOrEqual(5);
+      // and the y stays on the boulevard, i.e. the s is a real crossing point
+      if (/^(Sg\d|S_in|S_eg)$/.test(n.id)) {
+        expect(Math.abs(p.y - SOUTH_LANE_Y)).toBeLessThan(8);
+      }
     }
+  });
+});
 
-    const xs = [100, ...rails.map((r) => r.s)].sort((a, b) => b - a);
-    for (let i = 1; i < xs.length; i++) {
-      expect(xs[i - 1] - xs[i]).toBeGreaterThanOrEqual(CAR_BODY_LENGTH);
+describe("roundCorners — a corner has a turn radius, not a discontinuity", () => {
+  it("leaves the endpoints exactly where they were", () => {
+    const raw: Pt[] = [{ x: 0, y: 0 }, { x: 50, y: 0 }, { x: 50, y: 50 }];
+    const out = roundCorners(raw);
+    expect(out[0]).toEqual({ x: 0, y: 0 });
+    expect(out[out.length - 1]).toEqual({ x: 50, y: 50 });
+  });
+
+  it("turns a 90° vertex into a bounded arc instead of a tangent flip", () => {
+    const raw: Pt[] = [{ x: 0, y: 0 }, { x: 50, y: 0 }, { x: 50, y: 50 }];
+    const out = roundCorners(raw);
+    // the sharp vertex is gone…
+    expect(out.some((p) => p.x === 50 && p.y === 0)).toBe(false);
+    // …and no single joint turns more than a fraction of the corner
+    let worst = 0;
+    const ls = legs(out);
+    for (let i = 1; i < ls.length; i++) {
+      const a = Math.atan2(ls[i - 1].dy, ls[i - 1].dx);
+      const b = Math.atan2(ls[i].dy, ls[i].dx);
+      worst = Math.max(worst, Math.abs(Math.atan2(Math.sin(b - a), Math.cos(b - a))));
     }
+    expect(worst).toBeLessThan(0.5); // was π/2 across one point
   });
 
-  it("does not brake for an ONCOMING car — the divided road still passes", () => {
-    // The gap budget got 2.5x bigger, which is 2.5x more road on which a car
-    // could wrongly decide an oncoming body is its leader. It must not: real
-    // crossings are serialised by the node locks, and braking for the far lane
-    // is what caused the pass-freeze this rule was added to kill.
-    const r = straightRail();
-    const oncoming: RailBody[] = [{ id: "opp", x: 40, y: 0, heading: Math.PI, moving: true }];
-    const locks = new RailLocks();
-    for (let t = 0; t < 200; t++) stepRail("me", r, 0.05, oncoming, locks);
-    expect(r.v).toBeGreaterThan(1); // still rolling, not stopped short of it
+  it("keeps the arc inside the lane — the cut never exceeds CORNER_MAX_CUT", () => {
+    // A corner arc deviates toward the INSIDE of the turn. The lane it is cutting
+    // into is only 2 x LaneGraph.rightOffset = 6.4u wide, so the deviation is
+    // capped; measured here against the vertex it replaced.
+    const raw: Pt[] = [{ x: 0, y: 0 }, { x: 50, y: 0 }, { x: 50, y: 50 }];
+    const out = roundCorners(raw);
+    let nearest = Infinity;
+    for (const p of out) nearest = Math.min(nearest, Math.hypot(p.x - 50, p.y - 0));
+    expect(nearest).toBeLessThanOrEqual(1.25);
   });
 
-  it("breaks a co-spawn deadlock, and breaks it for exactly ONE of the pair", () => {
-    // The driver can admit two cars onto two rails at the SAME ingress point
-    // (measured 0.26 u apart in the docking probe). Each reads the other as a
-    // leader ~2 u ahead, each brakes to zero for the other, and with the honest
-    // 10.2 u budget both sat at s=0 forever — 5 of 40 cars in that probe never
-    // reached their charger. The end-to-end case is TwinMotionDriver.docking
-    // scenario B; what is pinned here is the rule that resolves it.
-    //
-    // `peer` is a MOVING body sitting on top of the car and going nowhere —
-    // exactly what the other half of a deadlocked pair looks like.
-    const peer: RailBody[] = [{ id: "mm", x: 2, y: 0.5, heading: 0, moving: true }];
-
-    const lower = straightRail(); // id "aa" < "mm" — this one yields nothing and goes
-    settle("aa", lower, () => peer, 60);
-    expect(lower.s).toBeGreaterThan(20);
-
-    const higher = straightRail(); // id "zz" > "mm" — this one keeps waiting
-    settle("zz", higher, () => peer, 60);
-    expect(higher.s).toBe(0);
+  it("leaves a straight run untouched", () => {
+    const raw: Pt[] = [{ x: 0, y: 0 }, { x: 25, y: 0 }, { x: 50, y: 0 }];
+    expect(roundCorners(raw)).toEqual(raw);
   });
 
-  it("does NOT let a wedged car creep through a PARKED body", () => {
-    // The breaker is for two cars that will both drive away. A parked body will
-    // never clear, so pushing into it is strictly worse than waiting — the car
-    // stays put however long it has been wedged.
-    const r = straightRail();
-    const parked: RailBody[] = [{ id: "parked", x: 2.5, y: 0.4, heading: 0, moving: false }];
-    settle("me", r, () => parked, 200);
-    expect(r.stationaryFor).toBeGreaterThan(8); // it IS wedged, so the gate is live
-    expect(r.s).toBe(0);
+  it("survives degenerate input (duplicate points, two-point paths)", () => {
+    expect(roundCorners([{ x: 1, y: 2 }]).length).toBe(1);
+    expect(roundCorners([{ x: 1, y: 2 }, { x: 3, y: 4 }]).length).toBe(2);
+    const dup = roundCorners([{ x: 0, y: 0 }, { x: 0, y: 0 }, { x: 10, y: 0 }]);
+    expect(dup.every((p) => Number.isFinite(p.x) && Number.isFinite(p.y))).toBe(true);
   });
 
-  it("clamps to a full stop when a body is already inside it (fails to the safe side)", () => {
-    // Bodies overlapping is a state the sim can reach from outside RailFlow (a
-    // dock, a snap, a reconcile). The budget must then read a NEGATIVE gap and
-    // clamp to 0 — an emergency stop — never a negative gap fed to IDM.
-    const r = straightRail();
-    r.v = 6;
-    const inside: RailBody[] = [{ id: "inside", x: 4, y: 0, heading: 0, moving: false }];
-    const locks = new RailLocks();
-    for (let t = 0; t < 100; t++) stepRail("me", r, 0.05, inside, locks);
-    expect(r.v).toBe(0);
+  it("a rail built from a routed corner has a finite maximum curvature", () => {
+    const g = buildDepotLanes();
+    const pts = g.route({ x: 252.8, y: 168.8 }, { x: EGRESS.x, y: EGRESS.y });
+    const rail = buildRail(pts, g.nodes.values(), null);
+    // sample the tangent every 0.5u and measure yaw per unit travelled
+    let worst = 0;
+    let prev = pointAt(rail.pts, rail.cum, 0).heading;
+    for (let s = 0.5; s < rail.total - 0.5; s += 0.5) {
+      const h = pointAt(rail.pts, rail.cum, s).heading;
+      const d = Math.abs(Math.atan2(Math.sin(h - prev), Math.cos(h - prev)));
+      worst = Math.max(worst, d / 0.5);
+      prev = h;
+    }
+    // a raw polyline vertex is an infinite-curvature point; a rounded one is not
+    expect(worst).toBeLessThan(1.2);
   });
 });

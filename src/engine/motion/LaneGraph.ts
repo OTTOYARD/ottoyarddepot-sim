@@ -102,8 +102,10 @@ export class LaneGraph {
     return best;
   }
 
-  /** Dijkstra node path (list of node ids) from→to over directed lanes. */
-  private nodePath(from: string, to: string): string[] {
+  /** Dijkstra from one node over the WHOLE graph: cost to every reachable node
+   *  plus the predecessor tree. Run once per candidate origin, then every
+   *  candidate destination is scored off the same table. */
+  private dijkstra(from: string): { dist: Map<string, number>; prev: Map<string, string> } {
     const dist = new Map<string, number>();
     const prev = new Map<string, string>();
     const seen = new Set<string>();
@@ -113,7 +115,7 @@ export class LaneGraph {
       let u = "";
       let best = Infinity;
       for (const [id, d] of dist) if (!seen.has(id) && d < best) { best = d; u = id; }
-      if (!u || u === to) break;
+      if (!u) break;
       seen.add(u);
       for (const lid of this.nodes.get(u)!.out) {
         const lane = this.lanes.get(lid)!;
@@ -124,7 +126,12 @@ export class LaneGraph {
         }
       }
     }
-    if (!dist.has(to)) return [];
+    return { dist, prev };
+  }
+
+  /** Walk the predecessor tree back from `to` to `from`. [] if unreachable. */
+  private static walk(prev: Map<string, string>, from: string, to: string): string[] {
+    if (from === to) return [from];
     const path = [to];
     let c = to;
     while (c !== from) {
@@ -134,6 +141,13 @@ export class LaneGraph {
       c = p;
     }
     return path;
+  }
+
+  /** Dijkstra node path (list of node ids) from→to over directed lanes. */
+  private nodePath(from: string, to: string): string[] {
+    const { dist, prev } = this.dijkstra(from);
+    if (!dist.has(to)) return [];
+    return LaneGraph.walk(prev, from, to);
   }
 
   /** Concatenate the centerline polylines for a node path. */
@@ -203,13 +217,65 @@ export class LaneGraph {
       n.out.length > 0 && (this.inDegree(n.id) > 0 || outwardOf(n, from));
     const destOk = (n: Node) => this.inDegree(n.id) > 0;
 
-    let a = this.nearestNode(from, originOk);
-    let b = this.nearestNode(to, destOk);
-    // never strand a car: if the filters admit nothing, fall back to the old
-    // unfiltered pick rather than degrading to a beeline across the lot.
-    if (!a) a = this.nearestNode(from);
-    if (!b) b = this.nearestNode(to);
-    const np = a && b ? this.nodePath(a, b) : [];
+    // THE JOIN NODES ARE CHOSEN ON TOTAL DRIVEN DISTANCE, NOT ON PROXIMITY.
+    //
+    // Picking the Euclidean-nearest node at each end makes the car U-TURN when the
+    // nearest node sits the wrong side of it. Measured on the busy_day fixture: a
+    // car leaving the east staging block at (252.8, 168.8) for the west egress
+    // joined the ring at SE (272.25, 172) because SE is 19.7u away and Sg3 is 32.9u
+    // away — so its rail read
+    //     (252.8,168.8) (271.9,168.8) (220.0,168.8) (200.0,168.8) …
+    // i.e. drive 19u EAST down the WESTBOUND side of the south boulevard, spin 180°
+    // in the SE corner, then drive back west past the point it started from. Eight
+    // such cars produced 363 wrong-way samples and the (270,170) corner accounted
+    // for 2210 of 4090 body-overlap pair-samples — over half of symptom 2, and
+    // exactly the founder's "come to an intersection and the back bumper slides".
+    //
+    // The honest cost is the distance the car actually DRIVES: the approach leg
+    // |from→a|, the graph leg a→b, and the pull-off leg |b→to|. Scoring on that,
+    // Sg3 wins 190.9 to 229.9 and the backtrack disappears.
+    //
+    // The approach and pull-off legs are BEELINES, not lanes — they cut across
+    // whatever happens to be between the car and the node — so they are fenced
+    // in two ways. Candidates are capped at the nearest + APPROACH_SLACK (and at
+    // 4 per end), so a join can only ever trade a SHORT extra approach for a
+    // large saving on the network; and the beeline is scored at a PREMIUM, so an
+    // exact tie breaks toward the nearer node. Without the premium,
+    // (234,170)→egress preferred a 34u diagonal over a 14u one to save 0.08u.
+    const APPROACH_SLACK = 25;
+    const APPROACH_W = 1.35;
+    const near = (p: Pt, ok: (n: Node) => boolean): Node[] => {
+      const legal: { n: Node; d: number }[] = [];
+      for (const n of this.nodes.values()) {
+        if (!ok(n)) continue;
+        legal.push({ n, d: Math.hypot(n.x - p.x, n.y - p.y) });
+      }
+      if (!legal.length) return [];
+      legal.sort((u, v) => u.d - v.d);
+      const cut = legal[0].d + APPROACH_SLACK;
+      return legal.filter((c) => c.d <= cut).slice(0, 4).map((c) => c.n);
+    };
+    const origins = near(from, originOk);
+    const dests = near(to, destOk);
+    let a = "", b = "", np: string[] = [];
+    let bestCost = Infinity;
+    for (const o of origins) {
+      const { dist, prev } = this.dijkstra(o.id);
+      const lead = Math.hypot(o.x - from.x, o.y - from.y) * APPROACH_W;
+      for (const d of dests) {
+        const g = dist.get(d.id);
+        if (g === undefined) continue;
+        const cost = lead + g + Math.hypot(d.x - to.x, d.y - to.y) * APPROACH_W;
+        if (cost >= bestCost) continue;
+        const path = LaneGraph.walk(prev, o.id, d.id);
+        if (!path.length) continue;
+        bestCost = cost;
+        a = o.id; b = d.id; np = path;
+      }
+    }
+    // never strand a car: if the filters admit nothing (or nothing connects), fall
+    // back to the old unfiltered nearest pick rather than degrading to a beeline.
+    if (!a) { a = this.nearestNode(from); b = this.nearestNode(to); np = a && b ? this.nodePath(a, b) : []; }
     let center: Pt[];
     if (np.length >= 2) {
       center = [{ ...from }, ...this.centerline(np), { ...to }];
