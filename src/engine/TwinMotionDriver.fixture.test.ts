@@ -96,8 +96,18 @@ describe("TwinMotionDriver — replay of a captured busy_day run", () => {
   // 10.2 is a measured MINIMUM, not "bigger is safer": the same fixture with the
   // budget at 4.125 / 7.5 / 10.2 / 12.5 gives 4057 / 2418 / 1223 / 2330 overlap
   // pair-samples. Reserving more than the body costs as much as reserving less.
-  const OVERLAP_BUDGET = 1250;  // measured 1223. TARGET 0.
-  const STUCK_BUDGET = 2150;    // measured 2121. TARGET 0. RAISED — see 2c.
+  // RE-BASELINED against main AFTER PR #74 (arm clock + staging-group fix) merged.
+  // #74 stopped six twin staging GROUPS collapsing onto one 19-stall west-perimeter
+  // column, which redistributed traffic into corridors that had carried none, so both
+  // numbers moved before this branch touched anything. Measured, in order:
+  //     pre-#74 baseline   overlap 4063 · distinct 202 · stuck 1960
+  //     main with #74      overlap 4090 · distinct 209 · stuck 1977   (#74 alone: +17 stuck)
+  //     main + this branch overlap 1248 · distinct  65 · stuck 2151
+  // The earlier budgets (1250 / 2150) were set against the PRE-#74 tree and are why CI
+  // failed this branch by a single sample. Do not compare a number here across a change
+  // that moves traffic — re-measure both sides, as above.
+  const OVERLAP_BUDGET = 1260;  // measured 1248. TARGET 0.
+  const STUCK_BUDGET = 2160;    // measured 2151. TARGET 0. RAISED — see 2c.
 
   it("SYMPTOM 2a: body-overlap stays within the ratchet (target 0)", () => {
     // WHAT IS LEFT: the dominant hotspots are around the TE temp-staging block
@@ -140,7 +150,7 @@ describe("TwinMotionDriver — replay of a captured busy_day run", () => {
     // are gone. What remains trails the overlap above — a car braking for a body
     // that is inside its lane because of the clearance conflict.
     //
-    // THIS NUMBER GOT WORSE, 1960 → 2121, and it is a real cost, not noise.
+    // THIS NUMBER GOT WORSE, 1977 → 2151, and it is a real cost, not noise.
     // Reserving a whole 10.2 u body instead of 4.125 u makes every queue 2.5x
     // longer in the same corridors, and this watchdog counts a car that has not
     // advanced 4 u in 10 s — which an honestly-queued car has not. The trade is

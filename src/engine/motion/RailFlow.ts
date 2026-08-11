@@ -115,6 +115,23 @@ const PROGRESS_STEP = 4; // advancing this far resets the no-progress watchdog
 // of the other body rather than a launch through it.
 const DEADLOCK_S = 8;
 const CREEP_SPEED = 1.5;
+/**
+ * How far along a route still counts as "at the start" for rule 2 above.
+ *
+ * A ROUTE DISTANCE, deliberately NOT derived from CAR_BODY_LENGTH. It was
+ * `CAR_BODY_LENGTH / 2`, which re-created exactly the coupling the body constant
+ * exists to remove: RailFlow.test.ts pins CAR_BODY_LENGTH to the body the cockpit
+ * draws, so drawing a longer car would silently widen this breaker's arming window
+ * too. Two unrelated quantities, one literal.
+ *
+ * CAVEAT, worth knowing before tuning it: `r.s` is arc position on the CURRENT rail,
+ * and rails are rebuilt from s=0 (TwinMotionDriver rebuilds any car stationary past
+ * its threshold), so a car wedged MID-route can re-enter this window after a rebuild.
+ * Rule 2's comment claims that cannot happen. It can. Left as-is because the breaker
+ * still requires a MOVING blocker on top of the car, and firing there unsticks a real
+ * wedge rather than creating one — but the comment should not be trusted as an invariant.
+ */
+const DEADLOCK_START_ZONE = 5;
 
 export function pointAt(pts: Pt[], cum: number[], s: number): Pt & { heading: number } {
   if (pts.length < 2) return { x: pts[0]?.x ?? 0, y: pts[0]?.y ?? 0, heading: 0 };
@@ -164,7 +181,7 @@ export function stepRail(
   // 1) nearest body in my forward window (projected onto MY path)
   let gap = Infinity;
   // wedged AT THE ROUTE START — the only place the co-spawn deadlock happens.
-  const wedged = r.stationaryFor > DEADLOCK_S && r.s < CAR_BODY_LENGTH / 2;
+  const wedged = r.stationaryFor > DEADLOCK_S && r.s < DEADLOCK_START_ZONE;
   let creeping = false; // set only by the deadlock breaker; clamps v to a crawl
   const maxAhead = Math.min(LOOK, r.total - r.s);
   for (let d = SAMPLE; d <= maxAhead; d += SAMPLE) {
