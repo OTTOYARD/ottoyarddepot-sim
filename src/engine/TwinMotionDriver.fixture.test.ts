@@ -154,8 +154,41 @@ describe("TwinMotionDriver — replay of a captured busy_day run", () => {
   // monotonically worse (116/117/118/119). It needs aisle occupancy, not a
   // terminal-stretch lock. stuck stays AT 0 and the worst cluster stays at 5, so
   // nothing wedges — these are transient body grazes, not a knot.
-  const OVERLAP_BUDGET = 120;   // measured 116. TARGET 0.
-  const STUCK_BUDGET = 10;      // measured 0. TARGET 0 — and it is AT zero.
+  // RE-BASELINED AGAIN by the TURNING work (2026-08-11): yaw budgeted per unit of
+  // travel, the dock swing taken while still rolling, corner arcs replacing hard
+  // vertices, the heading look-ahead 6 -> 2, and the node-lock match radius 3 -> 5.
+  // Both sides measured on this fixture in the same tree:
+  //
+  //     main (22ec3f6)          overlap 116 · distinct 70 · stuck 0 · cluster 5
+  //     + turning subset        overlap  86 · distinct 41 · stuck 7 · cluster 4
+  //
+  // THE STUCK COUNT MOVED OFF ZERO AND THAT IS NOT SWEPT UNDER THE BUDGET. It is
+  // the node-lock fix, isolated by measurement: with NODE_MATCH left at 3 (locks
+  // that never matched, because route() offsets interior vertices 3.2u
+  // drive-on-the-right and the annotation threshold was 3u) the same tree measures
+  // overlap 132 · distinct 68 · stuck 0. Widening it to 5 makes intersections
+  // genuinely serialize — overlap 132 -> 86, distinct 68 -> 41 — and the price is
+  // that some cars now WAIT at a junction, which this metric cannot tell apart
+  // from a wedge: `stuck` is "holds a route and makes no arc progress for >10 s".
+  //
+  // The two are distinguishable by SHAPE, and they were checked. A wedge persists:
+  // the full turning branch (which also re-scored route join nodes) parks one car
+  // at (238,210) for twelve consecutive frames and totals 719. This subset's 7 are
+  // 1 sample at frame 3 and 2 at frame 30 — the final departure wave — with 27 of
+  // the 31 frames at exactly zero. That is queueing, not wedging.
+  //
+  // WHAT WAS DELIBERATELY LEFT OUT, and why it is not in this tree: the turning
+  // branch also re-scored LaneGraph join nodes on driven distance. On the OLD depot
+  // that fixed a 19u wrong-way leg into the SE corner. On THIS depot the plain
+  // nearest-node join already routes east-staging -> egress in 201.2u with 3.2u of
+  // eastward drift — the exact number the branch claimed as its improvement — so
+  // the defect had evaporated, while the wider join search now sends a car queued
+  // at the gate (x=228 and x=239 on the approach road) 43u NORTH-WEST off the road
+  // instead of west through the ingress, which is the wedge above. Measured in this
+  // tree: with it, overlap 119 · distinct 62 · stuck 719. Do not re-add it without
+  // re-measuring the gate queue.
+  const OVERLAP_BUDGET = 90;    // measured 86 (was 116). TARGET 0.
+  const STUCK_BUDGET = 10;      // measured 7 (was 0). See the note above.
 
   it("SYMPTOM 2a: body-overlap stays within the ratchet (target 0)", () => {
     // WHAT WAS LEFT, AND WHAT CLOSED IT. The dominant hotspot was the TE temp-staging

@@ -107,8 +107,10 @@ const QUEUE_MAX_X = 244;      // last slot: 200 + 6 + 3*11 = 239, comfortably in
  *  and only a terminal status (completed / aborted) clears it. */
 const LIVE_RUN_STATUSES = new Set(["running", "active", "paused"]);
 
-// SMOOTHNESS: a rail car's pose heading is the raw segment TANGENT, which jumps
-// discontinuously at every polyline vertex (a lane corner, the charger pull-in).
+// SMOOTHNESS: a rail car's pose heading is the segment TANGENT. RailFlow's
+// roundCorners() now replaces each routed vertex with a real turn arc, so the
+// tangent is continuous through a corner — but a re-rail mid-taxi, a spawn, and
+// the charger sidestep can still hand the body a large step change.
 // Applied straight to the body that reads as a single-frame heading SNAP of up to
 // ~110°. Instead we ease the rendered heading toward the tangent at a bounded
 // angular rate so a corner sweeps as a quick believable turn. This is PURELY
@@ -116,9 +118,31 @@ const LIVE_RUN_STATUSES = new Set(["running", "active", "paused"]);
 // are position-based (RailFlow), so lane discipline and the no-gridlock
 // guarantees are untouched.
 const MAX_TURN_RATE = 3.0; // rad/s — a 90° corner sweeps in ~0.5s
-function easeHeading(current: number, target: number, dt: number): number {
+// A CAR ONLY TURNS BECAUSE IT IS MOVING. The rate limiter above was per-SECOND
+// only, so a car that had stopped — at an intersection stop bar, in a queue,
+// parked on its stall — went on rotating about its own centre at the full
+// 3 rad/s (172°/s) until its heading caught the target. Nothing about that is a
+// car: it is the body swinging while the wheels stand still, which is exactly
+// the founder's "the rear bumper turns or slides diagonally at the intersection".
+// Measured on the busy_day fixture: 221 motion steps rotated a body that had
+// translated less than 0.001u, every one of them at the full 3.0 rad/s cap.
+//
+// So yaw is budgeted per unit of TRAVEL as well as per second: a stopped car
+// gets a budget of exactly zero. YAW_PER_UNIT is a rate limiter, not a bicycle
+// model — 2.5 rad/u lets the heading track every corner the rails actually
+// contain (peak drawn curvature after this change: 2.50 rad/u, was 7.44) while
+// the speed term binds below ~1.2 u/s, where the whip was visible. Making it the
+// car's true minimum-radius curvature instead (tan(maxSteer)/wheelbase ≈ 0.091)
+// was measured and is NOT shippable against these rails: the routed corners are
+// far tighter than 11u, so the heading fell behind and crab rose from 1831 to
+// 9863 bad steps. That needs tangent-continuous route geometry, not a tighter cap.
+const YAW_PER_UNIT = 2.5; // rad of yaw per unit travelled
+/** Arc length over which a docking car swings from the rail tangent to the
+ *  parked heading. 10u makes a 90° charger dock a 0.157 rad/u swing. */
+const DOCK_BLEND = 10;
+function easeHeading(current: number, target: number, dt: number, speed: number): number {
   const d = wrapAngle(target - current);
-  const maxStep = MAX_TURN_RATE * dt;
+  const maxStep = Math.min(MAX_TURN_RATE, Math.abs(speed) * YAW_PER_UNIT) * dt;
   if (d > maxStep) return wrapAngle(current + maxStep);
   if (d < -maxStep) return wrapAngle(current - maxStep);
   return target;
@@ -1499,11 +1523,13 @@ class TwinMotionDriver {
             const off = Math.hypot(e.car.x - st.position.x, e.car.y - st.position.y);
             // POSITION residue only. The heading disjunct that used to sit here
             // (`|| dh > 0.2`) fired on cars that had just docked PERFECTLY.
-            // A charger pull-in ends with the nose still swinging: the car
-            // arrives heading west along the column and settles to the stall's
-            // north heading via the parked branch in tickMotion, which eases it
-            // to within 1e-3 every tick. Reconcile polls far faster than that
-            // ease converges, so it caught freshly-docked cars mid-rotation
+            // A charger pull-in used to end with the nose still swinging: the
+            // car arrived heading west along the column and settled to the
+            // stall's north heading via the parked branch in tickMotion, which
+            // eased it to within 1e-3 every tick. (That settle is gone — the
+            // dock blend now takes the swing while the car is still moving and
+            // the arrival sets the heading exactly.) Reconcile polls far faster
+            // than that ease converged, so it caught freshly-docked cars mid-turn
             // (measured: off=0.00, dh=0.221) and re-railed them — and because
             // such a car is parked nose-in, assignRail answered with an 11u
             // REVERSE back-out plus a ~140u loop back to the stall it was
@@ -1951,7 +1977,31 @@ class TwinMotionDriver {
           e.car.y = pose.y;
           // rate-limit the heading toward the rail tangent so a sharp corner
           // vertex reads as a turn, not a one-frame snap (position is exact).
-          e.car.heading = easeHeading(e.car.heading, pose.heading, dt);
+          //
+          // DOCK BLEND: the last leg into a CHARGER stall is a 16u SIDESTEP off
+          // the flanking gap lane (routeToStall: gap lane x=80/126.5 → stall
+          // x=96/110), so the rail's final tangent points east/west while the
+          // parked heading is NORTH. That 90° was previously left to the parked
+          // branch below and taken at a dead stop — the body spinning about its
+          // own centre on the stall, which is the founder's "back bumper slides"
+          // at the charger. The rails cannot be re-cut to arrive nose-north:
+          // the L2 west column is pitched 10.3u and a car is 10.2u long, so a
+          // nose-in approach lane between two stalls would run 2.05u THROUGH the
+          // body parked below. So the turn is taken while the car is still
+          // MOVING instead: over the final DOCK_BLEND units the aim rotates from
+          // the rail tangent to the stall heading, which for a 90° dock is
+          // 0.157 rad/u — a real swing into the bay, and well inside the
+          // speed-scaled yaw budget above.
+          let aim = pose.heading;
+          const dock = e.dest?.kind === "stall" ? e.dest.heading : null;
+          if (dock != null) {
+            const rem = e.tracker.total - e.tracker.s;
+            if (rem < DOCK_BLEND) {
+              const t = Math.min(1, Math.max(0, 1 - rem / DOCK_BLEND));
+              aim = wrapAngle(pose.heading + wrapAngle(dock - pose.heading) * t);
+            }
+          }
+          e.car.heading = easeHeading(e.car.heading, aim, dt, e.tracker.v);
           e.car.speed = e.tracker.v;
           // watchdog: stationary far too long (a dead body ON the lane, a stale
           // lock) → drop my locks and re-route from the current pose. Bounded
@@ -1974,10 +2024,12 @@ class TwinMotionDriver {
               const st = useDepotStore.getState().stalls.find((s) => s.id === e.stallId);
               if (st) { e.car.x = st.position.x; e.car.y = st.position.y; }
             }
-            // ease into the parked heading (the last frames of the pull-in,
-            // esp. the charger sideways→north dock) — the parked branch below
-            // finishes any residual rotation so it never snaps.
-            e.car.heading = easeHeading(e.car.heading, e.stallHeading, dt);
+            // The dock blend above already swung the body to the stall heading
+            // WHILE IT WAS MOVING, so what is left here is at most a couple of
+            // degrees. Settle it exactly: the OTTO-CHARGE ARM aims at a flank
+            // plane derived from this heading, so a parked car has to be exactly
+            // on it — and it must not be finished by rotating a stopped car.
+            e.car.heading = e.stallHeading;
             e.car.speed = 0;
             e.car.steer = 0;
             e.tracker = null;
@@ -2026,14 +2078,13 @@ class TwinMotionDriver {
           }
         }
       } else {
-        // parked: hold position, but finish easing any residual heading into the
-        // stall heading so the final degrees of a pull-in settle as a smooth turn
-        // (converges then stops flushing — no idle churn).
+        // PARKED: hold position AND hold heading. A stopped car has no yaw
+        // budget — this branch used to keep easing the heading toward the stall
+        // at up to 3 rad/s with the wheels stationary, which was 221 of the
+        // fixture's motion steps spent rotating a body that had translated less
+        // than 0.001u. The rotation now happens on the dock blend above, while
+        // the car is still moving, and the arrival settles it exactly.
         if (e.car.speed !== 0) { e.car.speed = 0; changed = true; }
-        if (Math.abs(wrapAngle(e.stallHeading - e.car.heading)) > 1e-3) {
-          e.car.heading = easeHeading(e.car.heading, e.stallHeading, dt);
-          changed = true;
-        }
       }
     }
     for (const id of remove) {

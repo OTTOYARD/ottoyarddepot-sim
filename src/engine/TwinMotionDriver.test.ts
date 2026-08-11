@@ -1309,3 +1309,96 @@ describe("TwinMotionDriver — the depart gate (a car may not drive through the 
     expect(twinMotionDriver.armHolds).toEqual([]);
   });
 });
+
+// ============================================================================
+// TURNING — "they move diagonally, bend rapidly, or the rear bumper slides at
+// an intersection". The rule that kills all three at rest: a car turns because
+// it is MOVING. Yaw is budgeted per unit of travel, so a stopped body has a
+// budget of exactly zero.
+// ============================================================================
+describe("TwinMotionDriver — a stopped car cannot rotate", () => {
+  type Ent = {
+    car: { x: number; y: number; heading: number; speed: number };
+    tracker: unknown; stallHeading: number;
+  };
+  const entry = (id: string) =>
+    (twinMotionDriver as unknown as { entries: Map<string, Ent> }).entries.get(id)!;
+
+  beforeEach(() => {
+    twinMotionDriver.clear();
+    useVehicleStore.getState().reset();
+    useDepotStore.getState().regenerateStalls(10, 30, 3, 113, 2);
+  });
+
+  it("a parked car with a heading error does NOT pivot on the spot", () => {
+    twinMotionDriver.reconcile(snap([{ id: "v1", state: "arrived_at_gate" }]));
+    twinMotionDriver.reconcile(snap([{ id: "v1", state: "charging_dcfc" }]));
+    // drive it in and let it dock
+    for (let i = 0; i < 3000; i++) twinMotionDriver.tickMotion(0.05);
+    const e = entry("v1");
+    expect(e.tracker).toBe(null);   // parked
+    expect(e.car.speed).toBe(0);
+
+    // inject a heading error the way a stale pose or a re-adopt would, then hold
+    // the depot still for 20 s. Before the fix this eased toward stallHeading at
+    // up to 3 rad/s with the wheels stationary — the body swinging in place.
+    e.car.heading = e.stallHeading + 1.2;
+    const before = e.car.heading;
+    const x0 = e.car.x, y0 = e.car.y;
+    for (let i = 0; i < 400; i++) twinMotionDriver.tickMotion(0.05);
+    expect(e.car.heading).toBe(before);
+    expect(Math.hypot(e.car.x - x0, e.car.y - y0)).toBe(0);
+  });
+
+  it("no rendered body ever rotates in a step in which it did not translate", () => {
+    // The whole fleet, through a full arrive → charge → depart cycle.
+    twinMotionDriver.reconcile(snap(
+      Array.from({ length: 12 }, (_, i) => ({ id: `v${i}`, state: "arrived_at_gate" })),
+    ));
+    twinMotionDriver.reconcile(snap(
+      Array.from({ length: 12 }, (_, i) => ({ id: `v${i}`, state: "charging_dcfc" })),
+    ));
+    const prev = new Map<string, { x: number; y: number; h: number }>();
+    let pivots = 0;
+    for (let i = 0; i < 4000; i++) {
+      twinMotionDriver.tickMotion(0.05);
+      for (const [id, e] of (twinMotionDriver as unknown as { entries: Map<string, Ent> }).entries) {
+        const p = prev.get(id);
+        const cur = { x: e.car.x, y: e.car.y, h: e.car.heading };
+        if (p) {
+          const moved = Math.hypot(cur.x - p.x, cur.y - p.y);
+          const turned = Math.abs(Math.atan2(Math.sin(cur.h - p.h), Math.cos(cur.h - p.h)));
+          // the ONE legal exception is the arrival settle, which snaps the last
+          // residual degrees in the same step the car stops — allow a hair.
+          if (moved < 1e-6 && turned > 1e-6) pivots++;
+        }
+        prev.set(id, cur);
+      }
+    }
+    expect(pivots).toBe(0);
+  });
+
+  it("the dock swing happens while the car is still moving, not after it stops", () => {
+    // A charger pull-in is a 16u SIDESTEP off the flanking gap lane, so the rail
+    // ends pointing east/west while the stall faces north. That 90° used to be
+    // taken at a dead stop. It must now be spent before the wheels stop.
+    // arrive at the gate FIRST so the car actually drives the pull-in; a car
+    // that spawns straight onto the stall never exercises the swing.
+    twinMotionDriver.reconcile(snap([{ id: "v1", state: "arrived_at_gate" }]));
+    twinMotionDriver.reconcile(snap([{ id: "v1", state: "charging_dcfc" }]));
+    const e = entry("v1");
+    expect(e.tracker).not.toBe(null);
+    let lastMovingHeading = e.car.heading;
+    for (let i = 0; i < 3000; i++) {
+      twinMotionDriver.tickMotion(0.05);
+      if (e.car.speed > 0.05) lastMovingHeading = e.car.heading;
+    }
+    expect(e.tracker).toBe(null);
+    // whatever is left to settle at the stop is a couple of degrees, not 90°
+    const residual = Math.abs(
+      Math.atan2(Math.sin(e.stallHeading - lastMovingHeading), Math.cos(e.stallHeading - lastMovingHeading)),
+    );
+    expect(residual).toBeLessThan(0.2); // < 11.5°, was ~π/2
+    expect(e.car.heading).toBe(e.stallHeading); // and it parks exactly on the arm's flank plane
+  });
+});
