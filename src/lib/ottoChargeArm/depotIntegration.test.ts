@@ -236,7 +236,7 @@ describe('poses are physically sane throughout a real cycle', () => {
     const L = spec.limits;
     for (let t = 0; t <= DURATION; t += 2) {
       const { phase, t: frac } = phaseAt(t, DURATION);
-      const pose = poseFor({ phase, t: frac, elapsed: t }, target, spec);
+      const pose = poseFor({ phase, t: frac }, target, spec);
       expect(pose.ok).toBe(true);
       const a = pose.angles;
       expect(a.j1).toBeGreaterThanOrEqual(L.j1[0]); expect(a.j1).toBeLessThanOrEqual(L.j1[1]);
@@ -255,7 +255,7 @@ describe('poses are physically sane throughout a real cycle', () => {
       port: portInArmFrame(2.4, 0.75, CAR_HALF_WIDTH_M, 1), // way past the window
       normal: { x: 0, y: 0, z: -1 },
     };
-    const pose = poseFor({ phase: 'charging', t: 0.5, elapsed: 0 }, target, spec);
+    const pose = poseFor({ phase: 'charging', t: 0.5 }, target, spec);
     expect(pose.ok).toBe(false);
     expect(pose.engaged).toBe(false);
     // and it parks itself rather than reaching

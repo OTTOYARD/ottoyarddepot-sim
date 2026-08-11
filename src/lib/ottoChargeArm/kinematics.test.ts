@@ -197,7 +197,7 @@ describe('built geometry agrees with the analytic model', () => {
         const target = { port: { x: along, y: h - MOUNT_HEIGHT_M, z: FLANK }, normal: { x: 0, y: 0, z: -1 } };
         for (let t = 0; t <= DURATION; t += 6) {
           const r = phaseAt(t, DURATION);
-          const p = poseFor({ phase: r.phase, t: r.t, elapsed: t }, target, spec);
+          const p = poseFor({ phase: r.phase, t: r.t }, target, spec);
           pose(p.angles);
           const y = new THREE.Box3().setFromObject(rig.root).min.y;
           if (y < lowest) { lowest = y; worst = `${r.phase} h=${h} along=${along}`; }
