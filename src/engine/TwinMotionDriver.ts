@@ -124,8 +124,16 @@ const MAX_TURN_RATE = 3.0; // rad/s — a 90° corner sweeps in ~0.5s
 // 3 rad/s (172°/s) until its heading caught the target. Nothing about that is a
 // car: it is the body swinging while the wheels stand still, which is exactly
 // the founder's "the rear bumper turns or slides diagonally at the intersection".
-// Measured on the busy_day fixture: 221 motion steps rotated a body that had
-// translated less than 0.001u, every one of them at the full 3.0 rad/s cap.
+// Measured on the busy_day fixture, replayed against origin/main @ 22ec3f6 and
+// against this tree with the same probe (1,158,074 car-steps either way):
+//
+//     main @ 22ec3f6   234 spin steps, 211 of them at the full 3.0 rad/s cap
+//                      (peak yaw rate exactly 3.0000 rad/s)
+//     this tree        0
+//
+// A "spin step" is one motion step in which a body's heading changed while it
+// translated less than 0.001u. The 23 that are not at the cap are the last step
+// of each swing, where the ease clamps to the remaining angle instead.
 //
 // So yaw is budgeted per unit of TRAVEL as well as per second: a stopped car
 // gets a budget of exactly zero. YAW_PER_UNIT is a rate limiter, not a bicycle
@@ -563,9 +571,31 @@ class TwinMotionDriver {
   //
   // The last clause is this. `vehicleMayMove` has always been the definition of
   // it and nothing in the motion path called it, so a car could pull out of a
-  // DCFC stall with the connector still in its port. The three places a parked
-  // car can start moving — a lane re-assignment, a departure launch, and the
-  // departure queue's drain — all ask armReleases() first.
+  // DCFC stall with the connector still in its port.
+  //
+  // THERE ARE FIVE DOORS OUT OF A PARKED STALL, and all five ask armReleases()
+  // first. They carry a `DEPART GATE (n of 5)` marker each, numbered in file
+  // order: the motion-residue re-rail, a lane re-assignment, the departure
+  // launch, the TTL forced launch, and the departure queue's drain.
+  //
+  // FIVE IS A SWEEP, NOT A TALLY OF THE OBVIOUS ONES — an earlier revision of
+  // this comment said "three", and the residue re-rail was in fact ungated
+  // behind it: a car with 3.0u of position residue on a stall whose arm was
+  // still at phase 'charging' was re-railed and drove away with the connector
+  // in (measured at 106.63u off its stall; see the gate-1 site for the probe).
+  // The sweep: motion begins ONLY by setting `e.tracker` or `e.reverse` on an
+  // entry that has neither, and the only function that does that from rest is
+  // assignRail(). Its five call sites are startDeparture() — itself reached
+  // only from the departure launch, the TTL forced launch and the queue drain,
+  // all gated — plus the residue re-rail (gated here), the overflow staging
+  // pull-out, the first-sighting drive-in, and the new-stall re-assignment.
+  // Those last three are UNREACHABLE for a docked car with an arm on it: the
+  // overflow and re-assignment paths both need `lane !== e.lane`, which door 2
+  // refuses before either can run, and the drive-in path only fires for an id
+  // with no existing entry, so there is no parked body for it to tear away.
+  // The two remaining rebuildRail() sites — the reverse cusp and the 45 s
+  // stationary watchdog — both require a tracker or a reverse to already exist,
+  // so neither is a door out of rest.
   //
   // Deliberately NOT a hold on the ORCHESTRATOR's decision. OTTO-Q may re-task a
   // car whenever it likes; what is gated is the MOTION. That ordering is what
@@ -616,6 +646,16 @@ class TwinMotionDriver {
    *  must read it that way rather than as a phase. */
   armPhaseAt(rendererStallId: string): ArmPhase | null {
     return this.armGate.phase(rendererStallId);
+  }
+
+  /** How long this stall has been continuously refusing to release its car, in
+   *  SIM seconds; 0 when it is not holding. Only the TRANSIENT phases run this
+   *  clock — a 'charging' hold reads 0 however long the charge lasts, because
+   *  that hold ends on a state and never on a duration (armGate's HOLD_CAP_S).
+   *  Distinguishes "the arm finished" from "the cap fired", which look identical
+   *  from armHolds alone. */
+  armHeldForS(rendererStallId: string): number {
+    return this.armGate.heldFor(rendererStallId);
   }
 
   /**
@@ -1537,7 +1577,27 @@ class TwinMotionDriver {
             // neighbours block that loop, so the car wedged ~2.4u OUTSIDE its
             // own stall permanently, with the 45s watchdog rebuilding a route
             // it could never drive. Heading self-heals; position does not.
-            if (off > 1.8) {
+            //
+            // ── DEPART GATE (1 of 5): THE RESIDUE RE-RAIL ────────────────────
+            // This is a door out of a DCFC stall like any other, and it was open.
+            // The lane-change gate below cannot cover it — that one requires
+            // `lane !== e.lane` and this branch only runs when they are EQUAL —
+            // so a car docked on a charger with the arm mid-cycle, handed enough
+            // position residue, was re-railed and drove off WITH THE CONNECTOR
+            // IN ITS PORT.
+            //
+            // MEASURED, this tree, gate deleted, by the harness in
+            // TwinMotionDriver.residuegate.test.ts: a car on DCFC-01 with its arm
+            // at phase 'charging' and 3.0u of position residue was handed a
+            // 330.38u rail and had travelled 25.02u of it (24.92u straight-line
+            // off its stall) four polls later; after 24 polls, 185.02u of arc and
+            // 106.63u from the stall. armHoldRefusals stayed 0 the whole way —
+            // the gate reported nothing while the connector was being dragged.
+            // Repairing a car's pose is not more urgent than not tearing an arm
+            // off it: refuse, and the next poll retries. The refusal is bounded
+            // by armGate's HOLD_CAP_S, so the residue is repaired late rather
+            // than not at all.
+            if (off > 1.8 && this.armReleases(e)) {
               this.assignRail(e, { kind: "stall", lane: lane as Lane, x: st.position.x, y: st.position.y, heading: e.stallHeading });
               e.departFor = 0;
             }
@@ -1546,7 +1606,7 @@ class TwinMotionDriver {
         this.entries.set(bv.id, e);
         continue;
       }
-      // ── DEPART GATE (1 of 3): A LANE CHANGE OFF A CHARGER ────────────────────
+      // ── DEPART GATE (2 of 5): A LANE CHANGE OFF A CHARGER ────────────────
       // The twin has re-tasked this car — charge → wash, charge → staging, the
       // ordinary end of a pit stop — and it is sitting PARKED in a DCFC stall
       // with the OTTO-CHARGE ARM still on it. Hold the MOTION here, before any
@@ -1791,7 +1851,7 @@ class TwinMotionDriver {
         continue;
       }
       if (e.vstatus !== "departing") {
-        // ── DEPART GATE (2 of 3): THE DEPARTURE LAUNCH ─────────────────────────
+        // ── DEPART GATE (3 of 5): THE DEPARTURE LAUNCH ─────────────────────
         // Flip the status FIRST — that is what ends the charge session and starts
         // the demate on both evaluations of the arm cycle — then refuse to launch
         // while the arm is still on the car. A held departer takes the same path
@@ -1938,11 +1998,11 @@ class TwinMotionDriver {
       // the backend already dropped it, so it never lingers past the TTL.
       if (!e.tracker && e.vstatus === "departing") {
         e.departFor += dt;
-        // TOTALITY: this is the third door out of a stall (the TTL's forced
-        // launch). It is only reachable after 90 s, and the gate's own cap frees
-        // a car after at most 45 sim-seconds, so it should never be the binding
-        // constraint — but a gate that is enforced on two paths out of three is
-        // not a gate.
+        // ── DEPART GATE (4 of 5): THE TTL FORCED LAUNCH ──────────────────────
+        // TOTALITY. This door is only reachable after DEPART_TTL (90 s) of
+        // waiting parked, and armGate's own HOLD_CAP_S (60 sim-seconds) frees a
+        // car before then, so it should never be the binding constraint — but a
+        // gate enforced on four doors out of five is not a gate.
         if (e.departFor > DEPART_TTL && this.armReleases(e)) {
           // TTL while queued: DRIVE OUT (cap-exempt) instead of vanishing in
           // place on a stall (gap G6). Bounded second life: the tracked-departer
@@ -2080,10 +2140,12 @@ class TwinMotionDriver {
       } else {
         // PARKED: hold position AND hold heading. A stopped car has no yaw
         // budget — this branch used to keep easing the heading toward the stall
-        // at up to 3 rad/s with the wheels stationary, which was 221 of the
+        // at up to 3 rad/s with the wheels stationary, which was 234 of the
         // fixture's motion steps spent rotating a body that had translated less
-        // than 0.001u. The rotation now happens on the dock blend above, while
-        // the car is still moving, and the arrival settles it exactly.
+        // than 0.001u (measured on origin/main @ 22ec3f6; 0 in this tree — see
+        // MAX_TURN_RATE at the top of this file for the full probe). The
+        // rotation now happens on the dock blend above, while the car is still
+        // moving, and the arrival settles it exactly.
         if (e.car.speed !== 0) { e.car.speed = 0; changed = true; }
       }
     }
@@ -2123,10 +2185,10 @@ class TwinMotionDriver {
         if (!e || e.vstatus !== "departing") continue;
         // a queued car still finishing its pull-in stays queued until parked
         if (e.tracker) { stillDriving.push(id); continue; }
-        // ── DEPART GATE (3 of 3): THE QUEUE DRAIN ────────────────────────────
-        // The queue is drained here, not in reconcile, so this is the second door
-        // out of a stall and it needs the same lock. Stays queued — it does not
-        // lose its place — until its arm reports clear.
+        // ── DEPART GATE (5 of 5): THE QUEUE DRAIN ────────────────────────
+        // The queue is drained here, not in reconcile, so this is a door out of
+        // a stall in its own right and it needs the same lock. Stays queued —
+        // it does not lose its place — until its arm reports clear.
         if (!this.armReleases(e)) { stillDriving.push(id); continue; }
         this.startDeparture(id, e);
         active++;

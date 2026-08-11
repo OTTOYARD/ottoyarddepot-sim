@@ -173,9 +173,19 @@ describe("TwinMotionDriver — replay of a captured busy_day run", () => {
   //
   // The two are distinguishable by SHAPE, and they were checked. A wedge persists:
   // the full turning branch (which also re-scored route join nodes) parks one car
-  // at (238,210) for twelve consecutive frames and totals 719. This subset's 7 are
-  // 1 sample at frame 3 and 2 at frame 30 — the final departure wave — with 27 of
-  // the 31 frames at exactly zero. That is queueing, not wedging.
+  // at (238,210) for twelve consecutive frames and totals 719.
+  //
+  // THIS SUBSET'S 7, RE-MEASURED (the figures that used to sit here were a
+  // misreading of the frame dump — its `stuck=` column is the MAX concurrent
+  // stuck cars in one sample, not a count of samples, and the totals are a sum
+  // over samples). Actual distribution, 31 frames x 15 samples:
+  //
+  //     f3 = 1   (one sample, one car)
+  //     f30 = 6  (the final departure wave; worst single sample holds 2 cars)
+  //     every other frame = 0  — 29 of 31 frames at exactly zero
+  //
+  // Two isolated frames, nothing spanning consecutive frames, never more than 2
+  // cars at once. That is queueing, not wedging.
   //
   // WHAT WAS DELIBERATELY LEFT OUT, and why it is not in this tree: the turning
   // branch also re-scored LaneGraph join nodes on driven distance. On the OLD depot

@@ -16,6 +16,19 @@
 // window — and the arms mate for real: 9 of the 10 DCFC stalls hold a car at
 // once, and the gate refuses hundreds of launches.
 //
+// WHAT THIS REPLAY DOES *NOT* REACH, stated because it is how a fourth ungated
+// door survived a suite that looks like it covers the gate. The residue re-rail
+// (DEPART GATE 1 of 5) needs a docked car whose body sits >1.8u off its stall
+// pose, and in this capture every car docks exactly on its stall — so that
+// branch never fires here, gated or not. Measured, same harness, immediately
+// before and after the residue gate was added:
+//
+//   overlapPairSamples 90 · distinctOverlapPairs 41 · stuckSamples 10
+//   maxSimultaneousArmHolds 9 · gateRefusals 532        — IDENTICAL both sides.
+//
+// A scale replay cannot be the only cover for a gate. The door-by-door cases
+// live in TwinMotionDriver.residuegate.test.ts and motion/armGate.test.ts.
+//
 // WHAT IT COSTS, MEASURED IN THIS TREE, BOTH SIDES, same harness, gate ON vs
 // armReleases() stubbed to a constant true:
 //
