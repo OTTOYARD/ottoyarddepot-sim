@@ -14,7 +14,7 @@
 // scripted kinematic maneuvers owned by TwinMotionDriver.
 // ============================================================================
 import type { Pt } from "./PathTracker";
-import { CAR_LENGTH } from "./traffic";
+import { CAR_BODY_LENGTH } from "./traffic";
 import { idmAccel } from "./idm";
 
 export interface RailBody {
@@ -89,6 +89,33 @@ export function buildRail(
 
 const PROGRESS_STEP = 4; // advancing this far resets the no-progress watchdog
 
+// ── CO-SPAWN DEADLOCK BREAKER ───────────────────────────────────────────────
+// Reserving the drawn 10.2u body (instead of 4.125u) means a car needs ~17u of
+// clear road to pull away rather than ~11u, and that surfaced a latent driver
+// bug: TwinMotionDriver can admit two cars onto two different rails at the SAME
+// ingress point (measured 0.26u apart in the docking probe's interleaved fill).
+// Each then reads the other as a leader ~2u ahead, each brakes to a standstill
+// for the other, and BOTH sit at s=0 forever — 5 of 40 cars never reached their
+// charger. Mutual braking cannot separate bodies that already overlap.
+//
+// The escape is deliberately as narrow as it can be made, so ordinary queueing
+// and ordinary congestion are untouched (measured: the busy_day fixture reports
+// identical geometry with it armed and disarmed — it never fires there):
+//   1. the car must be WEDGED (no arc progress for DEADLOCK_S), not merely
+//      stopped in a queue;
+//   2. it must still be AT ITS ROUTE START — a wedge mid-route is a different
+//      animal and freezing is the right answer for it;
+//   3. the blocker must be MOVING (a parked car is a static obstacle that will
+//      never clear, so pushing into it is strictly worse) and be ON TOP of it,
+//      not in front of it;
+//   4. exactly ONE of the pair yields — the id comparison is an arbitrary but
+//      DETERMINISTIC tiebreak, and without it both cars creep and the pair
+//      travels welded together.
+// The car that goes is then held to CREEP_SPEED, so unsticking is a crawl out
+// of the other body rather than a launch through it.
+const DEADLOCK_S = 8;
+const CREEP_SPEED = 1.5;
+
 export function pointAt(pts: Pt[], cum: number[], s: number): Pt & { heading: number } {
   if (pts.length < 2) return { x: pts[0]?.x ?? 0, y: pts[0]?.y ?? 0, heading: 0 };
   const total = cum[cum.length - 1];
@@ -136,6 +163,9 @@ export function stepRail(
 ): (Pt & { heading: number }) | null {
   // 1) nearest body in my forward window (projected onto MY path)
   let gap = Infinity;
+  // wedged AT THE ROUTE START — the only place the co-spawn deadlock happens.
+  const wedged = r.stationaryFor > DEADLOCK_S && r.s < CAR_BODY_LENGTH / 2;
+  let creeping = false; // set only by the deadlock breaker; clamps v to a crawl
   const maxAhead = Math.min(LOOK, r.total - r.s);
   for (let d = SAMPLE; d <= maxAhead; d += SAMPLE) {
     const p = pointAt(r.pts, r.cum, r.s + d);
@@ -149,7 +179,18 @@ export function stepRail(
       // ingress pileup. A parked (non-moving) body always blocks.
       if (b.moving && b.heading !== undefined &&
           Math.cos(b.heading - p.heading) < ONCOMING_DOT) continue;
-      gap = Math.min(gap, d - CAR_LENGTH * 0.55);
+      // CO-SPAWN DEADLOCK BREAKER (see DEADLOCK_S above for the full argument
+      // and the four conditions). `d <= SAMPLE` is "on top of me, not in front
+      // of me": the first scan sample can only report a body whose centre lies
+      // within LANE_HALF of a point SAMPLE ahead, i.e. 0.3u..3.7u from my own
+      // centre — well inside my 5.1u front half. Braking is futile there.
+      if (b.moving && wedged && d <= SAMPLE && id < b.id) { creeping = true; continue; }
+      // `d` is arc distance to a sample point that b's CENTRE sits within
+      // LANE_HALF of, so d is centre-to-centre. One whole body length converts
+      // it to bumper-to-bumper. The old `CAR_LENGTH * 0.55` (4.125 u) budgeted
+      // 40% of the body the cockpit draws, so a queue that IDM had settled
+      // perfectly at its jam gap was still 1.075 u inside the car in front.
+      gap = Math.min(gap, d - CAR_BODY_LENGTH);
     }
     if (gap < Infinity) break; // nearest sample wins; no need to look further
   }
@@ -182,7 +223,9 @@ export function stepRail(
   // Traffic (IDM gap), node locks and the mouth lock all clamp v downward below
   // and still win — so honouring OTTO-Q's timing can never push a car through a
   // car in front of it or through a held intersection.
-  const vMax = Math.min(MAX_SPEED, r.vCap ?? MAX_SPEED);
+  // CREEP_SPEED is a third ceiling of the same kind: a car unsticking itself
+  // from a co-spawn deadlock crawls out, it does not launch.
+  const vMax = Math.min(MAX_SPEED, r.vCap ?? MAX_SPEED, creeping ? CREEP_SPEED : Infinity);
   r.v = Math.max(0, Math.min(vMax, r.v + accel * dt));
   // ease to a stop exactly at the route end
   r.v = Math.min(r.v, Math.sqrt(2 * 7 * Math.max(0, r.total - r.s)));
