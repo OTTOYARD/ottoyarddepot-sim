@@ -61,6 +61,41 @@ describe("depot aisles — the founder's 24 ft two-way spec", () => {
     }
   });
 
+  it("every L2 stall is long enough to hold the design vehicle", () => {
+    // The defect this pins: 16 west-column L2 stalls were declared 15.67 ft deep
+    // against a 16.0 ft design vehicle — the stall was SHORTER THAN THE CAR — and the
+    // guard reported it as a WARN for long enough that nobody actioned it. A WARN is
+    // the right call for the guard (it does not block a seed build); a test is the
+    // right place to stop it coming back.
+    const seed = JSON.parse(readFileSync("unreal/layoutSeed.json", "utf8"));
+    const designLength = seed.meta.design_vehicle_ft.length;
+    const l2 = seed.stalls.filter((s: { stall_type: string }) => s.stall_type === "l2");
+    expect(l2.length).toBe(30);
+    for (const s of l2 as { stall_code: string; stall_depth_ft: number }[]) {
+      expect(s.stall_depth_ft).toBeGreaterThanOrEqual(designLength);
+    }
+  });
+
+  it("the L2 west-column pitch in the renderer matches the one the seed declares", () => {
+    // sitePlan.ts lays the column out at a pitch; buildLayoutSeed.mjs is told the same
+    // pitch by hand in order to cap the declared depth. Two files, one dimension,
+    // nothing binding them — so the depth could silently stop matching the spacing.
+    // This measures the ACTUAL spacing out of the seed and checks the declared depth
+    // is the cap that spacing implies.
+    const seed = JSON.parse(readFileSync("unreal/layoutSeed.json", "utf8"));
+    const clearance = seed.meta.clearance_ft;
+    const west = (seed.stalls as { canopy_side: string; stall_type: string; relative_y: number;
+                                   stall_depth_ft: number; canopy_code: string }[])
+      .filter((s) => s.stall_type === "l2" && s.canopy_side === "W" && s.canopy_code === "CANOPY-02")
+      .sort((a, b) => b.relative_y - a.relative_y); // north to south
+    expect(west.length).toBe(8);
+    const pitch = Math.abs(west[0].relative_y - west[1].relative_y);
+    for (let i = 1; i < west.length; i++) {
+      expect(Math.abs(west[i - 1].relative_y - west[i].relative_y)).toBeCloseTo(pitch, 6);
+    }
+    for (const s of west) expect(s.stall_depth_ft).toBeCloseTo(Math.min(20, pitch - clearance), 6);
+  });
+
   it("refuses to measure an aisle between runs that are not facing columns", () => {
     // Fail safe: a row that steps along x has no 'east face', and silently returning a
     // number for it would paint a lane through the row.

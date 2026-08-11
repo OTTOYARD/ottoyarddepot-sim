@@ -264,11 +264,31 @@ function chargingStalls(dcfcCount: number, l2Count: number): StallState[] {
   }
 
   // Canopies B & C — L2, west column 8 + east column 7
+  //
+  // WEST COLUMN PITCH 10.3 -> 10.6, y0 86 -> 85.9.
+  // The 16 west-column L2 stalls were declared 10.00 x 15.67 ft against a 16.0 ft
+  // design vehicle — THE STALL WAS SHORTER THAN THE CAR, and the guard had been
+  // reporting it as a WARN nobody actioned. The declared depth is capped at
+  // (pitch - 0.5 ft) by buildLayoutSeed, so 10.3u = 16.17 ft of pitch could only ever
+  // declare 15.67 ft. 10.6u gives 16.64 ft of pitch and a 16.14 ft stall, which holds
+  // the design vehicle. NO STALL IS LOST — still 8 per column, 30 L2 total, and no L2
+  // code is deleted.
+  //
+  // Both sides measured, because the room came from somewhere: the column's clearance
+  // to the north collector goes 2.68 -> 2.29 ft and to the south collector 5.66 ->
+  // 2.29 ft (both still clear), and the last stall's declared footprint now extends
+  // 1.95 ft past the canopy roof's south edge — a canopy that stops short of a bumper
+  // is normal, and the roof is not a solid obstruction (guard check 4 excludes it).
+  // If the roof edge matters more than the extra margin, pitch 10.55 / y0 85.6 gives
+  // 16.06 ft of depth and 0.89 ft of overhang and is also fully green.
+  //
+  // buildLayoutSeed.mjs carries the matching pitch; they are asserted equal by
+  // sitePlan.aisles.test.ts reading the committed seed.
   let l2 = 0;
   for (const c of [CANOPIES[1], CANOPIES[2]]) {
     for (let i = 0; i < 8 && l2 < l2Count; i++) {
       l2++;
-      stalls.push(mk(`L2-${String(l2).padStart(2, '0')}`, 'l2', c.cx - 7, 86 + i * 10.3));
+      stalls.push(mk(`L2-${String(l2).padStart(2, '0')}`, 'l2', c.cx - 7, 85.9 + i * 10.6));
     }
     for (let i = 0; i < 7 && l2 < l2Count; i++) {
       l2++;

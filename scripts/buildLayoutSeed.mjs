@@ -396,7 +396,11 @@ function pushStall(row) {
   src.forEach((s, i) => {
     const canopy = sp.CANOPIES.find((c) => Math.abs(s.position.x - c.cx) <= 8);
     const west = s.position.x < canopy.cx;
-    const fp = footprint('l2', s.position.angle, 0, west ? 10.3 : 11);
+    // West column 10.3 -> 10.6 so the declared depth (capped at pitch - CLEARANCE_FT)
+    // reaches 16.14 ft and finally holds the 16.0 ft design vehicle. See the pitch
+    // note in sitePlan.ts chargingStalls(); the two are asserted equal by
+    // src/lib/sitePlan.aisles.test.ts, which reads this seed back.
+    const fp = footprint('l2', s.position.angle, 0, west ? 10.6 : 11);
     pushStall({
       stall_code: L2_CODES[i],
       render_id: s.id,
