@@ -4,6 +4,7 @@ import { useDepotStore } from '@/store/depotStore';
 import { towardFor, PEDESTAL_OFFSET_PU } from '@/lib/ottoChargeArm/depotPlacement';
 import { toWorld } from './coordUtils';
 import { MATERIALS } from './materials';
+import { pedestalBoxes, pedestalH, pedestalW } from './pedestalGeometry';
 
 /**
  * Charge cable arc, built per side.
@@ -54,9 +55,13 @@ export function ChargingField({ type }: Props) {
     return mats.teal;
   };
 
+  // Sizes come from pedestalGeometry.ts, which the OTTO-CHARGE ARM's clearance
+  // test measures against. Restating them here is how the arm ended up mounted
+  // 0.1675 m inside a cabinet nothing had ever compared it to.
   const isDC = type === 'dcfc';
-  const H = isDC ? 3.6 : 2.8;
-  const W = isDC ? 1.5 : 1.1;
+  const H = pedestalH(isDC);
+  const W = pedestalW(isDC);
+  const BOX = pedestalBoxes(isDC);
 
   return (
     <group>
@@ -71,13 +76,13 @@ export function ChargingField({ type }: Props) {
         return (
           <group key={s.id} position={[wx, 0, wz]}>
             {/* concrete pad */}
-            <mesh position={[0, 0.08, 0]} receiveShadow>
-              <boxGeometry args={[W + 0.8, 0.16, 1.6]} />
+            <mesh position={[0, BOX.pad.centreY, 0]} receiveShadow>
+              <boxGeometry args={BOX.pad.size} />
               <primitive object={mats.cap} attach="material" />
             </mesh>
             {/* pedestal body */}
-            <mesh position={[0, H / 2 + 0.16, 0]} castShadow material={mats.body}>
-              <boxGeometry args={[W, H, 0.7]} />
+            <mesh position={[0, BOX.cabinet.centreY, 0]} castShadow material={mats.body}>
+              <boxGeometry args={BOX.cabinet.size} />
             </mesh>
             {/* screen — on the car's flank of the cabinet, facing it. Ry(theta)
                 sends +Z to (sin, 0, cos), so aiming at the car needs
@@ -88,13 +93,13 @@ export function ChargingField({ type }: Props) {
               <planeGeometry args={[0.55, 0.8]} />
             </mesh>
             {/* status LED strip */}
-            <mesh position={[0, H + 0.22, 0]} material={ledFor(s.status)}>
-              <boxGeometry args={[W * 0.85, 0.12, 0.5]} />
+            <mesh position={[0, BOX.led.centreY, 0]} material={ledFor(s.status)}>
+              <boxGeometry args={BOX.led.size} />
             </mesh>
             {/* DCFC power cap */}
-            {isDC && (
-              <mesh position={[0, H + 0.5, 0]} castShadow material={mats.cap}>
-                <boxGeometry args={[W + 0.25, 0.35, 0.85]} />
+            {isDC && BOX.cap && (
+              <mesh position={[0, BOX.cap.centreY, 0]} castShadow material={mats.cap}>
+                <boxGeometry args={BOX.cap.size} />
               </mesh>
             )}
             {/* charge cable arcs to the car while the stall is live */}
