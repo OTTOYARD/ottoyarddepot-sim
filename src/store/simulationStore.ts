@@ -61,6 +61,15 @@ export interface SimulationConfig {
 interface SimulationState {
   status: 'idle' | 'running' | 'paused';
   simTime: number;
+  /** True while a LIVE backend run owns the clock. TwinMotionDriver publishes
+   *  `simTime` from the snapshot's own sim clock in twin mode; before this the
+   *  clock was FROZEN at its 50400 default (tick() has no caller and setSimTime
+   *  was only ever reached from the scrub slider), which is why every
+   *  OTTO-CHARGE ARM sat 'stowed' forever — its phase is a function of
+   *  simTime - serviceStartTime, and a constant clock yields a constant phase.
+   *  The scrub slider is a MANUAL clock and would fight the live one, so the
+   *  BottomBar disables it while this is true. */
+  simClockLive: boolean;
   simSpeed: number;
   isPanelOpen: boolean;
   activeTab: 'controls' | 'world' | 'orchestration' | 'kpis' | 'ai-summary' | 'alerts' | 'history' | 'swap-test' | 'scorekeeper' | 'copilot' | 'blackbox';
@@ -73,6 +82,12 @@ interface SimulationState {
   setActiveTab: (tab: SimulationState['activeTab']) => void;
   setSimSpeed: (speed: number) => void;
   setSimTime: (time: number) => void;
+  /** Publish the LIVE backend clock (seconds since depot-local midnight) and
+   *  mark the clock as driven. Separate from setSimTime so the manual scrub and
+   *  the live feed can never be confused for one another. */
+  setLiveSimTime: (time: number) => void;
+  /** Hand the clock back to manual control (leaving twin mode). */
+  releaseLiveSimTime: () => void;
   tick: () => void;
   updateConfig: (partial: Partial<SimulationConfig>) => void;
   resetConfig: () => void;
@@ -135,6 +150,7 @@ const defaultConfig: SimulationConfig = {
 export const useSimulationStore = create<SimulationState>((set) => ({
   status: 'idle',
   simTime: 50400,
+  simClockLive: false,
   simSpeed: 10,
   isPanelOpen: true,
   activeTab: 'controls',
@@ -147,8 +163,11 @@ export const useSimulationStore = create<SimulationState>((set) => ({
   setActiveTab: (activeTab) => set({ activeTab }),
   setSimSpeed: (simSpeed) => set({ simSpeed }),
   setSimTime: (simTime) => set({ simTime: Math.max(0, Math.min(86399, simTime)) }),
+  setLiveSimTime: (simTime) =>
+    set({ simTime: Math.max(0, Math.min(86399, simTime)), simClockLive: true }),
+  releaseLiveSimTime: () => set({ simClockLive: false }),
   tick: () => set((s) => ({ simTime: (s.simTime + s.simSpeed) % 86400 })),
   updateConfig: (partial) => set((s) => ({ config: { ...s.config, ...partial } })),
-  resetConfig: () => set({ config: { ...defaultConfig }, simSpeed: 10, status: 'idle', simTime: 50400, controlsLocked: false }),
+  resetConfig: () => set({ config: { ...defaultConfig }, simSpeed: 10, status: 'idle', simTime: 50400, simClockLive: false, controlsLocked: false }),
   setControlsLocked: (controlsLocked) => set({ controlsLocked }),
 }));

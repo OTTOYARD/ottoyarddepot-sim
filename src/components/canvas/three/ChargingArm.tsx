@@ -7,7 +7,7 @@ import { useSimulationStore } from '@/store/simulationStore';
 import { buildCobot, makeCobotMaterials, type CobotHandles } from '@/lib/ottoChargeArm/buildCobot';
 import { OTTO_CHARGE_ARM, METRES_PER_PLAN_UNIT } from '@/lib/ottoChargeArm/cobotSpec';
 import { CAR_WIDTH } from '@/engine/motion/traffic';
-import { statusColor, isTethered, vehicleMayMove, PHASE_SECONDS } from '@/lib/ottoChargeArm/armStateMachine';
+import { statusColor, isTethered, vehicleMayMove, PHASE_SECONDS, type ArmPhase } from '@/lib/ottoChargeArm/armStateMachine';
 import { twinMotionDriver } from '@/engine/TwinMotionDriver';
 import { poseFor, type ArmTarget } from '@/lib/ottoChargeArm/armMotion';
 import { placeArm, portInArmFrame } from '@/lib/ottoChargeArm/depotPlacement';
@@ -52,6 +52,24 @@ const TEMPLATE: CobotHandles = buildCobot(spec, { withPlinth: true, lod: 'depot'
 
 /** Rendered vehicle half-width in metres, from the shared plan-unit footprint. */
 const CAR_HALF_WIDTH_M = (CAR_WIDTH * METRES_PER_PLAN_UNIT) / 2;
+
+/**
+ * Phases in which a mate has actually been made, or is being unmade.
+ *
+ * The OTTO-Q tether may only HOLD one of these. It may never manufacture a mate
+ * out of 'stowed': the override used to replace the phase UNCONDITIONALLY, so a
+ * home arm on a tethered stall snapped straight to a mated pose and played a
+ * retract for a connection that never happened — the exact opposite of what its
+ * own comment promised. 'clear' IS included: that is the case the override
+ * exists for (the local cycle finished while OTTO-Q still holds the car), and it
+ * is a mate that genuinely occurred.
+ *
+ * A whitelist, so an unrecognised phase denies the override and the local cycle
+ * stands. Same fail-safe direction as vehicleMayMove.
+ */
+const MATED_OR_DEMATING: ReadonlySet<string> = new Set<ArmPhase>([
+  'latch', 'charging', 'unlatch', 'extract', 'retract', 'clear',
+]);
 
 interface ChargingArmProps {
   stallId: string;
@@ -114,7 +132,12 @@ export function ChargingArm({ stallId, stallType }: ChargingArmProps) {
   useFrame(() => {
     if (!placement || !stall || !rig.root) return;
 
-    const simTime = useSimulationStore.getState().simTime;
+    // THE ARM'S CLOCK. In twin mode the driver publishes the live depot clock on
+    // an imperative channel (same reason poseStore exists): the store copy is
+    // deliberately throttled to 1 Hz so a 60 Hz write does not re-render the
+    // whole 3D tree, and a 1 Hz clock would step this cycle in visible jerks.
+    // The store is the fallback for any mode where no backend owns the clock.
+    const simTime = twinMotionDriver.simClockTod() ?? useSimulationStore.getState().simTime;
     const vehicles = useVehicleStore.getState().vehicles;
     const v = vehicles.find((x) => x.assignedStall === stallId);
 
@@ -141,8 +164,10 @@ export function ChargingArm({ stallId, stallType }: ChargingArmProps) {
     // The override is deliberately ONE-WAY. It can only ever say "still mated"; it
     // never releases an arm the local cycle believes is mated. A backend that omits
     // the field, or a stall the driver cannot resolve, therefore changes nothing.
+    // The MATED_OR_DEMATING gate is what makes the code match that sentence: the
+    // override may extend a mate, never invent one out of a stowed arm.
     const tetherLeft = twinMotionDriver.stallTetherRemainingS(stallId);
-    if (tetherLeft !== null) {
+    if (tetherLeft !== null && MATED_OR_DEMATING.has(phase)) {
       // Walk the real demate against OTTO-Q's deadline rather than a free clock, so
       // the retract finishes exactly when the orchestrator frees the stall.
       const { unlatch, extract, retract } = PHASE_SECONDS;
