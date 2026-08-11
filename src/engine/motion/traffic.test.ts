@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { findLeader, separationSteer, StallLedger, CAR_LENGTH, type MovingCar } from "./traffic";
+// The two gap expectations below were written against CAR_LENGTH (7.5, the
+// 3D mesh scale seed) and so ENCODED the defect this change removes: they
+// asserted a bumper gap measured off a body 2.7 u shorter than the one the
+// cockpit draws. They now assert the same arithmetic against CAR_BODY_LENGTH.
+import {
+  findLeader, separationSteer, StallLedger, CAR_BODY_LENGTH, type MovingCar,
+} from "./traffic";
 
 const car = (id: string, x: number, y: number, heading = 0, speed = 0): MovingCar => ({
   id, pose: { x, y, heading }, speed,
@@ -9,7 +15,7 @@ describe("findLeader — forward-cone leader detection", () => {
   it("finds a car directly ahead in the same lane and reports the bumper gap", () => {
     const me = car("me", 0, 0, 0); // facing east
     const lead = findLeader(me, [car("a", 20, 0, 0, 3)]);
-    expect(lead.gap).toBeCloseTo(20 - CAR_LENGTH, 5);
+    expect(lead.gap).toBeCloseTo(20 - CAR_BODY_LENGTH, 5);
     expect(lead.leaderSpeed).toBe(3);
   });
   it("ignores cars in an adjacent lane (too far laterally)", () => {
@@ -25,8 +31,17 @@ describe("findLeader — forward-cone leader detection", () => {
   it("picks the NEAREST of several cars ahead", () => {
     const me = car("me", 0, 0, 0);
     const lead = findLeader(me, [car("far", 30, 0, 0, 1), car("near", 15, 0, 0, 2)]);
-    expect(lead.gap).toBeCloseTo(15 - CAR_LENGTH, 5);
+    expect(lead.gap).toBeCloseTo(15 - CAR_BODY_LENGTH, 5);
     expect(lead.leaderSpeed).toBe(2);
+  });
+  it("reads gap 0 when the two BODIES are exactly touching", () => {
+    // The unit under test is what `gap` MEANS: bumper-to-bumper, in the units
+    // idmAccel() documents. Two equal bodies whose centres are one body length
+    // apart are touching, so the gap is 0 — and it can never go negative, which
+    // is what keeps a divide-by-gap out of the IDM interaction term.
+    const me = car("me", 0, 0, 0);
+    expect(findLeader(me, [car("a", CAR_BODY_LENGTH, 0, 0)]).gap).toBeCloseTo(0, 9);
+    expect(findLeader(me, [car("a", 2, 0, 0)]).gap).toBe(0); // already inside me
   });
 });
 

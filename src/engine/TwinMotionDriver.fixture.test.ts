@@ -83,8 +83,31 @@ describe("TwinMotionDriver — replay of a captured busy_day run", () => {
   //
   // Baseline on main, same fixture:  overlapPairSamples 543, stuck 297, cluster 6
   // Now:                             overlapPairSamples 221, stuck 130, cluster 5
-  const OVERLAP_BUDGET = 4100;  // measured 4063. TARGET 0. Adjusted due to CAR_LENGTH change.
-  const STUCK_BUDGET = 2000;    // measured 1966. TARGET 0.
+  //
+  // RE-BASELINED after the car-length reconciliation (CAR_BODY_LENGTH). The gap
+  // budget was `CAR_LENGTH * 0.55` = 4.125 u against a drawn body of 10.2 u, so
+  // a queue settled at IDM's 5 u jam gap sat 1.075 u INSIDE the car ahead:
+  //
+  //   overlapPairSamples   4063 → 1223   (−70%)
+  //   distinctOverlapPairs  202 →   66   (−67%)
+  //   worstMovingCluster     13 →   11
+  //   stuckSamples         1960 → 2121   (+8%, WORSE — see 2c)
+  //
+  // 10.2 is a measured MINIMUM, not "bigger is safer": the same fixture with the
+  // budget at 4.125 / 7.5 / 10.2 / 12.5 gives 4057 / 2418 / 1223 / 2330 overlap
+  // pair-samples. Reserving more than the body costs as much as reserving less.
+  // RE-BASELINED against main AFTER PR #74 (arm clock + staging-group fix) merged.
+  // #74 stopped six twin staging GROUPS collapsing onto one 19-stall west-perimeter
+  // column, which redistributed traffic into corridors that had carried none, so both
+  // numbers moved before this branch touched anything. Measured, in order:
+  //     pre-#74 baseline   overlap 4063 · distinct 202 · stuck 1960
+  //     main with #74      overlap 4090 · distinct 209 · stuck 1977   (#74 alone: +17 stuck)
+  //     main + this branch overlap 1248 · distinct  65 · stuck 2151
+  // The earlier budgets (1250 / 2150) were set against the PRE-#74 tree and are why CI
+  // failed this branch by a single sample. Do not compare a number here across a change
+  // that moves traffic — re-measure both sides, as above.
+  const OVERLAP_BUDGET = 1260;  // measured 1248. TARGET 0.
+  const STUCK_BUDGET = 2160;    // measured 2151. TARGET 0. RAISED — see 2c.
 
   it("SYMPTOM 2a: body-overlap stays within the ratchet (target 0)", () => {
     // WHAT IS LEFT: the dominant hotspots are around the TE temp-staging block
@@ -98,14 +121,27 @@ describe("TwinMotionDriver — replay of a captured busy_day run", () => {
     // deliberately widened from 2.4 for passing clearance and lanePaint tracks
     // it), and checkLayoutGeometry.mjs check 7 now asserts stall-vs-lane clearance
     // so this cannot regress.
+    //
+    // WHAT IS LEFT AFTER THE CAR-LENGTH FIX, classified by instrumenting the
+    // replay (1223 pair-samples): 14 parked-vs-parked (stall pitch, a layout
+    // number), 157 moving-vs-parked, 882 same-direction and 170 crossing/
+    // opposing. The same-direction residual is NOT a following-gap failure —
+    // 785 of the 882 are LATERALLY offset, and 408 of those are two taxiing
+    // cars within ~2 u of each other in both axes, i.e. co-located rather than
+    // queued. That is a route/assignment overlap upstream of RailFlow, and
+    // widening RailFlow's LANE_HALF does not touch it (measured: it makes the
+    // total worse). It needs its own fix; the gap budget is no longer the cause.
     expect(report.totals.overlapPairSamples).toBeLessThanOrEqual(OVERLAP_BUDGET);
   });
 
-  it("SYMPTOM 2b: taxiing cars never knot up (<= 5 moving cars in one 14u disc)", () => {
-    // 5 is a queue at a locked intersection during a mass departure, which is
-    // legitimate traffic. It was 6 before, and it no longer sits in the SW corner.
-    // The cluster of 13 is now measured. Ratchet increased to 13 to pass CI.
-    expect(report.worstMovingCluster.n).toBeLessThanOrEqual(13);
+  it("SYMPTOM 2b: taxiing cars never knot up in one 14u disc", () => {
+    // A queue at a locked intersection during a mass departure is legitimate
+    // traffic; a KNOT is cars occupying the same ground. Reserving the drawn
+    // body took the worst disc from 13 to 11, so the ratchet TIGHTENS to 11.
+    // Target is a real queue length (~5), not 11 — a 14 u disc holding 11 cars
+    // still means bodies sharing space, which is the co-location residual 2a
+    // names. Do not raise this to make a change pass.
+    expect(report.worstMovingCluster.n).toBeLessThanOrEqual(11);
   });
 
   it("SYMPTOM 2c: wedged-car time stays within the ratchet (target 0)", () => {
@@ -113,6 +149,13 @@ describe("TwinMotionDriver — replay of a captured busy_day run", () => {
     // baseline was a car pinned at s=0 by the route-endpoint displacement; those
     // are gone. What remains trails the overlap above — a car braking for a body
     // that is inside its lane because of the clearance conflict.
+    //
+    // THIS NUMBER GOT WORSE, 1977 → 2151, and it is a real cost, not noise.
+    // Reserving a whole 10.2 u body instead of 4.125 u makes every queue 2.5x
+    // longer in the same corridors, and this watchdog counts a car that has not
+    // advanced 4 u in 10 s — which an honestly-queued car has not. The trade is
+    // deliberate: the alternative is cars that keep rolling by driving through
+    // each other. Peak wedges in a single sample went the right way, 15 → 14.
     expect(report.totals.stuckSamples).toBeLessThanOrEqual(STUCK_BUDGET);
   });
 });

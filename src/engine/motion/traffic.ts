@@ -20,7 +20,42 @@ export interface MovingCar {
   speed: number;
 }
 
-/** Logical car length (bumper-to-bumper bookkeeping for the IDM gap). */
+/**
+ * THE BODY. Plan units, at 0.4785 m/unit → 4.88 m x 2.01 m, a real robotaxi
+ * footprint. This is the ONE definition of how much room a car takes up, and
+ * every following-gap budget in this engine is derived from it.
+ *
+ * It exists because the gap budget and the drawn body had drifted apart. The
+ * cockpit draws 4.2 x 10.2 (VehicleDot.tsx) and the fixture's body-overlap
+ * metric measures those same dimensions, while RailFlow budgeted a following
+ * gap of `CAR_LENGTH * 0.55` = 4.125 u. Add IDM's s0 jam gap of 5 u and a
+ * stopped queue settled at 9.125 u centre-to-centre — 1.075 u INSIDE a 10.2 u
+ * body. Queued cars therefore overlapped permanently while perfectly straight
+ * and perfectly stopped; the busy_day fixture measured 4063 overlap
+ * pair-samples, 3560 of them between two MOVING cars.
+ *
+ * Keep this equal to what the cockpit draws. RailFlow.test.ts pins it to the
+ * dimensions the overlap metric measures so the two literals cannot drift
+ * apart again silently — that duplication, not the number, was the bug.
+ */
+export const CAR_BODY_LENGTH = 10.2;
+/** Stated so the footprint has ONE home and the drift pin can check both axes.
+ *  Nothing budgets laterally off it today: RailFlow's LANE_HALF is a lane-
+ *  discipline band, not a body half-width, and widening it to 2.1/2.6/3.2 was
+ *  measured on the busy_day fixture and made overlap WORSE (1223 → 1366 / 1398
+ *  / 1684 pair-samples) because more braking parks more cars in the corridor. */
+export const CAR_BODY_WIDTH = 4.2;
+
+/**
+ * 3D MESH SCALE SEED — NOT the traffic footprint. Do not budget gaps with it.
+ *
+ * vehicleBody.ts builds the three.js body to this length (and CAR_WIDTH below)
+ * and its own comment calls the footprint FROZEN, because CAR_WIDTH sets the
+ * flank plane the OTTO-CHARGE ARM aims its standoff at. The mesh is drawn
+ * smaller than the cockpit's 2D body; reconciling those two is a renderer
+ * change, not a traffic change, so this stays put and the traffic model uses
+ * CAR_BODY_LENGTH above instead.
+ */
 export const CAR_LENGTH = 7.5;
 
 /**
@@ -63,7 +98,10 @@ export function findLeader(
     if (fwd <= 0 || fwd > range) continue;
     const lat = Math.abs(dx * -fy + dy * fx); // |perpendicular| component
     if (lat > laneHalf) continue;
-    const gap = fwd - CAR_LENGTH;
+    // `fwd` is centre-to-centre along my heading; subtracting one whole body
+    // (my front half + the leader's rear half, equal bodies) makes it
+    // bumper-to-bumper, which is the units idmAccel() documents for `gap`.
+    const gap = fwd - CAR_BODY_LENGTH;
     if (gap < bestGap) {
       bestGap = gap;
       leaderSpeed = o.speed;
