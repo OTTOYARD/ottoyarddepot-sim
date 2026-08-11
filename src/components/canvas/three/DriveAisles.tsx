@@ -5,7 +5,7 @@ import {
   WEST_AISLE_X, EAST_AISLE_X, NORTH_LANE_Y, SOUTH_LANE_Y, REAR_LANE_Y, FORECOURT_Y,
   WEST_LINK_X, GAP_LANES, TEMP_LANE_X, CANOPIES, INGRESS, EGRESS,
 } from '@/lib/sitePlan';
-import { toWorld } from './coordUtils';
+import { toWorld, yawFromCompassDeg } from './coordUtils';
 
 /**
  * Continuous-flow lane markings:
@@ -19,7 +19,10 @@ import { toWorld } from './coordUtils';
 function Arrow({ x, y, headingDeg }: { x: number; y: number; headingDeg: number }) {
   const mat = useMemo(() => MATERIALS.laneMarkingWhite(), []);
   const [wx, , wz] = toWorld({ x, y }, 0);
-  const rotY = (headingDeg * Math.PI) / 180; // 0=N, 90=E, 180=S, 270=W
+  // 0=N, 90=E, 180=S, 270=W. The bearing->yaw conversion lives in coordUtils
+  // with toWorld: this file's inline (deg * PI/180) predated d879a23's X
+  // negation, so every east/west arrow pointed AGAINST its own one-way lane.
+  const rotY = yawFromCompassDeg(headingDeg);
   return (
     <group position={[wx, 0.06, wz]} rotation={[0, rotY, 0]}>
       <mesh material={mat}><boxGeometry args={[0.9, 0.04, 4.6]} /></mesh>

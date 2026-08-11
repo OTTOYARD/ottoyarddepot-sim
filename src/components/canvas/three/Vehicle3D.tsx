@@ -2,7 +2,7 @@ import { memo, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
-import { toWorld, DECK_Y } from './coordUtils';
+import { toWorld, yawFromHeading2D, DECK_Y } from './coordUtils';
 import { VEHICLE_GEO as GEO, PORT_GEO, CAR_W_PU } from './vehicleBody';
 import { poseStore } from '@/engine/motion/poseStore';
 import { useVehicleStore } from '@/store/vehicleStore';
@@ -156,9 +156,10 @@ function Vehicle3DInner({ vehicle }: { vehicle: Vehicle; simSpeed: number }) {
     const [wx, , wz] = toWorld({ x: lp.x, y: lp.y });
     g.position.x = wx;
     g.position.z = wz;
-    // logical heading θ (0=+x, y-down) → world travel (cosθ, −sinθ); model forward
-    // at rot.y=0 is +Z, so rot.y = atan2(worldDX, worldDZ) = atan2(cosθ, −sinθ).
-    g.rotation.y = Math.atan2(Math.cos(lp.heading), -Math.sin(lp.heading));
+    // Yaw comes from coordUtils so it can never again disagree with toWorld's
+    // signs — the old inline atan2(cosθ, −sinθ) predated d879a23's X negation
+    // and rendered every east/west car facing backwards.
+    g.rotation.y = yawFromHeading2D(lp.heading);
   });
 
   return (
@@ -218,11 +219,27 @@ function Vehicle3DInner({ vehicle }: { vehicle: Vehicle; simSpeed: number }) {
 
 // PERF: the roster array is rebuilt on every twin poll (new object identities);
 // live position comes from poseStore, so a car only needs to re-render when its
-// id / status / coarse SoC actually change — plus, now, its stall assignment
-// and OEM, which together decide where its charge port sits.
-export const Vehicle3D = memo(Vehicle3DInner, (a, b) =>
-  a.vehicle.id === b.vehicle.id &&
-  a.vehicle.status === b.vehicle.status &&
-  a.vehicle.assignedStall === b.vehicle.assignedStall &&
-  a.vehicle.oem === b.vehicle.oem &&
-  Math.round(a.vehicle.currentSoC / 5) === Math.round(b.vehicle.currentSoC / 5));
+// id / status / SoC actually change — plus, now, its stall assignment and OEM,
+// which together decide where its charge port sits.
+//
+// SoC IS COMPARED AT THE PRECISION IT IS DRAWN AT, and no coarser. The old
+// `Math.round(soc / 5)` bucketed the roster into 5-point steps, so a hovered
+// car's badge — which prints Math.round(soc) — kept re-rendering the SoC
+// captured at the last bucket crossing. A car climbing 4 points while you
+// watched it charge showed a completely unchanging number, which is exactly
+// the "SoC never increases" report. The 5-point bucketing was a perf tactic,
+// not a display choice, and it silently became the display.
+//
+// Exported so the SoC precision can be asserted directly — the defect it caused
+// was invisible to every test in the suite because it lived in a memo predicate.
+export function vehicleRenderEqual(
+  a: { vehicle: Vehicle }, b: { vehicle: Vehicle },
+): boolean {
+  return a.vehicle.id === b.vehicle.id &&
+    a.vehicle.status === b.vehicle.status &&
+    a.vehicle.assignedStall === b.vehicle.assignedStall &&
+    a.vehicle.oem === b.vehicle.oem &&
+    Math.round(a.vehicle.currentSoC) === Math.round(b.vehicle.currentSoC);
+}
+
+export const Vehicle3D = memo(Vehicle3DInner, vehicleRenderEqual);
