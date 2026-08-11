@@ -30,6 +30,21 @@
  *
  * CI is an ubuntu shared runner and is >12x slower than a dev machine, so the
  * sweeps carry explicit per-test timeouts rather than leaning on the default.
+ *
+ * ─────────────────────────────────── TIMEOUT HEADROOM, MEASURED ──────────────
+ * RAISED FROM 120 s TO 300 s ON THE TWO FULL SWEEPS, at integration time. The
+ * number that forced it is contention, not the sweep: standalone this file's
+ * heaviest test runs in 3310 / 3395 / 3386 ms (three runs, this Mac), but
+ * inside the full suite — where it competes for workers with everything else —
+ * it runs in 5646 / 5863 / 6117 ms, and the integration branch carries 31 test
+ * files where this branch alone carried 27 (same three-run measurement on
+ * unify-footprint-v2 alone: 5342 / 5669 / 5925 ms).
+ *
+ * At the worst of those, 6117 ms, a runner 12x slower than this Mac takes
+ * 73.4 s. Against a 120 s cap that is 1.6x of headroom, which is what this
+ * repo means by "sitting near its timeout". 300 s restores it to 4.1x. Nothing
+ * about WHAT is measured changed — same 135 targets, same 11070 poses, same
+ * +0.1206 m worst structural clearance — only the guard around it.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -348,7 +363,7 @@ describe('the OTTO-CHARGE ARM never enters the vehicle', () => {
     // and the margin is far larger than the mesh sampling error, so this is a
     // statement about the geometry, not about the tessellation
     expect(STRUCTURAL_MARGIN_M).toBeGreaterThan(20 * SAMPLING_SAG_M);
-  }, 120_000);
+  }, 300_000);
 
   it('keeps the STRUCTURE clear across the ADVERTISED service window, not just the fleet', () => {
     // chargePort clamps into SERVICE_WINDOW and the backend gate trusts it. If
@@ -376,7 +391,7 @@ describe('the OTTO-CHARGE ARM never enters the vehicle', () => {
       if (r.min < worst) { worst = r.min; detail = `${v.label} along=${v.along.toFixed(2)} ${r.where} part=${r.part}`; }
     }
     expect(worst, `connector inside the bodywork at ${detail}`).toBeGreaterThan(-SAMPLING_SAG_M);
-  }, 120_000);
+  }, 300_000);
 });
 
 describe('the connector reaches the port you can SEE', () => {
