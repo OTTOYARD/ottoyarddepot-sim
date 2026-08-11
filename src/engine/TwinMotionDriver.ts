@@ -1700,9 +1700,20 @@ class TwinMotionDriver {
       poseStore.set(id, e.car.x, e.car.y, e.car.heading);
       const w = this.serviceWindow(e);
       windows.set(id, w);
-      // SoC bucketed to 5% — per-percent churn used to invalidate the roster on
-      // nearly every poll and re-render the whole SVG tree + every 3D car.
-      key += `${id}:${e.vstatus}:${e.stallId ?? ""}:${Math.round(e.soc / 5)}`;
+      // SoC at FULL resolution. This used to bucket to 5% (Math.round(e.soc / 5)) to
+      // avoid invalidating the roster on per-percent churn — but the roster gate is what
+      // decides whether React ever SEES a new SoC, so bucketing here froze the number the
+      // operator reads. FOUNDER-OBSERVED: "the state of charge never increases"; measured
+      // on run 7d8da1ca a charging car gained 6.2 points in 3.7 real minutes, which is at
+      // most ONE visible step, and often none. The 3D badge memo downstream had a matching
+      // 5-point comparator, so fixing that alone changed nothing — this gate binds first.
+      //
+      // The churn it guarded against cannot actually be large: vehicles.current_soc is an
+      // INTEGER column in otto-q-core, so a car can move the key by at most one step per
+      // whole percentage point — roughly one roster push per car per several ticks, not
+      // per poll. Movement still never re-renders: position comes from poseStore, which is
+      // written above and deliberately not part of this key.
+      key += `${id}:${e.vstatus}:${e.stallId ?? ""}:${Math.round(e.soc)}`;
       key += `:${w ? `${Math.round(w.start)}/${Math.round(w.duration)}` : ""};`;
     }
     // (2) the React roster → only when the SET / status / stall / soc changes,

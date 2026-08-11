@@ -865,3 +865,38 @@ describe("service clock published to the arms", () => {
     expect(priv().dwells.size).toBe(0);
   });
 });
+
+describe("SoC reaches the roster at full resolution", () => {
+  // FOUNDER-OBSERVED: "the state of charge percentage never increases." The roster
+  // fingerprint bucketed SoC to 5 points, so React never saw a sub-5-point change and
+  // the number on screen sat still for minutes. This is the gate that binds — the 3D
+  // badge's own comparator is downstream of it.
+  const socSnap = (soc: number): TwinSnapshot =>
+    snap([{ id: "v1", state: "charging_dcfc", soc }]);
+
+  beforeEach(() => {
+    twinMotionDriver.clear();
+    useVehicleStore.getState().reset();
+    useDepotStore.getState().regenerateStalls(10, 30, 3, 115, 2);
+  });
+
+  it("republishes the roster on a ONE point SoC change", () => {
+    twinMotionDriver.reconcile(socSnap(41));
+    const first = find("v1")?.currentSoC;
+    expect(first).toBe(41);
+    twinMotionDriver.reconcile(socSnap(42));
+    expect(find("v1")?.currentSoC).toBe(42);
+  });
+
+  it("carries every point across a climb, not one step in five", () => {
+    // 40 -> 46 is six real points. Under the old 5-point fingerprint this whole climb
+    // produced at most one visible change.
+    const seen: number[] = [];
+    for (const soc of [40, 41, 42, 43, 44, 45, 46]) {
+      twinMotionDriver.reconcile(socSnap(soc));
+      const v = find("v1")?.currentSoC;
+      if (v != null && seen[seen.length - 1] !== v) seen.push(v);
+    }
+    expect(seen).toEqual([40, 41, 42, 43, 44, 45, 46]);
+  });
+});
