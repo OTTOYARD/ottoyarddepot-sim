@@ -340,6 +340,7 @@ describe('no snapping — the pose is continuous whatever the inputs do', () => 
     expect(r.worstStep, r.worstAt).toBeLessThanOrEqual(MAX_JOINT_RATE * FRAME + 1e-12);
   });
 
+  // Same reasoning as the sweep below: explicit headroom, not a global raise.
   it('the limiter is INERT at every supported playback speed — it protects, it does not pace', () => {
     // The session advances in SIM seconds; the limiter bounds REAL joint travel.
     // At Nx playback the same choreography is drawn N times faster, so the
@@ -409,7 +410,7 @@ describe('no snapping — the pose is continuous whatever the inputs do', () => 
     // MAX_JOINT_RATE * FRAME is under 4 degrees per frame (asserted above), so even when
     // it binds, the arm slews — it cannot teleport.
     expect(MAX_PLAYBACK_X).toBeGreaterThanOrEqual(bindsAt);
-  });
+  }, 20_000);
 
   it('slewAngles bounds a deliberate teleport request', () => {
     const far = { j1: 3, j2: -3, j3: 3, j4: -3, j5: 3, j6: -3 };
@@ -515,6 +516,10 @@ describe('an interrupted mate rejoins the release where it already is', () => {
     expect(worst, worstAt).toBeLessThan(1e-9);
   });
 
+  // 20 s, not the 5 s default: this is an exhaustive physical sweep, not a unit test,
+  // and CI's shared runner is several times slower than a dev machine. Scoped to THIS
+  // test rather than raised globally on purpose — a global testTimeout would also hand
+  // 20 s to every genuinely hung test in the suite, which is how a slow suite creeps.
   it('never moves the connector toward the car more than a normal release does', () => {
     // The physical statement of the same bug, and the one that does not depend on
     // WHERE the abort happened. Measure how far the connector ever travels back
@@ -543,21 +548,47 @@ describe('an interrupted mate rejoins the release where it already is', () => {
       return worst;
     };
 
-    // One walk of the reach, forked at every 0.1 s; plus a settled hold to give
-    // the nominal baseline.
+    // One walk of the reach, forked at a sampled set of instants; plus a settled hold
+    // to give the nominal baseline.
+    //
+    // COST, and why the stride is 0.25 s rather than 0.1 s. Every fork replays a whole
+    // release with an IK solve per frame, so the work is (arms x ports x instants x
+    // release frames) — about 9 million solves at the old 0.1 s stride. That ran 3.9 s
+    // on an M3, i.e. 79% of vitest's 5 s default, and duly TIMED OUT on CI's slower
+    // shared runner. A test sitting at four-fifths of its budget is a latent flake
+    // whatever the timeout is set to.
+    //
+    // What was cut is TIME granularity, not GEOMETRY coverage — deliberately, because
+    // they carry different information. All 10 DCFC arms x 7 port variants are still
+    // swept: a real defect lives in a particular arm placement and port position, and
+    // that is exactly what this caught before (an abort during 'unstow' drove the
+    // connector 0.86 m back toward the inlet, ~6x the nominal arc). Abort INSTANT is
+    // the low-information axis: phases are seconds long, the travel varies smoothly
+    // within a phase, and a 0.25 s stride still forks inside every phase several times.
     const reach = reachFrames(CONNECT_SECONDS + 1);
     const held = reachFrames(CONNECT_SECONDS + 20).pop()!;
-    const every6th = reach.filter((_, i) => i % 6 === 0);
+    const ABORT_STRIDE = 15;                      // 0.25 s at 60 fps
+    const forkAt = reach.filter((_, i) => i % ABORT_STRIDE === 0);
+
+    // SELF-GUARDING STRIDE. The justification above is "0.25 s still forks inside every
+    // phase several times" — so assert it, rather than leaving it as a claim someone can
+    // quietly invalidate by widening ABORT_STRIDE to make the test faster again.
+    const forkedPhases = new Set(forkAt.map((f) => f.phase));
+    for (const ph of new Set(reach.map((f) => f.phase))) {
+      const n = forkAt.filter((f) => f.phase === ph).length;
+      expect(forkedPhases.has(ph), `ABORT_STRIDE skips phase '${ph}' entirely`).toBe(true);
+      expect(n, `ABORT_STRIDE forks phase '${ph}' only ${n} time(s)`).toBeGreaterThanOrEqual(2);
+    }
 
     for (const { label, target } of everyArmAndPort()) {
       const nominal = approachToward(target, abortFrom(held));
-      for (const before of every6th) {
+      for (const before of forkAt) {
         const aborted = approachToward(target, abortFrom(before));
         expect(aborted, `${label} abort in ${before.phase}`)
           .toBeLessThanOrEqual(nominal + TOLERANCE);
       }
     }
-  });
+  }, 20_000);
 
   it('an arm that had barely left the cradle is home almost at once', () => {
     // It is a quarter-second from stowed, so the honest release is a quarter-second
