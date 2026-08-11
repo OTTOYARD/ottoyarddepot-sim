@@ -7,12 +7,18 @@ import { useSimulationStore } from '@/store/simulationStore';
 import { buildCobot, makeCobotMaterials, type CobotHandles } from '@/lib/ottoChargeArm/buildCobot';
 import { OTTO_CHARGE_ARM, METRES_PER_PLAN_UNIT } from '@/lib/ottoChargeArm/cobotSpec';
 import { CAR_WIDTH } from '@/engine/motion/traffic';
-import { statusColor, isTethered, vehicleMayMove, PHASE_SECONDS, type ArmPhase } from '@/lib/ottoChargeArm/armStateMachine';
+import { statusColor, vehicleMayMove, type ArmPhase } from '@/lib/ottoChargeArm/armStateMachine';
 import { twinMotionDriver } from '@/engine/TwinMotionDriver';
-import { poseFor, type ArmTarget } from '@/lib/ottoChargeArm/armMotion';
+import {
+  poseFor, slewAngles, slewScalar, type ArmTarget,
+} from '@/lib/ottoChargeArm/armMotion';
+import { STOWED, type JointAngles } from '@/lib/ottoChargeArm/cobotIK';
 import { placeArm, portInArmFrame } from '@/lib/ottoChargeArm/depotPlacement';
 import { portFor } from '@/lib/ottoChargeArm/chargePort';
-import { phaseAt, stallHasArm } from '@/lib/ottoChargeArm/roboticService';
+import {
+  advanceArmSession, isArmCommitted, isArmHome, stallHasArm,
+  IDLE_SESSION, type ArmSession,
+} from '@/lib/ottoChargeArm/roboticService';
 
 /**
  * OTTO-CHARGE ARM — robotic DCFC connection, mounted on the charger pedestal.
@@ -54,22 +60,32 @@ const TEMPLATE: CobotHandles = buildCobot(spec, { withPlinth: true, lod: 'depot'
 const CAR_HALF_WIDTH_M = (CAR_WIDTH * METRES_PER_PLAN_UNIT) / 2;
 
 /**
- * Phases in which a mate has actually been made, or is being unmade.
+ * Largest sim-clock step this component will treat as elapsed time.
  *
- * The OTTO-Q tether may only HOLD one of these. It may never manufacture a mate
- * out of 'stowed': the override used to replace the phase UNCONDITIONALLY, so a
- * home arm on a tethered stall snapped straight to a mated pose and played a
- * retract for a connection that never happened — the exact opposite of what its
- * own comment promised. 'clear' IS included: that is the case the override
- * exists for (the local cycle finished while OTTO-Q still holds the car), and it
- * is a mate that genuinely occurred.
- *
- * A whitelist, so an unrecognised phase denies the override and the local cycle
- * stands. Same fail-safe direction as vehicleMayMove.
+ * The depot clock can JUMP — a scrub, a run change, a snapshot from a new run.
+ * A jump is not thirty seconds of the world happening; it is a different world.
+ * Feeding it to the session reducer would fast-forward a whole cycle in one
+ * frame, which is exactly the discontinuity being fixed. Beyond this, the arm
+ * simply holds and resumes on the next real step.
  */
-const MATED_OR_DEMATING: ReadonlySet<string> = new Set<ArmPhase>([
-  'latch', 'charging', 'unlatch', 'extract', 'retract', 'clear',
-]);
+const MAX_CLOCK_STEP_S = 30;
+
+/**
+ * DEV-ONLY: what each arm is actually doing, by stall.
+ *
+ * The arm's session lives in a component ref inside an R3F frame loop, and R3F
+ * runs its own reconciler — the scene graph is NOT reachable from the DOM's React
+ * tree, so there is no way to check an arm from the console without this. Same
+ * precedent and same guard as __twinDriver: stripped from any production build,
+ * and nothing reads it. Verifying the founder's report meant answering "is this
+ * arm still latched?" from outside the renderer, which is otherwise unanswerable
+ * except by eye at ten metres.
+ */
+const armDebug: Map<string, { phase: ArmPhase; t: number; vehicleId: string | null; latch: number }> | null =
+  import.meta.env.DEV ? new Map() : null;
+if (armDebug && typeof window !== 'undefined') {
+  (window as unknown as Record<string, unknown>).__arms = armDebug;
+}
 
 interface ChargingArmProps {
   stallId: string;
@@ -129,79 +145,123 @@ export function ChargingArm({ stallId, stallType }: ChargingArmProps) {
     b: new THREE.Vector3(),
   }), []);
 
-  useFrame(() => {
+  /**
+   * The live connection session for this stall. A REF, not store state: it is
+   * stepped 60 times a second and nothing outside this component reads it, so
+   * putting it in React would re-render the whole 3D tree for an animation.
+   */
+  const session = useRef<ArmSession>(IDLE_SESSION);
+  /** Depot clock at the previous frame, for the sim-seconds delta. */
+  const lastSim = useRef<number | null>(null);
+  /**
+   * The port the arm is currently working to, cached.
+   *
+   * A retract has to play out against the inlet the connector is COMING OUT OF.
+   * The car is often gone from the roster before the arm is home — OTTO-Q holds
+   * it, but a re-plan can drop it — and recomputing the target from "no vehicle"
+   * would move the IK goal to a default mid-retract: a teleport dressed as a
+   * pose. Keeping the last real target is the honest answer.
+   */
+  const target = useRef<ArmTarget | null>(null);
+  /** What the joints are actually SHOWING, as opposed to what was solved. */
+  const shown = useRef<{ angles: JointAngles; latch: number }>({ angles: { ...STOWED }, latch: 0 });
+
+  useFrame((_state, frameDelta) => {
     if (!placement || !stall || !rig.root) return;
 
-    // THE ARM'S CLOCK. In twin mode the driver publishes the live depot clock on
-    // an imperative channel (same reason poseStore exists): the store copy is
-    // deliberately throttled to 1 Hz so a 60 Hz write does not re-render the
-    // whole 3D tree, and a 1 Hz clock would step this cycle in visible jerks.
-    // The store is the fallback for any mode where no backend owns the clock.
+    // THE DEPOT CLOCK. In twin mode the driver publishes it on an imperative
+    // channel (same reason poseStore exists): the store copy is deliberately
+    // throttled to 1 Hz so a 60 Hz write does not re-render the whole 3D tree,
+    // and a 1 Hz clock would step this cycle in visible jerks. The store is the
+    // fallback for any mode where no backend owns the clock.
     const simTime = twinMotionDriver.simClockTod() ?? useSimulationStore.getState().simTime;
+    let simDt = 0;
+    if (lastSim.current !== null) {
+      simDt = simTime - lastSim.current;
+      if (simDt < 0) simDt += 86400;                    // the clock wraps at midnight
+      if (simDt > MAX_CLOCK_STEP_S) simDt = 0;          // a scrub is not elapsed time
+    }
+    lastSim.current = simTime;
+
     const vehicles = useVehicleStore.getState().vehicles;
     const v = vehicles.find((x) => x.assignedStall === stallId);
 
-    // Resolve the phase. No vehicle, or a vehicle that is not mid-service here,
-    // means the arm is home.
-    let phase: ReturnType<typeof phaseAt>['phase'] = 'stowed';
-    let t = 1;
-    if (v && v.serviceStartTime !== null && v.serviceDuration !== null) {
-      let elapsed = simTime - v.serviceStartTime;
-      if (elapsed < 0) elapsed += 86400; // the sim clock wraps at midnight
-      const r = phaseAt(elapsed, v.serviceDuration);
-      phase = r.phase;
-      t = r.t;
-    }
+    // ── THE TWO AUTHORITIES ───────────────────────────────────────────────────
+    //
+    // CONNECT + HOLD comes from the VEHICLE. `status === 'charging'` is what
+    // charging_dcfc / charging_l2 map to on the wire, and it stays true for as
+    // long as OTTO-Q is pushing electrons — which is as long as the pack needs,
+    // not as long as some reservation predicted. That is the whole fix: the hold
+    // condition is a state, so it cannot expire.
+    //
+    // A window (serviceStartTime) is required to START a mate, because it is the
+    // one proof on the roster that the car is PHYSICALLY PARKED — the driver only
+    // publishes it once playback reaches 'docked', and an arm reaching into a
+    // stall a car is still taxiing toward is the invented picture this renderer
+    // must never draw. It is deliberately NOT required to CONTINUE one: dwell
+    // legs are rebuilt from every snapshot, so a re-plan that drops the leg would
+    // otherwise yank the connector out of a car that is still charging.
+    const chargingState = v?.status === 'charging';
+    const parked = v?.serviceStartTime !== null && v?.serviceStartTime !== undefined;
+    const charging = !!v && chargingState && (parked || isArmCommitted(session.current.phase));
 
-    // ── OTTO-Q OVERRIDES THE LOCAL CLOCK WHILE THE ROBOT IS MATED ──────────────
-    //
-    // Everything above is a LOCAL animation driven off serviceStartTime; it has no
-    // idea what the orchestrator decided. The backend publishes the authoritative
-    // answer per stall, and the two can disagree: the local cycle can reach 'clear'
-    // while OTTO-Q is still holding the car for the demate, which would draw a car
-    // free — and shortly driving away — with the connector still in its inlet.
-    //
-    // The override is deliberately ONE-WAY. It can only ever say "still mated"; it
-    // never releases an arm the local cycle believes is mated. A backend that omits
-    // the field, or a stall the driver cannot resolve, therefore changes nothing.
-    // The MATED_OR_DEMATING gate is what makes the code match that sentence: the
-    // override may extend a mate, never invent one out of a stowed arm.
+    // RELEASE comes from the STALL. The robotic tether is OTTO-Q saying the
+    // session is over and this is how long it has allowed for the demate.
     const tetherLeft = twinMotionDriver.stallTetherRemainingS(stallId);
-    if (tetherLeft !== null && MATED_OR_DEMATING.has(phase)) {
-      // Walk the real demate against OTTO-Q's deadline rather than a free clock, so
-      // the retract finishes exactly when the orchestrator frees the stall.
-      const { unlatch, extract, retract } = PHASE_SECONDS;
-      if (tetherLeft > extract + retract) {
-        phase = 'unlatch';
-        t = 1 - (tetherLeft - extract - retract) / unlatch;
-      } else if (tetherLeft > retract) {
-        phase = 'extract';
-        t = 1 - (tetherLeft - retract) / extract;
-      } else {
-        phase = 'retract';
-        t = 1 - tetherLeft / retract;
-      }
-      t = Math.min(1, Math.max(0, t));
+
+    session.current = advanceArmSession(session.current, {
+      dt: simDt,
+      vehicleId: v?.id ?? null,
+      charging,
+      tetherRemainingS: tetherLeft,
+    });
+    const { phase, t } = session.current;
+
+    // Target: the modelled inlet of the car this session is serving, in the arm's
+    // base frame, metres. Refreshed while that car is on the roster, held after.
+    const served = session.current.vehicleId
+      ? vehicles.find((x) => x.id === session.current.vehicleId)
+      : undefined;
+    if (served) {
+      const port = portFor(served.id, served.oem);
+      target.current = {
+        port: portInArmFrame(port.along, port.height, CAR_HALF_WIDTH_M, placement.toward),
+        normal: { x: 0, y: 0, z: -1 },
+      };
     }
 
-    // Target: this vehicle's modelled inlet, in the arm's base frame, metres.
-    const port = v ? portFor(v.id, v.oem) : { along: 0, height: 0.75, family: '' };
-    const target: ArmTarget = {
-      port: portInArmFrame(port.along, port.height, CAR_HALF_WIDTH_M, placement.toward),
-      normal: { x: 0, y: 0, z: -1 },
-    };
+    // No car has ever docked here, so there is no inlet to solve to. Publish the
+    // absence: sit folded. Never synthesise a plausible port.
+    const pose = target.current
+      ? poseFor({ phase, t }, target.current, spec)
+      : { angles: STOWED, latch: 0, engaged: false, ok: true };
 
-    const pose = poseFor({ phase, t, elapsed: 0 }, target, spec);
+    // ── RENDER THROUGH A RATE LIMIT ───────────────────────────────────────────
+    // The solved pose is a REQUEST. What gets drawn chases it at a bounded joint
+    // speed, so no input — a phase change, a re-planned target, a car swapped
+    // under the arm, a stale frame — can move the machine by more than
+    // MAX_JOINT_RATE * dt. Real time, not sim time: this is servo travel, and it
+    // is the only thing standing between a jumpy feed and the SNAP the founder
+    // reported. Above ~4x playback it becomes the binding constraint and the arm
+    // trails the clock slightly, the same way the cars do.
+    const rdt = Math.min(Math.max(frameDelta, 0), 0.1);
+    shown.current.angles = slewAngles(shown.current.angles, pose.angles, rdt);
+    shown.current.latch = slewScalar(shown.current.latch, pose.latch, rdt);
+    const a = shown.current.angles;
 
-    rig.j1.rotation.set(0, pose.angles.j1, 0);
-    rig.j2.rotation.set(pose.angles.j2, 0, 0);
-    rig.j3.rotation.set(pose.angles.j3, 0, 0);
-    rig.j4.rotation.set(0, pose.angles.j4, 0);
-    rig.j5.rotation.set(pose.angles.j5, 0, 0);
-    rig.j6.rotation.set(0, pose.angles.j6, 0);
+    rig.j1.rotation.set(0, a.j1, 0);
+    rig.j2.rotation.set(a.j2, 0, 0);
+    rig.j3.rotation.set(a.j3, 0, 0);
+    rig.j4.rotation.set(0, a.j4, 0);
+    rig.j5.rotation.set(a.j5, 0, 0);
+    rig.j6.rotation.set(0, a.j6, 0);
 
-    const s = 1 - 0.28 * pose.latch;
+    const s = 1 - 0.28 * shown.current.latch;
     rig.latch.scale.set(s, 1, s);
+
+    armDebug?.set(stallId, {
+      phase, t, vehicleId: session.current.vehicleId, latch: shown.current.latch,
+    });
 
     const col = pose.ok ? statusColor(phase) : 0xff2d2d;
     rig.statusMaterial.color.setHex(col);
@@ -210,12 +270,23 @@ export function ChargingArm({ stallId, stallType }: ChargingArmProps) {
       ? 1.0 + Math.sin(simTime * 2.2) * 0.45
       : 1.3;
 
-    // Charge cable, drawn only while the connector is actually mated. Ten live
-    // catenaries every frame would be wasteful; at most a handful are mated at
-    // once, and a cable hanging off a stowed arm would be wrong anyway.
+    // Charge cable, drawn whenever the arm is out of its cradle. It used to be
+    // drawn only while LATCHED, which popped the cable out of existence the
+    // instant the lock released — a second, smaller version of the same snap.
+    // The cable is attached to the connector on the arm, so it travels with it
+    // through the extract and the retract and disappears only when the arm is
+    // home. Ten live catenaries every frame would be wasteful; at most a handful
+    // of arms are deployed at once.
+    //
+    // `pose.ok` gates it as well. When the inlet is outside the envelope the arm
+    // REFUSES and holds the stowed pose while the phase still reads 'charging' —
+    // drawing the cable off that would put a connected-looking cable on an arm
+    // that never left its cradle. That is the renderer inventing a connection
+    // OTTO-Q never reported. Publish the absence instead; the LED already goes
+    // red, which is the honest signal.
     const cable = cableRef.current;
     if (cable) {
-      const show = isTethered(phase);
+      const show = pose.ok && !isArmHome(phase);
       cable.visible = show;
       if (show) {
         rig.tcp.getWorldPosition(scratch.tip);

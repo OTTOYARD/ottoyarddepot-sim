@@ -236,8 +236,14 @@ function nearestCorridor(v: number, candidates: number[]): number | null {
 
 /** Parked heading for a stall. Chargers/bays face NORTH (toward the bays).
  *  A staging car noses AWAY from the aisle that serves it, so the pull-in approach
- *  point (APPROACH_BACK_U behind the nose, see routeToStall) lands IN that aisle and the car
- *  enters off the drive lane instead of tracking along its own column.
+ *  point (APPROACH_BACK_U behind the nose, see routeToStall) is staged on the AISLE SIDE of
+ *  the stall rather than the wrong side of the column.
+ *
+ *  MEASURED, and stated exactly rather than rounded up: this fixed the SIDE for every
+ *  staging stall — approaches from the wrong side of the serving aisle went 12/113 → 0/113.
+ *  It does NOT put every approach point inside a painted lane body: 67 of 113 land inside
+ *  one, and all 24 W-column points sit just outside theirs. That is a setback question for
+ *  the perimeter carports, not a side question, and it is not what this change claims.
  *
  *  WHY THIS IS DERIVED FROM THE AISLE AND NOT THE DEPOT CENTRE. This used to read
  *  `sx < DEPOT_CX ? PI : 0` — face away from the middle of the lot. That is right for
@@ -821,8 +827,17 @@ class TwinMotionDriver {
 
   /** Ingest the twin depot layout: map each twin stall uuid to the renderer's
    *  stall id by TYPE + the code's trailing number (e.g. twin 'NASH-L2-STALL-26'
-   *  type 'l2' → renderer 'L2-26'). Unmappable stalls (e.g. twin L2-31..35 when
-   *  the scene draws 30) simply fall back to zone-based assignment.
+   *  type 'l2' → renderer 'L2-26').
+   *
+   *  ⚠️ KNOWN DEFECT, pinned by a test and NOT fixed here. This block used to claim
+   *  unmappable stalls "simply fall back to zone-based assignment". THEY DO NOT.
+   *  The single-group branch preserves the trailing number across the retired 21..25
+   *  gap, so twin L2-31..35 map to renderer ids L2-31..L2-35 that the scene never
+   *  draws — and because the map holds a truthy string, the not-mapped refusal never
+   *  fires. Five charging cars resolve to stalls that do not exist on screen.
+   *  Left unfixed deliberately: the repair changes WHICH stall those five cars are
+   *  drawn in, which moves ratcheted motion samples in another stream's work. It is
+   *  pinned so it cannot be forgotten, not excused.
    *
    *  STALL-NAME COLLAPSE (fixed here). The old mapping kept ONLY the trailing
    *  digits — /(\d+)\s*$/ — which is fine for a type whose codes are one flat
@@ -1037,7 +1052,8 @@ class TwinMotionDriver {
     // then pull straight in — each car fans to its own stall and noses in facing
     // `facing`, instead of trailing others into a shared approach spot.
     // `facing` comes from parkedHeading, which points the car AWAY from its serving
-    // aisle, so "behind the nose" IS the aisle and the car enters off the drive lane.
+    // aisle, so "behind the nose" is on the AISLE SIDE. (Not necessarily inside the painted
+    // lane body — 67 of 113 are; see the block comment above for the measured split.)
     const ax = stall.x - Math.cos(facing) * APPROACH_BACK_U;
     const ay = stall.y - Math.sin(facing) * APPROACH_BACK_U;
     return [...lead, ...this.graph.route(start, { x: ax, y: ay }), { x: stall.x, y: stall.y }];
