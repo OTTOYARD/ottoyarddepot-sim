@@ -737,19 +737,61 @@ class TwinMotionDriver {
   /** Ingest the twin depot layout: map each twin stall uuid to the renderer's
    *  stall id by TYPE + the code's trailing number (e.g. twin 'NASH-L2-STALL-26'
    *  type 'l2' → renderer 'L2-26'). Unmappable stalls (e.g. twin L2-31..35 when
-   *  the scene draws 30) simply fall back to zone-based assignment. */
+   *  the scene draws 30) simply fall back to zone-based assignment.
+   *
+   *  STALL-NAME COLLAPSE (fixed here). The old mapping kept ONLY the trailing
+   *  digits — /(\d+)\s*$/ — which is fine for a type whose codes are one flat
+   *  run, and catastrophic for one that is not. The twin's staging stalls are
+   *  named per GROUP: NASH-STG-{B,E,I,N,S,W}001..019, six groups of nineteen.
+   *  All six collapsed onto renderer STAGE-01..19 — a single 19-slot column in
+   *  the WEST PERIMETER CARPORT — so ~100 distinct twin staging stalls resolved
+   *  to 19 renderer stalls, and every staging vehicle in the run was aimed at
+   *  the perimeter. The group letter is part of the stall's identity and has to
+   *  survive the mapping. */
   setTwinStallMap(stalls: { id: string; code: string; type: string }[]) {
     const prefix: Record<string, string> = {
       dcfc: "DCFC", l2: "L2", wash_bay: "WASH", service_bay: "SVC", staging: "STAGE",
     };
     this.twinStall.clear();
+    // split each code into its GROUP (everything up to the trailing number) and
+    // its index, and bucket by renderer prefix
+    const byPrefix = new Map<string, { id: string; group: string; n: number }[]>();
     for (const s of stalls) {
       const p = prefix[s.type];
-      const m = /(\d+)\s*$/.exec(s.code ?? "");
+      const m = /^(.*?)(\d+)\s*$/.exec(s.code ?? "");
       if (!p || !m) continue;
-      this.twinStall.set(s.id, `${p}-${String(parseInt(m[1], 10)).padStart(2, "0")}`);
+      const row = { id: s.id, group: m[1], n: parseInt(m[2], 10) };
+      const list = byPrefix.get(p);
+      if (list) list.push(row);
+      else byPrefix.set(p, [row]);
+    }
+    for (const [p, list] of byPrefix) {
+      const groups = new Set(list.map((r) => r.group));
+      if (groups.size <= 1) {
+        // ONE flat run (DCFC, L2, the bays, and any staging layout that does not
+        // use group codes): keep the number-preserving map, so twin
+        // 'NASH-DCFC-STALL-07' stays renderer 'DCFC-07' and a gap in the twin's
+        // numbering does not silently renumber every stall after it.
+        for (const r of list) this.twinStall.set(r.id, `${p}-${this.pad(r.n)}`);
+        continue;
+      }
+      // MULTIPLE GROUPS: pack them into disjoint blocks — group order, then
+      // index. The result is a stable RENAMING (a twin staging code carries no
+      // renderer geometry, so there is nothing to preserve beyond identity) and
+      // it is collision-free by construction, which is the one guarantee the
+      // trailing-digits regex broke.
+      const sorted = [...list].sort((a, b) =>
+        a.group < b.group ? -1 : a.group > b.group ? 1 : a.n - b.n);
+      let slot = 0;
+      for (const r of sorted) this.twinStall.set(r.id, `${p}-${this.pad(++slot)}`);
     }
     this.settleLayout();
+  }
+
+  /** Renderer stall ids are zero-padded to two digits and run past 99 unpadded
+   *  (STAGE-09 … STAGE-115) — mirrors sitePlan's own id generation. */
+  private pad(n: number): string {
+    return String(n).padStart(2, "0");
   }
 
   /** Bridge calls this when a run activates: buffer snapshots until the layout

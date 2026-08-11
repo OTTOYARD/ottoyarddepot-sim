@@ -142,19 +142,55 @@ describe("TwinMotionDriver — kinematic motion off the twin", () => {
   });
 
   it("parks a vehicle in the twin's EXACT assigned stall when the layout maps it", () => {
+    // NOTE: the staging code here is a REAL backend one (NASH-STG-<group><nnn>).
+    // It used to be 'NASH-STAGING-STALL-42', a shape the backend never emits —
+    // so this test passed while the mapping it "covered" was collapsing all six
+    // real staging groups onto nineteen renderer stalls. See the group-collision
+    // test below.
     twinMotionDriver.setTwinStallMap([
       { id: "uuid-dcfc-7", code: "NASH-DCFC-STALL-07", type: "dcfc" },
-      { id: "uuid-stage-42", code: "NASH-STAGING-STALL-42", type: "staging" },
+      { id: "uuid-stage-b4", code: "NASH-STG-B004", type: "staging" },
     ]);
     twinMotionDriver.reconcile(snap([
       { id: "v1", state: "charging_dcfc", stall_id: "uuid-dcfc-7" },
-      { id: "v2", state: "arrived_at_gate", stall_id: "uuid-stage-42" }, // brain's congestion park
+      { id: "v2", state: "arrived_at_gate", stall_id: "uuid-stage-b4" }, // brain's congestion park
       { id: "v3", state: "charging_dcfc", stall_id: "uuid-unknown" },    // unmapped → fallback
     ]));
     expect(find("v1")!.assignedStall).toBe("DCFC-07");   // OTTO-Q's exact pick, rendered
-    expect(find("v2")!.assignedStall).toBe("STAGE-42");  // exact staging park too
+    expect(find("v2")!.assignedStall).toBe("STAGE-04");  // exact staging park too
     expect(find("v3")!.assignedStall).toMatch(/^DCFC-/); // graceful zone fallback
     expect(find("v3")!.assignedStall).not.toBe("DCFC-07"); // no double-book
+  });
+
+  it("STALL-NAME COLLAPSE: the twin's six staging GROUPS never share a renderer stall", () => {
+    // The backend names staging NASH-STG-{B,E,I,N,S,W}001..019. Keeping only the
+    // trailing digits mapped B004, E004, I004, N004, S004 and W004 all onto
+    // STAGE-04 — ~100 twin stalls onto 19 renderer slots, every one of them in
+    // the WEST PERIMETER CARPORT column, which aimed a large share of all
+    // staging traffic at the perimeter.
+    const groups = ["B", "E", "I", "N", "S", "W"];
+    const layout = groups.flatMap((g) =>
+      Array.from({ length: 19 }, (_, i) => ({
+        id: `stg-${g}-${i + 1}`,
+        code: `NASH-STG-${g}${String(i + 1).padStart(3, "0")}`,
+        type: "staging",
+      })),
+    );
+    twinMotionDriver.setTwinStallMap(layout);
+    const map = (twinMotionDriver as unknown as { twinStall: Map<string, string> }).twinStall;
+
+    // the two the founder's depot actually collided on
+    expect(map.get("stg-B-4")).toBeDefined();
+    expect(map.get("stg-W-4")).toBeDefined();
+    expect(map.get("stg-B-4")).not.toBe(map.get("stg-W-4"));
+
+    // …and no pair anywhere in the layout collides
+    const resolved = layout.map((s) => map.get(s.id)).filter((x): x is string => !!x);
+    expect(resolved.length).toBe(114);                 // 6 groups x 19, all mapped
+    expect(new Set(resolved).size).toBe(114);          // onto 114 DISTINCT stalls
+    // every one resolves to a stall the renderer actually draws (115 staging)
+    const ids = new Set(useDepotStore.getState().stalls.map((s) => s.id));
+    expect(resolved.every((r) => ids.has(r))).toBe(true);
   });
 
   it("NEVER migrates a car to a 'better' stall in the same lane (stability bias)", () => {
