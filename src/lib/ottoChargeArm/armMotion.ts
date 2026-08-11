@@ -19,8 +19,22 @@ import {
 } from './cobotIK';
 import { type ArmPhase, type CyclePoint } from './armStateMachine';
 
-/** Standoff distance: where the arm waits before committing to the inlet. */
-export const STANDOFF_M = 0.45;
+/**
+ * Standoff distance: where the arm waits before committing to the inlet.
+ *
+ * It was 0.45 m, and at the real car width that is no longer solvable. The
+ * standoff point sits BETWEEN the base and the car, so backing further off the
+ * inlet moves the wrist CLOSER to the shoulder, not further from it. With the
+ * flank at 1.148 m instead of 1.347 m, a 0.45 m standoff put the required wrist
+ * centre 0.24 m in front of the shoulder — inside the fold the two-link chain
+ * can physically make, so solveIK returned joint_limit and poseFor REFUSED THE
+ * WHOLE MATE. The arm would simply have stayed stowed at some ports.
+ *
+ * 0.30 m solves everywhere in the service window with the elbow clear, and is
+ * still a real waypoint: 300 mm off the inlet is where a vision system would
+ * hand over to the final alignment creep.
+ */
+export const STANDOFF_M = 0.30;
 /** Final alignment distance: vision has the inlet, connector is lined up. */
 export const ALIGN_M = 0.10;
 

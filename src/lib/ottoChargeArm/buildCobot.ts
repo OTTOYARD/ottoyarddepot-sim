@@ -207,6 +207,15 @@ function pitchJointHousing(
 }
 
 /**
+ * Distance from the flange face to the connector tip, in the units the parts
+ * below are authored in: the pin cluster at y=0.196 plus its 0.028 m length.
+ *
+ * This number exists so the drawn connector can be normalised against
+ * `spec.tool`, which is DEFINED as "tool flange face -> connector tip".
+ */
+const AUTHORED_TOOL_LENGTH = 0.196 + 0.028 / 2;
+
+/**
  * The end effector: a CCS1/NACS-class connector body on a compliant flange,
  * flanked by the stereo/ToF sensor pod that real automatic-connection devices
  * use to find the inlet.
@@ -214,10 +223,37 @@ function pitchJointHousing(
  * Connector dimensions are deliberately conservative: a CCS1 handle is roughly
  * 0.09 m across the body and ~0.22 m long including the cable gland, which is
  * what `tool` in the spec accounts for.
+ *
+ * ══════════════════ THE CONNECTOR DID NOT REACH THE PORT ════════════════════
+ * The parts below are authored at fixed metres, sized for a scale-1.0 arm, and
+ * they reach 0.210 m past the flange. `spec.tool` scales with ARM_SCALE. At
+ * ARM_SCALE 1.5 the TCP therefore sat 0.330 m past the flange while the drawn
+ * connector stopped at 0.210 — so the IK put the WORKING POINT exactly on the
+ * charge port, every existing test agreed it was exact to 1e-9, and on screen
+ * the connector hung 0.120 m short of the inlet it was supposedly plugged into.
+ * MEASURED, on origin/main: 0.1200 m at full mate.
+ *
+ * That is the renderer's recurring sin — claiming more than it delivers — and
+ * no assertion caught it because every assertion was about the TCP, which is an
+ * empty. The parts are now scaled so the drawn tip IS the TCP, and
+ * armClearance.test.ts checks the MESH against the port rather than the empty.
+ *
+ * The tip is taken as the PIN CLUSTER, which is what actually enters an inlet.
+ * 'depot' LOD drops the pins, so at that detail the connector's nose face sits
+ * 26 mm off the inlet mouth at full mate — a coupler shroud resting on the
+ * socket, which is what one looks like, and 26 mm is 0.05 plan units on screen.
  */
 function endEffector(spec: CobotSpec, mats: CobotMaterials): THREE.Group {
+  const outer = new THREE.Group();
+  outer.name = 'EndEffector';
+
+  // Everything cosmetic hangs off `g`, which is scaled so the connector tip
+  // lands at spec.tool. The TCP marker is parented to `outer` instead, because
+  // it defines the working point and must not be moved by the cosmetics.
   const g = new THREE.Group();
-  g.name = 'EndEffector';
+  g.name = 'EndEffector_Parts';
+  g.scale.setScalar(spec.tool / AUTHORED_TOOL_LENGTH);
+  outer.add(g);
 
   // compliant flange — the sprung plate that absorbs residual misalignment
   const flange = mesh(new THREE.CylinderGeometry(0.062, 0.062, 0.018, 20), mats.alu, 'Tool_Flange');
@@ -306,12 +342,15 @@ function endEffector(spec: CobotSpec, mats: CobotMaterials): THREE.Group {
   // TCP marker: an empty at the connector tip. This is the node the IK drives
   // onto the vehicle's charge port. Exported into the .glb so any consumer can
   // find the working point without guessing.
+  //
+  // Parented to the UNSCALED outer group on purpose: the working point is the
+  // spec, the meshes are what have to agree with it.
   const tcp = new THREE.Object3D();
   tcp.name = TCP_NODE_NAME;
   tcp.position.y = spec.tool;
-  g.add(tcp);
+  outer.add(tcp);
 
-  return g;
+  return outer;
 }
 
 export interface CobotHandles {

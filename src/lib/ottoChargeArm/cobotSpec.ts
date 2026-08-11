@@ -14,6 +14,8 @@
  * ===================================================================
  */
 
+import { CAR_WIDTH } from '@/engine/motion/traffic';
+
 /** Site-plan yardstick: 1 plan unit = 0.4785 m. */
 export const METRES_PER_PLAN_UNIT = 0.4785;
 /** Multiply metres by this to get depot plan units. */
@@ -50,57 +52,90 @@ export interface CobotSpec {
  *
  *   - The DCFC pedestal stands 4.5 plan units (2.153 m) from the stall centre,
  *     i.e. from the parked car's centreline.
- *   - The rendered car body is 2.2 * (7.5/4.9) = 3.367 plan units wide
- *     (1.611 m), so its flank is 0.806 m from its own centreline.
- *   - Clear span from the pedestal face to the car flank is therefore
- *     2.153 - 0.806 = 1.347 m.
- *   - A charge port sits roughly 0.55-0.90 m above grade across the fleet.
+ *   - The rendered car body is 4.2 plan units wide (2.010 m), so its flank is
+ *     1.005 m from its own centreline.
+ *   - Clear span from the pedestal centre to the car flank is therefore
+ *     2.153 - 1.005 = 1.148 m.
+ *   - A charge port sits roughly 0.55-1.05 m above grade across the fleet.
+ *
+ * ═══════════════ THAT CLEAR SPAN USED TO BE 1.347 m, AND IT SHRANK ══════════
+ * The 3D car was built at 3.367 plan units wide while the cockpit drew, and the
+ * traffic model budgeted, 4.2. Unifying them onto the real robotaxi width moved
+ * the flank plane 0.199 m closer to the pedestal — 15% of the arm's entire
+ * working span, taken away.
+ *
+ * A previous attempt resized the car and left the arm alone, on the strength of
+ * all 26 arm tests passing unmodified. They passed because every one of them
+ * measured the arm against a PLANE, a POINT or the DECK; none measured it
+ * against the CAR. Measured properly, the two-link chain folded tighter to
+ * reach the closer flank and swung the elbow housing 173 mm THROUGH the
+ * bodywork, at 1098 of the 9922 poses that still solved at all — and 1148 more
+ * would not solve. armClearance.test.ts is that measurement, its header states
+ * the whole sweep, and it is why the numbers below moved.
  *
  * The arm is mounted on a plinth on the pedestal's car-facing flank at
- * MOUNT_HEIGHT_M (0.70 m), NOT on the cabinet roof at ~2.05 m — reaching down
- * 1.4 m and out 1.35 m from a roof mount needs a far larger, and far less
- * believable, arm. That height is swept and verified, not chosen by eye.
+ * MOUNT_HEIGHT_M, NOT on the cabinet roof at ~2.05 m — reaching down 1.4 m and
+ * out 1.15 m from a roof mount needs a far larger, and far less believable,
+ * arm. A higher mount is also strictly WORSE for clearance now: reaching down
+ * to a low port drives the shoulder toward 90 deg, which is exactly the pose
+ * that throws the elbow forward into the car.
  *
  * Maximum reach at scale 1.0 = upperArm + forearm + wrist + tool
  *               = 0.80 + 0.68 + 0.16 + 0.22 = 1.86 m, against a worst-case
- * required reach of ~1.42 m to a near-flank port. That leaves ~0.44 m of margin
- * to work fore/aft along the car and to approach on the port normal rather than
- * straight-on.
- *
- * The shipped arm is ARM_SCALE times that sizing — see the note on ARM_SCALE
- * below for why, and for the ceiling that bounds it. Reach is NOT the binding
- * constraint on how large the arm may be; the far-flank exclusion is.
+ * required reach of ~1.29 m to a near-flank port.
  */
 /**
  * Sizing multiplier on the whole machine — links AND housings.
  *
- * At 1.0 the arm is sized to the job and nothing more: 1.86 m of reach against
- * a 1.42 m worst case. That is correct engineering and it reads, at depot
- * camera range, as an indistinct grey blob on top of a cabinet. You cannot tell
- * it is a robot. 1.5 is a DELIBERATE oversize for legibility, not a reach
- * requirement, and it costs nothing kinematically: IK solves to the port, so a
- * longer arm simply adopts a more folded pose to reach the same inlet.
+ * At 1.0 the arm is sized to the job and nothing more, and it reads at depot
+ * camera range as an indistinct grey blob on top of a cabinet. Anything above
+ * 1.0 is a DELIBERATE oversize for legibility, not a reach requirement.
  *
  * ─────────────────────────────────────────────────────────────────────────────
- * THERE IS A HARD CEILING AT 1.5908, AND IT IS NOT A COSMETIC ONE.
+ * IT WAS 1.5. IT CANNOT BE ANY MORE, AND THE REASON IS THE CAR.
+ *
+ * The binding constraint used to be the far-flank exclusion (a ceiling at
+ * 1.5908, see below). It is now the near flank: at the real 2.010 m car width
+ * the pedestal is 1.148 m from the bodywork, and a bigger arm has to fold
+ * harder to reach an inlet that close. Measured over the whole duty cycle
+ * against the drawn body:
+ *
+ *      ARM_SCALE   worst structural clearance   ports the arm REFUSES
+ *        1.15          +0.1703 m                  0 of 9
+ *        1.20          +0.1440 m   <- shipped     0 of 9
+ *        1.25          +0.0885 m                  0 of 9
+ *        1.30          +0.0335 m                  0 of 9
+ *        1.40          -0.0730 m                  1 of 9   elbow in the bodywork
+ *        1.50          -0.1706 m                  2 of 9   elbow deep inside it
+ *
+ * ONE sweep, ONE band, and both columns come out of it: mount 0.55 m, standoff
+ * 0.30 m, studio LOD, the 9 ports on the corners and centre of along +/-1.00 m
+ * x height 0.54-1.10 m, the whole duty cycle at 8 steps per phase, structure
+ * only. Read the refusal column as "of these 9", not as a fleet figure — over
+ * the full 126-port matrix the same two rows refuse 4 and 16.
+ *
+ * Over that full matrix — every OEM band corner plus the advertised window
+ * corners — the shipped configuration measures +0.1206 m, and
+ * armClearance.test.ts asserts >= 0.10 m and names the offending part when it
+ * does not.
+ *
+ * So 1.20. The arm is visibly smaller than it was. That is the price of the
+ * car being the size it always claimed to be, and it is the right way round:
+ * an oversized robot that passes through the vehicle is not more legible, it
+ * is wrong.
+ * ─────────────────────────────────────────────────────────────────────────────
+ * THE OLD CEILING IS STILL THERE, AND IT MOVED UP.
  *
  * chargePort.ts rests on a load-bearing claim: a pedestal arm CANNOT serve a
  * port on the vehicle's far flank, which is why an AV must present its inlet to
  * the charger and why OTTO-Q may not assign a stall on the wrong side. That
- * claim is only true while the arm is short enough. Scale it far enough and the
- * robot can sweep over the car, the constraint silently evaporates, and the
- * backend gate is enforcing a rule the hardware no longer has.
- *
- * Swept over the full port band (along +/-1.00 m, height 0.48-1.44 m) at the
- * far-flank standoff, the closest far-flank wrist centre sits 2.351 m out,
- * and two-link reach is 1.48 * scale. They meet at scale = 1.5908.
- *
- * 1.5 leaves 0.169 m of margin. kinematics.test.ts recomputes this ceiling from
- * the spec rather than trusting the number above, so raising ARM_SCALE past it
- * fails the build with the reason attached.
+ * claim is only true while the arm is short enough. A WIDER car puts the far
+ * flank further away, so this ceiling rose — it is no longer the binding one.
+ * kinematics.test.ts recomputes it from the spec rather than trusting any
+ * number written here.
  * ─────────────────────────────────────────────────────────────────────────────
  */
-export const ARM_SCALE = 1.5;
+export const ARM_SCALE = 1.2;
 
 /** Depot-derived sizing at scale 1.0, metres. ARM_SCALE multiplies all of it. */
 const BASE_LINKS = {
@@ -154,27 +189,87 @@ export function maxReach(s: CobotSpec = OTTO_CHARGE_ARM): number {
  * Height of the arm's mount plate above grade, metres — a plinth on the
  * charger cabinet's car-facing flank.
  *
- * NOT a guess. scripts/verifyIK.mts sweeps 0.35-1.15 m and reports, for each,
- * whether the arm covers the whole required service box (along-car +/-1.00 m
- * x port height 0.50-1.10 m at a 1.348 m flank standoff). 0.70 m is the
- * HIGHEST mount that still covers the box completely, which is what we want:
- * it reads as cabinet-mounted rather than sitting on the deck, without giving
- * up any of the envelope. Re-run the verifier after changing any link length.
+ * It was 0.70 m, chosen as the HIGHEST mount that still covered the service box
+ * at the old 1.348 m flank standoff. Reach is no longer what decides it.
+ *
+ * At the real car width the deciding constraint is the elbow. A high mount and
+ * a low port make the shoulder reach DOWN, which drives J2 toward 90 deg and
+ * throws the elbow forward into the flank; a lower mount reaches slightly UP
+ * and folds the elbow back. Measured over the whole duty cycle at ARM_SCALE
+ * 1.2, worst structural clearance to the drawn body:
+ *
+ *      mount 0.45 m   +0.191 m
+ *      mount 0.50 m   +0.166 m
+ *      mount 0.55 m   +0.144 m   <- shipped
+ *      mount 0.60 m   +0.124 m
+ *      mount 0.70 m   +0.097 m   the old height
+ *
+ * (Same sweep as the ARM_SCALE table above, at scale 1.20.)
+ *
+ * The binding case is not in that band at all — it is the LOWEST corner of the
+ * advertised service window, a 0.48 m port dead abeam the base, which no OEM
+ * presents but which chargePort.ts promises. Measured over the full test
+ * matrix there: 0.50 m -> +0.1397, 0.55 m -> +0.1206, 0.60 m -> +0.1071,
+ * 0.70 m -> +0.0833.
+ *
+ * 0.55 m is the highest mount that keeps that corner above 0.12 m, and it
+ * still reads as cabinet-mounted — a third of the way up a 1.72 m DCFC
+ * cabinet, not sitting on the deck. armClearance.test.ts re-measures it.
  */
-export const MOUNT_HEIGHT_M = 0.70;
+export const MOUNT_HEIGHT_M = 0.55;
+
+/** Lateral distance from the DCFC pedestal centre to the parked car centreline, metres. */
+export const PEDESTAL_TO_CAR_CENTRE_M = 4.5 * METRES_PER_PLAN_UNIT; // 2.153
+
+/**
+ * Where the near flank actually is, metres from the arm's base axis.
+ *
+ * DERIVED FROM THE CAR, never restated. It was a hard-coded 1.348 in
+ * SERVICE_WINDOW below while vehicleBody built a 1.611 m wide car and the
+ * traffic model steered a 2.010 m one; the constant agreed with the mesh, the
+ * mesh disagreed with everything else, and the arm aimed at a flank plane no
+ * drawn car had. Reading the width from traffic.ts means the standoff moves
+ * when the car does, and the clearance test notices when that is a problem.
+ */
+export const FLANK_STANDOFF_M = PEDESTAL_TO_CAR_CENTRE_M - (CAR_WIDTH * METRES_PER_PLAN_UNIT) / 2;
 
 /**
  * Service window on the vehicle's near flank — the region where a charge port
- * is GUARANTEED reachable.
+ * is guaranteed reachable AND the robot is guaranteed to clear the bodywork.
  *
- * This is the largest fully-reachable RECTANGLE, not the bounding box of the
- * reachable set. The distinction is load-bearing and cost a test failure to
- * find: the reachable set is lens-shaped, so its bounding box (+/-1.10 m x
- * 0.30-1.48 m) has unreachable CORNERS. Clamping a port into that box and
- * calling it safe would have been wrong. Every point in the rectangle below is
- * verified reachable — 5,151 samples, zero misses.
+ * This is a rectangle inside the largest fully-safe region, not the bounding
+ * box of it. The distinction is load-bearing and cost a test failure to find:
+ * the reachable set is lens-shaped, so its bounding box has unsafe CORNERS.
+ * Clamping a port into that box and calling it safe would have been wrong.
  *
- * Derived by scripts/window.mts. Re-run it after changing any link length.
+ * TWO conditions now, where there used to be one. "Reachable" was never enough:
+ * an IK solution says the connector can be placed on the inlet, it says nothing
+ * about what the elbow does on the way. At the real 2.010 m car width the
+ * measured safe region — reachable at every point of the duty cycle AND at
+ * least 0.10 m clear of the drawn body throughout — is
+ *
+ *              along +/-1.25 m   x   height 0.42-1.56 m
+ *
+ * and that rectangle is stated because the WHOLE of it was measured: a 51 x 41
+ * grid, 2091 ports, each one a full duty-cycle sweep. 0 refused, worst 0.1007 m.
+ *
+ * Measuring the whole rectangle rather than its corners is the point. The lens
+ * warning above says the corners can be the unsafe part, and they are at the
+ * top — (+/-1.25, 1.56) is the 0.1007 m — but at the BOTTOM the worst point is
+ * not a corner at all. Dead abeam the base a 0.40 m port measures 0.0995 m,
+ * while the same height out at +/-1.25 m measures 0.1153 m, so the floor is set
+ * by the middle of the edge and sits at 0.42 m. Four corner probes would have
+ * put it at 0.40 and been wrong.
+ *
+ * This used to read +/-1.25 x 0.46-1.60, whose top corners measure 0.0931 m —
+ * under the 0.10 m the sentence itself defines as safe.
+ *
+ * The window below sits comfortably inside the measured region, and comfortably
+ * outside every OEM band in chargePort.ts, so the clamp there is not doing any
+ * load-bearing work.
+ *
+ * Re-measure with armClearance.test.ts after changing any link length, the
+ * mount height, the standoff, or the car.
  */
 export const SERVICE_WINDOW = {
   /** Longitudinal, metres from the arm's base axis along the car. */
@@ -182,11 +277,8 @@ export const SERVICE_WINDOW = {
   /** Charge-port height above grade, metres. */
   heightMin: 0.48, heightMax: 1.44,
   /** Flank standoff this window was derived at, metres. */
-  flankStandoff: 1.348,
+  flankStandoff: FLANK_STANDOFF_M,
 } as const;
-
-/** Lateral distance from the DCFC pedestal centre to the parked car centreline, metres. */
-export const PEDESTAL_TO_CAR_CENTRE_M = 4.5 * METRES_PER_PLAN_UNIT; // 2.153
 
 /**
  * Named joints, in kinematic order. These strings are written into the .glb as
