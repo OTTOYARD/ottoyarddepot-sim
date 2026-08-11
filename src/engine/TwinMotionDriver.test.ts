@@ -917,15 +917,6 @@ describe("SoC reaches the roster at full resolution", () => {
   });
 });
 
-describe("the depot clock stops when the run does", () => {
-  // A run that ENDS kept simClockLive true and simTime advancing over a wiped depot.
-  // A clock ticking on an empty scene is the same class of lie as a car drawn where
-  // none is — and it left the manual scrub slider disabled indefinitely.
-  const runSnap = (status: string, clock: string): TwinSnapshot => {
-    const s = snap([{ id: "v1", state: "charging_dcfc" }]);
-    (s as unknown as { run: Record<string, unknown> }).run.status = status;
-    (s as unknown as { run: Record<string, unknown> }).run.sim_clock = clock;
-
 // ============================================================================
 // A3 — WHERE AN ARRIVAL ACTUALLY GOES.
 //
@@ -956,25 +947,6 @@ describe("arrivals go to what they need, not to an invented perimeter park", () 
     useVehicleStore.getState().reset();
     useDepotStore.getState().regenerateStalls(10, 30, 3, 115, 2);
   });
-
-  // The clock reaches the store on the MOTION tick, not on reconcile — so a live run
-  // has to actually tick before simClockLive can be true.
-  it("releases the live clock when the run reaches a terminal status", () => {
-    twinMotionDriver.reconcile(runSnap("running", "2026-08-11T12:00:00.000Z"));
-    twinMotionDriver.tickMotion(0.05);
-    expect(useSimulationStore.getState().simClockLive).toBe(true);
-    twinMotionDriver.reconcile(runSnap("completed", "2026-08-11T12:05:00.000Z"));
-    expect(useSimulationStore.getState().simClockLive).toBe(false);
-  });
-
-  it("does not keep advancing sim time over a wiped depot", () => {
-    twinMotionDriver.reconcile(runSnap("running", "2026-08-11T12:00:00.000Z"));
-    twinMotionDriver.tickMotion(0.05);
-    twinMotionDriver.reconcile(runSnap("completed", "2026-08-11T12:05:00.000Z"));
-    const frozen = useSimulationStore.getState().simTime;
-    twinMotionDriver.reconcile(runSnap("completed", "2026-08-11T12:30:00.000Z"));
-    for (let i = 0; i < 20; i++) twinMotionDriver.tickMotion(0.05);
-    expect(useSimulationStore.getState().simTime).toBe(frozen);
 
   it("an arrival with a CHARGER reserved is taken to the charger, not to a parking space", () => {
     twinMotionDriver.setTwinStallMap([{ id: "twin-d5", code: "NASH-DCFC-STALL-05", type: "dcfc" }]);
@@ -1049,5 +1021,88 @@ describe("arrivals go to what they need, not to an invented perimeter park", () 
     twinMotionDriver.reconcile(at([{ id: "v1", state: "arrived_at_gate", stall_id: "twin-x" }]));
     // no crash, no car parked on an unknown stall type — it lands in staging
     expect(find("v1")!.assignedStall).toMatch(/^STAGE-/);
+  });
+});
+
+describe("the depot clock stops when the run does", () => {
+  // A run that ENDS kept simClockLive true and simTime advancing over a wiped depot.
+  // A clock ticking on an empty scene is the same class of lie as a car drawn where
+  // none is — and it left the manual scrub slider disabled indefinitely.
+  const runSnap = (status: string, clock: string): TwinSnapshot => {
+    const s = snap([{ id: "v1", state: "charging_dcfc" }]);
+    (s as unknown as { run: Record<string, unknown> }).run.status = status;
+    (s as unknown as { run: Record<string, unknown> }).run.sim_clock = clock;
+    return s;
+  };
+
+  beforeEach(() => {
+    twinMotionDriver.clear();
+    useVehicleStore.getState().reset();
+    useDepotStore.getState().regenerateStalls(10, 30, 3, 115, 2);
+  });
+
+  // The clock reaches the store on the MOTION tick, not on reconcile — so a live run
+  // has to actually tick before simClockLive can be true.
+  it("releases the live clock when the run reaches a terminal status", () => {
+    twinMotionDriver.reconcile(runSnap("running", "2026-08-11T12:00:00.000Z"));
+    twinMotionDriver.tickMotion(0.05);
+    expect(useSimulationStore.getState().simClockLive).toBe(true);
+    twinMotionDriver.reconcile(runSnap("completed", "2026-08-11T12:05:00.000Z"));
+    expect(useSimulationStore.getState().simClockLive).toBe(false);
+  });
+
+  it("does not keep advancing sim time over a wiped depot", () => {
+    twinMotionDriver.reconcile(runSnap("running", "2026-08-11T12:00:00.000Z"));
+    twinMotionDriver.tickMotion(0.05);
+    twinMotionDriver.reconcile(runSnap("completed", "2026-08-11T12:05:00.000Z"));
+    const frozen = useSimulationStore.getState().simTime;
+    twinMotionDriver.reconcile(runSnap("completed", "2026-08-11T12:30:00.000Z"));
+    for (let i = 0; i < 20; i++) twinMotionDriver.tickMotion(0.05);
+    expect(useSimulationStore.getState().simTime).toBe(frozen);
+  });
+});
+
+describe("an arrival follows OTTO-Q's COMMAND, not its current stall", () => {
+  // The reservation reaches the renderer on the command bus (acceptStallCommand <-
+  // ottoq/executors 'assign_stall'). The snapshot's `stall_id` is v.current_stall_id —
+  // where the car IS, not what was held for it — and for a car at the gate it is
+  // normally null. Reading it as a reservation is fabrication, and it silently made the
+  // arrival fix a no-op on real data while its own tests passed.
+  beforeEach(() => {
+    twinMotionDriver.clear();
+    useVehicleStore.getState().reset();
+    useDepotStore.getState().regenerateStalls(10, 30, 3, 115, 2);
+    twinMotionDriver.setTwinStallMap([
+      { id: "twin-dcfc-5", code: "NASH-DCFC-STALL-05", type: "dcfc" },
+      { id: "twin-stg-b4", code: "NASH-STG-B004", type: "staging" },
+    ]);
+  });
+
+  it("routes a gate arrival to the COMMANDED charger when the snapshot names no stall", () => {
+    // This is the real-world shape: stall_id null, assignment on the command bus.
+    twinMotionDriver.reconcile(snap([{ id: "v1", state: "arrived_at_gate", stall_id: null }]));
+    const ok = twinMotionDriver.acceptStallCommand({
+      command_id: "c1", vehicle_id: "v1", twin_stall_id: "twin-dcfc-5", not_after_sim: null,
+    });
+    expect(ok).toBe(true);
+    twinMotionDriver.reconcile(snap([{ id: "v1", state: "arrived_at_gate", stall_id: null }]));
+    expect(find("v1")?.assignedStall).toBe("DCFC-05");
+  });
+
+  it("still falls back to a stall the car genuinely already holds", () => {
+    // current_stall_id is honest about OCCUPANCY even though it is not a reservation,
+    // so a car that already holds a stall is driven to that stall.
+    twinMotionDriver.reconcile(snap([
+      { id: "v2", state: "arrived_at_gate", stall_id: "twin-stg-b4" },
+    ]));
+    // one staging GROUP in this map, so A2's mapping keeps the number-preserving
+    // form (STAGE-04); the group-prefixed form appears only when groups collide.
+    expect(find("v2")?.assignedStall).toBe("STAGE-04");
+  });
+
+  it("invents nothing when there is neither a command nor a current stall", () => {
+    twinMotionDriver.reconcile(snap([{ id: "v3", state: "arrived_at_gate", stall_id: null }]));
+    // falls back to staging — never a perimeter carport during the day
+    expect(find("v3")?.assignedStall).toMatch(/^STAGE-/);
   });
 });

@@ -1241,7 +1241,24 @@ class TwinMotionDriver {
       //
       // The stall's TYPE is the lane. Only when OTTO-Q reserved nothing does the
       // car fall back to staging, and then to INTAKE staging, never the perimeter.
-      const reservedStall = bv.stall_id ? this.twinStall.get(bv.stall_id) : undefined;
+      //
+      // WHERE THE RESERVATION ACTUALLY COMES FROM. OTTO-Q's assignment reaches this
+      // file on the COMMAND BUS — acceptStallCommand, fed by ottoq/executors on
+      // 'assign_stall' — and is held in `commanded`. It is NOT in the snapshot:
+      // ottoq_twin_snapshot publishes `stall_id` as `v.current_stall_id`, which is
+      // where the car IS, not what was held for it. This first read `bv.stall_id`
+      // alone and called it "what OTTO-Q reserved". For a car at the gate that field
+      // is normally null, so the reservation almost never resolved and the arrival
+      // fell through to staging anyway — the exact defect this block exists to fix,
+      // still present behind a comment claiming otherwise. Its tests passed because
+      // they set the field the code read.
+      //
+      // The command wins. current_stall_id is kept only as a SECOND source and only
+      // for what it honestly is: a car that already physically holds a stall should
+      // be driven to that stall. Absent both, no reservation is invented.
+      const commandedStall = this.commanded.get(bv.id)?.renderStallId;
+      const reservedStall = commandedStall
+        ?? (bv.stall_id ? this.twinStall.get(bv.stall_id) : undefined);
       const reservedLane = reservedStall
         ? STALL_TYPE_LANE[stallType.get(reservedStall) ?? ""] ?? null
         : null;
