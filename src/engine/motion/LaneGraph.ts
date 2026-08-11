@@ -23,7 +23,7 @@
 import type { Pt } from "./PathTracker";
 import {
   GAP_LANES, NORTH_LANE_Y, SOUTH_LANE_Y, WEST_AISLE_X, EAST_AISLE_X, INGRESS, EGRESS,
-  REAR_LANE_Y,
+  REAR_LANE_Y, TEMP_LANE_X, N1_LANE_Y, PARK_RUNS,
 } from "@/lib/sitePlan";
 
 interface Lane {
@@ -276,15 +276,31 @@ export function buildDepotLanes(): LaneGraph {
     g.addNode(`Ng${i}`, x, NORTH_LANE_Y);
   });
 
+  // --- TEMP BLOCK AISLE junctions -------------------------------------------
+  // sitePlan has declared TEMP_LANE_X since the temp block was drawn, and
+  // routeToStall() has always routed the block's traffic along it — but it existed
+  // ONLY as a constant. There was no node and no edge here, so route() could not
+  // follow it: it picked the nearest RING node instead and drew a straight line to
+  // the stall, which is why cars crossed the block diagonally over parked cars.
+  // This is the founder's item 3: the aisle the plan already declares becomes real road.
+  g.addNode("Tn", TEMP_LANE_X, NORTH_LANE_Y);
+  g.addNode("Ts", TEMP_LANE_X, SOUTH_LANE_Y);
+
   // --- south boulevard chain (two-way), west→east through all junctions ---
-  const southChain = ["SW", "Sg0", "S_in", "Sg1", "Sg2", "S_eg", "Sg3", "SE"]
+  const southChain = ["SW", "Sg0", "S_in", "Sg1", "Sg2", "S_eg", "Sg3", "Ts", "SE"]
     .sort((a, b) => g.nodes.get(a)!.x - g.nodes.get(b)!.x);
   for (let i = 1; i < southChain.length; i++) g.addRoad(southChain[i - 1], southChain[i]);
 
   // --- north boulevard chain (two-way) ---
-  const northChain = ["NW", "Ng0", "Ng1", "Ng2", "Ng3", "NE"]
+  const northChain = ["NW", "Ng0", "Ng1", "Ng2", "Ng3", "Tn", "NE"]
     .sort((a, b) => g.nodes.get(a)!.x - g.nodes.get(b)!.x);
   for (let i = 1; i < northChain.length; i++) g.addRoad(northChain[i - 1], northChain[i]);
+
+  // The aisle itself: TWO-WAY, because it is double-loaded (TW and TE face each other
+  // across it) and it is a dead-end for anything but a through run between the two
+  // collectors. 24.39 ft of clear pavement between the stall faces — the founder's
+  // real-world two-way / 90-degree-parking spec. See sitePlan's TW/TE comment.
+  g.addRoad("Tn", "Ts");
 
   // --- avenues (two-way) ---
   g.addRoad("NW", "SW");
@@ -308,7 +324,28 @@ export function buildDepotLanes(): LaneGraph {
   const rearXs = [120, 138, 156, 174, 192, 210, EAST_AISLE_X];
   rearXs.forEach((x, i) => g.addNode(`R${i}`, x, REAR_LANE_Y));
   for (let i = 1; i < rearXs.length; i++) g.addLane(`R${i - 1}`, `R${i}`); // eastbound only
-  g.addLane(`R${rearXs.length - 1}`, "NE"); // rear-east corner → down the east avenue
+
+  // --- N1 APPROACH: the east-west lane serving the open NE overflow row -------
+  // The row had no lane. sitePlan's old single `inTemp` predicate sent N1 traffic up
+  // TEMP_LANE_X to the row's own y, and TEMP_LANE_X (247) runs through N1 stall 5
+  // (render x 246.16..251.84) — the one route in drove the length of a parked car.
+  // The row is SINGLE-loaded, so it is served from a lane BELOW it and cars sidestep
+  // north into a stall; the lane body clears the stall faces by 4.65 ft.
+  const n1 = PARK_RUNS.find((r) => r.id === "N1")!;
+  g.addNode("N1w", n1.x0 - 6, N1_LANE_Y);                       // west stub, off the row's first stall
+  g.addNode("N1c", TEMP_LANE_X, N1_LANE_Y);                     // meets the temp aisle
+  g.addNode("N1e", EAST_AISLE_X, N1_LANE_Y);                    // meets the east avenue
+  g.addRoad("N1w", "N1c");
+  g.addRoad("N1c", "N1e");
+  g.addRoad("Tn", "N1c");   // temp aisle continues north to the row (empty ground, y 50..74)
+
+  // The rear apron drains into the avenue AT the N1 junction, not past it: the avenue
+  // stub is spliced R6 -> N1e -> NE so a car leaving a bay can turn straight into the
+  // overflow row. The apron itself stays ONE-WAY (see above); the avenue stub is
+  // two-way like the rest of the divided avenue, which is what lets a car reach the
+  // row FROM the north collector instead of only from the bays.
+  g.addLane(`R${rearXs.length - 1}`, "N1e");
+  g.addRoad("N1e", "NE");
 
   return g;
 }

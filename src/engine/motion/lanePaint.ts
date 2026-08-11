@@ -58,7 +58,12 @@ export interface LanePaint {
 
 const ARROW_SPACING = 18; // world units between chevrons
 const ARROW_EDGE_MARGIN = 6; // don't paint arrows right on an intersection
-const LANE_WIDTH = 6.4; // visual lane width (2 × rightOffset = 2 × 3.2)
+// Visual lane width = 2 x LaneGraph.rightOffset, DERIVED not retyped. It was the
+// literal 6.4 with "(2 × rightOffset = 2 × 3.2)" in a comment, which is a copy that
+// nothing checked: changing rightOffset would have moved every car and left the paint
+// where it was. The file header claims paint can "never drift from the routed motion";
+// this is what makes that true for the width as well as the position.
+const LANE_WIDTH = new LaneGraph().rightOffset * 2;
 
 function dist(a: Pt, b: Pt) {
   return Math.hypot(a.x - b.x, a.y - b.y);

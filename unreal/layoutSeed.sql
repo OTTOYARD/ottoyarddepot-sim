@@ -8,13 +8,13 @@
 -- relative_x = (render_x - 6) * UNIT_FT      [0 .. 452.13 ft]
 -- relative_y = (206 - render_y) * UNIT_FT     [0 .. 313.98 ft]  <- Y IS FLIPPED
 --
--- Stalls:     160  (staging 115, l2 30, dcfc 10, wash 3, service 2)
+-- Stalls:     158  (staging 113, l2 30, dcfc 10, wash 3, service 2)
 -- Structures: 26
--- Re-homed stall codes:    14  (staging; row + id + history kept, position moved)
+-- Re-homed stall codes:    16  (staging; row + id + history kept, position moved)
 -- Deleted stall codes:     5  (must be referenced by nothing)
 -- Retired structure codes: 2  (CANOPY-04, METAL-CANOPY-PERIM)
 --
--- SEED MD5: 865ac54dd3b233c4fbc5acfa4dcdf997
+-- SEED MD5: ea744e68880800ce2d9b6442c987695a
 --   md5 over stall_code|stall_type|relative_x|relative_y|heading|width|depth,
 --   newline-joined, ordered by stall_code. Migration 0010 recomputes this in SQL
 --   and aborts on mismatch, so a hand-edited seed cannot reshape the depot.
@@ -90,64 +90,62 @@ VALUES
   ('NASH-L2-STALL-33', 'L2-28', 'l2', 'charging', 'l2_zone', NULL, 'CANOPY-03 E-33', 310.8366, 111.4616, 180, 10.0000, 16.7687, 36.14000621, -86.77174259, 'CANOPY-03', 'E', true, 'C'),
   ('NASH-L2-STALL-34', 'L2-29', 'l2', 'charging', 'l2_zone', NULL, 'CANOPY-03 E-34', 310.8366, 94.1929, 180, 10.0000, 16.7687, 36.13995877, -86.77174259, 'CANOPY-03', 'E', true, 'C'),
   ('NASH-L2-STALL-35', 'L2-30', 'l2', 'charging', 'l2_zone', NULL, 'CANOPY-03 E-35', 310.8366, 76.9242, 180, 10.0000, 16.7687, 36.13991133, -86.77174259, 'CANOPY-03', 'E', true, 'C'),
-  ('NASH-STG-B001', 'TW-1', 'staging', 'staging', 'staging_buffer', 'temp', 'Staging Buffer 001', 357.9331, 188.3858, 270, 10.0000, 18.0000, 36.14021754, -86.77158237, NULL, NULL, false, 'TW'),
-  ('NASH-STG-B002', 'TW-2', 'staging', 'staging', 'staging_buffer', 'temp', 'Staging Buffer 002', 357.9331, 177.3967, 270, 10.0000, 18.0000, 36.14018735, -86.77158237, NULL, NULL, false, 'TW'),
-  ('NASH-STG-B003', 'TW-3', 'staging', 'staging', 'staging_buffer', 'temp', 'Staging Buffer 003', 357.9331, 166.4075, 270, 10.0000, 18.0000, 36.14015716, -86.77158237, NULL, NULL, false, 'TW'),
-  ('NASH-STG-B004', 'TW-4', 'staging', 'staging', 'staging_buffer', 'temp', 'Staging Buffer 004', 357.9331, 155.4183, 270, 10.0000, 18.0000, 36.14012697, -86.77158237, NULL, NULL, false, 'TW'),
-  ('NASH-STG-B005', 'TW-5', 'staging', 'staging', 'staging_buffer', 'temp', 'Staging Buffer 005', 357.9331, 144.4291, 270, 10.0000, 18.0000, 36.14009678, -86.77158237, NULL, NULL, false, 'TW'),
-  ('NASH-STG-B006', 'TW-6', 'staging', 'staging', 'staging_buffer', 'temp', 'Staging Buffer 006', 357.9331, 133.4400, 270, 10.0000, 18.0000, 36.14006659, -86.77158237, NULL, NULL, false, 'TW'),
-  ('NASH-STG-B007', 'TW-7', 'staging', 'staging', 'staging_buffer', 'temp', 'Staging Buffer 007', 357.9331, 122.4508, 270, 10.0000, 18.0000, 36.14003640, -86.77158237, NULL, NULL, false, 'TW'),
-  ('NASH-STG-B008', 'TW-8', 'staging', 'staging', 'staging_buffer', 'temp', 'Staging Buffer 008', 357.9331, 111.4616, 270, 10.0000, 18.0000, 36.14000621, -86.77158237, NULL, NULL, false, 'TW'),
-  ('NASH-STG-B009', 'TW-9', 'staging', 'staging', 'staging_buffer', 'temp', 'Staging Buffer 009', 357.9331, 100.4724, 270, 10.0000, 18.0000, 36.13997602, -86.77158237, NULL, NULL, false, 'TW'),
-  ('NASH-STG-B010', 'TW-10', 'staging', 'staging', 'staging_buffer', 'temp', 'Staging Buffer 010', 357.9331, 89.4833, 270, 10.0000, 18.0000, 36.13994583, -86.77158237, NULL, NULL, false, 'TW'),
-  ('NASH-STG-B011', 'TW-11', 'staging', 'staging', 'staging_buffer', 'temp', 'Staging Buffer 011', 357.9331, 78.4941, 270, 10.0000, 18.0000, 36.13991564, -86.77158237, NULL, NULL, false, 'TW'),
-  ('NASH-STG-B012', 'TW-12', 'staging', 'staging', 'staging_buffer', 'temp', 'Staging Buffer 012', 357.9331, 67.5049, 270, 10.0000, 18.0000, 36.13988545, -86.77158237, NULL, NULL, false, 'TW'),
-  ('NASH-STG-B013', 'TW-13', 'staging', 'staging', 'staging_buffer', 'temp', 'Staging Buffer 013', 357.9331, 56.5157, 270, 10.0000, 18.0000, 36.13985526, -86.77158237, NULL, NULL, false, 'TW'),
-  ('NASH-STG-E001', 'E-1', 'staging', 'staging', 'staging_east', 'long', 'Staging East 001', 440.3519, 251.1811, 90, 8.4483, 18.0000, 36.14039006, -86.77130200, NULL, NULL, true, 'E'),
-  ('NASH-STG-E002', 'E-2', 'staging', 'staging', 'staging_east', 'long', 'Staging East 002', 440.3519, 242.2328, 90, 8.4483, 18.0000, 36.14036547, -86.77130200, NULL, NULL, true, 'E'),
-  ('NASH-STG-E003', 'E-3', 'staging', 'staging', 'staging_east', 'long', 'Staging East 003', 440.3519, 233.2844, 90, 8.4483, 18.0000, 36.14034089, -86.77130200, NULL, NULL, true, 'E'),
-  ('NASH-STG-E004', 'E-4', 'staging', 'staging', 'staging_east', 'long', 'Staging East 004', 440.3519, 224.3361, 90, 8.4483, 18.0000, 36.14031631, -86.77130200, NULL, NULL, true, 'E'),
-  ('NASH-STG-E005', 'E-5', 'staging', 'staging', 'staging_east', 'long', 'Staging East 005', 440.3519, 215.3878, 90, 8.4483, 18.0000, 36.14029172, -86.77130200, NULL, NULL, true, 'E'),
-  ('NASH-STG-E006', 'E-6', 'staging', 'staging', 'staging_east', 'long', 'Staging East 006', 440.3519, 206.4395, 90, 8.4483, 18.0000, 36.14026714, -86.77130200, NULL, NULL, true, 'E'),
-  ('NASH-STG-E007', 'E-7', 'staging', 'staging', 'staging_east', 'long', 'Staging East 007', 440.3519, 197.4911, 90, 8.4483, 18.0000, 36.14024256, -86.77130200, NULL, NULL, true, 'E'),
-  ('NASH-STG-E008', 'E-8', 'staging', 'staging', 'staging_east', 'long', 'Staging East 008', 440.3519, 188.5428, 90, 8.4483, 18.0000, 36.14021797, -86.77130200, NULL, NULL, true, 'E'),
-  ('NASH-STG-E009', 'E-9', 'staging', 'staging', 'staging_east', 'long', 'Staging East 009', 440.3519, 179.5945, 90, 8.4483, 18.0000, 36.14019339, -86.77130200, NULL, NULL, true, 'E'),
-  ('NASH-STG-E010', 'E-10', 'staging', 'staging', 'staging_east', 'long', 'Staging East 010', 440.3519, 170.6462, 90, 8.4483, 18.0000, 36.14016881, -86.77130200, NULL, NULL, true, 'E'),
-  ('NASH-STG-E011', 'E-11', 'staging', 'staging', 'staging_east', 'long', 'Staging East 011', 440.3519, 161.6978, 90, 8.4483, 18.0000, 36.14014422, -86.77130200, NULL, NULL, true, 'E'),
-  ('NASH-STG-E012', 'E-12', 'staging', 'staging', 'staging_east', 'long', 'Staging East 012', 440.3519, 152.7495, 90, 8.4483, 18.0000, 36.14011964, -86.77130200, NULL, NULL, true, 'E'),
-  ('NASH-STG-E013', 'E-13', 'staging', 'staging', 'staging_east', 'long', 'Staging East 013', 440.3519, 143.8012, 90, 8.4483, 18.0000, 36.14009506, -86.77130200, NULL, NULL, true, 'E'),
-  ('NASH-STG-E014', 'E-14', 'staging', 'staging', 'staging_east', 'long', 'Staging East 014', 440.3519, 134.8529, 90, 8.4483, 18.0000, 36.14007047, -86.77130200, NULL, NULL, true, 'E'),
-  ('NASH-STG-E015', 'E-15', 'staging', 'staging', 'staging_east', 'long', 'Staging East 015', 440.3519, 125.9045, 90, 8.4483, 18.0000, 36.14004589, -86.77130200, NULL, NULL, true, 'E'),
-  ('NASH-STG-E016', 'E-16', 'staging', 'staging', 'staging_east', 'long', 'Staging East 016', 440.3519, 116.9562, 90, 8.4483, 18.0000, 36.14002131, -86.77130200, NULL, NULL, true, 'E'),
-  ('NASH-STG-E017', 'E-17', 'staging', 'staging', 'staging_east', 'long', 'Staging East 017', 440.3519, 108.0079, 90, 8.4483, 18.0000, 36.13999672, -86.77130200, NULL, NULL, true, 'E'),
-  ('NASH-STG-E018', 'E-18', 'staging', 'staging', 'staging_east', 'long', 'Staging East 018', 440.3519, 99.0595, 90, 8.4483, 18.0000, 36.13997214, -86.77130200, NULL, NULL, true, 'E'),
-  ('NASH-STG-E019', 'E-19', 'staging', 'staging', 'staging_east', 'long', 'Staging East 019', 440.3519, 90.1112, 90, 8.4483, 18.0000, 36.13994756, -86.77130200, NULL, NULL, true, 'E'),
-  ('NASH-STG-E020', 'E-20', 'staging', 'staging', 'staging_east', 'long', 'Staging East 020', 440.3519, 81.1629, 90, 8.4483, 18.0000, 36.13992297, -86.77130200, NULL, NULL, true, 'E'),
-  ('NASH-STG-E021', 'E-21', 'staging', 'staging', 'staging_east', 'long', 'Staging East 021', 440.3519, 72.2146, 90, 8.4483, 18.0000, 36.13989839, -86.77130200, NULL, NULL, true, 'E'),
-  ('NASH-STG-E022', 'E-22', 'staging', 'staging', 'staging_east', 'long', 'Staging East 022', 440.3519, 63.2662, 90, 8.4483, 18.0000, 36.13987381, -86.77130200, NULL, NULL, true, 'E'),
-  ('NASH-STG-E023', 'E-23', 'staging', 'staging', 'staging_east', 'long', 'Staging East 023', 440.3519, 54.3179, 90, 8.4483, 18.0000, 36.13984923, -86.77130200, NULL, NULL, true, 'E'),
-  ('NASH-STG-E024', 'E-24', 'staging', 'staging', 'staging_east', 'long', 'Staging East 024', 440.3519, 45.3696, 90, 8.4483, 18.0000, 36.13982464, -86.77130200, NULL, NULL, true, 'E'),
-  ('NASH-STG-E025', 'E-25', 'staging', 'staging', 'staging_east', 'long', 'Staging East 025', 440.3519, 36.4213, 90, 8.4483, 18.0000, 36.13980006, -86.77130200, NULL, NULL, true, 'E'),
-  ('NASH-STG-I001', 'TE-1', 'staging', 'inspection', 'arrival_inspection', 'temp', 'Arrival Inspection 001', 398.7500, 188.3858, 90, 10.0000, 18.0000, 36.14021754, -86.77144352, NULL, NULL, false, 'TE'),
-  ('NASH-STG-I002', 'TE-2', 'staging', 'inspection', 'arrival_inspection', 'temp', 'Arrival Inspection 002', 398.7500, 177.3967, 90, 10.0000, 18.0000, 36.14018735, -86.77144352, NULL, NULL, false, 'TE'),
-  ('NASH-STG-I003', 'TE-3', 'staging', 'inspection', 'arrival_inspection', 'temp', 'Arrival Inspection 003', 398.7500, 166.4075, 90, 10.0000, 18.0000, 36.14015716, -86.77144352, NULL, NULL, false, 'TE'),
-  ('NASH-STG-I004', 'TE-4', 'staging', 'inspection', 'arrival_inspection', 'temp', 'Arrival Inspection 004', 398.7500, 155.4183, 90, 10.0000, 18.0000, 36.14012697, -86.77144352, NULL, NULL, false, 'TE'),
-  ('NASH-STG-I005', 'TE-5', 'staging', 'inspection', 'arrival_inspection', 'temp', 'Arrival Inspection 005', 398.7500, 144.4291, 90, 10.0000, 18.0000, 36.14009678, -86.77144352, NULL, NULL, false, 'TE'),
-  ('NASH-STG-I006', 'TE-6', 'staging', 'inspection', 'arrival_inspection', 'temp', 'Arrival Inspection 006', 398.7500, 133.4400, 90, 10.0000, 18.0000, 36.14006659, -86.77144352, NULL, NULL, false, 'TE'),
-  ('NASH-STG-I007', 'TE-7', 'staging', 'inspection', 'arrival_inspection', 'temp', 'Arrival Inspection 007', 398.7500, 122.4508, 90, 10.0000, 18.0000, 36.14003640, -86.77144352, NULL, NULL, false, 'TE'),
-  ('NASH-STG-I008', 'TE-8', 'staging', 'inspection', 'arrival_inspection', 'temp', 'Arrival Inspection 008', 398.7500, 111.4616, 90, 10.0000, 18.0000, 36.14000621, -86.77144352, NULL, NULL, false, 'TE'),
-  ('NASH-STG-I009', 'TE-9', 'staging', 'inspection', 'arrival_inspection', 'temp', 'Arrival Inspection 009', 398.7500, 100.4724, 90, 10.0000, 18.0000, 36.13997602, -86.77144352, NULL, NULL, false, 'TE'),
-  ('NASH-STG-I010', 'TE-10', 'staging', 'inspection', 'arrival_inspection', 'temp', 'Arrival Inspection 010', 398.7500, 89.4833, 90, 10.0000, 18.0000, 36.13994583, -86.77144352, NULL, NULL, false, 'TE'),
-  ('NASH-STG-I011', 'TE-11', 'staging', 'inspection', 'arrival_inspection', 'temp', 'Arrival Inspection 011', 398.7500, 78.4941, 90, 10.0000, 18.0000, 36.13991564, -86.77144352, NULL, NULL, false, 'TE'),
-  ('NASH-STG-I012', 'TE-12', 'staging', 'inspection', 'arrival_inspection', 'temp', 'Arrival Inspection 012', 398.7500, 67.5049, 90, 10.0000, 18.0000, 36.13988545, -86.77144352, NULL, NULL, false, 'TE'),
-  ('NASH-STG-I013', 'TE-13', 'staging', 'inspection', 'arrival_inspection', 'temp', 'Arrival Inspection 013', 398.7500, 56.5157, 90, 10.0000, 18.0000, 36.13985526, -86.77144352, NULL, NULL, false, 'TE'),
-  ('NASH-STG-N001', 'N1-1', 'staging', 'staging', 'staging_north', 'long', 'Staging North 001', 348.5138, 266.8799, 0, 8.9193, 18.0000, 36.14043319, -86.77161442, NULL, NULL, false, 'N1'),
-  ('NASH-STG-N002', 'N1-2', 'staging', 'staging', 'staging_north', 'long', 'Staging North 002', 357.9331, 266.8799, 0, 8.9193, 18.0000, 36.14043319, -86.77158237, NULL, NULL, false, 'N1'),
-  ('NASH-STG-N003', 'N1-3', 'staging', 'staging', 'staging_north', 'long', 'Staging North 003', 367.3524, 266.8799, 0, 8.9193, 18.0000, 36.14043319, -86.77155033, NULL, NULL, false, 'N1'),
-  ('NASH-STG-N004', 'N1-4', 'staging', 'staging', 'staging_north', 'long', 'Staging North 004', 376.7717, 266.8799, 0, 8.9193, 18.0000, 36.14043319, -86.77151829, NULL, NULL, false, 'N1'),
-  ('NASH-STG-N005', 'N1-5', 'staging', 'staging', 'staging_north', 'long', 'Staging North 005', 386.1909, 266.8799, 0, 8.9193, 18.0000, 36.14043319, -86.77148625, NULL, NULL, false, 'N1'),
-  ('NASH-STG-N006', 'N1-6', 'staging', 'staging', 'staging_north', 'long', 'Staging North 006', 395.6102, 266.8799, 0, 8.9193, 18.0000, 36.14043319, -86.77145420, NULL, NULL, false, 'N1'),
-  ('NASH-STG-N007', 'N1-7', 'staging', 'staging', 'staging_north', 'long', 'Staging North 007', 405.0295, 266.8799, 0, 8.9193, 18.0000, 36.14043319, -86.77142216, NULL, NULL, false, 'N1'),
+  ('NASH-STG-B001', 'TW-1', 'staging', 'staging', 'staging_buffer', 'temp', 'Staging Buffer 001', 357.1481, 188.1503, 270, 10.0000, 18.0000, 36.14021690, -86.77158504, NULL, NULL, false, 'TW'),
+  ('NASH-STG-B002', 'TW-2', 'staging', 'staging', 'staging_buffer', 'temp', 'Staging Buffer 002', 357.1481, 177.6321, 270, 10.0000, 18.0000, 36.14018800, -86.77158504, NULL, NULL, false, 'TW'),
+  ('NASH-STG-B003', 'TW-3', 'staging', 'staging', 'staging_buffer', 'temp', 'Staging Buffer 003', 357.1481, 167.1139, 270, 10.0000, 18.0000, 36.14015910, -86.77158504, NULL, NULL, false, 'TW'),
+  ('NASH-STG-B004', 'TW-4', 'staging', 'staging', 'staging_buffer', 'temp', 'Staging Buffer 004', 357.1481, 156.5957, 270, 10.0000, 18.0000, 36.14013021, -86.77158504, NULL, NULL, false, 'TW'),
+  ('NASH-STG-B005', 'TW-5', 'staging', 'staging', 'staging_buffer', 'temp', 'Staging Buffer 005', 357.1481, 146.0775, 270, 10.0000, 18.0000, 36.14010131, -86.77158504, NULL, NULL, false, 'TW'),
+  ('NASH-STG-B006', 'TW-6', 'staging', 'staging', 'staging_buffer', 'temp', 'Staging Buffer 006', 357.1481, 135.5593, 270, 10.0000, 18.0000, 36.14007242, -86.77158504, NULL, NULL, false, 'TW'),
+  ('NASH-STG-B007', 'TW-7', 'staging', 'staging', 'staging_buffer', 'temp', 'Staging Buffer 007', 357.1481, 125.0411, 270, 10.0000, 18.0000, 36.14004352, -86.77158504, NULL, NULL, false, 'TW'),
+  ('NASH-STG-B008', 'TW-8', 'staging', 'staging', 'staging_buffer', 'temp', 'Staging Buffer 008', 357.1481, 114.5229, 270, 10.0000, 18.0000, 36.14001462, -86.77158504, NULL, NULL, false, 'TW'),
+  ('NASH-STG-B009', 'TW-9', 'staging', 'staging', 'staging_buffer', 'temp', 'Staging Buffer 009', 357.1481, 104.0047, 270, 10.0000, 18.0000, 36.13998573, -86.77158504, NULL, NULL, false, 'TW'),
+  ('NASH-STG-B010', 'TW-10', 'staging', 'staging', 'staging_buffer', 'temp', 'Staging Buffer 010', 357.1481, 93.4865, 270, 10.0000, 18.0000, 36.13995683, -86.77158504, NULL, NULL, false, 'TW'),
+  ('NASH-STG-B011', 'TW-11', 'staging', 'staging', 'staging_buffer', 'temp', 'Staging Buffer 011', 357.1481, 82.9683, 270, 10.0000, 18.0000, 36.13992793, -86.77158504, NULL, NULL, false, 'TW'),
+  ('NASH-STG-B012', 'TW-12', 'staging', 'staging', 'staging_buffer', 'temp', 'Staging Buffer 012', 357.1481, 72.4500, 270, 10.0000, 18.0000, 36.13989904, -86.77158504, NULL, NULL, false, 'TW'),
+  ('NASH-STG-E001', 'E-1', 'staging', 'staging', 'staging_east', 'long', 'Staging East 001', 441.9218, 251.1811, 90, 8.4483, 18.0000, 36.14039006, -86.77129666, NULL, NULL, true, 'E'),
+  ('NASH-STG-E002', 'E-2', 'staging', 'staging', 'staging_east', 'long', 'Staging East 002', 441.9218, 242.2328, 90, 8.4483, 18.0000, 36.14036547, -86.77129666, NULL, NULL, true, 'E'),
+  ('NASH-STG-E003', 'E-3', 'staging', 'staging', 'staging_east', 'long', 'Staging East 003', 441.9218, 233.2844, 90, 8.4483, 18.0000, 36.14034089, -86.77129666, NULL, NULL, true, 'E'),
+  ('NASH-STG-E004', 'E-4', 'staging', 'staging', 'staging_east', 'long', 'Staging East 004', 441.9218, 224.3361, 90, 8.4483, 18.0000, 36.14031631, -86.77129666, NULL, NULL, true, 'E'),
+  ('NASH-STG-E005', 'E-5', 'staging', 'staging', 'staging_east', 'long', 'Staging East 005', 441.9218, 215.3878, 90, 8.4483, 18.0000, 36.14029172, -86.77129666, NULL, NULL, true, 'E'),
+  ('NASH-STG-E006', 'E-6', 'staging', 'staging', 'staging_east', 'long', 'Staging East 006', 441.9218, 206.4395, 90, 8.4483, 18.0000, 36.14026714, -86.77129666, NULL, NULL, true, 'E'),
+  ('NASH-STG-E007', 'E-7', 'staging', 'staging', 'staging_east', 'long', 'Staging East 007', 441.9218, 197.4911, 90, 8.4483, 18.0000, 36.14024256, -86.77129666, NULL, NULL, true, 'E'),
+  ('NASH-STG-E008', 'E-8', 'staging', 'staging', 'staging_east', 'long', 'Staging East 008', 441.9218, 188.5428, 90, 8.4483, 18.0000, 36.14021797, -86.77129666, NULL, NULL, true, 'E'),
+  ('NASH-STG-E009', 'E-9', 'staging', 'staging', 'staging_east', 'long', 'Staging East 009', 441.9218, 179.5945, 90, 8.4483, 18.0000, 36.14019339, -86.77129666, NULL, NULL, true, 'E'),
+  ('NASH-STG-E010', 'E-10', 'staging', 'staging', 'staging_east', 'long', 'Staging East 010', 441.9218, 170.6462, 90, 8.4483, 18.0000, 36.14016881, -86.77129666, NULL, NULL, true, 'E'),
+  ('NASH-STG-E011', 'E-11', 'staging', 'staging', 'staging_east', 'long', 'Staging East 011', 441.9218, 161.6978, 90, 8.4483, 18.0000, 36.14014422, -86.77129666, NULL, NULL, true, 'E'),
+  ('NASH-STG-E012', 'E-12', 'staging', 'staging', 'staging_east', 'long', 'Staging East 012', 441.9218, 152.7495, 90, 8.4483, 18.0000, 36.14011964, -86.77129666, NULL, NULL, true, 'E'),
+  ('NASH-STG-E013', 'E-13', 'staging', 'staging', 'staging_east', 'long', 'Staging East 013', 441.9218, 143.8012, 90, 8.4483, 18.0000, 36.14009506, -86.77129666, NULL, NULL, true, 'E'),
+  ('NASH-STG-E014', 'E-14', 'staging', 'staging', 'staging_east', 'long', 'Staging East 014', 441.9218, 134.8529, 90, 8.4483, 18.0000, 36.14007047, -86.77129666, NULL, NULL, true, 'E'),
+  ('NASH-STG-E015', 'E-15', 'staging', 'staging', 'staging_east', 'long', 'Staging East 015', 441.9218, 125.9045, 90, 8.4483, 18.0000, 36.14004589, -86.77129666, NULL, NULL, true, 'E'),
+  ('NASH-STG-E016', 'E-16', 'staging', 'staging', 'staging_east', 'long', 'Staging East 016', 441.9218, 116.9562, 90, 8.4483, 18.0000, 36.14002131, -86.77129666, NULL, NULL, true, 'E'),
+  ('NASH-STG-E017', 'E-17', 'staging', 'staging', 'staging_east', 'long', 'Staging East 017', 441.9218, 108.0079, 90, 8.4483, 18.0000, 36.13999672, -86.77129666, NULL, NULL, true, 'E'),
+  ('NASH-STG-E018', 'E-18', 'staging', 'staging', 'staging_east', 'long', 'Staging East 018', 441.9218, 99.0595, 90, 8.4483, 18.0000, 36.13997214, -86.77129666, NULL, NULL, true, 'E'),
+  ('NASH-STG-E019', 'E-19', 'staging', 'staging', 'staging_east', 'long', 'Staging East 019', 441.9218, 90.1112, 90, 8.4483, 18.0000, 36.13994756, -86.77129666, NULL, NULL, true, 'E'),
+  ('NASH-STG-E020', 'E-20', 'staging', 'staging', 'staging_east', 'long', 'Staging East 020', 441.9218, 81.1629, 90, 8.4483, 18.0000, 36.13992297, -86.77129666, NULL, NULL, true, 'E'),
+  ('NASH-STG-E021', 'E-21', 'staging', 'staging', 'staging_east', 'long', 'Staging East 021', 441.9218, 72.2146, 90, 8.4483, 18.0000, 36.13989839, -86.77129666, NULL, NULL, true, 'E'),
+  ('NASH-STG-E022', 'E-22', 'staging', 'staging', 'staging_east', 'long', 'Staging East 022', 441.9218, 63.2662, 90, 8.4483, 18.0000, 36.13987381, -86.77129666, NULL, NULL, true, 'E'),
+  ('NASH-STG-E023', 'E-23', 'staging', 'staging', 'staging_east', 'long', 'Staging East 023', 441.9218, 54.3179, 90, 8.4483, 18.0000, 36.13984923, -86.77129666, NULL, NULL, true, 'E'),
+  ('NASH-STG-E024', 'E-24', 'staging', 'staging', 'staging_east', 'long', 'Staging East 024', 441.9218, 45.3696, 90, 8.4483, 18.0000, 36.13982464, -86.77129666, NULL, NULL, true, 'E'),
+  ('NASH-STG-E025', 'E-25', 'staging', 'staging', 'staging_east', 'long', 'Staging East 025', 441.9218, 36.4213, 90, 8.4483, 18.0000, 36.13980006, -86.77129666, NULL, NULL, true, 'E'),
+  ('NASH-STG-I001', 'TE-1', 'staging', 'inspection', 'arrival_inspection', 'temp', 'Arrival Inspection 001', 399.5349, 188.1503, 90, 10.0000, 18.0000, 36.14021690, -86.77144085, NULL, NULL, false, 'TE'),
+  ('NASH-STG-I002', 'TE-2', 'staging', 'inspection', 'arrival_inspection', 'temp', 'Arrival Inspection 002', 399.5349, 177.6321, 90, 10.0000, 18.0000, 36.14018800, -86.77144085, NULL, NULL, false, 'TE'),
+  ('NASH-STG-I003', 'TE-3', 'staging', 'inspection', 'arrival_inspection', 'temp', 'Arrival Inspection 003', 399.5349, 167.1139, 90, 10.0000, 18.0000, 36.14015910, -86.77144085, NULL, NULL, false, 'TE'),
+  ('NASH-STG-I004', 'TE-4', 'staging', 'inspection', 'arrival_inspection', 'temp', 'Arrival Inspection 004', 399.5349, 156.5957, 90, 10.0000, 18.0000, 36.14013021, -86.77144085, NULL, NULL, false, 'TE'),
+  ('NASH-STG-I005', 'TE-5', 'staging', 'inspection', 'arrival_inspection', 'temp', 'Arrival Inspection 005', 399.5349, 146.0775, 90, 10.0000, 18.0000, 36.14010131, -86.77144085, NULL, NULL, false, 'TE'),
+  ('NASH-STG-I006', 'TE-6', 'staging', 'inspection', 'arrival_inspection', 'temp', 'Arrival Inspection 006', 399.5349, 135.5593, 90, 10.0000, 18.0000, 36.14007242, -86.77144085, NULL, NULL, false, 'TE'),
+  ('NASH-STG-I007', 'TE-7', 'staging', 'inspection', 'arrival_inspection', 'temp', 'Arrival Inspection 007', 399.5349, 125.0411, 90, 10.0000, 18.0000, 36.14004352, -86.77144085, NULL, NULL, false, 'TE'),
+  ('NASH-STG-I008', 'TE-8', 'staging', 'inspection', 'arrival_inspection', 'temp', 'Arrival Inspection 008', 399.5349, 114.5229, 90, 10.0000, 18.0000, 36.14001462, -86.77144085, NULL, NULL, false, 'TE'),
+  ('NASH-STG-I009', 'TE-9', 'staging', 'inspection', 'arrival_inspection', 'temp', 'Arrival Inspection 009', 399.5349, 104.0047, 90, 10.0000, 18.0000, 36.13998573, -86.77144085, NULL, NULL, false, 'TE'),
+  ('NASH-STG-I010', 'TE-10', 'staging', 'inspection', 'arrival_inspection', 'temp', 'Arrival Inspection 010', 399.5349, 93.4865, 90, 10.0000, 18.0000, 36.13995683, -86.77144085, NULL, NULL, false, 'TE'),
+  ('NASH-STG-I011', 'TE-11', 'staging', 'inspection', 'arrival_inspection', 'temp', 'Arrival Inspection 011', 399.5349, 82.9683, 90, 10.0000, 18.0000, 36.13992793, -86.77144085, NULL, NULL, false, 'TE'),
+  ('NASH-STG-I012', 'TE-12', 'staging', 'inspection', 'arrival_inspection', 'temp', 'Arrival Inspection 012', 399.5349, 72.4500, 90, 10.0000, 18.0000, 36.13989904, -86.77144085, NULL, NULL, false, 'TE'),
+  ('NASH-STG-N001', 'N1-1', 'staging', 'staging', 'staging_north', 'long', 'Staging North 001', 343.8041, 266.8799, 0, 8.9193, 18.0000, 36.14043319, -86.77163044, NULL, NULL, false, 'N1'),
+  ('NASH-STG-N002', 'N1-2', 'staging', 'staging', 'staging_north', 'long', 'Staging North 002', 353.2234, 266.8799, 0, 8.9193, 18.0000, 36.14043319, -86.77159839, NULL, NULL, false, 'N1'),
+  ('NASH-STG-N003', 'N1-3', 'staging', 'staging', 'staging_north', 'long', 'Staging North 003', 362.6427, 266.8799, 0, 8.9193, 18.0000, 36.14043319, -86.77156635, NULL, NULL, false, 'N1'),
+  ('NASH-STG-N004', 'N1-4', 'staging', 'staging', 'staging_north', 'long', 'Staging North 004', 372.0620, 266.8799, 0, 8.9193, 18.0000, 36.14043319, -86.77153431, NULL, NULL, false, 'N1'),
+  ('NASH-STG-N005', 'N1-5', 'staging', 'staging', 'staging_north', 'long', 'Staging North 005', 381.4813, 266.8799, 0, 8.9193, 18.0000, 36.14043319, -86.77150227, NULL, NULL, false, 'N1'),
+  ('NASH-STG-N006', 'N1-6', 'staging', 'staging', 'staging_north', 'long', 'Staging North 006', 390.9006, 266.8799, 0, 8.9193, 18.0000, 36.14043319, -86.77147022, NULL, NULL, false, 'N1'),
+  ('NASH-STG-N007', 'N1-7', 'staging', 'staging', 'staging_north', 'long', 'Staging North 007', 400.3199, 266.8799, 0, 8.9193, 18.0000, 36.14043319, -86.77143818, NULL, NULL, false, 'N1'),
   ('NASH-STG-S001', 'S1-1', 'staging', 'staging', 'staging_south', 'long', 'Staging South 001', 28.2579, 14.1289, 0, 9.0824, 18.0000, 36.13973882, -86.77270387, NULL, NULL, true, 'S1'),
   ('NASH-STG-S002', 'S1-2', 'staging', 'staging', 'staging_south', 'long', 'Staging South 002', 38.3051, 14.1289, 0, 9.5472, 18.0000, 36.13973882, -86.77266969, NULL, NULL, true, 'S1'),
   ('NASH-STG-S003', 'S1-3', 'staging', 'staging', 'staging_south', 'long', 'Staging South 003', 48.3524, 14.1289, 0, 9.5472, 18.0000, 36.13973882, -86.77263551, NULL, NULL, true, 'S1'),
@@ -235,7 +233,7 @@ VALUES
   ('CANOPY-01', 'solar_canopy', 'Solar Canopy A (DCFC)', 128.7303, 65.9350, 47.0965, 131.8701, 14.0000, 0.0000, 'active', 36.14006228, -86.77228197, '{"panel_count":288,"solar_kw_dc":180,"stall_capacity":10,"chargers":{"dcfc":10}}'::jsonb),
   ('CANOPY-02', 'solar_canopy', 'Solar Canopy B (L2)', 202.5148, 65.9350, 47.0965, 131.8701, 14.0000, 0.0000, 'active', 36.14006228, -86.77203097, '{"panel_count":288,"solar_kw_dc":180,"stall_capacity":15,"chargers":{"l2":15}}'::jsonb),
   ('CANOPY-03', 'solar_canopy', 'Solar Canopy C (L2)', 276.2992, 65.9350, 47.0965, 131.8701, 14.0000, 0.0000, 'active', 36.14006228, -86.77177997, '{"panel_count":288,"solar_kw_dc":180,"stall_capacity":15,"chargers":{"l2":15}}'::jsonb),
-  ('CARPORT-E', 'metal_canopy', 'Solar Carport E (covered staging)', 430.1476, 26.6880, 20.4085, 230.7726, 12.0000, 0.0000, 'active', 36.14009031, -86.77130200, '{"covers":"perimeter_staging_stalls","purpose":"inspection-while-parked weather coverage","stall_count":25}'::jsonb),
+  ('CARPORT-E', 'metal_canopy', 'Solar Carport E (covered staging)', 431.7175, 26.6880, 19.6235, 230.7726, 12.0000, 0.0000, 'active', 36.14009031, -86.77129799, '{"covers":"perimeter_staging_stalls","purpose":"inspection-while-parked weather coverage","stall_count":25}'::jsonb),
   ('CARPORT-S1', 'metal_canopy', 'Solar Carport S1 (covered staging)', 21.9783, 3.1398, 113.0315, 20.4085, 12.0000, 0.0000, 'active', 36.13973666, -86.77253298, '{"covers":"perimeter_staging_stalls","purpose":"inspection-while-parked weather coverage","stall_count":11}'::jsonb),
   ('CARPORT-S2', 'metal_canopy', 'Solar Carport S2 (covered staging)', 160.1280, 3.1398, 131.8701, 20.4085, 12.0000, 0.0000, 'active', 36.13973666, -86.77203097, '{"covers":"perimeter_staging_stalls","purpose":"inspection-while-parked weather coverage","stall_count":12}'::jsonb),
   ('CARPORT-S3', 'metal_canopy', 'Solar Carport S3 (covered staging)', 317.1161, 3.1398, 106.7520, 20.4085, 12.0000, 0.0000, 'active', 36.13973666, -86.77153965, '{"covers":"perimeter_staging_stalls","purpose":"inspection-while-parked weather coverage","stall_count":10}'::jsonb),
@@ -243,26 +241,38 @@ VALUES
   ('FENCE-PERIMETER', 'fence_segment', 'Perimeter Security Fence', 0.0000, 0.0000, 452.1260, 313.9764, 8.0000, 0.0000, 'active', 36.14013129, -86.77203097, '{"material":"steel_pickets","height_ft":8,"lighting":"integrated_led"}'::jsonb),
   ('GATE-EGRESS', 'gate', 'Egress Gate (SW)', 136.5797, 0.0000, 21.9783, 9.4193, 8.0000, 0.0000, 'active', 36.13971294, -86.77229800, '{"direction":"out","controls":["alpr","barrier_arm"],"approach_point_ft":{"x":147.5689,"y":-14.1289}}'::jsonb),
   ('GATE-INGRESS', 'gate', 'Ingress Gate (SE)', 293.5679, 0.0000, 21.9783, 9.4193, 8.0000, 0.0000, 'active', 36.13971294, -86.77176395, '{"direction":"in","controls":["alpr","barrier_arm","intercom"],"approach_point_ft":{"x":304.5571,"y":-14.1289}}'::jsonb),
-  ('LIGHT-01', 'lighting_pole', 'Site Light Pole 1', 47.0965, 229.2028, 1.5000, 1.5000, 28.2579, 0.0000, 'active', 36.14033174, -86.77263723, '{"fixture":"led_area","mount":"pole"}'::jsonb),
-  ('LIGHT-02', 'lighting_pole', 'Site Light Pole 2', 47.0965, 135.0098, 1.5000, 1.5000, 28.2579, 0.0000, 'active', 36.14007297, -86.77263723, '{"fixture":"led_area","mount":"pole"}'::jsonb),
-  ('LIGHT-03', 'lighting_pole', 'Site Light Pole 3', 47.0965, 50.2362, 1.5000, 1.5000, 28.2579, 0.0000, 'active', 36.13984007, -86.77263723, '{"fixture":"led_area","mount":"pole"}'::jsonb),
-  ('LIGHT-04', 'lighting_pole', 'Site Light Pole 4', 411.3091, 229.2028, 1.5000, 1.5000, 28.2579, 0.0000, 'active', 36.14033174, -86.77139825, '{"fixture":"led_area","mount":"pole"}'::jsonb),
-  ('LIGHT-05', 'lighting_pole', 'Site Light Pole 5', 411.3091, 135.0098, 1.5000, 1.5000, 28.2579, 0.0000, 'active', 36.14007297, -86.77139825, '{"fixture":"led_area","mount":"pole"}'::jsonb),
-  ('LIGHT-06', 'lighting_pole', 'Site Light Pole 6', 411.3091, 50.2362, 1.5000, 1.5000, 28.2579, 0.0000, 'active', 36.13984007, -86.77139825, '{"fixture":"led_area","mount":"pole"}'::jsonb),
-  ('LIGHT-07', 'lighting_pole', 'Site Light Pole 7', 152.2785, 62.7953, 1.5000, 1.5000, 28.2579, 0.0000, 'active', 36.13987457, -86.77227942, '{"fixture":"led_area","mount":"pole"}'::jsonb),
-  ('LIGHT-08', 'lighting_pole', 'Site Light Pole 8', 226.0630, 62.7953, 1.5000, 1.5000, 28.2579, 0.0000, 'active', 36.13987457, -86.77202842, '{"fixture":"led_area","mount":"pole"}'::jsonb),
-  ('LIGHT-09', 'lighting_pole', 'Site Light Pole 9', 299.8474, 62.7953, 1.5000, 1.5000, 28.2579, 0.0000, 'active', 36.13987457, -86.77177742, '{"fixture":"led_area","mount":"pole"}'::jsonb),
+  ('LIGHT-01', 'lighting_pole', 'Site Light Pole 1', 50.2362, 229.2028, 1.5000, 1.5000, 28.2579, 0.0000, 'active', 36.14033174, -86.77262655, '{"fixture":"led_area","mount":"pole"}'::jsonb),
+  ('LIGHT-02', 'lighting_pole', 'Site Light Pole 2', 50.2362, 135.0098, 1.5000, 1.5000, 28.2579, 0.0000, 'active', 36.14007297, -86.77262655, '{"fixture":"led_area","mount":"pole"}'::jsonb),
+  ('LIGHT-03', 'lighting_pole', 'Site Light Pole 3', 50.2362, 69.0748, 1.5000, 1.5000, 28.2579, 0.0000, 'active', 36.13989183, -86.77262655, '{"fixture":"led_area","mount":"pole"}'::jsonb),
+  ('LIGHT-04', 'lighting_pole', 'Site Light Pole 4', 357.1481, 195.1363, 1.5000, 1.5000, 28.2579, 0.0000, 'active', 36.14023815, -86.77158249, '{"fixture":"led_area","mount":"pole"}'::jsonb),
+  ('LIGHT-05', 'lighting_pole', 'Site Light Pole 5', 399.5349, 195.1363, 1.5000, 1.5000, 28.2579, 0.0000, 'active', 36.14023815, -86.77143830, '{"fixture":"led_area","mount":"pole"}'::jsonb),
+  ('LIGHT-06', 'lighting_pole', 'Site Light Pole 6', 399.5349, 64.3652, 1.5000, 1.5000, 28.2579, 0.0000, 'active', 36.13987889, -86.77143830, '{"fixture":"led_area","mount":"pole"}'::jsonb),
+  ('LIGHT-07', 'lighting_pole', 'Site Light Pole 7', 152.2785, 63.8942, 1.5000, 1.5000, 28.2579, 0.0000, 'active', 36.13987759, -86.77227942, '{"fixture":"led_area","mount":"pole"}'::jsonb),
+  ('LIGHT-08', 'lighting_pole', 'Site Light Pole 8', 226.0630, 63.8942, 1.5000, 1.5000, 28.2579, 0.0000, 'active', 36.13987759, -86.77202842, '{"fixture":"led_area","mount":"pole"}'::jsonb),
+  ('LIGHT-09', 'lighting_pole', 'Site Light Pole 9', 299.8474, 63.8942, 1.5000, 1.5000, 28.2579, 0.0000, 'active', 36.13987759, -86.77177742, '{"fixture":"led_area","mount":"pole"}'::jsonb),
   ('LIGHT-10', 'lighting_pole', 'Site Light Pole 10', 72.2146, 309.2667, 1.5000, 1.5000, 28.2579, 0.0000, 'active', 36.14055169, -86.77255179, '{"fixture":"led_area","mount":"pole"}'::jsonb),
   ('LIGHT-11', 'lighting_pole', 'Site Light Pole 11', 332.8150, 277.8691, 1.5000, 1.5000, 28.2579, 0.0000, 'active', 36.14046544, -86.77166527, '{"fixture":"led_area","mount":"pole"}'::jsonb),
   ('OFFICE-01', 'office_building', 'Office Building + Attached Service Garage (2 bays)', 100.4724, 235.4823, 125.5906, 47.0965, 22.0000, 0.0000, 'active', 36.14041162, -86.77224459, '{"purpose":"admin+control_room+attached_service_garage","attached_service_garage":true,"encloses_stall_codes":["NASH-SVC-01","NASH-SVC-02"],"enclosure_intentional":true,"enclosure_confirmed_by":"founder","service_bays":[{"code":"NASH-SVC-01","kind":"mechanical_service","drive_through":true,"vehicle_capacity":2},{"code":"NASH-SVC-02","kind":"sensor_calibration","drive_through":true,"vehicle_capacity":2}]}'::jsonb),
   ('SIGN-OTTOYARD-FRONT', 'sign', 'OTTOYARD Front Wall Signage', 196.0630, 3.0000, 60.0000, 1.0000, 8.0000, 0.0000, 'active', 36.13970962, -86.77203097, '{"mount":"concrete_wall","illuminated":true}'::jsonb),
   ('WASH-01-BLDG', 'wash_building', 'Wash & Detail Building', 241.7618, 235.4823, 81.6339, 47.0965, 18.0000, 0.0000, 'active', 36.14041162, -86.77183872, '{"encloses_stall_codes":["NASH-WSH-01","NASH-WSH-02","NASH-WSH-03"],"enclosure_intentional":true,"wash_bays":[{"code":"NASH-WSH-01","drive_through":true},{"code":"NASH-WSH-02","drive_through":true},{"code":"NASH-WSH-03","drive_through":true}]}'::jsonb);
 
--- The divided ring, as the four straight runs the geometry guard tests. Emitted
--- from sitePlan.ts so the migration never hardcodes a lane coordinate -- the
--- single-source rule that applies to stalls applies to lanes too. Each run is a
--- lane BODY (one design vehicle wide) offset from its centreline; no stall
--- footprint may intersect one. Gate-approach diagonals are NOT modelled here.
+-- EVERY DIRECTED LANE THE CARS ACTUALLY DRIVE, as a lane BODY rectangle.
+--
+-- This used to be FOUR hand-written runs (the divided ring) reconstructed from
+-- four sitePlan constants. That under-claimed the road network, and the blind
+-- spots were real: the east avenue continues NORTH of the north collector up to
+-- the rear apron, and the N1 overflow row was parked 0.17 ft off that stretch --
+-- with a light pole standing INSIDE it -- while the guard reported the avenue
+-- clear, because its rectangle stopped at the collector.
+--
+-- So the rows below are DERIVED FROM buildDepotLanes() itself: every directed
+-- edge in the graph, offset drive-on-the-right by LaneGraph.rightOffset and
+-- widened to one design vehicle. If a lane is added, moved or removed in the
+-- graph, it appears, moves or disappears here with no edit. Nothing may sit
+-- inside one of these rectangles: not a stall footprint, not a solid structure.
+--
+-- NOT modelled, and NOT claimed to be tested: stall pull-in/pull-out maneuvers
+-- (owned by the integration, not the graph) and gate-approach diagonals.
 CREATE TEMP TABLE ottoq_layout_seed_lanes (
   lane_name text PRIMARY KEY,
   x0 numeric NOT NULL, y0 numeric NOT NULL,
@@ -270,14 +280,61 @@ CREATE TEMP TABLE ottoq_layout_seed_lanes (
 ) ON COMMIT DROP;
 
 INSERT INTO ottoq_layout_seed_lanes (lane_name, x0, y0, x1, y1) VALUES
-  ('west avenue northbound', 39.4008, 53.3760, 46.0008, 207.2244),
-  ('west avenue southbound', 29.3535, 53.3760, 35.9535, 207.2244),
-  ('east avenue northbound', 419.7047, 53.3760, 426.3047, 207.2244),
-  ('east avenue southbound', 409.6574, 53.3760, 416.2574, 207.2244),
-  ('north collector eastbound', 37.6772, 208.9480, 417.9811, 215.5480),
-  ('north collector westbound', 37.6772, 198.9008, 417.9811, 205.5008),
-  ('south collector eastbound', 37.6772, 55.0996, 417.9811, 61.6996),
-  ('south collector westbound', 37.6772, 45.0524, 417.9811, 51.6524);
+  ('N1c>N1e', 378.3415, 236.5780, 420.7283, 243.1780),
+  ('N1c>N1w', 334.3848, 246.6252, 378.3415, 253.2252),
+  ('N1c>Tn', 370.0179, 207.2244, 376.6179, 244.9016),
+  ('N1e>N1c', 378.3415, 246.6252, 420.7283, 253.2252),
+  ('N1e>NE', 412.4047, 207.2244, 419.0047, 244.9016),
+  ('N1w>N1c', 334.3848, 236.5780, 378.3415, 243.1780),
+  ('NE>N1e', 422.4520, 207.2244, 429.0520, 244.9016),
+  ('NE>SE', 412.4047, 53.3760, 419.0047, 207.2244),
+  ('NE>Tn', 378.3415, 208.9480, 420.7283, 215.5480),
+  ('NW>Ng0', 37.6772, 198.9008, 116.1713, 205.5008),
+  ('NW>SW', 29.3535, 53.3760, 35.9535, 207.2244),
+  ('Ng0>NW', 37.6772, 208.9480, 116.1713, 215.5480),
+  ('Ng0>Ng1', 116.1713, 198.9008, 189.1708, 205.5008),
+  ('Ng1>Ng0', 116.1713, 208.9480, 189.1708, 215.5480),
+  ('Ng1>Ng2', 189.1708, 198.9008, 262.9552, 205.5008),
+  ('Ng2>Ng1', 189.1708, 208.9480, 262.9552, 215.5480),
+  ('Ng2>Ng3', 262.9552, 198.9008, 335.9547, 205.5008),
+  ('Ng3>Ng2', 262.9552, 208.9480, 335.9547, 215.5480),
+  ('Ng3>Tn', 335.9547, 198.9008, 378.3415, 205.5008),
+  ('R0>R1', 178.9665, 289.9539, 207.2244, 296.5539),
+  ('R1>R2', 207.2244, 289.9539, 235.4823, 296.5539),
+  ('R2>R3', 235.4823, 289.9539, 263.7402, 296.5539),
+  ('R3>R4', 263.7402, 289.9539, 291.9980, 296.5539),
+  ('R4>R5', 291.9980, 289.9539, 320.2559, 296.5539),
+  ('R5>R6', 320.2559, 289.9539, 420.7283, 296.5539),
+  ('R6>N1e', 412.4047, 244.9016, 419.0047, 298.2776),
+  ('SE>NE', 422.4520, 53.3760, 429.0520, 207.2244),
+  ('SE>Ts', 378.3415, 55.0996, 420.7283, 61.6996),
+  ('SW>NW', 39.4008, 53.3760, 46.0008, 207.2244),
+  ('SW>Sg0', 37.6772, 45.0524, 116.1713, 51.6524),
+  ('S_eg>Sg0', 116.1713, 55.0996, 147.5689, 61.6996),
+  ('S_eg>Sg1', 147.5689, 45.0524, 189.1708, 51.6524),
+  ('S_eg>egress', 139.2453, -6.2795, 145.8453, 53.3760),
+  ('S_in>Sg2', 262.9552, 55.0996, 304.5571, 61.6996),
+  ('S_in>Sg3', 304.5571, 45.0524, 335.9547, 51.6524),
+  ('Sg0>Ng0', 117.8949, 53.3760, 124.4949, 207.2244),
+  ('Sg0>SW', 37.6772, 55.0996, 116.1713, 61.6996),
+  ('Sg0>S_eg', 116.1713, 45.0524, 147.5689, 51.6524),
+  ('Sg1>Ng1', 190.8944, 53.3760, 197.4944, 207.2244),
+  ('Sg1>S_eg', 147.5689, 55.0996, 189.1708, 61.6996),
+  ('Sg1>Sg2', 189.1708, 45.0524, 262.9552, 51.6524),
+  ('Sg2>Ng2', 264.6788, 53.3760, 271.2788, 207.2244),
+  ('Sg2>S_in', 262.9552, 45.0524, 304.5571, 51.6524),
+  ('Sg2>Sg1', 189.1708, 55.0996, 262.9552, 61.6996),
+  ('Sg3>Ng3', 337.6783, 53.3760, 344.2783, 207.2244),
+  ('Sg3>S_in', 304.5571, 55.0996, 335.9547, 61.6996),
+  ('Sg3>Ts', 335.9547, 45.0524, 378.3415, 51.6524),
+  ('Tn>N1c', 380.0652, 207.2244, 386.6652, 244.9016),
+  ('Tn>NE', 378.3415, 198.9008, 420.7283, 205.5008),
+  ('Tn>Ng3', 335.9547, 208.9480, 378.3415, 215.5480),
+  ('Tn>Ts', 370.0179, 53.3760, 376.6179, 207.2244),
+  ('Ts>SE', 378.3415, 45.0524, 420.7283, 51.6524),
+  ('Ts>Sg3', 335.9547, 55.0996, 378.3415, 61.6996),
+  ('Ts>Tn', 380.0652, 53.3760, 386.6652, 207.2244),
+  ('ingress>S_in', 306.2807, -6.2795, 312.8807, 53.3760);
 
 -- Staging codes that leave the layout. These rows are RE-HOMED, never deleted:
 -- the row keeps its id, so every booking / state-log line / mission that points
@@ -289,20 +346,22 @@ CREATE TEMP TABLE ottoq_layout_seed_rehome (
 ) ON COMMIT DROP;
 
 INSERT INTO ottoq_layout_seed_rehome (from_code, to_code, reason) VALUES
-  ('NASH-STG-B014', 'NASH-STG-E018', 'staging_buffer resized 14 -> 13 to match temp block column TW'),
-  ('NASH-STG-I014', 'NASH-STG-E019', 'arrival_inspection resized 14 -> 13 to match temp block column TE'),
-  ('NASH-STG-N008', 'NASH-STG-E020', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
-  ('NASH-STG-N009', 'NASH-STG-E021', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
-  ('NASH-STG-N010', 'NASH-STG-E022', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
-  ('NASH-STG-N011', 'NASH-STG-E023', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
-  ('NASH-STG-N012', 'NASH-STG-E024', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
-  ('NASH-STG-N013', 'NASH-STG-E025', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
-  ('NASH-STG-N014', 'NASH-STG-S020', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
-  ('NASH-STG-N015', 'NASH-STG-S021', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
-  ('NASH-STG-N016', 'NASH-STG-S022', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
-  ('NASH-STG-N017', 'NASH-STG-S023', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
-  ('NASH-STG-N018', 'NASH-STG-S024', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
-  ('NASH-STG-N019', 'NASH-STG-S025', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7');
+  ('NASH-STG-B013', 'NASH-STG-E018', 'staging_buffer resized 14 -> 12 to match temp block column TW; the 13th stall centre sat ON the south collector centreline (6.42 ft into its eastbound lane body)'),
+  ('NASH-STG-B014', 'NASH-STG-E019', 'staging_buffer resized 14 -> 12 to match temp block column TW; the 13th stall centre sat ON the south collector centreline (6.42 ft into its eastbound lane body)'),
+  ('NASH-STG-I013', 'NASH-STG-E020', 'arrival_inspection resized 14 -> 12 to match temp block column TE; the 13th stall centre sat ON the south collector centreline (6.42 ft into its eastbound lane body)'),
+  ('NASH-STG-I014', 'NASH-STG-E021', 'arrival_inspection resized 14 -> 12 to match temp block column TE; the 13th stall centre sat ON the south collector centreline (6.42 ft into its eastbound lane body)'),
+  ('NASH-STG-N008', 'NASH-STG-E022', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
+  ('NASH-STG-N009', 'NASH-STG-E023', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
+  ('NASH-STG-N010', 'NASH-STG-E024', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
+  ('NASH-STG-N011', 'NASH-STG-E025', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
+  ('NASH-STG-N012', 'NASH-STG-S020', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
+  ('NASH-STG-N013', 'NASH-STG-S021', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
+  ('NASH-STG-N014', 'NASH-STG-S022', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
+  ('NASH-STG-N015', 'NASH-STG-S023', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
+  ('NASH-STG-N016', 'NASH-STG-S024', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
+  ('NASH-STG-N017', 'NASH-STG-S025', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
+  ('NASH-STG-N018', 'NASH-STG-S026', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'),
+  ('NASH-STG-N019', 'NASH-STG-S027', 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7');
 
 -- Codes DELETED outright. Only rows referenced by NOTHING may appear here; the
 -- migration re-counts all 17 foreign keys at apply time and RAISEs on any hit.

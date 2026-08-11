@@ -86,6 +86,7 @@ import { build } from 'esbuild';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { createHash } from 'node:crypto';
+import { resolve } from 'node:path';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -109,11 +110,6 @@ const CLEARANCE_FT = 0.5;
 
 /** Design vehicle used for the fit report (a robotaxi-class sedan/crossover). */
 const DESIGN_VEHICLE_FT = { width: 6.6, length: 16.0 };
-
-// LaneGraph.rightOffset, in render units. Opposing directions on a divided road end
-// up 2x this apart. Kept in step with src/engine/motion/LaneGraph.ts by the assertion
-// in scripts/checkLayoutGeometry.mjs, which reads the real class.
-const LANE_RIGHT_OFFSET = 3.2;
 
 /**
  * Nominal footprints. Charging and staging match what the database already
@@ -228,15 +224,91 @@ const inRect = (x, y, r) =>
 // Load the site plan from TypeScript (source of truth)
 // ---------------------------------------------------------------------------
 
-await build({
-  entryPoints: ['src/lib/sitePlan.ts'],
-  bundle: true,
-  format: 'cjs',
-  platform: 'node',
-  outfile: '/tmp/ottoq_siteplan_seed.cjs',
-  logLevel: 'silent',
-});
-const sp = createRequire(import.meta.url)('/tmp/ottoq_siteplan_seed.cjs');
+const requireCjs = createRequire(import.meta.url);
+const bundle = async (entry, outfile) => {
+  await build({
+    entryPoints: [entry], bundle: true, format: 'cjs', platform: 'node', outfile,
+    // `@/...` is the app's own path alias. sitePlan.ts's only `@` import is type-only
+    // and is erased, but LaneGraph.ts imports sitePlan by alias for real, so the seed
+    // cannot bundle it without this.
+    alias: { '@': resolve('src') },
+    logLevel: 'silent',
+  });
+  return requireCjs(outfile);
+};
+const sp = await bundle('src/lib/sitePlan.ts', '/tmp/ottoq_siteplan_seed.cjs');
+
+// ---------------------------------------------------------------------------
+// Lane geometry — READ FROM THE REAL CLASS, not copied
+// ---------------------------------------------------------------------------
+//
+// LaneGraph.rightOffset in render units: how far each direction of a divided road sits
+// from the shared centreline, so opposing streams end up 2x this apart.
+//
+// This used to be a hand-typed `const LANE_RIGHT_OFFSET = 3.2` whose comment claimed
+// checkLayoutGeometry.mjs kept it in step with LaneGraph.ts "which reads the real
+// class". THAT WAS FALSE. The guard reads lanes.right_offset_ft out of the JSON this
+// script writes, so it could only ever confirm the seed agreed with itself — if
+// LaneGraph.rightOffset changed, every car moved and the seed, the guard and migration
+// 0010's clearance assertion would all have carried on validating the old road.
+// So the class is now bundled and the value is READ off an instance. One source.
+// (src/engine/motion/lanePaint.ts derives its LANE_WIDTH from the same instance field.)
+const { LaneGraph, buildDepotLanes } = await bundle(
+  'src/engine/motion/LaneGraph.ts', '/tmp/ottoq_lanegraph_seed.cjs');
+const LANE_RIGHT_OFFSET = new LaneGraph().rightOffset;
+if (!Number.isFinite(LANE_RIGHT_OFFSET) || LANE_RIGHT_OFFSET <= 0) {
+  throw new Error(`LaneGraph.rightOffset is not a positive number: ${LANE_RIGHT_OFFSET}`);
+}
+
+/**
+ * Every directed lane in the graph, as a lane BODY rectangle in database feet.
+ *
+ * The seed used to reconstruct FOUR runs by hand from four sitePlan constants. That
+ * under-claimed the road: the east avenue continues north of the north collector to
+ * the rear apron, the gap lanes and the rear apron were never modelled at all, and the
+ * temp aisle and N1 approach are brand new. Every one of those was an UNGUARDED lane —
+ * measured on main, a light pole stood inside the east avenue and the N1 row's last
+ * stall cleared it by 0.17 ft, and the guard called the avenue clear because its
+ * rectangle stopped short.
+ *
+ * Deriving from buildDepotLanes() makes the guarded set BE the driven set, by
+ * construction. A lane added to the graph is guarded the moment it exists.
+ *
+ * Every lane in buildDepotLanes() is a straight axis-aligned 2-point segment, which is
+ * what lets a body be an axis-aligned rectangle. That is ASSERTED, not assumed: a
+ * diagonal or multi-point lane throws rather than being silently mis-boxed, because a
+ * check that quietly mis-measures its hardest input is worse than no check.
+ */
+const LANE_RUNS = (() => {
+  const g = buildDepotLanes();
+  const half = DESIGN_VEHICLE_FT.width / 2;
+  const rows = [];
+  for (const lane of [...g.lanes.values()].sort((a, b) => (a.id < b.id ? -1 : 1))) {
+    if (lane.pts.length !== 2) {
+      throw new Error(`lane ${lane.id} has ${lane.pts.length} points; the seed can only box straight 2-point lanes`);
+    }
+    const [a, b] = lane.pts;
+    const dx = b.x - a.x, dy = b.y - a.y;
+    if (Math.abs(dx) > 1e-9 && Math.abs(dy) > 1e-9) {
+      throw new Error(`lane ${lane.id} is diagonal (${dx}, ${dy}); the seed can only box axis-aligned lanes`);
+    }
+    // Same drive-on-the-right shift the cars get (LaneGraph.offsetRight, y-DOWN frame:
+    // the right-of-travel normal of (dx,dy) is (-dy,dx)). Applied in RENDER units, then
+    // converted, so it cannot drift from the motion.
+    const m = Math.hypot(dx, dy) || 1;
+    const ox = -(dy / m) * LANE_RIGHT_OFFSET, oy = (dx / m) * LANE_RIGHT_OFFSET;
+    const xs = [toX(a.x + ox), toX(b.x + ox)];
+    const ys = [toY(a.y + oy), toY(b.y + oy)];
+    // widen across the direction of travel by one design vehicle
+    const wide = Math.abs(dx) > 1e-9;
+    rows.push({
+      lane_name: lane.id,
+      x0: Math.min(...xs) - (wide ? 0 : half), x1: Math.max(...xs) + (wide ? 0 : half),
+      y0: Math.min(...ys) - (wide ? half : 0), y1: Math.max(...ys) + (wide ? half : 0),
+    });
+  }
+  return rows;
+})();
 
 // ---------------------------------------------------------------------------
 // Build the stall rows
@@ -641,13 +713,19 @@ structures.sort((a, b) => (a.structure_code < b.structure_code ? -1 : a.structur
 // Declared inventory — the guard and the migration both assert against this
 // ---------------------------------------------------------------------------
 
-const INVENTORY = { staging: 115, l2: 30, dcfc: 10, wash_bay: 3, service_bay: 2 };
+// staging 115 -> 113 and total 160 -> 158: the founder's decision of 2026-08-11 to cut
+// the TW and TE temp columns from 13 stalls to 12. The two given up are the ones whose
+// centres sat ON the south collector's centreline (NASH-STG-B013 / I013). The cost was
+// stated and accepted; it buys the 24 ft two-way aisle and gets parked cars out of the
+// road. These numbers are the declaration the guard asserts against — they are meant to
+// be edited deliberately, which is why they are not derived from stalls.length.
+const INVENTORY = { staging: 113, l2: 30, dcfc: 10, wash_bay: 3, service_bay: 2 };
 const actual = {};
 for (const s of stalls) actual[s.stall_type] = (actual[s.stall_type] || 0) + 1;
 for (const [k, v] of Object.entries(INVENTORY)) {
   if (actual[k] !== v) throw new Error(`inventory mismatch: ${k} declared ${v}, built ${actual[k] ?? 0}`);
 }
-if (stalls.length !== 160) throw new Error(`expected 160 stalls, built ${stalls.length}`);
+if (stalls.length !== 158) throw new Error(`expected 158 stalls, built ${stalls.length}`);
 
 // ---------------------------------------------------------------------------
 // Codes the database holds today that this layout no longer uses
@@ -682,10 +760,18 @@ if (stalls.length !== 160) throw new Error(`expected 160 stalls, built ${stalls.
 // it is about to delete is referenced by anything. This list is a declaration of
 // intent; the database gets the final vote.
 
-/** Staging codes that leave the layout -> the minted staging code each is re-homed onto. */
+/** Staging codes that leave the layout -> the minted staging code each is re-homed onto.
+ *
+ *  B013 / I013 joined this list on 2026-08-11 when the founder cut the temp columns
+ *  from 13 to 12. They are RE-HOMED, not deleted, for exactly the reason stated above:
+ *  the rows are referenced, and staging is fungible. The row keeps its id and every
+ *  booking and state-log line that points at it; only its position moves. The drift
+ *  assertion below recomputes this list from the layout and RAISEs if it disagrees. */
 const REHOMED_STAGING_SOURCES = [
   ...Array.from({ length: 12 }, (_, i) => `NASH-STG-N${String(i + 8).padStart(3, '0')}`),
+  'NASH-STG-I013',
   'NASH-STG-I014',
+  'NASH-STG-B013',
   'NASH-STG-B014',
 ];
 
@@ -845,11 +931,23 @@ L.push(structures.map((s) => '  (' + [
   fixed(s.absolute_lat, 8), fixed(s.absolute_lng, 8), jb(s.properties),
 ].join(', ') + ')').join(',\n') + ';');
 L.push('');
-L.push('-- The divided ring, as the four straight runs the geometry guard tests. Emitted');
-L.push('-- from sitePlan.ts so the migration never hardcodes a lane coordinate -- the');
-L.push('-- single-source rule that applies to stalls applies to lanes too. Each run is a');
-L.push('-- lane BODY (one design vehicle wide) offset from its centreline; no stall');
-L.push('-- footprint may intersect one. Gate-approach diagonals are NOT modelled here.');
+L.push('-- EVERY DIRECTED LANE THE CARS ACTUALLY DRIVE, as a lane BODY rectangle.');
+L.push('--');
+L.push('-- This used to be FOUR hand-written runs (the divided ring) reconstructed from');
+L.push('-- four sitePlan constants. That under-claimed the road network, and the blind');
+L.push('-- spots were real: the east avenue continues NORTH of the north collector up to');
+L.push('-- the rear apron, and the N1 overflow row was parked 0.17 ft off that stretch --');
+L.push('-- with a light pole standing INSIDE it -- while the guard reported the avenue');
+L.push('-- clear, because its rectangle stopped at the collector.');
+L.push('--');
+L.push('-- So the rows below are DERIVED FROM buildDepotLanes() itself: every directed');
+L.push('-- edge in the graph, offset drive-on-the-right by LaneGraph.rightOffset and');
+L.push('-- widened to one design vehicle. If a lane is added, moved or removed in the');
+L.push('-- graph, it appears, moves or disappears here with no edit. Nothing may sit');
+L.push('-- inside one of these rectangles: not a stall footprint, not a solid structure.');
+L.push('--');
+L.push('-- NOT modelled, and NOT claimed to be tested: stall pull-in/pull-out maneuvers');
+L.push('-- (owned by the integration, not the graph) and gate-approach diagonals.');
 L.push('CREATE TEMP TABLE ottoq_layout_seed_lanes (');
 L.push('  lane_name text PRIMARY KEY,');
 L.push('  x0 numeric NOT NULL, y0 numeric NOT NULL,');
@@ -857,26 +955,10 @@ L.push('  x1 numeric NOT NULL, y1 numeric NOT NULL');
 L.push(') ON COMMIT DROP;');
 L.push('');
 {
-  const off = LANE_RIGHT_OFFSET * UNIT_FT;
-  const half = DESIGN_VEHICLE_FT.width / 2;
-  const wx = toX(sp.WEST_AISLE_X), ex = toX(sp.EAST_AISLE_X);
-  const ny = toY(sp.NORTH_LANE_Y), sy = toY(sp.SOUTH_LANE_Y);
-  const ay0 = Math.min(ny, sy), ay1 = Math.max(ny, sy);
-  const cx0 = Math.min(wx, ex), cx1 = Math.max(wx, ex);
-  const rows = [];
-  for (const [nm, cx] of [['west avenue', wx], ['east avenue', ex]]) {
-    for (const [d, s] of [['northbound', 1], ['southbound', -1]]) {
-      rows.push([`${nm} ${d}`, cx + s * off - half, ay0, cx + s * off + half, ay1]);
-    }
-  }
-  for (const [nm, cy] of [['north collector', ny], ['south collector', sy]]) {
-    for (const [d, s] of [['eastbound', 1], ['westbound', -1]]) {
-      rows.push([`${nm} ${d}`, cx0, cy + s * off - half, cx1, cy + s * off + half]);
-    }
-  }
   L.push('INSERT INTO ottoq_layout_seed_lanes (lane_name, x0, y0, x1, y1) VALUES');
-  L.push(rows.map(([n, a, b2, c, d]) =>
-    `  (${q(n)}, ${fixed(a)}, ${fixed(b2)}, ${fixed(c)}, ${fixed(d)})`).join(',\n') + ';');
+  L.push(LANE_RUNS.map((r) =>
+    `  (${q(r.lane_name)}, ${fixed(r.x0)}, ${fixed(r.y0)}, ${fixed(r.x1)}, ${fixed(r.y1)})`)
+    .join(',\n') + ';');
   L.push('');
 }
 L.push('-- Staging codes that leave the layout. These rows are RE-HOMED, never deleted:');
@@ -892,9 +974,9 @@ L.push('INSERT INTO ottoq_layout_seed_rehome (from_code, to_code, reason) VALUES
 L.push(REHOME_PAIRS.map(([f, t]) => {
   const why = f.startsWith('NASH-STG-N')
     ? 'north apron kept clear for pull-through bay-rear maneuvering; run N1 holds 7'
-    : f === 'NASH-STG-I014'
-      ? 'arrival_inspection resized 14 -> 13 to match temp block column TE'
-      : 'staging_buffer resized 14 -> 13 to match temp block column TW';
+    : f.startsWith('NASH-STG-I')
+      ? 'arrival_inspection resized 14 -> 12 to match temp block column TE; the 13th stall centre sat ON the south collector centreline (6.42 ft into its eastbound lane body)'
+      : 'staging_buffer resized 14 -> 12 to match temp block column TW; the 13th stall centre sat ON the south collector centreline (6.42 ft into its eastbound lane body)';
   return `  (${q(f)}, ${q(t)}, ${q(why)})`;
 }).join(',\n') + ';');
 L.push('');
@@ -955,14 +1037,20 @@ const json = {
     // the east avenue's northbound lane sit 0.9u inside the E-column stalls.
     right_offset_ft: LANE_RIGHT_OFFSET * UNIT_FT,
     lane_body_width_ft: DESIGN_VEHICLE_FT.width,
-    // The divided RING, as the four straight runs the guards test. The two avenues
-    // are vertical and span between the collectors; the two collectors are
-    // horizontal and span between the avenues. Gate-approach diagonals are NOT in
-    // here and are NOT claimed to be tested.
+    n1_lane_y: toY(sp.N1_LANE_Y),
+    // The divided RING, as four straight runs. KEPT for migration 0010 section 6.6,
+    // which still reconstructs the ring this way. It is a SUBSET of runs_ft below and
+    // it is no longer what the JS guard tests -- see the note there.
     ring_ft: {
       avenue_y0: toY(sp.SOUTH_LANE_Y), avenue_y1: toY(sp.NORTH_LANE_Y),
       collector_x0: toX(sp.WEST_AISLE_X), collector_x1: toX(sp.EAST_AISLE_X),
     },
+    // EVERY directed lane the cars drive, as a body rectangle, derived from
+    // buildDepotLanes() itself rather than rebuilt from constants. This is what
+    // checks 7 and 9 test against. See the LANE_RUNS comment for why the four-run
+    // ring was not enough: it left the east avenue's northern half, the gap lanes
+    // and the rear apron unguarded, and a light pole was standing in one of them.
+    runs_ft: LANE_RUNS,
   },
   stalls,
   structures,

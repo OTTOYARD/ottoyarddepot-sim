@@ -4,6 +4,7 @@ import { MATERIALS } from './materials';
 import {
   WEST_AISLE_X, EAST_AISLE_X, NORTH_LANE_Y, SOUTH_LANE_Y, REAR_LANE_Y, FORECOURT_Y,
   WEST_LINK_X, GAP_LANES, TEMP_LANE_X, CANOPIES, INGRESS, EGRESS,
+  TEMP_AISLE, EAST_AVENUE, N1_LANE_Y, PARK_RUNS,
 } from '@/lib/sitePlan';
 import { toWorld, yawFromCompassDeg } from './coordUtils';
 
@@ -39,19 +40,39 @@ function Arrow({ x, y, headingDeg }: { x: number; y: number; headingDeg: number 
 export function DriveAisles() {
   const dashes = useMemo(() => {
     const segs: { x: number; y: number; horiz: boolean }[] = [];
-    // west + east aisle edges
+    // west + east aisle edges.
+    // The east edge was hardcoded at `EAST_AISLE_X - 6`, and the collector sweeps
+    // stopped at hand-typed x values (262 / 250 / 196) chosen for an older column
+    // layout. Both now derive from EAST_AVENUE, so the edge dash sits on the real
+    // pavement edge and the sweeps reach the real avenue.
+    const eastEdge = EAST_AVENUE.x0;
+    const eastEnd = EAST_AVENUE.centre;
     for (let y = 86; y <= 196; y += 9) segs.push({ x: WEST_AISLE_X + 6, y, horiz: false });
-    for (let y = 52; y <= 196; y += 9) segs.push({ x: EAST_AISLE_X - 6, y, horiz: false });
+    for (let y = 52; y <= 196; y += 9) segs.push({ x: eastEdge, y, horiz: false });
     // north collector: edge dashes + center split (two-way)
-    for (let x = 44; x <= 262; x += 9) segs.push({ x, y: NORTH_LANE_Y - 6, horiz: true });
-    for (let x = 44; x <= 262; x += 9) segs.push({ x, y: NORTH_LANE_Y + 6, horiz: true });
-    for (let x = 48; x <= 258; x += 12) segs.push({ x, y: NORTH_LANE_Y, horiz: true });
+    for (let x = 44; x <= eastEnd - 12; x += 9) segs.push({ x, y: NORTH_LANE_Y - 6, horiz: true });
+    for (let x = 44; x <= eastEnd - 12; x += 9) segs.push({ x, y: NORTH_LANE_Y + 6, horiz: true });
+    for (let x = 48; x <= eastEnd - 16; x += 12) segs.push({ x, y: NORTH_LANE_Y, horiz: true });
+    // temp block aisle edges — the aisle the founder built to 24.39 ft. It had no
+    // markings at all in 3D because it had no lane in the graph.
+    for (let y = 86; y <= 160; y += 9) {
+      segs.push({ x: TEMP_AISLE.x0, y, horiz: false });
+      segs.push({ x: TEMP_AISLE.x1, y, horiz: false });
+    }
+    // N1 approach edges
+    {
+      const n1 = PARK_RUNS.find((r) => r.id === 'N1')!;
+      for (let x = n1.x0 - 4; x <= eastEnd - 8; x += 9) {
+        segs.push({ x, y: N1_LANE_Y - 5.3, horiz: true });
+        segs.push({ x, y: N1_LANE_Y + 5.3, horiz: true });
+      }
+    }
     // forecourt divider
     for (let x = 66; x <= 218; x += 7) segs.push({ x, y: FORECOURT_Y + 6.5, horiz: true });
     // south collector: edges + center split (two-way)
-    for (let x = 44; x <= 250; x += 9) segs.push({ x, y: SOUTH_LANE_Y - 7, horiz: true });
-    for (let x = 44; x <= 196; x += 9) segs.push({ x, y: SOUTH_LANE_Y + 7, horiz: true });
-    for (let x = 48; x <= 246; x += 12) segs.push({ x, y: SOUTH_LANE_Y, horiz: true });
+    for (let x = 44; x <= eastEnd - 12; x += 9) segs.push({ x, y: SOUTH_LANE_Y - 7, horiz: true });
+    for (let x = 44; x <= eastEnd - 12; x += 9) segs.push({ x, y: SOUTH_LANE_Y + 7, horiz: true });
+    for (let x = 48; x <= eastEnd - 16; x += 12) segs.push({ x, y: SOUTH_LANE_Y, horiz: true });
     // rear apron south edge (the bays' rear wall line is the north edge)
     for (let x = 70; x <= 260; x += 9) segs.push({ x, y: 26, horiz: true });
     const inst = new THREE.InstancedMesh(
@@ -107,9 +128,14 @@ export function DriveAisles() {
       {/* west link — southbound from the apron to the collector */}
       <Arrow x={WEST_LINK_X} y={36} headingDeg={180} />
       <Arrow x={WEST_LINK_X} y={58} headingDeg={180} />
-      {/* temp/overflow block — two-way central access aisle */}
-      <Arrow x={TEMP_LANE_X} y={98} headingDeg={180} />
-      <Arrow x={TEMP_LANE_X} y={148} headingDeg={0} />
+      {/* temp/overflow block — two-way central access aisle. The arrows sit IN their
+          own lane (offset to the right of travel) rather than on the shared centreline,
+          which is where the cars actually drive. */}
+      <Arrow x={TEMP_LANE_X - 3.2} y={98} headingDeg={180} />
+      <Arrow x={TEMP_LANE_X + 3.2} y={148} headingDeg={0} />
+      {/* N1 approach — two-way, serving the overflow row from below */}
+      <Arrow x={238} y={N1_LANE_Y + 3.2} headingDeg={90} />
+      <Arrow x={262} y={N1_LANE_Y - 3.2} headingDeg={270} />
       {/* east aisle — southbound */}
       {[60, 100, 140].map((y) => <Arrow key={`e${y}`} x={EAST_AISLE_X} y={y} headingDeg={180} />)}
       {/* south collector — two-way */}

@@ -31,22 +31,39 @@ export const INGRESS = { x: 200, y: 215 };  // EAST (right) — same side as tem
 export const EGRESS = { x: 100, y: 215 };   // WEST (left)
 export const QUEUE_Y = 184;
 export const WEST_AISLE_X = 30;   // west avenue (two-way divided; drains to west EGRESS)
-// East avenue centreline. Was 275, which put the NORTHBOUND lane body (centreline
-// 275+3.2, half a design vehicle = 2.10u each side => x 276.10..280.30) 0.90u INSIDE
-// the E-column stalls (centre 284.5, a 16ft car lying on the x axis => 279.40..289.60).
-// Every northbound pass clipped a parked car by ~1.4 ft. The west avenue has 4.10u
-// (6.44 ft) of clearance and shows no such hotspot. After shifting E-column stalls
-// east by 2 units (x0:284.5→286.5, carport.x:278→280), stall-lane clearance is restored.
+// East avenue centreline. Was 275, which put the NORTHBOUND lane body 0.90u INSIDE
+// the E-column stalls; that was fixed by shifting the E column east and centring the
+// road in its corridor at 272.25.
 //
-// Mirroring the west exactly is IMPOSSIBLE here: the east avenue runs in a corridor
-// only 14.31u wide (TE column ends 265.10, E column starts 279.40), the divided road
-// itself needs 10.60u, and 4.10u of clearance on both sides would need 18.80u.
-// So the road is CENTRED in its corridor instead: 272.25 gives +1.85u (2.91 ft) to
-// the E column and +1.85u to the TE column -- overlap removed, both sides symmetric.
-// The lane offset stays 3.2 (it was deliberately widened from 2.4 for passing
-// clearance, and lanePaint tracks it). checkLayoutGeometry.mjs check 7 and migration
-// 0010 section 6.6 now both assert stall-vs-lane clearance, so this cannot regress.
-export const EAST_AISLE_X = 272.25;  // east avenue (two-way divided; feeds from east INGRESS)
+// THE "14.31u CORRIDOR" NOTE THAT USED TO LIVE HERE WAS STALE, and it was talking the
+// reader out of the founder's spec. It derived the corridor from E.x0 = 284.5 — the
+// value that same fix had already replaced with 286.5. Re-measured on the built seed,
+// footprint face to footprint face: TE east 408.535 ft, E west 432.921 ft => 24.39 ft.
+// Before this change it measured 23.60 ft, and the guard had been printing that number
+// all along ("tightest overall NASH-STG-E008 at 23.6 ft"). The founder's 24 ft two-way
+// spec was 0.40 ft away, not 2.8 ft away.
+//
+// FOUNDER'S CALL (2026-08-11): build the east avenue and the temp aisle to the
+// real-world ~24 ft two-way / 90-degree-parking standard. Two columns move EAST to buy
+// it — the perimeter fence does not move:
+//     E  column x0  286.5 -> 287.5   (+1.00u = 1.57 ft)
+//     TE column x0  260   -> 260.5   (+0.50u = 0.79 ft)
+// Corridor 15.534u = 24.39 ft, centred here at 274, so BOTH flanks get 2.465u (3.87 ft)
+// of shy space instead of the lopsided 1.91 / 5.05 ft this layout had. ZERO stalls are
+// lost to the avenue; the cost is setback — the E column's gap to the fence goes
+// 2.77 -> 1.21 ft, and the E carport narrows 13 -> 12.5u so its roof keeps 0.79 ft off
+// the fence.
+//
+// WHAT "24 FT" MEANS HERE, stated plainly so the render cannot imply more: it is the
+// CLEAR AISLE between the stall faces, which is the dimension the parking standard
+// specifies. The PAINTED road is narrower — 4 x rightOffset = 12.8u = 20.09 ft —
+// because the lane offset stays 3.2 (widened from 2.4 for passing clearance; lanePaint
+// derives from it). Widening the paint to exactly 24.00 ft needs rightOffset = 3.8219,
+// which re-routes every car and is a separate, separately-measured decision.
+//
+// checkLayoutGeometry.mjs checks 7 and 9 and migration 0010 section 6.6 all assert
+// clearance against these lanes, so this cannot regress.
+export const EAST_AISLE_X = 274;  // east avenue (two-way divided; feeds from east INGRESS)
 // North block, top to bottom: REAR APRON (full-width 30ft+ maneuvering zone
 // behind the pull-through bays — no parking abuts it) → bay row → concrete
 // FORECOURT (approach throat into the bay fronts) → NORTH COLLECTOR (two-way
@@ -55,6 +72,20 @@ export const REAR_LANE_Y = 16;    // centerline of the rear apron (y 6..26)
 export const FORECOURT_Y = 62;    // bay approach throat (y 56..68)
 export const NORTH_LANE_Y = 74;   // main collector (y 68..80)
 export const SOUTH_LANE_Y = 172;  // south collector (y 166..178, two-way)
+// N1 APPROACH — the east-west lane serving the open NE overflow row.
+//
+// It had no lane of its own. routeToStall()'s `inTemp` predicate swallowed the N1
+// row along with the TW/TE block and sent N1 traffic up TEMP_LANE_X to y=36 —
+// straight THROUGH N1 stall 5, whose footprint spans render x 246.16..251.84 with
+// the aisle centreline at x=247. So the one route into that row drove over a parked
+// car. Splitting the predicate needs a lane to route onto; this is it.
+//
+// y=50 is the only band that fits. Measured in database feet against the built seed:
+// the N1 stall faces sit at relative_y 257.88 and this lane's body reaches 253.23
+// (4.65 ft of shy space), while the forecourt band's north edge is 234.38 and this
+// lane's body starts at 236.58 (2.19 ft). Both are pavement-to-pavement gaps on the
+// same concrete apron, so paint them as ONE mat, not as two separate roads.
+export const N1_LANE_Y = 50;      // NE overflow approach (y 44.7..55.3)
 
 // Pull-out travel lanes flanking each canopy (gas-pump flow: chargers feed
 // out both sides into these, then north to the collector). NO landscaping or
@@ -107,30 +138,107 @@ export const TEMP_LANE_X = 247;
 // rows so corner stalls never overlap.
 export const PARK_RUNS: ParkRun[] = [
   { id: 'W',  x0: 15.5, y0: 58,  dx: 0,   dy: 5.7, n: 24, angle: 90,  carport: { x: 9,   y: 54,  w: 13, h: 141 } },
-  { id: 'E',  x0: 286.5, y0: 46,  dx: 0,   dy: 5.7, n: 25, angle: 90,  carport: { x: 280, y: 42,  w: 13, h: 147 } },
+  // E column moved +1.0u east (see EAST_AISLE_X) to buy the 24 ft avenue. The carport
+  // narrows 13 -> 12.5u at x=281 so its roof still clears the fence by 0.79 ft while
+  // covering every stall centre. No stall is lost.
+  { id: 'E',  x0: 287.5, y0: 46,  dx: 0,   dy: 5.7, n: 25, angle: 90,  carport: { x: 281, y: 42,  w: 12.5, h: 147 } },
   { id: 'S1', x0: 24,  y0: 197,  dx: 6.4, dy: 0,   n: 11, angle: 0,   carport: { x: 20,  y: 191, w: 72, h: 13 } },
   { id: 'S2', x0: 112, y0: 197,  dx: 6.9, dy: 0,   n: 12, angle: 0,   carport: { x: 108, y: 191, w: 84, h: 13 } },
   { id: 'S3', x0: 212, y0: 197,  dx: 6.4, dy: 0,   n: 10, angle: 0,   carport: { x: 208, y: 191, w: 68, h: 13 } },
-  // open-air overflow, NE zone: a short row south of the rear-apron buffer…
-  { id: 'N1', x0: 228, y0: 36,   dx: 6,   dy: 0,   n: 7,  angle: 0 },
-  // …and the retail-style temp block: two facing columns off the central aisle
-  { id: 'TW', x0: 234, y0: 86,   dx: 0,   dy: 7,   n: 13, angle: 270 },
-  { id: 'TE', x0: 260, y0: 86,   dx: 0,   dy: 7,   n: 13, angle: 90 },
+  // open-air overflow, NE zone: a short row south of the rear-apron buffer.
+  // x0 228 -> 225 pulls the row WEST off the east avenue. Its last stall used to end
+  // at relative_x 418.91, which is 9.2 ft INSIDE the avenue's southbound lane body
+  // (409.71..416.31) — the avenue really runs from the rear apron down, so that row
+  // end stood in live road. The guard never saw it: check 7's avenue rectangle stops
+  // at the north collector, well SOUTH of this row. It now clears by 7.62 ft, and
+  // check 9 extends the rectangle so the blind spot is closed.
+  { id: 'N1', x0: 225, y0: 36,   dx: 6,   dy: 0,   n: 7,  angle: 0 },
+  // …and the retail-style temp block: two facing columns off the central aisle.
+  //
+  // 13 -> 12 STALLS PER COLUMN. FOUNDER'S DECISION (2026-08-11), taken with the cost
+  // stated: two spaces are given up to get parked cars out of the road. The 13th stalls
+  // (NASH-STG-B013 / I013) had their CENTRES on the south collector's centreline and
+  // overlapped its eastbound lane body by 6.42 ft — the guard's only FAIL on main.
+  //
+  // dy 7 -> 6.7 is the tightest pitch that still declares a full 10.00 ft stall width:
+  // buildLayoutSeed caps the along-run dimension at (pitch - 0.5 ft), so the floor is
+  // dy = 10.5 / 1.56988 = 6.6884u. At 6.7u the pitch is 10.518 ft and the declared
+  // width is min(10, 10.018) = 10.00 ft — nothing is narrowed to buy the room.
+  // y0 86 -> 86.15 re-centres the shortened column between the two collectors: it now
+  // clears the north collector by 5.75 ft AND the south collector by 5.75 ft, where
+  // before it was +5.52 north and -6.42 (overlapping) south.
+  //
+  // The two columns move symmetrically about TEMP_LANE_X (-0.5u west, +0.5u east), so
+  // the aisle constant itself never moves and the aisle opens 22.82 -> 24.39 ft.
+  { id: 'TW', x0: 233.5, y0: 86.15, dx: 0, dy: 6.7, n: 12, angle: 270 },
+  { id: 'TE', x0: 260.5, y0: 86.15, dx: 0, dy: 6.7, n: 12, angle: 90 },
 ];
 
-// Overhead site lighting (24/7 ops) — placed at zone edges + canopy end-caps,
-// NEVER in a travel lane (the apron swing at y≈16, the West Link at x=66, and
-// the flanking gap lanes at x≈80/126.5/173.5/220 all stay clear).
+// ---- Painted pavement, derived from the parking ----------------------------
+//
+// The 2D and 3D renderers used to draw each drive aisle as a hand-typed rectangle:
+// the temp aisle was `TEMP_LANE_X - 5, width 10` = 15.70 ft of tint over what is now
+// 24.39 ft of real aisle, and the east avenue was a flat `width 12`. A number typed
+// into a paint layer cannot track a column that moves, so the picture drifted from the
+// plan — and the picture is what gets walked through.
+//
+// So the pavement is DERIVED from the stall faces it runs between.
+//
+/** Half the depth of a parked car's footprint, in render units.
+ *  = (staging nominal depth 18 ft) / 2 / 1.56988 ft-per-unit = 5.7329 u.
+ *  The counterpart is NOMINAL.staging.depth in scripts/buildLayoutSeed.mjs, which is
+ *  what the database declares. They are bound by a test (sitePlan.aisles.test.ts) that
+ *  reads the committed seed, so this cannot quietly disagree with the DB. */
+export const STALL_HALF_DEPTH_U = 18 / 2 / 1.5698818897637796;
+
+/** Clear pavement between two facing parking columns: the drive aisle, in render
+ *  units. Both runs must be x-fixed columns (dx = 0) facing each other. */
+export function clearAisleBetween(westRunId: string, eastRunId: string) {
+  const w = PARK_RUNS.find((r) => r.id === westRunId);
+  const e = PARK_RUNS.find((r) => r.id === eastRunId);
+  if (!w || !e) throw new Error(`clearAisleBetween: unknown run ${westRunId}/${eastRunId}`);
+  if (w.dx !== 0 || e.dx !== 0) throw new Error('clearAisleBetween: both runs must be x-fixed columns');
+  const x0 = w.x0 + STALL_HALF_DEPTH_U;   // east face of the west column
+  const x1 = e.x0 - STALL_HALF_DEPTH_U;   // west face of the east column
+  return { x0, x1, width: x1 - x0, centre: (x0 + x1) / 2 };
+}
+
+/** The two aisles the founder specified to the ~24 ft two-way standard. */
+export const TEMP_AISLE = clearAisleBetween('TW', 'TE');
+export const EAST_AVENUE = clearAisleBetween('TE', 'E');
+
+// Overhead site lighting (24/7 ops) — placed at zone edges + canopy end-caps.
+//
+// THE CLAIM ABOVE THIS LIST USED TO BE "NEVER in a travel lane". IT WAS FALSE, and
+// nothing checked it: check 7 tests stalls against lanes, and nothing tested
+// STRUCTURES against lanes. Measured on the built seed, FOUR of these 1.5 ft poles
+// stood inside a lane body a car actually drives:
+//     {36,174}   inside the south collector westbound  (body y 45.05..51.65; pole 50.24..51.74)
+//     {268,60}   inside the east avenue southbound     (body x 409.71..416.31; pole 411.31..412.81)
+//     {268,120}  inside the east avenue southbound     (same body, same x)
+//     {268,174}  inside the south collector westbound
+// Every position below is now measured against the lane bodies, and check 9 in
+// scripts/checkLayoutGeometry.mjs asserts it — so "never in a travel lane" is an
+// enforced statement rather than a hopeful comment.
+//
+// The count stays 11 and the ORDER is unchanged, because buildLayoutSeed names these
+// by index (LIGHT-01..11). Re-ordering would silently re-point every DB row.
 export const LIGHT_POLES: { x: number; y: number }[] = [
-  { x: 36, y: 60 }, { x: 36, y: 120 }, { x: 36, y: 174 },
-  { x: 268, y: 60 }, { x: 268, y: 120 }, { x: 268, y: 174 },
-  // Canopy end-cap poles: one per canopy, on its centre spine (cx 103/150/197)
-  // at the SOUTH cap. y=166 is just SOUTH of the roof (which spans y≈79→165) so
-  // the 18u pole never pokes through the canopy roof, and it's at the canopy's
-  // end — clear of the flanking gap lanes AND the entrance forecourt. (The two
-  // originals sat in the gap-lane mouths at x=126/174, y=60 = "in the lane"; the
-  // first move to y=84 put them UNDER the roof — this fixes both.)
-  { x: 103, y: 166 }, { x: 150, y: 166 }, { x: 197, y: 166 },
+  // West edge: 36 -> 38 clears the west avenue's northbound body (max 46.00 ft) by
+  // 4.24 ft instead of 1.10 ft. The third pole also drops off the south collector,
+  // 174 -> 162, for 7.38 ft of clearance.
+  { x: 38, y: 60 }, { x: 38, y: 120 }, { x: 38, y: 162 },
+  // East side: x=268 is INSIDE the east avenue. These three re-home onto the temp
+  // block's own column end-caps, which is where they light the work anyway:
+  // the TW/TE north caps (y=81.7, 2.26 ft north of the collector body and 1.99 ft
+  // clear of stall 1) and the TE south cap (y=165, 2.67 ft off the south collector
+  // and 1.58 ft clear of stall 12).
+  { x: 233.5, y: 81.7 }, { x: 260.5, y: 81.7 }, { x: 260.5, y: 165 },
+  // Canopy end-cap poles: one per canopy, on its centre spine (cx 103/150/197) at the
+  // SOUTH cap, between the roof edge (y=164) and the south collector. 166 -> 165.3
+  // splits that gap properly: collector clearance 1.09 -> 2.19 ft, roof clearance
+  // 1.65 -> 0.55 ft, so the 18u pole still never pokes through the roof.
+  { x: 103, y: 165.3 }, { x: 150, y: 165.3 }, { x: 197, y: 165.3 },
   { x: 52, y: 9 }, { x: 218, y: 29 },
 ];
 
@@ -205,7 +313,10 @@ function stagingStalls(count: number): StallState[] {
 }
 
 export function generateStallsV2(
-  dcfcCount = 10, l2Count = 30, washCount = 3, stagingCount = 115, serviceCount = 2,
+  // stagingCount 115 -> 113: the founder's 13 -> 12 cut on the TW and TE temp columns.
+  // It is a CAP, not a target — stagingStalls() stops at the runs' own total — so the
+  // old default silently over-declared by 2 once the columns shrank.
+  dcfcCount = 10, l2Count = 30, washCount = 3, stagingCount = 113, serviceCount = 2,
 ): StallState[] {
   return [
     ...chargingStalls(dcfcCount, l2Count),
@@ -226,8 +337,36 @@ type Pt = { x: number; y: number };
 
 const inCanopy = (p: Pt) => p.y >= CANOPIES[0].y - 2 && p.y <= CANOPIES[0].y + CANOPIES[0].h + 2 && p.x > 60 && p.x < 222;
 const inBays = (p: Pt) => p.y < FORECOURT_Y - 6 && p.y > REAR_LANE_Y + 6 && p.x > 64 && p.x < 220;
-// NE overflow zone: the N1 row + the TW/TE temp block, all served by TEMP_LANE_X
-const inTemp = (p: Pt) => p.x > 222 && p.x < 272 && p.y > 28 && p.y < 164;
+
+// ---- NE overflow: TWO zones, two different lanes ----------------------------
+//
+// These used to be ONE predicate (`inTemp`, x 222..272, y 28..164) covering the N1 row
+// AND the TW/TE block, and it routed everything it caught up TEMP_LANE_X to y=36.
+// TEMP_LANE_X is 247; N1 stall 5 sits at x=247 and spans 246.16..251.84. So the single
+// route into the N1 row drove the length of a parked car. The zones are separated here
+// and each gets its own lane: the block rides TEMP_LANE_X, the row rides N1_LANE_Y.
+//
+// The bounds are DERIVED from PARK_RUNS, not retyped, so moving a column moves the
+// predicate with it. Half a stall footprint plus a design-vehicle width of slack on
+// each side, in RENDER UNITS (staging nominal is 10 x 18 ft = 6.37 x 11.47 u; a car
+// lying on the x axis is 18 ft deep on x and 10 ft wide on y).
+const RUN = (id: string) => PARK_RUNS.find((r) => r.id === id)!;
+const runSpan = (id: string) => {
+  const r = RUN(id);
+  return { x0: r.x0, x1: r.x0 + (r.n - 1) * r.dx, y0: r.y0, y1: r.y0 + (r.n - 1) * r.dy };
+};
+/** The retail-style temp block: the TW and TE columns facing each other across
+ *  TEMP_LANE_X. Served by the aisle, north-south. */
+const inTempBlock = (p: Pt) => {
+  const w = runSpan('TW'), e = runSpan('TE');
+  return p.x > w.x0 - 8 && p.x < e.x0 + 8 && p.y > w.y0 - 8 && p.y < w.y1 + 8;
+};
+/** The open N1 overflow row along the top of the NE zone. Served by N1_LANE_Y,
+ *  east-west — it is a single row, so a car sidesteps in off a lane BELOW it. */
+const inN1 = (p: Pt) => {
+  const r = runSpan('N1');
+  return p.x > r.x0 - 8 && p.x < r.x1 + 8 && p.y > r.y0 - 8 && p.y < r.y0 + 8;
+};
 
 /** Legs from a position onto the NORTH collector (the main artery). */
 function toCollector(from: Pt): Pt[] {
@@ -240,11 +379,20 @@ function toCollector(from: Pt): Pt[] {
       { x: exitX, y: NORTH_LANE_Y },
     ];
   }
-  if (inTemp(from)) {
-    // overflow zone: sidestep into the central aisle, then north
+  if (inTempBlock(from)) {
+    // temp block: sidestep into the central aisle, then north
     return [
       { x: TEMP_LANE_X, y: from.y },
       { x: TEMP_LANE_X, y: NORTH_LANE_Y },
+    ];
+  }
+  if (inN1(from)) {
+    // N1 row: back out SOUTH onto its own approach lane, then east to the avenue
+    // and down. Never up TEMP_LANE_X — that is what drove through N1 stall 5.
+    return [
+      { x: from.x, y: N1_LANE_Y },
+      { x: EAST_AISLE_X, y: N1_LANE_Y },
+      { x: EAST_AISLE_X, y: NORTH_LANE_Y },
     ];
   }
   if (inCanopy(from)) {
@@ -288,11 +436,21 @@ function fromCollector(stall: Pt): Pt[] {
       { x: stall.x, y: stall.y },
     ];
   }
-  if (inTemp(stall)) {
-    // overflow zone: ride the central aisle to depth, sidestep in
+  if (inTempBlock(stall)) {
+    // temp block: ride the central aisle to depth, sidestep in
     return [
       { x: TEMP_LANE_X, y: NORTH_LANE_Y },
       { x: TEMP_LANE_X, y: stall.y },
+      { x: stall.x, y: stall.y },
+    ];
+  }
+  if (inN1(stall)) {
+    // N1 row: collector east -> avenue north -> the N1 approach lane, then
+    // sidestep NORTH into the stall. The stall row sits ABOVE this lane.
+    return [
+      { x: EAST_AISLE_X, y: NORTH_LANE_Y },
+      { x: EAST_AISLE_X, y: N1_LANE_Y },
+      { x: stall.x, y: N1_LANE_Y },
       { x: stall.x, y: stall.y },
     ];
   }
