@@ -50,7 +50,7 @@ describe("TwinMotionDriver — kinematic motion off the twin", () => {
   beforeEach(() => {
     twinMotionDriver.clear();
     useVehicleStore.getState().reset();
-    useDepotStore.getState().regenerateStalls(10, 30, 3, 115, 2);
+    useDepotStore.getState().regenerateStalls(10, 30, 3, 113, 2);
   });
 
   it("an arrival OTTO-Q reserved NOTHING for drives to a staging stall (no line)", () => {
@@ -185,14 +185,30 @@ describe("TwinMotionDriver — kinematic motion off the twin", () => {
     // STAGE-04 — ~100 twin stalls onto 19 renderer slots, every one of them in
     // the WEST PERIMETER CARPORT column, which aimed a large share of all
     // staging traffic at the perimeter.
+    // SIZE IS DERIVED FROM THE RENDERER, NOT HARDCODED. This used to build a flat
+    // 6 x 19 = 114 and assert 114 against a renderer that drew 115 staging stalls. The
+    // founder's 2026-08-11 cut of the two temp columns (13 -> 12) took the renderer to
+    // 113, and the test then failed on the LAST assertion — not because the mapping
+    // collapsed, but because slot 114 named a stall that no longer exists. That is a
+    // real property, and it is now asserted as its own precondition instead of being
+    // smuggled in via a magic number that silently tracked one particular layout.
     const groups = ["B", "E", "I", "N", "S", "W"];
-    const layout = groups.flatMap((g) =>
-      Array.from({ length: 19 }, (_, i) => ({
+    const stagingCount = useDepotStore.getState().stalls.filter((s) => s.type === "staging").length;
+    // spread the count over the six groups, remainder to the earliest — every group
+    // still shares an index range with every other, which is what reproduces the
+    // original collapse (B004 / E004 / … / W004 all landing on STAGE-04).
+    const per = groups.map((_, i) =>
+      Math.floor(stagingCount / groups.length) + (i < stagingCount % groups.length ? 1 : 0));
+    const layout = groups.flatMap((g, gi) =>
+      Array.from({ length: per[gi] }, (_, i) => ({
         id: `stg-${g}-${i + 1}`,
         code: `NASH-STG-${g}${String(i + 1).padStart(3, "0")}`,
         type: "staging",
       })),
     );
+    expect(layout.length).toBe(stagingCount);
+    expect(Math.min(...per)).toBeGreaterThanOrEqual(4); // the index ranges really do overlap
+
     twinMotionDriver.setTwinStallMap(layout);
     const map = (twinMotionDriver as unknown as { twinStall: Map<string, string> }).twinStall;
 
@@ -203,10 +219,16 @@ describe("TwinMotionDriver — kinematic motion off the twin", () => {
 
     // …and no pair anywhere in the layout collides
     const resolved = layout.map((s) => map.get(s.id)).filter((x): x is string => !!x);
-    expect(resolved.length).toBe(114);                 // 6 groups x 19, all mapped
-    expect(new Set(resolved).size).toBe(114);          // onto 114 DISTINCT stalls
-    // every one resolves to a stall the renderer actually draws (115 staging)
+    expect(resolved.length).toBe(stagingCount);        // every twin stall mapped
+    expect(new Set(resolved).size).toBe(stagingCount); // onto that many DISTINCT stalls
+    // every one resolves to a stall the renderer actually draws. This holds only while
+    // the twin's staging count does not EXCEED the renderer's: setTwinStallMap numbers
+    // slots 1..N with no reference to renderer capacity, so a twin with more staging
+    // rows than the renderer draws would aim cars at stalls that do not exist. Today
+    // the two are the same number by construction (the seed mints what sitePlan draws),
+    // so this is stated as a precondition rather than left implicit.
     const ids = new Set(useDepotStore.getState().stalls.map((s) => s.id));
+    expect(layout.length).toBeLessThanOrEqual(stagingCount);
     expect(resolved.every((r) => ids.has(r))).toBe(true);
   });
 
@@ -515,7 +537,7 @@ describe("run lifecycle — stop clears, pause holds", () => {
   beforeEach(() => {
     twinMotionDriver.clear();
     useVehicleStore.getState().reset();
-    useDepotStore.getState().regenerateStalls(10, 30, 3, 115, 2);
+    useDepotStore.getState().regenerateStalls(10, 30, 3, 113, 2);
   });
 
   it("STOP (running → completed) clears the scene", () => {
@@ -568,7 +590,7 @@ describe("T4 — timed-leg contract paces motion", () => {
   beforeEach(() => {
     twinMotionDriver.clear();
     useVehicleStore.getState().reset();
-    useDepotStore.getState().regenerateStalls(10, 30, 3, 115, 2);
+    useDepotStore.getState().regenerateStalls(10, 30, 3, 113, 2);
   });
 
   const leg = (vehicle_id: string, endInSec: number, nowIso: string) => ({
@@ -681,7 +703,7 @@ describe("robotic tether (OTTO-CHARGE ARM still mated)", () => {
   beforeEach(() => {
     twinMotionDriver.clear();
     useVehicleStore.getState().reset();
-    useDepotStore.getState().regenerateStalls(10, 30, 3, 115, 2);
+    useDepotStore.getState().regenerateStalls(10, 30, 3, 113, 2);
     twinMotionDriver.setTwinStallMap([{ id: "twin-1", code: "NASH-DCFC-STALL-08", type: "dcfc" }]);
   });
 
@@ -778,7 +800,7 @@ describe("service clock published to the arms", () => {
     twinMotionDriver.clear();
     useVehicleStore.getState().reset();
     useSimulationStore.getState().resetConfig();
-    useDepotStore.getState().regenerateStalls(10, 30, 3, 115, 2);
+    useDepotStore.getState().regenerateStalls(10, 30, 3, 113, 2);
     twinMotionDriver.setTwinStallMap([{ id: "twin-d3", code: "NASH-DCFC-STALL-03", type: "dcfc" }]);
   });
 
@@ -893,7 +915,7 @@ describe("SoC reaches the roster at full resolution", () => {
   beforeEach(() => {
     twinMotionDriver.clear();
     useVehicleStore.getState().reset();
-    useDepotStore.getState().regenerateStalls(10, 30, 3, 115, 2);
+    useDepotStore.getState().regenerateStalls(10, 30, 3, 113, 2);
   });
 
   it("republishes the roster on a ONE point SoC change", () => {
@@ -945,7 +967,7 @@ describe("arrivals go to what they need, not to an invented perimeter park", () 
   beforeEach(() => {
     twinMotionDriver.clear();
     useVehicleStore.getState().reset();
-    useDepotStore.getState().regenerateStalls(10, 30, 3, 115, 2);
+    useDepotStore.getState().regenerateStalls(10, 30, 3, 113, 2);
   });
 
   it("an arrival with a CHARGER reserved is taken to the charger, not to a parking space", () => {
@@ -1038,7 +1060,7 @@ describe("the depot clock stops when the run does", () => {
   beforeEach(() => {
     twinMotionDriver.clear();
     useVehicleStore.getState().reset();
-    useDepotStore.getState().regenerateStalls(10, 30, 3, 115, 2);
+    useDepotStore.getState().regenerateStalls(10, 30, 3, 113, 2);
   });
 
   // The clock reaches the store on the MOTION tick, not on reconcile — so a live run
@@ -1071,7 +1093,7 @@ describe("an arrival follows OTTO-Q's COMMAND, not its current stall", () => {
   beforeEach(() => {
     twinMotionDriver.clear();
     useVehicleStore.getState().reset();
-    useDepotStore.getState().regenerateStalls(10, 30, 3, 115, 2);
+    useDepotStore.getState().regenerateStalls(10, 30, 3, 113, 2);
     twinMotionDriver.setTwinStallMap([
       { id: "twin-dcfc-5", code: "NASH-DCFC-STALL-05", type: "dcfc" },
       { id: "twin-stg-b4", code: "NASH-STG-B004", type: "staging" },

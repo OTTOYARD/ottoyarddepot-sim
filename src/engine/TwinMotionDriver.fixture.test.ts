@@ -106,21 +106,40 @@ describe("TwinMotionDriver — replay of a captured busy_day run", () => {
   // The earlier budgets (1250 / 2150) were set against the PRE-#74 tree and are why CI
   // failed this branch by a single sample. Do not compare a number here across a change
   // that moves traffic — re-measure both sides, as above.
-  const OVERLAP_BUDGET = 1260;  // measured 1248. TARGET 0.
-  const STUCK_BUDGET = 2160;    // measured 2151. TARGET 0. RAISED — see 2c.
+  // RE-BASELINED AGAIN after the 2026-08-11 depot geometry rebuild (24 ft two-way
+  // aisles; the temp block's declared aisle became a real lane; the N1 row got its own
+  // approach). Both sides measured on this same fixture, in the same tree:
+  //     main (68ac00e)     overlap 1248 · distinct 65 · stuck 2151
+  //     + geometry rebuild overlap  106 · distinct 62 · stuck    0
+  // The stuck count is the headline: it goes to ZERO, from 2151. That is the number
+  // 2c below said was a real cost of reserving the full car body, and it was — the
+  // queues it counted were cars braking for bodies inside their lane, and the lanes
+  // were too narrow. Widening the geometry, not tuning the watchdog, removed them.
+  //
+  // ORDERING MATTERS AND WAS MEASURED. Building the temp-aisle lane WITHOUT the
+  // geometry change makes this worse, not better — it routes real traffic down a
+  // 22.82 ft aisle whose stalls sit 3.08 ft away, past two stalls parked inside the
+  // south collector. The two must land together; do not split this commit.
+  //
+  // RATCHETED DOWN to the new measurement. If a change pushes these up, revert the
+  // change — do not raise the budget.
+  const OVERLAP_BUDGET = 115;   // measured 106. TARGET 0.
+  const STUCK_BUDGET = 10;      // measured 0. TARGET 0 — and it is AT zero.
 
   it("SYMPTOM 2a: body-overlap stays within the ratchet (target 0)", () => {
-    // WHAT IS LEFT: the dominant hotspots are around the TE temp-staging block
-    // (260,130  x75 and 260,140  x45). The east avenue clearance hole is CLOSED:
-    // EAST_AISLE_X was moved from 275 → 272.25 to centre the avenue in its
-    // corridor (commit ebb5a14). Northbound lane centre is now x=275.45, body
-    // 273.35..277.55; E-column parked car spans 279.4..289.6 — 1.85u (2.91 ft)
-    // clear, up from −0.90u (1.41 ft into the stall). The west avenue has 6.44 ft
-    // of clearance; the east cannot fully match it because its corridor between
-    // the TE and E columns is only 14.31u wide. The lane offset stays 3.2 (it was
-    // deliberately widened from 2.4 for passing clearance and lanePaint tracks
-    // it), and checkLayoutGeometry.mjs check 7 now asserts stall-vs-lane clearance
-    // so this cannot regress.
+    // WHAT WAS LEFT, AND WHAT CLOSED IT. The dominant hotspot was the TE temp-staging
+    // block: (270,170) alone carried 552 of the 1248 pair-samples. It is now 0, and no
+    // bin exceeds 15. The cause was geometry, not control: the temp block's central
+    // aisle was DECLARED in sitePlan (TEMP_LANE_X) but had no node and no edge in the
+    // LaneGraph, so route() fell back to the nearest ring node and drew a line across
+    // the parked cars; the aisle itself measured 22.82 ft; and the 13th stall of each
+    // column sat 6.42 ft INSIDE the south collector's eastbound lane.
+    //
+    // The "east avenue corridor is only 14.31u wide" claim that used to sit here was
+    // STALE — it was computed from an E-column x0 that had already been superseded.
+    // Measured face to face the corridor was 23.60 ft, and the guard had been printing
+    // that number the whole time. It is now 24.39 ft, symmetric, with 3.87 ft of shy
+    // space on both flanks.
     //
     // WHAT IS LEFT AFTER THE CAR-LENGTH FIX, classified by instrumenting the
     // replay (1223 pair-samples): 14 parked-vs-parked (stall pitch, a layout
@@ -136,12 +155,11 @@ describe("TwinMotionDriver — replay of a captured busy_day run", () => {
 
   it("SYMPTOM 2b: taxiing cars never knot up in one 14u disc", () => {
     // A queue at a locked intersection during a mass departure is legitimate
-    // traffic; a KNOT is cars occupying the same ground. Reserving the drawn
-    // body took the worst disc from 13 to 11, so the ratchet TIGHTENS to 11.
-    // Target is a real queue length (~5), not 11 — a 14 u disc holding 11 cars
-    // still means bodies sharing space, which is the co-location residual 2a
-    // names. Do not raise this to make a change pass.
-    expect(report.worstMovingCluster.n).toBeLessThanOrEqual(11);
+    // traffic; a KNOT is cars occupying the same ground. Reserving the drawn body took
+    // the worst disc from 13 to 11; the geometry rebuild took it 11 -> 5, which is the
+    // "real queue length (~5)" this comment named as the target. Ratchet TIGHTENS to 5.
+    // Do not raise this to make a change pass.
+    expect(report.worstMovingCluster.n).toBeLessThanOrEqual(5);
   });
 
   it("SYMPTOM 2c: wedged-car time stays within the ratchet (target 0)", () => {
@@ -150,12 +168,17 @@ describe("TwinMotionDriver — replay of a captured busy_day run", () => {
     // are gone. What remains trails the overlap above — a car braking for a body
     // that is inside its lane because of the clearance conflict.
     //
-    // THIS NUMBER GOT WORSE, 1977 → 2151, and it is a real cost, not noise.
-    // Reserving a whole 10.2 u body instead of 4.125 u makes every queue 2.5x
-    // longer in the same corridors, and this watchdog counts a car that has not
-    // advanced 4 u in 10 s — which an honestly-queued car has not. The trade is
-    // deliberate: the alternative is cars that keep rolling by driving through
-    // each other. Peak wedges in a single sample went the right way, 15 → 14.
+    // THIS NUMBER GOT WORSE ONCE — 1977 → 2151 — when the full 10.2 u car body started
+    // being reserved, and the note here read it as a deliberate trade: longer queues in
+    // the same corridors, priced against cars that keep rolling by driving through each
+    // other. That reading was incomplete. The corridors were the problem. Widening them
+    // to the real-world 24 ft two-way spec, giving the temp block an actual lane and
+    // giving the N1 row its own approach takes this to 2151 → 0.
+    //
+    // It is AT the target. The budget is a small non-zero number only so that a
+    // one-sample blip reports as a regression rather than as a mystery; if this starts
+    // reading anything but 0, something moved traffic and it needs measuring, not a
+    // bigger budget.
     expect(report.totals.stuckSamples).toBeLessThanOrEqual(STUCK_BUDGET);
   });
 });

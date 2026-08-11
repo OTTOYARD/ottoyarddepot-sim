@@ -25,7 +25,9 @@
 //   4  zero stalls inside a structure footprint, except the whitelist below
 //   5  every stall inside the perimeter fence
 //   6  minimum drivable aisle clearance
-//   7  design-vehicle fit  (REPORT ONLY — see the note on that check)
+//   7  stall vs LANE clearance          (no travel lane may cut into a parked car)
+//   8  design-vehicle fit               (REPORT ONLY — see the note on that check)
+//   9  structure vs LANE clearance      (no solid object may stand in a travel lane)
 //
 // ---------------------------------------------------------------------------
 // FOUNDER-CONFIRMED EXEMPTION — read before touching this list
@@ -380,55 +382,58 @@ const boxes = new Map(measured.map((s) => [s.stall_code, box(s)]));
 // how a parking aisle works) but it may never cut into one. Anything positive but
 // below the west avenue's proven 6.44 ft is reported as a WARN, not a failure: the
 // west is the reference the renderer has actually run, not a standard the founder
-// has accepted, and the east's corridor is physically too narrow to match it.
+// has accepted, and no other corridor on this site is wide enough to match it.
+//
+// WHICH LANES. This check used to rebuild FOUR runs (the divided ring) from four
+// sitePlan constants. That is a smaller road network than the cars drive, and the
+// blind spot was load-bearing: the east avenue continues NORTH of the north collector
+// up to the rear apron, and the N1 overflow row sat 0.17 ft off that stretch with a
+// light pole standing inside it -- while this check printed the avenue clear, because
+// its rectangle stopped at the collector. The gap lanes and the rear apron were not
+// modelled at all.
+//
+// The seed now emits lanes.runs_ft: EVERY directed edge of buildDepotLanes(), offset
+// drive-on-the-right and widened to one design vehicle. The guarded set is the driven
+// set by construction, so a lane added to the graph is guarded the moment it exists.
+const LANE_RECTS = (() => {
+  const runs = lanes?.runs_ft;
+  if (!Array.isArray(runs) || runs.length === 0) return null;
+  const ok = (r) => ['x0', 'y0', 'x1', 'y1'].every((k) => Number.isFinite(r[k])) && typeof r.lane_name === 'string';
+  if (!runs.every(ok)) return null;
+  return runs.map((r) => ({
+    name: r.lane_name,
+    x0: Math.min(r.x0, r.x1), x1: Math.max(r.x0, r.x1),
+    y0: Math.min(r.y0, r.y1), y1: Math.max(r.y0, r.y1),
+  }));
+})();
+
+/** Signed separation of a footprint from a lane body. Negative on BOTH axes means the
+ *  lane cuts into it; otherwise the larger separation is the clear gap. */
+function laneGap(b, L) {
+  const dx = Math.max(L.x0 - b.x1, b.x0 - L.x1);
+  const dy = Math.max(L.y0 - b.y1, b.y0 - L.y1);
+  return { dx, dy, cuts: dx < 0 && dy < 0, gap: Math.max(dx, dy), depth: Math.min(-dx, -dy) };
+}
+
+const WEST_REFERENCE_FT = 6.44;
+
 {
-  const ln = lanes ?? {};
-  const off = ln.right_offset_ft;
-  const bodyHalf = (ln.lane_body_width_ft ?? meta.design_vehicle_ft?.width ?? 0) / 2;
-  const WEST_REFERENCE_FT = 6.44;
-
-  const ring = ln.ring_ft ?? {};
-  const haveRing = ['avenue_y0', 'avenue_y1', 'collector_x0', 'collector_x1'].every((k) => Number.isFinite(ring[k]));
-
-  if (!Number.isFinite(off) || !Number.isFinite(ln.west_aisle_x) || !Number.isFinite(ln.east_aisle_x) ||
-      !Number.isFinite(ln.north_lane_y) || !Number.isFinite(ln.south_lane_y) || bodyHalf <= 0 || !haveRing) {
+  if (!LANE_RECTS) {
     // NOT ESTABLISHED, never a silent pass.
     fail('stall vs lane clearance',
-      'lane geometry missing from the seed (lanes.right_offset_ft / lane_body_width_ft / *_aisle_x / *_lane_y / ring_ft) — NOT ESTABLISHED', []);
+      'lane geometry missing from the seed (lanes.runs_ft) — NOT ESTABLISHED. Re-run scripts/buildLayoutSeed.mjs.', []);
   } else {
-    // Each run of the divided ring is a RECTANGLE: a lane body of finite length, not
-    // an infinite band. Modelling the avenues as full-height bands would flag the
-    // south perimeter row, which sits well south of where the avenue actually runs.
-    const [ay0, ay1] = [Math.min(ring.avenue_y0, ring.avenue_y1), Math.max(ring.avenue_y0, ring.avenue_y1)];
-    const [cx0, cx1] = [Math.min(ring.collector_x0, ring.collector_x1), Math.max(ring.collector_x0, ring.collector_x1)];
-    const rects = [];
-    for (const [nm, cx] of [['west avenue', ln.west_aisle_x], ['east avenue', ln.east_aisle_x]]) {
-      for (const d of [-1, +1]) {
-        const c = cx + d * off;
-        rects.push({ name: `${nm} ${d > 0 ? 'northbound' : 'southbound'}`, x0: c - bodyHalf, x1: c + bodyHalf, y0: ay0, y1: ay1 });
-      }
-    }
-    for (const [nm, cy] of [['north collector', ln.north_lane_y], ['south collector', ln.south_lane_y]]) {
-      for (const d of [-1, +1]) {
-        const c = cy + d * off;
-        rects.push({ name: `${nm} ${d > 0 ? 'eastbound' : 'westbound'}`, x0: cx0, x1: cx1, y0: c - bodyHalf, y1: c + bodyHalf });
-      }
-    }
-
     const overlaps = [];
     let tightest = null;
     for (const s of measured) {
       const b = boxes.get(s.stall_code);
-      for (const L of rects) {
-        const dx = Math.max(L.x0 - b.x1, b.x0 - L.x1);
-        const dy = Math.max(L.y0 - b.y1, b.y0 - L.y1);
-        // Separated on either axis => clear. Overlapping on BOTH => the lane cuts in.
-        const gap = (dx >= 0 || dy >= 0) ? Math.max(dx, dy) : Math.max(dx, dy);
-        if (dx < 0 && dy < 0) {
+      for (const L of LANE_RECTS) {
+        const r = laneGap(b, L);
+        if (r.cuts) {
           overlaps.push(`${s.stall_code} (x ${b.x0.toFixed(1)}..${b.x1.toFixed(1)}, y ${b.y0.toFixed(1)}..${b.y1.toFixed(1)}) ` +
-                        `overlaps ${L.name} by ${Math.min(-dx, -dy).toFixed(2)} ft`);
-        } else if (!tightest || gap < tightest.gap) {
-          tightest = { gap, code: s.stall_code, lane: L.name };
+                        `overlaps lane ${L.name} by ${r.depth.toFixed(2)} ft`);
+        } else if (!tightest || r.gap < tightest.gap) {
+          tightest = { gap: r.gap, code: s.stall_code, lane: L.name };
         }
       }
     }
@@ -436,8 +441,8 @@ const boxes = new Map(measured.map((s) => [s.stall_code, box(s)]));
     if (overlaps.length) {
       fail('stall vs lane clearance', `${overlaps.length} stall/lane overlap(s) — a travel lane cuts into a parked car`, overlaps);
     } else {
-      const detail = `tightest ${tightest.code} vs ${tightest.lane}: ${tightest.gap.toFixed(2)} ft clear ` +
-                     `(west avenue reference ${WEST_REFERENCE_FT} ft)`;
+      const detail = `${LANE_RECTS.length} lane bodies tested; tightest ${tightest.code} vs lane ${tightest.lane}: ` +
+                     `${tightest.gap.toFixed(2)} ft clear (west avenue reference ${WEST_REFERENCE_FT} ft)`;
       tightest.gap < WEST_REFERENCE_FT
         ? info('stall vs lane clearance', `no overlap; tightest is below the west avenue's proven clearance. ${detail}`, [])
         : pass('stall vs lane clearance', detail);
@@ -464,6 +469,74 @@ const boxes = new Map(measured.map((s) => [s.stall_code, box(s)]));
   tight.length
     ? info('design-vehicle fit', `${tight.length} stall(s) tighter than the design vehicle`, tight)
     : pass('design-vehicle fit', `all stalls clear ${v.width} x ${v.length} ft`);
+}
+
+// ---- 9. Structure vs LANE clearance -----------------------------------------
+//
+// WHY THIS CHECK EXISTS. Check 4 tests stalls against structures and check 7 tests
+// stalls against lanes. NOTHING tested STRUCTURES against LANES, so a solid object
+// could stand in the middle of a road and every check still printed PASS. That is not
+// hypothetical. Measured on main immediately before this check was written, FOUR of
+// the eleven site light poles stood inside a lane body a car drives:
+//
+//   LIGHT-03 (render 36,174)  1.42 ft inside the south collector westbound
+//   LIGHT-04 (render 268,60)  3.15 ft inside the east avenue, north of the collector
+//   LIGHT-05 (render 268,120) 3.15 ft inside the east avenue southbound
+//   LIGHT-06 (render 268,174) 1.42 ft inside the south collector westbound
+//
+// and sitePlan.ts carried a comment above the pole list asserting they were "NEVER in
+// a travel lane". A claim nobody checks is a claim that drifts. This is the check.
+//
+// A pole is 1.5 ft square, so a car could in principle steer around one. That is not
+// the bar: a permanent solid object inside a marked travel lane is a design defect and
+// a collision hazard, and the layout has room to not do it. Overlap FAILS.
+//
+// Canopy roofs, carport roofs, the perimeter fence, painted markings and signage are
+// excluded exactly as in check 4 — a car drives under a roof by design.
+{
+  if (!LANE_RECTS) {
+    fail('structure vs lane clearance',
+      'lane geometry missing from the seed (lanes.runs_ft) — NOT ESTABLISHED. Re-run scripts/buildLayoutSeed.mjs.', []);
+  } else {
+    const solid = structures.filter(
+      (t) => !NON_ENCLOSING_KINDS.has(t.structure_kind) && t.status === 'active',
+    );
+    const unmeasuredStructs = solid
+      .filter((t) => !['origin_x_ft', 'origin_y_ft', 'width_ft', 'length_ft']
+        .every((k) => Number.isFinite(+t[k])))
+      .map((t) => t.structure_code);
+
+    const overlaps = [];
+    let tightest = null;
+    for (const t of solid) {
+      if (unmeasuredStructs.includes(t.structure_code)) continue;
+      const b = { x0: +t.origin_x_ft, y0: +t.origin_y_ft,
+                  x1: +t.origin_x_ft + +t.width_ft, y1: +t.origin_y_ft + +t.length_ft };
+      for (const L of LANE_RECTS) {
+        const r = laneGap(b, L);
+        if (r.cuts) {
+          overlaps.push(`${t.structure_code} (${t.structure_kind}, "${t.title}") ` +
+                        `stands ${r.depth.toFixed(2)} ft inside lane ${L.name}`);
+        } else if (!tightest || r.gap < tightest.gap) {
+          tightest = { gap: r.gap, code: t.structure_code, lane: L.name };
+        }
+      }
+    }
+
+    if (overlaps.length) {
+      fail('structure vs lane clearance',
+        `${overlaps.length} structure/lane overlap(s) — a solid object stands in a travel lane`, overlaps);
+    } else if (unmeasuredStructs.length) {
+      // Same rule as `conclude`: a check whose subject set was reduced does not pass.
+      fail('structure vs lane clearance',
+        `NOT ESTABLISHED — ${unmeasuredStructs.length} solid structure(s) have no usable ` +
+        `footprint and were not assessed; the rest are clear`, unmeasuredStructs);
+    } else {
+      pass('structure vs lane clearance',
+        `${solid.length} solid structure(s) vs ${LANE_RECTS.length} lane bodies; ` +
+        `tightest ${tightest.code} vs lane ${tightest.lane}: ${tightest.gap.toFixed(2)} ft clear`);
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------

@@ -826,7 +826,7 @@ class TwinMotionDriver {
   }
 
   /** Renderer stall ids are zero-padded to two digits and run past 99 unpadded
-   *  (STAGE-09 … STAGE-115) — mirrors sitePlan's own id generation. */
+   *  (STAGE-09 … STAGE-113) — mirrors sitePlan's own id generation. */
   private pad(n: number): string {
     return String(n).padStart(2, "0");
   }
@@ -1070,18 +1070,18 @@ class TwinMotionDriver {
     // STABILITY BIAS is untouched: existing stall claims are never reshuffled;
     // ordering applies to NEW claims / lane changes only.
     //
-    // STAGING IS NOT ONE UNDIFFERENTIATED LIST. The renderer draws 115 staging
+    // STAGING IS NOT ONE UNDIFFERENTIATED LIST. The renderer draws 113 staging
     // stalls in two physically different places, and the ordering below is the
     // only thing that decides which a car gets:
-    //   • CARPORT — the W/E/S perimeter runs under carports, 82 of the 115.
+    //   • CARPORT — the W/E/S perimeter runs under carports, 82 of the 113.
     //     This is the OVERNIGHT park. Daytime parking here is a failure state.
     //   • INTAKE  — the open NE block (N1 row + the TW/TE columns off the
-    //     central aisle), 33 stalls. Short-hold pit-stop staging: temp holds,
+    //     central aisle), 31 stalls. Short-hold pit-stop staging: temp holds,
     //     congestion waits, a car whose bay is not free yet.
     // Three orderings are built from those two zones, one per PURPOSE. Each is a
     // full PERMUTATION of the staging list, never a subset: a stall OTTO-Q named
     // by name must stay claimable, and the carports are a real overflow this
-    // depot runs into whenever the 33-stall intake block fills — which, at the
+    // depot runs into whenever the 31-stall intake block fills — which, at the
     // 94-car staging peak the busy_day replay reaches, is most of the day.
     const hourFmt = new Intl.DateTimeFormat("en-US", { hour: "numeric", hour12: false, timeZone: "America/Chicago" });
     const simHour = snap.run?.sim_clock ? Number(hourFmt.format(new Date(snap.run.sim_clock))) % 24 : 12;

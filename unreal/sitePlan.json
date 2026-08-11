@@ -1,7 +1,7 @@
 {
   "meta": {
     "source": "src/lib/sitePlan.ts",
-    "exportedAt": "2026-08-06T13:05:47.657Z",
+    "exportedAt": "2026-08-11T17:08:50.247Z",
     "units": {
       "logical": 1,
       "feet": 1.57,
@@ -89,16 +89,16 @@
     },
     {
       "id": "E",
-      "x0": 284.5,
+      "x0": 287.5,
       "y0": 46,
       "dx": 0,
       "dy": 5.7,
       "n": 25,
       "angle": 90,
       "carport": {
-        "x": 278,
+        "x": 281,
         "y": 42,
-        "w": 13,
+        "w": 12.5,
         "h": 147
       }
     },
@@ -149,7 +149,7 @@
     },
     {
       "id": "N1",
-      "x0": 228,
+      "x0": 225,
       "y0": 36,
       "dx": 6,
       "dy": 0,
@@ -158,59 +158,59 @@
     },
     {
       "id": "TW",
-      "x0": 234,
-      "y0": 86,
+      "x0": 233.5,
+      "y0": 86.15,
       "dx": 0,
-      "dy": 6,
-      "n": 13,
+      "dy": 6.7,
+      "n": 12,
       "angle": 270
     },
     {
       "id": "TE",
-      "x0": 260,
-      "y0": 86,
+      "x0": 260.5,
+      "y0": 86.15,
       "dx": 0,
-      "dy": 6,
-      "n": 13,
+      "dy": 6.7,
+      "n": 12,
       "angle": 90
     }
   ],
   "lightPoles": [
     {
-      "x": 36,
+      "x": 38,
       "y": 60
     },
     {
-      "x": 36,
+      "x": 38,
       "y": 120
     },
     {
-      "x": 36,
-      "y": 174
+      "x": 38,
+      "y": 162
     },
     {
-      "x": 268,
-      "y": 60
+      "x": 233.5,
+      "y": 81.7
     },
     {
-      "x": 268,
-      "y": 120
+      "x": 260.5,
+      "y": 81.7
     },
     {
-      "x": 268,
-      "y": 174
+      "x": 260.5,
+      "y": 165
     },
     {
       "x": 103,
-      "y": 166
+      "y": 165.3
     },
     {
       "x": 150,
-      "y": 166
+      "y": 165.3
     },
     {
       "x": 197,
-      "y": 166
+      "y": 165.3
     },
     {
       "x": 52,
@@ -223,7 +223,7 @@
   ],
   "lanes": {
     "westAisleX": 30,
-    "eastAisleX": 272.25,
+    "eastAisleX": 274,
     "northLaneY": 74,
     "southLaneY": 172,
     "rearLaneY": 16,
@@ -356,7 +356,7 @@
       "vehicleId": null,
       "position": {
         "x": 143,
-        "y": 86,
+        "y": 85.9,
         "angle": 180
       }
     },
@@ -367,7 +367,7 @@
       "vehicleId": null,
       "position": {
         "x": 143,
-        "y": 96.3,
+        "y": 96.5,
         "angle": 180
       }
     },
@@ -378,7 +378,7 @@
       "vehicleId": null,
       "position": {
         "x": 143,
-        "y": 106.6,
+        "y": 107.10000000000001,
         "angle": 180
       }
     },
@@ -389,7 +389,7 @@
       "vehicleId": null,
       "position": {
         "x": 143,
-        "y": 116.9,
+        "y": 117.7,
         "angle": 180
       }
     },
@@ -400,7 +400,7 @@
       "vehicleId": null,
       "position": {
         "x": 143,
-        "y": 127.2,
+        "y": 128.3,
         "angle": 180
       }
     },
@@ -411,7 +411,7 @@
       "vehicleId": null,
       "position": {
         "x": 143,
-        "y": 137.5,
+        "y": 138.9,
         "angle": 180
       }
     },
@@ -422,7 +422,7 @@
       "vehicleId": null,
       "position": {
         "x": 143,
-        "y": 147.8,
+        "y": 149.5,
         "angle": 180
       }
     },
@@ -433,7 +433,7 @@
       "vehicleId": null,
       "position": {
         "x": 143,
-        "y": 158.10000000000002,
+        "y": 160.10000000000002,
         "angle": 180
       }
     },
@@ -521,7 +521,7 @@
       "vehicleId": null,
       "position": {
         "x": 190,
-        "y": 86,
+        "y": 85.9,
         "angle": 180
       }
     },
@@ -532,7 +532,7 @@
       "vehicleId": null,
       "position": {
         "x": 190,
-        "y": 96.3,
+        "y": 96.5,
         "angle": 180
       }
     },
@@ -543,7 +543,7 @@
       "vehicleId": null,
       "position": {
         "x": 190,
-        "y": 106.6,
+        "y": 107.10000000000001,
         "angle": 180
       }
     },
@@ -554,7 +554,7 @@
       "vehicleId": null,
       "position": {
         "x": 190,
-        "y": 116.9,
+        "y": 117.7,
         "angle": 180
       }
     },
@@ -565,7 +565,7 @@
       "vehicleId": null,
       "position": {
         "x": 190,
-        "y": 127.2,
+        "y": 128.3,
         "angle": 180
       }
     },
@@ -576,7 +576,7 @@
       "vehicleId": null,
       "position": {
         "x": 190,
-        "y": 137.5,
+        "y": 138.9,
         "angle": 180
       }
     },
@@ -587,7 +587,7 @@
       "vehicleId": null,
       "position": {
         "x": 190,
-        "y": 147.8,
+        "y": 149.5,
         "angle": 180
       }
     },
@@ -598,7 +598,7 @@
       "vehicleId": null,
       "position": {
         "x": 190,
-        "y": 158.10000000000002,
+        "y": 160.10000000000002,
         "angle": 180
       }
     },
@@ -1004,7 +1004,7 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 284.5,
+        "x": 287.5,
         "y": 46,
         "angle": 90
       }
@@ -1015,7 +1015,7 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 284.5,
+        "x": 287.5,
         "y": 51.7,
         "angle": 90
       }
@@ -1026,7 +1026,7 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 284.5,
+        "x": 287.5,
         "y": 57.4,
         "angle": 90
       }
@@ -1037,7 +1037,7 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 284.5,
+        "x": 287.5,
         "y": 63.1,
         "angle": 90
       }
@@ -1048,7 +1048,7 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 284.5,
+        "x": 287.5,
         "y": 68.8,
         "angle": 90
       }
@@ -1059,7 +1059,7 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 284.5,
+        "x": 287.5,
         "y": 74.5,
         "angle": 90
       }
@@ -1070,7 +1070,7 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 284.5,
+        "x": 287.5,
         "y": 80.2,
         "angle": 90
       }
@@ -1081,7 +1081,7 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 284.5,
+        "x": 287.5,
         "y": 85.9,
         "angle": 90
       }
@@ -1092,7 +1092,7 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 284.5,
+        "x": 287.5,
         "y": 91.6,
         "angle": 90
       }
@@ -1103,7 +1103,7 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 284.5,
+        "x": 287.5,
         "y": 97.30000000000001,
         "angle": 90
       }
@@ -1114,7 +1114,7 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 284.5,
+        "x": 287.5,
         "y": 103,
         "angle": 90
       }
@@ -1125,7 +1125,7 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 284.5,
+        "x": 287.5,
         "y": 108.7,
         "angle": 90
       }
@@ -1136,7 +1136,7 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 284.5,
+        "x": 287.5,
         "y": 114.4,
         "angle": 90
       }
@@ -1147,7 +1147,7 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 284.5,
+        "x": 287.5,
         "y": 120.10000000000001,
         "angle": 90
       }
@@ -1158,7 +1158,7 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 284.5,
+        "x": 287.5,
         "y": 125.8,
         "angle": 90
       }
@@ -1169,7 +1169,7 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 284.5,
+        "x": 287.5,
         "y": 131.5,
         "angle": 90
       }
@@ -1180,7 +1180,7 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 284.5,
+        "x": 287.5,
         "y": 137.2,
         "angle": 90
       }
@@ -1191,7 +1191,7 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 284.5,
+        "x": 287.5,
         "y": 142.9,
         "angle": 90
       }
@@ -1202,7 +1202,7 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 284.5,
+        "x": 287.5,
         "y": 148.60000000000002,
         "angle": 90
       }
@@ -1213,7 +1213,7 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 284.5,
+        "x": 287.5,
         "y": 154.3,
         "angle": 90
       }
@@ -1224,7 +1224,7 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 284.5,
+        "x": 287.5,
         "y": 160,
         "angle": 90
       }
@@ -1235,7 +1235,7 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 284.5,
+        "x": 287.5,
         "y": 165.7,
         "angle": 90
       }
@@ -1246,7 +1246,7 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 284.5,
+        "x": 287.5,
         "y": 171.4,
         "angle": 90
       }
@@ -1257,7 +1257,7 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 284.5,
+        "x": 287.5,
         "y": 177.1,
         "angle": 90
       }
@@ -1268,7 +1268,7 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 284.5,
+        "x": 287.5,
         "y": 182.8,
         "angle": 90
       }
@@ -1642,7 +1642,7 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 228,
+        "x": 225,
         "y": 36,
         "angle": 0
       }
@@ -1653,7 +1653,7 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 234,
+        "x": 231,
         "y": 36,
         "angle": 0
       }
@@ -1664,7 +1664,7 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 240,
+        "x": 237,
         "y": 36,
         "angle": 0
       }
@@ -1675,7 +1675,7 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 246,
+        "x": 243,
         "y": 36,
         "angle": 0
       }
@@ -1686,7 +1686,7 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 252,
+        "x": 249,
         "y": 36,
         "angle": 0
       }
@@ -1697,7 +1697,7 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 258,
+        "x": 255,
         "y": 36,
         "angle": 0
       }
@@ -1708,7 +1708,7 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 264,
+        "x": 261,
         "y": 36,
         "angle": 0
       }
@@ -1719,8 +1719,8 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 234,
-        "y": 86,
+        "x": 233.5,
+        "y": 86.15,
         "angle": 270
       }
     },
@@ -1730,8 +1730,8 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 234,
-        "y": 92,
+        "x": 233.5,
+        "y": 92.85000000000001,
         "angle": 270
       }
     },
@@ -1741,8 +1741,8 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 234,
-        "y": 98,
+        "x": 233.5,
+        "y": 99.55000000000001,
         "angle": 270
       }
     },
@@ -1752,8 +1752,8 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 234,
-        "y": 104,
+        "x": 233.5,
+        "y": 106.25,
         "angle": 270
       }
     },
@@ -1763,8 +1763,8 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 234,
-        "y": 110,
+        "x": 233.5,
+        "y": 112.95,
         "angle": 270
       }
     },
@@ -1774,8 +1774,8 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 234,
-        "y": 116,
+        "x": 233.5,
+        "y": 119.65,
         "angle": 270
       }
     },
@@ -1785,8 +1785,8 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 234,
-        "y": 122,
+        "x": 233.5,
+        "y": 126.35000000000001,
         "angle": 270
       }
     },
@@ -1796,8 +1796,8 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 234,
-        "y": 128,
+        "x": 233.5,
+        "y": 133.05,
         "angle": 270
       }
     },
@@ -1807,8 +1807,8 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 234,
-        "y": 134,
+        "x": 233.5,
+        "y": 139.75,
         "angle": 270
       }
     },
@@ -1818,8 +1818,8 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 234,
-        "y": 140,
+        "x": 233.5,
+        "y": 146.45000000000002,
         "angle": 270
       }
     },
@@ -1829,8 +1829,8 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 234,
-        "y": 146,
+        "x": 233.5,
+        "y": 153.15,
         "angle": 270
       }
     },
@@ -1840,8 +1840,8 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 234,
-        "y": 152,
+        "x": 233.5,
+        "y": 159.85000000000002,
         "angle": 270
       }
     },
@@ -1851,9 +1851,9 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 234,
-        "y": 158,
-        "angle": 270
+        "x": 260.5,
+        "y": 86.15,
+        "angle": 90
       }
     },
     {
@@ -1862,8 +1862,8 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 260,
-        "y": 86,
+        "x": 260.5,
+        "y": 92.85000000000001,
         "angle": 90
       }
     },
@@ -1873,8 +1873,8 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 260,
-        "y": 92,
+        "x": 260.5,
+        "y": 99.55000000000001,
         "angle": 90
       }
     },
@@ -1884,8 +1884,8 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 260,
-        "y": 98,
+        "x": 260.5,
+        "y": 106.25,
         "angle": 90
       }
     },
@@ -1895,8 +1895,8 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 260,
-        "y": 104,
+        "x": 260.5,
+        "y": 112.95,
         "angle": 90
       }
     },
@@ -1906,8 +1906,8 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 260,
-        "y": 110,
+        "x": 260.5,
+        "y": 119.65,
         "angle": 90
       }
     },
@@ -1917,8 +1917,8 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 260,
-        "y": 116,
+        "x": 260.5,
+        "y": 126.35000000000001,
         "angle": 90
       }
     },
@@ -1928,8 +1928,8 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 260,
-        "y": 122,
+        "x": 260.5,
+        "y": 133.05,
         "angle": 90
       }
     },
@@ -1939,8 +1939,8 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 260,
-        "y": 128,
+        "x": 260.5,
+        "y": 139.75,
         "angle": 90
       }
     },
@@ -1950,8 +1950,8 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 260,
-        "y": 134,
+        "x": 260.5,
+        "y": 146.45000000000002,
         "angle": 90
       }
     },
@@ -1961,8 +1961,8 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 260,
-        "y": 140,
+        "x": 260.5,
+        "y": 153.15,
         "angle": 90
       }
     },
@@ -1972,30 +1972,8 @@
       "status": "available",
       "vehicleId": null,
       "position": {
-        "x": 260,
-        "y": 146,
-        "angle": 90
-      }
-    },
-    {
-      "id": "STAGE-114",
-      "type": "staging",
-      "status": "available",
-      "vehicleId": null,
-      "position": {
-        "x": 260,
-        "y": 152,
-        "angle": 90
-      }
-    },
-    {
-      "id": "STAGE-115",
-      "type": "staging",
-      "status": "available",
-      "vehicleId": null,
-      "position": {
-        "x": 260,
-        "y": 158,
+        "x": 260.5,
+        "y": 159.85000000000002,
         "angle": 90
       }
     }

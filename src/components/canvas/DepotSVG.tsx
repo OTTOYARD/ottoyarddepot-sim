@@ -12,6 +12,7 @@ import {
   LOT, BESS_YARD, BUILDING, WASH, CANOPIES, PARK_RUNS, GATE_W,
   INGRESS, EGRESS,
   WEST_AISLE_X, EAST_AISLE_X, TEMP_LANE_X, WEST_LINK_X, GAP_LANES,
+  TEMP_AISLE, EAST_AVENUE, N1_LANE_Y, NORTH_LANE_Y, SOUTH_LANE_Y,
 } from '@/lib/sitePlan';
 
 /**
@@ -106,15 +107,36 @@ export const DepotSVG = forwardRef<SVGSVGElement>((_, ref) => {
       {/* north + south collectors */}
       <rect x={LOT.x} y={68} width={LOT.w} height={12} fill="#262635" />
       <rect x={LOT.x} y={166} width={LOT.w} height={12} fill="#262635" />
-      {/* west/east aisles */}
+      {/* west/east aisles.
+          THE EAST AVENUE IS DRAWN FROM ITS REAL PAVEMENT, not a typed width. It was a
+          flat `width 12` (18.84 ft) while the actual clear aisle between the TE and E
+          stall faces is 24.39 ft — the tint under-drew the road by a third, so the
+          picture disagreed with the plan the cars drive. EAST_AVENUE is derived from
+          those two columns, so moving either one moves the paint. */}
       <rect x={WEST_AISLE_X - 6} y={56} width={12} height={150} fill="#262635" />
-      <rect x={EAST_AISLE_X - 6} y={26} width={12} height={180} fill="#262635" />
+      <rect x={EAST_AVENUE.x0} y={26} width={EAST_AVENUE.width} height={180} fill="#262635" />
       {/* canopy pull-out lanes */}
       {[GAP_LANES.westOfA, GAP_LANES.AB, GAP_LANES.BC, GAP_LANES.eastOfC].map((x) => (
         <rect key={`gl${x}`} x={x - 4.5} y={80} width={9} height={84} fill="#262635" opacity={0.8} />
       ))}
-      {/* temp block aisle + west link */}
-      <rect x={TEMP_LANE_X - 5} y={80} width={10} height={84} fill="#262635" opacity={0.8} />
+      {/* Temp block aisle. Was `TEMP_LANE_X - 5, width 10` = 15.70 ft of tint over what
+          is now a 24.39 ft aisle, and it stopped at y=164 even though the aisle runs
+          collector to collector. Both now derive: width from the TW/TE stall faces,
+          length from the two collectors it actually joins. */}
+      <rect x={TEMP_AISLE.x0} y={NORTH_LANE_Y} width={TEMP_AISLE.width}
+        height={SOUTH_LANE_Y - NORTH_LANE_Y} fill="#262635" opacity={0.8} />
+      {/* N1 approach — the overflow row's own lane. It had no paint because it had no
+          lane: N1 traffic was routed up the temp aisle, through N1 stall 5. */}
+      {(() => {
+        // west end = the graph's N1w stub (the row's first stall, less one bay), east
+        // end = the east avenue. Derived, so pulling the N1 row west pulls the paint.
+        const n1 = PARK_RUNS.find((r) => r.id === 'N1')!;
+        const x0 = n1.x0 - 6;
+        return <rect x={x0} y={N1_LANE_Y - 5.3} width={EAST_AVENUE.centre - x0}
+          height={10.6} fill="#262635" opacity={0.8} />;
+      })()}
+      <rect x={TEMP_AISLE.x0} y={N1_LANE_Y} width={TEMP_AISLE.width}
+        height={NORTH_LANE_Y - N1_LANE_Y} fill="#262635" opacity={0.8} />
       <rect x={WEST_LINK_X - 4} y={16} width={8} height={52} fill="#262635" opacity={0.8} />
 
       {/* ---- RIGHT-OF-WAY paint (RAILS P2) ----
