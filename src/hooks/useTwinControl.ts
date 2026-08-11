@@ -12,7 +12,10 @@ import { useTwinStore } from "@/store/twinStore";
 export function useTwinControl() {
   const activeSimRunId = useTwinStore((s) => s.activeSimRunId);
   const [playing, setPlaying] = useState(false);
-  const [speed, setSpeedState] = useState(1);     // 1–10×; ALWAYS start at 1× real pace
+  // 1–3× (the backend hard-clamps at 3; the slider matches). Opens at 3×, the
+  // continuous ceiling — see the measurement in OperatorConsole.startScenario.
+  // The old comment here said "1–10×", which the backend has never allowed.
+  const [speed, setSpeedState] = useState(3);
   const tsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // PLAYBACK SPEED (founder spec 2026-07-25). The slider now drives the real
