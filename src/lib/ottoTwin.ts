@@ -116,7 +116,19 @@ export interface TwinSnapshot {
   legs?: TwinLeg[];
   legs_meta?: TwinLegsMeta;
   fleet: { counts: Record<string, number>; total: number; vehicles: TwinVehicle[] };
-  stalls_status: { id: string; status: string; vehicle_id: string | null }[];
+  /** `tethered` is true while the OTTO-CHARGE ARM is still mechanically mated to the
+   *  vehicle at this stall — the ~11.5 s demate window AFTER StopTransaction, during
+   *  which OTTO-Q refuses to move the car anywhere. `tether_until` is the sim-clock
+   *  deadline the arm finishes retracting, so the retract can be animated against the
+   *  same clock the legs use. Both are optional: an older backend omits them and every
+   *  consumer must read that as "not tethered". */
+  stalls_status: {
+    id: string;
+    status: string;
+    vehicle_id: string | null;
+    tethered?: boolean;
+    tether_until?: string | null;
+  }[];
   energy: Record<string, number | string | null> | null;
   bess: Record<string, number | string | null> | null;
   weather: Record<string, number | string | null> | null;

@@ -206,6 +206,31 @@ describe("packDepotOps", () => {
     expect(env.payload.stalls.filter((s) => s.assumed_available)).toHaveLength(3);
   });
 
+  it("carries the robotic tether through to the stall signal", () => {
+    // The charge session has ENDED but the OTTO-CHARGE ARM is still mated. The
+    // renderer needs this to keep the connector drawn and to refuse to drive the
+    // car away; nothing else in the feed distinguishes it from a plain busy stall.
+    const snap = snapshot({
+      stalls_status: [{
+        id: "s0", status: "occupied", vehicle_id: "v1",
+        tethered: true, tether_until: "2026-07-27T14:00:11.500Z",
+      }],
+    });
+    const env = packDepotOps(snap, layout(4), meta);
+    const s0 = env.payload.stalls.find((s) => s.id === "s0")!;
+    expect(s0.tethered).toBe(true);
+    expect(s0.tether_until).toBe("2026-07-27T14:00:11.500Z");
+  });
+
+  it("reads an absent tether flag as NOT tethered, never as unknown", () => {
+    // An older backend omits the field entirely. Defaulting to true would freeze
+    // every occupied stall; defaulting to undefined would push the ambiguity into
+    // the renderer. It is false, and inferred-available stalls are false too.
+    const env = packDepotOps(snapshot(), layout(4), meta);
+    expect(env.payload.stalls.every((s) => s.tethered === false)).toBe(true);
+    expect(env.payload.stalls.every((s) => s.tether_until === null)).toBe(true);
+  });
+
   it("marks the inventory PARTIAL when the layout has not loaded", () => {
     const env = packDepotOps(snapshot(), null, meta);
     expect(env.payload.capacity.total).toBe(1);

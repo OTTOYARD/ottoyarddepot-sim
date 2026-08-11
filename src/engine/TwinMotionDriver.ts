@@ -28,6 +28,7 @@ import { useVehicleStore } from "@/store/vehicleStore";
 import type { Vehicle, VehicleStatus } from "@/engine/types";
 import type { TwinSnapshot, TwinLeg } from "@/lib/ottoTwin";
 import { INGRESS, EGRESS, gapLaneX, SOUTH_LANE_Y, REAR_LANE_Y } from "@/lib/sitePlan";
+import { DISCONNECT_SECONDS } from "@/lib/ottoChargeArm/armStateMachine";
 
 type Lane = "dcfc" | "l2" | "wash" | "service" | "staging";
 
@@ -235,6 +236,13 @@ class TwinMotionDriver {
    *  renderer park each car in the twin's EXACT assigned stall, so OTTO-Q's
    *  spatial decisions (nearest-wash, cuOpt picks) are literally what you see. */
   private twinStall = new Map<string, string>();
+  /** Renderer stall ids whose OTTO-CHARGE ARM is still mated, per the latest snapshot. */
+  private twinTethered = new Set<string>();
+  /** Seconds of demate still owed per renderer stall id, measured at snapshot time.
+   *  Resolved HERE, against the snapshot's own sim clock, so no consumer has to convert
+   *  a backend sim timestamp into the renderer's seconds-of-day frame — mixing those two
+   *  domains is a bug this codebase has paid for repeatedly. */
+  private twinTetherLeftS = new Map<string, number>();
   /** Layout gate: when a run activates, the bridge calls expectLayout() and
    *  snapshots BUFFER until the layout fetch settles — otherwise the first
    *  snapshot places the fleet on zone stalls and the layout's arrival triggers
@@ -366,6 +374,29 @@ class TwinMotionDriver {
   }
 
   /** Which stall a vehicle currently holds, if any. */
+  /**
+   * Is the OTTO-CHARGE ARM still mated to whatever is in this stall?
+   *
+   * This is OTTO-Q's answer, not the renderer's animation clock. The arm component
+   * runs its own local cycle off serviceStartTime/serviceDuration; that clock can
+   * finish while the backend is still holding the car, and a car shown driving out of
+   * a stall the orchestrator has locked is exactly the lie this flag exists to stop.
+   * Unknown stall ids answer false — same fail-safe direction as vehicleMayMove.
+   */
+  isStallTethered(rendererStallId: string): boolean {
+    return this.twinTethered.has(rendererStallId);
+  }
+
+  /**
+   * Seconds of demate still owed on this stall as of the last snapshot, or null when
+   * the arm is not mated. Lets the arm animate unlatch → extract → retract against
+   * OTTO-Q's real deadline instead of a free-running local clock.
+   */
+  stallTetherRemainingS(rendererStallId: string): number | null {
+    if (!this.twinTethered.has(rendererStallId)) return null;
+    return this.twinTetherLeftS.get(rendererStallId) ?? DISCONNECT_SECONDS;
+  }
+
   stallHeldBy(vehicleId: string): string | undefined {
     return this.ledger.stallOf(vehicleId);
   }
@@ -775,13 +806,36 @@ class TwinMotionDriver {
     // recolor, WIN over vehicle-derived colors, and leave the assignment pool
     // so no car is ever routed onto a dead charger.
     const twinFaulted = new Set<string>();
+    // ROBOTIC TETHER: the charge session has ended but the arm has not finished
+    // demating, so OTTO-Q is refusing to move this car. Rebuilt from scratch every
+    // snapshot — a tether is a ~11.5 s window, so a stale entry would show a cable on
+    // a car that has already driven off. Absence means NOT tethered, never unknown.
+    const tethered = new Set<string>();
+    const tetherLeft = new Map<string, number>();
+    const snapClockMs = Date.parse(String(snap.run?.sim_clock ?? ""));
     for (const ss of snap.stalls_status ?? []) {
       const rsid = this.twinStall.get(ss.id);
       if (!rsid) continue;
       const st = String(ss.status ?? "").toLowerCase();
       if (st === "faulted" || st === "offline") twinFaulted.add(rsid);
       else if (st === "reserved") desiredStatus.set(rsid, "reserved");
+      if (ss.tethered === true) {
+        tethered.add(rsid);
+        const untilMs = Date.parse(String(ss.tether_until ?? ""));
+        // Both timestamps come from the SAME backend sim clock, so this subtraction
+        // stays inside one domain. An unparseable or missing deadline falls back to a
+        // full demate rather than zero: showing the cable a moment too long is a far
+        // smaller lie than releasing a car the orchestrator still has locked.
+        tetherLeft.set(
+          rsid,
+          Number.isFinite(untilMs) && Number.isFinite(snapClockMs)
+            ? Math.max(0, (untilMs - snapClockMs) / 1000)
+            : DISCONNECT_SECONDS,
+        );
+      }
     }
+    this.twinTethered = tethered;
+    this.twinTetherLeftS = tetherLeft;
     // several vehicles can appear in ONE snapshot (twin ticks cover 30 sim-min):
     // stagger their spawn points back along the entrance road so they never
     // materialize stacked on top of each other at the gate.
