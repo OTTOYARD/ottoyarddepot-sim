@@ -138,8 +138,27 @@ const MAX_TURN_RATE = 3.0; // rad/s — a 90° corner sweeps in ~0.5s
 // So yaw is budgeted per unit of TRAVEL as well as per second: a stopped car
 // gets a budget of exactly zero. YAW_PER_UNIT is a rate limiter, not a bicycle
 // model — 2.5 rad/u lets the heading track every corner the rails actually
-// contain (peak drawn curvature after this change: 2.50 rad/u, was 7.44) while
-// the speed term binds below ~1.2 u/s, where the whip was visible. Making it the
+// contain, while the speed term binds below ~1.2 u/s, where the whip was
+// visible.
+//
+// DRAWN CURVATURE — peak |Δheading| per unit translated, per car-step, same
+// busy_day replay, reported at several minimum-displacement floors because the
+// statistic is meaningless without one (a near-zero denominator sends the ratio
+// anywhere). Floors in units of travel:
+//
+//                       0u       0.001u    0.01u     0.05u     0.1u
+//     main @ 22ec3f6    22.6339  22.6339   13.3333    2.8949   1.4867
+//     this tree          2.5000   2.5000    2.5000    2.5000   1.4973
+//
+// Read the ROW, not one cell. On main the peak collapses 22.63 → 2.89 as the
+// floor rises, which is the spin defect showing up as division by an almost
+// stationary car — the same 234 steps counted above, not a real corner. After
+// the change the cap binds flat at 2.5000 across every floor, so the number is
+// a property of the limiter rather than of the sampling. That flatness is the
+// evidence; a single headline figure here is not, and an earlier version of
+// this comment claimed "was 7.44", which reproduces under no floor tried.
+//
+// Making it the
 // car's true minimum-radius curvature instead (tan(maxSteer)/wheelbase ≈ 0.091)
 // was measured and is NOT shippable against these rails: the routed corners are
 // far tighter than 11u, so the heading fell behind and crab rose from 1831 to
@@ -582,7 +601,7 @@ class TwinMotionDriver {
   // this comment said "three", and the residue re-rail was in fact ungated
   // behind it: a car with 3.0u of position residue on a stall whose arm was
   // still at phase 'charging' was re-railed and drove away with the connector
-  // in (measured at 106.63u off its stall; see the gate-1 site for the probe).
+  // in (measured at 104.88u from its stall; see the gate-1 site for the probe).
   // The sweep: motion begins ONLY by setting `e.tracker` or `e.reverse` on an
   // entry that has neither, and the only function that does that from rest is
   // assignRail(). Its five call sites are startDeparture() — itself reached
@@ -1589,9 +1608,10 @@ class TwinMotionDriver {
             // MEASURED, this tree, gate deleted, by the harness in
             // TwinMotionDriver.residuegate.test.ts: a car on DCFC-01 with its arm
             // at phase 'charging' and 3.0u of position residue was handed a
-            // 330.38u rail and had travelled 25.02u of it (24.92u straight-line
-            // off its stall) four polls later; after 24 polls, 185.02u of arc and
-            // 106.63u from the stall. armHoldRefusals stayed 0 the whole way —
+            // 330.38u rail and had travelled 25.02u of it four polls later;
+            // after 24 polls, 185.02u of arc. Straight-line, measured from the
+            // STALL (not from the displaced start pose, which sits 3.0u off it):
+            // 22.74u and 104.88u. armHoldRefusals stayed 0 the whole way —
             // the gate reported nothing while the connector was being dragged.
             // Repairing a car's pose is not more urgent than not tearing an arm
             // off it: refuse, and the next poll retries. The refusal is bounded

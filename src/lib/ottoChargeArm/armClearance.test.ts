@@ -34,17 +34,29 @@
  * ─────────────────────────────────── TIMEOUT HEADROOM, MEASURED ──────────────
  * RAISED FROM 120 s TO 300 s ON THE TWO FULL SWEEPS, at integration time. The
  * number that forced it is contention, not the sweep: standalone this file's
- * heaviest test runs in 3310 / 3395 / 3386 ms (three runs, this Mac), but
- * inside the full suite — where it competes for workers with everything else —
- * it runs in 5646 / 5863 / 6117 ms, and the integration branch carries 31 test
- * files where this branch alone carried 27 (same three-run measurement on
- * unify-footprint-v2 alone: 5342 / 5669 / 5925 ms).
+ * heaviest test runs in ~3.3 s, but inside the full suite — where it competes
+ * for workers with everything else — it is far slower, and the integration
+ * branch carries 31 test files where either branch alone carried 26-27.
  *
- * At the worst of those, 6117 ms, a runner 12x slower than this Mac takes
- * 73.4 s. Against a 120 s cap that is 1.6x of headroom, which is what this
- * repo means by "sitting near its timeout". 300 s restores it to 4.1x. Nothing
- * about WHAT is measured changed — same 135 targets, same 11070 poses, same
- * +0.1206 m worst structural clearance — only the guard around it.
+ * DO NOT TREAT ANY SINGLE FIGURE HERE AS THE NUMBER. Three observers measured
+ * the slowest single test in this file, in the full suite, on this same Mac,
+ * three runs each, and got three different spreads:
+ *
+ *     5646 / 5863 / 6117 ms
+ *     6127 / 6554 / 6839 ms
+ *     7069 / 7098 / 7230 ms
+ *
+ * Range across all nine runs: 5646-7230 ms, a 28% spread with no code change
+ * between them. That IS the finding — worker contention in a 31-file suite is
+ * not reproducible to three digits, so a headroom argument must be built on
+ * the worst observation, not a representative one.
+ *
+ * Worst observed 7230 ms x 12 = 86.8 s. Against the old 120 s cap that is 1.4x
+ * of headroom, which is what this repo means by "sitting near its timeout" —
+ * and note the direction: every later measurement was WORSE than the one the
+ * raise was originally justified with. 300 s gives 3.5x. Nothing about WHAT is
+ * measured changed — same 135 targets, same 11070 poses, same +0.1206 m worst
+ * structural clearance — only the guard around it.
  */
 
 import { describe, it, expect } from 'vitest';

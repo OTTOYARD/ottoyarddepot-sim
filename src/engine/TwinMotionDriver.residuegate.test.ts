@@ -132,8 +132,10 @@ describe("DEPART GATE (1 of 5) — the motion-residue re-rail", () => {
     const st = useDepotStore.getState().stalls.find((s) => s.id === RENDER_STALL)!;
     // 3.0u of residue — comfortably past the branch's 1.8u threshold. With the
     // gate deleted this exact setup hands the car a 330.38u rail and it has
-    // travelled 25.02u of it by the end of this loop (24.92u straight-line off
-    // its stall), arm still at phase 'charging', armHoldRefusals 0.
+    // travelled 25.02u of it by the end of this loop (22.74u straight-line from
+    // the STALL; `from` below is the displaced pose, 3.0u further out, so the
+    // assertion's own datum reads 24.92u). Arm still at phase 'charging',
+    // armHoldRefusals 0.
     e.car.x = st.position.x + 3.0;
     const before = twinMotionDriver.armHoldRefusals;
     const from = { x: e.car.x, y: e.car.y };
