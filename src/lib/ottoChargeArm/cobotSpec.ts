@@ -68,9 +68,10 @@ export interface CobotSpec {
  * all 26 arm tests passing unmodified. They passed because every one of them
  * measured the arm against a PLANE, a POINT or the DECK; none measured it
  * against the CAR. Measured properly, the two-link chain folded tighter to
- * reach the closer flank and swung the elbow housing 42 mm THROUGH the
- * bodywork, at 240 of 6664 sampled poses. armClearance.test.ts is that
- * measurement, and it is why the numbers below moved.
+ * reach the closer flank and swung the elbow housing 173 mm THROUGH the
+ * bodywork, at 1098 of the 9922 poses that still solved at all — and 1148 more
+ * would not solve. armClearance.test.ts is that measurement, its header states
+ * the whole sweep, and it is why the numbers below moved.
  *
  * The arm is mounted on a plinth on the pedestal's car-facing flank at
  * MOUNT_HEIGHT_M, NOT on the cabinet roof at ~2.05 m — reaching down 1.4 m and
@@ -99,19 +100,24 @@ export interface CobotSpec {
  * harder to reach an inlet that close. Measured over the whole duty cycle
  * against the drawn body:
  *
- *      ARM_SCALE   worst structural clearance to the car
- *        1.15          +0.170 m
- *        1.20          +0.144 m      <- shipped
- *        1.25          +0.088 m
- *        1.30          +0.034 m
- *        1.40          -0.073 m      elbow inside the bodywork, 7 ports refused
- *        1.50          -0.171 m      elbow deep inside it, 13 ports refused
+ *      ARM_SCALE   worst structural clearance   ports the arm REFUSES
+ *        1.15          +0.1703 m                  0 of 9
+ *        1.20          +0.1440 m   <- shipped     0 of 9
+ *        1.25          +0.0885 m                  0 of 9
+ *        1.30          +0.0335 m                  0 of 9
+ *        1.40          -0.0730 m                  1 of 9   elbow in the bodywork
+ *        1.50          -0.1706 m                  2 of 9   elbow deep inside it
  *
- * One sweep, one band: mount 0.55 m, standoff 0.30 m, studio LOD, ports over
- * along +/-1.00 m x height 0.54-1.10 m, the whole duty cycle. Over the full
- * test matrix — every OEM band corner plus the advertised window corners — the
- * shipped configuration measures +0.1206 m, and armClearance.test.ts asserts
- * >= 0.10 m and names the offending part when it does not.
+ * ONE sweep, ONE band, and both columns come out of it: mount 0.55 m, standoff
+ * 0.30 m, studio LOD, the 9 ports on the corners and centre of along +/-1.00 m
+ * x height 0.54-1.10 m, the whole duty cycle at 8 steps per phase, structure
+ * only. Read the refusal column as "of these 9", not as a fleet figure — over
+ * the full 126-port matrix the same two rows refuse 4 and 16.
+ *
+ * Over that full matrix — every OEM band corner plus the advertised window
+ * corners — the shipped configuration measures +0.1206 m, and
+ * armClearance.test.ts asserts >= 0.10 m and names the offending part when it
+ * does not.
  *
  * So 1.20. The arm is visibly smaller than it was. That is the price of the
  * car being the size it always claimed to be, and it is the right way round:
@@ -240,8 +246,25 @@ export const FLANK_STANDOFF_M = PEDESTAL_TO_CAR_CENTRE_M - (CAR_WIDTH * METRES_P
  * an IK solution says the connector can be placed on the inlet, it says nothing
  * about what the elbow does on the way. At the real 2.010 m car width the
  * measured safe region — reachable at every point of the duty cycle AND at
- * least 0.10 m clear of the drawn body throughout — is along +/-1.25 m x height
- * 0.46-1.60 m. The window below sits comfortably inside that, and comfortably
+ * least 0.10 m clear of the drawn body throughout — is
+ *
+ *              along +/-1.25 m   x   height 0.42-1.56 m
+ *
+ * and that rectangle is stated because the WHOLE of it was measured: a 51 x 41
+ * grid, 2091 ports, each one a full duty-cycle sweep. 0 refused, worst 0.1007 m.
+ *
+ * Measuring the whole rectangle rather than its corners is the point. The lens
+ * warning above says the corners can be the unsafe part, and they are at the
+ * top — (+/-1.25, 1.56) is the 0.1007 m — but at the BOTTOM the worst point is
+ * not a corner at all. Dead abeam the base a 0.40 m port measures 0.0995 m,
+ * while the same height out at +/-1.25 m measures 0.1153 m, so the floor is set
+ * by the middle of the edge and sits at 0.42 m. Four corner probes would have
+ * put it at 0.40 and been wrong.
+ *
+ * This used to read +/-1.25 x 0.46-1.60, whose top corners measure 0.0931 m —
+ * under the 0.10 m the sentence itself defines as safe.
+ *
+ * The window below sits comfortably inside the measured region, and comfortably
  * outside every OEM band in chargePort.ts, so the clamp there is not doing any
  * load-bearing work.
  *

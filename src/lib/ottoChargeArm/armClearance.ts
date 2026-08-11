@@ -15,11 +15,13 @@
  * clearance over every surface vertex of every mesh.
  *
  * Vertex sampling can in principle miss a face that passes between two
- * vertices. The worst case is bounded and small: the coarsest curved part is a
- * 20-segment cylinder, whose chord sags r*(1-cos(pi/20)) = 0.0123*r below the
- * true surface — under 1 mm on the largest housing. `SAMPLING_SAG_M` states
- * that bound, and the test requires a margin an order of magnitude larger, so
- * the result cannot be an artefact of how finely the meshes are tessellated.
+ * vertices. The worst case is bounded and small: a curved primitive drawn with
+ * n segments has a chord that sags r*(1-cos(pi/n)) off the true surface, and
+ * `SAMPLING_SAG_M` evaluates that for a deliberately mismatched pair — a
+ * 20-segment tessellation at the largest radius on the machine — giving
+ * 1.699 mm at ARM_SCALE 1.2, above every part that is actually drawn. The test
+ * requires a margin 58.9x that, so the result cannot be an artefact of how
+ * finely the meshes are tessellated.
  *
  * Meshes are culled by bounding sphere before their vertices are touched. Most
  * of the arm (base, plinth, shoulder) is nowhere near the car for the entire
@@ -35,13 +37,23 @@ import { clearanceToCar, type CarSolid } from './vehicleEnvelope';
 /**
  * Largest distance a mesh face can bulge past the vertices we sample, metres.
  *
- * Driven by the coarsest CURVED primitive in buildCobot at the sizes it is
- * built at: a 20-segment cylinder of radius r sags r*(1 - cos(pi/20)). The
- * biggest such radius on the arm is the base housing at 0.115 * ARM_SCALE.
- * Boxes and planes are flat, so they contribute nothing.
+ * A curved primitive drawn with n segments has a chord that sags r*(1-cos(pi/n))
+ * off the true surface. Sag needs a coarse tessellation AND a big radius, and on
+ * this arm those never coincide: the big parts (base housing, mount collar, the
+ * link spines) are drawn at 20-24 segments, while the coarse ones (6-segment
+ * bolt heads, the 6- and 8-segment torus cross-sections, the 7-segment dress
+ * pack) are all under 15 mm in radius. Pairing 20 segments with the largest
+ * radius on the machine — the base housing at 0.115 * ARM_SCALE — is therefore a
+ * pair nothing actually is, and it bounds all of them. Boxes and planes are flat
+ * and contribute nothing.
+ *
+ * 1.699 mm at ARM_SCALE 1.2. The worst REAL primitive is the shoulder yoke, a
+ * 20-segment cylinder of radius 0.1352 m, at 1.665 mm. armClearance.test.ts
+ * walks every geometry's own parameters and asserts none exceeds this, so the
+ * bound cannot quietly stop being one.
  */
 export const SAMPLING_SAG_M =
-  (1 - Math.cos(Math.PI / 20)) * OTTO_CHARGE_ARM.radii.base; // ~1.7 mm at ARM_SCALE 1.2
+  (1 - Math.cos(Math.PI / 20)) * OTTO_CHARGE_ARM.radii.base; // 1.699 mm at ARM_SCALE 1.2
 
 interface SampledMesh {
   name: string;

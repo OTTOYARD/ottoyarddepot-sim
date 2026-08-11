@@ -123,8 +123,11 @@ const bodyGeo = new THREE.ExtrudeGeometry(
 bodyGeo.translate(0, 0, -BODY_DEPTH / 2);
 
 // The greenhouse corners, read off the profile so the glazing tracks the
-// silhouette instead of restating it. PROFILE runs tail-sill, tail-shoulder,
-// tail-cant, tail-roof, ... so indices 2..3 and 6..7 are the two window pillars.
+// silhouette instead of restating it. PROFILE runs sill-bottom, sill-top,
+// shoulder, cant rail, roof at the tail and then the mirror image at the nose —
+// TWO points on the sill, not one — so the window pillars are indices 2..3 and
+// 6..7. (This comment used to skip the second sill point and name 2..3 as the
+// cant rail and the roof. The indices were right; the names were off by one.)
 const [tailShoulder, tailCant] = [PROFILE[2], PROFILE[3]];
 const [noseCant, noseShoulder] = [PROFILE[6], PROFILE[7]];
 const GLASS_INSET = CAR_L_M * 0.0123; // pillar reveal, scaled with the car

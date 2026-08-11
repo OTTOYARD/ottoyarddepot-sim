@@ -20,15 +20,42 @@
  * The solid is a SUPERSET of the drawn mesh, deliberately, so "no intersection"
  * is a guarantee and not a sampling artefact:
  *
- *   - the silhouette polygon is inflated by the extrude bevel, which is what
- *     the mesh's outer face actually reaches (ExtrudeGeometry's bevel grows
- *     the shape OUTWARD — see vehicleBody.ts);
+ *   - the silhouette polygon is grown by the extrude bevel, which is what the
+ *     mesh's outer face actually reaches (ExtrudeGeometry's bevel grows the
+ *     shape OUTWARD — see vehicleBody.ts) — and it is grown the way the bevel
+ *     actually grows it, with MITRED corners. See bevelledBodyProfile();
  *   - the lateral slab is the car's FULL width, so the wheels (which are
  *     inset) and the body (which is narrower than the glazing) are both
  *     covered;
  *   - the wheels are modelled at full width even though they are 0.24 m thick.
  *
- * Nothing here is narrower than what is drawn.
+ * ═════════════════════════════════════════ WHAT IS AND IS NOT INSIDE IT ══════
+ * MEASURED, every vertex of every drawn part, by armClearance.test.ts's
+ * "contains every vertex of the drawn car":
+ *
+ *   body 0.00 mm · glazing 0.00 mm · cladding + roof pod 0.00 mm ·
+ *   tyres 0.00 mm · rims -2.50 mm      (max protrusion outside the solid)
+ *
+ * The body used to read +20.71 mm, at the extreme fore/aft lower corners
+ * (along 2.440 m, height 0.210 m). The polygon was grown by a ROUND offset —
+ * distance-to-boundary minus the bevel — while ExtrudeGeometry MITRES the
+ * corner, and a mitred 90 deg corner stands bevel*(sqrt(2)-1) = 20.71 mm
+ * further out than a rounded one.
+ *
+ * It changed no result: those corners are 2.4 m fore and aft of the pedestal
+ * and 0.21 m off the deck, nowhere the arm goes. Every clearance figure in
+ * cobotSpec.ts — both tables, the shipped +0.1206 m, the measured safe region —
+ * re-measures identically against the corrected solid. Fixed anyway, because
+ * this is the one file whose job is to make the claim true by construction, and
+ * a guarantee that happens to be harmless where it is broken is still broken.
+ *
+ * ONE PART IS DELIBERATELY LEFT OUT, and it is the charge port. The drawn
+ * socket rim stands 8.66 mm proud of the flank plane and the lit ring 5.20 mm
+ * (a torus of tube radius r drawn with 6 radial segments reaches r*sin 60 deg).
+ * They are not in the solid because the connector's whole job is to arrive at
+ * that ring: folding the inlet into the car would be asserting that the arm may
+ * never touch the thing it plugs into. The STRUCTURE's margin is 0.10 m, 11x
+ * the taller of the two, so nothing the arm does depends on the difference.
  */
 
 import { CAR_LENGTH, CAR_WIDTH } from '@/engine/motion/traffic';
@@ -42,7 +69,8 @@ export const CAR_WIDTH_M = CAR_WIDTH * METRES_PER_PLAN_UNIT;
 /**
  * Extrude bevel, metres. Load-bearing in two directions: it is how much the
  * mesh grows past the authored polygon, and therefore how much the clearance
- * model has to inflate that polygon to stay a superset.
+ * model has to grow that polygon to stay a superset — see
+ * bevelledBodyProfile(), which grows it the way the bevel does.
  */
 export const BODY_BEVEL_M = 0.05;
 
@@ -82,6 +110,58 @@ export function bodyProfile(lengthM: number = CAR_LENGTH_M): [number, number][] 
   ];
 }
 
+/**
+ * The side profile GROWN BY THE BEVEL — the outline the extruded mesh's widest
+ * cross-section actually traces.
+ *
+ * MITRED, not rounded, because that is what ExtrudeGeometry does: it offsets
+ * each edge outward by bevelSize and takes the intersection of the neighbouring
+ * offset edges, so a corner of interior angle θ lands at bevel/sin(θ/2) from the
+ * original vertex rather than at bevel. At the profile's 90 deg lower corners
+ * that is 70.71 mm out along the bisector where a round offset reaches 50.00 mm
+ * — the drawn body poking 20.71 mm outside a solid that was supposed to contain
+ * it. Rounding the corners instead was the previous model, and it was wrong.
+ *
+ * Convexity survives the offset (every edge keeps its direction and order), and
+ * `isConvex` is asserted on the result rather than assumed — the distance maths
+ * below needs it.
+ */
+export function bevelledBodyProfile(
+  lengthM: number = CAR_LENGTH_M, inflate: number = BODY_BEVEL_M,
+): [number, number][] {
+  const poly = bodyProfile(lengthM);
+  const n = poly.length;
+  let area2 = 0;
+  for (let i = 0; i < n; i++) {
+    const [x0, y0] = poly[i];
+    const [x1, y1] = poly[(i + 1) % n];
+    area2 += x0 * y1 - x1 * y0;
+  }
+  const w = area2 >= 0 ? 1 : -1; // +1 = counter-clockwise
+  const outward = (i: number): [number, number] => {
+    const [x0, y0] = poly[i];
+    const [x1, y1] = poly[(i + 1) % n];
+    const nx = w * (y1 - y0);
+    const ny = -w * (x1 - x0);
+    const len = Math.hypot(nx, ny) || 1;
+    return [nx / len, ny / len];
+  };
+  const out: [number, number][] = [];
+  for (let i = 0; i < n; i++) {
+    const [ax, ay] = outward((i - 1 + n) % n); // edge arriving at vertex i
+    const [bx, by] = outward(i);               // edge leaving vertex i
+    let mx = ax + bx, my = ay + by;
+    const ml = Math.hypot(mx, my) || 1;
+    mx /= ml; my /= ml;
+    // step along the bisector until the perpendicular distance to BOTH edges is
+    // `inflate` — cos of the half-angle between the bisector and either normal
+    const cosHalf = mx * ax + my * ay;
+    const t = inflate / (cosHalf || 1);
+    out.push([poly[i][0] + mx * t, poly[i][1] + my * t]);
+  }
+  return out;
+}
+
 /** Tyre radius, metres — 0.68 m diameter, a 20" wheel with tyre on it. */
 export const WHEEL_RADIUS_M = 0.34;
 
@@ -112,10 +192,12 @@ export const ROOF_POD = { radius: 0.15, yMin: 1.44, yMax: 1.64 } as const;
 // ═══════════════════════════════════════════════════════════════════════════
 
 export interface CarSolid {
-  /** Convex silhouette in (along, height-above-grade), metres. */
+  /**
+   * Convex silhouette in (along, height-above-grade), metres, ALREADY GROWN BY
+   * THE BEVEL. There is deliberately no separate inflate radius: a scalar
+   * inflate rounds the corners, and the mesh's corners are mitred.
+   */
   profile: readonly (readonly [number, number])[];
-  /** Radius the silhouette is grown by — the extrude bevel. */
-  profileInflate: number;
   /** Lateral extent of the whole vehicle, arm-frame z, metres. */
   zMin: number;
   zMax: number;
@@ -140,8 +222,7 @@ export function carSolidInArmFrame(
   const halfW = CAR_WIDTH_M / 2;
   const wx = CAR_LENGTH_M * WHEEL_ALONG_FRACTION;
   return {
-    profile: bodyProfile(),
-    profileInflate: BODY_BEVEL_M,
+    profile: bevelledBodyProfile(),
     zMin: centreZ - halfW,
     zMax: centreZ + halfW,
     wheels: [
@@ -256,8 +337,8 @@ export function clearanceToCar(
   const h = p.y - car.gradeY; // height above the deck
   const dz = slabDistance(p.z, car.zMin, car.zMax);
 
-  // painted body + glazing: convex silhouette grown by the extrude bevel
-  const dBody = convexPolygonDistance(p.x, h, car.profile) - car.profileInflate;
+  // painted body + glazing: convex silhouette, already grown by the extrude bevel
+  const dBody = convexPolygonDistance(p.x, h, car.profile);
   let best = combine(dBody, dz);
 
   // wheels
