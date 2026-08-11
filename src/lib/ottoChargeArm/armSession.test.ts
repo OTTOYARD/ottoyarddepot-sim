@@ -551,33 +551,49 @@ describe('an interrupted mate rejoins the release where it already is', () => {
     // One walk of the reach, forked at a sampled set of instants; plus a settled hold
     // to give the nominal baseline.
     //
-    // COST, and why the stride is 0.25 s rather than 0.1 s. Every fork replays a whole
-    // release with an IK solve per frame, so the work is (arms x ports x instants x
-    // release frames) — about 9 million solves at the old 0.1 s stride. That ran 3.9 s
-    // on an M3, i.e. 79% of vitest's 5 s default, and duly TIMED OUT on CI's slower
-    // shared runner. A test sitting at four-fifths of its budget is a latent flake
-    // whatever the timeout is set to.
+    // COST, AND WHY THE SAMPLING IS BY PHASE RATHER THAN BY TIME.
     //
-    // What was cut is TIME granularity, not GEOMETRY coverage — deliberately, because
-    // they carry different information. All 10 DCFC arms x 7 port variants are still
-    // swept: a real defect lives in a particular arm placement and port position, and
-    // that is exactly what this caught before (an abort during 'unstow' drove the
-    // connector 0.86 m back toward the inlet, ~6x the nominal arc). Abort INSTANT is
-    // the low-information axis: phases are seconds long, the travel varies smoothly
-    // within a phase, and a 0.25 s stride still forks inside every phase several times.
+    // Every fork replays a whole release with an IK solve per frame, so the work is
+    // (arms x ports x abort-instants x release-frames). A uniform 0.1 s stride was about
+    // 9 million solves: 3.9 s on an M3 and a TIMEOUT on CI. Widening the stride to 0.25 s
+    // cut that to 1.6 s locally — and it STILL timed out on CI at a 20 s budget, which
+    // puts the runner north of 12x slower than this machine. At that ratio, raising the
+    // number again is a guess, not a fix.
+    //
+    // So the sampling now follows the STRUCTURE OF THE FAILURE instead of the clock.
+    // The defect this test exists for is phase-entry-specific: an abort during 'unstow'
+    // drove the connector 0.86 m back toward the inlet, ~6x the nominal arc. Travel
+    // varies smoothly WITHIN a phase, so dense sampling inside one buys almost nothing,
+    // while every phase boundary is a distinct opportunity for the entry maths to be
+    // wrong. Forking a fixed number of evenly spaced instants PER PHASE therefore aims
+    // at the bug class directly and costs a fraction of a uniform sweep.
+    //
+    // GEOMETRY IS STILL EXHAUSTIVE — all 10 DCFC arms x 7 port variants. That axis is
+    // where a real defect hides (a particular arm placement and port position), and it
+    // has never been the expensive one.
     const reach = reachFrames(CONNECT_SECONDS + 1);
     const held = reachFrames(CONNECT_SECONDS + 20).pop()!;
-    const ABORT_STRIDE = 15;                      // 0.25 s at 60 fps
-    const forkAt = reach.filter((_, i) => i % ABORT_STRIDE === 0);
 
-    // SELF-GUARDING STRIDE. The justification above is "0.25 s still forks inside every
-    // phase several times" — so assert it, rather than leaving it as a claim someone can
-    // quietly invalidate by widening ABORT_STRIDE to make the test faster again.
-    const forkedPhases = new Set(forkAt.map((f) => f.phase));
-    for (const ph of new Set(reach.map((f) => f.phase))) {
+    const FORKS_PER_PHASE = 4;
+    const byPhase = new Map<string, ArmSession[]>();
+    for (const f of reach) {
+      const list = byPhase.get(f.phase) ?? [];
+      list.push(f);
+      byPhase.set(f.phase, list);
+    }
+    const forkAt: ArmSession[] = [];
+    for (const [, frames] of byPhase) {
+      const step = Math.max(1, Math.floor(frames.length / FORKS_PER_PHASE));
+      for (let i = 0; i < frames.length; i += step) forkAt.push(frames[i]);
+    }
+
+    // SELF-GUARDING. The justification above is "every phase is forked several times" —
+    // asserted, not asserted-in-a-comment, so nobody can thin this to make it faster
+    // without the test saying so.
+    for (const [ph, frames] of byPhase) {
       const n = forkAt.filter((f) => f.phase === ph).length;
-      expect(forkedPhases.has(ph), `ABORT_STRIDE skips phase '${ph}' entirely`).toBe(true);
-      expect(n, `ABORT_STRIDE forks phase '${ph}' only ${n} time(s)`).toBeGreaterThanOrEqual(2);
+      expect(n, `phase '${ph}' (${frames.length} frames) is forked only ${n} time(s)`)
+        .toBeGreaterThanOrEqual(Math.min(FORKS_PER_PHASE, frames.length));
     }
 
     for (const { label, target } of everyArmAndPort()) {
