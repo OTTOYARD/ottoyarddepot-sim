@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { twinMotionDriver } from "./TwinMotionDriver";
 import { useDepotStore } from "@/store/depotStore";
 import { useVehicleStore } from "@/store/vehicleStore";
+import { useSimulationStore } from "@/store/simulationStore";
 import { poseStore } from "./motion/poseStore";
 import type { TwinSnapshot } from "@/lib/ottoTwin";
 import { DISCONNECT_SECONDS } from "@/lib/ottoChargeArm/armStateMachine";
@@ -675,5 +676,156 @@ describe("robotic tether (OTTO-CHARGE ARM still mated)", () => {
       { id: "twin-1", tethered: true, tether_until: "2026-08-11T00:12:20.000Z" },
     ]));
     expect(twinMotionDriver.stallTetherRemainingS("DCFC-08")).toBe(0);
+  });
+});
+
+// ============================================================================
+// THE ARM'S CLOCK.
+//
+// ChargingArm derives its phase from serviceStartTime / serviceDuration on the
+// rendered vehicle. flush() used to hardcode BOTH to null in twin mode, so the
+// guard in the arm's frame loop never passed, phaseAt() was never called, and
+// every OTTO-CHARGE ARM sat at its 'stowed' initialiser for the entire run.
+// Arm GEOMETRY was well covered (kinematics / depotIntegration); nothing
+// asserted the clock was published, which is why that shipped. This is that
+// missing coverage.
+// ============================================================================
+describe("service clock published to the arms", () => {
+  const CLOCK = "2026-08-11T18:00:00.000Z";
+  const priv = () => twinMotionDriver as unknown as {
+    simAnchorAt: number;
+    dwells: Map<string, unknown[]>;
+  };
+
+  /** A snapshot with a sim clock, a mapped DCFC stall and optional dwell legs. */
+  const dwellSnap = (
+    vehicles: { id: string; state: string; stall_id?: string | null }[],
+    legs: Record<string, unknown>[] = [],
+    clock = CLOCK,
+  ): TwinSnapshot => {
+    const s = snap(vehicles);
+    (s as unknown as { run: { sim_clock: string; speed_x: number } }).run.sim_clock = clock;
+    (s as unknown as { run: { sim_clock: string; speed_x: number } }).run.speed_x = 1;
+    (s as unknown as { legs: unknown[] }).legs = legs;
+    return s;
+  };
+
+  /** A charge DWELL leg (kind != 'travel') at a twin stall. */
+  const chargeDwell = (vehicleId: string, twinStall: string, durationS: number, start = CLOCK) => ({
+    leg_id: `${vehicleId}-dwell`, vehicle_id: vehicleId, seq: 1,
+    leg_type: "charge_dcfc", intent: null, kind: "charge_session",
+    from_stall: twinStall, to_stall: twinStall,
+    from_x: null, from_y: null, to_x: null, to_y: null,
+    start_sim: start,
+    end_sim: new Date(Date.parse(start) + durationS * 1000).toISOString(),
+    duration_s: durationS, status: "active", geometry: "measured",
+  });
+
+  beforeEach(() => {
+    twinMotionDriver.clear();
+    useVehicleStore.getState().reset();
+    useSimulationStore.getState().resetConfig();
+    useDepotStore.getState().regenerateStalls(10, 30, 3, 115, 2);
+    twinMotionDriver.setTwinStallMap([{ id: "twin-d3", code: "NASH-DCFC-STALL-03", type: "dcfc" }]);
+  });
+
+  it("publishes OTTO-Q's dwell window as the docked car's service clock", () => {
+    twinMotionDriver.reconcile(dwellSnap(
+      [{ id: "v1", state: "charging_dcfc", stall_id: "twin-d3" }],
+      [chargeDwell("v1", "twin-d3", 1500)],
+    ));
+    const v = find("v1")!;
+    expect(v.assignedStall).toBe("DCFC-03");
+    expect(v.serviceDuration).toBe(1500);         // OTTO-Q's number, not a guess
+    expect(v.serviceStartTime).not.toBeNull();
+    // …and it is in the SAME frame as the clock the arm counts against, so
+    // `simTime - serviceStartTime` is a real elapsed and not an 18-hour offset.
+    twinMotionDriver.tickMotion(0.016);
+    const elapsed = useSimulationStore.getState().simTime - v.serviceStartTime!;
+    expect(Math.abs(elapsed)).toBeLessThan(2);
+  });
+
+  it("NO dwell leg on the wire → NO clock: absence is published, never a plausible guess", () => {
+    twinMotionDriver.reconcile(dwellSnap([{ id: "v1", state: "charging_dcfc", stall_id: "twin-d3" }]));
+    expect(find("v1")!.serviceStartTime).toBeNull();
+    expect(find("v1")!.serviceDuration).toBeNull();
+  });
+
+  it("a dwell leg for a DIFFERENT stall is never borrowed as this dock's clock", () => {
+    twinMotionDriver.setTwinStallMap([
+      { id: "twin-d3", code: "NASH-DCFC-STALL-03", type: "dcfc" },
+      { id: "twin-d9", code: "NASH-DCFC-STALL-09", type: "dcfc" },
+    ]);
+    twinMotionDriver.reconcile(dwellSnap(
+      [{ id: "v1", state: "charging_dcfc", stall_id: "twin-d3" }],
+      [chargeDwell("v1", "twin-d9", 1500)],   // a different service step
+    ));
+    expect(find("v1")!.assignedStall).toBe("DCFC-03");
+    expect(find("v1")!.serviceStartTime).toBeNull();
+  });
+
+  it("a car still DRIVING IN gets no clock — an arm cannot mate into an empty stall", () => {
+    // prime the driver so the next newcomer drives in from the ingress
+    twinMotionDriver.reconcile(dwellSnap([{ id: "seed", state: "staged_for_departure" }]));
+    twinMotionDriver.reconcile(dwellSnap(
+      [{ id: "seed", state: "staged_for_departure" },
+       { id: "v1", state: "charging_dcfc", stall_id: "twin-d3" }],
+      [chargeDwell("v1", "twin-d3", 1500)],
+    ));
+    expect(find("v1")!.assignedStall).toBe("DCFC-03");
+    expect(find("v1")!.serviceStartTime).toBeNull(); // still taxiing — no mate yet
+  });
+
+  it("the ROSTER FINGERPRINT includes the service window (else the clock never ships)", () => {
+    // flush() skips the store push when its fingerprint is unchanged. Status,
+    // stall and SoC are all identical across these two polls — only the window
+    // appears. If it is not in the key, the arm waits forever for a clock that
+    // was already computed.
+    twinMotionDriver.reconcile(dwellSnap([{ id: "v1", state: "charging_dcfc", stall_id: "twin-d3" }]));
+    expect(find("v1")!.serviceStartTime).toBeNull();
+    twinMotionDriver.reconcile(dwellSnap(
+      [{ id: "v1", state: "charging_dcfc", stall_id: "twin-d3" }],
+      [chargeDwell("v1", "twin-d3", 900)],
+    ));
+    expect(find("v1")!.serviceDuration).toBe(900);
+  });
+
+  it("the DEPOT CLOCK advances from the snapshot's own sim clock, and marks itself live", () => {
+    const sim = () => useSimulationStore.getState();
+    expect(sim().simTime).toBe(50400);       // frozen default before any run
+    expect(sim().simClockLive).toBe(false);
+    twinMotionDriver.reconcile(dwellSnap([{ id: "v1", state: "charging_dcfc", stall_id: "twin-d3" }]));
+    twinMotionDriver.tickMotion(0.016);
+    const t0 = sim().simTime;
+    expect(sim().simClockLive).toBe(true);   // the scrub slider stands down
+    expect(t0).not.toBe(50400);
+    // one real minute at speed_x = 1 is one sim minute
+    priv().simAnchorAt -= 60_000;
+    twinMotionDriver.tickMotion(0.016);
+    expect(sim().simTime - t0).toBeGreaterThanOrEqual(59);
+    expect(sim().simTime - t0).toBeLessThanOrEqual(61);
+  });
+
+  it("PAUSE freezes the depot clock with everything else (an arm must not mate on a held depot)", () => {
+    twinMotionDriver.reconcile(dwellSnap([{ id: "v1", state: "charging_dcfc", stall_id: "twin-d3" }]));
+    twinMotionDriver.tickMotion(0.016);
+    const t0 = useSimulationStore.getState().simTime;
+    twinMotionDriver.setPaused(true);
+    priv().simAnchorAt -= 60_000;
+    twinMotionDriver.tickMotion(0.016);
+    expect(useSimulationStore.getState().simTime).toBe(t0);
+    twinMotionDriver.setPaused(false);
+  });
+
+  it("a RUN SWITCH drops the dwell windows with the rest of the contract", () => {
+    twinMotionDriver.reconcile(dwellSnap(
+      [{ id: "v1", state: "charging_dcfc", stall_id: "twin-d3" }],
+      [chargeDwell("v1", "twin-d3", 1500)],
+    ));
+    expect(priv().dwells.size).toBe(1);
+    const b = dwellSnap([{ id: "v2", state: "charging_dcfc" }]);
+    (b as unknown as { run: { sim_run_id: string } }).run.sim_run_id = "run-B";
+    twinMotionDriver.reconcile(b);
+    expect(priv().dwells.size).toBe(0);
   });
 });

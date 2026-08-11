@@ -25,6 +25,7 @@ import { buildDepotLanes } from "./motion/LaneGraph";
 import { poseStore } from "./motion/poseStore";
 import { useDepotStore, type StallStatus } from "@/store/depotStore";
 import { useVehicleStore } from "@/store/vehicleStore";
+import { useSimulationStore } from "@/store/simulationStore";
 import type { Vehicle, VehicleStatus } from "@/engine/types";
 import type { TwinSnapshot, TwinLeg } from "@/lib/ottoTwin";
 import { INGRESS, EGRESS, gapLaneX, SOUTH_LANE_Y, REAR_LANE_Y } from "@/lib/sitePlan";
@@ -33,6 +34,32 @@ import { DISCONNECT_SECONDS } from "@/lib/ottoChargeArm/armStateMachine";
 type Lane = "dcfc" | "l2" | "wash" | "service" | "staging";
 
 const NORTH = -Math.PI / 2; // facing north (−y) in the y-down logical frame
+
+// ── DEPOT WALL CLOCK ────────────────────────────────────────────────────────
+// The renderer's clock (useSimulationStore.simTime) is SECONDS SINCE LOCAL
+// MIDNIGHT; the twin's sim_clock is an ISO instant. Everything that compares
+// the two — the OTTO-CHARGE ARM's `simTime - serviceStartTime`, the tooltip's
+// time-remaining — is garbage unless BOTH sides are converted with the same
+// offset, so the conversion lives here, once.
+const DEPOT_TZ = "America/Chicago";
+const DEPOT_TZ_PARTS = new Intl.DateTimeFormat("en-US", {
+  timeZone: DEPOT_TZ, hour12: false,
+  year: "numeric", month: "2-digit", day: "2-digit",
+  hour: "2-digit", minute: "2-digit", second: "2-digit",
+});
+/** Depot-local offset from UTC, in ms, at instant `atMs`. Recomputed per
+ *  snapshot rather than per frame: Intl formatting 60×/s is real cost and the
+ *  offset only moves at a DST boundary. */
+function depotOffsetMs(atMs: number): number {
+  const p: Record<string, string> = {};
+  for (const part of DEPOT_TZ_PARTS.formatToParts(new Date(atMs))) p[part.type] = part.value;
+  const asUtc = Date.UTC(
+    Number(p.year), Number(p.month) - 1, Number(p.day),
+    Number(p.hour) % 24, Number(p.minute), Number(p.second),
+  );
+  if (!Number.isFinite(asUtc)) return 0;
+  return asUtc - Math.floor(atMs / 1000) * 1000;
+}
 
 // Taxi motion is RAIL-CONSTRAINED (see motion/RailFlow.ts): pose = arc position
 // on the route polyline; following/intersections/column-docking are enforced by
@@ -196,6 +223,17 @@ interface Entry {
   playback: "enroute" | "docked" | "released";
   /** performance.now() when the car docked at its service stall (null until) */
   dwellStartMs: number | null;
+}
+
+/** A dwell leg's service window, parsed once per snapshot.
+ *  `stall` is the RENDERER stall id the dwell happens at, or null when the leg
+ *  named no stall the layout can resolve (which is not the same as "any stall"
+ *  — see serviceWindow()). */
+interface DwellWindow {
+  startMs: number;
+  durationS: number;
+  stall: string | null;
+  seq: number;
 }
 
 /** An OTTO-Q stall assignment the driver has accepted and is now honouring. */
@@ -439,6 +477,22 @@ class TwinMotionDriver {
   // ─── T4 RENDER CONTRACT: OTTO-Q's timed legs pace the motion ────────────────
   /** Active TRAVEL legs from the last snapshot, keyed by vehicle id. */
   private legs = new Map<string, TwinLeg>();
+  /** DWELL (non-travel) legs from the last snapshot, keyed by vehicle id, with
+   *  their windows already parsed to numbers.
+   *
+   *  A dwell leg is what HAPPENS at a stall — charge, wash, service — and it is
+   *  the ONLY place the wire carries a service window. Every one of them used to
+   *  be discarded ("if (l.kind !== 'travel') continue"), so flush() had nothing
+   *  to publish and hardcoded serviceStartTime/serviceDuration to null. That is
+   *  precisely why the OTTO-CHARGE ARMS never moved: ChargingArm's frame loop
+   *  requires both fields before it will call phaseAt(), so the phase stayed at
+   *  its 'stowed' initialiser for the whole run. The arms were mounted on the
+   *  right stalls and matched to the right cars — they simply had no clock. */
+  private dwells = new Map<string, DwellWindow[]>();
+  /** Depot-local UTC offset for the current snapshot's sim clock. */
+  private tzOffsetMs = 0;
+  /** Last whole second pushed into the React store — see publishSimClock(). */
+  private lastPublishedTod = -1;
   /** Sim clock (ms) carried by the last snapshot, and the performance.now() at
    *  which it arrived. simNow() extrapolates between snapshots off the WALL clock,
    *  so motion keeps running — correctly — when the feed stalls or is unplugged.
@@ -467,6 +521,123 @@ class TwinMotionDriver {
   private simNow(): number {
     if (!this.simAnchorClock) return 0;
     return this.simAnchorClock + (performance.now() - this.simAnchorAt) * this.simSpeedX;
+  }
+
+  /**
+   * The live depot clock in SECONDS SINCE LOCAL MIDNIGHT, or null when no
+   * snapshot has anchored it yet.
+   *
+   * This is the imperative channel — same pattern as poseStore. Consumers that
+   * need per-frame resolution (the OTTO-CHARGE ARM) read it here and get a
+   * fresh value every frame with no React work; publishSimClock() separately
+   * pushes a 1 Hz copy into the store for the HH:MM readout and the day/night
+   * lighting, which do not need 60 updates a second.
+   */
+  simClockTod(): number | null {
+    const ms = this.simNow();
+    if (!ms) return null;
+    return this.toTod(ms);
+  }
+
+  /** epoch ms → seconds since depot-local midnight. */
+  private toTod(ms: number): number {
+    const day = 86400_000;
+    return ((((ms + this.tzOffsetMs) % day) + day) % day) / 1000;
+  }
+
+  /**
+   * Push the live clock into the React store, at most once per whole second.
+   *
+   * The clock has to reach the store or the BottomBar readout, the day/night
+   * lighting and the tooltip's time-remaining all keep reading the frozen 50400
+   * default. It must NOT reach it every frame: DepotScene3D subscribes to
+   * simTime, so a 60 Hz write would re-render the whole 3D tree continuously.
+   * One write per sim-second is plenty for an HH:MM display, and the arm never
+   * reads the store at all (see simClockTod).
+   */
+  private publishSimClock() {
+    const tod = this.simClockTod();
+    if (tod === null) return;
+    const whole = Math.floor(tod);
+    if (whole === this.lastPublishedTod) return;
+    this.lastPublishedTod = whole;
+    useSimulationStore.getState().setLiveSimTime(whole);
+  }
+
+  /** Parse a dwell leg's window once, at snapshot time. Returns null when the
+   *  leg carries no usable window — an unstamped or zero-length dwell is an
+   *  ABSENCE, and the renderer publishes absence rather than a plausible guess. */
+  private parseDwell(l: TwinLeg): DwellWindow | null {
+    const startMs = Date.parse(String(l.start_sim ?? ""));
+    if (!Number.isFinite(startMs)) return null;
+    const endMs = Date.parse(String(l.end_sim ?? ""));
+    const fromField = Number(l.duration_s);
+    const durationS = Number.isFinite(fromField) && fromField > 0
+      ? fromField
+      : Number.isFinite(endMs) ? (endMs - startMs) / 1000 : NaN;
+    if (!Number.isFinite(durationS) || durationS <= 0) return null;
+    // A dwell happens AT a stall; to_stall is where the car ends up, from_stall
+    // is the fallback for backends that stamp only the origin. Either way the
+    // twin uuid is translated here so no consumer has to know about the mapping.
+    const stall =
+      (l.to_stall ? this.twinStall.get(l.to_stall) : undefined) ??
+      (l.from_stall ? this.twinStall.get(l.from_stall) : undefined) ??
+      null;
+    return { startMs, durationS, stall, seq: Number(l.seq ?? 0) };
+  }
+
+  /**
+   * The service window to publish for a DOCKED car, in the renderer's
+   * seconds-of-day frame — or null when OTTO-Q sent none.
+   *
+   * TWO deliberate decisions:
+   *
+   *  • Only a car that is PHYSICALLY PARKED gets a window. The backend opens a
+   *    charge session on its own tick, which can be well before the renderer has
+   *    finished driving the car in (commit-and-hold). An arm that mates into an
+   *    empty stall is exactly the invented picture this renderer must not draw,
+   *    so the cycle is anchored to the dock instant when the backend's start is
+   *    already in the past. The DURATION stays OTTO-Q's; only the start is
+   *    clamped forward, and "when the car physically arrived" is the one fact
+   *    the motion layer owns.
+   *
+   *  • UNITS. PHASE_SECONDS in armStateMachine are REAL robot seconds, and this
+   *    window is in SIM seconds — the same domain, because a sim second IS a
+   *    second of depot world time. Playback speed (`speed_x`, mirrored onto the
+   *    motion multiplier and hard-capped at 3) scales the arm and the cars by
+   *    the identical factor, so a 3x run shows an 18.5 s mate in ~6 wall
+   *    seconds, in step with the car that just parked. Feeding it wall seconds
+   *    instead would mate the arm at playback speed while the depot moved at
+   *    sim speed.
+   */
+  private serviceWindow(e: Entry): { start: number; duration: number } | null {
+    if (!e.stallId || e.playback !== "docked" || e.dwellStartMs == null) return null;
+    const list = this.dwells.get(e.id);
+    if (!list?.length || this.simAnchorClock === 0) return null;
+    const now = this.simNow();
+    let best: DwellWindow | null = null;
+    let bestRank = -1;
+    for (const w of list) {
+      // A leg that names a DIFFERENT stall is a different service step in the
+      // visit, not this dock — never borrow its clock.
+      if (w.stall && w.stall !== e.stallId) continue;
+      // A window that actually contains the sim clock beats one that merely
+      // names the right stall, which beats an unstalled leg.
+      const rank = (now >= w.startMs && now < w.startMs + w.durationS * 1000 ? 4 : 0) +
+                   (w.stall ? 2 : 0);
+      if (rank > bestRank || (rank === bestRank && best !== null && w.seq > best.seq)) {
+        best = w;
+        bestRank = rank;
+      }
+    }
+    if (!best) return null;
+    // Anchor to the later of OTTO-Q's start and the moment the car actually
+    // docked, both expressed as sim instants so the comparison is in one domain.
+    const dockedAtSim = this.simAnchorClock + (e.dwellStartMs - this.simAnchorAt) * this.simSpeedX;
+    return {
+      start: this.toTod(Math.max(best.startMs, dockedAtSim)),
+      duration: best.durationS,
+    };
   }
 
   /** Speed ceiling (u/s) that lands this car at its leg's planned_end_sim.
@@ -520,6 +691,13 @@ class TwinMotionDriver {
     this.runId = null;
     this.departQueue = [];
     this.locks = new RailLocks();
+    this.legs.clear();
+    this.dwells.clear();
+    this.simAnchorClock = 0;
+    this.lastPublishedTod = -1;
+    // hand the depot clock back to manual control — leaving twin mode means no
+    // backend owns it any more, and a slider left disabled would be a dead UI.
+    useSimulationStore.getState().releaseLiveSimTime();
     // push an empty roster so no ghost fleet lingers after leaving twin mode
     useVehicleStore.getState().setVehicles([]);
     // ...and no stale stall paint on an empty depot (gap G6): an emptied scene
@@ -544,7 +722,9 @@ class TwinMotionDriver {
     // the NEW fleet against the OLD run's clock (ids never match, so a car would
     // be held to a deadline from a different world).
     this.legs.clear();
+    this.dwells.clear();
     this.simAnchorClock = 0;
+    this.lastPublishedTod = -1;
     // clearing driver state is not enough on its own: the painted fleet and the
     // stall colors live in the stores, and an EMPTY roster produces the same
     // fingerprint as the reset lastRosterKey, so the push below would be skipped
@@ -756,14 +936,25 @@ class TwinMotionDriver {
       this.simAnchorClock = clockMs;
       this.simAnchorAt = performance.now();
       this.simSpeedX = Math.max(0.1, Number(snap.run?.speed_x ?? 1) || 1);
+      this.tzOffsetMs = depotOffsetMs(clockMs);
     }
-    // Only TRAVEL legs steer motion; dwell legs describe what happens once parked.
+    // TRAVEL legs steer motion; DWELL legs describe what happens once parked —
+    // and carry the only service windows on the wire, which is the arm's clock.
     // Newest wins per vehicle, so a re-planned move supersedes the one it replaced.
     this.legs.clear();
+    this.dwells.clear();
     for (const l of snap.legs ?? []) {
-      if (l?.kind !== "travel" || !l.vehicle_id) continue;
-      const prev = this.legs.get(l.vehicle_id);
-      if (!prev || (l.seq ?? 0) >= (prev.seq ?? 0)) this.legs.set(l.vehicle_id, l);
+      if (!l?.vehicle_id) continue;
+      if (l.kind === "travel") {
+        const prev = this.legs.get(l.vehicle_id);
+        if (!prev || (l.seq ?? 0) >= (prev.seq ?? 0)) this.legs.set(l.vehicle_id, l);
+        continue;
+      }
+      const w = this.parseDwell(l);
+      if (!w) continue; // no usable window — publish nothing rather than invent one
+      const list = this.dwells.get(l.vehicle_id);
+      if (list) list.push(w);
+      else this.dwells.set(l.vehicle_id, [w]);
     }
     const depot = useDepotStore.getState();
     const stalls = depot.stalls;
@@ -1232,6 +1423,11 @@ class TwinMotionDriver {
     // Single chokepoint for ALL motion: guarding here (not just in step) means
     // no caller — loop, interval, or test — can advance a held depot.
     if (this.paused) return;
+    // The depot clock advances HERE, not in reconcile: tickMotion runs every
+    // frame whether or not a car moved, so a fully parked depot still has a
+    // running clock (an arm mid-mate on a stationary car must not freeze), and
+    // a PAUSED depot freezes the clock with everything else via the guard above.
+    this.publishSimClock();
     // every physical body on the lot, one entry each — rail cars project these
     // onto their own forward windows (RailFlow); `moving` is kept only for the
     // reverse maneuver's rear-clearance check.
@@ -1452,11 +1648,20 @@ class TwinMotionDriver {
     // (1) live poses → the mutable channel EVERY tick (no React, no allocation).
     // The renderers read these imperatively in their own frame loop.
     let key = "";
+    // The service window is part of the ROSTER, so it must also be part of the
+    // fingerprint. Without it, a car that was already in the roster (unchanged
+    // status/stall/SoC) acquires its window silently and the early-return below
+    // drops the whole push — the arm would go on waiting for a clock that had
+    // already been computed. Resolved once here and reused for the roster.
+    const windows = new Map<string, { start: number; duration: number } | null>();
     for (const [id, e] of this.entries) {
       poseStore.set(id, e.car.x, e.car.y, e.car.heading);
+      const w = this.serviceWindow(e);
+      windows.set(id, w);
       // SoC bucketed to 5% — per-percent churn used to invalidate the roster on
       // nearly every poll and re-render the whole SVG tree + every 3D car.
-      key += `${id}:${e.vstatus}:${e.stallId ?? ""}:${Math.round(e.soc / 5)};`;
+      key += `${id}:${e.vstatus}:${e.stallId ?? ""}:${Math.round(e.soc / 5)}`;
+      key += `:${w ? `${Math.round(w.start)}/${Math.round(w.duration)}` : ""};`;
     }
     // (2) the React roster → only when the SET / status / stall / soc changes,
     // so movement never triggers a re-render.
@@ -1464,12 +1669,18 @@ class TwinMotionDriver {
     this.lastRosterKey = key;
     const arr: Vehicle[] = [];
     for (const [id, e] of this.entries) {
+      const w = windows.get(id) ?? null;
       arr.push({
         id, label: e.avId ? (e.make ? `${e.avId} · ${e.make}` : e.avId) : undefined,
         type: "fleet", oem: e.oem, priority: 5,
         batteryCapacity: 100, currentSoC: e.soc, targetSoC: 90,
         status: e.vstatus, assignedStall: e.stallId, serviceQueue: [], currentServiceIndex: 0,
-        serviceStartTime: null, serviceDuration: null, arrivalTime: 0,
+        // OTTO-Q's dwell window, in the same seconds-of-day frame as the store's
+        // simTime. Null when the wire carried no window for this dock — the arm
+        // then stays home instead of animating against a fabricated clock.
+        serviceStartTime: w ? w.start : null,
+        serviceDuration: w ? w.duration : null,
+        arrivalTime: 0,
         position: { x: e.car.x, y: e.car.y }, heading: e.car.heading,
         targetPosition: null, waypoints: [],
       });
