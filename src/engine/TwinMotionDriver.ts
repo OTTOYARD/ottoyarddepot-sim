@@ -28,7 +28,10 @@ import { useVehicleStore } from "@/store/vehicleStore";
 import { useSimulationStore } from "@/store/simulationStore";
 import type { Vehicle, VehicleStatus } from "@/engine/types";
 import type { TwinSnapshot, TwinLeg } from "@/lib/ottoTwin";
-import { INGRESS, EGRESS, gapLaneX, SOUTH_LANE_Y, REAR_LANE_Y, PARK_RUNS, TEMP_LANE_X } from "@/lib/sitePlan";
+import {
+  INGRESS, EGRESS, gapLaneX, SOUTH_LANE_Y, REAR_LANE_Y, PARK_RUNS, TEMP_LANE_X,
+  WEST_AISLE_X, EAST_AISLE_X, NORTH_LANE_Y, N1_LANE_Y, QUEUE_Y,
+} from "@/lib/sitePlan";
 import { DISCONNECT_SECONDS } from "@/lib/ottoChargeArm/armStateMachine";
 
 type Lane = "dcfc" | "l2" | "wash" | "service" | "staging";
@@ -204,18 +207,63 @@ const SERVICE_LANES = new Set<Lane>(["dcfc", "l2", "wash", "service"]);
 const isServiceLane = (l: Lane | "gate" | null): boolean =>
   l != null && SERVICE_LANES.has(l as Lane);
 
+// The drive corridors a parked car is SERVED from, in render units: north-south
+// avenues by x, east-west lanes by y. Imported from sitePlan rather than retyped, so
+// moving an aisle moves the parked headings with it.
+const AISLE_X = [WEST_AISLE_X, TEMP_LANE_X, EAST_AISLE_X];
+const LANE_Y = [REAR_LANE_Y, N1_LANE_Y, NORTH_LANE_Y, SOUTH_LANE_Y, QUEUE_Y];
+
+/** How far BEHIND the parked nose the pull-in approach point sits, in render units
+ *  (~one design vehicle). Exported so the geometry test measures the real offset
+ *  rather than a copy of it. */
+export const APPROACH_BACK_U = 9;
+
+/** The corridor nearest `v`, or null when none is usable — an empty candidate list,
+ *  a non-finite coordinate, or a corridor lying exactly ON the stall (no side to be
+ *  on). Null means "not established", and the caller falls back rather than guessing
+ *  a side from a degenerate number. */
+function nearestCorridor(v: number, candidates: number[]): number | null {
+  if (!Number.isFinite(v)) return null;
+  let best: number | null = null;
+  let bd = Infinity;
+  for (const c of candidates) {
+    if (!Number.isFinite(c)) continue;
+    const d = Math.abs(v - c);
+    if (d < bd) { bd = d; best = c; }
+  }
+  return best != null && bd > 1e-6 ? best : null;
+}
+
 /** Parked heading for a stall. Chargers/bays face NORTH (toward the bays).
- *  Perimeter staging columns/rows nose OUTWARD (away from the depot center)
- *  along their orientation axis, so the pull-in approach point (9u BEHIND the
- *  nose) always lands on the INTERIOR, drivable side — never off the lot edge.
- *  (The old sitePlan-angle heading pointed the west column INWARD, putting its
- *  approach point past the west edge at x≈7, unreachable → cars detoured to the
- *  far edge and crept.) */
-function parkedHeading(lane: Lane, angleDeg: number, sx: number, sy: number): number {
+ *  A staging car noses AWAY from the aisle that serves it, so the pull-in approach
+ *  point (APPROACH_BACK_U behind the nose, see routeToStall) lands IN that aisle and the car
+ *  enters off the drive lane instead of tracking along its own column.
+ *
+ *  WHY THIS IS DERIVED FROM THE AISLE AND NOT THE DEPOT CENTRE. This used to read
+ *  `sx < DEPOT_CX ? PI : 0` — face away from the middle of the lot. That is right for
+ *  the four PERIMETER runs, where "away from the centre" and "away from the aisle"
+ *  are the same direction, and WRONG for an interior block. Measured on the 158-stall
+ *  replan: the TW column sits at x=233.5, east of the lot centre (150), so the centroid
+ *  rule pointed it EAST — but TW is the WEST column of the temp block and its aisle is
+ *  TEMP_LANE_X=247, on its EAST. All 12 TW stalls were therefore approached from
+ *  x=224.5, the back side, 9u FARTHER from their aisle instead of 9u nearer; the other
+ *  101 staging stalls measured -9.00u (correct) and TW measured +9.00u.
+ *
+ *  Deriving the side from the nearest corridor makes the rule local, so a column added
+ *  or moved inside the lot is served correctly without anyone re-deriving a centroid.
+ *  The centroid test is kept as the FALLBACK for the case where no corridor can be
+ *  established, so this stays a total function. */
+export function parkedHeading(lane: Lane, angleDeg: number, sx: number, sy: number): number {
   if (lane === "dcfc" || lane === "l2" || lane === "wash" || lane === "service") return NORTH;
   const vertical = angleDeg === 90 || angleDeg === 270; // east-west oriented column
-  if (vertical) return sx < DEPOT_CX ? Math.PI : 0;      // west edge→face W, east→face E
-  return sy < DEPOT_CY ? NORTH : Math.PI / 2;            // north edge→face N, south→face S
+  if (vertical) {
+    const aisle = nearestCorridor(sx, AISLE_X);
+    if (aisle == null) return sx < DEPOT_CX ? Math.PI : 0; // fallback: lot centre
+    return sx < aisle ? Math.PI : 0;                       // aisle east→face W, west→face E
+  }
+  const row = nearestCorridor(sy, LANE_Y);
+  if (row == null) return sy < DEPOT_CY ? NORTH : Math.PI / 2; // fallback: lot centre
+  return sy < row ? NORTH : Math.PI / 2;                       // lane south→face N, north→face S
 }
 
 interface Entry {
@@ -873,6 +921,17 @@ class TwinMotionDriver {
    *  docks/undocks in a column throat at a time). */
   private railTo(from: { x: number; y: number }, lane: Lane, stall: { x: number; y: number }, facing: number, lead: Pt[] = []): Rail {
     const pts = [...lead, ...this.routeToStall(from, lane, stall, facing)];
+    // A TEMP-AISLE MOUTH LOCK WAS TRIED HERE AND IS DELIBERATELY ABSENT. TW and TE
+    // face each other across a 15.5 u aisle while the design vehicle is 10.2 u long, so
+    // a car squaring up to pull in necessarily lies across both lane bodies. Giving the
+    // two columns a shared mouth key — the mechanism the charger columns use — changed
+    // the fixture by NOTHING (116 pair-samples before and after), because the conflict
+    // is not two cars staging at once: it is a staging car against THROUGH traffic
+    // running up TEMP_LANE_X to the N1 row, which is not bound for a temp stall and so
+    // would never hold the key. Shortening the approach does not help either (measured
+    // at 9/8/7/6.5/6 u: 116/116/117/118/119). Closing it needs aisle occupancy, not a
+    // terminal-stretch lock; that is named in the fixture's ratchet comment as the
+    // remaining work rather than papered over with a constraint that measures zero.
     const mouth = lane === "dcfc" || lane === "l2" ? `${lane}:${Math.round(stall.x)}` : null;
     return buildRail(pts, this.graph.nodes.values(), mouth);
   }
@@ -977,8 +1036,10 @@ class TwinMotionDriver {
     // parking / bays: approach a point one car-length BEHIND the parked heading,
     // then pull straight in — each car fans to its own stall and noses in facing
     // `facing`, instead of trailing others into a shared approach spot.
-    const ax = stall.x - Math.cos(facing) * 9;
-    const ay = stall.y - Math.sin(facing) * 9;
+    // `facing` comes from parkedHeading, which points the car AWAY from its serving
+    // aisle, so "behind the nose" IS the aisle and the car enters off the drive lane.
+    const ax = stall.x - Math.cos(facing) * APPROACH_BACK_U;
+    const ay = stall.y - Math.sin(facing) * APPROACH_BACK_U;
     return [...lead, ...this.graph.route(start, { x: ax, y: ay }), { x: stall.x, y: stall.y }];
   }
 

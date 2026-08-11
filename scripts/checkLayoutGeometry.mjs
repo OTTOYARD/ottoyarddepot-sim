@@ -67,12 +67,30 @@ const NON_ENCLOSING_KINDS = new Set([
 /**
  * Minimum clear aisle width, in feet.
  *
- * 24 ft is the two-way / 90-degree parking standard, and it is the number the
- * charging aisles are held to — they are the ones the audit found at 12 ft.
- * The perimeter and collector lanes in this layout are ONE-WAY by design
- * (sitePlan.ts: "Collectors are two-way boulevards; aisles are one-way"), and the
- * one-way standard is 20 ft. Both thresholds are declared here rather than buried,
- * so that raising them is a visible edit.
+ * 24 ft is the two-way / 90-degree parking standard. 20 ft is the one-way standard.
+ * Both thresholds are declared here rather than buried, so that raising them is a
+ * visible edit.
+ *
+ * WHICH STALL GETS WHICH — this used to be `stall_type === 'dcfc' || 'l2'`, i.e. the
+ * charging stalls got 24 ft and EVERY staging stall got 20 ft, on the strength of a
+ * sitePlan comment reading "Collectors are two-way boulevards; aisles are one-way".
+ * That comment is not what the layout says. sitePlan declares BOTH avenues "two-way
+ * divided" (WEST_AISLE_X, EAST_AISLE_X), the founder specified the temp aisle and the
+ * east avenue to the ~24 ft two-way standard on 2026-08-11, and the lane graph carries
+ * the opposing pair for each of them. So the guard was holding the founder's own 24 ft
+ * corridors to a 20 ft floor: the east avenue could have been narrowed from its
+ * measured 24.39 ft down to 20.1 ft and this check would still have printed PASS.
+ *
+ * The classification is now DERIVED from the lane graph rather than typed here (see
+ * LANE_RUNS below): a corridor is two-way when the graph carries both directions
+ * across it. That is the same construction check 7 uses — the guarded set is the
+ * driven set — so a lane that changes direction re-classifies the stalls it serves on
+ * the next seed build, with nobody having to remember to edit a list.
+ *
+ * The floor is a RATCHET: a stall is held to the greater of its type floor and its
+ * aisle floor, so making the classification data-driven can only ever raise a
+ * threshold, never lower one. The charging stalls stay at 24 ft even though the gap
+ * lanes that serve them are genuinely one-way northbound.
  */
 const AISLE_MIN_FT = { two_way: 24.0, one_way: 20.0 };
 
@@ -162,6 +180,43 @@ function overlap(a, b) {
 }
 
 const boxes = new Map(measured.map((s) => [s.stall_code, box(s)]));
+
+// ---------------------------------------------------------------------------
+// THE ROAD NETWORK, WITH ITS DIRECTIONALITY
+//
+// The seed emits lanes.runs_ft: every DIRECTED edge of buildDepotLanes(), named
+// "FROM>TO", offset drive-on-the-right and widened to one design vehicle. A corridor
+// is TWO-WAY exactly when the graph also carries the opposing edge — "SE>NE" is
+// two-way because "NE>SE" exists; "Sg3>Ng3" is one-way because "Ng3>Sg3" does not.
+//
+// That is a fact about the network the cars actually drive, not a label anyone has to
+// keep in sync. Measured on this seed it separates 42 two-way runs from 13 one-way
+// ones, and the 13 are exactly the ones the doctrine says are one-way: the four
+// charge-lane pull-outs (northbound only), the rear-apron chain, and the ingress and
+// egress spurs.
+//
+// Used by check 6 (which floor a stall's approach is held to) and by checks 7 and 9
+// (nothing solid may stand in a lane).
+// ---------------------------------------------------------------------------
+const LANE_RECTS = (() => {
+  const runs = lanes?.runs_ft;
+  if (!Array.isArray(runs) || runs.length === 0) return null;
+  const ok = (r) => ['x0', 'y0', 'x1', 'y1'].every((k) => Number.isFinite(r[k])) && typeof r.lane_name === 'string';
+  if (!runs.every(ok)) return null;
+  const named = new Set(runs.map((r) => r.lane_name));
+  return runs.map((r) => {
+    const [from, to] = r.lane_name.split('>');
+    return {
+      name: r.lane_name,
+      // A malformed name (no '>') yields undefined halves and `undefined>undefined`
+      // is not in the set, so it classifies one-way — the LOWER claim, never a
+      // silent upgrade to "this is a 24 ft corridor".
+      two_way: named.has(`${to}>${from}`),
+      x0: Math.min(r.x0, r.x1), x1: Math.max(r.x0, r.x1),
+      y0: Math.min(r.y0, r.y1), y1: Math.max(r.y0, r.y1),
+    };
+  });
+})();
 
 // ---- 1. NULL / non-finite ---------------------------------------------------
 {
@@ -275,9 +330,18 @@ const boxes = new Map(measured.map((s) => [s.stall_code, box(s)]));
 // one. A stall needs one adequate way in; it does not need four. That is also
 // exactly the defect the audit found — 20 charging stalls with NO clear side at all.
 //
-// Charging stalls are held to the two-way standard because they are the ones the
-// audit caught at 12 ft. Perimeter and temp staging sit on one-way aisles.
+// WHICH FLOOR. Every face is classified by the lane that SERVES it — the nearest lane
+// body lying beyond that face and overlapping it laterally — and held to 24 ft when
+// that lane is two-way. The stall then passes on the best of its four faces, as before.
+// See AISLE_MIN_FT for why this replaced a hand-typed stall_type test.
 {
+  if (!LANE_RECTS) {
+    // The classification cannot be established without the road network, and a
+    // 20 ft floor applied to a 24 ft corridor is a false PASS. Refuse, do not guess.
+    fail('minimum drivable aisle',
+      'lane geometry missing from the seed (lanes.runs_ft) — the two-way/one-way ' +
+      'classification is NOT ESTABLISHED. Re-run scripts/buildLayoutSeed.mjs.', []);
+  } else {
   const solid = structures.filter(
     (t) => !NON_ENCLOSING_KINDS.has(t.structure_kind) && t.status === 'active',
   ).map((t) => ({
@@ -338,32 +402,72 @@ const boxes = new Map(measured.map((s) => [s.stall_code, box(s)]));
     return { clear, blocker };
   }
 
-  const rows = [];
-  for (const s of measured) {
-    // best of the four faces — the side the car actually uses to get in
-    let best = { clear: -1, blocker: null, side: null };
-    for (const side of SIDES) {
-      const c = clearance(s, side);
-      if (c.clear > best.clear) best = { ...c, side: side.name };
+  /** The lane a car leaving through this face drives into: the nearest lane body
+   *  beyond the face that actually lies across it. Lateral overlap is required, so a
+   *  road running past the END of a column does not get read as that column's aisle.
+   *  Returns null when no lane lies that way at all — a fence face, or the back of a
+   *  building — and null is reported as such rather than assumed to be one-way. */
+  function servingLane(s, { dx, dy }) {
+    const b = boxes.get(s.stall_code);
+    const edge = dx !== 0 ? (dx > 0 ? b.x1 : b.x0) : (dy > 0 ? b.y1 : b.y0);
+    const lat0 = dx !== 0 ? b.y0 : b.x0;
+    const lat1 = dx !== 0 ? b.y1 : b.x1;
+    let best = null;
+    for (const L of LANE_RECTS) {
+      const [near, far] = dx !== 0 ? [L.x0, L.x1] : [L.y0, L.y1];
+      const [olat0, olat1] = dx !== 0 ? [L.y0, L.y1] : [L.x0, L.x1];
+      if (Math.min(lat1, olat1) - Math.max(lat0, olat0) <= 1e-6) continue; // not across this face
+      const d = (dx > 0 || dy > 0) ? near - edge : edge - far;
+      if (d < -1e-6) continue;                                             // behind the face
+      if (!best || d < best.d) best = { d, lane: L };
     }
-    const twoWay = s.stall_type === 'dcfc' || s.stall_type === 'l2';
-    rows.push({ code: s.stall_code, type: s.stall_type, clear: best.clear,
-                blocker: best.blocker, side: best.side,
-                min: twoWay ? AISLE_MIN_FT.two_way : AISLE_MIN_FT.one_way, twoWay });
+    return best;
   }
 
-  const bad = rows.filter((r) => r.clear < r.min - 1e-6)
-    .sort((a, b) => a.clear - b.clear)
+  const rows = [];
+  for (const s of measured) {
+    // The type floor is the ratchet's lower bound: charging is held to 24 ft whatever
+    // the lane graph says, because the gap lanes that serve it are one-way northbound
+    // and that must not be allowed to relax the number the audit was written around.
+    const typeFloor = (s.stall_type === 'dcfc' || s.stall_type === 'l2')
+      ? AISLE_MIN_FT.two_way : AISLE_MIN_FT.one_way;
+
+    const faces = SIDES.map((side) => {
+      const c = clearance(s, side);
+      const sl = servingLane(s, side);
+      const aisleFloor = sl && sl.lane.two_way ? AISLE_MIN_FT.two_way : AISLE_MIN_FT.one_way;
+      const min = Math.max(typeFloor, aisleFloor);
+      return {
+        ...c, side: side.name, min,
+        lane: sl ? sl.lane.name : null,
+        aisle: sl ? (sl.lane.two_way ? 'two-way' : 'one-way') : 'no lane on this face',
+        margin: c.clear - min,
+      };
+    });
+
+    // A stall needs ONE adequate way in, so it passes on its best face — but "best"
+    // now means the largest margin over that face's OWN floor, not the widest gap.
+    // A 30 ft one-way face and a 25 ft two-way face are not comparable as raw numbers.
+    const best = faces.reduce((m, f) => (f.margin > m.margin ? f : m), faces[0]);
+    rows.push({ code: s.stall_code, type: s.stall_type, ...best });
+  }
+
+  const bad = rows.filter((r) => r.margin < -1e-6)
+    .sort((a, b) => a.margin - b.margin)
     .map((r) => `${r.code} (${r.type}): best side ${r.side} gives ${r.clear.toFixed(1)} ft clear, ` +
-                `needs ${r.min.toFixed(0)} ft [${r.twoWay ? 'two-way' : 'one-way'}] — blocked by ${r.blocker}`);
-  const tightest = rows.reduce((m, r) => (r.clear < m.clear ? r : m), rows[0]);
-  const tightCharge = rows.filter((r) => r.twoWay).reduce((m, r) => (r.clear < m.clear ? r : m), rows.find((r) => r.twoWay));
+                `needs ${r.min.toFixed(0)} ft [${r.aisle}${r.lane ? ` — lane ${r.lane}` : ''}] — ` +
+                `blocked by ${r.blocker}`);
+  const tightest = rows.reduce((m, r) => (r.margin < m.margin ? r : m), rows[0]);
+  const twoWayRows = rows.filter((r) => r.min >= AISLE_MIN_FT.two_way);
+  const tightTwo = twoWayRows.reduce((m, r) => (r.clear < m.clear ? r : m), twoWayRows[0]);
   bad.length
     ? fail('minimum drivable aisle', `${bad.length} stall(s) below standard`, bad)
     : conclude('minimum drivable aisle', [],
-        `tightest overall ${tightest.code} at ${tightest.clear.toFixed(1)} ft ` +
-        `(needs ${tightest.min.toFixed(0)} ft, ${tightest.twoWay ? 'two-way' : 'one-way'}); ` +
-        `tightest charging ${tightCharge.code} at ${tightCharge.clear.toFixed(1)} ft (needs 24 ft)`);
+        `${twoWayRows.length} of ${rows.length} stalls held to the ${AISLE_MIN_FT.two_way} ft two-way floor ` +
+        `(${rows.filter((r) => r.aisle === 'two-way').length} by their serving lane); ` +
+        `tightest margin ${tightest.code} at ${tightest.clear.toFixed(2)} ft vs ${tightest.min.toFixed(0)} ft ` +
+        `[${tightest.aisle}]; tightest two-way ${tightTwo.code} at ${tightTwo.clear.toFixed(2)} ft`);
+  }
 }
 
 // ---- 7. Stall vs LANE clearance ---------------------------------------------
@@ -395,17 +499,8 @@ const boxes = new Map(measured.map((s) => [s.stall_code, box(s)]));
 // The seed now emits lanes.runs_ft: EVERY directed edge of buildDepotLanes(), offset
 // drive-on-the-right and widened to one design vehicle. The guarded set is the driven
 // set by construction, so a lane added to the graph is guarded the moment it exists.
-const LANE_RECTS = (() => {
-  const runs = lanes?.runs_ft;
-  if (!Array.isArray(runs) || runs.length === 0) return null;
-  const ok = (r) => ['x0', 'y0', 'x1', 'y1'].every((k) => Number.isFinite(r[k])) && typeof r.lane_name === 'string';
-  if (!runs.every(ok)) return null;
-  return runs.map((r) => ({
-    name: r.lane_name,
-    x0: Math.min(r.x0, r.x1), x1: Math.max(r.x0, r.x1),
-    y0: Math.min(r.y0, r.y1), y1: Math.max(r.y0, r.y1),
-  }));
-})();
+// LANE_RECTS is built once near the top of this file, because check 6 needs its
+// directionality too.
 
 /** Signed separation of a footprint from a lane body. Negative on BOTH axes means the
  *  lane cuts into it; otherwise the larger separation is the clear gap. */
