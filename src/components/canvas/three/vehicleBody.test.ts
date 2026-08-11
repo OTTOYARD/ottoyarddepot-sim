@@ -1,20 +1,21 @@
 /**
- * The robotaxi body is allowed to change SHAPE. It is not allowed to change
- * SIZE, and it is not allowed to float.
+ * The robotaxi body is allowed to change SHAPE. Its SIZE must equal the ONE
+ * footprint in traffic.ts, and it is not allowed to float.
  *
- * The old body was stacked boxes at SCALE = 7.5/4.9. Swapping it for an
- * extruded side profile means every dimension is now the product of a metre
- * literal, a bevel and a unit conversion — exactly the arithmetic that put an
- * earlier arm into the depot at 48% scale. CAR_LENGTH also drives the IDM
- * following gap and the fixture overlap budgets, so a mesh that quietly grew
- * would desynchronise what you see from what the traffic model believes.
+ * The body is an extruded side profile, so every dimension is the product of a
+ * metre literal, a bevel and a unit conversion — exactly the arithmetic that
+ * put an earlier arm into the depot at 48% scale. It is also what let the mesh
+ * sit at 7.5 x 3.3673 pu while the traffic model reserved 10.2 x 4.2 and the
+ * cockpit painted 10.2 x 4.2: a self-consistent car that was 26% shorter than
+ * both of the others. Asserting the literals would have proved nothing, so
+ * these measure the ASSEMBLED bounding box against the traffic body.
  */
 
 import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
 import { VEHICLE_GEO, PORT_GEO, CAR_L_PU, CAR_W_PU } from './vehicleBody';
 import { DECK_Y } from './coordUtils';
-import { CAR_LENGTH } from '@/engine/motion/traffic';
+import { CAR_BODY_LENGTH, CAR_BODY_WIDTH } from '@/engine/motion/traffic';
 import { PLAN_UNITS_PER_METRE } from '@/lib/ottoChargeArm/cobotSpec';
 import { portFor } from '@/lib/ottoChargeArm/chargePort';
 
@@ -36,13 +37,18 @@ function bodyBox(): THREE.Box3 {
 }
 
 describe('robotaxi body geometry', () => {
-  it('keeps the frozen 7.5 x 3.367 plan-unit footprint', () => {
+  it('measures the ONE robotaxi footprint — 10.2 x 4.2 plan units', () => {
     const b = bodyBox();
     // length on Z (vehicles face local +Z), width on X
     expect(b.max.z - b.min.z).toBeCloseTo(CAR_L_PU, 6);
     expect(b.max.x - b.min.x).toBeCloseTo(CAR_W_PU, 6);
-    expect(CAR_L_PU).toBe(CAR_LENGTH);
-    expect(CAR_W_PU).toBeCloseTo(3.3673469, 6);
+    // Was pinned to 7.5 x 3.3673 and called FROZEN — a mesh 26% shorter and
+    // 20% narrower than the body traffic.ts reserves and the cockpit paints.
+    // Pinned to the traffic body itself now, so there is nothing left to drift.
+    expect(CAR_L_PU).toBe(CAR_BODY_LENGTH);
+    expect(CAR_W_PU).toBe(CAR_BODY_WIDTH);
+    expect(CAR_L_PU).toBe(10.2);
+    expect(CAR_W_PU).toBe(4.2);
   });
 
   it('is centred on its own origin, so a stall pose puts it in the stall', () => {

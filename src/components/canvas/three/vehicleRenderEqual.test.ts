@@ -40,8 +40,23 @@ describe('vehicleRenderEqual', () => {
   });
 
   it('redraws across a whole charging climb, not just at bucket boundaries', () => {
-    // 40 -> 46 is six real points. Math.round(40/5)=8 and Math.round(46/5)=9, so
-    // the old predicate allowed exactly ONE redraw across the entire climb.
+    // WHAT THIS PROVES, stated exactly, because the previous wording did not.
+    //
+    // It said "40 -> 46 is six real points... the old predicate allowed exactly
+    // ONE redraw across the entire climb", which reads as a measurement of the
+    // shipped renderer. It never was one. It is arithmetic on the old
+    // predicate's own formula — Math.round(40/5)=8 through Math.round(46/5)=9
+    // crosses one bucket boundary — evaluated here on synthetic inputs. At
+    // runtime the component was never even CALLED with 41..45: a roster-level
+    // gate upstream discarded the intermediate polls before this predicate saw
+    // them, so no such redraw sequence was ever observed. That gate is fixed,
+    // which is why the arithmetic now describes something reachable.
+    //
+    // So: this test proves the CURRENT predicate redraws on every whole-point
+    // step, six for six. It does not measure how the old one behaved in the
+    // running app, and it is not evidence about the frozen-SoC report beyond
+    // the formula. A comment that reads as a measurement it never took is how
+    // the upstream gate survived review in the first place.
     let redraws = 0;
     for (let soc = 40; soc < 46; soc++) {
       if (!vehicleRenderEqual(car({ currentSoC: soc }), car({ currentSoC: soc + 1 }))) redraws++;

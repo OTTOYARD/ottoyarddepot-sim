@@ -40,33 +40,54 @@ export interface MovingCar {
  */
 export const CAR_BODY_LENGTH = 10.2;
 /** Stated so the footprint has ONE home and the drift pin can check both axes.
- *  Nothing budgets laterally off it today: RailFlow's LANE_HALF is a lane-
- *  discipline band, not a body half-width, and widening it to 2.1/2.6/3.2 was
- *  measured on the busy_day fixture and made overlap WORSE (1223 → 1366 / 1398
- *  / 1684 pair-samples) because more braking parks more cars in the corridor. */
+ *  Nothing budgets FOLLOWING GAPS laterally off it: RailFlow's LANE_HALF is a
+ *  lane-discipline band, not a body half-width, and widening it to 2.1/2.6/3.2
+ *  was measured on the busy_day fixture and made overlap WORSE (1223 → 1366 /
+ *  1398 / 1684 pair-samples) because more braking parks more cars in the
+ *  corridor. It IS the drawn width, in both the 2D cockpit and the 3D mesh, and
+ *  therefore the flank plane the OTTO-CHARGE ARM reaches for — see CAR_WIDTH. */
 export const CAR_BODY_WIDTH = 4.2;
 
 /**
- * 3D MESH SCALE SEED — NOT the traffic footprint. Do not budget gaps with it.
+ * ONE ROBOTAXI, ONE SIZE. These are ALIASES, not a second opinion.
  *
- * vehicleBody.ts builds the three.js body to this length (and CAR_WIDTH below)
- * and its own comment calls the footprint FROZEN, because CAR_WIDTH sets the
- * flank plane the OTTO-CHARGE ARM aims its standoff at. The mesh is drawn
- * smaller than the cockpit's 2D body; reconciling those two is a renderer
- * change, not a traffic change, so this stays put and the traffic model uses
- * CAR_BODY_LENGTH above instead.
- */
-export const CAR_LENGTH = 7.5;
-
-/**
- * Logical car width, plan units — the same 3.367 the 3D body is built to.
+ * They used to be a separate, smaller car: CAR_LENGTH = 7.5 and
+ * CAR_WIDTH = 2.2 * (7.5 / 4.9) = 3.3673, i.e. 3.59 m x 1.61 m. That was the
+ * "3D mesh scale seed", and it meant the three.js body was drawn 26% shorter
+ * and 20% narrower than the body this traffic model reserves and the cockpit
+ * paints. A gap that looked correct in 2D looked wrong in 3D and vice versa,
+ * and the 3D car was the only one of the three that was not a real vehicle.
  *
- * Stated here beside CAR_LENGTH because it was previously an unnamed
- * `2.2 * (7.5 / 4.9)` copied into the renderer, the arm component and two test
- * files. One of those copies drifting would put the OTTO-CHARGE ARM's standoff
- * on a different flank plane from the flank it is aiming at.
+ * The mesh now builds to the footprint above. The names survive only because
+ * the OTTO-CHARGE ARM package and ChargingArm.tsx import CAR_WIDTH to find the
+ * flank plane it aims its standoff at; pointing them at the same constant is
+ * the whole point of the unification, so they must NOT be given a value of
+ * their own again.
+ *
+ * MEASURED before shipping this, because widening the body moves that flank
+ * plane 0.199 m closer to the DCFC pedestal (near-flank standoff 1.3476 m ->
+ * 1.1484 m at the fixed 4.5 pu pedestal offset):
+ *   - service window, full sweep at the new standoff: 4949 samples, 0
+ *     unreachable — same as before, the arm reaches everything it did.
+ *   - far-flank exclusion (the orchestration constraint chargePort.ts rests
+ *     on) gets STRONGER: the ARM_SCALE ceiling rises 1.6141 -> 1.7487 because
+ *     the far flank moved away.
+ *   - stowed clearance to the flank plane drops 0.2344 m -> 0.0352 m. Still
+ *     positive, still passes, but it is now the tightest number in the arm
+ *     package — see the note in vehicleBody.ts.
+ * kinematics.test.ts and depotIntegration.test.ts derive their own geometry
+ * from CAR_WIDTH, so both track this automatically; all 26 arm tests pass.
+ *
+ * ⚠ DO NOT WIDEN THE CAR AGAIN WITHOUT READING THIS. kinematics.test.ts'
+ * far-flank test ends with `expect(headroom).toBeLessThan(1.75)` — a sanity
+ * bound on the arithmetic, written when headroom was 1.6141. It is 1.748729
+ * now, 0.001271 from red. The next increase to CAR_BODY_WIDTH, to ARM_SCALE,
+ * or to the pedestal offset turns that into a CI failure whose message talks
+ * about the arm reaching across the vehicle, which is NOT what will have gone
+ * wrong. That bound needs re-deriving in the arm package (not owned here).
  */
-export const CAR_WIDTH = 2.2 * (CAR_LENGTH / 4.9);
+export const CAR_LENGTH = CAR_BODY_LENGTH;
+export const CAR_WIDTH = CAR_BODY_WIDTH;
 
 export interface Leader {
   gap: number;        // bumper-to-bumper distance (>=0), Infinity if none

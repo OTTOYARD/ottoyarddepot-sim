@@ -1,11 +1,42 @@
 import { describe, it, expect } from "vitest";
-// The two gap expectations below were written against CAR_LENGTH (7.5, the
-// 3D mesh scale seed) and so ENCODED the defect this change removes: they
-// asserted a bumper gap measured off a body 2.7 u shorter than the one the
-// cockpit draws. They now assert the same arithmetic against CAR_BODY_LENGTH.
+// The two gap expectations below were once written against CAR_LENGTH, which
+// at the time was a separate 7.5 (the 3D mesh scale seed), and so ENCODED the
+// defect that change removed: they asserted a bumper gap measured off a body
+// 2.7 u shorter than the one the cockpit draws. They assert the same
+// arithmetic against CAR_BODY_LENGTH now, and CAR_LENGTH is an alias of it.
 import {
-  findLeader, separationSteer, StallLedger, CAR_BODY_LENGTH, type MovingCar,
+  findLeader, separationSteer, StallLedger,
+  CAR_BODY_LENGTH, CAR_BODY_WIDTH, CAR_LENGTH, CAR_WIDTH, type MovingCar,
 } from "./traffic";
+import { METRES_PER_PLAN_UNIT } from "@/lib/ottoChargeArm/cobotSpec";
+
+/**
+ * ONE ROBOTAXI, ONE SIZE.
+ *
+ * CAR_LENGTH / CAR_WIDTH were a SECOND, SMALLER car (7.5 x 3.3673 pu =
+ * 3.59 m x 1.61 m) that vehicleBody.ts built the three.js mesh to, so the 3D
+ * car was 26% shorter and 20% narrower than the body this file reserves and
+ * the cockpit paints. They are aliases now. This pins that: the arm package
+ * and ChargingArm.tsx import CAR_WIDTH to locate the flank plane they aim at,
+ * so giving it a value of its own again would put the OTTO-CHARGE ARM's
+ * standoff on a flank the car does not have.
+ */
+describe("the body footprint has exactly one definition", () => {
+  it("aliases the legacy mesh-seed names onto the traffic body", () => {
+    expect(CAR_LENGTH).toBe(CAR_BODY_LENGTH);
+    expect(CAR_WIDTH).toBe(CAR_BODY_WIDTH);
+    // and the old values are gone, not merely equal by coincidence
+    expect(CAR_LENGTH).not.toBe(7.5);
+    expect(CAR_WIDTH).not.toBeCloseTo(3.3673469, 6);
+  });
+
+  it("is a real robotaxi in metres, not a plan-unit abstraction", () => {
+    // 1 plan unit = 0.4785 m (sitePlan.ts). Mixing plan units and metres is
+    // the class of defect that once rendered an arm at 48% scale.
+    expect(CAR_BODY_LENGTH * METRES_PER_PLAN_UNIT).toBeCloseTo(4.8807, 4);
+    expect(CAR_BODY_WIDTH * METRES_PER_PLAN_UNIT).toBeCloseTo(2.0097, 4);
+  });
+});
 
 const car = (id: string, x: number, y: number, heading = 0, speed = 0): MovingCar => ({
   id, pose: { x, y, heading }, speed,

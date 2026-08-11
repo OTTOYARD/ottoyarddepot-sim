@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Vehicle } from '@/engine/types';
 import { useVehicleStore } from '@/store/vehicleStore';
+import { CAR_BODY_LENGTH, CAR_BODY_WIDTH } from '@/engine/motion/traffic';
 
 const VEHICLE_COLORS: Record<string, string> = {
   fleet: '#00B4A6',
@@ -104,13 +105,17 @@ const VehicleDotInner = ({ vehicle: v }: Props) => {
           for each other" artefact: the cars were tracking their lanes correctly
           and still colliding, because the paint was honest and the body was not.
           4.2 x 10.2 units = 2.01 m x 4.88 m — a real robotaxi footprint — and
-          leaves 0.6 units (0.29 m) of daylight between passing bodies. */}
+          leaves 0.6 units (0.29 m) of daylight between passing bodies.
+          The numbers are IMPORTED, not retyped. This rect was the third place
+          in the codebase that decided how big a car is (traffic.ts reserved
+          10.2 x 4.2, vehicleBody.ts drew 7.5 x 3.367, this drew 10.2 x 4.2),
+          and a literal here is exactly how the 3D mesh drifted 26% short. */}
       <g data-body transform={`rotate(${rotation})`}>
         <rect
-          x={-2.1}
-          y={-5.1}
-          width={4.2}
-          height={10.2}
+          x={-CAR_BODY_WIDTH / 2}
+          y={-CAR_BODY_LENGTH / 2}
+          width={CAR_BODY_WIDTH}
+          height={CAR_BODY_LENGTH}
           rx={1.4}
           ry={1.4}
           fill={fill}
