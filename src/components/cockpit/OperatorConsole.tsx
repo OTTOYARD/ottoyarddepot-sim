@@ -30,7 +30,7 @@ import { useTwinStore } from "@/store/twinStore";
 import { useSimulationStore } from "@/store/simulationStore";
 import { useWorldStore } from "@/store/worldStore";
 import type { CoverageVerdict } from "@/lib/ottoq/coverage";
-import { useTwinControl } from "@/hooks/useTwinControl";
+import { useTwinControl, MAX_SPEED_X } from "@/hooks/useTwinControl";
 
 // ── knob helpers (read/write the profile JSONB shape) ──
 type Knobs = Record<string, any>;
@@ -361,7 +361,20 @@ export const OperatorConsole = () => {
       // adopts the new sim_run_id into the twin store (feed begins rendering).
       await startDemoRun(code, 1);
       ctrl.play();      // Start also begins the clock — "press Start and watch it run"
-      ctrl.setSpeed(1); // fresh runs open at TRUE 1:1 (playback_mode='live', speed_x=1)
+      // Fresh runs open at the CONTINUOUS CEILING (3×), not 1:1.
+      //
+      // Opening at 1× was a demo-killer, and it was measured: run 7d8da1ca advanced
+      // 3.6 sim-minutes in 3.7 real minutes, so a car on a DC fast charger gained 6.2
+      // percentage points in the time anyone actually watches. The orchestration
+      // underneath was healthy — 539 decisions, 11 charge sessions, 96 dispatches —
+      // and the depot still read as frozen, because four minutes of watching buys
+      // four minutes of depot.
+      //
+      // 3× is the ceiling ottoq_set_playback hard-clamps to, and the reason it exists
+      // is unchanged: past 3× the clock outruns the decision loop, so anything faster
+      // must be a JUMP (ottoq_sim_jump_forward), never a speed. True 1:1 is still one
+      // drag of the slider away for inspecting real-time behaviour.
+      ctrl.setSpeed(3);
       const title = scenarios.find((s) => s.scenario_code === code)?.title ?? code;
       toast.success(`Started ${title} — recording`);
     } catch (e: any) { toast.error("Start failed", { description: e.message }); }
@@ -485,7 +498,7 @@ export const OperatorConsole = () => {
         )}
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-ink-faint uppercase tracking-wide w-10">Speed</span>
-          <Slider className="flex-1" min={1} max={3} step={1} value={[ctrl.speed]} onValueChange={([v]) => ctrl.setSpeed(v)} />
+          <Slider className="flex-1" min={1} max={MAX_SPEED_X} step={1} value={[ctrl.speed]} onValueChange={([v]) => ctrl.setSpeed(v)} />
           <span className="font-mono text-[11px] text-ink cc-num w-7 text-right">{ctrl.speed}×</span>
         </div>
         {runId && <div className="text-[10px] font-mono text-ink-faint">run {runId.slice(0,8)} · {snapshot?.run?.status ?? "—"} · t{snapshot?.run?.tick_count ?? 0}{ctrl.playing && " · ▶ live"}</div>}

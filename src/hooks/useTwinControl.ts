@@ -9,23 +9,36 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { twin } from "@/lib/ottoTwin";
 import { useTwinStore } from "@/store/twinStore";
 
+/** Continuous-play ceiling. MUST match the hard clamp in ottoq_set_playback — the
+ *  backend silently clamps anything above it, so a slider that offered more would lie.
+ *  Skipping hours at a time is still a JUMP (ottoq_sim_jump_forward), not a speed. */
+export const MAX_SPEED_X = 8;
+
 export function useTwinControl() {
   const activeSimRunId = useTwinStore((s) => s.activeSimRunId);
   const [playing, setPlaying] = useState(false);
-  const [speed, setSpeedState] = useState(1);     // 1–10×; ALWAYS start at 1× real pace
+  // 1–8× (ottoq_set_playback hard-clamps at 8; the slider matches). Opens at 3×:
+  // watchable without asking anyone to touch a control, with headroom to push to 8×
+  // and run forward through an hour or two. See OperatorConsole.startScenario.
+  const [speed, setSpeedState] = useState(3);
   const tsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // PLAYBACK SPEED (founder spec 2026-07-25). The slider now drives the real
-  // playback contract — `ottoq_set_playback(run,'live',speed_x)` — where 1× is TRUE
-  // 1:1 (one real second = one sim second) and the backend hard-caps at 3×.
+  // PLAYBACK SPEED (founder spec 2026-07-25; ceiling raised 2026-08-11). The slider
+  // drives the real playback contract — `ottoq_set_playback(run,'live',speed_x)` —
+  // where 1× is TRUE 1:1 (one real second = one sim second) and the backend hard-caps
+  // at MAX_SPEED_X.
   //
   // It previously drove `time_scale` (sim-MINUTES per tick), which was backwards for
   // this goal: raising it gave the same crawl with BIGGER jumps, and its client floor
-  // of 15 pinned the minimum at 75× real time — 1:1 was unreachable. Anything faster
-  // than 3× is a JUMP (ottoq_sim_jump_forward), not a speed change.
+  // of 15 pinned the minimum at 75× real time — 1:1 was unreachable.
+  //
+  // Skipping HOURS at a time is still a JUMP (ottoq_sim_jump_forward), not a speed:
+  // decision spacing in sim time scales with speed_x (~4 s at 1×, ~32 s at 8×), which
+  // stays far finer than the ~30 sim-minute granularity orchestration plans at — but
+  // would stop being true well above this ceiling.
   // Debounced so dragging doesn't spam the API.
   const setSpeed = useCallback((v: number) => {
-    const clamped = Math.min(3, Math.max(1, v));
+    const clamped = Math.min(MAX_SPEED_X, Math.max(1, v));
     setSpeedState(clamped);
     if (tsTimer.current) clearTimeout(tsTimer.current);
     tsTimer.current = setTimeout(() => {
