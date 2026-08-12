@@ -1,18 +1,33 @@
 // ============================================================================
-// REVIEW HARNESS — NOT FOR COMMIT.
+// THE TEST NOBODY WROTE: does the arm actually mate ON THE LIVE CADENCE?
 //
-// Rebuilds the founder-reported live defect end-to-end in the driver + armGate,
-// on the LIVE POLL CADENCE (not a single reconcile), and asks the two questions
-// the review cares about:
+// EVERY OTHER TEST FILE IN THIS REPO RUNS FASTER THAN THE APP'S OWN CLOCK.
+// Not one of them calls vi.useFakeTimers or advances performance.now(), and all
+// of them finish in well under a second of real time — while DWELL_FLOOR_MS is
+// TWELVE REAL WALL-CLOCK SECONDS. So the whole "service clock published to the
+// arms" block in TwinMotionDriver.test.ts does ONE reconcile against a car
+// placed parked-in-place and asserts (case A below). Case A passed at every
+// commit, including the ones where the founder's cockpit showed zero connected
+// arms for 45 minutes. A green suite was not evidence.
+//
+// This file FAKES WALL TIME, so performance.now() — the clock DWELL_FLOOR_MS,
+// dwellStartMs and simNow() all read — advances the way it does live, and then
+// polls the driver on the live cadence instead of asserting after one call.
+//
+// It asks the two questions the founder's defect turns on:
 //
 //   1. Does a car the twin reports charging_dcfc, parked on a DCFC stall, come
 //      out of the published roster with a NON-NULL serviceStartTime, and does
 //      ChargingArm's own predicate evaluate TRUE — and does it STAY true long
-//      enough for the 18.5 s mate to complete?
-//   2. Does a car still TAXIING toward a DCFC stall fail to mate?
+//      enough for the 18.5 s mate to complete, and long after?
+//   2. Does a car still TAXIING toward a DCFC stall fail to mate? (Case C. This
+//      is the invariant the fix had to keep, and it is worth more than the fix:
+//      an arm reaching into an empty stall is a worse depot than an arm that
+//      never reaches at all.)
 //
-// Wall time is faked so `performance.now()` — the clock DWELL_FLOOR_MS,
-// dwellStartMs and simNow() all read — advances the way it does live.
+// Cases labelled below exactly as they were measured at 68bd8ba, so the before
+// and after are comparable line by line. At 68bd8ba: A and B and C passed,
+// E and F FAILED.
 // ============================================================================
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { twinMotionDriver } from "./TwinMotionDriver";
@@ -77,7 +92,7 @@ function armPredicate(id: string, stallId: string) {
   return { chargingState, parked, charging, phase, vFound: !!v, id };
 }
 
-describe("REVIEW: does the arm actually mate on the live cadence?", () => {
+describe("does the arm actually mate on the live cadence?", () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ["performance", "Date"] });
     vi.setSystemTime(new Date("2026-08-11T18:00:00.000Z"));
@@ -135,7 +150,7 @@ describe("REVIEW: does the arm actually mate on the live cadence?", () => {
       if (rec.sst === "NULL" && firstNull < 0 && t > 0) firstNull = t / 1000;
     }
     for (const s of samples) {
-      if (s.t % 10 === 0 || s.t < 20) {
+      if (s.t % 20 === 0) {
         console.log("[B] t=%ss playback=%s serviceStartTime=%s parked=%s charging=%s armPhase=%s",
           s.t, s.playback, s.sst, s.parked, s.charging, s.phase);
       }
@@ -146,6 +161,75 @@ describe("REVIEW: does the arm actually mate on the live cadence?", () => {
       samples.length, firstNull, active, mated);
     // The claim under review: the arm reaches and holds a mated state.
     expect(mated).toBeGreaterThan(0);
+    // …and the window that opened the mate never goes away underneath it. At
+    // 68bd8ba this first went NULL at t=12s (DWELL_FLOOR_MS) and stayed NULL.
+    expect(firstNull).toBe(-1);
+    expect(samples[samples.length - 1].sst).not.toBe("NULL");
+  });
+
+  it("G — THE SEAM: charging_dcfc + parked on a DCFC stall ⇒ a window, and STILL a window a minute later", () => {
+    // The assertion whose absence let this ship. The published roster is the ONE
+    // shared fact between the driver's own armGate and ChargingArm.tsx; if it
+    // carries no serviceStartTime for a car that is demonstrably charging in a
+    // charger, neither evaluation of the arm cycle can ever start a mate.
+    //
+    // 68bd8ba: non-null at t=0, NULL from t=12s on (DWELL_FLOOR_MS is REAL
+    // seconds). The check has to outlive that floor by a wide margin or it is
+    // just case A again with extra steps.
+    twinMotionDriver.reconcile(dwellSnap(
+      [{ id: "car", state: "charging_dcfc", stall_id: "twin-d2" }],
+      [chargeDwell("car", "twin-d2", 4962, CLOCK0)], CLOCK0, 1));
+    const at0 = find("car")!.serviceStartTime;
+    expect(at0).not.toBeNull();
+
+    // 90 REAL seconds — 7.5x DWELL_FLOOR_MS — of frames and polls.
+    for (let t = 0; t < 90000; t += 2000) {
+      for (let k = 0; k < 2000 / 16; k++) { vi.advanceTimersByTime(16); twinMotionDriver.tickMotion(0.016); }
+      twinMotionDriver.reconcile(dwellSnap(
+        [{ id: "car", state: "charging_dcfc", stall_id: "twin-d2" }],
+        [chargeDwell("car", "twin-d2", 4962, CLOCK0)], CLOCK0 + t + 2000, 1));
+    }
+    const v = find("car")!;
+    console.log("[G] +90 real s: playback=%s serviceStartTime=%s (was %s at t=0) armPhase=%s",
+      priv().entries.get("car")?.playback, String(v.serviceStartTime), String(at0),
+      twinMotionDriver.armPhaseAt("DCFC-02"));
+    expect(v.status).toBe("charging");
+    expect(v.assignedStall).toBe("DCFC-02");
+    expect(v.serviceStartTime).not.toBeNull();
+    // and the driver's OWN evaluation of the cycle got there too
+    expect(twinMotionDriver.armPhaseAt("DCFC-02")).toBe("charging");
+  });
+
+  it("H — COMMIT-AND-HOLD SURVIVES: a twin flip with no new service stall is still held for the floor", () => {
+    // The half of the old block that is CORRECT and must not be traded away.
+    // The twin ticks 30 sim-min at a time, so a charge routinely completes in the
+    // backend before the renderer has finished showing it. A flip to
+    // staged_for_departure is a PREDICTION about where the car will be, and the
+    // floor is what makes the charge visible at all. Only a flip that names a
+    // different SERVICE stall — a position, not a prediction — now goes straight
+    // through (case F).
+    twinMotionDriver.reconcile(dwellSnap(
+      [{ id: "car", state: "charging_dcfc", stall_id: "twin-d2" }],
+      [chargeDwell("car", "twin-d2", 4962, CLOCK0)], CLOCK0, 1));
+    expect(find("car")!.assignedStall).toBe("DCFC-02");
+
+    // 4 s later — INSIDE the 12 s floor — the twin says it is staged to leave.
+    vi.advanceTimersByTime(4000);
+    twinMotionDriver.reconcile(dwellSnap(
+      [{ id: "car", state: "staged_for_departure", stall_id: null }], [], CLOCK0 + 4000, 1));
+    const held = { stall: find("car")!.assignedStall, status: find("car")!.status };
+    console.log("[H] t=4s twin says staged_for_departure → still rendered on %s as %s (held)",
+      held.stall, held.status);
+    expect(held.stall).toBe("DCFC-02");   // the dock is still being SEEN
+    expect(held.status).toBe("charging");
+
+    // past the floor, the hold releases and live truth flows again
+    vi.advanceTimersByTime(9000);
+    twinMotionDriver.reconcile(dwellSnap(
+      [{ id: "car", state: "staged_for_departure", stall_id: null }], [], CLOCK0 + 13000, 1));
+    console.log("[H] t=13s past the floor → stall=%s status=%s",
+      find("car")!.assignedStall, find("car")!.status);
+    expect(find("car")!.status).toBe("staging");
   });
 
   it("E — THE LIVE OBSERVATION: an arm that starts stowed against an ALREADY-charging car", () => {
@@ -250,15 +334,21 @@ describe("REVIEW: does the arm actually mate on the live cadence?", () => {
       } else if (pb === "docked" && dockedAt < 0) {
         dockedAt = t / 1000;
       }
-      if (dockedAt >= 0 && trail.length < 40) {
-        trail.push(`t=${t / 1000}s pb=${pb} sst=${find("car")?.serviceStartTime ?? "NULL"} parked=${p.parked} charging=${p.charging} phase=${p.phase}`);
+      // one line per PHASE CHANGE after the dock, not one per sample
+      if (dockedAt >= 0) {
+        const line = `pb=${pb} phase=${p.phase}`;
+        if (trail[trail.length - 1]?.split(" | ")[1] !== line) trail.push(`t=${t / 1000}s | ${line}`);
       }
     }
-    for (const line of trail) console.log("[D after-dock] %s", line);
+    for (const line of trail) console.log("[C after-dock] %s", line);
     console.log("[C] while ENROUTE: parked-ever=%s armCharging-ever=%s worstPhase=%s | first docked at t=%ss",
       worstParked, worstCharging, worstPhase, dockedAt);
     expect(worstParked).toBe(false);
     expect(worstCharging).toBe(false);
     expect(worstPhase).toBe("stowed");
+    // …and once it HAS docked the mate does complete — otherwise "never mated"
+    // would trivially satisfy the three assertions above.
+    expect(dockedAt).toBeGreaterThan(0);
+    expect(trail.some((l) => l.endsWith("phase=charging"))).toBe(true);
   });
 });

@@ -195,12 +195,25 @@ export function ChargingArm({ stallId, stallType }: ChargingArmProps) {
     // condition is a state, so it cannot expire.
     //
     // A window (serviceStartTime) is required to START a mate, because it is the
-    // one proof on the roster that the car is PHYSICALLY PARKED — the driver only
-    // publishes it once playback reaches 'docked', and an arm reaching into a
-    // stall a car is still taxiing toward is the invented picture this renderer
-    // must never draw. It is deliberately NOT required to CONTINUE one: dwell
-    // legs are rebuilt from every snapshot, so a re-plan that drops the leg would
-    // otherwise yank the connector out of a car that is still charging.
+    // one proof on the roster that the car is PHYSICALLY PARKED — an arm reaching
+    // into a stall a car is still taxiing toward is the invented picture this
+    // renderer must never draw. It is deliberately NOT required to CONTINUE one:
+    // dwell legs are rebuilt from every snapshot, so a re-plan that drops the leg
+    // would otherwise yank the connector out of a car that is still charging.
+    //
+    // WHAT "PHYSICALLY PARKED" MEANS ON THE OTHER SIDE OF THIS SEAM, because it
+    // is the whole reason arms never connected. The driver used to publish the
+    // window only while its `playback` state read 'docked' — a VISIBILITY state
+    // with a twelve REAL-second life (DWELL_FLOOR_MS). Twelve seconds after
+    // docking, a car that was still charging lost its window, and an arm that
+    // had not already committed could never start. Mount this component against
+    // a run already in flight — the founder's every page load — and every car on
+    // a charger was already past that floor, so NO arm ever left 'stowed'.
+    // TwinMotionDriver.physicallyParked() now gates the window on the car's POSE
+    // (no rail, no back-out, body on the stall pose), which does not expire and
+    // is strictly stronger about the taxiing case. See its comment, and
+    // TwinMotionDriver.armreality.test.ts cases E and G, which fake wall time
+    // because nothing else in this repo does.
     const chargingState = v?.status === 'charging';
     const parked = v?.serviceStartTime !== null && v?.serviceStartTime !== undefined;
     const charging = !!v && chargingState && (parked || isArmCommitted(session.current.phase));
