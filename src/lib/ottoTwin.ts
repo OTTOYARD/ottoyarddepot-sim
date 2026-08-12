@@ -194,6 +194,13 @@ export interface TwinSnapshot {
     /** The backend's authoritative ArmPhase at this stall. Absent reads as unknown,
      *  never as 'clear'. */
     tether_phase?: string | null;
+    /** The vehicle OTTO-Q is HOLDING this stall for, when it is holding it for one.
+     *  Published only for LIVE reservations (checked against the sim clock the
+     *  expiry was written in), so an expired hold never arrives as an instruction.
+     *  Without this the renderer could see that a stall was reserved but not who
+     *  for, and fell back to choosing a staging stall itself. */
+    reserved_by?: string | null;
+    reserved_until?: string | null;
   }[];
   /** THE ARM CONTRACT (`public.ottoq_arm_timings` via the snapshot RPC).
    *

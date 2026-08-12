@@ -692,6 +692,7 @@ describe("robotic tether (OTTO-CHARGE ARM still mated)", () => {
     rows: {
       id: string; tethered?: boolean; tether_until?: string | null;
       tether_direction?: string | null; tether_phase?: string | null;
+      reserved_by?: string | null; status?: string; vehicle_id?: string | null;
     }[],
     simClock = "2026-08-11T00:12:30.134Z",
   ): TwinSnapshot => {
@@ -804,6 +805,40 @@ describe("robotic tether (OTTO-CHARGE ARM still mated)", () => {
     ]));
     expect(twinMotionDriver.stallTetherRemainingS("DCFC-08")).toBeCloseTo(11.5, 3);
     expect(twinMotionDriver.stallArmDirection("DCFC-08")).toBeNull();
+  });
+
+  // ── OTTO-Q'S PRE-ARRIVAL HOLD ────────────────────────────────────────────
+  // A car still en route has no command and no current_stall_id, so the driver
+  // used to fall through to picking a staging stall itself — from a pool sorted
+  // by distance to the gate, whose nearest entries are the south perimeter
+  // carports. Meanwhile OTTO-Q held a short-term spot for that exact vehicle
+  // that nothing ever drove to: the car parked on the ring on screen and the
+  // hold expired unused. The twin does not decide where cars go.
+  it("reads which vehicle a stall is being held for", () => {
+    twinMotionDriver.reconcile(tetherSnap([{
+      id: "twin-1", status: "available", vehicle_id: null, reserved_by: "veh-42",
+    }]));
+    expect(twinMotionDriver.reservedStallFor("veh-42")).toBe("DCFC-08");
+    expect(twinMotionDriver.reservedStallFor("veh-99")).toBeNull();
+  });
+
+  it("drops the hold as soon as the backend stops publishing it", () => {
+    // The backend filters to LIVE reservations against the sim clock, so an
+    // expired hold simply stops appearing. A stale one kept here would steer a
+    // car to a stall it no longer has.
+    twinMotionDriver.reconcile(tetherSnap([{
+      id: "twin-1", status: "available", vehicle_id: null, reserved_by: "veh-42",
+    }]));
+    expect(twinMotionDriver.reservedStallFor("veh-42")).toBe("DCFC-08");
+    twinMotionDriver.reconcile(tetherSnap([{ id: "twin-1", status: "available", vehicle_id: null }]));
+    expect(twinMotionDriver.reservedStallFor("veh-42")).toBeNull();
+  });
+
+  it("ignores an unmapped stall rather than inventing a reservation", () => {
+    twinMotionDriver.reconcile(tetherSnap([{
+      id: "twin-does-not-exist", status: "available", vehicle_id: null, reserved_by: "veh-42",
+    }]));
+    expect(twinMotionDriver.reservedStallFor("veh-42")).toBeNull();
   });
 
   it("rebuilds direction and phase wholesale, never merging a stale one", () => {
