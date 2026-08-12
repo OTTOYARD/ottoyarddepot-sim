@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { ArmGate, HOLD_CAP_S, MAX_PHYSICAL_DEMATE_S, type ArmStallInput } from "./armGate";
+import { ArmGate, HOLD_CAP_S, maxPhysicalDemateS, type ArmStallInput } from "./armGate";
 import { NOMINAL_SEQUENCE, vehicleMayMove, type ArmPhase } from "@/lib/ottoChargeArm/armStateMachine";
 
 /** One DCFC stall with a car on it, taking current. */
@@ -55,7 +55,7 @@ describe("ArmGate — the depart gate", () => {
     expect(vehicleMayMove(gate.phase("DCFC-01")!)).toBe(true);
     // the physical demate is 11.5 s of robot motion; it may not be skipped
     expect(spent).toBeGreaterThan(11);
-    expect(spent).toBeLessThan(MAX_PHYSICAL_DEMATE_S + 1);
+    expect(spent).toBeLessThan(maxPhysicalDemateS() + 1);
   });
 
   it("passes through EVERY release phase — it can never jump from charging to clear", () => {
@@ -114,7 +114,7 @@ describe("ArmGate — the depart gate", () => {
     while (t < HOLD_CAP_S + 2) { gate.step(0.5, [stuck()]); t += 0.5; }
     expect(gate.mayMove("DCFC-01")).toBe(true);
     // and the cap really does clear every legitimate demate
-    expect(HOLD_CAP_S).toBeGreaterThan(MAX_PHYSICAL_DEMATE_S);
+    expect(HOLD_CAP_S).toBeGreaterThan(maxPhysicalDemateS());
   });
 
   it("a clock JUMP is not elapsed time — it cannot fast-forward the gate open", () => {

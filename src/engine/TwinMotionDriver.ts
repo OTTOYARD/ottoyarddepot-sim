@@ -33,7 +33,7 @@ import {
   INGRESS, EGRESS, gapLaneX, SOUTH_LANE_Y, REAR_LANE_Y, PARK_RUNS, TEMP_LANE_X,
   WEST_AISLE_X, EAST_AISLE_X, NORTH_LANE_Y, N1_LANE_Y, QUEUE_Y,
 } from "@/lib/sitePlan";
-import { DISCONNECT_SECONDS, type ArmPhase } from "@/lib/ottoChargeArm/armStateMachine";
+import { DISCONNECT_SECONDS, applyArmTimings, type ArmPhase } from "@/lib/ottoChargeArm/armStateMachine";
 
 type Lane = "dcfc" | "l2" | "wash" | "service" | "staging";
 
@@ -454,6 +454,12 @@ class TwinMotionDriver {
    *  a backend sim timestamp into the renderer's seconds-of-day frame — mixing those two
    *  domains is a bug this codebase has paid for repeatedly. */
   private twinTetherLeftS = new Map<string, number>();
+  /** 'mate' | 'charging' | 'demate', as reported by the twin. See stallTetherRemainingS. */
+  private twinTetherDirection = new Map<string, string>();
+  /** ArmPhase the backend says this stall's robot is in. */
+  private twinTetherPhase = new Map<string, string>();
+  /** vehicle id -> RENDERER stall id OTTO-Q is holding for it. Rebuilt every snapshot. */
+  private twinReservedFor = new Map<string, string>();
   /** THE DEPART GATE. One arm session per DCFC stall, stepped against the sim
    *  clock in tickMotion; a car may not begin to move out of a stall whose arm
    *  is not in a movement-permitted phase. See motion/armGate.ts. */
@@ -616,13 +622,54 @@ class TwinMotionDriver {
   }
 
   /**
-   * Seconds of demate still owed on this stall as of the last snapshot, or null when
-   * the arm is not mated. Lets the arm animate unlatch → extract → retract against
-   * OTTO-Q's real deadline instead of a free-running local clock.
+   * Seconds of DEMATE still owed on this stall as of the last snapshot, or null when
+   * the arm is not on its way out. Lets the arm animate unlatch → extract → retract
+   * against OTTO-Q's real deadline instead of a free-running local clock.
+   *
+   * DIRECTION MATTERS, and this is the trap: the backend tether now also covers the
+   * INBOUND mate and the charge itself, so `tethered` alone is true in three
+   * different situations that mean different things. Handing an 18.5 s reach or a
+   * 120 s charge lease to a consumer expecting a release countdown would have the
+   * arm animating a retraction it is nowhere near starting. Outbound only.
+   *
+   * An older backend publishes no direction at all; before the mate lifecycle
+   * existed every tether WAS a demate, so undefined reads as 'demate'.
    */
   stallTetherRemainingS(rendererStallId: string): number | null {
     if (!this.twinTethered.has(rendererStallId)) return null;
+    const dir = this.twinTetherDirection.get(rendererStallId) ?? "demate";
+    if (dir !== "demate") return null;
     return this.twinTetherLeftS.get(rendererStallId) ?? DISCONNECT_SECONDS;
+  }
+
+  /**
+   * Which way the arm is going at this stall — 'mate' (reaching in), 'charging'
+   * (locked and delivering) or 'demate' (pulling out). Null when no robot is
+   * holding this stall. Reported by the twin; nothing here decides it.
+   */
+  stallArmDirection(rendererStallId: string): string | null {
+    return this.twinTetherDirection.get(rendererStallId) ?? null;
+  }
+
+  /**
+   * The backend's authoritative arm phase at this stall, in ArmPhase vocabulary.
+   * Null when unknown — callers must treat that as "no information", never as
+   * 'clear'. The renderer still runs its own reducer for smooth motion; this is
+   * what OTTO-Q believes, and the two are fed the same timings.
+   */
+  stallArmPhase(rendererStallId: string): string | null {
+    return this.twinTetherPhase.get(rendererStallId) ?? null;
+  }
+
+  /**
+   * The stall OTTO-Q is holding for this vehicle, or null when it holds none.
+   *
+   * A pre-arrival reservation is the brain's answer to "where does this car
+   * go", published on the snapshot as `stalls_status[].reserved_by`. Null means
+   * OTTO-Q has not answered — NOT that the renderer should invent one.
+   */
+  reservedStallFor(vehicleId: string): string | null {
+    return this.twinReservedFor.get(vehicleId) ?? null;
   }
 
   stallHeldBy(vehicleId: string): string | undefined {
@@ -1370,6 +1417,15 @@ class TwinMotionDriver {
 
   /** Reconcile render state + routes against a fresh backend snapshot. */
   reconcile(snap: TwinSnapshot) {
+    // THE ARM SEAM. Adopt the backend's arm timings before anything reads them.
+    // `public.ottoq_arm_timings` in otto-q-core is the one home for the robot's
+    // motion budget; armStateMachine.ts used to define a second copy of it, which
+    // is how the renderer and the orchestrator came to disagree about how long a
+    // car stays mated. Applied FIRST and ahead of the layout guard, because the
+    // demate window is read further down this same method (twinTetherLeftS) and a
+    // held snapshot is replayed through here anyway. Idempotent and total.
+    applyArmTimings(snap.arm?.timings);
+
     if (!this.layoutSettled) {
       this.pendingSnap = snap; // hold until the exact-stall map settles
       return;
@@ -1527,6 +1583,11 @@ class TwinMotionDriver {
     // a car that has already driven off. Absence means NOT tethered, never unknown.
     const tethered = new Set<string>();
     const tetherLeft = new Map<string, number>();
+    const tetherDir = new Map<string, string>();
+    const tetherPhase = new Map<string, string>();
+    // Rebuilt wholesale, like the tether maps: a reservation is a short-lived
+    // instruction and a stale one would steer a car to a stall it no longer has.
+    const reservedFor = new Map<string, string>();
     const snapClockMs = Date.parse(String(snap.run?.sim_clock ?? ""));
     for (const ss of snap.stalls_status ?? []) {
       const rsid = this.twinStall.get(ss.id);
@@ -1534,8 +1595,16 @@ class TwinMotionDriver {
       const st = String(ss.status ?? "").toLowerCase();
       if (st === "faulted" || st === "offline") twinFaulted.add(rsid);
       else if (st === "reserved") desiredStatus.set(rsid, "reserved");
+      // The backend filters this to LIVE holds against the sim clock, so an
+      // expired one never reaches here. First writer wins if a vehicle somehow
+      // holds two — taking the later one would flip the car mid-approach.
+      if (typeof ss.reserved_by === "string" && !reservedFor.has(ss.reserved_by)) {
+        reservedFor.set(ss.reserved_by, rsid);
+      }
       if (ss.tethered === true) {
         tethered.add(rsid);
+        if (typeof ss.tether_direction === "string") tetherDir.set(rsid, ss.tether_direction);
+        if (typeof ss.tether_phase === "string") tetherPhase.set(rsid, ss.tether_phase);
         const untilMs = Date.parse(String(ss.tether_until ?? ""));
         // Both timestamps come from the SAME backend sim clock, so this subtraction
         // stays inside one domain. An unparseable or missing deadline falls back to a
@@ -1551,6 +1620,9 @@ class TwinMotionDriver {
     }
     this.twinTethered = tethered;
     this.twinTetherLeftS = tetherLeft;
+    this.twinTetherDirection = tetherDir;
+    this.twinTetherPhase = tetherPhase;
+    this.twinReservedFor = reservedFor;
     // several vehicles can appear in ONE snapshot (twin ticks cover 30 sim-min):
     // stagger their spawn points back along the entrance road so they never
     // materialize stacked on top of each other at the gate.
@@ -1669,7 +1741,19 @@ class TwinMotionDriver {
       // be driven to that stall. Absent both, no reservation is invented.
       const commandedStall = this.commanded.get(bv.id)?.renderStallId;
       const reservedStall = commandedStall
-        ?? (bv.stall_id ? this.twinStall.get(bv.stall_id) : undefined);
+        ?? (bv.stall_id ? this.twinStall.get(bv.stall_id) : undefined)
+        // OTTO-Q'S PRE-ARRIVAL HOLD. A car still en route has no command and no
+        // current_stall_id, so both sources above are empty and this used to
+        // fall through to the driver picking a staging stall itself — from a
+        // pool sorted by distance to the gate, whose nearest entries are the
+        // south perimeter carports. Meanwhile OTTO-Q was holding a short-term
+        // spot for that exact vehicle that nothing ever drove to. The car
+        // parked on the ring on screen and the hold expired unused.
+        //
+        // The twin does not decide where cars go. Now that the snapshot names
+        // who each reservation is for, honouring it is both the fix and the
+        // doctrine.
+        ?? this.twinReservedFor.get(bv.id);
       const reservedLane = reservedStall
         ? STALL_TYPE_LANE[stallType.get(reservedStall) ?? ""] ?? null
         : null;

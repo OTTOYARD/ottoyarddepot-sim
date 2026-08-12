@@ -135,7 +135,43 @@ export interface CobotSpec {
  * number written here.
  * ─────────────────────────────────────────────────────────────────────────────
  */
-export const ARM_SCALE = 1.2;
+export const ARM_SCALE = 1.68;
+
+/**
+ * Lateral offset from the parked car's centreline to the pedestal, PLAN UNITS.
+ *
+ * THE ONE HOME for this number. It used to be stated twice — here as a `4.5`
+ * baked into PEDESTAL_TO_CAR_CENTRE_M, and again in depotPlacement.ts, which
+ * now imports it. Two homes for one physical distance is the same defect the
+ * arm's motion timings had.
+ *
+ * ═══════════════════════════════════════════ WHY IT MOVED, 4.5 -> 6.0 ═══════
+ * The founder asked for a 30-40% larger arm, for a more legible mate on screen.
+ * At the old 4.5 pu it is not possible: the elbow drum fouls the CAR long
+ * before then, because a long arm reaching a NEAR port has to fold, and folding
+ * throws the elbow toward the bodywork. Measured over the duty cycle, worst
+ * structural clearance to the drawn car at 4.5 pu:
+ *
+ *      ARM_SCALE 1.20   +0.1221 m   <- the old arm, and only 0.02 m of headroom
+ *      ARM_SCALE 1.40   -0.0711 m
+ *      ARM_SCALE 1.56   -0.2242 m
+ *      ARM_SCALE 1.68   -0.3235 m   the requested +40%, a third of a metre
+ *                                   INSIDE the car
+ *
+ * A bigger arm therefore needs MORE standoff, not less. Sweeping both together:
+ *
+ *      offset 5.25 pu, scale 1.68   CAR +0.0998 m   (on the 0.10 m margin)
+ *      offset 6.00 pu, scale 1.68   CAR +0.3504 m   CABINET +0.2169 m, 0 refused
+ *      offset 6.00 pu, scale 1.20   CAR +0.2640 m   but 2 ports UNREACHABLE
+ *
+ * The last line is the point: at 6.0 pu the OLD arm can no longer reach the
+ * service window. The two changes are not independent tweaks that happen to
+ * combine — each one requires the other. Together they give the arm nearly
+ * three times its previous clearance to the car while making it 40% larger.
+ *
+ * Re-derive with `npx vitest run cabinetClearance` after touching either.
+ */
+export const PEDESTAL_OFFSET_PU = 6.0;
 
 /** Depot-derived sizing at scale 1.0, metres. ARM_SCALE multiplies all of it. */
 const BASE_LINKS = {
@@ -147,38 +183,49 @@ const BASE_LINKS = {
   radii: { base: 0.115, shoulder: 0.095, upper: 0.070, elbow: 0.080, fore: 0.058, wristR: 0.050 },
 } as const;
 
-const s = ARM_SCALE;
-export const OTTO_CHARGE_ARM: CobotSpec = {
-  shoulderHeight: BASE_LINKS.shoulderHeight * s,
-  shoulderOffset: 0.0,
-  upperArm: BASE_LINKS.upperArm * s,
-  forearm: BASE_LINKS.forearm * s,
-  wrist: BASE_LINKS.wrist * s,
-  tool: BASE_LINKS.tool * s,
-  // Housings scale too. The tubes are what actually make it read as a machine
-  // rather than a stick, and at 1.0 the forearm is a 116 mm pipe seen from tens
-  // of metres away.
-  radii: {
-    base: BASE_LINKS.radii.base * s,
-    shoulder: BASE_LINKS.radii.shoulder * s,
-    upper: BASE_LINKS.radii.upper * s,
-    elbow: BASE_LINKS.radii.elbow * s,
-    fore: BASE_LINKS.radii.fore * s,
-    wristR: BASE_LINKS.radii.wristR * s,
-  },
-  // Limits match the SPHERICAL-WRIST architecture (J4 roll, J5 pitch, J6 roll).
-  // Roll joints get full rotation, as they do on any real cobot; the earlier
-  // +/-0.8pi on J4 was left over from when J4 was a pitch, and it rejected
-  // perfectly ordinary straight-ahead targets that need a 180 deg forearm roll.
-  limits: {
-    j1: [-Math.PI, Math.PI],                       // base yaw
-    j2: [-Math.PI * 0.75, Math.PI * 0.75],         // shoulder pitch
-    j3: [-Math.PI * 0.90, Math.PI * 0.90],         // elbow pitch
-    j4: [-Math.PI, Math.PI],                       // forearm roll
-    j5: [-Math.PI, Math.PI],                       // wrist pitch
-    j6: [-Math.PI, Math.PI],                       // tool roll
-  },
-};
+/**
+ * The arm at an arbitrary scale.
+ *
+ * Exported so a test can MEASURE a candidate size instead of a human reading a
+ * table and hoping it is still true. Every clearance figure in this file was
+ * produced by sweeping this factory, and re-deriving them after a geometry
+ * change is `armScaleSweep` in cabinetClearance.test.ts rather than a rewrite.
+ */
+export function cobotSpecAtScale(s: number): CobotSpec {
+  return {
+    shoulderHeight: BASE_LINKS.shoulderHeight * s,
+    shoulderOffset: 0.0,
+    upperArm: BASE_LINKS.upperArm * s,
+    forearm: BASE_LINKS.forearm * s,
+    wrist: BASE_LINKS.wrist * s,
+    tool: BASE_LINKS.tool * s,
+    // Housings scale too. The tubes are what actually make it read as a machine
+    // rather than a stick, and at 1.0 the forearm is a 116 mm pipe seen from tens
+    // of metres away.
+    radii: {
+      base: BASE_LINKS.radii.base * s,
+      shoulder: BASE_LINKS.radii.shoulder * s,
+      upper: BASE_LINKS.radii.upper * s,
+      elbow: BASE_LINKS.radii.elbow * s,
+      fore: BASE_LINKS.radii.fore * s,
+      wristR: BASE_LINKS.radii.wristR * s,
+    },
+    // Limits match the SPHERICAL-WRIST architecture (J4 roll, J5 pitch, J6 roll).
+    // Roll joints get full rotation, as they do on any real cobot; the earlier
+    // +/-0.8pi on J4 was left over from when J4 was a pitch, and it rejected
+    // perfectly ordinary straight-ahead targets that need a 180 deg forearm roll.
+    limits: {
+      j1: [-Math.PI, Math.PI],                       // base yaw
+      j2: [-Math.PI * 0.75, Math.PI * 0.75],         // shoulder pitch
+      j3: [-Math.PI * 0.90, Math.PI * 0.90],         // elbow pitch
+      j4: [-Math.PI, Math.PI],                       // forearm roll
+      j5: [-Math.PI, Math.PI],                       // wrist pitch
+      j6: [-Math.PI, Math.PI],                       // tool roll
+    },
+  };
+}
+
+export const OTTO_CHARGE_ARM: CobotSpec = cobotSpecAtScale(ARM_SCALE);
 
 /** Total kinematic reach from the shoulder axis to the connector tip, metres. */
 export function maxReach(s: CobotSpec = OTTO_CHARGE_ARM): number {
@@ -219,7 +266,7 @@ export function maxReach(s: CobotSpec = OTTO_CHARGE_ARM): number {
 export const MOUNT_HEIGHT_M = 0.55;
 
 /** Lateral distance from the DCFC pedestal centre to the parked car centreline, metres. */
-export const PEDESTAL_TO_CAR_CENTRE_M = 4.5 * METRES_PER_PLAN_UNIT; // 2.153
+export const PEDESTAL_TO_CAR_CENTRE_M = PEDESTAL_OFFSET_PU * METRES_PER_PLAN_UNIT; // 2.871 at 6.0 pu
 
 /**
  * Where the near flank actually is, metres from the arm's base axis.

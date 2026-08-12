@@ -125,8 +125,14 @@ describe('inverse kinematics', () => {
 
     // and say how much room is left, so the next bump is an informed one
     const headroom = ARM_SCALE * (closest / twoLink);
-    expect(headroom).toBeGreaterThan(ARM_SCALE);
-    expect(headroom).toBeLessThan(2.0); // ~1.83 today; a sanity bound on the maths
+    // The ceiling MOVES with the pedestal offset: a wider standoff puts the far
+    // flank further away, so the arm may grow further before it could reach
+    // across. It was ~1.83 at a 4.5 pu offset and is ~2.19 at 6.0 pu. Asserted
+    // as a MARGIN over the shipped scale rather than a magic number, because a
+    // magic number here fails every time the depot geometry legitimately moves
+    // and says nothing about whether the constraint still holds.
+    expect(headroom).toBeGreaterThan(ARM_SCALE * 1.15);
+    expect(headroom).toBeLessThan(4.0); // a sanity bound on the maths, not on the depot
   });
 });
 

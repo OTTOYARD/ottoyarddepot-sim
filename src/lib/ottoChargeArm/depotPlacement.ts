@@ -14,10 +14,12 @@
 
 import { CANOPIES } from '@/lib/sitePlan';
 import { DECK_Y } from '@/components/canvas/three/coordUtils';
-import { PLAN_UNITS_PER_METRE, MOUNT_HEIGHT_M } from './cobotSpec';
+import { PLAN_UNITS_PER_METRE, MOUNT_HEIGHT_M, PEDESTAL_OFFSET_PU } from './cobotSpec';
 
 /** Lateral offset from the car's centreline to its charger pedestal, plan units. */
-export const PEDESTAL_OFFSET_PU = 4.5;
+// Re-exported so existing importers keep working; the value lives in
+// cobotSpec.ts, which is where the clearance sweep that sets it also lives.
+export { PEDESTAL_OFFSET_PU };
 
 /** 2D -> 3D, matching src/components/canvas/three/coordUtils.ts exactly. */
 function toWorld(x2d: number, y2d: number): [number, number] {

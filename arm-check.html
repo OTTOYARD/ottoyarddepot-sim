@@ -1,0 +1,44 @@
+<!doctype html>
+<!--
+  OTTO-CHARGE ARM visual check harness.
+
+  A standalone page, deliberately outside the depot app, that draws ONE stall's
+  worth of geometry from the real constants: the arm from buildCobot(), the
+  cabinet from cabinetEnvelope's dimensions, and the car at
+  PEDESTAL_TO_CAR_CENTRE_M. Nothing here restates a number.
+
+  It exists because "the arm disappears into the cabinet" is a claim about
+  pixels, and the clearance figure is a claim about metres. This is where the
+  two are checked against each other.
+
+  Query params, so one page can shoot BEFORE and AFTER:
+    ?scale=1.2      ARM_SCALE to build at        (default: the shipped one)
+    ?backset=0      cabinet backset, plan units  (default: CABINET_BACKSET_PU)
+    ?rot=0          1 = cabinet wide face fore/aft (shipped), 0 = the old
+                    edge-on orientation
+    ?pose=stowed    stowed | mate | approach
+    ?view=side      side | front | iso
+-->
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>OTTO-CHARGE ARM — visual check</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #10141a; }
+      #hud {
+        position: fixed; left: 12px; top: 12px; z-index: 10;
+        font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+        color: #cfe6ef; background: rgba(8,12,18,.82);
+        border: 1px solid #24333f; border-radius: 6px; padding: 8px 10px;
+        white-space: pre;
+      }
+      #hud b { color: #00e5ff; }
+      .bad { color: #ff5a5a; }
+      .good { color: #35d07f; }
+    </style>
+  </head>
+  <body>
+    <div id="hud">loading…</div>
+    <script type="module" src="/src/devtools/armCheck.ts"></script>
+  </body>
+</html>

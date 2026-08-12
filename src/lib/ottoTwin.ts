@@ -186,7 +186,85 @@ export interface TwinSnapshot {
     vehicle_id: string | null;
     tethered?: boolean;
     tether_until?: string | null;
+    /** 'mate' (reaching in), 'charging' (locked, delivering), 'demate' (pulling out).
+     *  `tethered` alone is now true in all three, and they animate differently — an
+     *  inbound reach is not a release countdown. Absent on an older backend, where
+     *  every tether was a demate, so undefined must read as 'demate'. */
+    tether_direction?: string | null;
+    /** The backend's authoritative ArmPhase at this stall. Absent reads as unknown,
+     *  never as 'clear'. */
+    tether_phase?: string | null;
+    /** The vehicle OTTO-Q is HOLDING this stall for, when it is holding it for one.
+     *  Published only for LIVE reservations (checked against the sim clock the
+     *  expiry was written in), so an expired hold never arrives as an instruction.
+     *  Without this the renderer could see that a stall was reserved but not who
+     *  for, and fell back to choosing a staging stall itself. */
+    reserved_by?: string | null;
+    reserved_until?: string | null;
   }[];
+  /** THE ARM CONTRACT (`public.ottoq_arm_timings` via the snapshot RPC).
+   *
+   *  The OTTO-CHARGE ARM's motion budget has ONE home, and it is a set of
+   *  `ottoq_policy_params` rows in otto-q-core — not `armStateMachine.ts`, which
+   *  now reads these and keeps its own literals only as an offline floor. Retune
+   *  the arm in one place and both worlds move: the renderer's animation and the
+   *  window OTTO-Q reserves the plug for.
+   *
+   *  Optional: an older backend omits the block and every consumer must read that
+   *  as "keep the shipped defaults", never as "the arm takes zero seconds". */
+  arm?: {
+    timings?: {
+      phase_seconds?: Record<string, number> | null;
+      connect_seconds?: number | null;
+      /** What OTTO-Q actually reserves the plug for after StopTransaction. */
+      demate_seconds?: number | null;
+      cycle_overhead_seconds?: number | null;
+      /** 'derived' from its three phases, 'override' when pinned, 'fallback' on a failed read. */
+      demate_source?: string | null;
+      source?: string | null;
+    } | null;
+    /** REGISTRATION ACCURACY (`twin.ottoq_arm_accuracy`). Millimetres between where
+     *  the arm believed the inlet was and where it actually was, and how often that
+     *  was close enough to latch on the first reach.
+     *
+     *  `attempts: 0` with null statistics means NOTHING WAS MEASURED. It does not
+     *  mean perfect accuracy, and a consumer that renders it as 100% is lying about
+     *  an idle depot. */
+    accuracy?: {
+      attempts: number;
+      cycles?: number;
+      /** Share of first reaches that latched without a retry. Null when none yet. */
+      first_pass_yield_pct?: number | null;
+      latched?: number;
+      retried?: number;
+      /** Cars parked outside the envelope the arm can serve — no retry can fix these. */
+      restage_required?: number;
+      fiducial_seen_pct?: number | null;
+      error_radial_mm_p50?: number | null;
+      error_radial_mm_p95?: number | null;
+      error_radial_mm_max?: number | null;
+      error_yaw_deg_p95?: number | null;
+      tolerance?: {
+        lateral_mm: number | null;
+        vertical_mm: number | null;
+        yaw_deg: number | null;
+      } | null;
+    } | null;
+    /** OPEN arm cycles — the inbound half the cockpit could not see at all before
+     *  `the_arm_holds_the_car_from_approach_until_clear`. One entry per stall whose
+     *  robot is mid-mate or mid-demate, including which retry it is on. Closed
+     *  cycles are history and live in the event log, not here. */
+    cycles?: {
+      cycle_id: string;
+      stall_id: string;
+      vehicle_id: string;
+      direction: string;
+      phase: string;
+      phase_deadline: string | null;
+      started_at: string | null;
+      retry_count: number;
+    }[] | null;
+  } | null;
   energy: Record<string, number | string | null> | null;
   bess: Record<string, number | string | null> | null;
   weather: Record<string, number | string | null> | null;
