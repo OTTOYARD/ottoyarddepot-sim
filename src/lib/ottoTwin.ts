@@ -216,6 +216,33 @@ export interface TwinSnapshot {
       demate_source?: string | null;
       source?: string | null;
     } | null;
+    /** REGISTRATION ACCURACY (`twin.ottoq_arm_accuracy`). Millimetres between where
+     *  the arm believed the inlet was and where it actually was, and how often that
+     *  was close enough to latch on the first reach.
+     *
+     *  `attempts: 0` with null statistics means NOTHING WAS MEASURED. It does not
+     *  mean perfect accuracy, and a consumer that renders it as 100% is lying about
+     *  an idle depot. */
+    accuracy?: {
+      attempts: number;
+      cycles?: number;
+      /** Share of first reaches that latched without a retry. Null when none yet. */
+      first_pass_yield_pct?: number | null;
+      latched?: number;
+      retried?: number;
+      /** Cars parked outside the envelope the arm can serve — no retry can fix these. */
+      restage_required?: number;
+      fiducial_seen_pct?: number | null;
+      error_radial_mm_p50?: number | null;
+      error_radial_mm_p95?: number | null;
+      error_radial_mm_max?: number | null;
+      error_yaw_deg_p95?: number | null;
+      tolerance?: {
+        lateral_mm: number | null;
+        vertical_mm: number | null;
+        yaw_deg: number | null;
+      } | null;
+    } | null;
     /** OPEN arm cycles — the inbound half the cockpit could not see at all before
      *  `the_arm_holds_the_car_from_approach_until_clear`. One entry per stall whose
      *  robot is mid-mate or mid-demate, including which retry it is on. Closed

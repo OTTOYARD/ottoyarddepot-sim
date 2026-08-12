@@ -87,6 +87,16 @@ export function portFor(vehicleId: string, oem?: string | null): PortSpec {
   // "the AV stopped correctly"; it is not hiding a reach failure, it is the
   // documented parking requirement of robotic charging. Anything that needs
   // clamping here is a vehicle the depot would have had to reposition.
+  //
+  // THAT VEHICLE NOW EXISTS AND IS COUNTED. The clamp is a rendering
+  // convenience — it keeps the viewer's IK solvable — and it is no longer the
+  // whole story. Parking error and the arm's registration error against it are
+  // modelled backend-side in `twin.ottoq_arm_registration_check` (otto-q-core,
+  // migration `the_arm_only_latches_when_it_actually_found_the_inlet`), which
+  // grades every mate attempt against the connector's capture range and returns
+  // one of three verdicts: latch, retry, or RESTAGE — the name for exactly the
+  // car this clamp used to quietly absorb. Read the numbers on the snapshot at
+  // `arm.accuracy`; do not re-derive them here.
   const M = 0.06;
   return {
     along: Math.max(SERVICE_WINDOW.alongMin + M, Math.min(SERVICE_WINDOW.alongMax - M, along)),
