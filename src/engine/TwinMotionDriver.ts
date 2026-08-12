@@ -22,6 +22,7 @@ import { type Pt } from "./motion/PathTracker";
 import { buildRail, pointAt, stepRail, RailLocks, type Rail, type RailBody } from "./motion/RailFlow";
 import { findLeader, StallLedger, type MovingCar } from "./motion/traffic";
 import { buildDepotLanes } from "./motion/LaneGraph";
+import { ArmGate, type ArmStallInput } from "./motion/armGate";
 import { poseStore } from "./motion/poseStore";
 import { useDepotStore, type StallStatus } from "@/store/depotStore";
 import { useVehicleStore } from "@/store/vehicleStore";
@@ -32,7 +33,7 @@ import {
   INGRESS, EGRESS, gapLaneX, SOUTH_LANE_Y, REAR_LANE_Y, PARK_RUNS, TEMP_LANE_X,
   WEST_AISLE_X, EAST_AISLE_X, NORTH_LANE_Y, N1_LANE_Y, QUEUE_Y,
 } from "@/lib/sitePlan";
-import { DISCONNECT_SECONDS } from "@/lib/ottoChargeArm/armStateMachine";
+import { DISCONNECT_SECONDS, type ArmPhase } from "@/lib/ottoChargeArm/armStateMachine";
 
 type Lane = "dcfc" | "l2" | "wash" | "service" | "staging";
 
@@ -106,8 +107,10 @@ const QUEUE_MAX_X = 244;      // last slot: 200 + 6 + 3*11 = 239, comfortably in
  *  and only a terminal status (completed / aborted) clears it. */
 const LIVE_RUN_STATUSES = new Set(["running", "active", "paused"]);
 
-// SMOOTHNESS: a rail car's pose heading is the raw segment TANGENT, which jumps
-// discontinuously at every polyline vertex (a lane corner, the charger pull-in).
+// SMOOTHNESS: a rail car's pose heading is the segment TANGENT. RailFlow's
+// roundCorners() now replaces each routed vertex with a real turn arc, so the
+// tangent is continuous through a corner — but a re-rail mid-taxi, a spawn, and
+// the charger sidestep can still hand the body a large step change.
 // Applied straight to the body that reads as a single-frame heading SNAP of up to
 // ~110°. Instead we ease the rendered heading toward the tangent at a bounded
 // angular rate so a corner sweeps as a quick believable turn. This is PURELY
@@ -115,9 +118,58 @@ const LIVE_RUN_STATUSES = new Set(["running", "active", "paused"]);
 // are position-based (RailFlow), so lane discipline and the no-gridlock
 // guarantees are untouched.
 const MAX_TURN_RATE = 3.0; // rad/s — a 90° corner sweeps in ~0.5s
-function easeHeading(current: number, target: number, dt: number): number {
+// A CAR ONLY TURNS BECAUSE IT IS MOVING. The rate limiter above was per-SECOND
+// only, so a car that had stopped — at an intersection stop bar, in a queue,
+// parked on its stall — went on rotating about its own centre at the full
+// 3 rad/s (172°/s) until its heading caught the target. Nothing about that is a
+// car: it is the body swinging while the wheels stand still, which is exactly
+// the founder's "the rear bumper turns or slides diagonally at the intersection".
+// Measured on the busy_day fixture, replayed against origin/main @ 22ec3f6 and
+// against this tree with the same probe (1,158,074 car-steps either way):
+//
+//     main @ 22ec3f6   234 spin steps, 211 of them at the full 3.0 rad/s cap
+//                      (peak yaw rate exactly 3.0000 rad/s)
+//     this tree        0
+//
+// A "spin step" is one motion step in which a body's heading changed while it
+// translated less than 0.001u. The 23 that are not at the cap are the last step
+// of each swing, where the ease clamps to the remaining angle instead.
+//
+// So yaw is budgeted per unit of TRAVEL as well as per second: a stopped car
+// gets a budget of exactly zero. YAW_PER_UNIT is a rate limiter, not a bicycle
+// model — 2.5 rad/u lets the heading track every corner the rails actually
+// contain, while the speed term binds below ~1.2 u/s, where the whip was
+// visible.
+//
+// DRAWN CURVATURE — peak |Δheading| per unit translated, per car-step, same
+// busy_day replay, reported at several minimum-displacement floors because the
+// statistic is meaningless without one (a near-zero denominator sends the ratio
+// anywhere). Floors in units of travel:
+//
+//                       0u       0.001u    0.01u     0.05u     0.1u
+//     main @ 22ec3f6    22.6339  22.6339   13.3333    2.8949   1.4867
+//     this tree          2.5000   2.5000    2.5000    2.5000   1.4973
+//
+// Read the ROW, not one cell. On main the peak collapses 22.63 → 2.89 as the
+// floor rises, which is the spin defect showing up as division by an almost
+// stationary car — the same 234 steps counted above, not a real corner. After
+// the change the cap binds flat at 2.5000 across every floor, so the number is
+// a property of the limiter rather than of the sampling. That flatness is the
+// evidence; a single headline figure here is not, and an earlier version of
+// this comment claimed "was 7.44", which reproduces under no floor tried.
+//
+// Making it the
+// car's true minimum-radius curvature instead (tan(maxSteer)/wheelbase ≈ 0.091)
+// was measured and is NOT shippable against these rails: the routed corners are
+// far tighter than 11u, so the heading fell behind and crab rose from 1831 to
+// 9863 bad steps. That needs tangent-continuous route geometry, not a tighter cap.
+const YAW_PER_UNIT = 2.5; // rad of yaw per unit travelled
+/** Arc length over which a docking car swings from the rail tangent to the
+ *  parked heading. 10u makes a 90° charger dock a 0.157 rad/u swing. */
+const DOCK_BLEND = 10;
+function easeHeading(current: number, target: number, dt: number, speed: number): number {
   const d = wrapAngle(target - current);
-  const maxStep = MAX_TURN_RATE * dt;
+  const maxStep = Math.min(MAX_TURN_RATE, Math.abs(speed) * YAW_PER_UNIT) * dt;
   if (d > maxStep) return wrapAngle(current + maxStep);
   if (d < -maxStep) return wrapAngle(current - maxStep);
   return target;
@@ -360,6 +412,18 @@ class TwinMotionDriver {
    *  a backend sim timestamp into the renderer's seconds-of-day frame — mixing those two
    *  domains is a bug this codebase has paid for repeatedly. */
   private twinTetherLeftS = new Map<string, number>();
+  /** THE DEPART GATE. One arm session per DCFC stall, stepped against the sim
+   *  clock in tickMotion; a car may not begin to move out of a stall whose arm
+   *  is not in a movement-permitted phase. See motion/armGate.ts. */
+  private armGate = new ArmGate();
+  /** sim-clock instant (ms) at which the arm sessions were last stepped. The arms
+   *  are paced by the SIM clock, not by the motion dt — same choice ChargingArm
+   *  makes, and the reason a 3x view multiplier does not run the robot at 3x. */
+  private armSimMs: number | null = null;
+  /** Renderer stall ids → stall type, refreshed each reconcile. The gate needs the
+   *  TYPE (only dcfc carries an arm) every motion tick, and tickMotion must not be
+   *  re-scanning the depot store's 158 stalls to find it. */
+  private stallTypes = new Map<string, string>();
   /** Layout gate: when a run activates, the bridge calls expectLayout() and
    *  snapshots BUFFER until the layout fetch settles — otherwise the first
    *  snapshot places the fleet on zone stalls and the layout's arrival triggers
@@ -516,6 +580,142 @@ class TwinMotionDriver {
 
   stallHeldBy(vehicleId: string): string | undefined {
     return this.ledger.stallOf(vehicleId);
+  }
+
+  // ── THE DEPART GATE ────────────────────────────────────────────────────────
+  //
+  // Founder, on the OTTO-CHARGE ARM: "stay connected the entire time until the
+  // car is at desired SoC and then the arm gets ready to disconnect and retract
+  // back … and THEN the vehicle can move."
+  //
+  // The last clause is this. `vehicleMayMove` has always been the definition of
+  // it and nothing in the motion path called it, so a car could pull out of a
+  // DCFC stall with the connector still in its port.
+  //
+  // THERE ARE FIVE DOORS OUT OF A PARKED STALL, and all five ask armReleases()
+  // first. They carry a `DEPART GATE (n of 5)` marker each, numbered in file
+  // order: the motion-residue re-rail, a lane re-assignment, the departure
+  // launch, the TTL forced launch, and the departure queue's drain.
+  //
+  // FIVE IS A SWEEP, NOT A TALLY OF THE OBVIOUS ONES — an earlier revision of
+  // this comment said "three", and the residue re-rail was in fact ungated
+  // behind it: a car with 3.0u of position residue on a stall whose arm was
+  // still at phase 'charging' was re-railed and drove away with the connector
+  // in (measured at 104.88u from its stall; see the gate-1 site for the probe).
+  // The sweep: motion begins ONLY by setting `e.tracker` or `e.reverse` on an
+  // entry that has neither, and the only function that does that from rest is
+  // assignRail(). Its five call sites are startDeparture() — itself reached
+  // only from the departure launch, the TTL forced launch and the queue drain,
+  // all gated — plus the residue re-rail (gated here), the overflow staging
+  // pull-out, the first-sighting drive-in, and the new-stall re-assignment.
+  // Those last three are UNREACHABLE for a docked car with an arm on it: the
+  // overflow and re-assignment paths both need `lane !== e.lane`, which door 2
+  // refuses before either can run, and the drive-in path only fires for an id
+  // with no existing entry, so there is no parked body for it to tear away.
+  // The two remaining rebuildRail() sites — the reverse cusp and the 45 s
+  // stationary watchdog — both require a tracker or a reverse to already exist,
+  // so neither is a door out of rest.
+  //
+  // Deliberately NOT a hold on the ORCHESTRATOR's decision. OTTO-Q may re-task a
+  // car whenever it likes; what is gated is the MOTION. That ordering is what
+  // makes the gate terminate: the re-task is published (the roster status flips
+  // to the twin's new truth), the flip is what tells the arm the session is over,
+  // the arm demates, and only then does the car roll. Withholding the decision
+  // instead would keep the arm latched forever waiting for a release that the
+  // hold itself was suppressing.
+
+  /**
+   * May this car physically begin to move?
+   *
+   * TOTAL and fail-SAFE-open, in the sense the brief requires: a car that is not
+   * in a DCFC stall, a stall no arm serves, a stall the gate has never seen, or a
+   * car that is already rolling, is NOT held. Only a car sitting in an
+   * arm-served stall whose arm is mid-cycle is. An L2 or staging car is
+   * completely unaffected, and no absent signal can freeze anything.
+   */
+  private armReleases(e: Entry): boolean {
+    if (e.lane !== "dcfc" || !e.stallId) return true;
+    if (this.armGate.mayMove(e.stallId)) return true;
+    this.armRefusals++;
+    return false;
+  }
+
+  /** Stalls whose arm is currently holding its car — for the operator trace. */
+  get armHolds(): string[] {
+    return this.armGate.holding();
+  }
+
+  /**
+   * How many times the depart gate has refused to start a car moving.
+   *
+   * Kept because it is the ONLY evidence the gate is doing anything at all. A
+   * guard that is silently inert looks exactly like a guard that is working, and
+   * this codebase has already shipped one of those (a cron reporting success
+   * while every decision aborted). A zero here on a run with cars leaving
+   * chargers means the gate is not engaging and something upstream — a missing
+   * dwell window, an arm that never mated — should be looked at.
+   */
+  get armHoldRefusals(): number {
+    return this.armRefusals;
+  }
+  private armRefusals = 0;
+
+  /** What the arm on this stall is doing, or null when no arm session covers it.
+   *  Null is an ANSWER — "this driver is not tracking an arm here" — and callers
+   *  must read it that way rather than as a phase. */
+  armPhaseAt(rendererStallId: string): ArmPhase | null {
+    return this.armGate.phase(rendererStallId);
+  }
+
+  /** How long this stall has been continuously refusing to release its car, in
+   *  SIM seconds; 0 when it is not holding. Only the TRANSIENT phases run this
+   *  clock — a 'charging' hold reads 0 however long the charge lasts, because
+   *  that hold ends on a state and never on a duration (armGate's HOLD_CAP_S).
+   *  Distinguishes "the arm finished" from "the cap fired", which look identical
+   *  from armHolds alone. */
+  armHeldForS(rendererStallId: string): number {
+    return this.armGate.heldFor(rendererStallId);
+  }
+
+  /**
+   * Advance every arm session by the SIM-clock delta since the last motion tick.
+   *
+   * Paced by simNow(), not by the motion dt: PHASE_SECONDS are real robot seconds
+   * and a sim second IS a second of depot world time, so an 18.5 s mate plays in
+   * 18.5 sim seconds whatever the view multiplier is doing. This is the same
+   * clock ChargingArm reads through simClockTod(), which is what keeps the two
+   * evaluations of the cycle in step.
+   *
+   * Before any snapshot has anchored the clock there is no sim time to step, so
+   * every session simply holds — and a session that never advances never claims
+   * an arm is engaged, because IDLE_SESSION is 'stowed'.
+   */
+  private stepArms() {
+    const nowMs = this.simNow();
+    let simDt = 0;
+    if (nowMs) {
+      if (this.armSimMs !== null) simDt = (nowMs - this.armSimMs) / 1000;
+      this.armSimMs = nowMs;
+    }
+    // Feed EVERY dcfc stall the driver currently has a car in. A stall whose car
+    // has gone (deployed off-map, despawned) drops out of this list, the gate
+    // forgets it, and it stops holding anything — the arm has no car to be
+    // attached to.
+    const inputs: ArmStallInput[] = [];
+    for (const [id, e] of this.entries) {
+      if (!e.stallId || e.lane !== "dcfc") continue;
+      inputs.push({
+        stallId: e.stallId,
+        stallType: this.stallTypes.get(e.stallId),
+        vehicleId: id,
+        // EXACTLY what ChargingArm reads off the roster for this car — the roster
+        // is the shared fact that starts and ends both evaluations of the cycle.
+        chargingState: e.vstatus === "charging",
+        parked: this.serviceWindow(e) !== null,
+        tetherRemainingS: this.stallTetherRemainingS(e.stallId),
+      });
+    }
+    this.armGate.step(simDt, inputs);
   }
 
   /** Live view of what OTTO-Q has asked for — for the operator's decision trace. */
@@ -779,6 +979,12 @@ class TwinMotionDriver {
     this.dwells.clear();
     this.simAnchorClock = 0;
     this.lastPublishedTod = -1;
+    // arms belong to the scene, not to the process: leaving twin mode must not
+    // leave a stall holding a car that no longer exists.
+    this.armGate.clear();
+    this.armSimMs = null;
+    this.armRefusals = 0;
+    this.stallTypes.clear();
     // hand the depot clock back to manual control — leaving twin mode means no
     // backend owns it any more, and a slider left disabled would be a dead UI.
     useSimulationStore.getState().releaseLiveSimTime();
@@ -816,6 +1022,10 @@ class TwinMotionDriver {
     this.dwells.clear();
     this.simAnchorClock = 0;
     this.lastPublishedTod = -1;
+    // a run switch invalidates every arm session too — the stall ids survive but
+    // the cars they were mated to do not.
+    this.armGate.clear();
+    this.armSimMs = null;
     // clearing driver state is not enough on its own: the painted fleet and the
     // stall colors live in the stores, and an EMPTY roster produces the same
     // fingerprint as the reset lastRosterKey, so the push below would be skipped
@@ -1128,6 +1338,8 @@ class TwinMotionDriver {
       (byLane[s.type] ??= []).push(s);
       stallType.set(s.id, s.type);
     }
+    // the depart gate reads stall TYPE every motion tick — keep it off the store
+    this.stallTypes = stallType;
     // OTTO-Q spatial policy: charging fills NORTH-first (nearest the wash/service
     // bays), so cars pool toward the top and only spill south as it fills.
     byLane.dcfc?.sort((a, b) => a.position.y - b.position.y);
@@ -1370,11 +1582,13 @@ class TwinMotionDriver {
             const off = Math.hypot(e.car.x - st.position.x, e.car.y - st.position.y);
             // POSITION residue only. The heading disjunct that used to sit here
             // (`|| dh > 0.2`) fired on cars that had just docked PERFECTLY.
-            // A charger pull-in ends with the nose still swinging: the car
-            // arrives heading west along the column and settles to the stall's
-            // north heading via the parked branch in tickMotion, which eases it
-            // to within 1e-3 every tick. Reconcile polls far faster than that
-            // ease converges, so it caught freshly-docked cars mid-rotation
+            // A charger pull-in used to end with the nose still swinging: the
+            // car arrived heading west along the column and settled to the
+            // stall's north heading via the parked branch in tickMotion, which
+            // eased it to within 1e-3 every tick. (That settle is gone — the
+            // dock blend now takes the swing while the car is still moving and
+            // the arrival sets the heading exactly.) Reconcile polls far faster
+            // than that ease converged, so it caught freshly-docked cars mid-turn
             // (measured: off=0.00, dh=0.221) and re-railed them — and because
             // such a car is parked nose-in, assignRail answered with an 11u
             // REVERSE back-out plus a ~140u loop back to the stall it was
@@ -1382,7 +1596,28 @@ class TwinMotionDriver {
             // neighbours block that loop, so the car wedged ~2.4u OUTSIDE its
             // own stall permanently, with the 45s watchdog rebuilding a route
             // it could never drive. Heading self-heals; position does not.
-            if (off > 1.8) {
+            //
+            // ── DEPART GATE (1 of 5): THE RESIDUE RE-RAIL ────────────────────
+            // This is a door out of a DCFC stall like any other, and it was open.
+            // The lane-change gate below cannot cover it — that one requires
+            // `lane !== e.lane` and this branch only runs when they are EQUAL —
+            // so a car docked on a charger with the arm mid-cycle, handed enough
+            // position residue, was re-railed and drove off WITH THE CONNECTOR
+            // IN ITS PORT.
+            //
+            // MEASURED, this tree, gate deleted, by the harness in
+            // TwinMotionDriver.residuegate.test.ts: a car on DCFC-01 with its arm
+            // at phase 'charging' and 3.0u of position residue was handed a
+            // 330.38u rail and had travelled 25.02u of it four polls later;
+            // after 24 polls, 185.02u of arc. Straight-line, measured from the
+            // STALL (not from the displaced start pose, which sits 3.0u off it):
+            // 22.74u and 104.88u. armHoldRefusals stayed 0 the whole way —
+            // the gate reported nothing while the connector was being dragged.
+            // Repairing a car's pose is not more urgent than not tearing an arm
+            // off it: refuse, and the next poll retries. The refusal is bounded
+            // by armGate's HOLD_CAP_S, so the residue is repaired late rather
+            // than not at all.
+            if (off > 1.8 && this.armReleases(e)) {
               this.assignRail(e, { kind: "stall", lane: lane as Lane, x: st.position.x, y: st.position.y, heading: e.stallHeading });
               e.departFor = 0;
             }
@@ -1390,6 +1625,31 @@ class TwinMotionDriver {
         }
         this.entries.set(bv.id, e);
         continue;
+      }
+      // ── DEPART GATE (2 of 5): A LANE CHANGE OFF A CHARGER ────────────────
+      // The twin has re-tasked this car — charge → wash, charge → staging, the
+      // ordinary end of a pit stop — and it is sitting PARKED in a DCFC stall
+      // with the OTTO-CHARGE ARM still on it. Hold the MOTION here, before any
+      // stall is claimed, so the car keeps its charger and nothing is routed
+      // onto the space its body is occupying.
+      //
+      // The twin's new status IS published, and that is not a leak in the gate,
+      // it is the mechanism: the roster flip away from 'charging' is exactly what
+      // tells both this driver's arm session and ChargingArm's that the charge
+      // session is over and the demate may begin. Suppress it and the arm stays
+      // latched forever, waiting on a release the hold is itself preventing.
+      // The stall stays painted 'charging' because it truthfully still is —
+      // there is a car on it with a connector in its port.
+      if (e && lane !== e.lane && e.lane === "dcfc" && e.stallId
+          && !e.tracker && !e.reverse && !this.armReleases(e)) {
+        e.vstatus = m.vstatus;
+        e.oem = oem;
+        e.soc = soc;
+        if (bv.av_id) e.avId = bv.av_id;
+        if (bv.make) e.make = bv.make;
+        desiredStatus.set(e.stallId, "charging");
+        this.entries.set(bv.id, e);
+        continue; // retry next poll; the demate is bounded (armGate HOLD_CAP_S)
       }
       // THREE POOLS, NOT ONE LIST. Previously this named only two states and let
       // EVERYTHING else fall through to the raw ingress-sorted list, whose
@@ -1611,9 +1871,14 @@ class TwinMotionDriver {
         continue;
       }
       if (e.vstatus !== "departing") {
+        // ── DEPART GATE (3 of 5): THE DEPARTURE LAUNCH ─────────────────────
+        // Flip the status FIRST — that is what ends the charge session and starts
+        // the demate on both evaluations of the arm cycle — then refuse to launch
+        // while the arm is still on the car. A held departer takes the same path
+        // as one waiting for a departure slot: parked, stall claim kept, queued.
         e.vstatus = "departing";
         e.departFor = 0;
-        if (activeDeparting < MAX_ACTIVE_DEPARTING) {
+        if (activeDeparting < MAX_ACTIVE_DEPARTING && this.armReleases(e)) {
           activeDeparting++;
           this.startDeparture(id, e);
         } else {
@@ -1696,6 +1961,11 @@ class TwinMotionDriver {
     // running clock (an arm mid-mate on a stationary car must not freeze), and
     // a PAUSED depot freezes the clock with everything else via the guard above.
     this.publishSimClock();
+    // …and so do the OTTO-CHARGE ARMS, for the same reason: an arm mid-demate on
+    // a stationary car must keep retracting, and the depart gate below is only as
+    // current as the sessions behind it. Stepped BEFORE any car is moved, so no
+    // car can be released against a stale phase.
+    this.stepArms();
     // every physical body on the lot, one entry each — rail cars project these
     // onto their own forward windows (RailFlow); `moving` is kept only for the
     // reverse maneuver's rear-clearance check.
@@ -1748,7 +2018,12 @@ class TwinMotionDriver {
       // the backend already dropped it, so it never lingers past the TTL.
       if (!e.tracker && e.vstatus === "departing") {
         e.departFor += dt;
-        if (e.departFor > DEPART_TTL) {
+        // ── DEPART GATE (4 of 5): THE TTL FORCED LAUNCH ──────────────────────
+        // TOTALITY. This door is only reachable after DEPART_TTL (90 s) of
+        // waiting parked, and armGate's own HOLD_CAP_S (60 sim-seconds) frees a
+        // car before then, so it should never be the binding constraint — but a
+        // gate enforced on four doors out of five is not a gate.
+        if (e.departFor > DEPART_TTL && this.armReleases(e)) {
           // TTL while queued: DRIVE OUT (cap-exempt) instead of vanishing in
           // place on a stall (gap G6). Bounded second life: the tracked-departer
           // TTL below still despawns it if the egress stays jammed.
@@ -1782,7 +2057,31 @@ class TwinMotionDriver {
           e.car.y = pose.y;
           // rate-limit the heading toward the rail tangent so a sharp corner
           // vertex reads as a turn, not a one-frame snap (position is exact).
-          e.car.heading = easeHeading(e.car.heading, pose.heading, dt);
+          //
+          // DOCK BLEND: the last leg into a CHARGER stall is a 16u SIDESTEP off
+          // the flanking gap lane (routeToStall: gap lane x=80/126.5 → stall
+          // x=96/110), so the rail's final tangent points east/west while the
+          // parked heading is NORTH. That 90° was previously left to the parked
+          // branch below and taken at a dead stop — the body spinning about its
+          // own centre on the stall, which is the founder's "back bumper slides"
+          // at the charger. The rails cannot be re-cut to arrive nose-north:
+          // the L2 west column is pitched 10.3u and a car is 10.2u long, so a
+          // nose-in approach lane between two stalls would run 2.05u THROUGH the
+          // body parked below. So the turn is taken while the car is still
+          // MOVING instead: over the final DOCK_BLEND units the aim rotates from
+          // the rail tangent to the stall heading, which for a 90° dock is
+          // 0.157 rad/u — a real swing into the bay, and well inside the
+          // speed-scaled yaw budget above.
+          let aim = pose.heading;
+          const dock = e.dest?.kind === "stall" ? e.dest.heading : null;
+          if (dock != null) {
+            const rem = e.tracker.total - e.tracker.s;
+            if (rem < DOCK_BLEND) {
+              const t = Math.min(1, Math.max(0, 1 - rem / DOCK_BLEND));
+              aim = wrapAngle(pose.heading + wrapAngle(dock - pose.heading) * t);
+            }
+          }
+          e.car.heading = easeHeading(e.car.heading, aim, dt, e.tracker.v);
           e.car.speed = e.tracker.v;
           // watchdog: stationary far too long (a dead body ON the lane, a stale
           // lock) → drop my locks and re-route from the current pose. Bounded
@@ -1805,10 +2104,12 @@ class TwinMotionDriver {
               const st = useDepotStore.getState().stalls.find((s) => s.id === e.stallId);
               if (st) { e.car.x = st.position.x; e.car.y = st.position.y; }
             }
-            // ease into the parked heading (the last frames of the pull-in,
-            // esp. the charger sideways→north dock) — the parked branch below
-            // finishes any residual rotation so it never snaps.
-            e.car.heading = easeHeading(e.car.heading, e.stallHeading, dt);
+            // The dock blend above already swung the body to the stall heading
+            // WHILE IT WAS MOVING, so what is left here is at most a couple of
+            // degrees. Settle it exactly: the OTTO-CHARGE ARM aims at a flank
+            // plane derived from this heading, so a parked car has to be exactly
+            // on it — and it must not be finished by rotating a stopped car.
+            e.car.heading = e.stallHeading;
             e.car.speed = 0;
             e.car.steer = 0;
             e.tracker = null;
@@ -1857,14 +2158,15 @@ class TwinMotionDriver {
           }
         }
       } else {
-        // parked: hold position, but finish easing any residual heading into the
-        // stall heading so the final degrees of a pull-in settle as a smooth turn
-        // (converges then stops flushing — no idle churn).
+        // PARKED: hold position AND hold heading. A stopped car has no yaw
+        // budget — this branch used to keep easing the heading toward the stall
+        // at up to 3 rad/s with the wheels stationary, which was 234 of the
+        // fixture's motion steps spent rotating a body that had translated less
+        // than 0.001u (measured on origin/main @ 22ec3f6; 0 in this tree — see
+        // MAX_TURN_RATE at the top of this file for the full probe). The
+        // rotation now happens on the dock blend above, while the car is still
+        // moving, and the arrival settles it exactly.
         if (e.car.speed !== 0) { e.car.speed = 0; changed = true; }
-        if (Math.abs(wrapAngle(e.stallHeading - e.car.heading)) > 1e-3) {
-          e.car.heading = easeHeading(e.car.heading, e.stallHeading, dt);
-          changed = true;
-        }
       }
     }
     for (const id of remove) {
@@ -1903,6 +2205,11 @@ class TwinMotionDriver {
         if (!e || e.vstatus !== "departing") continue;
         // a queued car still finishing its pull-in stays queued until parked
         if (e.tracker) { stillDriving.push(id); continue; }
+        // ── DEPART GATE (5 of 5): THE QUEUE DRAIN ────────────────────────
+        // The queue is drained here, not in reconcile, so this is a door out of
+        // a stall in its own right and it needs the same lock. Stays queued —
+        // it does not lose its place — until its arm reports clear.
+        if (!this.armReleases(e)) { stillDriving.push(id); continue; }
         this.startDeparture(id, e);
         active++;
         changed = true;

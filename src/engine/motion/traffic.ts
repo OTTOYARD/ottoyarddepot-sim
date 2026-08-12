@@ -47,26 +47,27 @@ export const CAR_BODY_LENGTH = 10.2;
 export const CAR_BODY_WIDTH = 4.2;
 
 /**
- * 3D MESH SCALE SEED — NOT the traffic footprint. Do not budget gaps with it.
+ * ONE ROBOTAXI, ONE SIZE. These are the SAME BODY as CAR_BODY_* above, not a
+ * second opinion about it, and they are defined from it so they cannot become
+ * one.
  *
- * vehicleBody.ts builds the three.js body to this length (and CAR_WIDTH below)
- * and its own comment calls the footprint FROZEN, because CAR_WIDTH sets the
- * flank plane the OTTO-CHARGE ARM aims its standoff at. The mesh is drawn
- * smaller than the cockpit's 2D body; reconciling those two is a renderer
- * change, not a traffic change, so this stays put and the traffic model uses
- * CAR_BODY_LENGTH above instead.
- */
-export const CAR_LENGTH = 7.5;
-
-/**
- * Logical car width, plan units — the same 3.367 the 3D body is built to.
+ * They used to be a different car. CAR_LENGTH was 7.5 and CAR_WIDTH was
+ * 2.2 * (7.5/4.9) = 3.3673, and vehicleBody.ts built the 3D mesh to them while
+ * this file budgeted every following gap off 10.2 x 4.2. The 3D car was
+ * therefore 26% shorter and 20% narrower than the 2D car in the cockpit, and
+ * than the body the traffic model believed it was steering. A comment here
+ * called the mesh footprint FROZEN and said reconciling the two was "a renderer
+ * change, not a traffic change" — which is how two sizes for one object
+ * survived this long.
  *
- * Stated here beside CAR_LENGTH because it was previously an unnamed
- * `2.2 * (7.5 / 4.9)` copied into the renderer, the arm component and two test
- * files. One of those copies drifting would put the OTTO-CHARGE ARM's standoff
- * on a different flank plane from the flank it is aiming at.
+ * Reconciling them is not free and the cost is not in this file: CAR_WIDTH sets
+ * the flank plane the OTTO-CHARGE ARM works against, so widening the car moved
+ * that plane 0.199 m closer to the pedestal. See cobotSpec.ts for what the arm
+ * had to give up to keep clearing a full-size vehicle, and armClearance.test.ts
+ * for the measurement that proves it does.
  */
-export const CAR_WIDTH = 2.2 * (CAR_LENGTH / 4.9);
+export const CAR_LENGTH = CAR_BODY_LENGTH;
+export const CAR_WIDTH = CAR_BODY_WIDTH;
 
 export interface Leader {
   gap: number;        // bumper-to-bumper distance (>=0), Infinity if none

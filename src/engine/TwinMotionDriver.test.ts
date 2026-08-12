@@ -1128,3 +1128,277 @@ describe("an arrival follows OTTO-Q's COMMAND, not its current stall", () => {
     expect(find("v3")?.assignedStall).toMatch(/^STAGE-/);
   });
 });
+
+// ============================================================================
+// THE DEPART GATE — the third clause of the founder's arm rule.
+//
+//   "stay connected the entire time until the car is at desired SoC and then the
+//    arm gets ready to disconnect and retract back … and THEN the vehicle can
+//    move."
+//
+// `vehicleMayMove` in armStateMachine has always been the definition of that
+// last clause, and until armGate.ts nothing in the motion path called it: a car
+// could pull out of a DCFC stall with the connector still in its port. These
+// tests exercise it through the real driver, not through the gate in isolation.
+//
+// MEASURED, not asserted: with armReleases() stubbed back to a constant `true`
+// (pre-change behaviour) three of these five fail, and they fail on the thing
+// that matters —
+//   · the re-tasked car is on STAGE-101 instead of its charger DCFC-01;
+//   · the release never passes through unlatch/extract/retract at all;
+//   · the DEPARTING car travels 92.0 units with the connector still in its port.
+// The other two are the controls (an L2 car, and a car whose arm never mated);
+// they pass either way, which is the point of them.
+// ============================================================================
+describe("TwinMotionDriver — the depart gate (a car may not drive through the arm)", () => {
+  const T0 = Date.parse("2026-08-10T12:00:00.000Z");
+  const iso = (ms: number) => new Date(ms).toISOString();
+
+  /** A snapshot carrying a real DWELL leg — the only thing on the wire that
+   *  publishes a service window, and therefore the proof the car is parked that
+   *  the arm needs before it will reach for the port. */
+  function armSnap(state: string, clockMs: number, lane: "dcfc" | "l2" = "dcfc"): TwinSnapshot {
+    return {
+      run: {
+        sim_run_id: "arm-run", scenario: "t", status: "running",
+        sim_clock: iso(clockMs), tick_count: 1, time_scale: 1, seed: 1, speed_x: 1,
+      },
+      legs: [{
+        leg_id: "leg-1", vehicle_id: "v1", seq: 1,
+        leg_type: lane === "dcfc" ? "charge_dcfc" : "charge_l2", intent: null,
+        kind: "charge_curve",
+        from_stall: null, to_stall: null,
+        from_x: null, from_y: null, to_x: null, to_y: null,
+        start_sim: iso(T0), end_sim: iso(T0 + 1_800_000), duration_s: 1800,
+        status: "active", geometry: "measured",
+      }],
+      fleet: {
+        counts: {}, total: 1,
+        vehicles: [{
+          id: "v1", av_id: "twin-sim-001", make: "Jaguar", platform: "waymo",
+          state, soc: 42, stall_id: null,
+        }],
+      },
+      stalls_status: [], energy: null, bess: null, weather: null, grid: null,
+      counters: {}, recent_events: [], variability: {},
+    } as unknown as TwinSnapshot;
+  }
+
+  /** Poll + tick. The arms are paced by the SIM clock (same choice ChargingArm
+   *  makes), and only a snapshot moves it — so a poll is how sim time passes. */
+  function pollTo(state: string, clockMs: number, lane: "dcfc" | "l2" = "dcfc") {
+    twinMotionDriver.reconcile(armSnap(state, clockMs, lane));
+    twinMotionDriver.tickMotion(0.05);
+  }
+
+  beforeEach(() => {
+    twinMotionDriver.clear();
+    useVehicleStore.getState().reset();
+    useDepotStore.getState().regenerateStalls(10, 30, 3, 113, 2);
+  });
+
+  /** Dock a car on a charger and run its arm all the way in. Returns the stall. */
+  function mateOnCharger(): string {
+    twinMotionDriver.reconcile(armSnap("charging_dcfc", T0));
+    const stall = find("v1")!.assignedStall!;
+    expect(stall).toMatch(/^DCFC-/);
+    // walk the 18.5 s reach: unstow → approach → align → insert → latch → charging
+    for (let i = 1; i <= 12; i++) pollTo("charging_dcfc", T0 + i * 5000);
+    expect(twinMotionDriver.armPhaseAt(stall)).toBe("charging");
+    return stall;
+  }
+
+  it("HOLDS a re-tasked car on its charger until the arm has retracted", () => {
+    const stall = mateOnCharger();
+    expect(twinMotionDriver.armHolds).toEqual([stall]);
+
+    // the twin re-tasks the car (the ordinary end of a pit stop). Clear the
+    // commit-and-hold dwell floor so it is the ARM, and only the arm, holding it.
+    passDwell("v1");
+    const before = { ...poseStore.get("v1")! }; // COPY: poseStore mutates in place
+    pollTo("charge_complete_holding", T0 + 70_000);
+
+    // OTTO-Q's decision IS published — that flip is what tells the arm to let go —
+    // but the car has not been given a stall to drive to and has not moved.
+    expect(find("v1")!.status).toBe("staging");
+    expect(find("v1")!.assignedStall).toBe(stall);
+    for (let i = 0; i < 400; i++) twinMotionDriver.tickMotion(0.05);
+    const after = poseStore.get("v1")!;
+    expect(Math.hypot(after.x - before.x, after.y - before.y)).toBeLessThan(0.01);
+    expect(twinMotionDriver.armHolds).toEqual([stall]);
+  });
+
+  it("RELEASES it once the arm reports clear — and not one phase earlier", () => {
+    const stall = mateOnCharger();
+    passDwell("v1");
+    let t = T0 + 70_000;
+    pollTo("charge_complete_holding", t);
+
+    // watch every phase of the release. The car must still be on its charger for
+    // all of unlatch / extract / retract, and may only be re-assigned after.
+    const seen: string[] = [twinMotionDriver.armPhaseAt(stall)!];
+    let releasedAtPhase: string | null = null;
+    for (let i = 0; i < 20 && releasedAtPhase === null; i++) {
+      // the phase the NEXT poll's gate decision will be taken against — read
+      // before the poll, because a released car stops being an arm's problem and
+      // the gate rightly forgets the stall the instant it leaves.
+      const deciding = twinMotionDriver.armPhaseAt(stall);
+      t += 5000;
+      pollTo("charge_complete_holding", t);
+      if (!find("v1")!.assignedStall?.startsWith("DCFC-")) { releasedAtPhase = deciding; break; }
+      const phase = twinMotionDriver.armPhaseAt(stall);
+      if (phase && seen[seen.length - 1] !== phase) seen.push(phase);
+    }
+    expect(seen).toEqual(["unlatch", "extract", "retract", "clear"]);
+    expect(releasedAtPhase).toBe("clear");
+    expect(find("v1")!.assignedStall).toMatch(/^STAGE-/);
+  });
+
+  it("holds a DEPARTING car too — the departure launch is the other door out", () => {
+    const stall = mateOnCharger();
+    passDwell("v1");
+    const before = { ...poseStore.get("v1")! }; // COPY: poseStore mutates in place
+    // the twin drops the vehicle entirely (deployed): a departure, not a re-task
+    twinMotionDriver.reconcile({
+      ...armSnap("charging_dcfc", T0 + 70_000),
+      fleet: { counts: {}, total: 0, vehicles: [] },
+    } as unknown as TwinSnapshot);
+    expect(find("v1")!.status).toBe("departing"); // the release IS requested…
+    for (let i = 0; i < 400; i++) twinMotionDriver.tickMotion(0.05);
+    const after = poseStore.get("v1")!;
+    expect(Math.hypot(after.x - before.x, after.y - before.y)).toBeLessThan(0.01);
+    expect(twinMotionDriver.armHolds).toEqual([stall]); // …and still refused
+
+    // let the demate play out, then it drives to the egress
+    for (let i = 1; i <= 12; i++) {
+      twinMotionDriver.reconcile({
+        ...armSnap("charging_dcfc", T0 + 70_000 + i * 5000),
+        fleet: { counts: {}, total: 0, vehicles: [] },
+      } as unknown as TwinSnapshot);
+      twinMotionDriver.tickMotion(0.05);
+    }
+    expect(twinMotionDriver.armHolds).toEqual([]);
+    for (let i = 0; i < 200; i++) twinMotionDriver.tickMotion(0.05);
+    const gone = poseStore.get("v1");
+    expect(gone === undefined || Math.hypot(gone.x - before.x, gone.y - before.y) > 1).toBe(true);
+  });
+
+  it("an L2 car is COMPLETELY unaffected — only DCFC stalls have an arm", () => {
+    twinMotionDriver.reconcile(armSnap("charging_l2", T0, "l2"));
+    const stall = find("v1")!.assignedStall!;
+    expect(stall).toMatch(/^L2-/);
+    for (let i = 1; i <= 12; i++) pollTo("charging_l2", T0 + i * 5000, "l2");
+    expect(twinMotionDriver.armPhaseAt(stall)).toBeNull();
+    expect(twinMotionDriver.armHolds).toEqual([]);
+    passDwell("v1");
+    pollTo("charge_complete_holding", T0 + 70_000, "l2");
+    expect(find("v1")!.assignedStall).toMatch(/^STAGE-/); // re-assigned immediately
+  });
+
+  it("never holds a car because a signal is ABSENT: no dwell leg, no arm, no hold", () => {
+    // the wire carried no service window, so the arm never mated and there is
+    // nothing to wait for. Publishing absence, not inventing a connection.
+    twinMotionDriver.reconcile(snap([{ id: "v1", state: "charging_dcfc" }], "no-legs"));
+    const stall = find("v1")!.assignedStall!;
+    expect(stall).toMatch(/^DCFC-/);
+    for (let i = 0; i < 50; i++) twinMotionDriver.tickMotion(0.05);
+    expect(twinMotionDriver.armPhaseAt(stall)).toBe("stowed");
+    passDwell("v1");
+    twinMotionDriver.reconcile(snap([{ id: "v1", state: "charge_complete_holding" }], "no-legs"));
+    expect(find("v1")!.assignedStall).toMatch(/^STAGE-/);
+    expect(twinMotionDriver.armHolds).toEqual([]);
+  });
+});
+
+// ============================================================================
+// TURNING — "they move diagonally, bend rapidly, or the rear bumper slides at
+// an intersection". The rule that kills all three at rest: a car turns because
+// it is MOVING. Yaw is budgeted per unit of travel, so a stopped body has a
+// budget of exactly zero.
+// ============================================================================
+describe("TwinMotionDriver — a stopped car cannot rotate", () => {
+  type Ent = {
+    car: { x: number; y: number; heading: number; speed: number };
+    tracker: unknown; stallHeading: number;
+  };
+  const entry = (id: string) =>
+    (twinMotionDriver as unknown as { entries: Map<string, Ent> }).entries.get(id)!;
+
+  beforeEach(() => {
+    twinMotionDriver.clear();
+    useVehicleStore.getState().reset();
+    useDepotStore.getState().regenerateStalls(10, 30, 3, 113, 2);
+  });
+
+  it("a parked car with a heading error does NOT pivot on the spot", () => {
+    twinMotionDriver.reconcile(snap([{ id: "v1", state: "arrived_at_gate" }]));
+    twinMotionDriver.reconcile(snap([{ id: "v1", state: "charging_dcfc" }]));
+    // drive it in and let it dock
+    for (let i = 0; i < 3000; i++) twinMotionDriver.tickMotion(0.05);
+    const e = entry("v1");
+    expect(e.tracker).toBe(null);   // parked
+    expect(e.car.speed).toBe(0);
+
+    // inject a heading error the way a stale pose or a re-adopt would, then hold
+    // the depot still for 20 s. Before the fix this eased toward stallHeading at
+    // up to 3 rad/s with the wheels stationary — the body swinging in place.
+    e.car.heading = e.stallHeading + 1.2;
+    const before = e.car.heading;
+    const x0 = e.car.x, y0 = e.car.y;
+    for (let i = 0; i < 400; i++) twinMotionDriver.tickMotion(0.05);
+    expect(e.car.heading).toBe(before);
+    expect(Math.hypot(e.car.x - x0, e.car.y - y0)).toBe(0);
+  });
+
+  it("no rendered body ever rotates in a step in which it did not translate", () => {
+    // The whole fleet, through a full arrive → charge → depart cycle.
+    twinMotionDriver.reconcile(snap(
+      Array.from({ length: 12 }, (_, i) => ({ id: `v${i}`, state: "arrived_at_gate" })),
+    ));
+    twinMotionDriver.reconcile(snap(
+      Array.from({ length: 12 }, (_, i) => ({ id: `v${i}`, state: "charging_dcfc" })),
+    ));
+    const prev = new Map<string, { x: number; y: number; h: number }>();
+    let pivots = 0;
+    for (let i = 0; i < 4000; i++) {
+      twinMotionDriver.tickMotion(0.05);
+      for (const [id, e] of (twinMotionDriver as unknown as { entries: Map<string, Ent> }).entries) {
+        const p = prev.get(id);
+        const cur = { x: e.car.x, y: e.car.y, h: e.car.heading };
+        if (p) {
+          const moved = Math.hypot(cur.x - p.x, cur.y - p.y);
+          const turned = Math.abs(Math.atan2(Math.sin(cur.h - p.h), Math.cos(cur.h - p.h)));
+          // the ONE legal exception is the arrival settle, which snaps the last
+          // residual degrees in the same step the car stops — allow a hair.
+          if (moved < 1e-6 && turned > 1e-6) pivots++;
+        }
+        prev.set(id, cur);
+      }
+    }
+    expect(pivots).toBe(0);
+  });
+
+  it("the dock swing happens while the car is still moving, not after it stops", () => {
+    // A charger pull-in is a 16u SIDESTEP off the flanking gap lane, so the rail
+    // ends pointing east/west while the stall faces north. That 90° used to be
+    // taken at a dead stop. It must now be spent before the wheels stop.
+    // arrive at the gate FIRST so the car actually drives the pull-in; a car
+    // that spawns straight onto the stall never exercises the swing.
+    twinMotionDriver.reconcile(snap([{ id: "v1", state: "arrived_at_gate" }]));
+    twinMotionDriver.reconcile(snap([{ id: "v1", state: "charging_dcfc" }]));
+    const e = entry("v1");
+    expect(e.tracker).not.toBe(null);
+    let lastMovingHeading = e.car.heading;
+    for (let i = 0; i < 3000; i++) {
+      twinMotionDriver.tickMotion(0.05);
+      if (e.car.speed > 0.05) lastMovingHeading = e.car.heading;
+    }
+    expect(e.tracker).toBe(null);
+    // whatever is left to settle at the stop is a couple of degrees, not 90°
+    const residual = Math.abs(
+      Math.atan2(Math.sin(e.stallHeading - lastMovingHeading), Math.cos(e.stallHeading - lastMovingHeading)),
+    );
+    expect(residual).toBeLessThan(0.2); // < 11.5°, was ~π/2
+    expect(e.car.heading).toBe(e.stallHeading); // and it parks exactly on the arm's flank plane
+  });
+});

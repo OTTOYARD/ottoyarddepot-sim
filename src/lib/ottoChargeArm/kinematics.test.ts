@@ -91,6 +91,17 @@ describe('inverse kinematics', () => {
    * comment, and it is checked against the WHOLE far-flank port band rather
    * than the single abeam point the test above uses.
    */
+  /**
+   * NOTE ON THE NUMBERS BELOW: this ceiling MOVED when the car did.
+   *
+   * It was ~1.59 against a 1.611 m wide body. The fleet body is 2.010 m wide,
+   * which pushes the far flank 0.199 m further away, so the arm may now be
+   * scaled to ~1.83 before it could sweep across. That is a genuine loosening
+   * of THIS constraint — and it is no longer the binding one. The NEAR flank
+   * is, and armClearance.test.ts is what holds it: ARM_SCALE 1.5 clears this
+   * far-flank test comfortably while driving the elbow 42 mm into the bodywork.
+   * Neither test is sufficient alone.
+   */
   it('stays under the scale at which it could reach ACROSS the vehicle', () => {
     const farFlank = PEDESTAL_TO_CAR_CENTRE_M + CAR_HALF_W;
     const toolLen = spec.wrist + spec.tool;
@@ -115,7 +126,7 @@ describe('inverse kinematics', () => {
     // and say how much room is left, so the next bump is an informed one
     const headroom = ARM_SCALE * (closest / twoLink);
     expect(headroom).toBeGreaterThan(ARM_SCALE);
-    expect(headroom).toBeLessThan(1.75); // ~1.59 today; a sanity bound on the maths
+    expect(headroom).toBeLessThan(2.0); // ~1.83 today; a sanity bound on the maths
   });
 });
 
@@ -182,7 +193,7 @@ describe('built geometry agrees with the analytic model', () => {
   });
 
   /**
-   * The arm hangs off a 0.70 m plinth and reaches DOWN to low ports. Every
+   * The arm hangs off a MOUNT_HEIGHT_M plinth and reaches down to low ports. Every
    * centimetre added by ARM_SCALE is a centimetre closer to the tarmac, and an
    * elbow sunk through the deck is the kind of thing that only shows up on
    * camera at one specific phase of one specific port height. Sweeping the

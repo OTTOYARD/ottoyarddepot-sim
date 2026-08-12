@@ -51,22 +51,137 @@ export interface Rail {
 const LANE_HALF = 1.7;    // half-width that counts as "in my path"
 const LOOK = 26;          // forward window (u)
 const SAMPLE = 2;         // projection sampling step (u)
+// How close the rail must pass a LaneGraph node to count as traversing it — the
+// gate on whether that intersection gets locked at all.
+//
+// It was 3u, and a rail NEVER passes within 3u of a node it traverses: route()
+// shifts every interior road vertex drive-on-the-right by LaneGraph.rightOffset,
+// which is 3.2u. So the test could only ever match by accident, on corners where
+// a chord happened to cut nearer than either endpoint. Measured on the fixture:
+// a staging→egress route crossing S_in, Sg2, Sg1 and Sg0 locked NONE of them
+// (only S_eg and egress, both next to un-offset route endpoints), so those
+// intersections were not serialized and crossing cars drove through each other.
+// 5u clears rightOffset plus the corner rounding cut below; the nearest node a
+// route does NOT traverse is >20u away, so it cannot false-positive.
+const NODE_MATCH = 5;
 const NODE_CLAIM = 12;    // start trying to hold a node this far out
 const NODE_STOP = 4;      // stop bar distance before an unheld node
 const NODE_RELEASE = 10;  // release once this far past
 const MOUTH_ZONE = 18;    // column mouth = final stretch of the route
 const MAX_SPEED = 8;
-const HEADING_LA = 6;     // look-ahead (u) for the rendered heading — aims a few
-                         // units down the rail so a corner rounds off smoothly
-                         // instead of snapping the body 90° at each vertex
+// Look-ahead (u) for the rendered heading. It used to be 6, to hide the 90°
+// tangent snap at a sharp vertex — but aiming 6u down the rail makes the body
+// point into a turn it has not started, which is the OTHER half of "they move
+// diagonally". roundCorners() below now removes the snap at its source, so the
+// look-ahead only has to smooth the arc's own 1.2u sampling. Measured on the
+// busy_day fixture: railing motion steps whose drawn heading was more than 20°
+// off the direction the body actually moved fell from 3665 (LA=6) to 1831
+// (LA=2), for +79 body-overlap pair-samples out of ~2100.
+const HEADING_LA = 2;
 const ONCOMING_DOT = 0.15; // cos of the path/​body heading angle below which a
                           // MOVING body is oncoming/crossing (ignored as a leader)
 
+// ── CORNER ROUNDING ─────────────────────────────────────────────────────────
+// A routed rail is a polyline with SHARP vertices: the tangent flips up to 90°
+// (a boulevard corner) or ~180° across a single point. Nothing physical can
+// follow that, so the body was left to fake it — the pose position turned
+// instantly while the drawn heading eased behind it, which IS the founder's
+// "they move diagonally / the back bumper slides at the intersection".
+//
+// Measured on the busy_day fixture with sharp vertices: the drawn heading
+// disagreed with the direction the body actually moved by a MEAN of 23.25°
+// (max 180°), and 6652 motion steps drew a curvature tighter than a real car's
+// minimum turn radius allows.
+//
+// So the PATH itself is rounded here, once, at build time. Each interior vertex
+// becomes a circular arc tangent to both legs — the same arc a steered car
+// traces. Position then curves through the corner and the tangent heading is
+// continuous, so the heading no longer has to catch up to anything.
+//
+// The radius is bounded three ways, and takes the smallest:
+//   • CORNER_R   — the car's own minimum turn radius, wheelbase/tan(maxSteer)
+//                  = 6/tan(0.5) ≈ 11u (KinematicCar.DEFAULT_CAR_PARAMS). The
+//                  outer bound; on this depot's corners CORNER_MAX_CUT binds
+//                  first.
+//   • CORNER_MAX_CUT — how far the arc may deviate from the vertex it replaces.
+//                  A corner arc cuts to the INSIDE, and the lane it cuts into is
+//                  only 6.4u wide (2 x LaneGraph.rightOffset): the body has just
+//                  1.1u of slack toward the centre stripe, so the cut is held to
+//                  1.2u and the body stays inside its own lane.
+//   • 0.45 of either adjacent leg — so two neighbouring fillets can never
+//                  overlap and eat a segment.
+//
+// THE CUT IS THE WHOLE TRADE, and it was swept, not guessed. A physically ideal
+// 90° corner wants R = 11u, which is a 4.56u cut; measured on the fixture that
+// swung the body far enough out of its lane to take body-overlap pair-samples
+// from 2043 to 2983 while only improving crab from 2244 to 1380 bad steps. At
+// 1.2u the cut buys 2244 → 1831 for +63 overlap. Going further needs wider
+// intersection boxes in the site plan, not a bigger number here.
+const CORNER_R = 11;
+const CORNER_MAX_CUT = 1.2;
+const CORNER_STEP = 1.2;  // arc sampling pitch (u)
+
+/** Replace each INTERIOR vertex with a tangent circular arc. The first and last
+ *  points are physical positions (where the car is, and the exact spot it must
+ *  reach) and are never moved. Degenerate corners fall through unchanged. */
+export function roundCorners(pts: Pt[]): Pt[] {
+  if (pts.length < 3) return pts.map((p) => ({ x: p.x, y: p.y }));
+  const out: Pt[] = [{ x: pts[0].x, y: pts[0].y }];
+  for (let i = 1; i < pts.length - 1; i++) {
+    const P = pts[i - 1], V = pts[i], N = pts[i + 1];
+    const ux = V.x - P.x, uy = V.y - P.y, ul = Math.hypot(ux, uy);
+    const wx = N.x - V.x, wy = N.y - V.y, wl = Math.hypot(wx, wy);
+    if (ul < 1e-6 || wl < 1e-6) { out.push({ x: V.x, y: V.y }); continue; }
+    const u = { x: ux / ul, y: uy / ul }, w = { x: wx / wl, y: wy / wl };
+    const dot = Math.max(-1, Math.min(1, u.x * w.x + u.y * w.y));
+    const phi = Math.acos(dot);                     // deflection at the vertex
+    if (phi < 0.05) { out.push({ x: V.x, y: V.y }); continue; } // effectively straight
+    const half = phi / 2;
+    const tanH = Math.tan(half), secH = 1 / Math.cos(half);
+    // tangent length, bounded by radius, by the permitted cut, and by the legs
+    let t = CORNER_R * tanH;
+    if (secH > 1.0001) t = Math.min(t, (CORNER_MAX_CUT * tanH) / (secH - 1));
+    t = Math.min(t, 0.45 * ul, 0.45 * wl);
+    const R = t / tanH;
+    const cross = u.x * w.y - u.y * w.x;
+    if (!Number.isFinite(t) || !Number.isFinite(R) || t < 0.2 || Math.abs(cross) < 1e-9) {
+      out.push({ x: V.x, y: V.y });                 // straight or unusable — keep the vertex
+      continue;
+    }
+    const sgn = Math.sign(cross);
+    const A = { x: V.x - u.x * t, y: V.y - u.y * t };
+    const B = { x: V.x + w.x * t, y: V.y + w.y * t };
+    // arc centre: perpendicular to the entry tangent at A, on the turn side
+    const C = { x: A.x - u.y * R * sgn, y: A.y + u.x * R * sgn };
+    const a0 = Math.atan2(A.y - C.y, A.x - C.x);
+    const a1 = Math.atan2(B.y - C.y, B.x - C.x);
+    let sweep = a1 - a0;
+    while (sweep > Math.PI) sweep -= 2 * Math.PI;
+    while (sweep < -Math.PI) sweep += 2 * Math.PI;
+    const steps = Math.max(2, Math.ceil((Math.abs(sweep) * R) / CORNER_STEP));
+    out.push(A);
+    for (let k = 1; k < steps; k++) {
+      const ang = a0 + (sweep * k) / steps;
+      out.push({ x: C.x + Math.cos(ang) * R, y: C.y + Math.sin(ang) * R });
+    }
+    out.push(B);
+  }
+  out.push({ x: pts[pts.length - 1].x, y: pts[pts.length - 1].y });
+  // drop points the rounding collapsed onto each other
+  const clean: Pt[] = [];
+  for (const p of out) {
+    const last = clean[clean.length - 1];
+    if (!last || Math.hypot(p.x - last.x, p.y - last.y) > 1e-3) clean.push(p);
+  }
+  return clean.length >= 2 ? clean : pts.map((p) => ({ x: p.x, y: p.y }));
+}
+
 export function buildRail(
-  pts: Pt[],
+  raw: Pt[],
   nodePositions: Iterable<{ id: string; x: number; y: number }>,
   mouthKey: string | null,
 ): Rail {
+  const pts = roundCorners(raw);
   const cum: number[] = [0];
   for (let i = 1; i < pts.length; i++) {
     cum.push(cum[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
@@ -81,7 +196,7 @@ export function buildRail(
       const d = (p.x - n.x) ** 2 + (p.y - n.y) ** 2;
       if (d < best) { best = d; bestS = s; }
     }
-    if (best <= 9) nodes.push({ id: n.id, s: bestS });
+    if (best <= NODE_MATCH * NODE_MATCH) nodes.push({ id: n.id, s: bestS });
   }
   nodes.sort((a, b) => a.s - b.s);
   return { pts, cum, total, nodes, s: 0, v: 0, mouthKey, stationaryFor: 0, progressS: 0 };

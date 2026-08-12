@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Vehicle } from '@/engine/types';
 import { useVehicleStore } from '@/store/vehicleStore';
+import { CAR_BODY_LENGTH, CAR_BODY_WIDTH } from '@/engine/motion/traffic';
 
 const VEHICLE_COLORS: Record<string, string> = {
   fleet: '#00B4A6',
@@ -104,13 +105,19 @@ const VehicleDotInner = ({ vehicle: v }: Props) => {
           for each other" artefact: the cars were tracking their lanes correctly
           and still colliding, because the paint was honest and the body was not.
           4.2 x 10.2 units = 2.01 m x 4.88 m — a real robotaxi footprint — and
-          leaves 0.6 units (0.29 m) of daylight between passing bodies. */}
+          leaves 0.6 units (0.29 m) of daylight between passing bodies.
+
+          The literals are gone. They are the SAME BODY the traffic model
+          budgets gaps from and the SAME BODY the 3D mesh is built to — the 3D
+          car used to be 7.5 x 3.367, a different car entirely, and the only
+          thing that had ever kept these two rectangles equal was that someone
+          typed the same numbers twice. */}
       <g data-body transform={`rotate(${rotation})`}>
         <rect
-          x={-2.1}
-          y={-5.1}
-          width={4.2}
-          height={10.2}
+          x={-CAR_BODY_WIDTH / 2}
+          y={-CAR_BODY_LENGTH / 2}
+          width={CAR_BODY_WIDTH}
+          height={CAR_BODY_LENGTH}
           rx={1.4}
           ry={1.4}
           fill={fill}
