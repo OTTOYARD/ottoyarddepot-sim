@@ -26,8 +26,18 @@
 //      never reaches at all.)
 //
 // Cases labelled below exactly as they were measured at 68bd8ba, so the before
-// and after are comparable line by line. At 68bd8ba: A and B and C passed,
-// E and F FAILED.
+// and after are comparable line by line.
+//
+// AT 68bd8ba (measured three times independently — the author, a reviewer, and
+// me, each by checking the DRIVER out at 68bd8ba while keeping this test file):
+//   PASS  A, H, C
+//   FAIL  B, G, E, F        (4 failed | 3 passed)
+// On this tree: all 7 pass.
+//
+// An earlier revision of this comment said "A and B and C passed, E and F
+// FAILED". That was wrong twice over: B fails at 68bd8ba with
+// "expected 12 to be -1" (the window goes null at t=12s, which is the whole
+// defect), and it predated cases G and H entirely.
 // ============================================================================
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { twinMotionDriver } from "./TwinMotionDriver";
