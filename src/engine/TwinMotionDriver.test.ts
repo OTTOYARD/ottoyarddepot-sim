@@ -764,6 +764,15 @@ describe("robotic tether (OTTO-CHARGE ARM still mated)", () => {
 // Arm GEOMETRY was well covered (kinematics / depotIntegration); nothing
 // asserted the clock was published, which is why that shipped. This is that
 // missing coverage.
+//
+// …AND IT IS STILL NOT ENOUGH, WHICH IS WORTH SAYING HERE RATHER THAN LEARNING
+// TWICE. Every case below does ONE reconcile and asserts. Like every other test
+// file in this repo it never advances performance.now(), and the driver's dwell
+// floor is TWELVE REAL SECONDS — so a window that is published correctly here
+// could still (and did) go null twelve seconds later in the live app, leaving
+// every arm stowed for the rest of the run. The clock-advancing companion to
+// this block is TwinMotionDriver.armreality.test.ts; changes to the window or
+// to commit-and-hold need BOTH files.
 // ============================================================================
 describe("service clock published to the arms", () => {
   const CLOCK = "2026-08-11T18:00:00.000Z";
