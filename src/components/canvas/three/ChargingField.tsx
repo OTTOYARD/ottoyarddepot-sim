@@ -4,7 +4,10 @@ import { useDepotStore } from '@/store/depotStore';
 import { towardFor, PEDESTAL_OFFSET_PU } from '@/lib/ottoChargeArm/depotPlacement';
 import { toWorld } from './coordUtils';
 import { MATERIALS } from './materials';
-import { pedestalBoxes, pedestalH, pedestalW } from './pedestalGeometry';
+import { pedestalBoxes, pedestalH, PEDESTAL_DEPTH_PU } from './pedestalGeometry';
+
+/** Where the cabinet's car-facing face is, plan units from the pedestal axis. */
+const FACE_PU = PEDESTAL_DEPTH_PU / 2;
 
 /**
  * Charge cable arc, built per side.
@@ -16,10 +19,16 @@ import { pedestalBoxes, pedestalH, pedestalW } from './pedestalGeometry';
  * away from the car it is supposedly plugged into. Same mirror as the screen
  * below. It never read as wrong because both stall columns have a pedestal, so
  * every stray cable had a neighbouring pedestal to look like it belonged to.
+ *
+ * ORIGIN: the cable leaves the cabinet's FACE, so its first control point is
+ * derived from the box rather than typed. It was a literal 0.8, which was just
+ * outside the face while the cabinet was drawn 1.5 deep; once the cabinet was
+ * turned to present its frontage to the car, that same 0.8 would have left the
+ * cable hanging 0.45 plan units clear of the charger it comes out of.
  */
 function cableGeo(toward: number): THREE.TubeGeometry {
   const curve = new THREE.QuadraticBezierCurve3(
-    new THREE.Vector3(toward * 0.8, 2.1, 0.15),
+    new THREE.Vector3(toward * (FACE_PU + 0.05), 2.1, 0.15),
     new THREE.Vector3(toward * 2.4, 0.9, 0.55),
     new THREE.Vector3(toward * 4.0, 1.5, 0.35),
   );
@@ -60,7 +69,6 @@ export function ChargingField({ type }: Props) {
   // 0.1675 m inside a cabinet nothing had ever compared it to.
   const isDC = type === 'dcfc';
   const H = pedestalH(isDC);
-  const W = pedestalW(isDC);
   const BOX = pedestalBoxes(isDC);
 
   return (
@@ -88,8 +96,11 @@ export function ChargingField({ type }: Props) {
                 sends +Z to (sin, 0, cos), so aiming at the car needs
                 sin(theta) = toward: exactly the rotation placeArm() gives the
                 OTTO-CHARGE ARM on the same pedestal. It used to be mounted on
-                the BACK face, pointed at the next row over. */}
-            <mesh position={[toward * (W / 2 + 0.02), H * 0.68, 0]} rotation={[0, toward * (Math.PI / 2), 0]} material={mats.screen}>
+                the BACK face, pointed at the next row over.
+                Its X comes off the cabinet's own depth — the face moved when
+                the cabinet was turned, and a literal here would have left the
+                screen floating in front of it. */}
+            <mesh position={[toward * (FACE_PU + 0.02), H * 0.68, 0]} rotation={[0, toward * (Math.PI / 2), 0]} material={mats.screen}>
               <planeGeometry args={[0.55, 0.8]} />
             </mesh>
             {/* status LED strip */}

@@ -22,20 +22,43 @@ import { type ArmPhase, type CyclePoint } from './armStateMachine';
 /**
  * Standoff distance: where the arm waits before committing to the inlet.
  *
- * It was 0.45 m, and at the real car width that is no longer solvable. The
- * standoff point sits BETWEEN the base and the car, so backing further off the
- * inlet moves the wrist CLOSER to the shoulder, not further from it. With the
- * flank at 1.148 m instead of 1.347 m, a 0.45 m standoff put the required wrist
- * centre 0.24 m in front of the shoulder — inside the fold the two-link chain
- * can physically make, so solveIK returned joint_limit and poseFor REFUSED THE
- * WHOLE MATE. The arm would simply have stayed stowed at some ports.
+ * THE STANDOFF POINT SITS BETWEEN THE BASE AND THE CAR, so backing further off
+ * the inlet moves the wrist CLOSER to the shoulder, not further from it — and a
+ * folded arm throws its elbow and its dress pack somewhere. It was 0.45 m until
+ * the car was widened, at which point a 0.45 m standoff was no longer solvable
+ * at all and the arm REFUSED whole mates.
  *
- * 0.30 m solves everywhere in the service window with the elbow clear, and is
- * still a real waypoint: 300 mm off the inlet is where a vision system would
- * hand over to the final alignment creep.
+ * Now there is a second wall, and it is behind the arm: the mount is bolted to
+ * the cabinet's face, 0.150 m in front of 1.72 m of charger. Reaching for a port
+ * at the TOP of the service window leans the machine back over its own cabinet,
+ * and the standoff pose is the furthest back it ever gets. Measured over the
+ * whole duty cycle at ARM_SCALE 0.72 / mount 0.80 m, over the 9 corner-and-centre
+ * ports of the advertised window:
+ *
+ *      standoff   clearance to the CHARGER   clearance to the CAR
+ *      0.30 m          +0.0162 m                  0.1205 m
+ *      0.25 m          +0.0302 m                  0.1205 m
+ *      0.20 m          +0.0437 m                  0.1205 m   <- shipped
+ *      0.15 m          +0.0470 m                  0.1050 m
+ *
+ * The offender is the same in every row: the upper arm's dress pack at the end
+ * of 'approach', reaching for a port at the ceiling of the window.
+ *
+ * 0.30 m still clears, by 16 mm. That is not a margin, it is a coincidence
+ * waiting to be spent — so 0.20 m, which nearly triples it without touching the
+ * car column, and is still a real waypoint: 200 mm off the inlet is where a
+ * vision system would hand over to the final alignment creep. Below 0.20 m the
+ * charger column stops improving and the CAR column starts paying, which is
+ * what makes 0.20 the choice rather than the smallest number that fits.
+ * pedestalClearance.test.ts re-measures it.
  */
-export const STANDOFF_M = 0.30;
-/** Final alignment distance: vision has the inlet, connector is lined up. */
+export const STANDOFF_M = 0.20;
+/**
+ * Final alignment distance: vision has the inlet, connector is lined up.
+ *
+ * Must stay meaningfully inside STANDOFF_M or 'align' is not a creep, it is a
+ * rounding error. 0.10 m leaves a 100 mm cartesian approach under vision.
+ */
 export const ALIGN_M = 0.10;
 
 /**

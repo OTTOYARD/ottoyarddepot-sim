@@ -4,12 +4,17 @@
  * vehicleEnvelope.ts answers "does the robot touch the car?". This answers the
  * question nobody had asked at all: DOES THE ROBOT TOUCH THE CHARGER IT IS
  * MOUNTED ON? It did. placeArm() put the J1 axis on the pedestal's CENTRE, and
- * the DCFC cabinet is drawn 1.5 plan units (0.718 m) deep TOWARD THE CAR, so
+ * the DCFC cabinet was drawn 1.5 plan units (0.718 m) deep TOWARD THE CAR, so
  * the mount collar, its bolts, the cable gland, the base housing, the shoulder
  * yoke and the bottom of the upper arm all sat 0.1675 m inside the drawn box
  * for every pose of every duty cycle. cobotSpec.ts said the arm was "mounted on
  * a plinth on the pedestal's car-facing flank"; it was mounted in the middle of
  * the pedestal.
+ *
+ * Two things came out of measuring it. The mount moved out onto the face — see
+ * ARM_MOUNT_OFFSET_M — and the cabinet turned to present its frontage to the
+ * car instead of its depth, because a charger drawn deeper than it is wide was
+ * spending the arm's whole working span on nothing. See pedestalGeometry.ts.
  *
  * ═══════════════════════════════════════════════════════════════ UNITS ═══════
  * METRES, like the rest of the arm package. The plan-unit box table lives with

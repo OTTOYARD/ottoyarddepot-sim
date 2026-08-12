@@ -10,7 +10,9 @@
 import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
 import { generateStallsV2, CANOPIES } from '@/lib/sitePlan';
-import { placeArm, portInArmFrame, portInVehicleFrame, PEDESTAL_OFFSET_PU } from './depotPlacement';
+import {
+  placeArm, portInArmFrame, portInVehicleFrame, PEDESTAL_OFFSET_PU, ARM_MOUNT_OFFSET_PU,
+} from './depotPlacement';
 import { portFor } from './chargePort';
 import { solveIK, forwardTCP } from './cobotIK';
 import { OTTO_CHARGE_ARM, PLAN_UNITS_PER_METRE, METRES_PER_PLAN_UNIT, MOUNT_HEIGHT_M } from './cobotSpec';
@@ -31,15 +33,20 @@ describe('arm placement in the depot', () => {
     expect(stalls.filter((s) => s.type === 'l2').every((s) => !stallHasArm(s.type))).toBe(true);
   });
 
-  it('anchors on the PEDESTAL, not on the parking space', () => {
+  it('anchors on the PEDESTAL FACE, not on the parking space and not in the cabinet', () => {
     // The previous arm used stall.position — the car's spot. ChargingField puts
-    // the pedestal 4.5 plan units toward the canopy spine. They must differ by
-    // exactly that, or the arms are growing out of the tarmac again.
+    // the pedestal 4.5 plan units toward the canopy spine, and the arm bolts to
+    // that cabinet's CAR-FACING FACE, ARM_MOUNT_OFFSET_PU nearer the car again.
+    // Two ways to be wrong, so both are pinned: growing out of the tarmac (0),
+    // and growing out of the middle of the charger (the full 4.5).
     for (const s of dcfc()) {
       const p = placeArm(s.id, s.position.x, s.position.y);
       const carWorldX = p.carWorld[0];
       const armWorldX = p.world[0];
-      expect(Math.abs(carWorldX - armWorldX)).toBeCloseTo(PEDESTAL_OFFSET_PU, 6);
+      const gap = Math.abs(carWorldX - armWorldX);
+      expect(gap).toBeCloseTo(PEDESTAL_OFFSET_PU - ARM_MOUNT_OFFSET_PU, 6);
+      expect(gap).toBeGreaterThan(0);
+      expect(gap).toBeLessThan(PEDESTAL_OFFSET_PU);
       // same row: the pedestal is beside the car, never fore or aft of it
       expect(p.world[2]).toBeCloseTo(p.carWorld[2], 6);
     }

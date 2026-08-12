@@ -19,7 +19,7 @@ import * as THREE from 'three';
 import { buildCobot } from './buildCobot';
 import { solveIK, forwardTCP, STOWED, type Vec3, type JointAngles } from './cobotIK';
 import {
-  OTTO_CHARGE_ARM, MOUNT_HEIGHT_M, PEDESTAL_TO_CAR_CENTRE_M, METRES_PER_PLAN_UNIT,
+  OTTO_CHARGE_ARM, MOUNT_HEIGHT_M, ARM_BASE_TO_CAR_CENTRE_M, METRES_PER_PLAN_UNIT,
   SERVICE_WINDOW, maxReach, ARM_SCALE,
 } from './cobotSpec';
 import { CAR_WIDTH } from '@/engine/motion/traffic';
@@ -28,14 +28,17 @@ import { phaseAt, ROBOTIC_OVERHEAD_SECONDS } from './roboticService';
 
 const spec = OTTO_CHARGE_ARM;
 const CAR_HALF_W = (CAR_WIDTH * METRES_PER_PLAN_UNIT) / 2;
-const FLANK = PEDESTAL_TO_CAR_CENTRE_M - CAR_HALF_W;
+// From the ARM'S BASE AXIS. It used to read PEDESTAL_TO_CAR_CENTRE_M, which was
+// the same point until the mount was moved onto the cabinet's face; measuring
+// the arm's reach from the pedestal axis now overstates the gap by 0.317 m.
+const FLANK = ARM_BASE_TO_CAR_CENTRE_M - CAR_HALF_W;
 const d3 = (a: Vec3, b: Vec3) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
 
 describe('inverse kinematics', () => {
   it('closes the loop exactly: solve -> forward -> same point', () => {
     let n = 0, worst = 0;
-    for (let along = -1.05; along <= 1.05; along += 0.15) {
-      for (let h = 0.35; h <= 1.45; h += 0.1) {
+    for (let along = -0.75; along <= 0.75; along += 0.1) {
+      for (let h = 0.40; h <= 1.20; h += 0.05) {
         const port: Vec3 = { x: along, y: h - MOUNT_HEIGHT_M, z: FLANK };
         const sol = solveIK(port, { x: 0, y: 0, z: -1 }, spec);
         if (!sol.reachable) continue;
@@ -65,7 +68,7 @@ describe('inverse kinematics', () => {
   it('cannot serve a port on the far flank — the orchestration constraint', () => {
     // A pedestal arm would have to sweep over the vehicle. It must not pretend
     // it can: OTTO-Q has to assign a stall whose robot is on the port's side.
-    const farFlank = PEDESTAL_TO_CAR_CENTRE_M + CAR_HALF_W;
+    const farFlank = ARM_BASE_TO_CAR_CENTRE_M + CAR_HALF_W;
     const sol = solveIK({ x: 0, y: 0.72 - MOUNT_HEIGHT_M, z: farFlank }, { x: 0, y: 0, z: -1 }, spec);
     expect(sol.reachable).toBe(false);
     expect(sol.wristDistance).toBeGreaterThan(spec.upperArm + spec.forearm);
@@ -103,7 +106,7 @@ describe('inverse kinematics', () => {
    * Neither test is sufficient alone.
    */
   it('stays under the scale at which it could reach ACROSS the vehicle', () => {
-    const farFlank = PEDESTAL_TO_CAR_CENTRE_M + CAR_HALF_W;
+    const farFlank = ARM_BASE_TO_CAR_CENTRE_M + CAR_HALF_W;
     const toolLen = spec.wrist + spec.tool;
 
     // closest any far-flank port in the service band brings the wrist centre
@@ -171,7 +174,16 @@ describe('built geometry agrees with the analytic model', () => {
   });
 
   it('the connector lands on the port AND enters along the port axis', () => {
-    for (const [along, h] of [[0, 0.55], [0, 1.05], [0.9, 0.72], [-0.9, 0.72], [1.05, 0.9]] as const) {
+    // DERIVED from the advertised window, not typed. These were literals out at
+    // along +/-0.9 and 1.05 m, which the window used to cover and no longer
+    // does — a test that pins the geometry to numbers the spec has moved past
+    // stops testing the arm and starts testing the numbers.
+    const W = SERVICE_WINDOW;
+    const mid = (W.heightMin + W.heightMax) / 2;
+    for (const [along, h] of [
+      [0, W.heightMin], [0, W.heightMax],
+      [W.alongMax, mid], [W.alongMin, mid], [W.alongMax, W.heightMax],
+    ] as const) {
       const port: Vec3 = { x: along, y: h - MOUNT_HEIGHT_M, z: FLANK };
       const sol = solveIK(port, { x: 0, y: 0, z: -1 }, spec);
       expect(sol.reachable).toBe(true);

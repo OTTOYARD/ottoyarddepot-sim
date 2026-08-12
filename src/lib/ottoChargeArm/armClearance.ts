@@ -17,11 +17,9 @@
  * Vertex sampling can in principle miss a face that passes between two
  * vertices. The worst case is bounded and small: a curved primitive drawn with
  * n segments has a chord that sags r*(1-cos(pi/n)) off the true surface, and
- * `SAMPLING_SAG_M` evaluates that for a deliberately mismatched pair — a
- * 20-segment tessellation at the largest radius on the machine — giving
- * 1.699 mm at ARM_SCALE 1.2, above every part that is actually drawn. The test
- * requires a margin 58.9x that, so the result cannot be an artefact of how
- * finely the meshes are tessellated.
+ * `SAMPLING_SAG_M` bounds that over every primitive actually drawn, giving
+ * 1.326 mm at ARM_SCALE 0.72. The test requires a margin 75.4x that, so the
+ * result cannot be an artefact of how finely the meshes are tessellated.
  *
  * Meshes are culled by bounding sphere before their vertices are touched. Most
  * of the arm (base, plinth, shoulder) is nowhere near the car for the entire
@@ -30,7 +28,7 @@
 
 import * as THREE from 'three';
 import { buildCobot, type CobotLOD } from './buildCobot';
-import { OTTO_CHARGE_ARM, type CobotSpec } from './cobotSpec';
+import { OTTO_CHARGE_ARM, MOUNT_COLLAR, type CobotSpec } from './cobotSpec';
 import { type JointAngles } from './cobotIK';
 import { clearanceToCar, type CarSolid } from './vehicleEnvelope';
 
@@ -38,22 +36,35 @@ import { clearanceToCar, type CarSolid } from './vehicleEnvelope';
  * Largest distance a mesh face can bulge past the vertices we sample, metres.
  *
  * A curved primitive drawn with n segments has a chord that sags r*(1-cos(pi/n))
- * off the true surface. Sag needs a coarse tessellation AND a big radius, and on
- * this arm those never coincide: the big parts (base housing, mount collar, the
- * link spines) are drawn at 20-24 segments, while the coarse ones (6-segment
- * bolt heads, the 6- and 8-segment torus cross-sections, the 7-segment dress
- * pack) are all under 15 mm in radius. Pairing 20 segments with the largest
- * radius on the machine — the base housing at 0.115 * ARM_SCALE — is therefore a
- * pair nothing actually is, and it bounds all of them. Boxes and planes are flat
- * and contribute nothing.
+ * off the true surface. Sag needs a coarse tessellation AND a big radius, so the
+ * bound has to be taken over the two families on this rig SEPARATELY, because
+ * only one of them scales:
  *
- * 1.699 mm at ARM_SCALE 1.2. The worst REAL primitive is the shoulder yoke, a
- * 20-segment cylinder of radius 0.1352 m, at 1.665 mm. armClearance.test.ts
- * walks every geometry's own parameters and asserts none exceeds this, so the
- * bound cannot quietly stop being one.
+ *   THE MACHINE scales with ARM_SCALE. Its big parts (base housing, link spines,
+ *   the shoulder yoke) are drawn at 20-24 segments and its coarse parts
+ *   (6-segment bolt heads, the 6- and 8-segment torus cross-sections, the
+ *   7-segment dress pack) are all small. Pairing 20 segments with the largest
+ *   radius on it — the base housing at 0.115 * ARM_SCALE — is a pair nothing
+ *   actually is, and it bounds all of them.
+ *
+ *   THE MOUNT does not scale: it is depot hardware bolted to a fixed cabinet.
+ *   Its collar is a 24-segment cylinder of radius MOUNT_COLLAR.rBottom whatever
+ *   the arm is, so below about ARM_SCALE 1.0 the mount, not the machine, is what
+ *   sags most. That is a real crossover and not a hypothetical: at the shipped
+ *   0.72 the collar sags 1.326 mm against the machine's 1.019 mm.
+ *
+ * Boxes and planes are flat and contribute nothing.
+ *
+ * 1.326 mm at ARM_SCALE 0.72, set by the collar. armClearance.test.ts walks
+ * every geometry's own parameters and asserts none exceeds this, so the bound
+ * cannot quietly stop being one — and it is what caught the dress pack, which
+ * was authored at a fixed 0.014 m radius while the links around it scaled.
  */
-export const SAMPLING_SAG_M =
-  (1 - Math.cos(Math.PI / 20)) * OTTO_CHARGE_ARM.radii.base; // 1.699 mm at ARM_SCALE 1.2
+const chordSag = (r: number, n: number) => (1 - Math.cos(Math.PI / n)) * r;
+export const SAMPLING_SAG_M = Math.max(
+  chordSag(OTTO_CHARGE_ARM.radii.base, 20),           // the machine, which scales
+  chordSag(MOUNT_COLLAR.rBottom, MOUNT_COLLAR.segments), // the mount, which does not
+);
 
 interface SampledMesh {
   name: string;
@@ -61,9 +72,22 @@ interface SampledMesh {
   verts: Float32Array;
   /** True for the end effector — the only part ALLOWED to reach the bodywork. */
   isTool: boolean;
+  /** True for the static plinth — the only part ALLOWED to reach the charger. */
+  isMount: boolean;
   /** Local-space bounding sphere, for culling before the vertex loop. */
   cx: number; cy: number; cz: number; r: number;
 }
+
+/** Which selection of the machine a clearance query covers. */
+export type ArmParts =
+  /** everything but the connector */
+  | 'structure'
+  /** the connector only */
+  | 'tool'
+  /** every mesh on the machine */
+  | 'all'
+  /** everything that MOVES — i.e. all of it except the bolted-down plinth */
+  | 'moving';
 
 /**
  * Which parts of the arm are the connector, and which are structure.
@@ -75,8 +99,26 @@ interface SampledMesh {
  * charging robot must never make contact with the vehicle it charges.
  */
 function isToolPart(o: THREE.Object3D): boolean {
+  return hasAncestor(o, 'EndEffector');
+}
+
+/**
+ * Which parts are the MOUNT, and which are the machine.
+ *
+ * The same distinction the tool needs, at the other end and against the other
+ * solid. The plinth is BOLTED TO the charger cabinet — its plate lands flat on
+ * the cabinet's face and its cable gland passes through the wall, which is what
+ * a cable gland is for. Holding it to "never touches the pedestal" would be
+ * asserting that the arm must not be attached to anything. Everything else on
+ * the machine moves, and none of it has any business inside the charger.
+ */
+function isMountPart(o: THREE.Object3D): boolean {
+  return hasAncestor(o, 'Mount_Plinth');
+}
+
+function hasAncestor(o: THREE.Object3D, name: string): boolean {
   for (let n: THREE.Object3D | null = o; n; n = n.parent) {
-    if (n.name === 'EndEffector') return true;
+    if (n.name === name) return true;
   }
   return false;
 }
@@ -86,10 +128,23 @@ export interface ArmClearanceRig {
   pose(a: JointAngles): void;
   /**
    * Minimum signed clearance to the car, metres.
-   * @param which 'structure' = everything but the connector; 'tool' = the
-   *              connector only; 'all' = the whole arm.
+   * @param which which selection of the machine to measure — see ArmParts.
    */
-  clearance(car: CarSolid, which?: 'structure' | 'tool' | 'all'): { min: number; part: string };
+  clearance(car: CarSolid, which?: ArmParts): { min: number; part: string };
+  /**
+   * Minimum signed clearance to ANY solid, metres.
+   *
+   * The car is not the only thing the arm can hit. `clearance` above is this
+   * with the car's distance function bound; the pedestal check passes its own.
+   * Taking a plain distance function rather than a union of solid types is what
+   * keeps the culling, the nearest-first ordering and the pruning in ONE place
+   * — the parts of this file that make a 10,000-pose sweep affordable.
+   *
+   * @param dist  signed distance from a point in the ARM BASE frame, metres,
+   *              negative inside. Called once per bounding sphere and then once
+   *              per vertex of whatever survives, so it must be cheap.
+   */
+  clearanceTo(dist: (p: THREE.Vector3) => number, which?: ArmParts): { min: number; part: string };
   /** World position of a named node — used to check the connector reaches the port. */
   nodeWorld(name: string): THREE.Vector3;
   /**
@@ -135,7 +190,8 @@ export function makeArmClearanceRig(
     if (!m.geometry.boundingSphere) m.geometry.computeBoundingSphere();
     const bs = m.geometry.boundingSphere!;
     parts.push({
-      name: m.name || '(unnamed)', mesh: m, verts, isTool: isToolPart(m),
+      name: m.name || '(unnamed)', mesh: m, verts,
+      isTool: isToolPart(m), isMount: isMountPart(m),
       cx: bs.center.x, cy: bs.center.y, cz: bs.center.z, r: bs.radius,
     });
   });
@@ -145,6 +201,53 @@ export function makeArmClearanceRig(
   const order: SampledMesh[] = new Array(parts.length);
   const bound = new Float64Array(parts.length);
   const indices = new Int32Array(parts.length);
+
+  /** See ArmClearanceRig.clearanceTo. Hoisted so `clearance` can bind the car. */
+  function clearanceTo(dist: (p: THREE.Vector3) => number, which: ArmParts = 'all') {
+    let min = Infinity;
+    let part = '';
+
+    // PASS 1 — bounding-sphere lower bound for every candidate mesh. Cheap:
+    // one distance evaluation each, against thousands for a vertex scan.
+    let n = 0;
+    for (const p of parts) {
+      if (which === 'structure' && p.isTool) continue;
+      if (which === 'tool' && !p.isTool) continue;
+      if (which === 'moving' && p.isMount) continue;
+      const mw = p.mesh.matrixWorld;
+      // The end-effector group carries a uniform scale (it is normalised so
+      // the drawn connector tip lands on the TCP), so the cull radius has to
+      // be scaled too — reading it off the matrix rather than assuming 1.
+      const sx = Math.hypot(mw.elements[0], mw.elements[1], mw.elements[2]);
+      v.set(p.cx, p.cy, p.cz).applyMatrix4(mw);
+      order[n] = p;
+      bound[n] = dist(v) - p.r * sx;
+      n++;
+    }
+
+    // PASS 2 — NEAREST FIRST. The order matters more than it looks: the
+    // running minimum is what prunes, and walking the arm base-to-tip scans
+    // parts that are nowhere near the solid before the running minimum is
+    // small enough to reject anything. Sorting by the lower bound first turns
+    // almost every mesh into a single distance evaluation.
+    const idx = indices.subarray(0, n);
+    for (let i = 0; i < n; i++) idx[i] = i;
+    idx.sort((a, b) => bound[a] - bound[b]);
+
+    for (let k = 0; k < n; k++) {
+      const i = idx[k];
+      if (bound[i] >= min) break; // sorted: nothing after this can win either
+      const p = order[i];
+      const mw = p.mesh.matrixWorld;
+      const a = p.verts;
+      for (let j = 0; j < a.length; j += 3) {
+        v.set(a[j], a[j + 1], a[j + 2]).applyMatrix4(mw);
+        const d = dist(v);
+        if (d < min) { min = d; part = p.name; }
+      }
+    }
+    return { min, part };
+  }
 
   return {
     root: rig.root,
@@ -161,50 +264,11 @@ export function makeArmClearanceRig(
       scene.updateMatrixWorld(true);
     },
 
-    clearance(car: CarSolid, which: 'structure' | 'tool' | 'all' = 'all') {
-      let min = Infinity;
-      let part = '';
-
-      // PASS 1 — bounding-sphere lower bound for every candidate mesh. Cheap:
-      // one distance evaluation each, against thousands for a vertex scan.
-      let n = 0;
-      for (const p of parts) {
-        if (which === 'structure' && p.isTool) continue;
-        if (which === 'tool' && !p.isTool) continue;
-        const mw = p.mesh.matrixWorld;
-        // The end-effector group carries a uniform scale (it is normalised so
-        // the drawn connector tip lands on the TCP), so the cull radius has to
-        // be scaled too — reading it off the matrix rather than assuming 1.
-        const sx = Math.hypot(mw.elements[0], mw.elements[1], mw.elements[2]);
-        v.set(p.cx, p.cy, p.cz).applyMatrix4(mw);
-        order[n] = p;
-        bound[n] = clearanceToCar(v, car) - p.r * sx;
-        n++;
-      }
-
-      // PASS 2 — NEAREST FIRST. The order matters more than it looks: the
-      // running minimum is what prunes, and walking the arm base-to-tip scans
-      // the plinth (which is never anywhere near the car) before the running
-      // minimum is small enough to reject anything. Sorting by the lower bound
-      // first turns almost every mesh into a single distance evaluation.
-      const idx = indices.subarray(0, n);
-      for (let i = 0; i < n; i++) idx[i] = i;
-      idx.sort((a, b) => bound[a] - bound[b]);
-
-      for (let k = 0; k < n; k++) {
-        const i = idx[k];
-        if (bound[i] >= min) break; // sorted: nothing after this can win either
-        const p = order[i];
-        const mw = p.mesh.matrixWorld;
-        const a = p.verts;
-        for (let j = 0; j < a.length; j += 3) {
-          v.set(a[j], a[j + 1], a[j + 2]).applyMatrix4(mw);
-          const d = clearanceToCar(v, car);
-          if (d < min) { min = d; part = p.name; }
-        }
-      }
-      return { min, part };
+    clearance(car: CarSolid, which: ArmParts = 'all') {
+      return clearanceTo((p) => clearanceToCar(p, car), which);
     },
+
+    clearanceTo,
 
     nodeWorld(name: string) {
       const n = rig.root.getObjectByName(name);

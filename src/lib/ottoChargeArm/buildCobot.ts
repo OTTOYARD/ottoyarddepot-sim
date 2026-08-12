@@ -23,7 +23,9 @@
  */
 
 import * as THREE from 'three';
-import { OTTO_CHARGE_ARM, type CobotSpec, TCP_NODE_NAME } from './cobotSpec';
+import {
+  OTTO_CHARGE_ARM, type CobotSpec, TCP_NODE_NAME, MOUNT_PLATE, MOUNT_COLLAR,
+} from './cobotSpec';
 
 // ---------------------------------------------------------------- palette ---
 // OTTOYARD brand: near-black #06070A, signal red #C8102E. Aluminium is kept
@@ -397,12 +399,24 @@ export function buildCobot(
     plinth.name = 'Mount_Plinth';
     plinth.position.y = -0.055;
 
-    const plate = mesh(new THREE.BoxGeometry(0.30, 0.026, 0.30), mats.charcoal, 'Mount_Plate');
-    plate.position.y = -0.013;
+    // The plate's DEPTH is load-bearing beyond the drawing: ARM_MOUNT_OFFSET_M
+    // is half the cabinet plus half of this, which is what puts the plate's
+    // back edge flat on the cabinet face instead of floating inside it. Sized
+    // in cobotSpec.ts so the placement and the mesh cannot disagree.
+    const plate = mesh(
+      new THREE.BoxGeometry(MOUNT_PLATE.width, MOUNT_PLATE.thickness, MOUNT_PLATE.depth),
+      mats.charcoal, 'Mount_Plate',
+    );
+    plate.position.y = -MOUNT_PLATE.thickness / 2;
     plinth.add(plate);
 
-    const collar = mesh(new THREE.CylinderGeometry(0.135, 0.155, 0.055, 24), mats.aluDark, 'Mount_Collar');
-    collar.position.y = 0.0275;
+    const collar = mesh(
+      new THREE.CylinderGeometry(
+        MOUNT_COLLAR.rTop, MOUNT_COLLAR.rBottom, MOUNT_COLLAR.height, MOUNT_COLLAR.segments,
+      ),
+      mats.aluDark, 'Mount_Collar',
+    );
+    collar.position.y = MOUNT_COLLAR.height / 2;
     plinth.add(collar);
 
     const plateBolts = boltCircle(0.122, 8, 0.008, 0.03, mats.charcoal, 'Mount_Bolts');
@@ -527,7 +541,15 @@ export function buildCobot(
       new THREE.Vector3(0, length * 0.7, -offset * 1.6),
       new THREE.Vector3(0, length - 0.02, -offset),
     ]);
-    const t = mesh(new THREE.TubeGeometry(curve, 12, 0.014, 7, false), mats.rubber, name);
+    // The tube SCALES WITH THE ARM. It was a fixed 0.014 m while every link and
+    // housing around it scaled, which is the same defect the connector had: at
+    // ARM_SCALE 1.2 a fixed cable merely looked thin, and at 0.72 it became the
+    // fattest-per-facet primitive on the machine and blew SAMPLING_SAG_M. A
+    // cable is sized to the arm it dresses, so it is tied to the forearm
+    // housing — 0.24 of it, which is 0.0139 m at scale 1.0, the value it had.
+    const t = mesh(
+      new THREE.TubeGeometry(curve, 12, spec.radii.fore * 0.24, 7, false), mats.rubber, name,
+    );
     t.castShadow = false;
     parent.add(t);
   };

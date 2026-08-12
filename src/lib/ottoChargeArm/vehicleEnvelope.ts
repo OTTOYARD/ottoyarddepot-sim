@@ -59,7 +59,7 @@
  */
 
 import { CAR_LENGTH, CAR_WIDTH } from '@/engine/motion/traffic';
-import { METRES_PER_PLAN_UNIT, PEDESTAL_TO_CAR_CENTRE_M, MOUNT_HEIGHT_M } from './cobotSpec';
+import { METRES_PER_PLAN_UNIT, ARM_BASE_TO_CAR_CENTRE_M, MOUNT_HEIGHT_M } from './cobotSpec';
 
 /** Overall vehicle length, metres — the traffic model's body, converted. */
 export const CAR_LENGTH_M = CAR_LENGTH * METRES_PER_PLAN_UNIT;
@@ -216,7 +216,7 @@ export interface CarSolid {
  *                Defaults to the depot's own pedestal offset.
  */
 export function carSolidInArmFrame(
-  centreZ: number = PEDESTAL_TO_CAR_CENTRE_M,
+  centreZ: number = ARM_BASE_TO_CAR_CENTRE_M,
   mountHeight: number = MOUNT_HEIGHT_M,
 ): CarSolid {
   const halfW = CAR_WIDTH_M / 2;
@@ -235,7 +235,7 @@ export function carSolidInArmFrame(
 }
 
 /** The near flank plane — where the charge port lives. Arm-frame z, metres. */
-export function nearFlankZ(centreZ: number = PEDESTAL_TO_CAR_CENTRE_M): number {
+export function nearFlankZ(centreZ: number = ARM_BASE_TO_CAR_CENTRE_M): number {
   return centreZ - CAR_WIDTH_M / 2;
 }
 

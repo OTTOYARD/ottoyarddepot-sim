@@ -41,14 +41,14 @@ import {
 } from './vehicleEnvelope';
 import {
   OTTO_CHARGE_ARM, MOUNT_HEIGHT_M, SERVICE_WINDOW, FLANK_STANDOFF_M, ARM_SCALE, TCP_NODE_NAME,
-  METRES_PER_PLAN_UNIT, PEDESTAL_TO_CAR_CENTRE_M,
+  METRES_PER_PLAN_UNIT, ARM_BASE_TO_CAR_CENTRE_M,
 } from './cobotSpec';
 import { buildCobot } from './buildCobot';
 import { VEHICLE_GEO, PORT_GEO } from '@/components/canvas/three/vehicleBody';
 import { poseFor, STANDOFF_M } from './armMotion';
 import { NOMINAL_SEQUENCE, type ArmPhase } from './armStateMachine';
 import { portFor } from './chargePort';
-import { placeArm, portInArmFrame } from './depotPlacement';
+import { placeArm, portInArmFrame, ARM_MOUNT_OFFSET_PU, PEDESTAL_OFFSET_PU } from './depotPlacement';
 import { generateStallsV2 } from '@/lib/sitePlan';
 
 const spec = OTTO_CHARGE_ARM;
@@ -59,10 +59,10 @@ const FLANK = nearFlankZ();
  *
  * 0.10 m is an engineering margin, not a tolerance: it is what an operator
  * would call "clear", and it leaves room for the residual pose error a real
- * servo carries. It is also 58.9x SAMPLING_SAG_M (1.699 mm at ARM_SCALE 1.2),
+ * servo carries. It is also 75.4x SAMPLING_SAG_M (1.326 mm at ARM_SCALE 0.72),
  * so a pass cannot be an artefact of how finely the meshes happen to be
  * tessellated. The assertion below only demands 20x, so the multiple can fall
- * by two thirds before the claim stops being a claim about geometry.
+ * by nearly three quarters before the claim stops being a claim about geometry.
  */
 const STRUCTURAL_MARGIN_M = 0.10;
 
@@ -182,7 +182,7 @@ describe('the car solid the arm is measured against', () => {
         // the car is symmetric across its centreline; check the vertex on both
         // flanks so a one-sided sign error cannot hide half the mesh
         for (const s of [1, -1]) {
-          const p = { x: along, y: height + car.gradeY, z: PEDESTAL_TO_CAR_CENTRE_M + s * lateral };
+          const p = { x: along, y: height + car.gradeY, z: ARM_BASE_TO_CAR_CENTRE_M + s * lateral };
           out = Math.max(out, clearanceToCar(p, car));
         }
       }
@@ -245,6 +245,9 @@ describe('the car solid the arm is measured against', () => {
   it('bounds the chord sag of every curved primitive the arm is drawn from', () => {
     const rig = buildCobot(OTTO_CHARGE_ARM, { withPlinth: true, lod: 'studio' });
     const sag = (r: number, n: number) => r * (1 - Math.cos(Math.PI / n));
+    // NOTE this walks the AUTHORED radii, ignoring any group scale above the
+    // mesh. That is the conservative direction for everything on this rig: the
+    // only scaled group is the end effector, and it scales DOWN.
     const seen = new Set<string>();
     let worst = 0, worstName = '';
     rig.root.traverse((o) => {
@@ -281,14 +284,18 @@ describe('the car solid the arm is measured against', () => {
   it('reports points inside the bodywork as inside, and outside as outside', () => {
     const car = carSolidInArmFrame();
     const deck = -MOUNT_HEIGHT_M;
+    // The car's centreline, from the ARM'S BASE. These used to be a literal
+    // 2.153 — the pedestal-axis distance — which stopped being the car's centre
+    // the moment the mount moved onto the cabinet face.
+    const CTR = ARM_BASE_TO_CAR_CENTRE_M;
     // dead centre of the car, at window height: deep inside
-    expect(clearanceToCar({ x: 0, y: deck + 0.9, z: 2.153 }, car)).toBeLessThan(-0.5);
+    expect(clearanceToCar({ x: 0, y: deck + 0.9, z: CTR }, car)).toBeLessThan(-0.5);
     // just outside the near flank
     expect(clearanceToCar({ x: 0, y: deck + 0.9, z: FLANK - 0.05 }, car)).toBeCloseTo(0.05, 6);
     // above the roof, clear of the sensor pod
-    expect(clearanceToCar({ x: 1.5, y: deck + 2.2, z: 2.153 }, car)).toBeGreaterThan(0.5);
+    expect(clearanceToCar({ x: 1.5, y: deck + 2.2, z: CTR }, car)).toBeGreaterThan(0.5);
     // the sensor pod is modelled: straight above the centre, just over the roof
-    expect(clearanceToCar({ x: 0, y: deck + 1.55, z: 2.153 }, car)).toBeLessThan(0);
+    expect(clearanceToCar({ x: 0, y: deck + 1.55, z: CTR }, car)).toBeLessThan(0);
   });
 });
 
@@ -430,7 +437,10 @@ describe('the depot places every arm where this measurement applies', () => {
     const towards = new Set<number>();
     for (const s of dcfc) {
       const p = placeArm(s.id, s.position.x, s.position.y);
-      expect(Math.abs(p.carWorld[0] - p.world[0])).toBeCloseTo(4.5, 9);
+      // the arm stands off its stall by the pedestal offset LESS the mount
+      // offset — it is bolted to the cabinet's car-facing face, not its axis
+      expect(Math.abs(p.carWorld[0] - p.world[0]))
+        .toBeCloseTo(PEDESTAL_OFFSET_PU - ARM_MOUNT_OFFSET_PU, 9);
       expect(p.carWorld[2]).toBeCloseTo(p.world[2], 9);
       towards.add(p.toward);
       // and the port really does land on the flank the solid says it does

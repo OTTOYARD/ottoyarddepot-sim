@@ -25,8 +25,21 @@
  *
  * ALONG is likewise modelled as compliant: the AV stops so the inlet lands
  * inside the arm's service window. The residual spread below is real
- * OEM-to-OEM variation WITHIN that window, which is what makes each mate a
- * genuinely different IK solve rather than the same canned animation ten times.
+ * OEM-to-OEM variation, which is what makes each mate a genuinely different IK
+ * solve rather than the same canned animation ten times.
+ *
+ * THE ALONG CLAMP IS PARTLY LOAD-BEARING NOW, and it did not use to be. The
+ * window was +/-1.00 m, comfortably outside every band here, so the clamp never
+ * fired. Moving the arm's mount onto the cabinet's car-facing face shortened it
+ * to +/-0.70 m — see ARM_MOUNT_OFFSET_M — and the aft ends of the Tesla, Waymo
+ * and Motional bands now sit outside it. Those ports are pulled to the window
+ * edge, i.e. the model asserts the vehicle stopped up to 0.31 m further forward
+ * than nominal. That is a real parking requirement on the AV, not a formality,
+ * and it is the kind of thing OTTO-Q has to be able to honour.
+ *
+ * HEIGHT is never clamped in practice and must not be: a van's inlet is 1.05 m
+ * off the ground wherever it stops. SERVICE_WINDOW is sized so the whole OEM
+ * height band clears the margin below.
  * ------------------------------------------------------------------------
  */
 

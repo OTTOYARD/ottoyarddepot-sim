@@ -14,10 +14,25 @@
 
 import { CANOPIES } from '@/lib/sitePlan';
 import { DECK_Y } from '@/components/canvas/three/coordUtils';
-import { PLAN_UNITS_PER_METRE, MOUNT_HEIGHT_M } from './cobotSpec';
+import {
+  PLAN_UNITS_PER_METRE, MOUNT_HEIGHT_M, ARM_MOUNT_OFFSET_M, PEDESTAL_OFFSET_PU,
+  ARM_BASE_TO_CAR_CENTRE_M,
+} from './cobotSpec';
 
-/** Lateral offset from the car's centreline to its charger pedestal, plan units. */
-export const PEDESTAL_OFFSET_PU = 4.5;
+/**
+ * Lateral offset from the car's centreline to its charger pedestal, plan units.
+ * Re-exported: cobotSpec.ts defines it, because everything else there that
+ * calls itself depot-derived derives from it.
+ */
+export { PEDESTAL_OFFSET_PU };
+
+/**
+ * How far in front of the pedestal AXIS the arm's base sits, plan units.
+ *
+ * The metre value is the spec's; this is the same distance in the renderer's
+ * units, converted at the one place conversions happen.
+ */
+export const ARM_MOUNT_OFFSET_PU = ARM_MOUNT_OFFSET_M * PLAN_UNITS_PER_METRE;
 
 /** 2D -> 3D, matching src/components/canvas/three/coordUtils.ts exactly. */
 function toWorld(x2d: number, y2d: number): [number, number] {
@@ -43,7 +58,12 @@ export function towardFor(stallX: number): 1 | -1 {
 
 export interface ArmPlacement {
   stallId: string;
-  /** Arm base (J1 axis) in depot world coordinates, plan units. */
+  /**
+   * Arm base (J1 axis) in depot world coordinates, plan units.
+   *
+   * NOT the pedestal's own position: the arm is bolted to the cabinet's
+   * car-facing face, ARM_MOUNT_OFFSET_PU toward the car of the pedestal axis.
+   */
   world: [number, number, number];
   /**
    * Yaw so the arm's local +Z points at the parked vehicle.
@@ -71,12 +91,27 @@ export function placeArm(
   const toward = towardFor(stallX);
 
   const pedX = stallX + toward * PEDESTAL_OFFSET_PU;
-  const [pwx, pwz] = toWorld(pedX, stallY);
+  // THE MOUNT IS ON THE CABINET'S FACE, NOT ITS CENTRE.
+  //
+  // This used to place the arm at `pedX`, the pedestal axis. ChargingField draws
+  // the DCFC cabinet 1.5 plan units DEEP TOWARD THE CAR about that axis, so the
+  // mount plate, its collar and bolts, the cable gland, the base housing, the
+  // shoulder yoke and the bottom of the upper arm all lived 0.1675 m inside the
+  // drawn box — in every pose, at every stall, on every branch back to main.
+  //
+  // The offset goes through `toward` for the same reason the rotation does: the
+  // car lies at +toward in WORLD x, and plan x is negated by toWorld, so moving
+  // the arm toward the car is a MINUS in plan space and a PLUS in world space.
+  // Getting that sign wrong would bury the arm a further half metre inside the
+  // cabinet rather than lifting it out, and it would still render.
+  const armX = pedX - toward * ARM_MOUNT_OFFSET_PU;
+  const [pwx, pwz] = toWorld(armX, stallY);
   const [cwx, cwz] = toWorld(stallX, stallY);
 
   // toWorld negates X, so a +1 plan-space `toward` still means the car sits at
-  // GREATER worldX than the pedestal: worldX(car) - worldX(ped)
-  //   = (150 - stallX) - (150 - stallX - toward*4.5) = +toward*4.5.
+  // GREATER worldX than the arm: worldX(car) - worldX(arm)
+  //   = (150 - stallX) - (150 - stallX - toward*(4.5 - offset))
+  //   = +toward*(4.5 - offset).
   // Rotating about Y by theta maps local +Z to (sin theta, 0, cos theta), so
   // pointing +Z at the car needs sin theta = toward, i.e. theta = toward*PI/2.
   const rotationY = toward * (Math.PI / 2);
@@ -119,11 +154,13 @@ export function placeArm(
 export function portInArmFrame(
   alongM: number, heightM: number, carHalfWidthM: number, toward: 1 | -1,
 ): { x: number; y: number; z: number } {
-  const pedestalToCentre = PEDESTAL_OFFSET_PU / PLAN_UNITS_PER_METRE; // 2.153 m
+  // From the ARM'S BASE AXIS, not the pedestal axis. The two used to be the
+  // same point and are now ARM_MOUNT_OFFSET_M apart, and this is the IK's own
+  // frame, which hangs off the base.
   return {
     x: -toward * alongM,
     y: heightM - MOUNT_HEIGHT_M,
-    z: pedestalToCentre - carHalfWidthM,
+    z: ARM_BASE_TO_CAR_CENTRE_M - carHalfWidthM,
   };
 }
 
