@@ -689,7 +689,10 @@ describe("robotic tether (OTTO-CHARGE ARM still mated)", () => {
   // its own arm animation runs off a local clock that can finish first — and a car shown
   // driving out of a stall the orchestrator has locked is the exact lie this prevents.
   const tetherSnap = (
-    rows: { id: string; tethered?: boolean; tether_until?: string | null }[],
+    rows: {
+      id: string; tethered?: boolean; tether_until?: string | null;
+      tether_direction?: string | null; tether_phase?: string | null;
+    }[],
     simClock = "2026-08-11T00:12:30.134Z",
   ): TwinSnapshot => {
     const s = snap([]);
@@ -751,6 +754,67 @@ describe("robotic tether (OTTO-CHARGE ARM still mated)", () => {
       { id: "twin-1", tethered: true, tether_until: "2026-08-11T00:12:20.000Z" },
     ]));
     expect(twinMotionDriver.stallTetherRemainingS("DCFC-08")).toBe(0);
+  });
+
+  // ── DIRECTION ────────────────────────────────────────────────────────────
+  // The backend tether used to mean exactly one thing: the demate window after
+  // StopTransaction. Since `the_arm_holds_the_car_from_approach_until_clear` it
+  // also covers the 18.5 s inbound reach and the whole charge, so `tethered` is
+  // now true in three situations that must not be animated the same way. The car
+  // is held in all three; only one of them is a release countdown.
+  it("holds the car for an INBOUND mate but offers no demate countdown", () => {
+    twinMotionDriver.reconcile(tetherSnap([{
+      id: "twin-1", tethered: true, tether_until: "2026-08-11T00:12:48.634Z",
+      tether_direction: "mate", tether_phase: "approach",
+    }]));
+    // The gate must still refuse to move this car — an arm is reaching into the stall.
+    expect(twinMotionDriver.isStallTethered("DCFC-08")).toBe(true);
+    // ...but handing 18.5 s of reach to a consumer expecting a release would have
+    // the arm animating a retraction it has not begun.
+    expect(twinMotionDriver.stallTetherRemainingS("DCFC-08")).toBeNull();
+    expect(twinMotionDriver.stallArmDirection("DCFC-08")).toBe("mate");
+    expect(twinMotionDriver.stallArmPhase("DCFC-08")).toBe("approach");
+  });
+
+  it("holds the car for the whole charge and offers no countdown there either", () => {
+    twinMotionDriver.reconcile(tetherSnap([{
+      id: "twin-1", tethered: true, tether_until: "2026-08-11T00:14:30.134Z",
+      tether_direction: "charging", tether_phase: "charging",
+    }]));
+    expect(twinMotionDriver.isStallTethered("DCFC-08")).toBe(true);
+    // A renewed 120 s lease is not 120 s of retraction.
+    expect(twinMotionDriver.stallTetherRemainingS("DCFC-08")).toBeNull();
+    expect(twinMotionDriver.stallArmDirection("DCFC-08")).toBe("charging");
+  });
+
+  it("gives the countdown for an OUTBOUND demate", () => {
+    twinMotionDriver.reconcile(tetherSnap([{
+      id: "twin-1", tethered: true, tether_until: "2026-08-11T00:12:41.634Z",
+      tether_direction: "demate", tether_phase: "unlatch",
+    }]));
+    expect(twinMotionDriver.stallTetherRemainingS("DCFC-08")).toBeCloseTo(11.5, 3);
+    expect(twinMotionDriver.stallArmPhase("DCFC-08")).toBe("unlatch");
+  });
+
+  it("reads a missing direction as a demate, so an older backend is unchanged", () => {
+    // Before the mate lifecycle existed every tether WAS a demate. A backend that
+    // has not been migrated must keep behaving exactly as it did.
+    twinMotionDriver.reconcile(tetherSnap([
+      { id: "twin-1", tethered: true, tether_until: "2026-08-11T00:12:41.634Z" },
+    ]));
+    expect(twinMotionDriver.stallTetherRemainingS("DCFC-08")).toBeCloseTo(11.5, 3);
+    expect(twinMotionDriver.stallArmDirection("DCFC-08")).toBeNull();
+  });
+
+  it("rebuilds direction and phase wholesale, never merging a stale one", () => {
+    twinMotionDriver.reconcile(tetherSnap([{
+      id: "twin-1", tethered: true, tether_until: "2026-08-11T00:12:48.634Z",
+      tether_direction: "mate", tether_phase: "align",
+    }]));
+    expect(twinMotionDriver.stallArmPhase("DCFC-08")).toBe("align");
+    twinMotionDriver.reconcile(tetherSnap([{ id: "twin-1", tethered: false }]));
+    expect(twinMotionDriver.stallArmPhase("DCFC-08")).toBeNull();
+    expect(twinMotionDriver.stallArmDirection("DCFC-08")).toBeNull();
   });
 });
 

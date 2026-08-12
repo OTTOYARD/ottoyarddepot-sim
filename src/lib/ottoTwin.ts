@@ -186,6 +186,14 @@ export interface TwinSnapshot {
     vehicle_id: string | null;
     tethered?: boolean;
     tether_until?: string | null;
+    /** 'mate' (reaching in), 'charging' (locked, delivering), 'demate' (pulling out).
+     *  `tethered` alone is now true in all three, and they animate differently — an
+     *  inbound reach is not a release countdown. Absent on an older backend, where
+     *  every tether was a demate, so undefined must read as 'demate'. */
+    tether_direction?: string | null;
+    /** The backend's authoritative ArmPhase at this stall. Absent reads as unknown,
+     *  never as 'clear'. */
+    tether_phase?: string | null;
   }[];
   /** THE ARM CONTRACT (`public.ottoq_arm_timings` via the snapshot RPC).
    *
@@ -208,6 +216,20 @@ export interface TwinSnapshot {
       demate_source?: string | null;
       source?: string | null;
     } | null;
+    /** OPEN arm cycles — the inbound half the cockpit could not see at all before
+     *  `the_arm_holds_the_car_from_approach_until_clear`. One entry per stall whose
+     *  robot is mid-mate or mid-demate, including which retry it is on. Closed
+     *  cycles are history and live in the event log, not here. */
+    cycles?: {
+      cycle_id: string;
+      stall_id: string;
+      vehicle_id: string;
+      direction: string;
+      phase: string;
+      phase_deadline: string | null;
+      started_at: string | null;
+      retry_count: number;
+    }[] | null;
   } | null;
   energy: Record<string, number | string | null> | null;
   bess: Record<string, number | string | null> | null;
