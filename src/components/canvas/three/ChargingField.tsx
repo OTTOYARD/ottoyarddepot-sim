@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import * as THREE from 'three';
 import { useDepotStore } from '@/store/depotStore';
 import { towardFor, PEDESTAL_OFFSET_PU } from '@/lib/ottoChargeArm/depotPlacement';
+import { DCFC_CABINET_PU, L2_CABINET_PU } from '@/lib/ottoChargeArm/cabinetEnvelope';
 import { toWorld } from './coordUtils';
 import { MATERIALS } from './materials';
 
@@ -54,9 +55,17 @@ export function ChargingField({ type }: Props) {
     return mats.teal;
   };
 
+  // ONE SET OF NUMBERS. These used to be literals here, which meant the drawn
+  // cabinet and anything reasoning about the cabinet could disagree without
+  // anyone noticing — and for the OTTO-CHARGE ARM nothing WAS reasoning about
+  // it at all, so the arm swept straight through this box. cabinetEnvelope.ts
+  // now derives its collision solid from exactly these values, the same way
+  // vehicleEnvelope.ts and vehicleBody.ts share the car's.
   const isDC = type === 'dcfc';
-  const H = isDC ? 3.6 : 2.8;
-  const W = isDC ? 1.5 : 1.1;
+  const dims = isDC ? DCFC_CABINET_PU : L2_CABINET_PU;
+  const H = dims.height;
+  const W = dims.width;
+  const D = dims.depth;
 
   return (
     <group>
@@ -77,7 +86,7 @@ export function ChargingField({ type }: Props) {
             </mesh>
             {/* pedestal body */}
             <mesh position={[0, H / 2 + 0.16, 0]} castShadow material={mats.body}>
-              <boxGeometry args={[W, H, 0.7]} />
+              <boxGeometry args={[W, H, D]} />
             </mesh>
             {/* screen — on the car's flank of the cabinet, facing it. Ry(theta)
                 sends +Z to (sin, 0, cos), so aiming at the car needs
