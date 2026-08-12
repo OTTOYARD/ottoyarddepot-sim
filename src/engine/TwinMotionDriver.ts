@@ -33,7 +33,7 @@ import {
   INGRESS, EGRESS, gapLaneX, SOUTH_LANE_Y, REAR_LANE_Y, PARK_RUNS, TEMP_LANE_X,
   WEST_AISLE_X, EAST_AISLE_X, NORTH_LANE_Y, N1_LANE_Y, QUEUE_Y,
 } from "@/lib/sitePlan";
-import { DISCONNECT_SECONDS, type ArmPhase } from "@/lib/ottoChargeArm/armStateMachine";
+import { DISCONNECT_SECONDS, applyArmTimings, type ArmPhase } from "@/lib/ottoChargeArm/armStateMachine";
 
 type Lane = "dcfc" | "l2" | "wash" | "service" | "staging";
 
@@ -1271,6 +1271,15 @@ class TwinMotionDriver {
 
   /** Reconcile render state + routes against a fresh backend snapshot. */
   reconcile(snap: TwinSnapshot) {
+    // THE ARM SEAM. Adopt the backend's arm timings before anything reads them.
+    // `public.ottoq_arm_timings` in otto-q-core is the one home for the robot's
+    // motion budget; armStateMachine.ts used to define a second copy of it, which
+    // is how the renderer and the orchestrator came to disagree about how long a
+    // car stays mated. Applied FIRST and ahead of the layout guard, because the
+    // demate window is read further down this same method (twinTetherLeftS) and a
+    // held snapshot is replayed through here anyway. Idempotent and total.
+    applyArmTimings(snap.arm?.timings);
+
     if (!this.layoutSettled) {
       this.pendingSnap = snap; // hold until the exact-stall map settles
       return;

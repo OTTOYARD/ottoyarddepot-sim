@@ -187,6 +187,28 @@ export interface TwinSnapshot {
     tethered?: boolean;
     tether_until?: string | null;
   }[];
+  /** THE ARM CONTRACT (`public.ottoq_arm_timings` via the snapshot RPC).
+   *
+   *  The OTTO-CHARGE ARM's motion budget has ONE home, and it is a set of
+   *  `ottoq_policy_params` rows in otto-q-core — not `armStateMachine.ts`, which
+   *  now reads these and keeps its own literals only as an offline floor. Retune
+   *  the arm in one place and both worlds move: the renderer's animation and the
+   *  window OTTO-Q reserves the plug for.
+   *
+   *  Optional: an older backend omits the block and every consumer must read that
+   *  as "keep the shipped defaults", never as "the arm takes zero seconds". */
+  arm?: {
+    timings?: {
+      phase_seconds?: Record<string, number> | null;
+      connect_seconds?: number | null;
+      /** What OTTO-Q actually reserves the plug for after StopTransaction. */
+      demate_seconds?: number | null;
+      cycle_overhead_seconds?: number | null;
+      /** 'derived' from its three phases, 'override' when pinned, 'fallback' on a failed read. */
+      demate_source?: string | null;
+      source?: string | null;
+    } | null;
+  } | null;
   energy: Record<string, number | string | null> | null;
   bess: Record<string, number | string | null> | null;
   weather: Record<string, number | string | null> | null;

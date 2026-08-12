@@ -48,8 +48,21 @@ export const NOMINAL_SEQUENCE: ArmPhase[] = [
   'charging', 'unlatch', 'extract', 'retract', 'clear',
 ];
 
-/** Seconds each phase takes, excluding 'charging' which lasts as long as it lasts. */
-export const PHASE_SECONDS: Record<Exclude<ArmPhase, 'charging' | 'stowed' | 'clear' | 'fault'>, number> = {
+/** The phases that have a fixed duration. 'charging' lasts as long as it lasts. */
+export type TimedArmPhase = Exclude<ArmPhase, 'charging' | 'stowed' | 'clear' | 'fault'>;
+
+/**
+ * THE SHIPPED DEFAULTS — and the ONLY place this file states a number.
+ *
+ * These are what the arm does when nobody has said otherwise: the conservative
+ * assumptions documented in ROBOTIC_ARM.md. They are ALSO the seed values of
+ * `ottoq_policy_params` in otto-q-core, and `public.ottoq_arm_timings()` falls
+ * back to exactly these if its policy read fails. Three copies of a number is
+ * normally a smell; here it is deliberate and safe, because each copy is a
+ * FLOOR the system degrades to, never a value it operates on while connected.
+ * The value it operates on comes from the backend — see applyArmTimings.
+ */
+export const ARM_TIMING_DEFAULTS: Readonly<Record<TimedArmPhase, number>> = Object.freeze({
   unstow: 3.0,
   approach: 6.0,
   align: 4.5,
@@ -58,15 +71,157 @@ export const PHASE_SECONDS: Record<Exclude<ArmPhase, 'charging' | 'stowed' | 'cl
   unlatch: 2.0,
   extract: 3.0,
   retract: 6.5,
-};
+});
 
-/** Total seconds of robot motion added to a charge visit, both ends combined. */
-export const CONNECT_SECONDS =
-  PHASE_SECONDS.unstow + PHASE_SECONDS.approach + PHASE_SECONDS.align +
-  PHASE_SECONDS.insert + PHASE_SECONDS.latch;               // 18.5 s
-export const DISCONNECT_SECONDS =
-  PHASE_SECONDS.unlatch + PHASE_SECONDS.extract + PHASE_SECONDS.retract; // 11.5 s
-export const CYCLE_OVERHEAD_SECONDS = CONNECT_SECONDS + DISCONNECT_SECONDS; // 30 s
+/**
+ * Seconds each phase takes.
+ *
+ * MUTABLE BY DESIGN, and mutated ONLY by applyArmTimings() below. This used to
+ * be a `const` literal, which made it the second of two homes for one physical
+ * constant: the same 2.0 + 3.0 + 6.5 = 11.5 s demate window was also hardcoded
+ * in `twin.ottoq_sim_stop_charge_session` as `v_demate_s`. Two repos, one robot,
+ * nothing keeping them honest — retune the arm here and the orchestration goes
+ * on reserving the plug for the old window.
+ *
+ * The object identity is stable and the keys are read live, so every existing
+ * `PHASE_SECONDS.retract` call site picks up served values with no change.
+ */
+export const PHASE_SECONDS: Record<TimedArmPhase, number> = { ...ARM_TIMING_DEFAULTS };
+
+/**
+ * Total seconds of robot motion added to a charge visit.
+ *
+ * `let`, not `const`, so ES module live bindings carry a retune to every
+ * importer. Recomputed by applyArmTimings(); never assigned anywhere else.
+ */
+export let CONNECT_SECONDS = 18.5;      // unstow 3 + approach 6 + align 4.5 + insert 3 + latch 2
+export let DISCONNECT_SECONDS = 11.5;   // unlatch 2 + extract 3 + retract 6.5
+export let CYCLE_OVERHEAD_SECONDS = 30.0;
+
+/** Where the numbers currently in force came from. */
+export type ArmTimingSource = 'defaults' | 'backend';
+
+let timingSource: ArmTimingSource = 'defaults';
+/** How the demate window was arrived at, as reported by the backend. */
+let demateSource: string = 'derived';
+
+/** Provenance, for the diagnostics overlay and for tests that assert the seam. */
+export function armTimingProvenance(): { source: ArmTimingSource; demateSource: string } {
+  return { source: timingSource, demateSource };
+}
+
+/** The shape `ottoq_twin_snapshot` publishes at `arm.timings`. */
+export interface ServedArmTimings {
+  phase_seconds?: Partial<Record<TimedArmPhase, number>> | null;
+  connect_seconds?: number | null;
+  demate_seconds?: number | null;
+  cycle_overhead_seconds?: number | null;
+  demate_source?: string | null;
+  source?: string | null;
+}
+
+/**
+ * A served number is only believed if it is a real, non-negative, plausible
+ * duration. Anything else keeps the value already in force.
+ *
+ * The ceiling is not decoration. A NaN or a wild number here would not throw —
+ * it would silently become a phase that never ends, and a phase that never ends
+ * is a car this gate never releases. Same failure direction the rest of this
+ * file is written against, so it gets the same treatment: reject the input,
+ * keep something sane, stay a total function.
+ */
+const MAX_PLAUSIBLE_PHASE_S = 600;
+function believable(n: unknown): number | null {
+  return typeof n === 'number' && Number.isFinite(n) && n >= 0 && n <= MAX_PLAUSIBLE_PHASE_S
+    ? n : null;
+}
+
+function recompute(): void {
+  CONNECT_SECONDS =
+    PHASE_SECONDS.unstow + PHASE_SECONDS.approach + PHASE_SECONDS.align +
+    PHASE_SECONDS.insert + PHASE_SECONDS.latch;
+  DISCONNECT_SECONDS =
+    PHASE_SECONDS.unlatch + PHASE_SECONDS.extract + PHASE_SECONDS.retract;
+  CYCLE_OVERHEAD_SECONDS = CONNECT_SECONDS + DISCONNECT_SECONDS;
+}
+
+/**
+ * Adopt the arm timings the backend serves on `ottoq_twin_snapshot`.
+ *
+ * THIS IS THE SEAM. `public.ottoq_arm_timings()` in otto-q-core is the one home
+ * for these numbers; this function is how they arrive. Call it on every
+ * snapshot — it is cheap, idempotent, and the values genuinely can change
+ * mid-run (a policy row is settable per run and per depot).
+ *
+ * The window totals are taken from the SERVED totals when present rather than
+ * re-derived from the phases, because they are allowed to disagree: OTTO-Q
+ * supports a whole-window `robotic_demate_seconds` override that pins the total
+ * without touching its phases. When that is set the animation still plays its
+ * three phases while the gate honours the total OTTO-Q is actually reserving
+ * the plug for. Re-deriving here would quietly discard the operator's override
+ * and put the two worlds back out of step — the exact bug this seam exists to
+ * close.
+ *
+ * Returns true only if a value actually CHANGED — this is called on every
+ * snapshot poll, and "the backend confirmed we are already in step" is the
+ * common case, not news. Provenance is tracked separately: any payload with at
+ * least one believable field flips the source to 'backend', because being
+ * confirmed in step is itself worth knowing and is different from never having
+ * heard from the backend at all.
+ *
+ * Never throws: a malformed payload leaves the previous timings in force.
+ */
+export function applyArmTimings(served: ServedArmTimings | null | undefined): boolean {
+  if (!served || typeof served !== 'object') return false;
+  let changed = false;
+  let understood = false;
+
+  const ps = served.phase_seconds;
+  if (ps && typeof ps === 'object') {
+    for (const key of Object.keys(ARM_TIMING_DEFAULTS) as TimedArmPhase[]) {
+      const v = believable(ps[key]);
+      if (v === null) continue;
+      understood = true;
+      if (v !== PHASE_SECONDS[key]) {
+        PHASE_SECONDS[key] = v;
+        changed = true;
+      }
+    }
+  }
+
+  recompute();
+
+  // Served totals win over the derived sums — see the note above on overrides.
+  const connect = believable(served.connect_seconds);
+  if (connect !== null) {
+    understood = true;
+    if (connect !== CONNECT_SECONDS) changed = true;
+    CONNECT_SECONDS = connect;
+  }
+  const demate = believable(served.demate_seconds);
+  if (demate !== null) {
+    understood = true;
+    if (demate !== DISCONNECT_SECONDS) changed = true;
+    DISCONNECT_SECONDS = demate;
+  }
+  const cycle = believable(served.cycle_overhead_seconds);
+  if (cycle !== null) understood = true;
+  CYCLE_OVERHEAD_SECONDS = cycle !== null ? cycle : CONNECT_SECONDS + DISCONNECT_SECONDS;
+
+  if (understood) {
+    timingSource = 'backend';
+    demateSource = typeof served.demate_source === 'string' ? served.demate_source : 'derived';
+  }
+  return changed;
+}
+
+/** Back to the shipped defaults. For tests, and for a renderer losing its backend. */
+export function resetArmTimings(): void {
+  Object.assign(PHASE_SECONDS, ARM_TIMING_DEFAULTS);
+  recompute();
+  timingSource = 'defaults';
+  demateSource = 'derived';
+}
 
 /** Is the connector mechanically locked to the vehicle right now? */
 export function isTethered(p: ArmPhase): boolean {

@@ -63,11 +63,19 @@ export const MAX_ARM_CLOCK_STEP_S = 30;
 /**
  * Longest physically possible release, sim seconds.
  *
- * DISCONNECT_SECONDS / MIN_DEMATE_SPEED = 11.5 / 0.4 = 28.75 s — what
- * roboticService's own clamp allows when OTTO-Q's tether deadline is very
- * distant. Nothing legitimate takes longer to let go.
+ * DISCONNECT_SECONDS / MIN_DEMATE_SPEED = 11.5 / 0.4 = 28.75 s at the shipped
+ * timings — what roboticService's own clamp allows when OTTO-Q's tether deadline
+ * is very distant. Nothing legitimate takes longer to let go.
+ *
+ * A FUNCTION, not a const: DISCONNECT_SECONDS is now served by the backend
+ * (`ottoq_twin_snapshot` -> arm.timings) and can change mid-run. Frozen at
+ * module load this would have gone on describing the timings the bundle
+ * happened to ship with, which is the same drift the seam was built to end —
+ * just relocated into the renderer.
  */
-export const MAX_PHYSICAL_DEMATE_S = DISCONNECT_SECONDS / MIN_DEMATE_SPEED;
+export function maxPhysicalDemateS(): number {
+  return DISCONNECT_SECONDS / MIN_DEMATE_SPEED;
+}
 
 /**
  * Hard ceiling on how long the gate may hold one car in a TRANSIENT phase, in
@@ -75,7 +83,7 @@ export const MAX_PHYSICAL_DEMATE_S = DISCONNECT_SECONDS / MIN_DEMATE_SPEED;
  *
  * DERIVED, not chosen. The worst legitimate uninterrupted hold outside
  * 'charging' is a full reach followed by a maximally slow release:
- *   CONNECT_SECONDS (18.5) + MAX_PHYSICAL_DEMATE_S (28.75) = 47.25 s.
+ *   CONNECT_SECONDS (18.5) + maxPhysicalDemateS() (28.75) = 47.25 s.
  * 60 clears that and can then only fire on a signal that is wedged — at which
  * point the car moves. A car frozen forever by a stuck signal is the failure
  * this project has already paid for once (one unmapped enum word aborting every
