@@ -78,6 +78,32 @@ const REVERSE_HOLD_MAX = 6;   // give up a blocked back-out, go forward instead
 // (bounded catch-up, never a leg replay). CAP bounds the hold under extreme churn.
 const DWELL_FLOOR_MS = 12000; // min visible dock — a charge/wash is always SEEN
 const DWELL_CAP_MS = 45000;   // hard ceiling on the hold (Phase-2 also uses this)
+// DWELL_FLOOR_MS IS REAL WALL-CLOCK MILLISECONDS AND THAT IS DELIBERATE, but it
+// was load-bearing for something it had no business gating and is not any more.
+// Stated here because it cost a founder-visible outage and should not be
+// re-derived:
+//
+//  · IT NO LONGER GATES THE ARMS. serviceWindow() used to be gated on the
+//    `playback` state this floor expires, so twelve REAL seconds after docking a
+//    still-charging car lost its service window and no arm could start a mate.
+//    The window is now gated on the car's POSE (physicallyParked), which does not
+//    expire. This constant governs VISIBILITY ONLY: how long a dock is shown
+//    before a downstream twin flip may re-lane the car.
+//
+//  · FOR VISIBILITY, WALL-CLOCK IS THE RIGHT DOMAIN. "A human must see it" is a
+//    claim about the operator's real seconds. Convert this to sim seconds and at
+//    the 8x continuous-play ceiling a 12-sim-second dock flashes past in 1.5 real
+//    seconds — exactly the thing the floor exists to prevent. Scaling it with
+//    playback would defeat it.
+//
+//  · THE COST, STATED HONESTLY. At 8x, 12 real seconds is 96 SIM seconds during
+//    which the renderer may lag the twin. That surface is much smaller than it
+//    was — a flip that names a different SERVICE stall is no longer held at all
+//    (see reconcile) — but it is not zero. RECOMMENDED, NOT DONE HERE because it
+//    changes behaviour nobody has asked to change: release the hold on
+//    `floorMet(e) || simFloorMet(e)`, a second ceiling of ~20 SIM seconds, so the
+//    lag is bounded in the twin's domain as well as the operator's. That is a
+//    one-line addition and it wants its own measurement of the replays.
 // ── "PHYSICALLY IN ITS STALL" — the gate on every service window, and so on
 // every arm mate. See physicallyParked(). Both are POSE tolerances, not timers.
 //
