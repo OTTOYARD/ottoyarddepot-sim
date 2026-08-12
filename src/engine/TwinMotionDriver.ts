@@ -78,6 +78,22 @@ const REVERSE_HOLD_MAX = 6;   // give up a blocked back-out, go forward instead
 // (bounded catch-up, never a leg replay). CAP bounds the hold under extreme churn.
 const DWELL_FLOOR_MS = 12000; // min visible dock — a charge/wash is always SEEN
 const DWELL_CAP_MS = 45000;   // hard ceiling on the hold (Phase-2 also uses this)
+// ── "PHYSICALLY IN ITS STALL" — the gate on every service window, and so on
+// every arm mate. See physicallyParked(). Both are POSE tolerances, not timers.
+//
+// POSITION. An arrival snaps EXACTLY onto the stall centre (tickMotion) and an
+// initial-snapshot car is created AT it, so a genuinely parked car measures 0.00u
+// off; this tolerance only has to survive a layout refresh nudging a stall. It is
+// deliberately BELOW the 1.8u at which the stability branch's residue repair
+// re-rails a car, so the two can never disagree in the unsafe direction: a car in
+// the 1.5–1.8u band is "not parked" (no window, no mate) and is also not yet being
+// repaired. 1.5u = 0.72 m at the cockpit's 0.4785 m/unit.
+const PARKED_POS_EPS = 1.5;
+// HEADING. The dock blend swings the body while the car is still MOVING and the
+// arrival then sets `car.heading = stallHeading` exactly, so a parked car measures
+// 0.000 rad off. The tolerance is for a car frozen mid-turn on top of its own
+// stall, which is not a body an arm should reach for. 0.25 rad = 14.3°.
+const PARKED_HEADING_EPS = 0.25;
 const DEPART_TTL = 90;        // a departing car that can't reach egress despawns
 const MAX_ACTIVE_DEPARTING = 12; // deploy waves leave in packets, not all at once
 const MAX_ACTIVE_ENTERING = 6;   // arrival waves enter in packets too (gate backpressure)
@@ -424,6 +440,11 @@ class TwinMotionDriver {
    *  TYPE (only dcfc carries an arm) every motion tick, and tickMotion must not be
    *  re-scanning the depot store's 158 stalls to find it. */
   private stallTypes = new Map<string, string>();
+  /** Renderer stall ids → stall CENTRE, refreshed each reconcile alongside
+   *  stallTypes. `physicallyParked()` is asked once per entry per motion tick
+   *  (stepArms) and again per entry in flush(); scanning the depot store's 158
+   *  stalls for each of those would be a per-frame O(cars × stalls) sweep. */
+  private stallPos = new Map<string, { x: number; y: number }>();
   /** Layout gate: when a run activates, the bridge calls expectLayout() and
    *  snapshots BUFFER until the layout fetch settles — otherwise the first
    *  snapshot places the fleet on zone stalls and the layout's arrival triggers
@@ -866,14 +887,61 @@ class TwinMotionDriver {
   }
 
   /**
-   * The service window to publish for a DOCKED car, in the renderer's
+   * IS THIS CAR PHYSICALLY IN ITS STALL, RIGHT NOW?
+   *
+   * The one fact the motion layer owns, and the gate on the service window (and
+   * therefore on every arm mate). It is a POSE TEST, so it cannot expire:
+   *
+   *   · no rail and no back-out maneuver — the car is not driving anywhere; and
+   *   · its body is ON the stall centre, within PARKED_POS_EPS; and
+   *   · it is squared up to the stall heading, within PARKED_HEADING_EPS —
+   *     the arm aims at a flank plane derived from that heading, so a car
+   *     slewed across its stall is not something to reach into.
+   *
+   * WHY THIS AND NOT `playback === "docked"`, WHICH IS WHAT IT USED TO BE.
+   * `playback` is a VISIBILITY state with a 12 s wall-clock life (DWELL_FLOOR_MS):
+   * commit-and-hold flips it to "released" once the dock has been SEEN, and the
+   * stability branch in reconcile then never sets it back. So a car that is still
+   * charging — still sitting in the stall, still taking electrons — lost its
+   * window 12 REAL seconds after docking. serviceWindow() returned null, the
+   * roster published serviceStartTime: null, and both evaluations of the arm
+   * cycle (ChargingArm.tsx and armGate here) computed parked=false. An arm that
+   * has not already started a mate can then never start one, which is the
+   * founder's #1 defect: open the cockpit on a run already in flight and EVERY
+   * car on a charger is already past the floor, so no arm ever connects.
+   * MEASURED live by the parent before this change: 46 samples over 45 s, zero
+   * arms in any phase but 'stowed', against 6 active twin charge sessions.
+   *
+   * STRICTLY STRONGER THAN THE THING IT REPLACES, which is the property that
+   * matters. Taxiing ⇒ `tracker !== null` ⇒ false, so the invariant "an arm never
+   * reaches into a stall a car is still driving toward" is not merely preserved,
+   * it is now enforced by the car's actual pose rather than by a state word. A
+   * car tracker-nulled AWAY from its stall (departure-stagger wait, tow freeze,
+   * mid-lane residue) also fails the pose test, where the old gate could hold a
+   * stale "docked".
+   *
+   * TOTAL + FAIL-SAFE: unknown stall id, no stall in the layout, unfinished
+   * layout fetch → false → no window → no mate.
+   */
+  private physicallyParked(e: Entry): boolean {
+    if (!e.stallId || e.tracker !== null || e.reverse !== null) return false;
+    const p = this.stallPos.get(e.stallId);
+    if (!p) return false;
+    if (Math.hypot(e.car.x - p.x, e.car.y - p.y) > PARKED_POS_EPS) return false;
+    return Math.abs(wrapAngle(e.car.heading - e.stallHeading)) <= PARKED_HEADING_EPS;
+  }
+
+  /**
+   * The service window to publish for a PARKED car, in the renderer's
    * seconds-of-day frame — or null when OTTO-Q sent none.
    *
    * TWO deliberate decisions:
    *
-   *  • Only a car that is PHYSICALLY PARKED gets a window. The backend opens a
-   *    charge session on its own tick, which can be well before the renderer has
-   *    finished driving the car in (commit-and-hold). An arm that mates into an
+   *  • Only a car that is PHYSICALLY PARKED gets a window — see
+   *    physicallyParked() above for what that means and why it is a pose test.
+   *    The backend opens a charge session on its own tick, which can be well
+   *    before the renderer has finished driving the car in (commit-and-hold).
+   *    An arm that mates into an
    *    empty stall is exactly the invented picture this renderer must not draw,
    *    so the cycle is anchored to the dock instant when the backend's start is
    *    already in the past. The DURATION stays OTTO-Q's; only the start is
@@ -895,7 +963,11 @@ class TwinMotionDriver {
    *    giving the arm its own private rate would only hide it.
    */
   private serviceWindow(e: Entry): { start: number; duration: number } | null {
-    if (!e.stallId || e.playback !== "docked" || e.dwellStartMs == null) return null;
+    // A window is a SERVICE-lane fact. Staging/gate keep publishing null exactly
+    // as before (the old `playback === "docked"` gate implied this, because
+    // "docked" is only ever set for a service lane).
+    if (!isServiceLane(e.lane)) return null;
+    if (!this.physicallyParked(e) || e.dwellStartMs == null) return null;
     const list = this.dwells.get(e.id);
     if (!list?.length || this.simAnchorClock === 0) return null;
     const now = this.simNow();
@@ -985,6 +1057,7 @@ class TwinMotionDriver {
     this.armSimMs = null;
     this.armRefusals = 0;
     this.stallTypes.clear();
+    this.stallPos.clear();
     // hand the depot clock back to manual control — leaving twin mode means no
     // backend owns it any more, and a slider left disabled would be a dead UI.
     useSimulationStore.getState().releaseLiveSimTime();
@@ -1334,12 +1407,16 @@ class TwinMotionDriver {
     const stalls = depot.stalls;
     const byLane: Record<string, typeof stalls> = { dcfc: [], l2: [], wash: [], service: [], staging: [] };
     const stallType = new Map<string, string>();
+    const stallPos = new Map<string, { x: number; y: number }>();
     for (const s of stalls) {
       (byLane[s.type] ??= []).push(s);
       stallType.set(s.id, s.type);
+      stallPos.set(s.id, { x: s.position.x, y: s.position.y });
     }
     // the depart gate reads stall TYPE every motion tick — keep it off the store
     this.stallTypes = stallType;
+    // …and physicallyParked() reads the stall CENTRE just as often
+    this.stallPos = stallPos;
     // OTTO-Q spatial policy: charging fills NORTH-first (nearest the wash/service
     // bays), so cars pool toward the top and only spill south as it fills.
     byLane.dcfc?.sort((a, b) => a.position.y - b.position.y);
@@ -1497,10 +1574,29 @@ class TwinMotionDriver {
       // the normal reconcile below resyncs to the CURRENT twin state (a bounded
       // catch-up — never a leg replay), taking the car to staging or its next
       // service leg per live truth.
+      //
+      // …WITH ONE EXCEPTION, AND IT IS THE SECOND HALF OF THE ARM DEFECT.
+      // The hold exists to protect a drive-in and a first visible dock against a
+      // twin flip that has no stall of its own to point at — "this car is now
+      // staged / deployed", which is a PREDICTION about where it will be. It was
+      // also suppressing the case where the twin has ALREADY PUT THE CAR SOMEWHERE
+      // ELSE: a new SERVICE stall, named explicitly, resolvable in this layout.
+      // That is not a prediction, it is a position, and holding it draws the car
+      // on a stall the twin says it has left — the founder's "car drawn on L2-27
+      // while the twin says DCFC-07", for up to a full DWELL_FLOOR_MS. Worse, the
+      // stall it is squatting on has already been freed for someone else, so the
+      // ledger hands the next car a claim it cannot honour.
+      //
+      // A service→service move IS the next real step of the visit (charge → wash).
+      // Draw the car where the twin says it is; the floor still applies to every
+      // other flip, which is the case the hold was built for.
       if (e && isServiceLane(e.lane) && e.playback !== "released") {
         const newLane: Lane | "gate" | null = m.lane === "gate" ? "staging" : m.lane;
         const stillSameDock = newLane === e.lane;
-        if (!stillSameDock && !this.floorMet(e)) {
+        const twinStallNow = bv.stall_id ? this.twinStall.get(bv.stall_id) : undefined;
+        const twinMovedToAnotherService =
+          isServiceLane(newLane) && !!twinStallNow && twinStallNow !== e.stallId;
+        if (!stillSameDock && !twinMovedToAnotherService && !this.floorMet(e)) {
           e.soc = soc;
           e.oem = oem;
           if (bv.av_id) e.avId = bv.av_id;
@@ -2117,9 +2213,17 @@ class TwinMotionDriver {
             // COMMIT-AND-HOLD: a car that just docked at a SERVICE stall starts
             // its visible dwell clock now — the charge/wash is SEEN before any
             // downstream flip can move it (guarded in reconcile).
-            if (isServiceLane(e.lane) && e.playback === "enroute") {
-              e.playback = "docked";
-              e.dwellStartMs = performance.now();
+            if (isServiceLane(e.lane)) {
+              if (e.playback === "enroute") e.playback = "docked";
+              // The dwell CLOCK is the anchor serviceWindow() clamps OTTO-Q's
+              // start forward to, and it now outlives `playback` (the window is
+              // gated on the pose, not on the visibility state). Stamp it on any
+              // arrival at a service stall that does not already have one — the
+              // residue re-rail can bring a car back to its stall with playback
+              // already past "enroute", and that car still needs an anchor or it
+              // would publish no window at all. A car that already has one keeps
+              // it: the first time it docked here is the honest arrival instant.
+              if (e.dwellStartMs == null) e.dwellStartMs = performance.now();
             }
             // OTTO-Q ARRIVAL REPORT. The command asked for a stall by a
             // deadline; the car has now physically reached one. Report the
