@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import * as THREE from 'three';
 import { useDepotStore } from '@/store/depotStore';
 import { towardFor, PEDESTAL_OFFSET_PU } from '@/lib/ottoChargeArm/depotPlacement';
-import { DCFC_CABINET_PU, L2_CABINET_PU } from '@/lib/ottoChargeArm/cabinetEnvelope';
+import { DCFC_CABINET_PU, L2_CABINET_PU, CABINET_BACKSET_PU } from '@/lib/ottoChargeArm/cabinetEnvelope';
 import { toWorld } from './coordUtils';
 import { MATERIALS } from './materials';
 
@@ -74,36 +74,47 @@ export function ChargingField({ type }: Props) {
         // so the cabinet, its arm and the vehicle's charge port cannot disagree
         // about which flank they are all on.
         const toward = towardFor(s.position.x);
+        // The ARM stands at the pedestal point; the CABINET now sits behind it.
+        // They used to share this point exactly, which put the arm's shoulder
+        // inside the box and let the upper arm sweep through it (-0.1675 m,
+        // measured). Only DCFC cabinets carry an arm, so only they move.
         const px = s.position.x + toward * PEDESTAL_OFFSET_PU;
-        const [wx, , wz] = toWorld({ x: px, y: s.position.y }, 0);
+        const cabX = px + toward * (isDC ? CABINET_BACKSET_PU : 0);
+        const [wx, , wz] = toWorld({ x: cabX, y: s.position.y }, 0);
 
         return (
           <group key={s.id} position={[wx, 0, wz]}>
-            {/* concrete pad */}
+            {/* concrete pad. ROTATED with the body: the pad's long axis follows
+                the cabinet's wide face, which now runs fore/aft along the car. */}
             <mesh position={[0, 0.08, 0]} receiveShadow>
-              <boxGeometry args={[W + 0.8, 0.16, 1.6]} />
+              <boxGeometry args={[D + 0.8, 0.16, W + 0.6]} />
               <primitive object={mats.cap} attach="material" />
             </mesh>
-            {/* pedestal body */}
+            {/* pedestal body. TURNED NINETY DEGREES: the WIDE face (W) now runs
+                fore/aft along the car and the SHALLOW depth (D) faces it. It used
+                to stand edge-on, presenting 1.5 pu of itself along the arm's reach
+                axis — which is how the arm came to be buried inside it. Box args
+                are world [X, Y, Z] and the arm's reach axis is world X, so the
+                rotation IS this swap; there is no rotation prop to keep in sync. */}
             <mesh position={[0, H / 2 + 0.16, 0]} castShadow material={mats.body}>
-              <boxGeometry args={[W, H, D]} />
+              <boxGeometry args={[D, H, W]} />
             </mesh>
             {/* screen — on the car's flank of the cabinet, facing it. Ry(theta)
                 sends +Z to (sin, 0, cos), so aiming at the car needs
                 sin(theta) = toward: exactly the rotation placeArm() gives the
                 OTTO-CHARGE ARM on the same pedestal. It used to be mounted on
                 the BACK face, pointed at the next row over. */}
-            <mesh position={[toward * (W / 2 + 0.02), H * 0.68, 0]} rotation={[0, toward * (Math.PI / 2), 0]} material={mats.screen}>
+            <mesh position={[toward * (D / 2 + 0.02), H * 0.68, 0]} rotation={[0, toward * (Math.PI / 2), 0]} material={mats.screen}>
               <planeGeometry args={[0.55, 0.8]} />
             </mesh>
             {/* status LED strip */}
             <mesh position={[0, H + 0.22, 0]} material={ledFor(s.status)}>
-              <boxGeometry args={[W * 0.85, 0.12, 0.5]} />
+              <boxGeometry args={[D * 0.85, 0.12, W * 0.6]} />
             </mesh>
             {/* DCFC power cap */}
             {isDC && (
               <mesh position={[0, H + 0.5, 0]} castShadow material={mats.cap}>
-                <boxGeometry args={[W + 0.25, 0.35, 0.85]} />
+                <boxGeometry args={[D + 0.25, 0.35, W + 0.2]} />
               </mesh>
             )}
             {/* charge cable arcs to the car while the stall is live */}

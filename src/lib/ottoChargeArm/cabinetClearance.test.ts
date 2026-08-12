@@ -122,22 +122,24 @@ function dutyCyclePoses(): { label: string; angles: JointAngles }[] {
 }
 
 describe("the cabinet is a solid the arm can be measured against", () => {
-  it("is centred on the arm's own base axis, as placeArm builds it", () => {
-    // ChargingField draws the box at the pedestal point and placeArm puts the
-    // arm at that same point, so the cabinet straddles the base axis.
-    expect(CABINET.zMin).toBeCloseTo(-0.3589, 3);
-    expect(CABINET.zMax).toBeCloseTo(0.3589, 3);
-    // ...and it towers over the mount: the body top is ~1.25 m above the base.
+  it("sits entirely BEHIND the arm base, not straddling it", () => {
+    // It used to straddle: the box was drawn at the pedestal point, placeArm
+    // put the arm at that same point, and the cabinet reached +0.359 m toward
+    // the car past the arm's own base axis. Rotated and backed off, the whole
+    // box is now behind the base plane.
+    expect(CABINET.zMax).toBeLessThan(0);
+    expect(CABINET.zMin).toBeLessThan(CABINET.zMax);
+    // ...and it still towers over the mount, as a 1.72 m cabinet should.
     const top = CABINET.profile[2][1] + CABINET.gradeY;
     expect(top).toBeCloseTo(1.2494, 3);
   });
 
-  it("reaches 0.359 m TOWARD the car past the arm base", () => {
-    // This is the number that makes a flank mount different from the mount we
-    // have. While it is positive the shoulder sits inside the cabinet.
-    expect(cabinetIntrusionTowardCar()).toBeCloseTo(0.3589, 3);
-    // For scale: that is 31% of the whole standoff to the car's near flank.
-    expect(cabinetIntrusionTowardCar() / SERVICE_WINDOW.flankStandoff).toBeGreaterThan(0.3);
+  it("no longer reaches toward the car past the arm base", () => {
+    // Negative now: its magnitude is the gap between the arm base and the
+    // cabinet's car-facing face. Positive was the defect.
+    expect(cabinetIntrusionTowardCar()).toBeLessThan(0);
+    // and the arm has the whole standoff to the car to work in, uninterrupted
+    expect(SERVICE_WINDOW.flankStandoff).toBeGreaterThan(0);
   });
 
   it("leaves room between cabinet face and car flank", () => {
@@ -163,7 +165,7 @@ describe("THE MOVING ARM vs THE CABINET", () => {
   // Locks the defect's SIZE, so a change that makes it quietly worse (a longer
   // link, a bigger cabinet, a different mount height) fails here rather than
   // being discovered on screen.
-  it("measures the intrusion that exists today: 167.5 mm inside the cabinet", () => {
+  it("keeps every moving link clear of the cabinet, with margin", () => {
     const worst = worstOverDutyCycle();
     // eslint-disable-next-line no-console
     console.log(
@@ -173,36 +175,29 @@ describe("THE MOVING ARM vs THE CABINET", () => {
     );
     expect(Number.isFinite(worst.min)).toBe(true);
 
-    // -0.1675 m is exactly half the cabinet's 0.7 pu depth: the upper arm runs
-    // straight down the box's centre axis, so the nearest way out is sideways
-    // through a fore/aft face. The arm is not clipping a corner of the cabinet,
-    // it is inside the middle of it.
-    expect(worst.min).toBeCloseTo(-0.1675, 3);
-    expect(worst.label).toBe("stowed");
+    // WAS -0.1675 m — exactly half the cabinet's 0.7 pu depth, because the
+    // upper arm ran straight down the box's centre axis. Not clipping a corner:
+    // inside the middle of it. Rotating the cabinet and backing it off to
+    // CABINET_BACKSET_PU turns that into real clearance.
+    //
+    // Characterised, not just bounded, so a later geometry change that quietly
+    // eats the margin fails here rather than on screen.
+    expect(worst.min).toBeGreaterThan(0.15);
+    expect(worst.min).toBeCloseTo(0.2169, 3);
   });
 
-  // ── THE INVARIANT, DECLARED OPEN ─────────────────────────────────────────
-  // `it.fails` asserts that this assertion currently FAILS. That is the honest
-  // encoding of a known defect: CI stays green, the defect stays visible, and
-  // the moment someone actually fixes the geometry THIS test goes red and tells
-  // them to promote it to a plain `it`. A skipped test would have gone quiet
-  // instead, which is how a known bug becomes a forgotten one.
-  //
-  // Measured options for closing it (sweep, ARM_SCALE 1.2, stowed is binding):
-  //   cabinet as-drawn, backed off 1.25 pu ......... +0.090 m, but that leaves
-  //                                                  the arm standing in front
-  //                                                  of its own cabinet
-  //   cabinet ROTATED 90 deg (wide face parallel to
-  //   the car, as a real DCFC cabinet sits) and
-  //   backed off 0.80 pu ........................... +0.066 m
-  // Rotating is what makes the small offset sufficient: it turns the 1.5 pu
-  // dimension fore/aft along the car and presents the 0.7 pu depth to it.
-  it.fails("the moving arm must never enter the cabinet it is bolted to", () => {
+  // ── THE INVARIANT ────────────────────────────────────────────────────────
+  // These two shipped as `it.fails` for exactly one commit — the honest way to
+  // record a defect that is measured but not yet fixed. They are plain `it`
+  // now because the geometry actually changed: the cabinet is rotated so its
+  // wide face runs fore/aft along the car, and backed off CABINET_BACKSET_PU
+  // so the whole box sits behind the arm's base.
+  it("the moving arm must never enter the cabinet it is bolted to", () => {
     const worst = worstOverDutyCycle();
     expect(worst.min).toBeGreaterThan(0);
   });
 
-  it.fails("the stowed arm must be clear of the cabinet", () => {
+  it("the stowed arm must be clear of the cabinet", () => {
     // Stow folds the arm back over its own base, which is the pose most likely
     // to end up inside a cabinet that straddles that base — and it is the
     // binding case above.

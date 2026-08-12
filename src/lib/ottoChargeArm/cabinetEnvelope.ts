@@ -49,15 +49,38 @@ import type { CarSolid } from './vehicleEnvelope';
  * for the axis they are drawn on and swapped once, explicitly, below.
  */
 export const DCFC_CABINET_PU = {
-  /** world-X extent of the pedestal body */
+  /** the WIDE face, which runs fore/aft along the car */
   width: 1.5,
   /** world-Y extent of the pedestal body */
   height: 3.6,
-  /** world-Z extent of the pedestal body */
+  /** the SHALLOW dimension, which faces the car */
   depth: 0.7,
   /** the concrete pad the body sits on; the body starts at its top */
   padHeight: 0.16,
 } as const;
+
+/**
+ * How far the cabinet's CENTRE sits behind the arm's base axis, plan units.
+ *
+ * Two things were wrong before this existed, and they compounded:
+ *
+ *  1. ORIENTATION. The box was drawn with its 1.5 pu dimension pointing at the
+ *     car and its 0.7 pu dimension running fore/aft — a charger cabinet stood
+ *     edge-on to the vehicle it serves. Turned ninety degrees it presents the
+ *     wide face to the car, which is how a real DCFC cabinet sits in a stall,
+ *     and only 0.7 pu of it lies along the arm's reach axis.
+ *  2. PLACEMENT. It was drawn CENTRED on the pedestal point, and placeArm()
+ *     puts the arm at that same point — so the cabinet straddled the arm's own
+ *     base and the upper arm ran down the middle of it. Measured intrusion at
+ *     the stowed pose: -0.1675 m, exactly half the box depth.
+ *
+ * Backing the centre off by this much puts the whole box behind the arm with
+ * room for the shoulder drum and the upper-arm dress pack to fold over the base
+ * without touching it. The value is MEASURED, not chosen — cabinetClearance
+ * .test.ts sweeps it and fails if the worst moving-link clearance goes negative.
+ * It must grow with ARM_SCALE, because a longer upper arm folds further back.
+ */
+export const CABINET_BACKSET_PU = 1.35;
 
 /** L2 cabinets are smaller and carry no arm, but the renderer draws them too. */
 export const L2_CABINET_PU = { width: 1.1, height: 2.8, depth: 0.7, padHeight: 0.16 } as const;
@@ -82,14 +105,19 @@ export interface CabinetDims {
 export function cabinetSolidInArmFrame(
   dims: CabinetDims = DCFC_CABINET_PU,
   mountHeight: number = MOUNT_HEIGHT_M,
+  backsetPu: number = CABINET_BACKSET_PU,
 ): CarSolid {
   // Body sits on top of the pad, so its underside is padHeight above the deck.
   const yBottom = dims.padHeight * METRES_PER_PLAN_UNIT;
   const yTop = (dims.padHeight + dims.height) * METRES_PER_PLAN_UNIT;
 
-  // Arm-frame X is the cabinet's world-Z extent; arm-frame Z its world-X.
-  const halfAlong = (dims.depth * METRES_PER_PLAN_UNIT) / 2;
-  const halfLateral = (dims.width * METRES_PER_PLAN_UNIT) / 2;
+  // ROTATED: the wide face runs fore/aft (arm-frame X), the shallow depth faces
+  // the car (arm-frame Z). Before the rotation these were the other way round,
+  // which is what put 0.359 m of cabinet between the arm and the vehicle.
+  const halfAlong = (dims.width * METRES_PER_PLAN_UNIT) / 2;
+  const halfLateral = (dims.depth * METRES_PER_PLAN_UNIT) / 2;
+  // Negative: the cabinet centre sits BEHIND the arm base, away from the car.
+  const centreZ = -backsetPu * METRES_PER_PLAN_UNIT;
 
   // `profile` is in (along, HEIGHT ABOVE GRADE) — not arm-frame y — and
   // clearanceToCar converts with `p.y - gradeY`. gradeY is the deck, which sits
@@ -101,8 +129,8 @@ export function cabinetSolidInArmFrame(
       [ halfAlong, yTop],
       [-halfAlong, yTop],
     ],
-    zMin: -halfLateral,
-    zMax:  halfLateral,
+    zMin: centreZ - halfLateral,
+    zMax: centreZ + halfLateral,
     wheels: [],
     pod: { along: 1000, z: 1000, radius: 0, yMin: 0, yMax: 0 },
     gradeY: -mountHeight,
@@ -111,14 +139,17 @@ export function cabinetSolidInArmFrame(
 
 /**
  * How far the cabinet reaches TOWARD the car past the arm's own base axis,
- * metres.
+ * metres. Negative once the cabinet is properly behind the arm.
  *
- * This is the number that decides whether a flank mount is different from the
- * mount we actually have. It is positive whenever the arm is placed at the
- * cabinet's centre rather than on its car-facing face — and while it is
- * positive, the arm's shoulder is inside the cabinet and the first part of
- * every reach is a sweep through it.
+ * This is the number that was silently positive: with the box centred on the
+ * pedestal and its wide side facing the car it stood 0.359 m in FRONT of the
+ * arm's base, so the shoulder was inside the cabinet and the first part of
+ * every reach was a sweep through it. Rotated and backed off it is negative,
+ * and its magnitude is the gap between the arm base and the cabinet face.
  */
-export function cabinetIntrusionTowardCar(dims: CabinetDims = DCFC_CABINET_PU): number {
-  return (dims.width * METRES_PER_PLAN_UNIT) / 2;
+export function cabinetIntrusionTowardCar(
+  dims: CabinetDims = DCFC_CABINET_PU,
+  backsetPu: number = CABINET_BACKSET_PU,
+): number {
+  return (dims.depth * METRES_PER_PLAN_UNIT) / 2 - backsetPu * METRES_PER_PLAN_UNIT;
 }

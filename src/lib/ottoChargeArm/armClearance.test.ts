@@ -68,7 +68,7 @@ import {
 } from './vehicleEnvelope';
 import {
   OTTO_CHARGE_ARM, MOUNT_HEIGHT_M, SERVICE_WINDOW, FLANK_STANDOFF_M, ARM_SCALE, TCP_NODE_NAME,
-  METRES_PER_PLAN_UNIT, PEDESTAL_TO_CAR_CENTRE_M,
+  METRES_PER_PLAN_UNIT, PEDESTAL_TO_CAR_CENTRE_M, PEDESTAL_OFFSET_PU,
 } from './cobotSpec';
 import { buildCobot } from './buildCobot';
 import { VEHICLE_GEO, PORT_GEO } from '@/components/canvas/three/vehicleBody';
@@ -308,14 +308,19 @@ describe('the car solid the arm is measured against', () => {
   it('reports points inside the bodywork as inside, and outside as outside', () => {
     const car = carSolidInArmFrame();
     const deck = -MOUNT_HEIGHT_M;
-    // dead centre of the car, at window height: deep inside
-    expect(clearanceToCar({ x: 0, y: deck + 0.9, z: 2.153 }, car)).toBeLessThan(-0.5);
+    // dead centre of the car, at window height: deep inside.
+    // DERIVED, not pinned: these probes used a literal 2.153, which was the
+    // car-centre distance at the old 4.5 pu pedestal offset. When the pedestal
+    // moved out to 6.0 pu the probe stayed put and started landing outside the
+    // car it was meant to be deep inside.
+    const CZ = PEDESTAL_TO_CAR_CENTRE_M;
+    expect(clearanceToCar({ x: 0, y: deck + 0.9, z: CZ }, car)).toBeLessThan(-0.5);
     // just outside the near flank
     expect(clearanceToCar({ x: 0, y: deck + 0.9, z: FLANK - 0.05 }, car)).toBeCloseTo(0.05, 6);
     // above the roof, clear of the sensor pod
-    expect(clearanceToCar({ x: 1.5, y: deck + 2.2, z: 2.153 }, car)).toBeGreaterThan(0.5);
+    expect(clearanceToCar({ x: 1.5, y: deck + 2.2, z: CZ }, car)).toBeGreaterThan(0.5);
     // the sensor pod is modelled: straight above the centre, just over the roof
-    expect(clearanceToCar({ x: 0, y: deck + 1.55, z: 2.153 }, car)).toBeLessThan(0);
+    expect(clearanceToCar({ x: 0, y: deck + 1.55, z: CZ }, car)).toBeLessThan(0);
   });
 });
 
@@ -457,7 +462,10 @@ describe('the depot places every arm where this measurement applies', () => {
     const towards = new Set<number>();
     for (const s of dcfc) {
       const p = placeArm(s.id, s.position.x, s.position.y);
-      expect(Math.abs(p.carWorld[0] - p.world[0])).toBeCloseTo(4.5, 9);
+      // Read from the constant, not restated: this asserts every pedestal is the
+      // SAME distance off its stall, which is the premise the sweep generalises on.
+      // Pinning the number here just meant editing it in two places.
+      expect(Math.abs(p.carWorld[0] - p.world[0])).toBeCloseTo(PEDESTAL_OFFSET_PU, 9);
       expect(p.carWorld[2]).toBeCloseTo(p.world[2], 9);
       towards.add(p.toward);
       // and the port really does land on the flank the solid says it does
