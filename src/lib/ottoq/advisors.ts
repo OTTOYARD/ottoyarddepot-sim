@@ -70,10 +70,14 @@ export interface ChargePolicy {
   maxAssignments: number;
 }
 
+// Mirrors otto-q-core: `topoff_threshold_soc` = 90, `vehicle_target_soc_default`
+// = 100. The two are separate on purpose — 90 decides WHETHER to charge, 100
+// decides HOW FULL. Collapsing them would send a car at 95 to a charger to gain
+// five points.
 export const DEFAULT_CHARGE_POLICY: ChargePolicy = {
-  needySocPct: 70,
+  needySocPct: 90,
   urgentSocPct: 25,
-  targetSocPct: 90,
+  targetSocPct: 100,
   maxAssignments: 12,
 };
 

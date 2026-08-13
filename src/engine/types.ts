@@ -20,7 +20,7 @@ export interface Vehicle {
   priority: number; // 1-10
   batteryCapacity: number; // kWh
   currentSoC: number; // 0-100
-  targetSoC: number; // 80-100
+  targetSoC: number; // fill target, 0-100 (100 by policy since 2026-08-13)
   status: VehicleStatus;
   assignedStall: string | null;
   serviceQueue: ServiceType[];

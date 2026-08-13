@@ -2473,7 +2473,7 @@ class TwinMotionDriver {
       arr.push({
         id, label: e.avId ? (e.make ? `${e.avId} · ${e.make}` : e.avId) : undefined,
         type: "fleet", oem: e.oem, priority: 5,
-        batteryCapacity: 100, currentSoC: e.soc, targetSoC: 90,
+        batteryCapacity: 100, currentSoC: e.soc, targetSoC: 100,
         status: e.vstatus, assignedStall: e.stallId, serviceQueue: [], currentServiceIndex: 0,
         // OTTO-Q's dwell window, in the same seconds-of-day frame as the store's
         // simTime. Null when the wire carried no window for this dock — the arm

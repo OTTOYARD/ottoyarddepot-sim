@@ -9,7 +9,20 @@ export interface SimulationConfig {
   dcfcBlockStart: string;
   dcfcBlockEnd: string;
   avgBatterySocArrival: number;
+  /**
+   * How full a charge fills a pack. 100 by founder rule (2026-08-13) and mirrors
+   * `ottoq_default_target_soc()` in otto-q-core.
+   *
+   * NOT the same question as `deployFloorSocPct`. This one used to answer both,
+   * which meant a single number had two different correct values: 100 as the fill
+   * target in ArrivalGenerator, 90 as the readiness bar in KPICalculator.
+   */
   targetSocDeparture: number;
+  /**
+   * A car below this is offered a top-off and is not counted departure-ready.
+   * 90 by founder rule; mirrors `topoff_threshold_soc` / `deploy_floor_soc`.
+   */
+  deployFloorSocPct: number;
   avgBatteryCapacity: number;
   dcfcVsL2Ratio: number; // 0-100, percentage preferring DCFC
 
@@ -102,7 +115,8 @@ const defaultConfig: SimulationConfig = {
   dcfcBlockStart: '14:00',
   dcfcBlockEnd: '17:00',
   avgBatterySocArrival: 25,
-  targetSocDeparture: 90,
+  targetSocDeparture: 100,
+  deployFloorSocPct: 90,
   avgBatteryCapacity: 75,
   dcfcVsL2Ratio: 30,
 

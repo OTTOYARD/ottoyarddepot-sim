@@ -38,10 +38,14 @@ export function calculateKPIs(
   const l2Utilization = l2Total > 0 ? l2Occupied / l2Total : 0;
   const washUtilization = washTotal > 0 ? washOccupied / washTotal : 0;
 
-  // Fleet uptime: vehicles staged with SoC >= target / total fleet
+  // Fleet uptime: vehicles staged at or above the DEPLOY FLOOR / total fleet.
+  // Deliberately not the fill target. A charge fills to 100, but a car is
+  // dispatch-ready at 90 — measuring readiness against 100 would report a car
+  // that is perfectly deployable as not ready, and would drive uptime to zero
+  // for any fleet sitting between the floor and full.
   const fleetVehicles = vehicles.filter((v) => v.type === 'fleet');
   const readyFleet = fleetVehicles.filter(
-    (v) => v.status === 'staging' && v.currentSoC >= config.targetSocDeparture,
+    (v) => v.status === 'staging' && v.currentSoC >= config.deployFloorSocPct,
   );
   const fleetUptimePct =
     fleetVehicles.length > 0 ? (readyFleet.length / fleetVehicles.length) * 100 : 100;

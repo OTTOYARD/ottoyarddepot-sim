@@ -15,7 +15,7 @@ export function createQueueVehicle(simTime: number, index: number): Vehicle {
     priority: 3 + demoRandom().int(0, 4),
     batteryCapacity: 60 + demoRandom().next() * 40,
     currentSoC: 10 + demoRandom().next() * 30,
-    targetSoC: 90,
+    targetSoC: 100,
     status: 'queued',
     assignedStall: null,
     serviceQueue: ['dcfc_charge'] as ServiceType[],
