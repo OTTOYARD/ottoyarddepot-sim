@@ -13,7 +13,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AppStreamer, StreamType, type DirectConfig, type StreamEvent } from "@nvidia/omniverse-webrtc-streaming-library";
 
-const DEFAULT_SERVER = "34.239.177.167";
+const DEFAULT_SERVER = "54.166.168.193";
 const SIGNALING_PORT = 49100;
 
 type Status = "connecting" | "live" | "error";
