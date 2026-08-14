@@ -13,7 +13,7 @@
 //   localStorage.setItem('ottoq_omniverse_ip_v2', '<new-ip>')
 // ============================================================================
 import { useEffect, useRef, useState } from "react";
-import { AppStreamer, StreamType, type DirectConfig, type StreamEvent } from "@nvidia/omniverse-webrtc-streaming-library";
+import { AppStreamer, StreamType, type DirectConfig, type StreamEvent } from "@nvidia/ov-web-rtc";
 
 const DEFAULT_SERVER = "rtx.ottoyard.com";
 const SIGNALING_PORT = 443;
@@ -45,7 +45,7 @@ export function OmniverseViewer() {
     const baseConfig: Omit<DirectConfig, "signalingServer" | "mediaServer"> = {
       videoElementId: "remote-video",
       audioElementId: "remote-audio",
-      authenticate: true,
+      authenticate: false,
       maxReconnects: 2,
       signalingPort: SIGNALING_PORT,
       nativeTouchEvents: true,
@@ -53,8 +53,8 @@ export function OmniverseViewer() {
       height: 1080,
       fps: 60,
       onStart: (m: StreamEvent) => {
-        const e = m as unknown as { action?: string; status?: string };
-        if (e?.action === "start" && e?.status === "success") setStatus("live");
+        const e = m as unknown as { status?: string };
+        if (e?.status === "success") setStatus("live");
         if (e?.status === "error") setStatus("error");
       },
       onUpdate: () => {},
