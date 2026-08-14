@@ -15,8 +15,10 @@
 import { useEffect, useRef, useState } from "react";
 import { AppStreamer, StreamType, type DirectConfig, type StreamEvent } from "@nvidia/omniverse-webrtc-streaming-library";
 
-const DEFAULT_SERVER = "54.166.168.193";
-const SIGNALING_PORT = 49100;
+const DEFAULT_SERVER = "rtx.ottoyard.com";
+const SIGNALING_PORT = 443;
+const MEDIA_SERVER = "54.166.168.193";
+const MEDIA_PORT = 47998;
 const OVERRIDE_KEY = "ottoq_omniverse_ip_v2";
 
 type Status = "connecting" | "live" | "error";
@@ -75,7 +77,8 @@ export function OmniverseViewer() {
       const streamConfig = {
         ...baseConfig,
         signalingServer: srv,
-        mediaServer: srv,
+        mediaServer: MEDIA_SERVER,
+        mediaPort: MEDIA_PORT,
       } as DirectConfig;
       AppStreamer.connect({ streamConfig, streamSource: StreamType.DIRECT }).catch(() => {
         // This candidate is unreachable — fall through to the next one.
