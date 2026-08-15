@@ -1,0 +1,122 @@
+"""Canonical (cm, Z-up, plan-centred) adaptation of Claude's OttoMotion.
+
+Keeps OttoMotion's motion engine — sim clock, leg interpolation, glide
+smoothing — and adapts only the GEOMETRY to the shipping stage, exactly as the
+isaac/README directs: adapt the module, keep the stage, don't rebuild.
+
+Two adaptations live here:
+
+1. Data source. The ottoq_twin_snapshot RPC needs a required p_sim_run_id and
+   returns "sim_run not found" for NULL; the otto-twin-control edge function is
+   the working source on this box (116 vehicles). EdgeSnapshotSource.fetch()
+   resolves the live run and adapts the payload to OttoMotion's expected shape:
+       run.sim_clock         -> run.sim_clock_current
+       run.speed_x           -> run.time_scale   (sim seconds per real second;
+                               the edge fn's `time_scale` is sim-minutes/tick,
+                               a different quantity)
+       legs[].kind           -> 'travel' | 'dwell'  (flow_contract = travel)
+       fleet[].stall_id      -> fleet[].stall_x/stall_y (feet, via layout)
+
+2. Coordinate frame. OttoMotion's _to_stage() maps layout feet -> stage units
+   *absolutely* (feet * 0.3048 / mpu). The shipping stage is NOT absolute: it is
+   plan-unit-centred at (150, 110) with y negated (canonical_vehicle.plan_to_cm,
+   U = 48 cm/unit). CanonicalOttoMotion overrides _to_stage() to that mapping,
+   and negates _heading_for() because the y-negation mirrors the heading.
+"""
+
+from __future__ import annotations
+
+import json
+import urllib.request
+
+from otto_motion import OttoMotion
+
+NASHVILLE_DEPOT = "11111111-1111-1111-1111-111111111111"
+LIVE_STATUSES = ("running", "paused")
+FEET_PER_PLAN_UNIT = 1.569882   # 1 plan unit = 0.4785 m = 1.569882 ft
+U = 48.0                        # cm per plan unit (canonical builder)
+DEPOT_CX = 150.0
+DEPOT_CY = 110.0
+
+
+class EdgeSnapshotSource:
+    """Fetches the live snapshot from the otto-twin-control edge function and
+    adapts it to the payload shape OttoMotion expects."""
+
+    def __init__(self, supabase_url: str):
+        self.base = supabase_url.rstrip("/") + "/functions/v1/otto-twin-control"
+        self._layout = None  # stall UUID -> (x, y) feet
+
+    def _get(self, path: str):
+        req = urllib.request.Request(
+            self.base + path, headers={"content-type": "application/json"}
+        )
+        with urllib.request.urlopen(req, timeout=20) as r:
+            return json.loads(r.read().decode())
+
+    def _load_layout(self):
+        if self._layout is not None:
+            return self._layout
+        lay = self._get(f"/depot/{NASHVILLE_DEPOT}/layout")
+        stalls = lay.get("data", {}).get("stalls", [])
+        self._layout = {
+            s["id"]: (float(s["x"]), float(s["y"]))
+            for s in stalls if s.get("id") is not None
+        }
+        return self._layout
+
+    def _active_run_id(self):
+        try:
+            runs = self._get("/sim_runs?limit=10").get("data", {}).get("runs", [])
+            for r in runs:
+                if r.get("status") in LIVE_STATUSES:
+                    return r["sim_run_id"]
+        except Exception:
+            return None
+        return None
+
+    def fetch(self):
+        """Returns the adapted snapshot dict, or None when no run is live."""
+        rid = self._active_run_id()
+        if not rid:
+            return None
+        try:
+            data = self._get(f"/sim_runs/{rid}/snapshot").get("data", {})
+        except Exception:
+            return None
+        if not data:
+            return None
+
+        run = data.get("run") or {}
+        if "sim_clock_current" not in run and run.get("sim_clock"):
+            run["sim_clock_current"] = run["sim_clock"]
+        # sim advance rate = speed_x (sim seconds per real second). The edge
+        # function's `time_scale` is sim-minutes-per-tick, which is NOT this.
+        if run.get("speed_x") is not None:
+            run["time_scale"] = float(run["speed_x"])
+
+        for leg in data.get("legs", []):
+            leg["kind"] = "travel" if leg.get("kind") == "flow_contract" else "dwell"
+
+        layout = self._load_layout()
+        for v in (data.get("fleet", {}).get("vehicles") or []):
+            sid = v.get("stall_id")
+            if sid and sid in layout:
+                v["stall_x"], v["stall_y"] = layout[sid]
+
+        return data
+
+
+class CanonicalOttoMotion(OttoMotion):
+    """OttoMotion adapted to the canonical depot's coordinate frame."""
+
+    def _to_stage(self, xy_feet):
+        # layout feet -> plan units -> canonical cm (centred at 150/110, y negated)
+        px = xy_feet[0] / FEET_PER_PLAN_UNIT
+        py = xy_feet[1] / FEET_PER_PLAN_UNIT
+        return ((px - DEPOT_CX) * U, -(py - DEPOT_CY) * U)
+
+    def _heading_for(self, tgt, sim_now, cur):
+        h = super()._heading_for(tgt, sim_now, cur)
+        # canonical y is negated relative to the layout, which mirrors heading.
+        return -h
