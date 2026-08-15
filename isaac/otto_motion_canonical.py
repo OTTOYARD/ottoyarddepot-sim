@@ -47,7 +47,8 @@ class EdgeSnapshotSource:
 
     def __init__(self, supabase_url: str):
         self.base = supabase_url.rstrip("/") + "/functions/v1/otto-twin-control"
-        self._layout = None  # stall UUID -> (x, y) feet
+        self._layout = None       # stall UUID -> (x, y) feet
+        self._stall_codes = None  # stall UUID -> stall_code
 
     def _get(self, path: str):
         req = urllib.request.Request(
@@ -65,7 +66,17 @@ class EdgeSnapshotSource:
             s["id"]: (float(s["x"]), float(s["y"]))
             for s in stalls if s.get("id") is not None
         }
+        self._stall_codes = {
+            s["id"]: s.get("code", "")
+            for s in stalls if s.get("id") is not None
+        }
         return self._layout
+
+    def get_stall_codes(self):
+        """UUID -> stall_code map (for arm.cycles[].stall_id -> geometry)."""
+        if self._stall_codes is None:
+            self._load_layout()
+        return self._stall_codes
 
     def _active_run_id(self):
         try:

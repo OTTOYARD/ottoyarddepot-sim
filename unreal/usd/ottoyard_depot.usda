@@ -2721,561 +2721,1551 @@ def Xform "World"
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_43_207_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_47_53_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (-5579.760, 1531.200, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (-5457.840, -3158.100, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_43_53_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_47_207_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (-5579.760, -3158.100, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (-5457.840, 1531.200, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_55_207_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_61_53_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (-5214.000, 1531.200, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (-5031.120, -3158.100, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_55_53_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_61_207_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (-5214.000, -3158.100, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (-5031.120, 1531.200, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_67_207_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_75_53_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (-4848.240, 1531.200, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (-4604.400, -3158.100, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_67_53_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_75_207_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (-4848.240, -3158.100, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (-4604.400, 1531.200, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_79_207_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_89_53_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (-4482.480, 1531.200, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (-4177.680, -3158.100, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_79_53_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_89_207_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (-4482.480, -3158.100, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (-4177.680, 1531.200, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_91_207_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
-    {
-        double size = 1
-        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (-4116.720, 1531.200, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
-        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
-        rel material:binding = </World/Looks/M_Paint>
-    }
-    def Cube "OTTOQ_Mark_91_53_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
-    {
-        double size = 1
-        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (-4116.720, -3158.100, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
-        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
-        rel material:binding = </World/Looks/M_Paint>
-    }
-    def Cube "OTTOQ_Mark_103_207_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
-    {
-        double size = 1
-        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (-3750.960, 1531.200, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
-        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
-        rel material:binding = </World/Looks/M_Paint>
-    }
-    def Cube "OTTOQ_Mark_103_53_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_103_53_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
         double3 xformOp:translate = (-3750.960, -3158.100, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_115_207_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_103_207_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (-3385.200, 1531.200, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (-3750.960, 1531.200, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_115_53_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_117_53_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (-3385.200, -3158.100, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (-3324.240, -3158.100, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_127_207_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_117_207_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (-3019.440, 1531.200, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (-3324.240, 1531.200, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_127_53_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_131_53_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (-3019.440, -3158.100, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (-2897.520, -3158.100, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_139_207_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_131_207_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (-2653.680, 1531.200, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (-2897.520, 1531.200, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_139_53_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_145_53_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (-2653.680, -3158.100, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (-2470.800, -3158.100, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_151_207_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_145_207_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (-2287.920, 1531.200, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (-2470.800, 1531.200, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_151_53_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_159_53_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (-2287.920, -3158.100, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (-2044.080, -3158.100, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_163_207_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_159_207_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (-1922.160, 1531.200, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (-2044.080, 1531.200, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_163_53_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_173_53_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (-1922.160, -3158.100, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (-1617.360, -3158.100, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_175_207_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_173_207_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (-1556.400, 1531.200, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (-1617.360, 1531.200, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_175_53_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
-    {
-        double size = 1
-        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (-1556.400, -3158.100, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
-        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
-        rel material:binding = </World/Looks/M_Paint>
-    }
-    def Cube "OTTOQ_Mark_187_207_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
-    {
-        double size = 1
-        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (-1190.640, 1531.200, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
-        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
-        rel material:binding = </World/Looks/M_Paint>
-    }
-    def Cube "OTTOQ_Mark_187_53_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_187_53_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
         double3 xformOp:translate = (-1190.640, -3158.100, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_199_207_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_187_207_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (-824.880, 1531.200, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (-1190.640, 1531.200, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_199_53_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_201_53_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (-824.880, -3158.100, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (-763.920, -3158.100, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_211_207_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_201_207_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (-459.120, 1531.200, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (-763.920, 1531.200, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_211_53_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_215_53_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (-459.120, -3158.100, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (-337.200, -3158.100, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_223_207_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_215_207_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (-93.360, 1531.200, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (-337.200, 1531.200, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_223_53_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_229_53_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (-93.360, -3158.100, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (89.520, -3158.100, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_235_207_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_229_207_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (272.400, 1531.200, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (89.520, 1531.200, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_235_53_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_243_53_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (272.400, -3158.100, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (516.240, -3158.100, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_247_207_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_243_207_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (638.160, 1531.200, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (516.240, 1531.200, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_247_53_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_257_53_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (638.160, -3158.100, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (942.960, -3158.100, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_259_207_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_257_207_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (1003.920, 1531.200, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (942.960, 1531.200, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_259_53_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
-    {
-        double size = 1
-        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (1003.920, -3158.100, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
-        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
-        rel material:binding = </World/Looks/M_Paint>
-    }
-    def Cube "OTTOQ_Mark_271_207_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
-    {
-        double size = 1
-        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (1369.680, 1531.200, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
-        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
-        rel material:binding = </World/Looks/M_Paint>
-    }
-    def Cube "OTTOQ_Mark_271_53_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_271_53_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
         double3 xformOp:translate = (1369.680, -3158.100, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_283_207_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_271_207_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (1735.440, 1531.200, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (1369.680, 1531.200, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_283_53_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_285_53_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (1735.440, -3158.100, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (1796.400, -3158.100, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_295_207_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_285_207_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (2101.200, 1531.200, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (1796.400, 1531.200, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_295_53_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_299_53_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (2101.200, -3158.100, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (2223.120, -3158.100, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_307_207_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_299_207_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (2466.960, 1531.200, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (2223.120, 1531.200, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_307_53_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_313_53_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (2466.960, -3158.100, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (2649.840, -3158.100, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_319_207_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_313_207_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (2832.720, 1531.200, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (2649.840, 1531.200, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_319_53_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_327_53_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (2832.720, -3158.100, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (3076.560, -3158.100, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_331_207_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_327_207_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (3198.480, 1531.200, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (3076.560, 1531.200, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_331_53_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_341_53_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (3198.480, -3158.100, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (3503.280, -3158.100, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_343_207_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_341_207_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (3564.240, 1531.200, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (3503.280, 1531.200, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_343_53_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
-    {
-        double size = 1
-        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (3564.240, -3158.100, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
-        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
-        rel material:binding = </World/Looks/M_Paint>
-    }
-    def Cube "OTTOQ_Mark_355_207_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
-    {
-        double size = 1
-        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (3930.000, 1531.200, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
-        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
-        rel material:binding = </World/Looks/M_Paint>
-    }
-    def Cube "OTTOQ_Mark_355_53_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_355_53_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
         double3 xformOp:translate = (3930.000, -3158.100, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_367_207_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_355_207_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (4295.760, 1531.200, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (3930.000, 1531.200, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_367_53_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_369_53_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (4295.760, -3158.100, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (4356.720, -3158.100, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_379_207_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_369_207_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (4661.520, 1531.200, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (4356.720, 1531.200, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_379_53_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_383_53_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (4661.520, -3158.100, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (4783.440, -3158.100, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_391_207_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_383_207_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (5027.280, 1531.200, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (4783.440, 1531.200, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_391_53_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_397_53_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (5027.280, -3158.100, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (5210.160, -3158.100, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_403_207_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_397_207_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (5393.040, 1531.200, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (5210.160, 1531.200, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }
-    def Cube "OTTOQ_Mark_403_53_42_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    def Cube "OTTOQ_Mark_411_53_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
     {
         double size = 1
         float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-        double3 xformOp:translate = (5393.040, -3158.100, 1.219)
-        float3 xformOp:scale = (128.016, 9.144, 2.438)
+        double3 xformOp:translate = (5636.880, -3158.100, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_411_207_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (5636.880, 1531.200, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_37_63_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-5742.000, -2864.760, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_420_63_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (5933.400, -2864.760, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_37_77_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-5742.000, -2438.040, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_420_77_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (5933.400, -2438.040, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_37_91_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-5742.000, -2011.320, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_420_91_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (5933.400, -2011.320, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_37_105_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-5742.000, -1584.600, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_420_105_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (5933.400, -1584.600, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_37_119_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-5742.000, -1157.880, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_420_119_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (5933.400, -1157.880, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_37_133_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-5742.000, -731.160, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_420_133_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (5933.400, -731.160, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_37_147_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-5742.000, -304.440, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_420_147_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (5933.400, -304.440, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_37_161_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-5742.000, 122.280, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_420_161_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (5933.400, 122.280, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_37_175_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-5742.000, 549.000, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_420_175_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (5933.400, 549.000, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_37_189_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-5742.000, 975.720, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_420_189_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (5933.400, 975.720, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_116_63_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-3349.500, -2864.760, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_116_77_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-3349.500, -2438.040, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_116_91_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-3349.500, -2011.320, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_116_105_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-3349.500, -1584.600, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_116_119_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-3349.500, -1157.880, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_116_133_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-3349.500, -731.160, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_116_147_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-3349.500, -304.440, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_116_161_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-3349.500, 122.280, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_116_175_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-3349.500, 549.000, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_116_189_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-3349.500, 975.720, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_189_63_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-1124.475, -2864.760, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_189_77_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-1124.475, -2438.040, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_189_91_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-1124.475, -2011.320, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_189_105_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-1124.475, -1584.600, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_189_119_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-1124.475, -1157.880, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_189_133_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-1124.475, -731.160, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_189_147_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-1124.475, -304.440, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_189_161_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-1124.475, 122.280, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_189_175_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-1124.475, 549.000, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_189_189_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-1124.475, 975.720, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_262_63_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (1124.475, -2864.760, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_262_77_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (1124.475, -2438.040, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_262_91_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (1124.475, -2011.320, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_262_105_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (1124.475, -1584.600, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_262_119_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (1124.475, -1157.880, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_262_133_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (1124.475, -731.160, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_262_147_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (1124.475, -304.440, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_262_161_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (1124.475, 122.280, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_262_175_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (1124.475, 549.000, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_262_189_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (1124.475, 975.720, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_335_63_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (3349.500, -2864.760, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_335_77_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (3349.500, -2438.040, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_335_91_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (3349.500, -2011.320, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_335_105_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (3349.500, -1584.600, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_335_119_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (3349.500, -1157.880, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_335_133_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (3349.500, -731.160, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_335_147_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (3349.500, -304.440, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_335_161_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (3349.500, 122.280, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_335_175_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (3349.500, 549.000, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_335_189_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (3349.500, 975.720, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_378_63_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (4641.450, -2864.760, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_378_77_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (4641.450, -2438.040, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_378_91_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (4641.450, -2011.320, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_378_105_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (4641.450, -1584.600, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_378_119_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (4641.450, -1157.880, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_378_133_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (4641.450, -731.160, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_378_147_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (4641.450, -304.440, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_378_161_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (4641.450, 122.280, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_378_175_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (4641.450, 549.000, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_378_189_3_45" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (4641.450, 975.720, 1.219)
+        float3 xformOp:scale = (9.144, 137.160, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_120_298_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-3232.800, 4306.500, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_134_298_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-2806.080, 4306.500, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_148_298_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-2379.360, 4306.500, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_162_298_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-1952.640, 4306.500, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_176_298_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-1525.920, 4306.500, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_190_298_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-1099.200, 4306.500, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_204_298_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-672.480, 4306.500, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_218_298_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-245.760, 4306.500, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_232_298_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (180.960, 4306.500, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_246_298_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (607.680, 4306.500, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_260_298_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (1034.400, 4306.500, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_274_298_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (1461.120, 4306.500, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_288_298_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (1887.840, 4306.500, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_302_298_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (2314.560, 4306.500, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_316_298_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (2741.280, 4306.500, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_330_298_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (3168.000, 4306.500, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_344_298_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (3594.720, 4306.500, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_358_298_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (4021.440, 4306.500, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_372_298_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (4448.160, 4306.500, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_386_298_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (4874.880, 4306.500, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_400_298_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (5301.600, 4306.500, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_47_226_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-5457.840, 2105.400, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_61_226_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-5031.120, 2105.400, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_75_226_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-4604.400, 2105.400, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_89_226_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-4177.680, 2105.400, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_103_226_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-3750.960, 2105.400, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_117_226_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-3324.240, 2105.400, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_131_226_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-2897.520, 2105.400, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_145_226_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-2470.800, 2105.400, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_159_226_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-2044.080, 2105.400, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_173_226_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-1617.360, 2105.400, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_187_226_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-1190.640, 2105.400, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_201_226_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-763.920, 2105.400, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_215_226_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (-337.200, 2105.400, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_229_226_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (89.520, 2105.400, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_243_226_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (516.240, 2105.400, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_257_226_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (942.960, 2105.400, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_271_226_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (1369.680, 2105.400, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_285_226_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (1796.400, 2105.400, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_299_226_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (2223.120, 2105.400, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_313_226_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (2649.840, 2105.400, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_327_226_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (3076.560, 2105.400, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_341_226_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (3503.280, 2105.400, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_355_226_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (3930.000, 2105.400, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_369_226_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (4356.720, 2105.400, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_383_226_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (4783.440, 2105.400, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_397_226_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (5210.160, 2105.400, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </World/Looks/M_Paint>
+    }
+    def Cube "OTTOQ_Mark_411_226_45_3" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        double size = 1
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+        double3 xformOp:translate = (5636.880, 2105.400, 1.219)
+        float3 xformOp:scale = (137.160, 9.144, 2.438)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         rel material:binding = </World/Looks/M_Paint>
     }

@@ -279,11 +279,45 @@ def build():
             stripe(x - 2.9, y, 0.32, 11.0)
             stripe(x + 2.9, y, 0.32, 11.0)
 
-    # lane paint (north/south avenues)
+    # ---- road lane paint ----  dashed centre lines on every lane the LaneGraph
+    # defines (ring boulevards + avenues, northbound gap lanes, temp aisle, rear
+    # apron). Drawn as alternating white stripes; lane positions match
+    # src/engine/motion/LaneGraph.ts buildDepotLanes().
     lanes = SEED["lanes"]
-    for xx in range(int(lanes["west_aisle_x"]) + 6, int(lanes["east_aisle_x"]) - 6, 12):
-        stripe(xx, lanes["north_lane_y"], 4.2, 0.3)
-        stripe(xx, lanes["south_lane_y"], 4.2, 0.3)
+    W = lanes["west_aisle_x"]
+    E = lanes["east_aisle_x"]
+    S = lanes["south_lane_y"]
+    N = lanes["north_lane_y"]
+
+    # south + north boulevards (two-way divided ring)
+    for xx in range(int(W) + 10, int(E) - 8, 14):
+        stripe(xx, S, 4.5, 0.3)
+        stripe(xx, N, 4.5, 0.3)
+
+    # west + east avenues
+    for yy in range(int(S) + 10, int(N) - 8, 14):
+        stripe(W, yy, 0.3, 4.5)
+        stripe(E, yy, 0.3, 4.5)
+
+    # northbound gap lanes through the canopy band
+    for gx in lanes["gap_lanes_x"].values():
+        for yy in range(int(S) + 10, int(N) - 8, 14):
+            stripe(gx, yy, 0.3, 4.5)
+
+    # temp block aisle (two-way)
+    tx = lanes["temp_lane_x"]
+    for yy in range(int(S) + 10, int(N) - 8, 14):
+        stripe(tx, yy, 0.3, 4.5)
+
+    # rear apron behind wash/service bays (eastbound only)
+    RY = lanes["rear_lane_y"]
+    for xx in range(120, int(E) - 8, 14):
+        stripe(xx, RY, 4.5, 0.3)
+
+    # forecourt (north edge of charging canopies)
+    FY = lanes["forecourt_y"]
+    for xx in range(int(W) + 10, int(E) - 8, 14):
+        stripe(xx, FY, 4.5, 0.3)
 
 
 LIGHTS = []
