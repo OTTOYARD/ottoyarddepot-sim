@@ -46,7 +46,9 @@ import carb
 settings = carb.settings.get_settings()
 settings.set("/exts/omni.kit.livestream.app/primaryStream/publicIp", PUBLIC_IP)
 settings.set("/app/window/hideUi", True)
-print(f"[STREAM] publicIp = {PUBLIC_IP} (UI hidden)")
+# Lock the WebRTC streaming port (must match the nginx proxy_pass target)
+settings.set("/exts/omni.kit.livestream.core/serverPort", 8011)
+print(f"[STREAM] publicIp = {PUBLIC_IP} (UI hidden, livestream :8011)")
 
 import omni.usd
 from pxr import Usd, UsdGeom, Gf
@@ -137,6 +139,25 @@ for _s in _seed.get("stalls", []):
         print(f"[ARM] build fail {_s.get('stall_code')}: {e}", flush=True)
 print(f"[ARM] built {_n_arms} arms (keyed by stall_code)")
 
+# Wire up the arm animator: stall_codes (UUID->code) from the layout
+_stall_codes = source.get_stall_codes()
+from arm_animator_canonical import ArmAnimator, fetch_arm_snapshot
+arm_anim = ArmAnimator(arm_rotators, _stall_codes)
+
+# Background thread: poll the RPC for arm cycles every 2 s
+import threading as _th
+_arm_running = True
+def _arm_poller():
+    while _arm_running:
+        try:
+            cycles, timings = fetch_arm_snapshot(
+                _cfg["SUPABASE_URL"], _cfg["SUPABASE_ANON_KEY"])
+            arm_anim.set_data(cycles, timings)
+        except Exception as e:
+            print(f"[ARM] poll error: {e}", flush=True)
+        time.sleep(2)
+_th.Thread(target=_arm_poller, daemon=True).start()
+
 motion.start()
 print("[STREAM] serving — OttoMotion driving vehicles every frame")
 
@@ -157,6 +178,7 @@ try:
                 build_tesla(stage, _vid, 0.0, 0.0, 0.0)
 
         motion.update(dt)
+        arm_anim.update(motion._sim_now)
 
         if now - _last_log >= 5.0:
             _last_log = now
