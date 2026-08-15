@@ -137,7 +137,19 @@ class EdgeSnapshotSource:
 
 
 class CanonicalOttoMotion(OttoMotion):
-    """OttoMotion adapted to the canonical depot's coordinate frame."""
+    """OttoMotion adapted to the canonical depot's coordinate frame.
+
+    The base module now defaults negate_y=True and negates BOTH the position and
+    the heading (correct for a stage built in raw feet). This stage is already
+    y-negated and CENTRED at plan (150,110) by ottoq_usd_build.py's plan_to_cm,
+    so _to_stage below does the full feet->plan->cm mapping. We set
+    negate_y=False so the base does not double-negate: this builder's up-flip
+    (rotateX(90), forward native +Z -> -Y) already absorbs the y-flip, so the
+    travel heading is atan2(dx,dy) UN-negated, and parked is 180 deg = north.
+    """
+
+    def __init__(self, *args, negate_y=False, **kwargs):
+        super().__init__(*args, negate_y=negate_y, **kwargs)
 
     def _to_stage(self, xy_feet):
         # layout feet -> plan units -> canonical cm (centred at 150/110, y negated)
@@ -146,14 +158,17 @@ class CanonicalOttoMotion(OttoMotion):
         return ((px - DEPOT_CX) * U, -(py - DEPOT_CY) * U)
 
     def _heading_for(self, tgt, sim_now, cur):
-        # A car with a live travel leg is moving: use the travel heading as-is.
-        # The canonical frame composes rotateX(90) (Y-up->Z-up) BEFORE rotateZ,
-        # and the car's forward (native +Z) maps to -Y under that flip, so
-        # OttoMotion's atan2(dx,dy) heading is already the correct rotateZ angle.
+        # A car with a live travel leg is moving: heading is the travel direction
+        # in the layout frame, UN-negated (see class docstring). The car's forward
+        # maps to -Y under the up-flip, so atan2(dx,dy) is already the correct
+        # rotateZ angle: east=90, north=180, south=0, west=-90.
+        import math as _m
         for leg in tgt.legs:
             if leg.covers(sim_now) and leg.kind == "travel" and leg.from_xy and leg.to_xy:
-                return super()._heading_for(tgt, sim_now, cur)
-        # Parked (dwell / no live travel leg): face NORTH, the charger
-        # convention (charging lanes are all northbound). North = 180 deg in
-        # the atan2(dx,dy) frame.
+                dx = leg.to_xy[0] - leg.from_xy[0]
+                dy = leg.to_xy[1] - leg.from_xy[1]
+                if abs(dx) > 1e-6 or abs(dy) > 1e-6:
+                    return _m.degrees(_m.atan2(dx, dy))
+        # Parked: face NORTH, the charger convention (all charging lanes are
+        # northbound). North = 180 deg in the atan2(dx,dy) frame.
         return 180.0
