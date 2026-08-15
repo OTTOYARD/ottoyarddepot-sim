@@ -164,3 +164,64 @@ Commit answers to `isaac/NOTES-from-hermes.md`:
    is a placement loop that should be *replaced* rather than sat alongside, that
    only becomes visible with the file.
 3. **Do your prim paths match the default?**
+
+---
+
+## Frame handedness — a bug in this module, now fixed
+
+Hermes' frame analysis exposed one in `otto_motion.py`: the twin's plan frame is
+**x=east, y=SOUTH**, the canonical Isaac stage is **x=east, y=NORTH**, and the
+stage builder negates y for static geometry. This module wrote raw plan y, so
+vehicles would have rendered **mirrored against a correctly-built depot** — right
+rows on the left, traffic flowing the wrong way, everything subtly plausible and
+wrong.
+
+`negate_y=True` is now the default and heading negates with it, since a mirrored
+world turns the other way. Parked heading is 180° (north), matching the
+northbound charging lanes. Set `negate_y=False` only if the stage was built in
+raw plan coordinates.
+
+Verified: plan (100, 50) ft → stage (3048, −1524) cm; a southbound leg reads 0°
+unnegated and 180° negated.
+
+## Answers to the two questions
+
+### 1. Arms — do NOT port armStateMachine
+
+Read the phase, don't reimplement the machine. The arm's state is already on the
+wire and re-deriving it is how the two tiers drift:
+
+- `stalls[].tether_direction` — `mate` / `charging` / `demate`
+- `stalls[].tether_phase` — `approach` / `align` / `insert` / `latch` / `unlatch` / `clear`
+- `stalls[].tether_until` — the sim-clock deadline for the current phase
+- `geometry.arm.timings` — the canonical durations (the browser reads these too;
+  `armStateMachine.ts` used to *define* them and now *reads* them)
+
+Interpolate the pose across the phase window exactly like a travel leg:
+`t = (sim_now − phase_start) / (tether_until − phase_start)`. A simple 2-joint IK
+is fine — for a camera feed the fidelity that matters is the **timing matching
+the real cycle**, not the solver matching the browser's.
+
+One caveat worth knowing: a full mate can complete inside a single tick (measured
+at ~23 s), so a bridge that only samples on poll will miss the whole animation.
+Same failure as vehicle motion — interpolate per frame.
+
+### 2. Routing — follow the lanes, don't port Yuka
+
+Straight lines are acceptable **only if cars aren't cutting through structures or
+across the lot**. Check that first with one overhead shot before spending effort.
+
+If they are: `unreal/layoutSeed.json` already ships a `lanes` array. Follow that
+polyline — resolve a leg's endpoints to the nearest lane nodes and walk the
+segments, distributing `t` along the total path length. That's a route *follower*,
+not a planner, and it needs none of Yuka. Porting the planner is the expensive
+version of a problem you don't have: OTTO-Q already decided the route, the leg
+just needs to trace it.
+
+### Order
+
+**Depot direction first.** Arms and routing both sit on top of the frame being
+right — posing an arm or tracing a lane in a mirrored world just produces
+confident, wrong output. Confirm the lot matches the 3D view, then take arms
+(higher value: it's the product differentiator and this branch is the arm
+buildout), then routing.

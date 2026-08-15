@@ -193,7 +193,20 @@ class OttoMotion:
         stage_meters_per_unit: float = STAGE_METERS_PER_UNIT,
         up_axis: str = UP_AXIS,
         fetch_snapshot: Optional[Callable[[], dict]] = None,
+        negate_y: bool = True,
     ):
+        # FRAME HANDEDNESS. The twin's plan frame is x=east, y=SOUTH -- y grows
+        # down the map. The canonical Isaac stage is x=east, y=NORTH, so its
+        # builder negates y when it lays down static geometry.
+        #
+        # Vehicles must cross the frame the SAME way the depot did, or the cars
+        # render mirrored against a correctly-built lot: right rows on the left,
+        # traffic flowing the wrong way, everything subtly plausible and wrong.
+        # Heading is negated with it, since a mirrored world turns the other way.
+        #
+        # Set False only if the stage was built WITHOUT the negation, i.e. if the
+        # depot itself is in raw plan coordinates.
+        self.negate_y = bool(negate_y)
         # STAGE CONVENTION, injected rather than assumed. See the constants above.
         self.mpu = float(stage_meters_per_unit)
         self.up_axis = (up_axis or "Z").upper()
@@ -366,7 +379,8 @@ class OttoMotion:
         """Layout feet -> stage units."""
         m = FEET_TO_M if self._leg_units == "feet" else 1.0
         s = m / self.mpu
-        return (xy_feet[0] * s, xy_feet[1] * s)
+        y = -xy_feet[1] if self.negate_y else xy_feet[1]
+        return (xy_feet[0] * s, y * s)
 
     def update(self, dt: float) -> Dict[str, Tuple[float, float, float]]:
         """
@@ -431,9 +445,15 @@ class OttoMotion:
                and leg.from_xy and leg.to_xy:
                 dx = leg.to_xy[0] - leg.from_xy[0]
                 dy = leg.to_xy[1] - leg.from_xy[1]
+                # Negated with the frame: a mirrored world turns the other way.
+                if self.negate_y:
+                    dy = -dy
                 if abs(dx) > 1e-6 or abs(dy) > 1e-6:
                     return math.degrees(math.atan2(dx, dy))
-        return 0.0
+        # Parked: face north, matching the stage's convention. Every charging
+        # lane at this depot is northbound, so this is the correct rest pose
+        # rather than an arbitrary default.
+        return 180.0
 
     def _write_prim(self, vid: str, x: float, y: float, heading_deg: float) -> None:
         """Set translate + Y rotation on the vehicle's Xform."""
