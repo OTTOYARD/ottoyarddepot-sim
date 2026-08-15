@@ -31,7 +31,7 @@ CX = LOT_W / 2.0     # lot centre x (ft) -> world origin
 CY = LOT_L / 2.0     # lot centre y (ft) -> world origin
 
 MATERIALS = {
-    "M_Asphalt":  ((0.045, 0.045, 0.05), 0.85, 0.0, None, 1.0),
+    "M_Asphalt":  ((0.15, 0.15, 0.17), 0.85, 0.0, None, 1.0),
     "M_Concrete": ((0.42, 0.42, 0.40), 0.80, 0.0, None, 1.0),
     "M_Grass":    ((0.10, 0.17, 0.06), 0.90, 0.0, None, 1.0),
     "M_Steel":    ((0.42, 0.44, 0.47), 0.38, 1.0, None, 1.0),

@@ -60,10 +60,12 @@ print(f"[STREAM] loaded {SCENE}")
 for prim in Usd.PrimRange(stage.GetPseudoRoot()):
     t = prim.GetTypeName()
     if t == "DistantLight":
-        prim.GetAttribute("inputs:intensity").Set(12000.0)
+        prim.GetAttribute("inputs:intensity").Set(4000.0)
+        prim.GetAttribute("inputs:exposure").Set(0.0)
     elif t == "DomeLight":
-        prim.GetAttribute("inputs:intensity").Set(6000.0)
-print("[STREAM] lighting tuned")
+        prim.GetAttribute("inputs:intensity").Set(3000.0)
+        prim.GetAttribute("inputs:exposure").Set(0.0)
+print("[STREAM] lighting tuned (exposure 0)")
 
 # DISABLE path tracing — use shaded/raster for instant first frame
 settings.set("/rtx/rendermode", "shaded")
