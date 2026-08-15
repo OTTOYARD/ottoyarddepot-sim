@@ -95,10 +95,39 @@ class EdgeSnapshotSource:
         if run.get("speed_x") is not None:
             run["time_scale"] = float(run["speed_x"])
 
-        for leg in data.get("legs", []):
-            leg["kind"] = "travel" if leg.get("kind") == "flow_contract" else "dwell"
-
         layout = self._load_layout()
+
+        # The edge function publishes only the DESTINATION of each leg
+        # (to_stall / to_x / to_y); from_x/from_y are null on ~all legs. The
+        # browser reconstructs the travel origin from the prior leg's
+        # destination (and the INGRESS gate for the first leg), so do the same
+        # here or every travel leg reads as "hold at destination" (no motion).
+        INGRESS_FEET = (200.0 * FEET_PER_PLAN_UNIT, 215.0 * FEET_PER_PLAN_UNIT)
+        legs_by_veh: dict = {}
+        for leg in data.get("legs", []):
+            vid = leg.get("vehicle_id")
+            if vid:
+                legs_by_veh.setdefault(vid, []).append(leg)
+
+        for vid, veh_legs in legs_by_veh.items():
+            veh_legs.sort(key=lambda l: (l.get("seq") or 0))
+            prev_to = None
+            for leg in veh_legs:
+                leg["kind"] = "travel" if leg.get("kind") == "flow_contract" else "dwell"
+                # destination: to_stall UUID -> layout feet if to_x missing
+                if leg.get("to_x") is None and leg.get("to_stall"):
+                    pos = layout.get(leg["to_stall"])
+                    if pos:
+                        leg["to_x"], leg["to_y"] = pos
+                # origin: chain from the previous leg's destination
+                if leg.get("from_x") is None:
+                    if prev_to is not None:
+                        leg["from_x"], leg["from_y"] = prev_to
+                    else:
+                        leg["from_x"], leg["from_y"] = INGRESS_FEET
+                if leg.get("to_x") is not None and leg.get("to_y") is not None:
+                    prev_to = (leg["to_x"], leg["to_y"])
+
         for v in (data.get("fleet", {}).get("vehicles") or []):
             sid = v.get("stall_id")
             if sid and sid in layout:
