@@ -44,10 +44,11 @@ app = SimulationApp(
 
 import carb
 settings = carb.settings.get_settings()
+# WebRTC streaming — lock ports per docs (auth left at default=true, matches viewer)
 settings.set("/exts/omni.kit.livestream.app/primaryStream/publicIp", PUBLIC_IP)
-settings.set("/app/window/hideUi", True)
-# Lock the WebRTC streaming port (must match the nginx proxy_pass target)
-settings.set("/exts/omni.kit.livestream.core/serverPort", 8011)
+settings.set("/exts/omni.kit.livestream.app/primaryStream/signalPort", 49100)
+settings.set("/exts/omni.kit.livestream.app/primaryStream/streamPort", 47998)
+settings.set("/app/window/hideUi", False)
 print(f"[STREAM] publicIp = {PUBLIC_IP} (UI hidden, livestream :8011)")
 
 import omni.usd
