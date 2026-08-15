@@ -6,62 +6,90 @@
 // omniverse-webrtc-streaming-library in DIRECT (local) mode — it connects
 // straight to the Kit app's signaling port, no session broker needed.
 //
-// The render box's public IP can change if the EC2 instance is stopped/started
-// (use an Elastic IP for permanence). Override at runtime without a rebuild:
-//   localStorage.setItem('ottoq_omniverse_ip', '<new-ip>')
+// The render box now has a permanent Elastic IP, so DEFAULT_SERVER is stable.
+// A runtime override still exists for pointing at a different box, but under a
+// VERSIONED key so an override written against an old rotating IP can never
+// silently beat the current default again:
+//   localStorage.setItem('ottoq_omniverse_ip_v2', '<new-ip>')
 // ============================================================================
 import { useEffect, useRef, useState } from "react";
-import { AppStreamer, StreamType, type DirectConfig, type StreamEvent } from "@nvidia/omniverse-webrtc-streaming-library";
+import { AppStreamer, StreamType, type DirectConfig, type StreamEvent } from "@nvidia/ov-web-rtc";
 
-const DEFAULT_SERVER = "34.239.177.167";
-const SIGNALING_PORT = 49100;
+const DEFAULT_SERVER = "rtx.ottoyard.com";
+const SIGNALING_PORT = 443;
+const MEDIA_SERVER = "54.166.168.193";
+const MEDIA_PORT = 47998;
+const OVERRIDE_KEY = "ottoq_omniverse_ip_v2";
 
 type Status = "connecting" | "live" | "error";
 
 export function OmniverseViewer() {
-  const server =
-    (typeof localStorage !== "undefined" && localStorage.getItem("ottoq_omniverse_ip")) || DEFAULT_SERVER;
+  const override =
+    typeof localStorage !== "undefined" ? localStorage.getItem(OVERRIDE_KEY) : null;
+  // Any override that matches the default is not an override at all.
+  const server = override && override !== DEFAULT_SERVER ? override : DEFAULT_SERVER;
   const [status, setStatus] = useState<Status>("connecting");
+  const [activeServer, setActiveServer] = useState(server);
   const started = useRef(false);
 
   useEffect(() => {
     if (started.current) return; // connect once (StrictMode double-mount guard)
     started.current = true;
 
-    const streamConfig: DirectConfig = {
+    // Self-healing: try the override first, then fall back to the Elastic IP
+    // default. A stale override (pointing at a dead IP) can never blank the
+    // stream again — the app retries the known-good default on its own.
+    const candidates =
+      server !== DEFAULT_SERVER ? [server, DEFAULT_SERVER] : [DEFAULT_SERVER];
+
+    const baseConfig: Omit<DirectConfig, "signalingServer" | "mediaServer"> = {
       videoElementId: "remote-video",
       audioElementId: "remote-audio",
-      authenticate: true,
-      maxReconnects: 20,
-      signalingServer: server,
+      authenticate: false,
+      maxReconnects: 2,
       signalingPort: SIGNALING_PORT,
-      mediaServer: server,
       nativeTouchEvents: true,
       width: 1920,
       height: 1080,
       fps: 60,
       onStart: (m: StreamEvent) => {
-        const e = m as unknown as { action?: string; status?: string };
-        if (e?.action === "start" && e?.status === "success") setStatus("live");
+        const e = m as unknown as { status?: string };
+        if (e?.status === "success") setStatus("live");
         if (e?.status === "error") setStatus("error");
       },
       onUpdate: () => {},
       onCustomEvent: () => {},
       onStop: () => {},
       onTerminate: () => {},
-    } as DirectConfig;
+    };
 
-    try {
-      AppStreamer.connect({ streamConfig, streamSource: StreamType.DIRECT }).catch((err: unknown) => {
-        console.error("Omniverse stream connect failed", err);
+    let attempt = 0;
+    let cancelled = false;
+
+    const tryNext = () => {
+      if (cancelled) return;
+      if (attempt >= candidates.length) {
         setStatus("error");
+        return;
+      }
+      const srv = candidates[attempt++];
+      setActiveServer(srv);
+      const streamConfig = {
+        ...baseConfig,
+        signalingServer: srv,
+        mediaServer: MEDIA_SERVER,
+        mediaPort: MEDIA_PORT,
+      } as DirectConfig;
+      AppStreamer.connect({ streamConfig, streamSource: StreamType.DIRECT }).catch(() => {
+        // This candidate is unreachable — fall through to the next one.
+        tryNext();
       });
-    } catch (err) {
-      console.error("Omniverse stream connect threw", err);
-      setStatus("error");
-    }
+    };
+
+    tryNext();
 
     return () => {
+      cancelled = true;
       try { AppStreamer.stop(); } catch { /* noop */ }
     };
   }, [server]);
@@ -87,12 +115,12 @@ export function OmniverseViewer() {
           </div>
           <div className="text-[12px] text-ink-dim max-w-sm leading-relaxed">
             {status === "connecting" ? (
-              <>NVIDIA Isaac Sim · RTX path-traced depot · <span className="font-mono">{server}:{SIGNALING_PORT}</span></>
+              <>NVIDIA Isaac Sim · RTX path-traced depot · <span className="font-mono">{activeServer}:{SIGNALING_PORT}</span></>
             ) : (
               <>
-                Couldn't reach <span className="font-mono">{server}:{SIGNALING_PORT}</span>. Make sure the render box is
+                Couldn't reach <span className="font-mono">{activeServer}:{SIGNALING_PORT}</span>. Make sure the render box is
                 running and its WebRTC ports are open. Point at a different box with{" "}
-                <span className="font-mono">localStorage ottoq_omniverse_ip</span>.
+                <span className="font-mono">localStorage ottoq_omniverse_ip_v2</span>.
               </>
             )}
           </div>
