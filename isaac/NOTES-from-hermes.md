@@ -66,10 +66,29 @@ stage is not absolute — it is plan-unit-centred at (150,110) with y negated
 
 ## Open items (not done)
 
-- **Parked heading.** For a `dwell` leg `_heading_for` returns 0.0; the correct
-  parked heading is the stall's layout heading (north for DCFC/L2). I left this
-  — travel heading is right, parked cars face 0°. Wants a stall-heading map
-  joined to the layout.
 - **Arm animation.** The 40 charging arms are built once and static; the old
   bridge's `_animate_arms` did not survive the swap. Legs carry the charge
   state, so arms can be driven from `charge_curve` legs per stall.
+- **Parked heading is a flat NORTH (180°), not per-stall.** Correct for the
+  DCFC/L2 charger lanes (all northbound); staging/wash/service stalls that face
+  other ways will read slightly wrong until a per-stall heading is joined from
+  the layout.
+
+## Follow-up: vehicle orientation (upside-down) — fixed
+
+After the first live feed, vehicles were upside-down / underground at headings
+away from 0°. Two causes, both in `canonical_vehicle.py`:
+
+1. **Rotation order.** The Tesla USDZ is Y-up, length along Z (bbox X=width
+   4.65 m, Y=height 3.0 m, Z=length 10 m). `rotateX(90)` flips Y-up→Z-up and
+   must be applied BEFORE the heading rotation. Split `rotateX`/`rotateZ` ops
+   are listed `[translate, rotateZ, rotateX]` so USD applies rotateX first —
+   the original single `rotateXYZ(90,0,h)` op had the same internal order, but
+   my first split added `rotateX` before `rotateZ`, reversing it.
+2. **A redundant `rotateY(-90)`** on the child was also folding an extra 90°
+   into the heading. Removed.
+
+Heading convention is now: `rotateZ = atan2(dx, dy)` degrees directly (no
+negation). The canonical frame's y-flip is absorbed by the fact that the car's
+forward maps to −Y under the up-flip. Parked cars face north (180°). Confirmed
+headless: 48 parked at 180°, movers carry travel headings.

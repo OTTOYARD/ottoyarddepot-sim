@@ -146,6 +146,14 @@ class CanonicalOttoMotion(OttoMotion):
         return ((px - DEPOT_CX) * U, -(py - DEPOT_CY) * U)
 
     def _heading_for(self, tgt, sim_now, cur):
-        h = super()._heading_for(tgt, sim_now, cur)
-        # canonical y is negated relative to the layout, which mirrors heading.
-        return -h
+        # A car with a live travel leg is moving: use the travel heading as-is.
+        # The canonical frame composes rotateX(90) (Y-up->Z-up) BEFORE rotateZ,
+        # and the car's forward (native +Z) maps to -Y under that flip, so
+        # OttoMotion's atan2(dx,dy) heading is already the correct rotateZ angle.
+        for leg in tgt.legs:
+            if leg.covers(sim_now) and leg.kind == "travel" and leg.from_xy and leg.to_xy:
+                return super()._heading_for(tgt, sim_now, cur)
+        # Parked (dwell / no live travel leg): face NORTH, the charger
+        # convention (charging lanes are all northbound). North = 180 deg in
+        # the atan2(dx,dy) frame.
+        return 180.0
