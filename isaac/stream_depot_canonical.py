@@ -44,12 +44,13 @@ app = SimulationApp(
 
 import carb
 settings = carb.settings.get_settings()
-# WebRTC streaming — lock ports per docs (auth left at default=true, matches viewer)
+# Advertise the public IP for WebRTC signaling (ports stay at the omniverse
+# defaults 49100/47998 — explicitly setting them breaks the extension).
 settings.set("/exts/omni.kit.livestream.app/primaryStream/publicIp", PUBLIC_IP)
-settings.set("/exts/omni.kit.livestream.app/primaryStream/signalPort", 49100)
-settings.set("/exts/omni.kit.livestream.app/primaryStream/streamPort", 47998)
-settings.set("/app/window/hideUi", False)
-print(f"[STREAM] publicIp = {PUBLIC_IP} (UI hidden, livestream :8011)")
+# Hide the Kit editor chrome WITHOUT breaking signaling (the SimulationApp
+# hide_ui=True flag breaks it; this carb alternative does not).
+settings.set("/app/window/hideUi", True)
+print(f"[STREAM] publicIp = {PUBLIC_IP}")
 
 import omni.usd
 from pxr import Usd, UsdGeom, Gf
