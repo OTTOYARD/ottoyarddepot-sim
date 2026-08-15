@@ -225,3 +225,77 @@ right — posing an arm or tracing a lane in a mirrored world just produces
 confident, wrong output. Confirm the lot matches the 3D view, then take arms
 (higher value: it's the product differentiator and this branch is the arm
 buildout), then routing.
+
+---
+
+## Arm data is ALREADY LIVE — no migration needed
+
+Verified against the running `operator_demo` run just now. `ottoq_twin_snapshot`
+publishes a complete `arm` block today. The proposed migration is not required.
+
+**The edge function is the stale path, not the RPC.** `otto-twin-control` returns
+`geometry.arm = null`; the RPC returns this:
+
+```json
+"arm": {
+  "cycles": [{
+    "cycle_id":       "8016cfde-…",
+    "stall_id":       "609910b1-…",
+    "vehicle_id":     "5604331f-…",
+    "direction":      "mate",
+    "phase":          "approach",
+    "started_at":     "2026-08-14T10:01:25.983Z",
+    "phase_deadline": "2026-08-14T10:01:34.983Z",
+    "retry_count":    0
+  }],
+  "timings": {
+    "phase_seconds": { "unstow": 3.0, "approach": 6.0, "align": 4.5,
+                       "insert": 3.0, "latch": 2.0,
+                       "unlatch": 2.0, "extract": 3.0, "retract": 6.5 },
+    "connect_seconds": 18.5, "demate_seconds": 11.5,
+    "cycle_overhead_seconds": 30.0, "source": "ottoq_policy_params"
+  },
+  "accuracy": { "cycles": 30, "latched": 30, "retried": 1,
+                "first_pass_yield_pct": 96.67, "error_radial_mm_p95": 7.75,
+                "tolerance": { "lateral_mm": 12, "vertical_mm": 12, "yaw_deg": 2.5 } }
+}
+```
+
+**Use `arm.cycles[]`, not the `stalls[].tether_*` fields.** It is strictly better
+for animation: one entry per live cycle, carrying the phase AND its deadline
+directly, already scoped to stall and vehicle. The tether fields were the older,
+thinner view of the same truth.
+
+### Animating it
+
+Each cycle gives you the current phase and when it ends; `timings.phase_seconds`
+gives how long that phase lasts. So the phase start is derivable and the
+interpolation is identical in shape to a travel leg:
+
+```python
+dur   = timings["phase_seconds"][cycle["phase"]]          # e.g. approach -> 6.0
+start = parse(cycle["phase_deadline"]) - dur              # sim seconds
+t     = clamp((sim_now - start) / dur, 0, 1)
+pose  = lerp(POSE[prev_phase(cycle)], POSE[cycle["phase"]], t)
+```
+
+Phase order is `unstow → approach → align → insert → latch` for `direction=mate`,
+and `unlatch → extract → retract` for `demate`. `charging` holds at the latched
+pose. Define one static joint pose per phase and lerp between them — that is all
+the 2-joint IK has to do for a camera feed.
+
+**A full mate is 18.5 s and a demate 11.5 s**, so per-frame interpolation is
+mandatory: at a 2 s poll you would see three or four frozen stills of an
+eighteen-second motion, which reads as broken rather than slow.
+
+`accuracy.tolerance` is worth rendering eventually — lateral/vertical 12 mm, yaw
+2.5° is the real spec the arm is held to, and 96.67% first-pass yield is a number
+worth showing on camera.
+
+### Which source to use
+
+Switch the arm to the RPC. `OttoMotion` already resolves the live run id itself,
+so `fetch_snapshot=None` gets you the full payload including `arm`. Keep the edge
+function for vehicles if it is working, or move both — the RPC serves both.
+
+Nothing to wait for. The data is on the wire now.
