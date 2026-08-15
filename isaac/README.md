@@ -299,3 +299,74 @@ so `fetch_snapshot=None` gets you the full payload including `arm`. Keep the edg
 function for vehicles if it is working, or move both — the RPC serves both.
 
 Nothing to wait for. The data is on the wire now.
+
+---
+
+## sitePlan.json is stale — and it is the wrong file to build from
+
+All three answers come out of `unreal/layoutSeed.json`'s own `meta` block:
+
+```json
+"source":    "src/lib/sitePlan.ts",
+"generator": "scripts/buildLayoutSeed.mjs",
+"unit_ft":   1.5698818897637794,
+"frame":     "database: feet, origin at fence SW corner, y NORTH-positive (renderer y is SOUTH-positive)"
+```
+
+### 1. Source of truth
+
+**`src/lib/sitePlan.ts` is authored. Everything else is generated from it.**
+`scripts/exportSitePlan.mjs` emits `unreal/sitePlan.json`; `buildLayoutSeed.mjs`
+emits `unreal/layoutSeed.json` + `.sql`. Neither JSON is hand-maintained, and
+neither should ever be edited directly.
+
+Verified against the live database just now:
+
+| | stalls | id form | units |
+|---|---|---|---|
+| live `stalls` table | **158** | `NASH-DCFC-STALL-01` | feet, x 14.91–441.92 |
+| `unreal/layoutSeed.json` | **158** | `NASH-DCFC-STALL-01` + `render_id` | feet |
+| box `sitePlan.json` | 160 | `DCFC-01` | plan units |
+
+`layoutSeed.json` and the database agree exactly. The box's `sitePlan.json` is an
+old export — different stall count, different units, different id form. The
+~3.6 m drift is that staleness, not a transform bug.
+
+### 2. Do not re-export sitePlan for this. Build from layoutSeed.
+
+Regenerating is right (`npm run layout:seed`, then `npm run layout:verify`, which
+diffs the seed and re-runs `checkLayoutGeometry.mjs`) — but **switch
+`ottoq_usd_build.py` to read `unreal/layoutSeed.json` instead of
+`sitePlan.json`.** layoutSeed is already in feet, already matches the database,
+and already carries `heading_degrees`, `canopy_code`, `canopy_side`, `covered`,
+`stall_width_ft`, `stall_depth_ft` and `pitch_ft`. Building from it removes this
+entire class of drift permanently, rather than fixing one instance of it.
+
+`unit_ft` = 1.5698818897637794 is the same feet-per-plan-unit this module uses,
+so the two files are reconcilable — but only one of them tracks the database.
+
+### 3. Key arms by `stall_code`, never by position
+
+**Do not position-match.** At a 3.6 m mean drift against a 2.73 m stall pitch,
+nearest-neighbour will confidently pair arms to the wrong stall — and it will
+look almost right, which is worse than looking broken.
+
+The exact join already exists and needs no distance threshold:
+
+```
+arm.cycles[].stall_id  (uuid)
+      -> stalls.stall_code           via the layout endpoint / snapshot
+      -> layoutSeed.stall_code       exact string match, 1:1
+      -> geometry (relative_x/y, heading_degrees, canopy)
+```
+
+`layoutSeed` carries **both** `stall_code` (`NASH-DCFC-STALL-01`) and `render_id`
+(`DCFC-01`) on the same row, so it is also the bridge to any existing prim names
+keyed the old way. Build arm prims keyed by `stall_code` and the uuid from
+`arm.cycles[]` maps 1:1 with no matching heuristic at all.
+
+### Order
+
+Rebuild the depot from layoutSeed first. Arms keyed by `stall_code` only make
+sense once the pedestals are where the database says they are — otherwise the
+arms are exactly positioned onto wrong geometry.
