@@ -1,0 +1,18 @@
+[Unit]
+Description=OTTOYARD Isaac Sim streaming server (RTX photoreal tier)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/home/ubuntu
+Environment=ACCEPT_EULA=1
+Environment=PUBLIC_IP=54.166.168.193
+ExecStart=/home/ubuntu/isaacsim-env/bin/python -u /home/ubuntu/stream_depot_canonical.py
+Restart=always
+RestartSec=15
+StandardOutput=append:/home/ubuntu/stream.log
+StandardError=append:/home/ubuntu/stream.log
+
+[Install]
+WantedBy=multi-user.target

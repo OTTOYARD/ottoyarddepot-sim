@@ -129,3 +129,72 @@ Re-check the SG after any AMI reprovision. Outbound ephemeral TCP/UDP must be op
    sees "the whole console", so either it's not taking effect or the viewport is black behind it.
 5. If you can, add an in-stream frame capture (`omni.replicator` on the live viewport) so we stop
    asking Chase to describe what he sees.
+
+---
+
+## 6. Cold-start runbook (bring the box back from powered-off)
+
+> **Status (2026-08-15):** live WebRTC streaming is PAUSED — Omniverse WebRTC DIRECT mode serves one
+> viewer at a time (`NVST_R_BUSY`), which structurally cannot deliver a shareable multi-viewer link.
+> The box is being powered down. Everything below restores the instance to the last-known state. If we
+> return to Isaac it will be for **offline hero renders**, not live streaming — start from these
+> files, not from scratch.
+
+**1. Start the instance + confirm the Elastic IP.**
+- The Elastic IP is **`54.166.168.193`** (permanent across stop/start). If the instance was stopped,
+  confirm the EIP is still attached (EC2 → Elastic IPs → Association). Do NOT use the stale IPs
+  `18.232.56.240` or `34.239.177.167`.
+- Instance type `g5.2xlarge` (A10G). If it was terminated (not stopped), you must recreate it from
+  the NVIDIA Isaac Sim AMI + re-attach the EIP + re-add the security-group rules below.
+
+**2. Security group — re-add these inbound rules (NVIDIA AMI SGs drop UDP 47998):**
+TCP 22 (SSH), TCP 80, TCP 443, TCP 49100, TCP 47998, UDP 47998. Outbound ephemeral open.
+
+**3. SSH in and confirm the pieces are present:**
+```bash
+ssh -i /opt/data/ottoq-hermes.pem ubuntu@54.166.168.193
+ls /home/ubuntu/stream_depot_canonical.py /home/ubuntu/ottoyard_depot.usda /home/ubuntu/layoutSeed.json
+ls /home/ubuntu/isaacsim-env/bin/python   # the venv with Isaac Sim 6.0.1
+```
+If the venv is missing (fresh instance), rebuild it with Isaac Sim 6.0.1 (the `isaacsim` pip
+installer / Omniverse Launcher), then re-copy every file in this repo's `isaac/` directory to
+`/home/ubuntu/`.
+
+**4. Restore nginx (TLS → WebSocket proxy):**
+```bash
+sudo cp /home/ubuntu/nginx-rtx.conf /etc/nginx/sites-enabled/rtx
+sudo nginx -t && sudo systemctl reload nginx
+```
+The config already points `proxy_pass http://127.0.0.1:49100` with `Upgrade`/`Connection` headers.
+Cert lives at `/etc/letsencrypt/live/rtx.ottoyard.com/` (renew with certbot if expired).
+
+**5. Restore the systemd unit + start:**
+```bash
+sudo cp /home/ubuntu/ottoq-stream.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now ottoq-stream
+tail -f /home/ubuntu/stream.log   # expect [STREAM] loaded …, [MOTION] poll=… targets=…
+```
+
+**6. Verify:**
+```bash
+ss -tlnp | grep 49100        # signaling bound
+curl -sk -o /dev/null -w '%{http_code}' \
+  -H 'Upgrade: websocket' -H 'Connection: Upgrade' \
+  -H 'Sec-WebSocket-Version: 13' -H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' \
+  'http://127.0.0.1:49100/sign_in?peer_id=1&version=2&peer_role=1'
+# expect: 101
+```
+
+**7. For offline hero renders** (the future path), reuse the `omni.replicator` render scripts that
+were proven end-to-end: `render_check2.py` (burial/contrast check), `render_high.py` (high-angle
+depot view). They load `ottoyard_depot.usda`, tune the lights, place Teslas via `canonical_vehicle.py`,
+and write a PNG you can `scp` back. No WebRTC needed.
+
+**Files kept in this repo (`isaac/`) for the restart:**
+`stream_depot_canonical.py` (bootstrap), `otto_motion_canonical.py` (motion adapter),
+`canonical_vehicle.py` (Tesla builder + `feet_to_cm`), `arm_builder_canonical.py` (arm geometry),
+`arm_animator_canonical.py` (arm animation, per-phase joint lerp), `live_bridge_canonical.py`
+(legacy edge bridge), `otto_motion.py` (Claude's base), `nginx-rtx.conf`, `ottoq-stream.service`,
+plus `unreal/ottoq_usd_build.py` + `unreal/layoutSeed.json` (depot geometry source of truth).
+
