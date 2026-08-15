@@ -80,7 +80,14 @@ from typing import Callable, Dict, List, Optional, Tuple
 # ---------------------------------------------------------------- constants --
 
 FEET_TO_M = 0.3048
-STAGE_METERS_PER_UNIT = 1.0     # measured on depot.usd; 0.01 if the stage is cm
+
+# DEFAULTS FOR THE REAL STAGE. ottoyard_depot.usda on the Isaac box is
+# metersPerUnit = 0.01 (CENTIMETRES) and upAxis = Z. An earlier measurement of
+# 1.0 / Y-up was taken from a different file (depot.usd) and is not the stage
+# that ships. Both are constructor arguments -- adapt the module to the stage,
+# never rebuild a working stage to suit the module.
+STAGE_METERS_PER_UNIT = 0.01
+UP_AXIS = "Z"
 
 # Fallbacks ONLY. get_contract() overrides these from the live snapshot.
 _FALLBACK_LEG_UNITS = "feet"
@@ -183,7 +190,23 @@ class OttoMotion:
         poll_seconds: float = 2.0,
         sim_run_id: Optional[str] = None,
         on_error: Optional[Callable[[Exception], None]] = None,
+        stage_meters_per_unit: float = STAGE_METERS_PER_UNIT,
+        up_axis: str = UP_AXIS,
+        fetch_snapshot: Optional[Callable[[], dict]] = None,
     ):
+        # STAGE CONVENTION, injected rather than assumed. See the constants above.
+        self.mpu = float(stage_meters_per_unit)
+        self.up_axis = (up_axis or "Z").upper()
+
+        # DATA SOURCE, injected rather than assumed. The ottoq_twin_snapshot RPC
+        # takes a REQUIRED p_sim_run_id and returns "sim_run not found" for NULL,
+        # so this module resolves the active run itself (see _active_run_id).
+        # Pass fetch_snapshot to use a different source entirely -- the
+        # otto-twin-control edge function is already wired on the Isaac box and
+        # is the working source there. Any callable returning the same payload
+        # shape works; nothing below cares where it came from.
+        self.fetch_snapshot = fetch_snapshot
+
         self.url = supabase_url.rstrip("/")
         self.key = anon_key
         self.stage = stage
@@ -221,8 +244,41 @@ class OttoMotion:
         with urllib.request.urlopen(req, timeout=20) as r:
             return json.loads(r.read().decode())
 
+    def _get(self, path: str) -> list:
+        req = urllib.request.Request(
+            f"{self.url}/rest/v1/{path}",
+            headers={"apikey": self.key, "Authorization": f"Bearer {self.key}"},
+        )
+        with urllib.request.urlopen(req, timeout=20) as r:
+            return json.loads(r.read().decode())
+
+    def _active_run_id(self) -> Optional[str]:
+        """
+        The RPC's p_sim_run_id is REQUIRED -- passing NULL yields
+        "sim_run not found", which is exactly what a bridge sees when it asks for
+        the snapshot without naming a run. Resolve the live one instead.
+        Re-resolved every poll on purpose: runs stop and start, and a bridge that
+        caches the id goes silently blind the moment a new run begins.
+        """
+        rows = self._get(
+            "ottoq_sim_runs?status=eq.running&select=sim_run_id"
+            "&order=started_at.desc&limit=1"
+        )
+        if rows:
+            return rows[0].get("sim_run_id")
+        return None
+
     def _poll_once(self) -> None:
-        snap = self._rpc("ottoq_twin_snapshot", {"p_sim_run_id": self.sim_run_id})
+        if self.fetch_snapshot is not None:
+            snap = self.fetch_snapshot()
+        else:
+            rid = self.sim_run_id or self._active_run_id()
+            if rid is None:
+                # No run is moving the world. Not an error: hold the last frame
+                # rather than throwing every poll or snapping cars to nowhere.
+                self.last_error = "no active sim run"
+                return
+            snap = self._rpc("ottoq_twin_snapshot", {"p_sim_run_id": rid})
         if isinstance(snap, list):
             snap = snap[0] if snap else {}
         if not isinstance(snap, dict):
@@ -309,7 +365,7 @@ class OttoMotion:
     def _to_stage(self, xy_feet: Tuple[float, float]) -> Tuple[float, float]:
         """Layout feet -> stage units."""
         m = FEET_TO_M if self._leg_units == "feet" else 1.0
-        s = m / STAGE_METERS_PER_UNIT
+        s = m / self.mpu
         return (xy_feet[0] * s, xy_feet[1] * s)
 
     def update(self, dt: float) -> Dict[str, Tuple[float, float, float]]:
@@ -392,17 +448,33 @@ class OttoMotion:
         ops = {op.GetOpName(): op for op in xf.GetOrderedXformOps()}
 
         t_op = ops.get("xformOp:translate") or xf.AddTranslateOp()
-        # Stage is Y-up (matching the Tesla asset), so ground plane is X/Z and the
-        # layout's y maps to stage z. Existing Y stays: it is the wheels-on-ground
-        # offset set by the vehicle builder, and this must not fight it.
-        cur_y = 0.0
-        try:
-            cur_y = float(t_op.Get()[1])
-        except Exception:
-            pass
-        t_op.Set(Gf.Vec3d(float(x), cur_y, float(y)))
 
-        r_op = ops.get("xformOp:rotateY") or xf.AddRotateYOp()
+        # WHICH AXIS IS UP decides where the layout's (x, y) lands and which axis
+        # the heading turns about. Z-up is the real stage (ottoyard_depot.usda);
+        # Y-up is kept because the Tesla asset is authored Y-up and a stage may be
+        # rebuilt that way later. Getting this wrong lays the depot on its side.
+        #
+        # The vertical component is READ BACK and preserved in both cases: it is
+        # the wheels-on-ground offset the vehicle builder set, and stomping it
+        # either buries the car or floats it.
+        if self.up_axis == "Z":
+            # ground plane is X/Y, up is Z
+            cur_up = 0.0
+            try:
+                cur_up = float(t_op.Get()[2])
+            except Exception:
+                pass
+            t_op.Set(Gf.Vec3d(float(x), float(y), cur_up))
+            r_op = ops.get("xformOp:rotateZ") or xf.AddRotateZOp()
+        else:
+            # ground plane is X/Z, up is Y -- the layout's y maps to stage z
+            cur_up = 0.0
+            try:
+                cur_up = float(t_op.Get()[1])
+            except Exception:
+                pass
+            t_op.Set(Gf.Vec3d(float(x), cur_up, float(y)))
+            r_op = ops.get("xformOp:rotateY") or xf.AddRotateYOp()
         r_op.Set(float(heading_deg))
 
 
