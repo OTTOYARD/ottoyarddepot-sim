@@ -18,6 +18,17 @@ NORTH = -math.pi / 2
 DEPOT_CX = 150
 DEPOT_CY = 106
 
+# layoutSeed frame: FEET, origin at fence SW corner, y NORTH-positive, lot
+# centred at the world origin (ottoq_usd_build.py reads the same seed).
+FT = 30.48
+LOT_CX_FT = 226.06299212598425   # lot_ft.width_ft / 2
+LOT_CY_FT = 156.98818897637793   # lot_ft.length_ft / 2
+
+
+def feet_to_cm(fx, fy):
+    """Layout feet (y NORTH) -> canonical cm (x=east, y=north, lot-centred)."""
+    return (fx - LOT_CX_FT) * FT, (fy - LOT_CY_FT) * FT
+
 
 def plan_to_cm(px, py):
     """Plan units (x=east, y=south) -> canonical cm (x=east, y=north)."""

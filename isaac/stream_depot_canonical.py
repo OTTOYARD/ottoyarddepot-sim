@@ -70,8 +70,8 @@ settings.set("/rtx/rendermode", "shaded")
 print("[STREAM] renderer: shaded")
 
 sys.path.insert(0, os.path.expanduser("~"))
-from otto_motion_canonical import EdgeSnapshotSource, CanonicalOttoMotion, FEET_PER_PLAN_UNIT
-from canonical_vehicle import build_tesla, plan_to_cm
+from otto_motion_canonical import EdgeSnapshotSource, CanonicalOttoMotion
+from canonical_vehicle import build_tesla, feet_to_cm
 
 _cfg = {}
 with open(os.path.expanduser("~/supabase.env")) as f:
@@ -95,9 +95,8 @@ import math as _m
 _layout = source._load_layout()
 _xs, _ys = [], []
 for _fx, _fy in _layout.values():
-    _px, _py = _fx / FEET_PER_PLAN_UNIT, _fy / FEET_PER_PLAN_UNIT
-    _xs.append((_px - 150.0) * 48.0)
-    _ys.append(-(_py - 110.0) * 48.0)
+    _wx, _wy = feet_to_cm(_fx, _fy)
+    _xs.append(_wx); _ys.append(_wy)
 if _xs and _ys:
     _cx = (min(_xs) + max(_xs)) / 2.0
     _cy = (min(_ys) + max(_ys)) / 2.0
@@ -109,29 +108,32 @@ if _xs and _ys:
     cam.AddTransformOp().Set(Gf.Matrix4d().SetLookAt(_eye, _tgt, _up))
     print(f"[STREAM] camera framed: span={_span:.0f}cm")
 
-# Build robotic charging arms at every DCFC/L2 charger (40 total, uniform size)
+# Build robotic charging arms at every DCFC/L2 charger, keyed by stall_code
+# (arm.cycles[].stall_id -> stalls.stall_code -> this). Positions from
+# layoutSeed.json feet, same frame as the vehicles.
 import json as _json
 from arm_builder_canonical import build_arm
 
-with open(os.path.expanduser("~/sitePlan.json")) as _f:
-    _plan = _json.load(_f)
-_spines = sorted(c["cx"] for c in _plan.get("canopies", []))
+with open(os.path.expanduser("~/layoutSeed.json")) as _f:
+    _seed = _json.load(_f)
 
+arm_rotators = {}
 _n_arms = 0
-for _s in _plan.get("stalls", []):
-    if _s.get("type") not in ("dcfc", "l2"):
+for _s in _seed.get("stalls", []):
+    if _s.get("stall_type") not in ("dcfc", "l2"):
         continue
-    _sx = float(_s["position"]["x"]); _sy = float(_s["position"]["y"])
-    _spine = min(_spines, key=lambda c: abs(c - _sx)) if _spines else _sx
-    _px = _sx + (4.5 if _spine > _sx else -4.5)
-    _toward = -1.0 if _px > _sx else 1.0   # arm swings toward the vehicle
-    _wx, _wy = plan_to_cm(_px, _sy)
+    _sx = float(_s["relative_x"]); _sy = float(_s["relative_y"])
+    _side = _s.get("canopy_side", "W")
+    _px = _sx + (-1.0 if _side == "W" else 1.0) * 4.5   # charger is on the canopy side
+    _toward = 1.0 if _side == "W" else -1.0             # arm swings toward the vehicle
+    _wx, _wy = feet_to_cm(_px, _sy)
     try:
-        build_arm(stage, _s["id"], _s["type"], _wx, _wy, _toward)
+        _root, _sh, _el = build_arm(stage, _s["stall_code"], _s["stall_type"], _wx, _wy, _toward)
+        arm_rotators[_s["stall_code"]] = (_sh, _el)
         _n_arms += 1
     except Exception as e:
-        print(f"[ARM] build fail {_s.get('id')}: {e}", flush=True)
-print(f"[ARM] built {_n_arms} arms")
+        print(f"[ARM] build fail {_s.get('stall_code')}: {e}", flush=True)
+print(f"[ARM] built {_n_arms} arms (keyed by stall_code)")
 
 motion.start()
 print("[STREAM] serving — OttoMotion driving vehicles every frame")

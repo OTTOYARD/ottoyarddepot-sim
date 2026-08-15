@@ -17,11 +17,14 @@ Two adaptations live here:
        legs[].kind           -> 'travel' | 'dwell'  (flow_contract = travel)
        fleet[].stall_id      -> fleet[].stall_x/stall_y (feet, via layout)
 
-2. Coordinate frame. OttoMotion's _to_stage() maps layout feet -> stage units
-   *absolutely* (feet * 0.3048 / mpu). The shipping stage is NOT absolute: it is
-   plan-unit-centred at (150, 110) with y negated (canonical_vehicle.plan_to_cm,
-   U = 48 cm/unit). CanonicalOttoMotion overrides _to_stage() to that mapping,
-   and negates _heading_for() because the y-negation mirrors the heading.
+2. Coordinate frame. The shipping stage is rebuilt from layoutSeed.json:
+   FEET, origin at the fence SW corner, y NORTH-positive (same frame as the DB
+   and the twin legs). The depot builder centres the lot at the world origin, so
+   the canonical mapping is simply:
+       cx = (feet_x - LOT_CX_FT) * 30.48
+       cy = (feet_y - LOT_CY_FT) * 30.48      # NO y-negation (feet is already N)
+   The heading DOES negate dy: the car's forward (+Z) maps to -Y under the
+   rotateX(90) up-flip, so the correct rotateZ is atan2(dx, -dy).
 """
 
 from __future__ import annotations
@@ -33,10 +36,9 @@ from otto_motion import OttoMotion
 
 NASHVILLE_DEPOT = "11111111-1111-1111-1111-111111111111"
 LIVE_STATUSES = ("running", "paused")
-FEET_PER_PLAN_UNIT = 1.569882   # 1 plan unit = 0.4785 m = 1.569882 ft
-U = 48.0                        # cm per plan unit (canonical builder)
-DEPOT_CX = 150.0
-DEPOT_CY = 110.0
+FT = 30.48                       # cm per foot
+LOT_CX_FT = 226.06299212598425   # lot_ft.width_ft / 2
+LOT_CY_FT = 156.98818897637793   # lot_ft.length_ft / 2
 
 
 class EdgeSnapshotSource:
@@ -102,7 +104,7 @@ class EdgeSnapshotSource:
         # browser reconstructs the travel origin from the prior leg's
         # destination (and the INGRESS gate for the first leg), so do the same
         # here or every travel leg reads as "hold at destination" (no motion).
-        INGRESS_FEET = (200.0 * FEET_PER_PLAN_UNIT, 215.0 * FEET_PER_PLAN_UNIT)
+        INGRESS_FEET = (304.6, 4.7)   # GATE-INGRESS centre (east gate, south edge)
         legs_by_veh: dict = {}
         for leg in data.get("legs", []):
             vid = leg.get("vehicle_id")
@@ -139,36 +141,29 @@ class EdgeSnapshotSource:
 class CanonicalOttoMotion(OttoMotion):
     """OttoMotion adapted to the canonical depot's coordinate frame.
 
-    The base module now defaults negate_y=True and negates BOTH the position and
-    the heading (correct for a stage built in raw feet). This stage is already
-    y-negated and CENTRED at plan (150,110) by ottoq_usd_build.py's plan_to_cm,
-    so _to_stage below does the full feet->plan->cm mapping. We set
-    negate_y=False so the base does not double-negate: this builder's up-flip
-    (rotateX(90), forward native +Z -> -Y) already absorbs the y-flip, so the
-    travel heading is atan2(dx,dy) UN-negated, and parked is 180 deg = north.
+    The stage is rebuilt from layoutSeed.json: FEET, y NORTH-positive (same as
+    the DB and the legs), lot centred at the world origin. So:
+      - _to_stage: feet -> cm, NO y-negation (feet is already NORTH).
+      - _heading_for: atan2(dx, -dy) — the car's forward (+Z) maps to -Y under
+        the rotateX(90) up-flip, so the heading negates dy.
+    negate_y=False so the base does not double-negate.
     """
 
     def __init__(self, *args, negate_y=False, **kwargs):
         super().__init__(*args, negate_y=negate_y, **kwargs)
 
     def _to_stage(self, xy_feet):
-        # layout feet -> plan units -> canonical cm (centred at 150/110, y negated)
-        px = xy_feet[0] / FEET_PER_PLAN_UNIT
-        py = xy_feet[1] / FEET_PER_PLAN_UNIT
-        return ((px - DEPOT_CX) * U, -(py - DEPOT_CY) * U)
+        return ((xy_feet[0] - LOT_CX_FT) * FT, (xy_feet[1] - LOT_CY_FT) * FT)
 
     def _heading_for(self, tgt, sim_now, cur):
-        # A car with a live travel leg is moving: heading is the travel direction
-        # in the layout frame, UN-negated (see class docstring). The car's forward
-        # maps to -Y under the up-flip, so atan2(dx,dy) is already the correct
-        # rotateZ angle: east=90, north=180, south=0, west=-90.
+        # Travel heading: atan2(dx, -dy) degrees (car forward +Z -> -Y under the
+        # up-flip). east=90, north=180, south=0, west=-90.
         import math as _m
         for leg in tgt.legs:
             if leg.covers(sim_now) and leg.kind == "travel" and leg.from_xy and leg.to_xy:
                 dx = leg.to_xy[0] - leg.from_xy[0]
                 dy = leg.to_xy[1] - leg.from_xy[1]
                 if abs(dx) > 1e-6 or abs(dy) > 1e-6:
-                    return _m.degrees(_m.atan2(dx, dy))
-        # Parked: face NORTH, the charger convention (all charging lanes are
-        # northbound). North = 180 deg in the atan2(dx,dy) frame.
+                    return _m.degrees(_m.atan2(dx, -dy))
+        # Parked: face NORTH (all charging lanes are northbound). North = 180 deg.
         return 180.0
