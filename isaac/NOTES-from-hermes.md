@@ -5,25 +5,19 @@ plus what I had to adapt.
 
 ## 1. Does it move?
 
-**Yes — headless-verified.** `motion.update()` returns real interpolated positions
-(`test_otto_motion_headless.py` on the box):
+**Yes — confirmed live.** On the running sim (`40eec1b8`), `motion.update()` places
+65 vehicles and **22 are actively interpolating** (positions + headings changing
+between samples). The stream server logs `[MOTION] poll=21 targets=116 placed=66
+err=None` every 5 s.
 
-```
-v-travel: x=-7198.5cm y=5280.0cm heading=-90.0deg   # 100ft leg, mid-flight, east
-v-dwell:  x=-5671.2cm y=3751.2cm heading=-0.0deg     # holds destination
-```
-
-A 100 ft `travel` leg glides across frames; a `dwell` leg holds; heading negates
-correctly for the canonical y-flip. The full stream server is deployed and
-running (`[STREAM] OttoMotion ready (edge-function source)` in `stream.log`,
-port 49100 up).
-
-**Live motion is pending a run.** At test time there was no `running` sim
-(`/sim_runs` returned all `completed`), so the poll legitimately holds the last
-frame. The moment a run starts the poll resolves it (`_active_run_id` →
-`/sim_runs/{id}/snapshot`) and prims will move. I could not verify the live
-feed end-to-end without a run; the interpolation math is what I *could* prove,
-and it checks out.
+**The one thing that blocked motion was `from_x`.** The edge function publishes
+only each leg's *destination* (`to_stall` / `to_x` / `to_y`); `from_x/from_y` are
+null on 125 of 126 legs. OttoMotion's `Leg.position_at` treats a travel leg with
+no origin as "hold at destination", so every car sat at its stall. Fixed in
+`EdgeSnapshotSource.fetch`: chain `from_x/from_y` from the prior leg's
+destination (per vehicle, sorted by `seq`) and use the INGRESS gate
+(`sitePlan.ts`: plan 200,215) for the first leg — the same reconstruction
+`TwinMotionDriver` does.
 
 ## 2. `live_bridge.py` as it stood
 
