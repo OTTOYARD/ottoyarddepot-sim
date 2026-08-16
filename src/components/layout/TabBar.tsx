@@ -1,9 +1,10 @@
 import { useSimulationStore } from '@/store/simulationStore';
 
-type Tab = { id: 'controls' | 'world' | 'orchestration' | 'kpis' | 'ai-summary' | 'alerts' | 'history' | 'swap-test' | 'scorekeeper' | 'copilot' | 'blackbox'; label: string };
+type Tab = { id: 'controls' | 'recall' | 'world' | 'orchestration' | 'kpis' | 'ai-summary' | 'alerts' | 'history' | 'swap-test' | 'scorekeeper' | 'copilot' | 'blackbox'; label: string };
 
 const tabs: Tab[] = [
   { id: 'controls', label: 'Controls' },
+  { id: 'recall', label: 'Recall' },
   { id: 'world', label: 'World' },
   { id: 'orchestration', label: 'Orchestration' },
   { id: 'kpis', label: 'KPIs' },

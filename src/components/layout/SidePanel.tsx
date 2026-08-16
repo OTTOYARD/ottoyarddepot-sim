@@ -12,9 +12,11 @@ import { TwinScorekeeperTab } from '@/components/tabs/TwinScorekeeperTab';
 import { TwinCopilotTab } from '@/components/tabs/TwinCopilotTab';
 import { BlackBoxPanel } from '@/components/cockpit/BlackBoxPanel';
 import { WorldContractTab } from '@/components/tabs/WorldContractTab';
+import { TwinRecallTab } from '@/components/tabs/TwinRecallTab';
 
 const tabComponents = {
   controls: OperatorConsole,       // AV-only backend-driven console (replaces legacy ControlsTab)
+  recall: TwinRecallTab,           // recall a vehicle now + set its per-vehicle return reserve
   orchestration: TwinOrchestrationTab, // OTTO-Q appointment/reservation/servicing seam (investor view)
   world: WorldContractTab,         // world-load gate, channel integrity, coverage, decision trace
   kpis: TwinKpisTab,               // live backend KPIs (replaces legacy KPIsTab)
