@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#06070A">
 <meta name="color-scheme" content="dark">
+<!-- Add to Home Screen runs it without browser chrome — a full-screen stage on iOS -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="OTTO-CHARGE ARM">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="description" content="OTTO-CHARGE ARM — a single-file kinematic simulation of OTTOYARD's robotic DC fast-charge arm, with a 9:16 stage for phone viewing and vertical screen capture.">
 <title>OTTO-CHARGE ARM</title>
 </head>
@@ -4128,6 +4133,11 @@ void main() {
   };
   meta('viewport', 'width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no');
   meta('theme-color', '#06070A');
+  /* added to the home screen, iOS runs it without browser chrome — the one
+     way to get a truly full-screen stage on an iPhone */
+  meta('apple-mobile-web-app-capable', 'yes');
+  meta('apple-mobile-web-app-status-bar-style', 'black-translucent');
+  meta('mobile-web-app-capable', 'yes');
 
   /* ── restructure: wrap the 3D box so it can be pillarboxed ───────────── */
   const pad = document.createElement('div');
@@ -4199,6 +4209,7 @@ void main() {
     ['cue',   '↺',       'CUE',     'Restart the cycle from zero'],
     ['cam',   '◎',       'WIDE',    'Next camera'],
     ['orbit', '↻',       'ORBIT',   'Slow auto-orbit'],
+    ['full',  '⛶',       'FULL',    'Fill the screen'],
     ['clean', '▣',       'CLEAN',   'Hide the operator UI for recording'],
     ['snap',  '⊙',       'SNAP',    'Capture a 1080 by 1920 still'],
     ['more',  '≡',       'CONSOLE', 'Open the full console']
@@ -4236,7 +4247,8 @@ void main() {
       '<b>O</b><span>auto-orbit</span><b>R</b><span>cue to 0.0 s</span>' +
       '<b>S</b><span>snapshot</span><b>P</b><span>pin 9:16</span>' +
       '<b>G</b><span>safe zones</span><b>T</b><span>captions</span>' +
-      '<b>F</b><span>fault</span><b>1–4</b><span>cameras</span>' +
+      '<b>X</b><span>fullscreen</span><b>F</b><span>fault</span>' +
+      '<b>1–4</b><span>cameras</span>' +
       '<b>space</b><span>play / pause</span>' +
     '</div>';
   side.insertBefore(capture, side.querySelector('section'));
@@ -4396,6 +4408,37 @@ void main() {
     o.controls.update();
   }
   requestAnimationFrame(orbitTick);
+  /* ── fullscreen ───────────────────────────────────────────────────────────
+     Fullscreen the document, not the stage: the dock and the sheet are siblings
+     of #stagepad, and only the fullscreen element's own subtree gets painted.
+     Where the API is unavailable — an iPhone, or a host frame that does not
+     allow it — the button removes itself rather than sit there doing nothing. */
+  const fsEnabled = !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
+  const fsElement = () => document.fullscreenElement || document.webkitFullscreenElement;
+  if (!fsEnabled) dbtn('full').remove();
+  else {
+    dbtn('full').addEventListener('click', () => {
+      const el = document.documentElement;
+      /* the prefixed WebKit calls return undefined, not a promise */
+      try {
+        const r = fsElement()
+          ? (document.exitFullscreen || document.webkitExitFullscreen).call(document)
+          : (el.requestFullscreen || el.webkitRequestFullscreen).call(el);
+        if (r && typeof r.catch === 'function') r.catch(() => toast('FULLSCREEN BLOCKED'));
+      } catch (e) {
+        toast('FULLSCREEN BLOCKED');
+      }
+    });
+    const onFs = () => {
+      const on = !!fsElement();
+      dbtn('full').classList.toggle('on', on);
+      dl('full').textContent = on ? 'EXIT' : 'FULL';
+      relayout(false);
+    };
+    document.addEventListener('fullscreenchange', onFs);
+    document.addEventListener('webkitfullscreenchange', onFs);
+  }
+
   dbtn('clean').addEventListener('click', () => setUI(state.ui === 'full' ? 'clean' : 'full'));
   dbtn('more').addEventListener('click', () => body.classList.toggle('sheet'));
   $('#sheetgrip').addEventListener('click', () => body.classList.remove('sheet'));
@@ -4468,6 +4511,7 @@ void main() {
     else if (k === 'g') $('#c-safe').click();
     else if (k === 't') $('#c-cap').click();
     else if (k === 'f') cFault.click();
+    else if (k === 'x' && dbtn('full')) dbtn('full').click();
     else if (k === 'escape') { body.classList.remove('sheet'); $('#snapclose').click(); }
     else if (k === ' ') { cPlay.click(); e.preventDefault(); }
     else if (k >= '1' && k <= '4') applyCam(ORDER[+k - 1]);
