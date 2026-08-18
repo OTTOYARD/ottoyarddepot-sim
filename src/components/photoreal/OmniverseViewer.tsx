@@ -1,3 +1,5 @@
+// PARKED_ISAAC — Track B (Isaac Sim / Omniverse photoreal stream) is parked per otto-q-core/CLAUDE.md 2.8.
+// Consumes the Isaac stream as video only; kept wired for reattachment. Do not extend without unparking Track B.
 // ============================================================================
 // OmniverseViewer — the "Photoreal" cockpit view.
 //
