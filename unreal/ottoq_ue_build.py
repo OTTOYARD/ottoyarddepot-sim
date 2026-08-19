@@ -1,3 +1,5 @@
+# PARKED_ISAAC — Track B (Isaac Sim / Omniverse / UE photoreal) is parked per otto-q-core/CLAUDE.md 2.8.
+# Not imported by the app; kept for future reattachment. Do not extend without unparking Track B.
 """
 OTTOYARD depot — Unreal Engine 5 procedural blockout builder.
 
