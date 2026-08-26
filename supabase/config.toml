@@ -1,7 +1,15 @@
 project_id = "hfjaofyfxsyniohdfacg"
 
+# Q-A0 security remediation: both AI-backed functions previously opted out of
+# JWT verification, letting any internet caller spend the NVIDIA / Lovable AI
+# quota. All in-repo callers go through supabase.functions.invoke, which sends
+# the required Authorization header, so enforcing JWT is non-breaking for the
+# app. The deployed setting must match — see relay/for-chase/A0-ACTIONS.md in
+# the OTTO-Defense repo (project hfjaofyfxsyniohdfacg is outside the org token's
+# reach, so the live toggle is a dashboard action).
+
 [functions.analyze-simulation]
-verify_jwt = false
+verify_jwt = true
 
 [functions.cuopt-optimize]
-verify_jwt = false
+verify_jwt = true
