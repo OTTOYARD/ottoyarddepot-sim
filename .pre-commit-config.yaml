@@ -1,0 +1,12 @@
+# Local mirror of the CI secret gate (Q-A0). Install once with:
+#   pipx install pre-commit   (or: pip install pre-commit)
+#   pre-commit install
+# After that, every commit runs the same scan CI runs.
+repos:
+  - repo: local
+    hooks:
+      - id: secret-scan
+        name: secret scan (same script as CI)
+        entry: bash scripts/secret-scan.sh
+        language: system
+        pass_filenames: false
