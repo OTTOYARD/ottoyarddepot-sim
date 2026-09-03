@@ -13,6 +13,7 @@ import { TwinCopilotTab } from '@/components/tabs/TwinCopilotTab';
 import { BlackBoxPanel } from '@/components/cockpit/BlackBoxPanel';
 import { WorldContractTab } from '@/components/tabs/WorldContractTab';
 import { TwinRecallTab } from '@/components/tabs/TwinRecallTab';
+import TwinDecisionLogTab from '@/components/tabs/TwinDecisionLogTab';
 
 const tabComponents = {
   controls: OperatorConsole,       // AV-only backend-driven console (replaces legacy ControlsTab)
@@ -23,6 +24,7 @@ const tabComponents = {
   'ai-summary': TwinAiSummaryTab,  // OTTO-Q self-analysis from the live snapshot
   alerts: TwinAlertsTab,           // live backend event feed (replaces legacy AlertsTab)
   history: TwinHistoryTab,         // backend run-history ledger + compare
+  decisions: TwinDecisionLogTab,   // OTTO-Q decision feed — live "why" log
   'swap-test': TwinSwapTestTab,    // OTTO-Q safety proof: calm-vs-stress A/B scoreboard (view)
   'scorekeeper': TwinScorekeeperTab, // OTTO-Q vs manual/FIFO: throughput + safety A/B race (U5e)
   copilot: TwinCopilotTab,         // agentic copilot: Nemotron 3 Ultra audit of OTTO-Q decisions
