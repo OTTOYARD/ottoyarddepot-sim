@@ -670,8 +670,12 @@ export const twin = {
   health:    ()                          => get<{ service: string; version: string; time: string }>(`/health`),
 
   // controls (operator key) — used in Phase 2+
-  start:          (scenario_code: string, seed?: number) => send<{ sim_run_id: string; scenario_code: string }>("POST", `/scenarios/start`, { scenario_code, seed }),
-  stop:           (sim_run_id: string)        => send("POST", `/scenarios/stop`, { sim_run_id }),
+  start:          (scenario_code: string, seed?: number, speed_x = 1, days = 1) =>
+    send<{ ok: boolean; sim_run_id: string; scenario: string; scenario_code: string; demo_speed_x: number; real_seconds_per_tick: number; runs_for_sim_days: number }>(
+      "POST", `/scenarios/start`, { scenario_code, seed, speed_x, days },
+    ),
+  stop:           (sim_run_id: string, reason = "operator_stop") =>
+    send("POST", `/scenarios/stop`, { sim_run_id, reason }),
   tick:           (simRunId: string)          => send("POST", `/sim_runs/${simRunId}/tick`),
   pause:          (simRunId: string)          => send("POST", `/sim_runs/${simRunId}/pause`),
   resume:         (simRunId: string)          => send("POST", `/sim_runs/${simRunId}/resume`),
@@ -679,19 +683,10 @@ export const twin = {
    *  the tick RATE steady; this changes how much sim-time each tick covers. */
   setTimeScale:   (simRunId: string, ts: number) => send("PUT", `/sim_runs/${simRunId}/time_scale`, { time_scale: ts }),
   /** PLAYBACK CONTRACT. mode 'live' = 1 real second advances the sim clock by
-   *  speed_x sim seconds (1× is true 1:1). speed_x is hard-capped at 3 backend-side;
-   *  faster than that is a JUMP, not a speed change. Calls the RPC directly rather
-   *  than the control edge function, which has no playback route. */
+   *  speed_x sim seconds (1× is true 1:1). The service-role control edge owns
+   *  the write because direct anonymous execution is intentionally revoked. */
   setPlayback:    (simRunId: string, mode: 'live' | 'fixed', speedX: number) =>
-    fetch(`${OTTOQ_SUPABASE_URL}/rest/v1/rpc/ottoq_set_playback`, {
-      method: "POST",
-      headers: {
-        apikey: OTTOQ_ANON_KEY,
-        Authorization: `Bearer ${OTTOQ_ANON_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ p_sim_run_id: simRunId, p_mode: mode, p_speed_x: speedX }),
-    }).then((r) => r.json()),
+    send("PUT", `/sim_runs/${simRunId}/playback`, { mode, speed_x: speedX }),
   /** Fast-forward. Bounded + resumable: call until `done`, showing the planning
    *  pause (snapshot.run.jump) while OTTO-Q batch-processes the skipped queue. */
   jumpForward:    (simRunId: string, simMinutes: number, maxSeconds = 5) =>

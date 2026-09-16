@@ -8,7 +8,8 @@
 //
 // Deploy: supabase functions deploy otto-twin-control
 // Invoke: https://<project-ref>.supabase.co/functions/v1/otto-twin-control/<path>
-// Auth:   service_role bearer required (not anon key)
+// Auth:   demo controls are open on the private link; database writes use the
+//         function's server-side service role and are never exposed to clients
 // ============================================================================
 //
 // ENDPOINTS
@@ -20,6 +21,8 @@
 //   POST /sim_runs/:id/tick               → advance exactly one tick
 //   POST /sim_runs/:id/pause              → freeze the WORLD (all tick paths skip paused runs)
 //   POST /sim_runs/:id/resume             → un-freeze
+//   PUT  /sim_runs/:id/playback           {mode, speed_x} → live playback speed
+//   PUT  /sim_runs/:id/time_scale         {time_scale} → honest speed (sim-min per tick; 60 = 1×)
 //   POST /sim_runs/:id/inject_fault       {kind, target_id?, payload?}          → {event_id}
 //   POST /sim_runs/:id/inject_dr_call     {duration_min, cap_kw, reason?}       → {dr_call_id}
 //   POST /advance_due                     → drives ottoq_sim_advance_due_runs() (cron entrypoint)
@@ -92,15 +95,33 @@ async function listScenarios() {
 }
 
 async function startScenario(req: Request) {
-  const body = await readJson<{ scenario_code?: string; seed?: number; run_by?: string }>(req);
+  const body = await readJson<{
+    scenario_code?: string;
+    seed?: number;
+    speed_x?: number;
+    days?: number;
+  }>(req);
   if (!body.scenario_code) return err("scenario_code required");
 
-  const { data, error } = await supabase.rpc("ottoq_sim_run_scenario", {
+  // Keep the edge request inside PostgREST's statement timeout. The heavier
+  // ottoq_start_demo_run wrapper also purges archived run data and can exceed
+  // that limit. The core scenario function already supersedes the live run and
+  // is the authoritative door that arms the full agent/solver chain.
+  const { data: simRunId, error } = await supabase.rpc("ottoq_sim_run_scenario", {
     p_scenario_code: body.scenario_code,
     p_seed:          body.seed ?? null,
-    p_run_by:        body.run_by ?? "otto_twin_control_api"
+    p_run_by:        "operator_demo",
   });
   if (error) return err("scenario start failed", 500, error.message);
+  if (!simRunId) return err("scenario start returned no run", 500);
+
+  const speed = body.speed_x ?? 1;
+  const { error: playbackError } = await supabase.rpc("ottoq_set_playback", {
+    p_sim_run_id: simRunId,
+    p_mode: "live",
+    p_speed_x: speed,
+  });
+  if (playbackError) return err("scenario started but playback setup failed", 500, playbackError.message);
 
   // Feed-agent fleet: fire-and-forget the genetic variable layer for this run.
   // Each registered variable's agent (Nemotron 3 Ultra) reviews its corpus +
@@ -108,25 +129,44 @@ async function startScenario(req: Request) {
   fetch(`${SUPABASE_URL}/functions/v1/ottoq-feed-agents`, {
     method: "POST",
     headers: { Authorization: `Bearer ${SERVICE_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ sim_run_id: data }),
+    body: JSON.stringify({ sim_run_id: simRunId }),
   }).catch(() => {});
 
-  return ok({ sim_run_id: data, scenario_code: body.scenario_code });
+  return ok({
+    ok: true,
+    sim_run_id: simRunId,
+    scenario: body.scenario_code,
+    scenario_code: body.scenario_code,
+    demo_speed_x: speed,
+    real_seconds_per_tick: Math.round((6 / speed) * 100) / 100,
+    runs_for_sim_days: body.days ?? 1,
+  });
 }
 
 async function stopScenario(req: Request) {
-  const body = await readJson<{ sim_run_id?: string }>(req);
+  const body = await readJson<{ sim_run_id?: string; reason?: string }>(req);
   if (!body.sim_run_id) return err("sim_run_id required");
 
-  // paused runs must be stoppable too, or a paused run wedges the
-  // one-running-run-per-depot lock forever
-  const { error } = await supabase
-    .from("ottoq_sim_runs")
-    .update({ status: "completed", ended_at: new Date().toISOString() })
-    .eq("sim_run_id", body.sim_run_id)
-    .in("status", ["running", "paused"]);
+  const { data, error } = await supabase.rpc("ottoq_sim_stop_and_reset", {
+    p_sim_run_id: body.sim_run_id,
+    p_reason: body.reason ?? "operator_stop",
+  });
   if (error) return err("scenario stop failed", 500, error.message);
-  return ok({ stopped: body.sim_run_id });
+  return ok(data);
+}
+
+async function setPlayback(simRunId: string, req: Request) {
+  const body = await readJson<{ mode?: "live" | "fixed"; speed_x?: number }>(req);
+  const speed = Number(body.speed_x);
+  if (!Number.isFinite(speed)) return err("speed_x must be a number", 400);
+
+  const { data, error } = await supabase.rpc("ottoq_set_playback", {
+    p_sim_run_id: simRunId,
+    p_mode: body.mode ?? "live",
+    p_speed_x: speed,
+  });
+  if (error) return err("playback update failed", 500, error.message);
+  return ok(data);
 }
 
 // True world-pause: every advance path (client /tick, /advance_due, and the
@@ -476,6 +516,9 @@ serve(async (req: Request) => {
   // POST /sim_runs/:id/pause | /resume  (world-level freeze, honored by every tick path)
   if (method === "POST" && parts[0] === "sim_runs" && parts[2] === "pause") return pauseRun(parts[1]);
   if (method === "POST" && parts[0] === "sim_runs" && parts[2] === "resume") return resumeRun(parts[1]);
+
+  // PUT /sim_runs/:id/playback
+  if (method === "PUT" && parts[0] === "sim_runs" && parts[2] === "playback") return setPlayback(parts[1], req);
 
   // PUT /sim_runs/:id/time_scale  (honest speed: sim-minutes per tick; 60 = 1×)
   if (method === "PUT" && parts[0] === "sim_runs" && parts[2] === "time_scale") return setTimeScale(parts[1], req);
