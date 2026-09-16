@@ -235,18 +235,52 @@ async function simRunStatus(simRunId: string) {
 
   // Aggregate generator output counts
   const [{ count: weather }, { count: solar }, { count: grid }, { count: telemetry },
-         { count: dispatches }, { count: webhooks }] = await Promise.all([
+         { count: dispatches }, { count: webhooks }, { data: proposals },
+         { count: agentDecisions }, { count: vehicleCommands }] = await Promise.all([
     supabase.from("ottoq_weather_snapshots").select("*", { count: "exact", head: true }).eq("sim_run_id", simRunId),
     supabase.from("ottoq_solar_output").select("*", { count: "exact", head: true }).eq("sim_run_id", simRunId),
     supabase.from("ottoq_grid_snapshots").select("*", { count: "exact", head: true }).eq("sim_run_id", simRunId),
     supabase.from("ottoq_telemetry_packets").select("*", { count: "exact", head: true }).eq("sim_run_id", simRunId),
     supabase.from("ottoq_vehicle_dispatches").select("*", { count: "exact", head: true }).eq("sim_run_id", simRunId),
     supabase.from("ottoq_oem_webhook_log").select("*", { count: "exact", head: true }).eq("sim_run_id", simRunId),
+    supabase.from("ottoq_external_proposals")
+      .select("status, disposition_reason, source, proposal")
+      .eq("sim_run_id", simRunId)
+      .limit(5000),
+    supabase.from("ottoq_decisions").select("*", { count: "exact", head: true })
+      .eq("sim_run_id", simRunId).eq("resolved_action_context", "orchestrator_agent"),
+    supabase.from("ottoq_vehicle_commands").select("*", { count: "exact", head: true }).eq("sim_run_id", simRunId),
   ]);
+
+  const byStatus: Record<string, number> = {};
+  const byReason: Record<string, number> = {};
+  const bySource: Record<string, number> = {};
+  let chained = 0;
+  for (const row of proposals ?? []) {
+    const status = String(row.status ?? "unknown");
+    const source = String(row.source ?? "unknown");
+    byStatus[status] = (byStatus[status] ?? 0) + 1;
+    bySource[source] = (bySource[source] ?? 0) + 1;
+    if (row.disposition_reason) {
+      const reason = String(row.disposition_reason);
+      byReason[reason] = (byReason[reason] ?? 0) + 1;
+    }
+    if (row.proposal && typeof row.proposal === "object" && "agent_handoff" in row.proposal) chained++;
+  }
 
   return ok({
     sim_run: run,
     counters: { weather, solar, grid, telemetry, dispatches, webhooks },
+    ottoq_pipeline: {
+      agent_decisions: agentDecisions ?? 0,
+      vehicle_commands: vehicleCommands ?? 0,
+      solver_proposals: proposals?.length ?? 0,
+      chained_solver_proposals: chained,
+      pending_solver_proposals: byStatus.pending ?? 0,
+      proposal_statuses: byStatus,
+      proposal_reasons: byReason,
+      proposal_sources: bySource,
+    },
     last_events: lastEvents ?? []
   });
 }
