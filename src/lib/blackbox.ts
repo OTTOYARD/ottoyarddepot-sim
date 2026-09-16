@@ -4,15 +4,16 @@
 // This is THE single start/stop control path for a demo run. Both the
 // Black Box panel and the Operator Console route through these functions so
 // there is exactly one mechanism driving the run:
-//   · start  → ottoq_start_demo_run       (purges the prior run, seeds a fresh one)
-//   · stop   → ottoq_sim_stop_and_reset   (freezes the run, empties the depot)
+//   · start  → control edge → ottoq_start_demo_run
+//   · stop   → control edge → ottoq_sim_stop_and_reset
 //   · download → GET /functions/v1/ottoq-run-blackbox?run=<id>  (forensic .json)
 //   · discover → ottoq_sim_runs (latest operator_demo row) on mount / refresh
 //
-// All calls target the gxdrc backend via ottoQClient / OTTOQ_* constants.
+// All calls target the gxdrc backend. Lifecycle writes go through the control
+// edge's service role; read-only discovery stays on the public PostgREST client.
 // ============================================================================
 import { ottoQ } from "@/lib/ottoQClient";
-import { OTTOQ_SUPABASE_URL, OTTOQ_ANON_KEY } from "@/lib/ottoTwin";
+import { OTTOQ_SUPABASE_URL, OTTOQ_ANON_KEY, twin } from "@/lib/ottoTwin";
 import { useTwinStore } from "@/store/twinStore";
 import { twinMotionDriver } from "@/engine/TwinMotionDriver";
 
@@ -62,14 +63,7 @@ export interface StartResult {
   runs_for_sim_days: number;
 }
 export async function startDemoRun(scenario: string, speedX: number): Promise<StartResult> {
-  const { data, error } = await ottoQ.rpc("ottoq_start_demo_run", {
-    p_scenario: scenario,
-    p_speed: speedX,
-    p_days: 1,
-    p_seed: null,
-  });
-  if (error) throw new Error(error.message);
-  const res = data as StartResult | null;
+  const res = await twin.start(scenario, undefined, speedX, 1) as StartResult | null;
   if (!res?.ok || !res.sim_run_id) throw new Error("start_demo_run returned no run");
   // Adopt the fresh run so the twin feed (useTwinFeed) starts rendering it.
   useTwinStore.getState().setActiveSimRunId(res.sim_run_id);
@@ -88,11 +82,7 @@ export async function stopAndReset(
   simRunId: string,
   reason = "operator_stop",
 ): Promise<StopResult> {
-  const { data, error } = await ottoQ.rpc("ottoq_sim_stop_and_reset", {
-    p_sim_run_id: simRunId,
-    p_reason: reason,
-  });
-  if (error) throw new Error(error.message);
+  const data = await twin.stop(simRunId, reason);
   // Depot is empty now — drop the active run so the canvas resets + the twin
   // feed stops polling. The run stays in ottoq_sim_runs (status completed) for
   // the Black Box download.
