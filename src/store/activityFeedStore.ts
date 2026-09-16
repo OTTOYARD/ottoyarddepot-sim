@@ -10,7 +10,7 @@ export interface ActivityFeedRow {
   target: string;
   outcome: string;
   rationale: Record<string, unknown> | null;
-  reason: Record<string, unknown> | null;
+  reason: string | null;
 }
 
 interface State {
