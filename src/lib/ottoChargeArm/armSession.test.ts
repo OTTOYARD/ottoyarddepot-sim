@@ -516,10 +516,35 @@ describe('an interrupted mate rejoins the release where it already is', () => {
     expect(worst, worstAt).toBeLessThan(1e-9);
   });
 
-  // 20 s, not the 5 s default: this is an exhaustive physical sweep, not a unit test,
-  // and CI's shared runner is several times slower than a dev machine. Scoped to THIS
+  // 60 s, not the 5 s default: this is an exhaustive physical sweep, not a unit test,
+  // and CI's shared runner is many times slower than a dev machine. Scoped to THIS
   // test rather than raised globally on purpose — a global testTimeout would also hand
-  // 20 s to every genuinely hung test in the suite, which is how a slow suite creeps.
+  // 60 s to every genuinely hung test in the suite, which is how a slow suite creeps.
+  //
+  // RAISED FROM 20 s TO 60 s, and the ratio is measured rather than guessed. At 20 s
+  // this test was the sole failure in `verify` on THREE separate runs, including twice
+  // on `main` itself — runs 120 (head 53c8bdb) and 122 (head 9ede5a3), both merge
+  // commits, and then again on PR #101 whose two-file diff does not touch this
+  // directory at all. Every failure is the same line and the same message:
+  //   Error: Test timed out in 20000ms.  ❯ armSession.test.ts:523:3
+  //
+  // The numbers, from the PR #101 run against the same commit locally:
+  //   local  1,375 ms  (whole file 3,342 ms, 30 tests)
+  //   CI    20,771 ms  — 15.1x slower, and 771 ms over a 20,000 ms budget
+  //
+  // So it was never passing with margin on CI; it was passing by luck, which is why
+  // run 124 on `main` went green on the identical code. The note below already
+  // measured "north of 12x" and concluded "raising the number again is a guess, not a
+  // fix" — correct about the SAMPLING, which is why the per-phase forking below stays
+  // exactly as it is. But the sampling is not what is marginal now: 1.4 s of local work
+  // is the right cost for this sweep, and a 20 s ceiling simply does not cover 15x.
+  //
+  // 60 s is ~2.9x the observed CI time, so a runner twice as bad as the worst seen
+  // still passes. This costs nothing on the happy path — a timeout is a hang detector,
+  // not a budget the test spends — and it weakens no assertion: the property below
+  // (an abort adds no connector travel beyond the nominal arc, within 5 mm) is
+  // unchanged, over the same exhaustive 10 arms x 7 ports geometry. The alternative,
+  // thinning the sampling further, would have traded real coverage for wall clock.
   it('never moves the connector toward the car more than a normal release does', () => {
     // The physical statement of the same bug, and the one that does not depend on
     // WHERE the abort happened. Measure how far the connector ever travels back
@@ -604,7 +629,7 @@ describe('an interrupted mate rejoins the release where it already is', () => {
           .toBeLessThanOrEqual(nominal + TOLERANCE);
       }
     }
-  }, 20_000);
+  }, 60_000);
 
   it('an arm that had barely left the cradle is home almost at once', () => {
     // It is a quarter-second from stowed, so the honest release is a quarter-second

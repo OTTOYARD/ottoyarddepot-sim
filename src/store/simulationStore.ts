@@ -85,7 +85,7 @@ interface SimulationState {
   simClockLive: boolean;
   simSpeed: number;
   isPanelOpen: boolean;
-  activeTab: 'controls' | 'recall' | 'world' | 'orchestration' | 'kpis' | 'ai-summary' | 'alerts' | 'history' | 'swap-test' | 'scorekeeper' | 'copilot' | 'blackbox' | 'decisions';
+  activeTab: 'controls' | 'recall' | 'world' | 'orchestration' | 'kpis' | 'ai-summary' | 'alerts' | 'history' | 'swap-test' | 'scorekeeper' | 'copilot' | 'blackbox' | 'decisions' | 'intelligence';
   config: SimulationConfig;
   viewMode: '2d' | '3d' | 'photoreal';
   controlsLocked: boolean;
