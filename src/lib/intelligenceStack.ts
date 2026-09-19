@@ -105,21 +105,63 @@ export function providerLabel(key: string): string {
 // Status tone. `primary_unreachable` is deliberately a WARNING and not an ok:
 // otto-q-core 0349 exists because a run reported "armed, 7 of 7" while its
 // rank-0 proposer had never once fired. Green on that state is the bug.
+//
+// THIS MAP WAS INCOMPLETE WHEN FIRST SHIPPED, and a live run found it rather
+// than review. `ottoq_intelligence_stack` can emit seven statuses besides `ok`;
+// the first version of this function named two of them, so FOUR rendered as
+// neutral grey — including `permissive`, which means the shield evaluated rules
+// and blocked NOTHING. A shield that never blocks is the most important thing
+// this panel can say, and it was being drawn the same colour as "no data".
+//
+// The list below is the complete set, taken from the CASE expressions in
+// otto-q-core migration 0351. Every one is classified deliberately:
+//
+//   permissive         L1  evaluations > 0 and blocked = 0          WARN
+//   degraded           L0  dropped packets / low signal              WARN
+//   degraded_latency   L2  over half the agent chains exceed a tick  WARN
+//   primary_unreachable L3 rank-0 proposer measured unreachable      WARN
+//   refusing_all       L4  proposals > 0 and enacted = 0             WARN
+//   primary_idle       L3  no fires yet, reachability still unknown  idle
+//   inactive           L*  the layer has no activity at all          idle
+//
+// `primary_idle` and `inactive` stay neutral on purpose: both mean "nothing
+// measured yet", which is 0349's three-valued lesson — a run that has not had
+// an agent pass is never accused. An UNKNOWN status also stays neutral rather
+// than amber: crying wolf on a status a future migration adds would be its own
+// defect, and the card prints the raw status text either way, so an
+// unclassified state is still legible. intelligenceStack.test.ts asserts this
+// map covers every status in the list above, so the gap cannot recur silently.
 // ---------------------------------------------------------------------------
 export type Tone = 'ok' | 'warn' | 'bad' | 'idle';
+
+/** Every status `ottoq_intelligence_stack` can emit, per otto-q-core 0351. */
+export const STACK_STATUSES = [
+  'ok',
+  'degraded',
+  'degraded_latency',
+  'permissive',
+  'primary_unreachable',
+  'primary_idle',
+  'refusing_all',
+  'inactive',
+] as const;
 
 export function statusTone(status: string | null | undefined): Tone {
   switch ((status ?? '').trim()) {
     case 'ok':
       return 'ok';
     case 'degraded':
+    case 'degraded_latency':
+    case 'permissive':
     case 'primary_unreachable':
+    case 'refusing_all':
     case 'partial':
       return 'warn';
     case 'unreachable':
     case 'failed':
     case 'unarmed':
       return 'bad';
+    // 'primary_idle' and 'inactive' fall through to idle deliberately — see above.
     default:
       return 'idle';
   }
