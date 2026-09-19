@@ -14,6 +14,7 @@
 import { describe, expect, it } from 'vitest';
 import { PROVIDER_LABEL } from '@/components/tabs/TwinDecisionLogTab';
 import {
+  STACK_STATUSES,
   STACK_PROVIDER_LABEL,
   armingTone,
   formatClockCT,
@@ -29,6 +30,7 @@ import {
   statusTone,
   topEntries,
   type StackLayer,
+  type Tone,
 } from './intelligenceStack';
 
 const layer = (overrides: Partial<StackLayer>): StackLayer => ({
@@ -119,6 +121,60 @@ describe('status tone never paints a warning green', () => {
     expect(statusTone('some_new_state')).toBe('idle');
     expect(statusTone(undefined)).toBe('idle');
     expect(armingTone('cert_excluded')).toBe('idle');
+  });
+
+  // THE ASSERTION THAT SHOULD HAVE EXISTED FIRST, and did not.
+  //
+  // The test above ("unrecognised is idle, never ok") was true, and it was the
+  // wrong floor. It proved the FALLBACK is not green while letting four real
+  // warning states fall into that fallback and render neutral grey. A live run
+  // found it: L4 came back `refusing_all` — 13 proposals, zero enacted — and
+  // the panel drew it the same colour as "no data". `permissive` was worse: it
+  // means the shield evaluated rules and blocked NOTHING, which is the single
+  // most important thing this panel can tell an auditor.
+  //
+  // So this asserts the map is COMPLETE against the statuses otto-q-core 0351
+  // can actually emit, not merely non-green. A status added to that migration
+  // and not classified here now fails a test instead of shipping grey.
+  it('classifies every status the engine can emit, and leaves none unclassified by accident', () => {
+    const expected: Record<(typeof STACK_STATUSES)[number], Tone> = {
+      ok: 'ok',
+      degraded: 'warn',
+      degraded_latency: 'warn',
+      permissive: 'warn',
+      primary_unreachable: 'warn',
+      refusing_all: 'warn',
+      primary_idle: 'idle',
+      inactive: 'idle',
+    };
+    for (const status of STACK_STATUSES) {
+      expect(statusTone(status), `status ${status}`).toBe(expected[status]);
+    }
+  });
+
+  // The three that were silently grey. Named individually so a regression says
+  // which one broke rather than "the table changed".
+  it('a shield that blocked nothing is a warning, not neutral', () => {
+    expect(statusTone('permissive')).toBe('warn');
+    expect(statusTone('permissive')).not.toBe('idle');
+    expect(statusTone('permissive')).not.toBe('ok');
+  });
+
+  it('a kernel that enacted nothing is a warning, not neutral', () => {
+    expect(statusTone('refusing_all')).toBe('warn');
+    expect(statusTone('refusing_all')).not.toBe('idle');
+  });
+
+  it('an agent past the tick on most chains is a warning, not neutral', () => {
+    expect(statusTone('degraded_latency')).toBe('warn');
+    expect(statusTone('degraded_latency')).not.toBe('idle');
+  });
+
+  // And the two that are neutral on purpose — 0349's three-valued lesson: a run
+  // with nothing measured yet is never accused.
+  it('keeps "nothing measured yet" neutral rather than amber', () => {
+    expect(statusTone('primary_idle')).toBe('idle');
+    expect(statusTone('inactive')).toBe('idle');
   });
 });
 
