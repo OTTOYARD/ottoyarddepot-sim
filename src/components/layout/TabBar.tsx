@@ -1,11 +1,12 @@
 import { useSimulationStore } from '@/store/simulationStore';
 
-type Tab = { id: 'controls' | 'recall' | 'world' | 'orchestration' | 'kpis' | 'ai-summary' | 'alerts' | 'history' | 'swap-test' | 'scorekeeper' | 'copilot' | 'blackbox' | 'decisions'; label: string };
+type Tab = { id: 'controls' | 'recall' | 'world' | 'orchestration' | 'kpis' | 'ai-summary' | 'alerts' | 'history' | 'swap-test' | 'scorekeeper' | 'copilot' | 'blackbox' | 'decisions' | 'intelligence'; label: string };
 
 const tabs: Tab[] = [
   { id: 'controls', label: 'Controls' },
   { id: 'recall', label: 'Recall' },
   { id: 'world', label: 'World' },
+  { id: 'intelligence', label: 'Intelligence' },
   { id: 'orchestration', label: 'Orchestration' },
   { id: 'kpis', label: 'KPIs' },
   { id: 'ai-summary', label: 'AI Summary' },
@@ -27,6 +28,7 @@ export const TabBar = () => {
     <div className="flex flex-wrap border-b border-white/[0.06]">
       {tabs.map((tab) => {
         const isBlackbox = tab.id === 'blackbox';
+        const isIntelligence = tab.id === 'intelligence';
         return (
           <button
             key={tab.id}
@@ -38,6 +40,10 @@ export const TabBar = () => {
             {/* Black Box is the founder-side flight recorder — give it a red dot
                 so the eye finds it immediately. */}
             {isBlackbox && <span className="w-1.5 h-1.5 rounded-full bg-brand-red shrink-0" />}
+            {/* Intelligence is the OTTO-Q stack itself, in signal order — the tab
+                to open when someone asks what the AI is doing. Violet dot so it
+                is as findable as the Black Box. */}
+            {isIntelligence && <span className="w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0" />}
             {tab.label}
             {activeTab === tab.id && (
               <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-red" />

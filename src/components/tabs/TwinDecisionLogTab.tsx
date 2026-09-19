@@ -33,7 +33,10 @@ export function decisionReasonText(r: ActivityFeedRow): string | null {
 
 // Display names for the providers ottoq_model_call_ledger records. An unknown
 // provider renders as its raw key rather than a guess — see solverLabel.
-const PROVIDER_LABEL: Record<string, string> = {
+// Exported so intelligenceStack.test.ts can assert it agrees with
+// STACK_PROVIDER_LABEL — two provider maps in one app is a drift waiting to
+// happen, and a provider renamed in one place must fail a test, not a demo.
+export const PROVIDER_LABEL: Record<string, string> = {
   nvidia_cuopt: "cuOpt",
   nvidia_nemotron: "Nemotron",
   cpsat_service: "CP-SAT",
