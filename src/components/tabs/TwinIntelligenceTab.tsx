@@ -36,6 +36,7 @@ import {
   Sigma,
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import TwinDecisionLogTab from '@/components/tabs/TwinDecisionLogTab';
 import { useIntelligenceStack } from '@/hooks/useIntelligenceStack';
 import {
   armingTone,
@@ -427,9 +428,43 @@ const FrameSection = ({
   );
 };
 
+type IntelView = 'stream' | 'layers';
+
+/** Two ways to read the same intelligence path: what it is doing right now
+ *  (stream) and how it is built (layers). Stream is the default because it is
+ *  the question a viewer watching a running depot is actually asking. */
+const ViewToggle = ({
+  view,
+  setView,
+}: {
+  view: IntelView;
+  setView: (v: IntelView) => void;
+}) => (
+  <div className="inline-flex shrink-0 rounded border border-white/10 bg-white/[0.03] p-0.5">
+    {(
+      [
+        ['stream', 'Live stream'],
+        ['layers', 'Layers'],
+      ] as const
+    ).map(([key, label]) => (
+      <button
+        key={key}
+        type="button"
+        onClick={() => setView(key)}
+        className={`rounded px-2 py-0.5 text-[9px] font-display uppercase tracking-[0.06em] transition-colors ${
+          view === key ? 'bg-white/[0.10] text-ink' : 'text-ink-faint hover:text-ink-dim'
+        }`}
+      >
+        {label}
+      </button>
+    ))}
+  </div>
+);
+
 export function TwinIntelligenceTab() {
   const { stack, frame, error, loading, frameLoading, loadFrame, simRunId } =
     useIntelligenceStack(true);
+  const [view, setView] = useState<IntelView>('stream');
 
   const layers = useMemo<StackLayer[]>(
     () => (Array.isArray(stack?.layers) ? (stack?.layers as StackLayer[]) : []),
@@ -459,9 +494,39 @@ export function TwinIntelligenceTab() {
     );
   }
 
+  // STREAM FIRST, LAYERS BEHIND A TOGGLE. Chase, 2026-09-21: "with the
+  // intelligence layer in the control panel, I noticed that everything is
+  // grouped into sections. I want more of a real time feed of OTTO-Q solvers
+  // almost like a live stream of comments and decisions that are coming through
+  // and being proposed or enacted."
+  //
+  // The layered view is NOT deleted, and that is deliberate: it is the only
+  // surface that carries the arming verdict, the rank-0-proposer warning and
+  // the per-layer caveats, and those are measured findings rather than
+  // decoration. What changes is which one a viewer lands on. The stream answers
+  // "what is it doing right now", the layers answer "how does it work", and
+  // only the first was missing.
+  if (view === 'stream') {
+    return (
+      <div className="flex h-full flex-col">
+        <div className="flex shrink-0 items-center justify-between gap-2 px-3 py-2">
+          <ViewToggle view={view} setView={setView} />
+          <span className="truncate font-mono text-[9px] text-ink-faint">
+            {formatClockCT(run?.sim_clock ?? null) ?? humanize(run?.status ?? null) ?? ''}
+          </span>
+        </div>
+        <div className="min-h-0 flex-1">
+          <TwinDecisionLogTab />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <ScrollArea className="flex-1">
       <div className="space-y-2 p-3">
+        <ViewToggle view={view} setView={setView} />
+
         {/* ---- run header ---------------------------------------------- */}
         <div className="rounded border border-white/[0.06] bg-canvas-panel/60 p-2.5">
           <div className="flex items-start justify-between gap-2">

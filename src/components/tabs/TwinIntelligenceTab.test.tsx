@@ -23,8 +23,17 @@
 //     over one tick, 20 of 45 proposals refused.
 // ============================================================================
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import type { IntelligenceStack } from '@/lib/intelligenceStack';
+
+// The stream view mounts TwinDecisionLogTab, which polls ottoq_activity_feed.
+// This panel's tests are about rendering, not about the network, so the client
+// is stubbed. A rejecting stub would be caught by the hook and set an error
+// banner; an empty page keeps the stream's empty state on screen, which is
+// what the default-view test reads.
+vi.mock('@/lib/ottoQClient', () => ({
+  ottoQ: { rpc: vi.fn().mockResolvedValue({ data: [], error: null }) },
+}));
 
 // The hook talks to Supabase; the panel under test does not need to.
 const state = {
@@ -179,7 +188,12 @@ const LIVE: IntelligenceStack = {
   ],
 };
 
-const mount = (over: Partial<typeof state> = {}) => {
+// The panel now opens on the LIVE STREAM (Chase, 2026-09-21), so every
+// assertion below about the layered analysis has to select that view first.
+// mount() does it, rather than each test remembering to: the subject of these
+// tests is what the layers render, not which tab is default, and that is
+// asserted separately in "default view" below.
+const mount = (over: Partial<typeof state> = {}, view: 'stream' | 'layers' = 'layers') => {
   Object.assign(state, {
     stack: null,
     frame: null,
@@ -189,7 +203,13 @@ const mount = (over: Partial<typeof state> = {}) => {
     simRunId: null,
     ...over,
   });
-  return render(<TwinIntelligenceTab />);
+  const result = render(<TwinIntelligenceTab />);
+  if (view === 'layers') {
+    // Absent when there is no run (the panel short-circuits before the toggle).
+    const toggle = screen.queryByText('Layers');
+    if (toggle) fireEvent.click(toggle);
+  }
+  return result;
 };
 
 afterEach(cleanup);
@@ -297,5 +317,44 @@ describe('TwinIntelligenceTab with a partial payload', () => {
   it('says so when the stack returns no layers at all', () => {
     mount({ simRunId: LIVE.run!.sim_run_id!, stack: { run: LIVE.run, layers: [] } });
     expect(screen.getByText(/returned no layers for this run/i)).toBeTruthy();
+  });
+});
+
+// ============================================================================
+// The live stream. Chase, 2026-09-21: "I want more of a real time feed of
+// OTTO-Q solvers almost like a live stream of comments and decisions that are
+// coming through and being proposed or enacted."
+//
+// These assert the two things that request actually turns into: the panel opens
+// on the stream rather than on grouped sections, and the layered analysis is
+// still reachable rather than deleted. The layered view carries the arming
+// verdict and the rank-0-proposer warning, which are measured findings — losing
+// them to satisfy a layout preference would be a regression dressed as a fix.
+// ============================================================================
+describe('TwinIntelligenceTab default view', () => {
+  it('opens on the live stream, not on the grouped layer cards', () => {
+    mount({ simRunId: LIVE.run!.sim_run_id!, stack: LIVE }, 'stream');
+    expect(screen.getByText('Decision Log')).toBeTruthy();
+    // The layer cards are the thing that used to greet a viewer first.
+    expect(screen.queryByText('Asset telemetry')).toBeNull();
+  });
+
+  it('keeps the layered analysis reachable, so no measured finding is lost', () => {
+    mount({ simRunId: LIVE.run!.sim_run_id!, stack: LIVE }, 'stream');
+    expect(screen.queryByText('Asset telemetry')).toBeNull();
+    fireEvent.click(screen.getByText('Layers'));
+    expect(screen.getByText('Asset telemetry')).toBeTruthy();
+  });
+
+  it('offers both views whenever a run is present', () => {
+    mount({ simRunId: LIVE.run!.sim_run_id!, stack: LIVE }, 'stream');
+    expect(screen.getByText('Live stream')).toBeTruthy();
+    expect(screen.getByText('Layers')).toBeTruthy();
+  });
+
+  it('draws no toggle at all when there is no run to stream', () => {
+    mount({}, 'stream');
+    expect(screen.getByText(/No simulation is active/i)).toBeTruthy();
+    expect(screen.queryByText('Live stream')).toBeNull();
   });
 });
