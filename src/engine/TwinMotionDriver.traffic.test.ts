@@ -6,7 +6,7 @@
 // by name instead of as a vaguer number there.
 // ============================================================================
 import { describe, it, expect, beforeEach } from "vitest";
-import { twinMotionDriver } from "./TwinMotionDriver";
+import { twinMotionDriver, MAX_VIEW_MULT } from "./TwinMotionDriver";
 import { useDepotStore } from "@/store/depotStore";
 import { useVehicleStore } from "@/store/vehicleStore";
 import type { TwinSnapshot } from "@/lib/ottoTwin";
@@ -137,28 +137,42 @@ describe("the stall ledger — a deferred re-task keeps the stall it is still pa
   });
 });
 
-describe("contract pacing at 8x — the deadline is sim time, the car moves in motion time", () => {
+describe("contract pacing — the deadline is sim time, the car moves in motion time", () => {
   const leg = (vehicle_id: string, endInSec: number, iso: string) => ({
     leg_id: `L-${vehicle_id}`, vehicle_id, seq: 1, kind: "travel",
     start_sim: iso, end_sim: new Date(Date.parse(iso) + endInSec * 1000).toISOString(),
   });
-  it("scales the ceiling by viewMult / speed_x, and never paces below a walk", () => {
+  const paced = (speedX: number, endInSec: number, total: number) => {
     const iso = "2026-09-22T12:00:00.000Z";
     const s = snap([{ id: "V1", state: "staged_for_departure" }]);
     s.run.sim_clock = iso;
-    (s.run as { speed_x?: number }).speed_x = 8;
-    s.legs = [leg("V1", 30, iso)] as never;
-    twinMotionDriver.setViewMult(8); // clamps to the 3x motion ceiling
+    (s.run as { speed_x?: number }).speed_x = speedX;
+    s.legs = [leg("V1", endInSec, iso)] as never;
+    twinMotionDriver.setViewMult(speedX);
     twinMotionDriver.reconcile(s);
-    // 60u with 30 sim-s left = 30 x 3/8 = 11.25 motion-s => 5.33 u/s (was 2.0)
-    const v = internals().contractPace("V1", { total: 60, s: 0 })!;
-    expect(v).toBeGreaterThan(5.2);
-    expect(v).toBeLessThan(5.5);
-    // the last unit into a stall with 20 sim-s still on the leg: a walk, not a creep
-    s.legs = [leg("V1", 20, iso)] as never;
-    twinMotionDriver.reconcile(s);
-    expect(internals().contractPace("V1", { total: 1.5, s: 0 })).toBe(2);
+    const v = internals().contractPace("V1", { total, s: 0 });
     twinMotionDriver.setViewMult(1);
+    return v;
+  };
+  it("the motion multiplier follows playback all the way to the backend's 8x ceiling", async () => {
+    const { MAX_SPEED_X } = await import("@/hooks/useTwinControl");
+    expect(MAX_VIEW_MULT).toBe(MAX_SPEED_X);
+  });
+  it("at 8x the two clocks agree: the ceiling is arc / remaining SIM seconds", () => {
+    // 120u with 30 sim-s left = 4 u/s. With motion capped at 3x it was
+    // 30 x 3/8 = 11.25 motion-s => 10.7 u/s, and the car arrived late anyway.
+    const v = paced(8, 30, 120)!;
+    expect(v).toBeGreaterThan(3.95);
+    expect(v).toBeLessThan(4.05);
+  });
+  it("past the motion ceiling it still scales by viewMult / speed_x, and never paces below a walk", () => {
+    // a 12x world (the backend cannot run one today) with motion at 8x:
+    // 120u in 30 x 8/12 = 20 motion-s => 6 u/s
+    const v = paced(12, 30, 120)!;
+    expect(v).toBeGreaterThan(5.95);
+    expect(v).toBeLessThan(6.05);
+    // the last unit into a stall with 20 sim-s still on the leg: a walk, not a creep
+    expect(paced(8, 20, 1.5)).toBe(2);
   });
 });
 

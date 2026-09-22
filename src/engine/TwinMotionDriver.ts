@@ -70,6 +70,20 @@ function depotOffsetMs(atMs: number): number {
 // projection + locks. There is no steering heuristic and no deadlock ladder —
 // lane discipline and no-overlap are structural.
 const REVERSE_HOLD_MAX = 6;   // give up a blocked back-out, go forward instead
+/** Ceiling of the on-screen motion multiplier (setViewMult). It is the playback
+ *  ceiling itself — ottoq_set_playback hard-clamps speed_x at 8, and the cockpit's
+ *  slider (useTwinControl MAX_SPEED_X) stops there — so at every speed the backend
+ *  will run, the cars move at the speed the world does.
+ *
+ *  It was 3 (founder spec 2026-07-25) while play was capped at 3 too. When play
+ *  went to 8x (9449c2c) motion stayed at 3x, so above 3x the world outran the
+ *  cars: a dispatch wave left the stalls at 8x and drained at 3x, and for the
+ *  length of the wave the depot on screen was behind the twin it draws. Replayed
+ *  on the fresh 0682752c start (twinRun.fresh0922.json, 8x): stopped 12.6% ->
+ *  3.2% of taxi time, stuck 71 -> 0 (TwinMotionDriver.flow.test.ts). Lifted
+ *  2026-09-22; Chase: "your decision ... as long as everything works and nothing
+ *  is sacrificed." At 1-3x nothing changes. */
+export const MAX_VIEW_MULT = 8;
 // COMMIT-AND-HOLD (physical service dwell): the twin advances on big ticks, so a
 // charge often COMPLETES in the backend before the renderer finishes the drive-in
 // — the car used to get yanked to staging mid-approach and never visibly dock.
@@ -259,8 +273,8 @@ function mapState(
     // commanded stall". It never left; it was withdrawn.
     //
     // Freeze it in place holding its stall, which is what an unassignable
-    // vehicle actually does to depot capacity.
-    case "out_of_service":
+    // vehicle actually does to depot capacity. (`out_of_service` is handled
+    // above, with this same mapping.)
     case "tow_requested":
       return { lane: "staging", vstatus: "maintenance", sstatus: "occupied" };
     default: return null; // deployed / en_route / offline → off-map (departure)
@@ -529,7 +543,7 @@ class TwinMotionDriver {
   private armGate = new ArmGate();
   /** sim-clock instant (ms) at which the arm sessions were last stepped. The arms
    *  are paced by the SIM clock, not by the motion dt — same choice ChargingArm
-   *  makes, and the reason a 3x view multiplier does not run the robot at 3x. */
+   *  makes, and the reason the view multiplier never runs the robot by itself. */
   private armSimMs: number | null = null;
   /** Renderer stall ids → stall type, refreshed each reconcile. The gate needs the
    *  TYPE (only dcfc carries an arm) every motion tick, and tickMotion must not be
@@ -899,12 +913,12 @@ class TwinMotionDriver {
 
   /** On-screen speed multiplier, mirrored from the backend playback contract
    *  (snapshot.run.speed_x). 1 = true 1:1 — a car crosses the yard at 8.6 mph, a
-   *  charge session takes as long as a charge session. Hard-capped at 3: past that
-   *  the depot stops being motion-faithful and OTTO-Q cannot keep up with decisions,
-   *  which is what JUMP is for. */
+   *  charge session takes as long as a charge session — and at N x the cars move N
+   *  times faster, exactly like everything else in the depot. Capped at
+   *  MAX_VIEW_MULT, the backend's own playback ceiling. */
   private viewMult = 1;
   setViewMult(v: number) {
-    const next = Math.max(1, Math.min(3, Number.isFinite(v) ? v : 1));
+    const next = Math.max(1, Math.min(MAX_VIEW_MULT, Number.isFinite(v) ? v : 1));
     if (this.viewMult === next) return;
     this.viewMult = next;
     this.last = null; // re-seed so the change never applies one giant catch-up dt
@@ -1092,11 +1106,11 @@ class TwinMotionDriver {
    *    sim speed.
    *
    *    The arm is paced against simNow(), which is the same clock contractPace
-   *    uses to hold the CARS to their leg deadlines — so above setViewMult's 3x
-   *    motion ceiling (the continuous-play ceiling is now 8x, raised in 9449c2c)
-   *    the arm and the cars fall behind the clock together, by the same factor.
-   *    That divergence belongs to the motion multiplier, not to the arm, and
-   *    giving the arm its own private rate would only hide it.
+   *    uses to hold the CARS to their leg deadlines. While motion was capped at 3x
+   *    and play went to 8x, the arm and the cars fell behind the clock together,
+   *    by the same factor; the cap now follows playback (MAX_VIEW_MULT), so they
+   *    no longer do. Had the divergence come back, it would belong to the motion
+   *    multiplier, not to the arm — never give the arm its own private rate.
    */
   private serviceWindow(e: Entry): { start: number; duration: number } | null {
     // A window is a SERVICE-lane fact. Staging/gate keep publishing null exactly
@@ -1146,11 +1160,12 @@ class TwinMotionDriver {
     const remainingArc = Math.max(0, rail.total - rail.s);
     if (remainingArc <= 0.5) return undefined;
     // THE DEADLINE IS SIM TIME; THE CAR MOVES IN MOTION TIME. They are the same
-    // clock only while speed_x is inside setViewMult's 1..3x window. Above it the
-    // sim clock outruns the cars by speed_x / viewMult — 8 / 3 = 2.67 on the
-    // 2026-09-22 live run — so dividing arc by remaining SIM seconds set a ceiling
-    // 2.67x too low. The car has (remaining sim s) x viewMult / speed_x of its own
-    // motion seconds left; that is what the ceiling must be computed against.
+    // clock only while speed_x is inside setViewMult's window (1..MAX_VIEW_MULT, and
+    // until 2026-09-22 that was 1..3x, which is how this was found: on the live run
+    // the sim clock outran the cars by 8 / 3 = 2.67 and dividing arc by remaining
+    // SIM seconds set a ceiling 2.67x too low). The car has (remaining sim s) x
+    // viewMult / speed_x of its own motion seconds left; that is what the ceiling
+    // must be computed against, whatever the window is.
     const motionSec = remainingSec * (this.viewMult / this.simSpeedX);
     const v = remainingArc / motionSec;
     if (!Number.isFinite(v) || v <= 0) return undefined;
@@ -2418,16 +2433,17 @@ class TwinMotionDriver {
     this.last = ts;
 
     // VIEW MULTIPLIER (founder spec 2026-07-25: 1x is true 1:1, 2-3x for a livelier
-    // demo, hard cap 3x because OTTO-Q cannot decide faster than that — beyond it you
-    // JUMP, you don't speed up).
+    // demo; the ceiling is now the backend's own, MAX_VIEW_MULT — see there).
     //
     // Applied as N FIXED SUB-STEPS rather than one big dt. RailFlow samples the lane at
     // SAMPLE=2 units; at MAX_SPEED=8 u/s a single 3x dt can advance a car far enough to
     // step THROUGH a body before the leader scan sees it. Sub-stepping preserves the
-    // car-following and turn-radius maths for free.
+    // car-following and turn-radius maths for free. ceil(mult) steps keep every
+    // sub-step at or below the frame's own dt — the regime a 1x frame runs in —
+    // at any multiplier (the old min(6, …) was only ever reached above 3x).
     const mult = this.viewMult;
     if (mult <= 1.0001) { this.tickMotion(dt); return; }
-    const steps = Math.min(6, Math.ceil(mult));
+    const steps = Math.ceil(mult);
     const sub = (dt * mult) / steps;
     for (let i = 0; i < steps; i++) this.tickMotion(sub);
   }

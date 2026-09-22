@@ -23,7 +23,8 @@
 // replay.ts's settle-per-frame pacing. The 2026-09-22 live capture carries each
 // tick's WALL time, and is replayed the way the cockpit actually consumed it:
 // a snapshot poll every 1.5 s (useTwinFeed POLL_MS), with motion running at the
-// renderer's view multiplier — min(3, speed_x), i.e. 3x for an 8x run — between
+// renderer's view multiplier — min(MAX_VIEW_MULT, speed_x), the driver's own
+// ceiling (8x since 2026-09-22; it was 3x, so an 8x run moved at 3x) — between
 // polls. performance.now() is replaced by the SIMULATED wall clock for the
 // duration of the replay, so the 12 s commit-and-hold floor and the 45 s cap mean
 // what they mean live, and the result does not depend on how fast this machine
@@ -33,7 +34,7 @@ import busyday from "./twinRun.busyday.json";
 import live0922 from "./twinRun.live0922.json";
 import live0922rec from "./twinRun.live0922rec.json";
 import fresh0922 from "./twinRun.fresh0922.json";
-import { twinMotionDriver } from "../TwinMotionDriver";
+import { twinMotionDriver, MAX_VIEW_MULT } from "../TwinMotionDriver";
 import { poseStore } from "../motion/poseStore";
 import { useDepotStore } from "@/store/depotStore";
 import type { TwinSnapshot } from "@/lib/ottoTwin";
@@ -83,7 +84,7 @@ export interface FlowOptions {
   tailWallMs?: number;
   /** replay the SAME world timeline as though the run had been PLAYED at this
    *  speed_x: every frame lands (speedX / playAt)x later on the wall clock, and
-   *  the renderer's motion runs at min(3, playAt). Wall-paced fixtures only; a
+   *  the renderer's motion runs at min(MAX_VIEW_MULT, playAt). Wall-paced fixtures only; a
    *  maxWallMs is on the retimed clock. */
   playAt?: number;
   /** diagnostic hook, called after every reconcile with the simulated wall ms */
@@ -107,6 +108,10 @@ export interface FlowReport {
   geometry: {
     samples: number;
     overlapPairSamples: number;
+    /** overlapPairSamples / samples. Samples are every `sampleEvery` MOTION
+     *  seconds, so the raw count grows with the view multiplier (8x motion puts
+     *  8/3 as many samples in the same wall window as 3x did); the rate does not. */
+    overlapRate: number;
     distinctOverlapPairs: number;
     stuckSamples: number;
     worstMovingCluster: number;
@@ -136,6 +141,10 @@ export interface FlowReport {
     peakTaxiing: number;
     meanTaxiing: number;
   };
+  /** THE PICTURE AS THE COCKPIT SHOWS IT: overlapping body pairs counted once per
+   *  snapshot poll, i.e. uniformly in WALL time — what a viewer watching for the
+   *  length of the capture actually sees. Wall-paced fixtures only (0 otherwise). */
+  viewer: { polls: number; overlapPairPolls: number };
   trips: Trip[];
 }
 
@@ -220,7 +229,8 @@ export function replayFlow(fixtureName: keyof typeof FIXTURES | MotionFixture, o
   const sampleEvery = opts.sampleEvery ?? 2;
   const pollMs = opts.pollMs ?? 1500;
   const walled = F.frames.every((f) => typeof f.wall_ms === "number");
-  const mult = walled ? Math.max(1, Math.min(3, F.speedX ?? 1)) : 1;
+  // the driver's own ceiling, so a replay always runs the multiplier the cockpit does
+  const mult = walled ? Math.max(1, Math.min(MAX_VIEW_MULT, F.speedX ?? 1)) : 1;
 
   // ── simulated wall clock for everything that reads performance.now() ──
   let wallMs = 0;
@@ -247,6 +257,16 @@ export function replayFlow(fixtureName: keyof typeof FIXTURES | MotionFixture, o
     // flow
     let taxiS = 0, stoppedS = 0, speedInt = 0, lockCycleSteps = 0, peakTaxi = 0, taxiIntegral = 0;
     const stoppedBy = { body: 0, node: 0, mouth: 0, other: 0 };
+    let viewerPolls = 0, viewerOverlap = 0;
+    const viewerCensus = () => {
+      viewerPolls++;
+      const b: { id: string; x: number; y: number; h: number; moving: boolean }[] = [];
+      for (const [id, e] of d.entries) {
+        const p = poseStore.get(id) ?? { x: e.car.x, y: e.car.y, heading: e.car.heading };
+        b.push({ id, x: p.x, y: p.y, h: p.heading, moving: !!e.tracker });
+      }
+      for (let i = 0; i < b.length; i++) for (let j = i + 1; j < b.length; j++) if (bodiesOverlap(b[i], b[j])) viewerOverlap++;
+    };
     const open = new Map<string, Trip & { moved: boolean; lx: number; ly: number }>();
     const trips: Trip[] = [];
 
@@ -352,6 +372,7 @@ export function replayFlow(fixtureName: keyof typeof FIXTURES | MotionFixture, o
           twinMotionDriver.reconcile(snapshotOf(F, states, sim, world));
         }
         opts.onPoll?.(poll, twinMotionDriver);
+        viewerCensus();
         for (let i = 0; i < stepsPerPoll; i++) stepOnce();
       }
     } else {
@@ -374,7 +395,8 @@ export function replayFlow(fixtureName: keyof typeof FIXTURES | MotionFixture, o
       wallSeconds: wallMs / 1000,
       motionSeconds: motionS,
       geometry: {
-        samples, overlapPairSamples, distinctOverlapPairs: pairs.size, stuckSamples,
+        samples, overlapPairSamples, overlapRate: samples ? overlapPairSamples / samples : 0,
+        distinctOverlapPairs: pairs.size, stuckSamples,
         worstMovingCluster: worstCluster, worstOffMap: worstOff,
       },
       flow: {
@@ -397,6 +419,7 @@ export function replayFlow(fixtureName: keyof typeof FIXTURES | MotionFixture, o
         peakTaxiing: peakTaxi,
         meanTaxiing: motionS ? taxiIntegral / motionS : 0,
       },
+      viewer: { polls: viewerPolls, overlapPairPolls: viewerOverlap },
       trips,
     };
   } finally {
@@ -423,6 +446,7 @@ export function formatFlow(name: string, r: FlowReport): string {
     `  trips ${f.finishedTrips} done / ${f.unfinishedTrips} unfinished · mean ${f.meanTripS.toFixed(1)}s p50 ${f.p50TripS.toFixed(1)}s p95 ${f.p95TripS.toFixed(1)}s max ${f.maxTripS.toFixed(1)}s`,
     `  efficiency ${pct(f.meanTripEfficiency)} · halts/trip ${f.haltsPerTrip.toFixed(2)} · stop-and-go trips ${f.stopAndGoTrips} · lock-cycle steps ${f.lockCycleSteps}`,
     `  taxiing peak ${f.peakTaxiing} mean ${f.meanTaxiing.toFixed(1)}`,
-    `  geometry: overlap ${g.overlapPairSamples} (distinct ${g.distinctOverlapPairs}) · stuck ${g.stuckSamples} · cluster ${g.worstMovingCluster} · offMap ${g.worstOffMap}`,
+    `  geometry: overlap ${g.overlapPairSamples} of ${g.samples} samples (${pct(g.overlapRate)}, distinct ${g.distinctOverlapPairs}) · stuck ${g.stuckSamples} · cluster ${g.worstMovingCluster} · offMap ${g.worstOffMap}`,
+    `  on screen: ${r.viewer.overlapPairPolls} overlapping pairs over ${r.viewer.polls} polls`,
   ].join("\n");
 }

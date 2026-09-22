@@ -56,8 +56,8 @@ interpolation.** Zero world logic client-side.
     one-car-per-node lock serialised the opposing stream of every divided road.
   - `offsetRight` takes **miter** joins. That moved right-turn paths 5.7u from their node, so
     `NODE_MATCH` is 7 — shrink it and right-turners stop registering junctions.
-  - `contractPace` converts the leg's SIM deadline into MOTION time (`viewMult / speed_x`); above 3x
-    they differ. Floored at a walk (`MIN_PACE`).
+  - `contractPace` converts the leg's SIM deadline into MOTION time (`viewMult / speed_x`). The two
+    clocks agree up to `MAX_VIEW_MULT`; they differ only above it. Floored at a walk (`MIN_PACE`).
   - Twin stalls map to renderer stalls **by position** (`setTwinStallMap`, `planFromDbFeet`). The code
     mapping drew 113 of 113 staging stalls in the wrong run slot.
   - Replays run on a **simulated clock** (`replay.ts`, `flowReplay.ts`). On the real clock the 12 s
@@ -65,9 +65,13 @@ interpolation.** Zero world logic client-side.
   - A wait that comes back round is a **deadlock, not a queue**: junction admission and merge gap
     acceptance follow the `waitsOn` chain (`waitsOnMe`, up to 6 cars). A fresh start
     (`twinRun.fresh0922.json`) had a four-car loop at Ts / Sg3 that only the 45 s watchdog broke.
-  - **At 8x the opening dispatch wave queues at the exit by construction**: motion is capped at 3x
-    (`setViewMult`, founder spec 2026-07-25) while the world runs at 8x. Judge flow at 3x
-    (`replayFlow(…, { playAt: 3 })`), or lift the cap — that is Chase's call, not a drive-by.
+  - **Motion follows playback up to 8x** (`MAX_VIEW_MULT`, the backend's own playback clamp). It was
+    capped at 3x while play went to 8x, so a dispatch wave left the stalls at 8x, drained at 3x, and
+    the picture ran behind the twin. Lifted 2026-09-22 on Chase's call ("as long as everything works
+    and nothing is sacrificed"): on every capture stopped time, stuck cars and overlap on screen
+    measured better or equal, and cars behind their OTTO-Q leg halved. When you compare flow
+    across multipliers, use `overlapRate` and `viewer` (pairs on screen per poll), never the raw
+    overlap count: samples are per MOTION second, so 8x motion holds 8/3 as many per wall window.
 - **Keep Yuka's `SeparationBehavior.weight` low (0.35).** At 2.2 it was *stronger* than
   path-following and shoved cars sideways off the lanes.
 - **Known open:** the 3D car uses `BoxGeometry(2.2, 0.85, 4.9)` — **metres dropped into unit-space**,
@@ -84,6 +88,17 @@ interpolation.** Zero world logic client-side.
 npm run verify        # typecheck && vitest run && vite build
 npm run layout:verify # if you touched geometry — rebuilds the seed and asserts no diff
 ```
+
+**Then look at it in the twin, 2D and 3D** — Chase, 2026-09-22: *"Make sure to always validate
+against the twin 2D/3D for final confirmation."* The replays measure motion; they are not the
+final word. `scripts/cockpitPlayback.mjs` plays a recorded run (`twinRun.fresh0922.json`: a fresh
+start's dispatch wave) through the running cockpit (`npm run dev`), read-only, in either view — so
+the hardest case can be watched without starting a run, which would purge the live one. Run it
+against `main` too and compare. ⚠️ A headless browser in a sandbox renders 3D in software (~1 fps):
+good for placement (stalls, lanes, headings, no interpenetration), not for smoothness — say so.
+Seen once: with a second dev server running from a worktree whose `node_modules` was symlinked to
+this one, the first logged "Re-optimizing dependencies" and its 3D view threw a duplicate-React
+error (`reading 'useMemo'`) until restarted alone with `--force`. Give each server its own cache.
 
 ⚠️ **This repo is Lovable-synced with two-way sync on `main`.** Chase's edits in Lovable commit
 straight to `main` (as `gpt-engineer-app[bot]`), and merging your PR is picked up by Lovable
