@@ -127,7 +127,7 @@ const MAX_SPEED = 8;
 // off the direction the body actually moved fell from 3665 (LA=6) to 1831
 // (LA=2), for +79 body-overlap pair-samples out of ~2100.
 const HEADING_LA = 2;
-const ONCOMING_DOT = 0.15; // cos of the path/​body heading angle below which a
+const ONCOMING_DOT = 0.15; // cos of the path/body heading angle below which a
                           // MOVING body is oncoming/crossing (ignored as a leader)
 
 // ── CORNER ROUNDING ─────────────────────────────────────────────────────────
@@ -452,6 +452,22 @@ export class RailLocks {
   }
 }
 
+/** How many cars a chain of waits is followed before it is taken to be a queue. */
+const WAIT_CHAIN = 6;
+
+/** Does the chain of who-is-stopping-whom (RailBody.waitsOn) that starts at
+ *  `other` come back round to `id`? Then `other` will not move until I do, and
+ *  waiting for it is a deadlock, not a queue. */
+function waitsOnMe(other: string, id: string, bodies: RailBody[]): boolean {
+  let cur: string | null | undefined = other;
+  for (let hop = 0; hop < WAIT_CHAIN && cur; hop++) {
+    const next: string | null | undefined = bodies.find((b) => b.id === cur)?.waitsOn;
+    if (next === id) return true;
+    cur = next;
+  }
+  return false;
+}
+
 /** The id of a STOPPED body on my path within BOX_EXIT past the node at `nodeS`, or
  *  null. Parked bodies count; a moving body counts only while below walking pace,
  *  and one heading against my path never does (it is passing, not queued). */
@@ -533,6 +549,12 @@ export function stepRail(
     let busy: string | null = null;
     for (const b of bodies) {
       if (b.id === id || b.heading === undefined) continue;
+      // a lane car stopped for MY body (half out of its stall, in its path) will
+      // not clear the join point while I wait for it — the junction deadlock
+      // below, at a merge. Measured on the fresh 0682752c start: an east-column
+      // back-out and the southbound car it blocked waited on each other ~40 s,
+      // until the watchdog. Go; it follows me in.
+      if (waitsOnMe(b.id, id, bodies)) continue;
       const along = (b.x - m.x) * m.hx + (b.y - m.y) * m.hy;
       const lat = Math.abs((b.x - m.x) * -m.hy + (b.y - m.y) * m.hx);
       if (lat >= MERGE_LAT) continue;
@@ -583,7 +605,11 @@ export function stepRail(
     // S_in / Sg3 (20u apart) and waited for the other. Go; it follows me out.
     // (Admitting junctions that close together as a pair was tried first and
     // measured worse — it holds the second box from 30u out.)
-    if (blocker && bodies.some((b) => b.id === blocker && b.waitsOn === id)) {
+    // The wait can go round more than two cars: on the fresh 0682752c start a
+    // departer turning at Ts waited on a car's body, that car on Sg3, Sg3's holder
+    // on the car in front of it, and that car on Ts — four cars, 45 s, until the
+    // watchdog. So the chain is followed, not just its first link.
+    if (blocker && waitsOnMe(blocker, id, bodies)) {
       locks.enter(n.id, id, sweep, true);
       continue;
     }

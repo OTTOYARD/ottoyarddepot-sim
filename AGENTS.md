@@ -62,6 +62,12 @@ interpolation.** Zero world logic client-side.
     mapping drew 113 of 113 staging stalls in the wrong run slot.
   - Replays run on a **simulated clock** (`replay.ts`, `flowReplay.ts`). On the real clock the 12 s
     dwell floor never expires inside a replay and no car ever leaves a charger.
+  - A wait that comes back round is a **deadlock, not a queue**: junction admission and merge gap
+    acceptance follow the `waitsOn` chain (`waitsOnMe`, up to 6 cars). A fresh start
+    (`twinRun.fresh0922.json`) had a four-car loop at Ts / Sg3 that only the 45 s watchdog broke.
+  - **At 8x the opening dispatch wave queues at the exit by construction**: motion is capped at 3x
+    (`setViewMult`, founder spec 2026-07-25) while the world runs at 8x. Judge flow at 3x
+    (`replayFlow(…, { playAt: 3 })`), or lift the cap — that is Chase's call, not a drive-by.
 - **Keep Yuka's `SeparationBehavior.weight` low (0.35).** At 2.2 it was *stronger* than
   path-following and shoved cars sideways off the lanes.
 - **Known open:** the 3D car uses `BoxGeometry(2.2, 0.85, 4.9)` — **metres dropped into unit-space**,
