@@ -39,8 +39,8 @@ const EnergyChart = React.memo(function EnergyChart() {
               <linearGradient id="gSolar" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#FFEBC9" stopOpacity={0.5} /><stop offset="100%" stopColor="#FFEBC9" stopOpacity={0.05} /></linearGradient>
               <linearGradient id="gChg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#C8102E" stopOpacity={0.5} /><stop offset="100%" stopColor="#C8102E" stopOpacity={0.05} /></linearGradient>
             </defs>
-            <XAxis dataKey="t" tick={{ fill: "#4A4E57", fontSize: 9 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
-            <YAxis tick={{ fill: "#4A4E57", fontSize: 9 }} axisLine={false} tickLine={false} width={40} />
+            <XAxis dataKey="t" tick={{ fill: "#7B818D", fontSize: 9 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+            <YAxis tick={{ fill: "#7B818D", fontSize: 9 }} axisLine={false} tickLine={false} width={40} />
             <Tooltip contentStyle={{ background: "#14161A", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 11, color: "#E7EAF0" }} />
             <Area type="monotone" dataKey="Solar" stroke="#F59E0B" fill="url(#gSolar)" isAnimationActive={false} />
             <Area type="monotone" dataKey="Charging" stroke="#C8102E" fill="url(#gChg)" isAnimationActive={false} />

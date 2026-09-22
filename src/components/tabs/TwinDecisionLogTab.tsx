@@ -114,21 +114,28 @@ const AgentPipeline = ({ r }: { r: ActivityFeedRow }) => {
       {typeof detail.summary === "string" && detail.summary && (
         <p className="text-[9px] leading-4 text-ink-dim line-clamp-3">{detail.summary}</p>
       )}
-      <div className="flex flex-wrap items-center gap-1 text-[8px] font-mono">
-        <span className="rounded border border-violet-400/30 bg-violet-400/10 px-1.5 py-0.5 text-violet-300">
+      {/* CHIPS MUST BE ABLE TO WRAP INSIDE THEMSELVES, not just between each
+          other. A flex item defaults to min-width:auto, so a single chip whose
+          text is wider than the panel — e.g. "Nemotron + cuOpt:
+          solved_but_zero_proposals (0 proposed)" — overflows a 420px side panel
+          whose container is `overflow-hidden`, and is silently CLIPPED rather
+          than scrolled. That is the right-hand cut-off Chase reported on
+          2026-09-22. `min-w-0 max-w-full break-words` on each chip is the fix. */}
+      <div className="flex min-w-0 flex-wrap items-center gap-1 font-mono text-[9px]">
+        <span className="min-w-0 max-w-full break-words rounded border border-violet-400/30 bg-violet-400/10 px-1.5 py-0.5 text-violet-300">
           Agent: {objective.replace(/_/g, " ")}
         </span>
-        <ArrowRight size={9} className="text-ink-faint" />
-        <span className="rounded border border-cyan-400/30 bg-cyan-400/10 px-1.5 py-0.5 text-cyan-300">
+        <ArrowRight size={9} className="shrink-0 text-ink-faint" />
+        <span className="min-w-0 max-w-full break-words rounded border border-cyan-400/30 bg-cyan-400/10 px-1.5 py-0.5 text-cyan-300">
           {solver}: {solverStatus} {returned > 0 ? `(${returned} proposed)` : ""}
         </span>
-        <ArrowRight size={9} className="text-ink-faint" />
-        <span className="rounded border border-emerald-400/30 bg-emerald-400/10 px-1.5 py-0.5 text-emerald-300">
+        <ArrowRight size={9} className="shrink-0 text-ink-faint" />
+        <span className="min-w-0 max-w-full break-words rounded border border-emerald-400/30 bg-emerald-400/10 px-1.5 py-0.5 text-emerald-300">
           Kernel: {kernel}
         </span>
         {slow && (
           <span
-            className="rounded border border-amber-400/30 bg-amber-400/10 px-1.5 py-0.5 text-amber-300"
+            className="min-w-0 max-w-full break-words rounded border border-amber-400/30 bg-amber-400/10 px-1.5 py-0.5 text-amber-300"
             title="The agent took longer than one 30-second beat, so the deterministic path fell back and this advice landed on a later tick."
           >
             agent &gt; 1 tick
@@ -136,15 +143,15 @@ const AgentPipeline = ({ r }: { r: ActivityFeedRow }) => {
         )}
         {unshielded && (
           <span
-            className="rounded border border-rose-400/30 bg-rose-400/10 px-1.5 py-0.5 text-rose-300"
+            className="min-w-0 max-w-full break-words rounded border border-rose-400/30 bg-rose-400/10 px-1.5 py-0.5 text-rose-300"
             title="No L1 rule was evaluated for this agent action. A policy-dial write is not a stall assignment, so the deterministic shield does not inspect it."
           >
             no L1 gate
           </span>
         )}
       </div>
-      {starved && <p className="text-[8px] leading-3 text-amber-300/80">{starved}</p>}
-      <div className="flex flex-wrap gap-x-2 text-[8px] text-ink-faint font-mono">
+      {starved && <p className="break-words text-[9px] leading-4 text-amber-300/80">{starved}</p>}
+      <div className="flex min-w-0 flex-wrap gap-x-2 font-mono text-[9px] text-ink-faint">
         <span>applied {countItems(detail.applied)}</span>
         <span>rejected {countItems(detail.rejected)}</span>
         <span>solve attempts {attempts || 1}</span>
@@ -156,7 +163,7 @@ const AgentPipeline = ({ r }: { r: ActivityFeedRow }) => {
         )}
       </div>
       {typeof detail.objective_why === "string" && detail.objective_why && (
-        <p className="text-[8px] leading-3 text-ink-faint">Why this objective: {detail.objective_why}</p>
+        <p className="break-words text-[9px] leading-4 text-ink-faint">Why this objective: {detail.objective_why}</p>
       )}
     </div>
   );
@@ -171,10 +178,10 @@ const OUTCOME_ICON: Record<string, typeof CheckCircle2> = {
 };
 
 export const Row = ({ r, isNew = false }: { r: ActivityFeedRow; isNew?: boolean }) => {
-  const badge = ACTION_BADGE[r.action] ?? { label: r.action, color: "#8A8F99", icon: Brain };
+  const badge = ACTION_BADGE[r.action] ?? { label: r.action, color: "#A8AEBB", icon: Brain };
   const Icon = badge.icon;
   const OIcon = OUTCOME_ICON[r.outcome] ?? CheckCircle2;
-  const outcomeColor = r.outcome === "enacted" ? "#00B4A6" : r.outcome === "refused" ? "#C8102E" : "#8A8F99";
+  const outcomeColor = r.outcome === "enacted" ? "#00B4A6" : r.outcome === "refused" ? "#C8102E" : "#A8AEBB";
 
   const reasonText = useMemo(() => decisionReasonText(r), [r]);
   const isAgent = r.action === "orchestrator_agent";
@@ -219,13 +226,13 @@ export const Row = ({ r, isNew = false }: { r: ActivityFeedRow; isNew?: boolean 
 export const StreamState = ({ frozen }: { frozen: boolean }) =>
   frozen ? (
     <span
-      className="inline-flex items-center gap-1 rounded border border-amber-400/30 bg-amber-400/10 px-1.5 py-0.5 text-[9px] font-mono uppercase tracking-[0.06em] text-amber-300"
+      className="inline-flex shrink-0 items-center gap-1 rounded border border-amber-400/30 bg-amber-400/10 px-1.5 py-0.5 text-[9px] font-mono uppercase tracking-[0.06em] text-amber-300"
       title="The simulation is paused, so the stream is frozen and no polling is happening. Everything already received stays scrollable."
     >
       <Pause size={9} /> paused
     </span>
   ) : (
-    <span className="inline-flex items-center gap-1 rounded border border-emerald-400/30 bg-emerald-400/10 px-1.5 py-0.5 text-[9px] font-mono uppercase tracking-[0.06em] text-emerald-300">
+    <span className="inline-flex shrink-0 items-center gap-1 rounded border border-emerald-400/30 bg-emerald-400/10 px-1.5 py-0.5 text-[9px] font-mono uppercase tracking-[0.06em] text-emerald-300">
       <Radio size={9} /> live
     </span>
   );
@@ -237,17 +244,19 @@ export default function TwinDecisionLogTab() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-3 py-2 border-b border-white/[0.06] shrink-0">
-        <div className="flex items-center gap-2">
-          <Brain size={14} className="text-brand-cool" />
-          <span className="text-[11px] font-display uppercase tracking-wide text-ink-dim">Decision Log</span>
-          <span className="font-mono text-[10px] tabular-nums text-ink-faint bg-white/[0.04] rounded px-1.5 py-0.5">
+      {/* min-w-0 on both halves, and the error truncates rather than pushing the
+          LIVE/PAUSED chip past the panel's right edge (the panel clips). */}
+      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/[0.06] px-3 py-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <Brain size={14} className="shrink-0 text-brand-cool" />
+          <span className="truncate text-[11px] font-display uppercase tracking-wide text-ink-dim">Decision Log</span>
+          <span className="shrink-0 rounded bg-white/[0.04] px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-ink-faint">
             {rows.length}
           </span>
           <StreamState frozen={frozen} />
         </div>
         {error && (
-          <span className="text-[9px] text-brand-hot truncate max-w-[200px]">{error}</span>
+          <span className="min-w-0 truncate text-[9px] text-brand-hot" title={error}>{error}</span>
         )}
       </div>
 

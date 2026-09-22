@@ -23,10 +23,10 @@ const humanize = (s: string): string => (s || "").replace(/_/g, " ").trim();
 const STALL_META: Record<string, { label: string; color: string }> = {
   dcfc: { label: "DCFC", color: "#C8102E" },
   l2: { label: "L2", color: "#00B4A6" },
-  staging: { label: "STAGE", color: "#8A8F99" },
+  staging: { label: "STAGE", color: "#A8AEBB" },
 };
 const StallBadge = ({ type }: { type: string }) => {
-  const m = STALL_META[String(type).toLowerCase()] ?? { label: String(type || "—").toUpperCase(), color: "#8A8F99" };
+  const m = STALL_META[String(type).toLowerCase()] ?? { label: String(type || "—").toUpperCase(), color: "#A8AEBB" };
   return (
     <span
       className="inline-flex items-center rounded-sm px-1.5 py-0.5 text-[9px] font-display uppercase tracking-wide leading-none"
@@ -75,7 +75,7 @@ const ReservationRow = ({ r }: { r: ApptReservation }) => {
         <div className="text-[9px] text-ink-faint truncate">{humanize(r.veh_state ?? "")}</div>
       </div>
       {r.soc != null && (
-        <span className="font-mono text-[11px] tabular-nums shrink-0" style={{ color: num(r.soc) < 30 ? "#FF8A80" : "#8A8F99" }}>
+        <span className="font-mono text-[11px] tabular-nums shrink-0" style={{ color: num(r.soc) < 30 ? "#FF8A80" : "#A8AEBB" }}>
           {Math.round(num(r.soc))}%
         </span>
       )}
@@ -86,7 +86,7 @@ const ReservationRow = ({ r }: { r: ApptReservation }) => {
             ? { color: "#E8293F", background: "rgba(232,41,63,0.12)", border: "1px solid rgba(232,41,63,0.4)" }
             : r.occupied
               ? { color: "#00B4A6", background: "rgba(0,180,166,0.12)", border: "1px solid rgba(0,180,166,0.3)" }
-              : { color: "#8A8F99", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }
+              : { color: "#A8AEBB", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }
         }
       >
         {held ? "Inbound" : r.occupied ? "Occupied" : "Held"}
@@ -111,7 +111,7 @@ const InboundCard = ({ v }: { v: ApptInbound }) => (
     </div>
     <div className="flex items-center gap-2 text-[10px] text-ink-dim">
       {v.soc != null && (
-        <span className="font-mono tabular-nums" style={{ color: num(v.soc) < 30 ? "#FF8A80" : "#8A8F99" }}>
+        <span className="font-mono tabular-nums" style={{ color: num(v.soc) < 30 ? "#FF8A80" : "#A8AEBB" }}>
           {Math.round(num(v.soc))}% SoC
         </span>
       )}
@@ -232,7 +232,7 @@ export const TwinOrchestrationTab = () => {
                     }}
                   >
                     <Icon size={13} style={{ color: st.color }} />
-                    <span className="text-base font-display tabular-nums leading-none" style={{ color: zero ? "#4A4E57" : "#E7EAF0" }}>{count}</span>
+                    <span className="text-base font-display tabular-nums leading-none" style={{ color: zero ? "#7B818D" : "#E7EAF0" }}>{count}</span>
                     <span className="text-[8px] text-ink-faint uppercase tracking-wide text-center leading-tight">{st.label}</span>
                   </div>
                   {i < STAGES.length - 1 && <ChevronRight size={10} className="text-ink-faint shrink-0" />}

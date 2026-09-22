@@ -83,8 +83,8 @@ const Chip = ({ tone, children }: { tone: Tone; children: React.ReactNode }) => 
 const Metric = ({ label, value }: { label: string; value: string | null }) =>
   value === null ? null : (
     <div className="flex items-baseline justify-between gap-2">
-      <span className="text-[9px] text-ink-faint">{label}</span>
-      <span className="font-mono text-[10px] text-ink">{value}</span>
+      <span className="min-w-0 truncate text-[9px] text-ink-faint">{label}</span>
+      <span className="shrink-0 font-mono text-[10px] text-ink">{value}</span>
     </div>
   );
 
@@ -166,7 +166,7 @@ const LayerBody = ({ layer }: { layer: StackLayer }) => {
           <Breakdown label="by source" value={live.by_source} />
           <Breakdown label="handoff" value={live.handoff} humanizeKeys={false} />
           {typeof live.objective_why === 'string' && live.objective_why && (
-            <p className="mt-1.5 border-l border-violet-400/30 pl-2 text-[9px] italic leading-4 text-ink-dim">
+            <p className="mt-1.5 break-words border-l border-violet-400/30 pl-2 text-[9px] italic leading-4 text-ink-dim">
               “{live.objective_why}”
             </p>
           )}
@@ -185,9 +185,13 @@ const LayerBody = ({ layer }: { layer: StackLayer }) => {
               {keys.map((k) => {
                 const p = providers[k] ?? {};
                 return (
-                  <div key={k} className="flex items-baseline justify-between gap-2">
-                    <span className="font-mono text-[9px] text-ink-dim">{providerLabel(k)}</span>
-                    <span className="shrink-0 font-mono text-[9px] text-ink">
+                  // NOT `shrink-0` on the value: this line reads e.g.
+                  // "515 calls · 2,738 proposals · last 12:42 PM CT", which is
+                  // wider than the 420px panel on its own. flex-wrap + min-w-0
+                  // lets it drop to a second line instead of being clipped.
+                  <div key={k} className="flex flex-wrap items-baseline justify-between gap-x-2">
+                    <span className="shrink-0 font-mono text-[9px] text-ink-dim">{providerLabel(k)}</span>
+                    <span className="min-w-0 break-words text-right font-mono text-[9px] text-ink">
                       {[
                         formatCount(p.calls) && `${formatCount(p.calls)} calls`,
                         num(p.proposals) ? `${formatCount(p.proposals)} proposals` : null,
@@ -241,13 +245,13 @@ const LayerCard = ({ layer, last }: { layer: StackLayer; last: boolean }) => {
             <span className="truncate text-[11px] font-display uppercase tracking-[0.06em] text-ink">
               {layer.name}
             </span>
-            <span className="shrink-0 font-mono text-[8px] text-ink-faint">{layer.layer}</span>
+            <span className="shrink-0 font-mono text-[9px] text-ink-faint">{layer.layer}</span>
           </div>
           <Chip tone={statusTone(layer.status)}>{humanize(layer.status) ?? 'unknown'}</Chip>
         </div>
 
         <p className="mt-1 text-[9px] leading-4 text-ink-dim">{layer.does}</p>
-        <p className="mt-1 font-mono text-[10px] text-ink">{layerHeadline(layer)}</p>
+        <p className="mt-1 break-words font-mono text-[10px] text-ink">{layerHeadline(layer)}</p>
 
         <div className="mt-2 space-y-0.5 border-t border-white/[0.04] pt-2">
           <LayerBody layer={layer} />
@@ -259,12 +263,12 @@ const LayerCard = ({ layer, last }: { layer: StackLayer; last: boolean }) => {
             className="mt-1.5 flex items-start gap-1.5 rounded border border-amber-400/20 bg-amber-400/[0.06] p-1.5"
           >
             <AlertTriangle size={10} className="mt-px shrink-0 text-amber-300" />
-            <span className="text-[9px] leading-4 text-amber-200/90">{c}</span>
+            <span className="min-w-0 break-words text-[9px] leading-4 text-amber-200/90">{c}</span>
           </div>
         ))}
 
         {/* provenance. The reason a number on this card can be checked. */}
-        <p className="mt-2 truncate font-mono text-[8px] text-ink-faint" title={layer.measured_from}>
+        <p className="mt-2 truncate font-mono text-[9px] text-ink-faint" title={layer.measured_from}>
           measured from {layer.measured_from}
         </p>
       </div>
@@ -398,7 +402,7 @@ const FrameSection = ({
                       <span className="truncate font-mono text-[9px] text-ink">
                         {String(a.asset ?? 'unnamed')}
                       </span>
-                      <span className="shrink-0 font-mono text-[8px] text-ink-faint">
+                      <span className="shrink-0 font-mono text-[9px] text-ink-faint">
                         {[
                           num(a.soc) === null ? null : `${num(a.soc)}%`,
                           humanize(a.state as string),
@@ -411,7 +415,7 @@ const FrameSection = ({
                     {Array.isArray(a.why) && (
                       <ul className="mt-0.5 space-y-px">
                         {(a.why as unknown[]).map((w, j) => (
-                          <li key={j} className="text-[8px] leading-3.5 text-ink-dim">
+                          <li key={j} className="break-words text-[9px] leading-4 text-ink-dim">
                             · {String(w)}
                           </li>
                         ))}
@@ -550,7 +554,7 @@ export function TwinIntelligenceTab() {
           </div>
 
           {num(arming?.satisfied) !== null && num(arming?.required) !== null && (
-            <p className="mt-1.5 font-mono text-[9px] text-ink-dim">
+            <p className="mt-1.5 break-words font-mono text-[9px] text-ink-dim">
               arming {formatCount(arming?.satisfied)}/{formatCount(arming?.required)} dials set
               {Array.isArray(arming?.missing) && arming.missing.length > 0
                 ? ` · missing ${arming.missing.join(', ')}`
@@ -563,7 +567,7 @@ export function TwinIntelligenceTab() {
           {primary?.reachable === false && (
             <div className="mt-1.5 flex items-start gap-1.5 rounded border border-amber-400/20 bg-amber-400/[0.06] p-1.5">
               <AlertTriangle size={10} className="mt-px shrink-0 text-amber-300" />
-              <span className="text-[9px] leading-4 text-amber-200/90">
+              <span className="min-w-0 break-words text-[9px] leading-4 text-amber-200/90">
                 Armed, and the declared primary proposer{' '}
                 <span className="font-mono">{humanize(primary.declared ?? null) ?? 'rank 0'}</span>{' '}
                 is unreachable: {formatCount(primary.fires) ?? '0'} fires against{' '}
@@ -575,7 +579,7 @@ export function TwinIntelligenceTab() {
           )}
 
           {error && (
-            <p className="mt-1.5 font-mono text-[9px] text-red-300">stack read failed: {error}</p>
+            <p className="mt-1.5 break-words font-mono text-[9px] text-red-300">stack read failed: {error}</p>
           )}
         </div>
 
@@ -627,7 +631,7 @@ export function TwinIntelligenceTab() {
           </div>
         )}
 
-        <p className="px-1 pb-1 text-[8px] leading-4 text-ink-faint">
+        <p className="px-1 pb-1 text-[9px] leading-4 text-ink-faint">
           Every figure above is returned by <span className="font-mono">ottoq_intelligence_stack</span>,
           whose assertion A3 re-derives eight of them by direct query against the source tables and
           fails the migration if they disagree. This panel renders what that function measured and
