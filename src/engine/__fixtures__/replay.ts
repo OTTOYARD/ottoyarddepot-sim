@@ -153,6 +153,26 @@ function snapshotAt(states: Map<string, Change>, t: string): TwinSnapshot {
  * @param sampleEvery   seconds between geometry samples
  */
 export function replayFixture(settleSeconds = 30, sampleEvery = 2, dt = 0.05): ReplayReport {
+  // SIMULATED WALL CLOCK. The driver reads performance.now() for its commit-and-
+  // hold dwell floor (12 s) and cap (45 s). This replay computes a 15-minute run in
+  // about a real second, so on the real clock no floor ever expired: every car that
+  // docked at a charger was held there for the rest of the replay, the fixture never
+  // exercised a normal charger departure, and the result depended on how fast the
+  // machine ran it (CI is >12x slower than a laptop, which is enough for floors to
+  // start expiring part-way through there and not here). The clock now advances with
+  // the motion, one motion-second per second, exactly as it does live at 1x.
+  let wallMs = 0;
+  const perf = globalThis.performance;
+  const realNow = perf.now.bind(perf);
+  Object.defineProperty(perf, "now", { configurable: true, writable: true, value: () => wallMs });
+  try {
+    return replayOnClock(settleSeconds, sampleEvery, dt, (ms) => { wallMs += ms; });
+  } finally {
+    Object.defineProperty(perf, "now", { configurable: true, writable: true, value: realNow });
+  }
+}
+
+function replayOnClock(settleSeconds: number, sampleEvery: number, dt: number, advance: (ms: number) => void): ReplayReport {
   twinMotionDriver.clear();
   useDepotStore.setState({
     stalls: useDepotStore.getState().stalls.map((s) => ({ ...s, status: "available" as const })),
@@ -168,7 +188,7 @@ export function replayFixture(settleSeconds = 30, sampleEvery = 2, dt = 0.05): R
     for (const c of f.changes) states.set(c.id, c);
     twinMotionDriver.reconcile(snapshotAt(states, f.t));
     for (let k = 0; k < samplesPerFrame; k++) {
-      for (let i = 0; i < stepsPerSample; i++) twinMotionDriver.tickMotion(dt);
+      for (let i = 0; i < stepsPerSample; i++) { twinMotionDriver.tickMotion(dt); advance(dt * 1000); }
       samples.push(measure(index, (k + 1) * sampleEvery, states));
     }
   });

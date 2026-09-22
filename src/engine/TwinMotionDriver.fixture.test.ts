@@ -197,8 +197,29 @@ describe("TwinMotionDriver — replay of a captured busy_day run", () => {
   // instead of west through the ingress, which is the wedge above. Measured in this
   // tree: with it, overlap 119 · distinct 62 · stuck 719. Do not re-add it without
   // re-measuring the gate queue.
-  const OVERLAP_BUDGET = 90;    // measured 86 (was 116). TARGET 0.
-  const STUCK_BUDGET = 10;      // measured 7 (was 0). See the note above.
+  // RE-BASELINED 2026-09-22 by the traffic-flow change (stall exit manoeuvres,
+  // lanes joined ahead of the nose, movement-based junctions, mitered lane
+  // offsets) — AND the replay's clock, which has to be read first.
+  //
+  // THE CLOCK. replay.ts used to read the real performance.now(), so the driver's
+  // 12 s commit-and-hold floor never expired inside a replay that computes 15
+  // minutes of motion in about a second: every car that docked at a charger was
+  // held there to the end, and this fixture NEVER EXERCISED A CHARGER DEPARTURE —
+  // the very traffic this change is about. The result also depended on machine
+  // speed (CI is >12x slower, enough for floors to start expiring there). The replay
+  // now runs on a simulated clock, one motion-second per second. Both sides, same
+  // harness, same fixture:
+  //
+  //     main (8a3e28f), simulated clock   overlap 80 · distinct 39 · stuck 5 · cluster 4
+  //     this change,    simulated clock   overlap 54 · distinct 24 · stuck 4 · cluster 4
+  //
+  // (For the record, on the old real-clock harness this change read 62 / 30 / 14
+  // against main's 86 / 41 / 7: the stuck samples there were queues at the
+  // single-lane egress during frame 30's mass departure, which the new junction
+  // control serialises instead of letting the two turning streams drive through
+  // each other.) Ratcheted DOWN to the new measurement.
+  const OVERLAP_BUDGET = 58;    // measured 54 (was 80 on main, same clock). TARGET 0.
+  const STUCK_BUDGET = 8;       // measured 4 (was 5 on main, same clock).
 
   it("SYMPTOM 2a: body-overlap stays within the ratchet (target 0)", () => {
     // WHAT WAS LEFT, AND WHAT CLOSED IT. The dominant hotspot was the TE temp-staging

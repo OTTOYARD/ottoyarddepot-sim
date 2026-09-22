@@ -52,8 +52,11 @@ describe("LaneGraph — one-way depot routing", () => {
     const end = path[path.length - 1];
     expect(Math.hypot(end.x - EGRESS.x, end.y - EGRESS.y)).toBeLessThan(8);
     // a straight shot east→west is ~112 units; anything near 2x means it detoured
-    // out to the gate and back
-    expect(pathLen(path)).toBeLessThan((from.x - EGRESS.x) * 1.8);
+    // out to the gate and back. (1.8x was 201.6 against a route of 201.2; mitered
+    // corners — the outside of a turn now runs in its real lane instead of cutting
+    // toward the centreline — make the same route 201.8. The detour this guards
+    // against adds ~90.)
+    expect(pathLen(path)).toBeLessThan((from.x - EGRESS.x) * 1.85);
   });
 
   it("still routes a car that is genuinely AT the ingress out of the ingress", () => {

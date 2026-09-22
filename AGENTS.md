@@ -38,10 +38,30 @@ interpolation.** Zero world logic client-side.
 - **Sample during motion, not after the scene settles.** And **replay the captured fixture**
   (`src/engine/__fixtures__/twinRun.busyday.json` + `replay.ts`), not a live run — these bugs are
   intermittent and a frozen recording makes a fix falsifiable.
-- **Measured worse, do not re-propose:** routing cars onto the parking access aisle before departing
-  (305 → **728** overlap samples) · correcting the parked heading (305 → **378**) · enabling
+- **Measured worse, do not re-propose:** correcting the parked heading (305 → **378**) · enabling
   `separationSteer` (its radius 5.5 exceeds the 4.8u opposing-lane separation — **it would
-  manufacture the head-on swerve**).
+  manufacture the head-on swerve**) · letting two tail-to-tail back-outs pass each other by id (a
+  reverse is kinematic; it backs straight through the waiting car) · admitting junctions 20u apart as
+  a pair · sizing staging back-outs to the aisle depth (all measured 2026-09-22; see below).
+  ⚠️ The old line "routing cars onto the parking access aisle before departing (305 → 728)" was
+  **superseded on 2026-09-22**: that measurement routed the car on from the NEAREST graph node after
+  the back-out. With the back-out joining the aisle lane ahead of the nose it measures better, and it
+  is what stops cars wedging (see `TwinMotionDriver.flow.test.ts`).
+- **Traffic flow (2026-09-22) — read before touching exits, junctions or lane offsets:**
+  - A parked car leaves by an **exit manoeuvre**, never a straight line to the nearest node: charger
+    cars sidestep into their one-way northbound gap lane (`chargerExit`), staging cars back out and
+    join the aisle ahead of the nose (`backOutFrom` + `LaneGraph.routeFacing`). The nearest-node exit
+    drove cars into their parked neighbours and wedged them for the rest of a run.
+  - Junctions admit **compatible movements** together (`RailLocks`, `movementsConflict`); the old
+    one-car-per-node lock serialised the opposing stream of every divided road.
+  - `offsetRight` takes **miter** joins. That moved right-turn paths 5.7u from their node, so
+    `NODE_MATCH` is 7 — shrink it and right-turners stop registering junctions.
+  - `contractPace` converts the leg's SIM deadline into MOTION time (`viewMult / speed_x`); above 3x
+    they differ. Floored at a walk (`MIN_PACE`).
+  - Twin stalls map to renderer stalls **by position** (`setTwinStallMap`, `planFromDbFeet`). The code
+    mapping drew 113 of 113 staging stalls in the wrong run slot.
+  - Replays run on a **simulated clock** (`replay.ts`, `flowReplay.ts`). On the real clock the 12 s
+    dwell floor never expires inside a replay and no car ever leaves a charger.
 - **Keep Yuka's `SeparationBehavior.weight` low (0.35).** At 2.2 it was *stronger* than
   path-following and shoved cars sideways off the lanes.
 - **Known open:** the 3D car uses `BoxGeometry(2.2, 0.85, 4.9)` — **metres dropped into unit-space**,
