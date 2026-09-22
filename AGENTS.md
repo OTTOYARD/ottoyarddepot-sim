@@ -89,6 +89,17 @@ npm run verify        # typecheck && vitest run && vite build
 npm run layout:verify # if you touched geometry — rebuilds the seed and asserts no diff
 ```
 
+**Then look at it in the twin, 2D and 3D** — Chase, 2026-09-22: *"Make sure to always validate
+against the twin 2D/3D for final confirmation."* The replays measure motion; they are not the
+final word. `scripts/cockpitPlayback.mjs` plays a recorded run (`twinRun.fresh0922.json`: a fresh
+start's dispatch wave) through the running cockpit (`npm run dev`), read-only, in either view — so
+the hardest case can be watched without starting a run, which would purge the live one. Run it
+against `main` too and compare. ⚠️ A headless browser in a sandbox renders 3D in software (~1 fps):
+good for placement (stalls, lanes, headings, no interpenetration), not for smoothness — say so.
+Seen once: with a second dev server running from a worktree whose `node_modules` was symlinked to
+this one, the first logged "Re-optimizing dependencies" and its 3D view threw a duplicate-React
+error (`reading 'useMemo'`) until restarted alone with `--force`. Give each server its own cache.
+
 ⚠️ **This repo is Lovable-synced with two-way sync on `main`.** Chase's edits in Lovable commit
 straight to `main` (as `gpt-engineer-app[bot]`), and merging your PR is picked up by Lovable
 automatically. Fetch before you push.
