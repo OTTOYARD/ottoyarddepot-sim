@@ -44,6 +44,13 @@ function len(a: Pt, b: Pt): number {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
+/** How far ahead of its projection a car joining a lane aims (u). About one car
+ *  length: the merge reads as a lean into the lane, not a sideways hop onto it. */
+const JOIN_LEAD = 8;
+/** Longest miter offsetRight will take, as a multiple of the lane offset. 2 allows
+ *  every join up to a 120° turn exactly; sharper ones are clamped. */
+const MITER_LIMIT = 2;
+
 export class LaneGraph {
   nodes = new Map<string, Node>();
   lanes = new Map<string, Lane>();
@@ -148,20 +155,172 @@ export class LaneGraph {
     return out;
   }
 
-  /** Shift a polyline to the right of travel by `amount` (drive-on-the-right). */
-  static offsetRight(pts: Pt[], amount: number): Pt[] {
+  /** Shift a polyline to the right of travel by `amount` (drive-on-the-right).
+   *
+   *  Each interior vertex takes a MITER join: the point where the two shifted
+   *  legs actually meet, `amount / cos(half the turn)` out along the bisector.
+   *  It used to take the normal of the CHORD between its two neighbours, which
+   *  moves a vertex only `amount` along that bisector — at a 90° corner 3.2u
+   *  where the lanes meet 4.53u out — so every car rounding a corner cut 1.33u
+   *  toward the centreline and the OPPOSING stream. Measured on the 2026-09-22
+   *  live recording: a car turning east out of the ingress ran at y = 173.7
+   *  instead of its lane at 175.2, 4.9u from the westbound lane. A collinear
+   *  vertex is unchanged by the fix (the miter of a straight join IS the normal).
+   *  The miter is capped at MITER_LIMIT x amount so a hairpin cannot throw a
+   *  vertex across the lot.
+   *
+   *  ONLY BETWEEN TWO ROAD LEGS. Vertices outside [miterFrom, miterTo] keep the
+   *  old chord normal: route() passes the first and last NODE of a path there,
+   *  because one of their legs is not a lane at all — it is the car's own start
+   *  point or a stall's approach point off the road — and a miter on such a join
+   *  swings the path into the parked row beside it (measured on busy_day: body
+   *  overlap 74 -> 133 when every vertex took one). */
+  static offsetRight(pts: Pt[], amount: number, miterFrom = 1, miterTo = pts.length - 2): Pt[] {
     if (pts.length < 2 || amount === 0) return pts.map((p) => ({ ...p }));
     const out: Pt[] = [];
+    // y-DOWN frame (south = +y): the right-of-travel normal of (dx,dy) is (-dy,dx)
+    const normal = (a: Pt, b: Pt): Pt | null => {
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const m = Math.hypot(dx, dy);
+      return m > 1e-9 ? { x: -dy / m, y: dx / m } : null;
+    };
     for (let i = 0; i < pts.length; i++) {
-      const a = pts[Math.max(0, i - 1)];
-      const b = pts[Math.min(pts.length - 1, i + 1)];
-      const dx = b.x - a.x;
-      const dy = b.y - a.y;
-      const m = Math.hypot(dx, dy) || 1;
-      // y-DOWN frame (south = +y): the right-of-travel normal of (dx,dy) is (-dy,dx)
-      out.push({ x: pts[i].x - (dy / m) * amount, y: pts[i].y + (dx / m) * amount });
+      const nIn = i > 0 ? normal(pts[i - 1], pts[i]) : null;
+      const nOut = i < pts.length - 1 ? normal(pts[i], pts[i + 1]) : null;
+      let nx: number, ny: number, k = 1;
+      if (nIn && nOut && (i < miterFrom || i > miterTo)) {
+        // legacy join: the normal of the chord between the two neighbours
+        const chord = normal(pts[i - 1], pts[i + 1]) ?? nIn;
+        nx = chord.x; ny = chord.y;
+      } else if (nIn && nOut) {
+        const sx = nIn.x + nOut.x, sy = nIn.y + nOut.y;
+        const sm = Math.hypot(sx, sy);
+        if (sm < 1e-9) { nx = nIn.x; ny = nIn.y; }            // a full reversal: no miter exists
+        else {
+          nx = sx / sm; ny = sy / sm;
+          const cosHalf = nx * nIn.x + ny * nIn.y;            // = cos(turn / 2)
+          k = Math.min(MITER_LIMIT, 1 / Math.max(cosHalf, 1e-9));
+        }
+      } else {
+        const n = nIn ?? nOut;
+        if (!n) { out.push({ ...pts[i] }); continue; }
+        nx = n.x; ny = n.y;
+      }
+      out.push({ x: pts[i].x + nx * amount * k, y: pts[i].y + ny * amount * k });
     }
     return out;
+  }
+
+  /**
+   * The directed lane a car at `p`, pointing along `heading`, can join AHEAD of
+   * its nose — or null when no lane agrees with where it points.
+   *
+   * WHY THIS EXISTS. route() picks its origin as the NEAREST node, which knows
+   * nothing about which way the car faces. For a car already in a lane that is
+   * usually harmless; for a car that has just backed out of a stall it is not.
+   * Replaying the 2026-09-22 live run, the nearest node to a car in the TE temp
+   * column was the SE ring corner 47u away, so the first leg of its route ran
+   * diagonally THROUGH its own stall column: it drove into the parked neighbour
+   * 6.7u south and sat there for the rest of the run, with the 45 s watchdog
+   * rebuilding the same rail from the same place. A car joins the road it is
+   * facing, going the way it is facing.
+   *
+   * A lane qualifies when its travel direction is within 60° of the heading and
+   * its drive-on-the-right line passes within `maxLat` of the car. The join point
+   * is JOIN_LEAD ahead of the car's projection, so the merge is a lean into the
+   * lane rather than a sideways hop onto it.
+   */
+  joinAhead(p: Pt, heading: number, maxLat = 16): { laneId: string; seg: number; t: number; lat: number } | null {
+    const fx = Math.cos(heading), fy = Math.sin(heading);
+    let best: { laneId: string; seg: number; t: number; lat: number } | null = null;
+    for (const lane of this.lanes.values()) {
+      for (let i = 1; i < lane.pts.length; i++) {
+        const a = lane.pts[i - 1], b = lane.pts[i];
+        const L = len(a, b);
+        if (L < 1e-6) continue;
+        const ux = (b.x - a.x) / L, uy = (b.y - a.y) / L;
+        if (ux * fx + uy * fy < 0.5) continue; // points the wrong way for this car
+        // the drive-on-the-right line of this segment (y-DOWN: right of (ux,uy) is (-uy,ux))
+        const ox = a.x - uy * this.rightOffset, oy = a.y + ux * this.rightOffset;
+        const t = (p.x - ox) * ux + (p.y - oy) * uy;
+        if (t > L) continue;                                // this piece is behind the car
+        const lat = Math.abs((p.x - ox) * -uy + (p.y - oy) * ux);
+        // a car short of the segment's start measures its distance to that start
+        const d = t < 0 ? Math.hypot(p.x - ox, p.y - oy) : lat;
+        if (d > maxLat) continue;
+        if (!best || d < best.lat) best = { laneId: lane.id, seg: i, t: Math.max(0, t), lat: d };
+      }
+    }
+    return best;
+  }
+
+  /**
+   * How far a parked car must travel along `n` (a unit vector, stall → aisle) to
+   * put its centre on the drive line of the nearest lane flowing along `d`: the
+   * depth a back-out has to reach. Only lanes on the `n` side of `p` and beside it
+   * count (the one-way gap lane behind the TW column is not TW's aisle). Null when
+   * there is none within `max`.
+   */
+  laneDepth(p: Pt, n: Pt, d: Pt, max = 32): number | null {
+    let best: number | null = null;
+    for (const lane of this.lanes.values()) {
+      for (let i = 1; i < lane.pts.length; i++) {
+        const a = lane.pts[i - 1], b = lane.pts[i];
+        const L = len(a, b);
+        if (L < 1e-6) continue;
+        const ux = (b.x - a.x) / L, uy = (b.y - a.y) / L;
+        if (ux * d.x + uy * d.y < 0.9) continue;          // does not flow along d
+        const ox = a.x - uy * this.rightOffset, oy = a.y + ux * this.rightOffset;
+        const t = (p.x - ox) * ux + (p.y - oy) * uy;
+        if (t < -12 || t > L + 12) continue;              // not beside this piece
+        const D = (ox - p.x) * n.x + (oy - p.y) * n.y;
+        if (D <= 0 || D > max) continue;
+        if (best === null || D < best) best = D;
+      }
+    }
+    return best;
+  }
+
+  /**
+   * route(), but starting from a car that is POINTING somewhere: it joins the lane
+   * ahead of its nose (joinAhead) and is routed on from that lane's end node. Falls
+   * back to the plain nearest-node route when no lane agrees with the heading —
+   * the gate approach road, for one, has no lane a westbound car can join.
+   */
+  routeFacing(from: Pt, heading: number, to: Pt): Pt[] {
+    const j = this.joinAhead(from, heading);
+    if (!j) return this.route(from, to);
+    const lane = this.lanes.get(j.laneId)!;
+    const a = lane.pts[j.seg - 1], b = lane.pts[j.seg];
+    const L = len(a, b);
+    const ux = (b.x - a.x) / L, uy = (b.y - a.y) / L;
+    const shift = (q: Pt) => ({ x: q.x - uy * this.rightOffset, y: q.y + ux * this.rightOffset });
+    const tJoin = Math.min(L, j.t + JOIN_LEAD);
+    const joinPt = shift({ x: a.x + ux * tJoin, y: a.y + uy * tJoin });
+    // Destination ON this lane, ahead of the join: go straight to it rather than
+    // driving past it to the lane's end node and doubling back.
+    const tTo = (to.x - a.x) * ux + (to.y - a.y) * uy;
+    const latTo = Math.abs((to.x - a.x) * -uy + (to.y - a.y) * ux);
+    if (tTo > tJoin && tTo <= L && latTo <= this.rightOffset * 3) {
+      return [{ ...from }, joinPt, { ...to }];
+    }
+    const destOk = (n: Node) => this.inDegree(n.id) > 0;
+    const bNode = this.nearestNode(to, destOk) || this.nearestNode(to);
+    const np = this.nodePath(lane.to, bNode);
+    // the joined lane leads nowhere the destination can be reached from (a sink
+    // spur such as the egress stub): do not commit to it
+    if (np.length < 2 && lane.to !== bNode) return this.route(from, to);
+    // centreline from the join onward: the rest of this lane, then the graph path
+    const center: Pt[] = [{ x: a.x + ux * tJoin, y: a.y + uy * tJoin }];
+    for (let i = j.seg; i < lane.pts.length; i++) center.push({ ...lane.pts[i] });
+    if (np.length >= 2) for (const q of this.centerline(np)) center.push(q);
+    center.push({ ...to });
+    const clean: Pt[] = [];
+    for (const q of center) if (!clean.length || len(clean[clean.length - 1], q) > 0.5) clean.push(q);
+    const shifted = LaneGraph.offsetRight(clean, this.rightOffset, 1, clean.length - 3);
+    shifted[shifted.length - 1] = clean[clean.length - 1]; // `to` is a physical point
+    shifted[0] = joinPt;
+    return [{ ...from }, ...shifted];
   }
 
   /**
@@ -225,7 +384,9 @@ export class LaneGraph {
     // de-dupe
     const clean: Pt[] = [];
     for (const p of center) if (!clean.length || len(clean[clean.length - 1], p) > 0.5) clean.push(p);
-    const shifted = LaneGraph.offsetRight(clean, this.rightOffset);
+    // clean = [from, node0, …, nodeK, to]: node0 and nodeK each join a leg that is
+    // not a lane (the car's start, the target point), so only node1..nodeK-1 miter
+    const shifted = LaneGraph.offsetRight(clean, this.rightOffset, 2, clean.length - 3);
     // THE ENDPOINTS ARE PHYSICAL POSITIONS, NOT CENTERLINES. `from` is where the
     // car actually IS and `to` is the exact point it must reach; only the road
     // vertices in between are centerlines that need the drive-on-the-right shift.

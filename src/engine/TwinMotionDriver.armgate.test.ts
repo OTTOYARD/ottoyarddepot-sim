@@ -213,7 +213,16 @@ describe("depart gate — busy_day replay with the OTTO-CHARGE ARMS live", () =>
   it("RATCHET: the hold's re-phasing cost stays where it was measured", () => {
     // 90 / 41 in this tree (80 / 39 with the gate stubbed off, same harness).
     // Pinned just above, to stop the number creeping — not as a target.
-    expect(r.overlapPairSamples).toBeLessThanOrEqual(100);
-    expect(r.distinctOverlapPairs).toBeLessThanOrEqual(48);
+    //
+    // RE-MEASURED 2026-09-22 after the traffic-flow change (stall exits, lane
+    // joins, movement-based junctions), same harness, both sides:
+    //     main (8a3e28f)   overlap 90 · distinct 41 · stuck 10
+    //     this change      overlap 67 · distinct 32 · stuck 14
+    // The +4 stuck is queueing at the single-lane egress in the fixture's final
+    // mass departure, which the junction control now serialises (the two turning
+    // streams used to drive through each other there). It stays inside the
+    // wedging budget above. Ratcheted DOWN to the new overlap measurement.
+    expect(r.overlapPairSamples).toBeLessThanOrEqual(72);
+    expect(r.distinctOverlapPairs).toBeLessThanOrEqual(36);
   });
 });

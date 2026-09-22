@@ -100,6 +100,17 @@ export function gapLaneX(stallX: number): number {
 
 // ---- Zone rectangles (logical coords; w/h in logical units) ----
 export const LOT = { x: 6, y: 6, w: 288, h: 200 };
+
+/** Feet per plan unit: 1u = 0.4785 m. The same yardstick scripts/buildLayoutSeed.mjs
+ *  writes the database with (its UNIT_FT), stated here so the renderer can read
+ *  database positions back instead of trusting a stall's CODE to say where it is. */
+export const UNIT_FT = 0.4785 / 0.3048;
+/** public.stalls relative_x / relative_y (feet; y NORTH-positive, origin at the lot's
+ *  SW corner) -> plan units (y SOUTH-positive). The exact inverse of
+ *  buildLayoutSeed's toX / toY. */
+export function planFromDbFeet(xFt: number, yFt: number): { x: number; y: number } {
+  return { x: LOT.x + xFt / UNIT_FT, y: LOT.y + LOT.h - yFt / UNIT_FT };
+}
 export const BESS_YARD = { x: 12, y: 12, w: 50, h: 36 };
 export const BUILDING = { x: 70, y: 26, w: 80, h: 30 };   // office (west) + 2 service bays (east)
 export const WASH = { x: 160, y: 26, w: 52, h: 30 };      // 3 pull-through bays

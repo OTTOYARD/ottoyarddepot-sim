@@ -6,15 +6,17 @@
 // and no-overlap are structural guarantees, not steering behaviors:
 //   • same-path following: IDM against the nearest body projected onto MY
 //     forward window (other rail cars, parked bodies, docking cars alike)
-//   • intersections: every LaneGraph node is a LOCK — one car crosses at a
-//     time; waiters treat the node as a stop bar (no mutual-yield deadlocks)
+//   • junctions: every LaneGraph node admits any set of cars whose MOVEMENTS
+//     through it are compatible (see RailLocks); a car whose movement conflicts
+//     with one already inside, or that could not clear the box, waits at a stop
+//     bar outside it
 //   • charger columns: a MOUTH lock per column — one car docks/undocks at a
 //     time; followers hold at the column entrance in a visible, orderly queue
 // Docking (Dubins pull-in past the rail end) and reverse back-outs stay
 // scripted kinematic maneuvers owned by TwinMotionDriver.
 // ============================================================================
 import type { Pt } from "./PathTracker";
-import { CAR_BODY_LENGTH } from "./traffic";
+import { CAR_BODY_LENGTH, CAR_BODY_WIDTH } from "./traffic";
 import { idmAccel } from "./idm";
 
 export interface RailBody {
@@ -22,15 +24,24 @@ export interface RailBody {
   /** travel heading (rad) + whether it is a moving/taxiing car. A MOVING car
    *  heading against my path is ONCOMING (a pass on the divided road) or CROSSING
    *  at a node — it must NOT count as a leader to brake for (real crossings are
-   *  serialized by the node LOCKS). A parked body always blocks. */
+   *  serialized by the junction control, RailLocks). A parked body always blocks. */
   heading?: number; moving?: boolean;
+  /** current speed (u/s). A junction is not entered while a STOPPED body sits
+   *  just past it on my path (don't block the box); a parked body has no speed. */
+  speed?: number;
+  /** backing out of a stall — a car joining traffic at that spot waits for it */
+  reversing?: boolean;
+  /** what a STOPPED rail car is waiting on (RailFlow's limiterId), if anything —
+   *  lets a junction see that its holder is waiting on the very car it refuses */
+  waitsOn?: string | null;
 }
 
 export interface Rail {
   pts: Pt[];
   cum: number[];          // cumulative arc length at each vertex
   total: number;
-  nodes: { id: string; s: number }[]; // graph intersections along this route
+  nodes: { id: string; s: number; sweep?: Sweep }[]; // graph junctions along this route
+                          // (`sweep` is this car's movement through it, built on first need)
   s: number;              // arc position
   v: number;              // speed (u/s)
   mouthKey: string | null; // charger-column mouth this route ends in (if any)
@@ -43,9 +54,25 @@ export interface Rail {
    *  timed leg: remaining arc / remaining sim-seconds until planned_end_sim. It is
    *  a CEILING ONLY — it can slow a car so it arrives when the contract says, but
    *  it can never make one exceed MAX_SPEED, and it never overrides IDM braking,
-   *  node locks or the mouth lock (those clamp v downward and still win). Undefined
+   *  junctions or the mouth lock (those clamp v downward and still win). Undefined
    *  = uncapped, i.e. exactly the pre-T4 behaviour. */
   vCap?: number;
+  /** Which constraint set this step's gap: a body in my path, a junction I could
+   *  not enter, a charger-column mouth held by another car, traffic I am waiting to
+   *  merge into, or nothing (free road / easing into the route end). The flow
+   *  replay attributes stopped time with it. */
+  limiter?: "body" | "node" | "mouth" | "merge" | null;
+  /** The car behind `limiter`, when there is one. The driver publishes it as
+   *  RailBody.waitsOn for a stopped car, which is how a junction recognises a
+   *  holder that is waiting on the very car it is refusing (the deadlock breaker
+   *  in stepRail). */
+  limiterId?: string | null;
+  /** A rail that starts OFF the road and joins it — a charger sidestep, a staging
+   *  back-out, a bay pull-through: where it joins, and which way that lane flows.
+   *  The car does not start until the lane behind the join is clear (see stepRail);
+   *  once it has started, it is committed and the lane's traffic sees it as a
+   *  body in the ordinary way. */
+  merge?: { x: number; y: number; hx: number; hy: number; committed?: boolean };
 }
 
 const LANE_HALF = 1.7;    // half-width that counts as "in my path"
@@ -61,12 +88,34 @@ const SAMPLE = 2;         // projection sampling step (u)
 // a staging→egress route crossing S_in, Sg2, Sg1 and Sg0 locked NONE of them
 // (only S_eg and egress, both next to un-offset route endpoints), so those
 // intersections were not serialized and crossing cars drove through each other.
-// 5u clears rightOffset plus the corner rounding cut below; the nearest node a
-// route does NOT traverse is >20u away, so it cannot false-positive.
-const NODE_MATCH = 5;
-const NODE_CLAIM = 12;    // start trying to hold a node this far out
-const NODE_STOP = 4;      // stop bar distance before an unheld node
-const NODE_RELEASE = 10;  // release once this far past
+// 5u cleared rightOffset plus the corner rounding cut below. It stopped clearing
+// it once LaneGraph.offsetRight took proper MITER joins: the inside of a 90° turn
+// now runs rightOffset·√2 = 4.53u from the node, and the rounding cuts it ~1u
+// further in, so a car turning RIGHT through a junction passed ~5.7u from it and
+// never asked for it. Measured on busy_day: every right-turner into the egress
+// spur skipped S_eg, and met the left-turners merging into the same spur (the
+// crossing contacts there went 4 -> 12). 7u covers it; the nearest node a route
+// does NOT traverse is still >20u away, so it cannot false-positive.
+const NODE_MATCH = 7;
+const NODE_CLAIM = 12;    // commit to (enter) a junction this far out
+// Where a car waits for a junction, as the IDM "stationary leader" distance. IDM
+// settles s0 = 5u behind it, so the car's CENTRE stops NODE_STOP + 5 = 11u short
+// of the node and its nose 11 - 5.1 = 5.9u short. The near crossing lane's body
+// reaches 3.2 + 2.1 = 5.3u from the node, so a waiting car now stays out of it.
+// At the old 4 its nose stood 1.2u INSIDE that lane, and crossing traffic — which
+// a waiting car deliberately does not brake for — passed through it.
+const NODE_STOP = 6;
+const NODE_SEE = 26;      // a junction held against me is visible (a stop bar) this far out
+const NODE_RELEASE = 11;  // out of the box once the centre is this far past (≥ BOX)
+// Don't block the box: a stopped body closer than this past the node (its centre,
+// on my path) means I would have to stop with my body still inside the junction.
+// My centre must reach NODE_RELEASE to be clear; IDM holds it s0 + one body behind
+// the stopped car, so 11 + 5 + 10.2.
+const BOX_EXIT = NODE_RELEASE + 5 + CAR_BODY_LENGTH;
+// Merge gap acceptance: a car in the lane within MERGE_LAT of its line and up to
+// MERGE_BACK behind the join point (≈3 s at cruise) makes a joining car wait.
+const MERGE_LAT = 3.5;
+const MERGE_BACK = 26;
 const MOUTH_ZONE = 18;    // column mouth = final stretch of the route
 const MAX_SPEED = 8;
 // Look-ahead (u) for the rendered heading. It used to be 6, to hide the 90°
@@ -264,21 +313,164 @@ export function pointAt(pts: Pt[], cum: number[], s: number): Pt & { heading: nu
   };
 }
 
+// ── JUNCTIONS: WHO MAY BE IN THE BOX TOGETHER ──────────────────────────────
+// Every LaneGraph node used to be an EXCLUSIVE lock: one car in it at a time,
+// whatever each car was doing there. On a divided road that serialises traffic
+// that cannot touch — the eastbound and westbound streams run 2 x rightOffset =
+// 6.4u apart through every junction on the south and north collectors, and the
+// inner and outer paths round a ring corner never meet — and it makes every
+// follower wait for its leader to clear NODE_RELEASE before it may enter behind
+// it. That is the founder's "hesitating and stopping when they meet one another
+// at intersections and in passing" (2026-09-22), and on the busy_day replay it
+// is the SW corner queueing a departure wave one car at a time.
+//
+// A junction now admits any set of cars whose MOVEMENTS through it are
+// compatible. A movement is the car's own rail swept across the box. Two that
+// share an APPROACH are a queue, which IDM spaces. Two from different approaches
+// into one exit are a merge and take turns. Any other pair — the opposing stream
+// of a divided road, the inner and outer paths round a corner, a turn that stays
+// clear of a through lane — conflicts only if the drawn bodies swept along both
+// paths would touch somewhere.
+const BOX = 10.5;        // half-length of the swept window (u): lane offset 3.2 +
+                         // half-width 2.1 + half-length 5.1, so a body entirely
+                         // outside it cannot be touching anything in the box
+const SWEEP_STEP = 1;    // sampling pitch of a sweep (u)
+const BODY_MARGIN = 0.3; // clearance kept between two bodies sharing a box (u)
+const SAME_TOL = 1.5;    // a sweep's end lies ON another's path within this
+const SAME_DIR = 0.9;    // …and points the same way (cos 25°)
+
+/** One car's path through one junction: its rail sampled across the box. */
+export interface Sweep { x: number[]; y: number[]; hx: number[]; hy: number[] }
+
+function sweepOf(r: Rail, nodeS: number): Sweep {
+  const sw: Sweep = { x: [], y: [], hx: [], hy: [] };
+  const s0 = Math.max(0, nodeS - BOX), s1 = Math.min(r.total, nodeS + BOX);
+  for (let s = s0; s <= s1 + 1e-9; s += SWEEP_STEP) {
+    const p = pointAt(r.pts, r.cum, s);
+    sw.x.push(p.x); sw.y.push(p.y); sw.hx.push(Math.cos(p.heading)); sw.hy.push(Math.sin(p.heading));
+  }
+  return sw;
+}
+
+/** Does sample i of A lie on B's path, pointing the same way? */
+function onPath(A: Sweep, i: number, B: Sweep): boolean {
+  for (let j = 0; j < B.x.length; j++) {
+    const dx = A.x[i] - B.x[j], dy = A.y[i] - B.y[j];
+    if (dx * dx + dy * dy < SAME_TOL * SAME_TOL && A.hx[i] * B.hx[j] + A.hy[i] * B.hy[j] > SAME_DIR) return true;
+  }
+  return false;
+}
+
+/** May two movements be in the same junction at once? */
+export function movementsConflict(A: Sweep, B: Sweep): boolean {
+  if (!A.x.length || !B.x.length) return false;
+  const a1 = A.x.length - 1, b1 = B.x.length - 1;
+  // same approach: a queue through the junction (or one of them turning off it).
+  // Serialising the diverge case too was measured and is WORSE (busy_day overlap
+  // 95 -> 103, the live burst's wedged samples 1 -> 49): the follower waits at
+  // the bar with the queue backing up behind it.
+  if (onPath(A, 0, B) || onPath(B, 0, A)) return false;
+  // different approaches, same exit: a merge
+  if (onPath(A, a1, B) || onPath(B, b1, A)) return true;
+  // otherwise they conflict only where their BODIES would actually touch: the
+  // drawn 10.2 x 4.2 body at every sampled pose of one against every sampled pose
+  // of the other. Centre distance alone is the wrong test here for the same reason
+  // replay.ts gives: two bodies meeting at an angle touch with their centres well
+  // over a body-width apart (measured: +8 crossing contacts with a 5u centre test).
+  const R2 = (CAR_BODY_LENGTH + 2 * BODY_MARGIN) ** 2;
+  for (let i = 0; i <= a1; i++) {
+    for (let j = 0; j <= b1; j++) {
+      const dx = A.x[i] - B.x[j], dy = A.y[i] - B.y[j];
+      if (dx * dx + dy * dy > R2) continue; // too far apart for any orientation to touch
+      if (bodiesTouch(A.x[i], A.y[i], A.hx[i], A.hy[i], B.x[j], B.y[j], B.hx[j], B.hy[j])) return true;
+    }
+  }
+  return false;
+}
+
+/** Separating-axis test on two drawn bodies (CAR_BODY_LENGTH x CAR_BODY_WIDTH),
+ *  each grown by BODY_MARGIN on every side. (hx, hy) is the unit heading. */
+function bodiesTouch(ax: number, ay: number, ahx: number, ahy: number,
+                     bx: number, by: number, bhx: number, bhy: number): boolean {
+  const hl = CAR_BODY_LENGTH / 2 + BODY_MARGIN, hw = CAR_BODY_WIDTH / 2 + BODY_MARGIN;
+  const dx = bx - ax, dy = by - ay;
+  const axes = [[ahx, ahy], [-ahy, ahx], [bhx, bhy], [-bhy, bhx]];
+  for (const [ux, uy] of axes) {
+    const ra = Math.abs(ahx * ux + ahy * uy) * hl + Math.abs(-ahy * ux + ahx * uy) * hw;
+    const rb = Math.abs(bhx * ux + bhy * uy) * hl + Math.abs(-bhy * ux + bhx * uy) * hw;
+    if (Math.abs(dx * ux + dy * uy) > ra + rb) return false;
+  }
+  return true;
+}
+
 /** Shared lock boards (one per driver instance). */
 export class RailLocks {
-  nodes = new Map<string, string>();  // nodeId → carId
+  /** junction id → the cars inside (or committed to) it, each with its movement */
+  junctions = new Map<string, Map<string, Sweep>>();
   mouths = new Map<string, string>(); // mouthKey → carId
 
-  /** try to hold (or confirm holding) a lock; returns true if held */
+  /** The first car in `node` whose movement conflicts with `sweep`, or null. */
+  conflictAt(node: string, carId: string, sweep: Sweep): string | null {
+    const inside = this.junctions.get(node);
+    if (!inside) return null;
+    for (const [other, sw] of inside) {
+      if (other !== carId && movementsConflict(sweep, sw)) return other;
+    }
+    return null;
+  }
+  /** Enter (or confirm being in) a junction; false when a conflicting car is in it.
+   *  `force` admits regardless — for a car whose body is already inside. */
+  enter(node: string, carId: string, sweep: Sweep, force = false): boolean {
+    const inside = this.junctions.get(node);
+    if (inside?.has(carId)) return true;
+    if (!force && this.conflictAt(node, carId, sweep)) return false;
+    if (inside) inside.set(carId, sweep);
+    else this.junctions.set(node, new Map([[carId, sweep]]));
+    return true;
+  }
+  holds(node: string, carId: string): boolean {
+    return !!this.junctions.get(node)?.has(carId);
+  }
+  leave(node: string, carId: string) {
+    const inside = this.junctions.get(node);
+    if (!inside) return;
+    inside.delete(carId);
+    if (!inside.size) this.junctions.delete(node);
+  }
+
+  /** try to hold (or confirm holding) a single-occupancy lock; true if held */
   acquire(board: Map<string, string>, key: string, carId: string): boolean {
     const cur = board.get(key);
     if (cur === undefined) { board.set(key, carId); return true; }
     return cur === carId;
   }
   releaseAll(carId: string) {
-    for (const [k, v] of this.nodes) if (v === carId) this.nodes.delete(k);
+    for (const [k, inside] of this.junctions) {
+      if (inside.delete(carId) && !inside.size) this.junctions.delete(k);
+    }
     for (const [k, v] of this.mouths) if (v === carId) this.mouths.delete(k);
   }
+}
+
+/** The id of a STOPPED body on my path within BOX_EXIT past the node at `nodeS`, or
+ *  null. Parked bodies count; a moving body counts only while below walking pace,
+ *  and one heading against my path never does (it is passing, not queued). */
+function stoppedBodyPast(id: string, r: Rail, nodeS: number, bodies: RailBody[]): string | null {
+  const end = Math.min(r.total, nodeS + BOX_EXIT);
+  for (let s = Math.max(r.s + SAMPLE, nodeS); s <= end; s += SAMPLE) {
+    const p = pointAt(r.pts, r.cum, s);
+    for (const b of bodies) {
+      if (b.id === id) continue;
+      const dx = b.x - p.x, dy = b.y - p.y;
+      if (dx * dx + dy * dy > LANE_HALF * LANE_HALF) continue;
+      if (b.moving) {
+        if (b.heading !== undefined && Math.cos(b.heading - p.heading) < ONCOMING_DOT) continue;
+        if ((b.speed ?? 0) >= 0.5) continue;
+      }
+      return b.id;
+    }
+  }
+  return null;
 }
 
 /**
@@ -295,6 +487,7 @@ export function stepRail(
 ): (Pt & { heading: number }) | null {
   // 1) nearest body in my forward window (projected onto MY path)
   let gap = Infinity;
+  let limiterId: string | null = null;
   // wedged AT THE ROUTE START — the only place the co-spawn deadlock happens.
   const wedged = r.stationaryFor > DEADLOCK_S && r.s < DEADLOCK_START_ZONE;
   let creeping = false; // set only by the deadlock breaker; clamps v to a crawl
@@ -307,8 +500,8 @@ export function stepRail(
       if (dx * dx + dy * dy > LANE_HALF * LANE_HALF) continue;
       // a MOVING body heading AGAINST my path here is oncoming (a pass on the
       // divided road) or crossing at a node — real crossings are serialized by
-      // the node LOCK (below), so braking for it here was the pass-freeze /
-      // ingress pileup. A parked (non-moving) body always blocks.
+      // the junction control (below), so braking for it here was the pass-freeze
+      // / ingress pileup. A parked (non-moving) body always blocks.
       if (b.moving && b.heading !== undefined &&
           Math.cos(b.heading - p.heading) < ONCOMING_DOT) continue;
       // CO-SPAWN DEADLOCK BREAKER (see DEADLOCK_S above for the full argument
@@ -322,37 +515,103 @@ export function stepRail(
       // it to bumper-to-bumper. The old `CAR_LENGTH * 0.55` (4.125 u) budgeted
       // 40% of the body the cockpit draws, so a queue that IDM had settled
       // perfectly at its jam gap was still 1.075 u inside the car in front.
-      gap = Math.min(gap, d - CAR_BODY_LENGTH);
+      if (d - CAR_BODY_LENGTH < gap) { gap = d - CAR_BODY_LENGTH; limiterId = b.id; }
     }
     if (gap < Infinity) break; // nearest sample wins; no need to look further
   }
+  let limiter: Rail["limiter"] = gap < Infinity ? "body" : null;
 
-  // 2) intersections: hold the next node's lock or stop at its bar
+  // 1b) GAP ACCEPTANCE for a car joining traffic from off the road. A stall exit
+  // joins a live lane mid-segment, where no junction serialises anything, and the
+  // lane's own traffic cannot see the joining car until it is already inside the
+  // 1.7u band — so without this the two merged side by side (measured: +14
+  // same-direction body contacts on busy_day once exits joined lanes directly).
+  // The joining car yields to any car in that lane which is at, or bearing down
+  // on, the join point.
+  if (r.merge && !r.merge.committed) {
+    const m = r.merge;
+    let busy: string | null = null;
+    for (const b of bodies) {
+      if (b.id === id || b.heading === undefined) continue;
+      const along = (b.x - m.x) * m.hx + (b.y - m.y) * m.hy;
+      const lat = Math.abs((b.x - m.x) * -m.hy + (b.y - m.y) * m.hx);
+      if (lat >= MERGE_LAT) continue;
+      if (b.reversing) {
+        // a car backing into the very spot I am joining at
+        if (Math.abs(along) < CAR_BODY_LENGTH) { busy = b.id; break; }
+        continue;
+      }
+      if (!b.moving) continue;
+      if (Math.cos(b.heading) * m.hx + Math.sin(b.heading) * m.hy < 0.7) continue; // not in this lane's flow
+      if ((b.speed ?? 0) >= 0.5) {
+        if (along > -MERGE_BACK && along < CAR_BODY_LENGTH) { busy = b.id; break; }
+      } else if (Math.abs(along) < CAR_BODY_LENGTH && id > b.id) {
+        // another car starting at the same spot (two exits side by side): the
+        // lower id goes first — a deterministic order, or both wait for ever
+        busy = b.id; break;
+      }
+    }
+    if (busy) {
+      if (0 < gap) { gap = 0; limiter = "merge"; limiterId = busy; }
+    } else m.committed = true;
+  }
+
+  // 2) junctions: be admitted to the next one, or wait at its stop bar
   for (const n of r.nodes) {
     const dist = n.s - r.s;
     if (dist < -NODE_RELEASE) {
-      if (locks.nodes.get(n.id) === id) locks.nodes.delete(n.id); // passed → free it
+      locks.leave(n.id, id); // passed → out of the box
       continue;
     }
-    if (dist > NODE_CLAIM) break;
-    if (!locks.acquire(locks.nodes, n.id, id)) {
-      gap = Math.min(gap, Math.max(0, dist - NODE_STOP));
+    if (dist > NODE_SEE) break;
+    if (locks.holds(n.id, id)) continue; // already admitted; look at the next one
+    const sweep = (n.sweep ??= sweepOf(r, n.s));
+    // ALREADY IN THE BOX: a car past its own stop point cannot wait outside a
+    // junction it is standing in — refusing it only deadlocks it against whoever
+    // was admitted around it (measured: a car re-routed mid-junction on the live
+    // recording waited on a car that was itself waiting on its body, for good).
+    // Admit it, so every other car sees it and yields to it instead.
+    if (dist < NODE_STOP + 4) { locks.enter(n.id, id, sweep, true); continue; }
+    // Seen from NODE_SEE out, a junction held against me is a stop bar, so the car
+    // eases down to it instead of finding out at NODE_CLAIM and stopping in a metre.
+    const blocker = locks.conflictAt(n.id, id, sweep);
+    // A holder that is itself stopped waiting on ME — my body in its path, or a
+    // junction I hold — will never clear the box while I wait for it: that is a
+    // deadlock, not a queue. Measured on the live burst: a car finished a back-out
+    // in the path of a car already admitted to SE and the two waited on each other
+    // for the rest of the run; and on the live recording two cars each held one of
+    // S_in / Sg3 (20u apart) and waited for the other. Go; it follows me out.
+    // (Admitting junctions that close together as a pair was tried first and
+    // measured worse — it holds the second box from 30u out.)
+    if (blocker && bodies.some((b) => b.id === blocker && b.waitsOn === id)) {
+      locks.enter(n.id, id, sweep, true);
+      continue;
+    }
+    const stopped = blocker ? null : stoppedBodyPast(id, r, n.s, bodies);
+    if (blocker || stopped) {
+      const g = Math.max(0, dist - NODE_STOP);
+      if (g < gap) { gap = g; limiter = "node"; limiterId = blocker ?? stopped; }
       break; // can't pass this node; nothing beyond matters
     }
+    if (dist > NODE_CLAIM) break; // clear so far, but not close enough to commit yet
+    locks.enter(n.id, id, sweep);
   }
 
   // 3) charger-column mouth: one car in the final stretch at a time
   if (r.mouthKey && r.total - r.s < MOUTH_ZONE + LOOK) {
     const intoMouth = r.total - r.s - MOUTH_ZONE; // distance until the zone starts
     if (!locks.acquire(locks.mouths, r.mouthKey, id)) {
-      gap = Math.min(gap, Math.max(0, intoMouth));
+      const g = Math.max(0, intoMouth);
+      if (g < gap) { gap = g; limiter = "mouth"; limiterId = locks.mouths.get(r.mouthKey) ?? null; }
     }
   }
+  r.limiter = limiter;
+  r.limiterId = limiterId;
 
   // 4) IDM speed + advance along the rail
   const accel = idmAccel(r.v, Math.max(0, gap), 0);
   // T4: the contract's pace is a CEILING layered on top of the physics ceiling.
-  // Traffic (IDM gap), node locks and the mouth lock all clamp v downward below
+  // Traffic (IDM gap), junctions and the mouth lock all clamp v downward below
   // and still win — so honouring OTTO-Q's timing can never push a car through a
   // car in front of it or through a held intersection.
   // CREEP_SPEED is a third ceiling of the same kind: a car unsticking itself
