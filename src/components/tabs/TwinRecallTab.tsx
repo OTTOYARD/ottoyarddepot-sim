@@ -215,7 +215,7 @@ export const TwinRecallTab = () => {
     !!status?.ok && !recalling && !HOME_STATES.has(status?.current_state ?? '') && (status?.pending_commands ?? 0) === 0;
 
   const linkTone = useMemo(() => {
-    if (!status?.ok) return { label: 'unknown', color: '#4A4E57' };
+    if (!status?.ok) return { label: 'unknown', color: '#7B818D' };
     if (status.bridge_live) return { label: 'bridge live', color: '#00B4A6' };
     if (status.last_packet_age_s == null) return { label: 'no telemetry', color: '#C8102E' };
     return { label: `last packet ${status.last_packet_age_s}s ago`, color: '#F59E0B' };

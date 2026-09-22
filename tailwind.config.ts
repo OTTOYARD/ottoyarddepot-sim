@@ -68,7 +68,15 @@ export default {
         // ── OTTO-TWIN Command Center design system (OTTOYARD brand + restrained-instrument) ──
         // See OTTOQ_DESIGN_SYSTEM.md. Migrate components off otto-* onto these over phases.
         canvas: { base: '#06070A', raised: '#0A0B0E', panel: '#111317', elev: '#14161A', line2: '#1A1C22' },
-        ink:    { DEFAULT: '#E7EAF0', dim: '#8A8F99', faint: '#4A4E57' },
+        // ink.faint WAS #4A4E57 and ink.dim WAS #8A8F99. Measured against
+        // canvas.panel (#111317), the surface almost every panel draws on, that
+        // put faint at **2.23:1** -- roughly half the WCAG AA floor of 4.5:1 --
+        // and it carries 176 `text-ink-faint` uses, most of them at 8-9px. Chase,
+        // 2026-09-22: "a lot of the text within the controls tab is hard to read
+        // ... dark gray text over top of the dark or charcoal background."
+        // Re-measured on the new values: DEFAULT 15.4:1, dim 8.4:1, faint 4.8:1 --
+        // still a clean three-step hierarchy, now with every step above AA.
+        ink:    { DEFAULT: '#E7EAF0', dim: '#A8AEBB', faint: '#7B818D' },
         brand:  { red: '#C8102E', deep: '#8E0B20', hot: '#E8293F' },
         state:  { go: '#C9E0D4', info: '#D8DDFF', warn: '#FFEBC9', crit: '#FF8A80' },
       },
