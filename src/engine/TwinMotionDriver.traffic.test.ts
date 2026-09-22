@@ -11,7 +11,7 @@ import { useDepotStore } from "@/store/depotStore";
 import { useVehicleStore } from "@/store/vehicleStore";
 import type { TwinSnapshot } from "@/lib/ottoTwin";
 import { LaneGraph, buildDepotLanes } from "./motion/LaneGraph";
-import { buildRail, movementsConflict, RailLocks, type Sweep } from "./motion/RailFlow";
+import { buildRail, movementsConflict, RailLocks, stepRail, type RailBody, type Sweep } from "./motion/RailFlow";
 import { EGRESS, GAP_LANES, NORTH_LANE_Y, TEMP_LANE_X } from "@/lib/sitePlan";
 
 type Entry = {
@@ -247,6 +247,59 @@ describe("junctions admit compatible movements together", () => {
     locks.releaseAll("east");
     locks.leave("J", "west");
     expect(locks.enter("J", "north", northbound)).toBe(true);
+  });
+});
+
+describe("a wait that comes back round is a deadlock, not a queue", () => {
+  // Both measured on the fresh 0682752c start (twinRun.fresh0922.json). Before
+  // these, only a two-car loop at a junction was recognised, and only by the 45 s
+  // watchdog anywhere else.
+  const north: Sweep = { x: [], y: [], hx: [], hy: [] };
+  const eastAt15: Sweep = { x: [], y: [], hx: [], hy: [] };
+  for (let i = 0; i <= 20; i++) {
+    north.x.push(0); north.y.push(-5 - i); north.hx.push(0); north.hy.push(-1);
+    eastAt15.x.push(-10 + i); eastAt15.y.push(-15); eastAt15.hx.push(1); eastAt15.hy.push(0);
+  }
+  const far = (id: string, waitsOn: string | null): RailBody =>
+    ({ id, x: 60 + id.length, y: 60, heading: 0, moving: true, speed: 0, waitsOn });
+
+  it("a car joining a lane goes when the lane car at its join point is stopped for IT", () => {
+    const joining = () => {
+      const r = buildRail([{ x: 3, y: 0 }, { x: 0, y: -10 }, { x: 0, y: -40 }], [], null);
+      r.merge = { x: 0, y: -10, hx: 0, hy: -1 };
+      return r;
+    };
+    // beside the join point, in the lane's flow, stopped — and (the id order)
+    // the one a same-spot tie goes to
+    const laneCar = (waitsOn: string | null): RailBody =>
+      ({ id: "a-lane", x: -2.5, y: -10, heading: -Math.PI / 2, moving: true, speed: 0, waitsOn });
+    const queued = joining();
+    stepRail("z-join", queued, 0.05, [laneCar(null)], new RailLocks());
+    expect(queued.merge!.committed).toBeFalsy();
+    expect(queued.limiter).toBe("merge");
+
+    const blocking = joining();
+    stepRail("z-join", blocking, 0.05, [laneCar("z-join")], new RailLocks());
+    expect(blocking.merge!.committed).toBe(true);
+  });
+
+  it("a junction admits a car whose holder is waiting, through other cars, on it", () => {
+    const run = (chainEnd: string) => {
+      const locks = new RailLocks();
+      locks.enter("J", "holder", eastAt15);
+      const r = buildRail([{ x: 0, y: 0 }, { x: 0, y: -40 }], [{ id: "J", x: 0, y: -15 }], null);
+      r.nodes[0].sweep = north;
+      // holder -> c1 -> c2 -> chainEnd : four cars round, as at Ts / Sg3
+      stepRail("me", r, 0.05, [far("holder", "c1"), far("c1", "c2"), far("c2", chainEnd)], locks);
+      return { r, locks };
+    };
+    const queue = run("someone-else");
+    expect(queue.locks.holds("J", "me")).toBe(false);
+    expect(queue.r.limiter).toBe("node");
+
+    const loop = run("me");
+    expect(loop.locks.holds("J", "me")).toBe(true);
+    expect(loop.r.limiter).not.toBe("node");
   });
 });
 

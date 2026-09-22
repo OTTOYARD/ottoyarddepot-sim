@@ -35,6 +35,30 @@
 // neighbour, and never moved again; the ledger then handed its stall to the
 // next car, which looped the block. The budgets below sit just above this
 // change's measurement. If a change pushes them up, it is putting that back.
+//
+//   fresh0922    public.vehicle_state_log of run 0682752c, started FRESH from
+//                the cockpit after that fix merged (busy_day, 8x): the first
+//                405 s, i.e. a whole opening dispatch wave — ~50 departures for
+//                the one exit gate inside a minute. Replayed as captured (8x),
+//                and `playAt: 3` — the same world, as the cockpit shows it when
+//                the run plays at 3x. Both sides, same harness (main = cb58ef1):
+//
+//                                      main        this change
+//   fresh0922, played at 3x stopped    5.7%        3.5%
+//                           stuck      34          0
+//                           overlap    92          70
+//   fresh0922, at 8x        stopped    19.0%       12.6%
+//                           stuck      227         71
+//                           overlap    216         182
+//
+// Every stuck car on main was a LOOP of waits the 45 s watchdog broke: a stall
+// exit waiting to merge beside a lane car stopped for its body, and four cars
+// at Ts / Sg3 each waiting on the next. What is left at 8x is the opening wave
+// itself. The renderer's motion is capped at 3x (setViewMult, founder spec
+// 2026-07-25) while the world runs at 8x, so a wave that leaves the stalls at
+// 8x reaches the exit at 3x and queues there; with that cap lifted to 8 the same
+// capture measures 3.2% / 0 / 60. The 8x budgets hold the queue where it is —
+// they are not a target.
 // ============================================================================
 import { describe, it, expect, beforeAll } from "vitest";
 import { replayFlow, formatFlow, type FlowReport } from "./__fixtures__/flowReplay";
@@ -42,16 +66,23 @@ import { replayFlow, formatFlow, type FlowReport } from "./__fixtures__/flowRepl
 describe("traffic flow — the 2026-09-22 live run, replayed on the cockpit's cadence", () => {
   let burst: FlowReport;
   let rec: FlowReport;
+  let fresh8: FlowReport;
+  let fresh3: FlowReport;
   // ~5 s each locally; CI is a shared runner and much slower, so the ceiling is generous.
   beforeAll(() => {
     burst = replayFlow("live0922", { maxWallMs: 900_000 });
     rec = replayFlow("live0922rec", { maxWallMs: 600_000 });
+    fresh8 = replayFlow("fresh0922", { maxWallMs: 420_000 });
+    fresh3 = replayFlow("fresh0922", { playAt: 3, maxWallMs: 1_120_000 });
   }, 600_000);
 
   it("DIAGNOSTIC: dump the flow", () => {
-    console.log("\n" + formatFlow("live0922 (burst, first 900 s)", burst) + "\n" + formatFlow("live0922rec (recorded, first 600 s)", rec));
+    console.log("\n" + formatFlow("live0922 (burst, first 900 s)", burst) + "\n" + formatFlow("live0922rec (recorded, first 600 s)", rec) +
+      "\n" + formatFlow("fresh0922 (fresh start, 8x)", fresh8) + "\n" + formatFlow("fresh0922 (fresh start, played at 3x)", fresh3));
     expect(burst.geometry.samples).toBeGreaterThan(0);
     expect(rec.geometry.samples).toBeGreaterThan(0);
+    expect(fresh8.geometry.samples).toBeGreaterThan(0);
+    expect(fresh3.geometry.samples).toBeGreaterThan(0);
   });
 
   it("the opening burst keeps moving: cars are stopped for a small share of their taxi time", () => {
@@ -70,6 +101,20 @@ describe("traffic flow — the 2026-09-22 live run, replayed on the cockpit's ca
   it("no two cars ever wait on each other at a junction", () => {
     expect(burst.flow.lockCycleSteps).toBe(0);
     expect(rec.flow.lockCycleSteps).toBe(0);
+    expect(fresh8.flow.lockCycleSteps).toBe(0);
+    expect(fresh3.flow.lockCycleSteps).toBe(0);
+  });
+
+  it("a fresh start, played at 3x: the whole opening wave flows and nothing wedges", () => {
+    // 5.7% / 34 stuck on main — two loops of waits, each until the watchdog
+    expect(fresh3.flow.stoppedFraction).toBeLessThanOrEqual(0.04);
+    expect(fresh3.geometry.stuckSamples).toBeLessThanOrEqual(5);
+  });
+
+  it("a fresh start at 8x: the opening wave queues for the exit, no loop of waits holds it", () => {
+    // 19.0% / 227 stuck on main; see the header for why 8x cannot reach the 3x figures
+    expect(fresh8.flow.stoppedFraction).toBeLessThanOrEqual(0.135);
+    expect(fresh8.geometry.stuckSamples).toBeLessThanOrEqual(80);
   });
 
   it("the recorded stream flows freely and nothing wedges", () => {
@@ -77,13 +122,17 @@ describe("traffic flow — the 2026-09-22 live run, replayed on the cockpit's ca
     expect(rec.geometry.stuckSamples).toBeLessThanOrEqual(5);
   });
 
-  it("body overlap stays within the ratchet on both captures (target 0)", () => {
+  it("body overlap stays within the ratchet on every capture (target 0)", () => {
     expect(burst.geometry.overlapPairSamples).toBeLessThanOrEqual(82);
     expect(rec.geometry.overlapPairSamples).toBeLessThanOrEqual(8);
+    expect(fresh3.geometry.overlapPairSamples).toBeLessThanOrEqual(78);
+    expect(fresh8.geometry.overlapPairSamples).toBeLessThanOrEqual(190);
   });
 
   it("no car is ever drawn off the lot", () => {
     expect(burst.geometry.worstOffMap).toBe(0);
     expect(rec.geometry.worstOffMap).toBe(0);
+    expect(fresh8.geometry.worstOffMap).toBe(0);
+    expect(fresh3.geometry.worstOffMap).toBe(0);
   });
 });

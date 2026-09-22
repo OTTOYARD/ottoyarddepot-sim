@@ -32,6 +32,7 @@
 import busyday from "./twinRun.busyday.json";
 import live0922 from "./twinRun.live0922.json";
 import live0922rec from "./twinRun.live0922rec.json";
+import fresh0922 from "./twinRun.fresh0922.json";
 import { twinMotionDriver } from "../TwinMotionDriver";
 import { poseStore } from "../motion/poseStore";
 import { useDepotStore } from "@/store/depotStore";
@@ -65,6 +66,7 @@ export const FIXTURES: Record<string, MotionFixture> = {
   busyday: busyday as unknown as MotionFixture,
   live0922: live0922 as unknown as MotionFixture,
   live0922rec: live0922rec as unknown as MotionFixture,
+  fresh0922: fresh0922 as unknown as MotionFixture,
 };
 
 export interface FlowOptions {
@@ -79,6 +81,11 @@ export interface FlowOptions {
   maxWallMs?: number;
   /** keep polling this long after the last frame so in-flight trips can land */
   tailWallMs?: number;
+  /** replay the SAME world timeline as though the run had been PLAYED at this
+   *  speed_x: every frame lands (speedX / playAt)x later on the wall clock, and
+   *  the renderer's motion runs at min(3, playAt). Wall-paced fixtures only; a
+   *  maxWallMs is on the retimed clock. */
+  playAt?: number;
   /** diagnostic hook, called after every reconcile with the simulated wall ms */
   onPoll?: (wallMs: number, driver: unknown) => void;
 }
@@ -205,7 +212,10 @@ function hasLockCycle(d: DriverInternals): boolean {
 }
 
 export function replayFlow(fixtureName: keyof typeof FIXTURES | MotionFixture, opts: FlowOptions = {}): FlowReport {
-  const F = typeof fixtureName === "string" ? FIXTURES[fixtureName] : fixtureName;
+  const F0 = typeof fixtureName === "string" ? FIXTURES[fixtureName] : fixtureName;
+  const F = opts.playAt && F0.frames.every((f) => typeof f.wall_ms === "number")
+    ? retime(F0, opts.playAt)
+    : F0;
   const dt = opts.dt ?? 0.05;
   const sampleEvery = opts.sampleEvery ?? 2;
   const pollMs = opts.pollMs ?? 1500;
@@ -392,6 +402,14 @@ export function replayFlow(fixtureName: keyof typeof FIXTURES | MotionFixture, o
   } finally {
     Object.defineProperty(perf, "now", { configurable: true, writable: true, value: realNow });
   }
+}
+
+/** The fixture as it would have arrived had the run been played at `speedX`: the
+ *  world's own (sim-clock) timeline is unchanged; only when each frame reaches the
+ *  cockpit moves. */
+function retime(F: MotionFixture, speedX: number): MotionFixture {
+  const k = (F.speedX ?? 1) / speedX;
+  return { ...F, speedX, frames: F.frames.map((f) => ({ ...f, wall_ms: Math.round(f.wall_ms! * k) })) };
 }
 
 /** One-line human summary for logs and PR evidence. */

@@ -255,33 +255,6 @@ export class LaneGraph {
   }
 
   /**
-   * How far a parked car must travel along `n` (a unit vector, stall → aisle) to
-   * put its centre on the drive line of the nearest lane flowing along `d`: the
-   * depth a back-out has to reach. Only lanes on the `n` side of `p` and beside it
-   * count (the one-way gap lane behind the TW column is not TW's aisle). Null when
-   * there is none within `max`.
-   */
-  laneDepth(p: Pt, n: Pt, d: Pt, max = 32): number | null {
-    let best: number | null = null;
-    for (const lane of this.lanes.values()) {
-      for (let i = 1; i < lane.pts.length; i++) {
-        const a = lane.pts[i - 1], b = lane.pts[i];
-        const L = len(a, b);
-        if (L < 1e-6) continue;
-        const ux = (b.x - a.x) / L, uy = (b.y - a.y) / L;
-        if (ux * d.x + uy * d.y < 0.9) continue;          // does not flow along d
-        const ox = a.x - uy * this.rightOffset, oy = a.y + ux * this.rightOffset;
-        const t = (p.x - ox) * ux + (p.y - oy) * uy;
-        if (t < -12 || t > L + 12) continue;              // not beside this piece
-        const D = (ox - p.x) * n.x + (oy - p.y) * n.y;
-        if (D <= 0 || D > max) continue;
-        if (best === null || D < best) best = D;
-      }
-    }
-    return best;
-  }
-
-  /**
    * route(), but starting from a car that is POINTING somewhere: it joins the lane
    * ahead of its nose (joinAhead) and is routed on from that lane's end node. Falls
    * back to the plain nearest-node route when no lane agrees with the heading —
