@@ -15,7 +15,7 @@ export const BottomBar = () => {
   // ignored. Disable it and say WHY instead of letting the operator fight it.
   return (
     <div className="h-12 bg-otto-dark/90 border-t border-white/10 flex items-center px-4 gap-3 shrink-0">
-      <span className="text-white/70 text-xs font-mono w-12">{formatHHMM(simTime)}</span>
+      <span className="text-white/70 text-xs font-mono w-16" title="Depot local time (America/Chicago)">{formatHHMM(simTime)} CT</span>
       <input
         type="range"
         min={0}

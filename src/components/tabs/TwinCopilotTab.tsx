@@ -6,18 +6,8 @@
 import { useEffect, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ottoQ } from "@/lib/ottoQClient";
+import { readCopilotFailure, type CopilotResult } from "@/lib/copilotError";
 import { useTwinStore } from "@/store/twinStore";
-
-interface CopilotSummary {
-  total: number; enacted: number; overridden: number;
-  by_context?: Record<string, number>;
-  by_outcome?: Record<string, number>;
-  top_override_rules?: Record<string, number>;
-  by_proposal_source?: Record<string, number>;
-}
-interface CopilotResult {
-  analysis?: string; summary?: CopilotSummary; model?: string; error?: string;
-}
 
 // Minimal markdown: **bold**, headings (lines starting with **N.), and paragraph breaks.
 function renderAnalysis(text: string) {
@@ -52,7 +42,12 @@ export const TwinCopilotTab = () => {
     try {
       const { data, error } = await ottoQ.functions.invoke("ottoq-nemotron-copilot", { body: { sim_run_id: activeSimRunId } });
       if (useTwinStore.getState().activeSimRunId !== activeSimRunId) return;
-      if (error) setError(error.message);
+      if (error) {
+        const failure = await readCopilotFailure(error);
+        if (useTwinStore.getState().activeSimRunId !== activeSimRunId) return;
+        if (failure.summary) setResult({ summary: failure.summary });
+        setError(failure.error ?? error.message);
+      }
       else if ((data as CopilotResult)?.error) setError((data as CopilotResult).error!);
       else setResult(data as CopilotResult);
     } catch (e) {
@@ -85,7 +80,7 @@ export const TwinCopilotTab = () => {
           {loading ? "Nemotron is reasoning…" : "Run OTTO-Q audit"}
         </button>
 
-        {error && <div className="text-[11px] text-brand-red bg-brand-red/10 border border-brand-red/30 rounded-lg p-2.5">Audit error: {error}</div>}
+        {error && <div role="alert" className="text-[11px] text-brand-red bg-brand-red/10 border border-brand-red/30 rounded-lg p-2.5">Audit error: {error}{s && <p className="mt-1 text-ink-dim">Decision counts below were returned by OTTO-Q; model analysis is unavailable.</p>}</div>}
 
         {s && (
           <>

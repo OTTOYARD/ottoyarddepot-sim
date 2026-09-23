@@ -23,6 +23,14 @@ export function useTwinControl() {
   const [speed, setSpeedState] = useState(3);
   const tsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // A reload can attach to a run that the server is already advancing. Adopt
+  // its transport state without sending a second resume/pause request.
+  const syncFromRun = useCallback((status: string, speedX?: number) => {
+    setPlaying(status === 'running');
+    useTwinStore.getState().setPaused(status === 'paused');
+    if (typeof speedX === 'number' && Number.isFinite(speedX)) setSpeedState(speedX);
+  }, []);
+
   // PLAYBACK SPEED (founder spec 2026-07-25; ceiling raised 2026-08-11). The slider
   // drives the real playback contract — `ottoq_set_playback(run,'live',speed_x)` —
   // where 1× is TRUE 1:1 (one real second = one sim second) and the backend hard-caps
@@ -89,5 +97,6 @@ export function useTwinControl() {
     pause,
     toggle,
     setSpeed,
+    syncFromRun,
   };
 }

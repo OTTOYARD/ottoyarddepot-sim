@@ -88,7 +88,7 @@ export const TopBar = () => {
       <div className="flex items-center gap-3 ml-5 shrink-0">
         <div className="flex items-baseline gap-1.5">
           <span className="font-mono text-white text-lg tracking-wide cc-num">{fmtClock(run?.sim_clock)}</span>
-          <span className="font-mono text-ink-faint text-[10px]">{fmtDate(run?.sim_clock)}</span>
+          <span className="font-mono text-ink-faint text-[10px]">{fmtDate(run?.sim_clock)} UTC</span>
         </div>
         {run && (
           <span className="font-mono text-ink-dim text-[11px] cc-num">
@@ -112,7 +112,7 @@ export const TopBar = () => {
         <div className="flex items-center bg-canvas-panel/60 border border-white/[0.06] rounded-md py-1">
           <Cell icon={Truck}           label="Deployed" value={n(deployed)} />
           <Cell icon={BatteryCharging} label="Charging" value={n(charging)} />
-          <Cell icon={Layers}          label="Staged"   value={n(staged)} />
+          <Cell icon={Layers}          label="Awaiting service" value={n(staged)} />
           <Cell icon={DollarSign}      label="LMP"      value={n(lmp, 0)} unit="$/MWh" />
           <Cell icon={Battery}         label="BESS"     value={n(bessSoc, 0)} unit="%" />
           <Cell icon={Sun}             label="Solar"    value={n(solar, 0)} unit="kW" />
