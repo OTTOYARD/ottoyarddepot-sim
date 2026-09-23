@@ -8,6 +8,7 @@ import { VehicleTooltip } from './VehicleTooltip';
 import { AlertToasts } from './AlertToasts';
 import { LoadingOverlay } from './LoadingOverlay';
 import { DemoBanner } from './DemoBanner';
+import { SceneErrorBoundary } from './SceneErrorBoundary';
 import { useAppointments } from '@/hooks/useAppointments';
 import { useSimulationStore } from '@/store/simulationStore';
 
@@ -19,6 +20,7 @@ const OmniverseViewer = lazy(() =>
 export const DepotCanvas = () => {
   const svgRef = useRef<SVGSVGElement>(null);
   const viewMode = useSimulationStore((s) => s.viewMode);
+  const setViewMode = useSimulationStore((s) => s.setViewMode);
 
   useAppointments(); // poll the reservation seam so the on-map glow stays live
 
@@ -42,9 +44,11 @@ export const DepotCanvas = () => {
                 <VehicleTooltip svgRef={svgRef} />
               </>
             ) : (
-              <Suspense fallback={<div className="absolute inset-0 flex items-center justify-center text-otto-gray">Loading 3D…</div>}>
-                <DepotScene3D />
-              </Suspense>
+              <SceneErrorBoundary onReturnTo2D={() => setViewMode('2d')}>
+                <Suspense fallback={<div className="absolute inset-0 flex items-center justify-center text-otto-gray">Loading 3D…</div>}>
+                  <DepotScene3D />
+                </Suspense>
+              </SceneErrorBoundary>
             )}
             <AlertToasts />
             <DepotLegend />

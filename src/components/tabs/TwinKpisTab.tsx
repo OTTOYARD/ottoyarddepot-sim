@@ -12,6 +12,7 @@ import { useTwinStore } from "@/store/twinStore";
 import { liveFleetMetrics } from "@/lib/liveFleetMetrics";
 
 const num = (v: unknown, d = 0): number => (typeof v === "number" && isFinite(v) ? v : Number(v) || d);
+const measured = (v: unknown): number | null => typeof v === "number" && Number.isFinite(v) ? v : null;
 
 const EnergyChart = React.memo(function EnergyChart() {
   const history = useTwinStore((s) => s.energyHistory);
@@ -78,7 +79,11 @@ export const TwinKpisTab = () => {
   const deployed = num(c.deployed);
   const charging = num(c.charging_dcfc) + num(c.charging_l2);
   const inService = num(c.in_wash_bay) + num(c.in_detail_bay) + num(c.in_service_bay);
-  const netGrid = num(energy.grid_import_kw) - num(energy.grid_export_kw);
+  const gridImport = measured(energy.grid_import_kw);
+  const gridExport = measured(energy.grid_export_kw);
+  const netGrid = gridImport !== null && gridExport !== null ? gridImport - gridExport : null;
+  const solar = measured(energy.solar_kw);
+  const lmp = measured(grid.lmp_usd_mwh);
 
   return (
     <ScrollArea className="flex-1">
@@ -96,10 +101,10 @@ export const TwinKpisTab = () => {
 
         {/* Energy */}
         <div className="grid grid-cols-2 gap-2">
-          <StatCard label={netGrid >= 0 ? "Grid Import" : "Grid Export"} value={`${Math.abs(Math.round(netGrid))}`} unit="kW" />
-          <StatCard label="Solar Output" value={Math.round(num(energy.solar_kw))} unit="kW" />
+          <StatCard label={netGrid !== null && netGrid < 0 ? "Grid Export" : "Grid Import"} value={netGrid === null ? "—" : Math.abs(Math.round(netGrid))} unit="kW" />
+          <StatCard label="Solar Output" value={solar === null ? "—" : Math.round(solar)} unit="kW" />
           <StatCard label="BESS SoC" value={num(bess.soc_pct)} variant="circular-progress" />
-          <StatCard label="LMP" value={`$${Math.round(num(grid.lmp_usd_mwh))}`} unit="/MWh" />
+          <StatCard label="LMP" value={lmp === null ? "—" : `$${Math.round(lmp)}`} unit="/MWh" />
         </div>
 
         <EnergyChart />

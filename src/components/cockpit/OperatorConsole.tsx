@@ -313,6 +313,7 @@ export const OperatorConsole = () => {
   const setActiveSimRunId = useTwinStore((s) => s.setActiveSimRunId);
   const snapshot = useTwinStore((s) => s.snapshot);
   const ctrl = useTwinControl();
+  const { syncFromRun } = ctrl;
 
   const [catalog, setCatalog] = useState<CatalogVar[]>([]);
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
@@ -323,11 +324,17 @@ export const OperatorConsole = () => {
   const [busy, setBusy] = useState<string | null>(null);
   const runId = activeSimRunId;
 
+  useEffect(() => {
+    if (runId && snapshot?.run?.sim_run_id === runId) {
+      syncFromRun(snapshot.run.status, snapshot.run.speed_x);
+    }
+  }, [runId, snapshot?.run?.sim_run_id, snapshot?.run?.status, snapshot?.run?.speed_x, syncFromRun]);
+
   useEffect(() => { twin.catalog().then((d) => setCatalog(d.catalog)).catch(() => {}); }, []);
   useEffect(() => { twin.scenarios().then((d) => setScenarios(d.scenarios)).catch(() => {}); }, []);
-  // Auto-attach on load: if the backend already has a live run (page reload,
-  // second screen), JOIN it FROZEN — show the world, but never start the clock
-  // without an explicit Play (Chase: the sim must not auto-start on its own).
+  // Auto-attach on load to the server's existing state. Joining a running run
+  // must show Pause, while joining a paused run must show Resume; neither
+  // action changes the server clock by itself.
   useEffect(() => {
     let cancelled = false;
     twin.runs(10).then(({ runs }) => {
@@ -337,7 +344,7 @@ export const OperatorConsole = () => {
       setActiveSimRunId(live.sim_run_id);
       // TwinRunSummary's field is `scenario`, not `scenario_code` — the old
       // name type-errored and rendered the toast description as "undefined".
-      toast.success("Live run found — press Play to resume", { description: live.scenario });
+      toast.success("Live run found", { description: live.scenario });
     }).catch(() => {});
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
