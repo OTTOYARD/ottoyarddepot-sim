@@ -14,8 +14,9 @@
 // No legacy-store imports — the snapshot is the single source of truth.
 // ============================================================================
 import { supabase } from "@/integrations/supabase/client";
-import type { TwinSnapshot } from "@/lib/ottoTwin";
+import type { TwinLayout, TwinSnapshot } from "@/lib/ottoTwin";
 import type { EnergyPoint } from "@/store/twinStore";
+import { liveFleetMetrics } from "@/lib/liveFleetMetrics";
 
 // ── small helpers ──
 const n = (v: unknown, d = 0): number => (typeof v === "number" && isFinite(v) ? v : Number(v) || d);
@@ -27,15 +28,13 @@ const clockHM = (iso?: string | null): string => {
   catch { return "—"; }
 };
 
-const DCFC_STALLS = 10;
-const L2_STALLS = 35;
-
 export interface TwinContext {
   run: { scenario: string; status: string; clock: string; tick: number; timeScale: number; seed: number };
   fleet: {
     total: number; deployed: number; charging: number; chargingDcfc: number; chargingL2: number;
     inService: number; ready: number; enRoute: number; arrived: number;
-    readinessPct: number; deployedPct: number; dcfcUtilPct: number; l2UtilPct: number;
+    readinessPct: number | null; deployedPct: number; dcfcUtilPct: number | null; l2UtilPct: number | null;
+    dcfcStalls: number; l2Stalls: number;
   };
   energy: {
     solarKw: number; evKw: number; buildingKw: number; netGridKw: number; bessKw: number;
@@ -99,7 +98,7 @@ function summarizeVariability(v: Record<string, unknown> | null | undefined) {
 }
 
 // ── build the context the analyzers reason over ──
-export function buildTwinContext(snapshot: TwinSnapshot, history: EnergyPoint[]): TwinContext {
+export function buildTwinContext(snapshot: TwinSnapshot, history: EnergyPoint[], layout: TwinLayout | null = null): TwinContext {
   const c = (snapshot.fleet?.counts ?? {}) as Record<string, number>;
   const total = n(snapshot.fleet?.total, 1) || 1;
   const e = (snapshot.energy ?? {}) as Record<string, number | string>;
@@ -112,7 +111,8 @@ export function buildTwinContext(snapshot: TwinSnapshot, history: EnergyPoint[])
   const chargingL2 = n(c.charging_l2);
   const deployed = n(c.deployed);
   const inService = n(c.in_wash_bay) + n(c.in_detail_bay) + n(c.in_service_bay);
-  const ready = n(c.staged_for_departure) + n(c.staged_awaiting_service);
+  const fleetMetrics = liveFleetMetrics(snapshot, layout);
+  const ready = fleetMetrics.ready;
   const solarKw = n(e.solar_kw);
   const evKw = n(e.ev_charging_kw);
   const buildingKw = n(e.building_kw);
@@ -145,8 +145,10 @@ export function buildTwinContext(snapshot: TwinSnapshot, history: EnergyPoint[])
     fleet: {
       total, deployed, charging: chargingDcfc + chargingL2, chargingDcfc, chargingL2,
       inService, ready, enRoute: n(c.en_route_to_depot), arrived: n(c.arrived_at_gate),
-      readinessPct: (ready / total) * 100, deployedPct: (deployed / total) * 100,
-      dcfcUtilPct: (chargingDcfc / DCFC_STALLS) * 100, l2UtilPct: (chargingL2 / L2_STALLS) * 100,
+      readinessPct: fleetMetrics.readinessPct, deployedPct: (deployed / total) * 100,
+      dcfcUtilPct: fleetMetrics.dcfcUtil === null ? null : fleetMetrics.dcfcUtil * 100,
+      l2UtilPct: fleetMetrics.l2Util === null ? null : fleetMetrics.l2Util * 100,
+      dcfcStalls: fleetMetrics.dcfcStalls, l2Stalls: fleetMetrics.l2Stalls,
     },
     energy: {
       solarKw, evKw, buildingKw, netGridKw, bessKw, peak15Kw: n(e.peak_15min_kw),
@@ -196,14 +198,14 @@ export function deterministicAnalysis(ctx: TwinContext): string {
         g.drActive ? `an active DR call capping load to ${r0(g.drCapKw)} kW` : null,
         ev.faults > 0 ? `${ev.faults} fault event(s) in the window` : null,
         g.reserveMarginPct < 8 ? `grid reserve at ${r1(g.reserveMarginPct)}%` : null,
-      ].filter(Boolean).join(", ")}. OTTO-Q is holding throughput with ${r0(f.readinessPct)}% of the fleet staged-ready.`
-    : `Depot is **nominal** — ${r0(f.readinessPct)}% of the fleet staged-ready, ${ct.openIncidents} open incidents, ${importing ? `importing ${r0(Math.abs(e.netGridKw))} kW` : `net-exporting ${r0(Math.abs(e.netGridKw))} kW`} on ${e.tariff} pricing.`;
+      ].filter(Boolean).join(", ")}. ${f.readinessPct === null ? 'Fleet readiness is unavailable.' : `${r0(f.readinessPct)}% of the fleet is staged to depart.`}`
+    : `Depot is **nominal** — ${f.readinessPct === null ? 'fleet readiness unavailable' : `${r0(f.readinessPct)}% of the fleet staged to depart`}, ${ct.openIncidents} open incidents, ${importing ? `importing ${r0(Math.abs(e.netGridKw))} kW` : `net-exporting ${r0(Math.abs(e.netGridKw))} kW`} on ${e.tariff} pricing.`;
 
   // ── key metrics ──
   const metrics = [
-    `**Fleet readiness:** ${r0(f.readinessPct)}% (${f.ready}/${f.total} staged) — target ${ctx.targets.fleetReadiness}`,
+    `**Staged to depart:** ${f.readinessPct === null ? '—' : `${r0(f.readinessPct)}%`} (${f.ready}/${f.total} vehicles); awaiting service is excluded.`,
     `**Deployed:** ${f.deployed} (${r0(f.deployedPct)}% of fleet) · **In service:** ${f.inService} · **En route:** ${f.enRoute}`,
-    `**DCFC utilization:** ${r0(f.dcfcUtilPct)}% (${f.chargingDcfc}/${DCFC_STALLS}) · **L2:** ${r0(f.l2UtilPct)}% (${f.chargingL2}/${L2_STALLS})`,
+    `**DCFC utilization:** ${f.dcfcUtilPct === null ? '—' : `${r0(f.dcfcUtilPct)}%`} (${f.chargingDcfc}/${f.dcfcStalls || '—'}) · **L2:** ${f.l2UtilPct === null ? '—' : `${r0(f.l2UtilPct)}%`} (${f.chargingL2}/${f.l2Stalls || '—'})`,
     `**Energy:** solar ${r0(e.solarKw)} kW · charging ${r0(e.evKw)} kW · ${importing ? "import" : "export"} ${r0(Math.abs(e.netGridKw))} kW · self-supply ${r0(e.selfSupplyPct)}%`,
     `**BESS:** ${r0(ctx.bess.socPct)}% SoC (${ctx.bess.state}), SoH ${r1(ctx.bess.sohPct)}%, ${r1(ctx.bess.tempC)}°C`,
     `**Grid:** LMP $${r0(g.lmp)}/MWh · ${e.tariff} · reserve ${r1(g.reserveMarginPct)}% · ${g.voltage} · ${r0(g.carbon)} gCO₂/kWh`,
@@ -240,7 +242,7 @@ export function deterministicAnalysis(ctx: TwinContext): string {
   const recs: { p: number; t: string }[] = [];
   if (ct.openIncidents > 0)
     recs.push({ p: 1, t: `Resolve the ${ct.openIncidents} open incident(s) before the deploy window — unresolved incidents cascade into deploy-SLA misses.` });
-  if (f.dcfcUtilPct >= 85 && f.ready < f.total * 0.9)
+  if (f.dcfcUtilPct !== null && f.dcfcUtilPct >= 85 && f.ready < f.total * 0.9)
     recs.push({ p: 2, t: `DCFC saturated at ${r0(f.dcfcUtilPct)}% — shift deploy-eligible vehicles to L2 or stagger arrivals to clear the charge queue.` });
   if (ctx.bess.socPct > 60 && g.lmp > 80 && /peak/.test(e.tariff))
     recs.push({ p: 2, t: `Discharge BESS (${r0(ctx.bess.socPct)}% SoC) to shave on-peak load — LMP is $${r0(g.lmp)}/MWh.` });

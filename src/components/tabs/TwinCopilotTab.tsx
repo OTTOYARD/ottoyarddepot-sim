@@ -1,12 +1,11 @@
 // ============================================================================
 // TwinCopilotTab — OTTO-Q's agentic copilot in the cockpit. Invokes the
-// ottoq-nemotron-copilot edge function (NVIDIA Nemotron 3 Ultra) to audit the active
-// run's decision log: what OTTO-Q did, why the shield intervened, proposal sources
-// (cuOpt vs deterministic L2), and improvement suggestions (Layer-4 CIL).
+// ottoq-nemotron-copilot edge function in the engine project. This is an
+// on-demand interpretation of a bounded sample, not a live solver verdict.
 // ============================================================================
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { supabase } from "@/integrations/supabase/client";
+import { ottoQ } from "@/lib/ottoQClient";
 import { useTwinStore } from "@/store/twinStore";
 
 interface CopilotSummary {
@@ -45,16 +44,22 @@ export const TwinCopilotTab = () => {
   const [result, setResult] = useState<CopilotResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => { setResult(null); setError(null); setLoading(false); }, [activeSimRunId]);
+
   const runAudit = async () => {
     if (!activeSimRunId) return;
     setLoading(true); setError(null); setResult(null);
     try {
-      const { data, error } = await supabase.functions.invoke("ottoq-nemotron-copilot", { body: { sim_run_id: activeSimRunId } });
+      const { data, error } = await ottoQ.functions.invoke("ottoq-nemotron-copilot", { body: { sim_run_id: activeSimRunId } });
+      if (useTwinStore.getState().activeSimRunId !== activeSimRunId) return;
       if (error) setError(error.message);
       else if ((data as CopilotResult)?.error) setError((data as CopilotResult).error!);
       else setResult(data as CopilotResult);
-    } catch (e) { setError(e instanceof Error ? e.message : "audit failed"); }
-    setLoading(false);
+    } catch (e) {
+      if (useTwinStore.getState().activeSimRunId === activeSimRunId)
+        setError(e instanceof Error ? e.message : "audit failed");
+    }
+    if (useTwinStore.getState().activeSimRunId === activeSimRunId) setLoading(false);
   };
 
   if (!activeSimRunId) {
@@ -63,14 +68,13 @@ export const TwinCopilotTab = () => {
 
   const s = result?.summary;
   const sources = s?.by_proposal_source ?? {};
-  const cuopt = (sources["cuopt"] ?? 0) + (sources["cuopt_fallback"] ?? 0);
 
   return (
     <ScrollArea className="flex-1">
       <div className="p-3 space-y-3">
         <div>
           <div className="font-display text-[10px] text-ink-dim uppercase tracking-[0.08em]">OTTO-Q Copilot · Nemotron 3 Ultra</div>
-          <p className="text-[11px] text-ink-faint mt-1 leading-snug">An NVIDIA agent audits OTTO-Q's live decisions — what it did, why the shield intervened, and how to improve.</p>
+          <p className="text-[11px] text-ink-faint mt-1 leading-snug">On-demand interpretation of up to 80 recent decisions. Read the live decision stream in Intelligence for the underlying evidence.</p>
         </div>
 
         <button
@@ -89,7 +93,7 @@ export const TwinCopilotTab = () => {
               <Chip label="Decisions" value={s.total} />
               <Chip label="Enacted" value={s.enacted} tone="good" />
               <Chip label="Shield ovr" value={s.overridden} tone="warn" />
-              <Chip label="via cuOpt" value={cuopt} tone={cuopt > 0 ? "good" : "muted"} />
+              <Chip label="Sources seen" value={Object.keys(sources).length} />
             </div>
 
             {s.top_override_rules && Object.keys(s.top_override_rules).length > 0 && (

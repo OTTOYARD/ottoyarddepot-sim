@@ -4,31 +4,21 @@ import { TabBar } from './TabBar';
 import { OperatorConsole } from '@/components/cockpit/OperatorConsole';
 import { TwinKpisTab } from '@/components/tabs/TwinKpisTab';
 import { TwinOrchestrationTab } from '@/components/tabs/TwinOrchestrationTab';
-import { TwinAiSummaryTab } from '@/components/tabs/TwinAiSummaryTab';
 import { TwinAlertsTab } from '@/components/tabs/TwinAlertsTab';
 import { TwinHistoryTab } from '@/components/tabs/TwinHistoryTab';
-import { TwinSwapTestTab } from '@/components/tabs/TwinSwapTestTab';
-import { TwinScorekeeperTab } from '@/components/tabs/TwinScorekeeperTab';
 import { TwinCopilotTab } from '@/components/tabs/TwinCopilotTab';
 import { BlackBoxPanel } from '@/components/cockpit/BlackBoxPanel';
 import { WorldContractTab } from '@/components/tabs/WorldContractTab';
-import { TwinRecallTab } from '@/components/tabs/TwinRecallTab';
-import TwinDecisionLogTab from '@/components/tabs/TwinDecisionLogTab';
 import TwinIntelligenceTab from '@/components/tabs/TwinIntelligenceTab';
 
 const tabComponents = {
   controls: OperatorConsole,       // AV-only backend-driven console (replaces legacy ControlsTab)
-  recall: TwinRecallTab,           // recall a vehicle now + set its per-vehicle return reserve
   orchestration: TwinOrchestrationTab, // OTTO-Q appointment/reservation/servicing seam (investor view)
   world: WorldContractTab,         // world-load gate, channel integrity, coverage, decision trace
   kpis: TwinKpisTab,               // live backend KPIs (replaces legacy KPIsTab)
-  'ai-summary': TwinAiSummaryTab,  // OTTO-Q self-analysis from the live snapshot
   alerts: TwinAlertsTab,           // live backend event feed (replaces legacy AlertsTab)
   history: TwinHistoryTab,         // backend run-history ledger + compare
-  decisions: TwinDecisionLogTab,   // OTTO-Q decision feed — live "why" log
-  intelligence: TwinIntelligenceTab, // the five intelligence layers in signal order (0351)
-  'swap-test': TwinSwapTestTab,    // OTTO-Q safety proof: calm-vs-stress A/B scoreboard (view)
-  'scorekeeper': TwinScorekeeperTab, // OTTO-Q vs manual/FIFO: throughput + safety A/B race (U5e)
+  intelligence: TwinIntelligenceTab, // includes both the live decision stream and measured layers
   copilot: TwinCopilotTab,         // agentic copilot: Nemotron 3 Ultra audit of OTTO-Q decisions
   blackbox: BlackBoxPanel,         // flight recorder: Play/Stop/Download run-audit bundle
 };

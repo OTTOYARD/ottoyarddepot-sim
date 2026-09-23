@@ -55,7 +55,7 @@ export function useKeyboardShortcuts() {
           sim.setActiveTab('kpis');
           break;
         case '3':
-          sim.setActiveTab('ai-summary');
+          sim.setActiveTab('intelligence');
           break;
         case '4':
           sim.setActiveTab('alerts');
