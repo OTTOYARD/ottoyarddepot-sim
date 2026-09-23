@@ -33,7 +33,7 @@ export function useTwinFeed(depotId: string = NASHVILLE_DEPOT) {
   // runs are on the benchmark one — so the layout and the fleet described
   // different buildings. Every occupied stall failed to resolve, the depot
   // rendered pristine and empty, and integrity said "ok". Resolve the depot
-  // from the run and fall back to the prop only when there is no run yet.
+  // from the run and use the prop only when there is no run yet.
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
@@ -41,9 +41,12 @@ export function useTwinFeed(depotId: string = NASHVILLE_DEPOT) {
       if (activeSimRunId) {
         try {
           const ctx = await twin.runContext(activeSimRunId);
-          if (ctx?.depot_id) target = ctx.depot_id;
+          if (ctx?.error || !ctx?.depot_id) throw new Error(String(ctx?.error ?? 'missing depot_id'));
+          target = ctx.depot_id;
         } catch (e) {
-          console.error("twin.runContext failed — falling back to default depot", e);
+          console.error("twin.runContext failed — cannot select a run layout", e);
+          if (!cancelled) setLayout(null);
+          return;
         }
       }
       if (cancelled) return;

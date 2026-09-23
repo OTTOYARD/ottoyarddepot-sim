@@ -40,10 +40,14 @@ export function useIntelligenceStack(enabled = true): IntelligenceStackState {
     if (!enabled || !simRunId) {
       setStack(null);
       setFrame(null);
+      setError(null);
+      setLoading(false);
       return;
     }
 
     let cancelled = false;
+    setStack(null);
+    setError(null);
     setLoading(true);
 
     const poll = async () => {
@@ -79,6 +83,7 @@ export function useIntelligenceStack(enabled = true): IntelligenceStackState {
   // A new run invalidates a frame fetched from the previous one.
   useEffect(() => {
     setFrame(null);
+    setFrameLoading(false);
   }, [simRunId]);
 
   const loadFrame = useCallback(() => {
@@ -90,6 +95,7 @@ export function useIntelligenceStack(enabled = true): IntelligenceStackState {
           p_sim_run_id: simRunId,
           p_include_frame: true,
         });
+        if (useTwinStore.getState().activeSimRunId !== simRunId) return;
         if (rpcError) {
           setError(String(rpcError.message ?? rpcError));
           return;
@@ -98,9 +104,10 @@ export function useIntelligenceStack(enabled = true): IntelligenceStackState {
         setFrame((next?.frame as Record<string, unknown> | null) ?? null);
         setError(null);
       } catch (e: unknown) {
-        setError(e instanceof Error ? e.message : String(e));
+        if (useTwinStore.getState().activeSimRunId === simRunId)
+          setError(e instanceof Error ? e.message : String(e));
       } finally {
-        setFrameLoading(false);
+        if (useTwinStore.getState().activeSimRunId === simRunId) setFrameLoading(false);
       }
     })();
   }, [simRunId]);

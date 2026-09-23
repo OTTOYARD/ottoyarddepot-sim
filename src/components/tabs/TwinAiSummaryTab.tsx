@@ -43,7 +43,7 @@ export const TwinAiSummaryTab = () => {
     const snap = useTwinStore.getState().snapshot;
     const hist = useTwinStore.getState().energyHistory;
     if (!snap) { toast.error("No live snapshot yet — start a scenario first."); return; }
-    const ctx = buildTwinContext(snap, hist);
+    const ctx = buildTwinContext(snap, hist, useTwinStore.getState().layout);
     if (mode === "rules") {
       setResult({ text: deterministicAnalysis(ctx), source: "OTTO-Q engine" });
       return;

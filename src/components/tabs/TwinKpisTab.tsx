@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { StatCard } from "./StatCard";
 import { useTwinStore } from "@/store/twinStore";
+import { liveFleetMetrics } from "@/lib/liveFleetMetrics";
 
 const num = (v: unknown, d = 0): number => (typeof v === "number" && isFinite(v) ? v : Number(v) || d);
 
@@ -55,6 +56,7 @@ const EnergyChart = React.memo(function EnergyChart() {
 
 export const TwinKpisTab = () => {
   const snapshot = useTwinStore((s) => s.snapshot);
+  const layout = useTwinStore((s) => s.layout);
   const activeSimRunId = useTwinStore((s) => s.activeSimRunId);
 
   if (!activeSimRunId || !snapshot) {
@@ -66,7 +68,7 @@ export const TwinKpisTab = () => {
   }
 
   const c = (snapshot.fleet?.counts ?? {}) as Record<string, number>;
-  const total = num(snapshot.fleet?.total, 1) || 1;
+  const fleet = liveFleetMetrics(snapshot, layout);
   const energy = (snapshot.energy ?? {}) as Record<string, number | string>;
   const bess = (snapshot.bess ?? {}) as Record<string, number | string>;
   const grid = (snapshot.grid ?? {}) as Record<string, number | string | boolean | null>;
@@ -76,10 +78,6 @@ export const TwinKpisTab = () => {
   const deployed = num(c.deployed);
   const charging = num(c.charging_dcfc) + num(c.charging_l2);
   const inService = num(c.in_wash_bay) + num(c.in_detail_bay) + num(c.in_service_bay);
-  const ready = num(c.staged_for_departure) + num(c.staged_awaiting_service);
-  const readinessPct = (ready / total) * 100;
-  const dcfcUtil = num(c.charging_dcfc) / 10;       // 10 DCFC stalls
-  const l2Util = num(c.charging_l2) / 35;           // 35 L2 stalls
   const netGrid = num(energy.grid_import_kw) - num(energy.grid_export_kw);
 
   return (
@@ -87,13 +85,13 @@ export const TwinKpisTab = () => {
       <div className="p-3 space-y-3">
         {/* Fleet */}
         <div className="grid grid-cols-3 gap-2">
-          <StatCard label="Fleet Ready" value={readinessPct} variant="circular-progress" />
+          <StatCard label="Staged to depart" value={fleet.readinessPct === null ? "—" : `${fleet.readinessPct.toFixed(1)}%`} />
           <StatCard label="Deployed" value={deployed} />
           <StatCard label="In Service" value={inService} />
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <StatCard label="DCFC Utilization" value={dcfcUtil} variant="bar-gauge" barValue={dcfcUtil} barColor="#C8102E" />
-          <StatCard label="L2 Utilization" value={l2Util} variant="bar-gauge" barValue={l2Util} barColor="#00B4A6" />
+          <StatCard label="DCFC Utilization" value={fleet.dcfcUtil === null ? "—" : fleet.dcfcUtil} variant={fleet.dcfcUtil === null ? "default" : "bar-gauge"} barValue={fleet.dcfcUtil ?? 0} barColor="#C8102E" />
+          <StatCard label="L2 Utilization" value={fleet.l2Util === null ? "—" : fleet.l2Util} variant={fleet.l2Util === null ? "default" : "bar-gauge"} barValue={fleet.l2Util ?? 0} barColor="#00B4A6" />
         </div>
 
         {/* Energy */}

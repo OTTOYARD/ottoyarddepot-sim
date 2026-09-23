@@ -164,6 +164,22 @@ describe("bootWorld", () => {
     expect(report.blocked_by.join(" ")).toContain("Depot geometry");
   });
 
+  it("never loads a default depot when the live run's depot cannot be identified", async () => {
+    let layoutCalls = 0;
+    const { report, layout: loaded } = await bootWorld({
+      ...opts,
+      transport: transport({
+        runContext: async () => { throw new Error('run context unavailable'); },
+        layout: async () => { layoutCalls++; return layout; },
+      }),
+    });
+    expect(layoutCalls).toBe(0);
+    expect(loaded).toBeNull();
+    expect(report.stages.find((s) => s.id === 'run_context')?.status).toBe('failed');
+    expect(report.stages.find((s) => s.id === 'geometry')?.status).toBe('failed');
+    expect(report.ready).toBe(false);
+  });
+
   it("retries the first frame and succeeds once the twin has state", async () => {
     let calls = 0;
     const { report, snapshot } = await bootWorld({

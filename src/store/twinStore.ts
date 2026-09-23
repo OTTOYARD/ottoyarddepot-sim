@@ -59,7 +59,8 @@ export const useTwinStore = create<TwinState>((set) => ({
     set((s) =>
       s.activeSimRunId === activeSimRunId
         ? { activeSimRunId }
-        : { activeSimRunId, energyHistory: [], paused: false },   // fresh chart + never born held
+        : { activeSimRunId, layout: null, snapshot: null, connected: false, lastFrameAt: null,
+            energyHistory: [], paused: false }, // no frame or capacity from the previous run
     ),
   setLayout: (layout) => set({ layout }),
   setSnapshot: (snapshot) =>

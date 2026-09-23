@@ -237,10 +237,13 @@ export async function bootWorld(opts: BootOptions): Promise<BootedWorld> {
   // "Benchmark (CRN A/B)"), and most runs are on the second — so the layout and
   // the fleet routinely described different buildings, and nothing said so.
   let resolvedDepotId = depotId;
-  const context = await stage("run_context", false, now, async () => {
+  let runDepotKnown = false;
+  const context = await stage("run_context", true, now, async () => {
     const c = await transport.runContext(simRunId);
     if (c?.error) throw new Error(String(c.error));
-    if (c?.depot_id) resolvedDepotId = c.depot_id;
+    if (!c?.depot_id) throw new Error('run context has no depot_id');
+    resolvedDepotId = c.depot_id;
+    runDepotKnown = true;
     return {
       value: c, count: c.stall_count,
       detail: `${c.depot_name ?? c.depot_id} · ${c.stall_count} stalls · ${c.fleet_count} vehicles`
@@ -252,6 +255,9 @@ export async function bootWorld(opts: BootOptions): Promise<BootedWorld> {
   // ── static assets, in parallel ────────────────────────────────────────────
   const [geometry, registry, scenarioDeck] = await Promise.all([
     stage("geometry", true, now, async () => {
+      // A default depot belongs only to an idle cockpit. Guessing a building
+      // for a live run can draw a coherent scene around the wrong fleet.
+      if (!runDepotKnown) throw new Error('run depot is unknown; refusing default layout');
       const l = await transport.layout(resolvedDepotId);
       const n = l?.stalls?.length ?? 0;
       return {

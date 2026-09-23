@@ -1,20 +1,15 @@
 import { useSimulationStore } from '@/store/simulationStore';
 
-type Tab = { id: 'controls' | 'recall' | 'world' | 'orchestration' | 'kpis' | 'ai-summary' | 'alerts' | 'history' | 'swap-test' | 'scorekeeper' | 'copilot' | 'blackbox' | 'decisions' | 'intelligence'; label: string };
+type Tab = { id: 'controls' | 'world' | 'orchestration' | 'kpis' | 'alerts' | 'history' | 'copilot' | 'blackbox' | 'intelligence'; label: string };
 
 const tabs: Tab[] = [
   { id: 'controls', label: 'Controls' },
-  { id: 'recall', label: 'Recall' },
   { id: 'world', label: 'World' },
   { id: 'intelligence', label: 'Intelligence' },
   { id: 'orchestration', label: 'Orchestration' },
   { id: 'kpis', label: 'KPIs' },
-  { id: 'ai-summary', label: 'AI Summary' },
   { id: 'alerts', label: 'Alerts' },
   { id: 'history', label: 'History' },
-  { id: 'decisions', label: 'Decisions' },
-  { id: 'swap-test', label: 'Swap-Test' },
-  { id: 'scorekeeper', label: 'Scorekeeper' },
   { id: 'copilot', label: 'Copilot' },
   { id: 'blackbox', label: 'Black Box' },
 ];
