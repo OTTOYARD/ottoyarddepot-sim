@@ -25,37 +25,29 @@ import {
   Brain, Truck, BatteryCharging, CalendarClock,
   ArrowRight, Pause, Radio,
 } from "lucide-react";
-
-// ── categories: what an operator filters by ─────────────────────────────────
-export type DecisionCategory = "agent" | "dispatch" | "energy" | "plans";
-
-export const CATEGORY_META: Record<DecisionCategory, { label: string; color: string; icon: typeof Brain }> = {
-  agent: { label: "Agent", color: "#A78BFA", icon: Brain },
-  dispatch: { label: "Dispatch", color: "#00B4A6", icon: Truck },
-  energy: { label: "Energy", color: "#F59E0B", icon: BatteryCharging },
-  plans: { label: "Plan changes", color: "#7B818D", icon: CalendarClock },
-};
-
-export function decisionCategory(action: string): DecisionCategory {
-  if (action === "orchestrator_agent") return "agent";
-  if (action === "bess_dispatch") return "energy";
-  if (action === "itinerary_amended") return "plans";
-  return "dispatch";
-}
-
-/** Plan re-timings are real decisions but the loudest ones (~40% of changes); they start hidden. */
-export const DEFAULT_CATEGORIES: ReadonlySet<DecisionCategory> = new Set(["agent", "dispatch", "energy"]);
-
-// The verdict in words lives in src/lib/decisionText.ts so other cockpits can carry it verbatim.
+// The verdict in words, and the category it is filed under, live in src/lib/decisionText.ts so PULSE and
+// OrchestrAV carry the same file verbatim.
 import {
   formatClockCT, describeDecision, decisionReasonText, holdText, PROVIDER_LABEL, solverLabel, kernelLabel, starvationNote, modelErrorText,
-  human, num, isPlace,
-  type DecisionText, type DecisionTone,
+  human, num, isPlace, decisionCategory, DEFAULT_CATEGORIES, CATEGORY_LABEL,
+  type DecisionText, type DecisionTone, type DecisionCategory,
 } from "@/lib/decisionText";
+
+// ── categories: what an operator filters by ─────────────────────────────────
+// The category of a decision and its label are shared with PULSE and OrchestrAV (src/lib/decisionText.ts);
+// the icon and colour are this cockpit's own.
+export const CATEGORY_META: Record<DecisionCategory, { label: string; color: string; icon: typeof Brain }> = {
+  agent: { label: CATEGORY_LABEL.agent, color: "#A78BFA", icon: Brain },
+  dispatch: { label: CATEGORY_LABEL.dispatch, color: "#00B4A6", icon: Truck },
+  energy: { label: CATEGORY_LABEL.energy, color: "#F59E0B", icon: BatteryCharging },
+  plans: { label: CATEGORY_LABEL.plans, color: "#7B818D", icon: CalendarClock },
+};
+
 export {
   formatClockCT, describeDecision, decisionReasonText, holdText, PROVIDER_LABEL, solverLabel, kernelLabel, starvationNote, modelErrorText,
+  decisionCategory, DEFAULT_CATEGORIES,
 };
-export type { DecisionText, DecisionTone };
+export type { DecisionText, DecisionTone, DecisionCategory };
 
 const Chip = ({ tone, children, title }: { tone: "violet" | "cyan" | "emerald" | "amber"; children: ReactNode; title?: string }) => {
   const cls = {

@@ -17,6 +17,26 @@ export function formatClockCT(iso: string | null | undefined): string {
   });
 }
 
+// ── categories: what an operator filters by ─────────────────────────────────
+export type DecisionCategory = "agent" | "dispatch" | "energy" | "plans";
+
+export const CATEGORY_LABEL: Record<DecisionCategory, string> = {
+  agent: "Agent",
+  dispatch: "Dispatch",
+  energy: "Energy",
+  plans: "Plan changes",
+};
+
+export function decisionCategory(action: string | null | undefined): DecisionCategory {
+  if (action === "orchestrator_agent") return "agent";
+  if (action === "bess_dispatch") return "energy";
+  if (action === "itinerary_amended") return "plans";
+  return "dispatch";
+}
+
+/** Plan re-timings are real decisions but the loudest ones (~40% of changes); they start hidden. */
+export const DEFAULT_CATEGORIES: ReadonlySet<DecisionCategory> = new Set(["agent", "dispatch", "energy"]);
+
 // ── the verdict, in words ────────────────────────────────────────────────────
 export const human = (s: unknown): string => (typeof s === "string" ? s.replace(/_/g, " ") : "");
 export const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
@@ -24,9 +44,10 @@ export const num = (v: unknown): number | null => (typeof v === "number" && Numb
 export type DecisionTone = "enacted" | "held" | "warn" | "idle";
 export interface DecisionText { title: string; detail: string | null; tone: DecisionTone }
 
-/** A target that is a verb, not a place, is not worth an arrow. */
+/** A target that is a verb ("promote_ready") or a label ("objective: readiness_first"), not a place, is not worth
+ *  an arrow. On run 689095e2 every real place in the feed was a stall code and those were the only two other shapes. */
 export function isPlace(target: string | null | undefined, verb: string): boolean {
-  return !!target && target !== verb && !/^[a-z_]+$/.test(target);
+  return !!target && target !== verb && !/^[a-z_]+$/.test(target) && !/^[a-z_]+:\s/.test(target);
 }
 
 export function describeDecision(r: ActivityFeedRow): DecisionText {
@@ -62,7 +83,7 @@ export function describeDecision(r: ActivityFeedRow): DecisionText {
       }
       if (verb === "hold_in_queue") {
         if (overridden || reason === "service_shield_blocked") {
-          return { title: "Held by the shield", detail: codes || human(reason), tone: "warn" };
+          return { title: "Held by the shield", detail: codes || human(reason) || null, tone: "warn" };
         }
         const waited = num(v.waited_min), patience = num(v.patience_min);
         return {
@@ -127,6 +148,18 @@ export function describeDecision(r: ActivityFeedRow): DecisionText {
     }
     case "gate_intake_no_charge":
       return { title: "Gate intake, no charge needed", detail: null, tone: "enacted" };
+    case "orchestrator_agent": {
+      // One line for the agent's pass: objective -> solver -> kernel. The twin draws this as three chips
+      // (AgentPipeline); a cockpit with one line to spare reads the same three facts from here.
+      const modelError = modelErrorText(v.model_error);
+      const status = human(String(v.handoff_status ?? v.solver_status ?? "queued"));
+      const returned = Number(v.proposals_returned ?? 0);
+      return {
+        title: `${modelError ? "Fallback" : "Agent"}: ${human(v.objective ?? "readiness_first")}`,
+        detail: `${solverLabel(v)}: ${status}${returned > 0 ? ` (${returned} proposed)` : ""} → kernel: ${kernelLabel(v)}`,
+        tone: modelError ? "warn" : "enacted",
+      };
+    }
   }
   // Anything this map does not know renders as its own words, never as an engine name.
   const fallback = human(verb) || human(reason) || human(r.action);
@@ -143,9 +176,13 @@ export function decisionReasonText(r: ActivityFeedRow): string | null {
   return entries.length ? entries.map(([key, value]) => `${key}: ${String(value)}`).join(" · ") : null;
 }
 
-/** "held 18 min", or "since 14:05, still in force". Null for a one-tick event. */
-export function holdText(r: ActivityFeedRow): string | null {
-  if (r.standing) return `since ${formatClockCT(r.occurred_at).slice(0, 5)}, still in force`;
+/** "held 18 min", or "since 14:05, still in force". Null for a one-tick event. `clock` lets a cockpit print the
+ *  start on its own clock face (PULSE and OrchestrAV use "2:05 PM"); every face is Nashville time. */
+export function holdText(
+  r: ActivityFeedRow,
+  clock: (iso: string) => string = (iso) => formatClockCT(iso).slice(0, 5),
+): string | null {
+  if (r.standing) return `since ${clock(r.occurred_at)}, still in force`;
   if (!r.held_ticks || r.held_ticks <= 1 || !r.last_at) return null;
   const mins = Math.max(1, Math.round((Date.parse(r.last_at) - Date.parse(r.occurred_at)) / 60_000));
   return `held ${mins} min`;

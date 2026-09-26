@@ -12,6 +12,7 @@ import {
   starvationNote,
 } from "./TwinDecisionLogTab";
 import type { ActivityFeedRow } from "@/store/activityFeedStore";
+import { isPlace } from "@/lib/decisionText";
 
 const row = (overrides: Partial<ActivityFeedRow>): ActivityFeedRow => ({
   occurred_at: "2026-09-16T12:00:00Z",
@@ -145,6 +146,36 @@ describe("decision verdicts in words", () => {
   it("renders an unknown verdict as its own words", () => {
     expect(describeDecision(row({ action: "something_new", rationale: { verb: "do_the_thing" } })).title)
       .toBe("Do the thing");
+  });
+
+  it("puts an agent pass on one line: objective, solver, kernel (for cockpits without the chip strip)", () => {
+    const pass = describeDecision(row({
+      action: "orchestrator_agent",
+      rationale: {
+        objective: "readiness_first", solver_engine: "cpsat_service", handoff_status: "completed",
+        proposals_returned: 3, kernel_enacted: 2, kernel_refused: 1,
+      },
+    }));
+    expect(pass).toEqual({
+      title: "Agent: readiness first",
+      detail: "CP-SAT: completed (3 proposed) → kernel: 2 enacted · 1 refused",
+      tone: "enacted",
+    });
+    const fallback = describeDecision(row({
+      action: "orchestrator_agent",
+      rationale: { model_error: "model timeout after 75000 ms", objective: "throughput_first", handoff_status: "fallback" },
+    }));
+    expect(fallback.title).toBe("Fallback: throughput first");
+    expect(fallback.detail).toBe("no solver call: fallback → kernel: pending");
+    expect(fallback.tone).toBe("warn");
+  });
+
+  it("draws an arrow only to a place: a stall code, never a verb or the agent's objective label", () => {
+    expect(isPlace("NASH-DCFC-STALL-04", "assign_stall")).toBe(true);
+    expect(isPlace("promote_ready", "promote_ready")).toBe(false);
+    expect(isPlace("deploy", "")).toBe(false);
+    expect(isPlace("objective: readiness_first", "")).toBe(false);
+    expect(isPlace(null, "")).toBe(false);
   });
 });
 
