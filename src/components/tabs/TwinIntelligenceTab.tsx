@@ -55,6 +55,7 @@ import {
   type StackLayer,
   type Tone,
 } from '@/lib/intelligenceStack';
+import { modelErrorText } from '@/lib/decisionText';
 
 const TONE_CLASS: Record<Tone, string> = {
   ok: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300',
@@ -168,7 +169,7 @@ const LayerBody = ({ layer }: { layer: StackLayer }) => {
           <Metric label="model" value={(live.model as string) === 'none' ? 'none (fell back)' : ((live.model as string) ?? null)} />
           <Metric label="passes" value={formatCount(live.chains)} />
           <Metric label="fell back" value={formatCount(live.model_fallbacks)} />
-          <Metric label="last model error" value={(live.last_model_error as string) ?? null} />
+          <Metric label="last model error" value={modelErrorText(live.last_model_error)} />
           <Metric label="avg pass compute" value={formatMs(live.avg_latency_ms)} />
           <Metric label="advice applied, mean ticks late" value={formatCount(live.advice_mean_ticks_late)} />
           <Metric label="advice applied, p95 ticks late" value={formatCount(live.advice_p95_ticks_late)} />

@@ -251,8 +251,16 @@ export function starvationNote(detail: Record<string, unknown>): string | null {
 /** "model timeout after 75000 ms" -> "model timed out after 75 s". Anything else passes through. */
 export function modelErrorText(err: unknown): string | null {
   if (typeof err !== "string" || !err.trim()) return null;
-  const t = err.match(/timeout after (\d+) ms/);
+  const s = err.trim();
+  const t = s.match(/timeout after (\d+) ms/);
   if (t) return `model timed out after ${Math.round(Number(t[1]) / 1000)} s`;
-  return err.trim();
+  const h = s.match(/^HTTP (\d{3})\b\s*:?\s*([\s\S]*)$/);
+  if (h) {
+    // 429 is the model endpoint's rate limit, the commonest fallback on a busy night (run 49c45bd4).
+    if (h[1] === "429") return "model rate-limited (HTTP 429)";
+    // A JSON body, often cut off mid-string by the ledger, is not words; the status says enough.
+    if (h[2].trim().startsWith("{")) return `HTTP ${h[1]}`;
+  }
+  return s;
 }
 

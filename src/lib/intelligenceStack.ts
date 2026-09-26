@@ -23,6 +23,7 @@
 // A panel that invents a zero is indistinguishable from one reporting a real
 // zero, and an auditor cannot tell them apart either.
 // ============================================================================
+import { modelErrorText } from "@/lib/decisionText";
 
 /** One layer of the stack, exactly as the RPC returns it. */
 export interface StackLayer {
@@ -354,9 +355,8 @@ export function layerCaveats(layer: Pick<StackLayer, 'layer' | 'live'>): string[
     const fallbacks = num(live.model_fallbacks);
     const chains = num(live.chains);
     if (fallbacks && chains) {
-      const err = typeof live.last_model_error === 'string' && live.last_model_error.trim()
-        ? ` Last model error: ${live.last_model_error.trim()}.`
-        : '';
+      const lastErr = modelErrorText(live.last_model_error);
+      const err = lastErr ? ` Last model error: ${lastErr}.` : '';
       out.push(`${formatCount(fallbacks)} of ${formatCount(chains)} passes fell back to the deterministic path.${err}`);
     }
     const mean = num(live.advice_mean_ticks_late);

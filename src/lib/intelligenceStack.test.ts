@@ -331,6 +331,7 @@ describe('caveats surface the findings that flatter us least', () => {
     );
     expect(out.join(' ')).toContain('124 of 147 passes fell back');
     expect(out.join(' ')).toContain('HTTP 429');
+    expect(out.join(' ')).toContain('rate-limited');
   });
 
   it('says how stale applied advice is, and that the tick does not wait for it', () => {

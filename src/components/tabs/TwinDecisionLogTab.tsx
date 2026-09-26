@@ -79,7 +79,8 @@ const AgentPipeline = ({ r }: { r: ActivityFeedRow }) => {
     <div className="mt-1.5 space-y-1">
       {modelError ? (
         <p className="break-words text-[9px] leading-4 text-amber-300/90">
-          Model unavailable ({modelError}). The deterministic path decided this pass; the solver was still asked.
+          {/^model /.test(modelError) ? `M${modelError.slice(1)}` : `Model unavailable (${modelError})`}. The deterministic
+          path decided this pass; the solver was still asked.
         </p>
       ) : typeof detail.summary === "string" && detail.summary ? (
         <p className="text-[9px] leading-4 text-ink-dim line-clamp-3">{detail.summary}</p>

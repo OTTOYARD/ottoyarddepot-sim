@@ -199,6 +199,12 @@ describe("stream presentation", () => {
     expect(modelErrorText(undefined)).toBeNull();
   });
 
+  it("words a rate limit, and never prints a cut-off JSON body (run 49c45bd4)", () => {
+    expect(modelErrorText('HTTP 429: {"status":429,"title":"Too Man')).toBe("model rate-limited (HTTP 429)");
+    expect(modelErrorText("HTTP 429: Too Many Requests")).toBe("model rate-limited (HTTP 429)");
+    expect(modelErrorText('HTTP 503: {"error":"upstre')).toBe("HTTP 503");
+  });
+
   it("files plan re-timings separately and hides them by default", () => {
     expect(decisionCategory("itinerary_amended")).toBe("plans");
     expect(decisionCategory("orchestrator_agent")).toBe("agent");
