@@ -81,7 +81,7 @@ export interface WorldBootReport {
   depot_id: string;
   sim_run_id: string | null;
   scenario: string | null;
-  seed: number | null;
+  seed: number | string | null;
   tick: number | null;
   started_at: string;
   finished_at: string;

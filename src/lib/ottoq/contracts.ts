@@ -31,7 +31,8 @@
 // ============================================================================
 
 /** Bump the MINOR on additive fields, the MAJOR on any field removal/rename. */
-export const CHANNEL_CONTRACT_VERSION = "1.0.0";
+// 1.1.0 (2026-09-26): seed_text, the run seed exact. A 64-bit seed is not exact as a JSON number in a browser.
+export const CHANNEL_CONTRACT_VERSION = "1.1.0";
 
 export type ChannelId =
   | "fleet_telemetry"
@@ -99,8 +100,10 @@ export interface ChannelEnvelope<T> {
   /** run identity — a packet without a run is not replayable */
   sim_run_id: string;
   scenario: string;
-  /** the run seed, so a packet can be tied back to its CRN stream */
+  /** the run seed as a number: exact only below 2^53, so an operator run's 64-bit seed arrives rounded */
   seed: number;
+  /** the run seed exact, as decimal text: the one to tie a packet back to its CRN stream */
+  seed_text: string;
   /** twin tick this packet describes */
   tick: number;
   /** sim clock (ISO) at the tick — the authority for staleness */
