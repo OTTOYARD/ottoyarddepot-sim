@@ -590,6 +590,31 @@ export interface TwinRunSummary {
 // Every figure is recomputed from the run's own rows, so it regenerates from the run ID.
 // Per-day figures are keyed by sim date. Any of them can be NULL (nothing to measure yet);
 // the whole payload carries `purged` when the run's rows no longer exist.
+/**
+ * The wait for a charger (engine 0501, `ottoq_kpi_charge_wait`, G233): minutes from a visit's arrival to its first
+ * charging session, over the visits that arrived owing a charge. KPI 5 counts from recall to the FIRST operation,
+ * which on a busy day is a cabin or digital task that starts at once, so it cannot see the charger queue. A visit
+ * still owed at the run's clock is waiting: its minutes so far are a floor, and so is `p95_wait_floor_min`.
+ */
+export interface TwinChargeWait {
+  sim_run_id: string;
+  horizon: string | null;
+  visits_owing_a_charge: number;
+  charged: number;
+  waiting_at_horizon: number;
+  closed_without_a_session: number;
+  /** Over the visits that charged. */
+  p50_wait_min: number | null;
+  p95_wait_min: number | null;
+  max_wait_min: number | null;
+  /** Over the visits still waiting, as of the run's clock. */
+  waiting_p50_so_far_min: number | null;
+  waiting_max_so_far_min: number | null;
+  /** Over both, the waiting ones at their floor: a floor on the true p95. */
+  p95_wait_floor_min: number | null;
+  meaning?: string;
+}
+
 export interface TwinKpiFive {
   sim_run_id: string;
   /** Hours vehicles spent deployed, per sim day. */
@@ -608,6 +633,8 @@ export interface TwinKpiFive {
   /** Returns that never reached a first operation inside the run window. */
   returns_unserved: number | null;
   purged: unknown;
+  /** Beside the five, not one of them (engine 0501, G233). Absent from a twin-control older than 1.9.2. */
+  charge_wait?: TwinChargeWait | null;
   audit?: {
     touch_events_per_turn?: { turns?: number; touch_events?: number };
     p95_time_to_service_min?: { returns_measured?: number; dispatches_total?: number; max_time_to_service_min?: number };

@@ -19,6 +19,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { StatCard } from "./StatCard";
 import { useTwinStore } from "@/store/twinStore";
 import { twin, type TwinKpiFive } from "@/lib/ottoTwin";
+import { chargeWaitDetail } from "@/lib/chargeWait";
 import { liveFleetMetrics } from "@/lib/liveFleetMetrics";
 
 const num = (v: unknown, d = 0): number => (typeof v === "number" && isFinite(v) ? v : Number(v) || d);
@@ -115,11 +116,11 @@ function useKpiFive(simRunId: string | null) {
   return { kpis, error };
 }
 
-function KpiRow({ n, label, value, unit, detail }: { n: number; label: string; value: string; unit?: string; detail?: string }) {
+function KpiRow({ n, label, value, unit, detail }: { n?: number; label: string; value: string; unit?: string; detail?: string }) {
   return (
     <div className="flex items-baseline justify-between gap-3 py-1.5 border-b border-white/[0.04] last:border-0">
       <div className="min-w-0">
-        <div className="text-[11px] text-ink-dim"><span className="font-mono text-ink-faint mr-1.5">{n}</span>{label}</div>
+        <div className="text-[11px] text-ink-dim">{n != null && <span className="font-mono text-ink-faint mr-1.5">{n}</span>}{label}</div>
         {detail && <div className="text-[10px] text-ink-faint mt-0.5 leading-snug">{detail}</div>}
       </div>
       <div className="font-mono text-sm text-ink tabular-nums whitespace-nowrap">
@@ -169,6 +170,14 @@ const KpiFivePanel = ({ simRunId, simClock }: { simRunId: string; simClock: stri
           <KpiRow n={5} label="Time to service, p95"
             value={fmt(kpis.p95_time_to_service_min, 1)} unit="min"
             detail={`p50 ${fmt(kpis.p50_time_to_service_min, 1)} min · ${fmt(a?.p95_time_to_service_min?.returns_measured)} returns measured · ${fmt(kpis.returns_unserved)} unserved`} />
+          {kpis.charge_wait && (
+            <div className="mt-2 pt-1 border-t border-white/[0.06]">
+              <div className="font-display text-[9px] text-ink-faint uppercase tracking-wider pt-1">Beside the five</div>
+              <KpiRow label="Wait for a charger, p95"
+                value={fmt(kpis.charge_wait.p95_wait_floor_min, 1)} unit="min"
+                detail={chargeWaitDetail(kpis.charge_wait)} />
+            </div>
+          )}
         </div>
       )}
     </div>
