@@ -19,8 +19,13 @@
 //     a new surface.
 //  3. Provenance is on screen. Every card names the table it was measured from,
 //     because a number an auditor cannot trace is a number they will not accept.
-//  4. The unflattering findings are rendered, not buried: 55 of 166 agent calls
-//     over one tick, 20 of 45 proposals refused.
+//  4. The unflattering findings are rendered, not buried.
+//
+// CURRENT (added 2026-09-23) is the verbatim payload of
+//   SELECT public.ottoq_intelligence_stack('736406cf-05ee-448d-b529-0e04b074eddd', false) - 'frame' - 'review'
+// at 2026-09-23 06:26 UTC, after otto-q-core 0451 and 0456 changed the shield, agent and kernel blocks:
+// L1 publishes refusals the engine acted on beside failures, L2 publishes fallbacks and advice
+// staleness instead of the retracted over-one-tick count, and L4 counts offers apart from abstentions.
 // ============================================================================
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
@@ -188,6 +193,101 @@ const LIVE: IntelligenceStack = {
   ],
 };
 
+const CURRENT: IntelligenceStack = {
+  run: {
+    tick: 1203, run_by: 'operator_demo', status: 'running', speed_x: 8.0, scenario: 'busy_day',
+    sim_clock: '2026-09-23T18:42:47.015448+00:00',
+    sim_run_id: '736406cf-05ee-448d-b529-0e04b074eddd',
+    started_at: '2026-09-23T05:14:50.054098+00:00',
+  },
+  arming: {
+    run_by: 'operator_demo', missing: [], verdict: 'armed', required: 7, satisfied: 7,
+    primary_proposer: {
+      fires: 167, failed: 0, declared: 'forward_lex', fell_back: 0, reachable: true,
+      last_reason: null, agent_chains: 167, min_chains_to_judge: 3,
+    },
+  },
+  layers: [
+    {
+      layer: 'L0_INGRESS', name: 'Asset telemetry', status: 'degraded',
+      does: 'What the assets pushed. One writer, so a real OEM feed swaps in unchanged.',
+      measured_from: 'ottoq_telemetry_packets',
+      live: {
+        dropped: 482, packets: 15359, integrity: { full: 13083, dropped: 482, partial: 1794 },
+        signal_below_50pct: 1749, vehicles_reporting: 77,
+      },
+    },
+    {
+      layer: 'L1_SHIELD', name: 'Deterministic rules (L1)', status: 'ok',
+      does: 'Defines which actions are FEASIBLE. Blocked counts refusals the engine acted on; a failed advisory rule is recorded, not refused.',
+      measured_from: 'ottoq_rule_evaluation_effect (0430)',
+      live: {
+        failed: 494, blocked: 475, refused: 475, overridden: 0, evaluations: 329790, recorded_only: 19,
+        by_probe_point: {
+          task_start: 318240, policy_write: 18, redeployment: 1872, bess_dispatch: 244, task_completion: 2520,
+          stall_assignment: 1365, bess_state_change: 58, stall_state_change: 2180, charge_session_start: 1320,
+          vehicle_state_change: 1973,
+        },
+        distinct_rules: 26, advisory_failed: 0,
+        top_failing_rules: {
+          'EN.001.grid_capacity_ceiling (block)': 99,
+          'HW.005.vehicle_one_active_task (block)': 161,
+          'SLA.004.required_services_complete (block)': 215,
+          'HW.006.physical_presence_verification (block)': 19,
+        },
+        top_blocking_rules: {
+          'EN.001.grid_capacity_ceiling': 99,
+          'HW.005.vehicle_one_active_task': 161,
+          'SLA.004.required_services_complete': 215,
+        },
+      },
+    },
+    {
+      layer: 'L2_AGENT', name: 'Orchestrator agent', status: 'ok',
+      does: 'Reads the frame, picks an objective, writes bounded policy. Proposes; never disposes. Runs beside the tick and never holds it.',
+      measured_from: 'ottoq_decisions (resolved_action_context=orchestrator_agent) + ottoq_agent_advice_provenance',
+      live: {
+        model: 'nvidia/nemotron-3-ultra-550b-a55b', chains: 167,
+        handoff: { 'completed -> cp_sat_forward_lex': 167 },
+        by_source: { nemotron: 38, deterministic_fallback: 129 },
+        objective: 'readiness_first', latest_source: 'nemotron',
+        objective_why: '51 vehicles below ready-floor SoC (p10=53%); 10 attention-list assets overdue with SoC 18-99% and deploy deadlines missed by 267-512 min; 23 vehicles waiting for service (p50 wait 568 min); only 7 deployed vs target 48 (gap 41).',
+        advice_applied: 167, avg_latency_ms: 23662, max_latency_ms: 77619, model_fallbacks: 129,
+        last_model_error: 'HTTP 429: {"status":429,"title":"Too Man',
+        last_fallback_reason: null, advice_p95_ticks_late: 22, advice_mean_ticks_late: 6.5,
+      },
+    },
+    {
+      layer: 'L3_SOLVER', name: 'Proposers', status: 'ok',
+      does: 'Propose stall assignments for the kernel to dispose. CP-SAT is primary inside the site; cuOpt proposes as a fallback. Nondeterministic by nature, which is why L4 exists.',
+      measured_from: 'ottoq_model_call_ledger (this run, role=proposer) + ottoq_proposer_fire_log',
+      live: {
+        providers: {
+          cpsat_service: { calls: 167, reached: 167, answered: 9, last_call: '2026-09-23T06:26:07.120304+00:00', proposals: 13 },
+        },
+        primary_fires: 167, fires_this_run: 167, declared_primary: 'forward_lex', primary_reachable: true,
+      },
+    },
+    {
+      layer: 'L4_KERNEL', name: 'Deterministic disposal', status: 'none_enacted',
+      does: 'Disposes every proposal. Refusing some is the point: all-enacted is a rubber stamp.',
+      measured_from: 'ottoq_external_proposals',
+      live: {
+        rows: 466, enacted: 0, expired: 0, pending: 0, refused: 4, proposals: 13, superseded: 9, abstentions: 453,
+        by_source_status: { 'forward_lex/refused': 4, 'forward_lex/abstained': 453, 'forward_lex/superseded': 9 },
+        refusal_rate_pct: 31,
+        top_abstain_reasons: {
+          'bridge:not_due': 46,
+          "outside this tick's batch of 8 most urgent ": 394,
+          'the site could not serve this vehicle within its capacity': 13,
+        },
+        top_refusal_reasons: { stall_occupied: 2, stall_reserved: 2, entity_decided_by_other_proposal: 9 },
+      },
+    },
+  ],
+  frame_included: false,
+};
+
 // The panel now opens on the LIVE STREAM (Chase, 2026-09-21), so every
 // assertion below about the layered analysis has to select that view first.
 // mount() does it, rather than each test remembering to: the subject of these
@@ -247,11 +347,14 @@ describe('TwinIntelligenceTab on the live run dde654cc', () => {
     }
   });
 
-  it('renders the headline figures the migration re-derives', () => {
-    mount({ simRunId: LIVE.run!.sim_run_id!, stack: LIVE });
-    expect(screen.getByText(/177,179 evaluations · 1,533 blocked · 20 rules/)).toBeTruthy();
-    expect(screen.getByText(/16,771 packets · 112 assets reporting · 523 dropped/)).toBeTruthy();
-    expect(screen.getByText(/45 proposals · 21 enacted · 20 refused · 44% refusal/)).toBeTruthy();
+  // The 0351 payload above predates 0451/0456, so its shield and kernel blocks are the old shape.
+  // Headlines are asserted against CURRENT, the payload the function returns today.
+  it('renders the headline figures the current function derives', () => {
+    mount({ simRunId: CURRENT.run!.sim_run_id!, stack: CURRENT });
+    expect(screen.getByText(/329,790 evaluations · 475 refused · 494 failed · 26 rules/)).toBeTruthy();
+    expect(screen.getByText(/15,359 packets · 77 assets reporting · 482 dropped/)).toBeTruthy();
+    expect(screen.getByText(/13 offers · 0 enacted · 4 refused · 9 superseded · 453 abstentions/)).toBeTruthy();
+    expect(screen.getByText(/167 passes · 38 answered by the model · 129 fell back/)).toBeTruthy();
   });
 
   it('shows the agent reasoning in the agent’s own words', () => {
@@ -270,12 +373,15 @@ describe('TwinIntelligenceTab on the live run dde654cc', () => {
     expect(screen.getByText(/CP-SAT service is not configured/)).toBeTruthy();
   });
 
-  it('does not bury the agent running behind the tick', () => {
-    mount({ simRunId: LIVE.run!.sim_run_id!, stack: LIVE });
-    expect(
-      screen.getByText(/55 of 166 agent calls took longer than one tick/),
-    ).toBeTruthy();
-    expect(screen.getByText(/2 chains fell back to the deterministic path/)).toBeTruthy();
+  // The unflattering findings, current shape: fallbacks with the endpoint's own error, how stale applied
+  // advice is, and a kernel that enacted none of its offers. The retracted claim that a slow agent holds
+  // the tick (otto-q-core 0332) must not come back.
+  it('does not bury fallbacks, staleness, or a kernel that enacted nothing', () => {
+    mount({ simRunId: CURRENT.run!.sim_run_id!, stack: CURRENT });
+    expect(screen.getByText(/129 of 167 passes fell back to the deterministic path/)).toBeTruthy();
+    expect(screen.getByText(/advice is applied a mean of 6\.5 ticks after it was computed \(p95 22\)/)).toBeTruthy();
+    expect(screen.getByText(/none of 13 offers was enacted: 9 superseded by the decide path, 4 refused/)).toBeTruthy();
+    expect(screen.queryByText(/longer than one tick/)).toBeNull();
   });
 
   it('labels each provider from the evidence ledger without renaming one', () => {
@@ -334,7 +440,7 @@ describe('TwinIntelligenceTab with a partial payload', () => {
 describe('TwinIntelligenceTab default view', () => {
   it('opens on the live stream, not on the grouped layer cards', () => {
     mount({ simRunId: LIVE.run!.sim_run_id!, stack: LIVE }, 'stream');
-    expect(screen.getByText('Decision Log')).toBeTruthy();
+    expect(screen.getByText('Decisions')).toBeTruthy();
     // The layer cards are the thing that used to greet a viewer first.
     expect(screen.queryByText('Asset telemetry')).toBeNull();
   });

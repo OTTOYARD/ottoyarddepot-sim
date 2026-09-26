@@ -8,13 +8,13 @@
 //       - rate vars      → single × slider
 //       - continuous     → simple slider; expand → shift / spread / floor / ceiling
 //       - policy         → selector
-//   · Injections: DR call · brownout · charger fault · storm
+//   · Injections: DR call · charger fault — only events with a real engine door
 // No operator key (open on the private link). No Depot Structure tab.
 // Writes shape the run's profile live via PUT /variability { knobs }.
 // ============================================================================
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Play, Pause, Square, Zap, CloudRain, BatteryWarning, AlertTriangle,
+  Play, Pause, Square, Zap, BatteryWarning, AlertTriangle,
   RotateCcw, ChevronRight, ChevronDown, Activity, FlaskConical, Info, Sun, Snowflake, Gauge, Loader2,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -38,22 +38,34 @@ const getRate   = (k: Knobs, key: string) => Number(k?._rates?.[key] ?? 1);
 const getPolicy = (k: Knobs, key: string) => String(k?._policy?.[key] ?? "calibrated");
 const getCont   = (k: Knobs, key: string, kt: KnobType, dflt: number) =>
   Number(k?.[key]?.[kt] ?? dflt);
-const isChaos   = (k: Knobs) => Number(k?._global?.spread_mult ?? 1) > 1;
+// Chaos Mode is the __chaos__ template's signature (spread ×2.5 AND rates ×3). It used to be
+// "any global spread above 1", so every busy_day run — whose own template carries spread 1.4 —
+// showed Chaos ON while chaos was off.
+const CHAOS_GLOBAL = { spread_mult: 2.5, rate_mult: 3 };
+const isChaos   = (k: Knobs) =>
+  Number(k?._global?.spread_mult ?? 1) >= CHAOS_GLOBAL.spread_mult &&
+  Number(k?._global?.rate_mult ?? 1) >= CHAOS_GLOBAL.rate_mult;
 
 function withRate(k: Knobs, key: string, v: number): Knobs {
-  const next = JSON.parse(JSON.stringify(k ?? {})); delete next._global;
+  // _global is kept: it belongs to the scenario (busy_day's spread 1.4) or to Chaos Mode, and
+  // moving one slider used to delete it silently.
+  const next = JSON.parse(JSON.stringify(k ?? {}));
   next._rates = { ...(next._rates ?? {}) };
   if (v === 1) delete next._rates[key]; else next._rates[key] = v;
   return next;
 }
 function withPolicy(k: Knobs, key: string, v: string): Knobs {
-  const next = JSON.parse(JSON.stringify(k ?? {})); delete next._global;
+  // _global is kept: it belongs to the scenario (busy_day's spread 1.4) or to Chaos Mode, and
+  // moving one slider used to delete it silently.
+  const next = JSON.parse(JSON.stringify(k ?? {}));
   next._policy = { ...(next._policy ?? {}) };
   if (v === "calibrated") delete next._policy[key]; else next._policy[key] = v;
   return next;
 }
 function withCont(k: Knobs, key: string, kt: KnobType, v: number, neutral: number): Knobs {
-  const next = JSON.parse(JSON.stringify(k ?? {})); delete next._global;
+  // _global is kept: it belongs to the scenario (busy_day's spread 1.4) or to Chaos Mode, and
+  // moving one slider used to delete it silently.
+  const next = JSON.parse(JSON.stringify(k ?? {}));
   const cur = { ...(next[key] ?? {}) };
   if (v === neutral) delete cur[kt]; else cur[kt] = v;
   if (Object.keys(cur).length === 0) delete next[key]; else next[key] = cur;
@@ -295,46 +307,57 @@ const Group = ({ icon: Icon, title, children, right, defaultOpen = true }: {
   );
 };
 
-// Curated quick-launch scenarios (operator one-click) — each spotlights a
-// specific OTTO-Q edge; the full deck stays in the picker below. A chip is
-// hidden if its deck isn't present in the backend scenario list.
+// Curated quick-launch scenarios (operator one-click). A chip is hidden if its deck isn't in
+// the backend scenario list. busy_day leads: it is the scenario the engine is validated on.
 const FEATURED: { code: string; label: string; icon: React.ElementType; tint: string }[] = [
+  { code: "busy_day",                    label: "Busy Day",       icon: Gauge,          tint: "text-brand-red" },
   { code: "normal_day",                  label: "Normal Day",     icon: Activity,       tint: "text-ink-dim" },
   { code: "heat_wave",                   label: "Heat Wave",      icon: Sun,            tint: "text-brand-hot" },
   { code: "winter_storm",                label: "Winter Storm",   icon: Snowflake,      tint: "text-state-info" },
-  { code: "dr_event_cascade",            label: "Demand Charge",  icon: BatteryWarning, tint: "text-state-warn" },
+  { code: "dr_event_cascade",            label: "DR Cascade",     icon: BatteryWarning, tint: "text-state-warn" },
   { code: "charger_outage_morning_rush", label: "Charger Outage", icon: AlertTriangle,  tint: "text-state-warn" },
-  { code: "aggressive_fleet_turnover",   label: "Peak Turnover",  icon: Gauge,          tint: "text-brand-red" },
 ];
+
+// Scenarios the backend lists that are NOT runnable twin scenarios, kept out of the picker:
+//   hardware_live          — the hardware lab's live-robot run, not a simulation.
+//   grid_brownout_at_peak  — its headline event never fires: the brownout was meant to come from
+//                            the Brownout injection, which only ever wrote an event nothing reads.
+//                            What remains is an LMP-volatility knob under a misleading title.
+const HIDDEN_SCENARIOS = new Set(["hardware_live", "grid_brownout_at_peak"]);
 
 // ── main ──
 export const OperatorConsole = () => {
   const activeSimRunId = useTwinStore((s) => s.activeSimRunId);
   const setActiveSimRunId = useTwinStore((s) => s.setActiveSimRunId);
   const snapshot = useTwinStore((s) => s.snapshot);
+  // The run's status and speed are adopted inside useTwinControl (it follows the snapshot, and a
+  // local change wins for a few seconds), so a reload onto a running run shows Pause, not Resume.
   const ctrl = useTwinControl();
-  const { syncFromRun } = ctrl;
 
   const [catalog, setCatalog] = useState<CatalogVar[]>([]);
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
-  const [selected, setSelected] = useState("normal_day");
+  const [templates, setTemplates] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState("busy_day");
   const [knobs, setKnobs] = useState<Knobs>({});
   const [expandedVars, setExpandedVars] = useState<Set<string>>(new Set());
   const [openDomains, setOpenDomains] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState<string | null>(null);
   const runId = activeSimRunId;
 
-  useEffect(() => {
-    if (runId && snapshot?.run?.sim_run_id === runId) {
-      syncFromRun(snapshot.run.status, snapshot.run.speed_x);
-    }
-  }, [runId, snapshot?.run?.sim_run_id, snapshot?.run?.status, snapshot?.run?.speed_x, syncFromRun]);
+  // While a run is live the picker shows THAT run's scenario — it used to show whatever was
+  // last clicked (default "Normal Day") over a busy_day run.
+  const runScenario = runId ? snapshot?.run?.scenario ?? null : null;
+  const shownScenario = runScenario ?? selected;
+  const pickable = useMemo(() => scenarios.filter((s) => !HIDDEN_SCENARIOS.has(s.scenario_code)), [scenarios]);
 
   useEffect(() => { twin.catalog().then((d) => setCatalog(d.catalog)).catch(() => {}); }, []);
   useEffect(() => { twin.scenarios().then((d) => setScenarios(d.scenarios)).catch(() => {}); }, []);
-  // Auto-attach on load to the server's existing state. Joining a running run
-  // must show Pause, while joining a paused run must show Resume; neither
-  // action changes the server clock by itself.
+  useEffect(() => {
+    twin.templates().then((d) => setTemplates(new Set(d.templates.map((t) => t.name)))).catch(() => {});
+  }, []);
+  // Auto-attach on load: if the backend already has a live run (page reload, second screen),
+  // adopt it. The controls then show that run's real scenario, speed and pause state; nothing
+  // here starts a run on its own.
   useEffect(() => {
     let cancelled = false;
     twin.runs(10).then(({ runs }) => {
@@ -342,9 +365,7 @@ export const OperatorConsole = () => {
       const live = runs.find((r) => isLiveRunStatus(String(r.status)));
       if (!live) return;
       setActiveSimRunId(live.sim_run_id);
-      // TwinRunSummary's field is `scenario`, not `scenario_code` — the old
-      // name type-errored and rendered the toast description as "undefined".
-      toast.success("Live run found", { description: live.scenario });
+      toast.success("Joined the live run", { description: live.scenario });
     }).catch(() => {});
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -356,71 +377,71 @@ export const OperatorConsole = () => {
     setKnobs(next);
     if (!runId) { toast.error("Start a run first"); return; }
     try { await twin.setVariability(runId, { knobs: next }); }
-    catch (e: any) { toast.error("Update failed", { description: e.message }); }
+    catch (e: unknown) { toast.error("Update failed", { description: e instanceof Error ? e.message : String(e) }); }
   }, [runId]);
 
   const startScenario = async (code: string = selected) => {
     setBusy("start");
     try {
-      // ONE authoritative start path, shared with the Black Box recorder:
-      // ottoq_start_demo_run purges the prior run's data AND seeds a fresh one,
-      // so there is no one-run-per-depot race to clear-and-retry. startDemoRun
-      // adopts the new sim_run_id into the twin store (feed begins rendering).
+      // ONE authoritative start path (src/lib/blackbox.ts → control edge). startDemoRun
+      // adopts the new sim_run_id into the twin store, so the feed begins rendering it.
       await startDemoRun(code, 1);
       ctrl.play();      // Start also begins the clock — "press Start and watch it run"
-      // Fresh runs open at the CONTINUOUS CEILING (3×), not 1:1.
-      //
-      // Opening at 1× was a demo-killer, and it was measured: run 7d8da1ca advanced
-      // 3.6 sim-minutes in 3.7 real minutes, so a car on a DC fast charger gained 6.2
-      // percentage points in the time anyone actually watches. The orchestration
-      // underneath was healthy — 539 decisions, 11 charge sessions, 96 dispatches —
-      // and the depot still read as frozen, because four minutes of watching buys
-      // four minutes of depot.
-      //
-      // 3× is the ceiling ottoq_set_playback hard-clamps to, and the reason it exists
-      // is unchanged: past 3× the clock outruns the decision loop, so anything faster
-      // must be a JUMP (ottoq_sim_jump_forward), never a speed. True 1:1 is still one
-      // drag of the slider away for inspecting real-time behaviour.
+      // Fresh runs open at 3×: watchable without touching a control. Opening at 1× read as a
+      // frozen depot (run 7d8da1ca advanced 3.6 sim-minutes in 3.7 real minutes). The slider
+      // goes to 8×, the backend's own playback ceiling; past it, time must JUMP, not speed up.
       ctrl.setSpeed(3);
       const title = scenarios.find((s) => s.scenario_code === code)?.title ?? code;
-      toast.success(`Started ${title} — recording`);
-    } catch (e: any) { toast.error("Start failed", { description: e.message }); }
+      toast.success(`Started ${title}`);
+    } catch (e: unknown) { toast.error("Start failed", { description: e instanceof Error ? e.message : String(e) }); }
     finally { setBusy(null); }
   };
   // Quick cards only SELECT the scenario — nothing runs until Start is pressed.
   const quickLaunch = (code: string) => setSelected(code);
-  // ONE authoritative stop path: ottoq_sim_stop_and_reset freezes the run,
-  // empties the depot (clears the active run), and arms the Black Box download.
+  // ONE authoritative stop path: ottoq_sim_stop_and_reset freezes the run, empties the depot
+  // and keeps the run downloadable from the Runs tab.
   const stopRun = async () => {
     if (!runId) return;
     setBusy("stop");
     try {
       await stopAndReset(runId);
       ctrl.pause();
-      // Jump to the Black Box tab so the download is right in front of them —
-      // Chase: "I don't see where the black box download panel is at that point."
-      useSimulationStore.getState().setActiveTab("blackbox");
-      toast.success("Run stopped — depot reset", { description: "Black Box is armed below — press Download." });
-    } catch (e: any) { toast.error("Stop failed", { description: e.message }); }
+      useSimulationStore.getState().setActiveTab("history");
+      toast.success("Run stopped — depot reset", { description: "Its Black Box is on the Runs tab." });
+    } catch (e: unknown) { toast.error("Stop failed", { description: e instanceof Error ? e.message : String(e) }); }
     finally { setBusy(null); }
   };
 
+  // The scenario's own template is its calibrated baseline (busy_day: arrivals ×2, SoC −30, spread
+  // 1.4). "Reset" used to apply __default__ — a NEUTRAL profile — which silently turned a busy
+  // day into a normal one while the header still said busy_day.
+  const baselineTemplate = runScenario && templates.has(runScenario) ? runScenario : "__default__";
   const toggleChaos = async (on: boolean) => {
     if (!runId) { toast.error("Start a run first"); return; }
-    try { await twin.setVariability(runId, { template: on ? "__chaos__" : "__default__" }); toast.success(on ? "Chaos Mode — variance ×2.5, rates ×3" : "Reset to calibrated baseline"); }
-    catch (e: any) { toast.error("Failed", { description: e.message }); }
+    try {
+      // ON merges chaos over the scenario instead of replacing it; OFF returns to the baseline.
+      if (on) await twin.setVariability(runId, { merge: { _global: CHAOS_GLOBAL } });
+      else await twin.setVariability(runId, { template: baselineTemplate });
+      toast.success(on ? "Chaos Mode — variance ×2.5, event rates ×3, on top of the scenario"
+                       : "Chaos off — back to the scenario baseline");
+    } catch (e: unknown) { toast.error("Failed", { description: e instanceof Error ? e.message : String(e) }); }
   };
-  const resetCalibrated = async () => {
+  const resetBaseline = async () => {
     if (!runId) return;
-    try { await twin.setVariability(runId, { template: "__default__" }); setKnobs({}); toast.success("Reset to calibrated"); }
-    catch (e: any) { toast.error("Reset failed", { description: e.message }); }
+    try { await twin.setVariability(runId, { template: baselineTemplate }); toast.success("Reset to the scenario baseline"); }
+    catch (e: unknown) { toast.error("Reset failed", { description: e instanceof Error ? e.message : String(e) }); }
   };
 
-  const inject = async (label: string, fn: () => Promise<unknown>) => {
+  const inject = async (label: string, fn: () => Promise<unknown>,
+                        describe?: (r: Record<string, unknown> | null) => string | undefined) => {
     if (!runId) { toast.error("Start a run first"); return; }
     setBusy(label);
-    try { await fn(); toast.success(`Injected: ${label}`); }
-    catch (e: any) { toast.error(`${label} failed`, { description: e.message }); }
+    try {
+      const r = await fn();
+      const row = r && typeof r === "object" ? (r as Record<string, unknown>) : null;
+      toast.success(`Injected: ${label}`, { description: describe?.(row) });
+    }
+    catch (e: unknown) { toast.error(`${label} failed`, { description: e instanceof Error ? e.message : String(e) }); }
     finally { setBusy(null); }
   };
 
@@ -450,7 +471,7 @@ export const OperatorConsole = () => {
 
   const renderVar = (v: CatalogVar) => (
     <VarControl key={v.var_key} v={v} knobs={knobs} verdict={verdictOf[v.var_key]} expanded={expandedVars.has(v.var_key)}
-      onToggleExpand={() => setExpandedVars((s) => { const n = new Set(s); n.has(v.var_key) ? n.delete(v.var_key) : n.add(v.var_key); return n; })}
+      onToggleExpand={() => setExpandedVars((s) => { const n = new Set(s); if (n.has(v.var_key)) n.delete(v.var_key); else n.add(v.var_key); return n; })}
       commit={commit} />
   );
 
@@ -461,10 +482,10 @@ export const OperatorConsole = () => {
         {/* Featured scenarios — a click SELECTS; press Start to run it */}
         <span className="text-[10px] text-ink-faint uppercase tracking-wide">Scenario</span>
         <div className="grid grid-cols-2 gap-1.5 pb-1">
-          {FEATURED.filter((f) => scenarios.some((s) => s.scenario_code === f.code)).map((f) => {
-            const active = selected === f.code;
+          {FEATURED.filter((f) => pickable.some((s) => s.scenario_code === f.code)).map((f) => {
+            const active = shownScenario === f.code;
             return (
-              <button key={f.code} onClick={() => quickLaunch(f.code)} disabled={busy === "start"}
+              <button key={f.code} onClick={() => quickLaunch(f.code)} disabled={busy === "start" || !!runId}
                 className={`flex items-center gap-1.5 h-9 px-2 rounded border text-[11px] text-left transition-colors disabled:opacity-50 ${active ? "border-brand-red bg-brand-red/10 text-ink" : "border-white/[0.06] bg-canvas-elev hover:bg-white/10 text-ink-dim hover:text-ink"}`}>
                 <f.icon size={13} className={f.tint} />
                 <span className="truncate">{f.label}</span>
@@ -473,10 +494,10 @@ export const OperatorConsole = () => {
           })}
         </div>
         {/* Scenario picker — Start runs this selection. */}
-        <Select value={selected} onValueChange={setSelected}>
+        <Select value={shownScenario} onValueChange={setSelected} disabled={!!runId}>
           <SelectTrigger className="h-8 w-full text-xs bg-canvas-elev border-white/[0.06]"><SelectValue /></SelectTrigger>
           <SelectContent className="bg-canvas-panel border-white/10 text-ink">
-            {scenarios.map((s) => <SelectItem key={s.scenario_code} value={s.scenario_code} className="text-xs text-ink focus:bg-white/10 focus:text-white">{s.title}</SelectItem>)}
+            {pickable.map((s) => <SelectItem key={s.scenario_code} value={s.scenario_code} className="text-xs text-ink focus:bg-white/10 focus:text-white">{s.title}</SelectItem>)}
           </SelectContent>
         </Select>
         {/* ONE state-driven transport, no stray always-visible Play button:
@@ -508,7 +529,13 @@ export const OperatorConsole = () => {
           <Slider className="flex-1" min={1} max={MAX_SPEED_X} step={1} value={[ctrl.speed]} onValueChange={([v]) => ctrl.setSpeed(v)} />
           <span className="font-mono text-[11px] text-ink cc-num w-7 text-right">{ctrl.speed}×</span>
         </div>
-        {runId && <div className="text-[10px] font-mono text-ink-faint">run {runId.slice(0,8)} · {snapshot?.run?.status ?? "—"} · t{snapshot?.run?.tick_count ?? 0}{ctrl.playing && " · ▶ live"}</div>}
+        {runId && (
+          <div className="text-[10px] font-mono text-ink-faint">
+            run {runId.slice(0,8)} · {snapshot?.run?.status ?? "—"} · t{snapshot?.run?.tick_count ?? 0}
+            {typeof snapshot?.run?.speed_x === "number" && ` · ${snapshot.run.speed_x}× on the run`}
+            <div className="text-ink-faint/70">Stop the run to choose another scenario.</div>
+          </div>
+        )}
       </Group>
 
       {/* QUICK PRESETS */}
@@ -516,12 +543,12 @@ export const OperatorConsole = () => {
         <div className="flex items-center justify-between">
           <div className="flex flex-col">
             <span className="text-[12px] text-ink">Chaos Mode</span>
-            <span className="text-[10px] text-ink-faint">global variance ×2.5 · all event rates ×3</span>
+            <span className="text-[10px] text-ink-faint">variance ×2.5 · event rates ×3, on top of the scenario</span>
           </div>
           <Switch checked={isChaos(knobs)} onCheckedChange={toggleChaos} disabled={!runId} />
         </div>
-        <Button onClick={resetCalibrated} disabled={!runId} variant="outline" className="h-7 w-full border-white/[0.06] text-ink-dim hover:text-ink text-[11px]">
-          <RotateCcw size={12} /> Reset to calibrated baseline
+        <Button onClick={resetBaseline} disabled={!runId} variant="outline" className="h-7 w-full border-white/[0.06] text-ink-dim hover:text-ink text-[11px]">
+          <RotateCcw size={12} /> Reset to the scenario baseline
         </Button>
       </Group>
 
@@ -554,7 +581,7 @@ export const OperatorConsole = () => {
         const open = openDomains.has(d);
         return (
           <div key={d} className="border-b border-white/[0.06]">
-            <button onClick={() => setOpenDomains((s) => { const n = new Set(s); n.has(d) ? n.delete(d) : n.add(d); return n; })}
+            <button onClick={() => setOpenDomains((s) => { const n = new Set(s); if (n.has(d)) n.delete(d); else n.add(d); return n; })}
               className="w-full flex items-center gap-2 px-3 py-2 hover:bg-white/[0.02]">
               {open ? <ChevronDown size={13} className="text-ink-dim" /> : <ChevronRight size={13} className="text-ink-dim" />}
               <span className="font-display text-[11px] uppercase tracking-[0.06em] text-ink-dim">{DOMAIN_LABELS[d]}</span>
@@ -569,14 +596,19 @@ export const OperatorConsole = () => {
         );
       })}
 
-      {/* INJECTIONS */}
+      {/* INJECTIONS — only events the engine has a door for. Brownout and Storm used to sit here and
+          wrote an event (Charger Fault wrote a SOLAR-INVERTER event) that no engine function reads;
+          each showed "Injected" and changed nothing. They return when the engine has a door. */}
       <Group icon={Zap} title="Injections">
         <div className="grid grid-cols-2 gap-2">
-          <Button onClick={() => inject("DR Call", () => twin.injectDrCall(runId!, { duration_min: 120, cap_kw: 500, reason: "manual" }))} disabled={!runId || !!busy} variant="outline" className="h-9 border-white/[0.06] text-ink-dim hover:text-ink text-[11px] justify-start"><BatteryWarning size={13} className="text-state-warn" /> DR Call</Button>
-          <Button onClick={() => inject("Brownout", () => twin.injectFault(runId!, { kind: "grid_brownout", payload: { voltage_v: 385 } }))} disabled={!runId || !!busy} variant="outline" className="h-9 border-white/[0.06] text-ink-dim hover:text-ink text-[11px] justify-start"><Zap size={13} className="text-brand-hot" /> Brownout</Button>
-          <Button onClick={() => inject("Charger Fault", () => twin.injectFault(runId!, { kind: "charger_offline" }))} disabled={!runId || !!busy} variant="outline" className="h-9 border-white/[0.06] text-ink-dim hover:text-ink text-[11px] justify-start"><AlertTriangle size={13} className="text-state-warn" /> Charger Fault</Button>
-          <Button onClick={() => inject("Weather Storm", () => twin.injectFault(runId!, { kind: "weather_storm" }))} disabled={!runId || !!busy} variant="outline" className="h-9 border-white/[0.06] text-ink-dim hover:text-ink text-[11px] justify-start"><CloudRain size={13} className="text-state-info" /> Storm</Button>
+          <Button onClick={() => inject("DR Call", () => twin.injectDrCall(runId!, { duration_min: 120, cap_kw: 500, reason: "manual" }),
+              () => "500 kW cap for 120 sim-minutes")}
+            disabled={!runId || !!busy} variant="outline" className="h-9 border-white/[0.06] text-ink-dim hover:text-ink text-[11px] justify-start"><BatteryWarning size={13} className="text-state-warn" /> DR Call</Button>
+          <Button onClick={() => inject("Charger Fault", () => twin.injectFault(runId!, { kind: "charger_offline" }),
+              (r) => r?.stall_code ? `${r.stall_code} faulted${r.had_vehicle ? " with a car on it" : ""} — back in ${r.repair_minutes} sim-min` : undefined)}
+            disabled={!runId || !!busy} variant="outline" className="h-9 border-white/[0.06] text-ink-dim hover:text-ink text-[11px] justify-start"><AlertTriangle size={13} className="text-state-warn" /> Charger Fault</Button>
         </div>
+        <span className="text-[10px] text-ink-faint">DR Call issues a real demand-response cap. Charger Fault takes a DC fast charger at this depot offline (vehicles on it are replanned) and a technician returns it after an hour of sim time.</span>
       </Group>
     </ScrollArea>
   );

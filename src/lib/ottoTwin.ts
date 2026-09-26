@@ -582,8 +582,38 @@ export interface TwinRunSummary {
   variability: { spread_mult: number; rate_mult: number; tuned_knobs: number; notes: string | null } | null;
 }
 
+// ── The five canonical KPIs (mirrors ottoq_kpi_five; CLAUDE.md 2.9) ──
+// Every figure is recomputed from the run's own rows, so it regenerates from the run ID.
+// Per-day figures are keyed by sim date. Any of them can be NULL (nothing to measure yet);
+// the whole payload carries `purged` when the run's rows no longer exist.
+export interface TwinKpiFive {
+  sim_run_id: string;
+  /** Hours vehicles spent deployed, per sim day. */
+  asset_hours_available_per_day: Record<string, number> | null;
+  /** Completed service-point turns per point used, per sim day. */
+  service_point_turns_per_point_per_day: Record<string, number> | null;
+  /** Max 15-minute rolling grid import, NET of the site battery — the demand-billing reading. */
+  peak_site_kw: number | null;
+  /** Max 15-minute rolling site load BEFORE the battery (EV + building + lighting − solar). */
+  peak_site_kw_demand: number | null;
+  /** Human interventions per completed turn (the shield's own safe defaults do not count). */
+  touch_events_per_turn: number | null;
+  /** Recall-complete to first operation active, over returns inside the run window. */
+  p95_time_to_service_min: number | null;
+  p50_time_to_service_min: number | null;
+  /** Returns that never reached a first operation inside the run window. */
+  returns_unserved: number | null;
+  purged: unknown;
+  audit?: {
+    touch_events_per_turn?: { turns?: number; touch_events?: number };
+    p95_time_to_service_min?: { returns_measured?: number; dispatches_total?: number; max_time_to_service_min?: number };
+    service_point_turns_per_point_per_day?: { turns_completed?: number; points_with_a_turn_max_day?: number };
+    asset_hours_available_per_day?: { dispatches_counted?: number; dispatches_open_at_horizon?: number };
+  };
+}
+
 // ── Variability catalog (the registry the console renders from) ──
-export type KnobType = "shift" | "spread" | "floor" | "ceiling" | "rate" | "select";
+export type KnobType ="shift" | "spread" | "floor" | "ceiling" | "rate" | "select";
 export interface CatalogVar {
   var_key: string; domain: string; label: string; definition: string;
   unit: string | null; kind: "continuous" | "rate" | "policy";
@@ -667,6 +697,9 @@ export const twin = {
   offsite: (simRunId: string)            => rpc<TwinOffsiteWindow>("ottoq_twin_offsite_window", { p_sim_run_id: simRunId }),
   wear: (simRunId: string)               => rpc<TwinWearWindow>("ottoq_twin_wear_window", { p_sim_run_id: simRunId }),
   fleetCondition: (simRunId: string)     => rpc<TwinFleetCondition>("ottoq_twin_fleet_condition", { p_sim_run_id: simRunId }),
+  /** The five canonical KPIs (ottoq_kpi_five) for one run, recomputed server-side from the run's
+   *  own rows. Service-role only in the database, so it is read through the control door. */
+  kpis:      (simRunId: string)          => get<TwinKpiFive>(`/sim_runs/${simRunId}/kpis`),
   health:    ()                          => get<{ service: string; version: string; time: string }>(`/health`),
 
   // controls (operator key) — used in Phase 2+

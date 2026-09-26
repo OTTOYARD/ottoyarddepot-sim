@@ -1,4 +1,11 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+// The tab also reads the run's five KPIs from the edge function. Keep that read off the network in a unit
+// test: it stays pending, and this test is about the live frame's readings.
+vi.mock('@/lib/ottoTwin', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/ottoTwin')>();
+  return { ...actual, twin: { ...actual.twin, kpis: vi.fn(() => new Promise(() => {})) } };
+});
 import { cleanup, render, screen } from '@testing-library/react';
 import { useTwinStore } from '@/store/twinStore';
 import type { TwinSnapshot } from '@/lib/ottoTwin';

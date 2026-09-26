@@ -2,7 +2,7 @@
 // TwinOrchestrationTab — makes OTTO-Q's appointment / reservation / servicing
 // ecosystem VISIBLE. Investor-grade view of the whole seam: vehicles book a
 // stall + full servicing workflow BEFORE they arrive, OTTO-Q holds the stall,
-// and the shield guarantees zero unsafe deploys. Renders ONLY what the RPC
+// and the shield checks every deploy (zero unsafe deploys is measured per run). Renders ONLY what the RPC
 // `ottoq_twin_appointments` returns (see useAppointments / appointmentStore).
 // ============================================================================
 import { useMemo } from "react";
@@ -181,10 +181,11 @@ export const TwinOrchestrationTab = () => {
           <h2 className="text-sm font-display uppercase tracking-[0.08em] text-ink">Orchestration — the appointment ecosystem</h2>
           <p className="text-[11px] text-ink-faint mt-1 leading-relaxed">
             Every vehicle books a stall and its full servicing plan before it arrives. OTTO-Q holds the stall,
-            sequences the workflow, and the safety shield guarantees no unsafe deploy — one continuous loop.
+            sequences the workflow, and the safety shield checks every deploy before it happens — one continuous loop.
           </p>
           <p className="text-[10px] text-ink-faint mt-1 tabular-nums">
-            Sim clock {new Date(data.sim_clock).toISOString().slice(11, 16)} UTC · hour {data.hour_cst} CST
+            {/* hour_cst is computed AT TIME ZONE 'America/Chicago' (ottoq_twin_appointments), so it is CT: CDT in September, not CST. */}
+            Sim clock {new Date(data.sim_clock).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Chicago" })} CT
           </p>
         </div>
 
@@ -206,7 +207,7 @@ export const TwinOrchestrationTab = () => {
               <div className="text-xl font-display tabular-nums leading-tight" style={{ color: num(h.unsafe_deploys_run) === 0 ? "#00B4A6" : "#C8102E" }}>
                 {num(h.unsafe_deploys_run)}
                 <span className="text-[10px] font-ui normal-case tracking-normal ml-1.5 text-ink-faint">
-                  {num(h.unsafe_deploys_run) === 0 ? "shield-guaranteed" : "breaches"}
+                  {num(h.unsafe_deploys_run) === 0 ? "measured this run" : "breaches"}
                 </span>
               </div>
             </div>
@@ -247,7 +248,7 @@ export const TwinOrchestrationTab = () => {
           <div className="rounded-md border border-[#D8DDFF]/30 bg-[#D8DDFF]/[0.06] p-3 flex items-center gap-3">
             <Moon size={20} className="text-[#D8DDFF] shrink-0" />
             <div className="text-[11px] text-ink-dim leading-relaxed">
-              <span className="text-ink font-display">Overnight window active</span> · hour {num(data.overnight.hour_cst)} CST ·{" "}
+              <span className="text-ink font-display">Overnight window active</span> · hour {num(data.overnight.hour_cst)} CT ·{" "}
               <span className="tabular-nums text-ink">{num(data.overnight.recalled_tonight)}</span> recalled tonight ·{" "}
               <span className="tabular-nums text-ink">{num(data.overnight.holdout_still_out)}</span> still deployed, returning by ~3am.
             </div>

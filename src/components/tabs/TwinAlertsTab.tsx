@@ -25,7 +25,7 @@ function iconFor(type: string) {
 // pull the most telling fields out of an event payload for a one-line summary
 function summarize(type: string, payload: Record<string, unknown> | null): string {
   if (!payload) return "";
-  const p = payload as Record<string, any>;
+  const p = payload;
   if (p.reason) return String(p.reason).replace(/^fault\./, "fault: ");
   if (p.vehicle) return `${p.vehicle}${p.soc_end != null ? ` · SoC ${p.soc_end}%` : ""}`;
   if (p.count != null) return `${p.count} vehicle(s)${p.scenario ? ` · ${p.scenario}` : ""}`;
@@ -60,7 +60,7 @@ export const TwinAlertsTab = () => {
         {events.map((e, i) => {
           const sev = SEV[e.severity] ?? SEV.info;
           const Icon = iconFor(e.type);
-          const when = (() => { try { return new Date(e.at).toLocaleTimeString("en-US", { hour12: false, timeZone: "UTC" }); } catch { return ""; } })();
+          const when = (() => { try { return new Date(e.at).toLocaleTimeString("en-US", { hour12: false, timeZone: "America/Chicago" }); } catch { return ""; } })();
           const sub = summarize(e.type, (e.payload ?? null) as Record<string, unknown> | null);
           return (
             <div key={i} className={`flex items-start gap-2 rounded-md border px-2.5 py-2 ${sev.ring}`}>

@@ -140,10 +140,11 @@ describe('status tone never paints a warning green', () => {
     const expected: Record<(typeof STACK_STATUSES)[number], Tone> = {
       ok: 'ok',
       degraded: 'warn',
-      degraded_latency: 'warn',
-      permissive: 'warn',
+      model_unavailable: 'warn',
       primary_unreachable: 'warn',
       refusing_all: 'warn',
+      none_enacted: 'warn',
+      abstaining: 'idle',
       primary_idle: 'idle',
       inactive: 'idle',
     };
@@ -152,22 +153,24 @@ describe('status tone never paints a warning green', () => {
     }
   });
 
-  // The three that were silently grey. Named individually so a regression says
-  // which one broke rather than "the table changed".
-  it('a shield that blocked nothing is a warning, not neutral', () => {
-    expect(statusTone('permissive')).toBe('warn');
-    expect(statusTone('permissive')).not.toBe('idle');
-    expect(statusTone('permissive')).not.toBe('ok');
-  });
-
-  it('a kernel that enacted nothing is a warning, not neutral', () => {
+  // Named individually so a regression says which one broke rather than "the table changed".
+  it('a kernel that enacted none of its offers is a warning, not neutral', () => {
     expect(statusTone('refusing_all')).toBe('warn');
-    expect(statusTone('refusing_all')).not.toBe('idle');
+    expect(statusTone('none_enacted')).toBe('warn');
+    expect(statusTone('none_enacted')).not.toBe('idle');
   });
 
-  it('an agent past the tick on most chains is a warning, not neutral', () => {
+  // G188: every agent pass fell back because the model endpoint hung, and the layer used to read
+  // "inactive" -- indistinguishable from an agent that was never armed.
+  it('an agent whose model is unavailable is a warning, not neutral', () => {
+    expect(statusTone('model_unavailable')).toBe('warn');
+    expect(statusTone('model_unavailable')).not.toBe('idle');
+  });
+
+  // Retired by 0451, still classified so an old payload does not render as "no data".
+  it('keeps the retired statuses readable as warnings', () => {
+    expect(statusTone('permissive')).toBe('warn');
     expect(statusTone('degraded_latency')).toBe('warn');
-    expect(statusTone('degraded_latency')).not.toBe('idle');
   });
 
   // And the two that are neutral on purpose — 0349's three-valued lesson: a run
@@ -175,6 +178,8 @@ describe('status tone never paints a warning green', () => {
   it('keeps "nothing measured yet" neutral rather than amber', () => {
     expect(statusTone('primary_idle')).toBe('idle');
     expect(statusTone('inactive')).toBe('idle');
+    // 0456: a proposer that declined everything offered the kernel nothing to judge
+    expect(statusTone('abstaining')).toBe('idle');
   });
 });
 
@@ -231,46 +236,55 @@ describe('layer headlines are assembled only from measured keys', () => {
     ).toBe('16,771 packets · 112 assets reporting · 523 dropped');
   });
 
-  it('reads the shield layer', () => {
+  // 0451: refusals the engine acted on and failures are different numbers and are printed apart.
+  it('reads the shield layer as refusals and failures, never one called the other', () => {
     expect(
       layerHeadline(
-        layer({ layer: 'L1_SHIELD', live: { evaluations: 177179, blocked: 1533, distinct_rules: 20 } }),
+        layer({ layer: 'L1_SHIELD', live: { evaluations: 294579, refused: 346, failed: 362, distinct_rules: 26 } }),
       ),
-    ).toBe('177,179 evaluations · 1,533 blocked · 20 rules');
+    ).toBe('294,579 evaluations · 346 refused · 362 failed · 26 rules');
+    // the 0351 payload's `blocked` counted FAILURES; it must never be re-read as refusals
+    expect(
+      layerHeadline(layer({ layer: 'L1_SHIELD', live: { evaluations: 10, blocked: 2 } })),
+    ).toBe('10 evaluations');
   });
 
-  it('reads the agent layer including the over-a-tick count', () => {
+  it('reads the agent layer as passes, model answers and fallbacks', () => {
     expect(
       layerHeadline(
-        layer({ layer: 'L2_AGENT', live: { chains: 166, avg_latency_ms: 27179, over_one_tick: 55 } }),
+        layer({
+          layer: 'L2_AGENT',
+          live: { chains: 147, by_source: { nemotron: 23, deterministic_fallback: 124 }, model_fallbacks: 124 },
+        }),
       ),
-    ).toBe('166 chains · avg 27.2s · 55 of 166 over one tick');
+    ).toBe('147 passes · 23 answered by the model · 124 fell back');
   });
 
-  it('reads the solver layer from the providers it was given', () => {
+  it('reads the solver layer from this run\'s providers', () => {
     expect(
       layerHeadline(
         layer({
           layer: 'L3_SOLVER',
           live: {
-            providers: { nvidia_cuopt: { calls: 532 }, cpsat_service: { calls: 41 } },
+            providers: { nvidia_cuopt: { calls: 532 }, cpsat_service: { calls: 147, answered: 7 } },
             declared_primary: 'forward_lex',
             primary_reachable: false,
           },
         }),
       ),
-    ).toBe('cuOpt 532, CP-SAT 41 · primary forward lex unreachable');
+    ).toBe('CP-SAT 147 calls, 7 answered · cuOpt 532 calls · primary forward lex unreachable');
   });
 
-  it('reads the kernel layer', () => {
+  // 0456: offers and abstentions are counted apart; 413 abstentions once read as 182 refusals.
+  it('reads the kernel layer as offers, with abstentions apart', () => {
     expect(
       layerHeadline(
         layer({
           layer: 'L4_KERNEL',
-          live: { proposals: 45, enacted: 21, refused: 20, refusal_rate_pct: 44 },
+          live: { proposals: 12, enacted: 0, refused: 3, superseded: 9, abstentions: 413 },
         }),
       ),
-    ).toBe('45 proposals · 21 enacted · 20 refused · 44% refusal');
+    ).toBe('12 offers · 0 enacted · 3 refused · 9 superseded · 413 abstentions');
   });
 
   // THE CORE PROPERTY. No payload, no sentence. Not "0 packets", not "healthy".
@@ -290,7 +304,7 @@ describe('layer headlines are assembled only from measured keys', () => {
   it('reports a measured zero when the engine measured zero', () => {
     expect(
       layerHeadline(layer({ layer: 'L4_KERNEL', live: { proposals: 45, refused: 0 } })),
-    ).toBe('45 proposals · 0 refused');
+    ).toBe('45 offers · 0 refused');
   });
 
   it('a layer name it does not know gets no invented headline', () => {
@@ -301,20 +315,33 @@ describe('layer headlines are assembled only from measured keys', () => {
 });
 
 describe('caveats surface the findings that flatter us least', () => {
-  // G62: Nemotron's mean latency exceeds the 30-second beat, which is the
-  // mechanism behind every deterministic_fallback sitting beside it.
-  it('says when the agent is running behind the tick', () => {
-    const out = layerCaveats(
-      layer({ layer: 'L2_AGENT', live: { chains: 166, over_one_tick: 55 } }),
-    );
-    expect(out.join(' ')).toContain('55 of 166 agent calls took longer than one tick');
+  // RETRACTED CLAIM, pinned so it cannot return: the tick fires the agent with pg_net and never
+  // waits for it (otto-q-core 0332), so "took longer than one tick" described nothing that held anything.
+  it('never claims a slow agent holds the tick', () => {
+    const out = layerCaveats(layer({ layer: 'L2_AGENT', live: { chains: 166, over_one_tick: 55 } }));
+    expect(out.join(' ')).not.toContain('longer than one tick');
   });
 
-  it('counts the chains that fell back to the deterministic path', () => {
+  it('counts the passes that fell back, with the endpoint\'s own error', () => {
     const out = layerCaveats(
-      layer({ layer: 'L2_AGENT', live: { chains: 166, by_source: { deterministic_fallback: 2 } } }),
+      layer({
+        layer: 'L2_AGENT',
+        live: { chains: 147, model_fallbacks: 124, last_model_error: 'HTTP 429: Too Many Requests' },
+      }),
     );
-    expect(out.join(' ')).toContain('2 chains fell back');
+    expect(out.join(' ')).toContain('124 of 147 passes fell back');
+    expect(out.join(' ')).toContain('HTTP 429');
+  });
+
+  it('says how stale applied advice is, and that the tick does not wait for it', () => {
+    const out = layerCaveats(
+      layer({
+        layer: 'L2_AGENT',
+        live: { chains: 10, advice_applied: 10, advice_mean_ticks_late: 6.6, advice_p95_ticks_late: 22 },
+      }),
+    );
+    expect(out.join(' ')).toContain('mean of 6.6 ticks after it was computed (p95 22)');
+    expect(out.join(' ')).toContain('never waits');
   });
 
   it('names an unreachable rank-0 proposer on the solver card', () => {
@@ -327,15 +354,29 @@ describe('caveats surface the findings that flatter us least', () => {
     expect(out.join(' ')).toContain('forward lex is declared primary and has fired 0 times');
   });
 
-  it('calls a kernel that refused nothing a rubber stamp', () => {
-    const out = layerCaveats(layer({ layer: 'L4_KERNEL', live: { proposals: 30, refused: 0 } }));
+  it('calls a kernel that enacted every offer and refused nothing a rubber stamp', () => {
+    const out = layerCaveats(layer({ layer: 'L4_KERNEL', live: { proposals: 30, enacted: 30, refused: 0 } }));
     expect(out.join(' ')).toContain('rubber stamp');
   });
 
+  it('says why no offer was enacted, and what the proposer declined', () => {
+    const out = layerCaveats(
+      layer({
+        layer: 'L4_KERNEL',
+        live: {
+          proposals: 12, enacted: 0, refused: 3, superseded: 9, abstentions: 413,
+          top_abstain_reasons: { "outside this tick's batch of 8 most urgent ": 361, 'bridge:not_due': 41 },
+        },
+      }),
+    );
+    expect(out.join(' ')).toContain('none of 12 offers was enacted: 9 superseded by the decide path, 3 refused');
+    expect(out.join(' ')).toContain("413 abstentions; most often “outside this tick's batch of 8 most urgent” (361)");
+  });
+
   it('stays silent when the measurement does not support a caveat', () => {
-    expect(layerCaveats(layer({ layer: 'L2_AGENT', live: { chains: 166, over_one_tick: 0 } }))).toEqual([]);
+    expect(layerCaveats(layer({ layer: 'L2_AGENT', live: { chains: 166, model_fallbacks: 0 } }))).toEqual([]);
     expect(layerCaveats(layer({ layer: 'L3_SOLVER', live: { primary_reachable: true } }))).toEqual([]);
-    expect(layerCaveats(layer({ layer: 'L4_KERNEL', live: { proposals: 45, refused: 20 } }))).toEqual([]);
+    expect(layerCaveats(layer({ layer: 'L4_KERNEL', live: { proposals: 45, enacted: 25, refused: 20 } }))).toEqual([]);
     expect(layerCaveats(layer({ layer: 'L2_AGENT', live: null }))).toEqual([]);
   });
 

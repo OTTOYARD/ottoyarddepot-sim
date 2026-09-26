@@ -12,7 +12,7 @@
 //   L0_INGRESS  what the assets pushed          ottoq_telemetry_packets
 //   L1_SHIELD   which actions are feasible      ottoq_rule_evaluations
 //   L2_AGENT    reads frame, picks objective    ottoq_decisions
-//   L3_SOLVER   proposes                        ottoq_intelligence_ledger
+//   L3_SOLVER   proposes                        ottoq_model_call_ledger (this run)
 //   L4_KERNEL   disposes                        ottoq_external_proposals
 //
 // THE ONE RULE IN THIS FILE, and it is the same rule otto-q-core 0346 taught
@@ -106,43 +106,40 @@ export function providerLabel(key: string): string {
 // otto-q-core 0349 exists because a run reported "armed, 7 of 7" while its
 // rank-0 proposer had never once fired. Green on that state is the bug.
 //
-// THIS MAP WAS INCOMPLETE WHEN FIRST SHIPPED, and a live run found it rather
-// than review. `ottoq_intelligence_stack` can emit seven statuses besides `ok`;
-// the first version of this function named two of them, so FOUR rendered as
-// neutral grey — including `permissive`, which means the shield evaluated rules
-// and blocked NOTHING. A shield that never blocks is the most important thing
-// this panel can say, and it was being drawn the same colour as "no data".
+// THE LIST IS THE COMPLETE SET THE CURRENT FUNCTION EMITS (otto-q-core 0451 +
+// 0456), taken from its CASE expressions, and every one is classified
+// deliberately. A status missing from this map once rendered `permissive` grey:
 //
-// The list below is the complete set, taken from the CASE expressions in
-// otto-q-core migration 0351. Every one is classified deliberately:
+//   degraded            L0  dropped packets                              WARN
+//   model_unavailable   L2  the latest agent pass fell back (G188)       WARN
+//   primary_unreachable L3  rank-0 proposer measured unreachable         WARN
+//   refusing_all        L4  every offer the kernel saw, it refused       WARN
+//   none_enacted        L4  offers, none enacted (refused or superseded) WARN
+//   abstaining          L4  the proposer declined everything, offered 0  idle
+//   primary_idle        L3  no fires yet, reachability still unknown     idle
+//   inactive            L*  the layer has no activity at all             idle
 //
-//   permissive         L1  evaluations > 0 and blocked = 0          WARN
-//   degraded           L0  dropped packets / low signal              WARN
-//   degraded_latency   L2  over half the agent chains exceed a tick  WARN
-//   primary_unreachable L3 rank-0 proposer measured unreachable      WARN
-//   refusing_all       L4  proposals > 0 and enacted = 0             WARN
-//   primary_idle       L3  no fires yet, reachability still unknown  idle
-//   inactive           L*  the layer has no activity at all          idle
+// RETIRED, still classified so an older payload renders sanely:
+//   degraded_latency  (0451: the tick never waits on the agent, 0332)
+//   permissive        (0451: L1 counts refusals from the effect view)
 //
-// `primary_idle` and `inactive` stay neutral on purpose: both mean "nothing
-// measured yet", which is 0349's three-valued lesson — a run that has not had
-// an agent pass is never accused. An UNKNOWN status also stays neutral rather
-// than amber: crying wolf on a status a future migration adds would be its own
-// defect, and the card prints the raw status text either way, so an
-// unclassified state is still legible. intelligenceStack.test.ts asserts this
-// map covers every status in the list above, so the gap cannot recur silently.
+// `abstaining`, `primary_idle` and `inactive` stay neutral on purpose: each
+// means "nothing to judge yet", which is 0349's three-valued lesson. An UNKNOWN
+// status also stays neutral rather than amber, and the card prints its raw
+// text either way. intelligenceStack.test.ts asserts this map covers the list.
 // ---------------------------------------------------------------------------
 export type Tone = 'ok' | 'warn' | 'bad' | 'idle';
 
-/** Every status `ottoq_intelligence_stack` can emit, per otto-q-core 0351. */
+/** Every status `ottoq_intelligence_stack` can emit, per otto-q-core 0451 and 0456. */
 export const STACK_STATUSES = [
   'ok',
   'degraded',
-  'degraded_latency',
-  'permissive',
+  'model_unavailable',
   'primary_unreachable',
   'primary_idle',
   'refusing_all',
+  'none_enacted',
+  'abstaining',
   'inactive',
 ] as const;
 
@@ -151,17 +148,19 @@ export function statusTone(status: string | null | undefined): Tone {
     case 'ok':
       return 'ok';
     case 'degraded':
-    case 'degraded_latency':
-    case 'permissive':
+    case 'model_unavailable':
     case 'primary_unreachable':
     case 'refusing_all':
+    case 'none_enacted':
     case 'partial':
+    case 'degraded_latency': // retired by 0451; kept so an old payload does not render as "no data"
+    case 'permissive': // retired by 0451; same
       return 'warn';
     case 'unreachable':
     case 'failed':
     case 'unarmed':
       return 'bad';
-    // 'primary_idle' and 'inactive' fall through to idle deliberately — see above.
+    // 'abstaining', 'primary_idle' and 'inactive' fall through to idle deliberately — see above.
     default:
       return 'idle';
   }
@@ -272,31 +271,37 @@ export function layerHeadline(layer: Pick<StackLayer, 'layer' | 'live'>): string
         num(live.dropped) ? `${c('dropped')} dropped` : null,
       ]);
     case 'L1_SHIELD':
+      // 0451: `blocked` is what the engine REFUSED (0430's effect view). A failed advisory
+      // verdict is recorded, not refused, so the two are printed apart.
       return join([
         c('evaluations') && `${c('evaluations')} evaluations`,
-        c('blocked') && `${c('blocked')} blocked`,
+        // `refused` only: the 0351 payload's `blocked` counted FAILURES, so reading it as refusals would
+        // repeat the exact mislabel 0451 removed.
+        c('refused') && `${c('refused')} refused`,
+        c('failed') && `${c('failed')} failed`,
         c('distinct_rules') && `${c('distinct_rules')} rules`,
       ]);
-    case 'L2_AGENT':
+    case 'L2_AGENT': {
+      const answered = num((live.by_source as Record<string, unknown> | null)?.nemotron);
       return join([
-        c('chains') && `${c('chains')} chains`,
-        formatMs(live.avg_latency_ms) && `avg ${formatMs(live.avg_latency_ms)}`,
-        num(live.over_one_tick) !== null && num(live.chains) !== null
-          ? `${c('over_one_tick')} of ${c('chains')} over one tick`
-          : null,
+        c('chains') && `${c('chains')} passes`,
+        answered !== null ? `${formatCount(answered)} answered by the model` : null,
+        num(live.model_fallbacks) ? `${c('model_fallbacks')} fell back` : null,
       ]);
+    }
     case 'L3_SOLVER': {
-      const providers = topEntries(
-        Object.fromEntries(
-          Object.entries(
-            (live.providers as Record<string, { calls?: unknown }> | null) ?? {},
-          ).map(([k, v]) => [k, v?.calls]),
-        ),
-        3,
-      );
+      const providers = Object.entries(
+        (live.providers as Record<string, Record<string, unknown>> | null) ?? {},
+      ).sort(([a], [b]) => a.localeCompare(b));
       return join([
         providers.length
-          ? providers.map((p) => `${providerLabel(p.key)} ${p.count}`).join(', ')
+          ? providers
+              .map(([k, p]) =>
+                [
+                  `${providerLabel(k)} ${formatCount(p?.calls) ?? '—'} calls`,
+                  num(p?.answered) !== null ? `${formatCount(p?.answered)} answered` : null,
+                ].filter(Boolean).join(', '))
+              .join(' · ')
           : null,
         live.primary_reachable === false
           ? `primary ${humanize(String(live.declared_primary ?? 'proposer'))} unreachable`
@@ -304,11 +309,13 @@ export function layerHeadline(layer: Pick<StackLayer, 'layer' | 'live'>): string
       ]);
     }
     case 'L4_KERNEL':
+      // 0456: proposals are OFFERS; the proposer's abstentions are counted apart.
       return join([
-        c('proposals') && `${c('proposals')} proposals`,
+        c('proposals') && `${c('proposals')} offers`,
         c('enacted') && `${c('enacted')} enacted`,
         num(live.refused) !== null ? `${c('refused')} refused` : null,
-        formatPct(live.refusal_rate_pct) && `${formatPct(live.refusal_rate_pct)} refusal`,
+        num(live.superseded) ? `${c('superseded')} superseded` : null,
+        num(live.abstentions) ? `${c('abstentions')} abstentions` : null,
       ]);
     default:
       return NO_MEASUREMENT;
@@ -319,12 +326,12 @@ export function layerHeadline(layer: Pick<StackLayer, 'layer' | 'live'>): string
  * The findings a panel must not bury. Each returns a sentence only when the
  * measurement supports it — there is no "all clear" string to fabricate.
  *
- *  - L2, G62: the advisory agent is on average a tick late, which is the
- *    mechanism behind every deterministic_fallback beside it.
- *  - L2, G64: an agent call carrying zero L1 rule evaluations is the one path
- *    where an AI changes engine state without the shield in front of it.
+ *  - L1: a would-block verdict an advisory caller ignored is recorded, not refused (0430).
+ *  - L2: fallbacks with the endpoint's own error (G188), and how stale applied advice is.
+ *    The old "N calls took longer than one tick" line is RETRACTED: the tick fires the
+ *    agent with pg_net and never waits for it (otto-q-core 0332).
  *  - L3, 0349: a declared rank-0 proposer that has never fired.
- *  - L4: a 0% refusal rate is a rubber stamp, not a clean run.
+ *  - L4: offers none of which were enacted, and what the proposer declined (0456).
  */
 export function layerCaveats(layer: Pick<StackLayer, 'layer' | 'live'>): string[] {
   const live = layer.live;
@@ -336,18 +343,30 @@ export function layerCaveats(layer: Pick<StackLayer, 'layer' | 'live'>): string[
     if (below) out.push(`${formatCount(below)} packets arrived below 50% signal`);
   }
 
-  if (layer.layer === 'L2_AGENT') {
-    const over = num(live.over_one_tick);
-    const chains = num(live.chains);
-    if (over && chains) {
-      out.push(
-        `${formatCount(over)} of ${formatCount(chains)} agent calls took longer than one tick — ` +
-          `an advisory agent cannot be a synchronous dependency of the beat`,
-      );
+  if (layer.layer === 'L1_SHIELD') {
+    const recorded = num(live.recorded_only);
+    if (recorded) {
+      out.push(`${formatCount(recorded)} would-block verdicts came from advisory checkpoints: recorded, not refused`);
     }
-    const fallback = num((live.by_source as Record<string, unknown> | null)?.deterministic_fallback);
-    if (fallback) {
-      out.push(`${formatCount(fallback)} chains fell back to the deterministic path`);
+  }
+
+  if (layer.layer === 'L2_AGENT') {
+    const fallbacks = num(live.model_fallbacks);
+    const chains = num(live.chains);
+    if (fallbacks && chains) {
+      const err = typeof live.last_model_error === 'string' && live.last_model_error.trim()
+        ? ` Last model error: ${live.last_model_error.trim()}.`
+        : '';
+      out.push(`${formatCount(fallbacks)} of ${formatCount(chains)} passes fell back to the deterministic path.${err}`);
+    }
+    const mean = num(live.advice_mean_ticks_late);
+    if (mean !== null && num(live.advice_applied)) {
+      const p95 = num(live.advice_p95_ticks_late);
+      out.push(
+        `advice is applied a mean of ${mean} ticks after it was computed` +
+          (p95 !== null ? ` (p95 ${p95})` : '') +
+          ' — the tick never waits for it',
+      );
     }
   }
 
@@ -357,10 +376,22 @@ export function layerCaveats(layer: Pick<StackLayer, 'layer' | 'live'>): string[
   }
 
   if (layer.layer === 'L4_KERNEL') {
-    const proposals = num(live.proposals);
+    const offers = num(live.proposals);
+    const enacted = num(live.enacted);
     const refused = num(live.refused);
-    if (proposals && refused === 0) {
-      out.push('every proposal was enacted — a kernel that refuses nothing is a rubber stamp');
+    const superseded = num(live.superseded);
+    if (offers && refused === 0 && enacted === offers) {
+      out.push('every offer was enacted — a kernel that refuses nothing is a rubber stamp');
+    }
+    if (offers && enacted === 0) {
+      out.push(
+        `none of ${formatCount(offers)} offers was enacted: ` +
+          `${formatCount(superseded) ?? '0'} superseded by the decide path, ${formatCount(refused) ?? '0'} refused`,
+      );
+    }
+    const top = topEntries(live.top_abstain_reasons, 1)[0];
+    if (num(live.abstentions) && top) {
+      out.push(`${formatCount(live.abstentions)} abstentions; most often “${top.key.trim()}” (${formatCount(top.count)})`);
     }
   }
 
