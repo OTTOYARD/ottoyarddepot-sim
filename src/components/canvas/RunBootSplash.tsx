@@ -24,10 +24,10 @@ interface BootManifest {
   sim_run_id: string;
   scenario: string | null;
   status: string | null;
-  random_seed: number | null;
+  random_seed: number | string | null;
   boot_draw: {
     ok?: boolean;
-    seed?: number;
+    seed?: number | string;
     draw_ms?: number;
     vehicles_drawn?: number;
     world_day0?: Record<string, number | null>;

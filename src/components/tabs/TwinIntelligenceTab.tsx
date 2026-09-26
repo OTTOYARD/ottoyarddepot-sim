@@ -55,6 +55,7 @@ import {
   type StackLayer,
   type Tone,
 } from '@/lib/intelligenceStack';
+import { modelErrorText } from '@/lib/decisionText';
 
 const TONE_CLASS: Record<Tone, string> = {
   ok: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300',
@@ -145,23 +146,33 @@ const LayerBody = ({ layer }: { layer: StackLayer }) => {
       );
     }
     case 'L1_SHIELD':
+      // 0451: `refused` is what the engine ACTED on (0430's effect view); `failed` is every failed
+      // verdict, and a failed advisory rule is recorded, not refused. They are never one number.
       return (
         <>
           <Metric label="evaluations" value={formatCount(live.evaluations)} />
-          <Metric label="blocked" value={formatCount(live.blocked)} />
+          <Metric label="refused (acted on)" value={formatCount(live.refused)} />
+          <Metric label="failed" value={formatCount(live.failed)} />
+          <Metric label="would-block, advisory caller" value={formatCount(live.recorded_only)} />
           <Metric label="distinct rules" value={formatCount(live.distinct_rules)} />
-          <Metric label="overridden" value={formatCount(live.overridden)} />
+          <Metric label="human overrides" value={formatCount(live.overridden)} />
           <Breakdown label="probe points" value={live.by_probe_point} />
-          <Breakdown label="top blocking rules" value={live.top_blocking_rules} humanizeKeys={false} />
+          <Breakdown label="rules that refused" value={live.top_blocking_rules} humanizeKeys={false} />
+          <Breakdown label="rules that failed (enforcement)" value={live.top_failing_rules} humanizeKeys={false} />
         </>
       );
     case 'L2_AGENT':
+      // Pass time is COMPUTE time, not a wait: the tick fires the agent with pg_net and never
+      // waits for it (otto-q-core 0332). What lateness costs is staleness, shown beside it.
       return (
         <>
-          <Metric label="model" value={(live.model as string) ?? null} />
-          <Metric label="chains" value={formatCount(live.chains)} />
-          <Metric label="avg latency" value={formatMs(live.avg_latency_ms)} />
-          <Metric label="max latency" value={formatMs(live.max_latency_ms)} />
+          <Metric label="model" value={(live.model as string) === 'none' ? 'none (fell back)' : ((live.model as string) ?? null)} />
+          <Metric label="passes" value={formatCount(live.chains)} />
+          <Metric label="fell back" value={formatCount(live.model_fallbacks)} />
+          <Metric label="last model error" value={modelErrorText(live.last_model_error)} />
+          <Metric label="avg pass compute" value={formatMs(live.avg_latency_ms)} />
+          <Metric label="advice applied, mean ticks late" value={formatCount(live.advice_mean_ticks_late)} />
+          <Metric label="advice applied, p95 ticks late" value={formatCount(live.advice_p95_ticks_late)} />
           <Metric label="objective" value={humanize(live.objective as string)} />
           <Breakdown label="by source" value={live.by_source} />
           <Breakdown label="handoff" value={live.handoff} humanizeKeys={false} />
@@ -181,7 +192,7 @@ const LayerBody = ({ layer }: { layer: StackLayer }) => {
           <Metric label="primary fires this run" value={formatCount(live.primary_fires)} />
           {keys.length > 0 && (
             <div className="mt-1.5 space-y-0.5">
-              <div className="text-[9px] text-ink-faint">providers (evidence ledger)</div>
+              <div className="text-[9px] text-ink-faint">providers (this run)</div>
               {keys.map((k) => {
                 const p = providers[k] ?? {};
                 return (
@@ -194,6 +205,7 @@ const LayerBody = ({ layer }: { layer: StackLayer }) => {
                     <span className="min-w-0 break-words text-right font-mono text-[9px] text-ink">
                       {[
                         formatCount(p.calls) && `${formatCount(p.calls)} calls`,
+                        num(p.answered) !== null ? `${formatCount(p.answered)} answered` : null,
                         num(p.proposals) ? `${formatCount(p.proposals)} proposals` : null,
                         formatClockCT(p.last_call as string) && `last ${formatClockCT(p.last_call as string)}`,
                       ]
@@ -209,16 +221,18 @@ const LayerBody = ({ layer }: { layer: StackLayer }) => {
       );
     }
     case 'L4_KERNEL':
+      // 0456: an abstention is the proposer declining to offer, not an offer the kernel refused.
       return (
         <>
-          <Metric label="proposals" value={formatCount(live.proposals)} />
+          <Metric label="offers" value={formatCount(live.proposals)} />
           <Metric label="enacted" value={formatCount(live.enacted)} />
           <Metric label="refused" value={formatCount(live.refused)} />
-          <Metric label="superseded" value={formatCount(live.superseded)} />
+          <Metric label="superseded by the decide path" value={formatCount(live.superseded)} />
           <Metric label="expired" value={formatCount(live.expired)} />
-          <Metric label="refusal rate" value={formatPct(live.refusal_rate_pct)} />
-          <Breakdown label="top refusal reasons" value={live.top_refusal_reasons} limit={4} />
-          <Breakdown label="by source / status" value={live.by_source_status} limit={4} humanizeKeys={false} />
+          <Metric label="refusal rate (of offers)" value={formatPct(live.refusal_rate_pct)} />
+          <Metric label="abstentions" value={formatCount(live.abstentions)} />
+          <Breakdown label="why offers were not enacted" value={live.top_refusal_reasons} limit={4} />
+          <Breakdown label="why the proposer abstained" value={live.top_abstain_reasons} limit={3} humanizeKeys={false} />
         </>
       );
     default:
@@ -482,7 +496,7 @@ export function TwinIntelligenceTab() {
     return (
       <div className="flex-1 p-4">
         <p className="text-[11px] text-ink-dim">
-          No simulation is active. Start a run from the Black Box tab and the intelligence path
+          No simulation is active. Start a run on the Control tab and the intelligence path
           appears here as it runs.
         </p>
       </div>

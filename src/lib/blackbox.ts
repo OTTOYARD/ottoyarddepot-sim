@@ -1,57 +1,21 @@
 // ============================================================================
 // blackbox — the OTTO-Q flight-recorder lifecycle (backend-authoritative).
 //
-// This is THE single start/stop control path for a demo run. Both the
-// Black Box panel and the Operator Console route through these functions so
-// there is exactly one mechanism driving the run:
-//   · start  → control edge → ottoq_start_demo_run
-//   · stop   → control edge → ottoq_sim_stop_and_reset
+// This is THE single start/stop control path for a demo run. The Control tab
+// (OperatorConsole) starts and stops through it, and the Runs tab downloads a
+// run's forensic bundle through it, so there is exactly one mechanism:
+//   · start    → control edge → ottoq_start_demo_run
+//   · stop     → control edge → ottoq_sim_stop_and_reset
 //   · download → GET /functions/v1/ottoq-run-blackbox?run=<id>  (forensic .json)
-//   · discover → ottoq_sim_runs (latest operator_demo row) on mount / refresh
+// (2026-09-23: the Black Box tab and its scenario-deck / latest-run discovery
+// helpers were removed; the Control tab owns start/stop and the run status.)
 //
 // All calls target the gxdrc backend. Lifecycle writes go through the control
 // edge's service role; read-only discovery stays on the public PostgREST client.
 // ============================================================================
-import { ottoQ } from "@/lib/ottoQClient";
 import { OTTOQ_SUPABASE_URL, OTTOQ_ANON_KEY, twin } from "@/lib/ottoTwin";
 import { useTwinStore } from "@/store/twinStore";
 import { twinMotionDriver } from "@/engine/TwinMotionDriver";
-
-// ── The 8 scenario decks the operator can record (scenario picker) ──
-export interface Deck { code: string; label: string }
-export const DECKS: Deck[] = [
-  { code: "normal_day", label: "Normal Day" },
-  { code: "aggressive_fleet_turnover", label: "Aggressive Fleet Turnover" },
-  { code: "charger_outage_morning_rush", label: "Charger Outage — Morning Rush" },
-  { code: "dr_event_cascade", label: "Demand-Response Cascade" },
-  { code: "grid_brownout_at_peak", label: "Grid Brownout at Peak" },
-  { code: "heat_wave", label: "Heat Wave" },
-  { code: "winter_storm", label: "Winter Storm" },
-  { code: "solar_underperformance_partly_cloudy", label: "Solar Underperformance" },
-];
-export const deckLabel = (code: string): string =>
-  DECKS.find((d) => d.code === code)?.label ?? code;
-
-// ── Run row shape (mirrors the ottoq_sim_runs discovery select) ──
-export interface BlackboxRun {
-  sim_run_id: string;
-  scenario_code: string;
-  status: string;
-  tick_count: number;
-  demo_speed_x: number;
-}
-
-// Lifecycle phase derived from the run's backend status.
-export type BlackboxPhase = "idle" | "recording" | "stopped";
-
-const RECORDING = new Set(["running", "active", "paused"]);
-export function phaseFor(run: BlackboxRun | null): BlackboxPhase {
-  if (!run) return "idle";
-  const s = String(run.status).toLowerCase();
-  if (RECORDING.has(s)) return "recording";
-  if (s === "completed") return "stopped";
-  return "idle";
-}
 
 // ── Start / Play: purge the prior run and seed a fresh recording ──
 export interface StartResult {
@@ -99,17 +63,6 @@ export async function stopAndReset(
   return (data as StopResult) ?? {
     ok: true, depot_reset_to_empty: true, vehicles_unplaced: 0, sessions_ended: 0, blackbox_ready: true,
   };
-}
-
-// ── Discover the active / last operator run (mount + refresh) ──
-// Uses a narrow SECURITY DEFINER RPC, not a direct table select: RLS blocks
-// anon SELECT on ottoq_sim_runs (it returns [] with a 200), which left the
-// panel permanently on "idle" and hid the Stop/Download states after a remount
-// or when the run was started from the Operator Console instead.
-export async function fetchLatestRun(): Promise<BlackboxRun | null> {
-  const { data, error } = await ottoQ.rpc("ottoq_blackbox_latest_run");
-  if (error) throw new Error(error.message);
-  return (data as BlackboxRun | null) ?? null;
 }
 
 // ── Download the forensic bundle ──

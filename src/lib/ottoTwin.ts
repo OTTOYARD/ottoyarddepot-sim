@@ -142,7 +142,8 @@ export interface TwinLegsMeta {
 export interface TwinSnapshot {
   run: {
     sim_run_id: string; scenario: string; status: string;
-    sim_clock: string; tick_count: number; time_scale: number; seed: number;
+    /** text from engine 0497 on: a 64-bit seed is not exact as a JS number */
+    sim_clock: string; tick_count: number; time_scale: number; seed: number | string;
     /** PLAYBACK CONTRACT (backend `ottoq_set_playback`).
      *  'live'  = 1 real second advances the sim clock by speed_x sim seconds (1:1 at 1x)
      *  'fixed' = historical tick_interval_seconds * time_scale (certs/benchmarks) */
@@ -365,7 +366,7 @@ export interface TwinRunContext {
   depot_name: string | null;
   scenario: string;
   status: string;
-  seed: number | null;
+  seed: number | string | null;
   stall_count: number;
   fleet_count: number;
   /** what the run was CONFIGURED to use — a setting, not evidence */
@@ -577,13 +578,73 @@ export interface TwinRunSummary {
   sim_run_id: string; scenario: string; status: string;
   started_at: string | null; ended_at: string | null;
   sim_clock_start: string | null; sim_clock_current: string | null;
-  tick_count: number; time_scale: number; seed: number; sim_minutes: number;
-  counters: TwinRunCounters;
+  tick_count: number; time_scale: number; seed: number | string; sim_minutes: number;
+  /** ottoq_twin_run_list counts only the newest runs; an older run carries null. */
+  counters: TwinRunCounters | null;
+  /** Counters that reached the list's row guard (engine 0466): the number is a floor, not a count. */
+  counters_capped?: (keyof TwinRunCounters)[] | null;
   variability: { spread_mult: number; rate_mult: number; tuned_knobs: number; notes: string | null } | null;
 }
 
+// ── The five canonical KPIs (mirrors ottoq_kpi_five; CLAUDE.md 2.9) ──
+// Every figure is recomputed from the run's own rows, so it regenerates from the run ID.
+// Per-day figures are keyed by sim date. Any of them can be NULL (nothing to measure yet);
+// the whole payload carries `purged` when the run's rows no longer exist.
+/**
+ * The wait for a charger (engine 0501, `ottoq_kpi_charge_wait`, G233): minutes from a visit's arrival to its first
+ * charging session, over the visits that arrived owing a charge. KPI 5 counts from recall to the FIRST operation,
+ * which on a busy day is a cabin or digital task that starts at once, so it cannot see the charger queue. A visit
+ * still owed at the run's clock is waiting: its minutes so far are a floor, and so is `p95_wait_floor_min`.
+ */
+export interface TwinChargeWait {
+  sim_run_id: string;
+  horizon: string | null;
+  visits_owing_a_charge: number;
+  charged: number;
+  waiting_at_horizon: number;
+  closed_without_a_session: number;
+  /** Over the visits that charged. */
+  p50_wait_min: number | null;
+  p95_wait_min: number | null;
+  max_wait_min: number | null;
+  /** Over the visits still waiting, as of the run's clock. */
+  waiting_p50_so_far_min: number | null;
+  waiting_max_so_far_min: number | null;
+  /** Over both, the waiting ones at their floor: a floor on the true p95. */
+  p95_wait_floor_min: number | null;
+  meaning?: string;
+}
+
+export interface TwinKpiFive {
+  sim_run_id: string;
+  /** Hours vehicles spent deployed, per sim day. */
+  asset_hours_available_per_day: Record<string, number> | null;
+  /** Completed service-point turns per point used, per sim day. */
+  service_point_turns_per_point_per_day: Record<string, number> | null;
+  /** Max 15-minute rolling grid import, NET of the site battery — the demand-billing reading. */
+  peak_site_kw: number | null;
+  /** Max 15-minute rolling site load BEFORE the battery (EV + building + lighting − solar). */
+  peak_site_kw_demand: number | null;
+  /** Human interventions per completed turn (the shield's own safe defaults do not count). */
+  touch_events_per_turn: number | null;
+  /** Recall-complete to first operation active, over returns inside the run window. */
+  p95_time_to_service_min: number | null;
+  p50_time_to_service_min: number | null;
+  /** Returns that never reached a first operation inside the run window. */
+  returns_unserved: number | null;
+  purged: unknown;
+  /** Beside the five, not one of them (engine 0501, G233). Absent from a twin-control older than 1.9.2. */
+  charge_wait?: TwinChargeWait | null;
+  audit?: {
+    touch_events_per_turn?: { turns?: number; touch_events?: number };
+    p95_time_to_service_min?: { returns_measured?: number; dispatches_total?: number; max_time_to_service_min?: number };
+    service_point_turns_per_point_per_day?: { turns_completed?: number; points_with_a_turn_max_day?: number };
+    asset_hours_available_per_day?: { dispatches_counted?: number; dispatches_open_at_horizon?: number };
+  };
+}
+
 // ── Variability catalog (the registry the console renders from) ──
-export type KnobType = "shift" | "spread" | "floor" | "ceiling" | "rate" | "select";
+export type KnobType ="shift" | "spread" | "floor" | "ceiling" | "rate" | "select";
 export interface CatalogVar {
   var_key: string; domain: string; label: string; definition: string;
   unit: string | null; kind: "continuous" | "rate" | "policy";
@@ -667,6 +728,9 @@ export const twin = {
   offsite: (simRunId: string)            => rpc<TwinOffsiteWindow>("ottoq_twin_offsite_window", { p_sim_run_id: simRunId }),
   wear: (simRunId: string)               => rpc<TwinWearWindow>("ottoq_twin_wear_window", { p_sim_run_id: simRunId }),
   fleetCondition: (simRunId: string)     => rpc<TwinFleetCondition>("ottoq_twin_fleet_condition", { p_sim_run_id: simRunId }),
+  /** The five canonical KPIs (ottoq_kpi_five) for one run, recomputed server-side from the run's
+   *  own rows. Service-role only in the database, so it is read through the control door. */
+  kpis:      (simRunId: string)          => get<TwinKpiFive>(`/sim_runs/${simRunId}/kpis`),
   health:    ()                          => get<{ service: string; version: string; time: string }>(`/health`),
 
   // controls (operator key) — used in Phase 2+

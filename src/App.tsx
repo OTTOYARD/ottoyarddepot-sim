@@ -5,7 +5,6 @@ import { ResponsiveGuard } from '@/components/layout/ResponsiveGuard';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useTwinFeed } from '@/hooks/useTwinFeed';
 import { useWorldBoot } from '@/hooks/useWorldBoot';
-import { useOrchestration } from '@/hooks/useOrchestration';
 import { useTwinSceneBridge } from '@/hooks/useTwinSceneBridge';
 import { RunBootSplash } from '@/components/canvas/RunBootSplash';
 import { JumpPlanningOverlay } from '@/components/canvas/JumpPlanningOverlay';
@@ -24,8 +23,10 @@ const App = () => {
   // Load the complete world for each adopted run and grade its channels before
   // OTTO-Q is asked to orchestrate in it (worldStore.phase).
   useWorldBoot();
-  // Run the OTTO-Q funnel once per tick: advisors → arbiter → shield → wire.
-  useOrchestration();
+  // NO BROWSER-SIDE ORCHESTRATOR (2026-09-23). A second "OTTO-Q" used to run here every tick —
+  // client-side advisors, arbiter, shield and battery model — and its assign_stall commands
+  // outranked the engine's own stall choice in the motion driver, so a car could be drawn
+  // driving to a stall the engine never picked. The engine decides; the renderer draws.
   // CC-P2b: drive the depot scene (stalls + vehicles) from the live snapshot.
   useTwinSceneBridge();
 

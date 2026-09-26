@@ -150,3 +150,30 @@ describe("freeze and replace", () => {
     expect(s.rows).toHaveLength(2);
   });
 });
+
+// 0452: changes-only rows carry a real identity and a hold that grows while the verdict stands.
+describe("changes-only rows", () => {
+  it("keys on the decision's own sequence number when the feed provides it", () => {
+    expect(rowKey(row({ decision_seq: 42 }))).toBe("d42");
+    expect(rowKey(row({ decision_seq: 42, target: "other" }))).toBe("d42");
+  });
+
+  it("updates a standing verdict in place as its hold grows, without calling it new", () => {
+    const { mergeRows } = useActivityFeedStore.getState();
+    mergeRows([row({ decision_seq: 7, held_ticks: 3, standing: true, last_at: "2026-09-21T10:01:00Z" })]);
+    mergeRows([row({ decision_seq: 7, held_ticks: 9, standing: true, last_at: "2026-09-21T10:04:00Z" })]);
+    const s = useActivityFeedStore.getState();
+    expect(s.rows).toHaveLength(1);
+    expect(s.rows[0].held_ticks).toBe(9);
+    expect(s.arrivedKeys).toHaveLength(0);
+  });
+
+  it("keeps the same rows reference when a standing verdict has not moved", () => {
+    const { mergeRows } = useActivityFeedStore.getState();
+    const page = [row({ decision_seq: 7, held_ticks: 3, standing: true, last_at: "2026-09-21T10:01:00Z" })];
+    mergeRows(page);
+    const before = useActivityFeedStore.getState().rows;
+    mergeRows([{ ...page[0] }]);
+    expect(useActivityFeedStore.getState().rows).toBe(before);
+  });
+});

@@ -11,14 +11,16 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   ArrowLeft, ArrowUpRight, ArrowDownRight, Minus, GitCompare,
-  Loader2, RefreshCw, Radio, Play,
+  Loader2, RefreshCw, Radio, Play, Download,
 } from "lucide-react";
-import { twin, type TwinRunSummary } from "@/lib/ottoTwin";
+import { twin, type TwinRunCounters, type TwinRunSummary } from "@/lib/ottoTwin";
+import { downloadBlackbox } from "@/lib/blackbox";
 import { useTwinStore } from "@/store/twinStore";
+import { toast } from "sonner";
 
 const fmtDate = (iso: string | null) => {
   if (!iso) return "—";
-  try { return new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }); }
+  try { return `${new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Chicago" })} CT`; }
   catch { return "—"; }
 };
 const fmtDur = (min: number) => {
@@ -33,28 +35,58 @@ const STATUS_COLOR: Record<string, string> = {
   failed: "text-brand-hot border-brand-hot/30 bg-brand-hot/5",
 };
 
-// metrics shown in compare, with direction (true = higher is better)
-const METRICS: { key: keyof TwinRunSummary["counters"]; label: string; better: boolean }[] = [
+// metrics shown in compare, with direction (true = higher is better, null = neither: a count of
+// telemetry packets or events says how much happened, not how well, so it gets a grey arrow)
+const METRICS: { key: keyof TwinRunCounters; label: string; better: boolean | null }[] = [
   { key: "dispatches_total", label: "Dispatches", better: true },
-  { key: "charge_sessions", label: "Charge sessions", better: true },
-  { key: "telemetry_packets", label: "Telemetry pkts", better: true },
+  { key: "charge_sessions", label: "Charge sessions", better: null },
+  { key: "telemetry_packets", label: "Telemetry pkts", better: null },
   { key: "faults", label: "Faults", better: false },
   { key: "incidents_open", label: "Incidents open", better: false },
-  { key: "events_total", label: "Events", better: true },
+  { key: "events_total", label: "Events", better: null },
 ];
 
-const Delta = ({ a, b, better }: { a: number; b: number; better: boolean }) => {
+const Delta = ({ a, b, better }: { a: number; b: number; better: boolean | null }) => {
   const d = b - a;
   if (Math.abs(d) < 0.5) return <Minus size={12} className="text-ink-faint" />;
+  if (better === null) {
+    return d > 0 ? <ArrowUpRight size={12} className="text-ink-faint" /> : <ArrowDownRight size={12} className="text-ink-faint" />;
+  }
   const good = better ? d > 0 : d < 0;
   return good ? <ArrowUpRight size={12} className="text-state-go" /> : <ArrowDownRight size={12} className="text-brand-hot" />;
+};
+
+/** The forensic bundle for one run (ottoq-run-blackbox). ~20 MB and ~12 s, so it shows a spinner. */
+const BlackBoxButton = ({ simRunId }: { simRunId: string }) => {
+  const [busy, setBusy] = useState(false);
+  const run = useCallback(async () => {
+    setBusy(true);
+    try {
+      await downloadBlackbox(simRunId);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Black Box download failed");
+    } finally {
+      setBusy(false);
+    }
+  }, [simRunId]);
+  return (
+    <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-ink-dim hover:text-ink" onClick={run} disabled={busy}
+      title="Download this run's Black Box: every decision, event and ledger row, as one JSON file">
+      {busy ? <Loader2 size={10} className="mr-1 animate-spin" /> : <Download size={10} className="mr-1" />} Black Box
+    </Button>
+  );
 };
 
 /* ── Run card ── */
 const RunCard = ({ run, selected, onToggle, isLive, onOpen }: {
   run: TwinRunSummary; selected: boolean; onToggle: () => void; isLive: boolean; onOpen: () => void;
 }) => {
+  // ottoq_twin_run_list counts only the newest runs; older ones arrive with counters: null, and reading a
+  // field of that threw on every render, which is what Stop landed an operator on.
   const c = run.counters;
+  // A counter at the list's row guard is a floor, not a count (engine 0466): say so.
+  const count = (key: keyof TwinRunCounters) =>
+    !c ? "—" : `${c[key] ?? 0}${run.counters_capped?.includes(key) ? "+" : ""}`;
   const v = run.variability;
   const canOpen = run.status === "running" || run.status === "paused";
   return (
@@ -77,8 +109,8 @@ const RunCard = ({ run, selected, onToggle, isLive, onOpen }: {
         {[
           { l: "Sim", v: fmtDur(run.sim_minutes) },
           { l: "Ticks", v: String(run.tick_count) },
-          { l: "Dispatch", v: String(c.dispatches_total) },
-          { l: "Charge", v: String(c.charge_sessions) },
+          { l: "Dispatch", v: count("dispatches_total") },
+          { l: "Charge", v: count("charge_sessions") },
         ].map((s) => (
           <div key={s.l} className="rounded bg-white/[0.02] py-1">
             <div className="font-mono text-[12px] text-ink tabular-nums">{s.v}</div>
@@ -88,21 +120,24 @@ const RunCard = ({ run, selected, onToggle, isLive, onOpen }: {
       </div>
 
       <div className="flex flex-wrap gap-1">
-        {c.faults > 0 && <span className="text-[9px] text-state-warn border border-state-warn/25 rounded px-1 py-0.5">{c.faults} faults</span>}
-        {c.incidents_open > 0 && <span className="text-[9px] text-brand-hot border border-brand-hot/25 rounded px-1 py-0.5">{c.incidents_open} open incidents</span>}
-        {c.telemetry_packets > 0 && <span className="text-[9px] text-ink-dim border border-white/[0.08] rounded px-1 py-0.5">{c.telemetry_packets.toLocaleString()} telemetry</span>}
+        {c && c.faults > 0 && <span className="text-[9px] text-state-warn border border-state-warn/25 rounded px-1 py-0.5">{c.faults} faults</span>}
+        {c && c.incidents_open > 0 && <span className="text-[9px] text-brand-hot border border-brand-hot/25 rounded px-1 py-0.5">{c.incidents_open} open incidents</span>}
+        {c && c.telemetry_packets > 0 && <span className="text-[9px] text-ink-dim border border-white/[0.08] rounded px-1 py-0.5">{c.telemetry_packets.toLocaleString()} telemetry</span>}
         {v && v.tuned_knobs > 0 && <span className="text-[9px] text-state-info border border-state-info/25 rounded px-1 py-0.5">{v.tuned_knobs} knobs tuned</span>}
         {v && v.spread_mult !== 1 && <span className="text-[9px] text-state-info border border-state-info/25 rounded px-1 py-0.5">spread ×{v.spread_mult}</span>}
         {v && v.rate_mult !== 1 && <span className="text-[9px] text-state-info border border-state-info/25 rounded px-1 py-0.5">rate ×{v.rate_mult}</span>}
       </div>
 
       <div className="flex items-center justify-between pt-0.5">
-        <span className="font-mono text-[8px] text-ink-faint">seed {run.seed} · {run.time_scale}×</span>
-        {canOpen && !isLive && (
-          <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-brand-red hover:text-brand-red/80" onClick={onOpen}>
-            <Play size={10} className="mr-1" /> Open in cockpit
-          </Button>
-        )}
+        <span className="font-mono text-[8px] text-ink-faint">seed {run.seed}</span>
+        <div className="flex items-center gap-1">
+          <BlackBoxButton simRunId={run.sim_run_id} />
+          {canOpen && !isLive && (
+            <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-brand-red hover:text-brand-red/80" onClick={onOpen}>
+              <Play size={10} className="mr-1" /> Open in cockpit
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -126,15 +161,17 @@ const CompareView = ({ a, b, onBack }: { a: TwinRunSummary; b: TwinRunSummary; o
         <div className="space-y-1">
           <h4 className="font-display text-[10px] text-ink-faint uppercase tracking-wider">Run-scoped metrics</h4>
           {METRICS.map((m) => {
-            const va = a.counters[m.key] ?? 0, vb = b.counters[m.key] ?? 0;
+            // A run the list did not count is not a zero: show a dash and no direction.
+            const counted = a.counters !== null && b.counters !== null;
+            const va = a.counters?.[m.key] ?? 0, vb = b.counters?.[m.key] ?? 0;
             return (
               <div key={m.key} className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center text-[11px] py-0.5">
-                <span className="text-ink text-right tabular-nums">{va.toLocaleString()}</span>
+                <span className="text-ink text-right tabular-nums">{a.counters ? va.toLocaleString() : "—"}</span>
                 <div className="flex items-center gap-1 justify-center min-w-[110px]">
-                  <Delta a={va} b={vb} better={m.better} />
+                  {counted ? <Delta a={va} b={vb} better={m.better} /> : <Minus size={12} className="text-ink-faint" />}
                   <span className="text-ink-faint text-[10px] truncate">{m.label}</span>
                 </div>
-                <span className="text-ink tabular-nums">{vb.toLocaleString()}</span>
+                <span className="text-ink tabular-nums">{b.counters ? vb.toLocaleString() : "—"}</span>
               </div>
             );
           })}

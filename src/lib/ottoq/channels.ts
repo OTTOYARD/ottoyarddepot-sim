@@ -148,6 +148,7 @@ interface EnvelopeMeta {
   sim_run_id: string;
   scenario: string;
   seed: number;
+  seed_text: string;
   tick: number;
   sim_clock: string | null;
   emitted_at: string;
@@ -168,6 +169,7 @@ function envelope<T>(
     sim_run_id: meta.sim_run_id,
     scenario: meta.scenario,
     seed: meta.seed,
+    seed_text: meta.seed_text,
     tick: meta.tick,
     sim_clock: meta.sim_clock,
     emitted_at: meta.emitted_at,
@@ -1022,6 +1024,7 @@ export function packChannels(
     sim_run_id: String(snap.run?.sim_run_id ?? ""),
     scenario: String(snap.run?.scenario ?? ""),
     seed: Number(snap.run?.seed ?? 0),
+    seed_text: String(snap.run?.seed ?? ""),
     tick: Number(snap.run?.tick_count ?? 0),
     sim_clock: snap.run?.sim_clock ? String(snap.run.sim_clock) : null,
     emitted_at: now.toISOString(),

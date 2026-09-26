@@ -6,8 +6,6 @@ import { StallTooltip } from './StallTooltip';
 import { StallPopup } from './StallPopup';
 import { VehicleTooltip } from './VehicleTooltip';
 import { AlertToasts } from './AlertToasts';
-import { LoadingOverlay } from './LoadingOverlay';
-import { DemoBanner } from './DemoBanner';
 import { SceneErrorBoundary } from './SceneErrorBoundary';
 import { useAppointments } from '@/hooks/useAppointments';
 import { useSimulationStore } from '@/store/simulationStore';
@@ -33,7 +31,6 @@ export const DepotCanvas = () => {
           </Suspense>
         ) : (
           <>
-            <DemoBanner />
             {viewMode === '2d' ? (
               <>
                 <div className="absolute inset-0 flex items-center justify-center p-2">
@@ -52,7 +49,6 @@ export const DepotCanvas = () => {
             )}
             <AlertToasts />
             <DepotLegend />
-            <LoadingOverlay />
           </>
         )}
       </div>

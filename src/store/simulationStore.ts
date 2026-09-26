@@ -71,6 +71,9 @@ export interface SimulationConfig {
   demandCharge: number;
 }
 
+/** The cockpit's side-panel tabs (see TabBar for what each one answers). */
+export type CockpitTab = 'controls' | 'intelligence' | 'orchestration' | 'kpis' | 'alerts' | 'history' | 'world' | 'copilot';
+
 interface SimulationState {
   status: 'idle' | 'running' | 'paused';
   simTime: number;
@@ -85,7 +88,7 @@ interface SimulationState {
   simClockLive: boolean;
   simSpeed: number;
   isPanelOpen: boolean;
-  activeTab: 'controls' | 'world' | 'orchestration' | 'kpis' | 'alerts' | 'history' | 'copilot' | 'blackbox' | 'intelligence';
+  activeTab: CockpitTab;
   config: SimulationConfig;
   viewMode: '2d' | '3d' | 'photoreal';
   controlsLocked: boolean;
