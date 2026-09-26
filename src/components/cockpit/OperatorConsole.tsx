@@ -386,7 +386,10 @@ export const OperatorConsole = () => {
       // ONE authoritative start path (src/lib/blackbox.ts → control edge). startDemoRun
       // adopts the new sim_run_id into the twin store, so the feed begins rendering it.
       await startDemoRun(code, 1);
-      ctrl.play();      // Start also begins the clock — "press Start and watch it run"
+      // Start also begins the clock — "press Start and watch it run". The backend starts the run
+      // already running, so this adopts that state rather than posting a resume the backend
+      // refuses with 409 "run is not paused" (seen on every start, run 49c45bd4).
+      ctrl.syncFromRun("running");
       // Fresh runs open at 3×: watchable without touching a control. Opening at 1× read as a
       // frozen depot (run 7d8da1ca advanced 3.6 sim-minutes in 3.7 real minutes). The slider
       // goes to 8×, the backend's own playback ceiling; past it, time must JUMP, not speed up.
