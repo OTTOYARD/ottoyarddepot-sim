@@ -578,7 +578,10 @@ export interface TwinRunSummary {
   started_at: string | null; ended_at: string | null;
   sim_clock_start: string | null; sim_clock_current: string | null;
   tick_count: number; time_scale: number; seed: number; sim_minutes: number;
-  counters: TwinRunCounters;
+  /** ottoq_twin_run_list counts only the newest runs; an older run carries null. */
+  counters: TwinRunCounters | null;
+  /** Counters that reached the list's row guard (engine 0466): the number is a floor, not a count. */
+  counters_capped?: (keyof TwinRunCounters)[] | null;
   variability: { spread_mult: number; rate_mult: number; tuned_knobs: number; notes: string | null } | null;
 }
 

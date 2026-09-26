@@ -13,7 +13,7 @@ import {
   ArrowLeft, ArrowUpRight, ArrowDownRight, Minus, GitCompare,
   Loader2, RefreshCw, Radio, Play, Download,
 } from "lucide-react";
-import { twin, type TwinRunSummary } from "@/lib/ottoTwin";
+import { twin, type TwinRunCounters, type TwinRunSummary } from "@/lib/ottoTwin";
 import { downloadBlackbox } from "@/lib/blackbox";
 import { useTwinStore } from "@/store/twinStore";
 import { toast } from "sonner";
@@ -37,7 +37,7 @@ const STATUS_COLOR: Record<string, string> = {
 
 // metrics shown in compare, with direction (true = higher is better, null = neither: a count of
 // telemetry packets or events says how much happened, not how well, so it gets a grey arrow)
-const METRICS: { key: keyof TwinRunSummary["counters"]; label: string; better: boolean | null }[] = [
+const METRICS: { key: keyof TwinRunCounters; label: string; better: boolean | null }[] = [
   { key: "dispatches_total", label: "Dispatches", better: true },
   { key: "charge_sessions", label: "Charge sessions", better: null },
   { key: "telemetry_packets", label: "Telemetry pkts", better: null },
@@ -81,7 +81,12 @@ const BlackBoxButton = ({ simRunId }: { simRunId: string }) => {
 const RunCard = ({ run, selected, onToggle, isLive, onOpen }: {
   run: TwinRunSummary; selected: boolean; onToggle: () => void; isLive: boolean; onOpen: () => void;
 }) => {
+  // ottoq_twin_run_list counts only the newest runs; older ones arrive with counters: null, and reading a
+  // field of that threw on every render, which is what Stop landed an operator on.
   const c = run.counters;
+  // A counter at the list's row guard is a floor, not a count (engine 0466): say so.
+  const count = (key: keyof TwinRunCounters) =>
+    !c ? "—" : `${c[key] ?? 0}${run.counters_capped?.includes(key) ? "+" : ""}`;
   const v = run.variability;
   const canOpen = run.status === "running" || run.status === "paused";
   return (
@@ -104,8 +109,8 @@ const RunCard = ({ run, selected, onToggle, isLive, onOpen }: {
         {[
           { l: "Sim", v: fmtDur(run.sim_minutes) },
           { l: "Ticks", v: String(run.tick_count) },
-          { l: "Dispatch", v: String(c.dispatches_total) },
-          { l: "Charge", v: String(c.charge_sessions) },
+          { l: "Dispatch", v: count("dispatches_total") },
+          { l: "Charge", v: count("charge_sessions") },
         ].map((s) => (
           <div key={s.l} className="rounded bg-white/[0.02] py-1">
             <div className="font-mono text-[12px] text-ink tabular-nums">{s.v}</div>
@@ -115,9 +120,9 @@ const RunCard = ({ run, selected, onToggle, isLive, onOpen }: {
       </div>
 
       <div className="flex flex-wrap gap-1">
-        {c.faults > 0 && <span className="text-[9px] text-state-warn border border-state-warn/25 rounded px-1 py-0.5">{c.faults} faults</span>}
-        {c.incidents_open > 0 && <span className="text-[9px] text-brand-hot border border-brand-hot/25 rounded px-1 py-0.5">{c.incidents_open} open incidents</span>}
-        {c.telemetry_packets > 0 && <span className="text-[9px] text-ink-dim border border-white/[0.08] rounded px-1 py-0.5">{c.telemetry_packets.toLocaleString()} telemetry</span>}
+        {c && c.faults > 0 && <span className="text-[9px] text-state-warn border border-state-warn/25 rounded px-1 py-0.5">{c.faults} faults</span>}
+        {c && c.incidents_open > 0 && <span className="text-[9px] text-brand-hot border border-brand-hot/25 rounded px-1 py-0.5">{c.incidents_open} open incidents</span>}
+        {c && c.telemetry_packets > 0 && <span className="text-[9px] text-ink-dim border border-white/[0.08] rounded px-1 py-0.5">{c.telemetry_packets.toLocaleString()} telemetry</span>}
         {v && v.tuned_knobs > 0 && <span className="text-[9px] text-state-info border border-state-info/25 rounded px-1 py-0.5">{v.tuned_knobs} knobs tuned</span>}
         {v && v.spread_mult !== 1 && <span className="text-[9px] text-state-info border border-state-info/25 rounded px-1 py-0.5">spread ×{v.spread_mult}</span>}
         {v && v.rate_mult !== 1 && <span className="text-[9px] text-state-info border border-state-info/25 rounded px-1 py-0.5">rate ×{v.rate_mult}</span>}
@@ -156,15 +161,17 @@ const CompareView = ({ a, b, onBack }: { a: TwinRunSummary; b: TwinRunSummary; o
         <div className="space-y-1">
           <h4 className="font-display text-[10px] text-ink-faint uppercase tracking-wider">Run-scoped metrics</h4>
           {METRICS.map((m) => {
-            const va = a.counters[m.key] ?? 0, vb = b.counters[m.key] ?? 0;
+            // A run the list did not count is not a zero: show a dash and no direction.
+            const counted = a.counters !== null && b.counters !== null;
+            const va = a.counters?.[m.key] ?? 0, vb = b.counters?.[m.key] ?? 0;
             return (
               <div key={m.key} className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center text-[11px] py-0.5">
-                <span className="text-ink text-right tabular-nums">{va.toLocaleString()}</span>
+                <span className="text-ink text-right tabular-nums">{a.counters ? va.toLocaleString() : "—"}</span>
                 <div className="flex items-center gap-1 justify-center min-w-[110px]">
-                  <Delta a={va} b={vb} better={m.better} />
+                  {counted ? <Delta a={va} b={vb} better={m.better} /> : <Minus size={12} className="text-ink-faint" />}
                   <span className="text-ink-faint text-[10px] truncate">{m.label}</span>
                 </div>
-                <span className="text-ink tabular-nums">{vb.toLocaleString()}</span>
+                <span className="text-ink tabular-nums">{b.counters ? vb.toLocaleString() : "—"}</span>
               </div>
             );
           })}
