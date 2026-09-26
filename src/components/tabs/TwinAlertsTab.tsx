@@ -156,7 +156,7 @@ export const TwinAlertsTab = () => {
             const domain = eventDomain(r.event_type);
             const Icon = eventTone(r.severity) === "normal" ? DOMAIN_ICON[domain] : AlertTriangle;
             const text = describeEvent(r.event_type, r.payload);
-            const rep = repeatText(r, formatClockCT);
+            const rep = repeatText(r, (iso) => formatClockCT(iso).slice(0, 5));
             return (
               <div key={r.row_key} className={`flex items-start gap-2 rounded-md border px-2.5 py-2 ${tone.ring}`} title={r.event_type}>
                 <Icon size={13} className={`${tone.color} mt-0.5 shrink-0`} />

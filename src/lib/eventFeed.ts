@@ -126,6 +126,12 @@ export function describeEvent(type: string, payload: Record<string, unknown> | n
     case "ottoq.rider_flag_serviced_in_depot": return { title: "Rider flag handled in the depot", detail: `${r0(p.flags_actioned)} flag(s)` };
     case "twin.solar_inverter_blip": return { title: "Solar inverter dropout", detail: join(s(p.canopy_code), `lost ${r0(p.lost_ac_kw)} kW`) };
     case "twin.grid_frequency_excursion": return { title: "Grid frequency excursion", detail: `${r1(p.frequency_hz)} Hz` };
+    // The weather generator raises this for a storm, or ambient above 38 °C or below -10 °C, every tick it holds.
+    case "twin.weather_anomaly": {
+      const t = n(p.temp_c);
+      const title = p.label === "storm" ? "Storm" : t !== null && t > 38 ? "Extreme heat" : t !== null && t < -10 ? "Extreme cold" : "Weather anomaly";
+      return { title, detail: join(t !== null && `${r1(t)} °C`, words(p.label), (n(p.precip_mm_hr) ?? 0) > 0 && `${r1(p.precip_mm_hr)} mm/h`, n(p.wind_kmh) !== null && `wind ${r0(p.wind_kmh)} km/h`) };
+    }
     case "sim_tick_failed": return { title: "Tick failed", detail: join(s(p.half), s(p.error)) };
     case "twin.scenario_started": return { title: "Run started", detail: words(p.scenario_code) || undefined };
     case "twin.scenario_overrides_applied": return { title: "Scenario settings applied" };

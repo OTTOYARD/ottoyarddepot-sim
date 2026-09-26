@@ -67,6 +67,14 @@ describe("describeEvent", () => {
   it("never throws on a missing payload", () => {
     expect(describeEvent("twin.recharge_stranded", null).title).toBe("Recharging below-floor vehicles");
   });
+
+  it("names what made the weather an anomaly (317d4331: heat, 454 times, every one 'clear')", () => {
+    const heat = describeEvent("twin.weather_anomaly", { label: "clear", temp_c: 40.6, wind_kmh: 12.52, cloud_pct: 26.35, precip_mm_hr: 0 });
+    expect(heat).toEqual({ title: "Extreme heat", detail: "40.6 °C · clear · wind 13 km/h" });
+    const storm = describeEvent("twin.weather_anomaly", { label: "storm", temp_c: 21.04, wind_kmh: 64, precip_mm_hr: 18.25 });
+    expect(storm).toEqual({ title: "Storm", detail: "21 °C · storm · 18.3 mm/h · wind 64 km/h" });
+    expect(describeEvent("twin.weather_anomaly", { label: "clear", temp_c: -12.2 }).title).toBe("Extreme cold");
+  });
 });
 
 describe("repeatText", () => {
