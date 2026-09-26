@@ -17,7 +17,6 @@ import { ChargingArm } from './three/ChargingArm';
 import { Lanes3D } from './three/Lanes3D';
 import { UtilityEquipment } from './three/UtilityEquipment';
 import { Vehicle3D } from './three/Vehicle3D';
-import { DepotOverlays } from './three/DepotOverlays';
 import { WeatherEffects } from './three/WeatherEffects';
 import { DayNightLighting } from './three/DayNightLighting';
 import { DepotPostProcessing } from './three/DepotPostProcessing';
@@ -171,7 +170,6 @@ export default function DepotScene3D() {
           {roboticStalls.map((s) => (
             <ChargingArm key={`arm-${s.id}`} stallId={s.id} stallType={s.type as 'dcfc' | 'l2'} />
           ))}
-          <DepotOverlays />
           <Landscaping />
           <SiteDetails />
 
