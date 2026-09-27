@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
+  confirmedText,
   dayClockCT,
   dialReadText,
   episodeText,
   gradeLabel,
   gradeTone,
   hitRateText,
+  isLocalGrade,
   lastPairText,
+  leverTestText,
   nextCronUTC,
   outcomeLabel,
   outcomeTone,
@@ -91,6 +94,82 @@ describe("grades", () => {
     expect(hitRateText({ runs: 2, confirmed: 6, refuted: 4, hit_rate: 0.6 })).toBe("right 6 of 10 graded (60%) across 2 runs");
     expect(hitRateText({ runs: 1, confirmed: 0, refuted: 0, hit_rate: null })).toBeNull();
     expect(hitRateText(null)).toBeNull();
+  });
+
+  // 0538 (G264): on ad106e55 Q1 confirmed 42 of 42 and could not have graded otherwise at 8x. Its grade reads one
+  // charger and one waiting car, so it is held locally, never a percentage of being right about the day.
+  it("words a local grade as held locally, with no hit rate and no warning", () => {
+    const code = "charging_above_floor_while_cars_wait";
+    expect(isLocalGrade(code)).toBe(true);
+    expect(isLocalGrade(code, "fact")).toBe(false);
+    expect(isLocalGrade("charger_faulted_while_cars_wait")).toBe(false);
+    expect(isLocalGrade("anything_new", "local")).toBe(true);
+    expect(gradeLabel("confirmed", code, "local")).toBe("held locally, not a verdict on the day");
+    expect(gradeTone("confirmed", code, "local")).toBe("info");
+    expect(gradeLabel("refuted", code, "local")).toBe("refuted: the engine was right");
+    expect(hitRateText({ runs: 1, confirmed: 42, refuted: 0, hit_rate: 1 }, "local")).toBe("held locally in 42 of 42 graded across 1 run");
+  });
+
+  it("words a grade that is the thing itself by what hindsight saw, and warns", () => {
+    expect(confirmedText("charger_offerable_while_cars_wait")).toBe("a charger sat free while a car waited");
+    expect(gradeLabel("confirmed", "charger_offerable_while_cars_wait", "fact")).toBe("confirmed: a charger sat free while a car waited");
+    expect(gradeLabel("confirmed", "charger_faulted_while_cars_wait", "fact")).toBe("confirmed: charger capacity lost while cars waited");
+    expect(gradeTone("confirmed", "charger_faulted_while_cars_wait", "fact")).toBe("warn");
+    expect(gradeLabel("confirmed", "anything_new", "fact")).toBe("confirmed");
+    expect(hitRateText({ runs: 1, confirmed: 8, refuted: 0, hit_rate: 1 }, "fact")).toBe("right 8 of 8 graded (100%) across 1 run");
+  });
+});
+
+describe("the paired tests of a question's lever (0538)", () => {
+  // As ottoq_challenger_board read them at 4:05 PM CT on 2026-09-27, just after 0538.
+  const day = {
+    experiment_id: "08262943-e487-4a24-9ddb-0686737bcf98",
+    param_key: "dcfc_target_soc_day",
+    control: 90,
+    treatment: 85,
+    status: "active",
+    outcome: "collecting",
+    run_after: null,
+    primary_metric: "unmet_demand_car_hours",
+    primary_better: "lower",
+    first_look_pairs: 6,
+    counted: 1,
+    treatment_better: 0,
+    treatment_worse: 1,
+    control_mean: 336.3,
+    treatment_mean: 352.4,
+  };
+  const night = {
+    ...day,
+    experiment_id: "11b546b1-2de1-4aaf-8eae-b2c760902f74",
+    param_key: "dcfc_target_soc_night",
+    control: 100,
+    treatment: 90,
+    run_after: "2026-09-28T11:00:00+00:00",
+    counted: 0,
+    treatment_worse: 0,
+    control_mean: null,
+    treatment_mean: null,
+  };
+  const now = new Date("2026-09-27T21:05:00Z");
+
+  it("says how the treatment did in the pairs counted so far, before the verdict", () => {
+    expect(leverTestText(day, now)).toEqual({
+      text: "dcfc target soc day 90 → 85: 1 of 6 pairs for the first look, the treatment did worse in it (unmet demand car hours 336.3 control vs 352.4 treatment)",
+      tone: "info",
+    });
+  });
+
+  it("says when a test waits for its turn, and what a decided one concluded", () => {
+    expect(leverTestText(night, now)).toEqual({ text: "dcfc target soc night 100 → 90: waiting until Sep 28, 6:00 AM CT", tone: "idle" });
+    expect(leverTestText({ ...night, run_after: null }, now).text).toBe("dcfc target soc night 100 → 90: 0 of 6 pairs for the first look");
+    expect(
+      leverTestText({ ...day, outcome: "control_holds", counted: 6, treatment_better: 1, treatment_worse: 5 }, now),
+    ).toEqual({
+      text: "dcfc target soc day 90 → 85: control holds · 6 counted pairs, the treatment did better in 1 and worse in 5 (unmet demand car hours 336.3 control vs 352.4 treatment)",
+      tone: "idle",
+    });
+    expect(leverTestText({ ...day, counted: 2, treatment_worse: 0 }, now).text).toContain("the arms tied in each");
   });
 });
 

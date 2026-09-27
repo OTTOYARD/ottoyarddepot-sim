@@ -63,10 +63,19 @@ describe("the challenger in the decision stream", () => {
   });
 
   it("words a grade by what hindsight made of the question", () => {
+    // 0538 (G264): Q1's grade is local, so a confirmation is held locally and does not warn.
     const t = describeDecision(grade);
-    expect(t.title).toBe("Challenger Q1 graded: right: a gain was missed");
+    expect(t.title).toBe("Challenger Q1 graded: held locally, not a verdict on the day");
     expect(t.detail).toBe("charging past the deploy floor while cars wait · charged 22 min more · the next car waited 31 min more");
-    expect(t.tone).toBe("warn");
+    expect(t.tone).toBe("idle");
+    const fault = describeDecision({
+      ...grade,
+      engine: "challenger Q3",
+      rationale: { question: "charger_faulted_while_cars_wait", grade: "confirmed", realized: { faulted_while_waiting_min_at_least: 504 } },
+    } as unknown as ActivityFeedRow);
+    expect(fault.title).toBe("Challenger Q3 graded: right: charger capacity lost while cars waited");
+    expect(fault.detail).toBe("a faulted charger while cars wait · faulted at least 504 min");
+    expect(fault.tone).toBe("warn");
     const refuted = describeDecision({ ...grade, rationale: { ...(grade.rationale as object), grade: "refuted", realized: {} } } as ActivityFeedRow);
     expect(refuted.title).toBe("Challenger Q1 graded: wrong: the engine's choice held");
     expect(refuted.tone).toBe("idle");

@@ -11,7 +11,8 @@
 //     the same seed and the same world in both arms. Its verdict is what the
 //     promoter acts on.
 //
-// Data contracts (otto-q-core 0536):
+// Data contracts (otto-q-core 0536; 0537 counts one-scan sightings apart; 0538 says what each grade measures and
+// carries the paired tests of each question's lever):
 //   public.ottoq_challenger_board(p_sim_run_id uuid)
 //   public.ottoq_learning_board()
 //
@@ -44,6 +45,27 @@ export interface ChallengerLifetime {
   hit_rate?: number | null;
 }
 
+/** otto-q-core 0538: one paired experiment on a question's lever, with the pairs its decision rule has counted so far
+ *  (ottoq_dial_counted_pairs since the dial floor) and how the treatment did in them on the primary metric. */
+export interface ChallengerLeverTest {
+  experiment_id: string;
+  param_key: string;
+  control?: number | null;
+  treatment?: number | null;
+  status?: string | null;
+  outcome?: string | null;
+  why?: string | null;
+  run_after?: string | null;
+  primary_metric?: string | null;
+  primary_better?: string | null;
+  first_look_pairs?: number | null;
+  counted?: number | null;
+  treatment_better?: number | null;
+  treatment_worse?: number | null;
+  control_mean?: number | null;
+  treatment_mean?: number | null;
+}
+
 export interface ChallengerQuestion {
   code: string;
   tag: string;
@@ -53,6 +75,13 @@ export interface ChallengerQuestion {
   lifetime?: ChallengerLifetime | null;
   /** otto-q-core 0537: one-scan sightings, counted but kept off the lists (see sightingsText). */
   sightings?: { transient?: number | null; pending?: number | null } | null;
+  /** otto-q-core 0538: `local` when a grade reads one charger and one waiting car (Q1), `fact` when the grade is the
+   *  thing itself (a charger free across two scans, a fault 30 minutes long). */
+  grade_scope?: string | null;
+  /** otto-q-core 0538: what a confirmed grade says, in the board's words. */
+  grade_means?: string | null;
+  /** otto-q-core 0538: the paired experiments on the question's lever. */
+  lever_tests?: ChallengerLeverTest[] | null;
 }
 
 export interface ChallengerEpisode {
@@ -208,17 +237,43 @@ const minutes = (v: unknown): string | null => {
 
 // ── challenger formatters ────────────────────────────────────────────────────
 
-/** A graded claim, from the operator's side: CONFIRMED means the challenger was right and the depot left something on
- *  the table, so it is the one that warns. REFUTED means the engine's decision held up. */
-export function gradeTone(grade: string | null | undefined): LoopTone {
-  if (grade === 'confirmed') return 'warn';
+/** The questions whose grade is local (otto-q-core 0538, G264): it reads one charger and one waiting car, so it cannot
+ *  say whether acting on the question would have helped the day; the question's lever tests say that. The board's
+ *  grade_scope says so for every question it knows; this is the fallback for rows that carry no scope (the feed). */
+const LOCAL_GRADE = new Set(['charging_above_floor_while_cars_wait']);
+
+export function isLocalGrade(question: string | null | undefined, scope?: string | null): boolean {
+  if (scope) return scope === 'local';
+  return !!question && LOCAL_GRADE.has(question);
+}
+
+/** What a confirmed grade says, per question: the thing hindsight saw, never more. */
+const CONFIRMED: Record<string, string> = {
+  charging_above_floor_while_cars_wait: 'held locally, not a verdict on the day',
+  charger_offerable_while_cars_wait: 'a charger sat free while a car waited',
+  charger_faulted_while_cars_wait: 'charger capacity lost while cars waited',
+};
+
+export function confirmedText(question: string | null | undefined): string | null {
+  return (question && CONFIRMED[question]) || null;
+}
+
+/** A graded claim, from the operator's side: CONFIRMED on a question whose grade is the thing itself means the depot
+ *  left something on the table, so it is the one that warns. A LOCAL confirmation (Q1) only says the situation held
+ *  while the question was open, so it informs. REFUTED means the engine's decision held up. */
+export function gradeTone(grade: string | null | undefined, question?: string | null, scope?: string | null): LoopTone {
+  if (grade === 'confirmed') return isLocalGrade(question, scope) ? 'info' : 'warn';
   if (grade === 'refuted') return 'ok';
   if (grade === 'inconclusive') return 'idle';
   return 'info';
 }
 
-export function gradeLabel(grade: string | null | undefined): string {
-  if (grade === 'confirmed') return 'confirmed: a real gain missed';
+export function gradeLabel(grade: string | null | undefined, question?: string | null, scope?: string | null): string {
+  if (grade === 'confirmed') {
+    if (isLocalGrade(question, scope)) return confirmedText(question) ?? 'held locally, not a verdict on the day';
+    const said = confirmedText(question);
+    return said ? `confirmed: ${said}` : 'confirmed';
+  }
   if (grade === 'refuted') return 'refuted: the engine was right';
   if (grade === 'inconclusive') return 'inconclusive';
   return 'open';
@@ -270,12 +325,46 @@ export function realizedText(ep: ChallengerEpisode): string | null {
   return faulted ? `faulted at least ${faulted} while cars waited` : null;
 }
 
-/** A question's record across every run it has been asked of. */
-export function hitRateText(l: ChallengerLifetime | null | undefined): string | null {
+/** A question's record across every run it has been asked of. A local grade (0538) is a record of what held at one
+ *  charger, not of being right about the day, so it gets no percentage: its lever's paired tests carry that. */
+export function hitRateText(l: ChallengerLifetime | null | undefined, scope?: string | null): string | null {
   const graded = num(l?.confirmed) !== null && num(l?.refuted) !== null ? (l!.confirmed as number) + (l!.refuted as number) : null;
   if (!l || graded === null || graded === 0) return null;
+  const runs = `across ${num(l.runs) ?? 0} run${num(l.runs) === 1 ? '' : 's'}`;
+  if (scope === 'local') return `held locally in ${l.confirmed} of ${graded} graded ${runs}`;
   const rate = num(l.hit_rate);
-  return `right ${l.confirmed} of ${graded} graded${rate === null ? '' : ` (${Math.round(rate * 100)}%)`} across ${num(l.runs) ?? 0} run${num(l.runs) === 1 ? '' : 's'}`;
+  return `right ${l.confirmed} of ${graded} graded${rate === null ? '' : ` (${Math.round(rate * 100)}%)`} ${runs}`;
+}
+
+/** One paired test of a question's lever (0538), in words: the dial, where it stands, and how the treatment did in the
+ *  pairs counted so far. The verdict is the learner's; before its first look this only reports the pairs. */
+export function leverTestText(t: ChallengerLeverTest, now: Date = new Date()): { text: string; tone: LoopTone } {
+  const dial = `${human(t.param_key)} ${num(t.control) ?? '?'} → ${num(t.treatment) ?? '?'}`;
+  const counted = num(t.counted) ?? 0;
+  const first = num(t.first_look_pairs) ?? 6;
+  const waiting = t.run_after && Date.parse(t.run_after) > now.getTime() ? dayClockCT(t.run_after) : null;
+  const decided = t.outcome && t.outcome !== 'collecting';
+  if (counted === 0) {
+    const where = decided ? outcomeLabel(t.outcome) : waiting ? `waiting until ${waiting}` : `0 of ${first} pairs for the first look`;
+    return { text: `${dial}: ${where}`, tone: decided ? outcomeTone(t.outcome) : 'idle' };
+  }
+  const better = num(t.treatment_better) ?? 0;
+  const worse = num(t.treatment_worse) ?? 0;
+  const tally =
+    worse === 0 && better === 0
+      ? `the arms tied${counted === 1 ? '' : ' in each'}`
+      : worse > 0 && better === 0
+      ? `the treatment did worse in ${worse === counted ? (counted === 1 ? 'it' : `all ${counted}`) : worse}`
+      : better > 0 && worse === 0
+        ? `the treatment did better in ${better === counted ? (counted === 1 ? 'it' : `all ${counted}`) : better}`
+        : `the treatment did better in ${better} and worse in ${worse}`;
+  const c = num(t.control_mean);
+  const tr = num(t.treatment_mean);
+  const means = c !== null && tr !== null ? ` (${human(t.primary_metric)} ${c} control vs ${tr} treatment)` : '';
+  const stage = decided
+    ? `${outcomeLabel(t.outcome)} · ${counted} counted pair${counted === 1 ? '' : 's'}`
+    : `${counted} of ${first} pairs for the first look`;
+  return { text: `${dial}: ${stage}, ${tally}${means}`, tone: decided ? outcomeTone(t.outcome) : 'info' };
 }
 
 /** What 0537 keeps off the lists, said rather than hidden: a sighting the next scan no longer saw (the engine had already

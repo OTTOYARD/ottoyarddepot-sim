@@ -18,8 +18,9 @@
 //     and what the promoter did.
 //
 // Data contract: otto-q-core 0536, ottoq_challenger_board and
-// ottoq_learning_board. Formatters in src/lib/secondLoop.ts, shared verbatim
-// with PULSE.
+// ottoq_learning_board (0537: one-scan sightings counted apart; 0538: what each
+// grade measures, and the paired tests of each question's lever). Formatters in
+// src/lib/secondLoop.ts, shared verbatim with PULSE.
 // ============================================================================
 import { FlaskConical, Loader2, Search } from 'lucide-react';
 import { useSecondLoop } from '@/hooks/useSecondLoop';
@@ -33,6 +34,7 @@ import {
   gradeTone,
   hitRateText,
   lastPairText,
+  leverTestText,
   num,
   outcomeLabel,
   outcomeTone,
@@ -89,19 +91,23 @@ const Card = ({
   </div>
 );
 
-const Episode = ({ ep, graded }: { ep: ChallengerEpisode; graded: boolean }) => (
+const Episode = ({ ep, graded, scope }: { ep: ChallengerEpisode; graded: boolean; scope?: string | null }) => (
   <li className="rounded border border-white/[0.05] bg-white/[0.02] p-1.5">
     <div className="flex items-start justify-between gap-2">
       <span className="min-w-0 break-words text-[10px] leading-4 text-ink">
         <span className="mr-1 font-mono text-[9px] text-ink-faint">{ep.tag}</span>
         {episodeText(ep)}
       </span>
-      {graded ? <Chip tone={gradeTone(ep.grade)}>{ep.grade ?? 'closed'}</Chip> : <Chip tone="info">open</Chip>}
+      {graded ? (
+        <Chip tone={gradeTone(ep.grade, ep.question, scope)}>{ep.grade ?? 'closed'}</Chip>
+      ) : (
+        <Chip tone="info">open</Chip>
+      )}
     </div>
     {ep.claim && <p className="mt-0.5 break-words text-[9px] leading-4 text-ink-dim">claim: {ep.claim}</p>}
     {graded && (realizedText(ep) || ep.grade) && (
       <p className="mt-0.5 break-words text-[9px] leading-4 text-ink-dim">
-        {gradeLabel(ep.grade)}
+        {gradeLabel(ep.grade, ep.question, scope)}
         {realizedText(ep) ? ` — ${realizedText(ep)}` : ''}
       </p>
     )}
@@ -171,6 +177,7 @@ export function SecondLoopPanel() {
   }
 
   const questions = challenger?.questions ?? [];
+  const scopeOf = (code: string) => questions.find((q) => q.code === code)?.grade_scope ?? null;
   const open = challenger?.open ?? [];
   const graded = challenger?.graded ?? [];
   const run = challenger?.run ?? null;
@@ -213,13 +220,23 @@ export function SecondLoopPanel() {
                   num(q.run?.confirmed) ? `${q.run?.confirmed} confirmed` : null,
                   num(q.run?.refuted) ? `${q.run?.refuted} refuted` : null,
                   num(q.run?.inconclusive) ? `${q.run?.inconclusive} inconclusive` : null,
-                  hitRateText(q.lifetime),
+                  hitRateText(q.lifetime, q.grade_scope),
                 ]
                   .filter(Boolean)
                   .join(' · ') || 'nothing graded yet'}
               </p>
               {sightingsText(q) && <p className="mt-0.5 break-words text-[9px] leading-4 text-ink-faint">{sightingsText(q)}</p>}
+              {q.grade_means && <p className="mt-0.5 break-words text-[9px] leading-4 text-ink-faint">{q.grade_means}</p>}
               {q.lever && <p className="mt-0.5 break-words text-[9px] leading-4 text-ink-dim">lever: {q.lever}</p>}
+              {(q.lever_tests ?? []).map((t) => {
+                const lt = leverTestText(t);
+                return (
+                  <p key={t.experiment_id} className="mt-0.5 flex items-start gap-1.5 break-words text-[9px] leading-4 text-ink-dim">
+                    <Chip tone={lt.tone}>paired test</Chip>
+                    <span className="min-w-0">{lt.text}</span>
+                  </p>
+                );
+              })}
             </li>
           ))}
         </ul>
@@ -228,7 +245,7 @@ export function SecondLoopPanel() {
             <div className="text-[9px] uppercase tracking-[0.06em] text-ink-faint">Open now</div>
             <ul className="mt-1 space-y-1">
               {open.slice(0, 8).map((ep) => (
-                <Episode key={ep.finding_id} ep={ep} graded={false} />
+                <Episode key={ep.finding_id} ep={ep} graded={false} scope={scopeOf(ep.question)} />
               ))}
             </ul>
           </div>
@@ -238,7 +255,7 @@ export function SecondLoopPanel() {
             <div className="text-[9px] uppercase tracking-[0.06em] text-ink-faint">Graded in hindsight</div>
             <ul className="mt-1 space-y-1">
               {graded.slice(0, 8).map((ep) => (
-                <Episode key={ep.finding_id} ep={ep} graded />
+                <Episode key={ep.finding_id} ep={ep} graded scope={scopeOf(ep.question)} />
               ))}
             </ul>
           </div>
