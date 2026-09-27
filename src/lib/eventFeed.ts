@@ -35,7 +35,7 @@ export const DEFAULT_DOMAINS: EventDomain[] = ["charging", "vehicles", "depot"];
 
 const VEHICLE_TYPES = new Set([
   "twin.vehicle_arrived", "ottoq.booking_interrupted", "ottoq.replan_escalated", "ottoq.visit_reopened",
-  "twin.deferred_service_started", "twin.deferred_service_completed", "twin.deploy_gate_override",
+  "twin.deferred_service_started", "twin.deferred_service_completed", "twin.deploy_gate_override", "twin.deploy_gate_escalated",
   "ottoq.refusal_escalated", "twin.auto_dispatch_emit",
 ]);
 
@@ -99,8 +99,16 @@ export function describeEvent(type: string, payload: Record<string, unknown> | n
     case "ottoq.visit_reopened": return { title: "Visit reopened", detail: words(p.reopen_reason) || undefined };
     case "twin.deferred_service_started": return { title: "Deferred service started", detail: words((p.item as Record<string, unknown> | undefined)?.svc) || undefined };
     case "twin.deferred_service_completed": return { title: "Deferred service done", detail: words((p.item as Record<string, unknown> | undefined)?.svc) || undefined };
+    // Before otto-q-core 0542 the gate released a car past its hard cap; old runs still carry the event.
     case "twin.deploy_gate_override":
       return { title: "Released past the readiness gate", detail: join(words(p.reason), n(p.held_min) !== null && `held ${r0(p.held_min)} min`) };
+    // Since 0542 (rule 9) the gate never releases an unfinished car: past the hard cap it holds it and asks a person.
+    case "twin.deploy_gate_escalated":
+      return {
+        title: "Held past the gate's limit · needs a person",
+        detail: join(Array.isArray(p.missing) && p.missing.length ? `missing ${p.missing.map(words).join(", ")}` : "",
+          n(p.held_min) !== null && `held ${r0(p.held_min)} min`),
+      };
     case "vehicle.exception_proposed": return { title: "Exception proposed", detail: join(words(p.fault_class), words(p.disposition)) };
     case "vehicle.technician_approved": return { title: "Technician approved", detail: words(p.action) || undefined };
     case "vehicle.tow_retrieved_staged": return { title: "Towed back to staging" };
@@ -122,7 +130,7 @@ export function describeEvent(type: string, payload: Record<string, unknown> | n
     case "twin.deploy_pressure_fasttrack": return { title: "Fast-tracked to deploy", detail: join(`${r0(p.fasttracked)} vehicle(s)`, `${r0(p.deployed)} of ${r0(p.target)} out`) };
     case "ottoq.indepot_approvals_decided": return { title: "In-depot approvals decided", detail: join(`${r0(p.approved)} approved`, `${r0(p.declined)} declined`) };
     case "twin.deploy_gate_summary":
-      return { title: "Readiness gate", detail: join(`${r0(p.held)} held`, `${r0(p.released)} released`, n(p.escalated) ? `${r0(p.escalated)} escalated` : "", n(p.overridden) ? `${r0(p.overridden)} overridden` : "") };
+      return { title: "Readiness gate", detail: join(`${r0(p.held)} held`, `${r0(p.released)} released`, n(p.escalated) ? `${r0(p.escalated)} escalated` : "", n(p.held_past_hard_cap) ? `${r0(p.held_past_hard_cap)} past the limit` : "", n(p.overridden) ? `${r0(p.overridden)} overridden` : "") };
     case "ottoq.rider_flag_serviced_in_depot": return { title: "Rider flag handled in the depot", detail: `${r0(p.flags_actioned)} flag(s)` };
     case "twin.solar_inverter_blip": return { title: "Solar inverter dropout", detail: join(s(p.canopy_code), `lost ${r0(p.lost_ac_kw)} kW`) };
     case "twin.grid_frequency_excursion": return { title: "Grid frequency excursion", detail: `${r1(p.frequency_hz)} Hz` };

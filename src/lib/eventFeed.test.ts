@@ -35,6 +35,17 @@ describe("describeEvent", () => {
     expect(t.detail).toBe("49 waiting · wash 3 · service 2 bays · 40 escalated");
   });
 
+  it("says a car held past the gate's limit waits for a person, and what it still needs (otto-q-core 0542)", () => {
+    const t = describeEvent("twin.deploy_gate_escalated", {
+      held_min: 300, hard_cap_min: 240, reason: "must_do_work_open", remedy: "need_deploy", missing: ["perimeter_walkaround"],
+    });
+    expect(t.title).toBe("Held past the gate's limit · needs a person");
+    expect(t.detail).toBe("missing perimeter walkaround · held 300 min");
+    expect(eventDomain("twin.deploy_gate_escalated")).toBe("vehicles");
+    const g = describeEvent("twin.deploy_gate_summary", { held: 3, released: 1, escalated: 2, held_past_hard_cap: 1 });
+    expect(g.detail).toBe("3 held · 1 released · 2 escalated · 1 past the limit");
+  });
+
   it("names the rule that refused a charge", () => {
     const t = describeEvent("ottoq.charge_start_refused", { requested_kw: 350, blocking_rules: ["EN.001.grid_capacity_ceiling"] });
     expect(t.detail).toBe("EN.001.grid_capacity_ceiling · 350 kW asked");
