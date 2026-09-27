@@ -54,6 +54,23 @@ export function isPlace(target: string | null | undefined, verb: string): boolea
   return !!target && target !== verb && !/^[a-z_]+$/.test(target) && !/^[a-z_]+:\s/.test(target);
 }
 
+/** Where a decision sent its car, or null. A challenger row names the stall it asked about, and its words already say
+ *  so; drawn as a destination it would read as a move nobody made. */
+export function decisionPlace(r: ActivityFeedRow): string | null {
+  if (decisionCategory(r.action) === "challenger") return null;
+  const verb = typeof r.rationale?.verb === "string" ? r.rationale.verb : "";
+  return isPlace(r.target, verb) ? r.target : null;
+}
+
+/** A feed row's identity. A decision carries its own sequence number (0452); a challenger row carries none, being no
+ *  decision, and is its finding instead; anything older falls back to the tuple the engine keeps distinct. */
+export function decisionKey(r: ActivityFeedRow): string {
+  if (r.decision_seq != null) return `d${r.decision_seq}`;
+  const finding = r.rationale?.finding_id;
+  if (finding != null) return `${r.action}:${String(finding)}`;
+  return `${r.occurred_at}|${r.vehicle_id}|${r.action}|${r.target ?? ""}`;
+}
+
 export function describeDecision(r: ActivityFeedRow): DecisionText {
   const v = (r.rationale ?? {}) as Record<string, unknown>;
   const verb = typeof v.verb === "string" ? v.verb : "";
@@ -235,10 +252,17 @@ export function holdText(
   r: ActivityFeedRow,
   clock: (iso: string) => string = (iso) => formatClockCT(iso).slice(0, 5),
 ): string | null {
-  if (r.standing) return `since ${clock(r.occurred_at)}, still in force`;
+  // A challenger row is a question about a decision, not a verdict: it is open, or it was asked, and never "in force"
+  // or "held" (otto-q-core 0536). Its grade restates when it was asked, since the grade lands at the close.
+  const question = r.action === "challenger_flag";
+  if (r.action === "challenger_grade") {
+    const asked = r.rationale?.first_seen;
+    return typeof asked === "string" ? `asked at ${clock(asked)}` : null;
+  }
+  if (r.standing) return question ? `open since ${clock(r.occurred_at)}` : `since ${clock(r.occurred_at)}, still in force`;
   if (!r.held_ticks || r.held_ticks <= 1 || !r.last_at) return null;
   const mins = Math.max(1, Math.round((Date.parse(r.last_at) - Date.parse(r.occurred_at)) / 60_000));
-  return `held ${mins} min`;
+  return question ? `open ${mins} min` : `held ${mins} min`;
 }
 
 // Display names for the providers ottoq_model_call_ledger records. An unknown

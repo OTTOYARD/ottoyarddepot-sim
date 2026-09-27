@@ -29,7 +29,7 @@ import {
 // OrchestrAV carry the same file verbatim.
 import {
   formatClockCT, describeDecision, decisionReasonText, holdText, PROVIDER_LABEL, solverLabel, kernelLabel, starvationNote, modelErrorText,
-  human, num, isPlace, decisionCategory, DEFAULT_CATEGORIES, CATEGORY_LABEL,
+  human, num, decisionPlace, decisionCategory, DEFAULT_CATEGORIES, CATEGORY_LABEL,
   type DecisionText, type DecisionTone, type DecisionCategory,
 } from "@/lib/decisionText";
 
@@ -132,8 +132,7 @@ export const Row = ({ r, isNew = false }: { r: ActivityFeedRow; isNew?: boolean 
   const isAgent = r.action === "orchestrator_agent";
   const text = useMemo(() => (isAgent ? null : describeDecision(r)), [r, isAgent]);
   const hold = holdText(r);
-  const verb = typeof r.rationale?.verb === "string" ? r.rationale.verb : "";
-  const place = isPlace(r.target, verb) ? r.target : null;
+  const place = decisionPlace(r);
   const who = isAgent ? "OTTO-Q agent" : r.display_name || (r.action === "bess_dispatch" ? "Site battery" : r.vehicle_id?.slice(0, 8));
 
   return (

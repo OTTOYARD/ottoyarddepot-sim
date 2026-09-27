@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { challengerText, decisionCategory, describeDecision, DEFAULT_CATEGORIES } from "./decisionText";
+import {
+  challengerText, decisionCategory, decisionKey, decisionPlace, describeDecision, DEFAULT_CATEGORIES, holdText,
+} from "./decisionText";
 import type { ActivityFeedRow } from "@/store/activityFeedStore";
 
 // Rows in the shape otto-q-core 0536's ottoq_activity_feed_v2 returns for the challenger, from its V3 plants.
@@ -17,6 +19,7 @@ const flag = {
     car_soc: 86.4,
     cars_waiting: 5,
     longest_wait_min: 41.8,
+    finding_id: 41,
     changes_the_engine: false,
   },
   reason: "ending this charge now hands the DCFC to the longest-waiting car",
@@ -36,6 +39,8 @@ const grade = {
     question: "charging_above_floor_while_cars_wait",
     grade: "confirmed",
     realized: { minutes_charged_after_first_sight: 22.4, beneficiary_waited_after_min: 31, saving_min: 22.4 },
+    finding_id: 41,
+    first_seen: "2026-09-01T15:00:00Z",
     changes_the_engine: false,
   },
 } as unknown as ActivityFeedRow;
@@ -65,5 +70,24 @@ describe("the challenger in the decision stream", () => {
     const refuted = describeDecision({ ...grade, rationale: { ...(grade.rationale as object), grade: "refuted", realized: {} } } as ActivityFeedRow);
     expect(refuted.title).toBe("Challenger Q1 graded: wrong: the engine's choice held");
     expect(refuted.tone).toBe("idle");
+  });
+
+  it("says a question is open or was asked, never that it is in force or held", () => {
+    const hhmm = (iso: string) => iso.slice(11, 16);
+    expect(holdText(flag, hhmm)).toBe("open since 15:00");
+    expect(holdText({ ...flag, standing: false, held_ticks: 23, last_at: "2026-09-01T15:22:00Z" } as ActivityFeedRow, hhmm))
+      .toBe("open 22 min");
+    expect(holdText({ ...flag, standing: false, held_ticks: 1, last_at: "2026-09-01T15:00:00Z" } as ActivityFeedRow, hhmm))
+      .toBeNull();
+    expect(holdText(grade, hhmm)).toBe("asked at 15:00");
+  });
+
+  it("draws no destination for a question, and keys it by its finding", () => {
+    expect(decisionPlace(flag)).toBeNull();
+    expect(decisionPlace({ ...flag, action: "stall_assignment", rationale: { verb: "assign_stall" } } as ActivityFeedRow))
+      .toBe("NASH-DC-03");
+    expect(decisionKey(flag)).toBe("challenger_flag:41");
+    expect(decisionKey(grade)).toBe("challenger_grade:41");
+    expect(decisionKey({ ...flag, decision_seq: 9 } as ActivityFeedRow)).toBe("d9");
   });
 });
