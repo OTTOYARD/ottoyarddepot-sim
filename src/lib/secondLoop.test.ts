@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  dayClockCT,
   dialReadText,
   episodeText,
   gradeLabel,
@@ -116,6 +117,16 @@ describe("the learner", () => {
     expect(lastPairText(charge)).toBe("last pair: unmet demand car hours 336.3 control vs 336.3 treatment · arms identical");
     expect(lastPairText({ ...charge, last_pair: { arm_error: "duplicate key value" } })).toBe("last pair failed in an arm: duplicate key value");
   });
+
+  it("says a pair from before the engine's last change does not count", () => {
+    const stale = { ...charge, last_pair: { ...charge.last_pair, ran_at: "2026-09-27T16:15:00Z" } };
+    expect(lastPairText(stale, "2026-09-27T17:52:01Z")).toBe(
+      "last pair: unmet demand car hours 336.3 control vs 336.3 treatment · arms identical · before the engine last changed, not counted",
+    );
+    expect(lastPairText(stale, "2026-09-27T16:00:00Z")).toBe(
+      "last pair: unmet demand car hours 336.3 control vs 336.3 treatment · arms identical",
+    );
+  });
 });
 
 describe("the window", () => {
@@ -125,6 +136,11 @@ describe("the window", () => {
     expect(nextCronUTC("41 10 * * *", now)?.toISOString()).toBe("2026-09-28T10:41:00.000Z");
     expect(nextCronUTC("0 6 28 9 *", now)?.toISOString()).toBe("2026-09-28T06:00:00.000Z");
     expect(nextCronUTC("*/10 * * * *", now)).toBeNull();
+  });
+
+  it("dates a time that may not be today", () => {
+    expect(dayClockCT("2026-09-29T00:00:00Z")).toBe("Sep 28, 7:00 PM CT");
+    expect(dayClockCT(null)).toBeNull();
   });
 
   it("says when the night's pairs run, in Central time", () => {

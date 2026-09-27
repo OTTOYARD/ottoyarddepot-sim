@@ -191,6 +191,14 @@ export function clockCT(iso: string | null | undefined): string | null {
   return `${d.toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit' })} CT`;
 }
 
+/** A timestamp with its day, for anything that may not be today, e.g. "Sep 28, 7:00 PM CT". */
+export function dayClockCT(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return `${d.toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} CT`;
+}
+
 const minutes = (v: unknown): string | null => {
   const n = num(v);
   return n === null ? null : `${Math.round(n)} min`;
@@ -318,16 +326,18 @@ export function dialText(e: LearningExperiment): string {
   return `${human(e.param_key)}: ${num(e.control) ?? '?'} → ${num(e.treatment) ?? '?'}`;
 }
 
-/** The primary metric's last pair, control against treatment, as measured. */
-export function lastPairText(e: LearningExperiment): string | null {
+/** The primary metric's last pair, control against treatment, as measured. A pair run before the dial floor (the
+ *  engine's last change, board.dial_floor) is still shown, and said not to count: the verdict ignores it. */
+export function lastPairText(e: LearningExperiment, floor?: string | null): string | null {
   const p = e.last_pair;
   if (!p) return null;
-  if (p.arm_error) return `last pair failed in an arm: ${p.arm_error}`;
+  const stale = floor && p.ran_at && Date.parse(p.ran_at) < Date.parse(floor) ? ' · before the engine last changed, not counted' : '';
+  if (p.arm_error) return `last pair failed in an arm: ${p.arm_error}${stale}`;
   const c = num(p.control);
   const t = num(p.treatment);
   if (c === null || t === null) return null;
   const moved = Array.isArray(p.moved) ? p.moved.length : null;
-  return `last pair: ${human(e.primary_metric)} ${c} control vs ${t} treatment${moved === null ? '' : moved === 0 ? ' · arms identical' : ` · ${moved} atoms moved`}`;
+  return `last pair: ${human(e.primary_metric)} ${c} control vs ${t} treatment${moved === null ? '' : moved === 0 ? ' · arms identical' : ` · ${moved} atoms moved`}${stale}`;
 }
 
 /** The next time a cron schedule of the two shapes the window uses fires: "M H * * *" daily, "M H D Mo *" once. UTC. */

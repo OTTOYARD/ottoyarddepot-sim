@@ -25,6 +25,7 @@ import { FlaskConical, Loader2, Search } from 'lucide-react';
 import { useSecondLoop } from '@/hooks/useSecondLoop';
 import {
   clockCT,
+  dayClockCT,
   dialReadText,
   dialText,
   episodeText,
@@ -115,10 +116,10 @@ const Episode = ({ ep, graded }: { ep: ChallengerEpisode; graded: boolean }) => 
   </li>
 );
 
-const Experiment = ({ e }: { e: LearningExperiment }) => {
+const Experiment = ({ e, floor }: { e: LearningExperiment; floor?: string | null }) => {
   const progress = pairsProgress(e);
   const reads = dialReadText(e.dial_reads);
-  const last = lastPairText(e);
+  const last = lastPairText(e, floor);
   const waitsUntil = e.run_after && new Date(e.run_after).getTime() > Date.now() ? e.run_after : null;
   return (
     <li className="rounded border border-white/[0.05] bg-white/[0.02] p-1.5">
@@ -128,7 +129,7 @@ const Experiment = ({ e }: { e: LearningExperiment }) => {
       </div>
       <p className="mt-0.5 break-words text-[9px] leading-4 text-ink-dim">
         judged on {(e.primary_metric ?? 'its primary').replace(/_/g, ' ')} ({e.primary_better ?? '?'} is better)
-        {waitsUntil ? ` · waiting until ${clockCT(waitsUntil)}` : ''}
+        {waitsUntil ? ` · waiting until ${dayClockCT(waitsUntil)}` : ''}
       </p>
       {e.status === 'active' && (
         <div className="mt-1">
@@ -254,7 +255,7 @@ export function SecondLoopPanel() {
         ) : (
           <ul className="space-y-1">
             {active.map((e) => (
-              <Experiment key={e.experiment_id} e={e} />
+              <Experiment key={e.experiment_id} e={e} floor={learning?.dial_floor} />
             ))}
           </ul>
         )}
@@ -263,7 +264,7 @@ export function SecondLoopPanel() {
             <div className="text-[9px] uppercase tracking-[0.06em] text-ink-faint">Ended this week</div>
             <ul className="mt-1 space-y-1">
               {ended.map((e) => (
-                <Experiment key={e.experiment_id} e={e} />
+                <Experiment key={e.experiment_id} e={e} floor={learning?.dial_floor} />
               ))}
             </ul>
           </div>
