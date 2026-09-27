@@ -23,13 +23,13 @@ import { useActivityFeed } from "@/hooks/useActivityFeed";
 import { useActivityFeedStore, rowKey, type ActivityFeedRow } from "@/store/activityFeedStore";
 import {
   Brain, Truck, BatteryCharging, CalendarClock,
-  ArrowRight, Pause, Radio,
+  ArrowRight, Pause, Radio, Search,
 } from "lucide-react";
 // The verdict in words, and the category it is filed under, live in src/lib/decisionText.ts so PULSE and
 // OrchestrAV carry the same file verbatim.
 import {
   formatClockCT, describeDecision, decisionReasonText, holdText, PROVIDER_LABEL, solverLabel, kernelLabel, starvationNote, modelErrorText,
-  human, num, isPlace, decisionCategory, DEFAULT_CATEGORIES, CATEGORY_LABEL,
+  human, num, decisionPlace, decisionCategory, DEFAULT_CATEGORIES, CATEGORY_LABEL,
   type DecisionText, type DecisionTone, type DecisionCategory,
 } from "@/lib/decisionText";
 
@@ -41,6 +41,8 @@ export const CATEGORY_META: Record<DecisionCategory, { label: string; color: str
   dispatch: { label: CATEGORY_LABEL.dispatch, color: "#00B4A6", icon: Truck },
   energy: { label: CATEGORY_LABEL.energy, color: "#F59E0B", icon: BatteryCharging },
   plans: { label: CATEGORY_LABEL.plans, color: "#7B818D", icon: CalendarClock },
+  // otto-q-core 0536: the challenger's questions and hindsight grades, beside the decisions they question
+  challenger: { label: CATEGORY_LABEL.challenger, color: "#F472B6", icon: Search },
 };
 
 export {
@@ -130,8 +132,7 @@ export const Row = ({ r, isNew = false }: { r: ActivityFeedRow; isNew?: boolean 
   const isAgent = r.action === "orchestrator_agent";
   const text = useMemo(() => (isAgent ? null : describeDecision(r)), [r, isAgent]);
   const hold = holdText(r);
-  const verb = typeof r.rationale?.verb === "string" ? r.rationale.verb : "";
-  const place = isPlace(r.target, verb) ? r.target : null;
+  const place = decisionPlace(r);
   const who = isAgent ? "OTTO-Q agent" : r.display_name || (r.action === "bess_dispatch" ? "Site battery" : r.vehicle_id?.slice(0, 8));
 
   return (
@@ -199,7 +200,7 @@ export default function TwinDecisionLogTab() {
   const [shown, setShown] = useState<Set<DecisionCategory>>(() => new Set(DEFAULT_CATEGORIES));
 
   const counts = useMemo(() => {
-    const c: Record<DecisionCategory, number> = { agent: 0, dispatch: 0, energy: 0, plans: 0 };
+    const c: Record<DecisionCategory, number> = { agent: 0, dispatch: 0, energy: 0, plans: 0, challenger: 0 };
     for (const r of rows) c[decisionCategory(r.action)]++;
     return c;
   }, [rows]);

@@ -18,16 +18,20 @@ export function formatClockCT(iso: string | null | undefined): string {
 }
 
 // ── categories: what an operator filters by ─────────────────────────────────
-export type DecisionCategory = "agent" | "dispatch" | "energy" | "plans";
+export type DecisionCategory = "agent" | "dispatch" | "energy" | "plans" | "challenger";
 
 export const CATEGORY_LABEL: Record<DecisionCategory, string> = {
   agent: "Agent",
   dispatch: "Dispatch",
   energy: "Energy",
   plans: "Plan changes",
+  challenger: "Challenger",
 };
 
 export function decisionCategory(action: string | null | undefined): DecisionCategory {
+  // otto-q-core 0536: the challenger's flags and grades ride the same stream. They are questions about the engine's
+  // choices, not decisions, and they get their own filter.
+  if (action === "challenger_flag" || action === "challenger_grade") return "challenger";
   if (action === "orchestrator_agent") return "agent";
   if (action === "bess_dispatch") return "energy";
   if (action === "itinerary_amended") return "plans";
@@ -35,7 +39,7 @@ export function decisionCategory(action: string | null | undefined): DecisionCat
 }
 
 /** Plan re-timings are real decisions but the loudest ones (~40% of changes); they start hidden. */
-export const DEFAULT_CATEGORIES: ReadonlySet<DecisionCategory> = new Set(["agent", "dispatch", "energy"]);
+export const DEFAULT_CATEGORIES: ReadonlySet<DecisionCategory> = new Set(["agent", "dispatch", "energy", "challenger"]);
 
 // ── the verdict, in words ────────────────────────────────────────────────────
 export const human = (s: unknown): string => (typeof s === "string" ? s.replace(/_/g, " ") : "");
@@ -50,6 +54,23 @@ export function isPlace(target: string | null | undefined, verb: string): boolea
   return !!target && target !== verb && !/^[a-z_]+$/.test(target) && !/^[a-z_]+:\s/.test(target);
 }
 
+/** Where a decision sent its car, or null. A challenger row names the stall it asked about, and its words already say
+ *  so; drawn as a destination it would read as a move nobody made. */
+export function decisionPlace(r: ActivityFeedRow): string | null {
+  if (decisionCategory(r.action) === "challenger") return null;
+  const verb = typeof r.rationale?.verb === "string" ? r.rationale.verb : "";
+  return isPlace(r.target, verb) ? r.target : null;
+}
+
+/** A feed row's identity. A decision carries its own sequence number (0452); a challenger row carries none, being no
+ *  decision, and is its finding instead; anything older falls back to the tuple the engine keeps distinct. */
+export function decisionKey(r: ActivityFeedRow): string {
+  if (r.decision_seq != null) return `d${r.decision_seq}`;
+  const finding = r.rationale?.finding_id;
+  if (finding != null) return `${r.action}:${String(finding)}`;
+  return `${r.occurred_at}|${r.vehicle_id}|${r.action}|${r.target ?? ""}`;
+}
+
 export function describeDecision(r: ActivityFeedRow): DecisionText {
   const v = (r.rationale ?? {}) as Record<string, unknown>;
   const verb = typeof v.verb === "string" ? v.verb : "";
@@ -59,6 +80,9 @@ export function describeDecision(r: ActivityFeedRow): DecisionText {
   const codes = Array.isArray(v.override_rule_codes) ? (v.override_rule_codes as string[]).join(", ") : "";
 
   switch (r.action) {
+    case "challenger_flag":
+    case "challenger_grade":
+      return challengerText(r);
     case "task_start": {
       if (verb === "promote_ready") {
         const deferred = Array.isArray(v.deferred) ? (v.deferred as string[]).map(human) : [];
@@ -166,6 +190,52 @@ export function describeDecision(r: ActivityFeedRow): DecisionText {
   return { title: fallback.charAt(0).toUpperCase() + fallback.slice(1), detail: decisionReasonText(r), tone: overridden ? "warn" : noop ? "idle" : "enacted" };
 }
 
+// ── the challenger (otto-q-core 0532, 0536) ─────────────────────────────────
+// Every minute of a live run the challenger asks whether the depot could do better right now, and grades each question
+// in hindsight when it closes. Its rows are not decisions: the engine never acted on them, so the words say what was
+// QUESTIONED and what hindsight made of it, never what was done.
+export const CHALLENGER_QUESTION: Record<string, string> = {
+  charging_above_floor_while_cars_wait: "charging past the deploy floor while cars wait",
+  charger_offerable_while_cars_wait: "a free charger while a car waits",
+  charger_faulted_while_cars_wait: "a faulted charger while cars wait",
+};
+
+export function challengerText(r: ActivityFeedRow): DecisionText {
+  const v = (r.rationale ?? {}) as Record<string, unknown>;
+  const question = CHALLENGER_QUESTION[String(v.question ?? "")] ?? human(v.question);
+  const tag = String(r.engine ?? "").replace(/^challenger\s*/, "");
+  const label = `Challenger${tag ? ` ${tag}` : ""}`;
+  if (r.action === "challenger_grade") {
+    const grade = String(v.grade ?? r.outcome ?? "");
+    const rz = (v.realized ?? {}) as Record<string, unknown>;
+    const mins = (x: unknown): string | null => (num(x) == null ? null : `${Math.round(num(x) as number)} min`);
+    const facts = [
+      mins(rz.minutes_charged_after_first_sight) ? `charged ${mins(rz.minutes_charged_after_first_sight)} more` : null,
+      mins(rz.free_for_min_at_least) ? `free at least ${mins(rz.free_for_min_at_least)}` : null,
+      mins(rz.faulted_while_waiting_min_at_least) ? `faulted at least ${mins(rz.faulted_while_waiting_min_at_least)}` : null,
+      rz.beneficiary_still_waiting === true
+        ? "the next car was still waiting"
+        : mins(rz.beneficiary_waited_after_min) ? `the next car waited ${mins(rz.beneficiary_waited_after_min)} more` : null,
+    ].filter(Boolean);
+    const verdict = grade === "confirmed" ? "right: a gain was missed" : grade === "refuted" ? "wrong: the engine's choice held" : "inconclusive";
+    return {
+      title: `${label} graded: ${verdict}`,
+      detail: [question, ...facts].join(" · ") || null,
+      tone: grade === "confirmed" ? "warn" : "idle",
+    };
+  }
+  const soc = num(v.car_soc);
+  const waiting = num(v.cars_waiting);
+  const longest = num(v.longest_wait_min);
+  const where = [r.target ?? null, soc != null ? `at ${Math.round(soc)}%` : null].filter(Boolean).join(" ");
+  const wait = waiting != null ? `${waiting} waiting${longest != null ? `, longest ${Math.round(longest)} min` : ""}` : null;
+  return {
+    title: `${label} asks: ${question}`,
+    detail: [where || null, wait, typeof v.claim === "string" ? `claim: ${v.claim}` : null].filter(Boolean).join(" · ") || null,
+    tone: "warn",
+  };
+}
+
 /** Scalar fields of a structured rationale, as text. The last resort for an unknown verdict. */
 export function decisionReasonText(r: ActivityFeedRow): string | null {
   if (r.reason && !/^[a-z0-9_]+$/.test(r.reason) && !r.reason.startsWith("{")) return r.reason;
@@ -182,10 +252,17 @@ export function holdText(
   r: ActivityFeedRow,
   clock: (iso: string) => string = (iso) => formatClockCT(iso).slice(0, 5),
 ): string | null {
-  if (r.standing) return `since ${clock(r.occurred_at)}, still in force`;
+  // A challenger row is a question about a decision, not a verdict: it is open, or it was asked, and never "in force"
+  // or "held" (otto-q-core 0536). Its grade restates when it was asked, since the grade lands at the close.
+  const question = r.action === "challenger_flag";
+  if (r.action === "challenger_grade") {
+    const asked = r.rationale?.first_seen;
+    return typeof asked === "string" ? `asked at ${clock(asked)}` : null;
+  }
+  if (r.standing) return question ? `open since ${clock(r.occurred_at)}` : `since ${clock(r.occurred_at)}, still in force`;
   if (!r.held_ticks || r.held_ticks <= 1 || !r.last_at) return null;
   const mins = Math.max(1, Math.round((Date.parse(r.last_at) - Date.parse(r.occurred_at)) / 60_000));
-  return `held ${mins} min`;
+  return question ? `open ${mins} min` : `held ${mins} min`;
 }
 
 // Display names for the providers ottoq_model_call_ledger records. An unknown

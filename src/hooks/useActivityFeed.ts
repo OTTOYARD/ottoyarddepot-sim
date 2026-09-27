@@ -59,12 +59,13 @@ export function useActivityFeed(enabled = true) {
         // on every tick -- 97% of its rows on run 736406cf -- so the newest 200 rows covered ~3 ticks
         // and held no agent decision. This asks for the decisions at which something CHANGED over the
         // last 240 ticks (2 sim-hours), each with how long it then stood.
-        const { data, error } = await ottoQ.rpc("ottoq_activity_feed", {
-          p_sim_run_id: simRunId,
-          p_limit: 300,
-          p_changes_only: true,
-          p_window_ticks: 240,
-        });
+        // otto-q-core 0536: v2 is the same feed plus the challenger's flags and grades, in the same row shape.
+        const args = { p_sim_run_id: simRunId, p_limit: 300, p_changes_only: true, p_window_ticks: 240 };
+        let { data, error } = await ottoQ.rpc("ottoq_activity_feed_v2", args);
+        // A backend without 0536 answers PGRST202 (no such function); the plain feed is still the whole decision stream.
+        if (error && (error as { code?: string }).code === "PGRST202") {
+          ({ data, error } = await ottoQ.rpc("ottoq_activity_feed", args));
+        }
         if (cancelled) return;
         if (error) {
           setError(String(error.message ?? error));

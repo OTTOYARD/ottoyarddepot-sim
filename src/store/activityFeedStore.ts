@@ -28,6 +28,7 @@
 // accumulated rows are retained across a pause, so the scrollback he wants to
 // read is still there when he toggles over to it.
 import { create } from "zustand";
+import { decisionKey } from "@/lib/decisionText";
 
 export interface ActivityFeedRow {
   occurred_at: string;
@@ -66,9 +67,9 @@ export const STREAM_CAP = 600;
  * tick into one row.
  */
 export function rowKey(r: ActivityFeedRow): string {
-  // 0452: the feed now returns the decision's own sequence number, which is the real identity.
-  if (r.decision_seq != null) return `d${r.decision_seq}`;
-  return `${r.occurred_at}|${r.vehicle_id}|${r.action}|${r.target ?? ""}`;
+  // 0452: the feed now returns the decision's own sequence number, which is the real identity; 0536's challenger rows
+  // are keyed by their finding. The identity lives in decisionText so PULSE and OrchestrAV key a row the same way.
+  return decisionKey(r);
 }
 
 /** A standing verdict's row is re-delivered every poll with a longer hold; that is an update, not news. */

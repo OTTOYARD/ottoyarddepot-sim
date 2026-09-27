@@ -37,6 +37,7 @@ import {
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import TwinDecisionLogTab from '@/components/tabs/TwinDecisionLogTab';
+import SecondLoopPanel from '@/components/tabs/SecondLoopPanel';
 import { useIntelligenceStack } from '@/hooks/useIntelligenceStack';
 import {
   armingTone,
@@ -446,11 +447,13 @@ const FrameSection = ({
   );
 };
 
-type IntelView = 'stream' | 'layers';
+type IntelView = 'stream' | 'layers' | 'loop';
 
-/** Two ways to read the same intelligence path: what it is doing right now
- *  (stream) and how it is built (layers). Stream is the default because it is
- *  the question a viewer watching a running depot is actually asking. */
+/** Three ways to read OTTO-Q's brain: what it is doing right now (stream), how
+ *  the funnel is built (layers), and the second loop beside it -- what the
+ *  challenger questions and what the learner is testing (loop). Stream is the
+ *  default because it is the question a viewer watching a running depot is
+ *  actually asking. */
 const ViewToggle = ({
   view,
   setView,
@@ -463,6 +466,7 @@ const ViewToggle = ({
       [
         ['stream', 'Live stream'],
         ['layers', 'Layers'],
+        ['loop', 'Challenge & learn'],
       ] as const
     ).map(([key, label]) => (
       <button
@@ -492,12 +496,25 @@ export function TwinIntelligenceTab() {
   const arming = stack?.arming ?? null;
   const primary = arming?.primary_proposer ?? null;
 
+  // The second loop does not need a live run: the learner works overnight, and the challenger's board names the most
+  // recent operator run. So its view is reachable with no run active; the other two are not.
   if (!simRunId) {
+    if (view === 'loop') {
+      return (
+        <ScrollArea className="flex-1">
+          <div className="space-y-2 p-3">
+            <ViewToggle view={view} setView={setView} />
+            <SecondLoopPanel />
+          </div>
+        </ScrollArea>
+      );
+    }
     return (
-      <div className="flex-1 p-4">
+      <div className="flex-1 space-y-2 p-4">
+        <ViewToggle view={view} setView={setView} />
         <p className="text-[11px] text-ink-dim">
           No simulation is active. Start a run on the Control tab and the intelligence path
-          appears here as it runs.
+          appears here as it runs. What OTTO-Q is testing overnight is under Challenge &amp; learn.
         </p>
       </div>
     );
@@ -524,6 +541,19 @@ export function TwinIntelligenceTab() {
   // decoration. What changes is which one a viewer lands on. The stream answers
   // "what is it doing right now", the layers answer "how does it work", and
   // only the first was missing.
+  // THE SECOND LOOP. Chase, 2026-09-27: "a transparency layer to our brain and how the engine fires". The
+  // challenger's questions and the learner's experiments, read from their own boards (otto-q-core 0536).
+  if (view === 'loop') {
+    return (
+      <ScrollArea className="flex-1">
+        <div className="space-y-2 p-3">
+          <ViewToggle view={view} setView={setView} />
+          <SecondLoopPanel />
+        </div>
+      </ScrollArea>
+    );
+  }
+
   if (view === 'stream') {
     return (
       <div className="flex h-full flex-col">
