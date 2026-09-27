@@ -9,6 +9,8 @@
 //       - continuous     → simple slider; expand → shift / spread / floor / ceiling
 //       - policy         → selector
 //   · Injections: DR call · charger fault — only events with a real engine door
+// A variable the registry lists but no engine function reads (`wired = false`) is not
+// shown: a control that cannot change the run is not a control.
 // No operator key (open on the private link). No Depot Structure tab.
 // Writes shape the run's profile live via PUT /variability { knobs }.
 // ============================================================================
@@ -185,7 +187,6 @@ function VarControl({ v, knobs, expanded, onToggleExpand, commit, verdict }: {
   verdict?: CoverageVerdict;
 }) {
   const dirty = useMemo(() => {
-    if (!v.wired) return false;
     if (v.kind === "rate")   return getRate(knobs, v.var_key) !== 1;
     if (v.kind === "policy") return getPolicy(knobs, v.var_key) !== "calibrated";
     return !!knobs?.[v.var_key] && Object.keys(knobs[v.var_key]).length > 0;
@@ -193,20 +194,19 @@ function VarControl({ v, knobs, expanded, onToggleExpand, commit, verdict }: {
 
   const header = (
     <div className="flex items-center gap-1.5">
-      <span className={`text-[12px] ${v.wired ? "text-ink" : "text-ink-faint italic"}`}>{v.label}</span>
+      <span className="text-[12px] text-ink">{v.label}</span>
       {dirty && <span className="w-1.5 h-1.5 rounded-full bg-brand-red" />}
       <TooltipProvider><Tooltip>
         <TooltipTrigger asChild><Info size={11} className="text-ink-faint/60 hover:text-ink-dim" /></TooltipTrigger>
         <TooltipContent className="max-w-[240px] bg-canvas-elev border-white/10 text-ink text-[11px]">{v.definition}</TooltipContent>
       </Tooltip></TooltipProvider>
-      {!v.wired && <span className="ml-auto text-[9px] text-ink-faint border border-white/10 rounded px-1">engine support coming</span>}
       {/*
         `wired` is a REGISTRY flag — it says the variable is registered, not
         that moving it changes anything OTTO-Q can see. These badges carry the
         measured verdict from the live frame instead, so a slider that does
         nothing says so at the point of use rather than looking operational.
       */}
-      {v.wired && verdict === "unobservable" && (
+      {verdict === "unobservable" && (
         <TooltipProvider><Tooltip>
           <TooltipTrigger asChild>
             <span className="ml-auto text-[9px] text-brand-red/80 border border-brand-red/30 rounded px-1 cursor-default">no effect</span>
@@ -217,7 +217,7 @@ function VarControl({ v, knobs, expanded, onToggleExpand, commit, verdict }: {
           </TooltipContent>
         </Tooltip></TooltipProvider>
       )}
-      {v.wired && verdict === "dark" && (
+      {verdict === "dark" && (
         <TooltipProvider><Tooltip>
           <TooltipTrigger asChild>
             <span className="ml-auto text-[9px] text-ink-faint border border-white/10 rounded px-1 cursor-default">unlit</span>
@@ -230,8 +230,6 @@ function VarControl({ v, knobs, expanded, onToggleExpand, commit, verdict }: {
       )}
     </div>
   );
-
-  if (!v.wired) return <div className="py-1 opacity-50">{header}</div>;
 
   if (v.kind === "policy") {
     return (
@@ -448,7 +446,8 @@ export const OperatorConsole = () => {
     finally { setBusy(null); }
   };
 
-  const primary = catalog.filter((v) => v.is_primary);
+  // Only what the engine reads is rendered (the registry's `arrival` rate never was).
+  const primary = catalog.filter((v) => v.is_primary && v.wired);
   const byDomain = useMemo(() => {
     const m: Record<string, CatalogVar[]> = {};
     for (const v of catalog) (m[v.domain] ??= []).push(v);
@@ -594,7 +593,7 @@ export const OperatorConsole = () => {
                   : `${byDomain[d].filter((v) => v.wired).length}/${byDomain[d].length}`}
               </span>
             </button>
-            {open && <div className="px-3 pb-3 flex flex-col gap-1">{byDomain[d].map(renderVar)}</div>}
+            {open && <div className="px-3 pb-3 flex flex-col gap-1">{byDomain[d].filter((v) => v.wired).map(renderVar)}</div>}
           </div>
         );
       })}
