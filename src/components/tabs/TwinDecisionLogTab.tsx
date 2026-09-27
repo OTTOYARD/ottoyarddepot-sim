@@ -23,7 +23,7 @@ import { useActivityFeed } from "@/hooks/useActivityFeed";
 import { useActivityFeedStore, rowKey, type ActivityFeedRow } from "@/store/activityFeedStore";
 import {
   Brain, Truck, BatteryCharging, CalendarClock,
-  ArrowRight, Pause, Radio,
+  ArrowRight, Pause, Radio, Search,
 } from "lucide-react";
 // The verdict in words, and the category it is filed under, live in src/lib/decisionText.ts so PULSE and
 // OrchestrAV carry the same file verbatim.
@@ -41,6 +41,8 @@ export const CATEGORY_META: Record<DecisionCategory, { label: string; color: str
   dispatch: { label: CATEGORY_LABEL.dispatch, color: "#00B4A6", icon: Truck },
   energy: { label: CATEGORY_LABEL.energy, color: "#F59E0B", icon: BatteryCharging },
   plans: { label: CATEGORY_LABEL.plans, color: "#7B818D", icon: CalendarClock },
+  // otto-q-core 0536: the challenger's questions and hindsight grades, beside the decisions they question
+  challenger: { label: CATEGORY_LABEL.challenger, color: "#F472B6", icon: Search },
 };
 
 export {
@@ -199,7 +201,7 @@ export default function TwinDecisionLogTab() {
   const [shown, setShown] = useState<Set<DecisionCategory>>(() => new Set(DEFAULT_CATEGORIES));
 
   const counts = useMemo(() => {
-    const c: Record<DecisionCategory, number> = { agent: 0, dispatch: 0, energy: 0, plans: 0 };
+    const c: Record<DecisionCategory, number> = { agent: 0, dispatch: 0, energy: 0, plans: 0, challenger: 0 };
     for (const r of rows) c[decisionCategory(r.action)]++;
     return c;
   }, [rows]);

@@ -458,9 +458,14 @@ describe('TwinIntelligenceTab default view', () => {
     expect(screen.getByText('Layers')).toBeTruthy();
   });
 
-  it('draws no toggle at all when there is no run to stream', () => {
+  // otto-q-core 0536: the second loop needs no live run (the learner works overnight, and the challenger's board names
+  // the last operator run), so with no run the toggle stays and only the stream and the layers say there is nothing.
+  it('keeps the toggle with no run, so the challenger and the learner stay reachable', async () => {
     mount({}, 'stream');
     expect(screen.getByText(/No simulation is active/i)).toBeTruthy();
-    expect(screen.queryByText('Live stream')).toBeNull();
+    fireEvent.click(screen.getByText('Challenge & learn'));
+    expect(await screen.findByText('Challenger')).toBeTruthy();
+    expect(await screen.findByText('Learner')).toBeTruthy();
+    expect(screen.queryByText(/No simulation is active/i)).toBeNull();
   });
 });

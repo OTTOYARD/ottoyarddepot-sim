@@ -18,16 +18,20 @@ export function formatClockCT(iso: string | null | undefined): string {
 }
 
 // ── categories: what an operator filters by ─────────────────────────────────
-export type DecisionCategory = "agent" | "dispatch" | "energy" | "plans";
+export type DecisionCategory = "agent" | "dispatch" | "energy" | "plans" | "challenger";
 
 export const CATEGORY_LABEL: Record<DecisionCategory, string> = {
   agent: "Agent",
   dispatch: "Dispatch",
   energy: "Energy",
   plans: "Plan changes",
+  challenger: "Challenger",
 };
 
 export function decisionCategory(action: string | null | undefined): DecisionCategory {
+  // otto-q-core 0536: the challenger's flags and grades ride the same stream. They are questions about the engine's
+  // choices, not decisions, and they get their own filter.
+  if (action === "challenger_flag" || action === "challenger_grade") return "challenger";
   if (action === "orchestrator_agent") return "agent";
   if (action === "bess_dispatch") return "energy";
   if (action === "itinerary_amended") return "plans";
@@ -35,7 +39,7 @@ export function decisionCategory(action: string | null | undefined): DecisionCat
 }
 
 /** Plan re-timings are real decisions but the loudest ones (~40% of changes); they start hidden. */
-export const DEFAULT_CATEGORIES: ReadonlySet<DecisionCategory> = new Set(["agent", "dispatch", "energy"]);
+export const DEFAULT_CATEGORIES: ReadonlySet<DecisionCategory> = new Set(["agent", "dispatch", "energy", "challenger"]);
 
 // ── the verdict, in words ────────────────────────────────────────────────────
 export const human = (s: unknown): string => (typeof s === "string" ? s.replace(/_/g, " ") : "");
@@ -59,6 +63,9 @@ export function describeDecision(r: ActivityFeedRow): DecisionText {
   const codes = Array.isArray(v.override_rule_codes) ? (v.override_rule_codes as string[]).join(", ") : "";
 
   switch (r.action) {
+    case "challenger_flag":
+    case "challenger_grade":
+      return challengerText(r);
     case "task_start": {
       if (verb === "promote_ready") {
         const deferred = Array.isArray(v.deferred) ? (v.deferred as string[]).map(human) : [];
@@ -164,6 +171,52 @@ export function describeDecision(r: ActivityFeedRow): DecisionText {
   // Anything this map does not know renders as its own words, never as an engine name.
   const fallback = human(verb) || human(reason) || human(r.action);
   return { title: fallback.charAt(0).toUpperCase() + fallback.slice(1), detail: decisionReasonText(r), tone: overridden ? "warn" : noop ? "idle" : "enacted" };
+}
+
+// ── the challenger (otto-q-core 0532, 0536) ─────────────────────────────────
+// Every minute of a live run the challenger asks whether the depot could do better right now, and grades each question
+// in hindsight when it closes. Its rows are not decisions: the engine never acted on them, so the words say what was
+// QUESTIONED and what hindsight made of it, never what was done.
+export const CHALLENGER_QUESTION: Record<string, string> = {
+  charging_above_floor_while_cars_wait: "charging past the deploy floor while cars wait",
+  charger_offerable_while_cars_wait: "a free charger while a car waits",
+  charger_faulted_while_cars_wait: "a faulted charger while cars wait",
+};
+
+export function challengerText(r: ActivityFeedRow): DecisionText {
+  const v = (r.rationale ?? {}) as Record<string, unknown>;
+  const question = CHALLENGER_QUESTION[String(v.question ?? "")] ?? human(v.question);
+  const tag = String(r.engine ?? "").replace(/^challenger\s*/, "");
+  const label = `Challenger${tag ? ` ${tag}` : ""}`;
+  if (r.action === "challenger_grade") {
+    const grade = String(v.grade ?? r.outcome ?? "");
+    const rz = (v.realized ?? {}) as Record<string, unknown>;
+    const mins = (x: unknown): string | null => (num(x) == null ? null : `${Math.round(num(x) as number)} min`);
+    const facts = [
+      mins(rz.minutes_charged_after_first_sight) ? `charged ${mins(rz.minutes_charged_after_first_sight)} more` : null,
+      mins(rz.free_for_min_at_least) ? `free at least ${mins(rz.free_for_min_at_least)}` : null,
+      mins(rz.faulted_while_waiting_min_at_least) ? `faulted at least ${mins(rz.faulted_while_waiting_min_at_least)}` : null,
+      rz.beneficiary_still_waiting === true
+        ? "the next car was still waiting"
+        : mins(rz.beneficiary_waited_after_min) ? `the next car waited ${mins(rz.beneficiary_waited_after_min)} more` : null,
+    ].filter(Boolean);
+    const verdict = grade === "confirmed" ? "right: a gain was missed" : grade === "refuted" ? "wrong: the engine's choice held" : "inconclusive";
+    return {
+      title: `${label} graded: ${verdict}`,
+      detail: [question, ...facts].join(" · ") || null,
+      tone: grade === "confirmed" ? "warn" : "idle",
+    };
+  }
+  const soc = num(v.car_soc);
+  const waiting = num(v.cars_waiting);
+  const longest = num(v.longest_wait_min);
+  const where = [r.target ?? null, soc != null ? `at ${Math.round(soc)}%` : null].filter(Boolean).join(" ");
+  const wait = waiting != null ? `${waiting} waiting${longest != null ? `, longest ${Math.round(longest)} min` : ""}` : null;
+  return {
+    title: `${label} asks: ${question}`,
+    detail: [where || null, wait, typeof v.claim === "string" ? `claim: ${v.claim}` : null].filter(Boolean).join(" · ") || null,
+    tone: "warn",
+  };
 }
 
 /** Scalar fields of a structured rationale, as text. The last resort for an unknown verdict. */
