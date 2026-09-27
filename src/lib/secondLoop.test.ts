@@ -12,6 +12,7 @@ import {
   outcomeTone,
   pairsProgress,
   realizedText,
+  sightingsText,
   windowText,
   type ChallengerEpisode,
   type LearningBoard,
@@ -62,6 +63,19 @@ describe("realizedText", () => {
     expect(realizedText({ ...q1, realized: { minutes_charged_after_first_sight: 12, beneficiary_still_waiting: true } }))
       .toBe("charged 12 min more · the next car was still waiting");
     expect(realizedText({ ...q1, realized: null })).toBeNull();
+  });
+});
+
+describe("sightings (0537)", () => {
+  it("says what the lists leave out, and nothing when there is nothing", () => {
+    expect(sightingsText({ code: "q2", tag: "Q2", sightings: { transient: 29, pending: 0 } })).toBe(
+      "not listed: 29 one-scan sightings the engine answered before the next scan",
+    );
+    expect(sightingsText({ code: "q1", tag: "Q1", sightings: { transient: 1, pending: 2 } })).toBe(
+      "not listed: 1 one-scan sighting the engine answered before the next scan · 2 waiting on a second scan",
+    );
+    expect(sightingsText({ code: "q3", tag: "Q3", sightings: { transient: 0, pending: 0 } })).toBeNull();
+    expect(sightingsText({ code: "q3", tag: "Q3" })).toBeNull();
   });
 });
 

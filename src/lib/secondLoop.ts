@@ -51,6 +51,8 @@ export interface ChallengerQuestion {
   lever?: string | null;
   run?: ChallengerRunStats | null;
   lifetime?: ChallengerLifetime | null;
+  /** otto-q-core 0537: one-scan sightings, counted but kept off the lists (see sightingsText). */
+  sightings?: { transient?: number | null; pending?: number | null } | null;
 }
 
 export interface ChallengerEpisode {
@@ -274,6 +276,18 @@ export function hitRateText(l: ChallengerLifetime | null | undefined): string | 
   if (!l || graded === null || graded === 0) return null;
   const rate = num(l.hit_rate);
   return `right ${l.confirmed} of ${graded} graded${rate === null ? '' : ` (${Math.round(rate * 100)}%)`} across ${num(l.runs) ?? 0} run${num(l.runs) === 1 ? '' : 's'}`;
+}
+
+/** What 0537 keeps off the lists, said rather than hidden: a sighting the next scan no longer saw (the engine had already
+ *  acted) and one still waiting on its second scan. A question is an episode two scans saw. */
+export function sightingsText(q: ChallengerQuestion): string | null {
+  const t = num(q.sightings?.transient) ?? 0;
+  const p = num(q.sightings?.pending) ?? 0;
+  const parts = [
+    t ? `${t} one-scan sighting${t === 1 ? '' : 's'} the engine answered before the next scan` : null,
+    p ? `${p} waiting on a second scan` : null,
+  ].filter(Boolean);
+  return parts.length ? `not listed: ${parts.join(' · ')}` : null;
 }
 
 // ── learner formatters ───────────────────────────────────────────────────────

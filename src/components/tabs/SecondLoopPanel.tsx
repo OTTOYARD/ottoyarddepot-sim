@@ -38,6 +38,7 @@ import {
   outcomeTone,
   pairsProgress,
   realizedText,
+  sightingsText,
   windowText,
   type ChallengerEpisode,
   type LearningExperiment,
@@ -217,6 +218,7 @@ export function SecondLoopPanel() {
                   .filter(Boolean)
                   .join(' · ') || 'nothing graded yet'}
               </p>
+              {sightingsText(q) && <p className="mt-0.5 break-words text-[9px] leading-4 text-ink-faint">{sightingsText(q)}</p>}
               {q.lever && <p className="mt-0.5 break-words text-[9px] leading-4 text-ink-dim">lever: {q.lever}</p>}
             </li>
           ))}
