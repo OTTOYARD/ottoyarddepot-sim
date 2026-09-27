@@ -13,6 +13,12 @@ interface StatCardProps {
   className?: string;
 }
 
+/** A count reads as a count: 14, not "14.0". Fractions keep one decimal. */
+function showNumber(value: string | number): string | number {
+  if (typeof value !== 'number') return value;
+  return Number.isInteger(value) ? value : value.toFixed(1);
+}
+
 function CircularProgress({ value, color }: { value: number; color: string }) {
   const r = 20;
   const circ = 2 * Math.PI * r;
@@ -79,7 +85,7 @@ export const StatCard = React.memo(function StatCard({
               }
             />
             <span className="text-lg font-mono text-white font-bold">
-              {typeof value === 'number' ? value.toFixed(1) : value}
+              {showNumber(value)}
               {unit && <span className="text-xs text-otto-gray ml-0.5">{unit}</span>}
             </span>
           </div>
@@ -103,7 +109,7 @@ export const StatCard = React.memo(function StatCard({
           </div>
         ) : (
           <span className="text-lg font-mono text-white font-bold">
-            {typeof value === 'number' ? value.toFixed(1) : value}
+            {showNumber(value)}
             {unit && <span className="text-xs text-otto-gray ml-0.5">{unit}</span>}
           </span>
         )}

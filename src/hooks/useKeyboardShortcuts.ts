@@ -1,8 +1,19 @@
 import { useEffect } from 'react';
-import { useSimulationStore } from '@/store/simulationStore';
-import { useDemoStore } from '@/store/demoStore';
+import { useSimulationStore, type CockpitTab } from '@/store/simulationStore';
 import { useTwinStore } from '@/store/twinStore';
 import { twin } from '@/lib/ottoTwin';
+
+/** Number keys follow the tab bar, left to right. */
+const TAB_KEYS: Record<string, CockpitTab> = {
+  '1': 'controls',
+  '2': 'intelligence',
+  '3': 'orchestration',
+  '4': 'kpis',
+  '5': 'alerts',
+  '6': 'history',
+  '7': 'world',
+  '8': 'copilot',
+};
 
 export function useKeyboardShortcuts() {
   useEffect(() => {
@@ -12,65 +23,30 @@ export function useKeyboardShortcuts() {
 
       const sim = useSimulationStore.getState();
 
-      // TRUTH-2 (founder rule 2026-07-25): everything that moves on screen must be
-      // OTTO-Q actually firing. The legacy offline engine is a MOCK — 12 hand-seeded
-      // vehicles on locally regenerated stalls, no brain in the loop. Every keyboard
-      // path that could start it has been severed:
-      //   · 'D' entered the mock UNGUARDED — it would wipe a live twin fleet mid-demo.
-      //   · Space started the mock whenever the twin run had not attached yet.
-      // Space now only ever drives the TWIN hold; nothing here can start the mock.
+      // TRUTH-2 (founder rule 2026-07-25): everything that moves on screen must be OTTO-Q
+      // actually firing. Space pauses and resumes the TWIN — the server run and the renderer
+      // together — and nothing here can start anything else. ('D' used to exit an offline demo
+      // mode that nothing can enter any more, and +/- moved a legacy speed nothing reads; both
+      // are gone. Playback speed lives on the Control tab.)
       const tw = useTwinStore.getState();
       const twinLive = !!tw.activeSimRunId && !tw.offlineDemo;
 
-      switch (e.key) {
-        case ' ':
-          e.preventDefault();
-          if (twinLive) {
-            const next = !tw.paused;
-            tw.setPaused(next);
-            if (next) twin.pause(tw.activeSimRunId!).catch(() => {});
-            else twin.resume(tw.activeSimRunId!).catch(() => {});
-          }
-          // no twin run yet => do nothing. Starting the mock here is what made
-          // "the play button" show vehicles that no OTTO-Q decision produced.
-          break;
-        case 'd':
-        case 'D': {
-          // Exit-only. There is no longer any way IN to the offline mock.
-          const demo = useDemoStore.getState();
-          if (demo.isDemoMode) {
-            demo.exitDemo();
-            sim.setControlsLocked(false);
-          }
-          break;
+      if (e.key === ' ') {
+        e.preventDefault();
+        if (twinLive) {
+          const next = !tw.paused;
+          tw.setPaused(next);
+          if (next) twin.pause(tw.activeSimRunId!).catch(() => {});
+          else twin.resume(tw.activeSimRunId!).catch(() => {});
         }
-        case 'p':
-        case 'P':
-          sim.togglePanel();
-          break;
-        case '1':
-          sim.setActiveTab('controls');
-          break;
-        case '2':
-          sim.setActiveTab('kpis');
-          break;
-        case '3':
-          sim.setActiveTab('intelligence');
-          break;
-        case '4':
-          sim.setActiveTab('alerts');
-          break;
-        case '5':
-          sim.setActiveTab('history');
-          break;
-        case '+':
-        case '=':
-          sim.setSimSpeed(Math.min(60, sim.simSpeed + 5));
-          break;
-        case '-':
-          sim.setSimSpeed(Math.max(1, sim.simSpeed - 5));
-          break;
+        return;
       }
+      if (e.key === 'p' || e.key === 'P') {
+        sim.togglePanel();
+        return;
+      }
+      const tab = TAB_KEYS[e.key];
+      if (tab) sim.setActiveTab(tab);
     };
 
     window.addEventListener('keydown', handler);

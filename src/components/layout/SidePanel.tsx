@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useSimulationStore } from '@/store/simulationStore';
+import { useSimulationStore, type CockpitTab } from '@/store/simulationStore';
 import { TabBar } from './TabBar';
 import { OperatorConsole } from '@/components/cockpit/OperatorConsole';
 import { TwinKpisTab } from '@/components/tabs/TwinKpisTab';
@@ -7,25 +7,23 @@ import { TwinOrchestrationTab } from '@/components/tabs/TwinOrchestrationTab';
 import { TwinAlertsTab } from '@/components/tabs/TwinAlertsTab';
 import { TwinHistoryTab } from '@/components/tabs/TwinHistoryTab';
 import { TwinCopilotTab } from '@/components/tabs/TwinCopilotTab';
-import { BlackBoxPanel } from '@/components/cockpit/BlackBoxPanel';
 import { WorldContractTab } from '@/components/tabs/WorldContractTab';
 import TwinIntelligenceTab from '@/components/tabs/TwinIntelligenceTab';
 
-const tabComponents = {
-  controls: OperatorConsole,       // AV-only backend-driven console (replaces legacy ControlsTab)
-  orchestration: TwinOrchestrationTab, // OTTO-Q appointment/reservation/servicing seam (investor view)
-  world: WorldContractTab,         // world-load gate, channel integrity, coverage, decision trace
-  kpis: TwinKpisTab,               // live backend KPIs (replaces legacy KPIsTab)
-  alerts: TwinAlertsTab,           // live backend event feed (replaces legacy AlertsTab)
-  history: TwinHistoryTab,         // backend run-history ledger + compare
-  intelligence: TwinIntelligenceTab, // includes both the live decision stream and measured layers
-  copilot: TwinCopilotTab,         // agentic copilot: Nemotron 3 Ultra audit of OTTO-Q decisions
-  blackbox: BlackBoxPanel,         // flight recorder: Play/Stop/Download run-audit bundle
+const tabComponents: Record<CockpitTab, () => JSX.Element> = {
+  controls: OperatorConsole,             // run the world: scenario, transport, speed, variability, injections
+  intelligence: TwinIntelligenceTab,     // the engine's decision stream + the five intelligence layers
+  orchestration: TwinOrchestrationTab,   // reservation / appointment seam (ottoq_twin_appointments)
+  kpis: TwinKpisTab,                     // canonical five KPIs (ottoq_kpi_five) + live site readings
+  alerts: TwinAlertsTab,                 // the engine's event feed for this run
+  history: TwinHistoryTab,               // run ledger + compare + Black Box download
+  world: WorldContractTab,               // feed diagnostics: world load, channels, variable coverage
+  copilot: TwinCopilotTab,               // on-demand model review of a sample of this run's decisions
 };
 
 export const SidePanel = () => {
   const { isPanelOpen, togglePanel, activeTab } = useSimulationStore();
-  const ActiveComponent = tabComponents[activeTab];
+  const ActiveComponent = tabComponents[activeTab] ?? OperatorConsole;
 
   return (
     <div

@@ -118,7 +118,7 @@ describe("normalizeStage", () => {
 
 describe("packFleetTelemetry", () => {
   const meta = {
-    sim_run_id: "run-1", scenario: "normal_day", seed: 1, tick: 12,
+    sim_run_id: "run-1", scenario: "normal_day", seed: 1, seed_text: "1", tick: 12,
     sim_clock: CLOCK, emitted_at: CLOCK,
   };
 
@@ -193,7 +193,7 @@ describe("packFleetTelemetry", () => {
 
 describe("packDepotOps", () => {
   const meta = {
-    sim_run_id: "run-1", scenario: "normal_day", seed: 1, tick: 12,
+    sim_run_id: "run-1", scenario: "normal_day", seed: 1, seed_text: "1", tick: 12,
     sim_clock: CLOCK, emitted_at: CLOCK,
   };
 
@@ -262,7 +262,7 @@ describe("packDepotOps", () => {
 
 describe("packEnergyGrid", () => {
   const meta = {
-    sim_run_id: "run-1", scenario: "normal_day", seed: 1, tick: 12,
+    sim_run_id: "run-1", scenario: "normal_day", seed: 1, seed_text: "1", tick: 12,
     sim_clock: CLOCK, emitted_at: CLOCK,
   };
 
@@ -308,7 +308,7 @@ describe("packEnergyGrid", () => {
 
 describe("packEnvironment", () => {
   const meta = {
-    sim_run_id: "run-1", scenario: "normal_day", seed: 1, tick: 12,
+    sim_run_id: "run-1", scenario: "normal_day", seed: 1, seed_text: "1", tick: 12,
     sim_clock: CLOCK, emitted_at: CLOCK,
   };
 
@@ -336,6 +336,13 @@ describe("packChannels", () => {
       expect(env.tick).toBe(12);
       expect(env.contract_version).toBe(b.contract_version);
     }
+  });
+
+  it("carries an operator run's 64-bit seed exactly in seed_text (engine 0497 sends it as text)", () => {
+    // validation run 394e1e83's seed: as a JSON number a browser reads it as 2336095663689336300
+    const snap = snapshot();
+    const b = packChannels({ ...snap, run: { ...snap.run!, seed: "2336095663689336323" } }, layout(4), new Date(CLOCK));
+    for (const env of Object.values(b.channels)) expect(env.seed_text).toBe("2336095663689336323");
   });
 
   it("is degraded (not ready) while depot_ops has no service timers", () => {

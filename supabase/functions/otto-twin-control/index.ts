@@ -23,7 +23,10 @@
 //   POST /sim_runs/:id/resume             → un-freeze
 //   PUT  /sim_runs/:id/playback           {mode, speed_x} → live playback speed
 //   PUT  /sim_runs/:id/time_scale         {time_scale} → honest speed (sim-min per tick; 60 = 1×)
-//   POST /sim_runs/:id/inject_fault       {kind, target_id?, payload?}          → {event_id}
+//   POST /sim_runs/:id/inject_fault       {kind, target_id?, payload?}
+//        kind = charger_offline → ottoq_twin_inject_charger_fault (0451): a real charger fault
+//        other kinds            → an event only; the response says engine_effect = "none"
+//   GET  /sim_runs/:id/kpis               → ottoq_kpi_five: the five canonical KPIs for the run
 //   POST /sim_runs/:id/inject_dr_call     {duration_min, cap_kw, reason?}       → {dr_call_id}
 //   POST /advance_due                     → drives ottoq_sim_advance_due_runs() (cron entrypoint)
 //
@@ -347,7 +350,27 @@ async function injectDrCall(simRunId: string, req: Request) {
 
 async function injectFault(simRunId: string, req: Request) {
   const body = await readJson<{ kind?: string; target_id?: string; payload?: Record<string, unknown> }>(req);
-  if (!body.kind) return err("kind required (e.g. charger_offline, grid_brownout, weather_storm)");
+  if (!body.kind) return err("kind required (e.g. charger_offline)");
+
+  // 0451: THE ONE KIND WITH AN ENGINE DOOR. This used to map to the event type
+  // "twin.solar_inverter_blip" -- a solar-inverter event for a charger button -- and no engine
+  // function reads that event, so the cockpit toasted "Injected" over a depot that changed nothing.
+  // The door takes a DC fast charger at the RUN'S depot offline through
+  // twin.ottoq_report_charger_fault (vehicles on it are replanned) and stamps the repair on the sim
+  // clock so twin.ottoq_sim_recover_chargers returns it to service.
+  if (body.kind === "charger_offline") {
+    const repair = Number((body.payload as Record<string, unknown> | undefined)?.repair_minutes ?? 60);
+    const { data, error } = await supabase.rpc("ottoq_twin_inject_charger_fault", {
+      p_sim_run_id: simRunId,
+      p_charger_id: body.target_id ?? null,
+      p_repair_minutes: Number.isFinite(repair) ? repair : 60,
+      p_actor: "cockpit_operator",
+    });
+    if (error) return err("charger fault injection failed", 500, error.message);
+    const res = data as { ok?: boolean; reason?: string } | null;
+    if (!res?.ok) return err(`charger fault not injected: ${res?.reason ?? "unknown"}`, 409, res);
+    return ok({ ...res, kind: body.kind, engine_effect: "charger_faulted" });
+  }
 
   const { data: run, error: runErr } = await supabase
     .from("ottoq_sim_runs")
@@ -355,9 +378,10 @@ async function injectFault(simRunId: string, req: Request) {
     .eq("sim_run_id", simRunId).single();
   if (runErr || !run) return err("sim_run not found", 404);
 
-  // Map fault kinds to event types
+  // Every other kind is recorded as an event and NOTHING ELSE: no engine function reads these event
+  // types (measured 0451), so they change no state. The response says so rather than implying an
+  // effect. The cockpit no longer offers them.
   const eventTypeMap: Record<string, string> = {
-    charger_offline:     "twin.solar_inverter_blip",      // closest existing; real OCPP fault soon
     grid_brownout:       "twin.grid_brownout",
     grid_voltage_sag:    "twin.grid_voltage_sag",
     grid_frequency:      "twin.grid_frequency_excursion",
@@ -390,7 +414,15 @@ async function injectFault(simRunId: string, req: Request) {
     p_sim_run_id:    simRunId
   });
   if (error) return err("fault injection failed", 500, error.message);
-  return ok({ event_id: data, kind: body.kind, event_type: eventType });
+  return ok({ event_id: data, kind: body.kind, event_type: eventType, engine_effect: "none" });
+}
+
+// 0451: the five canonical KPIs (CLAUDE.md 2.9) for one run. ottoq_kpi_five(p_run) is service-role only,
+// so the cockpit reads it through this door.
+async function runKpis(simRunId: string) {
+  const { data, error } = await supabase.rpc("ottoq_kpi_five", { p_run: simRunId });
+  if (error) return err("kpi read failed", 500, error.message);
+  return ok(data);
 }
 
 // ---------------------------------------------------------------------------
@@ -563,6 +595,9 @@ serve(async (req: Request) => {
   // POST /sim_runs/:id/inject_fault
   if (method === "POST" && parts[0] === "sim_runs" && parts[2] === "inject_fault") return injectFault(parts[1], req);
 
+  // GET /sim_runs/:id/kpis  (0451: the five canonical KPIs for this run)
+  if (method === "GET" && parts[0] === "sim_runs" && parts[2] === "kpis") return runKpis(parts[1]);
+
   // GET/PUT /sim_runs/:id/variability  (A.8 live distribution-shaping knobs)
   if (method === "GET" && parts[0] === "sim_runs" && parts[2] === "variability") return getVariability(parts[1]);
   if (method === "PUT" && parts[0] === "sim_runs" && parts[2] === "variability") return putVariability(parts[1], req);
@@ -584,7 +619,7 @@ serve(async (req: Request) => {
 
   // Health probe
   if (method === "GET" && (parts[0] === "" || parts[0] === "health")) {
-    return ok({ service: "otto-twin-control", version: "1.8.0-time-scale", time: new Date().toISOString() });
+    return ok({ service: "otto-twin-control", version: "1.9.1-kpis-fault-door", time: new Date().toISOString() });
   }
 
   return err(`route not found: ${method} /${parts.join("/")}`, 404);

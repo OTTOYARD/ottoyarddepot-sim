@@ -39,6 +39,16 @@ export interface ActivityFeedRow {
   outcome: string;
   rationale: Record<string, unknown> | null;
   reason: string | null;
+  // otto-q-core 0452-0455, present when the feed is read in changes-only mode.
+  /** The decision's own ledger identity. */
+  decision_seq?: number | null;
+  tick_seq?: number | null;
+  /** Ticks this verdict stood before it changed (1 for an event). */
+  held_ticks?: number | null;
+  /** Sim time of the last tick that restated this verdict. */
+  last_at?: string | null;
+  /** Still in force on its action's newest decide tick. Always false for an event. */
+  standing?: boolean | null;
 }
 
 /** Newest-first cap. 200 is one RPC page; 600 keeps roughly three pages of
@@ -56,8 +66,20 @@ export const STREAM_CAP = 600;
  * tick into one row.
  */
 export function rowKey(r: ActivityFeedRow): string {
+  // 0452: the feed now returns the decision's own sequence number, which is the real identity.
+  if (r.decision_seq != null) return `d${r.decision_seq}`;
   return `${r.occurred_at}|${r.vehicle_id}|${r.action}|${r.target ?? ""}`;
 }
+
+/** A standing verdict's row is re-delivered every poll with a longer hold; that is an update, not news. */
+function sameProgress(a: ActivityFeedRow, b: ActivityFeedRow): boolean {
+  return a.held_ticks === b.held_ticks && a.last_at === b.last_at && a.standing === b.standing;
+}
+
+const newestFirst = (a: ActivityFeedRow, b: ActivityFeedRow): number =>
+  a.occurred_at < b.occurred_at ? 1
+  : a.occurred_at > b.occurred_at ? -1
+  : (b.decision_seq ?? 0) - (a.decision_seq ?? 0);
 
 interface State {
   rows: ActivityFeedRow[];
@@ -86,9 +108,16 @@ export const useActivityFeedStore = create<State>((set) => ({
     set((state) => {
       if (!incoming?.length) return { arrivedKeys: [], error: null };
 
-      const seen = new Set(state.rows.map(rowKey));
-      const fresh = incoming.filter((r) => !seen.has(rowKey(r)));
-      if (!fresh.length) {
+      const byKey = new Map(state.rows.map((r) => [rowKey(r), r] as const));
+      const fresh: ActivityFeedRow[] = [];
+      const updated = new Map<string, ActivityFeedRow>();
+      for (const r of incoming) {
+        const k = rowKey(r);
+        const have = byKey.get(k);
+        if (!have) fresh.push(r);
+        else if (!sameProgress(have, r)) updated.set(k, r);
+      }
+      if (!fresh.length && !updated.size) {
         // Nothing new. Return the SAME rows reference so subscribers do not
         // re-render, and clear arrivedKeys so a stale highlight does not stick.
         return { arrivedKeys: [], error: null };
@@ -97,9 +126,8 @@ export const useActivityFeedStore = create<State>((set) => ({
       // Newest first. The RPC already orders by occurred_at desc, but it is
       // sorted again here rather than trusted: a merge mixes two pages, and a
       // stream that renders out of order is worse than one that renders late.
-      const merged = [...fresh, ...state.rows]
-        .sort((a, b) => (a.occurred_at < b.occurred_at ? 1 : a.occurred_at > b.occurred_at ? -1 : 0))
-        .slice(0, STREAM_CAP);
+      const kept = updated.size ? state.rows.map((r) => updated.get(rowKey(r)) ?? r) : state.rows;
+      const merged = [...fresh, ...kept].sort(newestFirst).slice(0, STREAM_CAP);
 
       return { rows: merged, arrivedKeys: fresh.map(rowKey), error: null };
     }),

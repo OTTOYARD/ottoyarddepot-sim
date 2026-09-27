@@ -11,14 +11,13 @@ const ZoneBadgesInner = () => {
     const l2Occupied = vehicles.filter((v) => v.assignedStall?.startsWith('L2')).length;
     const washOccupied = vehicles.filter((v) => v.assignedStall?.startsWith('WASH')).length;
     const stagingOccupied = vehicles.filter((v) => v.assignedStall?.startsWith('STAGE')).length;
-    const queued = vehicles.filter((v) => v.status === 'queued').length;
 
     const dcfcTotal = stalls.filter((s) => s.type === 'dcfc').length;
     const l2Total = stalls.filter((s) => s.type === 'l2').length;
     const washTotal = stalls.filter((s) => s.type === 'wash').length;
     const stagingTotal = stalls.filter((s) => s.type === 'staging').length;
 
-    return { dcfcOccupied, l2Occupied, washOccupied, stagingOccupied, queued, dcfcTotal, l2Total, washTotal, stagingTotal };
+    return { dcfcOccupied, l2Occupied, washOccupied, stagingOccupied, dcfcTotal, l2Total, washTotal, stagingTotal };
   }, [vehicles, stalls]);
 
   return (
@@ -28,7 +27,6 @@ const ZoneBadgesInner = () => {
       <Badge x={174} y={73} label={`${counts.l2Occupied}/${counts.l2Total}`} bg="#00B4A6" />
       <Badge x={186} y={23} label={`${counts.washOccupied}/${counts.washTotal}`} bg="#2196F3" />
       <Badge x={150} y={188} label={`${counts.stagingOccupied}/${counts.stagingTotal}`} bg="#F59E0B" />
-      <Badge x={62} y={184} label={`Q ${counts.queued}`} bg="#FFFFFF" textColor="#1A1A2E" />
     </>
   );
 };

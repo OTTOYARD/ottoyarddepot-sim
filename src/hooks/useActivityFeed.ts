@@ -25,7 +25,7 @@
 // another's — while pausing only suspends it.
 import { useEffect, useRef } from "react";
 import { ottoQ } from "@/lib/ottoQClient";
-import { useActivityFeedStore } from "@/store/activityFeedStore";
+import { useActivityFeedStore, type ActivityFeedRow } from "@/store/activityFeedStore";
 import { useTwinStore } from "@/store/twinStore";
 
 const POLL_MS = 4000;
@@ -55,18 +55,24 @@ export function useActivityFeed(enabled = true) {
 
     const poll = async () => {
       try {
+        // CHANGES ONLY (otto-q-core 0452-0455). The raw feed restates every waiting vehicle's verdict
+        // on every tick -- 97% of its rows on run 736406cf -- so the newest 200 rows covered ~3 ticks
+        // and held no agent decision. This asks for the decisions at which something CHANGED over the
+        // last 240 ticks (2 sim-hours), each with how long it then stood.
         const { data, error } = await ottoQ.rpc("ottoq_activity_feed", {
           p_sim_run_id: simRunId,
-          p_limit: 200,
+          p_limit: 300,
+          p_changes_only: true,
+          p_window_ticks: 240,
         });
         if (cancelled) return;
         if (error) {
           setError(String(error.message ?? error));
           return;
         }
-        mergeRows((data as any[]) ?? []);
-      } catch (e: any) {
-        if (!cancelled) setError(String(e?.message ?? e));
+        mergeRows((data as ActivityFeedRow[] | null) ?? []);
+      } catch (e: unknown) {
+        if (!cancelled) setError(e instanceof Error ? e.message : String(e));
       }
     };
 

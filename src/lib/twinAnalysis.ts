@@ -29,7 +29,7 @@ const clockHM = (iso?: string | null): string => {
 };
 
 export interface TwinContext {
-  run: { scenario: string; status: string; clock: string; tick: number; timeScale: number; seed: number };
+  run: { scenario: string; status: string; clock: string; tick: number; timeScale: number; seed: string };
   fleet: {
     total: number; deployed: number; charging: number; chargingDcfc: number; chargingL2: number;
     inService: number; ready: number; enRoute: number; arrived: number;
@@ -140,7 +140,7 @@ export function buildTwinContext(snapshot: TwinSnapshot, history: EnergyPoint[],
     run: {
       scenario: snapshot.run?.scenario ?? "—", status: snapshot.run?.status ?? "—",
       clock: clockHM(snapshot.run?.sim_clock), tick: n(snapshot.run?.tick_count),
-      timeScale: n(snapshot.run?.time_scale, 1), seed: n(snapshot.run?.seed),
+      timeScale: n(snapshot.run?.time_scale, 1), seed: snapshot.run?.seed != null ? String(snapshot.run.seed) : "—",
     },
     fleet: {
       total, deployed, charging: chargingDcfc + chargingL2, chargingDcfc, chargingL2,

@@ -1,24 +1,27 @@
 // ============================================================================
-// WorldContractTab — the seam, made visible.
+// WorldContractTab (the "Diagnostics" tab) — the feed seam, made visible.
 //
-// Everything in src/lib/ottoq/ was measurable but invisible: the boot report,
-// the channel integrity records, the coverage audit and the decision trace all
-// existed only in stores. This tab renders them.
+// The boot report, the channel integrity records and the coverage audit: how
+// much of the engine's world this cockpit can actually see, which channels are
+// degraded and why, and which variability knobs have an effect on any channel.
+// Engineering-facing. It is deliberately unflattering — a panel that only
+// showed successes would be a worse diagnostic, not a better one.
 //
-// It is deliberately unflattering. It shows how much of the world OTTO-Q can
-// actually see, which channels are degraded and why, and every command the
-// shield REFUSED alongside the ones it let through. A panel that only showed
-// successes would be a worse demo artifact, not a better one — "we measure our
-// own twin's completeness" is the claim worth making to an OEM.
+// It used to also render a "Decision Trace", "Energy Controller" and "Command
+// Ledger". Those were a SECOND orchestrator running in the browser
+// (src/lib/ottoq/pipeline.ts and friends): client-side advisors, a client-side
+// shield and a client-side battery model, deciding every tick in parallel with
+// the engine and — through the motion driver's command inbox — able to choose
+// which stall a car was drawn driving to. None of it was OTTO-Q. The engine's
+// real decisions are on the Intelligence tab; the browser pipeline is gone.
 // ============================================================================
 import { useMemo, useState } from "react";
 import {
-  Activity, AlertTriangle, Battery, ChevronDown, ChevronRight, CircleSlash,
-  Eye, EyeOff, Radio, ShieldCheck, Zap,
+  Activity, AlertTriangle, ChevronDown, ChevronRight,
+  Eye, EyeOff, Radio,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useWorldStore } from "@/store/worldStore";
-import { useOrchestrationStore } from "@/store/orchestrationStore";
 import { CHANNEL_LABELS, type ChannelStatus } from "@/lib/ottoq/contracts";
 import { coverageHeadline } from "@/lib/ottoq/coverage";
 
@@ -75,9 +78,6 @@ export const WorldContractTab = () => {
   const coverage = useWorldStore((s) => s.coverage);
   const framesPacked = useWorldStore((s) => s.framesPacked);
   const bootError = useWorldStore((s) => s.error);
-
-  const latest = useOrchestrationStore((s) => s.latest);
-  const totals = useOrchestrationStore((s) => s.totals);
 
   const [showDark, setShowDark] = useState(false);
 
@@ -284,124 +284,6 @@ export const WorldContractTab = () => {
         )}
       </Section>
 
-      {/* ── DECISION TRACE ───────────────────────────────────────────────── */}
-      <Section
-        icon={ShieldCheck}
-        title="Decision Trace"
-        right={
-          <span className="ml-auto font-mono text-[9px] text-ink-faint">
-            tick {latest?.tick ?? "—"}
-          </span>
-        }
-      >
-        {!latest && <span className="text-[10px] text-ink-faint">No decision pass yet.</span>}
-        {latest && (
-          <>
-            {/* the funnel, layer by layer */}
-            {latest.trace.map((line, i) => (
-              <div key={i} className="font-mono text-[9px] text-ink-dim leading-snug">{line}</div>
-            ))}
-
-            {/* what went out */}
-            {latest.batch.commands.length > 0 && (
-              <div className="flex flex-col gap-1 pt-1">
-                <span className="text-[10px] font-display uppercase tracking-wide text-ink-faint">
-                  Sent ({latest.batch.commands.length})
-                </span>
-                {latest.batch.commands.map((c) => (
-                  <div key={c.command_id} className="rounded border border-white/[0.06] bg-canvas-elev/40 px-2 py-1">
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="font-mono text-[9px] text-brand-red">{c.intent}</span>
-                      <span className="text-[10px] text-ink truncate">{c.target.label ?? c.target.id}</span>
-                      <span className="ml-auto font-mono text-[8px] text-ink-faint">{c.provenance.advisor}</span>
-                    </div>
-                    <div className="text-[9px] text-ink-dim leading-snug pt-0.5">{c.provenance.rationale}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* what did NOT — the part that makes this trustworthy */}
-            {latest.batch.suppressed.length > 0 && (
-              <div className="flex flex-col gap-1 pt-1">
-                <span className="text-[10px] font-display uppercase tracking-wide text-ink-faint">
-                  Suppressed ({latest.batch.suppressed.length})
-                </span>
-                {latest.batch.suppressed.slice(0, 12).map((s, i) => (
-                  <div key={i} className="flex items-start gap-1.5">
-                    <CircleSlash size={10} className="text-ink-faint mt-0.5 shrink-0" />
-                    <div className="min-w-0">
-                      <div className="flex items-baseline gap-1.5">
-                        <span className="font-mono text-[9px] text-state-warn">{s.rule}</span>
-                        <span className="text-[9px] text-ink-dim truncate">{s.intent} · {s.target.id}</span>
-                      </div>
-                      <div className="text-[9px] text-ink-faint leading-snug">{s.detail}</div>
-                    </div>
-                  </div>
-                ))}
-                {latest.batch.suppressed.length > 12 && (
-                  <span className="text-[9px] text-ink-faint">
-                    …and {latest.batch.suppressed.length - 12} more
-                  </span>
-                )}
-              </div>
-            )}
-          </>
-        )}
-      </Section>
-
-      {/* ── ENERGY CONTROLLER ────────────────────────────────────────────── */}
-      <Section icon={Battery} title="Energy Controller" defaultOpen={false}>
-        {!latest && <span className="text-[10px] text-ink-faint">No pass yet.</span>}
-        {latest && (
-          <>
-            <div className="grid grid-cols-2 gap-x-3 gap-y-1 font-mono text-[10px]">
-              <span className="text-ink-faint">delivering</span>
-              <span className="text-ink text-right">{latest.energy.actualKw} kW</span>
-              <span className="text-ink-faint">commanded</span>
-              <span className="text-ink text-right">{latest.energy.targetKw} kW</span>
-              <span className="text-ink-faint">state of charge</span>
-              <span className="text-ink text-right">{latest.energy.socPct}%</span>
-              <span className="text-ink-faint">site cap</span>
-              <span className="text-ink text-right">{latest.energy.siteCapKw ?? "—"}</span>
-            </div>
-            {latest.energy.derateReason && (
-              <div className="text-[9px] text-state-warn leading-snug">{latest.energy.derateReason}</div>
-            )}
-            <div className="text-[9px] text-ink-faint leading-snug">
-              OTTO-Q states an average power and a window. Ramp, derate and state-of-charge
-              bounds are the controller's own — the orchestrator never sets a converter.
-            </div>
-          </>
-        )}
-      </Section>
-
-      {/* ── LEDGER ───────────────────────────────────────────────────────── */}
-      <Section icon={Zap} title="Command Ledger" defaultOpen={false}>
-        <div className="grid grid-cols-2 gap-x-3 gap-y-1 font-mono text-[10px]">
-          <span className="text-ink-faint">issued</span>
-          <span className="text-ink text-right">{totals.issued}</span>
-          <span className="text-ink-faint">accepted</span>
-          <span className="text-ink text-right">{totals.accepted}</span>
-          <span className="text-ink-faint">rejected</span>
-          <span className="text-ink text-right">{totals.rejected}</span>
-          <span className="text-ink-faint">suppressed</span>
-          <span className="text-ink text-right">{totals.suppressed}</span>
-          <span className="text-ink-faint">expired</span>
-          <span className="text-ink text-right">{totals.expired}</span>
-        </div>
-        {latest && latest.ledger.sequenceGaps.length > 0 && (
-          <div className="text-[9px] text-state-crit leading-snug">
-            {latest.ledger.sequenceGaps.length} sequence gap(s) — commands were lost in transit,
-            not simply not issued.
-          </div>
-        )}
-        {latest && latest.transmit.transportError && (
-          <div className="text-[9px] text-state-crit leading-snug">
-            transport: {latest.transmit.transportError}
-          </div>
-        )}
-      </Section>
     </ScrollArea>
   );
 };
