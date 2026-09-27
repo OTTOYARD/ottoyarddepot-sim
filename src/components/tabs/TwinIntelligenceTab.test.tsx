@@ -465,7 +465,7 @@ describe('TwinIntelligenceTab default view', () => {
     expect(screen.getByText(/No simulation is active/i)).toBeTruthy();
     fireEvent.click(screen.getByText('Challenge & learn'));
     expect(await screen.findByText('Challenger')).toBeTruthy();
-    expect(await screen.findByText('Learner')).toBeTruthy();
+    expect(await screen.findByText('Research (twin)')).toBeTruthy();
     expect(screen.queryByText(/No simulation is active/i)).toBeNull();
   });
 });
