@@ -1,0 +1,145 @@
+import { describe, expect, it } from 'vitest';
+import {
+  OPS_SHELL, WASH_SHELL, SHELLS, MIN_JAMB_CLEARANCE, doorSpan, solidWallRuns, shellSolids,
+  bayEquipmentSolids, canopyColumnYs, cabinetFootprints, CANOPY_MAX_SPAN, CANOPY_COLUMN,
+  carportFrames, allStructureSolids, parkedFootprint, rectsOverlap, bodyHitsRect,
+} from './structurePlan';
+import {
+  CANOPIES, NORTH_LANE_Y, REAR_LANE_Y, SERVICE_BAY_XS, WASH_BAY_XS, BAY_STALL_Y,
+  generateStallsV2, routeToStall, routeToEgress,
+} from './sitePlan';
+import { CAR_WIDTH } from '@/engine/motion/traffic';
+
+const stalls = generateStallsV2();
+
+describe('building shells — every bay is a real pull-through', () => {
+  it('cuts one door per bay, on the bay drive line, in both walls', () => {
+    expect(OPS_SHELL.doors.map((d) => d.x)).toEqual([...SERVICE_BAY_XS]);
+    expect(WASH_SHELL.doors.map((d) => d.x)).toEqual([...WASH_BAY_XS]);
+  });
+
+  it('gives a parked car at least MIN_JAMB_CLEARANCE of daylight to each jamb', () => {
+    for (const st of stalls.filter((s) => s.type === 'service' || s.type === 'wash')) {
+      const shell = st.type === 'service' ? OPS_SHELL : WASH_SHELL;
+      const door = shell.doors.find((d) => Math.abs(d.x - st.position.x) < 1e-9);
+      expect(door, st.id).toBeDefined();
+      const [a, b] = doorSpan(door!);
+      expect(st.position.x - CAR_WIDTH / 2 - a).toBeGreaterThanOrEqual(MIN_JAMB_CLEARANCE);
+      expect(b - (st.position.x + CAR_WIDTH / 2)).toBeGreaterThanOrEqual(MIN_JAMB_CLEARANCE);
+    }
+  });
+
+  it('never lets a door opening run into a partition or an end wall', () => {
+    for (const s of SHELLS) {
+      for (const d of s.doors) {
+        const [a, b] = doorSpan(d);
+        expect(a).toBeGreaterThan(s.footprint.x0 + s.wallT);
+        expect(b).toBeLessThan(s.footprint.x1 - s.wallT);
+        for (const px of s.partitions) expect(px < a || px > b, `${s.id} partition ${px} in door ${d.bayId}`).toBe(true);
+      }
+    }
+  });
+
+  it('leaves solid wall between every pair of doors', () => {
+    for (const s of SHELLS) {
+      const runs = solidWallRuns(s);
+      expect(runs.length).toBe(s.doors.length + 1);
+      for (const [a, b] of runs) expect(b - a).toBeGreaterThan(1.5);
+    }
+  });
+
+  it('lets a car drive straight through every bay — collector to rear apron — touching nothing', () => {
+    for (const s of SHELLS) {
+      const solids = [...shellSolids(s), ...bayEquipmentSolids(s)];
+      for (const d of s.doors) {
+        for (let y = NORTH_LANE_Y; y >= REAR_LANE_Y; y -= 0.25) {
+          const pose = { x: d.x, y, heading: -Math.PI / 2 }; // facing north
+          for (const k of solids) {
+            expect(bodyHitsRect(pose, k.r), `${d.bayId} at y=${y} hits ${k.kind}`).toBe(false);
+          }
+        }
+      }
+    }
+  });
+
+  it('routes every bay stall through its own doors (router agrees with the openings)', () => {
+    for (const st of stalls.filter((s) => s.type === 'service' || s.type === 'wash')) {
+      const shell = st.type === 'service' ? OPS_SHELL : WASH_SHELL;
+      const solids = shellSolids(shell);
+      const legs = [
+        routeToStall({ x: st.position.x, y: NORTH_LANE_Y }, st.position),
+        routeToEgress(st.position),
+      ];
+      for (const path of legs) {
+        for (let i = 1; i < path.length; i++) {
+          const a = path[i - 1], b = path[i];
+          const n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 0.5));
+          const heading = Math.atan2(b.y - a.y, b.x - a.x);
+          for (let k = 0; k <= n; k++) {
+            const pose = { x: a.x + ((b.x - a.x) * k) / n, y: a.y + ((b.y - a.y) * k) / n, heading };
+            for (const sd of solids) expect(bodyHitsRect(pose, sd.r, 0.05), `${st.id} route hits ${sd.kind}`).toBe(false);
+          }
+        }
+      }
+    }
+  });
+});
+
+describe('charging canopy spine columns', () => {
+  const cabs = cabinetFootprints();
+
+  it('stand clear of every charger cabinet', () => {
+    for (const c of CANOPIES) {
+      for (const y of canopyColumnYs(c, cabs)) {
+        const col = { x0: c.cx - CANOPY_COLUMN / 2, x1: c.cx + CANOPY_COLUMN / 2, y0: y - CANOPY_COLUMN / 2, y1: y + CANOPY_COLUMN / 2 };
+        for (const k of cabs) expect(rectsOverlap(col, k.r), `${c.id} column y=${y} vs ${k.stallId}`).toBe(false);
+      }
+    }
+  });
+
+  it('carry the roof with no span over the limit and a column near each end', () => {
+    for (const c of CANOPIES) {
+      const ys = canopyColumnYs(c, cabs);
+      expect(ys.length, c.id).toBeGreaterThanOrEqual(4);
+      expect(ys[0] - c.y).toBeLessThanOrEqual(6);
+      expect(c.y + c.h - ys[ys.length - 1]).toBeLessThanOrEqual(6);
+      for (let i = 1; i < ys.length; i++) expect(ys[i] - ys[i - 1]).toBeLessThanOrEqual(CANOPY_MAX_SPAN + 1e-9);
+    }
+  });
+});
+
+describe('perimeter carports', () => {
+  it('put every column under its own roof', () => {
+    for (const f of carportFrames()) {
+      for (const c of f.columns) {
+        expect(c.x).toBeGreaterThanOrEqual(f.roof.x0);
+        expect(c.x).toBeLessThanOrEqual(f.roof.x1);
+        expect(c.y).toBeGreaterThanOrEqual(f.roof.y0);
+        expect(c.y).toBeLessThanOrEqual(f.roof.y1);
+      }
+      expect(f.columns.length, f.runId).toBeGreaterThanOrEqual(2);
+    }
+  });
+});
+
+describe('no built thing stands inside a parking stall', () => {
+  it('holds for every stall in the plan', () => {
+    const solids = allStructureSolids();
+    const hits: string[] = [];
+    for (const st of stalls) {
+      const fp = parkedFootprint(st.position);
+      for (const k of solids) {
+        // the office block legitimately contains nothing; bays contain their own car
+        if (rectsOverlap(fp, k.r)) hits.push(`${st.id} x ${k.kind}`);
+      }
+    }
+    expect(hits).toEqual([]);
+  });
+
+  it('keeps bay cars inside their bay (sanity: stall y is between the walls)', () => {
+    for (const s of SHELLS) {
+      expect(BAY_STALL_Y).toBeGreaterThan(s.footprint.y0 + s.wallT + 5.1);
+      expect(BAY_STALL_Y).toBeLessThan(s.footprint.y1 - s.wallT - 5.1);
+    }
+  });
+});

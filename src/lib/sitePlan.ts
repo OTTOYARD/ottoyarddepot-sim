@@ -309,19 +309,31 @@ function chargingStalls(dcfcCount: number, l2Count: number): StallState[] {
   return stalls;
 }
 
+// ---- Pull-through bays -------------------------------------------------------
+// The bay centrelines are the ONE statement of where a car drives through the
+// operations building and the wash hall. bayStalls() parks cars on them, the
+// router drives straight north along them, and structurePlan.ts cuts the door
+// openings on them — so a door can never again be drawn where no car goes.
+// (The 3D shells used to derive door positions with a pre-X-flip formula that
+// put the service doors 60 units east of the service bays.)
+export const SERVICE_BAY_XS = [120, 138] as const;
+export const WASH_BAY_XS = [168, 186, 204] as const;
+/** Plan y of a car parked in any bay (between the south entry and north exit). */
+export const BAY_STALL_Y = 41;
+
 function bayStalls(washCount: number, serviceCount: number): StallState[] {
   const stalls: StallState[] = [];
   // Pull-through bays: enter south door driving north, exit rear (north). angle 0 = facing north.
   for (let i = 0; i < serviceCount; i++) {
     stalls.push({
       id: `SVC-${String(i + 1).padStart(2, '0')}`, type: 'service', status: 'available',
-      vehicleId: null, position: { x: 120 + i * 18, y: 41, angle: 0 },
+      vehicleId: null, position: { x: SERVICE_BAY_XS[0] + i * 18, y: BAY_STALL_Y, angle: 0 },
     });
   }
   for (let i = 0; i < washCount; i++) {
     stalls.push({
       id: `WASH-${String(i + 1).padStart(2, '0')}`, type: 'wash', status: 'available',
-      vehicleId: null, position: { x: 168 + i * 18, y: 41, angle: 0 },
+      vehicleId: null, position: { x: WASH_BAY_XS[0] + i * 18, y: BAY_STALL_Y, angle: 0 },
     });
   }
   return stalls;

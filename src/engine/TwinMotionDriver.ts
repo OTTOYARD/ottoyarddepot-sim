@@ -1685,6 +1685,17 @@ class TwinMotionDriver {
       const toGap = this.routeFrom(start, hd, { x: gx, y: SOUTH_LANE_Y - 2 });
       return [...lead, ...toGap, { x: gx, y: stall.y }, { x: stall.x, y: stall.y }];
     }
+    // PULL-THROUGH BAYS are entered through their SOUTH door only: ride the north
+    // collector to the bay's own drive line, then straight north through the
+    // forecourt and the door (sitePlan.fromCollector's rule). The generic branch
+    // below aimed at a point 9u south of the stall and let the graph pick the
+    // NEAREST node to it — for wash bay 3 that is the N1 lane's west stub, EAST of
+    // the wash hall, so the last leg ran diagonally THROUGH the hall's east wall
+    // (structureClearance.replay.test.ts, fresh0922: 1 car, 28 samples).
+    if (lane === "wash" || lane === "service") {
+      const toCollector = this.routeFrom(start, hd, { x: stall.x, y: NORTH_LANE_Y });
+      return [...lead, ...toCollector, { x: stall.x, y: stall.y }];
+    }
     // parking / bays: approach a point one car-length BEHIND the parked heading,
     // then pull straight in — each car fans to its own stall and noses in facing
     // `facing`, instead of trailing others into a shared approach spot.

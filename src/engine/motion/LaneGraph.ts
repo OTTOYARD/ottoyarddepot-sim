@@ -466,7 +466,12 @@ export function buildDepotLanes(): LaneGraph {
   // The row is SINGLE-loaded, so it is served from a lane BELOW it and cars sidestep
   // north into a stall; the lane body clears the stall faces by 4.65 ft.
   const n1 = PARK_RUNS.find((r) => r.id === "N1")!;
-  g.addNode("N1w", n1.x0 - 6, N1_LANE_Y);                       // west stub, off the row's first stall
+  // West stub, off the row's first stall. 3u west of it, not 6: a car turning round
+  // at this dead end swings its nose past the node, and at x0 - 6 that nose reached
+  // x = 212.2 — 0.3u INSIDE the wash hall's east wall (x 211.4..212), measured by
+  // structureClearance.replay.test.ts on the fresh0922 capture. At x0 - 3 the swing
+  // clears the wall by ~3u and the stub still sits beside stall 1 (x0).
+  g.addNode("N1w", n1.x0 - 3, N1_LANE_Y);
   g.addNode("N1c", TEMP_LANE_X, N1_LANE_Y);                     // meets the temp aisle
   g.addNode("N1e", EAST_AISLE_X, N1_LANE_Y);                    // meets the east avenue
   g.addRoad("N1w", "N1c");

@@ -89,6 +89,9 @@ export interface FlowOptions {
   playAt?: number;
   /** diagnostic hook, called after every reconcile with the simulated wall ms */
   onPoll?: (wallMs: number, driver: unknown) => void;
+  /** diagnostic hook, called after EVERY motion step with each live car's pose —
+   *  for probes that must sample during motion (structureClearance.replay.test) */
+  onStep?: (poses: { id: string; x: number; y: number; heading: number; moving: boolean }[]) => void;
 }
 
 export interface Trip {
@@ -274,6 +277,14 @@ export function replayFlow(fixtureName: keyof typeof FIXTURES | MotionFixture, o
       twinMotionDriver.tickMotion(dt);
       motionS += dt;
       wallMs += (dt / mult) * 1000;
+      if (opts.onStep) {
+        const poses: { id: string; x: number; y: number; heading: number; moving: boolean }[] = [];
+        for (const [id, e] of d.entries) {
+          const p = poseStore.get(id) ?? { x: e.car.x, y: e.car.y, heading: e.car.heading };
+          poses.push({ id, x: p.x, y: p.y, heading: p.heading, moving: !!e.tracker || !!e.reverse });
+        }
+        opts.onStep(poses);
+      }
       let taxiing = 0;
       const live = new Set<string>();
       for (const [id, e] of d.entries) {
