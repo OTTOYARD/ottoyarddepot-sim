@@ -199,34 +199,36 @@ export function dropCollinear(pts: Pt[]): Pt[] {
   return out;
 }
 
-// ── WIDER RIGHT TURNS, WHERE THE GROUND ALLOWS ──────────────────────────────
-// CORNER_MAX_CUT holds every corner to a 1.2u cut: a 90° corner at R = 2.9u,
-// a car pivoting about a point 1.4 m off its own centreline. Measured on the
-// captures, ~60% of all turning the fleet does happened at R < 5u, and that is
-// what reads as cars "spinning" through corners.
+// ── WIDER CORNERS, WHERE THE GROUND ALLOWS ──────────────────────────────────
+// CORNER_MAX_CUT holds a corner to a 1.2u cut: a 90° corner at R = 2.9u, a car
+// pivoting about a point 1.4 m off its own centreline. Measured on the
+// captures, ~64% of all the turning the fleet does happened at R < 5u, and
+// that is what reads as cars "spinning" through corners.
 //
-// A RIGHT turn's fillet cuts toward the kerb side of the corner, away from the
-// opposing stream, so its only hazards are STATIC: a parked car or a column on
-// the inside of the corner. Those are known at build time. So a right turn
-// takes the widest cut from RIGHT_CUTS whose swept body clears every obstacle
-// registered with setCornerObstacles() by CORNER_CLEAR, and falls back to
-// CORNER_MAX_CUT when none does. A LEFT turn's fillet cuts across the opposing
-// lanes — a dynamic hazard, not a static one — and keeps CORNER_MAX_CUT.
+// So a corner takes the widest cut from WIDE_CUTS whose swept body clears every
+// obstacle registered with setCornerObstacles() — structures and parked-car
+// footprints — by CORNER_CLEAR, and falls back to CORNER_MAX_CUT when none
+// does. Static hazards are known at build time; MOVING ones are junction
+// control's job, and junction membership is read off the routed path (see
+// buildRail) so a wider arc cannot carry a car out of the junction it crosses.
 //
 // Swept rather than guessed, over all five captures (burst, rec, fresh@8x,
 // fresh@3x, busy_day). A GLOBAL 3.6 cut took fresh-start overlap from 49 to 70
 // pair-samples, all of it in the double-loaded temp-staging aisle and the SE
 // ring corner, where parked cars line the inside of the turn — hence the
-// clearance gate. Then the cap on the gated cut:
+// clearance gate. Then the cap, right turns first and then left:
 //
-//     cap    turning at R < 5u    overlap pair-samples    on-screen pairs
-//     none        ~64%                   261                    28
-//     2.4         ~41%                   276                    30
-//     3.2         ~40%                   295                    37
+//     widening            turning at R < 5u    overlap pair-samples    on-screen pairs
+//     none                      ~64%                   261                    28
+//     right turns, 2.4          ~41%                   276                    30
+//     right turns, 3.2          ~40%                   295                    37
+//     right + left, 2.4         ~26%                   282                    32
 //
-// 2.4 buys nearly all of it: past that the R < 5u share stops moving (what is
-// left is left turns and stall sidesteps) while overlap climbs.
-const RIGHT_CUTS = [2.4, 2.0, 1.6];
+// Left turns were held back at first because their fillet cuts across the
+// opposing lanes; measured, junction control absorbs it (+6 overlap samples,
+// +2 on-screen pairs across four captures). Past 2.4 the share stops moving
+// while overlap climbs.
+const WIDE_CUTS = [2.4, 2.0, 1.6];
 const CORNER_CLEAR = 0.4;   // body-to-obstacle margin a widened arc must keep (u)
 const ARC_PROBE = 0.6;      // pose spacing along a candidate arc (u)
 let OBSTACLES: Rect[] = [];
@@ -295,11 +297,9 @@ export function roundCorners(raw: Pt[]): Pt[] {
     const dot = Math.max(-1, Math.min(1, u.x * w.x + u.y * w.y));
     const phi = Math.acos(dot);                     // deflection at the vertex
     if (phi < 0.05) { out.push({ x: V.x, y: V.y }); continue; } // effectively straight
-    // y-DOWN frame: a positive cross product turns toward the right of travel
-    const rightTurn = u.x * w.y - u.y * w.x > 0;
     let f: Fillet | null = null;
-    if (rightTurn && OBSTACLES.length) {
-      for (const cut of RIGHT_CUTS) {
+    if (OBSTACLES.length) {
+      for (const cut of WIDE_CUTS) {
         if (cut <= CORNER_MAX_CUT) break;
         const g = filletAt(V, u, w, ul, wl, phi, cut);
         if (g && arcClear(g)) { f = g; break; }

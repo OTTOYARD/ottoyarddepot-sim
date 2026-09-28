@@ -177,24 +177,21 @@ function nearestTo(pts: Pt[], q: Pt): number {
   return best;
 }
 
-describe("wide right turns — a corner takes the radius its ground allows", () => {
+describe("wide corners — a corner takes the radius its ground allows", () => {
   // y-DOWN plan frame: east (+x) then south (+y) is a RIGHT turn, east then
-  // north (-y) a LEFT one.
+  // north (-y) a LEFT one. Both hands are widened, both clearance-gated.
   const RIGHT: Pt[] = [{ x: 0, y: 0 }, { x: 50, y: 0 }, { x: 50, y: 50 }];
   const LEFT: Pt[] = [{ x: 0, y: 0 }, { x: 50, y: 0 }, { x: 50, y: -50 }];
   const FAR = { x0: 900, x1: 901, y0: 900, y1: 901 };
   afterEach(() => setCornerObstacles([]));
 
-  it("widens a right turn with nothing inside it: 2.4u cut, R ≈ 5.8u instead of 2.9u", () => {
+  it("widens a corner with nothing inside it: 2.4u cut, R ≈ 5.8u instead of 2.9u — either hand", () => {
     setCornerObstacles([FAR]);
-    const cut = nearestTo(roundCorners(RIGHT), { x: 50, y: 0 });
-    expect(cut).toBeGreaterThan(2.3);
-    expect(cut).toBeLessThanOrEqual(2.45);
-  });
-
-  it("does not widen a LEFT turn: its fillet cuts across the opposing lanes", () => {
-    setCornerObstacles([FAR]);
-    expect(nearestTo(roundCorners(LEFT), { x: 50, y: 0 })).toBeLessThanOrEqual(1.25);
+    for (const path of [RIGHT, LEFT]) {
+      const cut = nearestTo(roundCorners(path), { x: 50, y: 0 });
+      expect(cut).toBeGreaterThan(2.3);
+      expect(cut).toBeLessThanOrEqual(2.45);
+    }
   });
 
   it("falls back to the narrow cut when a solid stands inside the corner", () => {

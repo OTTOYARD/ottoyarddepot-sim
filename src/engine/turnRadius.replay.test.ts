@@ -9,17 +9,17 @@
 // that is what reads as a spin, however smooth the frames are.
 //
 //     before (2026-09-27)   fresh0922 62% of all turning at R < 5u · busyday 60%
-//     after  (2026-09-28)   fresh0922 40%                          · busyday 40%
+//     after  (2026-09-28)   fresh0922 28%                          · busyday 23%
 //
 // What moved it (RailFlow.roundCorners / TwinMotionDriver.gapEntry):
 //   • the gap-lane mouth routed to a point 1.2u BEHIND a westbound car, so it
 //     hairpinned before turning north — it now turns once, on its own lane line;
 //   • fillets measured their legs to the next WAYPOINT, and graph nodes on a
 //     straight road capped a corner's radius — legs now run between real corners;
-//   • right turns take up to a 2.4u cut where parked cars and structures allow
-//     (left turns cross the opposing lanes and keep the lane-safe 1.2u).
-// Ratcheted just above the measurement. What remains is left turns and stall
-// sidesteps, which need wider junction boxes in the site plan, not a number here.
+//   • corners take up to a 2.4u cut (R 5.8u at 90°) where parked cars and
+//     structures allow, instead of a flat 1.2u (R 2.9u).
+// Ratcheted just above the measurement. What remains is mostly stall sidesteps
+// and the gate turn-in, which need layout room (the site plan), not a number here.
 // ============================================================================
 import { describe, expect, it } from "vitest";
 import { replayFlow } from "./__fixtures__/flowReplay";
@@ -63,11 +63,11 @@ function measure(name: "fresh0922" | "busyday"): TurnReport {
 
 describe("cars drive round corners instead of pivoting through them (replayed motion)", () => {
   for (const fixture of ["fresh0922", "busyday"] as const) {
-    it(`${fixture}: under 45% of all turning is tighter than R = 5u`, () => {
+    it(`${fixture}: under 32% of all turning is tighter than R = 5u`, () => {
       const r = measure(fixture);
       console.log(`${fixture}: ${r.turningDeg.toFixed(0)}° of turning · ${(100 * r.tightShare).toFixed(1)}% at R < 5u · crab>20° ${(100 * r.crabShare).toFixed(2)}% of travel · spin steps ${r.spinSteps}`);
       expect(r.turningDeg).toBeGreaterThan(10_000); // the replay really exercised turning
-      expect(r.tightShare).toBeLessThanOrEqual(0.45);
+      expect(r.tightShare).toBeLessThanOrEqual(0.32);
       expect(r.crabShare).toBeLessThanOrEqual(0.035);
       expect(r.spinSteps).toBe(0); // a stopped car never rotates
     }, 180_000);
