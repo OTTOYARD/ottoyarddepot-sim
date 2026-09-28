@@ -25,7 +25,8 @@
 //   --view 2d|3d    --secs N (150)   --out DIR (./playback)
 //   --shots s,s,…   playback seconds to screenshot (35,55,75,95,130)
 //   --cams p,p,…    3D camera preset to select before each shot (Bird Eye, Entrance,
-//                   Canopy, Operator, Service, Hero)
+//                   Canopy, Operator, Service, Hero, Bays, Rear), or an ad-hoc world
+//                   camera @x:y:z/tx:ty:tz (position / target) to try a view first
 //   --video         record a .webm of the session into --out
 //   --dsf F         device scale factor; 0.5 renders 3D ~4x cheaper in software GL
 //   --relay-curl    fetch the backend through curl, for sandboxes whose browser
@@ -198,12 +199,18 @@ while (Date.now() - T0 < SECS * 1000) {
   });
   if (s && pt >= 0) samples.push({ pt, ...s });
   if (cam < CAMS.length && cam === shot && shot < SHOTS.length && pt >= SHOTS[shot] - 6) {
-    const b = page.getByRole("button", { name: new RegExp(`^${CAMS[cam]}$`, "i") });
-    if (await b.count()) await b.first().click();
+    if (CAMS[cam].startsWith("@")) {
+      // @x:y:z/tx:ty:tz — an ad-hoc world camera (dev server only), to try a view before it becomes a preset
+      const [p, t] = CAMS[cam].slice(1).split("/").map((v) => v.split(":").map(Number));
+      await page.evaluate(([p, t]) => window.__depotCam?.(p, t), [p, t]);
+    } else {
+      const b = page.getByRole("button", { name: new RegExp(`^${CAMS[cam]}$`, "i") });
+      if (await b.count()) await b.first().click();
+    }
     cam++;
   }
   if (shot < SHOTS.length && pt >= SHOTS[shot]) {
-    const label = CAMS[shot] ? `_${CAMS[shot].replace(/\s+/g, "")}` : "";
+    const label = CAMS[shot] ? `_${CAMS[shot].replace(/\s+/g, "").replace(/[@:/]/g, "_")}` : "";
     await page.screenshot({ path: join(OUT, `${FIXTURE}_${VIEW}_${SHOTS[shot]}s${label}.png`) });
     shot++;
   }

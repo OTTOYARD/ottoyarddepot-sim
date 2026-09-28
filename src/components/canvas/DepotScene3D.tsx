@@ -1,6 +1,6 @@
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
-import { Suspense, useCallback, useRef, useMemo } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useMemo } from 'react';
 import { ACESFilmicToneMapping, PCFSoftShadowMap, FogExp2, SRGBColorSpace } from 'three';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { useVehicleStore } from '@/store/vehicleStore';
@@ -35,6 +35,10 @@ const CAMERA_PRESETS = {
   'Operator': { position: [170, 90, -120] as [number, number, number], target: [0, 0, 20] as [number, number, number] },
   'Service': { position: [10, 9, 30] as [number, number, number], target: [25, 6, 75] as [number, number, number] },
   'Hero': { position: [-95, 14, -75] as [number, number, number], target: [-47, 6, 25] as [number, number, number] },
+  // The pull-through bays from the forecourt (south), and their exits from the
+  // rear apron (north): the two views that show a car driving THROUGH a building.
+  'Bays': { position: [-70, 10, 38] as [number, number, number], target: [5, 3.5, 66] as [number, number, number] },
+  'Rear': { position: [-30, 12, 108] as [number, number, number], target: [-10, 4, 70] as [number, number, number] },
 };
 
 // Seeded random for consistent tree placement
@@ -129,6 +133,22 @@ export default function DepotScene3D() {
     ctrl.update();
   }, []);
 
+  // Dev only: scripts/cockpitPlayback.mjs frames arbitrary shots (--cams @x:y:z/tx:ty:tz)
+  // so a new camera preset can be tried before it is committed. Stripped from builds.
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const w = window as unknown as { __depotCam?: (p: number[], t: number[]) => boolean };
+    w.__depotCam = (p, t) => {
+      const ctrl = controlsRef.current;
+      if (!ctrl) return false;
+      ctrl.object.position.set(p[0], p[1], p[2]);
+      ctrl.target.set(t[0], t[1], t[2]);
+      ctrl.update();
+      return true;
+    };
+    return () => { delete w.__depotCam; };
+  }, []);
+
   return (
     <div className="absolute inset-0 bg-otto-dark">
       <Canvas
@@ -150,6 +170,10 @@ export default function DepotScene3D() {
           const sky = skyTexture();
           scene.background = sky;
           scene.environment = sky;
+          // The backdrop is drawn through the same exposure (2.2) as the lit
+          // scene, which burned the horizon band to white. Dim the BACKDROP only;
+          // the environment keeps full strength for reflections and fill.
+          scene.backgroundIntensity = 0.42;
         }}
       >
         <Suspense fallback={null}>

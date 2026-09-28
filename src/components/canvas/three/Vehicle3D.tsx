@@ -21,11 +21,13 @@ import type { Vehicle } from '@/engine/types';
 // on it, which does not read as a vehicle at any distance. It is now the
 // extruded side-profile pod developed for the OTTO-CHARGE ARM viewer.
 //
-// Draw calls per car went 6 -> 7 (+ the status glow, + 2 for the charge port on
-// cars that have one), NOT 6 -> 13: the four tyres are merged into one buffer,
+// Draw calls per car went 6 -> 7 (+ 2 for the charge port on cars that have
+// one), NOT 6 -> 13: the four tyres are merged into one buffer,
 // the four rim discs into another, the cladding and sensor pod into a third,
 // and the greenhouse and pod glass into a fourth. Merging is done ONCE at module
-// load, not per vehicle.
+// load, not per vehicle. The lamps add one more (both ends share a buffer), and
+// the status lights one more on the cars being worked on — which replaced the
+// translucent status sphere that used to cost the same draw call.
 
 // Realistic fleet paint mix (weights ≈ real-world car-color distribution),
 // picked stably per vehicle id. Ops color-coding stays on the 2D dots/badges.
@@ -44,15 +46,14 @@ function paintFor(id: string): string {
   for (const [c, w] of PAINTS) { if (r < w) return c; r -= w; }
   return PAINTS[0][0];
 }
-const FX: Record<string, { glow: string; pulse: number; op: number }> = {
-  approaching: { glow: '', pulse: 0, op: 0.85 },
-  queued: { glow: '', pulse: 0, op: 0.6 },
-  charging: { glow: '#00B4A6', pulse: 3, op: 1 },
-  washing: { glow: '#2196F3', pulse: 2, op: 1 },
-  detailing: { glow: '#2196F3', pulse: 1.5, op: 1 },
-  maintenance: { glow: '#FF9800', pulse: 1, op: 1 },
-  staging: { glow: '', pulse: 0, op: 0.7 },
-  departing: { glow: '', pulse: 0, op: 0.85 },
+// Exterior status lighting (vehicleBody's beltline strips + pod band): lit only
+// while the car is being WORKED ON; a car driving, queued or parked shows none,
+// as a real one would not.
+const STATUS_LIGHT: Record<string, string> = {
+  charging: '#00d2c0',
+  washing: '#2f8cff',
+  detailing: '#2f8cff',
+  maintenance: '#ff9a1f',
 };
 
 const MAT = {
@@ -72,22 +73,32 @@ const MAT = {
   portRingLive: new THREE.MeshStandardMaterial({
     color: '#00e5ff', emissive: '#00e5ff', emissiveIntensity: 2.2, roughness: 1, metalness: 0, toneMapped: false,
   }),
-  paints: new Map<string, THREE.MeshStandardMaterial>(),
-  glows: new Map<string, THREE.MeshPhysicalMaterial>(),
+  // Head / tail lamps: unlit, coloured per vertex (white nose, red tail), over
+  // 1.0 so the bloom pass catches them. Coplanar with the bevelled end face by
+  // design (see vehicleBody), so they are pulled forward in depth to win.
+  lamps: new THREE.MeshBasicMaterial({
+    vertexColors: true, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4,
+  }),
+  paints: new Map<string, THREE.MeshPhysicalMaterial>(),
+  status: new Map<string, THREE.MeshBasicMaterial>(),
 };
-function paintMat(col: string): THREE.MeshStandardMaterial {
+// Automotive paint is a pigment coat under a clear coat: the clear coat is the
+// sharp sky reflection a car body reads by, the base the soft colour under it.
+function paintMat(col: string): THREE.MeshPhysicalMaterial {
   let m = MAT.paints.get(col);
   if (!m) {
-    m = new THREE.MeshStandardMaterial({ color: col, roughness: 0.30, metalness: 0.60 });
+    m = new THREE.MeshPhysicalMaterial({
+      color: col, roughness: 0.42, metalness: 0.45, clearcoat: 1, clearcoatRoughness: 0.06,
+    });
     MAT.paints.set(col, m);
   }
   return m;
 }
-function glowMat(col: string): THREE.MeshPhysicalMaterial {
-  let m = MAT.glows.get(col);
+function statusMat(col: string): THREE.MeshBasicMaterial {
+  let m = MAT.status.get(col);
   if (!m) {
-    m = new THREE.MeshPhysicalMaterial({ color: col, emissive: col, emissiveIntensity: 0.5, transparent: true, opacity: 0.12, roughness: 1, metalness: 0, toneMapped: false });
-    MAT.glows.set(col, m);
+    m = new THREE.MeshBasicMaterial({ color: new THREE.Color(col).multiplyScalar(1.8), toneMapped: false });
+    MAT.status.set(col, m);
   }
   return m;
 }
@@ -115,7 +126,7 @@ function portSideFor(id: string, stallToward: 1 | -1 | 0): 1 | -1 {
 function Vehicle3DInner({ vehicle }: { vehicle: Vehicle; simSpeed: number }) {
   const grp = useRef<THREE.Group>(null);
   const col = paintFor(vehicle.id);
-  const fx = FX[vehicle.status] || FX.staging;
+  const statusLight = STATUS_LIGHT[vehicle.status];
   // Only the HOVERED car shows its data badge — one <Html> instead of 132 (drei
   // re-projects every Html label to screen each frame, a huge cost at fleet size).
   // Selector returns a bool, so a car only re-renders when ITS hover state flips.
@@ -177,6 +188,8 @@ function Vehicle3DInner({ vehicle }: { vehicle: Vehicle; simSpeed: number }) {
         <mesh geometry={GEO.trim} material={MAT.trim} />
         <mesh geometry={GEO.tyres} material={MAT.tyre} />
         <mesh geometry={GEO.rims} material={MAT.rim} />
+        <mesh geometry={GEO.lamps} material={MAT.lamps} />
+        {statusLight && <mesh geometry={GEO.status} material={statusMat(statusLight)} />}
       </group>
 
       {/* Charge port — the inlet the OTTO-CHARGE ARM actually mates with.
@@ -189,11 +202,6 @@ function Vehicle3DInner({ vehicle }: { vehicle: Vehicle; simSpeed: number }) {
           material={vehicle.status === 'charging' ? MAT.portRingLive : MAT.portRing}
         />
       </group>
-
-      {/* Status glow */}
-      {fx.glow && (
-        <mesh geometry={GEO.glow} material={glowMat(fx.glow)} position={[0, 3.9, 0]} />
-      )}
 
       {/* SoC badge — only on the hovered car (keeps the scene fast) */}
       {isHovered && (

@@ -172,33 +172,41 @@ export function shellSolids(s: ShellDef): { kind: string; r: Rect }[] {
 /** Two-post lift columns: either side of the car, level with where it parks. */
 export const LIFT_POST_OFFSET = 5.6; // from the bay centreline (car half-width 2.1)
 export const LIFT_POST_SIZE = 0.8;
-/** Wash gantry side-brush centres and the frame legs that carry the top rail. */
+/** Wash gantries: two frames per bay, 6u fore and aft of the parked car. */
+export const WASH_FRAME_DY = 6;
+/** Side-brush centres (brushes at rest, retracted outboard of the car's path). */
 export const WASH_BRUSH_OFFSET = 4.3;
 export const WASH_BRUSH_RADIUS = 0.9;
+/** Gantry frame legs, further out still. */
 export const WASH_GANTRY_LEG_OFFSET = 6.8;
+export const WASH_GANTRY_LEG = 0.8;
+/** Pre-soak spray arch just inside the entry door. */
+export const WASH_ARCH_INSET = 3.5;      // from the south wall's inner face
+export const WASH_ARCH_OFFSET = 5.9;     // arch uprights from the drive line
+/** Service-bay casework against the bay's west partition: tool chest (south), tyre rack (north). */
+export const SERVICE_CASEWORK_DEPTH = 1.6;
 
 export function bayEquipmentSolids(s: ShellDef): { kind: string; r: Rect }[] {
   const out: { kind: string; r: Rect }[] = [];
+  const sq = (kind: string, x: number, y: number, size: number) =>
+    out.push({ kind, r: { x0: x - size / 2, x1: x + size / 2, y0: y - size / 2, y1: y + size / 2 } });
+  const f = s.footprint;
   for (const b of s.bays) {
     if (b.kind === 'service') {
-      for (const side of [-1, 1]) {
-        const x = b.x + side * LIFT_POST_OFFSET;
-        out.push({
-          kind: 'lift-post',
-          r: { x0: x - LIFT_POST_SIZE / 2, x1: x + LIFT_POST_SIZE / 2, y0: BAY_STALL_Y - LIFT_POST_SIZE / 2, y1: BAY_STALL_Y + LIFT_POST_SIZE / 2 },
-        });
-      }
+      for (const side of [-1, 1]) sq('lift-post', b.x + side * LIFT_POST_OFFSET, BAY_STALL_Y, LIFT_POST_SIZE);
+      const cx0 = b.x0 + PARTITION_T / 2 + 0.2, cx1 = cx0 + SERVICE_CASEWORK_DEPTH;
+      out.push({ kind: 'tool-chest', r: { x0: cx0, x1: cx1, y0: f.y1 - s.wallT - 6.5, y1: f.y1 - s.wallT - 3.0 } });
+      out.push({ kind: 'tyre-rack', r: { x0: cx0, x1: cx1, y0: f.y0 + s.wallT + 2.5, y1: f.y0 + s.wallT + 8.5 } });
     } else {
-      // brushes stand in the bay at rest, parked OUTBOARD of the car's path;
-      // the gantry legs sit further out still.
-      for (const side of [-1, 1]) {
-        const bx = b.x + side * WASH_BRUSH_OFFSET;
-        for (const y of [BAY_STALL_Y - 6, BAY_STALL_Y + 6]) {
-          out.push({ kind: 'wash-brush', r: { x0: bx - WASH_BRUSH_RADIUS, x1: bx + WASH_BRUSH_RADIUS, y0: y - WASH_BRUSH_RADIUS, y1: y + WASH_BRUSH_RADIUS } });
+      for (const dy of [-WASH_FRAME_DY, WASH_FRAME_DY]) {
+        const y = BAY_STALL_Y + dy;
+        for (const side of [-1, 1]) {
+          sq('wash-brush', b.x + side * WASH_BRUSH_OFFSET, y, WASH_BRUSH_RADIUS * 2);
+          sq('wash-gantry-leg', b.x + side * WASH_GANTRY_LEG_OFFSET, y, WASH_GANTRY_LEG);
         }
-        const lx = b.x + side * WASH_GANTRY_LEG_OFFSET;
-        out.push({ kind: 'wash-gantry-leg', r: { x0: lx - 0.4, x1: lx + 0.4, y0: BAY_STALL_Y - 0.4, y1: BAY_STALL_Y + 0.4 } });
       }
+      const ay = f.y1 - s.wallT - WASH_ARCH_INSET;
+      for (const side of [-1, 1]) sq('wash-arch', b.x + side * WASH_ARCH_OFFSET, ay, 0.4);
     }
   }
   return out;
@@ -344,6 +352,22 @@ export function carportColumnSolids(): { kind: string; r: Rect }[] {
   })));
 }
 
+/** Bollards guarding each bay door's outer corners, front (forecourt) and rear (apron). */
+export const BOLLARD_RADIUS = 0.42;
+export function bayBollards(): { x: number; y: number }[] {
+  const pts: { x: number; y: number }[] = [];
+  for (const s of SHELLS) {
+    for (const d of s.doors) {
+      const off = d.width / 2 + 1.5;
+      for (const side of [-1, 1]) {
+        pts.push({ x: d.x + side * off, y: s.footprint.y1 + 1.5 });
+        pts.push({ x: d.x + side * off, y: s.footprint.y0 - 1.5 });
+      }
+    }
+  }
+  return pts;
+}
+
 /** Every built solid a car must never overlap. */
 export function allStructureSolids(): { kind: string; r: Rect }[] {
   return [
@@ -351,6 +375,10 @@ export function allStructureSolids(): { kind: string; r: Rect }[] {
     ...SHELLS.flatMap(bayEquipmentSolids),
     ...canopyColumnSolids(),
     ...carportColumnSolids(),
+    ...bayBollards().map((p) => ({
+      kind: 'bay-bollard',
+      r: { x0: p.x - BOLLARD_RADIUS, x1: p.x + BOLLARD_RADIUS, y0: p.y - BOLLARD_RADIUS, y1: p.y + BOLLARD_RADIUS },
+    })),
   ];
 }
 

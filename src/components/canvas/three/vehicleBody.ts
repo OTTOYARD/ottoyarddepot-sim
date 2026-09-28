@@ -180,6 +180,49 @@ function atWheels(make: () => THREE.BufferGeometry): THREE.BufferGeometry {
   return mergeAll(parts);
 }
 
+// ── lamps: a white light bar across the nose, a red one across the tail ─────
+// The pod is symmetric end for end, so without lamps nothing on screen says
+// which way a car is pointing. Each bar is a flat quad lying ON the bevelled
+// end face (along = +/-CAR_L_M/2, the plane the body's flat end reaches) —
+// not proud of it, because the clearance solid is exactly that face and the
+// containment test allows one micrometre. Vehicle3D draws it with a polygon
+// offset so it wins the depth test against the paint it is coplanar with.
+// One buffer for both ends, coloured per vertex: one draw call, not two.
+const LAMP_SPAN = BODY_DEPTH - 0.14;          // inside the bevel's rounding
+const LAMP_Y0 = 0.50, LAMP_Y1 = 0.58;         // top of the flat end face (0.26..0.62)
+function lampBar(end: 1 | -1, rgb: [number, number, number]): THREE.BufferGeometry {
+  const g = new THREE.PlaneGeometry(LAMP_SPAN, LAMP_Y1 - LAMP_Y0);
+  g.rotateY(end * Math.PI / 2);               // face +/-X, the car's nose / tail
+  g.translate(end * CAR_L_M / 2, (LAMP_Y0 + LAMP_Y1) / 2, 0);
+  const n = g.getAttribute('position').count;
+  const c = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) c.set(rgb, i * 3);
+  g.setAttribute('color', new THREE.BufferAttribute(c, 3));
+  return g;
+}
+const lampsGeo = mergeAll([lampBar(1, [1.6, 1.55, 1.45]), lampBar(-1, [1.5, 0.06, 0.05])]);
+
+// ── status light: a beltline LED strip down each flank + a band on the pod ──
+// This replaces a translucent sphere that floated over every working car. It
+// said the same thing (charging / washing / service) and nothing real looks
+// like it. A purpose-built robotaxi DOES carry exterior status lighting, and on
+// the body, not above it. The strips sit in the 20 mm between the paint and the
+// car's overall width — the same room the glazing and cladding stand proud in —
+// so they need no depth trickery; the pod band is the pod's own envelope
+// radius, just proud of the tapered pod. Where a car is also says what it is
+// doing (a car in a wash bay is washing), so this is a cue, not the only one.
+const STRIP_X = (noseShoulder[0] - GLASS_INSET) * 0.92;
+const STRIP_Y0 = 0.78, STRIP_Y1 = 0.83;       // under the glazing, over the door line
+const STRIP_T = 0.012;
+function flankStrip(side: 1 | -1): THREE.BufferGeometry {
+  const g = new THREE.BoxGeometry(2 * STRIP_X, STRIP_Y1 - STRIP_Y0, STRIP_T);
+  g.translate(0, (STRIP_Y0 + STRIP_Y1) / 2, side * (CAR_W_M / 2 - 0.004 - STRIP_T / 2));
+  return g;
+}
+const podBandGeo = new THREE.CylinderGeometry(ROOF_POD.radius, ROOF_POD.radius, 0.045, 16, 1, true);
+podBandGeo.translate(0, ROOF_POD.yMin + 0.09, 0);
+const statusGeo = mergeAll([flankStrip(1), flankStrip(-1), podBandGeo]);
+
 /** Body geometry, plan units, origin at the centre of the tyre contact patch. */
 export const VEHICLE_GEO = {
   body: planUnits(bodyGeo),
@@ -187,10 +230,8 @@ export const VEHICLE_GEO = {
   trim: planUnits(mergeAll([cladGeo, podGeo])),
   tyres: planUnits(atWheels(() => new THREE.CylinderGeometry(WHEEL_RADIUS_M, WHEEL_RADIUS_M, 0.24, 14))),
   rims: planUnits(atWheels(() => new THREE.CylinderGeometry(0.20, 0.20, 0.255, 12))),
-  // Decorative status halo, not a footprint: a soft 12%-opacity sphere floating
-  // over the roof. Sized off the car so it stays proportionate, never budgeted
-  // against.
-  glow: new THREE.SphereGeometry(CAR_W_PU * 0.66, 8, 8),
+  lamps: planUnits(lampsGeo),
+  status: planUnits(statusGeo),
 };
 
 // ── the charge port, as a real feature on the flank ─────────────────────────
