@@ -19,7 +19,8 @@
 // ============================================================================
 import { KinematicCar, DEFAULT_CAR_PARAMS, wrapAngle } from "./motion/KinematicCar";
 import { type Pt } from "./motion/PathTracker";
-import { buildRail, pointAt, stepRail, RailLocks, type Rail, type RailBody } from "./motion/RailFlow";
+import { buildRail, pointAt, stepRail, RailLocks, setCornerObstacles, type Rail, type RailBody } from "./motion/RailFlow";
+import { allStructureSolids, parkedFootprint } from "@/lib/structurePlan";
 import { findLeader, StallLedger, CAR_BODY_LENGTH, type MovingCar } from "./motion/traffic";
 import { buildDepotLanes } from "./motion/LaneGraph";
 import { ArmGate, type ArmStallInput } from "./motion/armGate";
@@ -31,7 +32,7 @@ import type { Vehicle, VehicleStatus } from "@/engine/types";
 import type { TwinSnapshot, TwinLeg } from "@/lib/ottoTwin";
 import {
   INGRESS, EGRESS, gapLaneX, SOUTH_LANE_Y, REAR_LANE_Y, PARK_RUNS, TEMP_LANE_X,
-  WEST_AISLE_X, EAST_AISLE_X, NORTH_LANE_Y, N1_LANE_Y, QUEUE_Y, planFromDbFeet,
+  WEST_AISLE_X, EAST_AISLE_X, NORTH_LANE_Y, N1_LANE_Y, QUEUE_Y, planFromDbFeet, generateStallsV2,
 } from "@/lib/sitePlan";
 import { DISCONNECT_SECONDS, applyArmTimings, type ArmPhase } from "@/lib/ottoChargeArm/armStateMachine";
 
@@ -223,6 +224,22 @@ const YAW_PER_UNIT = 2.5; // rad of yaw per unit travelled
 /** Arc length over which a docking car swings from the rail tangent to the
  *  parked heading. 10u makes a 90° charger dock a 0.157 rad/u swing. */
 const DOCK_BLEND = 10;
+/** Does this rail already END pointing the way the car parks? Then there is
+ *  nothing for the dock blend to do, and blending anyway turns the body toward
+ *  its parked heading while the path is still curving into the final straight
+ *  — the car drawn up to 44° off its direction of travel on the DCFC pull-in. */
+//
+// Measured over the five captures: identical overlap (288 pair-samples, 33
+// on-screen pairs) and less crab everywhere — burst 1.78% -> 1.64% of travel
+// drawn >20° off its direction, rec 1.56% -> 1.19%, fresh0922 2.13% -> 1.99%,
+// busy_day 0.94% -> 0.86%. Sidestep docks (L2) still end sideways and keep it.
+const DOCK_ALIGNED = 0.2; // rad
+function arrivesAligned(r: Rail, dock: number): boolean {
+  const n = r.pts.length;
+  if (n < 2) return false;
+  const a = r.pts[n - 2], b = r.pts[n - 1];
+  return Math.abs(wrapAngle(Math.atan2(b.y - a.y, b.x - a.x) - dock)) < DOCK_ALIGNED;
+}
 function easeHeading(current: number, target: number, dt: number, speed: number): number {
   const d = wrapAngle(target - current);
   const maxStep = Math.min(MAX_TURN_RATE, Math.abs(speed) * YAW_PER_UNIT) * dt;
@@ -333,6 +350,41 @@ export const APPROACH_BACK_U = 9;
 // and keeps the centre path >9u from the next stall north in the column at the
 // tightest (10.6u) L2 pitch — so the stall ahead never reads as a body in its path.
 const CHARGER_EXIT_RISE = 10;
+
+/** DCFC pull-in: where the lean out of the gap lane starts (u south of the
+ *  stall) and how long the straight final approach into the stall is. */
+const DCFC_PULLIN_RISE = 12;
+const DCFC_PULLIN_TAIL = 3.5;
+
+// What a widened corner has to clear (RailFlow.roundCorners): every built
+// structure, and every stall's parked-car footprint whether or not it is
+// occupied now — a rail outlives the occupancy it was built under.
+setCornerObstacles([
+  ...allStructureSolids().map((k) => k.r),
+  ...generateStallsV2().map((st) => parkedFootprint(st.position)),
+]);
+
+// ── ENTERING A GAP LANE ─────────────────────────────────────────────────────
+// A charger-bound car is routed to (gx, SOUTH_LANE_Y - 2): a physical point 2u
+// north of the south boulevard's CENTRELINE. But a westbound car drives 3.2u
+// north of that centreline (the drive-on-the-right offset), so its route reached
+// the gap junction on its own lane, stepped 1.2u SOUTH — behind itself — to the
+// entry point, and only then turned north: a hairpin inside ~2u of travel,
+// which drew as the car pivoting on the spot at every gap-lane mouth (the
+// busiest turning hot spots in both captures). The route now turns ONCE, at
+// (gx, the car's own lane line), with the whole gap lane ahead of it for the
+// corner's fillet.
+export function gapEntry(route: Pt[], gx: number): Pt[] {
+  const n = route.length;
+  if (n < 3) return route;
+  const v = route[n - 2];
+  // only a car arriving ALONG the south boulevard; anything else keeps its route
+  if (Math.abs(v.y - SOUTH_LANE_Y) > 5) return route;
+  const corner = { x: gx, y: v.y };
+  return Math.abs(v.x - gx) > 6
+    ? [...route.slice(0, n - 1), corner]   // drive on along the lane to the corner
+    : [...route.slice(0, n - 2), corner];  // the junction vertex IS the corner
+}
 /** A back-out waits while aisle traffic is within this of its finishing line (u)
  *  and up to MERGE_BACK_U behind the spot (≈3 s at cruise). */
 const BACKOUT_LANE_LAT = 6;
@@ -1536,6 +1588,15 @@ class TwinMotionDriver {
     return this.railTo(origin, e.dest.lane, e.dest, e.dest.heading, pre, heading, merge);
   }
 
+  /** Is this car on the last straight into the staging stall it was bound for —
+   *  within one approach length of it, pointing the way it will park? */
+  private midPullIn(e: Entry, prev: Entry["dest"]): boolean {
+    if (!prev || prev.kind !== "stall" || prev.lane !== "staging") return false;
+    const dx = prev.x - e.car.x, dy = prev.y - e.car.y;
+    if (Math.hypot(dx, dy) > APPROACH_BACK_U + 1) return false;
+    return Math.abs(wrapAngle(e.car.heading - prev.heading)) < Math.PI / 6;
+  }
+
   /**
    * The back-out a car parked in a STAGING stall makes before it drives off.
    *
@@ -1556,9 +1617,9 @@ class TwinMotionDriver {
    * previewed and the one whose onward route is shorter wins. Returns null when
    * the car is not parked in a staging stall.
    */
-  private backOutFrom(e: Entry, dest: NonNullable<Entry["dest"]>): NonNullable<Entry["reverse"]> | null {
-    const st = this.stallUnder(e.car);
-    if (!st || st.type !== "staging") return null;
+  private backOutFrom(e: Entry, dest: NonNullable<Entry["dest"]>, midPullIn = false): NonNullable<Entry["reverse"]> | null {
+    const st = midPullIn ? null : this.stallUnder(e.car);
+    if (!midPullIn && (!st || st.type !== "staging")) return null;
     const h = e.car.heading;
     const nx = -Math.cos(h), ny = -Math.sin(h); // from the stall toward its aisle
     const x0 = e.car.x + nx * EXIT_STRAIGHT, y0 = e.car.y + ny * EXIT_STRAIGHT;
@@ -1611,8 +1672,24 @@ class TwinMotionDriver {
     // traverse is never released (stepRail only releases nodes it revisits) —
     // a stale lock that stops every car routed through it, seizing the depot.
     this.locks.releaseAll(e.id);
+    const prev = e.dest;
     e.dest = dest;
     const wasParked = e.tracker === null && !e.reverse;
+    // CAUGHT MID PULL-IN. A car re-destined while nosing into a staging stall has
+    // the back of the stall row ahead of it and a parked neighbour either side.
+    // The moving re-rail below would prepend a 9u FORWARD stub — deeper into the
+    // row — and route on from there: a hairpin, then a diagonal across the row
+    // through the neighbour. Replayed on live0922rec that car wedged against the
+    // parked car beside it until the watchdog, 18 stuck samples. It backs out
+    // instead, exactly as it would had it finished parking first.
+    if (!wasParked && e.tracker && !e.reverse && this.midPullIn(e, prev)) {
+      const back = this.backOutFrom(e, dest, true);
+      if (back) {
+        e.reverse = back;
+        e.tracker = null;
+        return;
+      }
+    }
     if (wasParked) {
       // PARKED IN A STAGING STALL: back out into the serving aisle the way a
       // driver does, swinging toward the way the route leaves (backOutFrom).
@@ -1682,8 +1759,37 @@ class TwinMotionDriver {
     const hd = be ? undefined : heading;
     if (lane === "dcfc" || lane === "l2") {
       const gx = gapLaneX(stall.x);
-      const toGap = this.routeFrom(start, hd, { x: gx, y: SOUTH_LANE_Y - 2 });
+      const toGap = gapEntry(this.routeFrom(start, hd, { x: gx, y: SOUTH_LANE_Y - 2 }), gx);
+      if (lane === "dcfc") {
+        // DCFC: an S-CURVE PULL-IN. Leave the gap lane DCFC_PULLIN_RISE short of
+        // the stall, lean across on a diagonal, and arrive on a short straight
+        // final approach already facing the way it parks — the way a driver
+        // pulls up to a pump. The old approach turned 90° at the stall's own y
+        // and slid the last 10u sideways while the dock blend rotated it north.
+        // It fits because DCFC stalls pitch 16u. The tail length is what the
+        // neighbour allows: rotating back to north swings the rear toward the
+        // car parked in the next stall south, and a 7u tail put it 0.17u INTO
+        // that car. At 12 / 3.5 the drawn body (dock blend and heading ease
+        // included) keeps >= 0.65u from every other stall's parked footprint and
+        // every structure; the docking test pins it with both neighbours parked.
+        // L2 stalls pitch 10.6u nose to tail — no such path; they keep the sidestep.
+        const entryY = toGap[toGap.length - 1]?.y ?? SOUTH_LANE_Y;
+        const rise = stall.y + DCFC_PULLIN_RISE;
+        const lean = rise < entryY - 4 ? [{ x: gx, y: rise }] : []; // else lean straight off the entry corner
+        return [...lead, ...toGap, ...lean, { x: stall.x, y: stall.y + DCFC_PULLIN_TAIL }, { x: stall.x, y: stall.y }];
+      }
       return [...lead, ...toGap, { x: gx, y: stall.y }, { x: stall.x, y: stall.y }];
+    }
+    // PULL-THROUGH BAYS are entered through their SOUTH door only: ride the north
+    // collector to the bay's own drive line, then straight north through the
+    // forecourt and the door (sitePlan.fromCollector's rule). The generic branch
+    // below aimed at a point 9u south of the stall and let the graph pick the
+    // NEAREST node to it — for wash bay 3 that is the N1 lane's west stub, EAST of
+    // the wash hall, so the last leg ran diagonally THROUGH the hall's east wall
+    // (structureClearance.replay.test.ts, fresh0922: 1 car, 28 samples).
+    if (lane === "wash" || lane === "service") {
+      const toCollector = this.routeFrom(start, hd, { x: stall.x, y: NORTH_LANE_Y });
+      return [...lead, ...toCollector, { x: stall.x, y: stall.y }];
     }
     // parking / bays: approach a point one car-length BEHIND the parked heading,
     // then pull straight in — each car fans to its own stall and noses in facing
@@ -2290,6 +2396,14 @@ class TwinMotionDriver {
         e.stallHeading = sh;
         if (driveIn) {
           this.assignRail(e, { kind: "stall", lane, x: sp.x, y: sp.y, heading: sh });
+          // A gate-queue arrival APPEARS here, so it can appear already pointing
+          // down its own rail. Facing along the road (west) while the rail's first
+          // leg angles toward the gate throat, it swung up to ~47° in its first
+          // 0.3u — every arrival spun on the spot as it materialised (the gate
+          // mouth was the second-busiest tight-turn hot spot in fresh0922).
+          if (spawn && e.tracker && e.tracker.total > 1) {
+            e.car.heading = pointAt(e.tracker.pts, e.tracker.cum, 0).heading;
+          }
           if (isServiceLane(lane)) serviceApproaching++;
         }
       } else if (e.stallId !== stallId) {
@@ -2597,10 +2711,12 @@ class TwinMotionDriver {
           // MOVING instead: over the final DOCK_BLEND units the aim rotates from
           // the rail tangent to the stall heading, which for a 90° dock is
           // 0.157 rad/u — a real swing into the bay, and well inside the
-          // speed-scaled yaw budget above.
+          // speed-scaled yaw budget above. (DCFC stalls, pitched 16u, now DO
+          // arrive nose-north on an S-curve — routeToStall — so for them the
+          // blend has almost nothing left to do. L2 still needs it.)
           let aim = pose.heading;
           const dock = e.dest?.kind === "stall" ? e.dest.heading : null;
-          if (dock != null) {
+          if (dock != null && !arrivesAligned(e.tracker, dock)) {
             const rem = e.tracker.total - e.tracker.s;
             if (rem < DOCK_BLEND) {
               const t = Math.min(1, Math.max(0, 1 - rem / DOCK_BLEND));

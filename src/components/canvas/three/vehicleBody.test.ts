@@ -95,12 +95,14 @@ describe('robotaxi body geometry', () => {
     expect(glass.max.x).toBeCloseTo(CAR_W_PU / 2, 6);
   });
 
-  it('stays cheap: five shared buffers, four wheels merged into one each', () => {
+  it('stays cheap: seven shared buffers, four wheels merged into one each', () => {
     // The whole point of merging. If someone splits these back out, 115 cars
     // pay for it in draw calls.
     const tri = (g: THREE.BufferGeometry) =>
       (g.index ? g.index.count : g.attributes.position.count) / 3;
-    expect(Object.keys(VEHICLE_GEO)).toHaveLength(6); // 5 body buffers + the status glow
+    // 5 body buffers + lamps (both ends, one buffer) + status lights (both
+    // flanks and the pod band, one buffer, drawn only on cars being worked on)
+    expect(Object.keys(VEHICLE_GEO)).toHaveLength(7);
     // four tyres in one buffer: a single 14-segment cylinder is ~56 triangles
     expect(tri(VEHICLE_GEO.tyres)).toBeGreaterThan(4 * 40);
     expect(tri(VEHICLE_GEO.body)).toBeLessThan(600);
@@ -152,5 +154,36 @@ describe('the depot grade datum', () => {
     // Documented here because it is the value that reconciles two independent
     // placement paths; if DepotGround's overlay moves, both must move with it.
     expect(DECK_Y).toBeCloseTo(0.26, 6);
+  });
+});
+
+describe('lamps and status lights', () => {
+  it('put a white bar on the NOSE (+Z, the way the car drives) and red on the tail', () => {
+    const g = VEHICLE_GEO.lamps;
+    const pos = g.getAttribute('position');
+    const col = g.getAttribute('color');
+    let front = 0, rear = 0;
+    for (let i = 0; i < pos.count; i++) {
+      const z = pos.getZ(i);
+      const [r, gg, b] = [col.getX(i), col.getY(i), col.getZ(i)];
+      if (z > 0) { front++; expect(Math.min(r, gg, b)).toBeGreaterThan(1); } // white, bright enough to bloom
+      else { rear++; expect(r).toBeGreaterThan(1); expect(gg).toBeLessThan(0.2); expect(b).toBeLessThan(0.2); }
+      // on the end faces, not floating in front of them
+      expect(Math.abs(Math.abs(z) - CAR_L_PU / 2)).toBeLessThan(1e-5);
+    }
+    expect(front).toBeGreaterThan(0);
+    expect(rear).toBeGreaterThan(0);
+  });
+
+  it('keeps the status light ON the car: inside its footprint and under the pod top', () => {
+    const s = box(VEHICLE_GEO.status);
+    const car = bodyBox();
+    expect(s.max.x).toBeLessThanOrEqual(car.max.x + 1e-6);
+    expect(s.min.x).toBeGreaterThanOrEqual(car.min.x - 1e-6);
+    expect(s.max.z).toBeLessThan(car.max.z);
+    expect(s.min.z).toBeGreaterThan(car.min.z);
+    expect(s.max.y).toBeLessThanOrEqual(car.max.y);
+    // and it is the flank strips, visible from the side: they reach the width
+    expect(s.max.x).toBeGreaterThan(CAR_W_PU / 2 - 0.02);
   });
 });

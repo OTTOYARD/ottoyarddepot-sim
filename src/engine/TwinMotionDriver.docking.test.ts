@@ -28,6 +28,7 @@ import { poseStore } from "./motion/poseStore";
 import { useDepotStore } from "@/store/depotStore";
 import type { TwinSnapshot } from "@/lib/ottoTwin";
 import fixture from "./__fixtures__/twinRun.busyday.json";
+import { bodiesOverlap } from "./__fixtures__/replay";
 
 type Internals = {
   entries: Map<string, {
@@ -221,6 +222,49 @@ describe("PROBE: maximal charger contention", () => {
     even.forEach((s, i) => vehicles.push({ id: `even-${i}`, state: cs(s.type), stall_id: s.id }));
     run(vehicles, 900, "2026-08-08T00:10:00Z");
     expect(report("B: interleaved fill (parked neighbours both sides)", vehicles)).toBe(vehicles.length);
+  });
+
+  it("D: a car docking between two PARKED neighbours never touches either (DCFC S-curve pull-in)", () => {
+    // The DCFC approach leans across from the gap lane on a diagonal and rotates
+    // back to north on a short final straight; that rotation swings the rear
+    // toward the car parked in the next stall south. A 7u tail put the rear
+    // 0.17u INTO it. Measured here on the real driver, dock blend included,
+    // with every target flanked by parked cars (B's interleaved fill).
+    setup();
+    const ch = chargerColumns().flatMap((c) => c.stalls);
+    const type = new Map(ch.map((s) => [s.id, s.type]));
+    const odd = ch.filter((_, i) => i % 2 === 1);
+    const even = ch.filter((_, i) => i % 2 === 0);
+    const vehicles: V[] = odd.map((s, i) => ({ id: `odd-${i}`, state: cs(s.type), stall_id: s.id }));
+    run(vehicles, 240);
+    even.forEach((s, i) => vehicles.push({ id: `even-${i}`, state: cs(s.type), stall_id: s.id }));
+    const touches = { dcfc: 0, l2: 0 };
+    const entries = (twinMotionDriver as unknown as Internals).entries;
+    for (let elapsed = 0; elapsed < 900; elapsed += 2) {
+      twinMotionDriver.reconcile(snap(vehicles, "2026-08-08T00:10:00Z"));
+      for (let i = 0; i < 2 / dt; i++) {
+        twinMotionDriver.tickMotion(dt);
+        if (i % 4) continue; // sample every 0.2 s of motion
+        const bodies = [...entries.entries()].map(([id, e]) => {
+          const p = poseStore.get(id) ?? { x: e.car.x, y: e.car.y, heading: e.car.heading };
+          return { id, x: p.x, y: p.y, h: p.heading, moving: !!e.tracker, stall: entries.get(id)?.stallId ?? null };
+        });
+        for (const m of bodies) {
+          if (!m.moving) continue;
+          for (const q of bodies) {
+            if (q.moving || q.id === m.id || Math.abs(m.x - q.x) > 11 || Math.abs(m.y - q.y) > 11) continue;
+            if (bodiesOverlap(m, q)) touches[type.get(m.stall ?? "") === "dcfc" ? "dcfc" : "l2"]++;
+          }
+        }
+      }
+    }
+    // eslint-disable-next-line no-console
+    console.log(`\nD: moving-vs-parked contact samples during the interleaved fill: dcfc ${touches.dcfc} · l2 ${touches.l2}`);
+    expect(touches.dcfc).toBe(0);
+    // L2's sidestep predates this and grazes briefly (10.6u pitch, 0.4u between
+    // parked bumpers): 2 samples, measured identical with the DCFC pull-in
+    // switched off. Pinned as measured so it cannot grow.
+    expect(touches.l2).toBeLessThanOrEqual(2);
   });
 
   it("C: DEEPEST stall last — the car must drive past a FULL column to its stall", () => {

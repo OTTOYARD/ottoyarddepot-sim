@@ -18,6 +18,7 @@
 import type { Pt } from "./PathTracker";
 import { CAR_BODY_LENGTH, CAR_BODY_WIDTH } from "./traffic";
 import { idmAccel } from "./idm";
+import { bodyHitsRect, type Rect } from "@/lib/structurePlan";
 
 export interface RailBody {
   id: string; x: number; y: number;
@@ -170,11 +171,122 @@ const CORNER_R = 11;
 const CORNER_MAX_CUT = 1.2;
 const CORNER_STEP = 1.2;  // arc sampling pitch (u)
 
+/** Deflection (rad) below which an interior vertex is a waypoint on a straight
+ *  road, not a corner. 0.01 rad moves the path at most ~0.1u on a 47u leg. */
+const COLLINEAR_EPS = 0.01;
+
+/** Drop interior vertices that sit on a straight run.
+ *
+ *  A routed polyline carries every graph node it passes, and on a straight road
+ *  those are not corners. They still counted as corner NEIGHBOURS, though: the
+ *  fillet's tangent is capped at 0.45 of each adjacent leg, so a collinear node
+ *  5u past a real corner held that corner's radius to 2.3u — a car pivoting
+ *  about a point inside its own body. Measuring legs between REAL corners is
+ *  what lets a corner take the radius its road actually has room for. */
+export function dropCollinear(pts: Pt[]): Pt[] {
+  if (pts.length < 3) return pts.map((p) => ({ x: p.x, y: p.y }));
+  const out: Pt[] = [{ x: pts[0].x, y: pts[0].y }];
+  for (let i = 1; i < pts.length - 1; i++) {
+    const P = out[out.length - 1], V = pts[i], N = pts[i + 1];
+    const ux = V.x - P.x, uy = V.y - P.y, wx = N.x - V.x, wy = N.y - V.y;
+    const ul = Math.hypot(ux, uy), wl = Math.hypot(wx, wy);
+    if (ul < 1e-6 || wl < 1e-6) continue; // a duplicate point is not a corner either
+    const cos = (ux * wx + uy * wy) / (ul * wl);
+    if (cos > Math.cos(COLLINEAR_EPS)) continue;
+    out.push({ x: V.x, y: V.y });
+  }
+  out.push({ x: pts[pts.length - 1].x, y: pts[pts.length - 1].y });
+  return out;
+}
+
+// ── WIDER CORNERS, WHERE THE GROUND ALLOWS ──────────────────────────────────
+// CORNER_MAX_CUT holds a corner to a 1.2u cut: a 90° corner at R = 2.9u, a car
+// pivoting about a point 1.4 m off its own centreline. Measured on the
+// captures, ~64% of all the turning the fleet does happened at R < 5u, and
+// that is what reads as cars "spinning" through corners.
+//
+// So a corner takes the widest cut from WIDE_CUTS whose swept body clears every
+// obstacle registered with setCornerObstacles() — structures and parked-car
+// footprints — by CORNER_CLEAR, and falls back to CORNER_MAX_CUT when none
+// does. Static hazards are known at build time; MOVING ones are junction
+// control's job, and junction membership is read off the routed path (see
+// buildRail) so a wider arc cannot carry a car out of the junction it crosses.
+//
+// Swept rather than guessed, over all five captures (burst, rec, fresh@8x,
+// fresh@3x, busy_day). A GLOBAL 3.6 cut took fresh-start overlap from 49 to 70
+// pair-samples, all of it in the double-loaded temp-staging aisle and the SE
+// ring corner, where parked cars line the inside of the turn — hence the
+// clearance gate. Then the cap, right turns first and then left:
+//
+//     widening            turning at R < 5u    overlap pair-samples    on-screen pairs
+//     none                      ~64%                   261                    28
+//     right turns, 2.4          ~41%                   276                    30
+//     right turns, 3.2          ~40%                   295                    37
+//     right + left, 2.4         ~26%                   282                    32
+//
+// Left turns were held back at first because their fillet cuts across the
+// opposing lanes; measured, junction control absorbs it (+6 overlap samples,
+// +2 on-screen pairs across four captures). Past 2.4 the share stops moving
+// while overlap climbs.
+const WIDE_CUTS = [2.4, 2.0, 1.6];
+const CORNER_CLEAR = 0.4;   // body-to-obstacle margin a widened arc must keep (u)
+const ARC_PROBE = 0.6;      // pose spacing along a candidate arc (u)
+let OBSTACLES: Rect[] = [];
+
+/** Static solids a widened corner must clear: structures and parked-car
+ *  footprints, plan units. Set once by the driver from the site plan. */
+export function setCornerObstacles(rects: Rect[]): void {
+  OBSTACLES = rects.slice();
+}
+
+interface Fillet { A: Pt; B: Pt; C: Pt; R: number; a0: number; sweep: number }
+
+function filletAt(V: Pt, u: Pt, w: Pt, ul: number, wl: number, phi: number, cut: number): Fillet | null {
+  const half = phi / 2;
+  const tanH = Math.tan(half), secH = 1 / Math.cos(half);
+  // tangent length, bounded by radius, by the permitted cut, and by the legs
+  let t = CORNER_R * tanH;
+  if (secH > 1.0001) t = Math.min(t, (cut * tanH) / (secH - 1));
+  t = Math.min(t, 0.45 * ul, 0.45 * wl);
+  const R = t / tanH;
+  const cross = u.x * w.y - u.y * w.x;
+  if (!Number.isFinite(t) || !Number.isFinite(R) || t < 0.2 || Math.abs(cross) < 1e-9) return null;
+  const sgn = Math.sign(cross);
+  const A = { x: V.x - u.x * t, y: V.y - u.y * t };
+  const B = { x: V.x + w.x * t, y: V.y + w.y * t };
+  // arc centre: perpendicular to the entry tangent at A, on the turn side
+  const C = { x: A.x - u.y * R * sgn, y: A.y + u.x * R * sgn };
+  const a0 = Math.atan2(A.y - C.y, A.x - C.x);
+  const a1 = Math.atan2(B.y - C.y, B.x - C.x);
+  let sweep = a1 - a0;
+  while (sweep > Math.PI) sweep -= 2 * Math.PI;
+  while (sweep < -Math.PI) sweep += 2 * Math.PI;
+  return { A, B, C, R, a0, sweep };
+}
+
+/** Does a car body driven along this arc keep CORNER_CLEAR from every obstacle? */
+function arcClear(f: Fillet): boolean {
+  const n = Math.max(2, Math.ceil((Math.abs(f.sweep) * f.R) / ARC_PROBE));
+  const reach = f.R + CAR_BODY_LENGTH;
+  const near = OBSTACLES.filter((r) =>
+    r.x1 > f.C.x - reach && r.x0 < f.C.x + reach && r.y1 > f.C.y - reach && r.y0 < f.C.y + reach);
+  if (!near.length) return true;
+  for (let k = 0; k <= n; k++) {
+    const ang = f.a0 + (f.sweep * k) / n;
+    // the body is symmetric end for end, so the tangent's sense does not matter
+    const pose = { x: f.C.x + Math.cos(ang) * f.R, y: f.C.y + Math.sin(ang) * f.R, heading: ang + Math.PI / 2 };
+    for (const r of near) if (bodyHitsRect(pose, r, -CORNER_CLEAR)) return false;
+  }
+  return true;
+}
+
 /** Replace each INTERIOR vertex with a tangent circular arc. The first and last
  *  points are physical positions (where the car is, and the exact spot it must
  *  reach) and are never moved. Degenerate corners fall through unchanged. */
-export function roundCorners(pts: Pt[]): Pt[] {
-  if (pts.length < 3) return pts.map((p) => ({ x: p.x, y: p.y }));
+export function roundCorners(raw: Pt[]): Pt[] {
+  const pts = dropCollinear(raw);
+  // no corner at all: a straight run is returned as given, waypoints included
+  if (pts.length < 3) return raw.map((p) => ({ x: p.x, y: p.y }));
   const out: Pt[] = [{ x: pts[0].x, y: pts[0].y }];
   for (let i = 1; i < pts.length - 1; i++) {
     const P = pts[i - 1], V = pts[i], N = pts[i + 1];
@@ -185,35 +297,23 @@ export function roundCorners(pts: Pt[]): Pt[] {
     const dot = Math.max(-1, Math.min(1, u.x * w.x + u.y * w.y));
     const phi = Math.acos(dot);                     // deflection at the vertex
     if (phi < 0.05) { out.push({ x: V.x, y: V.y }); continue; } // effectively straight
-    const half = phi / 2;
-    const tanH = Math.tan(half), secH = 1 / Math.cos(half);
-    // tangent length, bounded by radius, by the permitted cut, and by the legs
-    let t = CORNER_R * tanH;
-    if (secH > 1.0001) t = Math.min(t, (CORNER_MAX_CUT * tanH) / (secH - 1));
-    t = Math.min(t, 0.45 * ul, 0.45 * wl);
-    const R = t / tanH;
-    const cross = u.x * w.y - u.y * w.x;
-    if (!Number.isFinite(t) || !Number.isFinite(R) || t < 0.2 || Math.abs(cross) < 1e-9) {
-      out.push({ x: V.x, y: V.y });                 // straight or unusable — keep the vertex
-      continue;
+    let f: Fillet | null = null;
+    if (OBSTACLES.length) {
+      for (const cut of WIDE_CUTS) {
+        if (cut <= CORNER_MAX_CUT) break;
+        const g = filletAt(V, u, w, ul, wl, phi, cut);
+        if (g && arcClear(g)) { f = g; break; }
+      }
     }
-    const sgn = Math.sign(cross);
-    const A = { x: V.x - u.x * t, y: V.y - u.y * t };
-    const B = { x: V.x + w.x * t, y: V.y + w.y * t };
-    // arc centre: perpendicular to the entry tangent at A, on the turn side
-    const C = { x: A.x - u.y * R * sgn, y: A.y + u.x * R * sgn };
-    const a0 = Math.atan2(A.y - C.y, A.x - C.x);
-    const a1 = Math.atan2(B.y - C.y, B.x - C.x);
-    let sweep = a1 - a0;
-    while (sweep > Math.PI) sweep -= 2 * Math.PI;
-    while (sweep < -Math.PI) sweep += 2 * Math.PI;
-    const steps = Math.max(2, Math.ceil((Math.abs(sweep) * R) / CORNER_STEP));
-    out.push(A);
+    f ??= filletAt(V, u, w, ul, wl, phi, CORNER_MAX_CUT);
+    if (!f) { out.push({ x: V.x, y: V.y }); continue; } // straight or unusable — keep the vertex
+    const steps = Math.max(2, Math.ceil((Math.abs(f.sweep) * f.R) / CORNER_STEP));
+    out.push(f.A);
     for (let k = 1; k < steps; k++) {
-      const ang = a0 + (sweep * k) / steps;
-      out.push({ x: C.x + Math.cos(ang) * R, y: C.y + Math.sin(ang) * R });
+      const ang = f.a0 + (f.sweep * k) / steps;
+      out.push({ x: f.C.x + Math.cos(ang) * f.R, y: f.C.y + Math.sin(ang) * f.R });
     }
-    out.push(B);
+    out.push(f.B);
   }
   out.push({ x: pts[pts.length - 1].x, y: pts[pts.length - 1].y });
   // drop points the rounding collapsed onto each other
@@ -223,6 +323,20 @@ export function roundCorners(pts: Pt[]): Pt[] {
     if (!last || Math.hypot(p.x - last.x, p.y - last.y) > 1e-3) clean.push(p);
   }
   return clean.length >= 2 ? clean : pts.map((p) => ({ x: p.x, y: p.y }));
+}
+
+/** Squared distance from `p` to the polyline `pts` (segments, not samples). */
+function distToPolyline2(pts: Pt[], p: Pt): number {
+  let best = Infinity;
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1], b = pts[i];
+    const dx = b.x - a.x, dy = b.y - a.y, L2 = dx * dx + dy * dy;
+    const t = L2 > 1e-12 ? Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / L2)) : 0;
+    const qx = a.x + dx * t - p.x, qy = a.y + dy * t - p.y;
+    best = Math.min(best, qx * qx + qy * qy);
+  }
+  if (pts.length === 1) best = (pts[0].x - p.x) ** 2 + (pts[0].y - p.y) ** 2;
+  return best;
 }
 
 export function buildRail(
@@ -236,7 +350,17 @@ export function buildRail(
     cum.push(cum[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
   }
   const total = cum[cum.length - 1] ?? 0;
-  // annotate graph nodes that lie ON this route (within 3u of it)
+  // annotate graph nodes that lie ON this route (within NODE_MATCH of it).
+  //
+  // Membership is judged against the ROUTE AS ROUTED as well as the rounded
+  // rail. A right turn's fillet cuts to the inside of the corner, i.e. AWAY
+  // from the junction's centreline node, so measuring the rounded rail alone
+  // tied every fillet radius to NODE_MATCH: a corner rounded any wider than a
+  // 1.2u cut carried a right-turner's path out past 7u, the car stopped
+  // registering the junction at all, and junction control stopped serialising
+  // it against the streams it merges with. The routed polyline passes through
+  // the junction's own (offset) vertex whatever the fillet, so it cannot drift.
+  // A node either path reaches is a node the car drives through.
   const nodes: { id: string; s: number }[] = [];
   for (const n of nodePositions) {
     let best = Infinity, bestS = 0;
@@ -245,7 +369,9 @@ export function buildRail(
       const d = (p.x - n.x) ** 2 + (p.y - n.y) ** 2;
       if (d < best) { best = d; bestS = s; }
     }
-    if (best <= NODE_MATCH * NODE_MATCH) nodes.push({ id: n.id, s: bestS });
+    if (best <= NODE_MATCH * NODE_MATCH || distToPolyline2(raw, n) <= NODE_MATCH * NODE_MATCH) {
+      nodes.push({ id: n.id, s: bestS });
+    }
   }
   nodes.sort((a, b) => a.s - b.s);
   return { pts, cum, total, nodes, s: 0, v: 0, mouthKey, stationaryFor: 0, progressS: 0 };

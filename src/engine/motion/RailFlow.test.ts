@@ -9,8 +9,8 @@
 //   • an intersection a route crosses must actually be locked
 //   • a corner must have a finite turn radius, not a tangent discontinuity
 // ============================================================================
-import { describe, it, expect } from "vitest";
-import { buildRail, roundCorners, pointAt } from "./RailFlow";
+import { describe, it, expect, afterEach } from "vitest";
+import { buildRail, roundCorners, pointAt, dropCollinear, setCornerObstacles } from "./RailFlow";
 import { buildDepotLanes } from "./LaneGraph";
 import { EGRESS, SOUTH_LANE_Y } from "@/lib/sitePlan";
 import type { Pt } from "./PathTracker";
@@ -130,7 +130,9 @@ describe("roundCorners — a corner has a turn radius, not a discontinuity", () 
   it("keeps the arc inside the lane — the cut never exceeds CORNER_MAX_CUT", () => {
     // A corner arc deviates toward the INSIDE of the turn. The lane it is cutting
     // into is only 2 x LaneGraph.rightOffset = 6.4u wide, so the deviation is
-    // capped; measured here against the vertex it replaced.
+    // capped; measured here against the vertex it replaced. (With no obstacle map
+    // registered — as in this file — right turns are held to it too; see the
+    // "wide right turns" block for what a registered map buys.)
     const raw: Pt[] = [{ x: 0, y: 0 }, { x: 50, y: 0 }, { x: 50, y: 50 }];
     const out = roundCorners(raw);
     let nearest = Infinity;
@@ -167,3 +169,61 @@ describe("roundCorners — a corner has a turn radius, not a discontinuity", () 
     expect(worst).toBeLessThan(1.2);
   });
 });
+
+/** Closest approach of a polyline to a point. */
+function nearestTo(pts: Pt[], q: Pt): number {
+  let best = Infinity;
+  for (const p of pts) best = Math.min(best, Math.hypot(p.x - q.x, p.y - q.y));
+  return best;
+}
+
+describe("wide corners — a corner takes the radius its ground allows", () => {
+  // y-DOWN plan frame: east (+x) then south (+y) is a RIGHT turn, east then
+  // north (-y) a LEFT one. Both hands are widened, both clearance-gated.
+  const RIGHT: Pt[] = [{ x: 0, y: 0 }, { x: 50, y: 0 }, { x: 50, y: 50 }];
+  const LEFT: Pt[] = [{ x: 0, y: 0 }, { x: 50, y: 0 }, { x: 50, y: -50 }];
+  const FAR = { x0: 900, x1: 901, y0: 900, y1: 901 };
+  afterEach(() => setCornerObstacles([]));
+
+  it("widens a corner with nothing inside it: 2.4u cut, R ≈ 5.8u instead of 2.9u — either hand", () => {
+    setCornerObstacles([FAR]);
+    for (const path of [RIGHT, LEFT]) {
+      const cut = nearestTo(roundCorners(path), { x: 50, y: 0 });
+      expect(cut).toBeGreaterThan(2.3);
+      expect(cut).toBeLessThanOrEqual(2.45);
+    }
+  });
+
+  it("falls back to the narrow cut when a solid stands inside the corner", () => {
+    // a column-sized solid inside the corner: clear of the narrow arc's line, but
+    // the wide arc's body would sweep across it
+    setCornerObstacles([{ x0: 45, x1: 47, y0: 3, y1: 5 }]);
+    const cut = nearestTo(roundCorners(RIGHT), { x: 50, y: 0 });
+    // it takes the widest cut that still clears — narrower than the open corner's
+    // 2.4u, never narrower than the lane-safe CORNER_MAX_CUT
+    expect(cut).toBeLessThan(2.3);
+    expect(cut).toBeGreaterThanOrEqual(1.15);
+  });
+
+  it("never widens a corner when no obstacle map is registered", () => {
+    setCornerObstacles([]);
+    expect(nearestTo(roundCorners(RIGHT), { x: 50, y: 0 })).toBeLessThanOrEqual(1.25);
+  });
+});
+
+describe("dropCollinear — a waypoint on a straight road is not a corner", () => {
+  it("keeps real corners and endpoints, drops points on a straight run", () => {
+    const out = dropCollinear([{ x: 0, y: 0 }, { x: 20, y: 0 }, { x: 45, y: 0 }, { x: 50, y: 0 }, { x: 50, y: 40 }]);
+    expect(out).toEqual([{ x: 0, y: 0 }, { x: 50, y: 0 }, { x: 50, y: 40 }]);
+  });
+
+  it("lets a corner next to a waypoint take the radius the road has room for", () => {
+    // A graph node 5u past the corner used to cap the fillet at 0.45 x 5u. With
+    // no obstacle map the cut still binds at CORNER_MAX_CUT, so the corner reaches
+    // the same cut as it would with the node absent.
+    const withNode = roundCorners([{ x: 0, y: 0 }, { x: 50, y: 0 }, { x: 50, y: 5 }, { x: 50, y: 50 }]);
+    const without = roundCorners([{ x: 0, y: 0 }, { x: 50, y: 0 }, { x: 50, y: 50 }]);
+    expect(nearestTo(withNode, { x: 50, y: 0 })).toBeCloseTo(nearestTo(without, { x: 50, y: 0 }), 6);
+  });
+});
+

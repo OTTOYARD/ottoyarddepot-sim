@@ -1,110 +1,133 @@
 import { useMemo } from 'react';
 import * as THREE from 'three';
+import { OPS_SHELL } from '@/lib/structurePlan';
+import { BuildingShell } from './BuildingShell';
+import { StaticBatch, rod } from './staticBatch';
 import { MATERIALS } from './materials';
-import { BUILDING } from '@/lib/sitePlan';
-import { toWorld } from './coordUtils';
+import {
+  officeGlass, aluminiumTrim, wallGraphite, darkSteel, galvanizedSteel, ledPanel, signTexture,
+} from './buildingSkin';
 
 /**
- * Office + operations building with 2 attached PULL-THROUGH service bays
- * (south entry doors, north rear exits into the rear lane). Rooftop PV.
- * Geometry from the shared site plan.
+ * Operations building: a two-storey OPS CENTRE (west) and two PULL-THROUGH
+ * service bays (east), drawn from structurePlan.OPS_SHELL. The bays are real
+ * openings at both ends (BuildingShell); this component adds the office's
+ * curtain wall, entrance, windows, signage and the rooftop plant.
  */
-export function DepotBuilding() {
-  const H = 13;
-  const [cx, , cz] = toWorld({ x: BUILDING.x + BUILDING.w / 2, y: BUILDING.y + BUILDING.h / 2 }, 0);
-  const w = BUILDING.w, d = BUILDING.h;
 
-  const mats = useMemo(() => ({
-    cladding: MATERIALS.darkCladding(),
-    panel: MATERIALS.anodizedPanel(),
-    glass: MATERIALS.architecturalGlass(),
-    steel: MATERIALS.structuralSteel(),
-    trim: MATERIALS.brushedAluminum(),
-    door: MATERIALS.darkCladding(),
-    sign: MATERIALS.tealLED(3.0),
-    led: MATERIALS.whiteLED(1.6),
+const GLAZING = { x0: OPS_SHELL.footprint.x0 + 2, x1: (OPS_SHELL.office?.x1 ?? 111) - 2 };
+const SOUTH_GLAZING = { ...GLAZING, y0: OPS_SHELL.footprint.y1 - OPS_SHELL.wallT, y1: OPS_SHELL.footprint.y1 };
+const DECK = OPS_SHELL.height - OPS_SHELL.parapet;
+const SILL = 0.9;          // glazing starts above a 0.43 m base curb
+const HEAD = DECK - 0.9;   // and stops under a 0.43 m fascia band
+const FLOOR2 = 6.2;        // second-floor slab line (2.97 m)
+const ENTRY = { x0: GLAZING.x0 + 1.5, x1: GLAZING.x0 + 7.5 };
+
+export function DepotBuilding() {
+  const geos = useMemo(() => buildOffice(), []);
+  const mats = useMemo<Record<string, THREE.Material>>(() => ({
+    glass: officeGlass(),
+    trim: aluminiumTrim(),
+    skin: wallGraphite(),
+    steel: darkSteel(),
+    galv: galvanizedSteel(),
+    red: new THREE.MeshStandardMaterial({ color: '#c8102e', roughness: 0.45, metalness: 0.2, emissive: new THREE.Color('#c8102e'), emissiveIntensity: 0.25 }),
+    led: ledPanel(1.8),
+    pv: MATERIALS.solarPanelGlass(),
   }), []);
 
-  // rooftop PV (instanced)
-  const pv = useMemo(() => {
-    const cols = Math.floor((w - 6) / 4.4), rows = Math.floor((d - 6) / 4.4);
-    const inst = new THREE.InstancedMesh(
-      new THREE.BoxGeometry(4.0, 0.14, 4.0), MATERIALS.solarPanelGlass(), cols * rows,
-    );
-    const dm = new THREE.Object3D();
-    let i = 0;
-    for (let a = 0; a < cols; a++) for (let b = 0; b < rows; b++) {
-      dm.position.set(-w / 2 + 3 + (a + 0.5) * 4.4, H + 0.35, -d / 2 + 3 + (b + 0.5) * 4.4);
-      dm.updateMatrix(); inst.setMatrixAt(i++, dm.matrix);
-    }
-    inst.instanceMatrix.needsUpdate = true;
-    return inst;
-  }, [w, d]);
+  const sign = useMemo(() => {
+    const tex = signTexture('OTTOYARD', { fg: '#f4f6f8', bg: '#1b1f25', w: 1024, h: 160 });
+    return new THREE.MeshStandardMaterial({
+      map: tex, emissiveMap: tex, emissive: new THREE.Color('#ffffff'), emissiveIntensity: 0.55, roughness: 0.45, metalness: 0.1,
+    });
+  }, []);
 
-  // service bay door x-centers in WORLD space (site plan: SVC stalls at x 120, 138)
-  const doors = [120, 138].map((x) => x - 150 - cx); // local offset within the group
+  const f = OPS_SHELL.footprint;
+  const signW = Math.min(26, GLAZING.x1 - GLAZING.x0 - 4);
+  const signX = 150 - (GLAZING.x0 + GLAZING.x1) / 2;
 
   return (
-    <group position={[cx, 0, cz]}>
-      {/* main mass */}
-      <mesh position={[0, H / 2, 0]} castShadow receiveShadow material={mats.cladding}>
-        <boxGeometry args={[w, H, d]} />
-      </mesh>
-      {/* parapet trim */}
-      <mesh position={[0, H + 0.1, 0]} material={mats.trim}>
-        <boxGeometry args={[w + 0.4, 0.25, d + 0.4]} />
-      </mesh>
-      <primitive object={pv} />
-
-      {/* office glass front (south face, west portion) */}
-      <mesh position={[-w / 2 + 19, 4.6, -d / 2 - 0.06]} material={mats.glass}>
-        <boxGeometry args={[34, 8.2, 0.12]} />
-      </mesh>
-      <mesh position={[-w / 2 + 19, 9.6, -d / 2 - 0.1]} material={mats.trim}>
-        <boxGeometry args={[35, 0.3, 0.1]} />
-      </mesh>
-
-      {/* OTTOYARD sign */}
-      <mesh position={[-w / 2 + 19, H - 1.2, -d / 2 - 0.12]} material={mats.sign}>
-        <boxGeometry args={[18, 1.6, 0.08]} />
-      </mesh>
-
-      {/* 2 service bays — south entry + north rear exit (pull-through) */}
-      {doors.map((dx, i) => (
-        <group key={i}>
-          {/* south door (open: panel raised into header) */}
-          <mesh position={[dx, H - 2.2, -d / 2 - 0.05]} material={mats.door}>
-            <boxGeometry args={[12, 3.4, 0.3]} />
-          </mesh>
-          <mesh position={[dx, H - 0.4, -d / 2 - 0.15]} material={mats.trim}>
-            <boxGeometry args={[13, 0.5, 0.2]} />
-          </mesh>
-          {/* opening reveal (dark interior visible) */}
-          <mesh position={[dx, 4.2, -d / 2 - 0.02]}>
-            <boxGeometry args={[12, 8.4, 0.06]} />
-            <meshPhysicalMaterial color="#07090c" roughness={0.95} metalness={0} />
-          </mesh>
-          {/* REAR pull-through exit — open reveal + raised panel (mirrors the front) */}
-          <mesh position={[dx, 4.2, d / 2 + 0.02]}>
-            <boxGeometry args={[12, 8.4, 0.06]} />
-            <meshPhysicalMaterial color="#07090c" roughness={0.95} metalness={0} />
-          </mesh>
-          <mesh position={[dx, H - 2.2, d / 2 + 0.05]} material={mats.door}>
-            <boxGeometry args={[12, 3.4, 0.3]} />
-          </mesh>
-          <mesh position={[dx, H - 0.4, d / 2 + 0.15]} material={mats.trim}>
-            <boxGeometry args={[13, 0.5, 0.2]} />
-          </mesh>
-          {/* rear wall-pack light over the exit */}
-          <mesh position={[dx, H - 1.8, d / 2 + 0.4]} material={mats.led}>
-            <boxGeometry args={[1.6, 0.35, 0.5]} />
-          </mesh>
-          {/* bay number light */}
-          <mesh position={[dx - 7.2, 9.4, -d / 2 - 0.12]} material={mats.led}>
-            <boxGeometry args={[0.9, 1.6, 0.08]} />
-          </mesh>
-        </group>
+    <group>
+      <BuildingShell shell={OPS_SHELL} skin="graphite" southGlazing={SOUTH_GLAZING} />
+      {[...geos.entries()].map(([key, g]) => (
+        <mesh key={key} geometry={g} material={mats[key]} castShadow={key !== 'led' && key !== 'glass'} receiveShadow />
       ))}
+      {/* OTTOYARD fascia sign on the parapet over the ops centre */}
+      <mesh position={[signX, OPS_SHELL.height - OPS_SHELL.parapet / 2, 110 - f.y1 - 0.07]} rotation={[0, Math.PI, 0]} material={sign}>
+        <planeGeometry args={[signW, signW / 6.4]} />
+      </mesh>
     </group>
   );
+}
+
+function buildOffice(): Map<string, THREE.BufferGeometry> {
+  const b = new StaticBatch();
+  const f = OPS_SHELL.footprint;
+  const yFace = f.y1;              // south exterior face (plan)
+  const band = (d0: number, d1: number) => ({ y0: yFace - d1, y1: yFace - d0 }); // inside the wall
+
+  // ── south curtain wall ─────────────────────────────────────────────────────
+  // base curb + fascia band close the glazed bay top and bottom
+  b.planBox('skin', { ...GLAZING, ...band(0, OPS_SHELL.wallT) }, 0, SILL);
+  b.planBox('skin', { ...GLAZING, ...band(0, OPS_SHELL.wallT) }, HEAD, DECK);
+  // glass, set back 0.25 from the face
+  b.planBox('glass', { ...GLAZING, ...band(0.25, 0.4) }, SILL, HEAD);
+  // mullions every ~3.4u, proud of the glass
+  const nMul = Math.round((GLAZING.x1 - GLAZING.x0) / 3.4);
+  for (let i = 0; i <= nMul; i++) {
+    const x = GLAZING.x0 + ((GLAZING.x1 - GLAZING.x0) * i) / nMul;
+    b.planBox('trim', { x0: x - 0.13, x1: x + 0.13, ...band(-0.15, 0.3) }, SILL, HEAD);
+  }
+  // second-floor spandrel + sill/head rails
+  b.planBox('skin', { ...GLAZING, ...band(-0.05, 0.3) }, FLOOR2 - 0.35, FLOOR2 + 0.35);
+  for (const y of [SILL, HEAD]) b.planBox('trim', { ...GLAZING, ...band(-0.12, 0.3) }, y - 0.12, y + 0.12);
+  // brand accent: a red reveal under the fascia
+  b.planBox('red', { ...GLAZING, ...band(-0.08, 0.1) }, HEAD + 0.05, HEAD + 0.25);
+
+  // ── entrance: glass doors + a canopy HUNG from the wall on two tie rods ─────
+  b.planBox('steel', { ...ENTRY, ...band(0.2, 0.42) }, SILL, 3.9);         // door frame backing
+  b.planBox('glass', { x0: ENTRY.x0 + 0.3, x1: ENTRY.x1 - 0.3, ...band(0.1, 0.2) }, 0.3, 3.6);
+  const canopy = { x0: ENTRY.x0 - 1.0, x1: ENTRY.x1 + 1.0, y0: yFace, y1: yFace + 2.6 };
+  b.planBox('steel', canopy, 4.35, 4.65);
+  b.planBox('led', { x0: canopy.x0 + 0.6, x1: canopy.x1 - 0.6, y0: canopy.y0 + 0.6, y1: canopy.y1 - 0.6 }, 4.3, 4.35);
+  // tie rods: from each outer canopy corner up to the wall at 7.2 (so it is carried, not floating)
+  for (const x of [canopy.x0 + 0.4, canopy.x1 - 0.4]) {
+    const p0 = new THREE.Vector3(150 - x, 4.65, 110 - (canopy.y1 - 0.2));
+    const p1 = new THREE.Vector3(150 - x, 7.2, 110 - yFace);
+    b.geometry('galv', rod(p0, p1, 0.07));
+  }
+
+  // ── west + north windows on the office block (two storeys) ─────────────────
+  const office = OPS_SHELL.office!;
+  for (const [z0, z1] of [[2.0, 4.8], [7.3, 10.2]]) {
+    // west face (plan x0 exterior), proud 0.06
+    b.planBox('glass', { x0: f.x0 - 0.06, x1: f.x0 + 0.1, y0: f.y0 + 3, y1: f.y1 - 3 }, z0, z1);
+    b.planBox('trim', { x0: f.x0 - 0.14, x1: f.x0 + 0.02, y0: f.y0 + 3, y1: f.y1 - 3 }, z0 - 0.1, z0 + 0.05);
+    b.planBox('trim', { x0: f.x0 - 0.14, x1: f.x0 + 0.02, y0: f.y0 + 3, y1: f.y1 - 3 }, z1 - 0.05, z1 + 0.1);
+    // north face over the office (plan y0 exterior)
+    b.planBox('glass', { x0: office.x0 + 4, x1: office.x1 - 6, y0: f.y0 - 0.1, y1: f.y0 + 0.06 }, z0, z1);
+  }
+  // rear staff door
+  b.planBox('steel', { x0: office.x1 - 5, x1: office.x1 - 2.8, y0: f.y0 - 0.12, y1: f.y0 + 0.05 }, 0.28, 4.2);
+
+  // ── rooftop plant + PV (inside the parapet, clear of it by 1.5u) ────────────
+  const roofY = DECK;
+  for (const [x0, y0, w, d] of [[office.x0 + 4, f.y0 + 4, 5, 4], [office.x0 + 12, f.y0 + 4, 5, 4]]) {
+    b.planBox('galv', { x0, x1: x0 + w, y0, y1: y0 + d }, roofY, roofY + 2.4);
+    b.planBox('steel', { x0: x0 + 0.5, x1: x0 + w - 0.5, y0: y0 + 0.5, y1: y0 + d - 0.5 }, roofY + 2.4, roofY + 2.5);
+  }
+  // PV: one tilted row set over the office east half and both bays (south-facing tilt)
+  for (let x = office.x0 + 20; x + 4.2 <= f.x1 - 1.6; x += 4.6) {
+    for (let y = f.y0 + 11; y + 4 <= f.y1 - 2; y += 6) {
+      const g = new THREE.BoxGeometry(4.2, 0.12, 4.0);
+      g.rotateX(-0.17); // ~10° tilt: north edge up, so the panels face south (world -Z)
+      g.translate(150 - (x + 2.1), roofY + 0.9, 110 - (y + 2));
+      b.geometry('pv', g);
+      // rack legs
+      b.planBox('galv', { x0: x + 0.3, x1: x + 0.5, y0: y + 3.2, y1: y + 3.4 }, roofY, roofY + 1.2);
+      b.planBox('galv', { x0: x + 3.7, x1: x + 3.9, y0: y + 3.2, y1: y + 3.4 }, roofY, roofY + 1.2);
+    }
+  }
+  return b.build();
 }

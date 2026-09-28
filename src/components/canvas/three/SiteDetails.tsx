@@ -3,8 +3,9 @@ import * as THREE from 'three';
 import { MATERIALS } from './materials';
 import { oilStainTexture } from './textures';
 import { useDepotStore } from '@/store/depotStore';
-import { BUILDING, WASH, BESS_YARD, CANOPIES, INGRESS, EGRESS, LOT } from '@/lib/sitePlan';
-import { toWorld } from './coordUtils';
+import { BESS_YARD, INGRESS, EGRESS, LOT } from '@/lib/sitePlan';
+import { bayBollards, BOLLARD_RADIUS } from '@/lib/structurePlan';
+import { toWorld, DECK_Y } from './coordUtils';
 
 /**
  * Site dressing layer — the small real-world details that sell the scene:
@@ -44,7 +45,7 @@ export function SiteDetails() {
       const offX = a === 270 ? -3.4 : a === 90 ? (s.position.x < 150 ? -3.4 : 3.4) : 0;
       const offY = across ? 0 : (s.position.y < 110 ? -3.4 : 3.4);
       const [wx, , wz] = toWorld({ x: s.position.x + offX, y: s.position.y + offY }, 0);
-      d.position.set(wx, 0.25, wz);
+      d.position.set(wx, DECK_Y + 0.1, wz); // 0.33u (15 cm) standing proud of the deck, not half-buried in it
       d.rotation.set(0, across ? 0 : Math.PI / 2, 0);
       d.updateMatrix();
       inst.setMatrixAt(i, d.matrix);
@@ -54,43 +55,26 @@ export function SiteDetails() {
   }, [stalls]);
 
   // ---- instanced bollards ----
-  // BRIGHT ORANGE pylons guard every canopy LEG (charging zone); yellow
-  // bollards keep the bay door flanks, rear corners, and BESS gate.
+  // Yellow bollards guard each bay door's outer corners, front and rear, from
+  // structurePlan.bayBollards() — the same points the replay clearance test
+  // drives every recorded car against. The orange "canopy leg" pylons that used
+  // to live here stood at cx±12, i.e. in the sidestep path of the DCFC column:
+  // they guarded no leg (the canopy is a central-spine structure) and cars drove
+  // through them. Canopy columns now carry their own hazard-banded plinths.
   const bollardSets = useMemo(() => {
-    const mk = (pts: { x: number; y: number }[], mat: THREE.Material) => {
-      const inst = new THREE.InstancedMesh(
-        new THREE.CylinderGeometry(0.42, 0.42, 2.6, 10), mat, Math.max(1, pts.length),
-      );
-      const d = new THREE.Object3D();
-      pts.forEach((p, i) => {
-        const [wx, , wz] = toWorld(p, 0);
-        d.position.set(wx, 1.3, wz);
-        d.updateMatrix();
-        inst.setMatrixAt(i, d.matrix);
-      });
-      inst.instanceMatrix.needsUpdate = true;
-      return inst;
-    };
-
-    // orange: one pylon beside each canopy post (posts sit every 22 units
-    // along both roof edges — mirror SolarCanopy's placement, nudged into
-    // the stall side so the legs read protected from the charge lanes)
-    const orange: { x: number; y: number }[] = [];
-    for (const c of CANOPIES) {
-      for (let yy = c.y + 5; yy <= c.y + c.h - 5; yy += 22) {
-        orange.push({ x: c.cx - 12, y: yy });
-        orange.push({ x: c.cx + 12, y: yy });
-      }
-    }
-
-    // yellow: bay-front door flanks (forecourt edge), rear corners, BESS gate
-    const yellow: { x: number; y: number }[] = [];
-    for (const dx of [120, 138]) { yellow.push({ x: dx - 7.5, y: 57.5 }); yellow.push({ x: dx + 7.5, y: 57.5 }); }
-    for (const dx of [168, 186, 204]) { yellow.push({ x: dx - 7, y: 57.5 }); yellow.push({ x: dx + 7, y: 57.5 }); }
-    for (const dx of [120, 138, 168, 186, 204]) { yellow.push({ x: dx - 7, y: 24.5 }); yellow.push({ x: dx + 7, y: 24.5 }); }
-    yellow.push({ x: BESS_YARD.x + BESS_YARD.w + 2, y: BESS_YARD.y + BESS_YARD.h + 2 });
-
-    return [mk(orange, MATERIALS.safetyOrange()), mk(yellow, MATERIALS.safetyYellow())];
+    const pts = [...bayBollards(), { x: BESS_YARD.x + BESS_YARD.w + 2, y: BESS_YARD.y + BESS_YARD.h + 2 }];
+    const inst = new THREE.InstancedMesh(
+      new THREE.CylinderGeometry(BOLLARD_RADIUS, BOLLARD_RADIUS, 2.6, 12), MATERIALS.safetyYellow(), pts.length,
+    );
+    const d = new THREE.Object3D();
+    pts.forEach((p, i) => {
+      const [wx, , wz] = toWorld(p, 0);
+      d.position.set(wx, 1.3, wz);
+      d.updateMatrix();
+      inst.setMatrixAt(i, d.matrix);
+    });
+    inst.instanceMatrix.needsUpdate = true;
+    return [inst];
   }, []);
 
   // ---- oil stains under ~30% of charging stalls ----
@@ -134,36 +118,17 @@ export function SiteDetails() {
     return { ...r, wx, wz, shrubs, key: k };
   }), []);
 
-  // ---- rooftop HVAC ----
-  const hvac = useMemo(() => {
-    const units: { wx: number; wz: number; w: number; d: number; h: number; top: number }[] = [];
-    const bld = (r: { x: number; y: number; w: number; h: number }, top: number, n: number, seed: number) => {
-      for (let i = 0; i < n; i++) {
-        const [wx, , wz] = toWorld({
-          x: r.x + 8 + seeded(seed + i) * (r.w - 16),
-          y: r.y + 8 + seeded(seed + i + 5) * (r.h - 16),
-        }, 0);
-        units.push({ wx, wz, w: 4 + seeded(seed + i) * 3, d: 3.4, h: 2.2, top });
-      }
-    };
-    bld(BUILDING, 13, 3, 3);
-    bld(WASH, 10, 2, 9);
-    return units;
-  }, []);
-
   const [inWx, , inWz] = toWorld({ x: INGRESS.x, y: LOT.y + LOT.h }, 0);
   const [egWx, , egWz] = toWorld({ x: EGRESS.x, y: LOT.y + LOT.h }, 0);
-  const [bWx, , bWz] = toWorld({ x: BUILDING.x + BUILDING.w / 2, y: BUILDING.y + BUILDING.h / 2 }, 0);
 
   return (
     <group>
       <primitive object={wheelStops} />
       <primitive object={bollardSets[0]} />
-      <primitive object={bollardSets[1]} />
 
       {/* oil stains */}
       {stains.map((s) => (
-        <mesh key={s.id} rotation={[-Math.PI / 2, 0, s.rot]} position={[s.wx, 0.045, s.wz]}>
+        <mesh key={s.id} rotation={[-Math.PI / 2, 0, s.rot]} position={[s.wx, DECK_Y + 0.012, s.wz]}>
           <planeGeometry args={[s.r * 2, s.r * 1.5]} />
           <meshBasicMaterial map={stainTex} transparent depthWrite={false} opacity={0.85} />
         </mesh>
@@ -183,11 +148,11 @@ export function SiteDetails() {
         </mesh>
       ))}
       {/* concrete forecourt strip — the full bay approach throat (y 56..68) */}
-      <mesh rotation-x={-Math.PI / 2} position={[-8, 0.035, 48]} material={mats.concrete} receiveShadow>
+      <mesh rotation-x={-Math.PI / 2} position={[-8, DECK_Y + 0.006, 48]} material={mats.concrete} receiveShadow>
         <planeGeometry args={[156, 12]} />
       </mesh>
       {/* concrete rear apron — 30ft clear maneuvering zone behind the bays */}
-      <mesh rotation-x={-Math.PI / 2} position={[15, 0.035, 94]} material={mats.concrete} receiveShadow>
+      <mesh rotation-x={-Math.PI / 2} position={[15, DECK_Y + 0.006, 94]} material={mats.concrete} receiveShadow>
         <planeGeometry args={[258, 20]} />
       </mesh>
 
@@ -208,18 +173,6 @@ export function SiteDetails() {
         </group>
       ))}
 
-      {/* rooftop HVAC */}
-      {hvac.map((u, i) => (
-        <group key={`hv${i}`} position={[u.wx, u.top + u.h / 2, u.wz]}>
-          <mesh castShadow material={mats.steel}>
-            <boxGeometry args={[u.w, u.h, u.d]} />
-          </mesh>
-          <mesh position={[0, u.h / 2 + 0.04, 0]} material={mats.dark}>
-            <boxGeometry args={[u.w - 0.6, 0.08, u.d - 0.6]} />
-          </mesh>
-        </group>
-      ))}
-
       {/* security cameras on the gate posts */}
       {[[inWx - 7, inWz], [egWx + 7, egWz]].map(([x, z], i) => (
         <group key={`cam${i}`} position={[x, 6.4, z]}>
@@ -230,21 +183,6 @@ export function SiteDetails() {
         </group>
       ))}
 
-      {/* office glass mullions + wall packs over bay doors */}
-      {Array.from({ length: 8 }, (_, i) => (
-        <mesh key={`mul${i}`} position={[bWx - 36 + i * 4.6, 4.6, bWz - 15.2]} material={mats.steel}>
-          <boxGeometry args={[0.16, 8.2, 0.16]} />
-        </mesh>
-      ))}
-      {[120, 138, 168, 186, 204].map((dx) => {
-        const [wx, , wz] = toWorld({ x: dx, y: 56 }, 0); // south face of the bay row
-        const h = dx < 160 ? 11.2 : 8.6;                 // building vs wash parapet heights
-        return (
-          <mesh key={`wp${dx}`} position={[wx, h, wz - 0.4]} material={mats.led}>
-            <boxGeometry args={[1.6, 0.35, 0.5]} />
-          </mesh>
-        );
-      })}
     </group>
   );
 }

@@ -220,8 +220,9 @@ describe('the car solid the arm is measured against', () => {
     // = 6.1e-7 plan units, 0.3 um. One micrometre is the containment tolerance;
     // the defect this replaced was 20.71 mm, five orders of magnitude up.
     const FLOAT32_SLOP_M = 1e-6;
+    // Every buffer, lamps and status lights included: they are part of the car
+    // (the old decorative status sphere was the one exemption, and it is gone).
     for (const [name, geo] of Object.entries(VEHICLE_GEO)) {
-      if (name === 'glow') continue; // a decorative halo, never part of the body
       const out = worstOutside(geo);
       expect(out, `${name} stands ${(out * 1000).toFixed(3)} mm outside the solid`)
         .toBeLessThanOrEqual(FLOAT32_SLOP_M);
