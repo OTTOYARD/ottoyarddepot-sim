@@ -63,6 +63,20 @@ describe("describeEvent", () => {
     expect(b.detail).toBe("2 no longer need a charger");
   });
 
+  it("says the dispatch door refused a car that is not finished, and what it lacks (otto-q-core 0544)", () => {
+    const t = describeEvent("twin.dispatch_refused_unfinished", {
+      reason: "the car is not finished", soc: 95, target_soc: 100, open: ["exterior_wash", "readiness_check"],
+    });
+    expect(t.title).toBe("Dispatch refused · not finished");
+    expect(t.detail).toBe("open: exterior wash, readiness check · charge 95% of 100%");
+    expect(eventDomain("twin.dispatch_refused_unfinished")).toBe("vehicles");
+    // at its target - 1 the charge is not what holds it, so only the open work is named
+    expect(describeEvent("twin.dispatch_refused_unfinished", { soc: 99, target_soc: 100, open: ["interior_deep_clean"] }).detail)
+      .toBe("open: interior deep clean");
+    expect(describeEvent("twin.dispatch_refused_rider_flag", { reason: "x" }).title).toBe("Dispatch refused · rider-flagged cleaning due");
+    expect(eventDomain("twin.dispatch_refused_rider_flag")).toBe("vehicles");
+  });
+
   it("names the rule that refused a charge", () => {
     const t = describeEvent("ottoq.charge_start_refused", { requested_kw: 350, blocking_rules: ["EN.001.grid_capacity_ceiling"] });
     expect(t.detail).toBe("EN.001.grid_capacity_ceiling · 350 kW asked");

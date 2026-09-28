@@ -36,7 +36,7 @@ export const DEFAULT_DOMAINS: EventDomain[] = ["charging", "vehicles", "depot"];
 const VEHICLE_TYPES = new Set([
   "twin.vehicle_arrived", "ottoq.booking_interrupted", "ottoq.replan_escalated", "ottoq.visit_reopened",
   "twin.deferred_service_started", "twin.deferred_service_completed", "twin.deploy_gate_override", "twin.deploy_gate_escalated",
-  "twin.departure_recheck",
+  "twin.departure_recheck", "twin.dispatch_refused_unfinished", "twin.dispatch_refused_rider_flag",
   "ottoq.refusal_escalated", "twin.auto_dispatch_emit",
 ]);
 
@@ -125,6 +125,19 @@ export function describeEvent(type: string, payload: Record<string, unknown> | n
           back > 0 && `${back} no longer need${back === 1 ? "s" : ""} a charger`),
       };
     }
+    // The dispatch door refuses a car the deploy plan should never have offered: otto-q-core 0544 for a car that is
+    // not finished (rule 9), 0019 for a car owing a due rider-flagged cleaning. The car stays; nothing left.
+    case "twin.dispatch_refused_unfinished": {
+      const open = Array.isArray(p.open) ? (p.open as unknown[]).map(words).filter(Boolean) : [];
+      const soc = n(p.soc);
+      const target = n(p.target_soc);
+      return {
+        title: "Dispatch refused · not finished",
+        detail: join(open.length > 0 && `open: ${open.join(", ")}`,
+          soc !== null && target !== null && soc < target - 1 && `charge ${r0(soc)}% of ${r0(target)}%`),
+      };
+    }
+    case "twin.dispatch_refused_rider_flag": return { title: "Dispatch refused · rider-flagged cleaning due" };
     case "vehicle.exception_proposed": return { title: "Exception proposed", detail: join(words(p.fault_class), words(p.disposition)) };
     case "vehicle.technician_approved": return { title: "Technician approved", detail: words(p.action) || undefined };
     case "vehicle.tow_retrieved_staged": return { title: "Towed back to staging" };
