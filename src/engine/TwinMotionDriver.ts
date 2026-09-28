@@ -2357,6 +2357,14 @@ class TwinMotionDriver {
         e.stallHeading = sh;
         if (driveIn) {
           this.assignRail(e, { kind: "stall", lane, x: sp.x, y: sp.y, heading: sh });
+          // A gate-queue arrival APPEARS here, so it can appear already pointing
+          // down its own rail. Facing along the road (west) while the rail's first
+          // leg angles toward the gate throat, it swung up to ~47° in its first
+          // 0.3u — every arrival spun on the spot as it materialised (the gate
+          // mouth was the second-busiest tight-turn hot spot in fresh0922).
+          if (spawn && e.tracker && e.tracker.total > 1) {
+            e.car.heading = pointAt(e.tracker.pts, e.tracker.cum, 0).heading;
+          }
           if (isServiceLane(lane)) serviceApproaching++;
         }
       } else if (e.stallId !== stallId) {
