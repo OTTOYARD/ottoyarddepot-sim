@@ -229,7 +229,7 @@ describe("PROBE: maximal charger contention", () => {
   it("D: a car docking between two PARKED neighbours never touches either (DCFC and L2, both angled)", () => {
     // Every charger stall is angled 60° to its lane since 2026-09-28: the car turns off
     // its gap lane where the stall's axis crosses it and drives in along that axis,
-    // between neighbours 3.1u (L2) to 7.9u (DCFC) away square to the car. (The DCFC
+    // between neighbours 3.3u (L2) to 8.1u (DCFC) away square to the car. (The DCFC
     // approach used to lean across from the gap lane on a diagonal and rotate back to
     // north on a short final straight; a 7u tail put the rear 0.17u INTO the car parked
     // in the next stall south.) Measured here on the real driver, dock blend included,

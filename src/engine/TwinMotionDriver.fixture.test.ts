@@ -283,7 +283,13 @@ describe("TwinMotionDriver — replay of a captured busy_day run", () => {
   // of (112,88). This capture exercises charger motion lightly; docking tests D and E
   // are where the angled approach and back-out are measured (0 contacts, and 0
   // against any structure).
-  const OVERLAP_BUDGET = 80;    // measured 73 (73 at 90° stalls; 78 before DCFC head-in; 58 before L2 head-in; 54 before wide corners; 80 on main then). TARGET 0.
+  //
+  // 2026-09-28, THE CAR SLIMMED (the founder: "slightly less big/boxy/bulky"):
+  // 10.2 x 4.2 -> 9.8 x 4.0u (traffic.CAR_BODY_*). overlap 73 -> 63, stuck 7 -> 7,
+  // distinct pairs 28 -> 26. Part of that is simply a smaller body measuring less
+  // overlap for the same motion, so the ratchet comes down with it: a regression
+  // that the old car's size used to hide now fails here.
+  const OVERLAP_BUDGET = 70;    // measured 63 (73 at the 10.2 x 4.2 car, at 60° and at 90° stalls; 78 before DCFC head-in; 58 before L2 head-in; 54 before wide corners; 80 on main then). TARGET 0.
   const STUCK_BUDGET = 8;       // measured 7 (7 at 90°; 6 before DCFC head-in; 5 before L2 head-in).
 
   it("SYMPTOM 2a: body-overlap stays within the ratchet (target 0)", () => {

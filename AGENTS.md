@@ -32,7 +32,7 @@ interpolation.** Zero world logic client-side.
 - **Lane paint is generated from the LaneGraph, never hand-drawn** — so painted right-of-way can
   never drift from routed motion. Both renderers once carried hand-drawn arrows that *contradicted
   the actual rules*. Do not reintroduce them.
-- **Measure oriented body overlap** (the 4.2 × 10.2 box actually drawn), **never centre distance** —
+- **Measure oriented body overlap** (the 4.0 × 9.8 box actually drawn), **never centre distance** —
   perimeter stalls are pitched 5.7u apart, so a distance test flags every pair of parked neighbours
   and once reported **31 phantom collisions**.
 - **Sample during motion, not after the scene settles.** And **replay the captured fixture**
@@ -115,7 +115,7 @@ interpolation.** Zero world logic client-side.
     stops ONE LANE OFFSET short of the north collector's junction: ending on the node, the graph route
     dropped it as a duplicate and drew a 3.2u drift across ~47u of collector (test E: 227 contacts → 0).
   - **Solids are oriented boxes now** (`structurePlan.OBox`, `boxGap`, `bodyHitsBox`, `parkedBox`):
-    an angled car or cabinet's axis-aligned bounds are 10.9 x 8.7u for a 10.2 x 4.2 body, and would
+    an angled car or cabinet's axis-aligned bounds are 10.5 x 8.4u for a 9.8 x 4.0 body, and would
     put phantom solids over the lane and the next stall. `RailFlow.setCornerObstacles` takes them; the
     layout guard (`checkLayoutGeometry.mjs`) measures stall footprints as turned rectangles (SAT);
     the seed caps an angled stall's width at the pitch square to the car and its depth at the canopy
@@ -151,10 +151,16 @@ interpolation.** Zero world logic client-side.
     Both surface or move when departure timing shifts; neither involves a charger car.
 - **Keep Yuka's `SeparationBehavior.weight` low (0.35).** At 2.2 it was *stronger* than
   path-following and shoved cars sideways off the lanes.
-- **Known open:** the 3D car uses `BoxGeometry(2.2, 0.85, 4.9)` — **metres dropped into unit-space**,
-  so it renders at ~48%. Three different car lengths coexist (2D 7.5u, 3D 4.9m, physics
-  `CAR_LENGTH = 7.5`). ⚠️ Changing `rightOffset` or `CAR_LENGTH` moves routed motion and needs a
-  certified pass, not a drive-by edit.
+- **One car, one size: 9.8 x 4.0u (4.69 x 1.91 m)** — `traffic.CAR_BODY_*` is the traffic model's
+  body, the 2D `VehicleDot`, the 3D mesh (`vehicleBody.ts`, shaped in `vehicleEnvelope.ts`) and the
+  replay metric's body (`replay.ts`, pinned equal by `RailFlow.gap.test.ts`). It was 10.2 x 4.2
+  until the founder asked for "slightly less big/boxy/bulky" (2026-09-28); the glass and roof now
+  lean in above the highest charge-port line (`TUMBLEHOME`), so every inlet stays on a vertical
+  flank. **The arm's swept quantity is its standoff from the car's FLANK** (`FLANK_STANDOFF_PU`,
+  1.866 m): the pedestal offset is derived from it and the car's width, so a narrower car moves the
+  pedestal in rather than making the arm reach further than it was measured to.
+  ⚠️ Changing `rightOffset` or the car's size moves routed motion and every replay: measure all of
+  them (fixture, flow, turn radius, docking, structure clearance, arm clearance), not a drive-by edit.
 - **`ResponsiveGuard` requires ≥1200px.** Test at 1440×900 or larger.
 - **The RTX tab needs the AWS Isaac box running.** Blank is normal when it is stopped. IP override:
   `localStorage.setItem('ottoq_omniverse_ip','<ip>')`.

@@ -4,7 +4,7 @@ import { CAR_LENGTH, CAR_WIDTH } from '@/engine/motion/traffic';
 import { METRES_PER_PLAN_UNIT, PLAN_UNITS_PER_METRE } from '@/lib/ottoChargeArm/cobotSpec';
 import {
   CAR_LENGTH_M, CAR_WIDTH_M, BODY_BEVEL_M, GLASS_PROUD_M, bodyProfile,
-  WHEEL_RADIUS_M, WHEEL_ALONG_FRACTION, WHEEL_INSET_M, ROOF_POD,
+  WHEEL_RADIUS_M, WHEEL_ALONG_FRACTION, WHEEL_INSET_M, ROOF_POD, tumblehomeScale,
 } from '@/lib/ottoChargeArm/vehicleEnvelope';
 
 /**
@@ -23,9 +23,12 @@ import {
  * below.
  *
  * ═════════════════════════════════════════════════════════════ FOOTPRINT ═════
- * ONE CAR, ONE SIZE. This mesh is 10.2 x 4.2 plan units — 4.88 x 2.01 m, a real
- * robotaxi — which is the same body the 2D cockpit draws (VehicleDot) and the
- * same body every following-gap budget in traffic.ts is computed from.
+ * ONE CAR, ONE SIZE. This mesh is 9.8 x 4.0 plan units — 4.69 x 1.91 m, a real
+ * robotaxi (it was 10.2 x 4.2 until the founder asked for "slightly less
+ * big/boxy/bulky" on 2026-09-28) — which is the same body the 2D cockpit draws
+ * (VehicleDot) and the same body every following-gap budget in traffic.ts is
+ * computed from. Above the charge-port line its glass and roof lean in
+ * (vehicleEnvelope.TUMBLEHOME), so it no longer reads as a van.
  *
  * It was not. The mesh was built at 7.5 x 3.367 and this comment used to say the
  * footprint was FROZEN there, so the 3D car was 26% shorter and 20% narrower
@@ -38,10 +41,10 @@ import {
  * screen is not a measurement. armClearance.test.ts is the consumer.
  */
 
-export const CAR_L_PU = CAR_LENGTH; // 10.2
-export const CAR_W_PU = CAR_WIDTH; //   4.2
-const CAR_L_M = CAR_LENGTH_M; // 4.8807
-const CAR_W_M = CAR_WIDTH_M; //  2.0097
+export const CAR_L_PU = CAR_LENGTH; // 9.8
+export const CAR_W_PU = CAR_WIDTH; //  4.0
+const CAR_L_M = CAR_LENGTH_M; // 4.6893
+const CAR_W_M = CAR_WIDTH_M; //  1.9140
 
 /**
  * Metre-authored geometry -> depot plan units, in the depot's axis convention.
@@ -72,6 +75,17 @@ function mergeAll(parts: THREE.BufferGeometry[]): THREE.BufferGeometry {
   const merged = mergeGeometries(norm, false);
   if (!merged) throw new Error('vehicleBody: incompatible geometry attributes in merge');
   return merged;
+}
+
+/** Lean the sides in above the tumblehome line: every vertex's lateral (pre-Z)
+ *  coordinate scaled by vehicleEnvelope.tumblehomeScale of its height. Applied in
+ *  metre space, before planUnits(), to the parts that make the car's silhouette. */
+function tumblehome(geo: THREE.BufferGeometry): THREE.BufferGeometry {
+  const p = geo.getAttribute('position');
+  for (let i = 0; i < p.count; i++) p.setZ(i, p.getZ(i) * tumblehomeScale(p.getY(i)));
+  p.needsUpdate = true;
+  geo.computeVertexNormals();
+  return geo;
 }
 
 /** Build a closed THREE.Shape from a metre-space point list. */
@@ -121,6 +135,7 @@ const bodyGeo = new THREE.ExtrudeGeometry(
   { depth: BODY_DEPTH, bevelEnabled: true, bevelSize: BEVEL, bevelThickness: BEVEL, bevelSegments: 2 },
 );
 bodyGeo.translate(0, 0, -BODY_DEPTH / 2);
+tumblehome(bodyGeo);
 
 // The greenhouse corners, read off the profile so the glazing tracks the
 // silhouette instead of restating it. PROFILE runs sill-bottom, sill-top,
@@ -145,6 +160,7 @@ const greenhouseGeo = new THREE.ExtrudeGeometry(
   { depth: GLASS_DEPTH, bevelEnabled: false },
 );
 greenhouseGeo.translate(0, 0, -GLASS_DEPTH / 2);
+tumblehome(greenhouseGeo);
 
 // AV sensor pod — this is a robotaxi, not a private car. Sized and placed from
 // ROOF_POD so the arm's clearance model knows it is there.

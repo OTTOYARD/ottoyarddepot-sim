@@ -41,9 +41,10 @@ const F = fixture as unknown as {
   frames: Frame[];
 };
 
-/** Body the 2D cockpit actually draws (VehicleDot: width 4.2, height 10.2). */
-export const CAR_W = 4.2;
-export const CAR_L = 10.2;
+/** Body the 2D cockpit actually draws (VehicleDot: width 4.0, height 9.8 —
+ *  traffic.CAR_BODY_*, pinned equal by RailFlow.gap.test.ts). */
+export const CAR_W = 4.0;
+export const CAR_L = 9.8;
 
 /** The DRIVABLE ENVELOPE. Anything outside this is not a place a vehicle can be.
  *  The lot is x 6..294, y 6..206; the gate approach road runs south of it

@@ -162,6 +162,29 @@ export function bevelledBodyProfile(
   return out;
 }
 
+/**
+ * TUMBLEHOME: above `fromM` the body's sides lean in, until at the roof the car is
+ * `roofScale` of its width — the glass and roof tipped inward the way every real
+ * car's are. The founder, 2026-09-28: "make the vehicles just slightly less
+ * big/boxy/bulky". A profile extruded straight across the car is a loaf with
+ * vertical walls all the way to the roof, which is what read as a van.
+ *
+ * It starts above the highest inlet any OEM family presents (chargePort.ts: vans to
+ * 1.05 m), so every charge port still sits on a vertical flank at the car's full
+ * width — where Vehicle3D draws it and where the arm aims. The clearance solid
+ * below keeps the full-width slab: leaning the mesh in only moves it further inside
+ * the solid, so "the solid contains every drawn vertex" still holds by construction.
+ */
+export const TUMBLEHOME = { fromM: 1.06, roofScale: 0.86 } as const;
+
+/** How much of the car's half-width the body keeps at height `yM` (1 below the
+ *  tumblehome line, TUMBLEHOME.roofScale at the top of the bevelled roof). */
+export function tumblehomeScale(yM: number): number {
+  const top = BODY_ROOF_M + BODY_BEVEL_M;
+  const t = Math.max(0, Math.min(1, (yM - TUMBLEHOME.fromM) / (top - TUMBLEHOME.fromM)));
+  return 1 - (1 - TUMBLEHOME.roofScale) * t;
+}
+
 /** Tyre radius, metres — 0.68 m diameter, a 20" wheel with tyre on it. */
 export const WHEEL_RADIUS_M = 0.34;
 

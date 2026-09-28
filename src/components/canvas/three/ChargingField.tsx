@@ -20,7 +20,7 @@ interface Props { type: 'dcfc' | 'l2'; count: number; }
  * toward·forward). The post stands beside the car's front quarter on its charge-port
  * flank (cabinetEnvelope.L2_POST_*), so the car's centreline is L2_POST_LATERAL_PU
  * out along local +X and its centre L2_POST_ALONG_PU back along the car. The cable
- * leaves the holster, drops in front of the post, crosses the 1.15u gap low and
+ * leaves the holster, drops in front of the post, crosses the 1.25u gap low and
  * rises to the car's own charge port — the port Vehicle3D draws (portFor, on the
  * flank facing this post).
  */

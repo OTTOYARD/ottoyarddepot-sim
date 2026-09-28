@@ -170,8 +170,20 @@ export const ARM_SCALE = 1.68;
  * three times its previous clearance to the car while making it 40% larger.
  *
  * Re-derive with `npx vitest run cabinetClearance` after touching either.
+ *
+ * ═════════════════════════════ WHAT THE SWEEP CHOSE: A STANDOFF FROM THE FLANK ═══
+ * Every figure above was measured on the 4.2 pu (2.010 m) car, where 6.0 pu from
+ * the centreline is 3.9 pu (1.866 m) from the near flank. The arm works against the
+ * FLANK — its elbow clears the bodywork, its connector meets the inlet there — so
+ * that is the number that carries the measurement, and it is stated as such
+ * (FLANK_STANDOFF_PU). When the car narrowed to 4.0 pu on 2026-09-28 ("slightly
+ * less big/boxy/bulky"), the pedestal moved 0.1u in with the flank instead of the
+ * arm reaching 48 mm further than it was ever measured to.
  */
-export const PEDESTAL_OFFSET_PU = 6.0;
+export const FLANK_STANDOFF_PU = 3.9;
+/** Lateral offset from the parked car's centreline to the pedestal, plan units:
+ *  the swept flank standoff plus the car's half-width (5.9 at the 4.0 pu car). */
+export const PEDESTAL_OFFSET_PU = FLANK_STANDOFF_PU + CAR_WIDTH / 2;
 
 /** Depot-derived sizing at scale 1.0, metres. ARM_SCALE multiplies all of it. */
 const BASE_LINKS = {
@@ -266,7 +278,7 @@ export function maxReach(s: CobotSpec = OTTO_CHARGE_ARM): number {
 export const MOUNT_HEIGHT_M = 0.55;
 
 /** Lateral distance from the DCFC pedestal centre to the parked car centreline, metres. */
-export const PEDESTAL_TO_CAR_CENTRE_M = PEDESTAL_OFFSET_PU * METRES_PER_PLAN_UNIT; // 2.871 at 6.0 pu
+export const PEDESTAL_TO_CAR_CENTRE_M = PEDESTAL_OFFSET_PU * METRES_PER_PLAN_UNIT; // 2.823 at 5.9 pu
 
 /**
  * Where the near flank actually is, metres from the arm's base axis.

@@ -21,9 +21,16 @@ export interface MovingCar {
 }
 
 /**
- * THE BODY. Plan units, at 0.4785 m/unit → 4.88 m x 2.01 m, a real robotaxi
- * footprint. This is the ONE definition of how much room a car takes up, and
+ * THE BODY. Plan units, at 0.4785 m/unit → 4.69 m x 1.91 m, a real robotaxi
+ * footprint (a Jaguar I-PACE, the Waymo base vehicle, is 4.68 x 1.90 m without
+ * mirrors). This is the ONE definition of how much room a car takes up, and
  * every following-gap budget in this engine is derived from it.
+ *
+ * 10.2 x 4.2 (4.88 x 2.01 m) until 2026-09-28, when the founder asked for the
+ * cars to be "just slightly less big/boxy/bulky". The 0.1u each side came out of
+ * the car, not out of the OTTO-CHARGE ARM's reach: the arm's standoff to the
+ * FLANK is what was swept (cobotSpec.FLANK_STANDOFF_PU), so the pedestal moved
+ * 0.1u in with it and the arm meets the same flank at the same distance.
  *
  * It exists because the gap budget and the drawn body had drifted apart. The
  * cockpit draws 4.2 x 10.2 (VehicleDot.tsx) and the fixture's body-overlap
@@ -38,13 +45,13 @@ export interface MovingCar {
  * dimensions the overlap metric measures so the two literals cannot drift
  * apart again silently — that duplication, not the number, was the bug.
  */
-export const CAR_BODY_LENGTH = 10.2;
+export const CAR_BODY_LENGTH = 9.8;
 /** Stated so the footprint has ONE home and the drift pin can check both axes.
  *  Nothing budgets laterally off it today: RailFlow's LANE_HALF is a lane-
  *  discipline band, not a body half-width, and widening it to 2.1/2.6/3.2 was
  *  measured on the busy_day fixture and made overlap WORSE (1223 → 1366 / 1398
  *  / 1684 pair-samples) because more braking parks more cars in the corridor. */
-export const CAR_BODY_WIDTH = 4.2;
+export const CAR_BODY_WIDTH = 4.0;
 
 /**
  * ONE ROBOTAXI, ONE SIZE. These are the SAME BODY as CAR_BODY_* above, not a

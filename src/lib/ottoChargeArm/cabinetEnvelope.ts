@@ -98,7 +98,7 @@ export const L2_CABINET_PU = { width: 1.1, height: 2.8, depth: 0.7, padHeight: 0
  *     sits half a pitch (4.2u) further back along the axis;
  *   - L2_POST_LATERAL_PU out from the centreline: the middle of the 7.27u between
  *     two cars' centrelines at the L2 pitch, so the pad clears this car's flank by
- *     0.75u (0.36 m) and its body by 1.15u.
+ *     0.85u (0.41 m) and its body by 1.25u.
  * It used to stand in front of the nose on the spine (a perpendicular head-in stall,
  * and before that a nose-to-tail one); at 60° two columns of noses meet at the spine
  * and a post there would stand in the way of the canopy's own columns.

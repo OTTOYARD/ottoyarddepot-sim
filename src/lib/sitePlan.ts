@@ -322,8 +322,8 @@ function chargingStalls(dcfcCount: number, l2Count: number): StallState[] {
   //   L2    west pitch 10.6 -> 8.4u from 85.9 (8 stalls, 85.9..144.7); east 11 ->
   //         8.4u from 90.1 (7 stalls, 90.1..140.5) — half a pitch behind the west
   //         column, so the two columns' noses interleave across the spine.
-  // At 60° an 8.4u pitch is 7.27u (11.4 ft) square to the car: a 6.6 ft car with
-  // 4.8 ft between it and its neighbour. Every stall keeps its x, its code and its
+  // At 60° an 8.4u pitch is 7.27u (11.4 ft) square to the car: a 6.3 ft car with
+  // 5.1 ft between it and its neighbour. Every stall keeps its x, its code and its
   // count; buildLayoutSeed writes these rows and migration 0552 moves the database
   // rows to them (the twin maps its stalls to these by position, and by column and
   // rank while the two disagree — TwinMotionDriver.setTwinStallMap).
@@ -369,7 +369,7 @@ function chargingStalls(dcfcCount: number, l2Count: number): StallState[] {
 /**
  * The painted footprint of a CHARGER stall in the 2D plan, in the CAR'S frame:
  * `len` along the car, `wid` across it, centred on the parked car and turned to
- * its bearing (chargerStallFrame). The 10.2 x 4.2 car with room round it. One
+ * its bearing (chargerStallFrame). The 9.8 x 4.0 car with room round it. One
  * home, so the stall and the reservation ring drawn over it (Stall.tsx,
  * ReservationGlow.tsx) cannot disagree about its outline.
  */

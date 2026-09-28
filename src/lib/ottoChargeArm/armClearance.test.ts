@@ -170,11 +170,15 @@ function sweep(
 
 describe('the car solid the arm is measured against', () => {
   it('is the body the renderer draws, at the unified footprint', () => {
-    expect(CAR_LENGTH_M).toBeCloseTo(10.2 * 0.4785, 9);
-    expect(CAR_WIDTH_M).toBeCloseTo(4.2 * 0.4785, 9);
+    expect(CAR_LENGTH_M).toBeCloseTo(9.8 * 0.4785, 9);
+    expect(CAR_WIDTH_M).toBeCloseTo(4.0 * 0.4785, 9);
     // the near flank the arm works against is DERIVED from that width
     expect(FLANK).toBeCloseTo(FLANK_STANDOFF_M, 12);
     expect(FLANK).toBeCloseTo(SERVICE_WINDOW.flankStandoff, 12);
+    // …and it is the standoff every clearance figure in cobotSpec.ts was swept at:
+    // 6.0 pu from the centreline of the 4.2 pu car it was measured on, 1.866 m.
+    // Narrowing the car moved the pedestal in with the flank, not the flank away.
+    expect(FLANK).toBeCloseTo((6.0 - 4.2 / 2) * 0.4785, 9);
   });
 
   it('has a convex silhouette — the distance maths depends on it', () => {

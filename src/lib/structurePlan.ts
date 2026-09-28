@@ -45,7 +45,7 @@ export function rectOf(r: { x: number; y: number; w: number; h: number }): Rect 
  *
  * Why it exists: since 2026-09-28 every charger stall is ANGLED 60° to its lane, so
  * its car, its cabinet and its L2 post all lie at 60° too. An axis-aligned box round
- * a 60° car is 10.9 x 8.7u instead of 10.2 x 4.2 — it would put a phantom solid over
+ * a 60° car is 10.5 x 8.4u instead of 9.8 x 4.0 — it would put a phantom solid over
  * the lane beside the car and over the neighbouring stall, and every clearance test
  * that uses it would fail on nothing. Solids are measured as the shapes they are.
  */
@@ -479,8 +479,8 @@ export function allStructureSolids(): Solid[] {
 // ═════════════════════════════════════════════════════════════ BODY TESTS ═══
 
 /**
- * The body of a car parked at a stall, as it lies: 10.2u along the stall's axis,
- * 4.2u across. The stall's angle is a compass bearing (0 = N, 90 = E); a box is the
+ * The body of a car parked at a stall, as it lies: CAR_LENGTH (9.8u) along the
+ * stall's axis, CAR_WIDTH (4.0u) across. The stall's angle is a compass bearing (0 = N, 90 = E); a box is the
  * same shape end for end, so an axis is all that matters here — a staging stall's
  * 90/270 lies east-west, a charger's 60/300 lies at 60° to its lane.
  */
@@ -493,7 +493,7 @@ export function rectsOverlap(a: Rect, b: Rect, eps = 1e-6): boolean {
 }
 
 /**
- * Does an ORIENTED car body (centre, heading θ in the plan frame, 10.2 x 4.2)
+ * Does an ORIENTED car body (centre, heading θ in the plan frame, 9.8 x 4.0)
  * overlap an oriented box? Separating-axis test on the 4 candidate axes.
  * `shrink` trims the body per side (a tolerance for sampling noise); a negative
  * shrink grows it (a clearance margin). Touching is not overlapping.

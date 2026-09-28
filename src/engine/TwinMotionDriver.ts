@@ -142,13 +142,13 @@ const MAX_ACTIVE_ENTERING = 6;   // arrival waves enter in packets too (gate bac
 const MAX_ACTIVE_SERVICE_APPROACH = 5; // batch charger/bay reassignments back out
                                        // in packets — else every parked staging
                                        // car reverses at once into mutual gridlock
-// GATE QUEUE GEOMETRY. A rendered car body is 10.2 units long (VehicleDot draws
-// 4.2 x 10.2), so both of these must clear a full car length or arrivals
+// GATE QUEUE GEOMETRY. A rendered car body is 9.8 units long (VehicleDot draws
+// 4.0 x 9.8; 10.2 until 2026-09-28), so both of these must clear a full car length or arrivals
 // materialize INTERPENETRATING nose-to-tail on the approach road — which is what
 // the busy_day fixture replay showed: queue pairs 7.2–8.0u apart, bodies exactly
 // parallel (|cos| = 1.00), overlapping by ~2u each. They were 6 and 8.
 const SPAWN_CLEARANCE = 11;   // don't materialize a car onto another one
-const SPAWN_PITCH = 11;       // one car length + ~0.8u of visible gap
+const SPAWN_PITCH = 11;       // one car length + ~1.2u of visible gap
 // …AND THE QUEUE MUST STAY INSIDE THE INGRESS GATE'S CATCHMENT.
 // LaneGraph.route() takes the NEAREST lane node as a car's origin, and on the
 // approach road (y = 213) the ingress stub (200, 210) stops being nearest past
@@ -457,7 +457,7 @@ const MIN_PACE = 2;
 // A staging car backs out: straight for EXIT_STRAIGHT, then on full lock until it
 // has swung EXIT_SWING toward its way out. The straight leg is a car length less a
 // little: turning the wheel sooner swings the nose into the cars parked either
-// side (pitch 5.7u on the perimeter, 6.7u in the temp block, body 4.2u wide).
+// side (pitch 5.7u on the perimeter, 6.7u in the temp block, body 4.0u wide).
 // Full lock is R = 6/tan(0.5) = 11u, so the swing is 13.4u of arc and the car
 // ends 7.5 + 11·sin70° = 17.8u out from its stall centre — inside the 15.5u temp
 // aisle (face to face) with room for its half-width. (Sizing the back-out to each
@@ -1604,7 +1604,7 @@ class TwinMotionDriver {
   private railTo(from: { x: number; y: number }, lane: Lane, stall: { x: number; y: number }, facing: number, lead: Pt[] = [], heading?: number, merge = false): Rail {
     const pts = dedupe([...lead, ...this.routeToStall(from, lane, stall, facing, heading)]);
     // A TEMP-AISLE MOUTH LOCK WAS TRIED HERE AND IS DELIBERATELY ABSENT. TW and TE
-    // face each other across a 15.5 u aisle while the design vehicle is 10.2 u long, so
+    // face each other across a 15.5 u aisle while the car is 9.8 u long, so
     // a car squaring up to pull in necessarily lies across both lane bodies. Giving the
     // two columns a shared mouth key — the mechanism the charger columns use — changed
     // the fixture by NOTHING (116 pair-samples before and after), because the conflict
