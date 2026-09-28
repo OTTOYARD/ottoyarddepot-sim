@@ -33,7 +33,8 @@ export function SiteDetails() {
 
   // ---- instanced wheel stops at every parking stall ----
   const wheelStops = useMemo(() => {
-    const parking = stalls.filter((s) => s.type === 'staging');
+    // Staging, and the head-in L2 charger stalls (their stop sits in front of the post).
+    const parking = stalls.filter((s) => s.type === 'staging' || s.type === 'l2');
     const inst = new THREE.InstancedMesh(
       new THREE.BoxGeometry(4.6, 0.45, 0.7), MATERIALS.curbing(), Math.max(1, parking.length),
     );
@@ -41,12 +42,15 @@ export function SiteDetails() {
     parking.forEach((s, i) => {
       const a = s.position.angle;
       const across = a === 90 || a === 270;
-      // stop sits at the stall head (away from its access aisle)
-      const offX = a === 270 ? -3.4 : a === 90 ? (s.position.x < 150 ? -3.4 : 3.4) : 0;
+      // stop sits at the stall head (away from its access aisle); an L2 car faces its
+      // post on the canopy spine, 90 = east, 270 = west
+      const offX = s.type === 'l2' ? (a === 90 ? 3.4 : -3.4)
+        : a === 270 ? -3.4 : a === 90 ? (s.position.x < 150 ? -3.4 : 3.4) : 0;
       const offY = across ? 0 : (s.position.y < 110 ? -3.4 : 3.4);
       const [wx, , wz] = toWorld({ x: s.position.x + offX, y: s.position.y + offY }, 0);
       d.position.set(wx, DECK_Y + 0.1, wz); // 0.33u (15 cm) standing proud of the deck, not half-buried in it
-      d.rotation.set(0, across ? 0 : Math.PI / 2, 0);
+      // an L2 car lies east-west, so its stop runs north-south across the stall
+      d.rotation.set(0, s.type === 'l2' ? Math.PI / 2 : across ? 0 : Math.PI / 2, 0);
       d.updateMatrix();
       inst.setMatrixAt(i, d.matrix);
     });

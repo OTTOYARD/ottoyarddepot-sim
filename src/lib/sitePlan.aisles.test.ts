@@ -78,14 +78,18 @@ describe("depot aisles — the founder's 24 ft two-way spec", () => {
 
   it("the L2 west-column pitch in the renderer matches the one the seed declares", () => {
     // sitePlan.ts lays the column out at a pitch; buildLayoutSeed.mjs is told the same
-    // pitch by hand in order to cap the declared depth. Two files, one dimension,
-    // nothing binding them — so the depth could silently stop matching the spacing.
-    // This measures the ACTUAL spacing out of the seed and checks the declared depth
-    // is the cap that spacing implies.
+    // pitch by hand in order to cap a declared dimension. Two files, one dimension,
+    // nothing binding them — so the footprint could silently stop matching the spacing.
+    // This measures the ACTUAL spacing out of the seed and checks the declared footprint
+    // is the cap that spacing implies. Since 2026-09-28 an L2 stall is perpendicular
+    // HEAD-IN (heading 90 on this column): its cars stand SIDE BY SIDE down the column,
+    // so the pitch caps the stall's WIDTH, and its depth is the full nominal 20 ft
+    // (it was capped at pitch - clearance = 16.14 ft while cars stood nose to tail).
     const seed = JSON.parse(readFileSync("unreal/layoutSeed.json", "utf8"));
     const clearance = seed.meta.clearance_ft;
     const west = (seed.stalls as { canopy_side: string; stall_type: string; relative_y: number;
-                                   stall_depth_ft: number; canopy_code: string }[])
+                                   stall_depth_ft: number; stall_width_ft: number; heading_degrees: number;
+                                   canopy_code: string }[])
       .filter((s) => s.stall_type === "l2" && s.canopy_side === "W" && s.canopy_code === "CANOPY-02")
       .sort((a, b) => b.relative_y - a.relative_y); // north to south
     expect(west.length).toBe(8);
@@ -93,7 +97,11 @@ describe("depot aisles — the founder's 24 ft two-way spec", () => {
     for (let i = 1; i < west.length; i++) {
       expect(Math.abs(west[i - 1].relative_y - west[i].relative_y)).toBeCloseTo(pitch, 6);
     }
-    for (const s of west) expect(s.stall_depth_ft).toBeCloseTo(Math.min(20, pitch - clearance), 6);
+    for (const s of west) {
+      expect(s.heading_degrees).toBe(90);
+      expect(s.stall_width_ft).toBeCloseTo(Math.min(10, pitch - clearance), 6);
+      expect(s.stall_depth_ft).toBeCloseTo(20, 6);
+    }
   });
 
   it("refuses to measure an aisle between runs that are not facing columns", () => {

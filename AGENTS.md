@@ -83,15 +83,38 @@ interpolation.** Zero world logic client-side.
     reads the ROUTED path as well as the rounded rail — without that, a wider right-turn arc leaves
     `NODE_MATCH` and the car stops registering the junction.
   - DCFC stalls (16u pitch) are entered on an **S-curve pull-in** (`DCFC_PULLIN_RISE` 12,
-    `DCFC_PULLIN_TAIL` 3.5, measured >= 0.65u from every other stall). L2 (10.6u pitch, nose to tail)
-    has no such path and keeps the sidestep. The dock blend is skipped when a rail already ends
-    facing the parked heading.
-  - Ratchets: `turnRadius.replay.test.ts` (share of turning at R < 5u, crab, spin) and docking test D
-    (0 DCFC contacts with both neighbours parked).
+    `DCFC_PULLIN_TAIL` 3.5, measured >= 0.65u from every other stall) and left by leaning forward
+    into the gap lane (`chargerExit`). The dock blend is skipped when a rail already ends facing
+    the parked heading.
+  - **L2 stalls are perpendicular HEAD-IN (founder's call, 2026-09-28)** — `sitePlan.chargingStalls`
+    angle 90 (west column, faces east) / 270 (east column, faces west), nose to the post on the
+    spine (`L2_PEDESTAL_OFFSET_PU` 6.5). **The stall centres did not move**: twin stalls map by
+    position and OTTO-Q's travel legs read `relative_x/y`, so only heading and declared footprint
+    changed. A car turns in at its own row and drives straight in; it leaves by **backing out**
+    (`l2BackOut`: straight, then a full-lock R ≈ 11u swing to face north on the gap lane's
+    centreline) and rides that centreline to the north collector, as a DCFC car does. Neighbours
+    share one stretch of lane, so a back-out waits (`l2BackOutBlocked`) for a neighbour's back-out
+    under way, a car standing anywhere its swing sweeps (`L2_BACKOUT_SWEEP_AHEAD`), a moving car
+    near its finish, or a lean-out about to merge there; once committed it is also published where
+    it will finish, so lane traffic queues behind it. Test E (docking) backs out two of every three
+    L2 cars beside each other and past parked neighbours: 0 contacts (each rule above is
+    mutation-checked there). Slanted rows were rejected on paper first: a 60° row turns off its
+    lane ~9.5u south of the stall, which puts the last west-row stall's turn-in inside the south
+    boulevard.
+  - Ratchets: `turnRadius.replay.test.ts` (share of turning at R < 5u, crab, spin), docking test D
+    (0 contacts, DCFC and L2, pulling in between parked neighbours) and test E (0 contacts, L2
+    backing out).
   - **Measured worse, do not re-propose:** a GLOBAL corner cut of 3.6 (fresh-start overlap 49 → 70,
     all in the temp-staging aisle and SE ring corner) · a right-turn cap above 2.4 (R < 5u share flat,
     overlap +7%) · a DCFC pull-in with a 7u straight tail (the rear swings 0.17u INTO the car parked
-    in the next stall south).
+    in the next stall south) · routing a finished L2 back-out by the graph (`routeFacing`): graph
+    lanes run 3.2u right of centre, so it drove beside the charger cars on the centreline (test E
+    0 → 51 contacts) · publishing a DCFC lean-out at its merge point the way an L2 back-out is: it
+    removes busy_day's co-located DCFC pair (−20 overlap) and costs +53 stuck samples.
+  - **Known open (pre-existing):** two DCFC lean-outs from one column can commit their merges while
+    both are still in their stalls and finish on top of each other (busy_day frame 30: one pair,
+    14 samples). Head-in DCFC would remove the lean-out; it needs the OTTO-CHARGE ARM re-placed
+    beside a car that faces its post, so it is its own change.
 - **Keep Yuka's `SeparationBehavior.weight` low (0.35).** At 2.2 it was *stronger* than
   path-following and shoved cars sideways off the lanes.
 - **Known open:** the 3D car uses `BoxGeometry(2.2, 0.85, 4.9)` — **metres dropped into unit-space**,

@@ -10,6 +10,8 @@
 //
 //     before (2026-09-27)   fresh0922 63% of all turning at R < 5u · busyday 60%
 //     after  (2026-09-28)   fresh0922 27%                          · busyday 23%
+//     L2 head-in (same day) fresh0922 27.9%, crab 1.05% of travel  · busyday 23.6%, crab 0.61%
+//                           (crab was 2.0% / 0.9%: L2 cars no longer slide into their stalls)
 //
 // What moved it (RailFlow.roundCorners / TwinMotionDriver.gapEntry):
 //   • the gap-lane mouth routed to a point 1.2u BEHIND a westbound car, so it

@@ -7,9 +7,11 @@
  *
  * Flow (continuous, user-locked 2026-06-10):
  *  - Ingress (S-W gate) → west aisle N → NORTH COLLECTOR (two-way artery).
- *  - Charging = gas-pump: ride a flanking pull-out lane to depth, sidestep
- *    into the stall; exit by sidestepping back out and heading N to the
- *    collector. The canopy gaps are TRAVEL LANES — never obstructed.
+ *  - Charging: ride a flanking northbound lane to the stall's row. DCFC is
+ *    gas-pump pull-alongside (lean in, lean back out, head N to the collector);
+ *    L2 is perpendicular head-in (turn in at the row, drive straight in; back
+ *    straight out into the lane, head N). The canopy gaps are TRAVEL LANES —
+ *    never obstructed.
  *  - Service/wash sit directly ahead through the concrete FORECOURT throat;
  *    every bay is full pull-through: in the front, out the REAR into a 30ft
  *    clear maneuvering APRON (no parking abuts it), then left via the WEST
@@ -257,11 +259,12 @@ export const LIGHT_POLES: { x: number; y: number }[] = [
 
 function chargingStalls(dcfcCount: number, l2Count: number): StallState[] {
   const stalls: StallState[] = [];
-  // Gas-pump lanes: cars at cx±7 (the lane), charger pedestal beside each car at cx±2.5.
-  // 2-deep pull-through along y; angle 180 = parked facing south (direction of travel).
-  const mk = (id: string, type: 'dcfc' | 'l2', x: number, y: number): StallState => ({
+  // Cars at cx±7. DCFC: gas-pump pull-alongside, pedestal beside the car toward the
+  // spine (angle 180 is the declared heading the seed has always carried; the car
+  // parks facing north, TwinMotionDriver.parkedHeading). L2: see the L2 block below.
+  const mk = (id: string, type: 'dcfc' | 'l2', x: number, y: number, angle = 180): StallState => ({
     id, type, status: 'available', vehicleId: null,
-    position: { x, y, angle: 180 },
+    position: { x, y, angle },
   });
 
   // Canopy A — DCFC, 2 columns × 5 (step 16 = roomy pull-in/pull-out)
@@ -295,15 +298,31 @@ function chargingStalls(dcfcCount: number, l2Count: number): StallState[] {
   //
   // buildLayoutSeed.mjs carries the matching pitch; they are asserted equal by
   // sitePlan.aisles.test.ts reading the committed seed.
+  //
+  // PERPENDICULAR HEAD-IN (founder's call, 2026-09-28: "with the charging lanes, just
+  // do whatever makes the most sense ... either slanting or otherwise"). The L2 stalls
+  // used to hold cars NOSE TO TAIL along the column, 10.6u apart for a 10.2u car —
+  // 0.4u between bumpers, so no car could physically drive into a stall with both
+  // neighbours parked; the renderer slid it in sideways. Each stall now holds its car
+  // at 90° to the column, nose to the charger on the canopy spine: a car turns off its
+  // gap lane at the stall's own row, drives straight in, and backs straight out.
+  //   angle  90  west column: parked facing EAST (spine to its east)
+  //   angle 270  east column: parked facing WEST
+  // THE CENTRES DO NOT MOVE. Twin stalls map to these by position (setTwinStallMap),
+  // and OTTO-Q's travel legs read public.stalls relative_x / relative_y — so the
+  // engine's world is unchanged; only the heading and the declared footprint are.
+  // Slanting was measured on paper first and rejected for this site: a 60° row turns
+  // off its lane ~9.5u SOUTH of the stall, which puts the last west-row stall's
+  // turn-in inside the south boulevard (see the PR for the arithmetic).
   let l2 = 0;
   for (const c of [CANOPIES[1], CANOPIES[2]]) {
     for (let i = 0; i < 8 && l2 < l2Count; i++) {
       l2++;
-      stalls.push(mk(`L2-${String(l2).padStart(2, '0')}`, 'l2', c.cx - 7, 85.9 + i * 10.6));
+      stalls.push(mk(`L2-${String(l2).padStart(2, '0')}`, 'l2', c.cx - 7, 85.9 + i * 10.6, 90));
     }
     for (let i = 0; i < 7 && l2 < l2Count; i++) {
       l2++;
-      stalls.push(mk(`L2-${String(l2).padStart(2, '0')}`, 'l2', c.cx + 7, 91 + i * 11));
+      stalls.push(mk(`L2-${String(l2).padStart(2, '0')}`, 'l2', c.cx + 7, 91 + i * 11, 270));
     }
   }
   return stalls;
@@ -369,9 +388,10 @@ export function generateStallsV2(
 }
 
 // ---- Routing (continuous-flow circulation; consumed by SimulationEngine) ----
-// Gas-pump charging: enter a flanking pull-out lane from the collector, drop
-// to stall depth, sidestep IN. Exit = sidestep OUT into the lane, head NORTH
-// to the collector — service/wash is straight ahead through the forecourt.
+// Charging: enter a flanking northbound lane from the south boulevard and ride it
+// to the stall's row. DCFC leans in and leans back out; L2 turns in head-first and
+// backs straight out into the lane. Either way the car heads NORTH to the collector
+// — service/wash is straight ahead through the forecourt.
 // Bays are full pull-through: out the rear into the 30ft apron, then left
 // (west link) or right (east aisle) to parking or the egress gate.
 // Collectors are two-way; west aisle is northbound; east aisle southbound.

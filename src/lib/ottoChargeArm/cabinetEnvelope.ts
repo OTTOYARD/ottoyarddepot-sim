@@ -85,6 +85,17 @@ export const CABINET_BACKSET_PU = 1.35;
 /** L2 cabinets are smaller and carry no arm, but the renderer draws them too. */
 export const L2_CABINET_PU = { width: 1.1, height: 2.8, depth: 0.7, padHeight: 0.16 } as const;
 
+/**
+ * Car centre to L2 post, plan units, toward the canopy spine.
+ *
+ * An L2 stall is perpendicular HEAD-IN (sitePlan.chargingStalls, 2026-09-28): the
+ * post stands at the head of the stall, in front of the car's nose. The nose is
+ * CAR_LENGTH / 2 = 5.1u out; at 6.5u the post's 0.7u body leaves 1.05u (0.50 m) to
+ * the bumper and its pad 0.65u — a wheel-stop gap, not a scrape. PEDESTAL_OFFSET_PU
+ * (6.0u) stays the DCFC value: it was swept for the arm, and L2 has no arm.
+ */
+export const L2_PEDESTAL_OFFSET_PU = 6.5;
+
 export interface CabinetDims {
   width: number; height: number; depth: number; padHeight: number;
 }

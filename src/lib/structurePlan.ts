@@ -29,7 +29,7 @@ import {
 } from './sitePlan';
 import { CAR_LENGTH, CAR_WIDTH } from '@/engine/motion/traffic';
 import { PEDESTAL_OFFSET_PU } from '@/lib/ottoChargeArm/cobotSpec';
-import { DCFC_CABINET_PU, L2_CABINET_PU, CABINET_BACKSET_PU } from '@/lib/ottoChargeArm/cabinetEnvelope';
+import { DCFC_CABINET_PU, L2_CABINET_PU, CABINET_BACKSET_PU, L2_PEDESTAL_OFFSET_PU } from '@/lib/ottoChargeArm/cabinetEnvelope';
 import { towardFor } from '@/lib/ottoChargeArm/depotPlacement';
 
 /** Axis-aligned rectangle in plan units. */
@@ -231,7 +231,7 @@ export function cabinetFootprints(stalls = generateStallsV2()): CabinetFootprint
     const dc = s.type === 'dcfc';
     const dims = dc ? DCFC_CABINET_PU : L2_CABINET_PU;
     const toward = towardFor(s.position.x);
-    const px = s.position.x + toward * PEDESTAL_OFFSET_PU;
+    const px = s.position.x + toward * (dc ? PEDESTAL_OFFSET_PU : L2_PEDESTAL_OFFSET_PU);
     const cx = px + toward * (dc ? CABINET_BACKSET_PU : 0);
     // pad = body + 0.4 / 0.3 margins (ChargingField: [D + 0.8, W + 0.6])
     const hx = (dims.depth + 0.8) / 2;
