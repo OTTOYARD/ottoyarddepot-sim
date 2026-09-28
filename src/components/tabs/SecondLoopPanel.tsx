@@ -12,10 +12,12 @@
 //     asks, what it has open right now, what it graded in hindsight, and each
 //     question's record across runs. It never changes the engine, and the card
 //     says so.
-//   LEARNER — after the day, overnight. Each dial experiment: the two values it
-//     compares, the pairs toward its next look, whether both arms actually read
-//     the dial they were given (0533), the verdict as the runner will judge it,
-//     and what the promoter did.
+//   RESEARCH (TWIN) — after the day, overnight. The research wing's paired tests
+//     on simulated days (CLAUDE.md rule 10: OTTO-Q never tests or changes its own
+//     settings). Each dial experiment: the two values it compares, the pairs
+//     toward its next look, whether both arms actually read the dial they were
+//     given (0533), the verdict as the runner will judge it, and what the
+//     promoter did; since 0540 a win is recommended for a person to ship.
 //
 // Data contract: otto-q-core 0536, ottoq_challenger_board and
 // ottoq_learning_board (0537: one-scan sightings counted apart; 0538: what each
@@ -264,8 +266,8 @@ export function SecondLoopPanel() {
 
       <Card
         icon={FlaskConical}
-        title="Learner"
-        subtitle="After the day, overnight: each dial is tested in paired runs on the same seed and the same world, one value against another. The verdict decides what is promoted."
+        title="Research (twin)"
+        subtitle="Engineering's paired tests, run overnight on simulated days in the twin: one setting against another, on the same seed and the same world. A win is a recommendation a person reviews and ships as a certified change. OTTO-Q never changes its own settings."
         chip={<Chip tone={learning?.runner?.enabled ? 'ok' : 'idle'}>{learning?.runner?.enabled ? 'pairing' : 'between windows'}</Chip>}
       >
         <p className="font-mono text-[9px] text-ink-faint">{windowText(learning) ?? ''}</p>

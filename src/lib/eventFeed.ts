@@ -35,7 +35,8 @@ export const DEFAULT_DOMAINS: EventDomain[] = ["charging", "vehicles", "depot"];
 
 const VEHICLE_TYPES = new Set([
   "twin.vehicle_arrived", "ottoq.booking_interrupted", "ottoq.replan_escalated", "ottoq.visit_reopened",
-  "twin.deferred_service_started", "twin.deferred_service_completed", "twin.deploy_gate_override",
+  "twin.deferred_service_started", "twin.deferred_service_completed", "twin.deploy_gate_override", "twin.deploy_gate_escalated",
+  "twin.departure_recheck", "twin.dispatch_refused_unfinished", "twin.dispatch_refused_rider_flag",
   "ottoq.refusal_escalated", "twin.auto_dispatch_emit",
 ]);
 
@@ -99,8 +100,55 @@ export function describeEvent(type: string, payload: Record<string, unknown> | n
     case "ottoq.visit_reopened": return { title: "Visit reopened", detail: words(p.reopen_reason) || undefined };
     case "twin.deferred_service_started": return { title: "Deferred service started", detail: words((p.item as Record<string, unknown> | undefined)?.svc) || undefined };
     case "twin.deferred_service_completed": return { title: "Deferred service done", detail: words((p.item as Record<string, unknown> | undefined)?.svc) || undefined };
+    // Before otto-q-core 0542 the gate released a car past its hard cap; old runs still carry the event.
     case "twin.deploy_gate_override":
       return { title: "Released past the readiness gate", detail: join(words(p.reason), n(p.held_min) !== null && `held ${r0(p.held_min)} min`) };
+    // Since 0542 (rule 9) the gate never releases an unfinished car: past the hard cap it holds it and asks a person.
+    // otto-q-core 0546 (G274): a car that waits past the same limit for a charger or the service bay is escalated
+    // with the gate's own event, and its reason says what it was waiting for.
+    case "twin.deploy_gate_escalated": {
+      const missing = Array.isArray(p.missing) && p.missing.length ? `missing ${p.missing.map(words).join(", ")}` : "";
+      if (p.reason === "waiting_for_a_charger" || p.reason === "waiting_for_the_service_bay") {
+        return {
+          title: p.reason === "waiting_for_a_charger"
+            ? "Waited past the limit for a charger · needs a person"
+            : "Waited past the limit for the service bay · needs a person",
+          detail: join(missing, n(p.held_min) !== null && `waited ${r0(p.held_min)} min`),
+        };
+      }
+      return {
+        title: "Held past the gate's limit · needs a person",
+        detail: join(missing, n(p.held_min) !== null && `held ${r0(p.held_min)} min`),
+      };
+    }
+    // Since otto-q-core 0543 (rule 9) no car leaves with a service still needed: a car staged to leave that is not
+    // finished goes back to its charger or bay, and a car waiting for a charger it no longer needs goes back to the gate.
+    case "twin.departure_recheck": {
+      const cars = Array.isArray(p.cars) ? (p.cars as Record<string, unknown>[]) : [];
+      const to = (remedy: string) => cars.filter((c) => c?.remedy === remedy).length;
+      const rerouted = n(p.rerouted) ?? cars.length;
+      const back = n(p.back_to_gate) ?? 0;
+      return {
+        title: rerouted > 0 ? "Kept from leaving unfinished" : "Back to the readiness gate",
+        detail: join(to("need_charge") > 0 && `${to("need_charge")} to a charger`,
+          to("need_service") > 0 && `${to("need_service")} to the service bay`,
+          to("need_deploy") > 0 && `${to("need_deploy")} to a wash or detail bay`,
+          back > 0 && `${back} no longer need${back === 1 ? "s" : ""} a charger`),
+      };
+    }
+    // The dispatch door refuses a car the deploy plan should never have offered: otto-q-core 0544 for a car that is
+    // not finished (rule 9), 0019 for a car owing a due rider-flagged cleaning. The car stays; nothing left.
+    case "twin.dispatch_refused_unfinished": {
+      const open = Array.isArray(p.open) ? (p.open as unknown[]).map(words).filter(Boolean) : [];
+      const soc = n(p.soc);
+      const target = n(p.target_soc);
+      return {
+        title: "Dispatch refused · not finished",
+        detail: join(open.length > 0 && `open: ${open.join(", ")}`,
+          soc !== null && target !== null && soc < target - 1 && `charge ${r0(soc)}% of ${r0(target)}%`),
+      };
+    }
+    case "twin.dispatch_refused_rider_flag": return { title: "Dispatch refused · rider-flagged cleaning due" };
     case "vehicle.exception_proposed": return { title: "Exception proposed", detail: join(words(p.fault_class), words(p.disposition)) };
     case "vehicle.technician_approved": return { title: "Technician approved", detail: words(p.action) || undefined };
     case "vehicle.tow_retrieved_staged": return { title: "Towed back to staging" };
@@ -122,7 +170,7 @@ export function describeEvent(type: string, payload: Record<string, unknown> | n
     case "twin.deploy_pressure_fasttrack": return { title: "Fast-tracked to deploy", detail: join(`${r0(p.fasttracked)} vehicle(s)`, `${r0(p.deployed)} of ${r0(p.target)} out`) };
     case "ottoq.indepot_approvals_decided": return { title: "In-depot approvals decided", detail: join(`${r0(p.approved)} approved`, `${r0(p.declined)} declined`) };
     case "twin.deploy_gate_summary":
-      return { title: "Readiness gate", detail: join(`${r0(p.held)} held`, `${r0(p.released)} released`, n(p.escalated) ? `${r0(p.escalated)} escalated` : "", n(p.overridden) ? `${r0(p.overridden)} overridden` : "") };
+      return { title: "Readiness gate", detail: join(`${r0(p.held)} held`, `${r0(p.released)} released`, n(p.escalated) ? `${r0(p.escalated)} escalated` : "", n(p.held_past_hard_cap) ? `${r0(p.held_past_hard_cap)} past the limit` : "", n(p.overridden) ? `${r0(p.overridden)} overridden` : "") };
     case "ottoq.rider_flag_serviced_in_depot": return { title: "Rider flag handled in the depot", detail: `${r0(p.flags_actioned)} flag(s)` };
     case "twin.solar_inverter_blip": return { title: "Solar inverter dropout", detail: join(s(p.canopy_code), `lost ${r0(p.lost_ac_kw)} kW`) };
     case "twin.grid_frequency_excursion": return { title: "Grid frequency excursion", detail: `${r1(p.frequency_hz)} Hz` };
