@@ -12,7 +12,8 @@ import { useVehicleStore } from "@/store/vehicleStore";
 import type { TwinSnapshot } from "@/lib/ottoTwin";
 import { LaneGraph, buildDepotLanes } from "./motion/LaneGraph";
 import { buildRail, movementsConflict, RailLocks, stepRail, type RailBody, type Sweep } from "./motion/RailFlow";
-import { EGRESS, GAP_LANES, NORTH_LANE_Y, TEMP_LANE_X } from "@/lib/sitePlan";
+import { EGRESS, GAP_LANES, NORTH_LANE_Y, SOUTH_LANE_Y, TEMP_LANE_X } from "@/lib/sitePlan";
+import { bodiesOverlap } from "./__fixtures__/replay";
 
 type Entry = {
   car: { x: number; y: number; heading: number; speed: number };
@@ -50,36 +51,104 @@ beforeEach(() => {
   useDepotStore.getState().regenerateStalls(10, 30, 3, 113, 2);
 });
 
-describe("leaving a charger — the gas-pump exit", () => {
-  it("a re-tasked charger car drives OUT forward, up its gap lane, and never south", () => {
+describe("leaving a charger — the head-in back-out", () => {
+  it("a re-tasked DCFC car backs out onto its gap lane facing north, rides it north, and never touches a neighbour", () => {
     // three cars fill the west DCFC column north-first: DCFC-01..03
     const cars = ["A", "B", "C"].map((id) => ({ id, state: "charging_dcfc" }));
     twinMotionDriver.reconcile(snap(cars));
     const bStall = entry("B").stallId!;
     const st = stallPos(bStall);
+    const gx = Math.abs(st.x - GAP_LANES.westOfA) < Math.abs(st.x - GAP_LANES.AB) ? GAP_LANES.westOfA : GAP_LANES.AB;
     passDwell("B");
     twinMotionDriver.reconcile(snap([cars[0], { id: "B", state: "staged_awaiting_service" }, cars[2]]));
 
+    // Head-in since 2026-09-28: the car leaves by BACKING OUT, planned to finish on
+    // its gap lane's centreline facing north (the one way that lane runs).
     const e = entry("B");
-    // not a back-out: the stall behind it is the next one in the column
-    expect(e.reverse).toBeNull();
-    expect(e.tracker).not.toBeNull();
-    const pts = e.tracker!.pts;
-    const gx = Math.abs(st.x - GAP_LANES.westOfA) < Math.abs(st.x - GAP_LANES.AB) ? GAP_LANES.westOfA : GAP_LANES.AB;
-    // it reaches its own gap lane NORTH of the stall, then the north collector
-    const onLane = pts.findIndex((p) => Math.abs(p.x - gx) < 0.5);
-    expect(onLane).toBeGreaterThan(0);
-    expect(pts[onLane].y).toBeLessThan(st.y);
-    expect(pts.some((p) => Math.abs(p.x - gx) < 0.5 && Math.abs(p.y - NORTH_LANE_Y) < 1)).toBe(true);
-    // …and nothing before the collector runs south of where it was parked:
+    expect(e.tracker).toBeNull();
+    expect(e.reverse).not.toBeNull();
+    expect(Math.abs(e.reverse!.end!.x - gx)).toBeLessThan(1e-6);
+    expect(e.reverse!.end!.hx).toBe(0);
+    expect(e.reverse!.end!.hy).toBe(-1);
+
+    // Drive the back-out, measuring the drawn body against the cars still parked
+    // either side at every step.
+    const parked = ["A", "C"].map((id) => ({ ...entry(id).car }));
+    let steps = 0;
+    while (entry("B").reverse && steps++ < 1200) {
+      twinMotionDriver.tickMotion(0.05);
+      const b = entry("B").car;
+      for (const o of parked) {
+        expect(bodiesOverlap({ id: "B", x: b.x, y: b.y, h: b.heading, moving: true }, { id: "o", x: o.x, y: o.y, h: o.heading, moving: false })).toBe(false);
+      }
+    }
+    const after = entry("B");
+    expect(after.reverse).toBeNull();
+    // it finished where it planned: on the lane, facing north
+    expect(Math.abs(after.car.x - gx)).toBeLessThan(0.6);
+    expect(Math.abs(after.car.heading + Math.PI / 2)).toBeLessThan(0.05);
+    expect(after.tracker).not.toBeNull();
+    const pts = after.tracker!.pts;
+    // …it rides its gap lane's CENTRELINE north (the line every charger car in that
+    // lane drives) all the way to the north collector, where the corner onto the
+    // collector is rounded…
+    const toCollector = pts.findIndex((p) => p.y <= NORTH_LANE_Y + 6);
+    expect(toCollector).toBeGreaterThan(0);
+    const upToCollector = pts.slice(0, toCollector + 1);
+    for (const p of upToCollector.slice(1, -1)) expect(Math.abs(p.x - gx)).toBeLessThan(0.5);
+    // …and nothing before the collector runs south of where the back-out ended:
     // the gap lanes are one-way NORTHBOUND (founder-locked doctrine)
-    const upToCollector = pts.slice(0, pts.findIndex((p) => Math.abs(p.y - NORTH_LANE_Y) < 1) + 1);
-    for (const p of upToCollector) expect(p.y).toBeLessThanOrEqual(st.y + 1e-6);
+    for (const p of upToCollector) expect(p.y).toBeLessThanOrEqual(after.car.y + 1e-6);
     // and its path never comes within a lane-half of the cars still parked either side
-    for (const other of ["A", "C"]) {
-      const o = stallPos(entry(other).stallId!);
+    for (const o of parked) {
       for (const p of upToCollector) expect(Math.hypot(p.x - o.x, p.y - o.y)).toBeGreaterThan(1.7);
     }
+  });
+});
+
+describe("a charger back-out that ends in the south collector", () => {
+  type Blocking = {
+    chargerBackOutBlocked(id: string, e: unknown, bodies: RailBody[]): boolean;
+    backOutClaims(id: string, end: { x: number; y: number }): RailBody[];
+  };
+  const drv = () => twinMotionDriver as unknown as Blocking;
+  const leaving = (code: string) => {
+    twinMotionDriver.setTwinStallMap([{ id: "s", code, type: "dcfc" }]);
+    twinMotionDriver.reconcile(snap([{ id: "V", state: "charging_dcfc", stall_id: "s" }]));
+    passDwell("V");
+    twinMotionDriver.reconcile(snap([{ id: "V", state: "staged_awaiting_service" }]));
+    const e = entry("V");
+    expect(e.reverse).not.toBeNull();
+    return e;
+  };
+  const westbound = (x: number, moving: boolean): RailBody =>
+    ({ id: "X", x, y: SOUTH_LANE_Y - 3.2, heading: Math.PI, moving, speed: moving ? 8 : 0 });
+
+  it("from the southernmost DCFC row it waits for collector traffic at the lane's mouth, then stands across the stream it reaches", () => {
+    // DCFC-05 is the last row of the west column (y 152): the swing finishes 11u
+    // south of it, facing north on gap lane westOfA, with the tail a half-length on —
+    // 1.4u into the westbound stream's car envelope. Collector traffic crosses the
+    // lane mouth sideways, where the lane-shaped tests do not look.
+    const e = leaving("NASH-DCFC-STALL-05");
+    const end = e.reverse!.end!;
+    expect(end.x).toBeCloseTo(GAP_LANES.westOfA, 6);
+    expect(end.y + 5.1).toBeGreaterThan(SOUTH_LANE_Y - 3.2 - 2.1);
+    expect(drv().chargerBackOutBlocked("V", e, [westbound(86, false)])).toBe(true);  // standing by the tail
+    expect(drv().chargerBackOutBlocked("V", e, [westbound(105, true)])).toBe(true);  // coming, too close to stop
+    expect(drv().chargerBackOutBlocked("V", e, [westbound(115, true)])).toBe(false); // will see the claim and stop
+    // once committed it is published at its finishing spot AND across the westbound
+    // stream, where a car on the collector sees it dead ahead
+    const claims = drv().backOutClaims("V", end);
+    expect(claims.map((c) => [c.x, c.y])).toEqual([[end.x, end.y], [end.x, SOUTH_LANE_Y - 3.2]]);
+    expect(claims[1].heading).toBeCloseTo(Math.PI, 9);
+    expect(claims.every((c) => !c.moving)).toBe(true);
+  });
+
+  it("a back-out that finishes inside its gap lane ignores the collector", () => {
+    const e = leaving("NASH-DCFC-STALL-04"); // y 136: finishes 16u clear of the collector
+    const end = e.reverse!.end!;
+    expect(drv().chargerBackOutBlocked("V", e, [westbound(86, false)])).toBe(false);
+    expect(drv().backOutClaims("V", end)).toHaveLength(1);
   });
 });
 

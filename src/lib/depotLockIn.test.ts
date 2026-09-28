@@ -267,15 +267,18 @@ describe("every staging pull-in is approached from its serving aisle", () => {
       expect(Number.isFinite(parkedHeading("staging", 90, v, 100))).toBe(true);
       expect(Number.isFinite(parkedHeading("staging", 0, 100, v))).toBe(true);
     }
-    // DCFC and bay stalls are unconditional NORTH and never consult an aisle.
-    for (const l of ["dcfc", "wash", "service"] as const) {
+    // Bay stalls are unconditional NORTH and never consult an aisle.
+    for (const l of ["wash", "service"] as const) {
       expect(parkedHeading(l, 90, 233.5, 100)).toBeCloseTo(-Math.PI / 2, 6);
     }
-    // L2 is perpendicular head-in (2026-09-28): its stall's bearing IS the heading —
-    // 90 faces EAST, 270 faces WEST — and it never consults an aisle either. Any other
-    // declared angle keeps the old NORTH, so a stale layout cannot produce NaN.
-    expect(parkedHeading("l2", 90, 233.5, 100)).toBeCloseTo(0, 6);
-    expect(parkedHeading("l2", 270, 233.5, 100)).toBeCloseTo(Math.PI, 6);
-    expect(parkedHeading("l2", 180, 233.5, 100)).toBeCloseTo(-Math.PI / 2, 6);
+    // Charger stalls, DCFC and L2, are perpendicular head-in (2026-09-28): the stall's
+    // bearing IS the heading — 90 faces EAST, 270 faces WEST — and they never consult
+    // an aisle either. Any other declared angle keeps the old NORTH, so a stale layout
+    // cannot produce NaN.
+    for (const l of ["dcfc", "l2"] as const) {
+      expect(parkedHeading(l, 90, 233.5, 100)).toBeCloseTo(0, 6);
+      expect(parkedHeading(l, 270, 233.5, 100)).toBeCloseTo(Math.PI, 6);
+      expect(parkedHeading(l, 180, 233.5, 100)).toBeCloseTo(-Math.PI / 2, 6);
+    }
   });
 });

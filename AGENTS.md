@@ -49,9 +49,10 @@ interpolation.** Zero world logic client-side.
   is what stops cars wedging (see `TwinMotionDriver.flow.test.ts`).
 - **Traffic flow (2026-09-22) — read before touching exits, junctions or lane offsets:**
   - A parked car leaves by an **exit manoeuvre**, never a straight line to the nearest node: charger
-    cars sidestep into their one-way northbound gap lane (`chargerExit`), staging cars back out and
-    join the aisle ahead of the nose (`backOutFrom` + `LaneGraph.routeFacing`). The nearest-node exit
-    drove cars into their parked neighbours and wedged them for the rest of a run.
+    cars back out onto their one-way northbound gap lane (`chargerBackOut`, since 2026-09-28; they
+    used to sidestep into it), staging cars back out and join the aisle ahead of the nose
+    (`backOutFrom` + `LaneGraph.routeFacing`). The nearest-node exit drove cars into their parked
+    neighbours and wedged them for the rest of a run.
   - Junctions admit **compatible movements** together (`RailLocks`, `movementsConflict`); the old
     one-car-per-node lock serialised the opposing stream of every divided road.
   - `offsetRight` takes **miter** joins. That moved right-turn paths 5.7u from their node, so
@@ -82,39 +83,50 @@ interpolation.** Zero world logic client-side.
     1.2u. Fillet legs are measured between REAL corners (`dropCollinear`), and junction membership
     reads the ROUTED path as well as the rounded rail — without that, a wider right-turn arc leaves
     `NODE_MATCH` and the car stops registering the junction.
-  - DCFC stalls (16u pitch) are entered on an **S-curve pull-in** (`DCFC_PULLIN_RISE` 12,
-    `DCFC_PULLIN_TAIL` 3.5, measured >= 0.65u from every other stall) and left by leaning forward
-    into the gap lane (`chargerExit`). The dock blend is skipped when a rail already ends facing
-    the parked heading.
-  - **L2 stalls are perpendicular HEAD-IN (founder's call, 2026-09-28)** — `sitePlan.chargingStalls`
-    angle 90 (west column, faces east) / 270 (east column, faces west), nose to the post on the
-    spine (`L2_PEDESTAL_OFFSET_PU` 6.5). **The stall centres did not move**: twin stalls map by
+  - **Every charger stall is perpendicular HEAD-IN (founder's calls, 2026-09-28: L2 first, then
+    DCFC)** — `sitePlan.chargingStalls` angle 90 (west column, faces east) / 270 (east column, faces
+    west), nose toward the canopy spine. **The stall centres did not move**: twin stalls map by
     position and OTTO-Q's travel legs read `relative_x/y`, so only heading and declared footprint
     changed. A car turns in at its own row and drives straight in; it leaves by **backing out**
-    (`l2BackOut`: straight, then a full-lock R ≈ 11u swing to face north on the gap lane's
-    centreline) and rides that centreline to the north collector, as a DCFC car does. Neighbours
-    share one stretch of lane, so a back-out waits (`l2BackOutBlocked`) for a neighbour's back-out
-    under way, a car standing anywhere its swing sweeps (`L2_BACKOUT_SWEEP_AHEAD`), a moving car
-    near its finish, or a lean-out about to merge there; once committed it is also published where
-    it will finish, so lane traffic queues behind it. Test E (docking) backs out two of every three
-    L2 cars beside each other and past parked neighbours: 0 contacts (each rule above is
-    mutation-checked there). Slanted rows were rejected on paper first: a 60° row turns off its
-    lane ~9.5u south of the stall, which puts the last west-row stall's turn-in inside the south
-    boulevard.
+    (`chargerBackOut`: straight, then a full-lock R ≈ 11u swing to face north on the gap lane's
+    centreline) and rides that centreline to the north collector. The wheel is put over half a
+    steering ramp early and the swing runs that much longer (`rampLag`), so the car lands on the
+    centreline within ~0.1u instead of 0.8u past it. Neighbours share one stretch of lane — and
+    lane AB takes back-outs from BOTH sides, the DCFC east column and canopy B's L2 west column — so
+    a back-out waits (`chargerBackOutBlocked`) for (a) a neighbour's back-out under way, (b) a car
+    standing anywhere its swing sweeps (`CHARGER_BACKOUT_SWEEP_AHEAD`), (c) a moving car near its
+    finish, (d) a car about to merge there, and (e) south-collector traffic when the swing ends
+    with its tail in the collector (the southernmost rows). Once committed it is published where it
+    will finish, and across each collector stream its tail reaches (`backOutClaims`), so traffic
+    queues behind it. At the cusp the centreline lead stops ONE LANE OFFSET short of the north
+    collector's junction: ending on the node, the graph route dropped it as a duplicate and drew a
+    3.2u drift across ~47u of collector alongside the cars already in that stream (test E with the
+    DCFC back-outs added: 227 contact samples → 0).
+  - **The OTTO-CHARGE ARM moved with the DCFC stalls.** Its pedestal stands SOUTH of the car, abeam
+    its centre, `PEDESTAL_OFFSET_PU` off the centreline (`depotPlacement.pedestalPlanPoint`); the
+    cabinet `CABINET_BACKSET_PU` behind it, wide face along the car. In the ARM's own frame nothing
+    changed (same standoff, service window and clearance sweep), and south on both columns keeps
+    each column serving the charge-port flank it always did (west column the car's right, east
+    column its left: the vehicle-frame `-toward` flank). `depotIntegration.test.ts` asserts the
+    arm's IK target and the port ring `Vehicle3D` draws are the same world point with the car at
+    its real parked heading. Canopy spine columns now also stay out of every head-in car's width
+    band (`carHeadBands`): canopy A's did not move, and canopies B/C's moved 0.25u.
   - Ratchets: `turnRadius.replay.test.ts` (share of turning at R < 5u, crab, spin), docking test D
-    (0 contacts, DCFC and L2, pulling in between parked neighbours) and test E (0 contacts, L2
-    backing out).
+    (0 contacts, DCFC and L2, pulling in between parked neighbours), test E (0 contacts, DCFC and
+    L2 backing out beside each other and past parked neighbours) and the traffic test's
+    south-collector case (mutation-checked).
   - **Measured worse, do not re-propose:** a GLOBAL corner cut of 3.6 (fresh-start overlap 49 → 70,
     all in the temp-staging aisle and SE ring corner) · a right-turn cap above 2.4 (R < 5u share flat,
-    overlap +7%) · a DCFC pull-in with a 7u straight tail (the rear swings 0.17u INTO the car parked
-    in the next stall south) · routing a finished L2 back-out by the graph (`routeFacing`): graph
-    lanes run 3.2u right of centre, so it drove beside the charger cars on the centreline (test E
-    0 → 51 contacts) · publishing a DCFC lean-out at its merge point the way an L2 back-out is: it
-    removes busy_day's co-located DCFC pair (−20 overlap) and costs +53 stuck samples.
-  - **Known open (pre-existing):** two DCFC lean-outs from one column can commit their merges while
-    both are still in their stalls and finish on top of each other (busy_day frame 30: one pair,
-    14 samples). Head-in DCFC would remove the lean-out; it needs the OTTO-CHARGE ARM re-placed
-    beside a car that faces its post, so it is its own change.
+    overlap +7%) · routing a finished charger back-out by the graph (`routeFacing`): graph lanes run
+    3.2u right of centre, so it drove beside the charger cars on the centreline (test E 0 → 51
+    contacts) · ending that centreline lead ON the north collector's junction node (see above).
+    (Historical, the DCFC pull-alongside layout: a 7u straight pull-in tail put the rear 0.17u into
+    the next stall's car, and publishing a lean-out at its merge point cost +53 stuck samples.)
+  - **Known open (pre-existing, not charger motion):** two STAGING neighbours sent off in the same
+    tick can back out with their swings turned toward each other (the staging back-out has no
+    neighbour rule; the burst capture shows one such pair at the NW ring corner, 6 samples), and a
+    mass egress wave bunches staging departers on the south-east collector (busy_day frame 30).
+    Both surface or move when departure timing shifts; neither involves a charger car.
 - **Keep Yuka's `SeparationBehavior.weight` low (0.35).** At 2.2 it was *stronger* than
   path-following and shoved cars sideways off the lanes.
 - **Known open:** the 3D car uses `BoxGeometry(2.2, 0.85, 4.9)` — **metres dropped into unit-space**,

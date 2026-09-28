@@ -1,7 +1,7 @@
 {
   "meta": {
     "source": "src/lib/sitePlan.ts",
-    "exportedAt": "2026-09-28T16:31:44.355Z",
+    "exportedAt": "2026-09-28T18:25:09.877Z",
     "units": {
       "logical": 1,
       "feet": 1.57,
@@ -247,7 +247,7 @@
       "position": {
         "x": 96,
         "y": 88,
-        "angle": 180
+        "angle": 90
       }
     },
     {
@@ -258,7 +258,7 @@
       "position": {
         "x": 96,
         "y": 104,
-        "angle": 180
+        "angle": 90
       }
     },
     {
@@ -269,7 +269,7 @@
       "position": {
         "x": 96,
         "y": 120,
-        "angle": 180
+        "angle": 90
       }
     },
     {
@@ -280,7 +280,7 @@
       "position": {
         "x": 96,
         "y": 136,
-        "angle": 180
+        "angle": 90
       }
     },
     {
@@ -291,7 +291,7 @@
       "position": {
         "x": 96,
         "y": 152,
-        "angle": 180
+        "angle": 90
       }
     },
     {
@@ -302,7 +302,7 @@
       "position": {
         "x": 110,
         "y": 88,
-        "angle": 180
+        "angle": 270
       }
     },
     {
@@ -313,7 +313,7 @@
       "position": {
         "x": 110,
         "y": 104,
-        "angle": 180
+        "angle": 270
       }
     },
     {
@@ -324,7 +324,7 @@
       "position": {
         "x": 110,
         "y": 120,
-        "angle": 180
+        "angle": 270
       }
     },
     {
@@ -335,7 +335,7 @@
       "position": {
         "x": 110,
         "y": 136,
-        "angle": 180
+        "angle": 270
       }
     },
     {
@@ -346,7 +346,7 @@
       "position": {
         "x": 110,
         "y": 152,
-        "angle": 180
+        "angle": 270
       }
     },
     {

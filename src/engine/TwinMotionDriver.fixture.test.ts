@@ -257,8 +257,24 @@ describe("TwinMotionDriver — replay of a captured busy_day run", () => {
   // captures the viewer's on-screen pairs went 33 -> 32 and the burst's overlap
   // 99 -> 84; docking test D's L2 contacts went 2 -> 0, and test E (backing out past
   // parked neighbours and beside each other) measures 0.
-  const OVERLAP_BUDGET = 80;    // measured 78 (58 before L2 head-in; 54 before wide corners; 80 on main then). TARGET 0.
-  const STUCK_BUDGET = 8;       // measured 6 (5 before L2 head-in).
+  //
+  // 2026-09-28, DCFC HEAD-IN (the same day, the founder's go-ahead). The DCFC stalls
+  // turned 90° too and back out like L2 (chargerBackOut); the lean-out is gone, and
+  // with it the merge race above. Same harness, same clock:
+  //
+  //     before   overlap 78 · stuck 6 · distinct pairs 27
+  //     after    overlap 73 · stuck 7 · distinct pairs 28
+  //
+  // Gone: (130,110) x4 and (40,70) x5, the lean-out pair; (90,70) and (70,70) x2 each.
+  // New, each traced to the pair: (260,170) x9, (270,180) x2 and (250,160) x2 are
+  // STAGING departers bunching on the south-east collector in the frame-30 egress wave
+  // (dest egress, from the temp block — no charger car); (100,170) x1 likewise. Stuck:
+  // the one charger-car sample (a DCFC lean-out car held on the north collector) is
+  // gone, and two new ones are a staging departer queued behind another in that same
+  // south-east bunch. No sample involves a charger car in, beside, or backing out of
+  // its stall.
+  const OVERLAP_BUDGET = 80;    // measured 73 (78 before DCFC head-in; 58 before L2 head-in; 54 before wide corners; 80 on main then). TARGET 0.
+  const STUCK_BUDGET = 8;       // measured 7 (6 before DCFC head-in; 5 before L2 head-in).
 
   it("SYMPTOM 2a: body-overlap stays within the ratchet (target 0)", () => {
     // WHAT WAS LEFT, AND WHAT CLOSED IT. The dominant hotspot was the TE temp-staging

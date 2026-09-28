@@ -104,6 +104,24 @@ describe("depot aisles — the founder's 24 ft two-way spec", () => {
     }
   });
 
+  it("the DCFC stalls are declared head-in too, facing their canopy spine, with the car's length on x", () => {
+    // Since 2026-09-28 (sitePlan.chargingStalls): heading 90 on canopy A's west column,
+    // 270 on its east column, 16u (25.1 ft) apart shoulder to shoulder — so the pitch
+    // caps the WIDTH (at the nominal 10 ft, well inside it) and the depth is 20 ft. The
+    // centres are where they always were: the database positions OTTO-Q routes by.
+    const seed = JSON.parse(readFileSync("unreal/layoutSeed.json", "utf8"));
+    const dcfc = (seed.stalls as { canopy_side: string; stall_type: string; relative_x: number; relative_y: number;
+                                   stall_depth_ft: number; stall_width_ft: number; heading_degrees: number }[])
+      .filter((s) => s.stall_type === "dcfc");
+    expect(dcfc.length).toBe(10);
+    for (const s of dcfc) {
+      expect(s.heading_degrees).toBe(s.canopy_side === "W" ? 90 : 270);
+      expect(s.stall_width_ft).toBeCloseTo(10, 6);
+      expect(s.stall_depth_ft).toBeCloseTo(20, 6);
+    }
+    expect(new Set(dcfc.map((s) => s.relative_x.toFixed(4)))).toEqual(new Set(["141.2894", "163.2677"]));
+  });
+
   it("refuses to measure an aisle between runs that are not facing columns", () => {
     // Fail safe: a row that steps along x has no 'east face', and silently returning a
     // number for it would paint a lane through the row.

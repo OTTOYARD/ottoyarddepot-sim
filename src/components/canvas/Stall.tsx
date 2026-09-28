@@ -1,8 +1,9 @@
 import { memo } from 'react';
 import type { StallState } from '@/store/depotStore';
 import { useDepotStore } from '@/store/depotStore';
-import { towardFor, PEDESTAL_OFFSET_PU } from '@/lib/ottoChargeArm/depotPlacement';
+import { towardFor, pedestalPlanPoint } from '@/lib/ottoChargeArm/depotPlacement';
 import { CABINET_BACKSET_PU, L2_PEDESTAL_OFFSET_PU } from '@/lib/ottoChargeArm/cabinetEnvelope';
+import { chargerStallPaint } from '@/lib/sitePlan';
 
 const TYPE_COLORS: Record<string, string> = {
   dcfc: '#C00000',
@@ -42,26 +43,26 @@ function getParallelogramPoints(w: number, h: number, angleDeg: number): string 
 
 /**
  * A CHARGER stall, drawn where it is: a footprint centred on the parked car and
- * oriented the way the car lies, plus the charger post it plugs into. (The generic
+ * oriented the way the car lies, plus the charger it plugs into. (The generic
  * stall below is anchored at its top-left corner and skews by cos(angle), which put
  * every charger stall off its car as a slanted parallelogram — the 2D plan misstated
- * the charging layout.) DCFC: pull-alongside, the car lies north-south with its
- * cabinet beside it. L2: perpendicular head-in, the car lies east-west, nose to the
- * post on the canopy spine (sitePlan.chargingStalls).
+ * the charging layout.) Both types are perpendicular head-in, the car lying
+ * east-west with its nose toward the canopy spine (sitePlan.chargingStalls): a DCFC
+ * cabinet stands south of the car, beside it; an L2 post stands in front of its nose.
  */
 function ChargerStall({ stall, fill, stroke }: { stall: StallState; fill: string; stroke: string }) {
   const { x, y, angle } = stall.position;
   const dc = stall.type === 'dcfc';
-  const alongX = angle === 90 || angle === 270;
-  // stall = the 10.2 x 4.2 car with room round it; DCFC pitches 16u, L2 10.6/11u
-  const len = 12.4, wid = dc ? 7.2 : 6.6;
-  const w = alongX ? len : wid, h = alongX ? wid : len;
-  const toward = towardFor(x);
-  const postX = x + toward * (dc ? PEDESTAL_OFFSET_PU + CABINET_BACKSET_PU : L2_PEDESTAL_OFFSET_PU);
+  const { w, h } = chargerStallPaint(dc ? 'dcfc' : 'l2', angle);
+  // the cabinet, body plus pad, as structurePlan.cabinetFootprints lays it out
+  const ped = dc ? pedestalPlanPoint(x, y) : null;
+  const post = ped
+    ? { x: ped.x - 0.9, y: ped.y + CABINET_BACKSET_PU - 0.6, w: 1.8, h: 1.2 }
+    : { x: x + towardFor(x) * L2_PEDESTAL_OFFSET_PU - 0.6, y: y - 0.7, w: 1.2, h: 1.4 };
   return (
     <>
       <rect x={x - w / 2} y={y - h / 2} width={w} height={h} fill={fill} stroke={stroke} strokeWidth={0.5} opacity={0.9} rx={0.6} />
-      <rect x={postX - 0.6} y={y - (dc ? 0.9 : 0.7)} width={1.2} height={dc ? 1.8 : 1.4} fill="#d4d8dd" opacity={0.85} rx={0.2} />
+      <rect x={post.x} y={post.y} width={post.w} height={post.h} fill="#d4d8dd" opacity={0.85} rx={0.2} />
       <text x={x} y={y + 1} textAnchor="middle" fontSize={3} fill="#ffffff" opacity={0.7} pointerEvents="none">
         {stall.id.split('-')[1]}
       </text>

@@ -17,6 +17,7 @@
 import { useMemo } from 'react';
 import { useDepotStore, type StallState } from '@/store/depotStore';
 import { useAppointmentStore, type ApptReservation } from '@/store/appointmentStore';
+import { chargerStallPaint } from '@/lib/sitePlan';
 
 const OTTO_RED = '#C8102E'; // OTTOYARD accent — the held-for-inbound hero ring
 const CALM = '#9AA3B2';     // desaturated steel — reserved / occupied holds
@@ -35,11 +36,20 @@ function rendererStallId(type: string, code: string | null): string | null {
   return `${p}-${String(parseInt(m[1], 10)).padStart(2, '0')}`;
 }
 
-// stall outline — mirrors Stall.tsx so the ring traces the EXACT stall polygon
-// (charging stalls are skewed parallelograms; staging/bays are rectangles).
+// stall outline — mirrors Stall.tsx so the ring traces the EXACT stall outline:
+// a charger stall is a rectangle centred on its car (sitePlan.chargerStallPaint);
+// staging and bays are the generic polygons anchored at the stall point.
 function stallOutline(stall: StallState): { points: string; cx: number; topY: number } {
+  if (stall.type === 'dcfc' || stall.type === 'l2') {
+    const { w, h } = chargerStallPaint(stall.type, stall.position.angle);
+    return {
+      points: [[-w / 2, -h / 2], [w / 2, -h / 2], [w / 2, h / 2], [-w / 2, h / 2]].map((p) => p.join(',')).join(' '),
+      cx: 0,
+      topY: -h / 2,
+    };
+  }
   const isWash = stall.type === 'wash';
-  const w = isWash ? 12 : stall.type === 'dcfc' ? 10 : 8;
+  const w = isWash ? 12 : 8;
   const h = isWash ? 14 : 16;
   const angleDeg = stall.position.angle;
   const skew = angleDeg === 0 ? 0 : h * Math.cos((angleDeg * Math.PI) / 180);

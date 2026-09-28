@@ -354,7 +354,9 @@ function pushStall(row) {
   stalls.push({ ...row, absolute_lat: lat, absolute_lng: lng });
 }
 
-// ---- DCFC: canopy A, two columns of 5, stepping along y (nose-to-tail) ----
+// ---- DCFC: canopy A, two columns of 5, stepping along y. Head-in since 2026-09-28
+// (heading 90 / 270), so consecutive stalls are shoulder-to-shoulder: the 16u pitch
+// constrains WIDTH, and footprint() declares 10 x 20 ft along x. ----
 {
   const A = sp.CANOPIES[0];
   const src = sp.generateStallsV2().filter((s) => s.type === 'dcfc');

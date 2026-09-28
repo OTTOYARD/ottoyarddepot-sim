@@ -225,12 +225,13 @@ describe("PROBE: maximal charger contention", () => {
     expect(report("B: interleaved fill (parked neighbours both sides)", vehicles)).toBe(vehicles.length);
   });
 
-  it("D: a car docking between two PARKED neighbours never touches either (DCFC S-curve, L2 head-in)", () => {
-    // The DCFC approach leans across from the gap lane on a diagonal and rotates
-    // back to north on a short final straight; that rotation swings the rear
-    // toward the car parked in the next stall south. A 7u tail put the rear
-    // 0.17u INTO it. Measured here on the real driver, dock blend included,
-    // with every target flanked by parked cars (B's interleaved fill).
+  it("D: a car docking between two PARKED neighbours never touches either (DCFC and L2, both head-in)", () => {
+    // Every charger stall is perpendicular head-in since 2026-09-28: the car turns off
+    // its gap lane at its own row and drives straight in. (The DCFC approach used to
+    // lean across from the gap lane on a diagonal and rotate back to north on a short
+    // final straight; a 7u tail put the rear 0.17u INTO the car parked in the next
+    // stall south.) Measured here on the real driver, dock blend included, with every
+    // target flanked by parked cars (B's interleaved fill).
     setup();
     const ch = chargerColumns().flatMap((c) => c.stalls);
     const type = new Map(ch.map((s) => [s.id, s.type]));
@@ -269,12 +270,14 @@ describe("PROBE: maximal charger contention", () => {
     expect(touches.l2).toBe(0);
   });
 
-  it("E: L2 cars BACK OUT past parked neighbours, and beside each other, without touching anything", () => {
-    // The head-in L2 stall's exit (TwinMotionDriver.l2BackOut): straight back, then a
-    // full-lock swing into the northbound gap lane. Two of every three cars in every L2
-    // column leave at once and the third stays parked: every back-out passes a parked
-    // neighbour, and every pair of neighbours that leaves together shares one stretch
-    // of lane — the case l2BackOutBlocked exists for.
+  it("E: charger cars BACK OUT past parked neighbours, and beside each other, without touching anything", () => {
+    // The head-in charger stall's exit (TwinMotionDriver.chargerBackOut), DCFC and L2
+    // alike: straight back, then a full-lock swing into the northbound gap lane. Two of
+    // every three cars in every charger column leave at once and the third stays
+    // parked: every back-out passes a parked neighbour, every pair of neighbours that
+    // leaves together shares one stretch of lane — the case chargerBackOutBlocked
+    // exists for — and gap lane AB takes back-outs from BOTH sides at once, the DCFC
+    // east column and canopy B's L2 west column.
     //
     // SIMULATED WALL CLOCK, as replay.ts: the driver's commit-and-hold dwell floor
     // (12 s) reads performance.now(), and this test runs twenty motion-minutes in well
@@ -285,8 +288,9 @@ describe("PROBE: maximal charger contention", () => {
     Object.defineProperty(perf, "now", { configurable: true, writable: true, value: () => wallMs });
     try {
       setup();
-      const l2 = chargerColumns().flatMap((c) => c.stalls).filter((s) => s.type === "l2");
-      const vehicles: V[] = l2.map((s, i) => ({ id: `l2-${i}`, state: "charging_l2", stall_id: s.id }));
+      const ch = chargerColumns().flatMap((c) => c.stalls);
+      const type = new Map(ch.map((s) => [s.id, s.type]));
+      const vehicles: V[] = ch.map((s, i) => ({ id: `${s.type}-${i}`, state: cs(s.type), stall_id: s.id }));
       const phase = (vs: V[], seconds: number, t: string, each?: () => void) => {
         for (let elapsed = 0; elapsed < seconds; elapsed += 2) {
           twinMotionDriver.reconcile(snap(vs, t));
@@ -298,13 +302,14 @@ describe("PROBE: maximal charger contention", () => {
         }
       };
       phase(vehicles, 600, "2026-08-08T00:00:00Z");
-      expect(report("E: every L2 stall docked before the departures", vehicles)).toBe(vehicles.length);
+      expect(report("E: every charger stall docked before the departures", vehicles)).toBe(vehicles.length);
 
       const leave = new Set(vehicles.filter((_, i) => i % 3 !== 0).map((v) => v.id));
       const stay = vehicles.filter((v) => !leave.has(v.id));
       const stallOf = new Map(vehicles.map((v) => [v.id, useDepotStore.getState().stalls.find((s) => s.id === v.stall_id)!]));
       const entries = (twinMotionDriver as unknown as Internals).entries;
-      let touches = 0;
+      const touches = { dcfc: 0, l2: 0 };
+      const byVehicle = new Map(vehicles.map((v) => [v.id, type.get(v.stall_id) === "dcfc" ? "dcfc" : "l2"] as const));
       phase(stay, 600, "2026-08-08T00:30:00Z", () => {
         const bodies = [...entries.entries()].map(([id, e]) => {
           const p = poseStore.get(id) ?? { x: e.car.x, y: e.car.y, heading: e.car.heading };
@@ -315,7 +320,7 @@ describe("PROBE: maximal charger contention", () => {
           for (const q of bodies) {
             if (q.id === m.id || Math.abs(m.x - q.x) > 11 || Math.abs(m.y - q.y) > 11) continue;
             if (leave.has(q.id) && q.moving && q.id < m.id) continue; // each moving pair once
-            if (bodiesOverlap(m, q)) touches++;
+            if (bodiesOverlap(m, q)) touches[byVehicle.get(m.id)!]++;
           }
         }
       });
@@ -325,8 +330,8 @@ describe("PROBE: maximal charger contention", () => {
         return e && Math.hypot(e.car.x - st.position.x, e.car.y - st.position.y) < 11;
       });
       // eslint-disable-next-line no-console
-      console.log(`\nE: ${leave.size} L2 cars backed out, ${stay.length} stayed parked: contact samples ${touches} · still at their stall ${stillThere.length}`);
-      expect(touches).toBe(0);
+      console.log(`\nE: ${leave.size} charger cars backed out, ${stay.length} stayed parked: contact samples dcfc ${touches.dcfc} · l2 ${touches.l2} · still at their stall ${stillThere.length}`);
+      expect(touches).toEqual({ dcfc: 0, l2: 0 });
       expect(stillThere).toEqual([]);
       // and the neighbours that stayed are still in their stalls
       expect(report("E: the neighbours that stayed are still docked", stay)).toBe(stay.length);

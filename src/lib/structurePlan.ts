@@ -28,9 +28,8 @@ import {
   generateStallsV2, type CanopyDef, type ParkRun,
 } from './sitePlan';
 import { CAR_LENGTH, CAR_WIDTH } from '@/engine/motion/traffic';
-import { PEDESTAL_OFFSET_PU } from '@/lib/ottoChargeArm/cobotSpec';
 import { DCFC_CABINET_PU, L2_CABINET_PU, CABINET_BACKSET_PU, L2_PEDESTAL_OFFSET_PU } from '@/lib/ottoChargeArm/cabinetEnvelope';
-import { towardFor } from '@/lib/ottoChargeArm/depotPlacement';
+import { towardFor, pedestalPlanPoint } from '@/lib/ottoChargeArm/depotPlacement';
 
 /** Axis-aligned rectangle in plan units. */
 export interface Rect { x0: number; y0: number; x1: number; y1: number }
@@ -220,36 +219,77 @@ export const CANOPY_COLUMN = 1.2;
 export const CANOPY_MAX_SPAN = 17;
 /** Keep-out between a column face and a charger cabinet (0.48 m). */
 const CABINET_CLEAR = 1.0;
+/** How far outside a head-in car's side lines a spine column must stand. 0: flush
+ *  with the side line is enough to be out from in front of the bumper, and the
+ *  staggered L2 rows (10.6 / 11u pitch) leave no set of columns within
+ *  CANOPY_MAX_SPAN that clears them by any more. */
+const HEAD_CLEAR = 0;
 
 export interface CabinetFootprint { stallId: string; r: Rect; dc: boolean }
 
-/** Charger cabinet footprints, exactly as ChargingField places them. */
+/**
+ * Charger cabinet footprints (body plus pad), exactly as ChargingField places them.
+ *
+ * Both charger types are perpendicular HEAD-IN (sitePlan.chargingStalls), and the
+ * pad is the body plus 0.4u on the side facing the car and 0.3u along it
+ * (ChargingField: depth + 0.8, width + 0.6):
+ *   - DCFC: the cabinet stands SOUTH of the car, CABINET_BACKSET_PU behind the
+ *     OTTO-CHARGE ARM's base (depotPlacement.pedestalPlanPoint), its wide face
+ *     running east-west along the car;
+ *   - L2: the post stands in front of the car's nose on the canopy spine, its
+ *     wide face running north-south across the nose.
+ */
 export function cabinetFootprints(stalls = generateStallsV2()): CabinetFootprint[] {
   const out: CabinetFootprint[] = [];
   for (const s of stalls) {
     if (s.type !== 'dcfc' && s.type !== 'l2') continue;
     const dc = s.type === 'dcfc';
     const dims = dc ? DCFC_CABINET_PU : L2_CABINET_PU;
-    const toward = towardFor(s.position.x);
-    const px = s.position.x + toward * (dc ? PEDESTAL_OFFSET_PU : L2_PEDESTAL_OFFSET_PU);
-    const cx = px + toward * (dc ? CABINET_BACKSET_PU : 0);
-    // pad = body + 0.4 / 0.3 margins (ChargingField: [D + 0.8, W + 0.6])
-    const hx = (dims.depth + 0.8) / 2;
-    const hy = (dims.width + 0.6) / 2;
-    out.push({ stallId: s.id, dc, r: { x0: cx - hx, x1: cx + hx, y0: s.position.y - hy, y1: s.position.y + hy } });
+    const facing = (dims.depth + 0.8) / 2; // half-extent on the axis that faces the car
+    const along = (dims.width + 0.6) / 2;  // half-extent along the car
+    if (dc) {
+      const p = pedestalPlanPoint(s.position.x, s.position.y);
+      const cy = p.y + CABINET_BACKSET_PU;
+      out.push({ stallId: s.id, dc, r: { x0: p.x - along, x1: p.x + along, y0: cy - facing, y1: cy + facing } });
+    } else {
+      const cx = s.position.x + towardFor(s.position.x) * L2_PEDESTAL_OFFSET_PU;
+      out.push({ stallId: s.id, dc, r: { x0: cx - facing, x1: cx + facing, y0: s.position.y - along, y1: s.position.y + along } });
+    }
   }
   return out;
 }
 
 /**
- * Spine column positions (plan y) for one canopy: the fewest columns that keep
- * every span <= CANOPY_MAX_SPAN, stand within 3u of each roof end, and clear
- * every cabinet on the spine by CABINET_CLEAR. Deterministic.
+ * The bands along a canopy's spine that a spine column must stay out of: the width
+ * of every head-in car whose nose points at that spine, widened by HEAD_CLEAR. A
+ * column there would stand straight in front of a bumper. (An L2 car always has its
+ * own post in front of it, whose keep-out used to be the only thing holding columns
+ * off its nose; a head-in DCFC car has no post on the spine at all.)
  */
-export function canopyColumnYs(c: CanopyDef, cabinets = cabinetFootprints()): number[] {
+export function carHeadBands(c: CanopyDef, stalls = generateStallsV2()): { stallId: string; y0: number; y1: number }[] {
+  return stalls
+    .filter((s) => (s.type === 'dcfc' || s.type === 'l2') && Math.abs(s.position.x - c.cx) <= c.w / 2
+      && (s.position.angle === 90 || s.position.angle === 270))
+    .map((s) => ({
+      stallId: s.id,
+      y0: s.position.y - CAR_WIDTH / 2 - HEAD_CLEAR,
+      y1: s.position.y + CAR_WIDTH / 2 + HEAD_CLEAR,
+    }));
+}
+
+/**
+ * Spine column positions (plan y) for one canopy: the fewest columns that keep
+ * every span <= CANOPY_MAX_SPAN, stand within 3u of each roof end, clear every
+ * cabinet on the spine by CABINET_CLEAR, and stand clear of every car's nose
+ * (carHeadBands). Deterministic.
+ */
+export function canopyColumnYs(c: CanopyDef, cabinets = cabinetFootprints(), stalls = generateStallsV2()): number[] {
   const half = CANOPY_COLUMN / 2;
   const onSpine = cabinets.filter((k) => k.r.x1 > c.cx - half - CABINET_CLEAR && k.r.x0 < c.cx + half + CABINET_CLEAR);
-  const feasible = (y: number) => onSpine.every((k) => y + half + CABINET_CLEAR <= k.r.y0 || y - half - CABINET_CLEAR >= k.r.y1);
+  const heads = carHeadBands(c, stalls);
+  const feasible = (y: number) =>
+    onSpine.every((k) => y + half + CABINET_CLEAR <= k.r.y0 || y - half - CABINET_CLEAR >= k.r.y1)
+    && heads.every((b) => y + half <= b.y0 || y - half >= b.y1);
   const step = 0.25;
   // a column may stand as close as 1u to a roof end (its cap plate is 0.6u)
   const lo = c.y + 1.0, hi = c.y + c.h - 1.0;

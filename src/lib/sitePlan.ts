@@ -7,11 +7,10 @@
  *
  * Flow (continuous, user-locked 2026-06-10):
  *  - Ingress (S-W gate) → west aisle N → NORTH COLLECTOR (two-way artery).
- *  - Charging: ride a flanking northbound lane to the stall's row. DCFC is
- *    gas-pump pull-alongside (lean in, lean back out, head N to the collector);
- *    L2 is perpendicular head-in (turn in at the row, drive straight in; back
- *    straight out into the lane, head N). The canopy gaps are TRAVEL LANES —
- *    never obstructed.
+ *  - Charging: ride a flanking northbound lane to the stall's row. Every
+ *    charger stall, DCFC and L2, is perpendicular head-in (turn in at the row,
+ *    drive straight in; back straight out into the lane, head N to the
+ *    collector). The canopy gaps are TRAVEL LANES — never obstructed.
  *  - Service/wash sit directly ahead through the concrete FORECOURT throat;
  *    every bay is full pull-through: in the front, out the REAR into a 30ft
  *    clear maneuvering APRON (no parking abuts it), then left via the WEST
@@ -259,21 +258,39 @@ export const LIGHT_POLES: { x: number; y: number }[] = [
 
 function chargingStalls(dcfcCount: number, l2Count: number): StallState[] {
   const stalls: StallState[] = [];
-  // Cars at cx±7. DCFC: gas-pump pull-alongside, pedestal beside the car toward the
-  // spine (angle 180 is the declared heading the seed has always carried; the car
-  // parks facing north, TwinMotionDriver.parkedHeading). L2: see the L2 block below.
-  const mk = (id: string, type: 'dcfc' | 'l2', x: number, y: number, angle = 180): StallState => ({
+  // Cars at cx±7, and every charger stall is perpendicular HEAD-IN: the car lies
+  // east-west, nose toward its canopy's spine. The angle is the compass bearing the
+  // parked car faces: 90 = east (west column), 270 = west (east column).
+  const mk = (id: string, type: 'dcfc' | 'l2', x: number, y: number, angle: 90 | 270): StallState => ({
     id, type, status: 'available', vehicleId: null,
     position: { x, y, angle },
   });
 
-  // Canopy A — DCFC, 2 columns × 5 (step 16 = roomy pull-in/pull-out)
+  // Canopy A — DCFC, 2 columns × 5, rows 16u apart.
+  //
+  // PERPENDICULAR HEAD-IN (founder's call, 2026-09-28: "yes, do the DCFC stalls too").
+  // The DCFC stalls used to be gas-pump PULL-ALONGSIDE: the car parked facing north
+  // with its cabinet beside it toward the spine, came in on an S-curve and left by
+  // leaning forward into the gap lane. Two DCFC cars leaving one column together
+  // could commit their lean-outs from inside their stalls and merge on top of each
+  // other (busy_day frame 30). They now park exactly as the L2 stalls do: turn off the
+  // gap lane at the stall's own row, drive straight in, and back straight out.
+  //
+  // The OTTO-CHARGE ARM moved with them. Its cabinet stands in the 11.8u between
+  // neighbouring cars, on the car's SOUTH side, abeam the car's centre and
+  // PEDESTAL_OFFSET_PU from its centreline (depotPlacement.placeArm). That is the arm's
+  // own frame rotated 90° in the world: the same standoff, the same service window,
+  // the same clearance sweep. South on both columns keeps each column serving the same
+  // charge-port flank it always did (west column the car's right, east column its
+  // left), so OTTO-Q's side rule for assigning a car to a stall is unchanged.
+  //
+  // THE CENTRES DO NOT MOVE, for the same reason as L2 below.
   const A = CANOPIES[0];
   let n = 0;
   for (const side of [-7, 7]) {
     for (let i = 0; i < 5 && n < dcfcCount; i++) {
       n++;
-      stalls.push(mk(`DCFC-${String(n).padStart(2, '0')}`, 'dcfc', A.cx + side, 88 + i * 16));
+      stalls.push(mk(`DCFC-${String(n).padStart(2, '0')}`, 'dcfc', A.cx + side, 88 + i * 16, side < 0 ? 90 : 270));
     }
   }
 
@@ -326,6 +343,17 @@ function chargingStalls(dcfcCount: number, l2Count: number): StallState[] {
     }
   }
   return stalls;
+}
+
+/**
+ * The painted footprint of a CHARGER stall in the 2D plan, centred on the parked car
+ * and oriented the way it lies: the 10.2 x 4.2 car with room round it (DCFC rows are
+ * 16u apart, L2 rows 10.6 / 11u). One home, so the stall and the reservation ring
+ * drawn over it (Stall.tsx, ReservationGlow.tsx) cannot disagree about its outline.
+ */
+export function chargerStallPaint(type: 'dcfc' | 'l2', angle: number): { w: number; h: number } {
+  const len = 12.4, wid = type === 'dcfc' ? 7.2 : 6.6;
+  return angle === 90 || angle === 270 ? { w: len, h: wid } : { w: wid, h: len };
 }
 
 // ---- Pull-through bays -------------------------------------------------------
@@ -389,9 +417,9 @@ export function generateStallsV2(
 
 // ---- Routing (continuous-flow circulation; consumed by SimulationEngine) ----
 // Charging: enter a flanking northbound lane from the south boulevard and ride it
-// to the stall's row. DCFC leans in and leans back out; L2 turns in head-first and
-// backs straight out into the lane. Either way the car heads NORTH to the collector
-// — service/wash is straight ahead through the forecourt.
+// to the stall's row, turn in head-first, and back straight out into the lane (DCFC
+// and L2 alike). The car then heads NORTH to the collector — service/wash is
+// straight ahead through the forecourt.
 // Bays are full pull-through: out the rear into the 30ft apron, then left
 // (west link) or right (east aisle) to parking or the egress gate.
 // Collectors are two-way; west aisle is northbound; east aisle southbound.

@@ -41,12 +41,13 @@ import type { CarSolid } from './vehicleEnvelope';
 /**
  * DCFC cabinet dimensions in PLAN UNITS, as drawn by ChargingField.tsx.
  *
- * `width` is the box's world-X extent and `depth` its world-Z extent. The arm
- * group is rotated by `toward * PI/2`, which maps arm-frame +Z onto world X —
- * so WIDTH is the extent along the arm's Z (toward/away from the car) and DEPTH
- * is the extent along the arm's X (fore/aft along the car). Getting those two
- * the wrong way round silently halves the measured intrusion, so they are named
- * for the axis they are drawn on and swapped once, explicitly, below.
+ * Named for the CAR, not for a world axis: `width` is the wide face, which runs
+ * fore/aft along the parked car (arm-frame X), and `depth` the shallow side,
+ * which faces it (arm-frame Z). A head-in DCFC car lies east-west with its
+ * cabinet to the south, so ChargingField and structurePlan draw `width` on world
+ * X and `depth` on world Z; the pull-alongside layout before it had them the
+ * other way round. Getting the two the wrong way round silently halves the
+ * measured intrusion, so they are swapped once, explicitly, below.
  */
 export const DCFC_CABINET_PU = {
   /** the WIDE face, which runs fore/aft along the car */

@@ -18,7 +18,8 @@ import { phaseAt, chargeProgress, ROBOTIC_OVERHEAD_SECONDS, stallHasArm } from '
 import { vehicleMayMove, isTethered, NOMINAL_SEQUENCE } from './armStateMachine';
 import { poseFor } from './armMotion';
 import { CAR_WIDTH } from '@/engine/motion/traffic';
-import { DECK_Y } from '@/components/canvas/three/coordUtils';
+import { DECK_Y, yawFromHeading2D } from '@/components/canvas/three/coordUtils';
+import { parkedHeading } from '@/engine/TwinMotionDriver';
 
 const spec = OTTO_CHARGE_ARM;
 const CAR_HALF_WIDTH_M = (CAR_WIDTH * METRES_PER_PLAN_UNIT) / 2;
@@ -32,16 +33,19 @@ describe('arm placement in the depot', () => {
   });
 
   it('anchors on the PEDESTAL, not on the parking space', () => {
-    // The previous arm used stall.position — the car's spot. ChargingField puts
-    // the pedestal 4.5 plan units toward the canopy spine. They must differ by
-    // exactly that, or the arms are growing out of the tarmac again.
+    // The previous arm used stall.position — the car's spot. The pedestal stands
+    // PEDESTAL_OFFSET_PU off the parked car's flank. They must differ by exactly
+    // that, or the arms are growing out of the tarmac again. Measured in the car's
+    // own frame, at the heading the driver actually parks it at (head-in since
+    // 2026-09-28: the car lies east-west and the pedestal is to its south).
     for (const s of dcfc()) {
       const p = placeArm(s.id, s.position.x, s.position.y);
-      const carWorldX = p.carWorld[0];
-      const armWorldX = p.world[0];
-      expect(Math.abs(carWorldX - armWorldX)).toBeCloseTo(PEDESTAL_OFFSET_PU, 6);
-      // same row: the pedestal is beside the car, never fore or aft of it
-      expect(p.world[2]).toBeCloseTo(p.carWorld[2], 6);
+      const h = parkedHeading('dcfc', s.position.angle, s.position.x, s.position.y);
+      const dx = -(p.world[0] - p.carWorld[0]); // plan x runs against world X
+      const dy = -(p.world[2] - p.carWorld[2]); // plan y runs against world Z
+      expect(Math.abs(-dx * Math.sin(h) + dy * Math.cos(h))).toBeCloseTo(PEDESTAL_OFFSET_PU, 6);
+      // abeam: the pedestal is beside the car, never fore or aft of it
+      expect(dx * Math.cos(h) + dy * Math.sin(h)).toBeCloseTo(0, 6);
     }
   });
 
@@ -122,11 +126,11 @@ describe('the arm actually reaches every vehicle it is asked to serve', () => {
       armGroup.scale.setScalar(p.scale);
       armGroup.updateMatrixWorld(true);
 
-      // How Vehicle3D places the vehicle: at the stall, facing NORTH (world +Z),
-      // which parkedHeading() gives every dcfc/l2/wash/service stall.
+      // How Vehicle3D places the vehicle: at the stall, yawed to the heading the
+      // driver parks it at (parkedHeading: head-in, facing the canopy spine).
       const carGroup = new THREE.Object3D();
       carGroup.position.set(p.carWorld[0], 0, p.carWorld[2]);
-      carGroup.rotation.y = 0;
+      carGroup.rotation.y = yawFromHeading2D(parkedHeading('dcfc', s.position.angle, s.position.x, s.position.y));
       carGroup.updateMatrixWorld(true);
 
       for (const oem of oems) {
@@ -143,7 +147,9 @@ describe('the arm actually reaches every vehicle it is asked to serve', () => {
 
         expect(solved.distanceTo(drawn), `${s.id} ${oem}`).toBeLessThan(1e-9);
         // and it really is on the pedestal's side of the car, not the far flank
-        expect(Math.sign(drawn.x - p.carWorld[0])).toBe(Math.sign(p.world[0] - p.carWorld[0]));
+        const toPort = { x: drawn.x - p.carWorld[0], z: drawn.z - p.carWorld[2] };
+        const toPed = { x: p.world[0] - p.carWorld[0], z: p.world[2] - p.carWorld[2] };
+        expect(toPort.x * toPed.x + toPort.z * toPed.z).toBeGreaterThan(0);
         checked++;
       }
     }

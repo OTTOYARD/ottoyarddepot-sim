@@ -6,10 +6,23 @@
  * conversion happens here and nowhere else.
  *
  * It also fixes the anchoring bug in the previous arm: the old component placed
- * the arm at `stall.position`, which is where the CAR parks. ChargingField.tsx
- * puts the charger pedestal at `stall.position.x + toward * 4.5` — 4.5 plan
- * units (2.15 m) to the side. The arms were therefore growing out of the middle
- * of the parking spaces instead of off the chargers.
+ * the arm at `stall.position`, which is where the CAR parks. The arm belongs on
+ * the charger pedestal, PEDESTAL_OFFSET_PU to the side of the car. The arms
+ * were growing out of the middle of the parking spaces instead of off the
+ * chargers.
+ *
+ * ═══════════════════════════════════════════ HEAD-IN, SINCE 2026-09-28 ═══
+ * A DCFC stall is perpendicular HEAD-IN (sitePlan.chargingStalls): the car lies
+ * east-west, nose toward its canopy's spine. The pedestal stands on the car's
+ * SOUTH side, abeam the car's centre, PEDESTAL_OFFSET_PU from its centreline —
+ * in the 11.8u between neighbouring cars, where a car turning in or backing out
+ * never sweeps (the turn's centre is on that side, so the body passes outside).
+ *
+ * In the ARM'S OWN FRAME nothing changed: base on the pedestal, +Z at the car's
+ * flank, the same standoff and the same fore/aft service window. The arm was
+ * rotated 90° in the world with the car, so every clearance and reach figure in
+ * cobotSpec.ts still describes the arm as built. (It used to stand beside a car
+ * parked facing north, toward the canopy spine.)
  */
 
 import { CANOPIES } from '@/lib/sitePlan';
@@ -27,13 +40,16 @@ function toWorld(x2d: number, y2d: number): [number, number] {
 }
 
 /**
- * Which side of a charging stall its pedestal stands on — ChargingField's own
- * rule, extracted so the arm, the pedestal and the VEHICLE's visible charge
- * port cannot drift apart.
+ * Which way a charging stall's car faces, as a plan-x sign: toward its canopy's
+ * centre spine. +1 => the car's nose points plan EAST (the west column, compass
+ * 90); -1 => plan WEST (the east column, compass 270). Canopy A's two stall
+ * columns sit at cx-7 and cx+7, so both signs occur in a single canopy.
  *
- * +1 => the car sits toward +worldX of its pedestal (pedestal on the car's
- * -worldX flank); -1 => the mirror. Canopy A's two stall columns sit at cx-7
- * and cx+7, so both signs occur in a single canopy.
+ * ONE RULE for the arm, the cabinet, the L2 post and the VEHICLE's visible
+ * charge port, so they cannot drift apart. The port presents on the car's
+ * vehicle-frame -toward flank (portInVehicleFrame), which for a head-in car is
+ * its SOUTH flank on both columns: the flank the DCFC pedestal stands on, and
+ * the flank an L2 cable runs along.
  */
 export function towardFor(stallX: number): 1 | -1 {
   const canopy = CANOPIES.reduce(
@@ -43,15 +59,26 @@ export function towardFor(stallX: number): 1 | -1 {
   return (Math.sign(canopy.cx - stallX) || 1) as 1 | -1;
 }
 
+/**
+ * The pedestal point (arm base axis) for a DCFC stall, PLAN coordinates: abeam
+ * the parked car's centre, PEDESTAL_OFFSET_PU to its south (plan y is
+ * south-positive). The cabinet stands CABINET_BACKSET_PU further south of it.
+ */
+export function pedestalPlanPoint(stallX: number, stallY: number): { x: number; y: number } {
+  return { x: stallX, y: stallY + PEDESTAL_OFFSET_PU };
+}
+
 export interface ArmPlacement {
   stallId: string;
   /** Arm base (J1 axis) in depot world coordinates, plan units. */
   world: [number, number, number];
   /**
-   * Yaw so the arm's local +Z points at the parked vehicle.
-   * +1 => the car lies toward +worldX of the pedestal; -1 => toward -worldX.
+   * The stall's facing sign (towardFor): +1 => the car's nose points plan east
+   * (world -X), -1 => plan west (world +X). It fixes which way the car's
+   * fore/aft axis runs through the arm's base frame (portInArmFrame).
    */
   toward: 1 | -1;
+  /** Yaw so the arm's local +Z points at the parked vehicle: north, i.e. 0. */
   rotationY: number;
   /** Uniform scale converting the metre-authored arm into plan units. */
   scale: number;
@@ -62,26 +89,18 @@ export interface ArmPlacement {
 /**
  * Resolve placement for one charging stall.
  *
- * `toward` reproduces ChargingField's own rule: the pedestal stands between the
- * car and its canopy's centre spine. Canopy A's two stall columns sit at
- * cx-7 and cx+7, so their pedestals end up on OPPOSITE flanks — which is why
- * the depot can serve charge ports on either side of a vehicle at all.
+ * The pedestal is SOUTH of the car on both columns (pedestalPlanPoint), so the
+ * car always lies toward world +Z of it (toWorld maps plan y to 110 - y) and the
+ * arm faces north: Ry(0) sends local +Z to world +Z.
  */
 export function placeArm(
   stallId: string, stallX: number, stallY: number,
 ): ArmPlacement {
   const toward = towardFor(stallX);
 
-  const pedX = stallX + toward * PEDESTAL_OFFSET_PU;
-  const [pwx, pwz] = toWorld(pedX, stallY);
+  const ped = pedestalPlanPoint(stallX, stallY);
+  const [pwx, pwz] = toWorld(ped.x, ped.y);
   const [cwx, cwz] = toWorld(stallX, stallY);
-
-  // toWorld negates X, so a +1 plan-space `toward` still means the car sits at
-  // GREATER worldX than the pedestal: worldX(car) - worldX(ped)
-  //   = (150 - stallX) - (150 - stallX - toward*4.5) = +toward*4.5.
-  // Rotating about Y by theta maps local +Z to (sin theta, 0, cos theta), so
-  // pointing +Z at the car needs sin theta = toward, i.e. theta = toward*PI/2.
-  const rotationY = toward * (Math.PI / 2);
 
   return {
     stallId,
@@ -91,7 +110,7 @@ export function placeArm(
     // only became visible once the vehicle grew a charge port to aim at.
     world: [pwx, DECK_Y + MOUNT_HEIGHT_M * PLAN_UNITS_PER_METRE, pwz],
     toward,
-    rotationY,
+    rotationY: 0,
     scale: PLAN_UNITS_PER_METRE,
     carWorld: [cwx, DECK_Y, cwz],
   };
@@ -102,26 +121,28 @@ export function placeArm(
  *
  * Arm base frame: +Z toward the vehicle, +X along the arm's mount, +Y up.
  *
- * THE SIGN ON X IS NOT COSMETIC. The arm group is rotated by `toward * PI/2`,
- * so base-frame +X maps to world Z of `-toward`: world -Z on a toward=+1 stall
- * and world +Z on a toward=-1 one. Vehicles park NORTH (world +Z) at every
- * charging stall — see parkedHeading() in TwinMotionDriver — so a port's
- * fore/aft offset only feeds STRAIGHT into base-frame X on toward=-1 stalls.
- * Passing `alongM` through unsigned, as this did, mirrored the target fore/aft
- * on the other half of the stalls: the arm plugged into the tail of a car whose
- * inlet was at the nose. Nothing caught it because the vehicle had no visible
- * port to disagree with, and the service window is symmetric so the IK still
- * solved. It does not solve the right point.
+ * THE SIGN ON X IS NOT COSMETIC. The arm faces north unrotated, so base-frame
+ * +X is world +X, which is plan WEST. A car whose nose points plan east
+ * (toward = +1) therefore has its nose toward base-frame -X, and one whose nose
+ * points plan west (toward = -1) toward +X: x = -toward * along. Passing
+ * `alongM` through unsigned mirrors the target fore/aft on half the stalls, and
+ * the arm plugs into the tail of a car whose inlet is at the nose. Nothing
+ * catches that by eye — the service window is symmetric, so the IK still solves;
+ * it does not solve the right point. depotIntegration.test.ts is what catches it.
+ *
+ * (The same expression held for the pull-alongside layout this replaced: there
+ * the arm was yawed toward*90° and the car faced north. Both rotations and the
+ * car's heading moved together, so the sign did not.)
  *
  * @param alongM  port offset fore/aft of the vehicle centre, metres (+ = nose)
  * @param heightM port height above grade, metres
  * @param carHalfWidthM half the rendered vehicle's width, metres
- * @param toward  the stall's pedestal side, from placeArm()/towardFor()
+ * @param toward  the stall's facing sign, from placeArm()/towardFor()
  */
 export function portInArmFrame(
   alongM: number, heightM: number, carHalfWidthM: number, toward: 1 | -1,
 ): { x: number; y: number; z: number } {
-  const pedestalToCentre = PEDESTAL_OFFSET_PU / PLAN_UNITS_PER_METRE; // 2.153 m
+  const pedestalToCentre = PEDESTAL_OFFSET_PU / PLAN_UNITS_PER_METRE; // 2.871 m
   return {
     x: -toward * alongM,
     y: heightM - MOUNT_HEIGHT_M,
@@ -133,14 +154,17 @@ export function portInArmFrame(
  * The SAME charge port in the VEHICLE'S OWN FRAME, in PLAN UNITS — what
  * Vehicle3D hangs the visible port ring off.
  *
- * The vehicle model is authored nose-along-local-+Z, and parks facing north at
- * every charging stall, so at a stall its local frame is the world frame. Its
- * pedestal therefore sits on the local -toward flank, and the fore/aft offset
- * runs straight down local +Z.
+ * The vehicle model is authored nose-along-local-+Z, +Y up, so local -X is the
+ * car's RIGHT flank and +X its LEFT. At a charging stall the port presents on
+ * the flank facing its charger: -toward, which for a head-in car on either
+ * column is its south flank (west column faces east: right = south; east
+ * column faces west: left = south). The fore/aft offset runs straight down
+ * local +Z whatever way the car faces.
  *
  * This exists so the ring you can SEE and the point the arm SOLVES TO are
  * derived from one expression rather than two that happen to agree today.
- * depotIntegration.test.ts asserts they land on the same world point.
+ * depotIntegration.test.ts asserts they land on the same world point, with the
+ * car at its real parked heading.
  *
  * @param alongM  port offset fore/aft of the vehicle centre, metres (+ = nose)
  * @param heightM port height above grade, metres

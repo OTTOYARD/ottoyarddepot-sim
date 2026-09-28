@@ -14,7 +14,7 @@
 -- Deleted stall codes:     5  (must be referenced by nothing)
 -- Retired structure codes: 2  (CANOPY-04, METAL-CANOPY-PERIM)
 --
--- SEED MD5: fcb2869dfd5eeccf600ea1bd3a2a2485
+-- SEED MD5: da2fde04d6522b82822e0ff7b9f41a16
 --   md5 over stall_code|stall_type|relative_x|relative_y|heading|width|depth,
 --   newline-joined, ordered by stall_code. Migration 0010 recomputes this in SQL
 --   and aborts on mismatch, so a hand-edited seed cannot reshape the depot.
@@ -50,16 +50,16 @@ INSERT INTO ottoq_layout_seed_stalls
    relative_x, relative_y, heading_degrees, stall_width_ft, stall_depth_ft,
    absolute_lat, absolute_lng, canopy_code, canopy_side, covered, run_id)
 VALUES
-  ('NASH-DCFC-STALL-01', 'DCFC-01', 'dcfc', 'charging', 'dcfc_zone', NULL, 'CANOPY-01 W-01', 141.2894, 185.2461, 180, 10.0000, 20.0000, 36.14020892, -86.77231936, 'CANOPY-01', 'W', true, 'A'),
-  ('NASH-DCFC-STALL-02', 'DCFC-02', 'dcfc', 'charging', 'dcfc_zone', NULL, 'CANOPY-01 W-02', 141.2894, 160.1280, 180, 10.0000, 20.0000, 36.14013991, -86.77231936, 'CANOPY-01', 'W', true, 'A'),
-  ('NASH-DCFC-STALL-03', 'DCFC-03', 'dcfc', 'charging', 'dcfc_zone', NULL, 'CANOPY-01 W-03', 141.2894, 135.0098, 180, 10.0000, 20.0000, 36.14007091, -86.77231936, 'CANOPY-01', 'W', true, 'A'),
-  ('NASH-DCFC-STALL-04', 'DCFC-04', 'dcfc', 'charging', 'dcfc_zone', NULL, 'CANOPY-01 W-04', 141.2894, 109.8917, 180, 10.0000, 20.0000, 36.14000190, -86.77231936, 'CANOPY-01', 'W', true, 'A'),
-  ('NASH-DCFC-STALL-05', 'DCFC-05', 'dcfc', 'charging', 'dcfc_zone', NULL, 'CANOPY-01 W-05', 141.2894, 84.7736, 180, 10.0000, 20.0000, 36.13993289, -86.77231936, 'CANOPY-01', 'W', true, 'A'),
-  ('NASH-DCFC-STALL-06', 'DCFC-06', 'dcfc', 'charging', 'dcfc_zone', NULL, 'CANOPY-01 E-06', 163.2677, 185.2461, 180, 10.0000, 20.0000, 36.14020892, -86.77224459, 'CANOPY-01', 'E', true, 'A'),
-  ('NASH-DCFC-STALL-07', 'DCFC-07', 'dcfc', 'charging', 'dcfc_zone', NULL, 'CANOPY-01 E-07', 163.2677, 160.1280, 180, 10.0000, 20.0000, 36.14013991, -86.77224459, 'CANOPY-01', 'E', true, 'A'),
-  ('NASH-DCFC-STALL-08', 'DCFC-08', 'dcfc', 'charging', 'dcfc_zone', NULL, 'CANOPY-01 E-08', 163.2677, 135.0098, 180, 10.0000, 20.0000, 36.14007091, -86.77224459, 'CANOPY-01', 'E', true, 'A'),
-  ('NASH-DCFC-STALL-09', 'DCFC-09', 'dcfc', 'charging', 'dcfc_zone', NULL, 'CANOPY-01 E-09', 163.2677, 109.8917, 180, 10.0000, 20.0000, 36.14000190, -86.77224459, 'CANOPY-01', 'E', true, 'A'),
-  ('NASH-DCFC-STALL-10', 'DCFC-10', 'dcfc', 'charging', 'dcfc_zone', NULL, 'CANOPY-01 E-10', 163.2677, 84.7736, 180, 10.0000, 20.0000, 36.13993289, -86.77224459, 'CANOPY-01', 'E', true, 'A'),
+  ('NASH-DCFC-STALL-01', 'DCFC-01', 'dcfc', 'charging', 'dcfc_zone', NULL, 'CANOPY-01 W-01', 141.2894, 185.2461, 90, 10.0000, 20.0000, 36.14020892, -86.77231936, 'CANOPY-01', 'W', true, 'A'),
+  ('NASH-DCFC-STALL-02', 'DCFC-02', 'dcfc', 'charging', 'dcfc_zone', NULL, 'CANOPY-01 W-02', 141.2894, 160.1280, 90, 10.0000, 20.0000, 36.14013991, -86.77231936, 'CANOPY-01', 'W', true, 'A'),
+  ('NASH-DCFC-STALL-03', 'DCFC-03', 'dcfc', 'charging', 'dcfc_zone', NULL, 'CANOPY-01 W-03', 141.2894, 135.0098, 90, 10.0000, 20.0000, 36.14007091, -86.77231936, 'CANOPY-01', 'W', true, 'A'),
+  ('NASH-DCFC-STALL-04', 'DCFC-04', 'dcfc', 'charging', 'dcfc_zone', NULL, 'CANOPY-01 W-04', 141.2894, 109.8917, 90, 10.0000, 20.0000, 36.14000190, -86.77231936, 'CANOPY-01', 'W', true, 'A'),
+  ('NASH-DCFC-STALL-05', 'DCFC-05', 'dcfc', 'charging', 'dcfc_zone', NULL, 'CANOPY-01 W-05', 141.2894, 84.7736, 90, 10.0000, 20.0000, 36.13993289, -86.77231936, 'CANOPY-01', 'W', true, 'A'),
+  ('NASH-DCFC-STALL-06', 'DCFC-06', 'dcfc', 'charging', 'dcfc_zone', NULL, 'CANOPY-01 E-06', 163.2677, 185.2461, 270, 10.0000, 20.0000, 36.14020892, -86.77224459, 'CANOPY-01', 'E', true, 'A'),
+  ('NASH-DCFC-STALL-07', 'DCFC-07', 'dcfc', 'charging', 'dcfc_zone', NULL, 'CANOPY-01 E-07', 163.2677, 160.1280, 270, 10.0000, 20.0000, 36.14013991, -86.77224459, 'CANOPY-01', 'E', true, 'A'),
+  ('NASH-DCFC-STALL-08', 'DCFC-08', 'dcfc', 'charging', 'dcfc_zone', NULL, 'CANOPY-01 E-08', 163.2677, 135.0098, 270, 10.0000, 20.0000, 36.14007091, -86.77224459, 'CANOPY-01', 'E', true, 'A'),
+  ('NASH-DCFC-STALL-09', 'DCFC-09', 'dcfc', 'charging', 'dcfc_zone', NULL, 'CANOPY-01 E-09', 163.2677, 109.8917, 270, 10.0000, 20.0000, 36.14000190, -86.77224459, 'CANOPY-01', 'E', true, 'A'),
+  ('NASH-DCFC-STALL-10', 'DCFC-10', 'dcfc', 'charging', 'dcfc_zone', NULL, 'CANOPY-01 E-10', 163.2677, 84.7736, 270, 10.0000, 20.0000, 36.13993289, -86.77224459, 'CANOPY-01', 'E', true, 'A'),
   ('NASH-L2-STALL-01', 'L2-01', 'l2', 'charging', 'l2_zone', NULL, 'CANOPY-02 W-01', 215.0738, 188.5428, 90, 10.0000, 20.0000, 36.14021797, -86.77206836, 'CANOPY-02', 'W', true, 'B'),
   ('NASH-L2-STALL-02', 'L2-02', 'l2', 'charging', 'l2_zone', NULL, 'CANOPY-02 W-02', 215.0738, 171.9021, 90, 10.0000, 20.0000, 36.14017226, -86.77206836, 'CANOPY-02', 'W', true, 'B'),
   ('NASH-L2-STALL-03', 'L2-03', 'l2', 'charging', 'l2_zone', NULL, 'CANOPY-02 W-03', 215.0738, 155.2613, 90, 10.0000, 20.0000, 36.14012654, -86.77206836, 'CANOPY-02', 'W', true, 'B'),

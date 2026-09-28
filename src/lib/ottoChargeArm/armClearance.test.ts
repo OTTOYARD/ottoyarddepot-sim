@@ -466,8 +466,18 @@ describe('the depot places every arm where this measurement applies', () => {
       // Read from the constant, not restated: this asserts every pedestal is the
       // SAME distance off its stall, which is the premise the sweep generalises on.
       // Pinning the number here just meant editing it in two places.
-      expect(Math.abs(p.carWorld[0] - p.world[0])).toBeCloseTo(PEDESTAL_OFFSET_PU, 9);
-      expect(p.carWorld[2]).toBeCloseTo(p.world[2], 9);
+      //
+      // Measured in the CAR's frame, not along a world axis: the car is head-in
+      // (compass 90 / 270) and the pedestal stands off its flank, abeam its centre.
+      const h = ((s.position.angle - 90) * Math.PI) / 180; // compass bearing -> plan heading
+      const dx = (p.carWorld[0] - p.world[0]) * -1;        // plan x runs against world X
+      const dy = (p.carWorld[2] - p.world[2]) * -1;        // plan y runs against world Z
+      expect(Math.abs(-dx * Math.sin(h) + dy * Math.cos(h))).toBeCloseTo(PEDESTAL_OFFSET_PU, 9); // off the flank
+      expect(dx * Math.cos(h) + dy * Math.sin(h)).toBeCloseTo(0, 9);                              // abeam the centre
+      // and the arm squares up to the car: its local +Z points from the pedestal at it
+      const len = Math.hypot(p.carWorld[0] - p.world[0], p.carWorld[2] - p.world[2]);
+      expect(Math.sin(p.rotationY) * (p.carWorld[0] - p.world[0]) / len
+        + Math.cos(p.rotationY) * (p.carWorld[2] - p.world[2]) / len).toBeCloseTo(1, 9);
       towards.add(p.toward);
       // and the port really does land on the flank the solid says it does
       const t = portInArmFrame(0.3, 0.8, CAR_WIDTH_M / 2, p.toward);
