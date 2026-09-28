@@ -17,19 +17,26 @@ import { useMemo } from "react";
 import * as THREE from "three";
 import { buildDepotLanes } from "@/engine/motion/LaneGraph";
 import { paintLanes, LANE_PAINT_WIDTH } from "@/engine/motion/lanePaint";
-import { toWorld, yawFromHeading2D } from "./coordUtils";
+import { toWorld, yawFromHeading2D, DECK_Y } from "./coordUtils";
 
-const Y_PAINT = 0.055; // just above the tarmac, below the cars
+// ON the drivable deck (DECK_Y), not the ground under it. This was 0.055 — a
+// datum from before DepotGround laid the 0.26 asphalt deck over the lot — so
+// every chevron, divider dash and stop bar sat 0.2u UNDER the pavement and
+// none of the lane paint was visible in 3D at all.
+const Y_PAINT = DECK_Y + 0.02;
 
 export function Lanes3D() {
   const paint = useMemo(() => paintLanes(buildDepotLanes()), []);
 
+  // Lit, opaque road paint: now that the markings are actually on the deck they
+  // have to read as paint in the sun and in shadow, not as unlit overlays that
+  // glow at night. Same hues as the 2D overlay, so the two views still agree.
   const materials = useMemo(
     () => ({
-      oneWay: new THREE.MeshBasicMaterial({ color: "#2BD9C4", transparent: true, opacity: 0.85 }),
-      twoWay: new THREE.MeshBasicMaterial({ color: "#7A8699", transparent: true, opacity: 0.5 }),
-      stripe: new THREE.MeshBasicMaterial({ color: "#F5B942", transparent: true, opacity: 0.45 }),
-      stop: new THREE.MeshBasicMaterial({ color: "#E7EAF0", transparent: true, opacity: 0.75 }),
+      oneWay: new THREE.MeshStandardMaterial({ color: "#27b5a3", roughness: 0.75, metalness: 0 }),
+      twoWay: new THREE.MeshStandardMaterial({ color: "#c2c8d0", roughness: 0.8, metalness: 0 }),
+      stripe: new THREE.MeshStandardMaterial({ color: "#d9a431", roughness: 0.75, metalness: 0 }),
+      stop: new THREE.MeshStandardMaterial({ color: "#e9edf2", roughness: 0.75, metalness: 0 }),
     }),
     []
   );

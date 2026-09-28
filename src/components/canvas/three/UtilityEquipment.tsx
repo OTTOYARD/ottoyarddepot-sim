@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import * as THREE from 'three';
 import { MATERIALS } from './materials';
 import { BESS_YARD, LIGHT_POLES } from '@/lib/sitePlan';
-import { toWorld } from './coordUtils';
+import { toWorld, DECK_Y } from './coordUtils';
 
 interface UtilityEquipmentProps {
   bessCapacity: number;
@@ -44,7 +44,7 @@ export function UtilityEquipment({ bessCapacity, bessPower }: UtilityEquipmentPr
       {/* ---- BESS yard ---- */}
       <group position={[bx, 0, bz]}>
         {/* concrete pad */}
-        <mesh rotation-x={-Math.PI / 2} position={[0, 0.06, 0]} receiveShadow>
+        <mesh rotation-x={-Math.PI / 2} position={[0, DECK_Y + 0.008, 0]} receiveShadow>
           <planeGeometry args={[BESS_YARD.w - 2, BESS_YARD.h - 2]} />
           <primitive object={MATERIALS.polishedConcrete()} attach="material" />
         </mesh>

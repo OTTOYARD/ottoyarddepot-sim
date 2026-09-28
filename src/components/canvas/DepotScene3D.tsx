@@ -1,6 +1,7 @@
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { Suspense, useCallback, useEffect, useRef, useMemo } from 'react';
+import * as THREE from 'three';
 import { ACESFilmicToneMapping, PCFSoftShadowMap, FogExp2, SRGBColorSpace } from 'three';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { useVehicleStore } from '@/store/vehicleStore';
@@ -48,19 +49,48 @@ function seededRandom(seed: number) {
 }
 
 function Landscaping() {
-  const trees = useMemo(() => {
-    const t: { pos: [number, number, number]; h: number }[] = [];
-    // perimeter ring OUTSIDE the security fence (lot is x ±144, z -96..104)
+  // Perimeter trees OUTSIDE the security fence (lot is x ±144, z -96..104).
+  // Instanced: one trunk mesh and one crown mesh for the whole ring (was four
+  // draw calls a tree), with faceted low-poly crowns in three greens so the
+  // ring reads as planted trees rather than identical green balls on sticks.
+  const { trunks, crowns } = useMemo(() => {
     const positions: [number, number][] = [
       [-130, 112], [-95, 112], [-60, 112], [-25, 112], [10, 112], [45, 112], [80, 112], [115, 112],
       [-130, -118], [-90, -118], [0, -118], [130, -118],
       [-152, -70], [-152, -35], [-152, 0], [-152, 35], [-152, 70], [-152, 95],
       [152, -70], [152, -35], [152, 0], [152, 35], [152, 70], [152, 95],
     ];
+    const trunkGeo = new THREE.CylinderGeometry(0.16, 0.3, 1, 7);
+    trunkGeo.translate(0, 0.5, 0);
+    const trunkMat = new THREE.MeshStandardMaterial({ color: '#4a3726', roughness: 0.9 });
+    const crownGeo = new THREE.IcosahedronGeometry(1, 1);
+    const crownMat = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.85, flatShading: true });
+    const BLOBS = 4;
+    const trunks = new THREE.InstancedMesh(trunkGeo, trunkMat, positions.length);
+    const crowns = new THREE.InstancedMesh(crownGeo, crownMat, positions.length * BLOBS);
+    const greens = ['#2f5a24', '#3b6b2c', '#27491f', '#46783a'].map((c) => new THREE.Color(c));
+    const o = new THREE.Object3D();
     positions.forEach(([x, z], i) => {
-      t.push({ pos: [x, 0, z], h: 5 + seededRandom(i) * 3 });
+      const h = 5 + seededRandom(i) * 3;
+      const trunkH = h * 0.55;
+      o.position.set(x, 0, z); o.rotation.set(0, 0, 0); o.scale.set(1, trunkH, 1); o.updateMatrix();
+      trunks.setMatrixAt(i, o.matrix);
+      const r = 1.9 + seededRandom(i + 50) * 1.3;
+      for (let b = 0; b < BLOBS; b++) {
+        const a = seededRandom(i * 7 + b) * Math.PI * 2;
+        const off = b === 0 ? 0 : r * 0.45;
+        const s = r * (b === 0 ? 1 : 0.62 + seededRandom(i * 11 + b) * 0.25);
+        o.position.set(x + Math.cos(a) * off, trunkH + r * (b === 0 ? 0.75 : 0.45 + seededRandom(i * 3 + b) * 0.5), z + Math.sin(a) * off);
+        o.rotation.set(seededRandom(i + b) * 3, seededRandom(i * 5 + b) * 3, 0);
+        o.scale.set(s, s * 0.85, s);
+        o.updateMatrix();
+        crowns.setMatrixAt(i * BLOBS + b, o.matrix);
+        crowns.setColorAt(i * BLOBS + b, greens[(i + b) % greens.length]);
+      }
     });
-    return t;
+    for (const m of [trunks, crowns]) { m.castShadow = true; m.instanceMatrix.needsUpdate = true; }
+    if (crowns.instanceColor) crowns.instanceColor.needsUpdate = true;
+    return { trunks, crowns };
   }, []);
 
   const planterPositions: [number, number, number][] = useMemo(() => [
@@ -70,28 +100,8 @@ function Landscaping() {
 
   return (
     <group>
-      {trees.map((tree, i) => {
-        const trunkH = tree.h * 0.6;
-        const crownR = 1.8 + seededRandom(i + 50) * 1.2;
-        return (
-          <group key={`tree${i}`} position={tree.pos}>
-            <mesh position={[0, trunkH / 2, 0]} castShadow>
-              <cylinderGeometry args={[0.15, 0.25, trunkH, 6]} />
-              <meshPhysicalMaterial color="#4A3522" roughness={0.85} metalness={0} envMapIntensity={0.3} />
-            </mesh>
-            {[
-              [0, trunkH + crownR * 0.6, 0] as [number, number, number],
-              [-crownR * 0.3, trunkH + crownR * 0.3, crownR * 0.2] as [number, number, number],
-              [crownR * 0.25, trunkH + crownR * 0.4, -crownR * 0.15] as [number, number, number],
-            ].map((p, j) => (
-              <mesh key={j} position={p} castShadow>
-                <sphereGeometry args={[crownR * (0.8 + seededRandom(i * 3 + j) * 0.4), 8, 8]} />
-                <meshPhysicalMaterial color="#2D5A1E" roughness={0.85} metalness={0} envMapIntensity={0.3} />
-              </mesh>
-            ))}
-          </group>
-        );
-      })}
+      <primitive object={trunks} />
+      <primitive object={crowns} />
 
       {planterPositions.map((pos, i) => (
         <group key={`planter${i}`} position={pos}>

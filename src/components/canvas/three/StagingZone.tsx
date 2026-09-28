@@ -5,7 +5,10 @@ import { PARK_RUNS } from '@/lib/sitePlan';
 import { carportFrames, CARPORT_COLUMN, type CarportFrame } from '@/lib/structurePlan';
 import { StaticBatch } from './staticBatch';
 import { galvanizedSteel, darkSteel, ledPanel, aluminiumTrim } from './buildingSkin';
-import { toWorld } from './coordUtils';
+import { toWorld, DECK_Y } from './coordUtils';
+
+/** Stall lines sit ON the asphalt deck (they were at 0.05, under it, and invisible). */
+const STRIPE_Y = DECK_Y + 0.01;
 
 /**
  * Perimeter parking: painted stall lines + SOLAR CARPORTS over every run
@@ -32,10 +35,10 @@ export function StagingZone({ count: _count }: { count: number }) {
         const [wx, , wz] = toWorld({ x, y }, 0);
         for (const side of [-1, 1]) {
           if (across) {
-            d.position.set(wx, 0.05, wz + side * 2.9);
+            d.position.set(wx, STRIPE_Y, wz + side * 2.9);
             d.rotation.set(0, Math.PI / 2, 0);
           } else {
-            d.position.set(wx + side * 2.9, 0.05, wz);
+            d.position.set(wx + side * 2.9, STRIPE_Y, wz);
             d.rotation.set(0, 0, 0);
           }
           d.updateMatrix();

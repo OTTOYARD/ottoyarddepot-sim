@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { useDepotStore } from '@/store/depotStore';
 import { towardFor, PEDESTAL_OFFSET_PU } from '@/lib/ottoChargeArm/depotPlacement';
 import { DCFC_CABINET_PU, L2_CABINET_PU, CABINET_BACKSET_PU } from '@/lib/ottoChargeArm/cabinetEnvelope';
-import { toWorld } from './coordUtils';
+import { toWorld, DECK_Y } from './coordUtils';
 import { MATERIALS } from './materials';
 
 /**
@@ -81,9 +81,13 @@ export function ChargingField({ type }: Props) {
         const px = s.position.x + toward * PEDESTAL_OFFSET_PU;
         const cabX = px + toward * (isDC ? CABINET_BACKSET_PU : 0);
         const [wx, , wz] = toWorld({ x: cabX, y: s.position.y }, 0);
+        // The pad stands ON the deck, as cabinetEnvelope's solid (and the arm
+        // measured against it) already assumes: "the body's underside is
+        // padHeight above the deck". Drawn from y = 0 it sat 0.26u (12 cm) lower
+        // than the solid the arm clears, with its pad buried under the asphalt.
 
         return (
-          <group key={s.id} position={[wx, 0, wz]}>
+          <group key={s.id} position={[wx, DECK_Y, wz]}>
             {/* concrete pad. ROTATED with the body: the pad's long axis follows
                 the cabinet's wide face, which now runs fore/aft along the car. */}
             <mesh position={[0, 0.08, 0]} receiveShadow>

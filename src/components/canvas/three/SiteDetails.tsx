@@ -5,7 +5,7 @@ import { oilStainTexture } from './textures';
 import { useDepotStore } from '@/store/depotStore';
 import { BESS_YARD, INGRESS, EGRESS, LOT } from '@/lib/sitePlan';
 import { bayBollards, BOLLARD_RADIUS } from '@/lib/structurePlan';
-import { toWorld } from './coordUtils';
+import { toWorld, DECK_Y } from './coordUtils';
 
 /**
  * Site dressing layer — the small real-world details that sell the scene:
@@ -45,7 +45,7 @@ export function SiteDetails() {
       const offX = a === 270 ? -3.4 : a === 90 ? (s.position.x < 150 ? -3.4 : 3.4) : 0;
       const offY = across ? 0 : (s.position.y < 110 ? -3.4 : 3.4);
       const [wx, , wz] = toWorld({ x: s.position.x + offX, y: s.position.y + offY }, 0);
-      d.position.set(wx, 0.25, wz);
+      d.position.set(wx, DECK_Y + 0.1, wz); // 0.33u (15 cm) standing proud of the deck, not half-buried in it
       d.rotation.set(0, across ? 0 : Math.PI / 2, 0);
       d.updateMatrix();
       inst.setMatrixAt(i, d.matrix);
@@ -128,7 +128,7 @@ export function SiteDetails() {
 
       {/* oil stains */}
       {stains.map((s) => (
-        <mesh key={s.id} rotation={[-Math.PI / 2, 0, s.rot]} position={[s.wx, 0.045, s.wz]}>
+        <mesh key={s.id} rotation={[-Math.PI / 2, 0, s.rot]} position={[s.wx, DECK_Y + 0.012, s.wz]}>
           <planeGeometry args={[s.r * 2, s.r * 1.5]} />
           <meshBasicMaterial map={stainTex} transparent depthWrite={false} opacity={0.85} />
         </mesh>
@@ -148,11 +148,11 @@ export function SiteDetails() {
         </mesh>
       ))}
       {/* concrete forecourt strip — the full bay approach throat (y 56..68) */}
-      <mesh rotation-x={-Math.PI / 2} position={[-8, 0.035, 48]} material={mats.concrete} receiveShadow>
+      <mesh rotation-x={-Math.PI / 2} position={[-8, DECK_Y + 0.006, 48]} material={mats.concrete} receiveShadow>
         <planeGeometry args={[156, 12]} />
       </mesh>
       {/* concrete rear apron — 30ft clear maneuvering zone behind the bays */}
-      <mesh rotation-x={-Math.PI / 2} position={[15, 0.035, 94]} material={mats.concrete} receiveShadow>
+      <mesh rotation-x={-Math.PI / 2} position={[15, DECK_Y + 0.006, 94]} material={mats.concrete} receiveShadow>
         <planeGeometry args={[258, 20]} />
       </mesh>
 
