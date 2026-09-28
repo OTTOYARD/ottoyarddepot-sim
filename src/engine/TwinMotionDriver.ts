@@ -224,6 +224,22 @@ const YAW_PER_UNIT = 2.5; // rad of yaw per unit travelled
 /** Arc length over which a docking car swings from the rail tangent to the
  *  parked heading. 10u makes a 90° charger dock a 0.157 rad/u swing. */
 const DOCK_BLEND = 10;
+/** Does this rail already END pointing the way the car parks? Then there is
+ *  nothing for the dock blend to do, and blending anyway turns the body toward
+ *  its parked heading while the path is still curving into the final straight
+ *  — the car drawn up to 44° off its direction of travel on the DCFC pull-in. */
+//
+// Measured over the five captures: identical overlap (288 pair-samples, 33
+// on-screen pairs) and less crab everywhere — burst 1.78% -> 1.64% of travel
+// drawn >20° off its direction, rec 1.56% -> 1.19%, fresh0922 2.13% -> 1.99%,
+// busy_day 0.94% -> 0.86%. Sidestep docks (L2) still end sideways and keep it.
+const DOCK_ALIGNED = 0.2; // rad
+function arrivesAligned(r: Rail, dock: number): boolean {
+  const n = r.pts.length;
+  if (n < 2) return false;
+  const a = r.pts[n - 2], b = r.pts[n - 1];
+  return Math.abs(wrapAngle(Math.atan2(b.y - a.y, b.x - a.x) - dock)) < DOCK_ALIGNED;
+}
 function easeHeading(current: number, target: number, dt: number, speed: number): number {
   const d = wrapAngle(target - current);
   const maxStep = Math.min(MAX_TURN_RATE, Math.abs(speed) * YAW_PER_UNIT) * dt;
@@ -2700,7 +2716,7 @@ class TwinMotionDriver {
           // blend has almost nothing left to do. L2 still needs it.)
           let aim = pose.heading;
           const dock = e.dest?.kind === "stall" ? e.dest.heading : null;
-          if (dock != null) {
+          if (dock != null && !arrivesAligned(e.tracker, dock)) {
             const rem = e.tracker.total - e.tracker.s;
             if (rem < DOCK_BLEND) {
               const t = Math.min(1, Math.max(0, 1 - rem / DOCK_BLEND));
