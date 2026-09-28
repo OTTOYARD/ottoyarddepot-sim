@@ -335,6 +335,11 @@ export const APPROACH_BACK_U = 9;
 // tightest (10.6u) L2 pitch — so the stall ahead never reads as a body in its path.
 const CHARGER_EXIT_RISE = 10;
 
+/** DCFC pull-in: where the lean out of the gap lane starts (u south of the
+ *  stall) and how long the straight final approach into the stall is. */
+const DCFC_PULLIN_RISE = 12;
+const DCFC_PULLIN_TAIL = 3.5;
+
 // What a widened corner has to clear (RailFlow.roundCorners): every built
 // structure, and every stall's parked-car footprint whether or not it is
 // occupied now — a rail outlives the occupancy it was built under.
@@ -1739,6 +1744,24 @@ class TwinMotionDriver {
     if (lane === "dcfc" || lane === "l2") {
       const gx = gapLaneX(stall.x);
       const toGap = gapEntry(this.routeFrom(start, hd, { x: gx, y: SOUTH_LANE_Y - 2 }), gx);
+      if (lane === "dcfc") {
+        // DCFC: an S-CURVE PULL-IN. Leave the gap lane DCFC_PULLIN_RISE short of
+        // the stall, lean across on a diagonal, and arrive on a short straight
+        // final approach already facing the way it parks — the way a driver
+        // pulls up to a pump. The old approach turned 90° at the stall's own y
+        // and slid the last 10u sideways while the dock blend rotated it north.
+        // It fits because DCFC stalls pitch 16u. The tail length is what the
+        // neighbour allows: rotating back to north swings the rear toward the
+        // car parked in the next stall south, and a 7u tail put it 0.17u INTO
+        // that car. At 12 / 3.5 the drawn body (dock blend and heading ease
+        // included) keeps >= 0.65u from every other stall's parked footprint and
+        // every structure; the docking test pins it with both neighbours parked.
+        // L2 stalls pitch 10.6u nose to tail — no such path; they keep the sidestep.
+        const entryY = toGap[toGap.length - 1]?.y ?? SOUTH_LANE_Y;
+        const rise = stall.y + DCFC_PULLIN_RISE;
+        const lean = rise < entryY - 4 ? [{ x: gx, y: rise }] : []; // else lean straight off the entry corner
+        return [...lead, ...toGap, ...lean, { x: stall.x, y: stall.y + DCFC_PULLIN_TAIL }, { x: stall.x, y: stall.y }];
+      }
       return [...lead, ...toGap, { x: gx, y: stall.y }, { x: stall.x, y: stall.y }];
     }
     // PULL-THROUGH BAYS are entered through their SOUTH door only: ride the north
@@ -2672,7 +2695,9 @@ class TwinMotionDriver {
           // MOVING instead: over the final DOCK_BLEND units the aim rotates from
           // the rail tangent to the stall heading, which for a 90° dock is
           // 0.157 rad/u — a real swing into the bay, and well inside the
-          // speed-scaled yaw budget above.
+          // speed-scaled yaw budget above. (DCFC stalls, pitched 16u, now DO
+          // arrive nose-north on an S-curve — routeToStall — so for them the
+          // blend has almost nothing left to do. L2 still needs it.)
           let aim = pose.heading;
           const dock = e.dest?.kind === "stall" ? e.dest.heading : null;
           if (dock != null) {

@@ -379,6 +379,10 @@ export function allStructureSolids(): { kind: string; r: Rect }[] {
       kind: 'bay-bollard',
       r: { x0: p.x - BOLLARD_RADIUS, x1: p.x + BOLLARD_RADIUS, y0: p.y - BOLLARD_RADIUS, y1: p.y + BOLLARD_RADIUS },
     })),
+    // Charger cabinets on their pads: the one piece of street furniture a car
+    // pulls right up beside. In the set so the clearance replay drives every
+    // recorded car against them, and so a widened corner has to clear them.
+    ...cabinetFootprints().map((k) => ({ kind: k.dc ? 'dcfc-cabinet' : 'l2-cabinet', r: k.r })),
   ];
 }
 
