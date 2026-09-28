@@ -5,8 +5,8 @@ import { useVehicleStore } from '@/store/vehicleStore';
 import { portFor } from '@/lib/ottoChargeArm/chargePort';
 import { PLAN_UNITS_PER_METRE } from '@/lib/ottoChargeArm/cobotSpec';
 import { CAR_W_PU } from './vehicleBody';
-import { towardFor, pedestalPlanPoint } from '@/lib/ottoChargeArm/depotPlacement';
-import { DCFC_CABINET_PU, L2_CABINET_PU, CABINET_BACKSET_PU, L2_PEDESTAL_OFFSET_PU } from '@/lib/ottoChargeArm/cabinetEnvelope';
+import { towardFor, chargerCabinet } from '@/lib/ottoChargeArm/depotPlacement';
+import { DCFC_CABINET_PU, L2_CABINET_PU, L2_POST_ALONG_PU, L2_POST_LATERAL_PU } from '@/lib/ottoChargeArm/cabinetEnvelope';
 import { toWorld, DECK_Y } from './coordUtils';
 import { StaticBatch } from './staticBatch';
 import { MATERIALS } from './materials';
@@ -14,31 +14,34 @@ import { MATERIALS } from './materials';
 interface Props { type: 'dcfc' | 'l2'; count: number; }
 
 /**
- * An L2 charge cable, in the post's frame (world axes, origin on the deck under the
- * cabinet centre). An L2 stall is HEAD-IN: the car's centre is L2_PEDESTAL_OFFSET_PU
- * out along +toward and its nose faces the post. The cable leaves the holster, drops
- * in front of the bumper, rounds the front corner and runs low along the flank to
- * the car's own charge port — the port Vehicle3D draws (portFor, flank = -toward in
- * the vehicle's frame, which for a car facing its post is world -Z).
+ * An L2 charge cable, in the POST'S OWN frame (the per-stall group: origin on the
+ * deck under the cabinet centre, local +X square to the car and toward it, local +Z
+ * along the car — toward its nose on a west column, its tail on an east column, i.e.
+ * toward·forward). The post stands beside the car's front quarter on its charge-port
+ * flank (cabinetEnvelope.L2_POST_*), so the car's centreline is L2_POST_LATERAL_PU
+ * out along local +X and its centre L2_POST_ALONG_PU back along the car. The cable
+ * leaves the holster, drops in front of the post, crosses the 1.15u gap low and
+ * rises to the car's own charge port — the port Vehicle3D draws (portFor, on the
+ * flank facing this post).
  */
 function l2CableGeo(toward: 1 | -1, alongM: number, heightM: number, holster: { x: number; y: number; z: number }): THREE.TubeGeometry {
-  const hw = CAR_W_PU / 2;
-  const portX = L2_PEDESTAL_OFFSET_PU - alongM * PLAN_UNITS_PER_METRE; // along the car from the post
-  const nose = L2_PEDESTAL_OFFSET_PU - 5.1;
+  const flank = L2_POST_LATERAL_PU - CAR_W_PU / 2;                 // the car's port flank, local x
+  const portZ = toward * (alongM * PLAN_UNITS_PER_METRE - L2_POST_ALONG_PU); // along the car from the post
   const pts = [
     new THREE.Vector3(holster.x, holster.y, holster.z),
-    new THREE.Vector3(toward * (holster.x * toward + 0.35), 0.55, 0),
-    new THREE.Vector3(toward * (nose + 0.3), 0.3, -hw - 0.4),
-    new THREE.Vector3(toward * Math.max(nose + 0.9, portX - 0.7), 0.32, -hw - 0.3),
-    new THREE.Vector3(toward * portX, heightM * PLAN_UNITS_PER_METRE, -hw - 0.05),
+    new THREE.Vector3(holster.x + 0.2, 0.55, holster.z * 0.6 + portZ * 0.4),
+    new THREE.Vector3(flank - 0.45, 0.3, (holster.z + portZ) / 2),
+    new THREE.Vector3(flank - 0.2, Math.max(0.35, heightM * PLAN_UNITS_PER_METRE * 0.6), portZ),
+    new THREE.Vector3(flank - 0.05, heightM * PLAN_UNITS_PER_METRE, portZ),
   ];
   return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 40, 0.08, 6);
 }
 
-/** Where the connector hangs on an L2 post (the holster drawn on its car-facing face),
- *  in the per-stall group's frame — derived from the cabinet's own dimensions. */
+/** Where the connector hangs on an L2 post (the holster drawn on its car-facing face,
+ *  local +X), in the per-stall group's frame — derived from the cabinet's own
+ *  dimensions, toward the car's nose. */
 const holsterAt = (toward: 1 | -1) => ({
-  x: toward * (L2_CABINET_PU.depth / 2 + 0.2), y: L2_CABINET_PU.padHeight + 1.35, z: L2_CABINET_PU.width * 0.22,
+  x: L2_CABINET_PU.depth / 2 + 0.2, y: L2_CABINET_PU.padHeight + 1.35, z: toward * L2_CABINET_PU.width * 0.22,
 });
 const L2_HOLSTER = { 1: holsterAt(1), [-1]: holsterAt(-1) } as Record<1 | -1, { x: number; y: number; z: number }>;
 
@@ -66,14 +69,13 @@ const HOUSING = {
 };
 
 /**
- * Charging pedestals. Every charger stall is perpendicular HEAD-IN
+ * Charging pedestals. Every charger stall is ANGLED 60° to its lane
  * (sitePlan.chargingStalls): each stall holds the CAR position, and its cabinet
- * stands where the car's charger is —
- *   - DCFC: SOUTH of the car, abeam its centre, behind the OTTO-CHARGE ARM that
- *     stands on the same pedestal line (depotPlacement.pedestalPlanPoint), its
- *     wide face along the car;
- *   - L2: in front of the car's nose on the canopy spine (L2_PEDESTAL_OFFSET_PU),
- *     its wide face across the nose.
+ * stands where the car's charger is, on the car's charge-port flank, turned with
+ * the car and its wide face along it (depotPlacement.chargerCabinet) —
+ *   - DCFC: abeam the car's centre, behind the OTTO-CHARGE ARM that stands on the
+ *     same line (depotPlacement.pedestalPlanPoint);
+ *   - L2: beside the car's front quarter (cabinetEnvelope.L2_POST_*).
  * Pedestal LED reflects live stall status (available/charging/servicing/offline).
  *
  * The HOUSING (pad, shell, plinth, cap, screen bezel, vents, brand line, L2
@@ -132,44 +134,32 @@ export function ChargingField({ type }: Props) {
   // assumes: "the body's underside is padHeight above the deck". Drawn from
   // y = 0 it sat 0.26u (12 cm) lower than the solid the arm clears.
   //
-  // (fx, fz) is the WORLD unit vector from the cabinet toward its car, and each
-  // stall's group is yawed so its local +X is that vector: a DCFC car lies north
-  // of its cabinet (world +Z; toWorld maps plan y to 110 - y), an L2 car at
-  // +toward world X of its post (toWorld negates plan x). The same numbers as
-  // structurePlan.cabinetFootprints, which the clearance tests drive cars against.
+  // (fx, fz) is the WORLD unit vector from the cabinet toward its car, square to
+  // the car, and each stall's group is yawed so its local +X is that vector; local
+  // +Z is then (-fz, fx), which runs along the car. The same point and the same
+  // turn as structurePlan.cabinetFootprints, which the clearance tests drive cars
+  // against — both read depotPlacement.chargerCabinet.
   const placed = useMemo(() => list.map((s) => {
     const toward = towardFor(s.position.x);
-    let cab: { x: number; y: number };
-    if (isDC) {
-      // The ARM stands at the pedestal point; the CABINET sits behind it. They
-      // used to share this point exactly, which put the arm's shoulder inside the
-      // box (-0.1675 m, measured). Only DCFC cabinets carry an arm.
-      const ped = pedestalPlanPoint(s.position.x, s.position.y);
-      cab = { x: ped.x, y: ped.y + CABINET_BACKSET_PU };
-    } else {
-      cab = { x: s.position.x + toward * L2_PEDESTAL_OFFSET_PU, y: s.position.y };
-    }
+    const cab = chargerCabinet(isDC ? 'dcfc' : 'l2', s.position.x, s.position.y, s.position.angle);
     const [wx, , wz] = toWorld(cab, 0);
-    const fx = isDC ? 0 : toward;
-    const fz = isDC ? 1 : 0;
-    // Ry(yaw) sends local +X to (cos yaw, 0, -sin yaw): yaw 0 faces +X, pi faces -X,
-    // -pi/2 faces +Z.
-    const yaw = isDC ? -Math.PI / 2 : toward > 0 ? 0 : Math.PI;
+    // toWorld negates both plan axes
+    const fx = -cab.face.x, fz = -cab.face.y;
+    // Ry(yaw) sends local +X to (cos yaw, 0, -sin yaw)
+    const yaw = Math.atan2(-fz, fx);
     return { s, toward, wx, wz, fx, fz, yaw };
   // positions depend only on the layout, not on live status
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [list.map((s) => `${s.id}@${s.position.x},${s.position.y}`).join('|'), isDC]);
+  }), [list.map((s) => `${s.id}@${s.position.x},${s.position.y},${s.position.angle}`).join('|'), isDC]);
 
   const housing = useMemo(() => {
     const b = new StaticBatch();
-    for (const { wx, wz, fx, fz } of placed) {
+    for (const { wx, wz, fx, fz, yaw, toward } of placed) {
       const y0 = DECK_Y;
-      // One box, placed `f` toward the car and `a` along it, sized `sf` on the
-      // car-facing axis and `sa` along the car. Every charger box is axis-aligned,
-      // so the two axes are world X and Z in one order or the other.
-      const ax = fz !== 0 ? 1 : 0, az = fx !== 0 ? 1 : 0;
+      // One box, placed `f` toward the car and `a` along local +Z (along the car),
+      // sized `sf` on the car-facing axis and `sa` along the car, and turned with it.
       const put = (k: string, f: number, y: number, a: number, sf: number, sy: number, sa: number) =>
-        b.box(k, wx + fx * f + ax * a, y, wz + fz * f + az * a, fx !== 0 ? sf : sa, sy, fx !== 0 ? sa : sf);
+        b.box(k, wx + fx * f - fz * a, y, wz + fz * f + fx * a, sf, sy, sa, yaw);
       // pad: long axis with the cabinet's wide face, along the car
       put('pad', 0, y0 + P / 2, 0, D + 0.8, P, W + 0.6);
       // satin shell over a graphite plinth
@@ -188,8 +178,8 @@ export function ChargingField({ type }: Props) {
       }
       // L2: connector holster on the car-facing face (no arm on these)
       if (!isDC) {
-        put('graphite', D / 2 + 0.1, y0 + P + 1.35, W * 0.22, 0.2, 0.42, 0.26);
-        put('pad', D / 2 + 0.22, y0 + P + 1.45, W * 0.22, 0.12, 0.28, 0.14);
+        put('graphite', D / 2 + 0.1, y0 + P + 1.35, toward * W * 0.22, 0.2, 0.42, 0.26);
+        put('pad', D / 2 + 0.22, y0 + P + 1.45, toward * W * 0.22, 0.12, 0.28, 0.14);
       }
     }
     return b.build();
@@ -215,13 +205,11 @@ export function ChargingField({ type }: Props) {
             <mesh position={[0, P + H + (isDC ? 0.42 : 0.13), 0]} material={ledFor(s.status)}>
               <boxGeometry args={[D * 0.85, 0.07, W * 0.7]} />
             </mesh>
-            {/* an L2 cable runs round the nose to the car's own port while the stall is
-                live; a DCFC car is plugged by its OTTO-CHARGE ARM, which draws its own */}
+            {/* an L2 cable runs across to the car's own port while the stall is live;
+                a DCFC car is plugged by its OTTO-CHARGE ARM, which draws its own */}
             {live && !isDC && (
-              <group rotation={[0, -yaw, 0]}>
-                <L2Cable toward={toward as 1 | -1} vehicleId={s.vehicleId} oem={s.vehicleId ? oemOf.get(s.vehicleId) || undefined : undefined}
-                  holster={L2_HOLSTER[toward as 1 | -1]} material={mats.cable} />
-              </group>
+              <L2Cable toward={toward as 1 | -1} vehicleId={s.vehicleId} oem={s.vehicleId ? oemOf.get(s.vehicleId) || undefined : undefined}
+                holster={L2_HOLSTER[toward as 1 | -1]} material={mats.cable} />
             )}
             {/* an idle L2 keeps its cable coiled on the pedestal's end */}
             {!isDC && !live && (

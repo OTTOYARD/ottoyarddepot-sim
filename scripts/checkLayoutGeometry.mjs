@@ -159,27 +159,61 @@ function conclude(name, bad, passDetail) {
   return pass(name, passDetail);
 }
 
-/** Axis-aligned footprint of a stall, in database feet. A heading of 0 or 180 puts
- *  the vehicle's LENGTH on the y axis; 90 or 270 puts it on the x axis.
- *  Only ever called on measurable stalls. */
-function box(s) {
-  const lengthOnY = s.heading_degrees === 0 || s.heading_degrees === 180;
-  const ex = (lengthOnY ? s.stall_width_ft : s.stall_depth_ft) / 2;
-  const ey = (lengthOnY ? s.stall_depth_ft : s.stall_width_ft) / 2;
-  return {
-    x0: s.relative_x - ex, x1: s.relative_x + ex,
-    y0: s.relative_y - ey, y1: s.relative_y + ey,
-  };
+/** A stall's footprint as its four corners, in database feet (y north-positive):
+ *  stall_depth_ft along its compass heading, stall_width_ft across it. A heading of 0
+ *  or 180 puts the vehicle's LENGTH on the y axis, 90 or 270 on the x axis, and the
+ *  60° charger stalls (heading 60 / 300, since 2026-09-28) lie between — which is why
+ *  the footprint is a turned rectangle and not a box. Only ever called on measurable
+ *  stalls. */
+function poly(s) {
+  const b = (s.heading_degrees * Math.PI) / 180;
+  const f = { x: Math.sin(b), y: Math.cos(b) }, r = { x: Math.cos(b), y: -Math.sin(b) };
+  const hl = s.stall_depth_ft / 2, hw = s.stall_width_ft / 2;
+  return [[hl, hw], [hl, -hw], [-hl, -hw], [-hl, hw]]
+    .map(([a, w]) => ({ x: s.relative_x + a * f.x + w * r.x, y: s.relative_y + a * f.y + w * r.y }));
 }
 
-/** Signed overlap of two boxes: positive means they intersect, by that many feet. */
+/** An axis-aligned rectangle as a polygon. */
+const rectPoly = (r) => [{ x: r.x0, y: r.y0 }, { x: r.x1, y: r.y0 }, { x: r.x1, y: r.y1 }, { x: r.x0, y: r.y1 }];
+
+/** The axis-aligned bounds of a polygon. For a stall at 0/90/180/270 this IS its
+ *  footprint; for an angled one it is the extent it reaches on each world axis —
+ *  what check 6 measures an aisle from (an aisle's width is taken square to the
+ *  aisle, from the stall's furthest point into it). */
+function bounds(P) {
+  const xs = P.map((p) => p.x), ys = P.map((p) => p.y);
+  return { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) };
+}
+
+/**
+ * Separating-axis gap between two convex polygons, in feet: > 0 is the clear gap on
+ * the best separating axis; < 0 they intersect, and -gap is the depth. For two
+ * axis-aligned boxes this is exactly max(x gap, y gap) — the measure this guard used
+ * before any stall was angled.
+ */
+function satGap(A, B) {
+  let best = -Infinity;
+  for (const P of [A, B]) {
+    for (let i = 0; i < P.length; i++) {
+      const a = P[i], b = P[(i + 1) % P.length];
+      const nx = b.y - a.y, ny = a.x - b.x, n = Math.hypot(nx, ny);
+      if (n < 1e-12) continue;
+      let a0 = Infinity, a1 = -Infinity, b0 = Infinity, b1 = -Infinity;
+      for (const q of A) { const t = (q.x * nx + q.y * ny) / n; a0 = Math.min(a0, t); a1 = Math.max(a1, t); }
+      for (const q of B) { const t = (q.x * nx + q.y * ny) / n; b0 = Math.min(b0, t); b1 = Math.max(b1, t); }
+      best = Math.max(best, b0 - a1, a0 - b1);
+    }
+  }
+  return best;
+}
+
+/** Overlap depth of two polygons: positive means they intersect, by that many feet. */
 function overlap(a, b) {
-  const ox = Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0);
-  const oy = Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0);
-  return ox > 0 && oy > 0 ? Math.min(ox, oy) : 0;
+  return Math.max(0, -satGap(a, b));
 }
 
-const boxes = new Map(measured.map((s) => [s.stall_code, box(s)]));
+const polys = new Map(measured.map((s) => [s.stall_code, poly(s)]));
+const boxes = new Map(measured.map((s) => [s.stall_code, bounds(polys.get(s.stall_code))]));
 
 // ---------------------------------------------------------------------------
 // THE ROAD NETWORK, WITH ITS DIRECTIONALITY
@@ -253,7 +287,7 @@ const LANE_RECTS = (() => {
   const bad = [];
   for (let i = 0; i < measured.length; i++) {
     for (let j = i + 1; j < measured.length; j++) {
-      const o = overlap(boxes.get(measured[i].stall_code), boxes.get(measured[j].stall_code));
+      const o = overlap(polys.get(measured[i].stall_code), polys.get(measured[j].stall_code));
       if (o > 1e-6) bad.push(`${measured[i].stall_code} <-> ${measured[j].stall_code} (overlap ${o.toFixed(2)} ft)`);
     }
   }
@@ -270,10 +304,10 @@ const LANE_RECTS = (() => {
   const bad = [];
   const exempted = [];
   for (const s of measured) {
-    const b = boxes.get(s.stall_code);
+    const b = polys.get(s.stall_code);
     for (const t of solid) {
       const r = { x0: +t.origin_x_ft, y0: +t.origin_y_ft, x1: +t.origin_x_ft + +t.width_ft, y1: +t.origin_y_ft + +t.length_ft };
-      if (overlap(b, r) <= 1e-6) continue;
+      if (overlap(b, rectPoly(r)) <= 1e-6) continue;
       const key = `${s.stall_code}|${t.structure_code}`;
       if (allowed.has(key)) exempted.push(key);
       else bad.push(`${s.stall_code} inside ${t.structure_code} (${t.structure_kind}, "${t.title}")`);
@@ -502,12 +536,13 @@ const LANE_RECTS = (() => {
 // LANE_RECTS is built once near the top of this file, because check 6 needs its
 // directionality too.
 
-/** Signed separation of a footprint from a lane body. Negative on BOTH axes means the
- *  lane cuts into it; otherwise the larger separation is the clear gap. */
+/** Signed separation of a footprint (an axis-aligned rectangle, or a stall's turned
+ *  polygon) from a lane body: a negative gap means the lane cuts into it, by `depth`;
+ *  otherwise the gap is the clear separation. For two axis-aligned boxes this is the
+ *  larger of the x and y separations, exactly as before any stall was angled. */
 function laneGap(b, L) {
-  const dx = Math.max(L.x0 - b.x1, b.x0 - L.x1);
-  const dy = Math.max(L.y0 - b.y1, b.y0 - L.y1);
-  return { dx, dy, cuts: dx < 0 && dy < 0, gap: Math.max(dx, dy), depth: Math.min(-dx, -dy) };
+  const g = satGap(Array.isArray(b) ? b : rectPoly(b), rectPoly(L));
+  return { cuts: g < 0, gap: g, depth: -g };
 }
 
 const WEST_REFERENCE_FT = 6.44;
@@ -523,7 +558,7 @@ const WEST_REFERENCE_FT = 6.44;
     for (const s of measured) {
       const b = boxes.get(s.stall_code);
       for (const L of LANE_RECTS) {
-        const r = laneGap(b, L);
+        const r = laneGap(polys.get(s.stall_code), L);
         if (r.cuts) {
           overlaps.push(`${s.stall_code} (x ${b.x0.toFixed(1)}..${b.x1.toFixed(1)}, y ${b.y0.toFixed(1)}..${b.y1.toFixed(1)}) ` +
                         `overlaps lane ${L.name} by ${r.depth.toFixed(2)} ft`);

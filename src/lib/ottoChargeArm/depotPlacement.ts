@@ -11,23 +11,25 @@
  * were growing out of the middle of the parking spaces instead of off the
  * chargers.
  *
- * ═══════════════════════════════════════════ HEAD-IN, SINCE 2026-09-28 ═══
- * A DCFC stall is perpendicular HEAD-IN (sitePlan.chargingStalls): the car lies
- * east-west, nose toward its canopy's spine. The pedestal stands on the car's
- * SOUTH side, abeam the car's centre, PEDESTAL_OFFSET_PU from its centreline —
- * in the 11.8u between neighbouring cars, where a car turning in or backing out
- * never sweeps (the turn's centre is on that side, so the body passes outside).
+ * ═══════════════════════════════════════════ ANGLED, SINCE 2026-09-28 ═══
+ * A charger stall is ANGLED 60° to its gap lane (sitePlan.chargingStalls): the
+ * car points north-east on a canopy's west column, north-west on its east
+ * column. The pedestal stands on the car's charge-port flank — the SOUTH-side
+ * flank on both columns — abeam the car's centre, PEDESTAL_OFFSET_PU from its
+ * centreline, square to the car: in the band between neighbouring cars, where a
+ * car turning in or backing out never sweeps.
  *
  * In the ARM'S OWN FRAME nothing changed: base on the pedestal, +Z at the car's
- * flank, the same standoff and the same fore/aft service window. The arm was
- * rotated 90° in the world with the car, so every clearance and reach figure in
- * cobotSpec.ts still describes the arm as built. (It used to stand beside a car
- * parked facing north, toward the canopy spine.)
+ * flank, the same standoff and the same fore/aft service window. The arm turns
+ * with the car (placeArm's rotationY), so every clearance and reach figure in
+ * cobotSpec.ts still describes the arm as built. (It stood beside a car parked
+ * facing north until 2026-09-28, and briefly beside a car at 90° to its lane.)
  */
 
-import { CANOPIES } from '@/lib/sitePlan';
+import { CANOPIES, chargerStallFrame } from '@/lib/sitePlan';
 import { DECK_Y } from '@/components/canvas/three/coordUtils';
 import { PLAN_UNITS_PER_METRE, MOUNT_HEIGHT_M, PEDESTAL_OFFSET_PU } from './cobotSpec';
+import { CABINET_BACKSET_PU, L2_POST_ALONG_PU, L2_POST_LATERAL_PU } from './cabinetEnvelope';
 
 /** Lateral offset from the car's centreline to its charger pedestal, plan units. */
 // Re-exported so existing importers keep working; the value lives in
@@ -47,9 +49,9 @@ function toWorld(x2d: number, y2d: number): [number, number] {
  *
  * ONE RULE for the arm, the cabinet, the L2 post and the VEHICLE's visible
  * charge port, so they cannot drift apart. The port presents on the car's
- * vehicle-frame -toward flank (portInVehicleFrame), which for a head-in car is
- * its SOUTH flank on both columns: the flank the DCFC pedestal stands on, and
- * the flank an L2 cable runs along.
+ * vehicle-frame -toward flank (portInVehicleFrame), which for an angled car is
+ * its SOUTH-side flank on both columns (portFlank): the flank the DCFC pedestal
+ * and the L2 post stand on.
  */
 export function towardFor(stallX: number): 1 | -1 {
   const canopy = CANOPIES.reduce(
@@ -60,12 +62,54 @@ export function towardFor(stallX: number): 1 | -1 {
 }
 
 /**
- * The pedestal point (arm base axis) for a DCFC stall, PLAN coordinates: abeam
- * the parked car's centre, PEDESTAL_OFFSET_PU to its south (plan y is
- * south-positive). The cabinet stands CABINET_BACKSET_PU further south of it.
+ * The plan unit vector from a charger car's centreline out to its charge-port
+ * flank (the flank its charger stands on): the car's right on a west column
+ * (toward = +1), its left on an east column. Square to the car whatever its
+ * bearing — for a 60° stall that is south-south-east / south-south-west.
  */
-export function pedestalPlanPoint(stallX: number, stallY: number): { x: number; y: number } {
-  return { x: stallX, y: stallY + PEDESTAL_OFFSET_PU };
+export function portFlank(stallX: number, bearing: number): { x: number; y: number } {
+  const { right } = chargerStallFrame(bearing);
+  const t = towardFor(stallX);
+  return { x: t * right.x, y: t * right.y };
+}
+
+/**
+ * The pedestal point (arm base axis) for a DCFC stall, PLAN coordinates: abeam
+ * the parked car's centre, PEDESTAL_OFFSET_PU out on its charge-port flank. The
+ * cabinet stands CABINET_BACKSET_PU further out along the same line.
+ */
+export function pedestalPlanPoint(stallX: number, stallY: number, bearing: number): { x: number; y: number } {
+  const f = portFlank(stallX, bearing);
+  return { x: stallX + f.x * PEDESTAL_OFFSET_PU, y: stallY + f.y * PEDESTAL_OFFSET_PU };
+}
+
+/**
+ * Where a charger stall's cabinet stands and which way it faces, PLAN coordinates —
+ * the one statement ChargingField draws, structurePlan.cabinetFootprints measures
+ * cars against, and the 2D plan marks:
+ *   - DCFC: CABINET_BACKSET_PU behind the OTTO-CHARGE ARM's pedestal, on the car's
+ *     charge-port flank, abeam its centre;
+ *   - L2: beside the car's front quarter on the same flank (L2_POST_ALONG_PU,
+ *     L2_POST_LATERAL_PU).
+ * `face` is the plan unit vector from the cabinet toward its car, square to the car;
+ * `along` is the car's forward direction. The cabinet's wide face runs along `along`
+ * and its screen, holster and car-facing side face `face`.
+ */
+export function chargerCabinet(
+  type: 'dcfc' | 'l2', stallX: number, stallY: number, bearing: number,
+): { x: number; y: number; face: { x: number; y: number }; along: { x: number; y: number } } {
+  const f = portFlank(stallX, bearing);
+  const { fwd } = chargerStallFrame(bearing);
+  const face = { x: -f.x, y: -f.y };
+  if (type === 'dcfc') {
+    const out = PEDESTAL_OFFSET_PU + CABINET_BACKSET_PU;
+    return { x: stallX + f.x * out, y: stallY + f.y * out, face, along: fwd };
+  }
+  return {
+    x: stallX + fwd.x * L2_POST_ALONG_PU + f.x * L2_POST_LATERAL_PU,
+    y: stallY + fwd.y * L2_POST_ALONG_PU + f.y * L2_POST_LATERAL_PU,
+    face, along: fwd,
+  };
 }
 
 export interface ArmPlacement {
@@ -78,7 +122,7 @@ export interface ArmPlacement {
    * fore/aft axis runs through the arm's base frame (portInArmFrame).
    */
   toward: 1 | -1;
-  /** Yaw so the arm's local +Z points at the parked vehicle: north, i.e. 0. */
+  /** Yaw so the arm's local +Z points at the parked vehicle, square to its flank. */
   rotationY: number;
   /** Uniform scale converting the metre-authored arm into plan units. */
   scale: number;
@@ -89,16 +133,18 @@ export interface ArmPlacement {
 /**
  * Resolve placement for one charging stall.
  *
- * The pedestal is SOUTH of the car on both columns (pedestalPlanPoint), so the
- * car always lies toward world +Z of it (toWorld maps plan y to 110 - y) and the
- * arm faces north: Ry(0) sends local +Z to world +Z.
+ * The pedestal stands on the car's charge-port flank (pedestalPlanPoint), and the
+ * arm is yawed so its local +Z runs from the pedestal to the car's centre: Ry(φ)
+ * sends local +Z to world (sin φ, 0, cos φ), so φ = atan2(ΔX, ΔZ) of that vector
+ * in world coordinates. For a car at 90° to its lane that is 0 (the arm faces
+ * north); at 60° it is ±30°.
  */
 export function placeArm(
-  stallId: string, stallX: number, stallY: number,
+  stallId: string, stallX: number, stallY: number, bearing: number,
 ): ArmPlacement {
   const toward = towardFor(stallX);
 
-  const ped = pedestalPlanPoint(stallX, stallY);
+  const ped = pedestalPlanPoint(stallX, stallY, bearing);
   const [pwx, pwz] = toWorld(ped.x, ped.y);
   const [cwx, cwz] = toWorld(stallX, stallY);
 
@@ -110,7 +156,7 @@ export function placeArm(
     // only became visible once the vehicle grew a charge port to aim at.
     world: [pwx, DECK_Y + MOUNT_HEIGHT_M * PLAN_UNITS_PER_METRE, pwz],
     toward,
-    rotationY: 0,
+    rotationY: Math.atan2(cwx - pwx, cwz - pwz),
     scale: PLAN_UNITS_PER_METRE,
     carWorld: [cwx, DECK_Y, cwz],
   };
@@ -121,18 +167,19 @@ export function placeArm(
  *
  * Arm base frame: +Z toward the vehicle, +X along the arm's mount, +Y up.
  *
- * THE SIGN ON X IS NOT COSMETIC. The arm faces north unrotated, so base-frame
- * +X is world +X, which is plan WEST. A car whose nose points plan east
- * (toward = +1) therefore has its nose toward base-frame -X, and one whose nose
- * points plan west (toward = -1) toward +X: x = -toward * along. Passing
- * `alongM` through unsigned mirrors the target fore/aft on half the stalls, and
- * the arm plugs into the tail of a car whose inlet is at the nose. Nothing
- * catches that by eye — the service window is symmetric, so the IK still solves;
- * it does not solve the right point. depotIntegration.test.ts is what catches it.
+ * THE SIGN ON X IS NOT COSMETIC. The arm's +Z runs from the pedestal to the
+ * car along the port flank's normal, toward*right in plan; base-frame +X is
+ * then plan -toward*forward — AFT for a west-column car (toward = +1), FORE for
+ * an east-column one. So a port `along` toward the nose sits at
+ * x = -toward * along, at every bearing. Passing `alongM` through unsigned
+ * mirrors the target fore/aft on half the stalls, and the arm plugs into the
+ * tail of a car whose inlet is at the nose. Nothing catches that by eye — the
+ * service window is symmetric, so the IK still solves; it does not solve the
+ * right point. depotIntegration.test.ts is what catches it.
  *
- * (The same expression held for the pull-alongside layout this replaced: there
- * the arm was yawed toward*90° and the car faced north. Both rotations and the
- * car's heading moved together, so the sign did not.)
+ * (The same expression held for the pull-alongside and the perpendicular
+ * layouts before this one: the arm's yaw and the car's heading always move
+ * together, so the sign does not.)
  *
  * @param alongM  port offset fore/aft of the vehicle centre, metres (+ = nose)
  * @param heightM port height above grade, metres
@@ -156,10 +203,11 @@ export function portInArmFrame(
  *
  * The vehicle model is authored nose-along-local-+Z, +Y up, so local -X is the
  * car's RIGHT flank and +X its LEFT. At a charging stall the port presents on
- * the flank facing its charger: -toward, which for a head-in car on either
- * column is its south flank (west column faces east: right = south; east
- * column faces west: left = south). The fore/aft offset runs straight down
- * local +Z whatever way the car faces.
+ * the flank facing its charger: -toward, which on either column is its
+ * south-side flank (portFlank: a west-column car faces north-east, so its right
+ * is south-south-east; an east-column car faces north-west, so its left is
+ * south-south-west). The fore/aft offset runs straight down local +Z whatever
+ * way the car faces.
  *
  * This exists so the ring you can SEE and the point the arm SOLVES TO are
  * derived from one expression rather than two that happen to agree today.

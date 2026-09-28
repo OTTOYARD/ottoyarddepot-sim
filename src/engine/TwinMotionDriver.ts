@@ -20,7 +20,7 @@
 import { KinematicCar, DEFAULT_CAR_PARAMS, wrapAngle } from "./motion/KinematicCar";
 import { type Pt } from "./motion/PathTracker";
 import { buildRail, pointAt, stepRail, RailLocks, setCornerObstacles, type Rail, type RailBody } from "./motion/RailFlow";
-import { allStructureSolids, parkedFootprint } from "@/lib/structurePlan";
+import { allStructureSolids, parkedBox } from "@/lib/structurePlan";
 import { findLeader, StallLedger, CAR_BODY_LENGTH, CAR_BODY_WIDTH, type MovingCar } from "./motion/traffic";
 import { buildDepotLanes } from "./motion/LaneGraph";
 import { ArmGate, type ArmStallInput } from "./motion/armGate";
@@ -33,6 +33,7 @@ import type { TwinSnapshot, TwinLeg } from "@/lib/ottoTwin";
 import {
   INGRESS, EGRESS, gapLaneX, SOUTH_LANE_Y, REAR_LANE_Y, PARK_RUNS, TEMP_LANE_X,
   WEST_AISLE_X, EAST_AISLE_X, NORTH_LANE_Y, N1_LANE_Y, QUEUE_Y, planFromDbFeet, generateStallsV2,
+  chargerStallFrame,
 } from "@/lib/sitePlan";
 import { DISCONNECT_SECONDS, applyArmTimings, type ArmPhase } from "@/lib/ottoChargeArm/armStateMachine";
 
@@ -228,8 +229,8 @@ const DOCK_BLEND = 10;
  *  nothing for the dock blend to do, and blending anyway turns the body toward
  *  its parked heading while the path is still curving into the final straight
  *  — the car drawn up to 44° off its direction of travel on the old DCFC
- *  S-curve pull-in. Every charger stall is entered head-in now, on a last leg
- *  that already points the way the car parks. */
+ *  S-curve pull-in. Every charger stall is entered nose first now, along the
+ *  stall's own 60° axis, on a last leg that already points the way the car parks. */
 //
 // Measured over the five captures: identical overlap (288 pair-samples, 33
 // on-screen pairs) and less crab everywhere — burst 1.78% -> 1.64% of travel
@@ -347,19 +348,22 @@ const LANE_Y = [REAR_LANE_Y, N1_LANE_Y, NORTH_LANE_Y, SOUTH_LANE_Y, QUEUE_Y];
 export const APPROACH_BACK_U = 9;
 
 // ── LEAVING A STALL ─────────────────────────────────────────────────────────
-// Every charger stall, DCFC and L2, is perpendicular HEAD-IN since 2026-09-28
-// (sitePlan.chargingStalls): a car turns off its gap lane at the stall's own row,
-// drives straight in, and leaves by BACKING OUT into that lane (chargerBackOut).
-// The DCFC stalls used to be pull-alongside — an S-curve in, a forward lean out
-// into the gap lane — and two lean-outs from one column could commit their merges
-// from inside their stalls and finish on top of each other.
+// Every charger stall, DCFC and L2, is ANGLED 60° to its gap lane since
+// 2026-09-28 (sitePlan.chargingStalls), leaning the way the lane runs: a car turns
+// in off the lane along the stall's own axis, drives in nose first, and leaves by
+// BACKING OUT into that lane and swinging to face north (chargerBackOut). The
+// stalls were perpendicular head-in for part of that day, and pull-alongside
+// before it — an S-curve in and a forward lean out, where two lean-outs from one
+// column could commit their merges from inside their stalls and finish on top of
+// each other.
 
 // What a widened corner has to clear (RailFlow.roundCorners): every built
 // structure, and every stall's parked-car footprint whether or not it is
-// occupied now — a rail outlives the occupancy it was built under.
+// occupied now — a rail outlives the occupancy it was built under. Both as the
+// shapes they are: an angled charger car and its cabinet are not square to the plan.
 setCornerObstacles([
-  ...allStructureSolids().map((k) => k.r),
-  ...generateStallsV2().map((st) => parkedFootprint(st.position)),
+  ...allStructureSolids().map((k) => k.box),
+  ...generateStallsV2().map((st) => parkedBox(st.position)),
 ]);
 
 // ── ENTERING A GAP LANE ─────────────────────────────────────────────────────
@@ -383,12 +387,43 @@ export function gapEntry(route: Pt[], gx: number): Pt[] {
     ? [...route.slice(0, n - 1), corner]   // drive on along the lane to the corner
     : [...route.slice(0, n - 2), corner];  // the junction vertex IS the corner
 }
+/**
+ * Where an angled charger stall's axis crosses the centreline of its gap lane: the
+ * point a car turns in at, and the point its back-out finishes at. `facing` is the
+ * stall's parked heading (parkedHeading). A stall whose axis runs along the lane (the
+ * legacy pull-alongside row) has no crossing, and turns in at its own row.
+ */
+export function chargerTurnIn(stall: Pt, facing: number, gx = gapLaneX(stall.x)): Pt {
+  const c = Math.cos(facing);
+  if (Math.abs(c) < 0.2) return { x: gx, y: stall.y };
+  const t = (stall.x - gx) / c;
+  return { x: gx, y: stall.y - t * Math.sin(facing) };
+}
+
+/**
+ * How far a car parked (or pulling in) along a charger stall's axis must reverse
+ * straight before a full-lock swing to NORTH finishes on its gap lane's centreline,
+ * from where it is now. Negative means the swing would overshoot the lane: the car is
+ * still too near it to back out.
+ */
+function chargerBackOutStraight(car: KinematicCar): number {
+  const h = car.heading;
+  const nx = -Math.cos(h);
+  if (Math.abs(nx) < 1e-6) return 0;
+  const R = car.params.wheelbase / Math.tan(EXIT_STEER);
+  const k = (wrapAngle(NORTH - h) >= 0 ? 1 : -1) / R;
+  // over the swing the car moves -(sin(NORTH) - sin h)/k across the lane (see chargerBackOut)
+  const arcDx = -(Math.sin(NORTH) - Math.sin(h)) / k;
+  return (gapLaneX(car.x) - car.x - arcDx) / nx;
+}
+
 /** A back-out waits while aisle traffic is within this of its finishing line (u)
  *  and up to MERGE_BACK_U behind the spot (≈3 s at cruise). */
 const BACKOUT_LANE_LAT = 6;
 const MERGE_BACK_U = 26;
-/** A charger back-out (chargerBackOut) sweeps ~11u of lane beside its stall: a
- *  neighbour's back-out under way within this of its start or finish shares that lane. */
+/** A charger back-out (chargerBackOut) sweeps its lane from ~5u to ~16u south of its
+ *  stall: a neighbour's back-out under way within this of its start or finish shares
+ *  that lane. */
 const CHARGER_BACKOUT_REACH = 16;
 /** How far either side of the gap lane's centreline a car counts as standing in it. */
 const CHARGER_BACKOUT_LANE_LAT = 4.5;
@@ -396,8 +431,9 @@ const CHARGER_BACKOUT_LANE_LAT = 4.5;
  *  length plus a margin, measured centre to centre). */
 const CHARGER_BACKOUT_NEAR = 12;
 /** How far UP the lane from its finishing spot a charger back-out's swing reaches,
- *  centre to centre: the tail crosses the lane from about the stall's own row (11u
- *  north of the finish) and a body standing there reaches another half-length further. */
+ *  centre to centre: the tail enters the lane's body ~10.6u north of the finish, and
+ *  a body standing there reaches another half-length further (15.7u; 20 keeps the
+ *  margin the perpendicular stalls this replaced had). */
 const CHARGER_BACKOUT_SWEEP_AHEAD = 20;
 /** Half the south collector's paved width (y 166..178): a body this close to
  *  SOUTH_LANE_Y is ON the collector. */
@@ -473,8 +509,9 @@ function nearestCorridor(v: number, candidates: number[]): number | null {
   return best != null && bd > 1e-6 ? best : null;
 }
 
-/** Parked heading for a stall. Charger stalls are head-in and face their canopy's
- *  spine (east or west); bays face NORTH (pull-through toward the rear apron).
+/** Parked heading for a stall. Charger stalls are angled and face their declared
+ *  bearing (north-east or north-west, toward their canopy's spine); bays face NORTH
+ *  (pull-through toward the rear apron).
  *  A staging car noses AWAY from the aisle that serves it, so the pull-in approach
  *  point (APPROACH_BACK_U behind the nose, see routeToStall) is staged on the AISLE SIDE of
  *  the stall rather than the wrong side of the column.
@@ -500,11 +537,14 @@ function nearestCorridor(v: number, candidates: number[]): number | null {
  *  The centroid test is kept as the FALLBACK for the case where no corridor can be
  *  established, so this stays a total function. */
 export function parkedHeading(lane: Lane, angleDeg: number, sx: number, sy: number): number {
-  // Charger stalls, DCFC and L2, are perpendicular HEAD-IN (sitePlan.chargingStalls):
-  // the stall's declared compass bearing IS the parked heading, 90 = east (west
-  // column), 270 = west (east column).
-  if ((lane === "dcfc" || lane === "l2") && (angleDeg === 90 || angleDeg === 270)) return angleDeg === 90 ? 0 : Math.PI;
-  if (lane === "dcfc" || lane === "l2" || lane === "wash" || lane === "service") return NORTH;
+  // Charger stalls, DCFC and L2, are ANGLED (sitePlan.chargingStalls): the stall's
+  // declared compass bearing IS the parked heading — 60 = north-east (west column),
+  // 300 = north-west (east column). A bearing of 0 or 180 is the pull-alongside row
+  // this replaced, whose cars faced north.
+  if (lane === "dcfc" || lane === "l2") {
+    return angleDeg % 180 !== 0 ? wrapAngle(chargerStallFrame(angleDeg).heading) : NORTH;
+  }
+  if (lane === "wash" || lane === "service") return NORTH;
   const vertical = angleDeg === 90 || angleDeg === 270; // east-west oriented column
   if (vertical) {
     const aisle = nearestCorridor(sx, AISLE_X);
@@ -530,7 +570,7 @@ interface Entry {
      *  the spot to check for oncoming aisle traffic before starting */
     end?: { x: number; y: number; hx: number; hy: number };
     committed?: boolean;
-    /** a head-in charger back-out (chargerBackOut): it also waits for its neighbours */
+    /** a charger back-out (chargerBackOut): it also waits for its neighbours */
     charger?: boolean;
   } | null;
   /** where this car is headed — rails are rebuilt toward this after reverses
@@ -1383,7 +1423,7 @@ class TwinMotionDriver {
     };
     this.twinStall.clear();
 
-    // ── BY POSITION FIRST ──────────────────────────────────────────────────────
+    // ── BY POSITION (charger stalls by column and rank, below) ──────────────────
     // The layout endpoint serves each stall's relative_x / relative_y, and those
     // were written FROM this renderer's site plan (buildLayoutSeed.mjs; the lock-in
     // test holds seed, database and renderer to one depot). So a twin stall's
@@ -1402,21 +1442,59 @@ class TwinMotionDriver {
       dcfc: "dcfc", l2: "l2", wash_bay: "wash", service_bay: "service", staging: "staging",
     };
     const renderer = useDepotStore.getState().stalls;
+    const byPosition = new Set<string>();
+    const claimed = new Set<string>();
+
+    // ── CHARGER STALLS: BY COLUMN AND RANK ─────────────────────────────────────
+    // The charger rows were re-pitched on 2026-09-28 when the stalls went to 60°
+    // (sitePlan.chargingStalls: DCFC 16 -> 14u, L2 10.6 / 11 -> 8.4u), and migration
+    // 0552 moves the database rows to match. Until it has run — or if the renderer
+    // ships first — a twin charger stall stands in the right COLUMN at the wrong row,
+    // and nearest-position is then WORSE than no answer: an old L2 row 117.7 lies
+    // 1.8u from new row 119.5, one rank further south, so it would pair a stall with
+    // its neighbour and strand another. Columns never move, and a column keeps its
+    // north-to-south order through any re-pitch, so a charger stall is the renderer
+    // stall of its type, in its column, at its rank. Where the two worlds agree on
+    // position this is the same answer position gives; it is used wherever a column
+    // holds the same number of stalls in both worlds, and position decides otherwise.
+    for (const kind of ["dcfc", "l2"] as const) {
+      const twinCols = new Map<number, { id: string; y: number }[]>();
+      for (const s of stalls) {
+        if (kindOf[s.type] !== kind || typeof s.x !== "number" || typeof s.y !== "number") continue;
+        if (!Number.isFinite(s.x) || !Number.isFinite(s.y)) continue;
+        const p = planFromDbFeet(s.x, s.y);
+        const col = renderer.find((r) => r.type === kind && Math.abs(r.position.x - p.x) <= POSITION_MATCH_U);
+        if (!col) continue;
+        const list = twinCols.get(col.position.x) ?? [];
+        list.push({ id: s.id, y: p.y });
+        twinCols.set(col.position.x, list);
+      }
+      for (const [x, tw] of twinCols) {
+        const rs = renderer.filter((r) => r.type === kind && r.position.x === x).sort((a, b) => a.position.y - b.position.y);
+        if (rs.length !== tw.length) continue;
+        tw.sort((a, b) => a.y - b.y);
+        tw.forEach((t, i) => {
+          this.twinStall.set(t.id, rs[i].id);
+          byPosition.add(t.id);
+          claimed.add(rs[i].id);
+        });
+      }
+    }
+
+    // ── EVERYTHING ELSE: BY POSITION ───────────────────────────────────────────
     const pairs: { twin: string; rid: string; d: number }[] = [];
     for (const s of stalls) {
       const kind = kindOf[s.type];
-      if (!kind || typeof s.x !== "number" || typeof s.y !== "number") continue;
+      if (!kind || byPosition.has(s.id) || typeof s.x !== "number" || typeof s.y !== "number") continue;
       if (!Number.isFinite(s.x) || !Number.isFinite(s.y)) continue;
       const p = planFromDbFeet(s.x, s.y);
       for (const r of renderer) {
-        if (r.type !== kind) continue;
+        if (r.type !== kind || claimed.has(r.id)) continue;
         const d = Math.hypot(r.position.x - p.x, r.position.y - p.y);
         if (d <= POSITION_MATCH_U) pairs.push({ twin: s.id, rid: r.id, d });
       }
     }
     pairs.sort((a, b) => a.d - b.d);
-    const byPosition = new Set<string>();
-    const claimed = new Set<string>();
     for (const pr of pairs) {
       if (byPosition.has(pr.twin) || claimed.has(pr.rid)) continue;
       this.twinStall.set(pr.twin, pr.rid);
@@ -1468,6 +1546,13 @@ class TwinMotionDriver {
       }
     }
     this.settleLayout();
+  }
+
+  /** The renderer stall a twin stall is drawn as (setTwinStallMap), or undefined
+   *  before a layout has mapped it. The one answer the 2D overlays should use, so a
+   *  glow lands on the stall the car is driven to. */
+  rendererStallFor(twinStallId: string): string | undefined {
+    return this.twinStall.get(twinStallId);
   }
 
   /** Renderer stall ids are zero-padded to two digits and run past 99 unpadded
@@ -1602,12 +1687,13 @@ class TwinMotionDriver {
     if (Math.abs(wrapAngle(e.car.heading - prev.heading)) >= Math.PI / 6) return false;
     const dx = prev.x - e.car.x, dy = prev.y - e.car.y;
     if (prev.lane === "staging") return Math.hypot(dx, dy) <= APPROACH_BACK_U + 1 ? "staging" : false;
-    // A head-in charger car is on its final straight from the gap lane to the stall. It
-    // can only back out once it is deep enough for the swing to finish on the lane;
-    // nearer the lane it is still turning in, and the moving re-rail takes it on.
-    if ((prev.lane === "l2" || prev.lane === "dcfc") && Math.abs(dy) < 1.5) {
-      const toLane = Math.abs(gapLaneX(prev.x) - e.car.x);
-      return toLane >= e.car.params.wheelbase / Math.tan(EXIT_STEER) ? "charger" : false;
+    // A charger car on its final straight, along the stall's own axis from the gap lane.
+    // It can only back out once it is deep enough for the swing to finish on the lane
+    // (the back-out's straight is not negative); nearer the lane it is still turning in,
+    // and the moving re-rail takes it on.
+    if (prev.lane === "l2" || prev.lane === "dcfc") {
+      const offAxis = Math.abs(dy * Math.cos(prev.heading) - dx * Math.sin(prev.heading));
+      if (offAxis < 1.5) return chargerBackOutStraight(e.car) >= 0 ? "charger" : false;
     }
     return false;
   }
@@ -1661,21 +1747,22 @@ class TwinMotionDriver {
   }
 
   /**
-   * The back-out from a head-in charger stall, DCFC or L2 (sitePlan.chargingStalls,
+   * The back-out from an ANGLED charger stall, DCFC or L2 (sitePlan.chargingStalls,
    * 2026-09-28).
    *
-   * The car is parked at 90° to its northbound gap lane, nose toward the canopy
-   * spine. It reverses straight until a full-lock swing will finish on the lane's
-   * centreline, then swings until it faces NORTH — the only way that lane runs — and
-   * the rail is rebuilt from there facing up the lane (the same cusp every back-out
-   * uses). With the car's own minimum radius (R = wheelbase / tan(EXIT_STEER) ≈ 11u)
-   * and a stall 16–16.5u off its lane that is 5–5.5u straight and a quarter turn,
-   * finishing 11u south of the stall. The swing turns AWAY from both neighbours: the
-   * tail sweeps south into the lane, the nose follows it round, and neither comes
-   * within 6u of the cars parked either side (pitch 10.6 / 11 / 16u). The swing's
-   * centre is 11u south of the stall's row, so everything nearer than ~8.9u to it is
-   * never swept — which is where a DCFC stall's own cabinet and OTTO-CHARGE ARM stand
-   * (6–8u south, abeam the car's centre).
+   * The car is parked 60° off its northbound gap lane, nose north-east or north-west
+   * toward the canopy spine. It reverses straight back along the stall's axis until a
+   * full-lock swing will finish on the lane's centreline, then swings until it faces
+   * NORTH — the only way that lane runs — and the rail is rebuilt from there facing up
+   * the lane (the same cusp every back-out uses). With the car's own minimum radius
+   * (R = wheelbase / tan(EXIT_STEER) ≈ 11u) a 60° swing gains 5.5u across and 9.5u
+   * down the lane, so a stall 16–16.5u off its lane backs 12.1–12.7u straight and
+   * finishes 15.6–15.9u south of the stall: exactly the arc its car turned in on,
+   * driven backwards. By the time the wheel goes over, the nose is ~7u behind where it
+   * parked — clear of the neighbour behind it, and of the charger beside it (the
+   * DCFC cabinet abeam the car's centre, the L2 post beside its front quarter), which
+   * the swing never comes back to. The solve is general in the stall's bearing
+   * (chargerBackOutStraight); a car square to its lane gets the quarter turn.
    */
   private chargerBackOut(e: Entry): NonNullable<Entry["reverse"]> {
     const h = e.car.heading;
@@ -1684,8 +1771,7 @@ class TwinMotionDriver {
     const sgn = turn >= 0 ? 1 : -1;
     const swing = Math.abs(turn);
     const nx = -Math.cos(h), ny = -Math.sin(h); // the way the car backs
-    const toLane = (gapLaneX(e.car.x) - e.car.x) * nx;
-    const straight = Math.max(0, toLane - R * Math.sin(swing));
+    const straight = Math.max(0, chargerBackOutStraight(e.car));
     const x0 = e.car.x + nx * straight, y0 = e.car.y + ny * straight;
     // reversing with steer -sgn*EXIT_STEER turns the heading by +sgn per R of travel
     const k = sgn / R;
@@ -1705,11 +1791,11 @@ class TwinMotionDriver {
   }
 
   /**
-   * Is a charger back-out's swing still spoken for? Neighbouring head-in stalls back
-   * out into the same stretch of gap lane — a car finishing its back-out stops 11u
-   * south of its stall, which is exactly where the swing of the car parked one stall
+   * Is a charger back-out's swing still spoken for? Neighbouring angled stalls back
+   * out into the same stretch of gap lane — a car finishing its back-out stops ~16u
+   * south of its stall, which is where the swing of the car parked one or two stalls
    * further south passes, and the DCFC east column and the L2 west column of canopy B
-   * face each other across one lane (AB). laneTrafficToward only sees cars DRIVING at
+   * back out into one lane (AB) from opposite sides. laneTrafficToward only sees cars DRIVING at
    * the finishing spot; this also waits for (a) a neighbour's back-out already under
    * way within reach, (b) any car standing in, or rolling through, the length of lane
    * the back-out finishes in, (c) a moving car near the finishing spot, (d) a car about
@@ -1741,10 +1827,12 @@ class TwinMotionDriver {
       // (a merge), whose merge will not look for a back-out it cannot see yet
       const m = other?.tracker?.merge;
       if (m && Math.hypot(m.x - end.x, m.y - end.y) < CHARGER_BACKOUT_NEAR && Math.hypot(b.x - m.x, b.y - m.y) < 2 * CHARGER_BACKOUT_REACH) return true;
-      // (e) THE SOUTH COLLECTOR. The swing ends 11u south of the stall with the tail a
-      // half-length further on, so from the southernmost rows it ends with the tail in
-      // the collector — and collector traffic crosses the lane mouth SIDEWAYS, where
-      // none of the lane-shaped tests above look. Hold for any car on the collector
+      // (e) THE SOUTH COLLECTOR. The swing ends ~16u south of the stall with the tail a
+      // half-length further on. The rows are pitched so that no stall's tail reaches
+      // the collector (sitePlan.chargingStalls: the worst, the southern L2 rows, stop
+      // 1.0u short of the westbound stream), but a stall that did would end with its
+      // tail across the lane mouth — and collector traffic crosses the lane mouth
+      // SIDEWAYS, where none of the lane-shaped tests above look. Hold for any car on the collector
       // near the mouth: standing within a car length of the tail, or moving within
       // the distance a car on it needs to see the claim published there and stop.
       if (collector.length && Math.abs(b.y - SOUTH_LANE_Y) <= COLLECTOR_HALF_WIDTH
@@ -1895,12 +1983,14 @@ class TwinMotionDriver {
     if (lane === "dcfc" || lane === "l2") {
       const gx = gapLaneX(stall.x);
       const toGap = gapEntry(this.routeFrom(start, hd, { x: gx, y: SOUTH_LANE_Y - 2 }), gx);
-      // Charger stalls are perpendicular HEAD-IN: turn off the lane at the stall's own
-      // row and drive straight in, nose toward the canopy spine. The last leg already
-      // points the way the car parks, so the dock blend has nothing to do
-      // (arrivesAligned). (DCFC used an S-curve pull-in to a north-facing pull-alongside
-      // stall until 2026-09-28.)
-      return [...lead, ...toGap, { x: gx, y: stall.y }, { x: stall.x, y: stall.y }];
+      // Charger stalls are ANGLED 60° to the lane, leaning north: ride the lane to where
+      // the stall's own axis crosses it (chargerTurnIn) and turn in along that axis, nose
+      // first. The corner there is 60°, which the rail rounds at the car's own 11u
+      // radius, and the last leg already points the way the car parks, so the dock
+      // blend has nothing to do (arrivesAligned). (Until 2026-09-28 DCFC used an S-curve
+      // to a north-facing pull-alongside stall, and both types were briefly square to
+      // the lane.)
+      return [...lead, ...toGap, chargerTurnIn(stall, facing, gx), { x: stall.x, y: stall.y }];
     }
     // PULL-THROUGH BAYS are entered through their SOUTH door only: ride the north
     // collector to the bay's own drive line, then straight north through the
@@ -2864,9 +2954,9 @@ class TwinMotionDriver {
           // below it was taken at a dead stop — the body spinning about its own
           // centre on the stall, the founder's "back bumper slides". Charger stalls
           // used to need it most (a 16u SIDESTEP off the gap lane into a stall
-          // parked nose-north); every charger stall is entered head-in now, on a
-          // last leg that already points the way it parks, so arrivesAligned skips
-          // the blend for them.
+          // parked nose-north); every charger stall is entered nose first now,
+          // along its own 60° axis, on a last leg that already points the way it
+          // parks, so arrivesAligned skips the blend for them.
           let aim = pose.heading;
           const dock = e.dest?.kind === "stall" ? e.dest.heading : null;
           if (dock != null && !arrivesAligned(e.tracker, dock)) {

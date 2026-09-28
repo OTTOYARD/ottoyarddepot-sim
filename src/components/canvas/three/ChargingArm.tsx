@@ -100,7 +100,7 @@ export function ChargingArm({ stallId, stallType }: ChargingArmProps) {
   const stall = useMemo(() => stalls.find((s) => s.id === stallId), [stalls, stallId]);
 
   const placement = useMemo(
-    () => (stall ? placeArm(stall.id, stall.position.x, stall.position.y) : null),
+    () => (stall ? placeArm(stall.id, stall.position.x, stall.position.y, stall.position.angle) : null),
     [stall],
   );
 

@@ -12,7 +12,7 @@ import { useVehicleStore } from "@/store/vehicleStore";
 import type { TwinSnapshot } from "@/lib/ottoTwin";
 import { LaneGraph, buildDepotLanes } from "./motion/LaneGraph";
 import { buildRail, movementsConflict, RailLocks, stepRail, type RailBody, type Sweep } from "./motion/RailFlow";
-import { EGRESS, GAP_LANES, NORTH_LANE_Y, SOUTH_LANE_Y, TEMP_LANE_X } from "@/lib/sitePlan";
+import { EGRESS, GAP_LANES, NORTH_LANE_Y, SOUTH_LANE_Y, TEMP_LANE_X, LOT, UNIT_FT, planFromDbFeet } from "@/lib/sitePlan";
 import { bodiesOverlap } from "./__fixtures__/replay";
 
 type Entry = {
@@ -51,7 +51,7 @@ beforeEach(() => {
   useDepotStore.getState().regenerateStalls(10, 30, 3, 113, 2);
 });
 
-describe("leaving a charger — the head-in back-out", () => {
+describe("leaving a charger — the angled back-out", () => {
   it("a re-tasked DCFC car backs out onto its gap lane facing north, rides it north, and never touches a neighbour", () => {
     // three cars fill the west DCFC column north-first: DCFC-01..03
     const cars = ["A", "B", "C"].map((id) => ({ id, state: "charging_dcfc" }));
@@ -62,8 +62,9 @@ describe("leaving a charger — the head-in back-out", () => {
     passDwell("B");
     twinMotionDriver.reconcile(snap([cars[0], { id: "B", state: "staged_awaiting_service" }, cars[2]]));
 
-    // Head-in since 2026-09-28: the car leaves by BACKING OUT, planned to finish on
-    // its gap lane's centreline facing north (the one way that lane runs).
+    // Angled 60° to its lane since 2026-09-28: the car leaves by BACKING OUT along its
+    // stall's axis, planned to finish on its gap lane's centreline facing north (the
+    // one way that lane runs).
     const e = entry("B");
     expect(e.tracker).toBeNull();
     expect(e.reverse).not.toBeNull();
@@ -106,15 +107,15 @@ describe("leaving a charger — the head-in back-out", () => {
   });
 });
 
-describe("a charger back-out that ends in the south collector", () => {
+describe("a charger back-out and the south collector", () => {
   type Blocking = {
     chargerBackOutBlocked(id: string, e: unknown, bodies: RailBody[]): boolean;
     backOutClaims(id: string, end: { x: number; y: number }): RailBody[];
   };
   const drv = () => twinMotionDriver as unknown as Blocking;
-  const leaving = (code: string) => {
-    twinMotionDriver.setTwinStallMap([{ id: "s", code, type: "dcfc" }]);
-    twinMotionDriver.reconcile(snap([{ id: "V", state: "charging_dcfc", stall_id: "s" }]));
+  const leaving = (code: string, type: "dcfc" | "l2" = "dcfc") => {
+    twinMotionDriver.setTwinStallMap([{ id: "s", code, type }]);
+    twinMotionDriver.reconcile(snap([{ id: "V", state: type === "dcfc" ? "charging_dcfc" : "charging_l2", stall_id: "s" }]));
     passDwell("V");
     twinMotionDriver.reconcile(snap([{ id: "V", state: "staged_awaiting_service" }]));
     const e = entry("V");
@@ -123,16 +124,43 @@ describe("a charger back-out that ends in the south collector", () => {
   };
   const westbound = (x: number, moving: boolean): RailBody =>
     ({ id: "X", x, y: SOUTH_LANE_Y - 3.2, heading: Math.PI, moving, speed: moving ? 8 : 0 });
+  const WB_ENVELOPE = SOUTH_LANE_Y - 3.2 - 2.1; // the westbound stream's car envelope, north edge
 
-  it("from the southernmost DCFC row it waits for collector traffic at the lane's mouth, then stands across the stream it reaches", () => {
-    // DCFC-05 is the last row of the west column (y 152): the swing finishes 11u
-    // south of it, facing north on gap lane westOfA, with the tail a half-length on —
-    // 1.4u into the westbound stream's car envelope. Collector traffic crosses the
-    // lane mouth sideways, where the lane-shaped tests do not look.
+  it("every one of the 40 charger back-outs finishes inside its gap lane, its tail clear of the collector", () => {
+    // The rows were pitched for exactly this (sitePlan.chargingStalls, 2026-09-28): a
+    // 60° back-out finishes ~16u south of its stall, and the southernmost rows stop at
+    // y 144 (DCFC) and 144.7 (L2) so that even their tails end short of the westbound
+    // stream. At the old rows the southern L2 tails reached y 181, across the collector.
+    const ids = [
+      ...Array.from({ length: 10 }, (_, i) => ["dcfc", `NASH-DCFC-STALL-${String(i + 1).padStart(2, "0")}`] as const),
+      ...Array.from({ length: 30 }, (_, i) => ["l2", `NASH-L2-STALL-${String(i + 1).padStart(2, "0")}`] as const),
+    ];
+    let worst = Infinity;
+    for (const [type, code] of ids) {
+      twinMotionDriver.clear();
+      useVehicleStore.getState().reset();
+      useDepotStore.getState().regenerateStalls(10, 30, 3, 113, 2);
+      const e = leaving(code, type);
+      const end = e.reverse!.end!;
+      expect(end.hy, code).toBe(-1); // finishes facing north, up its one-way lane
+      worst = Math.min(worst, WB_ENVELOPE - (end.y + 5.1));
+      expect(drv().backOutClaims("V", end), code).toHaveLength(1);
+      // a car standing on the collector just off the lane mouth, beside where the tail
+      // stops (outside the lane's own band): only rule (e) could hold for it, and does not
+      expect(drv().chargerBackOutBlocked("V", e, [westbound(end.x + 6, false)]), code).toBe(false);
+    }
+    expect(worst).toBeGreaterThan(0.9);
+  });
+
+  it("a back-out whose tail WOULD reach the collector waits for its traffic, then stands across the stream", () => {
+    // No stall on this site does (above); the rule stays, because collector traffic
+    // crosses a lane mouth SIDEWAYS, where the lane-shaped tests do not look. So the
+    // finishing spot is moved south by hand until the tail is 1.4u into the westbound
+    // stream's envelope — where the southernmost 90° DCFC stall's used to be.
     const e = leaving("NASH-DCFC-STALL-05");
     const end = e.reverse!.end!;
     expect(end.x).toBeCloseTo(GAP_LANES.westOfA, 6);
-    expect(end.y + 5.1).toBeGreaterThan(SOUTH_LANE_Y - 3.2 - 2.1);
+    end.y = WB_ENVELOPE + 1.4 - 5.1;
     expect(drv().chargerBackOutBlocked("V", e, [westbound(86, false)])).toBe(true);  // standing by the tail
     expect(drv().chargerBackOutBlocked("V", e, [westbound(105, true)])).toBe(true);  // coming, too close to stop
     expect(drv().chargerBackOutBlocked("V", e, [westbound(115, true)])).toBe(false); // will see the claim and stop
@@ -142,13 +170,6 @@ describe("a charger back-out that ends in the south collector", () => {
     expect(claims.map((c) => [c.x, c.y])).toEqual([[end.x, end.y], [end.x, SOUTH_LANE_Y - 3.2]]);
     expect(claims[1].heading).toBeCloseTo(Math.PI, 9);
     expect(claims.every((c) => !c.moving)).toBe(true);
-  });
-
-  it("a back-out that finishes inside its gap lane ignores the collector", () => {
-    const e = leaving("NASH-DCFC-STALL-04"); // y 136: finishes 16u clear of the collector
-    const end = e.reverse!.end!;
-    expect(drv().chargerBackOutBlocked("V", e, [westbound(86, false)])).toBe(false);
-    expect(drv().backOutClaims("V", end)).toHaveLength(1);
   });
 });
 
@@ -406,6 +427,16 @@ describe("stall identity — the twin's stalls drawn where the twin put them", (
     expect(live.length).toBe(158);
     const used = new Set<string>();
     let wrongRun = 0;
+    // The charger rows were re-pitched on 2026-09-28 and this fixture was captured
+    // before migration 0552 moved the database rows: its charger stalls stand in the
+    // right column at the old rows. They map by column and rank (setTwinStallMap);
+    // everything else still stands exactly where the renderer draws it.
+    const rankIn = (y: number, ys: number[]) => ys.filter((v) => v < y - 1e-6).length;
+    const liveCol = (type: string, x: number) => live
+      .filter((o) => o.type === type && Math.abs(planFromDbFeet(o.x!, o.y!).x - x) < 0.05)
+      .map((o) => planFromDbFeet(o.x!, o.y!).y);
+    const rendCol = (type: string, x: number) => [...renderer.values()]
+      .filter((o) => o.type === type && Math.abs(o.position.x - x) < 0.05).map((o) => o.position.y);
     for (const s of live) {
       const rid = map.get(s.id);
       expect(rid, s.code).toBeDefined();
@@ -413,11 +444,54 @@ describe("stall identity — the twin's stalls drawn where the twin put them", (
       used.add(rid!);
       const r = renderer.get(rid!)!;
       const p = planFromDbFeet(s.x!, s.y!);
-      expect(Math.hypot(r.position.x - p.x, r.position.y - p.y)).toBeLessThan(0.05);
+      if (s.type === "dcfc" || s.type === "l2") {
+        expect(Math.abs(r.position.x - p.x), `${s.code} column`).toBeLessThan(0.05);
+        expect(rankIn(r.position.y, rendCol(s.type, r.position.x)), `${s.code} rank`)
+          .toBe(rankIn(p.y, liveCol(s.type, p.x)));
+      } else {
+        expect(Math.hypot(r.position.x - p.x, r.position.y - p.y)).toBeLessThan(0.05);
+      }
       if (s.type === "staging" && runSlot(r.position.x, r.position.y) !== seedRun.get(s.code)) wrongRun++;
     }
     // the code mapping this replaces put 113 of 113 staging stalls in the wrong run slot
     expect(wrongRun).toBe(0);
+  });
+
+  it("once the database carries the seed's rows (migration 0552), every stall maps to the renderer stall at its position", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { planFromDbFeet } = await import("@/lib/sitePlan");
+    const seed = JSON.parse(readFileSync("unreal/layoutSeed.json", "utf8")) as {
+      stalls: { stall_code: string; stall_type: string; relative_x: number; relative_y: number }[];
+    };
+    const layout = seed.stalls.map((s, i) => ({ id: `t${i}`, code: s.stall_code, type: s.stall_type, x: s.relative_x, y: s.relative_y }));
+    twinMotionDriver.setTwinStallMap(layout);
+    const map = (twinMotionDriver as unknown as { twinStall: Map<string, string> }).twinStall;
+    const renderer = new Map(useDepotStore.getState().stalls.map((s) => [s.id, s]));
+    const used = new Set<string>();
+    for (const s of layout) {
+      const rid = map.get(s.id);
+      expect(rid, s.code).toBeDefined();
+      expect(used.has(rid!), `${rid} mapped twice`).toBe(false);
+      used.add(rid!);
+      const r = renderer.get(rid!)!;
+      const p = planFromDbFeet(s.x, s.y);
+      expect(Math.hypot(r.position.x - p.x, r.position.y - p.y), s.code).toBeLessThan(0.05);
+    }
+    expect(used.size).toBe(158);
+  });
+
+  it("a moved charger row never pairs a stall with its neighbour by nearest position", () => {
+    // The trap column-and-rank closes: old L2 west row 4 (y 117.7) lies 1.8u from new
+    // row 5 (119.5). Nearest-position would give it the wrong stall and strand another.
+    const toDb = (x: number, y: number) => ({ x: (x - LOT.x) * UNIT_FT, y: (LOT.y + LOT.h - y) * UNIT_FT });
+    const oldRows = [85.9, 96.5, 107.1, 117.7, 128.3, 138.9, 149.5, 160.1];
+    const layout = oldRows.map((y, i) => ({ id: `w${i}`, code: `NASH-L2-STALL-0${i + 1}`, type: "l2", ...toDb(143, y) }));
+    twinMotionDriver.setTwinStallMap(layout);
+    const map = (twinMotionDriver as unknown as { twinStall: Map<string, string> }).twinStall;
+    const west = useDepotStore.getState().stalls.filter((s) => s.type === "l2" && s.position.x === 143)
+      .sort((a, b) => a.position.y - b.position.y).map((s) => s.id);
+    expect(layout.map((l) => map.get(l.id))).toEqual(west);
+    expect(planFromDbFeet(layout[3].x, layout[3].y).y).toBeCloseTo(117.7, 6);
   });
 
   it("a layout without coordinates still maps by code, exactly as before", () => {

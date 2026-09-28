@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   OPS_SHELL, WASH_SHELL, SHELLS, MIN_JAMB_CLEARANCE, doorSpan, solidWallRuns, shellSolids,
   bayEquipmentSolids, canopyColumnYs, cabinetFootprints, CANOPY_MAX_SPAN, CANOPY_COLUMN,
-  carportFrames, allStructureSolids, parkedFootprint, rectsOverlap, bodyHitsRect,
+  carportFrames, allStructureSolids, parkedBox, boxesOverlap, boxGap, boxOf, bodyHitsRect,
 } from './structurePlan';
 import {
   CANOPIES, NORTH_LANE_Y, REAR_LANE_Y, SERVICE_BAY_XS, WASH_BAY_XS, BAY_STALL_Y,
@@ -91,8 +91,21 @@ describe('charging canopy spine columns', () => {
   it('stand clear of every charger cabinet', () => {
     for (const c of CANOPIES) {
       for (const y of canopyColumnYs(c, cabs)) {
-        const col = { x0: c.cx - CANOPY_COLUMN / 2, x1: c.cx + CANOPY_COLUMN / 2, y0: y - CANOPY_COLUMN / 2, y1: y + CANOPY_COLUMN / 2 };
-        for (const k of cabs) expect(rectsOverlap(col, k.r), `${c.id} column y=${y} vs ${k.stallId}`).toBe(false);
+        const col = boxOf({ x0: c.cx - CANOPY_COLUMN / 2, x1: c.cx + CANOPY_COLUMN / 2, y0: y - CANOPY_COLUMN / 2, y1: y + CANOPY_COLUMN / 2 });
+        for (const k of cabs) expect(boxesOverlap(col, k.box), `${c.id} column y=${y} vs ${k.stallId}`).toBe(false);
+      }
+    }
+  });
+
+  it('stand clear of every parked charger car, measured as the angled body it is', () => {
+    // The spine is where two columns of 60° noses meet, 1.53u either side of it at the
+    // closest. A column is placed only where it clears every car's body (parkedBox).
+    for (const c of CANOPIES) {
+      for (const y of canopyColumnYs(c, cabs)) {
+        const col = boxOf({ x0: c.cx - CANOPY_COLUMN / 2, x1: c.cx + CANOPY_COLUMN / 2, y0: y - CANOPY_COLUMN / 2, y1: y + CANOPY_COLUMN / 2 });
+        for (const st of stalls.filter((s) => s.type === 'dcfc' || s.type === 'l2')) {
+          expect(boxGap(col, parkedBox(st.position)), `${c.id} column y=${y} vs ${st.id}`).toBeGreaterThan(0);
+        }
       }
     }
   });
@@ -127,10 +140,21 @@ describe('no built thing stands inside a parking stall', () => {
     const solids = allStructureSolids();
     const hits: string[] = [];
     for (const st of stalls) {
-      const fp = parkedFootprint(st.position);
+      // the car as it lies — an angled charger car is not square to the plan
+      const fp = parkedBox(st.position);
       for (const k of solids) {
         // the office block legitimately contains nothing; bays contain their own car
-        if (rectsOverlap(fp, k.r)) hits.push(`${st.id} x ${k.kind}`);
+        if (boxesOverlap(fp, k.box)) hits.push(`${st.id} x ${k.kind}`);
+      }
+    }
+    expect(hits).toEqual([]);
+  });
+
+  it('parks no car on top of another (every stall body clears every other)', () => {
+    const hits: string[] = [];
+    for (let i = 0; i < stalls.length; i++) {
+      for (let j = i + 1; j < stalls.length; j++) {
+        if (boxesOverlap(parkedBox(stalls[i].position), parkedBox(stalls[j].position))) hits.push(`${stalls[i].id} x ${stalls[j].id}`);
       }
     }
     expect(hits).toEqual([]);

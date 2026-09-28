@@ -43,11 +43,11 @@ import type { CarSolid } from './vehicleEnvelope';
  *
  * Named for the CAR, not for a world axis: `width` is the wide face, which runs
  * fore/aft along the parked car (arm-frame X), and `depth` the shallow side,
- * which faces it (arm-frame Z). A head-in DCFC car lies east-west with its
- * cabinet to the south, so ChargingField and structurePlan draw `width` on world
- * X and `depth` on world Z; the pull-alongside layout before it had them the
- * other way round. Getting the two the wrong way round silently halves the
- * measured intrusion, so they are swapped once, explicitly, below.
+ * which faces it (arm-frame Z). An angled car's cabinet turns with it, so
+ * ChargingField and structurePlan draw `width` along the car's axis and `depth`
+ * square to it, whatever the bearing. Getting the two the wrong way round
+ * silently halves the measured intrusion, so they are swapped once, explicitly,
+ * below.
  */
 export const DCFC_CABINET_PU = {
   /** the WIDE face, which runs fore/aft along the car */
@@ -87,15 +87,26 @@ export const CABINET_BACKSET_PU = 1.35;
 export const L2_CABINET_PU = { width: 1.1, height: 2.8, depth: 0.7, padHeight: 0.16 } as const;
 
 /**
- * Car centre to L2 post, plan units, toward the canopy spine.
+ * Where an L2 post stands, in the PARKED CAR'S frame, plan units.
  *
- * An L2 stall is perpendicular HEAD-IN (sitePlan.chargingStalls, 2026-09-28): the
- * post stands at the head of the stall, in front of the car's nose. The nose is
- * CAR_LENGTH / 2 = 5.1u out; at 6.5u the post's 0.7u body leaves 1.05u (0.50 m) to
- * the bumper and its pad 0.65u — a wheel-stop gap, not a scrape. PEDESTAL_OFFSET_PU
- * (6.0u) stays the DCFC value: it was swept for the arm, and L2 has no arm.
+ * A charger stall is ANGLED 60° to its lane (sitePlan.chargingStalls, 2026-09-28).
+ * The L2 post stands beside the car's front quarter on its charge-port flank (the
+ * south-side flank, depotPlacement.portFlank), its wide face along the car:
+ *   - L2_POST_ALONG_PU toward the nose from the car's centre, which keeps the post
+ *     clear of the canopy spine (2.95u from it, so a spine column can stand
+ *     anywhere between two posts) and ahead of the neighbouring car's nose, which
+ *     sits half a pitch (4.2u) further back along the axis;
+ *   - L2_POST_LATERAL_PU out from the centreline: the middle of the 7.27u between
+ *     two cars' centrelines at the L2 pitch, so the pad clears this car's flank by
+ *     0.75u (0.36 m) and its body by 1.15u.
+ * It used to stand in front of the nose on the spine (a perpendicular head-in stall,
+ * and before that a nose-to-tail one); at 60° two columns of noses meet at the spine
+ * and a post there would stand in the way of the canopy's own columns.
+ * PEDESTAL_OFFSET_PU (6.0u) stays the DCFC value: it was swept for the arm, and L2
+ * has no arm.
  */
-export const L2_PEDESTAL_OFFSET_PU = 6.5;
+export const L2_POST_ALONG_PU = 2.6;
+export const L2_POST_LATERAL_PU = 3.6;
 
 export interface CabinetDims {
   width: number; height: number; depth: number; padHeight: number;

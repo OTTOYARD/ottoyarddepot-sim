@@ -1,9 +1,9 @@
 import { memo } from 'react';
 import type { StallState } from '@/store/depotStore';
 import { useDepotStore } from '@/store/depotStore';
-import { towardFor, pedestalPlanPoint } from '@/lib/ottoChargeArm/depotPlacement';
-import { CABINET_BACKSET_PU, L2_PEDESTAL_OFFSET_PU } from '@/lib/ottoChargeArm/cabinetEnvelope';
-import { chargerStallPaint } from '@/lib/sitePlan';
+import { chargerCabinet } from '@/lib/ottoChargeArm/depotPlacement';
+import { DCFC_CABINET_PU, L2_CABINET_PU } from '@/lib/ottoChargeArm/cabinetEnvelope';
+import { chargerStallPaint, chargerStallFrame } from '@/lib/sitePlan';
 
 const TYPE_COLORS: Record<string, string> = {
   dcfc: '#C00000',
@@ -43,26 +43,33 @@ function getParallelogramPoints(w: number, h: number, angleDeg: number): string 
 
 /**
  * A CHARGER stall, drawn where it is: a footprint centred on the parked car and
- * oriented the way the car lies, plus the charger it plugs into. (The generic
- * stall below is anchored at its top-left corner and skews by cos(angle), which put
- * every charger stall off its car as a slanted parallelogram — the 2D plan misstated
- * the charging layout.) Both types are perpendicular head-in, the car lying
- * east-west with its nose toward the canopy spine (sitePlan.chargingStalls): a DCFC
- * cabinet stands south of the car, beside it; an L2 post stands in front of its nose.
+ * turned the way the car lies, plus the charger it plugs into. (The generic stall
+ * below is anchored at its top-left corner and skews by cos(angle), which put every
+ * charger stall off its car as a slanted parallelogram — the 2D plan misstated the
+ * charging layout.) Every charger stall is ANGLED 60° to its lane, the car pointing
+ * north-east or north-west toward the canopy spine (sitePlan.chargingStalls); its
+ * cabinet stands on the car's south-side flank — abeam its centre for a DCFC (the
+ * OTTO-CHARGE ARM's pedestal), beside its front quarter for an L2 post — exactly
+ * where depotPlacement.chargerCabinet puts it for the 3D field and the solids.
  */
 function ChargerStall({ stall, fill, stroke }: { stall: StallState; fill: string; stroke: string }) {
   const { x, y, angle } = stall.position;
   const dc = stall.type === 'dcfc';
-  const { w, h } = chargerStallPaint(dc ? 'dcfc' : 'l2', angle);
+  const { len, wid } = chargerStallPaint(dc ? 'dcfc' : 'l2');
+  // SVG's rotate() turns +x toward +y, and the plan's y runs south, so a plan
+  // heading in degrees is exactly the SVG rotation that lays +x along the car.
+  const deg = (chargerStallFrame(angle).heading * 180) / Math.PI;
   // the cabinet, body plus pad, as structurePlan.cabinetFootprints lays it out
-  const ped = dc ? pedestalPlanPoint(x, y) : null;
-  const post = ped
-    ? { x: ped.x - 0.9, y: ped.y + CABINET_BACKSET_PU - 0.6, w: 1.8, h: 1.2 }
-    : { x: x + towardFor(x) * L2_PEDESTAL_OFFSET_PU - 0.6, y: y - 0.7, w: 1.2, h: 1.4 };
+  const cab = chargerCabinet(dc ? 'dcfc' : 'l2', x, y, angle);
+  const dims = dc ? DCFC_CABINET_PU : L2_CABINET_PU;
+  const cw = dims.width + 0.6, cd = dims.depth + 0.8;
+  const cabDeg = (Math.atan2(cab.along.y, cab.along.x) * 180) / Math.PI;
   return (
     <>
-      <rect x={x - w / 2} y={y - h / 2} width={w} height={h} fill={fill} stroke={stroke} strokeWidth={0.5} opacity={0.9} rx={0.6} />
-      <rect x={post.x} y={post.y} width={post.w} height={post.h} fill="#d4d8dd" opacity={0.85} rx={0.2} />
+      <rect x={-len / 2} y={-wid / 2} width={len} height={wid} transform={`translate(${x} ${y}) rotate(${deg})`}
+        fill={fill} stroke={stroke} strokeWidth={0.5} opacity={0.9} rx={0.6} />
+      <rect x={-cw / 2} y={-cd / 2} width={cw} height={cd} transform={`translate(${cab.x} ${cab.y}) rotate(${cabDeg})`}
+        fill="#d4d8dd" opacity={0.85} rx={0.2} />
       <text x={x} y={y + 1} textAnchor="middle" fontSize={3} fill="#ffffff" opacity={0.7} pointerEvents="none">
         {stall.id.split('-')[1]}
       </text>

@@ -1,7 +1,7 @@
 {
   "meta": {
     "source": "src/lib/sitePlan.ts",
-    "exportedAt": "2026-09-28T18:25:09.877Z",
+    "exportedAt": "2026-09-28T19:28:25.930Z",
     "units": {
       "logical": 1,
       "feet": 1.57,
@@ -247,7 +247,7 @@
       "position": {
         "x": 96,
         "y": 88,
-        "angle": 90
+        "angle": 60
       }
     },
     {
@@ -257,8 +257,8 @@
       "vehicleId": null,
       "position": {
         "x": 96,
-        "y": 104,
-        "angle": 90
+        "y": 102,
+        "angle": 60
       }
     },
     {
@@ -268,8 +268,8 @@
       "vehicleId": null,
       "position": {
         "x": 96,
-        "y": 120,
-        "angle": 90
+        "y": 116,
+        "angle": 60
       }
     },
     {
@@ -279,8 +279,8 @@
       "vehicleId": null,
       "position": {
         "x": 96,
-        "y": 136,
-        "angle": 90
+        "y": 130,
+        "angle": 60
       }
     },
     {
@@ -290,8 +290,8 @@
       "vehicleId": null,
       "position": {
         "x": 96,
-        "y": 152,
-        "angle": 90
+        "y": 144,
+        "angle": 60
       }
     },
     {
@@ -302,7 +302,7 @@
       "position": {
         "x": 110,
         "y": 88,
-        "angle": 270
+        "angle": 300
       }
     },
     {
@@ -312,8 +312,8 @@
       "vehicleId": null,
       "position": {
         "x": 110,
-        "y": 104,
-        "angle": 270
+        "y": 102,
+        "angle": 300
       }
     },
     {
@@ -323,8 +323,8 @@
       "vehicleId": null,
       "position": {
         "x": 110,
-        "y": 120,
-        "angle": 270
+        "y": 116,
+        "angle": 300
       }
     },
     {
@@ -334,8 +334,8 @@
       "vehicleId": null,
       "position": {
         "x": 110,
-        "y": 136,
-        "angle": 270
+        "y": 130,
+        "angle": 300
       }
     },
     {
@@ -345,8 +345,8 @@
       "vehicleId": null,
       "position": {
         "x": 110,
-        "y": 152,
-        "angle": 270
+        "y": 144,
+        "angle": 300
       }
     },
     {
@@ -357,7 +357,7 @@
       "position": {
         "x": 143,
         "y": 85.9,
-        "angle": 90
+        "angle": 60
       }
     },
     {
@@ -367,8 +367,8 @@
       "vehicleId": null,
       "position": {
         "x": 143,
-        "y": 96.5,
-        "angle": 90
+        "y": 94.30000000000001,
+        "angle": 60
       }
     },
     {
@@ -378,8 +378,8 @@
       "vehicleId": null,
       "position": {
         "x": 143,
-        "y": 107.10000000000001,
-        "angle": 90
+        "y": 102.7,
+        "angle": 60
       }
     },
     {
@@ -389,8 +389,8 @@
       "vehicleId": null,
       "position": {
         "x": 143,
-        "y": 117.7,
-        "angle": 90
+        "y": 111.10000000000001,
+        "angle": 60
       }
     },
     {
@@ -400,8 +400,8 @@
       "vehicleId": null,
       "position": {
         "x": 143,
-        "y": 128.3,
-        "angle": 90
+        "y": 119.5,
+        "angle": 60
       }
     },
     {
@@ -411,8 +411,8 @@
       "vehicleId": null,
       "position": {
         "x": 143,
-        "y": 138.9,
-        "angle": 90
+        "y": 127.9,
+        "angle": 60
       }
     },
     {
@@ -422,8 +422,8 @@
       "vehicleId": null,
       "position": {
         "x": 143,
-        "y": 149.5,
-        "angle": 90
+        "y": 136.3,
+        "angle": 60
       }
     },
     {
@@ -433,8 +433,8 @@
       "vehicleId": null,
       "position": {
         "x": 143,
-        "y": 160.10000000000002,
-        "angle": 90
+        "y": 144.70000000000002,
+        "angle": 60
       }
     },
     {
@@ -444,8 +444,8 @@
       "vehicleId": null,
       "position": {
         "x": 157,
-        "y": 91,
-        "angle": 270
+        "y": 90.10000000000001,
+        "angle": 300
       }
     },
     {
@@ -455,8 +455,8 @@
       "vehicleId": null,
       "position": {
         "x": 157,
-        "y": 102,
-        "angle": 270
+        "y": 98.50000000000001,
+        "angle": 300
       }
     },
     {
@@ -466,8 +466,8 @@
       "vehicleId": null,
       "position": {
         "x": 157,
-        "y": 113,
-        "angle": 270
+        "y": 106.9,
+        "angle": 300
       }
     },
     {
@@ -477,8 +477,8 @@
       "vehicleId": null,
       "position": {
         "x": 157,
-        "y": 124,
-        "angle": 270
+        "y": 115.30000000000001,
+        "angle": 300
       }
     },
     {
@@ -488,8 +488,8 @@
       "vehicleId": null,
       "position": {
         "x": 157,
-        "y": 135,
-        "angle": 270
+        "y": 123.70000000000002,
+        "angle": 300
       }
     },
     {
@@ -499,8 +499,8 @@
       "vehicleId": null,
       "position": {
         "x": 157,
-        "y": 146,
-        "angle": 270
+        "y": 132.10000000000002,
+        "angle": 300
       }
     },
     {
@@ -510,8 +510,8 @@
       "vehicleId": null,
       "position": {
         "x": 157,
-        "y": 157,
-        "angle": 270
+        "y": 140.5,
+        "angle": 300
       }
     },
     {
@@ -522,7 +522,7 @@
       "position": {
         "x": 190,
         "y": 85.9,
-        "angle": 90
+        "angle": 60
       }
     },
     {
@@ -532,8 +532,8 @@
       "vehicleId": null,
       "position": {
         "x": 190,
-        "y": 96.5,
-        "angle": 90
+        "y": 94.30000000000001,
+        "angle": 60
       }
     },
     {
@@ -543,8 +543,8 @@
       "vehicleId": null,
       "position": {
         "x": 190,
-        "y": 107.10000000000001,
-        "angle": 90
+        "y": 102.7,
+        "angle": 60
       }
     },
     {
@@ -554,8 +554,8 @@
       "vehicleId": null,
       "position": {
         "x": 190,
-        "y": 117.7,
-        "angle": 90
+        "y": 111.10000000000001,
+        "angle": 60
       }
     },
     {
@@ -565,8 +565,8 @@
       "vehicleId": null,
       "position": {
         "x": 190,
-        "y": 128.3,
-        "angle": 90
+        "y": 119.5,
+        "angle": 60
       }
     },
     {
@@ -576,8 +576,8 @@
       "vehicleId": null,
       "position": {
         "x": 190,
-        "y": 138.9,
-        "angle": 90
+        "y": 127.9,
+        "angle": 60
       }
     },
     {
@@ -587,8 +587,8 @@
       "vehicleId": null,
       "position": {
         "x": 190,
-        "y": 149.5,
-        "angle": 90
+        "y": 136.3,
+        "angle": 60
       }
     },
     {
@@ -598,8 +598,8 @@
       "vehicleId": null,
       "position": {
         "x": 190,
-        "y": 160.10000000000002,
-        "angle": 90
+        "y": 144.70000000000002,
+        "angle": 60
       }
     },
     {
@@ -609,8 +609,8 @@
       "vehicleId": null,
       "position": {
         "x": 204,
-        "y": 91,
-        "angle": 270
+        "y": 90.10000000000001,
+        "angle": 300
       }
     },
     {
@@ -620,8 +620,8 @@
       "vehicleId": null,
       "position": {
         "x": 204,
-        "y": 102,
-        "angle": 270
+        "y": 98.50000000000001,
+        "angle": 300
       }
     },
     {
@@ -631,8 +631,8 @@
       "vehicleId": null,
       "position": {
         "x": 204,
-        "y": 113,
-        "angle": 270
+        "y": 106.9,
+        "angle": 300
       }
     },
     {
@@ -642,8 +642,8 @@
       "vehicleId": null,
       "position": {
         "x": 204,
-        "y": 124,
-        "angle": 270
+        "y": 115.30000000000001,
+        "angle": 300
       }
     },
     {
@@ -653,8 +653,8 @@
       "vehicleId": null,
       "position": {
         "x": 204,
-        "y": 135,
-        "angle": 270
+        "y": 123.70000000000002,
+        "angle": 300
       }
     },
     {
@@ -664,8 +664,8 @@
       "vehicleId": null,
       "position": {
         "x": 204,
-        "y": 146,
-        "angle": 270
+        "y": 132.10000000000002,
+        "angle": 300
       }
     },
     {
@@ -675,8 +675,8 @@
       "vehicleId": null,
       "position": {
         "x": 204,
-        "y": 157,
-        "angle": 270
+        "y": 140.5,
+        "angle": 300
       }
     },
     {

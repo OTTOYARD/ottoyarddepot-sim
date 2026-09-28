@@ -462,13 +462,13 @@ describe('the depot places every arm where this measurement applies', () => {
     expect(dcfc).toHaveLength(10);
     const towards = new Set<number>();
     for (const s of dcfc) {
-      const p = placeArm(s.id, s.position.x, s.position.y);
+      const p = placeArm(s.id, s.position.x, s.position.y, s.position.angle);
       // Read from the constant, not restated: this asserts every pedestal is the
       // SAME distance off its stall, which is the premise the sweep generalises on.
       // Pinning the number here just meant editing it in two places.
       //
-      // Measured in the CAR's frame, not along a world axis: the car is head-in
-      // (compass 90 / 270) and the pedestal stands off its flank, abeam its centre.
+      // Measured in the CAR's frame, not along a world axis: the car is angled
+      // (compass 60 / 300) and the pedestal stands off its flank, abeam its centre.
       const h = ((s.position.angle - 90) * Math.PI) / 180; // compass bearing -> plan heading
       const dx = (p.carWorld[0] - p.world[0]) * -1;        // plan x runs against world X
       const dy = (p.carWorld[2] - p.world[2]) * -1;        // plan y runs against world Z

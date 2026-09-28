@@ -15,10 +15,11 @@ import { galvanizedSteel, darkSteel, hazardBand, ledPanel, aluminiumTrim } from 
  *   both eaves -> PURLINS along the canopy -> PV MODULES on the purlins.
  * The roof is carried at every point by something you can see; nothing floats.
  *
- * Columns come from structurePlan.canopyColumnYs(), which places them between
- * the charger cabinets on the spine (the old fixed 19u pitch put three columns
- * THROUGH cabinets), keeps every span <= 17u, and stands one near each roof end.
- * A cable tray runs under the girder and drops a conduit into every cabinet.
+ * Columns come from structurePlan.canopyColumnYs(), which places them clear of
+ * every charger cabinet and every parked car's body (the old fixed 19u pitch put
+ * three columns THROUGH cabinets), keeps every span <= 17u, and stands one near
+ * each roof end. A cable tray runs under the girder; the chargers, which stand
+ * beside their cars off the spine, are fed from below.
  */
 
 const R = 13;      // ridge height at the spine (6.2 m)
@@ -117,12 +118,16 @@ function build(): Map<string, THREE.BufferGeometry> {
       }
     }
 
-    // ── cable tray under the girder, conduit drop into each cabinet ──
+    // ── cable tray under the girder, conduit drop into any cabinet ON the spine ──
+    // Since the stalls went to 60° (2026-09-28) every cabinet stands beside its car,
+    // 2.95-3.7u off the spine (depotPlacement.chargerCabinet), and is fed from below,
+    // through its pad, as a pad-mounted charger is. A drop from the tray there was a
+    // bare pole standing on each post, thirty of them down canopies B and C.
     b.planBox('dark', { x0: c.cx - 0.55, x1: c.cx + 0.55, y0: y0 + 1, y1: y1 - 1 }, R - 1.75, R - 1.45);
     for (const k of cabs) {
-      const kx = (k.r.x0 + k.r.x1) / 2;
-      if (Math.abs(kx - c.cx) > 3) continue;
-      const ky = (k.r.y0 + k.r.y1) / 2;
+      const kx = k.box.cx;
+      if (Math.abs(kx - c.cx) > 1) continue;
+      const ky = k.box.cy;
       const top = k.dc ? 3.76 : 2.96;
       b.cylinder('dark', 150 - kx, top, 110 - ky, 0.14, R - 1.75 - top, 8);
     }

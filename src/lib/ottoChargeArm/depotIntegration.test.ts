@@ -36,10 +36,11 @@ describe('arm placement in the depot', () => {
     // The previous arm used stall.position — the car's spot. The pedestal stands
     // PEDESTAL_OFFSET_PU off the parked car's flank. They must differ by exactly
     // that, or the arms are growing out of the tarmac again. Measured in the car's
-    // own frame, at the heading the driver actually parks it at (head-in since
-    // 2026-09-28: the car lies east-west and the pedestal is to its south).
+    // own frame, at the heading the driver actually parks it at (angled 60° to the
+    // lane since 2026-09-28: the pedestal is square to the car on its south-side
+    // flank, whatever the bearing).
     for (const s of dcfc()) {
-      const p = placeArm(s.id, s.position.x, s.position.y);
+      const p = placeArm(s.id, s.position.x, s.position.y, s.position.angle);
       const h = parkedHeading('dcfc', s.position.angle, s.position.x, s.position.y);
       const dx = -(p.world[0] - p.carWorld[0]); // plan x runs against world X
       const dy = -(p.world[2] - p.carWorld[2]); // plan y runs against world Z
@@ -51,13 +52,13 @@ describe('arm placement in the depot', () => {
 
   it('faces the vehicle from whichever side of the canopy it is on', () => {
     const stalls = dcfc();
-    const towards = new Set(stalls.map((s) => placeArm(s.id, s.position.x, s.position.y).toward));
+    const towards = new Set(stalls.map((s) => placeArm(s.id, s.position.x, s.position.y, s.position.angle).toward));
     // Canopy A has two stall columns straddling the spine, so both signs must
     // occur. If they did not, one column's arms would face into empty tarmac.
     expect(towards).toEqual(new Set([1, -1]));
 
     for (const s of stalls) {
-      const p = placeArm(s.id, s.position.x, s.position.y);
+      const p = placeArm(s.id, s.position.x, s.position.y, s.position.angle);
       // local +Z under Ry(theta) maps to (sin theta, 0, cos theta); it must
       // point from the pedestal toward the car.
       const fx = Math.sin(p.rotationY);
@@ -70,7 +71,7 @@ describe('arm placement in the depot', () => {
   });
 
   it('scales metres into plan units (the toy-car bug)', () => {
-    const p = placeArm('DCFC-01', CANOPIES[0].cx - 7, 88);
+    const p = placeArm('DCFC-01', CANOPIES[0].cx - 7, 88, 60);
     expect(p.scale).toBeCloseTo(1 / 0.4785, 6);
     expect(p.scale).toBeGreaterThan(2);
     // mount height must be expressed in plan units too, and measured from the
@@ -84,7 +85,7 @@ describe('the arm actually reaches every vehicle it is asked to serve', () => {
     const oems = ['tesla', 'waymo', 'zoox', 'cruise', 'motional', 'van', null, 'unknown-oem'];
     let checked = 0;
     for (const s of dcfc()) {
-      const { toward } = placeArm(s.id, s.position.x, s.position.y);
+      const { toward } = placeArm(s.id, s.position.x, s.position.y, s.position.angle);
       for (let i = 0; i < 12; i++) {
         for (const oem of oems) {
           const port = portFor(`veh-${s.id}-${i}`, oem);
@@ -117,7 +118,7 @@ describe('the arm actually reaches every vehicle it is asked to serve', () => {
     let checked = 0;
 
     for (const s of dcfc()) {
-      const p = placeArm(s.id, s.position.x, s.position.y);
+      const p = placeArm(s.id, s.position.x, s.position.y, s.position.angle);
 
       // How ChargingArm places the arm: group at world, Ry(rotationY), scaled.
       const armGroup = new THREE.Object3D();
@@ -127,7 +128,7 @@ describe('the arm actually reaches every vehicle it is asked to serve', () => {
       armGroup.updateMatrixWorld(true);
 
       // How Vehicle3D places the vehicle: at the stall, yawed to the heading the
-      // driver parks it at (parkedHeading: head-in, facing the canopy spine).
+      // driver parks it at (parkedHeading: its stall's 60° bearing, toward the spine).
       const carGroup = new THREE.Object3D();
       carGroup.position.set(p.carWorld[0], 0, p.carWorld[2]);
       carGroup.rotation.y = yawFromHeading2D(parkedHeading('dcfc', s.position.angle, s.position.x, s.position.y));

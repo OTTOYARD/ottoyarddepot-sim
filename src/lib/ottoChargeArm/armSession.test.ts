@@ -365,7 +365,7 @@ describe('no snapping — the pose is continuous whatever the inputs do', () => 
     let worst = 0;
     let worstAt = '';
     for (const st of generateStallsV2().filter((s) => s.type === 'dcfc')) {
-      const p = placeArm(st.id, st.position.x, st.position.y);
+      const p = placeArm(st.id, st.position.x, st.position.y, st.position.angle);
       for (const oem of ['tesla', 'waymo', 'zoox', 'cruise', 'motional', 'van', null]) {
         const port = portFor(`veh-${st.id}-${oem}`, oem);
         const target = {
@@ -448,7 +448,7 @@ const dist = (a: Vec3, b: Vec3) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
 function everyArmAndPort() {
   const out: { label: string; target: ReturnType<typeof targetFor> }[] = [];
   for (const st of generateStallsV2().filter((s) => s.type === 'dcfc')) {
-    const p = placeArm(st.id, st.position.x, st.position.y);
+    const p = placeArm(st.id, st.position.x, st.position.y, st.position.angle);
     for (const oem of ['tesla', 'waymo', 'zoox', 'cruise', 'motional', 'van', null]) {
       const port = portFor(`veh-${st.id}-${oem}`, oem);
       out.push({

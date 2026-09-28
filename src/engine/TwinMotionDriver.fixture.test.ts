@@ -273,8 +273,18 @@ describe("TwinMotionDriver — replay of a captured busy_day run", () => {
   // gone, and two new ones are a staging departer queued behind another in that same
   // south-east bunch. No sample involves a charger car in, beside, or backing out of
   // its stall.
-  const OVERLAP_BUDGET = 80;    // measured 73 (78 before DCFC head-in; 58 before L2 head-in; 54 before wide corners; 80 on main then). TARGET 0.
-  const STUCK_BUDGET = 8;       // measured 7 (6 before DCFC head-in; 5 before L2 head-in).
+  //
+  // 2026-09-28, 60° ANGLED CHARGER STALLS (the founder: the 90° stalls read as
+  // "horizontal pull-in/parking which is not viable"). Every charger stall turned to
+  // 60° off its lane and the rows were re-pitched (sitePlan.chargingStalls). Same
+  // harness, same clock: overlap 73 · stuck 7 · distinct pairs 28 — every hotspot
+  // bin byte-identical to the 90° layout. The one line of this test's frame log that
+  // moved is a car turning into DCFC-06 along its new axis, drawn at (112,89) instead
+  // of (112,88). This capture exercises charger motion lightly; docking tests D and E
+  // are where the angled approach and back-out are measured (0 contacts, and 0
+  // against any structure).
+  const OVERLAP_BUDGET = 80;    // measured 73 (73 at 90° stalls; 78 before DCFC head-in; 58 before L2 head-in; 54 before wide corners; 80 on main then). TARGET 0.
+  const STUCK_BUDGET = 8;       // measured 7 (7 at 90°; 6 before DCFC head-in; 5 before L2 head-in).
 
   it("SYMPTOM 2a: body-overlap stays within the ratchet (target 0)", () => {
     // WHAT WAS LEFT, AND WHAT CLOSED IT. The dominant hotspot was the TE temp-staging
