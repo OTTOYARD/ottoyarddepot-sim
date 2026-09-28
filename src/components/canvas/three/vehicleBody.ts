@@ -223,11 +223,25 @@ const podBandGeo = new THREE.CylinderGeometry(ROOF_POD.radius, ROOF_POD.radius, 
 podBandGeo.translate(0, ROOF_POD.yMin + 0.09, 0);
 const statusGeo = mergeAll([flankStrip(1), flankStrip(-1), podBandGeo]);
 
+// ── wheel arches: a matte band over each tyre, on the flank ────────────────
+// Without them the tyres read as discs pressed against a loaf. A flat half-ring
+// just inside the car's overall width (the 20 mm the glazing and cladding
+// already stand proud in), centred on each axle, facing out. Merged into the
+// trim buffer: no extra draw call.
+const ARCH_IN = WHEEL_RADIUS_M + 0.03, ARCH_OUT = WHEEL_RADIUS_M + 0.1;
+function archAt(along: number, side: 1 | -1): THREE.BufferGeometry {
+  const g = new THREE.RingGeometry(ARCH_IN, ARCH_OUT, 20, 1, 0, Math.PI); // upper half, facing +Z
+  if (side < 0) g.rotateY(Math.PI);                                     // face the -Z flank
+  g.translate(along, WHEEL_RADIUS_M, side * (CAR_W_M / 2 - 0.006));
+  return g;
+}
+const archGeo = mergeAll([-1, 1].flatMap((a) => [archAt(a * WHEEL_X, 1), archAt(a * WHEEL_X, -1)]));
+
 /** Body geometry, plan units, origin at the centre of the tyre contact patch. */
 export const VEHICLE_GEO = {
   body: planUnits(bodyGeo),
   glass: planUnits(mergeAll([greenhouseGeo, podGlassGeo])),
-  trim: planUnits(mergeAll([cladGeo, podGeo])),
+  trim: planUnits(mergeAll([cladGeo, podGeo, archGeo])),
   tyres: planUnits(atWheels(() => new THREE.CylinderGeometry(WHEEL_RADIUS_M, WHEEL_RADIUS_M, 0.24, 14))),
   rims: planUnits(atWheels(() => new THREE.CylinderGeometry(0.20, 0.20, 0.255, 12))),
   lamps: planUnits(lampsGeo),
