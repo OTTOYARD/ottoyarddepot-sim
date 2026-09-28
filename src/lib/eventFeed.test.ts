@@ -46,6 +46,19 @@ describe("describeEvent", () => {
     expect(g.detail).toBe("3 held · 1 released · 2 escalated · 1 past the limit");
   });
 
+  it("says a car that waited past the limit for a charger or the service bay needs a person (otto-q-core 0546)", () => {
+    const c = describeEvent("twin.deploy_gate_escalated", {
+      held_min: 262.4, hard_cap_min: 240, reason: "waiting_for_a_charger", remedy: "need_charge", soc: 83, missing: ["charge"],
+    });
+    expect(c.title).toBe("Waited past the limit for a charger · needs a person");
+    expect(c.detail).toBe("missing charge · waited 262 min");
+    const s = describeEvent("twin.deploy_gate_escalated", {
+      held_min: 250, hard_cap_min: 240, reason: "waiting_for_the_service_bay", remedy: "need_service", missing: ["mechanical_pm"],
+    });
+    expect(s.title).toBe("Waited past the limit for the service bay · needs a person");
+    expect(s.detail).toBe("missing mechanical pm · waited 250 min");
+  });
+
   it("says a car staged to leave unfinished was sent back to what it needs (otto-q-core 0543)", () => {
     const t = describeEvent("twin.departure_recheck", {
       rerouted: 3, back_to_gate: 1,

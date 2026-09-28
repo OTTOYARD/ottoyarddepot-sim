@@ -104,12 +104,23 @@ export function describeEvent(type: string, payload: Record<string, unknown> | n
     case "twin.deploy_gate_override":
       return { title: "Released past the readiness gate", detail: join(words(p.reason), n(p.held_min) !== null && `held ${r0(p.held_min)} min`) };
     // Since 0542 (rule 9) the gate never releases an unfinished car: past the hard cap it holds it and asks a person.
-    case "twin.deploy_gate_escalated":
+    // otto-q-core 0546 (G274): a car that waits past the same limit for a charger or the service bay is escalated
+    // with the gate's own event, and its reason says what it was waiting for.
+    case "twin.deploy_gate_escalated": {
+      const missing = Array.isArray(p.missing) && p.missing.length ? `missing ${p.missing.map(words).join(", ")}` : "";
+      if (p.reason === "waiting_for_a_charger" || p.reason === "waiting_for_the_service_bay") {
+        return {
+          title: p.reason === "waiting_for_a_charger"
+            ? "Waited past the limit for a charger · needs a person"
+            : "Waited past the limit for the service bay · needs a person",
+          detail: join(missing, n(p.held_min) !== null && `waited ${r0(p.held_min)} min`),
+        };
+      }
       return {
         title: "Held past the gate's limit · needs a person",
-        detail: join(Array.isArray(p.missing) && p.missing.length ? `missing ${p.missing.map(words).join(", ")}` : "",
-          n(p.held_min) !== null && `held ${r0(p.held_min)} min`),
+        detail: join(missing, n(p.held_min) !== null && `held ${r0(p.held_min)} min`),
       };
+    }
     // Since otto-q-core 0543 (rule 9) no car leaves with a service still needed: a car staged to leave that is not
     // finished goes back to its charger or bay, and a car waiting for a charger it no longer needs goes back to the gate.
     case "twin.departure_recheck": {
