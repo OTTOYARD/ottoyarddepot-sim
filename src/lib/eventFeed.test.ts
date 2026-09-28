@@ -46,6 +46,23 @@ describe("describeEvent", () => {
     expect(g.detail).toBe("3 held · 1 released · 2 escalated · 1 past the limit");
   });
 
+  it("says a car staged to leave unfinished was sent back to what it needs (otto-q-core 0543)", () => {
+    const t = describeEvent("twin.departure_recheck", {
+      rerouted: 3, back_to_gate: 1,
+      cars: [
+        { vehicle_id: "a", remedy: "need_charge", soc: 90, target_soc: 100, open: [] },
+        { vehicle_id: "b", remedy: "need_charge", soc: 84, target_soc: 100, open: [] },
+        { vehicle_id: "c", remedy: "need_deploy", soc: 100, target_soc: 100, open: ["exterior_wash"] },
+      ],
+    });
+    expect(t.title).toBe("Kept from leaving unfinished");
+    expect(t.detail).toBe("2 to a charger · 1 to a wash or detail bay · 1 no longer needs a charger");
+    expect(eventDomain("twin.departure_recheck")).toBe("vehicles");
+    const b = describeEvent("twin.departure_recheck", { rerouted: 0, cars: [], back_to_gate: 2 });
+    expect(b.title).toBe("Back to the readiness gate");
+    expect(b.detail).toBe("2 no longer need a charger");
+  });
+
   it("names the rule that refused a charge", () => {
     const t = describeEvent("ottoq.charge_start_refused", { requested_kw: 350, blocking_rules: ["EN.001.grid_capacity_ceiling"] });
     expect(t.detail).toBe("EN.001.grid_capacity_ceiling · 350 kW asked");

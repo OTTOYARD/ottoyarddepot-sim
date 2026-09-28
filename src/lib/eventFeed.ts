@@ -36,6 +36,7 @@ export const DEFAULT_DOMAINS: EventDomain[] = ["charging", "vehicles", "depot"];
 const VEHICLE_TYPES = new Set([
   "twin.vehicle_arrived", "ottoq.booking_interrupted", "ottoq.replan_escalated", "ottoq.visit_reopened",
   "twin.deferred_service_started", "twin.deferred_service_completed", "twin.deploy_gate_override", "twin.deploy_gate_escalated",
+  "twin.departure_recheck",
   "ottoq.refusal_escalated", "twin.auto_dispatch_emit",
 ]);
 
@@ -109,6 +110,21 @@ export function describeEvent(type: string, payload: Record<string, unknown> | n
         detail: join(Array.isArray(p.missing) && p.missing.length ? `missing ${p.missing.map(words).join(", ")}` : "",
           n(p.held_min) !== null && `held ${r0(p.held_min)} min`),
       };
+    // Since otto-q-core 0543 (rule 9) no car leaves with a service still needed: a car staged to leave that is not
+    // finished goes back to its charger or bay, and a car waiting for a charger it no longer needs goes back to the gate.
+    case "twin.departure_recheck": {
+      const cars = Array.isArray(p.cars) ? (p.cars as Record<string, unknown>[]) : [];
+      const to = (remedy: string) => cars.filter((c) => c?.remedy === remedy).length;
+      const rerouted = n(p.rerouted) ?? cars.length;
+      const back = n(p.back_to_gate) ?? 0;
+      return {
+        title: rerouted > 0 ? "Kept from leaving unfinished" : "Back to the readiness gate",
+        detail: join(to("need_charge") > 0 && `${to("need_charge")} to a charger`,
+          to("need_service") > 0 && `${to("need_service")} to the service bay`,
+          to("need_deploy") > 0 && `${to("need_deploy")} to a wash or detail bay`,
+          back > 0 && `${back} no longer need${back === 1 ? "s" : ""} a charger`),
+      };
+    }
     case "vehicle.exception_proposed": return { title: "Exception proposed", detail: join(words(p.fault_class), words(p.disposition)) };
     case "vehicle.technician_approved": return { title: "Technician approved", detail: words(p.action) || undefined };
     case "vehicle.tow_retrieved_staged": return { title: "Towed back to staging" };
