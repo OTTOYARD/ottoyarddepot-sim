@@ -72,6 +72,26 @@ interpolation.** Zero world logic client-side.
     measured better or equal, and cars behind their OTTO-Q leg halved. When you compare flow
     across multipliers, use `overlapRate` and `viewer` (pairs on screen per poll), never the raw
     overlap count: samples are per MOTION second, so 8x motion holds 8/3 as many per wall window.
+- **Corners and docking (2026-09-28) — read before touching `roundCorners`, `routeToStall` or the dock blend:**
+  - **Built things live in `src/lib/structurePlan.ts`** (walls, doors, lifts, wash gantries, canopy and
+    carport columns, bollards, charger cabinets). The renderer draws from it and
+    `structureClearance.replay.test.ts` drives every recorded car against it: add a solid there, never
+    only in a component, or the clearance test cannot see it.
+  - A corner takes the **widest cut in `WIDE_CUTS` (up to 2.4u, R 5.8u at 90°) whose swept body
+    clears every structure and parked-car footprint by 0.4u** (`setCornerObstacles`), else the old
+    1.2u. Fillet legs are measured between REAL corners (`dropCollinear`), and junction membership
+    reads the ROUTED path as well as the rounded rail — without that, a wider right-turn arc leaves
+    `NODE_MATCH` and the car stops registering the junction.
+  - DCFC stalls (16u pitch) are entered on an **S-curve pull-in** (`DCFC_PULLIN_RISE` 12,
+    `DCFC_PULLIN_TAIL` 3.5, measured >= 0.65u from every other stall). L2 (10.6u pitch, nose to tail)
+    has no such path and keeps the sidestep. The dock blend is skipped when a rail already ends
+    facing the parked heading.
+  - Ratchets: `turnRadius.replay.test.ts` (share of turning at R < 5u, crab, spin) and docking test D
+    (0 DCFC contacts with both neighbours parked).
+  - **Measured worse, do not re-propose:** a GLOBAL corner cut of 3.6 (fresh-start overlap 49 → 70,
+    all in the temp-staging aisle and SE ring corner) · a right-turn cap above 2.4 (R < 5u share flat,
+    overlap +7%) · a DCFC pull-in with a 7u straight tail (the rear swings 0.17u INTO the car parked
+    in the next stall south).
 - **Keep Yuka's `SeparationBehavior.weight` low (0.35).** At 2.2 it was *stronger* than
   path-following and shoved cars sideways off the lanes.
 - **Known open:** the 3D car uses `BoxGeometry(2.2, 0.85, 4.9)` — **metres dropped into unit-space**,

@@ -8,8 +8,8 @@
 // 10.2u long turning at R < 5u rotates about a point inside its own length —
 // that is what reads as a spin, however smooth the frames are.
 //
-//     before (2026-09-27)   fresh0922 62% of all turning at R < 5u · busyday 60%
-//     after  (2026-09-28)   fresh0922 28%                          · busyday 23%
+//     before (2026-09-27)   fresh0922 63% of all turning at R < 5u · busyday 60%
+//     after  (2026-09-28)   fresh0922 27%                          · busyday 23%
 //
 // What moved it (RailFlow.roundCorners / TwinMotionDriver.gapEntry):
 //   • the gap-lane mouth routed to a point 1.2u BEHIND a westbound car, so it
