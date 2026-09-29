@@ -245,7 +245,7 @@ export function PerfProbe() {
       overlay = document.createElement('div');
       overlay.setAttribute('data-perf-overlay', '');
       Object.assign(overlay.style, {
-        position: 'fixed', top: 'calc(env(safe-area-inset-top, 0px) + 6px)', right: 'calc(env(safe-area-inset-right, 0px) + 6px)',
+        position: 'fixed', top: 'calc(env(safe-area-inset-top, 0px) + 64px)', right: 'calc(env(safe-area-inset-right, 0px) + 6px)',
         zIndex: '9999', pointerEvents: 'none', font: '10px/1.35 "JetBrains Mono", ui-monospace, monospace',
         color: '#e7eaf0', background: 'rgba(10,11,14,0.78)', border: '1px solid rgba(255,255,255,0.12)',
         borderRadius: '4px', padding: '4px 6px', whiteSpace: 'pre',
