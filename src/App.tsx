@@ -8,6 +8,10 @@ import { useWorldBoot } from '@/hooks/useWorldBoot';
 import { useTwinSceneBridge } from '@/hooks/useTwinSceneBridge';
 import { RunBootSplash } from '@/components/canvas/RunBootSplash';
 import { JumpPlanningOverlay } from '@/components/canvas/JumpPlanningOverlay';
+import { CockpitPanel } from '@/components/cockpit/CockpitPanel';
+import { useRunFromUrl } from '@/hooks/useRunFromUrl';
+import { useCockpitStore } from '@/store/cockpitStore';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 
 const App = () => {
   // TRUTH-2 (founder rule 2026-07-25): everything that plays on screen must be
@@ -17,6 +21,9 @@ const App = () => {
   // have been DELETED. The twin feed below is now the only thing that can move a car.
 
   useKeyboardShortcuts();
+  // A cockpit's "Back to the twin" link opens /?run=<id>: land on that run.
+  useRunFromUrl();
+  const cockpitPanel = useCockpitStore((s) => s.panel);
 
   // Attach the server-authoritative twin feed (loads layout, polls snapshots).
   useTwinFeed();
@@ -35,7 +42,21 @@ const App = () => {
       <div className="h-screen w-screen flex flex-col overflow-hidden bg-canvas-base">
         <TopBar />
         <div className="relative flex-1 flex min-h-0">
-          <DepotCanvas />
+          {/* The group is always mounted so opening a cockpit beside the depot never remounts
+              the canvas (and its WebGL context); only the second panel comes and goes. */}
+          <ResizablePanelGroup direction="horizontal" className="flex-1 min-w-0" autoSaveId="twin-cockpit-split">
+            <ResizablePanel id="depot" order={1} minSize={30} className="flex min-w-0">
+              <DepotCanvas />
+            </ResizablePanel>
+            {cockpitPanel && (
+              <>
+                <ResizableHandle withHandle className="bg-white/[0.08]" />
+                <ResizablePanel id="cockpit" order={2} defaultSize={45} minSize={25}>
+                  <CockpitPanel />
+                </ResizablePanel>
+              </>
+            )}
+          </ResizablePanelGroup>
           <SidePanel />
           {/* CARD-2: the Monte Carlo boot-draw loading screen (auto-dismisses) */}
           <RunBootSplash />

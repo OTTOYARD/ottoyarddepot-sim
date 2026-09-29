@@ -728,6 +728,9 @@ export const twin = {
   offsite: (simRunId: string)            => rpc<TwinOffsiteWindow>("ottoq_twin_offsite_window", { p_sim_run_id: simRunId }),
   wear: (simRunId: string)               => rpc<TwinWearWindow>("ottoq_twin_wear_window", { p_sim_run_id: simRunId }),
   fleetCondition: (simRunId: string)     => rpc<TwinFleetCondition>("ottoq_twin_fleet_condition", { p_sim_run_id: simRunId }),
+  /** The cockpits' own read (OrchestrAV, PULSE). The twin uses it only to list the depot's fleet
+   *  owners for the "View in" switcher; `fleet_operators` itself is service-role only. */
+  depotCards: (depotId = NASHVILLE_DEPOT)  => rpc<unknown>("ottoq_depot_cards", { p_depot_id: depotId, p_fleet_operator_id: null }),
   /** The five canonical KPIs (ottoq_kpi_five) for one run, recomputed server-side from the run's
    *  own rows. Service-role only in the database, so it is read through the control door. */
   kpis:      (simRunId: string)          => get<TwinKpiFive>(`/sim_runs/${simRunId}/kpis`),

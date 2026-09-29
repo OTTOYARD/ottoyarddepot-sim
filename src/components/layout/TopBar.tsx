@@ -2,6 +2,7 @@ import { Truck, BatteryCharging, Layers, CheckCircle2, DollarSign, Battery, Sun,
 import { useSimulationStore } from '@/store/simulationStore';
 import { useTwinStore } from '@/store/twinStore';
 import logo from '@/assets/logo.png';
+import { CockpitSwitcher } from '@/components/cockpit/CockpitSwitcher';
 
 // ── helpers ──
 // The depot's clock is Nashville's (CT). This header used to print the sim clock in UTC —
@@ -115,7 +116,7 @@ export const TopBar = () => {
       </div>
 
       {/* Telemetry strip */}
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex-1 min-w-0 flex items-center justify-center overflow-hidden">
         <div className="flex items-center bg-canvas-panel/60 border border-white/[0.06] rounded-md py-1">
           <Cell icon={Truck}           label="Deployed" value={n(deployed)} />
           <Cell icon={BatteryCharging} label="Charging" value={n(charging)} />
@@ -131,32 +132,36 @@ export const TopBar = () => {
           Run Control tab (Start = create run · Play/Pause/Step = advance time).
           The legacy offline-demo engine buttons were removed — they drove a
           separate fake client engine and conflicted with the live backend. */}
-      <div className="flex items-center gap-2 shrink-0">
-        <div className="flex items-center gap-1.5 px-2">
-          <Radio size={13} className={connected ? 'text-state-go' : 'text-ink-faint'} />
-          <span className={`font-mono text-[10px] ${connected ? 'text-state-go' : 'text-ink-faint'}`}>
-            {connected ? 'LIVE' : '—'}
-          </span>
-        </div>
+      {/* Two rows so the telemetry strip keeps its width at 1440 px: connection and 2D/3D on top,
+          the "View in" cockpit switcher under them. */}
+      <div className="flex flex-col items-end gap-1 shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 px-2">
+            <Radio size={13} className={connected ? 'text-state-go' : 'text-ink-faint'} />
+            <span className={`font-mono text-[10px] ${connected ? 'text-state-go' : 'text-ink-faint'}`}>
+              {connected ? 'LIVE' : '—'}
+            </span>
+          </div>
 
-        <div className="flex items-center gap-0.5">
-          {/* 2D and 3D only. RTX (the Isaac/Omniverse stream) is PARKED_ISAAC per otto-q-core
-              CLAUDE.md 2.8 — the viewer is kept for reattachment, the button is not offered. */}
-          {(['2d', '3d'] as const).map((m) => (
-            <button
-              key={m}
-              onClick={() => setViewMode(m)}
-              className={`px-2 py-1 text-[11px] font-mono rounded transition-colors ${
-                viewMode === m
-                  ? 'bg-brand-red text-white'
-                  : 'text-ink-dim border border-white/[0.06] hover:text-ink'
-              }`}
-            >
-              {m.toUpperCase()}
-            </button>
-          ))}
+          <div className="flex items-center gap-0.5">
+            {/* 2D and 3D only. RTX (the Isaac/Omniverse stream) is PARKED_ISAAC per otto-q-core
+                CLAUDE.md 2.8 — the viewer is kept for reattachment, the button is not offered. */}
+            {(['2d', '3d'] as const).map((m) => (
+              <button
+                key={m}
+                onClick={() => setViewMode(m)}
+                className={`px-2 py-1 text-[11px] font-mono rounded transition-colors ${
+                  viewMode === m
+                    ? 'bg-brand-red text-white'
+                    : 'text-ink-dim border border-white/[0.06] hover:text-ink'
+                }`}
+              >
+                {m.toUpperCase()}
+              </button>
+            ))}
+          </div>
         </div>
-
+        <CockpitSwitcher />
       </div>
     </div>
   );
