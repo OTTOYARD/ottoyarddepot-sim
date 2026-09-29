@@ -8,14 +8,15 @@
 //   ottoq_decisions                       the same decisions' safety-check results, joined on decision_seq
 //   ottoq_external_proposals              the planners' offers for the car, compared at the tick the choice was made
 //   ottoq_depot_cards                     what the car needs, when it is due, its plan steps (contract 1.4)
+//   ottoq_decision_options(run, vehicle)  each charger choice's options, rebuilt from its tick's frame (otto-q-core 0590)
 //
 // Pure: no React, no client. Every sentence comes from plainWords' templates; a fact the reads do not carry prints as
 // "not recorded" rather than being filled in.
 import type { ActivityFeedRow } from "@/store/activityFeedStore";
 import {
-  MISSING, STEP_LABEL, arrivedText, blockedText, checkedText, clockCT, doneText, minutesBetween, optionsText,
-  ownerRequestText, pickedText, placeName, replannedText, safetyText, sentText, serviceAddedText, serviceWord,
-  waitedText, type Sentence, type TrailStepKind,
+  MISSING, STEP_LABEL, arrivedText, blockedText, chargeCompareText, checkedText, clockCT, doneText, minutesBetween,
+  optionsText, ownerRequestText, pickedText, placeName, replannedText, safetyText, sentText, serviceAddedText,
+  serviceWord, waitedText, whyPickedText, type Sentence, type TrailStepKind,
 } from "./plainWords";
 
 // ── inputs ──────────────────────────────────────────────────────────────────
@@ -38,6 +39,26 @@ export interface TrailProposal {
   stall_id: string | null;
   abstain: boolean;
   end_min: number | null;
+}
+
+/** One charger decision from ottoq_decision_options (otto-q-core 0590): the options the assigner had, rebuilt from the
+ *  frame its tick decided on and checked against the pick. `options_found` is null wherever the rebuild could not
+ *  reproduce the engine (`agrees` false or null), and the trail then says "not recorded". */
+export interface TrailChoice {
+  decision_seq: number;
+  tick_seq: number | null;
+  at: string | null;
+  outcome: string;
+  engine: string | null;
+  chosen: { stall_id: string; stall_code: string | null; kind: string | null } | null;
+  depot: { free_fast: number; free_standard: number; cars_waiting: number; waiting_for_charge: number } | null;
+  car: { soc: number | null; wanted_kind: string | null; why_wanted: string | null } | null;
+  agrees: boolean | null;
+  options_found: number | null;
+  options_by_kind?: Record<string, number> | null;
+  why: string | null;
+  downgrade: boolean;
+  options: { rank: number; stall_code: string | null; kind: string; kw: number; chosen: boolean; charge_min: number | null }[] | null;
 }
 
 /** The slice of an ottoq_depot_cards vehicle the trail reads (the cockpits type the whole contract in cards.ts). */
@@ -145,8 +166,13 @@ function safetyOf(d: TrailDecision | undefined): { passed: number | null; failed
   return { passed: results ? results.filter((x) => x.passed === true).length : null, failed: [...new Set(failed)] };
 }
 
-const WAIT_WHY = (r: ActivityFeedRow): string => {
+const WAIT_WHY = (r: ActivityFeedRow, c?: TrailChoice | null): string => {
   const verb = verbOf(r);
+  // With the tick's own counts (0590): nothing free at all, or free chargers none of which could take this car.
+  if (r.outcome === "noop_no_candidate" && c?.depot && c.agrees) {
+    const free = c.depot.free_fast + c.depot.free_standard;
+    return free === 0 ? "No charger free" : `None of the ${free} free chargers could take it`;
+  }
   if (reasonOf(r) === "wash_lane_full_hold") return "Wash bay full";
   if (verb === "hold_in_queue") return "Service bays busy";
   if (verb === "hold_in_staging") return "Kept parked until it can leave";
@@ -172,6 +198,8 @@ export interface TrailInputs {
   rows: readonly ActivityFeedRow[];
   decisions?: readonly TrailDecision[];
   proposals?: readonly TrailProposal[];
+  /** Its charger choices, from ottoq_decision_options (0590). Empty on a backend without it. */
+  choices?: readonly TrailChoice[];
   /** The car's depot card now, or the last one seen this session (a card goes null once the car has left). */
   card?: TrailCard | null;
 }
@@ -181,6 +209,14 @@ export function buildTrail(inp: TrailInputs): Trail {
   const decisions = inp.decisions ?? [];
   const proposals = inp.proposals ?? [];
   const decisionBySeq = new Map(decisions.map((d) => [d.decision_seq, d]));
+  const choices = inp.choices ?? [];
+  // A feed row names the decision where its verdict changed; 0590 returns the same decision for each pick and for the
+  // first tick of each wait. Fall back to the tick when the two ever disagree about where an episode began.
+  const choiceFor = (r: ActivityFeedRow): TrailChoice | null =>
+    choices.find((c) => r.decision_seq != null && c.decision_seq === r.decision_seq)
+    ?? choices.find((c) => r.tick_seq != null && c.tick_seq === r.tick_seq
+                           && (c.outcome === "enacted") === (r.outcome === "enacted"))
+    ?? null;
   const visits = splitVisits(inp.rows);
   const visit = visits[visits.length - 1] ?? [];
   const card = inp.card ?? null;
@@ -212,14 +248,21 @@ export function buildTrail(inp: TrailInputs): Trail {
     const verb = verbOf(r);
     const at = r.occurred_at;
     const d = r.decision_seq != null ? decisionBySeq.get(r.decision_seq) : undefined;
+    const c = r.action === "stall_assignment" ? choiceFor(r) : null;
     if (!isWait(r) && verb !== "promote_ready") waitingFor = null;
 
     if (!checked && (r.action === "stall_assignment" || isSend(r))) {
       checked = true;
       const wanted =
         (typeof r.rationale?.wanted_type === "string" ? (r.rationale.wanted_type as string) : null) ??
+        c?.car?.wanted_kind ??
         (typeof r.rationale?.stall_type === "string" ? (r.rationale.stall_type as string) : null);
-      push("checked", checkedText({ wanted, free: r.outcome === "noop_no_candidate" ? 0 : null, waiting: null }), at);
+      push("checked", checkedText({
+        wanted,
+        freeFast: c?.depot?.free_fast ?? null,
+        freeStandard: c?.depot?.free_standard ?? null,
+        waitingForCharge: c?.depot?.waiting_for_charge ?? null,
+      }), at, c?.depot ? "ok" : "missing");
     }
 
     if (isOverridden(r)) {
@@ -229,8 +272,8 @@ export function buildTrail(inp: TrailInputs): Trail {
       continue;
     }
     if (isWait(r)) {
-      push("waited", waitedText({ why: WAIT_WHY(r), minutes: heldMin(r) }), at, "branch");
-      waitingFor = WAIT_WHY(r);
+      push("waited", waitedText({ why: WAIT_WHY(r, c), minutes: heldMin(r) }), at, "branch");
+      waitingFor = WAIT_WHY(r, c);
       continue;
     }
     if (r.action === "itinerary_amended") {
@@ -257,27 +300,44 @@ export function buildTrail(inp: TrailInputs): Trail {
       const s = safetyOf(d);
       if (!firstSendDone) {
         firstSendDone = true;
-        // Options: the planners' offers on the tick the choice was made.
+        // Options. First the engine's own rebuild of what the assigner had (0590), where it reproduces the pick; else
+        // the planners' offers on the tick the choice was made; else not recorded.
         const tick = d?.tick_seq ?? r.tick_seq ?? null;
+        const opts = c?.options_found != null ? (c.options ?? []) : [];
         const offers = proposals.filter((p) => !p.abstain && p.tick_seq != null && p.tick_seq === tick);
         const chosenStall = d?.stall_id ?? null;
         const ids = new Set(offers.map((p) => p.stall_id ?? "?"));
-        const n = offers.length ? ids.size + (chosenStall && !ids.has(chosenStall) ? 1 : 0) : null;
-        push("options", optionsText(n), at, n == null ? "missing" : "ok");
+        const n = c?.options_found ?? (offers.length ? ids.size + (chosenStall && !ids.has(chosenStall) ? 1 : 0) : null);
+        const best = opts.map((o) => placeName(o.stall_code, o.kind)).filter(Boolean);
+        push("options", optionsText(n, best), at, n == null ? "missing" : "ok");
+
+        // Picked: why (the ranking key that separated it) and how long its charge would take against the next option.
+        const pick = opts.find((o) => o.chosen) ?? null;
+        const runnerUp = opts.find((o) => !o.chosen) ?? null;
+        const why = c?.options_found != null
+          ? whyPickedText({
+              why: c.why, wantWhy: c.car?.why_wanted ?? null, soc: c.car?.soc ?? null,
+              wantedKind: c.car?.wanted_kind ?? null, chosenKind: c.chosen?.kind ?? null,
+              wantedKindOptions: c.car?.wanted_kind ? c.options_by_kind?.[c.car.wanted_kind] ?? null : null,
+            })
+          : r.rationale?.power_downgrade === true ? "The fast chargers were taken, so a slower one" : null;
+        const charge = chargeCompareText({
+          minutes: pick?.charge_min ?? null,
+          next: runnerUp ? { place: placeName(runnerUp.stall_code, runnerUp.kind), minutes: runnerUp.charge_min } : null,
+        });
+        // Without either, a ready time: a planner's offer, or the car's own plan (its last work step's planned end).
         const clock = tickClock(decisions, tick);
         const readyOf = (p: TrailProposal) => (clock && p.end_min != null ? addMin(clock, p.end_min) : null);
         const chosen =
           offers.find((p) => p.status === "enacted") ?? offers.find((p) => !!chosenStall && p.stall_id === chosenStall) ?? null;
         const others = offers.filter((p) => p !== chosen).map(readyOf).filter((x): x is string => !!x).sort();
-        const why = r.rationale?.power_downgrade === true ? "The fast chargers were taken, so a slower one" : null;
-        // With no planner offer to read it from, the chosen plan's ready time is the car's own plan: when its last
-        // work step is planned to end (driving, parking and leaving are not work).
         const planReady = (work?.steps ?? [])
           .filter((st) => !["taxi", "stage", "depart"].includes(st.leg_type) && st.planned_end)
           .map((st) => st.planned_end as string).sort().pop() ?? null;
         const ready = chosen ? readyOf(chosen) : planReady;
-        push("picked", pickedText({ place: place ?? MISSING, ready, nextBest: chosen ? others[0] ?? null : null, why }),
-          at, ready ? "ok" : "missing");
+        push("picked", pickedText({
+          place: place ?? MISSING, why, charge, ready, nextBest: chosen ? others[0] ?? null : null,
+        }), at, why || charge || ready ? "ok" : "missing");
         push("safety", safetyText(s), at, s.passed == null ? "missing" : "ok");
         push("sent", sentText({ place, at }), at);
       } else {

@@ -209,10 +209,10 @@ export function TwinDecisionTrail({ onTechnical }: { onTechnical?: () => void })
     if (!picked || data.carRows.length === 0) return null;
     return buildTrail({
       vehicleId: picked, name: names.get(picked) ?? MISSING, rows: data.carRows,
-      decisions: data.decisions, proposals: data.proposals, card: cardFor(picked),
+      decisions: data.decisions, proposals: data.proposals, choices: data.choices, card: cardFor(picked),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [picked, data.carRows, data.decisions, data.proposals, names, data.cards]);
+  }, [picked, data.carRows, data.decisions, data.proposals, data.choices, names, data.cards]);
 
   const clock = data.simClock ?? data.runRows[0]?.occurred_at ?? null;
   const since = window === 'hour' && clock ? new Date(Date.parse(clock) - 3_600_000).toISOString() : null;

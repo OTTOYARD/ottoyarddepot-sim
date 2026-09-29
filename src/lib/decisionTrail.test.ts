@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { ActivityFeedRow } from "@/store/activityFeedStore";
-import { buildTrail, depotFunnel, splitVisits, type TrailCard, type TrailDecision, type TrailProposal } from "./decisionTrail";
+import {
+  buildTrail, depotFunnel, splitVisits, type TrailCard, type TrailChoice, type TrailDecision, type TrailProposal,
+} from "./decisionTrail";
 
 // Rows shaped exactly as ottoq_activity_feed_v2 returned them on twin runs 8ddd0752 and e9e3b922 (2026-09-28).
 const CAR = "229f655b-803c-47c0-95fd-ca8adb9d8ef0";
@@ -105,9 +107,9 @@ describe("a car's trail", () => {
     const by = (k: string) => t.steps.find((s) => s.kind === k)!;
     expect(by("arrived").detail).toBe("Needs charge to 100%, interior tidy and full detail. Must be ready by 2:50 PM.");
     expect(by("arrived").at).toBe(noFreeCharger.occurred_at);
-    expect(by("checked").detail).toBe("0 fast chargers free.");
+    expect(by("checked").detail).toBe("Looked for a free fast charger.");
     expect(by("waited").detail).toBe("No free fast charger, for 6 minutes");
-    expect(by("picked").detail).toBe("ready 1:52 PM, against 2:07 PM for the next best.");
+    expect(by("picked").detail).toBe("Ready 1:52 PM, against 2:07 PM for the next best.");
     expect(by("sent").detail).toBe("at 1:07 PM");
     expect(t.steps[11].detail).toBe("at 1:40 PM · 2 safety checks passed");
     expect(by("done").detail).toBe("Battery 100%. Charge and interior tidy done. Full detail moved to next visit. Left 2:35 PM, 15 minutes before due.");
@@ -152,7 +154,7 @@ describe("a car's trail", () => {
       { seq: 4, leg_type: "depart", status: "upcoming", planned_end: "2026-09-28T19:05:00Z" },
     ] } };
     const t = buildTrail({ vehicleId: CAR, name: "Zoox-AV-095", rows: [assign], card: planned });
-    expect(t.steps.find((s) => s.kind === "picked")!.detail).toBe("ready 2:02 PM.");
+    expect(t.steps.find((s) => s.kind === "picked")!.detail).toBe("Ready 2:02 PM.");
   });
 
   it("says why a car with no plan step yet is waiting", () => {
@@ -169,7 +171,7 @@ describe("a car's trail", () => {
     expect(by("arrived").tone).toBe("missing");
     expect(by("options").title).toBe("Found ways to do it");
     expect(by("options").detail).toBe("Options compared: not recorded.");
-    expect(by("picked").detail).toBe("ready time not recorded.");
+    expect(by("picked").detail).toBe("Why it was picked: not recorded.");
     expect(by("safety").detail).toBe("Checks run: not recorded.");
     expect(bare.progress).toBeNull();
   });
@@ -178,8 +180,76 @@ describe("a car's trail", () => {
     const again = row(120, { target: "NASH-L2-STALL-14", rationale: { verb: "assign_stall", stall_type: "l2" } });
     expect(splitVisits([...everything, again]).length).toBe(2);
     const t2 = buildTrail({ vehicleId: CAR, name: "Zoox-AV-095", rows: [...everything, again] });
-    expect(t2.steps.map((s) => s.title)).toContain("Sent to charger 14");
+    expect(t2.steps.map((s) => s.title)).toContain("Sent to standard charger 14");
     expect(t2.steps.map((s) => s.title)).not.toContain("Sent to fast charger 03");
+  });
+});
+
+describe("a car's trail with the engine's own record of each charger choice (otto-q-core 0590)", () => {
+  // Shaped as ottoq_decision_options returned them on run 1ebae97a (Waymo-AV-004's wait, then its pick).
+  const wait: TrailChoice = {
+    decision_seq: noFreeCharger.decision_seq!, tick_seq: 0, at: noFreeCharger.occurred_at, outcome: "noop_no_candidate",
+    engine: "deterministic_v1", chosen: null,
+    depot: { free_fast: 0, free_standard: 2, cars_waiting: 36, waiting_for_charge: 21 },
+    car: { soc: 60, wanted_kind: null, why_wanted: null },
+    agrees: true, options_found: 0, options_by_kind: { dcfc: 0, l2: 0 }, why: null, downgrade: false, options: null,
+  };
+  const pickChoice = (over: Partial<TrailChoice> = {}): TrailChoice => ({
+    decision_seq: assign.decision_seq!, tick_seq: 7, at: assign.occurred_at, outcome: "enacted", engine: "deterministic_v1",
+    chosen: { stall_id: "stall-03", stall_code: "NASH-DCFC-STALL-03", kind: "dcfc" },
+    depot: { free_fast: 3, free_standard: 9, cars_waiting: 30, waiting_for_charge: 18 },
+    car: { soc: 38, wanted_kind: "dcfc", why_wanted: "low_battery" },
+    agrees: true, options_found: 11, options_by_kind: { dcfc: 3, l2: 8 }, why: "wanted_kind", downgrade: false,
+    options: [
+      { rank: 1, stall_code: "NASH-DCFC-STALL-03", kind: "dcfc", kw: 350, chosen: true, charge_min: 42 },
+      { rank: 2, stall_code: "NASH-DCFC-STALL-07", kind: "dcfc", kw: 350, chosen: false, charge_min: 44.6 },
+      { rank: 3, stall_code: "NASH-L2-STALL-34", kind: "l2", kw: 19.2, chosen: false, charge_min: 188 },
+    ],
+    ...over,
+  });
+  const run = (choices: TrailChoice[]) =>
+    buildTrail({ vehicleId: CAR, name: "Zoox-AV-095", rows: [noFreeCharger, assign], decisions, proposals: [], choices, card });
+  const by = (t: ReturnType<typeof run>, k: string) => t.steps.find((x) => x.kind === k)!;
+
+  it("says what the depot had, how many ways it found, why it picked one and how long each would take", () => {
+    const t = run([wait, pickChoice()]);
+    expect(by(t, "checked").detail).toBe("0 fast chargers and 2 standard chargers free, 21 cars waiting for a charge.");
+    expect(by(t, "waited").detail).toBe("None of the 2 free chargers could take it, for 6 minutes");
+    expect(by(t, "options")).toMatchObject({
+      title: "Found 11 ways to do it",
+      detail: "Best 3: fast charger 03, fast charger 07 and standard charger 34.",
+      tone: "ok",
+    });
+    expect(by(t, "picked")).toMatchObject({
+      title: "Picked fast charger 03",
+      detail: "It needed a fast charger: battery 38%. Charges in 42 minutes here, against 45 minutes at fast charger 07.",
+      tone: "ok",
+    });
+  });
+
+  it("names a car that got a kind it did not want, and why", () => {
+    const t = run([pickChoice({
+      chosen: { stall_id: "s20", stall_code: "NASH-L2-STALL-20", kind: "l2" },
+      car: { soc: 78, wanted_kind: "dcfc", why_wanted: "due_now" }, why: "only_option", downgrade: true,
+      options_found: 1, options_by_kind: { dcfc: 0, l2: 1 },
+      options: [{ rank: 1, stall_code: "NASH-L2-STALL-20", kind: "l2", kw: 19.2, chosen: true, charge_min: 94 }],
+    })]);
+    expect(by(t, "options")).toMatchObject({ title: "Found 1 way to do it", detail: null });
+    expect(by(t, "picked").detail)
+      .toBe("No fast charger was free for it, so it took a standard charger. It was the only one it could use. Charges in 1 hr 34 min here.");
+  });
+
+  it("falls back to 'not recorded' where the rebuild does not reproduce the engine", () => {
+    const t = run([{ ...pickChoice(), agrees: false, options_found: null, options_by_kind: null, why: null, options: null }]);
+    expect(by(t, "options").detail).toBe("Options compared: not recorded.");
+    // and this card's plan carries no times, so there is nothing else to say why
+    expect(by(t, "picked").detail).toBe("Why it was picked: not recorded.");
+    expect(by(t, "picked").tone).toBe("missing");
+  });
+
+  it("never shows a stall code, a rule code or an engine name", () => {
+    const text = run([wait, pickChoice()]).steps.map((x) => `${x.title} ${x.detail ?? ""}`).join(" | ");
+    expect(text).not.toMatch(/NASH-|deterministic|[A-Z]{2,3}\.\d{3}|_|tick/);
   });
 });
 

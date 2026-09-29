@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
-  GLOSSARY, MISSING, STEP_LABEL, arrivedText, blockedText, checkedText, clockCT, doneText, duration, listWords,
-  minutesBetween, optionsText, ownerRequestText, pickedText, placeName, plain, replannedText, ruleWord, ruleWords,
+  GLOSSARY, MISSING, STEP_LABEL, arrivedText, blockedText, chargeCompareText, checkedText, clockCT, doneText, duration,
+  listWords, minutesBetween, optionsText, ownerRequestText, pickedText, placeName, plain, replannedText, ruleWord, ruleWords,
+  whyPickedText,
   safetyText, sentText, serviceAddedText, serviceWord, waitedText,
 } from "./plainWords";
 
@@ -45,7 +46,7 @@ describe("services, places and rules", () => {
 
   it("names a stall by what it is", () => {
     expect(placeName("NASH-DCFC-STALL-08")).toBe("fast charger 08");
-    expect(placeName("NASH-L2-STALL-14")).toBe("charger 14");
+    expect(placeName("NASH-L2-STALL-14")).toBe("standard charger 14");
     expect(placeName("NASH-SVC-02")).toBe("service bay 02");
     expect(placeName("NASH-SVC-02", "service_bay")).toBe("service bay 02");
     expect(placeName(null, "staging")).toBe("parking");
@@ -84,21 +85,59 @@ describe("every trail template", () => {
   });
 
   it("Checked the depot", () => {
-    expect(checkedText({ wanted: "dcfc", free: 0, waiting: 3 }).detail).toBe("0 fast chargers free, 3 cars waiting.");
-    expect(checkedText({ wanted: "dcfc", free: 1, waiting: null }).detail).toBe("1 fast charger free.");
-    expect(checkedText({ wanted: "l2", free: null, waiting: null }).detail).toBe("Looked for a free charger.");
+    expect(checkedText({ wanted: "dcfc", freeFast: 0, freeStandard: 3, waitingForCharge: 21 }).detail)
+      .toBe("0 fast chargers and 3 standard chargers free, 21 cars waiting for a charge.");
+    expect(checkedText({ wanted: "dcfc", freeFast: 1, freeStandard: 1, waitingForCharge: null }).detail)
+      .toBe("1 fast charger and 1 standard charger free.");
+    expect(checkedText({ wanted: "l2" }).detail).toBe("Looked for a free standard charger.");
+    expect(checkedText({ wanted: null }).detail).toBeNull();
   });
 
   it("Found N ways", () => {
     expect(optionsText(3).title).toBe("Found 3 ways to do it");
+    expect(optionsText(11, ["fast charger 05", "fast charger 07", "standard charger 34"]).detail)
+      .toBe("Best 3: fast charger 05, fast charger 07 and standard charger 34.");
+    expect(optionsText(1, ["standard charger 20"]).detail).toBeNull();
     expect(optionsText(1).title).toBe("Found 1 way to do it");
     expect(optionsText(null).detail).toBe(`Options compared: ${MISSING}.`);
   });
 
-  it("Picked the best: its ready time against the others", () => {
-    expect(pickedText({ place: "fast charger 03", ready: T("19:10"), nextBest: T("19:25") }))
-      .toEqual({ title: "Picked fast charger 03", detail: "ready 2:10 PM, against 2:25 PM for the next best." });
-    expect(pickedText({ place: "charger 14", ready: null, nextBest: null }).detail).toBe(`ready time ${MISSING}.`);
+  it("Picked the best: why, and its charge time against the next option", () => {
+    const charge = chargeCompareText({ minutes: 42, next: { place: "standard charger 07", minutes: 115 } });
+    expect(charge).toBe("Charges in 42 minutes here, against 1 hr 55 min at standard charger 07.");
+    expect(chargeCompareText({ minutes: 42, next: null })).toBe("Charges in 42 minutes here.");
+    expect(chargeCompareText({ minutes: null, next: null })).toBeNull();
+    expect(pickedText({ place: "fast charger 03", why: "It needed a fast charger: battery 38%", charge }))
+      .toEqual({ title: "Picked fast charger 03",
+                 detail: "It needed a fast charger: battery 38%. Charges in 42 minutes here, against 1 hr 55 min at standard charger 07." });
+    // a planner's offer carries a ready time instead
+    expect(pickedText({ place: "fast charger 03", ready: T("19:10"), nextBest: T("19:25") }).detail)
+      .toBe("Ready 2:10 PM, against 2:25 PM for the next best.");
+    expect(pickedText({ place: "standard charger 14" }).detail).toBe(`Why it was picked: ${MISSING}.`);
+  });
+
+  it("says why a charger won, by the key of the assigner's own ranking", () => {
+    const w = (why: string | null, extra: Partial<Parameters<typeof whyPickedText>[0]> = {}) =>
+      whyPickedText({ why, wantWhy: null, soc: 38, wantedKind: "dcfc", chosenKind: "dcfc", ...extra });
+    expect(w("only_option")).toBe("It was the only one it could use");
+    expect(w("power_limit")).toBe("The others would have gone over the depot's power limit");
+    expect(w("booked")).toBe("It was booked for this car");
+    expect(w("row_order")).toBe("The options were equal, so it took the first in the row");
+    expect(w("wanted_kind", { wantWhy: "low_battery" })).toBe("It needed a fast charger: battery 38%");
+    expect(w("wanted_kind", { wantWhy: "due_now" })).toBe("It needed a fast charger: it is due out now");
+    expect(w("wanted_kind", { wantWhy: "enough_battery", soc: 60, wantedKind: "l2", chosenKind: "l2" }))
+      .toBe("A standard charger was enough: battery 60% and not due out now");
+    expect(w(null)).toBeNull();
+  });
+
+  it("says why a car got a kind it did not want, and claims 'none free' only when counted", () => {
+    const w = (why: string, n: number | null | undefined) =>
+      whyPickedText({ why, wantWhy: "due_now", soc: 78, wantedKind: "dcfc", chosenKind: "l2", wantedKindOptions: n });
+    expect(w("only_option", 0)).toBe("No fast charger was free for it, so it took a standard charger. It was the only one it could use");
+    expect(w("power_limit", 2)).toBe("A fast charger would have gone over the depot's power limit, so it took a standard charger");
+    expect(w("booked", 1)).toBe("It was booked for this car, so it took a standard charger over a fast charger");
+    // not counted: no claim about what was free
+    expect(w("only_option", null)).toBe("It wanted a fast charger and took a standard charger. It was the only one it could use");
   });
 
   it("Safety checks passed, or what stopped it", () => {

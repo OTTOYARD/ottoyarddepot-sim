@@ -51,7 +51,7 @@ export const GLOSSARY: Record<string, string> = {
   triage: "quick check",
   bess: "depot battery",
   dcfc: "fast charger",
-  l2: "charger",
+  l2: "standard charger",
   service_bay: "service bay",
   wash_bay: "wash bay",
 };
@@ -104,7 +104,7 @@ export function listWords(words: string[]): string {
 // ── places ───────────────────────────────────────────────────────────────────
 export const STALL_KIND_WORD: Record<string, string> = {
   dcfc: "fast charger",
-  l2: "charger",
+  l2: "standard charger",
   service_bay: "service bay",
   service: "service bay",
   svc: "service bay",
@@ -236,27 +236,79 @@ export function arrivedText(f: { needs: string[]; targetBattery: number | null; 
   };
 }
 
-export function checkedText(f: { wanted: string | null; free: number | null; waiting: number | null }): Sentence {
+/** "3 fast chargers" / "1 car". */
+const count = (n: number, one: string): string => `${n} ${n === 1 ? one : `${one}s`}`;
+
+/** The depot at the moment of the choice. Counts come from the frame that tick decided on (otto-q-core 0590); without
+ *  them the line says only what the car looked for. */
+export function checkedText(f: {
+  wanted: string | null; freeFast?: number | null; freeStandard?: number | null; waitingForCharge?: number | null;
+}): Sentence {
   const what = f.wanted ? STALL_KIND_WORD[f.wanted] ?? plain(f.wanted) : null;
-  if (f.free == null && f.waiting == null) {
-    return { title: "Checked the depot", detail: what ? `Looked for a free ${what}.` : null };
-  }
-  const bits = [
-    f.free != null ? `${f.free} ${what ? `${what}${f.free === 1 ? "" : "s"}` : "places"} free` : null,
-    f.waiting != null ? `${f.waiting} ${f.waiting === 1 ? "car" : "cars"} waiting` : null,
-  ].filter(Boolean);
-  return { title: "Checked the depot", detail: `${bits.join(", ")}.` };
+  const chargers = f.freeFast != null && f.freeStandard != null
+    ? `${count(f.freeFast, "fast charger")} and ${count(f.freeStandard, "standard charger")} free`
+    : null;
+  const waiting = f.waitingForCharge != null ? `${count(f.waitingForCharge, "car")} waiting for a charge` : null;
+  if (!chargers && !waiting) return { title: "Checked the depot", detail: what ? `Looked for a free ${what}.` : null };
+  return { title: "Checked the depot", detail: `${capital([chargers, waiting].filter(Boolean).join(", "))}.` };
 }
 
-export function optionsText(n: number | null): Sentence {
+export function optionsText(n: number | null, best: string[] = []): Sentence {
   if (n == null) return { title: "Found ways to do it", detail: `Options compared: ${MISSING}.` };
-  return { title: `Found ${n} ${n === 1 ? "way" : "ways"} to do it`, detail: null };
+  return {
+    title: `Found ${n} ${n === 1 ? "way" : "ways"} to do it`,
+    detail: n > 1 && best.length ? `Best ${best.length === 1 ? "one" : best.length}: ${listWords(best)}.` : null,
+  };
 }
 
-export function pickedText(f: { place: string; ready: string | null; nextBest: string | null; why?: string | null }): Sentence {
-  const ready = f.ready ? `ready ${clockCT(f.ready)}` : `ready time ${MISSING}`;
-  const vs = f.nextBest ? `, against ${clockCT(f.nextBest)} for the next best` : "";
-  return { title: `Picked ${f.place}`, detail: `${ready}${vs}${f.why ? `. ${f.why}` : ""}.` };
+// ── why a charger won (otto-q-core 0590: the key of the assigner's own ranking that separated it from the next) ──
+export type PickWhy = "only_option" | "power_limit" | "booked" | "wanted_kind" | "row_order";
+export type WantWhy = "low_battery" | "due_now" | "enough_battery";
+
+export function whyPickedText(f: {
+  why: PickWhy | string | null; wantWhy: WantWhy | string | null; soc: number | null;
+  wantedKind: string | null; chosenKind: string | null;
+  /** How many of the options were the kind it wanted (0590's options_by_kind); null when not known. */
+  wantedKindOptions?: number | null;
+}): string | null {
+  const word = (k: string): string => STALL_KIND_WORD[k] ?? plain(k);
+  const need =
+    f.wantWhy === "low_battery" ? `It needed a fast charger: battery ${pct(f.soc)}`
+    : f.wantWhy === "due_now" ? "It needed a fast charger: it is due out now"
+    : f.wantWhy === "enough_battery" ? `A standard charger was enough: battery ${pct(f.soc)} and not due out now`
+    : null;
+  const reason =
+    f.why === "only_option" ? "It was the only one it could use"
+    : f.why === "power_limit" ? "The others would have gone over the depot's power limit"
+    : f.why === "booked" ? "It was booked for this car"
+    : f.why === "wanted_kind" ? need
+    : f.why === "row_order" ? "The options were equal, so it took the first in the row"
+    : null;
+  if (!f.wantedKind || !f.chosenKind || f.wantedKind === f.chosenKind) return reason;
+  // It took a kind it did not want. Say which of the three reasons it was, and claim "none free" only when counted.
+  const wanted = word(f.wantedKind), chosen = word(f.chosenKind);
+  if (f.why === "power_limit") return `A ${wanted} would have gone over the depot's power limit, so it took a ${chosen}`;
+  if (f.why === "booked") return `It was booked for this car, so it took a ${chosen} over a ${wanted}`;
+  const lead = f.wantedKindOptions === 0 ? `No ${wanted} was free for it, so it took a ${chosen}` : `It wanted a ${wanted} and took a ${chosen}`;
+  return [lead, reason].filter((x): x is string => !!x).join(". ");
+}
+
+/** "Charges in 42 minutes here, against 1 hr 55 min at standard charger 07." Minutes from the moment of the choice, by
+ *  the twin's own charge estimate; a clock time would not hold once a visit plan starts the charge later. */
+export function chargeCompareText(f: { minutes: number | null; next: { place: string; minutes: number | null } | null }): string | null {
+  if (f.minutes == null) return null;
+  const here = `Charges in ${duration(f.minutes)} here`;
+  return f.next && f.next.minutes != null ? `${here}, against ${duration(f.next.minutes)} at ${f.next.place}.` : `${here}.`;
+}
+
+export function pickedText(f: {
+  place: string; why?: string | null; charge?: string | null; ready?: string | null; nextBest?: string | null;
+}): Sentence {
+  const parts: string[] = [];
+  if (f.why) parts.push(`${f.why}.`);
+  if (f.charge) parts.push(f.charge);
+  else if (f.ready) parts.push(`Ready ${clockCT(f.ready)}${f.nextBest ? `, against ${clockCT(f.nextBest)} for the next best` : ""}.`);
+  return { title: `Picked ${f.place}`, detail: parts.length ? parts.join(" ") : `Why it was picked: ${MISSING}.` };
 }
 
 export function safetyText(f: { passed: number | null; failed: string[] }): Sentence {

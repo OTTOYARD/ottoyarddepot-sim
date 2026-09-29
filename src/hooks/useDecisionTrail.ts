@@ -6,6 +6,7 @@
 //   ottoq_activity_feed_v2(run, vehicle)     the picked car's decisions                        every 8 s
 //   ottoq_decisions (vehicle)                their safety-check results                         every 8 s
 //   ottoq_external_proposals (vehicle)       the planners' offers for the car                   every 8 s
+//   ottoq_decision_options(run, vehicle)     what each charger choice had to choose from (0590) every 8 s
 //
 // Pause follows the sim, exactly as useActivityFeed: a paused cockpit issues no reads and keeps what it has.
 // A depot card goes null once its car leaves, which would take the car's due time with it, so the last card seen for
@@ -14,7 +15,7 @@ import { useEffect, useRef, useState } from "react";
 import { ottoQ } from "@/lib/ottoQClient";
 import { useTwinStore } from "@/store/twinStore";
 import type { ActivityFeedRow } from "@/store/activityFeedStore";
-import type { TrailCard, TrailDecision, TrailProposal } from "@/lib/decisionTrail";
+import type { TrailCard, TrailChoice, TrailDecision, TrailProposal } from "@/lib/decisionTrail";
 import { decisionKey } from "@/lib/decisionText";
 
 export const TWIN_DEPOT_ID = "11111111-1111-1111-1111-111111111111";
@@ -38,6 +39,8 @@ export interface DecisionTrailData {
   carRows: ActivityFeedRow[];
   decisions: TrailDecision[];
   proposals: TrailProposal[];
+  /** Empty until otto-q-core 0590 is applied; the trail then says "not recorded" where it would use them. */
+  choices: TrailChoice[];
   error: string | null;
   loading: boolean;
 }
@@ -62,6 +65,9 @@ export function useDecisionTrail(vehicleId: string | null, enabled = true): Deci
   const [carRows, setCarRows] = useState<ActivityFeedRow[]>([]);
   const [decisions, setDecisions] = useState<TrailDecision[]>([]);
   const [proposals, setProposals] = useState<TrailProposal[]>([]);
+  const [choices, setChoices] = useState<TrailChoice[]>([]);
+  /** A backend without 0590 answers PGRST202; stop asking it for this run. */
+  const noOptionsRpc = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const memory = useRef(new Map<string, TrailCard>());
@@ -73,7 +79,8 @@ export function useDecisionTrail(vehicleId: string | null, enabled = true): Deci
     memory.current = new Map();
     runMap.current = new Map();
     setCapped(false);
-    setCards([]); setRunRows([]); setCarRows([]); setDecisions([]); setProposals([]); setError(null); setSimClock(null);
+    setCards([]); setRunRows([]); setCarRows([]); setDecisions([]); setProposals([]); setChoices([]); setError(null); setSimClock(null);
+    noOptionsRpc.current = false;
   }, [simRunId]);
 
   const live = enabled && !!simRunId && !paused;
@@ -126,7 +133,7 @@ export function useDecisionTrail(vehicleId: string | null, enabled = true): Deci
 
   // The picked car.
   useEffect(() => {
-    setCarRows([]); setDecisions([]); setProposals([]);
+    setCarRows([]); setDecisions([]); setProposals([]); setChoices([]);
   }, [vehicleId, simRunId]);
 
   useEffect(() => {
@@ -134,7 +141,7 @@ export function useDecisionTrail(vehicleId: string | null, enabled = true): Deci
     let cancelled = false;
     const poll = async () => {
       try {
-        const [rows, dec, prop] = await Promise.all([
+        const [rows, dec, prop, opts] = await Promise.all([
           readFeed({ p_sim_run_id: simRunId, p_vehicle_id: vehicleId, p_limit: 1000, p_changes_only: true, p_window_ticks: 1_000_000 }),
           ottoQ
             .from("ottoq_decisions")
@@ -153,11 +160,20 @@ export function useDecisionTrail(vehicleId: string | null, enabled = true): Deci
             .eq("entity_id", vehicleId)
             .order("tick_seq", { ascending: false })
             .limit(500),
+          noOptionsRpc.current
+            ? Promise.resolve({ data: null, error: null })
+            : ottoQ.rpc("ottoq_decision_options", { p_sim_run_id: simRunId, p_vehicle_id: vehicleId }),
         ]);
         if (cancelled) return;
         if (dec.error) throw dec.error;
         if (prop.error) throw prop.error;
+        if (opts.error) {
+          if ((opts.error as { code?: string }).code === "PGRST202") noOptionsRpc.current = true;
+          else throw opts.error;
+        }
         setCarRows(rows);
+        const body = (opts.data ?? null) as { choices?: TrailChoice[] } | null;
+        setChoices(Array.isArray(body?.choices) ? body!.choices : []);
         setDecisions(((dec.data ?? []) as unknown as TrailDecision[]).map((d) => ({ ...d, decision_seq: Number(d.decision_seq) })));
         setProposals(
           ((prop.data ?? []) as unknown as { tick_seq: number | null; status: string | null; stall_id: string | null; abstain: string | null; end_min: string | null }[])
@@ -180,6 +196,6 @@ export function useDecisionTrail(vehicleId: string | null, enabled = true): Deci
 
   return {
     simRunId, simClock, cards, cardMemory: memory.current, runRows, runRowsCapped: capped,
-    carRows, decisions, proposals, error, loading,
+    carRows, decisions, proposals, choices, error, loading,
   };
 }
