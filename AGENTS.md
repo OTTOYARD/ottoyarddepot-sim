@@ -101,7 +101,7 @@ interpolation.** Zero world logic client-side.
     the tail at y 181, across the collector. So DCFC went 16 → 14u pitch (rows 88..144, both columns
     level) and L2 10.6 / 11 → 8.4u (`L2_ROW_PITCH`; east column half a pitch behind the west, so the
     noses interleave across the spine). Every stall keeps its x, code and count; `buildLayoutSeed`
-    writes the rows and otto-q-core migration 0552 moves `public.stalls`. Until the database carries
+    writes the rows and otto-q-core migration 0561 moves `public.stalls`. Until the database carries
     them, charger stalls map **by column and rank** (`setTwinStallMap`, before position): nearest
     position is WORSE than nothing across a re-pitch (old L2 row 117.7 lies 1.8u from new row 119.5,
     one rank off). The reservation glow reads the driver's map (`rendererStallFor`) for the same reason.

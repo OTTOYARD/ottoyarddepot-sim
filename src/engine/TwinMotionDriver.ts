@@ -1448,7 +1448,7 @@ class TwinMotionDriver {
     // ── CHARGER STALLS: BY COLUMN AND RANK ─────────────────────────────────────
     // The charger rows were re-pitched on 2026-09-28 when the stalls went to 60°
     // (sitePlan.chargingStalls: DCFC 16 -> 14u, L2 10.6 / 11 -> 8.4u), and migration
-    // 0552 moves the database rows to match. Until it has run — or if the renderer
+    // 0561 moves the database rows to match. Until it has run — or if the renderer
     // ships first — a twin charger stall stands in the right COLUMN at the wrong row,
     // and nearest-position is then WORSE than no answer: an old L2 row 117.7 lies
     // 1.8u from new row 119.5, one rank further south, so it would pair a stall with
