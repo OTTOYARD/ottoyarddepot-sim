@@ -135,12 +135,12 @@ describe("decision verdicts in words", () => {
   it("names a battery setpoint and a shield hold", () => {
     expect(describeDecision(row({
       action: "bess_dispatch", rationale: { verb: "set_bess", bess_action: "charge", mode: "plan_charge", soc_pct: 91.7 },
-    })).detail).toBe("plan charge · SoC 92%");
+    })).detail).toBe("plan charge · battery 92%");
     const held = describeDecision(row({
       action: "task_start", outcome: "overridden_to_default",
       rationale: { verb: "hold_in_queue", reason: "service_shield_blocked", override_rule_codes: ["HW.002"] },
     }));
-    expect(held).toEqual({ title: "Held by the shield", detail: "HW.002", tone: "warn" });
+    expect(held).toEqual({ title: "Held by a safety check", detail: "the charger is working", tone: "warn" });
   });
 
   it("renders an unknown verdict as its own words", () => {
