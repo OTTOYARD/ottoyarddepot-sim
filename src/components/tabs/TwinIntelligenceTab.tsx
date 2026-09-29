@@ -37,6 +37,7 @@ import {
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import TwinDecisionLogTab from '@/components/tabs/TwinDecisionLogTab';
+import TwinDecisionTrail from '@/components/tabs/TwinDecisionTrail';
 import SecondLoopPanel from '@/components/tabs/SecondLoopPanel';
 import { useIntelligenceStack } from '@/hooks/useIntelligenceStack';
 import {
@@ -447,13 +448,13 @@ const FrameSection = ({
   );
 };
 
-type IntelView = 'stream' | 'layers' | 'loop';
+type IntelView = 'trail' | 'stream' | 'layers' | 'loop';
 
-/** Three ways to read OTTO-Q's brain: what it is doing right now (stream), how
- *  the funnel is built (layers), and the second loop beside it -- what the
- *  challenger questions and what the learner is testing (loop). Stream is the
- *  default because it is the question a viewer watching a running depot is
- *  actually asking. */
+/** Four ways to read OTTO-Q's brain: each car's decisions in plain words (trail), what it is doing right now
+ *  (stream), how the funnel is built (layers, the five auditor cards, labelled "How it works (technical)"), and the
+ *  second loop beside it -- what the challenger questions and what the learner is testing (loop). The trail is the
+ *  default. Chase, 2026-09-28: the plain-English viewer "needs to be even a little more simple to understand ...
+ *  Just easy to understand reasoning and decision logic trail." */
 const ViewToggle = ({
   view,
   setView,
@@ -461,11 +462,12 @@ const ViewToggle = ({
   view: IntelView;
   setView: (v: IntelView) => void;
 }) => (
-  <div className="inline-flex shrink-0 rounded border border-white/10 bg-white/[0.03] p-0.5">
+  <div className="inline-flex max-w-full shrink-0 flex-wrap rounded border border-white/10 bg-white/[0.03] p-0.5">
     {(
       [
+        ['trail', 'Decisions'],
         ['stream', 'Live stream'],
-        ['layers', 'Layers'],
+        ['layers', 'How it works (technical)'],
         ['loop', 'Challenge & learn'],
       ] as const
     ).map(([key, label]) => (
@@ -486,7 +488,7 @@ const ViewToggle = ({
 export function TwinIntelligenceTab() {
   const { stack, frame, error, loading, frameLoading, loadFrame, simRunId } =
     useIntelligenceStack(true);
-  const [view, setView] = useState<IntelView>('stream');
+  const [view, setView] = useState<IntelView>('trail');
 
   const layers = useMemo<StackLayer[]>(
     () => (Array.isArray(stack?.layers) ? (stack?.layers as StackLayer[]) : []),
@@ -549,6 +551,17 @@ export function TwinIntelligenceTab() {
         <div className="space-y-2 p-3">
           <ViewToggle view={view} setView={setView} />
           <SecondLoopPanel />
+        </div>
+      </ScrollArea>
+    );
+  }
+
+  if (view === 'trail') {
+    return (
+      <ScrollArea className="flex-1">
+        <div className="space-y-2 p-3">
+          <ViewToggle view={view} setView={setView} />
+          <TwinDecisionTrail onTechnical={() => setView('layers')} />
         </div>
       </ScrollArea>
     );

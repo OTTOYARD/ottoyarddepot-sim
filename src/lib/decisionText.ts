@@ -5,6 +5,8 @@
 // decision the same way. The row type is the feed's columns; each cockpit supplies its own alias for it.
 import type { ActivityFeedRow } from "@/store/activityFeedStore";
 import { confirmedText, isLocalGrade } from "./secondLoop";
+// The words a viewer reads come from one glossary (plainWords.ts), carried verbatim beside this file in every cockpit.
+import { ruleWords } from "./plainWords";
 
 /** Every clock in the cockpit reads Nashville time (the TopBar says "CT"). */
 export const DEPOT_TZ = "America/Chicago";
@@ -78,7 +80,8 @@ export function describeDecision(r: ActivityFeedRow): DecisionText {
   const reason = typeof v.reason === "string" ? v.reason : "";
   const overridden = r.outcome === "overridden_to_default";
   const noop = r.outcome === "noop_no_candidate";
-  const codes = Array.isArray(v.override_rule_codes) ? (v.override_rule_codes as string[]).join(", ") : "";
+  // A rule is named by what it protects, never by its code (plainWords.ruleWord).
+  const codes = Array.isArray(v.override_rule_codes) ? ruleWords(v.override_rule_codes as string[]) : "";
 
   switch (r.action) {
     case "challenger_flag":
@@ -108,7 +111,7 @@ export function describeDecision(r: ActivityFeedRow): DecisionText {
       }
       if (verb === "hold_in_queue") {
         if (overridden || reason === "service_shield_blocked") {
-          return { title: "Held by the shield", detail: codes || human(reason) || null, tone: "warn" };
+          return { title: "Held by a safety check", detail: codes || human(reason) || null, tone: "warn" };
         }
         const waited = num(v.waited_min), patience = num(v.patience_min);
         return {
@@ -124,7 +127,7 @@ export function describeDecision(r: ActivityFeedRow): DecisionText {
       break;
     }
     case "stall_assignment": {
-      if (overridden) return { title: "Assignment overridden by the shield", detail: codes || null, tone: "warn" };
+      if (overridden) return { title: "Stall choice changed by a safety check", detail: codes || null, tone: "warn" };
       if (reason === "no_compatible_available_stall") return { title: "No compatible stall free", detail: null, tone: "held" };
       if (verb === "hold_no_space") return { title: `Held: no free ${human(v.purpose) || "space"}`, detail: human(v.need) || null, tone: "held" };
       if (verb === "gate_intake") return { title: "Gate intake", detail: null, tone: "enacted" };
@@ -147,7 +150,7 @@ export function describeDecision(r: ActivityFeedRow): DecisionText {
         const soc = num(v.soc_pct);
         return {
           title: `Battery: ${human(v.bess_action) || "set"}`,
-          detail: [human(v.mode), soc != null ? `SoC ${Math.round(soc)}%` : null].filter(Boolean).join(" · ") || null,
+          detail: [human(v.mode), soc != null ? `battery ${Math.round(soc)}%` : null].filter(Boolean).join(" · ") || null,
           tone: "enacted",
         };
       }
@@ -157,7 +160,7 @@ export function describeDecision(r: ActivityFeedRow): DecisionText {
     case "redeployment": {
       if (verb === "deploy") {
         const soc = num(v.soc), floor = num(v.floor);
-        return { title: "Deployed", detail: soc != null && floor != null ? `SoC ${soc}% ≥ floor ${floor}%` : null, tone: "enacted" };
+        return { title: "Deployed", detail: soc != null && floor != null ? `battery ${soc}%, needs ${floor}% to leave` : null, tone: "enacted" };
       }
       if (verb === "hold_in_staging") return { title: "Deploy held", detail: codes || human(reason) || null, tone: overridden ? "warn" : "held" };
       break;

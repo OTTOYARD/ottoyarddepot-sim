@@ -288,12 +288,12 @@ const CURRENT: IntelligenceStack = {
   frame_included: false,
 };
 
-// The panel now opens on the LIVE STREAM (Chase, 2026-09-21), so every
+// The panel opens on the DECISION TRAIL (Chase, 2026-09-28; before that the live stream, 2026-09-21), so every
 // assertion below about the layered analysis has to select that view first.
 // mount() does it, rather than each test remembering to: the subject of these
 // tests is what the layers render, not which tab is default, and that is
 // asserted separately in "default view" below.
-const mount = (over: Partial<typeof state> = {}, view: 'stream' | 'layers' = 'layers') => {
+const mount = (over: Partial<typeof state> = {}, view: 'trail' | 'layers' = 'layers') => {
   Object.assign(state, {
     stack: null,
     frame: null,
@@ -306,7 +306,7 @@ const mount = (over: Partial<typeof state> = {}, view: 'stream' | 'layers' = 'la
   const result = render(<TwinIntelligenceTab />);
   if (view === 'layers') {
     // Absent when there is no run (the panel short-circuits before the toggle).
-    const toggle = screen.queryByText('Layers');
+    const toggle = screen.queryByText('How it works (technical)');
     if (toggle) fireEvent.click(toggle);
   }
   return result;
@@ -438,30 +438,31 @@ describe('TwinIntelligenceTab with a partial payload', () => {
 // them to satisfy a layout preference would be a regression dressed as a fix.
 // ============================================================================
 describe('TwinIntelligenceTab default view', () => {
-  it('opens on the live stream, not on the grouped layer cards', () => {
-    mount({ simRunId: LIVE.run!.sim_run_id!, stack: LIVE }, 'stream');
-    expect(screen.getByText('Decisions')).toBeTruthy();
+  it('opens on the plain-English decision trail, not on the grouped layer cards', () => {
+    mount({ simRunId: LIVE.run!.sim_run_id!, stack: LIVE }, 'trail');
+    expect(screen.getByRole('button', { name: 'Decisions' })).toBeTruthy();
     // The layer cards are the thing that used to greet a viewer first.
     expect(screen.queryByText('Asset telemetry')).toBeNull();
   });
 
-  it('keeps the layered analysis reachable, so no measured finding is lost', () => {
-    mount({ simRunId: LIVE.run!.sim_run_id!, stack: LIVE }, 'stream');
+  it('keeps the layered analysis reachable under "How it works (technical)", so no measured finding is lost', () => {
+    mount({ simRunId: LIVE.run!.sim_run_id!, stack: LIVE }, 'trail');
     expect(screen.queryByText('Asset telemetry')).toBeNull();
-    fireEvent.click(screen.getByText('Layers'));
+    fireEvent.click(screen.getByText('How it works (technical)'));
     expect(screen.getByText('Asset telemetry')).toBeTruthy();
   });
 
-  it('offers both views whenever a run is present', () => {
-    mount({ simRunId: LIVE.run!.sim_run_id!, stack: LIVE }, 'stream');
+  it('offers every view whenever a run is present', () => {
+    mount({ simRunId: LIVE.run!.sim_run_id!, stack: LIVE }, 'trail');
     expect(screen.getByText('Live stream')).toBeTruthy();
-    expect(screen.getByText('Layers')).toBeTruthy();
+    expect(screen.getByText('How it works (technical)')).toBeTruthy();
+    expect(screen.getByText('Challenge & learn')).toBeTruthy();
   });
 
   // otto-q-core 0536: the second loop needs no live run (the learner works overnight, and the challenger's board names
   // the last operator run), so with no run the toggle stays and only the stream and the layers say there is nothing.
   it('keeps the toggle with no run, so the challenger and the learner stay reachable', async () => {
-    mount({}, 'stream');
+    mount({}, 'trail');
     expect(screen.getByText(/No simulation is active/i)).toBeTruthy();
     fireEvent.click(screen.getByText('Challenge & learn'));
     expect(await screen.findByText('Challenger')).toBeTruthy();
