@@ -27,26 +27,43 @@ const CONFIGS: Record<PPMode, {
   },
 };
 
+/** Which passes the render tier can afford (quality/tiers.ts). High runs all four. */
+export interface PostBudget { ao: boolean; bloom: boolean; vignette: boolean; smaa: boolean }
+const ALL: PostBudget = { ao: true, bloom: true, vignette: true, smaa: true };
+
 interface Props {
   mode?: PPMode;
   enabled?: boolean;
+  budget?: PostBudget;
 }
 
-export function DepotPostProcessing({ mode = 'interactive', enabled = true }: Props) {
-  if (!enabled) return null;
+export function DepotPostProcessing({ mode = 'interactive', enabled = true, budget = ALL }: Props) {
+  if (!enabled || !(budget.ao || budget.bloom || budget.vignette || budget.smaa)) return null;
   const c = CONFIGS[mode];
 
-  return (
-    <EffectComposer multisampling={0}>
-      <N8AO intensity={c.ao.intensity} aoRadius={c.ao.aoRadius}
+  // The composer takes its passes as children; a pass the tier cannot afford is
+  // simply not mounted (and costs nothing), rather than mounted at zero strength.
+  const passes = [
+    budget.ao && (
+      <N8AO key="ao" intensity={c.ao.intensity} aoRadius={c.ao.aoRadius}
         distanceFalloff={c.ao.distanceFalloff} halfRes={c.ao.halfRes}
         quality={c.ao.quality} color="#000011" />
-      <Bloom intensity={c.bloom.intensity} luminanceThreshold={c.bloom.luminanceThreshold}
+    ),
+    budget.bloom && (
+      <Bloom key="bloom" intensity={c.bloom.intensity} luminanceThreshold={c.bloom.luminanceThreshold}
         luminanceSmoothing={c.bloom.luminanceSmoothing} mipmapBlur
         kernelSize={c.bloom.kernelSize} blendFunction={BlendFunction.ADD} />
-      <Vignette offset={c.vignette.offset} darkness={c.vignette.darkness}
+    ),
+    budget.vignette && (
+      <Vignette key="vignette" offset={c.vignette.offset} darkness={c.vignette.darkness}
         blendFunction={BlendFunction.NORMAL} />
-      <SMAA />
+    ),
+    budget.smaa && <SMAA key="smaa" />,
+  ].filter(Boolean) as JSX.Element[];
+
+  return (
+    <EffectComposer multisampling={0} key={passes.map((p) => p.key).join('+')}>
+      {passes}
     </EffectComposer>
   );
 }

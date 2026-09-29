@@ -49,7 +49,13 @@ function calcLighting(simTime: number) {
   };
 }
 
-export function DayNightLighting({ simTime }: { simTime: number }) {
+/**
+ * `shadows` / `shadowMapSize` are the render tier's shadow budget
+ * (quality/tiers.ts). High is the rig as it always was: 2048² over the lot.
+ */
+export function DayNightLighting({ simTime, shadows = true, shadowMapSize = 2048 }: {
+  simTime: number; shadows?: boolean; shadowMapSize?: number;
+}) {
   const l = useMemo(() => calcLighting(simTime), [simTime]);
 
   // sun sweeps east→west across the day; elevation from the curve
@@ -68,12 +74,13 @@ export function DayNightLighting({ simTime }: { simTime: number }) {
 
       {/* Sun — single shadow caster, covers the entire fenced lot */}
       <directionalLight
+        key={shadowMapSize /* a new size needs a new shadow map */}
         position={sunPos}
         intensity={l.sunI}
         color={l.sunCol}
-        castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
+        castShadow={shadows}
+        shadow-mapSize-width={shadowMapSize}
+        shadow-mapSize-height={shadowMapSize}
         shadow-camera-near={50}
         shadow-camera-far={900}
         shadow-camera-left={-185}

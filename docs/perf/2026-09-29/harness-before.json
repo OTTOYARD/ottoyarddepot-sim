@@ -1,0 +1,532 @@
+[
+ {
+  "label": "before",
+  "profile": "desktop",
+  "quality": "baseline",
+  "preset": "Bird Eye",
+  "playbackS": 58,
+  "cars": 61,
+  "frames": 9,
+  "fps": 0.7,
+  "meanMs": 1406.1,
+  "p50Ms": 1390.5,
+  "p95Ms": 1678.2,
+  "p99Ms": 1678.2,
+  "maxMs": 1678.2,
+  "calls": 2943,
+  "triangles": 459542,
+  "cpuRenderMs": 1373.7,
+  "cpuRenderP95Ms": 1623.6,
+  "cpuFrameMs": 1375,
+  "memory": {
+   "geometries": 442,
+   "textures": 54,
+   "programs": 38,
+   "geometryMB": 4,
+   "textureMB": 9.4,
+   "targetMB": 22.2,
+   "totalMB": 35.6
+  },
+  "tier": "high",
+  "mode": "auto",
+  "dpr": 0.5,
+  "canvas": [
+   510,
+   398
+  ]
+ },
+ {
+  "label": "before",
+  "profile": "desktop",
+  "quality": "baseline",
+  "preset": "Operator",
+  "playbackS": 93,
+  "cars": 30,
+  "frames": 9,
+  "fps": 0.7,
+  "meanMs": 1419.5,
+  "p50Ms": 1476.7,
+  "p95Ms": 2411.1,
+  "p99Ms": 2411.1,
+  "maxMs": 2411.1,
+  "calls": 3026,
+  "triangles": 445480,
+  "cpuRenderMs": 443.2,
+  "cpuRenderP95Ms": 2380.8,
+  "cpuFrameMs": 444.3,
+  "memory": {
+   "geometries": 503,
+   "textures": 52,
+   "programs": 38,
+   "geometryMB": 4,
+   "textureMB": 9.4,
+   "targetMB": 22.2,
+   "totalMB": 35.6
+  },
+  "tier": "high",
+  "mode": "auto",
+  "dpr": 0.5,
+  "canvas": [
+   510,
+   398
+  ]
+ },
+ {
+  "label": "before",
+  "profile": "desktop",
+  "quality": "baseline",
+  "preset": "Hero",
+  "playbackS": 122,
+  "cars": 30,
+  "frames": 13,
+  "fps": 0.9,
+  "meanMs": 1055.5,
+  "p50Ms": 942.8,
+  "p95Ms": 2235.8,
+  "p99Ms": 2235.8,
+  "maxMs": 2235.8,
+  "calls": 1380,
+  "triangles": 258106,
+  "cpuRenderMs": 15.7,
+  "cpuRenderP95Ms": 27.5,
+  "cpuFrameMs": 16.7,
+  "memory": {
+   "geometries": 511,
+   "textures": 54,
+   "programs": 38,
+   "geometryMB": 4,
+   "textureMB": 9.4,
+   "targetMB": 22.2,
+   "totalMB": 35.6
+  },
+  "tier": "high",
+  "mode": "auto",
+  "dpr": 0.5,
+  "canvas": [
+   510,
+   398
+  ]
+ },
+ {
+  "label": "before",
+  "profile": "desktop",
+  "quality": "baseline",
+  "preset": "Canopy",
+  "playbackS": 142,
+  "cars": 34,
+  "frames": 10,
+  "fps": 0.8,
+  "meanMs": 1197.8,
+  "p50Ms": 1067.2,
+  "p95Ms": 2011.7,
+  "p99Ms": 2011.7,
+  "maxMs": 2011.7,
+  "calls": 1579,
+  "triangles": 327820,
+  "cpuRenderMs": 16.1,
+  "cpuRenderP95Ms": 25.1,
+  "cpuFrameMs": 17.1,
+  "memory": {
+   "geometries": 512,
+   "textures": 52,
+   "programs": 38,
+   "geometryMB": 4,
+   "textureMB": 9.4,
+   "targetMB": 22.2,
+   "totalMB": 35.6
+  },
+  "tier": "high",
+  "mode": "auto",
+  "dpr": 0.5,
+  "canvas": [
+   510,
+   398
+  ]
+ },
+ {
+  "label": "before",
+  "profile": "desktop",
+  "quality": "baseline",
+  "inventory": [
+   {
+    "group": "vehicles",
+    "meshes": 526,
+    "instanced": 0,
+    "instances": 0,
+    "triangles": 86800,
+    "shadowCasters": 64
+   },
+   {
+    "group": "arms",
+    "meshes": 380,
+    "instanced": 0,
+    "instances": 0,
+    "triangles": 66160,
+    "shadowCasters": 270
+   },
+   {
+    "group": "lanes",
+    "meshes": 374,
+    "instanced": 0,
+    "instances": 0,
+    "triangles": 4488,
+    "shadowCasters": 0
+   },
+   {
+    "group": "chargersL2",
+    "meshes": 94,
+    "instanced": 0,
+    "instances": 0,
+    "triangles": 11220,
+    "shadowCasters": 3
+   },
+   {
+    "group": "ground",
+    "meshes": 62,
+    "instanced": 6,
+    "instances": 201,
+    "triangles": 2834,
+    "shadowCasters": 5
+   },
+   {
+    "group": "utility",
+    "meshes": 46,
+    "instanced": 0,
+    "instances": 0,
+    "triangles": 2008,
+    "shadowCasters": 17
+   },
+   {
+    "group": "siteDetails",
+    "meshes": 41,
+    "instanced": 2,
+    "instances": 174,
+    "triangles": 3284,
+    "shadowCasters": 5
+   },
+   {
+    "group": "building",
+    "meshes": 25,
+    "instanced": 0,
+    "instances": 0,
+    "triangles": 2950,
+    "shadowCasters": 10
+   },
+   {
+    "group": "washBays",
+    "meshes": 25,
+    "instanced": 0,
+    "instances": 0,
+    "triangles": 5958,
+    "shadowCasters": 10
+   },
+   {
+    "group": "chargersDcfc",
+    "meshes": 24,
+    "instanced": 0,
+    "instances": 0,
+    "triangles": 1340,
+    "shadowCasters": 3
+   },
+   {
+    "group": "landscaping",
+    "meshes": 14,
+    "instanced": 2,
+    "instances": 120,
+    "triangles": 8436,
+    "shadowCasters": 8
+   },
+   {
+    "group": "solarCanopy",
+    "meshes": 7,
+    "instanced": 0,
+    "instances": 0,
+    "triangles": 9576,
+    "shadowCasters": 6
+   },
+   {
+    "group": "staging",
+    "meshes": 7,
+    "instanced": 1,
+    "instances": 226,
+    "triangles": 12936,
+    "shadowCasters": 5
+   },
+   {
+    "group": "serviceBays",
+    "meshes": 6,
+    "instanced": 0,
+    "instances": 0,
+    "triangles": 1784,
+    "shadowCasters": 6
+   }
+  ],
+  "pageErrors": [],
+  "refusedWrites": 0
+ },
+ {
+  "label": "before",
+  "profile": "mobile",
+  "quality": "baseline",
+  "preset": "Bird Eye",
+  "playbackS": 55,
+  "cars": 49,
+  "frames": 8,
+  "fps": 0.7,
+  "meanMs": 1464.9,
+  "p50Ms": 1140,
+  "p95Ms": 2127.3,
+  "p99Ms": 2127.3,
+  "maxMs": 2127.3,
+  "calls": 3390,
+  "triangles": 506467,
+  "cpuRenderMs": 134.2,
+  "cpuRenderP95Ms": 191.8,
+  "cpuFrameMs": 141.6,
+  "memory": {
+   "geometries": 494,
+   "textures": 52,
+   "programs": 38,
+   "geometryMB": 4,
+   "textureMB": 9.4,
+   "targetMB": 18.3,
+   "totalMB": 31.7
+  },
+  "tier": "high",
+  "mode": "auto",
+  "dpr": 0.5,
+  "canvas": [
+   466,
+   163
+  ]
+ },
+ {
+  "label": "before",
+  "profile": "mobile",
+  "quality": "baseline",
+  "preset": "Operator",
+  "playbackS": 76,
+  "cars": 32,
+  "frames": 8,
+  "fps": 0.7,
+  "meanMs": 1532.5,
+  "p50Ms": 1539.4,
+  "p95Ms": 1757.1,
+  "p99Ms": 1757.1,
+  "maxMs": 1757.1,
+  "calls": 3091,
+  "triangles": 442924,
+  "cpuRenderMs": 105.7,
+  "cpuRenderP95Ms": 153.6,
+  "cpuFrameMs": 110.7,
+  "memory": {
+   "geometries": 543,
+   "textures": 54,
+   "programs": 38,
+   "geometryMB": 4,
+   "textureMB": 9.4,
+   "targetMB": 18.3,
+   "totalMB": 31.7
+  },
+  "tier": "high",
+  "mode": "auto",
+  "dpr": 0.5,
+  "canvas": [
+   466,
+   163
+  ]
+ },
+ {
+  "label": "before",
+  "profile": "mobile",
+  "quality": "baseline",
+  "preset": "Hero",
+  "playbackS": 99,
+  "cars": 26,
+  "frames": 10,
+  "fps": 0.8,
+  "meanMs": 1286.8,
+  "p50Ms": 1003.1,
+  "p95Ms": 2525.5,
+  "p99Ms": 2525.5,
+  "maxMs": 2525.5,
+  "calls": 2540,
+  "triangles": 405190,
+  "cpuRenderMs": 125.5,
+  "cpuRenderP95Ms": 199.9,
+  "cpuFrameMs": 131.3,
+  "memory": {
+   "geometries": 547,
+   "textures": 52,
+   "programs": 38,
+   "geometryMB": 4,
+   "textureMB": 9.4,
+   "targetMB": 18.3,
+   "totalMB": 31.7
+  },
+  "tier": "high",
+  "mode": "auto",
+  "dpr": 0.5,
+  "canvas": [
+   466,
+   163
+  ]
+ },
+ {
+  "label": "before",
+  "profile": "mobile",
+  "quality": "baseline",
+  "preset": "Canopy",
+  "playbackS": 123,
+  "cars": 30,
+  "frames": 7,
+  "fps": 0.6,
+  "meanMs": 1723.9,
+  "p50Ms": 1923.1,
+  "p95Ms": 2203.1,
+  "p99Ms": 2203.1,
+  "maxMs": 2203.1,
+  "calls": 2345,
+  "triangles": 406254,
+  "cpuRenderMs": 140.7,
+  "cpuRenderP95Ms": 170.6,
+  "cpuFrameMs": 147.9,
+  "memory": {
+   "geometries": 552,
+   "textures": 52,
+   "programs": 38,
+   "geometryMB": 4,
+   "textureMB": 9.4,
+   "targetMB": 18.3,
+   "totalMB": 31.7
+  },
+  "tier": "high",
+  "mode": "auto",
+  "dpr": 0.5,
+  "canvas": [
+   466,
+   163
+  ]
+ },
+ {
+  "label": "before",
+  "profile": "mobile",
+  "quality": "baseline",
+  "inventory": [
+   {
+    "group": "vehicles",
+    "meshes": 526,
+    "instanced": 0,
+    "instances": 0,
+    "triangles": 86800,
+    "shadowCasters": 64
+   },
+   {
+    "group": "arms",
+    "meshes": 380,
+    "instanced": 0,
+    "instances": 0,
+    "triangles": 66160,
+    "shadowCasters": 270
+   },
+   {
+    "group": "lanes",
+    "meshes": 374,
+    "instanced": 0,
+    "instances": 0,
+    "triangles": 4488,
+    "shadowCasters": 0
+   },
+   {
+    "group": "chargersL2",
+    "meshes": 94,
+    "instanced": 0,
+    "instances": 0,
+    "triangles": 11220,
+    "shadowCasters": 3
+   },
+   {
+    "group": "ground",
+    "meshes": 62,
+    "instanced": 6,
+    "instances": 201,
+    "triangles": 2834,
+    "shadowCasters": 5
+   },
+   {
+    "group": "utility",
+    "meshes": 46,
+    "instanced": 0,
+    "instances": 0,
+    "triangles": 2008,
+    "shadowCasters": 17
+   },
+   {
+    "group": "siteDetails",
+    "meshes": 41,
+    "instanced": 2,
+    "instances": 174,
+    "triangles": 3284,
+    "shadowCasters": 5
+   },
+   {
+    "group": "building",
+    "meshes": 25,
+    "instanced": 0,
+    "instances": 0,
+    "triangles": 2950,
+    "shadowCasters": 10
+   },
+   {
+    "group": "washBays",
+    "meshes": 25,
+    "instanced": 0,
+    "instances": 0,
+    "triangles": 5958,
+    "shadowCasters": 10
+   },
+   {
+    "group": "chargersDcfc",
+    "meshes": 24,
+    "instanced": 0,
+    "instances": 0,
+    "triangles": 1340,
+    "shadowCasters": 3
+   },
+   {
+    "group": "landscaping",
+    "meshes": 14,
+    "instanced": 2,
+    "instances": 120,
+    "triangles": 8436,
+    "shadowCasters": 8
+   },
+   {
+    "group": "solarCanopy",
+    "meshes": 7,
+    "instanced": 0,
+    "instances": 0,
+    "triangles": 9576,
+    "shadowCasters": 6
+   },
+   {
+    "group": "staging",
+    "meshes": 7,
+    "instanced": 1,
+    "instances": 226,
+    "triangles": 12936,
+    "shadowCasters": 5
+   },
+   {
+    "group": "serviceBays",
+    "meshes": 6,
+    "instanced": 0,
+    "instances": 0,
+    "triangles": 1784,
+    "shadowCasters": 6
+   }
+  ],
+  "pageErrors": [],
+  "refusedWrites": 0
+ }
+]

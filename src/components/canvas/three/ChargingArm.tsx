@@ -4,8 +4,8 @@ import * as THREE from 'three';
 import { useVehicleStore } from '@/store/vehicleStore';
 import { useDepotStore } from '@/store/depotStore';
 import { useSimulationStore } from '@/store/simulationStore';
-import { buildCobot, makeCobotMaterials, type CobotHandles } from '@/lib/ottoChargeArm/buildCobot';
 import { OTTO_CHARGE_ARM, METRES_PER_PLAN_UNIT } from '@/lib/ottoChargeArm/cobotSpec';
+import { armSkeleton, segmentNodes, writeArm, clearArm, type ArmFleet } from './armInstances';
 import { CAR_WIDTH } from '@/engine/motion/traffic';
 import { statusColor, vehicleMayMove, type ArmPhase } from '@/lib/ottoChargeArm/armStateMachine';
 import { twinMotionDriver } from '@/engine/TwinMotionDriver';
@@ -45,16 +45,16 @@ import {
 const spec = OTTO_CHARGE_ARM;
 
 /**
- * ONE template, cloned per stall. buildCobot allocates fresh geometry on every
- * call; ten independent builds would be ten times the buffers for ten
- * identical machines. Object3D.clone() shares geometry and material by
- * reference, so the whole canopy costs one arm's worth of GPU memory.
+ * ONE template, INSTANCED across every stall (armInstances.ts). Each arm keeps
+ * only a skeleton — the template's joint hierarchy with no meshes — which it
+ * drives through IK here and whose segment matrices it writes into its slot of
+ * the shared instanced meshes. Ten arms or twenty, the canopy draws in the same
+ * number of calls, from one arm's worth of GPU memory.
  *
  * Built at 'depot' detail: fasteners, cooling ribs, connector pins and sensor
  * glass are dropped. They are sub-centimetre features on a 1.9 m arm viewed
  * from tens of metres, and they account for two thirds of the mesh count.
  */
-const TEMPLATE: CobotHandles = buildCobot(spec, { withPlinth: true, lod: 'depot' });
 
 /** Rendered vehicle half-width in metres, from the shared plan-unit footprint. */
 const CAR_HALF_WIDTH_M = (CAR_WIDTH * METRES_PER_PLAN_UNIT) / 2;
@@ -90,9 +90,12 @@ if (armDebug && typeof window !== 'undefined') {
 interface ChargingArmProps {
   stallId: string;
   stallType: 'dcfc' | 'l2';
+  /** The instanced arm meshes this arm draws into, and its slot there. */
+  fleet: ArmFleet;
+  slot: number;
 }
 
-export function ChargingArm({ stallId, stallType }: ChargingArmProps) {
+export function ChargingArm({ stallId, stallType, fleet, slot }: ChargingArmProps) {
   const groupRef = useRef<THREE.Group>(null);
   const cableRef = useRef<THREE.Mesh>(null);
 
@@ -104,18 +107,13 @@ export function ChargingArm({ stallId, stallType }: ChargingArmProps) {
     [stall],
   );
 
-  // Per-instance clone with its own status material (the LED colour differs by
-  // phase, so it cannot be shared with the other nine arms).
+  // Per-instance skeleton: joints to drive, no meshes (those are instanced).
   const rig = useMemo(() => {
-    const root = TEMPLATE.root.clone(true);
-    const statusMaterial = TEMPLATE.statusMaterial.clone();
-    root.traverse((o) => {
-      const m = o as THREE.Mesh;
-      if (m.isMesh && m.material === TEMPLATE.statusMaterial) m.material = statusMaterial;
-    });
+    const root = armSkeleton();
     const byName = (n: string) => root.getObjectByName(n) as THREE.Group;
     return {
       root,
+      nodes: segmentNodes(root),
       j1: byName('J1_BaseYaw'),
       j2: byName('J2_Shoulder'),
       j3: byName('J3_Elbow'),
@@ -124,11 +122,11 @@ export function ChargingArm({ stallId, stallType }: ChargingArmProps) {
       j6: byName('J6_ToolRoll'),
       tcp: root.getObjectByName('TCP_ConnectorTip') as THREE.Object3D,
       latch: byName('Connector_Latch'),
-      statusMaterial,
     };
   }, []);
 
-  useEffect(() => () => { rig.statusMaterial.dispose(); }, [rig]);
+  // an unmounted arm leaves its slot empty
+  useEffect(() => () => clearArm(fleet, slot), [fleet, slot]);
 
   const cableMat = useMemo(
     () => new THREE.MeshStandardMaterial({ color: 0x101216, roughness: 0.85, metalness: 0.05 }),
@@ -277,11 +275,13 @@ export function ChargingArm({ stallId, stallType }: ChargingArmProps) {
     });
 
     const col = pose.ok ? statusColor(phase) : 0xff2d2d;
-    rig.statusMaterial.color.setHex(col);
-    rig.statusMaterial.emissive.setHex(col);
-    rig.statusMaterial.emissiveIntensity = phase === 'charging'
+    const glow = phase === 'charging'
       ? 1.0 + Math.sin(simTime * 2.2) * 0.45
       : 1.3;
+    // The joints are set; bring the skeleton's world matrices up to date and
+    // hand its segments to the instanced meshes.
+    groupRef.current?.updateWorldMatrix(true, true);
+    writeArm(fleet, slot, rig.nodes, col, glow);
 
     // Charge cable, drawn whenever the arm is out of its cradle. It used to be
     // drawn only while LATCHED, which popped the cable out of existence the
