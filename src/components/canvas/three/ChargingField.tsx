@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import { useDepotStore } from '@/store/depotStore';
 import { useVehicleStore } from '@/store/vehicleStore';
@@ -44,17 +44,6 @@ const holsterAt = (toward: 1 | -1) => ({
   x: L2_CABINET_PU.depth / 2 + 0.2, y: L2_CABINET_PU.padHeight + 1.35, z: toward * L2_CABINET_PU.width * 0.22,
 });
 const L2_HOLSTER = { 1: holsterAt(1), [-1]: holsterAt(-1) } as Record<1 | -1, { x: number; y: number; z: number }>;
-
-function L2Cable({ toward, vehicleId, oem, holster, material }: {
-  toward: 1 | -1; vehicleId: string | null; oem: string | undefined;
-  holster: { x: number; y: number; z: number }; material: THREE.Material;
-}) {
-  const geo = useMemo(() => {
-    const p = vehicleId ? portFor(vehicleId, oem) : { along: 0, height: 0.7 };
-    return l2CableGeo(toward, p.along, p.height, holster);
-  }, [toward, vehicleId, oem, holster]);
-  return <mesh geometry={geo} material={material} />;
-}
 
 // Coiled cable hanging on an idle L2 pedestal's end face (torus axis on Z).
 const COIL = new THREE.TorusGeometry(0.3, 0.055, 6, 18);
@@ -109,11 +98,12 @@ export function ChargingField({ type }: Props) {
     cable: MATERIALS.chargerCable(),
   }), []);
 
-  const ledFor = (status: string) => {
-    if (status === 'charging') return mats.green;
-    if (status === 'servicing' || status === 'occupied' || status === 'reserved') return mats.amber;
-    if (status === 'offline') return mats.red;
-    return mats.teal;
+  // Pedestal LED by live stall status.
+  const ledKey = (status: string) => {
+    if (status === 'charging') return 'charging';
+    if (status === 'servicing' || status === 'occupied' || status === 'reserved') return 'busy';
+    if (status === 'offline') return 'offline';
+    return 'idle';
   };
 
   // ONE SET OF NUMBERS. These used to be literals here, which meant the drawn
@@ -185,39 +175,57 @@ export function ChargingField({ type }: Props) {
     return b.build();
   }, [placed, isDC, D, H, W, P]);
 
+  // The status-driven parts — screen, LED bar, idle coil, live L2 cable — are
+  // batched too (phone lane, 2026-09-29), rebuilt only when a stall's status or
+  // its parked car changes. Drawn per stall they were ~100 draw calls for the
+  // two fields; batched they are one per material.
+  const liveKey = list.map((s) => `${s.id}:${s.status}:${s.vehicleId ?? ''}`).join('|');
+  const dynamic = useMemo(() => {
+    const b = new StaticBatch();
+    for (const { s, toward, wx, wz, yaw } of placed) {
+      const live = s.status === 'charging' || s.status === 'occupied' || s.status === 'servicing';
+      // local (per-stall frame) geometry -> world: Ry(yaw), then the cabinet's deck point
+      const put = (k: string, g: THREE.BufferGeometry, lx: number, ly: number, lz: number, rotY = 0) => {
+        if (rotY) g.rotateY(rotY);
+        g.translate(lx, ly, lz).rotateY(yaw).translate(wx, DECK_Y, wz);
+        b.geometry(k, g);
+      };
+      // screen — on the car-facing face of the cabinet (local +X). A plane's
+      // normal is +Z, and Ry(pi/2) turns it to +X.
+      put('screen', new THREE.PlaneGeometry(0.6, 0.86), D / 2 + 0.026, P + H * 0.68, 0, Math.PI / 2);
+      // status LED bar across the top of the shell
+      put(`led:${ledKey(s.status)}`, new THREE.BoxGeometry(D * 0.85, 0.07, W * 0.7), 0, P + H + (isDC ? 0.42 : 0.13), 0);
+      if (isDC) continue;
+      if (live) {
+        // an L2 cable runs across to the car's own port while the stall is live;
+        // a DCFC car is plugged by its OTTO-CHARGE ARM, which draws its own
+        const oem = s.vehicleId ? oemOf.get(s.vehicleId) || undefined : undefined;
+        const p = s.vehicleId ? portFor(s.vehicleId, oem) : { along: 0, height: 0.7 };
+        put('cable', l2CableGeo(toward as 1 | -1, p.along, p.height, L2_HOLSTER[toward as 1 | -1]), 0, 0, 0);
+      } else {
+        // an idle L2 keeps its cable coiled on the pedestal's end
+        put('cable', COIL.clone(), 0.05, P + 1.25, toward * (W / 2 + 0.07));
+      }
+    }
+    return b.build();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [placed, liveKey, oemOf, isDC, D, H, W, P]);
+  useEffect(() => () => { for (const g of dynamic.values()) g.dispose(); }, [dynamic]);
+
   const houseMats: Record<string, THREE.Material> = { pad: mats.pad, shell: mats.shell, graphite: mats.graphite, brand: mats.brand };
+  const dynMats: Record<string, THREE.Material> = {
+    screen: mats.screen, cable: mats.cable,
+    'led:charging': mats.green, 'led:busy': mats.amber, 'led:offline': mats.red, 'led:idle': mats.teal,
+  };
 
   return (
     <group>
       {[...housing.entries()].map(([k, g]) => (
         <mesh key={k} geometry={g} material={houseMats[k]} castShadow={k !== 'brand'} receiveShadow />
       ))}
-      {placed.map(({ s, toward, wx, wz, yaw }) => {
-        const live = s.status === 'charging' || s.status === 'occupied' || s.status === 'servicing';
-        return (
-          <group key={s.id} position={[wx, DECK_Y, wz]} rotation={[0, yaw, 0]}>
-            {/* screen — on the car-facing face of the cabinet (local +X). A plane's
-                normal is +Z, and Ry(pi/2) turns it to +X. */}
-            <mesh position={[D / 2 + 0.026, P + H * 0.68, 0]} rotation={[0, Math.PI / 2, 0]} material={mats.screen}>
-              <planeGeometry args={[0.6, 0.86]} />
-            </mesh>
-            {/* status LED bar across the top of the shell */}
-            <mesh position={[0, P + H + (isDC ? 0.42 : 0.13), 0]} material={ledFor(s.status)}>
-              <boxGeometry args={[D * 0.85, 0.07, W * 0.7]} />
-            </mesh>
-            {/* an L2 cable runs across to the car's own port while the stall is live;
-                a DCFC car is plugged by its OTTO-CHARGE ARM, which draws its own */}
-            {live && !isDC && (
-              <L2Cable toward={toward as 1 | -1} vehicleId={s.vehicleId} oem={s.vehicleId ? oemOf.get(s.vehicleId) || undefined : undefined}
-                holster={L2_HOLSTER[toward as 1 | -1]} material={mats.cable} />
-            )}
-            {/* an idle L2 keeps its cable coiled on the pedestal's end */}
-            {!isDC && !live && (
-              <mesh geometry={COIL} material={mats.cable} position={[0.05, P + 1.25, toward * (W / 2 + 0.07)]} />
-            )}
-          </group>
-        );
-      })}
+      {[...dynamic.entries()].map(([k, g]) => (
+        <mesh key={k} geometry={g} material={dynMats[k]} />
+      ))}
     </group>
   );
 }

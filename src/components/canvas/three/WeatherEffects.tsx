@@ -2,9 +2,10 @@ import { forwardRef, useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
-export const WeatherEffects = forwardRef<THREE.Group, { weather: string }>(function WeatherEffects({ weather }, groupRef) {
+export const WeatherEffects = forwardRef<THREE.Group, { weather: string; share?: number }>(function WeatherEffects({ weather, share = 1 }, groupRef) {
   const ref = useRef<THREE.Points>(null);
-  const count = weather === 'Rain' ? 3000 : weather === 'Snow' ? 1500 : 0;
+  // `share` is the render tier's particle budget (quality/tiers.ts); High draws all.
+  const count = Math.round((weather === 'Rain' ? 3000 : weather === 'Snow' ? 1500 : 0) * share);
 
   const positions = useMemo(() => {
     const a = new Float32Array(count * 3);

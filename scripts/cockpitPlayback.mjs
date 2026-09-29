@@ -38,10 +38,10 @@
 // window.__twinDriver is stripped from production builds.
 // ============================================================================
 import { chromium } from "@playwright/test";
-import { execFile } from "node:child_process";
-import { mkdirSync, readFileSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { installFixtureRoutes, loadFixture } from "./lib/fixturePlayback.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const arg = (name, dflt) => {
@@ -63,76 +63,11 @@ const RELAY = arg("relay-curl", false) === true;
 const CHROMIUM = arg("chromium", undefined);
 mkdirSync(OUT, { recursive: true });
 
-const F = JSON.parse(readFileSync(join(ROOT, "src/engine/__fixtures__", `twinRun.${FIXTURE}.json`), "utf8"));
-if (!F.frames.every((f) => typeof f.wall_ms === "number")) {
-  console.error(`twinRun.${FIXTURE}.json carries no wall clock (wall_ms) — only wall-paced captures can be played`);
-  process.exit(2);
-}
-const RUN = "f1f1f1f1-0922-4000-8000-000000000001"; // synthetic: never a real run id
-const DEPOT = "11111111-1111-1111-1111-111111111111"; // the twin depot, the only test site
-let t0 = null, ticks = 0;
+const F = (() => {
+  try { return loadFixture(ROOT, FIXTURE); }
+  catch (e) { console.error(e.message); process.exit(2); }
+})();
 
-/** The fixture's world at `ms` of playback, in the snapshot endpoint's shape. */
-function snapshotAt(ms) {
-  const states = new Map();
-  let last = F.frames[0];
-  for (const f of F.frames) {
-    if (f.wall_ms > ms) break;
-    for (const c of f.changes) c.state === "__gone__" ? states.delete(c.id) : states.set(c.id, c);
-    last = f;
-  }
-  const vehicles = F.roster.filter((r) => states.has(r.id)).map((r) => {
-    const s = states.get(r.id);
-    return { id: r.id, av_id: r.av_id, make: r.make, platform: r.platform, state: s.state, soc: r.soc, stall_id: s.stall_id };
-  });
-  const counts = {};
-  for (const v of vehicles) counts[v.state] = (counts[v.state] ?? 0) + 1;
-  return {
-    run: {
-      sim_run_id: RUN, scenario: "busy_day", status: "running", tick_count: ++ticks, time_scale: 60, seed: 1,
-      sim_clock: new Date(Date.parse(last.t) + (ms - last.wall_ms) * (F.speedX ?? 1)).toISOString(),
-      speed_x: F.speedX ?? 1, playback_mode: "live", jump: null,
-    },
-    legs: [], fleet: { counts, total: vehicles.length, vehicles }, stalls_status: [],
-    energy: null, bess: null, weather: null, grid: null, counters: {}, recent_events: [], variability: {},
-  };
-}
-
-/** GET through curl (it trusts the system CA bundle the sandbox proxy is signed by). */
-function viaCurl(method, url, headers, body) {
-  const args = ["-sS", "-m", "30", "-X", method, "-D", "-", "-o", "-"];
-  for (const [k, v] of Object.entries(headers)) {
-    if (!/^(host|content-length|connection|accept-encoding)$/i.test(k)) args.push("-H", `${k}: ${v}`);
-  }
-  if (body) args.push("--data-binary", "@-");
-  args.push(url);
-  return new Promise((res, rej) => {
-    const p = execFile("curl", args, { encoding: "buffer", maxBuffer: 64e6 }, (err, out) => {
-      if (err) return rej(err);
-      // -D - prints every header block (a proxy's CONNECT reply, a 100-continue,
-      // then the response): keep consuming while the remainder starts with HTTP/
-      let rest = out, status = 0, hdrs = {};
-      while (rest.subarray(0, 5).toString("latin1") === "HTTP/") {
-        const i = rest.indexOf("\r\n\r\n");
-        if (i < 0) break;
-        const lines = rest.subarray(0, i).toString("latin1").split("\r\n");
-        status = Number(lines[0].split(" ")[1]);
-        hdrs = {};
-        for (const l of lines.slice(1)) { const j = l.indexOf(":"); if (j > 0) hdrs[l.slice(0, j).trim().toLowerCase()] = l.slice(j + 1).trim(); }
-        rest = rest.subarray(i + 4);
-      }
-      for (const h of ["content-encoding", "transfer-encoding", "content-length", "set-cookie"]) delete hdrs[h];
-      hdrs["access-control-allow-origin"] = "*";
-      res({ status, headers: hdrs, body: rest });
-    });
-    if (body) p.stdin.write(body);
-    p.stdin.end();
-  });
-}
-
-const reply = (route, body) => route.fulfill({
-  status: 200, headers: { "content-type": "application/json", "access-control-allow-origin": "*" }, body: JSON.stringify(body),
-});
 const browser = await chromium.launch({
   ...(CHROMIUM ? { executablePath: CHROMIUM } : {}),
   args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"],
@@ -144,37 +79,8 @@ const ctx = await browser.newContext({
 });
 const page = await ctx.newPage();
 const errors = [];
-let refused = 0;
 page.on("pageerror", (e) => errors.push(String(e).slice(0, 200)));
-await page.route(/supabase\.co/, async (route) => {
-  const r = route.request();
-  const u = new URL(r.url());
-  const m = r.method();
-  if (m === "OPTIONS") {
-    return route.fulfill({ status: 204, headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS" } });
-  }
-  // the fixture's run
-  if (/\/otto-twin-control\/sim_runs$/.test(u.pathname) && m === "GET") {
-    return reply(route, { ok: true, data: { runs: [{ sim_run_id: RUN, scenario: "busy_day", status: "running", speed_x: F.speedX, tick_count: ticks, seed: 1 }] } });
-  }
-  if (u.pathname.includes(`/sim_runs/${RUN}/snapshot`)) {
-    if (t0 === null) t0 = Date.now();
-    return reply(route, { ok: true, data: snapshotAt(Date.now() - t0) });
-  }
-  if (u.pathname.includes(`/sim_runs/${RUN}`)) return reply(route, { ok: false, error: "fixture playback" });
-  const rpc = /\/rest\/v1\/rpc\/(\w+)/.exec(u.pathname)?.[1];
-  if (rpc && (r.postData() ?? "").includes(RUN)) {
-    return reply(route, rpc === "ottoq_twin_run_context" ? { depot_id: DEPOT, sim_run_id: RUN } : { error: "fixture playback" });
-  }
-  // READ-ONLY for everything else
-  if (m !== "GET" && !(m === "POST" && rpc?.startsWith("ottoq_twin_"))) {
-    refused++;
-    return reply(route, { ok: false, error: "refused by cockpitPlayback (read-only)" });
-  }
-  if (!RELAY) return route.continue();
-  try { await route.fulfill(await viaCurl(m, r.url(), r.headers(), r.postDataBuffer())); }
-  catch { await route.abort(); }
-});
+const routes = await installFixtureRoutes(page, F, { relay: RELAY });
 
 const T0 = Date.now();
 await page.goto(URL_, { waitUntil: "domcontentloaded" });
@@ -186,7 +92,7 @@ const samples = [];
 let shot = 0, cam = 0;
 while (Date.now() - T0 < SECS * 1000) {
   await page.waitForTimeout(2000);
-  const pt = t0 === null ? -1 : (Date.now() - t0) / 1000;
+  const pt = routes.playbackSeconds();
   const s = await page.evaluate(() => {
     const d = window.__twinDriver;
     if (!d) return null;
@@ -230,5 +136,5 @@ console.log(JSON.stringify({
   fixture: FIXTURE, view: VIEW, url: URL_, viewMult: samples.at(-1)?.viewMult ?? null, fps: +fps.toFixed(1),
   samples: samples.length, stoppedShare: taxi ? +(samples.reduce((a, s) => a + s.stopped, 0) / taxi).toFixed(3) : null,
   stuckSamples: samples.reduce((a, s) => a + s.stuck, 0), peakTaxiing: Math.max(0, ...samples.map((s) => s.taxi)),
-  refusedWrites: refused, pageErrors: [...new Set(errors)].slice(0, 5), video: videoPath, out: OUT,
+  refusedWrites: routes.refused, pageErrors: [...new Set(errors)].slice(0, 5), video: videoPath, out: OUT,
 }, null, 1));

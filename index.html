@@ -2,7 +2,20 @@
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover: the installed app draws under the notch / home bar;
+         the 3D view keeps its controls inside env(safe-area-inset-*) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- Installable app shell (PWA): Add to Home Screen opens it full-screen -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#0A0B0E" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="OTTO-TWIN" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- no pull-to-refresh / rubber-band scrolling under a touch gesture on the 3D view -->
+    <style>html, body { overscroll-behavior: none; background: #0A0B0E; }</style>
     <title>OTTOYARD | Depot Simulator</title>
     <meta name="description" content="AI-powered fleet depot simulation platform for autonomous and electric vehicle operations.">
     <meta name="author" content="OTTOYARD" />

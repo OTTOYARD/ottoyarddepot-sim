@@ -18,6 +18,7 @@ import * as THREE from "three";
 import { buildDepotLanes } from "@/engine/motion/LaneGraph";
 import { paintLanes, LANE_PAINT_WIDTH } from "@/engine/motion/lanePaint";
 import { toWorld, yawFromHeading2D, DECK_Y } from "./coordUtils";
+import { StaticBatch } from "./staticBatch";
 
 // ON the drivable deck (DECK_Y), not the ground under it. This was 0.055 — a
 // datum from before DepotGround laid the 0.26 asphalt deck over the lot — so
@@ -72,46 +73,38 @@ export function Lanes3D() {
     return out;
   }, [paint]);
 
+  // ONE buffer per paint colour for the whole lot (phone lane, 2026-09-29): the
+  // markings never move, and drawn one mesh per chevron arm, dash and bar they
+  // were ~370 draw calls — an eighth of the frame — for a few thousand triangles.
+  // Same geometry at the same place; only the batching changed.
+  const batched = useMemo(() => {
+    const b = new StaticBatch();
+    const put = (key: string, g: THREE.BufferGeometry, x: number, z: number, rotY: number) =>
+      b.geometry(key, g.clone().rotateY(rotY).translate(x, Y_PAINT, z));
+
+    // travel-direction chevrons, in the lane a car actually drives
+    for (const a of paint.arrows) {
+      const [wx, , wz] = toWorld({ x: a.x, y: a.y }, 0);
+      const key = a.oneWay ? "oneWay" : "twoWay";
+      const yaw = yawFromHeading2D(a.angle);
+      put(key, chevron.left, wx, wz, yaw);
+      put(key, chevron.right, wx, wz, yaw);
+    }
+    // two-way centre divider dashes
+    for (const d of stripeDashes) put("stripe", new THREE.BoxGeometry(0.28, 0.03, d.len), d.x, d.z, d.rotY);
+    // stop bars across one-way mouths
+    for (const s of paint.stopBars) {
+      const [wx, , wz] = toWorld({ x: s.x, y: s.y }, 0);
+      put("stop", new THREE.BoxGeometry(LANE_PAINT_WIDTH, 0.03, 0.5), wx, wz, yawFromHeading2D(s.angle));
+    }
+    return b.build();
+  }, [paint, chevron, stripeDashes]);
+
   return (
     <group name="lane-paint">
-      {/* travel-direction chevrons, in the lane a car actually drives */}
-      {paint.arrows.map((a, i) => {
-        const [wx, , wz] = toWorld({ x: a.x, y: a.y }, 0);
-        const mat = a.oneWay ? materials.oneWay : materials.twoWay;
-        return (
-          <group key={`ch${i}`} position={[wx, Y_PAINT, wz]} rotation={[0, yawFromHeading2D(a.angle), 0]}>
-            <mesh geometry={chevron.left} material={mat} />
-            <mesh geometry={chevron.right} material={mat} />
-          </group>
-        );
-      })}
-
-      {/* two-way centre divider dashes */}
-      {stripeDashes.map((d, i) => (
-        <mesh
-          key={`st${i}`}
-          position={[d.x, Y_PAINT, d.z]}
-          rotation={[0, d.rotY, 0]}
-          material={materials.stripe}
-        >
-          <boxGeometry args={[0.28, 0.03, d.len]} />
-        </mesh>
+      {[...batched.entries()].map(([k, g]) => (
+        <mesh key={k} geometry={g} material={materials[k as keyof typeof materials]} />
       ))}
-
-      {/* stop bars across one-way mouths */}
-      {paint.stopBars.map((b, i) => {
-        const [wx, , wz] = toWorld({ x: b.x, y: b.y }, 0);
-        return (
-          <mesh
-            key={`sb${i}`}
-            position={[wx, Y_PAINT, wz]}
-            rotation={[0, yawFromHeading2D(b.angle), 0]}
-            material={materials.stop}
-          >
-            <boxGeometry args={[LANE_PAINT_WIDTH, 0.03, 0.5]} />
-          </mesh>
-        );
-      })}
     </group>
   );
 }
