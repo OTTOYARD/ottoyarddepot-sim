@@ -428,7 +428,7 @@ describe("stall identity — the twin's stalls drawn where the twin put them", (
     const used = new Set<string>();
     let wrongRun = 0;
     // The charger rows were re-pitched on 2026-09-28 and this fixture was captured
-    // before migration 0552 moved the database rows: its charger stalls stand in the
+    // before migration 0561 moved the database rows: its charger stalls stand in the
     // right column at the old rows. They map by column and rank (setTwinStallMap);
     // everything else still stands exactly where the renderer draws it.
     const rankIn = (y: number, ys: number[]) => ys.filter((v) => v < y - 1e-6).length;
@@ -457,7 +457,7 @@ describe("stall identity — the twin's stalls drawn where the twin put them", (
     expect(wrongRun).toBe(0);
   });
 
-  it("once the database carries the seed's rows (migration 0552), every stall maps to the renderer stall at its position", async () => {
+  it("once the database carries the seed's rows (migration 0561), every stall maps to the renderer stall at its position", async () => {
     const { readFileSync } = await import("node:fs");
     const { planFromDbFeet } = await import("@/lib/sitePlan");
     const seed = JSON.parse(readFileSync("unreal/layoutSeed.json", "utf8")) as {

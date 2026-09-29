@@ -324,7 +324,7 @@ function chargingStalls(dcfcCount: number, l2Count: number): StallState[] {
   //         column, so the two columns' noses interleave across the spine.
   // At 60° an 8.4u pitch is 7.27u (11.4 ft) square to the car: a 6.3 ft car with
   // 5.1 ft between it and its neighbour. Every stall keeps its x, its code and its
-  // count; buildLayoutSeed writes these rows and migration 0552 moves the database
+  // count; buildLayoutSeed writes these rows and migration 0561 moves the database
   // rows to them (the twin maps its stalls to these by position, and by column and
   // rank while the two disagree — TwinMotionDriver.setTwinStallMap).
   //
