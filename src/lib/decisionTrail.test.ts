@@ -236,7 +236,7 @@ describe("a car's trail with the engine's own record of each charger choice (ott
     })]);
     expect(by(t, "options")).toMatchObject({ title: "Found 1 way to do it", detail: null });
     expect(by(t, "picked").detail)
-      .toBe("No fast charger was free for it, so it took a standard charger. It was the only one it could use. Charges in 1 hr 34 min here.");
+      .toBe("No fast charger could take it, so it took a standard charger. It was the only one it could use. Charges in 1 hr 34 min here.");
   });
 
   it("falls back to 'not recorded' where the rebuild does not reproduce the engine", () => {

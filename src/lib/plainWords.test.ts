@@ -130,10 +130,10 @@ describe("every trail template", () => {
     expect(w(null)).toBeNull();
   });
 
-  it("says why a car got a kind it did not want, and claims 'none free' only when counted", () => {
+  it("says why a car got a kind it did not want, and says 'none could take it' only when counted", () => {
     const w = (why: string, n: number | null | undefined) =>
       whyPickedText({ why, wantWhy: "due_now", soc: 78, wantedKind: "dcfc", chosenKind: "l2", wantedKindOptions: n });
-    expect(w("only_option", 0)).toBe("No fast charger was free for it, so it took a standard charger. It was the only one it could use");
+    expect(w("only_option", 0)).toBe("No fast charger could take it, so it took a standard charger. It was the only one it could use");
     expect(w("power_limit", 2)).toBe("A fast charger would have gone over the depot's power limit, so it took a standard charger");
     expect(w("booked", 1)).toBe("It was booked for this car, so it took a standard charger over a fast charger");
     // not counted: no claim about what was free

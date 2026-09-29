@@ -289,7 +289,9 @@ export function whyPickedText(f: {
   const wanted = word(f.wantedKind), chosen = word(f.chosenKind);
   if (f.why === "power_limit") return `A ${wanted} would have gone over the depot's power limit, so it took a ${chosen}`;
   if (f.why === "booked") return `It was booked for this car, so it took a ${chosen} over a ${wanted}`;
-  const lead = f.wantedKindOptions === 0 ? `No ${wanted} was free for it, so it took a ${chosen}` : `It wanted a ${wanted} and took a ${chosen}`;
+  // "could take it", not "was free": a charger free at the start of the minute can have gone to an earlier car in the
+  // same minute, or not fit this car's plug. The depot line above counts what was free; this says what this car could use.
+  const lead = f.wantedKindOptions === 0 ? `No ${wanted} could take it, so it took a ${chosen}` : `It wanted a ${wanted} and took a ${chosen}`;
   return [lead, reason].filter((x): x is string => !!x).join(". ");
 }
 
