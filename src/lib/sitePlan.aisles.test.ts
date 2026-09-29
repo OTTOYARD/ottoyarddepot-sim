@@ -16,7 +16,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import {
   TEMP_AISLE, EAST_AVENUE, TEMP_LANE_X, EAST_AISLE_X, STALL_HALF_DEPTH_U,
-  clearAisleBetween, PARK_RUNS,
+  clearAisleBetween, PARK_RUNS, L2_ROW_PITCH, DCFC_ROW_PITCH,
 } from "./sitePlan";
 
 const UNIT_FT = 1.5698818897637796;
@@ -76,24 +76,62 @@ describe("depot aisles — the founder's 24 ft two-way spec", () => {
     }
   });
 
-  it("the L2 west-column pitch in the renderer matches the one the seed declares", () => {
-    // sitePlan.ts lays the column out at a pitch; buildLayoutSeed.mjs is told the same
-    // pitch by hand in order to cap the declared depth. Two files, one dimension,
-    // nothing binding them — so the depth could silently stop matching the spacing.
-    // This measures the ACTUAL spacing out of the seed and checks the declared depth
-    // is the cap that spacing implies.
+  it("the L2 pitch in the renderer matches the one the seed declares, and caps the width square to the car", () => {
+    // sitePlan.ts lays each column out at L2_ROW_PITCH; buildLayoutSeed.mjs reads the
+    // same constant to cap a declared dimension. This measures the ACTUAL spacing out
+    // of the seed and checks the declared footprint is the cap that spacing implies.
+    // Since 2026-09-28 an L2 stall is ANGLED 60° to its lane (heading 60 on a west
+    // column, 300 on an east one): consecutive cars stand side by side but staggered,
+    // so the pitch caps the WIDTH as measured square to the car (pitch x sin 60), and
+    // the depth runs along the car to the canopy spine.
     const seed = JSON.parse(readFileSync("unreal/layoutSeed.json", "utf8"));
     const clearance = seed.meta.clearance_ft;
-    const west = (seed.stalls as { canopy_side: string; stall_type: string; relative_y: number;
-                                   stall_depth_ft: number; canopy_code: string }[])
-      .filter((s) => s.stall_type === "l2" && s.canopy_side === "W" && s.canopy_code === "CANOPY-02")
+    type Row = { canopy_side: string; stall_type: string; relative_y: number; stall_depth_ft: number;
+                 stall_width_ft: number; heading_degrees: number; canopy_code: string };
+    const col = (side: string) => (seed.stalls as Row[])
+      .filter((s) => s.stall_type === "l2" && s.canopy_side === side && s.canopy_code === "CANOPY-02")
       .sort((a, b) => b.relative_y - a.relative_y); // north to south
+    const west = col("W"), east = col("E");
     expect(west.length).toBe(8);
+    expect(east.length).toBe(7);
     const pitch = Math.abs(west[0].relative_y - west[1].relative_y);
-    for (let i = 1; i < west.length; i++) {
-      expect(Math.abs(west[i - 1].relative_y - west[i].relative_y)).toBeCloseTo(pitch, 6);
+    expect(pitch).toBeCloseTo(L2_ROW_PITCH * UNIT_FT, 6);
+    for (const c of [west, east]) {
+      for (let i = 1; i < c.length; i++) {
+        expect(Math.abs(c[i - 1].relative_y - c[i].relative_y)).toBeCloseTo(pitch, 6);
+      }
     }
-    for (const s of west) expect(s.stall_depth_ft).toBeCloseTo(Math.min(20, pitch - clearance), 6);
+    // the east column sits half a pitch behind the west one
+    expect(west[0].relative_y - east[0].relative_y).toBeCloseTo(pitch / 2, 6);
+    const square = pitch * Math.sin(Math.PI / 3);
+    for (const s of [...west, ...east]) {
+      expect(s.heading_degrees).toBe(s.canopy_side === "W" ? 60 : 300);
+      expect(s.stall_width_ft).toBeCloseTo(Math.min(10, square - clearance), 6);
+      // long enough for the design vehicle, and stopped short of the spine
+      expect(s.stall_depth_ft).toBeGreaterThanOrEqual(seed.meta.design_vehicle_ft.length);
+      expect(s.stall_depth_ft).toBeLessThanOrEqual(20);
+    }
+  });
+
+  it("the DCFC stalls are angled too, leaning toward their canopy spine and north, at the DCFC pitch", () => {
+    // Since 2026-09-28 (sitePlan.chargingStalls): heading 60 on canopy A's west column,
+    // 300 on its east column, rows DCFC_ROW_PITCH (14u, 22.0 ft) apart and level across
+    // the spine. The columns are where they always were.
+    const seed = JSON.parse(readFileSync("unreal/layoutSeed.json", "utf8"));
+    const dcfc = (seed.stalls as { canopy_side: string; stall_type: string; relative_x: number; relative_y: number;
+                                   stall_depth_ft: number; stall_width_ft: number; heading_degrees: number }[])
+      .filter((s) => s.stall_type === "dcfc");
+    expect(dcfc.length).toBe(10);
+    for (const s of dcfc) {
+      expect(s.heading_degrees).toBe(s.canopy_side === "W" ? 60 : 300);
+      expect(s.stall_width_ft).toBeCloseTo(10, 6);
+      expect(s.stall_depth_ft).toBeGreaterThanOrEqual(seed.meta.design_vehicle_ft.length);
+      expect(s.stall_depth_ft).toBeLessThanOrEqual(20);
+    }
+    expect(new Set(dcfc.map((s) => s.relative_x.toFixed(4)))).toEqual(new Set(["141.2894", "163.2677"]));
+    const ys = [...new Set(dcfc.map((s) => s.relative_y.toFixed(4)))].map(Number).sort((a, b) => b - a);
+    expect(ys.length).toBe(5);
+    for (let i = 1; i < ys.length; i++) expect(ys[i - 1] - ys[i]).toBeCloseTo(DCFC_ROW_PITCH * UNIT_FT, 3);
   });
 
   it("refuses to measure an aisle between runs that are not facing columns", () => {

@@ -18,7 +18,7 @@
 import type { Pt } from "./PathTracker";
 import { CAR_BODY_LENGTH, CAR_BODY_WIDTH } from "./traffic";
 import { idmAccel } from "./idm";
-import { bodyHitsRect, type Rect } from "@/lib/structurePlan";
+import { bodyHitsBox, boxOf, type OBox, type Rect } from "@/lib/structurePlan";
 
 export interface RailBody {
   id: string; x: number; y: number;
@@ -231,12 +231,14 @@ export function dropCollinear(pts: Pt[]): Pt[] {
 const WIDE_CUTS = [2.4, 2.0, 1.6];
 const CORNER_CLEAR = 0.4;   // body-to-obstacle margin a widened arc must keep (u)
 const ARC_PROBE = 0.6;      // pose spacing along a candidate arc (u)
-let OBSTACLES: Rect[] = [];
+let OBSTACLES: OBox[] = [];
 
 /** Static solids a widened corner must clear: structures and parked-car
- *  footprints, plan units. Set once by the driver from the site plan. */
-export function setCornerObstacles(rects: Rect[]): void {
-  OBSTACLES = rects.slice();
+ *  footprints, plan units, as the oriented shapes they are (an angled charger
+ *  car or cabinet is not square to the plan) — or plain rectangles. Set once by
+ *  the driver from the site plan. */
+export function setCornerObstacles(solids: (OBox | Rect)[]): void {
+  OBSTACLES = solids.map((k) => ("cx" in k ? k : boxOf(k)));
 }
 
 interface Fillet { A: Pt; B: Pt; C: Pt; R: number; a0: number; sweep: number }
@@ -268,14 +270,14 @@ function filletAt(V: Pt, u: Pt, w: Pt, ul: number, wl: number, phi: number, cut:
 function arcClear(f: Fillet): boolean {
   const n = Math.max(2, Math.ceil((Math.abs(f.sweep) * f.R) / ARC_PROBE));
   const reach = f.R + CAR_BODY_LENGTH;
-  const near = OBSTACLES.filter((r) =>
-    r.x1 > f.C.x - reach && r.x0 < f.C.x + reach && r.y1 > f.C.y - reach && r.y0 < f.C.y + reach);
+  const near = OBSTACLES.filter((b) =>
+    Math.hypot(b.cx - f.C.x, b.cy - f.C.y) < reach + b.hl + b.hw);
   if (!near.length) return true;
   for (let k = 0; k <= n; k++) {
     const ang = f.a0 + (f.sweep * k) / n;
     // the body is symmetric end for end, so the tangent's sense does not matter
     const pose = { x: f.C.x + Math.cos(ang) * f.R, y: f.C.y + Math.sin(ang) * f.R, heading: ang + Math.PI / 2 };
-    for (const r of near) if (bodyHitsRect(pose, r, -CORNER_CLEAR)) return false;
+    for (const b of near) if (bodyHitsBox(pose, b, -CORNER_CLEAR)) return false;
   }
   return true;
 }

@@ -170,11 +170,15 @@ function sweep(
 
 describe('the car solid the arm is measured against', () => {
   it('is the body the renderer draws, at the unified footprint', () => {
-    expect(CAR_LENGTH_M).toBeCloseTo(10.2 * 0.4785, 9);
-    expect(CAR_WIDTH_M).toBeCloseTo(4.2 * 0.4785, 9);
+    expect(CAR_LENGTH_M).toBeCloseTo(9.8 * 0.4785, 9);
+    expect(CAR_WIDTH_M).toBeCloseTo(4.0 * 0.4785, 9);
     // the near flank the arm works against is DERIVED from that width
     expect(FLANK).toBeCloseTo(FLANK_STANDOFF_M, 12);
     expect(FLANK).toBeCloseTo(SERVICE_WINDOW.flankStandoff, 12);
+    // …and it is the standoff every clearance figure in cobotSpec.ts was swept at:
+    // 6.0 pu from the centreline of the 4.2 pu car it was measured on, 1.866 m.
+    // Narrowing the car moved the pedestal in with the flank, not the flank away.
+    expect(FLANK).toBeCloseTo((6.0 - 4.2 / 2) * 0.4785, 9);
   });
 
   it('has a convex silhouette — the distance maths depends on it', () => {
@@ -462,12 +466,22 @@ describe('the depot places every arm where this measurement applies', () => {
     expect(dcfc).toHaveLength(10);
     const towards = new Set<number>();
     for (const s of dcfc) {
-      const p = placeArm(s.id, s.position.x, s.position.y);
+      const p = placeArm(s.id, s.position.x, s.position.y, s.position.angle);
       // Read from the constant, not restated: this asserts every pedestal is the
       // SAME distance off its stall, which is the premise the sweep generalises on.
       // Pinning the number here just meant editing it in two places.
-      expect(Math.abs(p.carWorld[0] - p.world[0])).toBeCloseTo(PEDESTAL_OFFSET_PU, 9);
-      expect(p.carWorld[2]).toBeCloseTo(p.world[2], 9);
+      //
+      // Measured in the CAR's frame, not along a world axis: the car is angled
+      // (compass 60 / 300) and the pedestal stands off its flank, abeam its centre.
+      const h = ((s.position.angle - 90) * Math.PI) / 180; // compass bearing -> plan heading
+      const dx = (p.carWorld[0] - p.world[0]) * -1;        // plan x runs against world X
+      const dy = (p.carWorld[2] - p.world[2]) * -1;        // plan y runs against world Z
+      expect(Math.abs(-dx * Math.sin(h) + dy * Math.cos(h))).toBeCloseTo(PEDESTAL_OFFSET_PU, 9); // off the flank
+      expect(dx * Math.cos(h) + dy * Math.sin(h)).toBeCloseTo(0, 9);                              // abeam the centre
+      // and the arm squares up to the car: its local +Z points from the pedestal at it
+      const len = Math.hypot(p.carWorld[0] - p.world[0], p.carWorld[2] - p.world[2]);
+      expect(Math.sin(p.rotationY) * (p.carWorld[0] - p.world[0]) / len
+        + Math.cos(p.rotationY) * (p.carWorld[2] - p.world[2]) / len).toBeCloseTo(1, 9);
       towards.add(p.toward);
       // and the port really does land on the flank the solid says it does
       const t = portInArmFrame(0.3, 0.8, CAR_WIDTH_M / 2, p.toward);

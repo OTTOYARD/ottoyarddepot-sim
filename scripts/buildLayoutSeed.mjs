@@ -70,6 +70,12 @@
 //   So: the dimension ALONG a run is min(nominal, pitch - CLEARANCE_FT), and the
 //   cross dimension is nominal. The result is self-consistent by construction, which
 //   is what lets checkLayoutGeometry.mjs assert "zero overlaps" and mean it.
+//   ANGLED stalls (the 60° charger stalls, heading 60 / 300, since 2026-09-28) step
+//   along their column at an angle to the car, so the pitch caps the WIDTH as measured
+//   square to the car (pitch x sin 60), and the DEPTH runs along the car toward the
+//   canopy spine, where the facing column's stalls lean in: it stops CLEARANCE_FT / 2
+//   short of the spine (chargerDepthCap). The footprint is a rectangle turned to the
+//   heading, and the guard measures it as one.
 //
 // OUTPUTS
 //   unreal/layoutSeed.sql   — the seed the migration applies (deterministic)
@@ -333,11 +339,27 @@ const pitchFt = (dx, dy) => toFt(Math.hypot(dx, dy));
  * this run are nose-to-tail (pitch constrains DEPTH) or shoulder-to-shoulder (pitch
  * constrains WIDTH). It follows from the heading: a car at heading 0 or 180 has its
  * length on the y axis, so a run that steps along y is nose-to-tail.
+ *
+ * An ANGLED heading (not a multiple of 90) is neither: consecutive cars stand side by
+ * side but staggered, so the pitch caps the WIDTH as measured square to the car —
+ * pitch x |sin(angle between the run and the car)| — and the depth is nominal unless
+ * `depthCap` (the spine, chargerDepthCap) says otherwise.
  */
-function footprint(type, heading, dx, dy) {
+function footprint(type, heading, dx, dy, depthCap = Infinity) {
   const nom = NOMINAL[type];
   if (dx === 0 && dy === 0) return { ...nom, pitch_ft: null };
   const pitch = pitchFt(dx, dy);
+  if (heading % 90 !== 0) {
+    const b = (heading * Math.PI) / 180;
+    const run = Math.hypot(dx, dy);
+    // the car's axis in the renderer frame (y south): compass bearing b
+    const square = pitch * Math.abs(Math.sin(b) * (dy / run) - -Math.cos(b) * (dx / run));
+    return {
+      width: Math.min(nom.width, Math.max(0, square - CLEARANCE_FT)),
+      depth: Math.min(nom.depth, depthCap),
+      pitch_ft: pitch,
+    };
+  }
   const lengthOnY = heading === 0 || heading === 180;
   const stepsAlongY = Math.abs(dy) > Math.abs(dx);
   const alongIsDepth = lengthOnY === stepsAlongY;
@@ -347,6 +369,19 @@ function footprint(type, heading, dx, dy) {
     : { width: Math.min(nom.width, cap), depth: nom.depth, pitch_ft: pitch };
 }
 
+/**
+ * The deepest an ANGLED charger stall may be declared: its footprint (a rectangle of
+ * this depth along the car and `widthFt` across it, turned to the heading) stops
+ * CLEARANCE_FT / 2 short of its canopy's spine, the line the two columns' noses lean
+ * toward. Each column owns its half of the canopy, so the two never overlap.
+ */
+function chargerDepthCap(stallX, cx, heading, widthFt) {
+  const b = (heading * Math.PI) / 180;
+  const fx = Math.abs(Math.sin(b)), rx = Math.abs(Math.cos(b)); // |x| of the car's axis and of its side
+  const room = toFt(Math.abs(cx - stallX)) - CLEARANCE_FT / 2 - (widthFt / 2) * rx;
+  return fx > 1e-9 ? (2 * room) / fx : Infinity;
+}
+
 const stalls = [];
 
 function pushStall(row) {
@@ -354,12 +389,16 @@ function pushStall(row) {
   stalls.push({ ...row, absolute_lat: lat, absolute_lng: lng });
 }
 
-// ---- DCFC: canopy A, two columns of 5, stepping along y (nose-to-tail) ----
+// ---- DCFC: canopy A, two columns of 5, stepping along y at sp.DCFC_ROW_PITCH. Angled
+// 60° to the lane since 2026-09-28 (heading 60 / 300): the pitch caps the width square to
+// the car (footprint), and the spine caps the depth (chargerDepthCap). ----
 {
   const A = sp.CANOPIES[0];
   const src = sp.generateStallsV2().filter((s) => s.type === 'dcfc');
   src.forEach((s, i) => {
-    const fp = footprint('dcfc', s.position.angle, 0, 16); // step 16u along y
+    const base = footprint('dcfc', s.position.angle, 0, sp.DCFC_ROW_PITCH);
+    const fp = footprint('dcfc', s.position.angle, 0, sp.DCFC_ROW_PITCH,
+      chargerDepthCap(s.position.x, A.cx, s.position.angle, base.width));
     pushStall({
       stall_code: `NASH-DCFC-STALL-${String(i + 1).padStart(2, '0')}`,
       render_id: s.id,
@@ -381,7 +420,7 @@ function pushStall(row) {
   });
 }
 
-// ---- L2: canopies B and C. West column pitch 10.3u, east column pitch 11u. ----
+// ---- L2: canopies B and C, both columns at sp.L2_ROW_PITCH, angled like DCFC. ----
 {
   // The 30 surviving database codes: 01..20 then 26..35. 21..25 are retired.
   const L2_CODES = [];
@@ -396,11 +435,13 @@ function pushStall(row) {
   src.forEach((s, i) => {
     const canopy = sp.CANOPIES.find((c) => Math.abs(s.position.x - c.cx) <= 8);
     const west = s.position.x < canopy.cx;
-    // West column 10.3 -> 10.6 so the declared depth (capped at pitch - CLEARANCE_FT)
-    // reaches 16.14 ft and finally holds the 16.0 ft design vehicle. See the pitch
-    // note in sitePlan.ts chargingStalls(); the two are asserted equal by
-    // src/lib/sitePlan.aisles.test.ts, which reads this seed back.
-    const fp = footprint('l2', s.position.angle, 0, west ? 10.6 : 11);
+    // (History: the west column went 10.3 -> 10.6u on 2026-08-11 because a nose-to-tail
+    // stall capped at pitch - CLEARANCE_FT could not hold the 16.0 ft design vehicle.
+    // An angled stall's depth runs along the car, so the column pitch caps its width
+    // instead; src/lib/sitePlan.aisles.test.ts reads this seed back and checks both.)
+    const base = footprint('l2', s.position.angle, 0, sp.L2_ROW_PITCH);
+    const fp = footprint('l2', s.position.angle, 0, sp.L2_ROW_PITCH,
+      chargerDepthCap(s.position.x, canopy.cx, s.position.angle, base.width));
     pushStall({
       stall_code: L2_CODES[i],
       render_id: s.id,
@@ -523,6 +564,29 @@ function pushStall(row) {
 // grows over time is visible rather than silent.
 //
 // Deterministic: pairs are visited in stall_code order and the trim is symmetric.
+/** A stall's declared footprint as its four corners, database feet (y north-positive):
+ *  stall_depth_ft along its compass heading, stall_width_ft across it. */
+function stallPoly(s) {
+  const b = (s.heading_degrees * Math.PI) / 180;
+  const f = { x: Math.sin(b), y: Math.cos(b) }, r = { x: Math.cos(b), y: -Math.sin(b) };
+  const hl = s.stall_depth_ft / 2, hw = s.stall_width_ft / 2;
+  return [[hl, hw], [hl, -hw], [-hl, -hw], [-hl, hw]]
+    .map(([a, w]) => ({ x: s.relative_x + a * f.x + w * r.x, y: s.relative_y + a * f.y + w * r.y }));
+}
+/** Separating-axis gap between two convex polygons: > 0 clear, < 0 they intersect. */
+function satGap(A, B) {
+  let best = -Infinity;
+  for (const P of [A, B]) {
+    for (let i = 0; i < P.length; i++) {
+      const a = P[i], b = P[(i + 1) % P.length];
+      const nx = b.y - a.y, ny = a.x - b.x, n = Math.hypot(nx, ny);
+      const pa = A.map((q) => (q.x * nx + q.y * ny) / n), pb = B.map((q) => (q.x * nx + q.y * ny) / n);
+      best = Math.max(best, Math.min(...pb) - Math.max(...pa), Math.min(...pa) - Math.max(...pb));
+    }
+  }
+  return best;
+}
+
 function resolveClips() {
   const boxOf = (s) => {
     const lengthOnY = s.heading_degrees === 0 || s.heading_degrees === 180;
@@ -535,6 +599,16 @@ function resolveClips() {
   for (let i = 0; i < order.length; i++) {
     for (let j = i + 1; j < order.length; j++) {
       const a = order[i], b = order[j];
+      // Measured as the turned rectangles they are: an angled stall's axis-aligned
+      // bounds are far larger than it, and would report clips that do not exist.
+      if (satGap(stallPoly(a), stallPoly(b)) >= -1e-9) continue;
+      if (a.heading_degrees % 90 !== 0 || b.heading_degrees % 90 !== 0) {
+        // An angled stall's footprint is derived to clear its neighbours and its
+        // spine by construction (footprint, chargerDepthCap). A clip here is a
+        // layout change the derivation does not know about — refuse, never trim.
+        throw new Error(`angled stalls clip: ${a.stall_code} <-> ${b.stall_code} ` +
+          `(${(-satGap(stallPoly(a), stallPoly(b))).toFixed(3)} ft)`);
+      }
       const ba = boxOf(a), bb = boxOf(b);
       const ox = Math.min(ba.x1, bb.x1) - Math.max(ba.x0, bb.x0);
       const oy = Math.min(ba.y1, bb.y1) - Math.max(ba.y0, bb.y0);

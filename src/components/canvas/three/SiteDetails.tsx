@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { MATERIALS } from './materials';
 import { oilStainTexture } from './textures';
 import { useDepotStore } from '@/store/depotStore';
-import { BESS_YARD, INGRESS, EGRESS, LOT } from '@/lib/sitePlan';
+import { BESS_YARD, INGRESS, EGRESS, LOT, chargerStallFrame } from '@/lib/sitePlan';
 import { bayBollards, BOLLARD_RADIUS } from '@/lib/structurePlan';
 import { toWorld, DECK_Y } from './coordUtils';
 
@@ -33,20 +33,38 @@ export function SiteDetails() {
 
   // ---- instanced wheel stops at every parking stall ----
   const wheelStops = useMemo(() => {
-    const parking = stalls.filter((s) => s.type === 'staging');
+    // Staging, and the angled charger stalls, DCFC and L2 (the stop sits under the
+    // car's nose, square to the stall).
+    const parking = stalls.filter((s) => s.type === 'staging' || s.type === 'l2' || s.type === 'dcfc');
     const inst = new THREE.InstancedMesh(
       new THREE.BoxGeometry(4.6, 0.45, 0.7), MATERIALS.curbing(), Math.max(1, parking.length),
     );
     const d = new THREE.Object3D();
     parking.forEach((s, i) => {
       const a = s.position.angle;
-      const across = a === 90 || a === 270;
-      // stop sits at the stall head (away from its access aisle)
-      const offX = a === 270 ? -3.4 : a === 90 ? (s.position.x < 150 ? -3.4 : 3.4) : 0;
-      const offY = across ? 0 : (s.position.y < 110 ? -3.4 : 3.4);
-      const [wx, , wz] = toWorld({ x: s.position.x + offX, y: s.position.y + offY }, 0);
+      const charger = s.type === 'l2' || s.type === 'dcfc';
+      let px: number, py: number, rotY: number;
+      if (charger) {
+        // 3.4u ahead of the car's centre along its own axis (the front wheels stop
+        // there), long axis across the stall. The box's local +X must lie along the
+        // car's lateral, plan (-sin h, cos h) = world (sin h, -cos h); Ry(r) sends +X
+        // to (cos r, 0, -sin r), so r = pi/2 - h.
+        const { heading, fwd } = chargerStallFrame(a);
+        px = s.position.x + fwd.x * 3.4;
+        py = s.position.y + fwd.y * 3.4;
+        rotY = Math.PI / 2 - heading;
+      } else {
+        const across = a === 90 || a === 270;
+        // stop sits at the stall head (away from its access aisle)
+        const offX = a === 270 ? -3.4 : a === 90 ? (s.position.x < 150 ? -3.4 : 3.4) : 0;
+        const offY = across ? 0 : (s.position.y < 110 ? -3.4 : 3.4);
+        px = s.position.x + offX;
+        py = s.position.y + offY;
+        rotY = across ? 0 : Math.PI / 2;
+      }
+      const [wx, , wz] = toWorld({ x: px, y: py }, 0);
       d.position.set(wx, DECK_Y + 0.1, wz); // 0.33u (15 cm) standing proud of the deck, not half-buried in it
-      d.rotation.set(0, across ? 0 : Math.PI / 2, 0);
+      d.rotation.set(0, rotY, 0);
       d.updateMatrix();
       inst.setMatrixAt(i, d.matrix);
     });

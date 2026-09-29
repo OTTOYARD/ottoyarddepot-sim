@@ -267,9 +267,21 @@ describe("every staging pull-in is approached from its serving aisle", () => {
       expect(Number.isFinite(parkedHeading("staging", 90, v, 100))).toBe(true);
       expect(Number.isFinite(parkedHeading("staging", 0, 100, v))).toBe(true);
     }
-    // Charging and bay stalls are unconditional NORTH and never consult an aisle.
-    for (const l of ["dcfc", "l2", "wash", "service"] as const) {
+    // Bay stalls are unconditional NORTH and never consult an aisle.
+    for (const l of ["wash", "service"] as const) {
       expect(parkedHeading(l, 90, 233.5, 100)).toBeCloseTo(-Math.PI / 2, 6);
+    }
+    // Charger stalls, DCFC and L2, are ANGLED (2026-09-28): the stall's compass bearing
+    // IS the heading — 60 faces north-east (plan -30°), 300 north-west (plan -150°),
+    // and a square-to-the-lane 90 / 270 faces east / west — and they never consult an
+    // aisle either. A bearing of 0 or 180 (the pull-alongside row) keeps NORTH, so a
+    // stale layout cannot produce NaN.
+    for (const l of ["dcfc", "l2"] as const) {
+      expect(parkedHeading(l, 60, 233.5, 100)).toBeCloseTo(-Math.PI / 6, 6);
+      expect(parkedHeading(l, 300, 233.5, 100)).toBeCloseTo((-5 * Math.PI) / 6, 6);
+      expect(parkedHeading(l, 90, 233.5, 100)).toBeCloseTo(0, 6);
+      expect(parkedHeading(l, 270, 233.5, 100)).toBeCloseTo(Math.PI, 6);
+      expect(parkedHeading(l, 180, 233.5, 100)).toBeCloseTo(-Math.PI / 2, 6);
     }
   });
 });

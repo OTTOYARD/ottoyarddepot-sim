@@ -32,7 +32,7 @@ interpolation.** Zero world logic client-side.
 - **Lane paint is generated from the LaneGraph, never hand-drawn** — so painted right-of-way can
   never drift from routed motion. Both renderers once carried hand-drawn arrows that *contradicted
   the actual rules*. Do not reintroduce them.
-- **Measure oriented body overlap** (the 4.2 × 10.2 box actually drawn), **never centre distance** —
+- **Measure oriented body overlap** (the 4.0 × 9.8 box actually drawn), **never centre distance** —
   perimeter stalls are pitched 5.7u apart, so a distance test flags every pair of parked neighbours
   and once reported **31 phantom collisions**.
 - **Sample during motion, not after the scene settles.** And **replay the captured fixture**
@@ -49,9 +49,10 @@ interpolation.** Zero world logic client-side.
   is what stops cars wedging (see `TwinMotionDriver.flow.test.ts`).
 - **Traffic flow (2026-09-22) — read before touching exits, junctions or lane offsets:**
   - A parked car leaves by an **exit manoeuvre**, never a straight line to the nearest node: charger
-    cars sidestep into their one-way northbound gap lane (`chargerExit`), staging cars back out and
-    join the aisle ahead of the nose (`backOutFrom` + `LaneGraph.routeFacing`). The nearest-node exit
-    drove cars into their parked neighbours and wedged them for the rest of a run.
+    cars back out onto their one-way northbound gap lane (`chargerBackOut`, since 2026-09-28; they
+    used to sidestep into it), staging cars back out and join the aisle ahead of the nose
+    (`backOutFrom` + `LaneGraph.routeFacing`). The nearest-node exit drove cars into their parked
+    neighbours and wedged them for the rest of a run.
   - Junctions admit **compatible movements** together (`RailLocks`, `movementsConflict`); the old
     one-car-per-node lock serialised the opposing stream of every divided road.
   - `offsetRight` takes **miter** joins. That moved right-turn paths 5.7u from their node, so
@@ -82,22 +83,84 @@ interpolation.** Zero world logic client-side.
     1.2u. Fillet legs are measured between REAL corners (`dropCollinear`), and junction membership
     reads the ROUTED path as well as the rounded rail — without that, a wider right-turn arc leaves
     `NODE_MATCH` and the car stops registering the junction.
-  - DCFC stalls (16u pitch) are entered on an **S-curve pull-in** (`DCFC_PULLIN_RISE` 12,
-    `DCFC_PULLIN_TAIL` 3.5, measured >= 0.65u from every other stall). L2 (10.6u pitch, nose to tail)
-    has no such path and keeps the sidestep. The dock blend is skipped when a rail already ends
-    facing the parked heading.
-  - Ratchets: `turnRadius.replay.test.ts` (share of turning at R < 5u, crab, spin) and docking test D
-    (0 DCFC contacts with both neighbours parked).
+  - **Every charger stall is ANGLED 60° to its gap lane (founder's call, 2026-09-28)**, leaning the
+    way the lane runs: `sitePlan.chargingStalls` bearing 60 (west column, noses north-east) / 300
+    (east column, north-west), `CHARGER_STALL_ANGLE`, one frame helper (`chargerStallFrame`). A
+    perpendicular head-in layout was built first and **rejected on sight** (*"This looks horizontal
+    pull-in/parking which is not viable"*) — do not re-propose it. A car rides its northbound lane to
+    where the stall's own axis crosses it (`chargerTurnIn`, 9.2–9.5u south of the stall), turns 60° in
+    at R = 11u and drives in nose first; it leaves by **backing out** (`chargerBackOut`, solved for any
+    bearing by `chargerBackOutStraight`: 12.1–12.7u straight back along the axis, then a full-lock 60°
+    swing to face north on the lane's centreline, ~16u south of the stall — the arc it came in on,
+    backwards) and rides that centreline to the north collector. The wheel is put over half a
+    steering ramp early (`rampLag`) so it lands on the centreline within ~0.1u.
+  - **The rows MOVED to make that possible; the columns did not.** A 60° car needs ~15.6u of straight
+    lane south of its stall to turn in, and a car arriving along the south collector's westbound
+    stream (y 168.8) needs ~5.8u more to turn onto the lane at all. At the old rows the southernmost
+    L2 stalls' axes met their lane SOUTH of that stream — unreachable — and their back-outs ended with
+    the tail at y 181, across the collector. So DCFC went 16 → 14u pitch (rows 88..144, both columns
+    level) and L2 10.6 / 11 → 8.4u (`L2_ROW_PITCH`; east column half a pitch behind the west, so the
+    noses interleave across the spine). Every stall keeps its x, code and count; `buildLayoutSeed`
+    writes the rows and otto-q-core migration 0552 moves `public.stalls`. Until the database carries
+    them, charger stalls map **by column and rank** (`setTwinStallMap`, before position): nearest
+    position is WORSE than nothing across a re-pitch (old L2 row 117.7 lies 1.8u from new row 119.5,
+    one rank off). The reservation glow reads the driver's map (`rendererStallFor`) for the same reason.
+  - Neighbours share one stretch of lane — and lane AB takes back-outs from BOTH sides, the DCFC east
+    column and canopy B's L2 west column — so a back-out waits (`chargerBackOutBlocked`) for (a) a
+    neighbour's back-out under way, (b) a car standing anywhere its swing sweeps
+    (`CHARGER_BACKOUT_SWEEP_AHEAD`), (c) a moving car near its finish, (d) a car about to merge there,
+    and (e) south-collector traffic if the tail would reach the collector. No stall's does any more
+    (worst 1.0u short of the westbound stream); (e) stays, tested with a hand-moved finish. Once
+    committed it is published where it will finish (`backOutClaims`). At the cusp the centreline lead
+    stops ONE LANE OFFSET short of the north collector's junction: ending on the node, the graph route
+    dropped it as a duplicate and drew a 3.2u drift across ~47u of collector (test E: 227 contacts → 0).
+  - **Solids are oriented boxes now** (`structurePlan.OBox`, `boxGap`, `bodyHitsBox`, `parkedBox`):
+    an angled car or cabinet's axis-aligned bounds are 10.5 x 8.4u for a 9.8 x 4.0 body, and would
+    put phantom solids over the lane and the next stall. `RailFlow.setCornerObstacles` takes them; the
+    layout guard (`checkLayoutGeometry.mjs`) measures stall footprints as turned rectangles (SAT);
+    the seed caps an angled stall's width at the pitch square to the car and its depth at the canopy
+    spine (`chargerDepthCap`), and refuses rather than trims if an angled stall ever clips.
+  - **Chargers stand on the car's charge-port flank** (the south-side flank: the car's right on a
+    west column, its left on an east column, `depotPlacement.portFlank`), turned with the car. The
+    OTTO-CHARGE ARM's pedestal is abeam the car's centre `PEDESTAL_OFFSET_PU` off the centreline
+    (`pedestalPlanPoint`), the cabinet `CABINET_BACKSET_PU` behind it; `placeArm` yaws the arm so its
+    +Z runs pedestal → car. In the ARM's own frame nothing changed (same standoff, service window,
+    clearance sweep; `portInArmFrame`'s `x = -toward * along` holds at every bearing).
+    `depotIntegration.test.ts` asserts the IK target and the port ring `Vehicle3D` draws are one
+    world point. An L2 post stands beside the car's front quarter (`L2_POST_ALONG_PU`,
+    `L2_POST_LATERAL_PU`), clear of the spine, and is fed from below (no conduit drop). ONE placement
+    (`depotPlacement.chargerCabinet`) feeds ChargingField, the 2D plan and the solids. Canopy spine
+    columns clear every cabinet and every parked car's BODY (`canopyColumnYs`).
+  - Ratchets: `turnRadius.replay.test.ts` (share of turning at R < 5u, crab, spin), docking test D
+    (0 contacts, DCFC and L2, pulling in between parked neighbours), test E (0 contacts between cars
+    AND 0 against any structure solid — cabinets, posts, spine columns — filling all 40 stalls and
+    backing 26 out; mutation-checked: an L2 post moved 1u toward its car reads 1636) and the traffic
+    tests' 40-stall back-out finish check and south-collector case.
   - **Measured worse, do not re-propose:** a GLOBAL corner cut of 3.6 (fresh-start overlap 49 → 70,
     all in the temp-staging aisle and SE ring corner) · a right-turn cap above 2.4 (R < 5u share flat,
-    overlap +7%) · a DCFC pull-in with a 7u straight tail (the rear swings 0.17u INTO the car parked
-    in the next stall south).
+    overlap +7%) · routing a finished charger back-out by the graph (`routeFacing`): graph lanes run
+    3.2u right of centre, so it drove beside the charger cars on the centreline (test E 0 → 51
+    contacts) · ending that centreline lead ON the north collector's junction node (see above).
+    (Historical, the DCFC pull-alongside layout: a 7u straight pull-in tail put the rear 0.17u into
+    the next stall's car, and publishing a lean-out at its merge point cost +53 stuck samples.)
+    · perpendicular (90°) head-in charger stalls — founder rejected the look, see above.
+  - **Known open (pre-existing, not charger motion):** two STAGING neighbours sent off in the same
+    tick can back out with their swings turned toward each other (the staging back-out has no
+    neighbour rule; the burst capture shows one such pair at the NW ring corner, 6 samples), and a
+    mass egress wave bunches staging departers on the south-east collector (busy_day frame 30).
+    Both surface or move when departure timing shifts; neither involves a charger car.
 - **Keep Yuka's `SeparationBehavior.weight` low (0.35).** At 2.2 it was *stronger* than
   path-following and shoved cars sideways off the lanes.
-- **Known open:** the 3D car uses `BoxGeometry(2.2, 0.85, 4.9)` — **metres dropped into unit-space**,
-  so it renders at ~48%. Three different car lengths coexist (2D 7.5u, 3D 4.9m, physics
-  `CAR_LENGTH = 7.5`). ⚠️ Changing `rightOffset` or `CAR_LENGTH` moves routed motion and needs a
-  certified pass, not a drive-by edit.
+- **One car, one size: 9.8 x 4.0u (4.69 x 1.91 m)** — `traffic.CAR_BODY_*` is the traffic model's
+  body, the 2D `VehicleDot`, the 3D mesh (`vehicleBody.ts`, shaped in `vehicleEnvelope.ts`) and the
+  replay metric's body (`replay.ts`, pinned equal by `RailFlow.gap.test.ts`). It was 10.2 x 4.2
+  until the founder asked for "slightly less big/boxy/bulky" (2026-09-28); the glass and roof now
+  lean in above the highest charge-port line (`TUMBLEHOME`), so every inlet stays on a vertical
+  flank. **The arm's swept quantity is its standoff from the car's FLANK** (`FLANK_STANDOFF_PU`,
+  1.866 m): the pedestal offset is derived from it and the car's width, so a narrower car moves the
+  pedestal in rather than making the arm reach further than it was measured to.
+  ⚠️ Changing `rightOffset` or the car's size moves routed motion and every replay: measure all of
+  them (fixture, flow, turn radius, docking, structure clearance, arm clearance), not a drive-by edit.
 - **`ResponsiveGuard` requires ≥1200px.** Test at 1440×900 or larger.
 - **The RTX tab needs the AWS Isaac box running.** Blank is normal when it is stopped. IP override:
   `localStorage.setItem('ottoq_omniverse_ip','<ip>')`.

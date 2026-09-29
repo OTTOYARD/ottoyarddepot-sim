@@ -9,14 +9,20 @@
 // HONEST: renders ONLY stalls present in the live reservation data — nothing
 // when there is no active run or nothing is reserved (never a fabricated glow).
 //
-// Stall matching mirrors TwinMotionDriver.setTwinStallMap so the glow can never
-// drift from where OTTO-Q actually parks cars: a reservation's stall_type → the
-// renderer prefix, its stall_code's trailing number → the padded index, e.g.
-// { stall_type:'dcfc', stall_code:'NASH-DCFC-STALL-05' } → renderer stall 'DCFC-05'.
+// Stall matching USES TwinMotionDriver's own map (setTwinStallMap: by position,
+// then column and rank, then code) whenever the reservation carries its stall id,
+// so the glow can never drift from where OTTO-Q actually parks cars. The code
+// fallback — stall_type → renderer prefix, the code's trailing number → the padded
+// index, { stall_type:'dcfc', stall_code:'NASH-DCFC-STALL-05' } → 'DCFC-05' — is
+// only right where the twin numbers a type the way the renderer does: the twin's
+// L2 codes run 01-20 and 26-35, so by code alone ten L2 glows land on the wrong
+// stall or on none.
 // ============================================================================
 import { useMemo } from 'react';
 import { useDepotStore, type StallState } from '@/store/depotStore';
 import { useAppointmentStore, type ApptReservation } from '@/store/appointmentStore';
+import { chargerStallPaint, chargerStallFrame } from '@/lib/sitePlan';
+import { twinMotionDriver } from '@/engine/TwinMotionDriver';
 
 const OTTO_RED = '#C8102E'; // OTTOYARD accent — the held-for-inbound hero ring
 const CALM = '#9AA3B2';     // desaturated steel — reserved / occupied holds
@@ -35,11 +41,24 @@ function rendererStallId(type: string, code: string | null): string | null {
   return `${p}-${String(parseInt(m[1], 10)).padStart(2, '0')}`;
 }
 
-// stall outline — mirrors Stall.tsx so the ring traces the EXACT stall polygon
-// (charging stalls are skewed parallelograms; staging/bays are rectangles).
+// stall outline — mirrors Stall.tsx so the ring traces the EXACT stall outline:
+// a charger stall is a rectangle centred on its car and turned the way the car lies
+// (sitePlan.chargerStallPaint, chargerStallFrame); staging and bays are the generic
+// polygons anchored at the stall point.
 function stallOutline(stall: StallState): { points: string; cx: number; topY: number } {
+  if (stall.type === 'dcfc' || stall.type === 'l2') {
+    const { len, wid } = chargerStallPaint(stall.type);
+    const { fwd, right } = chargerStallFrame(stall.position.angle);
+    const pts = [[len / 2, wid / 2], [len / 2, -wid / 2], [-len / 2, -wid / 2], [-len / 2, wid / 2]]
+      .map(([a, b]) => [a * fwd.x + b * right.x, a * fwd.y + b * right.y]);
+    return {
+      points: pts.map((p) => p.map((v) => v.toFixed(3)).join(',')).join(' '),
+      cx: 0,
+      topY: Math.min(...pts.map((p) => p[1])),
+    };
+  }
   const isWash = stall.type === 'wash';
-  const w = isWash ? 12 : stall.type === 'dcfc' ? 10 : 8;
+  const w = isWash ? 12 : 8;
   const h = isWash ? 14 : 16;
   const angleDeg = stall.position.angle;
   const skew = angleDeg === 0 ? 0 : h * Math.cos((angleDeg * Math.PI) / 180);
@@ -77,7 +96,8 @@ export const ReservationGlow = () => {
     const res: ApptReservation[] = data?.reservations ?? [];
     const out = new Map<string, { kind: GlowKind; r: ApptReservation }>();
     for (const r of res) {
-      const id = rendererStallId(r.stall_type, r.stall_code);
+      const id = (r.stall_id ? twinMotionDriver.rendererStallFor(r.stall_id) : undefined)
+        ?? rendererStallId(r.stall_type, r.stall_code);
       if (!id || !byId.has(id)) continue;
       const kind: GlowKind = r.inbound && !r.occupied ? 'held' : 'calm';
       const prev = out.get(id);

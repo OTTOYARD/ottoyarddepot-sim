@@ -7,9 +7,11 @@
  *
  * Flow (continuous, user-locked 2026-06-10):
  *  - Ingress (S-W gate) → west aisle N → NORTH COLLECTOR (two-way artery).
- *  - Charging = gas-pump: ride a flanking pull-out lane to depth, sidestep
- *    into the stall; exit by sidestepping back out and heading N to the
- *    collector. The canopy gaps are TRAVEL LANES — never obstructed.
+ *  - Charging: ride a flanking northbound lane up the canopy. Every charger
+ *    stall, DCFC and L2, is ANGLED 60° to its lane, leaning the way the lane
+ *    runs (north): turn in off the lane, drive in nose-first; back out into
+ *    the lane, swing to face north, head N to the collector. The canopy gaps
+ *    are TRAVEL LANES — never obstructed.
  *  - Service/wash sit directly ahead through the concrete FORECOURT throat;
  *    every bay is full pull-through: in the front, out the REAR into a 30ft
  *    clear maneuvering APRON (no parking abuts it), then left via the WEST
@@ -255,58 +257,124 @@ export const LIGHT_POLES: { x: number; y: number }[] = [
 
 // ---- Stall generation (consumed by depotStore.generateStalls) ----
 
+/** DCFC row pitch along the lane (plan units), both columns. */
+export const DCFC_ROW_PITCH = 14;
+/** L2 row pitch along the lane, both columns; the east column is half a pitch behind. */
+export const L2_ROW_PITCH = 8.4;
+/** The first (northernmost) west-column L2 row. */
+export const L2_WEST_Y0 = 85.9;
+
+/** The angle every charger stall makes with its gap lane, degrees. 60° is the
+ *  standard one-way angled stall: the car turns 60° off the lane to park and
+ *  swings 60° back to leave, and the stalls lean toward the way the lane runs, so
+ *  nobody ever drives in against them. */
+export const CHARGER_STALL_ANGLE = 60;
+
+/**
+ * The frame of a charger stall, in the plan (x east, y SOUTH): where the parked
+ * car points and which way is sideways. `bearing` is the stall's declared compass
+ * angle (position.angle): 60 on a canopy's west column, 300 on its east column.
+ * `heading` is the plan heading (atan2(dy, dx), NORTH = -π/2) of the parked car.
+ * `right` is the car's right-hand side. One home for this, so the stall, the car,
+ * the charger beside it and the route in cannot disagree about which way it lies.
+ */
+export function chargerStallFrame(bearing: number): {
+  heading: number; fwd: { x: number; y: number }; right: { x: number; y: number };
+} {
+  const heading = ((bearing - 90) * Math.PI) / 180;
+  const fwd = { x: Math.cos(heading), y: Math.sin(heading) };
+  return { heading, fwd, right: { x: -fwd.y, y: fwd.x } };
+}
+
 function chargingStalls(dcfcCount: number, l2Count: number): StallState[] {
   const stalls: StallState[] = [];
-  // Gas-pump lanes: cars at cx±7 (the lane), charger pedestal beside each car at cx±2.5.
-  // 2-deep pull-through along y; angle 180 = parked facing south (direction of travel).
-  const mk = (id: string, type: 'dcfc' | 'l2', x: number, y: number): StallState => ({
+  // Cars at cx±7, and every charger stall is ANGLED: the car points 60° off its
+  // gap lane, toward the canopy's spine and toward the north the lane runs to. The
+  // angle is the compass bearing the parked car faces: 60 = north-east (west
+  // column, fed from the lane to its west), 300 = north-west (east column).
+  const west = CHARGER_STALL_ANGLE, east = 360 - CHARGER_STALL_ANGLE;
+  const mk = (id: string, type: 'dcfc' | 'l2', x: number, y: number, angle: number): StallState => ({
     id, type, status: 'available', vehicleId: null,
-    position: { x, y, angle: 180 },
+    position: { x, y, angle },
   });
 
-  // Canopy A — DCFC, 2 columns × 5 (step 16 = roomy pull-in/pull-out)
+  // ── WHY ANGLED, AND WHY THE ROWS MOVED (founder's call, 2026-09-28) ──────────
+  // Every charger stall was briefly PERPENDICULAR head-in (car at 90° to its lane).
+  // It worked on paper and looked wrong on screen: "This looks horizontal
+  // pull-in/parking which is not viable". It is now the diagonal layout a real
+  // one-way charging aisle uses. A car rides its northbound gap lane, turns 60° in
+  // at the stall's own axis and drives in nose-first; it leaves by backing out into
+  // the lane and swinging 60° to face north. Both moves are one arc of the car's own
+  // minimum radius (R = 11u), and each stall's approach and back-out trace the SAME
+  // arc: the car meets the lane 15.6-15.9u south of its stall on the way in, and
+  // stops there facing north on the way out.
+  //
+  // That arithmetic is what moved the rows. A stall's axis meets its lane
+  // |dx|·tan30° = 9.2-9.5u south of the stall; a car turning in at R = 11 needs a
+  // further 6.35u of straight lane before that; and a car arriving along the south
+  // collector's westbound stream (y 168.8) needs ~5.8u to turn onto the lane at all.
+  // Measured at the old rows, the southernmost L2 stalls' axes met their lane SOUTH
+  // of the westbound stream (y 169.6) — no car could turn into them — and their
+  // back-outs finished with the tail at y 181, past the collector. So each column is
+  // re-pitched to end at y <= 144.7:
+  //   DCFC  pitch 16 -> 14u (22.0 ft along the lane, 19.0 ft stall-to-stall square
+  //         to the car): rows 88..144, both columns level;
+  //   L2    west pitch 10.6 -> 8.4u from 85.9 (8 stalls, 85.9..144.7); east 11 ->
+  //         8.4u from 90.1 (7 stalls, 90.1..140.5) — half a pitch behind the west
+  //         column, so the two columns' noses interleave across the spine.
+  // At 60° an 8.4u pitch is 7.27u (11.4 ft) square to the car: a 6.3 ft car with
+  // 5.1 ft between it and its neighbour. Every stall keeps its x, its code and its
+  // count; buildLayoutSeed writes these rows and migration 0552 moves the database
+  // rows to them (the twin maps its stalls to these by position, and by column and
+  // rank while the two disagree — TwinMotionDriver.setTwinStallMap).
+  //
+  // THE CHARGERS STAND ON THE CAR'S SOUTH FLANK, as they did before: the car's right
+  // on the west column, its left on the east column (the flank the charge port is
+  // on, depotPlacement.towardFor). The OTTO-CHARGE ARM's pedestal is abeam the car's
+  // centre, PEDESTAL_OFFSET_PU from its centreline, square to the car — the arm's
+  // own frame, rotated with the car. An L2 post stands beside the car's front
+  // quarter on the same flank (cabinetEnvelope.L2_POST_*), clear of the spine.
+
+  // Canopy A — DCFC, 2 columns × 5.
   const A = CANOPIES[0];
   let n = 0;
   for (const side of [-7, 7]) {
     for (let i = 0; i < 5 && n < dcfcCount; i++) {
       n++;
-      stalls.push(mk(`DCFC-${String(n).padStart(2, '0')}`, 'dcfc', A.cx + side, 88 + i * 16));
+      stalls.push(mk(`DCFC-${String(n).padStart(2, '0')}`, 'dcfc', A.cx + side, 88 + i * DCFC_ROW_PITCH, side < 0 ? west : east));
     }
   }
 
-  // Canopies B & C — L2, west column 8 + east column 7
+  // Canopies B & C — L2, west column 8 + east column 7.
   //
-  // WEST COLUMN PITCH 10.3 -> 10.6, y0 86 -> 85.9.
-  // The 16 west-column L2 stalls were declared 10.00 x 15.67 ft against a 16.0 ft
-  // design vehicle — THE STALL WAS SHORTER THAN THE CAR, and the guard had been
-  // reporting it as a WARN nobody actioned. The declared depth is capped at
-  // (pitch - 0.5 ft) by buildLayoutSeed, so 10.3u = 16.17 ft of pitch could only ever
-  // declare 15.67 ft. 10.6u gives 16.64 ft of pitch and a 16.14 ft stall, which holds
-  // the design vehicle. NO STALL IS LOST — still 8 per column, 30 L2 total, and no L2
-  // code is deleted.
-  //
-  // Both sides measured, because the room came from somewhere: the column's clearance
-  // to the north collector goes 2.68 -> 2.29 ft and to the south collector 5.66 ->
-  // 2.29 ft (both still clear), and the last stall's declared footprint now extends
-  // 1.95 ft past the canopy roof's south edge — a canopy that stops short of a bumper
-  // is normal, and the roof is not a solid obstruction (guard check 4 excludes it).
-  // If the roof edge matters more than the extra margin, pitch 10.55 / y0 85.6 gives
-  // 16.06 ft of depth and 0.89 ft of overhang and is also fully green.
-  //
-  // buildLayoutSeed.mjs carries the matching pitch; they are asserted equal by
-  // sitePlan.aisles.test.ts reading the committed seed.
+  // (History, still true of the depth: the west column's pitch went 10.3 -> 10.6 on
+  // 2026-08-11 because a nose-to-tail L2 stall declared 15.67 ft against a 16.0 ft
+  // design vehicle — shorter than the car. An angled stall's depth runs along the
+  // car, not along the column, so the pitch no longer caps it; buildLayoutSeed
+  // declares the nominal 20 ft and caps the WIDTH at the pitch square to the car.)
   let l2 = 0;
   for (const c of [CANOPIES[1], CANOPIES[2]]) {
     for (let i = 0; i < 8 && l2 < l2Count; i++) {
       l2++;
-      stalls.push(mk(`L2-${String(l2).padStart(2, '0')}`, 'l2', c.cx - 7, 85.9 + i * 10.6));
+      stalls.push(mk(`L2-${String(l2).padStart(2, '0')}`, 'l2', c.cx - 7, L2_WEST_Y0 + i * L2_ROW_PITCH, west));
     }
     for (let i = 0; i < 7 && l2 < l2Count; i++) {
       l2++;
-      stalls.push(mk(`L2-${String(l2).padStart(2, '0')}`, 'l2', c.cx + 7, 91 + i * 11));
+      stalls.push(mk(`L2-${String(l2).padStart(2, '0')}`, 'l2', c.cx + 7, L2_WEST_Y0 + L2_ROW_PITCH / 2 + i * L2_ROW_PITCH, east));
     }
   }
   return stalls;
+}
+
+/**
+ * The painted footprint of a CHARGER stall in the 2D plan, in the CAR'S frame:
+ * `len` along the car, `wid` across it, centred on the parked car and turned to
+ * its bearing (chargerStallFrame). The 9.8 x 4.0 car with room round it. One
+ * home, so the stall and the reservation ring drawn over it (Stall.tsx,
+ * ReservationGlow.tsx) cannot disagree about its outline.
+ */
+export function chargerStallPaint(type: 'dcfc' | 'l2'): { len: number; wid: number } {
+  return { len: 12.4, wid: type === 'dcfc' ? 7.2 : 6.4 };
 }
 
 // ---- Pull-through bays -------------------------------------------------------
@@ -369,9 +437,10 @@ export function generateStallsV2(
 }
 
 // ---- Routing (continuous-flow circulation; consumed by SimulationEngine) ----
-// Gas-pump charging: enter a flanking pull-out lane from the collector, drop
-// to stall depth, sidestep IN. Exit = sidestep OUT into the lane, head NORTH
-// to the collector — service/wash is straight ahead through the forecourt.
+// Charging: enter a flanking northbound lane from the south boulevard and ride it
+// to the stall's row, turn in head-first, and back straight out into the lane (DCFC
+// and L2 alike). The car then heads NORTH to the collector — service/wash is
+// straight ahead through the forecourt.
 // Bays are full pull-through: out the rear into the 30ft apron, then left
 // (west link) or right (east aisle) to parking or the egress gate.
 // Collectors are two-way; west aisle is northbound; east aisle southbound.

@@ -28,15 +28,72 @@ import {
   generateStallsV2, type CanopyDef, type ParkRun,
 } from './sitePlan';
 import { CAR_LENGTH, CAR_WIDTH } from '@/engine/motion/traffic';
-import { PEDESTAL_OFFSET_PU } from '@/lib/ottoChargeArm/cobotSpec';
-import { DCFC_CABINET_PU, L2_CABINET_PU, CABINET_BACKSET_PU } from '@/lib/ottoChargeArm/cabinetEnvelope';
-import { towardFor } from '@/lib/ottoChargeArm/depotPlacement';
+import { DCFC_CABINET_PU, L2_CABINET_PU } from '@/lib/ottoChargeArm/cabinetEnvelope';
+import { chargerCabinet } from '@/lib/ottoChargeArm/depotPlacement';
 
 /** Axis-aligned rectangle in plan units. */
 export interface Rect { x0: number; y0: number; x1: number; y1: number }
 
 export function rectOf(r: { x: number; y: number; w: number; h: number }): Rect {
   return { x0: r.x, y0: r.y, x1: r.x + r.w, y1: r.y + r.h };
+}
+
+/**
+ * An ORIENTED rectangle in plan units: centre (cx, cy), half-length `hl` along plan
+ * heading `th` (atan2(dy, dx), y south), half-width `hw` across it. An axis-aligned
+ * Rect is the case th = 0 (boxOf).
+ *
+ * Why it exists: since 2026-09-28 every charger stall is ANGLED 60° to its lane, so
+ * its car, its cabinet and its L2 post all lie at 60° too. An axis-aligned box round
+ * a 60° car is 10.5 x 8.4u instead of 9.8 x 4.0 — it would put a phantom solid over
+ * the lane beside the car and over the neighbouring stall, and every clearance test
+ * that uses it would fail on nothing. Solids are measured as the shapes they are.
+ */
+export interface OBox { cx: number; cy: number; hl: number; hw: number; th: number }
+
+export function boxOf(r: Rect): OBox {
+  return { cx: (r.x0 + r.x1) / 2, cy: (r.y0 + r.y1) / 2, hl: (r.x1 - r.x0) / 2, hw: (r.y1 - r.y0) / 2, th: 0 };
+}
+
+/** The four corners of an oriented box, in order round it. */
+export function boxCorners(b: OBox): { x: number; y: number }[] {
+  const c = Math.cos(b.th), s = Math.sin(b.th);
+  return [[b.hl, b.hw], [b.hl, -b.hw], [-b.hl, -b.hw], [-b.hl, b.hw]]
+    .map(([a, w]) => ({ x: b.cx + a * c - w * s, y: b.cy + a * s + w * c }));
+}
+
+/** The axis-aligned bounding rectangle of an oriented box. */
+export function boxAabb(b: OBox): Rect {
+  const ex = Math.abs(b.hl * Math.cos(b.th)) + Math.abs(b.hw * Math.sin(b.th));
+  const ey = Math.abs(b.hl * Math.sin(b.th)) + Math.abs(b.hw * Math.cos(b.th));
+  return { x0: b.cx - ex, x1: b.cx + ex, y0: b.cy - ey, y1: b.cy + ey };
+}
+
+/** Grow (or, negative, shrink) an oriented box by `d` on every side. */
+export function inflateBox(b: OBox, d: number): OBox {
+  return { ...b, hl: b.hl + d, hw: b.hw + d };
+}
+
+/**
+ * The separation between two oriented boxes along their four candidate axes (the
+ * separating-axis theorem for rectangles): > 0 is the clear gap on the best axis,
+ * <= 0 means they overlap by at least that much on every axis.
+ */
+export function boxGap(a: OBox, b: OBox): number {
+  let best = -Infinity;
+  for (const th of [a.th, a.th + Math.PI / 2, b.th, b.th + Math.PI / 2]) {
+    const ax = Math.cos(th), ay = Math.sin(th);
+    const ra = Math.abs(a.hl * Math.cos(a.th - th)) + Math.abs(a.hw * Math.sin(a.th - th));
+    const rb = Math.abs(b.hl * Math.cos(b.th - th)) + Math.abs(b.hw * Math.sin(b.th - th));
+    const d = Math.abs((b.cx - a.cx) * ax + (b.cy - a.cy) * ay);
+    best = Math.max(best, d - ra - rb);
+  }
+  return best;
+}
+
+/** Do two oriented boxes overlap by more than `eps` (touching is not overlapping)? */
+export function boxesOverlap(a: OBox, b: OBox, eps = 1e-6): boolean {
+  return boxGap(a, b) < -eps;
 }
 
 // ═══════════════════════════════════════════════════════════════ BUILDINGS ═══
@@ -220,36 +277,64 @@ export const CANOPY_COLUMN = 1.2;
 export const CANOPY_MAX_SPAN = 17;
 /** Keep-out between a column face and a charger cabinet (0.48 m). */
 const CABINET_CLEAR = 1.0;
+/** How far a spine column must stand from any parked car's body. The spine is
+ *  where two columns of angled noses meet (1.53u either side of it at the closest),
+ *  so this is a daylight gap, not a walkway: enough that no column stands touching
+ *  a bumper. */
+const HEAD_CLEAR = 0.3;
 
-export interface CabinetFootprint { stallId: string; r: Rect; dc: boolean }
+export interface CabinetFootprint {
+  stallId: string;
+  /** the cabinet and its pad, as the oriented box it is */
+  box: OBox;
+  /** its axis-aligned bounds, for coarse filtering only */
+  r: Rect;
+  dc: boolean;
+}
 
-/** Charger cabinet footprints, exactly as ChargingField places them. */
+/**
+ * Charger cabinet footprints (body plus pad), exactly as ChargingField places them
+ * (depotPlacement.chargerCabinet): the pad is the body plus 0.4u on the side facing
+ * the car and 0.3u along it (ChargingField: depth + 0.8, width + 0.6), its wide face
+ * along the car, turned with the car.
+ *   - DCFC: on the car's charge-port flank, CABINET_BACKSET_PU behind the
+ *     OTTO-CHARGE ARM's base, abeam the car's centre;
+ *   - L2: beside the car's front quarter on the same flank.
+ */
 export function cabinetFootprints(stalls = generateStallsV2()): CabinetFootprint[] {
   const out: CabinetFootprint[] = [];
   for (const s of stalls) {
     if (s.type !== 'dcfc' && s.type !== 'l2') continue;
     const dc = s.type === 'dcfc';
     const dims = dc ? DCFC_CABINET_PU : L2_CABINET_PU;
-    const toward = towardFor(s.position.x);
-    const px = s.position.x + toward * PEDESTAL_OFFSET_PU;
-    const cx = px + toward * (dc ? CABINET_BACKSET_PU : 0);
-    // pad = body + 0.4 / 0.3 margins (ChargingField: [D + 0.8, W + 0.6])
-    const hx = (dims.depth + 0.8) / 2;
-    const hy = (dims.width + 0.6) / 2;
-    out.push({ stallId: s.id, dc, r: { x0: cx - hx, x1: cx + hx, y0: s.position.y - hy, y1: s.position.y + hy } });
+    const k = chargerCabinet(s.type, s.position.x, s.position.y, s.position.angle);
+    const box: OBox = {
+      cx: k.x, cy: k.y, hl: (dims.width + 0.6) / 2, hw: (dims.depth + 0.8) / 2,
+      th: Math.atan2(k.along.y, k.along.x),
+    };
+    out.push({ stallId: s.id, dc, box, r: boxAabb(box) });
   }
   return out;
 }
 
 /**
  * Spine column positions (plan y) for one canopy: the fewest columns that keep
- * every span <= CANOPY_MAX_SPAN, stand within 3u of each roof end, and clear
- * every cabinet on the spine by CABINET_CLEAR. Deterministic.
+ * every span <= CANOPY_MAX_SPAN, stand within 3u of each roof end, clear every
+ * charger cabinet by CABINET_CLEAR, and clear every parked car's body by
+ * HEAD_CLEAR (parkedBox — the car as it lies, at its angle). Deterministic.
  */
-export function canopyColumnYs(c: CanopyDef, cabinets = cabinetFootprints()): number[] {
+export function canopyColumnYs(c: CanopyDef, cabinets = cabinetFootprints(), stalls = generateStallsV2()): number[] {
   const half = CANOPY_COLUMN / 2;
-  const onSpine = cabinets.filter((k) => k.r.x1 > c.cx - half - CABINET_CLEAR && k.r.x0 < c.cx + half + CABINET_CLEAR);
-  const feasible = (y: number) => onSpine.every((k) => y + half + CABINET_CLEAR <= k.r.y0 || y - half - CABINET_CLEAR >= k.r.y1);
+  const reach = half + CABINET_CLEAR + 8;
+  const nearCabs = cabinets.filter((k) => Math.abs(k.box.cx - c.cx) < reach);
+  const nearCars = stalls
+    .filter((s) => Math.abs(s.position.x - c.cx) <= c.w / 2 + 2)
+    .map((s) => parkedBox(s.position));
+  const feasible = (y: number) => {
+    const col: OBox = { cx: c.cx, cy: y, hl: half, hw: half, th: 0 };
+    return nearCabs.every((k) => boxGap(col, k.box) >= CABINET_CLEAR)
+      && nearCars.every((b) => boxGap(col, b) >= HEAD_CLEAR);
+  };
   const step = 0.25;
   // a column may stand as close as 1u to a roof end (its cap plate is 0.6u)
   const lo = c.y + 1.0, hi = c.y + c.h - 1.0;
@@ -368,32 +453,39 @@ export function bayBollards(): { x: number; y: number }[] {
   return pts;
 }
 
+/** A built solid: its exact oriented shape, and its axis-aligned bounds. */
+export interface Solid { kind: string; r: Rect; box: OBox }
+
+const solid = (kind: string, r: Rect): Solid => ({ kind, r, box: boxOf(r) });
+
 /** Every built solid a car must never overlap. */
-export function allStructureSolids(): { kind: string; r: Rect }[] {
+export function allStructureSolids(): Solid[] {
   return [
-    ...SHELLS.flatMap(shellSolids),
-    ...SHELLS.flatMap(bayEquipmentSolids),
-    ...canopyColumnSolids(),
-    ...carportColumnSolids(),
-    ...bayBollards().map((p) => ({
-      kind: 'bay-bollard',
-      r: { x0: p.x - BOLLARD_RADIUS, x1: p.x + BOLLARD_RADIUS, y0: p.y - BOLLARD_RADIUS, y1: p.y + BOLLARD_RADIUS },
+    ...SHELLS.flatMap(shellSolids).map((k) => solid(k.kind, k.r)),
+    ...SHELLS.flatMap(bayEquipmentSolids).map((k) => solid(k.kind, k.r)),
+    ...canopyColumnSolids().map((k) => solid(k.kind, k.r)),
+    ...carportColumnSolids().map((k) => solid(k.kind, k.r)),
+    ...bayBollards().map((p) => solid('bay-bollard', {
+      x0: p.x - BOLLARD_RADIUS, x1: p.x + BOLLARD_RADIUS, y0: p.y - BOLLARD_RADIUS, y1: p.y + BOLLARD_RADIUS,
     })),
     // Charger cabinets on their pads: the one piece of street furniture a car
     // pulls right up beside. In the set so the clearance replay drives every
-    // recorded car against them, and so a widened corner has to clear them.
-    ...cabinetFootprints().map((k) => ({ kind: k.dc ? 'dcfc-cabinet' : 'l2-cabinet', r: k.r })),
+    // recorded car against them, and so a widened corner has to clear them. They
+    // stand at their stall's 60°, so they are the one solid that is not square.
+    ...cabinetFootprints().map((k) => ({ kind: k.dc ? 'dcfc-cabinet' : 'l2-cabinet', r: k.r, box: k.box })),
   ];
 }
 
 // ═════════════════════════════════════════════════════════════ BODY TESTS ═══
 
-/** Car footprint parked at a stall: 10.2u along its heading, 4.2u across. */
-export function parkedFootprint(p: { x: number; y: number; angle: number }): Rect {
-  const alongX = p.angle === 90 || p.angle === 270;
-  const hx = (alongX ? CAR_LENGTH : CAR_WIDTH) / 2;
-  const hy = (alongX ? CAR_WIDTH : CAR_LENGTH) / 2;
-  return { x0: p.x - hx, x1: p.x + hx, y0: p.y - hy, y1: p.y + hy };
+/**
+ * The body of a car parked at a stall, as it lies: CAR_LENGTH (9.8u) along the
+ * stall's axis, CAR_WIDTH (4.0u) across. The stall's angle is a compass bearing (0 = N, 90 = E); a box is the
+ * same shape end for end, so an axis is all that matters here — a staging stall's
+ * 90/270 lies east-west, a charger's 60/300 lies at 60° to its lane.
+ */
+export function parkedBox(p: { x: number; y: number; angle: number }): OBox {
+  return { cx: p.x, cy: p.y, hl: CAR_LENGTH / 2, hw: CAR_WIDTH / 2, th: ((p.angle - 90) * Math.PI) / 180 };
 }
 
 export function rectsOverlap(a: Rect, b: Rect, eps = 1e-6): boolean {
@@ -401,28 +493,17 @@ export function rectsOverlap(a: Rect, b: Rect, eps = 1e-6): boolean {
 }
 
 /**
- * Does an ORIENTED car body (centre, heading θ in the plan frame, 10.2 x 4.2)
- * overlap an axis-aligned rectangle? Separating-axis test on the 4 candidate
- * axes. `shrink` trims the body per side (a tolerance for sampling noise).
+ * Does an ORIENTED car body (centre, heading θ in the plan frame, 9.8 x 4.0)
+ * overlap an oriented box? Separating-axis test on the 4 candidate axes.
+ * `shrink` trims the body per side (a tolerance for sampling noise); a negative
+ * shrink grows it (a clearance margin). Touching is not overlapping.
  */
+export function bodyHitsBox(pose: { x: number; y: number; heading: number }, b: OBox, shrink = 0): boolean {
+  const body: OBox = { cx: pose.x, cy: pose.y, hl: CAR_LENGTH / 2 - shrink, hw: CAR_WIDTH / 2 - shrink, th: pose.heading };
+  return boxGap(body, b) < 0;
+}
+
+/** bodyHitsBox for an axis-aligned rectangle. */
 export function bodyHitsRect(pose: { x: number; y: number; heading: number }, r: Rect, shrink = 0): boolean {
-  const hl = CAR_LENGTH / 2 - shrink, hw = CAR_WIDTH / 2 - shrink;
-  const c = Math.cos(pose.heading), s = Math.sin(pose.heading);
-  const corners = [
-    [hl, hw], [hl, -hw], [-hl, -hw], [-hl, hw],
-  ].map(([a, b]) => ({ x: pose.x + a * c - b * s, y: pose.y + a * s + b * c }));
-  // axis-aligned axes
-  const minX = Math.min(...corners.map((p) => p.x)), maxX = Math.max(...corners.map((p) => p.x));
-  const minY = Math.min(...corners.map((p) => p.y)), maxY = Math.max(...corners.map((p) => p.y));
-  if (maxX <= r.x0 || minX >= r.x1 || maxY <= r.y0 || minY >= r.y1) return false;
-  // body axes
-  const rc = [
-    { x: r.x0, y: r.y0 }, { x: r.x1, y: r.y0 }, { x: r.x1, y: r.y1 }, { x: r.x0, y: r.y1 },
-  ];
-  for (const [ax, ay, ext] of [[c, s, hl], [-s, c, hw]] as const) {
-    const p0 = pose.x * ax + pose.y * ay;
-    const proj = rc.map((p) => p.x * ax + p.y * ay - p0);
-    if (Math.max(...proj) <= -ext || Math.min(...proj) >= ext) return false;
-  }
-  return true;
+  return bodyHitsBox(pose, boxOf(r), shrink);
 }

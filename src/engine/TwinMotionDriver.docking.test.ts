@@ -29,11 +29,13 @@ import { useDepotStore } from "@/store/depotStore";
 import type { TwinSnapshot } from "@/lib/ottoTwin";
 import fixture from "./__fixtures__/twinRun.busyday.json";
 import { bodiesOverlap } from "./__fixtures__/replay";
+import { allStructureSolids, bodyHitsBox } from "@/lib/structurePlan";
 
 type Internals = {
   entries: Map<string, {
     car: { x: number; y: number; heading: number; speed: number };
     tracker: { s: number; total: number; stationaryFor: number } | null;
+    reverse?: unknown;
     lane: string | null;
     stallId: string | null;
     playback: string;
@@ -224,11 +226,13 @@ describe("PROBE: maximal charger contention", () => {
     expect(report("B: interleaved fill (parked neighbours both sides)", vehicles)).toBe(vehicles.length);
   });
 
-  it("D: a car docking between two PARKED neighbours never touches either (DCFC S-curve pull-in)", () => {
-    // The DCFC approach leans across from the gap lane on a diagonal and rotates
-    // back to north on a short final straight; that rotation swings the rear
-    // toward the car parked in the next stall south. A 7u tail put the rear
-    // 0.17u INTO it. Measured here on the real driver, dock blend included,
+  it("D: a car docking between two PARKED neighbours never touches either (DCFC and L2, both angled)", () => {
+    // Every charger stall is angled 60° to its lane since 2026-09-28: the car turns off
+    // its gap lane where the stall's axis crosses it and drives in along that axis,
+    // between neighbours 3.3u (L2) to 8.1u (DCFC) away square to the car. (The DCFC
+    // approach used to lean across from the gap lane on a diagonal and rotate back to
+    // north on a short final straight; a 7u tail put the rear 0.17u INTO the car parked
+    // in the next stall south.) Measured here on the real driver, dock blend included,
     // with every target flanked by parked cars (B's interleaved fill).
     setup();
     const ch = chargerColumns().flatMap((c) => c.stalls);
@@ -261,10 +265,101 @@ describe("PROBE: maximal charger contention", () => {
     // eslint-disable-next-line no-console
     console.log(`\nD: moving-vs-parked contact samples during the interleaved fill: dcfc ${touches.dcfc} · l2 ${touches.l2}`);
     expect(touches.dcfc).toBe(0);
-    // L2's sidestep predates this and grazes briefly (10.6u pitch, 0.4u between
-    // parked bumpers): 2 samples, measured identical with the DCFC pull-in
-    // switched off. Pinned as measured so it cannot grow.
-    expect(touches.l2).toBeLessThanOrEqual(2);
+    // L2 used to be entered by a SIDESTEP along a nose-to-tail column (10.6u pitch,
+    // 0.4u between parked bumpers) and grazed its neighbours: 2 samples. Since
+    // 2026-09-28 it drives straight in along its own axis, and it measures 0.
+    expect(touches.l2).toBe(0);
+  });
+
+  it("E: charger cars BACK OUT past parked neighbours, and beside each other, without touching anything", () => {
+    // The angled charger stall's exit (TwinMotionDriver.chargerBackOut), DCFC and L2
+    // alike: straight back along the stall's axis, then a full-lock 60° swing into the
+    // northbound gap lane. Two of every three cars in every charger column leave at
+    // once and the third stays parked: every back-out passes a parked neighbour, every
+    // pair of neighbours that leaves together shares one stretch of lane — the case
+    // chargerBackOutBlocked exists for — and gap lane AB takes back-outs from BOTH sides
+    // at once, the DCFC east column and canopy B's L2 west column.
+    //
+    // AND AGAINST EVERYTHING BUILT. Every moving car, on the way in (all 40 stalls
+    // filled at once) and on the way out, is measured against every structure solid as
+    // the shape it is (structurePlan: oriented boxes) — each car's own DCFC cabinet and
+    // OTTO-CHARGE ARM pedestal line abeam it, each L2 post beside its front quarter, and
+    // the canopy spine columns between the angled noses.
+    //
+    // SIMULATED WALL CLOCK, as replay.ts: the driver's commit-and-hold dwell floor
+    // (12 s) reads performance.now(), and this test runs twenty motion-minutes in well
+    // under a real second — on the real clock no car would ever be released to leave.
+    let wallMs = 0;
+    const perf = globalThis.performance;
+    const realNow = perf.now.bind(perf);
+    Object.defineProperty(perf, "now", { configurable: true, writable: true, value: () => wallMs });
+    try {
+      setup();
+      const ch = chargerColumns().flatMap((c) => c.stalls);
+      const type = new Map(ch.map((s) => [s.id, s.type]));
+      const vehicles: V[] = ch.map((s, i) => ({ id: `${s.type}-${i}`, state: cs(s.type), stall_id: s.id }));
+      const phase = (vs: V[], seconds: number, t: string, each?: () => void) => {
+        for (let elapsed = 0; elapsed < seconds; elapsed += 2) {
+          twinMotionDriver.reconcile(snap(vs, t));
+          for (let i = 0; i < 2 / dt; i++) {
+            twinMotionDriver.tickMotion(dt);
+            wallMs += dt * 1000;
+            if (each && i % 4 === 0) each(); // sample every 0.2 s of motion
+          }
+        }
+      };
+      const solids = allStructureSolids();
+      const hitStructures: string[] = [];
+      const entriesAll = (twinMotionDriver as unknown as Internals).entries;
+      const checkStructures = () => {
+        for (const [id, e] of entriesAll) {
+          if (!e.tracker && !e.reverse) continue;
+          const p = poseStore.get(id) ?? { x: e.car.x, y: e.car.y, heading: e.car.heading };
+          for (const k of solids) {
+            if (Math.abs(k.box.cx - p.x) > 14 || Math.abs(k.box.cy - p.y) > 14) continue;
+            if (bodyHitsBox(p, k.box, 0.05)) hitStructures.push(`${id} x ${k.kind} @(${p.x.toFixed(1)},${p.y.toFixed(1)})`);
+          }
+        }
+      };
+      phase(vehicles, 600, "2026-08-08T00:00:00Z", checkStructures);
+      expect(report("E: every charger stall docked before the departures", vehicles)).toBe(vehicles.length);
+
+      const leave = new Set(vehicles.filter((_, i) => i % 3 !== 0).map((v) => v.id));
+      const stay = vehicles.filter((v) => !leave.has(v.id));
+      const stallOf = new Map(vehicles.map((v) => [v.id, useDepotStore.getState().stalls.find((s) => s.id === v.stall_id)!]));
+      const entries = (twinMotionDriver as unknown as Internals).entries;
+      const touches = { dcfc: 0, l2: 0 };
+      const byVehicle = new Map(vehicles.map((v) => [v.id, type.get(v.stall_id) === "dcfc" ? "dcfc" : "l2"] as const));
+      phase(stay, 600, "2026-08-08T00:30:00Z", () => {
+        checkStructures();
+        const bodies = [...entries.entries()].map(([id, e]) => {
+          const p = poseStore.get(id) ?? { x: e.car.x, y: e.car.y, heading: e.car.heading };
+          return { id, x: p.x, y: p.y, h: p.heading, moving: !!e.tracker || !!e.reverse };
+        });
+        for (const m of bodies) {
+          if (!leave.has(m.id) || !m.moving) continue;
+          for (const q of bodies) {
+            if (q.id === m.id || Math.abs(m.x - q.x) > 11 || Math.abs(m.y - q.y) > 11) continue;
+            if (leave.has(q.id) && q.moving && q.id < m.id) continue; // each moving pair once
+            if (bodiesOverlap(m, q)) touches[byVehicle.get(m.id)!]++;
+          }
+        }
+      });
+      const stillThere = [...leave].filter((id) => {
+        const e = entries.get(id);
+        const st = stallOf.get(id)!;
+        return e && Math.hypot(e.car.x - st.position.x, e.car.y - st.position.y) < 11;
+      });
+      // eslint-disable-next-line no-console
+      console.log(`\nE: ${leave.size} charger cars backed out, ${stay.length} stayed parked: contact samples dcfc ${touches.dcfc} · l2 ${touches.l2} · structures ${hitStructures.length} · still at their stall ${stillThere.length}`);
+      expect(touches).toEqual({ dcfc: 0, l2: 0 });
+      expect(hitStructures.slice(0, 10)).toEqual([]);
+      expect(stillThere).toEqual([]);
+      // and the neighbours that stayed are still in their stalls
+      expect(report("E: the neighbours that stayed are still docked", stay)).toBe(stay.length);
+    } finally {
+      Object.defineProperty(perf, "now", { configurable: true, writable: true, value: realNow });
+    }
   });
 
   it("C: DEEPEST stall last — the car must drive past a FULL column to its stall", () => {

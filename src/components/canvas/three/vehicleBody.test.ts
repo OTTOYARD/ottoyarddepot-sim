@@ -39,7 +39,7 @@ function bodyBox(): THREE.Box3 {
 }
 
 describe('robotaxi body geometry', () => {
-  it('is ONE car with the traffic model: 10.2 x 4.2 plan units', () => {
+  it('is ONE car with the traffic model: 9.8 x 4.0 plan units', () => {
     const b = bodyBox();
     // length on Z (vehicles face local +Z), width on X
     expect(b.max.z - b.min.z).toBeCloseTo(CAR_L_PU, 6);
@@ -49,13 +49,14 @@ describe('robotaxi body geometry', () => {
     // those two used 10.2 x 4.2 — a 3D car 26% shorter and 20% narrower than
     // the car the engine believed it was steering. The literals here are the
     // point: if the mesh and the constants ever disagree again, this fails.
+    // (10.2 x 4.2 until 2026-09-28: "slightly less big/boxy/bulky".)
     expect(CAR_L_PU).toBe(CAR_LENGTH);
     expect(CAR_W_PU).toBe(CAR_WIDTH);
-    expect(CAR_L_PU).toBe(10.2);
-    expect(CAR_W_PU).toBe(4.2);
-    // 4.88 m x 2.01 m — a real robotaxi
-    expect(CAR_L_PU / PLAN_UNITS_PER_METRE).toBeCloseTo(4.8807, 3);
-    expect(CAR_W_PU / PLAN_UNITS_PER_METRE).toBeCloseTo(2.0097, 3);
+    expect(CAR_L_PU).toBe(9.8);
+    expect(CAR_W_PU).toBe(4.0);
+    // 4.69 m x 1.91 m — a real robotaxi (a Jaguar I-PACE is 4.68 x 1.90 m)
+    expect(CAR_L_PU / PLAN_UNITS_PER_METRE).toBeCloseTo(4.6893, 3);
+    expect(CAR_W_PU / PLAN_UNITS_PER_METRE).toBeCloseTo(1.914, 3);
   });
 
   it('is centred on its own origin, so a stall pose puts it in the stall', () => {
