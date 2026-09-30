@@ -33,23 +33,8 @@ import { CameraRig } from './three/CameraRig';
 import { StaticMerge } from './three/StaticMerge';
 import { BakedGroundAO } from './three/BakedGroundAO';
 import { useCameraFollow } from './three/cameraFollow';
+import { CAMERA_PRESETS, CAMERA_PRESET_NAMES, useCameraCommands, type CameraPreset } from './three/cameraPresets';
 
-// toWorld negates X (east=-X) to un-mirror the scene. Bird Eye views from the
-// SOUTH (z<0) so it is north-up / east-right, matching the 2D. Oblique presets
-// negate their X so they frame the same physical subject in the flipped world.
-// (Tuned + live-verified per camera 2026-07-22.)
-const CAMERA_PRESETS = {
-  'Bird Eye': { position: [0, 210, -60] as [number, number, number], target: [0, 0, -4] as [number, number, number] },
-  'Entrance': { position: [50, 6, -135] as [number, number, number], target: [50, 3, -70] as [number, number, number] },
-  'Canopy': { position: [75, 7, -50] as [number, number, number], target: [47, 5, 30] as [number, number, number] },
-  'Operator': { position: [170, 90, -120] as [number, number, number], target: [0, 0, 20] as [number, number, number] },
-  'Service': { position: [10, 9, 30] as [number, number, number], target: [25, 6, 75] as [number, number, number] },
-  'Hero': { position: [-95, 14, -75] as [number, number, number], target: [-47, 6, 25] as [number, number, number] },
-  // The pull-through bays from the forecourt (south), and their exits from the
-  // rear apron (north): the two views that show a car driving THROUGH a building.
-  'Bays': { position: [-70, 10, 38] as [number, number, number], target: [5, 3.5, 66] as [number, number, number] },
-  'Rear': { position: [-30, 12, 108] as [number, number, number], target: [-10, 4, 70] as [number, number, number] },
-};
 
 // Seeded random for consistent tree placement
 function seededRandom(seed: number) {
@@ -152,11 +137,25 @@ function ShadowBudget({ budget }: { budget: TierBudget }) {
   return null;
 }
 
+// Render tier: probed ONCE, when this chunk loads — before the canvas or anything
+// in it renders — so the first frame is already drawn at the device's tier (an
+// effect would draw a phone's first frames at High, then recompile at Medium).
+if (typeof window !== 'undefined') {
+  const probe = initialTier();
+  useQualityStore.getState().initAuto(probe.tier, probe.ceiling, `auto: ${probe.reason}`);
+}
+
 const QUALITY_CYCLE = ['auto', 'high', 'medium', 'low'] as const;
 // Finger-sized on touch screens (44 px tall, the platform minimum), unchanged with a mouse.
 const PRESET_BTN = 'px-2 py-1 text-[10px] font-mono rounded bg-black/60 text-otto-gray border border-white/10 hover:bg-white/10 hover:text-white transition-colors [@media(pointer:coarse)]:min-h-[44px] [@media(pointer:coarse)]:px-3 [@media(pointer:coarse)]:text-[11px]';
 
-export default function DepotScene3D() {
+/**
+ * `chrome`: 'desktop' draws the view's own controls (camera presets, quality) in
+ * a row at the bottom right, as it always has; 'phone' leaves them to the phone
+ * cockpit's camera menu (which drives the same presets through useCameraCommands)
+ * and moves the follow chip below the phone's run bar (`overlayTop`).
+ */
+export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0 }: { chrome?: 'desktop' | 'phone'; overlayTop?: number } = {}) {
   const vehicles = useVehicleStore((s) => s.vehicles);
   const config = useSimulationStore((s) => s.config);
   const simTime = useSimulationStore((s) => s.simTime);
@@ -176,14 +175,6 @@ export default function DepotScene3D() {
   useEffect(() => { for (const m of armFleet.meshes) m.count = roboticStalls.length; }, [armFleet, roboticStalls.length]);
   const controlsRef = useRef<OrbitControlsImpl>(null);
 
-  // Render tier: probed ONCE before the canvas exists, so its first frame is
-  // already drawn at it (and MSAA, fixed at context creation, matches it).
-  const [probe] = useState(() => initialTier());
-  useEffect(() => {
-    const q = useQualityStore.getState();
-    q.setCeiling(probe.tier, `auto: ${probe.reason}`);
-    if (q.mode !== 'auto') q.setMode(q.mode);
-  }, [probe]);
   const budget = useTierBudget();
   const tier = useQualityStore((s) => s.tier);
   const mode = useQualityStore((s) => s.mode);
@@ -191,9 +182,11 @@ export default function DepotScene3D() {
   const followId = useCameraFollow((s) => s.followId);
   const setFollow = useCameraFollow((s) => s.setFollow);
   const followAv = useVehicleStore((s) => (followId ? s.vehicles.find((v) => v.id === followId)?.label ?? followId : null));
-  const startBudget = BUDGETS[useQualityStore.getState().mode === 'auto' ? probe.tier : useQualityStore.getState().mode as keyof typeof BUDGETS];
+  // What the canvas is CREATED with (MSAA is fixed at context creation): the tier
+  // the probe below settled before this component first rendered.
+  const [startBudget] = useState(() => BUDGETS[useQualityStore.getState().tier]);
 
-  const handleCameraPreset = useCallback((preset: keyof typeof CAMERA_PRESETS) => {
+  const handleCameraPreset = useCallback((preset: CameraPreset) => {
     const ctrl = controlsRef.current;
     if (!ctrl) return;
     useCameraFollow.getState().setFollow(null); // a preset is a new framing
@@ -202,6 +195,10 @@ export default function DepotScene3D() {
     ctrl.target.set(...target);
     ctrl.update();
   }, []);
+
+  // presets asked for from outside the view (the phone cockpit's camera menu)
+  const cameraRequest = useCameraCommands((s) => s.request);
+  useEffect(() => { if (cameraRequest) handleCameraPreset(cameraRequest.preset); }, [cameraRequest, handleCameraPreset]);
 
   // Dev only: scripts/cockpitPlayback.mjs frames arbitrary shots (--cams @x:y:z/tx:ty:tz)
   // so a new camera preset can be tried before it is committed. Stripped from builds.
@@ -296,7 +293,14 @@ export default function DepotScene3D() {
       </Canvas>
 
       {followId && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-2 px-2.5 py-1 rounded bg-black/70 border border-white/10 text-[11px] font-mono text-white">
+        <div
+          className={`absolute flex items-center gap-2 px-2.5 py-1 rounded bg-black/70 border border-white/10 text-[11px] font-mono text-white ${
+            chrome === 'phone' ? '' : 'left-1/2 -translate-x-1/2'}`}
+          // on a phone: top right, beside the camera button — the panel sheet owns the left half
+          style={chrome === 'phone'
+            ? { top: overlayTop + 14, right: 'calc(env(safe-area-inset-right, 0px) + 64px)' }
+            : { top: overlayTop + 12 }}
+        >
           <span className="w-1.5 h-1.5 rounded-full bg-otto-red animate-pulse" />
           Following {followAv}
           <button
@@ -309,8 +313,9 @@ export default function DepotScene3D() {
         </div>
       )}
 
-      {/* on a touch screen the row scrolls sideways instead of wrapping over the view */}
-      <div
+      {/* on a touch screen the row scrolls sideways instead of wrapping over the view;
+          the phone cockpit draws these in its own camera menu instead */}
+      {chrome === 'desktop' && (<div
         className="absolute bottom-4 right-4 flex gap-1.5 flex-wrap justify-end [@media(pointer:coarse)]:left-4 [@media(pointer:coarse)]:flex-nowrap [@media(pointer:coarse)]:justify-start [@media(pointer:coarse)]:overflow-x-auto"
         style={{ paddingRight: 'env(safe-area-inset-right, 0px)', paddingLeft: 'env(safe-area-inset-left, 0px)', marginBottom: 'env(safe-area-inset-bottom, 0px)' }}
       >
@@ -321,7 +326,7 @@ export default function DepotScene3D() {
         >
           {mode === 'auto' ? `Auto · ${tier[0].toUpperCase()}${tier.slice(1)}` : `${tier[0].toUpperCase()}${tier.slice(1)}`}
         </button>
-        {(Object.keys(CAMERA_PRESETS) as (keyof typeof CAMERA_PRESETS)[]).map((label) => (
+        {CAMERA_PRESET_NAMES.map((label) => (
           <button
             key={label}
             onClick={() => handleCameraPreset(label)}
@@ -330,7 +335,7 @@ export default function DepotScene3D() {
             {label}
           </button>
         ))}
-      </div>
+      </div>)}
     </div>
   );
 }

@@ -161,7 +161,18 @@ interpolation.** Zero world logic client-side.
   pedestal in rather than making the arm reach further than it was measured to.
   ⚠️ Changing `rightOffset` or the car's size moves routed motion and every replay: measure all of
   them (fixture, flow, turn radius, docking, structure clearance, arm clearance), not a drive-by edit.
-- **`ResponsiveGuard` requires ≥1200px.** Test at 1440×900 or larger.
+- **`ResponsiveGuard` routes phones to the PHONE cockpit** (`src/components/phone`, since 2026-09-30):
+  a touch-first screen whose short side is < 600 px, or any window < 900 px (`phoneLayout.isPhoneViewport`;
+  `?phone=1` forces it). Everything else gets the desktop cockpit, unchanged — test the desktop at
+  1440×900 or larger (the side panel auto-collapses below 1200 px). The phone cockpit REUSES the
+  desktop's tab components and run calls (`useTwinControl`, `blackbox.stopAndReset`): do not fork a
+  panel for the phone, and do not change a shared panel for phone-only reasons without checking the
+  desktop. Its Start/Pause/Stop are the real controls for everyone watching the run.
+- **3D perf and phone tooling:** `scripts/perfHarness.mjs` (draw calls, triangles, memory, frame times
+  per camera preset, profile and render tier; `?perf=1` shows the same probe on a real phone) and
+  `scripts/phoneShots.mjs` (the phone cockpit in an emulated iPhone, both orientations). Both play a
+  recorded run read-only. The render tiers live in `src/components/canvas/three/quality/tiers.ts`;
+  High is the desktop look and is pinned by `tiers.test.ts`.
 - **The RTX tab needs the AWS Isaac box running.** Blank is normal when it is stopped. IP override:
   `localStorage.setItem('ottoq_omniverse_ip','<ip>')`.
 
