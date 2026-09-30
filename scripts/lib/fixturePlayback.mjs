@@ -67,7 +67,12 @@ const reply = (route, body) => route.fulfill({
  */
 export async function installFixtureRoutes(page, F, { relay = false } = {}) {
   let t0 = null, ticks = 0;
-  const h = { refused: 0, playbackSeconds: () => (t0 === null ? -1 : (Date.now() - t0) / 1000) };
+  const h = {
+    refused: 0,
+    /** what was refused, "METHOD /path" (RPC reads outside ottoq_twin_* are refused too) */
+    refusedRequests: new Set(),
+    playbackSeconds: () => (t0 === null ? -1 : (Date.now() - t0) / 1000),
+  };
 
   /** The fixture's world at `ms` of playback, in the snapshot endpoint's shape. */
   function snapshotAt(ms) {
@@ -118,6 +123,7 @@ export async function installFixtureRoutes(page, F, { relay = false } = {}) {
     // READ-ONLY for everything else
     if (m !== "GET" && !(m === "POST" && rpc?.startsWith("ottoq_twin_"))) {
       h.refused++;
+      h.refusedRequests.add(`${m} ${u.pathname}`);
       return reply(route, { ok: false, error: "refused by fixture playback (read-only)" });
     }
     if (!relay) return route.continue();
