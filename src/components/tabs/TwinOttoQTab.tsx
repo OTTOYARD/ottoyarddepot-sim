@@ -436,8 +436,6 @@ function PickedCard({ picked, onClose, onPick, rowByKey, dispByKey, passByKey, c
   );
 }
 
-/** WebGL once per page: the stack needs it; without it the flat funnel stands in. */
-let webglOk: boolean | null = null;
 // ── replay: records already written, played through the stack again when asked ──
 function ReplayBar({ replay, at, count, line, onStart, onStop }: {
   replay: StackReplay | null; at: number; count: number; line: string | null; onStart: () => void; onStop: () => void;
@@ -474,6 +472,8 @@ function ReplayBar({ replay, at, count, line, onStart, onStop }: {
   );
 }
 
+/** WebGL once per page: the stack needs it; without it the flat funnel stands in. */
+let webglOk: boolean | null = null;
 function hasWebGL(): boolean {
   if (webglOk != null) return webglOk;
   try {
@@ -614,7 +614,8 @@ export function TwinOttoQTab() {
     return () => window.clearInterval(iv);
   }, [replay]);
   useEffect(() => { setReplay(null); setReplayAt(-1); }, [simRunId]);
-  const replayLine = replay && replayAt >= 0 ? describe(replay.events[Math.min(replayAt, replay.events.length - 1)].kind, replay.events[Math.min(replayAt, replay.events.length - 1)].key) : null;
+  const playing = replay && replayAt >= 0 ? replay.events[Math.min(replayAt, replay.events.length - 1)] : null;
+  const replayLine = playing ? describe(playing.kind, playing.key) : null;
 
   if (!simRunId) {
     return (

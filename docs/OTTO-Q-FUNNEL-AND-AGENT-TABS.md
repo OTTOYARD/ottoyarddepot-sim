@@ -227,11 +227,11 @@ renders nothing while the page is hidden.
 ## Performance rules
 
 - **The stack renders only while something moves** (react-three-fiber `frameloop="demand"`): an event's animation, a
-  car gliding, the zoom, a drag. Measured on the fixture: the frame counter stopped (59 frames from second 16 to second
-  20 of a quiet stretch), and a poll with nothing new costs a couple of frames. With `prefers-reduced-motion` no bead
-  plays and cars jump to their zone.
-- **53 draw calls and 21k triangles per frame, bloom passes included** (was 92 before the ports, posts and collars were
-  instanced). Every repeated object is one instanced mesh: spheres (≤ 40), bars (≤ 48), tiles (≤ 72), pucks (≤ 170),
+  car gliding, the zoom, a drag, a replay. Measured on the fixture by `scripts/tabShots.mjs` (the stack's dev-only
+  probe): a 4-second quiet stretch rendered 0 frames. With `prefers-reduced-motion` no bead plays, cars jump to their
+  zone, and a replay only brings its records back one at a time.
+- **53 draw calls and 21,297 triangles per frame, bloom passes included** (was 92 draw calls before the ports, posts and
+  collars were instanced). Every repeated object is one instanced mesh: spheres (≤ 40), bars (≤ 48), tiles (≤ 72), pucks (≤ 170),
   beads and flashes (one point cloud).
 - The frame is fitted to the stack every frame, so it fills the panel at 420, 360 and 320 px and in the phone sheet.
 - Device pixel ratio follows the app's render tier (`qualityStore`): up to 1.75 on High, 1.5 on Medium, 1 on Low; Low
