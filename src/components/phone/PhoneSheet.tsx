@@ -2,18 +2,17 @@ import { useEffect, useRef, useState } from 'react';
 import { useSimulationStore, type CockpitTab } from '@/store/simulationStore';
 import { OperatorConsole } from '@/components/cockpit/OperatorConsole';
 import { TwinKpisTab } from '@/components/tabs/TwinKpisTab';
-import { TwinOrchestrationTab } from '@/components/tabs/TwinOrchestrationTab';
-import { TwinAlertsTab } from '@/components/tabs/TwinAlertsTab';
 import { TwinHistoryTab } from '@/components/tabs/TwinHistoryTab';
 import { TwinCopilotTab } from '@/components/tabs/TwinCopilotTab';
 import { WorldContractTab } from '@/components/tabs/WorldContractTab';
-import TwinIntelligenceTab from '@/components/tabs/TwinIntelligenceTab';
+import { TwinOttoQTab } from '@/components/tabs/TwinOttoQTab';
+import { TwinAgentTab } from '@/components/tabs/TwinAgentTab';
 import { TwinValueTab } from '@/components/tabs/TwinValueTab';
 import { settleSheet, sheetHeights } from './phoneLayout';
 import { usePhoneSheet } from './phoneStore';
 
 /**
- * The phone's panels: the desktop side panel's NINE TABS, the very same
+ * The phone's panels: the desktop side panel's EIGHT TABS, the very same
  * components, in a sheet.
  *
  *   landscape  'floating' — a sheet over the 3D view, anchored bottom-left and
@@ -27,10 +26,9 @@ import { usePhoneSheet } from './phoneStore';
  */
 const TAB_LABEL: Record<CockpitTab, string> = {
   controls: 'Control',
-  intelligence: 'Intelligence',
-  orchestration: 'Orchestration',
+  ottoq: 'OTTO-Q',
+  agent: 'Agent',
   kpis: 'KPIs',
-  alerts: 'Events',
   history: 'Runs',
   world: 'Diagnostics',
   copilot: 'Copilot',
@@ -39,10 +37,9 @@ const TAB_LABEL: Record<CockpitTab, string> = {
 const TABS = (Object.keys(TAB_LABEL) as CockpitTab[]).map((id) => ({ id, label: TAB_LABEL[id] }));
 const TAB_COMPONENTS: Record<CockpitTab, () => JSX.Element> = {
   controls: OperatorConsole,
-  intelligence: TwinIntelligenceTab,
-  orchestration: TwinOrchestrationTab,
+  ottoq: TwinOttoQTab,
+  agent: TwinAgentTab,
   kpis: TwinKpisTab,
-  alerts: TwinAlertsTab,
   history: TwinHistoryTab,
   world: WorldContractTab,
   copilot: TwinCopilotTab,
@@ -152,7 +149,7 @@ export function PhoneSheet({ mode, topInset }: { mode: 'floating' | 'inline'; to
           <button key={t.id} onClick={() => pick(t.id)}
             className={`shrink-0 h-9 px-3 rounded-md inline-flex items-center gap-1.5 font-display text-[11px] uppercase tracking-[0.06em] ${
               activeTab === t.id ? 'bg-white/10 text-ink' : 'text-ink-faint active:bg-white/5'}`}>
-            {t.id === 'intelligence' && <span className="w-1.5 h-1.5 rounded-full bg-violet-400" />}
+            {t.id === 'ottoq' && <span className="w-1.5 h-1.5 rounded-full bg-violet-400" />}
             {t.label}
           </button>
         ))}

@@ -1,0 +1,230 @@
+// agentStream — the Agent tab's plain-English stream, from engine records. Pure: no React, no client.
+//
+// Chase, 2026-09-29: "the agent tab or the intelligence tab could just be more of that detailed plain English feed and
+// live stream of agent decision-making and reading of all variables in real time and proposing and learning and looping."
+//
+// Sources:
+//   an agent pass     one ottoq_activity_feed_v2 row with action 'orchestrator_agent' (the decision the pass wrote:
+//                     the model's own summary, the directives it applied, its objective and why, the solver hand-off
+//                     and the decide path's disposition of what came back)
+//   an offer batch    ottoq_proposal_disposition_ledger rows (0364, evidence) grouped by the tick they were disposed on
+//                     and the planner that made them
+//
+// Sentences only. A fact the record does not carry is left out of the sentence, never filled in; where a whole
+// sentence depends on it, it says "not recorded".
+import type { ActivityFeedRow } from "@/store/activityFeedStore";
+import { human, modelErrorText, num, solverLabel } from "@/lib/decisionText";
+import { proposerWord, type DispositionRow } from "@/lib/ottoqFunnel";
+
+export type StreamTone = "ok" | "held" | "refused" | "idle";
+
+export interface AgentPass {
+  kind: "pass";
+  key: string;
+  at: string;
+  tick: number | null;
+  tone: StreamTone;
+  /** One line: what happened, as a headline. */
+  headline: string;
+  /** What it read: the model's own summary of the depot, or null when the model did not answer. */
+  read: string | null;
+  /** What it asked for: the directives it applied, in its own words. */
+  directives: string[];
+  /** The objective it chose, and why, as a sentence. */
+  chose: string;
+  /** What the solver and the decide path did with it, as sentences. */
+  outcome: string[];
+}
+
+export interface OfferBatch {
+  kind: "offers";
+  key: string;
+  at: string | null;
+  tick: number | null;
+  tone: StreamTone;
+  /** Nothing enacted or refused on this tick: only offers replaced, expired or declined. */
+  quiet: boolean;
+  headline: string;
+  /** One sentence per offer, newest first. */
+  lines: { key: string; text: string; tone: StreamTone }[];
+}
+
+export type StreamItem = AgentPass | OfferBatch;
+
+const OBJECTIVE_WORD: Record<string, string> = {
+  readiness_first: "get cars ready first",
+  throughput_first: "move the most cars through",
+  energy_first: "keep the power bill down",
+  cost_first: "keep costs down",
+  balanced: "balance readiness, throughput and cost",
+};
+export const objectiveWord = (o: unknown): string =>
+  (typeof o === "string" && OBJECTIVE_WORD[o]) || human(o) || "an objective not recorded";
+
+const plural = (k: number, one: string, many = `${one}s`) => `${k} ${k === 1 ? one : many}`;
+
+export function agentPass(r: ActivityFeedRow): AgentPass {
+  const v = (r.rationale ?? {}) as Record<string, unknown>;
+  const modelError = modelErrorText(v.model_error);
+  const summary = typeof v.summary === "string" && v.summary.trim() ? v.summary.trim() : null;
+  const applied = Array.isArray(v.applied) ? (v.applied as { text?: unknown }[]) : [];
+  const directives = applied.map((a) => (typeof a?.text === "string" ? a.text.trim() : "")).filter(Boolean);
+  const queued = Array.isArray(v.queued) ? v.queued.length : 0;
+  const rejected = Array.isArray(v.rejected) ? v.rejected.length : 0;
+  const why = typeof v.objective_why === "string" ? v.objective_why.trim() : "";
+
+  const chose = modelError
+    ? `The model did not answer (${modelError}), so the deterministic path kept the objective: ${objectiveWord(v.objective)}.`
+    : `It chose to ${objectiveWord(v.objective)}${why ? `, because ${why.replace(/\.$/, "")}` : ""}.`;
+
+  const outcome: string[] = [];
+  const handoff = String(v.handoff_status ?? v.solver_status ?? "");
+  const solver = solverLabel(v);
+  const returned = num(v.proposals_returned);
+  if (handoff === "completed") {
+    outcome.push(`${solver === "no solver call" ? "The solver" : solver} took the hand-off and returned ${returned == null ? "an unrecorded number of" : plural(returned, "offer")}.`);
+  } else if (handoff === "skipped") {
+    outcome.push("No solver was asked this pass.");
+  } else if (handoff === "fallback") {
+    outcome.push("The hand-off to the solver fell back to the deterministic path.");
+  } else if (handoff) {
+    outcome.push(`The solver hand-off is ${human(handoff)}.`);
+  }
+  const k = (key: string) => num(v[key]) ?? 0;
+  const parts = [
+    k("kernel_enacted") ? `enacted ${k("kernel_enacted")}` : null,
+    k("kernel_refused") ? `refused ${k("kernel_refused")}` : null,
+    k("kernel_superseded") ? `superseded ${k("kernel_superseded")}` : null,
+    k("kernel_expired") ? `let ${k("kernel_expired")} expire` : null,
+  ].filter(Boolean);
+  if (parts.length) outcome.push(`The decide path ${parts.join(", ")}.`);
+  else if (handoff === "completed" && returned === 0) outcome.push("There was nothing for the decide path to dispose.");
+  if (directives.length) outcome.push(`${plural(directives.length, "directive")} applied${queued ? `, ${queued} waiting for a person to approve` : ""}${rejected ? `, ${rejected} rejected` : ""}.`);
+  else if (queued || rejected) outcome.push(`${queued ? `${queued} waiting for a person to approve` : ""}${queued && rejected ? ", " : ""}${rejected ? `${rejected} rejected` : ""}.`);
+  const late = num(v.advice_ticks_late);
+  if (late != null) outcome.push(late === 0 ? "Its advice was applied on the tick it read." : `Its advice was applied ${plural(late, "tick")} after the tick it read; the tick never waits for it.`);
+
+  const tone: StreamTone = modelError || r.outcome !== "enacted" ? "held" : "ok";
+  const headline = modelError
+    ? "The agent fell back to the deterministic path"
+    : `The agent read the depot and chose to ${objectiveWord(v.objective)}`;
+
+  return {
+    kind: "pass",
+    key: r.decision_seq != null ? `d${r.decision_seq}` : `a${r.occurred_at}`,
+    at: r.occurred_at,
+    tick: r.tick_seq ?? null,
+    tone,
+    headline,
+    read: modelError ? null : summary,
+    directives: modelError ? [] : directives,
+    chose,
+    outcome,
+  };
+}
+
+// ── the proposers' offers ────────────────────────────────────────────────────
+const REASON_WORD: Record<string, string> = {
+  stall_occupied: "the stall was already taken",
+  stall_reserved: "the stall was held for another car",
+  newer_proposal_same_entity: "a newer offer for the same car replaced it",
+  entity_decided_by_other_proposal: "the car was placed by another offer",
+  run_finalized: "the run ended first",
+  "bridge:not_due": "the car was not due yet",
+};
+export function reasonWord(reason: string | null | undefined): string | null {
+  if (!reason) return null;
+  const r = reason.trim();
+  return REASON_WORD[r] ?? r.replace(/_/g, " ").replace(/\s+$/, "");
+}
+
+export function offerLine(d: DispositionRow, names: ReadonlyMap<string, string>): { key: string; text: string; tone: StreamTone } {
+  const car = (d.entity_id && names.get(d.entity_id)) || "a car";
+  const who = proposerWord(d.source);
+  const why = reasonWord(d.disposition_reason);
+  const key = `p${d.disposition_id}`;
+  if (d.abstained) return { key, text: `${who} made no offer for ${car}${why ? `: ${why}` : ""}.`, tone: "idle" };
+  switch (d.status) {
+    case "enacted":
+      return { key, text: `${who}'s offer for ${car} was enacted by the decide path.`, tone: "ok" };
+    case "refused":
+      return { key, text: `${who}'s offer for ${car} was refused${why ? `: ${why}` : ""}.`, tone: "refused" };
+    case "superseded":
+      return { key, text: `${who}'s offer for ${car} was superseded${why ? `: ${why}` : ""}.`, tone: "idle" };
+    case "expired":
+      return { key, text: `${who}'s offer for ${car} expired${why ? `: ${why}` : ""}.`, tone: "idle" };
+    default:
+      return { key, text: `${who}'s offer for ${car} is ${human(d.status)}.`, tone: "idle" };
+  }
+}
+
+/** Sim time of each tick, read from the engine's own decisions on it (the ledger's disposed_at is wall time). */
+export function tickClocks(rows: readonly ActivityFeedRow[]): Map<number, string> {
+  const m = new Map<number, string>();
+  for (const r of rows) if (r.tick_seq != null && r.occurred_at && !m.has(r.tick_seq)) m.set(r.tick_seq, r.occurred_at);
+  return m;
+}
+
+/** Offers grouped by the tick they were disposed on, every planner together. Newest first. A tick where no offer was
+ *  enacted or refused (all replaced, expired or declined) is `quiet`: the tab folds those away by default. */
+export function offerBatches(
+  rows: readonly DispositionRow[],
+  names: ReadonlyMap<string, string>,
+  clocks: ReadonlyMap<number, string> = new Map(),
+): OfferBatch[] {
+  const groups = new Map<string, DispositionRow[]>();
+  for (const d of rows) {
+    const k = d.disposed_tick == null ? `w${d.disposed_at ?? d.disposition_id}` : `t${d.disposed_tick}`;
+    (groups.get(k) ?? groups.set(k, []).get(k)!).push(d);
+  }
+  const out: OfferBatch[] = [];
+  for (const [k, list] of groups) {
+    list.sort((a, b) => b.disposition_id - a.disposition_id);
+    const bySource = new Map<string, DispositionRow[]>();
+    for (const d of list) (bySource.get(d.source) ?? bySource.set(d.source, []).get(d.source)!).push(d);
+    const parts: string[] = [];
+    for (const [src, ds] of bySource) {
+      const enacted = ds.filter((d) => !d.abstained && d.status === "enacted").length;
+      const refused = ds.filter((d) => !d.abstained && d.status === "refused").length;
+      const replaced = ds.filter((d) => !d.abstained && (d.status === "superseded" || d.status === "expired")).length;
+      const declined = ds.filter((d) => d.abstained).length;
+      const bits = [
+        enacted ? `${enacted} enacted` : null,
+        refused ? `${refused} refused` : null,
+        replaced ? `${replaced} replaced` : null,
+        declined ? `no offer for ${plural(declined, "car")}` : null,
+      ].filter(Boolean);
+      parts.push(`${proposerWord(src)} ${bits.join(", ")}`);
+    }
+    const enacted = list.some((d) => !d.abstained && d.status === "enacted");
+    const refused = list.some((d) => !d.abstained && d.status === "refused");
+    const tick = list[0].disposed_tick ?? null;
+    out.push({
+      kind: "offers",
+      key: `o${k}`,
+      at: tick != null ? clocks.get(tick) ?? null : null,
+      tick,
+      tone: enacted ? "ok" : refused ? "refused" : "idle",
+      quiet: !enacted && !refused,
+      headline: `The planners' offers: ${parts.join("; ")}`,
+      lines: list.map((d) => offerLine(d, names)),
+    });
+  }
+  return out.sort((a, b) => (b.tick ?? -1) - (a.tick ?? -1));
+}
+
+/** Car names from the feed: the disposition ledger carries only ids. */
+export function namesFromRows(rows: readonly ActivityFeedRow[]): Map<string, string> {
+  const m = new Map<string, string>();
+  for (const r of rows) if (r.vehicle_id && r.display_name && !m.has(r.vehicle_id)) m.set(r.vehicle_id, r.display_name);
+  return m;
+}
+
+/** The loop, counted: read (agent passes), proposed (offers), disposed (enacted / refused), learned (graded questions). */
+export interface LoopCounts {
+  reads: number | null;
+  offers: number | null;
+  enacted: number | null;
+  refused: number | null;
+  graded: number | null;
+}
