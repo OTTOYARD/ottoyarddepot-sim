@@ -264,15 +264,26 @@ order: *"propose decide safety and then … dispatch"*.
   safety plate's checks and blocks. Tags push apart instead of overlapping. The plate labels beside the stack are larger
   and brighter, with shorter lines. A plate faded behind a zoom is taken away, so it cannot sit in a top-down view.
 
-## The tick sweep (2026-09-30)
+## The live pulse (2026-09-30)
 
-Chase: *"could the red surge … happen a little more frequently? … a pulse like every 5-10 seconds once it's live. Even if it
-doesn't pick anything up every time … to resemble actively searching and orchestration."*
+Chase: *"a pulse like every 5-10 seconds once it's live"*, then: *"more of a visual representation just going off
+consistently rather than actual scan tied to a tick … pulse every seven seconds regardless of how fast the scan or tick is
+actually going."*
 
-Every engine tick the engine goes over the whole depot: it checks every car, whether or not anything changes (that is
-why the safety plate counts thousands of checks). So while a run is **running**, each new engine tick
-(`snapshot.run.tick_count`) sends one red frame down the stack from the agent plate to the depot, and the safety
-membrane brightens as it passes. At most one sweep every 5 s (`SWEEP_MIN_GAP_S`), so a fast run does not strobe; if ticks
-come slower than that, sweeps come only as often as ticks do. No sweep while the run is paused or ended, in a hidden page
-or with reduced motion: a still stack still means nothing is running. A tick that writes records still plays them as
-before, on top of the sweep. `shouldSweep` in `stackModel.ts` holds the rule and is tested.
+While the run is **running**, a red frame runs down the stack from the agent plate to the depot every 7 s
+(`SWEEP_EVERY_S`), and the safety membrane brightens as it passes. It is **illustrative**: the one motion on the stack that
+is tied to no record and to no tick, there to show a live engine is live. It stops while the run is paused or ended, in a
+hidden page, and with reduced motion, so a still stack still means nothing is running. `shouldSweep` holds the rule.
+
+## Hover and tap (2026-09-30)
+
+Chase: *"some of the hover tiles … don't actually show any information … it's just really inconsistent."* Two causes:
+
+- **Hidden plates caught the pointer.** three.js picks objects whether or not they are visible, so in a zoom the faded or
+  hidden plates above and below still took hovers: measured by walking the pointer over each zoomed plate, 59 of 67 hovers
+  in the Agent zoom were offers and decisions on plates you could not see (Planners 67 of 109, Decide 15 of 114, Safety
+  18 of 18). Objects on a faded plate now ignore the pointer and taps: 0 foreign, 0 without words, on every plate.
+- **Stale pick bounds.** An instanced layer's pick bounds were computed at the first hover and never again, so a car or
+  tile that moved later (a new record, a new zone) could fall outside them. They are now dropped whenever instances move.
+- The objectives' pearls on the agent plate now say what they are ("Objective: readiness first · chosen by 15 passes").
+  The beads of light in flight are not objects to hover: they are a record on its way; its object is on the plate.

@@ -341,7 +341,7 @@ function PlateDetail({ plate, rows, dispositions, names, recentFor, cars, overvi
 
 // ── one record, tapped in the stack ─────────────────────────────────────────
 type Picked = { kind: PickKind; key: string };
-const PLATE_OF: Record<PickKind, PlateId> = { pass: "agent", offer: "planners", decision: "decide", car: "depot" };
+const PLATE_OF: Record<PickKind, PlateId> = { pass: "agent", offer: "planners", decision: "decide", car: "depot", objective: "agent" };
 
 function PickedCard({ picked, onClose, onPick, rowByKey, dispByKey, passByKey, cars, names, clocks }: {
   picked: Picked;
@@ -504,11 +504,10 @@ function prefersReducedMotion(): boolean {
 // ── the tab ──────────────────────────────────────────────────────────────────
 export function TwinOttoQTab() {
   const simRunId = useTwinStore((s) => s.activeSimRunId);
-  // The engine's tick, only while the run is running (not paused, not ended): each new one sweeps the stack.
-  const liveTick = useTwinStore((s) => {
+  // Running (not paused, not ended): the stack pulses while it is.
+  const running = useTwinStore((s) => {
     const r = s.snapshot?.run;
-    if (!r || r.sim_run_id !== s.activeSimRunId) return null;
-    return r.status === "running" || r.status === "active" ? Number(r.tick_count ?? 0) : null;
+    return !!r && r.sim_run_id === s.activeSimRunId && (r.status === "running" || r.status === "active");
   });
   const setActiveTab = useSimulationStore((s) => s.setActiveTab);
   const tier = useQualityStore((s) => s.tier);
@@ -686,7 +685,7 @@ export function TwinOttoQTab() {
           /* capped, so the labels keep near their plates when the panel is expanded to full width */
           <div className="mx-auto w-full max-w-[760px]">
           <OttoQStack model={model} events={events} focus={focus} onFocus={onFocusPlate} labels={labels} tags={tags}
-            height={520} tier={tier} reduced={reduced} describe={describe} onPick={onPick} picked={picked} replay={replay} tick={liveTick} />
+            height={520} tier={tier} reduced={reduced} describe={describe} onPick={onPick} picked={picked} replay={replay} live={running} />
           </div>
         ) : (
           /* No WebGL: the flat funnel, one row per layer. */

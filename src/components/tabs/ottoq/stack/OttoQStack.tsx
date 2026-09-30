@@ -27,7 +27,7 @@ import { Bloom, EffectComposer } from "@react-three/postprocessing";
 import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import {
-  ENTRY_POINT, EXIT_POINT, shouldSweep, PLATES, PLATE_D, PLATE_W, PLATE_Y, TILE_COLS, TILE_ROWS, zoneCenter,
+  ENTRY_POINT, EXIT_POINT, SWEEP_EVERY_S, shouldSweep, PLATES, PLATE_D, PLATE_W, PLATE_Y, TILE_COLS, TILE_ROWS, zoneCenter,
   type BarTone, type PlateId, type PlateLabel, type PlateTag, type StackEvent, type StackModel,
 } from "./stackModel";
 import {
@@ -54,7 +54,7 @@ const RED_HOT = new THREE.Color("#FF3347").multiplyScalar(2.4);
 const SAFE_GLOW = new THREE.Color("#5CFFC0").multiplyScalar(1.3);
 
 // ── runtime shared by every piece of the scene (mutable, never React state) ──
-export type PickKind = "pass" | "offer" | "decision" | "car";
+export type PickKind = "pass" | "offer" | "decision" | "car" | "objective";
 interface Waypoint { plate: PlateId | "floor"; x: number; z: number; dy: number }
 interface Bead { t0: number; dur: number; from: Waypoint; to: Waypoint; color: THREE.Color; size: number; arc: number; onLand?: () => void; landed?: boolean; replay?: boolean }
 /** A burst of light where a record's journey starts or ends: grows and fades. */
@@ -74,7 +74,7 @@ interface Runtime {
   beads: Bead[];
   flashes: Flash[];
   scans: number[];
-  /** Engine-tick sweeps: a red frame that runs from the agent plate down to the depot (start times). */
+  /** Live-pulse sweeps: a red frame that runs from the agent plate down to the depot (start times). */
   sweeps: number[];
   az: number;
   dragged: boolean;
@@ -83,6 +83,8 @@ interface Runtime {
   frames: number;
   /** Hover and tap on a record's object (set by the component each render; the layers call them). */
   pick: { hover?: (kind: PickKind, key: string, e: ThreeEvent<PointerEvent>) => void; out?: () => void; tap?: (kind: PickKind, key: string) => void };
+  /** The last object hovered and whether it had words (read by the dev probe). */
+  lastHover: { kind: PickKind; key: string; text: string | null; n: number } | null;
   /** Draw calls and triangles of the last frame, all passes. */
   lastInfo: { calls: number; triangles: number } | null;
 }
@@ -98,7 +100,7 @@ function useRuntime(reduced: boolean): Runtime {
       mount: nowS(), busyUntil: nowS() + 2, reduced,
       plateY: { ...PLATE_Y }, plateFade: { agent: 1, planners: 1, decide: 1, safety: 1, depot: 1 },
       reveal: new Map(), rimFlash: -99, shieldPass: -99, laneFlash: new Map(), puckPulse: new Map(), beads: [], flashes: [], scans: [], sweeps: [],
-      az: 0, dragged: false, materials: { agent: [], planners: [], decide: [], safety: [], depot: [] }, frames: 0, lastInfo: null, pick: {},
+      az: 0, dragged: false, materials: { agent: [], planners: [], decide: [], safety: [], depot: [] }, frames: 0, lastInfo: null, lastHover: null, pick: {},
     };
   }
   ref.current.reduced = reduced;
@@ -133,10 +135,13 @@ function appear(rt: Runtime, key: string, t: number): number {
 }
 
 /** Hover and tap handlers for an instanced layer whose instance i is the record order[i]. */
-function pickHandlers(rt: Runtime, kind: PickKind, order: React.MutableRefObject<string[]>) {
-  const keyOf = (e: ThreeEvent<PointerEvent | MouseEvent>) => (e.instanceId != null ? order.current[e.instanceId] : undefined);
+/** A plate faded or hidden behind a zoom: its objects must not catch the pointer (three.js picks invisible objects too). */
+const inactive = (rt: Runtime, plate: PlateId) => rt.plateFade[plate] < 0.5;
+
+function pickHandlers(rt: Runtime, kind: PickKind, order: React.MutableRefObject<string[]>, plate: PlateId) {
+  const keyOf = (e: ThreeEvent<PointerEvent | MouseEvent>) => (e.instanceId != null && !inactive(rt, plate) ? order.current[e.instanceId] : undefined);
   return {
-    userData: { pick: kind },
+    userData: { pick: kind, plate },
     onPointerMove: (e: ThreeEvent<PointerEvent>) => {
       const k = keyOf(e);
       if (!k) return;
@@ -224,7 +229,8 @@ function PlateClick({ rt, plate, onFocus, w = PLATE_W, d = PLATE_D, y = 0.02 }: 
   const onClick = (e: ThreeEvent<MouseEvent>) => {
     // A record's object anywhere under the pointer wins over the plates it is seen through (the safety membrane
     // lies over the depot): let the tap go on to it.
-    if (e.intersections.some((i) => i.object.userData?.pick && i.instanceId != null)) return;
+    if (inactive(rt, plate)) return;
+    if (e.intersections.some((i) => i.object.userData?.pick && i.instanceId != null && !inactive(rt, i.object.userData.plate))) return;
     e.stopPropagation();
     if (!rt.dragged) onFocus(plate);
   };
@@ -298,7 +304,7 @@ function AgentNodes({ rt, model }: { rt: Runtime; model: StackModel["agent"] }) 
       i++;
     }
     m.count = i;
-    m.instanceMatrix.needsUpdate = true;
+    m.instanceMatrix.needsUpdate = true; m.boundingSphere = null;
     if (m.instanceColor) m.instanceColor.needsUpdate = true;
     const lp = lines.getAttribute("position") as THREE.BufferAttribute, cp = chain.getAttribute("position") as THREE.BufferAttribute;
     const grown = model.passes.slice(0, MAX_SPHERES).map((p) => Math.min(1, appear(rt, p.key, t)));
@@ -323,12 +329,16 @@ function AgentNodes({ rt, model }: { rt: Runtime; model: StackModel["agent"] }) 
     <group>
       <lineSegments geometry={chain} material={chainMat} renderOrder={4} frustumCulled={false} />
       <lineSegments geometry={lines} material={lineMat} renderOrder={4} frustumCulled={false} />
-      <instancedMesh ref={spheres} args={[undefined, undefined, MAX_SPHERES]} material={chrome} frustumCulled={false} {...pickHandlers(rt, "pass", order)}>
+      <instancedMesh ref={spheres} args={[undefined, undefined, MAX_SPHERES]} material={chrome} frustumCulled={false} {...pickHandlers(rt, "pass", order, "agent")}>
         <sphereGeometry args={[1, 28, 18]} />
       </instancedMesh>
       {model.hubs.map((h) => (
         <group key={h.key} position={[h.x, 0.34, h.z]}>
-          <mesh material={pearl}><sphereGeometry args={[0.27, 32, 20]} /></mesh>
+          <mesh material={pearl}
+            onPointerMove={(e) => { if (inactive(rt, "agent")) return; e.stopPropagation(); document.body.style.cursor = "default"; rt.pick.hover?.("objective", h.key, e); }}
+            onPointerOut={() => { rt.pick.out?.(); }}>
+            <sphereGeometry args={[0.27, 32, 20]} />
+          </mesh>
           <sprite material={hubGlow} scale={[1.1, 1.1, 1]} />
         </group>
       ))}
@@ -406,13 +416,13 @@ function PlannerBars({ rt, lanes }: { rt: Runtime; lanes: StackModel["planners"]
       }
     }
     b.count = i; g.count = j;
-    b.instanceMatrix.needsUpdate = true; g.instanceMatrix.needsUpdate = true;
+    b.instanceMatrix.needsUpdate = true; b.boundingSphere = null; g.instanceMatrix.needsUpdate = true; g.boundingSphere = null;
     if (b.instanceColor) b.instanceColor.needsUpdate = true;
     if (g.instanceColor) g.instanceColor.needsUpdate = true;
   });
   return (
     <group>
-      <instancedMesh ref={bars} args={[undefined, undefined, MAX_BARS]} material={barMat} frustumCulled={false} {...pickHandlers(rt, "offer", order)}><boxGeometry args={[1, 1, 1]} /></instancedMesh>
+      <instancedMesh ref={bars} args={[undefined, undefined, MAX_BARS]} material={barMat} frustumCulled={false} {...pickHandlers(rt, "offer", order, "planners")}><boxGeometry args={[1, 1, 1]} /></instancedMesh>
       <instancedMesh ref={glows} args={[undefined, undefined, MAX_BARS]} material={glowMat} frustumCulled={false}><boxGeometry args={[1, 1, 1]} /></instancedMesh>
     </group>
   );
@@ -475,14 +485,14 @@ function SafetyPlate({ rt, tiles, onFocus }: { rt: Runtime; tiles: StackModel["t
       i++;
     }
     m.count = i;
-    m.instanceMatrix.needsUpdate = true;
+    m.instanceMatrix.needsUpdate = true; m.boundingSphere = null;
   });
   return (
     <PlateGroup rt={rt} plate="safety">
       <mesh material={glass} renderOrder={2}><boxGeometry args={[PLATE_W, 0.06, PLATE_D]} /></mesh>
       <mesh material={lattice} position={[0, 0.032, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={3}><planeGeometry args={[PLATE_W, PLATE_D]} /></mesh>
       <lineSegments geometry={edges} material={rim} />
-      <instancedMesh ref={blockMesh} args={[undefined, undefined, MAX_TILES]} material={blockMat} frustumCulled={false} {...pickHandlers(rt, "decision", order)}>
+      <instancedMesh ref={blockMesh} args={[undefined, undefined, MAX_TILES]} material={blockMat} frustumCulled={false} {...pickHandlers(rt, "decision", order, "safety")}>
         <boxGeometry args={[1, 1, 1]} />
       </instancedMesh>
       <PlateClick rt={rt} plate="safety" onFocus={onFocus} y={0.05} />
@@ -541,13 +551,13 @@ function DecideTiles({ rt, tiles }: { rt: Runtime; tiles: StackModel["tiles"] })
       }
     }
     m.count = i; c.count = j;
-    m.instanceMatrix.needsUpdate = true; c.instanceMatrix.needsUpdate = true;
+    m.instanceMatrix.needsUpdate = true; m.boundingSphere = null; c.instanceMatrix.needsUpdate = true; c.boundingSphere = null;
     if (m.instanceColor) m.instanceColor.needsUpdate = true;
     if (c.instanceColor) c.instanceColor.needsUpdate = true;
   });
   return (
     <group>
-      <instancedMesh ref={mesh} args={[undefined, undefined, MAX_TILES]} material={mat} frustumCulled={false} {...pickHandlers(rt, "decision", order)}><boxGeometry args={[1, 1, 1]} /></instancedMesh>
+      <instancedMesh ref={mesh} args={[undefined, undefined, MAX_TILES]} material={mat} frustumCulled={false} {...pickHandlers(rt, "decision", order, "decide")}><boxGeometry args={[1, 1, 1]} /></instancedMesh>
       <instancedMesh ref={caps} args={[undefined, undefined, MAX_TILES]} material={capMat} frustumCulled={false}><boxGeometry args={[1, 1, 1]} /></instancedMesh>
     </group>
   );
@@ -597,7 +607,7 @@ function Ports({ ports, body, slot }: { ports: [number, number, number, number][
       off.set(0, 0, 0.101).applyQuaternion(tmpQ);
       S.setMatrixAt(i, tmpM.compose(tmpP.set(x + off.x, y, z + off.z), tmpQ, tmpS.set(0.4, 0.08, 1)));
     });
-    B.instanceMatrix.needsUpdate = true; S.instanceMatrix.needsUpdate = true;
+    B.instanceMatrix.needsUpdate = true; B.boundingSphere = null; S.instanceMatrix.needsUpdate = true; S.boundingSphere = null;
   }, [ports]);
   return (
     <group>
@@ -699,13 +709,13 @@ function Pucks({ rt, depot }: { rt: Runtime; depot: StackModel["depot"] }) {
       i++;
     }
     b.count = i; l.count = i;
-    b.instanceMatrix.needsUpdate = true; l.instanceMatrix.needsUpdate = true;
+    b.instanceMatrix.needsUpdate = true; b.boundingSphere = null; l.instanceMatrix.needsUpdate = true; l.boundingSphere = null;
     if (b.instanceColor) b.instanceColor.needsUpdate = true;
     if (l.instanceColor) l.instanceColor.needsUpdate = true;
   });
   return (
     <group>
-      <instancedMesh ref={body} args={[undefined, undefined, MAX_PUCKS]} material={mat} frustumCulled={false} {...pickHandlers(rt, "car", order)}><boxGeometry args={[1, 1, 1]} /></instancedMesh>
+      <instancedMesh ref={body} args={[undefined, undefined, MAX_PUCKS]} material={mat} frustumCulled={false} {...pickHandlers(rt, "car", order, "depot")}><boxGeometry args={[1, 1, 1]} /></instancedMesh>
       <instancedMesh ref={light} args={[undefined, undefined, MAX_PUCKS]} material={lmat} frustumCulled={false}><boxGeometry args={[1, 1, 1]} /></instancedMesh>
     </group>
   );
@@ -754,7 +764,7 @@ function Scaffold({ rt }: { rt: Runtime }) {
       PLATES.forEach((p, j) => C.setMatrixAt(i * PLATES.length + j, tmpM.compose(tmpP.set(x, rt.plateY[p.id] - 0.02, z), tmpQ, tmpS.set(1, 1, 1))));
     });
     pipeXZ.forEach(([x, z], i) => R.setMatrixAt(i, tmpM.compose(tmpP.set(x, (y0 + y1) / 2, z), tmpQ, tmpS.set(1, y1 - y0, 1))));
-    P.instanceMatrix.needsUpdate = true; C.instanceMatrix.needsUpdate = true; R.instanceMatrix.needsUpdate = true;
+    P.instanceMatrix.needsUpdate = true; P.boundingSphere = null; C.instanceMatrix.needsUpdate = true; C.boundingSphere = null; R.instanceMatrix.needsUpdate = true; R.boundingSphere = null;
   });
   return (
     <group>
@@ -767,7 +777,7 @@ function Scaffold({ rt }: { rt: Runtime }) {
 
 // ── beads, scans and landing rings ──────────────────────────────────────────
 const MAX_BEADS = 48;
-/** How long one tick sweep takes to run down the stack, and the least time between two. */
+/** How long one sweep of the live pulse takes to run down the stack. */
 const SWEEP_S = 1.6;
 const TRAIL = 9;
 const MAX_FLASH = 64;
@@ -911,8 +921,7 @@ function Beads({ rt }: { rt: Runtime }) {
         scanMat.opacity = Math.sin(Math.PI * k) * 0.9;
       } else m.visible = false;
     }
-    // The tick sweep: every engine tick the engine goes over the whole depot, top to bottom, whether or not it changes
-    // anything. A red frame runs down the stack; the safety membrane brightens as it passes.
+    // The live pulse (illustrative, tied to no record): a red frame runs down the stack; the membrane brightens as it passes.
     const w = sweep.current;
     if (w) {
       rt.sweeps = rt.sweeps.filter((sw) => t < sw + SWEEP_S);
@@ -1304,7 +1313,7 @@ const Scene = memo(function Scene({ rt, model, events, focus, onFocus, labels, l
 
 export type { PlateLabel } from "./stackModel";
 
-export function OttoQStack({ model, events, focus, onFocus, labels, tags, height, tier, reduced, describe, onPick, picked = null, replay = null, tick = null }: {
+export function OttoQStack({ model, events, focus, onFocus, labels, tags, height, tier, reduced, describe, onPick, picked = null, replay = null, live = false }: {
   model: StackModel;
   events: readonly StackEvent[];
   focus: PlateId | null;
@@ -1323,8 +1332,8 @@ export function OttoQStack({ model, events, focus, onFocus, labels, tags, height
   picked?: { kind: PickKind; key: string } | null;
   /** Records to play through the stack again, when someone asks (the tab labels it REPLAY while it plays). */
   replay?: StackReplay | null;
-  /** The live run's engine tick (null when the run is not running): each new tick sweeps the stack once. */
-  tick?: number | null;
+  /** The run is running: the stack pulses (an illustrative sweep every SWEEP_EVERY_S, tied to no record). */
+  live?: boolean;
 }) {
   const rt = useRuntime(reduced);
   const [hover, setHover] = useState<{ text: string; x: number; y: number } | null>(null);
@@ -1334,25 +1343,30 @@ export function OttoQStack({ model, events, focus, onFocus, labels, tags, height
     (window as unknown as { __ottoqStack?: Runtime }).__ottoqStack = rt;
     return () => { delete (window as unknown as { __ottoqStack?: Runtime }).__ottoqStack; };
   }, [rt]);
-  // One sweep per new engine tick, at most one every SWEEP_MIN_GAP_S; none while paused, ended, hidden or reduced.
-  const lastTick = useRef<number | null>(null);
+  // The live pulse: an illustrative sweep every SWEEP_EVERY_S while the run is running (none paused, ended, hidden or
+  // with reduced motion). Checked each second; the first comes a second after the run is seen live.
   const lastSweep = useRef(-99);
   useEffect(() => {
-    const prev = lastTick.current;
-    lastTick.current = tick;
-    const t = nowS();
-    if (!shouldSweep({ prevTick: prev, tick, now: t, lastSweep: lastSweep.current, reduced, hidden: document.hidden })) return;
-    lastSweep.current = t;
-    rt.sweeps.push(t);
-    rt.busyUntil = Math.max(rt.busyUntil, t + SWEEP_S + 0.2);
-    invalidateRef.current?.();
-  }, [tick, reduced, rt]);
+    if (!live) return;
+    lastSweep.current = Math.max(lastSweep.current, nowS() - SWEEP_EVERY_S + 1);
+    const iv = window.setInterval(() => {
+      const t = nowS();
+      if (!shouldSweep({ live, now: t, lastSweep: lastSweep.current, reduced, hidden: document.hidden })) return;
+      lastSweep.current = t;
+      rt.sweeps.push(t);
+      rt.busyUntil = Math.max(rt.busyUntil, t + SWEEP_S + 0.2);
+      invalidateRef.current?.();
+    }, 1000);
+    return () => window.clearInterval(iv);
+  }, [live, reduced, rt]);
   const labelRefs = useRef<LabelRefs>({ box: [], line: [], tags: { plate: null, items: [], els: [] } });
   labelRefs.current.tags.plate = focus;
   labelRefs.current.tags.items = focus && tags ? tags[focus] : [];
   const wrap = useRef<HTMLDivElement>(null);
   rt.pick.hover = (kind, key, e) => {
-    const text = describe?.(kind, key);
+    const hub = kind === "objective" ? model.agent.hubs.find((h) => h.key === key) : null;
+    const text = hub ? `Objective: ${hub.label} · chosen by ${hub.passes} ${hub.passes === 1 ? "pass" : "passes"}` : describe?.(kind, key) ?? null;
+    rt.lastHover = { kind, key, text, n: (rt.lastHover?.n ?? 0) + 1 };
     const r = wrap.current?.getBoundingClientRect();
     if (!text || !r) return;
     const x = e.nativeEvent.clientX - r.left, y = e.nativeEvent.clientY - r.top;

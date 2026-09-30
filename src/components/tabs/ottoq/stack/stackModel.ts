@@ -571,17 +571,17 @@ export function stackModel(
   return { agent: agentModel(rows), planners: plannerModel(dispositions ?? []), tiles: decideModel(rows), depot: depotModel(vehicles, tones, read) };
 }
 
-// ── the tick sweep ──────────────────────────────────────────────────────────
-/** The least time between two tick sweeps, in seconds: a fast run does not strobe. */
-export const SWEEP_MIN_GAP_S = 5;
+// ── the live pulse ──────────────────────────────────────────────────────────
+/** Seconds between two sweeps of the live pulse. */
+export const SWEEP_EVERY_S = 7;
 
 /**
- * Whether a new engine tick sweeps the stack. Every engine tick the engine goes over the whole depot, so a sweep per
- * tick is true even when nothing changes. None while the run is not running (tick null), on the first tick seen (no
- * change yet), on a repeated tick, in a hidden page, with reduced motion, or within SWEEP_MIN_GAP_S of the last.
+ * Whether the live pulse sweeps the stack now. The pulse is ILLUSTRATIVE (Chase, 2026-09-30: "more of a visual
+ * representation just going off consistently rather than actual scan tied to a tick"): a red frame down the stack every
+ * SWEEP_EVERY_S while the run is running, so a live engine looks alive. It is tied to no record and to no tick. None
+ * while the run is paused or ended, in a hidden page, or with reduced motion: a still stack still means nothing runs.
  */
-export function shouldSweep(i: { prevTick: number | null; tick: number | null; now: number; lastSweep: number; reduced: boolean; hidden: boolean }): boolean {
-  if (i.tick == null || i.prevTick == null || i.tick === i.prevTick) return false;
-  if (i.reduced || i.hidden) return false;
-  return i.now - i.lastSweep >= SWEEP_MIN_GAP_S;
+export function shouldSweep(i: { live: boolean; now: number; lastSweep: number; reduced: boolean; hidden: boolean }): boolean {
+  if (!i.live || i.reduced || i.hidden) return false;
+  return i.now - i.lastSweep >= SWEEP_EVERY_S;
 }

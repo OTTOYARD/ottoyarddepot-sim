@@ -8,7 +8,7 @@ import { generateStallsV2 } from "@/lib/sitePlan";
 import {
   BARS_PER_LANE, ENTRY_POINT, EXIT_POINT, PLATES, REPLAY_PER, SITE_COUNTS, TILE_COLS, TILE_ROWS, ZONE, ZONES,
   PLATE_D, PLATE_MARGIN, PLATE_W, agentModel, barTone, carZone, plateTags, decideModel, decisionDest, depotModel, plannerModel, plateLabels, recordKeys, replayEvents,
-  SWEEP_MIN_GAP_S, shouldSweep, stackModel, stallNumber, takeNewEvents, zoneCapacity,
+  SWEEP_EVERY_S, shouldSweep, stackModel, stallNumber, takeNewEvents, zoneCapacity,
 } from "./stackModel";
 
 const feed = fx.feed as unknown as ActivityFeedRow[];
@@ -357,20 +357,16 @@ describe("tags on a zoomed plate", () => {
   });
 });
 
-describe("tick sweep", () => {
-  const base = { prevTick: 10, tick: 11, now: 100, lastSweep: 90, reduced: false, hidden: false };
-  it("sweeps once for a new engine tick of a running run", () => {
+describe("live pulse", () => {
+  const base = { live: true, now: 100, lastSweep: 100 - SWEEP_EVERY_S, reduced: false, hidden: false };
+  it("sweeps every seven seconds while the run is running", () => {
+    expect(SWEEP_EVERY_S).toBe(7);
     expect(shouldSweep(base)).toBe(true);
+    expect(shouldSweep({ ...base, lastSweep: 100 - SWEEP_EVERY_S + 0.5 })).toBe(false);
   });
-  it("never sweeps when the run is not running, or before a tick has changed", () => {
-    expect(shouldSweep({ ...base, tick: null })).toBe(false);
-    expect(shouldSweep({ ...base, prevTick: null })).toBe(false);
-    expect(shouldSweep({ ...base, tick: 10 })).toBe(false);
-  });
-  it("waits at least the minimum gap, and stays still with reduced motion or a hidden page", () => {
-    expect(shouldSweep({ ...base, lastSweep: 100 - SWEEP_MIN_GAP_S + 0.1 })).toBe(false);
-    expect(shouldSweep({ ...base, lastSweep: 100 - SWEEP_MIN_GAP_S })).toBe(true);
-    expect(shouldSweep({ ...base, reduced: true })).toBe(false);
+  it("never sweeps a paused or ended run, a hidden page, or with reduced motion", () => {
+    expect(shouldSweep({ ...base, live: false })).toBe(false);
     expect(shouldSweep({ ...base, hidden: true })).toBe(false);
+    expect(shouldSweep({ ...base, reduced: true })).toBe(false);
   });
 });
