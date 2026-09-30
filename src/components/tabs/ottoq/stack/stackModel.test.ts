@@ -6,9 +6,9 @@ import type { ActivityFeedRow } from "@/store/activityFeedStore";
 import type { DispositionRow, FunnelCardVehicle } from "@/lib/ottoqFunnel";
 import { generateStallsV2 } from "@/lib/sitePlan";
 import {
-  BARS_PER_LANE, ENTRY_POINT, EXIT_POINT, PLATES, SITE_COUNTS, TILE_COLS, TILE_ROWS, ZONE, ZONES,
-  agentModel, barTone, carZone, decideModel, decisionDest, depotModel, plannerModel, plateLabels, recordKeys, stallNumber,
-  takeNewEvents, zoneCapacity,
+  BARS_PER_LANE, ENTRY_POINT, EXIT_POINT, PLATES, REPLAY_PER, SITE_COUNTS, TILE_COLS, TILE_ROWS, ZONE, ZONES,
+  agentModel, barTone, carZone, decideModel, decisionDest, depotModel, plannerModel, plateLabels, recordKeys, replayEvents,
+  stackModel, stallNumber, takeNewEvents, zoneCapacity,
 } from "./stackModel";
 
 const feed = fx.feed as unknown as ActivityFeedRow[];
@@ -230,5 +230,51 @@ describe("events", () => {
     const seen = new Set<string>();
     const ev = takeNewEvents(seen, [row({ action: "bess_dispatch", vehicle_id: "b" }), row({ action: "challenger_flag", decision_seq: 2 })], null);
     expect(ev).toEqual([]);
+  });
+});
+
+describe("replay", () => {
+  const model = stackModel(cardsB, new Map(), feed, disp, true);
+  const ev = replayEvents(model, feed, disp);
+  const onPlates = new Set([
+    ...model.agent.passes.map((p) => p.key),
+    ...model.tiles.map((t) => t.key),
+    ...model.planners.flatMap((l) => l.bars.map((b) => b.key)),
+  ]);
+
+  it("plays only records whose object is on a plate, each once", () => {
+    expect(ev.length).toBeGreaterThan(0);
+    expect(new Set(ev.map((e) => e.key)).size).toBe(ev.length);
+    for (const e of ev) expect(onPlates.has(e.key)).toBe(true);
+  });
+
+  it("plays the newest of each kind, no more than its share", () => {
+    const kinds = (k: string) => ev.filter((e) => e.kind === k);
+    expect(kinds("pass").length).toBe(Math.min(REPLAY_PER.pass, model.agent.passes.length));
+    expect(kinds("decision").length).toBe(Math.min(REPLAY_PER.decision, model.tiles.length));
+    expect(kinds("offer").length).toBeLessThanOrEqual(REPLAY_PER.offer);
+    expect(kinds("offer").length).toBeGreaterThan(0);
+    // the newest decision on the plate is the last decision replayed
+    const lastDecision = kinds("decision").at(-1)!;
+    expect(lastDecision.key).toBe(model.tiles[0].key);
+    const offerIds = kinds("offer").map((e) => Number(e.key.slice(1)));
+    const barIds = model.planners.flatMap((l) => l.bars.map((b) => Number(b.key.slice(1)))).sort((a, b) => b - a);
+    expect(Math.max(...offerIds)).toBe(barIds[0]);
+  });
+
+  it("keeps the order the records were written in, and spreads the offers through the rest", () => {
+    const timed = ev.filter((e) => e.kind !== "offer").map((e) => Date.parse(e.at ?? ""));
+    expect(timed).toEqual([...timed].sort((a, b) => a - b));
+    const offerIds = ev.filter((e) => e.kind === "offer").map((e) => Number(e.key.slice(1)));
+    expect(offerIds).toEqual([...offerIds].sort((a, b) => a - b));
+    const firstOffer = ev.findIndex((e) => e.kind === "offer");
+    const lastOffer = ev.map((e) => e.kind).lastIndexOf("offer");
+    expect(firstOffer).toBeLessThan(ev.length / 3);
+    expect(lastOffer).toBeGreaterThan((2 * ev.length) / 3);
+  });
+
+  it("has nothing to replay before any record has been read", () => {
+    const empty = stackModel([], new Map(), [], null, false);
+    expect(replayEvents(empty, [], null)).toEqual([]);
   });
 });

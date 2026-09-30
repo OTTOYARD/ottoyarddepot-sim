@@ -6,7 +6,8 @@
 // A headless Chromium opens the dev server at /?run=<fixture run> and answers ONLY the read RPCs these tabs call, from
 // src/components/tabs/__fixtures__/ottoqRun.1ccad49b.json (a read-only capture). EVERY other request to the Supabase
 // project is aborted before it leaves the browser, so nothing can start, stop, pause or write anything. No button is
-// pressed except tab buttons and layer rows.
+// pressed except tab buttons, layer rows and, with --replay, the OTTO-Q tab's own "Replay the newest records" and
+// "Stop the replay" (selected by those exact labels inside the replay row; they read and write nothing).
 //
 // The depot cards answer the fixture's first captured frame, then its second (two real states 92 s apart), and the
 // decision feed and the offer ledger answer an older page first and then the full page: real records arriving in the
@@ -84,6 +85,8 @@ function installRoutes(page) {
 }
 
 let interact = null;
+let replayLog = null;
+let cost = null;
 async function panelShots(browser, width) {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1, reducedMotion: "no-preference" });
   const page = await ctx.newPage();
@@ -125,6 +128,46 @@ async function panelShots(browser, width) {
       el?.querySelectorAll("*").forEach((n) => { if (n.scrollWidth > n.clientWidth + 1 && getComputedStyle(n).overflowX !== "hidden" && getComputedStyle(n).overflowX !== "auto" && getComputedStyle(n).overflowX !== "scroll" && n.clientWidth > 0) bad.push(n.tagName + "." + (n.className || "").toString().slice(0, 40)); });
       return { panel: el ? [el.scrollWidth, el.clientWidth] : null, bad: bad.slice(0, 5) };
     });
+    if (!BEFORE && t === "OTTO-Q" && width === WIDTHS[0]) {
+      // Cost, from the stack's dev-only probe: the last frame's draw calls and triangles (bloom passes included), and
+      // how many frames a quiet stretch renders (the loop should stop once nothing moves).
+      const probe = () => page.evaluate(() => { const rt = window.__ottoqStack; return rt ? { frames: rt.frames, last: rt.lastInfo } : null; });
+      const a = await probe();
+      await page.waitForTimeout(4000);
+      const b = await probe();
+      cost = a && b ? { drawCalls: b.last?.calls ?? null, triangles: b.last?.triangles ?? null, framesInQuiet4s: b.frames - a.frames } : null;
+    }
+    if (!BEFORE && t === "OTTO-Q" && has("--replay") && width === WIDTHS[0]) {
+      // Replay: ask for it, shoot the transport row and the stack while it plays, then stop it and check it let go.
+      const stackEl = page.locator("div.w-\\[420px\\] canvas").first();
+      const startBtn = page.locator("[data-replay-bar] button[aria-label='Replay the newest records']");
+      const idle = (await page.locator("[data-replay-bar]").first().textContent())?.replace(/\s+/g, " ").trim();
+      await startBtn.click();
+      const frames = [];
+      const hiddenNow = () => page.evaluate(() => {
+        const rt = window.__ottoqStack;
+        if (!rt) return null;
+        const t = performance.now() / 1000;
+        return [...rt.reveal.values()].filter((at) => at > t).length;
+      });
+      // A software-rendered screenshot takes ~3 s: four frames span ~14 s of the ~20 s replay, then Stop is pressed
+      // while records are still hidden, and must put every one of them back.
+      for (let f = 0; f < 4; f++) {
+        await page.waitForTimeout(f === 0 ? 1400 : 300);
+        const box = await stackEl.boundingBox();
+        const nm = `replay-${String(f).padStart(2, "0")}.png`;
+        if (box) await page.screenshot({ path: path.join(OUT, nm), clip: { x: box.x, y: box.y - 36, width: box.width, height: box.height + 36 } });
+        shots.push(nm);
+        frames.push((await page.locator("[data-replay-bar][role=status]").first().textContent({ timeout: 1000 }).catch(() => null))?.replace(/\s+/g, " ").trim() ?? null);
+      }
+      const hiddenBeforeStop = await hiddenNow();
+      const stopBtn = page.locator("[data-replay-bar][role=status] button[aria-label='Stop the replay']");
+      const stopped = await stopBtn.click({ timeout: 3000 }).then(() => true, () => false);
+      await page.waitForTimeout(1500);
+      const after = await page.locator("[data-replay-bar][role=status]").count();
+      const hidden = await hiddenNow();
+      replayLog = { idle, frames, hiddenBeforeStop, stopped, statusAfterStop: after, hiddenAfterStop: hidden };
+    }
     if (!BEFORE && t === "OTTO-Q") {
       // Open two layers and shoot each.
       const flat = await page.locator("ol[aria-label='OTTO-Q layers']").count();
@@ -197,7 +240,7 @@ async function panelShots(browser, width) {
   const full = `${BEFORE ? "before" : "after"}-cockpit-${width}.png`;
   await page.screenshot({ path: path.join(OUT, full) });
   await ctx.close();
-  return { width, shots, errors: [...new Set(errors)], overflow, log, interact: width === WIDTHS[0] ? interact : undefined };
+  return { width, shots, errors: [...new Set(errors)], overflow, log, interact: width === WIDTHS[0] ? interact : undefined, replay: width === WIDTHS[0] ? replayLog : undefined, cost: width === WIDTHS[0] ? cost : undefined };
 }
 
 async function phoneShots(browser) {

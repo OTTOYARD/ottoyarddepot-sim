@@ -84,6 +84,22 @@ appear on their plates. Nothing plays while the run is paused, because nothing n
 by a record is the viewer's own: dragging sideways turns the stack, and tapping a plate zooms to it (it lifts the other
 plates away and fades them).
 
+**Replay, only when asked.** An ended, paused or quiet run writes nothing new, so on its own the stack stands still. The
+row above the stack offers **▶ Replay**: the newest records on the plates (6 agent passes, 10 offers, 14 decisions,
+`REPLAY_PER`) are hidden and played through the stack again, one every 0.6 s, in the order they were written, with the
+same light a new record gets. While it plays, the row says **REPLAY n of 30** and names the record playing, in the same
+words as its hover line (*"Waymo-AV-025: Assigned a stall · 08:12:51"*). **■ Stop** puts everything back at once. It
+never starts on its own, and it plays only records whose object is on a plate, so every bead starts and lands on
+something real. Passes and decisions share the feed's clock and keep their time order; offers carry the ledger's clock, so
+they keep their id order and are spread evenly through the rest (the live stream's own compromise). Pucks are not
+replayed: the cards give only where each car is now, so a replayed decision's bead lands on its car where it stands today.
+The replay's Stop is the replay's own button, labelled "Stop the replay"; it is not the run's Stop and calls nothing.
+
+The agent's threads grow with their pass: a pass still to come has no thread yet, and the thread from its objective and
+from the pass before it draws out as the sphere appears. The scaffold's two red light pipes brighten while a record is
+travelling down the stack and dim when nothing is; its posts all but vanish while a plate is zoomed, so they do not cross
+the plate being read.
+
 **Every object can be read.** Hover one for a line about its record; tap it and the stack zooms to its plate and a card
 below says it in words: an agent pass (what it read, the directives, what it chose, what happened), an offer (who
 offered it, for which car, what the decide path did and why), a decision (what, why, whether the safety check overrode
@@ -133,7 +149,8 @@ the Agent tab.
   superseded or expired.
 - **Grey**: no decision recorded for this car in the window, or an offer superseded, expired or abstained.
 - **Motion**: a car glides only between two states the engine reported. A spark or bead travels only along the path its
-  record names. When the run is paused, polling stops and the stack freezes (the stream's own rule).
+  record names. When the run is paused, polling stops and the stack freezes (the stream's own rule). The one exception
+  is a replay someone asked for, which says REPLAY for as long as it plays.
 - A missing number shows as "—", never 0.
 
 ## Each layer's one-line overview (and its source)

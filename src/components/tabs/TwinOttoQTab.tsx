@@ -11,7 +11,7 @@
 // Every dot is a car from ottoq_depot_cards; every spark is one engine record that arrived since the last poll.
 // ============================================================================
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronRight, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Loader2, Play, Square } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTwinStore } from "@/store/twinStore";
 import { useActivityFeed } from "@/hooks/useActivityFeed";
@@ -23,9 +23,10 @@ import { useDecisionTrail } from "@/hooks/useDecisionTrail";
 import { EndedState, StreamState } from "@/components/tabs/TwinDecisionLogTab";
 import { useSimulationStore } from "@/store/simulationStore";
 import { useQualityStore } from "@/components/canvas/three/quality/qualityStore";
-import { OttoQStack, type PickKind } from "@/components/tabs/ottoq/stack/OttoQStack";
+import { OttoQStack, type PickKind, type StackReplay } from "@/components/tabs/ottoq/stack/OttoQStack";
 import {
-  PLATES, plateLabels, recordKeys, stackModel, takeNewEvents, type PlateId, type PlateLabel, type StackEvent,
+  PLATES, REPLAY_STEP_S, plateLabels, recordKeys, replayEvents, stackModel, takeNewEvents,
+  type PlateId, type PlateLabel, type StackEvent,
 } from "@/components/tabs/ottoq/stack/stackModel";
 import { agentPass, isLiveStatus, namesFromRows, offerBatches, offerLine, tickClocks } from "@/lib/agentStream";
 import { FunnelCanvas } from "@/components/tabs/ottoq/FunnelCanvas";
@@ -437,6 +438,42 @@ function PickedCard({ picked, onClose, onPick, rowByKey, dispByKey, passByKey, c
 
 /** WebGL once per page: the stack needs it; without it the flat funnel stands in. */
 let webglOk: boolean | null = null;
+// ── replay: records already written, played through the stack again when asked ──
+function ReplayBar({ replay, at, count, line, onStart, onStop }: {
+  replay: StackReplay | null; at: number; count: number; line: string | null; onStart: () => void; onStop: () => void;
+}) {
+  const btn = "inline-flex shrink-0 items-center gap-1.5 rounded border px-2 py-[3px] font-display text-[10px] uppercase tracking-[0.07em]";
+  if (!replay) {
+    return (
+      <div className="flex h-[30px] items-center gap-2" data-replay-bar>
+        <button type="button" onClick={onStart} disabled={!count} aria-label="Replay the newest records"
+          className={`${btn} border-white/15 text-ink hover:border-brand-hot/60 hover:text-brand-hot disabled:opacity-40`}>
+          <Play aria-hidden size={9} fill="currentColor" strokeWidth={0} /> Replay
+        </button>
+        <span className="min-w-0 truncate text-[10px] text-ink-faint">
+          {count ? `the newest ${count} records, in the order they were written` : "nothing to replay yet"}
+        </span>
+      </div>
+    );
+  }
+  const n = replay.events.length;
+  const k = Math.max(0, Math.min(n - 1, at));
+  return (
+    <div className="h-[30px]" role="status" aria-live="off" data-replay-bar>
+      <div className="flex items-center gap-2">
+        <button type="button" onClick={onStop} aria-label="Stop the replay" className={`${btn} border-brand-hot/60 text-brand-hot`}>
+          <Square aria-hidden size={8} fill="currentColor" strokeWidth={0} /> Stop
+        </button>
+        <span className="shrink-0 font-mono text-[10px] text-brand-hot">REPLAY {at < 0 ? "…" : `${k + 1} of ${n}`}</span>
+        <span className="min-w-0 truncate text-[10px] text-ink-dim">{at < 0 || !line ? "records already written, played again, not live" : line}</span>
+      </div>
+      <div className="mt-1 h-px w-full bg-white/10">
+        <div className="h-px bg-brand-hot" style={{ width: `${at < 0 ? 0 : ((k + 1) / n) * 100}%` }} />
+      </div>
+    </div>
+  );
+}
+
 function hasWebGL(): boolean {
   if (webglOk != null) return webglOk;
   try {
@@ -556,6 +593,29 @@ export function TwinOttoQTab() {
     [disp.rows, slice, rows, cardsRead, cars],
   );
 
+  // A replay: the newest records on the plates, played again only when asked, and labelled REPLAY while it plays.
+  const [replay, setReplay] = useState<StackReplay | null>(null);
+  const [replayAt, setReplayAt] = useState(-1);
+  const replayable = useMemo(() => (threeD ? replayEvents(model, rows, disp.rows) : []), [threeD, model, rows, disp.rows]);
+  const startReplay = useCallback(() => {
+    if (!replayable.length) return;
+    setReplayAt(-1);
+    setReplay({ id: Date.now(), t0: performance.now() / 1000 + 0.4, step: REPLAY_STEP_S, events: replayable });
+  }, [replayable]);
+  useEffect(() => {
+    if (!replay) return;
+    const tick = () => {
+      const k = Math.floor((performance.now() / 1000 - replay.t0) / replay.step);
+      if (k >= replay.events.length + 3) { setReplay(null); setReplayAt(-1); return; }
+      setReplayAt(Math.min(replay.events.length - 1, k));
+    };
+    tick();
+    const iv = window.setInterval(tick, 150);
+    return () => window.clearInterval(iv);
+  }, [replay]);
+  useEffect(() => { setReplay(null); setReplayAt(-1); }, [simRunId]);
+  const replayLine = replay && replayAt >= 0 ? describe(replay.events[Math.min(replayAt, replay.events.length - 1)].kind, replay.events[Math.min(replayAt, replay.events.length - 1)].key) : null;
+
   if (!simRunId) {
     return (
       <div className="flex-1 p-4">
@@ -596,9 +656,13 @@ export function TwinOttoQTab() {
           </p>
         )}
 
+        {threeD && (
+          <ReplayBar replay={replay} at={replayAt} count={replayable.length} line={replayLine}
+            onStart={startReplay} onStop={() => { setReplay(null); setReplayAt(-1); }} />
+        )}
         {threeD ? (
           <OttoQStack model={model} events={events} focus={focus} onFocus={onFocusPlate} labels={labels}
-            height={460} tier={tier} reduced={reduced} describe={describe} onPick={onPick} picked={picked} />
+            height={460} tier={tier} reduced={reduced} describe={describe} onPick={onPick} picked={picked} replay={replay} />
         ) : (
           /* No WebGL: the flat funnel, one row per layer. */
           <div className="flex gap-2">

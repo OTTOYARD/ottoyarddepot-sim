@@ -55,9 +55,9 @@ const RED_HOT = new THREE.Color("#FF3347").multiplyScalar(2.4);
 // ── runtime shared by every piece of the scene (mutable, never React state) ──
 export type PickKind = "pass" | "offer" | "decision" | "car";
 interface Waypoint { plate: PlateId | "floor"; x: number; z: number; dy: number }
-interface Bead { t0: number; dur: number; from: Waypoint; to: Waypoint; color: THREE.Color; size: number; arc: number; onLand?: () => void; landed?: boolean }
+interface Bead { t0: number; dur: number; from: Waypoint; to: Waypoint; color: THREE.Color; size: number; arc: number; onLand?: () => void; landed?: boolean; replay?: boolean }
 /** A burst of light where a record's journey starts or ends: grows and fades. */
-interface Flash { t0: number; dur: number; at: Waypoint; color: THREE.Color; size: number }
+interface Flash { t0: number; dur: number; at: Waypoint; color: THREE.Color; size: number; replay?: boolean }
 interface Runtime {
   mount: number;
   busyUntil: number;
@@ -250,17 +250,13 @@ function AgentNodes({ rt, model }: { rt: Runtime; model: StackModel["agent"] }) 
   const chainMat = useFadeMaterial(rt, "agent", () => new THREE.LineBasicMaterial({ color: new THREE.Color("#ff8a95"), toneMapped: false, opacity: 0.22, depthWrite: false }));
   const glowTex = useMemo(glowTexture, []);
   const hubGlow = useFadeMaterial(rt, "agent", () => new THREE.SpriteMaterial({ map: glowTex, color: new THREE.Color("#ffd2d6").multiplyScalar(1.4), blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, opacity: 0.9 }));
-  const lines = useMemo(() => new THREE.BufferGeometry(), []);
-  const chain = useMemo(() => new THREE.BufferGeometry(), []);
+  // The threads: pass → its objective, and pass → the pass before it. Each grows out as its pass appears, so a pass
+  // still to come (a replay's, or one landing now) has no thread yet.
+  const segs = () => { const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(MAX_SPHERES * 6), 3)); g.setDrawRange(0, 0); return g; };
+  const lines = useMemo(segs, []);
+  const chain = useMemo(segs, []);
   useEffect(() => () => { lines.dispose(); chain.dispose(); glowTex.dispose(); }, [lines, chain, glowTex]);
-
-  useEffect(() => {
-    const seg = (list: number[][]) => new Float32Array(list.flatMap(([x0, z0, x1, z1]) => [x0, 0.12, z0, x1, 0.12, z1]));
-    lines.setAttribute("position", new THREE.BufferAttribute(seg(model.hubEdges), 3));
-    chain.setAttribute("position", new THREE.BufferAttribute(seg(model.chainEdges), 3));
-    lines.computeBoundingSphere(); chain.computeBoundingSphere();
-    rt.busyUntil = Math.max(rt.busyUntil, nowS() + 0.1);
-  }, [model, lines, chain, rt]);
+  useEffect(() => { rt.busyUntil = Math.max(rt.busyUntil, nowS() + 0.1); }, [model, rt]);
 
   useEffect(() => {
     const m = spheres.current;
@@ -287,12 +283,29 @@ function AgentNodes({ rt, model }: { rt: Runtime; model: StackModel["agent"] }) 
     m.count = i;
     m.instanceMatrix.needsUpdate = true;
     if (m.instanceColor) m.instanceColor.needsUpdate = true;
+    const lp = lines.getAttribute("position") as THREE.BufferAttribute, cp = chain.getAttribute("position") as THREE.BufferAttribute;
+    const grown = model.passes.slice(0, MAX_SPHERES).map((p) => Math.min(1, appear(rt, p.key, t)));
+    let nl = 0, nc = 0;
+    grown.forEach((a, k) => {
+      const e = model.hubEdges[k];
+      if (a <= 0.001 || !e) return;
+      lp.setXYZ(nl * 2, e[2], 0.12, e[3]);
+      lp.setXYZ(nl * 2 + 1, e[2] + (e[0] - e[2]) * a, 0.12, e[3] + (e[1] - e[3]) * a);
+      nl++;
+      const c = model.chainEdges[k];
+      if (!c || (grown[k + 1] ?? 0) <= 0.001) return;
+      cp.setXYZ(nc * 2, c[2], 0.12, c[3]);
+      cp.setXYZ(nc * 2 + 1, c[2] + (c[0] - c[2]) * a, 0.12, c[3] + (c[1] - c[3]) * a);
+      nc++;
+    });
+    lines.setDrawRange(0, nl * 2); chain.setDrawRange(0, nc * 2);
+    lp.needsUpdate = true; cp.needsUpdate = true;
   });
 
   return (
     <group>
-      <lineSegments geometry={chain} material={chainMat} renderOrder={4} />
-      <lineSegments geometry={lines} material={lineMat} renderOrder={4} />
+      <lineSegments geometry={chain} material={chainMat} renderOrder={4} frustumCulled={false} />
+      <lineSegments geometry={lines} material={lineMat} renderOrder={4} frustumCulled={false} />
       <instancedMesh ref={spheres} args={[undefined, undefined, MAX_SPHERES]} material={chrome} frustumCulled={false} {...pickHandlers(rt, "pass", order)}>
         <sphereGeometry args={[1, 28, 18]} />
       </instancedMesh>
@@ -665,10 +678,13 @@ function Scaffold({ rt }: { rt: Runtime }) {
   useFrame(() => {
     const P = posts.current, C = collars.current, R = pipes.current;
     if (!P || !C || !R) return;
-    // structure recedes when one plate is being read
+    // structure recedes when one plate is being read (its posts would otherwise cross the plate in front of it)
     const f = Math.min(rt.plateFade.agent, rt.plateFade.planners, rt.plateFade.decide, rt.plateFade.depot);
-    metal.opacity = 0.25 + 0.75 * ((f - 0.07) / 0.93);
-    pipe.opacity = 0.55 * ((f - 0.07) / 0.93);
+    metal.opacity = 0.08 + 0.92 * ((f - 0.07) / 0.93);
+    // the light pipes brighten while a record is travelling down the stack, and only then
+    const t = nowS();
+    const travelling = rt.beads.filter((b) => t >= b.t0 && t < b.t0 + b.dur).length;
+    pipe.opacity = (0.4 + 0.5 * Math.min(1, travelling / 2)) * ((f - 0.07) / 0.93);
     const key = PLATES.map((p) => rt.plateY[p.id].toFixed(3)).join(",");
     if (key === last.current) return;
     last.current = key;
@@ -1015,16 +1031,21 @@ const BEAD_COLOR: Record<string, THREE.Color> = {
 function schedule(rt: Runtime, model: StackModel, events: readonly StackEvent[], played: Set<string>) {
   const fresh = events.filter((e) => !played.has(e.key));
   if (!fresh.length) return;
-  const t0 = nowS();
+  fresh.forEach((e) => played.add(e.key));
   const spread = rt.reduced ? 0 : Math.min(3.5, 0.45 * fresh.length);
-  const step = fresh.length > 1 ? spread / (fresh.length - 1) : 0;
+  playEvents(rt, model, fresh, nowS(), fresh.length > 1 ? spread / (fresh.length - 1) : 0, false);
+}
+
+/** Each record's object appears at its turn (hidden until then), with the light that carries it down the stack. */
+function playEvents(rt: Runtime, model: StackModel, list: readonly StackEvent[], t0: number, step: number, replay: boolean) {
   const passBy = new Map(model.agent.passes.map((p) => [p.key, p]));
   const tileBy = new Map(model.tiles.map((x) => [x.key, x]));
   const barBy = new Map(model.planners.flatMap((l) => l.bars.map((b) => [b.key, { ...b, z: l.z, word: l.word }] as const)));
   const puckBy = new Map(model.depot.pucks.map((p) => [p.id, p]));
   const firstLane = model.planners[0];
-  fresh.forEach((e, i) => {
-    played.add(e.key);
+  const bead = (b: Bead) => rt.beads.push(replay ? { ...b, replay } : b);
+  const flash = (f: Flash) => rt.flashes.push(replay ? { ...f, replay } : f);
+  list.forEach((e, i) => {
     const at = t0 + i * step;
     rt.reveal.set(e.key, at);
     rt.busyUntil = Math.max(rt.busyUntil, at + 2.2);
@@ -1035,30 +1056,30 @@ function schedule(rt: Runtime, model: StackModel, events: readonly StackEvent[],
     if (e.kind === "pass") {
       rt.scans.push(at);
       const p = passBy.get(e.key);
-      if (p) rt.flashes.push({ t0: at, dur: 1.0, at: { plate: "agent", x: p.x, z: p.z, dy: 0.3 }, color: e.tone === "ok" ? BEAD_COLOR.white : BEAD_COLOR.held, size: 2.6 });
+      if (p) flash({ t0: at, dur: 1.0, at: { plate: "agent", x: p.x, z: p.z, dy: 0.3 }, color: e.tone === "ok" ? BEAD_COLOR.white : BEAD_COLOR.held, size: 2.6 });
       if (e.handoff && p && firstLane) {
-        rt.beads.push({ t0: at + 0.6, dur: 1.2, from: { plate: "agent", x: p.x, z: p.z, dy: 0.3 }, to: { plate: "planners", x: -4.3, z: firstLane.z, dy: 0.25 }, color: BEAD_COLOR.white, size: 0.95, arc: 0.3 });
+        bead({ t0: at + 0.6, dur: 1.2, from: { plate: "agent", x: p.x, z: p.z, dy: 0.3 }, to: { plate: "planners", x: -4.3, z: firstLane.z, dy: 0.25 }, color: BEAD_COLOR.white, size: 0.95, arc: 0.3 });
       }
     } else if (e.kind === "offer") {
       const b = barBy.get(e.key);
       if (!b) return;
       if (e.tone === "ok") {
-        rt.flashes.push({ t0: at + 0.3, dur: 0.8, at: { plate: "planners", x: b.x, z: b.z, dy: 0.3 }, color: BEAD_COLOR.ok, size: 2 });
-        rt.beads.push({ t0: at + 0.35, dur: 1.0, from: { plate: "planners", x: b.x, z: b.z, dy: 0.3 }, to: { plate: "decide", x: b.x, z: Math.max(-2.3, Math.min(2.3, b.z)), dy: 0.25 }, color: BEAD_COLOR.ok, size: 0.9, arc: 0.2 });
+        flash({ t0: at + 0.3, dur: 0.8, at: { plate: "planners", x: b.x, z: b.z, dy: 0.3 }, color: BEAD_COLOR.ok, size: 2 });
+        bead({ t0: at + 0.35, dur: 1.0, from: { plate: "planners", x: b.x, z: b.z, dy: 0.3 }, to: { plate: "decide", x: b.x, z: Math.max(-2.3, Math.min(2.3, b.z)), dy: 0.25 }, color: BEAD_COLOR.ok, size: 0.9, arc: 0.2 });
       } else if (e.tone === "refused") {
         rt.laneFlash.set(e.key, at + 0.2);
-        rt.flashes.push({ t0: at + 0.2, dur: 0.9, at: { plate: "planners", x: b.x, z: b.z, dy: 0.3 }, color: BEAD_COLOR.refused, size: 2.2 });
+        flash({ t0: at + 0.2, dur: 0.9, at: { plate: "planners", x: b.x, z: b.z, dy: 0.3 }, color: BEAD_COLOR.refused, size: 2.2 });
       }
     } else if (e.kind === "decision") {
       const tile = tileBy.get(e.key);
-      if (tile) rt.flashes.push({ t0: at + 0.15, dur: 0.8, at: { plate: "decide", x: tile.x, z: tile.z, dy: 0.25 }, color: BEAD_COLOR[e.tone === "ok" ? "ok" : e.tone === "refused" ? "refused" : "held"], size: e.tone === "refused" ? 2.8 : 1.6 });
+      if (tile) flash({ t0: at + 0.15, dur: 0.8, at: { plate: "decide", x: tile.x, z: tile.z, dy: 0.25 }, color: BEAD_COLOR[e.tone === "ok" ? "ok" : e.tone === "refused" ? "refused" : "held"], size: e.tone === "refused" ? 2.8 : 1.6 });
       if (e.tone === "refused") { rt.rimFlash = at + 0.25; return; }
       if (e.tone !== "ok" || !e.dest || !tile) return;
       const puck = e.carId ? puckBy.get(e.carId) : undefined;
       const to = e.dest === "exit"
         ? { x: EXIT_POINT.x, z: EXIT_POINT.z }
         : puck ?? zoneCenter(e.dest);
-      rt.beads.push({
+      bead({
         t0: at + 0.3, dur: 1.3, from: { plate: "decide", x: tile.x, z: tile.z, dy: 0.3 }, to: { plate: "depot", x: to.x, z: to.z, dy: 0.2 },
         color: BEAD_COLOR.ok, size: 0.95, arc: 0.2,
         onLand: () => { if (e.carId) rt.puckPulse.set(e.carId, nowS()); },
@@ -1067,6 +1088,24 @@ function schedule(rt: Runtime, model: StackModel, events: readonly StackEvent[],
   });
   if (rt.beads.length > MAX_BEADS) rt.beads = rt.beads.slice(-MAX_BEADS);
 }
+
+/** A stopped replay: whatever it had hidden is back on its plate at once, and its light is gone. */
+function stopReplay(rt: Runtime, keys: readonly string[]) {
+  const t = nowS();
+  for (const k of keys) {
+    const at = rt.reveal.get(k);
+    if (at != null && at > t - 0.4) rt.reveal.set(k, t - 2);
+    rt.laneFlash.delete(k);
+  }
+  rt.beads = rt.beads.filter((b) => !b.replay);
+  rt.flashes = rt.flashes.filter((f) => !f.replay);
+  rt.scans = rt.scans.filter((sc) => sc <= t);
+  if (rt.rimFlash > t) rt.rimFlash = -99;
+  rt.busyUntil = Math.max(rt.busyUntil, t + 0.2);
+}
+
+/** A replay the tab asked for: these records, one every `step` seconds from `t0` (performance.now() seconds). */
+export interface StackReplay { id: number; t0: number; step: number; events: readonly StackEvent[] }
 
 /** A ring over the tapped record's object: selection, not activity, so it holds still. */
 function Marker({ rt, model, picked }: { rt: Runtime; model: StackModel; picked: { kind: PickKind; key: string } | null }) {
@@ -1096,14 +1135,29 @@ function Marker({ rt, model, picked }: { rt: Runtime; model: StackModel; picked:
   );
 }
 
-const Scene = memo(function Scene({ rt, model, events, focus, onFocus, labels, labelColumn, bloom, picked }: {
+const Scene = memo(function Scene({ rt, model, events, focus, onFocus, labels, labelColumn, bloom, picked, replay }: {
   rt: Runtime; model: StackModel; events: readonly StackEvent[]; focus: PlateId | null; onFocus: (p: PlateId) => void;
   labels: React.MutableRefObject<LabelRefs>; labelColumn: number; bloom: boolean; picked: { kind: PickKind; key: string } | null;
+  replay: StackReplay | null;
 }) {
   const { invalidate } = useThree();
   useEffect(() => { invalidate(); }, [picked, invalidate]);
   const played = useRef(new Set<string>());
   useEffect(() => { schedule(rt, model, events, played.current); invalidate(); }, [events, model, rt, invalidate]);
+  // A replay is scheduled once, against the plates as they stood when it was asked for; stopping it (or starting
+  // another) puts everything it had hidden straight back.
+  const modelNow = useRef(model);
+  modelNow.current = model;
+  const replaying = useRef<{ id: number; keys: string[] } | null>(null);
+  useEffect(() => {
+    const prev = replaying.current;
+    if (prev && prev.id !== replay?.id) { stopReplay(rt, prev.keys); replaying.current = null; }
+    if (replay && !replaying.current) {
+      playEvents(rt, modelNow.current, replay.events, replay.t0, replay.step, true);
+      replaying.current = { id: replay.id, keys: replay.events.map((e) => e.key) };
+    }
+    invalidate();
+  }, [replay, rt, invalidate]);
   useEffect(() => { invalidate(); }, [focus, invalidate]);
   return (
     <>
@@ -1128,7 +1182,7 @@ const Scene = memo(function Scene({ rt, model, events, focus, onFocus, labels, l
 
 export type { PlateLabel } from "./stackModel";
 
-export function OttoQStack({ model, events, focus, onFocus, labels, height, tier, reduced, describe, onPick, picked = null }: {
+export function OttoQStack({ model, events, focus, onFocus, labels, height, tier, reduced, describe, onPick, picked = null, replay = null }: {
   model: StackModel;
   events: readonly StackEvent[];
   focus: PlateId | null;
@@ -1143,6 +1197,8 @@ export function OttoQStack({ model, events, focus, onFocus, labels, height, tier
   onPick?: (kind: PickKind, key: string) => void;
   /** The record whose object carries the selection ring. */
   picked?: { kind: PickKind; key: string } | null;
+  /** Records to play through the stack again, when someone asks (the tab labels it REPLAY while it plays). */
+  replay?: StackReplay | null;
 }) {
   const rt = useRuntime(reduced);
   const [hover, setHover] = useState<{ text: string; x: number; y: number } | null>(null);
@@ -1205,7 +1261,7 @@ export function OttoQStack({ model, events, focus, onFocus, labels, height, tier
         style={{ position: "absolute", inset: 0 }}
         aria-hidden
       >
-        <Scene rt={rt} model={model} events={events} focus={focus} onFocus={onPlate} labels={labelRefs} labelColumn={labelColumn} bloom={tier !== "low"} picked={picked} />
+        <Scene rt={rt} model={model} events={events} focus={focus} onFocus={onPlate} labels={labelRefs} labelColumn={labelColumn} bloom={tier !== "low"} picked={picked} replay={replay} />
       </Canvas>
 
       {hover && (

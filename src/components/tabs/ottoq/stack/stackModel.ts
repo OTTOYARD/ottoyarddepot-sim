@@ -368,44 +368,101 @@ export function recordKeys(rows: readonly ActivityFeedRow[], dispositions: reado
   return keys;
 }
 
+function passEvent(r: ActivityFeedRow): StackEvent {
+  const p = agentPass(r);
+  return { kind: "pass", key: decisionKey(r), tone: p.tone === "ok" ? "ok" : "held", handoff: String(r.rationale?.handoff_status ?? "") === "completed", at: r.occurred_at };
+}
+function decisionEvent(r: ActivityFeedRow): StackEvent {
+  return { kind: "decision", key: decisionKey(r), tone: rowTone(r), carId: r.vehicle_id, dest: decisionDest(r), at: r.occurred_at };
+}
+function offerEvent(d: DispositionRow): StackEvent {
+  return { kind: "offer", key: `p${d.disposition_id}`, tone: barTone(d), lane: proposerWord(d.source), carId: d.entity_id, at: d.disposed_at };
+}
+const isPass = (r: ActivityFeedRow) => r.action === "orchestrator_agent";
+const isCarDecision = (r: ActivityFeedRow) => !!r.vehicle_id && CAR_ACTIONS.has(r.action);
+const feedTime = (r: ActivityFeedRow) => Date.parse(r.occurred_at) || 0;
+
 /** Records not seen before, oldest first. Marks them seen. */
 export function takeNewEvents(seen: Set<string>, rows: readonly ActivityFeedRow[], dispositions: readonly DispositionRow[] | null, cap = 48): StackEvent[] {
-  const out: (StackEvent & { t: number })[] = [];
+  const out: { e: StackEvent; t: number }[] = [];
   for (const r of rows) {
     const key = decisionKey(r);
-    if (seen.has(key)) continue;
-    if (r.action === "orchestrator_agent") {
-      seen.add(key);
-      const p = agentPass(r);
-      out.push({ kind: "pass", key, tone: p.tone === "ok" ? "ok" : "held", handoff: String(r.rationale?.handoff_status ?? "") === "completed", at: r.occurred_at, t: Date.parse(r.occurred_at) || 0 });
-    } else if (r.vehicle_id && CAR_ACTIONS.has(r.action)) {
-      seen.add(key);
-      out.push({ kind: "decision", key, tone: rowTone(r), carId: r.vehicle_id, dest: decisionDest(r), at: r.occurred_at, t: Date.parse(r.occurred_at) || 0 });
-    }
+    if (seen.has(key) || !(isPass(r) || isCarDecision(r))) continue;
+    seen.add(key);
+    out.push({ e: isPass(r) ? passEvent(r) : decisionEvent(r), t: feedTime(r) });
   }
-  const offers: (StackEvent & { t: number })[] = [];
+  const offers: { e: StackEvent; t: number }[] = [];
   for (const d of dispositions ?? []) {
     const key = `p${d.disposition_id}`;
     if (seen.has(key)) continue;
     seen.add(key);
     // Offers carry wall time; they are ordered among themselves by id and interleaved after the decisions of their poll.
-    offers.push({ kind: "offer", key, tone: barTone(d), lane: proposerWord(d.source), carId: d.entity_id, at: d.disposed_at, t: d.disposition_id });
+    offers.push({ e: offerEvent(d), t: d.disposition_id });
   }
   out.sort((a, b) => a.t - b.t);
   offers.sort((a, b) => a.t - b.t);
-  const merged: StackEvent[] = [];
-  const strip = (e: StackEvent & { t: number }): StackEvent => {
-    const copy: Partial<StackEvent & { t: number }> = { ...e };
-    delete copy.t;
-    return copy as StackEvent;
-  };
   // Interleave so a burst of offers does not wait behind every decision (and vice versa).
+  const merged: StackEvent[] = [];
   const n = Math.max(out.length, offers.length);
   for (let i = 0; i < n; i++) {
-    if (out[i]) merged.push(strip(out[i]));
-    if (offers[i]) merged.push(strip(offers[i]));
+    if (out[i]) merged.push(out[i].e);
+    if (offers[i]) merged.push(offers[i].e);
   }
   return merged.slice(-cap);
+}
+
+// ── replay ──────────────────────────────────────────────────────────────────
+/** Seconds between two replayed records. */
+export const REPLAY_STEP_S = 0.6;
+/** How many of the newest records of each kind a replay plays: 30 in all, about 18 seconds. */
+export const REPLAY_PER = { pass: 6, offer: 10, decision: 14 } as const;
+
+/**
+ * A replay: the newest records on the plates, played through the stack again in the order they were written, for
+ * someone watching a run that is writing none (ended, paused or quiet). It is asked for, never automatic, and the tab
+ * says REPLAY for as long as it plays, so it can never pass for live. Only records whose object is on a plate are
+ * played, so every bead starts and lands on something real. Passes and decisions share the feed's clock and play in
+ * time order; offers carry the ledger's clock, so they keep their id order and are spread evenly among the rest (the
+ * live stream's own compromise).
+ */
+export function replayEvents(
+  model: StackModel,
+  rows: readonly ActivityFeedRow[],
+  dispositions: readonly DispositionRow[] | null,
+  per: { pass: number; offer: number; decision: number } = REPLAY_PER,
+): StackEvent[] {
+  const passKeys = new Set(model.agent.passes.map((p) => p.key));
+  const tileKeys = new Set(model.tiles.map((t) => t.key));
+  const barKeys = new Set(model.planners.flatMap((l) => l.bars.map((b) => b.key)));
+  const once = new Set<string>();
+  const feed = rows
+    .filter((r) => {
+      const k = decisionKey(r);
+      const on = isPass(r) ? passKeys.has(k) : isCarDecision(r) && tileKeys.has(k);
+      if (!on || once.has(k)) return false;
+      once.add(k);
+      return true;
+    })
+    .sort((a, b) => feedTime(a) - feedTime(b) || (a.decision_seq ?? 0) - (b.decision_seq ?? 0));
+  const passes = feed.filter(isPass).slice(-per.pass);
+  const decisions = feed.filter((r) => !isPass(r)).slice(-per.decision);
+  const timed = [...passes, ...decisions]
+    .sort((a, b) => feedTime(a) - feedTime(b) || (a.decision_seq ?? 0) - (b.decision_seq ?? 0))
+    .map((r) => (isPass(r) ? passEvent(r) : decisionEvent(r)));
+  const offers = (dispositions ?? [])
+    .filter((d) => barKeys.has(`p${d.disposition_id}`))
+    .sort((a, b) => a.disposition_id - b.disposition_id)
+    .slice(-per.offer)
+    .map(offerEvent);
+  const out: StackEvent[] = [];
+  let i = 0, j = 0;
+  while (i < timed.length || j < offers.length) {
+    const fi = i < timed.length ? (i + 0.5) / timed.length : Infinity;
+    const fj = j < offers.length ? (j + 0.5) / offers.length : Infinity;
+    if (fi <= fj) out.push(timed[i++]);
+    else out.push(offers[j++]);
+  }
+  return out;
 }
 
 // ── the plates' labels ──────────────────────────────────────────────────────
