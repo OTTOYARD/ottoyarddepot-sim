@@ -25,7 +25,7 @@ import {
 import { agentPass } from "@/lib/agentStream";
 import { hash01 } from "../funnelGeometry";
 
-export type PlateId = "agent" | "planners" | "decide" | "depot";
+export type PlateId = "agent" | "planners" | "decide" | "safety" | "depot";
 
 export interface PlateDef {
   id: PlateId;
@@ -38,10 +38,11 @@ export interface PlateDef {
 
 /** Top to bottom: the order a decision falls through the engine. */
 export const PLATES: readonly PlateDef[] = [
-  { id: "agent", label: "Agent", tagline: "Read & propose", y: 16.2 },
-  { id: "planners", label: "Planners", tagline: "Optimize & offer", y: 10.8 },
-  { id: "decide", label: "Decide + safety", tagline: "Choose & enforce", y: 5.4 },
-  { id: "depot", label: "Depot", tagline: "Assign & serve", y: 0 },
+  { id: "agent", label: "Agent", tagline: "Read & propose", y: 17.6 },
+  { id: "planners", label: "Planners", tagline: "Optimize & offer", y: 13.2 },
+  { id: "decide", label: "Decide", tagline: "Choose one plan", y: 8.8 },
+  { id: "safety", label: "Safety", tagline: "Check & enforce", y: 4.4 },
+  { id: "depot", label: "Depot", tagline: "Dispatch & serve", y: 0 },
 ] as const;
 export const PLATE_Y: Record<PlateId, number> = Object.fromEntries(PLATES.map((p) => [p.id, p.y])) as Record<PlateId, number>;
 
@@ -237,22 +238,25 @@ export const SITE_COUNTS = SITE;
 const DC_ROWS = Math.max(1, Math.ceil(SITE.dcfc / 2));
 const L2_ROWS = 5;
 export const ZONES: readonly ZoneDef[] = [
-  { id: "road", label: "On the way in", x0: 5.45, z0: 2.3, cols: 4, rows: 2, px: 0.42, pz: 0.42, fixed: false },
-  { id: "gate", label: "East gate", x0: 2.3, z0: 2.3, cols: 7, rows: 2, px: 0.4, pz: 0.42, fixed: false },
-  { id: "waiting", label: "Waiting for a plan", x0: 1.75, z0: -1.75, cols: 7, rows: 5, px: 0.4, pz: 0.4, fixed: false },
-  { id: "booked", label: "Booked", x0: 1.75, z0: 0.45, cols: 7, rows: 3, px: 0.4, pz: 0.4, fixed: false },
-  { id: "dcfc", label: "DCFC", x0: -2.95, z0: -1.75, cols: 2, rows: DC_ROWS, px: 0.5, pz: 0.45, fixed: true },
-  { id: "l2", label: "L2", x0: -1.75, z0: -1.75, cols: Math.max(1, Math.ceil(SITE.l2 / L2_ROWS)), rows: L2_ROWS, px: 0.45, pz: 0.45, fixed: true },
-  { id: "hold", label: "Between steps", x0: -1.75, z0: 0.7, cols: 7, rows: 2, px: 0.42, pz: 0.42, fixed: false },
-  { id: "wash", label: "Wash / detail", x0: 0.35, z0: -2.75, cols: Math.max(1, SITE.wash), rows: 1, px: 0.72, pz: 0.72, fixed: true },
-  { id: "service", label: "Service", x0: -1.55, z0: -2.75, cols: Math.max(1, SITE.service), rows: 1, px: 0.72, pz: 0.72, fixed: true },
-  { id: "repair", label: "Repair", x0: -3.35, z0: -2.85, cols: 3, rows: 2, px: 0.4, pz: 0.4, fixed: false },
-  { id: "ready", label: "Ready", x0: -4.7, z0: -1.75, cols: 3, rows: 9, px: 0.4, pz: 0.42, fixed: false },
+  // the approach lane runs down the plate's east edge to the east gate in its south-east corner
+  { id: "road", label: "On the way in", x0: 4.2, z0: -2.1, cols: 2, rows: 10, px: 0.4, pz: 0.4, fixed: false },
+  { id: "gate", label: "East gate", x0: 1.3, z0: 2.3, cols: 7, rows: 2, px: 0.4, pz: 0.42, fixed: false },
+  { id: "waiting", label: "Waiting for a plan", x0: 1.3, z0: -2.0, cols: 7, rows: 5, px: 0.4, pz: 0.4, fixed: false },
+  { id: "booked", label: "Booked", x0: 1.3, z0: 0.3, cols: 7, rows: 3, px: 0.4, pz: 0.4, fixed: false },
+  { id: "dcfc", label: "DCFC", x0: -3.15, z0: -1.75, cols: 2, rows: DC_ROWS, px: 0.5, pz: 0.45, fixed: true },
+  { id: "l2", label: "L2", x0: -2.0, z0: -1.75, cols: Math.max(1, Math.ceil(SITE.l2 / L2_ROWS)), rows: L2_ROWS, px: 0.44, pz: 0.45, fixed: true },
+  { id: "hold", label: "Between steps", x0: -2.0, z0: 0.75, cols: 7, rows: 2, px: 0.42, pz: 0.42, fixed: false },
+  { id: "wash", label: "Wash / detail", x0: -0.75, z0: -2.7, cols: Math.max(1, SITE.wash), rows: 1, px: 0.7, pz: 0.7, fixed: true },
+  { id: "service", label: "Service", x0: -2.55, z0: -2.7, cols: Math.max(1, SITE.service), rows: 1, px: 0.7, pz: 0.7, fixed: true },
+  { id: "repair", label: "Repair", x0: -4.55, z0: -2.85, cols: 3, rows: 2, px: 0.38, pz: 0.36, fixed: false },
+  { id: "ready", label: "Ready", x0: -4.55, z0: -1.75, cols: 3, rows: 9, px: 0.38, pz: 0.4, fixed: false },
 ];
-/** Where a car that leaves goes: out through the west gate. */
-export const EXIT_POINT = { x: -6.1, z: 2.5 };
-/** Where a car on its way back comes from. */
-export const ENTRY_POINT = { x: 7.2, z: 2.5 };
+/** Where a car that leaves goes: out through the west gate, in the plate's south-west corner (then it fades). */
+export const EXIT_POINT = { x: -4.4, z: 2.75 };
+/** Where a car on its way back comes from: the far (north) end of the approach lane. */
+export const ENTRY_POINT = { x: 4.4, z: -2.95 };
+/** How far inside the plate's edge every car must sit (a puck's radius, and a little air). */
+export const PLATE_MARGIN = 0.22;
 export const ZONE: Record<DepotZone, ZoneDef> = Object.fromEntries(ZONES.map((z) => [z.id, z])) as Record<DepotZone, ZoneDef>;
 /** Capacity of the charger and bay zones is the site's real count, not the grid's. */
 export const zoneCapacity = (z: ZoneDef): number =>
@@ -491,28 +495,68 @@ export function plateLabels(i: {
   const ok = carRows.filter((r) => rowTone(r) === "ok").length;
   const holds = carRows.filter((r) => rowTone(r) === "held").length;
   const c = (l: string) => (i.cars ? i.cars.filter((x) => x.layer === l).length : null);
-  const safety = sh && sh.evaluations != null ? `${n(sh.refused)} refused of ${n(sh.evaluations)} checks` : "checks —";
+  const safety = sh && sh.evaluations != null ? `${n(sh.evaluations)} checks · ${n(sh.refused)} blocked` : "Checks: —";
   return {
     agent: {
       title: byTitle.agent.label, tagline: byTitle.agent.tagline,
       line: a && a.chains != null
-        ? a.chains === 0 ? "No passes this run" : `${n(a.chains)} passes${a.fallbacks ? `, ${n(a.fallbacks)} fell back` : ""} · ${human(a.objective ?? "") || "—"}`
+        ? a.chains === 0 ? "No passes this run" : `${n(a.chains)} passes${a.fallbacks ? ` · ${n(a.fallbacks)} fell back` : ""}`
         : "Passes: —",
     },
     planners: {
       title: byTitle.planners.label, tagline: byTitle.planners.tagline,
-      line: i.dispositions ? (i.dispositions.length === 0 ? "No offers yet" : `${n(offered)} offers · ${n(enacted)} enacted · ${n(refused)} refused`) : "Offers: —",
+      line: i.dispositions ? (i.dispositions.length === 0 ? "No offers yet" : `${n(offered)} offers · ${n(enacted)} used · ${n(refused)} refused`) : "Offers: —",
     },
     decide: {
-      // the safety figure first: it is this plate's own fact, and the line may be cut at two lines
       title: byTitle.decide.label, tagline: byTitle.decide.tagline,
-      line: `${safety} · ${carRows.length ? `${n(ok)} enacted, ${n(holds)} holds` : "no decisions yet"}`,
+      line: carRows.length ? `${n(ok)} enacted · ${n(holds)} held` : "No decisions yet",
+    },
+    safety: {
+      title: byTitle.safety.label, tagline: byTitle.safety.tagline,
+      line: safety,
     },
     depot: {
       title: byTitle.depot.label, tagline: byTitle.depot.tagline,
-      line: i.cars == null ? "Waiting for the depot cards" : `${n(i.cars.length)} cars · ${n(c("arriving"))} arriving · ${n(c("service"))} in service · ${n(c("ready"))} ready`,
+      line: i.cars == null ? "Waiting for the depot cards" : `${n(i.cars.length)} cars · ${n(c("service"))} in service · ${n(c("ready"))} ready`,
     },
   };
+}
+
+// ── tags: crisp words pinned to a zoomed plate (the plate's own silkscreen is too small to read) ──
+export interface PlateTag { key: string; x: number; z: number; text: string; sub?: string; tone?: "ok" | "held" | "refused" | "dim" }
+
+/** What each plate says about its own parts when it is zoomed, from the same records its objects are drawn from. */
+export function plateTags(m: StackModel, shield: { evaluations: number | null; refused: number | null } | null): Record<PlateId, PlateTag[]> {
+  const n = (x: number | null | undefined) => (x == null ? "—" : x.toLocaleString("en-US"));
+  const depot: PlateTag[] = [];
+  for (const z of ZONES) {
+    const count = m.depot.read ? m.depot.counts[z.id] : null;
+    const cap = zoneCapacity(z);
+    // over the zone's top edge, centred on it
+    const x = z.x0 + ((z.cols - 1) * z.px) / 2;
+    const zz = z.z0 - z.pz / 2 - 0.02;
+    depot.push({
+      key: z.id, x, z: zz, text: z.label,
+      sub: count == null ? "—" : z.fixed ? `${n(count)} of ${n(cap)}` : n(count),
+      tone: count && z.id === "ready" ? "ok" : count && (z.id === "repair") ? "refused" : count && (z.id === "waiting" || z.id === "gate") ? "held" : "dim",
+    });
+  }
+  depot.push({ key: "in", x: 4.4, z: 3.02, text: "In ▲", tone: "dim" }, { key: "out", x: -4.4, z: 3.02, text: "◀ Out", tone: "dim" });
+  const planners: PlateTag[] = m.planners.map((l) => ({
+    key: l.word, x: -4.55, z: l.z - 0.42, text: l.word.replace(/^the /, ""),
+    sub: ((k) => `${k} ${k === 1 ? "offer" : "offers"}`)(l.bars.filter((b) => b.tone !== "declined").length),
+  }));
+  if (m.planners.length) planners.push({ key: "newest", x: -4.55, z: 3.0, text: "newest ◀ ▶ older", tone: "dim" });
+  const agent: PlateTag[] = m.agent.hubs.map((h) => ({ key: h.key, x: h.x, z: h.z + 0.5, text: h.label, sub: `${h.passes} ${h.passes === 1 ? "pass" : "passes"}` }));
+  const decide: PlateTag[] = m.tiles.length
+    ? [{ key: "front", x: -4.4, z: 2.75, text: "newest ▶", tone: "dim" }, { key: "back", x: 3.6, z: -2.55, text: "older", tone: "dim" }]
+    : [{ key: "none", x: 0, z: 0, text: "No decisions yet", tone: "dim" }];
+  const blocked = m.tiles.filter((t) => t.tone === "refused").length;
+  const safety: PlateTag[] = [
+    { key: "checks", x: 0, z: -0.1, text: shield?.evaluations != null ? `${n(shield.evaluations)} checks` : "Checks: —", sub: shield?.refused != null ? `${n(shield.refused)} blocked this run` : undefined, tone: shield?.refused ? "refused" : "ok" },
+  ];
+  if (blocked) safety.push({ key: "recent", x: 0, z: 1.2, text: `${blocked} of the newest decisions blocked`, tone: "refused" });
+  return { agent, planners, decide, safety, depot };
 }
 
 export interface StackModel { agent: AgentModel; planners: Lane[]; tiles: Tile[]; depot: DepotModel }

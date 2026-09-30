@@ -28,10 +28,10 @@ import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import {
   ENTRY_POINT, EXIT_POINT, PLATES, PLATE_D, PLATE_W, PLATE_Y, TILE_COLS, TILE_ROWS, zoneCenter,
-  type BarTone, type PlateId, type PlateLabel, type StackEvent, type StackModel,
+  type BarTone, type PlateId, type PlateLabel, type PlateTag, type StackEvent, type StackModel,
 } from "./stackModel";
 import {
-  contactShadowTexture, decideTexture, depotTexture, floorTexture, glassEtchTexture, glowTexture, plannerTexture, roadTexture,
+  contactShadowTexture, decideTexture, depotTexture, floorTexture, glassEtchTexture, glowTexture, plannerTexture, shieldTexture,
 } from "./stackTextures";
 import type { NodeTone } from "@/lib/ottoqFunnel";
 
@@ -51,6 +51,7 @@ const BAR_GLOW: Partial<Record<BarTone, THREE.Color>> = {
   refused: new THREE.Color("#FF4D5E").multiplyScalar(2.8),
 };
 const RED_HOT = new THREE.Color("#FF3347").multiplyScalar(2.4);
+const SAFE_GLOW = new THREE.Color("#5CFFC0").multiplyScalar(1.3);
 
 // ── runtime shared by every piece of the scene (mutable, never React state) ──
 export type PickKind = "pass" | "offer" | "decision" | "car";
@@ -66,6 +67,8 @@ interface Runtime {
   plateFade: Record<PlateId, number>;
   reveal: Map<string, number>;
   rimFlash: number;
+  /** When a decision last passed the safety check (the membrane brightens briefly). */
+  shieldPass: number;
   laneFlash: Map<string, number>;
   puckPulse: Map<string, number>;
   beads: Bead[];
@@ -91,9 +94,9 @@ function useRuntime(reduced: boolean): Runtime {
   if (!ref.current) {
     ref.current = {
       mount: nowS(), busyUntil: nowS() + 2, reduced,
-      plateY: { ...PLATE_Y }, plateFade: { agent: 1, planners: 1, decide: 1, depot: 1 },
-      reveal: new Map(), rimFlash: -99, laneFlash: new Map(), puckPulse: new Map(), beads: [], flashes: [], scans: [],
-      az: 0, dragged: false, materials: { agent: [], planners: [], decide: [], depot: [] }, frames: 0, lastInfo: null, pick: {},
+      plateY: { ...PLATE_Y }, plateFade: { agent: 1, planners: 1, decide: 1, safety: 1, depot: 1 },
+      reveal: new Map(), rimFlash: -99, shieldPass: -99, laneFlash: new Map(), puckPulse: new Map(), beads: [], flashes: [], scans: [],
+      az: 0, dragged: false, materials: { agent: [], planners: [], decide: [], safety: [], depot: [] }, frames: 0, lastInfo: null, pick: {},
     };
   }
   ref.current.reduced = reduced;
@@ -200,7 +203,12 @@ function Env() {
 // ── plates ──────────────────────────────────────────────────────────────────
 function PlateGroup({ rt, plate, children }: { rt: Runtime; plate: PlateId; children: React.ReactNode }) {
   const g = useRef<THREE.Group>(null);
-  useFrame(() => { if (g.current) g.current.position.y = rt.plateY[plate]; });
+  useFrame(() => {
+    if (!g.current) return;
+    g.current.position.y = rt.plateY[plate];
+    // a plate faded out behind a zoom is taken away altogether (from above, a faded plate still sits in the view)
+    g.current.visible = rt.plateFade[plate] > 0.075;
+  });
   return <group ref={g} position={[0, PLATE_Y[plate], 0]}>{children}</group>;
 }
 
@@ -407,13 +415,8 @@ function DecidePlate({ rt, tiles, onFocus }: { rt: Runtime; tiles: StackModel["t
   useEffect(() => () => tex.dispose(), [tex]);
   const body = useFadeMaterial(rt, "decide", () => new THREE.MeshStandardMaterial({ color: "#202227", metalness: 0.8, roughness: 0.34, envMapIntensity: 1.1, opacity: 1 }));
   const top = useFadeMaterial(rt, "decide", () => new THREE.MeshStandardMaterial({ map: tex, metalness: 0.65, roughness: 0.4, envMapIntensity: 0.9, opacity: 1 }));
-  const rim = useFadeMaterial(rt, "decide", () => new THREE.LineBasicMaterial({ color: RED_HOT.clone(), toneMapped: false, opacity: 1 }));
+  const rim = useFadeMaterial(rt, "decide", () => new THREE.LineBasicMaterial({ color: "#9aa0aa", opacity: 0.6 }));
   const rimEdges = useMemo(() => edgesOf(PLATE_W + 0.02, 0.17, PLATE_D + 0.02), []);
-  useFrame(() => {
-    // The shield: a steady red rim that flares for 1.2 s when the safety check overrides a choice.
-    const k = clamp01(1 - (nowS() - rt.rimFlash) / 1.2);
-    rim.color.copy(RED_HOT).multiplyScalar(0.45 + 1.8 * k);
-  });
   return (
     <PlateGroup rt={rt} plate="decide">
       <mesh material={body}><boxGeometry args={[PLATE_W, 0.16, PLATE_D]} /></mesh>
@@ -422,6 +425,58 @@ function DecidePlate({ rt, tiles, onFocus }: { rt: Runtime; tiles: StackModel["t
       <ContactShadow rt={rt} plate="decide" />
       <DecideTiles rt={rt} tiles={tiles} />
       <PlateClick rt={rt} plate="decide" onFocus={onFocus} y={0.1} />
+    </PlateGroup>
+  );
+}
+
+/**
+ * The safety check (the L1 shield), as its own plate between the decide plate and the depot: a lattice membrane every
+ * decision passes through on its way down. A choice the check overrides stops here: a red block sits under its tile
+ * and the rim flares. The membrane itself is structure; the blocks are records (decisions written overridden_to_default).
+ */
+function SafetyPlate({ rt, tiles, onFocus }: { rt: Runtime; tiles: StackModel["tiles"]; onFocus: (p: PlateId) => void }) {
+  const tex = useMemo(shieldTexture, []);
+  useEffect(() => () => tex.dispose(), [tex]);
+  const glass = useFadeMaterial(rt, "safety", () => new THREE.MeshPhysicalMaterial({
+    color: "#0d2a22", roughness: 0.15, metalness: 0.1, clearcoat: 0.8, emissive: "#062a1c", emissiveIntensity: 0.8,
+    opacity: 0.32, envMapIntensity: 1.0, depthWrite: false,
+  }));
+  const lattice = useFadeMaterial(rt, "safety", () => new THREE.MeshBasicMaterial({ map: tex, opacity: 1, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
+  const rim = useFadeMaterial(rt, "safety", () => new THREE.LineBasicMaterial({ color: SAFE_GLOW.clone(), toneMapped: false, opacity: 1 }));
+  const edges = useMemo(() => edgesOf(PLATE_W, 0.06, PLATE_D), []);
+  const blockMat = useFadeMaterial(rt, "safety", () => new THREE.MeshBasicMaterial({ color: RED_HOT.clone(), toneMapped: false, opacity: 0.95 }));
+  const blocks = useMemo(() => tiles.filter((t) => t.tone === "refused"), [tiles]);
+  const order = useRef<string[]>([]);
+  const blockMesh = useRef<THREE.InstancedMesh>(null);
+  useFrame(() => {
+    // Steady green while nothing is blocked; a block flares the rim red for 1.2 s.
+    const t = nowS();
+    const k = clamp01(1 - (t - rt.rimFlash) / 1.2);
+    rim.color.copy(SAFE_GLOW).lerp(RED_HOT, k).multiplyScalar(0.7 + 1.4 * k);
+    const pass = clamp01(1 - (t - rt.shieldPass) / 0.6);
+    lattice.color.setScalar(0.8 + 1.2 * pass);
+    const m = blockMesh.current;
+    if (!m) return;
+    let i = 0;
+    for (const b of blocks) {
+      const a = appear(rt, b.key, t);
+      tmpS.set(0.5 * Math.max(0.0001, a), 0.06, 0.5 * Math.max(0.0001, a));
+      m.setMatrixAt(i, tmpM.compose(tmpP.set(b.x, 0.06, b.z), tmpQ.identity(), tmpS));
+      order.current[i] = b.key;
+      i++;
+    }
+    m.count = i;
+    m.instanceMatrix.needsUpdate = true;
+  });
+  return (
+    <PlateGroup rt={rt} plate="safety">
+      <mesh material={glass} renderOrder={2}><boxGeometry args={[PLATE_W, 0.06, PLATE_D]} /></mesh>
+      <mesh material={lattice} position={[0, 0.032, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={3}><planeGeometry args={[PLATE_W, PLATE_D]} /></mesh>
+      <lineSegments geometry={edges} material={rim} />
+      <instancedMesh ref={blockMesh} args={[undefined, undefined, MAX_TILES]} material={blockMat} frustumCulled={false} {...pickHandlers(rt, "decision", order)}>
+        <boxGeometry args={[1, 1, 1]} />
+      </instancedMesh>
+      <PlateClick rt={rt} plate="safety" onFocus={onFocus} y={0.05} />
     </PlateGroup>
   );
 }
@@ -491,11 +546,9 @@ function DecideTiles({ rt, tiles }: { rt: Runtime; tiles: StackModel["tiles"] })
 
 function DepotPlate({ rt, depot, onFocus }: { rt: Runtime; depot: StackModel["depot"]; onFocus: (p: PlateId) => void }) {
   const tex = useMemo(depotTexture, []);
-  const road = useMemo(roadTexture, []);
-  useEffect(() => () => { tex.dispose(); road.dispose(); }, [tex, road]);
+  useEffect(() => () => { tex.dispose(); }, [tex]);
   const body = useFadeMaterial(rt, "depot", () => new THREE.MeshStandardMaterial({ color: "#121316", metalness: 0.8, roughness: 0.42, envMapIntensity: 1, opacity: 1 }));
   const top = useFadeMaterial(rt, "depot", () => new THREE.MeshStandardMaterial({ map: tex, metalness: 0.6, roughness: 0.46, envMapIntensity: 0.8, opacity: 1 }));
-  const roadMat = useFadeMaterial(rt, "depot", () => new THREE.MeshStandardMaterial({ map: road, metalness: 0.2, roughness: 0.8, opacity: 1 }));
   const portBody = useFadeMaterial(rt, "depot", () => new THREE.MeshStandardMaterial({ color: "#2a2c31", metalness: 0.9, roughness: 0.3, opacity: 1 }));
   const portSlot = useFadeMaterial(rt, "depot", () => new THREE.MeshBasicMaterial({ color: new THREE.Color("#ff2a3d").multiplyScalar(1.5), toneMapped: false, opacity: 1 }));
   const edge = useFadeMaterial(rt, "depot", () => new THREE.LineBasicMaterial({ color: new THREE.Color("#c8102e").multiplyScalar(1.2), toneMapped: false, opacity: 0.8 }));
@@ -512,9 +565,6 @@ function DepotPlate({ rt, depot, onFocus }: { rt: Runtime; depot: StackModel["de
       <mesh material={body} position={[0, -0.275, 0]}><boxGeometry args={[PLATE_W + 0.4, 0.55, PLATE_D + 0.4]} /></mesh>
       <lineSegments geometry={edges} material={edge} position={[0, -0.275, 0]} />
       <mesh material={top} position={[0, 0.002, 0]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[PLATE_W, PLATE_D]} /></mesh>
-      {/* the approach from the east gate and the exit through the west gate, off the plate's south-east and south-west */}
-      <mesh material={roadMat} position={[6.2, -0.04, 2.5]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[2.4, 0.9]} /></mesh>
-      <mesh material={roadMat} position={[-6.2, -0.04, 2.5]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[2.4, 0.9]} /></mesh>
       <Ports ports={ports} body={portBody} slot={portSlot} />
       <ContactShadow rt={rt} plate="depot" />
       <Pucks rt={rt} depot={depot} />
@@ -880,9 +930,11 @@ const STACK_SHIFT = 0.16;
 export interface LabelRefs {
   box: (HTMLElement | null)[];
   line: (SVGPolylineElement | null)[];
+  /** The zoomed plate's tags, placed on the plate every frame. */
+  tags: { plate: PlateId | null; items: readonly PlateTag[]; els: (HTMLElement | null)[] };
 }
 
-/** Points that must stay in frame: every plate's corners (the depot's underside too) and the two roads' ends. */
+/** Points that must stay in frame: every plate's corners (the depot's underside too). */
 function framePoints(rt: Runtime, only: PlateId | null): THREE.Vector3[] {
   const pts: THREE.Vector3[] = [];
   const hw = PLATE_W / 2 + 0.2, hd = PLATE_D / 2 + 0.2;
@@ -893,7 +945,6 @@ function framePoints(rt: Runtime, only: PlateId | null): THREE.Vector3[] {
       pts.push(new THREE.Vector3(sx * hw, y + 0.35, sz * hd));
       if (p.id === "depot") pts.push(new THREE.Vector3(sx * hw, y - 0.55, sz * hd));
     }
-    if (p.id === "depot" && !only) for (const x of [-7.4, 7.4]) pts.push(new THREE.Vector3(x, y, 2.5));
   }
   return pts;
 }
@@ -921,7 +972,7 @@ function fitDistance(cam: THREE.PerspectiveCamera, target: THREE.Vector3, az: nu
 
 function Rig({ rt, focus, labels, labelColumn }: { rt: Runtime; focus: PlateId | null; labels: React.MutableRefObject<LabelRefs>; labelColumn: number }) {
   const { camera, size, invalidate, gl } = useThree();
-  const cur = useRef<{ dist: number; ty: number; el: number; shift?: number }>({ dist: 0, ty: 4.6, el: BASE_EL });
+  const cur = useRef<{ dist: number; ty: number; el: number; az: number; shift?: number }>({ dist: 0, ty: 4.6, el: BASE_EL, az: BASE_AZ });
   const v = useMemo(() => new THREE.Vector3(), []);
   const corner = useMemo(() => new THREE.Vector3(), []);
   const target = useMemo(() => new THREE.Vector3(), []);
@@ -954,18 +1005,20 @@ function Rig({ rt, focus, labels, labelColumn }: { rt: Runtime; focus: PlateId |
     // centred, steeper, and fills the width.
     const fitW = fi >= 0 ? 0.9 : 1 - STACK_SHIFT * 2 - 0.04;
     const tyGoal = fi >= 0 ? PLATES[fi].y : (PLATES[0].y + PLATES[PLATES.length - 1].y) / 2 - 0.2;
-    const elGoal = fi >= 0 ? 0.92 : BASE_EL;
+    // A zoomed plate turns to a plan view: from the south, steep, north at the top (the depot reads as the site map).
+    const elGoal = fi >= 0 ? 1.12 : BASE_EL;
+    const azGoal = fi >= 0 ? 0 : BASE_AZ;
     target.set(0, tyGoal, 0);
-    const distGoal = fitDistance(cam, target, BASE_AZ, elGoal, framePoints({ ...rt, plateY: { ...PLATE_Y } } as Runtime, fi >= 0 ? PLATES[fi].id : null), fitW, 0.9);
+    const distGoal = fitDistance(cam, target, azGoal, elGoal, framePoints({ ...rt, plateY: { ...PLATE_Y } } as Runtime, fi >= 0 ? PLATES[fi].id : null), fitW, 0.9);
     const c = cur.current;
     if (!c.dist) c.dist = distGoal;
     const shiftGoal = fi >= 0 ? 0 : STACK_SHIFT;
     c.shift = c.shift == null ? shiftGoal : c.shift + (shiftGoal - c.shift) * (rt.reduced ? 1 : Math.min(1, dt * 4));
     if (Math.abs(shiftGoal - c.shift) > 0.001) moving = true;
     const k = rt.reduced ? 1 : Math.min(1, dt * 4);
-    c.dist += (distGoal - c.dist) * k; c.ty += (tyGoal - c.ty) * k; c.el += (elGoal - c.el) * k;
-    if (Math.abs(distGoal - c.dist) > 0.02 || Math.abs(tyGoal - c.ty) > 0.005 || Math.abs(elGoal - c.el) > 0.002) moving = true;
-    const az = BASE_AZ + rt.az;
+    c.dist += (distGoal - c.dist) * k; c.ty += (tyGoal - c.ty) * k; c.el += (elGoal - c.el) * k; c.az += (azGoal - c.az) * k;
+    if (Math.abs(distGoal - c.dist) > 0.02 || Math.abs(tyGoal - c.ty) > 0.005 || Math.abs(elGoal - c.el) > 0.002 || Math.abs(azGoal - c.az) > 0.002) moving = true;
+    const az = c.az + rt.az;
     target.set(0, c.ty, 0);
     cam.position.set(
       target.x + c.dist * Math.cos(c.el) * Math.sin(az),
@@ -980,6 +1033,35 @@ function Rig({ rt, focus, labels, labelColumn }: { rt: Runtime; focus: PlateId |
     // labels follow each plate's right-most corner; with a plate in focus, only its label shows, parked top-left
     if (fi >= 0) {
       const L = labels.current;
+      const T = L.tags;
+      if (T.plate === PLATES[fi].id) {
+        // project each tag, then nudge any that would cover one already placed (top to bottom, left to right)
+        const boxes: { x0: number; x1: number; y0: number; y1: number }[] = [];
+        // the zoomed plate's own label, parked top-left, is an obstacle too
+        const lb = L.box[fi];
+        if (lb) boxes.push({ x0: 12, x1: 12 + (lb.offsetWidth || 200), y0: 10, y1: 10 + (lb.offsetHeight || 70) });
+        const order = T.items.map((tag, i) => {
+          corner.set(tag.x, rt.plateY[PLATES[fi].id] + 0.3, tag.z);
+          v.copy(corner).project(cam);
+          return { i, px: (v.x * 0.5 + 0.5) * size.width, py: (-v.y * 0.5 + 0.5) * size.height, vis: v.z < 1 };
+        }).sort((a, b) => a.py - b.py || a.px - b.px);
+        for (const o of order) {
+          const el = T.els[o.i];
+          if (!el) continue;
+          const w = el.offsetWidth || 60, h = el.offsetHeight || 16;
+          let x0 = Math.max(2, Math.min(size.width - w - 2, o.px - w / 2)), y0 = o.py - h;
+          for (let guard = 0; guard < 8; guard++) {
+            const hit = boxes.find((b) => x0 < b.x1 + 2 && b.x0 < x0 + w + 2 && y0 < b.y1 + 1 && b.y0 < y0 + h + 1);
+            if (!hit) break;
+            y0 = hit.y1 + 2;
+          }
+          boxes.push({ x0, x1: x0 + w, y0, y1: y0 + h });
+          el.style.transform = `translate(${Math.round(x0)}px, ${Math.round(y0)}px)`;
+          const onScreen = o.vis && y0 > -h && y0 < size.height;
+          // tags wait for the zoom to settle, so they never smear across the move
+          el.style.opacity = onScreen && !moving ? "1" : "0";
+        }
+      }
       PLATES.forEach((_, i) => {
         const box = L.box[i];
         if (box) {
@@ -1005,11 +1087,14 @@ function Rig({ rt, focus, labels, labelColumn }: { rt: Runtime; focus: PlateId |
       ys.push({ i, ax: bx, ay: by });
     });
     // keep the labels from overlapping, top to bottom
+    const GAP = 62;
     let floor = -Infinity;
     const lx = size.width - labelColumn;
-    for (const it of ys) {
-      const y = Math.max(it.ay - 14, floor);
-      floor = y + 58;
+    const placed = ys.map((it) => { const y = Math.max(it.ay - 14, floor); floor = y + GAP; return y; });
+    // pushed past the bottom: lift the column (never above the top)
+    const over = Math.max(0, floor - GAP + 56 - size.height);
+    for (const [k, it] of ys.entries()) {
+      const y = Math.max(4 + k * GAP, placed[k] - over);
       const box = L.box[it.i];
       if (box) { box.style.transform = `translate(${lx}px, ${y}px)`; box.style.opacity = "1"; box.style.pointerEvents = "auto"; }
       const line = L.line[it.i];
@@ -1073,15 +1158,20 @@ function playEvents(rt: Runtime, model: StackModel, list: readonly StackEvent[],
     } else if (e.kind === "decision") {
       const tile = tileBy.get(e.key);
       if (tile) flash({ t0: at + 0.15, dur: 0.8, at: { plate: "decide", x: tile.x, z: tile.z, dy: 0.25 }, color: BEAD_COLOR[e.tone === "ok" ? "ok" : e.tone === "refused" ? "refused" : "held"], size: e.tone === "refused" ? 2.8 : 1.6 });
-      if (e.tone === "refused") { rt.rimFlash = at + 0.25; return; }
-      if (e.tone !== "ok" || !e.dest || !tile) return;
+      if (!tile || (e.tone !== "refused" && (e.tone !== "ok" || !e.dest))) return;
+      // Every choice that is enacted meets the safety check on its way down; one it overrides stops there.
+      if (e.tone === "refused") {
+        bead({ t0: at + 0.3, dur: 0.7, from: { plate: "decide", x: tile.x, z: tile.z, dy: 0.2 }, to: { plate: "safety", x: tile.x, z: tile.z, dy: 0.08 }, color: BEAD_COLOR.refused, size: 1.0, arc: 0, onLand: () => { rt.rimFlash = nowS(); } });
+        return;
+      }
       const puck = e.carId ? puckBy.get(e.carId) : undefined;
       const to = e.dest === "exit"
         ? { x: EXIT_POINT.x, z: EXIT_POINT.z }
-        : puck ?? zoneCenter(e.dest);
+        : puck ?? zoneCenter(e.dest!);
+      bead({ t0: at + 0.3, dur: 0.6, from: { plate: "decide", x: tile.x, z: tile.z, dy: 0.2 }, to: { plate: "safety", x: tile.x, z: tile.z, dy: 0.08 }, color: BEAD_COLOR.ok, size: 0.9, arc: 0, onLand: () => { rt.shieldPass = nowS(); } });
       bead({
-        t0: at + 0.3, dur: 1.3, from: { plate: "decide", x: tile.x, z: tile.z, dy: 0.3 }, to: { plate: "depot", x: to.x, z: to.z, dy: 0.2 },
-        color: BEAD_COLOR.ok, size: 0.95, arc: 0.2,
+        t0: at + 0.95, dur: 0.9, from: { plate: "safety", x: tile.x, z: tile.z, dy: 0.08 }, to: { plate: "depot", x: to.x, z: to.z, dy: 0.2 },
+        color: BEAD_COLOR.ok, size: 0.95, arc: 0.15,
         onLand: () => { if (e.carId) rt.puckPulse.set(e.carId, nowS()); },
       });
     }
@@ -1166,6 +1256,7 @@ const Scene = memo(function Scene({ rt, model, events, focus, onFocus, labels, l
       <Floor />
       <Scaffold rt={rt} />
       <DepotPlate rt={rt} depot={model.depot} onFocus={onFocus} />
+      <SafetyPlate rt={rt} tiles={model.tiles} onFocus={onFocus} />
       <DecidePlate rt={rt} tiles={model.tiles} onFocus={onFocus} />
       <PlannerPlate rt={rt} lanes={model.planners} onFocus={onFocus} />
       <AgentPlate rt={rt} model={model.agent} onFocus={onFocus} />
@@ -1182,12 +1273,14 @@ const Scene = memo(function Scene({ rt, model, events, focus, onFocus, labels, l
 
 export type { PlateLabel } from "./stackModel";
 
-export function OttoQStack({ model, events, focus, onFocus, labels, height, tier, reduced, describe, onPick, picked = null, replay = null }: {
+export function OttoQStack({ model, events, focus, onFocus, labels, tags, height, tier, reduced, describe, onPick, picked = null, replay = null }: {
   model: StackModel;
   events: readonly StackEvent[];
   focus: PlateId | null;
   onFocus: (p: PlateId | null) => void;
   labels: Record<PlateId, PlateLabel>;
+  /** Words pinned to a zoomed plate's parts. */
+  tags?: Record<PlateId, readonly PlateTag[]>;
   height: number;
   tier: "high" | "medium" | "low";
   reduced: boolean;
@@ -1208,7 +1301,9 @@ export function OttoQStack({ model, events, focus, onFocus, labels, height, tier
     (window as unknown as { __ottoqStack?: Runtime }).__ottoqStack = rt;
     return () => { delete (window as unknown as { __ottoqStack?: Runtime }).__ottoqStack; };
   }, [rt]);
-  const labelRefs = useRef<LabelRefs>({ box: [], line: [] });
+  const labelRefs = useRef<LabelRefs>({ box: [], line: [], tags: { plate: null, items: [], els: [] } });
+  labelRefs.current.tags.plate = focus;
+  labelRefs.current.tags.items = focus && tags ? tags[focus] : [];
   const wrap = useRef<HTMLDivElement>(null);
   rt.pick.hover = (kind, key, e) => {
     const text = describe?.(kind, key);
@@ -1221,7 +1316,7 @@ export function OttoQStack({ model, events, focus, onFocus, labels, height, tier
   rt.pick.tap = (kind, key) => { setHover(null); onPick?.(kind, key); };
   const drag = useRef<{ x: number; az: number; id: number } | null>(null);
   const invalidateRef = useRef<(() => void) | null>(null);
-  const labelColumn = 128;
+  const labelColumn = 138;
 
   const onPlate = useCallback((p: PlateId) => onFocus(focus === p ? null : p), [focus, onFocus]);
 
@@ -1277,6 +1372,18 @@ export function OttoQStack({ model, events, focus, onFocus, labels, height, tier
             stroke={focus && focus !== p.id ? "rgba(231,234,240,0.18)" : "rgba(231,234,240,0.55)"} strokeWidth={1} />
         ))}
       </svg>
+      {focus && tags && (
+        <div className="pointer-events-none absolute inset-0" aria-hidden>
+          {tags[focus].map((t, i) => (
+            <div key={`${focus}:${t.key}`} ref={(el) => { labelRefs.current.tags.els[i] = el; }}
+              className="absolute left-0 top-0 flex items-baseline gap-1 whitespace-nowrap rounded-sm bg-black/70 px-1.5 py-[1px] leading-tight shadow transition-opacity duration-300"
+              style={{ opacity: 0 }}>
+              <span className={`font-display text-[10.5px] font-semibold uppercase tracking-[0.04em] ${t.tone === "ok" ? "text-emerald-300" : t.tone === "held" ? "text-amber-300" : t.tone === "refused" ? "text-rose-300" : "text-white"}`}>{t.text}</span>
+              {t.sub && <span className="font-mono text-[10px] text-ink">{t.sub}</span>}
+            </div>
+          ))}
+        </div>
+      )}
       {PLATES.map((p, i) => {
         const l = labels[p.id];
         const on = focus === p.id;
@@ -1285,10 +1392,10 @@ export function OttoQStack({ model, events, focus, onFocus, labels, height, tier
             onClick={(e) => { e.stopPropagation(); onPlate(p.id); }} aria-pressed={on}
             className="absolute left-0 top-0 block text-left"
             style={{ width: on ? 200 : labelColumn - 6 }}>
-            <span className={`block whitespace-nowrap font-display text-[11px] uppercase leading-4 tracking-[0.07em] ${on ? "text-brand-hot" : "text-ink"}`}>{l.title}</span>
-            <span className="block text-[10px] leading-[13px] text-ink-dim">{l.tagline}</span>
-            <span className="mt-0.5 text-[10px] leading-[13px] text-ink-faint line-clamp-2">{l.line}</span>
-            {on && <span className="mt-1 block text-[9px] text-ink-faint">Tap here, or anywhere off the plate, to see all four.</span>}
+            <span className={`block whitespace-nowrap font-display text-[12.5px] font-semibold uppercase leading-4 tracking-[0.07em] ${on ? "text-brand-hot" : "text-white"}`}>{l.title}</span>
+            <span className="block text-[11px] leading-[14px] text-ink">{l.tagline}</span>
+            <span className="mt-0.5 text-[11px] leading-[14px] text-ink-dim line-clamp-2">{l.line}</span>
+            {on && <span className="mt-1 block text-[9px] text-ink-faint">Tap here, or anywhere off the plate, to see all five.</span>}
           </button>
         );
       })}

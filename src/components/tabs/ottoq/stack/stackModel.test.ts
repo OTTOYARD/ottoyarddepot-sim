@@ -7,7 +7,7 @@ import type { DispositionRow, FunnelCardVehicle } from "@/lib/ottoqFunnel";
 import { generateStallsV2 } from "@/lib/sitePlan";
 import {
   BARS_PER_LANE, ENTRY_POINT, EXIT_POINT, PLATES, REPLAY_PER, SITE_COUNTS, TILE_COLS, TILE_ROWS, ZONE, ZONES,
-  agentModel, barTone, carZone, decideModel, decisionDest, depotModel, plannerModel, plateLabels, recordKeys, replayEvents,
+  PLATE_D, PLATE_MARGIN, PLATE_W, agentModel, barTone, carZone, plateTags, decideModel, decisionDest, depotModel, plannerModel, plateLabels, recordKeys, replayEvents,
   stackModel, stallNumber, takeNewEvents, zoneCapacity,
 } from "./stackModel";
 
@@ -21,7 +21,8 @@ const row = (over: Partial<ActivityFeedRow>): ActivityFeedRow => ({
 
 describe("plates", () => {
   it("stack in the order a decision falls through the engine", () => {
-    expect(PLATES.map((p) => p.id)).toEqual(["agent", "planners", "decide", "depot"]);
+    // propose → optimise → choose → check → carry out: the safety check is the last gate before the depot
+    expect(PLATES.map((p) => p.id)).toEqual(["agent", "planners", "decide", "safety", "depot"]);
     for (let i = 1; i < PLATES.length; i++) expect(PLATES[i].y).toBeLessThan(PLATES[i - 1].y);
   });
 });
@@ -118,12 +119,15 @@ describe("depot base", () => {
   });
 
   it("keeps the founder's gates: cars enter at the east and leave by the west", () => {
-    expect(ENTRY_POINT.x).toBeGreaterThan(5);
-    expect(EXIT_POINT.x).toBeLessThan(-5);
+    expect(ENTRY_POINT.x).toBeGreaterThan(4);
+    expect(EXIT_POINT.x).toBeLessThan(-4);
     const cx = (id: keyof typeof ZONE) => ZONE[id].x0 + ((ZONE[id].cols - 1) * ZONE[id].px) / 2;
     expect(cx("gate")).toBeGreaterThan(0);
-    expect(cx("road")).toBeGreaterThan(5);
+    expect(cx("road")).toBeGreaterThan(4);
     expect(cx("ready")).toBeLessThan(0);
+    // both gates are on the south edge
+    expect(ENTRY_POINT.z).toBeLessThan(0); // the approach lane's far end; it runs south to the east gate
+    expect(EXIT_POINT.z).toBeGreaterThan(2.5);
   });
 
   it("puts no zone on top of another", () => {
@@ -185,19 +189,21 @@ describe("plate labels", () => {
     const stack = { agent: { objective: "readiness_first", chains: 15, fallbacks: 2 }, shield: { evaluations: 14143, refused: 0 } };
     const cars = [{ layer: "arriving" }, { layer: "service" }, { layer: "service" }, { layer: "ready" }];
     const l = plateLabels({ rows: feed, dispositions: disp, stack, cars });
-    expect(l.agent.line).toBe("15 passes, 2 fell back · readiness first");
+    expect(l.agent.line).toBe("15 passes · 2 fell back");
     // 103 ledger rows less 44 declined: 59 offers, 1 enacted, 25 refused (run 1ccad49b, measured 2026-09-30)
-    expect(l.planners.line).toBe("59 offers · 1 enacted · 25 refused");
-    expect(l.decide.line).toMatch(/^0 refused of 14,143 checks · \d+ enacted, \d+ holds$/);
-    expect(l.depot.line).toBe("4 cars · 1 arriving · 2 in service · 1 ready");
-    expect(PLATES.map((p) => l[p.id].title)).toEqual(["Agent", "Planners", "Decide + safety", "Depot"]);
+    expect(l.planners.line).toBe("59 offers · 1 used · 25 refused");
+    expect(l.decide.line).toMatch(/^\d+ enacted · \d+ held$/);
+    expect(l.safety.line).toBe("14,143 checks · 0 blocked");
+    expect(l.depot.line).toBe("4 cars · 2 in service · 1 ready");
+    expect(PLATES.map((p) => l[p.id].title)).toEqual(["Agent", "Planners", "Decide", "Safety", "Depot"]);
   });
 
   it("say a source has not answered instead of printing zero", () => {
     const l = plateLabels({ rows: [], dispositions: null, stack: null, cars: null });
     expect(l.agent.line).toBe("Passes: —");
     expect(l.planners.line).toBe("Offers: —");
-    expect(l.decide.line).toBe("checks — · no decisions yet");
+    expect(l.decide.line).toBe("No decisions yet");
+    expect(l.safety.line).toBe("Checks: —");
     expect(l.depot.line).toBe("Waiting for the depot cards");
     expect(Object.values(l).map((x) => x.line).join(" ")).not.toMatch(/\b0\b/);
   });
@@ -276,5 +282,77 @@ describe("replay", () => {
   it("has nothing to replay before any record has been read", () => {
     const empty = stackModel([], new Map(), [], null, false);
     expect(replayEvents(empty, [], null)).toEqual([]);
+  });
+});
+
+describe("nothing falls off a plate", () => {
+  const model = stackModel(cardsB, new Map(), feed, disp, true);
+  const inside = (x: number, z: number, r: number) =>
+    Math.abs(x) + r <= PLATE_W / 2 && Math.abs(z) + r <= PLATE_D / 2;
+
+  it("every depot slot, zone by zone, sits inside the base with room for its car", () => {
+    for (const z of ZONES) {
+      const cap = zoneCapacity(z);
+      for (let i = 0; i < Math.max(cap, z.cols * z.rows); i++) {
+        if (i >= cap && z.fixed) break;
+        const x = z.x0 + (i % z.cols) * z.px, zz = z.z0 + Math.floor(i / z.cols) * z.pz;
+        expect(inside(x, zz, PLATE_MARGIN), `${z.id} slot ${i} at (${x.toFixed(2)}, ${zz.toFixed(2)})`).toBe(true);
+      }
+    }
+    for (const p of model.depot.pucks) expect(inside(p.x, p.z, PLATE_MARGIN), p.name).toBe(true);
+    expect(inside(ENTRY_POINT.x, ENTRY_POINT.z, 0.1)).toBe(true);
+    expect(inside(EXIT_POINT.x, EXIT_POINT.z, 0.1)).toBe(true);
+  });
+
+  it("every sphere, bar and tile sits inside its plate", () => {
+    for (const p of model.agent.passes) expect(inside(p.x, p.z, p.r)).toBe(true);
+    for (const l of model.planners) for (const b of l.bars) expect(inside(b.x, l.z, 0.35)).toBe(true);
+    for (const t of model.tiles) expect(inside(t.x, t.z, 0.34)).toBe(true);
+  });
+
+  it("puts no two depot zones on top of each other", () => {
+    const box = (z: typeof ZONES[number]) => {
+      const rows = z.fixed ? Math.ceil(zoneCapacity(z) / z.cols) : z.rows;
+      return { x0: z.x0 - z.px / 2, x1: z.x0 + (z.cols - 0.5) * z.px, z0: z.z0 - z.pz / 2, z1: z.z0 + (rows - 0.5) * z.pz };
+    };
+    for (const a of ZONES) for (const b of ZONES) {
+      if (a.id >= b.id) continue;
+      const A = box(a), B = box(b);
+      const overlap = A.x0 < B.x1 - 0.01 && B.x0 < A.x1 - 0.01 && A.z0 < B.z1 - 0.01 && B.z0 < A.z1 - 0.01;
+      expect(overlap, `${a.id} overlaps ${b.id}`).toBe(false);
+    }
+  });
+});
+
+describe("tags on a zoomed plate", () => {
+  const model = stackModel(cardsB, new Map(), feed, disp, true);
+  const tags = plateTags(model, { evaluations: 14143, refused: 0 });
+
+  it("name every depot zone with its real count, and chargers and bays against their stalls", () => {
+    for (const z of ZONES) {
+      const t = tags.depot.find((x) => x.key === z.id)!;
+      expect(t.text).toBe(z.label);
+      if (z.fixed) expect(t.sub).toBe(`${model.depot.counts[z.id]} of ${zoneCapacity(z)}`);
+      else expect(t.sub).toBe(String(model.depot.counts[z.id]));
+    }
+  });
+
+  it("say — for a zone count before the cards have answered, never 0", () => {
+    const empty = plateTags(stackModel([], new Map(), [], null, false), null);
+    for (const t of empty.depot.filter((x) => x.sub != null)) expect(t.sub).toBe("—");
+    expect(empty.safety[0].text).toBe("Checks: —");
+  });
+
+  it("name each planner's lane and each objective the agent chose", () => {
+    expect(tags.planners.filter((t) => t.key !== "newest").map((t) => t.key)).toEqual(model.planners.map((l) => l.word));
+    expect(tags.agent.map((t) => t.key)).toEqual(model.agent.hubs.map((h) => h.key));
+    expect(tags.safety[0]).toMatchObject({ text: "14,143 checks", sub: "0 blocked this run" });
+  });
+
+  it("stay on their plate", () => {
+    for (const list of Object.values(tags)) for (const t of list) {
+      expect(Math.abs(t.x)).toBeLessThanOrEqual(PLATE_W / 2);
+      expect(Math.abs(t.z)).toBeLessThanOrEqual(PLATE_D / 2);
+    }
   });
 });

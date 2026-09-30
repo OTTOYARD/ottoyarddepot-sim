@@ -25,7 +25,7 @@ import { useSimulationStore } from "@/store/simulationStore";
 import { useQualityStore } from "@/components/canvas/three/quality/qualityStore";
 import { OttoQStack, type PickKind, type StackReplay } from "@/components/tabs/ottoq/stack/OttoQStack";
 import {
-  PLATES, REPLAY_STEP_S, plateLabels, recordKeys, replayEvents, stackModel, takeNewEvents,
+  PLATES, REPLAY_STEP_S, plateLabels, plateTags, recordKeys, replayEvents, stackModel, takeNewEvents,
   type PlateId, type PlateLabel, type StackEvent,
 } from "@/components/tabs/ottoq/stack/stackModel";
 import { agentPass, isLiveStatus, namesFromRows, offerBatches, offerLine, tickClocks } from "@/lib/agentStream";
@@ -282,19 +282,32 @@ function PlateDetail({ plate, rows, dispositions, names, recentFor, cars, overvi
       {plate === "decide" && (
         <>
           <p className="mt-0.5 text-[11px] leading-4 text-ink-dim">
-            Each tile is one decision the deterministic decide path made for a car, newest at the front. The red rim is the
-            safety check: every choice is checked as it is enacted, and a choice that breaks an enforced rule is overridden
-            to a safe default (a red tile, and the rim flares).
-          </p>
-          <p className="mt-1 text-[11px] leading-4 text-ink">
-            {shield && shield.evaluations != null
-              ? `The safety check has run ${n(shield.evaluations)} times this run and refused ${n(shield.refused)} choices.${shield.recordedOnly ? ` ${n(shield.recordedOnly)} advisory notes were recorded; those are notes, not refusals.` : ""}`
-              : "Safety check counts: —"}
+            Each tile is one decision the deterministic decide path made for a car, newest at the front: it takes one of the
+            planners' offers, or makes its own choice, or holds the car when nothing fits. Green: enacted. Amber: held.
+            Every enacted choice then drops through the safety plate below before the depot carries it out.
           </p>
           <div className="mt-2 text-[10px] text-ink-faint">Newest decisions</div>
           <RecentList
-            items={[...(recentFor.get("decide") ?? []), ...(recentFor.get("shield") ?? []), ...(recentFor.get("ready") ?? [])].sort((a, b) => b.t - a.t).slice(0, 12)}
+            items={[...(recentFor.get("decide") ?? []), ...(recentFor.get("ready") ?? [])].sort((a, b) => b.t - a.t).slice(0, 12)}
             empty="None in the last two sim-hours." />
+        </>
+      )}
+
+      {plate === "safety" && (
+        <>
+          <p className="mt-0.5 text-[11px] leading-4 text-ink-dim">
+            The last gate before anything happens in the depot. Every choice the decide path makes is checked against the
+            enforced rules as it is enacted (for example: no car leaves below its charge target or with a service still
+            open). A choice that breaks one is overridden to a safe default: its light stops on this plate, a red block
+            marks it, and the rim flares.
+          </p>
+          <p className="mt-1 text-[11px] leading-4 text-ink">
+            {shield && shield.evaluations != null
+              ? `The check has run ${n(shield.evaluations)} times this run and blocked ${n(shield.refused)} choices.${shield.recordedOnly ? ` ${n(shield.recordedOnly)} advisory notes were recorded; those are notes, not blocks.` : ""}`
+              : "Safety check counts: —"}
+          </p>
+          <div className="mt-2 text-[10px] text-ink-faint">Newest blocks</div>
+          <RecentList items={(recentFor.get("shield") ?? []).slice(0, 12)} empty="Nothing blocked in the last two sim-hours." />
         </>
       )}
 
@@ -593,6 +606,8 @@ export function TwinOttoQTab() {
     [disp.rows, slice, rows, cardsRead, cars],
   );
 
+  const tags = useMemo(() => plateTags(model, slice?.shield ?? null), [model, slice]);
+
   // A replay: the newest records on the plates, played again only when asked, and labelled REPLAY while it plays.
   const [replay, setReplay] = useState<StackReplay | null>(null);
   const [replayAt, setReplayAt] = useState(-1);
@@ -662,8 +677,8 @@ export function TwinOttoQTab() {
             onStart={startReplay} onStop={() => { setReplay(null); setReplayAt(-1); }} />
         )}
         {threeD ? (
-          <OttoQStack model={model} events={events} focus={focus} onFocus={onFocusPlate} labels={labels}
-            height={460} tier={tier} reduced={reduced} describe={describe} onPick={onPick} picked={picked} replay={replay} />
+          <OttoQStack model={model} events={events} focus={focus} onFocus={onFocusPlate} labels={labels} tags={tags}
+            height={520} tier={tier} reduced={reduced} describe={describe} onPick={onPick} picked={picked} replay={replay} />
         ) : (
           /* No WebGL: the flat funnel, one row per layer. */
           <div className="flex gap-2">

@@ -171,7 +171,7 @@ async function panelShots(browser, width) {
     if (!BEFORE && t === "OTTO-Q") {
       // Open two layers and shoot each.
       const flat = await page.locator("ol[aria-label='OTTO-Q layers']").count();
-      const plates = flat ? ["Proposers", "Service"] : ["Planners", "Depot", "Agent", "Decide + safety"];
+      const plates = flat ? ["Proposers", "Service"] : ["Planners", "Depot", "Agent", "Decide", "Safety"];
       for (const layer of plates) {
         const btn = flat
           ? page.locator("ol[aria-label='OTTO-Q layers'] button", { hasText: layer }).first()

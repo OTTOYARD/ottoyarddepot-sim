@@ -64,8 +64,6 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
   ctx.closePath();
 }
 
-const FONT = "600 {s}px 'Inter', 'Helvetica Neue', Arial, sans-serif";
-const font = (s: number) => FONT.replace("{s}", String(s));
 
 /** Soft round glow, for sprites and bead halos. */
 export function glowTexture(): THREE.CanvasTexture {
@@ -102,6 +100,33 @@ export function glassEtchTexture(): THREE.CanvasTexture {
   return finish(c);
 }
 
+/** The safety membrane: a fine hexagonal lattice, brightest at its rim (decoration: the checks are its tags and flashes). */
+export function shieldTexture(): THREE.CanvasTexture {
+  const [c, ctx] = canvas();
+  ctx.clearRect(0, 0, PX, PZ);
+  const R = 22, h = Math.sqrt(3) * R;
+  ctx.lineWidth = 1.2;
+  for (let row = -1, y = 0; y < PZ + h; row++, y = row * h * 0.5) {
+    for (let x = (row % 2 ? 1.5 * R : 0); x < PX + 3 * R; x += 3 * R) {
+      const edge = Math.min(x, PX - x, y, PZ - y);
+      const a = 0.08 + 0.22 * Math.max(0, 1 - edge / 160);
+      ctx.strokeStyle = `rgba(120,255,200,${a})`;
+      ctx.beginPath();
+      for (let k = 0; k <= 6; k++) {
+        const t = (Math.PI / 3) * k;
+        const px = x + R * Math.cos(t), py = y + R * Math.sin(t);
+        k ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+      }
+      ctx.stroke();
+    }
+  }
+  ctx.strokeStyle = "rgba(150,255,210,0.45)";
+  ctx.lineWidth = 3;
+  roundRect(ctx, 10, 10, PX - 20, PZ - 20, 12);
+  ctx.stroke();
+  return finish(c);
+}
+
 /** The planners' plate: brushed dark metal, one groove per lane, the lane's planner named at its far end. */
 export function plannerTexture(lanes: { word: string; z: number }[]): THREE.CanvasTexture {
   const [c, ctx] = canvas();
@@ -119,21 +144,12 @@ export function plannerTexture(lanes: { word: string; z: number }[]): THREE.Canv
     g.addColorStop(0.5, "rgba(0,0,0,0.25)");
     g.addColorStop(1, "rgba(255,255,255,0.06)");
     ctx.fillStyle = g;
-    roundRect(ctx, u(-4.75), y - 22, u(4.1) - u(-4.75), 44, 8);
+    roundRect(ctx, u(-4.75), y - 22, u(4.75) - u(-4.75), 44, 8);
     ctx.fill();
     ctx.strokeStyle = "rgba(255,255,255,0.08)";
     ctx.lineWidth = 1;
     ctx.stroke();
-    ctx.fillStyle = "rgba(230,232,238,0.55)";
-    ctx.font = font(22);
-    ctx.textAlign = "left";
-    ctx.textBaseline = "middle";
-    ctx.fillText(l.word.replace(/^the /, "").toUpperCase(), u(4.2), y);
   }
-  ctx.fillStyle = "rgba(230,232,238,0.28)";
-  ctx.font = font(18);
-  ctx.textAlign = "left";
-  ctx.fillText("NEWEST ▸", u(-4.7), v(PLATE_D / 2) - 44);
   return finish(c);
 }
 
@@ -153,10 +169,6 @@ export function decideTexture(cols: number, rows: number, x0: number, z0: number
       ctx.stroke();
     }
   }
-  ctx.fillStyle = "rgba(255,90,100,0.45)";
-  ctx.font = font(18);
-  ctx.textAlign = "center";
-  ctx.fillText("SAFETY CHECK · EVERY CHOICE IS CHECKED BEFORE IT IS ENACTED", PX / 2, PZ - 16);
   return finish(c);
 }
 
@@ -185,16 +197,29 @@ export function depotTexture(): THREE.CanvasTexture {
       ctx.beginPath(); ctx.arc(u(x), v(z), 4.5, 0, Math.PI * 2); ctx.fill();
     }
   };
-  trace([[4.9, 2.5], [3.5, 2.5], [3.5, 1.9], [2.9, 1.9], [2.9, 1.4]]);
-  trace([[1.55, -0.9], [0.9, -0.9], [0.9, 0.3], [0.65, 0.3]]);
-  trace([[1.55, 0.9], [1.1, 0.9], [1.1, 1.6], [-1.9, 1.6], [-1.9, 1.3]]);
-  trace([[-2.2, 0.35], [-2.2, 1.9], [-3.5, 1.9], [-3.5, 1.7]]);
-  trace([[-0.4, -2.35], [-0.4, -2.05], [0.2, -2.05]], 0.18);
-  trace([[-3.95, 1.95], [-3.95, 2.5], [-4.95, 2.5]]);
+  // road → east gate → waiting → chargers and bays → ready → west gate
+  trace([[4.4, 1.9], [4.4, 2.5], [4.0, 2.5]], 0.3);
+  trace([[1.1, 2.5], [0.9, 2.5], [0.9, -1.2], [1.1, -1.2]]);
+  trace([[1.1, 0.7], [0.75, 0.7], [0.75, -0.2], [0.45, -0.2]]);
+  trace([[-2.2, 0.35], [-2.2, 1.9], [-3.4, 1.9], [-3.4, 1.6]]);
+  trace([[-1.4, -2.35], [-1.4, -2.05], [-0.9, -2.05]], 0.18);
+  trace([[-4.2, 1.7], [-4.2, 2.75], [-4.75, 2.75]], 0.3);
   for (let i = 0; i < 22; i++) {
     const x = -4.6 + r() * 9.2, z = -3.0 + r() * 6.0;
     const dx = (r() > 0.5 ? 1 : -1) * (0.3 + r() * 0.8);
     trace([[x, z], [x + dx, z], [x + dx, z + (r() - 0.5) * 0.6]], 0.07);
+  }
+  // the approach lane down the east edge: asphalt with a dashed centre line
+  {
+    const x0 = u(3.95), x1 = u(4.85), y0 = v(-3.1), y1 = v(2.95);
+    ctx.fillStyle = "rgba(4,5,7,0.75)";
+    roundRect(ctx, x0, y0, x1 - x0, y1 - y0, 10);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.22)";
+    ctx.setLineDash([14, 12]);
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo((x0 + x1) / 2, y0 + 10); ctx.lineTo((x0 + x1) / 2, y1 - 10); ctx.stroke();
+    ctx.setLineDash([]);
   }
   // zones
   for (const z of ZONES) {
@@ -222,21 +247,10 @@ export function depotTexture(): THREE.CanvasTexture {
         ctx.stroke();
       }
     }
-    ctx.fillStyle = z.fixed ? "rgba(236,238,243,0.9)" : "rgba(236,238,243,0.7)";
-    ctx.font = font(24);
-    ctx.textAlign = "left";
-    ctx.textBaseline = "bottom";
-    const label = z.fixed ? `${z.label.toUpperCase()} · ${cap}` : z.label.toUpperCase();
-    ctx.fillText(label, b.x0 + 2, b.y0 - 4);
   }
-  // gates on the south edge: in at the east, out at the west
-  ctx.fillStyle = "rgba(255,110,120,0.9)";
-  ctx.font = font(24);
-  ctx.textBaseline = "middle";
-  ctx.textAlign = "right";
-  ctx.fillText("IN ◂", u(4.95), v(3.05));
-  ctx.textAlign = "left";
-  ctx.fillText("◂ OUT", u(-4.95), v(3.05));
+  // the gates, as notches in the south edge: in at the east, out at the west
+  ctx.fillStyle = "rgba(255,80,95,0.8)";
+  for (const x of [4.4, -4.4]) { roundRect(ctx, u(x) - 26, v(3.3) - 10, 52, 10, 3); ctx.fill(); }
   return finish(c);
 }
 

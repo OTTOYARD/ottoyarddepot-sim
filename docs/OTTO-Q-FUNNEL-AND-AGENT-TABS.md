@@ -52,7 +52,7 @@ Cars `deployed` or `offline` are outside the depot and are counted in one line u
 Chase, 2026-09-30 ~1 AM CT, with two reference renders of exploded plate stacks: *"majorly upgrade the visual
 depiction of the Otto-q funnel. Not just 2D, but More 3D and moving nodes/scaffolding etc."*
 
-The eight layers above are drawn as four plates hung on a scaffold, top to bottom in the order a decision falls
+The eight layers above are drawn as five plates hung on a scaffold, top to bottom in the order a decision falls
 through the engine. Code: `src/components/tabs/ottoq/stack/` (`stackModel.ts` places everything and is tested without
 a GPU; `OttoQStack.tsx` draws it with three.js / react-three-fiber, already in the app for the depot view).
 
@@ -60,7 +60,8 @@ a GPU; `OttoQStack.tsx` draws it with three.js / react-three-fiber, already in t
 |---|---|---|---|
 | **Agent** (red glass) | Proposers (agent) | a chrome sphere per agent pass, joined to a pearl for the objective it chose, and to the pass before it | one `ottoq_activity_feed_v2` row with action `orchestrator_agent` |
 | **Planners** (dark metal) | Proposers (offers) | a bar per offer in its planner's lane (CP-SAT, cuOpt, greedy, service priority), newest on the left | one `ottoq_proposal_disposition_ledger` row |
-| **Decide + safety** (tile grid, red rim) | Decide, Safety check | a tile per car decision, newest at the front; the rim is the L1 shield | one car decision (feed row, changes only) |
+| **Decide** (tile grid) | Decide | a tile per car decision, newest at the front | one car decision (feed row, changes only) |
+| **Safety** (green lattice membrane) | Safety check | a red block under the tile of each choice the L1 shield overrode; its tag counts the run's checks | one decision written `overridden_to_default` |
 | **Depot** (base) | Arriving, Needs, Booked, Service, Ready | a puck per car, in the zone its state puts it | one `ottoq_depot_cards` vehicle |
 
 **The depot base is the site.** Zones sit where their stalls sit on the real plan (`src/lib/sitePlan.ts`): service and
@@ -241,3 +242,24 @@ renders nothing while the page is hidden.
 
 The flat fallback (Canvas 2D): one `requestAnimationFrame` loop, nodes capped at 160 cars and 60 live sparks, stopped when
 the page is hidden or the tab unmounts.
+
+
+## Stack v2 (2026-09-30, after Chase's review)
+
+Chase, after #124 merged: *"make the OTTO-Q 3D layers even better and more interesting/accurate. Some of the wording/labeling
+is hard to read and there are elements that fall off out of the perimeter of the layers themselves."* And, on the
+order: *"propose decide safety and then … dispatch"*.
+
+- **Five plates.** The safety check is its own plate between Decide and Depot, as the engine runs it
+  (`ottoq_shield_and_log` checks a choice when it is enacted). An enacted decision's light drops from its tile to the
+  membrane, which brightens as it passes, then on to its car. A choice the check overrides stops on the membrane under
+  its tile: a red block, and the rim flares red. CP-SAT, cuOpt and greedy stay on the Planners plate: they propose, they
+  do not come after the check.
+- **Nothing off a plate.** The depot's approach lane now runs down the plate's east edge to the east gate, and leaving
+  cars fade at the west gate inside the plate. `stackModel.test.ts` ("nothing falls off a plate") holds every depot slot,
+  sphere, bar, tile and tag inside its plate, with room for its car, and no two zones overlapping.
+- **Words you can read.** The etched words on the plate textures (8 px on a phone) are gone. Zooming a plate turns the
+  camera to a plan view (north up) and pins crisp tags to its parts (`plateTags`): every depot zone with its count, and
+  chargers and bays against their real stalls ("DCFC 8 of 10"); each planner's lane; each objective the agent chose; the
+  safety plate's checks and blocks. Tags push apart instead of overlapping. The plate labels beside the stack are larger
+  and brighter, with shorter lines. A plate faded behind a zoom is taken away, so it cannot sit in a top-down view.
