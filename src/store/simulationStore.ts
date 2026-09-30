@@ -88,6 +88,9 @@ interface SimulationState {
   simClockLive: boolean;
   simSpeed: number;
   isPanelOpen: boolean;
+  /** The side panel opened to the full width of the viewport, covering the depot view
+   *  (the expand button in its header; Esc or the same button returns it to 420 px). */
+  isPanelExpanded: boolean;
   activeTab: CockpitTab;
   config: SimulationConfig;
   viewMode: '2d' | '3d' | 'photoreal';
@@ -95,6 +98,8 @@ interface SimulationState {
   setStatus: (status: SimulationState['status']) => void;
   setViewMode: (mode: '2d' | '3d' | 'photoreal') => void;
   togglePanel: () => void;
+  setPanelExpanded: (expanded: boolean) => void;
+  togglePanelExpanded: () => void;
   setActiveTab: (tab: SimulationState['activeTab']) => void;
   setSimSpeed: (speed: number) => void;
   setSimTime: (time: number) => void;
@@ -170,13 +175,18 @@ export const useSimulationStore = create<SimulationState>((set) => ({
   simClockLive: false,
   simSpeed: 10,
   isPanelOpen: true,
+  isPanelExpanded: false,
   activeTab: 'controls',
   config: { ...defaultConfig },
   viewMode: '2d',
   controlsLocked: false,
   setStatus: (status) => set({ status }),
   setViewMode: (mode) => set({ viewMode: mode }),
-  togglePanel: () => set((s) => ({ isPanelOpen: !s.isPanelOpen })),
+  // Closing the panel also leaves full width: reopened, it comes back at its normal size.
+  togglePanel: () => set((s) => ({ isPanelOpen: !s.isPanelOpen, isPanelExpanded: false })),
+  // Expanding opens a closed panel: a full-width panel of nothing is not a state.
+  setPanelExpanded: (isPanelExpanded) => set(isPanelExpanded ? { isPanelExpanded, isPanelOpen: true } : { isPanelExpanded }),
+  togglePanelExpanded: () => set((s) => (s.isPanelExpanded ? { isPanelExpanded: false } : { isPanelExpanded: true, isPanelOpen: true })),
   setActiveTab: (activeTab) => set({ activeTab }),
   setSimSpeed: (simSpeed) => set({ simSpeed }),
   setSimTime: (simTime) => set({ simTime: Math.max(0, Math.min(86399, simTime)) }),

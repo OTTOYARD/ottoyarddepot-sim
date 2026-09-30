@@ -12,6 +12,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { PhoneStartDialog } from './PhoneStartDialog';
 import { depotClock, phoneTelemetry, runPhase, type RunPhase } from './phoneLayout';
 import mark from '@/assets/logo.png';
 
@@ -22,9 +23,12 @@ import mark from '@/assets/logo.png';
  * blackbox.stopAndReset. A run started, paused or stopped here is started,
  * paused or stopped for every screen watching it.
  *
- * Start is deliberately NOT a one-tap button here: starting a run purges the one
- * before it and needs a scenario, so "Start" opens the Control tab (the desktop's
- * own console, scenario picker and all) in the panel sheet. Stop asks first.
+ * Start is deliberately NOT a one-tap button: starting a run purges the one
+ * before it and needs a scenario, so "Start" opens a confirm (PhoneStartDialog)
+ * with the featured scenarios, Busy Day first, whose "Start run" starts it for
+ * real through useStartRun — the desktop Control tab's own start path. Its
+ * "More options in Control" opens the full console in the panel sheet. Stop
+ * asks first.
  */
 
 const PHASE_LABEL: Record<RunPhase, string> = {
@@ -45,6 +49,7 @@ export function PhoneRunBar({ layout, onOpenControl }: { layout: 'landscape' | '
   const ctrl = useTwinControl();
   const [stopping, setStopping] = useState(false);
   const [confirmStop, setConfirmStop] = useState(false);
+  const [confirmStart, setConfirmStart] = useState(false);
   const [menu, setMenu] = useState(false);
 
   const phase = runPhase(snapshot, activeSimRunId, connected);
@@ -101,7 +106,7 @@ export function PhoneRunBar({ layout, onOpenControl }: { layout: 'landscape' | '
   const transport = (
     <div className="flex items-center gap-1.5 shrink-0">
       {!hasRun ? (
-        <button className={`${ICON_BTN} bg-brand-red border-brand-red text-white px-3`} onClick={onOpenControl}>
+        <button className={`${ICON_BTN} bg-brand-red border-brand-red text-white px-3`} onClick={() => setConfirmStart(true)}>
           <Play size={15} /> Start
         </button>
       ) : (
@@ -152,6 +157,8 @@ export function PhoneRunBar({ layout, onOpenControl }: { layout: 'landscape' | '
           {telemetryStrip}
         </div>
       )}
+
+      <PhoneStartDialog open={confirmStart} onOpenChange={setConfirmStart} ctrl={ctrl} onOpenControl={onOpenControl} />
 
       <AlertDialog open={confirmStop} onOpenChange={setConfirmStop}>
         <AlertDialogContent className="bg-canvas-panel border-white/10 text-ink max-w-sm">
