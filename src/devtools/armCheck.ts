@@ -20,7 +20,9 @@ import {
 } from '@/lib/ottoChargeArm/cobotSpec';
 import { solveIK, STOWED, type JointAngles } from '@/lib/ottoChargeArm/cobotIK';
 import { clearanceToCar } from '@/lib/ottoChargeArm/vehicleEnvelope';
-import { DCFC_CABINET_PU, CABINET_BACKSET_PU, cabinetSolidInArmFrame } from '@/lib/ottoChargeArm/cabinetEnvelope';
+import {
+  DCFC_CABINET_PU, CABINET_BACKSET_PU, cabinetSolidInArmFrame, mountSolidInArmFrame, ARM_MOUNT_PU, dcfcPadSpan,
+} from '@/lib/ottoChargeArm/cabinetEnvelope';
 import { CAR_WIDTH } from '@/engine/motion/traffic';
 
 const q = new URLSearchParams(location.search);
@@ -74,6 +76,27 @@ const cabinet = new THREE.Mesh(
 cabinet.position.set(0, deckY + padH + cabH / 2, -backset * METRES_PER_PLAN_UNIT);
 scene.add(cabinet);
 
+// ── the arm's mount: riser, trunk and the shared pad, as ChargingField draws them ──
+// (cabinetEnvelope.ARM_MOUNT_PU). `mount=0` leaves them out, for the before-shot.
+const withMount = num('mount', 1) === 1;
+if (withMount) {
+  const M = METRES_PER_PLAN_UNIT;
+  const mat = (c: number) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.6, metalness: 0.2 });
+  const box = (w: number, h: number, d: number, x: number, y: number, z: number, c: number) => {
+    const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(c));
+    b.position.set(x, y, z);
+    scene.add(b);
+  };
+  const cabZ = -backset * M;                       // cabinet centre, scene Z
+  const span = dcfcPadSpan();
+  box((DCFC_CABINET_PU.width + 0.6) * M, padH, (span.front - span.back) * M,
+    0, deckY + padH / 2, cabZ + ((span.back + span.front) / 2) * M, 0x39414b);
+  const R = ARM_MOUNT_PU.riser * M, top = ARM_MOUNT_PU.top * M;
+  box(R, top - padH, R, 0, deckY + padH + (top - padH) / 2, 0, 0x8fa0b0);
+  const faceZ = cabZ + (DCFC_CABINET_PU.depth / 2) * M, trunkTop = top - 0.12 * M;
+  box(ARM_MOUNT_PU.bridge * M, trunkTop - padH, -R / 2 - faceZ, 0, deckY + padH + (trunkTop - padH) / 2, (faceZ - R / 2) / 2, 0x23272e);
+}
+
 // ── the car's near flank, as a slab ────────────────────────────────────────
 const flankZ = PEDESTAL_TO_CAR_CENTRE_M - CAR_HALF_W;
 const car = new THREE.Mesh(
@@ -114,8 +137,10 @@ const CAB_SOLID = cabinetSolidInArmFrame(
           : { ...DCFC_CABINET_PU, width: DCFC_CABINET_PU.depth, depth: DCFC_CABINET_PU.width },
   MOUNT_HEIGHT_M, backset,
 );
+const MOUNT_SOLID = mountSolidInArmFrame(MOUNT_HEIGHT_M, backset);
 let worst = Infinity;
 let worstPart = '';
+let worstMount = Infinity;
 const v = new THREE.Vector3();
 rig.root.traverse((o) => {
   const m = o as THREE.Mesh;
@@ -126,6 +151,7 @@ rig.root.traverse((o) => {
     v.fromBufferAttribute(attr, i).applyMatrix4(m.matrixWorld);
     const d = clearanceToCar({ x: v.x, y: v.y, z: v.z }, CAB_SOLID);
     if (d < worst) { worst = d; worstPart = m.name; }
+    worstMount = Math.min(worstMount, clearanceToCar({ x: v.x, y: v.y, z: v.z }, MOUNT_SOLID));
   }
 });
 
@@ -146,6 +172,7 @@ hud.innerHTML =
   `ARM_SCALE      ${scale.toFixed(2)}   reach ${(spec.upperArm + spec.forearm + spec.wrist + spec.tool).toFixed(3)} m\n` +
   `pedestal→car   ${PEDESTAL_TO_CAR_CENTRE_M.toFixed(3)} m   near flank ${flankZ.toFixed(3)} m\n` +
   `cabinet        ${rotated ? 'wide face fore/aft' : 'EDGE-ON (old)'}, backset ${backset.toFixed(2)} pu\n` +
-  `arm↔cabinet    <span class="${cls}">${worst >= 0 ? '+' : ''}${worst.toFixed(4)} m</span> on ${worstPart || '—'}`;
+  `arm↔cabinet    <span class="${cls}">${worst >= 0 ? '+' : ''}${worst.toFixed(4)} m</span> on ${worstPart || '—'}\n` +
+  `arm↔mount      <span class="${worstMount > 0 ? 'good' : 'bad'}">${worstMount >= 0 ? '+' : ''}${worstMount.toFixed(4)} m</span>${withMount ? '' : ' (not drawn)'}`;
 // Playwright waits on this rather than a timeout.
 document.title = `arm-check ready ${worst.toFixed(4)}`;

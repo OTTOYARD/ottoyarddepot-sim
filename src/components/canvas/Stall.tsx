@@ -1,8 +1,7 @@
 import { memo } from 'react';
 import type { StallState } from '@/store/depotStore';
 import { useDepotStore } from '@/store/depotStore';
-import { chargerCabinet } from '@/lib/ottoChargeArm/depotPlacement';
-import { DCFC_CABINET_PU, L2_CABINET_PU } from '@/lib/ottoChargeArm/cabinetEnvelope';
+import { chargerPad } from '@/lib/ottoChargeArm/depotPlacement';
 import { chargerStallPaint, chargerStallFrame } from '@/lib/sitePlan';
 
 const TYPE_COLORS: Record<string, string> = {
@@ -59,11 +58,11 @@ function ChargerStall({ stall, fill, stroke }: { stall: StallState; fill: string
   // SVG's rotate() turns +x toward +y, and the plan's y runs south, so a plan
   // heading in degrees is exactly the SVG rotation that lays +x along the car.
   const deg = (chargerStallFrame(angle).heading * 180) / Math.PI;
-  // the cabinet, body plus pad, as structurePlan.cabinetFootprints lays it out
-  const cab = chargerCabinet(dc ? 'dcfc' : 'l2', x, y, angle);
-  const dims = dc ? DCFC_CABINET_PU : L2_CABINET_PU;
-  const cw = dims.width + 0.6, cd = dims.depth + 0.8;
-  const cabDeg = (Math.atan2(cab.along.y, cab.along.x) * 180) / Math.PI;
+  // the charger on its pad (a DCFC's carries its arm too), as structurePlan.cabinetFootprints lays it out
+  const pad = chargerPad(dc ? 'dcfc' : 'l2', x, y, angle);
+  const cw = pad.hl * 2, cd = pad.hw * 2;
+  const cab = { x: pad.cx, y: pad.cy };
+  const cabDeg = (pad.th * 180) / Math.PI;
   return (
     <>
       <rect x={-len / 2} y={-wid / 2} width={len} height={wid} transform={`translate(${x} ${y}) rotate(${deg})`}

@@ -29,7 +29,9 @@
 import { CANOPIES, chargerStallFrame } from '@/lib/sitePlan';
 import { DECK_Y } from '@/components/canvas/three/coordUtils';
 import { PLAN_UNITS_PER_METRE, MOUNT_HEIGHT_M, PEDESTAL_OFFSET_PU } from './cobotSpec';
-import { CABINET_BACKSET_PU, L2_POST_ALONG_PU, L2_POST_LATERAL_PU } from './cabinetEnvelope';
+import {
+  CABINET_BACKSET_PU, L2_POST_ALONG_PU, L2_POST_LATERAL_PU, DCFC_CABINET_PU, L2_CABINET_PU, dcfcPadSpan,
+} from './cabinetEnvelope';
 
 /** Lateral offset from the car's centreline to its charger pedestal, plan units. */
 // Re-exported so existing importers keep working; the value lives in
@@ -109,6 +111,31 @@ export function chargerCabinet(
     x: stallX + fwd.x * L2_POST_ALONG_PU + f.x * L2_POST_LATERAL_PU,
     y: stallY + fwd.y * L2_POST_ALONG_PU + f.y * L2_POST_LATERAL_PU,
     face, along: fwd,
+  };
+}
+
+/**
+ * A charger's PAD — its whole footprint on the deck, PLAN coordinates: the body
+ * plus 0.4u on the car-facing axis and 0.3u along the car. A DCFC pad also carries
+ * the OTTO-CHARGE ARM's riser and the bridge into the cabinet (cabinetEnvelope
+ * ARM_MOUNT_PU): cabinet, trunk and arm are one unit on one pad, so it runs from
+ * behind the cabinet to just past the arm (dcfcPadSpan). The one footprint
+ * ChargingField pours, the 2D plan draws and structurePlan drives cars against.
+ * `hl` is the half-length along the car (`along`), `hw` the half-width square to
+ * it (`face`, toward the car); `th` is the along axis's plan angle.
+ */
+export function chargerPad(
+  type: 'dcfc' | 'l2', stallX: number, stallY: number, bearing: number,
+): { cx: number; cy: number; hl: number; hw: number; th: number; offset: number } {
+  const k = chargerCabinet(type, stallX, stallY, bearing);
+  const dims = type === 'dcfc' ? DCFC_CABINET_PU : L2_CABINET_PU;
+  const span = type === 'dcfc' ? dcfcPadSpan() : { back: -(dims.depth / 2 + 0.4), front: dims.depth / 2 + 0.4 };
+  // `offset`: the pad centre's distance from the cabinet centre toward the car
+  const offset = (span.back + span.front) / 2;
+  return {
+    cx: k.x + k.face.x * offset, cy: k.y + k.face.y * offset,
+    hl: (dims.width + 0.6) / 2, hw: (span.front - span.back) / 2,
+    th: Math.atan2(k.along.y, k.along.x), offset,
   };
 }
 

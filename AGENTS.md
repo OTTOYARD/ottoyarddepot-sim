@@ -127,7 +127,13 @@ interpolation.** Zero world logic client-side.
     +Z runs pedestal → car. In the ARM's own frame nothing changed (same standoff, service window,
     clearance sweep; `portInArmFrame`'s `x = -toward * along` holds at every bearing).
     `depotIntegration.test.ts` asserts the IK target and the port ring `Vehicle3D` draws are one
-    world point. An L2 post stands beside the car's front quarter (`L2_POST_ALONG_PU`,
+    world point. **The arm and its DCFC cabinet are ONE unit** (founder, 2026-09-30: the arms were
+    "floating beside the hardware cabinets"): a riser carries the arm's mount plate from the pad and a
+    cable trunk joins it to the cabinet face (`cabinetEnvelope.ARM_MOUNT_PU`, `mountSolidInArmFrame`),
+    all on one pad (`depotPlacement.chargerPad`, which the 3D field, the 2D plan and the car solids
+    share). J1 did not move: nothing stands above the plate's underside, and `cabinetClearance.test.ts`
+    keeps every moving link 0.36 m clear of it through stow, approach, mate and the transit between.
+    An L2 post stands beside the car's front quarter (`L2_POST_ALONG_PU`,
     `L2_POST_LATERAL_PU`), clear of the spine, and is fed from below (no conduit drop). ONE placement
     (`depotPlacement.chargerCabinet`) feeds ChargingField, the 2D plan and the solids. Canopy spine
     columns clear every cabinet and every parked car's BODY (`canopyColumnYs`).
