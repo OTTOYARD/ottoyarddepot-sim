@@ -28,7 +28,8 @@ export interface ArmBlock {              // one cell of the test, averaged over 
   power_bill_usd_month: number;          // a month of days like this one, on the cheapest Nashville (NES) rate it qualifies for
   power_rate: 'TGSA-3' | 'GSA-3' | 'EVC';
   effective_cents_per_kwh: number;       // bill / kWh bought
-  peak_kw: number;                       // highest 30-minute demand
+  peak_kw: number;                       // highest 30-minute demand, from peak_read_from_min into the day
+  peak_kw_incl_opening?: number | null;  // the same over the whole day, counting the test's opening plug-in (0577)
   demand_charge_usd_month: number;
   kwh_bought_day: number;
   cars_served_day: number;               // visits that left fully charged and serviced
@@ -67,7 +68,8 @@ export interface ChargerView {
 export interface ValueSummary {
   status: 'measured' | 'measuring' | 'none';
   sweep: { code: string; title: string; arms_planned: number; arms_done: number; seeds_done: number;
-           day_hours: number; step_min: number; first_arm_at: string | null; last_arm_at: string | null } | null;
+           day_hours: number; step_min: number; first_arm_at: string | null; last_arm_at: string | null;
+           peak_read_from_min?: number } | null;   // 0 when peak demand counts the whole day
   depot: { name: string; fleet: number; battery_kwh: number; battery_kw: number; solar_kw: number; tariff: string };
   views: ChargerView[];
   investor: { chargers_statement: string | null; chargers_avoided: number | null;
@@ -389,7 +391,13 @@ interface KpiSpec {
 }
 
 const KPI_SPECS: KpiSpec[] = [
-  { key: 'peak', name: 'Peak demand (kW)', pick: (b) => b.peak_kw, digits: 0, better: 'down' },
+  {
+    key: 'peak', name: 'Peak demand (kW)', pick: (b) => b.peak_kw, digits: 0, better: 'down',
+    note: (b) => {
+      const all = num(b.peak_kw_incl_opening), billed = num(b.peak_kw);
+      return all === null || billed === null || roundTo(all) === roundTo(billed) ? null : `${fmtNumber(all)} with the opening`;
+    },
+  },
   { key: 'demand_charge', name: 'Demand charge ($/month)', pick: (b) => b.demand_charge_usd_month, digits: 0, better: 'down', money: true },
   { key: 'rate', name: 'Effective electricity rate (¢/kWh)', pick: (b) => b.effective_cents_per_kwh, digits: 1, better: 'down' },
   {
@@ -575,6 +583,15 @@ export function footnoteText(sweep: ValueSummary['sweep']): string {
   return (
     `Twin results on the calibrated digital twin: ${trim1(hours)}-hour busy days at ${trim1(step)}-minute steps; ` +
     'a month is 30 days like these. Prices: each depot on the cheapest Nashville Electric Service rate it qualifies ' +
-    "for. Revenue: $16–24 per car-hour from Waymo's public figures."
+    "for. Revenue: $16–24 per car-hour from Waymo's public figures." +
+    openingText(sweep)
   );
+}
+
+/** Where peak demand is read from: past the test's opening, when the evidence carries it (0577). */
+function openingText(sweep: ValueSummary['sweep']): string {
+  const from = num(sweep?.peak_read_from_min);
+  return from !== null && from > 0
+    ? ` Peak demand counts from ${trim1(from)} minutes into each day, after the test's opening, when every parked car plugs in at once.`
+    : '';
 }

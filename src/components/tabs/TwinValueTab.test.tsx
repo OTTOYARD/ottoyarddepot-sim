@@ -27,6 +27,7 @@ import { TwinValueTab } from './TwinValueTab';
 import { TabBar } from '@/components/layout/TabBar';
 import {
   fmtUsdMonth,
+  footnoteText,
   guaranteeText,
   kpiRows,
   notMeasuredText,
@@ -268,6 +269,19 @@ describe('formatting', () => {
     v.otto_q!.peak_kw = 1179.6;
     const peak = kpiRows(v).find((r) => r.key === 'peak')!;
     expect([peak.plain, peak.ottoQ, peak.change, peak.verdict]).toEqual(['1,890', '1,180', '−710', 'better']);
+  });
+
+  it('shows the full-day peak under the billed one only when the opening moved it', () => {
+    const v = tenChargers(clone());
+    v.plain!.peak_kw = 1400;
+    v.plain!.peak_kw_incl_opening = 1900;
+    v.otto_q!.peak_kw = 1000;
+    v.otto_q!.peak_kw_incl_opening = 1000.2;
+    const peak = kpiRows(v).find((r) => r.key === 'peak')!;
+    expect([peak.plain, peak.plainNote, peak.ottoQ, peak.ottoQNote]).toEqual(['1,400', '1,900 with the opening', '1,000', null]);
+    const sweep = { ...EXAMPLE.sweep!, peak_read_from_min: 60 };
+    expect(footnoteText(sweep)).toContain('Peak demand counts from 60 minutes into each day');
+    expect(footnoteText({ ...sweep, peak_read_from_min: 0 })).not.toContain('Peak demand counts');
   });
 
   it('never calls a short departure "every car"', () => {
