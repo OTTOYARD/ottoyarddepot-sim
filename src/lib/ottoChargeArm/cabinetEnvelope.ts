@@ -83,6 +83,73 @@ export const DCFC_CABINET_PU = {
  */
 export const CABINET_BACKSET_PU = 1.35;
 
+/**
+ * THE ARM'S MOUNT — what makes the OTTO-CHARGE ARM and its DCFC cabinet ONE unit.
+ *
+ * Founder, 2026-09-30: "the robotic charging arms are floating beside the
+ * hardware cabinets". They were. J1 stands MOUNT_HEIGHT_M (0.55 m) above the
+ * deck on a 30 cm plate with nothing under it, and the cabinet's car-facing face
+ * is CABINET_BACKSET_PU - depth/2 = 1.0u (0.48 m) behind it: an arm hanging in
+ * the air beside a box.
+ *
+ * The ARM DOES NOT MOVE. J1 stays exactly where placeArm puts it, so every
+ * solved pose, the service window and the whole connect / hold / release cycle
+ * are what they were. Hardware is added only BELOW the mount plate, where no
+ * moving link goes (cabinetClearance.test.ts measures it):
+ *   - a RISER, a square column from the pad to the underside of the plate;
+ *   - a BRIDGE, the cable trunk from the riser into the cabinet's car-facing
+ *     face, the same height (the DC cable and the umbilical run through it);
+ *   - ONE PAD under both, so cabinet, trunk and arm stand on one plinth.
+ */
+export const MOUNT_PLATE_UNDERSIDE_M = 0.081; // buildCobot: plinth at -0.055, plate centre -0.013, half its 0.026
+export const ARM_MOUNT_PU = {
+  /** the riser, square, plan units — a little wider than the 0.30 m (0.63u) plate */
+  riser: 0.72,
+  /** the bridge's width along the car */
+  bridge: 0.56,
+  /** how far the shared pad runs past the riser toward the car */
+  padFront: 0.3,
+  /** top of riser and bridge above the DECK: the underside of the mount plate */
+  top: (MOUNT_HEIGHT_M - MOUNT_PLATE_UNDERSIDE_M) / METRES_PER_PLAN_UNIT,
+} as const;
+
+/**
+ * The shared pad of a DCFC unit along the cabinet's face axis, plan units from
+ * the CABINET's centre (+ toward the car): 0.4u behind the cabinet's back face,
+ * as before, to ARM_MOUNT_PU.padFront past the arm's riser.
+ */
+export function dcfcPadSpan(): { back: number; front: number } {
+  return {
+    back: -(DCFC_CABINET_PU.depth / 2 + 0.4),
+    front: CABINET_BACKSET_PU + ARM_MOUNT_PU.riser / 2 + ARM_MOUNT_PU.padFront,
+  };
+}
+
+/**
+ * The riser and bridge, in the arm's base frame, as a `CarSolid` (see
+ * cabinetSolidInArmFrame): one box from the cabinet's car-facing face to the
+ * riser's car-facing face, riser-wide, from the pad to the plate. Conservative
+ * (the bridge is narrower than the riser), which is the right side to err on for
+ * a solid the moving links are measured against.
+ */
+export function mountSolidInArmFrame(
+  mountHeight: number = MOUNT_HEIGHT_M,
+  backsetPu: number = CABINET_BACKSET_PU,
+): CarSolid {
+  const m = METRES_PER_PLAN_UNIT;
+  const half = (ARM_MOUNT_PU.riser * m) / 2;
+  const yBottom = DCFC_CABINET_PU.padHeight * m;
+  const yTop = ARM_MOUNT_PU.top * m;
+  return {
+    profile: [[-half, yBottom], [half, yBottom], [half, yTop], [-half, yTop]],
+    zMin: -(backsetPu - DCFC_CABINET_PU.depth / 2) * m,
+    zMax: half,
+    wheels: [],
+    pod: { along: 1000, z: 1000, radius: 0, yMin: 0, yMax: 0 },
+    gradeY: -mountHeight,
+  };
+}
+
 /** L2 cabinets are smaller and carry no arm, but the renderer draws them too. */
 export const L2_CABINET_PU = { width: 1.1, height: 2.8, depth: 0.7, padHeight: 0.16 } as const;
 

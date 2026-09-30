@@ -28,8 +28,7 @@ import {
   generateStallsV2, type CanopyDef, type ParkRun,
 } from './sitePlan';
 import { CAR_LENGTH, CAR_WIDTH } from '@/engine/motion/traffic';
-import { DCFC_CABINET_PU, L2_CABINET_PU } from '@/lib/ottoChargeArm/cabinetEnvelope';
-import { chargerCabinet } from '@/lib/ottoChargeArm/depotPlacement';
+import { chargerPad } from '@/lib/ottoChargeArm/depotPlacement';
 
 /** Axis-aligned rectangle in plan units. */
 export interface Rect { x0: number; y0: number; x1: number; y1: number }
@@ -293,12 +292,13 @@ export interface CabinetFootprint {
 }
 
 /**
- * Charger cabinet footprints (body plus pad), exactly as ChargingField places them
- * (depotPlacement.chargerCabinet): the pad is the body plus 0.4u on the side facing
- * the car and 0.3u along it (ChargingField: depth + 0.8, width + 0.6), its wide face
- * along the car, turned with the car.
+ * Charger footprints (body plus pad), exactly as ChargingField pours them
+ * (depotPlacement.chargerPad): the body plus 0.4u on the side facing the car and
+ * 0.3u along it, its wide face along the car, turned with the car.
  *   - DCFC: on the car's charge-port flank, CABINET_BACKSET_PU behind the
- *     OTTO-CHARGE ARM's base, abeam the car's centre;
+ *     OTTO-CHARGE ARM's base, abeam the car's centre — and since 2026-09-30 the
+ *     arm's riser and the bridge into the cabinet stand on the same pad, so the
+ *     solid runs from behind the cabinet to just past the arm (one unit);
  *   - L2: beside the car's front quarter on the same flank.
  */
 export function cabinetFootprints(stalls = generateStallsV2()): CabinetFootprint[] {
@@ -306,12 +306,8 @@ export function cabinetFootprints(stalls = generateStallsV2()): CabinetFootprint
   for (const s of stalls) {
     if (s.type !== 'dcfc' && s.type !== 'l2') continue;
     const dc = s.type === 'dcfc';
-    const dims = dc ? DCFC_CABINET_PU : L2_CABINET_PU;
-    const k = chargerCabinet(s.type, s.position.x, s.position.y, s.position.angle);
-    const box: OBox = {
-      cx: k.x, cy: k.y, hl: (dims.width + 0.6) / 2, hw: (dims.depth + 0.8) / 2,
-      th: Math.atan2(k.along.y, k.along.x),
-    };
+    const p = chargerPad(s.type, s.position.x, s.position.y, s.position.angle);
+    const box: OBox = { cx: p.cx, cy: p.cy, hl: p.hl, hw: p.hw, th: p.th };
     out.push({ stallId: s.id, dc, box, r: boxAabb(box) });
   }
   return out;

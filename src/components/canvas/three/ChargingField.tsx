@@ -5,8 +5,10 @@ import { useVehicleStore } from '@/store/vehicleStore';
 import { portFor } from '@/lib/ottoChargeArm/chargePort';
 import { PLAN_UNITS_PER_METRE } from '@/lib/ottoChargeArm/cobotSpec';
 import { CAR_W_PU } from './vehicleBody';
-import { towardFor, chargerCabinet } from '@/lib/ottoChargeArm/depotPlacement';
-import { DCFC_CABINET_PU, L2_CABINET_PU, L2_POST_ALONG_PU, L2_POST_LATERAL_PU } from '@/lib/ottoChargeArm/cabinetEnvelope';
+import { towardFor, chargerCabinet, chargerPad } from '@/lib/ottoChargeArm/depotPlacement';
+import {
+  DCFC_CABINET_PU, L2_CABINET_PU, L2_POST_ALONG_PU, L2_POST_LATERAL_PU, CABINET_BACKSET_PU, ARM_MOUNT_PU,
+} from '@/lib/ottoChargeArm/cabinetEnvelope';
 import { toWorld, DECK_Y } from './coordUtils';
 import { StaticBatch } from './staticBatch';
 import { MATERIALS } from './materials';
@@ -137,21 +139,39 @@ export function ChargingField({ type }: Props) {
     const fx = -cab.face.x, fz = -cab.face.y;
     // Ry(yaw) sends local +X to (cos yaw, 0, -sin yaw)
     const yaw = Math.atan2(-fz, fx);
-    return { s, toward, wx, wz, fx, fz, yaw };
+    const pad = chargerPad(isDC ? 'dcfc' : 'l2', s.position.x, s.position.y, s.position.angle);
+    return { s, toward, wx, wz, fx, fz, yaw, pad };
   // positions depend only on the layout, not on live status
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [list.map((s) => `${s.id}@${s.position.x},${s.position.y},${s.position.angle}`).join('|'), isDC]);
 
   const housing = useMemo(() => {
     const b = new StaticBatch();
-    for (const { wx, wz, fx, fz, yaw, toward } of placed) {
+    for (const { wx, wz, fx, fz, yaw, toward, pad } of placed) {
       const y0 = DECK_Y;
       // One box, placed `f` toward the car and `a` along local +Z (along the car),
       // sized `sf` on the car-facing axis and `sa` along the car, and turned with it.
       const put = (k: string, f: number, y: number, a: number, sf: number, sy: number, sa: number) =>
         b.box(k, wx + fx * f - fz * a, y, wz + fz * f + fx * a, sf, sy, sa, yaw);
-      // pad: long axis with the cabinet's wide face, along the car
-      put('pad', 0, y0 + P / 2, 0, D + 0.8, P, W + 0.6);
+      // pad: long axis with the cabinet's wide face, along the car. A DCFC's runs on
+      // under the arm (depotPlacement.chargerPad): cabinet and arm share one pad.
+      put('pad', pad.offset, y0 + P / 2, 0, pad.hw * 2, P, pad.hl * 2);
+      if (isDC) {
+        // THE ARM'S MOUNT (cabinetEnvelope.ARM_MOUNT_PU): the OTTO-CHARGE ARM's J1
+        // stands CABINET_BACKSET_PU toward the car from this cabinet's centre, on a
+        // plate MOUNT_HEIGHT_M up. A riser carries that plate from the pad, and a
+        // graphite trunk (the DC cable and the umbilical) joins the riser to the
+        // cabinet face: one unit, not an arm hanging beside a box. The arm itself
+        // is where it always was (ChargingArm / placeArm), so it moves exactly as
+        // before; nothing here reaches above the plate's underside.
+        const B = CABINET_BACKSET_PU, R = ARM_MOUNT_PU.riser, T = ARM_MOUNT_PU.top;
+        put('shell', B, y0 + P + (T - P) / 2, 0, R, T - P, R);
+        put('graphite', B, y0 + P + 0.12, 0, R + 0.04, 0.24, R + 0.04);
+        put('graphite', B, y0 + T - 0.03, 0, R + 0.06, 0.06, R + 0.06);
+        put('brand', B + R / 2 + 0.01, y0 + P + (T - P) * 0.62, 0, 0.02, 0.05, R * 0.7);
+        const trunk = B - R / 2 - D / 2, trunkTop = T - 0.12;
+        put('graphite', D / 2 + trunk / 2, y0 + P + (trunkTop - P) / 2, 0, trunk + 0.02, trunkTop - P, ARM_MOUNT_PU.bridge);
+      }
       // satin shell over a graphite plinth
       put('shell', 0, y0 + P + H / 2, 0, D, H, W);
       put('graphite', 0, y0 + P + 0.24, 0, D + 0.04, 0.48, W + 0.04);

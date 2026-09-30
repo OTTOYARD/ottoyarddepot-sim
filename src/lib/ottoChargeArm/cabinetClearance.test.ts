@@ -25,7 +25,9 @@ import { solveIK, STOWED, type JointAngles } from "./cobotIK";
 import { clearanceToCar } from "./vehicleEnvelope";
 import {
   cabinetSolidInArmFrame, cabinetIntrusionTowardCar, DCFC_CABINET_PU,
+  mountSolidInArmFrame, MOUNT_PLATE_UNDERSIDE_M, ARM_MOUNT_PU, CABINET_BACKSET_PU,
 } from "./cabinetEnvelope";
+import type { CarSolid } from "./vehicleEnvelope";
 
 const CABINET = cabinetSolidInArmFrame();
 
@@ -45,7 +47,7 @@ const CABINET = cabinetSolidInArmFrame();
  */
 const MOUNTED_NODES = new Set(["Mount_Plinth", "Base_Housing", "Base_Band", "Shoulder_Yoke"]);
 
-interface Probe { pose(a: JointAngles): void; worstClearance(): { min: number; part: string }; }
+interface Probe { pose(a: JointAngles): void; worstClearance(solid?: CarSolid): { min: number; part: string }; }
 
 function makeProbe(): Probe {
   const rig = buildCobot(OTTO_CHARGE_ARM, { withPlinth: true, lod: "studio" });
@@ -79,13 +81,13 @@ function makeProbe(): Probe {
       rig.j6.rotation.set(0, a.j6, 0);
       scene.updateMatrixWorld(true);
     },
-    worstClearance() {
+    worstClearance(solid = CABINET) {
       let min = Infinity, part = "";
       for (const p of parts) {
         const mw = p.mesh.matrixWorld;
         for (let i = 0; i < p.verts.length; i += 3) {
           v.set(p.verts[i], p.verts[i + 1], p.verts[i + 2]).applyMatrix4(mw);
-          const d = clearanceToCar({ x: v.x, y: v.y, z: v.z }, CABINET);
+          const d = clearanceToCar({ x: v.x, y: v.y, z: v.z }, solid);
           if (d < min) { min = d; part = p.name; }
         }
       }
@@ -204,5 +206,58 @@ describe("THE MOVING ARM vs THE CABINET", () => {
     const probe = makeProbe();
     probe.pose(STOWED);
     expect(probe.worstClearance().min).toBeGreaterThan(0);
+  });
+});
+
+// ============================================================================
+// ONE UNIT (founder, 2026-09-30: "the robotic charging arms are floating beside
+// the hardware cabinets"). A riser under the mount plate and a bridge into the
+// cabinet face tie the arm to its cabinet. The arm itself did not move, so the
+// only question is whether the new hardware stands anywhere a moving link goes.
+// ============================================================================
+describe("THE ARM'S MOUNT: riser and bridge join the arm to its cabinet", () => {
+  const MOUNT = mountSolidInArmFrame();
+
+  it("the riser meets the underside of the arm's own mount plate — no gap, no overlap", () => {
+    const rig = buildCobot(OTTO_CHARGE_ARM, { withPlinth: true, lod: "studio" });
+    rig.root.updateMatrixWorld(true);
+    const plate = rig.root.getObjectByName("Mount_Plate") as THREE.Mesh;
+    const box = new THREE.Box3().setFromObject(plate);
+    expect(box.min.y).toBeCloseTo(-MOUNT_PLATE_UNDERSIDE_M, 6);
+    // the solid's top, back in the arm frame, is that same plane
+    expect(MOUNT.profile[2][1] + MOUNT.gradeY).toBeCloseTo(-MOUNT_PLATE_UNDERSIDE_M, 6);
+    // and the riser is wider than the plate it carries
+    expect(ARM_MOUNT_PU.riser * 0.4785).toBeGreaterThan(0.30);
+  });
+
+  it("the bridge runs all the way from the riser into the cabinet face", () => {
+    // the mount solid's back face IS the cabinet's car-facing face
+    expect(MOUNT.zMin).toBeCloseTo(CABINET.zMax, 9);
+    expect(MOUNT.zMin).toBeCloseTo(-(CABINET_BACKSET_PU - DCFC_CABINET_PU.depth / 2) * 0.4785, 3);
+    // and it stays well short of the car's flank
+    expect(MOUNT.zMax).toBeLessThan(SERVICE_WINDOW.flankStandoff - 1.0);
+  });
+
+  it("no moving link enters the riser or the bridge, anywhere in the duty cycle", () => {
+    const probe = makeProbe();
+    let worst = { min: Infinity, part: "", label: "" };
+    // the poses, and the TRANSIT to each from stowed: the renderer slews every
+    // joint toward its target (armMotion.slewAngles), so the arm passes through
+    // these interpolations on every connect and every release
+    const lerp = (a: JointAngles, b: JointAngles, k: number): JointAngles => ({
+      j1: a.j1 + (b.j1 - a.j1) * k, j2: a.j2 + (b.j2 - a.j2) * k, j3: a.j3 + (b.j3 - a.j3) * k,
+      j4: a.j4 + (b.j4 - a.j4) * k, j5: a.j5 + (b.j5 - a.j5) * k, j6: a.j6 + (b.j6 - a.j6) * k,
+    });
+    for (const p of dutyCyclePoses()) {
+      for (let i = 0; i <= 12; i++) {
+        probe.pose(lerp(STOWED, p.angles, i / 12));
+        const c = probe.worstClearance(MOUNT);
+        if (c.min < worst.min) worst = { min: c.min, part: c.part, label: `${p.label} @${i}/12` };
+      }
+    }
+    // eslint-disable-next-line no-console
+    console.log(`[mount] worst moving-link clearance ${worst.min.toFixed(4)} m on "${worst.part}" at ${worst.label}`);
+    expect(Number.isFinite(worst.min)).toBe(true);
+    expect(worst.min).toBeGreaterThan(0.05);
   });
 });
