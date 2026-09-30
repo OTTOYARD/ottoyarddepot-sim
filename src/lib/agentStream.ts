@@ -220,6 +220,90 @@ export function namesFromRows(rows: readonly ActivityFeedRow[]): Map<string, str
   return m;
 }
 
+/** A run whose world is live, by the cockpit's own rule (useTwinFeed): running, active or paused. */
+export const isLiveStatus = (s: string | null | undefined): boolean => ["running", "active", "paused"].includes(String(s ?? "").toLowerCase());
+
+// ── what the agent reads ────────────────────────────────────────────────────
+// The frame is the per-asset board the agent reads before it picks an objective (ottoq_intelligence_stack with
+// p_include_frame, built by ottoq_agent_asset_depth over every car in the depot). These are its own numbers, in words.
+const BLOCK_WORD: Record<string, string> = {
+  cell_balance_overdue: "cell balance overdue",
+  soh_derate: "battery health derate",
+  pack_temp_high: "pack too hot",
+};
+const fmtN = (x: number) => x.toLocaleString("en-US");
+
+export interface FrameRead {
+  lines: { key: string; text: string }[];
+  attention: { name: string; line: string }[];
+}
+
+export function frameSentences(frame: Record<string, unknown> | null | undefined): FrameRead {
+  const out: FrameRead = { lines: [], attention: [] };
+  if (!frame || typeof frame !== "object") return out;
+  const obj = (v: unknown) => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : null);
+  const a = obj(frame.assets), soc = obj(a?.soc), hc = obj(a?.hard_constraints), h = obj(a?.health), dl = obj(a?.deadlines), tel = obj(frame.telemetry);
+  const cars = num(a?.n);
+  if (soc && [soc.p10, soc.p50, soc.p90].every((v) => num(v) != null)) {
+    const below = num(soc.below_min_ready);
+    out.lines.push({
+      key: "soc",
+      text: `Battery${cars != null ? ` across ${fmtN(cars)} cars` : ""}: a tenth at or below ${num(soc.p10)}%, half at or below ${num(soc.p50)}%, nine in ten at or below ${num(soc.p90)}%.${below != null ? ` ${fmtN(below)} ${below === 1 ? "is" : "are"} below the ready floor.` : ""}`,
+    });
+  }
+  if (hc) {
+    const blocked = num(hc.dcfc_blocked), derated = num(hc.charge_derated);
+    const reasons = obj(hc.dcfc_block_reasons);
+    const why = reasons ? Object.entries(reasons).filter(([, v]) => num(v)).sort((x, y) => (num(y[1]) ?? 0) - (num(x[1]) ?? 0)).map(([k, v]) => `${fmtN(num(v)!)} ${BLOCK_WORD[k] ?? human(k)}`) : [];
+    const parts = [
+      blocked != null ? `${fmtN(blocked)} ${blocked === 1 ? "car cannot" : "cars cannot"} use a fast charger right now${why.length ? ` (${why.join(", ")})` : ""}` : null,
+      derated != null ? `${fmtN(derated)} charge at a reduced rate` : null,
+    ].filter(Boolean);
+    if (parts.length) out.lines.push({ key: "hc", text: `${parts.join("; ")}.` });
+  }
+  if (h) {
+    const f = num(h.open_faults), sev = num(h.severe_faults), pm = num(h.pm_overdue), sw = num(h.sw_behind);
+    const sensor = num(h.sensor_below_90), tread = num(h.tread_below_3mm), brake = num(h.brake_above_80pct);
+    const parts = [
+      f != null ? `${fmtN(f)} open ${f === 1 ? "fault" : "faults"}${sev ? `, ${fmtN(sev)} severe` : ""}` : null,
+      pm != null ? `${fmtN(pm)} overdue for maintenance` : null,
+      sw != null ? `${fmtN(sw)} behind on software` : null,
+      sensor ? `${fmtN(sensor)} with sensors below 90%` : null,
+      tread ? `${fmtN(tread)} with tread under 3 mm` : null,
+      brake ? `${fmtN(brake)} with brakes past 80% wear` : null,
+    ].filter(Boolean);
+    if (parts.length) out.lines.push({ key: "health", text: `Health: ${parts.join("; ")}.` });
+  }
+  if (dl) {
+    const over = num(dl.overdue), soon = num(dl.due_60m), tight = num(dl.tightest_min);
+    const parts = [
+      over != null ? `${fmtN(over)} past their deploy time` : null,
+      soon != null ? (soon === 0 ? "none due in the next hour" : `${fmtN(soon)} due in the next hour`) : null,
+      tight != null ? `the tightest in ${fmtN(tight)} min` : null,
+    ].filter(Boolean);
+    if (parts.length) out.lines.push({ key: "deadlines", text: `Deadlines: ${parts.join("; ")}.` });
+  }
+  if (tel) {
+    const win = num(tel.window_min), pk = num(tel.packets), rep = num(tel.vehicles_reporting), silent = num(tel.silent_vehicles), temp = num(tel.max_battery_temp_c);
+    const integ = obj(tel.integrity), dropped = num(integ?.dropped);
+    const parts = [
+      pk != null ? `${fmtN(pk)} packets${rep != null ? ` from ${fmtN(rep)} cars` : ""}` : null,
+      silent != null ? `${fmtN(silent)} silent` : null,
+      dropped ? `${fmtN(dropped)} dropped` : null,
+      temp != null ? `hottest battery ${temp} °C` : null,
+    ].filter(Boolean);
+    if (parts.length) out.lines.push({ key: "telemetry", text: `Telemetry${win != null ? ` over the last ${fmtN(win)} min` : ""}: ${parts.join("; ")}.` });
+  }
+  const att = Array.isArray(a?.attention) ? (a!.attention as Record<string, unknown>[]) : [];
+  for (const x of att) {
+    const name = typeof x.asset === "string" ? x.asset : "—";
+    const bits = [num(x.soc) != null ? `${num(x.soc)}%` : null, typeof x.priority === "string" ? `${human(x.priority)} priority` : null].filter(Boolean);
+    const why = Array.isArray(x.why) ? (x.why as unknown[]).map(String) : [];
+    out.attention.push({ name, line: `${bits.length ? `(${bits.join(", ")}) ` : ""}${why.join("; ")}` });
+  }
+  return out;
+}
+
 /** The loop, counted: read (agent passes), proposed (offers), disposed (enacted / refused), learned (graded questions). */
 export interface LoopCounts {
   reads: number | null;

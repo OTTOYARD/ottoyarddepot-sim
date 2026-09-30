@@ -109,6 +109,28 @@ describe("funnel geometry", () => {
   });
 });
 
+describe("what the agent reads", () => {
+  it("says the frame's own numbers in words", async () => {
+    const { frameSentences } = await import("./agentStream");
+    const frame = (await import("@/components/tabs/__fixtures__/agentFrame.1ccad49b.json")).default as Record<string, unknown>;
+    const r = frameSentences(frame);
+    const text = r.lines.map((l) => l.text).join(" ");
+    expect(text).toContain("Battery across 116 cars: a tenth at or below 85%, half at or below 95%, nine in ten at or below 100%. 8 are below the ready floor.");
+    expect(text).toContain("19 cars cannot use a fast charger right now (8 cell balance overdue, 6 battery health derate, 5 pack too hot); 25 charge at a reduced rate.");
+    expect(text).toContain("Health: 9 open faults, 6 severe; 28 overdue for maintenance; 9 behind on software");
+    expect(text).toContain("Telemetry over the last 10 min: 2,514 packets from 49 cars; 67 silent; 82 dropped; hottest battery 37.2 °C.");
+    expect(r.attention).toHaveLength(10);
+    expect(r.attention[0].line).toMatch(/^\(100%, high priority\) deploy deadline passed/);
+    expect(text).not.toMatch(/undefined|NaN|null/);
+  });
+
+  it("says nothing it was not given", async () => {
+    const { frameSentences } = await import("./agentStream");
+    expect(frameSentences(null)).toEqual({ lines: [], attention: [] });
+    expect(frameSentences({ assets: { n: 5 } })).toEqual({ lines: [], attention: [] });
+  });
+});
+
 describe("offer batches by tick", () => {
   it("carry the tick's sim time from the engine's own decisions, and fold ticks where nothing was enacted or refused", async () => {
     const { tickClocks } = await import("./agentStream");

@@ -30,6 +30,9 @@ const URL_ = arg("--url", "http://127.0.0.1:8080/");
 const OUT = arg("--out", "./shots");
 const BEFORE = has("--before");
 const EVENTS = arg("--events", null);
+const WIDTHS = arg("--widths", "420,360,320").split(",").map(Number).filter(Boolean);
+const ONLY = arg("--only", null);
+const NO_PHONE = has("--no-phone");
 const exe = arg("--chromium", fs.existsSync("/opt/pw-browsers/chromium") ? "/opt/pw-browsers/chromium" : undefined);
 fs.mkdirSync(OUT, { recursive: true });
 
@@ -80,6 +83,7 @@ function installRoutes(page) {
   return log;
 }
 
+let interact = null;
 async function panelShots(browser, width) {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1, reducedMotion: "no-preference" });
   const page = await ctx.newPage();
@@ -93,11 +97,23 @@ async function panelShots(browser, width) {
     const el = document.querySelector("div.w-\\[420px\\]");
     if (el) { el.style.width = `${w}px`; el.parentElement.style.width = `${w}px`; }
   }, width);
-  const tabs = BEFORE ? ["Intelligence", "Orchestration", "Events"] : ["OTTO-Q", "Agent"];
+  const tabs = (BEFORE ? ["Intelligence", "Orchestration", "Events"] : ["OTTO-Q", "Agent"]).filter((t) => !ONLY || t === ONLY);
   const shots = [];
   const overflow = {};
   for (const t of tabs) {
     await page.locator("div.w-\\[420px\\] button", { hasText: new RegExp(`^${t.replace("-", "\\-")}$`) }).first().click();
+    if (!BEFORE && t === "OTTO-Q" && has("--motion") && width === WIDTHS[0]) {
+      // Motion: the stack while the second reads land (real records arriving in engine order), a frame every ~0.7 s.
+      const stackEl = page.locator("div.w-\\[420px\\] canvas").first();
+      await page.waitForTimeout(3600);
+      for (let f = 0; f < 12; f++) {
+        const nm = `motion-${String(f).padStart(2, "0")}.png`;
+        const box = await stackEl.boundingBox();
+        if (box) await page.screenshot({ path: path.join(OUT, nm), clip: { x: box.x, y: box.y, width: box.width * 0.66, height: box.height } });
+        shots.push(nm);
+        await page.waitForTimeout(700);
+      }
+    }
     await page.waitForTimeout(t === "OTTO-Q" ? 11000 : 3000); // OTTO-Q: long enough for the second cards and feed reads
     const panel = page.locator("div.w-\\[420px\\]").first();
     const name = `${BEFORE ? "before" : "after"}-${t.toLowerCase().replace(/[^a-z]/g, "")}-${width}.png`;
@@ -111,13 +127,19 @@ async function panelShots(browser, width) {
     });
     if (!BEFORE && t === "OTTO-Q") {
       // Open two layers and shoot each.
-      for (const layer of ["Proposers", "Service"]) {
-        await page.locator("ol[aria-label='OTTO-Q layers'] button", { hasText: layer }).first().click();
-        await page.waitForTimeout(600);
-        const nm = `after-ottoq-${layer.toLowerCase()}-${width}.png`;
+      const flat = await page.locator("ol[aria-label='OTTO-Q layers']").count();
+      const plates = flat ? ["Proposers", "Service"] : ["Planners", "Depot", "Agent", "Decide + safety"];
+      for (const layer of plates) {
+        const btn = flat
+          ? page.locator("ol[aria-label='OTTO-Q layers'] button", { hasText: layer }).first()
+          : page.locator("button[aria-pressed]", { hasText: layer }).first();
+        await btn.click({ force: true });
+        await page.waitForTimeout(flat ? 600 : 4000);
+        const nm = `after-ottoq-${layer.toLowerCase().replace(/[^a-z]/g, "")}-${width}.png`;
         await panel.screenshot({ path: path.join(OUT, nm) });
         shots.push(nm);
-        await page.locator("ol[aria-label='OTTO-Q layers'] button", { hasText: layer }).first().click();
+        await btn.click({ force: true });
+        await page.waitForTimeout(flat ? 100 : 2500);
       }
       // A mid-motion frame: the second cards read has just moved cars; catch sparks in flight.
     }
@@ -129,10 +151,53 @@ async function panelShots(browser, width) {
       shots.push(nm);
     }
   }
+  if (!BEFORE && has("--interact") && width === WIDTHS[0]) {
+    await page.locator("div.w-\\[420px\\] button", { hasText: /^OTTO\-Q$/ }).first().click();
+    await page.waitForTimeout(2500);
+    const c = page.locator("div.w-\\[420px\\] canvas").first();
+    const box = await c.boundingBox();
+    if (box) {
+      // drag sideways: the stack turns (a vertical swipe would scroll the panel instead)
+      await page.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.5);
+      await page.mouse.down();
+      for (let k = 1; k <= 12; k++) await page.mouse.move(box.x + box.width * 0.3 - k * 12, box.y + box.height * 0.5);
+      await page.mouse.up();
+      await page.waitForTimeout(2500);
+      await page.locator("div.w-\\[420px\\]").first().screenshot({ path: path.join(OUT, `after-ottoq-turned-${width}.png`) });
+      shots.push(`after-ottoq-turned-${width}.png`);
+      // turn back, then find a car puck under the pointer (its tooltip appears), shoot the hover, and tap it
+      await page.mouse.move(box.x + box.width * 0.3 - 144, box.y + box.height * 0.5);
+      await page.mouse.down();
+      for (let k = 1; k <= 12; k++) await page.mouse.move(box.x + box.width * 0.3 - 144 + k * 12, box.y + box.height * 0.5);
+      await page.mouse.up();
+      await page.waitForTimeout(2500);
+      const tip = page.locator("div.pointer-events-none.absolute.z-20");
+      let hit = null;
+      for (let fy = 0.6; fy < 0.9 && !hit; fy += 0.03) {
+        for (let fx = 0.12; fx < 0.6 && !hit; fx += 0.035) {
+          await page.mouse.move(box.x + box.width * fx, box.y + box.height * fy);
+          await page.waitForTimeout(220);
+          if (await tip.count()) {
+            const text = (await tip.first().textContent()) ?? "";
+            if (!/offer|agent|\d{1,2}:\d{2}/i.test(text)) hit = { fx, fy, text };
+          }
+        }
+      }
+      if (hit) {
+        await page.locator("div.w-\\[420px\\]").first().screenshot({ path: path.join(OUT, `after-ottoq-hover-${width}.png`) });
+        shots.push(`after-ottoq-hover-${width}.png`);
+        await page.mouse.down(); await page.mouse.up();
+        await page.waitForTimeout(4500);
+        await page.locator("div.w-\\[420px\\]").first().screenshot({ path: path.join(OUT, `after-ottoq-picked-${width}.png`) });
+        shots.push(`after-ottoq-picked-${width}.png`);
+      }
+      interact = { hover: hit?.text ?? null, pickedCard: await page.locator("section[aria-label='Picked record']").count() };
+    }
+  }
   const full = `${BEFORE ? "before" : "after"}-cockpit-${width}.png`;
   await page.screenshot({ path: path.join(OUT, full) });
   await ctx.close();
-  return { width, shots, errors: [...new Set(errors)], overflow, log };
+  return { width, shots, errors: [...new Set(errors)], overflow, log, interact: width === WIDTHS[0] ? interact : undefined };
 }
 
 async function phoneShots(browser) {
@@ -160,7 +225,7 @@ async function phoneShots(browser) {
 
 const browser = await chromium.launch({ executablePath: exe, args: ["--use-gl=swiftshader", "--enable-unsafe-swiftshader"] });
 const results = [];
-for (const w of [420, 360, 320]) results.push(await panelShots(browser, w));
-results.push(await phoneShots(browser));
+for (const w of WIDTHS) results.push(await panelShots(browser, w));
+if (!NO_PHONE) results.push(await phoneShots(browser));
 await browser.close();
 console.log(JSON.stringify(results, null, 1));

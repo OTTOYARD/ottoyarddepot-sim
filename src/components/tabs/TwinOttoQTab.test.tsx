@@ -99,6 +99,9 @@ describe("Agent tab", () => {
     expect(within(loop).getByText("59")).toBeTruthy(); // offers: 103 dispositions less 44 abstentions
     expect(within(loop).getByText("1 / 25")).toBeTruthy();
     expect(document.body.textContent).not.toMatch(/undefined|NaN|\[object Object\]/);
+    // the run in the fixture has ended: no stale board is offered as current, and the header says ended
+    expect(screen.getByRole("region", { name: "What the agent reads" }).textContent).toMatch(/this run is not running/);
+    expect(screen.getByText("ended")).toBeTruthy();
   });
 
   it("learning says OTTO-Q does not experiment in production, and that estimates are not built", () => {

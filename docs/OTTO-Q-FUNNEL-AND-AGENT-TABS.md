@@ -9,7 +9,7 @@ Three tabs (Intelligence, Orchestration, Events) become two:
 
 | tab | question it answers | form |
 |---|---|---|
-| **OTTO-Q** | How does OTTO-Q move every car through the depot, right now? | a living funnel: real cars and real decisions moving between layers |
+| **OTTO-Q** | How does OTTO-Q move every car through the depot, right now? | a living 3D stack of the engine's layers: real cars, offers and decisions on plates, each new record falling through the stack |
 | **Agent** | What is the agent reading, proposing, and learning, and what happened to it? | a plain-English live stream, then the learning loop |
 
 ## What the three old tabs showed, and what was redundant
@@ -47,7 +47,56 @@ suggested order had the shield first; the engine has it last before booking, and
 
 Cars `deployed` or `offline` are outside the depot and are counted in one line under the funnel, never drawn.
 
-## What one node is
+## The OTTO-Q stack (3D)
+
+Chase, 2026-09-30 ~1 AM CT, with two reference renders of exploded plate stacks: *"majorly upgrade the visual
+depiction of the Otto-q funnel. Not just 2D, but More 3D and moving nodes/scaffolding etc."*
+
+The eight layers above are drawn as four plates hung on a scaffold, top to bottom in the order a decision falls
+through the engine. Code: `src/components/tabs/ottoq/stack/` (`stackModel.ts` places everything and is tested without
+a GPU; `OttoQStack.tsx` draws it with three.js / react-three-fiber, already in the app for the depot view).
+
+| plate | layers | what is on it | one object is |
+|---|---|---|---|
+| **Agent** (red glass) | Proposers (agent) | a chrome sphere per agent pass, joined to a pearl for the objective it chose, and to the pass before it | one `ottoq_activity_feed_v2` row with action `orchestrator_agent` |
+| **Planners** (dark metal) | Proposers (offers) | a bar per offer in its planner's lane (CP-SAT, cuOpt, greedy, service priority), newest on the left | one `ottoq_proposal_disposition_ledger` row |
+| **Decide + safety** (tile grid, red rim) | Decide, Safety check | a tile per car decision, newest at the front; the rim is the L1 shield | one car decision (feed row, changes only) |
+| **Depot** (base) | Arriving, Needs, Booked, Service, Ready | a puck per car, in the zone its state puts it | one `ottoq_depot_cards` vehicle |
+
+**The depot base is the site.** Zones sit where their stalls sit on the real plan (`src/lib/sitePlan.ts`): service and
+wash bays along the north (back), the DCFC canopy west of centre, the L2 canopies in the middle, temp staging (waiting,
+booked) to the east, ready to the west. Cars **enter at the east gate and leave by the west gate**, the founder-locked
+rule. Charger and bay sockets are the site's real counts from `generateStallsV2` (10 DCFC, 30 L2, 3 wash, 2 service),
+and a charging car sits in the socket its own stall number names when its card carries one. A zone with more cars than
+sockets reports the overflow; nothing is hidden.
+
+**What moves, and why (every motion is one record or one reported change):**
+
+| record | on screen |
+|---|---|
+| a new agent pass | its sphere appears; a frame of light rises from the depot to the glass (it read the depot's frame); if the solver took the hand-off (`handoff_status = completed`), a bead falls to the planners |
+| a new offer | its bar slides into its lane; an enacted one drops a bead to the decide plate; a refused one flashes red |
+| a new car decision | its tile flips up and glows; one that places a car drops a bead along a beam to that car's puck, which pulses as it lands; an override (`overridden_to_default`) flares the red rim |
+| a car changing state | its puck glides to its new zone (two polls of the cards); a car the depot no longer holds drives out through the west gate |
+
+Records already there when the tab opens appear without playing. A flood is capped at 48 plays per read; the rest still
+appear on their plates. Nothing plays while the run is paused, because nothing new is read. The only motion not caused
+by a record is the viewer's own: dragging sideways turns the stack, and tapping a plate zooms to it (it lifts the other
+plates away and fades them).
+
+**Every object can be read.** Hover one for a line about its record; tap it and the stack zooms to its plate and a card
+below says it in words: an agent pass (what it read, the directives, what it chose, what happened), an offer (who
+offered it, for which car, what the decide path did and why), a decision (what, why, whether the safety check overrode
+it, how long it held), or a car (its battery against its target, and its full plain-English trail).
+
+**Colours** are the legend's: green enacted, amber held or waiting (an agent fallback is amber, never red), red refused
+(the safety check overrode a choice, or the decide path refused an offer), grey nothing recorded or an offer replaced,
+expired or declined. A car in Ready is green only with a battery reading at or above its target and no open need
+(rule 9).
+
+**Without WebGL** (and in tests) the tab falls back to the flat funnel below, which reads the same records.
+
+## The flat funnel (fallback)
 
 - **A car node** is one vehicle from `ottoq_depot_cards` (contract 1.4), placed in the layer its `state` maps to. It
   moves only when a new poll puts it in a different layer: the motion interpolates between two real states.
@@ -83,8 +132,8 @@ the Agent tab.
   `recorded_only` (an advisory rule's would-block is a note, not a refusal, `ottoq_rule_evaluation_effect`), never for
   superseded or expired.
 - **Grey**: no decision recorded for this car in the window, or an offer superseded, expired or abstained.
-- **Motion**: a car glides only between two states the engine reported. A spark travels only along the path its record
-  names. When the run is paused, polling stops and the funnel freezes (the stream's own rule).
+- **Motion**: a car glides only between two states the engine reported. A spark or bead travels only along the path its
+  record names. When the run is paused, polling stops and the stack freezes (the stream's own rule).
 - A missing number shows as "—", never 0.
 
 ## Each layer's one-line overview (and its source)
@@ -136,7 +185,8 @@ a process that does not exist would be invented data.
 | `ottoq_proposal_disposition_ledger` (select, `sim_run_id = run`, `disposition_id > last`) | 8 s | proposer sparks, Agent offers |
 | `ottoq_challenger_board(run)`, `ottoq_learning_board()` | 10 s / 60 s | Agent learning |
 
-No new RPC. Every poll stops when the run is paused or the tab is hidden.
+No new RPC. Every poll stops when the run is paused or another cockpit tab is open (the tab unmounts), and the 3D stack
+renders nothing while the page is hidden.
 
 ## Dropped, and why
 
@@ -159,6 +209,18 @@ No new RPC. Every poll stops when the run is paused or the tab is hidden.
 
 ## Performance rules
 
-Canvas 2D, one `requestAnimationFrame` loop, nodes capped at 160 cars and 60 live sparks (older sparks are dropped,
-never a car). The loop stops when the tab is hidden (`document.hidden`) or unmounted. With
-`prefers-reduced-motion`, cars jump to their layer and sparks become a short static mark.
+- **The stack renders only while something moves** (react-three-fiber `frameloop="demand"`): an event's animation, a
+  car gliding, the zoom, a drag. Measured on the fixture: the frame counter stopped (59 frames from second 16 to second
+  20 of a quiet stretch), and a poll with nothing new costs a couple of frames. With `prefers-reduced-motion` no bead
+  plays and cars jump to their zone.
+- **53 draw calls and 21k triangles per frame, bloom passes included** (was 92 before the ports, posts and collars were
+  instanced). Every repeated object is one instanced mesh: spheres (≤ 40), bars (≤ 48), tiles (≤ 72), pucks (≤ 170),
+  beads and flashes (one point cloud).
+- The frame is fitted to the stack every frame, so it fills the panel at 420, 360 and 320 px and in the phone sheet.
+- Device pixel ratio follows the app's render tier (`qualityStore`): up to 1.75 on High, 1.5 on Medium, 1 on Low; Low
+  also drops bloom and MSAA.
+- The measurements above ran in a headless browser rendering WebGL in software (SwiftShader, about 6 frames a second).
+  They count work, not smoothness; smoothness has to be seen on a real GPU and a real phone.
+
+The flat fallback (Canvas 2D): one `requestAnimationFrame` loop, nodes capped at 160 cars and 60 live sparks, stopped when
+the page is hidden or the tab unmounts.

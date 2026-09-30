@@ -18,11 +18,11 @@ import { useActivityFeedStore } from "@/store/activityFeedStore";
 import { useIntelligenceStack } from "@/hooks/useIntelligenceStack";
 import { useDispositions } from "@/hooks/useDispositions";
 import { useSecondLoop } from "@/hooks/useSecondLoop";
-import { StreamState } from "@/components/tabs/TwinDecisionLogTab";
+import { EndedState, StreamState } from "@/components/tabs/TwinDecisionLogTab";
 import SecondLoopPanel from "@/components/tabs/SecondLoopPanel";
 import { TONE_COLOR } from "@/components/tabs/ottoq/funnelGeometry";
 import {
-  agentPass, namesFromRows, offerBatches, tickClocks, type AgentPass, type OfferBatch, type StreamItem, type StreamTone,
+  agentPass, frameSentences, isLiveStatus, namesFromRows, offerBatches, tickClocks, type AgentPass, type OfferBatch, type StreamItem, type StreamTone,
 } from "@/lib/agentStream";
 import { tallyDispositions } from "@/lib/ottoqFunnel";
 import { formatClockCT, num } from "@/lib/decisionText";
@@ -110,13 +110,15 @@ function Loop({ reads, offers, enacted, refused, graded }: { reads: number | nul
   ];
   return (
     <section aria-label="The loop" className="rounded border border-white/[0.08] bg-canvas-panel/70 p-2.5">
-      <ol className="grid grid-cols-4 gap-1">
+      <ol className="flex items-stretch gap-0.5">
         {steps.map((s, i) => (
-          <li key={s.k} className="relative min-w-0 rounded bg-white/[0.04] px-1 py-1.5 text-center">
-            <div className="font-display text-[9px] uppercase tracking-[0.06em] text-violet-300">{s.k}</div>
-            <div className="mt-0.5 truncate font-mono text-[13px] leading-none text-ink">{s.v}</div>
-            <div className="mt-0.5 break-words text-[9px] leading-3 text-ink-faint">{s.sub}</div>
-            {i < steps.length - 1 && <ChevronRight aria-hidden size={10} className="absolute -right-[7px] top-1/2 z-10 -translate-y-1/2 text-ink-faint" />}
+          <li key={s.k} className="flex min-w-0 flex-1 items-stretch gap-0.5">
+            <div className="min-w-0 flex-1 overflow-hidden rounded bg-white/[0.04] px-1 py-1.5 text-center">
+              <div className="truncate font-display text-[9px] uppercase tracking-[0.02em] text-violet-300">{s.k}</div>
+              <div className="mt-0.5 truncate font-mono text-[13px] leading-none text-ink">{s.v}</div>
+              <div className="mt-0.5 break-words text-[9px] leading-3 text-ink-faint">{s.sub}</div>
+            </div>
+            {i < steps.length - 1 && <ChevronRight aria-hidden size={9} className="shrink-0 self-center text-ink-faint" />}
           </li>
         ))}
       </ol>
@@ -128,13 +130,67 @@ function Loop({ reads, offers, enacted, refused, graded }: { reads: number | nul
   );
 }
 
+/** The board the agent reads, in words, fetched on demand (it runs over every car in the depot). */
+function ReadsCard({ status, frame, loading, onRead }: { status: string | null; frame: Record<string, unknown> | null; loading: boolean; onRead: () => void }) {
+  const [all, setAll] = useState(false);
+  const live = isLiveStatus(status);
+  const r = useMemo(() => frameSentences(frame), [frame]);
+  return (
+    <section aria-label="What the agent reads" className="rounded border border-violet-400/20 bg-violet-400/[0.03] p-2.5">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="font-display text-[11px] uppercase tracking-[0.08em] text-ink">What the agent reads</div>
+          <p className="mt-0.5 text-[10px] leading-4 text-ink-faint">
+            The board the agent reads before it chooses: every car's battery, faults, deadlines and blocks, straight from
+            the engine. Read on demand, because it looks at every car.
+          </p>
+        </div>
+        {live && (
+          <button type="button" onClick={onRead} disabled={loading}
+            className="shrink-0 rounded border border-white/15 px-2 py-1 text-[10px] text-ink-dim hover:text-ink disabled:opacity-50">
+            {loading ? "Reading…" : frame ? "Read again" : "Read it now"}
+          </button>
+        )}
+      </div>
+      {!live ? (
+        <p className="mt-1.5 text-[11px] leading-4 text-ink-dim">
+          The agent reads the depot live, and this run is not running, so there is nothing current to read.
+        </p>
+      ) : frame && r.lines.length === 0 ? (
+        <p className="mt-1.5 text-[11px] text-ink-faint">The engine returned no board for this run.</p>
+      ) : (
+        <>
+          <ul className="mt-1.5 space-y-1">
+            {r.lines.map((l) => <li key={l.key} className="text-[11px] leading-4 text-ink">{l.text}</li>)}
+          </ul>
+          {r.attention.length > 0 && (
+            <div className="mt-2">
+              <div className="text-[10px] text-ink-faint">Cars it flags for attention ({r.attention.length})</div>
+              <ul className="mt-1 space-y-1">
+                {(all ? r.attention : r.attention.slice(0, 4)).map((x) => (
+                  <li key={x.name} className="text-[10px] leading-4 text-ink-dim"><span className="font-mono text-ink">{x.name}</span> {x.line}</li>
+                ))}
+              </ul>
+              {r.attention.length > 4 && (
+                <button type="button" onClick={() => setAll((v) => !v)} className="mt-1 text-[10px] text-ink-faint hover:text-ink-dim">
+                  {all ? "Show fewer" : `Show all ${r.attention.length}`}
+                </button>
+              )}
+            </div>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
+
 type View = "thinking" | "learning";
 
 export function TwinAgentTab() {
   const simRunId = useTwinStore((s) => s.activeSimRunId);
   useActivityFeed();
   const { rows, frozen, error } = useActivityFeedStore();
-  const { stack } = useIntelligenceStack(!!simRunId);
+  const { stack, frame, frameLoading, loadFrame } = useIntelligenceStack(!!simRunId);
   const disp = useDispositions();
   const loop = useSecondLoop(true);
   const [view, setView] = useState<View>("thinking");
@@ -215,7 +271,7 @@ export function TwinAgentTab() {
                   : `${fmt(chains)} ${chains === 1 ? "pass" : "passes"} this run${fell ? `, ${fmt(fell)} fell back to the deterministic path` : ""}${late != null ? `. Advice lands a mean of ${late} ticks after the tick it read; the tick never waits for it.` : "."}`}
             </p>
           </div>
-          <StreamState frozen={frozen} />
+          {stack?.run?.status && !isLiveStatus(stack.run.status) ? <EndedState /> : <StreamState frozen={frozen} />}
         </div>
 
         <Loop reads={chains} offers={t ? t.total - t.abstained : null} enacted={t?.enacted ?? null} refused={t?.refused ?? null} graded={graded} />
@@ -224,6 +280,7 @@ export function TwinAgentTab() {
 
         {view === "learning" ? learning : (
           <>
+            <ReadsCard status={stack?.run?.status ?? null} frame={frame} loading={frameLoading} onRead={loadFrame} />
             {quietCount > 0 && (
               <label className="flex items-center gap-2 text-[10px] text-ink-faint">
                 <input type="checkbox" checked={showQuiet} onChange={(e) => setShowQuiet(e.target.checked)} className="accent-brand-red" />

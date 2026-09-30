@@ -274,6 +274,8 @@ export function FunnelCanvas({ cars, sparks, selected, overflowLabel }: {
     if (sparkAnims.current.length > 60) sparkAnims.current = sparkAnims.current.slice(-60);
     if (played.current.size > 5000) played.current = new Set([...played.current].slice(-2500));
     kick();
+    // kick is stable in effect (it reads refs only); the sparks are the dependency
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sparks]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
