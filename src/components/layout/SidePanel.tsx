@@ -9,6 +9,7 @@ import { TwinHistoryTab } from '@/components/tabs/TwinHistoryTab';
 import { TwinCopilotTab } from '@/components/tabs/TwinCopilotTab';
 import { WorldContractTab } from '@/components/tabs/WorldContractTab';
 import TwinIntelligenceTab from '@/components/tabs/TwinIntelligenceTab';
+import { TwinValueTab } from '@/components/tabs/TwinValueTab';
 
 const tabComponents: Record<CockpitTab, () => JSX.Element> = {
   controls: OperatorConsole,             // run the world: scenario, transport, speed, variability, injections
@@ -19,6 +20,7 @@ const tabComponents: Record<CockpitTab, () => JSX.Element> = {
   history: TwinHistoryTab,               // run ledger + compare + Black Box download
   world: WorldContractTab,               // feed diagnostics: world load, channels, variable coverage
   copilot: TwinCopilotTab,               // on-demand model review of a sample of this run's decisions
+  value: TwinValueTab,                   // what OTTO-Q is worth at this depot (ottoq_value_summary, otto-q-core 0576)
 };
 
 export const SidePanel = () => {
