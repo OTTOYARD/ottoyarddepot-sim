@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useSimulationStore, type CockpitTab } from '@/store/simulationStore';
 
 // EIGHT TABS, EACH ONE A DIFFERENT QUESTION (2026-09-30: Intelligence, Orchestration and Events became OTTO-Q and Agent).
@@ -27,31 +28,35 @@ const tabs: { id: CockpitTab; label: string }[] = [
   { id: 'value', label: 'Value' },
 ];
 
-export const TabBar = () => {
+/** `trailing` sits at the header's top-right, outside the (wrapping) tab row: the panel's expand button. */
+export const TabBar = ({ trailing }: { trailing?: ReactNode } = {}) => {
   const { activeTab, setActiveTab } = useSimulationStore();
 
   return (
-    <div className="flex flex-wrap border-b border-white/[0.06]">
-      {tabs.map((tab) => {
-        const isOttoQ = tab.id === 'ottoq';
-        return (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`px-3 py-2.5 text-xs font-display uppercase tracking-[0.06em] transition-colors relative inline-flex items-center gap-1.5 ${
-              activeTab === tab.id ? 'text-ink' : 'text-ink-faint hover:text-ink-dim'
-            }`}
-          >
-            {/* OTTO-Q is the engine itself — the tab to open when someone asks what the AI is
-                doing. Violet dot so the eye finds it. */}
-            {isOttoQ && <span className="w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0" />}
-            {tab.label}
-            {activeTab === tab.id && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-red" />
-            )}
-          </button>
-        );
-      })}
+    <div className="flex items-start border-b border-white/[0.06]">
+      <div className="flex flex-wrap flex-1 min-w-0">
+        {tabs.map((tab) => {
+          const isOttoQ = tab.id === 'ottoq';
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-3 py-2.5 text-xs font-display uppercase tracking-[0.06em] transition-colors relative inline-flex items-center gap-1.5 ${
+                activeTab === tab.id ? 'text-ink' : 'text-ink-faint hover:text-ink-dim'
+              }`}
+            >
+              {/* OTTO-Q is the engine itself — the tab to open when someone asks what the AI is
+                  doing. Violet dot so the eye finds it. */}
+              {isOttoQ && <span className="w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0" />}
+              {tab.label}
+              {activeTab === tab.id && (
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-red" />
+              )}
+            </button>
+          );
+        })}
+      </div>
+      {trailing}
     </div>
   );
 };

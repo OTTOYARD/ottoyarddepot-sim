@@ -17,7 +17,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Play, Pause, Square, Zap, BatteryWarning, AlertTriangle,
-  RotateCcw, ChevronRight, ChevronDown, Activity, FlaskConical, Info, Sun, Snowflake, Gauge, Loader2,
+  RotateCcw, ChevronRight, ChevronDown, Activity, FlaskConical, Info, Loader2,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Slider } from "@/components/ui/slider";
@@ -27,12 +27,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { twin, DOMAIN_LABELS, type CatalogVar, type Scenario, type KnobType } from "@/lib/ottoTwin";
-import { startDemoRun, stopAndReset } from "@/lib/blackbox";
+import { stopAndReset } from "@/lib/blackbox";
 import { useTwinStore } from "@/store/twinStore";
 import { useSimulationStore } from "@/store/simulationStore";
 import { useWorldStore } from "@/store/worldStore";
 import type { CoverageVerdict } from "@/lib/ottoq/coverage";
 import { useTwinControl, MAX_SPEED_X } from "@/hooks/useTwinControl";
+import { useStartRun } from "@/hooks/useStartRun";
+import { FEATURED, DEFAULT_SCENARIO } from "./featuredScenarios";
 
 // ── knob helpers (read/write the profile JSONB shape) ──
 type Knobs = Record<string, any>;
@@ -305,16 +307,8 @@ const Group = ({ icon: Icon, title, children, right, defaultOpen = true }: {
   );
 };
 
-// Curated quick-launch scenarios (operator one-click). A chip is hidden if its deck isn't in
-// the backend scenario list. busy_day leads: it is the scenario the engine is validated on.
-const FEATURED: { code: string; label: string; icon: React.ElementType; tint: string }[] = [
-  { code: "busy_day",                    label: "Busy Day",       icon: Gauge,          tint: "text-brand-red" },
-  { code: "normal_day",                  label: "Normal Day",     icon: Activity,       tint: "text-ink-dim" },
-  { code: "heat_wave",                   label: "Heat Wave",      icon: Sun,            tint: "text-brand-hot" },
-  { code: "winter_storm",                label: "Winter Storm",   icon: Snowflake,      tint: "text-state-info" },
-  { code: "dr_event_cascade",            label: "DR Cascade",     icon: BatteryWarning, tint: "text-state-warn" },
-  { code: "charger_outage_morning_rush", label: "Charger Outage", icon: AlertTriangle,  tint: "text-state-warn" },
-];
+// Curated quick-launch scenarios (FEATURED) live in ./featuredScenarios: the phone's Start sheet
+// offers the same chips.
 
 // Scenarios the backend lists that are NOT runnable twin scenarios, kept out of the picker:
 //   hardware_live          — the hardware lab's live-robot run, not a simulation.
@@ -335,7 +329,7 @@ export const OperatorConsole = () => {
   const [catalog, setCatalog] = useState<CatalogVar[]>([]);
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [templates, setTemplates] = useState<Set<string>>(new Set());
-  const [selected, setSelected] = useState("busy_day");
+  const [selected, setSelected] = useState(DEFAULT_SCENARIO);
   const [knobs, setKnobs] = useState<Knobs>({});
   const [expandedVars, setExpandedVars] = useState<Set<string>>(new Set());
   const [openDomains, setOpenDomains] = useState<Set<string>>(new Set());
@@ -378,23 +372,12 @@ export const OperatorConsole = () => {
     catch (e: unknown) { toast.error("Update failed", { description: e instanceof Error ? e.message : String(e) }); }
   }, [runId]);
 
+  // ONE authoritative start path, shared with the phone's Start sheet (src/hooks/useStartRun.ts):
+  // startDemoRun → adopt "running" (no resume: the backend 409s it) → open at 3× → toast.
+  const { start } = useStartRun(ctrl);
   const startScenario = async (code: string = selected) => {
     setBusy("start");
-    try {
-      // ONE authoritative start path (src/lib/blackbox.ts → control edge). startDemoRun
-      // adopts the new sim_run_id into the twin store, so the feed begins rendering it.
-      await startDemoRun(code, 1);
-      // Start also begins the clock — "press Start and watch it run". The backend starts the run
-      // already running, so this adopts that state rather than posting a resume the backend
-      // refuses with 409 "run is not paused" (seen on every start, run 49c45bd4).
-      ctrl.syncFromRun("running");
-      // Fresh runs open at 3×: watchable without touching a control. Opening at 1× read as a
-      // frozen depot (run 7d8da1ca advanced 3.6 sim-minutes in 3.7 real minutes). The slider
-      // goes to 8×, the backend's own playback ceiling; past it, time must JUMP, not speed up.
-      ctrl.setSpeed(3);
-      const title = scenarios.find((s) => s.scenario_code === code)?.title ?? code;
-      toast.success(`Started ${title}`);
-    } catch (e: unknown) { toast.error("Start failed", { description: e instanceof Error ? e.message : String(e) }); }
+    try { await start(code, scenarios.find((s) => s.scenario_code === code)?.title ?? code); }
     finally { setBusy(null); }
   };
   // Quick cards only SELECT the scenario — nothing runs until Start is pressed.

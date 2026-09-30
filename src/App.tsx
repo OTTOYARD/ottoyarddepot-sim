@@ -44,7 +44,9 @@ const App = () => {
         <div className="relative flex-1 flex min-h-0">
           {/* The group is always mounted so opening a cockpit beside the depot never remounts
               the canvas (and its WebGL context); only the second panel comes and goes. */}
-          <ResizablePanelGroup direction="horizontal" className="flex-1 min-w-0" autoSaveId="twin-cockpit-split">
+          {/* `isolate`: the depot view's own overlays (its legend is z-40) stack inside it, so the
+              side panel expanded to full width (z-30) covers all of the view, not all but its legend. */}
+          <ResizablePanelGroup direction="horizontal" className="flex-1 min-w-0 isolate" autoSaveId="twin-cockpit-split">
             <ResizablePanel id="depot" order={1} minSize={30} className="flex min-w-0">
               <DepotCanvas />
             </ResizablePanel>

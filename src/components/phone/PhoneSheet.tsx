@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Maximize2, Minimize2 } from 'lucide-react';
 import { useSimulationStore, type CockpitTab } from '@/store/simulationStore';
 import { OperatorConsole } from '@/components/cockpit/OperatorConsole';
 import { TwinKpisTab } from '@/components/tabs/TwinKpisTab';
@@ -20,6 +21,10 @@ import { usePhoneSheet } from './phoneStore';
  *              full-width sheet would stretch them), dragged or tapped between
  *              peek (the tab row), half and full height.
  *   portrait   'inline'  — the panels fill the screen under the small live view.
+ *
+ * Either one goes FULL SCREEN with the toggle at the end of the tab row: the sheet
+ * covers the whole screen (run bar and live view stay mounted underneath) and the
+ * same toggle brings it back to where it was.
  *
  * Same tabs, same order, same labels as the desktop TabBar; a tab added to
  * CockpitTab fails to compile here until the phone shows it too.
@@ -67,6 +72,8 @@ export function PhoneSheet({ mode, topInset }: { mode: 'floating' | 'inline'; to
   const setActiveTab = useSimulationStore((s) => s.setActiveTab);
   const snap = usePhoneSheet((s) => s.snap);
   const setSnap = usePhoneSheet((s) => s.setSnap);
+  const fullscreen = usePhoneSheet((s) => s.fullscreen);
+  const toggleFullscreen = usePhoneSheet((s) => s.toggleFullscreen);
   const vh = useViewportHeight();
   const heights = sheetHeights(vh, PEEK_H, topInset);
   const [dragH, setDragH] = useState<number | null>(null);
@@ -74,7 +81,8 @@ export function PhoneSheet({ mode, topInset }: { mode: 'floating' | 'inline'; to
   /** A drag ends in a click on some browsers; that click must not also toggle the sheet. */
   const dragged = useRef(false);
   const Active = TAB_COMPONENTS[activeTab] ?? OperatorConsole;
-  const floating = mode === 'floating';
+  // Full screen overrides both modes; the handle, the drag and the snaps are for the floating sheet only.
+  const floating = mode === 'floating' && !fullscreen;
 
   const pick = (id: CockpitTab) => {
     setActiveTab(id);
@@ -118,7 +126,10 @@ export function PhoneSheet({ mode, topInset }: { mode: 'floating' | 'inline'; to
 
   return (
     <div
-      className={floating
+      data-sheet-fullscreen={fullscreen ? 'true' : undefined}
+      className={fullscreen
+        ? 'fixed inset-0 z-40 flex flex-col bg-canvas-raised'
+        : floating
         ? 'absolute bottom-0 z-30 flex flex-col rounded-t-xl border border-b-0 border-white/10 bg-canvas-raised/95 backdrop-blur-md shadow-[0_-8px_30px_rgba(0,0,0,0.45)] overflow-hidden'
         : 'relative flex-1 min-h-0 flex flex-col bg-canvas-raised border-t border-white/[0.06]'}
       style={floating ? {
@@ -127,6 +138,11 @@ export function PhoneSheet({ mode, topInset }: { mode: 'floating' | 'inline'; to
         width: 'min(460px, 52vw)',
         transition: dragH === null ? 'height 220ms cubic-bezier(.2,.8,.2,1)' : 'none',
         paddingBottom: snap === 'peek' ? 0 : 'env(safe-area-inset-bottom, 0px)',
+      } : fullscreen ? {
+        paddingTop: 'env(safe-area-inset-top, 0px)',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        paddingLeft: 'env(safe-area-inset-left, 0px)',
+        paddingRight: 'env(safe-area-inset-right, 0px)',
       } : undefined}
     >
       {floating && (
@@ -143,16 +159,27 @@ export function PhoneSheet({ mode, topInset }: { mode: 'floating' | 'inline'; to
           <span className="w-10 h-1.5 rounded-full bg-white/25" />
         </div>
       )}
-      <div className="shrink-0 flex items-center gap-1 px-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden border-b border-white/[0.06]"
-        style={{ height: TABS_H }}>
-        {TABS.map((t) => (
-          <button key={t.id} onClick={() => pick(t.id)}
-            className={`shrink-0 h-9 px-3 rounded-md inline-flex items-center gap-1.5 font-display text-[11px] uppercase tracking-[0.06em] ${
-              activeTab === t.id ? 'bg-white/10 text-ink' : 'text-ink-faint active:bg-white/5'}`}>
-            {t.id === 'ottoq' && <span className="w-1.5 h-1.5 rounded-full bg-violet-400" />}
-            {t.label}
-          </button>
-        ))}
+      <div className="shrink-0 flex items-center border-b border-white/[0.06]" style={{ height: TABS_H }}>
+        <div className="flex-1 min-w-0 h-full flex items-center gap-1 px-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {TABS.map((t) => (
+            <button key={t.id} onClick={() => pick(t.id)}
+              className={`shrink-0 h-9 px-3 rounded-md inline-flex items-center gap-1.5 font-display text-[11px] uppercase tracking-[0.06em] ${
+                activeTab === t.id ? 'bg-white/10 text-ink' : 'text-ink-faint active:bg-white/5'}`}>
+              {t.id === 'ottoq' && <span className="w-1.5 h-1.5 rounded-full bg-violet-400" />}
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={toggleFullscreen}
+          aria-label={fullscreen ? 'Exit full screen' : 'Full screen panels'}
+          aria-pressed={fullscreen}
+          data-testid="sheet-fullscreen"
+          className="shrink-0 mr-1.5 h-9 w-9 inline-flex items-center justify-center rounded-md border border-white/10 text-ink-dim active:bg-white/10"
+        >
+          {fullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+        </button>
       </div>
       {/* the desktop panel's own component, in a column of the height the sheet leaves it */}
       <div className="flex-1 min-h-0 flex flex-col overflow-hidden">

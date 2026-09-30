@@ -49,7 +49,7 @@ export default function PhoneCockpit() {
   const portrait = usePortrait();
   const [bigStage, setBigStage] = useState(false);
 
-  // "Start" opens the Control tab, the desktop's own console: scenario, then Start.
+  // The Start sheet's "More options in Control": the desktop's own console, in the panel sheet.
   const openControl = () => {
     useSimulationStore.getState().setActiveTab('controls');
     usePhoneSheet.getState().setSnap('full');
