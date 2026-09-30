@@ -504,6 +504,12 @@ function prefersReducedMotion(): boolean {
 // ── the tab ──────────────────────────────────────────────────────────────────
 export function TwinOttoQTab() {
   const simRunId = useTwinStore((s) => s.activeSimRunId);
+  // The engine's tick, only while the run is running (not paused, not ended): each new one sweeps the stack.
+  const liveTick = useTwinStore((s) => {
+    const r = s.snapshot?.run;
+    if (!r || r.sim_run_id !== s.activeSimRunId) return null;
+    return r.status === "running" || r.status === "active" ? Number(r.tick_count ?? 0) : null;
+  });
   const setActiveTab = useSimulationStore((s) => s.setActiveTab);
   const tier = useQualityStore((s) => s.tier);
   useActivityFeed();
@@ -680,7 +686,7 @@ export function TwinOttoQTab() {
           /* capped, so the labels keep near their plates when the panel is expanded to full width */
           <div className="mx-auto w-full max-w-[760px]">
           <OttoQStack model={model} events={events} focus={focus} onFocus={onFocusPlate} labels={labels} tags={tags}
-            height={520} tier={tier} reduced={reduced} describe={describe} onPick={onPick} picked={picked} replay={replay} />
+            height={520} tier={tier} reduced={reduced} describe={describe} onPick={onPick} picked={picked} replay={replay} tick={liveTick} />
           </div>
         ) : (
           /* No WebGL: the flat funnel, one row per layer. */

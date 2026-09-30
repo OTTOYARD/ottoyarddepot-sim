@@ -570,3 +570,18 @@ export function stackModel(
 ): StackModel {
   return { agent: agentModel(rows), planners: plannerModel(dispositions ?? []), tiles: decideModel(rows), depot: depotModel(vehicles, tones, read) };
 }
+
+// ── the tick sweep ──────────────────────────────────────────────────────────
+/** The least time between two tick sweeps, in seconds: a fast run does not strobe. */
+export const SWEEP_MIN_GAP_S = 5;
+
+/**
+ * Whether a new engine tick sweeps the stack. Every engine tick the engine goes over the whole depot, so a sweep per
+ * tick is true even when nothing changes. None while the run is not running (tick null), on the first tick seen (no
+ * change yet), on a repeated tick, in a hidden page, with reduced motion, or within SWEEP_MIN_GAP_S of the last.
+ */
+export function shouldSweep(i: { prevTick: number | null; tick: number | null; now: number; lastSweep: number; reduced: boolean; hidden: boolean }): boolean {
+  if (i.tick == null || i.prevTick == null || i.tick === i.prevTick) return false;
+  if (i.reduced || i.hidden) return false;
+  return i.now - i.lastSweep >= SWEEP_MIN_GAP_S;
+}

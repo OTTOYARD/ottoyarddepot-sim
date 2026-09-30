@@ -27,7 +27,7 @@ import { Bloom, EffectComposer } from "@react-three/postprocessing";
 import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import {
-  ENTRY_POINT, EXIT_POINT, PLATES, PLATE_D, PLATE_W, PLATE_Y, TILE_COLS, TILE_ROWS, zoneCenter,
+  ENTRY_POINT, EXIT_POINT, shouldSweep, PLATES, PLATE_D, PLATE_W, PLATE_Y, TILE_COLS, TILE_ROWS, zoneCenter,
   type BarTone, type PlateId, type PlateLabel, type PlateTag, type StackEvent, type StackModel,
 } from "./stackModel";
 import {
@@ -74,6 +74,8 @@ interface Runtime {
   beads: Bead[];
   flashes: Flash[];
   scans: number[];
+  /** Engine-tick sweeps: a red frame that runs from the agent plate down to the depot (start times). */
+  sweeps: number[];
   az: number;
   dragged: boolean;
   materials: Record<PlateId, { m: THREE.Material & { opacity: number }; base: number }[]>;
@@ -95,7 +97,7 @@ function useRuntime(reduced: boolean): Runtime {
     ref.current = {
       mount: nowS(), busyUntil: nowS() + 2, reduced,
       plateY: { ...PLATE_Y }, plateFade: { agent: 1, planners: 1, decide: 1, safety: 1, depot: 1 },
-      reveal: new Map(), rimFlash: -99, shieldPass: -99, laneFlash: new Map(), puckPulse: new Map(), beads: [], flashes: [], scans: [],
+      reveal: new Map(), rimFlash: -99, shieldPass: -99, laneFlash: new Map(), puckPulse: new Map(), beads: [], flashes: [], scans: [], sweeps: [],
       az: 0, dragged: false, materials: { agent: [], planners: [], decide: [], safety: [], depot: [] }, frames: 0, lastInfo: null, pick: {},
     };
   }
@@ -765,6 +767,8 @@ function Scaffold({ rt }: { rt: Runtime }) {
 
 // ── beads, scans and landing rings ──────────────────────────────────────────
 const MAX_BEADS = 48;
+/** How long one tick sweep takes to run down the stack, and the least time between two. */
+const SWEEP_S = 1.6;
 const TRAIL = 9;
 const MAX_FLASH = 64;
 const beadVert = /* glsl */ `
@@ -820,7 +824,9 @@ function Beads({ rt }: { rt: Runtime }) {
   }, []);
   const scanMat = useMemo(() => new THREE.MeshBasicMaterial({ map: scanTex, color: new THREE.Color(1.6, 1.6, 1.6), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, opacity: 0, side: THREE.DoubleSide }), [scanTex]);
   const scan = useRef<THREE.Mesh>(null);
-  useEffect(() => () => { geo.dispose(); mat.dispose(); beamGeo.dispose(); beamMat.dispose(); scanTex.dispose(); scanMat.dispose(); }, [geo, mat, beamGeo, beamMat, scanTex, scanMat]);
+  const sweepMat = useMemo(() => new THREE.MeshBasicMaterial({ map: scanTex, color: new THREE.Color("#ff2a3d").multiplyScalar(1.8), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, opacity: 0, side: THREE.DoubleSide }), [scanTex]);
+  const sweep = useRef<THREE.Mesh>(null);
+  useEffect(() => () => { geo.dispose(); mat.dispose(); beamGeo.dispose(); beamMat.dispose(); scanTex.dispose(); scanMat.dispose(); sweepMat.dispose(); }, [geo, mat, beamGeo, beamMat, scanTex, scanMat, sweepMat]);
   const a = useMemo(() => new THREE.Vector3(), []);
   const b = useMemo(() => new THREE.Vector3(), []);
 
@@ -905,6 +911,21 @@ function Beads({ rt }: { rt: Runtime }) {
         scanMat.opacity = Math.sin(Math.PI * k) * 0.9;
       } else m.visible = false;
     }
+    // The tick sweep: every engine tick the engine goes over the whole depot, top to bottom, whether or not it changes
+    // anything. A red frame runs down the stack; the safety membrane brightens as it passes.
+    const w = sweep.current;
+    if (w) {
+      rt.sweeps = rt.sweeps.filter((sw) => t < sw + SWEEP_S);
+      const s1 = rt.sweeps.find((sw) => t >= sw);
+      if (s1 != null) {
+        const k = clamp01((t - s1) / SWEEP_S);
+        const y = rt.plateY.agent + 0.4 + (rt.plateY.depot - rt.plateY.agent - 0.4) * easeInOut(k);
+        w.visible = true;
+        w.position.y = y;
+        sweepMat.opacity = Math.sin(Math.PI * k) * 0.75;
+        if (Math.abs(y - rt.plateY.safety) < 0.35) rt.shieldPass = t;
+      } else w.visible = false;
+    }
   });
   return (
     <group>
@@ -912,6 +933,9 @@ function Beads({ rt }: { rt: Runtime }) {
       <points geometry={geo} material={mat} frustumCulled={false} renderOrder={10} />
       <mesh ref={scan} material={scanMat} rotation={[-Math.PI / 2, 0, 0]} visible={false} renderOrder={9}>
         <planeGeometry args={[PLATE_W * 1.04, PLATE_D * 1.04]} />
+      </mesh>
+      <mesh ref={sweep} material={sweepMat} rotation={[-Math.PI / 2, 0, 0]} visible={false} renderOrder={9}>
+        <planeGeometry args={[PLATE_W * 1.08, PLATE_D * 1.08]} />
       </mesh>
     </group>
   );
@@ -1078,7 +1102,7 @@ function Rig({ rt, focus, labels, labelColumn }: { rt: Runtime; focus: PlateId |
         }
         L.line[i]?.setAttribute("points", "");
       });
-      if (moving || t < rt.busyUntil || rt.beads.length || rt.flashes.length || rt.scans.length) invalidate();
+      if (moving || t < rt.busyUntil || rt.beads.length || rt.flashes.length || rt.scans.length || rt.sweeps.length) invalidate();
       return;
     }
     const L = labels.current;
@@ -1107,7 +1131,7 @@ function Rig({ rt, focus, labels, labelColumn }: { rt: Runtime; focus: PlateId |
       const line = L.line[it.i];
       if (line) line.setAttribute("points", `${Math.min(it.ax + 4, lx - 10)},${it.ay} ${lx - 10},${y + 8} ${lx - 2},${y + 8}`);
     }
-    if (moving || t < rt.busyUntil || rt.beads.length || rt.flashes.length || rt.scans.length) invalidate();
+    if (moving || t < rt.busyUntil || rt.beads.length || rt.flashes.length || rt.scans.length || rt.sweeps.length) invalidate();
   });
   return null;
 }
@@ -1280,7 +1304,7 @@ const Scene = memo(function Scene({ rt, model, events, focus, onFocus, labels, l
 
 export type { PlateLabel } from "./stackModel";
 
-export function OttoQStack({ model, events, focus, onFocus, labels, tags, height, tier, reduced, describe, onPick, picked = null, replay = null }: {
+export function OttoQStack({ model, events, focus, onFocus, labels, tags, height, tier, reduced, describe, onPick, picked = null, replay = null, tick = null }: {
   model: StackModel;
   events: readonly StackEvent[];
   focus: PlateId | null;
@@ -1299,6 +1323,8 @@ export function OttoQStack({ model, events, focus, onFocus, labels, tags, height
   picked?: { kind: PickKind; key: string } | null;
   /** Records to play through the stack again, when someone asks (the tab labels it REPLAY while it plays). */
   replay?: StackReplay | null;
+  /** The live run's engine tick (null when the run is not running): each new tick sweeps the stack once. */
+  tick?: number | null;
 }) {
   const rt = useRuntime(reduced);
   const [hover, setHover] = useState<{ text: string; x: number; y: number } | null>(null);
@@ -1308,6 +1334,19 @@ export function OttoQStack({ model, events, focus, onFocus, labels, tags, height
     (window as unknown as { __ottoqStack?: Runtime }).__ottoqStack = rt;
     return () => { delete (window as unknown as { __ottoqStack?: Runtime }).__ottoqStack; };
   }, [rt]);
+  // One sweep per new engine tick, at most one every SWEEP_MIN_GAP_S; none while paused, ended, hidden or reduced.
+  const lastTick = useRef<number | null>(null);
+  const lastSweep = useRef(-99);
+  useEffect(() => {
+    const prev = lastTick.current;
+    lastTick.current = tick;
+    const t = nowS();
+    if (!shouldSweep({ prevTick: prev, tick, now: t, lastSweep: lastSweep.current, reduced, hidden: document.hidden })) return;
+    lastSweep.current = t;
+    rt.sweeps.push(t);
+    rt.busyUntil = Math.max(rt.busyUntil, t + SWEEP_S + 0.2);
+    invalidateRef.current?.();
+  }, [tick, reduced, rt]);
   const labelRefs = useRef<LabelRefs>({ box: [], line: [], tags: { plate: null, items: [], els: [] } });
   labelRefs.current.tags.plate = focus;
   labelRefs.current.tags.items = focus && tags ? tags[focus] : [];

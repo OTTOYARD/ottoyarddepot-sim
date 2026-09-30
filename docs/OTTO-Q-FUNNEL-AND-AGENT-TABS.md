@@ -263,3 +263,16 @@ order: *"propose decide safety and then … dispatch"*.
   chargers and bays against their real stalls ("DCFC 8 of 10"); each planner's lane; each objective the agent chose; the
   safety plate's checks and blocks. Tags push apart instead of overlapping. The plate labels beside the stack are larger
   and brighter, with shorter lines. A plate faded behind a zoom is taken away, so it cannot sit in a top-down view.
+
+## The tick sweep (2026-09-30)
+
+Chase: *"could the red surge … happen a little more frequently? … a pulse like every 5-10 seconds once it's live. Even if it
+doesn't pick anything up every time … to resemble actively searching and orchestration."*
+
+Every engine tick the engine goes over the whole depot: it checks every car, whether or not anything changes (that is
+why the safety plate counts thousands of checks). So while a run is **running**, each new engine tick
+(`snapshot.run.tick_count`) sends one red frame down the stack from the agent plate to the depot, and the safety
+membrane brightens as it passes. At most one sweep every 5 s (`SWEEP_MIN_GAP_S`), so a fast run does not strobe; if ticks
+come slower than that, sweeps come only as often as ticks do. No sweep while the run is paused or ended, in a hidden page
+or with reduced motion: a still stack still means nothing is running. A tick that writes records still plays them as
+before, on top of the sweep. `shouldSweep` in `stackModel.ts` holds the rule and is tested.
