@@ -25,7 +25,7 @@
 // src/lib/secondLoop.ts, shared verbatim with PULSE.
 // ============================================================================
 import { FlaskConical, Loader2, Search } from 'lucide-react';
-import { useSecondLoop } from '@/hooks/useSecondLoop';
+import { useSecondLoop, type SecondLoopState } from '@/hooks/useSecondLoop';
 import {
   clockCT,
   dayClockCT,
@@ -166,8 +166,10 @@ const Experiment = ({ e, floor }: { e: LearningExperiment; floor?: string | null
   );
 };
 
-export function SecondLoopPanel() {
-  const { challenger, learning, error, loading } = useSecondLoop(true);
+/** `state`: a caller already polling the two boards passes its reads here, so they are not polled twice. */
+export function SecondLoopPanel({ state }: { state?: SecondLoopState } = {}) {
+  const own = useSecondLoop(!state);
+  const { challenger, learning, error, loading } = state ?? own;
 
   if (!challenger && !learning && loading) {
     return (

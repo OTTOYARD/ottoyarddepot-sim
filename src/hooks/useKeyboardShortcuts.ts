@@ -6,14 +6,13 @@ import { twin } from '@/lib/ottoTwin';
 /** Number keys follow the tab bar, left to right. */
 const TAB_KEYS: Record<string, CockpitTab> = {
   '1': 'controls',
-  '2': 'intelligence',
-  '3': 'orchestration',
+  '2': 'ottoq',
+  '3': 'agent',
   '4': 'kpis',
-  '5': 'alerts',
-  '6': 'history',
-  '7': 'world',
-  '8': 'copilot',
-  '9': 'value',
+  '5': 'history',
+  '6': 'world',
+  '7': 'copilot',
+  '8': 'value',
 };
 
 export function useKeyboardShortcuts() {

@@ -3,20 +3,18 @@ import { useSimulationStore, type CockpitTab } from '@/store/simulationStore';
 import { TabBar } from './TabBar';
 import { OperatorConsole } from '@/components/cockpit/OperatorConsole';
 import { TwinKpisTab } from '@/components/tabs/TwinKpisTab';
-import { TwinOrchestrationTab } from '@/components/tabs/TwinOrchestrationTab';
-import { TwinAlertsTab } from '@/components/tabs/TwinAlertsTab';
 import { TwinHistoryTab } from '@/components/tabs/TwinHistoryTab';
 import { TwinCopilotTab } from '@/components/tabs/TwinCopilotTab';
 import { WorldContractTab } from '@/components/tabs/WorldContractTab';
-import TwinIntelligenceTab from '@/components/tabs/TwinIntelligenceTab';
+import { TwinOttoQTab } from '@/components/tabs/TwinOttoQTab';
+import { TwinAgentTab } from '@/components/tabs/TwinAgentTab';
 import { TwinValueTab } from '@/components/tabs/TwinValueTab';
 
 const tabComponents: Record<CockpitTab, () => JSX.Element> = {
   controls: OperatorConsole,             // run the world: scenario, transport, speed, variability, injections
-  intelligence: TwinIntelligenceTab,     // the engine's decision stream + the five intelligence layers
-  orchestration: TwinOrchestrationTab,   // reservation / appointment seam (ottoq_twin_appointments)
+  ottoq: TwinOttoQTab,                   // the living funnel: every car through the engine's layers
+  agent: TwinAgentTab,                   // the agent in plain English: read, chose, disposed, learned
   kpis: TwinKpisTab,                     // canonical five KPIs (ottoq_kpi_five) + live site readings
-  alerts: TwinAlertsTab,                 // the engine's event feed for this run
   history: TwinHistoryTab,               // run ledger + compare + Black Box download
   world: WorldContractTab,               // feed diagnostics: world load, channels, variable coverage
   copilot: TwinCopilotTab,               // on-demand model review of a sample of this run's decisions

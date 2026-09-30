@@ -177,6 +177,14 @@ export const Row = ({ r, isNew = false }: { r: ActivityFeedRow; isNew?: boolean 
   );
 };
 
+/** ENDED chip: the run has finished, so nothing on screen is live. */
+export const EndedState = () => (
+  <span className="inline-flex shrink-0 items-center gap-1 rounded border border-white/15 bg-white/[0.04] px-1.5 py-0.5 text-[9px] font-mono uppercase tracking-[0.06em] text-ink-faint"
+    title="This run has ended. What is shown is what it recorded.">
+    ended
+  </span>
+);
+
 /** LIVE / PAUSED chip. Exported so the Intelligence tab shows the same state
  *  rather than inventing a second vocabulary for one fact. */
 export const StreamState = ({ frozen }: { frozen: boolean }) =>
