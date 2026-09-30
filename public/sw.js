@@ -14,7 +14,7 @@
 //
 // Bump VERSION to drop every cache this worker made (activate deletes others).
 // ============================================================================
-const VERSION = "otto-twin-shell-v1";
+const VERSION = "otto-twin-shell-v2"; // v2: the new OTTOYARD logo in every icon
 const SHELL = ["/", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/apple-touch-icon.png", "/favicon.svg"];
 
 self.addEventListener("install", (event) => {

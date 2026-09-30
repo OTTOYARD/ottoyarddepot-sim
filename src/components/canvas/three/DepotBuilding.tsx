@@ -4,8 +4,9 @@ import { OPS_SHELL } from '@/lib/structurePlan';
 import { BuildingShell } from './BuildingShell';
 import { StaticBatch, rod } from './staticBatch';
 import { MATERIALS } from './materials';
+import { logoSignMaterial, LOGO_SIGN_ASPECT } from './textures';
 import {
-  officeGlass, aluminiumTrim, wallGraphite, darkSteel, galvanizedSteel, ledPanel, signTexture,
+  officeGlass, aluminiumTrim, wallGraphite, darkSteel, galvanizedSteel, ledPanel,
 } from './buildingSkin';
 
 /**
@@ -36,15 +37,13 @@ export function DepotBuilding() {
     pv: MATERIALS.solarPanelGlass(),
   }), []);
 
-  const sign = useMemo(() => {
-    const tex = signTexture('OTTOYARD', { fg: '#f4f6f8', bg: '#1b1f25', w: 1024, h: 160 });
-    return new THREE.MeshStandardMaterial({
-      map: tex, emissiveMap: tex, emissive: new THREE.Color('#ffffff'), emissiveIntensity: 0.55, roughness: 0.45, metalness: 0.1,
-    });
-  }, []);
+  // the OTTOYARD logo on the parapet (founder, 2026-09-30), at the height the
+  // lettered sign had, as wide as the logo is
+  const sign = useMemo(() => logoSignMaterial(0.55), []);
 
   const f = OPS_SHELL.footprint;
-  const signW = Math.min(26, GLAZING.x1 - GLAZING.x0 - 4);
+  const signH = Math.min(26, GLAZING.x1 - GLAZING.x0 - 4) / 6.4;
+  const signW = signH * LOGO_SIGN_ASPECT;
   const signX = 150 - (GLAZING.x0 + GLAZING.x1) / 2;
 
   return (
@@ -53,9 +52,10 @@ export function DepotBuilding() {
       {[...geos.entries()].map(([key, g]) => (
         <mesh key={key} geometry={g} material={mats[key]} castShadow={key !== 'led' && key !== 'glass'} receiveShadow />
       ))}
-      {/* OTTOYARD fascia sign on the parapet over the ops centre */}
-      <mesh position={[signX, OPS_SHELL.height - OPS_SHELL.parapet / 2, 110 - f.y1 - 0.07]} rotation={[0, Math.PI, 0]} material={sign}>
-        <planeGeometry args={[signW, signW / 6.4]} />
+      {/* OTTOYARD logo sign on the parapet over the ops centre, stood 0.6u proud of the
+          face so the parapet coping and trim (0.3u proud) run behind it, not across it */}
+      <mesh position={[signX, OPS_SHELL.height - OPS_SHELL.parapet / 2, 110 - f.y1 - 0.6]} rotation={[0, Math.PI, 0]} material={sign}>
+        <planeGeometry args={[signW, signH]} />
       </mesh>
     </group>
   );

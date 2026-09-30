@@ -13,6 +13,7 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { depotClock, phoneTelemetry, runPhase, type RunPhase } from './phoneLayout';
+import mark from '@/assets/logo.png';
 
 /**
  * THE PHONE'S RUN BAR — the slim Start / Pause / Stop / speed strip over the 3D
@@ -69,10 +70,7 @@ export function PhoneRunBar({ layout, onOpenControl }: { layout: 'landscape' | '
 
   const status = (
     <div className="flex items-center gap-2 min-w-0">
-      <svg viewBox="0 0 100 100" className="w-6 h-6 shrink-0" aria-hidden>
-        <path d="M50 5 L93 27.5 L93 72.5 L50 95 L7 72.5 L7 27.5 Z" fill="#C00000" />
-        <path d="M50 20 L78 35 L78 65 L50 80 L22 65 L22 35 Z" fill="none" stroke="white" strokeWidth="3" />
-      </svg>
+      <img src={mark} alt="OTTOYARD" className="h-7 w-auto shrink-0 select-none" draggable={false} />
       <div className="flex flex-col leading-none min-w-0">
         <span className="flex items-center gap-1.5 font-mono text-[10px] text-ink">
           <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${PHASE_DOT[phase]}`} />

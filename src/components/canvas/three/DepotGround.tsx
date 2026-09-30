@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { MATERIALS } from './materials';
 import { LOT, INGRESS, EGRESS, GATE_W } from '@/lib/sitePlan';
 import { toWorld, DECK_Y } from './coordUtils';
+import { logoSignMaterial, LOGO_SIGN_ASPECT } from './textures';
 
 /**
  * Ground plane, asphalt lot, perimeter security fence with ingress/egress
@@ -90,8 +91,9 @@ export function DepotGround() {
     white: MATERIALS.laneMarkingWhite(),
     yellow: MATERIALS.amberIndicator(),
     cladding: MATERIALS.darkCladding(),
-    sign: MATERIALS.tealLED(3.5),
   }), []);
+
+  const logoSign = useMemo(() => logoSignMaterial(0.7), []);
 
   const lot = rectWorld(LOT);
   const yS = LOT.y + LOT.h;          // south fence y (logical)
@@ -145,8 +147,9 @@ export function DepotGround() {
         <mesh position={[0, 2.6, 0]} castShadow material={mats.cladding}>
           <boxGeometry args={[24, 5.2, 1.6]} />
         </mesh>
-        <mesh position={[0, 3.1, 0.85]} material={mats.sign}>
-          <boxGeometry args={[16, 2.0, 0.06]} />
+        {/* the OTTOYARD logo (founder, 2026-09-30), lit, on the wall's road face */}
+        <mesh position={[0, 2.6, 0.83]} material={logoSign}>
+          <planeGeometry args={[4.2 * LOGO_SIGN_ASPECT, 4.2]} />
         </mesh>
       </group>
     </group>

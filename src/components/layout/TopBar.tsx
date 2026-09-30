@@ -1,7 +1,7 @@
 import { Truck, BatteryCharging, Layers, CheckCircle2, DollarSign, Battery, Sun, Radio } from 'lucide-react';
 import { useSimulationStore } from '@/store/simulationStore';
 import { useTwinStore } from '@/store/twinStore';
-import logo from '@/assets/logo.png';
+import wordmark from '@/assets/ottoyard-wordmark.png';
 import { CockpitSwitcher } from '@/components/cockpit/CockpitSwitcher';
 
 // ── helpers ──
@@ -79,9 +79,9 @@ export const TopBar = () => {
     <div className="h-14 bg-canvas-raised border-b border-white/[0.06] flex items-center px-4 shrink-0 z-20">
       {/* Brand */}
       <div className="flex items-center gap-3 shrink-0">
-        <img src={logo} alt="OTTOYARD" className="h-7 w-7 shrink-0" />
-        <div className="flex flex-col leading-none">
-          <span className="font-display text-white font-semibold text-[17px] tracking-tight">OTTOYARD</span>
+        <div className="flex flex-col leading-none gap-1">
+          {/* the OTTOYARD logo (founder, 2026-09-30): mark and wordmark as one image */}
+          <img src={wordmark} alt="OTTOYARD" className="h-[22px] w-auto shrink-0 select-none" draggable={false} />
           <span className="font-display text-ink-faint text-[9px] uppercase tracking-[0.14em]">OTTO-TWIN · Command Center</span>
         </div>
         {run?.scenario && (

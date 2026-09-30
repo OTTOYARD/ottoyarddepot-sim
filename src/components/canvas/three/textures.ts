@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import logoSignUrl from '@/assets/ottoyard-sign.jpg';
 
 /**
  * Procedural CanvasTextures — zero network assets, generated once at module
@@ -204,3 +205,25 @@ export function oilStainTexture(): THREE.Texture {
 }
 
 export const TEXTURES = { asphaltTexture, pvCellTexture, concreteTexture, skyTexture, oilStainTexture } as const;
+
+// ── THE OTTOYARD LOGO, for signage (founder, 2026-09-30) ─────────────────────
+// The full logo (mark + wordmark) on its own near-black ground, cropped with a
+// margin: src/assets/ottoyard-sign.jpg, 2048 x 540, made from the founder's file.
+// One texture, shared by every sign that carries it.
+
+/** Width / height of the logo sign texture: size a sign's face to this. */
+export const LOGO_SIGN_ASPECT = 2048 / 540;
+
+let logoSign: THREE.Texture | null = null;
+/** A lit sign face carrying the OTTOYARD logo: the texture is its colour and its glow. */
+export function logoSignMaterial(glow = 0.55): THREE.MeshStandardMaterial {
+  if (!logoSign) {
+    logoSign = new THREE.TextureLoader().load(logoSignUrl);
+    logoSign.colorSpace = THREE.SRGBColorSpace;
+    logoSign.anisotropy = 8;
+  }
+  return new THREE.MeshStandardMaterial({
+    map: logoSign, emissiveMap: logoSign, emissive: new THREE.Color('#ffffff'), emissiveIntensity: glow,
+    roughness: 0.45, metalness: 0.1,
+  });
+}
