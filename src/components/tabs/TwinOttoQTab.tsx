@@ -677,8 +677,11 @@ export function TwinOttoQTab() {
             onStart={startReplay} onStop={() => { setReplay(null); setReplayAt(-1); }} />
         )}
         {threeD ? (
+          /* capped, so the labels keep near their plates when the panel is expanded to full width */
+          <div className="mx-auto w-full max-w-[760px]">
           <OttoQStack model={model} events={events} focus={focus} onFocus={onFocusPlate} labels={labels} tags={tags}
             height={520} tier={tier} reduced={reduced} describe={describe} onPick={onPick} picked={picked} replay={replay} />
+          </div>
         ) : (
           /* No WebGL: the flat funnel, one row per layer. */
           <div className="flex gap-2">

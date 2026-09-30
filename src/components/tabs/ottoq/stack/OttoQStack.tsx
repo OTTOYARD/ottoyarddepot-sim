@@ -134,6 +134,7 @@ function appear(rt: Runtime, key: string, t: number): number {
 function pickHandlers(rt: Runtime, kind: PickKind, order: React.MutableRefObject<string[]>) {
   const keyOf = (e: ThreeEvent<PointerEvent | MouseEvent>) => (e.instanceId != null ? order.current[e.instanceId] : undefined);
   return {
+    userData: { pick: kind },
     onPointerMove: (e: ThreeEvent<PointerEvent>) => {
       const k = keyOf(e);
       if (!k) return;
@@ -218,7 +219,13 @@ function edgesOf(w: number, h: number, d: number): THREE.BufferGeometry {
 
 function PlateClick({ rt, plate, onFocus, w = PLATE_W, d = PLATE_D, y = 0.02 }: { rt: Runtime; plate: PlateId; onFocus: (p: PlateId) => void; w?: number; d?: number; y?: number }) {
   // An invisible hit-box above the plate's top: a tap on a plate focuses it (a drag does not).
-  const onClick = (e: ThreeEvent<MouseEvent>) => { e.stopPropagation(); if (!rt.dragged) onFocus(plate); };
+  const onClick = (e: ThreeEvent<MouseEvent>) => {
+    // A record's object anywhere under the pointer wins over the plates it is seen through (the safety membrane
+    // lies over the depot): let the tap go on to it.
+    if (e.intersections.some((i) => i.object.userData?.pick && i.instanceId != null)) return;
+    e.stopPropagation();
+    if (!rt.dragged) onFocus(plate);
+  };
   return (
     <mesh position={[0, y, 0]} rotation={[-Math.PI / 2, 0, 0]} onClick={onClick}
       onPointerOver={() => { document.body.style.cursor = "pointer"; }} onPointerOut={() => { document.body.style.cursor = ""; }}>
