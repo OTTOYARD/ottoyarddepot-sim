@@ -1,6 +1,9 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { useSimulationStore } from '@/store/simulationStore';
-import { PhoneTwin } from '@/components/canvas/PhoneTwin';
+import { isPhoneViewport } from '@/components/phone/phoneLayout';
+
+// Loaded only on a phone: a desktop never downloads the phone cockpit.
+const PhoneCockpit = lazy(() => import('@/components/phone/PhoneCockpit'));
 
 export const ResponsiveGuard = ({ children }: { children: ReactNode }) => {
   const [width, setWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1400);
@@ -21,16 +24,18 @@ export const ResponsiveGuard = ({ children }: { children: ReactNode }) => {
     }
   }, [width < 1200]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // A PHONE gets the full-screen 3D twin (PhoneTwin) — in either orientation,
-  // including a landscape Pro Max that is 932 px wide and would otherwise get a
-  // cramped desktop cockpit. A phone is a touch-first screen whose short side is
-  // under 600 px; anything narrower than 900 px gets it too. ?phone=1 forces it
-  // on a desktop for testing. (Phase 2 of the phone lane replaces this with the
-  // phone cockpit layout.)
-  const coarse = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches;
+  // A PHONE gets the phone cockpit (phoneLayout.isPhoneViewport: a touch-first
+  // screen whose short side is under 600 px, in either orientation, or any window
+  // narrower than 900 px; ?phone=1 forces it on a desktop for testing). Every
+  // other screen gets `children` — the desktop cockpit, exactly as before.
+  const coarse = typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches;
   const forced = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('phone') === '1';
-  if (forced || width < 900 || (coarse && Math.min(width, height) < 600)) {
-    return <PhoneTwin />;
+  if (isPhoneViewport({ width, height, coarse, forced })) {
+    return (
+      <Suspense fallback={<div className="fixed inset-0 bg-canvas-base" />}>
+        <PhoneCockpit />
+      </Suspense>
+    );
   }
 
   return <>{children}</>;

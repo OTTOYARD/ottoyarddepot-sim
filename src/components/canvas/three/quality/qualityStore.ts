@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { BUDGETS, type Tier } from './tiers';
+import { BUDGETS, minTier, rememberedTier, type Tier } from './tiers';
 
 /**
  * Which render tier the 3D view is drawing at, and why.
@@ -16,12 +16,15 @@ export type QualityMode = 'auto' | Tier;
 interface QualityState {
   mode: QualityMode;
   tier: Tier;
-  /** The highest tier auto may climb back to (the device probe's verdict). */
+  /** The highest tier auto may climb to (the device probe's verdict, lowered for the
+   *  session when a climb fails its probation). */
   ceiling: Tier;
   reason: string;
   setMode: (m: QualityMode) => void;
   setTier: (t: Tier, reason: string) => void;
   setCeiling: (t: Tier, reason: string) => void;
+  /** The device probe's verdict: where auto starts and how high it may climb. */
+  initAuto: (start: Tier, ceiling: Tier, reason: string) => void;
 }
 
 const KEY = 'ottoq_quality';
@@ -35,17 +38,24 @@ function storedMode(): QualityMode {
   return 'auto';
 }
 
+const initialMode: QualityMode = typeof window === 'undefined' ? 'auto' : storedMode();
+
 export const useQualityStore = create<QualityState>((set) => ({
-  mode: typeof window === 'undefined' ? 'auto' : storedMode(),
-  tier: 'high',
+  mode: initialMode,
+  // a picked tier is drawn from the start; auto's start comes from the probe (initAuto)
+  tier: initialMode === 'auto' ? 'high' : initialMode,
   ceiling: 'high',
   reason: 'default',
   setMode: (mode) => {
     try { window.localStorage.setItem(KEY, mode); } catch { /* per-viewer convenience only */ }
-    set((s) => (mode === 'auto' ? { mode, tier: s.ceiling, reason: 'auto: device probe' } : { mode, tier: mode, reason: 'picked' }));
+    // back to auto: start where the device last held, never above the ceiling
+    set((s) => (mode === 'auto'
+      ? { mode, tier: minTier(rememberedTier() ?? s.ceiling, s.ceiling), reason: 'auto: device probe' }
+      : { mode, tier: mode, reason: 'picked' }));
   },
   setTier: (tier, reason) => set({ tier, reason }),
   setCeiling: (ceiling, reason) => set((s) => (s.mode === 'auto' ? { ceiling, tier: ceiling, reason } : { ceiling })),
+  initAuto: (start, ceiling, reason) => set((s) => (s.mode === 'auto' ? { ceiling, tier: start, reason } : { ceiling })),
 }));
 
 /** The budget of the tier being drawn, as a hook (re-renders only on a tier change). */

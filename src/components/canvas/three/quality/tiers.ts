@@ -77,23 +77,80 @@ export interface DeviceHints {
 const WEAK_GPU = /(mali-[gt]?[4-7]\d|adreno \(tm\) [3-5]\d\d|powervr|intel\(r\) (hd|uhd) graphics [2-6]\d\d|swiftshader|llvmpipe|software)/i;
 const DISCRETE_GPU = /(nvidia|geforce|rtx|radeon rx|radeon pro|apple m\d (pro|max|ultra))/i;
 
+/** Where auto starts, how high it may climb, and why. */
+export interface TierVerdict {
+  tier: Tier;
+  ceiling: Tier;
+  reason: string;
+}
+
 /**
- * The starting tier and the ceiling auto may climb to. Conservative on phones,
- * because a phone that starts High and stutters for the governor's first
- * seconds has already made the worse first impression.
+ * The starting tier and the ceiling auto may climb to.
+ *
+ * Phones START at Medium but may CLIMB to High (2026-09-30: High held ~60 fps
+ * on the founder's phone on the busiest presets). Starting a phone at High would
+ * make every phone that cannot hold it stutter through its first seconds; a
+ * phone that can is moved up by the governor within a few seconds of holding
+ * 60 at Medium, and remembers it (rememberTier) so the next visit starts there.
  */
-export function detectTier(h: DeviceHints): { tier: Tier; reason: string } {
+export function detectTier(h: DeviceHints): TierVerdict {
   const gpu = h.gpu ?? '';
-  if (WEAK_GPU.test(gpu)) return { tier: 'low', reason: `weak GPU (${gpu})` };
-  if (h.memoryGB !== undefined && h.memoryGB <= 2) return { tier: 'low', reason: `${h.memoryGB} GB device memory` };
-  if (h.benchMs !== undefined && h.benchMs > 40) return { tier: 'low', reason: `warm-up ${h.benchMs.toFixed(0)} ms/frame` };
+  const flat = (tier: Tier, reason: string): TierVerdict => ({ tier, ceiling: tier, reason });
+  if (WEAK_GPU.test(gpu)) return flat('low', `weak GPU (${gpu})`);
+  if (h.memoryGB !== undefined && h.memoryGB <= 2) return flat('low', `${h.memoryGB} GB device memory`);
+  if (h.benchMs !== undefined && h.benchMs > 40) return flat('low', `warm-up ${h.benchMs.toFixed(0)} ms/frame`);
   if (h.mobile) {
-    if (h.benchMs !== undefined && h.benchMs > 22) return { tier: 'low', reason: `phone, warm-up ${h.benchMs.toFixed(0)} ms/frame` };
-    return { tier: 'medium', reason: 'phone or tablet' };
+    if (h.benchMs !== undefined && h.benchMs > 22) return flat('low', `phone, warm-up ${h.benchMs.toFixed(0)} ms/frame`);
+    return { tier: 'medium', ceiling: 'high', reason: 'phone or tablet: starts Medium, may climb to High' };
   }
-  if (h.benchMs !== undefined && h.benchMs > 25) return { tier: 'medium', reason: `warm-up ${h.benchMs.toFixed(0)} ms/frame` };
-  if (DISCRETE_GPU.test(gpu)) return { tier: 'high', reason: `desktop GPU (${gpu})` };
-  return { tier: 'high', reason: 'desktop' };
+  if (h.benchMs !== undefined && h.benchMs > 25) return flat('medium', `warm-up ${h.benchMs.toFixed(0)} ms/frame`);
+  if (DISCRETE_GPU.test(gpu)) return flat('high', `desktop GPU (${gpu})`);
+  return flat('high', 'desktop');
+}
+
+const REMEMBER_KEY = 'ottoq_quality_auto_tier';
+
+/**
+ * The tier auto last HELD on this device (20 s at it without a decline), so a
+ * phone that proved it can run High starts there next time instead of climbing
+ * again. Per browser, a convenience only: storage may be unavailable, and the
+ * governor still steps down if the device no longer holds it.
+ */
+export function rememberedTier(): Tier | null {
+  try {
+    const v = window.localStorage.getItem(REMEMBER_KEY);
+    return v === 'high' || v === 'medium' || v === 'low' ? v : null;
+  } catch { return null; }
+}
+export function rememberTier(t: Tier): void {
+  try { window.localStorage.setItem(REMEMBER_KEY, t); } catch { /* per-device convenience only */ }
+}
+
+const CAP_KEY = 'ottoq_quality_auto_cap';
+const CAP_TTL_MS = 7 * 24 * 3600 * 1000;
+
+/**
+ * A tier auto TRIED here and could not hold (a step up that failed its
+ * probation) caps auto on this device for a week, so a phone that cannot run
+ * High is not made to stutter through the same try on every visit. A manual
+ * pick is never capped.
+ */
+export function rememberedCap(now = Date.now()): Tier | null {
+  try {
+    const raw = window.localStorage.getItem(CAP_KEY);
+    if (!raw) return null;
+    const { tier, at } = JSON.parse(raw) as { tier?: string; at?: number };
+    if (typeof at !== 'number' || now - at > CAP_TTL_MS) return null;
+    return tier === 'high' || tier === 'medium' || tier === 'low' ? tier : null;
+  } catch { return null; }
+}
+export function rememberCap(t: Tier, now = Date.now()): void {
+  try { window.localStorage.setItem(CAP_KEY, JSON.stringify({ tier: t, at: now })); } catch { /* convenience only */ }
+}
+
+/** The lower of two tiers. */
+export function minTier(a: Tier, b: Tier): Tier {
+  return TIERS.indexOf(a) <= TIERS.indexOf(b) ? a : b;
 }
 
 /** Read the hints from the running browser and a live WebGL context. */
@@ -116,16 +173,23 @@ export function readDeviceHints(gl?: WebGLRenderingContext | WebGL2RenderingCont
   };
 }
 
-/** Probe-only tier, before any GL context of ours exists (a throwaway one reads the GPU). */
-export function initialTier(): { tier: Tier; reason: string } {
+/**
+ * Probe-only verdict, before any GL context of ours exists (a throwaway one reads
+ * the GPU). The start is the tier this device last held, if it held one, never
+ * above the probe's ceiling or a cap a failed climb left here.
+ */
+export function initialTier(): TierVerdict {
   let gl: WebGLRenderingContext | WebGL2RenderingContext | null = null;
   try {
     const c = document.createElement('canvas');
     gl = (c.getContext('webgl2') ?? c.getContext('webgl')) as WebGLRenderingContext | null;
-    const out = detectTier(readDeviceHints(gl));
-    return out;
+    const probed = detectTier(readDeviceHints(gl));
+    const cap = rememberedCap();
+    const v = cap ? { ...probed, ceiling: minTier(cap, probed.ceiling), tier: minTier(cap, probed.tier) } : probed;
+    const held = rememberedTier();
+    return held ? { ...v, tier: minTier(held, v.ceiling), reason: `${v.reason}; last held ${held} here` } : v;
   } catch {
-    return { tier: 'medium', reason: 'probe failed' };
+    return { tier: 'medium', ceiling: 'medium', reason: 'probe failed' };
   } finally {
     gl?.getExtension('WEBGL_lose_context')?.loseContext();
   }

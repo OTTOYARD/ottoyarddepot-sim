@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { BUDGETS, detectTier, stepDown, stepUp } from './tiers';
+import { BUDGETS, detectTier, minTier, rememberCap, rememberedCap, rememberTier, rememberedTier, stepDown, stepUp } from './tiers';
 
 describe('render tiers', () => {
   it('HIGH is the desktop look exactly as it was before tiers existed', () => {
@@ -32,6 +32,28 @@ describe('render tiers', () => {
     expect(detectTier({ mobile: true, memoryGB: 2 }).tier).toBe('low');
     expect(detectTier({ mobile: false, gpu: 'ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device))' }).tier).toBe('low');
     expect(detectTier({ mobile: true, gpu: 'Mali-G52' }).tier).toBe('low');
+  });
+
+  it('a phone may CLIMB to High (it held ~60 fps on the founder\'s phone), everything else stays where it starts', () => {
+    expect(detectTier({ mobile: true, gpu: 'Apple GPU' })).toMatchObject({ tier: 'medium', ceiling: 'high' });
+    expect(detectTier({ mobile: false })).toMatchObject({ tier: 'high', ceiling: 'high' });
+    expect(detectTier({ mobile: true, memoryGB: 2 })).toMatchObject({ tier: 'low', ceiling: 'low' });
+    expect(detectTier({ mobile: true, benchMs: 25 })).toMatchObject({ tier: 'low', ceiling: 'low' });
+    expect(detectTier({ mobile: false, benchMs: 30 })).toMatchObject({ tier: 'medium', ceiling: 'medium' });
+  });
+
+  it('remembers the tier a device held, and caps a failed climb for a week', () => {
+    window.localStorage.clear();
+    expect(rememberedTier()).toBeNull();
+    rememberTier('high');
+    expect(rememberedTier()).toBe('high');
+    const t0 = Date.parse('2026-09-30T12:00:00Z');
+    rememberCap('medium', t0);
+    expect(rememberedCap(t0 + 6 * 24 * 3600e3)).toBe('medium');
+    expect(rememberedCap(t0 + 8 * 24 * 3600e3)).toBeNull();
+    expect(minTier('high', 'medium')).toBe('medium');
+    expect(minTier('low', 'high')).toBe('low');
+    window.localStorage.clear();
   });
 
   it('the warm-up benchmark can only lower the start', () => {
