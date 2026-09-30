@@ -1,0 +1,486 @@
+{
+  "_comment": "EXAMPLE, not a result. Hand-written, plausible numbers for the Value tab's tests (TwinValueTab.test.tsx). Imported only by tests; never rendered in the app.",
+  "status": "measured",
+  "sweep": {
+    "code": "EXAMPLE_value_2026_09_30",
+    "title": "EXAMPLE, not a result: OTTO-Q against first-come-first-served, energy planning on and off, 24-hour days at 10 and 20 fast chargers",
+    "arms_planned": 24,
+    "arms_done": 24,
+    "seeds_done": 3,
+    "day_hours": 24,
+    "step_min": 5,
+    "first_arm_at": "2026-10-01T04:02:00.000Z",
+    "last_arm_at": "2026-10-01T10:33:00.000Z"
+  },
+  "depot": {
+    "name": "OTTOYARD Nashville Flagship",
+    "fleet": 116,
+    "battery_kwh": 3000,
+    "battery_kw": 1500,
+    "solar_kw": 600,
+    "tariff": "Nashville Electric Service, time-of-use (TGSA-3) plus the TVA fuel adjustment"
+  },
+  "views": [
+    {
+      "fast_chargers": 10,
+      "otto_q": {
+        "cell": "dcfc10.otto_q",
+        "seeds": 3,
+        "power_bill_usd_month": 38200,
+        "power_rate": "TGSA-3",
+        "effective_cents_per_kwh": 9.9,
+        "peak_kw": 1180,
+        "demand_charge_usd_month": 14200,
+        "kwh_bought_day": 12860,
+        "cars_served_day": 214,
+        "cars_per_fast_charger_day": 21.4,
+        "turnaround_p50_min": 64,
+        "fast_charger_busy_pct": 81.3,
+        "demand_met_pct": 97.1,
+        "revenue_hours_per_car_day": 9.6,
+        "charge_wait_p50_min": 6,
+        "departures": 642,
+        "departures_full_and_serviced": 642
+      },
+      "plain": {
+        "cell": "dcfc10.fifo.energy_off",
+        "seeds": 3,
+        "power_bill_usd_month": 52900,
+        "power_rate": "TGSA-3",
+        "effective_cents_per_kwh": 13.7,
+        "peak_kw": 1890,
+        "demand_charge_usd_month": 22700,
+        "kwh_bought_day": 12870,
+        "cars_served_day": 188,
+        "cars_per_fast_charger_day": 18.8,
+        "turnaround_p50_min": 88,
+        "fast_charger_busy_pct": 74.6,
+        "demand_met_pct": 91,
+        "revenue_hours_per_car_day": 9,
+        "charge_wait_p50_min": 19,
+        "departures": 564,
+        "departures_full_and_serviced": 564
+      },
+      "otto_q_planner_off": {
+        "cell": "dcfc10.otto_q.energy_off",
+        "seeds": 3,
+        "power_bill_usd_month": 48000,
+        "power_rate": "TGSA-3",
+        "effective_cents_per_kwh": 12.4,
+        "peak_kw": 1720,
+        "demand_charge_usd_month": 20600,
+        "kwh_bought_day": 12900,
+        "cars_served_day": 212,
+        "cars_per_fast_charger_day": 21.2,
+        "turnaround_p50_min": 66,
+        "fast_charger_busy_pct": 80.9,
+        "demand_met_pct": 96.8,
+        "revenue_hours_per_car_day": 9.6,
+        "charge_wait_p50_min": 7,
+        "departures": 636,
+        "departures_full_and_serviced": 636
+      },
+      "fifo_planner_on": {
+        "cell": "dcfc10.fifo",
+        "seeds": 3,
+        "power_bill_usd_month": 43100,
+        "power_rate": "TGSA-3",
+        "effective_cents_per_kwh": 11.2,
+        "peak_kw": 1330,
+        "demand_charge_usd_month": 16000,
+        "kwh_bought_day": 12830,
+        "cars_served_day": 190,
+        "cars_per_fast_charger_day": 19,
+        "turnaround_p50_min": 86,
+        "fast_charger_busy_pct": 75,
+        "demand_met_pct": 91.3,
+        "revenue_hours_per_car_day": 9,
+        "charge_wait_p50_min": 18,
+        "departures": 570,
+        "departures_full_and_serviced": 570
+      },
+      "vs_plain": {
+        "power_bill_saved_usd_month": {
+          "low": 12900,
+          "mid": 14700,
+          "high": 16400
+        },
+        "power_bill_saved_pct": {
+          "low": 25.1,
+          "mid": 27.8,
+          "high": 30.2
+        },
+        "peak_cut_kw": {
+          "low": 610,
+          "mid": 710,
+          "high": 790
+        },
+        "cars_served_delta_day": {
+          "low": 20,
+          "mid": 26,
+          "high": 32
+        },
+        "turnaround_delta_min": {
+          "low": -29,
+          "mid": -24,
+          "high": -19
+        },
+        "revenue_hours_per_car_day_delta": {
+          "low": 0.4,
+          "mid": 0.6,
+          "high": 0.8
+        },
+        "revenue_usd_per_car_day": {
+          "low": 8,
+          "mid": 12,
+          "high": 16
+        },
+        "revenue_usd_per_car_day_band": [
+          9.6,
+          14.4
+        ]
+      },
+      "split": {
+        "energy_planning_usd_month": 9800,
+        "charger_assignment_usd_month": 4900
+      }
+    },
+    {
+      "fast_chargers": 20,
+      "otto_q": {
+        "cell": "dcfc20.otto_q",
+        "seeds": 3,
+        "power_bill_usd_month": 38600,
+        "power_rate": "TGSA-3",
+        "effective_cents_per_kwh": 9.5,
+        "peak_kw": 1240,
+        "demand_charge_usd_month": 14900,
+        "kwh_bought_day": 13580,
+        "cars_served_day": 226,
+        "cars_per_fast_charger_day": 11.3,
+        "turnaround_p50_min": 55,
+        "fast_charger_busy_pct": 42.6,
+        "demand_met_pct": 98.4,
+        "revenue_hours_per_car_day": 9.9,
+        "charge_wait_p50_min": 3,
+        "departures": 678,
+        "departures_full_and_serviced": 678
+      },
+      "plain": {
+        "cell": "dcfc20.fifo.energy_off",
+        "seeds": 3,
+        "power_bill_usd_month": 58400,
+        "power_rate": "GSA-3",
+        "effective_cents_per_kwh": 15.9,
+        "peak_kw": 2460,
+        "demand_charge_usd_month": 29500,
+        "kwh_bought_day": 12260,
+        "cars_served_day": 204,
+        "cars_per_fast_charger_day": 10.2,
+        "turnaround_p50_min": 74,
+        "fast_charger_busy_pct": 39.8,
+        "demand_met_pct": 93.6,
+        "revenue_hours_per_car_day": 9.2,
+        "charge_wait_p50_min": 9,
+        "departures": 612,
+        "departures_full_and_serviced": 612
+      },
+      "otto_q_planner_off": {
+        "cell": "dcfc20.otto_q.energy_off",
+        "seeds": 3,
+        "power_bill_usd_month": 52200,
+        "power_rate": "TGSA-3",
+        "effective_cents_per_kwh": 12.8,
+        "peak_kw": 2150,
+        "demand_charge_usd_month": 25800,
+        "kwh_bought_day": 13600,
+        "cars_served_day": 224,
+        "cars_per_fast_charger_day": 11.2,
+        "turnaround_p50_min": 56,
+        "fast_charger_busy_pct": 42.1,
+        "demand_met_pct": 98.2,
+        "revenue_hours_per_car_day": 9.9,
+        "charge_wait_p50_min": 3,
+        "departures": 672,
+        "departures_full_and_serviced": 672
+      },
+      "fifo_planner_on": {
+        "cell": "dcfc20.fifo",
+        "seeds": 3,
+        "power_bill_usd_month": 44800,
+        "power_rate": "TGSA-3",
+        "effective_cents_per_kwh": 12.2,
+        "peak_kw": 1390,
+        "demand_charge_usd_month": 16700,
+        "kwh_bought_day": 12240,
+        "cars_served_day": 206,
+        "cars_per_fast_charger_day": 10.3,
+        "turnaround_p50_min": 72,
+        "fast_charger_busy_pct": 40.2,
+        "demand_met_pct": 93.9,
+        "revenue_hours_per_car_day": 9.2,
+        "charge_wait_p50_min": 8,
+        "departures": 618,
+        "departures_full_and_serviced": 618
+      },
+      "vs_plain": {
+        "power_bill_saved_usd_month": {
+          "low": 17600,
+          "mid": 19800,
+          "high": 21900
+        },
+        "power_bill_saved_pct": {
+          "low": 30.8,
+          "mid": 33.9,
+          "high": 36.5
+        },
+        "peak_cut_kw": {
+          "low": 1080,
+          "mid": 1220,
+          "high": 1350
+        },
+        "cars_served_delta_day": {
+          "low": 17,
+          "mid": 22,
+          "high": 27
+        },
+        "turnaround_delta_min": {
+          "low": -23,
+          "mid": -19,
+          "high": -15
+        },
+        "revenue_hours_per_car_day_delta": {
+          "low": 0.5,
+          "mid": 0.7,
+          "high": 0.9
+        },
+        "revenue_usd_per_car_day": {
+          "low": 10,
+          "mid": 14,
+          "high": 18
+        },
+        "revenue_usd_per_car_day_band": [
+          11.2,
+          16.8
+        ]
+      },
+      "split": {
+        "energy_planning_usd_month": 13600,
+        "charger_assignment_usd_month": 6200
+      }
+    }
+  ],
+  "investor": {
+    "chargers_statement": "On every test day, OTTO-Q with 10 fast chargers served at least as many cars, and met at least as much ride demand, as a plain depot with 20.",
+    "chargers_avoided": 10,
+    "charger_capex_avoided_usd": [
+      1500000,
+      2000000,
+      3000000
+    ],
+    "fleet_equiv_cars": 7.7,
+    "fleet_capex_equiv_usd": [
+      924000,
+      1232000,
+      1540000
+    ]
+  },
+  "guarantee": {
+    "departures": 2628,
+    "full_and_serviced": 2628
+  },
+  "runs": [
+    {
+      "cell": "dcfc10.otto_q",
+      "seed": "101",
+      "arm_id": 1,
+      "sim_run_id": "ex000001-0000-4000-8000-000000000001",
+      "ran_at": "2026-10-01T04:02:00.000Z"
+    },
+    {
+      "cell": "dcfc10.otto_q.energy_off",
+      "seed": "101",
+      "arm_id": 2,
+      "sim_run_id": "ex000002-0000-4000-8000-000000000002",
+      "ran_at": "2026-10-01T04:19:00.000Z"
+    },
+    {
+      "cell": "dcfc10.fifo",
+      "seed": "101",
+      "arm_id": 3,
+      "sim_run_id": "ex000003-0000-4000-8000-000000000003",
+      "ran_at": "2026-10-01T04:36:00.000Z"
+    },
+    {
+      "cell": "dcfc10.fifo.energy_off",
+      "seed": "101",
+      "arm_id": 4,
+      "sim_run_id": "ex000004-0000-4000-8000-000000000004",
+      "ran_at": "2026-10-01T04:53:00.000Z"
+    },
+    {
+      "cell": "dcfc20.otto_q",
+      "seed": "101",
+      "arm_id": 5,
+      "sim_run_id": "ex000005-0000-4000-8000-000000000005",
+      "ran_at": "2026-10-01T05:10:00.000Z"
+    },
+    {
+      "cell": "dcfc20.otto_q.energy_off",
+      "seed": "101",
+      "arm_id": 6,
+      "sim_run_id": "ex000006-0000-4000-8000-000000000006",
+      "ran_at": "2026-10-01T05:27:00.000Z"
+    },
+    {
+      "cell": "dcfc20.fifo",
+      "seed": "101",
+      "arm_id": 7,
+      "sim_run_id": "ex000007-0000-4000-8000-000000000007",
+      "ran_at": "2026-10-01T05:44:00.000Z"
+    },
+    {
+      "cell": "dcfc20.fifo.energy_off",
+      "seed": "101",
+      "arm_id": 8,
+      "sim_run_id": "ex000008-0000-4000-8000-000000000008",
+      "ran_at": "2026-10-01T06:01:00.000Z"
+    },
+    {
+      "cell": "dcfc10.otto_q",
+      "seed": "102",
+      "arm_id": 9,
+      "sim_run_id": "ex000009-0000-4000-8000-000000000009",
+      "ran_at": "2026-10-01T06:18:00.000Z"
+    },
+    {
+      "cell": "dcfc10.otto_q.energy_off",
+      "seed": "102",
+      "arm_id": 10,
+      "sim_run_id": "ex000010-0000-4000-8000-000000000010",
+      "ran_at": "2026-10-01T06:35:00.000Z"
+    },
+    {
+      "cell": "dcfc10.fifo",
+      "seed": "102",
+      "arm_id": 11,
+      "sim_run_id": "ex000011-0000-4000-8000-000000000011",
+      "ran_at": "2026-10-01T06:52:00.000Z"
+    },
+    {
+      "cell": "dcfc10.fifo.energy_off",
+      "seed": "102",
+      "arm_id": 12,
+      "sim_run_id": "ex000012-0000-4000-8000-000000000012",
+      "ran_at": "2026-10-01T07:09:00.000Z"
+    },
+    {
+      "cell": "dcfc20.otto_q",
+      "seed": "102",
+      "arm_id": 13,
+      "sim_run_id": "ex000013-0000-4000-8000-000000000013",
+      "ran_at": "2026-10-01T07:26:00.000Z"
+    },
+    {
+      "cell": "dcfc20.otto_q.energy_off",
+      "seed": "102",
+      "arm_id": 14,
+      "sim_run_id": "ex000014-0000-4000-8000-000000000014",
+      "ran_at": "2026-10-01T07:43:00.000Z"
+    },
+    {
+      "cell": "dcfc20.fifo",
+      "seed": "102",
+      "arm_id": 15,
+      "sim_run_id": "ex000015-0000-4000-8000-000000000015",
+      "ran_at": "2026-10-01T08:00:00.000Z"
+    },
+    {
+      "cell": "dcfc20.fifo.energy_off",
+      "seed": "102",
+      "arm_id": 16,
+      "sim_run_id": "ex000016-0000-4000-8000-000000000016",
+      "ran_at": "2026-10-01T08:17:00.000Z"
+    },
+    {
+      "cell": "dcfc10.otto_q",
+      "seed": "103",
+      "arm_id": 17,
+      "sim_run_id": "ex000017-0000-4000-8000-000000000017",
+      "ran_at": "2026-10-01T08:34:00.000Z"
+    },
+    {
+      "cell": "dcfc10.otto_q.energy_off",
+      "seed": "103",
+      "arm_id": 18,
+      "sim_run_id": "ex000018-0000-4000-8000-000000000018",
+      "ran_at": "2026-10-01T08:51:00.000Z"
+    },
+    {
+      "cell": "dcfc10.fifo",
+      "seed": "103",
+      "arm_id": 19,
+      "sim_run_id": "ex000019-0000-4000-8000-000000000019",
+      "ran_at": "2026-10-01T09:08:00.000Z"
+    },
+    {
+      "cell": "dcfc10.fifo.energy_off",
+      "seed": "103",
+      "arm_id": 20,
+      "sim_run_id": "ex000020-0000-4000-8000-000000000020",
+      "ran_at": "2026-10-01T09:25:00.000Z"
+    },
+    {
+      "cell": "dcfc20.otto_q",
+      "seed": "103",
+      "arm_id": 21,
+      "sim_run_id": "ex000021-0000-4000-8000-000000000021",
+      "ran_at": "2026-10-01T09:42:00.000Z"
+    },
+    {
+      "cell": "dcfc20.otto_q.energy_off",
+      "seed": "103",
+      "arm_id": 22,
+      "sim_run_id": "ex000022-0000-4000-8000-000000000022",
+      "ran_at": "2026-10-01T09:59:00.000Z"
+    },
+    {
+      "cell": "dcfc20.fifo",
+      "seed": "103",
+      "arm_id": 23,
+      "sim_run_id": "ex000023-0000-4000-8000-000000000023",
+      "ran_at": "2026-10-01T10:16:00.000Z"
+    },
+    {
+      "cell": "dcfc20.fifo.energy_off",
+      "seed": "103",
+      "arm_id": 24,
+      "sim_run_id": "ex000024-0000-4000-8000-000000000024",
+      "ran_at": "2026-10-01T10:33:00.000Z"
+    }
+  ],
+  "sources": [
+    {
+      "what": "EXAMPLE source: electricity rate",
+      "value": "example value",
+      "url": "https://example.com/electricity-rate",
+      "as_of": "2026-09-30"
+    },
+    {
+      "what": "EXAMPLE source: revenue per car-hour",
+      "value": "16 / 20 / 24 USD/car-hour",
+      "url": "https://example.com/revenue-per-car-hour",
+      "as_of": "2026-09-30"
+    },
+    {
+      "what": "EXAMPLE source: charge and service times",
+      "value": "a repository path, not a link",
+      "url": "docs/research/EXAMPLE.md",
+      "as_of": "2026-09-30"
+    }
+  ],
+  "notes": [
+    "EXAMPLE, not a result: hand-written numbers for the Value tab's tests. Never rendered in the app.",
+    "A month is 30 days like the ones measured."
+  ]
+}

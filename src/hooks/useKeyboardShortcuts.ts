@@ -13,6 +13,7 @@ const TAB_KEYS: Record<string, CockpitTab> = {
   '6': 'history',
   '7': 'world',
   '8': 'copilot',
+  '9': 'value',
 };
 
 export function useKeyboardShortcuts() {

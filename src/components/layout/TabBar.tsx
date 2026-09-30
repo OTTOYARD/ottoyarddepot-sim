@@ -1,6 +1,6 @@
 import { useSimulationStore, type CockpitTab } from '@/store/simulationStore';
 
-// EIGHT TABS, EACH ONE A DIFFERENT QUESTION (consolidated 2026-09-23 from fourteen, reconciled with PR #108).
+// NINE TABS, EACH ONE A DIFFERENT QUESTION (consolidated 2026-09-23 from fourteen, reconciled with PR #108).
 //   Control       — run the world: scenario, transport, speed, variability, injections
 //   Intelligence  — what OTTO-Q is deciding now (stream) and how it is built (layers)
 //   Orchestration — the reservation / appointment seam the kernel maintains
@@ -9,6 +9,7 @@ import { useSimulationStore, type CockpitTab } from '@/store/simulationStore';
 //   Runs          — run history, compare, and the Black Box download
 //   Diagnostics   — what this cockpit can and cannot see of the engine's world
 //   Copilot       — an on-demand model review of a sample of this run's decisions (PR #108 repaired it)
+//   Value         — what OTTO-Q is worth at this depot: power bill, chargers, revenue time (night-2 sweep, otto-q-core 0575/0576)
 // Removed from navigation: Decisions (it was the Intelligence stream a second time), AI Summary (a
 // browser-side narrative labelled as the engine; its source stays for review, per PR #108), Swap-Test and
 // Scorekeeper (unsupported comparative claims), Recall (its writes are denied to this app's key), Black Box
@@ -22,6 +23,7 @@ const tabs: { id: CockpitTab; label: string }[] = [
   { id: 'history', label: 'Runs' },
   { id: 'world', label: 'Diagnostics' },
   { id: 'copilot', label: 'Copilot' },
+  { id: 'value', label: 'Value' },
 ];
 
 export const TabBar = () => {
