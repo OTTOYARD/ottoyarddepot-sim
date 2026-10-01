@@ -9,7 +9,7 @@
 // proposal disposition ledger (useDispositions), the stack's agent layer, and the second loop's two boards.
 // Design note: docs/OTTO-Q-FUNNEL-AND-AGENT-TABS.md.
 // ============================================================================
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, ChevronRight, RotateCw } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTwinStore } from "@/store/twinStore";
@@ -26,6 +26,7 @@ import {
 } from "@/lib/agentStream";
 import { tallyDispositions } from "@/lib/ottoqFunnel";
 import { formatClockCT, num } from "@/lib/decisionText";
+import { liveFeed, type FeedItem, type FeedKind, type FeedLine } from "@/lib/liveFeed";
 
 const Dot = ({ tone }: { tone: StreamTone }) => (
   <span className="mt-1 inline-block h-2 w-2 shrink-0 rounded-full" style={{ background: TONE_COLOR[tone] }} />
@@ -97,6 +98,115 @@ function OfferCard({ b }: { b: OfferBatch }) {
         </ul>
       )}
     </li>
+  );
+}
+
+// ── the live stream: one line per decision, arriving one at a time ───────────────────────────────────────────────
+const KIND_LABEL: Record<FeedKind, string> = { car: "Cars", agent: "Agent", offers: "Planners", energy: "Energy" };
+const clock = (l: { at: string | null; tick: number | null }) => (l.at ? formatClockCT(l.at) : l.tick != null ? `tick ${l.tick}` : "—");
+const IN = "animate-in fade-in slide-in-from-top-1 duration-300";
+
+function FeedRow({ l, fresh }: { l: FeedLine; fresh: boolean }) {
+  const [open, setOpen] = useState(false);
+  const expandable = !!l.pass || !!l.batch;
+  const accent = l.kind === "agent" ? "border-violet-400/25 bg-violet-400/[0.05]" : "border-transparent";
+  return (
+    <li className={`rounded border ${accent} ${fresh ? IN : ""}`}>
+      <button type="button" disabled={!expandable} onClick={() => setOpen((o) => !o)} aria-expanded={expandable ? open : undefined}
+        className="flex w-full items-start gap-2 px-1.5 py-[3px] text-left disabled:cursor-default">
+        <Dot tone={l.tone} />
+        <span className={`min-w-0 flex-1 text-[11.5px] leading-4 ${l.kind === "agent" ? "text-violet-100" : "text-ink"} ${open ? "" : "line-clamp-2"}`}>
+          {l.kind === "agent" && <span className="mr-1 font-display text-[9px] uppercase tracking-[0.08em] text-violet-300">Agent</span>}
+          {l.kind === "offers" && <span className="mr-1 font-display text-[9px] uppercase tracking-[0.08em] text-ink-faint">Planners</span>}
+          {l.text}
+        </span>
+        <span className="mt-[1px] shrink-0 font-mono text-[9px] text-ink-faint">{clock(l)}</span>
+      </button>
+      {open && l.pass && <ul className="px-1 pb-1"><PassCard p={l.pass} /></ul>}
+      {open && l.batch && <ul className="px-1 pb-1"><OfferCard b={l.batch} /></ul>}
+    </li>
+  );
+}
+
+function FeedTile({ g, fresh }: { g: Extract<FeedItem, { kind: "group" }>; fresh: boolean }) {
+  const [all, setAll] = useState(false);
+  const shown = all ? g.lines : g.lines.slice(0, 6);
+  return (
+    <li className={`rounded border border-white/[0.08] bg-white/[0.02] px-2 py-1.5 ${fresh ? IN : ""}`}>
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="flex items-center gap-2 text-[11.5px] font-medium text-ink"><Dot tone={g.tone} />{g.title}</span>
+        <span className="shrink-0 font-mono text-[9px] text-ink-faint">{clock(g)}</span>
+      </div>
+      <ul className="mt-1 space-y-0.5 border-l border-white/10 pl-2">
+        {shown.map((l) => <li key={l.key} className="text-[10.5px] leading-4 text-ink-dim">{l.text}</li>)}
+      </ul>
+      {g.lines.length > 6 && (
+        <button type="button" onClick={() => setAll((a) => !a)} className="mt-0.5 text-[10px] text-ink-faint hover:text-ink-dim">
+          {all ? "Show fewer" : `and ${g.lines.length - 6} more`}
+        </button>
+      )}
+    </li>
+  );
+}
+
+/** Items already there when the tab opens show at once; each new one is let in on its own, every STEP_MS, so a tick's
+ *  decisions stream in one at a time instead of landing as a block. Paused runs let nothing in. */
+const STEP_MS = 450;
+function useTrickle(items: FeedItem[], paused: boolean) {
+  const shown = useRef<Set<string> | null>(null);
+  const [queue, setQueue] = useState<string[]>([]);
+  const [fresh, setFresh] = useState<string[]>([]);
+  const [, bump] = useState(0);
+  useEffect(() => {
+    if (!items.length) return;
+    if (!shown.current) { shown.current = new Set(items.map((i) => i.key)); bump((n) => n + 1); return; }
+    const add = items.map((i) => i.key).filter((k) => !shown.current!.has(k)).reverse(); // oldest first
+    if (add.length) setQueue((q) => [...q, ...add.filter((k) => !q.includes(k))]);
+  }, [items]);
+  useEffect(() => {
+    if (!queue.length || paused) return;
+    const t = window.setTimeout(() => {
+      const [k, ...rest] = queue;
+      shown.current!.add(k);
+      setFresh((f) => [...f, k].slice(-12));
+      setQueue(rest);
+    }, queue.length > 12 ? 90 : STEP_MS); // a big batch streams faster, so the feed never falls far behind
+    return () => window.clearTimeout(t);
+  }, [queue, paused]);
+  const visible = shown.current ? items.filter((i) => shown.current!.has(i.key)) : [];
+  return { visible, incoming: queue.length, fresh: new Set(fresh) };
+}
+
+function LiveFeed({ items, frozen }: { items: FeedItem[]; frozen: boolean }) {
+  const [only, setOnly] = useState<FeedKind | null>(null);
+  const [limit, setLimit] = useState(80);
+  const { visible, incoming, fresh } = useTrickle(items, frozen);
+  const kindOf = (i: FeedItem): FeedKind => (i.kind === "group" ? "car" : i.kind);
+  const list = only ? visible.filter((i) => kindOf(i) === only) : visible;
+  return (
+    <section aria-label="Live decisions" className="space-y-1.5">
+      <div className="flex flex-wrap items-center gap-1">
+        {([null, "car", "agent", "offers", "energy"] as (FeedKind | null)[]).map((k) => (
+          <button key={k ?? "all"} type="button" onClick={() => setOnly(k)} aria-pressed={only === k}
+            className={`rounded-full border px-2 py-0.5 text-[10px] ${only === k ? "border-brand-red/60 bg-brand-red/10 text-ink" : "border-white/10 text-ink-dim"}`}>
+            {k ? KIND_LABEL[k] : "All"}
+          </button>
+        ))}
+        {incoming > 0 && <span className="ml-auto font-mono text-[9px] text-ink-faint">+{incoming} incoming</span>}
+      </div>
+      {list.length === 0 ? (
+        <p className="text-[11px] text-ink-dim">{frozen ? "Paused." : "No decisions in the last two sim-hours yet."}</p>
+      ) : (
+        <ul className="space-y-[2px]">
+          {list.slice(0, limit).map((i) => (i.kind === "group" ? <FeedTile key={i.key} g={i} fresh={fresh.has(i.key)} /> : <FeedRow key={i.key} l={i} fresh={fresh.has(i.key)} />))}
+        </ul>
+      )}
+      {list.length > limit && (
+        <button type="button" onClick={() => setLimit((n) => n + 80)} className="w-full rounded border border-white/10 py-1.5 text-[11px] text-ink-dim hover:text-ink">
+          Show older ({list.length - limit} more)
+        </button>
+      )}
+    </section>
   );
 }
 
@@ -184,7 +294,7 @@ function ReadsCard({ status, frame, loading, onRead }: { status: string | null; 
   );
 }
 
-type View = "thinking" | "learning";
+type View = "live" | "thinking" | "learning";
 
 export function TwinAgentTab() {
   const simRunId = useTwinStore((s) => s.activeSimRunId);
@@ -193,7 +303,7 @@ export function TwinAgentTab() {
   const { stack, frame, frameLoading, loadFrame } = useIntelligenceStack(!!simRunId);
   const disp = useDispositions();
   const loop = useSecondLoop(true);
-  const [view, setView] = useState<View>("thinking");
+  const [view, setView] = useState<View>("live");
   const [limit, setLimit] = useState(30);
   const [showQuiet, setShowQuiet] = useState(false);
 
@@ -204,6 +314,7 @@ export function TwinAgentTab() {
     // Both carry the tick they belong to; merged on it, a pass before the offers of its own tick.
     return [...passes, ...batches].sort((a, b) => (b.tick ?? -1) - (a.tick ?? -1) || (a.kind === "pass" ? -1 : 1));
   }, [rows, disp.rows, names, showQuiet]);
+  const feed = useMemo(() => liveFeed(rows, offerBatches(disp.rows ?? [], names, tickClocks(rows)).filter((b) => !b.quiet)), [rows, disp.rows, names]);
   const quietCount = useMemo(() => offerBatches(disp.rows ?? [], names).filter((b) => b.quiet).length, [disp.rows, names]);
 
   const agentLive = (Array.isArray(stack?.layers) ? stack!.layers! : []).find((l) => l.layer === "L2_AGENT")?.live ?? null;
@@ -217,10 +328,10 @@ export function TwinAgentTab() {
 
   const Toggle = (
     <div role="tablist" className="inline-flex shrink-0 rounded border border-white/10 bg-white/[0.03] p-0.5">
-      {(["thinking", "learning"] as const).map((v) => (
+      {(["live", "thinking", "learning"] as const).map((v) => (
         <button key={v} type="button" role="tab" aria-selected={view === v} onClick={() => setView(v)}
           className={`rounded px-2 py-1 font-display text-[10px] uppercase tracking-[0.06em] ${view === v ? "bg-brand-red text-white" : "text-ink-faint hover:text-ink-dim"}`}>
-          {v === "thinking" ? "Thinking" : "Learning"}
+          {v === "live" ? "Live" : v === "thinking" ? "Agent passes" : "Learning"}
         </button>
       ))}
     </div>
@@ -263,22 +374,23 @@ export function TwinAgentTab() {
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <div className="font-display text-[12px] uppercase tracking-[0.08em] text-ink">The agent</div>
-            <p className="mt-0.5 text-[10px] leading-4 text-ink-faint">
+            {view !== "live" && <p className="mt-0.5 text-[10px] leading-4 text-ink-faint">
               {chains == null
                 ? "Passes this run: —"
                 : chains === 0
                   ? "The agent has not run a pass in this run."
                   : `${fmt(chains)} ${chains === 1 ? "pass" : "passes"} this run${fell ? `, ${fmt(fell)} fell back to the deterministic path` : ""}${late != null ? `. Advice lands a mean of ${late} ticks after the tick it read; the tick never waits for it.` : "."}`}
-            </p>
+            </p>}
+            {view === "live" && <p className="mt-0.5 text-[10px] leading-4 text-ink-faint">Every decision OTTO-Q makes, one line each, as it makes it.</p>}
           </div>
           {stack?.run?.status && !isLiveStatus(stack.run.status) ? <EndedState /> : <StreamState frozen={frozen} />}
         </div>
 
-        <Loop reads={chains} offers={t ? t.total - t.abstained : null} enacted={t?.enacted ?? null} refused={t?.refused ?? null} graded={graded} />
+        {view === "thinking" && <Loop reads={chains} offers={t ? t.total - t.abstained : null} enacted={t?.enacted ?? null} refused={t?.refused ?? null} graded={graded} />}
 
         {Toggle}
 
-        {view === "learning" ? learning : (
+        {view === "live" ? <LiveFeed items={feed} frozen={frozen} /> : view === "learning" ? learning : (
           <>
             <ReadsCard status={stack?.run?.status ?? null} frame={frame} loading={frameLoading} onRead={loadFrame} />
             {quietCount > 0 && (

@@ -92,6 +92,7 @@ describe("OTTO-Q tab", () => {
 describe("Agent tab", () => {
   it("writes each pass as sentences, and counts the loop from its records", () => {
     render(<TwinAgentTab />);
+    fireEvent.click(screen.getByRole("tab", { name: "Agent passes" }));
     expect(screen.getByText(/15 passes this run, 2 fell back to the deterministic path/)).toBeTruthy();
     expect(screen.getAllByText("The agent read the depot and chose to get cars ready first").length).toBeGreaterThan(0);
     expect(screen.getAllByText("The agent fell back to the deterministic path").length).toBeGreaterThan(0);
@@ -99,9 +100,20 @@ describe("Agent tab", () => {
     expect(within(loop).getByText("59")).toBeTruthy(); // offers: 103 dispositions less 44 abstentions
     expect(within(loop).getByText("1 / 25")).toBeTruthy();
     expect(document.body.textContent).not.toMatch(/undefined|NaN|\[object Object\]/);
-    // the run in the fixture has ended: no stale board is offered as current, and the header says ended
-    expect(screen.getByRole("region", { name: "What the agent reads" }).textContent).toMatch(/this run is not running/);
     expect(screen.getByText("ended")).toBeTruthy();
+    // the run in the fixture has ended: no stale board is offered as current
+    expect(screen.getByRole("region", { name: "What the agent reads" }).textContent).toMatch(/this run is not running/);
+  });
+
+  it("opens on the live stream: one line per decision, saying where each car goes", () => {
+    render(<TwinAgentTab />);
+    const live = screen.getByRole("region", { name: "Live decisions" });
+    expect(within(live).getAllByText(/→ standard charger 12 to charge · 90% now/).length).toBeGreaterThan(0);
+    expect(within(live).getAllByText(/dispatched at 100% \(needs 80% to leave\)/).length).toBeGreaterThan(0);
+    expect(within(live).queryByText(/^A car: Battery/)).toBeNull();
+    fireEvent.click(within(live).getByRole("button", { name: "Agent" }));
+    expect(within(live).getAllByText("read the depot and chose to get cars ready first").length).toBeGreaterThan(0);
+    expect(within(live).queryByText(/→ standard charger/)).toBeNull();
   });
 
   it("learning says OTTO-Q does not experiment in production, and that estimates are not built", () => {
