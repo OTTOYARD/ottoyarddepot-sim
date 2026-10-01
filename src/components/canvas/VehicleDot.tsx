@@ -1,6 +1,8 @@
 import React from 'react';
 import type { Vehicle } from '@/engine/types';
 import { useVehicleStore } from '@/store/vehicleStore';
+import { useDepotStore } from '@/store/depotStore';
+import { useQCard } from '@/store/qCardStore';
 import { CAR_BODY_LENGTH, CAR_BODY_WIDTH } from '@/engine/motion/traffic';
 
 const VEHICLE_COLORS: Record<string, string> = {
@@ -72,6 +74,12 @@ const VehicleDotInner = ({ vehicle: v }: Props) => {
       }}
       onMouseEnter={() => setHoveredVehicle(v.id)}
       onMouseLeave={() => setHoveredVehicle(null)}
+      // tap or click: this car's Q card (the map's own click, which closes it, never sees this one)
+      onClick={(e) => {
+        e.stopPropagation();
+        useDepotStore.getState().selectStall(null);
+        useQCard.getState().open(v.id);
+      }}
     >
       {/* Charging glow ring */}
       {v.status === 'charging' && (

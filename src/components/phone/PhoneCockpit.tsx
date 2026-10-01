@@ -9,6 +9,7 @@ import { PhoneRunBar } from './PhoneRunBar';
 import { PhoneSheet } from './PhoneSheet';
 import { usePhoneSheet } from './phoneStore';
 import { PhoneCameraMenu } from './PhoneCameraMenu';
+import { QCardSheet } from '@/components/canvas/VehicleQCard';
 
 const DepotScene3D = lazy(() => import('@/components/canvas/DepotScene3D'));
 
@@ -105,6 +106,9 @@ export default function PhoneCockpit() {
 
       {/* the panels */}
       <PhoneSheet mode={portrait ? 'inline' : 'floating'} topInset={BAR_H} />
+
+      {/* a tapped car's Q card: a bottom sheet here, where a card anchored over the car would cover it */}
+      <QCardSheet />
 
       {/* feedback for the run bar and the panels' actions (the desktop mounts no toaster) */}
       <Toaster position="top-center" theme="dark" offset={BAR_H + 8} />

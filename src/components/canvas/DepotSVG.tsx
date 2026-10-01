@@ -3,6 +3,7 @@ import { useDepotStore } from '@/store/depotStore';
 import { useVehicleStore } from '@/store/vehicleStore';
 import { useSimulationStore } from '@/store/simulationStore';
 import { poseStore } from '@/engine/motion/poseStore';
+import { useQCard } from '@/store/qCardStore';
 import { Stall } from './Stall';
 import { VehicleDot } from './VehicleDot';
 import { ZoneBadges } from './ZoneBadges';
@@ -67,7 +68,8 @@ export const DepotSVG = forwardRef<SVGSVGElement>((_, ref) => {
       viewBox="0 0 300 220"
       preserveAspectRatio="xMidYMid meet"
       className="w-full h-full"
-      onClick={() => selectStall(null)}
+      // a click on open map closes whatever is open over it: a stall's popup, a car's Q card
+      onClick={() => { selectStall(null); useQCard.getState().close(); }}
     >
       <defs>
         <linearGradient id="borderGlow" x1="0%" y1="0%" x2="100%" y2="100%">

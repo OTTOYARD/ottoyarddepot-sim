@@ -49,7 +49,7 @@ const errText = (e: unknown): string =>
   e && typeof e === "object" && "message" in e ? String((e as { message: unknown }).message) : String(e);
 
 /** The feed, falling back to the plain feed on a backend without 0536 (as useActivityFeed does). */
-async function readFeed(args: Record<string, unknown>): Promise<ActivityFeedRow[]> {
+export async function readFeed(args: Record<string, unknown>): Promise<ActivityFeedRow[]> {
   let { data, error } = await ottoQ.rpc("ottoq_activity_feed_v2", args);
   if (error && (error as { code?: string }).code === "PGRST202") ({ data, error } = await ottoQ.rpc("ottoq_activity_feed", args));
   if (error) throw error;
