@@ -47,6 +47,16 @@ function len(a: Pt, b: Pt): number {
 /** How far ahead of its projection a car joining a lane aims (u). About one car
  *  length: the merge reads as a lean into the lane, not a sideways hop onto it. */
 const JOIN_LEAD = 8;
+/** routeOff: the farthest a stall's turn-in may lie from the lane line a car leaves
+ *  the road from (u). The south rows' turn-ins sit 19.2u off the collector's far
+ *  (westbound) lane line; every other staging turn-in is within 13u of its lane. */
+const OFF_REACH = 22;
+/** routeOff: how far the move off the lane may deviate from the way the car parks. */
+const OFF_ALIGN = (50 * Math.PI) / 180;
+/** routeOff: how far beyond the end of a lane a turn-in may lie and still be taken
+ *  from it (u). The south rows' corner stalls sit 6u past the ring corner; a stall
+ *  farther round the corner than this falls back to the nearest-node route. */
+const OFF_SLIP = 7;
 /** Longest miter offsetRight will take, as a multiple of the lane offset. 2 allows
  *  every join up to a 120° turn exactly; sharper ones are clamped. */
 const MITER_LIMIT = 2;
@@ -107,6 +117,26 @@ export class LaneGraph {
       }
     }
     return best;
+  }
+
+  /** Dijkstra distances and predecessors from one node to every node it reaches. */
+  private shortestFrom(from: string): { dist: Map<string, number>; prev: Map<string, string> } {
+    const dist = new Map<string, number>([[from, 0]]);
+    const prev = new Map<string, string>();
+    const seen = new Set<string>();
+    while (true) {
+      let u = "";
+      let best = Infinity;
+      for (const [id, d] of dist) if (!seen.has(id) && d < best) { best = d; u = id; }
+      if (!u) break;
+      seen.add(u);
+      for (const lid of this.nodes.get(u)!.out) {
+        const lane = this.lanes.get(lid)!;
+        const nd = best + lane.length;
+        if (nd < (dist.get(lane.to) ?? Infinity)) { dist.set(lane.to, nd); prev.set(lane.to, u); }
+      }
+    }
+    return { dist, prev };
   }
 
   /** Dijkstra node path (list of node ids) from→to over directed lanes. */
@@ -297,11 +327,137 @@ export class LaneGraph {
   }
 
   /**
-   * Route a drivable polyline from `from` to `to` along the one-way lanes,
-   * returned already offset to the right (the actual path the car drives).
-   * Falls back to a straight segment if the graph can't connect them.
+   * Route to a point OFF the road — a parking stall's turn-in — leaving the road
+   * ABREAST of it, and return null when no lane runs abreast of it.
+   *
+   * WHY THIS EXISTS. route() and routeFacing() end at the graph node NEAREST the
+   * target. A staging stall is not at a node: it sits beside an aisle or collector
+   * somewhere along a lane up to ~98u long, so the nearest node was as often PAST the
+   * stall as short of it. The car drove by its stall to that node, turned round and
+   * came back to it — the founder, 2026-10-01: "they go past their designated stall
+   * first and then come back to it ... it should not go past and then come back to
+   * it. It needs to immediately turn into that spot." Replayed on the five captures,
+   * 102 of 299 staging arrivals overshot their stall's axis, by up to 44.6u (the
+   * temp aisle's whole length; arrivalProbe.ts).
+   *
+   * So every directed lane is a candidate exit: `to` is projected onto it, and the
+   * cheapest (graph distance to the lane, then along it to the projection, then off
+   * the lane to `to`) wins. The car rides its lane to the point abreast of `to` and
+   * turns off there. `facing` is the way the car must point as it reaches `to` (the
+   * parked heading): an exit counts only when the move from its lane line to `to`
+   * runs within OFF_ALIGN of it, so a car never pulls off SIDEWAYS from a road that
+   * merely passes near the stall (the gate spurs beside S2/S3, the avenue beside the
+   * corner stalls of the south rows).
+   *
+   * `heading`, when known, joins the lane ahead of the car's nose (joinAhead), as
+   * routeFacing does; the joined lane is itself a candidate.
    */
-  route(from: Pt, to: Pt): Pt[] {
+  routeOff(from: Pt, heading: number | undefined, to: Pt, facing: number): Pt[] | null {
+    const off = this.rightOffset;
+    const fx = Math.cos(facing), fy = Math.sin(facing);
+    const cosAlign = Math.cos(OFF_ALIGN);
+    // where the trip starts on the road: the lane ahead of the nose, or a node
+    let joined: { lane: Lane; seg: number; tJoin: number; c: Pt } | null = null;
+    if (heading !== undefined) {
+      const j = this.joinAhead(from, heading);
+      if (j) {
+        const lane = this.lanes.get(j.laneId)!;
+        const a = lane.pts[j.seg - 1], b = lane.pts[j.seg];
+        const L = len(a, b);
+        const tJoin = Math.min(L, j.t + JOIN_LEAD);
+        joined = { lane, seg: j.seg, tJoin, c: { x: a.x + ((b.x - a.x) / L) * tJoin, y: a.y + ((b.y - a.y) / L) * tJoin } };
+      }
+    }
+    const startNode = joined ? joined.lane.to : this.originNode(from);
+    if (!startNode) return null;
+    const { dist, prev } = this.shortestFrom(startNode);
+    // how far along the joined lane the join point lies (its own arc coordinate)
+    let joinAt = 0;
+    if (joined) {
+      for (let i = 1; i < joined.seg; i++) joinAt += len(joined.lane.pts[i - 1], joined.lane.pts[i]);
+      joinAt += joined.tJoin;
+    }
+    let best: { cost: number; lane: Lane; seg: number; E: Pt; direct: boolean } | null = null;
+    for (const lane of this.lanes.values()) {
+      const viaGraph = dist.get(lane.from);
+      const onJoined = joined?.lane === lane;
+      if (viaGraph === undefined && !onJoined) continue;
+      let at = 0; // arc coordinate of this segment's start along the lane
+      for (let i = 1; i < lane.pts.length; i++) {
+        const a = lane.pts[i - 1], b = lane.pts[i];
+        const L = len(a, b);
+        if (L < 1e-6) continue;
+        const ux = (b.x - a.x) / L, uy = (b.y - a.y) / L;
+        const tRaw = (to.x - a.x) * ux + (to.y - a.y) * uy;
+        const t = Math.max(0, Math.min(L, tRaw));
+        // `to` must lie ABREAST of this piece of lane (give or take a corner stall
+        // just past its end): from a lane it only lies beyond, the move off the road
+        // would be a diagonal across the junction, not a turn into the stall
+        if (Math.abs(tRaw - t) > OFF_SLIP) { at += L; continue; }
+        const E = { x: a.x + ux * t, y: a.y + uy * t };
+        // the lane LINE the car is on there (drive-on-the-right; y-DOWN right of (ux,uy) is (-uy,ux))
+        const dx = to.x - (E.x - uy * off), dy = to.y - (E.y + ux * off);
+        const d = Math.hypot(dx, dy);
+        const ok = d <= OFF_REACH && (d < 1e-6 || (dx * fx + dy * fy) / d >= cosAlign);
+        if (ok) {
+          const along = at + t;
+          if (onJoined && along > joinAt + 0.5) {
+            const cost = along - joinAt + d;
+            if (!best || cost < best.cost) best = { cost, lane, seg: i, E, direct: true };
+          }
+          if (viaGraph !== undefined) {
+            const cost = viaGraph + along + d;
+            if (!best || cost < best.cost) best = { cost, lane, seg: i, E, direct: false };
+          }
+        }
+        at += L;
+      }
+    }
+    if (!best) return null;
+    // the road's centreline from the start to the exit point E
+    const C: Pt[] = [];
+    if (joined) {
+      C.push(joined.c);
+      const last = best.direct ? best.seg - 1 : joined.lane.pts.length - 1;
+      for (let i = joined.seg; i <= last; i++) C.push({ ...joined.lane.pts[i] });
+    }
+    if (!best.direct) {
+      const np = [best.lane.from];
+      while (np[0] !== startNode) {
+        const p = prev.get(np[0]);
+        if (!p) return null;
+        np.unshift(p);
+      }
+      if (np.length >= 2) C.push(...this.centerline(np));
+      else { const n = this.nodes.get(startNode)!; C.push({ x: n.x, y: n.y }); }
+      for (let i = 1; i < best.seg; i++) C.push({ ...best.lane.pts[i] });
+    }
+    C.push(best.E);
+    const clean: Pt[] = [];
+    for (const q of C) if (!clean.length || len(clean[clean.length - 1], q) > 0.5) clean.push(q);
+    // E is the exit: keep it even when it lands within 0.5u of the vertex before it
+    if (len(clean[clean.length - 1], best.E) > 1e-9) clean[clean.length - 1] = best.E;
+    let road: Pt[];
+    if (joined) {
+      if (clean.length < 2) return null;
+      // the join point is a road point already, on the joined lane's line
+      road = LaneGraph.offsetRight(clean, off, 1, clean.length - 2);
+    } else {
+      // [from, node0, …, E]: node0 joins a leg that is not a lane (the car's start)
+      // (as in route(): a start already ON the first node is that node, not a leg to it —
+      // kept as a leg, its 3.2u shift drew a hairpin at every bay pull-through exit)
+      const full = [{ ...from }, ...(clean.length > 1 && len(clean[0], from) <= 0.5 ? clean.slice(1) : clean)];
+      road = LaneGraph.offsetRight(full, off, 2, full.length - 2).slice(1);
+    }
+    const out = [{ ...from }, ...road, { ...to }];
+    const dd: Pt[] = [];
+    for (const q of out) if (!dd.length || len(dd[dd.length - 1], q) > 1e-3) dd.push(q);
+    return dd;
+  }
+
+  /** The node a car standing at `from` starts a route from: the nearest one it can
+   *  legally leave from ("" only when the graph has no node at all). */
+  private originNode(from: Pt): string {
     // ENTRY/EXIT SPURS ARE NOT WAYPOINTS. The ingress stub sits at (200,210) —
     // Euclidean-closer to the east/south staging block than any real ring node —
     // so an unfiltered nearestNode picked it as the route ORIGIN for departures
@@ -333,9 +489,18 @@ export class LaneGraph {
     };
     const originOk = (n: Node) =>
       n.out.length > 0 && (this.inDegree(n.id) > 0 || outwardOf(n, from));
+    return this.nearestNode(from, originOk);
+  }
+
+  /**
+   * Route a drivable polyline from `from` to `to` along the one-way lanes,
+   * returned already offset to the right (the actual path the car drives).
+   * Falls back to a straight segment if the graph can't connect them.
+   */
+  route(from: Pt, to: Pt): Pt[] {
     const destOk = (n: Node) => this.inDegree(n.id) > 0;
 
-    let a = this.nearestNode(from, originOk);
+    let a = this.originNode(from);
     let b = this.nearestNode(to, destOk);
     // never strand a car: if the filters admit nothing, fall back to the old
     // unfiltered pick rather than degrading to a beeline across the lot.

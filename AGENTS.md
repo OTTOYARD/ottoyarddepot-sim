@@ -150,11 +150,25 @@ interpolation.** Zero world logic client-side.
     (Historical, the DCFC pull-alongside layout: a 7u straight pull-in tail put the rear 0.17u into
     the next stall's car, and publishing a lean-out at its merge point cost +53 stuck samples.)
     · perpendicular (90°) head-in charger stalls — founder rejected the look, see above.
-  - **Known open (pre-existing, not charger motion):** two STAGING neighbours sent off in the same
-    tick can back out with their swings turned toward each other (the staging back-out has no
-    neighbour rule; the burst capture shows one such pair at the NW ring corner, 6 samples), and a
-    mass egress wave bunches staging departers on the south-east collector (busy_day frame 30).
-    Both surface or move when departure timing shifts; neither involves a charger car.
+  - **Known open (pre-existing, not charger motion):** a mass egress wave bunches staging
+    departers on the south-east collector (busy_day frame 30). It surfaces or moves when departure
+    timing shifts; it does not involve a charger car. (Two STAGING neighbours backing out together
+    was the other one: closed 2026-10-01 by `stagingBackOutBlocked`, below.)
+- **Staging arrivals pull straight in (2026-10-01) — read before touching `routeToStall`'s staging
+  branch or `LaneGraph.routeOff`:** founder: *"they go past their designated stall first and then
+  come back to it ... It needs to immediately turn into that spot."* The staging route used to end
+  at the graph node NEAREST the stall's turn-in, which was as often past the stall as short of it
+  (the temp aisle is one 98u lane), so the car drove by, hairpinned and came back — the heading lag
+  drew it as reversing in. `routeOff` projects the turn-in onto every lane and leaves the road
+  abreast of it (a candidate must lie within `OFF_SLIP` of the lane's extent, within `OFF_REACH` of
+  its lane line, and be reached within `OFF_ALIGN` of the parked heading — or a car pulls off
+  sideways from the gate spur beside S2/S3); no candidate falls back to the old route. Overshoot
+  went 102/299 arrivals → 0/299 over the five replays (`arrivalProbe.ts`,
+  `parkDirect.replay.test.ts`). Cars now reach their stall sooner, which put two neighbours'
+  back-outs into the same tick more often (busy_day +4 overlap), so a staging back-out now waits
+  for a neighbour's COMMITTED back-out within `STAGING_BACKOUT_REACH` (`stagingBackOutBlocked`).
+  Still a double-back, by geometry: S3's first stall (x 212) is beside the gate, nose south, so a
+  car entering northbound loops on the collector to come at it from the north.
 - **Keep Yuka's `SeparationBehavior.weight` low (0.35).** At 2.2 it was *stronger* than
   path-following and shoved cars sideways off the lanes.
 - **One car, one size: 9.8 x 4.0u (4.69 x 1.91 m)** — `traffic.CAR_BODY_*` is the traffic model's
