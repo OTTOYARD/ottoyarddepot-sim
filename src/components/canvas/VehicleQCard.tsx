@@ -199,7 +199,7 @@ export function QCardBody({ card, oem, onClose, cardsStatus }: {
         <Section title="Plan changes">
           <ul className="space-y-0.5">
             {card.changes.slice(0, 3).map((c, i) => (
-              <li key={i} className="flex gap-1.5 text-[10px] text-ink-dim"><span className="text-[#7DD3FC]">↺</span>{c.words}<span className="flex-1" /><span className="font-mono text-[9px] text-ink-faint">{clock(c.at)}</span></li>
+              <li key={i} className="flex gap-1.5 text-[10px] text-ink-dim"><span className="text-[#7DD3FC]">↺</span>{c.words}<span className="flex-1" />{c.at && <span className="font-mono text-[9px] text-ink-faint">{clock(c.at)}</span>}</li>
             ))}
           </ul>
         </Section>

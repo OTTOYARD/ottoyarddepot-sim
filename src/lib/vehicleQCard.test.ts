@@ -4,7 +4,7 @@ import live from "@/engine/__fixtures__/twinRun.live0922rec.json";
 import type { ActivityFeedRow } from "@/store/activityFeedStore";
 import type { TwinSnapshot, TwinVisitCard } from "@/lib/ottoTwin";
 import {
-  DASH, buildQCard, currentVisitRows, needState, stallCodeMap, stepLabel, type QDepotCard,
+  DASH, buildQCard, currentVisitRows, needState, releaseWords, stallCodeMap, stepLabel, type QDepotCard,
 } from "@/lib/vehicleQCard";
 
 // ── fixtures ────────────────────────────────────────────────────────────────
@@ -177,6 +177,58 @@ describe("buildQCard on a contract-1.4 card", () => {
     expect(q.steps.earlierHidden).toBe(true); // three done legs published (two taxis folded)
     const one = { ...DC_CHARGING, card: { ...DC_CHARGING.card!, steps: DC_CHARGING.card!.steps!.slice(3) } };
     expect(buildQCard({ vehicleId: VID, card: one }).steps.earlierHidden).toBe(false);
+  });
+});
+
+// ── (2b) contract 1.5 (otto-q-core 0592): each step's station, and the bookings OTTO-Q replaced ─────────────
+describe("buildQCard on a contract-1.5 card", () => {
+  // the same car, with the keys 0592 adds: to_stall_code / to_stall_kind on each step, plan_changes on the vehicle
+  const steps15 = DC_CHARGING.card!.steps!.map((s) =>
+    s.seq === 2 ? { ...s, to_stall_code: "NASH-DCFC-STALL-04", to_stall_kind: "dcfc" }
+      : s.seq === 4 ? { ...s, to_stall_code: "NASH-WASH-02", to_stall_kind: "wash" }
+      : s.seq === 6 ? { ...s, to_stall_code: "NASH-SVC-03", to_stall_kind: "service_bay" } : s);
+  const DC15: QDepotCard = {
+    ...DC_CHARGING,
+    plan_changes: [
+      { purpose: "inspect", need_atom: "readiness_check", stall_code: "NASH-SVC-01", stall_kind: "service_bay",
+        starts_at: "2026-09-22T15:20:00+00:00", ends_at: "2026-09-22T15:26:00+00:00", state: "superseded",
+        release_reason: "superseded_by_enacted_same_purpose", booked_at: "2026-09-22T14:10:00+00:00" },
+      { purpose: "staging", stall_code: "NASH-STG-W004", stall_kind: "staging", state: "released",
+        release_reason: "window_elapsed", booked_at: "2026-09-22T13:50:00+00:00" },
+    ],
+    card: { ...DC_CHARGING.card!, steps: steps15 },
+  };
+  const q = buildQCard({ vehicleId: VID, card: DC15, snapshot: snap() });
+
+  it("names a FINISHED step's station from its leg, which no booking carries", () => {
+    expect(q.steps.items[0].label).toBe("Fast charge");
+    expect(q.steps.items[0].place).toBe("fast charger 04");
+  });
+
+  it("marks the step OTTO-Q re-booked, naming the station it replaced, with no feed row needed", () => {
+    const insp = q.steps.items.find((s) => s.label === "Readiness check")!;
+    expect(insp.place).toBe("service bay 03");
+    expect(insp.reassigned).toEqual({ at: null, was: "service bay 01" });
+    // a released booking of another kind marks no step
+    expect(q.steps.items.filter((s) => s.reassigned)).toHaveLength(1);
+  });
+
+  it("lists each replaced or let-go booking under plan changes, in words", () => {
+    expect(q.changes.map((c) => c.words)).toEqual([
+      "Let go: parking W004, its window passed unused",
+      "Replaced: service bay 01 (was 10:20 AM–10:26 AM), replaced",
+    ]);
+  });
+
+  it("knows a 1.5 card carries 12 finished steps, so three is not 'earlier ones hidden'", () => {
+    expect(q.steps.earlierHidden).toBe(false);
+    expect(buildQCard({ vehicleId: VID, card: DC_CHARGING }).steps.earlierHidden).toBe(true);
+  });
+
+  it("releaseWords is total: a reason it does not know reads as given", () => {
+    expect(releaseWords("superseded_by_enacted_other_charger")).toBe("moved to another charger");
+    expect(releaseWords("some_new_reason")).toBe("some new reason");
+    expect(releaseWords(null)).toBe("replaced");
   });
 });
 

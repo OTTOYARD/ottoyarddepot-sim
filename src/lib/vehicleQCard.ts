@@ -12,11 +12,13 @@
 // Pure: no React, no client, no clock. It READS records and formats them; it decides nothing. Every field below comes
 // from one of these, all already on the wire (no new RPC):
 //
-//   ottoq_depot_cards (contract 1.4)  the car's plan steps (its itinerary legs: the last 3 done, the current one with
-//                                     progress_pct / expected_end / eta_source / over_plan_min, the next 5 with their
-//                                     planned window and overdue_min), its needs (svc, status, done_at, performed_by,
-//                                     awaiting_triage), its live bookings (purpose, stall_code, window, need_atom), its
-//                                     state, SoC, target and stall.                         otto-q-core 0460/0506-0512
+//   ottoq_depot_cards (contract 1.5)  the car's plan steps (its itinerary legs: the last 12 done (3 before 1.5), the
+//                                     current one with progress_pct / expected_end / eta_source / over_plan_min, the
+//                                     next 5 with their planned window and overdue_min; each with its station,
+//                                     to_stall_code, since 1.5), its needs (svc, status, done_at, performed_by,
+//                                     awaiting_triage), its live bookings (purpose, stall_code, window, need_atom), the
+//                                     bookings OTTO-Q replaced or let go this visit (plan_changes, 1.5), its state, SoC,
+//                                     target and stall.                              otto-q-core 0460/0506-0512, 0592
 //   ottoq_twin_snapshot               the car's live state and SoC, its open visit (atoms with est_min, SoC on
 //                                     arrival), its timed legs inside the +/-10 min window (to_stall per leg, and
 //                                     'amended' legs a re-plan replaced), the stalls held for it (reserved_by), and its
@@ -34,7 +36,7 @@ import { clockCT, placeName, serviceWord } from "@/lib/plainWords";
 /** What a gap in a number or a time looks like on the card. */
 export const DASH = "—";
 
-// ── inputs: ottoq_depot_cards, contract 1.4 (only the keys the card reads) ────────────────────────────────────────
+// ── inputs: ottoq_depot_cards, contract 1.5 (only the keys the card reads) ────────────────────────────────────────
 export interface QStepRecord {
   seq: number;
   leg_type: string;
@@ -56,6 +58,9 @@ export interface QStepRecord {
   over_plan_min?: number | null;
   /** upcoming step only: whole minutes its planned start is behind the clock */
   overdue_min?: number | null;
+  /** 1.5 (0592): the station the leg goes to, absent when the leg names none */
+  to_stall_code?: string | null;
+  to_stall_kind?: string | null;
 }
 export interface QNeedRecord {
   svc: string;
@@ -78,6 +83,18 @@ export interface QBookingRecord {
   need_atom?: string | null;
   booked_by?: string | null;
 }
+/** 1.5 (0592): a booking of this visit OTTO-Q replaced (superseded) or let go before use (released). */
+export interface QPlanChangeRecord {
+  purpose?: string | null;
+  need_atom?: string | null;
+  stall_code?: string | null;
+  stall_kind?: string | null;
+  starts_at?: string | null;
+  ends_at?: string | null;
+  state?: string | null;
+  release_reason?: string | null;
+  booked_at?: string | null;
+}
 export interface QDepotCard {
   vehicle_id: string;
   display_name?: string | null;
@@ -87,6 +104,8 @@ export interface QDepotCard {
   target_soc?: number | null;
   stall?: { id?: string | null; code?: string | null; kind?: string | null } | null;
   reservations?: QBookingRecord[] | null;
+  /** 1.5: absent on an older contract, which the card reads as "not published" */
+  plan_changes?: QPlanChangeRecord[] | null;
   card?: {
     urgency?: string | null;
     dispatch_due_at?: string | null;
@@ -244,6 +263,19 @@ const HOLD_WHY: Record<string, string> = {
   hold_in_staging: "kept parked until it can leave",
 };
 const ARM_WORD: Record<string, string> = { mate: "plugging in", demate: "unplugging", charging: "plugged in" };
+/** Why a booking was replaced or let go (ottoq_stall_bookings.release_reason), in words. Unknown reasons read as given. */
+const RELEASE_WORD: Record<string, string> = {
+  superseded_by_enacted_decision: "replaced by a newer decision",
+  superseded_by_enacted_same_purpose: "replaced",
+  superseded_by_enacted_other_charger: "moved to another charger",
+  window_elapsed: "its window passed unused",
+  replanned_no_window: "re-planned: no window left",
+  replanned_beyond_horizon: "re-planned for later",
+  no_show_grace_elapsed: "the car did not arrive in time",
+  charge_session_faulted: "charger fault",
+};
+export const releaseWords = (r: string | null | undefined): string =>
+  r ? RELEASE_WORD[r] ?? r.replace(/_/g, " ") : "replaced";
 
 /** The car's rows since its last departure, oldest first: the visit it is on. */
 export function currentVisitRows(rows: readonly ActivityFeedRow[]): ActivityFeedRow[] {
@@ -284,6 +316,8 @@ export function buildQCard(inp: QCardInputs): QCard {
     r.outcome === "enacted" && (r.action === "reservation_reopt" || verbOf(r) === "rebook" || verbOf(r) === "displace_and_bind"));
   // (2) the snapshot's amended legs: a dwell leg a re-plan replaced, still inside the +/-10 min window
   const amended = legs.filter((l) => l.status === "amended" && l.kind !== "travel");
+  // (3) contract 1.5: this visit's bookings OTTO-Q replaced or let go, oldest first
+  const planChanges: QPlanChangeRecord[] | null = Array.isArray(dc?.plan_changes) ? dc!.plan_changes! : null;
 
   // ── steps ──
   const stepRecs = Array.isArray(work?.steps) ? [...work!.steps!].sort((a, b) => a.seq - b.seq) : null;
@@ -313,8 +347,10 @@ export function buildQCard(inp: QCardInputs): QCard {
     const leg = legFor(s);
     const booking = state === "done" ? null : bookingFor(s);
     const stallCode = (state === "current" ? dc?.stall?.code ?? codeOf(tv?.stall_id) : null)
-      ?? codeOf(leg?.to_stall ?? leg?.from_stall) ?? booking?.stall_code ?? null;
-    const place = stallCode ? placeName(stallCode, state === "current" ? dc?.stall?.kind ?? null : booking?.stall_kind ?? null) : null;
+      ?? s.to_stall_code ?? codeOf(leg?.to_stall ?? leg?.from_stall) ?? booking?.stall_code ?? null;
+    const place = stallCode
+      ? placeName(stallCode, state === "current" ? dc?.stall?.kind ?? s.to_stall_kind ?? null : s.to_stall_kind ?? booking?.stall_kind ?? null)
+      : null;
     const stallId = leg?.to_stall ?? (state === "current" ? tv?.stall_id ?? dc?.stall?.id ?? null : null);
 
     // re-assigned: a re-booking that names this station, or an amended leg of this type that went somewhere else
@@ -325,6 +361,11 @@ export function buildQCard(inp: QCardInputs): QCard {
       if (hit) reassigned = { at: hit.occurred_at, was: null };
       const old = stallId ? amended.find((l) => l.leg_type === s.leg_type && !!l.to_stall && l.to_stall !== stallId) : undefined;
       if (old) reassigned = { at: reassigned?.at ?? null, was: codeOf(old.to_stall) ? placeName(codeOf(old.to_stall)) : null };
+      // 1.5: a booking for this step's work that OTTO-Q replaced, at another station
+      const fitsStep = (c: QPlanChangeRecord) => c.state === "superseded" && !!c.stall_code && c.stall_code !== stallCode
+        && ((!!s.atom && c.need_atom === s.atom) || (!!c.purpose && (PURPOSES[s.leg_type] ?? []).includes(c.purpose)));
+      const prior = (planChanges ?? []).filter(fitsStep).pop();
+      if (prior) reassigned = { at: reassigned?.at ?? null, was: reassigned?.was ?? placeName(prior.stall_code!, prior.stall_kind ?? null) };
     }
 
     const enRoute = drivingNow && !enRouteMarked && state === "upcoming";
@@ -349,6 +390,8 @@ export function buildQCard(inp: QCardInputs): QCard {
     });
   }
   const doneShown = (stepRecs ?? []).filter((s) => s.status === "done").length;
+  // the cards carry the newest 3 finished steps before contract 1.5 and 12 since (0592); plan_changes marks 1.5
+  const doneCap = planChanges !== null ? 12 : 3;
 
   // ── needs: the card's (with done_at), else the snapshot visit's atoms; est_min joins from the snapshot ──
   const estBySvc = new Map<string, number>();
@@ -408,6 +451,12 @@ export function buildQCard(inp: QCardInputs): QCard {
       changes.push({ at: r.occurred_at, words: s === null ? "Plan re-timed" : `Plan re-timed ${Math.round(s / 60)} min` });
     }
   }
+  // 1.5: the bookings themselves, which a feed row may not have named (oldest first, like the rows above)
+  for (const c of planChanges ?? []) {
+    const where = c.stall_code ? placeName(c.stall_code, c.stall_kind ?? null) : "a stall";
+    const window = c.starts_at && c.ends_at ? ` (was ${clock(c.starts_at)}–${clock(c.ends_at)})` : "";
+    changes.push({ at: null, words: `${c.state === "superseded" ? "Replaced" : "Let go"}: ${where}${window}, ${releaseWords(c.release_reason)}` });
+  }
   changes.reverse();
 
   // ── rule 9: no car leaves below its charge target or with a service open ──
@@ -436,7 +485,7 @@ export function buildQCard(inp: QCardInputs): QCard {
     battery: { now, target, ofTarget, onArrival: num(visit?.soc_at_arrival) },
     now: nowBlock,
     next: nextStep,
-    steps: { published: stepRecs !== null, items, earlierHidden: doneShown >= 3 },
+    steps: { published: stepRecs !== null, items, earlierHidden: doneShown >= doneCap },
     needs: { published: needsKnown, items: needs },
     hold,
     changes,
