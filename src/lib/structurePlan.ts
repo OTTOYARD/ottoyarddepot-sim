@@ -24,7 +24,7 @@
  * rear-apron exit side). Bays are pull-through: in the south door, out the north.
  */
 import {
-  BUILDING, WASH, CANOPIES, PARK_RUNS, SERVICE_BAY_XS, WASH_BAY_XS, BAY_STALL_Y,
+  BUILDING, WASH, CANOPIES, LOT, PARK_RUNS, SERVICE_BAY_XS, WASH_BAY_XS, BAY_STALL_Y,
   generateStallsV2, type CanopyDef, type ParkRun,
 } from './sitePlan';
 import { CAR_LENGTH, CAR_WIDTH } from '@/engine/motion/traffic';
@@ -449,6 +449,35 @@ export function bayBollards(): { x: number; y: number }[] {
   return pts;
 }
 
+/**
+ * The OTTOYARD entrance sign wall: a low monument wall carrying the logo, standing
+ * OUTSIDE the south fence on the road frontage, centred on the lot between the two
+ * gates (the same x-centre as the seed's SIGN-OTTOYARD-FRONT).
+ *
+ * Why it lives here: it used to be a number typed into DepotGround
+ * (`INGRESS.x - 178, z -88`), written for the pre-flip toWorld. After toWorld
+ * negated X that put it at plan (128, 198) — INSIDE the S2 staging row, across
+ * stalls S2-2..S2-5 (NASH-STG-S013..S016), cars parked either side of it. It was
+ * not a structure solid, so no clearance test could see it (founder, 2026-10-01:
+ * "a signage section that completely cuts off a few of the parking spaces").
+ *
+ * Plan y: the fence is at LOT.y + LOT.h (206); the perimeter curb overhangs it by
+ * 0.8u and the public road's asphalt starts at 208.5 (DepotGround: z -105 +/- 6.5).
+ * The wall stands on the grass strip between the two. No car is routed there: the
+ * arrival queue forms east of the IN gate (x >= 206) and egress leaves through the
+ * OUT gate at x 100, both 30u+ from this wall.
+ */
+export const SIGN_WALL = {
+  cx: LOT.x + LOT.w / 2,          // 150: mid-frontage, between the gates
+  cy: LOT.y + LOT.h + 1.5,        // 207.5: 0.1u off the curb edge, 0.4u off the road edge
+  w: 24, d: 1.2, h: 4.6,          // no taller than the fence, so it hides nothing the fence does not
+} as const;
+
+export function signWallRect(): Rect {
+  const { cx, cy, w, d } = SIGN_WALL;
+  return { x0: cx - w / 2, x1: cx + w / 2, y0: cy - d / 2, y1: cy + d / 2 };
+}
+
 /** A built solid: its exact oriented shape, and its axis-aligned bounds. */
 export interface Solid { kind: string; r: Rect; box: OBox }
 
@@ -469,6 +498,9 @@ export function allStructureSolids(): Solid[] {
     // recorded car against them, and so a widened corner has to clear them. They
     // stand at their stall's 60°, so they are the one solid that is not square.
     ...cabinetFootprints().map((k) => ({ kind: k.dc ? 'dcfc-cabinet' : 'l2-cabinet', r: k.r, box: k.box })),
+    // The entrance sign wall, outside the fence. In the set so that if it is ever
+    // moved back over a stall or a road, the stall and clearance tests say so.
+    solid('sign-wall', signWallRect()),
   ];
 }
 

@@ -3,10 +3,12 @@ import {
   OPS_SHELL, WASH_SHELL, SHELLS, MIN_JAMB_CLEARANCE, doorSpan, solidWallRuns, shellSolids,
   bayEquipmentSolids, canopyColumnYs, cabinetFootprints, CANOPY_MAX_SPAN, CANOPY_COLUMN,
   carportFrames, allStructureSolids, parkedBox, boxesOverlap, boxGap, boxOf, bodyHitsRect,
+  SIGN_WALL, signWallRect,
 } from './structurePlan';
 import {
   CANOPIES, NORTH_LANE_Y, REAR_LANE_Y, SERVICE_BAY_XS, WASH_BAY_XS, BAY_STALL_Y,
   generateStallsV2, routeToStall, routeToEgress,
+  LOT, INGRESS, EGRESS, GATE_W, STALL_HALF_DEPTH_U,
 } from './sitePlan';
 import { CAR_WIDTH } from '@/engine/motion/traffic';
 
@@ -165,5 +167,34 @@ describe('no built thing stands inside a parking stall', () => {
       expect(BAY_STALL_Y).toBeGreaterThan(s.footprint.y0 + s.wallT + 5.1);
       expect(BAY_STALL_Y).toBeLessThan(s.footprint.y1 - s.wallT - 5.1);
     }
+  });
+});
+
+describe('the OTTOYARD entrance sign wall', () => {
+  // Founder, 2026-10-01: the sign wall stood across the ends of S2 stalls 2..5.
+  const sign = signWallRect();
+
+  it('stands outside the fence and its curb, short of the public road', () => {
+    expect(sign.y0).toBeGreaterThan(LOT.y + LOT.h + 0.8); // fence 206 + curb overhang
+    expect(sign.y1).toBeLessThan(208.5);                  // road asphalt (DepotGround z -105 +/- 6.5)
+    expect(sign.y1 - sign.y0).toBeCloseTo(SIGN_WALL.d, 9);
+  });
+
+  it('touches no stall footprint (its full painted depth, not just the car)', () => {
+    const hits: string[] = [];
+    for (const st of stalls) {
+      const fp = { ...parkedBox(st.position), hl: Math.max(STALL_HALF_DEPTH_U, parkedBox(st.position).hl), hw: 3.5 };
+      if (boxGap(fp, boxOf(sign)) < 0.5) hits.push(st.id);
+    }
+    expect(hits).toEqual([]);
+  });
+
+  it('keeps clear of both gate throats and of the arrival queue', () => {
+    for (const g of [INGRESS, EGRESS]) {
+      const gx0 = g.x - GATE_W / 2, gx1 = g.x + GATE_W / 2;
+      expect(Math.max(gx0 - sign.x1, sign.x0 - gx1), `gate at x ${g.x}`).toBeGreaterThan(20);
+    }
+    // arrivals queue EAST of the IN gate on the approach road (TwinMotionDriver, x >= INGRESS.x + 6)
+    expect(sign.x1).toBeLessThan(INGRESS.x - GATE_W / 2 - 20);
   });
 });
