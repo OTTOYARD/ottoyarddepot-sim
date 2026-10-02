@@ -45,12 +45,13 @@ describe("Background tab", () => {
       "The agentic system",
       "The safety harness",
       "What it solves",
+      "The technical edge",
       "Distribution and commercialization of AV fleets",
       "Why it is agnostic",
-      "Facts for OEMs and investors, read live",
+      "Live facts, read from the engine",
     ]);
     const nav = screen.getByRole("navigation", { name: "Background sections" });
-    expect(within(nav).getAllByRole("button")).toHaveLength(10);
+    expect(within(nav).getAllByRole("button")).toHaveLength(11);
   });
 
   it("lists every public source with its link, and how it reached the twin", () => {
@@ -94,10 +95,39 @@ describe("Background tab", () => {
   it("says — where a source has not answered, never 0, and names what failed", () => {
     S.facts = { ...full(), ledger: null, canon: null, rules: null, failed: ["ottoq_intelligence_ledger", "ottoq_determinism_canon"] };
     render(<TwinBackgroundTab />);
-    const facts = screen.getByRole("region", { name: "Facts for OEMs and investors, read live" });
+    const facts = screen.getByRole("region", { name: "Live facts, read from the engine" });
     expect(within(facts).getAllByText("—").length).toBeGreaterThanOrEqual(4);
     expect(within(facts).getByText(/Did not answer on the last read: ottoq_intelligence_ledger, ottoq_determinism_canon/)).toBeTruthy();
     expect(screen.getByText("The intelligence ledger did not answer. —")).toBeTruthy();
+  });
+
+  // Chase, 2026-10-02: "I don't want you to directly reference each of those perspective viewers." The page explains
+  // itself to whoever reads it.
+  it("addresses no reader by type", () => {
+    const { container } = render(<TwinBackgroundTab />);
+    const text = container.textContent ?? "";
+    expect(text).not.toMatch(/investor|\bfor (an? )?OEMs?\b|\bfor (a )?fleet owners?\b|\bfor (a )?customers?\b|\bfor (a )?partners?\b/i);
+  });
+
+  it("argues its edge from the engine, and links and dates every outside fact it leans on", () => {
+    render(<TwinBackgroundTab />);
+    const edge = screen.getByRole("region", { name: "The technical edge" });
+    const hrefs = within(edge).getAllByRole("link").map((a) => a.getAttribute("href"));
+    expect(hrefs).toEqual(expect.arrayContaining([
+      "https://docs.nvidia.com/cuopt/user-guide/latest/routing-features.html",
+      "https://docs.nvidia.com/cuopt/user-guide/latest/mip-settings.html",
+      "https://www.nvidia.com/en-us/ai-data-science/products/cuopt/",
+      "https://github.com/ocpi/ocpi/blob/v2.3.0/mod_cdrs.asciidoc",
+      "https://evroaming.org/ocpi-downloads/",
+    ]));
+    for (const a of within(edge).getAllByRole("link")) expect(a.getAttribute("rel")).toContain("noopener");
+    // each outside source names the version it was read at and the day it was checked
+    expect(within(edge).getAllByText(/checked Oct 2, 2026/).length).toBe(3);
+    expect(within(edge).getByText(/NVIDIA cuOpt 26\.08 documentation/)).toBeTruthy();
+    expect(within(edge).getByText(/OCPI 2\.2\.1 and 2\.3\.0, the released versions/)).toBeTruthy();
+    // and says what is not built rather than implying it
+    expect(within(edge).getByText(/Pricing those records against\s+the tariff is being built/)).toBeTruthy();
+    expect(within(edge).getByText(/Intelligence is not a substitute for capacity/)).toBeTruthy();
   });
 
   it("opens the Value and Agent tabs from its links", () => {
@@ -118,7 +148,8 @@ describe("Background tab", () => {
     container.querySelectorAll("[data-ordinal]").forEach((el) => el.remove()); // list numbering, not figures
     let text = container.textContent ?? "";
     // names, versions and dated document references, not counts
-    for (const re of [/\b3D\b/g, /OCPP 2\.0\.1/g, /\b100%/g, /VDA 5050/g, /Aug 22, 2026/g, /\bL[12]\b/g]) text = text.replace(re, "");
+    for (const re of [/\b3D\b/g, /OCPP 2\.0\.1/g, /\b100%/g, /VDA 5050/g, /Aug 22, 2026/g, /\bL[12]\b/g,
+      /cuOpt 26\.08/g, /OCPI 2\.2\.1 and 2\.3\.0/g, /Oct 2, 2026/g]) text = text.replace(re, "");
     const hits = [...text.matchAll(/.{0,40}\d.{0,20}/g)].map((m) => m[0]);
     expect(hits).toEqual([]);
   });

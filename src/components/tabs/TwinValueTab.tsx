@@ -1,6 +1,5 @@
 // ============================================================================
-// TwinValueTab — what OTTO-Q is worth at this depot, in words a customer and an
-// investor can read.
+// TwinValueTab — what OTTO-Q is worth at this depot, in words anyone can read.
 //
 // Chase, 2026-09-29: "Try to focus and hone in on a few industry standard
 // metrics that are palpable and understandable by customers, and investors.
@@ -11,8 +10,11 @@
 //
 // The three cards are his three priorities, in his order: the power bill
 // (battery, solar and forward planning), chargers (fewer of them, every car
-// fully serviced), and revenue time. Capital is the investor's lens only:
-// collapsed, and never added to the savings.
+// fully serviced), and revenue time. Capital is a separate lens: collapsed, and
+// never added to the savings.
+//
+// Chase, 2026-10-02: no heading addresses a reader by type ("For investors"); the
+// page explains its numbers to whoever reads it.
 //
 // Data contract: otto-q-core 0576, ottoq_value_summary, over night 2's sweep
 // (0575): OTTO-Q against a plain depot (first come, first served, no energy
@@ -281,10 +283,10 @@ function MoreSections({ summary }: { summary: ValueSummary }) {
   return (
     <Accordion type="multiple" className={`${PANEL} px-3`}>
       {inv && (
-        <AccordionItem value="investors" className="border-white/[0.06]">
+        <AccordionItem value="capital" className="border-white/[0.06]">
           <AccordionTrigger className={TRIGGER}>
             <span className="min-w-0">
-              <span className={`block ${HEAD}`}>For investors</span>
+              <span className={`block ${HEAD}`}>Capital</span>
               <span className="mt-0.5 block text-[10px] font-normal leading-4 text-ink-faint">
                 The capital lens, never added to the savings above
               </span>

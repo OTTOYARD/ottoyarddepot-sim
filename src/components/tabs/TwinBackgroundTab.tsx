@@ -7,6 +7,13 @@
 // OTTO-Q communicates to the twin and vice versa ... what does it solve for customers ... distribution ... the agentic
 // solution ... the purpose of a custom safety harness ... why our ecosystem is ultimately agnostic."
 //
+// And, correcting it the same evening: "I don't want you to directly reference each of those perspective viewers. It
+// just needs to be framed so that essentially a customer or someone interested in partnership or investment would read
+// and understand why it's valuable and why no one is doing this or our edge ... rooted in technicality and not just
+// guess work." So no heading or sentence addresses a reader by type (a test holds that), and the value and edge
+// sections argue from the engine's own mechanisms and from outside facts checked at their source, each linked and
+// dated. They claim no measured advantage the Value tab has not measured.
+//
 // RULES THIS FILE KEEPS. Every number on it is read live from the engine when the tab opens (useBackgroundFacts) and
 // is shown with the table or function it came from; a source that has not answered reads "—". Its prose describes
 // mechanisms that can be pointed at by name, and it says "being built" where a thing is not live. Shaping lives in
@@ -15,7 +22,7 @@
 import { useMemo, useRef, type ReactNode } from 'react';
 import {
   ArrowRight, BookOpen, Boxes, BrainCircuit, CircuitBoard, Database, Dices, ExternalLink, Globe2, Layers,
-  ShieldCheck, Sparkles, Truck,
+  ShieldCheck, Sparkles, Target, Truck,
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useTwinStore } from '@/store/twinStore';
@@ -39,6 +46,7 @@ const SECTIONS = [
   { id: 'bg-agentic', label: 'Agentic' },
   { id: 'bg-safety', label: 'Safety' },
   { id: 'bg-value', label: 'What it solves' },
+  { id: 'bg-edge', label: 'Technical edge' },
   { id: 'bg-distribution', label: 'Distribution' },
   { id: 'bg-agnostic', label: 'Agnostic' },
   { id: 'bg-facts', label: 'Live facts' },
@@ -110,6 +118,20 @@ function Layer({ n, title, status, children }: { n: number; title: string; statu
         <Chip status={status} />
       </div>
       <div className="mt-1.5 space-y-1.5 text-[11px] leading-[16px] text-ink-dim">{children}</div>
+    </div>
+  );
+}
+
+/** One part of the technical edge: why it is hard, what OTTO-Q does about it, and where an outside fact was checked. */
+function Edge({ title, hard, ours, source }: { title: string; hard: ReactNode; ours: ReactNode; source?: ReactNode }) {
+  return (
+    <div className="rounded border border-white/[0.08] bg-canvas-panel/60 p-2.5">
+      <div className="text-[12px] font-medium text-ink">{title}</div>
+      <div className="mt-1.5 space-y-1.5 text-[11px] leading-[16px] text-ink-dim">
+        <p><span className="text-ink-faint">The hard part. </span>{hard}</p>
+        <p><span className="text-ink-faint">What OTTO-Q does. </span>{ours}</p>
+      </div>
+      {source && <Source>{source}</Source>}
     </div>
   );
 }
@@ -504,8 +526,9 @@ export function TwinBackgroundTab() {
               {shield ? (
                 <>
                   <p>
-                    <B>{fmtInt(shield.codes)} rules</B>, versioned and kept as data, each with parameters a fleet owner's
-                    contract can set. They are checked at each decision point, and every verdict is logged.
+                    <B>{fmtInt(shield.codes)} rules</B>, versioned and kept as data, each with parameters a fleet's
+                    contract can set. They are checked at the decision points the engine probes, and every verdict is
+                    logged.
                   </p>
                   <ul className="space-y-0.5">
                     {shield.categories.map((c) => (
@@ -585,20 +608,32 @@ export function TwinBackgroundTab() {
 
         {/* ── 7. value ───────────────────────────────────────────── */}
         <Section id="bg-value" icon={Sparkles} title="What it solves"
-          kicker="A robotaxi earns only on the road. Every minute it waits in a depot for a charger or a bay is revenue lost, and the depot is where fleets stall as they scale.">
+          kicker="An autonomous vehicle earns only while it is working. Every trip home for a charge, a cleaning or a service is time off the road, and the depot is where fleets stall as they grow.">
+          <P>
+            In scheduling terms a depot is a resource-constrained flow shop. Each car needs an ordered set of operations.
+            Each stall or bay can perform some operations and not others, one car at a time. Every charge draws on one
+            shared site power limit, and every car has a time it must be ready by. Arrivals, charge times and faults are
+            uncertain, so the schedule is re-solved continuously and the site is never without one.
+          </P>
           <Bullets items={[
-            <><B>More earning time per car.</B> OTTO-Q sequences charging and services so cars get back out sooner,
-              fully charged and fully serviced, with services that can overlap a charge done during it.</>,
-            <><B>Contract terms, enforced.</B> Each fleet owner's terms (charge at release, required services, visit
-              length) are rules the engine checks, not promises a dispatcher keeps.</>,
-            <><B>Less capital, a smaller power bill.</B> Charging is planned against the site's power cap and the
-              utility's demand charge, with the site battery and solar, so a depot can serve a fleet with fewer chargers
-              where the measurements show it can.</>,
-            <><B>Evidence, not anecdotes.</B> Every decision has a reason, a rule trace and a run ID, and every completed
-              service can become a signed service record: the basis for billing between a depot and its fleet tenants.</>,
-            <><B>For an OEM:</B> its fleet can use a depot it does not own, under its own terms, with the same evidence
-              trail as its own. <B>For a fleet owner:</B> higher utilization per car and an auditable record of every
-              service.</>,
+            <><B>The whole visit, scheduled as one.</B> Charging, cleaning, inspection, software and staging are planned
+              together rather than charging alone. Work that can be done while a car charges (a sensor clean, an
+              interior tidy and inspection, remote diagnostics, a software update) starts on the charger instead of
+              waiting until after it, and each move between stalls is planned as a step of its own.</>,
+            <><B>Every car leaves complete.</B> A car charges to 100% unless its owner sets a lower limit, and it does not
+              leave with a needed service open. When a car is not ready, OTTO-Q re-plans it to its next charger or bay, or
+              to temporary parking until one frees, instead of releasing it short. Pressure on the site is answered with
+              better ordering and more capacity, never with a shorter charge.</>,
+            <><B>Power planned, not just drawn.</B> Charging is planned against the site's power limit and the utility's
+              demand charge, with the site battery and solar. What that saves is measured on paired test days, not
+              assumed.</>,
+            <><B>One site, many fleets, each on its own terms.</B> Fleets with different owners can share a depot. Each
+              contract is versioned data, not code, that the rules and the charge target read when they decide. The
+              contracts on file today carry identical terms: the mechanism is built, and the differences arrive with
+              real contracts.</>,
+            <><B>A record for every service.</B> Every decision is logged under its run ID, with the engine that proposed
+              it and what was enacted, and every completed operation ends in a signed service record attributed to its fleet and asset class, with the
+              energy metered on charges. Pricing those records against the tariff is being built.</>,
           ]} />
           <div className="rounded border border-white/[0.08] bg-canvas-panel/60 p-2.5">
             <div className="text-[10px] font-semibold uppercase tracking-[0.07em] text-ink-faint">Measured at this depot so far</div>
@@ -625,44 +660,121 @@ export function TwinBackgroundTab() {
           </div>
         </Section>
 
-        {/* ── 8. distribution ────────────────────────────────────── */}
+        {/* ── 8. the technical edge ──────────────────────────────── */}
+        <Section id="bg-edge" icon={Target} title="The technical edge"
+          kicker="Orchestrating a depot of autonomous vehicles is hard for specific, technical reasons. Each one below is something OTTO-Q was built around, and each can be checked: in the engine, or at the outside source linked beneath it.">
+          <div className="space-y-2">
+            <Edge title="The same answer, twice"
+              hard={<>A schedule that moves real vehicles has to be explainable afterwards, and a claim about a depot has
+                to be repeatable by someone else. That is not a given: NVIDIA's GPU optimizer, cuOpt, documents no seed and
+                no determinism setting for its routing solver, and says of its mixed-integer solver's deterministic mode
+                that it "does not yet guarantee fully deterministic results in all scenarios".</>}
+              ours={<>Its decide path is deterministic. The same seed, scenario and engine produce the same decisions,
+                byte for byte; pairs of runs are compared across fourteen independent checks on a schedule (the
+                certification in the safety harness above); and every figure it reports carries a run ID that replays
+                it.</>}
+              source={<>
+                <ExtLink href="https://docs.nvidia.com/cuopt/user-guide/latest/routing-features.html">cuOpt routing features</ExtLink>
+                {' · '}<ExtLink href="https://docs.nvidia.com/cuopt/user-guide/latest/mip-settings.html">cuOpt MIP settings</ExtLink>
+                {' · '}NVIDIA cuOpt 26.08 documentation, checked Oct 2, 2026
+              </>} />
+            <Edge title="AI that proposes, and never disposes"
+              hard={<>Language models and GPU solvers are fast and capable. They can also be wrong, late, or different on a
+                second try, and a vehicle cannot wait for a retry.</>}
+              ours={<>Every model and solver only proposes. The AI agent chooses what the next decisions should optimize,
+                solvers offer assignments, and one deterministic path decides, behind the rule shield. The agent chooses
+                among options the engine already allows; it cannot book a stall or move a car itself, and an outside
+                agent's token can propose but, by database privilege, cannot write a booking. Every call is written to an
+                append-only ledger with its outcome, so what the AI contributed is counted, not claimed.</>} />
+            <Edge title="The right solver for the shape of the problem"
+              hard={<>Inside a depot the constraints are scheduling constraints: overlapping charges draw on one shared
+                power limit, and a stall or bay holds one car at a time. cuOpt has no primitive for either. It is a
+                routing, linear-programming and quadratic-programming solver, with mixed-integer programming in beta, and
+                it has no scheduling family.</>}
+              ours={<>The site is scheduled by OTTO-Q's own deterministic decide path, with offers from a
+                constraint-programming solver, Google OR-Tools CP-SAT, run pinned to one version, a deterministic time
+                budget and a fixed worker count: the settings that make it repeatable too. cuOpt stays a proposer, and
+                the same path decides on its offers.</>}
+              source={<>
+                <ExtLink href="https://www.nvidia.com/en-us/ai-data-science/products/cuopt/">NVIDIA cuOpt</ExtLink>
+                {' · '}<ExtLink href="https://docs.nvidia.com/cuopt/user-guide/latest/routing-features.html">cuOpt routing features</ExtLink>
+                {' · '}checked Oct 2, 2026
+              </>} />
+            <Edge title="Limits that hold in the transaction"
+              hard={<>A depot's risk is physical: a car released half charged, a stall booked twice, a charge started on a
+                faulted charger. A limit that holds only for well-behaved callers does not hold.</>}
+              ours={<>Its limits sit where decisions are written. A calendar constraint makes a double booking impossible,
+                one car per stall is a unique index, the signed event log rejects every edit, one departure test runs at
+                every exit, and the rule shield refuses at the decision points it enforces. They hold for every caller,
+                including agents nobody has written yet (the safety harness above).</>} />
+            <Edge title="A record of service, not only of energy"
+              hard={<>The EV industry standardized energy, not service. In OCPI, its roaming standard, the only
+                billing-relevant object is the charge detail record, "the description of a concluded charging session". A
+                cleaning, an inspection or a repair has no record of its own.</>}
+              ours={<>Every operation it completes, energy or not, ends in a signed service record shaped like OCPI's,
+                attributed to its fleet and asset class, with the energy metered on charges. Pricing those records against
+                the tariff is being built; once it is, a cleaning or an inspection can be settled between a depot and the
+                fleets it serves the way a charge is today.</>}
+              source={<>
+                <ExtLink href="https://github.com/ocpi/ocpi/blob/v2.3.0/mod_cdrs.asciidoc">OCPI CDR module</ExtLink>
+                {' · '}<ExtLink href="https://evroaming.org/ocpi-downloads/">OCPI releases</ExtLink>
+                {' · '}OCPI 2.2.1 and 2.3.0, the released versions, checked Oct 2, 2026
+              </>} />
+            <Edge title="Proof before a depot is built"
+              hard={<>A site design or a scheduling policy cannot be tried on a real fleet without risking that fleet's
+                day, and one good afternoon proves nothing.</>}
+              ours={<>The twin draws whole days from distributions fitted to public data, with every assumption
+                declared (the data section above). OTTO-Q and a plain
+                first-come-first-served depot run the identical seeded day, so a difference between them is the policy and
+                not luck, and the engine under test is the engine that would run the site. Where OTTO-Q has not beaten the
+                plain depot on a measured day, the Value tab says so.</>} />
+          </div>
+          <P>
+            <B>What it does not claim.</B> Intelligence is not a substitute for capacity. When a depot is short of
+            chargers, the answer is more chargers or fewer faults, never shorter charges, and the twin is how to find how
+            many.
+          </P>
+        </Section>
+
+        {/* ── 9. distribution ────────────────────────────────────── */}
         <Section id="bg-distribution" icon={Globe2} title="Distribution and commercialization of AV fleets"
           kicker="Each new city an autonomous fleet enters needs land, power, chargers, cleaning, service bays and staging, and the vehicles only earn while that infrastructure turns them around fast.">
           <Bullets items={[
-            <><B>A depot becomes a shared service node.</B> Fleets from different OEMs can return to one site, each served
-              under its own terms, by neutral orchestration no single OEM controls.</>,
+            <><B>A depot becomes a shared service node.</B> Fleets with different owners can return to one site, each
+              served under its own contract, by orchestration that belongs to none of them.</>,
             <><B>Size a depot before it is built.</B> The twin measures how many chargers, what power and how many cars a
               site can stage and turn around, on simulated days drawn from real data, under the same engine that would
               run it.</>,
             <><B>A settlement rail for services.</B> Service records follow the shape of the EV industry's roaming standard
-              (OCPI): sessions, records and tariffs for any service, not just energy, so servicing can be billed between
-              operators.</>,
+              (OCPI) for any operation, not only energy, so that servicing can be billed between a depot and the fleets
+              it serves once pricing lands.</>,
             <><B>Software over hardware others own.</B> OTTO-Q orchestrates vehicles, chargers and sites; it never drives a
               car and never runs its mission.</>,
           ]} />
         </Section>
 
-        {/* ── 9. agnostic ────────────────────────────────────────── */}
+        {/* ── 10. agnostic ───────────────────────────────────────── */}
         <Section id="bg-agnostic" icon={Boxes} title="Why it is agnostic"
           kicker="Every autonomous machine ends its work cycle with the same four questions. OTTO-Q owns those four questions and nothing else.">
           <Bullets items={[
             <><B>A kernel that never mentions a sector.</B> A sector arrives as a pack of declarative data (its asset
               types, operations, constraints and tariffs) plus adapters that translate its protocols.</>,
             <><B>Tested, not asserted.</B> Four packs (robotaxi, yard logistics, mining and vertiport) load against one
-              closed specification and schedule with no change to the kernel. The one genuine solver extension found is
-              written down: vertiport pad separation, two named points that may not be active at once
+              closed specification and schedule with no change to the kernel: robotaxi and yard logistics fully
+              exercised, mining and vertiport on paper. The one genuine solver extension found is written down:
+              vertiport pad separation, two named points that may not be active at once
               (<Code>CONFORMANCE_FINDINGS.md</Code>, Aug 22, 2026).</>,
             <><B>Standard protocols.</B> OCPP 2.0.1 for chargers, OCPI-shaped service records, and a VDA 5050 adapter
               draft for warehouse robots.</>,
-            <><B>Agnostic to whose autonomy.</B> It works with any OEM's driving stack through one interface, the recall
+            <><B>Agnostic to whose autonomy.</B> It works with any driving stack through one interface, the recall
               decision: when to come in, where, for what, and by when.</>,
             <><B>The same shape fits other fleets:</B> delivery robots, yard tractors, haul trucks, drones and eVTOLs, and
               unmanned vessels returning to a sustainment node.</>,
           ]} />
         </Section>
 
-        {/* ── 10. live facts ─────────────────────────────────────── */}
-        <Section id="bg-facts" icon={CircuitBoard} title="Facts for OEMs and investors, read live"
+        {/* ── 11. live facts ─────────────────────────────────────── */}
+        <Section id="bg-facts" icon={CircuitBoard} title="Live facts, read from the engine"
           kicker="Each card is read from the engine when this tab opens, and names its source. A card that shows — is a source that did not answer, never a zero.">
           <div className="grid gap-2 sm:grid-cols-2">
             <Fact

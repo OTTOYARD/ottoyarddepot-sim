@@ -108,7 +108,7 @@ async function desktop() {
   await page.waitForTimeout(2500);
   await panel.screenshot({ path: path.join(OUT, "background-top.png") });
   shots.push("background-top.png");
-  for (const id of ["bg-boundary", "bg-data", "bg-montecarlo", "bg-agentic", "bg-safety", "bg-value", "bg-agnostic", "bg-facts"]) {
+  for (const id of ["bg-boundary", "bg-data", "bg-montecarlo", "bg-agentic", "bg-safety", "bg-value", "bg-edge", "bg-distribution", "bg-agnostic", "bg-facts"]) {
     await page.evaluate((x) => document.getElementById(x)?.scrollIntoView({ block: "start" }), id);
     await page.waitForTimeout(400);
     const nm = `background-${id.slice(3)}.png`;
