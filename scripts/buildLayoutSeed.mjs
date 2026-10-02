@@ -243,6 +243,8 @@ const bundle = async (entry, outfile) => {
   return requireCjs(outfile);
 };
 const sp = await bundle('src/lib/sitePlan.ts', '/tmp/ottoq_siteplan_seed.cjs');
+/** Built solids the renderer draws and the clearance replays drive against (walls, the sign wall, ...). */
+const stp = await bundle('src/lib/structurePlan.ts', '/tmp/ottoq_structureplan_seed.cjs');
 
 // ---------------------------------------------------------------------------
 // Lane geometry — READ FROM THE REAL CLASS, not copied
@@ -759,13 +761,19 @@ for (const [code, pt, title, dir, controls] of [
   });
 }
 
-S({
-  structure_code: 'SIGN-OTTOYARD-FRONT', structure_kind: 'sign',
-  title: 'OTTOYARD Front Wall Signage',
-  origin_x_ft: (lotRect.width_ft - 60) / 2, origin_y_ft: 3,
-  width_ft: 60, length_ft: 1, height_ft: 8, rotation_deg: 0, status: 'active',
-  properties: { mount: 'concrete_wall', illuminated: true },
-});
+// The sign wall is where the renderer draws it and the clearance tests check it: structurePlan.SIGN_WALL, outside
+// the south fence on the frontage between the gates (2026-10-01: the hand-placed wall stood across four S2 stalls).
+// The negative origin_y is that: south of the fence line, which is y = 0.
+{
+  const r = stp.signWallRect();
+  S({
+    structure_code: 'SIGN-OTTOYARD-FRONT', structure_kind: 'sign',
+    title: 'OTTOYARD Front Wall Signage',
+    ...rectToDb({ x: r.x0, y: r.y0, w: r.x1 - r.x0, h: r.y1 - r.y0 }),
+    height_ft: toFt(stp.SIGN_WALL.h), rotation_deg: 0, status: 'active',
+    properties: { mount: 'concrete_wall', illuminated: true },
+  });
+}
 
 // Lighting poles: 11, from sitePlan.ts. (unreal/sitePlan.json still says 12 — it
 // predates commit ff9c810 "Light poles: canopy SOUTH end-caps". This is the field
