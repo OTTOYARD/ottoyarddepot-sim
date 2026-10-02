@@ -121,8 +121,9 @@ export default function DepotViewer() {
         </div>
       )}
 
-      {/* what the view is showing */}
-      <div className="pointer-events-none absolute left-2 top-2 right-2 flex items-start justify-between gap-2">
+      {/* what the view is showing. Framed by a cockpit, the cockpit says it under the frame (from the state message),
+          so the view keeps its picture clear: the chip is for the view opened on its own. */}
+      <div className={`pointer-events-none absolute left-2 top-2 right-2 flex items-start justify-between gap-2 ${params.embed ? "sr-only" : ""}`}>
         <div role="status" aria-live="polite"
           className="pointer-events-auto inline-flex max-w-full items-center gap-1.5 rounded border border-white/10 bg-black/60 px-2 py-1 text-[11px] leading-4 text-white backdrop-blur">
           <span aria-hidden className={`h-1.5 w-1.5 shrink-0 rounded-full ${words.tone === "live" ? "animate-pulse bg-emerald-400" : words.tone === "warn" ? "bg-amber-400" : "bg-ink-faint"}`} />
