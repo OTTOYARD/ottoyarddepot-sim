@@ -251,11 +251,12 @@ async function phoneShots(browser) {
   const log = installRoutes(page);
   await page.goto(`${URL_}?run=${RUN}&phone=1`, { waitUntil: "domcontentloaded" });
   await page.waitForTimeout(3000);
-  const tabs = BEFORE ? ["Intelligence", "Orchestration", "Events"] : ["OTTO-Q", "Agent"];
+  const tabs = (BEFORE ? ["Intelligence", "Orchestration", "Events"] : ["OTTO-Q", "Agent"]).filter((t) => !ONLY || t === ONLY);
   const shots = [];
   const docWidth = {};
   for (const t of tabs) {
-    await page.locator("button", { hasText: new RegExp(`^${t.replace("-", "\\-")}$`) }).first().click();
+    // the phone's 3D view keeps a software-rendered main thread busy: do not wait on it after the tap
+    await page.locator("button", { hasText: new RegExp(`^${t.replace("-", "\\-")}$`) }).first().click({ force: true, noWaitAfter: true, timeout: 60000 });
     await page.waitForTimeout(t === "OTTO-Q" ? 11000 : 3000);
     const nm = `${BEFORE ? "before" : "after"}-phone-${t.toLowerCase().replace(/[^a-z]/g, "")}.png`;
     await page.screenshot({ path: path.join(OUT, nm) });
