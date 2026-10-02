@@ -30,6 +30,7 @@ import { QualityGovernor } from './three/quality/QualityGovernor';
 import { useQualityStore, useTierBudget } from './three/quality/qualityStore';
 import { BUDGETS, initialTier, type TierBudget } from './three/quality/tiers';
 import { CameraRig } from './three/CameraRig';
+import { carName } from './three/carName';
 import { StaticMerge } from './three/StaticMerge';
 import { BakedGroundAO } from './three/BakedGroundAO';
 import { useCameraFollow } from './three/cameraFollow';
@@ -216,7 +217,7 @@ export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0, viewe
   const setMode = useQualityStore((s) => s.setMode);
   const followId = useCameraFollow((s) => s.followId);
   const setFollow = useCameraFollow((s) => s.setFollow);
-  const followAv = useVehicleStore((s) => (followId ? s.vehicles.find((v) => v.id === followId)?.label ?? followId : null));
+  const followAv = useVehicleStore((s) => (followId ? carName(followId, s.vehicles.find((v) => v.id === followId)) : null));
   const pole = viewer?.framing?.kind === 'pole';
   // What the canvas is CREATED with (MSAA is fixed at context creation): the tier
   // the probe below settled before this component first rendered.
@@ -335,7 +336,7 @@ export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0, viewe
             regress
           />
           {viewer && <ViewerFraming controls={controlsRef} framing={viewer.framing} />}
-          <CameraRig controls={controlsRef} />
+          <CameraRig controls={controlsRef} pole={pole} />
           <QCardProjector />
         </Suspense>
       </Canvas>

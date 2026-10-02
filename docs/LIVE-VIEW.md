@@ -45,8 +45,12 @@ A pinned run is checked once. A run that does not exist, or ran at a depot other
 | `pole` | From a mast at the middle of the lot. The camera turns on the mast: its target sits one unit in front of the lens, so a drag or the spin looks around the depot instead of circling the mast. No zoom or pan. |
 | `top` | Straight down, north up: the whole lot. |
 
-Every camera can be dragged (one finger orbits, two pinch, twist and pan, as in the twin). Tapping a car follows it, as
-in the twin. Tuned against screenshots of the empty depot and of a recorded run (`scripts/viewerShots.mjs`).
+Every camera can be dragged (one finger orbits, two pinch, twist and pan, as in the twin). Tapping a car follows it.
+From a corner or overhead the camera rides with the car, as in the twin. From the pole it stays on its mast and turns
+to keep the car in view; a drag or a second finger hands the camera back. (Riding from the mast carried the lens down to
+within a unit of the car, with no zoom or pan to get back: `src/components/canvas/three/followMath.ts`.) The chip names
+the car by its fleet id, or, for a car the fleet API never named, by operator and the end of its id. Tuned against
+screenshots of the empty depot and of a recorded run (`scripts/viewerShots.mjs`).
 
 ## Messages
 

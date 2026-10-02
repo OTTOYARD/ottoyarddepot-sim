@@ -6,6 +6,7 @@ import { poseStore } from '@/engine/motion/poseStore';
 import { useVehicleStore } from '@/store/vehicleStore';
 import { toWorld, DECK_Y } from './coordUtils';
 import { useCameraFollow } from './cameraFollow';
+import { aimFromMast } from './followMath';
 import { useQCard } from '@/store/qCardStore';
 
 /**
@@ -25,6 +26,13 @@ import { useQCard } from '@/store/qCardStore';
  *
  * The followed car's position is read from poseStore — the same pose the fleet
  * is drawn at — so the camera never leads or lags the car it is showing.
+ *
+ * FROM THE POLE (`pole`: the live view's mast camera, src/viewer) following
+ * turns the camera instead of carrying it: the lens stays on its mast and the
+ * view swings onto the car and holds it, as a camera on a pole would
+ * (followMath.ts). A drag, or a second finger, takes the camera back: it stops
+ * following, because the pole's only gesture is turning and following is
+ * turning too.
  */
 
 const TAP_MAX_MS = 350;
@@ -34,11 +42,18 @@ const pickRadius = (camDist: number) => Math.max(5, camDist * 0.045);
 /** When following starts from far away, close in to this distance. */
 const FOLLOW_DIST = 48;
 
-export function CameraRig({ controls }: { controls: React.RefObject<OrbitControlsImpl> }) {
+export function CameraRig({ controls, pole = false }: {
+  controls: React.RefObject<OrbitControlsImpl>;
+  /** The camera is the live view's pole: it turns on its mast and does not zoom or pan. */
+  pole?: boolean;
+}) {
   const gl = useThree((s) => s.gl);
   const camera = useThree((s) => s.camera);
   const followId = useCameraFollow((s) => s.followId);
   const glide = useRef<{ dist: number | null }>({ dist: null });
+  // read by the pointer handlers and the frame loop without re-binding either
+  const poleRef = useRef(pole);
+  poleRef.current = pole;
 
   // ── tap-to-follow and two-finger twist ────────────────────────────────────
   useEffect(() => {
@@ -50,6 +65,10 @@ export function CameraRig({ controls }: { controls: React.RefObject<OrbitControl
     const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -DECK_Y);
     const hit = new THREE.Vector3();
     const ndc = new THREE.Vector2();
+    // from the pole, a gesture on the camera takes it back from the car it is following
+    const letGo = () => {
+      if (poleRef.current && useCameraFollow.getState().followId) useCameraFollow.getState().setFollow(null);
+    };
 
     const pickCar = (clientX: number, clientY: number): string | null | undefined => {
       const r = el.getBoundingClientRect();
@@ -72,12 +91,13 @@ export function CameraRig({ controls }: { controls: React.RefObject<OrbitControl
       pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
       tap = pts.size === 1 ? { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now() } : null;
       twist = null;
+      if (pts.size > 1) letGo();
     };
     const move = (e: PointerEvent) => {
       const p = pts.get(e.pointerId);
       if (!p) return;
       p.x = e.clientX; p.y = e.clientY;
-      if (tap && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > TAP_MAX_PX) tap = null;
+      if (tap && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > TAP_MAX_PX) { tap = null; letGo(); }
       if (pts.size !== 2 || !controls.current) return;
       const [a, b] = [...pts.values()];
       const ang = Math.atan2(b.y - a.y, b.x - a.x);
@@ -127,10 +147,10 @@ export function CameraRig({ controls }: { controls: React.RefObject<OrbitControl
   const present = useVehicleStore((s) => (followId ? s.vehicles.some((v) => v.id === followId) : true));
   useEffect(() => { if (!present) useCameraFollow.getState().setFollow(null); }, [present]);
 
-  // on a new follow, close in if the camera is far out
+  // on a new follow, close in if the camera is far out (not from the pole: it turns, it does not move)
   useEffect(() => {
     const c = controls.current;
-    glide.current.dist = followId && c ? Math.min(camera.position.distanceTo(c.target), FOLLOW_DIST) : null;
+    glide.current.dist = followId && c && !poleRef.current ? Math.min(camera.position.distanceTo(c.target), FOLLOW_DIST) : null;
   }, [followId, camera, controls]);
 
   // ── follow: runs before OrbitControls' own update (priority -1) ───────────
@@ -141,6 +161,11 @@ export function CameraRig({ controls }: { controls: React.RefObject<OrbitControl
     const p = poseStore.get(followId);
     if (!p) return;
     const [wx, , wz] = toWorld(p, 0);
+    if (poleRef.current) {
+      // from the pole: the lens stays put and the view turns onto the car
+      aimFromMast(camera.position, c.target, tmp.current.set(wx, DECK_Y + 1.5, wz), 1 - Math.exp(-Math.min(dt, 0.1) * 6), c.target);
+      return;
+    }
     const d = tmp.current.set(wx, DECK_Y + 1.5, wz).sub(c.target);
     // glide on, then ride exactly: the lerp only matters while catching up
     const k = d.lengthSq() > 0.25 ? 1 - Math.exp(-Math.min(dt, 0.1) * 6) : 1;
