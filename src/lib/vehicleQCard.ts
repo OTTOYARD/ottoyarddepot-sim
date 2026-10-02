@@ -455,7 +455,10 @@ export function buildQCard(inp: QCardInputs): QCard {
   for (const c of planChanges ?? []) {
     const where = c.stall_code ? placeName(c.stall_code, c.stall_kind ?? null) : "a stall";
     const window = c.starts_at && c.ends_at ? ` (was ${clock(c.starts_at)}–${clock(c.ends_at)})` : "";
-    changes.push({ at: null, words: `${c.state === "superseded" ? "Replaced" : "Let go"}: ${where}${window}, ${releaseWords(c.release_reason)}` });
+    const why = releaseWords(c.release_reason);
+    const verb = c.state === "superseded" ? "Replaced" : "Let go";
+    // "Replaced: …, replaced" says nothing twice: a plain replacement carries no reason
+    changes.push({ at: null, words: `${verb}: ${where}${window}${why.toLowerCase() === verb.toLowerCase() ? "" : `, ${why}`}` });
   }
   changes.reverse();
 

@@ -216,7 +216,7 @@ describe("buildQCard on a contract-1.5 card", () => {
   it("lists each replaced or let-go booking under plan changes, in words", () => {
     expect(q.changes.map((c) => c.words)).toEqual([
       "Let go: parking W004, its window passed unused",
-      "Replaced: service bay 01 (was 10:20 AM–10:26 AM), replaced",
+      "Replaced: service bay 01 (was 10:20 AM–10:26 AM)",
     ]);
   });
 
