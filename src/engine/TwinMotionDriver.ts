@@ -425,6 +425,10 @@ const MERGE_BACK_U = 26;
  *  stall: a neighbour's back-out under way within this of its start or finish shares
  *  that lane. */
 const CHARGER_BACKOUT_REACH = 16;
+/** A staging back-out holds while a neighbour's committed back-out is this close to
+ *  its car or its finishing point (u): a staging back-out ends ~18u out from its stall
+ *  centre, and two parked neighbours are 5.7-6.7u apart. */
+const STAGING_BACKOUT_REACH = 14;
 /** How far either side of the gap lane's centreline a car counts as standing in it. */
 const CHARGER_BACKOUT_LANE_LAT = 4.5;
 /** A moving car this close to where a charger back-out would finish holds it (one car
@@ -1843,6 +1847,31 @@ class TwinMotionDriver {
     return false;
   }
 
+  /**
+   * Is a NEIGHBOUR's back-out under way where this STAGING back-out would swing?
+   *
+   * Staging back-outs had no neighbour rule (AGENTS.md, "known open"): two cars parked
+   * side by side and sent off in the same tick backed out together, and their swings
+   * met. It surfaced harder once cars stopped overshooting their stalls (routeOff):
+   * cars that used to be still driving past their stall when the next order came were
+   * now PARKED in it, beside the neighbour leaving with them — busy_day, three E-column
+   * neighbours reversing at once, +4 overlap pair-samples. A staging back-out now waits
+   * while a COMMITTED back-out (staging or charger) is within STAGING_BACKOUT_REACH of
+   * its car or of where it will finish. Only committed ones block, and commitment is
+   * one car at a time within a tick, so neighbours go in turn and never wait on each
+   * other.
+   */
+  private stagingBackOutBlocked(id: string, e: Entry): boolean {
+    const end = e.reverse?.end;
+    if (!end) return false;
+    for (const [oid, o] of this.entries) {
+      if (oid === id || !o.reverse?.committed) continue;
+      if (Math.hypot(o.car.x - e.car.x, o.car.y - e.car.y) < STAGING_BACKOUT_REACH
+        || Math.hypot(o.car.x - end.x, o.car.y - end.y) < STAGING_BACKOUT_REACH) return true;
+    }
+    return false;
+  }
+
   /** The south collector's traffic lanes (plan y of each stream's centreline) that a
    *  charger back-out finishing at `end`, facing north, reaches with its tail. Empty
    *  for every back-out that finishes inside its gap lane. */
@@ -2011,7 +2040,13 @@ class TwinMotionDriver {
     // lane body — 67 of 113 are; see the block comment above for the measured split.)
     const ax = stall.x - Math.cos(facing) * APPROACH_BACK_U;
     const ay = stall.y - Math.sin(facing) * APPROACH_BACK_U;
-    return [...lead, ...this.routeFrom(start, hd, { x: ax, y: ay }), { x: stall.x, y: stall.y }];
+    // Leave the road ABREAST of the stall and turn straight in (LaneGraph.routeOff).
+    // Routing to the graph node nearest the approach point sent a car past its stall
+    // as often as not — to a node beyond it — and back again: the founder's "it goes
+    // past and then has to backtrack" (2026-10-01).
+    const toStall = this.graph.routeOff(start, hd, { x: ax, y: ay }, facing)
+      ?? this.routeFrom(start, hd, { x: ax, y: ay });
+    return [...lead, ...toStall, { x: stall.x, y: stall.y }];
   }
 
   /** Reconcile render state + routes against a fresh backend snapshot. */
@@ -2834,7 +2869,8 @@ class TwinMotionDriver {
         // Measured on the live burst without it: a car finished its back-out
         // 2.9u in front of a car already admitted to the SE junction.
         const laneBusy = !e.reverse.committed && e.reverse.end
-          ? this.laneTrafficToward(id, e.reverse.end, bodies) || (!!e.reverse.charger && this.chargerBackOutBlocked(id, e, bodies))
+          ? this.laneTrafficToward(id, e.reverse.end, bodies)
+            || (e.reverse.charger ? this.chargerBackOutBlocked(id, e, bodies) : this.stagingBackOutBlocked(id, e))
           : false;
         if (!laneBusy && e.reverse.end && !e.reverse.committed) {
           e.reverse.committed = true;

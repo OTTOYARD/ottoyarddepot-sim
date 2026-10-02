@@ -1,0 +1,269 @@
+{
+ "target": {
+  "id": "b2222222-0002-0002-0002-000000000006",
+  "dest": {
+   "lane": "staging",
+   "x": 233.5,
+   "y": 119.65
+  },
+  "start": {
+   "x": 206,
+   "y": 213
+  },
+  "clip": {
+   "x": 609.6,
+   "y": 304.3,
+   "width": 348.4,
+   "height": 536
+  }
+ },
+ "log": [
+  {
+   "pt": 39.9,
+   "name": "after_0399.jpg",
+   "pose": {
+    "x": 206,
+    "y": 213,
+    "h": -129,
+    "rail": true,
+    "rev": false
+   }
+  },
+  {
+   "pt": 41,
+   "name": "after_0410.jpg",
+   "pose": {
+    "x": 205.8,
+    "y": 212.7,
+    "h": -129,
+    "rail": true,
+    "rev": false
+   }
+  },
+  {
+   "pt": 42,
+   "name": "after_0420.jpg",
+   "pose": {
+    "x": 204.2,
+    "y": 210.7,
+    "h": -114,
+    "rail": true,
+    "rev": false
+   }
+  },
+  {
+   "pt": 43,
+   "name": "after_0430.jpg",
+   "pose": {
+    "x": 203.2,
+    "y": 205.8,
+    "h": -90,
+    "rail": true,
+    "rev": false
+   }
+  },
+  {
+   "pt": 44.2,
+   "name": "after_0442.jpg",
+   "pose": {
+    "x": 203.2,
+    "y": 196.8,
+    "h": -90,
+    "rail": true,
+    "rev": false
+   }
+  },
+  {
+   "pt": 45.5,
+   "name": "after_0455.jpg",
+   "pose": {
+    "x": 203.2,
+    "y": 186,
+    "h": -90,
+    "rail": true,
+    "rev": false
+   }
+  },
+  {
+   "pt": 46.6,
+   "name": "after_0466.jpg",
+   "pose": {
+    "x": 204.5,
+    "y": 177.4,
+    "h": -42,
+    "rail": true,
+    "rev": false
+   }
+  },
+  {
+   "pt": 47.7,
+   "name": "after_0477.jpg",
+   "pose": {
+    "x": 212.8,
+    "y": 175.2,
+    "h": 0,
+    "rail": true,
+    "rev": false
+   }
+  },
+  {
+   "pt": 48.8,
+   "name": "after_0488.jpg",
+   "pose": {
+    "x": 221,
+    "y": 175.2,
+    "h": 0,
+    "rail": true,
+    "rev": false
+   }
+  },
+  {
+   "pt": 50.2,
+   "name": "after_0502.jpg",
+   "pose": {
+    "x": 232.2,
+    "y": 175.2,
+    "h": 0,
+    "rail": true,
+    "rev": false
+   }
+  },
+  {
+   "pt": 51.2,
+   "name": "after_0512.jpg",
+   "pose": {
+    "x": 240.5,
+    "y": 175.2,
+    "h": 0,
+    "rail": true,
+    "rev": false
+   }
+  },
+  {
+   "pt": 52.5,
+   "name": "after_0525.jpg",
+   "pose": {
+    "x": 249.7,
+    "y": 171.8,
+    "h": -76,
+    "rail": true,
+    "rev": false
+   }
+  },
+  {
+   "pt": 53.6,
+   "name": "after_0536.jpg",
+   "pose": {
+    "x": 250.2,
+    "y": 162.9,
+    "h": -90,
+    "rail": true,
+    "rev": false
+   }
+  },
+  {
+   "pt": 54.6,
+   "name": "after_0546.jpg",
+   "pose": {
+    "x": 250.2,
+    "y": 155,
+    "h": -90,
+    "rail": true,
+    "rev": false
+   }
+  },
+  {
+   "pt": 55.7,
+   "name": "after_0557.jpg",
+   "pose": {
+    "x": 250.2,
+    "y": 146.8,
+    "h": -90,
+    "rail": true,
+    "rev": false
+   }
+  },
+  {
+   "pt": 56.7,
+   "name": "after_0567.jpg",
+   "pose": {
+    "x": 250.2,
+    "y": 138.6,
+    "h": -90,
+    "rail": true,
+    "rev": false
+   }
+  },
+  {
+   "pt": 57.7,
+   "name": "after_0577.jpg",
+   "pose": {
+    "x": 250.2,
+    "y": 130.4,
+    "h": -90,
+    "rail": true,
+    "rev": false
+   }
+  },
+  {
+   "pt": 58.7,
+   "name": "after_0587.jpg",
+   "pose": {
+    "x": 249.3,
+    "y": 122.4,
+    "h": -132,
+    "rail": true,
+    "rev": false
+   }
+  },
+  {
+   "pt": 59.7,
+   "name": "after_0597.jpg",
+   "pose": {
+    "x": 242.1,
+    "y": 119.7,
+    "h": 180,
+    "rail": true,
+    "rev": false
+   }
+  },
+  {
+   "pt": 61,
+   "name": "after_0610.jpg",
+   "pose": {
+    "x": 233.9,
+    "y": 119.7,
+    "h": 180,
+    "rail": true,
+    "rev": false
+   }
+  },
+  {
+   "pt": 62.4,
+   "name": "after_0624.jpg",
+   "pose": {
+    "x": 233.5,
+    "y": 119.7,
+    "h": 180,
+    "rail": false,
+    "rev": false
+   }
+  },
+  {
+   "pt": 63.4,
+   "name": "after_0634.jpg",
+   "pose": {
+    "x": 233.5,
+    "y": 119.7,
+    "h": 180,
+    "rail": false,
+    "rev": false
+   }
+  }
+ ],
+ "refused": 2,
+ "refusedRequests": [
+  "POST /rest/v1/rpc/ottoq_depot_cards"
+ ],
+ "errors": []
+}
