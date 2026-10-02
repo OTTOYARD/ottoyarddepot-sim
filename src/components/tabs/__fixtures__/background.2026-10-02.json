@@ -1,0 +1,2537 @@
+{
+ "canon": [
+  {
+   "certified_at": "2026-10-02T20:06:00.175263+00:00",
+   "depot_id": "11111111-1111-1111-1111-111111111111",
+   "enabled": true,
+   "engine_hash": "9b05b4d4f342144137c01233ae9f7a43",
+   "equal": true,
+   "outcome": "passed",
+   "satisfies_floor": true,
+   "scenario": "busy_day",
+   "seed": 171717,
+   "status": "current",
+   "ticks": 12
+  },
+  {
+   "certified_at": "2026-10-02T20:08:33.586261+00:00",
+   "depot_id": "11111111-1111-1111-1111-111111111111",
+   "enabled": true,
+   "engine_hash": "9b05b4d4f342144137c01233ae9f7a43",
+   "equal": true,
+   "outcome": "passed",
+   "satisfies_floor": true,
+   "scenario": "busy_day",
+   "seed": 314159,
+   "status": "current",
+   "ticks": 12
+  },
+  {
+   "certified_at": "2026-10-02T20:11:06.19666+00:00",
+   "depot_id": "11111111-1111-1111-1111-111111111111",
+   "enabled": true,
+   "engine_hash": "9b05b4d4f342144137c01233ae9f7a43",
+   "equal": true,
+   "outcome": "passed",
+   "satisfies_floor": true,
+   "scenario": "busy_day",
+   "seed": 424242,
+   "status": "current",
+   "ticks": 12
+  },
+  {
+   "certified_at": "2026-10-02T20:13:40.171234+00:00",
+   "depot_id": "11111111-1111-1111-1111-111111111111",
+   "enabled": true,
+   "engine_hash": "9b05b4d4f342144137c01233ae9f7a43",
+   "equal": true,
+   "outcome": "passed",
+   "satisfies_floor": true,
+   "scenario": "normal_day",
+   "seed": 171717,
+   "status": "current",
+   "ticks": 12
+  },
+  {
+   "certified_at": "2026-10-02T20:16:23.804868+00:00",
+   "depot_id": "11111111-1111-1111-1111-111111111111",
+   "enabled": true,
+   "engine_hash": "9b05b4d4f342144137c01233ae9f7a43",
+   "equal": true,
+   "outcome": "passed",
+   "satisfies_floor": true,
+   "scenario": "busy_day",
+   "seed": 171717,
+   "status": "current",
+   "ticks": 24
+  },
+  {
+   "certified_at": "2026-10-02T20:21:42.912301+00:00",
+   "depot_id": "11111111-1111-1111-1111-111111111111",
+   "enabled": true,
+   "engine_hash": "9b05b4d4f342144137c01233ae9f7a43",
+   "equal": true,
+   "outcome": "passed",
+   "satisfies_floor": true,
+   "scenario": "busy_day",
+   "seed": 424242,
+   "status": "current",
+   "ticks": 24
+  },
+  {
+   "certified_at": "2026-10-02T20:26:45.225229+00:00",
+   "depot_id": "11111111-1111-1111-1111-111111111111",
+   "enabled": true,
+   "engine_hash": "9b05b4d4f342144137c01233ae9f7a43",
+   "equal": true,
+   "outcome": "passed",
+   "satisfies_floor": true,
+   "scenario": "busy_day",
+   "seed": 171717,
+   "status": "current",
+   "ticks": 48
+  },
+  {
+   "certified_at": "2026-10-02T20:04:00.217309+00:00",
+   "depot_id": "aacd0bb0-2d02-d101-72cc-33f70e950bc8",
+   "enabled": true,
+   "engine_hash": "9b05b4d4f342144137c01233ae9f7a43",
+   "equal": true,
+   "outcome": "passed",
+   "satisfies_floor": true,
+   "scenario": "grid_smoke",
+   "seed": 239001,
+   "status": "current",
+   "ticks": 6
+  },
+  {
+   "certified_at": "2026-10-02T20:05:00.083295+00:00",
+   "depot_id": "aacd0bb0-2d02-d101-72cc-33f70e950bc8",
+   "enabled": true,
+   "engine_hash": "9b05b4d4f342144137c01233ae9f7a43",
+   "equal": true,
+   "outcome": "passed",
+   "satisfies_floor": true,
+   "scenario": "grid_smoke",
+   "seed": 424242,
+   "status": "current",
+   "ticks": 6
+  }
+ ],
+ "captured_at": "2026-10-02T21:11:00.899236+00:00",
+ "catalog": [
+  {
+   "definition": "Wholesale electricity price \u2014 its level (shift) and volatility (spread).",
+   "display_order": 210,
+   "domain": "energy_grid",
+   "generator": "ottoq_sim_advance_grid",
+   "kind": "continuous",
+   "label": "Electricity price",
+   "lifespan": "day",
+   "scope": "grid",
+   "unit": "$/MWh",
+   "var_key": "lmp_usd_mwh",
+   "wired": true
+  },
+  {
+   "definition": "Regional grid load. High demand \u2192 tighter reserves, higher prices, more DR.",
+   "display_order": 220,
+   "domain": "energy_grid",
+   "generator": "ottoq_sim_advance_grid",
+   "kind": "rate",
+   "label": "Grid demand",
+   "lifespan": "day",
+   "scope": "grid",
+   "unit": "\u00d7",
+   "var_key": "grid_demand_mw",
+   "wired": true
+  },
+  {
+   "definition": "How aggressively the battery charges from surplus + discharges at peak.",
+   "display_order": 230,
+   "domain": "energy_grid",
+   "generator": "ottoq_sim_advance_bess",
+   "kind": "rate",
+   "label": "BESS aggressiveness",
+   "lifespan": "run",
+   "scope": "depot",
+   "unit": "\u00d7",
+   "var_key": "bess_aggressiveness",
+   "wired": true
+  },
+  {
+   "definition": "Frequency of utility demand-response calls (load-shed events).",
+   "display_order": 240,
+   "domain": "energy_grid",
+   "generator": "ottoq_sim_maybe_ignite_dr_call",
+   "kind": "rate",
+   "label": "DR call likelihood",
+   "lifespan": "event",
+   "scope": "depot",
+   "unit": "\u00d7",
+   "var_key": "dr_ignition",
+   "wired": true
+  },
+  {
+   "definition": "Frequency of grid brownouts / voltage sags on the feeder.",
+   "display_order": 250,
+   "domain": "energy_grid",
+   "generator": "ottoq_sim_advance_grid",
+   "kind": "rate",
+   "label": "Brownout rate",
+   "lifespan": "event",
+   "scope": "grid",
+   "unit": "\u00d7",
+   "var_key": "brownout_rate",
+   "wired": true
+  },
+  {
+   "definition": "Frequency of grid Hz excursions outside the nominal band.",
+   "display_order": 260,
+   "domain": "energy_grid",
+   "generator": "ottoq_sim_advance_grid",
+   "kind": "rate",
+   "label": "Frequency excursion",
+   "lifespan": "event",
+   "scope": "grid",
+   "unit": "\u00d7",
+   "var_key": "freq_excursion_rate",
+   "wired": true
+  },
+  {
+   "definition": "Grid gCO2/kWh level (generation-mix dirtiness).",
+   "display_order": 270,
+   "domain": "energy_grid",
+   "generator": "ottoq_sim_advance_grid",
+   "kind": "continuous",
+   "label": "Carbon intensity",
+   "lifespan": "day",
+   "scope": "grid",
+   "unit": "shift",
+   "var_key": "carbon_intensity",
+   "wired": true
+  },
+  {
+   "definition": "Outside air temperature. Drives charging derate, BESS thermal, solar cell temp, DR likelihood.",
+   "display_order": 10,
+   "domain": "environment",
+   "generator": "ottoq_sim_advance_weather_and_solar",
+   "kind": "continuous",
+   "label": "Ambient temperature",
+   "lifespan": "day",
+   "scope": "global",
+   "unit": "\u00b0C",
+   "var_key": "ambient_temp_c",
+   "wired": true
+  },
+  {
+   "definition": "Daily precipitation total (real NOAA GHCND, Nashville). Drives wet-day couplings: more & worse ETA delays.",
+   "display_order": 11,
+   "domain": "environment",
+   "generator": "ottoq_twin_climate_stress",
+   "kind": "continuous",
+   "label": "Precipitation (daily)",
+   "lifespan": "day",
+   "scope": "global",
+   "unit": "mm",
+   "var_key": "precip_mm",
+   "wired": true
+  },
+  {
+   "definition": "How overcast it is. Directly suppresses solar generation.",
+   "display_order": 20,
+   "domain": "environment",
+   "generator": "ottoq_sim_advance_weather_and_solar",
+   "kind": "continuous",
+   "label": "Cloud cover",
+   "lifespan": "block",
+   "scope": "global",
+   "unit": "%",
+   "var_key": "cloud_cover_pct",
+   "wired": true
+  },
+  {
+   "definition": "Wind speed. Cools panels + battery slightly.",
+   "display_order": 30,
+   "domain": "environment",
+   "generator": "ottoq_sim_advance_weather_and_solar",
+   "kind": "continuous",
+   "label": "Wind speed",
+   "lifespan": "block",
+   "scope": "global",
+   "unit": "km/h",
+   "var_key": "wind_speed_kmh",
+   "wired": true
+  },
+  {
+   "definition": "Relative humidity. Affects fog/visibility + perception-fault likelihood.",
+   "display_order": 40,
+   "domain": "environment",
+   "generator": "ottoq_sim_advance_weather_and_solar",
+   "kind": "continuous",
+   "label": "Humidity",
+   "lifespan": "block",
+   "scope": "global",
+   "unit": "%",
+   "var_key": "humidity_pct",
+   "wired": true
+  },
+  {
+   "definition": "Likelihood + intensity of rain/snow. Cuts solar, raises incident + perception-fault rates.",
+   "display_order": 50,
+   "domain": "environment",
+   "generator": "ottoq_sim_advance_weather_and_solar",
+   "kind": "rate",
+   "label": "Precipitation",
+   "lifespan": "block",
+   "scope": "global",
+   "unit": "\u00d7",
+   "var_key": "precip_rate",
+   "wired": true
+  },
+  {
+   "definition": "Dust/haze on panels reducing output between rain washes.",
+   "display_order": 60,
+   "domain": "environment",
+   "generator": "ottoq_sim_advance_weather_and_solar",
+   "kind": "continuous",
+   "label": "Solar soiling",
+   "lifespan": "run",
+   "scope": "depot",
+   "unit": "\u00d7",
+   "var_key": "solar_soiling",
+   "wired": true
+  },
+  {
+   "definition": "How often vehicles arrive at and deploy from the depot.",
+   "display_order": 110,
+   "domain": "fleet_demand",
+   "generator": "ottoq_sim_auto_dispatch_tick",
+   "kind": "rate",
+   "label": "Arrival / dispatch rate",
+   "lifespan": "day",
+   "scope": "depot",
+   "unit": "\u00d7",
+   "var_key": "arrival",
+   "wired": false
+  },
+  {
+   "definition": "Mid-trip congestion / accident that pushes a deployed vehicle's return ETA out.",
+   "display_order": 115,
+   "domain": "fleet_demand",
+   "generator": "ottoq_sim_advance_deployed_telemetry",
+   "kind": "rate",
+   "label": "Arrival ETA delay",
+   "lifespan": "trip",
+   "scope": "vehicle",
+   "unit": "min",
+   "var_key": "eta_delay",
+   "wired": true
+  },
+  {
+   "definition": "Extra battery drain while a car is out, in SoC points per hour deployed: -30 drains 30 more points each hour, so cars come back lower. Lower = more charging demand. Only negative values act: driving refills nothing.",
+   "display_order": 120,
+   "domain": "fleet_demand",
+   "generator": "twin.ottoq_sim_advance_deployed_telemetry",
+   "kind": "continuous",
+   "label": "SoC on arrival",
+   "lifespan": "arrival",
+   "scope": "vehicle",
+   "unit": "%",
+   "var_key": "soc_on_arrival",
+   "wired": true
+  },
+  {
+   "definition": "Charge level vehicles aim for before redeploying.",
+   "display_order": 130,
+   "domain": "fleet_demand",
+   "generator": "ottoq_sim_auto_charge_assign_tick",
+   "kind": "continuous",
+   "label": "Target SoC",
+   "lifespan": "session",
+   "scope": "session",
+   "unit": "%",
+   "var_key": "target_soc",
+   "wired": true
+  },
+  {
+   "definition": "Length of deployment trips (drives how long vehicles are away).",
+   "display_order": 140,
+   "domain": "fleet_demand",
+   "generator": "ottoq_sim_dispatch_vehicle",
+   "kind": "rate",
+   "label": "Trip duration",
+   "lifespan": "trip",
+   "scope": "vehicle",
+   "unit": "\u00d7",
+   "var_key": "trip_duration",
+   "wired": true
+  },
+  {
+   "definition": "Proportion of the active fleet that is Tesla (vs Waymo/Zoox). Shifts charging-curve + connector mix.",
+   "display_order": 150,
+   "domain": "fleet_demand",
+   "generator": "ottoq_sim_auto_dispatch_tick",
+   "kind": "continuous",
+   "label": "Tesla share",
+   "lifespan": "run",
+   "scope": "fleet",
+   "unit": "%",
+   "var_key": "oem_mix_tesla",
+   "wired": true
+  },
+  {
+   "definition": "Multiplier on active-driving fraction. Lower = more idling / staging time, less discharge + exposure.",
+   "display_order": 160,
+   "domain": "fleet_demand",
+   "generator": "ottoq_sim_advance_deployed_telemetry",
+   "kind": "rate",
+   "label": "Drive-activity level",
+   "lifespan": "trip",
+   "scope": "vehicle",
+   "unit": "\u00d7",
+   "var_key": "idle_fraction",
+   "wired": true
+  },
+  {
+   "definition": "Charge-session duration factor (slower/faster than calibrated).",
+   "display_order": 410,
+   "domain": "operations",
+   "generator": "ottoq_sim_advance_charge_sessions",
+   "kind": "rate",
+   "label": "Charge duration",
+   "lifespan": "session",
+   "scope": "session",
+   "unit": "\u00d7",
+   "var_key": "charge_time",
+   "wired": true
+  },
+  {
+   "definition": "Exterior-wash duration factor.",
+   "display_order": 420,
+   "domain": "operations",
+   "generator": "ottoq_sim_advance_charge_sessions",
+   "kind": "continuous",
+   "label": "Wash duration",
+   "lifespan": "visit",
+   "scope": "vehicle",
+   "unit": "\u00d7",
+   "var_key": "wash_time",
+   "wired": true
+  },
+  {
+   "definition": "Interior-detail duration factor.",
+   "display_order": 430,
+   "domain": "operations",
+   "generator": "ottoq_sim_advance_charge_sessions",
+   "kind": "continuous",
+   "label": "Detail duration",
+   "lifespan": "visit",
+   "scope": "vehicle",
+   "unit": "\u00d7",
+   "var_key": "detail_time",
+   "wired": true
+  },
+  {
+   "definition": "Light-maintenance duration factor.",
+   "display_order": 440,
+   "domain": "operations",
+   "generator": "ottoq_sim_advance_charge_sessions",
+   "kind": "continuous",
+   "label": "Maintenance duration",
+   "lifespan": "visit",
+   "scope": "vehicle",
+   "unit": "\u00d7",
+   "var_key": "maintenance_time",
+   "wired": true
+  },
+  {
+   "definition": "Overall staffing as a fraction of full. 1.0 = fully staffed (no bottleneck); lower = understaffed \u2192 vehicles wait in staging until lanes free.",
+   "display_order": 450,
+   "domain": "operations",
+   "generator": "ottoq_sim_advance_charge_sessions",
+   "kind": "rate",
+   "label": "Staffing level",
+   "lifespan": "day",
+   "scope": "depot",
+   "unit": "level",
+   "var_key": "staffing_level",
+   "wired": true
+  },
+  {
+   "definition": "Staff for charging assist (2 per 10 vehicles at full). Lower throttles concurrent charge starts.",
+   "display_order": 451,
+   "domain": "operations",
+   "generator": "ottoq_sim_advance_service_flow",
+   "kind": "rate",
+   "label": "Charging-assist staff",
+   "lifespan": "day",
+   "scope": "depot",
+   "unit": "\u00d7",
+   "var_key": "charging_staff",
+   "wired": true
+  },
+  {
+   "definition": "Staff for wash/detail bays (2 per bay at full). Lower \u2192 fewer concurrent washes.",
+   "display_order": 452,
+   "domain": "operations",
+   "generator": "ottoq_sim_advance_service_flow",
+   "kind": "rate",
+   "label": "Cleaning staff",
+   "lifespan": "day",
+   "scope": "depot",
+   "unit": "\u00d7",
+   "var_key": "cleaning_staff",
+   "wired": true
+  },
+  {
+   "definition": "Staff for service+maintenance bays (2 per bay at full). Lower \u2192 fewer concurrent service jobs.",
+   "display_order": 453,
+   "domain": "operations",
+   "generator": "ottoq_sim_advance_service_flow",
+   "kind": "rate",
+   "label": "Service/maint staff",
+   "lifespan": "day",
+   "scope": "depot",
+   "unit": "\u00d7",
+   "var_key": "service_staff",
+   "wired": true
+  },
+  {
+   "definition": "Staff to release staged vehicles for redeployment (2 per vehicle, final segment). Lower \u2192 vehicles linger in staging.",
+   "display_order": 454,
+   "domain": "operations",
+   "generator": "ottoq_sim_advance_service_flow",
+   "kind": "rate",
+   "label": "Deploy-prep staff",
+   "lifespan": "day",
+   "scope": "depot",
+   "unit": "\u00d7",
+   "var_key": "deploy_staff",
+   "wired": true
+  },
+  {
+   "definition": "How long a vehicle waits in queue before OTTO-Q reroutes it.",
+   "display_order": 460,
+   "domain": "operations",
+   "generator": "ottoq_sim_advance_tick",
+   "kind": "continuous",
+   "label": "Queue patience",
+   "lifespan": "run",
+   "scope": "depot",
+   "unit": "min",
+   "var_key": "queue_patience",
+   "wired": true
+  },
+  {
+   "definition": "Which scheduling strategy OTTO-Q uses to assign stalls.",
+   "display_order": 470,
+   "domain": "operations",
+   "generator": "ottoq_sim_auto_charge_assign_tick",
+   "kind": "policy",
+   "label": "OTTO-Q scheduling policy",
+   "lifespan": "run",
+   "scope": "depot",
+   "unit": "select",
+   "var_key": "scheduling_algorithm",
+   "wired": true
+  },
+  {
+   "definition": "How often chargers fault mid-session (ChargerHelp-calibrated baseline).",
+   "display_order": 310,
+   "domain": "reliability",
+   "generator": "ottoq_sim_advance_charge_sessions",
+   "kind": "rate",
+   "label": "Charger fault rate",
+   "lifespan": "session",
+   "scope": "session",
+   "unit": "\u00d7",
+   "var_key": "charger_fault",
+   "wired": true
+  },
+  {
+   "definition": "Vehicle diagnostic-trouble-code spawn rate (DMV-calibrated).",
+   "display_order": 320,
+   "domain": "reliability",
+   "generator": "ottoq_sim_advance_deployed_telemetry",
+   "kind": "rate",
+   "label": "DTC / fault-code rate",
+   "lifespan": "event",
+   "scope": "vehicle",
+   "unit": "\u00d7",
+   "var_key": "dtc",
+   "wired": true
+  },
+  {
+   "definition": "On-road incident rate (collisions/breakdowns, DMV-calibrated).",
+   "display_order": 330,
+   "domain": "reliability",
+   "generator": "ottoq_sim_advance_deployed_telemetry",
+   "kind": "rate",
+   "label": "Incident rate",
+   "lifespan": "event",
+   "scope": "vehicle",
+   "unit": "\u00d7",
+   "var_key": "incident",
+   "wired": true
+  },
+  {
+   "definition": "Shifts the mix toward more severe incidents (more tows/majors).",
+   "display_order": 340,
+   "domain": "reliability",
+   "generator": "ottoq_sim_maybe_incident",
+   "kind": "continuous",
+   "label": "Incident severity",
+   "lifespan": "event",
+   "scope": "incident",
+   "unit": "shift",
+   "var_key": "incident_severity",
+   "wired": true
+  },
+  {
+   "definition": "Rate of partial/dropped telemetry packets (degraded comms).",
+   "display_order": 350,
+   "domain": "reliability",
+   "generator": "ottoq_sim_emit_telemetry",
+   "kind": "rate",
+   "label": "Telemetry dropout",
+   "lifespan": "event",
+   "scope": "vehicle",
+   "unit": "\u00d7",
+   "var_key": "telemetry_dropout",
+   "wired": true
+  },
+  {
+   "definition": "How widely battery state-of-health varies across the fleet.",
+   "display_order": 360,
+   "domain": "reliability",
+   "generator": "ottoq_sim_advance_deployed_telemetry",
+   "kind": "continuous",
+   "label": "Battery-health spread",
+   "lifespan": "run",
+   "scope": "vehicle",
+   "unit": "\u00d7",
+   "var_key": "soh_spread",
+   "wired": true
+  },
+  {
+   "definition": "Rate of disabling breakdowns requiring a tow.",
+   "display_order": 370,
+   "domain": "reliability",
+   "generator": "ottoq_sim_maybe_incident",
+   "kind": "rate",
+   "label": "Breakdown / tow rate",
+   "lifespan": "event",
+   "scope": "vehicle",
+   "unit": "\u00d7",
+   "var_key": "breakdown_rate",
+   "wired": true
+  },
+  {
+   "definition": "Per-vehicle usable battery health; scales usable capacity + charge acceptance",
+   "display_order": 200,
+   "domain": "vehicle",
+   "generator": "boot_draw",
+   "kind": "continuous",
+   "label": "Battery health (SoH)",
+   "lifespan": "run",
+   "scope": "vehicle",
+   "unit": "%",
+   "var_key": "veh_battery_soh_pct",
+   "wired": true
+  },
+  {
+   "definition": "Per-vehicle drive-energy multiplier (driving style, drivetrain wear, HVAC bias)",
+   "display_order": 201,
+   "domain": "vehicle",
+   "generator": "boot_draw",
+   "kind": "continuous",
+   "label": "Energy consumption scalar",
+   "lifespan": "run",
+   "scope": "vehicle",
+   "unit": "x",
+   "var_key": "veh_consumption_scalar",
+   "wired": true
+  },
+  {
+   "definition": "Per-vehicle multiplier on delivered charge power (pack chemistry age, BMS caps)",
+   "display_order": 202,
+   "domain": "vehicle",
+   "generator": "boot_draw",
+   "kind": "continuous",
+   "label": "Charge-curve scalar",
+   "lifespan": "run",
+   "scope": "vehicle",
+   "unit": "x",
+   "var_key": "veh_charge_curve_scalar",
+   "wired": true
+  },
+  {
+   "definition": "Per-vehicle soil accrual multiplier (routes, districts, ride profile)",
+   "display_order": 203,
+   "domain": "vehicle",
+   "generator": "boot_draw",
+   "kind": "continuous",
+   "label": "Soiling rate",
+   "lifespan": "run",
+   "scope": "vehicle",
+   "unit": "x",
+   "var_key": "veh_soil_rate",
+   "wired": true
+  },
+  {
+   "definition": "Per-vehicle preventive-maintenance due distance",
+   "display_order": 204,
+   "domain": "vehicle",
+   "generator": "boot_draw",
+   "kind": "continuous",
+   "label": "PM interval",
+   "lifespan": "run",
+   "scope": "vehicle",
+   "unit": "km",
+   "var_key": "veh_pm_interval_km",
+   "wired": true
+  },
+  {
+   "definition": "Per-vehicle drive-hours between sensor calibrations",
+   "display_order": 205,
+   "domain": "vehicle",
+   "generator": "boot_draw",
+   "kind": "continuous",
+   "label": "Sensor calibration interval",
+   "lifespan": "run",
+   "scope": "vehicle",
+   "unit": "h",
+   "var_key": "veh_calib_interval_h",
+   "wired": true
+  },
+  {
+   "definition": "Per-vehicle service-time multiplier (access quirks, trim, sensor count)",
+   "display_order": 206,
+   "domain": "vehicle",
+   "generator": "boot_draw",
+   "kind": "continuous",
+   "label": "Service duration scalar",
+   "lifespan": "run",
+   "scope": "vehicle",
+   "unit": "x",
+   "var_key": "veh_service_speed_scalar",
+   "wired": true
+  },
+  {
+   "definition": "Deploy cycles between exterior washes for this vehicle",
+   "display_order": 207,
+   "domain": "vehicle",
+   "generator": "boot_draw",
+   "kind": "continuous",
+   "label": "Wash cadence",
+   "lifespan": "run",
+   "scope": "vehicle",
+   "unit": "cycles",
+   "var_key": "veh_wash_cadence_cycles",
+   "wired": true
+  }
+ ],
+ "classes": [
+  {
+   "battery_capacity_kwh": 12,
+   "manufacturer": "Generic",
+   "max_charge_rate_kw": 4,
+   "model": "Pallet-AMR",
+   "oem_name": "AMRCo",
+   "status": "active",
+   "vehicle_class_code": "amr_pallet_2025"
+  },
+  {
+   "battery_capacity_kwh": 100,
+   "manufacturer": "Generic",
+   "max_charge_rate_kw": 150,
+   "model": "AV-DCFC",
+   "oem_name": "Generic",
+   "status": "active",
+   "vehicle_class_code": "generic_av_dcfc"
+  },
+  {
+   "battery_capacity_kwh": 100,
+   "manufacturer": "Generic",
+   "max_charge_rate_kw": 19,
+   "model": "AV-L2",
+   "oem_name": "Generic",
+   "status": "active",
+   "vehicle_class_code": "generic_av_l2"
+  },
+  {
+   "battery_capacity_kwh": 90,
+   "manufacturer": "Generic",
+   "max_charge_rate_kw": 150,
+   "model": "Passenger AV",
+   "oem_name": "Generic",
+   "status": "active",
+   "vehicle_class_code": "generic_passenger_av"
+  },
+  {
+   "battery_capacity_kwh": 80,
+   "manufacturer": "Generic",
+   "max_charge_rate_kw": 150,
+   "model": "Robotaxi",
+   "oem_name": "Generic",
+   "status": "active",
+   "vehicle_class_code": "generic_robotaxi"
+  },
+  {
+   "battery_capacity_kwh": 75,
+   "manufacturer": "Tesla",
+   "max_charge_rate_kw": 250,
+   "model": "Model Y (Robotaxi config)",
+   "oem_name": "Tesla",
+   "status": "active",
+   "vehicle_class_code": "tesla_model_y_robotaxi_2024"
+  },
+  {
+   "battery_capacity_kwh": 84.7,
+   "manufacturer": "Jaguar",
+   "max_charge_rate_kw": 104,
+   "model": "I-Pace (Waymo-modified)",
+   "oem_name": "Waymo",
+   "status": "active",
+   "vehicle_class_code": "waymo_jaguar_ipace_2024"
+  },
+  {
+   "battery_capacity_kwh": 220,
+   "manufacturer": "Generic",
+   "max_charge_rate_kw": 150,
+   "model": "E-Tractor",
+   "oem_name": "YardCo",
+   "status": "active",
+   "vehicle_class_code": "yard_tractor_e_2025"
+  },
+  {
+   "battery_capacity_kwh": 133,
+   "manufacturer": "Zoox",
+   "max_charge_rate_kw": 100,
+   "model": "Robotaxi (purpose-built)",
+   "oem_name": "Zoox",
+   "status": "active",
+   "vehicle_class_code": "zoox_robotaxi_2024"
+  }
+ ],
+ "datasets": [
+  {
+   "data_quality_score": null,
+   "dataset_code": "nyc_tlc",
+   "date_range_end": "2024-06-28",
+   "date_range_start": "2024-06-01",
+   "description": "Billions of real for-hire-vehicle trips. Calibrates arrival rate by hour-of-day, day-of-week, seasonality.",
+   "domain": "arrivals",
+   "ingested_at": "2026-05-22T02:47:37.516906+00:00",
+   "ingestion_method": "file_download",
+   "ingestion_notes": "Ingested yellow_tripdata_2024-06: 3539142 in-range trips. Hourly + DoW arrival profiles + trip-duration distribution.",
+   "ingestion_script": "twin_ingest/ingest_calibration.py",
+   "license": "Public domain",
+   "record_count": 3539142,
+   "source_name": "NYC TLC Trip Record Data",
+   "source_org": "NYC Taxi & Limousine Commission",
+   "source_url": "https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page",
+   "status": "ingested",
+   "what_it_calibrates": "arrival_interval_minutes, hourly_arrival_rate, dow_demand_multiplier"
+  },
+  {
+   "data_quality_score": null,
+   "dataset_code": "acn_data",
+   "date_range_end": "2018-07-03",
+   "date_range_start": "2018-04-25",
+   "description": "130,000+ real EV charging sessions with arrival/departure times, energy requested + delivered, charge durations.",
+   "domain": "charging",
+   "ingested_at": "2026-05-22T03:27:39.729512+00:00",
+   "ingestion_method": "api",
+   "ingestion_notes": "Ingested 4000 real EV charging sessions from ACN-Data (Caltech + JPL). Charge-duration, energy-delivered, dwell-time distributions + hourly/DoW arrival profiles + dwell~energy correlation.",
+   "ingestion_script": "twin_ingest/ingest_calibration.py",
+   "license": "Free for research (registration)",
+   "record_count": 4000,
+   "source_name": "ACN-Data Adaptive Charging Network Dataset",
+   "source_org": "Caltech",
+   "source_url": "https://ev.caltech.edu/dataset",
+   "status": "ingested",
+   "what_it_calibrates": "charge_duration_minutes, energy_delivered_kwh, dwell_time_minutes, soc-vs-time charging curves"
+  },
+  {
+   "data_quality_score": null,
+   "dataset_code": "nrel_fleet",
+   "date_range_end": "2024-12-31",
+   "date_range_start": "2020-01-01",
+   "description": "Real commercial fleet operational behavior \u2014 duty cycles, daily energy, dwell patterns.",
+   "domain": "fleet",
+   "ingested_at": "2026-05-28T03:48:37.257882+00:00",
+   "ingestion_method": "file_download",
+   "ingestion_notes": "Encoded from NREL Fleet DNA published aggregate statistics. Daily energy lognormal (mean 50 kWh), miles normal (mean 120), idle-fraction beta(2, 4.5).",
+   "ingestion_script": "twin_ingest/ingest_calibration.py",
+   "license": "US Government public domain",
+   "record_count": 15000,
+   "source_name": "NREL Fleet DNA + EV Charging Datasets",
+   "source_org": "NREL",
+   "source_url": "https://www.nrel.gov/transportation/fleettest-fleet-dna.html",
+   "status": "ingested",
+   "what_it_calibrates": "daily_energy_kwh, vehicle_duty_cycle, service_interval_distribution"
+  },
+  {
+   "data_quality_score": null,
+   "dataset_code": "eia_grid",
+   "date_range_end": "2026-09-27",
+   "date_range_start": "2025-09-26",
+   "description": "Real hourly grid demand, generation mix, and interchange by balancing authority (TVA region for Nashville).",
+   "domain": "grid",
+   "ingested_at": "2026-09-27T04:03:46.619967+00:00",
+   "ingestion_method": "api_live",
+   "ingestion_notes": "Live refit via ottoq-twin-ingest: 8784 values for grid_demand_mw",
+   "ingestion_script": "twin_ingest/ingest_calibration.py",
+   "license": "US Government public domain",
+   "record_count": 8784,
+   "source_name": "EIA Hourly Electric Grid Monitor",
+   "source_org": "US Energy Information Administration",
+   "source_url": "https://www.eia.gov/electricity/gridmonitor/",
+   "status": "ingested",
+   "what_it_calibrates": "grid_demand_profile, carbon_intensity, tariff_window_shape"
+  },
+  {
+   "data_quality_score": null,
+   "dataset_code": "ca_dmv_av",
+   "date_range_end": "2024-12-31",
+   "date_range_start": "2022-01-01",
+   "description": "Real annual autonomous-vehicle disengagement and collision data from CA-permitted AV operators.",
+   "domain": "incidents",
+   "ingested_at": "2026-05-28T03:48:37.257882+00:00",
+   "ingestion_method": "file_download",
+   "ingestion_notes": "Encoded from published CA DMV AV disengagement + collision report aggregates (2022-2024). Miles-per-disengagement modeled as lognormal (median 5000 mi, sigma=1.4); cause mix and severity mix from industry-aggregate published findings.",
+   "ingestion_script": "twin_ingest/ingest_calibration.py",
+   "license": "Public record",
+   "record_count": 20000,
+   "source_name": "California DMV Autonomous Vehicle Disengagement + Collision Reports",
+   "source_org": "California DMV",
+   "source_url": "https://www.dmv.ca.gov/portal/vehicle-industry-services/autonomous-vehicles/",
+   "status": "ingested",
+   "what_it_calibrates": "incident_rate, disengagement_frequency, incident_type_mix, edge_case_library"
+  },
+  {
+   "data_quality_score": null,
+   "dataset_code": "charger_reliability",
+   "date_range_end": "2024-12-31",
+   "date_range_start": "2021-01-01",
+   "description": "Composite of published EV charger reliability + uptime studies \u2014 real fault rates, failure-mode mix.",
+   "domain": "reliability",
+   "ingested_at": "2026-05-28T03:48:37.257882+00:00",
+   "ingestion_method": "published_statistics",
+   "ingestion_notes": "Encoded from composite published EV charger reliability studies (UC Berkeley 2022 Bay Area, JD Power EVX, ChargerHelp). Uptime beta(15,5) ~75% mean; MTBF lognormal 30d median; session success beta(16,4) ~80% mean; fault mode mix from ChargerHelp.",
+   "ingestion_script": "twin_ingest/ingest_calibration.py",
+   "license": "Published research",
+   "record_count": 40000,
+   "source_name": "Public EV Charger Reliability Studies (composite)",
+   "source_org": "UC Berkeley / JD Power / academic literature",
+   "source_url": "https://escholarship.org/uc/item/0xx1n8nj",
+   "status": "ingested",
+   "what_it_calibrates": "charger_fault_rate, fault_mode_mix, mean_time_between_failures"
+  },
+  {
+   "data_quality_score": null,
+   "dataset_code": "ghcn_daily_bna",
+   "date_range_end": "2020-12-31",
+   "date_range_start": "1991-01-01",
+   "description": "Monthly wet-day Markov chain (p01 = P(wet|dry yesterday), p11 = P(wet|wet yesterday)) and empirical wet-day amount distributions computed directly from 10,956 QC-filtered daily precipitation observations, 1991-2020. Wet day = >=0.2mm. Includes the May 2010 flood (184.2mm) in the May tail.",
+   "domain": "weather",
+   "ingested_at": "2026-07-10T01:04:17.246327+00:00",
+   "ingestion_method": "feed_agent_local_computation_2026_07_09",
+   "ingestion_notes": null,
+   "ingestion_script": null,
+   "license": "public",
+   "record_count": 10956,
+   "source_name": "GHCN-Daily Nashville BNA (USW00013897) \u2014 computed precipitation structure",
+   "source_org": "NOAA NCEI",
+   "source_url": "https://www.ncei.noaa.gov/data/global-historical-climatology-network-daily/access/USW00013897.csv",
+   "status": "ingested",
+   "what_it_calibrates": "precip_mm daily budget card (Markov occurrence + monthly amount grids precip_wet_mm month:01..12), hourly disaggregation, ETA/incident cascade, wash demand, solar soiling"
+  },
+  {
+   "data_quality_score": null,
+   "dataset_code": "noaa_normals_1991_2020",
+   "date_range_end": "2020-12-31",
+   "date_range_start": "1991-01-01",
+   "description": "Official NOAA 30-year climate normals for Nashville International Airport: monthly mean daily max/min/avg temperature, NOAA-published within-month stddev of daily average temp (DLY-TAVG-STDDEV), record extremes (1873-present thread), and GHCN-Daily-computed lag-1 autocorrelation of daily mean anomalies (phi=0.72, n=10,958).",
+   "domain": "weather",
+   "ingested_at": "2026-07-09T22:18:36.394913+00:00",
+   "ingestion_method": "feed_agent_research_2026_07_09",
+   "ingestion_notes": null,
+   "ingestion_script": null,
+   "license": "public",
+   "record_count": 10958,
+   "source_name": "US Climate Normals 1991-2020 (Nashville BNA, USW00013897)",
+   "source_org": "NOAA NCEI",
+   "source_url": "https://www.ncei.noaa.gov/data/normals-monthly/1991-2020/access/USW00013897.csv",
+   "status": "ingested",
+   "what_it_calibrates": "ambient_temp_c monthly-conditioned distributions (segments month:01..month:12), per-month diurnal amplitude, AR(1) day-to-day persistence"
+  },
+  {
+   "data_quality_score": null,
+   "dataset_code": "noaa_nws",
+   "date_range_end": "2026-09-27",
+   "date_range_start": "2025-09-27",
+   "description": "Live + recent real weather observations for the depot location (Nashville).",
+   "domain": "weather",
+   "ingested_at": "2026-09-27T04:03:40.847275+00:00",
+   "ingestion_method": "api_live",
+   "ingestion_notes": "Live refit via ottoq-twin-ingest: 362 values for precip_mm",
+   "ingestion_script": "twin_ingest/ingest_calibration.py",
+   "license": "US Government public domain",
+   "record_count": 362,
+   "source_name": "NOAA National Weather Service API",
+   "source_org": "NOAA",
+   "source_url": "https://api.weather.gov",
+   "status": "ingested",
+   "what_it_calibrates": "ambient_temp_c, weather_severity, precipitation, wind_speed"
+  }
+ ],
+ "distributions": [
+  {
+   "best_fit_family": "empirical",
+   "dataset_code": "acn_data",
+   "sample_count": 3985,
+   "segment": "global",
+   "units": "minutes",
+   "variable_name": "charge_duration_minutes"
+  },
+  {
+   "best_fit_family": "empirical",
+   "dataset_code": "acn_data",
+   "sample_count": 3948,
+   "segment": "global",
+   "units": "minutes",
+   "variable_name": "dwell_time_minutes"
+  },
+  {
+   "best_fit_family": "empirical",
+   "dataset_code": "acn_data",
+   "sample_count": 4000,
+   "segment": "global",
+   "units": "kWh",
+   "variable_name": "energy_delivered_kwh"
+  },
+  {
+   "best_fit_family": "empirical",
+   "dataset_code": "ca_dmv_av",
+   "sample_count": 10000,
+   "segment": "global",
+   "units": "events_per_Mmi",
+   "variable_name": "collisions_per_million_miles"
+  },
+  {
+   "best_fit_family": "empirical",
+   "dataset_code": "ca_dmv_av",
+   "sample_count": 19941,
+   "segment": "global",
+   "units": "miles",
+   "variable_name": "miles_per_disengagement"
+  },
+  {
+   "best_fit_family": "empirical",
+   "dataset_code": "charger_reliability",
+   "sample_count": 10000,
+   "segment": "global",
+   "units": "fraction_0_1",
+   "variable_name": "charger_uptime_fraction"
+  },
+  {
+   "best_fit_family": "empirical",
+   "dataset_code": "charger_reliability",
+   "sample_count": 9987,
+   "segment": "global",
+   "units": "days",
+   "variable_name": "days_between_faults"
+  },
+  {
+   "best_fit_family": "empirical",
+   "dataset_code": "charger_reliability",
+   "sample_count": 9962,
+   "segment": "global",
+   "units": "days",
+   "variable_name": "repair_days"
+  },
+  {
+   "best_fit_family": "empirical",
+   "dataset_code": "charger_reliability",
+   "sample_count": 10000,
+   "segment": "global",
+   "units": "fraction_0_1",
+   "variable_name": "session_success_rate"
+  },
+  {
+   "best_fit_family": "empirical_quantile",
+   "dataset_code": "eia_grid",
+   "sample_count": 8784,
+   "segment": "global",
+   "units": "MW",
+   "variable_name": "grid_demand_mw"
+  },
+  {
+   "best_fit_family": "empirical",
+   "dataset_code": "ghcn_daily_bna",
+   "sample_count": 325,
+   "segment": "month:01",
+   "units": "mm_per_day",
+   "variable_name": "precip_wet_mm"
+  },
+  {
+   "best_fit_family": "empirical",
+   "dataset_code": "ghcn_daily_bna",
+   "sample_count": 323,
+   "segment": "month:02",
+   "units": "mm_per_day",
+   "variable_name": "precip_wet_mm"
+  },
+  {
+   "best_fit_family": "empirical",
+   "dataset_code": "ghcn_daily_bna",
+   "sample_count": 347,
+   "segment": "month:03",
+   "units": "mm_per_day",
+   "variable_name": "precip_wet_mm"
+  },
+  {
+   "best_fit_family": "empirical",
+   "dataset_code": "ghcn_daily_bna",
+   "sample_count": 337,
+   "segment": "month:04",
+   "units": "mm_per_day",
+   "variable_name": "precip_wet_mm"
+  },
+  {
+   "best_fit_family": "empirical",
+   "dataset_code": "ghcn_daily_bna",
+   "sample_count": 349,
+   "segment": "month:05",
+   "units": "mm_per_day",
+   "variable_name": "precip_wet_mm"
+  },
+  {
+   "best_fit_family": "empirical",
+   "dataset_code": "ghcn_daily_bna",
+   "sample_count": 321,
+   "segment": "month:06",
+   "units": "mm_per_day",
+   "variable_name": "precip_wet_mm"
+  },
+  {
+   "best_fit_family": "empirical",
+   "dataset_code": "ghcn_daily_bna",
+   "sample_count": 308,
+   "segment": "month:07",
+   "units": "mm_per_day",
+   "variable_name": "precip_wet_mm"
+  },
+  {
+   "best_fit_family": "empirical",
+   "dataset_code": "ghcn_daily_bna",
+   "sample_count": 283,
+   "segment": "month:08",
+   "units": "mm_per_day",
+   "variable_name": "precip_wet_mm"
+  },
+  {
+   "best_fit_family": "empirical",
+   "dataset_code": "ghcn_daily_bna",
+   "sample_count": 233,
+   "segment": "month:09",
+   "units": "mm_per_day",
+   "variable_name": "precip_wet_mm"
+  },
+  {
+   "best_fit_family": "empirical",
+   "dataset_code": "ghcn_daily_bna",
+   "sample_count": 252,
+   "segment": "month:10",
+   "units": "mm_per_day",
+   "variable_name": "precip_wet_mm"
+  },
+  {
+   "best_fit_family": "empirical",
+   "dataset_code": "ghcn_daily_bna",
+   "sample_count": 271,
+   "segment": "month:11",
+   "units": "mm_per_day",
+   "variable_name": "precip_wet_mm"
+  },
+  {
+   "best_fit_family": "empirical",
+   "dataset_code": "ghcn_daily_bna",
+   "sample_count": 342,
+   "segment": "month:12",
+   "units": "mm_per_day",
+   "variable_name": "precip_wet_mm"
+  },
+  {
+   "best_fit_family": "parametric_normal_from_noaa_normals",
+   "dataset_code": "noaa_normals_1991_2020",
+   "sample_count": 810,
+   "segment": "month:01",
+   "units": "celsius",
+   "variable_name": "ambient_temp_c"
+  },
+  {
+   "best_fit_family": "parametric_normal_from_noaa_normals",
+   "dataset_code": "noaa_normals_1991_2020",
+   "sample_count": 810,
+   "segment": "month:02",
+   "units": "celsius",
+   "variable_name": "ambient_temp_c"
+  },
+  {
+   "best_fit_family": "parametric_normal_from_noaa_normals",
+   "dataset_code": "noaa_normals_1991_2020",
+   "sample_count": 810,
+   "segment": "month:03",
+   "units": "celsius",
+   "variable_name": "ambient_temp_c"
+  },
+  {
+   "best_fit_family": "parametric_normal_from_noaa_normals",
+   "dataset_code": "noaa_normals_1991_2020",
+   "sample_count": 810,
+   "segment": "month:04",
+   "units": "celsius",
+   "variable_name": "ambient_temp_c"
+  },
+  {
+   "best_fit_family": "parametric_normal_from_noaa_normals",
+   "dataset_code": "noaa_normals_1991_2020",
+   "sample_count": 810,
+   "segment": "month:05",
+   "units": "celsius",
+   "variable_name": "ambient_temp_c"
+  },
+  {
+   "best_fit_family": "parametric_normal_from_noaa_normals",
+   "dataset_code": "noaa_normals_1991_2020",
+   "sample_count": 810,
+   "segment": "month:06",
+   "units": "celsius",
+   "variable_name": "ambient_temp_c"
+  },
+  {
+   "best_fit_family": "parametric_normal_from_noaa_normals",
+   "dataset_code": "noaa_normals_1991_2020",
+   "sample_count": 810,
+   "segment": "month:07",
+   "units": "celsius",
+   "variable_name": "ambient_temp_c"
+  },
+  {
+   "best_fit_family": "parametric_normal_from_noaa_normals",
+   "dataset_code": "noaa_normals_1991_2020",
+   "sample_count": 810,
+   "segment": "month:08",
+   "units": "celsius",
+   "variable_name": "ambient_temp_c"
+  },
+  {
+   "best_fit_family": "parametric_normal_from_noaa_normals",
+   "dataset_code": "noaa_normals_1991_2020",
+   "sample_count": 810,
+   "segment": "month:09",
+   "units": "celsius",
+   "variable_name": "ambient_temp_c"
+  },
+  {
+   "best_fit_family": "parametric_normal_from_noaa_normals",
+   "dataset_code": "noaa_normals_1991_2020",
+   "sample_count": 810,
+   "segment": "month:10",
+   "units": "celsius",
+   "variable_name": "ambient_temp_c"
+  },
+  {
+   "best_fit_family": "parametric_normal_from_noaa_normals",
+   "dataset_code": "noaa_normals_1991_2020",
+   "sample_count": 810,
+   "segment": "month:11",
+   "units": "celsius",
+   "variable_name": "ambient_temp_c"
+  },
+  {
+   "best_fit_family": "parametric_normal_from_noaa_normals",
+   "dataset_code": "noaa_normals_1991_2020",
+   "sample_count": 810,
+   "segment": "month:12",
+   "units": "celsius",
+   "variable_name": "ambient_temp_c"
+  },
+  {
+   "best_fit_family": "empirical_quantile",
+   "dataset_code": "noaa_nws",
+   "sample_count": 724,
+   "segment": "global",
+   "units": "C",
+   "variable_name": "ambient_temp_c"
+  },
+  {
+   "best_fit_family": "empirical_quantile",
+   "dataset_code": "noaa_nws",
+   "sample_count": 362,
+   "segment": "global",
+   "units": "mm",
+   "variable_name": "precip_mm"
+  },
+  {
+   "best_fit_family": "empirical",
+   "dataset_code": "noaa_nws",
+   "sample_count": 493,
+   "segment": "global",
+   "units": "km/h",
+   "variable_name": "wind_speed_kmh"
+  },
+  {
+   "best_fit_family": "empirical",
+   "dataset_code": "nrel_fleet",
+   "sample_count": 14991,
+   "segment": "global",
+   "units": "kWh",
+   "variable_name": "daily_energy_kwh"
+  },
+  {
+   "best_fit_family": "empirical",
+   "dataset_code": "nrel_fleet",
+   "sample_count": 14792,
+   "segment": "global",
+   "units": "miles",
+   "variable_name": "daily_miles_driven"
+  },
+  {
+   "best_fit_family": "empirical",
+   "dataset_code": "nrel_fleet",
+   "sample_count": 10000,
+   "segment": "global",
+   "units": "fraction_0_1",
+   "variable_name": "idle_fraction_per_shift"
+  },
+  {
+   "best_fit_family": "empirical",
+   "dataset_code": "nyc_tlc",
+   "sample_count": 3503651,
+   "segment": "global",
+   "units": "minutes",
+   "variable_name": "trip_duration_minutes"
+  }
+ ],
+ "feed_plans": [
+  {
+   "authored_by": "dossier_v1",
+   "created_at": "2026-07-09T22:20:20.021478+00:00",
+   "method": "quantile_grid",
+   "provenance": {
+    "ar1_method": "lag-1 Pearson r of deseasonalized daily means, GHCN-Daily 1991-2020, n=10958; monthly phis 0.69-0.80 (summer stickier); WGEN literature range 0.6-0.8",
+    "ghcn_qc_warning": "raw GHCN parsing REQUIRES QFLAG filtering (unfiltered parse produced a bogus -40C value)",
+    "grid_method": "quantile grids generated from Normal(mean, sigma) per month, clamped to record extremes; parametric-through-grid, declared",
+    "records_period": "1873-present (NWS thread); 21/24 extremes match BNA-only GHCN recompute",
+    "retrieved": "2026-07-09",
+    "sigma_method": "NOAA published DLY-TAVG-STDDEV (within-month mean), cross-validated against GHCN-Daily anomalies within 0.2C every month",
+    "source_type": "noaa_official_normals",
+    "sources": [
+     "https://www.ncei.noaa.gov/data/normals-monthly/1991-2020/access/USW00013897.csv",
+     "https://www.ncei.noaa.gov/data/normals-daily/1991-2020/access/USW00013897.csv",
+     "https://www.ncei.noaa.gov/data/global-historical-climatology-network-daily/access/USW00013897.csv"
+    ],
+    "station": "USW00013897 NASHVILLE INTL AP (36.1189, -86.6892, 182.9m)"
+   },
+   "status": "active",
+   "var_key": "ambient_temp_c",
+   "version": 1
+  },
+  {
+   "authored_by": "nemotron-3-ultra",
+   "created_at": "2026-09-30T12:57:03.409033+00:00",
+   "method": "quantile_grid",
+   "provenance": {
+    "dataset_code": "charger_reliability",
+    "declared_assumptions": [
+     {
+      "name": "depot_grade_fault_discount",
+      "value": 0.25,
+      "why": "fitted public-network session failure is 0.20; a maintained private depot with daily utilization and on-site staff is assumed 4x more reliable -> base 0.05, matching prior world behavior but now sourced and tunable"
+     },
+     {
+      "name": "depot_staffed_factor",
+      "value": 0.02,
+      "why": "fitted repair_days reflect public-network truck-roll logistics (mean 7.3 DAYS); a staffed depot with on-site technician and parts is assumed ~50x faster -> mean ~3.5h, median ~2.3h, long tail to 48h preserved via the fitted grid shape"
+     }
+    ],
+    "fitted_stats": {
+     "mtbf_mean_days": 42.1,
+     "mtbf_median_days": 29.5,
+     "public_session_success": 0.799,
+     "repair_mean_days": 7.3,
+     "repair_median_days": 4.89
+    },
+    "sample_sizes": {
+     "days_between_faults": 9987,
+     "repair_days": 9962,
+     "session_success_rate": 10000,
+     "uptime_fraction": 10000
+    },
+    "source_type": "static_corpus"
+   },
+   "status": "active",
+   "var_key": "charger_fault_repair",
+   "version": 3
+  },
+  {
+   "authored_by": "dossier_v1",
+   "created_at": "2026-07-09T18:51:32.542064+00:00",
+   "method": "parametric",
+   "provenance": {
+    "computed_stats": {
+     "annual_mean": {
+      "y2024": 24.37,
+      "y2025": 33.44,
+      "y2026H1": 36.18
+     },
+     "da_floor_observed": 5.44,
+     "da_negative_hours": 0,
+     "hourly_stdev": 16.12,
+     "p5": 14.86,
+     "p95": 51.08,
+     "p99": 100.98,
+     "pct_hours_above_100_2025": 1.16,
+     "pct_hours_above_200_2024_25": 0.07,
+     "storm_precedents": {
+      "Enzo_Jan2025_max": 275,
+      "Heather_Jan2024_max": 280,
+      "Jan2026_6day_event_mean": 239.95,
+      "Jan2026_max": 835.94
+     }
+    },
+    "corpus": "MISO DA ex-post LMP CSVs 2024-01-01..2026-06-30 (912 files, 21,888 hourly prices/hub) + 183-day RT sample",
+    "cross_check": "INDIANA.HUB 2025 $43.73 (upper bracket, +30% northern congestion); PJM Western Hub 2025 DA ~$42; MISO all-in 2024 $31 (Potomac Economics SOM)",
+    "declared_assumptions": [
+     {
+      "name": "tva_proxy",
+      "why": "TVA is not in an RTO and publishes no spot prices; ARKANSAS.HUB borders TVA at the west-Tennessee seam with the same gas-heavy southern stack \u2014 the most defensible public proxy"
+     },
+     {
+      "name": "cheap_threshold_22",
+      "why": "p5=14.86 and mean=33; 22 approximates p25 (charge-cheap trigger); expensive=51.08 is the computed p95 (discharge trigger)"
+     },
+     {
+      "name": "symmetric_day_regime",
+      "why": "day-to-day drift modeled as symmetric multiplier around the seasonal mean, clamped 0.6-1.8; matches observed day-mean dispersion to first order"
+     },
+     {
+      "name": "temp_coupling_scaled_down",
+      "why": "legacy +$8/MWh per degC above 30 was unsourced and hot; scaled to +1.5 heat / +3.0 cold as a scarcity proxy consistent with winter-peaking evidence"
+     }
+    ],
+    "live_refresh": {
+     "primary": "https://docs.misoenergy.org/marketreports/{YYYYMMDD}_da_expost_lmp.csv \u2014 keyless, one file/day, proven 912/912",
+     "secondary": "EIA API v2 electricity/wholesale-prices (daily ICE trade data, free key required)"
+    },
+    "retrieved": "2026-07-09",
+    "source_type": "computed_from_primary_market_data",
+    "trend_warning": "ARK mean +37 pct 2024->2025, +8 pct into 2026H1 (gas +56 pct); baseline set to 2025, agent should revisit against 2026 actuals"
+   },
+   "status": "active",
+   "var_key": "lmp_usd_mwh",
+   "version": 1
+  },
+  {
+   "authored_by": "dossier_v1",
+   "created_at": "2026-07-10T01:04:17.246327+00:00",
+   "method": "quantile_grid",
+   "provenance": {
+    "corpus": "GHCN-Daily USW00013897, 10,956 QC-filtered days 1991-2020",
+    "declared_assumptions": [
+     {
+      "name": "hourly_disaggregation",
+      "why": "hourly precipitation observations are not in the corpus; wet-window length by daily budget and the summer-afternoon convective bias are climatological assumptions, declared and tunable"
+     },
+     {
+      "name": "intensity_jitter",
+      "why": "within-window hourly intensity varies +/-60 pct around budget/hours; unbiased to first order"
+     }
+    ],
+    "method": "first-order two-state Markov chain per month (WGEN family, Richardson & Wright USDA); amounts = empirical monthly quantile grids over wet days (n=233-349/mo)",
+    "notable": "May 2010 flood (184.2mm) present in the May tail; September is the driest month (p_wet 0.259), February the wettest (0.381)",
+    "retrieved": "2026-07-09",
+    "source_type": "computed_from_primary_noaa_data"
+   },
+   "status": "active",
+   "var_key": "precip_unified",
+   "version": 1
+  },
+  {
+   "authored_by": "dossier_v1",
+   "created_at": "2026-07-10T01:15:23.607581+00:00",
+   "method": "policy",
+   "provenance": {
+    "basis": "OTTOQ_SERVICE_OPS_RESEARCH cadence model (camera-triggered probabilistic cleaning validated by Waymo Bayview depot reporting); the numbers are explicitly tunable assumptions pending a real fleet-servicing corpus",
+    "coupling_evidence": "rain->dirtier vehicles: precip_stress from the unified GHCN Markov daily card multiplies cleaning probabilities by (1 + stress * 0.6), capped at 0.90",
+    "future": "mileage-based sensor_calibration/mechanical_pm using NREL daily_miles (fitted, unused) once vehicle odometer state exists",
+    "retrieved": "2026-07-10",
+    "source_type": "declared_assumptions"
+   },
+   "status": "active",
+   "var_key": "service_manifest",
+   "version": 1
+  },
+  {
+   "authored_by": "dossier_v1",
+   "created_at": "2026-07-09T18:28:43.834148+00:00",
+   "method": "policy",
+   "provenance": {
+    "cross_check": "KUB Knoxville GSA-3 (same TVA family): summer $20.22/$20.96, winter $19.46/$20.20 \u2014 NES squarely in-family",
+    "headline_implication": "prior $10/kW assumption understates Nashville ~2x; a 1,000 kW shave prices at ~$21.8k/mo summer / ~$20.7k/mo winter at real NES marginal rates \u2014 re-certify the $ headline via CRN A/B before quoting",
+    "retrieved": "2026-07-09",
+    "source_type": "utility_tariff_pdf",
+    "sources": [
+     "https://www.nespower.com/-/media/project/nes/common/pdfs/commercial-rates/2025/april/gsa-123.pdf",
+     "https://www.nespower.com/-/media/project/nes/common/pdfs/commercial-rates/2025/april/evc.pdf",
+     "https://apps.openei.org/USURDB/rate/view/69d67ac84fd71a629e04639c"
+    ]
+   },
+   "status": "active",
+   "var_key": "tariff_demand_charge",
+   "version": 1
+  }
+ ],
+ "ledger": [
+  {
+   "abstained": 18072,
+   "agent_calls_with_no_l1_rules": 0,
+   "answered": 702,
+   "avg_decision_latency_ms": 4,
+   "avg_latency_ms": 258,
+   "calls": 8941,
+   "calls_over_one_tick": 0,
+   "captured_decisions": 9936,
+   "decisions_over_one_tick": 0,
+   "declined_all_calls": 266,
+   "errored": 44,
+   "fell_back": 0,
+   "first_call": "2026-09-14T00:35:02.082982+00:00",
+   "last_call": "2026-10-02T19:28:04.464098+00:00",
+   "ledger_rows": 18877,
+   "max_decision_latency_ms": 49,
+   "max_latency_ms": 20013,
+   "no_candidate_calls": 8015,
+   "outcomes": {
+    "answered": 557,
+    "deferred_site_power_cap": 9791,
+    "enacted": 145,
+    "errored": 44,
+    "refused": 59,
+    "solved_but_zero_proposals": 8281
+   },
+   "proposals": 1077,
+   "provider": "cpsat_service",
+   "provider_status_2xx": 8847,
+   "provider_status_other": 50,
+   "provider_status_unknown": 9980,
+   "reconstructed": 41,
+   "refused": 59,
+   "role": "proposer",
+   "unclassified": 0
+  },
+  {
+   "abstained": 18,
+   "agent_calls_with_no_l1_rules": 0,
+   "answered": 1147,
+   "avg_decision_latency_ms": null,
+   "avg_latency_ms": 2712,
+   "calls": 1165,
+   "calls_over_one_tick": 18,
+   "captured_decisions": 0,
+   "decisions_over_one_tick": 0,
+   "declined_all_calls": 0,
+   "errored": 0,
+   "fell_back": 0,
+   "first_call": "2026-08-29T03:36:09.834+00:00",
+   "last_call": "2026-09-27T12:03:06.08538+00:00",
+   "ledger_rows": 1165,
+   "max_decision_latency_ms": null,
+   "max_latency_ms": 116056,
+   "no_candidate_calls": 0,
+   "outcomes": {
+    "abstained": 18,
+    "answered": 1147
+   },
+   "proposals": 5093,
+   "provider": "nvidia_cuopt",
+   "provider_status_2xx": 1165,
+   "provider_status_other": 0,
+   "provider_status_unknown": 0,
+   "reconstructed": 515,
+   "refused": 0,
+   "role": "proposer",
+   "unclassified": 0
+  },
+  {
+   "abstained": 2,
+   "agent_calls_with_no_l1_rules": 12627,
+   "answered": 12185,
+   "avg_decision_latency_ms": 20743,
+   "avg_latency_ms": null,
+   "calls": 0,
+   "calls_over_one_tick": 0,
+   "captured_decisions": 12627,
+   "decisions_over_one_tick": 2435,
+   "declined_all_calls": 0,
+   "errored": 0,
+   "fell_back": 440,
+   "first_call": "2026-08-29T03:36:13.826584+00:00",
+   "last_call": "2026-10-02T19:28:04.512158+00:00",
+   "ledger_rows": 12627,
+   "max_decision_latency_ms": 199290,
+   "max_latency_ms": null,
+   "no_candidate_calls": 0,
+   "outcomes": {
+    "enacted": 12185,
+    "fallback": 440,
+    "noop_no_candidate": 2
+   },
+   "proposals": 0,
+   "provider": "nvidia_nemotron",
+   "provider_status_2xx": 0,
+   "provider_status_other": 0,
+   "provider_status_unknown": 12627,
+   "reconstructed": 1193,
+   "refused": 0,
+   "role": "agent",
+   "unclassified": 0
+  }
+ ],
+ "posture": [
+  {
+   "action_context": "bess_state_change",
+   "callers": [
+    "public.ottoq_bess_units_state_change"
+   ],
+   "captures_no_branch": 0,
+   "discarding": 1,
+   "honouring": 0,
+   "posture": "advisory"
+  },
+  {
+   "action_context": "policy_write",
+   "callers": [
+    "public.ottoq_policy_set"
+   ],
+   "captures_no_branch": 0,
+   "discarding": 1,
+   "honouring": 0,
+   "posture": "advisory"
+  },
+  {
+   "action_context": "stall_state_change",
+   "callers": [
+    "public.ottoq_stalls_state_change"
+   ],
+   "captures_no_branch": 0,
+   "discarding": 1,
+   "honouring": 0,
+   "posture": "advisory"
+  },
+  {
+   "action_context": "task_completion",
+   "callers": [
+    "public.ottoq_probe_task_completion_at"
+   ],
+   "captures_no_branch": 1,
+   "discarding": 0,
+   "honouring": 0,
+   "posture": "advisory"
+  },
+  {
+   "action_context": "vehicle_state_change",
+   "callers": [
+    "public.ottoq_vehicles_state_change"
+   ],
+   "captures_no_branch": 0,
+   "discarding": 1,
+   "honouring": 0,
+   "posture": "advisory"
+  },
+  {
+   "action_context": "bess_dispatch",
+   "callers": [
+    "public.ottoq_decide_tick"
+   ],
+   "captures_no_branch": 0,
+   "discarding": 0,
+   "honouring": 1,
+   "posture": "enforced"
+  },
+  {
+   "action_context": "charge_session_start",
+   "callers": [
+    "twin.ottoq_sim_start_charge_session"
+   ],
+   "captures_no_branch": 0,
+   "discarding": 0,
+   "honouring": 1,
+   "posture": "enforced"
+  },
+  {
+   "action_context": "redeployment",
+   "callers": [
+    "public.ottoq_decide_tick"
+   ],
+   "captures_no_branch": 0,
+   "discarding": 0,
+   "honouring": 1,
+   "posture": "enforced"
+  },
+  {
+   "action_context": "stall_assignment",
+   "callers": [
+    "public.ottoq_decide_tick"
+   ],
+   "captures_no_branch": 0,
+   "discarding": 0,
+   "honouring": 1,
+   "posture": "enforced"
+  },
+  {
+   "action_context": "task_start",
+   "callers": [
+    "ottoq.ottoq_enact_inspection_seam",
+    "public.ottoq_decide_tick"
+   ],
+   "captures_no_branch": 0,
+   "discarding": 0,
+   "honouring": 2,
+   "posture": "enforced"
+  },
+  {
+   "action_context": null,
+   "callers": [
+    "public.ottoq_assert_shield_posture_known",
+    "public.ottoq_shield_and_log",
+    "public.ottoq_shield_probe_posture"
+   ],
+   "captures_no_branch": 0,
+   "discarding": 0,
+   "honouring": 1,
+   "posture": "unresolvable_variable_context"
+  }
+ ],
+ "rules": [
+  {
+   "applies_to_actions": [
+    "policy_write"
+   ],
+   "category": "role_authorization",
+   "enforcement": "log_only",
+   "rule_code": "AI.001.agent_dial_within_envelope",
+   "severity": "critical",
+   "status": "active",
+   "title": "An AI actor may only move a dial it is declared to own, inside its declared envelope",
+   "version": 1
+  },
+  {
+   "applies_to_actions": [
+    "task_start",
+    "stall_assignment",
+    "charge_session_start",
+    "power_increase"
+   ],
+   "category": "energy_safety",
+   "enforcement": "block",
+   "rule_code": "EN.001.grid_capacity_ceiling",
+   "severity": "safety_critical",
+   "status": "archived",
+   "title": "Depot grid capacity ceiling",
+   "version": 1
+  },
+  {
+   "applies_to_actions": [
+    "task_start",
+    "stall_assignment",
+    "charge_session_start",
+    "power_increase"
+   ],
+   "category": "energy_safety",
+   "enforcement": "block",
+   "rule_code": "EN.001.grid_capacity_ceiling",
+   "severity": "safety_critical",
+   "status": "active",
+   "title": "Depot grid capacity ceiling",
+   "version": 2
+  },
+  {
+   "applies_to_actions": [
+    "task_start",
+    "charge_session_start",
+    "power_increase"
+   ],
+   "category": "energy_safety",
+   "enforcement": "block",
+   "rule_code": "EN.002.stall_power_ceiling",
+   "severity": "critical",
+   "status": "archived",
+   "title": "Per-stall power ceiling",
+   "version": 1
+  },
+  {
+   "applies_to_actions": [
+    "task_start",
+    "charge_session_start",
+    "power_increase"
+   ],
+   "category": "energy_safety",
+   "enforcement": "block",
+   "rule_code": "EN.002.stall_power_ceiling",
+   "severity": "critical",
+   "status": "active",
+   "title": "Per-stall power ceiling",
+   "version": 2
+  },
+  {
+   "applies_to_actions": [
+    "bess_charge",
+    "bess_discharge",
+    "bess_dispatch"
+   ],
+   "category": "energy_safety",
+   "enforcement": "block",
+   "rule_code": "EN.003.bess_limits",
+   "severity": "safety_critical",
+   "status": "archived",
+   "title": "BESS state-of-charge + thermal limits",
+   "version": 1
+  },
+  {
+   "applies_to_actions": [
+    "bess_charge",
+    "bess_discharge",
+    "bess_dispatch"
+   ],
+   "category": "energy_safety",
+   "enforcement": "block",
+   "rule_code": "EN.003.bess_limits",
+   "severity": "safety_critical",
+   "status": "active",
+   "title": "BESS state-of-charge + thermal limits",
+   "version": 2
+  },
+  {
+   "applies_to_actions": [
+    "task_start",
+    "charge_session_start",
+    "power_increase"
+   ],
+   "category": "energy_safety",
+   "enforcement": "block",
+   "rule_code": "EN.004.demand_response_compliance",
+   "severity": "critical",
+   "status": "archived",
+   "title": "Demand-response window compliance",
+   "version": 1
+  },
+  {
+   "applies_to_actions": [
+    "task_start",
+    "charge_session_start",
+    "power_increase"
+   ],
+   "category": "energy_safety",
+   "enforcement": "block",
+   "rule_code": "EN.004.demand_response_compliance",
+   "severity": "critical",
+   "status": "active",
+   "title": "Demand-response window compliance",
+   "version": 2
+  },
+  {
+   "applies_to_actions": [
+    "task_start",
+    "charge_session_start",
+    "stall_assignment"
+   ],
+   "category": "energy_safety",
+   "enforcement": "block",
+   "rule_code": "EN.005.grid_event_hardstop",
+   "severity": "safety_critical",
+   "status": "archived",
+   "title": "Grid event hard stop",
+   "version": 1
+  },
+  {
+   "applies_to_actions": [
+    "task_start",
+    "charge_session_start",
+    "stall_assignment"
+   ],
+   "category": "energy_safety",
+   "enforcement": "block",
+   "rule_code": "EN.005.grid_event_hardstop",
+   "severity": "safety_critical",
+   "status": "active",
+   "title": "Grid event hard stop",
+   "version": 2
+  },
+  {
+   "applies_to_actions": [
+    "stall_assignment",
+    "task_start",
+    "redeployment"
+   ],
+   "category": "hardware_safety",
+   "enforcement": "block",
+   "rule_code": "HW.001.connector_compatibility",
+   "severity": "safety_critical",
+   "status": "archived",
+   "title": "Connector / inlet compatibility",
+   "version": 1
+  },
+  {
+   "applies_to_actions": [
+    "stall_assignment",
+    "task_start"
+   ],
+   "category": "hardware_safety",
+   "enforcement": "block",
+   "rule_code": "HW.001.connector_compatibility",
+   "severity": "safety_critical",
+   "status": "active",
+   "title": "Connector / inlet compatibility",
+   "version": 2
+  },
+  {
+   "applies_to_actions": [
+    "task_start",
+    "stall_assignment",
+    "charge_session_start"
+   ],
+   "category": "hardware_safety",
+   "enforcement": "block",
+   "rule_code": "HW.002.charger_state_precondition",
+   "severity": "critical",
+   "status": "archived",
+   "title": "OCPP charger state precondition",
+   "version": 1
+  },
+  {
+   "applies_to_actions": [
+    "task_start",
+    "stall_assignment",
+    "charge_session_start"
+   ],
+   "category": "hardware_safety",
+   "enforcement": "block",
+   "rule_code": "HW.002.charger_state_precondition",
+   "severity": "critical",
+   "status": "active",
+   "title": "OCPP charger state precondition",
+   "version": 2
+  },
+  {
+   "applies_to_actions": [
+    "task_start",
+    "task_completion",
+    "redeployment"
+   ],
+   "category": "sensor_liveness",
+   "enforcement": "block",
+   "rule_code": "HW.003.sensor_liveness",
+   "severity": "safety_critical",
+   "status": "archived",
+   "title": "SOC sensor liveness gate",
+   "version": 1
+  },
+  {
+   "applies_to_actions": [
+    "task_start",
+    "task_completion",
+    "redeployment"
+   ],
+   "category": "sensor_liveness",
+   "enforcement": "block",
+   "rule_code": "HW.003.sensor_liveness",
+   "severity": "safety_critical",
+   "status": "active",
+   "title": "SOC sensor liveness gate",
+   "version": 2
+  },
+  {
+   "applies_to_actions": [
+    "stall_assignment"
+   ],
+   "category": "concurrency",
+   "enforcement": "block",
+   "rule_code": "HW.004.stall_single_vehicle",
+   "severity": "critical",
+   "status": "archived",
+   "title": "Single vehicle per stall",
+   "version": 1
+  },
+  {
+   "applies_to_actions": [
+    "stall_assignment"
+   ],
+   "category": "concurrency",
+   "enforcement": "block",
+   "rule_code": "HW.004.stall_single_vehicle",
+   "severity": "critical",
+   "status": "active",
+   "title": "Single vehicle per stall",
+   "version": 2
+  },
+  {
+   "applies_to_actions": [
+    "task_start"
+   ],
+   "category": "concurrency",
+   "enforcement": "block",
+   "rule_code": "HW.005.vehicle_one_active_task",
+   "severity": "critical",
+   "status": "archived",
+   "title": "One active task per vehicle",
+   "version": 1
+  },
+  {
+   "applies_to_actions": [
+    "task_start"
+   ],
+   "category": "concurrency",
+   "enforcement": "block",
+   "rule_code": "HW.005.vehicle_one_active_task",
+   "severity": "critical",
+   "status": "active",
+   "title": "One active task per vehicle",
+   "version": 2
+  },
+  {
+   "applies_to_actions": [
+    "task_completion"
+   ],
+   "category": "hardware_safety",
+   "enforcement": "block",
+   "rule_code": "HW.006.physical_presence_verification",
+   "severity": "critical",
+   "status": "archived",
+   "title": "Vehicle physical presence verification",
+   "version": 1
+  },
+  {
+   "applies_to_actions": [
+    "task_completion"
+   ],
+   "category": "hardware_safety",
+   "enforcement": "block",
+   "rule_code": "HW.006.physical_presence_verification",
+   "severity": "critical",
+   "status": "active",
+   "title": "Vehicle physical presence verification",
+   "version": 2
+  },
+  {
+   "applies_to_actions": [
+    "redeployment",
+    "release",
+    "oem_acceptance"
+   ],
+   "category": "sla_contract",
+   "enforcement": "block",
+   "rule_code": "SLA.001.min_soc_at_deployment",
+   "severity": "critical",
+   "status": "archived",
+   "title": "Minimum SOC at deployment",
+   "version": 1
+  },
+  {
+   "applies_to_actions": [
+    "redeployment",
+    "release",
+    "oem_acceptance"
+   ],
+   "category": "sla_contract",
+   "enforcement": "block",
+   "rule_code": "SLA.001.min_soc_at_deployment",
+   "severity": "critical",
+   "status": "active",
+   "title": "Minimum SOC at deployment",
+   "version": 2
+  },
+  {
+   "applies_to_actions": [
+    "arrival",
+    "queue_admission"
+   ],
+   "category": "sla_contract",
+   "enforcement": "warn",
+   "rule_code": "SLA.002.max_queue_depth",
+   "severity": "warning",
+   "status": "archived",
+   "title": "Maximum queue depth per fleet operator",
+   "version": 1
+  },
+  {
+   "applies_to_actions": [
+    "arrival",
+    "queue_admission"
+   ],
+   "category": "sla_contract",
+   "enforcement": "warn",
+   "rule_code": "SLA.002.max_queue_depth",
+   "severity": "warning",
+   "status": "active",
+   "title": "Maximum queue depth per fleet operator",
+   "version": 2
+  },
+  {
+   "applies_to_actions": [
+    "task_completion",
+    "redeployment",
+    "visit_progress_check"
+   ],
+   "category": "sla_contract",
+   "enforcement": "warn",
+   "rule_code": "SLA.003.max_visit_duration",
+   "severity": "warning",
+   "status": "archived",
+   "title": "Maximum visit duration",
+   "version": 1
+  },
+  {
+   "applies_to_actions": [
+    "task_completion",
+    "redeployment",
+    "visit_progress_check"
+   ],
+   "category": "sla_contract",
+   "enforcement": "warn",
+   "rule_code": "SLA.003.max_visit_duration",
+   "severity": "warning",
+   "status": "active",
+   "title": "Maximum visit duration",
+   "version": 2
+  },
+  {
+   "applies_to_actions": [
+    "redeployment",
+    "release",
+    "oem_acceptance"
+   ],
+   "category": "sla_contract",
+   "enforcement": "block",
+   "rule_code": "SLA.004.required_services_complete",
+   "severity": "critical",
+   "status": "archived",
+   "title": "Required services completion before deployment",
+   "version": 1
+  },
+  {
+   "applies_to_actions": [
+    "redeployment",
+    "release",
+    "oem_acceptance"
+   ],
+   "category": "sla_contract",
+   "enforcement": "block",
+   "rule_code": "SLA.004.required_services_complete",
+   "severity": "critical",
+   "status": "active",
+   "title": "Required services completion before deployment",
+   "version": 2
+  },
+  {
+   "applies_to_actions": [
+    "redeployment",
+    "oem_acceptance"
+   ],
+   "category": "sla_contract",
+   "enforcement": "log_only",
+   "rule_code": "SLA.005.oem_acceptance_timing",
+   "severity": "info",
+   "status": "archived",
+   "title": "OEM acceptance gate configuration",
+   "version": 1
+  },
+  {
+   "applies_to_actions": [
+    "redeployment",
+    "oem_acceptance"
+   ],
+   "category": "sla_contract",
+   "enforcement": "log_only",
+   "rule_code": "SLA.005.oem_acceptance_timing",
+   "severity": "info",
+   "status": "active",
+   "title": "OEM acceptance gate configuration",
+   "version": 2
+  },
+  {
+   "applies_to_actions": [
+    "task_start",
+    "schedule_creation"
+   ],
+   "category": "time_window",
+   "enforcement": "warn",
+   "rule_code": "SLA.006.maintenance_window",
+   "severity": "warning",
+   "status": "archived",
+   "title": "Maintenance window restriction",
+   "version": 1
+  },
+  {
+   "applies_to_actions": [
+    "task_start",
+    "schedule_creation"
+   ],
+   "category": "time_window",
+   "enforcement": "warn",
+   "rule_code": "SLA.006.maintenance_window",
+   "severity": "warning",
+   "status": "active",
+   "title": "Maintenance window restriction",
+   "version": 2
+  },
+  {
+   "applies_to_actions": [
+    "redeployment",
+    "release",
+    "oem_acceptance"
+   ],
+   "category": "sla_contract",
+   "enforcement": "block",
+   "rule_code": "SLA.007.redeployment_readiness",
+   "severity": "critical",
+   "status": "archived",
+   "title": "Redeployment readiness composite check",
+   "version": 1
+  },
+  {
+   "applies_to_actions": [
+    "redeployment",
+    "release",
+    "oem_acceptance"
+   ],
+   "category": "sla_contract",
+   "enforcement": "block",
+   "rule_code": "SLA.007.redeployment_readiness",
+   "severity": "critical",
+   "status": "active",
+   "title": "Redeployment readiness composite check",
+   "version": 2
+  },
+  {
+   "applies_to_actions": [
+    "vehicle_state_change"
+   ],
+   "category": "state_machine",
+   "enforcement": "block",
+   "rule_code": "SM.001.vehicle_transition_validity",
+   "severity": "critical",
+   "status": "archived",
+   "title": "Vehicle state transition validity",
+   "version": 1
+  },
+  {
+   "applies_to_actions": [
+    "vehicle_state_change"
+   ],
+   "category": "state_machine",
+   "enforcement": "shadow",
+   "rule_code": "SM.001.vehicle_transition_validity",
+   "severity": "critical",
+   "status": "active",
+   "title": "Vehicle state transition validity",
+   "version": 2
+  },
+  {
+   "applies_to_actions": [
+    "task_state_change",
+    "task_completion",
+    "task_start"
+   ],
+   "category": "state_machine",
+   "enforcement": "block",
+   "rule_code": "SM.002.task_transition_validity",
+   "severity": "critical",
+   "status": "archived",
+   "title": "Task state transition validity",
+   "version": 1
+  },
+  {
+   "applies_to_actions": [
+    "task_state_change",
+    "task_completion",
+    "task_start"
+   ],
+   "category": "state_machine",
+   "enforcement": "block",
+   "rule_code": "SM.002.task_transition_validity",
+   "severity": "critical",
+   "status": "active",
+   "title": "Task state transition validity",
+   "version": 2
+  },
+  {
+   "applies_to_actions": [
+    "stall_state_change"
+   ],
+   "category": "state_machine",
+   "enforcement": "block",
+   "rule_code": "SM.003.stall_transition_validity",
+   "severity": "critical",
+   "status": "archived",
+   "title": "Stall state transition validity",
+   "version": 1
+  },
+  {
+   "applies_to_actions": [
+    "stall_state_change"
+   ],
+   "category": "state_machine",
+   "enforcement": "shadow",
+   "rule_code": "SM.003.stall_transition_validity",
+   "severity": "critical",
+   "status": "active",
+   "title": "Stall state transition validity",
+   "version": 2
+  },
+  {
+   "applies_to_actions": [
+    "tech_override",
+    "flag_abnormality",
+    "resolve_abnormality",
+    "oem_accept",
+    "oem_flag_midflow",
+    "emergency_stop",
+    "brain_pause"
+   ],
+   "category": "role_authorization",
+   "enforcement": "block",
+   "rule_code": "SM.004.role_gated_actions",
+   "severity": "critical",
+   "status": "archived",
+   "title": "Role-gated action authorization",
+   "version": 1
+  },
+  {
+   "applies_to_actions": [
+    "tech_override",
+    "flag_abnormality",
+    "resolve_abnormality",
+    "oem_accept",
+    "oem_flag_midflow",
+    "emergency_stop",
+    "brain_pause"
+   ],
+   "category": "role_authorization",
+   "enforcement": "block",
+   "rule_code": "SM.004.role_gated_actions",
+   "severity": "critical",
+   "status": "active",
+   "title": "Role-gated action authorization",
+   "version": 2
+  },
+  {
+   "applies_to_actions": [
+    "progression_decision_insert"
+   ],
+   "category": "audit_integrity",
+   "enforcement": "block",
+   "rule_code": "SM.005.audit_note_required_on_overrides",
+   "severity": "critical",
+   "status": "archived",
+   "title": "Audit note required on override decisions",
+   "version": 1
+  },
+  {
+   "applies_to_actions": [
+    "progression_decision_insert"
+   ],
+   "category": "audit_integrity",
+   "enforcement": "block",
+   "rule_code": "SM.005.audit_note_required_on_overrides",
+   "severity": "critical",
+   "status": "active",
+   "title": "Audit note required on override decisions",
+   "version": 2
+  },
+  {
+   "applies_to_actions": [
+    "bess_state_change"
+   ],
+   "category": "state_machine",
+   "enforcement": "block",
+   "rule_code": "SM.006.bess_transition_validity",
+   "severity": "critical",
+   "status": "archived",
+   "title": "BESS transition validity",
+   "version": 1
+  },
+  {
+   "applies_to_actions": [
+    "bess_state_change"
+   ],
+   "category": "state_machine",
+   "enforcement": "block",
+   "rule_code": "SM.006.bess_transition_validity",
+   "severity": "critical",
+   "status": "active",
+   "title": "BESS transition validity",
+   "version": 2
+  },
+  {
+   "applies_to_actions": [
+    "arrival",
+    "task_start",
+    "schedule_creation"
+   ],
+   "category": "time_window",
+   "enforcement": "warn",
+   "rule_code": "TW.001.operational_hours",
+   "severity": "warning",
+   "status": "active",
+   "title": "Depot operational hours",
+   "version": 1
+  },
+  {
+   "applies_to_actions": [
+    "post_redeployment_staging",
+    "task_completion"
+   ],
+   "category": "time_window",
+   "enforcement": "log_only",
+   "rule_code": "TW.002.overnight_staging",
+   "severity": "info",
+   "status": "active",
+   "title": "Overnight staging window",
+   "version": 1
+  },
+  {
+   "applies_to_actions": [
+    "task_start"
+   ],
+   "category": "time_window",
+   "enforcement": "warn",
+   "rule_code": "TW.003.quiet_hours",
+   "severity": "warning",
+   "status": "active",
+   "title": "Quiet hours noise restriction",
+   "version": 1
+  },
+  {
+   "applies_to_actions": [
+    "cost_advisory",
+    "schedule_optimization"
+   ],
+   "category": "time_window",
+   "enforcement": "log_only",
+   "rule_code": "TW.004.tariff_window",
+   "severity": "info",
+   "status": "active",
+   "title": "Tariff-aware advisory",
+   "version": 1
+  },
+  {
+   "applies_to_actions": [
+    "task_start"
+   ],
+   "category": "time_window",
+   "enforcement": "warn",
+   "rule_code": "TW.005.shift_change_buffer",
+   "severity": "info",
+   "status": "active",
+   "title": "Shift change boundary buffer",
+   "version": 1
+  }
+ ],
+ "tariffs": [
+  {
+   "active": true,
+   "block_kw": 1000,
+   "created_at": "2026-07-09T18:28:43.834148+00:00",
+   "demand_basis": "NCP_30min",
+   "demand_excess_usd_kw": 21.78,
+   "demand_first_block_usd_kw": 21.4,
+   "depot_id": "11111111-1111-1111-1111-111111111111",
+   "effective_from": "2024-10-01",
+   "energy_base_cents_kwh": 4.785,
+   "fixed_monthly_usd": 2091.71,
+   "provenance": {
+    "alternatives": {
+     "EVC": "EV-specific schedule: NO demand charge, 21.773 c/kWh flat, separately metered, <=5,000 kW \u2014 GSA-3 vs EVC crossover depends on load factor (an OTTO-Q optimization output)",
+     "TGSA_3": "TOU variant, identical demand charges, lower service charge, on-peak 1-7pm CT Apr-Oct / 4-10am Nov-Mar"
+    },
+    "notes": "GSA Part 3: contract demand >1,000 kW and <=5,000 kW. Demand basis = non-coincident peak (highest 30-consecutive-minute kW in the billing month) \u2014 the depot shaving its OWN monthly max directly cuts the bill. Billing floor 30% of max(contract demand, prior-12-mo high). Energy base excludes the monthly TVA fuel-cost adjustment (~2.8-4c/kWh). URDB values are FCA-inclusive and diverge slightly from the PDF \u2014 the NES PDF is authoritative. A further ~4.5% TVA increase for Oct 2025 is claimed by a secondary source, unconfirmed by primary (MEDIUM confidence).",
+    "retrieved": "2026-07-09",
+    "source_type": "utility_tariff_pdf",
+    "source_url": "https://www.nespower.com/-/media/project/nes/common/pdfs/commercial-rates/2025/april/gsa-123.pdf",
+    "urdb_url": "https://apps.openei.org/USURDB/rate/view/69d67ac84fd71a629e04639c"
+   },
+   "schedule_code": "NES_GSA_3",
+   "season": "summer",
+   "season_months": [
+    6,
+    7,
+    8,
+    9
+   ],
+   "tariff_row_id": "ecfd5b45-8a31-4a48-aa50-1ae501865d13",
+   "utility": "Nashville Electric Service"
+  },
+  {
+   "active": true,
+   "block_kw": 1000,
+   "created_at": "2026-07-09T18:28:43.834148+00:00",
+   "demand_basis": "NCP_30min",
+   "demand_excess_usd_kw": 20.73,
+   "demand_first_block_usd_kw": 20.34,
+   "depot_id": "11111111-1111-1111-1111-111111111111",
+   "effective_from": "2024-10-01",
+   "energy_base_cents_kwh": 4.785,
+   "fixed_monthly_usd": 2091.71,
+   "provenance": {
+    "notes": "Winter billing months Dec-Mar; same structure as summer row.",
+    "retrieved": "2026-07-09",
+    "source_type": "utility_tariff_pdf",
+    "source_url": "https://www.nespower.com/-/media/project/nes/common/pdfs/commercial-rates/2025/april/gsa-123.pdf"
+   },
+   "schedule_code": "NES_GSA_3",
+   "season": "winter",
+   "season_months": [
+    12,
+    1,
+    2,
+    3
+   ],
+   "tariff_row_id": "16771e09-a314-4bb7-bb21-90bcd0ddcff0",
+   "utility": "Nashville Electric Service"
+  },
+  {
+   "active": true,
+   "block_kw": 1000,
+   "created_at": "2026-07-09T18:28:43.834148+00:00",
+   "demand_basis": "NCP_30min",
+   "demand_excess_usd_kw": 20.73,
+   "demand_first_block_usd_kw": 20.34,
+   "depot_id": "11111111-1111-1111-1111-111111111111",
+   "effective_from": "2024-10-01",
+   "energy_base_cents_kwh": 4.785,
+   "fixed_monthly_usd": 2091.71,
+   "provenance": {
+    "notes": "Transition billing months Apr, May, Oct, Nov; TVA prices these at winter rates.",
+    "retrieved": "2026-07-09",
+    "source_type": "utility_tariff_pdf",
+    "source_url": "https://www.nespower.com/-/media/project/nes/common/pdfs/commercial-rates/2025/april/gsa-123.pdf"
+   },
+   "schedule_code": "NES_GSA_3",
+   "season": "transition",
+   "season_months": [
+    4,
+    5,
+    10,
+    11
+   ],
+   "tariff_row_id": "b48a2acb-e9a8-4dd4-a832-757135aeb292",
+   "utility": "Nashville Electric Service"
+  }
+ ]
+}

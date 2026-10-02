@@ -9,6 +9,7 @@ import { WorldContractTab } from '@/components/tabs/WorldContractTab';
 import { TwinOttoQTab } from '@/components/tabs/TwinOttoQTab';
 import { TwinAgentTab } from '@/components/tabs/TwinAgentTab';
 import { TwinValueTab } from '@/components/tabs/TwinValueTab';
+import { TwinBackgroundTab } from '@/components/tabs/TwinBackgroundTab';
 import { settleSheet, sheetHeights } from './phoneLayout';
 import { usePhoneSheet } from './phoneStore';
 
@@ -38,6 +39,7 @@ const TAB_LABEL: Record<CockpitTab, string> = {
   world: 'Diagnostics',
   copilot: 'Copilot',
   value: 'Value',
+  background: 'Background',
 };
 const TABS = (Object.keys(TAB_LABEL) as CockpitTab[]).map((id) => ({ id, label: TAB_LABEL[id] }));
 const TAB_COMPONENTS: Record<CockpitTab, () => JSX.Element> = {
@@ -49,6 +51,7 @@ const TAB_COMPONENTS: Record<CockpitTab, () => JSX.Element> = {
   world: WorldContractTab,
   copilot: TwinCopilotTab,
   value: TwinValueTab,
+  background: TwinBackgroundTab,
 };
 
 

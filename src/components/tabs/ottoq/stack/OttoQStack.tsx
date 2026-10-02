@@ -34,6 +34,7 @@ import {
   contactShadowTexture, decideTexture, depotTexture, floorTexture, glassEtchTexture, glowTexture, plannerTexture, shieldTexture,
 } from "./stackTextures";
 import type { NodeTone } from "@/lib/ottoqFunnel";
+import { LayerInfoButton, type InfoTab } from "../LayerInfo";
 
 // ── palette ─────────────────────────────────────────────────────────────────
 const BG = "#0A0B0E";
@@ -1313,7 +1314,7 @@ const Scene = memo(function Scene({ rt, model, events, focus, onFocus, labels, l
 
 export type { PlateLabel } from "./stackModel";
 
-export function OttoQStack({ model, events, focus, onFocus, labels, tags, height, tier, reduced, describe, onPick, picked = null, replay = null, live = false }: {
+export function OttoQStack({ model, events, focus, onFocus, labels, tags, height, tier, reduced, describe, onPick, picked = null, replay = null, live = false, info }: {
   model: StackModel;
   events: readonly StackEvent[];
   focus: PlateId | null;
@@ -1334,6 +1335,8 @@ export function OttoQStack({ model, events, focus, onFocus, labels, tags, height
   replay?: StackReplay | null;
   /** The run is running: the stack pulses (an illustrative sweep every SWEEP_EVERY_S, tied to no record). */
   live?: boolean;
+  /** The "i" beside each plate's title: the run being watched (named on the card) and where its links go. */
+  info?: { run: string | null; onOpenTab: (tab: InfoTab) => void };
 }) {
   const rt = useRuntime(reduced);
   const [hover, setHover] = useState<{ text: string; x: number; y: number } | null>(null);
@@ -1447,16 +1450,29 @@ export function OttoQStack({ model, events, focus, onFocus, labels, tags, height
       {PLATES.map((p, i) => {
         const l = labels[p.id];
         const on = focus === p.id;
+        const open = (e: React.MouseEvent) => { e.stopPropagation(); onPlate(p.id); };
+        // The title is the plate's button; the "i" beside it opens what the layer is. The tagline and line under them
+        // open the plate too, for a pointer (the title button is the one keyboard stop).
         return (
-          <button key={p.id} type="button" ref={(el) => { labelRefs.current.box[i] = el; }}
-            onClick={(e) => { e.stopPropagation(); onPlate(p.id); }} aria-pressed={on}
+          <div key={p.id} ref={(el) => { labelRefs.current.box[i] = el; }} data-plate-label={p.id}
             className="absolute left-0 top-0 block text-left"
             style={{ width: on ? 200 : labelColumn - 6 }}>
-            <span className={`block whitespace-nowrap font-display text-[12.5px] font-semibold uppercase leading-4 tracking-[0.07em] ${on ? "text-brand-hot" : "text-white"}`}>{l.title}</span>
-            <span className="block text-[11px] leading-[14px] text-ink">{l.tagline}</span>
-            <span className="mt-0.5 text-[11px] leading-[14px] text-ink-dim line-clamp-2">{l.line}</span>
-            {on && <span className="mt-1 block text-[9px] text-ink-faint">Tap here, or anywhere off the plate, to see all five.</span>}
-          </button>
+            <div className="flex items-center gap-1.5">
+              <button type="button" onClick={open} aria-pressed={on} aria-label={`${l.title}: ${l.tagline}. ${l.line}`}
+                className={`block whitespace-nowrap text-left font-display text-[12.5px] font-semibold uppercase leading-4 tracking-[0.07em] ${on ? "text-brand-hot" : "text-white"}`}>
+                {l.title}
+              </button>
+              {info && (
+                <LayerInfoButton plates={[p.id]} label={`the ${l.title} layer`} live={{ [p.id]: l.line }} run={info.run}
+                  onOpenTab={info.onOpenTab} side="left" />
+              )}
+            </div>
+            <div onClick={open} className="cursor-pointer">
+              <span className="block text-[11px] leading-[14px] text-ink">{l.tagline}</span>
+              <span className="mt-0.5 text-[11px] leading-[14px] text-ink-dim line-clamp-2">{l.line}</span>
+              {on && <span className="mt-1 block text-[9px] text-ink-faint">Tap here, or anywhere off the plate, to see all five.</span>}
+            </div>
+          </div>
         );
       })}
     </div>

@@ -241,10 +241,10 @@ describe('not measured yet', () => {
 });
 
 describe('the tab bar', () => {
-  it('lists Value as the last tab', () => {
+  it('lists Value after Copilot, with only Background after it', () => {
     render(<TabBar />);
-    const tabs = screen.getAllByRole('button');
-    expect(tabs[tabs.length - 1]).toHaveTextContent('Value');
+    const tabs = screen.getAllByRole('button').map((b) => b.textContent);
+    expect(tabs.slice(-3)).toEqual(['Copilot', 'Value', 'Background']);
   });
 });
 

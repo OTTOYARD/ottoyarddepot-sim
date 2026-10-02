@@ -12,6 +12,8 @@ import { useSimulationStore, type CockpitTab } from '@/store/simulationStore';
 //   Diagnostics  — what this cockpit can and cannot see of the engine's world
 //   Copilot      — an on-demand model review of a sample of this run's decisions (PR #108 repaired it)
 //   Value        — what OTTO-Q is worth at this depot: power bill, chargers, revenue time (night-2 sweep, otto-q-core 0575/0576)
+//   Background   — what this screen shows and why OTTO-Q is built the way it is: the data, the Monte Carlo worlds, the
+//                  agentic layers, the safety harness, what it solves, and why it is agnostic (Chase, 2026-10-02)
 // Removed from navigation 2026-09-30 (Chase: "a lot of redundancy and slop data"; design note
 // docs/OTTO-Q-FUNNEL-AND-AGENT-TABS.md): Intelligence, Orchestration and Events showed the same facts three times
 // (a car placed on a charger was a trail step, a stream row, a lifecycle tile and an event). Their sources stay in
@@ -26,6 +28,7 @@ const tabs: { id: CockpitTab; label: string }[] = [
   { id: 'world', label: 'Diagnostics' },
   { id: 'copilot', label: 'Copilot' },
   { id: 'value', label: 'Value' },
+  { id: 'background', label: 'Background' },
 ];
 
 /** `trailing` sits at the header's top-right, outside the (wrapping) tab row: the panel's expand button. */
