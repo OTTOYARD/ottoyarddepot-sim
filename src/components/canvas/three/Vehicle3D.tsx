@@ -6,6 +6,7 @@ import { toWorld, yawFromHeading2D, DECK_Y } from './coordUtils';
 import { VEHICLE_GEO as GEO, PORT_GEO, CAR_W_PU } from './vehicleBody';
 import { poseStore } from '@/engine/motion/poseStore';
 import { useVehicleStore } from '@/store/vehicleStore';
+import { useQCard } from '@/store/qCardStore';
 import { useDepotStore } from '@/store/depotStore';
 import { portFor } from '@/lib/ottoChargeArm/chargePort';
 import { towardFor, portInVehicleFrame } from '@/lib/ottoChargeArm/depotPlacement';
@@ -307,7 +308,10 @@ const BLACK = new THREE.Color(0, 0, 0);
  * re-projects every Html label to screen each frame, a huge cost at fleet size.
  */
 function HoverBadge({ drawn }: { drawn: Map<string, Drawn> }) {
-  const id = useVehicleStore((s) => s.hoveredVehicleId);
+  const hovered = useVehicleStore((s) => s.hoveredVehicleId);
+  // the open Q card already shows this car's battery, over the same spot
+  const cardOpen = useQCard((s) => s.openId);
+  const id = hovered && hovered !== cardOpen ? hovered : null;
   const vehicle = useVehicleStore((s) => (id ? s.vehicles.find((v) => v.id === id) : undefined));
   const grp = useRef<THREE.Group>(null);
   useFrame(() => {

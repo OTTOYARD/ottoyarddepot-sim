@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useVehicleStore } from '@/store/vehicleStore';
 import { useSimulationStore } from '@/store/simulationStore';
 import { useTwinStore } from '@/store/twinStore';
+import { useQCard } from '@/store/qCardStore';
 import { Badge } from '@/components/ui/badge';
 import {
   readWorkflowFromSnapshot,
@@ -176,7 +177,10 @@ export const VehicleTooltip = ({ svgRef }: Props) => {
     [twinSnapshot, hoveredVehicleId],
   );
 
-  if (!hoveredVehicleId || !svgRef.current) return null;
+  // the open Q card is this car's fuller card, already over it
+  const cardOpen = useQCard((s) => s.openId);
+
+  if (!hoveredVehicleId || !svgRef.current || hoveredVehicleId === cardOpen) return null;
 
   const v = vehicles.find((veh) => veh.id === hoveredVehicleId);
   if (!v) return null;

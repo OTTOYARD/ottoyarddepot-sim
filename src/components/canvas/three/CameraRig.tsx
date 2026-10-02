@@ -6,6 +6,7 @@ import { poseStore } from '@/engine/motion/poseStore';
 import { useVehicleStore } from '@/store/vehicleStore';
 import { toWorld, DECK_Y } from './coordUtils';
 import { useCameraFollow } from './cameraFollow';
+import { useQCard } from '@/store/qCardStore';
 
 /**
  * Touch and follow for the 3D view — camera only, it never touches the world.
@@ -103,7 +104,10 @@ export function CameraRig({ controls }: { controls: React.RefObject<OrbitControl
       if (id === undefined) return;
       const cur = useCameraFollow.getState().followId;
       if (id !== cur) useCameraFollow.getState().setFollow(id);
-      // a tap on open ground stops following; a tap on the followed car keeps it
+      // a tap on open ground stops following; a tap on the followed car keeps it.
+      // The same tap opens that car's Q card, or closes the card on open ground.
+      if (id) useQCard.getState().open(id);
+      else useQCard.getState().close();
     };
     const cancel = (e: PointerEvent) => { pts.delete(e.pointerId); tap = null; twist = null; };
 

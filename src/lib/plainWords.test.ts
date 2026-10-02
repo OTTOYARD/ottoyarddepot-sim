@@ -50,6 +50,9 @@ describe("services, places and rules", () => {
     expect(placeName("NASH-SVC-02")).toBe("service bay 02");
     expect(placeName("NASH-SVC-02", "service_bay")).toBe("service bay 02");
     expect(placeName(null, "staging")).toBe("parking");
+    // the engine's staging codes carry the row letter in the number
+    expect(placeName("NASH-STG-S024")).toBe("parking S024");
+    expect(placeName("NASH-STG-B012", "staging")).toBe("parking B012");
     expect(placeName("ODD-CODE")).toBe("ODD-CODE");
   });
 

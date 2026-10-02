@@ -120,8 +120,10 @@ export const STALL_KIND_WORD: Record<string, string> = {
 export function placeName(code: string | null | undefined, kind?: string | null): string {
   if (!code) return kind ? STALL_KIND_WORD[kind] ?? kind.replace(/_/g, " ") : "";
   const parts = code.toUpperCase().split("-").filter((p) => p && p !== "NASH" && p !== "STALL");
-  const number = parts.find((p) => /^\d+[A-Z]?$/.test(p)) ?? "";
   const kindPart = parts.find((p) => !/^\d+[A-Z]?$/.test(p))?.toLowerCase() ?? "";
+  // the engine's staging codes number a stall by its row letter: "NASH-STG-S024" -> "parking S024"
+  const number = parts.find((p) => /^\d+[A-Z]?$/.test(p))
+    ?? (kindPart === "stg" ? parts.find((p) => /^[A-Z]\d+$/.test(p)) : undefined) ?? "";
   const word =
     (kind ? STALL_KIND_WORD[kind] : undefined) ??
     STALL_KIND_WORD[kindPart] ??

@@ -34,6 +34,8 @@ import { StaticMerge } from './three/StaticMerge';
 import { BakedGroundAO } from './three/BakedGroundAO';
 import { useCameraFollow } from './three/cameraFollow';
 import { CAMERA_PRESETS, CAMERA_PRESET_NAMES, useCameraCommands, type CameraPreset } from './three/cameraPresets';
+import { QCardProjector, qCardAnchor3D } from './three/QCardProjector';
+import { AnchoredQCard } from './VehicleQCard';
 
 
 // Seeded random for consistent tree placement
@@ -289,8 +291,12 @@ export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0 }: { c
             regress
           />
           <CameraRig controls={controlsRef} />
+          <QCardProjector />
         </Suspense>
       </Canvas>
+
+      {/* the tapped car's Q card, over the car (the phone cockpit draws it as a bottom sheet instead) */}
+      {chrome === 'desktop' && <AnchoredQCard getAnchor={qCardAnchor3D} />}
 
       {followId && (
         <div

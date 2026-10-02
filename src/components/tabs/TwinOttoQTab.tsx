@@ -11,7 +11,7 @@
 // Every dot is a car from ottoq_depot_cards; every spark is one engine record that arrived since the last poll.
 // ============================================================================
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronRight, Loader2, Play, Square } from "lucide-react";
+import { ChevronDown, ChevronRight, Play, Square } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTwinStore } from "@/store/twinStore";
 import { useActivityFeed } from "@/hooks/useActivityFeed";
@@ -19,7 +19,6 @@ import { useActivityFeedStore, type ActivityFeedRow } from "@/store/activityFeed
 import { useIntelligenceStack } from "@/hooks/useIntelligenceStack";
 import { useDepotCards } from "@/hooks/useDepotCards";
 import { useDispositions } from "@/hooks/useDispositions";
-import { useDecisionTrail } from "@/hooks/useDecisionTrail";
 import { EndedState, StreamState } from "@/components/tabs/TwinDecisionLogTab";
 import { useSimulationStore } from "@/store/simulationStore";
 import { useQualityStore } from "@/components/canvas/three/quality/qualityStore";
@@ -36,9 +35,9 @@ import {
   AWAY_STATES, LAYERS, carsFromCards, latestByCar, layerOverviews, sparkFromDisposition, sparkFromRow,
   stackSlice, stateWord, type DispositionRow, type FunnelCar, type LayerId, type NodeTone, type Spark,
 } from "@/lib/ottoqFunnel";
-import { buildTrail, type Trail } from "@/lib/decisionTrail";
 import { decisionKey, describeDecision, formatClockCT, holdText } from "@/lib/decisionText";
-import { MISSING, clockCT, ruleWords } from "@/lib/plainWords";
+import { ruleWords } from "@/lib/plainWords";
+import { CarTrail } from "@/components/tabs/ottoq/CarTrail";
 
 const TONE_WORD: Record<NodeTone, string> = {
   ok: "enacted · cleared",
@@ -50,41 +49,6 @@ const TONE_WORD: Record<NodeTone, string> = {
 const Dot = ({ tone, size = 7 }: { tone: NodeTone; size?: number }) => (
   <span className="inline-block shrink-0 rounded-full" style={{ width: size, height: size, background: TONE_COLOR[tone] }} />
 );
-
-// ── one car's trail, opened from a layer ─────────────────────────────────────
-function CarTrail({ car }: { car: FunnelCar }) {
-  const d = useDecisionTrail(car.id);
-  const trail: Trail | null = useMemo(() => {
-    if (!d.carRows.length) return null;
-    const card = d.cards.find((c) => c.vehicle_id === car.id) ?? d.cardMemory.get(car.id) ?? null;
-    return buildTrail({ vehicleId: car.id, name: car.name, rows: d.carRows, decisions: d.decisions, proposals: d.proposals, choices: d.choices, card });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [d.carRows, d.decisions, d.proposals, d.choices, d.cards, car.id, car.name]);
-  if (!trail) {
-    return (
-      <div className="flex items-center gap-2 px-2 py-2 text-[11px] text-ink-faint">
-        {d.error ? "Could not read this car's decisions." : <><Loader2 size={12} className="animate-spin" /> Reading this car's decisions…</>}
-      </div>
-    );
-  }
-  return (
-    <ol className="px-2 pb-1 pt-1.5" aria-label={`${car.name} decision trail`}>
-      {trail.steps.map((s, i) => (
-        <li key={`${s.kind}-${s.at}-${i}`} className={`flex gap-2 ${s.branch ? "pl-3" : ""}`}>
-          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full"
-            style={{ background: s.tone === "ok" ? TONE_COLOR.ok : s.tone === "warn" ? TONE_COLOR.held : s.tone === "branch" ? "#7DD3FC" : "rgba(255,255,255,0.25)" }} />
-          <div className="min-w-0 flex-1 pb-1.5">
-            <div className="flex items-baseline justify-between gap-2">
-              <span className="text-[11px] text-ink">{s.title}</span>
-              <span className="shrink-0 font-mono text-[9px] text-ink-faint">{s.at ? clockCT(s.at) : MISSING}</span>
-            </div>
-            {s.detail && <p className="break-words text-[10px] leading-4 text-ink-dim">{s.detail}</p>}
-          </div>
-        </li>
-      ))}
-    </ol>
-  );
-}
 
 // ── the opened layer ─────────────────────────────────────────────────────────
 function LayerDetail({ layer, cars, recent, overview, scroll = true }: {
