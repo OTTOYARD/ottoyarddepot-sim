@@ -4414,18 +4414,18 @@
       "structure_code": "SIGN-OTTOYARD-FRONT",
       "structure_kind": "sign",
       "title": "OTTOYARD Front Wall Signage",
-      "origin_x_ft": 196.06299212598424,
-      "origin_y_ft": 3,
-      "width_ft": 60,
-      "length_ft": 1,
-      "height_ft": 8,
+      "origin_x_ft": 207.22440944881888,
+      "origin_y_ft": -3.2967519685039277,
+      "width_ft": 37.677165354330704,
+      "length_ft": 1.8838582677165174,
+      "height_ft": 7.221456692913384,
       "rotation_deg": 0,
       "status": "active",
       "properties": {
         "mount": "concrete_wall",
         "illuminated": true
       },
-      "absolute_lat": 36.13970961538461,
+      "absolute_lat": 36.139693530706495,
       "absolute_lng": -86.77203097269614
     },
     {

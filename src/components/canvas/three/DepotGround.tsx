@@ -4,6 +4,7 @@ import { MATERIALS } from './materials';
 import { LOT, INGRESS, EGRESS, GATE_W } from '@/lib/sitePlan';
 import { toWorld, DECK_Y } from './coordUtils';
 import { logoSignMaterial, LOGO_SIGN_ASPECT } from './textures';
+import { SIGN_WALL } from '@/lib/structurePlan';
 
 /**
  * Ground plane, asphalt lot, perimeter security fence with ingress/egress
@@ -82,6 +83,26 @@ function Gate({ x, label }: { x: number; label: 'IN' | 'OUT' }) {
   );
 }
 
+/** The sign wall, logo lit on BOTH faces: the road side for arrivals, the lot side
+ *  for every camera that looks south across the depot. */
+function SignWall({ material, logo }: { material: THREE.Material; logo: THREE.Material }) {
+  const [wx, , wz] = toWorld({ x: SIGN_WALL.cx, y: SIGN_WALL.cy }, 0);
+  const { w, d, h } = SIGN_WALL;
+  const logoH = h - 0.8;
+  return (
+    <group position={[wx, 0, wz]}>
+      <mesh position={[0, h / 2, 0]} castShadow material={material}>
+        <boxGeometry args={[w, h, d]} />
+      </mesh>
+      {[1, -1].map((side) => (
+        <mesh key={side} position={[0, h / 2, side * (d / 2 + 0.03)]} rotation-y={side > 0 ? 0 : Math.PI} material={logo}>
+          <planeGeometry args={[logoH * LOGO_SIGN_ASPECT, logoH]} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 export function DepotGround() {
   const mats = useMemo(() => ({
     grass: MATERIALS.grass(),
@@ -140,18 +161,11 @@ export function DepotGround() {
       <Gate x={xIn} label="IN" />
       <Gate x={xOut} label="OUT" />
 
-      {/* OTTOYARD entrance sign wall — beside the IN gate. Positioned relative
-          to INGRESS (world x = INGRESS.x-150, offset ~28u toward mid-lot) so it
-          tracks the entrance instead of stranding by the egress if the gate moves. */}
-      <group position={[INGRESS.x - 178, 0, -88]}>
-        <mesh position={[0, 2.6, 0]} castShadow material={mats.cladding}>
-          <boxGeometry args={[24, 5.2, 1.6]} />
-        </mesh>
-        {/* the OTTOYARD logo (founder, 2026-09-30), lit, on the wall's road face */}
-        <mesh position={[0, 2.6, 0.83]} material={logoSign}>
-          <planeGeometry args={[4.2 * LOGO_SIGN_ASPECT, 4.2]} />
-        </mesh>
-      </group>
+      {/* OTTOYARD entrance sign wall: outside the south fence, mid-frontage between
+          the gates, drawn from structurePlan.SIGN_WALL (which the stall and clearance
+          tests read). It used to be typed in here at INGRESS.x - 178 / z -88, which
+          after toWorld negated X stood inside the S2 staging row across four stalls. */}
+      <SignWall material={mats.cladding} logo={logoSign} />
     </group>
   );
 }
