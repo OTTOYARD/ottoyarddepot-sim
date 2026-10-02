@@ -39,7 +39,8 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(req)
         .then((res) => {
-          if (res.ok) { const copy = res.clone(); caches.open(VERSION).then((c) => c.put("/", copy)); }
+          // the app shell only: the live view (view.html) is a different page and must never stand in for "/"
+          if (res.ok && url.pathname !== "/view.html") { const copy = res.clone(); caches.open(VERSION).then((c) => c.put("/", copy)); }
           return res;
         })
         .catch(() => caches.match("/").then((r) => r || Response.error())),
