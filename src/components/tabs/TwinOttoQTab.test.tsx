@@ -45,7 +45,8 @@ describe("OTTO-Q tab", () => {
   it("draws the eight layers in the engine's order, each with its line", () => {
     render(<TwinOttoQTab />);
     const list = screen.getByRole("list", { name: "OTTO-Q layers" });
-    const labels = within(list).getAllByRole("button").map((b) => b.textContent ?? "");
+    // each layer row is its own button plus the "i" beside it; the layer buttons are the ones with words in them
+    const labels = within(list).getAllByRole("button").filter((b) => !/^About /.test(b.getAttribute("aria-label") ?? "")).map((b) => b.textContent ?? "");
     expect(labels.map((l) => l.match(/^(Arriving|Needs|Proposers|Decide|Safety check|Booked|Service|Ready)/)?.[1]))
       .toEqual(["Arriving", "Needs", "Proposers", "Decide", "Safety check", "Booked", "Service", "Ready"]);
     expect(screen.getByText("5 on the way · 7 at the gate")).toBeTruthy();
@@ -63,6 +64,33 @@ describe("OTTO-Q tab", () => {
     fireEvent.click(screen.getByRole("button", { name: /^Proposers/ }));
     const p = screen.getByRole("region", { name: "Proposers layer" });
     expect(within(p).getAllByText(/offer from the greedy planner was refused|Agent: /).length).toBeGreaterThan(0);
+  });
+
+  it("puts an \"i\" beside every layer, which explains it without opening it", async () => {
+    render(<TwinOttoQTab />);
+    const list = screen.getByRole("list", { name: "OTTO-Q layers" });
+    const infos = within(list).getAllByRole("button", { name: /^About the .* layer$/ });
+    expect(infos).toHaveLength(8);
+    fireEvent.click(within(list).getByRole("button", { name: "About the Decide layer" }));
+    const card = await screen.findByRole("article", { name: "About the Decide layer" });
+    for (const h of ["Why it is there", "What it does", "What it technically is", "Why it was built this way"]) {
+      expect(within(card).getByText(h)).toBeTruthy();
+    }
+    expect(within(card).getByText(/public\.ottoq_decide_tick, driven by pg_cron/)).toBeTruthy();
+    // the card names the run its live line is for
+    expect(within(card).getByText(`On this run (${fx.sim_run_id.slice(0, 8)})`)).toBeTruthy();
+    // and the layer itself did not open underneath it
+    expect(screen.queryByRole("region", { name: "Decide layer" })).toBeNull();
+  });
+
+  it("explains the Proposers row as the agent and the planners together, and links to the Background tab", async () => {
+    const { useSimulationStore } = await import("@/store/simulationStore");
+    render(<TwinOttoQTab />);
+    fireEvent.click(screen.getByRole("button", { name: "About the Proposers layer" }));
+    expect(await screen.findByRole("article", { name: "About the Agent layer" })).toBeTruthy();
+    expect(screen.getByRole("article", { name: "About the Planners layer" })).toBeTruthy();
+    fireEvent.click(screen.getAllByRole("button", { name: /The whole system, on the Background tab/ })[0]);
+    expect(useSimulationStore.getState().activeTab).toBe("background");
   });
 
   it("says a source has not answered instead of drawing zeros", () => {

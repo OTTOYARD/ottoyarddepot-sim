@@ -38,6 +38,8 @@ import {
 import { decisionKey, describeDecision, formatClockCT, holdText } from "@/lib/decisionText";
 import { ruleWords } from "@/lib/plainWords";
 import { CarTrail } from "@/components/tabs/ottoq/CarTrail";
+import { LayerInfoButton, type InfoTab } from "@/components/tabs/ottoq/LayerInfo";
+import { FLAT_LAYER_PLATES } from "@/lib/layerInfo";
 
 const TONE_WORD: Record<NodeTone, string> = {
   ok: "enacted · cleared",
@@ -165,7 +167,7 @@ const DEPOT_ZONES: { layer: LayerId; label: string }[] = [
   { layer: "ready", label: "Ready" },
 ];
 
-function PlateDetail({ plate, rows, dispositions, names, recentFor, cars, overviews, shield, onAgentTab }: {
+function PlateDetail({ plate, rows, dispositions, names, recentFor, cars, overviews, shield, onAgentTab, info }: {
   plate: PlateId;
   rows: ActivityFeedRow[];
   dispositions: DispositionRow[] | null;
@@ -175,6 +177,8 @@ function PlateDetail({ plate, rows, dispositions, names, recentFor, cars, overvi
   overviews: Record<LayerId, string>;
   shield: { evaluations: number | null; refused: number | null; recordedOnly: number | null } | null;
   onAgentTab: () => void;
+  /** The "i" beside the plate's name: the plate's live line, the run it is for, and where its links go. */
+  info?: { line: string | null; run: string | null; onOpenTab: (tab: InfoTab) => void };
 }) {
   const def = PLATES.find((p) => p.id === plate)!;
   const ref = useRef<HTMLElement>(null);
@@ -189,7 +193,13 @@ function PlateDetail({ plate, rows, dispositions, names, recentFor, cars, overvi
   return (
     <section ref={ref} aria-label={`${def.label} plate`} className="rounded border border-white/[0.08] bg-canvas-panel/70 p-2.5">
       <div className="flex items-baseline justify-between gap-2">
-        <div className="font-display text-[11px] uppercase tracking-[0.08em] text-ink">{def.label}</div>
+        <div className="flex items-center gap-1.5">
+          <div className="font-display text-[11px] uppercase tracking-[0.08em] text-ink">{def.label}</div>
+          {info && (
+            <LayerInfoButton plates={[plate]} label={`the ${def.label} layer`} live={{ [plate]: info.line }} run={info.run}
+              onOpenTab={info.onOpenTab} side="bottom" />
+          )}
+        </div>
         <div className="text-[10px] text-ink-faint">{def.tagline}</div>
       </div>
 
@@ -577,6 +587,10 @@ export function TwinOttoQTab() {
 
   const tags = useMemo(() => plateTags(model, slice?.shield ?? null), [model, slice]);
 
+  // The "i" beside each layer: its card names the run being watched, and its links open the Agent or Background tab.
+  const openTab = useCallback((t: InfoTab) => setActiveTab(t), [setActiveTab]);
+  const info = useMemo(() => ({ run: simRunId, onOpenTab: openTab }), [simRunId, openTab]);
+
   // A replay: the newest records on the plates, played again only when asked, and labelled REPLAY while it plays.
   const [replay, setReplay] = useState<StackReplay | null>(null);
   const [replayAt, setReplayAt] = useState(-1);
@@ -649,7 +663,8 @@ export function TwinOttoQTab() {
           /* capped, so the labels keep near their plates when the panel is expanded to full width */
           <div className="mx-auto w-full max-w-[760px]">
           <OttoQStack model={model} events={events} focus={focus} onFocus={onFocusPlate} labels={labels} tags={tags}
-            height={520} tier={tier} reduced={reduced} describe={describe} onPick={onPick} picked={picked} replay={replay} live={running} />
+            height={520} tier={tier} reduced={reduced} describe={describe} onPick={onPick} picked={picked} replay={replay} live={running}
+            info={info} />
           </div>
         ) : (
           /* No WebGL: the flat funnel, one row per layer. */
@@ -661,16 +676,20 @@ export function TwinOttoQTab() {
               {LAYERS.map((l) => {
                 const on = selected === l.id;
                 const count = l.kind === "place" && cardsRead ? carsIn(l.id).length : null;
+                const plates = FLAT_LAYER_PLATES[l.id];
+                const live = Object.fromEntries(plates.map((p) => [p, p === "depot" ? overviews[l.id] : labels[p].line]));
                 return (
-                  <li key={l.id} style={{ height: BAND_H }}>
+                  <li key={l.id} style={{ height: BAND_H }} className="relative">
                     <button type="button" onClick={() => setSelected(on ? null : l.id)} aria-expanded={on}
-                      className={`flex h-full w-full flex-col justify-center rounded px-1.5 text-left transition-colors ${on ? "bg-brand-red/10" : "hover:bg-white/[0.03]"}`}>
+                      className={`flex h-full w-full flex-col justify-center rounded px-1.5 pr-6 text-left transition-colors ${on ? "bg-brand-red/10" : "hover:bg-white/[0.03]"}`}>
                       <span className="flex items-baseline gap-1.5">
                         <span className={`font-display text-[10px] uppercase tracking-[0.06em] ${l.kind === "think" ? "text-violet-300" : "text-ink"}`}>{l.label}</span>
                         {count != null && <span className="font-mono text-[10px] text-ink-dim">{count}</span>}
                       </span>
                       <span className="line-clamp-3 break-words text-[10px] leading-[13px] text-ink-dim">{overviews[l.id]}</span>
                     </button>
+                    <LayerInfoButton plates={plates} label={`the ${l.label} layer`} live={live} run={simRunId} onOpenTab={openTab}
+                      className="absolute right-1 top-1" />
                   </li>
                 );
               })}
@@ -694,7 +713,8 @@ export function TwinOttoQTab() {
         )}
         {threeD && focus && (
           <PlateDetail plate={focus} rows={rows} dispositions={disp.rows} names={names} recentFor={recentFor} cars={cars}
-            overviews={overviews} shield={slice?.shield ?? null} onAgentTab={() => setActiveTab("agent")} />
+            overviews={overviews} shield={slice?.shield ?? null} onAgentTab={() => setActiveTab("agent")}
+            info={{ line: labels[focus].line, run: simRunId, onOpenTab: openTab }} />
         )}
         {!threeD && selected && (
           <LayerDetail layer={selected} cars={carsIn(selected)} overview={overviews[selected]}

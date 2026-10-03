@@ -22,6 +22,13 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     rollupOptions: {
+      // Two pages: the cockpit (index.html) and the live depot on its own (view.html, src/viewer), which the
+      // OrchestrAV and OTTO-PULSE overview tabs frame. The second shares the three/vendor chunks and loads none of
+      // the cockpit.
+      input: {
+        main: path.resolve(__dirname, "index.html"),
+        view: path.resolve(__dirname, "view.html"),
+      },
       output: {
         manualChunks: {
           three: ['three', '@react-three/fiber', '@react-three/drei', '@react-three/postprocessing'],

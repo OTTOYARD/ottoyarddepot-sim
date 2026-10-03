@@ -102,7 +102,7 @@ describe('the three cards', () => {
     render(<TwinValueTab />);
     await screen.findByTestId('value-card-power');
     expect(screen.queryByText(/Charger capital avoided/)).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: /For investors/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^Capital/ }));
     expect(screen.getByText('Charger capital avoided: $1.5M–$3.0M (point $2.0M)')).toBeInTheDocument();
     expect(screen.getByText('Fleet capital equivalent: 7.7 cars, $0.9M–$1.5M')).toBeInTheDocument();
     expect(screen.getByText('The capital lens, never added to the savings above')).toBeInTheDocument();
@@ -236,15 +236,15 @@ describe('not measured yet', () => {
     expect(power).toHaveTextContent('— → — a month');
     expect(screen.getByTestId('value-kpi-peak')).toHaveTextContent('———');
     expect(screen.queryByTestId('value-guarantee')).toBeNull();
-    expect(screen.queryByRole('button', { name: /For investors/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Capital/ })).toBeNull();
   });
 });
 
 describe('the tab bar', () => {
-  it('lists Value as the last tab', () => {
+  it('lists Value after Copilot, with only Background after it', () => {
     render(<TabBar />);
-    const tabs = screen.getAllByRole('button');
-    expect(tabs[tabs.length - 1]).toHaveTextContent('Value');
+    const tabs = screen.getAllByRole('button').map((b) => b.textContent);
+    expect(tabs.slice(-3)).toEqual(['Copilot', 'Value', 'Background']);
   });
 });
 

@@ -3,6 +3,8 @@ import { Component, type ReactNode } from 'react';
 interface Props {
   children: ReactNode;
   onReturnTo2D: () => void;
+  /** The button's words: the cockpit offers its 2D map; the standalone live view can only reload. */
+  actionLabel?: string;
 }
 
 interface State {
@@ -23,7 +25,7 @@ export class SceneErrorBoundary extends Component<Props, State> {
         <div role="alert" className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-canvas text-ink-dim text-sm">
           <span>3D rendering is unavailable in this browser.</span>
           <button type="button" className="rounded bg-brand-red px-3 py-2 text-white" onClick={this.props.onReturnTo2D}>
-            Return to 2D
+            {this.props.actionLabel ?? 'Return to 2D'}
           </button>
         </div>
       );

@@ -1,4 +1,4 @@
-import { Truck, BatteryCharging, Layers, CheckCircle2, DollarSign, Battery, Sun, Radio } from 'lucide-react';
+import { Truck, BatteryCharging, Layers, CheckCircle2, DollarSign, Battery, Sun, Radio, BookOpen } from 'lucide-react';
 import { useSimulationStore } from '@/store/simulationStore';
 import { useTwinStore } from '@/store/twinStore';
 import wordmark from '@/assets/ottoyard-wordmark.png';
@@ -136,6 +136,20 @@ export const TopBar = () => {
           the "View in" cockpit switcher under them. */}
       <div className="flex flex-col items-end gap-1 shrink-0">
         <div className="flex items-center gap-2">
+          {/* The Background tab, for anyone who arrives and asks what they are looking at (Chase, 2026-10-02). */}
+          <button
+            type="button"
+            onClick={() => {
+              const sim = useSimulationStore.getState();
+              if (!sim.isPanelOpen) sim.togglePanel();
+              sim.setActiveTab('background');
+            }}
+            title="What am I looking at? The Background tab explains the twin, OTTO-Q and the data behind them."
+            className="inline-flex items-center gap-1 rounded border border-white/[0.06] px-2 py-1 text-[11px] text-ink-dim transition-colors hover:border-brand-hot/50 hover:text-ink"
+          >
+            <BookOpen size={12} aria-hidden />
+            <span>Background</span>
+          </button>
           <div className="flex items-center gap-1.5 px-2">
             <Radio size={13} className={connected ? 'text-state-go' : 'text-ink-faint'} />
             <span className={`font-mono text-[10px] ${connected ? 'text-state-go' : 'text-ink-faint'}`}>

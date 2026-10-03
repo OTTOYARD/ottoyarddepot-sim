@@ -30,6 +30,7 @@ import { QualityGovernor } from './three/quality/QualityGovernor';
 import { useQualityStore, useTierBudget } from './three/quality/qualityStore';
 import { BUDGETS, initialTier, type TierBudget } from './three/quality/tiers';
 import { CameraRig } from './three/CameraRig';
+import { carName } from './three/carName';
 import { StaticMerge } from './three/StaticMerge';
 import { BakedGroundAO } from './three/BakedGroundAO';
 import { useCameraFollow } from './three/cameraFollow';
@@ -152,12 +153,45 @@ const QUALITY_CYCLE = ['auto', 'high', 'medium', 'low'] as const;
 const PRESET_BTN = 'px-2 py-1 text-[10px] font-mono rounded bg-black/60 text-otto-gray border border-white/10 hover:bg-white/10 hover:text-white transition-colors [@media(pointer:coarse)]:min-h-[44px] [@media(pointer:coarse)]:px-3 [@media(pointer:coarse)]:text-[11px]';
 
 /**
+ * The standalone live view (src/viewer, `/view.html`): a host outside the cockpit frames the camera, spins it, and
+ * stops drawing while it cannot be seen. A view choice only: nothing in the world reads any of it.
+ */
+export interface SceneViewer {
+  /** Where to put the camera. `n` counts requests, so asking for the same framing twice frames it twice. */
+  framing: { position: [number, number, number]; target: [number, number, number]; kind: 'orbit' | 'pole'; n: number } | null;
+  /** Turn slowly about the target: around the depot from a corner, or around the mast from the pole. */
+  spin: boolean;
+  /** Draw nothing (hidden, or scrolled out of the host's view). The cars keep their places underneath. */
+  paused: boolean;
+  /** The viewer grabbed the view (drag, pinch, wheel): the host stops the spin. */
+  onInteract?: () => void;
+}
+
+/** Applies a viewer framing to the orbit controls. Inside the canvas, after the controls, so their ref is set. */
+function ViewerFraming({ controls, framing }: { controls: React.RefObject<OrbitControlsImpl>; framing: SceneViewer['framing'] }) {
+  const n = framing?.n ?? 0;
+  useEffect(() => {
+    const ctrl = controls.current;
+    if (!framing || !ctrl) return;
+    useCameraFollow.getState().setFollow(null); // a framing is a new shot
+    ctrl.object.position.set(...framing.position);
+    ctrl.target.set(...framing.target);
+    ctrl.update();
+  }, [n]); // eslint-disable-line react-hooks/exhaustive-deps
+  return null;
+}
+
+/**
  * `chrome`: 'desktop' draws the view's own controls (camera presets, quality) in
  * a row at the bottom right, as it always has; 'phone' leaves them to the phone
  * cockpit's camera menu (which drives the same presets through useCameraCommands)
- * and moves the follow chip below the phone's run bar (`overlayTop`).
+ * and moves the follow chip below the phone's run bar (`overlayTop`); 'viewer'
+ * draws no controls of its own and takes its camera from `viewer` (the standalone
+ * live view the cockpits embed).
  */
-export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0 }: { chrome?: 'desktop' | 'phone'; overlayTop?: number } = {}) {
+export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0, viewer }: {
+  chrome?: 'desktop' | 'phone' | 'viewer'; overlayTop?: number; viewer?: SceneViewer;
+} = {}) {
   const vehicles = useVehicleStore((s) => s.vehicles);
   const config = useSimulationStore((s) => s.config);
   const simTime = useSimulationStore((s) => s.simTime);
@@ -183,7 +217,8 @@ export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0 }: { c
   const setMode = useQualityStore((s) => s.setMode);
   const followId = useCameraFollow((s) => s.followId);
   const setFollow = useCameraFollow((s) => s.setFollow);
-  const followAv = useVehicleStore((s) => (followId ? s.vehicles.find((v) => v.id === followId)?.label ?? followId : null));
+  const followAv = useVehicleStore((s) => (followId ? carName(followId, s.vehicles.find((v) => v.id === followId)) : null));
+  const pole = viewer?.framing?.kind === 'pole';
   // What the canvas is CREATED with (MSAA is fixed at context creation): the tier
   // the probe below settled before this component first rendered.
   const [startBudget] = useState(() => BUDGETS[useQualityStore.getState().tier]);
@@ -222,7 +257,9 @@ export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0 }: { c
     <div className="absolute inset-0 bg-otto-dark">
       <Canvas
         shadows
-        camera={{ position: [0, 180, -10], fov: 45, near: 1, far: 500 }}
+        // the standalone view never draws while it cannot be seen; the cockpit's view always draws
+        frameloop={viewer?.paused ? 'never' : 'always'}
+        camera={{ position: viewer?.framing?.position ?? [0, 180, -10], fov: 45, near: 1, far: 500 }}
         gl={{
           // MSAA on the default framebuffer: only High keeps it (the post stack
           // anti-aliases with SMAA; this matters only when no composer runs).
@@ -232,7 +269,8 @@ export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0 }: { c
           outputColorSpace: SRGBColorSpace,
           powerPreference: 'high-performance',
         }}
-        dpr={Math.min(window.devicePixelRatio, startBudget.dprMax)}
+        // an embedded view is a panel in someone else's page: never past 1.5x, whatever the tier allows
+        dpr={Math.min(window.devicePixelRatio, startBudget.dprMax, viewer ? 1.5 : Infinity)}
         // how far a camera drag may drop the resolution on Medium / Low (QualityGovernor)
         performance={{ min: 0.6 }}
         onCreated={({ gl, scene }) => {
@@ -286,11 +324,19 @@ export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0 }: { c
             enableDamping
             dampingFactor={0.08}
             maxPolarAngle={Math.PI / 2.05}
-            minDistance={5}
-            maxDistance={300}
+            // from the pole the camera turns about a point just in front of the lens: it looks around the depot
+            // from the mast instead of circling the mast, so it neither zooms nor pans there
+            minDistance={pole ? 0.5 : 5}
+            maxDistance={pole ? 2 : 300}
+            enableZoom={!pole}
+            enablePan={!pole}
+            autoRotate={!!viewer?.spin && !followId}
+            autoRotateSpeed={pole ? 0.5 : 0.3}
+            onStart={viewer?.onInteract}
             regress
           />
-          <CameraRig controls={controlsRef} />
+          {viewer && <ViewerFraming controls={controlsRef} framing={viewer.framing} />}
+          <CameraRig controls={controlsRef} pole={pole} />
           <QCardProjector />
         </Suspense>
       </Canvas>

@@ -10,6 +10,7 @@ import { WorldContractTab } from '@/components/tabs/WorldContractTab';
 import { TwinOttoQTab } from '@/components/tabs/TwinOttoQTab';
 import { TwinAgentTab } from '@/components/tabs/TwinAgentTab';
 import { TwinValueTab } from '@/components/tabs/TwinValueTab';
+import { TwinBackgroundTab } from '@/components/tabs/TwinBackgroundTab';
 
 const tabComponents: Record<CockpitTab, () => JSX.Element> = {
   controls: OperatorConsole,             // run the world: scenario, transport, speed, variability, injections
@@ -20,6 +21,7 @@ const tabComponents: Record<CockpitTab, () => JSX.Element> = {
   world: WorldContractTab,               // feed diagnostics: world load, channels, variable coverage
   copilot: TwinCopilotTab,               // on-demand model review of a sample of this run's decisions
   value: TwinValueTab,                   // what OTTO-Q is worth at this depot (ottoq_value_summary, otto-q-core 0576)
+  background: TwinBackgroundTab,         // what the screen shows and why it is built this way, every number read live
 };
 
 /** A popup (select list, menu, dialog) is open: that Esc is closing IT, not the full-width panel. */
