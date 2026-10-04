@@ -1,14 +1,18 @@
 import { useMemo } from 'react';
 import * as THREE from 'three';
 import { MATERIALS } from './materials';
-import { LOT, INGRESS, EGRESS, GATE_W } from '@/lib/sitePlan';
+import { LOT, INGRESS, EGRESS, GATE_W, southFenceSpans } from '@/lib/sitePlan';
 import { toWorld, DECK_Y } from './coordUtils';
-import { logoSignMaterial, LOGO_SIGN_ASPECT } from './textures';
+import { logoSignMaterial, LOGO_SIGN_ASPECT, gateSignTexture } from './textures';
 import { SIGN_WALL } from '@/lib/structurePlan';
+import { DEPOT_BLOCK, DEPOT_ROAD_SPAN, SOUTH_ROAD } from './cityPlan';
 
 /**
  * Ground plane, asphalt lot, perimeter security fence with ingress/egress
  * gates, public road, and entrance signage — all derived from the site plan.
+ *
+ * The grass is the depot's own block and the road its stretch between the two
+ * avenues; the city around them (UrbanSurround, cityPlan.ts) draws the rest.
  */
 
 // logical rect → world center + size
@@ -59,10 +63,17 @@ function FenceRun({ x1, y1, x2, y2 }: { x1: number; y1: number; x2: number; y2: 
 function Gate({ x, label }: { x: number; label: 'IN' | 'OUT' }) {
   const yS = LOT.y + LOT.h; // south fence line
   const [wx, , wz] = toWorld({ x, y: yS }, 0);
-  const mats = useMemo(() => ({
-    steel: MATERIALS.darkCladding(),
-    led: label === 'IN' ? MATERIALS.tealLED(2.5) : MATERIALS.amberIndicator(),
-  }), [label]);
+  const mats = useMemo(() => {
+    const sign = gateSignTexture(label === 'IN' ? 'ENTER' : 'EXIT', label === 'IN' ? '#00D4AA' : '#FFAA00');
+    return {
+      steel: MATERIALS.darkCladding(),
+      led: label === 'IN' ? MATERIALS.tealLED(2.5) : MATERIALS.amberIndicator(),
+      sign: new THREE.MeshStandardMaterial({ map: sign, emissiveMap: sign, emissive: new THREE.Color('#ffffff'), emissiveIntensity: 0.55, roughness: 0.5 }),
+    };
+  }, [label]);
+  // the sign hangs on the gate's OUTER post, facing the road, clear of the opening
+  const other = label === 'IN' ? EGRESS.x : INGRESS.x;
+  const outer = Math.sign(toWorld({ x, y: 0 }, 0)[0] - toWorld({ x: other, y: 0 }, 0)[0]);
   return (
     <group position={[wx, 0, wz]}>
       {[-GATE_W / 2, GATE_W / 2].map((px, i) => (
@@ -75,6 +86,15 @@ function Gate({ x, label }: { x: number; label: 'IN' | 'OUT' }) {
           </mesh>
         </group>
       ))}
+      {/* ENTER / EXIT, on the road face of the outer post */}
+      <group position={[outer * (GATE_W / 2 + 1.0), 3.6, -0.7]}>
+        <mesh position={[0, 0, -0.06]} material={mats.steel}>
+          <boxGeometry args={[3.6, 1.5, 0.12]} />
+        </mesh>
+        <mesh position={[0, 0, -0.13]} rotation-y={Math.PI} material={mats.sign}>
+          <planeGeometry args={[3.4, 1.3]} />
+        </mesh>
+      </group>
       {/* slide gate panel, parked open beside the gap */}
       <mesh position={[label === 'IN' ? -GATE_W : GATE_W, 2.4, 0.9]} material={mats.steel}>
         <boxGeometry args={[GATE_W - 1, 4.2, 0.25]} />
@@ -122,9 +142,9 @@ export function DepotGround() {
 
   return (
     <group>
-      {/* earth + site grass */}
-      <mesh rotation-x={-Math.PI / 2} position={[0, -0.05, 0]} receiveShadow material={mats.grass}>
-        <planeGeometry args={[420, 320]} />
+      {/* site grass: the depot's block, out to the city's sidewalks */}
+      <mesh rotation-x={-Math.PI / 2} position={[(DEPOT_BLOCK.x0 + DEPOT_BLOCK.x1) / 2, -0.05, (DEPOT_BLOCK.z0 + DEPOT_BLOCK.z1) / 2]} receiveShadow material={mats.grass}>
+        <planeGeometry args={[DEPOT_BLOCK.x1 - DEPOT_BLOCK.x0, DEPOT_BLOCK.z1 - DEPOT_BLOCK.z0]} />
       </mesh>
 
       {/* asphalt lot */}
@@ -141,23 +161,24 @@ export function DepotGround() {
         <planeGeometry args={[lot.w, lot.d]} />
       </mesh>
 
-      {/* public road along the south edge */}
-      <mesh rotation-x={-Math.PI / 2} position={[0, 0.01, -105]} receiveShadow material={mats.asphalt}>
-        <planeGeometry args={[420, 13]} />
+      {/* public road along the south edge, between the avenues (the city draws it on from there) */}
+      <mesh rotation-x={-Math.PI / 2} position={[(DEPOT_ROAD_SPAN.x0 + DEPOT_ROAD_SPAN.x1) / 2, 0.01, SOUTH_ROAD.at]} receiveShadow material={mats.asphalt}>
+        <planeGeometry args={[DEPOT_ROAD_SPAN.x1 - DEPOT_ROAD_SPAN.x0, SOUTH_ROAD.width]} />
       </mesh>
-      {Array.from({ length: 21 }, (_, i) => (
-        <mesh key={`rd${i}`} rotation-x={-Math.PI / 2} position={[-200 + i * 20, 0.03, -105]} material={mats.yellow}>
+      {Array.from({ length: 21 }, (_, i) => -200 + i * 20).filter((x) => x - 4 > DEPOT_ROAD_SPAN.x0 && x + 4 < DEPOT_ROAD_SPAN.x1).map((x) => (
+        <mesh key={`rd${x}`} rotation-x={-Math.PI / 2} position={[x, 0.03, SOUTH_ROAD.at]} material={mats.yellow}>
           <planeGeometry args={[8, 0.5]} />
         </mesh>
       ))}
 
-      {/* perimeter security fence (south side split around the two gates) */}
+      {/* perimeter security fence, the south side split around the two gates. The south
+          runs come from sitePlan.southFenceSpans: they were typed here for an ingress WEST of
+          the egress, and once the gates swapped sides (enter east, exit west) the three runs
+          overlapped and closed the fence across BOTH gate openings. */}
       <FenceRun x1={LOT.x} y1={LOT.y} x2={LOT.x + LOT.w} y2={LOT.y} />
       <FenceRun x1={LOT.x} y1={LOT.y} x2={LOT.x} y2={yS} />
       <FenceRun x1={LOT.x + LOT.w} y1={LOT.y} x2={LOT.x + LOT.w} y2={yS} />
-      <FenceRun x1={LOT.x} y1={yS} x2={xIn - GATE_W / 2} y2={yS} />
-      <FenceRun x1={xIn + GATE_W / 2} y1={yS} x2={xOut - GATE_W / 2} y2={yS} />
-      <FenceRun x1={xOut + GATE_W / 2} y1={yS} x2={LOT.x + LOT.w} y2={yS} />
+      {southFenceSpans().map(([a, b]) => <FenceRun key={a} x1={a} y1={yS} x2={b} y2={yS} />)}
       <Gate x={xIn} label="IN" />
       <Gate x={xOut} label="OUT" />
 
