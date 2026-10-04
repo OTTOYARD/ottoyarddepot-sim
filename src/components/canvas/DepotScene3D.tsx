@@ -21,8 +21,11 @@ import { UtilityEquipment } from './three/UtilityEquipment';
 import { VehicleFleet } from './three/Vehicle3D';
 import { WeatherEffects } from './three/WeatherEffects';
 import { DayNightLighting } from './three/DayNightLighting';
+import { DAY_SKY } from './three/dayNight';
 import { DepotPostProcessing } from './three/DepotPostProcessing';
 import { SiteDetails } from './three/SiteDetails';
+import { UrbanSurround } from './three/UrbanSurround';
+import { CITY_VIEW_FAR } from './three/cityPlan';
 import { MATERIALS } from './three/materials';
 import { skyTexture } from './three/textures';
 import { PerfProbe } from './three/perf/PerfProbe';
@@ -99,6 +102,21 @@ function Landscaping() {
     <group>
       <primitive object={trunks} />
       <primitive object={crowns} />
+
+      {/* clipped hedges along the outside of the west, east and north fences (the south
+          fence meets the road), 2 u off the fence line: a base and a narrower crown */}
+      {([
+        [147.6, 4, 1.8, 196], [-147.6, 4, 1.8, 196], [0, 107.6, 293, 1.8],
+      ] as const).map(([x, z, w, d], i) => (
+        <group key={`hedge${i}`} position={[x, 0, z]}>
+          <mesh position={[0, 0.55, 0]} castShadow receiveShadow material={MATERIALS.shrubGreen()}>
+            <boxGeometry args={[w, 1.1, d]} />
+          </mesh>
+          <mesh position={[0, 1.35, 0]} castShadow receiveShadow material={MATERIALS.shrubGreen()}>
+            <boxGeometry args={[w === 1.8 ? 1.4 : w - 0.4, 0.5, d === 1.8 ? 1.4 : d - 0.4]} />
+          </mesh>
+        </group>
+      ))}
 
       {planterPositions.map((pos, i) => (
         <group key={`planter${i}`} position={pos}>
@@ -259,7 +277,7 @@ export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0, viewe
         shadows
         // the standalone view never draws while it cannot be seen; the cockpit's view always draws
         frameloop={viewer?.paused ? 'never' : 'always'}
-        camera={{ position: viewer?.framing?.position ?? [0, 180, -10], fov: 45, near: 1, far: 500 }}
+        camera={{ position: viewer?.framing?.position ?? [0, 180, -10], fov: 45, near: 1, far: CITY_VIEW_FAR }}
         gl={{
           // MSAA on the default framebuffer: only High keeps it (the post stack
           // anti-aliases with SMAA; this matters only when no composer runs).
@@ -276,7 +294,7 @@ export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0, viewe
         onCreated={({ gl, scene }) => {
           gl.shadowMap.enabled = startBudget.shadows;
           gl.shadowMap.type = startBudget.softShadows ? PCFSoftShadowMap : PCFShadowMap;
-          scene.fog = new FogExp2('#b9cde4', 0.00065);
+          scene.fog = new FogExp2(DAY_SKY.fog, 0.00065);
           // Procedural gradient sky: backdrop + PBR environment in one
           const sky = skyTexture();
           scene.background = sky;
@@ -284,7 +302,7 @@ export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0, viewe
           // The backdrop is drawn through the same exposure (2.2) as the lit
           // scene, which burned the horizon band to white. Dim the BACKDROP only;
           // the environment keeps full strength for reflections and fill.
-          scene.backgroundIntensity = 0.42;
+          scene.backgroundIntensity = DAY_SKY.background;
         }}
       >
         <Suspense fallback={null}>
@@ -311,6 +329,7 @@ export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0, viewe
             ))}
           </group>
           <StaticMerge name="landscaping"><Landscaping /></StaticMerge>
+          <UrbanSurround />
           <group name="siteDetails"><SiteDetails /></group>
 
           <group name="vehicles"><VehicleFleet vehicles={vehicles} /></group>

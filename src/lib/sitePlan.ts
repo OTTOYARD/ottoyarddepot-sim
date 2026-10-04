@@ -118,6 +118,17 @@ export const BUILDING = { x: 70, y: 26, w: 80, h: 30 };   // office (west) + 2 s
 export const WASH = { x: 160, y: 26, w: 52, h: 30 };      // 3 pull-through bays
 export const GATE_W = 14;
 
+/** The south fence line, as plan-x spans: the lot's frontage with BOTH gate openings
+ *  left open, whichever side each gate is on (sitePlan.fence.test.ts). */
+export function southFenceSpans(): [number, number][] {
+  const [w, e] = [INGRESS.x, EGRESS.x].sort((a, b) => a - b);
+  return [
+    [LOT.x, w - GATE_W / 2],
+    [w + GATE_W / 2, e - GATE_W / 2],
+    [e + GATE_W / 2, LOT.x + LOT.w],
+  ];
+}
+
 export interface CanopyDef {
   id: 'A' | 'B' | 'C';
   cx: number;        // center x

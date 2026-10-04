@@ -204,6 +204,27 @@ export function oilStainTexture(): THREE.Texture {
   });
 }
 
+/** A small gate sign: white letters on near-black over an accent bar (the gate's LED colour). */
+export function gateSignTexture(text: string, accent: string): THREE.Texture {
+  return cachedTex(`gate:${text}:${accent}`, () => {
+    const c = canvas(256, 96, (g, w, h) => {
+      g.fillStyle = '#121418';
+      g.fillRect(0, 0, w, h);
+      g.fillStyle = accent;
+      g.fillRect(0, h - 12, w, 12);
+      g.fillStyle = '#f2f4f6';
+      g.font = 'bold 50px Arial, Helvetica, sans-serif';
+      g.textAlign = 'center';
+      g.textBaseline = 'middle';
+      g.fillText(text, w / 2, (h - 12) / 2 + 2);
+    });
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 4;
+    return t;
+  });
+}
+
 export const TEXTURES = { asphaltTexture, pvCellTexture, concreteTexture, skyTexture, oilStainTexture } as const;
 
 // ── THE OTTOYARD LOGO, for signage (founder, 2026-09-30) ─────────────────────

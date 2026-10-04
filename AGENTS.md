@@ -188,6 +188,15 @@ interpolation.** Zero world logic client-side.
   desktop's tab components and run calls (`useTwinControl`, `blackbox.stopAndReset`): do not fork a
   panel for the phone, and do not change a shared panel for phone-only reasons without checking the
   desktop. Its Start/Pause/Stop are the real controls for everyone watching the run.
+- **The city around the depot is scenery, not world** (2026-10-04, `cityPlan.ts` → `cityMesh.ts` →
+  `UrbanSurround.tsx`): streets, ~1,900 buildings, a downtown skyline to the north with one
+  two-spired tower, a river with bridges, street trees, lamps and signals, built once from a seed
+  into ~33 draw calls that cast and receive no shadows. Nothing reads it and nothing in it moves
+  but the night lights. `cityPlan.test.ts` pins what it must never do: stand on the depot block,
+  the south road the fleet drives, the lawn the Entrance camera stands on, or in any preset's or
+  live-view camera's way. Add a camera, and the test checks it. DepotGround draws only the depot's
+  own block and its stretch of the road; the camera's far plane is `CITY_VIEW_FAR`, and the sky and
+  haze now dim with the sun (`DayNightLighting`), so the city's lit windows read at night.
 - **3D perf and phone tooling:** `scripts/perfHarness.mjs` (draw calls, triangles, memory, frame times
   per camera preset, profile and render tier; `?perf=1` shows the same probe on a real phone) and
   `scripts/phoneShots.mjs` (the phone cockpit in an emulated iPhone, both orientations). Both play a
