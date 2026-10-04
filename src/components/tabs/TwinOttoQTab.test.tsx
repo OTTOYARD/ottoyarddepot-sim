@@ -3,7 +3,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import fx from "./__fixtures__/ottoqRun.1ccad49b.json";
+import ownerCapture from "./__fixtures__/depotOwnerBoard.0608.json";
 import type { ActivityFeedRow } from "@/store/activityFeedStore";
+import { NOT_ENABLED_TEXT, NOT_GRANTED_TEXT, agentLabel, type DepotOwnerBoard, type OwnerCommand } from "@/lib/ownerBoard";
 
 vi.mock("@/lib/ottoQClient", () => ({
   ottoQ: { rpc: vi.fn().mockResolvedValue({ data: [], error: null }), from: vi.fn() },
@@ -29,6 +31,7 @@ vi.mock("@/hooks/useDecisionTrail", () => ({
 
 const { useTwinStore } = await import("@/store/twinStore");
 const { useActivityFeedStore } = await import("@/store/activityFeedStore");
+const { useOwnerBoardStore } = await import("@/store/ownerBoardStore");
 const { TwinOttoQTab } = await import("./TwinOttoQTab");
 const { TwinAgentTab } = await import("./TwinAgentTab");
 
@@ -39,7 +42,7 @@ beforeEach(() => {
   S.disp = { rows: fx.dispositions, error: null };
   S.stack = fx.stack;
 });
-afterEach(() => { cleanup(); });
+afterEach(() => { cleanup(); useOwnerBoardStore.getState().reset(null); });
 
 describe("OTTO-Q tab", () => {
   it("draws the eight layers in the engine's order, each with its line", () => {
@@ -142,6 +145,74 @@ describe("Agent tab", () => {
     fireEvent.click(within(live).getByRole("button", { name: "Agent" }));
     expect(within(live).getAllByText("read the depot and chose to get cars ready first").length).toBeGreaterThan(0);
     expect(within(live).queryByText(/→ standard charger/)).toBeNull();
+  });
+
+  // ── owners' agents (otto-q-core 0608): the real capture's board, moved onto this run, its commands sent at the sim
+  // clocks of ticks 94 (the newest two) and 90 (the rest) ──
+  const live = ownerCapture.live as unknown as DepotOwnerBoard;
+  const KEY = agentLabel(live.agents!.find((a) => a.via === "key")!.agent, "key");
+  const PASS = agentLabel(live.agents!.find((a) => a.via === "passcode")!.agent, "passcode");
+  const clockOf = (tick: number) => (fx.feed as unknown as ActivityFeedRow[]).find((r) => r.tick_seq === tick)!.occurred_at;
+  const onThisRun = (): DepotOwnerBoard => ({
+    ...live,
+    run: { ...live.run!, sim_run_id: fx.sim_run_id },
+    commands: (live.commands as OwnerCommand[]).map((c, i) => ({ ...c, sim_run_id: fx.sim_run_id, sim_clock: clockOf(i < 2 ? 94 : 90) })),
+  });
+  const ownersRead = () => {
+    useOwnerBoardStore.getState().reset(fx.sim_run_id);
+    useOwnerBoardStore.getState().receive(fx.sim_run_id, onThisRun());
+  };
+
+  it("carries what owners' agents asked, as their own violet lines, with OTTO-Q's confirmation code", () => {
+    ownersRead();
+    render(<TwinAgentTab />);
+    const live$ = screen.getByRole("region", { name: "Live decisions" });
+    const lines = within(live$).getAllByTestId("owner-line");
+    expect(lines).toHaveLength(6);
+    const text = lines.map((l) => l.textContent ?? "");
+    expect(text.some((t) => t.includes(`${KEY} · Charge limit · Done. All 4 Teslas charge to at most 90% instead of 100%. · OQ-392E-D895`))).toBe(true);
+    expect(text.some((t) => t.includes(`${PASS} · Refused: 70% is below the 80% minimum in your contract.`))).toBe(true);
+    // the decisions are still there around them
+    expect(within(live$).getAllByText(/→ standard charger 12 to charge · 90% now/).length).toBeGreaterThan(0);
+    // a refused or plain line carries no code
+    expect(lines.filter((l) => l.querySelector("code")).length).toBe(4);
+  });
+
+  it("filters to owners' lines, and a poll that delivers the same commands again adds nothing", () => {
+    ownersRead();
+    render(<TwinAgentTab />);
+    const live$ = screen.getByRole("region", { name: "Live decisions" });
+    fireEvent.click(within(live$).getByRole("button", { name: "Owners" }));
+    expect(within(live$).getAllByTestId("owner-line")).toHaveLength(6);
+    expect(within(live$).queryByText(/→ standard charger/)).toBeNull();
+    act(() => useOwnerBoardStore.getState().receive(fx.sim_run_id, { ...onThisRun() }));
+    expect(within(live$).getAllByTestId("owner-line")).toHaveLength(6);
+  });
+
+  it("opens a line to the rest of OTTO-Q's receipt", () => {
+    ownersRead();
+    render(<TwinAgentTab />);
+    const line = screen.getAllByTestId("owner-line").find((l) => l.textContent?.includes("All 4 Teslas charge to at most 90%"))!;
+    fireEvent.click(within(line).getByRole("button"));
+    expect(within(line).getByText("1 is charging past 90%: its charge ends at the next tick")).toBeTruthy();
+  });
+
+  it("before 0607/0608, says owner agents are built but not switched on; not granted and other failures say so too", () => {
+    useOwnerBoardStore.getState().reset(fx.sim_run_id);
+    useOwnerBoardStore.getState().fail(fx.sim_run_id, "not_enabled", "Could not find the function public.ottoq_depot_owner_board");
+    render(<TwinAgentTab />);
+    expect(screen.getByTestId("owner-board-state").textContent).toBe(NOT_ENABLED_TEXT);
+    expect(screen.queryAllByTestId("owner-line")).toHaveLength(0);
+    act(() => useOwnerBoardStore.getState().fail(fx.sim_run_id, "not_granted", "permission denied"));
+    expect(screen.getByTestId("owner-board-state").textContent).toBe(NOT_GRANTED_TEXT);
+    act(() => useOwnerBoardStore.getState().fail(fx.sim_run_id, "error", "canceling statement due to statement timeout"));
+    expect(screen.getByTestId("owner-board-state").textContent).toBe("Could not read what owners' agents set: canceling statement due to statement timeout.");
+  });
+
+  it("says nothing about owners' agents while the board has not answered", () => {
+    render(<TwinAgentTab />);
+    expect(screen.queryByTestId("owner-board-state")).toBeNull();
+    expect(screen.queryAllByTestId("owner-line")).toHaveLength(0);
   });
 
   it("learning says OTTO-Q does not experiment in production, and that estimates are not built", () => {

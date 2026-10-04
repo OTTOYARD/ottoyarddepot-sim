@@ -1,4 +1,28 @@
+import { Bot } from 'lucide-react';
 import { useSimulationStore } from '@/store/simulationStore';
+import { useOwnerBoardStore } from '@/store/ownerBoardStore';
+import { agentLabel, connectedAgents, connectedCount } from '@/lib/ownerBoard';
+
+/**
+ * Owners' agents connected to the depot (otto-q-core 0608), beside the run's LIVE mark; nothing when none is. Here and
+ * not in the top bar: at 1440 px the top bar's telemetry strip has no room to spare, and a chip there clipped it.
+ */
+const AgentsConnected = () => {
+  const board = useOwnerBoardStore((s) => s.board);
+  const n = connectedCount(board);
+  if (!n) return null;
+  const who = connectedAgents(board).map((a) => agentLabel(a.agent, a.via)).join(', ');
+  return (
+    <span
+      data-testid="agents-connected"
+      title={`Owners' agents connected to this depot${who ? `: ${who}` : ''}. What they set shows on each car's Q card and in the Agent tab.`}
+      className="inline-flex shrink-0 items-center gap-1 rounded border border-violet-500/40 bg-violet-500/10 px-1.5 py-0.5 font-mono text-[10px] text-violet-200"
+    >
+      <Bot size={11} aria-hidden />
+      {n} {n === 1 ? 'agent' : 'agents'} connected
+    </span>
+  );
+};
 
 const formatHHMM = (seconds: number) => {
   const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
@@ -36,6 +60,7 @@ export const BottomBar = () => {
       <span className="text-white/70 text-xs font-mono w-12 text-right">
         {simClockLive ? 'LIVE' : '24:00'}
       </span>
+      <AgentsConnected />
     </div>
   );
 };

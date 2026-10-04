@@ -12,6 +12,7 @@ import { portFor } from '@/lib/ottoChargeArm/chargePort';
 import { towardFor, portInVehicleFrame } from '@/lib/ottoChargeArm/depotPlacement';
 import { useTierBudget } from './quality/qualityStore';
 import { writeYaw, writeZero, portWorld } from './fleetMath';
+import { OwnerMarkers } from './OwnerMarkers';
 import type { Vehicle } from '@/engine/types';
 
 // ── PERF: the fleet used to clone a 22.5MB GLB per car (176 meshes / 684k tris
@@ -297,6 +298,8 @@ export function VehicleFleet({ vehicles }: { vehicles: Vehicle[] }) {
       <primitive object={fleet.ring} />
       <primitive object={fleet.ringLive} />
       <HoverBadge drawn={drawn.current} />
+      {/* a violet badge over each car its owner's agent set something on (one draw call, read from the same poses) */}
+      <OwnerMarkers drawn={drawn.current} />
     </group>
   );
 }

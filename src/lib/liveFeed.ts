@@ -5,14 +5,28 @@
 // them in that one. … one line at a time still plain English and explains what happened and where, like vehicle 128
 // finished charging, now approved for dispatch to washing bay, or temporarily staging until wash bay free."
 //
-// Every line is one record of ottoq_activity_feed_v2 (or one tick of the offer ledger, or one agent pass); nothing is
-// inferred that the record does not carry. A place is named only when the record names it (its target stall code).
+// Every line is one record of ottoq_activity_feed_v2 (or one tick of the offer ledger, or one agent pass, or one command
+// an owner's agent sent, otto-q-core 0608); nothing is inferred that the record does not carry. A place is named only
+// when the record names it (its target stall code).
 import type { ActivityFeedRow } from "@/store/activityFeedStore";
 import { describeDecision, human, num } from "@/lib/decisionText";
 import { placeName, ruleWords } from "@/lib/plainWords";
 import { agentPass, type AgentPass, type OfferBatch, type StreamTone } from "@/lib/agentStream";
 
-export type FeedKind = "car" | "agent" | "offers" | "energy";
+export type FeedKind = "car" | "agent" | "offers" | "energy" | "owner";
+
+/** What an owner's agent's command carries on its line (built by ownerBoard.ownerFeedLine). */
+export interface OwnerFeed {
+  /** OTTO-Q's confirmation code ("OQ-XXXX-XXXX"), on an applied command only. */
+  code: string | null;
+  /** Where it stands since it was sent: undone, or lifted with its run. */
+  note: string | null;
+  /** When it was sent, in real time ("11:11 PM CT"), and the sim clock then ("7:00 AM sim time"). */
+  sent: string | null;
+  sim: string | null;
+  /** The rest of OTTO-Q's receipt, as the agent got it. */
+  more: string[];
+}
 
 export interface FeedLine {
   key: string;
@@ -29,6 +43,7 @@ export interface FeedLine {
   verb: string;
   pass?: AgentPass;
   batch?: OfferBatch;
+  owner?: OwnerFeed;
 }
 
 export interface FeedGroup {
@@ -149,9 +164,10 @@ export const GROUP_AT = 3;
 
 /**
  * The stream: agent passes, offer ticks and every car and site decision, newest first, a burst folded into a tile.
- * A car decision written over and over (a held car re-checked each tick) shows once, at its newest.
+ * A car decision written over and over (a held car re-checked each tick) shows once, at its newest. `owners` (the
+ * commands owners' agents sent, as ownerBoard.ownerFeedLines builds them) join it by time (withOwnerLines).
  */
-export function liveFeed(rows: readonly ActivityFeedRow[], batches: readonly OfferBatch[]): FeedItem[] {
+export function liveFeed(rows: readonly ActivityFeedRow[], batches: readonly OfferBatch[], owners: readonly FeedLine[] = []): FeedItem[] {
   const lines: FeedLine[] = [];
   for (const r of rows) {
     if (r.action === "orchestrator_agent") {
@@ -196,5 +212,33 @@ export function liveFeed(rows: readonly ActivityFeedRow[], batches: readonly Off
     }
     i = j;
   }
+  return withOwnerLines(out, owners);
+}
+
+/**
+ * Owners' agents' commands, placed in the stream by the SIM clock they were sent at (the feed's `at` is sim time too).
+ * That clock is the run's, which stands at its last tick until the next one, so a command goes above every decision
+ * written at or before it and below the next tick's: the order it really happened in. Commands sent at the same sim
+ * clock keep the order they are given in (newest sent first). One without a sim clock goes last. Never folded into a
+ * tile: each is one person's agent asking for something.
+ */
+export function withOwnerLines(items: readonly FeedItem[], owners: readonly FeedLine[]): FeedItem[] {
+  if (!owners.length) return items as FeedItem[];
+  const time = (x: { at: string | null }): number | null => {
+    const t = Date.parse(x.at ?? "");
+    return Number.isFinite(t) ? t : null;
+  };
+  const queue = owners
+    .map((l, i) => ({ l, t: time(l), i }))
+    .sort((a, b) => (b.t ?? -Infinity) - (a.t ?? -Infinity) || a.i - b.i);
+  const out: FeedItem[] = [];
+  let q = 0;
+  for (const it of items) {
+    const t = time(it);
+    // an item with no clock stays where the stream put it; the commands wait for the next one that has one
+    while (t !== null && q < queue.length && queue[q].t !== null && queue[q].t! >= t) out.push(queue[q++].l);
+    out.push(it);
+  }
+  while (q < queue.length) out.push(queue[q++].l);
   return out;
 }

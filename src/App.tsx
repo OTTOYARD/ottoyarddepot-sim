@@ -6,6 +6,7 @@ import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useTwinFeed } from '@/hooks/useTwinFeed';
 import { useWorldBoot } from '@/hooks/useWorldBoot';
 import { useTwinSceneBridge } from '@/hooks/useTwinSceneBridge';
+import { useOwnerBoard } from '@/hooks/useOwnerBoard';
 import { RunBootSplash } from '@/components/canvas/RunBootSplash';
 import { JumpPlanningOverlay } from '@/components/canvas/JumpPlanningOverlay';
 import { CockpitPanel } from '@/components/cockpit/CockpitPanel';
@@ -36,6 +37,9 @@ const App = () => {
   // driving to a stall the engine never picked. The engine decides; the renderer draws.
   // CC-P2b: drive the depot scene (stalls + vehicles) from the live snapshot.
   useTwinSceneBridge();
+  // What owners' agents have set on their cars (otto-q-core 0608), read once for every view that draws it: the marker
+  // on the car, its Q card, the Agent tab, the bottom bar. Read-only; OTTO-Q applies the settings, the twin shows them.
+  useOwnerBoard();
 
   return (
     <ResponsiveGuard>

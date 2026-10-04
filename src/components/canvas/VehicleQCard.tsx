@@ -6,18 +6,23 @@
 //
 // DRAW-ONLY. The card is shaped by `buildQCard` (src/lib/vehicleQCard.ts) from the twin snapshot, ottoq_depot_cards
 // and the car's own decisions; nothing here reads a clock, decides a step or fills a gap. A missing number is "—".
+// What the car's owner's agent set (otto-q-core 0608) is shaped by `carOwnerView` (src/lib/ownerBoard.ts); a car with
+// nothing set shows nothing of it.
 //
 //   desktop 2D / 3D  anchored over the car and following it (AnchoredQCard), clamped inside the view; above the
 //                    car, else beside it, else below — never over the car itself
 //   phone            a bottom sheet (QCardSheet): at a phone's live-view size an anchored card covers the car
 // ============================================================================
-import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { ChevronDown, ChevronRight, X } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Bot, ChevronDown, ChevronRight, X } from 'lucide-react';
 import { useQCard } from '@/store/qCardStore';
 import { useVehicleStore } from '@/store/vehicleStore';
+import { useTwinStore } from '@/store/twinStore';
+import { useOwnerBoardStore } from '@/store/ownerBoardStore';
 import { useVehicleQCard } from '@/hooks/useVehicleQCard';
 import { CarTrail } from '@/components/tabs/ottoq/CarTrail';
 import { DASH, clock, pctText, type QCard, type QStep } from '@/lib/vehicleQCard';
+import { carOwnerView, type OwnerCarView } from '@/lib/ownerBoard';
 
 const OK = '#34D399';
 const WARN = '#FBBF24';
@@ -87,6 +92,47 @@ function StepRow({ s }: { s: QStep }) {
   );
 }
 
+/** An owner's agent's colour, as OrchestrAV draws it: the same on the chips, the Agent tab's lines and the car's marker. */
+const AGENT_TONE = 'border-violet-500/40 bg-violet-500/10 text-violet-200';
+
+/** What the car's owner's agent set: a charge limit, service orders, a hold, and the codes OTTO-Q confirmed them with. */
+function OwnerAgentBlock({ v }: { v: OwnerCarView }) {
+  return (
+    <section className="mt-1.5 rounded border border-violet-500/30 bg-violet-500/[0.06] px-2 py-1.5" aria-label="Set by its owner's agent" data-testid="qcard-owner">
+      <div className="mb-1 inline-flex items-center gap-1 text-[9px] uppercase tracking-[0.08em] text-violet-300">
+        <Bot size={10} aria-hidden />Set by its owner's agent
+      </div>
+      <ul className="flex flex-wrap gap-1">
+        {v.chips.map((c) => (
+          <li key={c.key} title={c.title} data-kind={c.kind} data-testid="qcard-owner-chip"
+            className={`rounded border px-1.5 py-[1px] text-[10px] ${AGENT_TONE}`}>
+            {c.label}
+          </li>
+        ))}
+      </ul>
+      {v.waitingForTick && (
+        <div className="mt-1 text-[9px] text-amber-200" title="OTTO-Q applies a new setting at its next tick" data-testid="qcard-owner-waiting">
+          applies at OTTO-Q's next tick
+        </div>
+      )}
+      <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[9px] text-ink-dim">
+        {v.receipts.map((r) => (
+          <span key={r.agent} className="inline-flex flex-wrap items-center gap-1">
+            <span>{r.agent}</span>
+            {r.codes.map((c) => (
+              <code key={c.code} title={c.title} data-testid="qcard-owner-code"
+                className="rounded border border-violet-400/30 bg-black/30 px-1 font-mono text-[9.5px] text-violet-100">
+                {c.code}
+              </code>
+            ))}
+          </span>
+        ))}
+      </div>
+      <p className="mt-1 text-[9px] text-ink-faint" title={v.resets ?? undefined}>Everything an agent sets lasts until the demo run ends.</p>
+    </section>
+  );
+}
+
 const Section = ({ title, children, right }: { title: string; children: ReactNode; right?: ReactNode }) => (
   <section className="mt-2 border-t border-white/[0.08] pt-1.5">
     <div className="mb-1 flex items-center justify-between">
@@ -98,8 +144,10 @@ const Section = ({ title, children, right }: { title: string; children: ReactNod
 );
 
 // ── the card body ───────────────────────────────────────────────────────────
-export function QCardBody({ card, oem, onClose, cardsStatus }: {
+export function QCardBody({ card, oem, onClose, cardsStatus, owner }: {
   card: QCard; oem?: string | null; onClose: () => void; cardsStatus: 'waiting' | 'ok' | 'other_run';
+  /** What the car's owner's agent set on this run (carOwnerView), or null when it set nothing. */
+  owner?: OwnerCarView | null;
 }) {
   const [trail, setTrail] = useState(false);
   useEffect(() => setTrail(false), [card.vehicleId]);
@@ -157,6 +205,8 @@ export function QCardBody({ card, oem, onClose, cardsStatus }: {
           {card.hold.words}{card.hold.place ? ` · ${card.hold.place}` : ''}{card.hold.until ? ` · until ${clock(card.hold.until)}` : ''}
         </div>
       )}
+
+      {owner && <OwnerAgentBlock v={owner} />}
 
       {/* the workflow, in order */}
       <Section title="OTTO-Q workflow" right={card.next ? <span className="truncate text-[9px] text-ink-dim">next: {card.next.label.toLowerCase()}</span> : null}>
@@ -241,7 +291,11 @@ function useOpenCard() {
     return () => window.removeEventListener('keydown', onKey);
   }, [openId, close]);
   const data = useVehicleQCard(openId);
-  return { openId, close, oem, ...data };
+  // what its owner's agent set, read by useOwnerBoard for the whole cockpit (otto-q-core 0608)
+  const board = useOwnerBoardStore((s) => s.board);
+  const runId = useTwinStore((s) => s.activeSimRunId);
+  const owner = useMemo(() => carOwnerView(board, openId, runId), [board, openId, runId]);
+  return { openId, close, oem, owner, ...data };
 }
 
 const CARD_W = 292;
@@ -255,7 +309,7 @@ const EDGE = 8;
  * re-rendering anything.
  */
 export function AnchoredQCard({ getAnchor }: { getAnchor: (id: string) => { x: number; y: number; r: number } | null }) {
-  const { openId, close, oem, card, cardsStatus } = useOpenCard();
+  const { openId, close, oem, owner, card, cardsStatus } = useOpenCard();
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -299,14 +353,14 @@ export function AnchoredQCard({ getAnchor }: { getAnchor: (id: string) => { x: n
       onPointerDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >
-      <QCardBody card={card} oem={oem} onClose={close} cardsStatus={cardsStatus} />
+      <QCardBody card={card} oem={oem} onClose={close} cardsStatus={cardsStatus} owner={owner} />
     </div>
   );
 }
 
 /** The phone's card: a bottom sheet over the cockpit. */
 export function QCardSheet() {
-  const { openId, close, oem, card, cardsStatus } = useOpenCard();
+  const { openId, close, oem, owner, card, cardsStatus } = useOpenCard();
   if (!openId || !card) return null;
   return (
     <div role="dialog" aria-label={`${card.name} Q card`}
@@ -314,7 +368,7 @@ export function QCardSheet() {
       style={{ maxHeight: '62dvh', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)',
         paddingLeft: 'calc(env(safe-area-inset-left, 0px) + 16px)', paddingRight: 'calc(env(safe-area-inset-right, 0px) + 16px)' }}>
       <div aria-hidden className="mx-auto mb-1.5 h-1 w-9 rounded-full bg-white/20" />
-      <QCardBody card={card} oem={oem} onClose={close} cardsStatus={cardsStatus} />
+      <QCardBody card={card} oem={oem} onClose={close} cardsStatus={cardsStatus} owner={owner} />
     </div>
   );
 }

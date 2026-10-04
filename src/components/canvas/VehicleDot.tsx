@@ -3,7 +3,14 @@ import type { Vehicle } from '@/engine/types';
 import { useVehicleStore } from '@/store/vehicleStore';
 import { useDepotStore } from '@/store/depotStore';
 import { useQCard } from '@/store/qCardStore';
+import { useOwnerBoardStore } from '@/store/ownerBoardStore';
 import { CAR_BODY_LENGTH, CAR_BODY_WIDTH } from '@/engine/motion/traffic';
+
+/** The owner's-agent outline (otto-q-core 0608), in plan units: body 4.0 wide + 2 x OWNER_GAP + OWNER_WIDTH = 5.6, inside
+ *  the 5.7u staging pitch, so two marked neighbours' outlines never touch. A dark gap keeps it apart from a violet body. */
+const OWNER_GAP = 0.45;
+const OWNER_WIDTH = 0.7;
+const OWNER_STROKE = '#a78bfa';
 
 const VEHICLE_COLORS: Record<string, string> = {
   fleet: '#00B4A6',
@@ -54,6 +61,8 @@ interface Props {
 
 const VehicleDotInner = ({ vehicle: v }: Props) => {
   const setHoveredVehicle = useVehicleStore((s) => s.setHoveredVehicle);
+  // its owner's agent has a setting in force on it (ownerBoardStore): re-renders only when that flips
+  const ownerSet = useOwnerBoardStore((s) => s.marked.has(v.id));
   const oem = (v.oem || '').toLowerCase();
   const fill = OEM_COLORS[oem] || VEHICLE_COLORS[v.type] || '#87CEEB';
   const stroke = OEM_STROKE[oem] || STROKE_COLORS[v.type] || '#666666';
@@ -146,6 +155,23 @@ const VehicleDotInner = ({ vehicle: v }: Props) => {
             <animate attributeName="opacity" from="0" to={String(baseOpacity)} dur="0.3s" fill="freeze" />
           )}
         </rect>
+
+        {/* set by its owner's agent: a thin violet outline round the body, turning with it. Over the body, so a charging
+            car's pulse (scale 1.1) runs under it rather than covering its inner edge. */}
+        {ownerSet && (
+          <rect
+            data-owner-mark
+            x={-CAR_BODY_WIDTH / 2 - OWNER_GAP}
+            y={-CAR_BODY_LENGTH / 2 - OWNER_GAP}
+            width={CAR_BODY_WIDTH + 2 * OWNER_GAP}
+            height={CAR_BODY_LENGTH + 2 * OWNER_GAP}
+            rx={2}
+            ry={2}
+            fill="none"
+            stroke={OWNER_STROKE}
+            strokeWidth={OWNER_WIDTH}
+          />
+        )}
 
         {/* Windshield detail */}
         <rect x={-1.5} y={-3} width={3} height={1.5} rx={0.5} fill={stroke} opacity={0.4} />

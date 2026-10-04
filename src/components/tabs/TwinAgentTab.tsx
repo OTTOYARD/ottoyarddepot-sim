@@ -6,15 +6,18 @@
 // live stream of agent decision-making and reading of all variables in real time and proposing and learning and looping."
 //
 // Sentences: src/lib/agentStream.ts. Reads: the shared decision stream (ottoq_activity_feed_v2, its agent rows), the
-// proposal disposition ledger (useDispositions), the stack's agent layer, and the second loop's two boards.
+// proposal disposition ledger (useDispositions), the stack's agent layer, and the second loop's two boards. The live
+// stream also carries what owners' agents asked of their cars (otto-q-core 0608, ownerBoardStore).
 // Design note: docs/OTTO-Q-FUNNEL-AND-AGENT-TABS.md.
 // ============================================================================
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronRight, RotateCw } from "lucide-react";
+import { Bot, ChevronDown, ChevronRight, RotateCw } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTwinStore } from "@/store/twinStore";
 import { useActivityFeed } from "@/hooks/useActivityFeed";
 import { useActivityFeedStore } from "@/store/activityFeedStore";
+import { useOwnerBoardStore } from "@/store/ownerBoardStore";
+import { boardStateText, ownerFeedLines } from "@/lib/ownerBoard";
 import { useIntelligenceStack } from "@/hooks/useIntelligenceStack";
 import { useDispositions } from "@/hooks/useDispositions";
 import { useSecondLoop } from "@/hooks/useSecondLoop";
@@ -102,9 +105,41 @@ function OfferCard({ b }: { b: OfferBatch }) {
 }
 
 // ── the live stream: one line per decision, arriving one at a time ───────────────────────────────────────────────
-const KIND_LABEL: Record<FeedKind, string> = { car: "Cars", agent: "Agent", offers: "Planners", energy: "Energy" };
+const KIND_LABEL: Record<FeedKind, string> = { car: "Cars", agent: "Agent", offers: "Planners", energy: "Energy", owner: "Owners" };
 const clock = (l: { at: string | null; tick: number | null }) => (l.at ? formatClockCT(l.at) : l.tick != null ? `tick ${l.tick}` : "—");
 const IN = "animate-in fade-in slide-in-from-top-1 duration-300";
+
+/** A command an owner's agent sent: its own kind of line, in the agent's violet (as OrchestrAV draws it), with OTTO-Q's
+ *  confirmation code. Taps open to the rest of OTTO-Q's receipt. Its clock is the sim clock it was sent at, like every
+ *  other line's; the real time it was sent is on hover. */
+function OwnerRow({ l, fresh }: { l: FeedLine; fresh: boolean }) {
+  const [open, setOpen] = useState(false);
+  const o = l.owner;
+  const more = !!o && o.more.length > 0;
+  const sent = [o?.sent ? `sent ${o.sent}` : null, o?.sim ?? null].filter(Boolean).join(" · ");
+  return (
+    <li className={`rounded border border-violet-500/40 bg-violet-500/10 ${fresh ? IN : ""}`} data-testid="owner-line">
+      <button type="button" disabled={!more} onClick={() => setOpen((v) => !v)} aria-expanded={more ? open : undefined}
+        className="flex w-full items-start gap-2 px-1.5 py-[3px] text-left disabled:cursor-default">
+        <Bot size={11} aria-hidden className="mt-[2px] shrink-0 text-violet-300" />
+        <span className="min-w-0 flex-1 break-words text-[11.5px] leading-4 text-violet-100">
+          <span className="mr-1 font-display text-[9px] uppercase tracking-[0.08em] text-violet-300">Owner</span>
+          {l.text}
+          {o?.code && (
+            <> · <code className="rounded border border-violet-400/40 bg-violet-500/15 px-1 font-mono text-[10px] text-violet-50">{o.code}</code></>
+          )}
+          {o?.note && <span className="ml-1 text-[10px] text-ink-faint">({o.note})</span>}
+        </span>
+        <span className="mt-[1px] shrink-0 font-mono text-[9px] text-ink-faint" title={sent || undefined}>{clock(l)}</span>
+      </button>
+      {open && o && (
+        <ul className="space-y-0.5 border-t border-violet-500/20 px-2 py-1">
+          {o.more.map((m, i) => <li key={i} className="break-words text-[10.5px] leading-4 text-ink-dim">{m}</li>)}
+        </ul>
+      )}
+    </li>
+  );
+}
 
 function FeedRow({ l, fresh }: { l: FeedLine; fresh: boolean }) {
   const [open, setOpen] = useState(false);
@@ -177,7 +212,7 @@ function useTrickle(items: FeedItem[], paused: boolean) {
   return { visible, incoming: queue.length, fresh: new Set(fresh) };
 }
 
-function LiveFeed({ items, frozen }: { items: FeedItem[]; frozen: boolean }) {
+function LiveFeed({ items, frozen, ownerNote }: { items: FeedItem[]; frozen: boolean; ownerNote?: string | null }) {
   const [only, setOnly] = useState<FeedKind | null>(null);
   const [limit, setLimit] = useState(80);
   const { visible, incoming, fresh } = useTrickle(items, frozen);
@@ -186,7 +221,7 @@ function LiveFeed({ items, frozen }: { items: FeedItem[]; frozen: boolean }) {
   return (
     <section aria-label="Live decisions" className="space-y-1.5">
       <div className="flex flex-wrap items-center gap-1">
-        {([null, "car", "agent", "offers", "energy"] as (FeedKind | null)[]).map((k) => (
+        {([null, "car", "agent", "offers", "energy", "owner"] as (FeedKind | null)[]).map((k) => (
           <button key={k ?? "all"} type="button" onClick={() => setOnly(k)} aria-pressed={only === k}
             className={`rounded-full border px-2 py-0.5 text-[10px] ${only === k ? "border-brand-red/60 bg-brand-red/10 text-ink" : "border-white/10 text-ink-dim"}`}>
             {k ? KIND_LABEL[k] : "All"}
@@ -194,11 +229,20 @@ function LiveFeed({ items, frozen }: { items: FeedItem[]; frozen: boolean }) {
         ))}
         {incoming > 0 && <span className="ml-auto font-mono text-[9px] text-ink-faint">+{incoming} incoming</span>}
       </div>
+      {ownerNote && (
+        <p className="flex items-start gap-1.5 rounded border border-violet-500/30 bg-violet-500/[0.06] px-2 py-1 text-[10.5px] leading-4 text-violet-200" data-testid="owner-board-state">
+          <Bot size={11} aria-hidden className="mt-[2px] shrink-0" />{ownerNote}
+        </p>
+      )}
       {list.length === 0 ? (
-        <p className="text-[11px] text-ink-dim">{frozen ? "Paused." : "No decisions in the last two sim-hours yet."}</p>
+        <p className="text-[11px] text-ink-dim">
+          {only === "owner" ? "No owner's agent has sent anything on this run yet." : frozen ? "Paused." : "No decisions in the last two sim-hours yet."}
+        </p>
       ) : (
         <ul className="space-y-[2px]">
-          {list.slice(0, limit).map((i) => (i.kind === "group" ? <FeedTile key={i.key} g={i} fresh={fresh.has(i.key)} /> : <FeedRow key={i.key} l={i} fresh={fresh.has(i.key)} />))}
+          {list.slice(0, limit).map((i) => (i.kind === "group" ? <FeedTile key={i.key} g={i} fresh={fresh.has(i.key)} />
+            : i.kind === "owner" ? <OwnerRow key={i.key} l={i} fresh={fresh.has(i.key)} />
+            : <FeedRow key={i.key} l={i} fresh={fresh.has(i.key)} />))}
         </ul>
       )}
       {list.length > limit && (
@@ -314,7 +358,21 @@ export function TwinAgentTab() {
     // Both carry the tick they belong to; merged on it, a pass before the offers of its own tick.
     return [...passes, ...batches].sort((a, b) => (b.tick ?? -1) - (a.tick ?? -1) || (a.kind === "pass" ? -1 : 1));
   }, [rows, disp.rows, names, showQuiet]);
-  const feed = useMemo(() => liveFeed(rows, offerBatches(disp.rows ?? [], names, tickClocks(rows)).filter((b) => !b.quiet)), [rows, disp.rows, names]);
+  // What owners' agents asked of their cars on this run (otto-q-core 0608), polled for the whole cockpit by useOwnerBoard.
+  // Its lines join the stream once the stream's first page is in: the stream shows what is already there when the tab
+  // opens all at once, and only plays in what arrives after (useTrickle), so lines landing before that page would make
+  // the whole page play in one at a time.
+  const ownerCommands = useOwnerBoardStore((s) => s.commands);
+  const ownerStatus = useOwnerBoardStore((s) => s.status);
+  const ownerMessage = useOwnerBoardStore((s) => s.message);
+  const ownerBoard = useOwnerBoardStore((s) => s.board);
+  const streamIn = rows.length > 0;
+  const owners = useMemo(() => (streamIn ? ownerFeedLines(ownerCommands, simRunId) : []), [streamIn, ownerCommands, simRunId]);
+  const ownerNote = boardStateText(ownerStatus, ownerMessage, !!ownerBoard);
+  const feed = useMemo(
+    () => liveFeed(rows, offerBatches(disp.rows ?? [], names, tickClocks(rows)).filter((b) => !b.quiet), owners),
+    [rows, disp.rows, names, owners],
+  );
   const quietCount = useMemo(() => offerBatches(disp.rows ?? [], names).filter((b) => b.quiet).length, [disp.rows, names]);
 
   const agentLive = (Array.isArray(stack?.layers) ? stack!.layers! : []).find((l) => l.layer === "L2_AGENT")?.live ?? null;
@@ -390,7 +448,7 @@ export function TwinAgentTab() {
 
         {Toggle}
 
-        {view === "live" ? <LiveFeed items={feed} frozen={frozen} /> : view === "learning" ? learning : (
+        {view === "live" ? <LiveFeed items={feed} frozen={frozen} ownerNote={ownerNote} /> : view === "learning" ? learning : (
           <>
             <ReadsCard status={stack?.run?.status ?? null} frame={frame} loading={frameLoading} onRead={loadFrame} />
             {quietCount > 0 && (

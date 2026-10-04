@@ -4,7 +4,9 @@ import fx from "@/components/tabs/__fixtures__/ottoqRun.1ccad49b.json";
 import type { ActivityFeedRow } from "@/store/activityFeedStore";
 import type { DispositionRow } from "@/lib/ottoqFunnel";
 import { namesFromRows, offerBatches, tickClocks } from "@/lib/agentStream";
-import { GROUP_AT, carLine, liveFeed, siteLine, type FeedLine } from "./liveFeed";
+import board from "@/components/tabs/__fixtures__/depotOwnerBoard.0608.json";
+import { mergeCommands, ownerFeedLines, type OwnerCommand } from "@/lib/ownerBoard";
+import { GROUP_AT, carLine, liveFeed, siteLine, withOwnerLines, type FeedItem, type FeedLine } from "./liveFeed";
 
 const feed = fx.feed as unknown as ActivityFeedRow[];
 const disp = fx.dispositions as unknown as DispositionRow[];
@@ -60,5 +62,56 @@ describe("live feed", () => {
   it("names the site battery as the site battery, never as a car", () => {
     for (const l of flat.filter((x) => x.kind === "energy")) expect(l.text).toMatch(/^Site battery/);
     expect(flat.some((l) => /^A car: Battery/.test(l.text))).toBe(false);
+  });
+});
+
+// ── owners' agents' commands in the stream (otto-q-core 0608) ────────────────────────────────────────────────────
+// The 0608 capture's commands, moved onto this run: sent at the sim clock of tick 90 (four), and of tick 94 (two).
+describe("owners' agents' lines", () => {
+  const clocks = tickClocks(feed);
+  const RUN = fx.sim_run_id;
+  const onRun = (cs: readonly OwnerCommand[]) => cs.map((c, i) => ({ ...c, sim_run_id: RUN, sim_clock: clocks.get(i < 2 ? 94 : 90)! }));
+  const live = onRun(board.live.commands as unknown as OwnerCommand[]);
+  const owners = ownerFeedLines(mergeCommands([], live), RUN);
+  const merged = liveFeed(feed, batches, owners);
+  const t = (x: { at: string | null }) => Date.parse(x.at ?? "");
+
+  it("each joins the stream once, after every decision written at or before its sim clock and before the next tick's", () => {
+    const at = merged.map((i, k) => ({ i, k }));
+    const lines = at.filter(({ i }) => i.kind === "owner");
+    expect(lines).toHaveLength(6);
+    for (const { i, k } of lines) {
+      for (const { i: o } of at.slice(0, k)) if (o.kind !== "owner" && o.at) expect(t(o)).toBeGreaterThan(t(i));
+      for (const { i: o } of at.slice(k + 1)) if (o.kind !== "owner" && o.at) expect(t(o)).toBeLessThanOrEqual(t(i));
+    }
+    expect(new Set(merged.map((i) => i.key)).size).toBe(merged.length);
+  });
+
+  it("keeps commands sent at one sim clock newest sent first, and never folds one into a tile", () => {
+    const own = merged.filter((i): i is FeedLine => i.kind === "owner");
+    expect(own.map((l) => l.key)).toEqual(owners.map((l) => l.key));
+    for (const g of merged) if (g.kind === "group") expect(g.lines.some((l) => l.kind === "owner")).toBe(false);
+  });
+
+  it("leaves the rest of the stream exactly as it was", () => {
+    expect(merged.filter((i) => i.kind !== "owner")).toEqual(items);
+    expect(liveFeed(feed, batches, [])).toEqual(items);
+  });
+
+  it("shows a command once however many polls deliver it, with where it stands now", () => {
+    let kept = mergeCommands([], live);
+    kept = mergeCommands(kept, live); // the next poll: the same page
+    kept = mergeCommands(kept, onRun(board.ended.commands as unknown as OwnerCommand[])); // the run then ended
+    const again = liveFeed(feed, batches, ownerFeedLines(kept, RUN)).filter((i): i is FeedLine => i.kind === "owner");
+    expect(again.map((l) => l.key)).toEqual(owners.map((l) => l.key));
+    expect(again.filter((l) => l.owner!.code).every((l) => l.owner!.note === "lifted: the run ended (completed)")).toBe(true);
+  });
+
+  it("a command sent after the newest decision goes first; one with no sim clock goes last", () => {
+    const top: FeedLine = { ...owners[0], key: "u-new", at: new Date(t(items.find((i) => i.at)!) + 60_000).toISOString() };
+    const loose: FeedLine = { ...owners[0], key: "u-loose", at: null };
+    const out: FeedItem[] = withOwnerLines(items, [top, loose]);
+    expect(out[0].key).toBe("u-new");
+    expect(out[out.length - 1].key).toBe("u-loose");
   });
 });

@@ -83,6 +83,11 @@ export const DepotLegend = () => {
               ))}
             </div>
           </div>
+          {/* the mark VehicleDot (outline) and OwnerMarkers (3D badge) draw on a car its owner's agent set something on */}
+          <div className="mt-1.5 flex items-center gap-1.5 border-t border-otto-gray/20 pt-1.5">
+            <div className="w-2.5 h-2.5 rounded-sm" style={{ border: '1.5px solid #a78bfa', backgroundColor: '#8b5cf633' }} />
+            <span className="text-otto-white/70">Set by its owner's agent (tap the car)</span>
+          </div>
         </div>
       </div>
     </div>
