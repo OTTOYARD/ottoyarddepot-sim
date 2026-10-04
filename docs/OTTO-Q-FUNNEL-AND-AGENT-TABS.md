@@ -287,3 +287,29 @@ Chase: *"some of the hover tiles … don't actually show any information … it'
   tile that moved later (a new record, a new zone) could fall outside them. They are now dropped whenever instances move.
 - The objectives' pearls on the agent plate now say what they are ("Objective: readiness first · chosen by 15 passes").
   The beads of light in flight are not objects to hover: they are a record on its way; its object is on the plate.
+
+## What owners' agents set (2026-10-04)
+
+Chase wants an owner's personal agent to change what its own cars need at the twin depot (how full they charge, which
+services they get, when they may leave) and to see it in the twin. OTTO-Q acts on those settings at its next tick
+(otto-q-core 0605-0607); the twin shows that an agent asked, which agent, and the confirmation code it got back.
+
+- **Read:** otto-q-core 0608, `ottoq_depot_owner_board(p_depot_id, p_limit)`, anon-executable and read-only. It is the
+  one new read: `useOwnerBoard` polls it once for the whole cockpit (mounted in `App`), every 4 s like the decision
+  stream, paused with the sim, cleared on a new run, into `ownerBoardStore`. Commands accumulate per run, one per
+  `command_id`. Shapes and sentences: `src/lib/ownerBoard.ts`, tested on a real capture
+  (`src/components/tabs/__fixtures__/depotOwnerBoard.0608.json`).
+- **Live stream:** each command is its own violet line (filter: Owners): the agent and how it connected, what it asked,
+  OTTO-Q's receipt or its refusal, and the confirmation code. It is placed by the SIM clock it was sent at, the clock
+  every other line carries, so it sits above the decisions of the tick before it and below the next tick's
+  (`liveFeed.withOwnerLines`). The real time it was sent is on hover; a tap opens the rest of the receipt.
+- **Q card:** "Set by its owner's agent": the chips (a limit names the agent that set it), each agent with its codes,
+  "applies at OTTO-Q's next tick" until the tick has applied it, and the reset rule. A car with nothing set shows nothing.
+- **The car:** a thin violet outline in 2D; in 3D a violet badge over the car, one `THREE.Points` draw call for the
+  fleet, a constant size on screen, drawn over the canopy so cars on chargers are marked from the default camera too.
+- **Bottom bar:** "N agents connected" beside the run's LIVE mark, when any is. Not in the top bar: at 1440 px a chip
+  there clipped the telemetry strip (its content measured 546 px in a 483 px box).
+- **States:** before 0607/0608 the function is missing (404 / PGRST202) or not granted to the anon key (401 / 42501).
+  The scene draws nothing and the live stream says which, in one line; the board is then asked once a minute. A board
+  about another run than the one on screen marks nothing and adds no line. The standalone live view (`view.html`)
+  reads only the snapshot by design, so it draws no marks.
