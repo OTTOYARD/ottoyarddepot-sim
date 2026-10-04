@@ -1,0 +1,715 @@
+{
+  "_note": "2026-10-04, scratch PostgreSQL 16 with otto-q-core 0559/0560/0605/0606/0607/0608 applied over the stub engine (tests/test_passcode_door_sql.py's fixture). Commands: chase-hermes (an issued key) set all 4 Teslas to 90%; Grok (passcode) ordered an exterior wash on every return for all, mechanical PM for Tesla-AV-045, held Tesla-RT-003 for 120 sim minutes, and was refused twice (70% below the contract; no Tesla 98). 'ended' is the same depot after the demo run was stopped.",
+  "live": {
+    "ok": true,
+    "run": {
+      "demo": true,
+      "status": "running",
+      "sim_clock": "2026-09-27T12:00:00+00:00",
+      "sim_run_id": "548ff136-696c-4e46-b1cf-e27a7653a90c",
+      "sim_clock_local": "7:00 AM sim time"
+    },
+    "depot": {
+      "id": "11111111-1111-1111-1111-111111111111",
+      "name": "OTTOYARD Nashville Flagship"
+    },
+    "agents": [
+      {
+        "via": "passcode",
+        "agent": "Grok",
+        "state": "connected",
+        "expires_local": "3:11 AM CT",
+        "fleet_operator": "Tesla Robotaxi TN",
+        "last_seen_local": "11:11 PM CT",
+        "connected_at_local": "11:11 PM CT"
+      },
+      {
+        "via": "key",
+        "agent": "chase-hermes",
+        "state": "connected",
+        "fleet_operator": "Tesla Robotaxi TN",
+        "last_seen_local": "11:11 PM CT",
+        "connected_at_local": "11:11 PM CT"
+      }
+    ],
+    "clocks": "\"sim time\" is SIMULATION time in Nashville local time; CT is real time.",
+    "counts": {
+      "cars": 4,
+      "holds": 1,
+      "orders": 5,
+      "charge_limits": 4,
+      "agents_connected": 2
+    },
+    "resets": "Everything an owner's agent sets lasts until the demo run ends or the agent undoes it; a stop or reset of the twin puts every car back to baseline and ends every passcode session.",
+    "commands": [
+      {
+        "cars": 0,
+        "head": "Not done: No car in your fleet matches \"Tesla 98\". Your cars here: Tesla-AV-001 to Tesla-AV-045 (3 cars); Tesla-RT-003.",
+        "tool": "request_service",
+        "agent": "Grok",
+        "outcome": "refused",
+        "refusal": "No car in your fleet matches \"Tesla 98\". Your cars here: Tesla-AV-001 to Tesla-AV-045 (3 cars); Tesla-RT-003.",
+        "summary": "Not done: No car in your fleet matches \"Tesla 98\". Your cars here: Tesla-AV-001 to Tesla-AV-045 (3 cars); Tesla-RT-003.",
+        "live_run": true,
+        "agent_via": "passcode",
+        "sim_clock": "2026-09-27T12:00:00+00:00",
+        "command_id": "9b3b4f8a-f7c3-4387-a137-81982f67cf62",
+        "created_at": "2026-10-04T04:11:44.473197+00:00",
+        "sim_run_id": "548ff136-696c-4e46-b1cf-e27a7653a90c",
+        "fleet_operator": "Tesla Robotaxi TN",
+        "sim_clock_local": "7:00 AM sim time",
+        "created_at_local": "11:11 PM CT",
+        "fleet_operator_id": "33333333-3333-3333-3333-333333333333"
+      },
+      {
+        "cars": 4,
+        "head": "Not done: 70% is below the 80% minimum in your contract. Choose 80% to 100%.",
+        "tool": "set_charge_limit",
+        "agent": "Grok",
+        "outcome": "refused",
+        "refusal": "70% is below the 80% minimum in your contract. Choose 80% to 100%.",
+        "summary": "Not done: 70% is below the 80% minimum in your contract. Choose 80% to 100%.",
+        "live_run": true,
+        "vehicles": [
+          "Tesla-AV-001",
+          "Tesla-AV-041",
+          "Tesla-AV-045",
+          "Tesla-RT-003"
+        ],
+        "agent_via": "passcode",
+        "sim_clock": "2026-09-27T12:00:00+00:00",
+        "command_id": "3d534a50-cdaf-49d3-8972-5566106439b2",
+        "created_at": "2026-10-04T04:11:44.426452+00:00",
+        "sim_run_id": "548ff136-696c-4e46-b1cf-e27a7653a90c",
+        "vehicle_ids": [
+          "ee000000-0000-0000-0000-0000000000b1",
+          "ee000000-0000-0000-0000-0000000000b2",
+          "ee000000-0000-0000-0000-0000000000b3",
+          "ee000000-0000-0000-0000-0000000000b4"
+        ],
+        "fleet_operator": "Tesla Robotaxi TN",
+        "sim_clock_local": "7:00 AM sim time",
+        "created_at_local": "11:11 PM CT",
+        "fleet_operator_id": "33333333-3333-3333-3333-333333333333"
+      },
+      {
+        "cars": 1,
+        "head": "Done. Tesla-RT-003 will not leave before 9:00 AM sim time; once it is ready it waits in staging, and no charger is kept for it.",
+        "link": "https://ottoyard-orchestra-av.lovable.app/?source=agent&run=548ff136-696c-4e46-b1cf-e27a7653a90c&owner=33333333-3333-3333-3333-333333333333&tab=fleet&command=29bdfbfa-ac56-4a36-872e-26f506210c94",
+        "tool": "hold_vehicle",
+        "agent": "Grok",
+        "outcome": "applied",
+        "summary": "Done. Tesla-RT-003 will not leave before 9:00 AM sim time; once it is ready it waits in staging, and no charger is kept for it.\nA hold only delays a departure; it never sends a car anywhere.\nThis lasts until the demo run ends or you undo it.\nSee it in OrchestrAV: https://ottoyard-orchestra-av.lovable.app/?source=agent&run=548ff136-696c-4e46-b1cf-e27a7653a90c&owner=33333333-3333-3333-3333-333333333333&tab=fleet&command=29bdfbfa-ac56-4a36-872e-26f506210c94",
+        "live_run": true,
+        "vehicles": [
+          "Tesla-RT-003"
+        ],
+        "agent_via": "passcode",
+        "sim_clock": "2026-09-27T12:00:00+00:00",
+        "command_id": "29bdfbfa-ac56-4a36-872e-26f506210c94",
+        "created_at": "2026-10-04T04:11:44.374024+00:00",
+        "sim_run_id": "548ff136-696c-4e46-b1cf-e27a7653a90c",
+        "vehicle_ids": [
+          "ee000000-0000-0000-0000-0000000000b4"
+        ],
+        "fleet_operator": "Tesla Robotaxi TN",
+        "sim_clock_local": "7:00 AM sim time",
+        "created_at_local": "11:11 PM CT",
+        "confirmation_code": "OQ-85AB-4811",
+        "fleet_operator_id": "33333333-3333-3333-3333-333333333333"
+      },
+      {
+        "cars": 1,
+        "head": "Done. Tesla-AV-045 gets mechanical PM on this visit (in the service bay, about 40 min); OTTO-Q fits it into the car's plan, and the car does not leave until it is done.",
+        "link": "https://ottoyard-orchestra-av.lovable.app/?source=agent&run=548ff136-696c-4e46-b1cf-e27a7653a90c&owner=33333333-3333-3333-3333-333333333333&tab=fleet&command=be49ff7a-da94-418d-a017-21f91455cad3",
+        "tool": "request_service",
+        "agent": "Grok",
+        "outcome": "applied",
+        "summary": "Done. Tesla-AV-045 gets mechanical PM on this visit (in the service bay, about 40 min); OTTO-Q fits it into the car's plan, and the car does not leave until it is done.\nOTTO-Q decides when and where: work in a bay comes after the charge, work at the car runs during it, and no car leaves with it undone.\nThis lasts until the demo run ends or you undo it.\nSee it in OrchestrAV: https://ottoyard-orchestra-av.lovable.app/?source=agent&run=548ff136-696c-4e46-b1cf-e27a7653a90c&owner=33333333-3333-3333-3333-333333333333&tab=fleet&command=be49ff7a-da94-418d-a017-21f91455cad3",
+        "live_run": true,
+        "vehicles": [
+          "Tesla-AV-045"
+        ],
+        "agent_via": "passcode",
+        "sim_clock": "2026-09-27T12:00:00+00:00",
+        "command_id": "be49ff7a-da94-418d-a017-21f91455cad3",
+        "created_at": "2026-10-04T04:11:44.322049+00:00",
+        "sim_run_id": "548ff136-696c-4e46-b1cf-e27a7653a90c",
+        "vehicle_ids": [
+          "ee000000-0000-0000-0000-0000000000b3"
+        ],
+        "fleet_operator": "Tesla Robotaxi TN",
+        "sim_clock_local": "7:00 AM sim time",
+        "created_at_local": "11:11 PM CT",
+        "confirmation_code": "OQ-7728-316B",
+        "fleet_operator_id": "33333333-3333-3333-3333-333333333333"
+      },
+      {
+        "cars": 4,
+        "head": "Done. All 4 Teslas get exterior wash (in the wash bay, about 10 min) on every visit from now on, this one included.",
+        "link": "https://ottoyard-orchestra-av.lovable.app/?source=agent&run=548ff136-696c-4e46-b1cf-e27a7653a90c&owner=33333333-3333-3333-3333-333333333333&tab=fleet&command=a6c658c8-6a36-432d-b330-2078428fb6b3",
+        "tool": "request_service",
+        "agent": "Grok",
+        "outcome": "applied",
+        "summary": "Done. All 4 Teslas get exterior wash (in the wash bay, about 10 min) on every visit from now on, this one included.\n- 2 are at the depot and get it on this visit\n- 1 already has it planned on this visit\n- 1 is out and gets it when it comes in\nOTTO-Q decides when and where: work in a bay comes after the charge, work at the car runs during it, and no car leaves with it undone.\nThis lasts until the demo run ends or you undo it.\nSee it in OrchestrAV: https://ottoyard-orchestra-av.lovable.app/?source=agent&run=548ff136-696c-4e46-b1cf-e27a7653a90c&owner=33333333-3333-3333-3333-333333333333&tab=fleet&command=a6c658c8-6a36-432d-b330-2078428fb6b3",
+        "live_run": true,
+        "vehicles": [
+          "Tesla-AV-001",
+          "Tesla-AV-041",
+          "Tesla-AV-045",
+          "Tesla-RT-003"
+        ],
+        "agent_via": "passcode",
+        "sim_clock": "2026-09-27T12:00:00+00:00",
+        "command_id": "a6c658c8-6a36-432d-b330-2078428fb6b3",
+        "created_at": "2026-10-04T04:11:44.267416+00:00",
+        "sim_run_id": "548ff136-696c-4e46-b1cf-e27a7653a90c",
+        "vehicle_ids": [
+          "ee000000-0000-0000-0000-0000000000b1",
+          "ee000000-0000-0000-0000-0000000000b2",
+          "ee000000-0000-0000-0000-0000000000b3",
+          "ee000000-0000-0000-0000-0000000000b4"
+        ],
+        "fleet_operator": "Tesla Robotaxi TN",
+        "sim_clock_local": "7:00 AM sim time",
+        "created_at_local": "11:11 PM CT",
+        "confirmation_code": "OQ-D2E7-DE9C",
+        "fleet_operator_id": "33333333-3333-3333-3333-333333333333"
+      },
+      {
+        "cars": 4,
+        "head": "Done. All 4 Teslas charge to at most 90% instead of 100%.",
+        "link": "https://ottoyard-orchestra-av.lovable.app/?source=agent&run=548ff136-696c-4e46-b1cf-e27a7653a90c&owner=33333333-3333-3333-3333-333333333333&tab=fleet&command=f18b40bf-ba04-4ef3-8b62-08b9b93f9d2d",
+        "tool": "set_charge_limit",
+        "agent": "chase-hermes",
+        "outcome": "applied",
+        "summary": "Done. All 4 Teslas charge to at most 90% instead of 100%.\n- 1 is charging and will stop at 90%\n- 1 already has enough charge for 90%\n- 1 is out; it charges to 90% when it next comes in\n- 1 is charging past 90%: its charge ends at the next tick\nThis lasts until the demo run ends or you undo it.\nSee it in OrchestrAV: https://ottoyard-orchestra-av.lovable.app/?source=agent&run=548ff136-696c-4e46-b1cf-e27a7653a90c&owner=33333333-3333-3333-3333-333333333333&tab=fleet&command=f18b40bf-ba04-4ef3-8b62-08b9b93f9d2d",
+        "live_run": true,
+        "vehicles": [
+          "Tesla-AV-001",
+          "Tesla-AV-041",
+          "Tesla-AV-045",
+          "Tesla-RT-003"
+        ],
+        "agent_via": "key",
+        "sim_clock": "2026-09-27T12:00:00+00:00",
+        "command_id": "f18b40bf-ba04-4ef3-8b62-08b9b93f9d2d",
+        "created_at": "2026-10-04T04:11:44.113681+00:00",
+        "sim_run_id": "548ff136-696c-4e46-b1cf-e27a7653a90c",
+        "vehicle_ids": [
+          "ee000000-0000-0000-0000-0000000000b1",
+          "ee000000-0000-0000-0000-0000000000b2",
+          "ee000000-0000-0000-0000-0000000000b3",
+          "ee000000-0000-0000-0000-0000000000b4"
+        ],
+        "fleet_operator": "Tesla Robotaxi TN",
+        "sim_clock_local": "7:00 AM sim time",
+        "created_at_local": "11:11 PM CT",
+        "confirmation_code": "OQ-392E-D895",
+        "fleet_operator_id": "33333333-3333-3333-3333-333333333333"
+      }
+    ],
+    "in_force": [
+      {
+        "kind": "charge_limit",
+        "agent": "chase-hermes",
+        "set_at": "2026-10-04T04:11:44.113681+00:00",
+        "vehicle": "Tesla-AV-001",
+        "full_pct": 100,
+        "agent_via": "key",
+        "command_id": "f18b40bf-ba04-4ef3-8b62-08b9b93f9d2d",
+        "setting_id": "3313ecbf-c52e-4aee-852a-35586c3cd988",
+        "vehicle_id": "ee000000-0000-0000-0000-0000000000b1",
+        "set_at_local": "11:11 PM CT",
+        "fleet_operator": "Tesla Robotaxi TN",
+        "charge_limit_pct": 90,
+        "waiting_for_tick": true,
+        "confirmation_code": "OQ-392E-D895",
+        "fleet_operator_id": "33333333-3333-3333-3333-333333333333"
+      },
+      {
+        "kind": "charge_limit",
+        "agent": "chase-hermes",
+        "set_at": "2026-10-04T04:11:44.113681+00:00",
+        "vehicle": "Tesla-AV-041",
+        "full_pct": 100,
+        "agent_via": "key",
+        "command_id": "f18b40bf-ba04-4ef3-8b62-08b9b93f9d2d",
+        "setting_id": "9743ff7b-0cf8-4a89-904d-b991265aa949",
+        "vehicle_id": "ee000000-0000-0000-0000-0000000000b2",
+        "set_at_local": "11:11 PM CT",
+        "fleet_operator": "Tesla Robotaxi TN",
+        "charge_limit_pct": 90,
+        "waiting_for_tick": true,
+        "confirmation_code": "OQ-392E-D895",
+        "fleet_operator_id": "33333333-3333-3333-3333-333333333333"
+      },
+      {
+        "kind": "charge_limit",
+        "agent": "chase-hermes",
+        "set_at": "2026-10-04T04:11:44.113681+00:00",
+        "vehicle": "Tesla-AV-045",
+        "full_pct": 100,
+        "agent_via": "key",
+        "command_id": "f18b40bf-ba04-4ef3-8b62-08b9b93f9d2d",
+        "setting_id": "4ac23108-ada0-4558-a1c1-2302c8bec529",
+        "vehicle_id": "ee000000-0000-0000-0000-0000000000b3",
+        "set_at_local": "11:11 PM CT",
+        "fleet_operator": "Tesla Robotaxi TN",
+        "charge_limit_pct": 90,
+        "waiting_for_tick": true,
+        "confirmation_code": "OQ-392E-D895",
+        "fleet_operator_id": "33333333-3333-3333-3333-333333333333"
+      },
+      {
+        "kind": "charge_limit",
+        "agent": "chase-hermes",
+        "set_at": "2026-10-04T04:11:44.113681+00:00",
+        "vehicle": "Tesla-RT-003",
+        "full_pct": 100,
+        "agent_via": "key",
+        "command_id": "f18b40bf-ba04-4ef3-8b62-08b9b93f9d2d",
+        "setting_id": "94c385aa-5285-46c9-91a7-284e6f96c630",
+        "vehicle_id": "ee000000-0000-0000-0000-0000000000b4",
+        "set_at_local": "11:11 PM CT",
+        "fleet_operator": "Tesla Robotaxi TN",
+        "charge_limit_pct": 90,
+        "waiting_for_tick": true,
+        "confirmation_code": "OQ-392E-D895",
+        "fleet_operator_id": "33333333-3333-3333-3333-333333333333"
+      },
+      {
+        "kind": "hold",
+        "agent": "Grok",
+        "set_at": "2026-10-04T04:11:44.374024+00:00",
+        "vehicle": "Tesla-RT-003",
+        "full_pct": 100,
+        "agent_via": "passcode",
+        "command_id": "29bdfbfa-ac56-4a36-872e-26f506210c94",
+        "setting_id": "56fc7d6b-0493-46ec-b50a-4b0c51879352",
+        "vehicle_id": "ee000000-0000-0000-0000-0000000000b4",
+        "set_at_local": "11:11 PM CT",
+        "fleet_operator": "Tesla Robotaxi TN",
+        "hold_until_sim": "2026-09-27T14:00:00+00:00",
+        "hold_until_local": "9:00 AM on Sun Sep 27 sim time",
+        "waiting_for_tick": true,
+        "confirmation_code": "OQ-85AB-4811",
+        "fleet_operator_id": "33333333-3333-3333-3333-333333333333"
+      },
+      {
+        "kind": "service",
+        "when": "every_return",
+        "agent": "Grok",
+        "set_at": "2026-10-04T04:11:44.267416+00:00",
+        "service": "exterior_wash",
+        "vehicle": "Tesla-AV-001",
+        "full_pct": 100,
+        "agent_via": "passcode",
+        "command_id": "a6c658c8-6a36-432d-b330-2078428fb6b3",
+        "setting_id": "8c2f8066-a8b7-4f53-a52c-7d1dbd5c19d3",
+        "vehicle_id": "ee000000-0000-0000-0000-0000000000b1",
+        "service_name": "Exterior wash",
+        "set_at_local": "11:11 PM CT",
+        "fleet_operator": "Tesla Robotaxi TN",
+        "waiting_for_tick": true,
+        "confirmation_code": "OQ-D2E7-DE9C",
+        "fleet_operator_id": "33333333-3333-3333-3333-333333333333"
+      },
+      {
+        "kind": "service",
+        "when": "every_return",
+        "agent": "Grok",
+        "set_at": "2026-10-04T04:11:44.267416+00:00",
+        "service": "exterior_wash",
+        "vehicle": "Tesla-AV-041",
+        "full_pct": 100,
+        "agent_via": "passcode",
+        "command_id": "a6c658c8-6a36-432d-b330-2078428fb6b3",
+        "setting_id": "ee7969c0-4edb-49f2-89d1-b628e133da59",
+        "vehicle_id": "ee000000-0000-0000-0000-0000000000b2",
+        "service_name": "Exterior wash",
+        "set_at_local": "11:11 PM CT",
+        "fleet_operator": "Tesla Robotaxi TN",
+        "waiting_for_tick": true,
+        "confirmation_code": "OQ-D2E7-DE9C",
+        "fleet_operator_id": "33333333-3333-3333-3333-333333333333"
+      },
+      {
+        "kind": "service",
+        "when": "every_return",
+        "agent": "Grok",
+        "set_at": "2026-10-04T04:11:44.267416+00:00",
+        "service": "exterior_wash",
+        "vehicle": "Tesla-AV-045",
+        "full_pct": 100,
+        "agent_via": "passcode",
+        "command_id": "a6c658c8-6a36-432d-b330-2078428fb6b3",
+        "setting_id": "59e7444c-3730-446f-9d40-36adb64e20d1",
+        "vehicle_id": "ee000000-0000-0000-0000-0000000000b3",
+        "service_name": "Exterior wash",
+        "set_at_local": "11:11 PM CT",
+        "fleet_operator": "Tesla Robotaxi TN",
+        "waiting_for_tick": true,
+        "confirmation_code": "OQ-D2E7-DE9C",
+        "fleet_operator_id": "33333333-3333-3333-3333-333333333333"
+      },
+      {
+        "kind": "service",
+        "when": "now",
+        "agent": "Grok",
+        "set_at": "2026-10-04T04:11:44.322049+00:00",
+        "service": "mechanical_pm",
+        "vehicle": "Tesla-AV-045",
+        "full_pct": 100,
+        "agent_via": "passcode",
+        "command_id": "be49ff7a-da94-418d-a017-21f91455cad3",
+        "setting_id": "262c57e2-9700-4aa6-9e6b-efe79b906436",
+        "vehicle_id": "ee000000-0000-0000-0000-0000000000b3",
+        "service_name": "Mechanical PM",
+        "set_at_local": "11:11 PM CT",
+        "fleet_operator": "Tesla Robotaxi TN",
+        "waiting_for_tick": true,
+        "confirmation_code": "OQ-7728-316B",
+        "fleet_operator_id": "33333333-3333-3333-3333-333333333333"
+      },
+      {
+        "kind": "service",
+        "when": "every_return",
+        "agent": "Grok",
+        "set_at": "2026-10-04T04:11:44.267416+00:00",
+        "service": "exterior_wash",
+        "vehicle": "Tesla-RT-003",
+        "full_pct": 100,
+        "agent_via": "passcode",
+        "command_id": "a6c658c8-6a36-432d-b330-2078428fb6b3",
+        "setting_id": "c67e7d42-d8f2-4cca-8857-2a020114183a",
+        "vehicle_id": "ee000000-0000-0000-0000-0000000000b4",
+        "service_name": "Exterior wash",
+        "set_at_local": "11:11 PM CT",
+        "fleet_operator": "Tesla Robotaxi TN",
+        "waiting_for_tick": true,
+        "confirmation_code": "OQ-D2E7-DE9C",
+        "fleet_operator_id": "33333333-3333-3333-3333-333333333333"
+      }
+    ],
+    "by_vehicle": {
+      "ee000000-0000-0000-0000-0000000000b1": {
+        "agents": [
+          "Grok",
+          "chase-hermes"
+        ],
+        "orders": [
+          {
+            "name": "Exterior wash",
+            "when": "every_return",
+            "service": "exterior_wash"
+          }
+        ],
+        "vehicle": "Tesla-AV-001",
+        "full_pct": 100,
+        "fleet_operator": "Tesla Robotaxi TN",
+        "charge_limit_pct": 90,
+        "waiting_for_tick": true,
+        "confirmation_codes": [
+          "OQ-392E-D895",
+          "OQ-D2E7-DE9C"
+        ]
+      },
+      "ee000000-0000-0000-0000-0000000000b2": {
+        "agents": [
+          "Grok",
+          "chase-hermes"
+        ],
+        "orders": [
+          {
+            "name": "Exterior wash",
+            "when": "every_return",
+            "service": "exterior_wash"
+          }
+        ],
+        "vehicle": "Tesla-AV-041",
+        "full_pct": 100,
+        "fleet_operator": "Tesla Robotaxi TN",
+        "charge_limit_pct": 90,
+        "waiting_for_tick": true,
+        "confirmation_codes": [
+          "OQ-392E-D895",
+          "OQ-D2E7-DE9C"
+        ]
+      },
+      "ee000000-0000-0000-0000-0000000000b3": {
+        "agents": [
+          "Grok",
+          "chase-hermes"
+        ],
+        "orders": [
+          {
+            "name": "Mechanical PM",
+            "when": "now",
+            "service": "mechanical_pm"
+          },
+          {
+            "name": "Exterior wash",
+            "when": "every_return",
+            "service": "exterior_wash"
+          }
+        ],
+        "vehicle": "Tesla-AV-045",
+        "full_pct": 100,
+        "fleet_operator": "Tesla Robotaxi TN",
+        "charge_limit_pct": 90,
+        "waiting_for_tick": true,
+        "confirmation_codes": [
+          "OQ-392E-D895",
+          "OQ-7728-316B",
+          "OQ-D2E7-DE9C"
+        ]
+      },
+      "ee000000-0000-0000-0000-0000000000b4": {
+        "agents": [
+          "Grok",
+          "chase-hermes"
+        ],
+        "orders": [
+          {
+            "name": "Exterior wash",
+            "when": "every_return",
+            "service": "exterior_wash"
+          }
+        ],
+        "vehicle": "Tesla-RT-003",
+        "full_pct": 100,
+        "fleet_operator": "Tesla Robotaxi TN",
+        "hold_until_sim": "2026-09-27T14:00:00+00:00",
+        "charge_limit_pct": 90,
+        "hold_until_local": "9:00 AM on Sun Sep 27 sim time",
+        "waiting_for_tick": true,
+        "confirmation_codes": [
+          "OQ-392E-D895",
+          "OQ-85AB-4811",
+          "OQ-D2E7-DE9C"
+        ]
+      }
+    }
+  },
+  "ended": {
+    "ok": true,
+    "run": null,
+    "depot": {
+      "id": "11111111-1111-1111-1111-111111111111",
+      "name": "OTTOYARD Nashville Flagship"
+    },
+    "agents": [
+      {
+        "via": "key",
+        "agent": "chase-hermes",
+        "state": "connected",
+        "fleet_operator": "Tesla Robotaxi TN",
+        "last_seen_local": "11:11 PM CT",
+        "connected_at_local": "11:11 PM CT"
+      },
+      {
+        "via": "passcode",
+        "agent": "Grok",
+        "state": "ended_with_run",
+        "ended_local": "11:11 PM CT",
+        "expires_local": "3:11 AM CT",
+        "fleet_operator": "Tesla Robotaxi TN",
+        "last_seen_local": "11:11 PM CT",
+        "connected_at_local": "11:11 PM CT"
+      }
+    ],
+    "clocks": "\"sim time\" is SIMULATION time in Nashville local time; CT is real time.",
+    "counts": {
+      "cars": 0,
+      "holds": 0,
+      "orders": 0,
+      "charge_limits": 0,
+      "agents_connected": 1
+    },
+    "resets": "Everything an owner's agent sets lasts until the demo run ends or the agent undoes it; a stop or reset of the twin puts every car back to baseline and ends every passcode session.",
+    "commands": [
+      {
+        "cars": 0,
+        "head": "Not done: No car in your fleet matches \"Tesla 98\". Your cars here: Tesla-AV-001 to Tesla-AV-045 (3 cars); Tesla-RT-003.",
+        "tool": "request_service",
+        "agent": "Grok",
+        "outcome": "refused",
+        "refusal": "No car in your fleet matches \"Tesla 98\". Your cars here: Tesla-AV-001 to Tesla-AV-045 (3 cars); Tesla-RT-003.",
+        "summary": "Not done: No car in your fleet matches \"Tesla 98\". Your cars here: Tesla-AV-001 to Tesla-AV-045 (3 cars); Tesla-RT-003.",
+        "live_run": false,
+        "agent_via": "passcode",
+        "sim_clock": "2026-09-27T12:00:00+00:00",
+        "command_id": "9b3b4f8a-f7c3-4387-a137-81982f67cf62",
+        "created_at": "2026-10-04T04:11:44.473197+00:00",
+        "sim_run_id": "548ff136-696c-4e46-b1cf-e27a7653a90c",
+        "fleet_operator": "Tesla Robotaxi TN",
+        "sim_clock_local": "7:00 AM sim time",
+        "created_at_local": "11:11 PM CT",
+        "fleet_operator_id": "33333333-3333-3333-3333-333333333333"
+      },
+      {
+        "cars": 4,
+        "head": "Not done: 70% is below the 80% minimum in your contract. Choose 80% to 100%.",
+        "tool": "set_charge_limit",
+        "agent": "Grok",
+        "outcome": "refused",
+        "refusal": "70% is below the 80% minimum in your contract. Choose 80% to 100%.",
+        "summary": "Not done: 70% is below the 80% minimum in your contract. Choose 80% to 100%.",
+        "live_run": false,
+        "vehicles": [
+          "Tesla-AV-001",
+          "Tesla-AV-041",
+          "Tesla-AV-045",
+          "Tesla-RT-003"
+        ],
+        "agent_via": "passcode",
+        "sim_clock": "2026-09-27T12:00:00+00:00",
+        "command_id": "3d534a50-cdaf-49d3-8972-5566106439b2",
+        "created_at": "2026-10-04T04:11:44.426452+00:00",
+        "sim_run_id": "548ff136-696c-4e46-b1cf-e27a7653a90c",
+        "vehicle_ids": [
+          "ee000000-0000-0000-0000-0000000000b1",
+          "ee000000-0000-0000-0000-0000000000b2",
+          "ee000000-0000-0000-0000-0000000000b3",
+          "ee000000-0000-0000-0000-0000000000b4"
+        ],
+        "fleet_operator": "Tesla Robotaxi TN",
+        "sim_clock_local": "7:00 AM sim time",
+        "created_at_local": "11:11 PM CT",
+        "fleet_operator_id": "33333333-3333-3333-3333-333333333333"
+      },
+      {
+        "cars": 1,
+        "head": "Done. Tesla-RT-003 will not leave before 9:00 AM sim time; once it is ready it waits in staging, and no charger is kept for it.",
+        "link": "https://ottoyard-orchestra-av.lovable.app/?source=agent&run=548ff136-696c-4e46-b1cf-e27a7653a90c&owner=33333333-3333-3333-3333-333333333333&tab=fleet&command=29bdfbfa-ac56-4a36-872e-26f506210c94",
+        "tool": "hold_vehicle",
+        "agent": "Grok",
+        "outcome": "applied",
+        "summary": "Done. Tesla-RT-003 will not leave before 9:00 AM sim time; once it is ready it waits in staging, and no charger is kept for it.\nA hold only delays a departure; it never sends a car anywhere.\nThis lasts until the demo run ends or you undo it.\nSee it in OrchestrAV: https://ottoyard-orchestra-av.lovable.app/?source=agent&run=548ff136-696c-4e46-b1cf-e27a7653a90c&owner=33333333-3333-3333-3333-333333333333&tab=fleet&command=29bdfbfa-ac56-4a36-872e-26f506210c94",
+        "live_run": false,
+        "vehicles": [
+          "Tesla-RT-003"
+        ],
+        "agent_via": "passcode",
+        "lifted_at": "2026-10-04T04:11:44.606468+00:00",
+        "sim_clock": "2026-09-27T12:00:00+00:00",
+        "command_id": "29bdfbfa-ac56-4a36-872e-26f506210c94",
+        "created_at": "2026-10-04T04:11:44.374024+00:00",
+        "sim_run_id": "548ff136-696c-4e46-b1cf-e27a7653a90c",
+        "vehicle_ids": [
+          "ee000000-0000-0000-0000-0000000000b4"
+        ],
+        "lifted_reason": "the run ended (completed)",
+        "fleet_operator": "Tesla Robotaxi TN",
+        "sim_clock_local": "7:00 AM sim time",
+        "created_at_local": "11:11 PM CT",
+        "confirmation_code": "OQ-85AB-4811",
+        "fleet_operator_id": "33333333-3333-3333-3333-333333333333"
+      },
+      {
+        "cars": 1,
+        "head": "Done. Tesla-AV-045 gets mechanical PM on this visit (in the service bay, about 40 min); OTTO-Q fits it into the car's plan, and the car does not leave until it is done.",
+        "link": "https://ottoyard-orchestra-av.lovable.app/?source=agent&run=548ff136-696c-4e46-b1cf-e27a7653a90c&owner=33333333-3333-3333-3333-333333333333&tab=fleet&command=be49ff7a-da94-418d-a017-21f91455cad3",
+        "tool": "request_service",
+        "agent": "Grok",
+        "outcome": "applied",
+        "summary": "Done. Tesla-AV-045 gets mechanical PM on this visit (in the service bay, about 40 min); OTTO-Q fits it into the car's plan, and the car does not leave until it is done.\nOTTO-Q decides when and where: work in a bay comes after the charge, work at the car runs during it, and no car leaves with it undone.\nThis lasts until the demo run ends or you undo it.\nSee it in OrchestrAV: https://ottoyard-orchestra-av.lovable.app/?source=agent&run=548ff136-696c-4e46-b1cf-e27a7653a90c&owner=33333333-3333-3333-3333-333333333333&tab=fleet&command=be49ff7a-da94-418d-a017-21f91455cad3",
+        "live_run": false,
+        "vehicles": [
+          "Tesla-AV-045"
+        ],
+        "agent_via": "passcode",
+        "lifted_at": "2026-10-04T04:11:44.606468+00:00",
+        "sim_clock": "2026-09-27T12:00:00+00:00",
+        "command_id": "be49ff7a-da94-418d-a017-21f91455cad3",
+        "created_at": "2026-10-04T04:11:44.322049+00:00",
+        "sim_run_id": "548ff136-696c-4e46-b1cf-e27a7653a90c",
+        "vehicle_ids": [
+          "ee000000-0000-0000-0000-0000000000b3"
+        ],
+        "lifted_reason": "the run ended (completed)",
+        "fleet_operator": "Tesla Robotaxi TN",
+        "sim_clock_local": "7:00 AM sim time",
+        "created_at_local": "11:11 PM CT",
+        "confirmation_code": "OQ-7728-316B",
+        "fleet_operator_id": "33333333-3333-3333-3333-333333333333"
+      },
+      {
+        "cars": 4,
+        "head": "Done. All 4 Teslas get exterior wash (in the wash bay, about 10 min) on every visit from now on, this one included.",
+        "link": "https://ottoyard-orchestra-av.lovable.app/?source=agent&run=548ff136-696c-4e46-b1cf-e27a7653a90c&owner=33333333-3333-3333-3333-333333333333&tab=fleet&command=a6c658c8-6a36-432d-b330-2078428fb6b3",
+        "tool": "request_service",
+        "agent": "Grok",
+        "outcome": "applied",
+        "summary": "Done. All 4 Teslas get exterior wash (in the wash bay, about 10 min) on every visit from now on, this one included.\n- 2 are at the depot and get it on this visit\n- 1 already has it planned on this visit\n- 1 is out and gets it when it comes in\nOTTO-Q decides when and where: work in a bay comes after the charge, work at the car runs during it, and no car leaves with it undone.\nThis lasts until the demo run ends or you undo it.\nSee it in OrchestrAV: https://ottoyard-orchestra-av.lovable.app/?source=agent&run=548ff136-696c-4e46-b1cf-e27a7653a90c&owner=33333333-3333-3333-3333-333333333333&tab=fleet&command=a6c658c8-6a36-432d-b330-2078428fb6b3",
+        "live_run": false,
+        "vehicles": [
+          "Tesla-AV-001",
+          "Tesla-AV-041",
+          "Tesla-AV-045",
+          "Tesla-RT-003"
+        ],
+        "agent_via": "passcode",
+        "lifted_at": "2026-10-04T04:11:44.606468+00:00",
+        "sim_clock": "2026-09-27T12:00:00+00:00",
+        "command_id": "a6c658c8-6a36-432d-b330-2078428fb6b3",
+        "created_at": "2026-10-04T04:11:44.267416+00:00",
+        "sim_run_id": "548ff136-696c-4e46-b1cf-e27a7653a90c",
+        "vehicle_ids": [
+          "ee000000-0000-0000-0000-0000000000b1",
+          "ee000000-0000-0000-0000-0000000000b2",
+          "ee000000-0000-0000-0000-0000000000b3",
+          "ee000000-0000-0000-0000-0000000000b4"
+        ],
+        "lifted_reason": "the run ended (completed)",
+        "fleet_operator": "Tesla Robotaxi TN",
+        "sim_clock_local": "7:00 AM sim time",
+        "created_at_local": "11:11 PM CT",
+        "confirmation_code": "OQ-D2E7-DE9C",
+        "fleet_operator_id": "33333333-3333-3333-3333-333333333333"
+      },
+      {
+        "cars": 4,
+        "head": "Done. All 4 Teslas charge to at most 90% instead of 100%.",
+        "link": "https://ottoyard-orchestra-av.lovable.app/?source=agent&run=548ff136-696c-4e46-b1cf-e27a7653a90c&owner=33333333-3333-3333-3333-333333333333&tab=fleet&command=f18b40bf-ba04-4ef3-8b62-08b9b93f9d2d",
+        "tool": "set_charge_limit",
+        "agent": "chase-hermes",
+        "outcome": "applied",
+        "summary": "Done. All 4 Teslas charge to at most 90% instead of 100%.\n- 1 is charging and will stop at 90%\n- 1 already has enough charge for 90%\n- 1 is out; it charges to 90% when it next comes in\n- 1 is charging past 90%: its charge ends at the next tick\nThis lasts until the demo run ends or you undo it.\nSee it in OrchestrAV: https://ottoyard-orchestra-av.lovable.app/?source=agent&run=548ff136-696c-4e46-b1cf-e27a7653a90c&owner=33333333-3333-3333-3333-333333333333&tab=fleet&command=f18b40bf-ba04-4ef3-8b62-08b9b93f9d2d",
+        "live_run": false,
+        "vehicles": [
+          "Tesla-AV-001",
+          "Tesla-AV-041",
+          "Tesla-AV-045",
+          "Tesla-RT-003"
+        ],
+        "agent_via": "key",
+        "lifted_at": "2026-10-04T04:11:44.606468+00:00",
+        "sim_clock": "2026-09-27T12:00:00+00:00",
+        "command_id": "f18b40bf-ba04-4ef3-8b62-08b9b93f9d2d",
+        "created_at": "2026-10-04T04:11:44.113681+00:00",
+        "sim_run_id": "548ff136-696c-4e46-b1cf-e27a7653a90c",
+        "vehicle_ids": [
+          "ee000000-0000-0000-0000-0000000000b1",
+          "ee000000-0000-0000-0000-0000000000b2",
+          "ee000000-0000-0000-0000-0000000000b3",
+          "ee000000-0000-0000-0000-0000000000b4"
+        ],
+        "lifted_reason": "the run ended (completed)",
+        "fleet_operator": "Tesla Robotaxi TN",
+        "sim_clock_local": "7:00 AM sim time",
+        "created_at_local": "11:11 PM CT",
+        "confirmation_code": "OQ-392E-D895",
+        "fleet_operator_id": "33333333-3333-3333-3333-333333333333"
+      }
+    ],
+    "in_force": [],
+    "by_vehicle": {}
+  },
+  "unknown_depot": {
+    "ok": false,
+    "error": "unknown_depot",
+    "message": "No such depot."
+  }
+}
