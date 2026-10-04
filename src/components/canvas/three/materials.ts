@@ -111,11 +111,17 @@ export function architecturalGlass() {
   }));
 }
 
+/**
+ * The charger screens: dark gloss under a clearcoat, OPAQUE. They carried transmission
+ * 0.3, and one transmissive material anywhere in the scene makes three render every
+ * opaque object a second time each frame (the transmission pass), for a see-through
+ * effect nobody could see on a 0.6 x 0.86 u screen. Measured 2026-10-04 on the
+ * recorded run at Low: the main pass drew 441 calls for ~230 meshes.
+ */
 export function screenGlass() {
   return cached('screenGlass', () => new THREE.MeshPhysicalMaterial({
     color: '#0A0A1A', roughness: 0.02, metalness: 0.0,
-    transmission: 0.3, thickness: 0.3, ior: 1.52,
-    envMapIntensity: 2.5, transparent: true,
+    envMapIntensity: 2.5,
     clearcoat: 1.0, clearcoatRoughness: 0.05,
   }));
 }
