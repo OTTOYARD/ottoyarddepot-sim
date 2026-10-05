@@ -206,9 +206,9 @@ function PlateDetail({ plate, rows, dispositions, names, recentFor, cars, overvi
       {plate === "agent" && (
         <>
           <p className="mt-0.5 text-[11px] leading-4 text-ink-dim">
-            Each chrome sphere is one pass of the agent; the pearl it joins is the objective it chose. It reads the whole
-            depot (the scan that rises through the stack) and proposes; it never decides. Amber: the model did not answer
-            and the deterministic path kept the objective.
+            Each chrome sphere is one agent pass. The pearl it joins is the goal it chose. The agent reads the whole depot
+            (the scan that rises through the stack) and proposes. It never decides. Amber: the agent gave no answer, so
+            the decide path kept the goal.
           </p>
           <p className="mt-1 font-mono text-[10px] text-ink">{overviews.proposers.split(" · offers")[0]}</p>
           {passes.length === 0 ? <p className="mt-1 text-[10px] text-ink-faint">No agent pass in the last two sim-hours.</p> : (
@@ -226,7 +226,7 @@ function PlateDetail({ plate, rows, dispositions, names, recentFor, cars, overvi
             </ul>
           )}
           <button type="button" onClick={onAgentTab} className="mt-2 w-full rounded border border-white/10 py-1.5 text-[11px] text-ink-dim hover:text-ink">
-            Everything it read and asked for, on the Agent tab
+            See what it read and asked for on the Agent tab
           </button>
         </>
       )}
@@ -234,12 +234,12 @@ function PlateDetail({ plate, rows, dispositions, names, recentFor, cars, overvi
       {plate === "planners" && (
         <>
           <p className="mt-0.5 text-[11px] leading-4 text-ink-dim">
-            Each bar is one offer from a planner, newest on the left of its lane. Green: the decide path enacted it. Red: it
-            refused it. Silver: a newer offer replaced it or it expired. A thin dark bar: the planner made no offer for that
-            car. Planners propose; they never place a car.
+            Each bar is one offer from a planner. The newest is on the left of its lane. Green: the decide path chose it.
+            Red: the decide path refused it. Silver: a newer offer replaced it, or it expired. Thin dark bar: the planner
+            made no offer for that car. Planners propose. They never place a car.
           </p>
           <p className="mt-1 font-mono text-[10px] text-ink">{overviews.proposers.split(" · ").slice(-1)[0]}</p>
-          {loud.length === 0 ? <p className="mt-1 text-[10px] text-ink-faint">No offer was enacted or refused in what has been read.</p> : (
+          {loud.length === 0 ? <p className="mt-1 text-[10px] text-ink-faint">No offer was chosen or refused in the records read so far.</p> : (
             <ul className="mt-1.5 space-y-1">
               {loud.map((b) => (
                 <li key={b.key} className="flex items-start gap-2">
@@ -256,9 +256,9 @@ function PlateDetail({ plate, rows, dispositions, names, recentFor, cars, overvi
       {plate === "decide" && (
         <>
           <p className="mt-0.5 text-[11px] leading-4 text-ink-dim">
-            Each tile is one decision the deterministic decide path made for a car, newest at the front: it takes one of the
-            planners' offers, or makes its own choice, or holds the car when nothing fits. Green: enacted. Amber: held.
-            Every enacted choice then drops through the safety plate below before the depot carries it out.
+            Each tile is one decision that the decide path made for a car. The newest is at the front. The decide path
+            takes an offer, makes its own choice, or holds the car when nothing fits. Green: carried out. Amber: held.
+            Each choice then drops through the safety plate below before the depot carries it out.
           </p>
           <div className="mt-2 text-[10px] text-ink-faint">Newest decisions</div>
           <RecentList
@@ -270,14 +270,14 @@ function PlateDetail({ plate, rows, dispositions, names, recentFor, cars, overvi
       {plate === "safety" && (
         <>
           <p className="mt-0.5 text-[11px] leading-4 text-ink-dim">
-            The last gate before anything happens in the depot. Every choice the decide path makes is checked against the
-            enforced rules as it is enacted (for example: no car leaves below its charge target or with a service still
-            open). A choice that breaks one is overridden to a safe default: its light stops on this plate, a red block
+            This is the last check before anything happens in the depot. The shield checks each choice of the decide path
+            against the enforced rules. For example, no car leaves below its charge target or with a service still open.
+            If a choice breaks a rule, the shield changes it to a safe default. Its light stops on this plate, a red block
             marks it, and the rim flares.
           </p>
           <p className="mt-1 text-[11px] leading-4 text-ink">
             {shield && shield.evaluations != null
-              ? `The check has run ${n(shield.evaluations)} times this run and blocked ${n(shield.refused)} choices.${shield.recordedOnly ? ` ${n(shield.recordedOnly)} advisory notes were recorded; those are notes, not blocks.` : ""}`
+              ? `The shield ran ${n(shield.evaluations)} checks this run and blocked ${n(shield.refused)} choices.${shield.recordedOnly ? ` It also recorded ${n(shield.recordedOnly)} advisory notes. A note does not block.` : ""}`
               : "Safety check counts: —"}
           </p>
           <div className="mt-2 text-[10px] text-ink-faint">Newest blocks</div>
@@ -288,9 +288,9 @@ function PlateDetail({ plate, rows, dispositions, names, recentFor, cars, overvi
       {plate === "depot" && (
         <>
           <p className="mt-0.5 text-[11px] leading-4 text-ink-dim">
-            Each puck is a car, in the part of the site its state puts it: cars come in by the east gate, wait for a plan,
-            charge or go to a bay, and leave ready by the west gate. The DCFC, L2, wash and service sockets are the site's
-            real stalls.
+            Each puck is a car, in the area that matches its state. Cars enter by the east gate, wait for a plan, charge or
+            go to a bay, and leave ready by the west gate. The DCFC, L2, wash and service sockets are the real stalls of
+            the site.
           </p>
           <div role="tablist" className="mt-2 flex flex-wrap gap-1">
             {DEPOT_ZONES.map((z) => {
@@ -436,7 +436,7 @@ function ReplayBar({ replay, at, count, line, onStart, onStop }: {
           <Play aria-hidden size={9} fill="currentColor" strokeWidth={0} /> Replay
         </button>
         <span className="min-w-0 truncate text-[10px] text-ink-faint">
-          {count ? `the newest ${count} records, in the order they were written` : "nothing to replay yet"}
+          {count ? `the newest ${count} records, in the order of writing` : "nothing to replay yet"}
         </span>
       </div>
     );
@@ -450,7 +450,7 @@ function ReplayBar({ replay, at, count, line, onStart, onStop }: {
           <Square aria-hidden size={8} fill="currentColor" strokeWidth={0} /> Stop
         </button>
         <span className="shrink-0 font-mono text-[10px] text-brand-hot">REPLAY {at < 0 ? "…" : `${k + 1} of ${n}`}</span>
-        <span className="min-w-0 truncate text-[10px] text-ink-dim">{at < 0 || !line ? "records already written, played again, not live" : line}</span>
+        <span className="min-w-0 truncate text-[10px] text-ink-dim">{at < 0 || !line ? "recorded events, played again, not live" : line}</span>
       </div>
       <div className="mt-1 h-px w-full bg-white/10">
         <div className="h-px bg-brand-hot" style={{ width: `${at < 0 ? 0 : ((k + 1) / n) * 100}%` }} />
@@ -619,8 +619,8 @@ export function TwinOttoQTab() {
     return (
       <div className="flex-1 p-4">
         <p className="text-[12px] leading-5 text-ink-dim">
-          No simulation is active. When a run is going, OTTO-Q appears here as a stack of layers: every car in the depot,
-          every decision and every offer is an object on it, and each new record falls through the stack as it happens.
+          No run is active. During a run, this tab shows OTTO-Q as a stack of layers. Each car, decision and offer is an
+          object on the stack. Each new record falls through the stack when it occurs.
         </p>
       </div>
     );
@@ -638,7 +638,7 @@ export function TwinOttoQTab() {
             </div>
             <p className="mt-1 text-[10px] leading-4 text-ink-faint">
               {threeD
-                ? "Every object is a real record. Each new one falls through the stack as the engine writes it. Drag sideways to turn it; tap a plate to open it."
+                ? "Each object is a real record. Each new record falls through the stack when the engine writes it. Drag sideways to turn the stack. Tap a plate to open it."
                 : "Each dot is a car. Each flash is a decision the engine just recorded. Tap a layer to look inside."}
             </p>
           </div>
@@ -650,8 +650,8 @@ export function TwinOttoQTab() {
 
         {cards.status === "other_run" && (
           <p className="rounded border border-white/[0.08] p-2 text-[11px] leading-4 text-ink-dim">
-            The depot is not running this run right now, so there are no cars to place. Decisions already recorded for it
-            are still on the stack.
+            This run is not active in the depot now, so there are no cars to place. Its recorded decisions stay on the
+            stack.
           </p>
         )}
 
@@ -703,7 +703,7 @@ export function TwinOttoQTab() {
           ))}
         </div>
         <p className="text-[10px] leading-4 text-ink-faint">
-          {away == null ? "Cars outside the depot: —" : `${away} ${away === 1 ? "car is" : "cars are"} out working and not drawn.`}{" "}
+          {away == null ? "Cars outside the depot: —" : `${away} ${away === 1 ? "car is" : "cars are"} out at work and not shown.`}{" "}
           A car in Ready is green only when its battery has reached its target and nothing it needs is open.
         </p>
 

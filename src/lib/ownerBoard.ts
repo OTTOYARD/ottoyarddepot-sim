@@ -174,8 +174,8 @@ export function classifyBoardError(
   return "error";
 }
 
-export const NOT_ENABLED_TEXT = "Owner agents are built but not switched on yet (otto-q-core 0607/0608).";
-export const NOT_GRANTED_TEXT = "Owner agents are switched on, but this cockpit is not granted their read (otto-q-core 0608).";
+export const NOT_ENABLED_TEXT = "Owner agents are built but not on yet.";
+export const NOT_GRANTED_TEXT = "Owner agents are on, but this cockpit cannot read them yet.";
 
 /** What a panel says in place of owners' agents' lines, or null when there is nothing to say. */
 export function boardStateText(status: string, message: string | null, hasData: boolean): string | null {
@@ -183,7 +183,7 @@ export function boardStateText(status: string, message: string | null, hasData: 
     case "not_enabled": return NOT_ENABLED_TEXT;
     case "not_granted": return NOT_GRANTED_TEXT;
     case "refused": return `Owner agents: ${message ?? "the board did not answer."}`;
-    case "error": return `Could not read what owners' agents set: ${message ?? "unknown error"}.${hasData ? " Showing what was read last." : ""}`;
+    case "error": return `Could not read what owners' agents set: ${message ?? "unknown error"}.${hasData ? " This shows the last read." : ""}`;
     default: return null;
   }
 }
@@ -276,7 +276,7 @@ function chipFor(s: OwnerInForce): OwnerChip | null {
     return {
       key: "hold", kind: "hold", code, agent,
       label: `Held until ${until}`,
-      title: `${by}: OTTO-Q does not let this car leave before ${str(s.hold_until_local) ?? until}. A hold only delays a departure; it never moves the car.${ref}`,
+      title: `${by}: OTTO-Q does not let this car leave before ${str(s.hold_until_local) ?? until}. A hold only delays a departure. It never moves the car.${ref}`,
     };
   }
   if (s.kind === "service") {

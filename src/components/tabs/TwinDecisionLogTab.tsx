@@ -180,7 +180,7 @@ export const Row = ({ r, isNew = false }: { r: ActivityFeedRow; isNew?: boolean 
 /** ENDED chip: the run has finished, so nothing on screen is live. */
 export const EndedState = () => (
   <span className="inline-flex shrink-0 items-center gap-1 rounded border border-white/15 bg-white/[0.04] px-1.5 py-0.5 text-[9px] font-mono uppercase tracking-[0.06em] text-ink-faint"
-    title="This run has ended. What is shown is what it recorded.">
+    title="This run has ended. This shows what it recorded.">
     ended
   </span>
 );
@@ -191,7 +191,7 @@ export const StreamState = ({ frozen }: { frozen: boolean }) =>
   frozen ? (
     <span
       className="inline-flex shrink-0 items-center gap-1 rounded border border-amber-400/30 bg-amber-400/10 px-1.5 py-0.5 text-[9px] font-mono uppercase tracking-[0.06em] text-amber-300"
-      title="The simulation is paused, so the stream is frozen and no polling is happening. Everything already received stays scrollable."
+      title="The run is paused, so the stream is frozen and the tab does not ask for new data. You can still scroll all that it received."
     >
       <Pause size={9} /> paused
     </span>
@@ -256,7 +256,7 @@ export default function TwinDecisionLogTab() {
           })}
         </div>
         <p className="text-[9px] leading-3.5 text-ink-faint">
-          One row when a decision changes, not every tick it is restated. Times are sim time, CT.
+          One row when a decision changes, not each tick that repeats it. Times are sim time, CT.
         </p>
       </div>
 

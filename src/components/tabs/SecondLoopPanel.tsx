@@ -195,7 +195,7 @@ export function SecondLoopPanel({ state }: { state?: SecondLoopState } = {}) {
       <Card
         icon={Search}
         title="Challenger"
-        subtitle="Beside the funnel, every minute of a live run: could the depot do better right now? Each question is graded in hindsight when it closes. It never changes the engine."
+        subtitle="Each minute of a live run, it asks: could the depot do better now? It grades each question when the question closes. It never changes the engine."
         chip={
           <Chip tone={challenger?.scanner?.active ? (run?.status === 'running' ? 'ok' : 'idle') : 'bad'}>
             {challenger?.scanner?.active ? (run?.status === 'running' ? 'watching' : 'idle') : 'off'}
@@ -269,7 +269,7 @@ export function SecondLoopPanel({ state }: { state?: SecondLoopState } = {}) {
       <Card
         icon={FlaskConical}
         title="Research (twin)"
-        subtitle="Engineering's paired tests, run overnight on simulated days in the twin: one setting against another, on the same seed and the same world. A win is a recommendation a person reviews and ships as a certified change. OTTO-Q never changes its own settings."
+        subtitle="The research wing's paired tests run overnight on simulated days in the twin. Each test runs one setting against another, on the same seed and world. A win is a recommendation. A person reviews it and ships it as a certified change. OTTO-Q never changes its own settings."
         chip={<Chip tone={learning?.runner?.enabled ? 'ok' : 'idle'}>{learning?.runner?.enabled ? 'pairing' : 'between windows'}</Chip>}
       >
         <p className="font-mono text-[9px] text-ink-faint">{windowText(learning) ?? ''}</p>

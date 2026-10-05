@@ -94,7 +94,7 @@ describe("agent pipeline labels never name a solver that did not run", () => {
 
   it("surfaces G60: every serviceable vehicle already held a place", () => {
     expect(starvationNote({ frame_serviceable: 11, frame_held: 11 }))
-      .toContain("all 11 serviceable vehicles already held a place");
+      .toContain("all 11 cars it could serve already had a place");
     // headroom existed, so the solver was genuinely asked something
     expect(starvationNote({ frame_serviceable: 11, frame_held: 4 })).toBeNull();
     expect(starvationNote({})).toBeNull();

@@ -27,14 +27,14 @@ describe("an agent pass in words", () => {
     const r = passes.find((p) => p.outcome !== "enacted")!;
     const p = agentPass(r);
     expect(p.tone).toBe("held");
-    expect(p.headline).toBe("The agent fell back to the deterministic path");
+    expect(p.headline).toBe("The agent gave no answer, so the decide path kept the goal");
     expect(p.read).toBeNull();
-    expect(p.chose).toMatch(/model did not answer \(model timed out after 75 s\)/);
+    expect(p.chose).toMatch(/agent did not answer \(model timed out after 75 s\)/);
     expect(p.outcome).toContain("No solver was asked this pass.");
   });
 
   it("never names an objective it was not given", () => {
-    expect(objectiveWord(undefined)).toBe("an objective not recorded");
+    expect(objectiveWord(undefined)).toBe("a goal not recorded");
     expect(objectiveWord("readiness_first")).toBe("get cars ready first");
     expect(objectiveWord("new_one")).toBe("new one");
   });
@@ -47,7 +47,7 @@ describe("the proposers' offers in words", () => {
     const refused = disp.find((d) => d.status === "refused" && !d.abstained && d.disposition_reason === "stall_reserved")!;
     const l = offerLine(refused, names);
     expect(l.tone).toBe("refused");
-    expect(l.text).toMatch(/the greedy planner's offer for .+ was refused: the stall was held for another car\./);
+    expect(l.text).toMatch(/The decide path refused the greedy planner's offer for .+: the stall was held for another car\./);
     const abst = disp.find((d) => d.abstained)!;
     expect(offerLine(abst, names).tone).toBe("idle");
     expect(offerLine(abst, names).text).toMatch(/^CP-SAT made no offer for/);

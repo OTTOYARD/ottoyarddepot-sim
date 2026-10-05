@@ -406,22 +406,20 @@ export function TwinBackgroundTab() {
             ? `Each run draws one whole world: ${fmtInt(nVars)} variables, each drawn on its own clock from the distributions above.`
             : 'Each run draws one whole world. Each variable is drawn on its own clock from the distributions above.'}>
           <P>
-            A seed sets each random outcome of a run: the battery health and energy use of each car, the weather, return
-            times and charge levels, charger faults, and service times.
+            A seed sets each random outcome of a run: car condition, weather, return times, charger faults and service
+            times.
           </P>
           <P>
-            Each draw is a pure function of the run seed, the item it is for (a car, a charger, a session) and the sim
-            time (<Code>twin.ottoq_sim_seeded_random</Code>). The order in which the engine computes has no effect. The
-            results:
+            Each draw depends only on the run seed, the item it is for and the sim time
+            (<Code>twin.ottoq_sim_seeded_random</Code>). The results:
           </P>
           <Bullets items={[
-            <><B>Different seeds, independent worlds.</B> Many seeds sample the range of days a depot will see. This is
-              a Monte Carlo study of the site, not one lucky afternoon.</>,
-            <><B>The same seed, the same world, byte for byte.</B> OTTO-Q and a plain first-come-first-served depot can
-              run the same day. So a difference between them comes from the policy, not from luck (common random
-              numbers).</>,
-            <><B>Knobs that stress a world.</B> On the Control tab, shift, spread, floor, ceiling and rate knobs make a
-              day hotter, busier or more prone to faults.</>,
+            <><B>Different seeds, independent worlds.</B> Many seeds sample the range of days a depot will see, not one
+              lucky afternoon.</>,
+            <><B>The same seed, the same world, byte for byte.</B> OTTO-Q and a plain first-come-first-served depot run
+              the same day, so a difference comes from the policy, not luck (common random numbers).</>,
+            <><B>Knobs that stress a world.</B> On the Control tab, knobs make a day hotter, busier or more prone to
+              faults.</>,
           ]} />
           {manifest?.boot_draw ? (
             <div className="rounded border border-white/[0.08] bg-canvas-panel/60 p-2.5">
@@ -501,21 +499,17 @@ export function TwinBackgroundTab() {
             <div className="text-[10px] font-semibold uppercase tracking-[0.07em] text-ink-faint">How it learns from its own record</div>
             <div className="mt-1">
               <Bullets items={[
-                <><B>Its own data set.</B> Each decision, offer, refusal and result is structured evidence under a run ID:
-                  who proposed what, what the shield said, what the decide path did, and what happened next. We make this
-                  data ourselves. Nobody else scrapes or labels it. Run purges do not delete the evidence tables.</>,
-                <><B>The challenger, live.</B> Each minute, it asks questions about recent OTTO-Q decisions. Was a better
-                  stall free? Did a car wait for no reason? It grades each answer against what happened. It only reads and
-                  never changes the engine. Its live board is on the <button type="button" className="text-brand-hot hover:underline" onClick={() => open('agent')}>Agent tab</button>.</>,
-                <><B>The research wing, overnight in the twin.</B> We test a proposed setting change in pairs: the same
-                  simulated day and seed, once with the current value and once with the new one. A change that wins becomes
-                  a recommendation. A person reviews it and ships it as a certified change.</>,
-                <><B>Worlds that stay current.</B> Each week, we fit the live public sources (grid demand, weather) again.
-                  So the days the twin draws follow the present.</>,
-                <><B>What it does not do, on purpose.</B> It does not train on its own simulated results. The twin replays
-                  OTTO-Q's own decisions, so that would teach it its own mistakes. In production, it will decide in real
-                  time. Overnight, it will learn from the real data of the day: charge times, return times and charger
-                  faults. It will never run an experiment on a real car.</>,
+                <><B>Its own data set.</B> Each decision, offer, refusal and result is evidence under a run ID. We make
+                  this data ourselves, and run purges do not delete it.</>,
+                <><B>The challenger, live.</B> Each minute, it asks if the depot could have done better, and grades the
+                  answer later against what happened. It never changes the engine. Its live board is on the <button type="button" className="text-brand-hot hover:underline" onClick={() => open('agent')}>Agent tab</button>.</>,
+                <><B>The research wing, overnight in the twin.</B> We test a setting change in pairs: the same day and
+                  seed, with the current value and with the new one. A change that wins is a recommendation, and a person
+                  ships it.</>,
+                <><B>Worlds that stay current.</B> Each week, we fit the live public sources (grid demand, weather) again.</>,
+                <><B>What it does not do, on purpose.</B> It does not train on its own simulated results, which would teach
+                  it its own mistakes. In production, it will learn overnight from real data, and never run an experiment
+                  on a real car.</>,
               ]} />
             </div>
           </div>
@@ -523,12 +517,11 @@ export function TwinBackgroundTab() {
 
         {/* ── 6. safety ──────────────────────────────────────────── */}
         <Section id="bg-safety" icon={ShieldCheck} title="The safety harness"
-          kicker="Software that moves cars must be unable to do some things, not only unlikely to. Each layer of the harness holds even if the layer above it is wrong. The harness is custom because the risk is physical.">
+          kicker="Software that moves cars must be unable to do some things, not only unlikely to. Each layer holds even if the layer above it is wrong.">
           <P>
-            Standard AI guardrails control what a model says. At a depot, the risk is what the depot does: a car sent out
-            half charged, a stall booked twice, a charge on a faulted charger. So the harness sits where physical
-            decisions are made, inside the database transaction. It holds for every caller, including agents that nobody
-            has written yet.
+            Standard AI guardrails control what a model says. At a depot, the risk is what the depot does, so the harness
+            sits inside the database transaction that makes each decision. It holds for every caller, including agents
+            that nobody has written yet.
           </P>
           <div className="space-y-2">
             <Layer n={1} title="Physical limits in the database" status="enforced">
@@ -572,13 +565,13 @@ export function TwinBackgroundTab() {
               <p>
                 By contract, a car's charge target and its services belong to its owner. Each car charges to 100% unless
                 its owner sets a lower limit. No car leaves with a service still needed: one departure test runs at each
-                exit (<Code>ottoq_departure_clear</Code>). Cars can wait in a queue, but OTTO-Q never gives up a car's
-                needs for throughput. A charge ends early only for a charger fault (the car goes back in the queue) or a
+                exit (<Code>ottoq_departure_clear</Code>). OTTO-Q never gives up a car's needs for
+                throughput. A charge ends early only for a charger fault (the car goes back in the queue) or a
                 car emergency.
               </p>
             </Layer>
             <Layer n={4} title="The agent harness" status="enforced">
-              <p>An agent can act in two ways. Each way has its own controls, because each can do a different kind of damage.</p>
+              <p>An agent can act in two ways, each with its own controls:</p>
               <Bullets items={[
                 <><B>Settings.</B> An agent can change only catalogued settings. Each change stays inside declared limits,
                   and the shield checks it.</>,
@@ -596,8 +589,8 @@ export function TwinBackgroundTab() {
             <Layer n={6} title="Continuous certification" status="enforced">
               <p>
                 OTTO-Q compares pairs of runs on the same seed, byte for byte, on fourteen independent checks: decisions,
-                bookings, energy, proposals, rules, events and more. It does this on a schedule and after each engine
-                change that should make the result invalid.
+                bookings, energy, proposals, rules, events and more. It runs on a schedule and after each engine change
+                that can affect the result.
               </p>
               {canon && (
                 <p className="text-ink">
@@ -616,9 +609,9 @@ export function TwinBackgroundTab() {
             </Layer>
             <Layer n={8} title="What we build next" status="building">
               <Bullets items={[
-                <><B>A door for outside agents.</B> The agent of a fleet owner, or a personal assistant, gets a scoped
-                  token. With it, the agent can read the depot and ask for changes. Nothing happens until a person
-                  approves. An approved request goes through the engine's own doors. Written and tested, not yet live.</>,
+                <><B>A door for outside agents.</B> The agent of a fleet owner gets a scoped token to read the depot and
+                  ask for changes. Nothing happens until a person approves, and then the request goes through the
+                  engine's normal checks. Written and tested, not yet live.</>,
                 <><B>Rules that judge results, not only starts.</B> Today, state-machine and presence checks only record
                   their results. Each decision point starts to refuse after its inputs are proven, one point at a time.</>,
                 <><B>A separate research database</B> before real telemetry starts, so overnight tests never compete with
@@ -630,7 +623,7 @@ export function TwinBackgroundTab() {
 
         {/* ── 7. value ───────────────────────────────────────────── */}
         <Section id="bg-value" icon={Sparkles} title="What it solves"
-          kicker="An autonomous car earns money only while it works. Each trip to the depot for a charge, a cleaning or a service is time off the road. As fleets grow, the depot is where they slow down.">
+          kicker="An autonomous car earns money only while it works. Each trip to the depot is time off the road. As fleets grow, the depot is where they slow down.">
           <P>In scheduling terms, a depot is a flow shop with limited resources:</P>
           <Bullets items={[
             'Each car needs a set of operations in a fixed order.',
@@ -639,29 +632,21 @@ export function TwinBackgroundTab() {
             'Each car must be ready at a set time.',
           ]} />
           <P>
-            Arrivals, charge times and faults change, so OTTO-Q makes a new schedule at each tick. The site always has a
-            schedule. What OTTO-Q does:
+            Arrivals, charge times and faults change, so OTTO-Q makes a new schedule at each tick. What OTTO-Q does:
           </P>
           <Bullets items={[
             <><B>The whole visit, as one schedule.</B> OTTO-Q plans charge, cleaning, inspection, software and staging
-              together, not charge alone. Work that can occur during a charge starts on the charger: a sensor clean, an
-              interior clean and inspection, remote diagnostics, a software update. Each move between stalls is a step
-              of its own.</>,
-            <><B>Each car leaves complete.</B> A car charges to 100% unless its owner sets a lower limit. It does not leave
-              with a needed service open. If a car is not ready, OTTO-Q plans its next charger or bay, or temporary
-              parking until one is free. It does not send the car out short. More demand on the site gets better order
-              and more capacity, never a shorter charge.</>,
-            <><B>Power that is planned, not only drawn.</B> OTTO-Q plans each charge against the site power limit and the
-              demand charge, with the site battery and solar power. Paired test days measure the savings. They are not
-              assumed.</>,
-            <><B>One site, many fleets, each on its own terms.</B> Fleets with different owners can share a depot. Each
-              contract is versioned data, not code. The rules and the charge target read it when they decide. Today, the
-              contracts on file have the same terms. The mechanism exists, and the differences come with real
-              contracts.</>,
-            <><B>A record for each service.</B> OTTO-Q logs each decision under its run ID, with the engine that proposed
-              it and what it carried out. Each completed operation ends in a signed service record for its fleet and
-              asset class, with the energy metered on charges. Pricing of those records against the tariff is in
-              development.</>,
+              together. Work that can occur during a charge starts on the charger.</>,
+            <><B>Each car leaves complete.</B> A car charges to 100% unless its owner sets a lower limit, and leaves with
+              no needed service open. If a car is not ready, OTTO-Q sends it to its next charger or bay, or to temporary
+              parking until one is free.</>,
+            <><B>Power that is planned.</B> OTTO-Q plans each charge against the site power limit and the demand charge,
+              with the site battery and solar power. Paired test days measure the savings.</>,
+            <><B>One site, many fleets, each on its own terms.</B> Each contract is versioned data that the rules read.
+              Today, the contracts on file have the same terms. The mechanism exists, and the differences come with
+              real contracts.</>,
+            <><B>A record for each service.</B> Each completed operation ends in a signed service record for its fleet
+              and asset class. Pricing of those records against the tariff is in development.</>,
           ]} />
           <div className="rounded border border-white/[0.08] bg-canvas-panel/60 p-2.5">
             <div className="text-[10px] font-semibold uppercase tracking-[0.07em] text-ink-faint">Measured at this depot so far</div>
@@ -690,16 +675,15 @@ export function TwinBackgroundTab() {
 
         {/* ── 8. the technical edge ──────────────────────────────── */}
         <Section id="bg-edge" icon={Target} title="The technical edge"
-          kicker="A depot of autonomous cars is hard to run, for specific technical reasons. OTTO-Q is built around each reason below. You can check each one in the engine or at the linked outside source.">
+          kicker="Each reason below makes a depot of autonomous cars hard to run. OTTO-Q is built around each one, and you can check each in the engine or at the linked source.">
           <div className="space-y-2">
             <Edge title="The same answer, twice"
-              hard={<>A schedule that moves real cars must be explainable later. Another person must be able to repeat a
-                claim about a depot. This is not automatic. NVIDIA's GPU optimizer, cuOpt, documents no seed and no
-                determinism setting for its routing solver. Of the deterministic mode of its mixed-integer solver, it says
-                that it "does not yet guarantee fully deterministic results in all scenarios".</>}
-              ours={<>Its decide path is deterministic. The same seed, scenario and engine give the same decisions, byte
-                for byte. Pairs of runs are compared on fourteen independent checks on a schedule (the certification in
-                the safety harness above). Each figure it reports has a run ID that replays it.</>}
+              hard={<>A schedule that moves real cars must be explainable, and another person must be able to repeat it.
+                This is not automatic. NVIDIA cuOpt documents no seed and no determinism setting for its routing solver.
+                Of its mixed-integer solver, it says the deterministic mode "does not yet guarantee fully deterministic
+                results in all scenarios".</>}
+              ours={<>Its decide path is deterministic: the same seed, scenario and engine give the same decisions, byte
+                for byte (the certification above). Each figure it reports has a run ID that replays it.</>}
               source={<>
                 <ExtLink href="https://docs.nvidia.com/cuopt/user-guide/latest/routing-features.html">cuOpt routing features</ExtLink>
                 {' · '}<ExtLink href="https://docs.nvidia.com/cuopt/user-guide/latest/mip-settings.html">cuOpt MIP settings</ExtLink>
@@ -719,10 +703,9 @@ export function TwinBackgroundTab() {
               hard={<>Inside a depot, the constraints are scheduling constraints. Charges at the same time share one power
                 limit, and a stall or bay holds one car at a time. cuOpt has no primitive for either. It solves routing,
                 linear and quadratic programs, with mixed-integer programs in beta. It has no scheduling family.</>}
-              ours={<>OTTO-Q's own deterministic decide path schedules the site. A constraint-programming solver, Google
-                OR-Tools CP-SAT, gives offers. It runs pinned to one version, a deterministic time budget and a fixed
-                worker count, so its results repeat too. cuOpt stays a proposer, and the same path decides on its
-                offers.</>}
+              ours={<>OTTO-Q's deterministic decide path schedules the site, with offers from Google OR-Tools CP-SAT, a
+                constraint-programming solver. CP-SAT runs pinned, so its results repeat too. cuOpt stays a
+                proposer.</>}
               source={<>
                 <ExtLink href="https://www.nvidia.com/en-us/ai-data-science/products/cuopt/">NVIDIA cuOpt</ExtLink>
                 {' · '}<ExtLink href="https://docs.nvidia.com/cuopt/user-guide/latest/routing-features.html">cuOpt routing features</ExtLink>
@@ -731,24 +714,15 @@ export function TwinBackgroundTab() {
             <Edge title="Limits that hold in the transaction"
               hard={<>The risk at a depot is physical: a car sent out half charged, a stall booked twice, a charge on a
                 faulted charger. A limit that holds only for correct callers does not hold.</>}
-              ours={<>Its limits sit where decisions are written:</>}
-              list={[
-                'A calendar constraint makes a double booking impossible.',
-                'A unique index allows one car per stall.',
-                'The signed event log rejects each edit.',
-                'One departure test runs at each exit.',
-                'The safety shield refuses at the decision points it enforces.',
-              ]}
-              after={<>They hold for every caller, including agents that nobody has written yet (the safety harness
-                above).</>} />
+              ours={<>Its limits sit where decisions are written, so they hold for every caller, including agents that
+                nobody has written yet (the safety harness above).</>} />
             <Edge title="A record of service, not only of energy"
               hard={<>The EV industry made a standard for energy, but not for service. In OCPI, its roaming standard, the
                 only billing object is the charge detail record, "the description of a concluded charging session". A
                 cleaning, an inspection or a repair has no record of its own.</>}
               ours={<>Each operation it completes, energy or not, ends in a signed service record in the shape of
-                OCPI's. The record names its fleet and asset class, with the energy metered on charges. Pricing of those
-                records against the tariff is in development. Then a depot and its fleets can settle a cleaning or an
-                inspection the way they settle a charge today.</>}
+                OCPI's. Pricing of those records against the tariff is in development. Then a depot and its fleets can
+                settle a cleaning the way they settle a charge today.</>}
               source={<>
                 <ExtLink href="https://github.com/ocpi/ocpi/blob/v2.3.0/mod_cdrs.asciidoc">OCPI CDR module</ExtLink>
                 {' · '}<ExtLink href="https://evroaming.org/ocpi-downloads/">OCPI releases</ExtLink>
@@ -757,10 +731,9 @@ export function TwinBackgroundTab() {
             <Edge title="Proof before a depot is built"
               hard={<>You cannot try a site design or a scheduling policy on a real fleet without risk to the day of that
                 fleet. One good afternoon proves nothing.</>}
-              ours={<>The twin draws whole days from distributions fitted to public data, with each assumption declared
-                (the data section above). OTTO-Q and a plain first-come-first-served depot run the same seeded day. So a
-                difference between them comes from the policy, not from luck. The engine under test is the engine that
-                would run the site. If OTTO-Q did not beat the plain depot on a measured day, the Value tab says so.</>} />
+              ours={<>The twin draws whole days from public data, with each assumption declared. OTTO-Q and a plain depot
+                run the same seeded day, with the engine that would run the site. If OTTO-Q did not beat the plain depot
+                on a measured day, the Value tab says so.</>} />
           </div>
           <P>
             <B>What it does not claim.</B> Intelligence is not a substitute for capacity. If a depot has too few chargers,
@@ -775,9 +748,8 @@ export function TwinBackgroundTab() {
           <Bullets items={[
             <><B>A depot becomes a shared service node.</B> Fleets with different owners can use one site. Each gets
               service under its own contract, from orchestration that belongs to none of them.</>,
-            <><B>Size a depot before you build it.</B> The twin measures the chargers, the power and the number of cars a
-              site can stage and turn around. It uses simulated days drawn from real data and the same engine that would
-              run the site.</>,
+            <><B>Size a depot before you build it.</B> The twin measures the chargers, power and cars a site needs, on
+              simulated days drawn from real data.</>,
             <><B>A settlement rail for services.</B> Service records use the shape of the EV roaming standard (OCPI) for
               each operation, not only energy. When pricing is complete, a depot can bill its fleets for services.</>,
             <><B>Software on hardware that others own.</B> OTTO-Q orchestrates cars, chargers and sites. It never drives a

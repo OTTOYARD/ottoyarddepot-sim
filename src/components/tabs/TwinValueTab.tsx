@@ -187,14 +187,14 @@ function GuaranteeStrip({ g }: { g: ValueSummary['guarantee'] }) {
 const HOW: { icon: typeof Zap; text: string }[] = [
   {
     icon: CalendarClock,
-    text: "Plans every charge ahead against Nashville's time-of-use prices, so cars staying overnight charge when power is cheapest.",
+    text: "Plans each charge against Nashville time-of-use prices. Cars that stay overnight charge when power costs least.",
   },
   {
     icon: BatteryCharging,
-    text: "Uses the depot's battery and solar to flatten peaks: the monthly demand charge is set by the single busiest half hour.",
+    text: "Uses the depot battery and solar power to decrease peak demand. The busiest half hour of the month sets the demand charge.",
   },
-  { icon: Route, text: 'Sends each car to the right charger at the right time, cars due out soonest first.' },
-  { icon: Wrench, text: 'Runs cleaning, checks and software updates while the car charges, so one stop does everything.' },
+  { icon: Route, text: 'Sends each car to the right charger at the right time. Cars due out first go first.' },
+  { icon: Wrench, text: 'Does cleaning, checks and software updates during the charge, so one stop does all of it.' },
 ];
 
 function HowItWorks() {
@@ -212,7 +212,7 @@ function HowItWorks() {
       <p className="mt-2 flex items-start gap-2 border-t border-white/[0.06] pt-2 text-[11px] leading-4 text-ink">
         <ShieldCheck size={12} aria-hidden className="mt-0.5 shrink-0 text-ink-dim" />
         <span className="min-w-0">
-          Never by cutting corners: no charge is stopped early and no car leaves with a needed service open.
+          It never cuts corners. No charge stops early, and no car leaves with a needed service open.
         </span>
       </p>
     </section>
@@ -446,7 +446,7 @@ function Results({ summary, error }: { summary: ValueSummary; error: string | nu
 
       {stillMeasuring(summary.sweep) && (
         <p className="rounded border border-sky-400/20 bg-sky-400/[0.06] p-2 text-[10px] leading-4 text-sky-200">
-          Still measuring: {progressText(summary.sweep)}. These numbers will move until it finishes.
+          Measurement not complete: {progressText(summary.sweep)}. These numbers can change until it is complete.
         </p>
       )}
 
@@ -470,7 +470,7 @@ function Results({ summary, error }: { summary: ValueSummary; error: string | nu
       <p className="px-0.5 text-[9px] leading-4 text-ink-faint">{footnoteText(summary.sweep)}</p>
       {error && (
         <p className="px-0.5 text-[9px] leading-4 text-ink-faint" title={error}>
-          The last refresh did not answer; these are the last numbers read.
+          The last refresh did not answer. These are the last numbers read.
         </p>
       )}
     </>

@@ -106,9 +106,9 @@ export function carLine(r: ActivityFeedRow): FeedLine | null {
       const step = String(v.step ?? "");
       const deferred = Array.isArray(v.deferred) ? (v.deferred as string[]).map(human) : [];
       if (step === "need_service") return line(`${name}: service bays full → service moved to its next visit${deferred.length ? ` (${deferred.join(", ")})` : ""}`, "held", "deferred");
-      if (step === "ready") return line(`${name}: every task done → ready to depart`, "ok", "ready");
+      if (step === "ready") return line(`${name}: all steps done → ready to leave`, "ok", "ready");
       if (step === "need_charge") return line(`${name}: no bay work needed → next: charge`, "idle", "next");
-      if (step === "need_deploy") return line(`${name}: done here → waiting to deploy`, "idle", "next");
+      if (step === "need_deploy") return line(`${name}: done here → waits for dispatch`, "idle", "next");
       if (step === "overnight_draining") return line(`${name}: parked for the night`, "idle", "next");
       return line(`${name}: no bay work needed${step ? ` → next: ${human(step)}` : ""}`, "idle", "next");
     }

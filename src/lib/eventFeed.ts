@@ -83,7 +83,7 @@ export function describeEvent(type: string, payload: Record<string, unknown> | n
     case "charge.session_faulted":
       return { title: "Charger fault ended the session", detail: join(words(p.reason), n(p.repair_minutes) !== null && `repair ${r0(p.repair_minutes)} min`, p.auto_rerouted === true && "rerouted") };
     case "ottoq.charge_start_refused":
-      return { title: "Charge start refused by the shield", detail: join(Array.isArray(p.blocking_rules) ? (p.blocking_rules as unknown[]).map(String).join(", ") : "", n(p.requested_kw) !== null && `${r0(p.requested_kw)} kW asked`) };
+      return { title: "Charge start refused by the safety shield", detail: join(Array.isArray(p.blocking_rules) ? (p.blocking_rules as unknown[]).map(String).join(", ") : "", n(p.requested_kw) !== null && `${r0(p.requested_kw)} kW asked`) };
     case "arm.mate_started": return { title: "Arm connecting" };
     case "arm.mate_latched": return { title: "Arm connected", detail: n(p.retries) ? `after ${r0(p.retries)} retries` : undefined };
     case "arm.demate_started": return { title: "Arm disconnecting" };

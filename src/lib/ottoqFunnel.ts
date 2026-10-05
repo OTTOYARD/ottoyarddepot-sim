@@ -32,13 +32,13 @@ export interface LayerDef {
 
 export const LAYERS: readonly LayerDef[] = [
   { id: "arriving", label: "Arriving", kind: "place", does: "Cars on their way back and cars at the gate." },
-  { id: "needs", label: "Needs", kind: "place", does: "Cars in the depot waiting for OTTO-Q to plan what they need." },
-  { id: "proposers", label: "Proposers", kind: "think", does: "The agent picks the objective; the planners (CP-SAT, cuOpt, priority) offer places. They propose, never decide." },
-  { id: "decide", label: "Decide", kind: "think", does: "The deterministic decide path chooses for every car, taking an offer or not, or holds it when nothing fits." },
-  { id: "shield", label: "Safety check", kind: "think", does: "The rules check each choice as it is enacted. A choice that fails an enforced rule is overridden." },
+  { id: "needs", label: "Needs", kind: "place", does: "Cars in the depot that wait for OTTO-Q to plan what they need." },
+  { id: "proposers", label: "Proposers", kind: "think", does: "The agent picks the goal. The planners (CP-SAT, cuOpt, priority) offer stalls. They propose and never decide." },
+  { id: "decide", label: "Decide", kind: "think", does: "The decide path chooses for each car. It takes an offer or not, or holds the car when nothing fits." },
+  { id: "shield", label: "Safety check", kind: "think", does: "The rules check each choice when it is carried out. If a choice fails an enforced rule, the shield changes it." },
   { id: "booked", label: "Booked", kind: "place", does: "Cars that hold their stall or bay and have not started yet." },
-  { id: "service", label: "Service", kind: "place", does: "Charging, washing, detailing and service bays, and cars between steps." },
-  { id: "ready", label: "Ready", kind: "place", does: "Cars staged to leave. None leaves below its charge target or with a need open." },
+  { id: "service", label: "Service", kind: "place", does: "Chargers, wash, detail and service bays, and cars between steps." },
+  { id: "ready", label: "Ready", kind: "place", does: "Cars ready to leave. No car leaves below its charge target or with a service still needed." },
 ] as const;
 
 export const LAYER_INDEX: Record<LayerId, number> = Object.fromEntries(LAYERS.map((l, i) => [l.id, i])) as Record<LayerId, number>;

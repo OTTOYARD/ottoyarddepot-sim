@@ -39,7 +39,7 @@ const EnergyChart = React.memo(function EnergyChart() {
   if (data.length < 2) {
     return (
       <div className="h-[160px] bg-canvas-panel rounded-lg border border-white/[0.06] flex items-center justify-center text-ink-faint text-xs">
-        The energy curve builds as the run ticks…
+        The energy curve grows with each tick…
       </div>
     );
   }
