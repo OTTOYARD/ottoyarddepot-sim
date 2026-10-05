@@ -112,15 +112,15 @@ const shots = async (name, profile) => {
   } else {
     await clickText(page, "Intelligence");
     await shot("02-panels-intelligence");
-    await clickLabel(page, "Bigger live view");
+    await clickLabel(page, "Make the live view larger");
     await shot("03-bigger-live-view");
-    await clickLabel(page, "Smaller live view");
+    await clickLabel(page, "Make the live view smaller");
   }
   await clickLabel(page, "Camera and quality");
   await shot("06-camera-menu");
   await clickText(page, "Hero");
   await shot("07-hero-preset");
-  if (await clickLabel(page, "Stop")) {
+  if (await clickLabel(page, "Stop run")) {
     await shot("08-stop-confirm");
     await clickText(page, "Keep running");
   }
