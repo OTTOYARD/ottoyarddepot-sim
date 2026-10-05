@@ -59,7 +59,7 @@ const OBJECTIVE_WORD: Record<string, string> = {
   balanced: "balance readiness, throughput and cost",
 };
 export const objectiveWord = (o: unknown): string =>
-  (typeof o === "string" && OBJECTIVE_WORD[o]) || human(o) || "an objective not recorded";
+  (typeof o === "string" && OBJECTIVE_WORD[o]) || human(o) || "a goal not recorded";
 
 const plural = (k: number, one: string, many = `${one}s`) => `${k} ${k === 1 ? one : many}`;
 
@@ -74,7 +74,7 @@ export function agentPass(r: ActivityFeedRow): AgentPass {
   const why = typeof v.objective_why === "string" ? v.objective_why.trim() : "";
 
   const chose = modelError
-    ? `The model did not answer (${modelError}), so the deterministic path kept the objective: ${objectiveWord(v.objective)}.`
+    ? `The agent did not answer (${modelError}). The decide path kept the goal: ${objectiveWord(v.objective)}.`
     : `It chose to ${objectiveWord(v.objective)}${why ? `, because ${why.replace(/\.$/, "")}` : ""}.`;
 
   const outcome: string[] = [];
@@ -86,27 +86,27 @@ export function agentPass(r: ActivityFeedRow): AgentPass {
   } else if (handoff === "skipped") {
     outcome.push("No solver was asked this pass.");
   } else if (handoff === "fallback") {
-    outcome.push("The hand-off to the solver fell back to the deterministic path.");
+    outcome.push("The solver hand-off did not complete. The decide path used its own answer.");
   } else if (handoff) {
     outcome.push(`The solver hand-off is ${human(handoff)}.`);
   }
   const k = (key: string) => num(v[key]) ?? 0;
   const parts = [
-    k("kernel_enacted") ? `enacted ${k("kernel_enacted")}` : null,
+    k("kernel_enacted") ? `carried out ${k("kernel_enacted")}` : null,
     k("kernel_refused") ? `refused ${k("kernel_refused")}` : null,
-    k("kernel_superseded") ? `superseded ${k("kernel_superseded")}` : null,
+    k("kernel_superseded") ? `replaced ${k("kernel_superseded")}` : null,
     k("kernel_expired") ? `let ${k("kernel_expired")} expire` : null,
   ].filter(Boolean);
   if (parts.length) outcome.push(`The decide path ${parts.join(", ")}.`);
-  else if (handoff === "completed" && returned === 0) outcome.push("There was nothing for the decide path to dispose.");
+  else if (handoff === "completed" && returned === 0) outcome.push("The decide path had nothing to decide.");
   if (directives.length) outcome.push(`${plural(directives.length, "directive")} applied${queued ? `, ${queued} waiting for a person to approve` : ""}${rejected ? `, ${rejected} rejected` : ""}.`);
   else if (queued || rejected) outcome.push(`${queued ? `${queued} waiting for a person to approve` : ""}${queued && rejected ? ", " : ""}${rejected ? `${rejected} rejected` : ""}.`);
   const late = num(v.advice_ticks_late);
-  if (late != null) outcome.push(late === 0 ? "Its advice was applied on the tick it read." : `Its advice was applied ${plural(late, "tick")} after the tick it read; the tick never waits for it.`);
+  if (late != null) outcome.push(late === 0 ? "Its advice was applied on the tick it read." : `Its advice was applied ${plural(late, "tick")} after the tick it read. The tick never waits for it.`);
 
   const tone: StreamTone = modelError || r.outcome !== "enacted" ? "held" : "ok";
   const headline = modelError
-    ? "The agent fell back to the deterministic path"
+    ? "The agent gave no answer, so the decide path kept the goal"
     : `The agent read the depot and chose to ${objectiveWord(v.objective)}`;
 
   return {
@@ -143,18 +143,19 @@ export function offerLine(d: DispositionRow, names: ReadonlyMap<string, string>)
   const who = proposerWord(d.source);
   const why = reasonWord(d.disposition_reason);
   const key = `p${d.disposition_id}`;
-  if (d.abstained) return { key, text: `${who} made no offer for ${car}${why ? `: ${why}` : ""}.`, tone: "idle" };
+  const Who = who.charAt(0).toUpperCase() + who.slice(1);
+  if (d.abstained) return { key, text: `${Who} made no offer for ${car}${why ? `: ${why}` : ""}.`, tone: "idle" };
   switch (d.status) {
     case "enacted":
-      return { key, text: `${who}'s offer for ${car} was enacted by the decide path.`, tone: "ok" };
+      return { key, text: `The decide path chose ${who}'s offer for ${car}.`, tone: "ok" };
     case "refused":
-      return { key, text: `${who}'s offer for ${car} was refused${why ? `: ${why}` : ""}.`, tone: "refused" };
+      return { key, text: `The decide path refused ${who}'s offer for ${car}${why ? `: ${why}` : ""}.`, tone: "refused" };
     case "superseded":
-      return { key, text: `${who}'s offer for ${car} was superseded${why ? `: ${why}` : ""}.`, tone: "idle" };
+      return { key, text: `${Who}'s offer for ${car} was replaced${why ? `: ${why}` : ""}.`, tone: "idle" };
     case "expired":
-      return { key, text: `${who}'s offer for ${car} expired${why ? `: ${why}` : ""}.`, tone: "idle" };
+      return { key, text: `${Who}'s offer for ${car} expired${why ? `: ${why}` : ""}.`, tone: "idle" };
     default:
-      return { key, text: `${who}'s offer for ${car} is ${human(d.status)}.`, tone: "idle" };
+      return { key, text: `${Who}'s offer for ${car} is ${human(d.status)}.`, tone: "idle" };
   }
 }
 

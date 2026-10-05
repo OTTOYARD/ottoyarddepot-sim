@@ -13,10 +13,10 @@ describe("the glossary", () => {
   it("maps every internal term the brief names to its plain word", () => {
     expect(plain("need")).toBe("service");
     expect(plain("atom")).toBe("service");
-    expect(plain("proposal")).toBe("plan");
+    expect(plain("proposal")).toBe("offer");
     expect(plain("proposer")).toBe("planner");
     expect(plain("enacted")).toBe("chosen");
-    expect(plain("superseded")).toBe("replaced by a better plan");
+    expect(plain("superseded")).toBe("replaced by a better offer");
     expect(plain("shield")).toBe("safety check");
     expect(plain("rule_evaluation")).toBe("safety check");
     expect(plain("dispatch")).toBe("sent");
@@ -57,11 +57,11 @@ describe("services, places and rules", () => {
   });
 
   it("names a rule by what it protects, never by its code", () => {
-    expect(ruleWord("HW.005.vehicle_one_active_task")).toBe("one job at a time per car");
+    expect(ruleWord("HW.005.vehicle_one_active_task")).toBe("one step at a time per car");
     expect(ruleWord("EN.001.grid_capacity_ceiling")).toBe("the depot's power limit");
     expect(ruleWord("ZZ.999.unknown")).toBe("a safety rule");
     expect(ruleWords(["HW.002.charger_state_precondition", "HW.002.x", "SLA.004.required_services_complete"]))
-      .toBe("the charger is working and required services are done");
+      .toBe("the charger works and required services are done");
     for (const s of [ruleWord("HW.005.x"), ruleWords(["EN.003.bess_limits"])]) expect(s).not.toMatch(/[A-Z]{2,}\.\d/);
   });
 });
@@ -89,9 +89,9 @@ describe("every trail template", () => {
 
   it("Checked the depot", () => {
     expect(checkedText({ wanted: "dcfc", freeFast: 0, freeStandard: 3, waitingForCharge: 21 }).detail)
-      .toBe("0 fast chargers and 3 standard chargers free, 21 cars waiting for a charge.");
+      .toBe("0 fast chargers and 3 standard chargers were free. 21 cars waited for a charge.");
     expect(checkedText({ wanted: "dcfc", freeFast: 1, freeStandard: 1, waitingForCharge: null }).detail)
-      .toBe("1 fast charger and 1 standard charger free.");
+      .toBe("1 fast charger and 1 standard charger were free.");
     expect(checkedText({ wanted: "l2" }).detail).toBe("Looked for a free standard charger.");
     expect(checkedText({ wanted: null }).detail).toBeNull();
   });
@@ -137,7 +137,7 @@ describe("every trail template", () => {
     const w = (why: string, n: number | null | undefined) =>
       whyPickedText({ why, wantWhy: "due_now", soc: 78, wantedKind: "dcfc", chosenKind: "l2", wantedKindOptions: n });
     expect(w("only_option", 0)).toBe("No fast charger could take it, so it took a standard charger. It was the only one it could use");
-    expect(w("power_limit", 2)).toBe("A fast charger would have gone over the depot's power limit, so it took a standard charger");
+    expect(w("power_limit", 2)).toBe("The site had no power for a fast charger. The car got a standard charger");
     expect(w("booked", 1)).toBe("It was booked for this car, so it took a standard charger over a fast charger");
     // not counted: no claim about what was free
     expect(w("only_option", null)).toBe("It wanted a fast charger and took a standard charger. It was the only one it could use");
@@ -147,9 +147,9 @@ describe("every trail template", () => {
     expect(safetyText({ passed: 12, failed: [] }).title).toBe("12 safety checks passed");
     expect(safetyText({ passed: null, failed: [] }).detail).toBe(`Checks run: ${MISSING}.`);
     expect(safetyText({ passed: 11, failed: ["HW.005.vehicle_one_active_task"] }))
-      .toEqual({ title: "Safety check stopped it", detail: "Failed: one job at a time per car." });
+      .toEqual({ title: "Safety check stopped it", detail: "Failed: one step at a time per car." });
     expect(blockedText({ failed: ["HW.005.vehicle_one_active_task"], then: "Kept it in line instead." }))
-      .toEqual({ title: "Safety check stopped it", detail: "Failed: one job at a time per car. Kept it in line instead." });
+      .toEqual({ title: "Safety check stopped it", detail: "Failed: one step at a time per car. Kept it in line instead." });
     expect(blockedText({ failed: [], then: null }).detail).toBe(`Rule ${MISSING}.`);
   });
 

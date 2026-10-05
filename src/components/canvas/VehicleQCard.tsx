@@ -78,11 +78,11 @@ function StepRow({ s }: { s: QStep }) {
           <div className="flex flex-wrap gap-x-1.5 text-[9px] leading-[13px] text-ink-faint">
             {s.enRoute && <span style={{ color: TEAL }}>on the way</span>}
             {!cur && window_(s) && <span className="font-mono">{window_(s)}</span>}
-            {s.overdueMin !== null && s.overdueMin > 0 && <span style={{ color: WARN }}>start {s.overdueMin} min behind plan</span>}
+            {s.overdueMin !== null && s.overdueMin > 0 && <span style={{ color: WARN }}>start {s.overdueMin} min late</span>}
             {cur && s.overPlanMin !== null && s.overPlanMin > 0 && <span style={{ color: WARN }}>{s.overPlanMin} min over plan</span>}
             {s.reassigned && (
               <span style={{ color: '#7DD3FC' }} data-testid="qcard-reassigned">
-                ↺ re-assigned{s.reassigned.was ? ` (was ${s.reassigned.was})` : ''}{s.reassigned.at ? ` ${clock(s.reassigned.at)}` : ''}
+                ↺ re-assigned{s.reassigned.was ? ` from ${s.reassigned.was}` : ''}{s.reassigned.at ? ` · ${clock(s.reassigned.at)}` : ''}
               </span>
             )}
           </div>
@@ -152,7 +152,7 @@ export function QCardBody({ card, oem, onClose, cardsStatus, owner }: {
   const [trail, setTrail] = useState(false);
   useEffect(() => setTrail(false), [card.vehicleId]);
   const b = card.battery;
-  const oemColor = OEM_COLORS[(oem ?? '').toLowerCase()] ?? '#A8AEBB';
+  const oemColor = OEM_COLORS[(oem ?? '').toLowerCase()] ?? '#FFFFFF';
   const stepsNote = cardsStatus === 'waiting' ? 'Waiting for the depot cards…'
     : cardsStatus === 'other_run' ? 'The depot cards describe another run.'
     : `${DASH} no plan steps published for this car`;
@@ -178,7 +178,7 @@ export function QCardBody({ card, oem, onClose, cardsStatus, owner }: {
         <Meter value={b.now} mark={b.target} color={b.ofTarget !== null && b.ofTarget >= 100 ? OK : TEAL} label="Battery" />
         <span className="shrink-0 font-mono text-[10px]" data-testid="qcard-battery">{pctText(b.now)} / {pctText(b.target)}</span>
       </div>
-      {b.onArrival !== null && <div className="pl-[54px] font-mono text-[9px] text-ink-faint">arrived on {pctText(b.onArrival)}</div>}
+      {b.onArrival !== null && <div className="pl-[54px] font-mono text-[9px] text-ink-faint">on arrival {pctText(b.onArrival)}</div>}
 
       {/* where it is and what is happening there */}
       <div className="mt-1.5 rounded border border-white/[0.06] bg-white/[0.03] px-2 py-1.5" data-testid="qcard-now">
@@ -188,7 +188,7 @@ export function QCardBody({ card, oem, onClose, cardsStatus, owner }: {
           <span className="min-w-0 truncate text-[10px] text-ink-faint">{card.now.place ? `· ${card.now.place}` : ''}</span>
         </div>
         <div className="mt-1 flex items-center gap-1.5">
-          <Meter value={card.now.progress} label="Current station progress" />
+          <Meter value={card.now.progress} label="Current step progress" />
           <span className="shrink-0 font-mono text-[9px] text-ink-dim">
             {card.now.progress !== null ? `${Math.round(card.now.progress)}%` : DASH} · ends {clock(card.now.eta)}
           </span>
@@ -215,7 +215,7 @@ export function QCardBody({ card, oem, onClose, cardsStatus, owner }: {
             {card.steps.items.map((s) => <StepRow key={s.key} s={s} />)}
           </ol>
         ) : (
-          <div className="text-[10px] text-ink-faint" data-testid="qcard-no-steps">{card.steps.published ? `${DASH} no stations on the plan` : stepsNote}</div>
+          <div className="text-[10px] text-ink-faint" data-testid="qcard-no-steps">{card.steps.published ? `${DASH} no steps on the plan` : stepsNote}</div>
         )}
         {card.steps.earlierHidden && <div className="mt-0.5 text-[9px] text-ink-faint">Earlier steps: see the full trail.</div>}
       </Section>
@@ -230,14 +230,14 @@ export function QCardBody({ card, oem, onClose, cardsStatus, owner }: {
                   className="rounded border px-1.5 py-[1px] text-[10px]"
                   style={n.state === 'done' ? { borderColor: 'rgba(52,211,153,0.4)', color: OK }
                     : n.state === 'active' ? { borderColor: TEAL, color: '#E7EAF0' }
-                    : n.state === 'dropped' || n.state === 'deferred' ? { borderColor: 'rgba(255,255,255,0.12)', color: '#7B818D' }
-                    : { borderColor: 'rgba(255,255,255,0.2)', color: '#A8AEBB' }}>
+                    : n.state === 'dropped' || n.state === 'deferred' ? { borderColor: 'rgba(255,255,255,0.12)', color: '#FFFFFF' }
+                    : { borderColor: 'rgba(255,255,255,0.2)', color: '#FFFFFF' }}>
                   {n.state === 'done' ? '✓ ' : n.state === 'active' ? '◐ ' : ''}
                   <span style={{ textDecoration: n.state === 'dropped' ? 'line-through' : undefined }}>{n.label}</span>
-                  <span className="ml-1 font-mono text-[9px] opacity-80">
+                  <span className="ml-1 font-mono text-[9px]">
                     {n.state === 'done' ? clock(n.doneAt) : n.estMin !== null ? `~${n.estMin}m` : ''}
                   </span>
-                  {n.note && <span className="ml-1 text-[9px] opacity-80">({n.note})</span>}
+                  {n.note && <span className="ml-1 text-[9px]">· {n.note}</span>}
                 </li>
               ))}
             </ul>
@@ -258,8 +258,8 @@ export function QCardBody({ card, oem, onClose, cardsStatus, owner }: {
       {/* rule 9 */}
       <div className="mt-2 rounded px-2 py-1 text-[10px]" data-testid="qcard-leave" data-cleared={String(card.leave.cleared)}
         style={card.leave.cleared === true ? { background: 'rgba(52,211,153,0.12)', color: OK }
-          : card.leave.cleared === false ? { background: 'rgba(255,255,255,0.04)', color: '#A8AEBB' }
-          : { background: 'rgba(255,255,255,0.03)', color: '#7B818D' }}>
+          : card.leave.cleared === false ? { background: 'rgba(255,255,255,0.04)', color: '#FFFFFF' }
+          : { background: 'rgba(255,255,255,0.03)', color: '#FFFFFF' }}>
         {card.leave.words}
       </div>
 

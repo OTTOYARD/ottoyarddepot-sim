@@ -154,17 +154,17 @@ export const DepotSVG = forwardRef<SVGSVGElement>((_, ref) => {
       {[0, 1, 2].map((i) => (
         <rect key={`bc${i}`} x={BESS_YARD.x + 5 + i * 15} y={BESS_YARD.y + 8} width={11} height={20} fill="#30343e" stroke="#9E9E9E" strokeWidth={0.3} rx={0.5} />
       ))}
-      <text x={BESS_YARD.x + BESS_YARD.w / 2} y={BESS_YARD.y + 5.5} textAnchor="middle" fontSize={3.2} fill="#9E9E9E" fontWeight="bold">BESS · SWGR</text>
+      <text x={BESS_YARD.x + BESS_YARD.w / 2} y={BESS_YARD.y + 5.5} textAnchor="middle" fontSize={3.2} fill="#ffffff" fontWeight="bold">BESS · SWGR</text>
 
       {/* office + service bays */}
       <rect x={BUILDING.x} y={BUILDING.y} width={BUILDING.w} height={BUILDING.h} fill="#33343c" stroke="#ffffff" strokeWidth={0.4} rx={1} />
       <rect x={BUILDING.x} y={BUILDING.y} width={40} height={BUILDING.h} fill="#3a3b45" opacity={0.7} />
-      <text x={BUILDING.x + 20} y={BUILDING.y + 13} textAnchor="middle" fontSize={3} fill="#ffffff" opacity={0.65}>OPERATIONS</text>
-      <text x={BUILDING.x + 20} y={BUILDING.y + 18} textAnchor="middle" fontSize={2.2} fill="#87CEEB" opacity={0.6}>CONTROL ROOM</text>
+      <text x={BUILDING.x + 20} y={BUILDING.y + 13} textAnchor="middle" fontSize={3} fill="#ffffff">OPERATIONS</text>
+      <text x={BUILDING.x + 20} y={BUILDING.y + 18} textAnchor="middle" fontSize={2.2} fill="#87CEEB">CONTROL ROOM</text>
       {[120, 138].map((x, i) => (
         <g key={`svc${i}`}>
           <rect x={x - 8} y={BUILDING.y + 2} width={16} height={BUILDING.h - 4} fill="none" stroke="#ffffff" strokeWidth={0.3} opacity={0.5} strokeDasharray="1.5,1" />
-          <text x={x} y={BUILDING.y + BUILDING.h / 2 + 1} textAnchor="middle" fontSize={2.6} fill="#ffffff" opacity={0.6}>{`SVC ${i + 1}`}</text>
+          <text x={x} y={BUILDING.y + BUILDING.h / 2 + 1} textAnchor="middle" fontSize={2.6} fill="#ffffff">{`SVC ${i + 1}`}</text>
         </g>
       ))}
 
@@ -173,7 +173,7 @@ export const DepotSVG = forwardRef<SVGSVGElement>((_, ref) => {
       {[168, 186, 204].map((x, i) => (
         <g key={`wb${i}`}>
           <rect x={x - 8} y={WASH.y + 2} width={16} height={WASH.h - 4} fill="none" stroke="#2196F3" strokeWidth={0.3} opacity={0.55} strokeDasharray="1.5,1" />
-          <text x={x} y={WASH.y + WASH.h / 2 + 1} textAnchor="middle" fontSize={2.6} fill="#2196F3" opacity={0.7}>{`W${i + 1}`}</text>
+          <text x={x} y={WASH.y + WASH.h / 2 + 1} textAnchor="middle" fontSize={2.6} fill="#2196F3">{`W${i + 1}`}</text>
         </g>
       ))}
       {/* pull-through arrows out the bay rears */}
@@ -189,8 +189,8 @@ export const DepotSVG = forwardRef<SVGSVGElement>((_, ref) => {
           <line x1={c.cx} y1={c.y + 2} x2={c.cx} y2={c.y + c.h - 2} stroke="#ffffff" strokeWidth={0.3} opacity={0.15} />
         </g>
       ))}
-      <text x={CANOPIES[0].cx} y={CANOPIES[0].y - 2} textAnchor="middle" fontSize={3.6} fill="#C00000" fontWeight="bold" opacity={0.75}>DCFC</text>
-      <text x={(CANOPIES[1].cx + CANOPIES[2].cx) / 2} y={CANOPIES[1].y - 2} textAnchor="middle" fontSize={3.6} fill="#00B4A6" fontWeight="bold" opacity={0.75}>L2 CHARGING</text>
+      <text x={CANOPIES[0].cx} y={CANOPIES[0].y - 2} textAnchor="middle" fontSize={3.6} fill="#C00000" fontWeight="bold">DCFC</text>
+      <text x={(CANOPIES[1].cx + CANOPIES[2].cx) / 2} y={CANOPIES[1].y - 2} textAnchor="middle" fontSize={3.6} fill="#00B4A6" fontWeight="bold">L2 CHARGING</text>
 
       {/* ---- carports over perimeter parking ---- */}
       {PARK_RUNS.filter((r) => r.carport).map((r) => (
@@ -198,14 +198,14 @@ export const DepotSVG = forwardRef<SVGSVGElement>((_, ref) => {
           fill="#1f2a3d" stroke="#3d4f6b" strokeWidth={0.3} opacity={0.65} rx={0.8} />
       ))}
       {/* temp block label */}
-      <text x={TEMP_LANE_X} y={77} textAnchor="middle" fontSize={2.8} fill="#F59E0B" opacity={0.7} fontWeight="bold">TEMP / OVERFLOW</text>
+      <text x={TEMP_LANE_X} y={77} textAnchor="middle" fontSize={2.8} fill="#F59E0B" fontWeight="bold">TEMP / OVERFLOW</text>
 
       {/* ---- gates ---- */}
       <rect x={INGRESS.x - GATE_W / 2} y={206} width={GATE_W} height={4} fill="#00B4A6" opacity={0.35} rx={1} />
-      <text x={INGRESS.x} y={204.5} textAnchor="middle" fontSize={3.5} fill="#00B4A6" fontWeight="bold">INGRESS</text>
+      <text x={INGRESS.x} y={204.5} textAnchor="middle" fontSize={3.5} fill="#00B4A6" fontWeight="bold">ENTER</text>
       <polygon points={`${INGRESS.x},${206.5} ${INGRESS.x - 2},${209} ${INGRESS.x + 2},${209}`} fill="#00B4A6" />
       <rect x={EGRESS.x - GATE_W / 2} y={206} width={GATE_W} height={4} fill="#C00000" opacity={0.35} rx={1} />
-      <text x={EGRESS.x} y={204.5} textAnchor="middle" fontSize={3.5} fill="#C00000" fontWeight="bold">EGRESS</text>
+      <text x={EGRESS.x} y={204.5} textAnchor="middle" fontSize={3.5} fill="#C00000" fontWeight="bold">EXIT</text>
       <polygon points={`${EGRESS.x},${209} ${EGRESS.x - 2},${206.5} ${EGRESS.x + 2},${206.5}`} fill="#C00000" />
 
       {/* ---- live layers (store-driven) ---- */}

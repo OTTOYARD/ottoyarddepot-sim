@@ -4,8 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import { X } from 'lucide-react';
 
 const TYPE_LABELS: Record<string, string> = {
-  dcfc: 'DC Fast Charger',
-  l2: 'Level 2 Charger',
+  dcfc: 'Fast charger (DCFC)',
+  l2: 'Standard charger (L2)',
   wash: 'Wash Bay',
   staging: 'Staging Stall',
 };
@@ -42,23 +42,23 @@ export const StallPopup = ({ svgRef }: Props) => {
       <CardHeader className="p-3 pb-1">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm text-otto-white">{stall.id}</CardTitle>
-          <button onClick={() => selectStall(null)} className="text-otto-gray hover:text-otto-white">
+          <button onClick={() => selectStall(null)} className="text-white hover:text-otto-white">
             <X size={14} />
           </button>
         </div>
       </CardHeader>
       <CardContent className="p-3 pt-1 space-y-1.5">
-        <div className="text-[11px] text-otto-gray">{TYPE_LABELS[stall.type]}</div>
+        <div className="text-[11px] text-white">{TYPE_LABELS[stall.type]}</div>
         <div className="flex items-center gap-1.5">
-          <span className="text-[11px] text-otto-gray">Status:</span>
+          <span className="text-[11px] text-white">Status:</span>
           <Badge variant="outline" className="text-[10px] px-1.5 py-0 capitalize border-otto-gray/30 text-otto-white">
             {stall.status}
           </Badge>
         </div>
-        <div className="text-[11px] text-otto-gray">
-          Vehicle: {stall.vehicleId || '—'}
+        <div className="text-[11px] text-white">
+          Car: {stall.vehicleId || '—'}
         </div>
-        <div className="text-[11px] text-otto-gray">
+        <div className="text-[11px] text-white">
           Position: ({stall.position.x}, {stall.position.y})
         </div>
       </CardContent>

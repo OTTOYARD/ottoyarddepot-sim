@@ -23,7 +23,7 @@ export class SceneErrorBoundary extends Component<Props, State> {
     if (this.state.failed) {
       return (
         <div role="alert" className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-canvas text-ink-dim text-sm">
-          <span>3D rendering is unavailable in this browser.</span>
+          <span>The 3D view is not available in this browser.</span>
           <button type="button" className="rounded bg-brand-red px-3 py-2 text-white" onClick={this.props.onReturnTo2D}>
             {this.props.actionLabel ?? 'Return to 2D'}
           </button>

@@ -258,19 +258,19 @@ export function needState(status: string | null | undefined): QNeed["state"] {
 const verbOf = (r: ActivityFeedRow): string => (typeof r.rationale?.verb === "string" ? (r.rationale.verb as string) : "");
 const HOLD_WHY: Record<string, string> = {
   hold_in_queue: "service bays busy",
-  hold_no_space: "no free space",
+  hold_no_space: "no free stall",
   hold_no_bay: "no free bay",
-  hold_in_staging: "kept parked until it can leave",
+  hold_in_staging: "parked until it can leave",
 };
-const ARM_WORD: Record<string, string> = { mate: "plugging in", demate: "unplugging", charging: "plugged in" };
+const ARM_WORD: Record<string, string> = { mate: "connects", demate: "disconnects", charging: "connected" };
 /** Why a booking was replaced or let go (ottoq_stall_bookings.release_reason), in words. Unknown reasons read as given. */
 const RELEASE_WORD: Record<string, string> = {
   superseded_by_enacted_decision: "replaced by a newer decision",
   superseded_by_enacted_same_purpose: "replaced",
   superseded_by_enacted_other_charger: "moved to another charger",
-  window_elapsed: "its window passed unused",
-  replanned_no_window: "re-planned: no window left",
-  replanned_beyond_horizon: "re-planned for later",
+  window_elapsed: "time window not used",
+  replanned_no_window: "no time window in the new plan",
+  replanned_beyond_horizon: "moved to a later time",
   no_show_grace_elapsed: "the car did not arrive in time",
   charge_session_faulted: "charger fault",
 };
@@ -399,7 +399,7 @@ export function buildQCard(inp: QCardInputs): QCard {
   const needRecs: QNeedRecord[] | null = Array.isArray(work?.needs) ? work!.needs! : Array.isArray(visit?.atoms) ? visit!.atoms : null;
   const needs: QNeed[] = (needRecs ?? []).filter((n) => n && n.svc).map((n) => {
     const st = needState(n.status);
-    const note = n.awaiting_triage ? "waiting on the quick check"
+    const note = n.awaiting_triage ? "waits for the quick check"
       : n.performed_by === "charger_sensors" ? "by the charger's sensors"
       : n.triage_verdict ? `quick check: ${n.triage_verdict}`
       : st === "deferred" ? "moved to next visit" : null;
@@ -430,12 +430,12 @@ export function buildQCard(inp: QCardInputs): QCard {
   const last = visitRows[visitRows.length - 1];
   const waiting = last && last.standing !== false && (last.outcome === "noop_no_candidate" || Object.prototype.hasOwnProperty.call(HOLD_WHY, verbOf(last)));
   if (holdBooking) {
-    hold = { words: "Temporary hold until OTTO-Q re-orchestrates", place: holdBooking.stall_code ? placeName(holdBooking.stall_code, holdBooking.stall_kind ?? null) : null, until: holdBooking.ends_at ?? null };
+    hold = { words: "Staging hold until OTTO-Q makes a new plan", place: holdBooking.stall_code ? placeName(holdBooking.stall_code, holdBooking.stall_kind ?? null) : null, until: holdBooking.ends_at ?? null };
   } else if (waiting) {
-    const why = HOLD_WHY[verbOf(last)] ?? "no compatible stall free";
-    hold = { words: `Holding: ${why}`, place: herePlace, until: null };
+    const why = HOLD_WHY[verbOf(last)] ?? "no free stall of the right type";
+    hold = { words: `Waiting: ${why}`, place: herePlace, until: null };
   } else if ((stateCode === "staged_awaiting_service" || stateCode === "emergency_staged") && !cur && !drivingNow) {
-    hold = { words: "In temporary staging, waiting for its next assignment", place: herePlace, until: null };
+    hold = { words: "In temporary staging until its next step", place: herePlace, until: null };
   }
 
   // ── plan changes, from the car's own decisions ──
@@ -448,7 +448,7 @@ export function buildQCard(inp: QCardInputs): QCard {
       changes.push({ at: r.occurred_at, words: `Moved to ${placeName(r.target) || "another bay"}` });
     } else if (r.action === "itinerary_amended") {
       const s = num(r.rationale?.shift_s);
-      changes.push({ at: r.occurred_at, words: s === null ? "Plan re-timed" : `Plan re-timed ${Math.round(s / 60)} min` });
+      changes.push({ at: r.occurred_at, words: s === null ? "Plan times changed" : `Plan times changed by ${Math.round(s / 60)} min` });
     }
   }
   // 1.5: the bookings themselves, which a feed row may not have named (oldest first, like the rows above)
@@ -456,7 +456,7 @@ export function buildQCard(inp: QCardInputs): QCard {
     const where = c.stall_code ? placeName(c.stall_code, c.stall_kind ?? null) : "a stall";
     const window = c.starts_at && c.ends_at ? ` (was ${clock(c.starts_at)}–${clock(c.ends_at)})` : "";
     const why = releaseWords(c.release_reason);
-    const verb = c.state === "superseded" ? "Replaced" : "Let go";
+    const verb = c.state === "superseded" ? "Replaced" : "Cancelled";
     // "Replaced: …, replaced" says nothing twice: a plain replacement carries no reason
     changes.push({ at: null, words: `${verb}: ${where}${window}${why.toLowerCase() === verb.toLowerCase() ? "" : `, ${why}`}` });
   }
@@ -468,16 +468,16 @@ export function buildQCard(inp: QCardInputs): QCard {
   const batteryOk = now !== null && target !== null ? now >= target : null;
   let leave: QCard["leave"];
   if (batteryOk === null || !needsKnown) {
-    const parts = [batteryOk === null ? "battery or target not published" : null, !needsKnown ? "services not published" : null].filter(Boolean);
-    leave = { cleared: null, words: `Leave check: ${DASH} (${parts.join(", ")})` };
+    const parts = [batteryOk === null ? "battery or target" : null, !needsKnown ? "services" : null].filter(Boolean);
+    leave = { cleared: null, words: `Leave check: ${DASH}. Not published: ${parts.join(", ")}.` };
   } else if (batteryOk && open.length === 0) {
-    leave = { cleared: true, words: "Cleared to leave: battery at target, every service done" };
+    leave = { cleared: true, words: "Ready to leave. Battery at target. All services done." };
   } else {
     const parts = [
-      batteryOk ? null : `battery ${pctText(now)} of ${pctText(target)}`,
-      open.length ? `${open.length} ${open.length === 1 ? "service" : "services"} open (${open.map((n) => n.label.toLowerCase()).join(", ")})` : null,
+      batteryOk ? null : `Battery ${pctText(now)} of ${pctText(target)}`,
+      open.length ? `${open.length} ${open.length === 1 ? "service" : "services"} open: ${open.map((n) => n.label.toLowerCase()).join(", ")}` : null,
     ].filter(Boolean);
-    leave = { cleared: false, words: `Not cleared to leave: ${parts.join(", ")}` };
+    leave = { cleared: false, words: `Not ready to leave. ${parts.join(". ")}.` };
   }
 
   return {

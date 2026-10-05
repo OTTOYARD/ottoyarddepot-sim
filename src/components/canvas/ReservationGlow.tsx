@@ -155,7 +155,7 @@ export const ReservationGlow = () => {
                 <text x={0} y={-0.3} textAnchor="middle" fontSize={2.7} fill="#ffffff" fontWeight="bold" letterSpacing="0.15">
                   HELD
                 </text>
-                <title>{`Held empty for inbound ${g.r.av_id ?? 'AV'}`}</title>
+                <title>{`Booked and kept empty for ${g.r.av_id ? `arriving car ${g.r.av_id}` : 'an arriving car'}`}</title>
               </g>
             )}
           </g>

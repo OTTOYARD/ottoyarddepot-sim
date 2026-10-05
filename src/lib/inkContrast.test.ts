@@ -59,18 +59,21 @@ describe('ink contrast', () => {
     });
   }
 
-  // The three levels must stay a HIERARCHY, not three shades of the same thing.
-  // Brightening faint to clear AA is only correct if dim and DEFAULT stay above
-  // it — otherwise the fix flattens the panel into one tone.
-  it('keeps DEFAULT brighter than dim, and dim brighter than faint', () => {
-    const d = contrast(ink.DEFAULT, canvas.panel);
-    const m = contrast(ink.dim, canvas.panel);
-    const f = contrast(ink.faint, canvas.panel);
-    expect(d).toBeGreaterThan(m);
-    expect(m).toBeGreaterThan(f);
-    // and each step is a real step, not a rounding difference
-    expect(d - m).toBeGreaterThan(1);
-    expect(m - f).toBeGreaterThan(1);
+  // Chase, 2026-10-05: "make sure not to use grey text on the black background for
+  // the twin/simulation text in the app. That is very hard to read. Needs to be
+  // white against the dark background." The three levels were a grey hierarchy
+  // (dim 8.4:1, faint 4.8:1); they are now all white, and hierarchy comes from
+  // size, weight and case instead.
+  it('makes every ink level white', () => {
+    for (const [name, value] of Object.entries(ink)) {
+      expect(value.toUpperCase(), `ink.${name}`).toBe('#FFFFFF');
+    }
+  });
+
+  // The grey hierarchy this replaces, named so a `git log -S` finds it.
+  it('the 2026-09-22 grey levels are not white', () => {
+    expect(contrast('#7B818D', canvas.panel)).toBeLessThan(contrast('#FFFFFF', canvas.panel));   // old ink.faint: 4.8:1
+    expect(contrast('#A8AEBB', canvas.panel)).toBeLessThan(contrast('#FFFFFF', canvas.panel));   // old ink.dim: 8.4:1
   });
 
   // The regression itself, named so a `git log -S` finds it.

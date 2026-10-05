@@ -45,11 +45,11 @@ describe("why a read failed", () => {
 
   it("says each state in words, and says nothing when the board answered", () => {
     expect(boardStateText("not_enabled", null, false)).toBe(NOT_ENABLED_TEXT);
-    expect(NOT_ENABLED_TEXT).toBe("Owner agents are built but not switched on yet (otto-q-core 0607/0608).");
+    expect(NOT_ENABLED_TEXT).toBe("Owner agents are built but not on yet.");
     expect(boardStateText("not_granted", null, false)).toBe(NOT_GRANTED_TEXT);
-    expect(NOT_GRANTED_TEXT).toMatch(/not granted/);
+    expect(NOT_GRANTED_TEXT).toMatch(/cannot read them/);
     expect(boardStateText("error", "boom", false)).toBe("Could not read what owners' agents set: boom.");
-    expect(boardStateText("error", "boom", true)).toBe("Could not read what owners' agents set: boom. Showing what was read last.");
+    expect(boardStateText("error", "boom", true)).toBe("Could not read what owners' agents set: boom. This shows the last read.");
     expect(boardStateText("refused", "No such depot.", false)).toBe("Owner agents: No such depot.");
     expect(boardStateText("ok", null, true)).toBeNull();
     expect(boardStateText("idle", null, false)).toBeNull();
@@ -78,7 +78,7 @@ describe("one car's settings, as the Q card shows them", () => {
     const v = carOwnerView(live, car("Tesla-RT-003"), RUN)!;
     const [limit, , hold] = v.chips;
     expect(limit.title).toBe(`Set by ${KEY} at 11:11 PM CT: this car charges to at most 90% instead of 100%, and OTTO-Q stops its charge there. Confirmation OQ-392E-D895.`);
-    expect(hold.title).toMatch(/before 9:00 AM on Sun Sep 27 sim time\. A hold only delays a departure; it never moves the car\. Confirmation OQ-85AB-4811\.$/);
+    expect(hold.title).toMatch(/before 9:00 AM on Sun Sep 27 sim time\. A hold only delays a departure\. It never moves the car\. Confirmation OQ-85AB-4811\.$/);
   });
 
   it("carries 'not applied yet' and the reset rule from the board", () => {

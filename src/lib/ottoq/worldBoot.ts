@@ -33,8 +33,11 @@ import { twin, NASHVILLE_DEPOT, type CatalogVar, type Scenario, type TwinEventsW
 import { packChannels } from "./channels";
 import { auditCoverage, type CoverageReport } from "./coverage";
 import {
+  BUNDLE_STATUS_LABEL,
   CHANNEL_IDS,
   CHANNEL_CONTRACT_VERSION,
+  CHANNEL_LABELS,
+  CHANNEL_STATUS_LABEL,
   REQUIRED_CHANNELS,
   type ChannelBundle,
   type ChannelId,
@@ -161,19 +164,22 @@ export interface BootOptions {
 const CHANNEL_STAGE_LABEL: Record<BootStageId, string> = {
   geometry: "Depot geometry",
   registry: "Variability registry",
-  scenarios: "Scenario deck",
-  run_context: "Run depot binding",
+  scenarios: "Scenario list",
+  run_context: "Run depot",
   first_frame: "First world frame",
-  events_window: "Event signal window",
-  fleet_condition: "Per-vehicle condition",
+  events_window: "Events window",
+  fleet_condition: "Car condition",
   labor: "Staffing & lane limits",
   offsite: "Off-site trips",
   wear: "Wear & service due",
-  variability_profile: "Run variability profile",
+  variability_profile: "Variability profile",
   channels: "Channel bundle",
 };
 
 const defaultSleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+/** "1 car" / "3 cars": a count and its noun, for the text a viewer reads. */
+const plural = (n: number, one: string): string => `${n} ${n === 1 ? one : `${one}s`}`;
 
 /** Run one boot stage, timing it and converting any throw into a report row. */
 async function stage<T>(
@@ -241,13 +247,13 @@ export async function bootWorld(opts: BootOptions): Promise<BootedWorld> {
   const context = await stage("run_context", true, now, async () => {
     const c = await transport.runContext(simRunId);
     if (c?.error) throw new Error(String(c.error));
-    if (!c?.depot_id) throw new Error('run context has no depot_id');
+    if (!c?.depot_id) throw new Error("The run context has no depot_id.");
     resolvedDepotId = c.depot_id;
     runDepotKnown = true;
     return {
       value: c, count: c.stall_count,
-      detail: `${c.depot_name ?? c.depot_id} · ${c.stall_count} stalls · ${c.fleet_count} vehicles`
-        + (c.depot_id !== depotId ? ` (overrides requested depot ${depotId})` : ""),
+      detail: `${c.depot_name ?? c.depot_id} · ${plural(c.stall_count, "stall")} · ${plural(c.fleet_count, "car")}`
+        + (c.depot_id !== depotId ? ` · used instead of depot ${depotId}` : ""),
     };
   });
   stages.push(context.report);
@@ -257,14 +263,14 @@ export async function bootWorld(opts: BootOptions): Promise<BootedWorld> {
     stage("geometry", true, now, async () => {
       // A default depot belongs only to an idle cockpit. Guessing a building
       // for a live run can draw a coherent scene around the wrong fleet.
-      if (!runDepotKnown) throw new Error('run depot is unknown; refusing default layout');
+      if (!runDepotKnown) throw new Error("The run depot is unknown. The cockpit does not load a default layout.");
       const l = await transport.layout(resolvedDepotId);
       const n = l?.stalls?.length ?? 0;
       return {
         value: l, count: n, empty: n === 0,
         detail: n === 0
-          ? "layout returned no stalls — stall inventory will be partial"
-          : `${n} stalls · ${l.structures?.length ?? 0} structures`,
+          ? "The layout has no stalls. The stall inventory will be partial."
+          : `${plural(n, "stall")} · ${plural(l.structures?.length ?? 0, "structure")}`,
       };
     }),
     stage("registry", true, now, async () => {
@@ -272,13 +278,13 @@ export async function bootWorld(opts: BootOptions): Promise<BootedWorld> {
       const n = catalog?.length ?? 0;
       return {
         value: catalog ?? [], count: n, empty: n === 0,
-        detail: n === 0 ? "variability catalog is empty" : `${n} registered variables`,
+        detail: n === 0 ? "The variability catalog is empty." : plural(n, "registered variable"),
       };
     }),
     stage("scenarios", false, now, async () => {
       const { scenarios } = await transport.scenarios();
       const n = scenarios?.length ?? 0;
-      return { value: scenarios ?? [], count: n, empty: n === 0, detail: `${n} scenarios available` };
+      return { value: scenarios ?? [], count: n, empty: n === 0, detail: `${plural(n, "scenario")} available` };
     }),
   ]);
   stages.push(geometry.report, registry.report, scenarioDeck.report);
@@ -301,20 +307,20 @@ export async function bootWorld(opts: BootOptions): Promise<BootedWorld> {
             return {
               value: snap,
               count: Number(snap.run.tick_count ?? 0),
-              detail: `tick ${snap.run.tick_count} · ${fleet} vehicles · attempt ${attempt}`,
+              detail: `tick ${snap.run.tick_count} · ${plural(fleet, "car")} · attempt ${attempt}`,
             };
           }
           snapshot = snap; // keep the last frame even if it is pre-roll
-          lastErr = `tick ${snap.run.tick_count ?? 0} with no fleet yet`;
+          lastErr = `Tick ${snap.run.tick_count ?? 0} has no fleet yet.`;
         } else {
-          lastErr = "snapshot returned no run";
+          lastErr = "The snapshot has no run.";
         }
       } catch (e) {
         lastErr = e instanceof Error ? e.message : String(e);
       }
       if (attempt < frameAttempts) await sleep(frameDelayMs);
     }
-    throw new Error(`no usable frame after ${frameAttempts} attempts: ${lastErr}`);
+    throw new Error(`No usable frame after ${plural(frameAttempts, "attempt")}. Last error: ${lastErr}`);
   });
   stages.push(frame.report);
 
@@ -325,8 +331,8 @@ export async function bootWorld(opts: BootOptions): Promise<BootedWorld> {
     return {
       value: knobs, count: n, empty: n === 0,
       detail: n === 0
-        ? "no profile rows — run is on the calibrated baseline"
-        : `${n} knob group(s) shaping this run`,
+        ? "No profile rows. The run uses the calibrated baseline."
+        : `${plural(n, "knob group")} ${n === 1 ? "shapes" : "shape"} this run`,
     };
   });
   stages.push(profile.report);
@@ -346,14 +352,14 @@ export async function bootWorld(opts: BootOptions): Promise<BootedWorld> {
     // is about different vehicles. Fail the stage so it shows up in the report.
     if (c.drawn_for_this_run === false) {
       throw new Error(
-        `fleet condition was drawn for ${(c.drawn_run_ids ?? []).join(", ") || "another run"}, not this run`,
+        `The fleet condition is for ${(c.drawn_run_ids ?? []).join(", ") || "another run"}, not this run.`,
       );
     }
     return {
       value: c, count: c.with_condition, empty: c.with_condition === 0,
       detail: c.with_condition === 0
-        ? `no condition drawn for any of ${c.fleet_size} vehicles`
-        : `${c.with_condition}/${c.fleet_size} vehicles · SoH spread ${c.spread?.battery_soh_pct?.spread ?? "?"} pts`,
+        ? `No car has condition values. Fleet: ${plural(c.fleet_size, "car")}.`
+        : `${c.with_condition} of ${plural(c.fleet_size, "car")} · SoH spread ${c.spread?.battery_soh_pct?.spread ?? "?"} pts`,
     };
   });
   stages.push(condition.report);
@@ -364,11 +370,11 @@ export async function bootWorld(opts: BootOptions): Promise<BootedWorld> {
     if (l?.error) throw new Error(String(l.error));
     laborWindow = l;
     const caps = l.lanes?.wash_cap === null
-      ? "no lane contended yet — caps unstamped"
-      : `wash ${l.lanes.wash_cap} · service ${l.lanes.service_cap} · deploy ${l.lanes.deploy_cap}`;
+      ? "No car has waited for a lane, so no lane caps yet"
+      : `wash ${l.lanes.wash_cap} · service ${l.lanes.service_cap} · dispatch ${l.lanes.deploy_cap}`;
     return {
       value: l, count: l.overflow?.events ?? 0,
-      detail: `${caps} · ${l.overflow?.events ?? 0} overflow event(s), ${l.backlog?.open ?? 0} open backlog`,
+      detail: `${caps} · ${plural(l.overflow?.events ?? 0, "overflow event")} · ${l.backlog?.open ?? 0} open in backlog`,
     };
   });
   stages.push(laborStage.report);
@@ -383,9 +389,9 @@ export async function bootWorld(opts: BootOptions): Promise<BootedWorld> {
       value: o, count: o.dispatches?.total ?? 0,
       empty: (o.dispatches?.total ?? 0) === 0,
       detail: (o.dispatches?.completed ?? 0) === 0
-        ? `${o.dispatches?.active ?? 0} out now, none returned yet`
-        : `${o.dispatches.completed} trips · median ${o.duration.actual_min_p50} min`
-          + (ratio != null ? ` (${ratio}x plan)` : ""),
+        ? `${o.dispatches?.active ?? 0} out now · none back yet`
+        : `${plural(o.dispatches.completed, "trip")} · median ${o.duration.actual_min_p50} min`
+          + (ratio != null ? ` · ${ratio}x plan` : ""),
     };
   });
   stages.push(offsiteStage.report);
@@ -397,8 +403,8 @@ export async function bootWorld(opts: BootOptions): Promise<BootedWorld> {
     wearWindow = wv;
     return {
       value: wv, count: wv.fleet_size, empty: wv.fleet_size === 0,
-      detail: `${wv.fleet_size} vehicles · ${wv.due?.pm_overdue ?? 0} PM overdue · `
-        + `${wv.dtc?.open_total ?? 0} open DTC`,
+      detail: `${plural(wv.fleet_size, "car")} · ${wv.due?.pm_overdue ?? 0} PM overdue · `
+        + plural(wv.dtc?.open_total ?? 0, "open DTC"),
     };
   });
   stages.push(wearStage.report);
@@ -412,8 +418,8 @@ export async function bootWorld(opts: BootOptions): Promise<BootedWorld> {
     return {
       value: w, count: n, empty: n === 0,
       detail: n === 0
-        ? "run has logged no signal events yet"
-        : `${n} signal events · ${w.reliability.charge_sessions} charge session(s) · ${w.reliability.arrival_delays} delay(s)`,
+        ? "The run has no signal events yet."
+        : `${plural(n, "signal event")} · ${plural(w.reliability.charge_sessions, "charge session")} · ${plural(w.reliability.arrival_delays, "delay")}`,
     };
   });
   stages.push(events.report);
@@ -421,14 +427,14 @@ export async function bootWorld(opts: BootOptions): Promise<BootedWorld> {
   // ── channels: pack the frame and grade it ────────────────────────────────
   let bundle: ChannelBundle | null = null;
   const packed = await stage("channels", true, now, async () => {
-    if (!snapshot) throw new Error("cannot pack channels without a frame");
+    if (!snapshot) throw new Error("No frame to build the channels from.");
     const b = packChannels(snapshot, geometry.value, now(), eventsWindow, fleetCondition, laborWindow, offsiteWindow, wearWindow, context.value);
     bundle = b;
     const ok = CHANNEL_IDS.filter((c) => b.channels[c].integrity.status === "ok").length;
     return {
       value: b, count: ok,
       empty: b.status === "not_ready",
-      detail: `${ok}/${CHANNEL_IDS.length} channels ok · bundle ${b.status}`,
+      detail: `${ok}/${CHANNEL_IDS.length} channels OK · bundle ${BUNDLE_STATUS_LABEL[b.status]}`,
     };
   });
   stages.push(packed.report);
@@ -451,17 +457,19 @@ export async function bootWorld(opts: BootOptions): Promise<BootedWorld> {
         required: REQUIRED_CHANNELS.includes(id),
         status: "missing" as ChannelStatus,
         completeness: 0,
-        missing: ["<channel never packed>"],
+        missing: ["<channel not built>"],
         notes: ["boot did not reach the channel stage"],
       }));
 
   const blocked_by: string[] = [];
   for (const s of stages) {
-    if (s.required && s.status !== "ok") blocked_by.push(`${s.label}: ${s.status} — ${s.detail}`);
+    if (s.required && s.status !== "ok") blocked_by.push(`${s.label}: ${s.status} · ${s.detail}`);
   }
   for (const c of channels) {
     if (c.required && c.status !== "ok") {
-      blocked_by.push(`${c.channel}: ${c.status} (missing ${c.missing.join(", ") || "—"})`);
+      blocked_by.push(
+        `${CHANNEL_LABELS[c.channel]}: ${CHANNEL_STATUS_LABEL[c.status]} · missing: ${c.missing.join(", ") || "—"}`,
+      );
     }
   }
 
@@ -502,7 +510,7 @@ export async function bootWorld(opts: BootOptions): Promise<BootedWorld> {
 export function bootHeadline(r: WorldBootReport): string {
   if (r.ready) {
     const ok = r.channels.filter((c) => c.status === "ok").length;
-    return `World loaded · ${ok}/${r.channels.length} channels ok · ${r.duration_ms}ms`;
+    return `World loaded · ${ok}/${r.channels.length} channels OK · ${r.duration_ms} ms`;
   }
-  return `World INCOMPLETE · ${r.blocked_by.length} blocker(s) · ${r.blocked_by[0] ?? ""}`;
+  return `World INCOMPLETE · ${plural(r.blocked_by.length, "blocker")} · ${r.blocked_by[0] ?? ""}`;
 }

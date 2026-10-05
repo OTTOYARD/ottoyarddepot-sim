@@ -78,6 +78,13 @@ export type ChannelStatus =
   /** the underlying source produced nothing at all this frame */
   | "missing";
 
+/** The word a viewer reads for each channel grade. The keys stay the data. */
+export const CHANNEL_STATUS_LABEL: Record<ChannelStatus, string> = {
+  ok: "OK",
+  degraded: "partial",
+  missing: "no data",
+};
+
 export interface ChannelIntegrity {
   status: ChannelStatus;
   /** required field paths that resolved to a non-null value */
@@ -777,6 +784,13 @@ export interface EnvironmentPayload {
 // ── bundle ──────────────────────────────────────────────────────────────────
 
 export type ChannelBundleStatus = "ready" | "degraded" | "not_ready";
+
+/** The word a viewer reads for each bundle grade. The keys stay the data. */
+export const BUNDLE_STATUS_LABEL: Record<ChannelBundleStatus, string> = {
+  ready: "ready",
+  degraded: "partial",
+  not_ready: "not ready",
+};
 
 export interface ChannelBundle {
   contract_version: string;

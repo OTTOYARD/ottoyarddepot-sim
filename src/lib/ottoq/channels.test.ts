@@ -160,7 +160,7 @@ describe("packFleetTelemetry", () => {
     expect(env.payload.condition_provenance?.drawn_for_this_run).toBe(true);
     // the second vehicle drew none — that is per-vehicle absence, not uniformity
     expect(env.payload.vehicles[1].condition).toBeNull();
-    expect(env.integrity.notes.join(" ")).toContain("carry no drawn condition");
+    expect(env.integrity.notes.join(" ")).toContain("No condition values for 1 of 2 cars.");
   });
 
   it("says so when the fleet is wearing another run's condition", () => {
@@ -182,7 +182,7 @@ describe("packFleetTelemetry", () => {
     expect(env.payload.soc.reporting).toBe(1);
     expect(env.payload.soc.missing).toBe(1);
     expect(env.payload.soc.min).toBe(41.5);
-    expect(env.integrity.notes.join(" ")).toContain("no SoC");
+    expect(env.integrity.notes.join(" ")).toContain("No SoC from 1 car.");
   });
 
   it("reports missing when the fleet roster is empty", () => {
@@ -278,7 +278,7 @@ describe("packEnergyGrid", () => {
     (snap.energy as Record<string, number>).building_kw = 400;
     const env = packEnergyGrid(snap, meta);
     expect(env.payload.site.balance_residual_kw).toBe(-250);
-    expect(env.integrity.notes.join(" ")).toContain("does not close");
+    expect(env.integrity.notes.join(" ")).toContain("Site power supply and draw do not balance. The difference is -250 kW.");
   });
 
   it("computes DR headroom and flags a capless DR call", () => {
@@ -291,7 +291,7 @@ describe("packEnergyGrid", () => {
     Object.assign(snap2.grid as Record<string, unknown>, { dr_active: true, dr_cap_kw: null });
     const env2 = packEnergyGrid(snap2, meta);
     expect(env2.payload.demand_response.headroom_kw).toBeNull();
-    expect(env2.integrity.notes.join(" ")).toContain("cannot shed to a target");
+    expect(env2.integrity.notes.join(" ")).toContain("There is no target to shed load to.");
   });
 
   it("takes staleness from the OLDEST constituent observation", () => {
@@ -302,7 +302,7 @@ describe("packEnergyGrid", () => {
   it("reports missing when neither energy nor grid resolved", () => {
     const env = packEnergyGrid(snapshot({ energy: null, grid: null, bess: null }), meta);
     expect(env.integrity.status).toBe("missing");
-    expect(env.integrity.notes.join(" ")).toContain("no site_energy_snapshots");
+    expect(env.integrity.notes.join(" ")).toContain("No site_energy_snapshots row");
   });
 });
 

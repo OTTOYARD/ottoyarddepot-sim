@@ -47,7 +47,7 @@ export function PhoneStartDialog({ open, onOpenChange, ctrl, onOpenControl }: {
         <AlertDialogHeader>
           <AlertDialogTitle>Start a simulation run</AlertDialogTitle>
           <AlertDialogDescription className="text-ink-dim">
-            Starting a new run ends and resets the current one.
+            A new run stops and resets the current run.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <div className="grid grid-cols-2 gap-1.5" role="radiogroup" aria-label="Scenario">
@@ -66,7 +66,7 @@ export function PhoneStartDialog({ open, onOpenChange, ctrl, onOpenControl }: {
         </div>
         <button type="button" onClick={() => { onOpenChange(false); onOpenControl(); }} disabled={starting}
           className="self-start text-[12px] text-ink-dim underline underline-offset-2 active:text-ink disabled:opacity-50">
-          More options in Control
+          Open Control for more options
         </button>
         <AlertDialogFooter>
           <AlertDialogCancel className="bg-canvas-elev border-white/10 text-ink" disabled={starting}>Cancel</AlertDialogCancel>

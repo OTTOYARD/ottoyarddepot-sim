@@ -18,7 +18,7 @@ describe('SceneErrorBoundary', () => {
           <UnavailableGraphics />
         </SceneErrorBoundary>,
       );
-      expect(screen.getByRole('alert').textContent).toContain('3D rendering is unavailable');
+      expect(screen.getByRole('alert').textContent).toContain('The 3D view is not available');
       fireEvent.click(screen.getByRole('button', { name: 'Return to 2D' }));
       expect(returnTo2D).toHaveBeenCalledOnce();
     } finally {

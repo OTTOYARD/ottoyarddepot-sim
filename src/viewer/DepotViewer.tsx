@@ -147,12 +147,12 @@ export default function DepotViewer() {
             </button>
           ))}
         </div>
-        <button type="button" onClick={() => setSpin((s) => !s)} aria-pressed={spin} title={spin ? "Stop turning" : "Turn the view slowly"}
+        <button type="button" onClick={() => setSpin((s) => !s)} aria-pressed={spin} title={spin ? "Stop the spin" : "Turn the view slowly"}
           className={`${BTN} ${spin ? "!border-white/40 !text-white" : ""}`}>
           {spin ? <Pause aria-hidden size={12} /> : <Play aria-hidden size={12} />}<span className="ml-1">Spin</span>
         </button>
         {document.fullscreenEnabled && (
-          <button type="button" onClick={toggleFull} title={full ? "Leave full screen" : "Full screen"} aria-label={full ? "Leave full screen" : "Full screen"} className={`${BTN} ml-auto`}>
+          <button type="button" onClick={toggleFull} title={full ? "Leave full screen" : "Enter full screen"} aria-label={full ? "Leave full screen" : "Enter full screen"} className={`${BTN} ml-auto`}>
             {full ? <Minimize2 aria-hidden size={12} /> : <Maximize2 aria-hidden size={12} />}
           </button>
         )}

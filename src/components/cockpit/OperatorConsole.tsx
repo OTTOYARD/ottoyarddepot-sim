@@ -199,7 +199,7 @@ function VarControl({ v, knobs, expanded, onToggleExpand, commit, verdict }: {
       <span className="text-[12px] text-ink">{v.label}</span>
       {dirty && <span className="w-1.5 h-1.5 rounded-full bg-brand-red" />}
       <TooltipProvider><Tooltip>
-        <TooltipTrigger asChild><Info size={11} className="text-ink-faint/60 hover:text-ink-dim" /></TooltipTrigger>
+        <TooltipTrigger asChild><Info size={11} className="text-ink-faint" /></TooltipTrigger>
         <TooltipContent className="max-w-[240px] bg-canvas-elev border-white/10 text-ink text-[11px]">{v.definition}</TooltipContent>
       </Tooltip></TooltipProvider>
       {/*
@@ -214,19 +214,19 @@ function VarControl({ v, knobs, expanded, onToggleExpand, commit, verdict }: {
             <span className="ml-auto text-[9px] text-brand-red/80 border border-brand-red/30 rounded px-1 cursor-default">no effect</span>
           </TooltipTrigger>
           <TooltipContent className="max-w-[260px] bg-canvas-elev border-white/10 text-ink text-[11px]">
-            Registered, but nothing on any OTTO-Q channel moves when this changes.
-            Adjusting it will not alter what the orchestrator sees.
+            This variable is registered, but no OTTO-Q channel changes when you move it.
+            So it does not change what OTTO-Q sees.
           </TooltipContent>
         </Tooltip></TooltipProvider>
       )}
       {verdict === "dark" && (
         <TooltipProvider><Tooltip>
           <TooltipTrigger asChild>
-            <span className="ml-auto text-[9px] text-ink-faint border border-white/10 rounded px-1 cursor-default">unlit</span>
+            <span className="ml-auto text-[9px] text-ink-faint border border-white/10 rounded px-1 cursor-default">no data</span>
           </TooltipTrigger>
           <TooltipContent className="max-w-[260px] bg-canvas-elev border-white/10 text-ink text-[11px]">
-            This variable has a channel field, but it has not resolved on the current
-            frame — usually because the run has not produced that signal yet.
+            This variable has a channel field, but the current frame has no value for it.
+            Usually, the run has not made that signal yet.
           </TooltipContent>
         </Tooltip></TooltipProvider>
       )}
@@ -391,7 +391,7 @@ export const OperatorConsole = () => {
       await stopAndReset(runId);
       ctrl.pause();
       useSimulationStore.getState().setActiveTab("history");
-      toast.success("Run stopped — depot reset", { description: "Its Black Box is on the Runs tab." });
+      toast.success("Run stopped. The depot is empty.", { description: "Its Black Box is on the Runs tab." });
     } catch (e: unknown) { toast.error("Stop failed", { description: e instanceof Error ? e.message : String(e) }); }
     finally { setBusy(null); }
   };
@@ -406,13 +406,13 @@ export const OperatorConsole = () => {
       // ON merges chaos over the scenario instead of replacing it; OFF returns to the baseline.
       if (on) await twin.setVariability(runId, { merge: { _global: CHAOS_GLOBAL } });
       else await twin.setVariability(runId, { template: baselineTemplate });
-      toast.success(on ? "Chaos Mode — variance ×2.5, event rates ×3, on top of the scenario"
-                       : "Chaos off — back to the scenario baseline");
+      toast.success(on ? "Chaos Mode on: variance ×2.5, event rates ×3, added to the scenario"
+                       : "Chaos Mode off: the run uses the scenario baseline");
     } catch (e: unknown) { toast.error("Failed", { description: e instanceof Error ? e.message : String(e) }); }
   };
   const resetBaseline = async () => {
     if (!runId) return;
-    try { await twin.setVariability(runId, { template: baselineTemplate }); toast.success("Reset to the scenario baseline"); }
+    try { await twin.setVariability(runId, { template: baselineTemplate }); toast.success("The run uses the scenario baseline again"); }
     catch (e: unknown) { toast.error("Reset failed", { description: e instanceof Error ? e.message : String(e) }); }
   };
 
@@ -495,7 +495,7 @@ export const OperatorConsole = () => {
           <Button onClick={() => startScenario()} disabled={busy === "start"}
             className="h-9 w-full bg-brand-red hover:bg-brand-deep text-white text-xs font-display uppercase tracking-[0.06em]">
             {busy === "start" ? <Loader2 size={15} className="animate-spin" /> : <Play size={15} />}
-            {busy === "start" ? "Starting…" : "Start simulation"}
+            {busy === "start" ? "Starting…" : "Start run"}
           </Button>
         ) : (
           <div className="flex items-center gap-2">
@@ -505,7 +505,7 @@ export const OperatorConsole = () => {
             </Button>
             <Button onClick={stopRun} disabled={busy === "stop"} variant="outline"
               className="h-9 border-white/[0.06] text-ink-dim hover:text-ink text-xs">
-              {busy === "stop" ? <Loader2 size={14} className="animate-spin" /> : <Square size={13} />} Stop
+              {busy === "stop" ? <Loader2 size={14} className="animate-spin" /> : <Square size={13} />} Stop run
             </Button>
           </div>
         )}
@@ -517,8 +517,8 @@ export const OperatorConsole = () => {
         {runId && (
           <div className="text-[10px] font-mono text-ink-faint">
             run {runId.slice(0,8)} · {snapshot?.run?.status ?? "—"} · t{snapshot?.run?.tick_count ?? 0}
-            {typeof snapshot?.run?.speed_x === "number" && ` · ${snapshot.run.speed_x}× on the run`}
-            <div className="text-ink-faint/70">Stop the run to choose another scenario.</div>
+            {typeof snapshot?.run?.speed_x === "number" && ` · run speed ${snapshot.run.speed_x}×`}
+            <div className="text-ink-faint">Stop the run to choose another scenario.</div>
           </div>
         )}
       </Group>
@@ -528,7 +528,7 @@ export const OperatorConsole = () => {
         <div className="flex items-center justify-between">
           <div className="flex flex-col">
             <span className="text-[12px] text-ink">Chaos Mode</span>
-            <span className="text-[10px] text-ink-faint">variance ×2.5 · event rates ×3, on top of the scenario</span>
+            <span className="text-[10px] text-ink-faint">variance ×2.5 · event rates ×3 · added to the scenario</span>
           </div>
           <Switch checked={isChaos(knobs)} onCheckedChange={toggleChaos} disabled={!runId} />
         </div>
@@ -550,15 +550,15 @@ export const OperatorConsole = () => {
             </TooltipTrigger>
             <TooltipContent className="max-w-[300px] bg-canvas-elev border-white/10 text-ink text-[11px]">
               {coverage
-                ? `Measured on the live frame: ${coverage.observed} of ${coverage.total} variables have an effect
-                   OTTO-Q can actually see. ${coverage.dark} unlit, ${coverage.unobservable} with no channel at all.
-                   (${wiredCount}/${catalog.length} are registered as wired — a different question.)`
-                : "No live frame yet — showing the registry count, which says a variable exists, not that its effect reaches OTTO-Q."}
+                ? `Measured on the live frame: OTTO-Q sees the effect of ${coverage.observed} of ${coverage.total} variables.
+                   No data on this frame: ${coverage.dark}. No channel: ${coverage.unobservable}.
+                   Registered as wired: ${wiredCount} of ${catalog.length}. That count does not show what OTTO-Q sees.`
+                : "No live frame yet. This is the registry count. It shows that a variable exists, not that its effect reaches OTTO-Q."}
             </TooltipContent>
           </Tooltip></TooltipProvider>
         }>
         {primary.map(renderVar)}
-        <span className="text-[10px] text-ink-faint pt-1">Each slider reshapes a real-world distribution the engine samples every tick — neutral = calibrated. Expand a variable for shift / spread / floor / ceiling.</span>
+        <span className="text-[10px] text-ink-faint pt-1">Each slider shapes a real-world distribution that the engine samples each tick. Neutral is the calibrated value. Expand a variable for shift, spread, floor and ceiling.</span>
       </Group>
 
       {/* VARIABILITY — ADVANCED per domain */}
@@ -587,13 +587,13 @@ export const OperatorConsole = () => {
       <Group icon={Zap} title="Injections">
         <div className="grid grid-cols-2 gap-2">
           <Button onClick={() => inject("DR Call", () => twin.injectDrCall(runId!, { duration_min: 120, cap_kw: 500, reason: "manual" }),
-              () => "500 kW cap for 120 sim-minutes")}
+              () => "500 kW cap for 120 sim min")}
             disabled={!runId || !!busy} variant="outline" className="h-9 border-white/[0.06] text-ink-dim hover:text-ink text-[11px] justify-start"><BatteryWarning size={13} className="text-state-warn" /> DR Call</Button>
           <Button onClick={() => inject("Charger Fault", () => twin.injectFault(runId!, { kind: "charger_offline" }),
-              (r) => r?.stall_code ? `${r.stall_code} faulted${r.had_vehicle ? " with a car on it" : ""} — back in ${r.repair_minutes} sim-min` : undefined)}
+              (r) => r?.stall_code ? `${r.stall_code}: charger fault${r.had_vehicle ? ", with a car on it" : ""}. A technician repairs it in ${r.repair_minutes} sim min.` : undefined)}
             disabled={!runId || !!busy} variant="outline" className="h-9 border-white/[0.06] text-ink-dim hover:text-ink text-[11px] justify-start"><AlertTriangle size={13} className="text-state-warn" /> Charger Fault</Button>
         </div>
-        <span className="text-[10px] text-ink-faint">DR Call issues a real demand-response cap. Charger Fault takes a DC fast charger at this depot offline (vehicles on it are replanned) and a technician returns it after an hour of sim time.</span>
+        <span className="text-[10px] text-ink-faint">DR Call: sets a real demand-response power cap. Charger Fault: stops one fast charger. OTTO-Q makes a new plan for the car on it. A technician repairs it in 1 sim hour.</span>
       </Group>
     </ScrollArea>
   );

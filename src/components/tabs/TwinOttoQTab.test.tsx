@@ -54,7 +54,7 @@ describe("OTTO-Q tab", () => {
       .toEqual(["Arriving", "Needs", "Proposers", "Decide", "Safety check", "Booked", "Service", "Ready"]);
     expect(screen.getByText("5 on the way · 7 at the gate")).toBeTruthy();
     expect(screen.getByText("14,143 checks · 0 refused")).toBeTruthy();
-    expect(screen.getByText(/21 cars are out working and not drawn/)).toBeTruthy();
+    expect(screen.getByText(/21 cars are out at work and not shown/)).toBeTruthy();
   });
 
   it("opens a layer: its cars, and its newest decisions in words", () => {
@@ -79,7 +79,7 @@ describe("OTTO-Q tab", () => {
     for (const h of ["Why it is there", "What it does", "What it technically is", "Why it was built this way"]) {
       expect(within(card).getByText(h)).toBeTruthy();
     }
-    expect(within(card).getByText(/public\.ottoq_decide_tick, driven by pg_cron/)).toBeTruthy();
+    expect(within(card).getByText(/pg_cron runs public\.ottoq_decide_tick/)).toBeTruthy();
     // the card names the run its live line is for
     expect(within(card).getByText(`On this run (${fx.sim_run_id.slice(0, 8)})`)).toBeTruthy();
     // and the layer itself did not open underneath it
@@ -110,13 +110,13 @@ describe("OTTO-Q tab", () => {
   it("says so when the depot is running another run", () => {
     S.cards = { vehicles: null, status: "other_run", simClock: null, error: null };
     render(<TwinOttoQTab />);
-    expect(screen.getByText(/The depot is not running this run right now/)).toBeTruthy();
+    expect(screen.getByText(/This run is not active in the depot now/)).toBeTruthy();
   });
 
   it("with no run, explains itself and draws nothing", () => {
     act(() => useTwinStore.setState({ activeSimRunId: null }));
     render(<TwinOttoQTab />);
-    expect(screen.getByText(/No simulation is active/)).toBeTruthy();
+    expect(screen.getByText(/No run is active/)).toBeTruthy();
   });
 });
 
@@ -124,16 +124,16 @@ describe("Agent tab", () => {
   it("writes each pass as sentences, and counts the loop from its records", () => {
     render(<TwinAgentTab />);
     fireEvent.click(screen.getByRole("tab", { name: "Agent passes" }));
-    expect(screen.getByText(/15 passes this run, 2 fell back to the deterministic path/)).toBeTruthy();
+    expect(screen.getByText(/15 passes this run, 2 fell back to the decide path/)).toBeTruthy();
     expect(screen.getAllByText("The agent read the depot and chose to get cars ready first").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("The agent fell back to the deterministic path").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("The agent gave no answer, so the decide path kept the goal").length).toBeGreaterThan(0);
     const loop = screen.getByRole("region", { name: "The loop" });
     expect(within(loop).getByText("59")).toBeTruthy(); // offers: 103 dispositions less 44 abstentions
     expect(within(loop).getByText("1 / 25")).toBeTruthy();
     expect(document.body.textContent).not.toMatch(/undefined|NaN|\[object Object\]/);
     expect(screen.getByText("ended")).toBeTruthy();
     // the run in the fixture has ended: no stale board is offered as current
-    expect(screen.getByRole("region", { name: "What the agent reads" }).textContent).toMatch(/this run is not running/);
+    expect(screen.getByRole("region", { name: "What the agent reads" }).textContent).toMatch(/This run is not active/);
   });
 
   it("opens on the live stream: one line per decision, saying where each car goes", () => {
@@ -218,7 +218,7 @@ describe("Agent tab", () => {
   it("learning says OTTO-Q does not experiment in production, and that estimates are not built", () => {
     render(<TwinAgentTab />);
     fireEvent.click(screen.getByRole("tab", { name: "Learning" }));
-    expect(screen.getByText(/never by OTTO-Q in production/)).toBeTruthy();
+    expect(screen.getByText(/never OTTO-Q in production/)).toBeTruthy();
     expect(screen.getByText(/Overnight estimates .* are not built yet/)).toBeTruthy();
   });
 });

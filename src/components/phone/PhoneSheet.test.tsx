@@ -34,7 +34,7 @@ describe('PhoneSheet — full screen toggle', () => {
       render(<PhoneSheet mode={mode} topInset={56} />);
       expect(sheet().getAttribute('data-sheet-fullscreen')).toBeNull();
       const before = sheet().className;
-      expect(toggle().getAttribute('aria-label')).toBe('Full screen panels');
+      expect(toggle().getAttribute('aria-label')).toBe('Expand panels to full screen');
 
       fireEvent.click(toggle());
       expect(usePhoneSheet.getState().fullscreen).toBe(true);

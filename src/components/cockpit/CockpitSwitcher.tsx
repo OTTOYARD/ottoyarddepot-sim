@@ -110,7 +110,7 @@ export const CockpitSwitcher = () => {
           type="button"
           onClick={() => setPanel(null)}
           className={`${seg} ${panel === null ? on : off}`}
-          title="The twin alone"
+          title="Show the twin only"
           data-testid="view-in-twin"
         >
           Twin

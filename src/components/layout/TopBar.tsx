@@ -118,7 +118,7 @@ export const TopBar = () => {
       {/* Telemetry strip */}
       <div className="flex-1 min-w-0 flex items-center justify-center overflow-hidden">
         <div className="flex items-center bg-canvas-panel/60 border border-white/[0.06] rounded-md py-1">
-          <Cell icon={Truck}           label="Deployed" value={n(deployed)} />
+          <Cell icon={Truck}           label="Dispatched" value={n(deployed)} />
           <Cell icon={BatteryCharging} label="Charging" value={n(charging)} />
           <Cell icon={Layers}          label="Waiting"  value={n(waiting)} />
           <Cell icon={CheckCircle2}    label="Ready"    value={n(ready)} />
@@ -144,7 +144,7 @@ export const TopBar = () => {
               if (!sim.isPanelOpen) sim.togglePanel();
               sim.setActiveTab('background');
             }}
-            title="What am I looking at? The Background tab explains the twin, OTTO-Q and the data behind them."
+            title="What am I looking at? The Background tab explains the twin, OTTO-Q and their data."
             className="inline-flex items-center gap-1 rounded border border-white/[0.06] px-2 py-1 text-[11px] text-ink-dim transition-colors hover:border-brand-hot/50 hover:text-ink"
           >
             <BookOpen size={12} aria-hidden />

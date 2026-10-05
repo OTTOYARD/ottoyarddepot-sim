@@ -36,7 +36,7 @@ export const VIEWER_CAMS: Record<ViewerCamId, ViewerCam> = {
   sw: { id: "sw", label: "SW", hint: "From the south-west corner", position: [150, 96, -132], target: [4, 0, 16], kind: "orbit" },
   ne: { id: "ne", label: "NE", hint: "From the north-east corner, over the service building", position: [-150, 96, 140], target: [-4, 0, -6], kind: "orbit" },
   nw: { id: "nw", label: "NW", hint: "From the north-west corner", position: [150, 96, 140], target: [4, 0, -6], kind: "orbit" },
-  pole: { id: "pole", label: "Pole", hint: "From a mast at the middle of the lot, looking around", position: POLE, target: lookFrom(POLE, 315, 38), kind: "pole" },
+  pole: { id: "pole", label: "Pole", hint: "From a mast in the middle of the lot. The camera turns to look around.", position: POLE, target: lookFrom(POLE, 315, 38), kind: "pole" },
   top: { id: "top", label: "Top", hint: "Straight down, north up", position: [0, 252, -50], target: [0, 0, -6], kind: "orbit" },
 };
 

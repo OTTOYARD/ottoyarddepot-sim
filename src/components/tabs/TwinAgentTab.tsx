@@ -308,7 +308,7 @@ function ReadsCard({ status, frame, loading, onRead }: { status: string | null; 
       </div>
       {!live ? (
         <p className="mt-1.5 text-[11px] leading-4 text-ink-dim">
-          The agent reads the depot live, and this run is not running, so there is nothing current to read.
+          The agent reads the live depot. This run is not active, so there is nothing current to read.
         </p>
       ) : frame && r.lines.length === 0 ? (
         <p className="mt-1.5 text-[11px] text-ink-faint">The engine returned no board for this run.</p>
@@ -398,13 +398,13 @@ export function TwinAgentTab() {
   const learning = (
     <div className="space-y-2">
       <p className="text-[11px] leading-4 text-ink-dim">
-        After the fact, OTTO-Q grades its own decisions: the challenger asks whether the depot could have done better and
-        checks the answer later. It never changes the engine. New settings are tested by the research wing in the twin,
-        never by OTTO-Q in production, and every result is a recommendation a person decides to ship.
+        OTTO-Q grades its own decisions after they occur. The challenger asks if the depot could have done better. It
+        checks the answer later and never changes the engine. The research wing tests new settings in the twin, never
+        OTTO-Q in production. Each result is a recommendation, and a person decides to ship it.
       </p>
       <p className="rounded border border-white/[0.06] p-2 text-[10px] leading-4 text-ink-faint">
-        Overnight estimates (how long charges take, when cars return, which chargers fault) are not built yet: no engine
-        job produces them, so there is nothing to show here.
+        Overnight estimates (charge times, return times, charger faults) are not built yet. No engine job makes them, so
+        there is nothing to show here.
       </p>
       <SecondLoopPanel state={loop} />
     </div>
@@ -416,10 +416,15 @@ export function TwinAgentTab() {
         <div className="space-y-2 p-3">
           {Toggle}
           {view === "learning" ? learning : (
-            <p className="text-[12px] leading-5 text-ink-dim">
-              No simulation is active. When a run is going, each pass of the agent appears here in plain words: what it
-              read, what it chose, and what the solver and the decide path did with it. What OTTO-Q learns is under Learning.
-            </p>
+            <div className="text-[12px] leading-5 text-ink-dim">
+              <p>No run is active. During a run, this panel shows each agent pass:</p>
+              <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                <li>what the agent read</li>
+                <li>what it chose</li>
+                <li>what the solver and the decide path did</li>
+              </ul>
+              <p className="mt-1">Learning shows what OTTO-Q learns.</p>
+            </div>
           )}
         </div>
       </ScrollArea>
@@ -437,9 +442,9 @@ export function TwinAgentTab() {
                 ? "Passes this run: —"
                 : chains === 0
                   ? "The agent has not run a pass in this run."
-                  : `${fmt(chains)} ${chains === 1 ? "pass" : "passes"} this run${fell ? `, ${fmt(fell)} fell back to the deterministic path` : ""}${late != null ? `. Advice lands a mean of ${late} ticks after the tick it read; the tick never waits for it.` : "."}`}
+                  : `${fmt(chains)} ${chains === 1 ? "pass" : "passes"} this run${fell ? `, ${fmt(fell)} fell back to the decide path` : ""}${late != null ? `. Advice arrives a mean of ${late} ticks after the tick it read. The tick never waits for it.` : "."}`}
             </p>}
-            {view === "live" && <p className="mt-0.5 text-[10px] leading-4 text-ink-faint">Every decision OTTO-Q makes, one line each, as it makes it.</p>}
+            {view === "live" && <p className="mt-0.5 text-[10px] leading-4 text-ink-faint">One line for each OTTO-Q decision, when it occurs.</p>}
           </div>
           {stack?.run?.status && !isLiveStatus(stack.run.status) ? <EndedState /> : <StreamState frozen={frozen} />}
         </div>
@@ -457,7 +462,7 @@ export function TwinAgentTab() {
                 Also show the {quietCount} ticks where every offer was replaced, expired or declined
               </label>
             )}
-            {(error || disp.error) && <p className="text-[11px] text-amber-200">Could not read the latest records. Showing what was read last.</p>}
+            {(error || disp.error) && <p className="text-[11px] text-amber-200">Could not read the latest records. This shows the last records read.</p>}
             {items.length === 0 ? (
               <p className="text-[12px] text-ink-dim">
                 {frozen ? "Paused before any agent pass arrived." : "No agent pass or offer in the last two sim-hours yet."}

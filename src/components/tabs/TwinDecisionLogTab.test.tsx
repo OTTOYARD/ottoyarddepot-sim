@@ -94,7 +94,7 @@ describe("agent pipeline labels never name a solver that did not run", () => {
 
   it("surfaces G60: every serviceable vehicle already held a place", () => {
     expect(starvationNote({ frame_serviceable: 11, frame_held: 11 }))
-      .toContain("all 11 serviceable vehicles already held a place");
+      .toContain("all 11 cars it could serve already had a place");
     // headroom existed, so the solver was genuinely asked something
     expect(starvationNote({ frame_serviceable: 11, frame_held: 4 })).toBeNull();
     expect(starvationNote({})).toBeNull();
@@ -140,7 +140,7 @@ describe("decision verdicts in words", () => {
       action: "task_start", outcome: "overridden_to_default",
       rationale: { verb: "hold_in_queue", reason: "service_shield_blocked", override_rule_codes: ["HW.002"] },
     }));
-    expect(held).toEqual({ title: "Held by a safety check", detail: "the charger is working", tone: "warn" });
+    expect(held).toEqual({ title: "Held by a safety check", detail: "the charger works", tone: "warn" });
   });
 
   it("renders an unknown verdict as its own words", () => {

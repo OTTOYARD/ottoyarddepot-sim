@@ -581,9 +581,9 @@ export function footnoteText(sweep: ValueSummary['sweep']): string {
   const hours = num(sweep?.day_hours) ?? 24;
   const step = num(sweep?.step_min) ?? 5;
   return (
-    `Twin results on the calibrated digital twin: ${trim1(hours)}-hour busy days at ${trim1(step)}-minute steps; ` +
-    'a month is 30 days like these. Prices: each depot on the cheapest Nashville Electric Service rate it qualifies ' +
-    "for. Revenue: $16–24 per car-hour from Waymo's public figures." +
+    `Results from the calibrated digital twin: ${trim1(hours)}-hour busy days at ${trim1(step)}-minute steps. ` +
+    'A month is 30 days like these. Prices: each depot uses the lowest Nashville Electric Service rate it qualifies ' +
+    "for. Revenue: $16–24 per car-hour, from Waymo's public figures." +
     openingText(sweep)
   );
 }
@@ -592,6 +592,6 @@ export function footnoteText(sweep: ValueSummary['sweep']): string {
 function openingText(sweep: ValueSummary['sweep']): string {
   const from = num(sweep?.peak_read_from_min);
   return from !== null && from > 0
-    ? ` Peak demand counts from ${trim1(from)} minutes into each day, after the test's opening, when every parked car plugs in at once.`
+    ? ` Peak demand counts from ${trim1(from)} minutes into each day. This skips the start of the test, when all parked cars plug in at the same time.`
     : '';
 }

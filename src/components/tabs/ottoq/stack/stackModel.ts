@@ -91,7 +91,7 @@ export function agentModel(rows: readonly ActivityFeedRow[]): AgentModel {
   }
   const spots = HUB_SPOTS[Math.max(1, objectives.length)];
   const hubs: HubNode[] = objectives.map((o, i) => ({
-    key: o, label: o === "—" ? "objective not recorded" : human(o), x: spots[i][0], z: spots[i][1], passes: 0,
+    key: o, label: o === "—" ? "goal not recorded" : human(o), x: spots[i][0], z: spots[i][1], passes: 0,
   }));
   const n = passRows.length;
   const passes: PassNode[] = passRows.map((r, i) => {

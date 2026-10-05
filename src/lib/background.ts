@@ -413,12 +413,12 @@ export const RULE_CATEGORY_TITLE: Record<string, string> = {
 
 export const CONTEXT_WORDS: Record<string, string> = {
   task_start: "a service starts",
-  stall_assignment: "a car is given a stall",
+  stall_assignment: "OTTO-Q assigns a stall to a car",
   charge_session_start: "a charge starts",
-  redeployment: "a car is released to work",
-  bess_dispatch: "the site battery is dispatched",
-  policy_write: "a run setting is changed",
-  task_completion: "a service completes",
+  redeployment: "OTTO-Q dispatches a car",
+  bess_dispatch: "OTTO-Q dispatches the site battery",
+  policy_write: "a run setting changes",
+  task_completion: "a service ends",
   vehicle_state_change: "a car changes state",
   stall_state_change: "a stall changes state",
   bess_state_change: "the battery changes state",

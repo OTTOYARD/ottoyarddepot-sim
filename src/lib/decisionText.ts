@@ -334,7 +334,7 @@ export function starvationNote(detail: Record<string, unknown>): string | null {
   const serviceable = Number(detail.frame_serviceable ?? 0);
   const held = Number(detail.frame_held ?? 0);
   if (serviceable > 0 && held >= serviceable) {
-    return `solver saw an empty instance: all ${serviceable} serviceable vehicles already held a place`;
+    return `the solver had nothing to plan: all ${serviceable} cars it could serve already had a place`;
   }
   return null;
 }

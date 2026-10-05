@@ -205,6 +205,68 @@ interpolation.** Zero world logic client-side.
 - **The RTX tab needs the AWS Isaac box running.** Blank is normal when it is stopped. IP override:
   `localStorage.setItem('ottoq_omniverse_ip','<ip>')`.
 
+## Viewer copy: ASD-STE100 (2026-10-05)
+
+Chase, 2026-10-05: the twin is shown to investors and OEMs, and its text must be *"more concise and
+direct."* Write all text a viewer reads in **ASD-STE100** (Simplified Technical English, Issue 9,
+January 2025): **100%** for labels, statements, lists, status lines, buttons and tooltips; **about
+80%** for narrative (the Background tab, the layer cards' *why* and *chosen*). STE alone does not
+shorten text, so also cut detail that does not earn its place. Source:
+[Wikipedia, Simplified Technical English](https://en.wikipedia.org/wiki/Simplified_Technical_English)
+(the official PDF at asd-ste100.org refuses automated reads).
+
+**Scope.** Text on screen: JSX text, titles, taglines, chips, tooltips, toasts, empty states, card
+and feed lines built in `src/lib`. **Not** comments, console output, test names, ids and keys,
+`refs` (code object names), text that comes from the engine database, or quotes (keep them verbatim).
+
+**Rules.**
+- One idea per sentence. A sentence has 20 words or fewer (25 in narrative); aim for 15.
+- Active voice. Simple tenses. No *-ing* verbs in sentences ("the car charges", not "the car is
+  charging"). Names of states and zones (Charging, Staging, Waiting) are names, so they stay.
+- Keep the articles ("the", "a") in sentences. Labels and chips can be short ("Charger fault").
+- No more than 3 nouns in a row. No idioms or metaphors. No marketing words.
+- Simple words: use, make sure, show, start, stop, get, help, before, after, about, more, but, so.
+  Not: utilize, leverage, ensure, via, in order to, prior to, approximately, indicate, obtain,
+  terminate, initiate, facilitate, therefore, however.
+- No semicolons and no dashes between clauses: start a new sentence. Parentheses only for a
+  unit, an abbreviation or a number.
+- 3 or more items: a vertical list where the component can show one, else short sentences.
+- A narrative paragraph has 4 sentences or fewer (never more than 6).
+- Numbers as digits, with units. Real clock in CT; the sim clock says "sim".
+
+**One word, one meaning.**
+
+| Use | For | Not |
+|---|---|---|
+| car | one vehicle, in sentences | vehicle, unit, asset (tab and feed titles may keep "Vehicles") |
+| stall | a space a car stands in | spot, space, slot |
+| fast charger / DCFC | a DC fast charger | rapid charger |
+| standard charger / L2 | a level-2 charger | slow charger |
+| bay | a wash, detail or service bay | station |
+| booking | a held time window on a stall or bay | reservation, slot, hold (except "staging hold") |
+| plan / step | what OTTO-Q schedules for a car / one operation in it | itinerary, leg, atom, task |
+| run | one simulation run | session, scenario run |
+| tick | one OTTO-Q decision cycle | cycle, beat |
+| agent / pass | the AI language model / one call to it | AI, LLM, model (except in "model call") |
+| solver | cuOpt, CP-SAT or the local optimizer | optimizer engine |
+| the decide path | the deterministic part that makes every final decision | arbiter, deterministic core, kernel |
+| safety shield | the rule layer that checks each decision | rule gate, guard ("gate" is the depot gate) |
+| propose / decide | what agents and solvers do / what the decide path does | suggest, dispose, enact |
+| ready / dispatch | a car with no open needs / a ready car sent out | released, deployed |
+
+**Honesty is not cut.** Keep every number with its denominator and unit, every run id, and every
+word that limits a claim (simulated, in the twin, advisory, not yet, measured on run X). Never make a
+claim stronger or add a fact. Cut history instead: dates of decisions, migration, check and finding
+numbers (0412, G293), and anything said twice.
+
+**Example** (Background tab). Before, 82 words: *"Every model and solver only proposes. The AI agent
+chooses what the next decisions should optimize, solvers offer assignments, and one deterministic
+path decides, behind the rule shield. The agent chooses among options the engine already allows; it
+cannot book a stall or move a car itself ..."* After, 52 words: *"Models and solvers only propose. One
+deterministic path decides. • The agent sets the goal for the next decisions. • Solvers offer stall
+assignments. • The decide path checks each offer against the rules, then decides. No agent can book
+a stall or move a car. A ledger records each call and its result."*
+
 ## Verify before you PR
 
 ```bash

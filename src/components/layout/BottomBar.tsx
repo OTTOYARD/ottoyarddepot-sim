@@ -39,14 +39,14 @@ export const BottomBar = () => {
   // ignored. Disable it and say WHY instead of letting the operator fight it.
   return (
     <div className="h-12 bg-otto-dark/90 border-t border-white/10 flex items-center px-4 gap-3 shrink-0">
-      <span className="text-white/70 text-xs font-mono w-16" title="Depot local time (America/Chicago)">{formatHHMM(simTime)} CT</span>
+      <span className="text-white text-xs font-mono w-16" title="Depot local time (America/Chicago)">{formatHHMM(simTime)} CT</span>
       <input
         type="range"
         min={0}
         max={86399}
         value={simTime}
         disabled={simClockLive}
-        title={simClockLive ? 'Depot clock is live from the run — scrubbing is disabled' : undefined}
+        title={simClockLive ? 'The live run sets the depot clock. You cannot move this slider.' : undefined}
         onChange={(e) => setSimTime(Number(e.target.value))}
         className={`flex-1 h-1.5 appearance-none rounded-full bg-otto-teal/30
           [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5
@@ -57,7 +57,7 @@ export const BottomBar = () => {
             ? 'opacity-50 cursor-not-allowed [&::-webkit-slider-thumb]:cursor-not-allowed'
             : 'cursor-pointer [&::-webkit-slider-thumb]:cursor-pointer'}`}
       />
-      <span className="text-white/70 text-xs font-mono w-12 text-right">
+      <span className="text-white text-xs font-mono w-12 text-right">
         {simClockLive ? 'LIVE' : '24:00'}
       </span>
       <AgentsConnected />

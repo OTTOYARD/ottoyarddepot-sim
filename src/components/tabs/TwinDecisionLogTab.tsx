@@ -40,7 +40,7 @@ export const CATEGORY_META: Record<DecisionCategory, { label: string; color: str
   agent: { label: CATEGORY_LABEL.agent, color: "#A78BFA", icon: Brain },
   dispatch: { label: CATEGORY_LABEL.dispatch, color: "#00B4A6", icon: Truck },
   energy: { label: CATEGORY_LABEL.energy, color: "#F59E0B", icon: BatteryCharging },
-  plans: { label: CATEGORY_LABEL.plans, color: "#7B818D", icon: CalendarClock },
+  plans: { label: CATEGORY_LABEL.plans, color: "#FFFFFF", icon: CalendarClock },
   // otto-q-core 0536: the challenger's questions and hindsight grades, beside the decisions they question
   challenger: { label: CATEGORY_LABEL.challenger, color: "#F472B6", icon: Search },
 };
@@ -122,7 +122,7 @@ const TONE_COLOR: Record<DecisionTone, string> = {
   enacted: "#00B4A6",
   held: "#E8893F",
   warn: "#C8102E",
-  idle: "#7B818D",
+  idle: "#FFFFFF",
 };
 
 export const Row = ({ r, isNew = false }: { r: ActivityFeedRow; isNew?: boolean }) => {
@@ -180,7 +180,7 @@ export const Row = ({ r, isNew = false }: { r: ActivityFeedRow; isNew?: boolean 
 /** ENDED chip: the run has finished, so nothing on screen is live. */
 export const EndedState = () => (
   <span className="inline-flex shrink-0 items-center gap-1 rounded border border-white/15 bg-white/[0.04] px-1.5 py-0.5 text-[9px] font-mono uppercase tracking-[0.06em] text-ink-faint"
-    title="This run has ended. What is shown is what it recorded.">
+    title="This run has ended. This shows what it recorded.">
     ended
   </span>
 );
@@ -191,7 +191,7 @@ export const StreamState = ({ frozen }: { frozen: boolean }) =>
   frozen ? (
     <span
       className="inline-flex shrink-0 items-center gap-1 rounded border border-amber-400/30 bg-amber-400/10 px-1.5 py-0.5 text-[9px] font-mono uppercase tracking-[0.06em] text-amber-300"
-      title="The simulation is paused, so the stream is frozen and no polling is happening. Everything already received stays scrollable."
+      title="The run is paused, so the stream is frozen and the tab does not ask for new data. You can still scroll all that it received."
     >
       <Pause size={9} /> paused
     </span>
@@ -256,7 +256,7 @@ export default function TwinDecisionLogTab() {
           })}
         </div>
         <p className="text-[9px] leading-3.5 text-ink-faint">
-          One row when a decision changes, not every tick it is restated. Times are sim time, CT.
+          One row when a decision changes, not each tick that repeats it. Times are sim time, CT.
         </p>
       </div>
 
@@ -264,7 +264,7 @@ export default function TwinDecisionLogTab() {
         <div className="p-2 space-y-1">
           {visible.length === 0 && !error && (
             <div className="flex flex-col items-center justify-center gap-2 py-12 text-ink-faint">
-              <Brain size={24} className="opacity-30" />
+              <Brain size={24} />
               <span className="text-[11px] text-center px-4">
                 {rows.length > 0
                   ? "Nothing in the categories shown. Turn one on above."

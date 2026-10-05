@@ -296,7 +296,7 @@ describe("coverage must not over-report on a world that published nothing", () =
     expect(dep.payload.labor?.lanes.wash_cap).toBe(3);
     expect(dep.payload.labor?.lanes.service_cap).toBe(2);
     // the pressure must be stated, not left for the reader to infer
-    expect(dep.integrity.notes.join(" ")).toContain("labor bound 8x");
+    expect(dep.integrity.notes.join(" ")).toContain("Staffing made cars wait 8 times");
     expect(dep.integrity.notes.join(" ")).toContain("overstates real throughput");
 
     const r = auditCoverage(b);
@@ -339,7 +339,7 @@ describe("coverage must not over-report on a world that published nothing", () =
     const b = packChannels(SNAP, layout, new Date(CLOCK), null, null, capped as never);
     expect(b.channels.depot_ops.payload.labor?.lanes.charge_cap).toBe(9);
     expect(b.channels.depot_ops.integrity.notes.join(" "))
-      .toContain("charge admission is staffing-capped at 9 of 45");
+      .toContain("Staffing limits charging to 9 of 45 charge stalls");
     expect(auditCoverage(b).variables
       .find((v) => v.var_key === "charging_staff")?.verdict).toBe("observed");
   });
@@ -365,7 +365,7 @@ describe("coverage must not over-report on a world that published nothing", () =
     expect(b.channels.depot_ops.payload.labor?.lanes.charge_cap_basis).toBe("computed_from_knob");
     // cap == physical means neutral staffing: the gate is NOT binding, so no alarm
     expect(b.channels.depot_ops.integrity.notes.join(" "))
-      .not.toContain("staffing-capped");
+      .not.toContain("Staffing limits charging");
   });
 
   it("does not read an unstamped lane cap as unlimited capacity", () => {
@@ -386,7 +386,7 @@ describe("coverage must not over-report on a world that published nothing", () =
     expect(b.channels.depot_ops.payload.labor?.lanes.wash_cap).toBeNull();
     expect(b.channels.depot_ops.integrity.missing).toContain("labor.lane_caps");
     expect(b.channels.depot_ops.integrity.notes.join(" "))
-      .toContain("Absence means no contention, NOT unlimited capacity");
+      .toContain("No cap means no wait so far, NOT unlimited capacity");
   });
 
   it("does not let a plan stand in for what the fleet actually did", () => {
@@ -413,8 +413,8 @@ describe("coverage must not over-report on a world that published nothing", () =
     const b = packChannels(SNAP, layout, new Date(CLOCK), null, null, null, offsite as never);
     const ft = b.channels.fleet_telemetry;
     expect(ft.payload.offsite?.duration.ratio_p50).toBe(3.638);
-    expect(ft.integrity.notes.join(" ")).toContain("3.638x their planned duration");
-    expect(ft.integrity.notes.join(" ")).toContain("not a usable predictor");
+    expect(ft.integrity.notes.join(" ")).toContain("3.638x their planned time");
+    expect(ft.integrity.notes.join(" ")).toContain("Do not use planned_duration_min as a predictor");
 
     // The per-trigger breakdown must survive: a fleet-wide average would hide
     // that low_soc trips run 356 min while soil trips run 75.
@@ -446,7 +446,7 @@ describe("coverage must not over-report on a world that published nothing", () =
     expect(act.energy_basis).toBe("soc_delta_proxy");
     expect(act).not.toHaveProperty("energy_kwh_p50");
     // and the plan is close enough here that no warning should fire
-    expect(b.channels.fleet_telemetry.integrity.notes.join(" ")).not.toContain("not a usable predictor");
+    expect(b.channels.fleet_telemetry.integrity.notes.join(" ")).not.toContain("Do not use planned_duration_min");
   });
 
   it("never republishes the DTC sentinel as a severity", () => {
@@ -478,7 +478,7 @@ describe("coverage must not over-report on a world that published nothing", () =
       rank_scale: "lower_is_worse", rank_sentinel_note: "99 means none", by_rank: { "2": 1 } } };
     const b2 = packChannels(SNAP, layout, new Date(CLOCK), null, null, null, null, faulted as never);
     expect(b2.channels.fleet_telemetry.payload.wear?.dtc.worst_rank).toBe(2);
-    expect(b2.channels.fleet_telemetry.integrity.notes.join(" ")).toContain("lower is worse");
+    expect(b2.channels.fleet_telemetry.integrity.notes.join(" ")).toContain("A lower rank is worse");
     expect(auditCoverage(b2).variables.find((v) => v.var_key === "dtc")?.verdict).toBe("observed");
   });
 
@@ -516,7 +516,7 @@ describe("coverage must not over-report on a world that published nothing", () =
     expect(b.channels.depot_ops.payload.policy?.configured).toBe("otto_q");
     expect(b.channels.depot_ops.payload.policy?.observed).toBeNull();
     expect(b.channels.depot_ops.integrity.missing).toContain("policy.observed");
-    expect(b.channels.depot_ops.integrity.notes.join(" ")).toContain("policy in force is unproven");
+    expect(b.channels.depot_ops.integrity.notes.join(" ")).toContain("The policy in use is not proven");
     // configured alone must NOT satisfy the variable
     expect(auditCoverage(b).variables.find((v) => v.var_key === "scheduling_algorithm")?.verdict).toBe("dark");
   });

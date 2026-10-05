@@ -164,14 +164,14 @@ describe("VehicleTooltip — a car mid-workflow", () => {
   });
 
   it("shows SoC on entry, OTTO-Q's target, and its charge estimate", () => {
-    expect(screen.getByTestId("soc-on-entry")).toHaveTextContent("in 42%");
+    expect(screen.getByTestId("soc-on-entry")).toHaveTextContent("arrival 42%");
     expect(screen.getByTestId("soc-target")).toHaveTextContent("target 89%");
     expect(screen.getByTestId("est-charge-min")).toHaveTextContent("~81m charge");
     expect(screen.getByTestId("soc-target-mark")).toBeInTheDocument();
   });
 
   it("reports progress and does NOT claim dispatch readiness", () => {
-    expect(screen.getByTestId("workflow-progress")).toHaveTextContent("1 of 3 cleared");
+    expect(screen.getByTestId("workflow-progress")).toHaveTextContent("1 of 3 done");
     expect(screen.queryByTestId("workflow-ready")).toBeNull();
   });
 });
@@ -196,7 +196,7 @@ describe("VehicleTooltip — a car with everything done", () => {
 
   it("omits the charge estimate for a visit with no charge planned", () => {
     expect(screen.queryByTestId("est-charge-min")).toBeNull();
-    expect(screen.getByTestId("soc-on-entry")).toHaveTextContent("in 97%");
+    expect(screen.getByTestId("soc-on-entry")).toHaveTextContent("arrival 97%");
   });
 });
 

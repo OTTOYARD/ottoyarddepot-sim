@@ -157,7 +157,7 @@ const WorkflowBlock = ({ workflow }: { workflow: VisitWorkflow }) => {
         </div>
       ) : totalCount > 0 ? (
         <div className="text-[9px] mt-1" style={{ color: MUTED }} data-testid="workflow-progress">
-          {clearedCount} of {totalCount} cleared
+          {clearedCount} of {totalCount} done
         </div>
       ) : null}
     </div>
@@ -266,7 +266,7 @@ export const VehicleTooltip = ({ svgRef }: Props) => {
       {/* Entry -> now -> target. Each number is omitted when it was not published. */}
       <div className="flex items-center gap-2 text-[9px] font-mono mb-1" style={{ color: DIM }}>
         {socOnEntry !== null && (
-          <span data-testid="soc-on-entry">in {Math.round(socOnEntry)}%</span>
+          <span data-testid="soc-on-entry">arrival {Math.round(socOnEntry)}%</span>
         )}
         {targetSoc !== null && (
           <span data-testid="soc-target">target {Math.round(targetSoc)}%</span>

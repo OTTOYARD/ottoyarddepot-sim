@@ -20,15 +20,15 @@ export const MISSING = "not recorded";
 export const GLOSSARY: Record<string, string> = {
   need: "service",
   atom: "service",
-  proposal: "plan",
-  proposals: "plans",
+  proposal: "offer",
+  proposals: "offers",
   proposer: "planner",
   proposers: "planners",
   enacted: "chosen",
-  superseded: "replaced by a better plan",
+  superseded: "replaced by a better offer",
   refused: "turned down",
   expired: "ran out of time",
-  abstained: "passed",
+  abstained: "made no offer",
   shield: "safety check",
   rule_evaluation: "safety check",
   rule_evaluations: "safety checks",
@@ -40,13 +40,13 @@ export const GLOSSARY: Record<string, string> = {
   soc: "battery",
   staging: "parking",
   staged: "parked",
-  kernel: "final check",
-  solver: "optimizer",
+  kernel: "decide path",
+  solver: "solver",
   itinerary: "plan",
   itinerary_amended: "plan re-timed",
-  deploy: "leave",
-  deployed: "left",
-  redeployment: "leaving",
+  deploy: "dispatch",
+  deployed: "dispatched",
+  redeployment: "dispatch",
   noop_no_candidate: "nothing free",
   triage: "quick check",
   bess: "depot battery",
@@ -140,14 +140,14 @@ export const RULE_WORD: Record<string, string> = {
   "EN.004": "a grid request to use less power",
   "EN.005": "a grid emergency stop",
   "HW.001": "the plug fits the car",
-  "HW.002": "the charger is working",
-  "HW.003": "the car's sensors are reporting",
+  "HW.002": "the charger works",
+  "HW.003": "the car's sensors send data",
   "HW.004": "one car per stall",
-  "HW.005": "one job at a time per car",
+  "HW.005": "one step at a time per car",
   "SLA.001": "enough battery to leave",
   "SLA.003": "the visit time limit",
   "SLA.004": "required services are done",
-  "SLA.005": "the fleet owner's hand-off time",
+  "SLA.005": "the owner's hand-off time",
   "SLA.006": "the maintenance window",
   "SLA.007": "ready to leave",
   "SM.002": "a valid next step",
@@ -156,7 +156,7 @@ export const RULE_WORD: Record<string, string> = {
   "TW.005": "the shift change",
 };
 
-/** A rule, named by what it protects. "HW.005.vehicle_one_active_task" -> "one job at a time per car". */
+/** A rule, named by what it protects. "HW.005.vehicle_one_active_task" -> "one step at a time per car". */
 export function ruleWord(code: string | null | undefined): string {
   if (!code) return "a safety rule";
   const m = code.match(/^([A-Z]+\.\d{3})/);
@@ -179,6 +179,7 @@ export function clockCT(iso: string | null | undefined): string {
   if (Number.isNaN(d.getTime())) return MISSING;
   return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: DEPOT_TZ });
 }
+
 
 /** Whole minutes from a to b (b later is positive), or null if either is missing. */
 export function minutesBetween(a: string | null | undefined, b: string | null | undefined): number | null {
@@ -248,11 +249,11 @@ export function checkedText(f: {
 }): Sentence {
   const what = f.wanted ? STALL_KIND_WORD[f.wanted] ?? plain(f.wanted) : null;
   const chargers = f.freeFast != null && f.freeStandard != null
-    ? `${count(f.freeFast, "fast charger")} and ${count(f.freeStandard, "standard charger")} free`
+    ? `${count(f.freeFast, "fast charger")} and ${count(f.freeStandard, "standard charger")} were free.`
     : null;
-  const waiting = f.waitingForCharge != null ? `${count(f.waitingForCharge, "car")} waiting for a charge` : null;
+  const waiting = f.waitingForCharge != null ? `${count(f.waitingForCharge, "car")} waited for a charge.` : null;
   if (!chargers && !waiting) return { title: "Checked the depot", detail: what ? `Looked for a free ${what}.` : null };
-  return { title: "Checked the depot", detail: `${capital([chargers, waiting].filter(Boolean).join(", "))}.` };
+  return { title: "Checked the depot", detail: capital([chargers, waiting].filter(Boolean).join(" ")) };
 }
 
 export function optionsText(n: number | null, best: string[] = []): Sentence {
@@ -289,7 +290,7 @@ export function whyPickedText(f: {
   if (!f.wantedKind || !f.chosenKind || f.wantedKind === f.chosenKind) return reason;
   // It took a kind it did not want. Say which of the three reasons it was, and claim "none free" only when counted.
   const wanted = word(f.wantedKind), chosen = word(f.chosenKind);
-  if (f.why === "power_limit") return `A ${wanted} would have gone over the depot's power limit, so it took a ${chosen}`;
+  if (f.why === "power_limit") return `The site had no power for a ${wanted}. The car got a ${chosen}`;
   if (f.why === "booked") return `It was booked for this car, so it took a ${chosen} over a ${wanted}`;
   // "could take it", not "was free": a charger free at the start of the minute can have gone to an earlier car in the
   // same minute, or not fit this car's plug. The depot line above counts what was free; this says what this car could use.

@@ -53,7 +53,7 @@ export const DepotLegend = () => {
           <div className="text-otto-white font-bold mb-1.5 text-[11px]">Legend</div>
           <div className="flex gap-4">
             <div className="space-y-1">
-              <div className="text-otto-gray font-semibold mb-0.5">Zones</div>
+              <div className="text-white font-semibold mb-0.5">Zones</div>
               {zones.map((z) => (
                 <div key={z.label} className="flex items-center gap-1.5">
                   <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: z.color, opacity: 0.6 }} />
@@ -62,7 +62,7 @@ export const DepotLegend = () => {
               ))}
             </div>
             <div className="space-y-1">
-              <div className="text-otto-gray font-semibold mb-0.5">Status</div>
+              <div className="text-white font-semibold mb-0.5">Status</div>
               {statuses.map((s) => (
                 <div key={s.label} className="flex items-center gap-1.5">
                   <div
@@ -74,7 +74,7 @@ export const DepotLegend = () => {
               ))}
             </div>
             <div className="space-y-1">
-              <div className="text-otto-gray font-semibold mb-0.5">OEM</div>
+              <div className="text-white font-semibold mb-0.5">OEM</div>
               {oems.map((o) => (
                 <div key={o.label} className="flex items-center gap-1.5">
                   <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: o.color }} />
@@ -86,7 +86,7 @@ export const DepotLegend = () => {
           {/* the mark VehicleDot (outline) and OwnerMarkers (3D badge) draw on a car its owner's agent set something on */}
           <div className="mt-1.5 flex items-center gap-1.5 border-t border-otto-gray/20 pt-1.5">
             <div className="w-2.5 h-2.5 rounded-sm" style={{ border: '1.5px solid #a78bfa', backgroundColor: '#8b5cf633' }} />
-            <span className="text-otto-white/70">Set by its owner's agent (tap the car)</span>
+            <span className="text-otto-white/70">Set by its owner's agent. Tap the car.</span>
           </div>
         </div>
       </div>

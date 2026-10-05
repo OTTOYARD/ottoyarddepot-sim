@@ -156,7 +156,7 @@ describe("buildQCard on a contract-1.4 card", () => {
 
   it("is not cleared to leave with services open, even at a full battery (rule 9)", () => {
     expect(q.leave.cleared).toBe(false);
-    expect(q.leave.words).toBe("Not cleared to leave: 2 services open (exterior wash, readiness check)");
+    expect(q.leave.words).toBe("Not ready to leave. 2 services open: exterior wash, readiness check.");
   });
 
   it("clears to leave only at target with every service done; a deferred service does not hold it", () => {
@@ -167,7 +167,7 @@ describe("buildQCard on a contract-1.4 card", () => {
     const low = { ...done, soc: 96 };
     const ql = buildQCard({ vehicleId: VID, card: low });
     expect(ql.leave.cleared).toBe(false);
-    expect(ql.leave.words).toBe("Not cleared to leave: battery 96% of 100%");
+    expect(ql.leave.words).toBe("Not ready to leave. Battery 96% of 100%.");
     // an unknown status is still owed
     const odd: QDepotCard = { ...done, card: { ...done.card!, needs: [{ svc: "charge", status: "queued_for_robot" }] } };
     expect(buildQCard({ vehicleId: VID, card: odd }).leave.cleared).toBe(false);
@@ -215,7 +215,7 @@ describe("buildQCard on a contract-1.5 card", () => {
 
   it("lists each replaced or let-go booking under plan changes, in words", () => {
     expect(q.changes.map((c) => c.words)).toEqual([
-      "Let go: parking W004, its window passed unused",
+      "Cancelled: parking W004, time window not used",
       "Replaced: service bay 01 (was 10:20 AM–10:26 AM)",
     ]);
   });
@@ -279,13 +279,13 @@ describe("buildQCard: moving, re-assigned, holding", () => {
       { purpose: "temp_hold", state: "active", stall_code: "NASH-STG-04", stall_kind: "staging", ends_at: "2026-09-22T15:40:00+00:00" },
     ] };
     const q = buildQCard({ vehicleId: VID, card: held });
-    expect(q.hold).toEqual({ words: "Temporary hold until OTTO-Q re-orchestrates", place: "parking 04", until: "2026-09-22T15:40:00+00:00" });
+    expect(q.hold).toEqual({ words: "Staging hold until OTTO-Q makes a new plan", place: "parking 04", until: "2026-09-22T15:40:00+00:00" });
   });
 
   it("a standing wait is a hold; once the car is sent on it is not", () => {
     const wait = row({ action: "stall_assignment", outcome: "noop_no_candidate", rationale: { verb: "hold_no_bay" }, standing: true });
     const q = buildQCard({ vehicleId: VID, card: DC_CHARGING, feed: [row({ occurred_at: "2026-09-22T14:00:00+00:00" }), wait] });
-    expect(q.hold?.words).toBe("Holding: no free bay");
+    expect(q.hold?.words).toBe("Waiting: no free bay");
     const sent = row({ occurred_at: "2026-09-22T15:20:00+00:00", rationale: { verb: "admit_wash" } });
     expect(buildQCard({ vehicleId: VID, card: DC_CHARGING, feed: [wait, sent] }).hold).toBeNull();
   });
@@ -332,9 +332,9 @@ describe("buildQCard from the twin snapshot alone", () => {
     expect(q.now.place).toBe("fast charger 04");
     expect(q.now.progress).toBeNull();
     expect(q.now.eta).toBeNull();
-    expect(q.now.arm).toBe("Charge arm plugging in (retry 1)");
+    expect(q.now.arm).toBe("Charge arm connects (retry 1)");
     expect(q.steps.published).toBe(false);
-    expect(q.leave.words).toBe("Not cleared to leave: battery 61% of 89%, 2 services open (charge, readiness check)");
+    expect(q.leave.words).toBe("Not ready to leave. Battery 61% of 89%. 2 services open: charge, readiness check.");
   });
 });
 

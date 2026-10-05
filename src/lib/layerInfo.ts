@@ -40,36 +40,35 @@ export const LAYER_INFO: Record<PlateId, LayerInfo> = {
     plate: "agent",
     title: "Agent",
     tagline: "Read & propose",
-    what:
-      "OTTO-Q's reasoning layer: a large language model agent that reads the whole depot and decides what the planners " +
-      "should be optimizing for right now.",
+    what: "The agent is the reasoning layer of OTTO-Q. It reads the whole depot and sets the goal for the planners.",
     why:
-      "A depot's priorities move through the day: a morning deploy wave, a grid peak, a faulted charger, a backlog of " +
-      "washes. A fixed rule weighs those the same way every hour. The agent reads the situation as it is and picks the " +
-      "objective that fits it, the way an experienced depot lead would.",
+      "A depot's priorities change during the day: a morning dispatch wave, a grid peak, a charger fault, a queue at " +
+      "the wash. A fixed rule gives each the same weight every hour. The agent reads the depot as it is now and picks " +
+      "the goal that fits.",
     does:
-      "On a regular beat it reads one frame of the depot (every car, stall, charger, booking and the grid), chooses one " +
-      "assignment objective and hands it to the solver chain, which plans against it. It can also ask to change a small " +
-      "set of run settings. Each pass, what it read and what it asked for, is on the Agent tab.",
+      "At regular intervals, the agent reads a snapshot of the whole depot. It picks one goal for stall assignment, and " +
+      "the solvers plan to that goal. It can also ask to change a few run settings. The Agent tab shows what it read " +
+      "and asked for in each pass.",
     technically: [
-      "NVIDIA Nemotron, served through NVIDIA's NIM API and called from a Supabase edge function. The exact model is " +
-        "written down with every call.",
-      "Fired asynchronously (pg_net), so the engine's tick never waits on it; its answer is applied when it lands.",
-      "Every call is one append-only row in ottoq_model_call_ledger, an evidence table that survives run purges. No " +
-        "chain-of-thought is stored.",
-      "A setting it asks for goes through ottoq_policy_set: only catalogued parameters, clamped to their declared " +
-        "minimum and maximum, and judged by the safety shield at the policy_write point.",
-      "If the model fails or has nothing to say, the deterministic objective stands, and the ledger records a fallback.",
+      "A Supabase edge function calls NVIDIA Nemotron on the NVIDIA NIM API. The record of each call names the exact " +
+        "model.",
+      "The engine calls it asynchronously through pg_net, so the tick never waits for it. The engine uses the answer " +
+        "when it arrives.",
+      "Each call adds one row to ottoq_model_call_ledger, an append-only evidence table that run purges do not delete. " +
+        "The table stores no chain-of-thought.",
+      "Each setting it asks for goes through ottoq_policy_set. That function accepts only catalogued parameters and " +
+        "clamps each to its declared range. The safety shield checks each change at the policy_write point.",
+      "If the agent fails or gives no answer, the deterministic goal stays in place. The ledger records a fallback.",
     ],
     chosen: [
-      "Choosing among named objectives from many signals at once is what a language model is good at. Computing an " +
-        "exact, feasible plan is not, so the plan stays with the solvers below.",
-      "Off the critical path by design: a slow or wrong answer can cost the depot one objective for a while, never a " +
-        "safety rule, a booking or a car's service.",
-      "One vendor platform for both the agent and cuOpt (NVIDIA), with every call ledgered either way, so the agent's " +
-        "record can be audited the same way the solvers' is.",
+      "A language model picks well among named goals from many signals at once. It is not good at exact, feasible " +
+        "plans, so the solvers below make the plan.",
+      "The agent is off the critical path on purpose. A slow or wrong answer can cost the depot the right goal for a " +
+        "time. It can never cost a safety rule, a booking or a service that a car needs.",
+      "NVIDIA serves both the agent and cuOpt. A ledger records each call to either, so a reviewer can audit the agent " +
+        "the same way as the solvers.",
     ],
-    never: "It never places a car, books a stall or starts a charge. It proposes; the deterministic core disposes.",
+    never: "It only proposes and never places a car, books a stall or starts a charge.",
     refs: [
       "edge-functions/ottoq-orchestrator-agent",
       "public.ottoq_model_call_ledger",
@@ -84,34 +83,35 @@ export const LAYER_INFO: Record<PlateId, LayerInfo> = {
     title: "Planners",
     tagline: "Optimize & offer",
     what:
-      "The optimization layer: solvers that turn the agent's objective into concrete offers, such as \"this car, this " +
-      "stall, this time\", for the decide path to accept or refuse.",
+      "The planners are solvers. They turn the agent's goal into offers, such as \"this car, this stall, this time\". " +
+      "The decide path accepts or refuses each offer.",
     why:
-      "Matching a fleet to a handful of fast chargers, slower chargers and service bays, under a shared site power cap, " +
-      "deadlines and the order services must happen in, is a combinatorial scheduling problem. A solver searches it far " +
-      "better than a hand-written rule, especially when the depot is busy and the scarce stalls are contested.",
+      "Cars compete for a few fast chargers, standard chargers and service bays under one site power cap. Each car has " +
+      "a deadline and a fixed order of services. A solver searches this combinatorial scheduling problem far better " +
+      "than a hand-written rule, most of all when many cars want the scarce stalls.",
     does:
-      "Each planner reads a frame of the depot (cars, free stalls, faulted chargers, standing bookings), solves, and sends " +
-      "its offers through one door. Every offer's fate is recorded: enacted, refused (and by which rule), replaced by a " +
-      "newer offer, or expired.",
+      "Each planner reads a snapshot of the depot: cars, free stalls, faulted chargers and bookings. It solves and sends " +
+      "its offers through one function. A ledger records what happens to each offer: chosen, refused by a named rule, " +
+      "replaced by a newer offer, or expired.",
     technically: [
-      "CP-SAT, the constraint-programming solver in Google OR-Tools, run as a service with a lexicographic objective " +
-        "(forward_lex): the most important goal first, the next one only among the plans that tie on it.",
-      "NVIDIA cuOpt, a GPU routing and linear-programming solver reached over NVIDIA's API, as an additional proposer.",
-      "Two planners inside the database: a shield-constrained greedy pick and a service-priority sequencer.",
-      "One door for every offer, public.ottoq_submit_external_proposal, and one ledger of what happened to each, " +
-        "ottoq_proposal_disposition_ledger (evidence class: it survives run purges).",
+      "CP-SAT, the constraint-programming solver in Google OR-Tools, runs as a service with a lexicographic objective, " +
+        "forward_lex. It ranks plans on the most important term first and uses each next term only to break ties.",
+      "NVIDIA cuOpt, a GPU solver for routing and linear programs, is another proposer that OTTO-Q calls through the " +
+        "NVIDIA API.",
+      "The database also runs a greedy planner, which the safety shield constrains, and a service-priority sequencer.",
+      "Every offer enters through public.ottoq_submit_external_proposal. The evidence table " +
+        "ottoq_proposal_disposition_ledger records what happened to each, and run purges do not delete it.",
     ],
     chosen: [
-      "CP-SAT can say what a depot actually is: one car per stall, a shared power cap, a cooldown between fast-charge " +
-        "sessions, a deadline per car. cuOpt's own documentation (release 26.08) has no construct for the first three, " +
-        "so cuOpt plans routes and offers stalls, and CP-SAT schedules the site.",
-      "CP-SAT can be made reproducible: its version is pinned, it runs on a deterministic time budget rather than a wall " +
-        "clock, and its worker count is fixed, so the same inputs give the same plan.",
-      "cuOpt documents no determinism guarantee for routing, so it is only ever consumed as a proposer behind the " +
-        "deterministic core, with its offers hashed into the run's certification.",
+      "CP-SAT can model one car per stall, a shared power cap, a fast-charge cooldown and a deadline per car. cuOpt's " +
+        "own documentation (release 26.08) has no construct for the first three. So on this one depot, cuOpt only " +
+        "offers stalls, and CP-SAT schedules the site.",
+      "OTTO-Q can make CP-SAT reproducible. It pins the version, fixes the worker count and sets a deterministic time " +
+        "budget, not a wall clock. So the same inputs give the same plan.",
+      "cuOpt documents no determinism guarantee for routing. So OTTO-Q uses it only as a proposer behind the decide " +
+        "path. The run's certification hash includes its offers.",
     ],
-    never: "No planner ever writes a final assignment. An offer is a proposal until the decide path enacts it.",
+    never: "No planner ever writes a final assignment, because the decide path makes every one.",
     refs: [
       "solvers/cpsat/model.py (OR-Tools CP-SAT)",
       "edge-functions/ottoq-cuopt-propose",
@@ -126,32 +126,32 @@ export const LAYER_INFO: Record<PlateId, LayerInfo> = {
     title: "Decide",
     tagline: "Choose one plan",
     what:
-      "The deterministic decide path: the part of OTTO-Q that actually decides, every tick, for every car in the depot.",
+      "The decide path is the deterministic part of OTTO-Q. Each tick, it makes the final decision for each car in the " +
+      "depot.",
     why:
-      "Someone has to be accountable for each decision. The same inputs must give the same decision every time, with a " +
-      "written reason, so any result can be replayed and checked. Planners can be fast, clever or nondeterministic; the " +
-      "decide path is none of those things, on purpose.",
+      "Someone must be accountable for each decision. The same inputs must always give the same decision, with a " +
+      "written reason, so anyone can replay and check a result. Planners can be fast, clever or nondeterministic. The " +
+      "decide path is none of these, on purpose.",
     does:
-      "Each tick it first reconciles what physically happened, then works through the depot in a fixed order: energy, " +
-      "cars due out, stall assignment, gate intake, charge hand-off, service bays, service order. For each car it takes a " +
-      "planner's offer, makes its own choice, or holds the car when nothing fits, books the stall and sends the command, " +
-      "all in one transaction.",
+      "Each tick, it first matches its records to what physically happened. Then it works through the depot in a fixed " +
+      "order: energy, cars due out, stall assignment, gate intake, charge hand-off, service bays, service order. For " +
+      "each car, it takes an offer, makes its own choice, or holds the car when nothing fits. Each choice books its " +
+      "stall and sends its command in one transaction.",
     technically: [
-      "PL/pgSQL inside Postgres: public.ottoq_decide_tick, driven by pg_cron alongside the world step.",
-      "Every decision is a row in ottoq_decisions, with the rules it was checked against and its latency.",
-      "Every enacted choice books its stall on the calendar, ottoq_stall_bookings, in the same transaction as the " +
-        "decision, against the exact stall enacted.",
-      "It never moves a car itself: it emits ottoq_vehicle_commands, and the twin carries them out or refuses them.",
+      "pg_cron runs public.ottoq_decide_tick, a PL/pgSQL function in Postgres, together with the world step.",
+      "Each decision is one row in ottoq_decisions, with its rule results and its latency.",
+      "When it places a car, it books the exact stall on the calendar, ottoq_stall_bookings, in the same transaction.",
+      "It never moves a car itself. It writes ottoq_vehicle_commands, and the twin carries them out or refuses them.",
     ],
     chosen: [
-      "Deciding next to the data means a decision and its booking commit together or not at all: there is no " +
-        "half-applied plan to clean up after a crash or a timeout.",
-      "Determinism is measured, not assumed: pairs of runs on the same seed are compared byte for byte across fourteen " +
-        "independent checks, and any engine change that should invalidate that certification does.",
-      "A deterministic disposer is what makes it safe to take advice from proposers that cannot promise the same answer " +
-        "twice: the agent and cuOpt.",
+      "The decide path runs next to the data, so a decision and its booking commit together or not at all. A crash " +
+        "or a timeout leaves no half-applied plan.",
+      "OTTO-Q measures determinism and does not assume it. It compares pairs of runs on the same seed byte for byte, " +
+        "on fourteen independent checks. Any engine change that should make the certification invalid does so.",
+      "The agent and cuOpt cannot promise the same answer twice. A deterministic decide path makes their advice safe " +
+        "to use.",
     ],
-    never: "It never lets a car leave below its charge target or with a needed service still open.",
+    never: "It never lets a car leave below its charge target or with a service still needed.",
     refs: [
       "public.ottoq_decide_tick",
       "public.ottoq_decisions",
@@ -167,35 +167,36 @@ export const LAYER_INFO: Record<PlateId, LayerInfo> = {
     title: "Safety",
     tagline: "Check & enforce",
     what:
-      "OTTO-Q's safety harness: a versioned set of rules checked at each decision point, standing on hard limits built " +
-      "into the database itself.",
+      "The safety shield is a versioned set of rules that OTTO-Q checks at each decision point. Under these rules, the " +
+      "database itself enforces hard limits.",
     why:
-      "Software that moves vehicles has to be unable to do some things, not merely unlikely to: book one stall twice, " +
-      "start a charge on a faulted charger, exceed the site's power, or release a car below its charge target or with a " +
-      "service still needed. A fleet owner's contract terms belong here too.",
+      "Software that moves cars must be unable to do some things, not only unlikely to. It must never book one stall " +
+      "twice, start a charge on a faulted charger or exceed the site power limit. It must never dispatch a car below " +
+      "its charge target or with a service still needed. A fleet owner's contract terms belong here too.",
     does:
-      "At each decision point the rules that apply to that action are evaluated and every verdict is logged. Where the " +
-      "point enforces, a failing rule refuses the action and the decide path falls back to a safe default; where it only " +
-      "advises, the verdict is recorded for review.",
+      "At each decision point, the shield checks the rules for that action and logs each result. Where the point " +
+      "enforces, a failed rule blocks the action and the decide path uses a safe default. Where it only advises, the " +
+      "shield records the result for review.",
     technically: [
-      "Rules are rows, not code: public.ottoq_rules, versioned, with parameters a fleet owner's contract can set " +
-        "(per-operator service levels).",
-      "Checked through public.ottoq_shield_probe; every verdict is a row in ottoq_rule_evaluations.",
-      "Which points enforce and which advise is read from the engine's own code each time it is asked " +
-        "(public.ottoq_shield_probe_posture), never from a list someone has to keep up to date.",
-      "Under the rules sit limits that refuse unconditionally: a calendar constraint that makes a double booking " +
-        "impossible, a unique index for one vehicle per stall, and an event log that rejects every edit and deletion.",
-      "One departure test at every exit, public.ottoq_departure_clear: below its charge target, or with a service " +
-        "still needed, a car does not leave.",
+      "Rules are versioned rows in public.ottoq_rules, not code. A fleet owner's contract can set their parameters, " +
+        "such as service levels per operator.",
+      "public.ottoq_shield_probe checks the rules, and each result is a row in ottoq_rule_evaluations.",
+      "public.ottoq_shield_probe_posture reads which points enforce and which advise from the engine code on each " +
+        "call. It uses no list that a person must keep up to date.",
+      "Under the rules are hard limits in the database that always refuse. A calendar constraint makes a double " +
+        "booking impossible. A unique index allows only one car per stall. The event log rejects every edit and " +
+        "deletion.",
+      "Every exit uses one departure test, public.ottoq_departure_clear. A car below its charge target or with a " +
+        "service still needed does not leave.",
     ],
     chosen: [
-      "Rules as data can be versioned, audited, and parameterized per fleet owner without a code change.",
-      "Limits enforced by the database hold for every caller, including an agent nobody has written yet. A guardrail " +
-        "inside an agent's own code is bypassed by anything that does not go through that code.",
-      "Every evaluation is evidence: a reviewer can count what was checked, what was refused and what was only noted, " +
-        "per decision point, from the ledger.",
+      "As data, rules can have versions, audits and parameters per fleet owner with no code change.",
+      "The database enforces its limits on every caller, even an agent that nobody has written yet. A check inside an " +
+        "agent's own code stops only what goes through that code.",
+      "Each check is evidence. From the ledger, a reviewer can count what each decision point checked, blocked and " +
+        "only noted.",
     ],
-    never: "No agent or planner can switch a rule off: a proposal reaches the depot only through these checks.",
+    never: "No agent or planner can turn a rule off, because a proposal reaches the depot only through these checks.",
     refs: [
       "public.ottoq_rules",
       "public.ottoq_shield_probe",
@@ -211,34 +212,32 @@ export const LAYER_INFO: Record<PlateId, LayerInfo> = {
     title: "Depot",
     tagline: "Dispatch & serve",
     what:
-      "The depot floor, where OTTO-Q's decisions become physical: cars driving the lanes, plugging in, going through " +
-      "wash and service bays, and leaving ready. In this app the depot is OTTO-TWIN, a simulated depot.",
+      "The depot is where OTTO-Q's decisions become physical. Cars drive the lanes, plug in, use the wash and service " +
+      "bays, and leave ready. In this app, the depot is OTTO-TWIN, a simulated depot.",
     why:
-      "A plan is only worth what it does to real cars. The twin is a world with physical limits (travel time, one car per " +
-      "stall, chargers that fault, technicians who are busy) so a decision that looks right on paper has to work on the " +
-      "floor before it counts.",
+      "A plan is only worth what it does to real cars. The twin has physical limits: travel time, one car per stall, " +
+      "charger faults and busy technicians. A decision counts only when it also works on the depot floor.",
     does:
-      "The twin owns the world: it moves each car along the depot's lanes, runs charging sessions on modelled chargers, " +
-      "completes services with the technicians on shift, and draws faults, weather and arrivals from distributions fitted " +
-      "to public data. It carries out OTTO-Q's commands or refuses them, and reports what happened.",
+      "The twin owns the world. It moves cars, charges them and completes services with the technicians on shift. It " +
+      "draws faults, weather and arrivals from distributions fitted to public data. It carries out OTTO-Q's commands " +
+      "or refuses them, and reports what happened.",
     technically: [
-      "Database-native: the world step is a set of Postgres functions (the twin schema), advanced on a virtual clock by " +
-        "pg_cron.",
-      "Every random draw is a pure hash of the run's seed, the entity and the sim time (twin.ottoq_sim_seeded_random), " +
-        "so a run can be replayed exactly.",
-      "OTTO-Q sends commands; the twin executes them and confirms or refuses each one. The 3D view draws the twin's " +
-        "snapshots and only interpolates motion between ticks.",
-      "Simulated rows and real telemetry share the same tables, told apart by a data_source column.",
+      "The world step is a set of Postgres functions in the twin schema. pg_cron advances them on a virtual clock.",
+      "twin.ottoq_sim_seeded_random makes each random draw a pure hash of the run seed, the entity and the sim time. " +
+        "So anyone can replay a run exactly.",
+      "OTTO-Q sends commands, and the twin carries out and confirms each one or refuses it. The 3D view draws the " +
+        "twin's snapshots and only interpolates motion between ticks.",
+      "Simulated rows and real telemetry share the same tables. A data_source column tells them apart.",
     ],
     chosen: [
-      "The swap test: OTTO-Q cannot tell this depot from a real one. Its inputs arrive as declared data, nothing from a " +
-        "simulated world is wired into its code, and a CI test enforces that separation.",
-      "A world in the same database as the engine makes every tick transactional and every run reproducible, so any " +
-        "number shown here can be traced to a run and re-derived.",
-      "Calibrated to public data (EV charging sessions, trip records, AV incident reports, grid and weather records) so " +
-        "the worlds look like real days rather than averages.",
+      "The swap test: OTTO-Q cannot tell the difference between this depot and a real one. Its inputs arrive as " +
+        "declared data, and its code holds nothing from the simulated world. A CI test enforces this separation.",
+      "The world and the engine share one database, so each tick is transactional and each run is reproducible. Any " +
+        "number shown here traces to a run, and anyone can derive it again.",
+      "Public data calibrates the twin: EV charge sessions, trip records, AV incident reports, and grid and weather " +
+        "records. So a simulated day looks like a real day, not an average.",
     ],
-    never: "The renderer never decides: a car is drawn where the twin says it is, and nowhere else.",
+    never: "The renderer never decides and draws each car only where the twin says it is.",
     refs: [
       "twin.ottoq_sim_seeded_random",
       "public.ottoq_twin_snapshot",

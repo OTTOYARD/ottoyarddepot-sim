@@ -131,6 +131,8 @@ const num = (v: unknown): number | null => {
 };
 const str = (v: unknown): string | null =>
   v === null || v === undefined ? null : String(v);
+/** "1 car" / "3 cars": a count and its noun, for the notes a viewer reads. */
+const plural = (n: number, one: string): string => `${n} ${n === 1 ? one : `${one}s`}`;
 
 /** Track which required fields resolved, so integrity is derived not asserted. */
 class FieldTracker {
@@ -233,18 +235,18 @@ export function packFleetTelemetry(
   const matchedCondition = vehicles.filter((v) => v.condition !== null).length;
   t.take("fleet.condition", condition ? matchedCondition || null : null);
   if (!condition) {
-    notes.push("fleet condition not fetched — the 8 per-vehicle veh_* attributes are unobservable on this frame");
+    notes.push("No fleet condition feed on this frame. The 8 condition values of each car are missing.");
   } else if (matchedCondition === 0 && raw.length > 0) {
     notes.push(
-      `fleet condition fetched but NONE of the ${raw.length} vehicles matched — ` +
-      `the condition feed describes a different fleet (depot mismatch?)`,
+      `The fleet condition feed matches NONE of the ${plural(raw.length, "car")}. ` +
+      "It describes a different fleet, possibly at another depot.",
     );
   } else if (matchedCondition < raw.length) {
-    notes.push(`${raw.length - matchedCondition} of ${raw.length} vehicles carry no drawn condition`);
+    notes.push(`No condition values for ${raw.length - matchedCondition} of ${raw.length} cars.`);
   }
   if (condition?.drawn_for_this_run === false) {
     notes.push(
-      "FLEET CONDITION BELONGS TO ANOTHER RUN: vehicles.config was drawn for " +
+      "FLEET CONDITION BELONGS TO ANOTHER RUN: " +
       `${(condition.drawn_run_ids ?? []).join(", ") || "an unknown run"}. ` +
       "This run is not reproducible from its seed.",
     );
@@ -252,7 +254,7 @@ export function packFleetTelemetry(
 
   const unmapped = [...new Set(vehicles.filter((v) => v.stage_unmapped).map((v) => v.state))];
   if (unmapped.length) {
-    notes.push(`unmapped vehicle states (add to STATE_TO_STAGE): ${unmapped.join(", ")}`);
+    notes.push(`Unknown car states: ${unmapped.join(", ")}. Add them to STATE_TO_STAGE.`);
   }
 
   const counts_by_stage = Object.fromEntries(ALL_STAGES.map((s) => [s, 0])) as Record<
@@ -278,7 +280,7 @@ export function packFleetTelemetry(
   t.take("fleet.soc", socs.length > 0 ? socs.length : null);
   t.take("fleet.stall_binding", vehicles.some((v) => v.stall_id !== null) ? 1 : null);
 
-  if (soc.missing > 0) notes.push(`${soc.missing} vehicle(s) reported no SoC`);
+  if (soc.missing > 0) notes.push(`No SoC from ${plural(soc.missing, "car")}.`);
 
   // ── OFF-SITE ─────────────────────────────────────────────────────────────
   // The depot-scoped feeds go blind the moment a vehicle leaves. This is the
@@ -300,24 +302,24 @@ export function packFleetTelemetry(
     : null;
   t.take("fleet.offsite", offsite ? offsite.dispatches?.total ?? null : null);
   if (!offsite) {
-    notes.push("off-site feed not fetched — trip duration and drive activity are unobservable on this frame");
+    notes.push("No off-site feed on this frame. Trip duration and drive activity are missing.");
   } else if ((offsite.dispatches?.completed ?? 0) === 0) {
-    notes.push("no completed trips yet — trip statistics describe nothing until a vehicle returns");
+    notes.push("No trip is complete yet. The trip statistics have no data until a car returns.");
   }
   // A plan that is wrong by more than half is worth saying out loud: an
   // orchestrator that pre-stages for the planned return will staff for a fleet
   // that is not coming.
   if (offsite?.duration?.ratio_p50 != null && offsite.duration.ratio_p50 > 1.5) {
     notes.push(
-      `trips run ${offsite.duration.ratio_p50}x their planned duration ` +
-      `(${offsite.duration.overran_plan} of ${offsite.dispatches.completed} overran) — ` +
-      "planned_duration_min is not a usable predictor",
+      `Trips take ${offsite.duration.ratio_p50}x their planned time. ` +
+      `${offsite.duration.overran_plan} of ${offsite.dispatches.completed} took longer than planned. ` +
+      "Do not use planned_duration_min as a predictor.",
     );
   }
   if (offsite?.arrival_jitter_delayed_n) {
     notes.push(
-      `${offsite.arrival_jitter_delayed_n} of ${offsite.dispatches.completed} arrivals carried jitter ` +
-      `(max ${offsite.arrival_jitter_min_max} min) — the p50 of ${offsite.arrival_jitter_min_p50} hides the tail`,
+      `${offsite.arrival_jitter_delayed_n} of ${offsite.dispatches.completed} arrivals were late, ` +
+      `by up to ${offsite.arrival_jitter_min_max} min. The p50 of ${offsite.arrival_jitter_min_p50} min does not show them.`,
     );
   }
 
@@ -331,13 +333,13 @@ export function packFleetTelemetry(
     : null;
   t.take("fleet.wear", wear ? wear.fleet_size || null : null);
   if (!wear) {
-    notes.push("wear feed not fetched — DTCs and service-due state are unobservable on this frame");
+    notes.push("No wear feed on this frame. DTCs and service-due state are missing.");
   } else {
-    if (wear.due?.pm_overdue) notes.push(`${wear.due.pm_overdue} vehicle(s) past their drawn PM interval`);
+    if (wear.due?.pm_overdue) notes.push(`PM overdue on ${plural(wear.due.pm_overdue, "car")}.`);
     if (wear.dtc?.open_total) {
       notes.push(
-        `${wear.dtc.open_total} open DTC(s) on ${wear.dtc.vehicles_with_open} vehicle(s), ` +
-        `worst rank ${wear.dtc.worst_rank} (lower is worse)`,
+        `${plural(wear.dtc.open_total, "open DTC")} on ${plural(wear.dtc.vehicles_with_open, "car")}. ` +
+        `Worst rank: ${wear.dtc.worst_rank}. A lower rank is worse.`,
       );
     }
   }
@@ -377,8 +379,8 @@ export function packEnergyGrid(
   const b = (snap.bess ?? {}) as Record<string, unknown>;
   const g = (snap.grid ?? {}) as Record<string, unknown>;
 
-  if (!snap.energy) notes.push("no site_energy_snapshots row within this run's sim window");
-  if (!snap.grid) notes.push("no ottoq_grid_snapshots row for this run");
+  if (!snap.energy) notes.push("No site_energy_snapshots row in the sim window of this run.");
+  if (!snap.grid) notes.push("No ottoq_grid_snapshots row for this run.");
 
   const grid_import_kw = t.take("site.grid_import_kw", num(e.grid_import_kw));
   const grid_export_kw = t.take("site.grid_export_kw", num(e.grid_export_kw));
@@ -404,7 +406,7 @@ export function packEnergyGrid(
         ) / 10
       : null;
   if (balance_residual_kw !== null && Math.abs(balance_residual_kw) > 25) {
-    notes.push(`site power balance residual ${balance_residual_kw} kW — model does not close`);
+    notes.push(`Site power supply and draw do not balance. The difference is ${balance_residual_kw} kW.`);
   }
 
   const bess_soc = t.take("bess.soc_pct", num(b.soc_pct));
@@ -425,7 +427,7 @@ export function packEnergyGrid(
   const load_kw =
     ev_charging_kw === null || building_kw === null ? null : ev_charging_kw + building_kw;
   const headroom_kw = cap_kw === null || load_kw === null ? null : Math.round((cap_kw - load_kw) * 10) / 10;
-  if (dr_active && cap_kw === null) notes.push("DR call active but no cap_kw published — cannot shed to a target");
+  if (dr_active && cap_kw === null) notes.push("A DR call is active but has no cap_kw. There is no target to shed load to.");
 
   const gridAt = str(g.at);
   // The channel is only as fresh as its OLDEST constituent observation.
@@ -519,7 +521,7 @@ export function packDepotOps(
       tethered: s.tethered === true,
       tether_until: str(s.tether_until),
     }));
-    notes.push("layout not loaded — stall inventory is PARTIAL (occupied stalls only)");
+    notes.push("The layout is not loaded. The stall inventory is PARTIAL: occupied stalls only.");
   }
 
   // ── LAYOUT/FLEET IDENTITY GUARD ─────────────────────────────────────────
@@ -550,15 +552,15 @@ export function packDepotOps(
   t.take("layout.matches_run", layoutMatchesRun === true ? 1 : null);
   if (layoutMatchesRun === false) {
     notes.push(
-      `LAYOUT DOES NOT BELONG TO THIS RUN: 0 of ${statusRows.length} occupied stall(s) ` +
-      `resolve against the ${layoutStalls.length}-stall layout for depot ` +
-      `${layout?.depot?.id ?? "unknown"}. Capacity, utilization and charging counts ` +
-      `on this frame describe a different depot and must not be acted on.`,
+      `LAYOUT DOES NOT BELONG TO THIS RUN: 0 of ${plural(statusRows.length, "occupied stall")} ` +
+      `match the ${layoutStalls.length}-stall layout of depot ${layout?.depot?.id ?? "unknown"}. ` +
+      "The capacity, utilization and charging counts on this frame describe a different depot. " +
+      "Do not act on them.",
     );
   } else if (layoutMatchesRun === true && resolvedStatus < statusRows.length) {
     notes.push(
-      `${statusRows.length - resolvedStatus} of ${statusRows.length} occupied stall(s) ` +
-      `are absent from the layout — layout may be stale`,
+      `${statusRows.length - resolvedStatus} of ${plural(statusRows.length, "occupied stall")} ` +
+      "are not in the layout. The layout can be out of date.",
     );
   }
 
@@ -593,7 +595,9 @@ export function packDepotOps(
   const waiting = stages.filter((s) => s === "at_gate" || s === "queued").length;
   const in_service = stages.filter((s) => s === "charging" || s === "servicing").length;
   const pressure_ratio = available > 0 ? Math.round((waiting / available) * 1000) / 1000 : null;
-  if (available === 0 && waiting > 0) notes.push(`${waiting} vehicle(s) waiting with zero available stalls`);
+  if (available === 0 && waiting > 0) {
+    notes.push(`${plural(waiting, "car")} ${waiting === 1 ? "waits" : "wait"}, but no stall is available.`);
+  }
 
   // ── SERVICE TIMERS, from the twin's timed-leg feed ────────────────────────
   //
@@ -648,9 +652,9 @@ export function packDepotOps(
   t.take("queue.waiting", fleet.length > 0 ? waiting : null);
   t.take("service_timers", snap.legs === undefined ? null : service_timers.length);
   if (snap.legs === undefined) {
-    notes.push("snapshot carried no legs array — service timing unavailable on this frame");
+    notes.push("The snapshot has no legs field. Service timing is not on this frame.");
   } else if (service_timers.length === 0) {
-    notes.push(`no service legs in flight (${legs.length} leg(s) on frame, all travel or closed)`);
+    notes.push(`No open service steps. ${plural(legs.length, "step")} on this frame, all travel or closed.`);
   }
 
   // The events window is a SEPARATE fetch from the snapshot, so it can be
@@ -661,8 +665,8 @@ export function packDepotOps(
   const er = events?.reliability;
   const th = events?.throughput;
   t.take("events.window", events ? 1 : null);
-  if (!events) notes.push("events window not fetched — reliability rates and demand forecast unavailable");
-  else if (!events.demand_forecast) notes.push("run has emitted no arrival forecast yet");
+  if (!events) notes.push("No events window on this frame. Reliability rates and the demand forecast are missing.");
+  else if (!events.demand_forecast) notes.push("The run has no arrival forecast yet.");
 
   const demand_forecast: DemandForecast | null = events?.demand_forecast
     ? {
@@ -714,25 +718,26 @@ export function packDepotOps(
   t.take("labor.staffing", labor && Object.keys(labor.staffing ?? {}).length > 0 ? 1 : null);
   t.take("labor.lane_caps", labor?.lanes?.wash_cap ?? null);
   if (!labor) {
-    notes.push("labor feed not fetched — staffing-imposed lane limits are unobservable on this frame");
+    notes.push("No labor feed on this frame. The staffing limits on lanes are missing.");
   } else if (labor.lanes.charge_cap != null
              && labor.lanes.charge_stalls_physical != null
              && labor.lanes.charge_cap < labor.lanes.charge_stalls_physical) {
     notes.push(
-      `charge admission is staffing-capped at ${labor.lanes.charge_cap} of ` +
-      `${labor.lanes.charge_stalls_physical} charge stalls — free stalls overstate ` +
-      "how many vehicles can actually be put on charge",
+      `Staffing limits charging to ${labor.lanes.charge_cap} of ` +
+      `${labor.lanes.charge_stalls_physical} charge stalls. ` +
+      "Fewer cars can charge than the free stalls show.",
     );
   } else if (labor.lanes.wash_cap === null) {
     notes.push(
-      "no lane cap observed yet: the sim stamps effective capacity only when a lane is contended. " +
-      "Absence means no contention, NOT unlimited capacity.",
+      "No lane cap yet. The sim records a cap only when cars wait for a lane. " +
+      "No cap means no wait so far, NOT unlimited capacity.",
     );
   }
   if (labor && labor.overflow.events > 0) {
     notes.push(
-      `labor bound ${labor.overflow.events}x (${labor.overflow.vehicles_total} vehicle-waits, ` +
-      `peak ${labor.overflow.vehicles_max}) — stall availability overstates real throughput`,
+      `Staffing made cars wait ${plural(labor.overflow.events, "time")}: ` +
+      `${labor.overflow.vehicles_total} car waits, up to ${labor.overflow.vehicles_max} at once. ` +
+      "Stall availability overstates real throughput.",
     );
   }
 
@@ -750,12 +755,12 @@ export function packDepotOps(
   t.take("policy.observed", policyPayload?.observed ?? null);
   if (policyPayload?.matches_config === false) {
     notes.push(
-      `POLICY MISMATCH: run configured '${policyPayload.configured}' but ` +
-      `${JSON.stringify(policyPayload.variants)} made the decisions — this run is not a valid ` +
-      "benchmark of the configured policy",
+      `POLICY MISMATCH: the run is set to '${policyPayload.configured}', but ` +
+      `${JSON.stringify(policyPayload.variants)} made the decisions. ` +
+      "This run is not a valid benchmark of that policy.",
     );
   } else if (runContext && !policyPayload?.observed) {
-    notes.push("no deploy decision has been logged yet — the policy in force is unproven");
+    notes.push("The log has no dispatch decision yet. The policy in use is not proven.");
   }
 
   const payload: DepotOpsPayload = {
@@ -855,9 +860,9 @@ export function packChargerSystems(
     ? Math.round(charging.reduce((a, c) => a + (c.rated_kw ?? 0), 0) * 10) / 10
     : null;
 
-  if (chargers.length === 0) notes.push("no charger stalls resolved — layout missing or has no dcfc/l2 stalls");
+  if (chargers.length === 0) notes.push("No charger stalls found. The layout is missing or has no DCFC or L2 stalls.");
   if (ratedKnown.length !== chargers.length) {
-    notes.push(`${chargers.length - ratedKnown.length} charger(s) have no connector_kw in the layout`);
+    notes.push(`No connector_kw in the layout for ${plural(chargers.length - ratedKnown.length, "charger")}.`);
   }
 
   t.take("chargers.inventory", chargers.length > 0 ? chargers.length : null);
@@ -875,14 +880,14 @@ export function packChargerSystems(
   t.take("layout.matches_run", layoutMatchesRun === true ? 1 : null);
   if (layoutMatchesRun === false) {
     notes.push(
-      `LAYOUT DOES NOT BELONG TO THIS RUN: none of the ${statusRows.length} occupied ` +
-      `stall(s) exist in depot ${layout?.depot?.id ?? "unknown"}'s layout. ` +
-      `Charger occupancy and committed kW on this frame are meaningless.`,
+      `LAYOUT DOES NOT BELONG TO THIS RUN: 0 of ${plural(statusRows.length, "occupied stall")} ` +
+      `are in the layout of depot ${layout?.depot?.id ?? "unknown"}. ` +
+      "The charger occupancy and committed kW on this frame are not valid.",
     );
   }
   // Declared-but-unfed — see contracts.ts ChargerSystemsPayload.ocpp.
   t.take("ocpp.health", null);
-  notes.push("ocpp health unavailable: ottoq_ocpp_chargers is not published on the twin snapshot");
+  notes.push("OCPP health is not available. The twin snapshot does not include ottoq_ocpp_chargers.");
 
   // PER-CHARGER health is still dark (above). POPULATION charging behaviour is
   // not: the charge-session event log carries the observed curve, the fault
@@ -892,13 +897,13 @@ export function packChargerSystems(
   const ec = events?.charging;
   const erel = events?.reliability;
   t.take("charging.observed", ec ? 1 : null);
-  if (!events) notes.push("events window not fetched — charge curve and fault rate unavailable");
+  if (!events) notes.push("No events window on this frame. The charge curve and fault rate are missing.");
   // `sessions_started` is emitted by NOTHING — it appears in no live events
   // window. `undefined > 0` is false, so this note could never fire and the
   // "twin models no battery health" finding was unreportable. Guarded on
   // sessions_completed, which the backend does emit.
   if (ec && ec.battery_soh_pct_p50 === null && (ec.sessions_completed ?? 0) > 0) {
-    notes.push("battery SoH absent from every charge session — the twin models no fleet battery health");
+    notes.push("No charge session carries a battery SoH value.");
   }
 
   const observed_charging: ObservedCharging | null = ec
@@ -964,7 +969,7 @@ export function packEnvironment(
   const t = new FieldTracker();
   const notes: string[] = [];
   const w = (snap.weather ?? {}) as Record<string, unknown>;
-  if (!snap.weather) notes.push("no ottoq_weather_snapshots row for this run");
+  if (!snap.weather) notes.push("No ottoq_weather_snapshots row for this run.");
 
   const temp_c = t.take("temp_c", num(w.temp_c));
   const cloud_pct = t.take("cloud_pct", num(w.cloud_pct));
