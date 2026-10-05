@@ -53,7 +53,7 @@ export const DepotLegend = () => {
           <div className="text-otto-white font-bold mb-1.5 text-[11px]">Legend</div>
           <div className="flex gap-4">
             <div className="space-y-1">
-              <div className="text-otto-gray font-semibold mb-0.5">Zones</div>
+              <div className="text-white font-semibold mb-0.5">Zones</div>
               {zones.map((z) => (
                 <div key={z.label} className="flex items-center gap-1.5">
                   <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: z.color, opacity: 0.6 }} />
@@ -62,7 +62,7 @@ export const DepotLegend = () => {
               ))}
             </div>
             <div className="space-y-1">
-              <div className="text-otto-gray font-semibold mb-0.5">Status</div>
+              <div className="text-white font-semibold mb-0.5">Status</div>
               {statuses.map((s) => (
                 <div key={s.label} className="flex items-center gap-1.5">
                   <div
@@ -74,7 +74,7 @@ export const DepotLegend = () => {
               ))}
             </div>
             <div className="space-y-1">
-              <div className="text-otto-gray font-semibold mb-0.5">OEM</div>
+              <div className="text-white font-semibold mb-0.5">OEM</div>
               {oems.map((o) => (
                 <div key={o.label} className="flex items-center gap-1.5">
                   <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: o.color }} />

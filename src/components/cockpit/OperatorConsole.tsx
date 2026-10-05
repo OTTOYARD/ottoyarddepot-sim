@@ -199,7 +199,7 @@ function VarControl({ v, knobs, expanded, onToggleExpand, commit, verdict }: {
       <span className="text-[12px] text-ink">{v.label}</span>
       {dirty && <span className="w-1.5 h-1.5 rounded-full bg-brand-red" />}
       <TooltipProvider><Tooltip>
-        <TooltipTrigger asChild><Info size={11} className="text-ink-faint/60 hover:text-ink-dim" /></TooltipTrigger>
+        <TooltipTrigger asChild><Info size={11} className="text-ink-faint" /></TooltipTrigger>
         <TooltipContent className="max-w-[240px] bg-canvas-elev border-white/10 text-ink text-[11px]">{v.definition}</TooltipContent>
       </Tooltip></TooltipProvider>
       {/*
@@ -518,7 +518,7 @@ export const OperatorConsole = () => {
           <div className="text-[10px] font-mono text-ink-faint">
             run {runId.slice(0,8)} · {snapshot?.run?.status ?? "—"} · t{snapshot?.run?.tick_count ?? 0}
             {typeof snapshot?.run?.speed_x === "number" && ` · ${snapshot.run.speed_x}× on the run`}
-            <div className="text-ink-faint/70">Stop the run to choose another scenario.</div>
+            <div className="text-ink-faint">Stop the run to choose another scenario.</div>
           </div>
         )}
       </Group>

@@ -62,7 +62,7 @@ export const StallTooltip = ({ svgRef }: Props) => {
           {stall.status}
         </Badge>
       </div>
-      <div className="text-otto-gray text-[10px]">{TYPE_LABELS[stall.type]}</div>
+      <div className="text-white text-[10px]">{TYPE_LABELS[stall.type]}</div>
       {stall.vehicleId && (
         <div className="text-otto-teal text-[10px] mt-0.5">Vehicle: {stall.vehicleId}</div>
       )}

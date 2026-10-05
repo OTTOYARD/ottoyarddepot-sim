@@ -76,7 +76,12 @@ export default {
         // ... dark gray text over top of the dark or charcoal background."
         // Re-measured on the new values: DEFAULT 15.4:1, dim 8.4:1, faint 4.8:1 --
         // still a clean three-step hierarchy, now with every step above AA.
-        ink:    { DEFAULT: '#E7EAF0', dim: '#A8AEBB', faint: '#7B818D' },
+        // Chase, 2026-10-05: "make sure not to use grey text on the black background
+        // for the twin/simulation text in the app. That is very hard to read. Needs
+        // to be white against the dark background." So all three levels are white
+        // (18.5:1 on canvas.panel). Hierarchy comes from size, weight and case, not
+        // from grey. The names stay so no class has to change.
+        ink:    { DEFAULT: '#FFFFFF', dim: '#FFFFFF', faint: '#FFFFFF' },
         brand:  { red: '#C8102E', deep: '#8E0B20', hot: '#E8293F' },
         state:  { go: '#C9E0D4', info: '#D8DDFF', warn: '#FFEBC9', crit: '#FF8A80' },
       },

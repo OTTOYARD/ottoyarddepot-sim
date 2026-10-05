@@ -192,7 +192,7 @@ export const WorldContractTab = () => {
                 </div>
               )}
               {env.integrity.notes.map((n, i) => (
-                <div key={i} className="text-[9px] text-ink-faint/80 leading-snug italic">{n}</div>
+                <div key={i} className="text-[9px] text-ink-faint leading-snug italic">{n}</div>
               ))}
             </div>
           );

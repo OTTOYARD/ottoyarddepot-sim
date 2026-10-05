@@ -76,7 +76,7 @@ export const TwinAiSummaryTab = () => {
   if (!activeSimRunId || !snapshot) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-        <Brain className="w-8 h-8 text-ink-faint/40 mb-3" />
+        <Brain className="w-8 h-8 text-ink-faint mb-3" />
         <p className="text-xs text-ink-dim mb-1">OTTO-Q Analysis</p>
         <p className="text-[10px] text-ink-faint max-w-[220px]">Start a scenario in Run Control, then generate a live analysis of what OTTO-Q is doing.</p>
       </div>

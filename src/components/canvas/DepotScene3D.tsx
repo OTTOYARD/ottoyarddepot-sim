@@ -168,7 +168,7 @@ if (typeof window !== 'undefined') {
 
 const QUALITY_CYCLE = ['auto', 'high', 'medium', 'low'] as const;
 // Finger-sized on touch screens (44 px tall, the platform minimum), unchanged with a mouse.
-const PRESET_BTN = 'px-2 py-1 text-[10px] font-mono rounded bg-black/60 text-otto-gray border border-white/10 hover:bg-white/10 hover:text-white transition-colors [@media(pointer:coarse)]:min-h-[44px] [@media(pointer:coarse)]:px-3 [@media(pointer:coarse)]:text-[11px]';
+const PRESET_BTN = 'px-2 py-1 text-[10px] font-mono rounded bg-black/60 text-white border border-white/10 hover:bg-white/10 hover:text-white transition-colors [@media(pointer:coarse)]:min-h-[44px] [@media(pointer:coarse)]:px-3 [@media(pointer:coarse)]:text-[11px]';
 
 /**
  * The standalone live view (src/viewer, `/view.html`): a host outside the cockpit frames the camera, spins it, and
@@ -377,7 +377,7 @@ export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0, viewe
           <button
             onClick={() => setFollow(null)}
             aria-label="Stop following"
-            className="ml-1 w-6 h-6 -my-1 flex items-center justify-center rounded text-otto-gray hover:text-white hover:bg-white/10"
+            className="ml-1 w-6 h-6 -my-1 flex items-center justify-center rounded text-white hover:text-white hover:bg-white/10"
           >
             ✕
           </button>

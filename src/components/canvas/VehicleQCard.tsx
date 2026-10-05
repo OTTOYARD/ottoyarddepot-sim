@@ -152,7 +152,7 @@ export function QCardBody({ card, oem, onClose, cardsStatus, owner }: {
   const [trail, setTrail] = useState(false);
   useEffect(() => setTrail(false), [card.vehicleId]);
   const b = card.battery;
-  const oemColor = OEM_COLORS[(oem ?? '').toLowerCase()] ?? '#A8AEBB';
+  const oemColor = OEM_COLORS[(oem ?? '').toLowerCase()] ?? '#FFFFFF';
   const stepsNote = cardsStatus === 'waiting' ? 'Waiting for the depot cards…'
     : cardsStatus === 'other_run' ? 'The depot cards describe another run.'
     : `${DASH} no plan steps published for this car`;
@@ -230,14 +230,14 @@ export function QCardBody({ card, oem, onClose, cardsStatus, owner }: {
                   className="rounded border px-1.5 py-[1px] text-[10px]"
                   style={n.state === 'done' ? { borderColor: 'rgba(52,211,153,0.4)', color: OK }
                     : n.state === 'active' ? { borderColor: TEAL, color: '#E7EAF0' }
-                    : n.state === 'dropped' || n.state === 'deferred' ? { borderColor: 'rgba(255,255,255,0.12)', color: '#7B818D' }
-                    : { borderColor: 'rgba(255,255,255,0.2)', color: '#A8AEBB' }}>
+                    : n.state === 'dropped' || n.state === 'deferred' ? { borderColor: 'rgba(255,255,255,0.12)', color: '#FFFFFF' }
+                    : { borderColor: 'rgba(255,255,255,0.2)', color: '#FFFFFF' }}>
                   {n.state === 'done' ? '✓ ' : n.state === 'active' ? '◐ ' : ''}
                   <span style={{ textDecoration: n.state === 'dropped' ? 'line-through' : undefined }}>{n.label}</span>
-                  <span className="ml-1 font-mono text-[9px] opacity-80">
+                  <span className="ml-1 font-mono text-[9px]">
                     {n.state === 'done' ? clock(n.doneAt) : n.estMin !== null ? `~${n.estMin}m` : ''}
                   </span>
-                  {n.note && <span className="ml-1 text-[9px] opacity-80">({n.note})</span>}
+                  {n.note && <span className="ml-1 text-[9px]">({n.note})</span>}
                 </li>
               ))}
             </ul>
@@ -258,8 +258,8 @@ export function QCardBody({ card, oem, onClose, cardsStatus, owner }: {
       {/* rule 9 */}
       <div className="mt-2 rounded px-2 py-1 text-[10px]" data-testid="qcard-leave" data-cleared={String(card.leave.cleared)}
         style={card.leave.cleared === true ? { background: 'rgba(52,211,153,0.12)', color: OK }
-          : card.leave.cleared === false ? { background: 'rgba(255,255,255,0.04)', color: '#A8AEBB' }
-          : { background: 'rgba(255,255,255,0.03)', color: '#7B818D' }}>
+          : card.leave.cleared === false ? { background: 'rgba(255,255,255,0.04)', color: '#FFFFFF' }
+          : { background: 'rgba(255,255,255,0.03)', color: '#FFFFFF' }}>
         {card.leave.words}
       </div>
 

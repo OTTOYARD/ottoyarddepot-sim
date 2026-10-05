@@ -27,7 +27,7 @@ export const DOMAIN_META: Record<EventDomain, { label: string; color: string }> 
   charging: { label: "Charging", color: "#00B4A6" },
   vehicles: { label: "Vehicles", color: "#7C9CFF" },
   depot: { label: "Depot", color: "#E0B341" },
-  records: { label: "Records", color: "#8A8F98" },
+  records: { label: "Records", color: "#FFFFFF" },
 };
 
 /** Records are one row per settled operation or OEM hand-off: the ledger, not the story. Off by default. */

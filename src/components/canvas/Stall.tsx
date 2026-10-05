@@ -69,7 +69,7 @@ function ChargerStall({ stall, fill, stroke }: { stall: StallState; fill: string
         fill={fill} stroke={stroke} strokeWidth={0.5} opacity={0.9} rx={0.6} />
       <rect x={-cw / 2} y={-cd / 2} width={cw} height={cd} transform={`translate(${cab.x} ${cab.y}) rotate(${cabDeg})`}
         fill="#d4d8dd" opacity={0.85} rx={0.2} />
-      <text x={x} y={y + 1} textAnchor="middle" fontSize={3} fill="#ffffff" opacity={0.7} pointerEvents="none">
+      <text x={x} y={y + 1} textAnchor="middle" fontSize={3} fill="#ffffff" pointerEvents="none">
         {stall.id.split('-')[1]}
       </text>
     </>

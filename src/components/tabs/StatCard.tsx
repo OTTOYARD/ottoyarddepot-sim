@@ -58,7 +58,7 @@ export const StatCard = React.memo(function StatCard({
 }: StatCardProps) {
   const trendColor =
     trend?.direction === 'neutral'
-      ? 'text-otto-gray'
+      ? 'text-white'
       : trend?.direction === (trend?.goodDirection ?? 'up')
         ? 'text-otto-teal'
         : 'text-otto-red';
@@ -69,7 +69,7 @@ export const StatCard = React.memo(function StatCard({
     <div
       className={`bg-otto-dark rounded-lg border border-white/10 p-3 flex flex-col gap-1 ${className}`}
     >
-      <span className="text-[10px] text-otto-gray uppercase tracking-wider">{label}</span>
+      <span className="text-[10px] text-white uppercase tracking-wider">{label}</span>
 
       <div className="flex items-center justify-between gap-2">
         {variant === 'circular-progress' ? (
@@ -86,7 +86,7 @@ export const StatCard = React.memo(function StatCard({
             />
             <span className="text-lg font-mono text-white font-bold">
               {showNumber(value)}
-              {unit && <span className="text-xs text-otto-gray ml-0.5">{unit}</span>}
+              {unit && <span className="text-xs text-white ml-0.5">{unit}</span>}
             </span>
           </div>
         ) : variant === 'bar-gauge' ? (
@@ -94,7 +94,7 @@ export const StatCard = React.memo(function StatCard({
             <div className="flex justify-between mb-1">
               <span className="text-lg font-mono text-white font-bold">
                 {typeof value === 'number' ? (value * 100).toFixed(0) : value}
-                <span className="text-xs text-otto-gray ml-0.5">%</span>
+                <span className="text-xs text-white ml-0.5">%</span>
               </span>
             </div>
             <div className="h-2 bg-white/10 rounded-full overflow-hidden">
@@ -110,7 +110,7 @@ export const StatCard = React.memo(function StatCard({
         ) : (
           <span className="text-lg font-mono text-white font-bold">
             {showNumber(value)}
-            {unit && <span className="text-xs text-otto-gray ml-0.5">{unit}</span>}
+            {unit && <span className="text-xs text-white ml-0.5">{unit}</span>}
           </span>
         )}
 

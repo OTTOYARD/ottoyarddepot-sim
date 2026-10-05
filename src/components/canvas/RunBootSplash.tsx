@@ -139,28 +139,28 @@ export function RunBootSplash() {
       <div className="w-[560px] max-w-[92%] rounded-lg border border-white/10 bg-black/60 p-6 font-mono text-white shadow-2xl">
         <div className="flex items-baseline justify-between">
           <div>
-            <div className="text-[11px] tracking-[0.25em] text-white/50">OTTO-TWIN · MONTE CARLO BOOT</div>
+            <div className="text-[11px] tracking-[0.25em] text-white">OTTO-TWIN · MONTE CARLO BOOT</div>
             <div className="mt-1 text-lg font-bold tracking-wide" style={{ color: "#C8102E" }}>
               DRAWING WORLD
             </div>
           </div>
-          <div className="text-right text-[11px] leading-5 text-white/60">
+          <div className="text-right text-[11px] leading-5 text-white">
             {manifest?.scenario && <div>{manifest.scenario}</div>}
             {draw?.seed != null && <div>seed {draw.seed}</div>}
           </div>
         </div>
 
         {!draw?.ok ? (
-          <div className="mt-6 text-xs text-white/50">attaching to run…</div>
+          <div className="mt-6 text-xs text-white">attaching to run…</div>
         ) : (
           <>
-            <div className="mt-4 flex gap-6 text-xs text-white/80">
+            <div className="mt-4 flex gap-6 text-xs text-white">
               <span>
-                <span className="text-white/40">fleet drawn </span>
+                <span className="text-white">fleet drawn </span>
                 {draw.vehicles_drawn ?? "—"} vehicles
               </span>
               <span>
-                <span className="text-white/40">draw time </span>
+                <span className="text-white">draw time </span>
                 {draw.draw_ms != null ? `${draw.draw_ms} ms` : "—"}
               </span>
             </div>
@@ -172,10 +172,10 @@ export function RunBootSplash() {
                 if (!s) return null;
                 return (
                   <div key={key} className="flex items-baseline justify-between text-[11px]">
-                    <span className="text-white/50">{meta.label}</span>
-                    <span className="tabular-nums text-white/90">
+                    <span className="text-white">{meta.label}</span>
+                    <span className="tabular-nums text-white">
                       {s.min}–{s.max}
-                      <span className="text-white/40"> {meta.unit}</span>
+                      <span className="text-white"> {meta.unit}</span>
                     </span>
                   </div>
                 );
@@ -189,9 +189,9 @@ export function RunBootSplash() {
                 if (v == null || Number.isNaN(Number(v))) return null;
                 return (
                   <span key={key}
-                        className="rounded border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-white/70">
-                    {label} <span className="text-white/95">{Number(v).toFixed(digits)}</span>
-                    {unit && <span className="text-white/40"> {unit}</span>}
+                        className="rounded border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-white">
+                    {label} <span className="text-white">{Number(v).toFixed(digits)}</span>
+                    {unit && <span className="text-white"> {unit}</span>}
                   </span>
                 );
               })}

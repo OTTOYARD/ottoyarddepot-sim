@@ -67,9 +67,9 @@ export const AlertToasts = () => {
               <Icon size={16} className="shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-bold leading-tight">{toast.alert.title}</p>
-                <p className="text-xs opacity-90 mt-0.5 line-clamp-2">{toast.alert.message}</p>
+                <p className="text-xs mt-0.5 line-clamp-2">{toast.alert.message}</p>
               </div>
-              <button onClick={() => dismiss(toast.alert.id)} className="shrink-0 opacity-70 hover:opacity-100">
+              <button onClick={() => dismiss(toast.alert.id)} className="shrink-0">
                 <X size={14} />
               </button>
             </div>

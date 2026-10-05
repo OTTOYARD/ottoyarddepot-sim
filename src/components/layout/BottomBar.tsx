@@ -39,7 +39,7 @@ export const BottomBar = () => {
   // ignored. Disable it and say WHY instead of letting the operator fight it.
   return (
     <div className="h-12 bg-otto-dark/90 border-t border-white/10 flex items-center px-4 gap-3 shrink-0">
-      <span className="text-white/70 text-xs font-mono w-16" title="Depot local time (America/Chicago)">{formatHHMM(simTime)} CT</span>
+      <span className="text-white text-xs font-mono w-16" title="Depot local time (America/Chicago)">{formatHHMM(simTime)} CT</span>
       <input
         type="range"
         min={0}
@@ -57,7 +57,7 @@ export const BottomBar = () => {
             ? 'opacity-50 cursor-not-allowed [&::-webkit-slider-thumb]:cursor-not-allowed'
             : 'cursor-pointer [&::-webkit-slider-thumb]:cursor-pointer'}`}
       />
-      <span className="text-white/70 text-xs font-mono w-12 text-right">
+      <span className="text-white text-xs font-mono w-12 text-right">
         {simClockLive ? 'LIVE' : '24:00'}
       </span>
       <AgentsConnected />

@@ -44,7 +44,7 @@ export const DepotCanvas = () => {
     <div className="flex-1 flex flex-col min-w-0">
       <div className="flex-1 relative overflow-hidden">
         {viewMode === 'photoreal' ? (
-          <Suspense fallback={<div className="absolute inset-0 flex items-center justify-center text-otto-gray">Loading photoreal stream…</div>}>
+          <Suspense fallback={<div className="absolute inset-0 flex items-center justify-center text-white">Loading photoreal stream…</div>}>
             <OmniverseViewer />
           </Suspense>
         ) : (
@@ -61,7 +61,7 @@ export const DepotCanvas = () => {
               </>
             ) : (
               <SceneErrorBoundary onReturnTo2D={() => setViewMode('2d')}>
-                <Suspense fallback={<div className="absolute inset-0 flex items-center justify-center text-otto-gray">Loading 3D…</div>}>
+                <Suspense fallback={<div className="absolute inset-0 flex items-center justify-center text-white">Loading 3D…</div>}>
                   <DepotScene3D />
                 </Suspense>
               </SceneErrorBoundary>

@@ -40,7 +40,7 @@ export const CATEGORY_META: Record<DecisionCategory, { label: string; color: str
   agent: { label: CATEGORY_LABEL.agent, color: "#A78BFA", icon: Brain },
   dispatch: { label: CATEGORY_LABEL.dispatch, color: "#00B4A6", icon: Truck },
   energy: { label: CATEGORY_LABEL.energy, color: "#F59E0B", icon: BatteryCharging },
-  plans: { label: CATEGORY_LABEL.plans, color: "#7B818D", icon: CalendarClock },
+  plans: { label: CATEGORY_LABEL.plans, color: "#FFFFFF", icon: CalendarClock },
   // otto-q-core 0536: the challenger's questions and hindsight grades, beside the decisions they question
   challenger: { label: CATEGORY_LABEL.challenger, color: "#F472B6", icon: Search },
 };
@@ -122,7 +122,7 @@ const TONE_COLOR: Record<DecisionTone, string> = {
   enacted: "#00B4A6",
   held: "#E8893F",
   warn: "#C8102E",
-  idle: "#7B818D",
+  idle: "#FFFFFF",
 };
 
 export const Row = ({ r, isNew = false }: { r: ActivityFeedRow; isNew?: boolean }) => {
@@ -264,7 +264,7 @@ export default function TwinDecisionLogTab() {
         <div className="p-2 space-y-1">
           {visible.length === 0 && !error && (
             <div className="flex flex-col items-center justify-center gap-2 py-12 text-ink-faint">
-              <Brain size={24} className="opacity-30" />
+              <Brain size={24} />
               <span className="text-[11px] text-center px-4">
                 {rows.length > 0
                   ? "Nothing in the categories shown. Turn one on above."
