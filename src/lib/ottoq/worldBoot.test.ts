@@ -147,7 +147,7 @@ describe("bootWorld", () => {
     // fully-populated frame still blocks. That is the gate working, not a bug.
     const { report } = await bootWorld({ ...opts, transport: transport() });
     expect(report.ready).toBe(false);
-    expect(report.blocked_by.join(" ")).toContain("depot_ops");
+    expect(report.blocked_by.join(" ")).toContain("Depot Availability & Service: partial");
   });
 
   it("records a failed required stage without aborting the rest of the boot", async () => {

@@ -29,7 +29,7 @@ describe('PhoneStartDialog — the phone Start really starts a run, after a conf
   it('offers the featured scenarios with Busy Day preselected and says the current run ends', async () => {
     setup();
     await act(async () => {});
-    expect(screen.getByText('Starting a new run ends and resets the current one.')).toBeTruthy();
+    expect(screen.getByText('A new run stops and resets the current run.')).toBeTruthy();
     const radios = screen.getAllByRole('radio');
     expect(radios.map((r) => r.textContent)).toEqual(
       ['Busy Day', 'Normal Day', 'Heat Wave', 'Winter Storm', 'DR Cascade', 'Charger Outage']);
@@ -66,7 +66,7 @@ describe('PhoneStartDialog — the phone Start really starts a run, after a conf
   it('"More options in Control" opens the Control tab and starts nothing', async () => {
     const { onOpenChange, onOpenControl } = setup();
     await act(async () => {});
-    fireEvent.click(screen.getByRole('button', { name: 'More options in Control' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open Control for more options' }));
     expect(onOpenControl).toHaveBeenCalledTimes(1);
     expect(onOpenChange).toHaveBeenCalledWith(false);
     expect(startDemoRun).not.toHaveBeenCalled();

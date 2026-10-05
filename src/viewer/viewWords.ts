@@ -12,16 +12,16 @@ const clockCT = (iso: string | null) => {
 export function stateWords(s: ViewState): { tone: "live" | "idle" | "warn"; text: string } {
   switch (s.kind) {
     case "connecting": return { tone: "idle", text: "Connecting to the twin…" };
-    case "no_run": return { tone: "idle", text: "No simulation running · the depot is empty until one starts" };
+    case "no_run": return { tone: "idle", text: "No run is active · the depot is empty until a run starts" };
     case "live": {
       const clock = clockCT(s.simClock);
       const paused = s.status.toLowerCase() === "paused";
       return { tone: paused ? "warn" : "live",
         text: `${paused ? "Paused" : "Live"} · run ${s.runId.slice(0, 8)}${clock ? ` · sim ${clock}` : ""} · ${s.cars} ${s.cars === 1 ? "car" : "cars"} on site` };
     }
-    case "ended": return { tone: "idle", text: `Run ${s.runId.slice(0, 8)} has ended (${s.status}) · the depot was cleared` };
-    case "not_found": return { tone: "warn", text: `Run ${s.runId.slice(0, 8)} was not found` };
+    case "ended": return { tone: "idle", text: `Run ${s.runId.slice(0, 8)} ended: ${s.status} · the twin cleared the depot` };
+    case "not_found": return { tone: "warn", text: `The twin has no run ${s.runId.slice(0, 8)}` };
     case "other_depot": return { tone: "warn", text: `Run ${s.runId.slice(0, 8)} is not a twin-depot run` };
-    case "offline": return { tone: "warn", text: "The twin is not answering · retrying" };
+    case "offline": return { tone: "warn", text: "The twin does not answer · the view tries again" };
   }
 }

@@ -21,8 +21,8 @@ export const CockpitPanel = () => {
         <span className="shrink-0 whitespace-nowrap font-mono text-[10px] text-ink-faint" title={runId}>run {runId.slice(0, 4)}…</span>
         {/* The cockpit keeps its own sign-in, and a framed app gets its own storage, so it asks
             once here. Google refuses to be framed (X-Frame-Options: DENY): use email, or the tab. */}
-        <span className="min-w-0 truncate font-mono text-[10px] text-ink-faint" title="Sign in once inside this panel with email. Google sign-in only works in a new tab.">
-          · sign in here with email · Google needs a tab
+        <span className="min-w-0 truncate font-mono text-[10px] text-ink-faint" title="Sign in one time in this panel, with email. Google sign-in works only in a new tab.">
+          · sign in here with email · Google: use a new tab
         </span>
         <a href={tab} target="_blank" rel="noopener" className="ml-auto text-ink-dim hover:text-ink" title="Open in a new tab">
           <ExternalLink size={13} />

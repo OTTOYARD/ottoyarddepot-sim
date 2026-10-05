@@ -22,8 +22,9 @@ import {
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useWorldStore } from "@/store/worldStore";
-import { CHANNEL_LABELS, type ChannelStatus } from "@/lib/ottoq/contracts";
-import { coverageHeadline } from "@/lib/ottoq/coverage";
+import { DOMAIN_LABELS } from "@/lib/ottoTwin";
+import { BUNDLE_STATUS_LABEL, CHANNEL_LABELS, type ChannelStatus } from "@/lib/ottoq/contracts";
+import { coverageHeadline, VERDICT_LABEL } from "@/lib/ottoq/coverage";
 
 // ── shared bits ─────────────────────────────────────────────────────────────
 
@@ -87,10 +88,10 @@ export const WorldContractTab = () => {
   );
 
   if (phase === "idle") {
-    return <Empty>No run adopted. Start a scenario to load the world.</Empty>;
+    return <Empty>No run is active. Start a run in Run Control to load the world.</Empty>;
   }
   if (phase === "loading") {
-    return <Empty>Loading the world…</Empty>;
+    return <Empty>World load in progress…</Empty>;
   }
   if (phase === "failed") {
     return <Empty><span className="text-state-crit">World load failed:</span> {bootError}</Empty>;
@@ -162,11 +163,11 @@ export const WorldContractTab = () => {
         title="Channels"
         right={
           <span className="ml-auto font-mono text-[9px] text-ink-faint">
-            {bundle?.status ?? "—"} · {framesPacked} frame{framesPacked === 1 ? "" : "s"}
+            {bundle ? BUNDLE_STATUS_LABEL[bundle.status] : "—"} · {framesPacked} frame{framesPacked === 1 ? "" : "s"}
           </span>
         }
       >
-        {!bundle && <span className="text-[10px] text-ink-faint">No frame packed yet.</span>}
+        {!bundle && <span className="text-[10px] text-ink-faint">No frame yet.</span>}
         {bundle && Object.entries(bundle.channels).map(([id, env]) => {
           const color = STATUS_COLOR[env.integrity.status];
           const required = boot?.channels.find((c) => c.channel === id)?.required;
@@ -184,11 +185,11 @@ export const WorldContractTab = () => {
               </div>
               <Bar value={env.integrity.completeness} color={color} />
               {env.staleness_s !== null && env.staleness_s > 0 && (
-                <div className="text-[9px] text-ink-faint font-mono">{env.staleness_s}s behind the world clock</div>
+                <div className="text-[9px] text-ink-faint font-mono">{env.staleness_s} s behind the sim clock</div>
               )}
               {env.integrity.missing.length > 0 && (
                 <div className="text-[9px] text-ink-faint leading-snug">
-                  missing: {env.integrity.missing.join(", ")}
+                  Missing: {env.integrity.missing.join(", ")}
                 </div>
               )}
               {env.integrity.notes.map((n, i) => (
@@ -224,24 +225,26 @@ export const WorldContractTab = () => {
                 means we are measuring one that no longer exists. */}
             {coverage.unbound_catalog_keys === null ? (
               <div className="text-[9px] text-state-warn leading-snug">
-                registry drift unknown — the variability catalog could not be read this run
+                Registry mismatch: unknown. The variability catalog did not load for this run.
               </div>
             ) : (coverage.unbound_catalog_keys.length > 0 || (coverage.stale_bindings?.length ?? 0) > 0) ? (
               <div className="rounded border border-state-warn/20 bg-state-warn/[0.04] px-2 py-1.5">
                 <div className="flex items-center gap-1.5 pb-0.5">
                   <AlertTriangle size={10} className="text-state-warn" />
-                  <span className="text-[9px] font-display uppercase tracking-wide text-state-warn">registry drift</span>
+                  <span className="text-[9px] font-display uppercase tracking-wide text-state-warn">registry mismatch</span>
                 </div>
                 {coverage.unbound_catalog_keys.length > 0 && (
                   <div className="text-[9px] text-ink-dim leading-snug">
-                    backend has {coverage.unbound_catalog_keys.length} variable(s) we do not measure:{" "}
+                    The backend has {coverage.unbound_catalog_keys.length}{" "}
+                    {coverage.unbound_catalog_keys.length === 1 ? "variable" : "variables"} the cockpit does not measure:{" "}
                     {coverage.unbound_catalog_keys.slice(0, 6).join(", ")}
                     {coverage.unbound_catalog_keys.length > 6 ? "…" : ""}
                   </div>
                 )}
                 {(coverage.stale_bindings?.length ?? 0) > 0 && (
                   <div className="text-[9px] text-ink-dim leading-snug">
-                    we measure {coverage.stale_bindings!.length} variable(s) the backend no longer lists:{" "}
+                    The cockpit measures {coverage.stale_bindings!.length}{" "}
+                    {coverage.stale_bindings!.length === 1 ? "variable" : "variables"} the backend no longer lists:{" "}
                     {coverage.stale_bindings!.slice(0, 6).join(", ")}
                     {coverage.stale_bindings!.length > 6 ? "…" : ""}
                   </div>
@@ -251,7 +254,7 @@ export const WorldContractTab = () => {
             {coverage.by_domain.map((d) => (
               <div key={d.domain} className="flex flex-col gap-1 py-0.5">
                 <div className="flex items-baseline justify-between">
-                  <span className="text-[10px] text-ink-dim capitalize">{d.domain.replace(/_/g, " ")}</span>
+                  <span className="text-[10px] text-ink-dim capitalize">{DOMAIN_LABELS[d.domain] ?? d.domain.replace(/_/g, " ")}</span>
                   <span className="font-mono text-[9px] text-ink-faint">{d.observed}/{d.total}</span>
                 </div>
                 <Bar value={d.ratio} color={d.ratio > 0.5 ? STATUS_COLOR.ok : d.ratio > 0 ? STATUS_COLOR.degraded : STATUS_COLOR.missing} />
@@ -263,7 +266,7 @@ export const WorldContractTab = () => {
               className="flex items-center gap-1.5 text-[10px] text-ink-dim hover:text-ink pt-1"
             >
               {showDark ? <EyeOff size={11} /> : <Eye size={11} />}
-              {showDark ? "Hide" : "Show"} the {darkVars.length} variables OTTO-Q cannot see
+              {showDark ? "Hide" : "Show"} the {darkVars.length} {darkVars.length === 1 ? "variable" : "variables"} OTTO-Q cannot see
             </button>
             {showDark && (
               <div className="flex flex-col gap-0.5 pl-2 border-l border-white/[0.06]">
@@ -273,7 +276,7 @@ export const WorldContractTab = () => {
                       className="font-mono text-[8px] shrink-0 w-[62px]"
                       style={{ color: v.verdict === "dark" ? STATUS_COLOR.degraded : STATUS_COLOR.missing }}
                     >
-                      {v.verdict}
+                      {VERDICT_LABEL[v.verdict]}
                     </span>
                     <span className="text-[10px] text-ink-dim truncate">{v.label}</span>
                   </div>

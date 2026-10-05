@@ -52,13 +52,13 @@ export const TwinCopilotTab = () => {
       else setResult(data as CopilotResult);
     } catch (e) {
       if (useTwinStore.getState().activeSimRunId === activeSimRunId)
-        setError(e instanceof Error ? e.message : "audit failed");
+        setError(e instanceof Error ? e.message : "unknown error");
     }
     if (useTwinStore.getState().activeSimRunId === activeSimRunId) setLoading(false);
   };
 
   if (!activeSimRunId) {
-    return <div className="flex-1 flex items-center justify-center p-6 text-center text-ink-faint text-xs">Start a scenario in Run Control, then audit OTTO-Q's decisions here.</div>;
+    return <div className="flex-1 flex items-center justify-center p-6 text-center text-ink-faint text-xs">Start a run in Run Control. Then audit the OTTO-Q decisions here.</div>;
   }
 
   const s = result?.summary;
@@ -69,7 +69,7 @@ export const TwinCopilotTab = () => {
       <div className="p-3 space-y-3">
         <div>
           <div className="font-display text-[10px] text-ink-dim uppercase tracking-[0.08em]">OTTO-Q Copilot · Nemotron 3 Ultra</div>
-          <p className="text-[11px] text-ink-faint mt-1 leading-snug">On-demand interpretation of up to 80 recent decisions. Read the live decision stream in Intelligence for the underlying evidence.</p>
+          <p className="text-[11px] text-ink-faint mt-1 leading-snug">On request, Nemotron interprets up to 80 recent decisions. The live decisions in the OTTO-Q tab are the evidence.</p>
         </div>
 
         <button
@@ -77,17 +77,17 @@ export const TwinCopilotTab = () => {
           className="w-full py-2.5 rounded-lg font-display text-[12px] uppercase tracking-wide transition-colors disabled:opacity-50"
           style={{ background: loading ? "#1a2330" : "#00B4A6", color: loading ? "#7e8ea3" : "#04140d" }}
         >
-          {loading ? "Nemotron is reasoning…" : "Run OTTO-Q audit"}
+          {loading ? "Audit in progress…" : "Run OTTO-Q audit"}
         </button>
 
-        {error && <div role="alert" className="text-[11px] text-brand-red bg-brand-red/10 border border-brand-red/30 rounded-lg p-2.5">Audit error: {error}{s && <p className="mt-1 text-ink-dim">Decision counts below were returned by OTTO-Q; model analysis is unavailable.</p>}</div>}
+        {error && <div role="alert" className="text-[11px] text-brand-red bg-brand-red/10 border border-brand-red/30 rounded-lg p-2.5">Audit error: {error}{s && <p className="mt-1 text-ink-dim">OTTO-Q returned the decision counts below. The Nemotron analysis is not available.</p>}</div>}
 
         {s && (
           <>
             <div className="grid grid-cols-4 gap-2">
               <Chip label="Decisions" value={s.total} />
-              <Chip label="Enacted" value={s.enacted} tone="good" />
-              <Chip label="Shield ovr" value={s.overridden} tone="warn" />
+              <Chip label="Carried out" value={s.enacted} tone="good" />
+              <Chip label="Shield overrides" value={s.overridden} tone="warn" />
               <Chip label="Sources seen" value={Object.keys(sources).length} />
             </div>
 

@@ -38,9 +38,9 @@ describe("Background tab", () => {
     render(<TwinBackgroundTab />);
     const headings = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
     expect(headings).toEqual([
-      "What you are looking at",
-      "OTTO-Q and the twin: two systems, one boundary",
-      "Where the world comes from: public data",
+      "What you see",
+      "OTTO-Q and the twin",
+      "Public data",
       "Monte Carlo worlds, made reproducible",
       "The agentic system",
       "The safety harness",
@@ -56,7 +56,7 @@ describe("Background tab", () => {
 
   it("lists every public source with its link, and how it reached the twin", () => {
     render(<TwinBackgroundTab />);
-    const data = screen.getByRole("region", { name: "Where the world comes from: public data" });
+    const data = screen.getByRole("region", { name: "Public data" });
     const caltech = within(data).getByRole("link", { name: /ACN-Data Adaptive Charging Network Dataset/ });
     expect(caltech.getAttribute("href")).toBe("https://ev.caltech.edu/dataset");
     expect(caltech.getAttribute("rel")).toContain("noopener");
@@ -70,7 +70,7 @@ describe("Background tab", () => {
   it("shows this run's Monte Carlo hand, named as this run's", () => {
     render(<TwinBackgroundTab />);
     const mc = screen.getByRole("region", { name: "Monte Carlo worlds, made reproducible" });
-    expect(within(mc).getByText(/116 vehicles dealt their own condition · battery health 84\.2% to 99\.1% \(mean 92\.6%\)/)).toBeTruthy();
+    expect(within(mc).getByText(/116 cars, each with its own condition · battery health 84\.2% to 99\.1% \(mean 92\.6%\)/)).toBeTruthy();
     expect(within(mc).getByText(/ottoq_twin_boot_manifest\(run 8a1e12ae\)/)).toBeTruthy();
     expect(within(mc).getByText(/47 variables, each drawn on its own clock/)).toBeTruthy();
   });
@@ -87,9 +87,9 @@ describe("Background tab", () => {
     render(<TwinBackgroundTab />);
     const sh = screen.getByRole("region", { name: "The safety harness" });
     expect(within(sh).getByText(/30 rules/)).toBeTruthy();
-    expect(within(sh).getByText(/Where a failing rule refuses the action \(5 points\)/)).toBeTruthy();
+    expect(within(sh).getByText(/Points that refuse \(5\):/)).toBeTruthy();
     expect(within(sh).getByText(/Now: 9 of 9 certification columns passing and current, last certified Oct 2, 3:26 PM CT\./)).toBeTruthy();
-    expect(within(sh).getAllByText("Being built").length).toBe(1);
+    expect(within(sh).getAllByText("Not yet live").length).toBe(1);
   });
 
   it("says — where a source has not answered, never 0, and names what failed", () => {
@@ -126,7 +126,7 @@ describe("Background tab", () => {
     expect(within(edge).getByText(/NVIDIA cuOpt 26\.08 documentation/)).toBeTruthy();
     expect(within(edge).getByText(/OCPI 2\.2\.1 and 2\.3\.0, the released versions/)).toBeTruthy();
     // and says what is not built rather than implying it
-    expect(within(edge).getByText(/Pricing those records against\s+the tariff is being built/)).toBeTruthy();
+    expect(within(edge).getByText(/Pricing of those records against\s+the tariff is in development/)).toBeTruthy();
     expect(within(edge).getByText(/Intelligence is not a substitute for capacity/)).toBeTruthy();
   });
 

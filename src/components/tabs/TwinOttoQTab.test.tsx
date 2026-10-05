@@ -79,7 +79,7 @@ describe("OTTO-Q tab", () => {
     for (const h of ["Why it is there", "What it does", "What it technically is", "Why it was built this way"]) {
       expect(within(card).getByText(h)).toBeTruthy();
     }
-    expect(within(card).getByText(/public\.ottoq_decide_tick, driven by pg_cron/)).toBeTruthy();
+    expect(within(card).getByText(/pg_cron runs public\.ottoq_decide_tick/)).toBeTruthy();
     // the card names the run its live line is for
     expect(within(card).getByText(`On this run (${fx.sim_run_id.slice(0, 8)})`)).toBeTruthy();
     // and the layer itself did not open underneath it

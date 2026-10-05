@@ -65,7 +65,7 @@ export function PhoneRunBar({ layout, onOpenControl }: { layout: 'landscape' | '
       await stopAndReset(activeSimRunId);
       ctrl.pause();
       useSimulationStore.getState().setActiveTab('history');
-      toast.success('Run stopped — depot reset', { description: 'Its Black Box is on the Runs tab.' });
+      toast.success('Run stopped. The depot is empty.', { description: 'Its Black Box is on the Runs tab.' });
     } catch (e: unknown) {
       toast.error('Stop failed', { description: e instanceof Error ? e.message : String(e) });
     } finally {
@@ -114,7 +114,7 @@ export function PhoneRunBar({ layout, onOpenControl }: { layout: 'landscape' | '
           <button className={ICON_BTN} onClick={ctrl.toggle} aria-label={ctrl.playing ? 'Pause' : 'Resume'}>
             {ctrl.playing ? <Pause size={16} /> : <Play size={16} />}
           </button>
-          <button className={ICON_BTN} onClick={() => setConfirmStop(true)} disabled={stopping} aria-label="Stop">
+          <button className={ICON_BTN} onClick={() => setConfirmStop(true)} disabled={stopping} aria-label="Stop run">
             {stopping ? <Loader2 size={15} className="animate-spin" /> : <Square size={14} />}
           </button>
         </>
@@ -122,12 +122,12 @@ export function PhoneRunBar({ layout, onOpenControl }: { layout: 'landscape' | '
       {/* speed: the same 1..8x as the desktop slider, one step per tap */}
       <div className="flex items-center h-10 rounded-md border border-white/10 bg-canvas-elev/90">
         <button className="h-10 w-9 inline-flex items-center justify-center text-ink disabled:opacity-40"
-          onClick={() => ctrl.setSpeed(ctrl.speed - 1)} disabled={!hasRun || ctrl.speed <= 1} aria-label="Slower">
+          onClick={() => ctrl.setSpeed(ctrl.speed - 1)} disabled={!hasRun || ctrl.speed <= 1} aria-label="Decrease speed">
           <Minus size={14} />
         </button>
         <span className="font-mono text-[12px] text-white cc-num w-7 text-center">{ctrl.speed}×</span>
         <button className="h-10 w-9 inline-flex items-center justify-center text-ink disabled:opacity-40"
-          onClick={() => ctrl.setSpeed(ctrl.speed + 1)} disabled={!hasRun || ctrl.speed >= MAX_SPEED_X} aria-label="Faster">
+          onClick={() => ctrl.setSpeed(ctrl.speed + 1)} disabled={!hasRun || ctrl.speed >= MAX_SPEED_X} aria-label="Increase speed">
           <Plus size={14} />
         </button>
       </div>
@@ -165,11 +165,11 @@ export function PhoneRunBar({ layout, onOpenControl }: { layout: 'landscape' | '
           <AlertDialogHeader>
             <AlertDialogTitle>Stop this run?</AlertDialogTitle>
             <AlertDialogDescription className="text-ink-dim">
-              It stops for everyone watching and the depot resets to empty. The run's Black Box stays on the Runs tab.
+              The run stops for all viewers. The depot becomes empty. Its Black Box stays on the Runs tab.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-canvas-elev border-white/10 text-ink">Keep running</AlertDialogCancel>
+            <AlertDialogCancel className="bg-canvas-elev border-white/10 text-ink">Continue run</AlertDialogCancel>
             <AlertDialogAction className="bg-brand-red hover:bg-brand-deep text-white" onClick={stop}>Stop run</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -212,7 +212,7 @@ function MoreMenu({ onClose }: { onClose: () => void }) {
             <ExternalLink size={14} className="text-ink-faint" />
           </button>
         ))}
-        {!liveRunId && <div className="px-2 py-1.5 text-[11px] text-ink-faint">No live run to open a cockpit on.</div>}
+        {!liveRunId && <div className="px-2 py-1.5 text-[11px] text-ink-faint">No live run. Start a run, then open a cockpit.</div>}
       </div>
     </>
   );

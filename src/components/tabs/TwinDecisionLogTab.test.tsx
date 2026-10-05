@@ -140,7 +140,7 @@ describe("decision verdicts in words", () => {
       action: "task_start", outcome: "overridden_to_default",
       rationale: { verb: "hold_in_queue", reason: "service_shield_blocked", override_rule_codes: ["HW.002"] },
     }));
-    expect(held).toEqual({ title: "Held by a safety check", detail: "the charger is working", tone: "warn" });
+    expect(held).toEqual({ title: "Held by a safety check", detail: "the charger works", tone: "warn" });
   });
 
   it("renders an unknown verdict as its own words", () => {

@@ -46,12 +46,12 @@ afterEach(() => {
 
 describe("the live view's words", () => {
   it("says what it shows in every state", () => {
-    expect(stateWords({ kind: "no_run" }).text).toBe("No simulation running · the depot is empty until one starts");
+    expect(stateWords({ kind: "no_run" }).text).toBe("No run is active · the depot is empty until a run starts");
     expect(stateWords({ kind: "live", runId: RUN, status: "running", simClock: "2026-10-02T19:05:00Z", cars: 41 }).text)
       .toBe("Live · run 8a1e12ae · sim 2:05 PM CT · 41 cars on site");
     expect(stateWords({ kind: "live", runId: RUN, status: "paused", simClock: null, cars: 1 }))
       .toEqual({ tone: "warn", text: "Paused · run 8a1e12ae · 1 car on site" });
-    expect(stateWords({ kind: "ended", runId: RUN, status: "completed" }).text).toBe("Run 8a1e12ae has ended (completed) · the depot was cleared");
+    expect(stateWords({ kind: "ended", runId: RUN, status: "completed" }).text).toBe("Run 8a1e12ae ended: completed · the twin cleared the depot");
     expect(stateWords({ kind: "other_depot", runId: RUN }).text).toBe("Run 8a1e12ae is not a twin-depot run");
   });
 });

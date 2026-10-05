@@ -44,7 +44,7 @@ export function PhoneCameraMenu() {
               ))}
             </div>
             <div className="mt-1 px-2 pt-2 pb-1 border-t border-white/[0.06] font-display text-[9px] uppercase tracking-[0.1em] text-ink-faint">
-              Quality · drawing {tier}
+              Quality · {tier} now
             </div>
             <div className="grid grid-cols-4 gap-1 p-1">
               {MODES.map((m) => (

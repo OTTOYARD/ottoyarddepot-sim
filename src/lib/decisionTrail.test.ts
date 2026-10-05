@@ -119,7 +119,7 @@ describe("a car's trail", () => {
   it("says what blocked a safety check and what happened next, by the rule's meaning", () => {
     const b = t.steps.find((s) => s.kind === "blocked")!;
     expect(b.tone).toBe("warn");
-    expect(b.detail).toBe("Failed: one job at a time per car. Kept it in line instead.");
+    expect(b.detail).toBe("Failed: one step at a time per car. Kept it in line instead.");
   });
 
   it("words a re-plan with how far it moved", () => {
@@ -213,7 +213,7 @@ describe("a car's trail with the engine's own record of each charger choice (ott
 
   it("says what the depot had, how many ways it found, why it picked one and how long each would take", () => {
     const t = run([wait, pickChoice()]);
-    expect(by(t, "checked").detail).toBe("0 fast chargers and 2 standard chargers free, 21 cars waiting for a charge.");
+    expect(by(t, "checked").detail).toBe("0 fast chargers and 2 standard chargers were free. 21 cars waited for a charge.");
     expect(by(t, "waited").detail).toBe("None of the 2 free chargers could take it, for 6 minutes");
     expect(by(t, "options")).toMatchObject({
       title: "Found 11 ways to do it",

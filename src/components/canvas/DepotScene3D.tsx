@@ -373,10 +373,10 @@ export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0, viewe
             : { top: overlayTop + 12 }}
         >
           <span className="w-1.5 h-1.5 rounded-full bg-otto-red animate-pulse" />
-          Following {followAv}
+          Follow mode: {followAv}
           <button
             onClick={() => setFollow(null)}
-            aria-label="Stop following"
+            aria-label="Stop follow mode"
             className="ml-1 w-6 h-6 -my-1 flex items-center justify-center rounded text-white hover:text-white hover:bg-white/10"
           >
             ✕
@@ -392,7 +392,7 @@ export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0, viewe
       >
         <button
           onClick={() => setMode(QUALITY_CYCLE[(QUALITY_CYCLE.indexOf(mode) + 1) % QUALITY_CYCLE.length])}
-          title="Render quality: Auto picks a tier for this device and holds the frame rate"
+          title="Render quality. Auto selects a tier for this device and changes it to hold the frame rate."
           className={`${PRESET_BTN} shrink-0`}
         >
           {mode === 'auto' ? `Auto · ${tier[0].toUpperCase()}${tier.slice(1)}` : `${tier[0].toUpperCase()}${tier.slice(1)}`}

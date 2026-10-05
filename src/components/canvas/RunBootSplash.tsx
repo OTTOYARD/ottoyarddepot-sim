@@ -37,7 +37,7 @@ interface BootManifest {
 
 const COND_LABELS: Record<string, { label: string; unit: string }> = {
   veh_battery_soh_pct:      { label: "Battery health",    unit: "%" },
-  veh_consumption_scalar:   { label: "Energy burn",       unit: "×" },
+  veh_consumption_scalar:   { label: "Energy use",        unit: "×" },
   veh_charge_curve_scalar:  { label: "Charge speed",      unit: "×" },
   veh_soil_rate:            { label: "Soiling rate",      unit: "×" },
   veh_pm_interval_km:       { label: "Maintenance due",   unit: "km" },
@@ -157,7 +157,7 @@ export function RunBootSplash() {
             <div className="mt-4 flex gap-6 text-xs text-white">
               <span>
                 <span className="text-white">fleet drawn </span>
-                {draw.vehicles_drawn ?? "—"} vehicles
+                {draw.vehicles_drawn ?? "—"} cars
               </span>
               <span>
                 <span className="text-white">draw time </span>

@@ -4,8 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import { X } from 'lucide-react';
 
 const TYPE_LABELS: Record<string, string> = {
-  dcfc: 'DC Fast Charger',
-  l2: 'Level 2 Charger',
+  dcfc: 'Fast charger (DCFC)',
+  l2: 'Standard charger (L2)',
   wash: 'Wash Bay',
   staging: 'Staging Stall',
 };
@@ -56,7 +56,7 @@ export const StallPopup = ({ svgRef }: Props) => {
           </Badge>
         </div>
         <div className="text-[11px] text-white">
-          Vehicle: {stall.vehicleId || '—'}
+          Car: {stall.vehicleId || '—'}
         </div>
         <div className="text-[11px] text-white">
           Position: ({stall.position.x}, {stall.position.y})

@@ -30,6 +30,13 @@ import type { ChannelBundle, ChannelId } from "./contracts";
 
 export type CoverageVerdict = "observed" | "dark" | "unobservable";
 
+/** The word a viewer reads for each verdict. The keys stay the data. */
+export const VERDICT_LABEL: Record<CoverageVerdict, string> = {
+  observed: "seen",
+  dark: "no data",
+  unobservable: "no channel",
+};
+
 export interface VariableBinding {
   var_key: string;
   domain: string;
@@ -353,5 +360,5 @@ export function auditCoverage(
 
 /** One-line summary for logs and the console header. */
 export function coverageHeadline(r: CoverageReport): string {
-  return `${r.observed}/${r.total} variables observable by OTTO-Q · ${r.dark} dark · ${r.unobservable} unobservable`;
+  return `OTTO-Q can see ${r.observed} of ${r.total} variables · ${r.dark} with no data on this frame · ${r.unobservable} with no channel`;
 }

@@ -202,10 +202,10 @@ export const DepotSVG = forwardRef<SVGSVGElement>((_, ref) => {
 
       {/* ---- gates ---- */}
       <rect x={INGRESS.x - GATE_W / 2} y={206} width={GATE_W} height={4} fill="#00B4A6" opacity={0.35} rx={1} />
-      <text x={INGRESS.x} y={204.5} textAnchor="middle" fontSize={3.5} fill="#00B4A6" fontWeight="bold">INGRESS</text>
+      <text x={INGRESS.x} y={204.5} textAnchor="middle" fontSize={3.5} fill="#00B4A6" fontWeight="bold">ENTER</text>
       <polygon points={`${INGRESS.x},${206.5} ${INGRESS.x - 2},${209} ${INGRESS.x + 2},${209}`} fill="#00B4A6" />
       <rect x={EGRESS.x - GATE_W / 2} y={206} width={GATE_W} height={4} fill="#C00000" opacity={0.35} rx={1} />
-      <text x={EGRESS.x} y={204.5} textAnchor="middle" fontSize={3.5} fill="#C00000" fontWeight="bold">EGRESS</text>
+      <text x={EGRESS.x} y={204.5} textAnchor="middle" fontSize={3.5} fill="#C00000" fontWeight="bold">EXIT</text>
       <polygon points={`${EGRESS.x},${209} ${EGRESS.x - 2},${206.5} ${EGRESS.x + 2},${206.5}`} fill="#C00000" />
 
       {/* ---- live layers (store-driven) ---- */}

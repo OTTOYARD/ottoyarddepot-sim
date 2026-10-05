@@ -77,7 +77,7 @@ export default function PhoneCockpit() {
         className={portrait ? 'relative shrink-0 transition-[height] duration-200' : 'absolute inset-0'}
         style={portrait ? { height: bigStage ? '58dvh' : '34dvh' } : undefined}
       >
-        <SceneErrorBoundary onReturnTo2D={() => window.location.reload()}>
+        <SceneErrorBoundary onReturnTo2D={() => window.location.reload()} actionLabel="Reload the page">
           <Suspense fallback={<div className="absolute inset-0 flex items-center justify-center text-ink-faint text-sm">Loading 3D…</div>}>
             <DepotScene3D chrome="phone" overlayTop={portrait ? 0 : BAR_H} />
           </Suspense>
@@ -92,7 +92,7 @@ export default function PhoneCockpit() {
           {portrait && (
             <button
               onClick={() => setBigStage((b) => !b)}
-              aria-label={bigStage ? 'Smaller live view' : 'Bigger live view'}
+              aria-label={bigStage ? 'Make the live view smaller' : 'Make the live view larger'}
               className="h-11 w-11 inline-flex items-center justify-center rounded-full border border-white/10 bg-black/60 text-white backdrop-blur active:bg-white/15"
             >
               {bigStage ? <Minimize2 size={17} /> : <Maximize2 size={17} />}

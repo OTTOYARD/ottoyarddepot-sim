@@ -176,7 +176,7 @@ export function PhoneSheet({ mode, topInset }: { mode: 'floating' | 'inline'; to
         <button
           type="button"
           onClick={toggleFullscreen}
-          aria-label={fullscreen ? 'Exit full screen' : 'Full screen panels'}
+          aria-label={fullscreen ? 'Exit full screen' : 'Expand panels to full screen'}
           aria-pressed={fullscreen}
           data-testid="sheet-fullscreen"
           className="shrink-0 mr-1.5 h-9 w-9 inline-flex items-center justify-center rounded-md border border-white/10 text-ink-dim active:bg-white/10"

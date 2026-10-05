@@ -51,13 +51,13 @@ export function JumpPlanningOverlay() {
         <div className="flex items-center gap-2">
           <span className="h-2 w-2 animate-pulse rounded-full bg-otto-red" />
           <span className="font-medium tracking-wide text-ink">
-            OTTO-Q is planning the queue
+            OTTO-Q plans the queue
           </span>
         </div>
 
         <p className="mt-2 text-sm text-ink-dim">
-          Fast-forwarding the depot. OTTO-Q is sequencing every arrival, charge and
-          service in the skipped window before play resumes.
+          The twin jumps forward. OTTO-Q sets the order of each arrival, charge and
+          service in the skipped time. Then play continues.
         </p>
 
         <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
@@ -72,7 +72,7 @@ export function JumpPlanningOverlay() {
           <span className="text-ink">
             {hhmm(snapshot?.run?.sim_clock)}
             {remainingMin !== null && remainingMin > 0 && (
-              <span className="ml-2 text-ink-dim">{remainingMin} sim-min to go</span>
+              <span className="ml-2 text-ink-dim">{remainingMin} sim min left</span>
             )}
           </span>
           <span>{hhmm(jump.target_sim_clock)}</span>
