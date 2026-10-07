@@ -16,7 +16,7 @@ import type { ActivityFeedRow } from "@/store/activityFeedStore";
 import { human, modelErrorText, num, solverPhrase } from "@/lib/decisionText";
 import { sentenceCase } from "@/lib/publicNames";
 import { proposerWord, type DispositionRow } from "@/lib/ottoqFunnel";
-import type { AgentOrderEntry, AgentOrderUsage } from "@/lib/runLearning";
+import { verdictWords, type AgentOrderEntry, type AgentOrderUsage } from "@/lib/runLearning";
 
 export type StreamTone = "ok" | "held" | "refused" | "idle";
 
@@ -39,8 +39,8 @@ export interface AgentPass {
   /** The charge-line order this pass sent (otto-q-core 0614), when the run takes one and the order is in the read. */
   order: AgentOrderEntry | null;
   /**
-   * The pass's colour on the stack: green when its order seated cars, red when the decide path kept none of the cars it
-   * named, amber when the agent gave no answer, the agent's own white otherwise.
+   * The pass's colour on the stack: green when its order seated cars, red when the kernel's check kept its own order
+   * (0618) or none of the cars named was waiting, amber when the agent gave no answer, the agent's own white otherwise.
    */
   hue: PassHue;
 }
@@ -132,8 +132,14 @@ export function agentPass(r: ActivityFeedRow, orders: OrderIndex = NO_ORDERS): A
     const byRank = order.seats_by_rank ?? 0, ahead = order.moved_ahead ?? 0;
     if (order.status === "rejected") {
       outcome.push(`It ordered the charge line, and the decide path kept none of the ${plural(offered, "car")} it named: none was waiting for a charger.`);
+    } else if (order.status === "refused") {
+      // 0618: the kernel projected the line both ways and its own order came out better
+      const why = verdictWords(order.verdict);
+      outcome.push(`It ordered the charge line (${plural(accepted, "car")}). The kernel checked it and kept its own order${why ? `: ${why}` : ""}.`);
     } else {
       outcome.push(`It ordered the charge line: ${plural(accepted, "car")}${accepted < offered ? ` (${offered - accepted} not waiting, left out)` : ""}.`);
+      const took = verdictWords(order.verdict);
+      if (took) outcome.push(`The kernel checked it and took it: ${took}.`);
       outcome.push(byRank > 0
         ? `The decide path seated ${plural(byRank, "car")} in its order${ahead ? `, ${ahead} of them ahead of where its own order had them` : ""}.`
         : "No car has been seated by its order.");
@@ -144,14 +150,17 @@ export function agentPass(r: ActivityFeedRow, orders: OrderIndex = NO_ORDERS): A
 
   const tone: StreamTone = modelError || r.outcome !== "enacted" ? "held" : "ok";
   const seated = !modelError && (order?.seats_by_rank ?? 0) > 0;
+  const kept = order?.status === "rejected" || order?.status === "refused";
   const hue: PassHue = modelError || r.outcome !== "enacted" ? "held"
-    : order?.status === "rejected" ? "refused"
+    : kept ? "refused"
     : seated ? "seated" : "answered";
   const headline = modelError
     ? "The agent gave no answer, so the decide path kept the goal"
+    : order?.status === "refused"
+      ? "The kernel checked the agent's charge order and kept its own"
     : seated
       ? `The agent ordered the charge line and the decide path seated ${plural(order!.seats_by_rank ?? 0, "car")} by it`
-      : order && order.status !== "rejected"
+      : order && !kept
         ? `The agent read the depot and ordered the charge line: ${plural(order.accepted ?? 0, "car")}`
         : `The agent read the depot and chose to ${objectiveWord(v.objective)}`;
 

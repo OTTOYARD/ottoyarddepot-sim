@@ -61,7 +61,10 @@ export interface AgentOrderEntry {
   /** The agent pass's chain id: the same id the pass's feed row carries (rationale.chain_id). */
   chain_id?: string | null;
   recorded_tick?: number | null;
-  /** accepted | partial | rejected: whether the decide path kept the cars it named (rejected: none of them). */
+  /**
+   * accepted | partial | rejected | refused. rejected: none of the cars it named was waiting. refused (otto-q-core
+   * 0618): the kernel projected the line under it and under its own order, and its own came out better.
+   */
   status?: string | null;
   offered?: number | null;
   accepted?: number | null;
@@ -71,6 +74,8 @@ export interface AgentOrderEntry {
   seats_by_rank?: number | null;
   /** Of those, cars the decide path's own order had further back. */
   moved_ahead?: number | null;
+  /** 0618: the kernel's check on this order, as a key: see verdictWords. Absent on orders sent before 0618. */
+  verdict?: string | null;
 }
 
 /** public.ottoq_agent_charge_order_usage(run, limit): what the agent's charge-line orders did on one run. */
@@ -79,6 +84,8 @@ export interface AgentOrderUsage {
   orders_accepted?: number | null;
   /** 0616: the orders that seated at least one car by their rank. */
   orders_seating?: number | null;
+  /** 0618: the orders the kernel's check refused: its projection said its own order was better. */
+  orders_refused?: number | null;
   cars_ranked?: number | null;
   seats_under_order?: number | null;
   seats_by_rank?: number | null;
@@ -263,6 +270,26 @@ export interface AgentOrderView {
 const KIND_WORD: Record<string, string> = { dcfc: "fast charger", l2: "L2", either: "either charger" };
 
 /**
+ * The kernel's check on an agent order (otto-q-core 0618), in words. The kernel projects the charge line from the
+ * order's moment in its own order and in the agent's; it takes the agent's when at least as many cars are ready by
+ * their due time and the line is ready no later, or more cars are ready by their due time at most 10% later.
+ */
+const VERDICT_WORD: Record<string, string> = {
+  line_ready_sooner: "it had the line ready sooner than the kernel's own order",
+  no_worse: "it was no worse than the kernel's own order",
+  more_cars_ready_by_due: "it got more cars ready by their due time",
+  line_ready_later: "it would have had the line ready later than the kernel's own order",
+  fewer_cars_ready_by_due: "it would have got fewer cars ready by their due time",
+  more_cars_ready_by_due_but_line_much_later: "it got more cars ready by their due time, but the whole line more than 10% later",
+  projection_failed: "it could not be checked",
+  no_projection: "it could not be checked",
+};
+
+export function verdictWords(v: unknown): string | null {
+  return typeof v === "string" && v ? VERDICT_WORD[v] ?? v.replace(/_/g, " ") : null;
+}
+
+/**
  * The agent's order, in words, or null when the run does not take one (the key is absent: the dial is off). Green when
  * an order has seated cars, amber while orders stand and no charger has freed for them yet, grey with no order at all.
  */
@@ -275,8 +302,16 @@ export function agentOrderView(l: RunLearning | null | undefined): AgentOrderVie
   const tone: LearningTone = seated > 0 ? "ok" : (u.orders ?? 0) > 0 ? "held" : "idle";
   const fast = (o?.head ?? []).filter((c) => c.kind === "dcfc").length;
   let headline: string;
+  // 0618: the latest order, by id, carries the kernel's verdict in the usage read
+  const last = (u.by_order ?? [])[0];
+  const lastVerdict = o && last && last.order_id === o.order_id ? last.verdict ?? null : null;
+  const refusedLast = o?.status === "refused";
   if (!o) headline = "The agent has not ordered the charge line yet. The decide path seats cars in its own order.";
-  else {
+  else if (refusedLast) {
+    const why = verdictWords(lastVerdict);
+    headline = `The kernel checked the agent's last order and kept its own${why ? `: ${why}` : ""}. `
+      + (a.live ? "An earlier order of the agent's still stands." : "The decide path seats cars in its own order.");
+  } else {
     const named = `${count(o.accepted, "car")}${fast ? `, ${n(fast)} of the first ${n(Math.min(8, o.head?.length ?? 0))} for a fast charger` : ""}`;
     headline = a.live
       ? `The agent's order stands: ${named}.`
@@ -284,10 +319,12 @@ export function agentOrderView(l: RunLearning | null | undefined): AgentOrderVie
     if (a.live && o.why) headline += ` ${sentenceCase(o.why.replace(/\.$/, ""))}.`;
   }
   const facts: string[] = [];
-  facts.push(`Orders: ${n(u.orders)}, ${n(u.orders_seating)} of them seated cars · ${count(u.seats_by_rank, "car")} seated in the agent's order`);
+  facts.push(`Orders: ${n(u.orders)}, ${n(u.orders_seating)} of them seated cars`
+    + (u.orders_refused != null ? ` · ${n(u.orders_refused)} refused by the kernel's check` : "")
+    + ` · ${count(u.seats_by_rank, "car")} seated in the agent's order`);
   if ((u.seats_by_rank ?? 0) > 0) facts.push(`Moved ahead of the decide path's own order: ${n(u.moved_ahead)} · kind taken as named: ${n(u.kind_followed)} of ${n(u.kind_named)}`);
   facts.push(`Waited ${n(a.pin_wait_min)} sim-min or longer and went first anyway: ${count(u.seats_pinned, "car")}`);
-  const head = a.live && o
+  const head = a.live && o && !refusedLast
     ? (o.head ?? []).map((c, i) => ({
         key: `h${o.order_id ?? ""}:${c.vehicle_id ?? i}`,
         text: `${n(c.rank)}. ${c.vehicle ?? "a car"} · ${KIND_WORD[c.kind ?? ""] ?? "either charger"}${c.why ? ` · ${c.why}` : ""}`,

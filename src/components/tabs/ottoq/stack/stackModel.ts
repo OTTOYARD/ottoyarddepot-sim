@@ -567,8 +567,9 @@ export function plateLabels(i: {
     title: byTitle[id].label, tagline: byTitle[id].tagline, lead, stats, foot, line: empty ?? statLine(lead, stats),
   });
 
-  // agent: passes that answered, those whose charge-line order seated cars or was refused (0614), and passes that fell
-  // back to the default goal. Each pass is in exactly one: an order is one pass's, and only an answer sends one.
+  // agent: passes that answered, those whose charge-line order seated cars or was refused (0614; since 0618 a refusal is
+  // also the kernel's check keeping its own order), and passes that fell back to the default goal. Each pass is in
+  // exactly one: an order is one pass's, and only an answer sends one.
   const chains = a?.chains ?? null, fellBack = a?.fallbacks ?? (chains != null ? 0 : null);
   const seating = i.orders?.orders_seating ?? 0;
   const refusedOrders = Math.max(0, (i.orders?.orders ?? 0) - (i.orders?.orders_accepted ?? 0));

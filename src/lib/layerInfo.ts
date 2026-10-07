@@ -47,9 +47,9 @@ export const LAYER_INFO: Record<PlateId, LayerInfo> = {
     overview: "The agent reasons over the live depot state with an NVIDIA open model. Each pass sets the planners' objective and orders the charge line.",
     points: [
       "It ranks the cars waiting for a charger and names a fast charger or an L2 for each.",
-      "Cars due out and long waits still go first. No charger idles and no charge is cut short.",
+      "The kernel projects the line both ways and keeps its own order when that is better.",
+      "Cars due out and long waits still go first. No charge is cut short.",
       "The objective is one of three: readiness first, throughput first or energy balanced.",
-      "It reads what the planners learned this run. A ledger records each call and each order.",
     ],
     next: "It only proposes. The decide path seats every car.",
     refs: [

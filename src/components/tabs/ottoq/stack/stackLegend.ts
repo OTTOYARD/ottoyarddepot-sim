@@ -54,7 +54,7 @@ export interface PlateKey {
 
 export const PLATE_KEY: Record<PlateId, PlateKey> = {
   agent: {
-    object: "Each orb is one agent pass. A line joins it to the goal it chose, the large pearl. Green: its order for the charge line seated cars.",
+    object: "Each orb is one agent pass. A line joins it to the goal it chose, the large pearl. Green: its order for the charge line seated cars. Red: the kernel checked the order and kept its own.",
     items: [
       { hue: "agent", shape: "orb", word: "answered", always: true },
       { hue: "ok", shape: "orb", word: "seated cars" },

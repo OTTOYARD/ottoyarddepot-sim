@@ -264,9 +264,10 @@ function PlateDetail({ plate, rows, dispositions, names, recentFor, cars, overvi
           <PlateIntro plate="agent" />
           <p className="mt-1.5 text-[10.5px] leading-4 text-ink-dim">
             A violet scan rises when the agent reads the depot. Each answer also orders the charge line: which waiting
-            cars take the next free chargers, and which kind. Green means the decide path seated cars in that order;
-            red, it kept none of the cars named. Amber means the agent gave no answer in time, so the default goal
-            stayed. The agent proposes and never decides.
+            cars take the next free chargers, and which kind. The kernel projects the line under that order and under its
+            own, and takes the agent's only when it is no worse. Green means the decide path seated cars in that order;
+            red, the kernel kept its own. Amber means the agent gave no answer in time, so the default goal stayed. The
+            agent proposes and never decides.
           </p>
           <p className="mt-1 font-mono text-[10px] text-ink">{overviews.proposers.split(" · offers")[0]}</p>
           {passes.length === 0 ? <p className="mt-1 text-[10px] text-ink-faint">No agent pass in the last two sim-hours.</p> : (

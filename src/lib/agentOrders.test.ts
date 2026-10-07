@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import fx from "@/components/tabs/__fixtures__/agentOrders.0bbdcc07.json";
 import type { ActivityFeedRow } from "@/store/activityFeedStore";
 import { agentPass, orderIndex, NO_ORDERS, type OrderIndex } from "./agentStream";
-import { agentOrderView, type AgentOrderUsage, type RunLearning } from "./runLearning";
+import { agentOrderView, verdictWords, type AgentOrderUsage, type RunLearning } from "./runLearning";
 import { liveFeed } from "./liveFeed";
 import { agentModel, plateLabels } from "@/components/tabs/ottoq/stack/stackModel";
 
@@ -105,5 +105,49 @@ describe("the learning strip's order section", () => {
     const none = agentOrderView({ ok: true, agent_order: { live: false, order: null, usage: { orders: 0, seats_by_rank: 0 } } })!;
     expect(none.tone).toBe("idle");
     expect(none.headline).toMatch(/has not ordered the charge line yet/);
+  });
+});
+
+// otto-q-core 0618: the kernel projects the line under the agent's order and under its own before it takes the order
+describe("the kernel's check on an order", () => {
+  it("is red, and says the kernel kept its own order and why, when the check refused it", () => {
+    const r = feed[0];
+    const m = new Map([[chainOf(r), { chain_id: chainOf(r), status: "refused", verdict: "line_ready_later", offered: 12, accepted: 11, seats_by_rank: 0 }]]);
+    const p = agentPass(r, m);
+    expect(p.hue).toBe("refused");
+    expect(p.headline).toBe("The kernel checked the agent's charge order and kept its own");
+    expect(p.outcome.join(" ")).toContain("It ordered the charge line (11 cars). The kernel checked it and kept its own order: it would have had the line ready later than the kernel's own order.");
+    expect(p.outcome.join(" ")).not.toMatch(/No car has been seated|undefined|null/);
+  });
+
+  it("says the check took the order, and why, before what the order seated", () => {
+    const r = feed.find((x) => (orders.get(chainOf(x))?.seats_by_rank ?? 0) > 0)!;
+    const o = { ...orders.get(chainOf(r))!, verdict: "line_ready_sooner" };
+    const p = agentPass(r, new Map([[chainOf(r), o]]));
+    expect(p.hue).toBe("seated");
+    const text = p.outcome.join(" ");
+    expect(text).toContain("The kernel checked it and took it: it had the line ready sooner than the kernel's own order.");
+    expect(text.indexOf("took it")).toBeLessThan(text.indexOf("The decide path seated"));
+  });
+
+  it("names every verdict in words, and an unknown one plainly", () => {
+    for (const v of ["line_ready_sooner", "no_worse", "more_cars_ready_by_due", "line_ready_later", "fewer_cars_ready_by_due",
+                     "more_cars_ready_by_due_but_line_much_later", "projection_failed", "no_projection"]) {
+      expect(verdictWords(v)).toMatch(/^it /);
+    }
+    expect(verdictWords("something_new")).toBe("something new");
+    expect(verdictWords(null)).toBeNull();
+  });
+
+  it("does not call a refused last order the standing one on the learning strip", () => {
+    const a = learning.agent_order!;
+    const o = { ...a.order!, status: "refused" };
+    const u = { ...a.usage!, orders_refused: 4, by_order: [{ order_id: o.order_id, status: "refused", verdict: "fewer_cars_ready_by_due" }] };
+    const v = agentOrderView({ ...learning, agent_order: { ...a, live: true, order: o, usage: u } })!;
+    expect(v.headline).toBe("The kernel checked the agent's last order and kept its own: it would have got fewer cars ready by their due time. An earlier order of the agent's still stands.");
+    expect(v.head).toEqual([]);
+    expect(v.facts[0]).toContain(" · 4 refused by the kernel's check · ");
+    const lapsed = agentOrderView({ ...learning, agent_order: { ...a, live: false, order: o, usage: u } })!;
+    expect(lapsed.headline).toMatch(/kept its own: .*\. The decide path seats cars in its own order\.$/);
   });
 });
