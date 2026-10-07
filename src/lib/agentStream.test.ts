@@ -53,6 +53,15 @@ describe("the proposers' offers in words", () => {
     expect(offerLine(abst, names).text).toMatch(/^The lexicographic planner made no offer for/);
   });
 
+  // otto-q-core 0613: an offer whose charger was taken moves to an equal free one; the ledger counts the move.
+  it("says when a chosen offer moved to another free charger first", () => {
+    const enacted = disp.find((d) => d.status === "enacted" && !d.abstained)!;
+    expect(offerLine({ ...enacted, promotion_count: 1 }, names).text)
+      .toMatch(/^The decide path chose .+'s offer for .+\. The offer moved to another free charger first\.$/);
+    expect(offerLine({ ...enacted, promotion_count: 0 }, names).text).not.toMatch(/moved/);
+    expect(offerLine({ ...enacted, promotion_count: null }, names).text).not.toMatch(/moved/);
+  });
+
   it("groups offers by tick and planner and keeps every offer", () => {
     const b = offerBatches(disp, names);
     expect(b.reduce((s, x) => s + x.lines.length, 0)).toBe(disp.length);

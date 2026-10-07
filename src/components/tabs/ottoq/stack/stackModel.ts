@@ -127,7 +127,11 @@ export function agentModel(rows: readonly ActivityFeedRow[]): AgentModel {
 
 // ── planners ────────────────────────────────────────────────────────────────
 export type BarTone = "ok" | "refused" | "replaced" | "declined";
-export interface Bar { key: string; tone: BarTone; x: number; len: number; carId: string | null }
+export interface Bar {
+  key: string; tone: BarTone; x: number; len: number; carId: string | null;
+  /** The offer moved to another free charger before the decide path disposed it (the ledger's promotion_count). */
+  moved?: boolean;
+}
 export interface Lane { word: string; z: number; bars: Bar[]; total: number }
 
 export function barTone(d: DispositionRow): BarTone {
@@ -182,6 +186,7 @@ export function plannerModel(rows: readonly DispositionRow[]): Lane[] {
       total: list.length,
       bars: list.slice(0, BARS_PER_LANE).map((d, j) => ({
         key: `p${d.disposition_id}`, tone: barTone(d), x: LANE_BARS_X0 + j * BAR_PITCH, len: BAR_LEN, carId: d.entity_id,
+        moved: (d.promotion_count ?? 0) > 0,
       })),
     };
   });
@@ -625,7 +630,10 @@ export function plateTags(m: StackModel, shield: { evaluations: number | null; r
   // per lane: what the decide path did with the offers drawn on it (the plate shows the newest BARS_PER_LANE)
   const planners: PlateTag[] = m.planners.map((l) => {
     const by = (t: BarTone) => l.bars.filter((b) => b.tone === t).length;
-    const parts = [[by("ok"), "used"], [by("refused"), "refused"], [by("replaced"), "replaced"], [by("declined"), "no offer"]] as const;
+    const parts = [
+      [by("ok"), "used"], [l.bars.filter((b) => b.moved).length, "moved"], [by("refused"), "refused"], [by("replaced"), "replaced"],
+      [by("declined"), "no offer"],
+    ] as const;
     return {
       key: l.word, x: LANE_LABEL_X + 0.1, z: l.z - 0.42, text: laneName(l.word),
       sub: parts.filter(([k]) => k > 0).map(([k, w]) => `${k} ${w}`).join(" · ") || "no offers",

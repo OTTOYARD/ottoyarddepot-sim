@@ -392,6 +392,14 @@ describe("tags on a zoomed plate", () => {
     }
   });
 
+  it("count the offers that moved to another free charger on their lane's tag", () => {
+    const moved = disp.map((d, i) => (i === 0 ? { ...d, promotion_count: 2 } : d));
+    const t = plateTags(stackModel(cardsB, new Map(), feed, moved, true), null);
+    const lane = plannerModel(moved).find((l) => l.bars.some((b) => b.moved))!;
+    expect(t.planners.find((x) => x.key === lane.word)!.sub).toMatch(/\b1 moved\b/);
+    for (const x of tags.planners) expect(x.sub ?? "").not.toMatch(/moved/); // the capture holds no moved offer
+  });
+
   it("say — for a zone count before the cards have answered, never 0", () => {
     const empty = plateTags(stackModel([], new Map(), [], null, false), null);
     for (const t of empty.depot.filter((x) => x.sub != null)) expect(t.sub).toBe("—");

@@ -266,6 +266,8 @@ export interface DispositionRow {
   stall_id: string | null;
   disposed_at: string | null;
   disposed_tick: number | null;
+  /** Times the offer moved to another charger before it was disposed (0358 candidates, 0613 equal free charger). */
+  promotion_count?: number | null;
 }
 
 /** Each proposal source by the name a sentence uses for it ("the lexicographic planner"), from src/lib/publicNames.ts. */

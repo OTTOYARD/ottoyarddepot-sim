@@ -148,7 +148,13 @@ export function offerLine(d: DispositionRow, names: ReadonlyMap<string, string>)
   if (d.abstained) return { key, text: `${Who} made no offer for ${car}${why ? `: ${why}` : ""}.`, tone: "idle" };
   switch (d.status) {
     case "enacted":
-      return { key, text: `The decide path chose ${who}'s offer for ${car}.`, tone: "ok" };
+      return {
+        key,
+        text: (d.promotion_count ?? 0) > 0
+          ? `The decide path chose ${who}'s offer for ${car}. The offer moved to another free charger first.`
+          : `The decide path chose ${who}'s offer for ${car}.`,
+        tone: "ok",
+      };
     case "refused":
       return { key, text: `The decide path refused ${who}'s offer for ${car}${why ? `: ${why}` : ""}.`, tone: "refused" };
     case "superseded":

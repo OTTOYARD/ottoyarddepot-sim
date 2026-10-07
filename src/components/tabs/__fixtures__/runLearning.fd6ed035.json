@@ -1,0 +1,61 @@
+{
+  "_capture": "public.ottoq_run_learning('fd6ed035-9341-417e-8266-11055f6a86e6', 20, true), read 2026-10-07 14:27 UTC (9:27 AM CT), read-only. Run fd6ed035 is Chase's busy_day run of 2026-10-06 and had ended, so live is false; its chargers and queue were the depot at the time of the read, not the run's, which is why the strip draws them only while a run is live.",
+  "ok": true,
+  "run": { "tick": 1578, "clock": "2026-10-06T18:50:36.341955+00:00", "status": "completed", "sim_run_id": "fd6ed035-9341-417e-8266-11055f6a86e6" },
+  "live": false,
+  "basis": {
+    "batch": "max_assets = free chargers, 1..8; priority = the queue's first 24 cars without a charger reservation.",
+    "queue": "ottoq_decide_tick's stall-assignment cursor and order (0545/0551; seat 1 fifo, seat 2 greedy), less the one-tick first-refusal hold, the free-charger test on a staged car and the charging-staff limit. waiting_for_a_charger leaves out a car that already holds a live charger reservation.",
+    "offers": "ottoq_external_proposals for stall_assignment. offered excludes abstentions; moved = promoted at least once (0358 candidates or 0613 adjacent rescue); refused_by_reason is the disposer's reason.",
+    "chargers": "dcfc and l2 stalls at the run's depot. free = no car on it, no live reservation, OCPP charger Available with a heartbeat inside 90 s of the sim clock, and no booking of the run covering the clock: the decision frame's own offerable (0265/0498). Read from the depot now, so they are this run's only while live is true.",
+    "refusals": "went_to is the latest assignment of that charger, at most 60 ticks before the refusal; same_car means the offer's own car already had it."
+  },
+  "batch": { "priority": [], "max_assets": 1 },
+  "queue": { "head": [], "order": "otto_q", "waiting": 0, "waiting_for_a_charger": 0 },
+  "lesson": { "code": "run_ended", "text": "This run has ended. Planner offers over the run: 49 made, 0 used, 0 moved to an equal charger, 48 refused." },
+  "offers": {
+    "run": { "forward_lex": { "used": 0, "moved": 0, "offered": 49, "planner": true, "refused": 48 } },
+    "recent": {},
+    "planners_run": { "used": 0, "moved": 0, "offered": 49, "refused": 48 },
+    "planners_recent": { "used": 0, "moved": 0, "offered": 0, "refused": 0, "refused_by_reason": {} }
+  },
+  "chargers": {
+    "l2": { "free": 0, "total": 30, "in_use": 0, "faulted": 1, "reserved": 0, "held_by_calendar": 0, "not_heartbeating": 29 },
+    "dcfc": { "free": 0, "total": 10, "in_use": 0, "faulted": 2, "reserved": 0, "held_by_calendar": 0, "not_heartbeating": 8 }
+  },
+  "refusals": [
+    { "kind": "dcfc", "tick": 1536, "stall": "CANOPY-01 E-08", "reason": "stall_occupied", "source": "forward_lex", "vehicle": "Waymo-006",
+      "went_to": { "path": "kernel", "tick": 1534, "vehicle": "Tesla-AV-064", "same_car": false, "vehicle_id": "5e93a514-8ab0-4ac1-94d6-bede2a8b4f56" },
+      "stall_id": "9753cfd9-7abe-4bfd-a5a0-fa3b33de442c", "vehicle_id": "a1111111-0001-0001-0001-000000000006" },
+    { "kind": "dcfc", "tick": 1512, "stall": "CANOPY-01 W-02", "reason": "stall_occupied", "source": "forward_lex", "vehicle": "Waymo-006",
+      "went_to": { "path": "kernel", "tick": 1510, "vehicle": "Tesla-AV-067", "same_car": false, "vehicle_id": "380f0f38-a540-4f24-9ee3-a7112d4c6f23" },
+      "stall_id": "609910b1-c888-4624-8077-76c2fc83615f", "vehicle_id": "a1111111-0001-0001-0001-000000000006" },
+    { "kind": "dcfc", "tick": 1498, "stall": "CANOPY-01 W-03", "reason": "stall_occupied", "source": "forward_lex", "vehicle": "Waymo-006",
+      "went_to": { "path": "kernel", "tick": 1496, "vehicle": "Waymo-AV-004", "same_car": false, "vehicle_id": "2cd2cbf3-9de8-48c0-9bd8-935aedb744d7" },
+      "stall_id": "bcff04b2-ad01-40fe-89fd-3c262af75305", "vehicle_id": "a1111111-0001-0001-0001-000000000006" },
+    { "kind": "dcfc", "tick": 1452, "stall": "CANOPY-01 E-06", "reason": "stall_occupied", "source": "forward_lex", "vehicle": "Tesla-AV-061",
+      "went_to": { "path": "kernel", "tick": 1450, "vehicle": "Tesla-AV-061", "same_car": true, "vehicle_id": "f0077a3a-5a40-4d50-bbe9-95a81a4acc8d" },
+      "stall_id": "91ebbf41-666a-4127-aea7-aad80f8f0adc", "vehicle_id": "f0077a3a-5a40-4d50-bbe9-95a81a4acc8d" },
+    { "kind": "dcfc", "tick": 1452, "stall": "CANOPY-01 E-06", "reason": "stall_occupied", "source": "forward_lex", "vehicle": "Waymo-001",
+      "went_to": { "path": "kernel", "tick": 1450, "vehicle": "Tesla-AV-061", "same_car": false, "vehicle_id": "f0077a3a-5a40-4d50-bbe9-95a81a4acc8d" },
+      "stall_id": "91ebbf41-666a-4127-aea7-aad80f8f0adc", "vehicle_id": "a1111111-0001-0001-0001-000000000001" },
+    { "kind": "dcfc", "tick": 1296, "stall": "CANOPY-01 W-05", "reason": "stall_occupied", "source": "forward_lex", "vehicle": "Waymo-001",
+      "went_to": { "path": "kernel", "tick": 1294, "vehicle": "Tesla-AV-052", "same_car": false, "vehicle_id": "a24e3f67-3653-4bd0-9362-2dcfd3d6abe9" },
+      "stall_id": "364caf8d-6757-43c7-88e7-b4a0f9582751", "vehicle_id": "a1111111-0001-0001-0001-000000000001" }
+  ],
+  "dispatched": [
+    { "kind": "l2", "path": "local_optimizer", "tick": 1572, "stall": "CANOPY-02 E-11", "source": "greedy_constrained", "vehicle": "Tesla-RT-001", "stall_id": "ccac745f-a9ca-47eb-94f4-8a3a1080d79c", "vehicle_id": "b2222222-0002-0002-0002-000000000001", "moved_from_offer": false },
+    { "kind": "dcfc", "path": "kernel", "tick": 1564, "stall": "CANOPY-01 W-05", "source": "kernel", "vehicle": "Waymo-AV-008", "stall_id": "364caf8d-6757-43c7-88e7-b4a0f9582751", "vehicle_id": "b9ef130e-5de8-4084-a334-4ad8191bc096", "moved_from_offer": false },
+    { "kind": "dcfc", "path": "kernel", "tick": 1534, "stall": "CANOPY-01 E-08", "source": "kernel", "vehicle": "Tesla-AV-064", "stall_id": "9753cfd9-7abe-4bfd-a5a0-fa3b33de442c", "vehicle_id": "5e93a514-8ab0-4ac1-94d6-bede2a8b4f56", "moved_from_offer": false },
+    { "kind": "dcfc", "path": "kernel", "tick": 1510, "stall": "CANOPY-01 W-02", "source": "kernel", "vehicle": "Tesla-AV-067", "stall_id": "609910b1-c888-4624-8077-76c2fc83615f", "vehicle_id": "380f0f38-a540-4f24-9ee3-a7112d4c6f23", "moved_from_offer": false },
+    { "kind": "dcfc", "path": "kernel", "tick": 1496, "stall": "CANOPY-01 W-03", "source": "kernel", "vehicle": "Waymo-AV-004", "stall_id": "bcff04b2-ad01-40fe-89fd-3c262af75305", "vehicle_id": "2cd2cbf3-9de8-48c0-9bd8-935aedb744d7", "moved_from_offer": false },
+    { "kind": "dcfc", "path": "kernel", "tick": 1492, "stall": "CANOPY-01 E-07", "source": "kernel", "vehicle": "Tesla-RT-005", "stall_id": "c8049eb3-5ff8-478d-8a33-78fdd037ab35", "vehicle_id": "b2222222-0002-0002-0002-000000000005", "moved_from_offer": false }
+  ],
+  "window_ticks": 20,
+  "chargers_down": [
+    { "kind": "dcfc", "name": "CANOPY-01 E-09", "back_at": "2026-09-02T11:50:00+00:00", "stall_id": "3a7310ac-5dfe-45fc-af3a-82d169345f30", "fault_code": "fault.station_hardware" },
+    { "kind": "dcfc", "name": "CANOPY-01 W-02", "back_at": "2026-09-02T11:07:00+00:00", "stall_id": "609910b1-c888-4624-8077-76c2fc83615f", "fault_code": "fault.communication_dropout" },
+    { "kind": "l2", "name": "CANOPY-03 W-20", "back_at": "2026-09-02T11:01:00+00:00", "stall_id": "d01cc4ff-a0dd-4db0-a6ec-f8e5b95d7be7", "fault_code": "fault.connector_cable" }
+  ],
+  "chargers_free": 0
+}

@@ -216,8 +216,8 @@ export function TwinBackgroundTab() {
             {live
               ? <>Run <span className="font-mono">{runId!.slice(0, 8)}</span> · {String(run!.status)}{run!.sim_clock ? ` · sim clock ${dayCT(run!.sim_clock)}` : ''}. Each car you see moves on a decision from OTTO-Q.</>
               : runId
-                ? <>Run <span className="font-mono">{runId.slice(0, 8)}</span> is not active. Start a run on the Control tab to see OTTO-Q work.</>
-                : <>No run is active, so the depot is empty. Start a run on the Control tab. Then the cars arrive.</>}
+                ? <>Run <span className="font-mono">{runId.slice(0, 8)}</span> is not active. Press Start at the top of the screen to see OTTO-Q work.</>
+                : <>No run is active, so the depot is empty. Press Start at the top of the screen. Then the cars arrive.</>}
           </p>
         </header>
         <nav aria-label="Background sections" className="sticky top-0 z-10 -mx-3 flex flex-wrap gap-1 bg-canvas-base/95 px-3 py-1.5 backdrop-blur">

@@ -444,7 +444,7 @@ export const TwinKpisTab = () => {
   if (!activeSimRunId) {
     return (
       <div className="flex-1 flex items-center justify-center p-6 text-center">
-        <span className="text-ink-faint text-xs">Start a scenario on the Control tab to see this run's KPIs.</span>
+        <span className="text-ink-faint text-xs">Press Start at the top of the screen to see this run's KPIs.</span>
       </div>
     );
   }

@@ -226,7 +226,7 @@ export function TwinDecisionTrail({ onTechnical }: { onTechnical?: () => void })
   if (pickedTrail && !page.includes(pickedTrail)) page.unshift(pickedTrail);
 
   if (!data.simRunId) {
-    return <p className="p-3 text-[12px] text-ink-dim">No simulation is running. Start one on the Control tab and each car's decisions appear here as OTTO-Q makes them.</p>;
+    return <p className="p-3 text-[12px] text-ink-dim">No simulation is running. Press Start at the top of the screen. Then each car's decisions appear here as OTTO-Q makes them.</p>;
   }
 
   return (
