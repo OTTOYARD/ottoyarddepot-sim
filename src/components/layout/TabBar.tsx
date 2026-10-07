@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react';
 import { useSimulationStore, type CockpitTab } from '@/store/simulationStore';
 
-// EIGHT TABS, EACH ONE A DIFFERENT QUESTION (2026-09-30: Intelligence, Orchestration and Events became OTTO-Q and Agent).
+// NINE TABS, EACH ONE A DIFFERENT QUESTION (2026-09-30: Intelligence, Orchestration and Events became OTTO-Q and Agent).
+//   Background   — what this screen shows and why OTTO-Q is built the way it is: the data, the Monte Carlo worlds, the
+//                  agentic layers, the safety harness, what it solves, and why it is agnostic (Chase, 2026-10-02)
 //   Control      — run the world: scenario, transport, speed, variability, injections
 //   OTTO-Q       — how OTTO-Q moves the depot: every car as a dot in a living funnel of the engine's layers, each decision
 //                  the engine records flashing along its path; tap a layer to look inside it
@@ -12,14 +14,15 @@ import { useSimulationStore, type CockpitTab } from '@/store/simulationStore';
 //   Diagnostics  — what this cockpit can and cannot see of the engine's world
 //   Copilot      — an on-demand model review of a sample of this run's decisions (PR #108 repaired it)
 //   Value        — what OTTO-Q is worth at this depot: power bill, chargers, revenue time (night-2 sweep, otto-q-core 0575/0576)
-//   Background   — what this screen shows and why OTTO-Q is built the way it is: the data, the Monte Carlo worlds, the
-//                  agentic layers, the safety harness, what it solves, and why it is agnostic (Chase, 2026-10-02)
 // Removed from navigation 2026-09-30 (Chase: "a lot of redundancy and slop data"; design note
 // docs/OTTO-Q-FUNNEL-AND-AGENT-TABS.md): Intelligence, Orchestration and Events showed the same facts three times
 // (a car placed on a charger was a trail step, a stream row, a lifecycle tile and an event). Their sources stay in
 // src/components/tabs for review, as PR #108 did. Earlier: Decisions, AI Summary, Swap-Test, Scorekeeper, Recall,
 // Black Box (2026-09-23).
+// Order (Chase, 2026-10-06): "background, followed by controls, followed by OTTO-Q, and then the rest". A viewer reads
+// what the screen is, then runs it, then watches the engine.
 const tabs: { id: CockpitTab; label: string }[] = [
+  { id: 'background', label: 'Background' },
   { id: 'controls', label: 'Control' },
   { id: 'ottoq', label: 'OTTO-Q' },
   { id: 'agent', label: 'Agent' },
@@ -28,7 +31,6 @@ const tabs: { id: CockpitTab; label: string }[] = [
   { id: 'world', label: 'Diagnostics' },
   { id: 'copilot', label: 'Copilot' },
   { id: 'value', label: 'Value' },
-  { id: 'background', label: 'Background' },
 ];
 
 /** `trailing` sits at the header's top-right, outside the (wrapping) tab row: the panel's expand button. */

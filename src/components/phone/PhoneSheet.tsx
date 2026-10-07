@@ -14,7 +14,7 @@ import { settleSheet, sheetHeights } from './phoneLayout';
 import { usePhoneSheet } from './phoneStore';
 
 /**
- * The phone's panels: the desktop side panel's EIGHT TABS, the very same
+ * The phone's panels: the desktop side panel's NINE TABS, the very same
  * components, in a sheet.
  *
  *   landscape  'floating' — a sheet over the 3D view, anchored bottom-left and
@@ -31,6 +31,7 @@ import { usePhoneSheet } from './phoneStore';
  * CockpitTab fails to compile here until the phone shows it too.
  */
 const TAB_LABEL: Record<CockpitTab, string> = {
+  background: 'Background',
   controls: 'Control',
   ottoq: 'OTTO-Q',
   agent: 'Agent',
@@ -39,7 +40,6 @@ const TAB_LABEL: Record<CockpitTab, string> = {
   world: 'Diagnostics',
   copilot: 'Copilot',
   value: 'Value',
-  background: 'Background',
 };
 const TABS = (Object.keys(TAB_LABEL) as CockpitTab[]).map((id) => ({ id, label: TAB_LABEL[id] }));
 const TAB_COMPONENTS: Record<CockpitTab, () => JSX.Element> = {

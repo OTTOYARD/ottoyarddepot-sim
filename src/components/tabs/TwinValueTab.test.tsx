@@ -241,10 +241,11 @@ describe('not measured yet', () => {
 });
 
 describe('the tab bar', () => {
-  it('lists Value after Copilot, with only Background after it', () => {
+  it('opens with Background, Control and OTTO-Q, and ends with Copilot and Value', () => {
     render(<TabBar />);
     const tabs = screen.getAllByRole('button').map((b) => b.textContent);
-    expect(tabs.slice(-3)).toEqual(['Copilot', 'Value', 'Background']);
+    expect(tabs.slice(0, 3)).toEqual(['Background', 'Control', 'OTTO-Q']);
+    expect(tabs.slice(-2)).toEqual(['Copilot', 'Value']);
   });
 });
 
