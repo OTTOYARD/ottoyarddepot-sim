@@ -64,8 +64,13 @@ const reply = (route, body) => route.fulfill({
  * Route the page's backend traffic through the fixture. Returns a handle whose
  * `playbackSeconds()` is the fixture time being served (-1 before the first
  * snapshot request) and whose `refused` counts blocked writes.
+ *
+ *   noRun           answer the run list with NO run, so the cockpit shows its
+ *                   idle state (the top bar's Start) — nothing is played
+ *   mutateSnapshot  (snap) => snap: change the served frame before it leaves,
+ *                   e.g. add `stalls_status` rows to show a faulted charger
  */
-export async function installFixtureRoutes(page, F, { relay = false } = {}) {
+export async function installFixtureRoutes(page, F, { relay = false, noRun = false, mutateSnapshot = null } = {}) {
   let t0 = null, ticks = 0;
   const h = {
     refused: 0,
@@ -109,11 +114,12 @@ export async function installFixtureRoutes(page, F, { relay = false } = {}) {
     }
     // the fixture's run
     if (/\/otto-twin-control\/sim_runs$/.test(u.pathname) && m === "GET") {
-      return reply(route, { ok: true, data: { runs: [{ sim_run_id: RUN, scenario: "busy_day", status: "running", speed_x: F.speedX, tick_count: ticks, seed: 1 }] } });
+      return reply(route, { ok: true, data: { runs: noRun ? [] : [{ sim_run_id: RUN, scenario: "busy_day", status: "running", speed_x: F.speedX, tick_count: ticks, seed: 1 }] } });
     }
     if (u.pathname.includes(`/sim_runs/${RUN}/snapshot`)) {
       if (t0 === null) t0 = Date.now();
-      return reply(route, { ok: true, data: snapshotAt(Date.now() - t0) });
+      const snap = snapshotAt(Date.now() - t0);
+      return reply(route, { ok: true, data: mutateSnapshot ? mutateSnapshot(snap) : snap });
     }
     if (u.pathname.includes(`/sim_runs/${RUN}`)) return reply(route, { ok: false, error: "fixture playback" });
     const rpc = /\/rest\/v1\/rpc\/(\w+)/.exec(u.pathname)?.[1];
