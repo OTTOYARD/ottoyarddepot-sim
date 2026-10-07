@@ -26,7 +26,7 @@ describe("who may steer the view", () => {
     for (const o of [
       "https://ottoyard-orchestra-av.lovable.app",
       "https://ottoyard-otto-pulse.lovable.app",
-      "https://ottoyarddepot-sim.lovable.app",
+      "https://otto-twin.lovable.app",
       "https://id-preview--1f2e3d4c.lovable.app",
       "https://5a6b7c8d.lovableproject.com",
       "http://localhost:8080",
