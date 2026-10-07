@@ -40,6 +40,8 @@ import { ruleWords } from "@/lib/plainWords";
 import { CarTrail } from "@/components/tabs/ottoq/CarTrail";
 import { LayerInfoButton, type InfoTab } from "@/components/tabs/ottoq/LayerInfo";
 import { FLAT_LAYER_PLATES } from "@/lib/layerInfo";
+import { COLOR_KEY, MOTION_KEY, PLATE_KEY, type KeyItem } from "@/components/tabs/ottoq/stack/stackLegend";
+import { StackSwatch } from "@/components/tabs/ottoq/stack/StackSwatch";
 
 const TONE_WORD: Record<NodeTone, string> = {
   ok: "enacted · cleared",
@@ -159,6 +161,51 @@ function RecentList({ items, empty }: { items: Recent[]; empty: string }) {
   );
 }
 
+/** How to read the stack: the colours, which mean the same on every plate, and what a moving light is. */
+function StackKey() {
+  return (
+    <section aria-label="How to read the stack" className="rounded-md border border-white/[0.08] bg-white/[0.02] px-2.5 py-2">
+      <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-ink-faint">How to read it · colours mean the same on every layer</div>
+      <ul className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-1">
+        {COLOR_KEY.map((k) => (
+          <li key={k.hue} className="flex items-center gap-1.5 text-[10.5px] leading-[14px]">
+            <StackSwatch hue={k.hue} shape="tile" size={10} />
+            <span><span className="text-ink">{k.word}</span> <span className="text-ink-dim">{k.means}</span></span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-1.5 flex items-start gap-1.5 text-[10.5px] leading-[14px] text-ink-dim">
+        <StackSwatch hue="agent" shape="beam" size={9} className="mt-px" />
+        <span>{MOTION_KEY}</span>
+      </p>
+    </section>
+  );
+}
+
+/** A plate's key, said in full: each mark, in the plate's own shape and colour, with its word. */
+function PlateKeyLine({ items }: { items: readonly KeyItem[] }) {
+  return (
+    <ul className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1" aria-label="Key">
+      {items.map((it) => (
+        <li key={it.word} className="inline-flex items-center gap-1.5 text-[10.5px] text-ink">
+          <StackSwatch hue={it.hue} shape={it.shape} size={10} /> {it.word[0].toUpperCase() + it.word.slice(1)}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** What one object on a plate is, and where the newest sits: the opened plate's first lines. */
+function PlateIntro({ plate }: { plate: PlateId }) {
+  const k = PLATE_KEY[plate];
+  return (
+    <>
+      <p className="mt-0.5 text-[11px] leading-4 text-ink-dim">{k.object}{k.order ? ` ${k.order}` : ""}</p>
+      <PlateKeyLine items={k.items} />
+    </>
+  );
+}
+
 const DEPOT_ZONES: { layer: LayerId; label: string }[] = [
   { layer: "arriving", label: "Arriving" },
   { layer: "needs", label: "Waiting" },
@@ -205,10 +252,10 @@ function PlateDetail({ plate, rows, dispositions, names, recentFor, cars, overvi
 
       {plate === "agent" && (
         <>
-          <p className="mt-0.5 text-[11px] leading-4 text-ink-dim">
-            Each chrome sphere is one agent pass. The pearl it joins is the goal it chose. The agent reads the whole depot
-            (the scan that rises through the stack) and proposes. It never decides. Amber: the agent gave no answer, so
-            the decide path kept the goal.
+          <PlateIntro plate="agent" />
+          <p className="mt-1.5 text-[10.5px] leading-4 text-ink-dim">
+            A violet scan rises when the agent reads the depot. Amber means the agent gave no answer in time, so the
+            default goal stayed. The agent proposes and never decides.
           </p>
           <p className="mt-1 font-mono text-[10px] text-ink">{overviews.proposers.split(" · offers")[0]}</p>
           {passes.length === 0 ? <p className="mt-1 text-[10px] text-ink-faint">No agent pass in the last two sim-hours.</p> : (
@@ -233,10 +280,10 @@ function PlateDetail({ plate, rows, dispositions, names, recentFor, cars, overvi
 
       {plate === "planners" && (
         <>
-          <p className="mt-0.5 text-[11px] leading-4 text-ink-dim">
-            Each bar is one offer from a planner. The newest is on the left of its lane. Green: the decide path chose it.
-            Red: the decide path refused it. Silver: a newer offer replaced it, or it expired. Thin dark bar: the planner
-            made no offer for that car. Planners propose. They never place a car.
+          <PlateIntro plate="planners" />
+          <p className="mt-1.5 text-[10.5px] leading-4 text-ink-dim">
+            A low dark pill means the planner looked at that car and made no offer. Planners propose. The decide path
+            places every car.
           </p>
           <p className="mt-1 font-mono text-[10px] text-ink">{overviews.proposers.split(" · ").slice(-1)[0]}</p>
           {loud.length === 0 ? <p className="mt-1 text-[10px] text-ink-faint">No offer was chosen or refused in the records read so far.</p> : (
@@ -255,10 +302,10 @@ function PlateDetail({ plate, rows, dispositions, names, recentFor, cars, overvi
 
       {plate === "decide" && (
         <>
-          <p className="mt-0.5 text-[11px] leading-4 text-ink-dim">
-            Each tile is one decision that the decide path made for a car. The newest is at the front. The decide path
-            takes an offer, makes its own choice, or holds the car when nothing fits. Green: carried out. Amber: held.
-            Each choice then drops through the safety plate below before the depot carries it out.
+          <PlateIntro plate="decide" />
+          <p className="mt-1.5 text-[10.5px] leading-4 text-ink-dim">
+            For each car, the decide path takes an offer, makes its own choice, or holds the car when nothing fits. Each
+            choice then falls through the safety plate before the depot acts on it.
           </p>
           <div className="mt-2 text-[10px] text-ink-faint">Newest decisions</div>
           <RecentList
@@ -269,11 +316,10 @@ function PlateDetail({ plate, rows, dispositions, names, recentFor, cars, overvi
 
       {plate === "safety" && (
         <>
-          <p className="mt-0.5 text-[11px] leading-4 text-ink-dim">
-            This is the last check before anything happens in the depot. The shield checks each choice of the decide path
-            against the enforced rules. For example, no car leaves below its charge target or with a service still open.
-            If a choice breaks a rule, the shield changes it to a safe default. Its light stops on this plate, a red block
-            marks it, and the rim flares.
+          <PlateIntro plate="safety" />
+          <p className="mt-1.5 text-[10.5px] leading-4 text-ink-dim">
+            This is the last check before the depot acts. If a decision breaks an enforced rule, the shield changes it to a
+            safe default, and the rim flares red.
           </p>
           <p className="mt-1 text-[11px] leading-4 text-ink">
             {shield && shield.evaluations != null
@@ -287,10 +333,11 @@ function PlateDetail({ plate, rows, dispositions, names, recentFor, cars, overvi
 
       {plate === "depot" && (
         <>
-          <p className="mt-0.5 text-[11px] leading-4 text-ink-dim">
-            Each puck is a car, in the area that matches its state. Cars enter by the east gate, wait for a plan, charge or
-            go to a bay, and leave ready by the west gate. The DCFC, L2, wash and service sockets are the real stalls of
-            the site.
+          <PlateIntro plate="depot" />
+          <p className="mt-1.5 text-[10.5px] leading-4 text-ink-dim">
+            Cars enter by the east gate and leave ready by the west gate. The DCFC, L2, wash and service sockets are the
+            real stalls of the site. A car in Ready is green only when its battery is at its target and nothing it needs
+            is open.
           </p>
           <div role="tablist" className="mt-2 flex flex-wrap gap-1">
             {DEPOT_ZONES.map((z) => {
@@ -581,8 +628,8 @@ export function TwinOttoQTab() {
   }, []);
 
   const labels = useMemo<Record<PlateId, PlateLabel>>(
-    () => plateLabels({ rows, dispositions: disp.rows, stack: slice, cars: cardsRead ? cars : null }),
-    [disp.rows, slice, rows, cardsRead, cars],
+    () => plateLabels({ rows, dispositions: disp.rows, stack: slice, activity: cardsRead ? model.depot.activity : null }),
+    [disp.rows, slice, rows, cardsRead, model.depot.activity],
   );
 
   const tags = useMemo(() => plateTags(model, slice?.shield ?? null), [model, slice]);
@@ -638,7 +685,7 @@ export function TwinOttoQTab() {
             </div>
             <p className="mt-1 text-[10px] leading-4 text-ink-faint">
               {threeD
-                ? "Each object is a real record. Each new record falls through the stack when the engine writes it. Drag sideways to turn the stack. Tap a plate to open it."
+                ? "Each object is a real record from this run. Drag sideways to turn the stack. Tap a plate to open it."
                 : "Each dot is a car. Each flash is a decision the engine just recorded. Tap a layer to look inside."}
             </p>
           </div>
@@ -663,7 +710,7 @@ export function TwinOttoQTab() {
           /* capped, so the labels keep near their plates when the panel is expanded to full width */
           <div className="mx-auto w-full max-w-[760px]">
           <OttoQStack model={model} events={events} focus={focus} onFocus={onFocusPlate} labels={labels} tags={tags}
-            height={520} tier={tier} reduced={reduced} describe={describe} onPick={onPick} picked={picked} replay={replay} live={running}
+            height={560} tier={tier} reduced={reduced} describe={describe} onPick={onPick} picked={picked} replay={replay} live={running}
             info={info} />
           </div>
         ) : (
@@ -697,14 +744,15 @@ export function TwinOttoQTab() {
           </div>
         )}
 
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-ink-dim" aria-label="Legend">
-          {(["ok", "held", "refused", "idle"] as NodeTone[]).map((t) => (
-            <span key={t} className="inline-flex items-center gap-1"><Dot tone={t} /> {TONE_WORD[t]}</span>
-          ))}
-        </div>
+        {threeD ? <StackKey /> : (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-ink-dim" aria-label="Legend">
+            {(["ok", "held", "refused", "idle"] as NodeTone[]).map((t) => (
+              <span key={t} className="inline-flex items-center gap-1"><Dot tone={t} /> {TONE_WORD[t]}</span>
+            ))}
+          </div>
+        )}
         <p className="text-[10px] leading-4 text-ink-faint">
-          {away == null ? "Cars outside the depot: —" : `${away} ${away === 1 ? "car is" : "cars are"} out at work and not shown.`}{" "}
-          A car in Ready is green only when its battery has reached its target and nothing it needs is open.
+          {away == null ? "Cars outside the depot: —" : `${away} ${away === 1 ? "car is" : "cars are"} out at work and not shown.`}
         </p>
 
         {threeD && picked && (

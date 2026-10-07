@@ -76,12 +76,13 @@ describe("OTTO-Q tab", () => {
     expect(infos).toHaveLength(8);
     fireEvent.click(within(list).getByRole("button", { name: "About the Decide layer" }));
     const card = await screen.findByRole("article", { name: "About the Decide layer" });
-    for (const h of ["Why it is there", "What it does", "What it technically is", "Why it was built this way"]) {
-      expect(within(card).getByText(h)).toBeTruthy();
-    }
-    expect(within(card).getByText(/pg_cron runs public\.ottoq_decide_tick/)).toBeTruthy();
+    // an overview, the facts as a list, and one closing line: short, with no section headings
+    expect(within(card).getByText(/deterministic core of OTTO-Q/)).toBeTruthy();
+    expect(within(card).getAllByRole("listitem").length).toBeGreaterThanOrEqual(3);
+    expect(within(card).getByText(/passes the safety shield before the depot acts/)).toBeTruthy();
+    expect(within(card).queryByText("Why it is there")).toBeNull();
     // the card names the run its live line is for
-    expect(within(card).getByText(`On this run (${fx.sim_run_id.slice(0, 8)})`)).toBeTruthy();
+    expect(within(card).getByText(new RegExp(`This run \\(${fx.sim_run_id.slice(0, 8)}\\)`))).toBeTruthy();
     // and the layer itself did not open underneath it
     expect(screen.queryByRole("region", { name: "Decide layer" })).toBeNull();
   });

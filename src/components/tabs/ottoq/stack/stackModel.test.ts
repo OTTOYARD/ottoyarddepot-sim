@@ -8,8 +8,9 @@ import { generateStallsV2 } from "@/lib/sitePlan";
 import {
   BARS_PER_LANE, ENTRY_POINT, EXIT_POINT, PLATES, REPLAY_PER, SITE_COUNTS, TILE_COLS, TILE_ROWS, ZONE, ZONES,
   PLATE_D, PLATE_MARGIN, PLATE_W, agentModel, barTone, carZone, plateTags, decideModel, decisionDest, depotModel, plannerModel, plateLabels, recordKeys, replayEvents,
-  SWEEP_EVERY_S, shouldSweep, stackModel, stallNumber, takeNewEvents, zoneCapacity,
+  SWEEP_EVERY_S, shouldSweep, stackModel, stallNumber, takeNewEvents, zoneCapacity, carActivity, ACTIVITY_HUE,
 } from "./stackModel";
+import { COLOR_KEY, HUE, PLATE_ACCENT, PLATE_KEY, plateStats } from "./stackLegend";
 
 const feed = fx.feed as unknown as ActivityFeedRow[];
 const disp = fx.dispositions as unknown as DispositionRow[];
@@ -185,27 +186,81 @@ describe("depot base", () => {
 });
 
 describe("plate labels", () => {
-  it("read the run's own counts, the safety figure first on its plate", () => {
+  it("are each plate's legend, with the run's own counts beside each mark", () => {
     const stack = { agent: { objective: "readiness_first", chains: 15, fallbacks: 2 }, shield: { evaluations: 14143, refused: 0 } };
-    const cars = [{ layer: "arriving" }, { layer: "service" }, { layer: "service" }, { layer: "ready" }];
-    const l = plateLabels({ rows: feed, dispositions: disp, stack, cars });
-    expect(l.agent.line).toBe("15 passes · 2 fell back");
-    // 103 ledger rows less 44 declined: 59 offers, 1 enacted, 25 refused (run 1ccad49b, measured 2026-09-30)
-    expect(l.planners.line).toBe("59 offers · 1 used · 25 refused");
-    expect(l.decide.line).toMatch(/^\d+ enacted · \d+ held$/);
+    const activity = { ready: 1, "in service": 2, waiting: 0, "out of service": 0, arriving: 1, "not reported": 0 };
+    const l = plateLabels({ rows: feed, dispositions: disp, stack, activity });
+    expect(l.agent.line).toBe("13 answered · 2 fell back");
+    expect(l.agent.foot).toBe("Goal now: readiness first");
+    // 103 ledger rows less 44 declined: 59 offers — 1 used, 25 refused, 32 replaced by a newer offer, 1 expired
+    // (run 1ccad49b, measured 2026-09-30)
+    expect(l.planners.line).toBe("1 used · 25 refused · 32 replaced · 1 expired");
+    expect(l.decide.line).toMatch(/^\d+ carried out · \d+ held( · \d+ no change)?$/);
     expect(l.safety.line).toBe("14,143 checks · 0 blocked");
-    expect(l.depot.line).toBe("4 cars · 2 in service · 1 ready");
+    // a zero is shown only where it is news (ready, in service, waiting); arriving shows because it is not zero
+    expect(l.depot.line).toBe("1 ready · 2 in service · 0 waiting · 1 arriving");
     expect(PLATES.map((p) => l[p.id].title)).toEqual(["Agent", "Planners", "Decide", "Safety", "Depot"]);
   });
 
+  it("colour every count with the hue and shape its plate draws", () => {
+    const stack = { agent: { objective: null, chains: 4, fallbacks: 1 }, shield: { evaluations: 10, refused: 3 } };
+    const l = plateLabels({ rows: feed, dispositions: disp, stack, activity: null });
+    expect(l.agent.stats.map((s) => [s.word, s.hue, s.shape])).toEqual([["answered", "agent", "orb"], ["fell back", "held", "orb"]]);
+    expect(l.planners.stats.find((s) => s.word === "refused")).toMatchObject({ hue: "refused", shape: "pill", n: 25 });
+    expect(l.planners.stats.find((s) => s.word === "used")).toMatchObject({ hue: "ok", shape: "pill", n: 1 });
+    expect(l.safety.stats).toEqual([{ hue: "refused", shape: "block", word: "blocked", n: 3 }]);
+    for (const p of PLATES) for (const st of l[p.id].stats) expect(Object.keys(HUE)).toContain(st.hue);
+  });
+
   it("say a source has not answered instead of printing zero", () => {
-    const l = plateLabels({ rows: [], dispositions: null, stack: null, cars: null });
-    expect(l.agent.line).toBe("Passes: —");
-    expect(l.planners.line).toBe("Offers: —");
+    const l = plateLabels({ rows: [], dispositions: null, stack: null, activity: null });
+    expect(l.agent.line).toBe("— answered · — fell back");
+    expect(l.planners.line).toBe("— used · — refused · — replaced · — expired");
     expect(l.decide.line).toBe("No decisions yet");
-    expect(l.safety.line).toBe("Checks: —");
+    expect(l.safety.line).toBe("Checks: — · — blocked");
     expect(l.depot.line).toBe("Waiting for the depot cards");
     expect(Object.values(l).map((x) => x.line).join(" ")).not.toMatch(/\b0\b/);
+  });
+});
+
+describe("depot activity", () => {
+  it("colours a car by what it does now, and only a provably ready car green", () => {
+    expect(carActivity("dcfc", "held")).toBe("in service");
+    expect(carActivity("wash", "ok")).toBe("in service");
+    expect(carActivity("waiting", "ok")).toBe("waiting");
+    expect(carActivity("repair", "ok")).toBe("out of service");
+    expect(carActivity("road", "ok")).toBe("arriving");
+    expect(carActivity("ready", "ok")).toBe("ready");
+    expect(carActivity("ready", "held")).toBe("waiting");     // below its target, or a need still open
+    expect(carActivity("ready", "idle")).toBe("not reported"); // battery not on the card: not provably ready
+    for (const a of Object.keys(ACTIVITY_HUE) as (keyof typeof ACTIVITY_HUE)[]) {
+      expect(PLATE_KEY.depot.items.find((it) => it.word === a)?.hue).toBe(ACTIVITY_HUE[a]);
+    }
+  });
+
+  it("counts every car once, those past a zone's slots too", () => {
+    const tones = new Map(cardsB.map((v) => [v.vehicle_id, "ok" as const]));
+    const m = depotModel(cardsB, tones);
+    const placed = Object.values(m.counts).reduce((a, b) => a + b, 0);
+    expect(Object.values(m.activity).reduce((a, b) => a + b, 0)).toBe(placed);
+  });
+});
+
+describe("the legend", () => {
+  it("names a hue for every key item, and every bar and tile tone has one", () => {
+    for (const p of PLATES) for (const it of PLATE_KEY[p.id].items) expect(HUE[it.hue]).toBeTruthy();
+    expect(COLOR_KEY.map((k) => k.hue)).toEqual(["ok", "held", "refused", "idle"]);
+  });
+
+  it("keeps red for refused and blocked: no plate's own accent is a status hue", () => {
+    const status = new Set(Object.values(HUE).flatMap((h) => [h.fill.toLowerCase(), h.glow.toLowerCase()]));
+    for (const c of Object.values(PLATE_ACCENT)) expect(status.has(c.toLowerCase())).toBe(false);
+    expect(PLATE_ACCENT.agent).not.toMatch(/^#(c8|e1|e0|f4|fb|ff)/i);
+  });
+
+  it("leaves a zero out unless the plate marks it as news, and keeps an unknown count as unknown", () => {
+    expect(plateStats("planners", { used: 0, refused: 2, replaced: 0, expired: 0 }).map((s) => s.word)).toEqual(["used", "refused"]);
+    expect(plateStats("planners", {}).map((s) => s.n)).toEqual([null, null, null, null]);
   });
 });
 

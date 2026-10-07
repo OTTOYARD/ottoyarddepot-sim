@@ -24,6 +24,7 @@ import {
 } from "@/lib/ottoqFunnel";
 import { agentPass } from "@/lib/agentStream";
 import { hash01 } from "../funnelGeometry";
+import { plateStats, type Hue, type Stat } from "./stackLegend";
 
 export type PlateId = "agent" | "planners" | "decide" | "safety" | "depot";
 
@@ -38,10 +39,10 @@ export interface PlateDef {
 
 /** Top to bottom: the order a decision falls through the engine. */
 export const PLATES: readonly PlateDef[] = [
-  { id: "agent", label: "Agent", tagline: "Read & propose", y: 17.6 },
-  { id: "planners", label: "Planners", tagline: "Optimize & offer", y: 13.2 },
-  { id: "decide", label: "Decide", tagline: "Choose one plan", y: 8.8 },
-  { id: "safety", label: "Safety", tagline: "Check & enforce", y: 4.4 },
+  { id: "agent", label: "Agent", tagline: "Read & propose", y: 20.8 },
+  { id: "planners", label: "Planners", tagline: "Optimize & offer", y: 15.6 },
+  { id: "decide", label: "Decide", tagline: "Choose one plan", y: 10.4 },
+  { id: "safety", label: "Safety", tagline: "Check & enforce", y: 5.2 },
   { id: "depot", label: "Depot", tagline: "Dispatch & serve", y: 0 },
 ] as const;
 export const PLATE_Y: Record<PlateId, number> = Object.fromEntries(PLATES.map((p) => [p.id, p.y])) as Record<PlateId, number>;
@@ -137,8 +138,23 @@ export function barTone(d: DispositionRow): BarTone {
 
 /** The order lanes are laid front to back when present. Two engine sources that are one planner share a lane. */
 const LANE_ORDER = ["CP-SAT", "cuOpt", "the greedy planner", "the service-priority planner"];
-export const BARS_PER_LANE = 11;
+export const BARS_PER_LANE = 10;
 export const MAX_LANES = 4;
+/** Where each planner's name is engraved at its lane's left end, and where its offers start (newest first). */
+export const LANE_LABEL_X = -4.62;
+export const LANE_BARS_X0 = -2.5;
+export const BAR_PITCH = 0.74;
+export const BAR_LEN = 0.56;
+/** The name engraved on a lane: short enough for the plate, product names in their own case. */
+export function laneName(word: string): string {
+  const short: Record<string, string> = {
+    "the greedy planner": "Greedy",
+    "the service-priority planner": "Priority",
+    "other planners": "Other",
+    "the agent": "Agent",
+  };
+  return short[word] ?? word.replace(/^the /, "").replace(/ planner$/, "");
+}
 
 export function plannerModel(rows: readonly DispositionRow[]): Lane[] {
   const byWord = new Map<string, DispositionRow[]>();
@@ -165,7 +181,7 @@ export function plannerModel(rows: readonly DispositionRow[]): Lane[] {
       z: nL === 1 ? 0 : -2.3 + (i * 4.6) / (nL - 1),
       total: list.length,
       bars: list.slice(0, BARS_PER_LANE).map((d, j) => ({
-        key: `p${d.disposition_id}`, tone: barTone(d), x: -4.15 + j * 0.78, len: 0.62, carId: d.entity_id,
+        key: `p${d.disposition_id}`, tone: barTone(d), x: LANE_BARS_X0 + j * BAR_PITCH, len: BAR_LEN, carId: d.entity_id,
       })),
     };
   });
@@ -298,11 +314,37 @@ export function stallNumber(code: string | null | undefined): number | null {
   return m ? Number(m[1]) : null;
 }
 
-export interface Puck { id: string; name: string; tone: NodeTone; zone: DepotZone; x: number; z: number }
+export interface Puck { id: string; name: string; tone: NodeTone; activity: CarActivity; hue: Hue; zone: DepotZone; x: number; z: number }
+
+/** What a car is doing now, in the depot plate's key words (stackLegend PLATE_KEY.depot). */
+export type CarActivity = "ready" | "in service" | "waiting" | "out of service" | "arriving" | "not reported";
+export const ACTIVITY_HUE: Record<CarActivity, Hue> = {
+  ready: "ok", "in service": "active", waiting: "held", "out of service": "refused", arriving: "idle", "not reported": "idle",
+};
+
+/**
+ * A car's activity from its zone and its tone: ready (green), in service (blue: on a charger or in a bay), waiting
+ * (amber: at the gate, waiting for a plan, booked, between steps, or in Ready below its target or with a need open),
+ * out of service (red), arriving (grey), and not reported (grey: in Ready, but its battery is not on its card). In
+ * Ready only a car whose own tone is green is ready: carsFromCards makes that tone green only when the battery is at
+ * its target and no need is open, and grey when the battery is not reported (rule 9: not provably ready).
+ */
+export function carActivity(zone: DepotZone, tone: NodeTone): CarActivity {
+  switch (zone) {
+    case "road": return "arriving";
+    case "gate": case "waiting": case "booked": case "hold": return "waiting";
+    case "dcfc": case "l2": case "wash": case "service": return "in service";
+    case "repair": return "out of service";
+    case "ready": return tone === "ok" ? "ready" : tone === "idle" ? "not reported" : "waiting";
+  }
+}
+
 export interface DepotModel {
   pucks: Puck[];
   overflow: Partial<Record<DepotZone, number>>;
   counts: Record<DepotZone, number>;
+  /** Cars per activity, every car in the depot (cars past a zone's slots too). */
+  activity: Record<CarActivity, number>;
   /** Cars the engine reports deployed: the only ones a vanished puck may be shown driving out. */
   deployed: Set<string>;
   /** False when the cards have not answered for this run: then no car is shown arriving or leaving. */
@@ -318,9 +360,11 @@ export function depotModel(vehicles: readonly FunnelCardVehicle[], tones: Readon
   const pucks: Puck[] = [];
   const overflow: Partial<Record<DepotZone, number>> = {};
   const counts = Object.fromEntries(ZONES.map((z) => [z.id, 0])) as Record<DepotZone, number>;
+  const activity: Record<CarActivity, number> = { ready: 0, "in service": 0, waiting: 0, "out of service": 0, arriving: 0, "not reported": 0 };
   for (const def of ZONES) {
     const list = byZone.get(def.id) ?? [];
     counts[def.id] = list.length;
+    for (const v of list) activity[carActivity(def.id, tones.get(v.vehicle_id) ?? "idle")]++;
     const cap = zoneCapacity(def);
     const taken = new Set<number>();
     const slotOf = new Map<string, number>();
@@ -344,10 +388,14 @@ export function depotModel(vehicles: readonly FunnelCardVehicle[], tones: Readon
     for (const v of list) {
       const i = slotOf.get(v.vehicle_id);
       if (i == null) continue;
+      const tone = tones.get(v.vehicle_id) ?? "idle";
+      const act = carActivity(def.id, tone);
       pucks.push({
         id: v.vehicle_id,
         name: v.display_name ?? "—",
-        tone: tones.get(v.vehicle_id) ?? "idle",
+        tone,
+        activity: act,
+        hue: ACTIVITY_HUE[act],
         zone: def.id,
         x: def.x0 + (i % def.cols) * def.px,
         z: def.z0 + Math.floor(i / def.cols) * def.pz,
@@ -355,7 +403,7 @@ export function depotModel(vehicles: readonly FunnelCardVehicle[], tones: Readon
     }
   }
   const deployed = new Set(vehicles.filter((v) => v.state === "deployed").map((v) => v.vehicle_id));
-  return { pucks, overflow, counts, deployed, read };
+  return { pucks, overflow, counts, activity, deployed, read };
 }
 
 // ── events: records that arrived while watching ─────────────────────────────
@@ -470,56 +518,87 @@ export function replayEvents(
 }
 
 // ── the plates' labels ──────────────────────────────────────────────────────
-export interface PlateLabel { title: string; tagline: string; line: string }
+export interface PlateLabel {
+  title: string;
+  tagline: string;
+  /** The whole line in words, for a screen reader and the layer card's "On this run". */
+  line: string;
+  /** A fact said before the key items ("14,143 checks"), or null. */
+  lead: string | null;
+  /** The plate's key items with this run's counts: the colour, the shape and the word, side by side. */
+  stats: Stat[];
+  /** One more fact under the items ("Goal now: readiness first"), or null. */
+  foot: string | null;
+}
 
-/** One line per plate, beside it in the stack. A source that has not answered reads "—", never 0. */
+const fmt = (x: number | null | undefined) => (x == null ? "—" : x.toLocaleString("en-US"));
+const statLine = (lead: string | null, stats: readonly Stat[]) =>
+  [lead, ...stats.map((s) => `${fmt(s.n)} ${s.word}`)].filter(Boolean).join(" · ");
+
+/**
+ * Each plate's label beside it in the stack. A source that has not answered reads "—", never 0. The counts are the
+ * run's, from the same reads the plate's objects are drawn from, and the words are the plate's key (stackLegend), so
+ * the line beside a plate is its legend too.
+ */
 export function plateLabels(i: {
   rows: readonly ActivityFeedRow[];
   dispositions: readonly DispositionRow[] | null;
   stack: { agent: { objective: string | null; chains: number | null; fallbacks: number | null } | null; shield: { evaluations: number | null; refused: number | null } | null } | null;
-  /** The cars in the depot (ottoq_depot_cards), or null until the cards have answered for this run. */
-  cars: readonly { layer: string }[] | null;
+  /** Cars per activity (depotModel().activity), or null until the cards have answered for this run. */
+  activity: Record<CarActivity, number> | null;
 }): Record<PlateId, PlateLabel> {
-  const n = (x: number | null | undefined) => (x == null ? "—" : x.toLocaleString("en-US"));
   const byTitle = Object.fromEntries(PLATES.map((p) => [p.id, p])) as Record<PlateId, PlateDef>;
   const a = i.stack?.agent ?? null;
   const sh = i.stack?.shield ?? null;
-  let offered = 0, enacted = 0, refused = 0;
-  for (const d of i.dispositions ?? []) {
-    if (d.abstained) continue;
-    offered++;
-    if (d.status === "enacted") enacted++;
-    else if (d.status === "refused") refused++;
+  const label = (id: PlateId, lead: string | null, stats: Stat[], foot: string | null = null, empty?: string): PlateLabel => ({
+    title: byTitle[id].label, tagline: byTitle[id].tagline, lead, stats, foot, line: empty ?? statLine(lead, stats),
+  });
+
+  // agent: passes that answered, and passes that fell back to the default goal
+  const chains = a?.chains ?? null, fellBack = a?.fallbacks ?? (chains != null ? 0 : null);
+  const answered = chains != null && fellBack != null ? Math.max(0, chains - fellBack) : null;
+  const goal = a?.objective ? `Goal now: ${human(a.objective)}` : null;
+  const agent = chains === 0
+    ? label("agent", null, plateStats("agent", { answered: 0, "fell back": 0 }), null, "No passes this run")
+    : label("agent", null, plateStats("agent", { answered, "fell back": fellBack }), goal);
+
+  // planners: every offer a planner made (a declined "no offer" is not an offer), by what the decide path did with it
+  let planners: PlateLabel;
+  if (!i.dispositions) planners = label("planners", null, plateStats("planners", {}));
+  else {
+    let used = 0, refused = 0, replaced = 0, expired = 0;
+    for (const d of i.dispositions) {
+      if (d.abstained) continue;
+      if (d.status === "enacted") used++;
+      else if (d.status === "refused") refused++;
+      else if (d.status === "expired") expired++;
+      else replaced++;
+    }
+    const stats = plateStats("planners", { used, refused, replaced, expired });
+    planners = used + refused + replaced + expired === 0 ? label("planners", null, stats, null, "No offers yet") : label("planners", null, stats);
   }
+
+  // decide: one decision per car, by outcome
   const carRows = i.rows.filter((r) => r.vehicle_id && CAR_ACTIONS.has(r.action));
-  const ok = carRows.filter((r) => rowTone(r) === "ok").length;
-  const holds = carRows.filter((r) => rowTone(r) === "held").length;
-  const c = (l: string) => (i.cars ? i.cars.filter((x) => x.layer === l).length : null);
-  const safety = sh && sh.evaluations != null ? `${n(sh.evaluations)} checks · ${n(sh.refused)} blocked` : "Checks: —";
-  return {
-    agent: {
-      title: byTitle.agent.label, tagline: byTitle.agent.tagline,
-      line: a && a.chains != null
-        ? a.chains === 0 ? "No passes this run" : `${n(a.chains)} passes${a.fallbacks ? ` · ${n(a.fallbacks)} fell back` : ""}`
-        : "Passes: —",
-    },
-    planners: {
-      title: byTitle.planners.label, tagline: byTitle.planners.tagline,
-      line: i.dispositions ? (i.dispositions.length === 0 ? "No offers yet" : `${n(offered)} offers · ${n(enacted)} used · ${n(refused)} refused`) : "Offers: —",
-    },
-    decide: {
-      title: byTitle.decide.label, tagline: byTitle.decide.tagline,
-      line: carRows.length ? `${n(ok)} enacted · ${n(holds)} held` : "No decisions yet",
-    },
-    safety: {
-      title: byTitle.safety.label, tagline: byTitle.safety.tagline,
-      line: safety,
-    },
-    depot: {
-      title: byTitle.depot.label, tagline: byTitle.depot.tagline,
-      line: i.cars == null ? "Waiting for the depot cards" : `${n(i.cars.length)} cars · ${n(c("service"))} in service · ${n(c("ready"))} ready`,
-    },
-  };
+  const tones = carRows.map(rowTone);
+  const decideStats = plateStats("decide", {
+    "carried out": tones.filter((t) => t === "ok").length,
+    held: tones.filter((t) => t === "held").length,
+    "no change": tones.filter((t) => t === "idle").length,
+  });
+  const decide = carRows.length ? label("decide", null, decideStats) : label("decide", null, decideStats, null, "No decisions yet");
+
+  // safety: checks run, decisions blocked
+  const safety = sh && sh.evaluations != null
+    ? label("safety", `${fmt(sh.evaluations)} checks`, plateStats("safety", { blocked: sh.refused }))
+    : label("safety", "Checks: —", plateStats("safety", {}));
+
+  // depot: every car, by what it does now
+  const depot = i.activity
+    ? label("depot", null, plateStats("depot", i.activity))
+    : label("depot", null, plateStats("depot", {}), null, "Waiting for the depot cards");
+
+  return { agent, planners, decide, safety, depot };
 }
 
 // ── tags: crisp words pinned to a zoomed plate (the plate's own silkscreen is too small to read) ──
@@ -538,15 +617,21 @@ export function plateTags(m: StackModel, shield: { evaluations: number | null; r
     depot.push({
       key: z.id, x, z: zz, text: z.label,
       sub: count == null ? "—" : z.fixed ? `${n(count)} of ${n(cap)}` : n(count),
-      tone: count && z.id === "ready" ? "ok" : count && (z.id === "repair") ? "refused" : count && (z.id === "waiting" || z.id === "gate") ? "held" : "dim",
+      // a zone's tag takes its cars' colour: Ready is green only when a car there is ready (not merely staged there)
+      tone: z.id === "ready" ? (m.depot.activity.ready ? "ok" : "dim") : count && (z.id === "repair") ? "refused" : count && (z.id === "waiting" || z.id === "gate") ? "held" : "dim",
     });
   }
   depot.push({ key: "in", x: 4.4, z: 3.02, text: "In ▲", tone: "dim" }, { key: "out", x: -4.4, z: 3.02, text: "◀ Out", tone: "dim" });
-  const planners: PlateTag[] = m.planners.map((l) => ({
-    key: l.word, x: -4.55, z: l.z - 0.42, text: l.word.replace(/^the /, ""),
-    sub: ((k) => `${k} ${k === 1 ? "offer" : "offers"}`)(l.bars.filter((b) => b.tone !== "declined").length),
-  }));
-  if (m.planners.length) planners.push({ key: "newest", x: -4.55, z: 3.0, text: "newest ◀ ▶ older", tone: "dim" });
+  // per lane: what the decide path did with the offers drawn on it (the plate shows the newest BARS_PER_LANE)
+  const planners: PlateTag[] = m.planners.map((l) => {
+    const by = (t: BarTone) => l.bars.filter((b) => b.tone === t).length;
+    const parts = [[by("ok"), "used"], [by("refused"), "refused"], [by("replaced"), "replaced"], [by("declined"), "no offer"]] as const;
+    return {
+      key: l.word, x: LANE_LABEL_X + 0.1, z: l.z - 0.42, text: laneName(l.word),
+      sub: parts.filter(([k]) => k > 0).map(([k, w]) => `${k} ${w}`).join(" · ") || "no offers",
+    };
+  });
+  if (m.planners.length) planners.push({ key: "newest", x: LANE_BARS_X0 + 1.4, z: 3.0, text: "newest ◀ ▶ older", tone: "dim" });
   const agent: PlateTag[] = m.agent.hubs.map((h) => ({ key: h.key, x: h.x, z: h.z + 0.5, text: h.label, sub: `${h.passes} ${h.passes === 1 ? "pass" : "passes"}` }));
   const decide: PlateTag[] = m.tiles.length
     ? [{ key: "front", x: -4.4, z: 2.75, text: "newest ▶", tone: "dim" }, { key: "back", x: 3.6, z: -2.55, text: "older", tone: "dim" }]
