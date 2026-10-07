@@ -681,6 +681,14 @@ export interface TwinKpiBoard {
     solar_kwh: number | null; battery_out_kwh: number | null; battery_in_kwh: number | null; building_kwh: number | null;
     grid_cost_usd: number | null; grid_price_usd_kwh: number | null; solar_share_pct: number | null;
     peak_grid_kw_15min: number | null; peak_load_kw_15min: number | null;
+    /** 0611: the depot tariff priced on its own demand basis (NES GSA-3: the highest full 30 minutes of grid draw),
+     *  and the same readings with the battery output taken out. Absent on a board from before 0611. */
+    peak_grid_kw_30min?: number | null; peak_grid_30min_from?: string | null; peak_without_battery_kw_30min?: number | null;
+    demand_charge_usd_month?: number | null; demand_charge_without_battery_usd_month?: number | null;
+    demand_tariff?: {
+      schedule: string; utility: string; season: string; basis: string; usd_per_kw: number; block_kw: number | null;
+      usd_per_kw_above_block: number; source_url: string | null; priced: boolean;
+    } | null;
   };
   chargers?: {
     dcfc_stalls: number; l2_stalls: number; dcfc_busy_pct: number | null; l2_busy_pct: number | null;

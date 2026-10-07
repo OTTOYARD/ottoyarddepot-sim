@@ -49,7 +49,11 @@ describe('the KPI board', () => {
     expect(within(split).getByRole('list', { name: 'Legend' }).querySelectorAll('li')).toHaveLength(7);
     expect(split.textContent).toMatch(/Cars waited 40% of fleet time: 32% after arrival, 8% between steps\./);
     // energy reads the run's own integrals, and the caption names the run and its window
-    expect(screen.getByTestId('kpi-energy').textContent).toContain('4,364 kWh');
+    const energy = screen.getByTestId('kpi-energy').textContent ?? '';
+    expect(energy).toContain('4,364 kWh');
+    // the month's demand charge on the depot's own tariff, with the one limit on it said under the card
+    expect(energy).toContain('$12,989');
+    expect(energy).toContain('The bill uses the highest 30 minutes in the month.');
     expect(screen.getByText(/Run fd6ed035 · busy_day · sim 8:00 AM – 1:50 PM CT · 116 cars/)).toBeTruthy();
     // the five stay on the tab, closed, under the board
     expect(screen.getByText('Engineering KPIs · the five')).toBeTruthy();

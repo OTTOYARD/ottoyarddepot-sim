@@ -26,7 +26,7 @@ import { twin, type TwinKpiBoard, type TwinKpiFive } from "@/lib/ottoTwin";
 import { chargeWaitDetail } from "@/lib/chargeWait";
 import { liveFleetMetrics } from "@/lib/liveFleetMetrics";
 import {
-  boardCaption, chargerRows, energyRows, fmtHours, fmtPct, headlineTiles, serviceRows, timeSplit, topServices, turnaroundRows,
+  boardCaption, chargerRows, energyNote, energyRows, fmtHours, fmtPct, headlineTiles, serviceRows, timeSplit, topServices, turnaroundRows,
   waitingShare, type Row, type Tile, type TimeSegment,
 } from "@/lib/kpiBoard";
 import { CheckCircle2 } from "lucide-react";
@@ -363,7 +363,9 @@ const KpiBoardPanel = ({ simRunId }: { simRunId: string }) => {
       {seg.length > 0 && <TimeSplitCard seg={seg} />}
       <RowsCard title="Turnaround" rows={turnaroundRows(board)} testid="kpi-turnaround" />
       <RowsCard title="Service" rows={serviceRows(board)} testid="kpi-service"><ServiceBars board={board} /></RowsCard>
-      <RowsCard title="Energy" rows={energyRows(board)} testid="kpi-energy" />
+      <RowsCard title="Energy" rows={energyRows(board)} testid="kpi-energy">
+        {energyNote(board) && <p className="mt-2 text-[10px] leading-4 text-ink-dim">{energyNote(board)}</p>}
+      </RowsCard>
       <RowsCard title="Chargers" rows={chargerRows(board)} testid="kpi-chargers" />
       <p className="px-1 text-[10px] leading-4 text-ink-dim">
         {boardCaption(board)}. The engine computes each figure from this run's own records. It updates every 30 s.

@@ -151,19 +151,46 @@ export function serviceRows(b: TwinKpiBoard | null | undefined): Row[] {
   ];
 }
 
+/** "NES_GSA_3" → "NES GSA-3": the utility, then the schedule. */
+const scheduleName = (code: string): string => code.replace("_", " ").replace(/_/g, "-");
+
 export function energyRows(b: TwinKpiBoard | null | undefined): Row[] {
   const e = b?.energy;
   if (!e) return [];
-  const shaved = isNum(e.peak_load_kw_15min) && isNum(e.peak_grid_kw_15min) ? e.peak_load_kw_15min - e.peak_grid_kw_15min : null;
-  return [
+  const rows: Row[] = [
     { label: "Energy to cars", value: fmtKwh(e.to_cars_kwh) },
     { label: "Grid energy bought", value: fmtUsd(e.grid_cost_usd), detail: `${fmtKwh(e.grid_import_kwh)} at ${isNum(e.grid_price_usd_kwh) ? `$${e.grid_price_usd_kwh.toFixed(3)}` : "—"} a kWh` },
-    { label: "Solar", value: fmtPct(e.solar_share_pct), detail: `${fmtKwh(e.solar_kwh)}, share of the site's energy` },
-    {
+  ];
+  const tar = e.demand_tariff;
+  if (tar && isNum(e.demand_charge_usd_month)) {
+    // 0611: the depot's tariff bills the month's highest 30 minutes of grid draw, usually far more than the energy
+    const cut = isNum(e.peak_without_battery_kw_30min) && isNum(e.peak_grid_kw_30min) ? e.peak_without_battery_kw_30min - e.peak_grid_kw_30min : null;
+    const saved = isNum(e.demand_charge_without_battery_usd_month) ? e.demand_charge_without_battery_usd_month - e.demand_charge_usd_month : null;
+    rows.push({
+      label: "Monthly demand charge", value: fmtUsd(e.demand_charge_usd_month),
+      detail: `highest 30 min of grid draw: ${fmtKw(e.peak_grid_kw_30min)} at $${tar.usd_per_kw.toFixed(2)} a kW (${scheduleName(tar.schedule)})`,
+    });
+    rows.push({
+      label: "Peak cut by the battery", value: cut != null && cut >= 0.5 ? fmtKw(cut) : "0 kW",
+      detail: saved != null && saved >= 0.5 ? `${fmtUsd(saved)} a month less demand charge` : "the battery did not lower the peak",
+    });
+  } else {
+    // a board from before 0611, or a tariff the board cannot price: the 15-minute peak, as before
+    const shaved = isNum(e.peak_load_kw_15min) && isNum(e.peak_grid_kw_15min) ? e.peak_load_kw_15min - e.peak_grid_kw_15min : null;
+    rows.push({
       label: "Peak grid draw (15 min)", value: fmtKw(e.peak_grid_kw_15min),
       detail: shaved != null && shaved > 0 ? `the battery cut ${fmtKw(shaved)} off a site peak of ${fmtKw(e.peak_load_kw_15min)}` : "this peak sets the demand charge",
-    },
-  ];
+    });
+  }
+  rows.push({ label: "Solar", value: fmtPct(e.solar_share_pct), detail: `${fmtKwh(e.solar_kwh)}, share of the site's energy` });
+  return rows;
+}
+
+/** The one limit on the demand charge figure, under the Energy card. Null when the board did not price it. */
+export function energyNote(b: TwinKpiBoard | null | undefined): string | null {
+  const e = b?.energy;
+  if (!e?.demand_tariff || !isNum(e.demand_charge_usd_month)) return null;
+  return "The bill uses the highest 30 minutes in the month. This is the charge if this run has that peak.";
 }
 
 export function chargerRows(b: TwinKpiBoard | null | undefined): Row[] {

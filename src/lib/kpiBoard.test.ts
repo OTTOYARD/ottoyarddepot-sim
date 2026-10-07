@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import fx from "@/components/tabs/__fixtures__/kpiBoard.fd6ed035.json";
 import type { TwinKpiBoard } from "@/lib/ottoTwin";
 import {
-  TIME_SEGMENTS, boardCaption, chargerRows, energyRows, fmtMin, fmtPct, headlineTiles, serviceRows, timeSplit, topServices,
+  TIME_SEGMENTS, boardCaption, chargerRows, energyNote, energyRows, fmtMin, fmtPct, headlineTiles, serviceRows, timeSplit, topServices,
   turnaroundRows, waitingShare, windowLabel,
 } from "./kpiBoard";
 
@@ -65,12 +65,34 @@ describe("sections", () => {
 
   it("energy and chargers read the run's own integrals", () => {
     const e = energyRows(b);
+    expect(e.map((x) => x.label)).toEqual(["Energy to cars", "Grid energy bought", "Monthly demand charge", "Peak cut by the battery", "Solar"]);
     expect(e[0].value).toBe("4,364 kWh");
     expect(e[1]).toMatchObject({ value: "$230", detail: "3,198 kWh at $0.072 a kWh" });
-    expect(e[2].value).toBe("36%");
-    expect(e[3].detail).toBe("the battery cut 105 kW off a site peak of 773 kW");
+    expect(e[4].value).toBe("36%");
     const c = chargerRows(b);
     expect(c.map((x) => x.value)).toEqual(["85%", "95%", "176"]);
+  });
+
+  it("prices the month's demand charge on the depot's own tariff, and what the battery took off it", () => {
+    const e = energyRows(b);
+    // NES GSA-3, October: $20.34 a kW of the highest full 30 minutes of grid draw (638.6 kW on this run)
+    expect(e[2]).toMatchObject({ value: "$12,989", detail: "highest 30 min of grid draw: 639 kW at $20.34 a kW (NES GSA-3)" });
+    // without the battery the same readings peak at 715.9 kW: 77 kW and $1,572 a month more
+    expect(e[3]).toMatchObject({ value: "77 kW", detail: "$1,572 a month less demand charge" });
+    expect(energyNote(b)).toBe("The bill uses the highest 30 minutes in the month. This is the charge if this run has that peak.");
+  });
+
+  it("falls back to the 15-minute peak on a board from before the demand charge", () => {
+    const old = { ...b, energy: { ...b.energy!, demand_tariff: undefined, demand_charge_usd_month: undefined } } as TwinKpiBoard;
+    const e = energyRows(old);
+    expect(e.map((x) => x.label)).toEqual(["Energy to cars", "Grid energy bought", "Peak grid draw (15 min)", "Solar"]);
+    expect(e[2].detail).toBe("the battery cut 105 kW off a site peak of 773 kW");
+    expect(energyNote(old)).toBeNull();
+  });
+
+  it("says when the battery did not lower the peak", () => {
+    const flat = { ...b, energy: { ...b.energy!, peak_without_battery_kw_30min: 638.6, demand_charge_without_battery_usd_month: 12988.6 } } as TwinKpiBoard;
+    expect(energyRows(flat)[3]).toMatchObject({ value: "0 kW", detail: "the battery did not lower the peak" });
   });
 
   it("service counts steps and lists the services with the most done", () => {
