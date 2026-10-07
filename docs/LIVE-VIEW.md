@@ -24,8 +24,11 @@ because it is the twin's code drawing it.
 ## URL
 
 ```
-https://ottoyarddepot-sim.lovable.app/view.html?run=<sim_run_id>&cam=<cam>&spin=0|1&embed=1
+https://otto-twin.lovable.app/view.html?run=<sim_run_id>&cam=<cam>&spin=0|1&embed=1
 ```
+
+The twin moved to `otto-twin.lovable.app` on 2026-10-07. The old `ottoyarddepot-sim.lovable.app` answers
+"Project not found". The cockpits' `TWIN_APP_URL` (`src/lib/twin/twinView.ts` and `twinLink.ts`) follows it.
 
 | param | meaning |
 |---|---|
