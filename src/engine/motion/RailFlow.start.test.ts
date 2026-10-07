@@ -9,8 +9,11 @@
 // corner.
 // ============================================================================
 import { describe, it, expect } from "vitest";
-import { startOnHeading, START_R, buildRail, pointAt } from "./RailFlow";
+import { startOnHeading, START_R, buildRail, pointAt, setCornerObstacles } from "./RailFlow";
 import type { Pt } from "./PathTracker";
+import { buildDepotLanes } from "./LaneGraph";
+import { EGRESS, generateStallsV2 } from "@/lib/sitePlan";
+import { allStructureSolids, bodyHitsBox, parkedBox } from "@/lib/structurePlan";
 
 const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
 const DEG = Math.PI / 180;
@@ -78,5 +81,42 @@ describe("startOnHeading — the opening of a rail", () => {
     const out = startOnHeading(north, 0);
     expect(out.length).toBeGreaterThan(north.length);
     expect(maxCurvature(out)).toBeLessThan(1.3 / START_R);
+  });
+
+  it("may open across a corner the route turns (a corner is not a loop)", () => {
+    // pointing east, the route goes 10u north and then east: no point on the north leg
+    // is outside the turning circle, so the opening has to join the east leg, past the
+    // corner — which it may, where nothing stands in it
+    const corner: Pt[] = [{ x: 0, y: 0 }, { x: 0, y: -10 }, { x: 60, y: -10 }];
+    const out = startOnHeading(corner, 0);
+    expect(out).not.toBe(corner);
+    expect(out.some((p) => Math.abs(p.x) < 1e-6 && Math.abs(p.y + 10) < 1e-6)).toBe(false); // the corner was cut
+    expect(maxCurvature(out)).toBeLessThan(1.3 / START_R);
+  });
+
+  it("never opens through a stall or a structure (a loop the route goes round is not an opening)", () => {
+    // the founder's run: a south-row car at its cusp facing west, bound for the egress
+    // spur 8u east of it, routed up to the westbound lane, round and back. Opened at
+    // the first reachable point within 60u, it cut straight across the end of the S1
+    // row, through the car parked in its last stall. The driver registers every
+    // structure and every stall's footprint as an obstacle; so does this
+    setCornerObstacles([
+      ...allStructureSolids().map((k) => k.box),
+      ...generateStallsV2().map((st) => parkedBox(st.position)),
+    ]);
+    try {
+      const cusp = { x: 88.4, y: 178.7 }, heading = 158 * DEG;
+      const route = buildDepotLanes().routeFacing(cusp, heading, { x: EGRESS.x, y: EGRESS.y });
+      const opened = startOnHeading(route, heading);
+      // the opened path keeps out of the S1 row: its last stall (x 88, y 197) has a car in it
+      const parked = parkedBox({ x: 88, y: 197, angle: 0 });
+      const rail = buildRail(opened, [], null);
+      for (let s = 0; s < Math.min(rail.total, 40); s += 0.5) {
+        const p = pointAt(rail.pts, rail.cum, s);
+        expect(bodyHitsBox(p, parked), `s ${s}`).toBe(false);
+      }
+    } finally {
+      setCornerObstacles([]);
+    }
   });
 });

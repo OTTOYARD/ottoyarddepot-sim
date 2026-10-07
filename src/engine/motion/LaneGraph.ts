@@ -420,6 +420,31 @@ export class LaneGraph {
     return P;
   }
 
+  /** The streams a straight move from `a` to `b` crosses: where it crosses each
+   *  directed lane's drive line, and which way that lane flows. A crossing within 1u
+   *  of either end is left out: that is the lane the move starts from, or joins. */
+  streamsCrossed(a: Pt, b: Pt): { x: number; y: number; hx: number; hy: number }[] {
+    const out: { x: number; y: number; hx: number; hy: number }[] = [];
+    const L = len(a, b);
+    if (L < 2) return out;
+    const rx = b.x - a.x, ry = b.y - a.y;
+    for (const lane of this.lanes.values()) {
+      const line = LaneGraph.offsetRight(lane.pts, this.offsetOf(lane.id));
+      for (let i = 1; i < line.length; i++) {
+        const p = line[i - 1], q = line[i];
+        const sx = q.x - p.x, sy = q.y - p.y;
+        const den = rx * sy - ry * sx;
+        if (Math.abs(den) < 1e-9) continue; // parallel: runs beside the move, does not cross it
+        const t = ((p.x - a.x) * sy - (p.y - a.y) * sx) / den;
+        const u = ((p.x - a.x) * ry - (p.y - a.y) * rx) / den;
+        if (t * L < 1 || (1 - t) * L < 1 || u < 0 || u > 1) continue;
+        const Ls = Math.hypot(sx, sy);
+        out.push({ x: a.x + rx * t, y: a.y + ry * t, hx: sx / Ls, hy: sy / Ls });
+      }
+    }
+    return out;
+  }
+
   /**
    * How far short of junction `id` a car arriving along `heading` waits for it
    * (RailFlow's NODE_STOP, as a centre-to-node "stationary leader" distance): its

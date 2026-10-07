@@ -74,7 +74,12 @@ export interface Rail {
    *  The car does not start until the lane behind the join is clear (see stepRail);
    *  once it has started, it is committed and the lane's traffic sees it as a
    *  body in the ordinary way. */
-  merge?: { x: number; y: number; hx: number; hy: number; committed?: boolean };
+  merge?: {
+    x: number; y: number; hx: number; hy: number; committed?: boolean;
+    /** the streams the car crosses on its way to the lane it joins: where it crosses
+     *  each, and which way that stream flows (LaneGraph.streamsCrossed) */
+    cross?: { x: number; y: number; hx: number; hy: number }[];
+  };
 }
 
 const LANE_HALF = 1.7;    // half-width that counts as "in my path"
@@ -378,6 +383,31 @@ const START_SWEEP = (150 * Math.PI) / 180;
 const START_MEET = (45 * Math.PI) / 180;
 const START_PITCH = 1; // arc sampling (u)
 const START_LOOK = 60; // furthest down the route a start may aim (u)
+// An opening REPLACES the route's first units with an arc and a straight, so it can
+// cut across whatever the route went round. Aimed at any reachable point within
+// START_LOOK, it did: a south-row car at its cusp, facing west, bound for the egress
+// spur 8u east of it, was routed up to the westbound lane, round a U-turn and back
+// east — and opened straight across that loop and through the end of the S1 row,
+// past the car parked in its last stall (chase1006, twice). So an opening's swept
+// body may not overlap anything a widened corner must clear (setCornerObstacles:
+// structures, and every stall's parked-car footprint), sampled every ARC_PROBE along
+// the arc and the straight. Left out: what the car already stands within
+// START_BESIDE of (the stall it is leaving, the neighbour beside a cusp — or no car
+// could open from where it stands) and the stall the route ends in. No margin: the
+// opening ends ON the route, and routes run as close as a lane allows.
+//
+// Measured over all seven audited captures (motionAudit.measure.test.ts), sums of
+// p45 pivot events / overlap pair-samples: no check 502 / 66, this check 530 / 54.
+// The extra pivots are openings that now follow the route instead of crossing a
+// parked car. Two rules about the ROUTE were tried first. "No opening past a 120°
+// turn of the route" measured worse (609 / 44): most openings that cut across a
+// loop are the cleanest drive there is, a wide arc through empty ground where the
+// route has a hairpin. "The opening at least 0.75 of the route it replaces"
+// measured about the same (523 / 58) for the wrong reason: it refuses openings that
+// hit nothing and allows short ones that do. Counting only the cars parked NOW
+// instead of every stall's footprint measured the same to the sample on live0922,
+// live0922rec and the founder's run.
+const START_BESIDE = 0.3;
 
 /** The route `pts` (pts[0] = where the car is) opened by an arc tangent to
  *  `heading`, or `pts` itself when it already starts that way or cannot. */
@@ -394,7 +424,25 @@ export function startOnHeading(pts: Pt[], heading: number, R = START_R): Pt[] {
   const cum: number[] = [0];
   for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
   const total = cum[cum.length - 1];
+  // the obstacles an opening could reach, less any the car already stands beside and
+  // the one the route ends in
+  const here: OBox = { cx: p.x, cy: p.y, hl: CAR_BODY_LENGTH / 2, hw: CAR_BODY_WIDTH / 2, th: heading };
+  const end = pts[pts.length - 1];
+  const reach = START_LOOK + CAR_BODY_LENGTH;
+  const near = OBSTACLES.filter((b) =>
+    Math.abs(b.cx - p.x) < reach && Math.abs(b.cy - p.y) < reach
+    && boxGap(here, b) >= START_BESIDE
+    && boxGap({ cx: end.x, cy: end.y, hl: 0.01, hw: 0.01, th: 0 }, b) >= 0);
+  const hits = (x: number, y: number, h: number): boolean => {
+    for (const b of near) {
+      if (Math.abs(b.cx - x) > 12 || Math.abs(b.cy - y) > 12) continue;
+      if (bodyHitsBox({ x, y, heading: h }, b)) return true;
+    }
+    return false;
+  };
   for (let d = 2; d <= Math.min(total, START_LOOK); d += 0.5) {
+    let j = 1;
+    while (j < pts.length && cum[j] <= d + 1e-6) j++;
     const q = pointAt(pts, cum, d);
     const vx = q.x - p.x, vy = q.y - p.y;
     // turn toward the side q lies on
@@ -415,11 +463,25 @@ export function startOnHeading(pts: Pt[], heading: number, R = START_R): Pt[] {
     if (defl > START_MEET) continue;
     // the corner at q is rounded like any other (roundCorners: tangent <= 0.45 of
     // either leg), so both legs must leave it room for a believable radius
-    let j = 1;
-    while (j < pts.length && cum[j] <= d + 1e-6) j++;
     const onward = j < pts.length ? Math.hypot(pts[j].x - q.x, pts[j].y - q.y) : Infinity;
     const straight = Math.hypot(q.x - tx, q.y - ty);
     if (defl > 0.03 && (0.45 * Math.min(straight, onward)) / Math.tan(defl / 2) < 0.8 * R) continue;
+    // …and the body driven along it, arc then straight, keeps clear of what is built
+    // and of every stall (START_CLEAR, above)
+    if (near.length) {
+      let blocked = false;
+      const na = Math.max(1, Math.ceil((sweep * R) / ARC_PROBE));
+      for (let i = 1; i <= na && !blocked; i++) {
+        const a = a0 + (s * sweep * i) / na;
+        blocked = hits(cx + R * Math.cos(a), cy + R * Math.sin(a), a + (s * Math.PI) / 2);
+      }
+      const ns = Math.ceil(straight / ARC_PROBE);
+      for (let i = 1; i <= ns && !blocked; i++) {
+        const f = i / ns;
+        blocked = hits(tx + (q.x - tx) * f, ty + (q.y - ty) * f, meet);
+      }
+      if (blocked) continue;
+    }
     const out: Pt[] = [{ x: p.x, y: p.y }];
     const n = Math.max(1, Math.ceil((sweep * R) / START_PITCH));
     for (let i = 1; i <= n; i++) {
@@ -427,7 +489,7 @@ export function startOnHeading(pts: Pt[], heading: number, R = START_R): Pt[] {
       out.push({ x: cx + R * Math.cos(a), y: cy + R * Math.sin(a) });
     }
     out.push({ x: q.x, y: q.y });
-    for (let j = 1; j < pts.length; j++) if (cum[j] > d + 1e-6) out.push({ x: pts[j].x, y: pts[j].y });
+    for (let m = j; m < pts.length; m++) out.push({ x: pts[m].x, y: pts[m].y });
     const clean: Pt[] = [];
     for (const o of out) {
       const last = clean[clean.length - 1];
@@ -879,6 +941,24 @@ export function stepRail(
         // lower id goes first — a deterministic order, or both wait for ever
         busy = b.id; break;
       }
+    }
+    // …and for the streams it CROSSES on the way. A south-row car leaving westbound
+    // crosses the eastbound stream to reach its own lane, and gap acceptance looked
+    // only at the lane it joins: it pulled out across eastbound traffic that the
+    // traffic's own forward window ignores (a body heading across it is "crossing",
+    // RailFlow leaves crossings to the junctions, and there is no junction there).
+    for (const c of busy ? [] : m.cross ?? []) {
+      for (const b of bodies) {
+        if (b.id === id || b.heading === undefined || !b.moving) continue;
+        if (waitsOnMe(b.id, id, bodies)) continue;
+        const along = (b.x - c.x) * c.hx + (b.y - c.y) * c.hy;
+        const lat = Math.abs((b.x - c.x) * -c.hy + (b.y - c.y) * c.hx);
+        if (lat >= MERGE_LAT) continue;
+        if (Math.cos(b.heading) * c.hx + Math.sin(b.heading) * c.hy < 0.7) continue; // not in that stream's flow
+        const coming = (b.speed ?? 0) >= 0.5 ? along > -MERGE_BACK && along < CAR_BODY_LENGTH : Math.abs(along) < CAR_BODY_LENGTH;
+        if (coming) { busy = b.id; break; }
+      }
+      if (busy) break;
     }
     if (busy) {
       if (0 < gap) { gap = 0; limiter = "merge"; limiterId = busy; }
