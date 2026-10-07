@@ -169,6 +169,79 @@ interpolation.** Zero world logic client-side.
   for a neighbour's COMMITTED back-out within `STAGING_BACKOUT_REACH` (`stagingBackOutBlocked`).
   Still a double-back, by geometry: S3's first stall (x 212) is beside the gate, nose south, so a
   car entering northbound loops on the collector to come at it from the north.
+- **Spinning, collisions and the median (2026-10-06/07) — read before touching `RailFlow`'s
+  openings, `LaneGraph` offsets or routing, back-outs, merges or junction stops.** Chase, watching run
+  fd6ed035 (`twinRun.chase1006.json`): *"the vehicle still spin in place when they approach other
+  vehicles or potential traffic jams ... making sure as vehicles approach each other they don't
+  collide or pass through one another"*, and the two streams *"spaced wide enough with potential
+  slight median"*.
+  - **Measure with `__fixtures__/motionAudit.ts`, never by eye or by spin steps.** A spin step (turn
+    at < 0.001u of travel) cannot see a pivot: a car creeping in a queue turned 143° in one unit of
+    travel and was "moving". The audit counts PIVOT events (drawn heading >= 45° within 4u = p45,
+    >= 90° within 9.8u = p90), each with its mechanism (cusp, corner, dock, retask, start…), oriented
+    overlap by situation, structure contacts, stopped/stuck, and how every rail STARTS against the
+    car's heading. `MOTION_AUDIT=1 npx vitest run src/engine/motionAudit.measure.test.ts` reports all
+    seven captures (~9 min; `MOTION_AUDIT_OUT=file.json` for the events); `motionAudit.replay.test.ts`
+    ratchets three windows on every verify. Founder's run, base -> now: first 30 min p45 383 -> 66,
+    p90 253 -> 40, R < 5u 23.0% -> 5.5%, overlap 17 -> 5; whole 2 h 844 -> 175, 526 -> 104, overlap
+    34 -> 5, structure contacts 0. Docking D/E stay 0.
+  - **A rail starts the way its car points** (`RailFlow.startOnHeading`): an R 7u arc tangent to the
+    heading, then a straight to the first route point it can reach within 45° of the route's own
+    direction, with legs that round that corner at >= 0.8·R. It may not overlap a structure or any
+    stall's footprint (`setCornerObstacles`) — an opening aimed past a U-turn cut through the car in
+    S1's last stall — except what the car stands within 0.3u of and the stall the route ends in.
+    **U-turns are priced** (`U_TURN_COST`, LaneGraph's search over node + came-from), and a staging
+    back-out's swing is chosen by `drivenCost` (length as driven, + U_TURN_COST per hairpin and for an
+    opening still > 30° off) with `swingHits`. Cusp rails starting > 60° off the car: 83 -> 2 on the
+    founder's whole run.
+  - **The ring is DIVIDED (founder's call):** every lane has its own offset (`LaneGraph.offsetOf`;
+    aisles and one-way lanes keep `rightOffset` 3.2u); the ring's two drive lines are `DIVIDED_SPAN` =
+    8u apart (opposing bodies 4.0u = 1.91 m apart, was 2.4u), and `lanePaint` draws the 1.6u between
+    the 6.4u lanes as a flush median (solid yellow edge lines, light hatching) ending 8u short of every
+    junction, for the 2D overlay and the 3D decals alike. Avenues split 4.0/4.0. Collectors split
+    3.2 (canopy side) / 4.8, because 0.8u further south the north collector's eastbound turn into wash
+    bay 3 met canopy C's column or the brushes at every forecourt point tried (best -0.19u, drawn), and
+    0.8u further north the south collector's westbound passed the charger back-out tails at 0.2u and
+    the end-cap poles at 0.3u. Junction stops are PER APPROACH (`LaneGraph.stopDistance`: 0.6u short
+    of the nearest stream crossing the way in — 7.6u on the ingress spur and down the N1 aisle, 6.8u
+    from the N1 lane, 6u elsewhere) and the claim distance moves with the stop (stop + 6u); `joinAhead`
+    never joins a lane the car stands at the END of. Layout guard: east-avenue stall clearance 3.87 ->
+    2.61 ft; the tightest stall/lane (NASH-L2-STALL-01, 1.27 ft) and structure/lane (LIGHT-07, 2.19 ft)
+    are unchanged; the seed md5 is unchanged (lanes are not in it).
+  - **Waits that used to be collisions.** RailFlow finds a leader by its CENTRE on the follower's
+    path, so a body standing ACROSS a lane was invisible to the lane. A committed staging back-out, and
+    the car at its cusp for its first 15u, now stand as stopped bodies on every lane their bodies reach
+    (`streamClaims`, same id so `waitsOn` chains still resolve); a back-out waits for any car standing
+    in its sweep (`sweepOccupied`) and for traffic within 26u of its claims; a car pulling out waits for
+    every stream it CROSSES, not only the lane it joins (`LaneGraph.streamsCrossed`,
+    `Rail.merge.cross`); a gate-queue arrival rides the road's line to `INGRESS.x + 8` before turning in
+    (`GATE_QUEUE_TURN_X`; queued cars ran converging diagonals into the car in front). A cusp keeps 2u
+    (`CUSP_CLEAR`) from every other stall's footprint by giving up to 1.5u of the straight (`cuspGap`):
+    temp-block cusps stopped 0.0u from the car opposite. Cost, measured: stopped time +1-2 points
+    (fresh0922 @3x 2.7% -> 4.7%: +33 s gate queue, +56 s back-outs and cusps, -15 s at junctions), and
+    the 30-car deploy wave drains in ~135 s (was ~120). The flow test's stopped/stuck budgets moved up
+    for that reason only; its overlap and on-screen budgets moved down.
+  - **Measured worse, do not re-propose:** symmetric 4.0/4.0 collectors (see above) · one global
+    junction stop of 7.6u (busy_day stopped 4.8% -> 7.2%; per approach 5.7%) · a junction box sized to
+    the 4.8u streams, BOX 12 / RELEASE 12.5 (the founder's first 30 min: overlap 31 vs 20) · treating
+    standing and backing cars as leaders by their oriented body in the forward window (busy_day overlap
+    79, stuck 61: gridlock) · falling back to a WIDER fillet at wash bay 3 (the look-ahead heading still
+    clips the column; the turn point moves instead, `BAY_TURN_SHIFTS`) · stream claims that leave out
+    the lane being joined (the waiting car's nose stands in it) · rules on the ROUTE for openings: "at
+    least 0.75 of the route it replaces" (refuses openings that hit nothing: p45 523 vs 530 summed over
+    seven captures, overlap 58 vs 54) and "never past a 120° turn" (p45 609) · `CUSP_CLEAR` 1u (the
+    opening's first turn swings the tail ~0.8u) · a back-out that "asks for a gap" by publishing its
+    claims after 6 s (it held the car standing in its own sweep, which held it: 4 cars ~60 s;
+    traffic-only asking changed nothing).
+  - **Known open:** W-24, the west column's last stall, has no clear back-out when W-23 and S1-2 are
+    parked: both swings and every straight down to 6u sweep a car (6.9 s of motion overlap, 2.3 s on
+    screen at 3x, in the founder's first 10 min). That is the south-west corner — the seed already trims S1-1 and W-24 0.46 ft where
+    their footprints clip — so it needs layout, not motion. S1 cars bound for the egress whose cusp is
+    7-16u from the spur turn into it off a short leg (R ~ 3u, 3 p45 events on the founder's run). Two
+    S-row neighbours' cusps can face each other (1.6 s), and a car crossing the eastbound stream at
+    (88, 173) is not serialised: neither place is a junction. The arrival probe's one N1 "overshoot"
+    (45.8u on chase1006, unchanged since base) is the instrument counting a car passing BEHIND the row
+    on the one-way rear apron.
 - **Keep Yuka's `SeparationBehavior.weight` low (0.35).** At 2.2 it was *stronger* than
   path-following and shoved cars sideways off the lanes.
 - **One car, one size: 9.8 x 4.0u (4.69 x 1.91 m)** — `traffic.CAR_BODY_*` is the traffic model's
@@ -272,7 +345,12 @@ a stall or move a car. A ledger records each call and its result."*
 ```bash
 npm run verify        # typecheck && vitest run && vite build
 npm run layout:verify # if you touched geometry — rebuilds the seed and asserts no diff
+MOTION_AUDIT=1 npx vitest run src/engine/motionAudit.measure.test.ts  # if you touched motion (~9 min)
 ```
+
+`verify` ratchets only three windows of the motion audit; a change to `RailFlow`, `LaneGraph` or
+`TwinMotionDriver` brings the audit's before/after table for all seven captures into its PR (pivots,
+overlap by situation, stopped, stuck), and explains anything that got worse.
 
 **Then look at it in the twin, 2D and 3D** — Chase, 2026-09-22: *"Make sure to always validate
 against the twin 2D/3D for final confirmation."* The replays measure motion; they are not the
@@ -284,6 +362,10 @@ good for placement (stalls, lanes, headings, no interpenetration), not for smoot
 Seen once: with a second dev server running from a worktree whose `node_modules` was symlinked to
 this one, the first logged "Re-optimizing dependencies" and its 3D view threw a duplicate-React
 error (`reading 'useMemo'`) until restarted alone with `--force`. Give each server its own cache.
+A sandbox without IPv6 cannot bind the dev server's default `::` host: run a second server as
+`PORT=8093 npx vite --host 127.0.0.1 --port 8093` and point `--url` at it; if Playwright's bundled
+browser is missing, pass the installed one with `--chromium`. `--cams @x:y:z/tx:ty:tz` frames any
+world view (world x = 150 − plan x, z = 110 − plan y, y up).
 
 ⚠️ **This repo is Lovable-synced with two-way sync on `main`.** Chase's edits in Lovable commit
 straight to `main` (as `gpt-engineer-app[bot]`), and merging your PR is picked up by Lovable
