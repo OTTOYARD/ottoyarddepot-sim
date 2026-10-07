@@ -18,7 +18,7 @@
 import type { Pt } from "./PathTracker";
 import { CAR_BODY_LENGTH, CAR_BODY_WIDTH } from "./traffic";
 import { idmAccel } from "./idm";
-import { bodyHitsBox, boxOf, type OBox, type Rect } from "@/lib/structurePlan";
+import { bodyHitsBox, boxGap, boxOf, type OBox, type Rect } from "@/lib/structurePlan";
 
 export interface RailBody {
   id: string; x: number; y: number;
@@ -445,6 +445,37 @@ export function hairpins(pts: Pt[]): number {
     if (hit) { n++; i += span; } else i++;
   }
   return n;
+}
+
+/** The least clearance (u, SAT gap; negative = contact) between any of `solids` and
+ *  a car body DRAWN along the rail `raw` would become: rounded as buildRail rounds
+ *  it, centred on the path and pointing at the path HEADING_LA ahead, as stepRail
+ *  draws it. The look-ahead matters: the body turns into a corner before its centre
+ *  does, so on a tight corner its tail swings out further than the tangent says
+ *  (wash bay 3's turn-in, TwinMotionDriver.routeToStall's bay branch: 0.30u clear by
+ *  the tangent, 0.35u into canopy C's spine column as drawn). */
+export function drawnClearance(raw: Pt[], solids: readonly OBox[], step = 0.25): number {
+  const pts = roundCorners(raw);
+  if (pts.length < 2) return Infinity;
+  const cum: number[] = [0];
+  for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
+  const total = cum[cum.length - 1];
+  let gap = Infinity;
+  for (let s = 0; s <= total; s += step) {
+    const here = pointAt(pts, cum, s);
+    const la = Math.min(total - s, HEADING_LA);
+    let th = here.heading;
+    if (la > 0.75) {
+      const ahead = pointAt(pts, cum, s + la);
+      th = Math.atan2(ahead.y - here.y, ahead.x - here.x);
+    }
+    const reach = CAR_BODY_LENGTH / 2 + 1;
+    for (const b of solids) {
+      if (Math.abs(b.cx - here.x) > reach + b.hl + b.hw || Math.abs(b.cy - here.y) > reach + b.hl + b.hw) continue;
+      gap = Math.min(gap, boxGap({ cx: here.x, cy: here.y, hl: CAR_BODY_LENGTH / 2, hw: CAR_BODY_WIDTH / 2, th }, b));
+    }
+  }
+  return gap;
 }
 
 /** Squared distance from `p` to the polyline `pts` (segments, not samples). */

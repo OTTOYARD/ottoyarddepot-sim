@@ -417,6 +417,14 @@ export class LaneGraph {
       for (let i = 1; i < joined.seg; i++) joinAt += len(joined.lane.pts[i - 1], joined.lane.pts[i]);
       joinAt += joined.tJoin;
     }
+    // A route through the graph starts at startNode, the END of the joined lane, so the
+    // car first drives the rest of that lane. The cost left that out, which made the
+    // lane just past the end of the joined one look as near as the one the car was on:
+    // a stall abreast of the joined lane's last few units (OFF_SLIP) was left from the
+    // NEXT lane instead — the car drove on to the junction and doubled back to it (a
+    // car eastbound on the north collector for wash bay 1, x 168, ran on to Ng2 at x
+    // 173.5 and turned 110 deg back into the bay).
+    const toStart = joined ? Math.max(0, joined.lane.length - joinAt) : 0;
     let best: { cost: number; lane: Lane; seg: number; E: Pt; direct: boolean; state?: string } | null = null;
     for (const lane of this.lanes.values()) {
       const start = startDown(lane);
@@ -447,7 +455,7 @@ export class LaneGraph {
             if (!best || cost < best.cost) best = { cost, lane, seg: i, E, direct: true };
           }
           if (viaGraph !== undefined) {
-            const cost = viaGraph + along + d;
+            const cost = toStart + viaGraph + along + d;
             if (!best || cost < best.cost) best = { cost, lane, seg: i, E, direct: false, state: start!.state };
           }
         }

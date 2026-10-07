@@ -19,7 +19,7 @@
 // ============================================================================
 import { KinematicCar, DEFAULT_CAR_PARAMS, wrapAngle } from "./motion/KinematicCar";
 import { type Pt } from "./motion/PathTracker";
-import { buildRail, pointAt, stepRail, RailLocks, setCornerObstacles, startOnHeading, hairpins, type Rail, type RailBody } from "./motion/RailFlow";
+import { buildRail, pointAt, stepRail, RailLocks, setCornerObstacles, startOnHeading, hairpins, drawnClearance, type Rail, type RailBody } from "./motion/RailFlow";
 import { allStructureSolids, parkedBox, bodyHitsBox, type OBox } from "@/lib/structurePlan";
 import { findLeader, StallLedger, CAR_BODY_LENGTH, CAR_BODY_WIDTH, type MovingCar } from "./motion/traffic";
 import { buildDepotLanes, U_TURN_COST } from "./motion/LaneGraph";
@@ -369,6 +369,11 @@ setCornerObstacles([
 const STRUCTURE_BOXES: OBox[] = allStructureSolids().map((k) => k.box);
 /** Body-to-obstacle margin a back-out's swing must keep (u). */
 const SWING_CLEAR = 0.2;
+/** Where a car bound for a bay may leave the north collector, relative to the bay's
+ *  own line (u along the collector), nearest first (routeToStall's bay branch). */
+const BAY_TURN_SHIFTS = [0, 1, -1, 2, -2, 3, -3, 4, -4];
+/** Body-to-structure margin that turn must keep, as drawn (u). */
+const BAY_TURN_CLEAR = 0.2;
 
 // ── ENTERING A GAP LANE ─────────────────────────────────────────────────────
 // A charger-bound car is routed to (gx, SOUTH_LANE_Y - 2): a physical point 2u
@@ -2172,10 +2177,31 @@ class TwinMotionDriver {
       // unit and came back (motionAudit, chase1006: a hairpin at every bay whose
       // nearest node is past it). The forecourt point is on the drive line, facing
       // north, so the last legs stay one straight run through the door.
-      const fore = { x: stall.x, y: FORECOURT_Y };
-      const toCollector = this.graph.routeOff(start, hd, fore, NORTH)
-        ?? this.routeFrom(start, hd, { x: stall.x, y: NORTH_LANE_Y });
-      return [...lead, ...toCollector, { x: stall.x, y: stall.y }];
+      //
+      // THE TURN OFF THE COLLECTOR MUST CLEAR CANOPY C'S SPINE COLUMN. A car turning
+      // left off the eastbound lane into wash bay 3 (x 204) turns 7u past that column
+      // (x 196.4..197.6, 3.2u south of the lane), and a body drawn round a corner swings
+      // its tail out: replayed on the founder's run (twinRun.chase1006.json) one put its
+      // tail into the column twice in two hours. No radius the leg allows clears it
+      // (as drawn: R 2.9 -0.30u, R 5.8 -0.63u, R 8 -0.34u; only R 11 does, +0.36u,
+      // and its tangent needs 24u of straight lane). Leaving the lane 3u PAST the
+      // bay's line and taking the forecourt on a slight diagonal does: +0.33u, inside
+      // an 11u door. So the forecourt point is moved along the collector, nearest
+      // first, until the turn drawn as stepRail draws it (RailFlow.drawnClearance)
+      // keeps BAY_TURN_CLEAR from every structure. Every other bay and direction keeps
+      // its straight run (1.2-3.2u clear at the first candidate).
+      let best: { pts: Pt[]; gap: number } | null = null;
+      for (const shift of BAY_TURN_SHIFTS) {
+        const fore = { x: stall.x + shift, y: FORECOURT_Y };
+        const toCollector = this.graph.routeOff(start, hd, fore, NORTH);
+        if (!toCollector) continue;
+        const pts = [...lead, ...toCollector, { x: stall.x, y: stall.y }];
+        const gap = drawnClearance(pts, STRUCTURE_BOXES);
+        if (!best || gap > best.gap) best = { pts, gap };
+        if (gap >= BAY_TURN_CLEAR) break;
+      }
+      if (best) return best.pts;
+      return [...lead, ...this.routeFrom(start, hd, { x: stall.x, y: NORTH_LANE_Y }), { x: stall.x, y: stall.y }];
     }
     // parking / bays: approach a point one car-length BEHIND the parked heading,
     // then pull straight in — each car fans to its own stall and noses in facing

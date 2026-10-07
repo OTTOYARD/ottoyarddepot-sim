@@ -93,6 +93,17 @@ describe("LaneGraph.routeOff — leave the road abreast of the turn-in", () => {
     expect(exit.y).toBeLessThan(SOUTH_LANE_Y);       // … on the collector, coming in from the north
   });
 
+  it("leaves the lane the car is on when the point is abreast of it, not the next one past the junction", () => {
+    // wash bay 1's forecourt point (x 168), from the eastbound north collector at x 128:
+    // the joined lane (Ng1 -> Ng2) runs to x 173.5. Costing the next lane from Ng2 as if
+    // the car were already there made it the cheaper one: the car ran on to x 173.5 and
+    // turned 110 deg back into the bay
+    const to = { x: 168, y: 62 };
+    const r = g.routeOff({ x: 128, y: NORTH_LANE_Y + g.rightOffset }, 0, to, NORTH)!;
+    expect(r[r.length - 1]).toEqual(to);
+    expect(Math.max(...r.map((p) => p.x))).toBeLessThanOrEqual(to.x + 1e-6);
+  });
+
   it("returns null when no lane runs abreast of the point", () => {
     expect(g.routeOff({ x: 200, y: 175.2 }, 0, { x: 150, y: 120 }, NORTH)).toBeNull(); // the middle of a canopy
   });
