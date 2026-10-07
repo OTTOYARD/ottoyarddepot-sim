@@ -4,8 +4,10 @@
 // all three agree by construction.
 //
 //   • teal chevrons  = one-way lane (charging gaps NORTHBOUND, rear apron EAST)
-//   • grey chevrons  = travel direction on a two-way divided road
-//   • amber dashes   = the centre divider of a two-way road
+//   • grey chevrons  = travel direction on a two-way road
+//   • amber median   = a divided road: two solid edge lines with diagonal hatching
+//                      between, the 1.6u between its streams (lanePaint.medians)
+//   • amber dashes   = the centre stripe of a two-way aisle
 //   • white bars     = stop line at a one-way lane mouth
 //
 // Heading note: the plan->world yaw transform is yawFromHeading2D in
@@ -37,6 +39,9 @@ export function Lanes3D() {
       oneWay: new THREE.MeshStandardMaterial({ color: "#27b5a3", roughness: 0.75, metalness: 0 }),
       twoWay: new THREE.MeshStandardMaterial({ color: "#c2c8d0", roughness: 0.8, metalness: 0 }),
       stripe: new THREE.MeshStandardMaterial({ color: "#d9a431", roughness: 0.75, metalness: 0 }),
+      // the median's hatching: the same yellow, worn back toward the asphalt so the
+      // strip reads as empty road rather than a solid block of paint
+      hatch: new THREE.MeshStandardMaterial({ color: "#8a7440", roughness: 0.85, metalness: 0 }),
       stop: new THREE.MeshStandardMaterial({ color: "#e9edf2", roughness: 0.75, metalness: 0 }),
     }),
     []
@@ -90,8 +95,24 @@ export function Lanes3D() {
       put(key, chevron.left, wx, wz, yaw);
       put(key, chevron.right, wx, wz, yaw);
     }
-    // two-way centre divider dashes
+    // two-way aisle centre dashes
     for (const d of stripeDashes) put("stripe", new THREE.BoxGeometry(0.28, 0.03, d.len), d.x, d.z, d.rotY);
+    // divided-road medians: a solid line along each edge, and the hatching between
+    for (const m of paint.medians) {
+      for (const e of m.edges) {
+        for (let i = 1; i < e.length; i++) {
+          const a = e[i - 1], c = e[i];
+          const len = Math.hypot(c.x - a.x, c.y - a.y);
+          if (len < 1e-3) continue;
+          const [wx, , wz] = toWorld({ x: (a.x + c.x) / 2, y: (a.y + c.y) / 2 }, 0);
+          put("stripe", new THREE.BoxGeometry(0.28, 0.03, len), wx, wz, yawFromHeading2D(Math.atan2(c.y - a.y, c.x - a.x)));
+        }
+      }
+      for (const h of m.hatch) {
+        const [wx, , wz] = toWorld({ x: h.x, y: h.y }, 0);
+        put("hatch", new THREE.BoxGeometry(0.16, 0.03, h.len), wx, wz, yawFromHeading2D(h.angle));
+      }
+    }
     // stop bars across one-way mouths
     for (const s of paint.stopBars) {
       const [wx, , wz] = toWorld({ x: s.x, y: s.y }, 0);

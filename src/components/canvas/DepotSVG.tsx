@@ -15,6 +15,28 @@ import {
   WEST_AISLE_X, EAST_AISLE_X, TEMP_LANE_X, WEST_LINK_X, GAP_LANES,
   TEMP_AISLE, EAST_AVENUE, N1_LANE_Y, NORTH_LANE_Y, SOUTH_LANE_Y,
 } from '@/lib/sitePlan';
+import { buildDepotLanes } from '@/engine/motion/LaneGraph';
+
+/**
+ * The asphalt tint of a divided road, from the lanes the cars drive on it: each
+ * stream's drive line plus the 2.8u the tint has always run past it (6u from the
+ * centreline at the old 3.2u offset). The perimeter ring's two streams sit at
+ * DIFFERENT offsets since its median was added (LaneGraph.DIVIDED_SPAN: the stream
+ * beside the canopies stays put and the other moves out), so the band is no longer
+ * symmetric about the road's centreline: a typed `centre ± 6` would draw the outer
+ * stream's cars 0.8u off the edge of their own road.
+ */
+const RING = buildDepotLanes();
+const TINT_PAST_LANE = 6 - RING.rightOffset;
+/** [low, high] plan coordinate of a ring road across its centreline `centre`, from its
+ *  two directed lanes: `highLane` is driven on the high-coordinate side (a collector's
+ *  EASTBOUND lane, y-DOWN; an avenue's NORTHBOUND lane), `lowLane` on the low side. */
+function ringBand(centre: number, highLane: string, lowLane: string): [number, number] {
+  return [centre - RING.offsetOf(lowLane) - TINT_PAST_LANE, centre + RING.offsetOf(highLane) + TINT_PAST_LANE];
+}
+const NORTH_BAND = ringBand(NORTH_LANE_Y, 'NW>Ng0', 'Ng0>NW');
+const SOUTH_BAND = ringBand(SOUTH_LANE_Y, 'SW>Sg0', 'Sg0>SW');
+const WEST_BAND = ringBand(WEST_AISLE_X, 'SW>NW', 'NW>SW');
 
 /**
  * 2D operations board. Every zone graphic derives from the shared site plan —
@@ -107,15 +129,15 @@ export const DepotSVG = forwardRef<SVGSVGElement>((_, ref) => {
       {/* forecourt (concrete) */}
       <rect x={64} y={56} width={156} height={12} fill="#3a3d42" opacity={0.8} />
       {/* north + south collectors */}
-      <rect x={LOT.x} y={68} width={LOT.w} height={12} fill="#262635" />
-      <rect x={LOT.x} y={166} width={LOT.w} height={12} fill="#262635" />
+      <rect x={LOT.x} y={NORTH_BAND[0]} width={LOT.w} height={NORTH_BAND[1] - NORTH_BAND[0]} fill="#262635" />
+      <rect x={LOT.x} y={SOUTH_BAND[0]} width={LOT.w} height={SOUTH_BAND[1] - SOUTH_BAND[0]} fill="#262635" />
       {/* west/east aisles.
           THE EAST AVENUE IS DRAWN FROM ITS REAL PAVEMENT, not a typed width. It was a
           flat `width 12` (18.84 ft) while the actual clear aisle between the TE and E
           stall faces is 24.39 ft — the tint under-drew the road by a third, so the
           picture disagreed with the plan the cars drive. EAST_AVENUE is derived from
           those two columns, so moving either one moves the paint. */}
-      <rect x={WEST_AISLE_X - 6} y={56} width={12} height={150} fill="#262635" />
+      <rect x={WEST_BAND[0]} y={56} width={WEST_BAND[1] - WEST_BAND[0]} height={150} fill="#262635" />
       <rect x={EAST_AVENUE.x0} y={26} width={EAST_AVENUE.width} height={180} fill="#262635" />
       {/* canopy pull-out lanes */}
       {[GAP_LANES.westOfA, GAP_LANES.AB, GAP_LANES.BC, GAP_LANES.eastOfC].map((x) => (

@@ -15,6 +15,10 @@ import { buildRail, movementsConflict, RailLocks, stepRail, type RailBody, type 
 import { EGRESS, GAP_LANES, NORTH_LANE_Y, SOUTH_LANE_Y, TEMP_LANE_X, LOT, UNIT_FT, planFromDbFeet } from "@/lib/sitePlan";
 import { bodiesOverlap } from "./__fixtures__/replay";
 
+/** The south collector's westbound drive line: the stream beside the canopies, whose
+ *  offset the median left at rightOffset (LaneGraph.DIVIDED_SPAN). */
+const WB_LINE = SOUTH_LANE_Y - buildDepotLanes().offsetAt({ x: 100, y: SOUTH_LANE_Y }, Math.PI);
+
 type Entry = {
   car: { x: number; y: number; heading: number; speed: number };
   tracker: { pts: { x: number; y: number }[]; s: number; total: number; v: number } | null;
@@ -123,8 +127,8 @@ describe("a charger back-out and the south collector", () => {
     return e;
   };
   const westbound = (x: number, moving: boolean): RailBody =>
-    ({ id: "X", x, y: SOUTH_LANE_Y - 3.2, heading: Math.PI, moving, speed: moving ? 8 : 0 });
-  const WB_ENVELOPE = SOUTH_LANE_Y - 3.2 - 2.1; // the westbound stream's car envelope, north edge
+    ({ id: "X", x, y: WB_LINE, heading: Math.PI, moving, speed: moving ? 8 : 0 });
+  const WB_ENVELOPE = WB_LINE - 2.1; // the westbound stream's car envelope, north edge
 
   it("every one of the 40 charger back-outs finishes inside its gap lane, its tail clear of the collector", () => {
     // The rows were pitched for exactly this (sitePlan.chargingStalls, 2026-09-28): a
@@ -167,7 +171,7 @@ describe("a charger back-out and the south collector", () => {
     // once committed it is published at its finishing spot AND across the westbound
     // stream, where a car on the collector sees it dead ahead
     const claims = drv().backOutClaims("V", end);
-    expect(claims.map((c) => [c.x, c.y])).toEqual([[end.x, end.y], [end.x, SOUTH_LANE_Y - 3.2]]);
+    expect(claims.map((c) => [c.x, c.y])).toEqual([[end.x, end.y], [end.x, WB_LINE]]);
     expect(claims[1].heading).toBeCloseTo(Math.PI, 9);
     expect(claims.every((c) => !c.moving)).toBe(true);
   });
@@ -305,7 +309,7 @@ describe("lane geometry", () => {
   it("a car turning RIGHT through a junction still registers it (mitered corners run wide of the node)", () => {
     const g = buildDepotLanes();
     // eastbound on the south collector, right turn at S_eg into the egress spur
-    const pts = g.route({ x: 60, y: 175.2 }, { x: EGRESS.x, y: EGRESS.y });
+    const pts = g.route({ x: 60, y: SOUTH_LANE_Y + g.offsetAt({ x: 60, y: SOUTH_LANE_Y }, 0) }, { x: EGRESS.x, y: EGRESS.y });
     const rail = buildRail(pts, g.nodes.values(), null);
     expect(rail.nodes.map((n) => n.id)).toContain("S_eg");
   });

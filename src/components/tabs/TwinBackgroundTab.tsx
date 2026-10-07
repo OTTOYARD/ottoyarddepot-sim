@@ -471,7 +471,7 @@ export function TwinBackgroundTab() {
                     <span className="text-[10px] text-ink-faint">{p.tagline}</span>
                     <LayerInfoButton plates={[p.id]} label={`the ${p.label} layer`} onOpenTab={(t) => open(t)} side="bottom" />
                   </div>
-                  <p className="mt-0.5 text-[11px] leading-4 text-ink-dim">{LAYER_INFO[p.id].what}</p>
+                  <p className="mt-0.5 text-[11px] leading-4 text-ink-dim">{LAYER_INFO[p.id].overview}</p>
                 </div>
               </li>
             ))}

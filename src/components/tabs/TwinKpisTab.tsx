@@ -1,16 +1,20 @@
 // ============================================================================
-// TwinKpisTab — the run's numbers, in two halves that answer different questions.
+// TwinKpisTab — the run's numbers, led by what a depot owner, an OEM or an investor asks first.
 //
-//   1. THE FIVE (CLAUDE.md 2.9). ottoq_kpi_five, recomputed server-side from the run's
-//      own rows, so every figure here regenerates from the run ID printed under it.
-//      These are the numbers that may be quoted.
-//   2. LIVE DEPOT. What the latest snapshot shows right now. Useful for watching,
-//      not for quoting: it is one frame, not a measurement over the run.
+// Chase, 2026-10-06: "the KPI tab is super weak and unclear and not reader friendly ... the first half is just random
+// super technical information ... It should hang very heavily on Vehicle up time and any other autonomous vehicle or
+// depot KPI's that are extremely relevant for revenue energy turnaround time service is completed, etc."
 //
-// 2026-09-23: this tab used to show only the second half, with an L2 denominator of
-// 35 stalls (the twin depot has 30, so L2 read 83% full when 29 of 30 were in use)
-// and a "Fleet Ready" ring that counted vehicles WAITING for service as ready.
-// Denominators now come from the depot layout, and ready means staged to depart.
+//   1. THE BOARD (otto-q-core 0609/0610, public.ottoq_twin_kpi_board). Fleet uptime as the one hero figure; turnaround,
+//      charge at departure, on time and cars out as tiles; where fleet time went; then turnaround, service, energy and
+//      chargers. Every figure is computed by the engine from the run's own rows inside its window, so each regenerates
+//      from the run id printed under it. Shaping and words: src/lib/kpiBoard.ts.
+//   2. LIVE DEPOT. What the latest snapshot shows right now. Useful for watching, not for quoting: it is one frame.
+//   3. THE FIVE (CLAUDE.md 2.9, ottoq_kpi_five), unchanged, in a closed section for diligence.
+//
+// 2026-09-23: this tab used to show only the live half, with an L2 denominator of 35 stalls (the twin depot has 30) and
+// a "Fleet Ready" ring that counted cars WAITING for service as ready. Denominators come from the depot layout, and
+// ready means staged to depart.
 // ============================================================================
 import React, { useEffect, useMemo, useState } from "react";
 import { AreaChart, Area, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
@@ -18,9 +22,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { StatCard } from "./StatCard";
 import { useTwinStore } from "@/store/twinStore";
-import { twin, type TwinKpiFive } from "@/lib/ottoTwin";
+import { twin, type TwinKpiBoard, type TwinKpiFive } from "@/lib/ottoTwin";
 import { chargeWaitDetail } from "@/lib/chargeWait";
 import { liveFleetMetrics } from "@/lib/liveFleetMetrics";
+import {
+  boardCaption, chargerRows, energyNote, energyRows, fmtHours, fmtPct, headlineTiles, serviceRows, timeSplit, topServices, turnaroundRows,
+  waitingShare, type Row, type Tile, type TimeSegment,
+} from "@/lib/kpiBoard";
+import { CheckCircle2 } from "lucide-react";
 
 const num = (v: unknown, d = 0): number => (typeof v === "number" && isFinite(v) ? v : Number(v) || d);
 /** A reading the snapshot actually carries, or null. An absent reading renders as unavailable, never as 0 (PR #109). */
@@ -184,20 +193,189 @@ const KpiFivePanel = ({ simRunId, simClock }: { simRunId: string; simClock: stri
   );
 };
 
-export const TwinKpisTab = () => {
-  const snapshot = useTwinStore((s) => s.snapshot);
-  const activeSimRunId = useTwinStore((s) => s.activeSimRunId);
-  const layout = useTwinStore((s) => s.layout);
+// ── the board ───────────────────────────────────────────────────────────────
+/** The board runs the run's whole history through the engine (about 1 to 1.5 s on a full sim day): 30 s is plenty. */
+const BOARD_POLL_MS = 30_000;
 
+function useKpiBoard(simRunId: string | null) {
+  const [board, setBoard] = useState<TwinKpiBoard | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    setBoard(null);
+    setError(null);
+    if (!simRunId) return;
+    let cancelled = false;
+    const load = () =>
+      twin.kpiBoard(simRunId)
+        .then((b) => { if (!cancelled) { setBoard(b); setError(null); } })
+        .catch((e: unknown) => { if (!cancelled) setError(e instanceof Error ? e.message : String(e)); });
+    load();
+    const t = setInterval(load, BOARD_POLL_MS);
+    return () => { cancelled = true; clearInterval(t); };
+  }, [simRunId]);
+  return { board, error };
+}
 
-  if (!activeSimRunId || !snapshot) {
+const card = "bg-canvas-panel rounded-lg border border-white/[0.06] p-3";
+const sectionTitle = "font-display text-[10px] text-ink-dim uppercase tracking-wider";
+
+/** The one hero figure: fleet uptime, with the meter split into on the road and ready. */
+function UptimeHero({ board, seg }: { board: TwinKpiBoard; seg: TimeSegment[] }) {
+  const road = seg.find((x) => x.key === "road"), ready = seg.find((x) => x.key === "ready");
+  const u = board.uptime;
+  return (
+    <section aria-label="Fleet uptime" className={card} data-testid="kpi-uptime">
+      <div className={sectionTitle}>Fleet uptime</div>
+      <div className="mt-1 flex items-baseline gap-2">
+        <span className="font-ui text-[48px] font-semibold leading-none text-ink">{fmtPct(u?.pct ?? null)}</span>
+        <span className="text-[11px] leading-4 text-ink-dim">of fleet time on the road or ready to go</span>
+      </div>
+      <div className="mt-2.5 flex h-2.5 w-full overflow-hidden rounded-full bg-white/[0.08]" role="img"
+        aria-label={`On the road ${fmtPct(road?.pct ?? null)}, ready ${fmtPct(ready?.pct ?? null)}`}>
+        <div style={{ width: `${road?.pct ?? 0}%`, background: road?.color }} />
+        {(ready?.pct ?? 0) > 0 && <div style={{ width: `${ready?.pct ?? 0}%`, background: ready?.color, marginLeft: 2 }} />}
+      </div>
+      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-ink-dim">
+        <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm" style={{ background: road?.color }} />On the road {fmtPct(road?.pct ?? null)}</span>
+        <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm" style={{ background: ready?.color }} />Ready {fmtPct(ready?.pct ?? null)}</span>
+        <span>{fmtHours(u?.revenue_hours ?? null)} on the road · {u?.revenue_hours_per_car_day != null ? `${u.revenue_hours_per_car_day.toFixed(1)} h` : "—"} a car a day</span>
+      </div>
+    </section>
+  );
+}
+
+function HeadlineTile({ t }: { t: Tile }) {
+  return (
+    <div className={`${card} min-w-0`} data-testid={`kpi-tile-${t.key}`}>
+      <div className="text-[11px] text-ink-dim">{t.label}</div>
+      <div className="mt-1 flex items-center gap-1.5">
+        <span className="font-ui text-[22px] font-semibold leading-none text-ink">{t.value}</span>
+        {t.tone === "good" && <CheckCircle2 aria-label="all" size={15} className="text-emerald-400" />}
+      </div>
+      <div className="mt-1.5 text-[10.5px] leading-[14px] text-ink-dim">{t.sub}</div>
+    </div>
+  );
+}
+
+/** Where fleet time went: one stacked bar (2 px gaps), a legend that is always shown, and the wait in one sentence. */
+function TimeSplitCard({ seg }: { seg: TimeSegment[] }) {
+  const [hover, setHover] = useState<string | null>(null);
+  const shown = seg.filter((x) => x.hours > 0);
+  const h = shown.find((x) => x.key === hover) ?? null;
+  const wait = waitingShare(seg);
+  const q = seg.find((x) => x.key === "queue"), btw = seg.find((x) => x.key === "between");
+  return (
+    <section aria-label="Where fleet time went" className={card} data-testid="kpi-split">
+      <div className={sectionTitle}>Where fleet time went</div>
+      <div className="mt-2 flex h-5 w-full gap-[2px]" role="img" aria-label={shown.map((x) => `${x.label} ${fmtPct(x.pct)}`).join(", ")}
+        onMouseLeave={() => setHover(null)}>
+        {shown.map((x, i) => (
+          <div key={x.key} onMouseEnter={() => setHover(x.key)} onClick={() => setHover(hover === x.key ? null : x.key)}
+            className="h-full cursor-default transition-opacity"
+            style={{ width: `${x.pct}%`, minWidth: 2, background: x.color, opacity: hover && hover !== x.key ? 0.45 : 1,
+              borderTopLeftRadius: i === 0 ? 4 : 0, borderBottomLeftRadius: i === 0 ? 4 : 0,
+              borderTopRightRadius: i === shown.length - 1 ? 4 : 0, borderBottomRightRadius: i === shown.length - 1 ? 4 : 0 }} />
+        ))}
+      </div>
+      <div className="mt-1 h-4 text-[10.5px] text-ink">
+        {h ? `${h.label}: ${fmtPct(h.pct)} · ${fmtHours(h.hours)} · ${h.means}` : <span className="text-ink-dim">Point at or tap a part of the bar to see its hours.</span>}
+      </div>
+      <ul className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1" aria-label="Legend">
+        {seg.map((x) => (
+          <li key={x.key} className="flex items-center gap-1.5 text-[11px]" onMouseEnter={() => setHover(x.key)} onMouseLeave={() => setHover(null)}>
+            <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: x.color }} />
+            <span className="min-w-0 truncate text-ink">{x.label}</span>
+            <span className="ml-auto font-mono text-[10.5px] tabular-nums text-ink">{fmtPct(x.pct)}</span>
+          </li>
+        ))}
+      </ul>
+      {wait != null && (
+        <p className="mt-2 border-t border-white/[0.06] pt-2 text-[11px] leading-4 text-ink">
+          Cars waited {fmtPct(wait)} of fleet time: {fmtPct(q?.pct ?? null)} after arrival, {fmtPct(btw?.pct ?? null)} between steps.
+        </p>
+      )}
+    </section>
+  );
+}
+
+function RowsCard({ title, rows, children, testid }: { title: string; rows: Row[]; children?: React.ReactNode; testid?: string }) {
+  if (!rows.length && !children) return null;
+  return (
+    <section aria-label={title} className={card} data-testid={testid}>
+      <div className={sectionTitle}>{title}</div>
+      <div className="mt-1">
+        {rows.map((r) => (
+          <div key={r.label} className="flex items-baseline justify-between gap-3 border-b border-white/[0.04] py-1.5 last:border-0">
+            <div className="min-w-0">
+              <div className="text-[11.5px] text-ink">{r.label}</div>
+              {r.detail && <div className="mt-0.5 text-[10.5px] leading-snug text-ink-dim">{r.detail}</div>}
+            </div>
+            <div className="whitespace-nowrap font-ui text-[15px] font-semibold text-ink">{r.value}</div>
+          </div>
+        ))}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function ServiceBars({ board }: { board: TwinKpiBoard }) {
+  const top = topServices(board, 5);
+  if (!top.length) return null;
+  return (
+    <ul className="mt-2 space-y-1.5" aria-label="Most steps done, by service">
+      {top.map((x) => (
+        <li key={x.svc}>
+          <div className="flex items-baseline justify-between gap-2 text-[11px]">
+            <span className="min-w-0 truncate text-ink">{x.name}</span>
+            <span className="shrink-0 font-mono text-[10.5px] tabular-nums text-ink">{x.done} of {x.total}</span>
+          </div>
+          <div className="mt-0.5 h-1.5 w-full rounded-full bg-white/[0.08]">
+            <div className="h-1.5 rounded-full" style={{ width: `${x.pct}%`, background: "#3987e5" }} />
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** The board: what the run did for the fleet, from the engine's own reading of the run. */
+const KpiBoardPanel = ({ simRunId }: { simRunId: string }) => {
+  const { board, error } = useKpiBoard(simRunId);
+  const seg = useMemo(() => timeSplit(board), [board]);
+  if (error && !board) return <div className={`${card} text-[11px] text-otto-red`}>KPI board read failed: {error}</div>;
+  if (!board) return <div className={`${card} text-[11px] text-ink-dim`}>Computing from this run's records…</div>;
+  if (!board.ok) {
     return (
-      <div className="flex-1 flex items-center justify-center p-6 text-center">
-        <span className="text-ink-faint text-xs">Start a scenario on the Control tab to see this run's KPIs.</span>
+      <div className={`${card} text-[11px] leading-4 text-ink-dim`}>
+        {board.error === "no_state_history"
+          ? "This run has no car state history left, so the board has nothing to read. The five KPIs below come from its archive."
+          : `The KPI board did not answer (${board.error ?? "unknown"}).`}
       </div>
     );
   }
+  return (
+    <div className="space-y-3" data-testid="kpi-board">
+      <UptimeHero board={board} seg={seg} />
+      <div className="grid grid-cols-2 gap-2">
+        {headlineTiles(board).map((t) => <HeadlineTile key={t.key} t={t} />)}
+      </div>
+      {seg.length > 0 && <TimeSplitCard seg={seg} />}
+      <RowsCard title="Turnaround" rows={turnaroundRows(board)} testid="kpi-turnaround" />
+      <RowsCard title="Service" rows={serviceRows(board)} testid="kpi-service"><ServiceBars board={board} /></RowsCard>
+      <RowsCard title="Energy" rows={energyRows(board)} testid="kpi-energy">
+        {energyNote(board) && <p className="mt-2 text-[10px] leading-4 text-ink-dim">{energyNote(board)}</p>}
+      </RowsCard>
+      <RowsCard title="Chargers" rows={chargerRows(board)} testid="kpi-chargers" />
+      <p className="px-1 text-[10px] leading-4 text-ink-dim">
+        {boardCaption(board)}. The engine computes each figure from this run's own records. It updates every 30 s.
+      </p>
+    </div>
+  );
+};
 
+/** What the latest snapshot shows right now: one frame, for watching, never for quoting. */
+function LiveDepot({ snapshot, layout }: { snapshot: NonNullable<ReturnType<typeof useTwinStore.getState>["snapshot"]>; layout: ReturnType<typeof useTwinStore.getState>["layout"] }) {
   const c = (snapshot.fleet?.counts ?? {}) as Record<string, number>;
   // Denominators from the run's own layout, never a constant (PR #108's shared definition).
   const fleet = liveFleetMetrics(snapshot, layout);
@@ -205,7 +383,6 @@ export const TwinKpisTab = () => {
   const energy = (snapshot.energy ?? {}) as Record<string, number | string>;
   const bess = (snapshot.bess ?? {}) as Record<string, number | string>;
   const grid = (snapshot.grid ?? {}) as Record<string, number | string | boolean | null>;
-  const weather = (snapshot.weather ?? {}) as Record<string, number | string>;
   const counters = (snapshot.counters ?? {}) as Record<string, number>;
 
   const deployed = num(c.deployed);
@@ -224,60 +401,94 @@ export const TwinKpisTab = () => {
   const bessSoc = measured(bess.soc_pct);
 
   return (
+    <>
+      <div className="font-display text-[10px] text-ink-dim uppercase tracking-wider pt-1">Live depot · this frame</div>
+      <div className="grid grid-cols-4 gap-2">
+        <StatCard label="Deployed" value={deployed} />
+        <StatCard label="In bays" value={inBays} />
+        <StatCard label="Waiting" value={waiting} />
+        <StatCard label="Ready" value={ready} />
+      </div>
+      <div className="text-[10px] text-ink-faint -mt-1">
+        {fmt(inDepot)} of {fmt(total)} cars in the depot · ready = staged to leave · waiting = at the gate or between steps
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <StatCard label={`DCFC in use · ${num(c.charging_dcfc)} of ${dcfcStalls}`} value={dcfcUtil} variant="bar-gauge" barValue={dcfcUtil} barColor="#3987e5" />
+        <StatCard label={`L2 in use · ${num(c.charging_l2)} of ${l2Stalls}`} value={l2Util} variant="bar-gauge" barValue={l2Util} barColor="#3987e5" />
+      </div>
+
+      {/* Energy */}
+      <div className="grid grid-cols-2 gap-2">
+        <StatCard label={netGrid !== null && netGrid < 0 ? "Grid Export" : "Grid Import"} value={netGrid === null ? "—" : `${Math.abs(Math.round(netGrid))}`} unit="kW" />
+        <StatCard label="Solar Output" value={solar === null ? "—" : Math.round(solar)} unit="kW" />
+        <StatCard label={`Battery · ${String(bess.state ?? "idle")}`} value={bessSoc === null ? "—" : Math.round(bessSoc)} unit="% SoC" />
+        <StatCard label="LMP" value={lmp === null ? "—" : `$${Math.round(lmp)}`} unit="/MWh" />
+      </div>
+
+      <EnergyChart />
+
+      {/* Throughput */}
+      <div className="grid grid-cols-2 gap-2">
+        <StatCard label="Dispatches (out now / total)" value={`${num(counters.dispatches_active)} / ${num(counters.dispatches_total)}`} />
+        <StatCard label="Charge Sessions" value={num(counters.charge_sessions)} />
+      </div>
+    </>
+  );
+}
+
+export const TwinKpisTab = () => {
+  const snapshot = useTwinStore((s) => s.snapshot);
+  const activeSimRunId = useTwinStore((s) => s.activeSimRunId);
+  const layout = useTwinStore((s) => s.layout);
+
+  if (!activeSimRunId) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-6 text-center">
+        <span className="text-ink-faint text-xs">Start a scenario on the Control tab to see this run's KPIs.</span>
+      </div>
+    );
+  }
+
+  const energy = (snapshot?.energy ?? {}) as Record<string, number | string>;
+  const grid = (snapshot?.grid ?? {}) as Record<string, number | string | boolean | null>;
+  const weather = (snapshot?.weather ?? {}) as Record<string, number | string>;
+
+  return (
     <ScrollArea className="flex-1">
       <div className="p-3 space-y-3">
-        <KpiFivePanel simRunId={activeSimRunId} simClock={typeof snapshot.run?.sim_clock === "string" ? snapshot.run.sim_clock : null} />
+        <KpiBoardPanel simRunId={activeSimRunId} />
 
-        <div className="font-display text-[10px] text-ink-dim uppercase tracking-wider pt-1">Live depot · this frame</div>
-        <div className="grid grid-cols-4 gap-2">
-          <StatCard label="Deployed" value={deployed} />
-          <StatCard label="In bays" value={inBays} />
-          <StatCard label="Waiting" value={waiting} />
-          <StatCard label="Ready" value={ready} />
-        </div>
-        <div className="text-[10px] text-ink-faint -mt-1">
-          {fmt(inDepot)} of {fmt(total)} vehicles in the depot · ready = staged to depart; waiting = at the gate or staged for service
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <StatCard label={`DCFC in use · ${num(c.charging_dcfc)} of ${dcfcStalls}`} value={dcfcUtil} variant="bar-gauge" barValue={dcfcUtil} barColor="#C8102E" />
-          <StatCard label={`L2 in use · ${num(c.charging_l2)} of ${l2Stalls}`} value={l2Util} variant="bar-gauge" barValue={l2Util} barColor="#00B4A6" />
-        </div>
+        {snapshot
+          ? <LiveDepot snapshot={snapshot} layout={layout} />
+          : <p className="px-1 text-[10.5px] text-ink-dim">Live readings show here while the run has a frame.</p>}
 
-        {/* Energy */}
-        <div className="grid grid-cols-2 gap-2">
-          <StatCard label={netGrid !== null && netGrid < 0 ? "Grid Export" : "Grid Import"} value={netGrid === null ? "—" : `${Math.abs(Math.round(netGrid))}`} unit="kW" />
-          <StatCard label="Solar Output" value={solar === null ? "—" : Math.round(solar)} unit="kW" />
-          <StatCard label={`Battery · ${String(bess.state ?? "idle")}`} value={bessSoc === null ? "—" : Math.round(bessSoc)} unit="% SoC" />
-          <StatCard label="LMP" value={lmp === null ? "—" : `$${Math.round(lmp)}`} unit="/MWh" />
-        </div>
-
-        <EnergyChart />
-
-        {/* Throughput */}
-        <div className="grid grid-cols-2 gap-2">
-          <StatCard label="Dispatches (out now / total)" value={`${num(counters.dispatches_active)} / ${num(counters.dispatches_total)}`} />
-          <StatCard label="Charge Sessions" value={num(counters.charge_sessions)} />
-        </div>
-
-        {/* Grid & Environment */}
+        {/* Engineering KPIs and Grid & Environment, closed: for diligence, not for the first read */}
         <Accordion type="single" collapsible>
-          <AccordionItem value="grid" className="border-white/[0.06]">
-            <AccordionTrigger className="text-xs text-ink-dim hover:no-underline py-2 font-display uppercase tracking-wide">Grid & Environment</AccordionTrigger>
+          <AccordionItem value="five" className="border-white/[0.06]">
+            <AccordionTrigger className="text-xs text-ink-dim hover:no-underline py-2 font-display uppercase tracking-wide">Engineering KPIs · the five</AccordionTrigger>
             <AccordionContent>
-              <div className="grid grid-cols-2 gap-2">
-                <StatCard label="Tariff" value={String(energy.tariff ?? "—")} className="text-xs" />
-                <StatCard label="Reserve Margin" value={Math.round(num(grid.reserve_margin_pct) * 100)} unit="%" />
-                <StatCard label="Grid Carbon" value={Math.round(num(grid.carbon_gco2_kwh))} unit="g/kWh" />
-                <StatCard label="Voltage" value={String(grid.voltage_status ?? "—")} className="text-xs" />
-                <StatCard label="DR Call" value={grid.dr_active ? `ACTIVE ${Math.round(num(grid.dr_cap_kw))}kW` : "none"} className="text-xs" />
-                <StatCard label="Energy Rate" value={`$${num(energy.rate_per_kwh).toFixed(3)}`} unit="/kWh" />
-                <StatCard label="Ambient" value={num(weather.temp_c)} unit="°C" />
-                <StatCard label="Conditions" value={String(weather.conditions ?? "—")} className="text-xs" />
-                <StatCard label="Cloud" value={Math.round(num(weather.cloud_pct))} unit="%" />
-                <StatCard label="GHI" value={Math.round(num(weather.ghi_wm2))} unit="W/m²" />
-              </div>
+              <KpiFivePanel simRunId={activeSimRunId} simClock={typeof snapshot?.run?.sim_clock === "string" ? snapshot.run.sim_clock : null} />
             </AccordionContent>
           </AccordionItem>
+          {snapshot && (
+            <AccordionItem value="grid" className="border-white/[0.06]">
+              <AccordionTrigger className="text-xs text-ink-dim hover:no-underline py-2 font-display uppercase tracking-wide">Grid & Environment</AccordionTrigger>
+              <AccordionContent>
+                <div className="grid grid-cols-2 gap-2">
+                  <StatCard label="Tariff" value={String(energy.tariff ?? "—")} className="text-xs" />
+                  <StatCard label="Reserve Margin" value={Math.round(num(grid.reserve_margin_pct) * 100)} unit="%" />
+                  <StatCard label="Grid Carbon" value={Math.round(num(grid.carbon_gco2_kwh))} unit="g/kWh" />
+                  <StatCard label="Voltage" value={String(grid.voltage_status ?? "—")} className="text-xs" />
+                  <StatCard label="DR Call" value={grid.dr_active ? `ACTIVE ${Math.round(num(grid.dr_cap_kw))}kW` : "none"} className="text-xs" />
+                  <StatCard label="Energy Rate" value={`$${num(energy.rate_per_kwh).toFixed(3)}`} unit="/kWh" />
+                  <StatCard label="Ambient" value={num(weather.temp_c)} unit="°C" />
+                  <StatCard label="Conditions" value={String(weather.conditions ?? "—")} className="text-xs" />
+                  <StatCard label="Cloud" value={Math.round(num(weather.cloud_pct))} unit="%" />
+                  <StatCard label="GHI" value={Math.round(num(weather.ghi_wm2))} unit="W/m²" />
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          )}
         </Accordion>
       </div>
     </ScrollArea>

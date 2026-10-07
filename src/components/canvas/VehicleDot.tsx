@@ -123,6 +123,9 @@ const VehicleDotInner = ({ vehicle: v }: Props) => {
           and still colliding, because the paint was honest and the body was not.
           4.2 x 10.2 units = 2.01 m x 4.88 m — a real robotaxi footprint — and
           leaves 0.6 units (0.29 m) of daylight between passing bodies.
+          (Since then: lanes 6.4u apart, and the divided ring's two streams 8u
+          apart with a median between them, LaneGraph.DIVIDED_SPAN — the
+          4.0 x 9.8 body passes the opposing stream 4.0u, a car's width, clear.)
 
           The literals are gone. They are the SAME BODY the traffic model
           budgets gaps from and the SAME BODY the 3D mesh is built to — the 3D

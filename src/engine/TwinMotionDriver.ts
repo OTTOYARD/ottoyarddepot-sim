@@ -19,10 +19,10 @@
 // ============================================================================
 import { KinematicCar, DEFAULT_CAR_PARAMS, wrapAngle } from "./motion/KinematicCar";
 import { type Pt } from "./motion/PathTracker";
-import { buildRail, pointAt, stepRail, RailLocks, setCornerObstacles, type Rail, type RailBody } from "./motion/RailFlow";
-import { allStructureSolids, parkedBox } from "@/lib/structurePlan";
+import { buildRail, pointAt, stepRail, RailLocks, setCornerObstacles, startOnHeading, hairpins, drawnClearance, NODE_STOP, type Rail, type RailBody } from "./motion/RailFlow";
+import { allStructureSolids, parkedBox, bodyHitsBox, boxGap, type OBox } from "@/lib/structurePlan";
 import { findLeader, StallLedger, CAR_BODY_LENGTH, CAR_BODY_WIDTH, type MovingCar } from "./motion/traffic";
-import { buildDepotLanes } from "./motion/LaneGraph";
+import { buildDepotLanes, U_TURN_COST, LaneGraph } from "./motion/LaneGraph";
 import { ArmGate, type ArmStallInput } from "./motion/armGate";
 import { poseStore } from "./motion/poseStore";
 import { useDepotStore, type StallStatus } from "@/store/depotStore";
@@ -32,7 +32,7 @@ import type { Vehicle, VehicleStatus } from "@/engine/types";
 import type { TwinSnapshot, TwinLeg } from "@/lib/ottoTwin";
 import {
   INGRESS, EGRESS, gapLaneX, SOUTH_LANE_Y, REAR_LANE_Y, PARK_RUNS, TEMP_LANE_X,
-  WEST_AISLE_X, EAST_AISLE_X, NORTH_LANE_Y, N1_LANE_Y, QUEUE_Y, planFromDbFeet, generateStallsV2,
+  WEST_AISLE_X, EAST_AISLE_X, NORTH_LANE_Y, N1_LANE_Y, QUEUE_Y, FORECOURT_Y, planFromDbFeet, generateStallsV2,
   chargerStallFrame,
 } from "@/lib/sitePlan";
 import { DISCONNECT_SECONDS, applyArmTimings, type ArmPhase } from "@/lib/ottoChargeArm/armStateMachine";
@@ -160,6 +160,16 @@ const SPAWN_PITCH = 11;       // one car length + ~1.2u of visible gap
 // holding a stall claim for a stall 120u away. Widening the pitch alone pushed
 // the tail of the queue to x = 290 and produced exactly that.
 const QUEUE_MAX_X = 244;      // last slot: 200 + 6 + 3*11 = 239, comfortably inside
+// …AND THE QUEUE DRIVES ONE LINE. Each queued arrival used to be routed from its own
+// slot straight at the gate throat, so the cars behind the first ran converging
+// diagonals: on every capture the pair at slots 217 and 228 ended up with the
+// second car's path 1.8u off the first car's centre — past RailFlow's 1.7u "in my
+// path" band — and it drove into the back of the car it was queued behind
+// (side-by-side at (210-220, 210): 22 of live0922's 41 overlap samples, 14 of
+// fresh0922's). A queued car now rides the approach road's own line (its slot's y)
+// to GATE_QUEUE_TURN_X and turns in from there, so every car in the queue is on the
+// path of the one behind it.
+const GATE_QUEUE_TURN_X = INGRESS.x + 8;
 /** run statuses that still own the depot. Must match isLiveRunStatus in
  *  OperatorConsole / useTwinFeed — `paused` is LIVE, so a pause holds the scene
  *  and only a terminal status (completed / aborted) clears it. */
@@ -361,10 +371,25 @@ export const APPROACH_BACK_U = 9;
 // structure, and every stall's parked-car footprint whether or not it is
 // occupied now — a rail outlives the occupancy it was built under. Both as the
 // shapes they are: an angled charger car and its cabinet are not square to the plan.
+/** Every stall's parked-car footprint, occupied or not. */
+const STALL_BOXES: OBox[] = generateStallsV2().map((st) => parkedBox(st.position));
 setCornerObstacles([
   ...allStructureSolids().map((k) => k.box),
-  ...generateStallsV2().map((st) => parkedBox(st.position)),
+  ...STALL_BOXES,
 ]);
+/** Every built solid, as the shape it is — what a back-out's swing must not sweep. */
+const STRUCTURE_BOXES: OBox[] = allStructureSolids().map((k) => k.box);
+/** Body-to-obstacle margin a back-out's swing must keep (u). */
+const SWING_CLEAR = 0.2;
+/** Where a staging back-out stops, its body keeps this much from every other stall's
+ *  footprint (u): the straight gives up as much as it takes, up to CUSP_SHORTEN_MAX. */
+const CUSP_CLEAR = 2;
+const CUSP_SHORTEN_MAX = 1.5;
+/** Where a car bound for a bay may leave the north collector, relative to the bay's
+ *  own line (u along the collector), nearest first (routeToStall's bay branch). */
+const BAY_TURN_SHIFTS = [0, 1, -1, 2, -2, 3, -3, 4, -4];
+/** Body-to-structure margin that turn must keep, as drawn (u). */
+const BAY_TURN_CLEAR = 0.2;
 
 // ── ENTERING A GAP LANE ─────────────────────────────────────────────────────
 // A charger-bound car is routed to (gx, SOUTH_LANE_Y - 2): a physical point 2u
@@ -472,17 +497,27 @@ const MIN_PACE = 2;
 const EXIT_STRAIGHT = 7.5;
 const EXIT_SWING = (70 * Math.PI) / 180;
 const EXIT_STEER = 0.5;
+/** A route whose opening is still this far off the car's heading after
+ *  startOnHeading would pivot the car to take it (drivenCost prices that). */
+const OPENING_KINK = (30 * Math.PI) / 180;
+/** A body this close to a lane's passing bodies (u) stands in that lane. */
+const CLAIM_MARGIN = 0.3;
+/** How far a car leaving a staging back-out drives before its start is no longer
+ *  claimed: by then it has crossed into, or joined, its own lane. */
+const CUSP_CLAIM_S = 15;
 
 /** Where a rail that starts off the road joins it, and the lane's direction there:
- *  the polyline's second vertex, pointing toward its third. */
-function mergeOf(pts: Pt[]): NonNullable<Rail["merge"]> | undefined {
+ *  the polyline's second vertex, pointing toward its third — and the streams the car
+ *  crosses getting there (RailFlow waits for those too). */
+function mergeOf(pts: Pt[], graph: LaneGraph): NonNullable<Rail["merge"]> | undefined {
   if (pts.length < 2) return undefined;
   const m = pts[1];
   const nx = pts.length >= 3 ? pts[2] : pts[1];
   const px = pts.length >= 3 ? pts[1] : pts[0];
   const dx = nx.x - px.x, dy = nx.y - px.y, L = Math.hypot(dx, dy);
   if (L < 1e-6) return undefined;
-  return { x: m.x, y: m.y, hx: dx / L, hy: dy / L };
+  const cross = graph.streamsCrossed(pts[0], pts[1]);
+  return { x: m.x, y: m.y, hx: dx / L, hy: dy / L, ...(cross.length ? { cross } : {}) };
 }
 
 /** Drop consecutive points closer than 1e-3u: two legs spliced end to start
@@ -577,6 +612,9 @@ interface Entry {
     /** a charger back-out (chargerBackOut): it also waits for its neighbours */
     charger?: boolean;
   } | null;
+  /** the car has just finished a STAGING back-out and still stands across a lane it
+   *  is not joining: its rail start is claimed on that lane (streamClaims) */
+  cuspClaims?: boolean;
   /** where this car is headed — rails are rebuilt toward this after reverses
    *  and watchdog re-routes */
   dest: { kind: "stall"; lane: Lane; x: number; y: number; heading: number } | { kind: "egress" } | null;
@@ -642,6 +680,20 @@ class TwinMotionDriver {
   private intervalId: ReturnType<typeof setInterval> | null = null;
   private last: number | null = null;
   private graph = buildDepotLanes();
+  /** Where a car arriving at a junction along a heading waits for it: clear of the
+   *  nearest stream crossing its way in (LaneGraph.stopDistance; RailFlow NODE_STOP). */
+  private stopFor = (id: string, heading: number): number => this.graph.stopDistance(id, heading, NODE_STOP);
+  /** every lane's drive line (straight runs), precomputed for streamClaims */
+  private driveLines = [...this.graph.lanes.values()].flatMap((lane) => {
+    const pts = LaneGraph.offsetRight(lane.pts, this.graph.offsetOf(lane.id));
+    const out: { a: Pt; ux: number; uy: number; L: number; mx: number; my: number; rx: number; ry: number }[] = [];
+    for (let i = 1; i < pts.length; i++) {
+      const a = pts[i - 1], b = pts[i], L = Math.hypot(b.x - a.x, b.y - a.y);
+      if (L < 1e-6) continue;
+      out.push({ a, ux: (b.x - a.x) / L, uy: (b.y - a.y) / L, L, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2, rx: Math.abs(b.x - a.x) / 2, ry: Math.abs(b.y - a.y) / 2 });
+    }
+    return out;
+  });
   private ledger = new StallLedger();
   /** intersection-node + charger-column-mouth locks (rails traffic control) */
   private locks = new RailLocks();
@@ -1604,8 +1656,9 @@ class TwinMotionDriver {
   }
 
   /** Build a rail to a stall (charger columns get a MOUTH key so only one car
-   *  docks/undocks in a column throat at a time). */
-  private railTo(from: { x: number; y: number }, lane: Lane, stall: { x: number; y: number }, facing: number, lead: Pt[] = [], heading?: number, merge = false): Rail {
+   *  docks/undocks in a column throat at a time). `opening` is the way the car
+   *  points now: the rail starts that way (RailFlow.startOnHeading). */
+  private railTo(from: { x: number; y: number }, lane: Lane, stall: { x: number; y: number }, facing: number, lead: Pt[] = [], heading?: number, merge = false, opening?: number): Rail {
     const pts = dedupe([...lead, ...this.routeToStall(from, lane, stall, facing, heading)]);
     // A TEMP-AISLE MOUTH LOCK WAS TRIED HERE AND IS DELIBERATELY ABSENT. TW and TE
     // face each other across a 15.5 u aisle while the car is 9.8 u long, so
@@ -1619,8 +1672,10 @@ class TwinMotionDriver {
     // terminal-stretch lock; that is named in the fixture's ratchet comment as the
     // remaining work rather than papered over with a constraint that measures zero.
     const mouth = lane === "dcfc" || lane === "l2" ? `${lane}:${Math.round(stall.x)}` : null;
-    const rail = buildRail(pts, this.graph.nodes.values(), mouth);
-    if (merge) rail.merge = mergeOf(pts);
+    const rail = buildRail(opening === undefined ? pts : startOnHeading(pts, opening), this.graph.nodes.values(), mouth, this.stopFor);
+    // where the car joins the road is a fact about the ROUTE, not about the arc that
+    // opens it: gap acceptance looks at the lane at that join point
+    if (merge) rail.merge = mergeOf(pts, this.graph);
     return rail;
   }
 
@@ -1629,11 +1684,18 @@ class TwinMotionDriver {
    *  A serviced car thus leaves out the REAR (north) and rides the one-way apron
    *  EAST — it never reverses south out the bay front, and never heads west
    *  toward the fenced BESS yard. Returns null when the car isn't in a bay. */
-  private bayExit(pose: { x: number; y: number }): { lead: Pt[]; start: { x: number; y: number } } | null {
+  private bayExit(pose: { x: number; y: number }): { lead: Pt[]; start: { x: number; y: number }; heading: number } | null {
     const inBay = pose.y > 30 && pose.y < 54 && pose.x > 108 && pose.x < 216;
     if (!inBay) return null;
-    const start = { x: pose.x, y: REAR_LANE_Y };
-    return { lead: [{ x: pose.x, y: pose.y }, start], start };
+    // The pull-through ends ON the apron's eastbound drive line, and the route on
+    // leaves it facing east. It used to end on the apron's CENTRELINE (REAR_LANE_Y)
+    // and route from there by the nearest node: the drive line is a lane offset
+    // SOUTH of the centreline, so every bay exit drove 3.2u past its lane, then cut
+    // back south-east onto it inside a few units — a turn no fillet could round
+    // (motionAudit, chase1006: the rear apron at y 20 was a pivot hot spot behind
+    // every bay, 14-26 events per 10u bin).
+    const start = { x: pose.x, y: REAR_LANE_Y + this.graph.offsetAt({ x: pose.x, y: REAR_LANE_Y }, 0) };
+    return { lead: [{ x: pose.x, y: pose.y }, start], start, heading: 0 };
   }
 
   /** The stall a body is physically sitting on (centre within PARKED_POS_EPS), by
@@ -1663,25 +1725,27 @@ class TwinMotionDriver {
    *  `facing` joins the lane ahead of the car's nose instead of the nearest node
    *  — for a car that is already pointing along a road (the cusp of a back-out,
    *  a re-rail while moving). */
-  private rebuildRail(e: Entry, lead?: Pt[], facing = false, fromRest = false): Rail | null {
+  private rebuildRail(e: Entry, lead?: Pt[], facing = false, fromRest = false, leadHeading?: number): Rail | null {
     if (!e.dest) return null;
     const hasLead = !!lead && lead.length > 0;
     const origin = hasLead ? lead![lead!.length - 1] : e.car.pose;
     const pre = hasLead ? lead! : [];
-    const heading = facing && !hasLead ? e.car.heading : undefined;
+    // A lead ends wherever its last leg points; the route on from there joins the lane
+    // ahead of THAT, when the caller says which way it is (leadHeading).
+    const heading = hasLead ? leadHeading : facing ? e.car.heading : undefined;
     // A car leaving a stall (a bay pull-through) or finishing a back-out joins live
     // traffic from off the road: its rail waits for a gap.
     const exitLead = hasLead ? null : this.bayExit(origin);
     const merge = fromRest || !!exitLead;
     if (e.dest.kind === "egress") {
-      const route = this.routeFrom(exitLead?.start ?? origin, exitLead ? undefined : heading, { x: EGRESS.x, y: EGRESS.y });
+      const route = this.routeFrom(exitLead?.start ?? origin, exitLead ? exitLead.heading : heading, { x: EGRESS.x, y: EGRESS.y });
       const tail = exitLead ? [...exitLead.lead, ...route] : route;
       const pts = dedupe([...pre, ...tail]);
-      const rail = buildRail(pts, this.graph.nodes.values(), null);
-      if (merge) rail.merge = mergeOf(pts);
+      const rail = buildRail(startOnHeading(pts, e.car.heading), this.graph.nodes.values(), null, this.stopFor);
+      if (merge) rail.merge = mergeOf(pts, this.graph);
       return rail;
     }
-    return this.railTo(origin, e.dest.lane, e.dest, e.dest.heading, pre, heading, merge);
+    return this.railTo(origin, e.dest.lane, e.dest, e.dest.heading, pre, heading, merge, e.car.heading);
   }
 
   /** Is this car on the last straight into the staging or charger stall it was bound
@@ -1739,15 +1803,115 @@ class TwinMotionDriver {
       const pts = dest.kind === "egress"
         ? this.graph.routeFacing(end, he, { x: EGRESS.x, y: EGRESS.y })
         : this.routeToStall(end, dest.lane, dest, dest.heading, he);
-      let len = 0;
-      for (let i = 1; i < pts.length; i++) len += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+      // priced as it will be DRIVEN from the cusp, not by bare length (drivenCost), and a
+      // swing that would sweep the body through a parked car or a built solid is not one
+      // to take while the other one is clear (swingHits)
+      const len = this.drivenCost([end, ...pts.slice(1)], he)
+        + (this.swingHits(e, sgn, R) ? 2 * U_TURN_COST : 0);
       if (!best || len < best.len) best = { len, sgn, end, he };
     }
     const b = best!;
+    // …and it must not STOP against the far row. The temp block's columns face each
+    // other across the aisle, and a cusp EXIT_STRAIGHT + 11·sin70° = 17.8u out from
+    // a TW or TE stall left the tail 0.0u from the car parked opposite; the first
+    // half-unit of rail then turned it in (chase1006: every overlap the founder's run
+    // still had in the temp block, 10 of its 13). Where the cusp is that close, the
+    // straight is cut by what it lacks, as long as the swing still clears the cars
+    // either side (swingHits). This is not sizing the back-out to the aisle, which
+    // was measured worse (see EXIT_STRAIGHT): it only ever SHORTENS the reverse.
+    let straight = EXIT_STRAIGHT;
+    let end = b.end;
+    const gap = this.cuspGap(b.end, b.he);
+    if (gap < CUSP_CLEAR) {
+      const cut = Math.min(CUSP_SHORTEN_MAX, CUSP_CLEAR - gap);
+      if (!this.swingHits(e, b.sgn, R, EXIT_STRAIGHT - cut)) {
+        straight = EXIT_STRAIGHT - cut;
+        end = { x: b.end.x - nx * cut, y: b.end.y - ny * cut };
+      }
+    }
     return {
-      straight: EXIT_STRAIGHT, remaining: R * EXIT_SWING, steer: -b.sgn * EXIT_STEER,
-      end: { x: b.end.x, y: b.end.y, hx: Math.cos(b.he), hy: Math.sin(b.he) },
+      straight, remaining: R * EXIT_SWING, steer: -b.sgn * EXIT_STEER,
+      end: { x: end.x, y: end.y, hx: Math.cos(b.he), hy: Math.sin(b.he) },
     };
+  }
+
+  /** How close a body standing at `end`, facing `he`, comes to any stall's footprint
+   *  that it does not stand in (u; negative when it overlaps one). */
+  private cuspGap(end: { x: number; y: number }, he: number): number {
+    const body: OBox = { cx: end.x, cy: end.y, hl: CAR_BODY_LENGTH / 2, hw: CAR_BODY_WIDTH / 2, th: he };
+    let gap = Infinity;
+    for (const b of STALL_BOXES) {
+      if (Math.abs(b.cx - end.x) > 15 || Math.abs(b.cy - end.y) > 15) continue;
+      gap = Math.min(gap, boxGap(body, b));
+    }
+    return gap;
+  }
+
+  /**
+   * Would a staging back-out swinging `sgn` (backOutFrom's convention) sweep the car's
+   * body through a car parked now, or through a built solid?
+   *
+   * The two swings differ only in which way the tail goes, and choosing the side by
+   * route alone sent one into the corner of the lot: the first south-row stall (S1-1,
+   * x 24) faces the west column's last stalls across the corner, and a car there bound
+   * east swung its tail west into the car parked in W-22 and stood on it, held by its
+   * own rear check (replayed on the founder's run, chase1006: the contact the swing-
+   * choice fix first showed). Sampled every 0.5u along the planned straight and arc,
+   * the drawn 9.8 x 4.0 body against each other car standing still (its own stall left
+   * out) and every structure solid, with 0.2u to spare.
+   */
+  private swingHits(e: Entry, sgn: number, R: number, straight = EXIT_STRAIGHT): boolean {
+    const h = e.car.heading;
+    const bx = -Math.cos(h), by = -Math.sin(h);
+    const poses: { x: number; y: number; heading: number }[] = [];
+    for (let s = 1; s <= straight; s += 0.5) poses.push({ x: e.car.x + bx * s, y: e.car.y + by * s, heading: h });
+    const x0 = e.car.x + bx * straight, y0 = e.car.y + by * straight;
+    const k = sgn / R;
+    for (let a = 0.5; a <= R * EXIT_SWING + 1e-9; a += 0.5) {
+      const he = h + sgn * (a / R);
+      poses.push({ x: x0 - (Math.sin(he) - Math.sin(h)) / k, y: y0 + (Math.cos(he) - Math.cos(h)) / k, heading: he });
+    }
+    const still: OBox[] = [];
+    for (const [, o] of this.entries) {
+      if (o === e || o.tracker || o.reverse) continue;
+      if (Math.abs(o.car.x - e.car.x) > 30 || Math.abs(o.car.y - e.car.y) > 30) continue;
+      still.push({ cx: o.car.x, cy: o.car.y, hl: CAR_BODY_LENGTH / 2, hw: CAR_BODY_WIDTH / 2, th: o.car.heading });
+    }
+    for (const p of poses) {
+      for (const b of still) if (bodyHitsBox(p, b, -SWING_CLEAR)) return true;
+      for (const b of STRUCTURE_BOXES) {
+        if (Math.abs(b.cx - p.x) > 12 || Math.abs(b.cy - p.y) > 12) continue;
+        if (bodyHitsBox(p, b, -SWING_CLEAR)) return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * What a car pointing `heading` at `pts[0]` pays to drive this route: its length
+   * as it will be driven (opened on the heading, RailFlow.startOnHeading), plus
+   * U_TURN_COST for each hairpin in it, and again if its opening still cannot be
+   * turned into (the car would pivot there).
+   *
+   * Comparing bare lengths, which is what the back-out's swing choice did, made the
+   * WRONG swing the shorter one whenever it ended nearer a node: on the founder's run
+   * (twinRun.chase1006.json) south-row cars were swung to face away from their
+   * destination, then their route turned back on itself at the next junction or
+   * started 50-110° off the car — 16 of the 217 back-outs in its first 30 minutes,
+   * every one a car turning about in front of the stalls.
+   */
+  private drivenCost(pts: Pt[], heading: number): number {
+    const opened = startOnHeading(pts, heading);
+    let len = 0;
+    for (let i = 1; i < opened.length; i++) len += Math.hypot(opened[i].x - opened[i - 1].x, opened[i].y - opened[i - 1].y);
+    let pen = hairpins(opened) * U_TURN_COST;
+    let k = 1;
+    while (k < opened.length && Math.hypot(opened[k].x - opened[0].x, opened[k].y - opened[0].y) < 0.5) k++;
+    if (k < opened.length) {
+      const dir = Math.atan2(opened[k].y - opened[0].y, opened[k].x - opened[0].x);
+      if (Math.abs(wrapAngle(dir - heading)) > OPENING_KINK) pen += U_TURN_COST;
+    }
+    return len + pen;
   }
 
   /**
@@ -1792,6 +1956,48 @@ class TwinMotionDriver {
       straight: straight - lead, remaining: R * swing + lead, steer: -sgn * EXIT_STEER,
       end: { x: end.x, y: end.y, hx: 0, hy: -1 }, charger: true,
     };
+  }
+
+  /**
+   * The rail a charger car takes from the cusp of its back-out: up its gap lane's
+   * CENTRELINE to the north collector, and onto the collector at a real corner.
+   *
+   * The centreline, because it is the line every charger car in that lane drives
+   * (routeToStall's stall entries). Routed from the cusp by the graph instead, the
+   * car drove the lane's right-offset line, 3.2u east — side by side with, and
+   * grazing, the charger cars on the centreline (test E 0 -> 51 contacts).
+   *
+   * THE CORNER IS WHERE THE CENTRELINE MEETS THE COLLECTOR STREAM THE CAR TURNS INTO:
+   * the eastbound drive line for a right turn, the westbound one (across the
+   * eastbound) for a left, whichever gives the shorter rail. The lead used to stop
+   * ONE LANE OFFSET short of the junction node — on the eastbound line — and let
+   * the graph route on from there, because ending ON the node had the route drop it
+   * as a duplicate and draw a 3.2u drift across ~47u of collector beside the cars
+   * already in that stream (test E: 227 contacts). One offset short fixed the drift
+   * and left a corner nothing could round: the nearest-node route put its first
+   * vertex 0.2u from the lead's end and turned 90° there (a right turn) or ran 3.5u
+   * north and turned at R ~ 2u (a left). Replayed on the founder's run
+   * (twinRun.chase1006.json, motionAudit) the four gap-lane mouths on the north
+   * collector were the depot's worst pivot hot spots, 28-52 events per 10u bin. Now
+   * the lead ends on the drive line itself and the route on from there joins that
+   * lane facing along it (routeFacing): the turn is one corner between two long
+   * legs, which RailFlow rounds like any other, and no drift.
+   */
+  private chargerExitRail(e: Entry): Rail | null {
+    const gx = gapLaneX(e.car.x);
+    const lead = [{ x: e.car.x, y: e.car.y }, { x: gx, y: e.car.y - 2 }];
+    let best: { rail: Rail; cost: number } | null = null;
+    // eastbound (heading 0) is driven south of the centreline, westbound north of it
+    for (const h of [0, Math.PI]) {
+      const off = this.graph.offsetAt({ x: gx, y: NORTH_LANE_Y }, h);
+      const corner = { x: gx, y: NORTH_LANE_Y + (h === 0 ? off : -off) };
+      const rail = this.rebuildRail(e, [...lead, corner], false, true, h);
+      // turning the wrong way and doubling back at the next junction is never the
+      // short way round, however near that junction is (drivenCost)
+      const cost = rail ? rail.total + hairpins(rail.pts) * U_TURN_COST : Infinity;
+      if (rail && (!best || cost < best.cost)) best = { rail, cost };
+    }
+    return best?.rail ?? null;
   }
 
   /**
@@ -1874,11 +2080,13 @@ class TwinMotionDriver {
 
   /** The south collector's traffic lanes (plan y of each stream's centreline) that a
    *  charger back-out finishing at `end`, facing north, reaches with its tail. Empty
-   *  for every back-out that finishes inside its gap lane. */
+   *  for every back-out that finishes inside its gap lane. Each stream at its own
+   *  offset: the collector is divided, and its two streams are not symmetric about
+   *  the centreline (LaneGraph.DIVIDED_SPAN). */
   private backOutCollectorLanes(end: { x: number; y: number }): number[] {
     const tail = end.y + CAR_BODY_LENGTH / 2;
-    const off = this.graph.rightOffset;
-    return [SOUTH_LANE_Y - off, SOUTH_LANE_Y + off]
+    const at = { x: end.x, y: SOUTH_LANE_Y };
+    return [SOUTH_LANE_Y - this.graph.offsetAt(at, Math.PI), SOUTH_LANE_Y + this.graph.offsetAt(at, 0)]
       .filter((laneY) => tail > laneY - CAR_BODY_WIDTH / 2 - COLLECTOR_TAIL_MARGIN);
   }
 
@@ -1895,6 +2103,116 @@ class TwinMotionDriver {
       claims.push({ id, x: end.x, y: laneY, heading: laneY < SOUTH_LANE_Y ? Math.PI : 0, moving: false, speed: 0, reversing: true });
     }
     return claims;
+  }
+
+  /** A back-out's finishing spot as a pose. */
+  private endPose(end: { x: number; y: number; hx: number; hy: number }): { x: number; y: number; heading: number } {
+    return { x: end.x, y: end.y, heading: Math.atan2(end.hy, end.hx) };
+  }
+
+  /** What a STAGING back-out claims (streamClaims): the lanes its body will stand
+   *  across where its straight ends — the tail at its deepest into the aisle, abreast
+   *  of the stall — and where it finishes. Claiming only the finish left the straight
+   *  uncovered: a west-column car's tail crosses the west avenue's southbound lane at
+   *  its own stall, up to 14u from where it finishes facing north (chase1006: a
+   *  southbound car drove past it there). */
+  private backOutStreamClaims(id: string, e: Entry): RailBody[] {
+    const rv = e.reverse!;
+    const straight = Math.max(0, rv.straight ?? 0);
+    const mid = { x: e.car.x - Math.cos(e.car.heading) * straight, y: e.car.y - Math.sin(e.car.heading) * straight, heading: e.car.heading };
+    return [...this.streamClaims(id, mid), ...(rv.end ? this.streamClaims(id, this.endPose(rv.end)) : [])];
+  }
+
+  /**
+   * Does a car that is not parked — driving, waiting at the start of its rail, backing
+   * out — stand where this staging back-out will sweep? Then it waits. A back-out only
+   * waited for committed NEIGHBOURING back-outs (stagingBackOutBlocked) and for traffic
+   * in the lane it finishes in, so it backed into a neighbour standing at its own
+   * cusp, waiting to pull out (chase1006, the S1 row: two neighbours, one at its cusp
+   * and one backing out, touched). Sampled every 0.5u along the straight and the arc
+   * still to go, the drawn body against each such car's, with SWING_CLEAR to spare.
+   */
+  private sweepOccupied(e: Entry): boolean {
+    const rv = e.reverse!;
+    const h = e.car.heading;
+    const bx = -Math.cos(h), by = -Math.sin(h);
+    const straight = Math.max(0, rv.straight ?? 0);
+    const poses: { x: number; y: number; heading: number }[] = [];
+    for (let s = 0.5; s <= straight + 1e-9; s += 0.5) poses.push({ x: e.car.x + bx * s, y: e.car.y + by * s, heading: h });
+    if (rv.steer !== 0) {
+      const R = e.car.params.wheelbase / Math.tan(Math.abs(rv.steer));
+      const sgn = -Math.sign(rv.steer);
+      const x0 = e.car.x + bx * straight, y0 = e.car.y + by * straight, k = sgn / R;
+      for (let a = 0.5; a <= rv.remaining + 1e-9; a += 0.5) {
+        const he = h + sgn * (a / R);
+        poses.push({ x: x0 - (Math.sin(he) - Math.sin(h)) / k, y: y0 + (Math.cos(he) - Math.cos(h)) / k, heading: he });
+      }
+    }
+    for (const [, o] of this.entries) {
+      if (o === e || (!o.tracker && !o.reverse)) continue;
+      if (Math.abs(o.car.x - e.car.x) > 30 || Math.abs(o.car.y - e.car.y) > 30) continue;
+      const box: OBox = { cx: o.car.x, cy: o.car.y, hl: CAR_BODY_LENGTH / 2, hw: CAR_BODY_WIDTH / 2, th: o.car.heading };
+      for (const p of poses) if (bodyHitsBox(p, box, -SWING_CLEAR)) return true;
+    }
+    return false;
+  }
+
+  /**
+   * Where a car standing at `pose` blocks a lane it is NOT joining: for every lane
+   * whose passing bodies its own body would touch, a standing body on that lane's
+   * drive line, abreast of the car, facing the lane's way — so the lane's traffic
+   * sees it dead ahead and queues behind it. Same id as the car (a waitsOn chain
+   * still resolves to it); never measured by the replays, which see real positions.
+   *
+   * WHY. A staging back-out ends with the car at an angle across the aisle or
+   * collector it is leaving into — a south-row car's finished body reaches 3.6u north
+   * of its centre, into the south collector's eastbound stream — and RailFlow finds a
+   * leader by its CENTRE lying on the follower's path. So the lane's traffic drove on
+   * through the back-out, and then past the car standing at its cusp waiting to pull
+   * out. Replayed on the founder's run (twinRun.chase1006.json) that was the overlap
+   * a viewer saw most: back-outs and their cusps against eastbound collector traffic
+   * at the S rows and the SE corner, and against aisle traffic in the temp block.
+   * Charger back-outs had this already (backOutClaims), for the one place theirs can
+   * reach; this is the same idea for any lane, read off the lanes themselves.
+   *
+   * The lane the car is about to JOIN is claimed too: the car stands with its nose in
+   * it while it waits for a gap, and the lane's traffic drove through that nose
+   * (merge acceptance makes the joining car wait; nothing made the lane wait for it).
+   */
+  private streamClaims(id: string, pose: { x: number; y: number; heading: number }): RailBody[] {
+    const out: RailBody[] = [];
+    const hx = Math.cos(pose.heading), hy = Math.sin(pose.heading);
+    for (const line of this.driveLines) {
+      if (Math.abs(line.mx - pose.x) > line.rx + CAR_BODY_LENGTH || Math.abs(line.my - pose.y) > line.ry + CAR_BODY_LENGTH) continue;
+      const { a, ux, uy, L } = line;
+      const cos = hx * ux + hy * uy;
+      const t = (pose.x - a.x) * ux + (pose.y - a.y) * uy;
+      if (t < -CAR_BODY_LENGTH / 2 || t > L + CAR_BODY_LENGTH / 2) continue;
+      const lat = Math.abs((pose.x - a.x) * -uy + (pose.y - a.y) * ux);
+      // how far the car's body reaches across the lane line, plus a passing body's half
+      const sin = Math.abs(hx * uy - hy * ux);
+      const reach = (CAR_BODY_LENGTH / 2) * sin + (CAR_BODY_WIDTH / 2) * Math.abs(cos) + CAR_BODY_WIDTH / 2 + CLAIM_MARGIN;
+      if (lat >= reach) continue;
+      const tc = Math.max(0, Math.min(L, t));
+      out.push({ id, x: a.x + ux * tc, y: a.y + uy * tc, heading: Math.atan2(uy, ux), moving: false, speed: 0, reversing: true });
+    }
+    return out;
+  }
+
+  /** Is a car coming down one of these claimed lanes too close to stop for the claim
+   *  (moving its way, within MERGE_BACK_U of the claim), or standing on the spot? */
+  private claimedTrafficComing(id: string, claims: RailBody[], bodies: RailBody[]): boolean {
+    for (const c of claims) {
+      const cx = Math.cos(c.heading!), cy = Math.sin(c.heading!);
+      for (const b of bodies) {
+        if (b.id === id || !b.moving || b.heading === undefined) continue;
+        const along = (b.x - c.x) * cx + (b.y - c.y) * cy;
+        const lat = Math.abs((b.x - c.x) * -cy + (b.y - c.y) * cx);
+        if (lat > BACKOUT_LANE_LAT || Math.cos(b.heading) * cx + Math.sin(b.heading) * cy < 0.7) continue;
+        if ((b.speed ?? 0) >= 0.5 ? along > -MERGE_BACK_U && along < CAR_BODY_LENGTH : Math.abs(along) < CAR_BODY_LENGTH) return true;
+      }
+    }
+    return false;
   }
 
   /** Is a moving car in the lane a back-out will finish in, at that spot or up to
@@ -1973,10 +2291,15 @@ class TwinMotionDriver {
       // points >100° behind the car — following it verbatim drives the car
       // BACKWARD toward a graph node behind it (the reverse-course-mid-taxi bug).
       // Rebuild from a point one car-length AHEAD and PREPEND the car's real pose,
-      // so the rail's first segment goes FORWARD; easeHeading then sweeps the turn.
-      // Position starts exactly at the car (no teleport) and the car never reverses.
+      // so the rail's first segment goes FORWARD. Position starts exactly at the car
+      // (no teleport) and the car never reverses.
+      //
+      // …and the route on from that point leaves it the way the car is pointing
+      // (routeFacing). From the NEAREST node it could start back toward the car,
+      // which put a hairpin at the end of the stub: forward 9u, then turned about
+      // inside a unit.
       const fwd = { x: e.car.x + Math.cos(e.car.heading) * 9, y: e.car.y + Math.sin(e.car.heading) * 9 };
-      const forward = this.rebuildRail(e, [{ x: e.car.x, y: e.car.y }, fwd]);
+      const forward = this.rebuildRail(e, [{ x: e.car.x, y: e.car.y }, fwd], false, false, e.car.heading);
       if (forward) rail = forward;
     }
     // seed the new rail's speed from the car's current speed so a MOVING car
@@ -2008,7 +2331,7 @@ class TwinMotionDriver {
     const be = this.bayExit(pose);
     const lead = be?.lead ?? [];
     const start = be?.start ?? pose;
-    const hd = be ? undefined : heading;
+    const hd = be ? be.heading : heading;
     if (lane === "dcfc" || lane === "l2") {
       const gx = gapLaneX(stall.x);
       const toGap = gapEntry(this.routeFrom(start, hd, { x: gx, y: SOUTH_LANE_Y - 2 }), gx);
@@ -2029,8 +2352,38 @@ class TwinMotionDriver {
     // the wash hall, so the last leg ran diagonally THROUGH the hall's east wall
     // (structureClearance.replay.test.ts, fresh0922: 1 car, 28 samples).
     if (lane === "wash" || lane === "service") {
-      const toCollector = this.routeFrom(start, hd, { x: stall.x, y: NORTH_LANE_Y });
-      return [...lead, ...toCollector, { x: stall.x, y: stall.y }];
+      // …and it leaves the collector ABREAST of that drive line (LaneGraph.routeOff),
+      // as a staging car leaves its aisle abreast of its stall. Routed to the graph
+      // node nearest the drive line instead, a car for service bay 2 (x 138) coming
+      // west along the collector drove on to Ng1 (x 126.5), turned about inside a
+      // unit and came back (motionAudit, chase1006: a hairpin at every bay whose
+      // nearest node is past it). The forecourt point is on the drive line, facing
+      // north, so the last legs stay one straight run through the door.
+      //
+      // THE TURN OFF THE COLLECTOR MUST CLEAR CANOPY C'S SPINE COLUMN. A car turning
+      // left off the eastbound lane into wash bay 3 (x 204) turns 7u past that column
+      // (x 196.4..197.6, 3.2u south of the lane), and a body drawn round a corner swings
+      // its tail out: replayed on the founder's run (twinRun.chase1006.json) one put its
+      // tail into the column twice in two hours. No radius the leg allows clears it
+      // (as drawn: R 2.9 -0.30u, R 5.8 -0.63u, R 8 -0.34u; only R 11 does, +0.36u,
+      // and its tangent needs 24u of straight lane). Leaving the lane 3u PAST the
+      // bay's line and taking the forecourt on a slight diagonal does: +0.33u, inside
+      // an 11u door. So the forecourt point is moved along the collector, nearest
+      // first, until the turn drawn as stepRail draws it (RailFlow.drawnClearance)
+      // keeps BAY_TURN_CLEAR from every structure. Every other bay and direction keeps
+      // its straight run (1.2-3.2u clear at the first candidate).
+      let best: { pts: Pt[]; gap: number } | null = null;
+      for (const shift of BAY_TURN_SHIFTS) {
+        const fore = { x: stall.x + shift, y: FORECOURT_Y };
+        const toCollector = this.graph.routeOff(start, hd, fore, NORTH);
+        if (!toCollector) continue;
+        const pts = [...lead, ...toCollector, { x: stall.x, y: stall.y }];
+        const gap = drawnClearance(pts, STRUCTURE_BOXES);
+        if (!best || gap > best.gap) best = { pts, gap };
+        if (gap >= BAY_TURN_CLEAR) break;
+      }
+      if (best) return best.pts;
+      return [...lead, ...this.routeFrom(start, hd, { x: stall.x, y: NORTH_LANE_Y }), { x: stall.x, y: stall.y }];
     }
     // parking / bays: approach a point one car-length BEHIND the parked heading,
     // then pull straight in — each car fans to its own stall and noses in facing
@@ -2643,6 +2996,10 @@ class TwinMotionDriver {
         e.stallHeading = sh;
         if (driveIn) {
           this.assignRail(e, { kind: "stall", lane, x: sp.x, y: sp.y, heading: sh });
+          if (spawn && spawn.x > GATE_QUEUE_TURN_X + 1) {
+            const queued = this.rebuildRail(e, [{ x: spawn.x, y: spawn.y }, { x: GATE_QUEUE_TURN_X, y: spawn.y }]);
+            if (queued) e.tracker = queued;
+          }
           // A gate-queue arrival APPEARS here, so it can appear already pointing
           // down its own rail. Facing along the road (west) while the rail's first
           // leg angles toward the gate throat, it swung up to ~47° in its first
@@ -2848,6 +3205,16 @@ class TwinMotionDriver {
       if (e.reverse?.charger && e.reverse.committed && e.reverse.end) {
         bodies.push(...this.backOutClaims(id, e.reverse.end));
       }
+      // …and a committed STAGING back-out stands where it will finish, on every lane
+      // its finished body will stand across, and so does the car at its cusp until it
+      // has driven clear (streamClaims).
+      if (e.reverse && !e.reverse.charger && e.reverse.committed && e.reverse.end) {
+        bodies.push(...this.backOutStreamClaims(id, e));
+      }
+      if (e.cuspClaims) {
+        if (e.tracker && e.tracker.s < CUSP_CLAIM_S) bodies.push(...this.streamClaims(id, e.car.pose));
+        else e.cuspClaims = false;
+      }
       moving.push({ id, pose: e.car.pose, speed: e.car.speed });
     }
 
@@ -2870,13 +3237,17 @@ class TwinMotionDriver {
         // 2.9u in front of a car already admitted to the SE junction.
         const laneBusy = !e.reverse.committed && e.reverse.end
           ? this.laneTrafficToward(id, e.reverse.end, bodies)
-            || (e.reverse.charger ? this.chargerBackOutBlocked(id, e, bodies) : this.stagingBackOutBlocked(id, e))
+            || (e.reverse.charger
+              ? this.chargerBackOutBlocked(id, e, bodies)
+              : this.stagingBackOutBlocked(id, e) || this.sweepOccupied(e)
+                || this.claimedTrafficComing(id, this.backOutStreamClaims(id, e), bodies))
           : false;
         if (!laneBusy && e.reverse.end && !e.reverse.committed) {
           e.reverse.committed = true;
           // publish it NOW, not next tick: a merge processed later in this same
           // tick must already see the back-out it would otherwise commit into
           if (e.reverse.charger) bodies.push(...this.backOutClaims(id, e.reverse.end));
+          else bodies.push(...this.backOutStreamClaims(id, e));
         }
         // Waiting for a gap in the aisle is not being stuck: only a blocked REAR runs
         // the REVERSE_HOLD_MAX give-up, whose answer — drive forward from here — is
@@ -2919,21 +3290,10 @@ class TwinMotionDriver {
           // right-offset line, 3.2u east — side by side with, and grazing, the charger
           // cars on the centreline.
           //
-          // The centreline stops at the collector's NEAR stream (one lane offset short
-          // of the junction), not at the junction node itself. Ending on the node,
-          // the graph route dropped it as a duplicate of its own start and drew the
-          // first leg from the collector's CENTRELINE straight to the NEXT junction's
-          // offset lane — a 3.2u drift spread over ~47u, alongside cars already in
-          // that stream (docking test E, with the DCFC back-outs added: 227 contact
-          // samples, all of them two cars side by side on the north collector).
-          // One offset short, the junction is the route's first node and the car
-          // turns onto its own stream there: right into the near one, or across it
-          // into the far one.
-          const gx = gapLaneX(e.car.x);
-          const next = wasCharger
-            ? this.rebuildRail(e, [{ x: e.car.x, y: e.car.y }, { x: gx, y: e.car.y - 2 }, { x: gx, y: NORTH_LANE_Y + this.graph.rightOffset }], false, true)
-            : this.rebuildRail(e, undefined, true, true);
+          // Where it meets the collector: see chargerExitRail.
+          const next = wasCharger ? this.chargerExitRail(e) : this.rebuildRail(e, undefined, true, true);
           if (next) e.tracker = next;
+          e.cuspClaims = !wasCharger && !!next;
         }
         changed = true;
         continue;
@@ -3009,7 +3369,10 @@ class TwinMotionDriver {
           // self-heal; never creeps, never phases through anything.
           if (e.tracker.stationaryFor > 45) {
             this.locks.releaseAll(id);
-            const next = this.rebuildRail(e);
+            // re-routed the way the car points, and opened on its heading: from the
+            // nearest node, the new rail could start anywhere round the car, and a
+            // stuck car is exactly the one with other cars round it
+            const next = this.rebuildRail(e, undefined, true);
             if (next) e.tracker = next;
             e.tracker.stationaryFor = 0;
           }

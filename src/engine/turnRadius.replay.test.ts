@@ -48,7 +48,11 @@ function measure(name: "fresh0922" | "busyday"): TurnReport {
         const dx = p.x - q.x, dy = p.y - q.y, ds = Math.hypot(dx, dy);
         const dh = Math.abs(wrap(p.heading - q.h));
         if (ds > 5) continue;                       // a spawn / re-placement, not motion
-        if (ds < 1e-3) { if (dh > 1e-4) spin++; continue; }
+        // A SPIN STEP turns faster than 1 rad per unit while moving < 0.001u. Without the
+        // rate floor, a car CREEPING along a curve counted: on fresh0922 a car easing to
+        // a stop at 0.018 u/s on the 7u arc a rail now opens with (RailFlow.startOnHeading)
+        // moved 0.0009u and turned 0.00013 rad in one step — a 7u radius, not a spin.
+        if (ds < 1e-3) { if (dh > Math.max(1e-4, ds * 1)) spin++; continue; }
         travel += ds;
         if (ds > 0.02) {
           let c = Math.abs(wrap(Math.atan2(dy, dx) - p.heading));

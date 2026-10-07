@@ -85,6 +85,39 @@
 // 29.2% to 14.5% of car-polls; that is also why the recording's trips run a few
 // percent longer in motion time — a car paced to its leg arrives on time, where
 // a car capped at 3x was always late and at full speed.
+//
+// WAITS THAT USED TO BE COLLISIONS (2026-10-07). The founder, 2026-10-06: "making
+// sure as vehicles approach each other they don't collide or pass through one
+// another." The motion audit (__fixtures__/motionAudit.ts) sorted every overlap by
+// situation, and most were a car driving THROUGH something it should have waited
+// for: a staging back-out, or a car standing at its cusp, across its lane (RailFlow
+// finds a leader by its CENTRE on the follower's path, and a body standing across a
+// lane has its centre off it); a car pulling out across the near stream to join the
+// far one; the gate queue's cars converging on the throat into the car in front.
+// They wait now (TwinMotionDriver.streamClaims, merge `cross`, GATE_QUEUE_TURN_X),
+// and the waiting is the stopped time below. Both sides, same harness
+// (before = f007035):
+//
+//                                      before      after
+//   live0922, first 900 s   stopped    1.8%        3.0%
+//                           stuck      1           6
+//                           overlap    1.2% · 4    0.2% · 1
+//   live0922rec, first 600 s stopped   0.6%        0.8%
+//                           overlap    0.2% · 0    0.04% · 0
+//   fresh0922, at 8x        stopped    3.0%        4.2%
+//                           overlap    2.3% · 3    0.5% · 2
+//   fresh0922, played at 3x stopped    2.7%        4.7%
+//                           stuck      0           2
+//                           overlap    1.5% · 12   0.4% · 2
+//
+// Where fresh0922 @3x's extra ~77 stopped car-seconds went (limiter of every
+// stopped car, every step): ~33 s is the gate queue now leaving one car at a time,
+// ~56 s is lane traffic and joining cars waiting for back-outs and for cars at their
+// cusps, and ~15 s fewer is spent at junctions and merges. live0922's 6 stuck
+// samples are ONE wait: a south-row car at its cusp, its rail starting at a
+// junction, held ~22 s while the neighbour that committed first backs out across
+// its path. The stopped and stuck budgets moved up to this measurement for that
+// reason only; the overlap and on-screen budgets moved DOWN to it.
 // ============================================================================
 import { describe, it, expect, beforeAll } from "vitest";
 import { replayFlow, formatFlow, type FlowReport } from "./__fixtures__/flowReplay";
@@ -113,13 +146,15 @@ describe("traffic flow — the 2026-09-22 live run, replayed on the cockpit's ca
 
   it("the opening burst keeps moving: cars are stopped for a small share of their taxi time", () => {
     // 25.9% before #105, almost all of it cars stopped behind a body that never
-    // moved; 3.0% with motion capped at 3x
-    expect(burst.flow.stoppedFraction).toBeLessThanOrEqual(0.03);
+    // moved; 3.0% with motion capped at 3x; 1.8% -> 3.0% when cars began waiting for
+    // back-outs instead of driving through them (header)
+    expect(burst.flow.stoppedFraction).toBeLessThanOrEqual(0.032);
   });
 
   it("the opening burst wedges nothing", () => {
-    // stuck = holds a route, no arc progress for >10 s. 793 samples before #105.
-    expect(burst.geometry.stuckSamples).toBeLessThanOrEqual(5);
+    // stuck = holds a route, no arc progress for >10 s. 793 samples before #105;
+    // 6 now, all one car waiting ~22 s for a neighbour's back-out (header)
+    expect(burst.geometry.stuckSamples).toBeLessThanOrEqual(7);
     // longest finished trip; one of 261.6 s before #105 (a car looping a block it
     // could never enter), 87.6 s with motion capped at 3x
     expect(burst.flow.maxTripS).toBeLessThanOrEqual(80);
@@ -133,14 +168,16 @@ describe("traffic flow — the 2026-09-22 live run, replayed on the cockpit's ca
   });
 
   it("a fresh start, played at 3x: the whole opening wave flows and nothing wedges", () => {
-    // 5.7% / 34 stuck on main — two loops of waits, each until the watchdog
-    expect(fresh3.flow.stoppedFraction).toBeLessThanOrEqual(0.04);
+    // 5.7% / 34 stuck on main — two loops of waits, each until the watchdog; 2.7% ->
+    // 4.7% when cars began queueing at the gate and waiting for back-outs (header)
+    expect(fresh3.flow.stoppedFraction).toBeLessThanOrEqual(0.05);
     expect(fresh3.geometry.stuckSamples).toBeLessThanOrEqual(5);
   });
 
   it("a fresh start at 8x flows like it does at 3x: the wave drains as fast as it leaves", () => {
-    // 19.0% / 227 stuck before #106; 12.6% / 71 with motion capped at 3x
-    expect(fresh8.flow.stoppedFraction).toBeLessThanOrEqual(0.04);
+    // 19.0% / 227 stuck before #106; 12.6% / 71 with motion capped at 3x; 3.0% ->
+    // 4.2% when cars began queueing at the gate and waiting for back-outs (header)
+    expect(fresh8.flow.stoppedFraction).toBeLessThanOrEqual(0.045);
     expect(fresh8.geometry.stuckSamples).toBeLessThanOrEqual(5);
   });
 
@@ -150,19 +187,21 @@ describe("traffic flow — the 2026-09-22 live run, replayed on the cockpit's ca
   });
 
   it("body overlap stays within the ratchet on every capture (target 0)", () => {
-    // share of motion samples (see the header for why not the raw count)
-    expect(burst.geometry.overlapRate).toBeLessThanOrEqual(0.03);
-    expect(rec.geometry.overlapRate).toBeLessThanOrEqual(0.004);
-    expect(fresh8.geometry.overlapRate).toBeLessThanOrEqual(0.045);
-    expect(fresh3.geometry.overlapRate).toBeLessThanOrEqual(0.05);
+    // share of motion samples (see the header for why not the raw count). 2026-10-07:
+    // 1.2% / 0.2% / 2.3% / 1.5% -> 0.2% / 0.04% / 0.5% / 0.4% (header)
+    expect(burst.geometry.overlapRate).toBeLessThanOrEqual(0.004);
+    expect(rec.geometry.overlapRate).toBeLessThanOrEqual(0.002);
+    expect(fresh8.geometry.overlapRate).toBeLessThanOrEqual(0.007);
+    expect(fresh3.geometry.overlapRate).toBeLessThanOrEqual(0.006);
   });
 
   it("the picture a viewer sees: overlapping pairs on screen, once per poll", () => {
-    // motion capped at 3x: 26 / 1 / 78 (fresh, 8x) / 23 (fresh, played at 3x)
-    expect(burst.viewer.overlapPairPolls).toBeLessThanOrEqual(13);
-    expect(rec.viewer.overlapPairPolls).toBeLessThanOrEqual(2);
+    // motion capped at 3x: 26 / 1 / 78 (fresh, 8x) / 23 (fresh, played at 3x);
+    // 2026-10-07: 4 / 0 / 3 / 12 -> 1 / 0 / 2 / 2 (header)
+    expect(burst.viewer.overlapPairPolls).toBeLessThanOrEqual(3);
+    expect(rec.viewer.overlapPairPolls).toBeLessThanOrEqual(1);
     expect(fresh8.viewer.overlapPairPolls).toBeLessThanOrEqual(3);
-    expect(fresh3.viewer.overlapPairPolls).toBeLessThanOrEqual(27);
+    expect(fresh3.viewer.overlapPairPolls).toBeLessThanOrEqual(4);
   });
 
   it("no car is ever drawn off the lot", () => {

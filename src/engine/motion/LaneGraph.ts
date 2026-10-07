@@ -60,15 +60,68 @@ const OFF_SLIP = 7;
 /** Longest miter offsetRight will take, as a multiple of the lane offset. 2 allows
  *  every join up to a 120° turn exactly; sharper ones are clamped. */
 const MITER_LIMIT = 2;
+/** What turning about at a node costs a route, in units of road (see LaneGraph.search).
+ *  A CHOICE between two ways of going (the two ways a back-out can swing, the two ways
+ *  out of a gap lane onto the collector) differs by tens of units, so this decides every
+ *  one of those against the U-turn. Reversing direction for real is another matter: on
+ *  this depot the way round a block to come back along the same road is 390-490u
+ *  (eastbound on the south collector at Sg1 to westbound there: east to SE, up the east
+ *  avenue, west to Tn, down the temp aisle and back: 491u), so a car re-tasked to
+ *  somewhere behind it still turns about rather than lapping the lot for it. */
+export const U_TURN_COST = 150;
+/** A search state: a node, and the node it was reached from ("" at the start). */
+const stateKey = (node: string, came: string | null) => `${node}|${came ?? ""}`;
+function splitState(s: string): [string, string | null] {
+  const i = s.indexOf("|");
+  const came = s.slice(i + 1);
+  return [s.slice(0, i), came === "" ? null : came];
+}
+
+/**
+ * Drive line to drive line across a DIVIDED road: the perimeter ring the founder locked
+ * as two-way divided, the north and south collectors and the west and east avenues.
+ * Chase, 2026-10-06: the lanes "should also be spaced wide enough with potential slight
+ * median in the middle of just empty space that completely separates the two oncoming
+ * lanes from one another so they're not touching."
+ *
+ * At 2 x rightOffset = 6.4u two 4.0u bodies passed 2.4u (1.15 m) apart with only a
+ * dashed stripe between them. At 8u they pass 4.0u (1.91 m, a car's width) apart, and
+ * the two 6.4u lanes leave a 1.6u (0.77 m) median between them that nothing is routed
+ * on (lanePaint.medians draws it).
+ *
+ * WHERE THE EXTRA 1.6u GOES WAS MEASURED, NOT SPLIT DOWN THE MIDDLE. The avenues have
+ * room on both sides and take half each, 4.0u a side (the east avenue's bodies keep
+ * 1.77u from the TE and E stall faces, the west avenue's 2.77u from the W faces). Each
+ * collector has the canopies on ONE side, and the stream on that side cannot move
+ * toward them:
+ *   - north collector, EASTBOUND: a car turning left off it into wash bay 3 swings its
+ *     tail toward canopy C's spine column. From this lane, drawn as stepRail draws it,
+ *     it clears by 0.33u (TwinMotionDriver's bay branch); 0.8u further south, no
+ *     forecourt point within 5u of the bay clears the column and the wash brushes
+ *     (best -0.19u: contact).
+ *   - south collector, WESTBOUND: the southernmost charger back-outs end with their
+ *     tails 1.0u short of this stream's design-vehicle envelope
+ *     (TwinMotionDriver.traffic.test), and the canopy end-cap light poles (r 0.4u at
+ *     y 165.3) stand 1.1u from a passing body. 0.8u further north: 0.2u and 0.3u.
+ * So the canopy-side streams keep rightOffset, and the other stream of each collector
+ * moves out by the whole 1.6u, to DIVIDED_SPAN - rightOffset = 4.8u: the north
+ * collector's westbound toward the bays' concrete forecourt, the south collector's
+ * eastbound toward the S rows, whose stall faces stay 12.5u from its bodies.
+ */
+export const DIVIDED_SPAN = 8;
 
 export class LaneGraph {
   nodes = new Map<string, Node>();
   lanes = new Map<string, Lane>();
-  /** how far to shift the centerline to the right of travel (lane half-width).
-   *  Opposing directions on a divided road end up 2×this apart. Widened from 2.4
-   *  (4.8u apart — a 5u car had ~0 passing clearance) to 3.2 (6.4u apart) so
-   *  cars sit centred in their own lane with real clearance when passing. */
+  /** how far to shift the centerline to the right of travel (lane half-width) on a
+   *  ONE-WAY lane and on each side of a two-way AISLE (the temp block's aisle, the N1
+   *  approach): opposing directions end up 2×this apart. Widened from 2.4 (4.8u apart
+   *  — a 5u car had ~0 passing clearance) to 3.2 (6.4u apart) so cars sit centred in
+   *  their own lane with real clearance when passing. A DIVIDED road gives each of its
+   *  directions its own offset instead (addRoad, DIVIDED_SPAN). */
   rightOffset = 3.2;
+  /** the offset of each directed lane of a DIVIDED road (addRoad's `divided`) */
+  private laneOffsets = new Map<string, number>();
 
   addNode(id: string, x: number, y: number) {
     if (!this.nodes.has(id)) this.nodes.set(id, { id, x, y, out: [] });
@@ -99,10 +152,86 @@ export class LaneGraph {
     }
     return this.inDeg.get(id) ?? 0;
   }
-  /** Two opposing directed lanes on the same centerline (a divided road). */
-  addRoad(a: string, b: string) {
+  /** Two opposing directed lanes on the same centreline: a two-way road. A DIVIDED
+   *  road gives each direction its own offset, `divided` = [a→b, b→a], summing to
+   *  DIVIDED_SPAN; an aisle keeps rightOffset both ways. */
+  addRoad(a: string, b: string, divided?: readonly [number, number]) {
     this.addLane(a, b);
     this.addLane(b, a);
+    if (divided) {
+      this.laneOffsets.set(`${a}>${b}`, divided[0]);
+      this.laneOffsets.set(`${b}>${a}`, divided[1]);
+    }
+  }
+
+  /** Is this directed lane one side of a divided road? */
+  isDivided(laneId: string): boolean {
+    return this.laneOffsets.has(laneId);
+  }
+
+  /** How far right of its centreline a car on this directed lane drives. */
+  offsetOf(laneId: string): number {
+    return this.laneOffsets.get(laneId) ?? this.rightOffset;
+  }
+
+  /** The offset of the directed lane a route segment a→b runs along, or null when it
+   *  runs along none (a leg off the road: from a car, to a stall). Every lane in this
+   *  graph is a straight run, so "along" means both ends on it, pointing its way. */
+  private offsetAlong(a: Pt, b: Pt): number | null {
+    const L = len(a, b);
+    if (L < 1e-9) return null;
+    const ux = (b.x - a.x) / L, uy = (b.y - a.y) / L;
+    for (const lane of this.lanes.values()) {
+      for (let i = 1; i < lane.pts.length; i++) {
+        const p = lane.pts[i - 1], q = lane.pts[i];
+        const Lq = len(p, q);
+        if (Lq < 1e-9) continue;
+        const vx = (q.x - p.x) / Lq, vy = (q.y - p.y) / Lq;
+        if (ux * vx + uy * vy < 0.999) continue;
+        const on = (r: Pt) => {
+          const t = (r.x - p.x) * vx + (r.y - p.y) * vy;
+          return t > -1e-6 && t < Lq + 1e-6 && Math.abs((r.x - p.x) * -vy + (r.y - p.y) * vx) < 1e-6;
+        };
+        if (on(a) && on(b)) return this.offsetOf(lane.id);
+      }
+    }
+    return null;
+  }
+
+  /** Per-segment drive-on-the-right offsets for a route CENTRELINE: each road
+   *  segment takes its lane's offset, and a leg off the road takes its road
+   *  neighbour's (the one it starts onto, or the one it leaves). */
+  private segOffsets(pts: Pt[]): number[] {
+    const raw: (number | null)[] = [];
+    for (let i = 1; i < pts.length; i++) raw.push(this.offsetAlong(pts[i - 1], pts[i]));
+    return raw.map((v, i) => {
+      if (v !== null) return v;
+      let prev: number | null = null, next: number | null = null;
+      for (let j = i - 1; j >= 0 && prev === null; j--) prev = raw[j];
+      for (let j = i + 1; j < raw.length && next === null; j++) next = raw[j];
+      return (i === 0 ? next ?? prev : prev ?? next) ?? this.rightOffset;
+    });
+  }
+
+  /** The offset of the directed lane whose centreline passes through `p` running
+   *  within 30° of `heading` — rightOffset when none does. */
+  offsetAt(p: Pt, heading: number): number {
+    const fx = Math.cos(heading), fy = Math.sin(heading);
+    let best = this.rightOffset, bd = Infinity;
+    for (const lane of this.lanes.values()) {
+      for (let i = 1; i < lane.pts.length; i++) {
+        const a = lane.pts[i - 1], b = lane.pts[i];
+        const L = len(a, b);
+        if (L < 1e-6) continue;
+        const ux = (b.x - a.x) / L, uy = (b.y - a.y) / L;
+        if (ux * fx + uy * fy < Math.cos(Math.PI / 6)) continue;
+        const t = (p.x - a.x) * ux + (p.y - a.y) * uy;
+        if (t < -1e-6 || t > L + 1e-6) continue;
+        const lat = Math.abs((p.x - a.x) * -uy + (p.y - a.y) * ux);
+        if (lat < bd) { bd = lat; best = this.offsetOf(lane.id); }
+      }
+    }
+    return bd < 1 ? best : this.rightOffset;
   }
 
   nearestNode(p: Pt, pred?: (n: Node) => boolean): string {
@@ -119,58 +248,67 @@ export class LaneGraph {
     return best;
   }
 
-  /** Dijkstra distances and predecessors from one node to every node it reaches. */
-  private shortestFrom(from: string): { dist: Map<string, number>; prev: Map<string, string> } {
-    const dist = new Map<string, number>([[from, 0]]);
-    const prev = new Map<string, string>();
+  /**
+   * Dijkstra over (node, the node it was reached from), so a U-TURN can be priced.
+   *
+   * Every two-way road is a pair of directed lanes on one centreline, so a plain
+   * node Dijkstra could leave a node back along the lane it had just arrived on, at
+   * no cost: A -> B -> A. On the road that is a car turning about inside its own
+   * lane pair — the two drive lines 6.4u apart (8u on a divided road), against
+   * the car's 11u minimum radius — and the corner rounding can only draw it as a
+   * hairpin about a point, i.e. the car spinning in place. It was cheap enough to be
+   * CHOSEN: a staging back-out picks the swing whose onward route is shorter, and on
+   * the founder's run (twinRun.chase1006.json) a south-row car was swung to face
+   * EAST for a charger to the WEST because the route east to Ts and straight back
+   * was 10u shorter than facing the right way — 5 of the 16 back-outs whose rail
+   * still opened > 30° off the car's heading after startOnHeading, in the first 30
+   * minutes, were that.
+   *
+   * A U-turn now costs U_TURN_COST of road. Every route that has a way round under
+   * that takes it; one that does not (a car re-tasked to somewhere far behind it
+   * on a long road) still gets its U-turn rather than no route. A DEAD END — a node
+   * whose only way out is back — turns about for free: there is nothing else to do
+   * there (the N1 row's west stub).
+   */
+  private search(from: string, arrivedFrom: string | null): { dist: Map<string, number>; back: Map<string, string> } {
+    const dist = new Map<string, number>([[stateKey(from, arrivedFrom), 0]]);
+    const back = new Map<string, string>();
     const seen = new Set<string>();
+    // small graph -> simple linear-scan priority selection
     while (true) {
       let u = "";
       let best = Infinity;
-      for (const [id, d] of dist) if (!seen.has(id) && d < best) { best = d; u = id; }
+      for (const [s, d] of dist) if (!seen.has(s) && d < best) { best = d; u = s; }
       if (!u) break;
       seen.add(u);
-      for (const lid of this.nodes.get(u)!.out) {
+      const [node, came] = splitState(u);
+      const outs = this.nodes.get(node)!.out;
+      for (const lid of outs) {
         const lane = this.lanes.get(lid)!;
-        const nd = best + lane.length;
-        if (nd < (dist.get(lane.to) ?? Infinity)) { dist.set(lane.to, nd); prev.set(lane.to, u); }
+        const uTurn = came !== null && lane.to === came && outs.length > 1;
+        const nd = best + lane.length + (uTurn ? U_TURN_COST : 0);
+        const s = stateKey(lane.to, node);
+        if (nd < (dist.get(s) ?? Infinity)) { dist.set(s, nd); back.set(s, u); }
       }
     }
-    return { dist, prev };
+    return { dist, back };
   }
 
-  /** Dijkstra node path (list of node ids) from→to over directed lanes. */
-  private nodePath(from: string, to: string): string[] {
-    const dist = new Map<string, number>();
-    const prev = new Map<string, string>();
-    const seen = new Set<string>();
-    dist.set(from, 0);
-    // small graph → simple linear-scan priority selection
-    while (true) {
-      let u = "";
-      let best = Infinity;
-      for (const [id, d] of dist) if (!seen.has(id) && d < best) { best = d; u = id; }
-      if (!u || u === to) break;
-      seen.add(u);
-      for (const lid of this.nodes.get(u)!.out) {
-        const lane = this.lanes.get(lid)!;
-        const nd = best + lane.length;
-        if (nd < (dist.get(lane.to) ?? Infinity)) {
-          dist.set(lane.to, nd);
-          prev.set(lane.to, u);
-        }
-      }
-    }
-    if (!dist.has(to)) return [];
-    const path = [to];
-    let c = to;
-    while (c !== from) {
-      const p = prev.get(c);
-      if (!p) return []; // unreachable
-      path.unshift(p);
-      c = p;
-    }
+  /** The node path that a search state was reached by. */
+  private static pathTo(back: Map<string, string>, state: string): string[] {
+    const path = [splitState(state)[0]];
+    for (let s = back.get(state); s !== undefined; s = back.get(s)) path.unshift(splitState(s)[0]);
     return path;
+  }
+
+  /** Dijkstra node path (list of node ids) from→to over directed lanes, U-turns
+   *  priced (search). `arrivedFrom` is the node the car is coming from, when it is
+   *  already driving into `from` along a lane. */
+  private nodePath(from: string, to: string, arrivedFrom: string | null = null): string[] {
+    const { dist, back } = this.search(from, arrivedFrom);
+    let best: string | null = null, bd = Infinity;
+    for (const [s, d] of dist) if (splitState(s)[0] === to && d < bd) { bd = d; best = s; }
+    return best === null ? [] : LaneGraph.pathTo(back, best);
   }
 
   /** Concatenate the centerline polylines for a node path. */
@@ -204,9 +342,19 @@ export class LaneGraph {
    *  because one of their legs is not a lane at all — it is the car's own start
    *  point or a stall's approach point off the road — and a miter on such a join
    *  swings the path into the parked row beside it (measured on busy_day: body
-   *  overlap 74 -> 133 when every vertex took one). */
-  static offsetRight(pts: Pt[], amount: number, miterFrom = 1, miterTo = pts.length - 2): Pt[] {
-    if (pts.length < 2 || amount === 0) return pts.map((p) => ({ ...p }));
+   *  overlap 74 -> 133 when every vertex took one).
+   *
+   *  `amount` is one offset for the whole polyline, or one PER SEGMENT (segment i
+   *  runs pts[i] -> pts[i+1]): each side of a divided road has its own offset
+   *  (DIVIDED_SPAN), unlike a one-way lane. Where two segments of DIFFERENT offset meet
+   *  at a corner, the vertex goes where the two shifted legs actually cross (the
+   *  general miter); on a straight run it steps by half the difference each side, so
+   *  the change is spread over both legs rather than taken as a jog at the vertex. A
+   *  legacy (chord) join takes the offset of its ROAD leg. */
+  static offsetRight(pts: Pt[], amount: number | readonly number[], miterFrom = 1, miterTo = pts.length - 2): Pt[] {
+    const seg = (i: number) => typeof amount === "number" ? amount
+      : amount[Math.max(0, Math.min(amount.length - 1, i))];
+    if (pts.length < 2 || (typeof amount === "number" && amount === 0)) return pts.map((p) => ({ ...p }));
     const out: Pt[] = [];
     // y-DOWN frame (south = +y): the right-of-travel normal of (dx,dy) is (-dy,dx)
     const normal = (a: Pt, b: Pt): Pt | null => {
@@ -217,12 +365,21 @@ export class LaneGraph {
     for (let i = 0; i < pts.length; i++) {
       const nIn = i > 0 ? normal(pts[i - 1], pts[i]) : null;
       const nOut = i < pts.length - 1 ? normal(pts[i], pts[i + 1]) : null;
-      let nx: number, ny: number, k = 1;
+      let nx: number, ny: number, k = 1, amt: number;
       if (nIn && nOut && (i < miterFrom || i > miterTo)) {
-        // legacy join: the normal of the chord between the two neighbours
+        // legacy join: the normal of the chord between the two neighbours, at the
+        // offset of the leg that is road (the outgoing one at a route's start, the
+        // incoming one at its end)
         const chord = normal(pts[i - 1], pts[i + 1]) ?? nIn;
         nx = chord.x; ny = chord.y;
+        amt = i < miterFrom ? seg(i) : seg(i - 1);
       } else if (nIn && nOut) {
+        const a = seg(i - 1), b = seg(i);
+        if (Math.abs(a - b) > 1e-9) {
+          out.push(LaneGraph.miterOf(pts[i], nIn, nOut, a, b));
+          continue;
+        }
+        amt = a;
         const sx = nIn.x + nOut.x, sy = nIn.y + nOut.y;
         const sm = Math.hypot(sx, sy);
         if (sm < 1e-9) { nx = nIn.x; ny = nIn.y; }            // a full reversal: no miter exists
@@ -235,10 +392,84 @@ export class LaneGraph {
         const n = nIn ?? nOut;
         if (!n) { out.push({ ...pts[i] }); continue; }
         nx = n.x; ny = n.y;
+        amt = nIn ? seg(i - 1) : seg(i);
       }
-      out.push({ x: pts[i].x + nx * amount * k, y: pts[i].y + ny * amount * k });
+      out.push({ x: pts[i].x + nx * amt * k, y: pts[i].y + ny * amt * k });
     }
     return out;
+  }
+
+  /** Where the incoming leg, shifted `a` right of travel, meets the outgoing leg
+   *  shifted `b` (the two legs' right normals nIn, nOut), at vertex V. Parallel legs:
+   *  half the change each side on a straight run; the incoming side on a reversal.
+   *  Capped at MITER_LIMIT x the larger offset, like the single-offset miter. */
+  private static miterOf(V: Pt, nIn: Pt, nOut: Pt, a: number, b: number): Pt {
+    // travel directions are the normals turned back (y-DOWN: right of (ux,uy) is (-uy,ux))
+    const u1 = { x: nIn.y, y: -nIn.x }, u2 = { x: nOut.y, y: -nOut.x };
+    const cross = u1.x * u2.y - u1.y * u2.x;
+    if (Math.abs(cross) < 1e-6) {
+      const m = u1.x * u2.x + u1.y * u2.y > 0 ? (a + b) / 2 : a;
+      return { x: V.x + nIn.x * m, y: V.y + nIn.y * m };
+    }
+    const A = { x: V.x + nIn.x * a, y: V.y + nIn.y * a };
+    const w = { x: V.x + nOut.x * b - A.x, y: V.y + nOut.y * b - A.y };
+    const t = (w.x * u2.y - w.y * u2.x) / cross;
+    let P = { x: A.x + u1.x * t, y: A.y + u1.y * t };
+    const d = Math.hypot(P.x - V.x, P.y - V.y), cap = MITER_LIMIT * Math.max(a, b);
+    if (d > cap) P = { x: V.x + ((P.x - V.x) / d) * cap, y: V.y + ((P.y - V.y) / d) * cap };
+    return P;
+  }
+
+  /** The streams a straight move from `a` to `b` crosses: where it crosses each
+   *  directed lane's drive line, and which way that lane flows. A crossing within 1u
+   *  of either end is left out: that is the lane the move starts from, or joins. */
+  streamsCrossed(a: Pt, b: Pt): { x: number; y: number; hx: number; hy: number }[] {
+    const out: { x: number; y: number; hx: number; hy: number }[] = [];
+    const L = len(a, b);
+    if (L < 2) return out;
+    const rx = b.x - a.x, ry = b.y - a.y;
+    for (const lane of this.lanes.values()) {
+      const line = LaneGraph.offsetRight(lane.pts, this.offsetOf(lane.id));
+      for (let i = 1; i < line.length; i++) {
+        const p = line[i - 1], q = line[i];
+        const sx = q.x - p.x, sy = q.y - p.y;
+        const den = rx * sy - ry * sx;
+        if (Math.abs(den) < 1e-9) continue; // parallel: runs beside the move, does not cross it
+        const t = ((p.x - a.x) * sy - (p.y - a.y) * sx) / den;
+        const u = ((p.x - a.x) * ry - (p.y - a.y) * rx) / den;
+        if (t * L < 1 || (1 - t) * L < 1 || u < 0 || u > 1) continue;
+        const Ls = Math.hypot(sx, sy);
+        out.push({ x: a.x + rx * t, y: a.y + ry * t, hx: sx / Ls, hy: sy / Ls });
+      }
+    }
+    return out;
+  }
+
+  /**
+   * How far short of junction `id` a car arriving along `heading` waits for it
+   * (RailFlow's NODE_STOP, as a centre-to-node "stationary leader" distance): its
+   * nose keeps 0.6u from the body of the NEAREST stream crossing its way in — the
+   * crossing lane whose drive line lies on the side the car comes from. 6 when that
+   * stream is 3.2u out (the formula's own case), more for a divided road's outer
+   * stream: 7.6 on the ingress spur at the south collector, 6.8 on the N1 approach at
+   * the east avenue. `fallback` when nothing crosses there.
+   */
+  stopDistance(id: string, heading: number, fallback: number): number {
+    const fx = Math.cos(heading), fy = Math.sin(heading);
+    let near = 0;
+    for (const lane of this.lanes.values()) {
+      if (lane.from !== id && lane.to !== id) continue;
+      const k = lane.from === id ? 1 : lane.pts.length - 1;
+      const a = lane.pts[k - 1], b = lane.pts[k];
+      const L = len(a, b);
+      if (L < 1e-9) continue;
+      const ux = (b.x - a.x) / L, uy = (b.y - a.y) / L;
+      if (Math.abs(ux * fx + uy * fy) > 0.5) continue; // runs along my way in, not across it
+      // its drive line is offsetOf right of the node (y-DOWN: right of (ux,uy) is
+      // (-uy,ux)): on MY side of it when that points back the way I come
+      if (-uy * fx + ux * fy < 0) near = Math.max(near, this.offsetOf(lane.id));
+    }
+    return near > 0 ? near + 2.8 : fallback;
   }
 
   /**
@@ -271,9 +502,21 @@ export class LaneGraph {
         const ux = (b.x - a.x) / L, uy = (b.y - a.y) / L;
         if (ux * fx + uy * fy < 0.5) continue; // points the wrong way for this car
         // the drive-on-the-right line of this segment (y-DOWN: right of (ux,uy) is (-uy,ux))
-        const ox = a.x - uy * this.rightOffset, oy = a.y + ux * this.rightOffset;
+        const off = this.offsetOf(lane.id);
+        const ox = a.x - uy * off, oy = a.y + ux * off;
         const t = (p.x - ox) * ux + (p.y - oy) * uy;
         if (t > L) continue;                                // this piece is behind the car
+        // …and so is a piece the car stands at the END of: nothing of it is ahead. A
+        // car at a junction stood on two lanes at once, the one arriving there and the
+        // one leaving, and took whichever the graph listed first. Joining the arriving
+        // one routes on from the junction it is already at: a charger car turning onto
+        // the north collector's eastbound line at Ng0 was routed from Ng0 back WEST
+        // (a U-turn the search priced and then took, the east way round being longer),
+        // which offsetRight draws as a diagonal from the eastbound line to the
+        // westbound one: the car drove 54u west in the eastbound lane, beside the
+        // westbound traffic (docking test E, 31 contact samples once the median put
+        // the streams 8u apart).
+        if (L - Math.max(0, t) < 1) continue;
         const lat = Math.abs((p.x - ox) * -uy + (p.y - oy) * ux);
         // a car short of the segment's start measures its distance to that start
         const d = t < 0 ? Math.hypot(p.x - ox, p.y - oy) : lat;
@@ -297,19 +540,21 @@ export class LaneGraph {
     const a = lane.pts[j.seg - 1], b = lane.pts[j.seg];
     const L = len(a, b);
     const ux = (b.x - a.x) / L, uy = (b.y - a.y) / L;
-    const shift = (q: Pt) => ({ x: q.x - uy * this.rightOffset, y: q.y + ux * this.rightOffset });
+    const off = this.offsetOf(lane.id);
+    const shift = (q: Pt) => ({ x: q.x - uy * off, y: q.y + ux * off });
     const tJoin = Math.min(L, j.t + JOIN_LEAD);
     const joinPt = shift({ x: a.x + ux * tJoin, y: a.y + uy * tJoin });
     // Destination ON this lane, ahead of the join: go straight to it rather than
     // driving past it to the lane's end node and doubling back.
     const tTo = (to.x - a.x) * ux + (to.y - a.y) * uy;
     const latTo = Math.abs((to.x - a.x) * -uy + (to.y - a.y) * ux);
-    if (tTo > tJoin && tTo <= L && latTo <= this.rightOffset * 3) {
+    if (tTo > tJoin && tTo <= L && latTo <= off * 3) {
       return [{ ...from }, joinPt, { ...to }];
     }
     const destOk = (n: Node) => this.inDegree(n.id) > 0;
     const bNode = this.nearestNode(to, destOk) || this.nearestNode(to);
-    const np = this.nodePath(lane.to, bNode);
+    // the car is driving INTO lane.to along this lane: turning straight back at it is a U-turn
+    const np = this.nodePath(lane.to, bNode, lane.from);
     // the joined lane leads nowhere the destination can be reached from (a sink
     // spur such as the egress stub): do not commit to it
     if (np.length < 2 && lane.to !== bNode) return this.route(from, to);
@@ -320,7 +565,7 @@ export class LaneGraph {
     center.push({ ...to });
     const clean: Pt[] = [];
     for (const q of center) if (!clean.length || len(clean[clean.length - 1], q) > 0.5) clean.push(q);
-    const shifted = LaneGraph.offsetRight(clean, this.rightOffset, 1, clean.length - 3);
+    const shifted = LaneGraph.offsetRight(clean, this.segOffsets(clean), 1, clean.length - 3);
     shifted[shifted.length - 1] = clean[clean.length - 1]; // `to` is a physical point
     shifted[0] = joinPt;
     return [{ ...from }, ...shifted];
@@ -353,7 +598,6 @@ export class LaneGraph {
    * routeFacing does; the joined lane is itself a candidate.
    */
   routeOff(from: Pt, heading: number | undefined, to: Pt, facing: number): Pt[] | null {
-    const off = this.rightOffset;
     const fx = Math.cos(facing), fy = Math.sin(facing);
     const cosAlign = Math.cos(OFF_ALIGN);
     // where the trip starts on the road: the lane ahead of the nose, or a node
@@ -370,17 +614,41 @@ export class LaneGraph {
     }
     const startNode = joined ? joined.lane.to : this.originNode(from);
     if (!startNode) return null;
-    const { dist, prev } = this.shortestFrom(startNode);
+    const { dist, back } = this.search(startNode, joined ? joined.lane.from : null);
+    // The cheapest way to START down a lane from its from-node, U-turn priced: the
+    // search reaches a node in several states (one per way in), and leaving a node
+    // back along the lane a state arrived on is a U-turn (LaneGraph.search).
+    const startDown = (lane: Lane): { cost: number; state: string } | undefined => {
+      const outs = this.nodes.get(lane.from)!.out.length;
+      let r: { cost: number; state: string } | undefined;
+      for (const [s, d] of dist) {
+        const [node, came] = splitState(s);
+        if (node !== lane.from) continue;
+        const c = d + (came === lane.to && outs > 1 ? U_TURN_COST : 0);
+        if (!r || c < r.cost) r = { cost: c, state: s };
+      }
+      return r;
+    };
     // how far along the joined lane the join point lies (its own arc coordinate)
     let joinAt = 0;
     if (joined) {
       for (let i = 1; i < joined.seg; i++) joinAt += len(joined.lane.pts[i - 1], joined.lane.pts[i]);
       joinAt += joined.tJoin;
     }
-    let best: { cost: number; lane: Lane; seg: number; E: Pt; direct: boolean } | null = null;
+    // A route through the graph starts at startNode, the END of the joined lane, so the
+    // car first drives the rest of that lane. The cost left that out, which made the
+    // lane just past the end of the joined one look as near as the one the car was on:
+    // a stall abreast of the joined lane's last few units (OFF_SLIP) was left from the
+    // NEXT lane instead — the car drove on to the junction and doubled back to it (a
+    // car eastbound on the north collector for wash bay 1, x 168, ran on to Ng2 at x
+    // 173.5 and turned 110 deg back into the bay).
+    const toStart = joined ? Math.max(0, joined.lane.length - joinAt) : 0;
+    let best: { cost: number; lane: Lane; seg: number; E: Pt; direct: boolean; state?: string } | null = null;
     for (const lane of this.lanes.values()) {
-      const viaGraph = dist.get(lane.from);
+      const start = startDown(lane);
+      const viaGraph = start?.cost;
       const onJoined = joined?.lane === lane;
+      const off = this.offsetOf(lane.id);
       if (viaGraph === undefined && !onJoined) continue;
       let at = 0; // arc coordinate of this segment's start along the lane
       for (let i = 1; i < lane.pts.length; i++) {
@@ -406,8 +674,8 @@ export class LaneGraph {
             if (!best || cost < best.cost) best = { cost, lane, seg: i, E, direct: true };
           }
           if (viaGraph !== undefined) {
-            const cost = viaGraph + along + d;
-            if (!best || cost < best.cost) best = { cost, lane, seg: i, E, direct: false };
+            const cost = toStart + viaGraph + along + d;
+            if (!best || cost < best.cost) best = { cost, lane, seg: i, E, direct: false, state: start!.state };
           }
         }
         at += L;
@@ -422,12 +690,8 @@ export class LaneGraph {
       for (let i = joined.seg; i <= last; i++) C.push({ ...joined.lane.pts[i] });
     }
     if (!best.direct) {
-      const np = [best.lane.from];
-      while (np[0] !== startNode) {
-        const p = prev.get(np[0]);
-        if (!p) return null;
-        np.unshift(p);
-      }
+      const np = LaneGraph.pathTo(back, best.state!);
+      if (np[0] !== startNode) return null;
       if (np.length >= 2) C.push(...this.centerline(np));
       else { const n = this.nodes.get(startNode)!; C.push({ x: n.x, y: n.y }); }
       for (let i = 1; i < best.seg; i++) C.push({ ...best.lane.pts[i] });
@@ -441,13 +705,13 @@ export class LaneGraph {
     if (joined) {
       if (clean.length < 2) return null;
       // the join point is a road point already, on the joined lane's line
-      road = LaneGraph.offsetRight(clean, off, 1, clean.length - 2);
+      road = LaneGraph.offsetRight(clean, this.segOffsets(clean), 1, clean.length - 2);
     } else {
       // [from, node0, …, E]: node0 joins a leg that is not a lane (the car's start)
       // (as in route(): a start already ON the first node is that node, not a leg to it —
       // kept as a leg, its 3.2u shift drew a hairpin at every bay pull-through exit)
       const full = [{ ...from }, ...(clean.length > 1 && len(clean[0], from) <= 0.5 ? clean.slice(1) : clean)];
-      road = LaneGraph.offsetRight(full, off, 2, full.length - 2).slice(1);
+      road = LaneGraph.offsetRight(full, this.segOffsets(full), 2, full.length - 2).slice(1);
     }
     const out = [{ ...from }, ...road, { ...to }];
     const dd: Pt[] = [];
@@ -524,7 +788,7 @@ export class LaneGraph {
     for (const p of center) if (!clean.length || len(clean[clean.length - 1], p) > 0.5) clean.push(p);
     // clean = [from, node0, …, nodeK, to]: node0 and nodeK each join a leg that is
     // not a lane (the car's start, the target point), so only node1..nodeK-1 miter
-    const shifted = LaneGraph.offsetRight(clean, this.rightOffset, 2, clean.length - 3);
+    const shifted = LaneGraph.offsetRight(clean, this.segOffsets(clean), 2, clean.length - 3);
     // THE ENDPOINTS ARE PHYSICAL POSITIONS, NOT CENTERLINES. `from` is where the
     // car actually IS and `to` is the exact point it must reach; only the road
     // vertices in between are centerlines that need the drive-on-the-right shift.
@@ -555,6 +819,9 @@ export class LaneGraph {
  */
 export function buildDepotLanes(): LaneGraph {
   const g = new LaneGraph();
+  // each direction of a divided road (DIVIDED_SPAN): the stream beside the canopies,
+  // the one away from them, and each side of an avenue
+  const near = g.rightOffset, far = DIVIDED_SPAN - g.rightOffset, even = DIVIDED_SPAN / 2;
   const gapX = [GAP_LANES.westOfA, GAP_LANES.AB, GAP_LANES.BC, GAP_LANES.eastOfC];
 
   // --- ring corners ---
@@ -588,22 +855,33 @@ export function buildDepotLanes(): LaneGraph {
   // --- south boulevard chain (two-way), west→east through all junctions ---
   const southChain = ["SW", "Sg0", "S_in", "Sg1", "Sg2", "S_eg", "Sg3", "Ts", "SE"]
     .sort((a, b) => g.nodes.get(a)!.x - g.nodes.get(b)!.x);
-  for (let i = 1; i < southChain.length; i++) g.addRoad(southChain[i - 1], southChain[i]);
+  // DIVIDED (DIVIDED_SPAN): west→east is EASTBOUND, driven on the south side, toward
+  // the S rows (4.8u); the westbound stream keeps rightOffset beside the canopies
+  for (let i = 1; i < southChain.length; i++) g.addRoad(southChain[i - 1], southChain[i], [far, near]);
 
   // --- north boulevard chain (two-way) ---
   const northChain = ["NW", "Ng0", "Ng1", "Ng2", "Ng3", "Tn", "NE"]
     .sort((a, b) => g.nodes.get(a)!.x - g.nodes.get(b)!.x);
-  for (let i = 1; i < northChain.length; i++) g.addRoad(northChain[i - 1], northChain[i]);
+  // DIVIDED: the EASTBOUND stream keeps rightOffset beside the canopies, the westbound
+  // one moves north toward the bays' forecourt (4.8u)
+  for (let i = 1; i < northChain.length; i++) g.addRoad(northChain[i - 1], northChain[i], [near, far]);
 
   // The aisle itself: TWO-WAY, because it is double-loaded (TW and TE face each other
   // across it) and it is a dead-end for anything but a through run between the two
   // collectors. 24.39 ft of clear pavement between the stall faces — the founder's
   // real-world two-way / 90-degree-parking spec. See sitePlan's TW/TE comment.
+  //
+  // NOT DIVIDED, and that is deliberate: it is a parking aisle, not a through road. A
+  // car pulls into or backs out of a stall on EITHER side of it, so its body crosses
+  // the middle of the aisle every time (a staging back-out ends 17.8u out from the
+  // stall centre, past the far lane line); a median there would be painted where
+  // every pull-in drives. The same holds for the N1 approach below (a single-loaded
+  // row). Real parking aisles have none. They keep rightOffset each way.
   g.addRoad("Tn", "Ts");
 
-  // --- avenues (two-way) ---
-  g.addRoad("NW", "SW");
-  g.addRoad("NE", "SE");
+  // --- avenues (two-way, divided) ---
+  g.addRoad("NW", "SW", [even, even]);
+  g.addRoad("NE", "SE", [even, even]);
 
   // --- gap lanes: ONE-WAY NORTHBOUND (chargers face north) ---
   for (let i = 0; i < gapX.length; i++) g.addLane(`Sg${i}`, `Ng${i}`);
@@ -649,7 +927,7 @@ export function buildDepotLanes(): LaneGraph {
   // two-way like the rest of the divided avenue, which is what lets a car reach the
   // row FROM the north collector instead of only from the bays.
   g.addLane(`R${rearXs.length - 1}`, "N1e");
-  g.addRoad("N1e", "NE");
+  g.addRoad("N1e", "NE", [even, even]);
 
   return g;
 }
