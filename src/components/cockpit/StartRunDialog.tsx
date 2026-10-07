@@ -9,12 +9,13 @@ import { FEATURED, DEFAULT_SCENARIO } from '@/components/cockpit/featuredScenari
 import { useStartRun, type StartRunControl } from '@/hooks/useStartRun';
 
 /**
- * The phone's Start: pick a featured scenario, then start it for real — through
- * useStartRun, the very start path the desktop Control tab uses. It is a confirm,
- * not a one-tap button, because starting a run ends and resets the one before it.
- * "More options in Control" opens the full console (every scenario, variability).
+ * Start from the run transport (RunTransport: the phone's run bar and the desktop
+ * top bar): pick a featured scenario, then start it for real — through useStartRun,
+ * the very start path the desktop Control tab uses. It is a confirm, not a one-tap
+ * button, because starting a run ends and resets the one before it. "More options
+ * in Control" opens the full console (every scenario, variability).
  */
-export function PhoneStartDialog({ open, onOpenChange, ctrl, onOpenControl }: {
+export function StartRunDialog({ open, onOpenChange, ctrl, onOpenControl }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   ctrl: StartRunControl;
@@ -43,7 +44,7 @@ export function PhoneStartDialog({ open, onOpenChange, ctrl, onOpenControl }: {
 
   return (
     <AlertDialog open={open} onOpenChange={(o) => { if (!starting) onOpenChange(o); }}>
-      <AlertDialogContent className="bg-canvas-panel border-white/10 text-ink max-w-sm" data-testid="phone-start-dialog">
+      <AlertDialogContent className="bg-canvas-panel border-white/10 text-ink max-w-sm" data-testid="start-run-dialog">
         <AlertDialogHeader>
           <AlertDialogTitle>Start a simulation run</AlertDialogTitle>
           <AlertDialogDescription className="text-ink-dim">

@@ -136,7 +136,8 @@ describe("coverage must not over-report on a world that published nothing", () =
   it("keeps the charger fault RATE separate from per-charger health", () => {
     // charger_fault used to be structurally unobservable: nothing on any frame
     // carried it. The events window changed that — but only for the POPULATION
-    // rate. Per-charger station_state is still unpublished, so counts.faulted
+    // rate. On a frame without per-charger health (no `charger_state` on its rows:
+    // a backend before otto-q-core 0612, as this capture is), counts.faulted
     // must stay null no matter how healthy the rate looks. A frame that says
     // "fault rate 1.4%" and "0 chargers faulted" would let the orchestrator
     // keep assigning vehicles to dead hardware, which is the failure the null

@@ -15,6 +15,7 @@ vi.mock('@/components/tabs/WorldContractTab', () => ({ WorldContractTab: () => <
 vi.mock('@/components/tabs/TwinOttoQTab', () => ({ TwinOttoQTab: () => <div /> }));
 vi.mock('@/components/tabs/TwinAgentTab', () => ({ TwinAgentTab: () => <div /> }));
 vi.mock('@/components/tabs/TwinValueTab', () => ({ TwinValueTab: () => <div /> }));
+vi.mock('@/components/tabs/TwinBackgroundTab', () => ({ TwinBackgroundTab: () => <div data-testid="tab-background" /> }));
 
 import { SidePanel } from './SidePanel';
 import { useSimulationStore } from '@/store/simulationStore';
@@ -72,6 +73,19 @@ describe('SidePanel — full-width expand', () => {
     fireEvent.click(screen.getByRole('button', { name: 'KPIs' }));
     expect(screen.getByTestId('tab-kpis')).toBeTruthy();
     expect(useSimulationStore.getState().isPanelExpanded).toBe(true);
+  });
+});
+
+describe('SidePanel — the tab it opens on', () => {
+  it('opens on Background (Chase, 2026-10-07), the first tab, and Control is one click away', () => {
+    useSimulationStore.setState(useSimulationStore.getInitialState());
+    render(<SidePanel />);
+    expect(screen.getByTestId('tab-background')).toBeTruthy();
+    expect(screen.queryByTestId('tab-controls')).toBeNull();
+    const tabs = screen.getAllByRole('button').map((b) => b.textContent?.trim()).filter(Boolean);
+    expect(tabs.slice(0, 3)).toEqual(['Background', 'Control', 'OTTO-Q']);
+    fireEvent.click(screen.getByRole('button', { name: 'Control' }));
+    expect(screen.getByTestId('tab-controls')).toBeTruthy();
   });
 });
 

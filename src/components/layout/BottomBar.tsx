@@ -2,6 +2,7 @@ import { Bot } from 'lucide-react';
 import { useSimulationStore } from '@/store/simulationStore';
 import { useOwnerBoardStore } from '@/store/ownerBoardStore';
 import { agentLabel, connectedAgents, connectedCount } from '@/lib/ownerBoard';
+import { ChargersDownChip } from '@/components/cockpit/ChargersDownChip';
 
 /**
  * Owners' agents connected to the depot (otto-q-core 0608), beside the run's LIVE mark; nothing when none is. Here and
@@ -60,6 +61,8 @@ export const BottomBar = () => {
       <span className="text-white text-xs font-mono w-12 text-right">
         {simClockLive ? 'LIVE' : '24:00'}
       </span>
+      {/* "N chargers down", beside LIVE for the reason AgentsConnected is: no room in the top bar */}
+      <ChargersDownChip variant="desktop" side="top" />
       <AgentsConnected />
     </div>
   );

@@ -99,6 +99,14 @@ export const DepotSVG = forwardRef<SVGSVGElement>((_, ref) => {
           <stop offset="50%" stopColor="#00B4A6" stopOpacity="0.1" />
           <stop offset="100%" stopColor="#00B4A6" stopOpacity="0.6" />
         </linearGradient>
+        {/* An out-of-use stall's fill (Stall.tsx: status 'offline'). Stall.tsx has always
+            asked for url(#crosshatch), but nothing defined it, so an offline stall drew
+            with no fill at all: only its red edge said it was out of use. */}
+        <pattern id="crosshatch" patternUnits="userSpaceOnUse" width={1.8} height={1.8} patternTransform="rotate(45)">
+          <rect width={1.8} height={1.8} fill="#C00000" opacity={0.22} />
+          <line x1={0} y1={0} x2={0} y2={1.8} stroke="#ff4d4d" strokeWidth={0.5} opacity={0.85} />
+          <line x1={0} y1={0} x2={1.8} y2={0} stroke="#ff4d4d" strokeWidth={0.5} opacity={0.85} />
+        </pattern>
       </defs>
 
       <rect width="300" height="220" fill="#14141f" />

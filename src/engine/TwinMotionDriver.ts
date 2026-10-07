@@ -30,6 +30,7 @@ import { useVehicleStore } from "@/store/vehicleStore";
 import { useSimulationStore } from "@/store/simulationStore";
 import type { Vehicle, VehicleStatus } from "@/engine/types";
 import type { TwinSnapshot, TwinLeg } from "@/lib/ottoTwin";
+import { stallDownOf, sameDown, type ChargerDown } from "@/lib/chargerFaults";
 import {
   INGRESS, EGRESS, gapLaneX, SOUTH_LANE_Y, REAR_LANE_Y, PARK_RUNS, TEMP_LANE_X,
   WEST_AISLE_X, EAST_AISLE_X, NORTH_LANE_Y, N1_LANE_Y, QUEUE_Y, FORECOURT_Y, planFromDbFeet, generateStallsV2,
@@ -958,9 +959,10 @@ class TwinMotionDriver {
   // all gated — plus the residue re-rail (gated here), the overflow staging
   // pull-out, the first-sighting drive-in, and the new-stall re-assignment.
   // Those last three are UNREACHABLE for a docked car with an arm on it: the
-  // overflow and re-assignment paths both need `lane !== e.lane`, which door 2
-  // refuses before either can run, and the drive-in path only fires for an id
-  // with no existing entry, so there is no parked body for it to tear away.
+  // overflow and re-assignment paths both need `lane !== e.lane` or a stall that
+  // has gone down under the car (`claimDown`), which door 2 refuses before either
+  // can run, and the drive-in path only fires for an id with no existing entry,
+  // so there is no parked body for it to tear away.
   // The two remaining rebuildRail() sites — the reverse cusp and the 45 s
   // stationary watchdog — both require a tracker or a reverse to already exist,
   // so neither is a door out of rest.
@@ -1406,9 +1408,12 @@ class TwinMotionDriver {
     // push an empty roster so no ghost fleet lingers after leaving twin mode
     useVehicleStore.getState().setVehicles([]);
     // ...and no stale stall paint on an empty depot (gap G6): an emptied scene
-    // must not keep last run's charging/occupied colors
+    // must not keep last run's charging/occupied colors, nor its charger faults
     const depot = useDepotStore.getState();
-    for (const s of depot.stalls) if (s.status !== "available") depot.setStallStatus(s.id, "available");
+    for (const s of depot.stalls) {
+      if (s.status !== "available") depot.setStallStatus(s.id, "available");
+      if (s.down) depot.setStallDown(s.id, null);
+    }
   }
 
   /** Reset the SCENE but keep the loop running — used when the snapshot stream
@@ -1447,7 +1452,10 @@ class TwinMotionDriver {
     // and last run's cars would stay on screen. Empty both explicitly.
     useVehicleStore.getState().setVehicles([]);
     const depot = useDepotStore.getState();
-    for (const s of depot.stalls) if (s.status !== "available") depot.setStallStatus(s.id, "available");
+    for (const s of depot.stalls) {
+      if (s.status !== "available") depot.setStallStatus(s.id, "available");
+      if (s.down) depot.setStallDown(s.id, null);
+    }
   }
 
   /** Ingest the twin depot layout: map each twin stall uuid to the renderer's
@@ -2563,7 +2571,12 @@ class TwinMotionDriver {
     // (faulted/offline chargers, reservations for inbound cars). Faulted stalls
     // recolor, WIN over vehicle-derived colors, and leave the assignment pool
     // so no car is ever routed onto a dead charger.
+    //
+    // A FAULT IS READ FROM EITHER FIELD (otto-q-core 0612): `status` 'faulted', or
+    // `charger_state` 'Faulted' on a stall that reads otherwise. `twinDown` keeps
+    // WHY (fault code, repair end) for the plan, the 3D field and the chip.
     const twinFaulted = new Set<string>();
+    const twinDown = new Map<string, ChargerDown>();
     // ROBOTIC TETHER: the charge session has ended but the arm has not finished
     // demating, so OTTO-Q is refusing to move this car. Rebuilt from scratch every
     // snapshot — a tether is a ~11.5 s window, so a stale entry would show a cable on
@@ -2580,12 +2593,17 @@ class TwinMotionDriver {
       const rsid = this.twinStall.get(ss.id);
       if (!rsid) continue;
       const st = String(ss.status ?? "").toLowerCase();
-      if (st === "faulted" || st === "offline") twinFaulted.add(rsid);
-      else if (st === "reserved") desiredStatus.set(rsid, "reserved");
+      const down = stallDownOf(ss);
+      if (down) {
+        twinFaulted.add(rsid);
+        twinDown.set(rsid, down);
+      } else if (st === "reserved") desiredStatus.set(rsid, "reserved");
       // The backend filters this to LIVE holds against the sim clock, so an
       // expired one never reaches here. First writer wins if a vehicle somehow
       // holds two — taking the later one would flip the car mid-approach.
-      if (typeof ss.reserved_by === "string" && !reservedFor.has(ss.reserved_by)) {
+      // A hold on a stall the twin has out of use is not followed: the engine
+      // books no faulted charger, and a stale hold must not draw a car onto one.
+      if (!down && typeof ss.reserved_by === "string" && !reservedFor.has(ss.reserved_by)) {
         reservedFor.set(ss.reserved_by, rsid);
       }
       if (ss.tethered === true) {
@@ -2651,6 +2669,22 @@ class TwinMotionDriver {
       const oem = bv.platform ?? e?.oem ?? "waymo";
       const soc = bv.soc ?? e?.soc ?? 0;
 
+      // ── A STALL THAT WENT DOWN UNDER A CAR'S CLAIM ────────────────────────────
+      // Chase, 2026-10-07: "If it falls mid run, make sure OTTO-Q is aware of that
+      // and route cars away from that specific charger." The engine does: it books
+      // no faulted charger and moves the car it interrupted. The renderer must agree,
+      // and three branches below used to keep a car on the stall it already held —
+      // the commit-and-hold (a car still DRIVING to a charger that faulted kept
+      // driving there), the stability bias (same lane, keep the stall) and the
+      // overflow wait. So: a car whose stall is down is re-placed from the pool, which
+      // never holds a down stall, UNLESS the twin itself still says the car stands on
+      // that stall — the interrupted session's car before the twin has moved it. That
+      // car stays until the twin moves it; the renderer only draws.
+      // Inert when no stall is down, which is every captured fixture (none carries
+      // stalls_status), so no replay or ratchet can move because of it.
+      const twinPlacesHere = !!e?.stallId && !!bv.stall_id && this.twinStall.get(bv.stall_id) === e.stallId;
+      const claimDown = !!e?.stallId && twinFaulted.has(e.stallId) && !twinPlacesHere;
+
       // COMMIT-AND-HOLD: a car driving to / dwelling at a SERVICE stall must be
       // SEEN docked (the charge/wash) before a downstream twin flip re-lanes it.
       // While committed and inside the dwell floor, suppress the lane change:
@@ -2675,7 +2709,10 @@ class TwinMotionDriver {
       // A service→service move IS the next real step of the visit (charge → wash).
       // Draw the car where the twin says it is; the floor still applies to every
       // other flip, which is the case the hold was built for.
-      if (e && isServiceLane(e.lane) && e.playback !== "released") {
+      //
+      // Nor is a car held to a stall that has gone DOWN (claimDown, above): being
+      // seen docking at a faulted charger is the one dock the hold must not protect.
+      if (e && isServiceLane(e.lane) && e.playback !== "released" && !claimDown) {
         const newLane: Lane | "gate" | null = m.lane === "gate" ? "staging" : m.lane;
         const stillSameDock = newLane === e.lane;
         const twinStallNow = bv.stall_id ? this.twinStall.get(bv.stall_id) : undefined;
@@ -2756,8 +2793,9 @@ class TwinMotionDriver {
       // STABILITY BIAS: once a car holds a stall in this lane, it KEEPS it.
       // Migrating parked/en-route cars to a "better" stall caused fleet-wide
       // reshuffles (everyone backing out at once). Reassignment happens ONLY on
-      // a lane change (a real new service step).
-      if (e && e.lane === lane && e.stallId) {
+      // a lane change (a real new service step) — or when the stall it holds has
+      // gone down (claimDown): a stall that is out of use is not a stall to keep.
+      if (e && e.lane === lane && e.stallId && !claimDown) {
         desiredStatus.set(e.stallId, m.sstatus);
         e.vstatus = m.vstatus;
         e.oem = oem;
@@ -2833,7 +2871,11 @@ class TwinMotionDriver {
       // latched forever, waiting on a release the hold is itself preventing.
       // The stall stays painted 'charging' because it truthfully still is —
       // there is a car on it with a connector in its port.
-      if (e && lane !== e.lane && e.lane === "dcfc" && e.stallId
+      //
+      // The same door, in the same lane: a car parked on a DCFC stall that has
+      // gone DOWN (claimDown) is re-placed below, which is a way out of the stall
+      // like a lane change. The arm still has to let go of it first.
+      if (e && (lane !== e.lane || claimDown) && e.lane === "dcfc" && e.stallId
           && !e.tracker && !e.reverse && !this.armReleases(e)) {
         e.vstatus = m.vstatus;
         e.oem = oem;
@@ -2902,7 +2944,10 @@ class TwinMotionDriver {
         // visually blocks it forever — the "not moving to its next assignment"
         // defect): pull it out to a staging spot to wait its turn instead.
         if (e) {
-          if (e.lane !== lane && lane !== "staging") {
+          // …and a car whose stall went DOWN with no other stall free in its lane
+          // waits the same way, rather than keep driving to (or sit on) the down
+          // stall.
+          if ((e.lane !== lane || claimDown) && lane !== "staging") {
             // temporary congestion hold (doctrine case 2): wait in the NE temp
             // block, not the overnight carports
             const stageCands = stagingIntake.map((s) => s.id).filter((sid) => !twinFaulted.has(sid));
@@ -3121,6 +3166,10 @@ class TwinMotionDriver {
     for (const s of stalls) {
       const want: StallStatus = twinFaulted.has(s.id) ? "offline" : (desiredStatus.get(s.id) ?? "available");
       if (s.status !== want) depot.setStallStatus(s.id, want);
+      // …and WHY, for the plan's FAULT tag, the 3D beacon and the tooltip. Written
+      // only on a change, like the status: a store write re-renders every stall.
+      const down = twinDown.get(s.id) ?? null;
+      if (!sameDown(s.down, down)) depot.setStallDown(s.id, down);
     }
 
     this.primed = true; // initial placement done — newcomers drive in from here on

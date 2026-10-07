@@ -218,6 +218,16 @@ export function amberIndicator() {
   }));
 }
 
+/** A charger that is out of use: its status bar. (It used to borrow a dim tealLED(0.4),
+ *  so an offline charger's "red" LED was a faint teal.) */
+export function redIndicator() {
+  return cached('redIndicator', () => new THREE.MeshPhysicalMaterial({
+    color: '#FF2D2D',
+    emissive: new THREE.Color('#FF2D2D'), emissiveIntensity: 4.0,
+    roughness: 0.2, metalness: 0.0, toneMapped: false,
+  }));
+}
+
 // ===================== BUILDING =====================
 
 export function concreteBlock() {
@@ -299,7 +309,7 @@ export const MATERIALS = {
   structuralSteel, brushedAluminum, darkCladding, anodizedPanel, cortenSteel,
   architecturalGlass, screenGlass, solarPanelGlass,
   automotivePaint, autoGlass, chromeTrim, tireRubber, headlightLens,
-  tealLED, whiteLED, greenIndicator, amberIndicator,
+  tealLED, whiteLED, greenIndicator, amberIndicator, redIndicator,
   concreteBlock, woodAccent,
   chargerHousing, chargerCable, chargerConnector,
   grass, gravel, curbing, shrubGreen, safetyYellow, safetyOrange,

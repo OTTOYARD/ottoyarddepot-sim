@@ -202,6 +202,15 @@ export interface TwinSnapshot {
      *  for, and fell back to choosing a staging stall itself. */
     reserved_by?: string | null;
     reserved_until?: string | null;
+    /** The stall's OCPP charger state (otto-q-core 0612): "Faulted" when the charger is down,
+     *  else "Available", "Charging" and so on. A Faulted charger's stall is listed even while
+     *  the stall itself reads available, with `status` 'faulted'. Absent on an older backend,
+     *  and null on a stall with no charger: neither means healthy. */
+    charger_state?: string | null;
+    /** Why the charger is down, e.g. "fault.communication_dropout". An open set. */
+    fault_code?: string | null;
+    /** SIM-clock instant the drawn repair ends; null when the twin has no end for it. */
+    fault_until?: string | null;
   }[];
   /** THE ARM CONTRACT (`public.ottoq_arm_timings` via the snapshot RPC).
    *
