@@ -31,8 +31,10 @@ const want = process.env.MOTION_AUDIT;
 const out = process.env.MOTION_AUDIT_OUT;
 
 describe.runIf(!!want)("motion audit (on demand)", () => {
+  // (a skipped describe still runs this body to collect it)
+  const pick = (want ?? "").split(",").filter(Boolean);
   for (const [label, fixture, opts] of RUNS) {
-    if (want !== "1" && !want!.split(",").some((w) => label.startsWith(w))) continue;
+    if (want !== "1" && !pick.some((w) => label.startsWith(w))) continue;
     it(label, () => {
       const t0 = Date.now();
       const r: AuditReport = auditFixture(fixture, opts, label);

@@ -60,6 +60,22 @@ const OFF_SLIP = 7;
 /** Longest miter offsetRight will take, as a multiple of the lane offset. 2 allows
  *  every join up to a 120° turn exactly; sharper ones are clamped. */
 const MITER_LIMIT = 2;
+/** What turning about at a node costs a route, in units of road (see LaneGraph.search).
+ *  A CHOICE between two ways of going (the two ways a back-out can swing, the two ways
+ *  out of a gap lane onto the collector) differs by tens of units, so this decides every
+ *  one of those against the U-turn. Reversing direction for real is another matter: on
+ *  this depot the way round a block to come back along the same road is 390-490u
+ *  (eastbound on the south collector at Sg1 to westbound there: east to SE, up the east
+ *  avenue, west to Tn, down the temp aisle and back: 491u), so a car re-tasked to
+ *  somewhere behind it still turns about rather than lapping the lot for it. */
+export const U_TURN_COST = 150;
+/** A search state: a node, and the node it was reached from ("" at the start). */
+const stateKey = (node: string, came: string | null) => `${node}|${came ?? ""}`;
+function splitState(s: string): [string, string | null] {
+  const i = s.indexOf("|");
+  const came = s.slice(i + 1);
+  return [s.slice(0, i), came === "" ? null : came];
+}
 
 export class LaneGraph {
   nodes = new Map<string, Node>();
@@ -119,58 +135,67 @@ export class LaneGraph {
     return best;
   }
 
-  /** Dijkstra distances and predecessors from one node to every node it reaches. */
-  private shortestFrom(from: string): { dist: Map<string, number>; prev: Map<string, string> } {
-    const dist = new Map<string, number>([[from, 0]]);
-    const prev = new Map<string, string>();
+  /**
+   * Dijkstra over (node, the node it was reached from), so a U-TURN can be priced.
+   *
+   * Every two-way road is a pair of directed lanes on one centreline, so a plain
+   * node Dijkstra could leave a node back along the lane it had just arrived on, at
+   * no cost: A -> B -> A. On the road that is a car turning about inside its own
+   * lane pair — the two drive lines 6.4u apart, against
+   * the car's 11u minimum radius — and the corner rounding can only draw it as a
+   * hairpin about a point, i.e. the car spinning in place. It was cheap enough to be
+   * CHOSEN: a staging back-out picks the swing whose onward route is shorter, and on
+   * the founder's run (twinRun.chase1006.json) a south-row car was swung to face
+   * EAST for a charger to the WEST because the route east to Ts and straight back
+   * was 10u shorter than facing the right way — 5 of the 16 back-outs whose rail
+   * still opened > 30° off the car's heading after startOnHeading, in the first 30
+   * minutes, were that.
+   *
+   * A U-turn now costs U_TURN_COST of road. Every route that has a way round under
+   * that takes it; one that does not (a car re-tasked to somewhere far behind it
+   * on a long road) still gets its U-turn rather than no route. A DEAD END — a node
+   * whose only way out is back — turns about for free: there is nothing else to do
+   * there (the N1 row's west stub).
+   */
+  private search(from: string, arrivedFrom: string | null): { dist: Map<string, number>; back: Map<string, string> } {
+    const dist = new Map<string, number>([[stateKey(from, arrivedFrom), 0]]);
+    const back = new Map<string, string>();
     const seen = new Set<string>();
+    // small graph -> simple linear-scan priority selection
     while (true) {
       let u = "";
       let best = Infinity;
-      for (const [id, d] of dist) if (!seen.has(id) && d < best) { best = d; u = id; }
+      for (const [s, d] of dist) if (!seen.has(s) && d < best) { best = d; u = s; }
       if (!u) break;
       seen.add(u);
-      for (const lid of this.nodes.get(u)!.out) {
+      const [node, came] = splitState(u);
+      const outs = this.nodes.get(node)!.out;
+      for (const lid of outs) {
         const lane = this.lanes.get(lid)!;
-        const nd = best + lane.length;
-        if (nd < (dist.get(lane.to) ?? Infinity)) { dist.set(lane.to, nd); prev.set(lane.to, u); }
+        const uTurn = came !== null && lane.to === came && outs.length > 1;
+        const nd = best + lane.length + (uTurn ? U_TURN_COST : 0);
+        const s = stateKey(lane.to, node);
+        if (nd < (dist.get(s) ?? Infinity)) { dist.set(s, nd); back.set(s, u); }
       }
     }
-    return { dist, prev };
+    return { dist, back };
   }
 
-  /** Dijkstra node path (list of node ids) from→to over directed lanes. */
-  private nodePath(from: string, to: string): string[] {
-    const dist = new Map<string, number>();
-    const prev = new Map<string, string>();
-    const seen = new Set<string>();
-    dist.set(from, 0);
-    // small graph → simple linear-scan priority selection
-    while (true) {
-      let u = "";
-      let best = Infinity;
-      for (const [id, d] of dist) if (!seen.has(id) && d < best) { best = d; u = id; }
-      if (!u || u === to) break;
-      seen.add(u);
-      for (const lid of this.nodes.get(u)!.out) {
-        const lane = this.lanes.get(lid)!;
-        const nd = best + lane.length;
-        if (nd < (dist.get(lane.to) ?? Infinity)) {
-          dist.set(lane.to, nd);
-          prev.set(lane.to, u);
-        }
-      }
-    }
-    if (!dist.has(to)) return [];
-    const path = [to];
-    let c = to;
-    while (c !== from) {
-      const p = prev.get(c);
-      if (!p) return []; // unreachable
-      path.unshift(p);
-      c = p;
-    }
+  /** The node path that a search state was reached by. */
+  private static pathTo(back: Map<string, string>, state: string): string[] {
+    const path = [splitState(state)[0]];
+    for (let s = back.get(state); s !== undefined; s = back.get(s)) path.unshift(splitState(s)[0]);
     return path;
+  }
+
+  /** Dijkstra node path (list of node ids) from→to over directed lanes, U-turns
+   *  priced (search). `arrivedFrom` is the node the car is coming from, when it is
+   *  already driving into `from` along a lane. */
+  private nodePath(from: string, to: string, arrivedFrom: string | null = null): string[] {
+    const { dist, back } = this.search(from, arrivedFrom);
+    let best: string | null = null, bd = Infinity;
+    for (const [s, d] of dist) if (splitState(s)[0] === to && d < bd) { bd = d; best = s; }
+    return best === null ? [] : LaneGraph.pathTo(back, best);
   }
 
   /** Concatenate the centerline polylines for a node path. */
@@ -309,7 +334,8 @@ export class LaneGraph {
     }
     const destOk = (n: Node) => this.inDegree(n.id) > 0;
     const bNode = this.nearestNode(to, destOk) || this.nearestNode(to);
-    const np = this.nodePath(lane.to, bNode);
+    // the car is driving INTO lane.to along this lane: turning straight back at it is a U-turn
+    const np = this.nodePath(lane.to, bNode, lane.from);
     // the joined lane leads nowhere the destination can be reached from (a sink
     // spur such as the egress stub): do not commit to it
     if (np.length < 2 && lane.to !== bNode) return this.route(from, to);
@@ -370,16 +396,31 @@ export class LaneGraph {
     }
     const startNode = joined ? joined.lane.to : this.originNode(from);
     if (!startNode) return null;
-    const { dist, prev } = this.shortestFrom(startNode);
+    const { dist, back } = this.search(startNode, joined ? joined.lane.from : null);
+    // The cheapest way to START down a lane from its from-node, U-turn priced: the
+    // search reaches a node in several states (one per way in), and leaving a node
+    // back along the lane a state arrived on is a U-turn (LaneGraph.search).
+    const startDown = (lane: Lane): { cost: number; state: string } | undefined => {
+      const outs = this.nodes.get(lane.from)!.out.length;
+      let r: { cost: number; state: string } | undefined;
+      for (const [s, d] of dist) {
+        const [node, came] = splitState(s);
+        if (node !== lane.from) continue;
+        const c = d + (came === lane.to && outs > 1 ? U_TURN_COST : 0);
+        if (!r || c < r.cost) r = { cost: c, state: s };
+      }
+      return r;
+    };
     // how far along the joined lane the join point lies (its own arc coordinate)
     let joinAt = 0;
     if (joined) {
       for (let i = 1; i < joined.seg; i++) joinAt += len(joined.lane.pts[i - 1], joined.lane.pts[i]);
       joinAt += joined.tJoin;
     }
-    let best: { cost: number; lane: Lane; seg: number; E: Pt; direct: boolean } | null = null;
+    let best: { cost: number; lane: Lane; seg: number; E: Pt; direct: boolean; state?: string } | null = null;
     for (const lane of this.lanes.values()) {
-      const viaGraph = dist.get(lane.from);
+      const start = startDown(lane);
+      const viaGraph = start?.cost;
       const onJoined = joined?.lane === lane;
       if (viaGraph === undefined && !onJoined) continue;
       let at = 0; // arc coordinate of this segment's start along the lane
@@ -407,7 +448,7 @@ export class LaneGraph {
           }
           if (viaGraph !== undefined) {
             const cost = viaGraph + along + d;
-            if (!best || cost < best.cost) best = { cost, lane, seg: i, E, direct: false };
+            if (!best || cost < best.cost) best = { cost, lane, seg: i, E, direct: false, state: start!.state };
           }
         }
         at += L;
@@ -422,12 +463,8 @@ export class LaneGraph {
       for (let i = joined.seg; i <= last; i++) C.push({ ...joined.lane.pts[i] });
     }
     if (!best.direct) {
-      const np = [best.lane.from];
-      while (np[0] !== startNode) {
-        const p = prev.get(np[0]);
-        if (!p) return null;
-        np.unshift(p);
-      }
+      const np = LaneGraph.pathTo(back, best.state!);
+      if (np[0] !== startNode) return null;
       if (np.length >= 2) C.push(...this.centerline(np));
       else { const n = this.nodes.get(startNode)!; C.push({ x: n.x, y: n.y }); }
       for (let i = 1; i < best.seg; i++) C.push({ ...best.lane.pts[i] });

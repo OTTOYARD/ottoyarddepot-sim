@@ -58,6 +58,10 @@ type RuleName = (typeof PIVOT_RULES)[number]["name"];
 /** Centre distance under which another car counts as "near" a pivot (u). */
 export const NEAR_U = 15;
 
+/** A step that moves < 0.001u is a spin step only if it also turns faster than this
+ *  (rad per unit of travel): a radius under 1u, i.e. about the car's own centre. */
+export const SPIN_YAW_PER_UNIT = 1;
+
 export type PivotCause =
   | "backout" | "cusp" | "retask" | "watchdog" | "start"
   | "hairpin" | "corner" | "dock" | "catchup";
@@ -328,7 +332,9 @@ export function auditFixture(
           if (t.ctx.length > 2 * CTX_KEEP) t.ctx.splice(0, t.ctx.length - CTX_KEEP);
         }
         // ── the existing turn metrics (turnRadius.replay.test's definitions) ──
-        if (ds < 1e-3) { if (Math.abs(dh) > 1e-4) spin++; }
+        // a spin step turns faster than 1 rad per unit while moving < 0.001u (see
+        // turnRadius.replay.test: a car creeping along a curve is not spinning)
+        if (ds < 1e-3) { if (Math.abs(dh) > Math.max(1e-4, ds * SPIN_YAW_PER_UNIT)) spin++; }
         else {
           travel += ds;
           if (ds > 0.02) {

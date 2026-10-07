@@ -327,6 +327,126 @@ export function roundCorners(raw: Pt[]): Pt[] {
   return clean.length >= 2 ? clean : pts.map((p) => ({ x: p.x, y: p.y }));
 }
 
+// ── A RAIL STARTS THE WAY THE CAR POINTS ───────────────────────────────────
+// A rail's pose heading is its tangent, and the drawn heading eases toward it
+// at YAW_PER_UNIT = 2.5 rad per unit of travel (TwinMotionDriver.easeHeading).
+// So when a rail's FIRST segment does not point the way the car does, nothing
+// rounds that join — it is not a corner, it is the car's own position — and
+// the body turns to the new direction in well under a unit of travel: a pivot
+// about its own centre. Measured on the founder's run (twinRun.chase1006.json,
+// motionAudit.ts) that was the single largest source of cars turning >= 45° in
+// one car width: the end of a staging back-out (the car swings 70° and stops
+// 20° short of the aisle, then a straight segment jumped to a join point 8u up a
+// lane up to 10u away: a 72° kink on every south-row departure), a car given a
+// new destination while moving, and the 45 s watchdog's re-route.
+//
+// startOnHeading replaces the route's opening with what a driver does: keep
+// rolling the way the car points while turning the wheel — an arc of radius
+// START_R tangent to the car's heading — until the car points at a point down
+// the route, then straight to it. The first such point is taken whose straight
+// meets the route within START_MEET of the route's own direction, with legs long
+// enough either side for that corner to round at no less than 0.8 x START_R (a
+// short straight into a corner is the same pivot one vertex later). START_R is
+// under the car's own 11u minimum (KinematicCar), like every corner fillet in
+// this file, and over the 6.2u at which a 90° turn would read as a pivot
+// (motionAudit's p90 rule): it is a tight turn, not a spin. Where no point down
+// the route can be reached by a forward arc of at most START_SWEEP (the route
+// leaves BEHIND the car), the route is returned unchanged and the caller's
+// reverse logic applies.
+export const START_R = 7;
+const START_KINK_OK = (6 * Math.PI) / 180; // eased in within 0.04u: not a pivot
+const START_SWEEP = (150 * Math.PI) / 180;
+const START_MEET = (45 * Math.PI) / 180;
+const START_PITCH = 1; // arc sampling (u)
+const START_LOOK = 60; // furthest down the route a start may aim (u)
+
+/** The route `pts` (pts[0] = where the car is) opened by an arc tangent to
+ *  `heading`, or `pts` itself when it already starts that way or cannot. */
+export function startOnHeading(pts: Pt[], heading: number, R = START_R): Pt[] {
+  if (pts.length < 2 || !Number.isFinite(heading)) return pts;
+  const p = pts[0];
+  const hx = Math.cos(heading), hy = Math.sin(heading);
+  let k = 1;
+  while (k < pts.length && Math.hypot(pts[k].x - p.x, pts[k].y - p.y) < 0.5) k++;
+  if (k >= pts.length) return pts;
+  const first = Math.atan2(pts[k].y - p.y, pts[k].x - p.x);
+  const kink = Math.atan2(Math.sin(first - heading), Math.cos(first - heading));
+  if (Math.abs(kink) <= START_KINK_OK) return pts;
+  const cum: number[] = [0];
+  for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
+  const total = cum[cum.length - 1];
+  for (let d = 2; d <= Math.min(total, START_LOOK); d += 0.5) {
+    const q = pointAt(pts, cum, d);
+    const vx = q.x - p.x, vy = q.y - p.y;
+    // turn toward the side q lies on
+    const side = -hy * vx + hx * vy >= 0 ? 1 : -1;
+    const cx = p.x - hy * side * R, cy = p.y + hx * side * R;
+    const D = Math.hypot(q.x - cx, q.y - cy);
+    if (D <= R + 0.25) continue; // inside the turning circle: not reachable from here
+    // travel round the circle: s = +1 counter-clockwise in angle
+    const s = (p.x - cx) * hy - (p.y - cy) * hx >= 0 ? 1 : -1;
+    const a0 = Math.atan2(p.y - cy, p.x - cx);
+    const aT = Math.atan2(q.y - cy, q.x - cx) - s * Math.acos(R / D);
+    let sweep = (s * (aT - a0)) % (2 * Math.PI);
+    if (sweep < 0) sweep += 2 * Math.PI;
+    if (sweep > START_SWEEP) continue;
+    const tx = cx + R * Math.cos(aT), ty = cy + R * Math.sin(aT);
+    const meet = Math.atan2(q.y - ty, q.x - tx);
+    const defl = Math.abs(Math.atan2(Math.sin(meet - q.heading), Math.cos(meet - q.heading)));
+    if (defl > START_MEET) continue;
+    // the corner at q is rounded like any other (roundCorners: tangent <= 0.45 of
+    // either leg), so both legs must leave it room for a believable radius
+    let j = 1;
+    while (j < pts.length && cum[j] <= d + 1e-6) j++;
+    const onward = j < pts.length ? Math.hypot(pts[j].x - q.x, pts[j].y - q.y) : Infinity;
+    const straight = Math.hypot(q.x - tx, q.y - ty);
+    if (defl > 0.03 && (0.45 * Math.min(straight, onward)) / Math.tan(defl / 2) < 0.8 * R) continue;
+    const out: Pt[] = [{ x: p.x, y: p.y }];
+    const n = Math.max(1, Math.ceil((sweep * R) / START_PITCH));
+    for (let i = 1; i <= n; i++) {
+      const a = a0 + (s * sweep * i) / n;
+      out.push({ x: cx + R * Math.cos(a), y: cy + R * Math.sin(a) });
+    }
+    out.push({ x: q.x, y: q.y });
+    for (let j = 1; j < pts.length; j++) if (cum[j] > d + 1e-6) out.push({ x: pts[j].x, y: pts[j].y });
+    const clean: Pt[] = [];
+    for (const o of out) {
+      const last = clean[clean.length - 1];
+      if (!last || Math.hypot(o.x - last.x, o.y - last.y) > 1e-3) clean.push(o);
+    }
+    return clean;
+  }
+  return pts;
+}
+
+/** How many times a path turns back on itself: its direction of travel changing by
+ *  more than 135° within 10u of travel (a U-turn inside a lane pair, or a route that
+ *  doubles back at a node). Fillets do not hide one: they round it into an arc of a
+ *  couple of units, which is the car spinning. */
+export function hairpins(pts: Pt[]): number {
+  if (pts.length < 3) return 0;
+  const cum: number[] = [0];
+  for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
+  const total = cum[cum.length - 1];
+  const STEP = 0.5, WIN = 10, LIMIT = (135 * Math.PI) / 180;
+  const hs: number[] = [];
+  let prev = pointAt(pts, cum, 0).heading, acc = prev;
+  for (let s = 0; s <= total; s += STEP) {
+    const h = pointAt(pts, cum, Math.min(total, s + 1e-6)).heading;
+    acc += Math.atan2(Math.sin(h - prev), Math.cos(h - prev));
+    prev = h;
+    hs.push(acc);
+  }
+  const span = Math.round(WIN / STEP);
+  let n = 0;
+  for (let i = 0; i < hs.length;) {
+    let hit = false;
+    for (let j = i + 1; j < hs.length && j - i <= span; j++) if (Math.abs(hs[j] - hs[i]) > LIMIT) { hit = true; break; }
+    if (hit) { n++; i += span; } else i++;
+  }
+  return n;
+}
+
 /** Squared distance from `p` to the polyline `pts` (segments, not samples). */
 function distToPolyline2(pts: Pt[], p: Pt): number {
   let best = Infinity;
