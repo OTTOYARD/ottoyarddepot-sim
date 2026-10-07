@@ -7,7 +7,7 @@ vi.mock('@/lib/blackbox', () => ({ startDemoRun }));
 vi.mock('@/lib/ottoTwin', () => ({ twin: { scenarios } }));
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
-import { PhoneStartDialog } from './PhoneStartDialog';
+import { StartRunDialog } from './StartRunDialog';
 
 afterEach(() => {
   cleanup();
@@ -21,11 +21,11 @@ function setup(list: { scenario_code: string; title: string }[] | null = null) {
   const ctrl = { syncFromRun: vi.fn(), setSpeed: vi.fn() };
   const onOpenChange = vi.fn();
   const onOpenControl = vi.fn();
-  render(<PhoneStartDialog open onOpenChange={onOpenChange} ctrl={ctrl} onOpenControl={onOpenControl} />);
+  render(<StartRunDialog open onOpenChange={onOpenChange} ctrl={ctrl} onOpenControl={onOpenControl} />);
   return { ctrl, onOpenChange, onOpenControl };
 }
 
-describe('PhoneStartDialog — the phone Start really starts a run, after a confirm', () => {
+describe('StartRunDialog — Start (phone run bar, desktop top bar) really starts a run, after a confirm', () => {
   it('offers the featured scenarios with Busy Day preselected and says the current run ends', async () => {
     setup();
     await act(async () => {});

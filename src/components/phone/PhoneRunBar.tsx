@@ -1,30 +1,22 @@
 import { useState } from 'react';
-import { ExternalLink, Loader2, Minus, MoreHorizontal, Pause, Play, Plus, Square } from 'lucide-react';
-import { toast } from 'sonner';
+import { ExternalLink, MoreHorizontal } from 'lucide-react';
 import { useTwinStore } from '@/store/twinStore';
-import { useSimulationStore } from '@/store/simulationStore';
 import { useCockpitStore } from '@/store/cockpitStore';
-import { useTwinControl, MAX_SPEED_X } from '@/hooks/useTwinControl';
 import { useFleetOwners } from '@/hooks/useFleetOwners';
-import { stopAndReset } from '@/lib/blackbox';
 import { COCKPIT_LABEL, cockpitUrl, isLiveRunStatus, type Cockpit } from '@/lib/cockpitLinks';
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
-  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { PhoneStartDialog } from './PhoneStartDialog';
+import { RunTransport } from '@/components/cockpit/RunTransport';
 import { depotClock, phoneTelemetry, runPhase, type RunPhase } from './phoneLayout';
 import mark from '@/assets/logo.png';
 
 /**
  * THE PHONE'S RUN BAR — the slim Start / Pause / Stop / speed strip over the 3D
- * view. These are the REAL controls, the same calls the desktop's Control tab
- * makes: Pause/Resume and speed through useTwinControl, Stop through
- * blackbox.stopAndReset. A run started, paused or stopped here is started,
- * paused or stopped for every screen watching it.
+ * view. Its transport is RunTransport, the very component the desktop top bar
+ * carries: the REAL controls, the same calls the desktop's Control tab makes. A run
+ * started, paused or stopped here is started, paused or stopped for every screen
+ * watching it.
  *
  * Start is deliberately NOT a one-tap button: starting a run purges the one
- * before it and needs a scenario, so "Start" opens a confirm (PhoneStartDialog)
+ * before it and needs a scenario, so "Start" opens a confirm (StartRunDialog)
  * with the featured scenarios, Busy Day first, whose "Start run" starts it for
  * real through useStartRun — the desktop Control tab's own start path. Its
  * "More options in Control" opens the full console in the panel sheet. Stop
@@ -46,32 +38,12 @@ export function PhoneRunBar({ layout, onOpenControl }: { layout: 'landscape' | '
   const activeSimRunId = useTwinStore((s) => s.activeSimRunId);
   const snapshot = useTwinStore((s) => s.snapshot);
   const connected = useTwinStore((s) => s.connected);
-  const ctrl = useTwinControl();
-  const [stopping, setStopping] = useState(false);
-  const [confirmStop, setConfirmStop] = useState(false);
-  const [confirmStart, setConfirmStart] = useState(false);
   const [menu, setMenu] = useState(false);
 
   const phase = runPhase(snapshot, activeSimRunId, connected);
   const hasRun = !!activeSimRunId;
   const run = snapshot?.run;
   const telemetry = phoneTelemetry(snapshot);
-
-  // The desktop Control tab's Stop, step for step (OperatorConsole.stopRun).
-  const stop = async () => {
-    if (!activeSimRunId) return;
-    setStopping(true);
-    try {
-      await stopAndReset(activeSimRunId);
-      ctrl.pause();
-      useSimulationStore.getState().setActiveTab('history');
-      toast.success('Run stopped. The depot is empty.', { description: 'Its Black Box is on the Runs tab.' });
-    } catch (e: unknown) {
-      toast.error('Stop failed', { description: e instanceof Error ? e.message : String(e) });
-    } finally {
-      setStopping(false);
-    }
-  };
 
   const status = (
     <div className="flex items-center gap-2 min-w-0">
@@ -103,41 +75,16 @@ export function PhoneRunBar({ layout, onOpenControl }: { layout: 'landscape' | '
     </div>
   );
 
+  // Start, or Pause/Resume and Stop, and the speed: the desktop top bar's own transport
   const transport = (
-    <div className="flex items-center gap-1.5 shrink-0">
-      {!hasRun ? (
-        <button className={`${ICON_BTN} bg-brand-red border-brand-red text-white px-3`} onClick={() => setConfirmStart(true)}>
-          <Play size={15} /> Start
-        </button>
-      ) : (
-        <>
-          <button className={ICON_BTN} onClick={ctrl.toggle} aria-label={ctrl.playing ? 'Pause' : 'Resume'}>
-            {ctrl.playing ? <Pause size={16} /> : <Play size={16} />}
-          </button>
-          <button className={ICON_BTN} onClick={() => setConfirmStop(true)} disabled={stopping} aria-label="Stop run">
-            {stopping ? <Loader2 size={15} className="animate-spin" /> : <Square size={14} />}
-          </button>
-        </>
-      )}
-      {/* speed: the same 1..8x as the desktop slider, one step per tap */}
-      <div className="flex items-center h-10 rounded-md border border-white/10 bg-canvas-elev/90">
-        <button className="h-10 w-9 inline-flex items-center justify-center text-ink disabled:opacity-40"
-          onClick={() => ctrl.setSpeed(ctrl.speed - 1)} disabled={!hasRun || ctrl.speed <= 1} aria-label="Decrease speed">
-          <Minus size={14} />
-        </button>
-        <span className="font-mono text-[12px] text-white cc-num w-7 text-center">{ctrl.speed}×</span>
-        <button className="h-10 w-9 inline-flex items-center justify-center text-ink disabled:opacity-40"
-          onClick={() => ctrl.setSpeed(ctrl.speed + 1)} disabled={!hasRun || ctrl.speed >= MAX_SPEED_X} aria-label="Increase speed">
-          <Plus size={14} />
-        </button>
-      </div>
+    <RunTransport variant="phone" onOpenControl={onOpenControl}>
       <div className="relative">
         <button className={ICON_BTN} onClick={() => setMenu((m) => !m)} aria-label="More">
           <MoreHorizontal size={16} />
         </button>
         {menu && <MoreMenu onClose={() => setMenu(false)} />}
       </div>
-    </div>
+    </RunTransport>
   );
 
   return (
@@ -157,23 +104,6 @@ export function PhoneRunBar({ layout, onOpenControl }: { layout: 'landscape' | '
           {telemetryStrip}
         </div>
       )}
-
-      <PhoneStartDialog open={confirmStart} onOpenChange={setConfirmStart} ctrl={ctrl} onOpenControl={onOpenControl} />
-
-      <AlertDialog open={confirmStop} onOpenChange={setConfirmStop}>
-        <AlertDialogContent className="bg-canvas-panel border-white/10 text-ink max-w-sm">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Stop this run?</AlertDialogTitle>
-            <AlertDialogDescription className="text-ink-dim">
-              The run stops for all viewers. The depot becomes empty. Its Black Box stays on the Runs tab.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="bg-canvas-elev border-white/10 text-ink">Continue run</AlertDialogCancel>
-            <AlertDialogAction className="bg-brand-red hover:bg-brand-deep text-white" onClick={stop}>Stop run</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }

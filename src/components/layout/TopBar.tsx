@@ -3,6 +3,14 @@ import { useSimulationStore } from '@/store/simulationStore';
 import { useTwinStore } from '@/store/twinStore';
 import wordmark from '@/assets/ottoyard-wordmark.png';
 import { CockpitSwitcher } from '@/components/cockpit/CockpitSwitcher';
+import { RunTransport } from '@/components/cockpit/RunTransport';
+
+/** The Start confirm's "Open Control for more options": the Control tab, in the side panel. */
+const openControl = () => {
+  const sim = useSimulationStore.getState();
+  if (!sim.isPanelOpen) sim.togglePanel();
+  sim.setActiveTab('controls');
+};
 
 // ── helpers ──
 // The depot's clock is Nashville's (CT). This header used to print the sim clock in UTC —
@@ -77,29 +85,33 @@ export const TopBar = () => {
 
   return (
     <div className="h-14 bg-canvas-raised border-b border-white/[0.06] flex items-center px-4 shrink-0 z-20">
-      {/* Brand */}
+      {/* Brand. The scenario and the run's status stack beside the logo, so the run's
+          transport (Start, or Pause and Stop, and the speed) fits beside the clock and
+          the telemetry strip keeps its width at 1440 px. */}
       <div className="flex items-center gap-3 shrink-0">
         <div className="flex flex-col leading-none gap-1">
           {/* the OTTOYARD logo (founder, 2026-09-30): mark and wordmark as one image */}
           <img src={wordmark} alt="OTTOYARD" className="h-[22px] w-auto shrink-0 select-none" draggable={false} />
           <span className="font-display text-ink-faint text-[9px] uppercase tracking-[0.14em]">OTTO-TWIN · Command Center</span>
         </div>
-        {run?.scenario && (
-          <span className="ml-1 px-2 py-0.5 rounded border border-white/[0.06] bg-canvas-elev font-mono text-[10px] text-ink-dim">
-            {run.scenario}
-          </span>
-        )}
-        <StatusChip status={run?.status ?? (legacyStatus !== 'idle' ? legacyStatus : undefined)} />
+        <div className="flex flex-col items-start gap-1">
+          {run?.scenario && (
+            <span className="px-2 py-0.5 rounded border border-white/[0.06] bg-canvas-elev font-mono text-[10px] leading-none text-ink-dim">
+              {run.scenario}
+            </span>
+          )}
+          <StatusChip status={run?.status ?? (legacyStatus !== 'idle' ? legacyStatus : undefined)} />
+        </div>
       </div>
 
-      {/* Clock */}
-      <div className="flex items-center gap-3 ml-5 shrink-0">
+      {/* Clock: the time on top, the tick and the rate the world advances at under it */}
+      <div className="flex flex-col justify-center ml-4 shrink-0 leading-none gap-1">
         <div className="flex items-baseline gap-1.5">
-          <span className="font-mono text-white text-lg tracking-wide cc-num">{fmtClock(run?.sim_clock)}</span>
+          <span className="font-mono text-white text-lg leading-none tracking-wide cc-num">{fmtClock(run?.sim_clock)}</span>
           <span className="font-mono text-ink-faint text-[10px]">{fmtDate(run?.sim_clock)}{run?.sim_clock ? ' CT' : ''}</span>
         </div>
         {run && (
-          <span className="font-mono text-ink-dim text-[11px] cc-num">
+          <span className="font-mono text-ink-dim text-[10px] cc-num">
             {/* TRUTH: show the rate the world is ACTUALLY advancing at. In 'live'
                 playback the clock tracks wall time × speed_x (1× = true 1:1), so
                 printing time_scale here claimed "60×" while the depot ran at 1:1. */}
@@ -115,6 +127,12 @@ export const TopBar = () => {
         )}
       </div>
 
+      {/* Run transport: the phone run bar's own controls (Chase, 2026-10-07: "start a run
+          immediately from the top button"). The Control tab keeps all of its own. */}
+      <div className="ml-4 shrink-0">
+        <RunTransport variant="desktop" onOpenControl={openControl} />
+      </div>
+
       {/* Telemetry strip */}
       <div className="flex-1 min-w-0 flex items-center justify-center overflow-hidden">
         <div className="flex items-center bg-canvas-panel/60 border border-white/[0.06] rounded-md py-1">
@@ -128,8 +146,8 @@ export const TopBar = () => {
         </div>
       </div>
 
-      {/* Right: connection status + view toggle. Run transport lives in the
-          Run Control tab (Start = create run · Play/Pause/Step = advance time).
+      {/* Right: connection status + view toggle. The run transport sits beside the
+          clock (above) and in the Control tab, both the same calls.
           The legacy offline-demo engine buttons were removed — they drove a
           separate fake client engine and conflicted with the live backend. */}
       {/* Two rows so the telemetry strip keeps its width at 1440 px: connection and 2D/3D on top,
