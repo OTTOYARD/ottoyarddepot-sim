@@ -12,6 +12,7 @@ import {
   DEFAULT_FAST_CHARGERS, chargersHeadline, comparable, guaranteeText, pairedSeeds, powerHeadline, revenueHeadline,
   viewFor, type ValueSummary,
 } from "./valueSummary";
+import { publicLabel } from "./publicNames";
 
 // ── raw rows, as PostgREST returns them ─────────────────────────────────────
 export interface CalibrationDatasetRow {
@@ -383,18 +384,18 @@ export function providerFacts(rows: readonly LedgerRow[]): ProviderFact[] {
     .map((r) => {
       const o = r.outcomes ?? {};
       if (r.provider === "nvidia_nemotron") {
-        return fact(r, "Agent (NVIDIA Nemotron)", "agent", n(r.captured_decisions) ?? n(r.ledger_rows), "agent decisions recorded",
+        return fact(r, "Agent · NVIDIA open model", "agent", n(r.captured_decisions) ?? n(r.ledger_rows), "agent decisions recorded",
           `${fmtInt(n(o.enacted) ?? n(r.answered))} applied · ${fmtInt(n(o.fallback) ?? n(r.fell_back))} fell back to the deterministic objective`);
       }
       if (r.provider === "cpsat_service") {
-        return fact(r, "CP-SAT (Google OR-Tools)", "planner", n(r.calls), "solver calls",
+        return fact(r, publicLabel(r.provider), "planner", n(r.calls), "solver calls",
           `${fmtInt(n(r.proposals))} offers made · ${fmtInt(n(o.enacted))} enacted by the decide path · ${fmtInt(n(o.refused) ?? n(r.refused))} refused`);
       }
       if (r.provider === "nvidia_cuopt") {
-        return fact(r, "NVIDIA cuOpt", "planner", n(r.provider_status_2xx) ?? n(r.calls), "calls answered by NVIDIA's endpoint",
+        return fact(r, `${publicLabel(r.provider)} · NVIDIA`, "planner", n(r.provider_status_2xx) ?? n(r.calls), "calls answered",
           `${fmtInt(n(r.proposals))} proposals returned`);
       }
-      return fact(r, r.provider.replace(/_/g, " "), r.role ?? "—", n(r.calls), "calls", `${fmtInt(n(r.proposals))} proposals`);
+      return fact(r, publicLabel(r.provider), r.role ?? "—", n(r.calls), "calls", `${fmtInt(n(r.proposals))} proposals`);
     });
 }
 

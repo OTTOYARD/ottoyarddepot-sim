@@ -195,8 +195,13 @@ export function plannerTexture(lanes: { word: string; z: number }[]): THREE.Canv
     ctx.strokeStyle = "rgba(255,255,255,0.08)";
     ctx.lineWidth = 1;
     ctx.stroke();
-    // the planner's name, then a divider: offers start to its right, newest first
-    engrave(ctx, laneName(l.word), u(LANE_LABEL_X + 0.06), y, 25, "left", 0.8);
+    // the planner's name, then a divider: offers start to its right, newest first. A long name ("Lexicographic") is
+    // set smaller rather than run under the divider.
+    const name = laneName(l.word);
+    const room = u(LANE_BARS_X0 - 0.42) - u(LANE_LABEL_X + 0.06) - 8;
+    ctx.font = `600 25px ${DISPLAY}`;
+    const wide = ctx.measureText?.(name)?.width ?? 0;
+    engrave(ctx, name, u(LANE_LABEL_X + 0.06), y, wide > room ? Math.max(16, Math.floor((25 * room) / wide)) : 25, "left", 0.8);
     ctx.fillStyle = "rgba(255,255,255,0.10)";
     ctx.fillRect(u(LANE_BARS_X0 - 0.42), y - 15, 2, 30);
   }

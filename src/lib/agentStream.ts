@@ -13,7 +13,8 @@
 // Sentences only. A fact the record does not carry is left out of the sentence, never filled in; where a whole
 // sentence depends on it, it says "not recorded".
 import type { ActivityFeedRow } from "@/store/activityFeedStore";
-import { human, modelErrorText, num, solverLabel } from "@/lib/decisionText";
+import { human, modelErrorText, num, solverPhrase } from "@/lib/decisionText";
+import { sentenceCase } from "@/lib/publicNames";
 import { proposerWord, type DispositionRow } from "@/lib/ottoqFunnel";
 
 export type StreamTone = "ok" | "held" | "refused" | "idle";
@@ -79,10 +80,10 @@ export function agentPass(r: ActivityFeedRow): AgentPass {
 
   const outcome: string[] = [];
   const handoff = String(v.handoff_status ?? v.solver_status ?? "");
-  const solver = solverLabel(v);
+  const solver = solverPhrase(v);
   const returned = num(v.proposals_returned);
   if (handoff === "completed") {
-    outcome.push(`${solver === "no solver call" ? "The solver" : solver} took the hand-off and returned ${returned == null ? "an unrecorded number of" : plural(returned, "offer")}.`);
+    outcome.push(`${solver ? sentenceCase(solver) : "The solver"} took the hand-off and returned ${returned == null ? "an unrecorded number of" : plural(returned, "offer")}.`);
   } else if (handoff === "skipped") {
     outcome.push("No solver was asked this pass.");
   } else if (handoff === "fallback") {
@@ -143,7 +144,7 @@ export function offerLine(d: DispositionRow, names: ReadonlyMap<string, string>)
   const who = proposerWord(d.source);
   const why = reasonWord(d.disposition_reason);
   const key = `p${d.disposition_id}`;
-  const Who = who.charAt(0).toUpperCase() + who.slice(1);
+  const Who = sentenceCase(who);
   if (d.abstained) return { key, text: `${Who} made no offer for ${car}${why ? `: ${why}` : ""}.`, tone: "idle" };
   switch (d.status) {
     case "enacted":

@@ -23,6 +23,7 @@ import {
   type DispositionRow, type FunnelCardVehicle, type NodeTone,
 } from "@/lib/ottoqFunnel";
 import { agentPass } from "@/lib/agentStream";
+import { LANE_ORDER, PUBLIC_NAME } from "@/lib/publicNames";
 import { hash01 } from "../funnelGeometry";
 import { plateStats, type Hue, type Stat } from "./stackLegend";
 
@@ -136,8 +137,8 @@ export function barTone(d: DispositionRow): BarTone {
   return "replaced";
 }
 
-/** The order lanes are laid front to back when present. Two engine sources that are one planner share a lane. */
-const LANE_ORDER = ["CP-SAT", "cuOpt", "the greedy planner", "the service-priority planner"];
+/** The order lanes are laid front to back when present (publicNames.LANE_ORDER). Two engine sources that are one
+ *  planner share a lane. */
 export const BARS_PER_LANE = 10;
 export const MAX_LANES = 4;
 /** Where each planner's name is engraved at its lane's left end, and where its offers start (newest first). */
@@ -145,15 +146,14 @@ export const LANE_LABEL_X = -4.62;
 export const LANE_BARS_X0 = -2.5;
 export const BAR_PITCH = 0.74;
 export const BAR_LEN = 0.56;
-/** The name engraved on a lane: short enough for the plate, product names in their own case. */
+/** The name engraved on a lane: one short word per planner (publicNames), "Other" for the folded lane. */
+const LANE_WORD: Record<string, string> = {
+  ...Object.fromEntries(Object.values(PUBLIC_NAME).map((n) => [n.phrase, n.lane])),
+  "other planners": "Other",
+};
 export function laneName(word: string): string {
-  const short: Record<string, string> = {
-    "the greedy planner": "Greedy",
-    "the service-priority planner": "Priority",
-    "other planners": "Other",
-    "the agent": "Agent",
-  };
-  return short[word] ?? word.replace(/^the /, "").replace(/ planner$/, "");
+  const w = LANE_WORD[word] ?? word.replace(/^the /, "").replace(/ planner$/, "");
+  return w.charAt(0).toUpperCase() + w.slice(1);
 }
 
 export function plannerModel(rows: readonly DispositionRow[]): Lane[] {

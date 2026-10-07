@@ -66,7 +66,7 @@ describe("OTTO-Q tab", () => {
     expect(within(detail).getAllByText("battery not reported").length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole("button", { name: /^Proposers/ }));
     const p = screen.getByRole("region", { name: "Proposers layer" });
-    expect(within(p).getAllByText(/offer from the greedy planner was refused|Agent: /).length).toBeGreaterThan(0);
+    expect(within(p).getAllByText(/offer from the heuristic planner was refused|Agent: /).length).toBeGreaterThan(0);
   });
 
   it("puts an \"i\" beside every layer, which explains it without opening it", async () => {
@@ -77,10 +77,13 @@ describe("OTTO-Q tab", () => {
     fireEvent.click(within(list).getByRole("button", { name: "About the Decide layer" }));
     const card = await screen.findByRole("article", { name: "About the Decide layer" });
     // an overview, the facts as a list, and one closing line: short, with no section headings
-    expect(within(card).getByText(/deterministic core of OTTO-Q/)).toBeTruthy();
+    expect(within(card).getByText(/makes every final decision/)).toBeTruthy();
     expect(within(card).getAllByRole("listitem").length).toBeGreaterThanOrEqual(3);
-    expect(within(card).getByText(/passes the safety shield before the depot acts/)).toBeTruthy();
+    expect(within(card).getByText(/passes the safety layer before the depot acts/)).toBeTruthy();
     expect(within(card).queryByText("Why it is there")).toBeNull();
+    // the code objects behind the card are not drawn (Chase, 2026-10-07: no formula or construction on screen)
+    expect(within(card).queryByText("Where to check it")).toBeNull();
+    expect(within(card).queryByText(/public\.ottoq_/)).toBeNull();
     // the card names the run its live line is for
     expect(within(card).getByText(new RegExp(`This run \\(${fx.sim_run_id.slice(0, 8)}\\)`))).toBeTruthy();
     // and the layer itself did not open underneath it

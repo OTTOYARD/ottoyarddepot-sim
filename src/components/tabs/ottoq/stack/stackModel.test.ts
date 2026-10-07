@@ -63,7 +63,7 @@ describe("planners plate", () => {
   const lanes = plannerModel(disp);
 
   it("gives each planner a lane, and one planner one lane even under two engine names", () => {
-    expect(lanes.map((l) => l.word)).toEqual(["CP-SAT", "the greedy planner", "the service-priority planner"]);
+    expect(lanes.map((l) => l.word)).toEqual(["the lexicographic planner", "the heuristic planner", "the service-priority planner"]);
     expect(lanes.reduce((s, l) => s + l.total, 0)).toBe(disp.length);
   });
 

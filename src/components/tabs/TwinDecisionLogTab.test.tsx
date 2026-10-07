@@ -46,13 +46,13 @@ describe("Decision Log reason rendering", () => {
 // that an absent value renders as absent.
 describe("agent pipeline labels never name a solver that did not run", () => {
   it("names the provider the engine measured", () => {
-    expect(solverLabel({ solver_engine: "nvidia_cuopt" })).toBe("cuOpt");
-    expect(solverLabel({ solver_engine: "cpsat_service" })).toBe("CP-SAT");
+    expect(solverLabel({ solver_engine: "nvidia_cuopt" })).toBe("GPU planner");
+    expect(solverLabel({ solver_engine: "cpsat_service" })).toBe("Lexicographic planner");
   });
 
   it("joins a chain served by more than one provider", () => {
     expect(solverLabel({ solver_engine: "nvidia_cuopt+nvidia_nemotron" }))
-      .toBe("cuOpt + Nemotron");
+      .toBe("GPU planner + Agent");
   });
 
   it("passes an unknown provider through rather than guessing", () => {
@@ -64,7 +64,7 @@ describe("agent pipeline labels never name a solver that did not run", () => {
     expect(solverLabel({})).toBe("no solver call");
     expect(solverLabel({ solver_engine: null })).toBe("no solver call");
     expect(solverLabel({ solver_engine: "   " })).toBe("no solver call");
-    expect(solverLabel({})).not.toContain("CP-SAT");
+    expect(solverLabel({})).not.toContain("Lexicographic");
   });
 
   it("reports the kernel's own disposition, not the fire log's submitted count", () => {
@@ -158,7 +158,7 @@ describe("decision verdicts in words", () => {
     }));
     expect(pass).toEqual({
       title: "Agent: readiness first",
-      detail: "CP-SAT: completed (3 proposed) → kernel: 2 enacted · 1 refused",
+      detail: "Lexicographic planner: completed (3 proposed) → kernel: 2 enacted · 1 refused",
       tone: "enacted",
     });
     const fallback = describeDecision(row({
