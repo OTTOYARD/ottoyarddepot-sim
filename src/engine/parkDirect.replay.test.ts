@@ -61,11 +61,15 @@ describe("a car bound for a staging stall turns straight into it (replayed motio
 describe("LaneGraph.routeOff — leave the road abreast of the turn-in", () => {
   const g = buildDepotLanes();
   const NORTH = -Math.PI / 2, SOUTH = Math.PI / 2;
+  // the south collector's eastbound drive line and the north collector's westbound one:
+  // a divided road's streams sit at their own offsets (LaneGraph.DIVIDED_SPAN)
+  const SOUTH_EB = SOUTH_LANE_Y + g.offsetAt({ x: 210, y: SOUTH_LANE_Y }, 0);
+  const NORTH_WB = NORTH_LANE_Y - g.offsetAt({ x: 60, y: NORTH_LANE_Y }, Math.PI);
 
   it("a TW stall reached from the south collector is turned into on the way up the aisle, not driven past", () => {
     // TW column, x 233.5, faces WEST (its aisle is east of it); turn-in 9u back from the nose
     const to = { x: 242.5, y: 119.65 };
-    const r = g.routeOff({ x: 200, y: 175.2 }, 0, to, Math.PI)!;
+    const r = g.routeOff({ x: 200, y: SOUTH_EB }, 0, to, Math.PI)!;
     expect(r).not.toBeNull();
     expect(r[r.length - 1]).toEqual(to);
     // nothing on the way gets north of the turn-in (the old route went on to Tn, y 74)
@@ -78,10 +82,10 @@ describe("LaneGraph.routeOff — leave the road abreast of the turn-in", () => {
 
   it("a W stall reached down the west avenue turns in where it stands, short of the SW corner", () => {
     const to = { x: 24.5, y: 120 }; // W column faces west, aisle x 30
-    const r = g.routeOff({ x: 60, y: NORTH_LANE_Y + 3.2 }, Math.PI, to, Math.PI)!;
+    const r = g.routeOff({ x: 60, y: NORTH_WB }, Math.PI, to, Math.PI)!;
     expect(Math.max(...r.map((p) => p.y))).toBeLessThanOrEqual(to.y + 1e-6);
     const exit = r[r.length - 2];
-    expect(exit).toEqual({ x: WEST_AISLE_X - g.rightOffset, y: to.y }); // the southbound lane line
+    expect(exit).toEqual({ x: WEST_AISLE_X - g.offsetOf("NW>SW"), y: to.y }); // the southbound lane line
   });
 
   it("a south-row stall is not taken sideways off the gate spur that runs beside it", () => {
@@ -93,7 +97,18 @@ describe("LaneGraph.routeOff — leave the road abreast of the turn-in", () => {
     expect(exit.y).toBeLessThan(SOUTH_LANE_Y);       // … on the collector, coming in from the north
   });
 
+  it("leaves the lane the car is on when the point is abreast of it, not the next one past the junction", () => {
+    // wash bay 1's forecourt point (x 168), from the eastbound north collector at x 128:
+    // the joined lane (Ng1 -> Ng2) runs to x 173.5. Costing the next lane from Ng2 as if
+    // the car were already there made it the cheaper one: the car ran on to x 173.5 and
+    // turned 110 deg back into the bay
+    const to = { x: 168, y: 62 };
+    const r = g.routeOff({ x: 128, y: NORTH_LANE_Y + g.offsetAt({ x: 128, y: NORTH_LANE_Y }, 0) }, 0, to, NORTH)!;
+    expect(r[r.length - 1]).toEqual(to);
+    expect(Math.max(...r.map((p) => p.x))).toBeLessThanOrEqual(to.x + 1e-6);
+  });
+
   it("returns null when no lane runs abreast of the point", () => {
-    expect(g.routeOff({ x: 200, y: 175.2 }, 0, { x: 150, y: 120 }, NORTH)).toBeNull(); // the middle of a canopy
+    expect(g.routeOff({ x: 200, y: SOUTH_EB }, 0, { x: 150, y: 120 }, NORTH)).toBeNull(); // the middle of a canopy
   });
 });

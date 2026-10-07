@@ -34,6 +34,7 @@ import busyday from "./twinRun.busyday.json";
 import live0922 from "./twinRun.live0922.json";
 import live0922rec from "./twinRun.live0922rec.json";
 import fresh0922 from "./twinRun.fresh0922.json";
+import chase1006 from "./twinRun.chase1006.json";
 import { twinMotionDriver, MAX_VIEW_MULT } from "../TwinMotionDriver";
 import { poseStore } from "../motion/poseStore";
 import { useDepotStore } from "@/store/depotStore";
@@ -68,6 +69,10 @@ export const FIXTURES: Record<string, MotionFixture> = {
   live0922: live0922 as unknown as MotionFixture,
   live0922rec: live0922rec as unknown as MotionFixture,
   fresh0922: fresh0922 as unknown as MotionFixture,
+  /** The run the founder watched on 2026-10-06 (1:50-3:47 PM CT, busy_day at 3x) and
+   *  reported cars spinning in place near other cars and in jams. The whole run,
+   *  1h57m of wall clock; take windows of it with maxWallMs. */
+  chase1006: chase1006 as unknown as MotionFixture,
 };
 
 export interface FlowOptions {

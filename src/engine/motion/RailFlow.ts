@@ -18,7 +18,7 @@
 import type { Pt } from "./PathTracker";
 import { CAR_BODY_LENGTH, CAR_BODY_WIDTH } from "./traffic";
 import { idmAccel } from "./idm";
-import { bodyHitsBox, boxOf, type OBox, type Rect } from "@/lib/structurePlan";
+import { bodyHitsBox, boxGap, boxOf, type OBox, type Rect } from "@/lib/structurePlan";
 
 export interface RailBody {
   id: string; x: number; y: number;
@@ -41,8 +41,9 @@ export interface Rail {
   pts: Pt[];
   cum: number[];          // cumulative arc length at each vertex
   total: number;
-  nodes: { id: string; s: number; sweep?: Sweep }[]; // graph junctions along this route
-                          // (`sweep` is this car's movement through it, built on first need)
+  nodes: { id: string; s: number; sweep?: Sweep; stop?: number }[]; // graph junctions along this route
+                          // (`sweep` is this car's movement through it, built on first need;
+                          // `stop`, where it waits for it when not NODE_STOP — buildRail's stopFor)
   s: number;              // arc position
   v: number;              // speed (u/s)
   mouthKey: string | null; // charger-column mouth this route ends in (if any)
@@ -73,7 +74,12 @@ export interface Rail {
    *  The car does not start until the lane behind the join is clear (see stepRail);
    *  once it has started, it is committed and the lane's traffic sees it as a
    *  body in the ordinary way. */
-  merge?: { x: number; y: number; hx: number; hy: number; committed?: boolean };
+  merge?: {
+    x: number; y: number; hx: number; hy: number; committed?: boolean;
+    /** the streams the car crosses on its way to the lane it joins: where it crosses
+     *  each, and which way that stream flows (LaneGraph.streamsCrossed) */
+    cross?: { x: number; y: number; hx: number; hy: number }[];
+  };
 }
 
 const LANE_HALF = 1.7;    // half-width that counts as "in my path"
@@ -98,14 +104,32 @@ const SAMPLE = 2;         // projection sampling step (u)
 // crossing contacts there went 4 -> 12). 7u covers it; the nearest node a route
 // does NOT traverse is still >20u away, so it cannot false-positive.
 const NODE_MATCH = 7;
-const NODE_CLAIM = 12;    // commit to (enter) a junction this far out
 // Where a car waits for a junction, as the IDM "stationary leader" distance. IDM
-// settles s0 = 5u behind it, so the car's CENTRE stops NODE_STOP + 5 = 11u short
-// of the node and its nose 11 - 5.1 = 5.9u short. The near crossing lane's body
-// reaches 3.2 + 2.1 = 5.3u from the node, so a waiting car now stays out of it.
+// settles s0 = 5u behind it, so the car's CENTRE stops NODE_STOP + 5 short of the
+// node and its nose NODE_STOP - 0.1 short. The near crossing lane's body reaches
+// 3.2 + 2.1 = 5.3u from the node, so a waiting car now stays out of it.
 // At the old 4 its nose stood 1.2u INSIDE that lane, and crossing traffic — which
 // a waiting car deliberately does not brake for — passed through it.
-const NODE_STOP = 6;
+//
+// A STREAM FURTHER OUT NEEDS A STOP FURTHER BACK. The divided ring's outer streams run
+// 4.8u (collectors) and 4.0u (avenues) from their centrelines (LaneGraph.DIVIDED_SPAN),
+// and a car waiting at 6 on the ingress spur stood with its nose 1.0u inside the south
+// collector's eastbound stream. So a rail carries, per junction, the stop that keeps
+// the same 0.6u from the body of the NEAREST stream crossing ITS way in
+// (buildRail's `stopFor`, LaneGraph.stopDistance): 7.6 there, 6 wherever the near
+// stream is still 3.2u out — the gap lanes onto the north collector, every car along
+// the ring. One global 7.6 (with the box sized to the 4.8u streams too, see BOX) was
+// measured first and cost flow everywhere for the three approaches that need it:
+// busy_day stopped time 4.8% -> 7.2%, against 5.7% this way.
+export const NODE_STOP = 6;
+// Commit to (enter) a junction this far beyond the stop point (12 at the 6u stop). The
+// two move together: a car refused at the claim distance must stop before the stop
+// point + 4, where it counts as already in the box and is let in whatever it meets.
+// Moving the stop out and leaving the claim at 12 shrank that window from 2u to 0.4u,
+// and two cars reaching a junction in the same step both went in (docking test E: a
+// charger car turning onto the north collector beside a car driving through, 15
+// contact samples).
+const NODE_CLAIM_PAST_STOP = 6;
 const NODE_SEE = 26;      // a junction held against me is visible (a stop bar) this far out
 const NODE_RELEASE = 11;  // out of the box once the centre is this far past (≥ BOX)
 // Don't block the box: a stopped body closer than this past the node (its centre,
@@ -327,6 +351,214 @@ export function roundCorners(raw: Pt[]): Pt[] {
   return clean.length >= 2 ? clean : pts.map((p) => ({ x: p.x, y: p.y }));
 }
 
+// ── A RAIL STARTS THE WAY THE CAR POINTS ───────────────────────────────────
+// A rail's pose heading is its tangent, and the drawn heading eases toward it
+// at YAW_PER_UNIT = 2.5 rad per unit of travel (TwinMotionDriver.easeHeading).
+// So when a rail's FIRST segment does not point the way the car does, nothing
+// rounds that join — it is not a corner, it is the car's own position — and
+// the body turns to the new direction in well under a unit of travel: a pivot
+// about its own centre. Measured on the founder's run (twinRun.chase1006.json,
+// motionAudit.ts) that was the single largest source of cars turning >= 45° in
+// one car width: the end of a staging back-out (the car swings 70° and stops
+// 20° short of the aisle, then a straight segment jumped to a join point 8u up a
+// lane up to 10u away: a 72° kink on every south-row departure), a car given a
+// new destination while moving, and the 45 s watchdog's re-route.
+//
+// startOnHeading replaces the route's opening with what a driver does: keep
+// rolling the way the car points while turning the wheel — an arc of radius
+// START_R tangent to the car's heading — until the car points at a point down
+// the route, then straight to it. The first such point is taken whose straight
+// meets the route within START_MEET of the route's own direction, with legs long
+// enough either side for that corner to round at no less than 0.8 x START_R (a
+// short straight into a corner is the same pivot one vertex later). START_R is
+// under the car's own 11u minimum (KinematicCar), like every corner fillet in
+// this file, and over the 6.2u at which a 90° turn would read as a pivot
+// (motionAudit's p90 rule): it is a tight turn, not a spin. Where no point down
+// the route can be reached by a forward arc of at most START_SWEEP (the route
+// leaves BEHIND the car), the route is returned unchanged and the caller's
+// reverse logic applies.
+export const START_R = 7;
+const START_KINK_OK = (6 * Math.PI) / 180; // eased in within 0.04u: not a pivot
+const START_SWEEP = (150 * Math.PI) / 180;
+const START_MEET = (45 * Math.PI) / 180;
+const START_PITCH = 1; // arc sampling (u)
+const START_LOOK = 60; // furthest down the route a start may aim (u)
+// An opening REPLACES the route's first units with an arc and a straight, so it can
+// cut across whatever the route went round. Aimed at any reachable point within
+// START_LOOK, it did: a south-row car at its cusp, facing west, bound for the egress
+// spur 8u east of it, was routed up to the westbound lane, round a U-turn and back
+// east — and opened straight across that loop and through the end of the S1 row,
+// past the car parked in its last stall (chase1006, twice). So an opening's swept
+// body may not overlap anything a widened corner must clear (setCornerObstacles:
+// structures, and every stall's parked-car footprint), sampled every ARC_PROBE along
+// the arc and the straight. Left out: what the car already stands within
+// START_BESIDE of (the stall it is leaving, the neighbour beside a cusp — or no car
+// could open from where it stands) and the stall the route ends in. No margin: the
+// opening ends ON the route, and routes run as close as a lane allows.
+//
+// Measured over all seven audited captures (motionAudit.measure.test.ts), sums of
+// p45 pivot events / overlap pair-samples: no check 502 / 66, this check 530 / 54.
+// The extra pivots are openings that now follow the route instead of crossing a
+// parked car. Two rules about the ROUTE were tried first. "No opening past a 120°
+// turn of the route" measured worse (609 / 44): most openings that cut across a
+// loop are the cleanest drive there is, a wide arc through empty ground where the
+// route has a hairpin. "The opening at least 0.75 of the route it replaces"
+// measured about the same (523 / 58) for the wrong reason: it refuses openings that
+// hit nothing and allows short ones that do. Counting only the cars parked NOW
+// instead of every stall's footprint measured the same to the sample on live0922,
+// live0922rec and the founder's run.
+const START_BESIDE = 0.3;
+
+/** The route `pts` (pts[0] = where the car is) opened by an arc tangent to
+ *  `heading`, or `pts` itself when it already starts that way or cannot. */
+export function startOnHeading(pts: Pt[], heading: number, R = START_R): Pt[] {
+  if (pts.length < 2 || !Number.isFinite(heading)) return pts;
+  const p = pts[0];
+  const hx = Math.cos(heading), hy = Math.sin(heading);
+  let k = 1;
+  while (k < pts.length && Math.hypot(pts[k].x - p.x, pts[k].y - p.y) < 0.5) k++;
+  if (k >= pts.length) return pts;
+  const first = Math.atan2(pts[k].y - p.y, pts[k].x - p.x);
+  const kink = Math.atan2(Math.sin(first - heading), Math.cos(first - heading));
+  if (Math.abs(kink) <= START_KINK_OK) return pts;
+  const cum: number[] = [0];
+  for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
+  const total = cum[cum.length - 1];
+  // the obstacles an opening could reach, less any the car already stands beside and
+  // the one the route ends in
+  const here: OBox = { cx: p.x, cy: p.y, hl: CAR_BODY_LENGTH / 2, hw: CAR_BODY_WIDTH / 2, th: heading };
+  const end = pts[pts.length - 1];
+  const reach = START_LOOK + CAR_BODY_LENGTH;
+  const near = OBSTACLES.filter((b) =>
+    Math.abs(b.cx - p.x) < reach && Math.abs(b.cy - p.y) < reach
+    && boxGap(here, b) >= START_BESIDE
+    && boxGap({ cx: end.x, cy: end.y, hl: 0.01, hw: 0.01, th: 0 }, b) >= 0);
+  const hits = (x: number, y: number, h: number): boolean => {
+    for (const b of near) {
+      if (Math.abs(b.cx - x) > 12 || Math.abs(b.cy - y) > 12) continue;
+      if (bodyHitsBox({ x, y, heading: h }, b)) return true;
+    }
+    return false;
+  };
+  for (let d = 2; d <= Math.min(total, START_LOOK); d += 0.5) {
+    let j = 1;
+    while (j < pts.length && cum[j] <= d + 1e-6) j++;
+    const q = pointAt(pts, cum, d);
+    const vx = q.x - p.x, vy = q.y - p.y;
+    // turn toward the side q lies on
+    const side = -hy * vx + hx * vy >= 0 ? 1 : -1;
+    const cx = p.x - hy * side * R, cy = p.y + hx * side * R;
+    const D = Math.hypot(q.x - cx, q.y - cy);
+    if (D <= R + 0.25) continue; // inside the turning circle: not reachable from here
+    // travel round the circle: s = +1 counter-clockwise in angle
+    const s = (p.x - cx) * hy - (p.y - cy) * hx >= 0 ? 1 : -1;
+    const a0 = Math.atan2(p.y - cy, p.x - cx);
+    const aT = Math.atan2(q.y - cy, q.x - cx) - s * Math.acos(R / D);
+    let sweep = (s * (aT - a0)) % (2 * Math.PI);
+    if (sweep < 0) sweep += 2 * Math.PI;
+    if (sweep > START_SWEEP) continue;
+    const tx = cx + R * Math.cos(aT), ty = cy + R * Math.sin(aT);
+    const meet = Math.atan2(q.y - ty, q.x - tx);
+    const defl = Math.abs(Math.atan2(Math.sin(meet - q.heading), Math.cos(meet - q.heading)));
+    if (defl > START_MEET) continue;
+    // the corner at q is rounded like any other (roundCorners: tangent <= 0.45 of
+    // either leg), so both legs must leave it room for a believable radius
+    const onward = j < pts.length ? Math.hypot(pts[j].x - q.x, pts[j].y - q.y) : Infinity;
+    const straight = Math.hypot(q.x - tx, q.y - ty);
+    if (defl > 0.03 && (0.45 * Math.min(straight, onward)) / Math.tan(defl / 2) < 0.8 * R) continue;
+    // …and the body driven along it, arc then straight, keeps clear of what is built
+    // and of every stall (START_CLEAR, above)
+    if (near.length) {
+      let blocked = false;
+      const na = Math.max(1, Math.ceil((sweep * R) / ARC_PROBE));
+      for (let i = 1; i <= na && !blocked; i++) {
+        const a = a0 + (s * sweep * i) / na;
+        blocked = hits(cx + R * Math.cos(a), cy + R * Math.sin(a), a + (s * Math.PI) / 2);
+      }
+      const ns = Math.ceil(straight / ARC_PROBE);
+      for (let i = 1; i <= ns && !blocked; i++) {
+        const f = i / ns;
+        blocked = hits(tx + (q.x - tx) * f, ty + (q.y - ty) * f, meet);
+      }
+      if (blocked) continue;
+    }
+    const out: Pt[] = [{ x: p.x, y: p.y }];
+    const n = Math.max(1, Math.ceil((sweep * R) / START_PITCH));
+    for (let i = 1; i <= n; i++) {
+      const a = a0 + (s * sweep * i) / n;
+      out.push({ x: cx + R * Math.cos(a), y: cy + R * Math.sin(a) });
+    }
+    out.push({ x: q.x, y: q.y });
+    for (let m = j; m < pts.length; m++) out.push({ x: pts[m].x, y: pts[m].y });
+    const clean: Pt[] = [];
+    for (const o of out) {
+      const last = clean[clean.length - 1];
+      if (!last || Math.hypot(o.x - last.x, o.y - last.y) > 1e-3) clean.push(o);
+    }
+    return clean;
+  }
+  return pts;
+}
+
+/** How many times a path turns back on itself: its direction of travel changing by
+ *  more than 135° within 10u of travel (a U-turn inside a lane pair, or a route that
+ *  doubles back at a node). Fillets do not hide one: they round it into an arc of a
+ *  couple of units, which is the car spinning. */
+export function hairpins(pts: Pt[]): number {
+  if (pts.length < 3) return 0;
+  const cum: number[] = [0];
+  for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
+  const total = cum[cum.length - 1];
+  const STEP = 0.5, WIN = 10, LIMIT = (135 * Math.PI) / 180;
+  const hs: number[] = [];
+  let prev = pointAt(pts, cum, 0).heading, acc = prev;
+  for (let s = 0; s <= total; s += STEP) {
+    const h = pointAt(pts, cum, Math.min(total, s + 1e-6)).heading;
+    acc += Math.atan2(Math.sin(h - prev), Math.cos(h - prev));
+    prev = h;
+    hs.push(acc);
+  }
+  const span = Math.round(WIN / STEP);
+  let n = 0;
+  for (let i = 0; i < hs.length;) {
+    let hit = false;
+    for (let j = i + 1; j < hs.length && j - i <= span; j++) if (Math.abs(hs[j] - hs[i]) > LIMIT) { hit = true; break; }
+    if (hit) { n++; i += span; } else i++;
+  }
+  return n;
+}
+
+/** The least clearance (u, SAT gap; negative = contact) between any of `solids` and
+ *  a car body DRAWN along the rail `raw` would become: rounded as buildRail rounds
+ *  it, centred on the path and pointing at the path HEADING_LA ahead, as stepRail
+ *  draws it. The look-ahead matters: the body turns into a corner before its centre
+ *  does, so on a tight corner its tail swings out further than the tangent says
+ *  (wash bay 3's turn-in, TwinMotionDriver.routeToStall's bay branch: 0.30u clear by
+ *  the tangent, 0.35u into canopy C's spine column as drawn). */
+export function drawnClearance(raw: Pt[], solids: readonly OBox[], step = 0.25): number {
+  const pts = roundCorners(raw);
+  if (pts.length < 2) return Infinity;
+  const cum: number[] = [0];
+  for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
+  const total = cum[cum.length - 1];
+  let gap = Infinity;
+  for (let s = 0; s <= total; s += step) {
+    const here = pointAt(pts, cum, s);
+    const la = Math.min(total - s, HEADING_LA);
+    let th = here.heading;
+    if (la > 0.75) {
+      const ahead = pointAt(pts, cum, s + la);
+      th = Math.atan2(ahead.y - here.y, ahead.x - here.x);
+    }
+    const reach = CAR_BODY_LENGTH / 2 + 1;
+    for (const b of solids) {
+      if (Math.abs(b.cx - here.x) > reach + b.hl + b.hw || Math.abs(b.cy - here.y) > reach + b.hl + b.hw) continue;
+      gap = Math.min(gap, boxGap({ cx: here.x, cy: here.y, hl: CAR_BODY_LENGTH / 2, hw: CAR_BODY_WIDTH / 2, th }, b));
+    }
+  }
+  return gap;
+}
+
 /** Squared distance from `p` to the polyline `pts` (segments, not samples). */
 function distToPolyline2(pts: Pt[], p: Pt): number {
   let best = Infinity;
@@ -345,6 +577,8 @@ export function buildRail(
   raw: Pt[],
   nodePositions: Iterable<{ id: string; x: number; y: number }>,
   mouthKey: string | null,
+  /** where a car arriving at junction `id` along `heading` waits (NODE_STOP when absent) */
+  stopFor?: (id: string, heading: number) => number,
 ): Rail {
   const pts = roundCorners(raw);
   const cum: number[] = [0];
@@ -363,7 +597,7 @@ export function buildRail(
   // it against the streams it merges with. The routed polyline passes through
   // the junction's own (offset) vertex whatever the fillet, so it cannot drift.
   // A node either path reaches is a node the car drives through.
-  const nodes: { id: string; s: number }[] = [];
+  const nodes: { id: string; s: number; stop?: number }[] = [];
   for (const n of nodePositions) {
     let best = Infinity, bestS = 0;
     for (let s = 0; s <= total; s += SAMPLE) {
@@ -372,7 +606,9 @@ export function buildRail(
       if (d < best) { best = d; bestS = s; }
     }
     if (best <= NODE_MATCH * NODE_MATCH || distToPolyline2(raw, n) <= NODE_MATCH * NODE_MATCH) {
-      nodes.push({ id: n.id, s: bestS });
+      // the way the car arrives: its heading a stop-length before the junction
+      const stop = stopFor?.(n.id, pointAt(pts, cum, Math.max(0, bestS - NODE_STOP - 5)).heading);
+      nodes.push({ id: n.id, s: bestS, ...(stop !== undefined && stop !== NODE_STOP ? { stop } : {}) });
     }
   }
   nodes.sort((a, b) => a.s - b.s);
@@ -444,8 +680,8 @@ export function pointAt(pts: Pt[], cum: number[], s: number): Pt & { heading: nu
 // ── JUNCTIONS: WHO MAY BE IN THE BOX TOGETHER ──────────────────────────────
 // Every LaneGraph node used to be an EXCLUSIVE lock: one car in it at a time,
 // whatever each car was doing there. On a divided road that serialises traffic
-// that cannot touch — the eastbound and westbound streams run 2 x rightOffset =
-// 6.4u apart through every junction on the south and north collectors, and the
+// that cannot touch — the eastbound and westbound streams run DIVIDED_SPAN = 8u
+// apart through every junction on the south and north collectors, and the
 // inner and outer paths round a ring corner never meet — and it makes every
 // follower wait for its leader to clear NODE_RELEASE before it may enter behind
 // it. That is the founder's "hesitating and stopping when they meet one another
@@ -461,7 +697,12 @@ export function pointAt(pts: Pt[], cum: number[], s: number): Pt & { heading: nu
 // paths would touch somewhere.
 const BOX = 10.5;        // half-length of the swept window (u): lane offset 3.2 +
                          // half-width 2.1 + half-length 5.1, so a body entirely
-                         // outside it cannot be touching anything in the box
+                         // outside it cannot be touching anything in the box.
+                         // NOT widened for the divided ring's 4.8u outer streams:
+                         // sized to them (BOX 12, NODE_RELEASE 12.5) it measured
+                         // worse — chase1006's first 30 min 31 overlap pair-samples
+                         // against 20, busy_day stopped time 6.1% against 5.7%.
+                         // Crossing paths still meet well inside 10.5.
 const SWEEP_STEP = 1;    // sampling pitch of a sweep (u)
 const BODY_MARGIN = 0.3; // clearance kept between two bodies sharing a box (u)
 const SAME_TOL = 1.5;    // a sweep's end lies ON another's path within this
@@ -701,6 +942,24 @@ export function stepRail(
         busy = b.id; break;
       }
     }
+    // …and for the streams it CROSSES on the way. A south-row car leaving westbound
+    // crosses the eastbound stream to reach its own lane, and gap acceptance looked
+    // only at the lane it joins: it pulled out across eastbound traffic that the
+    // traffic's own forward window ignores (a body heading across it is "crossing",
+    // RailFlow leaves crossings to the junctions, and there is no junction there).
+    for (const c of busy ? [] : m.cross ?? []) {
+      for (const b of bodies) {
+        if (b.id === id || b.heading === undefined || !b.moving) continue;
+        if (waitsOnMe(b.id, id, bodies)) continue;
+        const along = (b.x - c.x) * c.hx + (b.y - c.y) * c.hy;
+        const lat = Math.abs((b.x - c.x) * -c.hy + (b.y - c.y) * c.hx);
+        if (lat >= MERGE_LAT) continue;
+        if (Math.cos(b.heading) * c.hx + Math.sin(b.heading) * c.hy < 0.7) continue; // not in that stream's flow
+        const coming = (b.speed ?? 0) >= 0.5 ? along > -MERGE_BACK && along < CAR_BODY_LENGTH : Math.abs(along) < CAR_BODY_LENGTH;
+        if (coming) { busy = b.id; break; }
+      }
+      if (busy) break;
+    }
     if (busy) {
       if (0 < gap) { gap = 0; limiter = "merge"; limiterId = busy; }
     } else m.committed = true;
@@ -721,9 +980,10 @@ export function stepRail(
     // was admitted around it (measured: a car re-routed mid-junction on the live
     // recording waited on a car that was itself waiting on its body, for good).
     // Admit it, so every other car sees it and yields to it instead.
-    if (dist < NODE_STOP + 4) { locks.enter(n.id, id, sweep, true); continue; }
+    const stopAt = n.stop ?? NODE_STOP;
+    if (dist < stopAt + 4) { locks.enter(n.id, id, sweep, true); continue; }
     // Seen from NODE_SEE out, a junction held against me is a stop bar, so the car
-    // eases down to it instead of finding out at NODE_CLAIM and stopping in a metre.
+    // eases down to it instead of finding out at the claim distance and stopping in a metre.
     const blocker = locks.conflictAt(n.id, id, sweep);
     // A holder that is itself stopped waiting on ME — my body in its path, or a
     // junction I hold — will never clear the box while I wait for it: that is a
@@ -743,11 +1003,11 @@ export function stepRail(
     }
     const stopped = blocker ? null : stoppedBodyPast(id, r, n.s, bodies);
     if (blocker || stopped) {
-      const g = Math.max(0, dist - NODE_STOP);
+      const g = Math.max(0, dist - stopAt);
       if (g < gap) { gap = g; limiter = "node"; limiterId = blocker ?? stopped; }
       break; // can't pass this node; nothing beyond matters
     }
-    if (dist > NODE_CLAIM) break; // clear so far, but not close enough to commit yet
+    if (dist > stopAt + NODE_CLAIM_PAST_STOP) break; // clear so far, but not close enough to commit yet
     locks.enter(n.id, id, sweep);
   }
 

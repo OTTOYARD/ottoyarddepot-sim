@@ -58,10 +58,10 @@ export const WEST_AISLE_X = 30;   // west avenue (two-way divided; drains to wes
 //
 // WHAT "24 FT" MEANS HERE, stated plainly so the render cannot imply more: it is the
 // CLEAR AISLE between the stall faces, which is the dimension the parking standard
-// specifies. The PAINTED road is narrower — 4 x rightOffset = 12.8u = 20.09 ft —
-// because the lane offset stays 3.2 (widened from 2.4 for passing clearance; lanePaint
-// derives from it). Widening the paint to exactly 24.00 ft needs rightOffset = 3.8219,
-// which re-routes every car and is a separate, separately-measured decision.
+// specifies. The PAINTED road is narrower: two 6.4u lanes (2 x rightOffset) whose
+// drive lines are LaneGraph.DIVIDED_SPAN = 8u apart since the avenue was given a
+// median (2026-10-06), so 14.4u = 22.61 ft of paint with a 1.6u (2.51 ft) median down
+// its middle, inside 15.534u of clear aisle (0.57u of shy space each side).
 //
 // checkLayoutGeometry.mjs checks 7 and 9 and migration 0010 section 6.6 all assert
 // clearance against these lanes, so this cannot regress.

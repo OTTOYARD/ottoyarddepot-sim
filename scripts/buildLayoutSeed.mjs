@@ -261,8 +261,11 @@ const stp = await bundle('src/lib/structurePlan.ts', '/tmp/ottoq_structureplan_s
 // 0010's clearance assertion would all have carried on validating the old road.
 // So the class is now bundled and the value is READ off an instance. One source.
 // (src/engine/motion/lanePaint.ts derives its LANE_WIDTH from the same instance field.)
-const { LaneGraph, buildDepotLanes } = await bundle(
+const { LaneGraph, buildDepotLanes, DIVIDED_SPAN } = await bundle(
   'src/engine/motion/LaneGraph.ts', '/tmp/ottoq_lanegraph_seed.cjs');
+if (!Number.isFinite(DIVIDED_SPAN) || DIVIDED_SPAN <= 0) {
+  throw new Error(`LaneGraph.DIVIDED_SPAN is not a positive number: ${DIVIDED_SPAN}`);
+}
 const LANE_RIGHT_OFFSET = new LaneGraph().rightOffset;
 if (!Number.isFinite(LANE_RIGHT_OFFSET) || LANE_RIGHT_OFFSET <= 0) {
   throw new Error(`LaneGraph.rightOffset is not a positive number: ${LANE_RIGHT_OFFSET}`);
@@ -302,9 +305,14 @@ const LANE_RUNS = (() => {
     }
     // Same drive-on-the-right shift the cars get (LaneGraph.offsetRight, y-DOWN frame:
     // the right-of-travel normal of (dx,dy) is (-dy,dx)). Applied in RENDER units, then
-    // converted, so it cannot drift from the motion.
+    // converted, so it cannot drift from the motion. Each lane takes ITS OWN offset
+    // (LaneGraph.offsetOf): a divided road's two streams sit DIVIDED_SPAN apart, and
+    // not always symmetrically about the centreline (the collectors' canopy-side
+    // stream keeps rightOffset and the other takes the rest).
+    const off = g.offsetOf(lane.id);
+    if (!Number.isFinite(off) || off <= 0) throw new Error(`lane ${lane.id} has no usable offset: ${off}`);
     const m = Math.hypot(dx, dy) || 1;
-    const ox = -(dy / m) * LANE_RIGHT_OFFSET, oy = (dx / m) * LANE_RIGHT_OFFSET;
+    const ox = -(dy / m) * off, oy = (dx / m) * off;
     const xs = [toX(a.x + ox), toX(b.x + ox)];
     const ys = [toY(a.y + oy), toY(b.y + oy)];
     // widen across the direction of travel by one design vehicle
@@ -1027,7 +1035,8 @@ L.push('-- with a light pole standing INSIDE it -- while the guard reported the 
 L.push('-- clear, because its rectangle stopped at the collector.');
 L.push('--');
 L.push('-- So the rows below are DERIVED FROM buildDepotLanes() itself: every directed');
-L.push('-- edge in the graph, offset drive-on-the-right by LaneGraph.rightOffset and');
+L.push('-- edge in the graph, offset drive-on-the-right by its own LaneGraph offset');
+L.push('-- (rightOffset; a divided road\'s streams DIVIDED_SPAN apart) and');
 L.push('-- widened to one design vehicle. If a lane is added, moved or removed in the');
 L.push('-- graph, it appears, moves or disappears here with no edit. Nothing may sit');
 L.push('-- inside one of these rectangles: not a stall footprint, not a solid structure.');
@@ -1117,11 +1126,14 @@ const json = {
     rear_lane_y: toY(sp.REAR_LANE_Y), forecourt_y: toY(sp.FORECOURT_Y),
     west_link_x: toX(sp.WEST_LINK_X), temp_lane_x: toX(sp.TEMP_LANE_X),
     gap_lanes_x: Object.fromEntries(Object.entries(sp.GAP_LANES).map(([k, v]) => [k, toX(v)])),
-    // A divided avenue carries two opposing lanes, each offset this far from the
+    // A one-way lane, or each side of a two-way aisle, is offset this far from its
     // centreline. Exported so the geometry guards (JS check 7, migration 0010
     // section 6.6) can test stall-vs-LANE clearance -- the class of defect that let
     // the east avenue's northbound lane sit 0.9u inside the E-column stalls.
+    // A DIVIDED road's two streams are divided_span_ft apart (LaneGraph.DIVIDED_SPAN)
+    // instead, each at its own offset: runs_ft below carries every lane where it is.
     right_offset_ft: LANE_RIGHT_OFFSET * UNIT_FT,
+    divided_span_ft: DIVIDED_SPAN * UNIT_FT,
     lane_body_width_ft: DESIGN_VEHICLE_FT.width,
     n1_lane_y: toY(sp.N1_LANE_Y),
     // The divided RING, as four straight runs. KEPT for migration 0010 section 6.6,

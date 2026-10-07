@@ -296,8 +296,12 @@ describe("TwinMotionDriver — kinematic motion off the twin", () => {
     for (const [, e] of entries) if (e.vstatus === "departing" && (e.tracker || e.reverse)) active++;
     expect(active).toBeGreaterThan(0);
     expect(active).toBeLessThanOrEqual(12);
-    // and the wave GUARANTEED-drains (egress arrivals + TTL backstop): ~130s sim
-    for (let i = 0; i < 2600; i++) twinMotionDriver.tickMotion(0.05);
+    // and the wave GUARANTEED-drains (egress arrivals + TTL backstop). It took ~120 s
+    // sim until 2026-10-07 and takes ~135 s since: a staging back-out now waits for
+    // any car standing in its sweep (sweepOccupied) instead of backing into it, and
+    // the last car out of the S1 row (x 81.6, beside the egress spur) sweeps the
+    // collector where the queue for the spur stands. Budget 150 s.
+    for (let i = 0; i < 3000; i++) twinMotionDriver.tickMotion(0.05);
     expect(fleet().length).toBe(0);
     expect(poseStore.get("w0")).toBeUndefined();
   });
