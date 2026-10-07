@@ -643,6 +643,54 @@ export interface TwinKpiFive {
   };
 }
 
+// ── The KPI board (otto-q-core 0609/0610: public.ottoq_twin_kpi_board) ──
+/** One run's business KPIs, every figure from the run's own rows inside sim_clock_start..sim_clock_current.
+ *  A missing figure is null, never 0. `ok:false` carries `error` (run_required | unknown_run | no_state_history). */
+export interface TwinKpiBoard {
+  ok: boolean;
+  error?: string;
+  message?: string;
+  sim_run_id?: string;
+  depot_id?: string;
+  scenario?: string | null;
+  status?: string | null;
+  window?: { from: string; to: string; hours: number };
+  cars?: number;
+  fleet_hours?: number;
+  /** Car-hours per group: on_road, leaving, returning, ready, charging_dcfc, charging_l2, in_bay, queue,
+   *  between_steps, down, offline, other. A group no car was in is absent. */
+  split_hours?: Record<string, number>;
+  uptime?: { pct: number | null; on_road_pct: number | null; revenue_hours: number | null; revenue_hours_per_car_day: number | null };
+  turnaround?: {
+    arrivals: number; finished: number; still_in_depot: number;
+    p50_min: number | null; p90_min: number | null; dwell_p50_min: number | null;
+    served: number; first_service_p50_min: number | null; first_service_p90_min: number | null;
+    open_so_far_p50_min: number | null;
+  };
+  flow?: { arrivals: number; departures: number; departures_per_hour: number | null; sent_back_before_leaving: number };
+  departures?: {
+    dispatched: number; soc_avg: number | null; soc_min: number | null; at_99_or_more: number; soc_unknown: number;
+    trips_back: number; miles: number | null; kwh_used: number | null; soc_back_avg: number | null;
+  };
+  service?: {
+    steps: number; done: number; required: number; required_done: number; required_open: number; cancelled: number;
+    by_service: { svc: string; name: string; lane: string | null; done: number; total: number }[];
+  };
+  energy?: {
+    snapshots: number; to_cars_kwh: number | null; grid_import_kwh: number | null; grid_export_kwh: number | null;
+    solar_kwh: number | null; battery_out_kwh: number | null; battery_in_kwh: number | null; building_kwh: number | null;
+    grid_cost_usd: number | null; grid_price_usd_kwh: number | null; solar_share_pct: number | null;
+    peak_grid_kw_15min: number | null; peak_load_kw_15min: number | null;
+  };
+  chargers?: {
+    dcfc_stalls: number; l2_stalls: number; dcfc_busy_pct: number | null; l2_busy_pct: number | null;
+    sessions_started: number; sessions_completed: number; sessions_faulted: number;
+  };
+  on_time?: { pct: number | null; on_time: number | null; late: number | null; stranded: number | null; with_due: number | null; p50_late_min: number | null };
+  charger_wait?: { p50_min: number | null; p95_min: number | null; p95_floor_min: number | null; charged: number | null; waiting_at_end: number | null; owing: number | null; waiting_p50_so_far_min: number | null };
+  basis?: Record<string, string>;
+}
+
 // ── Variability catalog (the registry the console renders from) ──
 export type KnobType ="shift" | "spread" | "floor" | "ceiling" | "rate" | "select";
 export interface CatalogVar {
@@ -734,6 +782,8 @@ export const twin = {
   /** The five canonical KPIs (ottoq_kpi_five) for one run, recomputed server-side from the run's
    *  own rows. Service-role only in the database, so it is read through the control door. */
   kpis:      (simRunId: string)          => get<TwinKpiFive>(`/sim_runs/${simRunId}/kpis`),
+  /** The KPI board for one run (otto-q-core 0609): uptime, turnaround, service, energy, chargers. An anon read. */
+  kpiBoard:  (simRunId: string)          => rpc<TwinKpiBoard>("ottoq_twin_kpi_board", { p_sim_run_id: simRunId }),
   health:    ()                          => get<{ service: string; version: string; time: string }>(`/health`),
 
   // controls (operator key) — used in Phase 2+
