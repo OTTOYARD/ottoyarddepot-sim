@@ -361,3 +361,32 @@ describe("packChannels", () => {
     expect(b.status).not.toBe("not_ready");
   });
 });
+
+describe("charger_systems: per-charger fault state (otto-q-core 0612)", () => {
+  it("counts the faulted chargers on a frame that publishes charger_state, from either field", () => {
+    const b = packChannels(snapshot({
+      stalls_status: [
+        { id: "s0", status: "charging", vehicle_id: "v1", charger_state: "Charging" },
+        // the stall itself reads available; its charger is the one that faulted
+        { id: "s1", status: "available", vehicle_id: null, charger_state: "Faulted", fault_code: "fault.connector_cable", fault_until: null },
+      ],
+    }), layout(4), new Date(CLOCK));
+    const p = b.channels.charger_systems.payload;
+    expect(p.counts.faulted).toBe(1);
+    expect(p.chargers.find((c) => c.stall_id === "s1")?.faulted).toBe(true);
+    expect(p.chargers.find((c) => c.stall_id === "s0")?.faulted).toBe(false);
+    expect(p.counts.available).toBe(1); // s2 (the L2): s0 charges, s1 is down
+  });
+
+  it("a 0612 frame with no charger down reads 0, a known zero", () => {
+    const b = packChannels(snapshot({
+      stalls_status: [{ id: "s0", status: "charging", vehicle_id: "v1", charger_state: "Charging" }],
+    }), layout(4), new Date(CLOCK));
+    expect(b.channels.charger_systems.payload.counts.faulted).toBe(0);
+  });
+
+  it("an older frame, whose rows carry no charger_state, still cannot see it: null, never 0", () => {
+    const b = packChannels(snapshot(), layout(4), new Date(CLOCK));
+    expect(b.channels.charger_systems.payload.counts.faulted).toBeNull();
+  });
+});

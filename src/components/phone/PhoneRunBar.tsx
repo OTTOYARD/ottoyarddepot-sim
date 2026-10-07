@@ -5,6 +5,7 @@ import { useCockpitStore } from '@/store/cockpitStore';
 import { useFleetOwners } from '@/hooks/useFleetOwners';
 import { COCKPIT_LABEL, cockpitUrl, isLiveRunStatus, type Cockpit } from '@/lib/cockpitLinks';
 import { RunTransport } from '@/components/cockpit/RunTransport';
+import { ChargersDownChip } from '@/components/cockpit/ChargersDownChip';
 import { depotClock, phoneTelemetry, runPhase, type RunPhase } from './phoneLayout';
 import mark from '@/assets/logo.png';
 
@@ -21,6 +22,9 @@ import mark from '@/assets/logo.png';
  * real through useStartRun — the desktop Control tab's own start path. Its
  * "More options in Control" opens the full console in the panel sheet. Stop
  * asks first.
+ *
+ * The status strip leads with the red "N chargers down" chip while the twin
+ * reports any charger down; a tap lists them and when each comes back.
  */
 
 const PHASE_LABEL: Record<RunPhase, string> = {
@@ -64,6 +68,7 @@ export function PhoneRunBar({ layout, onOpenControl }: { layout: 'landscape' | '
 
   const telemetryStrip = (
     <div className="flex items-center gap-3 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden min-w-0 px-1">
+      <ChargersDownChip variant="phone" />
       {telemetry.slice(0, layout === 'landscape' ? 4 : telemetry.length).map((c) => (
         <div key={c.key} className="flex flex-col leading-none shrink-0">
           <span className="font-display text-[8.5px] uppercase tracking-[0.08em] text-ink-faint">{c.label}</span>

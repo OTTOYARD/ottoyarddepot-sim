@@ -133,7 +133,9 @@ export const TopBar = () => {
         <RunTransport variant="desktop" onOpenControl={openControl} />
       </div>
 
-      {/* Telemetry strip */}
+      {/* Telemetry strip. (The red "N chargers down" chip sits in the bottom bar, beside
+          LIVE: measured at 1440 px, the strip has ~47 px to spare beside the transport, and
+          the 107 px chip clipped it.) */}
       <div className="flex-1 min-w-0 flex items-center justify-center overflow-hidden">
         <div className="flex items-center bg-canvas-panel/60 border border-white/[0.06] rounded-md py-1">
           <Cell icon={Truck}           label="Dispatched" value={n(deployed)} />

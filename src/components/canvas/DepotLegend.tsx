@@ -83,6 +83,14 @@ export const DepotLegend = () => {
               ))}
             </div>
           </div>
+          {/* the mark Stall.tsx draws on a charger the twin reports Faulted (ChargingField: a red beacon and an X) */}
+          <div className="mt-1.5 flex items-center gap-1.5 border-t border-otto-gray/20 pt-1.5">
+            <span className="inline-flex items-center gap-0.5 rounded-sm bg-[#C00000] px-1 text-[8px] font-bold leading-[12px] text-white">
+              <svg viewBox="0 0 10 9" width="8" height="7" aria-hidden><path d="M5 0.4 L9.6 8.6 L0.4 8.6 Z" fill="#fff" /><rect x="4.45" y="3" width="1.1" height="3" fill="#C00000" /><rect x="4.45" y="6.8" width="1.1" height="1" fill="#C00000" /></svg>
+              FAULT
+            </span>
+            <span className="text-otto-white/70">Charger down. OTTO-Q sends no car to it.</span>
+          </div>
           {/* the mark VehicleDot (outline) and OwnerMarkers (3D badge) draw on a car its owner's agent set something on */}
           <div className="mt-1.5 flex items-center gap-1.5 border-t border-otto-gray/20 pt-1.5">
             <div className="w-2.5 h-2.5 rounded-sm" style={{ border: '1.5px solid #a78bfa', backgroundColor: '#8b5cf633' }} />

@@ -673,7 +673,7 @@ export interface ChargerSignal {
   rated_kw: number | null;
   status: string;
   vehicle_id: string | null;
-  /** true when the stall's status indicates a fault/offline condition */
+  /** true when the stall's status indicates a fault/offline condition, or its charger_state is Faulted (0612) */
   faulted: boolean;
 }
 
@@ -688,7 +688,8 @@ export interface ChargerSystemsPayload {
      *  the backend's stall status carries no power information */
     charging: number;
     available: number;
-    /** NULL when fault state is not observable on this frame. Never 0-as-unknown. */
+    /** NULL when fault state is not observable on this frame. Never 0-as-unknown. Observable from otto-q-core
+     *  0612 on: the snapshot lists every Faulted charger, and its rows carry charger_state. */
     faulted: number | null;
   };
   sessions_total: number | null;

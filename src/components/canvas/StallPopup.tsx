@@ -2,6 +2,8 @@ import { useDepotStore } from '@/store/depotStore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { X } from 'lucide-react';
+import { stallBadge } from '@/lib/chargerFaults';
+import { StallDownNote } from './StallTooltip';
 
 const TYPE_LABELS: Record<string, string> = {
   dcfc: 'Fast charger (DCFC)',
@@ -51,8 +53,9 @@ export const StallPopup = ({ svgRef }: Props) => {
         <div className="text-[11px] text-white">{TYPE_LABELS[stall.type]}</div>
         <div className="flex items-center gap-1.5">
           <span className="text-[11px] text-white">Status:</span>
-          <Badge variant="outline" className="text-[10px] px-1.5 py-0 capitalize border-otto-gray/30 text-otto-white">
-            {stall.status}
+          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 capitalize ${
+            stall.down ? 'border-otto-red/60 text-red-300' : 'border-otto-gray/30 text-otto-white'}`}>
+            {stallBadge(stall)}
           </Badge>
         </div>
         <div className="text-[11px] text-white">
@@ -61,6 +64,7 @@ export const StallPopup = ({ svgRef }: Props) => {
         <div className="text-[11px] text-white">
           Position: ({stall.position.x}, {stall.position.y})
         </div>
+        <StallDownNote stall={stall} />
       </CardContent>
     </Card>
   );

@@ -155,18 +155,21 @@ export const VARIABLE_BINDINGS: VariableBinding[] = [
   { var_key: "scheduling_algorithm", domain: "operations", label: "OTTO-Q scheduling policy", channel: "depot_ops", observable: "policy.observed", note: "observed from stamped deploy decisions; the configured value ships alongside but is never the witness" },
 
   // ── reliability ───────────────────────────────────────────────────────────
-  // UNOBSERVABLE, not dark. counts.faulted is hardcoded null because charger
-  // fault state lives in ottoq_ocpp_chargers.station_state, which the twin
-  // snapshot does not publish at all. Grading it "dark" implied a transient
-  // gap that might resolve on the next frame and kept it out of the structural
-  // backlog it actually belongs in. Re-bind to ocpp[].station_state the moment
-  // charger health reaches the frame and this flips to observed on its own.
-  // UNLOCKED as a RATE. Per-charger health is still dark — ottoq_ocpp_chargers
-  // remains unpublished and counts.faulted is still null — but the variable is
-  // "Charger fault rate", and the fault rate is now measured from the session
-  // log. These are different claims: the population rate says nothing about
-  // whether charger B-NASH-L2-27 is alive right now.
-  { var_key: "charger_fault", domain: "reliability", label: "Charger fault rate", channel: "charger_systems", observable: "reliability.fault_rate", note: "population fault rate from charge.session_faulted; PER-CHARGER station_state is still unpublished" },
+  // (History: this variable was UNOBSERVABLE while counts.faulted was hardcoded
+  // null — charger fault state lived only in ottoq_ocpp_chargers.station_state,
+  // which the snapshot did not publish — and the note said to re-bind once
+  // charger health reached the frame.)
+  // UNLOCKED as a RATE. The variable is "Charger fault rate", and the fault rate
+  // is measured from the session log. These are different claims: the population
+  // rate says nothing about whether charger B-NASH-L2-27 is alive right now.
+  //
+  // PER-CHARGER health has since reached the frame (otto-q-core 0612): the
+  // snapshot lists every Faulted charger with `charger_state`, and
+  // charger_systems.counts.faulted is now a count on such a frame (null on an
+  // older one). The binding STAYS on the rate, deliberately: a knob that sets how
+  // OFTEN chargers fault is witnessed by the rate it produces, and a count of
+  // chargers down right now reads 0 on a quiet minute of a high fault rate.
+  { var_key: "charger_fault", domain: "reliability", label: "Charger fault rate", channel: "charger_systems", observable: "reliability.fault_rate", note: "population fault rate from charge.session_faulted; per-charger fault state is counts.faulted (0612), which witnesses the moment, not the rate" },
   // UNLOCKED from ottoq_vehicle_wear, which counts open DTCs per vehicle per
   // run. Bound to the realized COUNT: if the spawn rate rises, this rises.
   // Republished with the sentinel stripped — the raw worst_open_dtc_rank uses
