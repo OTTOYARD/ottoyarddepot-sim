@@ -321,11 +321,21 @@ and feed lines built in `src/lib`. **Not** comments, console output, test names,
 | run | one simulation run | session, scenario run |
 | tick | one OTTO-Q decision cycle | cycle, beat |
 | agent / pass | the AI language model / one call to it | AI, LLM, model (except in "model call") |
-| solver | cuOpt, CP-SAT or the local optimizer | optimizer engine |
+| planner / solver | the lexicographic, GPU, heuristic or service-priority planner (`src/lib/publicNames.ts`) | a product name (see below), optimizer engine |
 | the decide path | the deterministic part that makes every final decision | arbiter, deterministic core, kernel |
 | safety shield | the rule layer that checks each decision | rule gate, guard ("gate" is the depot gate) |
 | propose / decide | what agents and solvers do / what the decide path does | suggest, dispose, enact |
 | ready / dispatch | a car with no open needs / a ready car sent out | released, deployed |
+
+**No vendor product names on screen (Chase, 2026-10-07).** *"I want to remove all specific tool naming from our
+descriptions ... rather terms like 'leverages Nvidia open source model for…'"*. A model or solver is named by what it
+does, and a vendor only as the maker of the hardware or open model underneath: "the agent, on an NVIDIA open model",
+"the lexicographic planner", "the GPU planner". Every viewer name comes from `src/lib/publicNames.ts`; text the app does
+not write (a model's review, an upstream error) goes through `publicText()`. `publicNames.test.ts` parses every string
+literal, template and JSX text in `src` and fails on a product name with its file and line, so add a name to the table,
+never to a component. Sources for vendor facts go in a code comment beside the claim, dated, not in a link on screen
+(a link names the product in its address). And the layer cards say how OTTO-Q is built without the formula: no code
+object names on screen (`refs` stay in `layerInfo.ts` for engineers and tests).
 
 **Honesty is not cut.** Keep every number with its denominator and unit, every run id, and every
 word that limits a claim (simulated, in the twin, advisory, not yet, measured on run X). Never make a

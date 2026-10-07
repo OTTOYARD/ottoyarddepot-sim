@@ -69,9 +69,6 @@ function Section({ id, icon: Icon, title, kicker, children }: {
 
 const P = ({ children }: { children: ReactNode }) => <p>{children}</p>;
 const B = ({ children }: { children: ReactNode }) => <strong className="font-semibold text-ink">{children}</strong>;
-const Code = ({ children }: { children: ReactNode }) => (
-  <code className="break-words rounded bg-white/[0.05] px-1 py-px font-mono text-[10.5px] text-ink">{children}</code>
-);
 
 function Bullets({ items }: { items: ReactNode[] }) {
   return (
@@ -302,7 +299,7 @@ export function TwinBackgroundTab() {
           <Bullets items={[
             'Worlds come in as declared data.',
             'Nothing from a solved world goes back into the solver.',
-            <>A test in CI enforces this boundary. See <Code>SEPARATION.md</Code>.</>,
+            'A test in CI enforces this boundary.',
           ]} />
           <P>So a result here is evidence about a real depot, not only about this one.</P>
         </Section>
@@ -410,8 +407,7 @@ export function TwinBackgroundTab() {
             times.
           </P>
           <P>
-            Each draw depends only on the run seed, the item it is for and the sim time
-            (<Code>twin.ottoq_sim_seeded_random</Code>). The results:
+            Each draw depends only on the run seed, the item it is for and the sim time. The results:
           </P>
           <Bullets items={[
             <><B>Different seeds, independent worlds.</B> Many seeds sample the range of days a depot will see, not one
@@ -534,9 +530,9 @@ export function TwinBackgroundTab() {
             <Layer n={1} title="Physical limits in the database" status="enforced">
               <p>Under all rules, the database refuses some writes in every case:</p>
               <Bullets items={[
-                <>A calendar constraint makes a double booking impossible (<Code>ottoq_stall_bookings</Code> EXCLUDE).</>,
+                'A calendar constraint makes a double booking impossible.',
                 'A unique index allows only one car per stall.',
-                <>The signed event log rejects each edit and deletion (<Code>ottoq_events</Code>).</>,
+                'The signed event log rejects each edit and deletion.',
               ]} />
             </Layer>
             <Layer n={2} title="The rule shield" status="enforced">
@@ -572,7 +568,7 @@ export function TwinBackgroundTab() {
               <p>
                 By contract, a car's charge target and its services belong to its owner. Each car charges to 100% unless
                 its owner sets a lower limit. No car leaves with a service still needed: one departure test runs at each
-                exit (<Code>ottoq_departure_clear</Code>). OTTO-Q never gives up a car's needs for
+                exit. OTTO-Q never gives up a car's needs for
                 throughput. A charge ends early only for a charger fault (the car goes back in the queue) or a
                 car emergency.
               </p>
@@ -773,8 +769,7 @@ export function TwinBackgroundTab() {
             <><B>Tested, not only stated.</B> Four packs (robotaxi, yard logistics, mining and vertiport) load against one
               closed specification and schedule with no change to the kernel. Robotaxi and yard logistics ran in full.
               Mining and vertiport passed on paper. We found one real solver extension and wrote it down: vertiport pad
-              separation, two named points that cannot be active at the same time
-              (<Code>CONFORMANCE_FINDINGS.md</Code>, Aug 22, 2026).</>,
+              separation, two named points that cannot be active at the same time (found Aug 22, 2026).</>,
             <><B>Standard protocols.</B> OCPP 2.0.1 for chargers, service records in the shape of OCPI, and a draft VDA
               5050 adapter for warehouse robots.</>,
             <><B>Any autonomy stack.</B> It works with any driving stack through one interface, the recall decision: when

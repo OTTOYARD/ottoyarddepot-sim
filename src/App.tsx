@@ -13,6 +13,7 @@ import { CockpitPanel } from '@/components/cockpit/CockpitPanel';
 import { useRunFromUrl } from '@/hooks/useRunFromUrl';
 import { useCockpitStore } from '@/store/cockpitStore';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
+import { Toaster } from 'sonner';
 
 const App = () => {
   // TRUTH-2 (founder rule 2026-07-25): everything that plays on screen must be
@@ -44,6 +45,9 @@ const App = () => {
   return (
     <ResponsiveGuard>
       <div className="h-screen w-screen flex flex-col overflow-hidden bg-canvas-base">
+        {/* Start, Pause and Stop now sit in the top bar (useStartRun, useStopRun): their success and failure toasts
+            need a toaster on the desktop too, under the 56 px bar, as the phone cockpit has one under its run bar. */}
+        <Toaster position="top-center" theme="dark" offset={64} />
         <TopBar />
         <div className="relative flex-1 flex min-h-0">
           {/* The group is always mounted so opening a cockpit beside the depot never remounts
