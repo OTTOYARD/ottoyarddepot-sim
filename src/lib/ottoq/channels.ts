@@ -818,6 +818,14 @@ export function packChargerSystems(
   const layoutStalls = (layout?.stalls ?? []).filter((s) =>
     CHARGER_TYPES.has(String(s.type ?? "").toLowerCase()),
   );
+  // PER-CHARGER FAULT STATE REACHES THE FRAME (otto-q-core 0612): the snapshot lists
+  // every stall whose OCPP charger is Faulted, and its rows carry `charger_state`. A
+  // frame whose rows carry that field publishes charger health, so a charger NOT listed
+  // as Faulted is known up and the count below is a real count. A frame whose rows do
+  // not (an older backend, or no row at all) still cannot see it: the count stays null.
+  const publishesChargerHealth = (snap.stalls_status ?? []).some(
+    (s) => !!s && Object.prototype.hasOwnProperty.call(s, "charger_state"),
+  );
 
   // A stall's status cannot tell us whether power is flowing — the backend only
   // says available/occupied. Derive it from the VEHICLE in the stall instead:
@@ -837,14 +845,13 @@ export function packChargerSystems(
       rated_kw: num(ls.connector_kw),
       status,
       vehicle_id,
-      // Fault state is NOT observable on this frame — the backend keeps it in
-      // ottoq_ocpp_chargers.station_state, which the snapshot does not publish.
-      // Reporting `false` here would assert every charger is healthy on no
-      // evidence, which is precisely the "absent rendered as zero" failure this
-      // contract exists to prevent. It stays false only when a renderer-sourced
-      // status positively says so; the honest unknown is carried by
+      // Fault state reaches the frame from 0612 on, as `status` 'faulted' and
+      // `charger_state` 'Faulted' (either one is a fault). On an older frame it is
+      // NOT observable — the backend keeps it in ottoq_ocpp_chargers.station_state —
+      // and `false` here asserts nothing: the honest unknown is carried by
       // `counts.faulted === null` and the ocpp integrity gap below.
-      faulted: OFFLINE_STATUSES.has(status.toLowerCase()),
+      faulted: OFFLINE_STATUSES.has(status.toLowerCase())
+        || String(st?.charger_state ?? "").toLowerCase() === "faulted",
     };
   });
 
@@ -941,11 +948,11 @@ export function packChargerSystems(
       total: chargers.length,
       charging: charging.length,
       available: chargers.filter((c) => !c.faulted && !OCCUPIED_STATUSES.has(c.status.toLowerCase())).length,
-      // NULL, not 0. Charger faults live in ottoq_ocpp_chargers.station_state,
-      // which this frame does not carry — so the true answer is "we cannot
-      // see". A 0 here would read as "no chargers are faulted" and let the
-      // orchestrator keep assigning vehicles to dead hardware.
-      faulted: null,
+      // A COUNT only where the frame publishes charger health (0612: its rows carry
+      // charger_state); NULL, not 0, where it does not. A 0 on a frame that cannot see
+      // would read as "no chargers are faulted" and let the orchestrator keep
+      // assigning vehicles to dead hardware.
+      faulted: publishesChargerHealth ? chargers.filter((c) => c.faulted).length : null,
     },
     sessions_total: num(snap.counters?.charge_sessions),
     ocpp: [],

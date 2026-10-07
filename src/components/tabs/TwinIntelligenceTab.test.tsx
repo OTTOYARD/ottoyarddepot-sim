@@ -386,9 +386,9 @@ describe('TwinIntelligenceTab on the live run dde654cc', () => {
 
   it('labels each provider from the evidence ledger without renaming one', () => {
     mount({ simRunId: LIVE.run!.sim_run_id!, stack: LIVE });
-    expect(screen.getByText('cuOpt')).toBeTruthy();
-    expect(screen.getByText('CP-SAT')).toBeTruthy();
-    expect(screen.getByText('Nemotron')).toBeTruthy();
+    expect(screen.getByText('GPU planner')).toBeTruthy();
+    expect(screen.getByText('Lexicographic planner')).toBeTruthy();
+    expect(screen.getAllByText('Agent').length).toBeGreaterThan(0);
     expect(screen.getByText(/532 calls · 2,781 proposals/)).toBeTruthy();
     // CP-SAT made 41 calls and returned nothing. "41 calls" alone, never a
     // proposal count it did not produce.

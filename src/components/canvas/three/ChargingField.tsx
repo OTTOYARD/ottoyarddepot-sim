@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from 'react';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useDepotStore } from '@/store/depotStore';
 import { useVehicleStore } from '@/store/vehicleStore';
@@ -8,8 +9,10 @@ import { CAR_W_PU } from './vehicleBody';
 import { towardFor, chargerCabinet, chargerPad } from '@/lib/ottoChargeArm/depotPlacement';
 import {
   DCFC_CABINET_PU, L2_CABINET_PU, L2_POST_ALONG_PU, L2_POST_LATERAL_PU, CABINET_BACKSET_PU, ARM_MOUNT_PU,
+  STATUS_BAR_PU, FAULT_BEACON_PU, faultBeaconBaseY,
 } from '@/lib/ottoChargeArm/cabinetEnvelope';
-import { toWorld, DECK_Y } from './coordUtils';
+import { chargerStallFrame, chargerStallPaint } from '@/lib/sitePlan';
+import { toWorld, DECK_Y, yawFromHeading2D } from './coordUtils';
 import { StaticBatch } from './staticBatch';
 import { MATERIALS } from './materials';
 
@@ -50,6 +53,52 @@ const L2_HOLSTER = { 1: holsterAt(1), [-1]: holsterAt(-1) } as Record<1 | -1, { 
 // Coiled cable hanging on an idle L2 pedestal's end face (torus axis on Z).
 const COIL = new THREE.TorusGeometry(0.3, 0.055, 6, 18);
 
+/*
+ * THE FAULT MARKS (Chase, 2026-10-07: a faulted charger must read as "down due to a
+ * fault" on sight, in shape and not by colour alone). Drawn only while the twin
+ * reports the stall's charger Faulted (stall.down.kind === 'fault'):
+ *   - a red BEACON on the cabinet's top, centred on its status bar
+ *     (cabinetEnvelope.FAULT_BEACON_PU; cabinetClearance.test.ts keeps the arm clear of it);
+ *   - the cabinet's SCREEN turns red;
+ *   - a red X and border painted on the stall's pad: the "bay closed" mark, flat on the
+ *     deck like any paint, so it is no obstacle (a car the twin has not yet moved off
+ *     the stall simply stands on it).
+ * The status bar is red for any stall out of use, faulted or offline, as before.
+ */
+/** The beacon, base at y = 0 on its own axis: a lens and a dome (the batch merges them). */
+function beaconGeos(): THREE.BufferGeometry[] {
+  const r = FAULT_BEACON_PU.radius;
+  const body = FAULT_BEACON_PU.height - r;
+  const lens = new THREE.CylinderGeometry(r, r * 1.08, body, 16).translate(0, body / 2, 0);
+  const dome = new THREE.SphereGeometry(r, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2).translate(0, body, 0);
+  return [lens, dome];
+}
+
+/** Thickness of the pad paint, and how far above the deck it lies. */
+const MARK = { line: 0.34, x: 0.42, h: 0.02, lift: 0.012 } as const;
+
+/** The red X and border on a charger stall's pad, in WORLD coordinates. */
+function padMarkGeos(type: 'dcfc' | 'l2', pos: { x: number; y: number; angle: number }): THREE.BufferGeometry[] {
+  const { len, wid } = chargerStallPaint(type);
+  const yaw = yawFromHeading2D(chargerStallFrame(pos.angle).heading); // model +Z along the car
+  const [wx, , wz] = toWorld(pos, 0);
+  const y = DECK_Y + MARK.lift + MARK.h / 2;
+  // car frame: +X across the car, +Z along it
+  const lo = len - 0.7, wo = wid - 0.7; // border, just inside the stall paint
+  const lx = len - 2.6, wxi = wid - 1.8; // the X, inset from the border
+  const diag = Math.hypot(lx, wxi);
+  const a = Math.atan2(wxi, lx);
+  const parts: THREE.BufferGeometry[] = [
+    new THREE.BoxGeometry(MARK.line, MARK.h, lo).translate(wo / 2, 0, 0),
+    new THREE.BoxGeometry(MARK.line, MARK.h, lo).translate(-wo / 2, 0, 0),
+    new THREE.BoxGeometry(wo, MARK.h, MARK.line).translate(0, 0, lo / 2),
+    new THREE.BoxGeometry(wo, MARK.h, MARK.line).translate(0, 0, -lo / 2),
+    new THREE.BoxGeometry(MARK.x, MARK.h, diag).rotateY(a),
+    new THREE.BoxGeometry(MARK.x, MARK.h, diag).rotateY(-a),
+  ];
+  return parts.map((g) => g.rotateY(yaw).translate(wx, y, wz));
+}
+
 /** Charger housing materials: a satin light shell over a graphite plinth, the
  *  way current DC and L2 hardware is finished — and light enough to read
  *  against the asphalt and the canopy's shade, which the old all-dark box did not. */
@@ -67,14 +116,17 @@ const HOUSING = {
  *   - DCFC: abeam the car's centre, behind the OTTO-CHARGE ARM that stands on the
  *     same line (depotPlacement.pedestalPlanPoint);
  *   - L2: beside the car's front quarter (cabinetEnvelope.L2_POST_*).
- * Pedestal LED reflects live stall status (available/charging/servicing/offline).
+ * Pedestal LED reflects live stall status (available/charging/servicing/offline,
+ * red for offline); a charger the twin reports Faulted also gets the fault marks
+ * (beaconGeos, padMarkGeos, a red screen).
  *
  * The HOUSING (pad, shell, plinth, cap, screen bezel, vents, brand line, L2
  * holster) never changes, so it is batched into one buffer per material for
  * the whole field; only the status-driven parts (LED bar, screen, cable, idle
- * coil) are drawn per stall. Everything sits within the cabinet envelope the
- * OTTO-CHARGE ARM is cleared against (cabinetEnvelope.ts) except what faces
- * the car on L2 pedestals, which carry no arm.
+ * coil, fault marks) are drawn per stall. Everything sits within the cabinet
+ * envelope the OTTO-CHARGE ARM is cleared against (cabinetEnvelope.ts, the fault
+ * beacon included) except what faces the car on L2 pedestals, which carry no arm,
+ * and the pad paint, which lies flat on the deck.
  */
 export function ChargingField({ type }: Props) {
   const stalls = useDepotStore((s) => s.stalls);
@@ -92,13 +144,29 @@ export function ChargingField({ type }: Props) {
     teal: MATERIALS.tealLED(1.2),
     green: MATERIALS.greenIndicator(),
     amber: MATERIALS.amberIndicator(),
-    red: MATERIALS.tealLED(0.4),
+    red: MATERIALS.redIndicator(),
     pad: MATERIALS.darkCladding(),
     shell: HOUSING.shell(),
     graphite: HOUSING.graphite(),
     brand: HOUSING.brand(),
     cable: MATERIALS.chargerCable(),
+    // the fault marks: per field, not cached, because the beacon's glow is animated below
+    faultScreen: new THREE.MeshStandardMaterial({
+      color: '#3a0606', roughness: 0.3, metalness: 0.1,
+      emissive: new THREE.Color('#ff2020'), emissiveIntensity: 1.6, toneMapped: false,
+    }),
+    beacon: new THREE.MeshPhysicalMaterial({
+      color: '#ff2a2a', roughness: 0.15, metalness: 0, transmission: 0, clearcoat: 0.6,
+      emissive: new THREE.Color('#ff2020'), emissiveIntensity: 4, toneMapped: false,
+    }),
+    mark: new THREE.MeshStandardMaterial({
+      color: '#e53935', roughness: 0.7, metalness: 0,
+      emissive: new THREE.Color('#b71c1c'), emissiveIntensity: 0.45,
+      // paint on the deck: drawn over the asphalt it lies on, never fighting it
+      polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
+    }),
   }), []);
+  useEffect(() => () => { mats.faultScreen.dispose(); mats.beacon.dispose(); mats.mark.dispose(); }, [mats]);
 
   // Pedestal LED by live stall status.
   const ledKey = (status: string) => {
@@ -198,12 +266,17 @@ export function ChargingField({ type }: Props) {
   // The status-driven parts — screen, LED bar, idle coil, live L2 cable — are
   // batched too (phone lane, 2026-09-29), rebuilt only when a stall's status or
   // its parked car changes. Drawn per stall they were ~100 draw calls for the
-  // two fields; batched they are one per material.
-  const liveKey = list.map((s) => `${s.id}:${s.status}:${s.vehicleId ?? ''}`).join('|');
+  // two fields; batched they are one per material. The fault marks join them:
+  // one draw call per mark material however many chargers are down, none when
+  // none is.
+  const liveKey = list.map((s) => `${s.id}:${s.status}:${s.vehicleId ?? ''}:${s.down?.kind ?? ''}`).join('|');
+  const anyFault = list.some((s) => s.down?.kind === 'fault');
   const dynamic = useMemo(() => {
     const b = new StaticBatch();
+    const lift = isDC ? STATUS_BAR_PU.dcfcLift : STATUS_BAR_PU.l2Lift;
     for (const { s, toward, wx, wz, yaw } of placed) {
       const live = s.status === 'charging' || s.status === 'occupied' || s.status === 'servicing';
+      const fault = s.down?.kind === 'fault';
       // local (per-stall frame) geometry -> world: Ry(yaw), then the cabinet's deck point
       const put = (k: string, g: THREE.BufferGeometry, lx: number, ly: number, lz: number, rotY = 0) => {
         if (rotY) g.rotateY(rotY);
@@ -211,10 +284,15 @@ export function ChargingField({ type }: Props) {
         b.geometry(k, g);
       };
       // screen — on the car-facing face of the cabinet (local +X). A plane's
-      // normal is +Z, and Ry(pi/2) turns it to +X.
-      put('screen', new THREE.PlaneGeometry(0.6, 0.86), D / 2 + 0.026, P + H * 0.68, 0, Math.PI / 2);
+      // normal is +Z, and Ry(pi/2) turns it to +X. Red while the charger is faulted.
+      put(fault ? 'screen:fault' : 'screen', new THREE.PlaneGeometry(0.6, 0.86), D / 2 + 0.026, P + H * 0.68, 0, Math.PI / 2);
       // status LED bar across the top of the shell
-      put(`led:${ledKey(s.status)}`, new THREE.BoxGeometry(D * 0.85, 0.07, W * 0.7), 0, P + H + (isDC ? 0.42 : 0.13), 0);
+      put(`led:${ledKey(s.status)}`, new THREE.BoxGeometry(D * 0.85, STATUS_BAR_PU.height, W * 0.7), 0, P + H + lift, 0);
+      if (fault) {
+        // the beacon, centred on the status bar; and the "bay closed" X on the pad
+        for (const g of beaconGeos()) put('beacon', g, 0, faultBeaconBaseY(isDC ? 'dcfc' : 'l2'), 0);
+        for (const g of padMarkGeos(isDC ? 'dcfc' : 'l2', s.position)) b.geometry('mark', g);
+      }
       if (isDC) continue;
       if (live) {
         // an L2 cable runs across to the car's own port while the stall is live;
@@ -232,10 +310,17 @@ export function ChargingField({ type }: Props) {
   }, [placed, liveKey, oemOf, isDC, D, H, W, P]);
   useEffect(() => () => { for (const g of dynamic.values()) g.dispose(); }, [dynamic]);
 
+  // the beacon breathes (one uniform per frame, and only while a charger here is faulted)
+  useFrame(({ clock }) => {
+    if (!anyFault) return;
+    mats.beacon.emissiveIntensity = 2.2 + 2.6 * (0.5 + 0.5 * Math.sin(clock.elapsedTime * 4.5));
+  });
+
   const houseMats: Record<string, THREE.Material> = { pad: mats.pad, shell: mats.shell, graphite: mats.graphite, brand: mats.brand };
   const dynMats: Record<string, THREE.Material> = {
     screen: mats.screen, cable: mats.cable,
     'led:charging': mats.green, 'led:busy': mats.amber, 'led:offline': mats.red, 'led:idle': mats.teal,
+    'screen:fault': mats.faultScreen, beacon: mats.beacon, mark: mats.mark,
   };
 
   return (

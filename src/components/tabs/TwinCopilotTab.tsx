@@ -8,10 +8,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ottoQ } from "@/lib/ottoQClient";
 import { readCopilotFailure, type CopilotResult } from "@/lib/copilotError";
 import { useTwinStore } from "@/store/twinStore";
+import { publicText } from "@/lib/publicNames";
 
-// Minimal markdown: **bold**, headings (lines starting with **N.), and paragraph breaks.
+// Minimal markdown: **bold**, headings (lines starting with **N.), and paragraph breaks. The text is the model's own;
+// only product names and engine keys in it are put in their public names (publicNames.publicText, Chase 2026-10-07).
 function renderAnalysis(text: string) {
-  return text.split(/\n{2,}/).map((para, i) => {
+  return publicText(text).split(/\n{2,}/).map((para, i) => {
     const parts = para.split(/(\*\*[^*]+\*\*)/g).map((seg, j) =>
       seg.startsWith("**") && seg.endsWith("**")
         ? <strong key={j} className="text-ink">{seg.slice(2, -2)}</strong>
@@ -68,8 +70,8 @@ export const TwinCopilotTab = () => {
     <ScrollArea className="flex-1">
       <div className="p-3 space-y-3">
         <div>
-          <div className="font-display text-[10px] text-ink-dim uppercase tracking-[0.08em]">OTTO-Q Copilot · Nemotron 3 Ultra</div>
-          <p className="text-[11px] text-ink-faint mt-1 leading-snug">On request, Nemotron interprets up to 80 recent decisions. The live decisions in the OTTO-Q tab are the evidence.</p>
+          <div className="font-display text-[10px] text-ink-dim uppercase tracking-[0.08em]">OTTO-Q Copilot · NVIDIA open model</div>
+          <p className="text-[11px] text-ink-faint mt-1 leading-snug">On request, a reasoning model reviews up to 80 recent decisions. The live decisions in the OTTO-Q tab are the evidence.</p>
         </div>
 
         <button
@@ -80,7 +82,7 @@ export const TwinCopilotTab = () => {
           {loading ? "Audit in progress…" : "Run OTTO-Q audit"}
         </button>
 
-        {error && <div role="alert" className="text-[11px] text-brand-red bg-brand-red/10 border border-brand-red/30 rounded-lg p-2.5">Audit error: {error}{s && <p className="mt-1 text-ink-dim">OTTO-Q returned the decision counts below. The Nemotron analysis is not available.</p>}</div>}
+        {error && <div role="alert" className="text-[11px] text-brand-red bg-brand-red/10 border border-brand-red/30 rounded-lg p-2.5">Audit error: {publicText(error)}{s && <p className="mt-1 text-ink-dim">OTTO-Q returned the decision counts below. The model review is not available.</p>}</div>}
 
         {s && (
           <>
@@ -107,10 +109,10 @@ export const TwinCopilotTab = () => {
         {result?.analysis && (
           <div className="bg-canvas-panel border border-white/[0.06] rounded-lg p-3">
             <div className="text-[9px] text-ink-faint uppercase tracking-wide mb-2 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#00B4A6]" /> Nemotron 3 Ultra analysis
+              <span className="w-1.5 h-1.5 rounded-full bg-[#00B4A6]" /> Model review
             </div>
             {renderAnalysis(result.analysis)}
-            <div className="text-[9px] text-ink-faint mt-2 font-mono">{result.model}</div>
+            {result.model && <div className="text-[9px] text-ink-faint mt-2">NVIDIA open model</div>}
           </div>
         )}
       </div>

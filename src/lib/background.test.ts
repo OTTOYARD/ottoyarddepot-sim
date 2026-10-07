@@ -93,13 +93,14 @@ describe("the intelligence ledger", () => {
     expect(p.map((x) => x.provider)).toEqual(["nvidia_nemotron", "cpsat_service", "nvidia_cuopt"]);
     expect(p[0].line).toBe("12,627 agent decisions recorded · 12,185 applied · 440 fell back to the deterministic objective");
     expect(p[1].line).toBe("8,941 solver calls · 1,077 offers made · 145 enacted by the decide path · 59 refused");
-    expect(p[2].line).toBe("1,165 calls answered by NVIDIA's endpoint · 5,093 proposals returned");
+    expect(p[2].line).toBe("1,165 calls answered · 5,093 proposals returned");
+    expect(p.map((x) => x.name)).toEqual(["Agent · NVIDIA open model", "Lexicographic planner", "GPU planner · NVIDIA"]);
     expect(p[2].last).toBe("2026-09-27T12:03:06.08538+00:00");
   });
 
   it("reads — for a column that is missing, never 0", () => {
     const [x] = providerFacts([{ provider: "nvidia_cuopt" } as LedgerRow]);
-    expect(x.line).toBe("— calls answered by NVIDIA's endpoint · — proposals returned");
+    expect(x.line).toBe("— calls answered · — proposals returned");
   });
 });
 

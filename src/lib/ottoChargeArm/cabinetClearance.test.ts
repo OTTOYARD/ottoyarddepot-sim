@@ -26,6 +26,7 @@ import { clearanceToCar } from "./vehicleEnvelope";
 import {
   cabinetSolidInArmFrame, cabinetIntrusionTowardCar, DCFC_CABINET_PU,
   mountSolidInArmFrame, MOUNT_PLATE_UNDERSIDE_M, ARM_MOUNT_PU, CABINET_BACKSET_PU,
+  faultBeaconSolidInArmFrame, faultBeaconBaseY, FAULT_BEACON_PU,
 } from "./cabinetEnvelope";
 import type { CarSolid } from "./vehicleEnvelope";
 
@@ -259,5 +260,48 @@ describe("THE ARM'S MOUNT: riser and bridge join the arm to its cabinet", () => 
     console.log(`[mount] worst moving-link clearance ${worst.min.toFixed(4)} m on "${worst.part}" at ${worst.label}`);
     expect(Number.isFinite(worst.min)).toBe(true);
     expect(worst.min).toBeGreaterThan(0.05);
+  });
+});
+
+// ============================================================================
+// THE FAULT BEACON (Chase, 2026-10-07: a faulted charger must read as down). It
+// stands on the status bar, centred on the cabinet's top, only while the twin
+// reports that charger Faulted. A faulted charger has no car and no arm cycle, but
+// the arm still stows over its base beside it, so the beacon gets the same check
+// as the cabinet and the mount: no moving link anywhere near it, in any pose of
+// the duty cycle or the transit from stowed.
+// ============================================================================
+describe("THE FAULT BEACON on the cabinet's top", () => {
+  const BEACON = faultBeaconSolidInArmFrame();
+
+  it("stands on the status bar, on top of the cabinet", () => {
+    const cabinetTop = CABINET.profile[2][1];
+    expect(BEACON.profile[0][1]).toBeGreaterThan(cabinetTop); // its base is above the body's top
+    expect(BEACON.profile[0][1]).toBeCloseTo(faultBeaconBaseY("dcfc") * 0.4785, 9);
+    // centred on the cabinet, inside its footprint
+    expect(BEACON.zMin).toBeGreaterThan(CABINET.zMin);
+    expect(BEACON.zMax).toBeLessThan(CABINET.zMax);
+    expect(FAULT_BEACON_PU.radius * 2).toBeLessThan(DCFC_CABINET_PU.depth);
+  });
+
+  it("no moving link comes near it, anywhere in the duty cycle or the transit from stowed", () => {
+    const probe = makeProbe();
+    let worst = { min: Infinity, part: "", label: "" };
+    const lerp = (a: JointAngles, b: JointAngles, k: number): JointAngles => ({
+      j1: a.j1 + (b.j1 - a.j1) * k, j2: a.j2 + (b.j2 - a.j2) * k, j3: a.j3 + (b.j3 - a.j3) * k,
+      j4: a.j4 + (b.j4 - a.j4) * k, j5: a.j5 + (b.j5 - a.j5) * k, j6: a.j6 + (b.j6 - a.j6) * k,
+    });
+    for (const p of dutyCyclePoses()) {
+      for (let i = 0; i <= 12; i++) {
+        probe.pose(lerp(STOWED, p.angles, i / 12));
+        const c = probe.worstClearance(BEACON);
+        if (c.min < worst.min) worst = { min: c.min, part: c.part, label: `${p.label} @${i}/12` };
+      }
+    }
+    // eslint-disable-next-line no-console
+    console.log(`[beacon] worst moving-link clearance ${worst.min.toFixed(4)} m on "${worst.part}" at ${worst.label}`);
+    expect(Number.isFinite(worst.min)).toBe(true);
+    // at least the margin the arm keeps from the cabinet body itself
+    expect(worst.min).toBeGreaterThan(0.2);
   });
 });

@@ -176,7 +176,10 @@ export const useSimulationStore = create<SimulationState>((set) => ({
   simSpeed: 10,
   isPanelOpen: true,
   isPanelExpanded: false,
-  activeTab: 'controls',
+  // The cockpit opens on Background, desktop and phone (Chase, 2026-10-07: "if you open,
+  // the tabs background is first, so you immediately start reading"). A run starts from
+  // the top bar's Start (RunTransport); every control is still on the Control tab.
+  activeTab: 'background',
   config: { ...defaultConfig },
   viewMode: '2d',
   controlsLocked: false,

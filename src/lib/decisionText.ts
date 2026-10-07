@@ -7,6 +7,7 @@ import type { ActivityFeedRow } from "@/store/activityFeedStore";
 import { confirmedText, isLocalGrade } from "./secondLoop";
 // The words a viewer reads come from one glossary (plainWords.ts), carried verbatim beside this file in every cockpit.
 import { ruleWords } from "./plainWords";
+import { publicLabel, publicPhrase } from "./publicNames";
 
 /** Every clock in the cockpit reads Nashville time (the TopBar says "CT"). */
 export const DEPOT_TZ = "America/Chicago";
@@ -284,13 +285,10 @@ export function holdText(
 // Exported so intelligenceStack.test.ts can assert it agrees with
 // STACK_PROVIDER_LABEL — two provider maps in one app is a drift waiting to
 // happen, and a provider renamed in one place must fail a test, not a demo.
-export const PROVIDER_LABEL: Record<string, string> = {
-  nvidia_cuopt: "cuOpt",
-  nvidia_nemotron: "Nemotron",
-  cpsat_service: "CP-SAT",
-  anthropic_advisor: "Advisor",
-  local_fallback: "local fallback",
-};
+// The names themselves live in src/lib/publicNames.ts (no product names on screen, Chase 2026-10-07).
+export const PROVIDER_LABEL: Record<string, string> = Object.fromEntries(
+  ["nvidia_cuopt", "nvidia_nemotron", "cpsat_service", "anthropic_advisor", "local_fallback"].map((k) => [k, publicLabel(k)]),
+);
 
 // THIS STRIP USED TO LIE, and the lie was in the engine's feed rather than here.
 // otto-q-core migration 0346: ottoq_activity_feed joined the proposer fire log on
@@ -303,6 +301,13 @@ export function solverLabel(detail: Record<string, unknown>): string {
   if (!raw) return "no solver call";
   // one chain can be served by more than one provider; the feed joins them with '+'
   return raw.split("+").map((p) => PROVIDER_LABEL[p] ?? p).join(" + ");
+}
+
+/** The same providers inside a sentence ("the lexicographic planner and the agent"), or null when no solver was called. */
+export function solverPhrase(detail: Record<string, unknown>): string | null {
+  const raw = typeof detail.solver_engine === "string" ? detail.solver_engine.trim() : "";
+  if (!raw) return null;
+  return raw.split("+").map((p) => publicPhrase(p.trim()) ?? p.trim().replace(/_/g, " ")).join(" and ");
 }
 
 // The kernel's own disposition, from ottoq_external_proposals joined on the chain

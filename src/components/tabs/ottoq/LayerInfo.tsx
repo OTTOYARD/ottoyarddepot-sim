@@ -10,6 +10,8 @@
 //
 // The words are src/lib/layerInfo.ts (tested there). This file only draws them. The one number a card may show is the
 // plate's own live line for the run being watched, named as that run's, so nothing here is a figure written on a day.
+// The code objects behind each card (`refs`) are not drawn (Chase, 2026-10-07: describe OTTO-Q "without revealing our
+// entire formula and construction").
 // ============================================================================
 import { useState } from "react";
 import { ArrowRight, CornerDownRight, Info } from "lucide-react";
@@ -52,12 +54,6 @@ export function LayerInfoCard({ plate, live, run, onOpenTab }: {
           {run ? `This run (${run.slice(0, 8)}): ` : "This run: "}<span className="font-mono text-[10.5px] text-ink">{live}</span>
         </p>
       ) : null}
-      <details className="mt-1.5 text-[10px] text-ink-faint">
-        <summary className="cursor-pointer select-none hover:text-ink-dim">Where to check it</summary>
-        <ul className="mt-1 space-y-0.5 font-mono text-[9.5px] leading-[13px]">
-          {info.refs.map((r) => <li key={r} className="break-words">{r}</li>)}
-        </ul>
-      </details>
       {onOpenTab ? (
         <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1">
           {plate === "agent" ? (

@@ -10,12 +10,16 @@
 //
 // So each card is three parts and nothing else: an overview (two sentences at most), three or four short facts, and one
 // closing line that hands over to the next layer. The 2026-10-02 cards (what, why, does, technically, chosen, never)
-// were cut from about 330 words each to under 100; nothing they said is contradicted here, and the code objects that
-// back every line stay under "Where to check it".
+// were cut from about 330 words each to under 100; nothing they said is contradicted here.
+// Chase, 2026-10-07: "It sounds very childish ... I want to remove all specific tool naming from our descriptions ...
+// definitely make note of our proprietary or custom build safety layer and rule set ... without revealing our entire
+// formula and construction". So the cards name no vendor product (names live in src/lib/publicNames.ts, with the
+// sources for "NVIDIA open model" and "state-of-the-art"), and the code objects behind each line are no longer drawn
+// on screen. They stay in `refs`, for an engineer and for the tests.
 //
 // Every sentence describes a mechanism in otto-q-core that can be pointed at by name (the `refs` of each layer). No
 // count lives in this file: a number on screen comes from the run being watched (the plate's live line). The test
-// beside this file holds both rules, and the length.
+// beside this file holds both rules, the length, and the product names.
 // ============================================================================
 import type { PlateId } from "@/components/tabs/ottoq/stack/stackModel";
 import type { LayerId } from "@/lib/ottoqFunnel";
@@ -31,7 +35,7 @@ export interface LayerInfo {
   points: string[];
   /** One sentence: what the layer hands to the next one. */
   next: string;
-  /** Code objects in otto-q-core (or this repo) a reader can open to check every line above. */
+  /** Code objects in otto-q-core (or this repo) that back every line above. Not drawn on screen (Chase, 2026-10-07). */
   refs: string[];
 }
 
@@ -40,19 +44,19 @@ export const LAYER_INFO: Record<PlateId, LayerInfo> = {
     plate: "agent",
     title: "Agent",
     tagline: "Read & propose",
-    overview: "The agent is the AI layer of OTTO-Q. It reads the whole depot and sets the goal for the next decisions.",
+    overview: "The agent reasons over the live depot state with an NVIDIA open model. Each pass turns that state into one objective for the planners.",
     points: [
-      "Model: NVIDIA Nemotron, on the NVIDIA API. The tick never waits for it.",
-      "It picks one of three goals: readiness first, throughput first or energy balanced.",
-      "It can ask to change a few settings. Each one is held inside its safe range.",
-      "A ledger records each call. If the agent fails, the default goal stays.",
+      "The objective is one of three: readiness first, throughput first or energy balanced.",
+      "It reads what the planners learned this run: free chargers, the queue and why offers failed.",
+      "It can tune a few catalogued settings. Each stays in a declared range and passes the safety layer.",
+      "It runs beside the tick and never holds it. A ledger records each call.",
     ],
-    next: "It only proposes. The planners turn its goal into offers.",
+    next: "It only proposes. The planners turn its objective into offers.",
     refs: [
       "edge-functions/ottoq-orchestrator-agent",
+      "public.ottoq_agent_board",
+      "public.ottoq_run_learning",
       "public.ottoq_model_call_ledger",
-      "public.ottoq_intelligence_ledger",
-      "public.ottoq_policy_set",
       "public.ottoq_policy_param_catalog",
     ],
   },
@@ -61,20 +65,20 @@ export const LAYER_INFO: Record<PlateId, LayerInfo> = {
     plate: "planners",
     title: "Planners",
     tagline: "Optimize & offer",
-    overview: "The planners are solvers. They turn the goal into offers: this car, this stall, this time.",
+    overview: "The planners combine state-of-the-art lexicographic optimization with GPU-accelerated and heuristic solvers. They turn the objective into offers: this car, this stall, this time.",
     points: [
-      "CP-SAT (Google OR-Tools) plans the site: one car per stall, the power cap, each deadline.",
-      "NVIDIA cuOpt, a greedy planner and a service-priority planner also make offers.",
-      "CP-SAT runs pinned, so the same inputs give the same plan.",
-      "A ledger records what happens to each offer: used, refused, replaced or expired.",
+      "Goals rank in strict order, readiness first, so a lower goal never costs a higher one.",
+      "Each pass reads where this run placed cars and plans only for free chargers.",
+      "An offer whose charger is taken moves to an equal free one, or the agent sees why.",
+      "The lexicographic planner is pinned, so the same inputs give the same plan.",
     ],
     next: "No planner places a car. The decide path chooses.",
     refs: [
-      "solvers/cpsat/model.py (OR-Tools CP-SAT)",
-      "edge-functions/ottoq-cuopt-propose",
-      "public.ottoq_submit_external_proposal",
+      "solvers/cpsat/model.py",
+      "proposer/forward_proposer.py",
+      "edge-functions/ottoq-cpsat-propose",
+      "public.ottoq_promote_proposal_candidates",
       "public.ottoq_proposal_disposition_ledger",
-      "SOLVER_STATE.md §10 (why the decomposition is forced)",
     ],
   },
 
@@ -82,20 +86,19 @@ export const LAYER_INFO: Record<PlateId, LayerInfo> = {
     plate: "decide",
     title: "Decide",
     tagline: "Choose one plan",
-    overview: "The decide path is the deterministic core of OTTO-Q. Each tick, it makes the final decision for each car.",
+    overview: "The decide path makes every final decision. It is deterministic: the same depot state always gives the same decision and reason.",
     points: [
-      "It takes an offer, makes its own choice, or holds the car when nothing fits.",
+      "Each tick, it takes an offer, makes its own choice, or holds a car when nothing fits.",
       "It books the stall and sends the command in one transaction.",
-      "The same inputs always give the same decision, with a written reason.",
-      "Paired runs on one seed must match byte for byte.",
+      "Paired runs on one seed must match byte for byte, on every decision.",
+      "Models and solvers cannot go around it. Only the decide path writes a booking.",
     ],
-    next: "Each decision then passes the safety shield before the depot acts.",
+    next: "Each decision then passes the safety layer before the depot acts.",
     refs: [
       "public.ottoq_decide_tick",
       "public.ottoq_decisions",
       "public.ottoq_stall_bookings",
       "public.ottoq_vehicle_commands",
-      "public.ottoq_departure_clear",
       "CERTIFICATION_STATUS.md",
     ],
   },
@@ -104,14 +107,14 @@ export const LAYER_INFO: Record<PlateId, LayerInfo> = {
     plate: "safety",
     title: "Safety",
     tagline: "Check & enforce",
-    overview: "The safety shield checks decisions against versioned rules. Under it, the database refuses what must never happen.",
+    overview: "OTTOYARD's proprietary safety layer checks decisions against deterministic, versioned rules before the depot acts. It guards what the depot does, not what a model says.",
     points: [
-      "Rules are data, with versions and settings per fleet owner.",
-      "At an enforcing point, a failed rule blocks the action.",
-      "The database refuses a double booking and any edit to the event log.",
+      "The rules are data, with versions and parameters for each fleet contract.",
+      "Paired runs reproduce every verdict byte for byte.",
+      "Under the rules, the database refuses double bookings and any edit to the event log.",
       "No car leaves below its charge target or with a service still needed.",
     ],
-    next: "Only a decision that passes reaches the depot.",
+    next: "A decision that fails an enforcing check never reaches the depot.",
     refs: [
       "public.ottoq_rules",
       "public.ottoq_shield_probe",

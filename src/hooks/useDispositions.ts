@@ -41,7 +41,7 @@ export function useDispositions(enabled = true): DispositionState {
       try {
         const { data, error: e } = await ottoQ
           .from("ottoq_proposal_disposition_ledger")
-          .select("disposition_id,entity_id,source,status,disposition_reason,abstained,stall_id,disposed_at,disposed_tick")
+          .select("disposition_id,entity_id,source,status,disposition_reason,abstained,stall_id,disposed_at,disposed_tick,promotion_count")
           .eq("sim_run_id", simRunId)
           .gt("disposition_id", last.current)
           .order("disposition_id", { ascending: false })

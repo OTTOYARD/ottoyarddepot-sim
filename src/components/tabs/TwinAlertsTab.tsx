@@ -86,7 +86,7 @@ export const TwinAlertsTab = () => {
   if (!activeSimRunId) {
     return (
       <div className="flex-1 flex items-center justify-center p-6 text-center">
-        <span className="text-ink-faint text-xs">Start a run on the Control tab to see what happens in the depot.</span>
+        <span className="text-ink-faint text-xs">Press Start at the top of the screen to see what happens in the depot.</span>
       </div>
     );
   }

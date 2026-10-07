@@ -154,6 +154,53 @@ export function mountSolidInArmFrame(
 export const L2_CABINET_PU = { width: 1.1, height: 2.8, depth: 0.7, padHeight: 0.16 } as const;
 
 /**
+ * WHAT STANDS ON A CABINET'S TOP: the status bar, and the fault beacon.
+ *
+ * ChargingField draws a status LED bar across the top of every charger, `dcfcLift` /
+ * `l2Lift` above the body's top and `height` thick. While the twin reports that
+ * charger Faulted (otto-q-core 0612) it also draws a red beacon centred on the bar —
+ * Chase, 2026-10-07: the charger must read as "down due to a fault" on sight.
+ *
+ * The beacon is the one new thing above a DCFC cabinet, and the OTTO-CHARGE ARM folds
+ * back toward that cabinet, so it is a solid here (faultBeaconSolidInArmFrame) and
+ * cabinetClearance.test.ts measures every moving link against it, exactly as it
+ * measures the cabinet. ONE SET OF NUMBERS: ChargingField reads these, not literals.
+ */
+export const STATUS_BAR_PU = { dcfcLift: 0.42, l2Lift: 0.13, height: 0.07 } as const;
+export const FAULT_BEACON_PU = { radius: 0.24, height: 0.46 } as const;
+
+/** Height above the DECK of the fault beacon's base (the status bar's top face), plan units. */
+export function faultBeaconBaseY(type: 'dcfc' | 'l2'): number {
+  const dims = type === 'dcfc' ? DCFC_CABINET_PU : L2_CABINET_PU;
+  const lift = type === 'dcfc' ? STATUS_BAR_PU.dcfcLift : STATUS_BAR_PU.l2Lift;
+  return dims.padHeight + dims.height + lift + STATUS_BAR_PU.height / 2;
+}
+
+/**
+ * The fault beacon on a DCFC cabinet, in the arm's base frame, as a `CarSolid`: the
+ * box round the beacon's cylinder, centred on the cabinet (CABINET_BACKSET_PU behind
+ * the arm's base). Conservative, as the mount solid is: a box contains the cylinder.
+ */
+export function faultBeaconSolidInArmFrame(
+  mountHeight: number = MOUNT_HEIGHT_M,
+  backsetPu: number = CABINET_BACKSET_PU,
+): CarSolid {
+  const m = METRES_PER_PLAN_UNIT;
+  const r = FAULT_BEACON_PU.radius * m;
+  const yBottom = faultBeaconBaseY('dcfc') * m;
+  const yTop = (faultBeaconBaseY('dcfc') + FAULT_BEACON_PU.height) * m;
+  const centreZ = -backsetPu * m;
+  return {
+    profile: [[-r, yBottom], [r, yBottom], [r, yTop], [-r, yTop]],
+    zMin: centreZ - r,
+    zMax: centreZ + r,
+    wheels: [],
+    pod: { along: 1000, z: 1000, radius: 0, yMin: 0, yMax: 0 },
+    gradeY: -mountHeight,
+  };
+}
+
+/**
  * Where an L2 post stands, in the PARKED CAR'S frame, plan units.
  *
  * A charger stall is ANGLED 60° to its lane (sitePlan.chargingStalls, 2026-09-28).

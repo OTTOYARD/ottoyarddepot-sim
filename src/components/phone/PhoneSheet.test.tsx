@@ -13,6 +13,7 @@ vi.mock('@/components/tabs/WorldContractTab', () => ({ WorldContractTab: () => <
 vi.mock('@/components/tabs/TwinOttoQTab', () => ({ TwinOttoQTab: () => <div /> }));
 vi.mock('@/components/tabs/TwinAgentTab', () => ({ TwinAgentTab: () => <div /> }));
 vi.mock('@/components/tabs/TwinValueTab', () => ({ TwinValueTab: () => <div /> }));
+vi.mock('@/components/tabs/TwinBackgroundTab', () => ({ TwinBackgroundTab: () => <div data-testid="tab-background" /> }));
 
 import { PhoneSheet } from './PhoneSheet';
 import { usePhoneSheet } from './phoneStore';
@@ -52,4 +53,16 @@ describe('PhoneSheet — full screen toggle', () => {
       expect(mounts.controls).toBe(1); // the open tab was restyled, never rebuilt
     });
   }
+});
+
+describe('PhoneSheet — the tab it opens on', () => {
+  it('opens on Background, as the desktop does: the phone has no default of its own', () => {
+    useSimulationStore.setState(useSimulationStore.getInitialState());
+    for (const mode of ['floating', 'inline'] as const) {
+      render(<PhoneSheet mode={mode} topInset={56} />);
+      expect(screen.getByTestId('tab-background')).toBeTruthy();
+      expect(screen.queryByTestId('tab-controls')).toBeNull();
+      cleanup();
+    }
+  });
 });

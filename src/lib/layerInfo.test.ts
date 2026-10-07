@@ -61,6 +61,18 @@ describe("layer info", () => {
     expect(layerInfoText("depot")).toMatch(/3D view only draws/);
   });
 
+  // Chase, 2026-10-07: "remove all specific tool naming ... make note of our proprietary or custom build safety layer and
+  // rule set ... deterministic and repeatable". The open model and the lexicographic method are named by what they are.
+  it("names no vendor product, and says what each layer is built on", () => {
+    for (const p of PLATES) expect(layerInfoText(p.id), p.id).not.toMatch(/nemotron|cuopt|cp-?sat|or-tools|google/i);
+    expect(LAYER_INFO.agent.overview).toMatch(/NVIDIA open model/);
+    expect(LAYER_INFO.planners.overview).toMatch(/lexicographic optimization/);
+    expect(LAYER_INFO.safety.overview).toMatch(/proprietary safety layer/);
+    expect(layerInfoText("safety")).toMatch(/deterministic/);
+    expect(layerInfoText("safety")).toMatch(/reproduce every verdict/);
+    expect(LAYER_INFO.agent.overview).not.toMatch(/\bAI (layer|part)\b/i);
+  });
+
   it("names the agent's goals as the engine names them", () => {
     // edge-functions/ottoq-orchestrator-agent: "objective":"readiness_first|throughput_first|energy_balanced"
     expect(layerInfoText("agent")).toMatch(/readiness first, throughput first or energy balanced/);

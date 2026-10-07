@@ -185,14 +185,14 @@ describe('status tone never paints a warning green', () => {
 
 describe('provider labels', () => {
   it('names the providers the evidence ledger records', () => {
-    expect(providerLabel('nvidia_cuopt')).toBe('cuOpt');
-    expect(providerLabel('cpsat_service')).toBe('CP-SAT');
-    expect(providerLabel('nvidia_nemotron')).toBe('Nemotron');
+    expect(providerLabel('nvidia_cuopt')).toBe('GPU planner');
+    expect(providerLabel('cpsat_service')).toBe('Lexicographic planner');
+    expect(providerLabel('nvidia_nemotron')).toBe('Agent');
   });
 
   it('passes an unknown provider through rather than guessing', () => {
     expect(providerLabel('some_new_solver')).toBe('some_new_solver');
-    expect(providerLabel('some_new_solver')).not.toContain('CP-SAT');
+    expect(providerLabel('some_new_solver')).not.toContain('Lexicographic');
   });
 
   // Two maps in one app drift. This fails the build instead of the demo.
@@ -272,7 +272,7 @@ describe('layer headlines are assembled only from measured keys', () => {
           },
         }),
       ),
-    ).toBe('CP-SAT 147 calls, 7 answered · cuOpt 532 calls · primary forward lex unreachable');
+    ).toBe('Lexicographic planner 147 calls, 7 answered · GPU planner 532 calls · primary lexicographic planner unreachable');
   });
 
   // 0456: offers and abstentions are counted apart; 413 abstentions once read as 182 refusals.

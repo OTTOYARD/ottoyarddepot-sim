@@ -24,6 +24,7 @@
 // zero, and an auditor cannot tell them apart either.
 // ============================================================================
 import { modelErrorText } from "@/lib/decisionText";
+import { publicLabel, publicPhrase } from "@/lib/publicNames";
 
 /** One layer of the stack, exactly as the RPC returns it. */
 export interface StackLayer {
@@ -89,13 +90,9 @@ export interface IntelligenceStack {
 // Provider names. Shared with the Decisions strip via PROVIDER_LABEL there —
 // intelligenceStack.test.ts asserts the two maps agree so they cannot drift.
 // ---------------------------------------------------------------------------
-export const STACK_PROVIDER_LABEL: Record<string, string> = {
-  nvidia_cuopt: 'cuOpt',
-  nvidia_nemotron: 'Nemotron',
-  cpsat_service: 'CP-SAT',
-  anthropic_advisor: 'Advisor',
-  local_fallback: 'local fallback',
-};
+export const STACK_PROVIDER_LABEL: Record<string, string> = Object.fromEntries(
+  ['nvidia_cuopt', 'nvidia_nemotron', 'cpsat_service', 'anthropic_advisor', 'local_fallback'].map((k) => [k, publicLabel(k)]),
+);
 
 /** A provider key we have no display name for renders as itself, never as a guess. */
 export function providerLabel(key: string): string {
@@ -305,7 +302,7 @@ export function layerHeadline(layer: Pick<StackLayer, 'layer' | 'live'>): string
               .join(' · ')
           : null,
         live.primary_reachable === false
-          ? `primary ${humanize(String(live.declared_primary ?? 'proposer'))} unreachable`
+          ? `primary ${publicPhrase(String(live.declared_primary ?? ''))?.replace(/^the /, '') ?? humanize(String(live.declared_primary ?? 'proposer'))} unreachable`
           : null,
       ]);
     }

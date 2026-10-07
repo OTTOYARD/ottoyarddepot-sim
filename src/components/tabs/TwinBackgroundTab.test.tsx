@@ -79,7 +79,7 @@ describe("Background tab", () => {
     render(<TwinBackgroundTab />);
     const ag = screen.getByRole("region", { name: "The agentic system" });
     expect(within(ag).getByText("12,627 agent decisions recorded · 12,185 applied · 440 fell back to the deterministic objective")).toBeTruthy();
-    expect(within(ag).getByText("1,165 calls answered by NVIDIA's endpoint · 5,093 proposals returned")).toBeTruthy();
+    expect(within(ag).getByText("1,165 calls answered · 5,093 proposals returned")).toBeTruthy();
     expect(within(ag).getByText(/public\.ottoq_intelligence_ledger/)).toBeTruthy();
   });
 
@@ -114,20 +114,30 @@ describe("Background tab", () => {
     const edge = screen.getByRole("region", { name: "The technical edge" });
     const hrefs = within(edge).getAllByRole("link").map((a) => a.getAttribute("href"));
     expect(hrefs).toEqual(expect.arrayContaining([
-      "https://docs.nvidia.com/cuopt/user-guide/latest/routing-features.html",
-      "https://docs.nvidia.com/cuopt/user-guide/latest/mip-settings.html",
-      "https://www.nvidia.com/en-us/ai-data-science/products/cuopt/",
       "https://github.com/ocpi/ocpi/blob/v2.3.0/mod_cdrs.asciidoc",
       "https://evroaming.org/ocpi-downloads/",
     ]));
+    // Chase, 2026-10-07: no product named on screen, so a vendor's document is dated here and linked only in the code
+    // comment beside the card. A link would name the product in its address.
+    expect(hrefs.filter((h) => /nvidia|cuopt|or-tools|minizinc/i.test(h ?? ""))).toEqual([]);
     for (const a of within(edge).getAllByRole("link")) expect(a.getAttribute("rel")).toContain("noopener");
     // each outside source names the version it was read at and the day it was checked
     expect(within(edge).getAllByText(/checked Oct 2, 2026/).length).toBe(3);
-    expect(within(edge).getByText(/NVIDIA cuOpt 26\.08 documentation/)).toBeTruthy();
+    expect(within(edge).getByText(/the solver maker's own documentation, release 26\.08/)).toBeTruthy();
     expect(within(edge).getByText(/OCPI 2\.2\.1 and 2\.3\.0, the released versions/)).toBeTruthy();
     // and says what is not built rather than implying it
     expect(within(edge).getByText(/Pricing of those records against\s+the tariff is in development/)).toBeTruthy();
     expect(within(edge).getByText(/Intelligence is not a substitute for capacity/)).toBeTruthy();
+  });
+
+  // Chase, 2026-10-07: "I want to remove all specific tool naming from our descriptions." Rendered, with every fact
+  // read, so an engine key that reaches the screen ("nvidia_nemotron") fails here too, not only a written name.
+  it("names no vendor product and no engine key for one, anywhere on the page", () => {
+    const { container } = render(<TwinBackgroundTab />);
+    const text = container.textContent ?? "";
+    expect(text).not.toMatch(/nemotron|cuopt|cp-?sat|or-tools|omniverse|isaac sim|forward_lex/i);
+    expect(text).toMatch(/NVIDIA open model/);
+    expect(text).toMatch(/proprietary|built its own safety layer/i);
   });
 
   it("opens the Value and Agent tabs from its links", () => {
@@ -149,7 +159,7 @@ describe("Background tab", () => {
     let text = container.textContent ?? "";
     // names, versions and dated document references, not counts
     for (const re of [/\b3D\b/g, /OCPP 2\.0\.1/g, /\b100%/g, /VDA 5050/g, /Aug 22, 2026/g, /\bL[12]\b/g,
-      /cuOpt 26\.08/g, /OCPI 2\.2\.1 and 2\.3\.0/g, /Oct 2, 2026/g]) text = text.replace(re, "");
+      /release 26\.08/g, /OCPI 2\.2\.1 and 2\.3\.0/g, /Oct 2, 2026/g]) text = text.replace(re, "");
     const hits = [...text.matchAll(/.{0,40}\d.{0,20}/g)].map((m) => m[0]);
     expect(hits).toEqual([]);
   });

@@ -19,6 +19,8 @@ import { useActivityFeedStore, type ActivityFeedRow } from "@/store/activityFeed
 import { useIntelligenceStack } from "@/hooks/useIntelligenceStack";
 import { useDepotCards } from "@/hooks/useDepotCards";
 import { useDispositions } from "@/hooks/useDispositions";
+import { useRunLearning } from "@/hooks/useRunLearning";
+import { LearnedThisRun } from "@/components/tabs/ottoq/LearnedThisRun";
 import { EndedState, StreamState } from "@/components/tabs/TwinDecisionLogTab";
 import { useSimulationStore } from "@/store/simulationStore";
 import { useQualityStore } from "@/components/canvas/three/quality/qualityStore";
@@ -537,6 +539,7 @@ export function TwinOttoQTab() {
   const { stack } = useIntelligenceStack(!!simRunId);
   const cards = useDepotCards();
   const disp = useDispositions();
+  const learning = useRunLearning();
   const [selected, setSelected] = useState<LayerId | null>(null);
   const [focus, setFocus] = useState<PlateId | null>(null);
   const [picked, setPicked] = useState<Picked | null>(null);
@@ -754,6 +757,8 @@ export function TwinOttoQTab() {
         <p className="text-[10px] leading-4 text-ink-faint">
           {away == null ? "Cars outside the depot: —" : `${away} ${away === 1 ? "car is" : "cars are"} out at work and not shown.`}
         </p>
+
+        <LearnedThisRun data={learning.data} error={learning.error} />
 
         {threeD && picked && (
           <PickedCard picked={picked} onClose={() => setPicked(null)} onPick={(p) => onPick(p.kind, p.key)}

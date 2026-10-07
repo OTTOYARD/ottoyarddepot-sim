@@ -117,7 +117,7 @@ export function OmniverseViewer() {
           </div>
           <div className="text-[12px] text-ink-dim max-w-sm leading-relaxed">
             {status === "connecting" ? (
-              <>NVIDIA Isaac Sim · RTX path-traced depot · <span className="font-mono">{activeServer}:{SIGNALING_PORT}</span></>
+              <>Path-traced depot · <span className="font-mono">{activeServer}:{SIGNALING_PORT}</span></>
             ) : (
               <>
                 Couldn't reach <span className="font-mono">{activeServer}:{SIGNALING_PORT}</span>. Make sure the render box is

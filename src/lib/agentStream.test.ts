@@ -19,7 +19,7 @@ describe("an agent pass in words", () => {
     expect(p.read).toBe((r.rationale as { summary: string }).summary);
     expect(p.directives.length).toBe((r.rationale as { applied: unknown[] }).applied.length);
     expect(p.chose).toMatch(/^It chose to get cars ready first/);
-    expect(p.outcome.join(" ")).toMatch(/CP-SAT took the hand-off and returned/);
+    expect(p.outcome.join(" ")).toMatch(/The lexicographic planner took the hand-off and returned/);
     expect(p.outcome.join(" ")).not.toMatch(/undefined|NaN|null/);
   });
 
@@ -47,10 +47,19 @@ describe("the proposers' offers in words", () => {
     const refused = disp.find((d) => d.status === "refused" && !d.abstained && d.disposition_reason === "stall_reserved")!;
     const l = offerLine(refused, names);
     expect(l.tone).toBe("refused");
-    expect(l.text).toMatch(/The decide path refused the greedy planner's offer for .+: the stall was held for another car\./);
+    expect(l.text).toMatch(/The decide path refused the heuristic planner's offer for .+: the stall was held for another car\./);
     const abst = disp.find((d) => d.abstained)!;
     expect(offerLine(abst, names).tone).toBe("idle");
-    expect(offerLine(abst, names).text).toMatch(/^CP-SAT made no offer for/);
+    expect(offerLine(abst, names).text).toMatch(/^The lexicographic planner made no offer for/);
+  });
+
+  // otto-q-core 0613: an offer whose charger was taken moves to an equal free one; the ledger counts the move.
+  it("says when a chosen offer moved to another free charger first", () => {
+    const enacted = disp.find((d) => d.status === "enacted" && !d.abstained)!;
+    expect(offerLine({ ...enacted, promotion_count: 1 }, names).text)
+      .toMatch(/^The decide path chose .+'s offer for .+\. The offer moved to another free charger first\.$/);
+    expect(offerLine({ ...enacted, promotion_count: 0 }, names).text).not.toMatch(/moved/);
+    expect(offerLine({ ...enacted, promotion_count: null }, names).text).not.toMatch(/moved/);
   });
 
   it("groups offers by tick and planner and keeps every offer", () => {

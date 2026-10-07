@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import fx from "./__fixtures__/ottoqRun.1ccad49b.json";
 import ownerCapture from "./__fixtures__/depotOwnerBoard.0608.json";
+import learningCapture from "./__fixtures__/runLearning.fd6ed035.json";
 import type { ActivityFeedRow } from "@/store/activityFeedStore";
 import { NOT_ENABLED_TEXT, NOT_GRANTED_TEXT, agentLabel, type DepotOwnerBoard, type OwnerCommand } from "@/lib/ownerBoard";
 
@@ -15,11 +16,13 @@ const S = {
   cards: { vehicles: null as unknown, status: "waiting" as "waiting" | "ok" | "other_run", simClock: null as string | null, error: null },
   disp: { rows: null as unknown, error: null },
   stack: null as unknown,
+  learning: { data: null as unknown, error: null as string | null },
 };
 vi.mock("@/hooks/useActivityFeed", () => ({ useActivityFeed: () => undefined }));
 vi.mock("@/hooks/useDepotCards", () => ({ useDepotCards: () => S.cards }));
 vi.mock("@/hooks/useDispositions", () => ({ useDispositions: () => S.disp }));
 vi.mock("@/hooks/useIntelligenceStack", () => ({ useIntelligenceStack: () => ({ stack: S.stack }) }));
+vi.mock("@/hooks/useRunLearning", () => ({ useRunLearning: () => S.learning }));
 vi.mock("@/hooks/useSecondLoop", () => ({
   useSecondLoop: () => ({ challenger: fx.challenger, learning: fx.learning, error: null, loading: false, simRunId: fx.sim_run_id }),
 }));
@@ -41,6 +44,7 @@ beforeEach(() => {
   S.cards = { vehicles: fx.cards_b, status: "ok", simClock: fx.sim_clock_b, error: null };
   S.disp = { rows: fx.dispositions, error: null };
   S.stack = fx.stack;
+  S.learning = { data: learningCapture, error: null };
 });
 afterEach(() => { cleanup(); useOwnerBoardStore.getState().reset(null); });
 
@@ -66,7 +70,25 @@ describe("OTTO-Q tab", () => {
     expect(within(detail).getAllByText("battery not reported").length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole("button", { name: /^Proposers/ }));
     const p = screen.getByRole("region", { name: "Proposers layer" });
-    expect(within(p).getAllByText(/offer from the greedy planner was refused|Agent: /).length).toBeGreaterThan(0);
+    expect(within(p).getAllByText(/offer from the heuristic planner was refused|Agent: /).length).toBeGreaterThan(0);
+  });
+
+  // Chase, 2026-10-07: "there's learning within each run". The strip is the planners' own read (otto-q-core 0613).
+  it("shows what the planners learned in this run, and where each refused charger went", () => {
+    render(<TwinOttoQTab />);
+    const strip = screen.getByRole("region", { name: "Learned this run" });
+    expect(within(strip).getByText("The run ended. The planners made 49 offers: 0 used, 0 moved to an equal charger, 48 refused.")).toBeTruthy();
+    expect(within(strip).getByText("Where the refused chargers went (4)")).toBeTruthy();
+    expect(within(strip).getByText(/Tick 1536: The lexicographic planner offered CANOPY-01 E-08 to Waymo-006\. Tesla-AV-064 got it at tick 1534\./)).toBeTruthy();
+    // an ended run's chargers are the depot now, not the run's: not drawn
+    expect(within(strip).queryByText(/Free chargers/)).toBeNull();
+  });
+
+  it("says so when the learning read fails, and draws no number", () => {
+    S.learning = { data: null, error: "statement timeout" };
+    render(<TwinOttoQTab />);
+    const strip = screen.getByRole("region", { name: "Learned this run" });
+    expect(within(strip).getByText("The learning read did not answer: statement timeout. —")).toBeTruthy();
   });
 
   it("puts an \"i\" beside every layer, which explains it without opening it", async () => {
@@ -77,10 +99,13 @@ describe("OTTO-Q tab", () => {
     fireEvent.click(within(list).getByRole("button", { name: "About the Decide layer" }));
     const card = await screen.findByRole("article", { name: "About the Decide layer" });
     // an overview, the facts as a list, and one closing line: short, with no section headings
-    expect(within(card).getByText(/deterministic core of OTTO-Q/)).toBeTruthy();
+    expect(within(card).getByText(/makes every final decision/)).toBeTruthy();
     expect(within(card).getAllByRole("listitem").length).toBeGreaterThanOrEqual(3);
-    expect(within(card).getByText(/passes the safety shield before the depot acts/)).toBeTruthy();
+    expect(within(card).getByText(/passes the safety layer before the depot acts/)).toBeTruthy();
     expect(within(card).queryByText("Why it is there")).toBeNull();
+    // the code objects behind the card are not drawn (Chase, 2026-10-07: no formula or construction on screen)
+    expect(within(card).queryByText("Where to check it")).toBeNull();
+    expect(within(card).queryByText(/public\.ottoq_/)).toBeNull();
     // the card names the run its live line is for
     expect(within(card).getByText(new RegExp(`This run \\(${fx.sim_run_id.slice(0, 8)}\\)`))).toBeTruthy();
     // and the layer itself did not open underneath it

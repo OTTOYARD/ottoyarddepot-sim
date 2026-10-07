@@ -17,6 +17,7 @@
 import type { ActivityFeedRow } from "@/store/activityFeedStore";
 import { decisionKey, human, modelErrorText, num } from "@/lib/decisionText";
 import { serviceWord } from "@/lib/plainWords";
+import { PUBLIC_NAME } from "@/lib/publicNames";
 
 export type LayerId = "arriving" | "needs" | "proposers" | "decide" | "shield" | "booked" | "service" | "ready";
 export type NodeTone = "ok" | "held" | "refused" | "idle";
@@ -33,7 +34,7 @@ export interface LayerDef {
 export const LAYERS: readonly LayerDef[] = [
   { id: "arriving", label: "Arriving", kind: "place", does: "Cars on their way back and cars at the gate." },
   { id: "needs", label: "Needs", kind: "place", does: "Cars in the depot that wait for OTTO-Q to plan what they need." },
-  { id: "proposers", label: "Proposers", kind: "think", does: "The agent picks the goal. The planners (CP-SAT, cuOpt, priority) offer stalls. They propose and never decide." },
+  { id: "proposers", label: "Proposers", kind: "think", does: "The agent sets the objective. The planners optimize it and offer stalls. They propose and never decide." },
   { id: "decide", label: "Decide", kind: "think", does: "The decide path chooses for each car. It takes an offer or not, or holds the car when nothing fits." },
   { id: "shield", label: "Safety check", kind: "think", does: "The rules check each choice when it is carried out. If a choice fails an enforced rule, the shield changes it." },
   { id: "booked", label: "Booked", kind: "place", does: "Cars that hold their stall or bay and have not started yet." },
@@ -265,18 +266,14 @@ export interface DispositionRow {
   stall_id: string | null;
   disposed_at: string | null;
   disposed_tick: number | null;
+  /** Times the offer moved to another charger before it was disposed (0358 candidates, 0613 equal free charger). */
+  promotion_count?: number | null;
 }
 
-export const PROPOSER_WORD: Record<string, string> = {
-  forward_lex: "CP-SAT",
-  cpsat_service: "CP-SAT",
-  cuopt: "cuOpt",
-  cuopt_fallback: "cuOpt",
-  nvidia_cuopt: "cuOpt",
-  greedy_constrained: "the greedy planner",
-  ottoq_service_priority: "the service-priority planner",
-  llm_advisor: "the agent",
-};
+/** Each proposal source by the name a sentence uses for it ("the lexicographic planner"), from src/lib/publicNames.ts. */
+export const PROPOSER_WORD: Record<string, string> = Object.fromEntries(
+  Object.entries(PUBLIC_NAME).map(([k, v]) => [k, v.phrase]),
+);
 export const proposerWord = (source: string | null | undefined): string =>
   (source && PROPOSER_WORD[source]) || human(source ?? "") || "a planner";
 

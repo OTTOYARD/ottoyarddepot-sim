@@ -63,7 +63,7 @@ describe("planners plate", () => {
   const lanes = plannerModel(disp);
 
   it("gives each planner a lane, and one planner one lane even under two engine names", () => {
-    expect(lanes.map((l) => l.word)).toEqual(["CP-SAT", "the greedy planner", "the service-priority planner"]);
+    expect(lanes.map((l) => l.word)).toEqual(["the lexicographic planner", "the heuristic planner", "the service-priority planner"]);
     expect(lanes.reduce((s, l) => s + l.total, 0)).toBe(disp.length);
   });
 
@@ -390,6 +390,14 @@ describe("tags on a zoomed plate", () => {
       if (z.fixed) expect(t.sub).toBe(`${model.depot.counts[z.id]} of ${zoneCapacity(z)}`);
       else expect(t.sub).toBe(String(model.depot.counts[z.id]));
     }
+  });
+
+  it("count the offers that moved to another free charger on their lane's tag", () => {
+    const moved = disp.map((d, i) => (i === 0 ? { ...d, promotion_count: 2 } : d));
+    const t = plateTags(stackModel(cardsB, new Map(), feed, moved, true), null);
+    const lane = plannerModel(moved).find((l) => l.bars.some((b) => b.moved))!;
+    expect(t.planners.find((x) => x.key === lane.word)!.sub).toMatch(/\b1 moved\b/);
+    for (const x of tags.planners) expect(x.sub ?? "").not.toMatch(/moved/); // the capture holds no moved offer
   });
 
   it("say — for a zone count before the cards have answered, never 0", () => {

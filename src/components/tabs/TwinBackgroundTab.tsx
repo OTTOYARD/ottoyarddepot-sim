@@ -69,9 +69,6 @@ function Section({ id, icon: Icon, title, kicker, children }: {
 
 const P = ({ children }: { children: ReactNode }) => <p>{children}</p>;
 const B = ({ children }: { children: ReactNode }) => <strong className="font-semibold text-ink">{children}</strong>;
-const Code = ({ children }: { children: ReactNode }) => (
-  <code className="break-words rounded bg-white/[0.05] px-1 py-px font-mono text-[10.5px] text-ink">{children}</code>
-);
 
 function Bullets({ items }: { items: ReactNode[] }) {
   return (
@@ -216,8 +213,8 @@ export function TwinBackgroundTab() {
             {live
               ? <>Run <span className="font-mono">{runId!.slice(0, 8)}</span> · {String(run!.status)}{run!.sim_clock ? ` · sim clock ${dayCT(run!.sim_clock)}` : ''}. Each car you see moves on a decision from OTTO-Q.</>
               : runId
-                ? <>Run <span className="font-mono">{runId.slice(0, 8)}</span> is not active. Start a run on the Control tab to see OTTO-Q work.</>
-                : <>No run is active, so the depot is empty. Start a run on the Control tab. Then the cars arrive.</>}
+                ? <>Run <span className="font-mono">{runId.slice(0, 8)}</span> is not active. Press Start at the top of the screen to see OTTO-Q work.</>
+                : <>No run is active, so the depot is empty. Press Start at the top of the screen. Then the cars arrive.</>}
           </p>
         </header>
         <nav aria-label="Background sections" className="sticky top-0 z-10 -mx-3 flex flex-wrap gap-1 bg-canvas-base/95 px-3 py-1.5 backdrop-blur">
@@ -302,7 +299,7 @@ export function TwinBackgroundTab() {
           <Bullets items={[
             'Worlds come in as declared data.',
             'Nothing from a solved world goes back into the solver.',
-            <>A test in CI enforces this boundary. See <Code>SEPARATION.md</Code>.</>,
+            'A test in CI enforces this boundary.',
           ]} />
           <P>So a result here is evidence about a real depot, not only about this one.</P>
         </Section>
@@ -410,8 +407,7 @@ export function TwinBackgroundTab() {
             times.
           </P>
           <P>
-            Each draw depends only on the run seed, the item it is for and the sim time
-            (<Code>twin.ottoq_sim_seeded_random</Code>). The results:
+            Each draw depends only on the run seed, the item it is for and the sim time. The results:
           </P>
           <Bullets items={[
             <><B>Different seeds, independent worlds.</B> Many seeds sample the range of days a depot will see, not one
@@ -460,7 +456,7 @@ export function TwinBackgroundTab() {
 
         {/* ── 5. agentic ─────────────────────────────────────────── */}
         <Section id="bg-agentic" icon={BrainCircuit} title="The agentic system"
-          kicker="Models and solvers propose at each level. One accountable, reproducible path decides. So an AI agent and a GPU solver can work on real cars without blind trust.">
+          kicker="Models and solvers propose. One deterministic, reproducible path decides. So a reasoning model and GPU-accelerated optimization can act on real cars without blind trust.">
           <ol className="space-y-1.5">
             {PLATES.map((p, i) => (
               <li key={p.id} className="flex items-start gap-2 rounded border border-white/[0.06] p-2">
@@ -499,6 +495,9 @@ export function TwinBackgroundTab() {
             <div className="text-[10px] font-semibold uppercase tracking-[0.07em] text-ink-faint">How it learns from its own record</div>
             <div className="mt-1">
               <Bullets items={[
+                <><B>Inside each run.</B> Each planner pass reads where the run placed cars, which chargers are free and
+                  why offers failed. It plans only for free chargers. An offer whose charger is taken moves to an equal
+                  free charger, or the agent reads why on its next pass.</>,
                 <><B>Its own data set.</B> Each decision, offer, refusal and result is evidence under a run ID. We make
                   this data ourselves, and run purges do not delete it.</>,
                 <><B>The challenger, live.</B> Each minute, it asks if the depot could have done better, and grades the
@@ -517,19 +516,23 @@ export function TwinBackgroundTab() {
 
         {/* ── 6. safety ──────────────────────────────────────────── */}
         <Section id="bg-safety" icon={ShieldCheck} title="The safety harness"
-          kicker="Software that moves cars must be unable to do some things, not only unlikely to. Each layer holds even if the layer above it is wrong.">
+          kicker="OTTOYARD built its own safety layer and rule set for physical operations. Software that moves cars must be unable to do some things, not only unlikely to.">
           <P>
             Standard AI guardrails control what a model says. At a depot, the risk is what the depot does, so the harness
             sits inside the database transaction that makes each decision. It holds for every caller, including agents
             that nobody has written yet.
           </P>
+          <P>
+            The rules are deterministic. The same inputs always get the same verdict, and paired runs reproduce each
+            verdict byte for byte. Each layer below holds even if the layer above it is wrong.
+          </P>
           <div className="space-y-2">
             <Layer n={1} title="Physical limits in the database" status="enforced">
               <p>Under all rules, the database refuses some writes in every case:</p>
               <Bullets items={[
-                <>A calendar constraint makes a double booking impossible (<Code>ottoq_stall_bookings</Code> EXCLUDE).</>,
+                'A calendar constraint makes a double booking impossible.',
                 'A unique index allows only one car per stall.',
-                <>The signed event log rejects each edit and deletion (<Code>ottoq_events</Code>).</>,
+                'The signed event log rejects each edit and deletion.',
               ]} />
             </Layer>
             <Layer n={2} title="The rule shield" status="enforced">
@@ -565,7 +568,7 @@ export function TwinBackgroundTab() {
               <p>
                 By contract, a car's charge target and its services belong to its owner. Each car charges to 100% unless
                 its owner sets a lower limit. No car leaves with a service still needed: one departure test runs at each
-                exit (<Code>ottoq_departure_clear</Code>). OTTO-Q never gives up a car's needs for
+                exit. OTTO-Q never gives up a car's needs for
                 throughput. A charge ends early only for a charger fault (the car goes back in the queue) or a
                 car emergency.
               </p>
@@ -582,8 +585,8 @@ export function TwinBackgroundTab() {
             <Layer n={5} title="The solver harness" status="enforced">
               <p>
                 A solver that cannot promise the same answer twice only proposes, behind the decide path. The run's
-                certification hash includes its proposals. CP-SAT runs pinned: one version, a deterministic time budget
-                and a fixed worker count.
+                certification hash includes its proposals. The lexicographic planner runs pinned: one version, a
+                deterministic work budget and a fixed worker count.
               </p>
             </Layer>
             <Layer n={6} title="Continuous certification" status="enforced">
@@ -677,18 +680,18 @@ export function TwinBackgroundTab() {
         <Section id="bg-edge" icon={Target} title="The technical edge"
           kicker="Each reason below makes a depot of autonomous cars hard to run. OTTO-Q is built around each one, and you can check each in the engine or at the linked source.">
           <div className="space-y-2">
+            {/* Sources, kept here and not drawn (Chase, 2026-10-07: no product names on screen). The GPU solver this
+                engine calls documents no seed or determinism setting for routing, and says its MIP determinism mode
+                "does not yet guarantee fully deterministic results in all scenarios": NVIDIA cuOpt 26.08,
+                https://docs.nvidia.com/cuopt/user-guide/latest/routing-features.html and
+                https://docs.nvidia.com/cuopt/user-guide/latest/mip-settings.html, checked 2026-10-02. */}
             <Edge title="The same answer, twice"
               hard={<>A schedule that moves real cars must be explainable, and another person must be able to repeat it.
-                This is not automatic. NVIDIA cuOpt documents no seed and no determinism setting for its routing solver.
-                Of its mixed-integer solver, it says the deterministic mode "does not yet guarantee fully deterministic
-                results in all scenarios".</>}
+                This is not automatic. A leading GPU solver does not promise the same answer on a second run, and its
+                maker says so.</>}
               ours={<>Its decide path is deterministic: the same seed, scenario and engine give the same decisions, byte
                 for byte (the certification above). Each figure it reports has a run ID that replays it.</>}
-              source={<>
-                <ExtLink href="https://docs.nvidia.com/cuopt/user-guide/latest/routing-features.html">cuOpt routing features</ExtLink>
-                {' · '}<ExtLink href="https://docs.nvidia.com/cuopt/user-guide/latest/mip-settings.html">cuOpt MIP settings</ExtLink>
-                {' · '}NVIDIA cuOpt 26.08 documentation, checked Oct 2, 2026
-              </>} />
+              source={<>the solver maker's own documentation, release 26.08, checked Oct 2, 2026</>} />
             <Edge title="AI that proposes, and never decides"
               hard={<>Language models and GPU solvers are fast and capable. They can also be wrong, late or different on a
                 second try. A car cannot wait for a retry.</>}
@@ -699,18 +702,18 @@ export function TwinBackgroundTab() {
                 'The decide path checks each offer against the rules, then decides.',
               ]}
               after={<>No agent can book a stall or move a car. A ledger records each call and its result.</>} />
+            {/* Sources, kept here and not drawn: the GPU solver has routing, LP/QP and a beta MIP, and no scheduling
+                family (no cumulative power resource, no one-car-per-stall disjunction): NVIDIA cuOpt 26.08,
+                https://www.nvidia.com/en-us/ai-data-science/products/cuopt/ and the routing-features page above,
+                checked 2026-10-02. "State-of-the-art": the constraint solver under the lexicographic planner took gold
+                in the Fixed, Free and Parallel categories of https://www.minizinc.org/challenge/2025/results. */}
             <Edge title="The right solver for the shape of the problem"
               hard={<>Inside a depot, the constraints are scheduling constraints. Charges at the same time share one power
-                limit, and a stall or bay holds one car at a time. cuOpt has no primitive for either. It solves routing,
-                linear and quadratic programs, with mixed-integer programs in beta. It has no scheduling family.</>}
-              ours={<>OTTO-Q's deterministic decide path schedules the site, with offers from Google OR-Tools CP-SAT, a
-                constraint-programming solver. CP-SAT runs pinned, so its results repeat too. cuOpt stays a
-                proposer.</>}
-              source={<>
-                <ExtLink href="https://www.nvidia.com/en-us/ai-data-science/products/cuopt/">NVIDIA cuOpt</ExtLink>
-                {' · '}<ExtLink href="https://docs.nvidia.com/cuopt/user-guide/latest/routing-features.html">cuOpt routing features</ExtLink>
-                {' · '}checked Oct 2, 2026
-              </>} />
+                limit, and a stall or bay holds one car at a time. A routing or linear-programming solver has no direct
+                way to state either.</>}
+              ours={<>OTTO-Q states both directly, in a state-of-the-art lexicographic model with readiness always first.
+                It runs pinned, so its results repeat. GPU-accelerated optimization stays a proposer beside it.</>}
+              source={<>the GPU solver maker's product page and documentation, release 26.08, checked Oct 2, 2026</>} />
             <Edge title="Limits that hold in the transaction"
               hard={<>The risk at a depot is physical: a car sent out half charged, a stall booked twice, a charge on a
                 faulted charger. A limit that holds only for correct callers does not hold.</>}
@@ -766,8 +769,7 @@ export function TwinBackgroundTab() {
             <><B>Tested, not only stated.</B> Four packs (robotaxi, yard logistics, mining and vertiport) load against one
               closed specification and schedule with no change to the kernel. Robotaxi and yard logistics ran in full.
               Mining and vertiport passed on paper. We found one real solver extension and wrote it down: vertiport pad
-              separation, two named points that cannot be active at the same time
-              (<Code>CONFORMANCE_FINDINGS.md</Code>, Aug 22, 2026).</>,
+              separation, two named points that cannot be active at the same time (found Aug 22, 2026).</>,
             <><B>Standard protocols.</B> OCPP 2.0.1 for chargers, service records in the shape of OCPI, and a draft VDA
               5050 adapter for warehouse robots.</>,
             <><B>Any autonomy stack.</B> It works with any driving stack through one interface, the recall decision: when
@@ -792,11 +794,11 @@ export function TwinBackgroundTab() {
               sub={shield && facts.posture ? `${fmtInt(shield.enforced.length)} decision points refuse · ${fmtInt(shield.advisory.length)} record` : null}
               source="ottoq_rules · ottoq_shield_probe_posture()" />
             <Fact value={fmtInt(nem?.count)} label="agent decisions, each on the record"
-              sub={nem ? `${nem.rest}${nem.last ? ` · most recent ${dayCT(nem.last)}` : ''}` : null} source="ottoq_intelligence_ledger · nvidia_nemotron" />
-            <Fact value={fmtInt(cps?.count)} label="CP-SAT solver calls"
-              sub={cps ? `${cps.rest}${cps.last ? ` · most recent ${dayCT(cps.last)}` : ''}` : null} source="ottoq_intelligence_ledger · cpsat_service" />
-            <Fact value={fmtInt(cuo?.count)} label="NVIDIA cuOpt calls answered"
-              sub={cuo ? `${cuo.rest}${cuo.last ? ` · most recent ${dayCT(cuo.last)}` : ''}` : null} source="ottoq_intelligence_ledger · nvidia_cuopt" />
+              sub={nem ? `${nem.rest}${nem.last ? ` · most recent ${dayCT(nem.last)}` : ''}` : null} source="ottoq_intelligence_ledger · agent" />
+            <Fact value={fmtInt(cps?.count)} label="lexicographic planner calls"
+              sub={cps ? `${cps.rest}${cps.last ? ` · most recent ${dayCT(cps.last)}` : ''}` : null} source="ottoq_intelligence_ledger · lexicographic planner" />
+            <Fact value={fmtInt(cuo?.count)} label="GPU planner calls answered"
+              sub={cuo ? `${cuo.rest}${cuo.last ? ` · most recent ${dayCT(cuo.last)}` : ''}` : null} source="ottoq_intelligence_ledger · GPU planner" />
             <Fact
               value={facts.datasets ? fmtInt(sources.length) : '—'}
               label="public datasets calibrate the twin"
