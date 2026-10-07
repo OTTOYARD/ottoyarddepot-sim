@@ -6,7 +6,9 @@
 // dispatch). This is that stack, in the engine's own order, and every object on it is one record:
 //
 //   AGENT      red glass    one chrome sphere per agent pass (ottoq_activity_feed_v2, action orchestrator_agent),
-//                           joined to a pearl for the objective it chose. Amber: the pass fell back.
+//                           joined to a pearl for the objective it chose. Amber: the pass fell back. Green: its
+//                           charge-line order seated cars; red: the decide path kept none of the cars it named
+//                           (ottoq_agent_charge_order_usage, otto-q-core 0614, looked up by the pass's chain id).
 //   PLANNERS   dark metal   one bar per offer (ottoq_proposal_disposition_ledger), one lane per planner, coloured by
 //                           what the decide path did with it.
 //   DECIDE     tile grid    one tile per car decision (the feed, changes only), newest at the front. Red: the safety
@@ -22,7 +24,8 @@ import {
   CAR_ACTIONS, proposerWord, rowTone, stateLayer,
   type DispositionRow, type FunnelCardVehicle, type NodeTone,
 } from "@/lib/ottoqFunnel";
-import { agentPass } from "@/lib/agentStream";
+import { agentPass, NO_ORDERS, type OrderIndex, type PassHue } from "@/lib/agentStream";
+import type { AgentOrderUsage } from "@/lib/runLearning";
 import { LANE_ORDER, PUBLIC_NAME } from "@/lib/publicNames";
 import { hash01 } from "../funnelGeometry";
 import { plateStats, type Hue, type Stat } from "./stackLegend";
@@ -57,6 +60,8 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
 export interface PassNode {
   key: string;
   tone: "ok" | "held";
+  /** The orb's colour: its charge-line order seated cars (green), was refused (red), no answer (amber), else white. */
+  hue: PassHue;
   objective: string;
   handoff: boolean;
   at: string;
@@ -81,7 +86,7 @@ const HUB_SPOTS: Record<number, [number, number][]> = {
 };
 export const MAX_PASSES = 30;
 
-export function agentModel(rows: readonly ActivityFeedRow[]): AgentModel {
+export function agentModel(rows: readonly ActivityFeedRow[], orders: OrderIndex = NO_ORDERS): AgentModel {
   const passRows = rows
     .filter((r) => r.action === "orchestrator_agent")
     .sort((a, b) => Date.parse(b.occurred_at) - Date.parse(a.occurred_at) || (b.decision_seq ?? 0) - (a.decision_seq ?? 0))
@@ -97,7 +102,7 @@ export function agentModel(rows: readonly ActivityFeedRow[]): AgentModel {
   }));
   const n = passRows.length;
   const passes: PassNode[] = passRows.map((r, i) => {
-    const p = agentPass(r);
+    const p = agentPass(r, orders);
     const o = typeof r.rationale?.objective === "string" ? (r.rationale.objective as string) : "—";
     const hub = hubs.find((h) => h.key === o) ?? hubs[hubs.length - 1];
     hub.passes++;
@@ -107,6 +112,7 @@ export function agentModel(rows: readonly ActivityFeedRow[]): AgentModel {
     return {
       key: p.key,
       tone: p.tone === "ok" ? "ok" : "held",
+      hue: p.hue,
       objective: o,
       handoff: String(r.rationale?.handoff_status ?? "") === "completed",
       at: r.occurred_at,
@@ -551,6 +557,8 @@ export function plateLabels(i: {
   stack: { agent: { objective: string | null; chains: number | null; fallbacks: number | null } | null; shield: { evaluations: number | null; refused: number | null } | null } | null;
   /** Cars per activity (depotModel().activity), or null until the cards have answered for this run. */
   activity: Record<CarActivity, number> | null;
+  /** What the agent's charge-line orders did (useAgentOrders), or null on a run that takes none. */
+  orders?: AgentOrderUsage | null;
 }): Record<PlateId, PlateLabel> {
   const byTitle = Object.fromEntries(PLATES.map((p) => [p.id, p])) as Record<PlateId, PlateDef>;
   const a = i.stack?.agent ?? null;
@@ -559,13 +567,21 @@ export function plateLabels(i: {
     title: byTitle[id].label, tagline: byTitle[id].tagline, lead, stats, foot, line: empty ?? statLine(lead, stats),
   });
 
-  // agent: passes that answered, and passes that fell back to the default goal
+  // agent: passes that answered, those whose charge-line order seated cars or was refused (0614), and passes that fell
+  // back to the default goal. Each pass is in exactly one: an order is one pass's, and only an answer sends one.
   const chains = a?.chains ?? null, fellBack = a?.fallbacks ?? (chains != null ? 0 : null);
-  const answered = chains != null && fellBack != null ? Math.max(0, chains - fellBack) : null;
+  const seating = i.orders?.orders_seating ?? 0;
+  const refusedOrders = Math.max(0, (i.orders?.orders ?? 0) - (i.orders?.orders_accepted ?? 0));
+  const answered = chains != null && fellBack != null ? Math.max(0, chains - fellBack - seating - refusedOrders) : null;
   const goal = a?.objective ? `Goal now: ${human(a.objective)}` : null;
+  const seatedCars = i.orders?.seats_by_rank ?? 0;
+  const orderFoot = seatedCars > 0
+    ? `Its orders seated ${seatedCars.toLocaleString("en-US")} ${seatedCars === 1 ? "car" : "cars"} in the charge line`
+    : null;
   const agent = chains === 0
-    ? label("agent", null, plateStats("agent", { answered: 0, "fell back": 0 }), null, "No passes this run")
-    : label("agent", null, plateStats("agent", { answered, "fell back": fellBack }), goal);
+    ? label("agent", null, plateStats("agent", { answered: 0, "seated cars": 0, "order refused": 0, "fell back": 0 }), null, "No passes this run")
+    : label("agent", null, plateStats("agent", { answered, "seated cars": seating, "order refused": refusedOrders, "fell back": fellBack }),
+        [goal, orderFoot].filter(Boolean).join(" · ") || null);
 
   // planners: every offer a planner made (a declined "no offer" is not an offer), by what the decide path did with it
   let planners: PlateLabel;
@@ -660,8 +676,9 @@ export function stackModel(
   rows: readonly ActivityFeedRow[],
   dispositions: readonly DispositionRow[] | null,
   read = true,
+  orders: OrderIndex = NO_ORDERS,
 ): StackModel {
-  return { agent: agentModel(rows), planners: plannerModel(dispositions ?? []), tiles: decideModel(rows), depot: depotModel(vehicles, tones, read) };
+  return { agent: agentModel(rows, orders), planners: plannerModel(dispositions ?? []), tiles: decideModel(rows), depot: depotModel(vehicles, tones, read) };
 }
 
 // ── the live pulse ──────────────────────────────────────────────────────────

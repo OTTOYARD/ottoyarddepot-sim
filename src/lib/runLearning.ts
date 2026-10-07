@@ -55,6 +55,63 @@ export interface LearningDispatch {
   path?: string | null;
 }
 
+/** One order in public.ottoq_agent_charge_order_usage's by_order (otto-q-core 0614): what one agent pass's order did. */
+export interface AgentOrderEntry {
+  order_id?: number | null;
+  /** The agent pass's chain id: the same id the pass's feed row carries (rationale.chain_id). */
+  chain_id?: string | null;
+  recorded_tick?: number | null;
+  /** accepted | partial | rejected: whether the decide path kept the cars it named (rejected: none of them). */
+  status?: string | null;
+  offered?: number | null;
+  accepted?: number | null;
+  /** Seats made while this order stood. */
+  seats?: number | null;
+  /** Seats the order's ranking made (a car it named, not seated first for its wait). */
+  seats_by_rank?: number | null;
+  /** Of those, cars the decide path's own order had further back. */
+  moved_ahead?: number | null;
+}
+
+/** public.ottoq_agent_charge_order_usage(run, limit): what the agent's charge-line orders did on one run. */
+export interface AgentOrderUsage {
+  orders?: number | null;
+  orders_accepted?: number | null;
+  /** 0616: the orders that seated at least one car by their rank. */
+  orders_seating?: number | null;
+  cars_ranked?: number | null;
+  seats_under_order?: number | null;
+  seats_by_rank?: number | null;
+  seats_pinned?: number | null;
+  seats_unranked?: number | null;
+  moved_ahead?: number | null;
+  kind_named?: number | null;
+  kind_followed?: number | null;
+  by_order?: AgentOrderEntry[] | null;
+}
+
+/** ottoq_run_learning's agent_order block (0614): present only on a run that takes the agent's charge order. */
+export interface AgentOrderBlock {
+  /** An order stands right now (younger than its ttl). */
+  live?: boolean | null;
+  /** The kinds of charger free right now: dcfc | l2 | both | none. */
+  mode?: string | null;
+  /** A car that has waited this long (sim minutes) goes ahead of any order. */
+  pin_wait_min?: number | null;
+  order?: {
+    order_id?: number | null;
+    chain_id?: string | null;
+    recorded_tick?: number | null;
+    age_ticks?: number | null;
+    status?: string | null;
+    offered?: number | null;
+    accepted?: number | null;
+    why?: string | null;
+    head?: { rank?: number | null; vehicle_id?: string | null; vehicle?: string | null; kind?: string | null; why?: string | null; kernel_pos?: number | null }[] | null;
+  } | null;
+  usage?: AgentOrderUsage | null;
+}
+
 /** public.ottoq_run_learning(p_sim_run_id, p_lookback_ticks, p_detail => true), as the RPC returns it. */
 export interface RunLearning {
   ok?: boolean;
@@ -71,6 +128,8 @@ export interface RunLearning {
   refusals?: LearningRefusal[] | null;
   dispatched?: LearningDispatch[] | null;
   lesson?: { code?: string | null; text?: string | null } | null;
+  /** 0614: the agent's charge-line order and what the orders did. Absent on a run that does not take one. */
+  agent_order?: AgentOrderBlock | null;
 }
 
 export type LearningTone = "ok" | "held" | "idle";
@@ -188,6 +247,53 @@ export function learningView(l: RunLearning | null | undefined): LearningView | 
     ? `Tick ${tk(l.run?.tick)} · last ${count(l.window_ticks, "tick")} · the planners and the agent read this on each pass`
     : `Run ended at tick ${tk(l.run?.tick)}`;
   return { tone, headline: text, facts, refusals, moved, basis };
+}
+
+// ── the agent's charge-line order (otto-q-core 0614) ─────────────────────────────────────────────────────────────
+export interface AgentOrderView {
+  tone: LearningTone;
+  /** One sentence: the order standing now, or the last one, and what the orders did over the run. */
+  headline: string;
+  /** Short fact lines: seats, cars moved ahead, kinds followed, the pin. */
+  facts: string[];
+  /** The order's head, rank by rank, in the agent's own words. */
+  head: { key: string; text: string }[];
+}
+
+const KIND_WORD: Record<string, string> = { dcfc: "fast charger", l2: "L2", either: "either charger" };
+
+/**
+ * The agent's order, in words, or null when the run does not take one (the key is absent: the dial is off). Green when
+ * an order has seated cars, amber while orders stand and no charger has freed for them yet, grey with no order at all.
+ */
+export function agentOrderView(l: RunLearning | null | undefined): AgentOrderView | null {
+  const a = l?.ok === true ? l.agent_order : null;
+  if (!a) return null;
+  const u = a.usage ?? {};
+  const o = a.order ?? null;
+  const seated = u.seats_by_rank ?? 0;
+  const tone: LearningTone = seated > 0 ? "ok" : (u.orders ?? 0) > 0 ? "held" : "idle";
+  const fast = (o?.head ?? []).filter((c) => c.kind === "dcfc").length;
+  let headline: string;
+  if (!o) headline = "The agent has not ordered the charge line yet. The decide path seats cars in its own order.";
+  else {
+    const named = `${count(o.accepted, "car")}${fast ? `, ${n(fast)} of the first ${n(Math.min(8, o.head?.length ?? 0))} for a fast charger` : ""}`;
+    headline = a.live
+      ? `The agent's order stands: ${named}.`
+      : `The agent's last order (${count(o.accepted, "car")}) has expired. The decide path seats cars in its own order until the next one.`;
+    if (a.live && o.why) headline += ` ${sentenceCase(o.why.replace(/\.$/, ""))}.`;
+  }
+  const facts: string[] = [];
+  facts.push(`Orders: ${n(u.orders)}, ${n(u.orders_seating)} of them seated cars · ${count(u.seats_by_rank, "car")} seated in the agent's order`);
+  if ((u.seats_by_rank ?? 0) > 0) facts.push(`Moved ahead of the decide path's own order: ${n(u.moved_ahead)} · kind taken as named: ${n(u.kind_followed)} of ${n(u.kind_named)}`);
+  facts.push(`Waited ${n(a.pin_wait_min)} sim-min or longer and went first anyway: ${count(u.seats_pinned, "car")}`);
+  const head = a.live && o
+    ? (o.head ?? []).map((c, i) => ({
+        key: `h${o.order_id ?? ""}:${c.vehicle_id ?? i}`,
+        text: `${n(c.rank)}. ${c.vehicle ?? "a car"} · ${KIND_WORD[c.kind ?? ""] ?? "either charger"}${c.why ? ` · ${c.why}` : ""}`,
+      }))
+    : [];
+  return { tone, headline, facts, head };
 }
 
 /** The reason a read failed, for a strip that says so instead of drawing zeros. */

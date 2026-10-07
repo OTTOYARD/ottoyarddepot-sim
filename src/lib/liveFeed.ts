@@ -11,7 +11,7 @@
 import type { ActivityFeedRow } from "@/store/activityFeedStore";
 import { describeDecision, human, num } from "@/lib/decisionText";
 import { placeName, ruleWords } from "@/lib/plainWords";
-import { agentPass, type AgentPass, type OfferBatch, type StreamTone } from "@/lib/agentStream";
+import { agentPass, NO_ORDERS, type AgentPass, type OfferBatch, type OrderIndex, type StreamTone } from "@/lib/agentStream";
 
 export type FeedKind = "car" | "agent" | "offers" | "energy" | "owner";
 
@@ -167,11 +167,12 @@ export const GROUP_AT = 3;
  * A car decision written over and over (a held car re-checked each tick) shows once, at its newest. `owners` (the
  * commands owners' agents sent, as ownerBoard.ownerFeedLines builds them) join it by time (withOwnerLines).
  */
-export function liveFeed(rows: readonly ActivityFeedRow[], batches: readonly OfferBatch[], owners: readonly FeedLine[] = []): FeedItem[] {
+export function liveFeed(rows: readonly ActivityFeedRow[], batches: readonly OfferBatch[], owners: readonly FeedLine[] = [],
+                         orders: OrderIndex = NO_ORDERS): FeedItem[] {
   const lines: FeedLine[] = [];
   for (const r of rows) {
     if (r.action === "orchestrator_agent") {
-      const p = agentPass(r);
+      const p = agentPass(r, orders);
       // the row carries an AGENT badge, so the line drops "The agent": "read the depot and chose to get cars ready first"
       lines.push({ key: `a${p.key}`, kind: "agent", at: p.at, tick: p.tick, tone: p.tone, car: null, carId: null, text: p.headline.replace(/^The agent /, ""), verb: "agent", pass: p });
       continue;
