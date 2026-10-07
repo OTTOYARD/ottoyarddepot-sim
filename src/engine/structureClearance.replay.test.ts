@@ -80,7 +80,7 @@ describe("the turn off the north collector into every bay clears the structures,
   for (const [lane, bx] of bays) {
     for (const [dir, h] of [["eastbound", 0], ["westbound", Math.PI]] as const) {
       it(`${lane} bay at x ${bx}, from the ${dir} stream`, () => {
-        const y = NORTH_LANE_Y + (h === 0 ? 1 : -1) * g.rightOffset;
+        const y = NORTH_LANE_Y + (h === 0 ? 1 : -1) * g.offsetAt({ x: bx, y: NORTH_LANE_Y }, h);
         const from = { x: bx + (h === 0 ? -40 : 40), y };
         const pts = drv.routeToStall(from, lane, { x: bx, y: BAY_STALL_Y }, NORTH, h);
         expect(pts[pts.length - 1]).toEqual({ x: bx, y: BAY_STALL_Y });

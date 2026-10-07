@@ -19,7 +19,7 @@
 // ============================================================================
 import { KinematicCar, DEFAULT_CAR_PARAMS, wrapAngle } from "./motion/KinematicCar";
 import { type Pt } from "./motion/PathTracker";
-import { buildRail, pointAt, stepRail, RailLocks, setCornerObstacles, startOnHeading, hairpins, drawnClearance, type Rail, type RailBody } from "./motion/RailFlow";
+import { buildRail, pointAt, stepRail, RailLocks, setCornerObstacles, startOnHeading, hairpins, drawnClearance, NODE_STOP, type Rail, type RailBody } from "./motion/RailFlow";
 import { allStructureSolids, parkedBox, bodyHitsBox, type OBox } from "@/lib/structurePlan";
 import { findLeader, StallLedger, CAR_BODY_LENGTH, CAR_BODY_WIDTH, type MovingCar } from "./motion/traffic";
 import { buildDepotLanes, U_TURN_COST } from "./motion/LaneGraph";
@@ -654,6 +654,9 @@ class TwinMotionDriver {
   private intervalId: ReturnType<typeof setInterval> | null = null;
   private last: number | null = null;
   private graph = buildDepotLanes();
+  /** Where a car arriving at a junction along a heading waits for it: clear of the
+   *  nearest stream crossing its way in (LaneGraph.stopDistance; RailFlow NODE_STOP). */
+  private stopFor = (id: string, heading: number): number => this.graph.stopDistance(id, heading, NODE_STOP);
   private ledger = new StallLedger();
   /** intersection-node + charger-column-mouth locks (rails traffic control) */
   private locks = new RailLocks();
@@ -1632,7 +1635,7 @@ class TwinMotionDriver {
     // terminal-stretch lock; that is named in the fixture's ratchet comment as the
     // remaining work rather than papered over with a constraint that measures zero.
     const mouth = lane === "dcfc" || lane === "l2" ? `${lane}:${Math.round(stall.x)}` : null;
-    const rail = buildRail(opening === undefined ? pts : startOnHeading(pts, opening), this.graph.nodes.values(), mouth);
+    const rail = buildRail(opening === undefined ? pts : startOnHeading(pts, opening), this.graph.nodes.values(), mouth, this.stopFor);
     // where the car joins the road is a fact about the ROUTE, not about the arc that
     // opens it: gap acceptance looks at the lane at that join point
     if (merge) rail.merge = mergeOf(pts);
@@ -1654,7 +1657,7 @@ class TwinMotionDriver {
     // back south-east onto it inside a few units — a turn no fillet could round
     // (motionAudit, chase1006: the rear apron at y 20 was a pivot hot spot behind
     // every bay, 14-26 events per 10u bin).
-    const start = { x: pose.x, y: REAR_LANE_Y + this.graph.rightOffset };
+    const start = { x: pose.x, y: REAR_LANE_Y + this.graph.offsetAt({ x: pose.x, y: REAR_LANE_Y }, 0) };
     return { lead: [{ x: pose.x, y: pose.y }, start], start, heading: 0 };
   }
 
@@ -1701,7 +1704,7 @@ class TwinMotionDriver {
       const route = this.routeFrom(exitLead?.start ?? origin, exitLead ? exitLead.heading : heading, { x: EGRESS.x, y: EGRESS.y });
       const tail = exitLead ? [...exitLead.lead, ...route] : route;
       const pts = dedupe([...pre, ...tail]);
-      const rail = buildRail(startOnHeading(pts, e.car.heading), this.graph.nodes.values(), null);
+      const rail = buildRail(startOnHeading(pts, e.car.heading), this.graph.nodes.values(), null, this.stopFor);
       if (merge) rail.merge = mergeOf(pts);
       return rail;
     }
@@ -1919,7 +1922,7 @@ class TwinMotionDriver {
     let best: { rail: Rail; cost: number } | null = null;
     // eastbound (heading 0) is driven south of the centreline, westbound north of it
     for (const h of [0, Math.PI]) {
-      const off = this.graph.rightOffset;
+      const off = this.graph.offsetAt({ x: gx, y: NORTH_LANE_Y }, h);
       const corner = { x: gx, y: NORTH_LANE_Y + (h === 0 ? off : -off) };
       const rail = this.rebuildRail(e, [...lead, corner], false, true, h);
       // turning the wrong way and doubling back at the next junction is never the
@@ -2010,11 +2013,13 @@ class TwinMotionDriver {
 
   /** The south collector's traffic lanes (plan y of each stream's centreline) that a
    *  charger back-out finishing at `end`, facing north, reaches with its tail. Empty
-   *  for every back-out that finishes inside its gap lane. */
+   *  for every back-out that finishes inside its gap lane. Each stream at its own
+   *  offset: the collector is divided, and its two streams are not symmetric about
+   *  the centreline (LaneGraph.DIVIDED_SPAN). */
   private backOutCollectorLanes(end: { x: number; y: number }): number[] {
     const tail = end.y + CAR_BODY_LENGTH / 2;
-    const off = this.graph.rightOffset;
-    return [SOUTH_LANE_Y - off, SOUTH_LANE_Y + off]
+    const at = { x: end.x, y: SOUTH_LANE_Y };
+    return [SOUTH_LANE_Y - this.graph.offsetAt(at, Math.PI), SOUTH_LANE_Y + this.graph.offsetAt(at, 0)]
       .filter((laneY) => tail > laneY - CAR_BODY_WIDTH / 2 - COLLECTOR_TAIL_MARGIN);
   }
 

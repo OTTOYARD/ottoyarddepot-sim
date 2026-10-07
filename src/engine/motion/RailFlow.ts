@@ -41,8 +41,9 @@ export interface Rail {
   pts: Pt[];
   cum: number[];          // cumulative arc length at each vertex
   total: number;
-  nodes: { id: string; s: number; sweep?: Sweep }[]; // graph junctions along this route
-                          // (`sweep` is this car's movement through it, built on first need)
+  nodes: { id: string; s: number; sweep?: Sweep; stop?: number }[]; // graph junctions along this route
+                          // (`sweep` is this car's movement through it, built on first need;
+                          // `stop`, where it waits for it when not NODE_STOP — buildRail's stopFor)
   s: number;              // arc position
   v: number;              // speed (u/s)
   mouthKey: string | null; // charger-column mouth this route ends in (if any)
@@ -98,14 +99,32 @@ const SAMPLE = 2;         // projection sampling step (u)
 // crossing contacts there went 4 -> 12). 7u covers it; the nearest node a route
 // does NOT traverse is still >20u away, so it cannot false-positive.
 const NODE_MATCH = 7;
-const NODE_CLAIM = 12;    // commit to (enter) a junction this far out
 // Where a car waits for a junction, as the IDM "stationary leader" distance. IDM
-// settles s0 = 5u behind it, so the car's CENTRE stops NODE_STOP + 5 = 11u short
-// of the node and its nose 11 - 5.1 = 5.9u short. The near crossing lane's body
-// reaches 3.2 + 2.1 = 5.3u from the node, so a waiting car now stays out of it.
+// settles s0 = 5u behind it, so the car's CENTRE stops NODE_STOP + 5 short of the
+// node and its nose NODE_STOP - 0.1 short. The near crossing lane's body reaches
+// 3.2 + 2.1 = 5.3u from the node, so a waiting car now stays out of it.
 // At the old 4 its nose stood 1.2u INSIDE that lane, and crossing traffic — which
 // a waiting car deliberately does not brake for — passed through it.
-const NODE_STOP = 6;
+//
+// A STREAM FURTHER OUT NEEDS A STOP FURTHER BACK. The divided ring's outer streams run
+// 4.8u (collectors) and 4.0u (avenues) from their centrelines (LaneGraph.DIVIDED_SPAN),
+// and a car waiting at 6 on the ingress spur stood with its nose 1.0u inside the south
+// collector's eastbound stream. So a rail carries, per junction, the stop that keeps
+// the same 0.6u from the body of the NEAREST stream crossing ITS way in
+// (buildRail's `stopFor`, LaneGraph.stopDistance): 7.6 there, 6 wherever the near
+// stream is still 3.2u out — the gap lanes onto the north collector, every car along
+// the ring. One global 7.6 (with the box sized to the 4.8u streams too, see BOX) was
+// measured first and cost flow everywhere for the three approaches that need it:
+// busy_day stopped time 4.8% -> 7.2%, against 5.7% this way.
+export const NODE_STOP = 6;
+// Commit to (enter) a junction this far beyond the stop point (12 at the 6u stop). The
+// two move together: a car refused at the claim distance must stop before the stop
+// point + 4, where it counts as already in the box and is let in whatever it meets.
+// Moving the stop out and leaving the claim at 12 shrank that window from 2u to 0.4u,
+// and two cars reaching a junction in the same step both went in (docking test E: a
+// charger car turning onto the north collector beside a car driving through, 15
+// contact samples).
+const NODE_CLAIM_PAST_STOP = 6;
 const NODE_SEE = 26;      // a junction held against me is visible (a stop bar) this far out
 const NODE_RELEASE = 11;  // out of the box once the centre is this far past (≥ BOX)
 // Don't block the box: a stopped body closer than this past the node (its centre,
@@ -496,6 +515,8 @@ export function buildRail(
   raw: Pt[],
   nodePositions: Iterable<{ id: string; x: number; y: number }>,
   mouthKey: string | null,
+  /** where a car arriving at junction `id` along `heading` waits (NODE_STOP when absent) */
+  stopFor?: (id: string, heading: number) => number,
 ): Rail {
   const pts = roundCorners(raw);
   const cum: number[] = [0];
@@ -514,7 +535,7 @@ export function buildRail(
   // it against the streams it merges with. The routed polyline passes through
   // the junction's own (offset) vertex whatever the fillet, so it cannot drift.
   // A node either path reaches is a node the car drives through.
-  const nodes: { id: string; s: number }[] = [];
+  const nodes: { id: string; s: number; stop?: number }[] = [];
   for (const n of nodePositions) {
     let best = Infinity, bestS = 0;
     for (let s = 0; s <= total; s += SAMPLE) {
@@ -523,7 +544,9 @@ export function buildRail(
       if (d < best) { best = d; bestS = s; }
     }
     if (best <= NODE_MATCH * NODE_MATCH || distToPolyline2(raw, n) <= NODE_MATCH * NODE_MATCH) {
-      nodes.push({ id: n.id, s: bestS });
+      // the way the car arrives: its heading a stop-length before the junction
+      const stop = stopFor?.(n.id, pointAt(pts, cum, Math.max(0, bestS - NODE_STOP - 5)).heading);
+      nodes.push({ id: n.id, s: bestS, ...(stop !== undefined && stop !== NODE_STOP ? { stop } : {}) });
     }
   }
   nodes.sort((a, b) => a.s - b.s);
@@ -595,8 +618,8 @@ export function pointAt(pts: Pt[], cum: number[], s: number): Pt & { heading: nu
 // ── JUNCTIONS: WHO MAY BE IN THE BOX TOGETHER ──────────────────────────────
 // Every LaneGraph node used to be an EXCLUSIVE lock: one car in it at a time,
 // whatever each car was doing there. On a divided road that serialises traffic
-// that cannot touch — the eastbound and westbound streams run 2 x rightOffset =
-// 6.4u apart through every junction on the south and north collectors, and the
+// that cannot touch — the eastbound and westbound streams run DIVIDED_SPAN = 8u
+// apart through every junction on the south and north collectors, and the
 // inner and outer paths round a ring corner never meet — and it makes every
 // follower wait for its leader to clear NODE_RELEASE before it may enter behind
 // it. That is the founder's "hesitating and stopping when they meet one another
@@ -612,7 +635,12 @@ export function pointAt(pts: Pt[], cum: number[], s: number): Pt & { heading: nu
 // paths would touch somewhere.
 const BOX = 10.5;        // half-length of the swept window (u): lane offset 3.2 +
                          // half-width 2.1 + half-length 5.1, so a body entirely
-                         // outside it cannot be touching anything in the box
+                         // outside it cannot be touching anything in the box.
+                         // NOT widened for the divided ring's 4.8u outer streams:
+                         // sized to them (BOX 12, NODE_RELEASE 12.5) it measured
+                         // worse — chase1006's first 30 min 31 overlap pair-samples
+                         // against 20, busy_day stopped time 6.1% against 5.7%.
+                         // Crossing paths still meet well inside 10.5.
 const SWEEP_STEP = 1;    // sampling pitch of a sweep (u)
 const BODY_MARGIN = 0.3; // clearance kept between two bodies sharing a box (u)
 const SAME_TOL = 1.5;    // a sweep's end lies ON another's path within this
@@ -872,9 +900,10 @@ export function stepRail(
     // was admitted around it (measured: a car re-routed mid-junction on the live
     // recording waited on a car that was itself waiting on its body, for good).
     // Admit it, so every other car sees it and yields to it instead.
-    if (dist < NODE_STOP + 4) { locks.enter(n.id, id, sweep, true); continue; }
+    const stopAt = n.stop ?? NODE_STOP;
+    if (dist < stopAt + 4) { locks.enter(n.id, id, sweep, true); continue; }
     // Seen from NODE_SEE out, a junction held against me is a stop bar, so the car
-    // eases down to it instead of finding out at NODE_CLAIM and stopping in a metre.
+    // eases down to it instead of finding out at the claim distance and stopping in a metre.
     const blocker = locks.conflictAt(n.id, id, sweep);
     // A holder that is itself stopped waiting on ME — my body in its path, or a
     // junction I hold — will never clear the box while I wait for it: that is a
@@ -894,11 +923,11 @@ export function stepRail(
     }
     const stopped = blocker ? null : stoppedBodyPast(id, r, n.s, bodies);
     if (blocker || stopped) {
-      const g = Math.max(0, dist - NODE_STOP);
+      const g = Math.max(0, dist - stopAt);
       if (g < gap) { gap = g; limiter = "node"; limiterId = blocker ?? stopped; }
       break; // can't pass this node; nothing beyond matters
     }
-    if (dist > NODE_CLAIM) break; // clear so far, but not close enough to commit yet
+    if (dist > stopAt + NODE_CLAIM_PAST_STOP) break; // clear so far, but not close enough to commit yet
     locks.enter(n.id, id, sweep);
   }
 

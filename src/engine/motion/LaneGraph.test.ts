@@ -76,3 +76,24 @@ describe("LaneGraph — one-way depot routing", () => {
     expect(rev[0].x).toBeGreaterThan(50);
   });
 });
+
+describe("LaneGraph — a junction's stop line clears the nearest stream crossing the way in", () => {
+  const g = buildDepotLanes();
+  const N = -Math.PI / 2, S = Math.PI / 2, E = 0, W = Math.PI;
+
+  it("waits further back where the divided ring's outer stream crosses (DIVIDED_SPAN)", () => {
+    // the ingress spur onto the south collector: its near stream is the eastbound, 4.8u out
+    expect(g.stopDistance("S_in", N, 6)).toBeCloseTo(7.6, 9);
+    // down the aisle north of Tn onto the north collector: the westbound, 4.8u out
+    expect(g.stopDistance("Tn", S, 6)).toBeCloseTo(7.6, 9);
+    // the N1 approach onto the east avenue's stub: its southbound stream, 4.0u out
+    expect(g.stopDistance("N1e", E, 6)).toBeCloseTo(6.8, 9);
+  });
+
+  it("keeps the 6u stop wherever the near stream is still 3.2u out", () => {
+    expect(g.stopDistance("Ng1", N, 6)).toBeCloseTo(6, 9); // a gap lane onto the eastbound north collector
+    expect(g.stopDistance("Ts", S, 6)).toBeCloseTo(6, 9);  // the aisle onto the westbound south collector
+    expect(g.stopDistance("Sg1", W, 6)).toBeCloseTo(6, 9); // westbound along the south collector, past a gap mouth
+    expect(g.stopDistance("Sg1", E, 6)).toBe(6);           // eastbound past it: nothing crosses on the near side
+  });
+});
