@@ -20,7 +20,7 @@
 import { KinematicCar, DEFAULT_CAR_PARAMS, wrapAngle } from "./motion/KinematicCar";
 import { type Pt } from "./motion/PathTracker";
 import { buildRail, pointAt, stepRail, RailLocks, setCornerObstacles, startOnHeading, hairpins, drawnClearance, NODE_STOP, type Rail, type RailBody } from "./motion/RailFlow";
-import { allStructureSolids, parkedBox, bodyHitsBox, type OBox } from "@/lib/structurePlan";
+import { allStructureSolids, parkedBox, bodyHitsBox, boxGap, type OBox } from "@/lib/structurePlan";
 import { findLeader, StallLedger, CAR_BODY_LENGTH, CAR_BODY_WIDTH, type MovingCar } from "./motion/traffic";
 import { buildDepotLanes, U_TURN_COST, LaneGraph } from "./motion/LaneGraph";
 import { ArmGate, type ArmStallInput } from "./motion/armGate";
@@ -371,14 +371,20 @@ export const APPROACH_BACK_U = 9;
 // structure, and every stall's parked-car footprint whether or not it is
 // occupied now — a rail outlives the occupancy it was built under. Both as the
 // shapes they are: an angled charger car and its cabinet are not square to the plan.
+/** Every stall's parked-car footprint, occupied or not. */
+const STALL_BOXES: OBox[] = generateStallsV2().map((st) => parkedBox(st.position));
 setCornerObstacles([
   ...allStructureSolids().map((k) => k.box),
-  ...generateStallsV2().map((st) => parkedBox(st.position)),
+  ...STALL_BOXES,
 ]);
 /** Every built solid, as the shape it is — what a back-out's swing must not sweep. */
 const STRUCTURE_BOXES: OBox[] = allStructureSolids().map((k) => k.box);
 /** Body-to-obstacle margin a back-out's swing must keep (u). */
 const SWING_CLEAR = 0.2;
+/** Where a staging back-out stops, its body keeps this much from every other stall's
+ *  footprint (u): the straight gives up as much as it takes, up to CUSP_SHORTEN_MAX. */
+const CUSP_CLEAR = 2;
+const CUSP_SHORTEN_MAX = 1.5;
 /** Where a car bound for a bay may leave the north collector, relative to the bay's
  *  own line (u along the collector), nearest first (routeToStall's bay branch). */
 const BAY_TURN_SHIFTS = [0, 1, -1, 2, -2, 3, -3, 4, -4];
@@ -1805,10 +1811,40 @@ class TwinMotionDriver {
       if (!best || len < best.len) best = { len, sgn, end, he };
     }
     const b = best!;
+    // …and it must not STOP against the far row. The temp block's columns face each
+    // other across the aisle, and a cusp EXIT_STRAIGHT + 11·sin70° = 17.8u out from
+    // a TW or TE stall left the tail 0.0u from the car parked opposite; the first
+    // half-unit of rail then turned it in (chase1006: every overlap the founder's run
+    // still had in the temp block, 10 of its 13). Where the cusp is that close, the
+    // straight is cut by what it lacks, as long as the swing still clears the cars
+    // either side (swingHits). This is not sizing the back-out to the aisle, which
+    // was measured worse (see EXIT_STRAIGHT): it only ever SHORTENS the reverse.
+    let straight = EXIT_STRAIGHT;
+    let end = b.end;
+    const gap = this.cuspGap(b.end, b.he);
+    if (gap < CUSP_CLEAR) {
+      const cut = Math.min(CUSP_SHORTEN_MAX, CUSP_CLEAR - gap);
+      if (!this.swingHits(e, b.sgn, R, EXIT_STRAIGHT - cut)) {
+        straight = EXIT_STRAIGHT - cut;
+        end = { x: b.end.x - nx * cut, y: b.end.y - ny * cut };
+      }
+    }
     return {
-      straight: EXIT_STRAIGHT, remaining: R * EXIT_SWING, steer: -b.sgn * EXIT_STEER,
-      end: { x: b.end.x, y: b.end.y, hx: Math.cos(b.he), hy: Math.sin(b.he) },
+      straight, remaining: R * EXIT_SWING, steer: -b.sgn * EXIT_STEER,
+      end: { x: end.x, y: end.y, hx: Math.cos(b.he), hy: Math.sin(b.he) },
     };
+  }
+
+  /** How close a body standing at `end`, facing `he`, comes to any stall's footprint
+   *  that it does not stand in (u; negative when it overlaps one). */
+  private cuspGap(end: { x: number; y: number }, he: number): number {
+    const body: OBox = { cx: end.x, cy: end.y, hl: CAR_BODY_LENGTH / 2, hw: CAR_BODY_WIDTH / 2, th: he };
+    let gap = Infinity;
+    for (const b of STALL_BOXES) {
+      if (Math.abs(b.cx - end.x) > 15 || Math.abs(b.cy - end.y) > 15) continue;
+      gap = Math.min(gap, boxGap(body, b));
+    }
+    return gap;
   }
 
   /**
@@ -1824,12 +1860,12 @@ class TwinMotionDriver {
    * the drawn 9.8 x 4.0 body against each other car standing still (its own stall left
    * out) and every structure solid, with 0.2u to spare.
    */
-  private swingHits(e: Entry, sgn: number, R: number): boolean {
+  private swingHits(e: Entry, sgn: number, R: number, straight = EXIT_STRAIGHT): boolean {
     const h = e.car.heading;
     const bx = -Math.cos(h), by = -Math.sin(h);
     const poses: { x: number; y: number; heading: number }[] = [];
-    for (let s = 1; s <= EXIT_STRAIGHT; s += 0.5) poses.push({ x: e.car.x + bx * s, y: e.car.y + by * s, heading: h });
-    const x0 = e.car.x + bx * EXIT_STRAIGHT, y0 = e.car.y + by * EXIT_STRAIGHT;
+    for (let s = 1; s <= straight; s += 0.5) poses.push({ x: e.car.x + bx * s, y: e.car.y + by * s, heading: h });
+    const x0 = e.car.x + bx * straight, y0 = e.car.y + by * straight;
     const k = sgn / R;
     for (let a = 0.5; a <= R * EXIT_SWING + 1e-9; a += 0.5) {
       const he = h + sgn * (a / R);
