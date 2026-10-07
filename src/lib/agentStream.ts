@@ -16,6 +16,7 @@ import type { ActivityFeedRow } from "@/store/activityFeedStore";
 import { human, modelErrorText, num, solverPhrase } from "@/lib/decisionText";
 import { sentenceCase } from "@/lib/publicNames";
 import { proposerWord, type DispositionRow } from "@/lib/ottoqFunnel";
+import { verdictWords, type AgentOrderEntry, type AgentOrderUsage } from "@/lib/runLearning";
 
 export type StreamTone = "ok" | "held" | "refused" | "idle";
 
@@ -35,6 +36,25 @@ export interface AgentPass {
   chose: string;
   /** What the solver and the decide path did with it, as sentences. */
   outcome: string[];
+  /** The charge-line order this pass sent (otto-q-core 0614), when the run takes one and the order is in the read. */
+  order: AgentOrderEntry | null;
+  /**
+   * The pass's colour on the stack: green when its order seated cars, red when the kernel's check kept its own order
+   * (0618) or none of the cars named was waiting, amber when the agent gave no answer, the agent's own white otherwise.
+   */
+  hue: PassHue;
+}
+
+export type PassHue = "seated" | "refused" | "held" | "answered";
+
+/** chain id -> the order that pass sent: how a pass, which carries its chain id, finds its order. */
+export type OrderIndex = ReadonlyMap<string, AgentOrderEntry>;
+export const NO_ORDERS: OrderIndex = new Map();
+
+export function orderIndex(usage: AgentOrderUsage | null | undefined): OrderIndex {
+  const m = new Map<string, AgentOrderEntry>();
+  for (const o of usage?.by_order ?? []) if (o?.chain_id) m.set(o.chain_id, o);
+  return m;
 }
 
 export interface OfferBatch {
@@ -64,8 +84,12 @@ export const objectiveWord = (o: unknown): string =>
 
 const plural = (k: number, one: string, many = `${one}s`) => `${k} ${k === 1 ? one : many}`;
 
-export function agentPass(r: ActivityFeedRow): AgentPass {
+export function agentPass(r: ActivityFeedRow, orders: OrderIndex = NO_ORDERS): AgentPass {
   const v = (r.rationale ?? {}) as Record<string, unknown>;
+  // `.map(agentPass)` would hand the index in here: only a Map is an order index
+  const index = orders instanceof Map ? orders : NO_ORDERS;
+  const chain = typeof v.chain_id === "string" ? v.chain_id : null;
+  const order = chain ? index.get(chain) ?? null : null;
   const modelError = modelErrorText(v.model_error);
   const summary = typeof v.summary === "string" && v.summary.trim() ? v.summary.trim() : null;
   const applied = Array.isArray(v.applied) ? (v.applied as { text?: unknown }[]) : [];
@@ -102,13 +126,43 @@ export function agentPass(r: ActivityFeedRow): AgentPass {
   else if (handoff === "completed" && returned === 0) outcome.push("The decide path had nothing to decide.");
   if (directives.length) outcome.push(`${plural(directives.length, "directive")} applied${queued ? `, ${queued} waiting for a person to approve` : ""}${rejected ? `, ${rejected} rejected` : ""}.`);
   else if (queued || rejected) outcome.push(`${queued ? `${queued} waiting for a person to approve` : ""}${queued && rejected ? ", " : ""}${rejected ? `${rejected} rejected` : ""}.`);
+  // 0614: the charge-line order, and what the decide path did with it
+  if (order && !modelError) {
+    const accepted = order.accepted ?? 0, offered = order.offered ?? 0;
+    const byRank = order.seats_by_rank ?? 0, ahead = order.moved_ahead ?? 0;
+    if (order.status === "rejected") {
+      outcome.push(`It ordered the charge line, and the decide path kept none of the ${plural(offered, "car")} it named: none was waiting for a charger.`);
+    } else if (order.status === "refused") {
+      // 0618: the kernel projected the line both ways and its own order came out better
+      const why = verdictWords(order.verdict);
+      outcome.push(`It ordered the charge line (${plural(accepted, "car")}). The kernel checked it and kept its own order${why ? `: ${why}` : ""}.`);
+    } else {
+      outcome.push(`It ordered the charge line: ${plural(accepted, "car")}${accepted < offered ? ` (${offered - accepted} not waiting, left out)` : ""}.`);
+      const took = verdictWords(order.verdict);
+      if (took) outcome.push(`The kernel checked it and took it: ${took}.`);
+      outcome.push(byRank > 0
+        ? `The decide path seated ${plural(byRank, "car")} in its order${ahead ? `, ${ahead} of them ahead of where its own order had them` : ""}.`
+        : "No car has been seated by its order.");
+    }
+  }
   const late = num(v.advice_ticks_late);
   if (late != null) outcome.push(late === 0 ? "Its advice was applied on the tick it read." : `Its advice was applied ${plural(late, "tick")} after the tick it read. The tick never waits for it.`);
 
   const tone: StreamTone = modelError || r.outcome !== "enacted" ? "held" : "ok";
+  const seated = !modelError && (order?.seats_by_rank ?? 0) > 0;
+  const kept = order?.status === "rejected" || order?.status === "refused";
+  const hue: PassHue = modelError || r.outcome !== "enacted" ? "held"
+    : kept ? "refused"
+    : seated ? "seated" : "answered";
   const headline = modelError
     ? "The agent gave no answer, so the decide path kept the goal"
-    : `The agent read the depot and chose to ${objectiveWord(v.objective)}`;
+    : order?.status === "refused"
+      ? "The kernel checked the agent's charge order and kept its own"
+    : seated
+      ? `The agent ordered the charge line and the decide path seated ${plural(order!.seats_by_rank ?? 0, "car")} by it`
+      : order && !kept
+        ? `The agent read the depot and ordered the charge line: ${plural(order.accepted ?? 0, "car")}`
+        : `The agent read the depot and chose to ${objectiveWord(v.objective)}`;
 
   return {
     kind: "pass",
@@ -121,6 +175,8 @@ export function agentPass(r: ActivityFeedRow): AgentPass {
     directives: modelError ? [] : directives,
     chose,
     outcome,
+    order,
+    hue,
   };
 }
 

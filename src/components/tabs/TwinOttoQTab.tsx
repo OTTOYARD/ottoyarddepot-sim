@@ -20,6 +20,7 @@ import { useIntelligenceStack } from "@/hooks/useIntelligenceStack";
 import { useDepotCards } from "@/hooks/useDepotCards";
 import { useDispositions } from "@/hooks/useDispositions";
 import { useRunLearning } from "@/hooks/useRunLearning";
+import { useAgentOrders } from "@/hooks/useAgentOrders";
 import { LearnedThisRun } from "@/components/tabs/ottoq/LearnedThisRun";
 import { EndedState, StreamState } from "@/components/tabs/TwinDecisionLogTab";
 import { useSimulationStore } from "@/store/simulationStore";
@@ -29,7 +30,8 @@ import {
   PLATES, REPLAY_STEP_S, plateLabels, plateTags, recordKeys, replayEvents, stackModel, takeNewEvents,
   type PlateId, type PlateLabel, type StackEvent,
 } from "@/components/tabs/ottoq/stack/stackModel";
-import { agentPass, isLiveStatus, namesFromRows, offerBatches, offerLine, tickClocks } from "@/lib/agentStream";
+import { agentPass, isLiveStatus, namesFromRows, offerBatches, offerLine, tickClocks, type OrderIndex, type PassHue } from "@/lib/agentStream";
+import type { Hue } from "@/components/tabs/ottoq/stack/stackLegend";
 import { FunnelCanvas } from "@/components/tabs/ottoq/FunnelCanvas";
 import { TONE_COLOR } from "@/components/tabs/ottoq/funnelGeometry";
 import { BAND_H, PAD_Y } from "@/components/tabs/ottoq/funnelGeometry";
@@ -216,7 +218,10 @@ const DEPOT_ZONES: { layer: LayerId; label: string }[] = [
   { layer: "ready", label: "Ready" },
 ];
 
-function PlateDetail({ plate, rows, dispositions, names, recentFor, cars, overviews, shield, onAgentTab, info }: {
+/** A pass's swatch in the opened plate: the same colour as its orb in the stack. */
+const PASS_SWATCH: Record<PassHue, Hue> = { seated: "ok", answered: "agent", held: "held", refused: "refused" };
+
+function PlateDetail({ plate, rows, dispositions, names, recentFor, cars, overviews, shield, onAgentTab, info, orders }: {
   plate: PlateId;
   rows: ActivityFeedRow[];
   dispositions: DispositionRow[] | null;
@@ -228,13 +233,15 @@ function PlateDetail({ plate, rows, dispositions, names, recentFor, cars, overvi
   onAgentTab: () => void;
   /** The "i" beside the plate's name: the plate's live line, the run it is for, and where its links go. */
   info?: { line: string | null; run: string | null; onOpenTab: (tab: InfoTab) => void };
+  /** What each pass's charge-line order did (useAgentOrders), by the pass's chain id. */
+  orders: OrderIndex;
 }) {
   const def = PLATES.find((p) => p.id === plate)!;
   const ref = useRef<HTMLElement>(null);
   // No scroll here: the plate's zoom in the stack above is the point of tapping it; the detail waits below.
   const [zone, setZone] = useState<LayerId>(() => DEPOT_ZONES.find((z) => cars.some((c) => c.layer === z.layer))?.layer ?? "arriving");
 
-  const passes = useMemo(() => rows.filter((r) => r.action === "orchestrator_agent").map(agentPass).sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, 6), [rows]);
+  const passes = useMemo(() => rows.filter((r) => r.action === "orchestrator_agent").map((r) => agentPass(r, orders)).sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, 6), [rows, orders]);
   const batches = useMemo(() => offerBatches(dispositions ?? [], names, tickClocks(rows)), [dispositions, names, rows]);
   const loud = batches.filter((b) => !b.quiet).slice(0, 8);
   const n = (x: number | null | undefined) => (x == null ? "—" : x.toLocaleString("en-US"));
@@ -256,15 +263,18 @@ function PlateDetail({ plate, rows, dispositions, names, recentFor, cars, overvi
         <>
           <PlateIntro plate="agent" />
           <p className="mt-1.5 text-[10.5px] leading-4 text-ink-dim">
-            A violet scan rises when the agent reads the depot. Amber means the agent gave no answer in time, so the
-            default goal stayed. The agent proposes and never decides.
+            A violet scan rises when the agent reads the depot. Each answer also orders the charge line: which waiting
+            cars take the next free chargers, and which kind. The kernel projects the line under that order and under its
+            own, and takes the agent's only when it is no worse. Green means the decide path seated cars in that order;
+            red, the kernel kept its own. Amber means the agent gave no answer in time, so the default goal stayed. The
+            agent proposes and never decides.
           </p>
           <p className="mt-1 font-mono text-[10px] text-ink">{overviews.proposers.split(" · offers")[0]}</p>
           {passes.length === 0 ? <p className="mt-1 text-[10px] text-ink-faint">No agent pass in the last two sim-hours.</p> : (
             <ul className="mt-1.5 space-y-1.5">
               {passes.map((p) => (
                 <li key={p.key} className="flex items-start gap-2">
-                  <span className="mt-1"><Dot tone={p.tone === "ok" ? "ok" : "held"} size={6} /></span>
+                  <span className="mt-1"><StackSwatch hue={PASS_SWATCH[p.hue]} shape="orb" size={7} /></span>
                   <div className="min-w-0 flex-1">
                     <div className="text-[11px] text-ink">{p.headline}</div>
                     <div className="text-[10px] leading-4 text-ink-dim">{[p.chose, ...p.outcome.slice(0, 2)].join(" ")}</div>
@@ -540,6 +550,7 @@ export function TwinOttoQTab() {
   const cards = useDepotCards();
   const disp = useDispositions();
   const learning = useRunLearning();
+  const orders = useAgentOrders();
   const [selected, setSelected] = useState<LayerId | null>(null);
   const [focus, setFocus] = useState<PlateId | null>(null);
   const [picked, setPicked] = useState<Picked | null>(null);
@@ -556,7 +567,7 @@ export function TwinOttoQTab() {
   // Lookups for a record under the pointer or tapped: the stack's objects are keyed by their records.
   const rowByKey = useMemo(() => new Map(rows.map((r) => [decisionKey(r), r] as const)), [rows]);
   const dispByKey = useMemo(() => new Map<string, DispositionRow>((disp.rows ?? []).map((d) => [`p${d.disposition_id}`, d])), [disp.rows]);
-  const passByKey = useMemo(() => new Map(rows.filter((r) => r.action === "orchestrator_agent").map((r) => { const p = agentPass(r); return [p.key, p] as const; })), [rows]);
+  const passByKey = useMemo(() => new Map(rows.filter((r) => r.action === "orchestrator_agent").map((r) => { const p = agentPass(r, orders.byChain); return [p.key, p] as const; })), [rows, orders.byChain]);
   const clocks = useMemo(() => tickClocks(rows), [rows]);
 
   const overviews = useMemo(
@@ -567,7 +578,7 @@ export function TwinOttoQTab() {
   // The stack: every object is a record; `events` are the records that ARRIVED while watching. The backlog present at
   // the first read seeds the seen set silently, so opening the tab never replays history as if it were happening now.
   const tones = useMemo(() => new Map(cars.map((c) => [c.id, c.tone] as const)), [cars]);
-  const model = useMemo(() => stackModel(cardsRead ? vehicles : [], tones, rows, disp.rows, cardsRead), [cardsRead, vehicles, tones, rows, disp.rows]);
+  const model = useMemo(() => stackModel(cardsRead ? vehicles : [], tones, rows, disp.rows, cardsRead, orders.byChain), [cardsRead, vehicles, tones, rows, disp.rows, orders.byChain]);
   const seen = useRef<{ run: string | null; keys: Set<string>; seededFeed: boolean; seededDisp: boolean }>({ run: null, keys: new Set(), seededFeed: false, seededDisp: false });
   if (seen.current.run !== simRunId) seen.current = { run: simRunId, keys: new Set(), seededFeed: false, seededDisp: false };
   const [events, setEvents] = useState<StackEvent[]>([]);
@@ -631,8 +642,8 @@ export function TwinOttoQTab() {
   }, []);
 
   const labels = useMemo<Record<PlateId, PlateLabel>>(
-    () => plateLabels({ rows, dispositions: disp.rows, stack: slice, activity: cardsRead ? model.depot.activity : null }),
-    [disp.rows, slice, rows, cardsRead, model.depot.activity],
+    () => plateLabels({ rows, dispositions: disp.rows, stack: slice, activity: cardsRead ? model.depot.activity : null, orders: orders.usage }),
+    [disp.rows, slice, rows, cardsRead, model.depot.activity, orders.usage],
   );
 
   const tags = useMemo(() => plateTags(model, slice?.shield ?? null), [model, slice]);
@@ -767,7 +778,7 @@ export function TwinOttoQTab() {
         {threeD && focus && (
           <PlateDetail plate={focus} rows={rows} dispositions={disp.rows} names={names} recentFor={recentFor} cars={cars}
             overviews={overviews} shield={slice?.shield ?? null} onAgentTab={() => setActiveTab("agent")}
-            info={{ line: labels[focus].line, run: simRunId, onOpenTab: openTab }} />
+            info={{ line: labels[focus].line, run: simRunId, onOpenTab: openTab }} orders={orders.byChain} />
         )}
         {!threeD && selected && (
           <LayerDetail layer={selected} cars={carsIn(selected)} overview={overviews[selected]}

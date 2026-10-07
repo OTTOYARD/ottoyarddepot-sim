@@ -20,6 +20,7 @@ import { useOwnerBoardStore } from "@/store/ownerBoardStore";
 import { boardStateText, ownerFeedLines } from "@/lib/ownerBoard";
 import { useIntelligenceStack } from "@/hooks/useIntelligenceStack";
 import { useDispositions } from "@/hooks/useDispositions";
+import { useAgentOrders } from "@/hooks/useAgentOrders";
 import { useSecondLoop } from "@/hooks/useSecondLoop";
 import { EndedState, StreamState } from "@/components/tabs/TwinDecisionLogTab";
 import SecondLoopPanel from "@/components/tabs/SecondLoopPanel";
@@ -346,6 +347,7 @@ export function TwinAgentTab() {
   const { rows, frozen, error } = useActivityFeedStore();
   const { stack, frame, frameLoading, loadFrame } = useIntelligenceStack(!!simRunId);
   const disp = useDispositions();
+  const orders = useAgentOrders();
   const loop = useSecondLoop(true);
   const [view, setView] = useState<View>("live");
   const [limit, setLimit] = useState(30);
@@ -353,11 +355,11 @@ export function TwinAgentTab() {
 
   const names = useMemo(() => namesFromRows(rows), [rows]);
   const items = useMemo<StreamItem[]>(() => {
-    const passes = rows.filter((r) => r.action === "orchestrator_agent").map(agentPass);
+    const passes = rows.filter((r) => r.action === "orchestrator_agent").map((r) => agentPass(r, orders.byChain));
     const batches = offerBatches(disp.rows ?? [], names, tickClocks(rows)).filter((b) => showQuiet || !b.quiet);
     // Both carry the tick they belong to; merged on it, a pass before the offers of its own tick.
     return [...passes, ...batches].sort((a, b) => (b.tick ?? -1) - (a.tick ?? -1) || (a.kind === "pass" ? -1 : 1));
-  }, [rows, disp.rows, names, showQuiet]);
+  }, [rows, disp.rows, names, showQuiet, orders.byChain]);
   // What owners' agents asked of their cars on this run (otto-q-core 0608), polled for the whole cockpit by useOwnerBoard.
   // Its lines join the stream once the stream's first page is in: the stream shows what is already there when the tab
   // opens all at once, and only plays in what arrives after (useTrickle), so lines landing before that page would make
@@ -370,8 +372,8 @@ export function TwinAgentTab() {
   const owners = useMemo(() => (streamIn ? ownerFeedLines(ownerCommands, simRunId) : []), [streamIn, ownerCommands, simRunId]);
   const ownerNote = boardStateText(ownerStatus, ownerMessage, !!ownerBoard);
   const feed = useMemo(
-    () => liveFeed(rows, offerBatches(disp.rows ?? [], names, tickClocks(rows)).filter((b) => !b.quiet), owners),
-    [rows, disp.rows, names, owners],
+    () => liveFeed(rows, offerBatches(disp.rows ?? [], names, tickClocks(rows)).filter((b) => !b.quiet), owners, orders.byChain),
+    [rows, disp.rows, names, owners, orders.byChain],
   );
   const quietCount = useMemo(() => offerBatches(disp.rows ?? [], names).filter((b) => b.quiet).length, [disp.rows, names]);
 

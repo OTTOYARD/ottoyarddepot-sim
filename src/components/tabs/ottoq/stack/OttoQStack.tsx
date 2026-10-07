@@ -374,8 +374,8 @@ function AgentPlate({ rt, model, onFocus }: { rt: Runtime; model: StackModel["ag
 }
 
 const MAX_SPHERES = 40;
-const ORB_COLOR = { answered: new THREE.Color(HUE.agent.fill), newest: new THREE.Color("#ffffff"), fell: fill("held") };
-const ORB_HALO = { answered: glow("agent", 1.25), newest: new THREE.Color("#ffffff").multiplyScalar(1.7), fell: glow("held", 1.35) };
+const ORB_COLOR = { answered: new THREE.Color(HUE.agent.fill), newest: new THREE.Color("#ffffff"), fell: fill("held"), seated: fill("ok"), refused: fill("refused") };
+const ORB_HALO = { answered: glow("agent", 1.25), newest: new THREE.Color("#ffffff").multiplyScalar(1.7), fell: glow("held", 1.35), seated: glow("ok", 1.5), refused: glow("refused", 1.4) };
 function AgentNodes({ rt, model }: { rt: Runtime; model: StackModel["agent"] }) {
   const spheres = useRef<THREE.InstancedMesh>(null);
   const order = useRef<string[]>([]);
@@ -422,7 +422,8 @@ function AgentNodes({ rt, model }: { rt: Runtime; model: StackModel["agent"] }) 
       tmpP.set(p.x, 0.05 + p.r, p.z);
       tmpS.setScalar(Math.max(0.0001, s));
       m.setMatrixAt(i, tmpM.compose(tmpP, tmpQ.identity(), tmpS));
-      const kind = p.tone === "held" ? "fell" : p.newest ? "newest" : "answered";
+      // 0614: green when the pass's order seated cars, red when the decide path kept none of its cars
+      const kind = p.hue === "held" ? "fell" : p.hue === "seated" ? "seated" : p.hue === "refused" ? "refused" : p.newest ? "newest" : "answered";
       m.setColorAt(i, ORB_COLOR[kind]);
       hp.setXYZ(i, p.x, 0.05 + p.r, p.z);
       tmpC.copy(ORB_HALO[kind]).multiplyScalar(Math.min(1, a));
