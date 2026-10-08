@@ -680,12 +680,14 @@ export function TwinOttoQTab() {
   const replayLine = playing ? describe(playing.kind, playing.key) : null;
 
   if (!simRunId) {
+    // The morning self-review belongs to the depot, not to a run (useSelfReview): it is drawn with no run too.
     return (
-      <div className="flex-1 p-4">
+      <div className="flex-1 space-y-3 p-4">
         <p className="text-[12px] leading-5 text-ink-dim">
           No run is active. During a run, this tab shows OTTO-Q as a stack of layers. Each car, decision and offer is an
           object on the stack. Each new record falls through the stack when it occurs.
         </p>
+        <SelfReview review={review.review} clock={review.clock} error={review.error} loaded={review.loaded} />
       </div>
     );
   }
