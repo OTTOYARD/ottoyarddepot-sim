@@ -4,22 +4,24 @@
 //
 // Chase, 2026-10-08: "Ideally, after a while, the system itself will pick up areas for self improvement."
 //
-// The engine side is otto-q-core 0621 and 0622. Each morning public.ottoq_arbiter_assess takes the agent's charge-line
-// orders graded in the past week (each replayed 90 sim-minutes after it was sent, with what actually happened) and
-// writes one row to public.ottoq_arbiter_assessments: how the kernel's check did on them, what made its forecasts
-// wrong (each of five causes' exact share of the difference), and the places it falls short, in the engine's order,
-// each with its finding and its evidence. The charge clock is refit each morning from the depot's own charges
-// (public.ottoq_charge_clock_fits, 0622). This file draws both. They are findings for the research team: the production
-// engine never changes its own rules or settings from them (otto-q-core CLAUDE.md rule 10); a person decides what to
-// build. A missing number is "—", never 0.
+// The engine side is otto-q-core 0621, 0622 and 0626. Each morning public.ottoq_arbiter_assess takes the agent's
+// charge-line orders graded in the past week (each replayed 90 sim-minutes after it was sent, with what actually
+// happened) and writes one row to public.ottoq_arbiter_assessments: how the kernel's check did on them, what made its
+// forecasts wrong (each of five causes' exact share of the difference), and the places it falls short, each with its
+// finding and its evidence. Since 0626 each place also carries a title, an action, a rank, the share of what made the
+// check wrong that its part carries (impact), and a status: open, or built (the part was rebuilt after these orders were
+// made, so the finding is history until new orders are graded), with a flag when it rests on too little to act on
+// (thin). The charge clock is refit each morning from the depot's own charges (public.ottoq_charge_clock_fits, 0622).
+// This file draws both. They are findings for the research team: the production engine never changes its own rules or
+// settings from them (otto-q-core CLAUDE.md rule 10); a person decides what to build. A missing number is "—", never 0.
 // ============================================================================
 import { sentenceCase } from "./publicNames";
 import type { LearningTone } from "./runLearning";
 
-/** One place the review says the check falls short (0621/0622 improvement_areas). */
+/** One place the review says the check falls short (0621/0622/0626 improvement_areas). */
 export interface ImprovementArea {
   area?: string | null;
-  /** capability_gap | calibration | forecast | threshold | agent */
+  /** capability_gap | calibration | forecast | threshold | agent | world_changed */
   kind?: string | null;
   weight?: number | null;
   /** The engine's own sentence, with its numbers. */
@@ -27,6 +29,20 @@ export interface ImprovementArea {
   /** A short name, if the engine writes one: drawn in place of this file's own. */
   title?: string | null;
   evidence?: Record<string, unknown> | null;
+  /** 0626: what to do about it, in the engine's words. */
+  action?: string | null;
+  /** 0626: its place in the engine's ranking, 1 first. */
+  rank?: number | null;
+  /** 0626: "open", or "built" when its part was rebuilt after these orders were made. */
+  status?: string | null;
+  /** 0626: it rests on too little evidence to act on. */
+  thin?: boolean | null;
+  /** 0626: the share (0..1) of what made the check wrong that its part carries, when it has a part. */
+  impact?: number | null;
+  /** 0626: which of the five causes it belongs to (arrivals, appeared, running, charge_times, faults). */
+  part?: string | null;
+  /** 0626: 1 a change in the world, 2 a measured diagnosis, 3 a calibration, 4 a part alone, 5 the rest. */
+  tier?: number | null;
 }
 
 /** How the check's calls on the week's orders came out in hindsight (assessment.verdicts). */
@@ -93,6 +109,18 @@ export interface ReviewArea {
   kindLabel: string;
   title: string;
   finding: string;
+  /** The engine's rank, 1 first; null on a review written before 0626. */
+  rank: number | null;
+  /** "22%" when the area's part carries a share of what made the check wrong, else null. */
+  impact: string | null;
+  /** The hover line for the impact. */
+  impactDetail: string | null;
+  /** Its part was rebuilt after these orders were made: history until new orders are graded. */
+  built: boolean;
+  /** It rests on too little evidence to act on. */
+  thin: boolean;
+  /** What to do about it, in words; "" when the engine writes none. */
+  action: string;
 }
 
 export interface ReviewCause {
@@ -119,6 +147,8 @@ export interface SelfAssessmentView {
   /** What made the check's forecasts wrong, largest share first. Empty when no order could be split. */
   causes: ReviewCause[];
   causesLabel: string;
+  /** The heading over the areas: a ranked review says so. */
+  areasLabel: string;
   /** The first areas, in the engine's order. */
   areas: ReviewArea[];
   /** The rest, in the engine's order. */
@@ -191,6 +221,7 @@ const KIND_LABEL: Record<string, string> = {
   forecast: "Forecast",
   threshold: "A person's dial",
   agent: "Agent's move",
+  world_changed: "World changed",
 };
 export const kindLabel = (k: string | null | undefined): string => (k ? KIND_LABEL[k] ?? k.replace(/_/g, " ") : "Finding");
 
@@ -290,12 +321,23 @@ function causesOf(att: ReviewAttribution | null | undefined): ReviewCause[] {
 }
 
 function areaOf(a: ImprovementArea, i: number): ReviewArea {
+  const share = num(a.impact);
+  const pct = share != null && share > 0 ? Math.round(share * 100) : null;
+  const shown = pct == null ? null : pct === 0 ? "<1%" : `${pct}%`;
+  const rank = num(a.rank);
   return {
     key: `${a.area ?? "area"}:${i}`,
     kind: a.kind ?? "",
     kindLabel: kindLabel(a.kind),
     title: areaTitle(a),
     finding: plainFinding(a.finding),
+    rank: rank != null ? Math.round(rank) : null,
+    impact: shown,
+    impactDetail: shown == null ? null
+      : a.part ? `${causeLabel(a.part)}: ${shown} of what made the check wrong.` : `${shown} of what made the check wrong.`,
+    built: a.status === "built",
+    thin: a.thin === true,
+    action: plainFinding(a.action),
   };
 }
 
@@ -358,9 +400,15 @@ export function selfAssessmentView(
     tone = "idle";
     headline = `No agent order from ${span} has been replayed with what happened yet, so the review has nothing to grade.`;
   } else {
-    tone = all.length ? "held" : "ok";
+    const ranked = (r.improvement_areas ?? []).some((a) => a.status != null);
+    const built = all.filter((a) => a.built).length;
+    const open = all.length - built;
+    tone = open > 0 ? "held" : "ok";
     headline = `It replayed ${count(graded, "agent order")} from ${span} with what actually happened and graded its own check on each. `
-      + (all.length ? `It names ${count(all.length, "place")} the check falls short.` : "It names no place the check falls short.");
+      + (!ranked
+        ? (all.length ? `It names ${count(all.length, "place")} the check falls short.` : "It names no place the check falls short.")
+        : (open > 0 ? `It names ${count(open, "area")} to improve.` : "It names no area to improve.")
+          + (built > 0 ? ` ${n(built)} more ${built === 1 ? "has" : "have"} a fix since these orders.` : ""));
   }
 
   const facts: string[] = [];
@@ -375,5 +423,7 @@ export function selfAssessmentView(
   const basis = `Reviewed ${ctTime(r.assessed_at)}`
     + (stale ? " · older than a day: the morning review may have missed a run" : " · a review runs each morning");
 
-  return { tone, headline, facts, causes, causesLabel, areas, more, clock: clockView(clock), basis };
+  const areasLabel = all.some((a) => a.rank != null) ? "What to improve, in rank order" : "Where it says the check falls short";
+
+  return { tone, headline, facts, causes, causesLabel, areasLabel, areas, more, clock: clockView(clock), basis };
 }

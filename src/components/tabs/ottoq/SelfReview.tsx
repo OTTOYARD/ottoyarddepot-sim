@@ -1,8 +1,9 @@
 // ============================================================================
 // SelfReview — the card on the OTTO-Q tab that shows the engine's own morning review of its check: the week's agent
-// orders replayed with what actually happened, what made its forecasts wrong, the places it says it falls short, and
-// the charge clock it learned from the depot's own charges. The words are src/lib/selfAssessment.ts (tested there);
-// this file only draws them.
+// orders replayed with what actually happened, what made its forecasts wrong, the places it says it falls short (since
+// otto-q-core 0626 in rank order, each with its share of what made the check wrong, whether it is built, and what to
+// do), and the charge clock it learned from the depot's own charges. The words are src/lib/selfAssessment.ts (tested
+// there); this file only draws them.
 //
 // The findings are for the research team. The production engine never changes its own rules or settings from them;
 // a person decides what gets built (otto-q-core CLAUDE.md rule 10), and the card says so.
@@ -16,18 +17,31 @@ const TONE_DOT: Record<LearningTone, string> = { ok: TONE_COLOR.ok, held: TONE_C
 /** The twin's one data hue for a bar list (TwinKpisTab's ServiceBars): a magnitude, not a state. */
 const BAR = "#3987e5";
 
+const CHIP = "shrink-0 rounded-sm border border-white/[0.12] px-1 py-px text-[8.5px] font-semibold uppercase tracking-[0.06em] text-ink-faint";
+
 function Area({ a }: { a: ReviewArea }) {
   return (
     <li>
       <details className="group">
-        <summary className="flex cursor-pointer select-none list-none items-baseline gap-1.5 text-[10.5px] leading-[14px] text-ink [&::-webkit-details-marker]:hidden">
+        <summary className={`flex cursor-pointer select-none list-none items-baseline gap-1.5 text-[10.5px] leading-[14px] [&::-webkit-details-marker]:hidden ${a.built || a.thin ? "text-ink-dim" : "text-ink"}`}>
           <ChevronRight aria-hidden size={10} className="shrink-0 translate-y-[1px] self-start text-ink-faint transition-transform group-open:rotate-90" />
-          <span className="shrink-0 rounded-sm border border-white/[0.12] px-1 py-px text-[8.5px] font-semibold uppercase tracking-[0.06em] text-ink-faint">
-            {a.kindLabel}
-          </span>
-          <span>{a.title}</span>
+          {a.rank != null && (
+            <span className="w-3 shrink-0 text-right font-mono text-[9.5px] tabular-nums text-ink-faint" aria-label={`Rank ${a.rank}`}>{a.rank}</span>
+          )}
+          <span className={CHIP}>{a.kindLabel}</span>
+          <span className="min-w-0 flex-1">{a.title}</span>
+          {a.built && <span className={CHIP} title="Built after these orders. The finding is history until new orders get a grade.">Built</span>}
+          {a.thin && <span className={CHIP} title="Too few cases to act on.">Little data</span>}
+          {a.impact && (
+            <span className="shrink-0 font-mono text-[10px] tabular-nums text-ink" title={a.impactDetail ?? undefined}>{a.impact}</span>
+          )}
         </summary>
         <p className="mt-0.5 pl-4 text-[10px] leading-[14px] text-ink-dim">{a.finding}</p>
+        {a.action && (
+          <p className="mt-0.5 pl-4 text-[10px] leading-[14px] text-ink-dim">
+            <span className="font-semibold text-ink-faint">Next: </span>{a.action}
+          </p>
+        )}
       </details>
     </li>
   );
@@ -79,8 +93,8 @@ export function SelfReview({ review, clock, error, loaded }: {
           )}
 
           {view.areas.length > 0 && (
-            <div className="mt-2" aria-label="Where the check falls short">
-              <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-ink-faint">Where it says the check falls short</div>
+            <div className="mt-2" aria-label={view.areasLabel}>
+              <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-ink-faint">{view.areasLabel}</div>
               <ol className="mt-1 space-y-1">
                 {view.areas.map((a) => <Area key={a.key} a={a} />)}
               </ol>
@@ -95,7 +109,7 @@ export function SelfReview({ review, clock, error, loaded }: {
                 </details>
               )}
               <p className="mt-1 text-[9.5px] leading-[13px] text-ink-faint">
-                Findings for the research team. OTTO-Q does not change its own rules or settings from them; a person decides what to build.
+                Findings for the research team. OTTO-Q does not change its own rules or settings from them. A person decides what to build.
               </p>
             </div>
           )}
