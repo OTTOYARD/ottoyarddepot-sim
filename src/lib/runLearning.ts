@@ -76,6 +76,28 @@ export interface AgentOrderEntry {
   moved_ahead?: number | null;
   /** 0618: the kernel's check on this order, as a key: see verdictWords. Absent on orders sent before 0618. */
   verdict?: string | null;
+  /** 0620: in how many of the futures the check rolled the order beat the kernel's own, of how many, and the bar. */
+  futures_won?: number | null;
+  futures?: number | null;
+  need?: number | null;
+  /**
+   * 0621: the order replayed 90 sim-minutes later with what actually happened, once graded: right_take | neutral_take |
+   * wrong_take | missed_win | right_refusal | no_decision | no_decision_mattered. See hindsightWords.
+   */
+  hindsight?: string | null;
+  /** 0621: what the order changed in the expected future (due_rescue_fast, low_battery_on_l2, ...). */
+  moves?: string[] | null;
+}
+
+/** 0621: how the run's orders did in what actually happened, once graded. */
+export interface AgentOrderHindsight {
+  graded?: number | null;
+  right_take?: number | null;
+  neutral_take?: number | null;
+  wrong_take?: number | null;
+  missed_win?: number | null;
+  right_refusal?: number | null;
+  no_decision?: number | null;
 }
 
 /** public.ottoq_agent_charge_order_usage(run, limit): what the agent's charge-line orders did on one run. */
@@ -86,6 +108,10 @@ export interface AgentOrderUsage {
   orders_seating?: number | null;
   /** 0618: the orders the kernel's check refused: its projection said its own order was better. */
   orders_refused?: number | null;
+  /** 0620: the refusals by the check's reason (same_as_kernel: the order would have changed nothing). */
+  refused_by_reason?: Record<string, number> | null;
+  /** 0621: the run's orders graded in hindsight. */
+  hindsight?: AgentOrderHindsight | null;
   cars_ranked?: number | null;
   seats_under_order?: number | null;
   seats_by_rank?: number | null;
@@ -270,11 +296,19 @@ export interface AgentOrderView {
 const KIND_WORD: Record<string, string> = { dcfc: "fast charger", l2: "L2", either: "either charger" };
 
 /**
- * The kernel's check on an agent order (otto-q-core 0618), in words. The kernel projects the charge line from the
- * order's moment in its own order and in the agent's; it takes the agent's when at least as many cars are ready by
- * their due time and the line is ready no later, or more cars are ready by their due time at most 10% later.
+ * The kernel's check on an agent order, in words. Since otto-q-core 0620 the kernel rolls the charge line forward from
+ * the order's moment, the agent's order for its life and then its own, against its own order throughout, in the
+ * expected future and in sampled ones, and takes the agent's only when it wins the expected future and most of the
+ * rest (the 0620 keys). The 0618 keys are kept for orders checked before it: one projection of the line waiting then.
  */
 const VERDICT_WORD: Record<string, string> = {
+  same_as_kernel: "it would have seated the same cars on the same chargers as the kernel's own order, so there was nothing to decide",
+  wins_most_futures: "it beat the kernel's own order in the expected future and in most sampled ones",
+  worse_in_expected_future: "it lost to the kernel's own order in the expected future",
+  no_better_in_expected_future: "it was no better than the kernel's own order in the expected future",
+  not_enough_futures_won: "it did not beat the kernel's own order in enough of the sampled futures",
+  rollout_failed: "it could not be checked",
+  no_rollout: "it could not be checked",
   line_ready_sooner: "it had the line ready sooner than the kernel's own order",
   no_worse: "it was no worse than the kernel's own order",
   more_cars_ready_by_due: "it got more cars ready by their due time",
@@ -287,6 +321,31 @@ const VERDICT_WORD: Record<string, string> = {
 
 export function verdictWords(v: unknown): string | null {
   return typeof v === "string" && v ? VERDICT_WORD[v] ?? v.replace(/_/g, " ") : null;
+}
+
+/** The check's verdict on one order with its numbers (0620): how many futures the order won, of how many, against the bar. */
+export function verdictText(o: Pick<AgentOrderEntry, "verdict" | "futures_won" | "futures" | "need"> | null | undefined): string | null {
+  const words = verdictWords(o?.verdict);
+  if (!words || !o) return words;
+  const won = o.futures_won, of = o.futures, need = o.need;
+  if (won == null || of == null || of <= 1) return words;
+  if (o.verdict === "not_enough_futures_won") return `it beat the kernel's own order in ${won} of ${of} futures, short of the ${need ?? "?"} the check asks`;
+  if (o.verdict === "wins_most_futures") return `it beat the kernel's own order in the expected future and in ${won} of ${of} futures`;
+  return `${words} (${won} of ${of} futures won)`;
+}
+
+/** 0621: an order replayed 90 sim-minutes later with what actually happened, in words. */
+const HINDSIGHT_WORD: Record<string, string> = {
+  right_take: "In what actually happened it beat the kernel's own order: the check was right to take it.",
+  neutral_take: "In what actually happened it tied the kernel's own order.",
+  wrong_take: "In what actually happened it lost to the kernel's own order: the check should not have taken it.",
+  missed_win: "In what actually happened it would have beaten the kernel's own order: the check refused a winner.",
+  right_refusal: "In what actually happened the kernel's own order was at least as good: the check was right to refuse it.",
+  no_decision_mattered: "It changed nothing in the expected future, but in what actually happened it would have.",
+};
+
+export function hindsightWords(h: unknown): string | null {
+  return typeof h === "string" && h && h !== "no_decision" ? HINDSIGHT_WORD[h] ?? null : null;
 }
 
 /**
@@ -304,11 +363,11 @@ export function agentOrderView(l: RunLearning | null | undefined): AgentOrderVie
   let headline: string;
   // 0618: the latest order, by id, carries the kernel's verdict in the usage read
   const last = (u.by_order ?? [])[0];
-  const lastVerdict = o && last && last.order_id === o.order_id ? last.verdict ?? null : null;
+  const lastEntry = o && last && last.order_id === o.order_id ? last : null;
   const refusedLast = o?.status === "refused";
   if (!o) headline = "The agent has not ordered the charge line yet. The decide path seats cars in its own order.";
   else if (refusedLast) {
-    const why = verdictWords(lastVerdict);
+    const why = verdictText(lastEntry);
     headline = `The kernel checked the agent's last order and kept its own${why ? `: ${why}` : ""}. `
       + (a.live ? "An earlier order of the agent's still stands." : "The decide path seats cars in its own order.");
   } else {
@@ -324,6 +383,11 @@ export function agentOrderView(l: RunLearning | null | undefined): AgentOrderVie
     + ` · ${count(u.seats_by_rank, "car")} seated in the agent's order`);
   if ((u.seats_by_rank ?? 0) > 0) facts.push(`Moved ahead of the decide path's own order: ${n(u.moved_ahead)} · kind taken as named: ${n(u.kind_followed)} of ${n(u.kind_named)}`);
   facts.push(`Waited ${n(a.pin_wait_min)} sim-min or longer and went first anyway: ${count(u.seats_pinned, "car")}`);
+  // 0621: the orders replayed 90 sim-minutes later with what actually happened
+  const h = u.hindsight;
+  if (h && (h.graded ?? 0) > 0) {
+    facts.push(`In hindsight (${count(h.graded, "order")} replayed with what actually happened): taken ${n((h.right_take ?? 0) + (h.neutral_take ?? 0) + (h.wrong_take ?? 0))} · won ${n(h.right_take)} · tied ${n(h.neutral_take)} · lost ${n(h.wrong_take)} · refused that would have won ${n(h.missed_win)}`);
+  }
   const head = a.live && o && !refusedLast
     ? (o.head ?? []).map((c, i) => ({
         key: `h${o.order_id ?? ""}:${c.vehicle_id ?? i}`,
