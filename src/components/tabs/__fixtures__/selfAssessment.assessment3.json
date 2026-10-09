@@ -1,0 +1,485 @@
+{
+  "assessment_id": 3,
+  "assessed_at": "2026-10-08T22:50:37.607282+00:00",
+  "since": "2026-10-01T22:50:37.607282+00:00",
+  "n_graded": 61,
+  "improvement_areas": [
+    {
+      "area": "arrival_spread",
+      "kind": "capability_gap",
+      "part": "arrivals",
+      "rank": 1,
+      "thin": false,
+      "tier": 2,
+      "title": "A few cars come home far from their forecast",
+      "action": "Sample an early call home in the futures, at the rate the depot's own returns show; add a delay in minutes to each return, not only a share of the trip.",
+      "impact": 0.219,
+      "status": "open",
+      "weight": 2510,
+      "finding": "80% of the 2,510 cars it expected home arrived inside the 80% band its futures sample, against 80%. The bulk is as wide as the futures sample (0.924 of their spread). The misses are in the tails: 69 cars (2.7%) came home a mean 15.4 minutes early, before their battery reached the reserve, and 104 (4.1%) a mean 7.7 minutes late. The late ones were on short trips, a mean 15.8 minutes from the reserve against 38.8 for the rest: the futures spread a return in proportion to the trip, so a few minutes' delay on a short one reads as far off.",
+      "evidence": {
+        "n": 2510,
+        "bulk": {
+          "n": 2337,
+          "sd_z": 0.924,
+          "mean_z": 0.187,
+          "mean_minutes_to_reserve": 38.8
+        },
+        "late": {
+          "n": 104,
+          "mean_minutes": 7.7,
+          "mean_minutes_to_reserve": 15.8
+        },
+        "early": {
+          "n": 69,
+          "mean_minutes": -15.4,
+          "mean_minutes_to_reserve": 38.3
+        },
+        "summed": {
+          "n_z": 2510,
+          "seen": 2745,
+          "z_sd": 3.052,
+          "z_mean": 0.35,
+          "arrived": 2745,
+          "mae_min": 2.98,
+          "no_show": 0,
+          "mean_err_min": 0.67,
+          "in_80pct_band": 0.799
+        },
+        "tail_at": 3,
+        "in_80pct_band": 0.799
+      }
+    },
+    {
+      "area": "charge_clock_misses_air_temperature",
+      "kind": "capability_gap",
+      "part": "charge_times",
+      "rank": 2,
+      "thin": false,
+      "tier": 2,
+      "title": "The charge clock does not see the air temperature",
+      "action": "Give the clock a level for the air temperature, fitted within runs, so it knows a run's level before its first charge.",
+      "impact": 0.151,
+      "status": "open",
+      "weight": 1071,
+      "finding": "Charges on fast chargers ran 1.6% longer for each degree warmer between runs (10 runs averaging 14.4 to 27.3 °C, R² 0.781) and 1.0% longer within them (t 4.89); L2 chargers ran 1.5% longer for each degree warmer between runs (11 runs averaging 12.8 to 25.5 °C, R² 0.902) and 0.8% longer within them (t 2.83). The clock has no level for the air temperature, so it learns a run's level only from that run's own charges, and a run's first charges are timed as if every day were the same.",
+      "evidence": {
+        "by_kind": [
+          {
+            "kind": "dcfc",
+            "runs": 12,
+            "within": {
+              "t": 4.89,
+              "r2": 0.0511,
+              "sd_c": 2.21,
+              "per_degree": 0.0097
+            },
+            "between": {
+              "r2": 0.781,
+              "runs": 10,
+              "per_degree": 0.0154,
+              "run_mean_c": [
+                14.4,
+                27.3
+              ]
+            },
+            "charges": 458
+          },
+          {
+            "kind": "l2",
+            "runs": 12,
+            "within": {
+              "t": 2.83,
+              "r2": 0.0132,
+              "sd_c": 1.41,
+              "per_degree": 0.0081
+            },
+            "between": {
+              "r2": 0.902,
+              "runs": 11,
+              "per_degree": 0.015,
+              "run_mean_c": [
+                12.8,
+                25.5
+              ]
+            },
+            "charges": 613
+          }
+        ]
+      }
+    },
+    {
+      "area": "charge_clock_band_dcfc",
+      "kind": "calibration",
+      "part": "charge_times",
+      "rank": 3,
+      "thin": false,
+      "tier": 2,
+      "title": "The charge clock is surer than the charges on fast chargers",
+      "action": "Widen the clock's spread on fast chargers to what its own residuals show.",
+      "impact": 0.151,
+      "status": "open",
+      "weight": 458,
+      "finding": "64% of 458 charges on fast chargers fell inside the clock's 80% band, and 70% once it knows the run: the futures sample charge times narrower than they come.",
+      "evidence": {
+        "v1": {
+          "estimate_id": 1,
+          "in_80pct_band": 0.618,
+          "mean_log_error": -0.4673,
+          "mean_abs_log_error": 0.5999
+        },
+        "runs": 12,
+        "clock": {
+          "model": "charge_time_v2",
+          "estimate_id": 3,
+          "in_80pct_band": 0.642,
+          "mean_log_error": -0.0069,
+          "mean_abs_log_error": 0.0834,
+          "in_80pct_band_within_run": 0.697,
+          "mean_abs_log_error_within_run": 0.0696
+        },
+        "charges": 458,
+        "out_of_sample": false
+      }
+    },
+    {
+      "area": "forecast_faults",
+      "kind": "capability_gap",
+      "part": "faults",
+      "rank": 4,
+      "thin": false,
+      "tier": 4,
+      "title": "Charger faults it never sampled moved its verdicts",
+      "action": "Sample charger faults in the futures at the depot's own fault rate and repair time.",
+      "impact": 0.148,
+      "status": "open",
+      "weight": 3,
+      "finding": "Chargers that faulted explain 15% of what made its verdicts wrong and moved 3 of 15. Its futures never take a charger down: a fault inside the window is a surprise to every one of them.",
+      "evidence": {
+        "part": {
+          "on_time_mass": 1.417,
+          "orders_moved": 3,
+          "verdict_mass": 4.167,
+          "flow_mass_min": 2498.4,
+          "verdict_share": 0.148,
+          "net_on_verdict": 1.367
+        }
+      }
+    },
+    {
+      "area": "simulator_structure",
+      "kind": "capability_gap",
+      "part": null,
+      "rank": 5,
+      "thin": false,
+      "tier": 5,
+      "title": "Its simulator places a plug-in 11 minutes off, even given what happened",
+      "action": "Measure which of the four costs the most, then model that one in the check's simulator.",
+      "impact": null,
+      "status": "open",
+      "weight": 1939,
+      "finding": "Replayed with what really happened, its simulator still puts a car's plug-in a mean 10.71 minutes from when it really plugged in (bias -3.67 minutes; 55% within 5 minutes), over 1,939 cars, with 447 plug-ins it missed and 312 it invented. It does not model bays, holds, the stall pick beyond the kind of charger, or the next order taking over, and no forecast can remove that error.",
+      "evidence": {
+        "missed": 447,
+        "mae_min": 10.71,
+        "phantom": 312,
+        "bias_min": -3.67,
+        "within_5_min": 0.549,
+        "cars_compared": 1939
+      }
+    },
+    {
+      "area": "chargers_left_out",
+      "kind": "capability_gap",
+      "part": null,
+      "rank": 6,
+      "thin": false,
+      "tier": 5,
+      "title": "It never adds back a charger whose hold ends",
+      "action": "Add a held or booked charger back to the line at the minute its hold ends.",
+      "impact": null,
+      "status": "open",
+      "weight": 61,
+      "finding": "Chargers it left out at the order (held for a car, booked, or faulted) served 3.13 charges a window that it never modelled.",
+      "evidence": {
+        "unmodeled_sessions_per_order": 3.13
+      }
+    },
+    {
+      "area": "bar_stricter",
+      "kind": "threshold",
+      "part": null,
+      "rank": 7,
+      "thin": true,
+      "tier": 5,
+      "title": "Taking none of these orders would have done better",
+      "action": "Leave the bar; grade more armed runs.",
+      "impact": null,
+      "status": "open",
+      "weight": 18,
+      "finding": "In hindsight, taking none of these orders would have done better than the bar it ran under (0.80 of the futures), which took 2 (1 won, 1 lost) and added 28 minutes of lateness. Orders overlap, so this ranks bars; it is not a day's gain. It rests on 2 orders, too few to move the bar.",
+      "evidence": {
+        "best": {
+          "won": 0,
+          "lost": 0,
+          "tied": 0,
+          "taken": 0,
+          "d_flow": 0.0,
+          "d_late": 0.0,
+          "win_frac": 1.0,
+          "d_on_time": 0
+        },
+        "dial": "agent_charge_order_win_frac",
+        "current": {
+          "won": 1,
+          "lost": 1,
+          "tied": 0,
+          "taken": 2,
+          "d_flow": -525.5,
+          "d_late": 28.1,
+          "win_frac": 0.8,
+          "d_on_time": 0
+        },
+        "current_win_frac": 0.8
+      }
+    },
+    {
+      "area": "futures_uninformative",
+      "kind": "calibration",
+      "part": null,
+      "rank": 8,
+      "thin": true,
+      "tier": 5,
+      "title": "Its odds of winning predict no better than the base rate",
+      "action": "Fix the forecasts ranked above; more futures do not help a spread that is wrong.",
+      "impact": null,
+      "status": "open",
+      "weight": 18,
+      "finding": "Its win probability (the share of futures an order won) scored a Brier of 0.2581 against hindsight over 18 decisions, against 0.2377 for always saying the share that won. On 18 decisions the two are within each other's noise.",
+      "evidence": {
+        "bands": [
+          {
+            "band": "0-0.5",
+            "orders": 5,
+            "mean_p_win": 0.317,
+            "won_in_hindsight": 0.2
+          },
+          {
+            "band": "0.5-0.8",
+            "orders": 10,
+            "mean_p_win": 0.617,
+            "won_in_hindsight": 0.4
+          },
+          {
+            "band": "0.8-0.9",
+            "orders": 1,
+            "mean_p_win": 0.833,
+            "won_in_hindsight": 1.0
+          },
+          {
+            "band": "0.9-1",
+            "orders": 2,
+            "mean_p_win": 0.917,
+            "won_in_hindsight": 0.5
+          }
+        ],
+        "brier": 0.2581,
+        "base_rate_won": 0.3889,
+        "brier_of_base_rate": 0.2377
+      }
+    },
+    {
+      "area": "forecast_appeared",
+      "kind": "capability_gap",
+      "part": "appeared",
+      "rank": 9,
+      "thin": false,
+      "tier": 4,
+      "title": "Cars it never saw coming moved its verdicts",
+      "action": "Grade the next armed run's orders: the outflow's grade will say whether it sees them now.",
+      "impact": 0.243,
+      "status": "built",
+      "weight": 532,
+      "finding": "Cars it never saw coming explain 24% of what made its verdicts wrong and moved 5 of 15. 8.72 cars a window came home unseen; 532 of 532 had left after the order, a mean 78.6 minutes before they came back. The check now sends charged cars out and brings them back, and none of the 61 orders graded here carried it, so this is history until new orders are graded.",
+      "evidence": {
+        "part": {
+          "on_time_mass": 2.817,
+          "orders_moved": 5,
+          "verdict_mass": 6.867,
+          "flow_mass_min": 1789.2,
+          "verdict_share": 0.243,
+          "net_on_verdict": -2.8
+        },
+        "unseen_returns": {
+          "orders": 61,
+          "per_order": 8.72,
+          "left_before": 0,
+          "mean_eta_min": 78.6,
+          "appeared_returned": 532,
+          "dispatch_not_found": 0,
+          "left_after_the_order": 532
+        },
+        "orders_with_an_outflow": 0
+      }
+    },
+    {
+      "area": "forecast_running",
+      "kind": "forecast",
+      "part": "running",
+      "rank": 10,
+      "thin": false,
+      "tier": 2,
+      "title": "Charges under way ended sooner than it expected",
+      "action": "Nothing until orders timed by the rebuilt clock are graded.",
+      "impact": 0.239,
+      "status": "built",
+      "weight": 6,
+      "finding": "Charges already under way at the order explain 24% of what made its verdicts wrong and moved 6 of 15. They ended a mean 5.11 minutes sooner than it expected, missing by a mean 10.94 minutes over 1,685 charges. These orders were timed by an earlier charge clock, since replaced by one learned per car, so this is history until new orders are graded.",
+      "evidence": {
+        "part": {
+          "on_time_mass": 1.433,
+          "orders_moved": 6,
+          "verdict_mass": 6.75,
+          "flow_mass_min": 2387.7,
+          "verdict_share": 0.239,
+          "net_on_verdict": 1.617
+        },
+        "forecast": {
+          "n": 1685,
+          "mae_min": 10.94,
+          "mean_err_min": -5.11
+        }
+      }
+    },
+    {
+      "area": "charge_clock_l2",
+      "kind": "calibration",
+      "part": "charge_times",
+      "rank": 11,
+      "thin": false,
+      "tier": 3,
+      "title": "Some makes' charges on L2 chargers ran off its forecast",
+      "action": "Nothing until orders timed by the rebuilt clock are graded.",
+      "impact": 0.151,
+      "status": "built",
+      "weight": 115,
+      "finding": "On 115 charges on L2 chargers (the check's last forecast before each began), they ran 6% shorter than forecast; 87% fell inside its 80% band, and 0 ran past its 90th percentile. By make: Waymo 9% shorter (65). These orders were timed by an earlier charge clock, since replaced by one learned per car, so this is history until new orders are graded.",
+      "evidence": {
+        "z_sd": 0.592,
+        "z_mean": -0.382,
+        "charges": 115,
+        "classes": {
+          "l2|zoox_robotaxi_2024": {
+            "z_sd": 0.393,
+            "z_mean": 0.059,
+            "charges": 13,
+            "overran": 0,
+            "finished": 13,
+            "factor_off_by": 1.009,
+            "in_80pct_band": 1.0
+          },
+          "l2|waymo_jaguar_ipace_2024": {
+            "z_sd": 0.655,
+            "z_mean": -0.544,
+            "charges": 65,
+            "overran": 0,
+            "finished": 65,
+            "factor_off_by": 0.913,
+            "in_80pct_band": 0.769
+          },
+          "l2|tesla_model_y_robotaxi_2024": {
+            "z_sd": 0.4,
+            "z_mean": -0.251,
+            "charges": 37,
+            "overran": 0,
+            "finished": 37,
+            "factor_off_by": 0.964,
+            "in_80pct_band": 1.0
+          }
+        },
+        "overran": 0,
+        "finished": 115,
+        "factor_off_by": 0.94,
+        "in_80pct_band": 0.87
+      }
+    }
+  ],
+  "verdicts": {
+    "by_reason": {
+      "same_as_kernel": {
+        "n": 43,
+        "hindsight_won": 6,
+        "hindsight_lost": 6
+      },
+      "wins_most_futures": {
+        "n": 2,
+        "hindsight_won": 1,
+        "hindsight_lost": 1
+      },
+      "not_enough_futures_won": {
+        "n": 5,
+        "hindsight_won": 2,
+        "hindsight_lost": 3
+      },
+      "worse_in_expected_future": {
+        "n": 11,
+        "hindsight_won": 4,
+        "hindsight_lost": 5
+      }
+    },
+    "missed_win": 6,
+    "right_take": 1,
+    "wrong_take": 1,
+    "no_decision": 29,
+    "neutral_take": 0,
+    "right_refusal": 10,
+    "expected_agreed": 8,
+    "no_decision_mattered": 14
+  },
+  "attribution": {
+    "parts": {
+      "faults": {
+        "on_time_mass": 1.417,
+        "orders_moved": 3,
+        "verdict_mass": 4.167,
+        "flow_mass_min": 2498.4,
+        "verdict_share": 0.148,
+        "net_on_verdict": 1.367
+      },
+      "running": {
+        "on_time_mass": 1.433,
+        "orders_moved": 6,
+        "verdict_mass": 6.75,
+        "flow_mass_min": 2387.7,
+        "verdict_share": 0.239,
+        "net_on_verdict": 1.617
+      },
+      "appeared": {
+        "on_time_mass": 2.817,
+        "orders_moved": 5,
+        "verdict_mass": 6.867,
+        "flow_mass_min": 1789.2,
+        "verdict_share": 0.243,
+        "net_on_verdict": -2.8
+      },
+      "arrivals": {
+        "on_time_mass": 2.15,
+        "orders_moved": 5,
+        "verdict_mass": 6.183,
+        "flow_mass_min": 2654.5,
+        "verdict_share": 0.219,
+        "net_on_verdict": -2.05
+      },
+      "charge_times": {
+        "on_time_mass": 1.983,
+        "orders_moved": 3,
+        "verdict_mass": 4.267,
+        "flow_mass_min": 1478.1,
+        "verdict_share": 0.151,
+        "net_on_verdict": -0.133
+      }
+    },
+    "verdicts_changed": 7,
+    "orders_attributed": 15
+  }
+}

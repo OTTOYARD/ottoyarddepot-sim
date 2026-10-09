@@ -139,10 +139,14 @@ describe("OTTO-Q tab", () => {
     expect(screen.getByText(/This run is not active in the depot now/)).toBeTruthy();
   });
 
-  it("with no run, explains itself and draws nothing", () => {
+  it("with no run, explains itself and draws only the depot's morning self-review", () => {
     act(() => useTwinStore.setState({ activeSimRunId: null }));
     render(<TwinOttoQTab />);
     expect(screen.getByText(/No run is active/)).toBeTruthy();
+    // the review belongs to the depot, not to a run, so it is there with no run; the run's stack is not
+    expect(screen.getByRole("region", { name: "Morning self-review" })).toBeTruthy();
+    expect(screen.queryByRole("list", { name: "OTTO-Q layers" })).toBeNull();
+    expect(screen.queryByRole("region", { name: "Learned this run" })).toBeNull();
   });
 });
 

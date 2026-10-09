@@ -1,0 +1,597 @@
+{
+  "assessment_id": 1,
+  "assessed_at": "2026-10-08T16:46:28.866665+00:00",
+  "since": "2026-10-01T16:46:28.866665+00:00",
+  "n_graded": 61,
+  "improvement_areas": [
+    {
+      "area": "arrival_spread",
+      "kind": "calibration",
+      "weight": 2510,
+      "finding": "The forecast arrivals fall outside the spread the futures sample: z mean 0.350, sd 3.052, 80% inside an 80% band. The futures are narrower (or shifted) than what comes, so the check is more sure than it should be.",
+      "evidence": {
+        "n_z": 2510,
+        "seen": 2745,
+        "z_sd": 3.052,
+        "z_mean": 0.35,
+        "arrived": 2745,
+        "mae_min": 2.98,
+        "no_show": 0,
+        "mean_err_min": 0.67,
+        "in_80pct_band": 0.799
+      }
+    },
+    {
+      "area": "simulator_structure",
+      "kind": "capability_gap",
+      "weight": 1939,
+      "finding": "Given what really happened, the simulator still puts a car's plug-in a mean 10.71 minutes from when it really plugged in (bias -3.67). It does not model bays, holds, the stall pick beyond the kind, or the next order taking over; that error no forecast can remove.",
+      "evidence": {
+        "missed": 447,
+        "mae_min": 10.71,
+        "phantom": 312,
+        "bias_min": -3.67,
+        "within_5_min": 0.549,
+        "cars_compared": 1939
+      }
+    },
+    {
+      "area": "outflow_return_cycle",
+      "kind": "capability_gap",
+      "weight": 532,
+      "finding": "8.72 cars per order came home inside the window that the check never saw coming; 532 of 532 had left after the order, a mean of 78.6 minutes before they came back. The simulator has no departures: a car that finishes its charge leaves, works its battery down to the reserve and rejoins the line inside the same window. Modelling the outflow (when ready cars leave) and the return at the learned reserve would let the check see them; its objective would then have to count a faster turnaround as a gain, not as more cars in the line.",
+      "evidence": {
+        "orders": 61,
+        "per_order": 8.72,
+        "by_trigger": {
+          "comms_stale": 55,
+          "low_soc_reserve": 467,
+          "rider_flag_cleaning": 10
+        },
+        "left_before": 0,
+        "mean_eta_min": 78.6,
+        "appeared_returned": 532,
+        "dispatch_not_found": 0,
+        "left_after_the_order": 532
+      }
+    },
+    {
+      "area": "charge_clock_misses_ambient_c_l2",
+      "kind": "capability_gap",
+      "weight": 178,
+      "finding": "On l2, ambient_c explains 27% of what the clock leaves unexplained, and the clock does not model it. A level for it would let the clock see it.",
+      "evidence": {
+        "eta2": 0.2762,
+        "groups": 5,
+        "charges": 655,
+        "accuracy": {
+          "v1": {
+            "estimate_id": 1,
+            "in_80pct_band": 0.834,
+            "mean_log_error": 0.0147,
+            "mean_abs_log_error": 0.1058
+          },
+          "clock": {
+            "model": "charge_time_v2",
+            "estimate_id": 1,
+            "in_80pct_band": 0.821,
+            "mean_log_error": 0.0092,
+            "mean_abs_log_error": 0.0893
+          },
+          "charges": 655,
+          "out_of_sample": false
+        },
+        "adj_eta2": 0.2718,
+        "modelled": false,
+        "covariate": "ambient_c",
+        "worst_groups": [
+          {
+            "n": 27,
+            "group": "25",
+            "mean_log_error": 0.241
+          },
+          {
+            "n": 4,
+            "group": "(small groups)",
+            "mean_log_error": 0.223
+          },
+          {
+            "n": 90,
+            "group": "20",
+            "mean_log_error": 0.079
+          }
+        ]
+      }
+    },
+    {
+      "area": "charge_clock_misses_run_l2",
+      "kind": "capability_gap",
+      "weight": 172,
+      "finding": "On l2, run explains 26% of what the clock leaves unexplained, and the clock does not model it. A level for it would let the clock see it.",
+      "evidence": {
+        "eta2": 0.2761,
+        "groups": 13,
+        "charges": 655,
+        "accuracy": {
+          "v1": {
+            "estimate_id": 1,
+            "in_80pct_band": 0.834,
+            "mean_log_error": 0.0147,
+            "mean_abs_log_error": 0.1058
+          },
+          "clock": {
+            "model": "charge_time_v2",
+            "estimate_id": 1,
+            "in_80pct_band": 0.821,
+            "mean_log_error": 0.0092,
+            "mean_abs_log_error": 0.0893
+          },
+          "charges": 655,
+          "out_of_sample": false
+        },
+        "adj_eta2": 0.2626,
+        "modelled": false,
+        "covariate": "run",
+        "worst_groups": [
+          {
+            "n": 76,
+            "group": "cde5a21c-4564-41b8-8aaa-653edcf73cca",
+            "mean_log_error": 0.161
+          },
+          {
+            "n": 28,
+            "group": "512404f7-03de-4cdd-b52f-00b697ed0b01",
+            "mean_log_error": 0.067
+          },
+          {
+            "n": 101,
+            "group": "ae8a4908-9cc0-42ae-90aa-324d1f972abd",
+            "mean_log_error": -0.056
+          }
+        ]
+      }
+    },
+    {
+      "area": "charge_clock_misses_ambient_c_dcfc",
+      "kind": "capability_gap",
+      "weight": 132,
+      "finding": "On dcfc, ambient_c explains 26% of what the clock leaves unexplained, and the clock does not model it. A level for it would let the clock see it.",
+      "evidence": {
+        "eta2": 0.2654,
+        "groups": 5,
+        "charges": 510,
+        "accuracy": {
+          "v1": {
+            "estimate_id": 1,
+            "in_80pct_band": 0.62,
+            "mean_log_error": -0.4664,
+            "mean_abs_log_error": 0.5934
+          },
+          "clock": {
+            "model": "charge_time_v2",
+            "estimate_id": 1,
+            "in_80pct_band": 0.676,
+            "mean_log_error": -0.0304,
+            "mean_abs_log_error": 0.1221
+          },
+          "charges": 510,
+          "out_of_sample": false
+        },
+        "adj_eta2": 0.2596,
+        "modelled": false,
+        "covariate": "ambient_c",
+        "worst_groups": [
+          {
+            "n": 15,
+            "group": "30",
+            "mean_log_error": 0.297
+          },
+          {
+            "n": 23,
+            "group": "25",
+            "mean_log_error": 0.18
+          },
+          {
+            "n": 285,
+            "group": "15",
+            "mean_log_error": -0.074
+          }
+        ]
+      }
+    },
+    {
+      "area": "charge_clock_stale_model_dcfc",
+      "kind": "calibration",
+      "weight": 119,
+      "finding": "The clock models model, yet model still explains 23% of what it leaves on dcfc: the level has gone stale since the fit (the nightly refit should absorb it; if it persists, the half-life is too long).",
+      "evidence": {
+        "eta2": 0.2423,
+        "groups": 7,
+        "charges": 510,
+        "accuracy": {
+          "v1": {
+            "estimate_id": 1,
+            "in_80pct_band": 0.62,
+            "mean_log_error": -0.4664,
+            "mean_abs_log_error": 0.5934
+          },
+          "clock": {
+            "model": "charge_time_v2",
+            "estimate_id": 1,
+            "in_80pct_band": 0.676,
+            "mean_log_error": -0.0304,
+            "mean_abs_log_error": 0.1221
+          },
+          "charges": 510,
+          "out_of_sample": false
+        },
+        "adj_eta2": 0.2332,
+        "modelled": true,
+        "covariate": "model",
+        "worst_groups": [
+          {
+            "n": 21,
+            "group": "zoox_robotaxi_2024/Zoox VH6",
+            "mean_log_error": -0.165
+          },
+          {
+            "n": 18,
+            "group": "waymo_jaguar_ipace_2024/Jaguar I-PACE AV",
+            "mean_log_error": 0.131
+          },
+          {
+            "n": 142,
+            "group": "zoox_robotaxi_2024/Zoox Robotaxi",
+            "mean_log_error": -0.127
+          }
+        ]
+      }
+    },
+    {
+      "area": "charge_clock_stale_class_dcfc",
+      "kind": "calibration",
+      "weight": 106,
+      "finding": "The clock models class, yet class still explains 21% of what it leaves on dcfc: the level has gone stale since the fit (the nightly refit should absorb it; if it persists, the half-life is too long).",
+      "evidence": {
+        "eta2": 0.2114,
+        "groups": 3,
+        "charges": 510,
+        "accuracy": {
+          "v1": {
+            "estimate_id": 1,
+            "in_80pct_band": 0.62,
+            "mean_log_error": -0.4664,
+            "mean_abs_log_error": 0.5934
+          },
+          "clock": {
+            "model": "charge_time_v2",
+            "estimate_id": 1,
+            "in_80pct_band": 0.676,
+            "mean_log_error": -0.0304,
+            "mean_abs_log_error": 0.1221
+          },
+          "charges": 510,
+          "out_of_sample": false
+        },
+        "adj_eta2": 0.2083,
+        "modelled": true,
+        "covariate": "class",
+        "worst_groups": [
+          {
+            "n": 163,
+            "group": "zoox_robotaxi_2024",
+            "mean_log_error": -0.132
+          },
+          {
+            "n": 163,
+            "group": "tesla_model_y_robotaxi_2024",
+            "mean_log_error": 0.041
+          },
+          {
+            "n": 184,
+            "group": "waymo_jaguar_ipace_2024",
+            "mean_log_error": -0.003
+          }
+        ]
+      }
+    },
+    {
+      "area": "charge_clock_misses_run_dcfc",
+      "kind": "capability_gap",
+      "weight": 103,
+      "finding": "On dcfc, run explains 20% of what the clock leaves unexplained, and the clock does not model it. A level for it would let the clock see it.",
+      "evidence": {
+        "eta2": 0.2192,
+        "groups": 12,
+        "charges": 510,
+        "accuracy": {
+          "v1": {
+            "estimate_id": 1,
+            "in_80pct_band": 0.62,
+            "mean_log_error": -0.4664,
+            "mean_abs_log_error": 0.5934
+          },
+          "clock": {
+            "model": "charge_time_v2",
+            "estimate_id": 1,
+            "in_80pct_band": 0.676,
+            "mean_log_error": -0.0304,
+            "mean_abs_log_error": 0.1221
+          },
+          "charges": 510,
+          "out_of_sample": false
+        },
+        "adj_eta2": 0.202,
+        "modelled": false,
+        "covariate": "run",
+        "worst_groups": [
+          {
+            "n": 58,
+            "group": "cde5a21c-4564-41b8-8aaa-653edcf73cca",
+            "mean_log_error": 0.158
+          },
+          {
+            "n": 6,
+            "group": "(small groups)",
+            "mean_log_error": -0.143
+          },
+          {
+            "n": 88,
+            "group": "ae8a4908-9cc0-42ae-90aa-324d1f972abd",
+            "mean_log_error": -0.093
+          }
+        ]
+      }
+    },
+    {
+      "area": "charge_clock_stale_vehicle_dcfc",
+      "kind": "calibration",
+      "weight": 82,
+      "finding": "The clock models vehicle, yet vehicle still explains 16% of what it leaves on dcfc: the level has gone stale since the fit (the nightly refit should absorb it; if it persists, the half-life is too long).",
+      "evidence": {
+        "eta2": 0.2541,
+        "groups": 58,
+        "charges": 510,
+        "accuracy": {
+          "v1": {
+            "estimate_id": 1,
+            "in_80pct_band": 0.62,
+            "mean_log_error": -0.4664,
+            "mean_abs_log_error": 0.5934
+          },
+          "clock": {
+            "model": "charge_time_v2",
+            "estimate_id": 1,
+            "in_80pct_band": 0.676,
+            "mean_log_error": -0.0304,
+            "mean_abs_log_error": 0.1221
+          },
+          "charges": 510,
+          "out_of_sample": false
+        },
+        "adj_eta2": 0.16,
+        "modelled": true,
+        "covariate": "vehicle",
+        "worst_groups": [
+          {
+            "n": 5,
+            "group": "b97789b5-3963-497d-9ca7-5b65e0168234",
+            "mean_log_error": -0.252
+          },
+          {
+            "n": 5,
+            "group": "99ddf4ff-96d7-4257-b1ce-cb9437335ce8",
+            "mean_log_error": -0.249
+          },
+          {
+            "n": 5,
+            "group": "6ef374e7-4d63-4d9e-a14b-8976ef9c9786",
+            "mean_log_error": -0.212
+          }
+        ]
+      }
+    },
+    {
+      "area": "charge_clock_l2_waymo_jaguar_ipace_2024",
+      "kind": "calibration",
+      "weight": 65,
+      "finding": "Charges of class waymo_jaguar_ipace_2024 on l2 ran -9% against the check's clock (z mean -0.544): the class level is stale or missing for them.",
+      "evidence": {
+        "z_sd": 0.655,
+        "z_mean": -0.544,
+        "charges": 65,
+        "overran": 0,
+        "finished": 65,
+        "factor_off_by": 0.913,
+        "in_80pct_band": 0.769
+      }
+    },
+    {
+      "area": "chargers_left_out",
+      "kind": "capability_gap",
+      "weight": 61,
+      "finding": "Chargers the check left out at the order (held for a car, booked, or faulted) served 3.13 charges per window: the check never adds a charger back when its hold ends.",
+      "evidence": {
+        "unmodeled_sessions_per_order": 3.13
+      }
+    },
+    {
+      "area": "bar_stricter",
+      "kind": "threshold",
+      "weight": 18,
+      "finding": "On these orders a bar of 1.0 would have done better in hindsight than 0.80: 0 taken, 0 won, 0 lost. Orders overlap, so this ranks bars; it is not a day's gain. The bar is a person's dial (agent_charge_order_win_frac), changed only as a certified change after a paired test.",
+      "evidence": {
+        "best": {
+          "won": 0,
+          "lost": 0,
+          "tied": 0,
+          "taken": 0,
+          "d_flow": 0.0,
+          "d_late": 0.0,
+          "win_frac": 1.0,
+          "d_on_time": 0
+        },
+        "current_win_frac": 0.8
+      }
+    },
+    {
+      "area": "futures_uninformative",
+      "kind": "calibration",
+      "weight": 18,
+      "finding": "The check's win probability (futures won over futures) predicts hindsight no better than the base rate: Brier 0.2581 against 0.2377. More futures do not help a spread that is wrong; the forecast areas above are the lever.",
+      "evidence": {
+        "bands": [
+          {
+            "band": "0-0.5",
+            "orders": 5,
+            "mean_p_win": 0.317,
+            "won_in_hindsight": 0.2
+          },
+          {
+            "band": "0.5-0.8",
+            "orders": 10,
+            "mean_p_win": 0.617,
+            "won_in_hindsight": 0.4
+          },
+          {
+            "band": "0.8-0.9",
+            "orders": 1,
+            "mean_p_win": 0.833,
+            "won_in_hindsight": 1.0
+          },
+          {
+            "band": "0.9-1",
+            "orders": 2,
+            "mean_p_win": 0.917,
+            "won_in_hindsight": 0.5
+          }
+        ],
+        "brier": 0.2581,
+        "base_rate_won": 0.3889,
+        "brier_of_base_rate": 0.2377
+      }
+    },
+    {
+      "area": "forecast_running",
+      "kind": "forecast",
+      "weight": 6,
+      "finding": "Charges under way at the order ended other than the check expected.",
+      "evidence": {
+        "orders_moved": 6,
+        "verdict_mass": 6.75,
+        "verdict_share": 0.239
+      }
+    },
+    {
+      "area": "forecast_appeared",
+      "kind": "capability_gap",
+      "weight": 5,
+      "finding": "Cars the check never saw coming joined the line inside the window: it sees only cars already out at the order, not a round trip that starts after it or a car finishing in a bay. A model of the depot's own outflow and return cycle would let it.",
+      "evidence": {
+        "orders_moved": 5,
+        "verdict_mass": 6.867,
+        "verdict_share": 0.243
+      }
+    },
+    {
+      "area": "forecast_arrivals",
+      "kind": "forecast",
+      "weight": 5,
+      "finding": "When the cars it expected home really came moved the check's verdict more than anything but this: the return model (0619 return_v1) times them poorly in these windows.",
+      "evidence": {
+        "orders_moved": 5,
+        "verdict_mass": 6.183,
+        "verdict_share": 0.219
+      }
+    },
+    {
+      "area": "forecast_charge_times",
+      "kind": "forecast",
+      "weight": 3,
+      "finding": "Charges ran other than the learned clock said, enough to change verdicts: the clock (0619 charge_time_v1) misses a variable that matters here.",
+      "evidence": {
+        "orders_moved": 3,
+        "verdict_mass": 4.267,
+        "verdict_share": 0.151
+      }
+    }
+  ],
+  "verdicts": {
+    "by_reason": {
+      "same_as_kernel": {
+        "n": 43,
+        "hindsight_won": 6,
+        "hindsight_lost": 6
+      },
+      "wins_most_futures": {
+        "n": 2,
+        "hindsight_won": 1,
+        "hindsight_lost": 1
+      },
+      "not_enough_futures_won": {
+        "n": 5,
+        "hindsight_won": 2,
+        "hindsight_lost": 3
+      },
+      "worse_in_expected_future": {
+        "n": 11,
+        "hindsight_won": 4,
+        "hindsight_lost": 5
+      }
+    },
+    "missed_win": 6,
+    "right_take": 1,
+    "wrong_take": 1,
+    "no_decision": 29,
+    "neutral_take": 0,
+    "right_refusal": 10,
+    "expected_agreed": 8,
+    "no_decision_mattered": 14
+  },
+  "attribution": {
+    "parts": {
+      "faults": {
+        "on_time_mass": 1.417,
+        "orders_moved": 3,
+        "verdict_mass": 4.167,
+        "flow_mass_min": 2498.4,
+        "verdict_share": 0.148,
+        "net_on_verdict": 1.367
+      },
+      "running": {
+        "on_time_mass": 1.433,
+        "orders_moved": 6,
+        "verdict_mass": 6.75,
+        "flow_mass_min": 2387.7,
+        "verdict_share": 0.239,
+        "net_on_verdict": 1.617
+      },
+      "appeared": {
+        "on_time_mass": 2.817,
+        "orders_moved": 5,
+        "verdict_mass": 6.867,
+        "flow_mass_min": 1789.2,
+        "verdict_share": 0.243,
+        "net_on_verdict": -2.8
+      },
+      "arrivals": {
+        "on_time_mass": 2.15,
+        "orders_moved": 5,
+        "verdict_mass": 6.183,
+        "flow_mass_min": 2654.5,
+        "verdict_share": 0.219,
+        "net_on_verdict": -2.05
+      },
+      "charge_times": {
+        "on_time_mass": 1.983,
+        "orders_moved": 3,
+        "verdict_mass": 4.267,
+        "flow_mass_min": 1478.1,
+        "verdict_share": 0.151,
+        "net_on_verdict": -0.133
+      }
+    },
+    "verdicts_changed": 7,
+    "orders_attributed": 15
+  }
+}

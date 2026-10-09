@@ -16,7 +16,7 @@ import type { ActivityFeedRow } from "@/store/activityFeedStore";
 import { human, modelErrorText, num, solverPhrase } from "@/lib/decisionText";
 import { sentenceCase } from "@/lib/publicNames";
 import { proposerWord, type DispositionRow } from "@/lib/ottoqFunnel";
-import { verdictWords, type AgentOrderEntry, type AgentOrderUsage } from "@/lib/runLearning";
+import { hindsightWords, verdictText, type AgentOrderEntry, type AgentOrderUsage } from "@/lib/runLearning";
 
 export type StreamTone = "ok" | "held" | "refused" | "idle";
 
@@ -133,18 +133,21 @@ export function agentPass(r: ActivityFeedRow, orders: OrderIndex = NO_ORDERS): A
     if (order.status === "rejected") {
       outcome.push(`It ordered the charge line, and the decide path kept none of the ${plural(offered, "car")} it named: none was waiting for a charger.`);
     } else if (order.status === "refused") {
-      // 0618: the kernel projected the line both ways and its own order came out better
-      const why = verdictWords(order.verdict);
+      // 0618: the kernel projected the line both ways and its own order came out better; 0620: rolled it forward
+      const why = verdictText(order);
       outcome.push(`It ordered the charge line (${plural(accepted, "car")}). The kernel checked it and kept its own order${why ? `: ${why}` : ""}.`);
     } else {
       outcome.push(`It ordered the charge line: ${plural(accepted, "car")}${accepted < offered ? ` (${offered - accepted} not waiting, left out)` : ""}.`);
-      const took = verdictWords(order.verdict);
+      const took = verdictText(order);
       if (took) outcome.push(`The kernel checked it and took it: ${took}.`);
       outcome.push(byRank > 0
         ? `The decide path seated ${plural(byRank, "car")} in its order${ahead ? `, ${ahead} of them ahead of where its own order had them` : ""}.`
         : "No car has been seated by its order.");
     }
   }
+  // 0621: the order replayed 90 sim-minutes later with what actually happened
+  const hind = order && !modelError ? hindsightWords(order.hindsight) : null;
+  if (hind) outcome.push(hind);
   const late = num(v.advice_ticks_late);
   if (late != null) outcome.push(late === 0 ? "Its advice was applied on the tick it read." : `Its advice was applied ${plural(late, "tick")} after the tick it read. The tick never waits for it.`);
 

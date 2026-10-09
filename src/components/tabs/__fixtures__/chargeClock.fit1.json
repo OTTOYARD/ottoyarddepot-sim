@@ -1,0 +1,225 @@
+{
+  "fit_id": 1,
+  "fitted_at": "2026-10-08T16:24:12.492295+00:00",
+  "n_evidence": 3274,
+  "n_runs": 38,
+  "class_cells": {
+    "l2|zoox_robotaxi_2024": {
+      "k": 167.82,
+      "n": 454,
+      "sd": 0.1349,
+      "off": 0.0054,
+      "raw": 0.0097,
+      "n_eff": 211.8
+    },
+    "dcfc|zoox_robotaxi_2024": {
+      "k": 2.0,
+      "n": 411,
+      "sd": 0.121,
+      "off": -1.1557,
+      "raw": -1.1673,
+      "n_eff": 200.2
+    },
+    "l2|zoox_robotaxi_2024|a": {
+      "k": 168.15,
+      "n": 90,
+      "off": -0.0078,
+      "raw": -0.0244,
+      "n_eff": 79.8
+    },
+    "l2|zoox_robotaxi_2024|b": {
+      "k": 168.15,
+      "n": 64,
+      "off": -0.0001,
+      "raw": -0.0006,
+      "n_eff": 37.5
+    },
+    "l2|zoox_robotaxi_2024|c": {
+      "k": 168.15,
+      "n": 60,
+      "off": 0.0089,
+      "raw": 0.0732,
+      "n_eff": 23.2
+    },
+    "l2|zoox_robotaxi_2024|d": {
+      "k": 168.15,
+      "n": 240,
+      "off": 0.0022,
+      "raw": 0.005,
+      "n_eff": 133.7
+    },
+    "dcfc|zoox_robotaxi_2024|a": {
+      "k": 4.69,
+      "n": 142,
+      "off": 0.4729,
+      "raw": 0.5119,
+      "n_eff": 56.8
+    },
+    "dcfc|zoox_robotaxi_2024|b": {
+      "k": 4.69,
+      "n": 124,
+      "off": 0.1377,
+      "raw": 0.1479,
+      "n_eff": 63.2
+    },
+    "dcfc|zoox_robotaxi_2024|c": {
+      "k": 4.69,
+      "n": 29,
+      "off": -0.0749,
+      "raw": -0.0988,
+      "n_eff": 14.6
+    },
+    "dcfc|zoox_robotaxi_2024|d": {
+      "k": 4.69,
+      "n": 116,
+      "off": -0.1232,
+      "raw": -0.1313,
+      "n_eff": 70.9
+    },
+    "l2|waymo_jaguar_ipace_2024": {
+      "k": 167.82,
+      "n": 766,
+      "sd": 0.1301,
+      "off": 0.0004,
+      "raw": 0.0007,
+      "n_eff": 358.3
+    },
+    "dcfc|waymo_jaguar_ipace_2024": {
+      "k": 2.0,
+      "n": 486,
+      "sd": 0.1226,
+      "off": 0.0204,
+      "raw": 0.0206,
+      "n_eff": 228.3
+    },
+    "l2|waymo_jaguar_ipace_2024|a": {
+      "k": 168.15,
+      "n": 137,
+      "off": 0.0007,
+      "raw": 0.0028,
+      "n_eff": 59.5
+    },
+    "l2|waymo_jaguar_ipace_2024|b": {
+      "k": 168.15,
+      "n": 162,
+      "off": -0.0013,
+      "raw": -0.0041,
+      "n_eff": 76.0
+    },
+    "l2|waymo_jaguar_ipace_2024|c": {
+      "k": 168.15,
+      "n": 80,
+      "off": -0.0007,
+      "raw": -0.0034,
+      "n_eff": 40.0
+    },
+    "l2|waymo_jaguar_ipace_2024|d": {
+      "k": 168.15,
+      "n": 387,
+      "off": -0.0049,
+      "raw": -0.009,
+      "n_eff": 200.6
+    },
+    "dcfc|waymo_jaguar_ipace_2024|a": {
+      "k": 4.69,
+      "n": 141,
+      "off": 0.0913,
+      "raw": 0.0991,
+      "n_eff": 54.9
+    },
+    "dcfc|waymo_jaguar_ipace_2024|b": {
+      "k": 4.69,
+      "n": 161,
+      "off": -0.0568,
+      "raw": -0.0602,
+      "n_eff": 79.3
+    },
+    "dcfc|waymo_jaguar_ipace_2024|c": {
+      "k": 4.69,
+      "n": 32,
+      "off": 0.0053,
+      "raw": 0.0068,
+      "n_eff": 16.6
+    },
+    "dcfc|waymo_jaguar_ipace_2024|d": {
+      "k": 4.69,
+      "n": 152,
+      "off": 0.0265,
+      "raw": 0.0281,
+      "n_eff": 78.4
+    },
+    "l2|tesla_model_y_robotaxi_2024": {
+      "k": 167.82,
+      "n": 678,
+      "sd": 0.1284,
+      "off": -0.006,
+      "raw": -0.0092,
+      "n_eff": 309.2
+    },
+    "dcfc|tesla_model_y_robotaxi_2024": {
+      "k": 2.0,
+      "n": 479,
+      "sd": 0.1255,
+      "off": 0.3592,
+      "raw": 0.3625,
+      "n_eff": 218.5
+    },
+    "l2|tesla_model_y_robotaxi_2024|a": {
+      "k": 168.15,
+      "n": 101,
+      "off": 0.0032,
+      "raw": 0.0151,
+      "n_eff": 45.5
+    },
+    "l2|tesla_model_y_robotaxi_2024|b": {
+      "k": 168.15,
+      "n": 189,
+      "off": -0.0009,
+      "raw": -0.0027,
+      "n_eff": 86.6
+    },
+    "l2|tesla_model_y_robotaxi_2024|c": {
+      "k": 168.15,
+      "n": 85,
+      "off": -0.0039,
+      "raw": -0.0218,
+      "n_eff": 36.8
+    },
+    "l2|tesla_model_y_robotaxi_2024|d": {
+      "k": 168.15,
+      "n": 303,
+      "off": 0.0049,
+      "raw": 0.0103,
+      "n_eff": 153.9
+    },
+    "dcfc|tesla_model_y_robotaxi_2024|a": {
+      "k": 4.69,
+      "n": 126,
+      "off": -0.001,
+      "raw": -0.0011,
+      "n_eff": 51.3
+    },
+    "dcfc|tesla_model_y_robotaxi_2024|b": {
+      "k": 4.69,
+      "n": 171,
+      "off": -0.0933,
+      "raw": -0.0991,
+      "n_eff": 75.5
+    },
+    "dcfc|tesla_model_y_robotaxi_2024|c": {
+      "k": 4.69,
+      "n": 31,
+      "off": -0.1156,
+      "raw": -0.147,
+      "n_eff": 17.2
+    },
+    "dcfc|tesla_model_y_robotaxi_2024|d": {
+      "k": 4.69,
+      "n": 151,
+      "off": 0.0498,
+      "raw": 0.0528,
+      "n_eff": 77.3
+    }
+  },
+  "half_life_days": 3
+}
