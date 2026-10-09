@@ -224,6 +224,24 @@ describe("edges", () => {
     expect(v.areas[0].impactDetail).toBe("Charges already under way: 50% of what made the check wrong.");
   });
 
+  it("marks an area kept from an earlier review, and says why on hover (0638)", () => {
+    const v = selfAssessmentView({ assessment_id: 9, n_graded: 5, improvement_areas: [
+      { area: "arrival_spread", status: "open", rank: 1, impact: 0.24, part: "arrivals", seen: true },
+      { area: "charge_clock_misses_air_temperature", status: "unseen", rank: 2, seen: false, unseen_reason: "not_named_since",
+        last_seen_at: "2026-10-08T22:50:37Z" },
+      { area: "outflow_departures", status: "unseen", rank: 3, seen: false, unseen_reason: "left_window" },
+      { area: "forecast_faults", status: "built", rank: 4, impact: 0.14, part: "faults" },
+    ] }, null)!;
+    expect(v.tone).toBe("held");
+    expect(v.headline.endsWith("It names 3 areas to improve (2 kept from an earlier review). 1 more has a fix since these orders.")).toBe(true);
+    expect(v.areas.map((a) => [a.rank, a.unseen, a.built])).toEqual([[1, false, false], [2, true, false], [3, true, false], [4, false, true]]);
+    expect(v.areas[0].unseenDetail).toBeNull();
+    expect(v.areas[1].unseenDetail).toBe(
+      "Kept from an earlier review: this week's evidence does not show it. Answered, or no longer something the review can test.");
+    expect(v.areas[2].unseenDetail).toBe(
+      "Kept from an earlier review: what showed it is older than this week, and with it the review still shows it.");
+  });
+
   it("is green when it grades orders and names no gap", () => {
     const v = selfAssessmentView({ assessment_id: 9, n_graded: 3, improvement_areas: [], verdicts: { right_take: 3 } }, null)!;
     expect(v.tone).toBe("ok");

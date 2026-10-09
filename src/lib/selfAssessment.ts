@@ -43,6 +43,12 @@ export interface ImprovementArea {
   part?: string | null;
   /** 0626: 1 a change in the world, 2 a measured diagnosis, 3 a calibration, 4 a part alone, 5 the rest. */
   tier?: number | null;
+  /** 0638: false when the area is kept from an earlier review and this week's evidence does not show it. */
+  seen?: boolean | null;
+  /** 0638: why it is kept: "left_window" (the evidence that showed it is older than the window) or "not_named_since". */
+  unseen_reason?: string | null;
+  /** 0638: when a review last showed it. */
+  last_seen_at?: string | null;
 }
 
 /** How the check's calls on the week's orders came out in hindsight (assessment.verdicts). */
@@ -119,6 +125,10 @@ export interface ReviewArea {
   built: boolean;
   /** It rests on too little evidence to act on. */
   thin: boolean;
+  /** 0638: kept from an earlier review; this week's evidence does not show it. */
+  unseen: boolean;
+  /** The hover line for an area kept from an earlier review, else null. */
+  unseenDetail: string | null;
   /** What to do about it, in words; "" when the engine writes none. */
   action: string;
 }
@@ -337,6 +347,11 @@ function areaOf(a: ImprovementArea, i: number): ReviewArea {
       : a.part ? `${causeLabel(a.part)}: ${shown} of what made the check wrong.` : `${shown} of what made the check wrong.`,
     built: a.status === "built",
     thin: a.thin === true,
+    unseen: a.status === "unseen",
+    unseenDetail: a.status !== "unseen" ? null
+      : a.unseen_reason === "left_window"
+        ? "Kept from an earlier review: what showed it is older than this week, and with it the review still shows it."
+        : "Kept from an earlier review: this week's evidence does not show it. Answered, or no longer something the review can test.",
     action: plainFinding(a.action),
   };
 }
@@ -403,11 +418,14 @@ export function selfAssessmentView(
     const ranked = (r.improvement_areas ?? []).some((a) => a.status != null);
     const built = all.filter((a) => a.built).length;
     const open = all.length - built;
+    const unseen = all.filter((a) => a.unseen).length;
     tone = open > 0 ? "held" : "ok";
     headline = `It replayed ${count(graded, "agent order")} from ${span} with what actually happened and graded its own check on each. `
       + (!ranked
         ? (all.length ? `It names ${count(all.length, "place")} the check falls short.` : "It names no place the check falls short.")
-        : (open > 0 ? `It names ${count(open, "area")} to improve.` : "It names no area to improve.")
+        : (open > 0
+            ? `It names ${count(open, "area")} to improve${unseen > 0 ? ` (${n(unseen)} kept from an earlier review)` : ""}.`
+            : "It names no area to improve.")
           + (built > 0 ? ` ${n(built)} more ${built === 1 ? "has" : "have"} a fix since these orders.` : ""));
   }
 
