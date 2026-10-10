@@ -303,6 +303,20 @@ working. It goes green when §4.1 and §4.2 land.
 
 ## 3b. The outbound path — one funnel, one wire
 
+> **CORRECTION 2026-10-09 — this section describes code that no longer exists.**
+> Commit `2f414e2` (2026-09-26: "Legacy client-engine modules and tabs that no route
+> reached are removed") deleted the browser-side funnel and both subscribers' homes:
+> `src/lib/ottoq/{commands,advisors,pipeline,shield,commandBus,executors,energyController}.ts`,
+> `src/hooks/useOrchestration.ts` and `src/store/orchestrationStore.ts`, with their tests.
+> Nothing in `src/` subscribes to `vehicle.orchestration` or `energy.orchestration` today.
+> Orchestration runs in the otto-q-core database engine (its decide path and its L1
+> shield); `src/engine/TwinMotionDriver.ts` remains as the renderer's motion model.
+> The doctrine stands, and is now written into the operator contract in otto-q-core
+> (`contract/README.md`): directives are versioned, expiring requests (rule 3), OTTO-Q
+> never actuates a vehicle (rule 7), and a refusal names a reason from a closed list
+> (rule 9). Read the rest of this section, and §4.16, §4.17 and §5.1, as the record of
+> what was built in July.
+
 The audit above is about what flows *into* OTTO-Q. This section is the other
 half: what flows *out*, and how.
 
@@ -586,12 +600,12 @@ never closed.
 
 ### P0b — let the twin actually carry out what OTTO-Q sends
 
-**4.16 Subscribe the motion system to `vehicle.orchestration`.** ✅ **Done** — see §3b.
+**4.16 Subscribe the motion system to `vehicle.orchestration`.** ✅ **Done** — see §3b. *(Removed 2026-09-26 by `2f414e2`; see the correction at the top of §3b.)*
 `assign_stall` now outranks the twin's own stall pick in `reconcile`, and the driver reports
 arrival (or the reason it could not). Remaining gap: `hold`, `depart` and `requeue` have no
 handler and are refused by name.
 
-**4.17 Subscribe an energy controller to `energy.orchestration`.** ✅ **Done** — see §3b.
+**4.17 Subscribe an energy controller to `energy.orchestration`.** ✅ **Done** — see §3b. *(Removed 2026-09-26 by `2f414e2`; see the correction at the top of §3b.)*
 `SiteEnergyController` accepts battery and curtailment directives, owns ramp/derate/bounds,
 and integrates state of charge so the decision shows up in the next world frame. Remaining
 gap: it is a **client-side model**. The backend has `ottoq_sim_bess_step` and
@@ -637,7 +651,7 @@ auto-attach toast was rendering `undefined`; `tsc --noEmit` is now clean.
 ## 5. Decisions taken
 
 1. **One funnel, one wire.** Everything — cuOpt, Nemotron, deterministic rules — passes
-   through L3→L2→L1→L0 and leaves by a single transport. See §3b. The in-database
+   through L3→L2→L1→L0 and leaves by a single transport. See §3b. *(The browser-side funnel was removed 2026-09-26; see the correction at the top of §3b.)* The in-database
    `ottoq_decide_tick` and the `ottoq-cuopt-propose` seam become *advisors* behind that
    funnel rather than parallel orchestrators.
 2. **Advisory, never actuating.** OTTO-Q communicates orchestration intent with a time
