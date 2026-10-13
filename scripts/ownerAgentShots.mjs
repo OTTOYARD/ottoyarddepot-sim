@@ -347,8 +347,7 @@ const shot = async (page, file, opts = {}) => {
   const errors = [];
   page.on("pageerror", (e) => errors.push(String(e).slice(0, 200)));
   await install(page);
-  const u = new URL(URL_); u.searchParams.set("quality", "low");
-  await page.goto(u.toString(), { waitUntil: "domcontentloaded" });
+  await page.goto(URL_, { waitUntil: "domcontentloaded" });
   await page.waitForTimeout(5000);
   // 1. 2D: the marks, the tapped car's Q card, and the Agent tab's stream beside them
   await clickText(page, "2D");

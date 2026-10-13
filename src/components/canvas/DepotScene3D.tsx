@@ -1,8 +1,8 @@
-import { Canvas, useThree } from '@react-three/fiber';
+import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
-import { Suspense, useCallback, useEffect, useRef, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useMemo } from 'react';
 import * as THREE from 'three';
-import { ACESFilmicToneMapping, PCFShadowMap, PCFSoftShadowMap, FogExp2, SRGBColorSpace } from 'three';
+import { ACESFilmicToneMapping, PCFSoftShadowMap, FogExp2, SRGBColorSpace } from 'three';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { useVehicleStore } from '@/store/vehicleStore';
 import { useSimulationStore } from '@/store/simulationStore';
@@ -29,13 +29,9 @@ import { CITY_VIEW_FAR } from './three/cityPlan';
 import { MATERIALS } from './three/materials';
 import { skyTexture } from './three/textures';
 import { PerfProbe } from './three/perf/PerfProbe';
-import { QualityGovernor } from './three/quality/QualityGovernor';
-import { useQualityStore, useTierBudget } from './three/quality/qualityStore';
-import { BUDGETS, initialTier, type TierBudget } from './three/quality/tiers';
 import { CameraRig } from './three/CameraRig';
 import { carName } from './three/carName';
 import { StaticMerge } from './three/StaticMerge';
-import { BakedGroundAO } from './three/BakedGroundAO';
 import { useCameraFollow } from './three/cameraFollow';
 import { CAMERA_PRESETS, CAMERA_PRESET_NAMES, useCameraCommands, type CameraPreset } from './three/cameraPresets';
 import { QCardProjector, qCardAnchor3D } from './three/QCardProjector';
@@ -135,38 +131,6 @@ function Landscaping() {
   );
 }
 
-/**
- * The tier's shadow filter on the renderer. PCFSoft takes ~4x the taps of PCF;
- * switching needs every lit material recompiled, which happens only here, on a
- * tier change — never per frame.
- */
-function ShadowBudget({ budget }: { budget: TierBudget }) {
-  const gl = useThree((s) => s.gl);
-  const scene = useThree((s) => s.scene);
-  useEffect(() => {
-    const type = budget.softShadows ? PCFSoftShadowMap : PCFShadowMap;
-    if (gl.shadowMap.enabled === budget.shadows && gl.shadowMap.type === type) return;
-    gl.shadowMap.enabled = budget.shadows;
-    gl.shadowMap.type = type;
-    gl.shadowMap.needsUpdate = true;
-    scene.traverse((o) => {
-      const m = (o as THREE.Mesh).material;
-      if (!m) return;
-      for (const x of Array.isArray(m) ? m : [m]) x.needsUpdate = true;
-    });
-  }, [gl, scene, budget.shadows, budget.softShadows]);
-  return null;
-}
-
-// Render tier: probed ONCE, when this chunk loads — before the canvas or anything
-// in it renders — so the first frame is already drawn at the device's tier (an
-// effect would draw a phone's first frames at High, then recompile at Medium).
-if (typeof window !== 'undefined') {
-  const probe = initialTier();
-  useQualityStore.getState().initAuto(probe.tier, probe.ceiling, `auto: ${probe.reason}`);
-}
-
-const QUALITY_CYCLE = ['auto', 'high', 'medium', 'low'] as const;
 // Finger-sized on touch screens (44 px tall, the platform minimum), unchanged with a mouse.
 const PRESET_BTN = 'px-2 py-1 text-[10px] font-mono rounded bg-black/60 text-white border border-white/10 hover:bg-white/10 hover:text-white transition-colors [@media(pointer:coarse)]:min-h-[44px] [@media(pointer:coarse)]:px-3 [@media(pointer:coarse)]:text-[11px]';
 
@@ -200,8 +164,8 @@ function ViewerFraming({ controls, framing }: { controls: React.RefObject<OrbitC
 }
 
 /**
- * `chrome`: 'desktop' draws the view's own controls (camera presets, quality) in
- * a row at the bottom right, as it always has; 'phone' leaves them to the phone
+ * `chrome`: 'desktop' draws the view's own controls (camera presets) in a row
+ * at the bottom right, as it always has; 'phone' leaves them to the phone
  * cockpit's camera menu (which drives the same presets through useCameraCommands)
  * and moves the follow chip below the phone's run bar (`overlayTop`); 'viewer'
  * draws no controls of its own and takes its camera from `viewer` (the standalone
@@ -229,17 +193,10 @@ export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0, viewe
   useEffect(() => { for (const m of armFleet.meshes) m.count = roboticStalls.length; }, [armFleet, roboticStalls.length]);
   const controlsRef = useRef<OrbitControlsImpl>(null);
 
-  const budget = useTierBudget();
-  const tier = useQualityStore((s) => s.tier);
-  const mode = useQualityStore((s) => s.mode);
-  const setMode = useQualityStore((s) => s.setMode);
   const followId = useCameraFollow((s) => s.followId);
   const setFollow = useCameraFollow((s) => s.setFollow);
   const followAv = useVehicleStore((s) => (followId ? carName(followId, s.vehicles.find((v) => v.id === followId)) : null));
   const pole = viewer?.framing?.kind === 'pole';
-  // What the canvas is CREATED with (MSAA is fixed at context creation): the tier
-  // the probe below settled before this component first rendered.
-  const [startBudget] = useState(() => BUDGETS[useQualityStore.getState().tier]);
 
   const handleCameraPreset = useCallback((preset: CameraPreset) => {
     const ctrl = controlsRef.current;
@@ -278,22 +235,20 @@ export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0, viewe
         // the standalone view never draws while it cannot be seen; the cockpit's view always draws
         frameloop={viewer?.paused ? 'never' : 'always'}
         camera={{ position: viewer?.framing?.position ?? [0, 180, -10], fov: 45, near: 1, far: CITY_VIEW_FAR }}
+        // ONE render quality, High, on every device (Chase, 2026-10-12: no Auto,
+        // Medium or Low): MSAA, soft 2048² sun shadows, the whole post stack,
+        // clear-coated paint, and a fixed resolution that a slow frame never lowers.
         gl={{
-          // MSAA on the default framebuffer: only High keeps it (the post stack
-          // anti-aliases with SMAA; this matters only when no composer runs).
-          antialias: startBudget.antialias,
+          antialias: true,
           toneMapping: ACESFilmicToneMapping,
           toneMappingExposure: 2.2,
           outputColorSpace: SRGBColorSpace,
           powerPreference: 'high-performance',
         }}
-        // an embedded view is a panel in someone else's page: never past 1.5x, whatever the tier allows
-        dpr={Math.min(window.devicePixelRatio, startBudget.dprMax, viewer ? 1.5 : Infinity)}
-        // how far a camera drag may drop the resolution on Medium / Low (QualityGovernor)
-        performance={{ min: 0.6 }}
+        dpr={Math.min(window.devicePixelRatio, 1.5)}
         onCreated={({ gl, scene }) => {
-          gl.shadowMap.enabled = startBudget.shadows;
-          gl.shadowMap.type = startBudget.softShadows ? PCFSoftShadowMap : PCFShadowMap;
+          gl.shadowMap.enabled = true;
+          gl.shadowMap.type = PCFSoftShadowMap;
           scene.fog = new FogExp2(DAY_SKY.fog, 0.00065);
           // Procedural gradient sky: backdrop + PBR environment in one
           const sky = skyTexture();
@@ -306,9 +261,7 @@ export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0, viewe
         }}
       >
         <Suspense fallback={null}>
-          <QualityGovernor />
-          <ShadowBudget budget={budget} />
-          <DayNightLighting simTime={simTime} shadows={budget.shadows} shadowMapSize={budget.shadowMapSize} />
+          <DayNightLighting simTime={simTime} />
 
           <StaticMerge name="ground"><DepotGround /></StaticMerge>
           <StaticMerge name="building"><DepotBuilding /></StaticMerge>
@@ -319,8 +272,6 @@ export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0, viewe
           <StaticMerge name="washBays" version={config.washBayCount}><WashBays count={config.washBayCount} /></StaticMerge>
           <StaticMerge name="staging" version={config.stagingStalls}><StagingZone count={config.stagingStalls} /></StaticMerge>
           <group name="lanes"><Lanes3D /></group>
-          {/* Medium / Low drop the N8AO pass; the static occlusion is baked instead */}
-          <group name="bakedAO"><BakedGroundAO visible={!budget.ao} /></group>
           <StaticMerge name="utility" version={`${config.bessCapacity}/${config.bessPower}`}><UtilityEquipment bessCapacity={config.bessCapacity} bessPower={config.bessPower} /></StaticMerge>
           <group name="arms">
             {armFleet.meshes.map((m, i) => <primitive key={`armpart-${i}`} object={m} />)}
@@ -334,8 +285,8 @@ export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0, viewe
 
           <group name="vehicles"><VehicleFleet vehicles={vehicles} /></group>
 
-          <WeatherEffects weather={config.weather} share={budget.weatherShare} />
-          <DepotPostProcessing mode="interactive" budget={budget} />
+          <WeatherEffects weather={config.weather} />
+          <DepotPostProcessing mode="interactive" />
           <PerfProbe />
 
           <OrbitControls
@@ -352,7 +303,6 @@ export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0, viewe
             autoRotate={!!viewer?.spin && !followId}
             autoRotateSpeed={pole ? 0.5 : 0.3}
             onStart={viewer?.onInteract}
-            regress
           />
           {viewer && <ViewerFraming controls={controlsRef} framing={viewer.framing} />}
           <CameraRig controls={controlsRef} pole={pole} />
@@ -390,13 +340,6 @@ export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0, viewe
         className="absolute bottom-4 right-4 flex gap-1.5 flex-wrap justify-end [@media(pointer:coarse)]:left-4 [@media(pointer:coarse)]:flex-nowrap [@media(pointer:coarse)]:justify-start [@media(pointer:coarse)]:overflow-x-auto"
         style={{ paddingRight: 'env(safe-area-inset-right, 0px)', paddingLeft: 'env(safe-area-inset-left, 0px)', marginBottom: 'env(safe-area-inset-bottom, 0px)' }}
       >
-        <button
-          onClick={() => setMode(QUALITY_CYCLE[(QUALITY_CYCLE.indexOf(mode) + 1) % QUALITY_CYCLE.length])}
-          title="Render quality. Auto selects a tier for this device and changes it to hold the frame rate."
-          className={`${PRESET_BTN} shrink-0`}
-        >
-          {mode === 'auto' ? `Auto · ${tier[0].toUpperCase()}${tier.slice(1)}` : `${tier[0].toUpperCase()}${tier.slice(1)}`}
-        </button>
         {CAMERA_PRESET_NAMES.map((label) => (
           <button
             key={label}

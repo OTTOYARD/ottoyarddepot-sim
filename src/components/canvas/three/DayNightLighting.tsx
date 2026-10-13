@@ -12,13 +12,7 @@ import { calcLighting, nightFromSun, DAY_SKY, NIGHT_SKY } from './dayNight';
 
 const DAY_FOG = new THREE.Color(DAY_SKY.fog), NIGHT_FOG = new THREE.Color(NIGHT_SKY.fog);
 
-/**
- * `shadows` / `shadowMapSize` are the render tier's shadow budget
- * (quality/tiers.ts). High is the rig as it always was: 2048² over the lot.
- */
-export function DayNightLighting({ simTime, shadows = true, shadowMapSize = 2048 }: {
-  simTime: number; shadows?: boolean; shadowMapSize?: number;
-}) {
+export function DayNightLighting({ simTime }: { simTime: number }) {
   const l = useMemo(() => calcLighting(simTime), [simTime]);
 
   // the sky and the haze follow the sun (in fiftieths, so a running clock rarely touches them)
@@ -45,13 +39,12 @@ export function DayNightLighting({ simTime, shadows = true, shadowMapSize = 2048
 
       {/* Sun — single shadow caster, covers the entire fenced lot */}
       <directionalLight
-        key={shadowMapSize /* a new size needs a new shadow map */}
         position={sunPos}
         intensity={l.sunI}
         color={l.sunCol}
-        castShadow={shadows}
-        shadow-mapSize-width={shadowMapSize}
-        shadow-mapSize-height={shadowMapSize}
+        castShadow
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
         shadow-camera-near={50}
         shadow-camera-far={900}
         shadow-camera-left={-185}

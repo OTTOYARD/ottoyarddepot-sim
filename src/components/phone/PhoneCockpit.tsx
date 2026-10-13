@@ -19,8 +19,8 @@ const DepotScene3D = lazy(() => import('@/components/canvas/DepotScene3D'));
  *
  *   landscape  the live 3D depot fills the screen; the run bar (status, clock,
  *              Start / Pause / Stop, speed) floats over its top edge; the panels
- *              live in a sheet anchored bottom-left; the camera presets and
- *              quality fold into one button.
+ *              live in a sheet anchored bottom-left; the camera presets fold
+ *              into one button.
  *   portrait   the run bar on top, a small live view under it (expandable), and
  *              the panels filling the rest.
  *

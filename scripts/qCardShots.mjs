@@ -203,8 +203,7 @@ const shot = async (page, name) => {
   const errors = [];
   page.on("pageerror", (e) => errors.push(String(e).slice(0, 200)));
   await install(page);
-  const u = new URL(URL_); u.searchParams.set("quality", "low");
-  await page.goto(u.toString(), { waitUntil: "domcontentloaded" });
+  await page.goto(URL_, { waitUntil: "domcontentloaded" });
   await page.waitForTimeout(5000);
   await clickText(page, "2D");
   while (playback() < SECS) await page.waitForTimeout(500);
@@ -251,8 +250,7 @@ const shot = async (page, name) => {
   const errors = [];
   page.on("pageerror", (e) => errors.push(String(e).slice(0, 200)));
   await install(page);
-  const u = new URL(URL_); u.searchParams.set("quality", "low");
-  await page.goto(u.toString(), { waitUntil: "domcontentloaded" });
+  await page.goto(URL_, { waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => !!document.querySelector("canvas"), null, { timeout: 120000 });
   while (playback() < SECS) await page.waitForTimeout(500);
   await page.waitForTimeout(4000);

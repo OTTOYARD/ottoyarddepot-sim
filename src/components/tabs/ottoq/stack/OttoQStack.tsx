@@ -1434,9 +1434,9 @@ function Marker({ rt, model, picked }: { rt: Runtime; model: StackModel; picked:
   );
 }
 
-const Scene = memo(function Scene({ rt, model, events, focus, onFocus, labels, labelColumn, bloom, picked, replay }: {
+const Scene = memo(function Scene({ rt, model, events, focus, onFocus, labels, labelColumn, picked, replay }: {
   rt: Runtime; model: StackModel; events: readonly StackEvent[]; focus: PlateId | null; onFocus: (p: PlateId) => void;
-  labels: React.MutableRefObject<LabelRefs>; labelColumn: number; bloom: boolean; picked: { kind: PickKind; key: string } | null;
+  labels: React.MutableRefObject<LabelRefs>; labelColumn: number; picked: { kind: PickKind; key: string } | null;
   replay: StackReplay | null;
 }) {
   const { invalidate } = useThree();
@@ -1471,11 +1471,9 @@ const Scene = memo(function Scene({ rt, model, events, focus, onFocus, labels, l
       <AgentPlate rt={rt} model={model.agent} onFocus={onFocus} />
       <Beads rt={rt} />
       <Marker rt={rt} model={model} picked={picked} />
-      {bloom && (
-        <EffectComposer multisampling={4} enableNormalPass={false}>
-          <Bloom intensity={0.9} luminanceThreshold={1.05} luminanceSmoothing={0.2} mipmapBlur radius={0.5} />
-        </EffectComposer>
-      )}
+      <EffectComposer multisampling={4} enableNormalPass={false}>
+        <Bloom intensity={0.9} luminanceThreshold={1.05} luminanceSmoothing={0.2} mipmapBlur radius={0.5} />
+      </EffectComposer>
     </>
   );
 });
@@ -1522,7 +1520,7 @@ function PlateLabelBox({ index, plate, l, on, width, onOpen, info }: {
   );
 }
 
-export function OttoQStack({ model, events, focus, onFocus, labels, tags, height, tier, reduced, describe, onPick, picked = null, replay = null, live = false, info }: {
+export function OttoQStack({ model, events, focus, onFocus, labels, tags, height, reduced, describe, onPick, picked = null, replay = null, live = false, info }: {
   model: StackModel;
   events: readonly StackEvent[];
   focus: PlateId | null;
@@ -1531,7 +1529,6 @@ export function OttoQStack({ model, events, focus, onFocus, labels, tags, height
   /** Words pinned to a zoomed plate's parts. */
   tags?: Record<PlateId, readonly PlateTag[]>;
   height: number;
-  tier: "high" | "medium" | "low";
   reduced: boolean;
   /** A few words for the record under the pointer (from the same records the stack is built from), or null. */
   describe?: (kind: PickKind, key: string) => string | null;
@@ -1619,14 +1616,14 @@ export function OttoQStack({ model, events, focus, onFocus, labels, tags, height
   // a new label width changes where every label sits: draw a frame
   useEffect(() => { invalidateRef.current?.(); }, [labelColumn, labels]);
 
-  const dprMax = tier === "high" ? 1.75 : tier === "medium" ? 1.5 : 1;
   return (
     <div ref={wrap} className="relative w-full select-none overflow-hidden rounded-lg" style={{ height, touchAction: "pan-y", background: BG }}
       onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onPointerLeave={onUp}>
       <Canvas
         frameloop="demand"
-        dpr={[1, dprMax]}
-        gl={{ antialias: tier !== "low", alpha: false, powerPreference: "default", preserveDrawingBuffer: false }}
+        // one render quality, High, like the depot view (Chase, 2026-10-12): up to 1.75x, MSAA and bloom on every device
+        dpr={[1, 1.75]}
+        gl={{ antialias: true, alpha: false, powerPreference: "default", preserveDrawingBuffer: false }}
         camera={{ fov: 30, near: 0.5, far: 120, position: [14, 12, 18] }}
         onCreated={({ gl, invalidate }) => {
           gl.toneMapping = THREE.ACESFilmicToneMapping;
@@ -1638,7 +1635,7 @@ export function OttoQStack({ model, events, focus, onFocus, labels, tags, height
         style={{ position: "absolute", inset: 0 }}
         aria-hidden
       >
-        <Scene rt={rt} model={model} events={events} focus={focus} onFocus={onPlate} labels={labelRefs} labelColumn={labelColumn} bloom={tier !== "low"} picked={picked} replay={replay} />
+        <Scene rt={rt} model={model} events={events} focus={focus} onFocus={onPlate} labels={labelRefs} labelColumn={labelColumn} picked={picked} replay={replay} />
       </Canvas>
 
       {hover && (

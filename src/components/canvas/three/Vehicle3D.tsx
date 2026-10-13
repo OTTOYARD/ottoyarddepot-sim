@@ -10,7 +10,6 @@ import { useQCard } from '@/store/qCardStore';
 import { useDepotStore } from '@/store/depotStore';
 import { portFor } from '@/lib/ottoChargeArm/chargePort';
 import { towardFor, portInVehicleFrame } from '@/lib/ottoChargeArm/depotPlacement';
-import { useTierBudget } from './quality/qualityStore';
 import { writeYaw, writeZero, portWorld } from './fleetMath';
 import { OwnerMarkers } from './OwnerMarkers';
 import type { Vehicle } from '@/engine/types';
@@ -89,11 +88,9 @@ const MAT = {
   // (white) base colour: exactly the colour a per-paint material used to carry.
   // Automotive paint is a pigment coat under a clear coat: the clear coat is the
   // sharp sky reflection a car body reads by, the base the soft colour under it.
-  // Low tier drops the clear coat (a second specular lobe per pixel).
   paint: new THREE.MeshPhysicalMaterial({
     color: '#ffffff', roughness: 0.42, metalness: 0.45, clearcoat: 1, clearcoatRoughness: 0.06,
   }),
-  paintLite: new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.38, metalness: 0.45 }),
   // Unlit status strips: colour per car through instanceColor (x1.8, over 1.0
   // so the bloom pass catches them), as the per-colour materials did.
   status: new THREE.MeshBasicMaterial({ color: '#ffffff', toneMapped: false }),
@@ -176,7 +173,6 @@ const allMeshes = (f: Fleet) => [...f.parts, f.status, f.socket, f.ring, f.ringL
 interface Drawn { x: number; z: number; yaw: number }
 
 export function VehicleFleet({ vehicles }: { vehicles: Vehicle[] }) {
-  const budget = useTierBudget();
   const setHovered = useVehicleStore((s) => s.setHoveredVehicle);
 
   // Pedestal side of each car's stall, keyed by stall id, 0 when not a charger.
@@ -210,8 +206,6 @@ export function VehicleFleet({ vehicles }: { vehicles: Vehicle[] }) {
   const capacity = Math.max(64, Math.ceil(rows.length / 64) * 64);
   const fleet = useMemo(() => makeFleet(capacity), [capacity]);
   useEffect(() => () => { for (const m of allMeshes(fleet)) m.dispose(); }, [fleet]);
-
-  useEffect(() => { fleet.body.material = budget.clearcoat ? MAT.paint : MAT.paintLite; }, [fleet, budget.clearcoat]);
 
   // colours change with the roster, not per frame
   useEffect(() => {

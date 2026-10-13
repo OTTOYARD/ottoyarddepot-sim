@@ -14,7 +14,7 @@
 //   node scripts/phoneShots.mjs --out /tmp/phone --desktop
 //
 //   --url U   (http://127.0.0.1:8080/)   --secs N  playback seconds first (25)
-//   --out DIR (./phone-shots)            --quality low|medium|high (low: fast in software GL)
+//   --out DIR (./phone-shots)
 //   --only landscape|portrait            --chromium P   --relay-curl
 //
 // ⚠️ Software GL in a sandbox draws ~1 frame a second: this checks LAYOUT
@@ -36,7 +36,6 @@ const arg = (name, dflt) => {
 const URL_ = arg("url", "http://127.0.0.1:8080/");
 const OUT = resolve(arg("out", "phone-shots"));
 const SECS = Number(arg("secs", 25));
-const QUALITY = String(arg("quality", "low"));
 const ONLY = arg("only", null);
 const DESKTOP = arg("desktop", false) === true;
 const RELAY = arg("relay-curl", false) === true;
@@ -87,9 +86,7 @@ const shots = async (name, profile) => {
   const errors = [];
   page.on("pageerror", (e) => errors.push(String(e).slice(0, 200)));
   const routes = await installFixtureRoutes(page, F, { relay: RELAY });
-  const u = new URL(URL_);
-  u.searchParams.set("quality", QUALITY);
-  await page.goto(u.toString(), { waitUntil: "domcontentloaded" });
+  await page.goto(URL_, { waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => !!document.querySelector("canvas"), null, { timeout: 120000 });
   while (routes.playbackSeconds() < SECS) await page.waitForTimeout(500);
   await page.waitForTimeout(2500);
@@ -116,7 +113,7 @@ const shots = async (name, profile) => {
     await shot("03-bigger-live-view");
     await clickLabel(page, "Make the live view smaller");
   }
-  await clickLabel(page, "Camera and quality");
+  await clickLabel(page, "Camera");
   await shot("06-camera-menu");
   await clickText(page, "Hero");
   await shot("07-hero-preset");
@@ -149,7 +146,7 @@ if (DESKTOP) {
   await page.waitForTimeout(4000);
   const path = join(OUT, "desktop-1440.jpg");
   await page.screenshot({ path, quality: 82 });
-  summary.push(path, { name: "desktop", phoneCockpit: await page.evaluate(() => !!document.querySelector('[aria-label="Camera and quality"]')) });
+  summary.push(path, { name: "desktop", phoneCockpit: await page.evaluate(() => !!document.querySelector('[aria-label="Camera"]')) });
   await ctx.close();
 }
 await browser.close();
