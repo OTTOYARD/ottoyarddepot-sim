@@ -17,6 +17,11 @@
 // sources for "NVIDIA open model" and "state-of-the-art"), and the code objects behind each line are no longer drawn
 // on screen. They stay in `refs`, for an engineer and for the tests.
 //
+// Chase, 2026-10-12: the layers read "too vague and not technical enough"; "Keep it concise, and don't paraphrase or use
+// colloquial language ... Direct, technical when needed, and understandable." So each card names the mechanism and its
+// guarantee (the objective set, the lexicographic goal order and hard constraints, the futures test on an agent order,
+// the one-transaction commit, the database constraints), in the same three-part shape and length.
+//
 // Every sentence describes a mechanism in otto-q-core that can be pointed at by name (the `refs` of each layer). No
 // count lives in this file: a number on screen comes from the run being watched (the plate's live line). The test
 // beside this file holds both rules, the length, and the product names.
@@ -43,20 +48,20 @@ export const LAYER_INFO: Record<PlateId, LayerInfo> = {
   agent: {
     plate: "agent",
     title: "Agent",
-    tagline: "Read & propose",
-    overview: "The agent reasons over the live depot state with an NVIDIA open model. Each pass sets the planners' objective and orders the charge line.",
+    tagline: "Objective · charge order",
+    overview: "An agent on an NVIDIA open model reads the live depot state each pass. It proposes the planners' objective and an order for the charge line.",
     points: [
-      "It ranks the cars waiting for a charger and names a fast charger or an L2 for each.",
-      "The kernel projects the line both ways and keeps its own order when that is better.",
-      "Cars due out and long waits still go first. No charge is cut short.",
-      "The objective is one of three: readiness first, throughput first or energy balanced.",
+      "Objective: readiness first, throughput first or energy balanced.",
+      "Charge order: which waiting cars take the next free chargers, and which charger type.",
+      "The decide path simulates both orders and adopts the agent's only if it wins the expected and most sampled futures.",
+      "Calls run asynchronously, so a tick never waits. Each call is logged to an append-only ledger.",
     ],
     next: "It only proposes. The decide path seats every car.",
     refs: [
       "edge-functions/ottoq-orchestrator-agent",
       "public.ottoq_agent_charge_orders",
+      "public.ottoq_charge_order_verdict_v2 (0620: the expected future and the win fraction)",
       "public.ottoq_agent_board",
-      "public.ottoq_run_learning",
       "public.ottoq_model_call_ledger",
       "public.ottoq_policy_param_catalog",
     ],
@@ -65,17 +70,18 @@ export const LAYER_INFO: Record<PlateId, LayerInfo> = {
   planners: {
     plate: "planners",
     title: "Planners",
-    tagline: "Optimize & offer",
-    overview: "The planners combine state-of-the-art lexicographic optimization with GPU-accelerated and heuristic solvers. They turn the objective into offers: this car, this stall, this time.",
+    tagline: "Constrained optimization",
+    overview: "The planners solve the depot schedule and offer assignments: this car, this stall, this time. They combine state-of-the-art lexicographic optimization with GPU-accelerated and heuristic solvers.",
     points: [
-      "Goals rank in strict order, readiness first, so a lower goal never costs a higher one.",
-      "Each pass reads where this run placed cars and plans only for free chargers.",
-      "An offer whose charger is taken moves to an equal free one, or the agent sees why.",
-      "The lexicographic planner is pinned, so the same inputs give the same plan.",
+      "Goals solve in strict order: lateness against each car's ready time first, then peak site power.",
+      "Hard constraints: one car per stall, the site power cap, charge curves and fast-charger cooldown.",
+      "Each pass plans only for free chargers: not faulted, booked or occupied.",
+      "The lexicographic planner is pinned, so the same inputs give the same plan. GPU offers are recorded for replay.",
     ],
     next: "No planner places a car. The decide path chooses.",
     refs: [
-      "solvers/cpsat/model.py",
+      "solvers/cpsat/model.py (AddNoOverlap per point, AddCumulative on power_cap_kw_hard, DCFC cooldown)",
+      "policies/forward.py (lexicographic chain: min_tardy first, then min_peak)",
       "proposer/forward_proposer.py",
       "edge-functions/ottoq-cpsat-propose",
       "public.ottoq_promote_proposal_candidates",
@@ -86,13 +92,13 @@ export const LAYER_INFO: Record<PlateId, LayerInfo> = {
   decide: {
     plate: "decide",
     title: "Decide",
-    tagline: "Choose one plan",
+    tagline: "Deterministic commit",
     overview: "The decide path makes every final decision. It is deterministic: the same depot state always gives the same decision and reason.",
     points: [
-      "Each tick, it takes an offer, makes its own choice, or holds a car when nothing fits.",
-      "It books the stall and sends the command in one transaction.",
+      "Each tick it adopts an offer, computes its own choice, or holds the car with a recorded reason.",
+      "It alone writes bookings: the stall booking and the vehicle command commit in one transaction.",
+      "Its charge line: cars due out first, then cars past the wait limit, then the shortest charges.",
       "Paired runs on one seed must match byte for byte, on every decision.",
-      "Models and solvers cannot go around it. Only the decide path writes a booking.",
     ],
     next: "Each decision then passes the safety layer before the depot acts.",
     refs: [
@@ -100,6 +106,7 @@ export const LAYER_INFO: Record<PlateId, LayerInfo> = {
       "public.ottoq_decisions",
       "public.ottoq_stall_bookings",
       "public.ottoq_vehicle_commands",
+      "db/migrations/0642 (due out, the wait floor longest first, then minutes of charge)",
       "CERTIFICATION_STATUS.md",
     ],
   },
@@ -107,13 +114,13 @@ export const LAYER_INFO: Record<PlateId, LayerInfo> = {
   safety: {
     plate: "safety",
     title: "Safety",
-    tagline: "Check & enforce",
+    tagline: "Rule enforcement",
     overview: "OTTOYARD's proprietary safety layer checks decisions against deterministic, versioned rules before the depot acts. It guards what the depot does, not what a model says.",
     points: [
-      "The rules are data, with versions and parameters for each fleet contract.",
-      "Paired runs reproduce every verdict byte for byte.",
-      "Under the rules, the database refuses double bookings and any edit to the event log.",
-      "No car leaves below its charge target or with a service still needed.",
+      "Rules are versioned data with per-contract parameters. Paired runs reproduce every verdict byte for byte.",
+      "Each decision point either refuses a failed check or records it. Every evaluation is logged.",
+      "Database constraints refuse double bookings, two cars per stall and any edit to the event log.",
+      "No car leaves below its charge target or with an open service.",
     ],
     next: "A decision that fails an enforcing check never reaches the depot.",
     refs: [
@@ -129,15 +136,15 @@ export const LAYER_INFO: Record<PlateId, LayerInfo> = {
   depot: {
     plate: "depot",
     title: "Depot",
-    tagline: "Dispatch & serve",
-    overview: "The depot is where decisions become real. In this app it is OTTO-TWIN, a simulated depot.",
+    tagline: "Execution · telemetry",
+    overview: "The depot executes each command and reports its state. Here it is OTTO-TWIN, a simulated depot on a real site's tables.",
     points: [
-      "Cars drive the lanes, charge, use the bays and leave ready.",
-      "Faults, weather and arrivals come from fits to public data.",
-      "Each random draw comes from the run seed, so a run replays exactly.",
+      "Cars drive the lanes, charge on DCFC and L2, use the bays and leave ready.",
+      "Arrivals, faults and weather come from distributions fitted to public data.",
+      "Each random draw depends only on the run seed, the item and the sim time, so a run replays exactly.",
       "OTTO-Q holds no simulation code, so a real depot can take its place. The 3D view only draws.",
     ],
-    next: "What happens here feeds the next tick, and the agent reads it again.",
+    next: "The new state feeds the next tick, and the agent reads it again.",
     refs: [
       "twin.ottoq_sim_seeded_random",
       "public.ottoq_twin_snapshot",

@@ -107,7 +107,7 @@ function Header({ depot }: { depot: string | null }) {
     <header className="px-0.5">
       <h2 className="font-display text-[15px] leading-tight text-ink">What OTTO-Q is worth at this depot</h2>
       <p className="mt-1 text-[11px] leading-4 text-ink-dim">
-        Same cars, same ride demand, same day. OTTO-Q against a plain depot: first come, first served, no energy
+        Same cars, same ride demand, same seeded day. OTTO-Q against a baseline depot: first come, first served, no energy
         planning.
       </p>
       {depot && <p className="mt-1 break-words text-[10px] leading-4 text-ink-faint">{depot}</p>}
@@ -212,7 +212,7 @@ function HowItWorks() {
       <p className="mt-2 flex items-start gap-2 border-t border-white/[0.06] pt-2 text-[11px] leading-4 text-ink">
         <ShieldCheck size={12} aria-hidden className="mt-0.5 shrink-0 text-ink-dim" />
         <span className="min-w-0">
-          It never cuts corners. No charge stops early, and no car leaves with a needed service open.
+          Vehicle first: no charge stops early, and no car leaves with a needed service open.
         </span>
       </p>
     </section>
@@ -237,7 +237,7 @@ function KpiTable({ view }: { view: ChargerView }) {
             <th scope="col" className="pb-1 text-left font-normal">
               <span className="sr-only">Measure</span>
             </th>
-            <th scope="col" className="pb-1 pl-1 text-right font-normal">Plain depot</th>
+            <th scope="col" className="pb-1 pl-1 text-right font-normal">Baseline depot</th>
             <th scope="col" className="pb-1 pl-1 text-right font-normal">OTTO-Q</th>
             <th scope="col" className="pb-1 pl-1 text-right font-normal">Change</th>
           </tr>

@@ -29,7 +29,7 @@ describe('StartRunDialog — Start (phone run bar, desktop top bar) really start
   it('offers the featured scenarios with Busy Day preselected and says the current run ends', async () => {
     setup();
     await act(async () => {});
-    expect(screen.getByText('A new run stops and resets the current run.')).toBeTruthy();
+    expect(screen.getByText(/A new run stops and resets the current run\./)).toBeTruthy();
     const radios = screen.getAllByRole('radio');
     expect(radios.map((r) => r.textContent)).toEqual(
       ['Busy Day', 'Normal Day', 'Heat Wave', 'Winter Storm', 'DR Cascade', 'Charger Outage']);

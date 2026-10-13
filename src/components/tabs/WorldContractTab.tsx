@@ -88,7 +88,12 @@ export const WorldContractTab = () => {
   );
 
   if (phase === "idle") {
-    return <Empty>No run is active. Start a run in Run Control to load the world.</Empty>;
+    return (
+      <Empty>
+        No run is active. During a run, this tab audits the data feed between the twin and OTTO-Q: the boot report, the
+        integrity of each channel, and which variables reach OTTO-Q. Press Start in the top bar to load a world.
+      </Empty>
+    );
   }
   if (phase === "loading") {
     return <Empty>World load in progress…</Empty>;

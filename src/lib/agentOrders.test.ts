@@ -109,14 +109,14 @@ describe("the learning strip's order section", () => {
 });
 
 // otto-q-core 0618: the kernel projects the line under the agent's order and under its own before it takes the order
-describe("the kernel's check on an order", () => {
-  it("is red, and says the kernel kept its own order and why, when the check refused it", () => {
+describe("the decide path's check on an order", () => {
+  it("is red, and says the decide path kept its own order and why, when the check refused it", () => {
     const r = feed[0];
     const m = new Map([[chainOf(r), { chain_id: chainOf(r), status: "refused", verdict: "line_ready_later", offered: 12, accepted: 11, seats_by_rank: 0 }]]);
     const p = agentPass(r, m);
     expect(p.hue).toBe("refused");
-    expect(p.headline).toBe("The kernel checked the agent's charge order and kept its own");
-    expect(p.outcome.join(" ")).toContain("It ordered the charge line (11 cars). The kernel checked it and kept its own order: it would have had the line ready later than the kernel's own order.");
+    expect(p.headline).toBe("The decide path checked the agent's charge order and kept its own");
+    expect(p.outcome.join(" ")).toContain("It ordered the charge line (11 cars). The decide path checked it and kept its own order: it would have had the line ready later than the decide path's own order.");
     expect(p.outcome.join(" ")).not.toMatch(/No car has been seated|undefined|null/);
   });
 
@@ -126,7 +126,7 @@ describe("the kernel's check on an order", () => {
     const p = agentPass(r, new Map([[chainOf(r), o]]));
     expect(p.hue).toBe("seated");
     const text = p.outcome.join(" ");
-    expect(text).toContain("The kernel checked it and took it: it had the line ready sooner than the kernel's own order.");
+    expect(text).toContain("The decide path checked it and took it: it had the line ready sooner than the decide path's own order.");
     expect(text.indexOf("took it")).toBeLessThan(text.indexOf("The decide path seated"));
   });
 
@@ -147,9 +147,9 @@ describe("the kernel's check on an order", () => {
     const o = { ...a.order!, status: "refused" };
     const u = { ...a.usage!, orders_refused: 4, by_order: [{ order_id: o.order_id, status: "refused", verdict: "fewer_cars_ready_by_due" }] };
     const v = agentOrderView({ ...learning, agent_order: { ...a, live: true, order: o, usage: u } })!;
-    expect(v.headline).toBe("The kernel checked the agent's last order and kept its own: it would have got fewer cars ready by their due time. An earlier order of the agent's still stands.");
+    expect(v.headline).toBe("The decide path checked the agent's last order and kept its own: it would have got fewer cars ready by their due time. An earlier order of the agent's still stands.");
     expect(v.head).toEqual([]);
-    expect(v.facts[0]).toContain(" · 4 refused by the kernel's check · ");
+    expect(v.facts[0]).toContain(" · 4 refused by the decide path's check · ");
     const lapsed = agentOrderView({ ...learning, agent_order: { ...a, live: false, order: o, usage: u } })!;
     expect(lapsed.headline).toMatch(/kept its own: .*\. The decide path seats cars in its own order\.$/);
   });
@@ -159,20 +159,20 @@ describe("the kernel's check on an order", () => {
 describe("the rolled-forward check and the hindsight", () => {
   it("says how many futures an order won against the bar", () => {
     expect(verdictText({ verdict: "not_enough_futures_won", futures_won: 7, futures: 12, need: 10 }))
-      .toBe("it beat the kernel's own order in 7 of 12 futures, short of the 10 the check asks");
+      .toBe("it beat the decide path's own order in 7 of 12 futures, short of the 10 the check asks");
     expect(verdictText({ verdict: "wins_most_futures", futures_won: 11, futures: 12, need: 10 }))
-      .toBe("it beat the kernel's own order in the expected future and in 11 of 12 futures");
+      .toBe("it beat the decide path's own order in the expected future and in 11 of 12 futures");
     expect(verdictText({ verdict: "worse_in_expected_future", futures_won: 6, futures: 12, need: 10 }))
-      .toBe("it lost to the kernel's own order in the expected future (6 of 12 futures won)");
+      .toBe("it lost to the decide path's own order in the expected future (6 of 12 futures won)");
     // one future: nothing was sampled, so no count
     expect(verdictText({ verdict: "same_as_kernel", futures_won: 0, futures: 1, need: 1 })).toMatch(/^it would have seated the same cars/);
-    expect(verdictText({ verdict: "line_ready_later" })).toBe("it would have had the line ready later than the kernel's own order");
+    expect(verdictText({ verdict: "line_ready_later" })).toBe("it would have had the line ready later than the decide path's own order");
     expect(verdictText(null)).toBeNull();
   });
 
   it("says what hindsight found, and nothing for an order that changed nothing", () => {
-    expect(hindsightWords("right_take")).toMatch(/beat the kernel's own order: the check was right to take it/);
-    expect(hindsightWords("wrong_take")).toMatch(/lost to the kernel's own order: the check should not have taken it/);
+    expect(hindsightWords("right_take")).toMatch(/beat the decide path's own order: the check was right to take it/);
+    expect(hindsightWords("wrong_take")).toMatch(/lost to the decide path's own order: the check should not have taken it/);
     expect(hindsightWords("missed_win")).toMatch(/the check refused a winner/);
     expect(hindsightWords("right_refusal")).toMatch(/the check was right to refuse it/);
     expect(hindsightWords("neutral_take")).toMatch(/tied/);
@@ -186,8 +186,8 @@ describe("the rolled-forward check and the hindsight", () => {
                 offered: 9, accepted: 9, seats_by_rank: 0, hindsight: "missed_win", moves: ["due_rescue_fast"] };
     const p = agentPass(r, new Map([[chainOf(r), o]]));
     const text = p.outcome.join(" ");
-    expect(text).toContain("The kernel checked it and kept its own order: it beat the kernel's own order in 8 of 12 futures, short of the 10 the check asks.");
-    expect(text).toContain("In what actually happened it would have beaten the kernel's own order: the check refused a winner.");
+    expect(text).toContain("The decide path checked it and kept its own order: it beat the decide path's own order in 8 of 12 futures, short of the 10 the check asks.");
+    expect(text).toContain("In what actually happened it would have beaten the decide path's own order: the check refused a winner.");
     expect(text.indexOf("8 of 12")).toBeLessThan(text.indexOf("In what actually happened"));
   });
 

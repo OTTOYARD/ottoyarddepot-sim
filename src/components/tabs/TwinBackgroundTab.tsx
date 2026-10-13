@@ -14,6 +14,12 @@
 // sections argue from the engine's own mechanisms and from outside facts checked at their source, each linked and
 // dated. They claim no measured advantage the Value tab has not measured.
 //
+// Chase, 2026-10-12, on the header's empty-depot line: "such a non descriptive statement ... Explain OTTOYARD and the
+// Digital twin. Designed for brand/OEM agnostic AV depot orchestration and testing. Live OTTO-Q software autonomously
+// optimizes and orchestrates for vehicle uptime by combining Agents, Determinism, and Safety rules. Keep it concise, and
+// don't paraphrase or use colloquial language or witty phrasing." So the header says what OTTOYARD, OTTO-TWIN and OTTO-Q
+// are in those terms, the three parts (PILLARS) each name their mechanism, and the run line states the run's state.
+//
 // RULES THIS FILE KEEPS. Every number on it is read live from the engine when the tab opens (useBackgroundFacts) and
 // is shown with the table or function it came from; a source that has not answered reads "—". Its prose describes
 // mechanisms that can be pointed at by name, and it says "being built" where a thing is not live. Shaping lives in
@@ -38,6 +44,17 @@ import {
 } from '@/lib/background';
 
 // ── small pieces ─────────────────────────────────────────────────────────────
+/**
+ * The three parts OTTO-Q combines, under the header (Chase, 2026-10-12: "Live OTTO-Q software autonomously optimizes
+ * and orchestrates for vehicle uptime by combining Agents, Determinism, and Safety rules"). Each line names the
+ * mechanism, not an adjective: the sections below carry the detail and the live counts.
+ */
+const PILLARS = [
+  { title: 'Agents', body: 'An agent on an NVIDIA open model proposes the objective and the charge-line order. Optimization solvers offer stall assignments. Neither places a car.' },
+  { title: 'Determinism', body: 'One decide path commits every final decision. The same depot state gives the same decision, and paired runs match byte for byte.' },
+  { title: 'Safety rules', body: 'Versioned rules check decisions at each decision point. Database constraints refuse unsafe writes. No car leaves below its charge target or with an open service.' },
+] as const;
+
 const SECTIONS = [
   { id: 'bg-overview', label: 'Overview' },
   { id: 'bg-boundary', label: 'OTTO-Q and the twin' },
@@ -205,16 +222,30 @@ export function TwinBackgroundTab() {
             <BookOpen aria-hidden size={16} className="text-brand-hot" />
             <h1 className="font-display text-[18px] font-bold uppercase leading-none tracking-[0.05em] text-ink">Background</h1>
           </div>
-          <p className="mt-1.5 text-[12px] leading-[17px] text-ink-dim">
-            What you see, what OTTO-Q is, and why it is built this way. Each number on this page comes live from the
-            engine and names its source.
+          <p className="mt-1.5 text-[12px] leading-[17px] text-ink">
+            <B>OTTOYARD</B> builds depots and orchestration software for autonomous vehicle (AV) fleets.{' '}
+            <B>OTTO-TWIN</B> is its depot digital twin, designed for brand- and OEM-agnostic AV depot orchestration and
+            testing. <B>OTTO-Q</B> is the live orchestration software. It autonomously optimizes and orchestrates the
+            depot for vehicle uptime by combining agents, determinism and safety rules.
           </p>
+          <ul aria-label="How OTTO-Q decides" className="mt-2 grid gap-1.5 sm:grid-cols-3">
+            {PILLARS.map((p) => (
+              <li key={p.title} className="rounded border border-white/[0.08] bg-canvas-panel/60 p-2">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.07em] text-ink">{p.title}</div>
+                <p className="mt-0.5 text-[10.5px] leading-[15px] text-ink-dim">{p.body}</p>
+              </li>
+            ))}
+          </ul>
           <p className="mt-1.5 rounded border border-white/[0.08] bg-canvas-panel/60 px-2 py-1.5 text-[11px] leading-4 text-ink">
             {live
-              ? <>Run <span className="font-mono">{runId!.slice(0, 8)}</span> · {String(run!.status)}{run!.sim_clock ? ` · sim clock ${dayCT(run!.sim_clock)}` : ''}. Each car you see moves on a decision from OTTO-Q.</>
+              ? <>Run <span className="font-mono">{runId!.slice(0, 8)}</span> · {String(run!.status)}{run!.sim_clock ? ` · sim clock ${dayCT(run!.sim_clock)}` : ''}. Inside the depot, each car moves on an OTTO-Q command.</>
               : runId
-                ? <>Run <span className="font-mono">{runId.slice(0, 8)}</span> is not active. Press Start at the top of the screen to see OTTO-Q work.</>
-                : <>No run is active, so the depot is empty. Press Start at the top of the screen. Then the cars arrive.</>}
+                ? <>Run <span className="font-mono">{runId.slice(0, 8)}</span> is not active. Press Start in the top bar for a new run.</>
+                : <>No simulation run is active. Press Start in the top bar to load a seeded fleet day at the Nashville
+                    Flagship depot. OTTO-Q then orchestrates each car from arrival to dispatch.</>}
+          </p>
+          <p className="mt-1.5 text-[10.5px] leading-[15px] text-ink-faint">
+            Every number on this page is read live from the engine and names its source.
           </p>
         </header>
         <nav aria-label="Background sections" className="sticky top-0 z-10 -mx-3 flex flex-wrap gap-1 bg-canvas-base/95 px-3 py-1.5 backdrop-blur">
@@ -228,10 +259,10 @@ export function TwinBackgroundTab() {
 
         {/* ── 1. overview ────────────────────────────────────────── */}
         <Section id="bg-overview" icon={Truck} title="What you see"
-          kicker="A simulated depot in real time, where OTTO-Q decides every move. OTTO-Q is the return-to-base orchestration engine for autonomous fleets.">
+          kicker="A simulated AV depot, run in real time. OTTO-Q, the return-to-base orchestration engine for autonomous fleets, makes every operational decision in it.">
           <P>
-            The depot is <B>OTTO-TWIN</B>, a digital twin of the OTTOYARD Nashville Flagship. Autonomous robotaxis come
-            back to it for charge, cleaning and service, then go back to work.
+            The depot is <B>OTTO-TWIN</B>, a digital twin of the OTTOYARD Nashville Flagship site. Autonomous robotaxis
+            return to it for charge, cleaning, inspection and service, then return to revenue service.
           </P>
           <P>
             A ride-hail or delivery system owns the mission of each car. OTTO-Q owns the car from its recall until it is
@@ -252,7 +283,8 @@ export function TwinBackgroundTab() {
                   <span className="mx-1 inline-flex translate-y-[2px]"><LayerInfoButton plates={['agent']} label="the Agent layer" onOpenTab={(t) => open(t)} side="bottom" /></span>
                   beside a layer explains it.</>,
                 <><B>Agent</B> shows each agent pass in plain words: what the agent read and chose, and the result.</>,
-                <><B>KPIs</B> shows what the run measured. <B>Value</B> shows what OTTO-Q is worth against a plain depot.</>,
+                <><B>KPIs</B> shows what the run measured. <B>Value</B> shows OTTO-Q against a first-come, first-served
+                  depot on the same seeded days.</>,
                 <><B>Runs</B> lists each run by its ID, so you can trace any number to its run and replay it.</>,
               ]} />
             </div>
@@ -410,10 +442,11 @@ export function TwinBackgroundTab() {
             Each draw depends only on the run seed, the item it is for and the sim time. The results:
           </P>
           <Bullets items={[
-            <><B>Different seeds, independent worlds.</B> Many seeds sample the range of days a depot will see, not one
-              lucky afternoon.</>,
-            <><B>The same seed, the same world, byte for byte.</B> OTTO-Q and a plain first-come-first-served depot run
-              the same day, so a difference comes from the policy, not luck (common random numbers).</>,
+            <><B>Different seeds, independent worlds.</B> Many seeds sample the range of operating days a depot will
+              see, not one favorable case.</>,
+            <><B>The same seed, the same world, byte for byte.</B> OTTO-Q and a first-come, first-served baseline
+              depot run the same day, so a difference comes from the policy, not from the random draw (common random
+              numbers).</>,
             <><B>Knobs that stress a world.</B> On the Control tab, knobs make a day hotter, busier or more prone to
               faults.</>,
           ]} />
@@ -456,7 +489,7 @@ export function TwinBackgroundTab() {
 
         {/* ── 5. agentic ─────────────────────────────────────────── */}
         <Section id="bg-agentic" icon={BrainCircuit} title="The agentic system"
-          kicker="Models and solvers propose. One deterministic, reproducible path decides. So a reasoning model and GPU-accelerated optimization can act on real cars without blind trust.">
+          kicker="Models and solvers propose. One deterministic, reproducible decide path commits. A reasoning model and GPU-accelerated optimization can then direct real cars: each call is recorded, and each decision can be replayed.">
           <ol className="space-y-1.5">
             {PLATES.map((p, i) => (
               <li key={p.id} className="flex items-start gap-2 rounded border border-white/[0.06] p-2">
@@ -473,7 +506,7 @@ export function TwinBackgroundTab() {
             ))}
           </ol>
           <div>
-            <div className="text-[10px] font-semibold uppercase tracking-[0.07em] text-ink-faint">Every model and solver call, on the record</div>
+            <div className="text-[10px] font-semibold uppercase tracking-[0.07em] text-ink-faint">Every model and solver call, in an append-only ledger</div>
             {facts.ledger == null ? (
               <p className="mt-1 text-ink-faint">{loading ? 'The tab reads the intelligence ledger…' : 'The intelligence ledger did not answer. —'}</p>
             ) : (
@@ -626,7 +659,7 @@ export function TwinBackgroundTab() {
 
         {/* ── 7. value ───────────────────────────────────────────── */}
         <Section id="bg-value" icon={Sparkles} title="What it solves"
-          kicker="An autonomous car earns money only while it works. Each trip to the depot is time off the road. As fleets grow, the depot is where they slow down.">
+          kicker="An autonomous car earns revenue only in service. Each depot visit takes it out of service. As fleets scale, depot turnaround limits fleet uptime.">
           <P>In scheduling terms, a depot is a flow shop with limited resources:</P>
           <Bullets items={[
             'Each car needs a set of operations in a fixed order.',
@@ -661,12 +694,12 @@ export function TwinBackgroundTab() {
                 <Source>
                   public.ottoq_value_summary{measured.sweep ? ` · sweep ${measured.sweep}` : ''}
                   {measured.seeds != null ? ` · ${fmtInt(measured.seeds)} paired test ${measured.seeds === 1 ? 'day' : 'days'}` : ''}
-                  {' '}· OTTO-Q against a plain depot on the same seeded days, at the depot as built
+                  {' '}· OTTO-Q against a baseline depot on the same seeded days, at the depot as built
                 </Source>
               </>
             ) : (
               <p className="mt-1 text-[11px] leading-4 text-ink-dim">
-                The Value tab shows what the twin measured: OTTO-Q against a plain depot on the same seeded days. It
+                The Value tab shows what the twin measured: OTTO-Q against a baseline depot on the same seeded days. It
                 claims only what a test day showed. It also shows where OTTO-Q did worse.
               </p>
             )}
@@ -678,23 +711,23 @@ export function TwinBackgroundTab() {
 
         {/* ── 8. the technical edge ──────────────────────────────── */}
         <Section id="bg-edge" icon={Target} title="The technical edge"
-          kicker="Each reason below makes a depot of autonomous cars hard to run. OTTO-Q is built around each one, and you can check each in the engine or at the linked source.">
+          kicker="Each item below is a hard problem in running a depot of autonomous cars. OTTO-Q is built around each one. Each claim can be checked in the engine or at its linked source.">
           <div className="space-y-2">
             {/* Sources, kept here and not drawn (Chase, 2026-10-07: no product names on screen). The GPU solver this
                 engine calls documents no seed or determinism setting for routing, and says its MIP determinism mode
                 "does not yet guarantee fully deterministic results in all scenarios": NVIDIA cuOpt 26.08,
                 https://docs.nvidia.com/cuopt/user-guide/latest/routing-features.html and
                 https://docs.nvidia.com/cuopt/user-guide/latest/mip-settings.html, checked 2026-10-02. */}
-            <Edge title="The same answer, twice"
+            <Edge title="Reproducible decisions"
               hard={<>A schedule that moves real cars must be explainable, and another person must be able to repeat it.
                 This is not automatic. A leading GPU solver does not promise the same answer on a second run, and its
                 maker says so.</>}
               ours={<>Its decide path is deterministic: the same seed, scenario and engine give the same decisions, byte
                 for byte (the certification above). Each figure it reports has a run ID that replays it.</>}
               source={<>the solver maker's own documentation, release 26.08, checked Oct 2, 2026</>} />
-            <Edge title="AI that proposes, and never decides"
+            <Edge title="Agents that propose, and never decide"
               hard={<>Language models and GPU solvers are fast and capable. They can also be wrong, late or different on a
-                second try. A car cannot wait for a retry.</>}
+                second call. A depot decision cannot wait for a retry.</>}
               ours={<>Models and solvers only propose. One deterministic path decides.</>}
               list={[
                 'The agent sets the goal for the next decisions.',
@@ -707,7 +740,7 @@ export function TwinBackgroundTab() {
                 https://www.nvidia.com/en-us/ai-data-science/products/cuopt/ and the routing-features page above,
                 checked 2026-10-02. "State-of-the-art": the constraint solver under the lexicographic planner took gold
                 in the Fixed, Free and Parallel categories of https://www.minizinc.org/challenge/2025/results. */}
-            <Edge title="The right solver for the shape of the problem"
+            <Edge title="The right solver for the problem structure"
               hard={<>Inside a depot, the constraints are scheduling constraints. Charges at the same time share one power
                 limit, and a stall or bay holds one car at a time. A routing or linear-programming solver has no direct
                 way to state either.</>}
@@ -731,11 +764,11 @@ export function TwinBackgroundTab() {
                 {' · '}<ExtLink href="https://evroaming.org/ocpi-downloads/">OCPI releases</ExtLink>
                 {' · '}OCPI 2.2.1 and 2.3.0, the released versions, checked Oct 2, 2026
               </>} />
-            <Edge title="Proof before a depot is built"
-              hard={<>You cannot try a site design or a scheduling policy on a real fleet without risk to the day of that
-                fleet. One good afternoon proves nothing.</>}
-              ours={<>The twin draws whole days from public data, with each assumption declared. OTTO-Q and a plain depot
-                run the same seeded day, with the engine that would run the site. If OTTO-Q did not beat the plain depot
+            <Edge title="Evidence before a depot is built"
+              hard={<>A site design or a scheduling policy cannot be tested on a real fleet without risk to its
+                operations. A single favorable day is not evidence.</>}
+              ours={<>The twin draws whole days from public data, with each assumption declared. OTTO-Q and a baseline depot
+                run the same seeded day, with the engine that would run the site. If OTTO-Q did not beat the baseline depot
                 on a measured day, the Value tab says so.</>} />
           </div>
           <P>
@@ -747,7 +780,7 @@ export function TwinBackgroundTab() {
 
         {/* ── 9. distribution ────────────────────────────────────── */}
         <Section id="bg-distribution" icon={Globe2} title="Distribution and commercialization of AV fleets"
-          kicker="In each new city, an autonomous fleet needs land, power, chargers, cleaning, service bays and staging. The cars earn money only when that infrastructure turns them around fast.">
+          kicker="In each new city, an autonomous fleet needs land, power, chargers, cleaning, service bays and staging. Fleet revenue depends on how fast that infrastructure returns each car to service.">
           <Bullets items={[
             <><B>A depot becomes a shared service node.</B> Fleets with different owners can use one site. Each gets
               service under its own contract, from orchestration that belongs to none of them.</>,

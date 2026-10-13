@@ -48,7 +48,8 @@ export function StartRunDialog({ open, onOpenChange, ctrl, onOpenControl }: {
         <AlertDialogHeader>
           <AlertDialogTitle>Start a simulation run</AlertDialogTitle>
           <AlertDialogDescription className="text-ink-dim">
-            A new run stops and resets the current run.
+            A run draws one seeded fleet day at the Nashville Flagship depot, and OTTO-Q orchestrates it live. A new
+            run stops and resets the current run.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <div className="grid grid-cols-2 gap-1.5" role="radiogroup" aria-label="Scenario">

@@ -62,14 +62,14 @@ describe('the three cards', () => {
 
     const chargers = screen.getByTestId('value-card-chargers');
     expect(chargers).toHaveTextContent('21.4 cars per charger a day');
-    expect(chargers).toHaveTextContent('18.8 at a plain depot');
+    expect(chargers).toHaveTextContent('18.8 at a baseline depot');
     expect(chargers).toHaveTextContent('214 cars fully serviced a day');
     expect(chargers).toHaveTextContent('range over 3 test days: 20–32 more cars a day');
 
     const revenue = screen.getByTestId('value-card-revenue');
     expect(revenue).toHaveTextContent('+0.6 h per car a day');
     expect(revenue).toHaveTextContent('+$12 per car a day ($10–$14)');
-    expect(revenue).toHaveTextContent('97.1% of ride demand met (91.0% at a plain depot)');
+    expect(revenue).toHaveTextContent('97.1% of ride demand met (91.0% at a baseline depot)');
     expect(revenue).toHaveTextContent('range over 3 test days: 0.4–0.8 h more');
 
     expect(screen.getByTestId('value-guarantee')).toHaveTextContent(
@@ -83,7 +83,7 @@ describe('the three cards', () => {
     expect(screen.getByTestId('value-card-power')).toHaveTextContent('$58,400 → $38,600 a month');
     expect(screen.getByTestId('value-card-power')).toHaveTextContent('Peak demand 2,460 → 1,240 kW');
     expect(screen.getByTestId('value-card-chargers')).toHaveTextContent('11.3 cars per charger a day');
-    expect(screen.getByTestId('value-card-chargers')).toHaveTextContent('10.2 at a plain depot');
+    expect(screen.getByTestId('value-card-chargers')).toHaveTextContent('10.2 at a baseline depot');
     expect(screen.getByTestId('value-card-revenue')).toHaveTextContent('+0.7 h per car a day');
     expect(screen.getByTestId('value-card-revenue')).toHaveTextContent('+$14 per car a day ($11–$17)');
     expect(screen.getByTestId('value-card-power')).not.toHaveTextContent('27.8%');
@@ -171,7 +171,7 @@ describe('not measured yet', () => {
   /** The calm panel is up, and nothing that looks like a measured result is on the page (the guarantee aside). */
   async function expectCalmPanel(container: HTMLElement) {
     expect(await screen.findByTestId('value-not-measured')).toHaveTextContent(
-      'Night 2 measures this: 24 test days on the calibrated twin, each OTTO-Q against a plain depot.',
+      'Night 2 measures this: 24 test days on the calibrated twin, each OTTO-Q against a baseline depot.',
     );
     const promise = screen.queryByTestId('value-guarantee')?.textContent ?? '';
     expect((container.textContent ?? '').replace(promise, '')).not.toMatch(/\$|%|kW|¢/);

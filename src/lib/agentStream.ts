@@ -135,11 +135,11 @@ export function agentPass(r: ActivityFeedRow, orders: OrderIndex = NO_ORDERS): A
     } else if (order.status === "refused") {
       // 0618: the kernel projected the line both ways and its own order came out better; 0620: rolled it forward
       const why = verdictText(order);
-      outcome.push(`It ordered the charge line (${plural(accepted, "car")}). The kernel checked it and kept its own order${why ? `: ${why}` : ""}.`);
+      outcome.push(`It ordered the charge line (${plural(accepted, "car")}). The decide path checked it and kept its own order${why ? `: ${why}` : ""}.`);
     } else {
       outcome.push(`It ordered the charge line: ${plural(accepted, "car")}${accepted < offered ? ` (${offered - accepted} not waiting, left out)` : ""}.`);
       const took = verdictText(order);
-      if (took) outcome.push(`The kernel checked it and took it: ${took}.`);
+      if (took) outcome.push(`The decide path checked it and took it: ${took}.`);
       outcome.push(byRank > 0
         ? `The decide path seated ${plural(byRank, "car")} in its order${ahead ? `, ${ahead} of them ahead of where its own order had them` : ""}.`
         : "No car has been seated by its order.");
@@ -160,7 +160,7 @@ export function agentPass(r: ActivityFeedRow, orders: OrderIndex = NO_ORDERS): A
   const headline = modelError
     ? "The agent gave no answer, so the decide path kept the goal"
     : order?.status === "refused"
-      ? "The kernel checked the agent's charge order and kept its own"
+      ? "The decide path checked the agent's charge order and kept its own"
     : seated
       ? `The agent ordered the charge line and the decide path seated ${plural(order!.seats_by_rank ?? 0, "car")} by it`
       : order && !kept

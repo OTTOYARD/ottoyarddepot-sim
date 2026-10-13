@@ -32,11 +32,11 @@ export interface LayerDef {
 }
 
 export const LAYERS: readonly LayerDef[] = [
-  { id: "arriving", label: "Arriving", kind: "place", does: "Cars on their way back and cars at the gate." },
-  { id: "needs", label: "Needs", kind: "place", does: "Cars in the depot that wait for OTTO-Q to plan what they need." },
-  { id: "proposers", label: "Proposers", kind: "think", does: "The agent sets the objective. The planners optimize it and offer stalls. They propose and never decide." },
-  { id: "decide", label: "Decide", kind: "think", does: "The decide path chooses for each car. It takes an offer or not, or holds the car when nothing fits." },
-  { id: "shield", label: "Safety check", kind: "think", does: "The rules check each choice when it is carried out. If a choice fails an enforced rule, the shield changes it." },
+  { id: "arriving", label: "Arriving", kind: "place", does: "Cars returning to the depot and cars queued at the gate." },
+  { id: "needs", label: "Needs", kind: "place", does: "Cars on site whose open needs (charge, cleaning, inspection, service) wait for a plan." },
+  { id: "proposers", label: "Proposers", kind: "think", does: "The agent sets the objective and orders the charge line. The planners solve the schedule and offer stalls. Both propose and never decide." },
+  { id: "decide", label: "Decide", kind: "think", does: "The decide path commits one decision per car: it adopts an offer, computes its own choice, or holds the car with a reason." },
+  { id: "shield", label: "Safety check", kind: "think", does: "Versioned rules check each choice at its decision point. A choice that fails an enforced rule is replaced with a safe default." },
   { id: "booked", label: "Booked", kind: "place", does: "Cars that hold their stall or bay and have not started yet." },
   { id: "service", label: "Service", kind: "place", does: "Chargers, wash, detail and service bays, and cars between steps." },
   { id: "ready", label: "Ready", kind: "place", does: "Cars ready to leave. No car leaves below its charge target or with a service still needed." },

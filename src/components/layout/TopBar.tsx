@@ -164,7 +164,7 @@ export const TopBar = () => {
               if (!sim.isPanelOpen) sim.togglePanel();
               sim.setActiveTab('background');
             }}
-            title="What am I looking at? The Background tab explains the twin, OTTO-Q and their data."
+            title="Background: what OTTOYARD, OTTO-TWIN and OTTO-Q are, how OTTO-Q decides, and the data behind the twin."
             className="inline-flex items-center gap-1 rounded border border-white/[0.06] px-2 py-1 text-[11px] text-ink-dim transition-colors hover:border-brand-hot/50 hover:text-ink"
           >
             <BookOpen size={12} aria-hidden />

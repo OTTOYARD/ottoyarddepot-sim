@@ -296,8 +296,8 @@ function ReadsCard({ status, frame, loading, onRead }: { status: string | null; 
         <div className="min-w-0">
           <div className="font-display text-[11px] uppercase tracking-[0.08em] text-ink">What the agent reads</div>
           <p className="mt-0.5 text-[10px] leading-4 text-ink-faint">
-            The board the agent reads before it chooses: every car's battery, faults, deadlines and blocks, straight from
-            the engine. Read on demand, because it looks at every car.
+            The board the agent reads before each pass: every car's battery, faults, deadlines and blocks, read directly
+            from the engine. It loads on request, because it covers every car.
           </p>
         </div>
         {live && (
@@ -419,13 +419,15 @@ export function TwinAgentTab() {
           {Toggle}
           {view === "learning" ? learning : (
             <div className="text-[12px] leading-5 text-ink-dim">
-              <p>No run is active. During a run, this panel shows each agent pass:</p>
+              <p>
+                No run is active. During a run, this panel records each agent pass on an NVIDIA open model, in order:
+              </p>
               <ul className="mt-1 list-disc space-y-0.5 pl-4">
-                <li>what the agent read</li>
-                <li>what it chose</li>
-                <li>what the solver and the decide path did</li>
+                <li>the depot state the agent read</li>
+                <li>the objective and charge-line order it proposed</li>
+                <li>what the planners offered and what the decide path committed</li>
               </ul>
-              <p className="mt-1">Learning shows what OTTO-Q learns.</p>
+              <p className="mt-1">Learning shows what OTTO-Q measured and graded on this run.</p>
             </div>
           )}
         </div>
@@ -446,7 +448,7 @@ export function TwinAgentTab() {
                   ? "The agent has not run a pass in this run."
                   : `${fmt(chains)} ${chains === 1 ? "pass" : "passes"} this run${fell ? `, ${fmt(fell)} fell back to the decide path` : ""}${late != null ? `. Advice arrives a mean of ${late} ticks after the tick it read. The tick never waits for it.` : "."}`}
             </p>}
-            {view === "live" && <p className="mt-0.5 text-[10px] leading-4 text-ink-faint">One line for each OTTO-Q decision, when it occurs.</p>}
+            {view === "live" && <p className="mt-0.5 text-[10px] leading-4 text-ink-faint">One line for each OTTO-Q decision, in the order the engine writes it.</p>}
           </div>
           {stack?.run?.status && !isLiveStatus(stack.run.status) ? <EndedState /> : <StreamState frozen={frozen} />}
         </div>
