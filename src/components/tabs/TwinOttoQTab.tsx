@@ -267,7 +267,7 @@ function PlateDetail({ plate, rows, dispositions, names, recentFor, cars, overvi
             A violet scan rises when the agent reads the depot. Each answer sets the planners' objective and orders the
             charge line: which waiting cars take the next free chargers, and which charger type. The decide path
             simulates the line under that order and under its own. It adopts the agent's order only when the order wins
-            the expected future and most sampled futures. Green: the decide path seated cars in the agent's order. Red:
+            the expected future and most sampled ones. Green: the decide path seated cars in the agent's order. Red:
             it kept its own. Amber: no answer in time, so the objective stayed as it was. The agent proposes and never
             decides.
           </p>

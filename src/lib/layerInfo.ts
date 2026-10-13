@@ -53,7 +53,7 @@ export const LAYER_INFO: Record<PlateId, LayerInfo> = {
     points: [
       "Objective: readiness first, throughput first or energy balanced.",
       "Charge order: which waiting cars take the next free chargers, and which charger type.",
-      "The decide path simulates both orders and adopts the agent's only if it wins the expected and most sampled futures.",
+      "The decide path simulates both orders. The agent's must win the expected future and most sampled ones.",
       "Calls run asynchronously, so a tick never waits. Each call is logged to an append-only ledger.",
     ],
     next: "It only proposes. The decide path seats every car.",

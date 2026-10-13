@@ -228,7 +228,7 @@ export function TwinBackgroundTab() {
             testing. <B>OTTO-Q</B> is the live orchestration software. It autonomously optimizes and orchestrates the
             depot for vehicle uptime by combining agents, determinism and safety rules.
           </p>
-          <ul aria-label="How OTTO-Q decides" className="mt-2 grid gap-1.5 sm:grid-cols-3">
+          <ul aria-label="How OTTO-Q decides" className="mt-2 grid gap-1.5">
             {PILLARS.map((p) => (
               <li key={p.title} className="rounded border border-white/[0.08] bg-canvas-panel/60 p-2">
                 <div className="text-[10px] font-semibold uppercase tracking-[0.07em] text-ink">{p.title}</div>
