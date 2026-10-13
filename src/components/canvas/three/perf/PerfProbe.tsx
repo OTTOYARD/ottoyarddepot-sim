@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { Ring, summarizeFrames, type FrameSummary } from './perfStats';
-import { useQualityStore } from '../quality/qualityStore';
 
 /**
  * PERF PROBE — the measuring half of the phone lane. Mounted inside the
@@ -53,8 +52,6 @@ export interface PerfSummary extends FrameSummary {
   /** Main-thread ms of the whole R3F frame: every useFrame plus every render() call. */
   cpuFrameMs: number;
   memory: GpuMemory;
-  tier: string;
-  mode: string;
   dpr: number;
   canvas: [number, number];
 }
@@ -205,7 +202,6 @@ export function PerfProbe() {
     const api = {
       reset: () => { state.frameMs.clear(); state.cpuMs.clear(); state.jsMs.clear(); state.calls.clear(); state.tris.clear(); },
       summary: (): PerfSummary => {
-        const q = useQualityStore.getState();
         const size = gl.getDrawingBufferSize(new THREE.Vector2());
         const cpu = state.cpuMs.values().sort((a, b) => a - b);
         return {
@@ -216,8 +212,6 @@ export function PerfProbe() {
           cpuRenderP95Ms: Math.round((cpu[Math.max(0, Math.ceil(cpu.length * 0.95) - 1)] ?? 0) * 10) / 10,
           cpuFrameMs: Math.round(state.jsMs.mean() * 10) / 10,
           memory: estimateMemory(gl, scene),
-          tier: q.tier,
-          mode: q.mode,
           dpr: Math.round(gl.getPixelRatio() * 100) / 100,
           canvas: [size.x, size.y],
         };
@@ -253,11 +247,10 @@ export function PerfProbe() {
       document.body.appendChild(overlay);
       timer = window.setInterval(() => {
         const f = summarizeFrames(state.frameMs.values().slice(-120));
-        const q = useQualityStore.getState();
         overlay!.textContent =
           `${f.fps.toFixed(0)} fps  p95 ${f.p95Ms.toFixed(1)} ms\n` +
           `${Math.round(state.calls.mean())} calls  ${(state.tris.mean() / 1e6).toFixed(2)}M tris\n` +
-          `${q.tier.toUpperCase()} (${q.mode})  dpr ${gl.getPixelRatio().toFixed(2)}`;
+          `dpr ${gl.getPixelRatio().toFixed(2)}`;
       }, 500);
     }
 

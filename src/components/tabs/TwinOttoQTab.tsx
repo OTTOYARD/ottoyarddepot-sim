@@ -26,7 +26,6 @@ import { LearnedThisRun } from "@/components/tabs/ottoq/LearnedThisRun";
 import { SelfReview } from "@/components/tabs/ottoq/SelfReview";
 import { EndedState, StreamState } from "@/components/tabs/TwinDecisionLogTab";
 import { useSimulationStore } from "@/store/simulationStore";
-import { useQualityStore } from "@/components/canvas/three/quality/qualityStore";
 import { OttoQStack, type PickKind, type StackReplay } from "@/components/tabs/ottoq/stack/OttoQStack";
 import {
   PLATES, REPLAY_STEP_S, plateLabels, plateTags, recordKeys, replayEvents, stackModel, takeNewEvents,
@@ -545,7 +544,6 @@ export function TwinOttoQTab() {
     return !!r && r.sim_run_id === s.activeSimRunId && (r.status === "running" || r.status === "active");
   });
   const setActiveTab = useSimulationStore((s) => s.setActiveTab);
-  const tier = useQualityStore((s) => s.tier);
   useActivityFeed();
   const { rows, frozen } = useActivityFeedStore();
   const { stack } = useIntelligenceStack(!!simRunId);
@@ -729,7 +727,7 @@ export function TwinOttoQTab() {
           /* capped, so the labels keep near their plates when the panel is expanded to full width */
           <div className="mx-auto w-full max-w-[760px]">
           <OttoQStack model={model} events={events} focus={focus} onFocus={onFocusPlate} labels={labels} tags={tags}
-            height={560} tier={tier} reduced={reduced} describe={describe} onPick={onPick} picked={picked} replay={replay} live={running}
+            height={560} reduced={reduced} describe={describe} onPick={onPick} picked={picked} replay={replay} live={running}
             info={info} />
           </div>
         ) : (

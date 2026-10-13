@@ -270,11 +270,18 @@ interpolation.** Zero world logic client-side.
   live-view camera's way. Add a camera, and the test checks it. DepotGround draws only the depot's
   own block and its stretch of the road; the camera's far plane is `CITY_VIEW_FAR`, and the sky and
   haze now dim with the sun (`DayNightLighting`), so the city's lit windows read at night.
+- **One render quality: High, on every device (founder's call, 2026-10-12):** *"Remove all other
+  video quality options in the digital twin other than 'high'. I don't want auto, or low, or medium.
+  Always just 'high'."* The depot view draws MSAA, soft 2048² sun shadows, the whole post stack
+  (N8AO, bloom, vignette, SMAA), clear-coated paint and full weather at min(devicePixelRatio, 1.5);
+  the OTTO-Q stack draws MSAA and bloom at up to 1.75x. There is no quality picker (desktop or phone),
+  no Auto mode, no `?quality=` override, and a slow frame never lowers the picture. The Medium / Low
+  tiers, the frame-rate governor and the baked ground AO that stood in for N8AO below High are
+  deleted. Do not re-add tiers or a picker.
 - **3D perf and phone tooling:** `scripts/perfHarness.mjs` (draw calls, triangles, memory, frame times
-  per camera preset, profile and render tier; `?perf=1` shows the same probe on a real phone) and
+  per camera preset and profile; `?perf=1` shows the same probe on a real phone) and
   `scripts/phoneShots.mjs` (the phone cockpit in an emulated iPhone, both orientations). Both play a
-  recorded run read-only. The render tiers live in `src/components/canvas/three/quality/tiers.ts`;
-  High is the desktop look and is pinned by `tiers.test.ts`.
+  recorded run read-only and draw at High, like everything else.
 - **The RTX tab needs the AWS Isaac box running.** Blank is normal when it is stopped. IP override:
   `localStorage.setItem('ottoq_omniverse_ip','<ip>')`.
 

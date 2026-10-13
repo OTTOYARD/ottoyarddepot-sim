@@ -235,8 +235,8 @@ renders nothing while the page is hidden.
   collars were instanced). Every repeated object is one instanced mesh: spheres (≤ 40), bars (≤ 48), tiles (≤ 72), pucks (≤ 170),
   beads and flashes (one point cloud).
 - The frame is fitted to the stack every frame, so it fills the panel at 420, 360 and 320 px and in the phone sheet.
-- Device pixel ratio follows the app's render tier (`qualityStore`): up to 1.75 on High, 1.5 on Medium, 1 on Low; Low
-  also drops bloom and MSAA.
+- Device pixel ratio up to 1.75, with bloom and MSAA, on every device: the twin has one render quality, High (founder's
+  call, 2026-10-12).
 - The measurements above ran in a headless browser rendering WebGL in software (SwiftShader, about 6 frames a second).
   They count work, not smoothness; smoothness has to be seen on a real GPU and a real phone.
 

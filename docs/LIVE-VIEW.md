@@ -85,8 +85,8 @@ origin: `*.lovable.app`, `*.lovableproject.com`, `localhost` and `127.0.0.1`, pl
 The view reads only what it draws: the run list (follow mode, every 4 s), the run's context (once), and its snapshot
 every 1.5 s while live and visible. While hidden or ended it reads every 15 s. The cockpit's own feed also pulls four
 run-to-date aggregates and packs the OTTO-Q channel bundle each frame; the view does neither. Rendering is capped at a
-device pixel ratio of 1.5, uses the twin's quality governor, and stops entirely when the view is hidden: a hidden tab,
-or a frame that has scrolled out of view.
+device pixel ratio of 1.5, always draws at the twin's one render quality (High), and stops entirely when the view is
+hidden: a hidden tab, or a frame that has scrolled out of view.
 
 ## Read-only
 

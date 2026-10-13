@@ -226,9 +226,7 @@ for (const [name, w, h] of [["portrait", 393, 852], ["landscape", 852, 393]]) {
   const page = await ctx.newPage();
   const routes = await installFixtureRoutes(page, F, { relay: RELAY, mutateSnapshot: withFaults });
   const done = track(page, routes);
-  const u = new URL(URL_);
-  u.searchParams.set("quality", "low");
-  await page.goto(u.toString(), { waitUntil: "domcontentloaded" });
+  await page.goto(URL_, { waitUntil: "domcontentloaded" });
   await page.waitForSelector('[data-testid="chargers-down"]', { timeout: 90000 });
   while (routes.playbackSeconds() < 15) await page.waitForTimeout(500);
   await page.waitForTimeout(2500);
@@ -246,9 +244,7 @@ for (const [name, w, h] of [["portrait", 393, 852], ["landscape", 852, 393]]) {
   const page = await ctx.newPage();
   const routes = await installFixtureRoutes(page, F, { relay: RELAY, noRun: true });
   const done = track(page, routes);
-  const u = new URL(URL_);
-  u.searchParams.set("quality", "low");
-  await page.goto(u.toString(), { waitUntil: "domcontentloaded" });
+  await page.goto(URL_, { waitUntil: "domcontentloaded" });
   await page.waitForSelector('[data-testid="run-transport"]', { timeout: 90000 });
   await page.waitForTimeout(6000);
   await shoot(page, "11-phone-portrait-no-run-start");
