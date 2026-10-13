@@ -302,17 +302,17 @@ const KIND_WORD: Record<string, string> = { dcfc: "fast charger", l2: "L2", eith
  * rest (the 0620 keys). The 0618 keys are kept for orders checked before it: one projection of the line waiting then.
  */
 const VERDICT_WORD: Record<string, string> = {
-  same_as_kernel: "it would have seated the same cars on the same chargers as the kernel's own order, so there was nothing to decide",
-  wins_most_futures: "it beat the kernel's own order in the expected future and in most sampled ones",
-  worse_in_expected_future: "it lost to the kernel's own order in the expected future",
-  no_better_in_expected_future: "it was no better than the kernel's own order in the expected future",
-  not_enough_futures_won: "it did not beat the kernel's own order in enough of the sampled futures",
+  same_as_kernel: "it would have seated the same cars on the same chargers as the decide path's own order, so there was nothing to decide",
+  wins_most_futures: "it beat the decide path's own order in the expected future and in most sampled ones",
+  worse_in_expected_future: "it lost to the decide path's own order in the expected future",
+  no_better_in_expected_future: "it was no better than the decide path's own order in the expected future",
+  not_enough_futures_won: "it did not beat the decide path's own order in enough of the sampled futures",
   rollout_failed: "it could not be checked",
   no_rollout: "it could not be checked",
-  line_ready_sooner: "it had the line ready sooner than the kernel's own order",
-  no_worse: "it was no worse than the kernel's own order",
+  line_ready_sooner: "it had the line ready sooner than the decide path's own order",
+  no_worse: "it was no worse than the decide path's own order",
   more_cars_ready_by_due: "it got more cars ready by their due time",
-  line_ready_later: "it would have had the line ready later than the kernel's own order",
+  line_ready_later: "it would have had the line ready later than the decide path's own order",
   fewer_cars_ready_by_due: "it would have got fewer cars ready by their due time",
   more_cars_ready_by_due_but_line_much_later: "it got more cars ready by their due time, but the whole line more than 10% later",
   projection_failed: "it could not be checked",
@@ -329,18 +329,18 @@ export function verdictText(o: Pick<AgentOrderEntry, "verdict" | "futures_won" |
   if (!words || !o) return words;
   const won = o.futures_won, of = o.futures, need = o.need;
   if (won == null || of == null || of <= 1) return words;
-  if (o.verdict === "not_enough_futures_won") return `it beat the kernel's own order in ${won} of ${of} futures, short of the ${need ?? "?"} the check asks`;
-  if (o.verdict === "wins_most_futures") return `it beat the kernel's own order in the expected future and in ${won} of ${of} futures`;
+  if (o.verdict === "not_enough_futures_won") return `it beat the decide path's own order in ${won} of ${of} futures, short of the ${need ?? "?"} the check asks`;
+  if (o.verdict === "wins_most_futures") return `it beat the decide path's own order in the expected future and in ${won} of ${of} futures`;
   return `${words} (${won} of ${of} futures won)`;
 }
 
 /** 0621: an order replayed 90 sim-minutes later with what actually happened, in words. */
 const HINDSIGHT_WORD: Record<string, string> = {
-  right_take: "In what actually happened it beat the kernel's own order: the check was right to take it.",
-  neutral_take: "In what actually happened it tied the kernel's own order.",
-  wrong_take: "In what actually happened it lost to the kernel's own order: the check should not have taken it.",
-  missed_win: "In what actually happened it would have beaten the kernel's own order: the check refused a winner.",
-  right_refusal: "In what actually happened the kernel's own order was at least as good: the check was right to refuse it.",
+  right_take: "In what actually happened it beat the decide path's own order: the check was right to take it.",
+  neutral_take: "In what actually happened it tied the decide path's own order.",
+  wrong_take: "In what actually happened it lost to the decide path's own order: the check should not have taken it.",
+  missed_win: "In what actually happened it would have beaten the decide path's own order: the check refused a winner.",
+  right_refusal: "In what actually happened the decide path's own order was at least as good: the check was right to refuse it.",
   no_decision_mattered: "It changed nothing in the expected future, but in what actually happened it would have.",
 };
 
@@ -368,7 +368,7 @@ export function agentOrderView(l: RunLearning | null | undefined): AgentOrderVie
   if (!o) headline = "The agent has not ordered the charge line yet. The decide path seats cars in its own order.";
   else if (refusedLast) {
     const why = verdictText(lastEntry);
-    headline = `The kernel checked the agent's last order and kept its own${why ? `: ${why}` : ""}. `
+    headline = `The decide path checked the agent's last order and kept its own${why ? `: ${why}` : ""}. `
       + (a.live ? "An earlier order of the agent's still stands." : "The decide path seats cars in its own order.");
   } else {
     const named = `${count(o.accepted, "car")}${fast ? `, ${n(fast)} of the first ${n(Math.min(8, o.head?.length ?? 0))} for a fast charger` : ""}`;
@@ -379,7 +379,7 @@ export function agentOrderView(l: RunLearning | null | undefined): AgentOrderVie
   }
   const facts: string[] = [];
   facts.push(`Orders: ${n(u.orders)}, ${n(u.orders_seating)} of them seated cars`
-    + (u.orders_refused != null ? ` · ${n(u.orders_refused)} refused by the kernel's check` : "")
+    + (u.orders_refused != null ? ` · ${n(u.orders_refused)} refused by the decide path's check` : "")
     + ` · ${count(u.seats_by_rank, "car")} seated in the agent's order`);
   if ((u.seats_by_rank ?? 0) > 0) facts.push(`Moved ahead of the decide path's own order: ${n(u.moved_ahead)} · kind taken as named: ${n(u.kind_followed)} of ${n(u.kind_named)}`);
   facts.push(`Waited ${n(a.pin_wait_min)} sim-min or longer and went first anyway: ${count(u.seats_pinned, "car")}`);

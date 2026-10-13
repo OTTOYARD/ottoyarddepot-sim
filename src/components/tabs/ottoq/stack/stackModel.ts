@@ -35,7 +35,10 @@ export type PlateId = "agent" | "planners" | "decide" | "safety" | "depot";
 export interface PlateDef {
   id: PlateId;
   label: string;
-  /** Two or three words, in the references' manner ("Predict & propose"), and true to the engine. */
+  /**
+   * Two or three words naming what the layer is technically, datasheet-style, true to the engine (Chase, 2026-10-12:
+   * the old verb pairs, "Read & propose", were "too vague and not technical enough"). One line beside the plate.
+   */
   tagline: string;
   /** World height of the plate's top surface. */
   y: number;
@@ -43,11 +46,11 @@ export interface PlateDef {
 
 /** Top to bottom: the order a decision falls through the engine. */
 export const PLATES: readonly PlateDef[] = [
-  { id: "agent", label: "Agent", tagline: "Read & propose", y: 20.8 },
-  { id: "planners", label: "Planners", tagline: "Optimize & offer", y: 15.6 },
-  { id: "decide", label: "Decide", tagline: "Choose one plan", y: 10.4 },
-  { id: "safety", label: "Safety", tagline: "Check & enforce", y: 5.2 },
-  { id: "depot", label: "Depot", tagline: "Dispatch & serve", y: 0 },
+  { id: "agent", label: "Agent", tagline: "Objective · charge order", y: 20.8 },
+  { id: "planners", label: "Planners", tagline: "Constrained optimization", y: 15.6 },
+  { id: "decide", label: "Decide", tagline: "Deterministic commit", y: 10.4 },
+  { id: "safety", label: "Safety", tagline: "Rule enforcement", y: 5.2 },
+  { id: "depot", label: "Depot", tagline: "Execution · telemetry", y: 0 },
 ] as const;
 export const PLATE_Y: Record<PlateId, number> = Object.fromEntries(PLATES.map((p) => [p.id, p.y])) as Record<PlateId, number>;
 

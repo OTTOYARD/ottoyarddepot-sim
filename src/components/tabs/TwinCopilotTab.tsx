@@ -60,7 +60,7 @@ export const TwinCopilotTab = () => {
   };
 
   if (!activeSimRunId) {
-    return <div className="flex-1 flex items-center justify-center p-6 text-center text-ink-faint text-xs">Start a run in Run Control. Then audit the OTTO-Q decisions here.</div>;
+    return <div className="flex-1 flex items-center justify-center p-6 text-center text-ink-faint text-xs">No run is active. Press Start in the top bar, then audit OTTO-Q's decisions here.</div>;
   }
 
   const s = result?.summary;

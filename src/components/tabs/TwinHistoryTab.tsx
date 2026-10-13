@@ -261,7 +261,7 @@ export const TwinHistoryTab = () => {
           <Button size="sm" variant="ghost" className="mt-1 text-[10px] text-ink-dim" onClick={load}>Retry</Button>
         </div>
       ) : runs.length === 0 ? (
-        <div className="flex-1 flex items-center justify-center p-4 text-center"><p className="text-xs text-ink-faint">No runs yet. Start a scenario in Run Control.</p></div>
+        <div className="flex-1 flex items-center justify-center p-4 text-center"><p className="text-xs text-ink-faint">No runs yet. Press Start in the top bar to start one.</p></div>
       ) : (
         <ScrollArea className="flex-1">
           <div className="p-2 space-y-2">

@@ -264,11 +264,12 @@ function PlateDetail({ plate, rows, dispositions, names, recentFor, cars, overvi
         <>
           <PlateIntro plate="agent" />
           <p className="mt-1.5 text-[10.5px] leading-4 text-ink-dim">
-            A violet scan rises when the agent reads the depot. Each answer also orders the charge line: which waiting
-            cars take the next free chargers, and which kind. The kernel projects the line under that order and under its
-            own, and takes the agent's only when it is no worse. Green means the decide path seated cars in that order;
-            red, the kernel kept its own. Amber means the agent gave no answer in time, so the default goal stayed. The
-            agent proposes and never decides.
+            A violet scan rises when the agent reads the depot. Each answer sets the planners' objective and orders the
+            charge line: which waiting cars take the next free chargers, and which charger type. The decide path
+            simulates the line under that order and under its own. It adopts the agent's order only when the order wins
+            the expected future and most sampled ones. Green: the decide path seated cars in the agent's order. Red:
+            it kept its own. Amber: no answer in time, so the objective stayed as it was. The agent proposes and never
+            decides.
           </p>
           <p className="mt-1 font-mono text-[10px] text-ink">{overviews.proposers.split(" · offers")[0]}</p>
           {passes.length === 0 ? <p className="mt-1 text-[10px] text-ink-faint">No agent pass in the last two sim-hours.</p> : (
@@ -295,8 +296,10 @@ function PlateDetail({ plate, rows, dispositions, names, recentFor, cars, overvi
         <>
           <PlateIntro plate="planners" />
           <p className="mt-1.5 text-[10.5px] leading-4 text-ink-dim">
-            A low dark pill means the planner looked at that car and made no offer. Planners propose. The decide path
-            places every car.
+            The lexicographic planner solves lateness against each car's ready time first, then peak site power, under
+            hard constraints: one car per stall, the site power cap, charge curves and fast-charger cooldown. A low dark
+            pill means a planner evaluated that car and made no offer. Planners propose. The decide path places every
+            car.
           </p>
           <p className="mt-1 font-mono text-[10px] text-ink">{overviews.proposers.split(" · ").slice(-1)[0]}</p>
           {loud.length === 0 ? <p className="mt-1 text-[10px] text-ink-faint">No offer was chosen or refused in the records read so far.</p> : (
@@ -317,8 +320,9 @@ function PlateDetail({ plate, rows, dispositions, names, recentFor, cars, overvi
         <>
           <PlateIntro plate="decide" />
           <p className="mt-1.5 text-[10.5px] leading-4 text-ink-dim">
-            For each car, the decide path takes an offer, makes its own choice, or holds the car when nothing fits. Each
-            choice then falls through the safety plate before the depot acts on it.
+            Each tick, for each car, the decide path adopts an offer, computes its own choice, or holds the car with a
+            recorded reason. It writes the stall booking and the vehicle command in one transaction. The safety shield
+            checks each choice before the depot acts on it.
           </p>
           <div className="mt-2 text-[10px] text-ink-faint">Newest decisions</div>
           <RecentList
@@ -331,12 +335,13 @@ function PlateDetail({ plate, rows, dispositions, names, recentFor, cars, overvi
         <>
           <PlateIntro plate="safety" />
           <p className="mt-1.5 text-[10.5px] leading-4 text-ink-dim">
-            This is the last check before the depot acts. If a decision breaks an enforced rule, the shield changes it to a
-            safe default, and the rim flares red.
+            The last check before the depot acts. At a decision point that enforces, a decision that breaks a rule is
+            replaced with a safe default, and the plate's rim turns red. At a point that only records, the result is
+            logged and the decision stands.
           </p>
           <p className="mt-1 text-[11px] leading-4 text-ink">
             {shield && shield.evaluations != null
-              ? `The shield ran ${n(shield.evaluations)} checks this run and blocked ${n(shield.refused)} choices.${shield.recordedOnly ? ` It also recorded ${n(shield.recordedOnly)} advisory notes. A note does not block.` : ""}`
+              ? `The shield ran ${n(shield.evaluations)} checks this run and blocked ${n(shield.refused)} decisions.${shield.recordedOnly ? ` It also logged ${n(shield.recordedOnly)} advisory results, which do not block.` : ""}`
               : "Safety check counts: —"}
           </p>
           <div className="mt-2 text-[10px] text-ink-faint">Newest blocks</div>
@@ -348,9 +353,9 @@ function PlateDetail({ plate, rows, dispositions, names, recentFor, cars, overvi
         <>
           <PlateIntro plate="depot" />
           <p className="mt-1.5 text-[10.5px] leading-4 text-ink-dim">
-            Cars enter by the east gate and leave ready by the west gate. The DCFC, L2, wash and service sockets are the
-            real stalls of the site. A car in Ready is green only when its battery is at its target and nothing it needs
-            is open.
+            Cars enter by the east gate and leave by the west gate. The DCFC, L2, wash and service sockets map one to
+            one to the site's stalls and bays. A car in Ready is green only when its battery is at its target and it has
+            no open service.
           </p>
           <div role="tablist" className="mt-2 flex flex-wrap gap-1">
             {DEPOT_ZONES.map((z) => {
@@ -682,8 +687,9 @@ export function TwinOttoQTab() {
     return (
       <div className="flex-1 space-y-3 p-4">
         <p className="text-[12px] leading-5 text-ink-dim">
-          No run is active. During a run, this tab shows OTTO-Q as a stack of layers. Each car, decision and offer is an
-          object on the stack. Each new record falls through the stack when it occurs.
+          No run is active. During a run, this tab draws OTTO-Q as five layers: the agent, the planners, the decide
+          path, the safety shield and the depot. Each car, offer and decision is an object on its layer, read from the
+          engine as it is written.
         </p>
         <SelfReview review={review.review} clock={review.clock} error={review.error} loaded={review.loaded} />
       </div>
@@ -702,8 +708,8 @@ export function TwinOttoQTab() {
             </div>
             <p className="mt-1 text-[10px] leading-4 text-ink-faint">
               {threeD
-                ? "Each object is a real record from this run. Drag sideways to turn the stack. Tap a plate to open it."
-                : "Each dot is a car. Each flash is a decision the engine just recorded. Tap a layer to look inside."}
+                ? "The agent and the planners propose. The decide path commits. The safety shield checks decisions against the rules. The depot executes. Each object is a record from this run. Drag sideways to turn the stack. Tap a plate to open it."
+                : "The agent and the planners propose. The decide path commits. The safety shield checks decisions against the rules. The depot executes. Each dot is a car. Each flash is a decision the engine recorded. Tap a layer to open it."}
             </p>
           </div>
           <div className="flex shrink-0 flex-col items-end gap-1">

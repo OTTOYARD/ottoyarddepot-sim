@@ -101,6 +101,24 @@ describe("Background tab", () => {
     expect(screen.getByText("The intelligence ledger did not answer. —")).toBeTruthy();
   });
 
+  // Chase, 2026-10-12: the empty-depot line was "such a non descriptive statement ... Explain OTTOYARD and the Digital
+  // twin. Designed for brand/OEM agnostic AV depot orchestration and testing. Live OTTO-Q software autonomously optimizes
+  // and orchestrates for vehicle uptime by combining Agents, Determinism, and Safety rules."
+  it("opens by saying what OTTOYARD, OTTO-TWIN and OTTO-Q are, and the three parts OTTO-Q combines", () => {
+    useTwinStore.setState({ activeSimRunId: null, snapshot: null });
+    render(<TwinBackgroundTab />);
+    const header = screen.getByRole("heading", { level: 1, name: "Background" }).closest("header")!;
+    const text = (header.textContent ?? "").replace(/\s+/g, " ");
+    expect(text).toMatch(/OTTOYARD builds depots and orchestration software for autonomous vehicle \(AV\) fleets\./);
+    expect(text).toMatch(/OTTO-TWIN is its depot digital twin, designed for brand- and OEM-agnostic AV depot orchestration and testing\./);
+    expect(text).toMatch(/It autonomously optimizes and orchestrates the depot for vehicle uptime by combining agents, determinism and safety rules\./);
+    const parts = within(header).getByRole("list", { name: "How OTTO-Q decides" });
+    expect(within(parts).getAllByRole("listitem").map((li) => li.firstElementChild?.textContent)).toEqual(["Agents", "Determinism", "Safety rules"]);
+    // the run line states the system's state and what Start does, not "the depot is empty ... Then the cars arrive"
+    expect(text).toMatch(/No simulation run is active\. Press Start in the top bar to load a seeded fleet day/);
+    expect(text).not.toMatch(/Then the cars arrive|so the depot is empty/);
+  });
+
   // Chase, 2026-10-02: "I don't want you to directly reference each of those perspective viewers." The page explains
   // itself to whoever reads it.
   it("addresses no reader by type", () => {

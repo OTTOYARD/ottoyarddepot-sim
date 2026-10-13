@@ -330,7 +330,7 @@ export function chargersHeadline(view: ChargerView, n: number | null): Headline 
     words: 'cars per charger a day',
     verdict: verdictOf(change, 'up'),
     lines: [
-      `${fmtNumber(p, 1)} at a plain depot`,
+      `${fmtNumber(p, 1)} at a baseline depot`,
       `${fmtNumber(view.otto_q?.cars_served_day)} cars fully serviced a day`,
     ],
     detail: null,
@@ -367,7 +367,7 @@ export function revenueHeadline(view: ChargerView, n: number | null): Headline {
     verdict: verdictOf(mid, 'up'),
     lines: [
       ...(usd ? [usd] : []),
-      `${fmtPct(q?.demand_met_pct)} of ride demand met (${fmtPct(p?.demand_met_pct)} at a plain depot)`,
+      `${fmtPct(q?.demand_met_pct)} of ride demand met (${fmtPct(p?.demand_met_pct)} at a baseline depot)`,
     ],
     detail: null,
     range: rangeText(n, hours, { digits: 1, unit: ' h', up: 'more', down: 'less' }),
@@ -531,7 +531,7 @@ export function notMeasuredText(sweep: ValueSummary['sweep'], now: number = Date
   const days = planned !== null && planned > 0 ? fmtNumber(planned) : '24';
   const when = now < FIRST_RESULTS_DUE_UTC ? 'First results Thursday morning.' : 'Results appear here as the test days finish.';
   return {
-    lead: `Night 2 measures this: ${days} test days on the calibrated twin, each OTTO-Q against a plain depot. ${when}`,
+    lead: `Night 2 measures this: ${days} test days on the calibrated twin, each OTTO-Q against a baseline depot. ${when}`,
     progress: sweep ? progressText(sweep) : null,
   };
 }
@@ -549,12 +549,12 @@ export function depotLine(d: ValueSummary['depot'] | null): string | null {
 
 const ROLE_LABEL: Record<'otto_q' | 'plain' | 'otto_q_planner_off' | 'fifo_planner_on', string> = {
   otto_q: 'OTTO-Q',
-  plain: 'Plain depot',
+  plain: 'Baseline depot',
   otto_q_planner_off: 'OTTO-Q without energy planning',
   fifo_planner_on: 'First come, first served with energy planning',
 };
 
-/** A test cell in words ("Plain depot · 10 chargers"); a cell no view names reads as its own code. */
+/** A test cell in words ("Baseline depot · 10 chargers"); a cell no view names reads as its own code. */
 export function cellLabel(cell: string, views: ChargerView[]): string {
   for (const v of views) {
     for (const role of Object.keys(ROLE_LABEL) as (keyof typeof ROLE_LABEL)[]) {

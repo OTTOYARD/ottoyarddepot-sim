@@ -54,7 +54,7 @@ export interface PlateKey {
 
 export const PLATE_KEY: Record<PlateId, PlateKey> = {
   agent: {
-    object: "Each orb is one agent pass. A line joins it to the goal it chose, the large pearl. Green: its order for the charge line seated cars. Red: the kernel checked the order and kept its own.",
+    object: "Each orb is one agent pass. A line joins it to the objective it chose, the large pearl. Green: the decide path seated cars in its charge order. Red: the decide path tested the order and kept its own.",
     items: [
       { hue: "agent", shape: "orb", word: "answered", always: true },
       { hue: "ok", shape: "orb", word: "seated cars" },
@@ -82,7 +82,7 @@ export const PLATE_KEY: Record<PlateId, PlateKey> = {
     ],
   },
   safety: {
-    object: "Every decision passes through this plate. A red block is a decision the shield stopped.",
+    object: "Decisions pass through this plate on their way to the depot. A red block is a decision the shield stopped.",
     items: [{ hue: "refused", shape: "block", word: "blocked", always: true }],
   },
   depot: {

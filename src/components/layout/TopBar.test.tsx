@@ -55,7 +55,7 @@ describe('TopBar: the run transport, beside the clock', () => {
     fireEvent.click(transport().getByRole('button', { name: /Start/ }));
     const dialog = await screen.findByRole('alertdialog');
     expect(within(dialog).getByText('Start a simulation run')).toBeTruthy();
-    expect(within(dialog).getByText('A new run stops and resets the current run.')).toBeTruthy();
+    expect(within(dialog).getByText(/A new run stops and resets the current run\./)).toBeTruthy();
     // Busy Day first, and chosen
     expect(within(dialog).getAllByRole('radio')[0].textContent).toBe('Busy Day');
     expect(within(dialog).getByRole('radio', { name: 'Busy Day' }).getAttribute('aria-checked')).toBe('true');
