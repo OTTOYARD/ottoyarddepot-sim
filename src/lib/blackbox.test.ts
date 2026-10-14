@@ -146,4 +146,31 @@ describe("downloadBlackbox", () => {
     fetchMock.mockReset().mockResolvedValueOnce(reply({ cursor: null, body: "not json" }));
     await expect(downloadBlackbox(RUN)).rejects.toThrow(/saved 1 file\(s\) but cannot tell whether more follow; the bundle may be INCOMPLETE/);
   });
+
+  it("says INCOMPLETE when the header is missing and the body carries no export_paging, rather than calling it whole", async () => {
+    localStorage.setItem("otto_blackbox_token", TOKEN);
+    const c1 = `v1.1.7.ottoq_decisions.${RUN}`;
+    const unknown: [string, string][] = [
+      ["no export_paging key (an unexpected shape, or the unpaged v7)", JSON.stringify({ sim_run_id: RUN, data: {} })],
+      ["export_paging without next_cursor", JSON.stringify({ export_paging: { page: 0 } })],
+      ["export_paging that is not an object", JSON.stringify({ export_paging: "done" })],
+      ["a next_cursor that is not a cursor", JSON.stringify({ export_paging: { next_cursor: 7 } })],
+      ["a JSON body that is not an object", "null"],
+    ];
+    for (const [what, body] of unknown) {
+      saved = [];
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(reply({ cursor: null, body })));
+      await expect(downloadBlackbox(RUN), what).rejects.toThrow(
+        /Black Box saved 1 file\(s\) but cannot tell whether more follow; the bundle may be INCOMPLETE/);
+      expect(saved, what).toHaveLength(1);                                 // the page it got is still saved
+    }
+    // the same on a later page: the count says how far it got
+    saved = [];
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(reply({ cursor: c1 }))
+      .mockResolvedValueOnce(reply({ cursor: "", body: JSON.stringify({ data: {} }) }));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(downloadBlackbox(RUN)).rejects.toThrow(/Black Box saved 2 file\(s\) but cannot tell whether more follow/);
+    expect(saved).toHaveLength(2);
+  });
 });

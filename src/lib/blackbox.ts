@@ -98,6 +98,19 @@ function filenameFromDisposition(header: string | null, simRunId: string, page =
   return plain?.[1]?.trim() || fallback;
 }
 
+// The cursor a page's body names, when the X-OTTOQ-Next-Cursor header is missing: a cursor string to follow, "none" when
+// export_paging says this is the last page (next_cursor null), or null when the body cannot say. A body with no
+// export_paging (an unexpected shape, or the unpaged v7 function) is unknown, never complete: treating it as the last
+// page would report a partial bundle as whole.
+function cursorFromBody(body: unknown): string | null {
+  if (typeof body !== "object" || body === null) return null;
+  const paging = (body as { export_paging?: unknown }).export_paging;
+  if (typeof paging !== "object" || paging === null || !("next_cursor" in paging)) return null;
+  const next = (paging as { next_cursor: unknown }).next_cursor;
+  if (next === null) return "none";
+  return typeof next === "string" && next !== "" ? next : null;
+}
+
 function saveBlob(blob: Blob, name: string): void {
   const objectUrl = URL.createObjectURL(blob);
   try {
@@ -143,14 +156,18 @@ export async function downloadBlackbox(
     const blob = await res.blob();
     saveBlob(blob, filenameFromDisposition(res.headers.get("content-disposition"), simRunId, n));
     onFile?.(n + 1);
-    // The header is exposed to the browser; if a proxy strips it, the body carries the same cursor.
+    // The header is exposed to the browser; if a proxy strips it, the body carries the same cursor. If neither says,
+    // the walk stops and says so rather than calling the bundle whole.
     let next = res.headers.get("x-ottoq-next-cursor");
-    if (next === null) {
-      try { next = JSON.parse(await blob.text())?.export_paging?.next_cursor ?? "none"; } catch {
+    if (next === null || next === "") {
+      let parsed: unknown = null;
+      try { parsed = JSON.parse(await blob.text()); } catch { /* unreadable: unknown, as below */ }
+      next = cursorFromBody(parsed);
+      if (next === null) {
         throw new Error(`Black Box saved ${n + 1} file(s) but cannot tell whether more follow; the bundle may be INCOMPLETE`);
       }
     }
-    if (!next || next === "none") return { files: n + 1 };
+    if (next === "none") return { files: n + 1 };
     cursor = next;
   }
   throw new Error(`Black Box stopped after ${MAX_FILES} files; the bundle is INCOMPLETE`);
