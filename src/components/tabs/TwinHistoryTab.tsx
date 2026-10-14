@@ -56,13 +56,16 @@ const Delta = ({ a, b, better }: { a: number; b: number; better: boolean | null 
   return good ? <ArrowUpRight size={12} className="text-state-go" /> : <ArrowDownRight size={12} className="text-brand-hot" />;
 };
 
-/** The forensic bundle for one run (ottoq-run-blackbox). ~20 MB and ~12 s, so it shows a spinner. */
+/** The forensic bundle for one run (ottoq-run-blackbox), one file per 20 MB page; a big run is dozens, so it counts them. */
 const BlackBoxButton = ({ simRunId }: { simRunId: string }) => {
   const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState(0);
   const run = useCallback(async () => {
     setBusy(true);
+    setSaved(0);
     try {
-      await downloadBlackbox(simRunId);
+      const { files } = await downloadBlackbox(simRunId, setSaved);
+      toast.success(`Saved ${files} Black Box file(s)`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Black Box download failed");
     } finally {
@@ -71,8 +74,9 @@ const BlackBoxButton = ({ simRunId }: { simRunId: string }) => {
   }, [simRunId]);
   return (
     <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-ink-dim hover:text-ink" onClick={run} disabled={busy}
-      title="Download this run's Black Box: every decision, event and ledger row, as one JSON file">
-      {busy ? <Loader2 size={10} className="mr-1 animate-spin" /> : <Download size={10} className="mr-1" />} Black Box
+      title="Download this run's Black Box: every decision, event and ledger row, as JSON files of up to 20 MB each (needs the export token)">
+      {busy ? <Loader2 size={10} className="mr-1 animate-spin" /> : <Download size={10} className="mr-1" />}
+      {busy ? `file ${saved + 1}` : "Black Box"}
     </Button>
   );
 };
