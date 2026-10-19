@@ -208,6 +208,192 @@ export const WHEEL_INSET_M = 0.13;
 export const ROOF_POD = { radius: 0.15, yMin: 1.44, yMax: 1.64 } as const;
 
 // ═══════════════════════════════════════════════════════════════════════════
+// THE DOORS AND THE CABIN (2026-10-19)
+//
+// Chase: "right now our vehicle doors don't even open to demonstrate a robotic
+// arm, reaching inside to clean." The OTTO-CLEAN ARM (src/lib/ottoCleanArm) reaches
+// into the cabin through the doors while the car charges, so the car now HAS a
+// cabin, an aperture on each flank and a door in it. docs/OTTO-CLEAN-ARM.md is the
+// design; these are its numbers, and the clearance tests read them from here.
+//
+// FRAME: the authored CAR frame, metres — x along the car (+ = nose), y up from
+// grade, z across it from the centreline. +z is the car's RIGHT flank: planUnits()
+// in vehicleBody.ts sends authored +z to local -X, which is the right (see
+// depotPlacement.portInVehicleFrame). `side` = +1 is the right flank, -1 the left.
+//
+// ONE DOOR A SIDE, HINGED AT ITS FRONT EDGE, swinging out. A sliding door cannot fit
+// this 4.69 m pod: a 1.1 m door slid forward stands above the sloping nose, and slid
+// back it covers the charge port. Front-hinged, it opens AWAY from the rear quarter
+// where every inlet now is (chargePort.ts), so on the port flank the door and the
+// OTTO-CHARGE ARM never share space (cleanArmClearance.test.ts measures it).
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** The door aperture on each flank, and the door that fills it, metres. */
+export const DOOR = {
+  /** Rear edge of the aperture, along the car from its centre. */
+  alongMin: -0.3,
+  /** Front edge of the aperture: the hinge line. */
+  alongMax: 0.85,
+  /** Aperture bottom above grade (the cladding stops under it). */
+  sill: 0.42,
+  /** Aperture top: the top of the glass band, so no sliver of glass is left over the door. */
+  top: 1.32,
+  /** Gap between the door and the aperture, all round. */
+  seam: 0.004,
+  /** The door panel, outer skin to inner trim. */
+  thickness: 0.045,
+  /** Hinge axis outboard of the flank, so the door's front edge swings clear of the body. */
+  hingeOut: 0.025,
+  /** How far it opens. 78 deg puts the open door nearly square to the flank, which is
+   *  what leaves the cleaning arm room to work behind it. */
+  openDeg: 78,
+  /** Rounding of the aperture's and the door's corners. */
+  cornerR: 0.05,
+} as const;
+
+/**
+ * The CABIN: the hole cut through the extruded body (vehicleBody.ts), at the flank.
+ * It is longer than the aperture: the panels between the aperture and the wheel
+ * arches cover the rest of it on each flank, and carry the side windows.
+ */
+export const CABIN = {
+  alongMin: -1.05, alongMax: 1.05, yMin: DOOR.sill, yMax: DOOR.top, cornerR: 0.08,
+} as const;
+
+/** The flank panels' thickness: the depth of the body side round the aperture. */
+export const SIDE_PANEL_M = BODY_BEVEL_M;
+
+/**
+ * The cabin's FREE volume, metres — what the cleaning wand may enter.
+ *
+ * The extrude bevel grows the material into every hole as it grows the outline
+ * outward, so the tunnel's walls stand BODY_BEVEL_M inside CABIN, and the flank
+ * panels and doors take SIDE_PANEL_M / DOOR.thickness off each side. The liner is
+ * drawn 1 cm inside these walls, so the void is that much smaller again.
+ */
+export const CABIN_VOID = {
+  alongMin: CABIN.alongMin + BODY_BEVEL_M + 0.01,
+  alongMax: CABIN.alongMax - BODY_BEVEL_M - 0.01,
+  floor: CABIN.yMin + BODY_BEVEL_M + 0.01,
+  ceiling: CABIN.yMax - BODY_BEVEL_M - 0.01,
+  /** Half-width at the floor; above the tumblehome line it narrows with the body. */
+  halfWidth: CAR_WIDTH_M / 2 - GLASS_PROUD_M - Math.max(SIDE_PANEL_M, DOOR.thickness) - 0.01,
+} as const;
+
+/**
+ * Two benches facing each other across the cabin (carriage seating: a purpose-built
+ * robotaxi has no driver to face forward for). Boxes in the car frame, metres.
+ */
+export const SEATS = {
+  halfWidth: 0.78,
+  cushion: { depth: 0.44, top: 0.70 },
+  back: { depth: 0.14, top: 1.15 },
+} as const;
+
+export interface CarBox { x0: number; x1: number; y0: number; y1: number; z0: number; z1: number }
+
+/** The seat parts as boxes, car frame, metres: cushions first, then backs. */
+export function seatBoxes(): CarBox[] {
+  const v = CABIN_VOID, w = SEATS.halfWidth;
+  const rearC: CarBox = { x0: v.alongMin, x1: v.alongMin + SEATS.cushion.depth, y0: v.floor, y1: SEATS.cushion.top, z0: -w, z1: w };
+  const rearB: CarBox = { x0: v.alongMin, x1: v.alongMin + SEATS.back.depth, y0: SEATS.cushion.top, y1: SEATS.back.top, z0: -w, z1: w };
+  const mirror = (b: CarBox): CarBox => ({ ...b, x0: -b.x1, x1: -b.x0 });
+  return [rearC, mirror(rearC), rearB, mirror(rearB)];
+}
+
+/** The hinge axis (vertical) of the door on `side`, car frame, metres. */
+export function doorHinge(side: 1 | -1): { x: number; z: number } {
+  return { x: DOOR.alongMax, z: side * (CAR_WIDTH_M / 2 + DOOR.hingeOut) };
+}
+
+/**
+ * The door's swing about its hinge, radians about +y, for an opening fraction
+ * 0 (shut) .. 1 (open). Signed so the door's rear edge always swings OUTWARD:
+ * Ry(phi) sends the door's rear-pointing arm (-L, 0) to (-L cos phi, L sin phi),
+ * so the right flank (+z) opens with +phi and the left with -phi.
+ */
+export function doorSwing(side: 1 | -1, open01: number): number {
+  const f = Math.max(0, Math.min(1, open01));
+  return side * f * (DOOR.openDeg * Math.PI) / 180;
+}
+
+/** A point of the shut door (car frame) moved to where it is with the door open `open01`. */
+export function doorPoint(side: 1 | -1, open01: number, p: { x: number; y: number; z: number }): { x: number; y: number; z: number } {
+  const h = doorHinge(side);
+  const phi = doorSwing(side, open01);
+  const c = Math.cos(phi), s = Math.sin(phi);
+  const dx = p.x - h.x, dz = p.z - h.z;
+  return { x: h.x + c * dx + s * dz, y: p.y, z: h.z - s * dx + c * dz };
+}
+
+/**
+ * The door as a solid: an oriented box in the car frame (the door's own frame is the
+ * shut door's, turned about the hinge). Conservative, a superset of what is drawn: the
+ * full aperture outline with no corner rounding, and deep enough to hold the window's
+ * TUMBLEHOME lean, which takes the top of the door up to 0.14 m in from its foot
+ * (vehicleBody.test.ts checks every drawn door vertex is inside, shut and open).
+ */
+export function doorSolid(side: 1 | -1, open01: number): {
+  hinge: { x: number; z: number }; phi: number;
+  /** In the door frame: x from the hinge (negative = toward the rear edge), z outward from the hinge line. */
+  x0: number; x1: number; y0: number; y1: number; z0: number; z1: number;
+} {
+  const h = doorHinge(side);
+  return {
+    hinge: h, phi: doorSwing(side, open01),
+    x0: DOOR.alongMin - DOOR.alongMax, x1: 0,
+    y0: DOOR.sill, y1: DOOR.top,
+    // outward from the hinge line: the door's glass face (the car's full width) stands
+    // DOOR.hingeOut inboard of it at its foot; its inner trim DOOR.thickness behind
+    // the paint, and the top of the door leans in further by the tumblehome
+    z0: -(DOOR.hingeOut + CAR_WIDTH_M / 2
+      - (CAR_WIDTH_M / 2 - GLASS_PROUD_M - DOOR.thickness) * tumblehomeScale(DOOR.top)),
+    z1: -DOOR.hingeOut,
+  };
+}
+
+/**
+ * The door's inner and outer faces at height `y`, as offsets OUTWARD from the hinge line
+ * (both negative: the door stands inboard of its hinge). The drawn door's shape, with the
+ * paint panel below the glass line and the window above it leaning in with the body.
+ * `GLASS_LINE` and `WINDOW_T` are vehicleBody's (the shoulder + 2 cm; the 3 cm glass).
+ */
+const GLASS_LINE = 0.88, WINDOW_T = 0.03;
+function doorFaces(y: number): { inner: number; outer: number } {
+  const hinge = CAR_WIDTH_M / 2 + DOOR.hingeOut;
+  const paint = CAR_WIDTH_M / 2 - GLASS_PROUD_M;
+  const panel = { inner: -(hinge - (paint - DOOR.thickness)), outer: -(hinge - paint) };
+  const s = tumblehomeScale(y);
+  const window = { inner: -(hinge - (CAR_WIDTH_M / 2 - WINDOW_T) * s), outer: -(hinge - (CAR_WIDTH_M / 2) * s) };
+  // on the glass line itself both parts meet: the door there is their union
+  if (Math.abs(y - GLASS_LINE) < 1e-6) {
+    return { inner: Math.min(panel.inner, window.inner), outer: Math.max(panel.outer, window.outer) };
+  }
+  return y < GLASS_LINE ? panel : window;
+}
+
+/**
+ * Signed distance from a point (car frame, metres) to the door, open `open01`. Negative
+ * inside. The lateral faces are taken at the point's own height (doorFaces), so the
+ * window's lean is followed rather than boxed; doorSolid's box is the superset, kept
+ * for anything that wants one shape.
+ */
+export function clearanceToDoor(p: { x: number; y: number; z: number }, side: 1 | -1, open01: number): number {
+  const d = doorSolid(side, open01);
+  // into the door frame: undo the swing about the hinge, then measure z outward
+  const c = Math.cos(-d.phi), s = Math.sin(-d.phi);
+  const dx = p.x - d.hinge.x, dz = p.z - d.hinge.z;
+  const lx = c * dx + s * dz;
+  const lzRaw = -s * dx + c * dz;
+  const lz = side * lzRaw; // outward-positive on either flank
+  const f = doorFaces(Math.max(d.y0, Math.min(d.y1, p.y)));
+  const ex = slabDistance(lx, d.x0, d.x1);
+  const ey = slabDistance(p.y, d.y0, d.y1);
+  const ez = slabDistance(lz, f.inner, f.outer);
+  return combine(combine(ex, ey), ez);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // THE SOLID, IN THE ARM'S BASE FRAME
 //
 // Arm base frame: origin on the J1 axis at MOUNT_HEIGHT_M above the deck,

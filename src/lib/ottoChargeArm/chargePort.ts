@@ -55,17 +55,28 @@ function hash(s: string): number {
  * Port geometry by OEM family. Heights are the realistic band for each body
  * style; `along` is the nominal position the vehicle presents after stopping.
  * These are TUNABLE ASSUMPTIONS calibrated to body style, not measured data.
+ *
+ * EVERY INLET IS ON THE REAR QUARTER, behind the door (2026-10-19). The car has a
+ * door on each flank now (vehicleEnvelope.DOOR, along -0.30..+0.85 m) so the
+ * OTTO-CLEAN ARM can reach into the cabin, and a real inlet sits on a fender, never
+ * on a door. So no band reaches past along -0.55: 0.25 m behind the aperture's rear
+ * edge, which leaves 0.148 m of panel between the lit ring's outer edge and the door's
+ * seam (vehicleBody.test.ts measures it). Zoox, Cruise, the van and the generic family
+ * moved from mid-flank or the front quarter; Tesla, Waymo and Ioniq were already
+ * there and only lost the part of their band that reached the door. The arm's
+ * service window (along +/-1.00 m) did not change and is measured whole, so every
+ * new band is inside the region armClearance.test.ts already proves safe.
  */
 const FAMILIES: { match: RegExp; family: string; along: [number, number]; height: [number, number] }[] = [
   { match: /tesla/i, family: 'Tesla (NACS, left rear)', along: [-0.95, -0.60], height: [0.68, 0.78] },
-  { match: /waymo|jaguar|zeekr/i, family: 'Waymo (CCS1, left rear)', along: [-0.90, -0.45], height: [0.62, 0.76] },
-  { match: /zoox/i, family: 'Zoox (purpose-built, mid)', along: [-0.25, 0.25], height: [0.55, 0.68] },
-  { match: /cruise|origin/i, family: 'Cruise Origin (mid flank)', along: [-0.30, 0.35], height: [0.60, 0.74] },
-  { match: /motional|ioniq|hyundai/i, family: 'Ioniq 5 (CCS1, right rear)', along: [-0.85, -0.50], height: [0.72, 0.84] },
-  { match: /van|transit|shuttle/i, family: 'Van / shuttle (high)', along: [0.20, 0.85], height: [0.88, 1.05] },
+  { match: /waymo|jaguar|zeekr/i, family: 'Waymo (CCS1, left rear)', along: [-0.90, -0.55], height: [0.62, 0.76] },
+  { match: /zoox/i, family: 'Zoox (purpose-built, rear quarter)', along: [-0.88, -0.58], height: [0.55, 0.68] },
+  { match: /cruise|origin/i, family: 'Cruise Origin (rear quarter)', along: [-0.85, -0.55], height: [0.60, 0.74] },
+  { match: /motional|ioniq|hyundai/i, family: 'Ioniq 5 (CCS1, right rear)', along: [-0.88, -0.55], height: [0.72, 0.84] },
+  { match: /van|transit|shuttle/i, family: 'Van / shuttle (high, rear quarter)', along: [-0.92, -0.58], height: [0.88, 1.05] },
 ];
 
-const DEFAULT = { family: 'Generic AV (CCS1)', along: [-0.70, 0.70] as [number, number], height: [0.60, 0.85] as [number, number] };
+const DEFAULT = { family: 'Generic AV (CCS1)', along: [-0.90, -0.55] as [number, number], height: [0.60, 0.85] as [number, number] };
 
 /**
  * Resolve a vehicle's charge port.
