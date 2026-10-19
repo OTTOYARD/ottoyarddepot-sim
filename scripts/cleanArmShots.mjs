@@ -26,6 +26,8 @@
 //                    (otto-q-core 0759): ten of canopy B's standard stalls become fast
 //                    chargers at canopy A's rows, keeping their twin ids so the recorded
 //                    cars on them charge fast; the cockpit switches build from the census.
+//   --card           when the framed arm starts cleaning, tap its car and shoot the car's Q card
+//                    (its "Interior clean" row) at each phase until the arm is home, then stop
 //   --stall RE       frame the first arm to leave home on a renderer stall matching RE
 //                    (e.g. "DCFC-1[1-9]|DCFC-20" for canopy B in the 20-post build)
 //
@@ -53,6 +55,7 @@ const SECS = Number(arg("secs", 900));
 const SPEED = Number(arg("speed", 0.25));
 const CYCLE_MIN = Number(arg("cycle", 2.5));
 const BUILD = String(arg("build", "as_built"));
+const CARD = arg("card", false) === true;
 const STALL = arg("stall", null) ? new RegExp(`^(${arg("stall", "")})$`) : null;
 const DSF = Number(arg("dsf", 1));
 const RELAY = arg("relay-curl", false) === true;
@@ -113,6 +116,9 @@ const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, d
 const page = await ctx.newPage();
 const errors = [];
 page.on("pageerror", (e) => errors.push(String(e).slice(0, 200)));
+// React reports an error a boundary caught (the 3D view's SceneErrorBoundary) to the console, not as a page error
+const consoleErrors = [];
+page.on("console", (m) => { if (m.type() === "error") consoleErrors.push(m.text().slice(0, 600)); });
 const routes = await installFixtureRoutes(page, F, { relay: RELAY, mutateSnapshot: withCabinCleans });
 
 // ── --build dcfc20: the layout with canopy B re-striped (registered after the fixture
@@ -184,6 +190,7 @@ const cams = await page.evaluate((rid) => {
     right: { p: at(5.0, 9.5, 4.8), t: at(0.0, 0.5, 2.0) },     // its right (port) flank from the front quarter, past the cabinet: both robots
     high: { p: at(8.5, -6.0, 9.6), t: at(0.0, 0.0, 2.6) },     // three-quarter from the nose, high under the canopy
     canopy: { p: at(-16, -16, 10.2), t: at(10, 4, 1.5) },      // the row of stalls
+    card: { p: at(19, -14.5, 8.6), t: at(0.5, 3.5, 0.8) },    // --card: under the roof, the car small enough for its card
   };
 }, target);
 
@@ -202,7 +209,95 @@ const sideACam = await page.evaluate((rid) => {
   return pos && pos.x < cx ? "left" : "right";
 }, target);
 
-const summary = { target, shots: [], phases: {}, checks: [], pageErrors: errors };
+const summary = { target, shots: [], phases: {}, checks: [], cards: [], pageErrors: errors, consoleErrors };
+
+// ── --card: tap the car being cleaned and shoot its Q card, phase by phase ──
+if (CARD) {
+  let tapped = false, last = null;
+  const t1 = Date.now();
+  while (Date.now() - t1 < SECS * 1000) {
+    const s = await state();
+    const me = s.arms.find((a) => a.stall === target);
+    if (me && !tapped && me.vehicleId) {
+      // frame the car from far enough out that the anchored card fits beside it
+      const c = cams.card;
+      await page.evaluate(([p, t]) => window.__depotCam?.(p, t), [c.p, c.t]);
+      await page.waitForTimeout(1500);
+      // the camera glides to the preset: prefer the car's point once it is on the canvas; after 5 s take the last one
+      // (the canvas tap below does not need it on screen to pick the car)
+      let hit = null;
+      for (let k = 0; k < 20; k++) {
+        hit = await page.evaluate((vid) => {
+          const p = window.__carScreenPoint?.(vid);
+          if (!p) return null;
+          const r = document.querySelector("canvas")?.getBoundingClientRect();
+          const on = !!r && p.x >= r.left && p.x <= r.right && p.y >= r.top && p.y <= r.bottom;
+          const el = on ? document.elementFromPoint(p.x, p.y) : null;
+          return { ...p, on, top: el?.tagName === "CANVAS" ? "canvas" : `${el?.tagName ?? "none"}.${String(el?.className ?? "").slice(0, 60)}` };
+        }, me.vehicleId);
+        if (hit?.on) break;
+        await page.waitForTimeout(250);
+      }
+      // a real click when the canvas is what a finger would land on; else the canvas tap the repo's qCardShots uses,
+      // and the summary names what covered the car
+      if (hit) {
+        summary.tap = hit;
+        if (hit.top === "canvas") await page.mouse.click(hit.x, hit.y);
+        else await page.evaluate(({ x, y }) => {
+          const el = document.querySelector("canvas");
+          const ev = (type) => el.dispatchEvent(new PointerEvent(type, { bubbles: true, clientX: x, clientY: y, pointerId: 1, pointerType: "mouse", isPrimary: true, button: 0 }));
+          ev("pointerdown"); ev("pointerup");
+        }, hit);
+        tapped = true;
+        // the tap also follows the car (the cockpit's own behaviour); stop following and frame it again, so the car,
+        // its arm and its card share the frame. Stopping the follow leaves the card open.
+        await page.waitForTimeout(800);
+        summary.followStopped = await page.evaluate(() => {
+          const b = document.querySelector('button[aria-label="Stop follow mode"]');
+          b?.click();
+          return !!b;
+        });
+        await page.evaluate(([p, t]) => window.__depotCam?.(p, t), [c.p, c.t]);
+        await page.waitForTimeout(800);
+      }
+    }
+    // the 3D view's own fallback, or the card's: told apart by their words
+    const failed = tapped && await page.evaluate(() => [...document.querySelectorAll('[role="alert"]')]
+      .map((e) => e.textContent ?? "").find((t) => /3D view is not available|card for this car is not available/.test(t)) ?? null);
+    if (failed) {
+      summary.sceneFailed = /3D view/.test(failed);
+      summary.cardFailed = /card for this car/.test(failed);
+      await page.screenshot({ path: join(OUT, "failed.jpg"), type: "jpeg", quality: 80 });
+      break;
+    }
+    if (me && tapped && me.phase !== last) {
+      await page.waitForTimeout(1200); // the card reads the arm twice a second
+      const card = await page.evaluate(() => {
+        const q = (sel) => document.querySelector(sel);
+        const r = q('[data-testid="qcard-cabin"]')?.closest(".z-40")?.getBoundingClientRect();
+        return {
+          state: q('[data-testid="qcard-cabin-state"]')?.textContent ?? null,
+          words: q('[data-testid="qcard-cabin-words"]')?.textContent ?? null,
+          row: q('[data-testid="qcard-cabin"]')?.getAttribute("data-state") ?? null,
+          card: r ? { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) } : null,
+        };
+      });
+      summary.cards.push({ phase: me.phase, ...card });
+      const name = `card-${String(summary.cards.length).padStart(2, "0")}-${me.phase}`;
+      await page.screenshot({ path: join(OUT, `${name}.jpg`), type: "jpeg", quality: 86 });
+      summary.shots.push(name);
+      last = me.phase;
+      if (me.phase === "home" && summary.cards.length > 2) break;
+    }
+    await page.waitForTimeout(300);
+  }
+  summary.refusedWrites = routes.refused;
+  await ctx.close();
+  await browser.close();
+  writeFileSync(join(OUT, "summary.json"), JSON.stringify(summary, null, 1));
+  console.log(JSON.stringify({ ...summary, shots: summary.shots.length }, null, 1));
+  process.exit(0);
+}
 let n = 0, lastPhase = null;
 const shoot = async (cam, label) => {
   const c = cams[cam];

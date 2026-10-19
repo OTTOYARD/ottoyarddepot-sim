@@ -114,7 +114,11 @@ Both read on 2026-10-19.
   casting, at ten arms or twenty (`cleanArmInstances.ts`).
 - **The Q card** shows an "Interior clean" row under "Now": Starting (an empty box), In progress (a dot, a meter to the
   twin's end time and what the arm does: "The doors open.", "The arm cleans the left side.", "The arm moves out of the
-  car."), Done (a tick and the time). The Services chip says "by the stall's cleaning arm".
+  car.", "The arm moves back to its start position."), Done (a tick and the time). The Services chip says "by the
+  stall's cleaning arm". Tapped in the cockpit through a whole cycle (`docs/pr-shots/clean-arm/09`-`11`,
+  `card-playback-summary.json`): Starting until the wand is in, In progress until the arm is home, then Done, with the
+  car still held for its charge. A card that fails to draw shows one line and Close in its place; it never takes the
+  depot view with it.
 
 ## Clearance, measured, not assumed
 
@@ -134,6 +138,7 @@ Both read on 2026-10-19.
 - `clean-check.html` (dev server): the arm alone over one car, every phase, any time (`?t=`, `?view=`, `?toward=`).
 - `node scripts/cleanArmShots.mjs --url <dev server>`: a recorded run in the real cockpit, read-only, with the twin's
   cabin-clean step added to every fast-charging car; one frame per phase from three cameras.
+- `... --card`: taps the first car an arm starts on, and shoots its Q card at each phase until the arm is home.
 
 ## Twenty posts
 
@@ -152,3 +157,5 @@ place of canopy B's fifteen L2 spaces, 20 DCFC and 15 L2 in all. At this arm des
   the first, touching no car and no structure. `chargerBuild.test.ts` holds the new layout to every rule the as-built
   one is held to.
 - `node scripts/cleanArmShots.mjs --build dcfc20` shows it in the cockpit before 0759 exists.
+- The OTTO-Q stack draws the same build: 20 fast-charger sockets in four columns of five, the L2 zone east of them
+  (`stackModel.syncStackSite`; `docs/pr-shots/clean-arm/12`-`13`). As built, its zones are exactly as before.
