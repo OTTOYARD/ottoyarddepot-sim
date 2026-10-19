@@ -141,4 +141,14 @@ The research wing recommended twenty robotic fast chargers in total (ten new), s
 point 2). A pedestal 5.9 plan units off its car's centreline does not fit at the L2 rows' 8.4u pitch: it stands inside
 the next car. So canopy B is re-striped like canopy A, two columns of five at the 14u pitch: ten new fast chargers in
 place of canopy B's fifteen L2 spaces, 20 DCFC and 15 L2 in all. At this arm design the site holds at most thirty
-(ten a canopy). The renderer draws whichever layout the twin publishes, and each fast-charger stall gets both arms.
+(ten a canopy).
+
+- The database change is otto-q-core 0759, prepared and not applied: it changes the world every queued research cell
+  reads, so applying it is Chase's call, and not while an arm runs against the depot as built.
+- The renderer is ready for it and changes nothing until then (`src/lib/chargerBuild.ts`). It never chooses a build:
+  it reads the twin layout's census (10 + 30 as built, 20 + 15 after 0759) and redraws the depot, stall for stall
+  where the twin stands them, with both arms on every fast charger. As built is byte-for-byte as before.
+- `TwinMotionDriver.dcfc20.test.ts` docks ten cars on canopy B's new chargers in two waves, the second driving in past
+  the first, touching no car and no structure. `chargerBuild.test.ts` holds the new layout to every rule the as-built
+  one is held to.
+- `node scripts/cleanArmShots.mjs --build dcfc20` shows it in the cockpit before 0759 exists.

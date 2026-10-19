@@ -194,10 +194,12 @@ const camFor = (phase, sideA) => {
   return "high";
 };
 const sideACam = await page.evaluate((rid) => {
-  // side A is the far flank from the charge port: the car's left on a west column (toward +1)
+  // side A is the far flank from the charge port: the car's left on a canopy's west column (toward +1)
   const d = window.__twinDriver;
   const pos = d.stallPos.get(rid);
-  return pos && pos.x < 103 ? "left" : "right";
+  const spines = [103, 150, 197]; // sitePlan.CANOPIES[].cx
+  const cx = pos ? spines.reduce((b, c) => (Math.abs(c - pos.x) < Math.abs(b - pos.x) ? c : b), spines[0]) : 103;
+  return pos && pos.x < cx ? "left" : "right";
 }, target);
 
 const summary = { target, shots: [], phases: {}, checks: [], pageErrors: errors };
