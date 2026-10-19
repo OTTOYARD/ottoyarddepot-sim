@@ -323,8 +323,10 @@ export function cabinArmWords(
     case "exit_a": case "ascend_a": case "raise_a": case "swing_b": case "lower_b": case "descend_b": case "enter_b":
       return { starting: false, words: `The arm moves to the ${sideB} side.` };
     case "clean_b": return { starting: false, words: `The arm cleans the ${sideB} side.` };
-    case "exit_b": case "ascend_b": case "raise_b": case "return":
-      return { starting: false, words: "The arm moves out of the car." };
+    case "exit_b": return { starting: false, words: "The arm moves out of the car." };
+    // out of the car: the mast goes up, the wand turns up, and the arm goes back over the roof
+    case "ascend_b": case "raise_b": case "return":
+      return { starting: false, words: "The arm moves back to its start position." };
     case "doors_close": return { starting: false, words: "The doors close." };
     default: return { starting: false, words: "The arm cleans the cabin." };
   }

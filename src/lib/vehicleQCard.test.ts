@@ -374,7 +374,8 @@ describe("the interior clean by the stall's cleaning arm (otto-q-core 0758)", ()
 
   it("stays in progress, and says so, while the arm moves out and the doors close", () => {
     for (const [phase, words] of [
-      ["swing_b", "The arm moves to the right side."], ["exit_b", "The arm moves out of the car."], ["doors_close", "The doors close."],
+      ["swing_b", "The arm moves to the right side."], ["exit_b", "The arm moves out of the car."],
+      ["return", "The arm moves back to its start position."], ["doors_close", "The doors close."],
     ] as const) {
       const q = buildQCard({ vehicleId: VID, card: card([tidy()]), snapshot: at(MID), cabinArm: arm(phase) });
       expect(q.cabinClean?.state).toBe("in_progress");
