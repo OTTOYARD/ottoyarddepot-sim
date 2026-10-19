@@ -50,6 +50,16 @@ export interface TwinVisitAtom {
   must_do: boolean;
   /** OTTO-Q's estimate for this atom, minutes. NULL when the atom carried none. */
   est_min: number | null;
+  /**
+   * When the work started, ends and was done: the BACKEND's sim clock (ISO), as the
+   * engine wrote them (otto-q-core 0758). Absent from an older backend; null when the
+   * atom carries none.
+   */
+  started_at?: string | null;
+  ends_at?: string | null;
+  done_at?: string | null;
+  /** The twin stall whose OTTO-CLEAN ARM does this work (an interior tidy during a fast charge), or null. */
+  robot_stall_id?: string | null;
 }
 
 /**

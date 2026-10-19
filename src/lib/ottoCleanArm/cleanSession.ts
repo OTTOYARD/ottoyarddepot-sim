@@ -18,8 +18,10 @@
  *     back, and the arm goes home and the doors shut, at up to ABORT_SPEED. It never
  *     takes a short cut across the car.
  *
- * The fleet's door angles and the motion driver's hold (cleanGate.ts) both come from
- * this reducer's phase, so the doors, the arm and the car's right to move agree.
+ * ONE EVALUATION. The motion driver steps this reducer once per stall (engine/motion/
+ * cleanGate.ts); the renderer draws that session, the fleet's doors read it through
+ * doorStore, and the car's right to move is read from it. The doors, the arm and the
+ * hold cannot disagree because there is only one of them.
  */
 
 import {
@@ -78,6 +80,13 @@ export interface CleanInput {
   endsInS: number | null;
   /** which flank this stall's arm cleans first (the far one) and second (the port one) */
   sides: CleanSides;
+  /**
+   * May the arm leave home for the car? False while the stall's OTTO-CHARGE ARM is
+   * moving (reaching for the port or letting go): the doors open as the charge arm
+   * mates, and the cleaning arm goes in once the connector is latched, the order Chase
+   * set out. Absent reads true.
+   */
+  mayEnter?: boolean;
 }
 
 /** A phase's length at nominal speed, given the session's planned clean lengths. */
@@ -171,7 +180,8 @@ export function advanceCleanSession(prev: CleanSession, input: CleanInput): Clea
     return { ...IDLE_CLEAN, phase: 'doors_open', t: 0, vehicleId: input.vehicleId };
   }
 
-  let { phase, phaseElapsed, cleanA, cleanB, finishing, from } = prev;
+  const { phase, phaseElapsed } = prev;
+  let { cleanA, cleanB, finishing, from } = prev;
   const vehicleId = prev.vehicleId;
   const completedFor: string | null = null;
   const poseNow = (): CleanJoints =>
@@ -204,6 +214,12 @@ export function advanceCleanSession(prev: CleanSession, input: CleanInput): Clea
 
   const len = cleanPhaseLength(phase, { cleanA, cleanB });
   const budget = dt * speed;
+  // THE WAIT FOR THE CHARGE ARM: the doors stand open and the arm stays home until
+  // the connector is latched (or no charge arm is working). Static: doors_open's pose
+  // at its end is the stowed pose with the doors fully open.
+  if (phase === 'doors_open' && !finishing && input.mayEnter === false && phaseElapsed + budget >= len) {
+    return finishStep({ phase, phaseElapsed: len, vehicleId, cleanA, cleanB, finishing, from, completedFor });
+  }
   if (phaseElapsed + budget < len) {
     return finishStep({ phase, phaseElapsed: phaseElapsed + budget, vehicleId, cleanA, cleanB, finishing, from, completedFor });
   }

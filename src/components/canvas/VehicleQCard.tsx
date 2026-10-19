@@ -21,7 +21,7 @@ import { useTwinStore } from '@/store/twinStore';
 import { useOwnerBoardStore } from '@/store/ownerBoardStore';
 import { useVehicleQCard } from '@/hooks/useVehicleQCard';
 import { CarTrail } from '@/components/tabs/ottoq/CarTrail';
-import { DASH, clock, pctText, type QCard, type QStep } from '@/lib/vehicleQCard';
+import { DASH, clock, pctText, type QCabinClean, type QCard, type QStep } from '@/lib/vehicleQCard';
 import { carOwnerView, type OwnerCarView } from '@/lib/ownerBoard';
 
 const OK = '#34D399';
@@ -89,6 +89,42 @@ function StepRow({ s }: { s: QStep }) {
         )}
       </div>
     </li>
+  );
+}
+
+/**
+ * The interior clean the stall's OTTO-CLEAN ARM does during the charge: starting (an empty box), in progress (a dot
+ * and a meter to the twin's end time), done (a tick and the time). Chase, 2026-10-19.
+ */
+function CabinCleanRow({ c }: { c: QCabinClean }) {
+  const done = c.state === 'done';
+  const starting = c.state === 'starting';
+  return (
+    <div className="mt-1.5 rounded border border-white/[0.06] bg-white/[0.03] px-2 py-1.5" data-testid="qcard-cabin" data-state={c.state}>
+      <div className="flex items-center gap-1.5">
+        <span aria-hidden className="inline-flex h-3 w-3 shrink-0 items-center justify-center rounded-[3px] border text-[8px] font-bold"
+          style={done ? { background: OK, borderColor: OK, color: '#06070A' } : { borderColor: TEAL }}>
+          {done ? '✓' : starting ? '' : <span className="h-1.5 w-1.5 rounded-full" style={{ background: TEAL }} />}
+        </span>
+        <span className="text-[11px] font-medium">Interior clean</span>
+        <span className="min-w-0 truncate text-[10px] text-ink-faint">· by the stall's cleaning arm</span>
+        <span className="flex-1" />
+        <span className="shrink-0 text-[9px] uppercase tracking-[0.06em]" style={{ color: done ? OK : TEAL }} data-testid="qcard-cabin-state">
+          {done ? 'Done' : starting ? 'Starting' : 'In progress'}
+        </span>
+      </div>
+      {!done && (
+        <div className="mt-1 flex items-center gap-1.5">
+          <Meter value={c.progress} label="Interior clean progress" />
+          <span className="shrink-0 font-mono text-[9px] text-ink-dim">
+            {c.progress !== null ? `${Math.round(c.progress)}%` : DASH} · ends {clock(c.endsAt)}
+          </span>
+        </div>
+      )}
+      <div className="mt-0.5 text-[9px] text-ink-faint" data-testid="qcard-cabin-words">
+        {done ? `Done at ${clock(c.doneAt)}.` : c.words}
+      </div>
+    </div>
   );
 }
 
@@ -199,6 +235,8 @@ export function QCardBody({ card, oem, onClose, cardsStatus, owner }: {
           </div>
         )}
       </div>
+
+      {card.cabinClean && <CabinCleanRow c={card.cabinClean} />}
 
       {card.hold && (
         <div className="mt-1.5 rounded border px-2 py-1 text-[10px]" style={{ borderColor: 'rgba(251,191,36,0.35)', color: WARN, background: 'rgba(251,191,36,0.06)' }} data-testid="qcard-hold">

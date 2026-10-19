@@ -10,12 +10,15 @@ import { useDepotStore } from '@/store/depotStore';
 import { DepotGround } from './three/DepotGround';
 import { DepotBuilding } from './three/DepotBuilding';
 import { SolarCanopy } from './three/SolarCanopy';
+import { armStallsKey } from '@/lib/ottoCleanArm/cleanArmPlacement';
 import { ChargingField } from './three/ChargingField';
 import { WashBays } from './three/WashBays';
 import { ServiceBays } from './three/ServiceBays';
 import { StagingZone } from './three/StagingZone';
 import { ChargingArm } from './three/ChargingArm';
 import { makeArmFleet } from './three/armInstances';
+import { CleanArm } from './three/CleanArm';
+import { makeCleanArmFleet } from './three/cleanArmInstances';
 import { Lanes3D } from './three/Lanes3D';
 import { UtilityEquipment } from './three/UtilityEquipment';
 import { VehicleFleet } from './three/Vehicle3D';
@@ -191,6 +194,13 @@ export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0, viewe
   useEffect(() => () => armFleet.dispose(), [armFleet]);
   // draw only the slots in use (the rest of the capacity costs no vertices)
   useEffect(() => { for (const m of armFleet.meshes) m.count = roboticStalls.length; }, [armFleet, roboticStalls.length]);
+  // …and so does every OTTO-CLEAN ARM, one over each robotic fast charger (cleanArmInstances.ts),
+  // with its canopy steel drawn by the canopy, which is rebuilt only when those stalls move.
+  const cleanFleet = useMemo(() => makeCleanArmFleet(armCapacity), [armCapacity]);
+  useEffect(() => () => cleanFleet.dispose(), [cleanFleet]);
+  useEffect(() => { for (const m of cleanFleet.meshes) m.count = roboticStalls.length; }, [cleanFleet, roboticStalls.length]);
+  const armStalls = useMemo(() => roboticStalls.map((s) => s.position), [roboticStalls]);
+  const armKey = armStallsKey(armStalls);
   const controlsRef = useRef<OrbitControlsImpl>(null);
 
   const followId = useCameraFollow((s) => s.followId);
@@ -266,7 +276,7 @@ export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0, viewe
           <StaticMerge name="ground"><DepotGround /></StaticMerge>
           <StaticMerge name="building"><DepotBuilding /></StaticMerge>
           <StaticMerge name="serviceBays"><ServiceBays /></StaticMerge>
-          <StaticMerge name="solarCanopy" version={config.solarCanopy}><SolarCanopy solarKWdc={config.solarCanopy} /></StaticMerge>
+          <StaticMerge name="solarCanopy" version={`${config.solarCanopy}/${armKey}`}><SolarCanopy solarKWdc={config.solarCanopy} armStalls={armStalls} /></StaticMerge>
           <group name="chargersDcfc"><ChargingField type="dcfc" count={config.dcfcCount} /></group>
           <group name="chargersL2"><ChargingField type="l2" count={config.l2Count} /></group>
           <StaticMerge name="washBays" version={config.washBayCount}><WashBays count={config.washBayCount} /></StaticMerge>
@@ -277,6 +287,10 @@ export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0, viewe
             {armFleet.meshes.map((m, i) => <primitive key={`armpart-${i}`} object={m} />)}
             {roboticStalls.map((s, i) => (
               <ChargingArm key={`arm-${s.id}`} stallId={s.id} stallType={s.type as 'dcfc' | 'l2'} fleet={armFleet} slot={i} />
+            ))}
+            {cleanFleet.meshes.map((m, i) => <primitive key={`cleanpart-${i}`} object={m} />)}
+            {roboticStalls.map((s, i) => (
+              <CleanArm key={`clean-${s.id}`} stallId={s.id} fleet={cleanFleet} slot={i} />
             ))}
           </group>
           <StaticMerge name="landscaping"><Landscaping /></StaticMerge>

@@ -132,6 +132,32 @@ describe('when the twin’s step ends early', () => {
   });
 });
 
+describe('the order with the charge arm: the doors open, the charge arm mates, then the arm goes in', () => {
+  it('waits at home with the doors open while the charge arm is moving, and goes in once it is latched', () => {
+    // the charge arm takes 18.5 s to mate; the doors take 3 s to open
+    const trace = run(40, 0.05, (t) => ({ endsInS: 348 - t, mayEnter: t >= 18.5 }));
+    const waiting = trace.filter((x) => x.t > 3.2 && x.t < 18.4);
+    expect(waiting.length).toBeGreaterThan(200);
+    for (const x of waiting) {
+      expect(x.s.phase).toBe('doors_open');
+      expect(doorsAt(x.s.phase, x.s.t)).toBe(1);
+    }
+    const left = trace.find((x) => x.s.phase === 'swing_a')!;
+    expect(left.t).toBeGreaterThanOrEqual(18.5);
+    expect(left.t).toBeLessThan(18.6);
+  });
+
+  it('shuts the doors from the wait when the step ends before the charge arm latches', () => {
+    const trace = run(30, 0.05, (t) => ({ active: t < 10, endsInS: 348 - t, mayEnter: false }));
+    expect(phasesSeen(trace)).toEqual(['doors_open', 'doors_close', 'home']);
+  });
+
+  it('reads an absent signal as leave to go in', () => {
+    const trace = run(10, 0.05, (t) => ({ endsInS: 348 - t }));
+    expect(phasesSeen(trace)).toContain('swing_a');
+  });
+});
+
 describe('one clean per step', () => {
   it('does not clean the same car again while the twin still calls its step in progress', () => {
     // the twin closes the step a tick (300 s) after the arm is home

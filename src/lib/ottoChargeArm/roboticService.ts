@@ -216,6 +216,54 @@ export interface ArmSessionInput {
   tetherRemainingS: number | null;
 }
 
+/**
+ * What the depot says is true at one arm-served stall, before it is reduced to the
+ * session's input. Both evaluations of the cycle (ChargingArm.tsx draws one,
+ * armGate.ts gates motion on the other) build their input with armSessionInput() from
+ * these facts, so the two cannot drift apart.
+ */
+export interface ArmStallFacts {
+  /** The vehicle in the stall, or null when it is empty. */
+  vehicleId: string | null;
+  /** OTTO-Q says the vehicle is taking current here (roster status 'charging'). */
+  chargingState: boolean;
+  /** The car is physically parked (it has a service window). Needed to START a mate. */
+  parked: boolean;
+  /** Seconds of demate owed per OTTO-Q's robotic tether, or null when none. */
+  tetherRemainingS: number | null;
+  /** The stall's OTTO-CLEAN ARM is not home: it is out over the car, or the car's doors are open. */
+  cleanBusy?: boolean;
+  /** The stall's OTTO-CLEAN ARM is moving over or beside the car (past opening the doors). */
+  cleanBlocksMate?: boolean;
+}
+
+/**
+ * THE ONE COMPOSITION of a stall's facts into the session's `charging` and tether.
+ *
+ *   · A mate STARTS on a parked car that is charging. Once the arm is committed the
+ *     window may vanish (a re-plan drops the dwell leg) without yanking the connector
+ *     out of a car that is still charging.
+ *   · THE INTERLOCK WITH THE CLEANING ARM, both ways, so the two robots never move
+ *     beside the car at the same time. A mate does not start while the cleaning arm is
+ *     out over the car; it starts when that arm is home. And a LATCHED connector stays
+ *     in while the cleaning arm is not home, whatever the charge or the tether says, so
+ *     it lets go only after the cabin is done and the doors are shut. That is Chase's
+ *     order (2026-10-19): the doors close, the charge completes, then the charge arm
+ *     retracts. The cleaning arm's own finish is bounded (cleanGate.ts), so this hold
+ *     ends.
+ */
+export function armSessionInput(
+  before: ArmSession, f: ArmStallFacts,
+): { charging: boolean; tetherRemainingS: number | null } {
+  const committed = isArmCommitted(before.phase);
+  let charging = f.vehicleId !== null && f.chargingState && (f.parked || committed);
+  if (charging && !committed && f.cleanBlocksMate) charging = false;
+  const holdForClean = before.phase === 'charging' && !!f.cleanBusy
+    && f.vehicleId !== null && f.vehicleId === before.vehicleId;
+  if (holdForClean) return { charging: true, tetherRemainingS: null };
+  return { charging, tetherRemainingS: f.tetherRemainingS };
+}
+
 /** Seconds a phase lasts. Infinite for the phases that end on an EVENT, not a
  *  clock: 'stowed' (until a car charges), 'charging' (until the charge is done),
  *  'fault' (until an operator resolves it). */

@@ -2,13 +2,14 @@
 // doorStore — how far each car's doors stand open, as the renderer draws them.
 //
 // The same channel shape as poseStore, for the same reason: the OTTO-CLEAN ARM's
-// session steps 60 times a second inside an R3F frame loop, and the fleet reads the
-// door angles in ITS frame loop, so this never goes through React state.
+// session steps every frame in the motion driver's loop, and the fleet reads the door
+// angles in ITS frame loop, so this never goes through React state.
 //
-// Who writes it: the stall's cleaning-arm session (CleanArm.tsx), which opens a car's
-// doors before it reaches in and shuts them after it is home, inside the window of
-// the twin's interior-clean step. Nothing else opens a door, so a car absent from
-// the store has both doors shut — the default for every car on the lot.
+// Who writes it: the motion driver, from each fast-charger stall's cleaning session
+// (motion/cleanGate.ts, the one evaluation of that arm), which opens a car's doors as
+// the charge arm mates and shuts them after the cleaning arm is home, inside the
+// window of the twin's interior-clean step. Nothing else opens a door, so a car absent
+// from the store has both doors shut — the default for every car on the lot.
 //
 // Values are OPENING FRACTIONS, 0 (shut) .. 1 (open to vehicleEnvelope.DOOR.openDeg),
 // one per flank: `right` is the car's right flank (authored +z), `left` its left.
@@ -37,6 +38,18 @@ export const doorStore = {
   },
   delete(id: string): void {
     doors.delete(id);
+  },
+  /** Make the store hold exactly these cars' openings, both doors alike; every other car's doors shut. */
+  sync(open: Iterable<readonly [string, number]>): void {
+    const keep = new Set<string>();
+    for (const [id, f] of open) {
+      const v = clamp01(f);
+      if (v === 0) continue;
+      keep.add(id);
+      const d = doors.get(id);
+      if (d) { d.right = v; d.left = v; } else doors.set(id, { right: v, left: v });
+    }
+    for (const id of [...doors.keys()]) if (!keep.has(id)) doors.delete(id);
   },
   clear(): void {
     doors.clear();

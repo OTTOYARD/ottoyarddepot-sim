@@ -2,6 +2,7 @@
 //   the twin snapshot (twinStore)            the car's live state, SoC, visit, legs, arm cycle      as the cockpit polls
 //   ottoq_depot_cards (useDepotCards)        its plan steps, needs, bookings, target (contract 1.4)  every 10 s
 //   ottoq_activity_feed_v2 (p_vehicle_id)    its own decisions: re-bookings, re-timings, holds       every 8 s
+//   the motion driver (cabinArmFor)          what its stall's cleaning arm is doing                  every 0.5 s
 // Both polls run only while a card is open, and pause with the sim (a paused cockpit keeps what it has).
 import { useEffect, useMemo, useState } from "react";
 import { useTwinStore } from "@/store/twinStore";
@@ -9,9 +10,16 @@ import { useVehicleStore } from "@/store/vehicleStore";
 import { useDepotCards } from "@/hooks/useDepotCards";
 import { readFeed } from "@/hooks/useDecisionTrail";
 import type { ActivityFeedRow } from "@/store/activityFeedStore";
-import { buildQCard, stallCodeMap, type QCard, type QDepotCard } from "@/lib/vehicleQCard";
+import { buildQCard, stallCodeMap, type QCard, type QCardInputs, type QDepotCard } from "@/lib/vehicleQCard";
+import { twinMotionDriver } from "@/engine/TwinMotionDriver";
 
 const CAR_FEED_MS = 8_000;
+/** How often the open card reads the cleaning arm's phase off the motion driver (it changes every few seconds). */
+const CABIN_ARM_MS = 500;
+
+type CabinArm = NonNullable<QCardInputs["cabinArm"]>;
+const sameArm = (a: CabinArm | null, b: CabinArm | null) =>
+  a === b || (!!a && !!b && a.phase === b.phase && a.sideA === b.sideA && a.done === b.done);
 
 export interface VehicleQCardData {
   card: QCard | null;
@@ -32,6 +40,19 @@ export function useVehicleQCard(vehicleId: string | null): VehicleQCardData {
   const [feedError, setFeedError] = useState<string | null>(null);
 
   useEffect(() => { setFeed([]); setFeedError(null); }, [vehicleId, simRunId]);
+
+  // the stall's OTTO-CLEAN ARM, read off the motion driver while the card is open; a new value only when it changes
+  const [cabinArm, setCabinArm] = useState<CabinArm | null>(null);
+  useEffect(() => {
+    if (!vehicleId) { setCabinArm(null); return; }
+    const read = () => {
+      const next = twinMotionDriver.cabinArmFor(vehicleId);
+      setCabinArm((prev) => (sameArm(prev, next) ? prev : next));
+    };
+    read();
+    const t = setInterval(read, CABIN_ARM_MS);
+    return () => clearInterval(t);
+  }, [vehicleId]);
 
   useEffect(() => {
     if (!vehicleId || !simRunId || paused) return;
@@ -55,8 +76,8 @@ export function useVehicleQCard(vehicleId: string | null): VehicleQCardData {
     [cards.vehicles, vehicleId],
   );
   const card = useMemo(
-    () => (vehicleId ? buildQCard({ vehicleId, label, card: depotCard, snapshot, stallCodes: codes, feed }) : null),
-    [vehicleId, label, depotCard, snapshot, codes, feed],
+    () => (vehicleId ? buildQCard({ vehicleId, label, card: depotCard, snapshot, stallCodes: codes, feed, cabinArm }) : null),
+    [vehicleId, label, depotCard, snapshot, codes, feed, cabinArm],
   );
   return { card, cardsStatus: cards.status, error: cards.error ?? feedError };
 }

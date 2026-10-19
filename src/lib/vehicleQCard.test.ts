@@ -338,6 +338,93 @@ describe("buildQCard from the twin snapshot alone", () => {
   });
 });
 
+describe("the interior clean by the stall's cleaning arm (otto-q-core 0758)", () => {
+  // the 0758 keys, key for key: the cards' need carries performed_by and its times; the snapshot's atom robot_stall_id
+  const T0 = "2026-10-19T19:00:00+00:00", T1 = "2026-10-19T19:05:48+00:00", MID = "2026-10-19T19:02:54+00:00";
+  const tidy = (over: Record<string, unknown> = {}) => ({
+    svc: "interior_tidy", status: "in_progress", must_do: true, performed_by: "stall_cabin_robot", started_at: T0, ends_at: T1, ...over,
+  });
+  const card = (needs: Record<string, unknown>[]): QDepotCard => ({
+    vehicle_id: VID, display_name: "Zoox-AV-007", state: "charging_dcfc", soc: 64, target_soc: 100,
+    stall: { id: "dc-1", code: "NASH-DCFC-STALL-01", kind: "dcfc" },
+    card: { needs: [{ svc: "charge", status: "in_progress", must_do: true }, ...needs] as never },
+  });
+  const at = (clock: string) => snap({ run: { sim_run_id: "r", status: "running", sim_clock: clock } as never });
+  const arm = (phase: string, done = false) => ({ phase, sideA: "left" as const, sideB: "right" as const, done });
+
+  it("is in progress with a meter to the twin's end, and says which side the arm cleans", () => {
+    const q = buildQCard({ vehicleId: VID, card: card([tidy()]), snapshot: at(MID), cabinArm: arm("clean_a") });
+    expect(q.cabinClean).toEqual({
+      state: "in_progress", words: "The arm cleans the left side.", progress: 50, startedAt: T0, endsAt: T1, doneAt: null,
+    });
+    expect(buildQCard({ vehicleId: VID, card: card([tidy()]), snapshot: at(MID), cabinArm: arm("clean_b") }).cabinClean?.words)
+      .toBe("The arm cleans the right side.");
+  });
+
+  it("is starting while the doors open and the arm moves to the first side", () => {
+    for (const [phase, words] of [
+      ["doors_open", "The doors open."], ["swing_a", "The arm moves to the left side."], ["enter_a", "The arm moves to the left side."],
+      ["home", "The arm starts when the car is in the stall."],
+    ] as const) {
+      const q = buildQCard({ vehicleId: VID, card: card([tidy()]), snapshot: at(T0), cabinArm: arm(phase) });
+      expect(q.cabinClean?.state).toBe("starting");
+      expect(q.cabinClean?.words).toBe(words);
+    }
+  });
+
+  it("stays in progress, and says so, while the arm moves out and the doors close", () => {
+    for (const [phase, words] of [
+      ["swing_b", "The arm moves to the right side."], ["exit_b", "The arm moves out of the car."], ["doors_close", "The doors close."],
+    ] as const) {
+      const q = buildQCard({ vehicleId: VID, card: card([tidy()]), snapshot: at(MID), cabinArm: arm(phase) });
+      expect(q.cabinClean?.state).toBe("in_progress");
+      expect(q.cabinClean?.words).toBe(words);
+    }
+    // the arm home with the cycle played, before the twin closes the step on its next tick
+    const q = buildQCard({ vehicleId: VID, card: card([tidy()]), snapshot: at(T1), cabinArm: arm("home", true) });
+    expect(q.cabinClean).toMatchObject({ state: "in_progress", words: "The arm is done. The doors are closed.", progress: 100 });
+  });
+
+  it("is done with its time once the twin closes the step, and the chip says who did it", () => {
+    const q = buildQCard({ vehicleId: VID, card: card([tidy({ status: "done", done_at: T1 })]), snapshot: at(T1) });
+    expect(q.cabinClean).toEqual({ state: "done", words: "Done.", progress: null, startedAt: T0, endsAt: T1, doneAt: T1 });
+    const chip = q.needs.items.find((n) => n.svc === "interior_tidy")!;
+    expect(chip.state).toBe("done");
+    expect(chip.note).toBe("by the stall's cleaning arm");
+  });
+
+  it("says only that the arm cleans the cabin when no arm is drawn (2D, or no motion driver)", () => {
+    const q = buildQCard({ vehicleId: VID, card: card([tidy()]), snapshot: at(MID) });
+    expect(q.cabinClean).toMatchObject({ state: "in_progress", words: "The arm cleans the cabin.", progress: 50 });
+  });
+
+  it("shows no meter it cannot compute: a missing time is a dash, not 0", () => {
+    const q = buildQCard({ vehicleId: VID, card: card([tidy({ ends_at: null })]), snapshot: at(MID), cabinArm: arm("clean_a") });
+    expect(q.cabinClean?.progress).toBeNull();
+  });
+
+  it("reads the snapshot's atom (robot_stall_id) when the cards have not answered", () => {
+    const visit = {
+      visit_id: "v", visit_status: "in_progress", archetype: null, urgency: null, arrived_at: T0, target_soc: 100,
+      soc_at_arrival: 40, est_charge_min: 24,
+      atoms: [{ svc: "interior_tidy", status: "in_progress", must_do: true, est_min: 5, started_at: T0, ends_at: T1, done_at: null, robot_stall_id: "dc-1" }],
+    } as TwinVisitCard;
+    const s = snap({
+      run: { sim_run_id: "r", status: "running", sim_clock: MID } as never,
+      fleet: { counts: {}, total: 1, vehicles: [{ id: VID, av_id: "a", make: "Zoox", platform: "zoox", state: "charging_dcfc", soc: 64, stall_id: "dc-1", visit }] },
+    });
+    const q = buildQCard({ vehicleId: VID, snapshot: s, cabinArm: arm("clean_a") });
+    expect(q.cabinClean).toMatchObject({ state: "in_progress", words: "The arm cleans the left side.", progress: 50 });
+    expect(q.needs.items[0].note).toBe("by the stall's cleaning arm");
+  });
+
+  it("does not draw a technician's tidy as the arm's", () => {
+    const q = buildQCard({ vehicleId: VID, card: card([{ svc: "interior_tidy", status: "in_progress", must_do: true }]), snapshot: at(MID), cabinArm: arm("clean_a") });
+    expect(q.cabinClean).toBeNull();
+    expect(q.needs.items.find((n) => n.svc === "interior_tidy")?.note).toBeNull();
+  });
+});
+
 describe("buildQCard over the recorded live snapshot feed (twinRun.live0922rec)", () => {
   type F = { roster: { id: string; av_id: string; make: string; platform: string; soc: number }[];
     stalls: { id: string; code: string }[]; frames: { t: string; changes: { id: string; state: string; stall_id: string | null }[] }[] };

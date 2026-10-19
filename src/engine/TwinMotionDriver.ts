@@ -24,7 +24,9 @@ import { allStructureSolids, parkedBox, bodyHitsBox, boxGap, type OBox } from "@
 import { findLeader, StallLedger, CAR_BODY_LENGTH, CAR_BODY_WIDTH, type MovingCar } from "./motion/traffic";
 import { buildDepotLanes, U_TURN_COST, LaneGraph } from "./motion/LaneGraph";
 import { ArmGate, type ArmStallInput } from "./motion/armGate";
+import { CleanGate, cabinCleanOf, type CabinClean, type CleanStallInput } from "./motion/cleanGate";
 import { poseStore } from "./motion/poseStore";
+import { doorStore } from "./motion/doorStore";
 import { useDepotStore, type StallStatus } from "@/store/depotStore";
 import { useVehicleStore } from "@/store/vehicleStore";
 import { useSimulationStore } from "@/store/simulationStore";
@@ -37,6 +39,9 @@ import {
   chargerStallFrame,
 } from "@/lib/sitePlan";
 import { DISCONNECT_SECONDS, applyArmTimings, type ArmPhase } from "@/lib/ottoChargeArm/armStateMachine";
+import { isArmHome } from "@/lib/ottoChargeArm/roboticService";
+import { towardFor } from "@/lib/ottoChargeArm/depotPlacement";
+import type { CleanSession } from "@/lib/ottoCleanArm/cleanSession";
 
 type Lane = "dcfc" | "l2" | "wash" | "service" | "staging";
 
@@ -137,6 +142,14 @@ const PARKED_POS_EPS = 1.5;
 // 0.000 rad off. The tolerance is for a car frozen mid-turn on top of its own
 // stall, which is not a body an arm should reach for. 0.25 rad = 14.3°.
 const PARKED_HEADING_EPS = 0.25;
+// ON THE STALL POSE, for the OTTO-CLEAN ARM. Its wand goes into the cabin through the
+// door with a few centimetres to spare (cleanArmClearance.test.ts), so the parked
+// tolerance above (0.72 m, 14°) is far too loose for it: the arm is fixed to the stall
+// and works to a car standing exactly where the stall puts it. An arrival snaps onto
+// the stall pose exactly, so a docked car measures 0.000 on both; a car anywhere else
+// is not cleaned. 0.04u = 1.9 cm; 0.01 rad is 2.5 cm at the car's nose.
+const CLEAN_POSE_EPS = 0.04;
+const CLEAN_HEADING_EPS = 0.01;
 const DEPART_TTL = 90;        // a departing car that can't reach egress despawns
 const MAX_ACTIVE_DEPARTING = 12; // deploy waves leave in packets, not all at once
 const MAX_ACTIVE_ENTERING = 6;   // arrival waves enter in packets too (gate backpressure)
@@ -720,6 +733,12 @@ class TwinMotionDriver {
    *  clock in tickMotion; a car may not begin to move out of a stall whose arm
    *  is not in a movement-permitted phase. See motion/armGate.ts. */
   private armGate = new ArmGate();
+  /** THE OTTO-CLEAN ARMS: one session per fast-charger stall, stepped beside the
+   *  charge arms. The ONE evaluation of that arm — CleanArm.tsx draws it, the doors
+   *  are written from it, and armReleases() reads it. See motion/cleanGate.ts. */
+  private cleanGate = new CleanGate();
+  /** vehicle id -> the twin's cabin clean of it by a stall's arm (0758), rebuilt every snapshot. */
+  private cabinCleans = new Map<string, CabinClean>();
   /** sim-clock instant (ms) at which the arm sessions were last stepped. The arms
    *  are paced by the SIM clock, not by the motion dt — same choice ChargingArm
    *  makes, and the reason the view multiplier never runs the robot by itself. */
@@ -986,7 +1005,9 @@ class TwinMotionDriver {
    */
   private armReleases(e: Entry): boolean {
     if (e.lane !== "dcfc" || !e.stallId) return true;
-    if (this.armGate.mayMove(e.stallId)) return true;
+    // BOTH ROBOTS: the charge arm's connector out, and the cleaning arm home with the
+    // car's doors shut. Either one holding is a hold.
+    if (this.armGate.mayMove(e.stallId) && this.cleanGate.mayMove(e.stallId)) return true;
     this.armRefusals++;
     return false;
   }
@@ -994,6 +1015,52 @@ class TwinMotionDriver {
   /** Stalls whose arm is currently holding its car — for the operator trace. */
   get armHolds(): string[] {
     return this.armGate.holding();
+  }
+
+  /** Stalls whose cleaning arm is holding its car — for the operator trace. */
+  get cleanHolds(): string[] {
+    return this.cleanGate.holding();
+  }
+
+  /**
+   * What the OTTO-CLEAN ARM at this stall is doing, or null when no session covers it.
+   * The ONE evaluation: CleanArm.tsx draws exactly this.
+   */
+  cleanSessionAt(rendererStallId: string): CleanSession | null {
+    return this.cleanGate.session(rendererStallId);
+  }
+
+  /** The cleaning arm at this stall is not home (ChargingArm keeps a latched connector in). */
+  cleanArmBusy(rendererStallId: string): boolean {
+    return this.cleanGate.busy(rendererStallId);
+  }
+
+  /** The cleaning arm at this stall is out over the car (ChargingArm starts no mate). */
+  cleanArmBlocksMate(rendererStallId: string): boolean {
+    return this.cleanGate.blocksMate(rendererStallId);
+  }
+
+  /** The twin's cabin clean of this car by a stall's arm, as of the last snapshot, or null. */
+  cabinCleanFor(vehicleId: string): CabinClean | null {
+    return this.cabinCleans.get(vehicleId) ?? null;
+  }
+
+  /**
+   * What the cleaning arm over this car's stall is doing, for its Q card, or null when the car is not on a
+   * fast-charger stall that has one. `sideA` is the flank it cleans first: the one away from the charge port
+   * (authored z = -toward), so the car's left on a west column and its right on an east one.
+   */
+  cabinArmFor(vehicleId: string): { phase: string; sideA: "left" | "right"; sideB: "left" | "right"; done: boolean } | null {
+    const e = this.entries.get(vehicleId);
+    if (!e?.stallId || e.lane !== "dcfc") return null;
+    const s = this.cleanGate.session(e.stallId);
+    if (!s || (s.vehicleId !== vehicleId && s.completedFor !== vehicleId)) return null;
+    const at = this.stallPos.get(e.stallId);
+    const sideA = (at ? towardFor(at.x) : 1) === 1 ? "left" : "right";
+    return {
+      phase: s.phase, sideA, sideB: sideA === "left" ? "right" : "left",
+      done: s.phase === "home" && s.completedFor === vehicleId,
+    };
   }
 
   /**
@@ -1064,9 +1131,48 @@ class TwinMotionDriver {
         chargingState: e.vstatus === "charging",
         parked: this.serviceWindow(e) !== null,
         tetherRemainingS: this.stallTetherRemainingS(e.stallId),
+        // the stall's cleaning arm, as of the previous step: ChargingArm reads the same
+        cleanBusy: this.cleanGate.busy(e.stallId),
+        cleanBlocksMate: this.cleanGate.blocksMate(e.stallId),
       });
     }
     this.armGate.step(simDt, inputs);
+
+    // THE CLEANING ARMS, after the charge arms so each reads this step's charge-arm phase.
+    // A clean is ACTIVE when the twin has this car's cabin clean in progress by this
+    // stall's arm, still places the car here, and the car stands on its stall pose.
+    const cleans: CleanStallInput[] = [];
+    for (const [id, e] of this.entries) {
+      if (!e.stallId || e.lane !== "dcfc") continue;
+      const c = this.cabinCleans.get(id);
+      const at = this.stallPos.get(e.stallId);
+      const armPhase = this.armGate.phase(e.stallId);
+      const charging = e.vstatus === "charging";
+      // the charge arm is still: latched, or home with no mate coming (a mate starts
+      // only on a parked, charging car — armSessionInput)
+      const mateComing = charging && this.serviceWindow(e) !== null;
+      const still = armPhase === null || armPhase === "charging" || (isArmHome(armPhase) && !mateComing);
+      cleans.push({
+        stallId: e.stallId,
+        stallType: this.stallTypes.get(e.stallId),
+        vehicleId: id,
+        active: !!c && c.stall === e.stallId && c.placedHere && this.onStallPose(e),
+        endsInS: c?.endsMs != null && nowMs ? (c.endsMs - nowMs) / 1000 : null,
+        toward: at ? towardFor(at.x) : 1,
+        mayEnter: still,
+      });
+    }
+    this.cleanGate.step(simDt, cleans);
+    doorStore.sync(this.cleanGate.doors());
+  }
+
+  /** The car stands on its stall pose to the centimetre — see CLEAN_POSE_EPS. */
+  private onStallPose(e: Entry): boolean {
+    if (!this.physicallyParked(e)) return false;
+    const p = e.stallId ? this.stallPos.get(e.stallId) : undefined;
+    if (!p) return false;
+    if (Math.hypot(e.car.x - p.x, e.car.y - p.y) > CLEAN_POSE_EPS) return false;
+    return Math.abs(wrapAngle(e.car.heading - e.stallHeading)) <= CLEAN_HEADING_EPS;
   }
 
   /** Live view of what OTTO-Q has asked for — for the operator's decision trace. */
@@ -1398,6 +1504,9 @@ class TwinMotionDriver {
     // arms belong to the scene, not to the process: leaving twin mode must not
     // leave a stall holding a car that no longer exists.
     this.armGate.clear();
+    this.cleanGate.clear();
+    this.cabinCleans.clear();
+    doorStore.clear();
     this.armSimMs = null;
     this.armRefusals = 0;
     this.stallTypes.clear();
@@ -1445,6 +1554,9 @@ class TwinMotionDriver {
     // a run switch invalidates every arm session too — the stall ids survive but
     // the cars they were mated to do not.
     this.armGate.clear();
+    this.cleanGate.clear();
+    this.cabinCleans.clear();
+    doorStore.clear();
     this.armSimMs = null;
     // clearing driver state is not enough on its own: the painted fleet and the
     // stall colors live in the stores, and an EMPTY roster produces the same
@@ -2628,6 +2740,16 @@ class TwinMotionDriver {
     this.twinTetherDirection = tetherDir;
     this.twinTetherPhase = tetherPhase;
     this.twinReservedFor = reservedFor;
+    // THE CABIN CLEANS (otto-q-core 0758): the interior tidy a car's fast-charger arm is
+    // doing, with its times, off each visit atom. Rebuilt wholesale like the tether
+    // maps: a step the twin has closed must stop the arm on the next frame. The times
+    // stay on the backend's sim clock (epoch ms), the one domain simNow() runs in.
+    const cabin = new Map<string, CabinClean>();
+    for (const bv of snap.fleet?.vehicles ?? []) {
+      const c = cabinCleanOf(bv, (id) => this.twinStall.get(id));
+      if (c) cabin.set(bv.id, c);
+    }
+    this.cabinCleans = cabin;
     // several vehicles can appear in ONE snapshot (twin ticks cover 30 sim-min):
     // stagger their spawn points back along the entrance road so they never
     // materialize stacked on top of each other at the gate.
