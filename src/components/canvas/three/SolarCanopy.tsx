@@ -5,6 +5,13 @@ import { canopyColumnYs, cabinetFootprints, CANOPY_COLUMN } from '@/lib/structur
 import { StaticBatch } from './staticBatch';
 import { MATERIALS } from './materials';
 import { galvanizedSteel, darkSteel, hazardBand, ledPanel, aluminiumTrim } from './buildingSkin';
+import {
+  placeCleanArm, fixtureHitsMount, canopyRoofAt, armStallsKey, PURLIN_UNDERSIDE_U, HEADER_DEPTH_U, HEADER_WIDTH_U,
+  type ArmStallPose,
+} from '@/lib/ottoCleanArm/cleanArmPlacement';
+import { CLEAN_ARM } from '@/lib/ottoCleanArm/cleanArmSpec';
+import { PLAN_UNITS_PER_METRE } from '@/lib/ottoChargeArm/cobotSpec';
+import { DECK_Y } from './coordUtils';
 
 /**
  * The three central charging canopies (site plan: A = DCFC, B/C = L2).
@@ -30,8 +37,10 @@ const HALF = 15;   // spine to eave, plan units
 const roofAt = (d: number) => R - ((R - E) * d) / HALF;
 const SLOPE = Math.atan2(R - E, HALF);
 
-export function SolarCanopy({ solarKWdc }: { solarKWdc: number }) {
-  const geos = useMemo(() => build(), []);
+export function SolarCanopy({ solarKWdc, armStalls = [] }: { solarKWdc: number; armStalls?: readonly ArmStallPose[] }) {
+  const key = armStallsKey(armStalls);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` is armStalls' content
+  const geos = useMemo(() => build(armStalls), [key]);
   const ledI = Math.min(2.6, 1.4 + solarKWdc / 900);
   const mats = useMemo<Record<string, THREE.Material>>(() => ({
     steel: galvanizedSteel(),
@@ -51,10 +60,11 @@ export function SolarCanopy({ solarKWdc }: { solarKWdc: number }) {
   );
 }
 
-function build(): Map<string, THREE.BufferGeometry> {
+function build(armStalls: readonly ArmStallPose[]): Map<string, THREE.BufferGeometry> {
   const b = new StaticBatch();
   const cabs = cabinetFootprints(generateStallsV2());
   const hc = CANOPY_COLUMN / 2;
+  const mounts = armStalls.map((p) => placeCleanArm(p.x, p.y, p.angle, DECK_Y).mount);
   for (const c of CANOPIES) {
     const wx = 150 - c.cx;
     const y0 = c.y, y1 = c.y + c.h;
@@ -113,9 +123,25 @@ function build(): Map<string, THREE.BufferGeometry> {
       const d = 7;
       const h = roofAt(d) - 0.35;
       for (let y = y0 + 6; y <= y1 - 6; y += 10) {
+        // a fixture an OTTO-CLEAN ARM's header beam would cut is not hung; the arm's
+        // stall keeps the fixtures either side of it
+        if (mounts.some((m) => fixtureHitsMount(m, c.cx, side as 1 | -1, y, 1.8))) continue;
         b.planBox('dark', { x0: c.cx + side * d - 0.45, x1: c.cx + side * d + 0.45, y0: y - 1.8, y1: y + 1.8 }, h - 0.12, h + 0.3);
         b.planBox('led', { x0: c.cx + side * d - 0.36, x1: c.cx + side * d + 0.36, y0: y - 1.7, y1: y + 1.7 }, h - 0.16, h - 0.1);
       }
+    }
+
+    // ── the OTTO-CLEAN ARMS' steel: a header beam under the two purlins either side
+    //    of each arm's J1, and a drop column from it to the arm's base drum ──
+    for (const m of mounts) {
+      if (Math.abs(m.cx - c.cx) > 0.5) continue;
+      b.geometry('steel', headerBeam(c.cx, m.side, m.d0 - 0.2, m.d1 + 0.2, m.planY));
+      const cw = CLEAN_ARM.column.w * PLAN_UNITS_PER_METRE;
+      const jx = c.cx + m.side * m.d;
+      // the column runs 0.05u up into the header so the sloped underside leaves no gap
+      b.planBox('steel', { x0: jx - cw / 2, x1: jx + cw / 2, y0: m.planY - cw / 2, y1: m.planY + cw / 2 }, m.columnBottom, m.headerBottomAtJ1 + 0.05);
+      // a bolted cap plate where the column meets the header
+      b.planBox('dark', { x0: jx - cw * 0.75, x1: jx + cw * 0.75, y0: m.planY - cw * 0.75, y1: m.planY + cw * 0.75 }, m.headerBottomAtJ1 - 0.06, m.headerBottomAtJ1);
     }
 
     // ── cable tray under the girder, conduit drop into any cabinet ON the spine ──
@@ -133,6 +159,28 @@ function build(): Map<string, THREE.BufferGeometry> {
     }
   }
   return b.build();
+}
+
+/**
+ * An OTTO-CLEAN ARM's header beam: a box from `d0` to `d1` out from the spine on
+ * `side`, HEADER_WIDTH_U along the canopy at plan y `planY`, its top on the purlins'
+ * undersides (so it follows the roof's slope) and HEADER_DEPTH_U deep.
+ */
+function headerBeam(cx: number, side: number, d0: number, d1: number, planY: number): THREE.BufferGeometry {
+  const len = d1 - d0;
+  const g = new THREE.BoxGeometry(len, HEADER_DEPTH_U, HEADER_WIDTH_U).toNonIndexed();
+  const pos = g.attributes.position as THREE.BufferAttribute;
+  const dMid = (d0 + d1) / 2;
+  const topMid = canopyRoofAt(dMid) - PURLIN_UNDERSIDE_U;
+  // world x = 150 - plan x, so a vertex at local x lies at d = dMid - side * x
+  const slope = (R - E) / HALF;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i);
+    pos.setY(i, pos.getY(i) + topMid - HEADER_DEPTH_U / 2 + slope * side * x);
+  }
+  g.computeVertexNormals();
+  g.translate(150 - (cx + side * dMid), 0, 110 - planY);
+  return g;
 }
 
 /**

@@ -15,7 +15,8 @@
 
 import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
-import { VEHICLE_GEO, PORT_GEO, CAR_L_PU, CAR_W_PU } from './vehicleBody';
+import { VEHICLE_GEO, PORT_GEO, CAR_L_PU, CAR_W_PU, DOOR_GEO, DOOR_HINGE_PU } from './vehicleBody';
+import { DOOR, CABIN_VOID, doorPoint, doorHinge, doorSwing, clearanceToDoor } from '@/lib/ottoChargeArm/vehicleEnvelope';
 import { DECK_Y } from './coordUtils';
 import { CAR_LENGTH, CAR_WIDTH } from '@/engine/motion/traffic';
 import { PLAN_UNITS_PER_METRE } from '@/lib/ottoChargeArm/cobotSpec';
@@ -103,10 +104,16 @@ describe('robotaxi body geometry', () => {
       (g.index ? g.index.count : g.attributes.position.count) / 3;
     // 5 body buffers + lamps (both ends, one buffer) + status lights (both
     // flanks and the pod band, one buffer, drawn only on cars being worked on)
-    expect(Object.keys(VEHICLE_GEO)).toHaveLength(7);
+    // + the cabin interior (liner, benches and mat in one buffer, 2026-10-19).
+    // The doors are not here: each has its own transform (DOOR_GEO).
+    expect(Object.keys(VEHICLE_GEO)).toHaveLength(8);
     // four tyres in one buffer: a single 14-segment cylinder is ~56 triangles
     expect(tri(VEHICLE_GEO.tyres)).toBeGreaterThan(4 * 40);
-    expect(tri(VEHICLE_GEO.body)).toBeLessThan(600);
+    // The body is a shell round the cabin now: the hole's rounded corners and the four
+    // flank panels round the doors. Measured 760 when it was cut (the interior 100); the
+    // bounds are what keep a careless curveSegments from multiplying them.
+    expect(tri(VEHICLE_GEO.body)).toBeLessThan(1000);
+    expect(tri(VEHICLE_GEO.interior)).toBeLessThan(200);
   });
 });
 
@@ -186,5 +193,128 @@ describe('lamps and status lights', () => {
     expect(s.max.y).toBeLessThanOrEqual(car.max.y);
     // and it is the flank strips, visible from the side: they reach the width
     expect(s.max.x).toBeGreaterThan(CAR_W_PU / 2 - 0.02);
+  });
+});
+
+
+// ═══════════════════════════════════════════════════════════════ THE DOORS ═══
+// The car has a cabin and a door on each flank (2026-10-19) so the OTTO-CLEAN ARM can
+// reach in while it charges. These pin what the eye checks: the hole is the cabin, the
+// door fills its aperture, it swings out without passing through the body, and no
+// charge inlet sits on it.
+
+/** A plan-unit vertex back in the authored car frame, metres: planUnits() sent
+ *  (x, y, z) to (-z, y, x) and scaled by PLAN_UNITS_PER_METRE. */
+const toCar = (x: number, y: number, z: number) => ({
+  x: z / PLAN_UNITS_PER_METRE, y: y / PLAN_UNITS_PER_METRE, z: -x / PLAN_UNITS_PER_METRE,
+});
+function eachVertex(g: THREE.BufferGeometry, f: (p: { x: number; y: number; z: number }) => void) {
+  const a = g.getAttribute('position');
+  for (let i = 0; i < a.count; i++) f(toCar(a.getX(i), a.getY(i), a.getZ(i)));
+}
+
+describe('the cabin and the doors', () => {
+  it('cuts the cabin through the body, and the bevel shrinks it to the void the arm is given', () => {
+    // No body vertex stands inside the cabin's free volume (the liner sits 1 cm inside
+    // the tunnel walls, so the walls themselves are 1 cm outside it) ...
+    let inside = 0, onWalls = 0;
+    eachVertex(VEHICLE_GEO.body, (p) => {
+      const inX = p.x > CABIN_VOID.alongMin + 1e-4 && p.x < CABIN_VOID.alongMax - 1e-4;
+      const inY = p.y > CABIN_VOID.floor + 1e-4 && p.y < CABIN_VOID.ceiling - 1e-4;
+      const inZ = Math.abs(p.z) < CABIN_VOID.halfWidth - 1e-4;
+      if (inX && inY && inZ) inside++;
+      // ... and the tunnel's end walls are there, 1 cm outside the void: the hole was
+      // cut and the bevel grew INTO it (a hole wound the wrong way grows instead)
+      if (Math.abs(Math.abs(p.x) - (CABIN_VOID.alongMax + 0.01)) < 1e-3 && inY && inZ) onWalls++;
+    });
+    expect(inside).toBe(0);
+    expect(onWalls).toBeGreaterThan(8);
+  });
+
+  it('draws the doors shut in their apertures, inside the car', () => {
+    for (const [name, d] of Object.entries(DOOR_GEO)) {
+      for (const part of [d.panel, d.glass, d.status]) {
+        eachVertex(part, (p) => {
+          expect(p.x, `${name} x`).toBeGreaterThanOrEqual(DOOR.alongMin - 1e-6);
+          expect(p.x, `${name} x`).toBeLessThanOrEqual(DOOR.alongMax + 1e-6);
+          expect(p.y, `${name} y`).toBeGreaterThanOrEqual(DOOR.sill - 1e-6);
+          expect(p.y, `${name} y`).toBeLessThanOrEqual(DOOR.top + 1e-6);
+          // on its own flank, and no wider than the car
+          expect(Math.sign(p.z), name).toBe(name === 'right' ? 1 : -1);
+          expect(Math.abs(p.z)).toBeLessThanOrEqual(CAR_W_PU / 2 / PLAN_UNITS_PER_METRE + 1e-6);
+        });
+      }
+    }
+  });
+
+  it('puts the hinge where the renderer turns the door: the same point in both frames', () => {
+    for (const [side, h] of [[1, DOOR_HINGE_PU.right], [-1, DOOR_HINGE_PU.left]] as const) {
+      const c = toCar(h.x, 0, h.z);
+      const e = doorHinge(side);
+      expect(c.x).toBeCloseTo(e.x, 9);
+      expect(c.z).toBeCloseTo(e.z, 9);
+    }
+  });
+
+  it('swings each door OUT, its rear edge away from the car, to DOOR.openDeg', () => {
+    for (const side of [1, -1] as const) {
+      const rear = { x: DOOR.alongMin, y: 0.8, z: side * (CAR_W_PU / 2 / PLAN_UNITS_PER_METRE) };
+      const open = doorPoint(side, 1, rear);
+      expect(side * open.z).toBeGreaterThan(side * rear.z + 0.9);   // about a metre off the flank
+      expect(open.x).toBeGreaterThan(DOOR.alongMin);                // and forward, toward the hinge
+      expect(Math.abs(doorSwing(side, 1)) * 180 / Math.PI).toBeCloseTo(DOOR.openDeg, 9);
+      expect(Math.abs(doorSwing(side, 0))).toBe(0);
+    }
+  });
+
+  it('never passes the door through the body: inside the flank, a door point is in its aperture', () => {
+    // Sampled through the whole swing. A point of the swinging door that is inboard of
+    // the paint face must be inside the aperture (where the door itself was); anywhere
+    // else inboard of the flank is the body or a flank panel.
+    const paintFace = CAR_W_PU / 2 / PLAN_UNITS_PER_METRE - 0.02;
+    let checked = 0;
+    for (const [name, d] of Object.entries(DOOR_GEO)) {
+      const side = name === 'right' ? 1 : -1;
+      for (let k = 0; k <= 40; k++) {
+        const f = k / 40;
+        eachVertex(d.panel, (p0) => {
+          const p = doorPoint(side, f, p0);
+          checked++;
+          if (Math.abs(p.z) < paintFace - 1e-6) {
+            expect(p.x, `${name} at ${f}`).toBeGreaterThan(DOOR.alongMin - 1e-6);
+            expect(p.x, `${name} at ${f}`).toBeLessThan(DOOR.alongMax + 1e-6);
+          }
+        });
+      }
+    }
+    expect(checked).toBeGreaterThan(1000);
+  });
+
+  it('agrees with its own solid: every drawn door vertex is inside clearanceToDoor, shut and open', () => {
+    for (const [name, d] of Object.entries(DOOR_GEO)) {
+      const side = name === 'right' ? 1 : -1;
+      for (const f of [0, 0.3, 0.7, 1]) {
+        for (const part of [d.panel, d.glass]) {
+          eachVertex(part, (p0) => {
+            const p = doorPoint(side, f, p0);
+            expect(clearanceToDoor(p, side, f), `${name} at ${f}`).toBeLessThanOrEqual(1e-6);
+          });
+        }
+      }
+    }
+  });
+
+  it('keeps every charge inlet off the door, with panel round its ring', () => {
+    const ringR = 0.092 + 0.006;
+    const oems = ['tesla', 'waymo', 'zoox', 'cruise', 'motional', 'van', null, 'unknown'];
+    let worst = Infinity;
+    for (const oem of oems) {
+      for (let i = 0; i < 80; i++) {
+        const p = portFor(`veh-${oem}-${i}`, oem);
+        worst = Math.min(worst, (DOOR.alongMin - DOOR.seam) - (p.along + ringR));
+      }
+    }
+    // the lit ring's outer edge stands 0.148 m of panel behind the door's rear seam
+    expect(worst).toBeGreaterThan(0.14);
   });
 });

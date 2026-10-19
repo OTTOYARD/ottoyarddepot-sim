@@ -12,8 +12,11 @@
 //   desktop 2D / 3D  anchored over the car and following it (AnchoredQCard), clamped inside the view; above the
 //                    car, else beside it, else below — never over the car itself
 //   phone            a bottom sheet (QCardSheet): at a phone's live-view size an anchored card covers the car
+//
+// Both sit inside the depot view, so each draws inside its own QCardBoundary: a card that fails to draw says so and
+// closes, and the depot view stays.
 // ============================================================================
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Component, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Bot, ChevronDown, ChevronRight, X } from 'lucide-react';
 import { useQCard } from '@/store/qCardStore';
 import { useVehicleStore } from '@/store/vehicleStore';
@@ -21,7 +24,7 @@ import { useTwinStore } from '@/store/twinStore';
 import { useOwnerBoardStore } from '@/store/ownerBoardStore';
 import { useVehicleQCard } from '@/hooks/useVehicleQCard';
 import { CarTrail } from '@/components/tabs/ottoq/CarTrail';
-import { DASH, clock, pctText, type QCard, type QStep } from '@/lib/vehicleQCard';
+import { DASH, clock, pctText, type QCabinClean, type QCard, type QStep } from '@/lib/vehicleQCard';
 import { carOwnerView, type OwnerCarView } from '@/lib/ownerBoard';
 
 const OK = '#34D399';
@@ -89,6 +92,42 @@ function StepRow({ s }: { s: QStep }) {
         )}
       </div>
     </li>
+  );
+}
+
+/**
+ * The interior clean the stall's OTTO-CLEAN ARM does during the charge: starting (an empty box), in progress (a dot
+ * and a meter to the twin's end time), done (a tick and the time). Chase, 2026-10-19.
+ */
+function CabinCleanRow({ c }: { c: QCabinClean }) {
+  const done = c.state === 'done';
+  const starting = c.state === 'starting';
+  return (
+    <div className="mt-1.5 rounded border border-white/[0.06] bg-white/[0.03] px-2 py-1.5" data-testid="qcard-cabin" data-state={c.state}>
+      <div className="flex items-center gap-1.5">
+        <span aria-hidden className="inline-flex h-3 w-3 shrink-0 items-center justify-center rounded-[3px] border text-[8px] font-bold"
+          style={done ? { background: OK, borderColor: OK, color: '#06070A' } : { borderColor: TEAL }}>
+          {done ? '✓' : starting ? '' : <span className="h-1.5 w-1.5 rounded-full" style={{ background: TEAL }} />}
+        </span>
+        <span className="text-[11px] font-medium">Interior clean</span>
+        <span className="min-w-0 truncate text-[10px] text-ink-faint">· by the stall's cleaning arm</span>
+        <span className="flex-1" />
+        <span className="shrink-0 text-[9px] uppercase tracking-[0.06em]" style={{ color: done ? OK : TEAL }} data-testid="qcard-cabin-state">
+          {done ? 'Done' : starting ? 'Starting' : 'In progress'}
+        </span>
+      </div>
+      {!done && (
+        <div className="mt-1 flex items-center gap-1.5">
+          <Meter value={c.progress} label="Interior clean progress" />
+          <span className="shrink-0 font-mono text-[9px] text-ink-dim">
+            {c.progress !== null ? `${Math.round(c.progress)}%` : DASH} · ends {clock(c.endsAt)}
+          </span>
+        </div>
+      )}
+      <div className="mt-0.5 text-[9px] text-ink-faint" data-testid="qcard-cabin-words">
+        {done ? `Done at ${clock(c.doneAt)}.` : c.words}
+      </div>
+    </div>
   );
 }
 
@@ -200,6 +239,8 @@ export function QCardBody({ card, oem, onClose, cardsStatus, owner }: {
         )}
       </div>
 
+      {card.cabinClean && <CabinCleanRow c={card.cabinClean} />}
+
       {card.hold && (
         <div className="mt-1.5 rounded border px-2 py-1 text-[10px]" style={{ borderColor: 'rgba(251,191,36,0.35)', color: WARN, background: 'rgba(251,191,36,0.06)' }} data-testid="qcard-hold">
           {card.hold.words}{card.hold.place ? ` · ${card.hold.place}` : ''}{card.hold.until ? ` · until ${clock(card.hold.until)}` : ''}
@@ -308,7 +349,7 @@ const EDGE = 8;
  * one rAF places the card from it inside its positioned parent, imperatively, so a moving car is followed without
  * re-rendering anything.
  */
-export function AnchoredQCard({ getAnchor }: { getAnchor: (id: string) => { x: number; y: number; r: number } | null }) {
+function AnchoredCard({ getAnchor }: { getAnchor: (id: string) => { x: number; y: number; r: number } | null }) {
   const { openId, close, oem, owner, card, cardsStatus } = useOpenCard();
   const ref = useRef<HTMLDivElement>(null);
 
@@ -359,7 +400,7 @@ export function AnchoredQCard({ getAnchor }: { getAnchor: (id: string) => { x: n
 }
 
 /** The phone's card: a bottom sheet over the cockpit. */
-export function QCardSheet() {
+function CardSheet() {
   const { openId, close, oem, owner, card, cardsStatus } = useOpenCard();
   if (!openId || !card) return null;
   return (
@@ -370,5 +411,50 @@ export function QCardSheet() {
       <div aria-hidden className="mx-auto mb-1.5 h-1 w-9 rounded-full bg-white/20" />
       <QCardBody card={card} oem={oem} onClose={close} cardsStatus={cardsStatus} owner={owner} />
     </div>
+  );
+}
+
+/**
+ * A card that fails to draw shows one line and a close button in its place; it never takes the depot view with it (the
+ * 3D view's own boundary would otherwise say the 3D view is not available). Keyed on the open car, so the next tap
+ * draws afresh.
+ */
+export class QCardBoundary extends Component<{ children: ReactNode; onClose: () => void; className: string }, { failed: boolean }> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  render() {
+    if (!this.state.failed) return this.props.children;
+    return (
+      <div role="alert" className={`z-40 flex items-center gap-3 rounded-md border border-white/15 bg-canvas-panel/95 px-3 py-2 text-xs text-ink-dim shadow-2xl ${this.props.className}`}>
+        <span>The card for this car is not available.</span>
+        <button type="button" className="rounded px-2 py-1 text-white hover:bg-white/10" onClick={this.props.onClose}>Close</button>
+      </div>
+    );
+  }
+}
+
+/** The card anchored over the tapped car (desktop 2D and 3D), inside its own boundary. */
+export function AnchoredQCard({ getAnchor }: { getAnchor: (id: string) => { x: number; y: number; r: number } | null }) {
+  const openId = useQCard((s) => s.openId);
+  const close = useQCard((s) => s.close);
+  return (
+    <QCardBoundary key={openId ?? ''} onClose={close} className="absolute left-2 top-2">
+      <AnchoredCard getAnchor={getAnchor} />
+    </QCardBoundary>
+  );
+}
+
+/** The phone's bottom sheet, inside its own boundary. */
+export function QCardSheet() {
+  const openId = useQCard((s) => s.openId);
+  const close = useQCard((s) => s.close);
+  return (
+    <QCardBoundary key={openId ?? ''} onClose={close} className="fixed inset-x-4 bottom-4">
+      <CardSheet />
+    </QCardBoundary>
   );
 }

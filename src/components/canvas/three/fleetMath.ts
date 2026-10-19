@@ -16,6 +16,27 @@ export function writeYaw(a: Float32Array, i: number, x: number, y: number, z: nu
 export function writeZero(a: Float32Array, i: number): void { a.fill(0, i * 16, i * 16 + 16); }
 
 /**
+ * A door's world pose: the car at (x, z) turned `yaw`, the door drawn SHUT in the
+ * car's frame and swung `phi` about its vertical hinge at (hx, hz) in that frame —
+ * T(car) Ry(yaw) T(h) Ry(phi) T(-h), which is again a pure turn and a move:
+ * Ry(yaw + phi), moved by car + Ry(yaw)(h - Ry(phi) h). Writes into `out`.
+ */
+export function doorWorld(
+  x: number, z: number, yaw: number, hx: number, hz: number, phi: number,
+  out: { x: number; z: number; yaw: number },
+): { x: number; z: number; yaw: number } {
+  const cp = Math.cos(phi), sp = Math.sin(phi);
+  // h - Ry(phi) h, in the car's frame
+  const dx = hx - (cp * hx + sp * hz);
+  const dz = hz - (-sp * hx + cp * hz);
+  const c = Math.cos(yaw), s = Math.sin(yaw);
+  out.x = x + c * dx + s * dz;
+  out.z = z - s * dx + c * dz;
+  out.yaw = yaw + phi;
+  return out;
+}
+
+/**
  * The charge port's world pose: the car at (x, 0, z) turned `yaw`, the port
  * group at `pos` in the car's frame turned `portYaw` about Y. Writes into `out`.
  */

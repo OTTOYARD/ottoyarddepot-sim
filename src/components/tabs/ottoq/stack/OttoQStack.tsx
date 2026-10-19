@@ -712,11 +712,16 @@ function DecideTiles({ rt, tiles }: { rt: Runtime; tiles: StackModel["tiles"] })
 }
 
 function DepotPlate({ rt, depot, onFocus }: { rt: Runtime; depot: StackModel["depot"]; onFocus: (p: PlateId) => void }) {
-  const tex = useMemo(depotTexture, []);
-  useEffect(() => () => { tex.dispose(); }, [tex]);
+  // repainted when the charger build changes (the zones' sockets are the site's real stalls)
+  const tex = useMemo(() => depotTexture(), [depot.site]); // eslint-disable-line react-hooks/exhaustive-deps
   const cap = useFadeMaterial(rt, "depot", () => new THREE.MeshStandardMaterial({ color: "#101116", metalness: 0.6, roughness: 0.55, envMapIntensity: 0.8, opacity: 1 }));
   const side = useFadeMaterial(rt, "depot", () => new THREE.MeshStandardMaterial({ color: "#1d2129", metalness: 0.9, roughness: 0.3, envMapIntensity: 1.3, opacity: 1 }));
   const top = useFadeMaterial(rt, "depot", () => new THREE.MeshStandardMaterial({ map: tex, metalness: 0.35, roughness: 0.62, envMapIntensity: 0.7, opacity: 1, depthWrite: false }));
+  useEffect(() => {
+    top.map = tex;
+    top.needsUpdate = true;
+    return () => { tex.dispose(); };
+  }, [top, tex]);
   const portBody = useFadeMaterial(rt, "depot", () => new THREE.MeshStandardMaterial({ color: "#2a2d34", metalness: 0.9, roughness: 0.3, opacity: 1 }));
   const portSlot = useFadeMaterial(rt, "depot", () => new THREE.MeshBasicMaterial({ color: new THREE.Color("#e2e8f0").multiplyScalar(1.2), toneMapped: false, opacity: 0.8 }));
   // The chassis' ports: structure, like the reference's. They carry no data and never change.

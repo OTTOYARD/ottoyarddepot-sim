@@ -42,7 +42,7 @@
 // And the hold is BOUNDED even when a signal is stuck — see HOLD_CAP_S.
 // ============================================================================
 import {
-  advanceArmSession, isArmCommitted, IDLE_SESSION, stallHasArm, MIN_DEMATE_SPEED,
+  advanceArmSession, armSessionInput, IDLE_SESSION, stallHasArm, MIN_DEMATE_SPEED,
   type ArmSession,
 } from "@/lib/ottoChargeArm/roboticService";
 import {
@@ -121,6 +121,10 @@ export interface ArmStallInput {
   parked: boolean;
   /** Seconds of demate still owed per OTTO-Q's robotic tether, or null when none. */
   tetherRemainingS: number | null;
+  /** The stall's OTTO-CLEAN ARM is not home (cleanGate.busy). See armSessionInput. */
+  cleanBusy?: boolean;
+  /** The stall's OTTO-CLEAN ARM is moving over or beside the car (cleanGate.blocksMate). */
+  cleanBlocksMate?: boolean;
 }
 
 interface StallState {
@@ -161,18 +165,18 @@ export class ArmGate {
       const prev = this.stalls.get(input.stallId);
       const before = prev?.session ?? IDLE_SESSION;
 
-      // EXACTLY ChargingArm's composition, deliberately duplicated line-for-line
-      // rather than paraphrased: the window proves the car is parked and opens
-      // the mate; once the arm is committed the window may vanish (a re-plan
-      // drops the dwell leg) without yanking the connector out of the car.
-      const charging = input.vehicleId !== null && input.chargingState
-        && (input.parked || isArmCommitted(before.phase));
+      // EXACTLY ChargingArm's composition: one function, armSessionInput, which both
+      // call. The window proves the car is parked and opens the mate; once the arm is
+      // committed the window may vanish (a re-plan drops the dwell leg) without yanking
+      // the connector out of the car; and the stall's cleaning arm and this one never
+      // move beside the car at once.
+      const { charging, tetherRemainingS } = armSessionInput(before, input);
 
       const session = advanceArmSession(before, {
         dt,
         vehicleId: input.vehicleId,
         charging,
-        tetherRemainingS: input.tetherRemainingS,
+        tetherRemainingS,
       });
 
       // TWO AUTHORITIES, EITHER OF WHICH MAY HOLD.

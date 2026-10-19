@@ -19,6 +19,7 @@
 // Nothing is placed that no record carries, and a count past a zone's slots is reported, never dropped silently.
 import type { ActivityFeedRow } from "@/store/activityFeedStore";
 import { generateStallsV2 } from "@/lib/sitePlan";
+import { chargerBuildSpec, chargerBuildVersion } from "@/lib/chargerBuild";
 import { decisionKey, human } from "@/lib/decisionText";
 import {
   CAR_ACTIONS, proposerWord, rowTone, stateLayer,
@@ -255,17 +256,14 @@ export interface ZoneDef {
   fixed: boolean;
 }
 
-const SITE = (() => {
-  const c: Record<string, number> = {};
-  for (const s of generateStallsV2()) c[s.type] = (c[s.type] ?? 0) + 1;
-  return { dcfc: c.dcfc ?? 0, l2: c.l2 ?? 0, wash: c.wash ?? 0, service: c.service ?? 0 };
-})();
-export const SITE_COUNTS = SITE;
+/** The site's real stall counts, for the charger build the depot is drawn with now (syncStackSite). */
+const SITE = { dcfc: 0, l2: 0, wash: 0, service: 0 };
+export const SITE_COUNTS: Readonly<typeof SITE> = SITE;
 
 // The zones sit where their stalls sit on the real site (src/lib/sitePlan.ts), squeezed onto the plate: west is -x,
 // north (the building and the wash) is -z, the gates are on the south (+z) edge and a car ENTERS AT THE EAST GATE and
 // LEAVES BY THE WEST GATE, as the founder locked the site. Charger and bay zones hold the site's real stall counts.
-const DC_ROWS = Math.max(1, Math.ceil(SITE.dcfc / 2));
+// The charger and bay zones' sizes are set by syncStackSite from the build drawn now; these are the as-built ones.
 const L2_ROWS = 5;
 export const ZONES: readonly ZoneDef[] = [
   // the approach lane runs down the plate's east edge to the east gate in its south-east corner
@@ -273,11 +271,11 @@ export const ZONES: readonly ZoneDef[] = [
   { id: "gate", label: "East gate", x0: 1.3, z0: 2.3, cols: 7, rows: 2, px: 0.4, pz: 0.42, fixed: false },
   { id: "waiting", label: "Waiting for a plan", x0: 1.3, z0: -2.0, cols: 7, rows: 5, px: 0.4, pz: 0.4, fixed: false },
   { id: "booked", label: "Booked", x0: 1.3, z0: 0.3, cols: 7, rows: 3, px: 0.4, pz: 0.4, fixed: false },
-  { id: "dcfc", label: "DCFC", x0: -3.15, z0: -1.75, cols: 2, rows: DC_ROWS, px: 0.5, pz: 0.45, fixed: true },
-  { id: "l2", label: "L2", x0: -2.0, z0: -1.75, cols: Math.max(1, Math.ceil(SITE.l2 / L2_ROWS)), rows: L2_ROWS, px: 0.44, pz: 0.45, fixed: true },
+  { id: "dcfc", label: "DCFC", x0: -3.15, z0: -1.75, cols: 2, rows: 5, px: 0.5, pz: 0.45, fixed: true },
+  { id: "l2", label: "L2", x0: -2.0, z0: -1.75, cols: 6, rows: L2_ROWS, px: 0.44, pz: 0.45, fixed: true },
   { id: "hold", label: "Between steps", x0: -2.0, z0: 0.75, cols: 7, rows: 2, px: 0.42, pz: 0.42, fixed: false },
-  { id: "wash", label: "Wash / detail", x0: -0.75, z0: -2.7, cols: Math.max(1, SITE.wash), rows: 1, px: 0.7, pz: 0.7, fixed: true },
-  { id: "service", label: "Service", x0: -2.55, z0: -2.7, cols: Math.max(1, SITE.service), rows: 1, px: 0.7, pz: 0.7, fixed: true },
+  { id: "wash", label: "Wash / detail", x0: -0.75, z0: -2.7, cols: 3, rows: 1, px: 0.7, pz: 0.7, fixed: true },
+  { id: "service", label: "Service", x0: -2.55, z0: -2.7, cols: 2, rows: 1, px: 0.7, pz: 0.7, fixed: true },
   { id: "repair", label: "Repair", x0: -4.55, z0: -2.85, cols: 3, rows: 2, px: 0.38, pz: 0.36, fixed: false },
   { id: "ready", label: "Ready", x0: -4.55, z0: -1.75, cols: 3, rows: 9, px: 0.38, pz: 0.4, fixed: false },
 ];
@@ -288,11 +286,40 @@ export const ENTRY_POINT = { x: 4.4, z: -2.95 };
 /** How far inside the plate's edge every car must sit (a puck's radius, and a little air). */
 export const PLATE_MARGIN = 0.22;
 export const ZONE: Record<DepotZone, ZoneDef> = Object.fromEntries(ZONES.map((z) => [z.id, z])) as Record<DepotZone, ZoneDef>;
+
+let siteVersion = -1;
+/**
+ * Size the charger and bay zones to the charger build the depot is drawn with now (src/lib/chargerBuild.ts), once per
+ * change of build: two columns of fast chargers for each fast-charger canopy and five rows, as on the site (canopy A as
+ * built; A and B in the 20-post build), and the L2 zone east of them. As built, the zones are exactly as before.
+ * Returns the build version they are sized for: what the plate's painted texture keys on.
+ */
+export function syncStackSite(): number {
+  const ver = chargerBuildVersion();
+  if (ver === siteVersion) return ver;
+  siteVersion = ver;
+  const c: Record<string, number> = {};
+  for (const s of generateStallsV2()) c[s.type] = (c[s.type] ?? 0) + 1;
+  SITE.dcfc = c.dcfc ?? 0; SITE.l2 = c.l2 ?? 0; SITE.wash = c.wash ?? 0; SITE.service = c.service ?? 0;
+  const dc = ZONE.dcfc, l2 = ZONE.l2;
+  dc.cols = 2 * chargerBuildSpec().dcfcCanopies;
+  dc.rows = Math.max(1, Math.ceil(SITE.dcfc / dc.cols));
+  l2.x0 = -2.0 + (dc.cols - 2) * dc.px;
+  l2.cols = Math.max(1, Math.ceil(SITE.l2 / L2_ROWS));
+  ZONE.wash.cols = Math.max(1, SITE.wash);
+  ZONE.service.cols = Math.max(1, SITE.service);
+  return ver;
+}
+syncStackSite();
+
 /** Capacity of the charger and bay zones is the site's real count, not the grid's. */
-export const zoneCapacity = (z: ZoneDef): number =>
-  z.id === "dcfc" ? SITE.dcfc : z.id === "l2" ? SITE.l2 : z.id === "wash" ? SITE.wash : z.id === "service" ? SITE.service : z.cols * z.rows;
+export const zoneCapacity = (z: ZoneDef): number => {
+  syncStackSite();
+  return z.id === "dcfc" ? SITE.dcfc : z.id === "l2" ? SITE.l2 : z.id === "wash" ? SITE.wash : z.id === "service" ? SITE.service : z.cols * z.rows;
+};
 
 export function zoneCenter(id: DepotZone): { x: number; z: number } {
+  syncStackSite();
   const z = ZONE[id];
   return { x: z.x0 + ((z.cols - 1) * z.px) / 2, z: z.z0 + ((z.rows - 1) * z.pz) / 2 };
 }
@@ -363,9 +390,12 @@ export interface DepotModel {
   deployed: Set<string>;
   /** False when the cards have not answered for this run: then no car is shown arriving or leaving. */
   read: boolean;
+  /** The charger build version the zones were sized for (syncStackSite): the plate repaints when it changes. */
+  site: number;
 }
 
 export function depotModel(vehicles: readonly FunnelCardVehicle[], tones: ReadonlyMap<string, NodeTone>, read = true): DepotModel {
+  const site = syncStackSite();
   const byZone = new Map<DepotZone, FunnelCardVehicle[]>();
   for (const v of vehicles) {
     const z = carZone(v);
@@ -417,7 +447,7 @@ export function depotModel(vehicles: readonly FunnelCardVehicle[], tones: Readon
     }
   }
   const deployed = new Set(vehicles.filter((v) => v.state === "deployed").map((v) => v.vehicle_id));
-  return { pucks, overflow, counts, activity, deployed, read };
+  return { pucks, overflow, counts, activity, deployed, read, site };
 }
 
 // ── events: records that arrived while watching ─────────────────────────────
@@ -633,6 +663,7 @@ export interface PlateTag { key: string; x: number; z: number; text: string; sub
 export function plateTags(m: StackModel, shield: { evaluations: number | null; refused: number | null } | null): Record<PlateId, PlateTag[]> {
   const n = (x: number | null | undefined) => (x == null ? "—" : x.toLocaleString("en-US"));
   const depot: PlateTag[] = [];
+  syncStackSite();
   for (const z of ZONES) {
     const count = m.depot.read ? m.depot.counts[z.id] : null;
     const cap = zoneCapacity(z);

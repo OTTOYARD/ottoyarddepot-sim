@@ -20,6 +20,8 @@
 //   --url U         dev server (http://127.0.0.1:8080/)
 //   --events FILE   ottoq_run_event_feed payload for the Events tab (--before only)
 //   --chromium P    browser executable (default /opt/pw-browsers/chromium if present)
+//   --build B       draw the page with charger build B (src/lib/chargerBuild.ts: as_built | dcfc20), as the twin's
+//                   layout census would set it; the recorded cards keep their own stall codes
 // ============================================================================
 import { chromium, devices } from "@playwright/test";
 import fs from "node:fs";
@@ -33,6 +35,7 @@ const BEFORE = has("--before");
 const EVENTS = arg("--events", null);
 const WIDTHS = arg("--widths", "420,360,320").split(",").map(Number).filter(Boolean);
 const ONLY = arg("--only", null);
+const BUILD = arg("--build", null);
 const NO_PHONE = has("--no-phone");
 const exe = arg("--chromium", fs.existsSync("/opt/pw-browsers/chromium") ? "/opt/pw-browsers/chromium" : undefined);
 fs.mkdirSync(OUT, { recursive: true });
@@ -95,6 +98,14 @@ async function panelShots(browser, width) {
   const log = installRoutes(page);
   await page.goto(`${URL_}?run=${RUN}`, { waitUntil: "domcontentloaded" });
   await page.waitForTimeout(2500);
+  // The dev server serves the app's own module, so this is the build the page draws (the bridge sets it from the
+  // twin layout's census; this page is answered no layout).
+  // Imported by the URL the page itself loaded it from (Vite stamps an updated module), so it is the same module.
+  if (BUILD) await page.evaluate(async (b) => {
+    const url = performance.getEntriesByType("resource").map((e) => e.name).find((n) => n.includes("/src/lib/chargerBuild.ts"));
+    if (!url) throw new Error("the page has not loaded src/lib/chargerBuild.ts");
+    (await import(url)).setChargerBuild(b);
+  }, BUILD);
   // Size the side panel like a narrower screen would.
   await page.evaluate((w) => {
     const el = document.querySelector("div.w-\\[420px\\]");
@@ -119,7 +130,7 @@ async function panelShots(browser, width) {
     }
     await page.waitForTimeout(t === "OTTO-Q" ? 11000 : 3000); // OTTO-Q: long enough for the second cards and feed reads
     const panel = page.locator("div.w-\\[420px\\]").first();
-    const name = `${BEFORE ? "before" : "after"}-${t.toLowerCase().replace(/[^a-z]/g, "")}-${width}.png`;
+    const name = `${BEFORE ? "before" : "after"}-${t.toLowerCase().replace(/[^a-z]/g, "")}-${width}${BUILD ? `-${BUILD}` : ""}.png`;
     await panel.screenshot({ path: path.join(OUT, name) });
     shots.push(name);
     overflow[t] = await page.evaluate(() => {
@@ -178,7 +189,7 @@ async function panelShots(browser, width) {
           : page.locator("button[aria-pressed]", { hasText: layer }).first();
         await btn.click({ force: true });
         await page.waitForTimeout(flat ? 600 : 4000);
-        const nm = `after-ottoq-${layer.toLowerCase().replace(/[^a-z]/g, "")}-${width}.png`;
+        const nm = `after-ottoq-${layer.toLowerCase().replace(/[^a-z]/g, "")}-${width}${BUILD ? `-${BUILD}` : ""}.png`;
         await panel.screenshot({ path: path.join(OUT, nm) });
         shots.push(nm);
         await btn.click({ force: true });

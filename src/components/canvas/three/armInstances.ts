@@ -102,7 +102,7 @@ export function armSkeleton(): THREE.Object3D {
  * glow (as emissive + emissiveIntensity were), so the LED keeps its exact
  * look and its charging pulse.
  */
-function statusMaterial(base: THREE.MeshStandardMaterial): THREE.MeshStandardMaterial {
+export function statusMaterial(base: THREE.MeshStandardMaterial): THREE.MeshStandardMaterial {
   const m = base.clone();
   m.color.set(0xffffff);
   m.emissive.set(0xffffff);

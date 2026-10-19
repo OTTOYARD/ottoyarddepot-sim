@@ -1,0 +1,702 @@
+{
+ "target": "DCFC-03",
+ "shots": [
+  "000-doors_open-high",
+  "001-swing_a-left",
+  "002-enter_a-left",
+  "003-clean_a-left",
+  "004-clean_a-high",
+  "005-row-canopy",
+  "006-exit_a-left",
+  "007-swing_b-right",
+  "008-descend_b-right",
+  "009-clean_b-right",
+  "010-clean_b-high",
+  "011-exit_b-right",
+  "012-ascend_b-right",
+  "013-return-high",
+  "014-doors_close-high",
+  "015-home-high"
+ ],
+ "phases": {
+  "DCFC-01": [
+   "home",
+   "doors_open",
+   "swing_a",
+   "enter_a",
+   "clean_a",
+   "exit_a",
+   "ascend_a",
+   "raise_a",
+   "swing_b",
+   "lower_b",
+   "descend_b",
+   "enter_b",
+   "clean_b",
+   "exit_b",
+   "ascend_b",
+   "return",
+   "doors_close",
+   "home"
+  ],
+  "DCFC-02": [
+   "home",
+   "doors_open",
+   "descend_a",
+   "clean_a",
+   "raise_a",
+   "descend_b",
+   "clean_b",
+   "exit_b",
+   "ascend_b",
+   "return",
+   "doors_close",
+   "home"
+  ],
+  "DCFC-03": [
+   "doors_open",
+   "swing_a",
+   "enter_a",
+   "clean_a",
+   "exit_a",
+   "swing_b",
+   "descend_b",
+   "clean_b",
+   "exit_b",
+   "ascend_b",
+   "return",
+   "doors_close",
+   "home"
+  ],
+  "DCFC-04": [
+   "home",
+   "doors_open",
+   "clean_a",
+   "exit_a",
+   "swing_b",
+   "clean_b",
+   "exit_b",
+   "ascend_b",
+   "return",
+   "doors_close",
+   "home"
+  ],
+  "DCFC-05": [
+   "home",
+   "doors_open",
+   "swing_a",
+   "lower_a",
+   "clean_a",
+   "exit_a",
+   "ascend_a",
+   "raise_a",
+   "swing_b",
+   "lower_b",
+   "descend_b",
+   "enter_b",
+   "clean_b"
+  ],
+  "DCFC-06": [
+   "home",
+   "doors_open",
+   "descend_a",
+   "clean_a",
+   "exit_a",
+   "raise_a",
+   "descend_b",
+   "clean_b",
+   "exit_b",
+   "ascend_b",
+   "return",
+   "doors_close",
+   "home"
+  ],
+  "DCFC-07": [
+   "home",
+   "doors_open",
+   "swing_a",
+   "clean_a",
+   "exit_a",
+   "ascend_a",
+   "raise_a",
+   "swing_b",
+   "lower_b",
+   "descend_b",
+   "enter_b",
+   "clean_b",
+   "exit_b",
+   "ascend_b",
+   "return",
+   "doors_close",
+   "home"
+  ],
+  "DCFC-08": [
+   "home",
+   "doors_open",
+   "swing_a",
+   "clean_a",
+   "ascend_a",
+   "lower_b",
+   "clean_b",
+   "exit_b",
+   "ascend_b",
+   "return",
+   "doors_close",
+   "home"
+  ],
+  "DCFC-09": [
+   "home",
+   "doors_open",
+   "lower_a",
+   "clean_a",
+   "exit_a",
+   "ascend_a",
+   "raise_a",
+   "swing_b",
+   "lower_b",
+   "descend_b",
+   "enter_b",
+   "clean_b",
+   "exit_b",
+   "ascend_b",
+   "return",
+   "doors_close",
+   "home"
+  ],
+  "DCFC-10": [
+   "home",
+   "doors_open",
+   "swing_a",
+   "lower_a",
+   "descend_a",
+   "enter_a",
+   "clean_a",
+   "exit_a",
+   "ascend_a",
+   "raise_a",
+   "swing_b",
+   "lower_b",
+   "descend_b",
+   "enter_b",
+   "clean_b"
+  ]
+ },
+ "checks": [
+  {
+   "phase": "doors_open",
+   "j1": [
+    53.674,
+    7.407,
+    -5.812
+   ],
+   "pivot": [
+    52.815,
+    4.816,
+    -5.316
+   ],
+   "knuckle": [
+    52,
+    4.816,
+    -4.845
+   ],
+   "holds": {
+    "charge": [
+     "DCFC-03"
+    ],
+    "clean": [
+     "DCFC-03"
+    ]
+   }
+  },
+  {
+   "phase": "swing_a",
+   "j1": [
+    53.674,
+    7.407,
+    -5.812
+   ],
+   "pivot": [
+    52.81,
+    4.816,
+    -4.897
+   ],
+   "knuckle": [
+    52.164,
+    4.816,
+    -4.213
+   ],
+   "holds": {
+    "charge": [
+     "DCFC-02",
+     "DCFC-08",
+     "DCFC-03",
+     "DCFC-06",
+     "DCFC-04"
+    ],
+    "clean": [
+     "DCFC-02",
+     "DCFC-08",
+     "DCFC-03",
+     "DCFC-06",
+     "DCFC-04"
+    ]
+   }
+  },
+  {
+   "phase": "enter_a",
+   "j1": [
+    53.674,
+    7.407,
+    -5.812
+   ],
+   "pivot": [
+    54.557,
+    3.037,
+    -3.53
+   ],
+   "knuckle": [
+    54.221,
+    2.381,
+    -4.113
+   ],
+   "holds": {
+    "charge": [
+     "DCFC-02",
+     "DCFC-08",
+     "DCFC-03",
+     "DCFC-06",
+     "DCFC-04"
+    ],
+    "clean": [
+     "DCFC-02",
+     "DCFC-08",
+     "DCFC-03",
+     "DCFC-06",
+     "DCFC-04"
+    ]
+   }
+  },
+  {
+   "phase": "clean_a",
+   "j1": [
+    53.674,
+    7.407,
+    -5.812
+   ],
+   "pivot": [
+    55.336,
+    2.487,
+    -3.979
+   ],
+   "knuckle": [
+    54.922,
+    2.486,
+    -5.651
+   ],
+   "holds": {
+    "charge": [
+     "DCFC-02",
+     "DCFC-08",
+     "DCFC-03",
+     "DCFC-06",
+     "DCFC-04"
+    ],
+    "clean": [
+     "DCFC-02",
+     "DCFC-08",
+     "DCFC-03",
+     "DCFC-06",
+     "DCFC-04"
+    ]
+   }
+  },
+  {
+   "phase": "exit_a",
+   "j1": [
+    53.674,
+    7.407,
+    -5.812
+   ],
+   "pivot": [
+    54.485,
+    2.458,
+    -3.488
+   ],
+   "knuckle": [
+    54.078,
+    1.987,
+    -4.193
+   ],
+   "holds": {
+    "charge": [
+     "DCFC-02",
+     "DCFC-08",
+     "DCFC-03",
+     "DCFC-06",
+     "DCFC-04",
+     "DCFC-05",
+     "DCFC-09",
+     "DCFC-01",
+     "DCFC-07"
+    ],
+    "clean": [
+     "DCFC-02",
+     "DCFC-08",
+     "DCFC-03",
+     "DCFC-06",
+     "DCFC-04",
+     "DCFC-05",
+     "DCFC-09",
+     "DCFC-01",
+     "DCFC-07"
+    ]
+   }
+  },
+  {
+   "phase": "swing_b",
+   "j1": [
+    53.674,
+    7.407,
+    -5.812
+   ],
+   "pivot": [
+    53.901,
+    4.816,
+    -3.404
+   ],
+   "knuckle": [
+    53.989,
+    4.816,
+    -2.468
+   ],
+   "holds": {
+    "charge": [
+     "DCFC-02",
+     "DCFC-08",
+     "DCFC-03",
+     "DCFC-06",
+     "DCFC-04",
+     "DCFC-05",
+     "DCFC-09",
+     "DCFC-01",
+     "DCFC-07",
+     "DCFC-10"
+    ],
+    "clean": [
+     "DCFC-02",
+     "DCFC-08",
+     "DCFC-03",
+     "DCFC-06",
+     "DCFC-04",
+     "DCFC-05",
+     "DCFC-09",
+     "DCFC-01",
+     "DCFC-07",
+     "DCFC-10"
+    ]
+   }
+  },
+  {
+   "phase": "descend_b",
+   "j1": [
+    53.674,
+    7.407,
+    -5.812
+   ],
+   "pivot": [
+    52.214,
+    3.505,
+    -7.766
+   ],
+   "knuckle": [
+    52.214,
+    2.565,
+    -7.766
+   ],
+   "holds": {
+    "charge": [
+     "DCFC-02",
+     "DCFC-08",
+     "DCFC-03",
+     "DCFC-06",
+     "DCFC-04",
+     "DCFC-05",
+     "DCFC-09",
+     "DCFC-01",
+     "DCFC-07",
+     "DCFC-10"
+    ],
+    "clean": [
+     "DCFC-02",
+     "DCFC-08",
+     "DCFC-03",
+     "DCFC-06",
+     "DCFC-04",
+     "DCFC-05",
+     "DCFC-09",
+     "DCFC-01",
+     "DCFC-07",
+     "DCFC-10"
+    ]
+   }
+  },
+  {
+   "phase": "clean_b",
+   "j1": [
+    53.674,
+    7.407,
+    -5.812
+   ],
+   "pivot": [
+    52.17,
+    2.494,
+    -7.735
+   ],
+   "knuckle": [
+    52.821,
+    2.063,
+    -6.479
+   ],
+   "holds": {
+    "charge": [
+     "DCFC-02",
+     "DCFC-08",
+     "DCFC-03",
+     "DCFC-06",
+     "DCFC-04",
+     "DCFC-05",
+     "DCFC-09",
+     "DCFC-01",
+     "DCFC-07",
+     "DCFC-10"
+    ],
+    "clean": [
+     "DCFC-02",
+     "DCFC-08",
+     "DCFC-03",
+     "DCFC-06",
+     "DCFC-04",
+     "DCFC-05",
+     "DCFC-09",
+     "DCFC-01",
+     "DCFC-07",
+     "DCFC-10"
+    ]
+   }
+  },
+  {
+   "phase": "exit_b",
+   "j1": [
+    53.674,
+    7.407,
+    -5.812
+   ],
+   "pivot": [
+    52.067,
+    2.458,
+    -7.676
+   ],
+   "knuckle": [
+    52.532,
+    1.92,
+    -6.87
+   ],
+   "holds": {
+    "charge": [
+     "DCFC-02",
+     "DCFC-08",
+     "DCFC-03",
+     "DCFC-06",
+     "DCFC-04",
+     "DCFC-05",
+     "DCFC-09",
+     "DCFC-01",
+     "DCFC-07",
+     "DCFC-10"
+    ],
+    "clean": [
+     "DCFC-02",
+     "DCFC-08",
+     "DCFC-03",
+     "DCFC-06",
+     "DCFC-04",
+     "DCFC-05",
+     "DCFC-09",
+     "DCFC-01",
+     "DCFC-07",
+     "DCFC-10"
+    ]
+   }
+  },
+  {
+   "phase": "ascend_b",
+   "j1": [
+    53.674,
+    7.407,
+    -5.812
+   ],
+   "pivot": [
+    52.273,
+    4.065,
+    -7.805
+   ],
+   "knuckle": [
+    52.273,
+    3.124,
+    -7.805
+   ],
+   "holds": {
+    "charge": [
+     "DCFC-02",
+     "DCFC-08",
+     "DCFC-03",
+     "DCFC-06",
+     "DCFC-04",
+     "DCFC-05",
+     "DCFC-09",
+     "DCFC-01",
+     "DCFC-07",
+     "DCFC-10"
+    ],
+    "clean": [
+     "DCFC-02",
+     "DCFC-08",
+     "DCFC-03",
+     "DCFC-06",
+     "DCFC-04",
+     "DCFC-05",
+     "DCFC-09",
+     "DCFC-01",
+     "DCFC-07",
+     "DCFC-10"
+    ]
+   }
+  },
+  {
+   "phase": "return",
+   "j1": [
+    53.674,
+    7.407,
+    -5.812
+   ],
+   "pivot": [
+    52.007,
+    4.816,
+    -6.313
+   ],
+   "knuckle": [
+    51.106,
+    4.816,
+    -6.583
+   ],
+   "holds": {
+    "charge": [
+     "DCFC-02",
+     "DCFC-08",
+     "DCFC-03",
+     "DCFC-06",
+     "DCFC-04",
+     "DCFC-05",
+     "DCFC-09",
+     "DCFC-01",
+     "DCFC-07",
+     "DCFC-10"
+    ],
+    "clean": [
+     "DCFC-02",
+     "DCFC-08",
+     "DCFC-03",
+     "DCFC-06",
+     "DCFC-04",
+     "DCFC-05",
+     "DCFC-09",
+     "DCFC-01",
+     "DCFC-07",
+     "DCFC-10"
+    ]
+   }
+  },
+  {
+   "phase": "doors_close",
+   "j1": [
+    53.674,
+    7.407,
+    -5.812
+   ],
+   "pivot": [
+    52.815,
+    4.816,
+    -5.316
+   ],
+   "knuckle": [
+    52,
+    4.816,
+    -4.845
+   ],
+   "holds": {
+    "charge": [
+     "DCFC-02",
+     "DCFC-08",
+     "DCFC-03",
+     "DCFC-06",
+     "DCFC-04",
+     "DCFC-05",
+     "DCFC-09",
+     "DCFC-01",
+     "DCFC-07",
+     "DCFC-10"
+    ],
+    "clean": [
+     "DCFC-02",
+     "DCFC-08",
+     "DCFC-03",
+     "DCFC-06",
+     "DCFC-04",
+     "DCFC-05",
+     "DCFC-09",
+     "DCFC-01",
+     "DCFC-07",
+     "DCFC-10"
+    ]
+   }
+  },
+  {
+   "phase": "home",
+   "j1": [
+    53.674,
+    7.407,
+    -5.812
+   ],
+   "pivot": [
+    52.815,
+    4.816,
+    -5.316
+   ],
+   "knuckle": [
+    52,
+    4.816,
+    -4.845
+   ],
+   "holds": {
+    "charge": [
+     "DCFC-02",
+     "DCFC-08",
+     "DCFC-03",
+     "DCFC-06",
+     "DCFC-04",
+     "DCFC-05",
+     "DCFC-09",
+     "DCFC-01",
+     "DCFC-07",
+     "DCFC-10"
+    ],
+    "clean": [
+     "DCFC-05",
+     "DCFC-10"
+    ]
+   }
+  }
+ ],
+ "pageErrors": [],
+ "refusedWrites": 203
+}

@@ -25,6 +25,8 @@
 //                                     open arm cycle.
 //   ottoq_activity_feed_v2 (vehicle)  the car's own decisions: a re-booking (reservation_reopt / rebook), a bay
 //                                     displacement (displace_and_bind), a re-timed plan (itinerary_amended) and a hold.
+//   the motion driver (renderer)      what the car's stall's OTTO-CLEAN ARM is doing now (its phase), when one is
+//                                     working on it: the one input that is not a record, and only ever words.
 //
 // The one rule: a missing number is null and is drawn "—", never 0. A missing list is `published: false`, never [].
 // ============================================================================
@@ -70,6 +72,11 @@ export interface QNeedRecord {
   performed_by?: string | null;
   awaiting_triage?: boolean | null;
   triage_verdict?: string | null;
+  /** otto-q-core 0758: when the work started and ends, the sim clock as the engine wrote them */
+  started_at?: string | null;
+  ends_at?: string | null;
+  /** 0758, on the snapshot's atoms: the twin stall whose cleaning arm does this work */
+  robot_stall_id?: string | null;
 }
 export interface QBookingRecord {
   booking_id?: string | null;
@@ -127,6 +134,13 @@ export interface QCardInputs {
   stallCodes?: ReadonlyMap<string, string> | null;
   /** the car's own decisions, any order (ottoq_activity_feed_v2, p_vehicle_id) */
   feed?: readonly ActivityFeedRow[] | null;
+  /**
+   * What the car's stall's OTTO-CLEAN ARM is doing now, as the motion driver plays it (TwinMotionDriver.cabinArmFor),
+   * or null when no arm is working on this car. `phase` is the arm's cycle phase; `sideA`/`sideB` name the car's
+   * flanks it cleans first and second; `done` is true once the arm has finished this car's cycle (before the twin
+   * closes the step, which it does on its next tick).
+   */
+  cabinArm?: { phase: string; sideA: "left" | "right"; sideB: "left" | "right"; done?: boolean } | null;
 }
 
 // ── output ────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -168,6 +182,21 @@ export interface QNeed {
   note: string | null;
 }
 
+/**
+ * The interior clean the car's fast-charger stall's OTTO-CLEAN ARM does during the charge (otto-q-core 0758).
+ * Chase, 2026-10-19: the card shows it beginning, in progress, and completed with its check.
+ */
+export interface QCabinClean {
+  state: "starting" | "in_progress" | "done";
+  /** what is happening, in short sentences */
+  words: string;
+  /** 0..100 through the twin's step at the snapshot's clock; null when done or when a time is missing */
+  progress: number | null;
+  startedAt: string | null;
+  endsAt: string | null;
+  doneAt: string | null;
+}
+
 export interface QCard {
   vehicleId: string;
   name: string;
@@ -196,6 +225,8 @@ export interface QCard {
   /** the plan in order; `published: false` when no record carried the car's steps */
   steps: { published: boolean; items: QStep[]; earlierHidden: boolean };
   needs: { published: boolean; items: QNeed[] };
+  /** the stall's cleaning arm's work on this car, or null when its visit has none */
+  cabinClean: QCabinClean | null;
   hold: { words: string; place: string | null; until: string | null } | null;
   /** plan changes the car's own decisions record, newest first */
   changes: { at: string | null; words: string }[];
@@ -263,6 +294,43 @@ const HOLD_WHY: Record<string, string> = {
   hold_in_staging: "parked until it can leave",
 };
 const ARM_WORD: Record<string, string> = { mate: "connects", demate: "disconnects", charging: "connected" };
+
+/** Who did a service, as the chips say it. */
+const BY: Record<string, string> = {
+  charger_sensors: "by the charger's sensors",
+  stall_cabin_robot: "by the stall's cleaning arm",
+};
+/** The stall's cleaning arm's work on a need: performed_by on the cards, robot_stall_id on the snapshot's atoms. */
+const byCleaningArm = (n: QNeedRecord | null | undefined): boolean =>
+  !!n && (n.performed_by === "stall_cabin_robot" || (typeof n.robot_stall_id === "string" && n.robot_stall_id !== ""));
+
+/**
+ * The cleaning arm's phase in words (ASD-STE100: short sentences, active voice), and whether it is still starting.
+ * The arm opens the doors, moves to the first side, cleans it, moves to the second side, cleans it, moves out and
+ * closes the doors. An unknown phase reads as the plain fact that the arm is cleaning.
+ */
+export function cabinArmWords(
+  phase: string, sideA: "left" | "right", sideB: "left" | "right", done = false,
+): { starting: boolean; words: string } {
+  switch (phase) {
+    case "home": return done
+      ? { starting: false, words: "The arm is done. The doors are closed." }
+      : { starting: true, words: "The arm starts when the car is in the stall." };
+    case "doors_open": return { starting: true, words: "The doors open." };
+    case "swing_a": case "lower_a": case "descend_a": case "enter_a":
+      return { starting: true, words: `The arm moves to the ${sideA} side.` };
+    case "clean_a": return { starting: false, words: `The arm cleans the ${sideA} side.` };
+    case "exit_a": case "ascend_a": case "raise_a": case "swing_b": case "lower_b": case "descend_b": case "enter_b":
+      return { starting: false, words: `The arm moves to the ${sideB} side.` };
+    case "clean_b": return { starting: false, words: `The arm cleans the ${sideB} side.` };
+    case "exit_b": return { starting: false, words: "The arm moves out of the car." };
+    // out of the car: the mast goes up, the wand turns up, and the arm goes back over the roof
+    case "ascend_b": case "raise_b": case "return":
+      return { starting: false, words: "The arm moves back to its start position." };
+    case "doors_close": return { starting: false, words: "The doors close." };
+    default: return { starting: false, words: "The arm cleans the cabin." };
+  }
+}
 /** Why a booking was replaced or let go (ottoq_stall_bookings.release_reason), in words. Unknown reasons read as given. */
 const RELEASE_WORD: Record<string, string> = {
   superseded_by_enacted_decision: "replaced by a newer decision",
@@ -299,7 +367,7 @@ export function buildQCard(inp: QCardInputs): QCard {
   const codes = inp.stallCodes ?? null;
   const codeOf = (stallId: string | null | undefined): string | null => (stallId ? codes?.get(stallId) ?? null : null);
   const legs: TwinLeg[] = (snap?.legs ?? []).filter((l) => l?.vehicle_id === id);
-  const visitRows = currentVisitRows(inp.feed ?? []);
+  const visitRows = currentVisitRows(Array.isArray(inp.feed) ? inp.feed : []);
 
   // ── who and what state ──
   const name = dc?.display_name || inp.label?.split(" · ")[0] || tv?.av_id || id;
@@ -400,7 +468,8 @@ export function buildQCard(inp: QCardInputs): QCard {
   const needs: QNeed[] = (needRecs ?? []).filter((n) => n && n.svc).map((n) => {
     const st = needState(n.status);
     const note = n.awaiting_triage ? "waits for the quick check"
-      : n.performed_by === "charger_sensors" ? "by the charger's sensors"
+      : n.performed_by && BY[n.performed_by] ? BY[n.performed_by]
+      : byCleaningArm(n) ? BY.stall_cabin_robot
       : n.triage_verdict ? `quick check: ${n.triage_verdict}`
       : st === "deferred" ? "moved to next visit" : null;
     return {
@@ -409,6 +478,31 @@ export function buildQCard(inp: QCardInputs): QCard {
       estMin: estBySvc.get(n.svc) ?? null, mustDo: n.must_do === true, note,
     };
   });
+
+  // ── the stall's cleaning arm: the interior tidy it does, from the card's need (or the snapshot's atom) ──
+  let cabinClean: QCabinClean | null = null;
+  const tidyRec = (needRecs ?? []).find((n) => n?.svc === "interior_tidy" && byCleaningArm(n))
+    ?? (visit?.atoms ?? []).find((a) => a?.svc === "interior_tidy" && byCleaningArm(a as QNeedRecord)) as QNeedRecord | undefined;
+  if (tidyRec) {
+    // the snapshot's atom carries the times when the card's need does not (or the cards have not answered)
+    const atom = (visit?.atoms ?? []).find((a) => a?.svc === "interior_tidy") as QNeedRecord | undefined;
+    const startedAt = tidyRec.started_at ?? atom?.started_at ?? null;
+    const endsAt = tidyRec.ends_at ?? atom?.ends_at ?? null;
+    const st = needState(tidyRec.status);
+    if (st === "done") {
+      cabinClean = { state: "done", words: "Done.", progress: null, startedAt, endsAt, doneAt: tidyRec.done_at ?? atom?.done_at ?? null };
+    } else if (st === "active") {
+      const t0 = Date.parse(startedAt ?? ""), t1 = Date.parse(endsAt ?? ""), at = Date.parse(snap?.run?.sim_clock ?? "");
+      const progress = Number.isFinite(t0) && Number.isFinite(t1) && Number.isFinite(at) && t1 > t0
+        ? Math.max(0, Math.min(100, ((at - t0) / (t1 - t0)) * 100)) : null;
+      const live = inp.cabinArm ? cabinArmWords(inp.cabinArm.phase, inp.cabinArm.sideA, inp.cabinArm.sideB, inp.cabinArm.done) : null;
+      cabinClean = {
+        state: live?.starting ? "starting" : "in_progress",
+        words: live?.words ?? "The arm cleans the cabin.",
+        progress, startedAt, endsAt, doneAt: null,
+      };
+    }
+  }
 
   // ── now ──
   const cur = items.find((s) => s.state === "current") ?? null;
@@ -490,6 +584,7 @@ export function buildQCard(inp: QCardInputs): QCard {
     next: nextStep,
     steps: { published: stepRecs !== null, items, earlierHidden: doneShown >= doneCap },
     needs: { published: needsKnown, items: needs },
+    cabinClean,
     hold,
     changes,
     leave,

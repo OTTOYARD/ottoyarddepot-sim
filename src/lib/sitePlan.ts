@@ -21,6 +21,8 @@
  */
 
 import type { StallState } from '@/store/depotStore';
+// RELATIVE, not '@/': scripts/exportSitePlan.mjs and buildLayoutSeed.mjs bundle this file with no alias resolver.
+import { chargerBuildSpec } from './chargerBuild';
 
 // ---- Flow constants (consumed by SimulationEngine / ArrivalGenerator) ----
 // INGRESS is the EAST opening — deliberately co-located with the east-side
@@ -346,17 +348,25 @@ function chargingStalls(dcfcCount: number, l2Count: number): StallState[] {
   // own frame, rotated with the car. An L2 post stands beside the car's front
   // quarter on the same flank (cabinetEnvelope.L2_POST_*), clear of the spine.
 
-  // Canopy A — DCFC, 2 columns × 5.
-  const A = CANOPIES[0];
+  // ── WHICH CANOPY TAKES WHICH CHARGERS (chargerBuild.ts) ─────────────────────────
+  // Fast chargers fill canopies from A, two columns of five each at the fast-charger
+  // pitch: canopy A as built (DCFC-01..10), and canopy B too in the 20-post build-out
+  // (DCFC-11..20, the same rows and angles as canopy A). Standard chargers take the
+  // canopies left. A standard stall's number is its canopy SLOT, canopy B's 01..15 and
+  // canopy C's 16..30, so a stall keeps its id whichever build is drawn: in the 20-post
+  // build canopy C's are still L2-16..30, the same stalls as built.
+  const fastCanopies = Math.max(1, Math.min(CANOPIES.length, Math.ceil(dcfcCount / 10)));
   let n = 0;
-  for (const side of [-7, 7]) {
-    for (let i = 0; i < 5 && n < dcfcCount; i++) {
-      n++;
-      stalls.push(mk(`DCFC-${String(n).padStart(2, '0')}`, 'dcfc', A.cx + side, 88 + i * DCFC_ROW_PITCH, side < 0 ? west : east));
+  for (const c of CANOPIES.slice(0, fastCanopies)) {
+    for (const side of [-7, 7]) {
+      for (let i = 0; i < 5 && n < dcfcCount; i++) {
+        n++;
+        stalls.push(mk(`DCFC-${String(n).padStart(2, '0')}`, 'dcfc', c.cx + side, 88 + i * DCFC_ROW_PITCH, side < 0 ? west : east));
+      }
     }
   }
 
-  // Canopies B & C — L2, west column 8 + east column 7.
+  // The canopies left — L2, west column 8 + east column 7.
   //
   // (History, still true of the depth: the west column's pitch went 10.3 -> 10.6 on
   // 2026-08-11 because a nose-to-tail L2 stall declared 15.67 ft against a 16.0 ft
@@ -364,17 +374,24 @@ function chargingStalls(dcfcCount: number, l2Count: number): StallState[] {
   // car, not along the column, so the pitch no longer caps it; buildLayoutSeed
   // declares the nominal 20 ft and caps the WIDTH at the pitch square to the car.)
   let l2 = 0;
-  for (const c of [CANOPIES[1], CANOPIES[2]]) {
+  for (let ci = fastCanopies; ci < CANOPIES.length; ci++) {
+    const c = CANOPIES[ci];
+    const slot0 = (ci - 1) * 15; // canopy B's slots are 01..15, canopy C's 16..30
     for (let i = 0; i < 8 && l2 < l2Count; i++) {
       l2++;
-      stalls.push(mk(`L2-${String(l2).padStart(2, '0')}`, 'l2', c.cx - 7, L2_WEST_Y0 + i * L2_ROW_PITCH, west));
+      stalls.push(mk(`L2-${String(slot0 + i + 1).padStart(2, '0')}`, 'l2', c.cx - 7, L2_WEST_Y0 + i * L2_ROW_PITCH, west));
     }
     for (let i = 0; i < 7 && l2 < l2Count; i++) {
       l2++;
-      stalls.push(mk(`L2-${String(l2).padStart(2, '0')}`, 'l2', c.cx + 7, L2_WEST_Y0 + L2_ROW_PITCH / 2 + i * L2_ROW_PITCH, east));
+      stalls.push(mk(`L2-${String(slot0 + 8 + i + 1).padStart(2, '0')}`, 'l2', c.cx + 7, L2_WEST_Y0 + L2_ROW_PITCH / 2 + i * L2_ROW_PITCH, east));
     }
   }
   return stalls;
+}
+
+/** What a canopy carries in the build being drawn: fast chargers or standard ones. */
+export function canopyKind(c: CanopyDef): 'dcfc' | 'l2' {
+  return CANOPIES.indexOf(c) < chargerBuildSpec().dcfcCanopies ? 'dcfc' : 'l2';
 }
 
 /**
@@ -438,7 +455,9 @@ export function generateStallsV2(
   // stagingCount 115 -> 113: the founder's 13 -> 12 cut on the TW and TE temp columns.
   // It is a CAP, not a target — stagingStalls() stops at the runs' own total — so the
   // old default silently over-declared by 2 once the columns shrank.
-  dcfcCount = 10, l2Count = 30, washCount = 3, stagingCount = 113, serviceCount = 2,
+  // The chargers default to the build being drawn (chargerBuild.ts): 10 fast + 30
+  // standard as built, 20 + 15 in the 20-post build-out.
+  dcfcCount = chargerBuildSpec().dcfc, l2Count = chargerBuildSpec().l2, washCount = 3, stagingCount = 113, serviceCount = 2,
 ): StallState[] {
   return [
     ...chargingStalls(dcfcCount, l2Count),

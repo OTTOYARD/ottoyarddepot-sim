@@ -1,0 +1,200 @@
+{
+ "target": "DCFC-06",
+ "shots": [
+  "card-01-doors_open",
+  "card-02-swing_a",
+  "card-03-descend_a",
+  "card-04-clean_a",
+  "card-05-exit_a",
+  "card-06-ascend_a",
+  "card-07-swing_b",
+  "card-08-enter_b",
+  "card-09-clean_b",
+  "card-10-exit_b",
+  "card-11-ascend_b",
+  "card-12-raise_b",
+  "card-13-return",
+  "card-14-home"
+ ],
+ "phases": {},
+ "checks": [],
+ "cards": [
+  {
+   "phase": "doors_open",
+   "state": "Starting",
+   "words": "The doors open.",
+   "row": "starting",
+   "card": {
+    "x": 58,
+    "y": 230,
+    "w": 292,
+    "h": 423
+   }
+  },
+  {
+   "phase": "swing_a",
+   "state": "Starting",
+   "words": "The arm moves to the right side.",
+   "row": "starting",
+   "card": {
+    "x": 58,
+    "y": 230,
+    "w": 292,
+    "h": 423
+   }
+  },
+  {
+   "phase": "descend_a",
+   "state": "Starting",
+   "words": "The arm moves to the right side.",
+   "row": "starting",
+   "card": {
+    "x": 58,
+    "y": 230,
+    "w": 292,
+    "h": 423
+   }
+  },
+  {
+   "phase": "clean_a",
+   "state": "In progress",
+   "words": "The arm cleans the right side.",
+   "row": "in_progress",
+   "card": {
+    "x": 58,
+    "y": 230,
+    "w": 292,
+    "h": 423
+   }
+  },
+  {
+   "phase": "exit_a",
+   "state": "In progress",
+   "words": "The arm moves to the left side.",
+   "row": "in_progress",
+   "card": {
+    "x": 58,
+    "y": 230,
+    "w": 292,
+    "h": 423
+   }
+  },
+  {
+   "phase": "ascend_a",
+   "state": "In progress",
+   "words": "The arm moves to the left side.",
+   "row": "in_progress",
+   "card": {
+    "x": 58,
+    "y": 230,
+    "w": 292,
+    "h": 423
+   }
+  },
+  {
+   "phase": "swing_b",
+   "state": "In progress",
+   "words": "The arm moves to the left side.",
+   "row": "in_progress",
+   "card": {
+    "x": 58,
+    "y": 230,
+    "w": 292,
+    "h": 423
+   }
+  },
+  {
+   "phase": "enter_b",
+   "state": "In progress",
+   "words": "The arm moves to the left side.",
+   "row": "in_progress",
+   "card": {
+    "x": 58,
+    "y": 230,
+    "w": 292,
+    "h": 423
+   }
+  },
+  {
+   "phase": "clean_b",
+   "state": "In progress",
+   "words": "The arm cleans the left side.",
+   "row": "in_progress",
+   "card": {
+    "x": 58,
+    "y": 230,
+    "w": 292,
+    "h": 423
+   }
+  },
+  {
+   "phase": "exit_b",
+   "state": "In progress",
+   "words": "The arm moves out of the car.",
+   "row": "in_progress",
+   "card": {
+    "x": 58,
+    "y": 230,
+    "w": 292,
+    "h": 423
+   }
+  },
+  {
+   "phase": "ascend_b",
+   "state": "In progress",
+   "words": "The arm moves back to its start position.",
+   "row": "in_progress",
+   "card": {
+    "x": 58,
+    "y": 230,
+    "w": 292,
+    "h": 423
+   }
+  },
+  {
+   "phase": "raise_b",
+   "state": "In progress",
+   "words": "The arm moves back to its start position.",
+   "row": "in_progress",
+   "card": {
+    "x": 58,
+    "y": 230,
+    "w": 292,
+    "h": 423
+   }
+  },
+  {
+   "phase": "return",
+   "state": "In progress",
+   "words": "The arm moves back to its start position.",
+   "row": "in_progress",
+   "card": {
+    "x": 58,
+    "y": 230,
+    "w": 292,
+    "h": 423
+   }
+  },
+  {
+   "phase": "home",
+   "state": "Done",
+   "words": "Done at 8:03 AM.",
+   "row": "done",
+   "card": {
+    "x": 58,
+    "y": 247,
+    "w": 292,
+    "h": 389
+   }
+  }
+ ],
+ "pageErrors": [],
+ "consoleErrors": [],
+ "tap": {
+  "x": 3190.626556042411,
+  "y": 161.10463865033805,
+  "top": "none."
+ },
+ "followStopped": true,
+ "refusedWrites": 269
+}

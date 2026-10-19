@@ -3,14 +3,16 @@ import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { toWorld, yawFromHeading2D, DECK_Y } from './coordUtils';
-import { VEHICLE_GEO as GEO, PORT_GEO, CAR_W_PU } from './vehicleBody';
+import { VEHICLE_GEO as GEO, PORT_GEO, CAR_W_PU, DOOR_GEO, DOOR_HINGE_PU } from './vehicleBody';
 import { poseStore } from '@/engine/motion/poseStore';
+import { doorStore } from '@/engine/motion/doorStore';
+import { doorSwing } from '@/lib/ottoChargeArm/vehicleEnvelope';
 import { useVehicleStore } from '@/store/vehicleStore';
 import { useQCard } from '@/store/qCardStore';
 import { useDepotStore } from '@/store/depotStore';
 import { portFor } from '@/lib/ottoChargeArm/chargePort';
 import { towardFor, portInVehicleFrame } from '@/lib/ottoChargeArm/depotPlacement';
-import { writeYaw, writeZero, portWorld } from './fleetMath';
+import { writeYaw, writeZero, portWorld, doorWorld } from './fleetMath';
 import { OwnerMarkers } from './OwnerMarkers';
 import type { Vehicle } from '@/engine/types';
 
@@ -94,7 +96,34 @@ const MAT = {
   // Unlit status strips: colour per car through instanceColor (x1.8, over 1.0
   // so the bloom pass catches them), as the per-colour materials did.
   status: new THREE.MeshBasicMaterial({ color: '#ffffff', toneMapped: false }),
+  // The cabin: liner, benches, mat and the cabin light, coloured per vertex in vehicleBody.
+  interior: cabinMaterial(),
 };
+/**
+ * The cabin's material: matte, shadowed like the rest of the car, and lit from inside.
+ * Every surface glows faintly in its own colour (a cabin light seen in its fittings), so
+ * the cabin reads in the canopy's shade when a door is open; vertices coloured over 1.0
+ * (vehicleBody.CABIN_LAMP_RGB) are the lamp itself and glow fully. Shut, the doors hide it.
+ * Exported for the sandbox page, so the cabin there is the cabin here.
+ */
+export function cabinMaterial(): THREE.MeshStandardMaterial {
+  // envMapIntensity low: the sky's light does not reach into a closed cabin. Without
+  // it the cabin lit up like the outside of the car (the sandbox showed it white).
+  const m = new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true, roughness: 0.93, metalness: 0, envMapIntensity: 0.18 });
+  m.onBeforeCompile = (shader) => {
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <emissivemap_fragment>',
+      '#include <emissivemap_fragment>\ntotalEmissiveRadiance += vColor.rgb * 0.32 + step(1.0, vColor.r) * vColor.rgb * 1.6;',
+    );
+  };
+  m.customProgramCacheKey = () => 'otto-cabin-lit';
+  return m;
+}
+
+// The door panel: the car's paint (instanceColor) on its outer skin, a dark trim on its
+// inner face (vertex colours, which multiply the paint).
+const DOOR_PAINT = MAT.paint.clone();
+DOOR_PAINT.vertexColors = true;
 
 /**
  * Which flank this vehicle presents its charge port on.
@@ -145,29 +174,50 @@ function makeFleet(capacity: number) {
   };
   const body = mesh(GEO.body, MAT.paint, carM);
   body.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(capacity * 3), 3);
-  body.castShadow = true; // the ONLY shadow caster on the car (shadow pass stays cheap)
+  // The body casts the car's shadow. Since the car has a cabin (2026-10-19) the body is
+  // a shell round it, so the glass and the doors cast too: without them the shadow
+  // would have a car-length window in it.
+  body.castShadow = true;
+  const glass = mesh(GEO.glass, MAT.glass, carM);
+  glass.castShadow = true;
   const status = mesh(GEO.status, MAT.status, matrixBuffer(capacity));
   status.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(capacity * 3), 3);
+  // One door per flank, each with its own transform: shut, it is the car's; open, it is
+  // turned about its hinge (doorWorld). Panel, window and its piece of the status strip.
+  const door = (g: { panel: THREE.BufferGeometry; glass: THREE.BufferGeometry; status: THREE.BufferGeometry }) => {
+    const m = matrixBuffer(capacity);
+    const panel = mesh(g.panel, DOOR_PAINT, m);
+    panel.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(capacity * 3), 3);
+    panel.castShadow = true;
+    const win = mesh(g.glass, MAT.glass, m);
+    win.castShadow = true;
+    const strip = mesh(g.status, MAT.status, matrixBuffer(capacity));
+    strip.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(capacity * 3), 3);
+    return { m, panel, win, strip };
+  };
   return {
     capacity,
     carM,
     body,
     parts: [
       body,
-      mesh(GEO.glass, MAT.glass, carM),
+      glass,
       mesh(GEO.trim, MAT.trim, carM),
       mesh(GEO.tyres, MAT.tyre, carM),
       mesh(GEO.rims, MAT.rim, carM),
       mesh(GEO.lamps, MAT.lamps, carM),
+      mesh(GEO.interior, MAT.interior, carM),
     ],
     status,
     socket: mesh(PORT_GEO.socket, MAT.portSocket, matrixBuffer(capacity)),
     ring: mesh(PORT_GEO.ring, MAT.portRing, matrixBuffer(capacity)),
     ringLive: mesh(PORT_GEO.ring, MAT.portRingLive, matrixBuffer(capacity)),
+    doors: { right: door(DOOR_GEO.right), left: door(DOOR_GEO.left) },
   };
 }
 type Fleet = ReturnType<typeof makeFleet>;
-const allMeshes = (f: Fleet) => [...f.parts, f.status, f.socket, f.ring, f.ringLive];
+const doorMeshes = (f: Fleet) => [f.doors.right, f.doors.left].flatMap((d) => [d.panel, d.win, d.strip]);
+const allMeshes = (f: Fleet) => [...f.parts, f.status, f.socket, f.ring, f.ringLive, ...doorMeshes(f)];
 
 /** Last pose drawn per car, so a car the driver stops publishing holds still. */
 interface Drawn { x: number; z: number; yaw: number }
@@ -212,17 +262,24 @@ export function VehicleFleet({ vehicles }: { vehicles: Vehicle[] }) {
     const n = rows.length;
     const pc = fleet.body.instanceColor!.array as Float32Array;
     const sc = fleet.status.instanceColor!.array as Float32Array;
+    const doors = [fleet.doors.right, fleet.doors.left];
     rows.forEach((r, i) => {
       r.paint.toArray(pc, i * 3);
       (r.status ?? BLACK).toArray(sc, i * 3);
+      for (const d of doors) {
+        r.paint.toArray(d.panel.instanceColor!.array as Float32Array, i * 3);
+        (r.status ?? BLACK).toArray(d.strip.instanceColor!.array as Float32Array, i * 3);
+      }
     });
     fleet.body.instanceColor!.needsUpdate = true;
     fleet.status.instanceColor!.needsUpdate = true;
+    for (const d of doors) { d.panel.instanceColor!.needsUpdate = true; d.strip.instanceColor!.needsUpdate = true; }
     for (const m of allMeshes(fleet)) m.count = n;
   }, [fleet, rows]);
 
   const drawn = useRef(new Map<string, Drawn>());
   const portScratch = useRef({ x: 0, y: 0, z: 0, yaw: 0 }).current;
+  const doorScratch = useRef({ x: 0, z: 0, yaw: 0 }).current;
 
   useFrame(() => {
     const car = fleet.carM.array as Float32Array;
@@ -251,6 +308,18 @@ export function VehicleFleet({ vehicles }: { vehicles: Vehicle[] }) {
       // Tyres rest ON the deck, the same grade the OTTO-CHARGE ARM mounts off.
       writeYaw(car, i, d.x, DECK_Y, d.z, d.yaw);
       if (r.status) writeYaw(st, i, d.x, DECK_Y, d.z, d.yaw); else writeZero(st, i);
+      // Doors: shut unless the stall's cleaning arm has them open (doorStore).
+      const open = doorStore.get(r.id);
+      for (let k = 0; k < 2; k++) {
+        const side = k === 0 ? 1 : -1;
+        const dm = k === 0 ? fleet.doors.right : fleet.doors.left;
+        const h = k === 0 ? DOOR_HINGE_PU.right : DOOR_HINGE_PU.left;
+        const phi = open ? doorSwing(side, k === 0 ? open.right : open.left) : 0;
+        const dw = doorWorld(d.x, d.z, d.yaw, h.x, h.z, phi, doorScratch);
+        writeYaw(dm.m.array as Float32Array, i, dw.x, DECK_Y, dw.z, dw.yaw);
+        const sa = dm.strip.instanceMatrix.array as Float32Array;
+        if (r.status) writeYaw(sa, i, dw.x, DECK_Y, dw.z, dw.yaw); else writeZero(sa, i);
+      }
       // Charge port — the inlet the OTTO-CHARGE ARM actually mates with, positioned
       // from portFor() through the same resolver the arm solves against, so what
       // the robot plugs into is what you can see.
@@ -261,6 +330,7 @@ export function VehicleFleet({ vehicles }: { vehicles: Vehicle[] }) {
     }
     fleet.carM.needsUpdate = true;
     fleet.status.instanceMatrix.needsUpdate = true;
+    for (const dm of [fleet.doors.right, fleet.doors.left]) { dm.m.needsUpdate = true; dm.strip.instanceMatrix.needsUpdate = true; }
     fleet.socket.instanceMatrix.needsUpdate = true;
     fleet.ring.instanceMatrix.needsUpdate = true;
     fleet.ringLive.instanceMatrix.needsUpdate = true;
@@ -291,6 +361,7 @@ export function VehicleFleet({ vehicles }: { vehicles: Vehicle[] }) {
       <primitive object={fleet.socket} />
       <primitive object={fleet.ring} />
       <primitive object={fleet.ringLive} />
+      {doorMeshes(fleet).map((m, i) => <primitive key={`door-${i}`} object={m} />)}
       <HoverBadge drawn={drawn.current} />
       {/* a violet badge over each car its owner's agent set something on (one draw call, read from the same poses) */}
       <OwnerMarkers drawn={drawn.current} />

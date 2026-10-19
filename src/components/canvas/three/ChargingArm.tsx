@@ -16,7 +16,7 @@ import { STOWED, type JointAngles } from '@/lib/ottoChargeArm/cobotIK';
 import { placeArm, portInArmFrame } from '@/lib/ottoChargeArm/depotPlacement';
 import { portFor } from '@/lib/ottoChargeArm/chargePort';
 import {
-  advanceArmSession, isArmCommitted, isArmHome, stallHasArm,
+  advanceArmSession, armSessionInput, isArmHome, stallHasArm,
   IDLE_SESSION, type ArmSession,
 } from '@/lib/ottoChargeArm/roboticService';
 
@@ -214,17 +214,26 @@ export function ChargingArm({ stallId, stallType, fleet, slot }: ChargingArmProp
     // because nothing else in this repo does.
     const chargingState = v?.status === 'charging';
     const parked = v?.serviceStartTime !== null && v?.serviceStartTime !== undefined;
-    const charging = !!v && chargingState && (parked || isArmCommitted(session.current.phase));
 
     // RELEASE comes from the STALL. The robotic tether is OTTO-Q saying the
     // session is over and this is how long it has allowed for the demate.
     const tetherLeft = twinMotionDriver.stallTetherRemainingS(stallId);
 
+    // ONE composition with the depart gate's (armSessionInput), including the
+    // interlock with the stall's OTTO-CLEAN ARM: no mate starts while that arm is out
+    // over the car, and a latched connector stays in until it is home.
+    const input = armSessionInput(session.current, {
+      vehicleId: v?.id ?? null,
+      chargingState,
+      parked,
+      tetherRemainingS: tetherLeft,
+      cleanBusy: twinMotionDriver.cleanArmBusy(stallId),
+      cleanBlocksMate: twinMotionDriver.cleanArmBlocksMate(stallId),
+    });
     session.current = advanceArmSession(session.current, {
       dt: simDt,
       vehicleId: v?.id ?? null,
-      charging,
-      tetherRemainingS: tetherLeft,
+      ...input,
     });
     const { phase, t } = session.current;
 
