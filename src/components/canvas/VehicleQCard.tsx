@@ -12,8 +12,11 @@
 //   desktop 2D / 3D  anchored over the car and following it (AnchoredQCard), clamped inside the view; above the
 //                    car, else beside it, else below — never over the car itself
 //   phone            a bottom sheet (QCardSheet): at a phone's live-view size an anchored card covers the car
+//
+// Both sit inside the depot view, so each draws inside its own QCardBoundary: a card that fails to draw says so and
+// closes, and the depot view stays.
 // ============================================================================
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Component, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Bot, ChevronDown, ChevronRight, X } from 'lucide-react';
 import { useQCard } from '@/store/qCardStore';
 import { useVehicleStore } from '@/store/vehicleStore';
@@ -346,7 +349,7 @@ const EDGE = 8;
  * one rAF places the card from it inside its positioned parent, imperatively, so a moving car is followed without
  * re-rendering anything.
  */
-export function AnchoredQCard({ getAnchor }: { getAnchor: (id: string) => { x: number; y: number; r: number } | null }) {
+function AnchoredCard({ getAnchor }: { getAnchor: (id: string) => { x: number; y: number; r: number } | null }) {
   const { openId, close, oem, owner, card, cardsStatus } = useOpenCard();
   const ref = useRef<HTMLDivElement>(null);
 
@@ -397,7 +400,7 @@ export function AnchoredQCard({ getAnchor }: { getAnchor: (id: string) => { x: n
 }
 
 /** The phone's card: a bottom sheet over the cockpit. */
-export function QCardSheet() {
+function CardSheet() {
   const { openId, close, oem, owner, card, cardsStatus } = useOpenCard();
   if (!openId || !card) return null;
   return (
@@ -408,5 +411,50 @@ export function QCardSheet() {
       <div aria-hidden className="mx-auto mb-1.5 h-1 w-9 rounded-full bg-white/20" />
       <QCardBody card={card} oem={oem} onClose={close} cardsStatus={cardsStatus} owner={owner} />
     </div>
+  );
+}
+
+/**
+ * A card that fails to draw shows one line and a close button in its place; it never takes the depot view with it (the
+ * 3D view's own boundary would otherwise say the 3D view is not available). Keyed on the open car, so the next tap
+ * draws afresh.
+ */
+export class QCardBoundary extends Component<{ children: ReactNode; onClose: () => void; className: string }, { failed: boolean }> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  render() {
+    if (!this.state.failed) return this.props.children;
+    return (
+      <div role="alert" className={`z-40 flex items-center gap-3 rounded-md border border-white/15 bg-canvas-panel/95 px-3 py-2 text-xs text-ink-dim shadow-2xl ${this.props.className}`}>
+        <span>The card for this car is not available.</span>
+        <button type="button" className="rounded px-2 py-1 text-white hover:bg-white/10" onClick={this.props.onClose}>Close</button>
+      </div>
+    );
+  }
+}
+
+/** The card anchored over the tapped car (desktop 2D and 3D), inside its own boundary. */
+export function AnchoredQCard({ getAnchor }: { getAnchor: (id: string) => { x: number; y: number; r: number } | null }) {
+  const openId = useQCard((s) => s.openId);
+  const close = useQCard((s) => s.close);
+  return (
+    <QCardBoundary key={openId ?? ''} onClose={close} className="absolute left-2 top-2">
+      <AnchoredCard getAnchor={getAnchor} />
+    </QCardBoundary>
+  );
+}
+
+/** The phone's bottom sheet, inside its own boundary. */
+export function QCardSheet() {
+  const openId = useQCard((s) => s.openId);
+  const close = useQCard((s) => s.close);
+  return (
+    <QCardBoundary key={openId ?? ''} onClose={close} className="fixed inset-x-4 bottom-4">
+      <CardSheet />
+    </QCardBoundary>
   );
 }

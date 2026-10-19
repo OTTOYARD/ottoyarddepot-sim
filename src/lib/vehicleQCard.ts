@@ -365,7 +365,7 @@ export function buildQCard(inp: QCardInputs): QCard {
   const codes = inp.stallCodes ?? null;
   const codeOf = (stallId: string | null | undefined): string | null => (stallId ? codes?.get(stallId) ?? null : null);
   const legs: TwinLeg[] = (snap?.legs ?? []).filter((l) => l?.vehicle_id === id);
-  const visitRows = currentVisitRows(inp.feed ?? []);
+  const visitRows = currentVisitRows(Array.isArray(inp.feed) ? inp.feed : []);
 
   // ── who and what state ──
   const name = dc?.display_name || inp.label?.split(" · ")[0] || tv?.av_id || id;

@@ -425,6 +425,14 @@ describe("the interior clean by the stall's cleaning arm (otto-q-core 0758)", ()
   });
 });
 
+describe("a feed reply that is not a list", () => {
+  // fixture playback answers an RPC it does not serve with { error }; the card spread it in render and the 3D view fell
+  it("draws the card exactly as with no rows, and never throws", () => {
+    const feed = { error: "fixture playback" } as unknown as ActivityFeedRow[];
+    expect(buildQCard({ vehicleId: VID, feed })).toEqual(buildQCard({ vehicleId: VID, feed: [] }));
+  });
+});
+
 describe("buildQCard over the recorded live snapshot feed (twinRun.live0922rec)", () => {
   type F = { roster: { id: string; av_id: string; make: string; platform: string; soc: number }[];
     stalls: { id: string; code: string }[]; frames: { t: string; changes: { id: string; state: string; stall_id: string | null }[] }[] };

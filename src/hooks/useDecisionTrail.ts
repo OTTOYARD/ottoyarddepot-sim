@@ -53,6 +53,8 @@ export async function readFeed(args: Record<string, unknown>): Promise<ActivityF
   let { data, error } = await ottoQ.rpc("ottoq_activity_feed_v2", args);
   if (error && (error as { code?: string }).code === "PGRST202") ({ data, error } = await ottoQ.rpc("ottoq_activity_feed", args));
   if (error) throw error;
+  // the feed is a set-returning function: any other answer is one this reader cannot use, not an empty feed
+  if (data != null && !Array.isArray(data)) throw new Error("The activity feed did not answer with a list of rows.");
   return (data as ActivityFeedRow[] | null) ?? [];
 }
 
