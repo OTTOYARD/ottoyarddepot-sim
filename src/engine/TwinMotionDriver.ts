@@ -40,6 +40,7 @@ import {
 } from "@/lib/sitePlan";
 import { DISCONNECT_SECONDS, applyArmTimings, type ArmPhase } from "@/lib/ottoChargeArm/armStateMachine";
 import { isArmHome } from "@/lib/ottoChargeArm/roboticService";
+import { CHARGER_BUILDS, chargerBuildFor, chargerBuildVersion, setChargerBuild } from "@/lib/chargerBuild";
 import { towardFor } from "@/lib/ottoChargeArm/depotPlacement";
 import type { CleanSession } from "@/lib/ottoCleanArm/cleanSession";
 
@@ -385,14 +386,24 @@ export const APPROACH_BACK_U = 9;
 // structure, and every stall's parked-car footprint whether or not it is
 // occupied now — a rail outlives the occupancy it was built under. Both as the
 // shapes they are: an angled charger car and its cabinet are not square to the plan.
-/** Every stall's parked-car footprint, occupied or not. */
-const STALL_BOXES: OBox[] = generateStallsV2().map((st) => parkedBox(st.position));
-setCornerObstacles([
-  ...allStructureSolids().map((k) => k.box),
-  ...STALL_BOXES,
-]);
-/** Every built solid, as the shape it is — what a back-out's swing must not sweep. */
-const STRUCTURE_BOXES: OBox[] = allStructureSolids().map((k) => k.box);
+//
+// Both belong to the CHARGER BUILD being drawn (chargerBuild.ts: canopy B is standard
+// chargers as built and fast chargers in the 20-post build-out), so they are rebuilt,
+// and handed to the corner-widening again, whenever the build changes.
+let layoutCache: { v: number; stalls: OBox[]; structures: OBox[] } | null = null;
+/** `stalls`: every stall's parked-car footprint, occupied or not. `structures`: every
+ *  built solid, as the shape it is — what a back-out's swing must not sweep. */
+function layoutBoxes(): { stalls: OBox[]; structures: OBox[] } {
+  const v = chargerBuildVersion();
+  if (!layoutCache || layoutCache.v !== v) {
+    const stalls = generateStallsV2().map((st) => parkedBox(st.position));
+    const structures = allStructureSolids().map((k) => k.box);
+    setCornerObstacles([...structures, ...stalls]);
+    layoutCache = { v, stalls, structures };
+  }
+  return layoutCache;
+}
+layoutBoxes();
 /** Body-to-obstacle margin a back-out's swing must keep (u). */
 const SWING_CLEAR = 0.2;
 /** Where a staging back-out stops, its body keeps this much from every other stall's
@@ -1598,6 +1609,9 @@ class TwinMotionDriver {
       dcfc: "DCFC", l2: "L2", wash_bay: "WASH", service_bay: "SVC", staging: "STAGE",
     };
     this.twinStall.clear();
+    // THE CHARGER BUILD (chargerBuild.ts): draw the chargers this layout has, before a
+    // single stall is mapped, because the mapping reads the renderer's stalls.
+    this.adoptChargerBuild(stalls);
 
     // ── BY POSITION (charger stalls by column and rank, below) ──────────────────
     // The layout endpoint serves each stall's relative_x / relative_y, and those
@@ -1727,6 +1741,27 @@ class TwinMotionDriver {
   /** The renderer stall a twin stall is drawn as (setTwinStallMap), or undefined
    *  before a layout has mapped it. The one answer the 2D overlays should use, so a
    *  glow lands on the stall the car is driven to. */
+  /**
+   * Switch the renderer to the charger build a twin layout's census describes: 10 fast
+   * and 30 standard chargers as built, 20 and 15 after the 20-post build-out (otto-q-core
+   * 0759). The depot's stalls are regenerated and the layout's footprints rebuilt. A
+   * census that is neither (a test's partial layout, a third build) changes nothing: the
+   * renderer has no other layout to draw and must not guess one.
+   */
+  private adoptChargerBuild(stalls: readonly { type: string }[]) {
+    const census = { dcfc: 0, l2: 0 };
+    for (const s of stalls) {
+      if (s.type === "dcfc") census.dcfc++;
+      else if (s.type === "l2") census.l2++;
+    }
+    const build = chargerBuildFor(census);
+    if (!build || !setChargerBuild(build)) return;
+    const d = useDepotStore.getState();
+    const spec = CHARGER_BUILDS[build];
+    d.regenerateStalls(spec.dcfc, spec.l2, d.washBayCount, d.stagingCount, d.serviceBayCount);
+    layoutBoxes();
+  }
+
   rendererStallFor(twinStallId: string): string | undefined {
     return this.twinStall.get(twinStallId);
   }
@@ -1960,7 +1995,7 @@ class TwinMotionDriver {
   private cuspGap(end: { x: number; y: number }, he: number): number {
     const body: OBox = { cx: end.x, cy: end.y, hl: CAR_BODY_LENGTH / 2, hw: CAR_BODY_WIDTH / 2, th: he };
     let gap = Infinity;
-    for (const b of STALL_BOXES) {
+    for (const b of layoutBoxes().stalls) {
       if (Math.abs(b.cx - end.x) > 15 || Math.abs(b.cy - end.y) > 15) continue;
       gap = Math.min(gap, boxGap(body, b));
     }
@@ -1999,7 +2034,7 @@ class TwinMotionDriver {
     }
     for (const p of poses) {
       for (const b of still) if (bodyHitsBox(p, b, -SWING_CLEAR)) return true;
-      for (const b of STRUCTURE_BOXES) {
+      for (const b of layoutBoxes().structures) {
         if (Math.abs(b.cx - p.x) > 12 || Math.abs(b.cy - p.y) > 12) continue;
         if (bodyHitsBox(p, b, -SWING_CLEAR)) return true;
       }
@@ -2498,7 +2533,7 @@ class TwinMotionDriver {
         const toCollector = this.graph.routeOff(start, hd, fore, NORTH);
         if (!toCollector) continue;
         const pts = [...lead, ...toCollector, { x: stall.x, y: stall.y }];
-        const gap = drawnClearance(pts, STRUCTURE_BOXES);
+        const gap = drawnClearance(pts, layoutBoxes().structures);
         if (!best || gap > best.gap) best = { pts, gap };
         if (gap >= BAY_TURN_CLEAR) break;
       }

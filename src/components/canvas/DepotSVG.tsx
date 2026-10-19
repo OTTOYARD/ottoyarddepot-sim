@@ -10,7 +10,7 @@ import { ZoneBadges } from './ZoneBadges';
 import { LaneOverlay } from './LaneOverlay';
 import { ReservationGlow } from './ReservationGlow';
 import {
-  LOT, BESS_YARD, BUILDING, WASH, CANOPIES, PARK_RUNS, GATE_W,
+  LOT, BESS_YARD, BUILDING, WASH, CANOPIES, PARK_RUNS, GATE_W, canopyKind,
   INGRESS, EGRESS,
   WEST_AISLE_X, EAST_AISLE_X, TEMP_LANE_X, WEST_LINK_X, GAP_LANES,
   TEMP_AISLE, EAST_AVENUE, N1_LANE_Y, NORTH_LANE_Y, SOUTH_LANE_Y,
@@ -214,13 +214,22 @@ export const DepotSVG = forwardRef<SVGSVGElement>((_, ref) => {
       {/* ---- canopies ---- */}
       {CANOPIES.map((c) => (
         <g key={c.id}>
-          <rect x={c.x} y={c.y} width={c.w} height={c.h} fill={c.kind === 'dcfc' ? '#C0000014' : '#00B4A614'}
-            stroke={c.kind === 'dcfc' ? '#C00000' : '#00B4A6'} strokeWidth={0.4} strokeDasharray="3,2" opacity={0.9} rx={1} />
+          <rect x={c.x} y={c.y} width={c.w} height={c.h} fill={canopyKind(c) === 'dcfc' ? '#C0000014' : '#00B4A614'}
+            stroke={canopyKind(c) === 'dcfc' ? '#C00000' : '#00B4A6'} strokeWidth={0.4} strokeDasharray="3,2" opacity={0.9} rx={1} />
           <line x1={c.cx} y1={c.y + 2} x2={c.cx} y2={c.y + c.h - 2} stroke="#ffffff" strokeWidth={0.3} opacity={0.15} />
         </g>
       ))}
-      <text x={CANOPIES[0].cx} y={CANOPIES[0].y - 2} textAnchor="middle" fontSize={3.6} fill="#C00000" fontWeight="bold">DCFC</text>
-      <text x={(CANOPIES[1].cx + CANOPIES[2].cx) / 2} y={CANOPIES[1].y - 2} textAnchor="middle" fontSize={3.6} fill="#00B4A6" fontWeight="bold">L2 CHARGING</text>
+      {/* one label over each run of canopies of a kind: the charger build decides which (chargerBuild.ts) */}
+      {(['dcfc', 'l2'] as const).map((k) => {
+        const run = CANOPIES.filter((c) => canopyKind(c) === k);
+        if (!run.length) return null;
+        const x = (run[0].cx + run[run.length - 1].cx) / 2;
+        return (
+          <text key={k} x={x} y={run[0].y - 2} textAnchor="middle" fontSize={3.6} fill={k === 'dcfc' ? '#C00000' : '#00B4A6'} fontWeight="bold">
+            {k === 'dcfc' ? 'DCFC' : 'L2 CHARGING'}
+          </text>
+        );
+      })}
 
       {/* ---- carports over perimeter parking ---- */}
       {PARK_RUNS.filter((r) => r.carport).map((r) => (

@@ -22,6 +22,12 @@
 //
 //   --url U (http://127.0.0.1:8080/)   --out DIR (./clean-arm-shots)   --secs N (900)
 //   --speed S (0.25)   --cycle M (2.5)   --dsf F (1)   --chromium P   --relay-curl
+//   --build dcfc20   serve the layout with canopy B re-striped as the 20-post build-out
+//                    (otto-q-core 0759): ten of canopy B's standard stalls become fast
+//                    chargers at canopy A's rows, keeping their twin ids so the recorded
+//                    cars on them charge fast; the cockpit switches build from the census.
+//   --stall RE       frame the first arm to leave home on a renderer stall matching RE
+//                    (e.g. "DCFC-1[1-9]|DCFC-20" for canopy B in the 20-post build)
 //
 // ⚠️ Software GL in a sandbox draws about a frame a second, and the motion driver
 // steps with it, so the playback runs slower than the sim clock: good for placement,
@@ -29,6 +35,7 @@
 // ============================================================================
 import { chromium } from "@playwright/test";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { installFixtureRoutes, loadFixture } from "./lib/fixturePlayback.mjs";
@@ -45,6 +52,8 @@ const OUT = resolve(arg("out", "clean-arm-shots"));
 const SECS = Number(arg("secs", 900));
 const SPEED = Number(arg("speed", 0.25));
 const CYCLE_MIN = Number(arg("cycle", 2.5));
+const BUILD = String(arg("build", "as_built"));
+const STALL = arg("stall", null) ? new RegExp(`^(${arg("stall", "")})$`) : null;
 const DSF = Number(arg("dsf", 1));
 const RELAY = arg("relay-curl", false) === true;
 const CHROMIUM = arg("chromium", existsSync("/opt/pw-browsers/chromium") ? "/opt/pw-browsers/chromium" : undefined);
@@ -62,10 +71,13 @@ const DRIVE_IN_S = 90 * SPEED;
 
 /** first sim instant each car was seen charging on a fast charger, by car */
 const firstSeen = new Map();
+/** dcfc20: twin stall ids that the re-striped layout turns into fast chargers */
+const toFast = new Set();
 const withCabinCleans = (snap) => {
   const now = Date.parse(snap.run.sim_clock);
   const legs = [...(snap.legs ?? [])];
-  const vehicles = snap.fleet.vehicles.map((v) => {
+  const vehicles = snap.fleet.vehicles.map((v0) => {
+    const v = toFast.has(v0.stall_id) && v0.state === "charging_l2" ? { ...v0, state: "charging_dcfc" } : v0;
     if (v.state !== "charging_dcfc" || !v.stall_id) { firstSeen.delete(v.id); return v; }
     if (!firstSeen.has(v.id)) firstSeen.set(v.id, now + DRIVE_IN_S * 1000);
     const start = firstSeen.get(v.id);
@@ -103,6 +115,36 @@ const errors = [];
 page.on("pageerror", (e) => errors.push(String(e).slice(0, 200)));
 const routes = await installFixtureRoutes(page, F, { relay: RELAY, mutateSnapshot: withCabinCleans });
 
+// ── --build dcfc20: the layout with canopy B re-striped (registered after the fixture
+//    routes, so Playwright asks it first) ──
+if (BUILD === "dcfc20") {
+  const UNIT_FT = 0.4785 / 0.3048;
+  const ft = (planX, planY) => ({ x: +((planX - 6) * UNIT_FT).toFixed(4), y: +((206 - planY) * UNIT_FT).toFixed(4) });
+  // the live layout, read once through curl (it trusts the sandbox proxy's CA bundle), then re-striped per request
+  const LAYOUT_URL = "https://gxdrcyphqjzjsuhxuqtg.supabase.co/functions/v1/otto-twin-control/depot/11111111-1111-1111-1111-111111111111/layout";
+  const live = JSON.parse(execFileSync("curl", ["-sS", "-m", "30", LAYOUT_URL], { encoding: "utf8" }));
+  await page.route(/otto-twin-control\/depot\/[^/]+\/layout/, async (route) => {
+    const body = structuredClone(live);
+    const stalls = body?.data?.stalls ?? [];
+    const near = (a, b) => Math.abs(a - b) < 1;
+    const westX = ft(143, 0).x, eastX = ft(157, 0).x;
+    const template = stalls.find((s) => s.type === "dcfc");
+    const columns = [westX, eastX].map((x) => stalls.filter((s) => s.type === "l2" && near(s.x, x)).sort((a, b) => b.y - a.y));
+    const keep = stalls.filter((s) => !(s.type === "l2" && (near(s.x, westX) || near(s.x, eastX))));
+    const fresh = [];
+    columns.forEach((col, k) => {
+      for (let i = 0; i < 5 && i < col.length; i++) {
+        const p = ft(k === 0 ? 143 : 157, 88 + 14 * i);
+        toFast.add(col[i].id);
+        fresh.push({ ...template, id: col[i].id, code: `NASH-DCFC-STALL-${11 + 5 * k + i}`, type: "dcfc",
+          canopy: "CANOPY-02", x: p.x, y: p.y, heading: k === 0 ? 60 : 300 });
+      }
+    });
+    body.data.stalls = [...keep, ...fresh];
+    await route.fulfill({ status: 200, headers: { "content-type": "application/json", "access-control-allow-origin": "*" }, body: JSON.stringify(body) });
+  });
+}
+
 await page.goto(URL_, { waitUntil: "domcontentloaded" });
 await page.waitForTimeout(4000);
 await page.getByRole("button", { name: /^3d$/i }).first().click();
@@ -122,7 +164,7 @@ const t0 = Date.now();
 while (!target && Date.now() - t0 < SECS * 1000) {
   await page.waitForTimeout(1000);
   const s = await state();
-  target = s.arms.find((a) => a.phase !== "home")?.stall ?? null;
+  target = s.arms.find((a) => a.phase !== "home" && (!STALL || STALL.test(a.stall)))?.stall ?? null;
 }
 if (!target) { console.log(JSON.stringify({ error: "no cleaning arm left home", pageErrors: errors })); process.exit(1); }
 
@@ -139,7 +181,7 @@ const cams = await page.evaluate((rid) => {
   const at = (n, r, y) => [cx + fx * n + rx * r, y, cz + fz * n + rz * r];
   return {
     left: { p: at(1.2, -9.5, 4.6), t: at(0.4, 0, 2.3) },       // the car's left flank, cleaned first on a west column
-    right: { p: at(7.0, 5.5, 4.2), t: at(0.2, 0.9, 2.1) },     // its right (port) flank from the front quarter: both robots
+    right: { p: at(5.0, 9.5, 4.8), t: at(0.0, 0.5, 2.0) },     // its right (port) flank from the front quarter, past the cabinet: both robots
     high: { p: at(8.5, -6.0, 9.6), t: at(0.0, 0.0, 2.6) },     // three-quarter from the nose, high under the canopy
     canopy: { p: at(-16, -16, 10.2), t: at(10, 4, 1.5) },      // the row of stalls
   };
