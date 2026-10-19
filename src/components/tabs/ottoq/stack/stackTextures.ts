@@ -6,7 +6,7 @@
 // plate was zoomed (the planner of each lane, the name of each depot zone) are engraved on the plate itself, so the
 // stack can be read without tapping it.
 import * as THREE from "three";
-import { LANE_BARS_X0, LANE_LABEL_X, PLATE_D, PLATE_W, ZONES, SITE_COUNTS, laneName, zoneCapacity, type ZoneDef } from "./stackModel";
+import { LANE_BARS_X0, LANE_LABEL_X, PLATE_D, PLATE_W, ZONES, SITE_COUNTS, laneName, syncStackSite, zoneCapacity, type ZoneDef } from "./stackModel";
 
 const PX = 1024;
 const PZ = Math.round((PX * PLATE_D) / PLATE_W);
@@ -249,6 +249,7 @@ const ZONE_ENGRAVING: Record<string, string> = {
 
 /** The depot base: asphalt, painted zones and lanes, every charger and bay socket one of the site's real stalls. */
 export function depotTexture(): THREE.CanvasTexture {
+  syncStackSite();
   const [c, ctx] = canvas();
   ctx.save();
   clipPlate(ctx);
