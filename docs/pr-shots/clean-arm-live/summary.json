@@ -1,0 +1,23 @@
+{
+  "run": "c6ec017d-ec07-4762-8774-4129de1f4ad6",
+  "stall": "DCFC-08",
+  "phases": [
+    "doors_open",
+    "clean_a",
+    "home"
+  ],
+  "kept": [
+    {
+      "phase": "doors_open",
+      "cam": "high",
+      "file": "docs/pr-shots/clean-arm-live/00_doors_open_high.png"
+    },
+    {
+      "phase": "clean_a",
+      "cam": "high",
+      "file": "docs/pr-shots/clean-arm-live/03_clean_a_high.png"
+    }
+  ],
+  "filmed": "2026-10-20 between 21:13 and 21:15 UTC (4:13-4:15 PM CT), file mtimes",
+  "errors": []
+}
