@@ -173,3 +173,26 @@ place of canopy B's fifteen L2 spaces, 20 DCFC and 15 L2 in all. At this arm des
 - `node scripts/cleanArmShots.mjs --build dcfc20` shows it in the cockpit before 0759 exists.
 - The OTTO-Q stack draws the same build: 20 fast-charger sockets in four columns of five, the L2 zone east of them
   (`stackModel.syncStackSite`; `docs/pr-shots/clean-arm/12`-`13`). As built, its zones are exactly as before.
+
+## Thirty posts
+
+Chase, 2026-10-21: *"we discussed swapping out all of the L2's or 90% of the L2's for DCFC ... charging arm with
+overhead robovac."* At this arm design thirty is the most the site holds, so that is the build: canopy C is re-striped as
+canopies A and B, two columns of five fast chargers at the 14u pitch where its fifteen L2 spaces stood. 30 DCFC and no
+L2. Every car that pulls in is met by an OTTO-CHARGE ARM and its cabin is cleaned by the OTTO-CLEAN ARM over it.
+
+- The database changes are otto-q-core 0759 (canopy B) and then 0763 (canopy C). The renderer draws the 30-post depot when
+  the twin's layout census reads 30 + 0 (`chargerBuild.ts`, build `dcfc30`), and not before. It never chooses a build.
+- Canopy C's posts are DCFC-21..25 (west column, plan x 190) and DCFC-26..30 (east column, plan x 204), on canopy A's rows
+  and headings. DCFC-01..20 stand where the 20-post build has them, and nothing else moves.
+- The plan has no L2 to show: the L2 zone label and its count badge go away, and the DCFC badge sits over all three
+  canopies (`ZoneBadges.tsx`). The OTTO-Q stack draws 30 fast-charger sockets in six columns of five and paints no L2 zone
+  (`stackModel.zoneShown`).
+- `chargerBuild.test.ts` holds the 30-post layout to every rule the as-built one is held to: no car on a car, no structure
+  in a stall, canopy C's spine columns clear of every cabinet and car, and ten OTTO-CLEAN ARM headers on each canopy
+  between its purlins. `TwinMotionDriver.dcfc30.test.ts` docks ten cars on canopy C and ten on canopy B in two waves each,
+  then thirty cars on all thirty posts at once, every second-wave car driving in past parked ones, touching no car and no
+  structure.
+- `node scripts/cleanArmShots.mjs --build dcfc30 --overview` shows it in the cockpit before 0763 exists (canopies B and C
+  re-striped in the served layout), with an aerial frame of all three canopies and the 2D plan
+  (`docs/pr-shots/dcfc30`: 01 the aerial, 02 the plan, 03-05 a canopy C post cleaning its car).

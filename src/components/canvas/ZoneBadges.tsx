@@ -1,6 +1,14 @@
 import React, { useMemo } from 'react';
 import { useVehicleStore } from '@/store/vehicleStore';
 import { useDepotStore } from '@/store/depotStore';
+import { CANOPIES, canopyKind } from '@/lib/sitePlan';
+
+/** Plan x over the middle of the canopies a charger kind has in the build being drawn
+ *  (DepotSVG labels the same run there), or null when the build has none of that kind. */
+const runX = (kind: 'dcfc' | 'l2'): number | null => {
+  const run = CANOPIES.filter((c) => canopyKind(c) === kind);
+  return run.length ? (run[0].cx + run[run.length - 1].cx) / 2 : null;
+};
 
 const ZoneBadgesInner = () => {
   const vehicles = useVehicleStore((s) => s.vehicles);
@@ -17,14 +25,18 @@ const ZoneBadgesInner = () => {
     const washTotal = stalls.filter((s) => s.type === 'wash').length;
     const stagingTotal = stalls.filter((s) => s.type === 'staging').length;
 
-    return { dcfcOccupied, l2Occupied, washOccupied, stagingOccupied, dcfcTotal, l2Total, washTotal, stagingTotal };
+    // the stalls are regenerated on a change of charger build, so the runs are read with them
+    const dcfcX = dcfcTotal ? runX('dcfc') : null;
+    const l2X = l2Total ? runX('l2') : null;
+    return { dcfcOccupied, l2Occupied, washOccupied, stagingOccupied, dcfcTotal, l2Total, washTotal, stagingTotal, dcfcX, l2X };
   }, [vehicles, stalls]);
 
   return (
     <>
-      {/* positions follow the v2 site plan zones */}
-      <Badge x={103} y={73} label={`${counts.dcfcOccupied}/${counts.dcfcTotal}`} bg="#C00000" />
-      <Badge x={174} y={73} label={`${counts.l2Occupied}/${counts.l2Total}`} bg="#00B4A6" />
+      {/* positions follow the v2 site plan zones; a charger kind's badge sits over its canopies, and a build with
+          none of a kind (the 30-post build has no L2) draws no badge for it */}
+      {counts.dcfcX != null && <Badge x={counts.dcfcX} y={73} label={`${counts.dcfcOccupied}/${counts.dcfcTotal}`} bg="#C00000" />}
+      {counts.l2X != null && <Badge x={counts.l2X} y={73} label={`${counts.l2Occupied}/${counts.l2Total}`} bg="#00B4A6" />}
       <Badge x={186} y={23} label={`${counts.washOccupied}/${counts.washTotal}`} bg="#2196F3" />
       <Badge x={150} y={188} label={`${counts.stagingOccupied}/${counts.stagingTotal}`} bg="#F59E0B" />
     </>

@@ -183,13 +183,12 @@ export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0, viewe
   const config = useSimulationStore((s) => s.config);
   const simTime = useSimulationStore((s) => s.simTime);
   const stalls = useDepotStore((s) => s.stalls);
-  // Robotic arms are DCFC-only (10 stalls, canopy A). High-power fast charging
-  // with hard turnaround pressure is what justifies the hardware; fitting all
-  // 30 L2 trickle stalls would inflate the capex story and cost 40 IK solves a
-  // frame for arms nobody would buy.
+  // Robotic arms stand on every fast charger, and only there: an L2 post has no
+  // arm. The charger build decides how many (chargerBuild.ts): 10 on canopy A as
+  // built, 20 on canopies A and B, 30 on all three once every L2 is gone.
   const roboticStalls = useMemo(() => stalls.filter((s) => s.type === 'dcfc'), [stalls]);
   // Every arm draws into one set of instanced meshes (armInstances.ts): the
-  // canopy costs the same draw calls at 10, 15 or 20 fast chargers. Capacity
+  // canopy costs the same draw calls at 10, 20 or 30 fast chargers. Capacity
   // grows in steps of 8 so a build-out change rarely rebuilds the buffers.
   const armCapacity = Math.max(8, Math.ceil(roboticStalls.length / 8) * 8);
   const armFleet = useMemo(() => makeArmFleet(armCapacity), [armCapacity]);
