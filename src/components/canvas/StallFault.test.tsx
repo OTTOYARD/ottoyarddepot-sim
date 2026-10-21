@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
-import { Stall } from './Stall';
+import { Stall, StallFaultMarks } from './Stall';
 import { StallTooltip } from './StallTooltip';
 import { useDepotStore, type StallState } from '@/store/depotStore';
 import { useTwinStore } from '@/store/twinStore';
@@ -18,7 +18,11 @@ afterEach(() => {
   useTwinStore.getState().reset();
 });
 
-const plan = (stall: StallState) => render(<svg><Stall stall={stall} /></svg>);
+// the stall, and the fault layer the plan draws over the cars and the robots
+const plan = (stall: StallState) => {
+  useDepotStore.setState({ stalls: [stall] });
+  return render(<svg><Stall stall={stall} /><StallFaultMarks /></svg>);
+};
 
 describe('2D: a faulted charger reads as down, in shape and in words', () => {
   it('draws the FAULT mark on a charger the twin reports Faulted', () => {

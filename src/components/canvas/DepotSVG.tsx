@@ -4,12 +4,13 @@ import { useVehicleStore } from '@/store/vehicleStore';
 import { useSimulationStore } from '@/store/simulationStore';
 import { poseStore } from '@/engine/motion/poseStore';
 import { useQCard } from '@/store/qCardStore';
-import { Stall } from './Stall';
+import { Stall, StallFaultMarks } from './Stall';
 import { VehicleDot } from './VehicleDot';
 import { ZoneBadges } from './ZoneBadges';
 import { LaneOverlay } from './LaneOverlay';
 import { ReservationGlow } from './ReservationGlow';
 import { WashGantries2D } from './WashGantry2D';
+import { Doors2D, FastChargerRobots2D } from './Robots2D';
 import {
   LOT, BESS_YARD, BUILDING, WASH, CANOPIES, PARK_RUNS, GATE_W, canopyKind,
   INGRESS, EGRESS,
@@ -259,6 +260,12 @@ export const DepotSVG = forwardRef<SVGSVGElement>((_, ref) => {
       {vehicles.map((v) => (
         <VehicleDot key={v.id} vehicle={v} />
       ))}
+      {/* the cars' open doors, then each fast charger's charge arm (at the car's flank) and cleaning
+          arm (over its roof), from the sessions the 3D view draws (Robots2D.tsx) */}
+      <Doors2D />
+      <FastChargerRobots2D />
+      {/* a faulted charger's FAULT mark, over its folded arms */}
+      <StallFaultMarks />
       {/* the wash bays' rollover machines, over the cars they pass over (docs/OTTO-WASH.md) */}
       <WashGantries2D count={washBayCount} />
       <ZoneBadges />

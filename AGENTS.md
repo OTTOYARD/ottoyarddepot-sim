@@ -303,6 +303,13 @@ interpolation.** Zero world logic client-side.
   parked car's centre, and both are drawn centred on it; a staging stall is the outline the 3D view paints
   (`sitePlan.STAGING_STALL_PAINT`), laid along the car. They used to be drawn from that point as a corner, so every
   parked car sat on its stall's corner and the side columns' stalls stood across their cars (`StallBay.test.tsx`).
+- **The 2D plan draws every robot and every open door (2026-10-21).** The app opens on the plan
+  (`simulationStore.viewMode` '2d'), which drew the wash machines and nothing else of the robotic depot. `Robots2D.tsx`
+  draws each fast charger's OTTO-CHARGE ARM and OTTO-CLEAN ARM and each car's open doors from the sessions the 3D view
+  draws (`TwinMotionDriver.armSessionAt`, `cleanSessionAt`, `doorStore`), through the 3D geometry seen from above
+  (`lib/planRobots/robotPlan.ts`, held equal to the 3D rigs by `robotPlan.test.ts`). It decides nothing. A robot added
+  to the 3D view is added to the plan the same way, or the plan misstates the depot again. A faulted charger's FAULT
+  mark is its own layer over them (`Stall.StallFaultMarks`): drawn with the stall, a folded arm crossed the word.
 - **From above, the roofs fade (2026-10-20):** the solar modules and roof membranes go to 16% when the camera looks
   down more than 40 degrees (`RoofXray.tsx`, back below 32), because from the Bird Eye view they hid every robot
   the depot has. Presets **Robots** (under canopy A) and **Wash** (inside wash bay 2) frame them close. A view

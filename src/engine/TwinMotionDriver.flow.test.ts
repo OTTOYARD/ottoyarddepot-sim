@@ -122,16 +122,28 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { replayFlow, formatFlow, type FlowReport } from "./__fixtures__/flowReplay";
 
+/** A macrotask turn: the worker's pending messages (Vitest's RPC replies) are read before the next block. */
+const yieldToEventLoop = () => new Promise<void>((resolve) => setTimeout(resolve, 10));
+
 describe("traffic flow — the 2026-09-22 live run, replayed on the cockpit's cadence", () => {
   let burst: FlowReport;
   let rec: FlowReport;
   let fresh8: FlowReport;
   let fresh3: FlowReport;
   // ~5 s each locally; CI is a shared runner and much slower, so the ceiling is generous.
-  beforeAll(() => {
+  //
+  // THE EVENT LOOP GETS A TURN BETWEEN REPLAYS. A test worker blocked for over 60 s loses its pending
+  // report to Vitest's own RPC timeout, "[vitest-worker]: Timeout calling onTaskUpdate", and the run
+  // fails with every test green. The four replays in one block took 41.7 s on a CI runner and 69 s on
+  // a slower one (2026-10-21, Verify runs 276 and 278-279); with the timeout lowered to 20 s, the block
+  // fails the same way on a fast machine. Each replay alone stays well under it.
+  beforeAll(async () => {
     burst = replayFlow("live0922", { maxWallMs: 900_000 });
+    await yieldToEventLoop();
     rec = replayFlow("live0922rec", { maxWallMs: 600_000 });
+    await yieldToEventLoop();
     fresh8 = replayFlow("fresh0922", { maxWallMs: 420_000 });
+    await yieldToEventLoop();
     fresh3 = replayFlow("fresh0922", { playAt: 3, maxWallMs: 1_120_000 });
   }, 600_000);
 
