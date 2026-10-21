@@ -21,7 +21,7 @@
 import { useMemo } from 'react';
 import { useDepotStore, type StallState } from '@/store/depotStore';
 import { useAppointmentStore, type ApptReservation } from '@/store/appointmentStore';
-import { chargerStallPaint, chargerStallFrame } from '@/lib/sitePlan';
+import { chargerStallPaint, chargerStallFrame, planStallBox } from '@/lib/sitePlan';
 import { twinMotionDriver } from '@/engine/TwinMotionDriver';
 
 const OTTO_RED = '#C8102E'; // OTTOYARD accent — the held-for-inbound hero ring
@@ -43,8 +43,8 @@ function rendererStallId(type: string, code: string | null): string | null {
 
 // stall outline — mirrors Stall.tsx so the ring traces the EXACT stall outline:
 // a charger stall is a rectangle centred on its car and turned the way the car lies
-// (sitePlan.chargerStallPaint, chargerStallFrame); staging and bays are the generic
-// polygons anchored at the stall point.
+// (sitePlan.chargerStallPaint, chargerStallFrame); a staging stall or a bay is the
+// rectangle sitePlan.planStallBox centres on its car.
 function stallOutline(stall: StallState): { points: string; cx: number; topY: number } {
   if (stall.type === 'dcfc' || stall.type === 'l2') {
     const { len, wid } = chargerStallPaint(stall.type);
@@ -57,20 +57,12 @@ function stallOutline(stall: StallState): { points: string; cx: number; topY: nu
       topY: Math.min(...pts.map((p) => p[1])),
     };
   }
-  const isWash = stall.type === 'wash';
-  const w = isWash ? 12 : 8;
-  const h = isWash ? 14 : 16;
-  const angleDeg = stall.position.angle;
-  const skew = angleDeg === 0 ? 0 : h * Math.cos((angleDeg * Math.PI) / 180);
-  const pts: [number, number][] = angleDeg === 0
-    ? [[0, 0], [w, 0], [w, h], [0, h]]
-    : [[0, h], [w, h], [w + skew, 0], [skew, 0]];
-  const xs = pts.map((p) => p[0]);
-  const ys = pts.map((p) => p[1]);
+  const { w, h } = planStallBox(stall.type, stall.position.angle);
+  const pts: [number, number][] = [[-w / 2, -h / 2], [w / 2, -h / 2], [w / 2, h / 2], [-w / 2, h / 2]];
   return {
     points: pts.map((p) => `${p[0]},${p[1]}`).join(' '),
-    cx: (Math.min(...xs) + Math.max(...xs)) / 2,
-    topY: Math.min(...ys),
+    cx: 0,
+    topY: -h / 2,
   };
 }
 

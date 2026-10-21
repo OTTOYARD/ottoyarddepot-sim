@@ -55,6 +55,11 @@ read through search results 2026-10-21).
 The passes are fitted to the seat as the program starts: they stretch or shrink (0.4x to 2x) so the machine is home
 8 sim-seconds before the twin's seat ends. An older backend that publishes no end runs at nominal pace.
 
+The machine keeps to the twin's clock at any frame rate. The gate plays each frame's sim time in steps of 0.25 s
+(`WASH_SUBSTEP_S`). Played as one step capped at 2 s, a frame a second at 3x lost a third of its time, and on live run
+96371023 a detail seat ended while its machine was still in the vacuum. `washGate.test.ts` plays both programs at
+0.05, 1, 3 and 8 sim-seconds a frame and requires every pass, no early end, and the last pass within a frame of 60 fps.
+
 A detail seat (the twin's `in_detail_bay`; at `wash_lane_physics` 2 a door attendant and a robot arm clean the
 interior, then the exterior program runs, 16.5 minutes within 20%) cleans the cabin first:
 
@@ -89,7 +94,8 @@ canopy A: the fast chargers' arms on the cars and the cleaning arms above them) 
 The 2D plan draws the same machines from above (`WashGantry2D.tsx`), from the same session and pose as the 3D view:
 the portal on its rails, the side brushes closing on the car, the top brush, the spray and the air knives' blast while
 they run, a detail seat's two wands in the doorways, the beacon and the stop light. Each bay's square on the plan is
-centred on the car it holds (it was drawn from that point as a corner, and reached into the next bay).
+centred on the car it holds (it was drawn from that point as a corner, and reached into the next bay), and so is every
+staging stall, at the size the 3D view paints it.
 
 ## Tests
 
@@ -103,8 +109,11 @@ centred on the car it holds (it was drawn from that point as a corner, and reach
   driving under it by more than 1 u.
 - `structureClearance.replay.test.ts`: the wash bays' solids are the machine at home and its rails
   (`structurePlan.bayEquipmentSolids`), and no recorded car meets them.
+- `washGate.test.ts`: both programs at 0.05, 1, 3 and 8 sim-seconds a frame run every pass and are home before the
+  seat ends; a seat the twin ends early still lets the car go inside the hold cap; a viewer joining mid-seat at a frame
+  a second runs the rest of the program. Its reproduction fails on the old one-step-a-frame gate (7 of 13 tests).
 - `WashGantry2D.test.tsx`: the 2D plan draws exactly the pose the 3D view draws, at every moment of a detail program,
   and the machine passes over the car end to end. `StallBay.test.tsx`: each bay's square is centred on its car, inside
-  its own bay.
+  its own bay, and each staging stall is the 3D paint's outline centred on its car with the car's body inside it.
 - `scripts/liveWashShots.mjs` films a real program from a live run, from inside the hall, through the south door and
   from above.

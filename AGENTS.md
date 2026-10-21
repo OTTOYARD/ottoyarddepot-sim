@@ -286,7 +286,13 @@ interpolation.** Zero world logic client-side.
   machine plays inside it and holds the car until it is home (`engine/motion/washGate.ts`, one evaluation like the
   arms'). A moving car only ever meets the machine AT HOME, so `structurePlan` carries it there, retracted, plus its
   rails; `washPose.test.ts` measures every moving part against the car's solid, its open doors and its seats. The 2D
-  plan draws the same machines from the same session (`WashGantry2D.tsx`).
+  plan draws the same machines from the same session (`WashGantry2D.tsx`). The gate plays a slow frame in 0.25 s steps
+  (`WASH_SUBSTEP_S`): played as one capped step, a frame a second at 3x lost a third of its time and the twin's seat
+  cut a detail program off in its vacuum (`washGate.test.ts`).
+- **The 2D plan draws every stall where its car stands (2026-10-21).** A bay's or a staging stall's position is the
+  parked car's centre, and both are drawn centred on it; a staging stall is the outline the 3D view paints
+  (`sitePlan.STAGING_STALL_PAINT`), laid along the car. They used to be drawn from that point as a corner, so every
+  parked car sat on its stall's corner and the side columns' stalls stood across their cars (`StallBay.test.tsx`).
 - **From above, the roofs fade (2026-10-20):** the solar modules and roof membranes go to 16% when the camera looks
   down more than 40 degrees (`RoofXray.tsx`, back below 32), because from the Bird Eye view they hid every robot
   the depot has. Presets **Robots** (under canopy A) and **Wash** (inside wash bay 2) frame them close. A view

@@ -17,11 +17,26 @@
 // must not freeze a car.
 // ============================================================================
 import {
-  advanceWashSession, IDLE_WASH, washDoorsAt, washLetsCarMove, type WashSession,
+  advanceWashSession, IDLE_WASH, washDoorsAt, washLetsCarMove, type WashInput, type WashSession,
 } from "@/lib/ottoWash/washSession";
 
 /** Largest sim-clock step treated as elapsed time, seconds (the depart gate's, for its reason). */
 export const MAX_WASH_CLOCK_STEP_S = 30;
+
+/**
+ * The step the gate feeds the reducer, sim seconds. A frame's sim time is played in steps of
+ * at most this, so a slow frame costs the machine no time against the twin's clock.
+ *
+ * SEEN 2026-10-21 on live run 96371023, filmed in a headless browser (software GL, slow frames):
+ * a detail seat ended while its machine was still in the vacuum, so the six passes never ran.
+ * The reducer takes one step of at most MAX_WASH_STEP_S (2 s) a call and drops the rest, so a
+ * frame carrying 3 s of sim time (a frame a second at 3x) lost a third of it and the machine
+ * fell behind the twin until the seat's end cut it off. washGate.test.ts reproduces that and
+ * runs both programs to the end at 0.05, 1, 3 and 8 sim-seconds a frame. A phone, a background
+ * tab coming back, or 8x playback lose time the same way. 0.25 s: a frame at 60 fps (0.05 s at
+ * 3x) is still one call, and a step that ends a phase drops at most this.
+ */
+export const WASH_SUBSTEP_S = 0.25;
 
 /**
  * Longest the gate may hold a car once the twin's seat is over, sim seconds.
@@ -49,6 +64,25 @@ export interface WashBayInput {
   sinceS?: number | null;
 }
 
+/**
+ * Play `dt` sim seconds of one bay in steps of at most WASH_SUBSTEP_S. The seat's clocks were
+ * read at the END of the frame, so each step sees them as they stood when that step ended.
+ */
+function advanceBy(s: WashSession, dt: number, input: Omit<WashInput, "dt">): WashSession {
+  let done = 0;
+  do {
+    const step = Math.min(dt - done, WASH_SUBSTEP_S);
+    done += step;
+    const before = dt - done; // how long before the frame's end this step ends
+    s = advanceWashSession(s, {
+      ...input, dt: step,
+      endsInS: input.endsInS === null ? null : input.endsInS + before,
+      sinceS: input.sinceS == null ? input.sinceS : input.sinceS - before,
+    });
+  } while (dt - done > 1e-9);
+  return s;
+}
+
 interface BayState {
   session: WashSession;
   held: boolean;
@@ -72,8 +106,8 @@ export class WashGate {
     for (const input of inputs) {
       seen.add(input.bayId);
       const prev = this.bays.get(input.bayId);
-      const session = advanceWashSession(prev?.session ?? IDLE_WASH, {
-        dt, vehicleId: input.vehicleId, active: input.active, interior: input.interior, endsInS: input.endsInS,
+      const session = advanceBy(prev?.session ?? IDLE_WASH, dt, {
+        vehicleId: input.vehicleId, active: input.active, interior: input.interior, endsInS: input.endsInS,
         sinceS: input.sinceS ?? null,
       });
       this.store(input.bayId, prev, session, dt);
@@ -81,7 +115,7 @@ export class WashGate {
     for (const [id, st] of this.bays) {
       if (seen.has(id)) continue;
       if (st.session.phase === "home") { this.bays.delete(id); continue; }
-      const session = advanceWashSession(st.session, { dt, vehicleId: null, active: false, interior: false, endsInS: null });
+      const session = advanceBy(st.session, dt, { vehicleId: null, active: false, interior: false, endsInS: null });
       this.store(id, st, session, dt);
     }
   }

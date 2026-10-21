@@ -2,13 +2,17 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, render } from '@testing-library/react';
 import { Stall } from './Stall';
 import type { StallState } from '@/store/depotStore';
-import { BAY_STALL_Y, WASH, WASH_BAY_XS, SERVICE_BAY_XS, generateStallsV2 } from '@/lib/sitePlan';
+import {
+  BAY_STALL_Y, WASH, WASH_BAY_XS, SERVICE_BAY_XS, STAGING_STALL_PAINT, generateStallsV2,
+} from '@/lib/sitePlan';
+import { CAR_BODY_LENGTH, CAR_BODY_WIDTH } from '@/engine/motion/traffic';
 
-// A bay's square on the 2D plan stands where its car stands. The bay's position is the car's centre
-// (sitePlan.bayStalls), and the cars, the wash machines and the bay outlines are all drawn from it.
+// A stall's outline on the 2D plan stands where its car stands. A bay's or a staging stall's position
+// is the parked car's centre (sitePlan.bayStalls, stagingStalls), and the cars, the wash machines and
+// the 3D paint are all drawn from it.
 afterEach(cleanup);
 
-/** The drawn square's [x0, y0, x1, y1] on the plan, from its group's translate and its polygon. */
+/** The drawn outline's [x0, y0, x1, y1] on the plan, from its group's translate and its polygon. */
 function drawnBox(stall: StallState): [number, number, number, number] {
   const { container } = render(<svg><Stall stall={stall} /></svg>);
   const g = container.querySelector(`[data-stall="${stall.id}"]`)!;
@@ -18,8 +22,9 @@ function drawnBox(stall: StallState): [number, number, number, number] {
   return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
 }
 
+const stalls = generateStallsV2();
+
 describe('2D: a bay square is centred on the car it holds', () => {
-  const stalls = generateStallsV2();
   const bays = stalls.filter((s) => s.type === 'wash' || s.type === 'service');
 
   it('draws every wash and service bay centred on its position', () => {
@@ -44,10 +49,43 @@ describe('2D: a bay square is centred on the car it holds', () => {
     }
     for (const x of SERVICE_BAY_XS) expect(bays.some((s) => s.type === 'service' && s.position.x === x)).toBe(true);
   });
+});
 
-  it('leaves the staging stalls drawn as they were', () => {
-    const s = stalls.find((t) => t.type === 'staging' && t.position.angle === 0)!;
-    const [x0, y0] = drawnBox(s);
-    expect([x0, y0]).toEqual([s.position.x, s.position.y]);
+describe('2D: a staging stall is the outline the 3D view paints, centred on its car', () => {
+  const staging = stalls.filter((s) => s.type === 'staging');
+
+  it('centres every staging stall on its car', () => {
+    expect(staging.length).toBeGreaterThan(100);
+    for (const s of staging) {
+      const [x0, y0, x1, y1] = drawnBox(s);
+      expect((x0 + x1) / 2, s.id).toBeCloseTo(s.position.x, 6);
+      expect((y0 + y1) / 2, s.id).toBeCloseTo(s.position.y, 6);
+    }
+  });
+
+  it('lays it along the car, east-west on a run at 90 or 270 degrees, at the 3D paint size', () => {
+    const angles = new Set(staging.map((s) => s.position.angle));
+    expect([...angles].sort((a, b) => a - b)).toEqual([0, 90, 270]);
+    for (const s of staging) {
+      const [x0, y0, x1, y1] = drawnBox(s);
+      const eastWest = s.position.angle === 90 || s.position.angle === 270;
+      const [len, wid] = eastWest ? [x1 - x0, y1 - y0] : [y1 - y0, x1 - x0];
+      expect(len, s.id).toBeCloseTo(STAGING_STALL_PAINT.along, 6);
+      expect(wid, s.id).toBeCloseTo(STAGING_STALL_PAINT.across, 6);
+    }
+  });
+
+  it('holds its parked car: the 9.8 x 4.0 body lies inside the outline', () => {
+    expect(STAGING_STALL_PAINT.along).toBeGreaterThan(CAR_BODY_LENGTH);
+    expect(STAGING_STALL_PAINT.across).toBeGreaterThan(CAR_BODY_WIDTH);
+    for (const s of staging) {
+      const [x0, y0, x1, y1] = drawnBox(s);
+      const eastWest = s.position.angle === 90 || s.position.angle === 270;
+      const [hx, hy] = eastWest ? [CAR_BODY_LENGTH / 2, CAR_BODY_WIDTH / 2] : [CAR_BODY_WIDTH / 2, CAR_BODY_LENGTH / 2];
+      expect(x0, s.id).toBeLessThanOrEqual(s.position.x - hx);
+      expect(x1, s.id).toBeGreaterThanOrEqual(s.position.x + hx);
+      expect(y0, s.id).toBeLessThanOrEqual(s.position.y - hy);
+      expect(y1, s.id).toBeGreaterThanOrEqual(s.position.y + hy);
+    }
   });
 });
