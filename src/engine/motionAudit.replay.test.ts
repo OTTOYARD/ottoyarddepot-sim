@@ -67,8 +67,11 @@ const WINDOWS: { label: string; fixture: "busyday" | "fresh0922" | "chase1006"; 
 for (const w of WINDOWS) {
   describe(`motion — the founder's 2026-10-06 report, replayed: ${w.label}`, () => {
     let r: AuditReport;
-    // CI is a shared runner and much slower than the 5-15 s this takes locally.
-    beforeAll(() => {
+    // CI is a shared runner and much slower than the 5-15 s this takes locally. The event loop gets a turn
+    // before each audit: without one the file's three audits ran as one block (26 s here, 51 s on a slow CI
+    // runner), and a worker blocked for 60 s fails the run on Vitest's RPC timeout (TwinMotionDriver.flow.test.ts).
+    beforeAll(async () => {
+      await new Promise<void>((resolve) => setTimeout(resolve, 10));
       r = auditFixture(w.fixture, w.opts, w.label);
     }, 300_000);
 
