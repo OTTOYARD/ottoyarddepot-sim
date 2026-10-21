@@ -495,6 +495,11 @@ function playRelease(s0: ArmSession, each: (s: ArmSession) => void) {
 }
 
 describe('an interrupted mate rejoins the release where it already is', () => {
+  // 60 s, not the 5 s default, for the reason the second test here gives: an exhaustive sweep on a runner
+  // many times slower than a dev machine. It ran on the default alone and failed on it: 258 ms
+  // locally (2026-10-21), past 5,000 ms on CI in ottoyarddepot-sim PR #148's verify (run
+  // 39538221471), where this file took 44,377 ms against 3,420 locally. A timeout is a hang
+  // detector, so the assertion and the sweep are unchanged.
   it('is EXACTLY continuous whenever the abort lands, on every arm and port', () => {
     // Sweeps the whole reach frame by frame — unstow, approach, align, insert,
     // latch — for all 10 DCFC arms and all 7 port variants. This is the assertion
@@ -514,7 +519,7 @@ describe('an interrupted mate rejoins the release where it already is', () => {
     }
     // Exact, not merely small: the entry point is solved, not approximated.
     expect(worst, worstAt).toBeLessThan(1e-9);
-  });
+  }, 60_000);
 
   // 60 s, not the 5 s default: this is an exhaustive physical sweep, not a unit test,
   // and CI's shared runner is many times slower than a dev machine. Scoped to THIS

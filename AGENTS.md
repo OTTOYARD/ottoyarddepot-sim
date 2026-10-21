@@ -285,7 +285,8 @@ interpolation.** Zero world logic client-side.
   doors first. The twin owns the seat (otto-q-core 0746 times it, 0762 publishes `bay_seat {since, ends_at}`); the
   machine plays inside it and holds the car until it is home (`engine/motion/washGate.ts`, one evaluation like the
   arms'). A moving car only ever meets the machine AT HOME, so `structurePlan` carries it there, retracted, plus its
-  rails; `washPose.test.ts` measures every moving part against the car's solid, its open doors and its seats.
+  rails; `washPose.test.ts` measures every moving part against the car's solid, its open doors and its seats. The 2D
+  plan draws the same machines from the same session (`WashGantry2D.tsx`).
 - **From above, the roofs fade (2026-10-20):** the solar modules and roof membranes go to 16% when the camera looks
   down more than 40 degrees (`RoofXray.tsx`, back below 32), because from the Bird Eye view they hid every robot
   the depot has. Presets **Robots** (under canopy A) and **Wash** (inside wash bay 2) frame them close. A view

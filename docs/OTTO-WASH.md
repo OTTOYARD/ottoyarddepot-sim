@@ -86,6 +86,11 @@ fade when the camera looks down steeply (`RoofXray.tsx`: below 40 degrees down t
 canopies and the machines inside the wash hall show. Two camera presets frame the robots close: **Robots** (under
 canopy A: the fast chargers' arms on the cars and the cleaning arms above them) and **Wash** (inside wash bay 2).
 
+The 2D plan draws the same machines from above (`WashGantry2D.tsx`), from the same session and pose as the 3D view:
+the portal on its rails, the side brushes closing on the car, the top brush, the spray and the air knives' blast while
+they run, a detail seat's two wands in the doorways, the beacon and the stop light. Each bay's square on the plan is
+centred on the car it holds (it was drawn from that point as a corner, and reached into the next bay).
+
 ## Tests
 
 - `washSession.test.ts`: the program's order, both chains; it is home before every robotic wash and detail seat the
@@ -98,5 +103,8 @@ canopy A: the fast chargers' arms on the cars and the cleaning arms above them) 
   driving under it by more than 1 u.
 - `structureClearance.replay.test.ts`: the wash bays' solids are the machine at home and its rails
   (`structurePlan.bayEquipmentSolids`), and no recorded car meets them.
+- `WashGantry2D.test.tsx`: the 2D plan draws exactly the pose the 3D view draws, at every moment of a detail program,
+  and the machine passes over the car end to end. `StallBay.test.tsx`: each bay's square is centred on its car, inside
+  its own bay.
 - `scripts/liveWashShots.mjs` films a real program from a live run, from inside the hall, through the south door and
   from above.

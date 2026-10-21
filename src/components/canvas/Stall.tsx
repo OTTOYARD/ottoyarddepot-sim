@@ -138,9 +138,17 @@ export const Stall = memo(({ stall }: StallProps) => {
     );
   }
 
+  // A bay's position is where its car stands (sitePlan.bayStalls: the car's centre), so its square is
+  // drawn centred there, inside the bay's outline under the car and its machine. Drawn from that point
+  // as a corner, each wash bay's square reached into the next bay. (Staging stalls are still drawn
+  // from their position as a corner: a separate change.)
+  const isBay = isWash || stall.type === 'service';
+  const ox = isBay ? stall.position.x - w / 2 : stall.position.x;
+  const oy = isBay ? stall.position.y - h / 2 : stall.position.y;
   return (
     <g
-      transform={`translate(${stall.position.x}, ${stall.position.y})`}
+      transform={`translate(${ox}, ${oy})`}
+      data-stall={stall.id}
       className={`cursor-pointer ${isCharging ? 'stall-charging-pulse' : ''}`}
       onClick={(e) => { e.stopPropagation(); selectStall(stall.id); }}
       onMouseEnter={() => setHoveredStall(stall.id)}
