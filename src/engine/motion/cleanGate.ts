@@ -20,7 +20,7 @@
 // is over (CLEAN_HOLD_CAP_S): a wedged signal must not freeze a car.
 // ============================================================================
 import {
-  advanceCleanSession, cleanLetsCarMove, IDLE_CLEAN, type CleanSession,
+  advanceCleanSession, cleanLetsCarMove, IDLE_CLEAN, type CleanInput, type CleanSession,
 } from "@/lib/ottoCleanArm/cleanSession";
 import { doorsAt, sidesFor, type CleanSides } from "@/lib/ottoCleanArm/cleanArmPose";
 import { stallHasArm } from "@/lib/ottoChargeArm/roboticService";
@@ -28,6 +28,35 @@ import type { TwinVehicle } from "@/lib/ottoTwin";
 
 /** Largest sim-clock step treated as elapsed time, seconds (the depart gate's, for its reason). */
 export const MAX_CLEAN_CLOCK_STEP_S = 30;
+
+/**
+ * The step the gate feeds the reducer, sim seconds: washGate's WASH_SUBSTEP_S, for its reason. A frame's
+ * sim time is played in steps of at most this, so a slow frame costs the arm no time against the twin's step.
+ *
+ * MEASURED 2026-10-21 (cleanGate.test.ts reproduces it): stepped once a frame, the reducer takes at most
+ * MAX_CLEAN_STEP_S (2 s) a call and drops the rest, so against the twin's 5.8-minute step (348 s) the arm
+ * was cut off in ascend_b at 3 sim-seconds a frame with 96 s on side B instead of 146, and at 6 or more
+ * it never reached side B at all. 60 fps at 3x is 0.05 s a frame, so a fast device was never short.
+ */
+export const CLEAN_SUBSTEP_S = 0.25;
+
+/**
+ * Play `dt` sim seconds of one stall in steps of at most CLEAN_SUBSTEP_S. The step's end was read at the END
+ * of the frame, so each step sees it as it stood when that step ended. The charge arm's stillness
+ * (`mayEnter`) is the frame's: the two arms interlock frame by frame, as they always have.
+ */
+function advanceBy(s: CleanSession, dt: number, input: Omit<CleanInput, "dt">): CleanSession {
+  let done = 0;
+  do {
+    const step = Math.min(dt - done, CLEAN_SUBSTEP_S);
+    done += step;
+    const before = dt - done; // how long before the frame's end this step ends
+    s = advanceCleanSession(s, {
+      ...input, dt: step, endsInS: input.endsInS === null ? null : input.endsInS + before,
+    });
+  } while (dt - done > 1e-9);
+  return s;
+}
 
 /**
  * Longest the gate may hold a car once the twin's step is over, sim seconds.
@@ -130,8 +159,8 @@ export class CleanGate {
       seen.add(input.stallId);
       const prev = this.stalls.get(input.stallId);
       const sides = sidesFor(input.toward);
-      const session = advanceCleanSession(prev?.session ?? IDLE_CLEAN, {
-        dt, vehicleId: input.vehicleId, active: input.active, endsInS: input.endsInS,
+      const session = advanceBy(prev?.session ?? IDLE_CLEAN, dt, {
+        vehicleId: input.vehicleId, active: input.active, endsInS: input.endsInS,
         sides, mayEnter: input.mayEnter,
       });
       this.store(input.stallId, prev, session, sides, dt);
@@ -139,8 +168,8 @@ export class CleanGate {
     for (const [id, st] of this.stalls) {
       if (seen.has(id)) continue;
       if (st.session.phase === "home") { this.stalls.delete(id); continue; }
-      const session = advanceCleanSession(st.session, {
-        dt, vehicleId: null, active: false, endsInS: null, sides: st.sides,
+      const session = advanceBy(st.session, dt, {
+        vehicleId: null, active: false, endsInS: null, sides: st.sides,
       });
       this.store(id, st, session, st.sides, dt);
     }

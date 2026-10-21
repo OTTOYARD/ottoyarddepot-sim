@@ -9,6 +9,8 @@ import { describe, it, expect } from "vitest";
 import { CleanGate, cabinCleanOf, CLEAN_HOLD_CAP_S, type CleanStallInput } from "./cleanGate";
 import { armSessionInput, IDLE_SESSION, type ArmSession } from "@/lib/ottoChargeArm/roboticService";
 import { CLEAN_CHAIN } from "@/lib/ottoCleanArm/cleanArmSpec";
+import { advanceCleanSession, IDLE_CLEAN, type CleanSession } from "@/lib/ottoCleanArm/cleanSession";
+import { sidesFor } from "@/lib/ottoCleanArm/cleanArmPose";
 
 const T0 = Date.parse("2026-10-19T14:00:00.000Z");
 const map = (id: string) => ({ "twin-dcfc-01": "DCFC-01", "twin-dcfc-02": "DCFC-02" } as Record<string, string>)[id];
@@ -185,5 +187,99 @@ describe("the two robots never move beside the car at the same time", () => {
     expect(armSessionInput(latched, facts)).toEqual({ charging: true, tetherRemainingS: null });
     expect(armSessionInput(latched, { ...facts, chargingState: false })).toEqual({ charging: false, tetherRemainingS: null });
     expect(armSessionInput(IDLE_SESSION, { ...facts, parked: false }).charging).toBe(false);
+  });
+});
+
+// The arm plays inside the twin's step, on the sim clock. A slow frame (a phone, a headless browser drawing a
+// frame a second, a background tab coming back, 8x playback) hands the gate several sim seconds at once, and the
+// gate plays them in steps of CLEAN_SUBSTEP_S, so both sides are cleaned for the time the twin gave them whatever
+// the frame rate. The twin marks the tidy done on its first tick after the step's end, so these runs keep the
+// step in progress a minute past it, as the snapshot does.
+describe("the cleaning arm keeps the twin's step at any frame rate", () => {
+  const STEP = 348;        // 0758's cycle at its defaults: 2 x 2.5 + 0.8 minutes
+  const CLOSE = STEP + 60; // the tick that marks the tidy done
+
+  interface Run { finishing: boolean; cleanA: number; cleanB: number; homeAt: number; seen: string[] }
+
+  /** One step played at `frame` sim seconds a frame. `oneCallAFrame` steps the reducer once a frame, as the gate did. */
+  function run(frame: number, oneCallAFrame = false): Run {
+    const g = new CleanGate();
+    let s: CleanSession = IDLE_CLEAN;
+    const r: Run = { finishing: false, cleanA: 0, cleanB: 0, homeAt: Infinity, seen: [] };
+    let left = false;
+    for (let t = 0; t <= CLOSE + 60; t += frame) {
+      const active = t < CLOSE;
+      const endsInS = active ? STEP - t : null;
+      const dt = t === 0 ? 0 : frame;
+      if (oneCallAFrame) {
+        s = advanceCleanSession(s, { dt, vehicleId: "car-1", active, endsInS, sides: sidesFor(1), mayEnter: true });
+      } else {
+        g.step(dt, [input({ active, endsInS })]);
+        s = g.session("DCFC-01") ?? IDLE_CLEAN;
+      }
+      if (s.finishing) r.finishing = true;
+      if (s.phase === "clean_a") r.cleanA += frame;
+      if (s.phase === "clean_b") r.cleanB += frame;
+      if (s.phase !== "home") left = true;
+      if (left && s.phase === "home" && r.homeAt === Infinity) r.homeAt = t;
+      if (r.seen[r.seen.length - 1] !== s.phase) r.seen.push(s.phase);
+    }
+    return r;
+  }
+
+  // 60 fps at 3x is 0.05 sim-s a frame; one frame a second at 3x is 3 s, at 8x 8 s
+  const smooth = run(0.05);
+
+  for (const frame of [0.05, 1, 3, 8]) {
+    it(`cleans both sides for their time at ${frame} sim-s a frame, and is home as the step ends`, () => {
+      const r = run(frame);
+      expect(r.finishing, "cut off").toBe(false);
+      expect(r.seen).toContain("clean_a");
+      expect(r.seen).toContain("clean_b");
+      // each side is timed by the frames that end in it: a frame's error at each end
+      expect(Math.abs(r.cleanA - smooth.cleanA), `side A at ${frame}`).toBeLessThanOrEqual(2 * frame);
+      expect(Math.abs(r.cleanB - smooth.cleanB), `side B at ${frame}`).toBeLessThanOrEqual(2 * frame);
+      expect(r.homeAt).toBeLessThanOrEqual(STEP + frame);
+    });
+  }
+
+  it("REPRODUCES what it fixes: one reducer call a frame shortens side B at 3 sim-s a frame and skips it at 8", () => {
+    // the reducer takes at most 2 s a call and drops the rest, so the arm falls behind the twin's step and the
+    // pace squeezes side B into what is left (MEASURED 2026-10-21: 96 s of 149 at 3, none at 8)
+    const at3 = run(3, true), at8 = run(8, true);
+    expect(at3.cleanB).toBeLessThan(0.7 * smooth.cleanB);
+    expect(at3.homeAt).toBeGreaterThan(STEP + 3);
+    expect(at8.cleanB).toBe(0);
+    expect(at8.finishing).toBe(true);
+    // and through the gate, the same frames clean side B in full
+    expect(run(3).cleanB).toBeGreaterThan(0.95 * smooth.cleanB);
+    expect(run(8).cleanB).toBeGreaterThan(0.9 * smooth.cleanB);
+  });
+
+  it("holds the car from the doors opening to the doors shut, at a frame a second", () => {
+    const g = new CleanGate();
+    for (let t = 0; t <= CLOSE + 30; t += 3) {
+      const active = t < CLOSE;
+      g.step(t === 0 ? 0 : 3, [input({ active, endsInS: active ? STEP - t : null })]);
+      const p = g.session("DCFC-01")?.phase ?? "home";
+      if (p !== "home") expect(g.mayMove("DCFC-01"), `t ${t} ${p}`).toBe(false);
+    }
+    expect(g.session("DCFC-01")?.phase).toBe("home");
+    expect(g.mayMove("DCFC-01")).toBe(true);
+  });
+
+  it("finishes a step the twin ends early from wherever the arm is, home well inside the cap, at a frame a second", () => {
+    const g = new CleanGate();
+    let releasedAt = Infinity, phaseAtRelease = "";
+    for (let t = 0; t <= 300; t += 3) {
+      const active = t < 100; // the car re-tasked in the middle of side A
+      g.step(t === 0 ? 0 : 3, [input({ active, endsInS: active ? STEP - t : null })]);
+      if (t >= 100 && releasedAt === Infinity && g.mayMove("DCFC-01")) {
+        releasedAt = t;
+        phaseAtRelease = g.session("DCFC-01")?.phase ?? "home";
+      }
+    }
+    expect(phaseAtRelease).toBe("home");                       // the arm, not the cap, let the car go
+    expect(releasedAt - 100).toBeLessThan(CLEAN_HOLD_CAP_S / 2);
   });
 });

@@ -289,6 +289,16 @@ interpolation.** Zero world logic client-side.
   plan draws the same machines from the same session (`WashGantry2D.tsx`). The gate plays a slow frame in 0.25 s steps
   (`WASH_SUBSTEP_S`): played as one capped step, a frame a second at 3x lost a third of its time and the twin's seat
   cut a detail program off in its vacuum (`washGate.test.ts`).
+- **Every robot keeps the twin's clock at any frame rate (2026-10-21).** The wash machine, the OTTO-CLEAN ARM and the
+  OTTO-CHARGE ARM each play a frame's sim time in 0.25 s steps (`WASH_SUBSTEP_S`, `CLEAN_SUBSTEP_S`, `ARM_SUBSTEP_S`).
+  Their reducers take at most 2 s and one transition a call and drop the rest: right for a frame at 60 fps (0.05
+  sim-s at 3x), short on a slow one (a phone, a headless browser, a background tab, 8x). Measured on the old
+  stepping: at 3 sim-s a frame the cleaning arm got 96 s of side B's 149 (none at 8) and the charge arm latched at 33
+  s against 18.5; at 12 the depart gate's 60 s cap, which counts the sim clock, released the car with the arm still
+  folding, and at 20 with the connector still coming out. The charge arm's two evaluations, `ChargingArm.tsx` (drawn)
+  and `armGate.ts` (the hold), both call `roboticService.playArmSession`, and neither plays a clock jump of more than
+  30 sim-s (`armElapsedS`), so they keep the clock and each other however their frames fall (`armGate.test.ts`,
+  `cleanGate.test.ts`).
 - **The 2D plan draws every stall where its car stands (2026-10-21).** A bay's or a staging stall's position is the
   parked car's centre, and both are drawn centred on it; a staging stall is the outline the 3D view paints
   (`sitePlan.STAGING_STALL_PAINT`), laid along the car. They used to be drawn from that point as a corner, so every

@@ -16,7 +16,7 @@ import { STOWED, type JointAngles } from '@/lib/ottoChargeArm/cobotIK';
 import { placeArm, portInArmFrame } from '@/lib/ottoChargeArm/depotPlacement';
 import { portFor } from '@/lib/ottoChargeArm/chargePort';
 import {
-  advanceArmSession, armSessionInput, isArmHome, stallHasArm,
+  playArmSession, isArmHome, stallHasArm,
   IDLE_SESSION, type ArmSession,
 } from '@/lib/ottoChargeArm/roboticService';
 
@@ -58,17 +58,6 @@ const spec = OTTO_CHARGE_ARM;
 
 /** Rendered vehicle half-width in metres, from the shared plan-unit footprint. */
 const CAR_HALF_WIDTH_M = (CAR_WIDTH * METRES_PER_PLAN_UNIT) / 2;
-
-/**
- * Largest sim-clock step this component will treat as elapsed time.
- *
- * The depot clock can JUMP — a scrub, a run change, a snapshot from a new run.
- * A jump is not thirty seconds of the world happening; it is a different world.
- * Feeding it to the session reducer would fast-forward a whole cycle in one
- * frame, which is exactly the discontinuity being fixed. Beyond this, the arm
- * simply holds and resumes on the next real step.
- */
-const MAX_CLOCK_STEP_S = 30;
 
 /**
  * DEV-ONLY: what each arm is actually doing, by stall.
@@ -173,11 +162,13 @@ export function ChargingArm({ stallId, stallType, fleet, slot }: ChargingArmProp
     // and a 1 Hz clock would step this cycle in visible jerks. The store is the
     // fallback for any mode where no backend owns the clock.
     const simTime = twinMotionDriver.simClockTod() ?? useSimulationStore.getState().simTime;
+    // A jump of the clock (a scrub, a run change, a snapshot from a new run) is not
+    // elapsed time: playArmSession plays none of it (roboticService.armElapsedS, the
+    // depart gate's rule too), so the arm holds and resumes on the next real step.
     let simDt = 0;
     if (lastSim.current !== null) {
       simDt = simTime - lastSim.current;
       if (simDt < 0) simDt += 86400;                    // the clock wraps at midnight
-      if (simDt > MAX_CLOCK_STEP_S) simDt = 0;          // a scrub is not elapsed time
     }
     lastSim.current = simTime;
 
@@ -219,21 +210,18 @@ export function ChargingArm({ stallId, stallType, fleet, slot }: ChargingArmProp
     // session is over and this is how long it has allowed for the demate.
     const tetherLeft = twinMotionDriver.stallTetherRemainingS(stallId);
 
-    // ONE composition with the depart gate's (armSessionInput), including the
-    // interlock with the stall's OTTO-CLEAN ARM: no mate starts while that arm is out
-    // over the car, and a latched connector stays in until it is home.
-    const input = armSessionInput(session.current, {
+    // ONE frame with the depart gate's (playArmSession): the frame's sim time in small
+    // steps, so this arm and the gate's keep the clock at any frame rate, each step
+    // composed by armSessionInput, including the interlock with the stall's OTTO-CLEAN
+    // ARM: no mate starts while that arm is out over the car, and a latched connector
+    // stays in until it is home.
+    session.current = playArmSession(session.current, simDt, {
       vehicleId: v?.id ?? null,
       chargingState,
       parked,
       tetherRemainingS: tetherLeft,
       cleanBusy: twinMotionDriver.cleanArmBusy(stallId),
       cleanBlocksMate: twinMotionDriver.cleanArmBlocksMate(stallId),
-    });
-    session.current = advanceArmSession(session.current, {
-      dt: simDt,
-      vehicleId: v?.id ?? null,
-      ...input,
     });
     const { phase, t } = session.current;
 

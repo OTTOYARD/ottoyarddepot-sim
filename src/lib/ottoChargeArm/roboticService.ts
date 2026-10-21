@@ -389,7 +389,9 @@ export function advanceArmSession(prev: ArmSession, input: ArmSessionInput): Arm
   //
   // Continuity wins over clock-accuracy here. The cost is a lost fraction of a
   // frame per transition (~0.16 s across a whole 30 s cycle at 60 fps), which is
-  // invisible; a skipped phase is the reported bug.
+  // invisible; a skipped phase is the reported bug. A frame of several sim seconds
+  // is not one call: both evaluations play it as many (playArmSession, below), so
+  // it costs at most a quarter second per transition instead of most of the frame.
   let stepped = false;
   for (let guard = 0; guard < 16; guard++) {
     const durNow = phaseDuration(phase);
@@ -420,4 +422,63 @@ export function advanceArmSession(prev: ArmSession, input: ArmSessionInput): Arm
   if (isArmHome(phase)) vehicleId = input.vehicleId;
 
   return { phase, phaseElapsed, t, vehicleId };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ONE FRAME OF THE ARM. Both evaluations of the cycle take this step, so the arm
+// that is drawn (ChargingArm.tsx) and the arm that holds the car (armGate.ts) keep
+// the sim clock, and so each other, at any frame rate.
+//
+// advanceArmSession takes at most MAX_SESSION_STEP_S and one transition a call and
+// drops the rest: right for a drawn frame at 60 fps, which at 3x is 0.05 sim-s. A
+// slow frame (a phone, a headless browser drawing a frame a second, a background
+// tab, 8x playback) carries several sim seconds, and stepped once a frame the arm
+// fell behind the clock. MEASURED 2026-10-21, and armGate.test.ts reproduces it:
+// at 3 sim-s a frame the connector latched at 33 s against 18.5 s of motion, and at
+// 12 or more the depart gate's cap, which runs on the sim clock, ran out while the
+// arm was still letting go, so the car was released with the arm still folding
+// (12 s a frame) or the connector still coming out of the port (20 s). The wash
+// machine and the cleaning arm lost time the same way (washGate.ts, cleanGate.ts).
+//
+// So a frame is played in steps of ARM_SUBSTEP_S, each composing its input from the
+// stall's facts against the session as it then stands. A drawn frame at 60 fps is
+// still one call. A phase shorter than a frame can now begin and end inside one,
+// which the one-transition rule prevents at 60 fps; on a frame that long the drawn
+// joints still travel through it at the servo limit (armMotion.slewAngles).
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** The step both evaluations feed the reducer, sim seconds (washGate's WASH_SUBSTEP_S). */
+export const ARM_SUBSTEP_S = 0.25;
+
+/**
+ * Largest sim-clock step either evaluation treats as elapsed time, seconds. Beyond
+ * it a frame is worth NONE: the depot clock can JUMP (a scrub, a run change, a
+ * snapshot from a new run), and a jump is not thirty seconds of the world
+ * happening. Played, it would run a whole release in one frame and open the gate.
+ */
+export const MAX_ARM_CLOCK_STEP_S = 30;
+
+/** The sim seconds a frame's clock step is worth to the arm: its length, or none for a jump. */
+export function armElapsedS(simDt: number): number {
+  return Number.isFinite(simDt) && simDt > 0 && simDt <= MAX_ARM_CLOCK_STEP_S ? simDt : 0;
+}
+
+/**
+ * Play one frame of `simDt` sim seconds of one arm against its stall's facts, in
+ * steps of at most ARM_SUBSTEP_S (a jump plays none, armElapsedS). The facts were
+ * read at the END of the frame, so a tether is aged back by how long before the
+ * frame's end each step ends; the others stand for the whole frame.
+ */
+export function playArmSession(prev: ArmSession, simDt: number, facts: ArmStallFacts): ArmSession {
+  const dt = armElapsedS(simDt);
+  let s = prev;
+  let done = 0;
+  do {
+    const step = Math.min(dt - done, ARM_SUBSTEP_S);
+    done += step;
+    const before = dt - done; // how long before the frame's end this step ends
+    const f = facts.tetherRemainingS === null ? facts : { ...facts, tetherRemainingS: facts.tetherRemainingS + before };
+    s = advanceArmSession(s, { dt: step, vehicleId: facts.vehicleId, ...armSessionInput(s, f) });
+  } while (dt - done > 1e-9);
+  return s;
 }
