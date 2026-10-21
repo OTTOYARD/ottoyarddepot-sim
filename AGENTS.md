@@ -405,7 +405,13 @@ world view (world x = 150 − plan x, z = 110 − plan y, y up).
 
 ⚠️ **This repo is Lovable-synced with two-way sync on `main`.** Chase's edits in Lovable commit
 straight to `main` (as `gpt-engineer-app[bot]`), and merging your PR is picked up by Lovable
-automatically. Fetch before you push.
+automatically. Fetch before you push. **Picked up is not published:** a merge updates Lovable's
+editor and preview, never the live app (`otto-twin.lovable.app`), which changes only when someone
+clicks Publish, then Update, in Lovable. Lovable's docs: "When you push commits, Lovable syncs your
+code and updates the preview in the editor, but it never publishes", and "A merge does not change
+your published app" (https://docs.lovable.dev/integrations/git-sync-overview, read 2026-10-21).
+Seen the same night: PR #148 merged at 11:05 PM CT and the live app still served its old bundle
+(`main-DihDiuro.js`). So a change is not live until the live bundle carries it: say which.
 ---
 
 ## The full context lives elsewhere
