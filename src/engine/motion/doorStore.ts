@@ -54,6 +54,10 @@ export const doorStore = {
   clear(): void {
     doors.clear();
   },
+  /** Every car with a door open, and its openings (the 2D plan draws them, Robots2D.tsx). */
+  forEach(fn: (id: string, d: Readonly<DoorState>) => void): void {
+    doors.forEach((d, id) => fn(id, d));
+  },
   /** How many cars have a door open (for the perf probe and the tests). */
   size(): number {
     return doors.size;

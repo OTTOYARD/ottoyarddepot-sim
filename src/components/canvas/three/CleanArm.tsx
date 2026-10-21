@@ -5,7 +5,7 @@ import { useDepotStore } from '@/store/depotStore';
 import { twinMotionDriver } from '@/engine/TwinMotionDriver';
 import { PLAN_UNITS_PER_METRE } from '@/lib/ottoChargeArm/cobotSpec';
 import { poseCleanArm } from '@/lib/ottoCleanArm/buildCleanArm';
-import { cleanSessionJoints, IDLE_CLEAN, type CleanSession } from '@/lib/ottoCleanArm/cleanSession';
+import { cleanSessionJoints, cleanStatusColor, IDLE_CLEAN } from '@/lib/ottoCleanArm/cleanSession';
 import { placeCleanArm } from '@/lib/ottoCleanArm/cleanArmPlacement';
 import { CLEAN_ARM } from '@/lib/ottoCleanArm/cleanArmSpec';
 import { DECK_Y } from './coordUtils';
@@ -31,16 +31,6 @@ import { cleanSkeleton, writeCleanArm, clearCleanArm, type CleanArmFleet } from 
  * Instanced (cleanArmInstances.ts): each arm keeps a skeleton, poses it with the
  * session's joints, and writes its segments into its slot.
  */
-
-/** Status light by what the arm is doing: the OTTO-CHARGE ARM's palette, so one light means one thing. */
-function statusOf(s: CleanSession): number {
-  const p = s.phase;
-  if (p === 'home') return 0x00e5ff;                    // teal: home, safe
-  if (s.finishing) return 0xffb020;                     // amber: on its way out
-  if (p === 'clean_a' || p === 'clean_b') return 0x35d07f; // green: working
-  if (p.startsWith('enter') || p.startsWith('exit')) return 0xffd54a; // bright amber: through the door
-  return 0xffb020;                                      // amber: moving
-}
 
 /**
  * DEV-ONLY: what each cleaning arm is doing, by stall — the same precedent as
@@ -92,7 +82,7 @@ export function CleanArm({ stallId, fleet, slot }: CleanArmProps) {
     groupRef.current?.updateWorldMatrix(true, true);
     const working = s.phase === 'clean_a' || s.phase === 'clean_b';
     const glow = working ? 1.0 + Math.sin(clock.elapsedTime * 3.1) * 0.4 : 1.3;
-    writeCleanArm(fleet, slot, rig.segments, statusOf(s), glow);
+    writeCleanArm(fleet, slot, rig.segments, cleanStatusColor(s), glow);
     if (cleanDebug) {
       const v = new THREE.Vector3();
       const at = (o: THREE.Object3D) => o.getWorldPosition(v).toArray().map((x) => Math.round(x * 1000) / 1000);

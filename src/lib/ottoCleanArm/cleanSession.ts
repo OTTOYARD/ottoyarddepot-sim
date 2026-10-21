@@ -250,6 +250,19 @@ export function cleanSessionJoints(s: CleanSession, sides: CleanSides): CleanJoi
   return cleanJointsAt(s.phase, s.t, sides, { from: s.from });
 }
 
+/**
+ * The arm's status light, by what it is doing: the OTTO-CHARGE ARM's palette, so one light means
+ * one thing. One function for the 3D arm (CleanArm.tsx) and the 2D plan's (Robots2D.tsx).
+ */
+export function cleanStatusColor(s: Pick<CleanSession, 'phase' | 'finishing'>): number {
+  const p = s.phase;
+  if (p === 'home') return 0x00e5ff;                       // teal: home, safe
+  if (s.finishing) return 0xffb020;                        // amber: on its way out
+  if (p === 'clean_a' || p === 'clean_b') return 0x35d07f; // green: working
+  if (p.startsWith('enter') || p.startsWith('exit')) return 0xffd54a; // bright amber: through the door
+  return 0xffb020;                                         // amber: moving
+}
+
 /** May the car in this stall move? Only when its cleaning arm is home and its doors are shut. */
 export function cleanLetsCarMove(p: CleanPhase): boolean {
   return isCleanHome(p);

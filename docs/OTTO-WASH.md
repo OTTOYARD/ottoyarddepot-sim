@@ -93,7 +93,8 @@ canopy A: the fast chargers' arms on the cars and the cleaning arms above them) 
 
 The 2D plan draws the same machines from above (`WashGantry2D.tsx`), from the same session and pose as the 3D view:
 the portal on its rails, the side brushes closing on the car, the top brush, the spray and the air knives' blast while
-they run, a detail seat's two wands in the doorways, the beacon and the stop light. Each bay's square on the plan is
+they run, a detail seat's two wands in the doorways, the beacon and the stop light. The car's doors open on the plan as
+they do in 3D, from the same session (`Robots2D.tsx`, `Doors2D`). Each bay's square on the plan is
 centred on the car it holds (it was drawn from that point as a corner, and reached into the next bay), and so is every
 staging stall, at the size the 3D view paints it.
 

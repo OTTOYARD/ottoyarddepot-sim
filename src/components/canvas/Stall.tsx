@@ -65,7 +65,6 @@ function ChargerStall({ stall, fill, stroke }: { stall: StallState; fill: string
         fill={fill} stroke={stroke} strokeWidth={fault ? 0.8 : 0.5} opacity={0.9} rx={0.6} />
       <rect x={-cw / 2} y={-cd / 2} width={cw} height={cd} transform={`translate(${cab.x} ${cab.y}) rotate(${cabDeg})`}
         fill={fault ? '#ff5a5a' : '#d4d8dd'} opacity={0.85} rx={0.2} />
-      {fault && <FaultMark x={x} y={y - 0.9} tag={downTag(stall.down!)} />}
       <text x={x} y={fault ? y + 3.6 : y + 1} textAnchor="middle" fontSize={3} fill="#ffffff" pointerEvents="none">
         {stall.id.split('-')[1]}
       </text>
@@ -80,6 +79,10 @@ function ChargerStall({ stall, fill, stroke }: { stall: StallState; fill: string
  * number moves under it. Drawn only where the twin says the charger is Faulted
  * (stall.down.kind 'fault'); a stall offline for another reason keeps the plain
  * crosshatch. The tooltip and the "chargers down" chip carry the reason and the time.
+ *
+ * Drawn in its own layer over the cars and the robots (StallFaultMarks, below), not with
+ * the stall: every fast charger's arms stand on the plan whether or not it works
+ * (Robots2D.tsx), and drawn under them the folded arm crossed the word.
  */
 function FaultMark({ x, y, tag }: { x: number; y: number; tag: string }) {
   const h = 3.8, tri = 2.7, pad = 0.55, gap = 0.45, font = 2.35;
@@ -163,3 +166,15 @@ export const Stall = memo(({ stall }: StallProps) => {
 });
 
 Stall.displayName = 'Stall';
+
+/** Every faulted charger's FAULT mark, as a layer over the cars and the robots (see FaultMark). */
+export function StallFaultMarks() {
+  const stalls = useDepotStore((s) => s.stalls);
+  return (
+    <g aria-label="Charger faults" pointerEvents="none">
+      {stalls.filter((st) => (st.type === 'dcfc' || st.type === 'l2') && st.down?.kind === 'fault').map((st) => (
+        <FaultMark key={st.id} x={st.position.x} y={st.position.y - 0.9} tag={downTag(st.down!)} />
+      ))}
+    </g>
+  );
+}

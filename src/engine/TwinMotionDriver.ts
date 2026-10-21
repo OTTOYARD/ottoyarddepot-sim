@@ -41,7 +41,7 @@ import {
   chargerStallFrame,
 } from "@/lib/sitePlan";
 import { DISCONNECT_SECONDS, applyArmTimings, type ArmPhase } from "@/lib/ottoChargeArm/armStateMachine";
-import { isArmHome } from "@/lib/ottoChargeArm/roboticService";
+import { isArmHome, type ArmSession } from "@/lib/ottoChargeArm/roboticService";
 import { CHARGER_BUILDS, chargerBuildFor, chargerBuildVersion, setChargerBuild } from "@/lib/chargerBuild";
 import { towardFor } from "@/lib/ottoChargeArm/depotPlacement";
 import type { CleanSession } from "@/lib/ottoCleanArm/cleanSession";
@@ -1140,6 +1140,13 @@ class TwinMotionDriver {
    *  must read it that way rather than as a phase. */
   armPhaseAt(rendererStallId: string): ArmPhase | null {
     return this.armGate.phase(rendererStallId);
+  }
+
+  /** The depart gate's whole arm session on this stall (phase, progress, car), or null
+   *  when no arm session covers it. The 2D plan draws the arm from it (Robots2D.tsx); the
+   *  3D arm steps the same frame from the same facts (roboticService.playArmSession). */
+  armSessionAt(rendererStallId: string): ArmSession | null {
+    return this.armGate.session(rendererStallId);
   }
 
   /** How long this stall has been continuously refusing to release its car, in

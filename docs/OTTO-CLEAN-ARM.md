@@ -115,6 +115,13 @@ Both read on 2026-10-19.
   were fully open at 3 s, the connector latched at 19 s, the arm left home at 19 s and was home with the doors shut at
   347.75 s of the twin's 348. With the charge done at 60 s, the connector stayed in until the arm was home (348 s) and
   the car first moved at 360.25 s, after the charge arm's release.
+- **On the 2D plan.** The app opens on the plan, and until 2026-10-21 the plan drew no robot but the wash machines.
+  `Robots2D.tsx` draws, on every fast charger, the cleaning arm (its two links from the canopy mount, the mast, the wand
+  and nozzle while it is out, the status light) and the OTTO-CHARGE ARM (pedestal, elbow and wrist to the connector, and
+  the cable from the cabinet while it is out of its cradle), and every car's open doors. It reads the sessions the 3D
+  view draws (`TwinMotionDriver.armSessionAt`, `cleanSessionAt`, `doorStore`) through the 3D geometry seen from above
+  (`lib/planRobots/robotPlan.ts`); `robotPlan.test.ts` holds every point equal to the 3D rigs' world points on every fast
+  charger, through each arm's whole cycle, and the doors to Vehicle3D's swing.
 - **The canopy carries it.** A header beam under the two purlins and a drop column, drawn with the canopy; a canopy LED
   fixture the header would cut is not hung (`cleanArmPlacement.ts`, tested against every stall and every rafter).
 - **Instanced.** One clone is 38 meshes, 27 casting shadows; every cleaning arm on the site is 28 instanced parts, 17
