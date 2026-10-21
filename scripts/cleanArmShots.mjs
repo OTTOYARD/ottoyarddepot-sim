@@ -23,11 +23,14 @@
 //   --url U (http://127.0.0.1:8080/)   --out DIR (./clean-arm-shots)   --secs N (900)
 //   --speed S (0.25)   --cycle M (2.5)   --dsf F (1)   --chromium P   --relay-curl
 //   --build dcfc20   serve the layout with canopy B re-striped as the 20-post build-out
+//   --build dcfc30   serve it with canopies B and C re-striped: the 30-post build, no L2
 //                    (otto-q-core 0759): ten of canopy B's standard stalls become fast
 //                    chargers at canopy A's rows, keeping their twin ids so the recorded
 //                    cars on them charge fast; the cockpit switches build from the census.
 //   --card           when the framed arm starts cleaning, tap its car and shoot the car's Q card
 //                    (its "Interior clean" row) at each phase until the arm is home, then stop
+//   --overview       also shoot the canopies from the air once an arm is out, and the 2D plan at the end
+//   --overview-only  shoot only those two, once an arm is out, and stop
 //   --stall RE       frame the first arm to leave home on a renderer stall matching RE
 //                    (e.g. "DCFC-1[1-9]|DCFC-20" for canopy B in the 20-post build)
 //
@@ -55,6 +58,8 @@ const SECS = Number(arg("secs", 900));
 const SPEED = Number(arg("speed", 0.25));
 const CYCLE_MIN = Number(arg("cycle", 2.5));
 const BUILD = String(arg("build", "as_built"));
+const OVERVIEW_ONLY = arg("overview-only", false) === true;
+const OVERVIEW = OVERVIEW_ONLY || arg("overview", false) === true;
 const CARD = arg("card", false) === true;
 const STALL = arg("stall", null) ? new RegExp(`^(${arg("stall", "")})$`) : null;
 const DSF = Number(arg("dsf", 1));
@@ -74,7 +79,7 @@ const DRIVE_IN_S = 90 * SPEED;
 
 /** first sim instant each car was seen charging on a fast charger, by car */
 const firstSeen = new Map();
-/** dcfc20: twin stall ids that the re-striped layout turns into fast chargers */
+/** dcfc20 / dcfc30: twin stall ids that the re-striped layout turns into fast chargers */
 const toFast = new Set();
 const withCabinCleans = (snap) => {
   const now = Date.parse(snap.run.sim_clock);
@@ -121,9 +126,14 @@ const consoleErrors = [];
 page.on("console", (m) => { if (m.type() === "error") consoleErrors.push(m.text().slice(0, 600)); });
 const routes = await installFixtureRoutes(page, F, { relay: RELAY, mutateSnapshot: withCabinCleans });
 
-// ── --build dcfc20: the layout with canopy B re-striped (registered after the fixture
-//    routes, so Playwright asks it first) ──
-if (BUILD === "dcfc20") {
+// ── --build dcfc20 | dcfc30: the layout with canopy B (and C) re-striped (registered after
+//    the fixture routes, so Playwright asks it first) ──
+/** per re-striped canopy: its two columns' plan x, its canopy code, and its first fast-charger number */
+const RESTRIPE = {
+  dcfc20: [{ west: 143, east: 157, canopy: "CANOPY-02", first: 11 }],
+  dcfc30: [{ west: 143, east: 157, canopy: "CANOPY-02", first: 11 }, { west: 190, east: 204, canopy: "CANOPY-03", first: 21 }],
+}[BUILD];
+if (RESTRIPE) {
   const UNIT_FT = 0.4785 / 0.3048;
   const ft = (planX, planY) => ({ x: +((planX - 6) * UNIT_FT).toFixed(4), y: +((206 - planY) * UNIT_FT).toFixed(4) });
   // the live layout, read once through curl (it trusts the sandbox proxy's CA bundle), then re-striped per request
@@ -133,19 +143,22 @@ if (BUILD === "dcfc20") {
     const body = structuredClone(live);
     const stalls = body?.data?.stalls ?? [];
     const near = (a, b) => Math.abs(a - b) < 1;
-    const westX = ft(143, 0).x, eastX = ft(157, 0).x;
     const template = stalls.find((s) => s.type === "dcfc");
-    const columns = [westX, eastX].map((x) => stalls.filter((s) => s.type === "l2" && near(s.x, x)).sort((a, b) => b.y - a.y));
-    const keep = stalls.filter((s) => !(s.type === "l2" && (near(s.x, westX) || near(s.x, eastX))));
+    let keep = stalls;
     const fresh = [];
-    columns.forEach((col, k) => {
-      for (let i = 0; i < 5 && i < col.length; i++) {
-        const p = ft(k === 0 ? 143 : 157, 88 + 14 * i);
-        toFast.add(col[i].id);
-        fresh.push({ ...template, id: col[i].id, code: `NASH-DCFC-STALL-${11 + 5 * k + i}`, type: "dcfc",
-          canopy: "CANOPY-02", x: p.x, y: p.y, heading: k === 0 ? 60 : 300 });
-      }
-    });
+    for (const c of RESTRIPE) {
+      const westX = ft(c.west, 0).x, eastX = ft(c.east, 0).x;
+      const columns = [westX, eastX].map((x) => stalls.filter((s) => s.type === "l2" && near(s.x, x)).sort((a, b) => b.y - a.y));
+      keep = keep.filter((s) => !(s.type === "l2" && (near(s.x, westX) || near(s.x, eastX))));
+      columns.forEach((col, k) => {
+        for (let i = 0; i < 5 && i < col.length; i++) {
+          const p = ft(k === 0 ? c.west : c.east, 88 + 14 * i);
+          toFast.add(col[i].id);
+          fresh.push({ ...template, id: col[i].id, code: `NASH-DCFC-STALL-${c.first + 5 * k + i}`, type: "dcfc",
+            canopy: c.canopy, x: p.x, y: p.y, heading: k === 0 ? 60 : 300 });
+        }
+      });
+    }
     body.data.stalls = [...keep, ...fresh];
     await route.fulfill({ status: 200, headers: { "content-type": "application/json", "access-control-allow-origin": "*" }, body: JSON.stringify(body) });
   });
@@ -210,6 +223,42 @@ const sideACam = await page.evaluate((rid) => {
 }, target);
 
 const summary = { target, shots: [], phases: {}, checks: [], cards: [], pageErrors: errors, consoleErrors };
+
+// ── --overview: every canopy from the air while the arms work (plan -> world: x = 150 - x, z = 110 - y) ──
+const aerial = async (label) => {
+  // from south of the canopies (plan y 196), high, looking at their middle (plan 150, 124)
+  await page.evaluate(([p, t]) => window.__depotCam?.(p, t), [[0, 64, -86], [0, 0, -14]]);
+  await page.waitForTimeout(2500);
+  const s = await state();
+  summary.aerial = { label, armsOut: s.arms.filter((a) => a.phase !== "home").map((a) => `${a.stall}:${a.phase}`) };
+  await page.screenshot({ path: join(OUT, `overview-3d-${label}.jpg`), type: "jpeg", quality: 84 });
+  summary.shots.push(`overview-3d-${label}`);
+};
+const plan2d = async () => {
+  await page.getByRole("button", { name: /^2d$/i }).first().click();
+  await page.waitForTimeout(3000);
+  // the plan's robot layer draws one charge arm and one cleaning arm per fast charger (Robots2D.tsx)
+  summary.plan2d = await page.evaluate(() => {
+    const ids = (attr) => [...document.querySelectorAll(`[${attr}]`)].map((e) => e.getAttribute(attr));
+    const phases = (attr) => [...document.querySelectorAll(`[${attr}]`)].map((e) => e.getAttribute("data-phase"));
+    return {
+      chargeArms: ids("data-charge-arm"), cleanArms: ids("data-clean-arm").length,
+      chargeArmPhases: phases("data-charge-arm"), cleanArmPhases: phases("data-clean-arm"),
+    };
+  });
+  await page.screenshot({ path: join(OUT, "overview-2d.jpg"), type: "jpeg", quality: 86 });
+  summary.shots.push("overview-2d");
+};
+if (OVERVIEW) await aerial("start");
+if (OVERVIEW_ONLY) {
+  await plan2d();
+  summary.refusedWrites = routes.refused;
+  await ctx.close();
+  await browser.close();
+  writeFileSync(join(OUT, "summary-overview.json"), JSON.stringify(summary, null, 1));
+  console.log(JSON.stringify({ ...summary, shots: summary.shots.length }, null, 1));
+  process.exit(0);
+}
 
 // ── --card: tap the car being cleaned and shoot its Q card, phase by phase ──
 if (CARD) {
@@ -326,6 +375,7 @@ while (Date.now() - startShots < SECS * 1000) {
   if (me && me.phase === "home" && (summary.phases[target] ?? []).includes("doors_close")) break;
   await page.waitForTimeout(250);
 }
+if (OVERVIEW) { await aerial("end"); await plan2d(); }
 summary.refusedWrites = routes.refused;
 await ctx.close();
 await browser.close();

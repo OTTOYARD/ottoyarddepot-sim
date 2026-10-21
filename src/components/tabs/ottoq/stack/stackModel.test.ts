@@ -9,7 +9,7 @@ import { setChargerBuild } from "@/lib/chargerBuild";
 import {
   BARS_PER_LANE, ENTRY_POINT, EXIT_POINT, PLATES, REPLAY_PER, SITE_COUNTS, TILE_COLS, TILE_ROWS, ZONE, ZONES,
   PLATE_D, PLATE_MARGIN, PLATE_W, agentModel, barTone, carZone, plateTags, decideModel, decisionDest, depotModel, plannerModel, plateLabels, recordKeys, replayEvents,
-  SWEEP_EVERY_S, shouldSweep, stackModel, stallNumber, syncStackSite, takeNewEvents, zoneCapacity, carActivity, ACTIVITY_HUE,
+  SWEEP_EVERY_S, shouldSweep, stackModel, stallNumber, syncStackSite, takeNewEvents, zoneCapacity, zoneShown, carActivity, ACTIVITY_HUE,
   type ZoneDef,
 } from "./stackModel";
 import { COLOR_KEY, HUE, PLATE_ACCENT, PLATE_KEY, plateStats } from "./stackLegend";
@@ -394,6 +394,38 @@ describe("the 20-post build (otto-q-core 0759): the charger zones follow the bui
     setChargerBuild("as_built");
     syncStackSite();
     expect(JSON.stringify(ZONES)).toBe(before);
+    expect(SITE_COUNTS).toEqual({ dcfc: 10, l2: 30, wash: 3, service: 2 });
+  });
+
+  it("holds thirty fast chargers in six columns of five in the 30-post build, and paints and names no L2 zone", () => {
+    setChargerBuild("dcfc30");
+    const v = (id: string, code: string): FunnelCardVehicle => ({ vehicle_id: id, display_name: id, state: "charging_dcfc", soc: null, target_soc: 100, stall: { id, code, kind: "dcfc" } });
+    const m = depotModel([v("a", "NASH-DCFC-STALL-27"), v("b", "NASH-DCFC-STALL-30")], new Map());
+    expect(SITE_COUNTS).toEqual({ dcfc: 30, l2: 0, wash: 3, service: 2 });
+    expect([ZONE.dcfc.cols, ZONE.dcfc.rows, zoneCapacity(ZONE.dcfc)]).toEqual([6, 5, 30]);
+    expect(zoneShown(ZONE.l2)).toBe(false);
+    expect(ZONES.filter((z) => !zoneShown(z)).map((z) => z.id)).toEqual(["l2"]);
+    // the zones that are painted overlap nothing, and every socket sits on the plate
+    const shown = ZONES.filter((z) => z.id !== "road" && zoneShown(z));
+    for (let i = 0; i < shown.length; i++) for (let j = i + 1; j < shown.length; j++) {
+      const a = rect(shown[i]), b = rect(shown[j]);
+      expect(a.x0 < b.x1 && b.x0 < a.x1 && a.z0 < b.z1 && b.z0 < a.z1, `${shown[i].id} x ${shown[j].id}`).toBe(false);
+    }
+    for (let i = 0; i < 30; i++) {
+      const x = ZONE.dcfc.x0 + (i % 6) * ZONE.dcfc.px, zz = ZONE.dcfc.z0 + Math.floor(i / 6) * ZONE.dcfc.pz;
+      expect(inside(x, zz, PLATE_MARGIN), `dcfc slot ${i}`).toBe(true);
+    }
+    const a = m.pucks.find((p) => p.id === "a")!, b = m.pucks.find((p) => p.id === "b")!;
+    expect([a.x, a.z]).toEqual([ZONE.dcfc.x0 + (26 % 6) * ZONE.dcfc.px, ZONE.dcfc.z0 + Math.floor(26 / 6) * ZONE.dcfc.pz]);
+    expect([b.x, b.z]).toEqual([ZONE.dcfc.x0 + 5 * ZONE.dcfc.px, ZONE.dcfc.z0 + 4 * ZONE.dcfc.pz]);
+    expect(m.overflow).toEqual({});
+    const tags = plateTags(stackModel([v("a", "NASH-DCFC-STALL-27")], new Map(), [], null, true), null).depot;
+    expect(tags.find((t) => t.key === "dcfc")?.sub).toBe("1 of 30");
+    expect(tags.find((t) => t.key === "l2")).toBeUndefined();
+    // and back, exactly
+    setChargerBuild("as_built");
+    syncStackSite();
+    expect(zoneShown(ZONE.l2)).toBe(true);
     expect(SITE_COUNTS).toEqual({ dcfc: 10, l2: 30, wash: 3, service: 2 });
   });
 });

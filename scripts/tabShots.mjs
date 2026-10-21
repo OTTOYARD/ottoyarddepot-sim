@@ -20,7 +20,7 @@
 //   --url U         dev server (http://127.0.0.1:8080/)
 //   --events FILE   ottoq_run_event_feed payload for the Events tab (--before only)
 //   --chromium P    browser executable (default /opt/pw-browsers/chromium if present)
-//   --build B       draw the page with charger build B (src/lib/chargerBuild.ts: as_built | dcfc20), as the twin's
+//   --build B       draw the page with charger build B (src/lib/chargerBuild.ts: as_built | dcfc20 | dcfc30), as the twin's
 //                   layout census would set it; the recorded cards keep their own stall codes
 // ============================================================================
 import { chromium, devices } from "@playwright/test";

@@ -390,7 +390,8 @@ export const APPROACH_BACK_U = 9;
 // shapes they are: an angled charger car and its cabinet are not square to the plan.
 //
 // Both belong to the CHARGER BUILD being drawn (chargerBuild.ts: canopy B is standard
-// chargers as built and fast chargers in the 20-post build-out), so they are rebuilt,
+// chargers as built and fast chargers in the 20-post build-out, and canopy C too in the
+// 30-post build), so they are rebuilt,
 // and handed to the corner-widening again, whenever the build changes.
 let layoutCache: { v: number; stalls: OBox[]; structures: OBox[] } | null = null;
 /** `stalls`: every stall's parked-car footprint, occupied or not. `structures`: every
@@ -1821,9 +1822,10 @@ class TwinMotionDriver {
   /**
    * Switch the renderer to the charger build a twin layout's census describes: 10 fast
    * and 30 standard chargers as built, 20 and 15 after the 20-post build-out (otto-q-core
-   * 0759). The depot's stalls are regenerated and the layout's footprints rebuilt. A
-   * census that is neither (a test's partial layout, a third build) changes nothing: the
-   * renderer has no other layout to draw and must not guess one.
+   * 0759), 30 and 0 once canopy C is re-striped too (0763). The depot's stalls are
+   * regenerated and the layout's footprints rebuilt. A census that is none of them (a
+   * test's partial layout, a build the renderer has no layout for) changes nothing: the
+   * renderer must not guess one.
    */
   private adoptChargerBuild(stalls: readonly { type: string }[]) {
     const census = { dcfc: 0, l2: 0 };

@@ -372,11 +372,12 @@ function chargingStalls(dcfcCount: number, l2Count: number): StallState[] {
 
   // ── WHICH CANOPY TAKES WHICH CHARGERS (chargerBuild.ts) ─────────────────────────
   // Fast chargers fill canopies from A, two columns of five each at the fast-charger
-  // pitch: canopy A as built (DCFC-01..10), and canopy B too in the 20-post build-out
-  // (DCFC-11..20, the same rows and angles as canopy A). Standard chargers take the
-  // canopies left. A standard stall's number is its canopy SLOT, canopy B's 01..15 and
-  // canopy C's 16..30, so a stall keeps its id whichever build is drawn: in the 20-post
-  // build canopy C's are still L2-16..30, the same stalls as built.
+  // pitch: canopy A as built (DCFC-01..10), canopy B too in the 20-post build-out
+  // (DCFC-11..20, the same rows and angles as canopy A), and canopy C as well in the
+  // 30-post build (DCFC-21..30), which leaves no standard charger at all. Standard
+  // chargers take the canopies left. A standard stall's number is its canopy SLOT,
+  // canopy B's 01..15 and canopy C's 16..30, so a stall keeps its id whichever build is
+  // drawn: in the 20-post build canopy C's are still L2-16..30, the same stalls as built.
   const fastCanopies = Math.max(1, Math.min(CANOPIES.length, Math.ceil(dcfcCount / 10)));
   let n = 0;
   for (const c of CANOPIES.slice(0, fastCanopies)) {
@@ -478,7 +479,7 @@ export function generateStallsV2(
   // It is a CAP, not a target — stagingStalls() stops at the runs' own total — so the
   // old default silently over-declared by 2 once the columns shrank.
   // The chargers default to the build being drawn (chargerBuild.ts): 10 fast + 30
-  // standard as built, 20 + 15 in the 20-post build-out.
+  // standard as built, 20 + 15 in the 20-post build-out, 30 + 0 in the 30-post build.
   dcfcCount = chargerBuildSpec().dcfc, l2Count = chargerBuildSpec().l2, washCount = 3, stagingCount = 113, serviceCount = 2,
 ): StallState[] {
   return [

@@ -1,10 +1,11 @@
 /**
- * The 20-post build-out, as the renderer will draw it once otto-q-core 0759 is applied:
- * canopy B re-striped exactly as canopy A (DCFC-11..20), canopy C's 15 standard
- * chargers as they are (L2-16..30). The as-built layout must not move by a hair, and
- * the new one must hold every rule the as-built one is held to: no car on a car, no
- * structure in a stall, columns clear of every cabinet and car, and an OTTO-CLEAN ARM
- * that hangs from steel it can reach.
+ * The build-outs, as the renderer will draw them once otto-q-core applies them:
+ *   dcfc20 (0759)          canopy B re-striped exactly as canopy A (DCFC-11..20), canopy C's
+ *                          15 standard chargers as they are (L2-16..30);
+ *   dcfc30 (0759 + 0763)   canopy C re-striped too (DCFC-21..30), and no standard charger.
+ * The as-built layout must not move by a hair, and each new one must hold every rule the
+ * as-built one is held to: no car on a car, no structure in a stall, columns clear of every
+ * cabinet and car, and an OTTO-CLEAN ARM that hangs from steel it can reach.
  */
 import { describe, it, expect, afterEach } from 'vitest';
 import { CHARGER_BUILDS, chargerBuild, chargerBuildFor, chargerBuildVersion, setChargerBuild, canopyIsFast } from './chargerBuild';
@@ -25,8 +26,11 @@ describe('the charger builds', () => {
   it('reads a twin census as one build or neither', () => {
     expect(chargerBuildFor({ dcfc: 10, l2: 30 })).toBe('as_built');
     expect(chargerBuildFor({ dcfc: 20, l2: 15 })).toBe('dcfc20');
+    expect(chargerBuildFor({ dcfc: 30, l2: 0 })).toBe('dcfc30');
     expect(chargerBuildFor({ dcfc: 1, l2: 0 })).toBeNull();
     expect(chargerBuildFor({ dcfc: 40, l2: 0 })).toBeNull();
+    // a half-converted canopy C is no build: the renderer must not draw a guess
+    expect(chargerBuildFor({ dcfc: 25, l2: 7 })).toBeNull();
   });
 
   it('bumps the version on a change, and only then', () => {
@@ -81,6 +85,41 @@ describe('the 20-post build: canopy B as canopy A', () => {
       .toEqual(asBuilt.filter((x) => x.type !== 'dcfc' && x.type !== 'l2').map(key));
     expect(CANOPIES.map(canopyKind)).toEqual(['dcfc', 'dcfc', 'l2']);
   });
+});
+
+describe('the 30-post build: canopy C as canopies A and B, and no standard charger', () => {
+  const stallsOf = () => { setChargerBuild('dcfc30'); return generateStallsV2(); };
+
+  it('stands DCFC-21..30 on canopy C at canopy A’s rows and angles, keeps DCFC-01..20 where the 20-post build has them, and draws no L2', () => {
+    const s = stallsOf();
+    const asBuilt = generateStallsV2(10, 30, 3, 113, 2);
+    setChargerBuild('dcfc20');
+    const twenty = generateStallsV2();
+    setChargerBuild('dcfc30');
+    const C = CANOPIES[2];
+    const dc = s.filter((x) => x.type === 'dcfc');
+    expect(dc.length).toBe(CHARGER_BUILDS.dcfc30.dcfc);
+    expect(dc.map((x) => x.id)).toEqual(Array.from({ length: 30 }, (_, i) => `DCFC-${String(i + 1).padStart(2, '0')}`));
+    for (let i = 0; i < 5; i++) {
+      const w = dc.find((x) => x.id === `DCFC-${String(21 + i)}`)!;
+      expect([w.position.x, w.position.y, w.position.angle]).toEqual([C.cx - 7, 88 + i * DCFC_ROW_PITCH, 60]);
+      const e = dc.find((x) => x.id === `DCFC-${String(26 + i)}`)!;
+      expect([e.position.x, e.position.y, e.position.angle]).toEqual([C.cx + 7, 88 + i * DCFC_ROW_PITCH, 300]);
+    }
+    // canopies A and B are the 20-post build's, stall for stall
+    expect(dc.filter((x) => Number(x.id.slice(5)) <= 20).map(key)).toEqual(twenty.filter((x) => x.type === 'dcfc').map(key));
+    expect(s.filter((x) => x.type === 'l2')).toEqual([]);
+    expect(CHARGER_BUILDS.dcfc30.l2).toBe(0);
+    // nothing else moved
+    expect(s.filter((x) => x.type !== 'dcfc' && x.type !== 'l2').map(key))
+      .toEqual(asBuilt.filter((x) => x.type !== 'dcfc' && x.type !== 'l2').map(key));
+    expect(CANOPIES.map(canopyKind)).toEqual(['dcfc', 'dcfc', 'dcfc']);
+    expect([0, 1, 2].map(canopyIsFast)).toEqual([true, true, true]);
+  });
+});
+
+describe.each(['dcfc20', 'dcfc30'] as const)('the %s build holds every rule the as-built layout is held to', (build) => {
+  const stallsOf = () => { setChargerBuild(build); return generateStallsV2(); };
 
   it('parks no car on another, and stands no structure in any stall', () => {
     const s = stallsOf();
@@ -94,7 +133,7 @@ describe('the 20-post build: canopy B as canopy A', () => {
     expect(hits).toEqual([]);
   });
 
-  it('carries canopy B’s roof on spine columns clear of every fast-charger cabinet and car', () => {
+  it('carries every canopy’s roof on spine columns clear of every fast-charger cabinet and car', () => {
     const s = stallsOf();
     const cabs = cabinetFootprints(s);
     for (const c of CANOPIES) {
@@ -113,11 +152,13 @@ describe('the 20-post build: canopy B as canopy A', () => {
     }
   });
 
-  it('hangs every new OTTO-CLEAN ARM from a header between canopy B’s purlins, clear of its rafters and lights', () => {
+  it('hangs every OTTO-CLEAN ARM from a header between its canopy’s purlins, clear of its rafters and lights', () => {
     const s = stallsOf();
     const cabs = cabinetFootprints(s);
     const mounts = s.filter((x) => x.type === 'dcfc').map((x) => placeCleanArm(x.position.x, x.position.y, x.position.angle, DECK_Y).mount);
-    expect(mounts.filter((m) => Math.abs(m.cx - CANOPIES[1].cx) < 0.5).length).toBe(10);
+    // ten on each fast-charger canopy, none on a standard one
+    expect(CANOPIES.map((c) => mounts.filter((m) => Math.abs(m.cx - c.cx) < 0.5).length))
+      .toEqual(CANOPIES.map((_, i) => (i < CHARGER_BUILDS[build].dcfcCanopies ? 10 : 0)));
     for (const m of mounts) {
       expect(m.d).toBeGreaterThan(m.d0 + 0.5);
       expect(m.d).toBeLessThan(m.d1 - 0.5);

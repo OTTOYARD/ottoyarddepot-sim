@@ -291,7 +291,8 @@ let siteVersion = -1;
 /**
  * Size the charger and bay zones to the charger build the depot is drawn with now (src/lib/chargerBuild.ts), once per
  * change of build: two columns of fast chargers for each fast-charger canopy and five rows, as on the site (canopy A as
- * built; A and B in the 20-post build), and the L2 zone east of them. As built, the zones are exactly as before.
+ * built; A and B in the 20-post build; all three in the 30-post build), and the L2 zone east of them. A build with no
+ * L2 at all has no L2 zone to paint (zoneShown). As built, the zones are exactly as before.
  * Returns the build version they are sized for: what the plate's painted texture keys on.
  */
 export function syncStackSite(): number {
@@ -317,6 +318,9 @@ export const zoneCapacity = (z: ZoneDef): number => {
   syncStackSite();
   return z.id === "dcfc" ? SITE.dcfc : z.id === "l2" ? SITE.l2 : z.id === "wash" ? SITE.wash : z.id === "service" ? SITE.service : z.cols * z.rows;
 };
+
+/** Is a zone on the plate at all? A charger or bay zone the site has none of is not (the 30-post build has no L2). */
+export const zoneShown = (z: ZoneDef): boolean => !(z.fixed && zoneCapacity(z) === 0);
 
 export function zoneCenter(id: DepotZone): { x: number; z: number } {
   syncStackSite();
@@ -665,6 +669,7 @@ export function plateTags(m: StackModel, shield: { evaluations: number | null; r
   const depot: PlateTag[] = [];
   syncStackSite();
   for (const z of ZONES) {
+    if (!zoneShown(z)) continue;
     const count = m.depot.read ? m.depot.counts[z.id] : null;
     const cap = zoneCapacity(z);
     // over the zone's top edge, centred on it
