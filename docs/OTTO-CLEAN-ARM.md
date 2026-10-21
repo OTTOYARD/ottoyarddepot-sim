@@ -100,10 +100,17 @@ Both read on 2026-10-19.
 - **Chase's order, both ways.** The doors open as the charge arm reaches for the port; the cleaning arm waits at home
   with the doors open until the connector is latched (or no charge arm is working). No charge-arm mate starts while the
   cleaning arm is out over the car. A latched connector stays in until the cleaning arm is home and the doors are shut,
-  whatever the charge or the tether says, so the charge arm lets go last. One composition (`armSessionInput`) feeds
-  both evaluations of the charge arm.
+  whatever the charge or the tether says, so the charge arm lets go last. One frame step (`playArmSession`, which
+  composes each of its steps with `armSessionInput`) feeds both evaluations of the charge arm.
 - **The hold.** Open-ended while the twin's step is on (it ends on the twin's state, like a charge); once the step is
   over, the arm is home in about 5 s, and the hold is bounded at 30 s so a wedged signal cannot freeze a car.
+- **At any frame rate.** The gate plays each frame's sim time in steps of 0.25 s (`CLEAN_SUBSTEP_S`), as the wash
+  gate does. Stepped once a frame (the reducer takes at most 2 s and one transition a call), the arm fell behind the
+  twin's step, and the pace squeezed side B into what was left: at 3 sim-seconds a frame side B got 96 s of its 149
+  and the arm was home 9 s late, and at 8 it never reached side B (measured 2026-10-21). `cleanGate.test.ts` plays the
+  348 s step at 0.05, 1, 3 and 8 sim-seconds a frame and requires both sides within two frames of their 60 fps length
+  and the arm home within a frame of the step's end. The two arms still interlock frame by frame: each frame's sub-steps
+  read the charge arm's stillness as it stands at the frame's end.
 - **Measured** through the driver (`TwinMotionDriver.cleanarm.test.ts`, 0.25 s polls, a 5.8-minute step): the doors
   were fully open at 3 s, the connector latched at 19 s, the arm left home at 19 s and was home with the doors shut at
   347.75 s of the twin's 348. With the charge done at 60 s, the connector stayed in until the arm was home (348 s) and

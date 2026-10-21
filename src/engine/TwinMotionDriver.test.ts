@@ -1343,19 +1343,22 @@ describe("TwinMotionDriver — the depart gate (a car may not drive through the 
   it("RELEASES it once the arm reports clear — and not one phase earlier", () => {
     const stall = mateOnCharger();
     passDwell("v1");
-    let t = T0 + 70_000;
+    // a second a poll, shorter than every release phase: the arm plays each poll's
+    // whole sim step (roboticService.playArmSession), so a coarser poll passes through
+    // a phase between two looks at it
+    let t = T0 + 61_000;
     pollTo("charge_complete_holding", t);
 
     // watch every phase of the release. The car must still be on its charger for
     // all of unlatch / extract / retract, and may only be re-assigned after.
     const seen: string[] = [twinMotionDriver.armPhaseAt(stall)!];
     let releasedAtPhase: string | null = null;
-    for (let i = 0; i < 20 && releasedAtPhase === null; i++) {
+    for (let i = 0; i < 60 && releasedAtPhase === null; i++) {
       // the phase the NEXT poll's gate decision will be taken against — read
       // before the poll, because a released car stops being an arm's problem and
       // the gate rightly forgets the stall the instant it leaves.
       const deciding = twinMotionDriver.armPhaseAt(stall);
-      t += 5000;
+      t += 1000;
       pollTo("charge_complete_holding", t);
       if (!find("v1")!.assignedStall?.startsWith("DCFC-")) { releasedAtPhase = deciding; break; }
       const phase = twinMotionDriver.armPhaseAt(stall);

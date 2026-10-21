@@ -42,7 +42,7 @@
 // And the hold is BOUNDED even when a signal is stuck — see HOLD_CAP_S.
 // ============================================================================
 import {
-  advanceArmSession, armSessionInput, IDLE_SESSION, stallHasArm, MIN_DEMATE_SPEED,
+  armElapsedS, playArmSession, IDLE_SESSION, stallHasArm, MIN_DEMATE_SPEED, MAX_ARM_CLOCK_STEP_S,
   type ArmSession,
 } from "@/lib/ottoChargeArm/roboticService";
 import {
@@ -50,15 +50,15 @@ import {
 } from "@/lib/ottoChargeArm/armStateMachine";
 
 /**
- * Largest sim-clock step treated as elapsed time, seconds.
- *
- * Same value and same reason as ChargingArm's MAX_CLOCK_STEP_S: the depot clock
- * can JUMP (a scrub, a run change, a snapshot from a new run) and a jump is not
- * thirty seconds of the world happening. Feeding it to the reducer would
- * fast-forward a whole cycle in one step — and here that would silently open the
- * gate, which is worse than the visual glitch it prevents in the component.
+ * Largest sim-clock step treated as elapsed time, seconds: beyond it a step is worth
+ * none. ONE value with ChargingArm's, in roboticService (armElapsedS), because the depot
+ * clock can JUMP (a scrub, a run change, a snapshot from a new run) and a jump is not
+ * thirty seconds of the world happening. Played, it would run a whole release in one
+ * step — and here that would silently open the gate. (Until 2026-10-21 this gate clamped
+ * a jump to 30 s and the component dropped it, which was safe only while the reducer
+ * took 2 s a call whatever it was given.)
  */
-export const MAX_ARM_CLOCK_STEP_S = 30;
+export { MAX_ARM_CLOCK_STEP_S };
 
 /**
  * Longest physically possible release, sim seconds.
@@ -89,6 +89,12 @@ export function maxPhysicalDemateS(): number {
  * this project has already paid for once (one unmapped enum word aborting every
  * decision in the system), and a gate that cannot time out is that same failure
  * wearing a safety hat.
+ *
+ * The cap counts the frames' sim clock, so the derivation holds only while the
+ * arm plays every sim second it is given, which it does at any frame rate
+ * (roboticService.playArmSession). Until 2026-10-21 it did not: stepped once a
+ * frame, the arm lost time on slow frames while this clock did not, and at 12
+ * sim-s a frame the cap ran out with the arm still folding.
  *
  * 'charging' IS EXCLUDED FROM THIS CLOCK, and that exclusion is the whole
  * founder rule rather than a loophole: the hold lasts as long as the charge
@@ -154,9 +160,7 @@ export class ArmGate {
    * safe because a dropped stall can no longer be consulted about a car.
    */
   step(simDt: number, inputs: Iterable<ArmStallInput>): void {
-    const dt = Number.isFinite(simDt) && simDt > 0
-      ? Math.min(simDt, MAX_ARM_CLOCK_STEP_S)
-      : 0;
+    const dt = armElapsedS(simDt);
     const seen = new Set<string>();
 
     for (const input of inputs) {
@@ -165,19 +169,13 @@ export class ArmGate {
       const prev = this.stalls.get(input.stallId);
       const before = prev?.session ?? IDLE_SESSION;
 
-      // EXACTLY ChargingArm's composition: one function, armSessionInput, which both
-      // call. The window proves the car is parked and opens the mate; once the arm is
-      // committed the window may vanish (a re-plan drops the dwell leg) without yanking
-      // the connector out of the car; and the stall's cleaning arm and this one never
-      // move beside the car at once.
-      const { charging, tetherRemainingS } = armSessionInput(before, input);
-
-      const session = advanceArmSession(before, {
-        dt,
-        vehicleId: input.vehicleId,
-        charging,
-        tetherRemainingS,
-      });
+      // EXACTLY ChargingArm's frame: one function, playArmSession, which both call. It
+      // plays the frame's sim time in small steps, each composing its input with
+      // armSessionInput: the window proves the car is parked and opens the mate; once the
+      // arm is committed the window may vanish (a re-plan drops the dwell leg) without
+      // yanking the connector out of the car; and the stall's cleaning arm and this one
+      // never move beside the car at once.
+      const session = playArmSession(before, dt, input);
 
       // TWO AUTHORITIES, EITHER OF WHICH MAY HOLD.
       //  · the arm's own phase — the renderer's half, and the thing that was missing;
@@ -215,6 +213,12 @@ export class ArmGate {
   phase(stallId: string | null | undefined): ArmPhase | null {
     if (!stallId) return null;
     return this.stalls.get(stallId)?.session.phase ?? null;
+  }
+
+  /** The arm's whole session at this stall, or null when this gate is not tracking it. */
+  session(stallId: string | null | undefined): ArmSession | null {
+    if (!stallId) return null;
+    return this.stalls.get(stallId)?.session ?? null;
   }
 
   /** Sim seconds this stall has been holding its car. 0 when it is not holding. */
