@@ -15,6 +15,11 @@ export const CAMERA_PRESETS = {
   // rear apron (north): the two views that show a car driving THROUGH a building.
   'Bays': { position: [-70, 10, 38] as [number, number, number], target: [5, 3.5, 66] as [number, number, number] },
   'Rear': { position: [-30, 12, 108] as [number, number, number], target: [-10, 4, 70] as [number, number, number] },
+  // The robots, close (Chase, 2026-10-20: "I still do not visually see ... robotic DCFC's and robovacs over
+  // them"): under canopy A from its west lane, the fast chargers' arms on the cars and the cleaning arms above
+  // them; and inside wash bay 2, its rollover machine over the car. Both framed on the live run 96371023.
+  'Robots': { position: [70, 5.5, 2] as [number, number, number], target: [52, 2.5, -6] as [number, number, number] },
+  'Wash': { position: [-43, 8.4, 57.2] as [number, number, number], target: [-36, 2.4, 70] as [number, number, number] },
 };
 
 export type CameraPreset = keyof typeof CAMERA_PRESETS;

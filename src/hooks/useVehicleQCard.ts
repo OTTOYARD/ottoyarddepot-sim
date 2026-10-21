@@ -3,6 +3,7 @@
 //   ottoq_depot_cards (useDepotCards)        its plan steps, needs, bookings, target (contract 1.4)  every 10 s
 //   ottoq_activity_feed_v2 (p_vehicle_id)    its own decisions: re-bookings, re-timings, holds       every 8 s
 //   the motion driver (cabinArmFor)          what its stall's cleaning arm is doing                  every 0.5 s
+//   the motion driver (washBayFor)           what its wash bay's machine is doing                    every 0.5 s
 // Both polls run only while a card is open, and pause with the sim (a paused cockpit keeps what it has).
 import { useEffect, useMemo, useState } from "react";
 import { useTwinStore } from "@/store/twinStore";
@@ -20,6 +21,9 @@ const CABIN_ARM_MS = 500;
 type CabinArm = NonNullable<QCardInputs["cabinArm"]>;
 const sameArm = (a: CabinArm | null, b: CabinArm | null) =>
   a === b || (!!a && !!b && a.phase === b.phase && a.sideA === b.sideA && a.done === b.done);
+type BayWash = NonNullable<QCardInputs["bayWash"]>;
+const sameWash = (a: BayWash | null, b: BayWash | null) =>
+  a === b || (!!a && !!b && a.phase === b.phase && a.interior === b.interior && a.done === b.done);
 
 export interface VehicleQCardData {
   card: QCard | null;
@@ -43,11 +47,16 @@ export function useVehicleQCard(vehicleId: string | null): VehicleQCardData {
 
   // the stall's OTTO-CLEAN ARM, read off the motion driver while the card is open; a new value only when it changes
   const [cabinArm, setCabinArm] = useState<CabinArm | null>(null);
+  // …and its wash bay's machine, the same way
+  const [bayWash, setBayWash] = useState<BayWash | null>(null);
   useEffect(() => {
-    if (!vehicleId) { setCabinArm(null); return; }
+    if (!vehicleId) { setCabinArm(null); setBayWash(null); return; }
     const read = () => {
       const next = twinMotionDriver.cabinArmFor(vehicleId);
       setCabinArm((prev) => (sameArm(prev, next) ? prev : next));
+      const wash = twinMotionDriver.washBayFor(vehicleId);
+      const w = wash ? { phase: wash.phase, interior: wash.interior, done: wash.done } : null;
+      setBayWash((prev) => (sameWash(prev, w) ? prev : w));
     };
     read();
     const t = setInterval(read, CABIN_ARM_MS);
@@ -76,8 +85,8 @@ export function useVehicleQCard(vehicleId: string | null): VehicleQCardData {
     [cards.vehicles, vehicleId],
   );
   const card = useMemo(
-    () => (vehicleId ? buildQCard({ vehicleId, label, card: depotCard, snapshot, stallCodes: codes, feed, cabinArm }) : null),
-    [vehicleId, label, depotCard, snapshot, codes, feed, cabinArm],
+    () => (vehicleId ? buildQCard({ vehicleId, label, card: depotCard, snapshot, stallCodes: codes, feed, cabinArm, bayWash }) : null),
+    [vehicleId, label, depotCard, snapshot, codes, feed, cabinArm, bayWash],
   );
   return { card, cardsStatus: cards.status, error: cards.error ?? feedError };
 }

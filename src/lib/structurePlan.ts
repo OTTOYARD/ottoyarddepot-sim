@@ -29,6 +29,7 @@ import {
 } from './sitePlan';
 import { CAR_LENGTH, CAR_WIDTH } from '@/engine/motion/traffic';
 import { chargerPad } from '@/lib/ottoChargeArm/depotPlacement';
+import { WASH_GANTRY, WASH_HOME_DY } from '@/lib/ottoWash/washSpec';
 
 /** Axis-aligned rectangle in plan units. */
 export interface Rect { x0: number; y0: number; x1: number; y1: number }
@@ -228,17 +229,10 @@ export function shellSolids(s: ShellDef): { kind: string; r: Rect }[] {
 /** Two-post lift columns: either side of the car, level with where it parks. */
 export const LIFT_POST_OFFSET = 5.6; // from the bay centreline (car half-width 2.1)
 export const LIFT_POST_SIZE = 0.8;
-/** Wash gantries: two frames per bay, 6u fore and aft of the parked car. */
-export const WASH_FRAME_DY = 6;
-/** Side-brush centres (brushes at rest, retracted outboard of the car's path). */
-export const WASH_BRUSH_OFFSET = 4.3;
-export const WASH_BRUSH_RADIUS = 0.9;
-/** Gantry frame legs, further out still. */
-export const WASH_GANTRY_LEG_OFFSET = 6.8;
-export const WASH_GANTRY_LEG = 0.8;
-/** Pre-soak spray arch just inside the entry door. */
-export const WASH_ARCH_INSET = 3.5;      // from the south wall's inner face
-export const WASH_ARCH_OFFSET = 5.9;     // arch uprights from the drive line
+// Wash bays: ONE rollover gantry per bay on two floor rails (lib/ottoWash/washSpec.ts, Chase
+// 2026-10-20: "the machine moves back and forth over it several times"). It moves only while a
+// car stands parked under it, and a car may not move until it is home (engine/motion/washGate.ts),
+// so the solids a moving car can meet are the machine AT HOME, retracted, plus its rails.
 /** Service-bay casework against the bay's west partition: tool chest (south), tyre rack (north). */
 export const SERVICE_CASEWORK_DEPTH = 1.6;
 
@@ -254,15 +248,24 @@ export function bayEquipmentSolids(s: ShellDef): { kind: string; r: Rect }[] {
       out.push({ kind: 'tool-chest', r: { x0: cx0, x1: cx1, y0: f.y1 - s.wallT - 6.5, y1: f.y1 - s.wallT - 3.0 } });
       out.push({ kind: 'tyre-rack', r: { x0: cx0, x1: cx1, y0: f.y0 + s.wallT + 2.5, y1: f.y0 + s.wallT + 8.5 } });
     } else {
-      for (const dy of [-WASH_FRAME_DY, WASH_FRAME_DY]) {
-        const y = BAY_STALL_Y + dy;
-        for (const side of [-1, 1]) {
-          sq('wash-brush', b.x + side * WASH_BRUSH_OFFSET, y, WASH_BRUSH_RADIUS * 2);
-          sq('wash-gantry-leg', b.x + side * WASH_GANTRY_LEG_OFFSET, y, WASH_GANTRY_LEG);
-        }
+      const G = WASH_GANTRY;
+      const home = BAY_STALL_Y + WASH_HOME_DY;
+      for (const side of [-1, 1]) {
+        // the trolley and leg, the retracted side brush and air knife, the arch's upright
+        out.push({ kind: 'wash-gantry-leg', r: {
+          x0: b.x + side * G.legX - G.trolley.w / 2, x1: b.x + side * G.legX + G.trolley.w / 2,
+          y0: home + G.leg.dy - G.trolley.d / 2, y1: home + G.leg.dy + G.trolley.d / 2 } });
+        sq('wash-brush', b.x + side * G.sideBrush.retractX, home + G.sideBrush.dy, G.sideBrush.r * 2);
+        const kx = b.x + side * (G.dryer.side.retractX + G.dryer.side.w / 2);
+        out.push({ kind: 'wash-air-knife', r: {
+          x0: kx - G.dryer.side.w / 2, x1: kx + G.dryer.side.w / 2,
+          y0: home + G.dryer.dy - G.dryer.side.d / 2, y1: home + G.dryer.dy + G.dryer.side.d / 2 } });
+        sq('wash-arch', b.x + side * G.arch.x, home + G.arch.dy, 2 * G.arch.r + 0.14);
+        // the rail and its plinth, the length of the bay's travel
+        out.push({ kind: 'wash-rail', r: {
+          x0: b.x + side * G.legX - 0.7, x1: b.x + side * G.legX + 0.7,
+          y0: BAY_STALL_Y + G.rail.from, y1: BAY_STALL_Y + G.rail.to } });
       }
-      const ay = f.y1 - s.wallT - WASH_ARCH_INSET;
-      for (const side of [-1, 1]) sq('wash-arch', b.x + side * WASH_ARCH_OFFSET, ay, 0.4);
     }
   }
   return out;

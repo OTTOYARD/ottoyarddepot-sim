@@ -102,6 +102,12 @@ export interface TwinVehicle {
    * opened a visit and put no work on it. That is not the same as `null`.
    */
   visit?: TwinVisitCard | null;
+  /**
+   * The car's seat in a wash, detail or service bay (otto-q-core 0762): when the twin seated it
+   * and when its timer ends the work there, both ISO on the BACKEND's sim clock. Null for a car
+   * in no bay; absent from an older backend. `ends_at` is null when the twin's timer is unset.
+   */
+  bay_seat?: { since: string | null; ends_at: string | null } | null;
 }
 /**
  * One timed leg of a vehicle's itinerary — the twin's T3 RENDER CONTRACT.

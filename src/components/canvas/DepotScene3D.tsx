@@ -13,6 +13,8 @@ import { SolarCanopy } from './three/SolarCanopy';
 import { armStallsKey } from '@/lib/ottoCleanArm/cleanArmPlacement';
 import { ChargingField } from './three/ChargingField';
 import { WashBays } from './three/WashBays';
+import { WashGantries } from './three/WashGantry';
+import { RoofXray } from './three/RoofXray';
 import { ServiceBays } from './three/ServiceBays';
 import { StagingZone } from './three/StagingZone';
 import { ChargingArm } from './three/ChargingArm';
@@ -272,6 +274,8 @@ export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0, viewe
       >
         <Suspense fallback={null}>
           <DayNightLighting simTime={simTime} />
+          {/* from above, the roofs fade so the robots and cars under them show (a view choice only) */}
+          <RoofXray />
 
           <StaticMerge name="ground"><DepotGround /></StaticMerge>
           <StaticMerge name="building"><DepotBuilding /></StaticMerge>
@@ -280,6 +284,8 @@ export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0, viewe
           <group name="chargersDcfc"><ChargingField type="dcfc" count={config.dcfcCount} /></group>
           <group name="chargersL2"><ChargingField type="l2" count={config.l2Count} /></group>
           <StaticMerge name="washBays" version={config.washBayCount}><WashBays count={config.washBayCount} /></StaticMerge>
+          {/* the wash bays' rollover machines move, so they stand outside the static merge */}
+          <WashGantries count={config.washBayCount} />
           <StaticMerge name="staging" version={config.stagingStalls}><StagingZone count={config.stagingStalls} /></StaticMerge>
           <group name="lanes"><Lanes3D /></group>
           <StaticMerge name="utility" version={`${config.bessCapacity}/${config.bessPower}`}><UtilityEquipment bessCapacity={config.bessCapacity} bessPower={config.bessPower} /></StaticMerge>
