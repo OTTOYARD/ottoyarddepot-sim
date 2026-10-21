@@ -9,6 +9,7 @@ import { VehicleDot } from './VehicleDot';
 import { ZoneBadges } from './ZoneBadges';
 import { LaneOverlay } from './LaneOverlay';
 import { ReservationGlow } from './ReservationGlow';
+import { WashGantries2D } from './WashGantry2D';
 import {
   LOT, BESS_YARD, BUILDING, WASH, CANOPIES, PARK_RUNS, GATE_W, canopyKind,
   INGRESS, EGRESS,
@@ -48,6 +49,7 @@ export const DepotSVG = forwardRef<SVGSVGElement>((_, ref) => {
   const selectStall = useDepotStore((s) => s.selectStall);
   const vehicles = useVehicleStore((s) => s.vehicles);
   const status = useSimulationStore((s) => s.status);
+  const washBayCount = useSimulationStore((s) => s.config.washBayCount);
 
   const isRunning = status === 'running';
 
@@ -257,6 +259,8 @@ export const DepotSVG = forwardRef<SVGSVGElement>((_, ref) => {
       {vehicles.map((v) => (
         <VehicleDot key={v.id} vehicle={v} />
       ))}
+      {/* the wash bays' rollover machines, over the cars they pass over (docs/OTTO-WASH.md) */}
+      <WashGantries2D count={washBayCount} />
       <ZoneBadges />
 
       {/* watermark */}

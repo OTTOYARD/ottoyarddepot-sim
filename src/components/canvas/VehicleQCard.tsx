@@ -24,7 +24,7 @@ import { useTwinStore } from '@/store/twinStore';
 import { useOwnerBoardStore } from '@/store/ownerBoardStore';
 import { useVehicleQCard } from '@/hooks/useVehicleQCard';
 import { CarTrail } from '@/components/tabs/ottoq/CarTrail';
-import { DASH, clock, pctText, type QCabinClean, type QCard, type QStep } from '@/lib/vehicleQCard';
+import { DASH, clock, pctText, type QBayWash, type QCabinClean, type QCard, type QStep } from '@/lib/vehicleQCard';
 import { carOwnerView, type OwnerCarView } from '@/lib/ownerBoard';
 
 const OK = '#34D399';
@@ -127,6 +127,40 @@ function CabinCleanRow({ c }: { c: QCabinClean }) {
       <div className="mt-0.5 text-[9px] text-ink-faint" data-testid="qcard-cabin-words">
         {done ? `Done at ${clock(c.doneAt)}.` : c.words}
       </div>
+    </div>
+  );
+}
+
+/**
+ * The car's seat in a wash bay, played by the bay's rollover machine: starting, in progress (a dot, a meter to the
+ * twin's end time, and the pass the machine is on), done (a tick). Chase, 2026-10-20.
+ */
+function BayWashRow({ w }: { w: QBayWash }) {
+  const done = w.state === 'done';
+  const starting = w.state === 'starting';
+  return (
+    <div className="mt-1.5 rounded border border-white/[0.06] bg-white/[0.03] px-2 py-1.5" data-testid="qcard-wash" data-state={w.state}>
+      <div className="flex items-center gap-1.5">
+        <span aria-hidden className="inline-flex h-3 w-3 shrink-0 items-center justify-center rounded-[3px] border text-[8px] font-bold"
+          style={done ? { background: OK, borderColor: OK, color: '#06070A' } : { borderColor: TEAL }}>
+          {done ? '✓' : starting ? '' : <span className="h-1.5 w-1.5 rounded-full" style={{ background: TEAL }} />}
+        </span>
+        <span className="text-[11px] font-medium">{w.title}</span>
+        <span className="min-w-0 truncate text-[10px] text-ink-faint">· by the bay's wash machine</span>
+        <span className="flex-1" />
+        <span className="shrink-0 text-[9px] uppercase tracking-[0.06em]" style={{ color: done ? OK : TEAL }} data-testid="qcard-wash-state">
+          {done ? 'Done' : starting ? 'Starting' : 'In progress'}
+        </span>
+      </div>
+      {!done && (
+        <div className="mt-1 flex items-center gap-1.5">
+          <Meter value={w.progress} label={`${w.title} progress`} />
+          <span className="shrink-0 font-mono text-[9px] text-ink-dim">
+            {w.progress !== null ? `${Math.round(w.progress)}%` : DASH} · ends {clock(w.endsAt)}
+          </span>
+        </div>
+      )}
+      <div className="mt-0.5 text-[9px] text-ink-faint" data-testid="qcard-wash-words">{w.words}</div>
     </div>
   );
 }
@@ -240,6 +274,7 @@ export function QCardBody({ card, oem, onClose, cardsStatus, owner }: {
       </div>
 
       {card.cabinClean && <CabinCleanRow c={card.cabinClean} />}
+      {card.bayWash && <BayWashRow w={card.bayWash} />}
 
       {card.hold && (
         <div className="mt-1.5 rounded border px-2 py-1 text-[10px]" style={{ borderColor: 'rgba(251,191,36,0.35)', color: WARN, background: 'rgba(251,191,36,0.06)' }} data-testid="qcard-hold">

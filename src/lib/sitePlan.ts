@@ -217,6 +217,28 @@ export const PARK_RUNS: ParkRun[] = [
  *  reads the committed seed, so this cannot quietly disagree with the DB. */
 export const STALL_HALF_DEPTH_U = 18 / 2 / 1.5698818897637796;
 
+/**
+ * A staging stall's painted outline, in render units, centred on the parked car: its two side
+ * lines run `along` the car and stand `across` apart. The 3D view paints these lines
+ * (StagingZone) and the 2D plan draws the same outline (Stall), so the two cannot disagree.
+ */
+export const STAGING_STALL_PAINT = { along: 10.5, across: 5.8 } as const;
+
+/**
+ * The 2D plan's outline of a bay or a staging stall: its width (x) and height (y), centred on the
+ * stall's position, which is the parked car's centre. A staging stall is STAGING_STALL_PAINT laid
+ * along the car, east-west on a run at 90 or 270 degrees. The stall (Stall.tsx) and the
+ * reservation ring (ReservationGlow.tsx) both draw this, so the ring traces the stall exactly.
+ */
+export function planStallBox(type: string, angle: number): { w: number; h: number } {
+  if (type === 'staging') {
+    return angle === 90 || angle === 270
+      ? { w: STAGING_STALL_PAINT.along, h: STAGING_STALL_PAINT.across }
+      : { w: STAGING_STALL_PAINT.across, h: STAGING_STALL_PAINT.along };
+  }
+  return type === 'wash' ? { w: 12, h: 14 } : { w: 8, h: 16 };
+}
+
 /** Clear pavement between two facing parking columns: the drive aisle, in render
  *  units. Both runs must be x-fixed columns (dx = 0) facing each other. */
 export function clearAisleBetween(westRunId: string, eastRunId: string) {

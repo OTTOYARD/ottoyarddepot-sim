@@ -141,6 +141,12 @@ export interface QCardInputs {
    * closes the step, which it does on its next tick).
    */
   cabinArm?: { phase: string; sideA: "left" | "right"; sideB: "left" | "right"; done?: boolean } | null;
+  /**
+   * What the car's wash bay's rollover machine is doing now, as the motion driver plays it (TwinMotionDriver.washBayFor),
+   * or null when the car is not in a wash bay the machine works for it in. `interior` is a detail seat (the cabin is
+   * cleaned first); `done` is true once the program has run to its end, before the twin moves the car on.
+   */
+  bayWash?: { phase: string; interior: boolean; done?: boolean } | null;
 }
 
 // ── output ────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -197,6 +203,22 @@ export interface QCabinClean {
   doneAt: string | null;
 }
 
+/**
+ * The car's seat in a wash bay, played by the bay's rollover machine (otto-q-core 0746 times it, 0762 publishes it).
+ * Chase, 2026-10-20: "the machine moves back and forth over it several times to wash and rinse and blow dry".
+ */
+export interface QBayWash {
+  state: "starting" | "in_progress" | "done";
+  /** 'Robotic wash', or 'Robotic detail' for a detail seat (the cabin first, then the wash) */
+  title: string;
+  /** what is happening, in short sentences */
+  words: string;
+  /** 0..100 through the twin's seat at the snapshot's clock; null when a time is missing */
+  progress: number | null;
+  startedAt: string | null;
+  endsAt: string | null;
+}
+
 export interface QCard {
   vehicleId: string;
   name: string;
@@ -227,6 +249,7 @@ export interface QCard {
   needs: { published: boolean; items: QNeed[] };
   /** the stall's cleaning arm's work on this car, or null when its visit has none */
   cabinClean: QCabinClean | null;
+  bayWash: QBayWash | null;
   hold: { words: string; place: string | null; until: string | null } | null;
   /** plan changes the car's own decisions record, newest first */
   changes: { at: string | null; words: string }[];
@@ -331,6 +354,36 @@ export function cabinArmWords(
     default: return { starting: false, words: "The arm cleans the cabin." };
   }
 }
+/**
+ * The wash machine's phase in words (ASD-STE100), and whether it is still starting. The machine makes six passes over
+ * the car; a detail seat first opens the doors and vacuums the cabin with two wands. An unknown phase reads as the
+ * plain fact that the machine washes the car.
+ */
+export function bayWashWords(phase: string, done = false): { starting: boolean; words: string } {
+  switch (phase) {
+    case "home": return done
+      ? { starting: false, words: "Done. The car can leave." }
+      : { starting: true, words: "The machine starts when the car stops under it." };
+    case "settle": return { starting: true, words: "The car stops under the machine." };
+    case "to_cabin": return { starting: true, words: "The machine moves to the doors." };
+    case "doors_open": return { starting: false, words: "The doors open." };
+    case "wands_down": case "wands_in": return { starting: false, words: "The wands go into the cabin." };
+    case "vacuum": return { starting: false, words: "The wands vacuum the cabin." };
+    case "wands_out": case "wands_up": return { starting: false, words: "The wands come out of the cabin." };
+    case "doors_close": return { starting: false, words: "The doors close." };
+    case "to_start": return { starting: false, words: "The machine moves to the front of the car." };
+    case "soak": return { starting: false, words: "Pass 1 of 6: pre-soak." };
+    case "wash_1": return { starting: false, words: "Pass 2 of 6: brush wash." };
+    case "wash_2": return { starting: false, words: "Pass 3 of 6: brush wash." };
+    case "rinse": return { starting: false, words: "Pass 4 of 6: rinse." };
+    case "dry_1": return { starting: false, words: "Pass 5 of 6: air dry." };
+    case "dry_2": return { starting: false, words: "Pass 6 of 6: air dry." };
+    case "done": return { starting: false, words: "Done. The car can leave." };
+    case "retract": case "return": return { starting: false, words: "The seat ended. The machine moves back to its start position." };
+    default: return { starting: false, words: "The machine washes the car." };
+  }
+}
+
 /** Why a booking was replaced or let go (ottoq_stall_bookings.release_reason), in words. Unknown reasons read as given. */
 const RELEASE_WORD: Record<string, string> = {
   superseded_by_enacted_decision: "replaced by a newer decision",
@@ -504,6 +557,29 @@ export function buildQCard(inp: QCardInputs): QCard {
     }
   }
 
+  // ── the wash bay's machine: the twin's seat (0762), played by the bay's rollover gantry ──
+  let bayWash: QBayWash | null = null;
+  const inWashBay = stateCode === "in_wash_bay" || stateCode === "in_detail_bay";
+  if (inWashBay && (tv?.bay_seat || inp.bayWash)) {
+    const startedAt = tv?.bay_seat?.since ?? null;
+    const endsAt = tv?.bay_seat?.ends_at ?? null;
+    const t0 = Date.parse(startedAt ?? ""), t1 = Date.parse(endsAt ?? ""), at = Date.parse(snap?.run?.sim_clock ?? "");
+    const progress = Number.isFinite(t0) && Number.isFinite(t1) && Number.isFinite(at) && t1 > t0
+      ? Math.max(0, Math.min(100, ((at - t0) / (t1 - t0)) * 100)) : null;
+    const live = inp.bayWash ? bayWashWords(inp.bayWash.phase, inp.bayWash.done) : null;
+    const interior = inp.bayWash?.interior ?? stateCode === "in_detail_bay";
+    // with no machine drawn (the 2D view), the seat's own clock says whether the work has begun
+    const state: QBayWash["state"] = inp.bayWash?.done ? "done"
+      : live ? (live.starting ? "starting" : "in_progress")
+      : progress !== null && progress > 0 ? "in_progress" : "starting";
+    bayWash = {
+      state,
+      title: interior ? "Robotic detail" : "Robotic wash",
+      words: live?.words ?? (interior ? "The machine cleans the cabin, then washes the car." : "The machine washes the car."),
+      progress, startedAt, endsAt,
+    };
+  }
+
   // ── now ──
   const cur = items.find((s) => s.state === "current") ?? null;
   const nextStep = items.find((s) => s.state === "upcoming") ?? null;
@@ -585,6 +661,7 @@ export function buildQCard(inp: QCardInputs): QCard {
     steps: { published: stepRecs !== null, items, earlierHidden: doneShown >= doneCap },
     needs: { published: needsKnown, items: needs },
     cabinClean,
+    bayWash,
     hold,
     changes,
     leave,

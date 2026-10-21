@@ -473,3 +473,48 @@ describe("vocabulary", () => {
     expect(stepLabel({ leg_type: "charge_l2" })).toBe("Charge");
   });
 });
+
+describe("the robotic wash by the bay's machine (otto-q-core 0746, 0762)", () => {
+  const T0 = "2026-10-20T13:40:00+00:00", T1 = "2026-10-20T13:45:00+00:00", MID = "2026-10-20T13:42:30+00:00";
+  const inBay = (state: string, clock: string, seat: { since: string | null; ends_at: string | null } | null = { since: T0, ends_at: T1 }) =>
+    snap({
+      run: { sim_run_id: "r", status: "running", sim_clock: clock } as never,
+      fleet: { counts: {}, total: 1, vehicles: [{ id: VID, av_id: "a", make: "Zoox", platform: "zoox", state, soc: 100, stall_id: "wash-2-id", bay_seat: seat }] },
+    });
+
+  it("names the pass the machine is on, with a meter to the twin's end", () => {
+    const q = buildQCard({ vehicleId: VID, snapshot: inBay("in_wash_bay", MID), bayWash: { phase: "wash_1", interior: false } });
+    expect(q.bayWash).toEqual({
+      state: "in_progress", title: "Robotic wash", words: "Pass 2 of 6: brush wash.", progress: 50, startedAt: T0, endsAt: T1,
+    });
+    for (const [phase, words] of [
+      ["soak", "Pass 1 of 6: pre-soak."], ["wash_2", "Pass 3 of 6: brush wash."], ["rinse", "Pass 4 of 6: rinse."],
+      ["dry_1", "Pass 5 of 6: air dry."], ["dry_2", "Pass 6 of 6: air dry."],
+    ] as const) {
+      expect(buildQCard({ vehicleId: VID, snapshot: inBay("in_wash_bay", MID), bayWash: { phase, interior: false } }).bayWash?.words).toBe(words);
+    }
+  });
+
+  it("is a robotic detail on a detail seat: the wands vacuum the cabin first", () => {
+    const q = buildQCard({ vehicleId: VID, snapshot: inBay("in_detail_bay", MID), bayWash: { phase: "vacuum", interior: true } });
+    expect(q.bayWash).toMatchObject({ state: "in_progress", title: "Robotic detail", words: "The wands vacuum the cabin." });
+  });
+
+  it("is starting while the car stops under the machine, and done once the program is over", () => {
+    expect(buildQCard({ vehicleId: VID, snapshot: inBay("in_wash_bay", T0), bayWash: { phase: "settle", interior: false } }).bayWash?.state)
+      .toBe("starting");
+    expect(buildQCard({ vehicleId: VID, snapshot: inBay("in_wash_bay", T1), bayWash: { phase: "home", interior: false, done: true } }).bayWash)
+      .toMatchObject({ state: "done", words: "Done. The car can leave." });
+  });
+
+  it("reads the seat's own clock when no machine is drawn (the 2D view)", () => {
+    const q = buildQCard({ vehicleId: VID, snapshot: inBay("in_wash_bay", MID) });
+    expect(q.bayWash).toMatchObject({ state: "in_progress", title: "Robotic wash", words: "The machine washes the car.", progress: 50 });
+  });
+
+  it("shows no meter it cannot compute, and no row for a car in no wash bay", () => {
+    expect(buildQCard({ vehicleId: VID, snapshot: inBay("in_wash_bay", MID, { since: T0, ends_at: null }) }).bayWash?.progress).toBeNull();
+    expect(buildQCard({ vehicleId: VID, snapshot: inBay("in_service_bay", MID) }).bayWash).toBeNull();
+    expect(buildQCard({ vehicleId: VID, snapshot: inBay("charging_dcfc", MID, null) }).bayWash).toBeNull();
+  });
+});

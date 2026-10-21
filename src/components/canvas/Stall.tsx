@@ -2,7 +2,7 @@ import { memo } from 'react';
 import type { StallState } from '@/store/depotStore';
 import { useDepotStore } from '@/store/depotStore';
 import { chargerPad } from '@/lib/ottoChargeArm/depotPlacement';
-import { chargerStallPaint, chargerStallFrame } from '@/lib/sitePlan';
+import { chargerStallPaint, chargerStallFrame, planStallBox } from '@/lib/sitePlan';
 import { downTag } from '@/lib/chargerFaults';
 
 const TYPE_COLORS: Record<string, string> = {
@@ -33,12 +33,6 @@ function getStallStroke(type: string, status: string): string {
 
 interface StallProps {
   stall: StallState;
-}
-
-function getParallelogramPoints(w: number, h: number, angleDeg: number): string {
-  const skew = h * Math.cos((angleDeg * Math.PI) / 180);
-  // bottom-left, bottom-right, top-right, top-left
-  return `0,${h} ${w},${h} ${w + skew},0 ${skew},0`;
 }
 
 /**
@@ -112,14 +106,13 @@ export const Stall = memo(({ stall }: StallProps) => {
   const setHoveredStall = useDepotStore((s) => s.setHoveredStall);
   const isCharger = stall.type === 'dcfc' || stall.type === 'l2';
 
-  const isWash = stall.type === 'wash';
-  const w = isWash ? 12 : stall.type === 'dcfc' ? 10 : 8;
-  const h = isWash ? 14 : 16;
-  const angleDeg = stall.position.angle;
-
-  const points = angleDeg === 0
-    ? `0,0 ${w},0 ${w},${h} 0,${h}`
-    : getParallelogramPoints(w, h, angleDeg);
+  // A bay or a staging stall is drawn centred where its car stands: the stall's position is the parked
+  // car's centre (sitePlan.bayStalls, stagingStalls), and planStallBox lays a staging stall along its car
+  // at the size the 3D view paints it. Both used to be drawn from that point as a corner, so every parked
+  // car sat on its stall's corner, the side columns' stalls stood across their cars, and each wash bay's
+  // square reached into the next bay.
+  const { w, h } = planStallBox(stall.type, stall.position.angle);
+  const points = `0,0 ${w},0 ${w},${h} 0,${h}`;
 
   const fill = getStallFill(stall.type, stall.status);
   const stroke = getStallStroke(stall.type, stall.status);
@@ -140,7 +133,8 @@ export const Stall = memo(({ stall }: StallProps) => {
 
   return (
     <g
-      transform={`translate(${stall.position.x}, ${stall.position.y})`}
+      transform={`translate(${stall.position.x - w / 2}, ${stall.position.y - h / 2})`}
+      data-stall={stall.id}
       className={`cursor-pointer ${isCharging ? 'stall-charging-pulse' : ''}`}
       onClick={(e) => { e.stopPropagation(); selectStall(stall.id); }}
       onMouseEnter={() => setHoveredStall(stall.id)}
@@ -154,7 +148,7 @@ export const Stall = memo(({ stall }: StallProps) => {
         opacity={0.9}
       />
       <text
-        x={w / 2 + (angleDeg ? h * Math.cos((angleDeg * Math.PI) / 180) / 2 : 0)}
+        x={w / 2}
         y={h / 2 + 1}
         textAnchor="middle"
         fontSize={3}

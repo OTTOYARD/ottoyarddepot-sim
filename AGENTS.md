@@ -278,6 +278,25 @@ interpolation.** Zero world logic client-side.
   no Auto mode, no `?quality=` override, and a slow frame never lowers the picture. The Medium / Low
   tiers, the frame-rate governor and the baked ground AO that stood in for N8AO below High are
   deleted. Do not re-add tiers or a picker.
+- **The wash bays are robotic rollover machines (founder's call, 2026-10-20):** *"Car pulls in and the machine
+  moves back and forth over it several times to wash and rinse and blow dry before vehicle leave."* One portal
+  gantry per bay on two floor rails (`src/lib/ottoWash`, `docs/OTTO-WASH.md`), six passes over the parked car
+  (pre-soak, two brush passes, rinse, two air-dry passes), and on a detail seat two vacuum wands through the open
+  doors first. The twin owns the seat (otto-q-core 0746 times it, 0762 publishes `bay_seat {since, ends_at}`); the
+  machine plays inside it and holds the car until it is home (`engine/motion/washGate.ts`, one evaluation like the
+  arms'). A moving car only ever meets the machine AT HOME, so `structurePlan` carries it there, retracted, plus its
+  rails; `washPose.test.ts` measures every moving part against the car's solid, its open doors and its seats. The 2D
+  plan draws the same machines from the same session (`WashGantry2D.tsx`). The gate plays a slow frame in 0.25 s steps
+  (`WASH_SUBSTEP_S`): played as one capped step, a frame a second at 3x lost a third of its time and the twin's seat
+  cut a detail program off in its vacuum (`washGate.test.ts`).
+- **The 2D plan draws every stall where its car stands (2026-10-21).** A bay's or a staging stall's position is the
+  parked car's centre, and both are drawn centred on it; a staging stall is the outline the 3D view paints
+  (`sitePlan.STAGING_STALL_PAINT`), laid along the car. They used to be drawn from that point as a corner, so every
+  parked car sat on its stall's corner and the side columns' stalls stood across their cars (`StallBay.test.tsx`).
+- **From above, the roofs fade (2026-10-20):** the solar modules and roof membranes go to 16% when the camera looks
+  down more than 40 degrees (`RoofXray.tsx`, back below 32), because from the Bird Eye view they hid every robot
+  the depot has. Presets **Robots** (under canopy A) and **Wash** (inside wash bay 2) frame them close. A view
+  choice only; do not make it a world fact.
 - **3D perf and phone tooling:** `scripts/perfHarness.mjs` (draw calls, triangles, memory, frame times
   per camera preset and profile; `?perf=1` shows the same probe on a real phone) and
   `scripts/phoneShots.mjs` (the phone cockpit in an emulated iPhone, both orientations). Both play a

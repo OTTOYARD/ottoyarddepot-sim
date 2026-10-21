@@ -25,6 +25,8 @@ import { findLeader, StallLedger, CAR_BODY_LENGTH, CAR_BODY_WIDTH, type MovingCa
 import { buildDepotLanes, U_TURN_COST, LaneGraph } from "./motion/LaneGraph";
 import { ArmGate, type ArmStallInput } from "./motion/armGate";
 import { CleanGate, cabinCleanOf, type CabinClean, type CleanStallInput } from "./motion/cleanGate";
+import { WashGate, type WashBayInput } from "./motion/washGate";
+import type { WashSession } from "@/lib/ottoWash/washSession";
 import { poseStore } from "./motion/poseStore";
 import { doorStore } from "./motion/doorStore";
 import { useDepotStore, type StallStatus } from "@/store/depotStore";
@@ -750,6 +752,13 @@ class TwinMotionDriver {
   private cleanGate = new CleanGate();
   /** vehicle id -> the twin's cabin clean of it by a stall's arm (0758), rebuilt every snapshot. */
   private cabinCleans = new Map<string, CabinClean>();
+  /** THE WASH MACHINES: one rollover gantry session per wash bay, stepped beside the arms.
+   *  The ONE evaluation of that machine: WashGantry.tsx draws it, a detail seat's doors are
+   *  written from it, and armReleases() reads it. See motion/washGate.ts. */
+  private washGate = new WashGate();
+  /** vehicle id -> its seat in a bay as the twin publishes it (0762 `bay_seat`), epoch ms on the
+   *  backend's sim clock, and the renderer stall the twin places it on. Rebuilt every snapshot. */
+  private baySeats = new Map<string, { sinceMs: number | null; endsMs: number | null; stall: string | null }>();
   /** sim-clock instant (ms) at which the arm sessions were last stepped. The arms
    *  are paced by the SIM clock, not by the motion dt — same choice ChargingArm
    *  makes, and the reason the view multiplier never runs the robot by itself. */
@@ -1015,6 +1024,12 @@ class TwinMotionDriver {
    * completely unaffected, and no absent signal can freeze anything.
    */
   private armReleases(e: Entry): boolean {
+    // THE WASH MACHINE: a car in a wash bay stays put until its bay's gantry is home.
+    if (e.lane === "wash" && e.stallId) {
+      if (this.washGate.mayMove(e.stallId)) return true;
+      this.armRefusals++;
+      return false;
+    }
     if (e.lane !== "dcfc" || !e.stallId) return true;
     // BOTH ROBOTS: the charge arm's connector out, and the cleaning arm home with the
     // car's doors shut. Either one holding is a hold.
@@ -1031,6 +1046,37 @@ class TwinMotionDriver {
   /** Stalls whose cleaning arm is holding its car — for the operator trace. */
   get cleanHolds(): string[] {
     return this.cleanGate.holding();
+  }
+
+  /** Wash bays whose machine is holding its car — for the operator trace. */
+  get washHolds(): string[] {
+    return this.washGate.holding();
+  }
+
+  /**
+   * What the rollover machine in this wash bay is doing, or null when no session covers it.
+   * The ONE evaluation: WashGantry.tsx draws exactly this.
+   */
+  washSessionAt(rendererBayId: string): WashSession | null {
+    return this.washGate.session(rendererBayId);
+  }
+
+  /**
+   * What the machine over this car's wash bay is doing, for its Q card, or null when the car is
+   * not in a wash bay the machine is working for it in.
+   */
+  washBayFor(vehicleId: string): { phase: string; interior: boolean; done: boolean; t: number } | null {
+    const e = this.entries.get(vehicleId);
+    if (!e?.stallId || e.lane !== "wash") return null;
+    const s = this.washGate.session(e.stallId);
+    if (!s || (s.vehicleId !== vehicleId && s.completedFor !== vehicleId)) return null;
+    return { phase: s.phase, interior: s.interior, done: s.phase === "home" && s.completedFor === vehicleId, t: s.t };
+  }
+
+  /** The twin's seat for this car in a bay, as of the last snapshot (epoch ms, sim clock), or null. */
+  baySeatFor(vehicleId: string): { sinceMs: number | null; endsMs: number | null } | null {
+    const b = this.baySeats.get(vehicleId);
+    return b ? { sinceMs: b.sinceMs, endsMs: b.endsMs } : null;
   }
 
   /**
@@ -1174,7 +1220,27 @@ class TwinMotionDriver {
       });
     }
     this.cleanGate.step(simDt, cleans);
-    doorStore.sync(this.cleanGate.doors());
+
+    // THE WASH MACHINES. A seat is ACTIVE when the twin has this car washing or detailing,
+    // still places it in this bay, and the car stands on the bay's pose. The end time is the
+    // twin's (0762); an older backend publishes none and the machine runs at nominal pace.
+    const washes: WashBayInput[] = [];
+    for (const [id, e] of this.entries) {
+      if (!e.stallId || e.lane !== "wash") continue;
+      const seat = this.baySeats.get(id);
+      const seated = e.vstatus === "washing" || e.vstatus === "detailing";
+      const here = !seat?.stall || seat.stall === e.stallId;
+      washes.push({
+        bayId: e.stallId,
+        vehicleId: id,
+        active: seated && here && this.onStallPose(e),
+        interior: e.vstatus === "detailing",
+        endsInS: seat?.endsMs != null && nowMs ? (seat.endsMs - nowMs) / 1000 : null,
+        sinceS: seat?.sinceMs != null && nowMs ? (nowMs - seat.sinceMs) / 1000 : null,
+      });
+    }
+    this.washGate.step(simDt, washes);
+    doorStore.sync([...this.cleanGate.doors(), ...this.washGate.doors()]);
   }
 
   /** The car stands on its stall pose to the centimetre — see CLEAN_POSE_EPS. */
@@ -1517,6 +1583,8 @@ class TwinMotionDriver {
     this.armGate.clear();
     this.cleanGate.clear();
     this.cabinCleans.clear();
+    this.washGate.clear();
+    this.baySeats.clear();
     doorStore.clear();
     this.armSimMs = null;
     this.armRefusals = 0;
@@ -1567,6 +1635,8 @@ class TwinMotionDriver {
     this.armGate.clear();
     this.cleanGate.clear();
     this.cabinCleans.clear();
+    this.washGate.clear();
+    this.baySeats.clear();
     doorStore.clear();
     this.armSimMs = null;
     // clearing driver state is not enough on its own: the painted fleet and the
@@ -2785,6 +2855,19 @@ class TwinMotionDriver {
       if (c) cabin.set(bv.id, c);
     }
     this.cabinCleans = cabin;
+    // THE BAY SEATS (otto-q-core 0762): when the twin seated each car in a bay and when its
+    // timer ends the work, on the backend's sim clock. Rebuilt wholesale like the cleans.
+    const seats = new Map<string, { sinceMs: number | null; endsMs: number | null; stall: string | null }>();
+    for (const bv of snap.fleet?.vehicles ?? []) {
+      const seat = bv.bay_seat;
+      if (!seat || typeof seat !== "object") continue;
+      const at = (v: unknown) => { if (typeof v !== "string") return null; const t = Date.parse(v); return Number.isFinite(t) ? t : null; };
+      seats.set(bv.id, {
+        sinceMs: at(seat.since), endsMs: at(seat.ends_at),
+        stall: typeof bv.stall_id === "string" ? this.twinStall.get(bv.stall_id) ?? null : null,
+      });
+    }
+    this.baySeats = seats;
     // several vehicles can appear in ONE snapshot (twin ticks cover 30 sim-min):
     // stagger their spawn points back along the entrance road so they never
     // materialize stacked on top of each other at the gate.
