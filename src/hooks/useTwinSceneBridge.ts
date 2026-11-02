@@ -15,12 +15,22 @@
 // placed on OTTO-Q's exact stalls from frame one — never a zone-based placement
 // followed by a fleet-wide reshuffle. The gate lives in the driver (no extra
 // React state → the app's hook order never changes).
+//
+// THE IDLE TWIN draws the depot the twin has, too. With no run there is no fleet to
+// place, but the depot is on screen (the cockpit, the phone cockpit, and the live view
+// the other cockpits frame), so the bridge reads the twin depot's layout and draws its
+// charger build (TwinMotionDriver.adoptChargerBuild). The build used to be read only
+// with a run: from 0763 (10:11 PM CT, 2026-10-22) the idle twin drew canopies B and C as standard
+// chargers, with no charge arm and no cleaning arm, until someone started a run.
 // ============================================================================
 import { useEffect } from "react";
 import { useTwinStore } from "@/store/twinStore";
 import { useSimulationStore } from "@/store/simulationStore";
 import { twinMotionDriver } from "@/engine/TwinMotionDriver";
 import { twin } from "@/lib/ottoTwin";
+
+/** With no run, a layout read that failed (offline, a slow edge function) is asked again this often. */
+export const IDLE_LAYOUT_RETRY_MS = 15000;
 
 export function useTwinSceneBridge() {
   const snapshot = useTwinStore((s) => s.snapshot);
@@ -52,7 +62,29 @@ export function useTwinSceneBridge() {
   useEffect(() => {
     if (!activeSimRunId || legacyStatus === "running") {
       twinMotionDriver.clear();
-      return;
+      // the offline engine owns the stores while it runs
+      if (legacyStatus === "running") return;
+      // No run: draw the chargers the twin's layout has (see the header). Only the build
+      // is taken; no stall is mapped, because no car will be drawn. A read that fails
+      // leaves the build as drawn and is asked again until it lands or a run starts.
+      let cancelled = false;
+      let retry: ReturnType<typeof setTimeout> | undefined;
+      const read = () => {
+        twin.layout()
+          .then((l) => {
+            if (cancelled) return;
+            if (l?.stalls?.length) twinMotionDriver.adoptChargerBuild(l.stalls);
+            else retry = setTimeout(read, IDLE_LAYOUT_RETRY_MS);
+          })
+          .catch(() => {
+            if (!cancelled) retry = setTimeout(read, IDLE_LAYOUT_RETRY_MS);
+          });
+      };
+      read();
+      return () => {
+        cancelled = true;
+        clearTimeout(retry);
+      };
     }
     twinMotionDriver.expectLayout(); // buffer snapshots until the layout settles
     twinMotionDriver.start();

@@ -1816,31 +1816,38 @@ class TwinMotionDriver {
     this.settleLayout();
   }
 
-  /** The renderer stall a twin stall is drawn as (setTwinStallMap), or undefined
-   *  before a layout has mapped it. The one answer the 2D overlays should use, so a
-   *  glow lands on the stall the car is driven to. */
   /**
    * Switch the renderer to the charger build a twin layout's census describes: 10 fast
    * and 30 standard chargers as built, 20 and 15 after the 20-post build-out (otto-q-core
    * 0759), 30 and 0 once canopy C is re-striped too (0763). The depot's stalls are
    * regenerated and the layout's footprints rebuilt. A census that is none of them (a
    * test's partial layout, a build the renderer has no layout for) changes nothing: the
-   * renderer must not guess one.
+   * renderer must not guess one. Returns true when the build changed.
+   *
+   * Two callers, one answer: setTwinStallMap, with a run's layout, and the scene bridge
+   * with NO run (useTwinSceneBridge), so the idle twin draws the depot the twin has. It
+   * used to be called only with a run, and from 0763 (2026-10-22 CT) to 2026-11-02 the idle
+   * twin drew canopies B and C as the 30 standard chargers the depot no longer had: no
+   * charge arm and no cleaning arm on 20 of its 30 posts until someone started a run.
    */
-  private adoptChargerBuild(stalls: readonly { type: string }[]) {
+  adoptChargerBuild(stalls: readonly { type: string }[]): boolean {
     const census = { dcfc: 0, l2: 0 };
     for (const s of stalls) {
       if (s.type === "dcfc") census.dcfc++;
       else if (s.type === "l2") census.l2++;
     }
     const build = chargerBuildFor(census);
-    if (!build || !setChargerBuild(build)) return;
+    if (!build || !setChargerBuild(build)) return false;
     const d = useDepotStore.getState();
     const spec = CHARGER_BUILDS[build];
     d.regenerateStalls(spec.dcfc, spec.l2, d.washBayCount, d.stagingCount, d.serviceBayCount);
     layoutBoxes();
+    return true;
   }
 
+  /** The renderer stall a twin stall is drawn as (setTwinStallMap), or undefined
+   *  before a layout has mapped it. The one answer the 2D overlays should use, so a
+   *  glow lands on the stall the car is driven to. */
   rendererStallFor(twinStallId: string): string | undefined {
     return this.twinStall.get(twinStallId);
   }

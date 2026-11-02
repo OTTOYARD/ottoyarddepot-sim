@@ -310,6 +310,14 @@ interpolation.** Zero world logic client-side.
   (`lib/planRobots/robotPlan.ts`, held equal to the 3D rigs by `robotPlan.test.ts`). It decides nothing. A robot added
   to the 3D view is added to the plan the same way, or the plan misstates the depot again. A faulted charger's FAULT
   mark is its own layer over them (`Stall.StallFaultMarks`): drawn with the stall, a folded arm crossed the word.
+- **The idle twin draws the depot the twin has (2026-11-02).** With no run, the scene bridge reads the twin depot's
+  layout and draws its charger build (`useTwinSceneBridge` -> `TwinMotionDriver.adoptChargerBuild`), as it does for a
+  run, and asks again if the read fails. It used to read the build only with a run, so from otto-q-core 0763
+  (2026-10-22 CT) the idle cockpit and the live view drew canopies B and C as 30 standard chargers with no charge arm and no
+  cleaning arm (Chase: *"I don't see the overhead robovacuums or robotic charge arms in the other 2 stall sections"*).
+  `as_built` is only what is drawn before the first layout read lands. A build-dependent thing that reads the build
+  any other way than through the layout misstates the depot the same way. Tests play the layout as the twin served it
+  (`__fixtures__/twinLayout.served1102.json`); `scripts/idleDepotShots.mjs` shoots both pages with no run.
 - **From above, the roofs fade (2026-10-20):** the solar modules and roof membranes go to 16% when the camera looks
   down more than 40 degrees (`RoofXray.tsx`, back below 32), because from the Bird Eye view they hid every robot
   the depot has. Presets **Robots** (under canopy A) and **Wash** (inside wash bay 2) frame them close. A view
