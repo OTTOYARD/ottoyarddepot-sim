@@ -235,10 +235,15 @@ export interface ArmStallFacts {
   cleanBusy?: boolean;
   /** The stall's OTTO-CLEAN ARM is moving over or beside the car (past opening the doors). */
   cleanBlocksMate?: boolean;
+  /** The twin reports the stall's charger Faulted (otto-q-core 0612: stalls_status 'faulted' / charger_state
+   *  'Faulted'). A faulted charger is out of service: no mate starts on it, and a committed arm lets go. */
+  chargerFaulted?: boolean;
 }
 
 /**
  * THE ONE COMPOSITION of a stall's facts into the session's `charging` and tether.
+ *
+ *   · A FAULTED CHARGER (chargerFaulted) ends the session at once, before anything below.
  *
  *   · A mate STARTS on a parked car that is charging. Once the arm is committed the
  *     window may vanish (a re-plan drops the dwell leg) without yanking the connector
@@ -255,6 +260,13 @@ export interface ArmStallFacts {
 export function armSessionInput(
   before: ArmSession, f: ArmStallFacts,
 ): { charging: boolean; tetherRemainingS: number | null } {
+  // A FAULTED CHARGER ENDS ITS SESSION NOW (Chase, 2026-11-02: "a faulted charger station was given a vehicle to
+  // charge/clean. Major issue."). No mate starts on it, and an arm that is mated or reaching lets go, paced by the
+  // twin's demate tether when it has one. The interlock below does NOT keep the connector in for the cleaning arm:
+  // that is the order for a charge that ENDS (the doors close, then the charge arm lets go), and a charger that
+  // faulted has ended nothing. The two arms are clear of each other at every pose of the release
+  // (cleanArmClearance.test.ts), so the connector can come out while the cleaning arm is still in the cabin.
+  if (f.chargerFaulted) return { charging: false, tetherRemainingS: f.tetherRemainingS };
   const committed = isArmCommitted(before.phase);
   let charging = f.vehicleId !== null && f.chargingState && (f.parked || committed);
   if (charging && !committed && f.cleanBlocksMate) charging = false;

@@ -131,6 +131,8 @@ export interface ArmStallInput {
   cleanBusy?: boolean;
   /** The stall's OTTO-CLEAN ARM is moving over or beside the car (cleanGate.blocksMate). */
   cleanBlocksMate?: boolean;
+  /** The twin reports the stall's charger Faulted. See armSessionInput: the arm lets go at once. */
+  chargerFaulted?: boolean;
 }
 
 interface StallState {
