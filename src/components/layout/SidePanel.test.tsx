@@ -16,6 +16,7 @@ vi.mock('@/components/tabs/TwinOttoQTab', () => ({ TwinOttoQTab: () => <div /> }
 vi.mock('@/components/tabs/TwinAgentTab', () => ({ TwinAgentTab: () => <div /> }));
 vi.mock('@/components/tabs/TwinValueTab', () => ({ TwinValueTab: () => <div /> }));
 vi.mock('@/components/tabs/TwinBackgroundTab', () => ({ TwinBackgroundTab: () => <div data-testid="tab-background" /> }));
+vi.mock('@/components/tabs/TwinResearchTab', () => ({ TwinResearchTab: () => <div /> }));
 
 import { SidePanel } from './SidePanel';
 import { useSimulationStore } from '@/store/simulationStore';

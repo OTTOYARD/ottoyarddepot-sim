@@ -1,0 +1,113 @@
+{
+  "read_at": "2026-11-03T16:24:01.390622+00:00",
+  "depot_id": "11111111-1111-1111-1111-111111111111",
+  "findings": [
+    {
+      "item": "E1",
+      "kind": "lab",
+      "slug": "p0-lab-building",
+      "phase": "P0",
+      "title": "The research lab is being built",
+      "status": "in_progress",
+      "metrics": {},
+      "run_ids": [],
+      "summary": "A private copy of OTTO-Q that runs depot days fast and can rewind any moment to try a different decision. The first copy is being rebuilt from the repository and checked against production function by function; the full copy needs a Supabase access token in the environment.",
+      "evidence": "otto-q-core lab/ (in progress)",
+      "updated_at": "2026-11-03T15:54:27.379869+00:00",
+      "measured_at": null
+    },
+    {
+      "item": "P0.0",
+      "kind": "measurement",
+      "slug": "p0-referee-key-clustered",
+      "phase": "P0",
+      "title": "The referee ranks the AI's orders better than chance, but its percentages aren't trustworthy yet",
+      "status": "measured",
+      "metrics": {
+        "auc": 0.6535,
+        "keys": 18,
+        "runs": 25,
+        "decisions": 370,
+        "brier_skill": 0.0294,
+        "auc_ci95_by_key": [
+          0.5803,
+          0.707
+        ],
+        "auc_ci95_independent": [
+          0.5971,
+          0.71
+        ],
+        "brier_skill_ci95_by_key": [
+          -0.0608,
+          0.0998
+        ]
+      },
+      "run_ids": [],
+      "summary": "Counted by the 18 independent test days rather than 370 separate decisions, the referee still tells better orders from worse ones more often than chance. Its win percentages, though, are no better than always guessing the average. So its ranking can be used; its numbers can't yet be read as probabilities.",
+      "evidence": "otto-q-core db/checks/0475",
+      "updated_at": "2026-11-03T15:54:27.379869+00:00",
+      "measured_at": "2026-11-03T15:40:54+00:00"
+    },
+    {
+      "item": "P0.4",
+      "kind": "build",
+      "slug": "p0-research-area-live",
+      "phase": "P0",
+      "title": "The Research tab's data feed is live",
+      "status": "built",
+      "metrics": {
+        "ledger": "20261103155140",
+        "migration": "0793"
+      },
+      "run_ids": [],
+      "summary": "Research findings now have their own place in the OTTO-Q database, which the twin can read and nothing in the engine does. A recommendation here changes nothing at the depot until a person ships it.",
+      "evidence": "otto-q-core db/migrations/0793",
+      "updated_at": "2026-11-03T15:54:27.379869+00:00",
+      "measured_at": "2026-11-03T15:51:48+00:00"
+    },
+    {
+      "item": "E3",
+      "kind": "safety",
+      "slug": "p0-safety-model-building",
+      "phase": "P0",
+      "title": "A proven safety model of the faulted-charger post is being built",
+      "status": "in_progress",
+      "metrics": {},
+      "run_ids": [
+        "8c0b2e04-8ea9-49a8-bfed-bed10ddfbc8b"
+      ],
+      "summary": "The charging post, its two robot arms, the car and the charger are being modelled so a tool can prove which states are safe, then check last night's run against the model. It must catch the two cars held on dead chargers (DCFC-22 and DCFC-02) and nothing else.",
+      "evidence": "otto-q-core lab/safety (in progress)",
+      "updated_at": "2026-11-03T15:54:27.379869+00:00",
+      "measured_at": null
+    },
+    {
+      "item": "P0.2",
+      "kind": "measurement",
+      "slug": "p0-yardstick-priced",
+      "phase": "P0",
+      "title": "How we value lateness, waiting and road time decides 43% of the referee's verdicts",
+      "status": "measured",
+      "metrics": {
+        "decisions": 329,
+        "equal_prices": {
+          "same": 42,
+          "taken": 29,
+          "agent_better": 102,
+          "taken_helped": 12,
+          "kernel_better": 185
+        },
+        "price_points": 63,
+        "depends_on_price": 140,
+        "same_every_price": 42,
+        "agent_never_worse": 46,
+        "kernel_never_worse": 101
+      },
+      "run_ids": [],
+      "summary": "For 140 of 329 past decisions, whether the AI's order or OTTO-Q's own order was better depends only on what a minute of lateness, of waiting past the contract, or of time on the road is worth. At equal weights OTTO-Q's own order was better 185 times and the AI's 102, and only 12 of the 29 AI orders the referee accepted actually helped. Owner prices matter.",
+      "evidence": "otto-q-core db/checks/0476",
+      "updated_at": "2026-11-03T15:54:27.379869+00:00",
+      "measured_at": "2026-11-03T15:46:00+00:00"
+    }
+  ]
+}

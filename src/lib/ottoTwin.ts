@@ -724,6 +724,40 @@ export interface TwinKpiBoard {
   basis?: Record<string, string>;
 }
 
+// ── The research wing's findings (otto-q-core 0793: public.ottoq_research_feed) ──
+// RESEARCH, NOT LIVE: the research wing writes these rows and nothing in the engine reads them. A recommendation
+// changes nothing at the depot until a person ships it. The two unions are the table's CHECK constraints; the feed
+// leaves 'retracted' findings out.
+export type ResearchKind = "measurement" | "build" | "safety" | "recommendation" | "lab";
+export type ResearchStatus = "in_progress" | "measured" | "built" | "recommended" | "shipped" | "not_verified";
+export interface ResearchFinding {
+  /** Stable per depot. */
+  slug: string;
+  /** "P0".."P9". */
+  phase: string;
+  /** The plan item: "E1".."E10" or "P0.0".."P9.9". */
+  item: string;
+  kind: ResearchKind;
+  status: ResearchStatus;
+  title: string;
+  /** Plain words. */
+  summary: string;
+  /** Any JSON object: numbers, [lo, hi] ranges, nested objects. */
+  metrics: Record<string, unknown>;
+  /** Where the evidence lives (a check file, a PR), as text. */
+  evidence: string | null;
+  run_ids: string[];
+  /** When its numbers were read; null while nothing is measured. */
+  measured_at: string | null;
+  updated_at: string;
+}
+export interface ResearchFeed {
+  depot_id: string;
+  read_at: string;
+  /** By phase, then updated_at newest first, then slug. */
+  findings: ResearchFinding[];
+}
+
 // ── Variability catalog (the registry the console renders from) ──
 export type KnobType ="shift" | "spread" | "floor" | "ceiling" | "rate" | "select";
 export interface CatalogVar {
@@ -817,6 +851,9 @@ export const twin = {
   kpis:      (simRunId: string)          => get<TwinKpiFive>(`/sim_runs/${simRunId}/kpis`),
   /** The KPI board for one run (otto-q-core 0609): uptime, turnaround, service, energy, chargers. An anon read. */
   kpiBoard:  (simRunId: string)          => rpc<TwinKpiBoard>("ottoq_twin_kpi_board", { p_sim_run_id: simRunId }),
+  /** The research wing's findings for one depot (otto-q-core 0793), read by the Research tab. An anon read; research,
+   *  not live state. */
+  researchFeed: (depotId = NASHVILLE_DEPOT) => rpc<ResearchFeed>("ottoq_research_feed", { p_depot: depotId }),
   health:    ()                          => get<{ service: string; version: string; time: string }>(`/health`),
 
   // controls (operator key) — used in Phase 2+

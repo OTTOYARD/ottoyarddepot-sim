@@ -3,7 +3,7 @@ import { useSimulationStore, type CockpitTab } from '@/store/simulationStore';
 import { useTwinStore } from '@/store/twinStore';
 import { twin } from '@/lib/ottoTwin';
 
-/** Number keys follow the tab bar, left to right. */
+/** Number keys follow the tab bar, left to right; 0 is the tenth tab. */
 const TAB_KEYS: Record<string, CockpitTab> = {
   '1': 'background',
   '2': 'controls',
@@ -14,6 +14,7 @@ const TAB_KEYS: Record<string, CockpitTab> = {
   '7': 'world',
   '8': 'copilot',
   '9': 'value',
+  '0': 'research',
 };
 
 export function useKeyboardShortcuts() {

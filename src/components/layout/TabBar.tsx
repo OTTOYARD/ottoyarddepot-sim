@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
+import { FlaskConical } from 'lucide-react';
 import { useSimulationStore, type CockpitTab } from '@/store/simulationStore';
 
-// NINE TABS, EACH ONE A DIFFERENT QUESTION (2026-09-30: Intelligence, Orchestration and Events became OTTO-Q and Agent).
+// TEN TABS, EACH ONE A DIFFERENT QUESTION (2026-09-30: Intelligence, Orchestration and Events became OTTO-Q and Agent).
 //   Background   — what this screen shows and why OTTO-Q is built the way it is: the data, the Monte Carlo worlds, the
 //                  agentic layers, the safety harness, what it solves, and why it is agnostic (Chase, 2026-10-02)
 //   Control      — run the world: scenario, transport, speed, variability, injections
@@ -14,6 +15,9 @@ import { useSimulationStore, type CockpitTab } from '@/store/simulationStore';
 //   Diagnostics  — what this cockpit can and cannot see of the engine's world
 //   Copilot      — an on-demand model review of a sample of this run's decisions (PR #108 repaired it)
 //   Value        — what OTTO-Q is worth at this depot: power bill, chargers, revenue time (night-2 sweep, otto-q-core 0575/0576)
+//   Research     — what the research wing measured, built and recommends (otto-q-core 0793). RESEARCH, NOT LIVE: a flask
+//                  marks the tab and a banner heads it, and nothing there changes the depot until a person ships it.
+//                  Last, so the number keys 1-9 keep their tabs (0 opens it).
 // Removed from navigation 2026-09-30 (Chase: "a lot of redundancy and slop data"; design note
 // docs/OTTO-Q-FUNNEL-AND-AGENT-TABS.md): Intelligence, Orchestration and Events showed the same facts three times
 // (a car placed on a charger was a trail step, a stream row, a lifecycle tile and an event). Their sources stay in
@@ -31,6 +35,7 @@ const tabs: { id: CockpitTab; label: string }[] = [
   { id: 'world', label: 'Diagnostics' },
   { id: 'copilot', label: 'Copilot' },
   { id: 'value', label: 'Value' },
+  { id: 'research', label: 'Research' },
 ];
 
 /** `trailing` sits at the header's top-right, outside the (wrapping) tab row: the panel's expand button. */
@@ -53,6 +58,8 @@ export const TabBar = ({ trailing }: { trailing?: ReactNode } = {}) => {
               {/* OTTO-Q is the engine itself — the tab to open when someone asks what the AI is
                   doing. Violet dot so the eye finds it. */}
               {isOttoQ && <span className="w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0" />}
+              {/* Research is the research wing's, not the live depot's: the flask says so before the tab is opened. */}
+              {tab.id === 'research' && <FlaskConical size={11} aria-hidden className="text-amber-300 shrink-0" />}
               {tab.label}
               {activeTab === tab.id && (
                 <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-red" />
