@@ -16,7 +16,9 @@ import { describe, it, expect, afterAll } from "vitest";
 import { twinMotionDriver } from "./TwinMotionDriver";
 import { useDepotStore } from "@/store/depotStore";
 import { CHARGER_BUILDS, chargerBuild, setChargerBuild } from "@/lib/chargerBuild";
+import { CANOPIES, planFromDbFeet } from "@/lib/sitePlan";
 import { dockCanopyInWaves, twinLayout } from "./__fixtures__/buildout";
+import served from "./__fixtures__/twinLayout.served1102.json";
 
 afterAll(() => {
   setChargerBuild("as_built");
@@ -43,6 +45,37 @@ describe("the 30-post build, drawn because the twin's layout has it", () => {
     for (const t of layout.filter((s) => s.type === "dcfc")) {
       expect(twinMotionDriver.rendererStallFor(t.id), t.code).toBe(t.code.slice(5));
     }
+  });
+
+  // The test above hands the driver a layout built FROM the renderer's own site plan, so it
+  // cannot see the database disagree with the renderer. This one is the twin's layout as
+  // served (2026-11-02, after 0759 and 0763): every fast charger maps to the renderer stall
+  // its code names, that stall stands where the database stands it, on the canopy the
+  // database names, at the database's heading.
+  it("maps the layout as the twin serves it: every fast charger to the renderer stall standing where it stands", () => {
+    twinMotionDriver.clear();
+    setChargerBuild("as_built");
+    useDepotStore.getState().regenerateStalls(10, 30, 3, 115, 2);
+    twinMotionDriver.setTwinStallMap(served.stalls);
+    expect(chargerBuild()).toBe("dcfc30");
+    const byId = new Map(useDepotStore.getState().stalls.map((s) => [s.id, s]));
+    const canopyOf: Record<string, string> = { "CANOPY-01": "A", "CANOPY-02": "B", "CANOPY-03": "C" };
+    const fast = served.stalls.filter((s) => s.type === "dcfc");
+    expect(fast.length).toBe(30);
+    for (const t of fast) {
+      const rid = twinMotionDriver.rendererStallFor(t.id);
+      expect(rid, t.code).toBe(`DCFC-${t.code.slice(-2)}`);
+      const r = byId.get(rid!)!;
+      const p = planFromDbFeet(t.x!, t.y!);
+      expect(Math.hypot(p.x - r.position.x, p.y - r.position.y), t.code).toBeLessThan(0.01);
+      const under = CANOPIES.reduce((b, c) => (Math.abs(c.cx - r.position.x) < Math.abs(b.cx - r.position.x) ? c : b));
+      expect(under.id, t.code).toBe(canopyOf[t.canopy!]);
+      expect(r.position.angle, t.code).toBe(t.heading);
+    }
+    // the ten spaces 0759 and 0763 retired (parking, no position) are drawn as nothing
+    const retired = served.stalls.filter((s) => s.type === "parking");
+    expect(retired.length).toBe(10);
+    for (const t of retired) expect(twinMotionDriver.rendererStallFor(t.id), t.code).toBeUndefined();
   });
 
   for (const [canopy, name] of [[2, "C"], [1, "B"]] as const) {

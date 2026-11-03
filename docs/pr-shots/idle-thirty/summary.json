@@ -1,0 +1,47 @@
+{
+ "url": "http://127.0.0.1:8093/",
+ "shots": [
+  "plan-2d",
+  "aerial-3d",
+  "canopy-A",
+  "canopy-B",
+  "canopy-C",
+  "view-aerial"
+ ],
+ "cockpit": {
+  "layoutReads": 2,
+  "plan2d": {
+   "chargeArms": {
+    "A": 10,
+    "B": 10,
+    "C": 10
+   },
+   "cleanArms": {
+    "A": 10,
+    "B": 10,
+    "C": 10
+   }
+  },
+  "cleanArms3d": {
+   "A": 10,
+   "B": 10,
+   "C": 10
+  },
+  "refused": [
+   "POST /rest/v1/rpc/ottoq_depot_cards",
+   "POST /rest/v1/rpc/ottoq_shield_probe_posture",
+   "POST /rest/v1/rpc/ottoq_value_summary"
+  ],
+  "pageErrors": []
+ },
+ "view": {
+  "layoutReads": 1,
+  "cleanArms3d": {
+   "A": 10,
+   "B": 10,
+   "C": 10
+  },
+  "refused": [],
+  "pageErrors": []
+ }
+}

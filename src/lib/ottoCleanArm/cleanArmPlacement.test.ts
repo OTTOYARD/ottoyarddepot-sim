@@ -8,7 +8,7 @@
 import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
 import { generateStallsV2, CANOPIES } from '@/lib/sitePlan';
-import { canopyColumnYs } from '@/lib/structurePlan';
+import { cabinetFootprints, canopyColumnYs } from '@/lib/structurePlan';
 import { parkedHeading } from '@/engine/TwinMotionDriver';
 import { PLAN_UNITS_PER_METRE } from '@/lib/ottoChargeArm/cobotSpec';
 import { yawFromHeading2D, DECK_Y } from '@/components/canvas/three/coordUtils';
@@ -17,7 +17,10 @@ import {
 } from './cleanArmPlacement';
 import { CLEAN_ARM } from './cleanArmSpec';
 
-const dcfc = generateStallsV2().filter((s) => s.type === 'dcfc');
+// Every fast charger the depot can have: the 30-post build's 30 (otto-q-core 0759 and 0763; its DCFC-01..10 stand
+// where canopy A's do as built), so the arms over canopies B and C are placed and carried as canopy A's are.
+const stalls30 = generateStallsV2(30, 0, 3, 113, 2);
+const dcfc = stalls30.filter((s) => s.type === 'dcfc');
 
 /** The car body's world matrix as the fleet writes it (fleetMath.writeYaw) times planUnits. */
 function carMatrix(x: number, z: number, yaw: number): THREE.Matrix4 {
@@ -42,7 +45,7 @@ function armMatrix(p: ReturnType<typeof placeCleanArm>): THREE.Matrix4 {
 
 describe('the OTTO-CLEAN ARM is placed by its car', () => {
   it('reads every fast-charger stall’s parked heading exactly as the motion driver does', () => {
-    expect(dcfc.length).toBeGreaterThan(0);
+    expect(dcfc.length).toBe(30);
     for (const s of dcfc) {
       expect(chargerParkedHeading(s.position.angle)).toBeCloseTo(parkedHeading('dcfc', s.position.angle, s.position.x, s.position.y), 12);
     }
@@ -115,8 +118,10 @@ describe('the canopy carries it', () => {
   });
 
   it('clears every canopy rafter', () => {
+    // the rafters stand where the spine columns of the build these stalls belong to stand
+    const cabs = cabinetFootprints(stalls30);
     for (const c of CANOPIES) {
-      const ys = canopyColumnYs(c);
+      const ys = canopyColumnYs(c, cabs, stalls30);
       for (const s of dcfc) {
         const { mount: m } = placeCleanArm(s.position.x, s.position.y, s.position.angle, DECK_Y);
         if (Math.abs(m.cx - c.cx) > 0.5) continue;

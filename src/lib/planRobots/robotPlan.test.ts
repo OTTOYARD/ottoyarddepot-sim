@@ -25,7 +25,9 @@ import { DECK_Y, toWorld, yawFromHeading2D } from "@/components/canvas/three/coo
 import { DOOR_HINGE_PU } from "@/components/canvas/three/vehicleBody";
 import { doorWorld } from "@/components/canvas/three/fleetMath";
 
-const dcfc = generateStallsV2().filter((s) => s.type === "dcfc");
+// Every fast charger the depot can have: the 30-post build's 30 (its DCFC-01..10 stand where canopy A's do as built),
+// so canopies B and C, which the twin depot has had since otto-q-core 0759 and 0763, are held to the 3D rigs too.
+const dcfc = generateStallsV2(30, 0, 3, 113, 2).filter((s) => s.type === "dcfc");
 const onPlan = (v: THREE.Vector3) => ({ x: 150 - v.x, y: 110 - v.z });
 const near = (a: { x: number; y: number }, b: { x: number; y: number }, what: string) => {
   expect(a.x, `${what} x`).toBeCloseTo(b.x, 6);
@@ -55,7 +57,7 @@ describe("the OTTO-CHARGE ARM on the plan", () => {
   }
 
   it("stands where the 3D arm stands, joint by joint, on every fast charger and through its cycle", () => {
-    expect(dcfc.length).toBeGreaterThanOrEqual(10);
+    expect(dcfc.length).toBe(30);
     for (const s of dcfc) {
       const p = placeArm(s.id, s.position.x, s.position.y, s.position.angle);
       const port = portFor("car-1", "waymo");

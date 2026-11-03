@@ -162,8 +162,9 @@ the next car. So canopy B is re-striped like canopy A, two columns of five at th
 place of canopy B's fifteen L2 spaces, 20 DCFC and 15 L2 in all. At this arm design the site holds at most thirty
 (ten a canopy).
 
-- The database change is otto-q-core 0759, prepared and not applied: it changes the world every queued research cell
-  reads, so applying it is Chase's call, and not while an arm runs against the depot as built.
+- The database change is otto-q-core 0759. When this section was written it was prepared and not applied: it changes the
+  world every queued research cell reads, so applying it was Chase's call. He applied it at 10:05 PM CT on 2026-10-22,
+  and 0763 (below) six minutes after it (otto-q-core `MIGRATION_LOG.md`).
 - The renderer is ready for it and changes nothing until then (`src/lib/chargerBuild.ts`). It never chooses a build:
   it reads the twin layout's census (10 + 30 as built, 20 + 15 after 0759) and redraws the depot, stall for stall
   where the twin stands them, with both arms on every fast charger. As built is byte-for-byte as before.
@@ -181,8 +182,19 @@ overhead robovac."* At this arm design thirty is the most the site holds, so tha
 canopies A and B, two columns of five fast chargers at the 14u pitch where its fifteen L2 spaces stood. 30 DCFC and no
 L2. Every car that pulls in is met by an OTTO-CHARGE ARM and its cabin is cleaned by the OTTO-CLEAN ARM over it.
 
-- The database changes are otto-q-core 0759 (canopy B) and then 0763 (canopy C). The renderer draws the 30-post depot when
-  the twin's layout census reads 30 + 0 (`chargerBuild.ts`, build `dcfc30`), and not before. It never chooses a build.
+- The database changes are otto-q-core 0759 (canopy B) and then 0763 (canopy C), both applied by Chase on 2026-10-22
+  (10:05 and 10:11 PM CT): the twin depot IS the 30-post build. The renderer draws it when the twin's layout census reads
+  30 + 0 (`chargerBuild.ts`, build `dcfc30`), with a run or without one, and not before. It never chooses a build.
+- **With no run, too (2026-11-02).** Chase: *"I don't see the overhead robovacuums or robotic charge arms in the other 2
+  stall sections within the twin simulator."* The scene bridge read the layout's build only when a run was live, so from
+  0763 until this fix the idle twin (the cockpit before Start, and the live view the other cockpits frame) drew canopies
+  B and C as 30 standard chargers, with no charge arm and no cleaning arm; a run drew all 30. Now the bridge reads the
+  twin depot's layout with no run as well (`useTwinSceneBridge`, `TwinMotionDriver.adoptChargerBuild`) and asks again
+  if the read fails. `useTwinSceneBridge.test.tsx` plays the layout as the twin served it
+  (`src/engine/__fixtures__/twinLayout.served1102.json`); `TwinMotionDriver.cleanarm30.test.ts` runs the cabin clean and
+  the charge arm through a whole cycle on DCFC-11, 16, 21 and 26 on that layout; the arm placement, reach, port and
+  2D-plan tests run on all 30 posts. `node scripts/idleDepotShots.mjs` shoots both pages with no run
+  (`docs/pr-shots/idle-thirty`).
 - Canopy C's posts are DCFC-21..25 (west column, plan x 190) and DCFC-26..30 (east column, plan x 204), on canopy A's rows
   and headings. DCFC-01..20 stand where the 20-post build has them, and nothing else moves.
 - The plan has no L2 to show: the L2 zone label and its count badge go away, and the DCFC badge sits over all three
@@ -193,6 +205,8 @@ L2. Every car that pulls in is met by an OTTO-CHARGE ARM and its cabin is cleane
   between its purlins. `TwinMotionDriver.dcfc30.test.ts` docks ten cars on canopy C and ten on canopy B in two waves each,
   then thirty cars on all thirty posts at once, every second-wave car driving in past parked ones, touching no car and no
   structure.
-- `node scripts/cleanArmShots.mjs --build dcfc30 --overview` shows it in the cockpit before 0763 exists (canopies B and C
+- `node scripts/cleanArmShots.mjs --build dcfc30 --overview` showed it in the cockpit before 0763 existed (canopies B and C
   re-striped in the served layout), with an aerial frame of all three canopies and the 2D plan
-  (`docs/pr-shots/dcfc30`: 01 the aerial, 02 the plan, 03-05 a canopy C post cleaning its car).
+  (`docs/pr-shots/dcfc30`: 01 the aerial, 02 the plan, 03-05 a canopy C post cleaning its car). The served layout is the
+  30-post build now, so `--build` re-stripes nothing and the recording's cars on the old standard stalls' ids charge on
+  fast chargers.

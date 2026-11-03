@@ -1,0 +1,21 @@
+{
+ "note": "BEFORE the fix: main at 05ffce3, the same read-only harness (scripts/lib/fixturePlayback.mjs with noRun: no run, the live layout through curl, 30 dcfc + 0 l2), driven by a scratch draft of scripts/idleDepotShots.mjs with the same viewports and aerial camera, shot 2026-11-02 from 2:00 to 2:05 PM CT (20:00:45 to 20:04:52 UTC, the image files' times). Counts per canopy by stall number (DCFC-01..10 A, 11..20 B, 21..30 C).",
+ "cockpit": {
+  "layoutReads": 1,
+  "plan2d": {
+   "chargeArms": {
+    "A": 10
+   },
+   "cleanArms": {
+    "A": 10
+   }
+  },
+  "cleanArms3d_total": 10,
+  "pageErrors": []
+ },
+ "view": {
+  "layoutReads": 0,
+  "cleanArms3d_total": 10,
+  "pageErrors": []
+ }
+}

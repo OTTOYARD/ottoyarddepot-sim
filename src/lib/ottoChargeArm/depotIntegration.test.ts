@@ -23,13 +23,23 @@ import { parkedHeading } from '@/engine/TwinMotionDriver';
 
 const spec = OTTO_CHARGE_ARM;
 const CAR_HALF_WIDTH_M = (CAR_WIDTH * METRES_PER_PLAN_UNIT) / 2;
-const dcfc = () => generateStallsV2().filter((s) => s.type === 'dcfc');
+// Every fast charger the depot can have: the 30-post build's 30 (otto-q-core 0759 and 0763; its DCFC-01..10 stand
+// where canopy A's do as built), so the arms on canopies B and C are placed, reach and mate as canopy A's do.
+const dcfc = () => generateStallsV2(30, 0, 3, 113, 2).filter((s) => s.type === 'dcfc');
 
 describe('arm placement in the depot', () => {
   it('fits exactly the 10 DCFC stalls and no L2 stall', () => {
     const stalls = generateStallsV2();
     expect(stalls.filter((s) => stallHasArm(s.type))).toHaveLength(10);
     expect(stalls.filter((s) => s.type === 'l2').every((s) => !stallHasArm(s.type))).toBe(true);
+  });
+
+  it('fits all 30 posts of the 30-post build, ten under each canopy', () => {
+    const fitted = generateStallsV2(30, 0, 3, 113, 2).filter((s) => stallHasArm(s.type));
+    expect(fitted).toHaveLength(30);
+    const under = (x: number) => CANOPIES.reduce((b, c) => (Math.abs(c.cx - x) < Math.abs(b.cx - x) ? c : b)).id;
+    const per = fitted.reduce<Record<string, number>>((m, s) => ((m[under(s.position.x)] = (m[under(s.position.x)] ?? 0) + 1), m), {});
+    expect(per).toEqual({ A: 10, B: 10, C: 10 });
   });
 
   it('anchors on the PEDESTAL, not on the parking space', () => {
@@ -53,9 +63,16 @@ describe('arm placement in the depot', () => {
   it('faces the vehicle from whichever side of the canopy it is on', () => {
     const stalls = dcfc();
     const towards = new Set(stalls.map((s) => placeArm(s.id, s.position.x, s.position.y, s.position.angle).toward));
-    // Canopy A has two stall columns straddling the spine, so both signs must
+    // Each canopy has two stall columns straddling its spine, so both signs must
     // occur. If they did not, one column's arms would face into empty tarmac.
     expect(towards).toEqual(new Set([1, -1]));
+    // …under every canopy, not only across the depot
+    for (const c of CANOPIES) {
+      const mine = stalls.filter((s) => Math.abs(s.position.x - c.cx) < c.w / 2);
+      expect(mine, c.id).toHaveLength(10);
+      expect(new Set(mine.map((s) => placeArm(s.id, s.position.x, s.position.y, s.position.angle).toward)), c.id)
+        .toEqual(new Set([1, -1]));
+    }
 
     for (const s of stalls) {
       const p = placeArm(s.id, s.position.x, s.position.y, s.position.angle);
@@ -98,7 +115,7 @@ describe('the arm actually reaches every vehicle it is asked to serve', () => {
         }
       }
     }
-    expect(checked).toBeGreaterThan(900);
+    expect(checked).toBe(30 * 12 * oems.length);
   });
 
   /**
@@ -154,7 +171,7 @@ describe('the arm actually reaches every vehicle it is asked to serve', () => {
         checked++;
       }
     }
-    expect(checked).toBe(70);
+    expect(checked).toBe(30 * oems.length);
   });
 
   it('gives the same vehicle the same port every time', () => {

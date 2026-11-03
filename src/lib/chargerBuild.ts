@@ -19,9 +19,12 @@
 //
 // THE RENDERER NEVER CHOOSES A BUILD. It draws the one the twin's layout describes:
 // the bridge reads the layout's stall census and calls setChargerBuild before it maps
-// twin stalls onto renderer stalls (chargerBuildFor). A census that is neither build
-// leaves the build as it is: the renderer has no third layout to draw, and drawing a
-// guess would put cars on chargers the depot does not have.
+// twin stalls onto renderer stalls (chargerBuildFor), and reads it with NO run too, so
+// the idle twin draws the depot the twin has (useTwinSceneBridge). A census that is
+// none of the builds leaves the build as it is: the renderer has no other layout to
+// draw, and drawing a guess would put cars on chargers the depot does not have.
+// `as_built` below is only what is drawn before the first layout read lands, or when
+// none can be read.
 //
 // Everything that derives geometry from the layout keys its cache on
 // chargerBuildVersion(), so a change of build rebuilds it once.
