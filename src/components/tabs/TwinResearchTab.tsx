@@ -47,8 +47,8 @@ function Banner() {
     >
       <FlaskConical size={14} aria-hidden className="mt-0.5 shrink-0 text-amber-300" />
       <p className="min-w-0 text-[11.5px] leading-5 text-ink">
-        <span className="font-semibold text-amber-200">Research — not live.</span>{' '}
-        Findings from the research lab; nothing here changes the depot until a person ships it.
+        <span className="font-semibold text-amber-200">Research. Not live.</span>{' '}
+        These findings come from the research lab. Nothing here changes the depot until a person ships it.
       </p>
     </div>
   );

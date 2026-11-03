@@ -42,7 +42,7 @@ import { NASHVILLE_DEPOT, type ResearchFeed } from '@/lib/ottoTwin';
 import { useSimulationStore } from '@/store/simulationStore';
 
 const SERVED = served as unknown as ResearchFeed;
-const BANNER = 'Research — not live. Findings from the research lab; nothing here changes the depot until a person ships it.';
+const BANNER = 'Research. Not live. These findings come from the research lab. Nothing here changes the depot until a person ships it.';
 const card = (slug: string) => screen.getAllByTestId('research-finding').find((c) => c.dataset.slug === slug)!;
 /** Let the mocked read settle (it resolves in microtasks, not timers). */
 const settle = () => act(async () => { for (let i = 0; i < 10; i++) await Promise.resolve(); });
