@@ -102,6 +102,13 @@ Both read on 2026-10-19.
   cleaning arm is out over the car. A latched connector stays in until the cleaning arm is home and the doors are shut,
   whatever the charge or the tether says, so the charge arm lets go last. One frame step (`playArmSession`, which
   composes each of its steps with `armSessionInput`) feeds both evaluations of the charge arm.
+- **Except on a faulted charger (2026-11-02).** Chase: *"a faulted charger station was given a vehicle to charge/clean.
+  Major issue."* The order above is for a charge that ends. When the twin reports the stall's charger Faulted
+  (`stalls_status` 'faulted', `TwinMotionDriver.stallChargerFaulted`), no mate starts on it and the connector comes out at
+  once, paced by the twin's demate tether, while the cleaning arm is still in the cabin. The two arms are clear of each
+  other at every pose of the release (`cleanArmClearance.test.ts`). The engine releases the car from the dead post when
+  the demate ends, and its next post cleans the cabin (otto-q-core 0792; before it the car was held for the whole clean,
+  309 and 339 s on run 8c0b2e04). `TwinMotionDriver.faultclean.test.ts` replays DCFC-22 from that run.
 - **The hold.** Open-ended while the twin's step is on (it ends on the twin's state, like a charge); once the step is
   over, the arm is home in about 5 s, and the hold is bounded at 30 s so a wedged signal cannot freeze a car.
 - **At any frame rate.** The gate plays each frame's sim time in steps of 0.25 s (`CLEAN_SUBSTEP_S`), as the wash

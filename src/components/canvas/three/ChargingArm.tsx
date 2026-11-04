@@ -222,6 +222,7 @@ export function ChargingArm({ stallId, stallType, fleet, slot }: ChargingArmProp
       tetherRemainingS: tetherLeft,
       cleanBusy: twinMotionDriver.cleanArmBusy(stallId),
       cleanBlocksMate: twinMotionDriver.cleanArmBlocksMate(stallId),
+      chargerFaulted: twinMotionDriver.stallChargerFaulted(stallId),
     });
     const { phase, t } = session.current;
 

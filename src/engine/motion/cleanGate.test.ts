@@ -7,7 +7,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { CleanGate, cabinCleanOf, CLEAN_HOLD_CAP_S, type CleanStallInput } from "./cleanGate";
-import { armSessionInput, IDLE_SESSION, type ArmSession } from "@/lib/ottoChargeArm/roboticService";
+import { armSessionInput, IDLE_SESSION, playArmSession, type ArmSession } from "@/lib/ottoChargeArm/roboticService";
 import { CLEAN_CHAIN } from "@/lib/ottoCleanArm/cleanArmSpec";
 import { advanceCleanSession, IDLE_CLEAN, type CleanSession } from "@/lib/ottoCleanArm/cleanSession";
 import { sidesFor } from "@/lib/ottoCleanArm/cleanArmPose";
@@ -187,6 +187,47 @@ describe("the two robots never move beside the car at the same time", () => {
     expect(armSessionInput(latched, facts)).toEqual({ charging: true, tetherRemainingS: null });
     expect(armSessionInput(latched, { ...facts, chargingState: false })).toEqual({ charging: false, tetherRemainingS: null });
     expect(armSessionInput(IDLE_SESSION, { ...facts, parked: false }).charging).toBe(false);
+  });
+});
+
+// Chase, 2026-11-02 (demo run 8c0b2e04, DCFC-22 and DCFC-02): "a faulted charger station was given a vehicle to
+// charge/clean. Major issue." The connector stayed in a faulted charger for minutes because the hold above kept it in
+// while the cleaning arm was out. A charge that ENDS waits for the cabin; a charger that FAULTS has ended nothing.
+describe("a faulted charger ends its session now, whatever the cleaning arm is doing", () => {
+  const latched: ArmSession = { phase: "charging", phaseElapsed: 30, t: 1, vehicleId: "car-1" };
+  const facts = { vehicleId: "car-1", chargingState: true, parked: true, tetherRemainingS: null };
+
+  it("a latched connector lets go on a faulted charger though the cleaning arm is out, paced by the twin's tether", () => {
+    const faulted = { ...facts, chargingState: false, tetherRemainingS: 11.5, cleanBusy: true, chargerFaulted: true };
+    expect(armSessionInput(latched, faulted)).toEqual({ charging: false, tetherRemainingS: 11.5 });
+    // the same frame without the fault is the order for a charge that ends: held for the cabin
+    expect(armSessionInput(latched, { ...faulted, chargerFaulted: false })).toEqual({ charging: true, tetherRemainingS: null });
+  });
+
+  it("lets go even while the twin's frame still calls the car charging", () => {
+    // a frame can carry the fault before the car's state catches up: the charger is the authority on its own fault
+    expect(armSessionInput(latched, { ...facts, cleanBusy: true, chargerFaulted: true }).charging).toBe(false);
+  });
+
+  it("starts no mate on a faulted charger, and abandons one under way", () => {
+    expect(armSessionInput(IDLE_SESSION, { ...facts, chargerFaulted: true }).charging).toBe(false);
+    const reaching: ArmSession = { phase: "approach", phaseElapsed: 1, t: 0.2, vehicleId: "car-1" };
+    expect(armSessionInput(reaching, { ...facts, chargerFaulted: true }).charging).toBe(false);
+  });
+
+  it("the reducer walks a faulted charger's connector out and home inside the twin's demate window", () => {
+    let s: ArmSession = latched;
+    const tether = { v: 11.5 };
+    const steps: string[] = [];
+    for (let t = 0; t < 15; t += 0.25) {
+      s = playArmSession(s, 0.25, { ...facts, chargingState: false, tetherRemainingS: tether.v, cleanBusy: true, chargerFaulted: true });
+      tether.v = Math.max(0, tether.v - 0.25);
+      if (steps[steps.length - 1] !== s.phase) steps.push(s.phase);
+    }
+    expect(steps[0]).toBe("unlatch");
+    expect(steps).toContain("extract");
+    expect(steps).toContain("retract");
+    expect(["clear", "stowed"]).toContain(s.phase);
   });
 });
 

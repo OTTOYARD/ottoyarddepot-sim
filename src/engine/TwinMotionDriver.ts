@@ -732,6 +732,10 @@ class TwinMotionDriver {
   private twinStall = new Map<string, string>();
   /** Renderer stall ids whose OTTO-CHARGE ARM is still mated, per the latest snapshot. */
   private twinTethered = new Set<string>();
+  /** Renderer stall ids whose charger the twin reports Faulted, per the latest snapshot (stallDownOf kind 'fault').
+   *  Both evaluations of the charge arm read it: a faulted charger ends its session now, whatever the stall's
+   *  cleaning arm is doing (roboticService.armSessionInput). Rebuilt wholesale each reconcile, like the tethers. */
+  private twinChargerFaulted = new Set<string>();
   /** Seconds of demate still owed per renderer stall id, measured at snapshot time.
    *  Resolved HERE, against the snapshot's own sim clock, so no consumer has to convert
    *  a backend sim timestamp into the renderer's seconds-of-day frame — mixing those two
@@ -1088,6 +1092,11 @@ class TwinMotionDriver {
     return this.cleanGate.session(rendererStallId);
   }
 
+  /** The twin reports this stall's charger Faulted (ChargingArm lets go at once and starts no mate). */
+  stallChargerFaulted(rendererStallId: string): boolean {
+    return this.twinChargerFaulted.has(rendererStallId);
+  }
+
   /** The cleaning arm at this stall is not home (ChargingArm keeps a latched connector in). */
   cleanArmBusy(rendererStallId: string): boolean {
     return this.cleanGate.busy(rendererStallId);
@@ -1199,6 +1208,7 @@ class TwinMotionDriver {
         // the stall's cleaning arm, as of the previous step: ChargingArm reads the same
         cleanBusy: this.cleanGate.busy(e.stallId),
         cleanBlocksMate: this.cleanGate.blocksMate(e.stallId),
+        chargerFaulted: this.twinChargerFaulted.has(e.stallId),
       });
     }
     this.armGate.step(simDt, inputs);
@@ -1598,6 +1608,7 @@ class TwinMotionDriver {
     this.armRefusals = 0;
     this.stallTypes.clear();
     this.stallPos.clear();
+    this.twinChargerFaulted.clear();
     // hand the depot clock back to manual control — leaving twin mode means no
     // backend owns it any more, and a slider left disabled would be a dead UI.
     useSimulationStore.getState().releaseLiveSimTime();
@@ -1641,6 +1652,7 @@ class TwinMotionDriver {
     // a run switch invalidates every arm session too — the stall ids survive but
     // the cars they were mated to do not.
     this.armGate.clear();
+    this.twinChargerFaulted.clear();
     this.cleanGate.clear();
     this.cabinCleans.clear();
     this.washGate.clear();
@@ -2857,6 +2869,7 @@ class TwinMotionDriver {
       }
     }
     this.twinTethered = tethered;
+    this.twinChargerFaulted = new Set([...twinDown].filter(([, d]) => d.kind === "fault").map(([sid]) => sid));
     this.twinTetherLeftS = tetherLeft;
     this.twinTetherDirection = tetherDir;
     this.twinTetherPhase = tetherPhase;
