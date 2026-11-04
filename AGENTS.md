@@ -318,6 +318,14 @@ interpolation.** Zero world logic client-side.
   `as_built` is only what is drawn before the first layout read lands. A build-dependent thing that reads the build
   any other way than through the layout misstates the depot the same way. Tests play the layout as the twin served it
   (`__fixtures__/twinLayout.served1102.json`); `scripts/idleDepotShots.mjs` shoots both pages with no run.
+- **The Research tab is research, not live (2026-11-03).** Chase asked for the research lab's results *"into a
+  'Research' tab in the twin"*. `TwinResearchTab` reads one thing, otto-q-core 0793's `ottoq_research_feed`
+  (`twin.researchFeed`, anon, read-only), when it opens and every minute while open. Nothing in the engine reads those
+  findings and nothing in the tab reads the run. Its banner stands above the list at every scroll position and a flask
+  marks the tab: never draw a finding in a live panel, and never drop the banner. Titles, summaries, metrics and
+  evidence are text the app does not write, so they go through `publicText()`; every time is CT (`research.ctTime`).
+  It is the tenth tab (key `0`), so at the panel's 420 px the tab bar wraps to a third row. Tests play the feed as it
+  was served (`__fixtures__/researchFeed.served1103.json`).
 - **From above, the roofs fade (2026-10-20):** the solar modules and roof membranes go to 16% when the camera looks
   down more than 40 degrees (`RoofXray.tsx`, back below 32), because from the Bird Eye view they hid every robot
   the depot has. Presets **Robots** (under canopy A) and **Wash** (inside wash bay 2) frame them close. A view

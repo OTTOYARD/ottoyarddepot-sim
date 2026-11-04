@@ -14,7 +14,7 @@
 //      amber and is counted.
 //   4. No number is invented: an RPC error, status 'none', and 'measuring' with
 //      no pair complete all draw the calm panel and no measured figure.
-//   5. Value is the last tab.
+//   5. Value follows Copilot, and only Research comes after it.
 // ============================================================================
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
@@ -241,11 +241,11 @@ describe('not measured yet', () => {
 });
 
 describe('the tab bar', () => {
-  it('opens with Background, Control and OTTO-Q, and ends with Copilot and Value', () => {
+  it('opens with Background, Control and OTTO-Q, and ends with Copilot, Value and Research', () => {
     render(<TabBar />);
     const tabs = screen.getAllByRole('button').map((b) => b.textContent);
     expect(tabs.slice(0, 3)).toEqual(['Background', 'Control', 'OTTO-Q']);
-    expect(tabs.slice(-2)).toEqual(['Copilot', 'Value']);
+    expect(tabs.slice(-3)).toEqual(['Copilot', 'Value', 'Research']);
   });
 });
 
