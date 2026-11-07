@@ -10,7 +10,7 @@
   "parts": 666,
   "uniqueParts": 188,
   "fasteners": 467,
-  "massKg": 313.52,
+  "massKg": 312.75,
   "boughtLines": 126,
   "madeLines": 62,
   "referenceLines": 2
@@ -69,7 +69,7 @@
    "order": 2,
    "partCount": 102,
    "fastenerCount": 72,
-   "massKg": 54.408,
+   "massKg": 54.354,
    "uniqueParts": 40
   },
   {
@@ -85,7 +85,7 @@
    "order": 3,
    "partCount": 19,
    "fastenerCount": 18,
-   "massKg": 27.683,
+   "massKg": 27.228,
    "uniqueParts": 3
   },
   {
@@ -117,7 +117,7 @@
    "order": 5,
    "partCount": 17,
    "fastenerCount": 16,
-   "massKg": 15.506,
+   "massKg": 15.183,
    "uniqueParts": 2
   },
   {
@@ -173,7 +173,7 @@
    "order": 8,
    "partCount": 26,
    "fastenerCount": 14,
-   "massKg": 5.339,
+   "massKg": 5.406,
    "uniqueParts": 10
   },
   {
@@ -1532,13 +1532,13 @@
    "category": "structure",
    "make": "make",
    "standard": "machined weldment",
-   "size": "84 x 110 x 187",
+   "size": "84 x 110 x 180",
    "grade": "S355J2",
    "material": "Structural steel S355, painted RAL 9005",
    "materialKey": "steel_paint",
    "qty": 1,
-   "massKg": 3.9049,
-   "totalMassKg": 3.9049,
+   "massKg": 3.8511,
+   "totalMassKg": 3.8511,
    "torqueNm": null,
    "reference": false,
    "function": "Carries the crank pin above the J2 axis. Its flange bolts to the upper arm.",
@@ -2456,8 +2456,8 @@
    "material": "Aluminium A356-T6 casting, powder-coated",
    "materialKey": "a356",
    "qty": 1,
-   "massKg": 26.9931,
-   "totalMassKg": 26.9931,
+   "massKg": 26.5386,
+   "totalMassKg": 26.5386,
    "torqueNm": null,
    "reference": false,
    "function": "Carries the elbow 1.344 m from the shoulder. Hollow for stiffness per kilogram.",
@@ -2678,8 +2678,8 @@
    "material": "Aluminium A356-T6 casting, powder-coated",
    "materialKey": "a356",
    "qty": 1,
-   "massKg": 15.1398,
-   "totalMassKg": 15.1398,
+   "massKg": 14.8166,
+   "totalMassKg": 14.8166,
    "torqueNm": null,
    "reference": false,
    "function": "Carries the wrist 1.142 m from the elbow. Its top socket holds J4.",
@@ -4847,8 +4847,8 @@
    "material": "Cable, TPE jacket",
    "materialKey": "cable",
    "qty": 1,
-   "massKg": 0.8261,
-   "totalMassKg": 0.8261,
+   "massKg": 0.8966,
+   "totalMassKg": 0.8966,
    "torqueNm": null,
    "reference": false,
    "function": "Liquid-cooled DC charge cable, 2 x 50 mm2 copper with coolant lines, plus the CP/PP signal pair.",
@@ -4901,8 +4901,8 @@
    "material": "Cable, TPE jacket",
    "materialKey": "cable",
    "qty": 1,
-   "massKg": 1.2071,
-   "totalMassKg": 1.2071,
+   "massKg": 1.2048,
+   "totalMassKg": 1.2048,
    "torqueNm": null,
    "reference": false,
    "function": "Liquid-cooled DC charge cable, 2 x 50 mm2 copper with coolant lines, plus the CP/PP signal pair.",
@@ -4952,8 +4952,8 @@
    "material": "Aluminium 6061-T6, machined, clear anodised",
    "materialKey": "al6061",
    "qty": 1,
-   "massKg": 0.4083,
-   "totalMassKg": 0.4083,
+   "massKg": 0.4096,
+   "totalMassKg": 0.4096,
    "torqueNm": null,
    "reference": false,
    "function": "Clamps the retract unit to the upper arm.",
@@ -4976,8 +4976,8 @@
    "material": "Aluminium 6061-T6, machined, clear anodised",
    "materialKey": "al6061",
    "qty": 1,
-   "massKg": 0.4428,
-   "totalMassKg": 0.4428,
+   "massKg": 0.4396,
+   "totalMassKg": 0.4396,
    "torqueNm": null,
    "reference": false,
    "function": "Clamps the retract unit to the upper arm.",
@@ -5246,26 +5246,26 @@
   "torque_budget": {
    "method": "Gravity torque with the arm stretched horizontal, masses from the CAD solids, plus 4 kg of hanging cable at the tool (ASSUMPTION). Dynamics and the cable pull are not included.",
    "J3": {
-    "distalMassKg": 51.0,
-    "torqueNm": 477,
+    "distalMassKg": 50.8,
+    "torqueNm": 476,
     "gear": "size 40",
     "repeatedPeakNm": 738,
     "margin": 1.55
    },
    "J2": {
-    "distalMassKg": 113.5,
-    "torqueNm": 1612,
+    "distalMassKg": 112.7,
+    "torqueNm": 1602,
     "gear": "size 50",
     "repeatedPeakNm": 1274,
-    "gearWorstNm": 309,
+    "gearWorstNm": 310,
     "margin": 4.12,
     "balancer": {
      "type": "nitrogen gas spring",
      "anchorBelowAxisMm": 320.0,
      "crankAboveAxisMm": 160.0,
-     "forceExtendedN": 10050,
+     "forceExtendedN": 10000,
      "progression": 0.15,
-     "forceAt90N": 11102,
+     "forceAt90N": 11047,
      "strokeMm": 175,
      "travelDeg": 110
     },
@@ -5278,69 +5278,69 @@
      },
      {
       "deg": 10,
-      "gravityNm": 280,
-      "balancerNm": 187,
-      "gearNm": 93
+      "gravityNm": 278,
+      "balancerNm": 186,
+      "gearNm": 92
      },
      {
       "deg": 20,
-      "gravityNm": 551,
-      "balancerNm": 374,
-      "gearNm": 178
+      "gravityNm": 548,
+      "balancerNm": 372,
+      "gearNm": 176
      },
      {
       "deg": 30,
-      "gravityNm": 806,
-      "balancerNm": 560,
-      "gearNm": 246
+      "gravityNm": 801,
+      "balancerNm": 557,
+      "gearNm": 244
      },
      {
       "deg": 40,
-      "gravityNm": 1036,
-      "balancerNm": 744,
-      "gearNm": 292
+      "gravityNm": 1029,
+      "balancerNm": 740,
+      "gearNm": 289
      },
      {
       "deg": 50,
-      "gravityNm": 1235,
-      "balancerNm": 926,
-      "gearNm": 309
+      "gravityNm": 1227,
+      "balancerNm": 921,
+      "gearNm": 306
      },
      {
       "deg": 60,
-      "gravityNm": 1396,
-      "balancerNm": 1104,
-      "gearNm": 292
+      "gravityNm": 1387,
+      "balancerNm": 1098,
+      "gearNm": 289
      },
      {
       "deg": 70,
-      "gravityNm": 1515,
-      "balancerNm": 1276,
-      "gearNm": 239
+      "gravityNm": 1505,
+      "balancerNm": 1269,
+      "gearNm": 236
      },
      {
       "deg": 80,
-      "gravityNm": 1587,
-      "balancerNm": 1439,
-      "gearNm": 148
+      "gravityNm": 1577,
+      "balancerNm": 1432,
+      "gearNm": 146
      },
      {
       "deg": 90,
-      "gravityNm": 1612,
-      "balancerNm": 1589,
-      "gearNm": 23
+      "gravityNm": 1602,
+      "balancerNm": 1581,
+      "gearNm": 21
      },
      {
       "deg": 100,
-      "gravityNm": 1587,
-      "balancerNm": 1720,
-      "gearNm": -133
+      "gravityNm": 1577,
+      "balancerNm": 1711,
+      "gearNm": -134
      },
      {
       "deg": 110,
-      "gravityNm": 1515,
-      "balancerNm": 1824,
-      "gearNm": -309
+      "gravityNm": 1505,
+      "balancerNm": 1815,
+      "gearNm": -310
      }
     ]
    },

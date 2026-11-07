@@ -30,6 +30,12 @@ from ..core import Model, Node, PartDef, loc
 G = 9.81
 BAL_A = 320.0     # balancer anchor below the J2 axis, mm
 ANC_XZ = 190.0    # the riser's 4 anchors at (+/-190, +/-190): at 175 the nuts' corners stood in the tube's corners
+# The twin folds the elbow to 132 deg stowed and 109 deg at the port, and draws both links in one plane: folded that far,
+# the forearm stood inside the upper arm. The forearm's first 330 mm runs 190 mm out along the elbow axis, 120 mm wide
+# (as deep as before), and swings back to the plane by 640 mm, so the wrist is where the twin puts it; the upper arm's
+# last 155 mm before its J3 boss narrows to 110 mm, so the forearm's cheek plate folds past it.
+FORE_JOG = (190.0, 120.0, 330.0, 640.0)
+UPR_END_W = 110.0
 J6_GLAND_ANG, J6_GLAND_R = 0.0, 0.52   # J6's gland (axial, on its rear cover) clear of the wrist yoke's flank: at 0.44 of the
                                        # cover's radius it met the yoke, pointing any way round
 BAL_R = 160.0     # balancer crank pin above the J2 axis, mm
@@ -63,14 +69,18 @@ def _ell_wire(cx: float, y: float, a: float, b: float, n: int = 36) -> cq.Wire:
 
 def _link_casting(L: float, r_bot: float, r_top: float, cheek_x: float, cheek_r: float, cheek_t: float,
                   boss_od: float = 0, boss_w: float = 0, boss_bore: float = 0, wall: float = 7.0,
-                  socket_r: float = 0, socket_bore: float = 0, socket_len: float = 0, act_r: float = 0) -> cq.Shape:
+                  socket_r: float = 0, socket_bore: float = 0, socket_len: float = 0, act_r: float = 0,
+                  end_w: float = 0.0, jog: tuple | None = None) -> cq.Shape:
     """A cast link from a joint at y = 0 (a CHEEK at +x, bolted to that joint's output flange) to its far
     end at y = L: either a BOSS at x = 0 that clamps the next X-axis actuator's front drum, or a SOCKET
-    along +Y that holds the next Y-axis actuator. Hollow, `wall` thick."""
+    along +Y that holds the next Y-axis actuator. Hollow, `wall` thick.
+    end_w: the last tube section's width in x (default: round), so the next link's cheek folds past it.
+    jog = (x, w, y_hold, y_back): the tube starts off the link's plane at x, w wide in x (its depth in z unchanged),
+    holds there to y_hold and swings back to the plane by y_back, so this link folds past the one before it."""
     k0 = cheek_r * 0.9
     if act_r:   # the cheek plate climbs beside the joint's actuator (it lies along X under it); a bridge crosses over it,
         # clear of the boss that clamps the actuator; the tube starts above the bridge
-        sec = [(act_r + 75, 0.0, r_bot * 2.0, r_bot * 2.0)]
+        sec = [(act_r + 75, jog[0], jog[1], r_bot * 2.0)] if jog else [(act_r + 75, 0.0, r_bot * 2.0, r_bot * 2.0)]
     else:
         sec = [  # (y, centre x, width x, depth z) -- the knuckle sweeps from the cheek into the tube
             (k0 * 0.55, cheek_x - cheek_t * 0.2, cheek_t * 1.6, cheek_r * 1.5),
@@ -79,23 +89,33 @@ def _link_casting(L: float, r_bot: float, r_top: float, cheek_x: float, cheek_r:
         ]
     y_tube1 = (L - socket_len - 60) if socket_r else (L - boss_od * 0.62)
     y_tube0 = sec[-1][0]
-    for i in range(1, 6):                       # straight taper: sections every sixth of the tube
-        t = i / 6
-        rr = r_bot + (r_top - r_bot) * t
-        sec.append((y_tube0 + (y_tube1 - y_tube0) * t, 0.0, rr * 2.0, rr * 2.0))
+
+    def rr_at(y: float) -> float:
+        return r_bot + (r_top - r_bot) * (y - y_tube0) / (y_tube1 - y_tube0)
+    if jog:                                     # hold off the plane, swing back (a cosine), then the straight taper
+        jx, jw, y_hold, y_back = jog
+        ys = [y_hold] + [y_hold + (y_back - y_hold) * k / 4 for k in range(1, 5)] + [y_back + (y_tube1 - y_back) * k / 3 for k in (1, 2)]
+        for y in ys:
+            u = min(1.0, max(0.0, (y - y_hold) / (y_back - y_hold)))
+            sec.append((y, jx * 0.5 * (1 + math.cos(math.pi * u)), jw + (2 * rr_at(y) - jw) * u, 2 * rr_at(y)))
+    else:
+        for i in range(1, 6):                   # straight taper: sections every sixth of the tube
+            t = i / 6
+            rr = r_bot + (r_top - r_bot) * t
+            sec.append((y_tube0 + (y_tube1 - y_tube0) * t, 0.0, rr * 2.0, rr * 2.0))
     if socket_r:
         sec += [(y_tube1, 0.0, r_top * 2.0, r_top * 2.0), (L - socket_len, 0.0, socket_r * 2, socket_r * 2)]
     else:
-        sec += [(y_tube1, 0.0, r_top * 2.0, r_top * 2.0), (L - boss_od * 0.32, 0.0, boss_w, r_top * 1.7)]
+        sec += [(y_tube1, 0.0, end_w or r_top * 2.0, r_top * 2.0), (L - boss_od * 0.32, 0.0, boss_w, r_top * 1.7)]
 
     def solid(shrink: float) -> cq.Workplane:
         wires = [_ell_wire(cx, y, max(2.0, w / 2 - shrink), max(2.0, d / 2 - shrink)) for (y, cx, w, d) in sec]
         return cq.Workplane('XY').add(cq.Solid.makeLoft(wires, False))
 
     body = solid(0.0).cut(solid(wall))
-    if act_r:
-        x0b = -r_bot * 0.9
-        body = body.union(cq.Workplane('XY').box(cheek_x - x0b, 60, r_bot * 1.6).translate(((cheek_x + x0b) / 2, act_r + 55, 0)))
+    if act_r:   # the bridge: over the actuator to a tube on the plane, or straight out from the cheek to a jogged tube
+        x0b, x1b = (cheek_x - cheek_t, jog[0] + jog[1] / 2) if jog else (-r_bot * 0.9, cheek_x)
+        body = body.union(cq.Workplane('XY').box(x1b - x0b, 60, r_bot * 1.6).translate(((x0b + x1b) / 2, act_r + 55, 0)))
     cheek = (cq.Workplane('YZ', origin=(cheek_x - cheek_t, 0, 0)).circle(cheek_r).extrude(cheek_t))
     up = max(cheek_r * 1.4, act_r + 30)                 # the cheek plate reaches above the actuator
     cheek = cheek.union(cq.Workplane('YZ', origin=(cheek_x - cheek_t, 0, 0)).rect(up, cheek_r * 2)
@@ -398,7 +418,8 @@ def build(spec: dict) -> Model:
     upper = _link_casting(LU, radii['upper'] * 1.18, radii['elbow'] * 0.86,
                           cheek_x=L2['out_x'] + 20, cheek_r=a2['of_od'] / 2 + 14, cheek_t=20,
                           boss_od=_pitch_layout(40)['od'] + 36, boss_w=_pitch_layout(40)['boss_w'],
-                          boss_bore=SIZES[40].od, act_r=rear_od(SIZES[50]) / 2 if rear_od(SIZES[50]) > SIZES[50].od else SIZES[50].od / 2)
+                          boss_bore=SIZES[40].od, act_r=rear_od(SIZES[50]) / 2 if rear_od(SIZES[50]) > SIZES[50].od else SIZES[50].od / 2,
+                          end_w=UPR_END_W)
     # clear of J3's front, beside the boss: its bearing clamp ring (OD 214) and its screws stood in the beam's flanks
     upper = (cq.Workplane('XY').add(upper)
              .cut(cq.Workplane('YZ', origin=(_pitch_layout(40)['boss_w'] / 2, LU, 0)).circle(SIZES[40].od / 2 + 2).extrude(50)))
@@ -521,7 +542,7 @@ def build(spec: dict) -> Model:
     fore = _link_casting(y_sock1, radii['fore'] * 1.16, radii['wristR'] * 1.02,
                          cheek_x=L3['out_x'] + 18, cheek_r=a3['of_od'] / 2 + 12, cheek_t=18, wall=6.0,
                          socket_r=s4.od / 2 + 12, socket_bore=s4.od, socket_len=(s4.od - rear_od(s4)) * 0.4 + 48,
-                         act_r=SIZES[40].od / 2)
+                         act_r=SIZES[40].od / 2, jog=FORE_JOG)
     fore = cq.Workplane('XY').add(fore)
     m.place(j3, m.part(PartDef('CHG-FOR', 'Forearm casting', fore.val(), 'a356', 'structure', 'casting, machined',
                                f'{LF:.1f} elbow to wrist centre', 'A356-T6', None,
@@ -614,7 +635,7 @@ def build(spec: dict) -> Model:
     # bore (8 mm off its centre, toward the casting) holds the cable. Between the clamps the cable follows the face
     # 1.5 mm under it, so the spline through its points cannot bulge into the casting.
     cl_u = [(y, _low(upr_s, (-30, 0, 30), (y - 9, y + 9)) - 25) for y in (360, 760, 1160)]
-    cl_f = [(y, _low(for_s, (-30, 0, 30), (y - 9, y + 9)) - 25) for y in (380, 780)]
+    cl_f = [(y, _low(for_s, (-30, 0, 30), (y - 9, y + 9)) - 25) for y in (680, 860)]    # past the forearm's jog
 
     def run(shape, y0, y1, clamps):
         near = [y for (y, _) in clamps]
@@ -622,7 +643,7 @@ def build(spec: dict) -> Model:
         pts = _under(shape, ys, cab_r, 1.5) + [(0.0, float(y), z + 8) for (y, z) in clamps]
         return sorted(pts, key=lambda q: q[1])
     pts_u = [(0, 220, cl_u[0][1] + 8 - 20)] + run(upr_s, 300, 1150, cl_u) + [(0, LU - 110, cl_u[-1][1] + 8 - 10)]
-    pts_f = [(0, 200, cl_f[0][1] + 8 - 20)] + run(for_s, 280, 800, cl_f) + [(0, LF - 250, cl_f[-1][1] + 8 - 10)]
+    pts_f = [(0, 200, cl_f[0][1] + 8 - 20)] + run(for_s, 600, 900, cl_f) + [(0, 945, cl_f[-1][1] + 8 - 8)]
     m.place(j2, cab_part('CHG-CBL-U', pts_u, 'Charge cable, upper arm run'), Location(), (0, 0, -160), 'DRESS')
     m.place(j3, cab_part('CHG-CBL-F', pts_f, 'Charge cable, forearm run'), Location(), (0, 0, -140), 'DRESS')
     # the turret run lies on the column's -Z face at mid height (its one support there) and 1.5 mm under it elsewhere

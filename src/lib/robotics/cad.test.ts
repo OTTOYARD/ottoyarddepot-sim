@@ -223,6 +223,6 @@ describe.each(['charge_arm', 'clean_arm', 'wash_gantry'] as RobotKey[])('%s: cla
   });
 });
 
-it.each(['wash_gantry', 'clean_arm'] as RobotKey[])('%s: no clash and no floating part at any pose', (k) => {
+it.each(['wash_gantry', 'clean_arm', 'charge_arm'] as RobotKey[])('%s: no clash and no floating part at any pose', (k) => {
   expect(baseline[k]).toEqual({ clashes: 0, floatingGroups: 0 });
 });

@@ -24,63 +24,18 @@
   "cycle:retract:mid",
   "cycle:retract:end"
  ],
- "pairsChecked": 32331,
- "contactPairs": 1381,
+ "pairsChecked": 32311,
+ "contactPairs": 1380,
  "counts": {
   "thread": 672,
   "seal": 12,
   "ring": 9,
   "mesh": 3,
   "context": 4,
-  "clash": 1,
+  "clash": 0,
   "error": 0
  },
- "clashes": [
-  {
-   "kind": "clash",
-   "a": {
-    "item": "CHG-UPR#1",
-    "part": "CHG-UPR",
-    "name": "Upper arm casting",
-    "sub": "UPPER"
-   },
-   "b": {
-    "item": "CHG-FOR#1",
-    "part": "CHG-FOR",
-    "name": "Forearm casting",
-    "sub": "FORE"
-   },
-   "volumeMm3": 114050.2,
-   "at": [
-    -6.7,
-    1554.0,
-    441.5
-   ],
-   "poses": [
-    "stowed",
-    "pose:stowed",
-    "pose:connected",
-    "cycle:unstow:mid",
-    "cycle:unstow:end",
-    "cycle:approach:mid",
-    "cycle:approach:end",
-    "cycle:align:mid",
-    "cycle:align:end",
-    "cycle:insert:mid",
-    "cycle:insert:end",
-    "cycle:latch:mid",
-    "cycle:latch:end",
-    "cycle:charging:mid",
-    "cycle:charging:end",
-    "cycle:unlatch:mid",
-    "cycle:unlatch:end",
-    "cycle:extract:mid",
-    "cycle:extract:end",
-    "cycle:retract:mid",
-    "cycle:retract:end"
-   ]
-  }
- ],
+ "clashes": [],
  "floating": [],
  "context": [
   {
@@ -180,6 +135,6 @@
    ]
   }
  ],
- "seconds": 2158.5,
- "glbSha256": "5ca8e51ce0c3494b"
+ "seconds": 2006.3,
+ "glbSha256": "44cb1056154f1186"
 }

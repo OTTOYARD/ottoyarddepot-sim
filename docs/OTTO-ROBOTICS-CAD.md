@@ -44,7 +44,7 @@ at home, mid brush pass, dry pass and cabin vacuum (`washPoseAt`). Its run steps
 
 | robot | parts | different parts | screws, nuts, washers, pins | mass | STEP (zip) | GLB |
 |---|---:|---:|---:|---:|---:|---:|
-| OTTO-CHARGE ARM | 666 | 188 | 467 | 314 kg (with its riser) | 27.5 MB (4.9) | 6.8 MB |
+| OTTO-CHARGE ARM | 666 | 188 | 467 | 313 kg (with its riser) | 32.8 MB (6.2) | 6.9 MB |
 | OTTO-CLEAN ARM | 467 | 154 | 293 | 317 kg (with its canopy steel) | 17.4 MB (2.9) | 4.7 MB |
 | OTTO-WASH | 792 | 102 | 449 | 4,152 kg | 6.5 MB (1.1) | 1.2 MB |
 
@@ -83,12 +83,12 @@ connector with its contacts, face seal, bumper, latch hook and solenoid, a seale
 time-of-flight module, IR illuminator board, window and gasket, the cable dress pack with a spring retract unit on the
 upper arm, safety laser scanner, emergency stop.
 
-**Load check, from the CAD's own masses** (`charge_arm.torque_budget`): at full horizontal reach J2 carries 1,612 N·m
-of gravity and J3 477 N·m (113.5 kg and 51.0 kg distal, plus an assumed 4 kg of hanging cable). A size 40 gear's
+**Load check, from the CAD's own masses** (`charge_arm.torque_budget`): at full horizontal reach J2 carries 1,602 N·m
+of gravity and J3 476 N·m (112.7 kg and 50.8 kg distal, plus an assumed 4 kg of hanging cable). A size 40 gear's
 repeated peak is 738 N·m: J3 has ×1.55. A size 50's is 1,274 N·m, under J2's load, so J2 needs a balancer. A search
 over the balancer's preload and rate picked a rate of zero, a constant force: the signature of a nitrogen gas spring,
-not a coil spring. With a gas spring of 15 % progression (10.05 kN extended, 175 mm stroke, 320 mm under and 160 mm
-over the axis) the J2 gear sees at most 309 N·m over the joint's ±110° balanced travel (×4.12). At the ports the twin
+not a coil spring. With a gas spring of 15 % progression (10.0 kN extended, 175 mm stroke, 320 mm under and 160 mm
+over the axis) the J2 gear sees at most 310 N·m over the joint's ±110° balanced travel (×4.12). At the ports the twin
 serves, J2 stays between 18.7° and 64.7°. Dynamics and the cable's pull are not in these figures. (The distal masses
 went up from the first pass, 96 and 42 kg: the actuators are longer with every part in its own space.)
 
@@ -134,12 +134,12 @@ As run on the committed CAD (`public/cad/<robot>.clash.json`):
 
 | robot | poses | pairs measured | clashes | loose groups | expected overlaps (screws in tapped holes, seals, retaining rings, gear meshes) |
 |---|---:|---:|---:|---:|---|
-| OTTO-CHARGE ARM | 22 | 32,331 | 1 | 0 | 672, 12, 9, 3 |
+| OTTO-CHARGE ARM | 22 | 32,311 | 0 | 0 | 672, 12, 9, 3 |
 | OTTO-CLEAN ARM | 42 | 19,643 | 0 | 0 | 367, 6, 6, 2 |
 | OTTO-WASH | 39 | 13,109 | 0 | 0 | 503, 0, 0, 0 |
 
-The charge arm's 1 is in its baseline and the tab lists it: the forearm inside the upper arm when the twin folds the
-elbow (design finding 6). The wash machine and the clean arm are held at zero by `cad.test.ts`.
+No clash and no loose part is left in any robot, at any of the twin's poses, and `cad.test.ts` holds all three at
+zero. The last two were design findings 6 and 7, fixed in the CAD without a change to the twin.
 
 ### What it found, and what changed
 
@@ -218,14 +218,14 @@ The poses found more, which the stowed pose could not show:
    carries the vacuum across J3 in a rotary union with a slip ring on the mast axis, and the mast stages are the vacuum
    duct down to the wrist.
 
-6. **At the twin's stowed pose the charge arm's forearm lies inside its upper arm.** The twin stows the arm with J3 at
-   2.3 rad (132°), folded back to within 48° of the upper arm, and draws both links in one plane. The CAD's castings
-   are as deep as the twin draws its links, so folded that far the forearm passes 0.11 litres into the upper arm
-   (114,050 mm³). The twin folds it nearly as far at the port: at the connected pose (J3 at 1.90 rad, 109°) the two
-   overlap by 15,491 mm³, and the clash is there at every step of the charge cycle. A real arm offsets the forearm
-   along the elbow axis, so the links fold past each other, or folds less. Either is a change to the twin's arm (a link
-   offset in its kinematics, or its stowed pose and port poses), so the CAD keeps the twin's geometry and reports the
-   clash. It stays in the charge arm's baseline, named in the tab.
+6. **The charge arm's forearm passed through its upper arm when the twin folds the elbow.** The twin stows the arm
+   with J3 at 2.3 rad (132°), folded back to within 48° of the upper arm, folds it to 109° at the port, and draws both
+   links in one plane. The CAD's castings are as deep as the twin draws its links, so they overlapped by 114,050 mm³
+   stowed and 15,491 mm³ at the port, at every step of the charge cycle. **The CAD now jogs the forearm** (`FORE_JOG`):
+   its first 330 mm runs 190 mm out along the elbow axis, 120 mm wide and as deep as before, and swings back to the
+   arm's plane by 640 mm, so the wrist is where the twin puts it and its kinematics do not change. The upper arm's last
+   155 mm before its J3 boss narrows to 110 mm (`UPR_END_W`), so the forearm's cheek plate folds past it. The twin
+   draws both links in one plane, so its picture of the arm does not change.
 
 7. **The wash machine's top brush and top air knife travel further than fixed guides can.** Over the hood the twin
    lowers the top brush 1.80 m (its axis to 0.93 m above grade) and the top knife 2.00 m (to 0.87 m). The beam's
