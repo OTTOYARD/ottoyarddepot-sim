@@ -73,100 +73,17 @@ import {
 import { buildCobot } from './buildCobot';
 import { VEHICLE_GEO, PORT_GEO } from '@/components/canvas/three/vehicleBody';
 import { poseFor, STANDOFF_M } from './armMotion';
-import { NOMINAL_SEQUENCE, type ArmPhase } from './armStateMachine';
-import { portFor } from './chargePort';
+import { STRUCTURAL_MARGIN_M, portVariants, windowVariants, target, sweep } from './armSweeps';
 import { placeArm, portInArmFrame } from './depotPlacement';
 import { generateStallsV2 } from '@/lib/sitePlan';
 
 const spec = OTTO_CHARGE_ARM;
 const FLANK = nearFlankZ();
 
-/**
- * How much daylight the STRUCTURE must keep from the bodywork, metres.
- *
- * 0.10 m is an engineering margin, not a tolerance: it is what an operator
- * would call "clear", and it leaves room for the residual pose error a real
- * servo carries. It is also 58.9x SAMPLING_SAG_M (1.699 mm at ARM_SCALE 1.2),
- * so a pass cannot be an artefact of how finely the meshes happen to be
- * tessellated. The assertion below only demands 20x, so the multiple can fall
- * by two thirds before the claim stops being a claim about geometry.
- */
-const STRUCTURAL_MARGIN_M = 0.10;
-
-/** Phases of a nominal cycle, minus the one where nothing has moved yet. */
-const PHASES = NOMINAL_SEQUENCE.filter((p) => p !== 'stowed') as ArmPhase[];
-
-/**
- * The port variants the depot actually has to serve: the CORNERS of every OEM
- * family's band, plus its centre, mirrored fore/aft.
- *
- * Mirroring is not padding. portInArmFrame maps a port's fore/aft offset to
- * base-frame x as `-toward * along`, so the two pedestal sides of a canopy
- * present the SAME port at OPPOSITE x. Sweeping both signs covers both `toward`
- * values exactly, which is why this file does not need to iterate stalls: every
- * DCFC pedestal stands the same 4.5 plan units off its stall, so the only thing
- * a stall changes is a rigid transform.
- */
-function portVariants(): { label: string; along: number; height: number }[] {
-  const oems = ['tesla', 'waymo', 'zoox', 'cruise', 'motional', 'van', null];
-  const out: { label: string; along: number; height: number }[] = [];
-  for (const oem of oems) {
-    let aLo = Infinity, aHi = -Infinity, hLo = Infinity, hHi = -Infinity;
-    for (let i = 0; i < 200; i++) {
-      const p = portFor(`probe-${i}`, oem);
-      aLo = Math.min(aLo, p.along); aHi = Math.max(aHi, p.along);
-      hLo = Math.min(hLo, p.height); hHi = Math.max(hHi, p.height);
-    }
-    const name = oem ?? 'generic';
-    for (const a of [aLo, (aLo + aHi) / 2, aHi]) {
-      for (const h of [hLo, (hLo + hHi) / 2, hHi]) {
-        out.push({ label: `${name}`, along: a, height: h });
-        out.push({ label: `${name}/mirrored`, along: -a, height: h });
-      }
-    }
-  }
-  return out;
-}
-
-/** Corners and edge midpoints of the ADVERTISED window — the promise, not the fleet. */
-function windowVariants(): { label: string; along: number; height: number }[] {
-  const W = SERVICE_WINDOW;
-  const out: { label: string; along: number; height: number }[] = [];
-  for (const a of [W.alongMin, 0, W.alongMax]) {
-    for (const h of [W.heightMin, (W.heightMin + W.heightMax) / 2, W.heightMax]) {
-      out.push({ label: 'service-window', along: a, height: h });
-    }
-  }
-  return out;
-}
-
-function target(along: number, height: number) {
-  return { port: { x: along, y: height - MOUNT_HEIGHT_M, z: FLANK }, normal: { x: 0, y: 0, z: -1 } };
-}
-
-/** Sweep the duty cycle for one port, returning the worst clearance seen. */
-function sweep(
-  rig: ReturnType<typeof makeArmClearanceRig>,
-  car: ReturnType<typeof carSolidInArmFrame>,
-  along: number, height: number,
-  which: 'structure' | 'tool' | 'all',
-  stepsPerPhase = 8,
-): { min: number; part: string; where: string; refused: boolean } {
-  const t = target(along, height);
-  let min = Infinity, part = '', where = '', refused = false;
-  for (const phase of PHASES) {
-    const steps = phase === 'charging' ? 0 : stepsPerPhase;
-    for (let k = 0; k <= steps; k++) {
-      const u = steps === 0 ? 0 : k / steps;
-      const p = poseFor({ phase, t: u }, t, spec);
-      if (!p.ok) { refused = true; continue; }
-      rig.pose(p.angles);
-      const c = rig.clearance(car, which);
-      if (c.min < min) { min = c.min; part = c.part; where = `${phase} t=${u.toFixed(2)}`; }
-    }
-  }
-  return { min, part, where, refused };
-}
+// The ports, the duty cycle and the 0.10 m structural margin live in armSweeps.ts, so the engineering CAD the
+// depot draws (robotics/cadYard.test.ts) is held to exactly the same list. STRUCTURAL_MARGIN_M is 58.9x
+// SAMPLING_SAG_M (1.699 mm at ARM_SCALE 1.2), so a pass cannot be an artefact of how finely the meshes happen to
+// be tessellated; the assertion below only demands 20x.
 
 describe('the car solid the arm is measured against', () => {
   it('is the body the renderer draws, at the unified footprint', () => {
