@@ -1,0 +1,367 @@
+/**
+ * The Robotics tab's data and words: the CAD manifest and bills of materials (cad/build.py -> public/cad), the
+ * user's five robotic functions mapped onto the three machines, each machine's pose presets, and the steps each
+ * one runs. Pose presets and steps are read from the twin's OWN code (cobotIK, cleanArmPose, washPose, the phase
+ * tables), never restated here, so the CAD on screen moves the way the depot's robots move.
+ *
+ * Viewer copy is ASD-STE100 (AGENTS.md). No product names (publicNames.test.ts).
+ */
+import { NOMINAL_SEQUENCE, ARM_TIMING_DEFAULTS } from '@/lib/ottoChargeArm/armStateMachine';
+import { poseForPhase } from '@/lib/ottoChargeArm/armMotion';
+import { STOWED, solveIK } from '@/lib/ottoChargeArm/cobotIK';
+import { FLANK_STANDOFF_M, MOUNT_HEIGHT_M, METRES_PER_PLAN_UNIT } from '@/lib/ottoChargeArm/cobotSpec';
+import { CLEAN_CHAIN, CLEAN_PHASE_S, CLEAN_SIDE_NOMINAL_S, MAST_FOOT_MAX, type CleanPhase } from '@/lib/ottoCleanArm/cleanArmSpec';
+import { cleanJointsAt, sidesFor, type CleanJoints } from '@/lib/ottoCleanArm/cleanArmPose';
+import { washPoseAt } from '@/lib/ottoWash/washPose';
+import {
+  PASS_NOMINAL_S, VACUUM_NOMINAL_S, WASH_GANTRY as WG, WASH_PHASE_S, washChain, isPass, type WashPhase,
+} from '@/lib/ottoWash/washSpec';
+
+// ── files ──────────────────────────────────────────────────────────────────
+
+export type RobotKey = 'charge_arm' | 'clean_arm' | 'wash_gantry';
+export const ROBOT_KEYS: readonly RobotKey[] = ['charge_arm', 'clean_arm', 'wash_gantry'];
+
+export interface ManifestRobot {
+  key: RobotKey;
+  title: string;
+  frame: string;
+  files: { glb: string; step: string; bom: string; csv: string };
+  bytes: { glb: number; stepZip: number; step: number };
+  mesh: { vertices: number; triangles: number; meshes: number; nodes: number };
+  totals: BomTotals;
+  glbSha256: string;
+  subsystems: { id: string; name: string }[];
+}
+export interface Manifest { generator: string; specVersion: number; units: { cad: string; glb: string }; robots: ManifestRobot[] }
+
+export interface BomTotals {
+  parts: number; uniqueParts: number; fasteners: number; massKg: number; boughtLines: number; madeLines: number;
+  referenceLines?: number;
+}
+export interface BomLine {
+  id: string; name: string; category: string; make: 'make' | 'buy';
+  standard: string; size: string; grade: string; material: string; materialKey: string;
+  qty: number; massKg: number; totalMassKg: number; torqueNm: number | null; reference?: boolean;
+  function: string; spec: Record<string, string>; uses: { sub: string; qty: number }[];
+}
+export interface BomSubsystem {
+  id: string; name: string; function: string; how: string[]; specs: Record<string, string>; group: string; order: number;
+  partCount: number; fastenerCount: number; massKg: number; uniqueParts: number;
+}
+export interface TorqueRow { distalMassKg: number; torqueNm: number; gear: string; repeatedPeakNm: number; margin: number }
+export interface TorqueBudget {
+  method: string;
+  J3: TorqueRow;
+  J2: TorqueRow & {
+    gearWorstNm: number;
+    balancer: { type: string; forceExtendedN: number; forceAt90N: number; strokeMm: number; travelDeg: number };
+    curve: { deg: number; gravityNm: number; balancerNm: number; gearNm: number }[];
+  };
+  serviceWindowJ2Deg: { min: number; max: number } | null;
+}
+export interface Bom {
+  robot: RobotKey; title: string; frame: string; units: { cad: string; glb: string };
+  totals: BomTotals; subsystems: BomSubsystem[]; lines: BomLine[]; notes: { torque_budget?: TorqueBudget };
+}
+
+export const CAD_BASE = '/cad/';
+export const cadUrl = (file: string): string => `${CAD_BASE}${file}`;
+
+export async function fetchManifest(fetcher: typeof fetch = fetch): Promise<Manifest> {
+  const r = await fetcher(cadUrl('manifest.json'));
+  if (!r.ok) throw new Error(`The CAD list did not load (${r.status}).`);
+  return (await r.json()) as Manifest;
+}
+
+/** cad/clash.py's report for one robot: every placed part against every other, at the stowed pose and the twin's poses. */
+export interface ClashPart { item: string; part: string; name: string; sub: string }
+export interface ClashReport {
+  robot: RobotKey; glbSha256?: string; poses: string[]; pairsChecked: number; contactPairs: number;
+  counts: { thread: number; seal: number; ring: number; mesh?: number; context: number; clash: number };
+  clashes: { kind: string; a: ClashPart; b: ClashPart; volumeMm3: number; poses: string[] }[];
+  floating: ClashPart[][];
+}
+
+/** The clash report, or null when it is missing (the tab still works without it). */
+export async function fetchClash(robot: ManifestRobot, fetcher: typeof fetch = fetch): Promise<ClashReport | null> {
+  try {
+    const r = await fetcher(cadUrl(`${robot.key}.clash.json`));
+    if (!r.ok) return null;
+    return (await r.json()) as ClashReport;
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchBom(robot: ManifestRobot, fetcher: typeof fetch = fetch): Promise<Bom> {
+  const r = await fetcher(cadUrl(robot.files.bom));
+  if (!r.ok) throw new Error(`The parts list did not load (${r.status}).`);
+  return (await r.json()) as Bom;
+}
+
+// ── words ──────────────────────────────────────────────────────────────────
+
+export const ROBOT_INFO: Record<RobotKey, { name: string; short: string; summary: string[] }> = {
+  charge_arm: {
+    name: 'OTTO-CHARGE ARM',
+    short: 'Charge arm',
+    summary: [
+      'A 6-axis robot arm at each fast charger.',
+      'It finds the charge port, pushes the DC connector in and locks it.',
+      'It lets go when the charge ends. The car cannot move until the arm is home.',
+    ],
+  },
+  clean_arm: {
+    name: 'OTTO-CLEAN ARM',
+    short: 'Cabin clean arm',
+    summary: [
+      'An overhead arm over each fast charger. It vacuums the cabin while the car charges.',
+      'It swings in a plane 1.8 m above the roof. Only the wand goes into the car, and only through a door.',
+    ],
+  },
+  wash_gantry: {
+    name: 'OTTO-WASH',
+    short: 'Wash bay machine',
+    summary: [
+      'A rollover machine in each wash bay. It moves over the parked car 6 times.',
+      'The passes are: pre-soak, 2 brush passes, rinse, 2 dry passes.',
+      'On a detail seat, 2 vacuum wands clean the cabin first.',
+    ],
+  },
+};
+
+/** The five robotic functions Chase named, each found in the machine and subsystems that do it. */
+export interface RoboticFunction { id: string; label: string; robot: RobotKey; subs: string[] }
+export const FUNCTIONS: readonly RoboticFunction[] = [
+  { id: 'charge', label: 'Robotic charging', robot: 'charge_arm', subs: ['TOOL', 'WRIST', 'J2'] },
+  { id: 'interior', label: 'Interior', robot: 'clean_arm', subs: ['NOZZLE', 'WAND', 'WRIST'] },
+  { id: 'vacuum', label: 'Vacuum', robot: 'clean_arm', subs: ['VAC', 'WAND', 'NOZZLE'] },
+  { id: 'overhead', label: 'Overhead cleaning', robot: 'clean_arm', subs: ['J1', 'LINK1', 'J2', 'LINK2', 'MAST'] },
+  { id: 'wash', label: 'Wash bay', robot: 'wash_gantry', subs: ['SIDEBRUSH', 'TOPBRUSH', 'ARCH', 'DRYER'] },
+  { id: 'wash_vac', label: 'Wash bay vacuum', robot: 'wash_gantry', subs: ['WAND'] },
+  { id: 'wash_overhead', label: 'Wash bay overhead', robot: 'wash_gantry', subs: ['TOPBRUSH', 'DRYER'] },
+];
+
+export const CATEGORY_LABEL: Record<string, string> = {
+  structure: 'Structure', drive: 'Drive', bearing: 'Bearing', sensor: 'Sensor', electrical: 'Electrical',
+  fluid: 'Fluid', tool: 'Tool', seal: 'Seal', fastener: 'Fastener',
+};
+
+// ── numbers ────────────────────────────────────────────────────────────────
+
+export const fmtKg = (kg: number): string =>
+  kg >= 100 ? `${Math.round(kg).toLocaleString('en-US')} kg` : kg >= 1 ? `${kg.toFixed(1)} kg` : `${Math.round(kg * 1000)} g`;
+export const fmtNm = (nm: number): string => `${Math.round(nm).toLocaleString('en-US')} N·m`;
+export const fmtMB = (bytes: number): string => `${(bytes / 1e6).toFixed(1)} MB`;
+
+/** Bill-of-materials lines for a subsystem (or all), filtered by a search string and the fasteners switch. */
+export function filterLines(lines: readonly BomLine[], opts: { sub?: string | null; query?: string; fasteners?: 'all' | 'only' | 'none' }): BomLine[] {
+  const q = (opts.query ?? '').trim().toLowerCase();
+  return lines.filter((l) => {
+    if (l.reference) return false;
+    if (opts.sub && !l.uses.some((u) => u.sub === opts.sub)) return false;
+    if (opts.fasteners === 'only' && l.category !== 'fastener') return false;
+    if (opts.fasteners === 'none' && l.category === 'fastener') return false;
+    if (!q) return true;
+    return [l.name, l.id, l.size, l.standard, l.grade, l.material, l.function].some((s) => s.toLowerCase().includes(q));
+  });
+}
+
+/** How many of a line a subsystem uses (or the whole robot). */
+export const qtyIn = (l: BomLine, sub?: string | null): number =>
+  sub ? (l.uses.find((u) => u.sub === sub)?.qty ?? 0) : l.qty;
+
+/** The part ids that are fasteners (for the viewer's fastener switch). */
+export const fastenerIds = (bom: Bom): Set<string> => new Set(bom.lines.filter((l) => l.category === 'fastener').map((l) => l.id));
+
+// ── poses, from the twin's own code ────────────────────────────────────────
+
+export interface PosePreset { id: string; label: string; angles: Record<string, number> }
+
+/** A port on the near flank, rear quarter, at a typical inlet height: the IK target for the "connected" preset. */
+export const SAMPLE_PORT = { along: 0.72, height: 0.7 } as const;
+
+function chargePoses(): PosePreset[] {
+  const port = { x: SAMPLE_PORT.along, y: SAMPLE_PORT.height - MOUNT_HEIGHT_M, z: FLANK_STANDOFF_M };
+  const ik = solveIK(port, { x: 0, y: 0, z: -1 });
+  const j = (a: { j1: number; j2: number; j3: number; j4: number; j5: number; j6: number }) =>
+    ({ J1: a.j1, J2: a.j2, J3: a.j3, J4: a.j4, J5: a.j5, J6: a.j6 });
+  return [
+    { id: 'stowed', label: 'Stowed', angles: j(STOWED) },
+    { id: 'connected', label: 'Connected', angles: j(ik) },
+    { id: 'zero', label: 'Straight (zero)', angles: j({ j1: 0, j2: 0, j3: 0, j4: 0, j5: 0, j6: 0 }) },
+  ];
+}
+
+/** The clean arm's joints as the CAD's nodes take them (buildCleanArm.poseCleanArm's mapping). */
+/** The clean arm wand's sliding tubes (cad clean_arm.WAND_SLIDES; the twin draws 2): each takes a third of the reach. */
+export const CLEAN_WAND_SLIDES = 3;
+
+export function cleanAngles(q: CleanJoints): Record<string, number> {
+  const E = Math.max(0, MAST_FOOT_MAX - q.foot);
+  const out: Record<string, number> = {
+    CA_J1: -q.t1, CA_J2: -q.t2, CA_J3: -(q.yaw - q.t1 - q.t2),
+    CA_Mast2: E / 2, CA_Mast3: E / 2, CA_Pitch: q.pitch, CA_Nozzle: q.nozzle,
+  };
+  for (let k = 2; k <= CLEAN_WAND_SLIDES + 1; k++) out[`CA_Wand${k}`] = q.ext / CLEAN_WAND_SLIDES;
+  return out;
+}
+
+function cleanPoses(): PosePreset[] {
+  const sides = sidesFor(1);
+  return [
+    { id: 'home', label: 'Home', angles: cleanAngles(cleanJointsAt('home', 0, sides)) },
+    { id: 'reach', label: 'Over side A', angles: cleanAngles(cleanJointsAt('descend_a', 1, sides)) },
+    { id: 'clean', label: 'In the cabin', angles: cleanAngles(cleanJointsAt('clean_a', 0.35, sides)) },
+  ];
+}
+
+/** The wash wands' sliding column stages (cad wash_gantry.WAND_STAGES less the fixed sleeve): each takes an equal share. */
+export const WASH_WAND_SLIDES = 3;
+/** The wash wands' telescoping reach tubes (cad wash_gantry.WAND_REACH_STAGES): each takes half the reach. */
+export const WASH_WAND_REACH_STAGES = 2;
+
+/** The wash machine's slides as the CAD's nodes take them, from the twin's washPoseAt (plan units -> metres). */
+export function washAngles(phase: WashPhase, t: number): Record<string, number> {
+  const p = washPoseAt({ phase, t, vacuumS: VACUUM_NOMINAL_S, from: null });
+  const m = METRES_PER_PLAN_UNIT;
+  const drop = p.wandDrop * (WG.wand.topY - WG.wand.workY) * m;
+  const reach = p.wandReach * (WG.wand.x - WG.wand.reachX) * m;
+  const out: Record<string, number> = {
+    GANTRY: -p.dy * m,
+    TOP_BRUSH: (WG.topBrush.retractY - p.topBrushY) * m,
+    DRYER_TOP: (WG.dryer.top.retractY - p.dryerTopY) * m,
+  };
+  for (const s of ['L', 'R']) {
+    out[`SIDE_BRUSH_${s}`] = (WG.sideBrush.retractX - p.sideBrushX) * m;
+    out[`DRYER_SIDE_${s}`] = (WG.dryer.side.retractX - p.dryerSideX) * m;
+    for (let k = 1; k <= WASH_WAND_SLIDES; k++) out[`WAND_${s}_DROP${k}`] = drop / WASH_WAND_SLIDES;
+    for (let k = 1; k <= WASH_WAND_REACH_STAGES; k++) out[`WAND_${s}_REACH${k}`] = reach / WASH_WAND_REACH_STAGES;
+  }
+  return out;
+}
+
+function washPoses(): PosePreset[] {
+  return [
+    { id: 'home', label: 'Home', angles: washAngles('home', 1) },
+    { id: 'brush', label: 'Brush pass', angles: washAngles('wash_1', 0.5) },
+    { id: 'dry', label: 'Dry pass', angles: washAngles('dry_1', 0.45) },
+    { id: 'vacuum', label: 'Cabin vacuum', angles: washAngles('vacuum', 0.5) },
+  ];
+}
+
+export function posePresets(robot: RobotKey): PosePreset[] {
+  return robot === 'charge_arm' ? chargePoses() : robot === 'clean_arm' ? cleanPoses() : washPoses();
+}
+
+// ── how each machine runs: its steps, read from the twin's phase tables ───
+
+export interface CycleStep { id: string; label: string; seconds: number | null; note?: string }
+
+const CHARGE_LABEL: Record<string, string> = {
+  unstow: 'Lift clear of the stow', approach: 'Move to the port', align: 'Align with the cameras', insert: 'Push the connector in',
+  latch: 'Lock the connector', charging: 'Charge', unlatch: 'Unlock the connector', extract: 'Pull the connector out',
+  retract: 'Fold home',
+};
+const CLEAN_LABEL: Record<CleanPhase, string> = {
+  home: 'Home', doors_open: 'The doors open', swing_a: 'Swing over side A', lower_a: 'Turn the wand down',
+  descend_a: 'Lower the mast', enter_a: 'Reach in through the door', clean_a: 'Clean side A', exit_a: 'Come out of the car',
+  ascend_a: 'Raise the mast', raise_a: 'Turn the wand up', swing_b: 'Swing over side B', lower_b: 'Turn the wand down',
+  descend_b: 'Lower the mast', enter_b: 'Reach in through the door', clean_b: 'Clean side B', exit_b: 'Come out of the car',
+  ascend_b: 'Raise the mast', raise_b: 'Turn the wand up', return: 'Swing home', doors_close: 'The doors close',
+};
+const WASH_LABEL: Partial<Record<WashPhase, string>> = {
+  settle: 'The car stops under the light', to_cabin: 'Move to the cabin', doors_open: 'The doors open',
+  wands_down: 'Lower the wands', wands_in: 'Reach in through the doors', vacuum: 'Vacuum the cabin',
+  wands_out: 'Come out of the car', wands_up: 'Raise the wands', doors_close: 'The doors close', to_start: 'Move to the start',
+  soak: 'Pass 1: pre-soak foam', wash_1: 'Pass 2: brushes', wash_2: 'Pass 3: brushes', rinse: 'Pass 4: rinse',
+  dry_1: 'Pass 5: dry', dry_2: 'Pass 6: dry', done: 'Home. The light turns green',
+};
+
+export function cycleSteps(robot: RobotKey): CycleStep[] {
+  if (robot === 'charge_arm') {
+    return NOMINAL_SEQUENCE.filter((p) => p !== 'stowed' && p !== 'clear').map((p) => ({
+      id: p, label: CHARGE_LABEL[p] ?? p,
+      seconds: p === 'charging' ? null : ARM_TIMING_DEFAULTS[p as keyof typeof ARM_TIMING_DEFAULTS],
+      note: p === 'charging' ? 'as long as the charge' : undefined,
+    }));
+  }
+  if (robot === 'clean_arm') {
+    return CLEAN_CHAIN.map((p) => ({
+      id: p, label: CLEAN_LABEL[p],
+      seconds: p === 'clean_a' || p === 'clean_b' ? CLEAN_SIDE_NOMINAL_S : CLEAN_PHASE_S[p as keyof typeof CLEAN_PHASE_S],
+      note: p === 'clean_a' || p === 'clean_b' ? 'the twin sets the time' : undefined,
+    }));
+  }
+  return washChain(true).map((p) => ({
+    id: p, label: WASH_LABEL[p] ?? p,
+    seconds: isPass(p) ? PASS_NOMINAL_S[p] : p === 'vacuum' ? VACUUM_NOMINAL_S : WASH_PHASE_S[p as keyof typeof WASH_PHASE_S] ?? null,
+    note: p === 'vacuum' ? 'the twin sets the time' : undefined,
+  }));
+}
+
+// ── the cycle, played on the CAD: the twin's own choreography over time ────
+
+
+export interface ScriptStep { id: string; label: string; seconds: number; short?: boolean }
+export interface CycleScript {
+  steps: ScriptStep[];
+  total: number;
+  /** the joint values at `t` seconds into the cycle (wraps), and which step that is */
+  at(t: number): { step: number; angles: Record<string, number> };
+}
+
+/** A step the twin times by the car (a charge, a clean, a vacuum) plays this long, marked "shown short". */
+export const SHORT_STEP_S = 6;
+
+function script(steps: ScriptStep[], anglesAt: (id: string, u: number) => Record<string, number>): CycleScript {
+  const total = steps.reduce((a, s) => a + s.seconds, 0);
+  const starts = steps.map((_, i) => steps.slice(0, i).reduce((a, s) => a + s.seconds, 0));
+  return {
+    steps, total,
+    at(t: number) {
+      const tt = ((t % total) + total) % total;
+      let i = steps.length - 1;
+      while (i > 0 && starts[i] > tt) i--;
+      const u = steps[i].seconds > 0 ? Math.min(1, (tt - starts[i]) / steps[i].seconds) : 1;
+      return { step: i, angles: anglesAt(steps[i].id, u) };
+    },
+  };
+}
+
+export function cycleScript(robot: RobotKey): CycleScript {
+  if (robot === 'charge_arm') {
+    const target = { port: { x: SAMPLE_PORT.along, y: SAMPLE_PORT.height - MOUNT_HEIGHT_M, z: FLANK_STANDOFF_M }, normal: { x: 0, y: 0, z: -1 } };
+    const steps = cycleSteps('charge_arm').map((s) => ({ id: s.id, label: s.label, seconds: s.seconds ?? SHORT_STEP_S, short: s.seconds == null }));
+    return script(steps, (id, u) => {
+      const a = poseForPhase(id as Parameters<typeof poseForPhase>[0], u, target).angles;
+      return { J1: a.j1, J2: a.j2, J3: a.j3, J4: a.j4, J5: a.j5, J6: a.j6 };
+    });
+  }
+  if (robot === 'clean_arm') {
+    const sides = sidesFor(1);
+    const steps = cycleSteps('clean_arm').map((s) => ({
+      id: s.id, label: s.label, seconds: s.note ? SHORT_STEP_S * 2 : (s.seconds ?? 1), short: !!s.note,
+    }));
+    return script(steps, (id, u) => cleanAngles(cleanJointsAt(id as CleanPhase, u, sides)));
+  }
+  const steps = cycleSteps('wash_gantry').map((s) => ({
+    id: s.id, label: s.label, seconds: s.note ? SHORT_STEP_S * 2 : (s.seconds ?? 1), short: !!s.note,
+  }));
+  return script(steps, (id, u) => washAngles(id as WashPhase, u));
+}
+
+// ── the joints, by name, for the sliders ────────────────────────────────────
+
+export const JOINT_LABEL: Record<string, string> = {
+  J1: 'J1 base yaw', J2: 'J2 shoulder pitch', J3: 'J3 elbow pitch', J4: 'J4 forearm roll', J5: 'J5 wrist pitch', J6: 'J6 tool roll',
+  CA_J1: 'J1 shoulder yaw', CA_J2: 'J2 elbow yaw', CA_J3: 'J3 mast yaw', CA_Mast2: 'Mast stage 2', CA_Mast3: 'Mast stage 3',
+  CA_Pitch: 'J4 wrist pitch', CA_Wand2: 'Wand tube 2', CA_Wand3: 'Wand tube 3', CA_Wand4: 'Wand tube 4', CA_Nozzle: 'J5 nozzle pitch',
+  GANTRY: 'Gantry travel', TOP_BRUSH: 'Top brush lift', SIDE_BRUSH_L: 'Left side brush', SIDE_BRUSH_R: 'Right side brush',
+  DRYER_TOP: 'Top air knife', DRYER_SIDE_L: 'Left air knife', DRYER_SIDE_R: 'Right air knife',
+  WAND_L_DROP1: 'Left wand stage 2', WAND_L_DROP2: 'Left wand stage 3', WAND_L_DROP3: 'Left wand stage 4',
+  WAND_L_REACH1: 'Left wand reach tube 1', WAND_L_REACH2: 'Left wand reach tube 2',
+  WAND_R_DROP1: 'Right wand stage 2', WAND_R_DROP2: 'Right wand stage 3', WAND_R_DROP3: 'Right wand stage 4',
+  WAND_R_REACH1: 'Right wand reach tube 1', WAND_R_REACH2: 'Right wand reach tube 2',
+};
