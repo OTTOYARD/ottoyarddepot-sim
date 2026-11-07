@@ -1,0 +1,236 @@
+{
+ "generator": "cad/build.py (CadQuery 2.8, OpenCascade 7.9)",
+ "specVersion": 1,
+ "units": {
+  "cad": "mm",
+  "glb": "m"
+ },
+ "robots": [
+  {
+   "key": "charge_arm",
+   "title": "OTTO-CHARGE ARM",
+   "frame": "Arm base frame: origin on J1 axis at the mount collar top, +Y up, +Z toward the car, X along the car. Zero pose (all joints 0).",
+   "files": {
+    "glb": "charge_arm.glb",
+    "step": "charge_arm.step.zip",
+    "bom": "charge_arm.bom.json",
+    "csv": "charge_arm.bom.csv"
+   },
+   "bytes": {
+    "glb": 6227036,
+    "stepZip": 3968465,
+    "step": 23457850
+   },
+   "mesh": {
+    "vertices": 257609,
+    "triangles": 303751,
+    "meshes": 179,
+    "nodes": 724
+   },
+   "totals": {
+    "parts": 713,
+    "uniqueParts": 177,
+    "fasteners": 529,
+    "massKg": 295.6,
+    "boughtLines": 124,
+    "madeLines": 53,
+    "referenceLines": 2
+   },
+   "glbSha256": "52246d40b1ea1bf7",
+   "subsystems": [
+    {
+     "id": "MOUNT",
+     "name": "Riser and mount"
+    },
+    {
+     "id": "J1",
+     "name": "J1 base yaw"
+    },
+    {
+     "id": "J2",
+     "name": "J2 shoulder pitch"
+    },
+    {
+     "id": "UPPER",
+     "name": "Upper arm"
+    },
+    {
+     "id": "J3",
+     "name": "J3 elbow pitch"
+    },
+    {
+     "id": "FORE",
+     "name": "Forearm"
+    },
+    {
+     "id": "WRIST",
+     "name": "Spherical wrist (J4, J5, J6)"
+    },
+    {
+     "id": "TOOL",
+     "name": "Connector tool"
+    },
+    {
+     "id": "DRESS",
+     "name": "Cable dress pack"
+    },
+    {
+     "id": "SAFETY",
+     "name": "Safety and status"
+    }
+   ]
+  },
+  {
+   "key": "clean_arm",
+   "title": "OTTO-CLEAN ARM",
+   "frame": "Parked car frame: origin at the car centre on grade, +Y up, +X toward the nose, +Z toward the right flank. Zero pose: links along +X, mast retracted, wand level.",
+   "files": {
+    "glb": "clean_arm.glb",
+    "step": "clean_arm.step.zip",
+    "bom": "clean_arm.bom.json",
+    "csv": "clean_arm.bom.csv"
+   },
+   "bytes": {
+    "glb": 4278056,
+    "stepZip": 2597305,
+    "step": 15998072
+   },
+   "mesh": {
+    "vertices": 178028,
+    "triangles": 205333,
+    "meshes": 146,
+    "nodes": 467
+   },
+   "totals": {
+    "parts": 454,
+    "uniqueParts": 145,
+    "fasteners": 281,
+    "massKg": 315.84,
+    "boughtLines": 104,
+    "madeLines": 41,
+    "referenceLines": 1
+   },
+   "glbSha256": "657f8fe9ac6ebcec",
+   "subsystems": [
+    {
+     "id": "MOUNT",
+     "name": "Canopy mount"
+    },
+    {
+     "id": "J1",
+     "name": "J1 shoulder yaw"
+    },
+    {
+     "id": "LINK1",
+     "name": "Link 1"
+    },
+    {
+     "id": "J2",
+     "name": "J2 elbow yaw"
+    },
+    {
+     "id": "LINK2",
+     "name": "Link 2"
+    },
+    {
+     "id": "J3",
+     "name": "J3 mast yaw"
+    },
+    {
+     "id": "MAST",
+     "name": "Telescoping mast"
+    },
+    {
+     "id": "WRIST",
+     "name": "J4 wrist pitch"
+    },
+    {
+     "id": "WAND",
+     "name": "Telescoping vacuum wand"
+    },
+    {
+     "id": "NOZZLE",
+     "name": "Nozzle head (J5)"
+    },
+    {
+     "id": "VAC",
+     "name": "Vacuum and air supply"
+    },
+    {
+     "id": "STATUS",
+     "name": "Status lights"
+    }
+   ]
+  },
+  {
+   "key": "wash_gantry",
+   "title": "OTTO-WASH",
+   "frame": "Wash bay frame: origin at the parked car centre on grade, +Y up, X across the bay, +Z north (toward the exit). Machine at dy = 0, tools retracted.",
+   "files": {
+    "glb": "wash_gantry.glb",
+    "step": "wash_gantry.step.zip",
+    "bom": "wash_gantry.bom.json",
+    "csv": "wash_gantry.bom.csv"
+   },
+   "bytes": {
+    "glb": 1075040,
+    "stepZip": 843655,
+    "step": 5032540
+   },
+   "mesh": {
+    "vertices": 40939,
+    "triangles": 42230,
+    "meshes": 64,
+    "nodes": 591
+   },
+   "totals": {
+    "parts": 576,
+    "uniqueParts": 64,
+    "fasteners": 370,
+    "massKg": 3429.0,
+    "boughtLines": 44,
+    "madeLines": 20,
+    "referenceLines": 0
+   },
+   "glbSha256": "23d9654405ec259e",
+   "subsystems": [
+    {
+     "id": "RAILS",
+     "name": "Floor rails"
+    },
+    {
+     "id": "TRAVEL",
+     "name": "Travel drive"
+    },
+    {
+     "id": "PORTAL",
+     "name": "Portal frame"
+    },
+    {
+     "id": "ARCH",
+     "name": "Spray arch"
+    },
+    {
+     "id": "TOPBRUSH",
+     "name": "Top brush (overhead)"
+    },
+    {
+     "id": "SIDEBRUSH",
+     "name": "Side brushes"
+    },
+    {
+     "id": "DRYER",
+     "name": "Air knives (dryer)"
+    },
+    {
+     "id": "WAND",
+     "name": "Detail vacuum wands"
+    },
+    {
+     "id": "CONTROL",
+     "name": "Control, supply and signals"
+    }
+   ]
+  }
+ ]
+}

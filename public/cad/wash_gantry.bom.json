@@ -1,0 +1,1831 @@
+{
+ "robot": "wash_gantry",
+ "title": "OTTO-WASH",
+ "frame": "Wash bay frame: origin at the parked car centre on grade, +Y up, X across the bay, +Z north (toward the exit). Machine at dy = 0, tools retracted.",
+ "units": {
+  "cad": "mm",
+  "glb": "m"
+ },
+ "totals": {
+  "parts": 576,
+  "uniqueParts": 64,
+  "fasteners": 370,
+  "massKg": 3429.0,
+  "boughtLines": 44,
+  "madeLines": 20,
+  "referenceLines": 0
+ },
+ "subsystems": [
+  {
+   "id": "RAILS",
+   "name": "Floor rails",
+   "function": "Two steel rails, 3.25 m each side of the car, carry the machine over the parked car.",
+   "how": [
+    "Anchor plates every metre hold each rail to the slab with concrete screws.",
+    "The rails stand outside the door opening."
+   ],
+   "specs": {
+    "track": "6.51 m",
+    "length": "9.67 m"
+   },
+   "group": "Structure",
+   "order": 0,
+   "partCount": 62,
+   "fastenerCount": 40,
+   "massKg": 411.348,
+   "uniqueParts": 3
+  },
+  {
+   "id": "TRAVEL",
+   "name": "Travel drive",
+   "function": "Moves the whole machine back and forth over the car, 6 passes a wash.",
+   "how": [
+    "A geared motor drives one wheel each side. The drives keep in step by encoder.",
+    "Side rollers keep the wheels on the rails."
+   ],
+   "specs": {
+    "speed": "about 10 m/min",
+    "motors": "2 x 0.75 kW, with brake"
+   },
+   "group": "Motion",
+   "order": 1,
+   "partCount": 52,
+   "fastenerCount": 32,
+   "massKg": 409.358,
+   "uniqueParts": 8
+  },
+  {
+   "id": "PORTAL",
+   "name": "Portal frame",
+   "function": "Two legs and a beam span the bay. Retracted, everything clears a car by more than 0.48 m.",
+   "how": [
+    "Bolted flanges join the legs to the trolleys and to the beam.",
+    "Galvanised steel, painted safety yellow."
+   ],
+   "specs": {
+    "clear height": "3.30 m under the beam"
+   },
+   "group": "Structure",
+   "order": 2,
+   "partCount": 126,
+   "fastenerCount": 120,
+   "massKg": 1402.407,
+   "uniqueParts": 7
+  },
+  {
+   "id": "ARCH",
+   "name": "Spray arch",
+   "function": "Sprays the pre-soak foam, then the clear-water rinse.",
+   "how": [
+    "9 flat-fan nozzles each side and 5 across the top.",
+    "Solenoid valves switch the foam and the rinse water."
+   ],
+   "specs": {
+    "pressure": "up to 70 bar (nozzle rating)"
+   },
+   "group": "Tools",
+   "order": 3,
+   "partCount": 40,
+   "fastenerCount": 12,
+   "massKg": 83.219,
+   "uniqueParts": 5
+  },
+  {
+   "id": "TOPBRUSH",
+   "name": "Top brush (overhead)",
+   "function": "Washes the bonnet, the roof and the roof pod. It follows the car top.",
+   "how": [
+    "A geared motor turns the brush.",
+    "A lift drive on 2 rails lowers it until the motor current says it touches, then follows the shape."
+   ],
+   "specs": {
+    "brush": "718 mm, 1627 mm long"
+   },
+   "group": "Tools",
+   "order": 4,
+   "partCount": 62,
+   "fastenerCount": 50,
+   "massKg": 187.356,
+   "uniqueParts": 13
+  },
+  {
+   "id": "SIDEBRUSH",
+   "name": "Side brushes",
+   "function": "Wash the flanks, the doors and the wheels.",
+   "how": [
+    "Each brush hangs from a carriage on 2 rails under the beam.",
+    "A rack drive moves it in to the flank. A geared motor turns it."
+   ],
+   "specs": {
+    "brush": "861 mm, 2536 mm tall"
+   },
+   "group": "Tools",
+   "order": 5,
+   "partCount": 100,
+   "fastenerCount": 80,
+   "massKg": 314.075,
+   "uniqueParts": 13
+  },
+  {
+   "id": "DRYER",
+   "name": "Air knives (dryer)",
+   "function": "Blow the water off in the last 2 passes.",
+   "how": [
+    "A top knife follows the car top. 2 side knives close on the flanks.",
+    "3 blowers on the beam feed them through flexible ducts."
+   ],
+   "specs": {
+    "blowers": "top 4 kW, sides 2 x 3 kW (class)"
+   },
+   "group": "Tools",
+   "order": 6,
+   "partCount": 31,
+   "fastenerCount": 20,
+   "massKg": 340.804,
+   "uniqueParts": 7
+  },
+  {
+   "id": "WAND",
+   "name": "Detail vacuum wands",
+   "function": "Vacuum the cabin floor through the open doors on a detail seat.",
+   "how": [
+    "Each wand drops on a vertical slide outside its flank.",
+    "A horizontal slide reaches in through the door opening."
+   ],
+   "specs": {
+    "drop": "2.38 m",
+    "reach": "1.01 m"
+   },
+   "group": "Tools",
+   "order": 7,
+   "partCount": 20,
+   "fastenerCount": 8,
+   "massKg": 158.937,
+   "uniqueParts": 7
+  },
+  {
+   "id": "CONTROL",
+   "name": "Control, supply and signals",
+   "function": "Runs the program, and tells the car when to stop and when to go.",
+   "how": [
+    "A stainless control cabinet on the east leg holds the controller and the drives.",
+    "A stop light faces the arriving car: red while the program runs, green when the car may go.",
+    "A drag chain beside the east rail brings power, water, chemicals and air."
+   ],
+   "specs": {},
+   "group": "Control",
+   "order": 8,
+   "partCount": 83,
+   "fastenerCount": 8,
+   "massKg": 121.498,
+   "uniqueParts": 8
+  }
+ ],
+ "lines": [
+  {
+   "id": "WSH-RAIL",
+   "name": "Floor rail, galvanised steel channel",
+   "category": "structure",
+   "make": "make",
+   "standard": "welded profile",
+   "size": "153 x 67 x 8, 9666 long",
+   "grade": "S355J2",
+   "material": "Structural steel S355, hot-dip galvanised",
+   "materialKey": "steel_s355",
+   "qty": 2,
+   "massKg": 164.5593,
+   "totalMassKg": 329.1186,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries one side of the machine. The wheels run in its channel.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "RAILS",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-RPL",
+   "name": "Rail anchor plate 260 x 160 x 12",
+   "category": "structure",
+   "make": "make",
+   "standard": "cut plate",
+   "size": "260 x 160 x 12",
+   "grade": "S355J2",
+   "material": "Structural steel S355, hot-dip galvanised",
+   "materialKey": "steel_s355",
+   "qty": 20,
+   "massKg": 3.8897,
+   "totalMassKg": 77.7944,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Spreads the rail load into the slab. Grouted under.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "RAILS",
+     "qty": 20
+    }
+   ]
+  },
+  {
+   "id": "WSH-ANC",
+   "name": "Concrete screw anchor M12 x 100",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ETA option 1 anchor",
+   "size": "M12 x 100",
+   "grade": "",
+   "material": "Steel, zinc flake coated",
+   "materialKey": "fast_zn",
+   "qty": 40,
+   "massKg": 0.1109,
+   "totalMassKg": 4.4348,
+   "torqueNm": 60.0,
+   "reference": false,
+   "function": "Holds the anchor plate in the slab. No mortar: it cuts its own thread.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "RAILS",
+     "qty": 40
+    }
+   ]
+  },
+  {
+   "id": "WSH-TRL",
+   "name": "Trolley weldment",
+   "category": "structure",
+   "make": "make",
+   "standard": "EN 1090-2 EXC2",
+   "size": "478 x 263 x 2010",
+   "grade": "S355J2",
+   "material": "Structural steel S355, painted safety yellow",
+   "materialKey": "steel_yellow",
+   "qty": 2,
+   "massKg": 174.2474,
+   "totalMassKg": 348.4949,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries one leg on 2 wheels and the travel drive.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "TRAVEL",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-GRL",
+   "name": "Side guide roller 60 mm",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "D 60",
+   "grade": "",
+   "material": "Polyurethane, 90 Shore A",
+   "materialKey": "pu",
+   "qty": 8,
+   "massKg": 0.1221,
+   "totalMassKg": 0.9772,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Keeps the wheel centred in its rail.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "TRAVEL",
+     "qty": 8
+    }
+   ]
+  },
+  {
+   "id": "WSH-TGM",
+   "name": "Travel gearmotor 0.75 kW, helical-bevel, brake, encoder",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "0.75 kW, 4 pole",
+   "grade": "IP66, wash-down",
+   "material": "Structural steel S355, painted RAL 9005",
+   "materialKey": "steel_paint",
+   "qty": 2,
+   "massKg": 24.0,
+   "totalMassKg": 48.0,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Drives one wheel. The brake holds the machine still while it sprays.",
+   "spec": {
+    "output": "about 22 rpm",
+    "brake": "10 N m",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "TRAVEL",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-WHL",
+   "name": "Travel wheel 200 x 60, polyurethane on steel hub",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "D 200 x 60",
+   "grade": "92 Shore A",
+   "material": "Polyurethane, 90 Shore A",
+   "materialKey": "pu",
+   "qty": 4,
+   "massKg": 2.1813,
+   "totalMassKg": 8.7253,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Rolls in the rail channel. Quiet on wet steel.",
+   "spec": {
+    "load": "1,200 kg"
+   },
+   "uses": [
+    {
+     "sub": "TRAVEL",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "BRG-6210-2RS",
+   "name": "Deep groove ball bearing 6210-2RS",
+   "category": "bearing",
+   "make": "buy",
+   "standard": "ISO 15",
+   "size": "50 x 90 x 20",
+   "grade": "C3, sealed 2RS",
+   "material": "Bearing steel 100Cr6, hardened",
+   "materialKey": "bearing",
+   "qty": 4,
+   "massKg": 0.4755,
+   "totalMassKg": 1.9019,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the wheel on its axle.",
+   "spec": {
+    "bore": "50 mm"
+   },
+   "uses": [
+    {
+     "sub": "TRAVEL",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "ISO4017-M10x35-8.8",
+   "name": "Hex head screw M10 x 35",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4017",
+   "size": "M10 x 35",
+   "grade": "8.8",
+   "material": "Steel, zinc flake coated",
+   "materialKey": "fast_zn",
+   "qty": 8,
+   "massKg": 0.0325,
+   "totalMassKg": 0.2602,
+   "torqueNm": 49.0,
+   "reference": false,
+   "function": "Holds the travel gearmotor flange to the trolley.",
+   "spec": {
+    "preload": "29.6 kN",
+    "drive": "hex 16 mm"
+   },
+   "uses": [
+    {
+     "sub": "TRAVEL",
+     "qty": 8
+    }
+   ]
+  },
+  {
+   "id": "ISO4017-M12x50-8.8",
+   "name": "Hex head screw M12 x 50",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4017",
+   "size": "M12 x 50",
+   "grade": "8.8",
+   "material": "Steel, zinc flake coated",
+   "materialKey": "fast_zn",
+   "qty": 16,
+   "massKg": 0.0606,
+   "totalMassKg": 0.9697,
+   "torqueNm": 84.2,
+   "reference": false,
+   "function": "Holds the wheel axle block to the trolley.",
+   "spec": {
+    "preload": "43.1 kN",
+    "drive": "hex 18 mm"
+   },
+   "uses": [
+    {
+     "sub": "TRAVEL",
+     "qty": 16
+    }
+   ]
+  },
+  {
+   "id": "ISO7089-10-fast_zn",
+   "name": "Plain washer 10",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 7089",
+   "size": "10.5 x 20 x 2",
+   "grade": "200 HV",
+   "material": "Steel, zinc flake coated",
+   "materialKey": "fast_zn",
+   "qty": 8,
+   "massKg": 0.0036,
+   "totalMassKg": 0.0286,
+   "torqueNm": null,
+   "reference": false,
+   "function": "",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "TRAVEL",
+     "qty": 8
+    }
+   ]
+  },
+  {
+   "id": "WSH-BCV",
+   "name": "Beam top cover, aluminium 2 mm",
+   "category": "structure",
+   "make": "make",
+   "standard": "sheet",
+   "size": "6795 x 1962",
+   "grade": "5754-H22",
+   "material": "Aluminium 6063-T6 extrusion, anodised",
+   "materialKey": "al_extr",
+   "qty": 1,
+   "massKg": 71.9811,
+   "totalMassKg": 71.9811,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Keeps spray off the valves and blowers on the beam.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "PORTAL",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-BEAM",
+   "name": "Portal beam weldment",
+   "category": "structure",
+   "make": "make",
+   "standard": "EN 1090-2 EXC2",
+   "size": "6795 x 335 x 1962",
+   "grade": "S355J2",
+   "material": "Structural steel S355, painted safety yellow",
+   "materialKey": "steel_yellow",
+   "qty": 1,
+   "massKg": 616.7023,
+   "totalMassKg": 616.7023,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Spans the bay: 2 chords and 4 cross members. Every tool hangs at its own station along it, so none can meet another.",
+   "spec": {
+    "stations (z, mm)": "arch 766, wands 574, top brush 335, side brushes -287, air knives -909"
+   },
+   "uses": [
+    {
+     "sub": "PORTAL",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-LCL",
+   "name": "Leg cladding panel, aluminium 2 mm",
+   "category": "structure",
+   "make": "make",
+   "standard": "sheet",
+   "size": "1703 x 2892",
+   "grade": "5754-H22",
+   "material": "Aluminium 6063-T6 extrusion, anodised",
+   "materialKey": "al_extr",
+   "qty": 2,
+   "massKg": 26.5846,
+   "totalMassKg": 53.1691,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Covers the leg frame. It keeps spray out of the frame.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "PORTAL",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-LEG",
+   "name": "Portal leg weldment",
+   "category": "structure",
+   "make": "make",
+   "standard": "EN 1090-2 EXC2",
+   "size": "287 x 1723 x 2952",
+   "grade": "S355J2",
+   "material": "Structural steel S355, painted safety yellow",
+   "materialKey": "steel_yellow",
+   "qty": 2,
+   "massKg": 327.982,
+   "totalMassKg": 655.9641,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the beam over the trolley: 2 posts and 2 braces. Its flanges bolt top and bottom.",
+   "spec": {
+    "posts": "RHS 200 x 150 x 6",
+    "braces": "SHS 100 x 100 x 5"
+   },
+   "uses": [
+    {
+     "sub": "PORTAL",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "ISO4017-M16x60-8.8",
+   "name": "Hex head screw M16 x 60",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4017",
+   "size": "M16 x 60",
+   "grade": "8.8",
+   "material": "Steel, zinc flake coated",
+   "materialKey": "fast_zn",
+   "qty": 32,
+   "massKg": 0.1332,
+   "totalMassKg": 4.2625,
+   "torqueNm": 206.7,
+   "reference": false,
+   "function": "Bolts the leg flange to the trolley or the beam.",
+   "spec": {
+    "preload": "81.0 kN",
+    "drive": "hex 24 mm"
+   },
+   "uses": [
+    {
+     "sub": "PORTAL",
+     "qty": 32
+    }
+   ]
+  },
+  {
+   "id": "ISO7380-M5x12-A4-80",
+   "name": "Button head screw M5 x 12",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 7380-1",
+   "size": "M5 x 12",
+   "grade": "A4-80",
+   "material": "Stainless steel A4-80",
+   "materialKey": "fast_a4",
+   "qty": 40,
+   "massKg": 0.0026,
+   "totalMassKg": 0.1045,
+   "torqueNm": 4.8,
+   "reference": false,
+   "function": "Holds the beam cover to the chord.",
+   "spec": {
+    "drive": "hex socket 3 mm"
+   },
+   "uses": [
+    {
+     "sub": "PORTAL",
+     "qty": 40
+    }
+   ]
+  },
+  {
+   "id": "ISO7380-M6x16-A4-80",
+   "name": "Button head screw M6 x 16",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 7380-1",
+   "size": "M6 x 16",
+   "grade": "A4-80",
+   "material": "Stainless steel A4-80",
+   "materialKey": "fast_a4",
+   "qty": 48,
+   "massKg": 0.0046,
+   "totalMassKg": 0.2231,
+   "torqueNm": 8.0,
+   "reference": false,
+   "function": "Holds the cladding panel to the leg frame.",
+   "spec": {
+    "drive": "hex socket 4 mm"
+   },
+   "uses": [
+    {
+     "sub": "PORTAL",
+     "qty": 48
+    }
+   ]
+  },
+  {
+   "id": "NOZ-fan",
+   "name": "Flat-fan spray nozzle 1/4 in, 15 deg",
+   "category": "fluid",
+   "make": "buy",
+   "standard": "ISO 228-1 thread",
+   "size": "G 1/4",
+   "grade": "",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 23,
+   "massKg": 0.0155,
+   "totalMassKg": 0.3567,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Makes a 15 degree flat fan. Its tip is the only part that wears.",
+   "spec": {
+    "pressure": "up to 70 bar"
+   },
+   "uses": [
+    {
+     "sub": "ARCH",
+     "qty": 23
+    }
+   ]
+  },
+  {
+   "id": "WSH-ARC",
+   "name": "Spray arch manifold, 124 mm",
+   "category": "fluid",
+   "make": "make",
+   "standard": "EN 10217-7",
+   "size": "5359 x 3110",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 66.7402,
+   "totalMassKg": 66.7402,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the foam and the rinse water to the nozzles. Stainless: wash chemicals do not touch carbon steel.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "ARCH",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-VLV",
+   "name": "Solenoid valve G 1/2, 24 V DC, stainless",
+   "category": "fluid",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "G 1/2, 0-70 bar",
+   "grade": "IP65",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 4,
+   "massKg": 3.3805,
+   "totalMassKg": 13.5218,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Switches one chemical or the rinse water to the arch.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "ARCH",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M6x20-A4-80",
+   "name": "Socket head cap screw M6 x 20",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M6 x 20",
+   "grade": "A4-80",
+   "material": "Stainless steel A4-80",
+   "materialKey": "fast_a4",
+   "qty": 16,
+   "massKg": 0.0076,
+   "totalMassKg": 0.1218,
+   "torqueNm": 9.8,
+   "reference": false,
+   "function": "Holds the rail block to the hanger.",
+   "spec": {
+    "preload": "9.5 kN",
+    "drive": "hex socket 5 mm"
+   },
+   "uses": [
+    {
+     "sub": "ARCH",
+     "qty": 8
+    },
+    {
+     "sub": "TOPBRUSH",
+     "qty": 8
+    }
+   ]
+  },
+  {
+   "id": "WSH-UBT",
+   "name": "Pipe clamp M10, stainless",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "DIN 3570",
+   "size": "for 124 pipe",
+   "grade": "A4",
+   "material": "Stainless steel A4-80",
+   "materialKey": "fast_a4",
+   "qty": 4,
+   "massKg": 0.6349,
+   "totalMassKg": 2.5397,
+   "torqueNm": 25.0,
+   "reference": false,
+   "function": "Holds the arch pipe to its bracket.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "ARCH",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "WSH-THG",
+   "name": "Top brush hanger",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined weldment",
+   "size": "160 x 140",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 33.0056,
+   "totalMassKg": 66.0112,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Hangs the brush from its lift carriage.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "TOPBRUSH",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "BLK25",
+   "name": "Profile rail block size 25",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue part (ISO 12090-1 dims)",
+   "size": "size 25",
+   "grade": "preload Z1, wipers",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 6,
+   "massKg": 0.7203,
+   "totalMassKg": 4.3218,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Recirculating ball carriage. It runs on the rail and carries the moving stage.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "TOPBRUSH",
+     "qty": 2
+    },
+    {
+     "sub": "SIDEBRUSH",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "RAIL25-1600",
+   "name": "Profile rail size 25 x 1600",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue part (ISO 12090-1 dims)",
+   "size": "size 25, L 1600",
+   "grade": "precision grade",
+   "material": "Bearing steel 100Cr6, hardened",
+   "materialKey": "bearing",
+   "qty": 2,
+   "massKg": 5.4364,
+   "totalMassKg": 10.8728,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Hardened guide rail. It carries the block in a straight line with no play.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "TOPBRUSH",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-TBM",
+   "name": "Top brush gearmotor 0.75 kW, 135 rpm",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "0.75 kW",
+   "grade": "IP66, wash-down",
+   "material": "Structural steel S355, painted RAL 9005",
+   "materialKey": "steel_paint",
+   "qty": 1,
+   "massKg": 26.0,
+   "totalMassKg": 26.0,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Turns the top brush. Its current tells the lift how hard the brush presses.",
+   "spec": {
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "TOPBRUSH",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-TLM",
+   "name": "Top brush lift gearmotor 0.37 kW, brake",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "0.37 kW",
+   "grade": "IP66",
+   "material": "Structural steel S355, painted RAL 9005",
+   "materialKey": "steel_paint",
+   "qty": 1,
+   "massKg": 16.0,
+   "totalMassKg": 16.0,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Raises and lowers the top brush. Its brake holds it when power is off.",
+   "spec": {
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "TOPBRUSH",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-TSH",
+   "name": "Top brush shaft, stainless",
+   "category": "drive",
+   "make": "make",
+   "standard": "machined",
+   "size": "D 60 x 1907",
+   "grade": "",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 15.4883,
+   "totalMassKg": 15.4883,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the brush between its 2 bearings.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "TOPBRUSH",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-FBU",
+   "name": "Flanged bearing unit, 4-bolt, stainless, 60 mm",
+   "category": "bearing",
+   "make": "buy",
+   "standard": "ISO 3228",
+   "size": "bore 60",
+   "grade": "sealed, wash-down",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 4,
+   "massKg": 2.8248,
+   "totalMassKg": 11.2992,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries one end of a brush shaft.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "TOPBRUSH",
+     "qty": 2
+    },
+    {
+     "sub": "SIDEBRUSH",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-TBR",
+   "name": "Top brush, closed-cell foam strips",
+   "category": "tool",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "D 718 x 1627",
+   "grade": "",
+   "material": "Closed-cell PE foam strips, blue",
+   "materialKey": "brush_blue",
+   "qty": 1,
+   "massKg": 45.0,
+   "totalMassKg": 45.0,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Scrubs the car top. Foam strips do not hold grit, so they do not scratch the paint.",
+   "spec": {
+    "speed": "about 135 rpm",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "TOPBRUSH",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "ISO4017-M10x30-A4-70",
+   "name": "Hex head screw M10 x 30",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4017",
+   "size": "M10 x 30",
+   "grade": "A4-70",
+   "material": "Stainless steel A4-80",
+   "materialKey": "fast_a4",
+   "qty": 16,
+   "massKg": 0.0299,
+   "totalMassKg": 0.4789,
+   "torqueNm": 34.4,
+   "reference": false,
+   "function": "Holds the top brush gearmotor to its hanger.",
+   "spec": {
+    "preload": "20.8 kN",
+    "drive": "hex 16 mm"
+   },
+   "uses": [
+    {
+     "sub": "CONTROL",
+     "qty": 4
+    },
+    {
+     "sub": "TOPBRUSH",
+     "qty": 4
+    },
+    {
+     "sub": "SIDEBRUSH",
+     "qty": 8
+    }
+   ]
+  },
+  {
+   "id": "ISO4017-M12x40-A4-70",
+   "name": "Hex head screw M12 x 40",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4017",
+   "size": "M12 x 40",
+   "grade": "A4-70",
+   "material": "Stainless steel A4-80",
+   "materialKey": "fast_a4",
+   "qty": 16,
+   "massKg": 0.0526,
+   "totalMassKg": 0.8413,
+   "torqueNm": 59.2,
+   "reference": false,
+   "function": "Holds the bearing unit to the hanger.",
+   "spec": {
+    "preload": "30.3 kN",
+    "drive": "hex 18 mm"
+   },
+   "uses": [
+    {
+     "sub": "TOPBRUSH",
+     "qty": 8
+    },
+    {
+     "sub": "SIDEBRUSH",
+     "qty": 8
+    }
+   ]
+  },
+  {
+   "id": "ISO4017-M8x25-A4-70",
+   "name": "Hex head screw M8 x 25",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4017",
+   "size": "M8 x 25",
+   "grade": "A4-70",
+   "material": "Stainless steel A4-80",
+   "materialKey": "fast_a4",
+   "qty": 4,
+   "massKg": 0.0161,
+   "totalMassKg": 0.0644,
+   "torqueNm": 17.6,
+   "reference": false,
+   "function": "Holds the lift gearmotor to the beam.",
+   "spec": {
+    "preload": "13.1 kN",
+    "drive": "hex 13 mm"
+   },
+   "uses": [
+    {
+     "sub": "TOPBRUSH",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M6x25-A4-80",
+   "name": "Socket head cap screw M6 x 25",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M6 x 25",
+   "grade": "A4-80",
+   "material": "Stainless steel A4-80",
+   "materialKey": "fast_a4",
+   "qty": 26,
+   "massKg": 0.0087,
+   "totalMassKg": 0.2273,
+   "torqueNm": 9.8,
+   "reference": false,
+   "function": "Holds the lift rail to the beam face.",
+   "spec": {
+    "preload": "9.5 kN",
+    "drive": "hex socket 5 mm"
+   },
+   "uses": [
+    {
+     "sub": "TOPBRUSH",
+     "qty": 26
+    }
+   ]
+  },
+  {
+   "id": "WSH-SCG",
+   "name": "Side brush carriage",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined weldment",
+   "size": "300 x 300 x 160",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 22.2286,
+   "totalMassKg": 44.4572,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Runs on 2 rails under the beam and carries the brush, its motor and bearings.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SIDEBRUSH",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "RAIL25-1800",
+   "name": "Profile rail size 25 x 1800",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue part (ISO 12090-1 dims)",
+   "size": "size 25, L 1800",
+   "grade": "precision grade",
+   "material": "Bearing steel 100Cr6, hardened",
+   "materialKey": "bearing",
+   "qty": 4,
+   "massKg": 6.1086,
+   "totalMassKg": 24.4343,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Hardened guide rail. It carries the block in a straight line with no play.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SIDEBRUSH",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "WSH-SBM",
+   "name": "Side brush gearmotor 1.1 kW, 113 rpm",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "1.1 kW",
+   "grade": "IP66, wash-down",
+   "material": "Structural steel S355, painted RAL 9005",
+   "materialKey": "steel_paint",
+   "qty": 2,
+   "massKg": 31.0,
+   "totalMassKg": 62.0,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Turns one side brush. Its current tells the carriage how hard it presses.",
+   "spec": {
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "SIDEBRUSH",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-SRK",
+   "name": "Gear rack module 2, 20 x 20, stainless",
+   "category": "drive",
+   "make": "buy",
+   "standard": "DIN 867 tooth form",
+   "size": "1500 long",
+   "grade": "",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 4.788,
+   "totalMassKg": 9.576,
+   "torqueNm": null,
+   "reference": false,
+   "function": "The carriage pinion runs along it.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SIDEBRUSH",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-SSH",
+   "name": "Side brush shaft, stainless",
+   "category": "drive",
+   "make": "make",
+   "standard": "machined",
+   "size": "D 70 x 6 tube, 2796",
+   "grade": "",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 26.9176,
+   "totalMassKg": 53.8352,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Hangs the brush from its carriage.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SIDEBRUSH",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-SBRL",
+   "name": "Side brush, closed-cell foam strips",
+   "category": "tool",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "D 861 x 2536",
+   "grade": "",
+   "material": "Closed-cell PE foam strips, blue",
+   "materialKey": "brush_blue",
+   "qty": 1,
+   "massKg": 55.0,
+   "totalMassKg": 55.0,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Scrubs one flank, its doors and wheels.",
+   "spec": {
+    "speed": "about 113 rpm",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "SIDEBRUSH",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-SBRR",
+   "name": "Side brush, closed-cell foam strips",
+   "category": "tool",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "D 861 x 2536",
+   "grade": "",
+   "material": "Closed-cell PE foam strips, red",
+   "materialKey": "brush_red",
+   "qty": 1,
+   "massKg": 55.0,
+   "totalMassKg": 55.0,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Scrubs one flank, its doors and wheels.",
+   "spec": {
+    "speed": "about 113 rpm",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "SIDEBRUSH",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M6x16-A4-80",
+   "name": "Socket head cap screw M6 x 16",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M6 x 16",
+   "grade": "A4-80",
+   "material": "Stainless steel A4-80",
+   "materialKey": "fast_a4",
+   "qty": 20,
+   "massKg": 0.0067,
+   "totalMassKg": 0.1342,
+   "torqueNm": 9.8,
+   "reference": false,
+   "function": "Holds the rail block to the carriage.",
+   "spec": {
+    "preload": "9.5 kN",
+    "drive": "hex socket 5 mm"
+   },
+   "uses": [
+    {
+     "sub": "CONTROL",
+     "qty": 4
+    },
+    {
+     "sub": "SIDEBRUSH",
+     "qty": 16
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M6x30-A4-80",
+   "name": "Socket head cap screw M6 x 30",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M6 x 30",
+   "grade": "A4-80",
+   "material": "Stainless steel A4-80",
+   "materialKey": "fast_a4",
+   "qty": 48,
+   "massKg": 0.0099,
+   "totalMassKg": 0.4738,
+   "torqueNm": 9.8,
+   "reference": false,
+   "function": "Holds the side brush rail to the beam.",
+   "spec": {
+    "preload": "9.5 kN",
+    "drive": "hex socket 5 mm"
+   },
+   "uses": [
+    {
+     "sub": "SIDEBRUSH",
+     "qty": 48
+    }
+   ]
+  },
+  {
+   "id": "WSH-KBR",
+   "name": "Air knife bracket, stainless",
+   "category": "structure",
+   "make": "make",
+   "standard": "bent sheet 8 mm",
+   "size": "60 x 120",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 4,
+   "massKg": 0.6588,
+   "totalMassKg": 2.6353,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Hangs an air knife from its slide.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "DRYER",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "WSH-BLW",
+   "name": "Centrifugal blower 4 kW, wash-down",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "4 kW, 2 pole",
+   "grade": "IP55",
+   "material": "Structural steel S355, painted RAL 9005",
+   "materialKey": "steel_paint",
+   "qty": 3,
+   "massKg": 95.0,
+   "totalMassKg": 285.0,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Makes the drying air. The air leaves the knives at high speed.",
+   "spec": {
+    "class": "carwash dryer, 3-4 kW per fan",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "DRYER",
+     "qty": 3
+    }
+   ]
+  },
+  {
+   "id": "WSH-DDU",
+   "name": "Flexible duct, 380 x 160",
+   "category": "fluid",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "380 x 160",
+   "grade": "",
+   "material": "Hose, PVC with steel helix",
+   "materialKey": "hose",
+   "qty": 1,
+   "massKg": 0.6778,
+   "totalMassKg": 0.6778,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Feeds the top knife from its blower. It folds as the knife lifts.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "DRYER",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-DKS",
+   "name": "Side air knife, stainless",
+   "category": "tool",
+   "make": "make",
+   "standard": "made to order",
+   "size": "1172 tall",
+   "grade": "",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 14.7473,
+   "totalMassKg": 29.4947,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Blows the water off one flank.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "DRYER",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-DKT",
+   "name": "Top air knife, stainless",
+   "category": "tool",
+   "make": "make",
+   "standard": "made to order",
+   "size": "1818 long",
+   "grade": "",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 22.521,
+   "totalMassKg": 22.521,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Blows a sheet of air down over the car top. It follows the shape.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "DRYER",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "ISO4017-M10x30-8.8",
+   "name": "Hex head screw M10 x 30",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4017",
+   "size": "M10 x 30",
+   "grade": "8.8",
+   "material": "Steel, zinc flake coated",
+   "materialKey": "fast_zn",
+   "qty": 12,
+   "massKg": 0.0294,
+   "totalMassKg": 0.3533,
+   "torqueNm": 49.0,
+   "reference": false,
+   "function": "Holds the blower foot to the beam cover frame.",
+   "spec": {
+    "preload": "29.6 kN",
+    "drive": "hex 16 mm"
+   },
+   "uses": [
+    {
+     "sub": "DRYER",
+     "qty": 12
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M8x20-A4-80",
+   "name": "Socket head cap screw M8 x 20",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M8 x 20",
+   "grade": "A4-80",
+   "material": "Stainless steel A4-80",
+   "materialKey": "fast_a4",
+   "qty": 8,
+   "massKg": 0.0152,
+   "totalMassKg": 0.1218,
+   "torqueNm": 23.8,
+   "reference": false,
+   "function": "Holds the bracket to the air knife.",
+   "spec": {
+    "preload": "17.5 kN",
+    "drive": "hex socket 6 mm"
+   },
+   "uses": [
+    {
+     "sub": "DRYER",
+     "qty": 8
+    }
+   ]
+  },
+  {
+   "id": "WSH-WAR",
+   "name": "Wand reach tube, 52 mm",
+   "category": "structure",
+   "make": "make",
+   "standard": "EN 10217-7",
+   "size": "D 52",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 9.3885,
+   "totalMassKg": 18.7771,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Reaches in through the door opening to the cabin floor. It is the vacuum duct.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WAND",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-WS1",
+   "name": "Wand column stage 1 (sleeve), 110 x 110",
+   "category": "structure",
+   "make": "make",
+   "standard": "EN 10219",
+   "size": "1486 long",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 24.9083,
+   "totalMassKg": 49.8165,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Fixed through the beam. It guides the middle stage.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WAND",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-WS2",
+   "name": "Wand column stage 2, 92 x 92",
+   "category": "structure",
+   "make": "make",
+   "standard": "EN 10219",
+   "size": "1311 long",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 14.7352,
+   "totalMassKg": 29.4705,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Slides half the drop. A belt over its pulley drives stage 3.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WAND",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-WS3",
+   "name": "Wand column stage 3, 76 x 76",
+   "category": "structure",
+   "make": "make",
+   "standard": "EN 10219",
+   "size": "1311 long",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 12.0561,
+   "totalMassKg": 24.1122,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the reach slide at its foot.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WAND",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-WDM",
+   "name": "Wand drop servo gearmotor 0.4 kW, brake",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "0.4 kW",
+   "grade": "IP66",
+   "material": "Structural steel S355, painted RAL 9005",
+   "materialKey": "steel_paint",
+   "qty": 2,
+   "massKg": 7.5,
+   "totalMassKg": 15.0,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Drives stage 2 by a toothed belt. Its brake holds the column with power off.",
+   "spec": {
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "WAND",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-WHD",
+   "name": "Wand vacuum head with lamp",
+   "category": "tool",
+   "make": "make",
+   "standard": "moulded",
+   "size": "220 x 340",
+   "grade": "",
+   "material": "PA66-GF30",
+   "materialKey": "pa66",
+   "qty": 2,
+   "massKg": 10.8117,
+   "totalMassKg": 21.6234,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Vacuums the floor and lights it for the camera.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WAND",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M8x25-A4-80",
+   "name": "Socket head cap screw M8 x 25",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M8 x 25",
+   "grade": "A4-80",
+   "material": "Stainless steel A4-80",
+   "materialKey": "fast_a4",
+   "qty": 8,
+   "massKg": 0.0172,
+   "totalMassKg": 0.1378,
+   "torqueNm": 23.8,
+   "reference": false,
+   "function": "Clamps the wand mast under the beam.",
+   "spec": {
+    "preload": "17.5 kN",
+    "drive": "hex socket 6 mm"
+   },
+   "uses": [
+    {
+     "sub": "WAND",
+     "qty": 8
+    }
+   ]
+  },
+  {
+   "id": "ECHAIN-120x50",
+   "name": "Cable carrier link 120 x 50",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "inner 120 x 50, pitch 75",
+   "grade": "",
+   "material": "PA66-GF30",
+   "materialKey": "pa66",
+   "qty": 70,
+   "massKg": 0.0546,
+   "totalMassKg": 3.8198,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Guides the cables and hoses through the moving joint. It keeps the bend radius safe.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "CONTROL",
+     "qty": 70
+    }
+   ]
+  },
+  {
+   "id": "WSH-BCN",
+   "name": "Status beacon",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "D 250",
+   "grade": "IP66",
+   "material": "LED module, PC diffuser",
+   "materialKey": "led",
+   "qty": 1,
+   "massKg": 19.9931,
+   "totalMassKg": 19.9931,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Teal at home, green working, amber moving.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "CONTROL",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-CAB",
+   "name": "Control cabinet, stainless, IP66",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "EN 62208",
+   "size": "800 x 600 x 300",
+   "grade": "IP66",
+   "material": "Stainless steel 1.4301 (304)",
+   "materialKey": "ss304",
+   "qty": 1,
+   "massKg": 85.0,
+   "totalMassKg": 85.0,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Holds the controller, 8 drives, the safety relay and the valve outputs. It talks to the twin over the site network.",
+   "spec": {
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "CONTROL",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-LMG",
+   "name": "Signal lamp, green, 100 mm",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "EN 12368",
+   "size": "D 100",
+   "grade": "",
+   "material": "LED module, green",
+   "materialKey": "led_green",
+   "qty": 1,
+   "massKg": 0.0724,
+   "totalMassKg": 0.0724,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Green: the machine is home. The car may go.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "CONTROL",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-LMR",
+   "name": "Signal lamp, red, 100 mm",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "EN 12368",
+   "size": "D 100",
+   "grade": "",
+   "material": "LED module, red",
+   "materialKey": "led_red",
+   "qty": 1,
+   "massKg": 0.0724,
+   "totalMassKg": 0.0724,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Red: the program runs. The car must not move.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "CONTROL",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-STL",
+   "name": "Stop light housing",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "220 x 120",
+   "grade": "IP66",
+   "material": "Structural steel S355, painted RAL 9005",
+   "materialKey": "steel_paint",
+   "qty": 1,
+   "massKg": 12.394,
+   "totalMassKg": 12.394,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Faces the arriving car. It tells the car and its driver to stop or go.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "CONTROL",
+     "qty": 1
+    }
+   ]
+  }
+ ],
+ "notes": {}
+}
