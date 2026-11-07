@@ -119,8 +119,9 @@ function partIdOf(m: THREE.Object3D): string | null {
 export function buildDepotCad(robot: RobotKey, scene: THREE.Object3D, opts: DepotCadOptions = {}): DepotCad {
   const exclude = opts.exclude ?? (() => false);
   const own = opts.ownSegment ?? (() => false);
-  // a part's shadow reads at the yard's distances when the part is a hand's width or more; smaller ones only cost
-  const shadowMin = opts.shadowMinM ?? 0.3;
+  // a part's shadow reads at the yard's distances when the part is half a metre or more (a link, a casting, a column);
+  // smaller ones only cost the shadow pass
+  const shadowMin = opts.shadowMinM ?? 0.5;
   const lights: Readonly<Record<string, number>> = opts.lights ?? { led: 0 };
   scene.updateMatrixWorld(true);
 
