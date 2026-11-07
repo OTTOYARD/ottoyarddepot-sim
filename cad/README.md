@@ -27,6 +27,10 @@ Outputs go to `public/cad/` (the twin's Robotics tab reads them):
 - `<robot>.bom.json`, `<robot>.bom.csv` — the bill of materials: every part to the last washer, with quantity,
   standard, size, grade, material, mass (from the solid's volume x density, or a catalogue mass for a bought assembly
   drawn as its envelope), tightening torque for every screw (VDI 2230), function, and where it is used.
+- `<robot>.depot.glb` — the depot model the twin's 3D yard draws the robot from: the parts you can see from the yard
+  (no fasteners, bearings, seals or parts inside an actuator, nothing under 30 mm), tessellated coarse, a few drawn as
+  their outline (`PartDef.depot`), with the same joints. `src/lib/robotics/cadYard.test.ts` holds it to the car, the
+  doors, the cabinet and the wash hall at the twin's poses; run it after a CAD change.
 - `manifest.json` — the list of robots, files, sizes, totals and each STEP's re-import check.
 
 Before it publishes a STEP the build re-imports it: every placed part must come back as a named solid and every solid

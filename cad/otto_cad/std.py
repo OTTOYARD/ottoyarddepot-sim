@@ -641,13 +641,13 @@ def _block_shape(size: int) -> cq.Shape:
 def rail(size: int, L: float) -> PartDef:
     return PartDef(f'RAIL{size}-{L:g}', f'Profile rail size {size} x {L:g}', _rail_shape(size, L), 'bearing', 'drive',
                    'catalogue part (ISO 12090-1 dims)', f'size {size}, L {L:g}', 'precision grade', None,
-                   'Hardened guide rail. It carries the block in a straight line with no play.', {}, 'buy')
+                   'Hardened guide rail. It carries the block in a straight line with no play.', {}, 'buy', depot='box')
 
 
 def rail_block(size: int) -> PartDef:
     return PartDef(f'BLK{size}', f'Profile rail block size {size}', _block_shape(size), 'steel', 'drive',
                    'catalogue part (ISO 12090-1 dims)', f'size {size}', 'preload Z1, wipers', None,
-                   'Recirculating ball carriage. It runs on the rail and carries the moving stage.', {}, 'buy')
+                   'Recirculating ball carriage. It runs on the rail and carries the moving stage.', {}, 'buy', depot='box')
 
 
 # ════════════════════════════════════════════════════════════ belts, pulleys ═══
@@ -661,15 +661,18 @@ def _pulley_shape(z: int, pitch: float, w: float, bore: float) -> cq.Shape:
             .extrude(w / 2, both=True))
     fl = cq.Workplane('XZ').circle(od / 2 + pitch * 0.6).extrude(1.0, both=True)
     body = body.union(fl.translate((0, w / 2 + 1, 0))).union(fl.translate((0, -w / 2 - 1, 0)))
-    hub = cq.Workplane('XZ').circle(bore * 1.0 + 6).extrude(w / 2 + 6, both=True)
-    return body.union(hub).cut(cq.Workplane('XZ').circle(bore / 2).extrude(w, both=True)).val()
+    # the boss either side of the teeth: inside the tooth root, so a small pulley's boss does not stand in its belt
+    hub_r = max(bore / 2 + 2, min(bore * 1.0 + 6, od / 2 - pitch * 0.38 - 1))
+    hub = cq.Workplane('XZ').circle(hub_r).extrude(w / 2 + 6, both=True)
+    return body.union(hub).cut(cq.Workplane('XZ').circle(bore / 2).extrude(w / 2 + 7, both=True)).val()
 
 
 def pulley(z: int, pitch: float, w: float, bore: float) -> PartDef:
     prof = f'HTD {pitch:g}M'
     return PartDef(f'PUL-{prof.replace(" ", "")}-{z}T-{w:g}', f'Timing pulley {prof} {z}T, {w:g} mm belt',
                    _pulley_shape(z, pitch, w, bore), 'al6061', 'drive', 'ISO 13050', f'{z} teeth, {prof}',
-                   '', None, 'Drives the toothed belt with no slip.', {'pitch diameter': f'{z * pitch / math.pi:.1f} mm'}, 'buy')
+                   '', None, 'Drives the toothed belt with no slip.', {'pitch diameter': f'{z * pitch / math.pi:.1f} mm'}, 'buy',
+                   depot='cyl_y')
 
 
 @lru_cache(maxsize=None)
@@ -727,7 +730,7 @@ def _chain_link_shape(w: float, h: float, pitch: float) -> cq.Shape:
 def chain_link(w: float, h: float, pitch: float) -> PartDef:
     return PartDef(f'ECHAIN-{w:g}x{h:g}', f'Cable carrier link {w:g} x {h:g}', _chain_link_shape(w, h, pitch), 'pa66',
                    'electrical', 'catalogue part', f'inner {w:g} x {h:g}, pitch {pitch:g}', '', None,
-                   'Guides the cables and hoses through the moving joint. It keeps the bend radius safe.', {}, 'buy')
+                   'Guides the cables and hoses through the moving joint. It keeps the bend radius safe.', {}, 'buy', depot='box')
 
 
 @lru_cache(maxsize=None)

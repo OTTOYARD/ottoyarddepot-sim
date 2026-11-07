@@ -117,9 +117,14 @@ def build(spec: dict) -> Model:
                      'Acetal wear pads guide each stage. A brake holds it when power is off.'],
                 specs={'stroke': f'{2 * (stage - overlap) / 1000:.2f} m', 'stages': '160, 125, 95 mm square'}, group='Motion')
     m.subsystem('WRIST', 'J4 wrist pitch', 'Tilts the wand from level to hanging down, and into the door opening.',
-                how=['A size 20 actuator beside the hub turns it.',
-                     'The vacuum crosses the joint through the hub\'s hollow stub and a swivel on the fork, on the joint\'s axis.'],
-                specs={'gear': 'strain-wave, size 20, 100:1', 'range': '-90 to +45 degrees'}, group='Joints')
+                how=['A size 17 strain-wave gear unit in the fork turns the hub. Its servo motor stands behind the hub and drives '
+                     'it by a toothed belt (2:1).',
+                     'The vacuum crosses the joint on its axis: through the hub\'s hollow stub and a swivel on the other cheek, then '
+                     'up a duct through the fork into the mast.',
+                     'Nothing on the wrist stands more than 95 mm along the axis from the pivot: the twin keeps the pivot 0.20 m '
+                     'off the car, and the wrist keeps 0.10 m.'],
+                specs={'gear': 'strain-wave unit, size 17, 100:1, belt 2:1', 'motor': '200 W servo, brake, encoder (class)',
+                       'range': '-90 to +45 degrees'}, group='Joints')
     m.subsystem('WAND', 'Telescoping vacuum wand', 'Reaches into the cabin through the open door. The wand is the vacuum duct.',
                 how=['3 tubes slide inside the base tube and each other on lip seals. The air flows inside them.',
                      'An electric linear drive moves tube 2; cables over pulleys move tubes 3 and 4 with it, a third of the reach each.',
@@ -132,7 +137,8 @@ def build(spec: dict) -> Model:
     m.subsystem('VAC', 'Vacuum and air supply', 'Brings vacuum and compressed air from the canopy plant to the nozzle.',
                 how=['A central vacuum producer on each canopy (about 3 kW per working arm, 30 kPa class) serves its arms.',
                      'A riser pipe and the link hoses bring the flow to the J3 swivel; the mast stages are the duct down to the '
-                     'wrist; a hose to the swivel on the wrist fork, the hub and the wand carry it to the nozzle. '
+                     'wrist; a passage through the wrist fork, a short duct and the swivel on the fork, the hub and the wand carry '
+                     'it to the nozzle. '
                      'A 6 mm line carries the air.'],
                 specs={'hose': 'PU, 50 mm, steel helix', 'airflow': 'about 400 m3/h per producer (class)'}, group='Supply')
     m.subsystem('STATUS', 'Status lights', 'Show the arm state to the site and to the camera.',
@@ -432,20 +438,50 @@ def build(spec: dict) -> Model:
                                           {}, 'buy')), loc(45, 0, sz * zc), (0, 0, sz * 60), 'MAST')
 
     # ═══════════════════════════════════════════════════════════════ WRIST ═══
+    # J4 pitches the wand about Z at the pivot, pbf under the inner stage's foot. The twin holds the pivot 0.20 m off the
+    # car in every working pose, and every part but the wand must keep 0.10 m off the car and the open doors: so the
+    # wrist lives in about +/-95 mm along the pitch axis, 55 mm in front of the pivot and 95 mm behind it, for the
+    # whole cycle (design finding 9: a size 20 actuator ON the axis stood 0.25 m out along it, and at an oblique reach
+    # it went 47 mm into the car's outline and 19 mm from an open door). So the drive splits: a size 17 strain-wave gear
+    # unit sits in the fork's -Z cheek on the axis, and its servo motor stands behind the hub, parallel to the axis,
+    # driving the unit's input by a 2:1 toothed belt. The vacuum crosses the joint on its axis on the +Z side: the hub's
+    # hollow stub, a swivel on that cheek, and a duct up into a passage through the fork to the mast, which is the duct.
     yp = -oB - pbf                                 # the pitch pivot (MAST3 frame)
-    s20 = SIZES[20]
-    hub_w, hub_od = 110.0, 2 * A['wrist']['r'] * M
-    plate_z = hub_w / 2 + 14
+    hub_w, hub_od = 76.0, 2 * A['wrist']['r'] * M  # the hub: just wider than the wand's 68 mm base tube
+    c_in, c_t = hub_w / 2 + 10, 12.0               # each cheek's inner face from the pivot, and its thickness
+    c_out = c_in + c_t
+    yb0 = -oB - 30                                 # the fork's top block: its underside (70 mm over the pivot)
+    mx_, my_ = -75.0, yp + 45.0                    # the J4 motor's axis: behind and over the hub, 2.5 mm off it
+    z_d = 76.5                                     # the vacuum duct's axis (+Z), from the pivot
+    r_d = 18.0                                     # the duct: 36 x 3
+
+    def cheek(z0: float, z1: float, back: bool) -> cq.Workplane:
+        """A fork cheek between z0 and z1: round under the pivot, up to the top block; the -Z one runs back to carry
+        the motor."""
+        c = (cq.Workplane('XY').circle(50).extrude(z1 - z0).translate((0, yp, z0))
+             .union(cq.Workplane('XY').box(100, yb0 - yp + 1, z1 - z0, centered=(True, False, False)).translate((0, yp, z0))))
+        if back:
+            c = c.union(cq.Workplane('XY').box(97, yb0 - (my_ - 24) + 1, z1 - z0, centered=(False, False, False))
+                        .translate((-97, my_ - 24, z0)))
+        return c
+
     fork = (cq.Workplane('XY').box(s2 + 20, 30, s2 + 20).translate((0, -oB - 15, 0))
-            .union(cq.Workplane('XY').box(130, pbf + 70, 14).translate((0, yp + 15, plate_z + 7)))
-            .union(cq.Workplane('XY').box(130, pbf + 70, 14).translate((0, yp + 15, -plate_z - 7)))
-            .union(cq.Workplane('XY').box(130, 24, 2 * plate_z + 28).translate((0, -oB - 30 + 12, 0)))
-            .union(cq.Workplane('YZ', origin=(-(s2 + 20) / 2 + 1, -oB - 23, 0)).circle(22).extrude(-(95 - (s2 + 20) / 2 + 1)))
-            .cut(cq.Workplane('XY').circle(s20.od / 2).extrude(40).translate((0, yp, -plate_z - 20)))
-            .cut(cq.Workplane('XY').circle(36).extrude(40).translate((0, yp, plate_z - 10))))     # the stub bearing's seat (61910)
+            .union(cq.Workplane('XY').box(2 * (r_d + 4), 30, z_d + r_d + 2 - (s2 + 20) / 2 + 1, centered=(True, True, False))
+                   .translate((0, -oB - 15, (s2 + 20) / 2 - 1)))                            # the duct's boss, +Z
+            .union(cheek(-c_out, -c_in, True))
+            .union(cheek(c_in, c_out, False)))
+    fork = (fork.cut(cq.Workplane('XY').circle(37).extrude(c_t + 2).translate((0, yp, -c_out - 1)))   # the gear unit's bore
+            .cut(cq.Workplane('XY').circle(21).extrude(c_t + 2).translate((mx_, my_, -c_out - 1)))    # the motor's
+            .cut(cq.Workplane('XY').circle(36).extrude(c_t + 2).translate((0, yp, c_in - 1)))         # the stub bearing's seat
+            .cut(cq.Workplane('XZ', origin=(0, yb0 + 1, z_d)).circle(r_d + 0.5).extrude(yb0 + 1 - (yp + 38)))   # the duct past the cheek
+            # the vacuum passage: up out of the duct, along -Z over the block's middle, and up into the inner stage
+            .cut(cq.Workplane('XZ', origin=(0, yb0 + 18, z_d)).circle(r_d - 3).extrude(19))
+            .cut(cq.Workplane('XY').box(2 * (r_d - 3), 2 * (r_d - 3), z_d, centered=(True, True, False)).translate((0, yb0 + 18, 0)))
+            .cut(cq.Workplane('XZ', origin=(0, -oB + 1, 0)).circle(r_d - 3).extrude(13)))
     m.place(mast3, m.part(PartDef('CLN-FRK', 'Wrist fork', fork.val(), 'al6061', 'structure', 'machined from billet',
-                                  f'{2 * plate_z + 28:.0f} wide', '6061-T6', None,
-                                  'Hangs from the inner stage foot. It holds the J4 actuator on one side and a support bearing on the other.',
+                                  f'{2 * c_out:.0f} wide', '6061-T6', None,
+                                  'Hangs from the inner stage foot. Its cheeks carry the J4 gear unit and motor on one side and the '
+                                  'stub bearing and the swivel on the other; the vacuum passes through it into the mast.',
                                   {}, 'make')), Location(), (0, -40, 0), 'WRIST')
     for p in ((-46, -25), (46, -25), (-46, 25), (46, 25)):          # up into the inner stage's walls, clear of the hub
         m.place(mast3, std.shcs(6, 45, '12.9', 'Holds the wrist fork to the inner stage foot.'),
@@ -453,54 +489,83 @@ def build(spec: dict) -> Model:
     pitch = mast3.child('CA_Pitch', loc(0, yp, 0), sub='WRIST',
                         joint={'name': 'CA_Pitch', 'axis': [0, 0, 1], 'limits': A['limits']['pitch'], 'kind': 'revolute',
                                'stowed': home['pitch']})
-    # J4: module +Y -> world +Z, so its output faces the hub; an adapter flange (12 mm) between them
-    t_ad = 12.0
-    Tm4 = loc(0, 0, -hub_w / 2 - t_ad, rx=90)
-    build_actuator(m, mast3, pitch, 20, loc(0, yp, 0), Tm4, 'CLN-J4', 'WRIST', gland_m=16)
-    r_fl = out_flange_points(20)[0][0]
-    # the vacuum: from the wand into the hub's bore, round a right angle and out along the J4 axis through the hollow
-    # stub on the free side, into a swivel on the fork (a hose loop to the wand was swept through by the wand itself)
-    stub_ext = 30.0                                      # the stub's length past the fork plate, into the swivel
+    # the hub: the wand's bore (blind), tube 1's socket, the passage to the stub, the stub through the +Z cheek
+    stub_end = c_out + 3 + 20                      # the stub ends inside the swivel, short of its closed end
     hubp = (cq.Workplane('XY').circle(hub_od / 2).extrude(hub_w).translate((0, 0, -hub_w / 2))
             .cut(cq.Workplane('YZ', origin=(-22, 0, 0)).circle(wr2 + 1.5).extrude(hub_od))          # the wand bore, blind
             .cut(cq.Workplane('YZ', origin=(hub_od / 2 - 4, 0, 0)).circle(wr).extrude(10))       # tube 1's socket
-            .cut(cq.Workplane('XY', origin=(0, 0, -hub_w / 2 - 1)).circle(r_fl + 7).circle(r_fl - 7).extrude(8))   # adapter screw heads
-            .union(cq.Workplane('XY').circle(25).circle(20).extrude(plate_z + 14 - hub_w / 2 + stub_ext).translate((0, 0, hub_w / 2)))
+            .union(cq.Workplane('XY').circle(25).circle(20).extrude(stub_end - hub_w / 2).translate((0, 0, hub_w / 2)))
             .cut(cq.Workplane('XY').circle(20).extrude(hub_w / 2 + 1)))                           # the passage to the stub
     m.place(pitch, m.part(PartDef('CLN-HUB', 'Wrist hub', hubp.val(), 'al6061', 'structure', 'machined', f'OD {hub_od:.0f} x {hub_w:.0f}',
                                   '7075-T6', None, 'Turns on J4 and carries the wand. The air leaves through its hollow stub.', {}, 'make')),
             Location(), (0, 0, 40), 'WRIST')
-    m.place(mast3, std.ball_bearing('61910', 'Supports the hub\'s hollow stub on the free side of the fork.'),
-            loc(0, yp, plate_z + 7, rx=90), (0, 0, 90), 'WRIST')
+    # J4: the gear unit's output flange on the hub's -Z face; its housing through the -Z cheek, flanged on its face
+    out = cq.Workplane('XY').circle(50).circle(12).extrude(5).translate((0, 0, -hub_w / 2 - 5))
+    m.place(pitch, m.part(PartDef('CLN-J4-GO', 'J4 gear unit output flange', out.val(), 'steel', 'drive', 'catalogue part', 'OD 100 x 5',
+                                  '', None, 'The gear unit\'s turning flange: it carries the hub.', {}, 'buy')),
+            Location(), (0, 0, -60), 'WRIST')
+    for k in range(6):
+        a_ = math.radians(30 + 60 * k)
+        m.place(pitch, std.shcs(4, 12, '12.9', 'Holds the hub to the J4 gear unit\'s output flange.'),
+                std.orient((44 * math.cos(a_), 44 * math.sin(a_), -hub_w / 2 - 5), (0, 0, 1)), (0, 0, -80), 'WRIST')
+    gu = (cq.Workplane('XY').circle(36).extrude(76 - (hub_w / 2 + 6)).translate((0, yp, -76))
+          .union(cq.Workplane('XY').circle(45).extrude(6).translate((0, yp, -c_out - 6)))
+          .union(cq.Workplane('XY').circle(8).extrude(22).translate((0, yp, -98))))          # the input shaft, through the pulley
+    m.place(mast3, m.part(PartDef('CLN-J4-GU', 'J4 strain-wave gear unit, size 17, 100:1, with output bearing', gu.val(), 'steel_paint',
+                                  'drive', 'catalogue part', 'OD 72 x 38', 'unit type, hollow output', None,
+                                  'Turns the hub 100 times slower than its input pulley. Its cross-roller bearing carries the wand.',
+                                  {'ratio': '100:1', 'size': '17'}, 'buy', mass_override=0.9)), Location(), (0, 0, -120), 'WRIST')
+    for k in range(6):
+        a_ = math.radians(60 * k)
+        m.place(mast3, std.shcs(4, 12, '12.9', 'Holds the J4 gear unit\'s housing flange to the fork cheek.'),
+                std.orient((41 * math.cos(a_), yp + 41 * math.sin(a_), -c_out - 6), (0, 0, 1)), (0, 0, -140), 'WRIST')
+    # the motor: a 40 mm frame servo with brake and encoder, flanged on the -Z cheek's face, its body behind the hub
+    mot_l = 100.0
+    motor = (cq.Workplane('XY').rect(40, 40).extrude(6).edges('|Z').fillet(4).translate((mx_, my_, -c_out - 6))
+             .union(cq.Workplane('XY').circle(20).extrude(mot_l).translate((mx_, my_, -c_out)))
+             .union(cq.Workplane('XY').circle(4).extrude(98 - c_out - 6).translate((mx_, my_, -98))))
+    m.place(mast3, m.part(PartDef('CLN-J4-MOT', 'J4 servo motor 200 W, 40 mm frame, brake and encoder', motor.val(), 'steel_paint', 'drive',
+                                  'catalogue part', '40 x 40 x 106', 'IP65', None,
+                                  'Drives the J4 gear unit by the belt. Its brake holds the wand with power off.',
+                                  {'class': '200 W, 0.64 N m continuous, 48 V DC'}, 'buy', mass_override=0.8)), Location(), (-120, 60, -60), 'WRIST')
+    for (dx, dy) in ((-15, -15), (15, -15), (-15, 15), (15, 15)):
+        m.place(mast3, std.shcs(4, 12, '12.9', 'Holds the J4 motor flange to the fork cheek.'),
+                std.orient((mx_ + dx, my_ + dy, -c_out - 6), (0, 0, 1)), (-120, 60, -90), 'WRIST')
+    # the belt: 2:1 from the motor's 20T pulley to the unit's 40T input pulley, in the plane 87 mm out
+    zb = -87.0
+    T_belt = loc(0, yp, zb) * Location(Vector(0, 0, 0), Vector(0, 0, 1), math.degrees(math.atan2(my_ - yp, mx_))) \
+        * Location(Vector(0, 0, 0), Vector(1, 0, 0), 90)
+    m.place(mast3, std.pulley(40, 3, 9, 16), loc(0, yp, zb, rx=90), (0, 0, -160), 'WRIST')
+    m.place(mast3, std.pulley(20, 3, 9, 8), loc(mx_, my_, zb, rx=90), (-120, 60, -160), 'WRIST')
+    m.place(mast3, std.belt(3, 9, math.hypot(mx_, my_ - yp), 40 * 3 / math.pi, 20 * 3 / math.pi,
+                            'Drives the J4 gear unit from its motor, 2:1.'), T_belt, (-60, 30, -180), 'WRIST')
+    # the stub bearing in the +Z cheek, and the ring that holds the stub in it
+    m.place(mast3, std.ball_bearing('61910', 'Supports the hub\'s hollow stub in the fork\'s +Z cheek.'),
+            loc(0, yp, c_in + 6, rx=90), (0, 0, 90), 'WRIST')
     s_cl = 1.75
-    m.place(pitch, std.circlip(50, False), std.orient((0, 0, plate_z + 13 + s_cl), (0, 0, 1)), (0, 0, 110), 'WRIST')
-    # the wrist swivel: a flanged housing on the fork plate's outer face round the stub, a radial port toward -X
-    z_f = plate_z + 14                                   # the fork plate's outer face
-    zu = z_f + 24                                        # the port's axis
-    swv = (cq.Workplane('XY').circle(52).extrude(8).translate((0, yp, z_f))
-           .union(cq.Workplane('XY').circle(40).extrude(40).translate((0, yp, z_f)))
-           .union(cq.Workplane('YZ', origin=(-62, yp, zu)).circle(18.6).extrude(30))      # the port spigot: the hose's bore
-           .cut(cq.Workplane('XY').circle(25).extrude(stub_ext + 2).translate((0, yp, z_f - 1)))
-           .cut(cq.Workplane('YZ', origin=(-63, yp, zu)).circle(14).extrude(50))
-           .cut(cq.Workplane('XY').pushPoints([(46 * math.cos(math.radians(a)), yp + 46 * math.sin(math.radians(a)))
-                                               for a in (45, 135, 225, 315)]).circle(2.75).extrude(9).translate((0, 0, z_f - 0.5))))
-    m.place(mast3, m.part(PartDef('CLN-WSW', 'Wrist vacuum swivel, 50 mm', swv.val(), 'al6061', 'fluid', 'machined', 'OD 104 x 40',
-                                  'lip-sealed', None, 'Lets the hub\'s stub turn while the vacuum flows through it to the hose.',
+    m.place(pitch, std.circlip(50, False), std.orient((0, 0, c_out + 1 + s_cl), (0, 0, 1)), (0, 0, 110), 'WRIST')
+    # the wrist swivel: on a spigot ring against the +Z cheek, round the stub, its port up into the duct
+    z0s, z1s = c_out + 3, c_out + 26
+    swv = (cq.Workplane('XY').circle(36).extrude(z1s - z0s).translate((0, yp, z0s))
+           .union(cq.Workplane('XY').circle(36).circle(32).extrude(3).translate((0, yp, c_out)))             # the spigot ring
+           .union(cq.Workplane('XY').box(40, 38, z1s - z0s, centered=(True, False, False)).translate((0, yp, z0s)))   # the port boss
+           .cut(cq.Workplane('XY').circle(25.5).extrude(z1s - z0s - 3).translate((0, yp, z0s)))            # the bore, blind
+           .cut(cq.Workplane('XZ', origin=(0, yp + 39, z_d)).circle(r_d - 3).extrude(39)))                  # the port, up
+    for a_ in (45, 135, 225, 315):
+        swv = swv.cut(cq.Workplane('XY').circle(2.75).extrude(z1s - c_out + 1)
+                      .translate((30 * math.cos(math.radians(a_)), yp + 30 * math.sin(math.radians(a_)), c_out - 0.5)))
+    m.place(mast3, m.part(PartDef('CLN-WSW', 'Wrist vacuum swivel, 50 mm', swv.val(), 'al6061', 'fluid', 'machined', 'OD 72 x 26',
+                                  'lip-sealed', None, 'Lets the hub\'s stub turn while the vacuum flows through it to the duct.',
                                   {}, 'make')), Location(), (0, 0, 140), 'VAC')
-    for a in (45, 135, 225, 315):
-        m.place(mast3, std.shcs(5, 16, 'A2-70', 'Holds the wrist swivel to the fork plate.'),
-                std.orient((46 * math.cos(math.radians(a)), yp + 46 * math.sin(math.radians(a)), z_f + 8), (0, 0, -1)),
+    for a_ in (45, 135, 225, 315):
+        m.place(mast3, std.shcs(5, 30, 'A2-70', 'Holds the wrist swivel to the fork cheek.'),
+                std.orient((30 * math.cos(math.radians(a_)), yp + 30 * math.sin(math.radians(a_)), z1s), (0, 0, -1)),
                 (0, 0, 170), 'VAC')
-    adp = (cq.Workplane('XY', origin=(0, 0, -hub_w / 2 - t_ad)).circle(60).circle(10).extrude(t_ad))
-    m.place(pitch, m.part(PartDef('CLN-HAF', 'J4 hub adapter flange', adp.val(), 'al6061', 'structure', 'machined', f'OD 120 x {t_ad:g}',
-                                  '7075-T6', None, 'Joins the hub to the J4 output flange: its screws are reachable from outside.',
-                                  {}, 'make')), Location(), (0, 0, -60), 'WRIST')
-    for p in out_flange_points(20):          # adapter to the output flange, heads in the hub's face groove
-        m.place(pitch, std.shcs(6, 20, '12.9', 'Holds the adapter flange to the J4 output flange.'),
-                std.orient((p[0], -p[2], -hub_w / 2), (0, 0, -1)), (0, 0, -90), 'WRIST')
-    for p in std.circle_points(6, 50, 'y', start=30):  # adapter to the hub, from outside
-        m.place(pitch, std.bhcs(6, 25, '10.9', 'Holds the hub to its adapter flange.'),
-                std.orient((p[0], -p[2], -hub_w / 2 - t_ad), (0, 0, 1)), (0, 0, -110), 'WRIST')
+    duct = cq.Workplane('XZ', origin=(0, yb0, z_d)).circle(r_d).circle(r_d - 3).extrude(yb0 - (yp + 38))
+    m.place(mast3, m.part(PartDef('CLN-WDU', 'Wrist vacuum duct, 36 x 3', duct.val(), 'al6061', 'fluid', 'drawn tube',
+                                  f'{yb0 - yp - 38:.0f} long', '6063-T6', None,
+                                  'Joins the swivel to the fork\'s passage up into the mast. Bonded at both ends.', {}, 'make')),
+            Location(), (0, 0, 160), 'VAC')
 
     # ═══════════════════════════════════════════════════════════════ WAND ═══
     # 3 sliding tubes, a third of the reach each: retracted, all of them lie inside the base tube, in front of the hub.
@@ -581,14 +646,4 @@ def build(spec: dict) -> Model:
         m.place(noz, std.shcs(3, 10, 'A2-70', 'Holds the air knife to the head.'), std.orient((xk, yk + 8, zz), (0, -1, 0)),
                 (90, 80, 0), 'NOZZLE')
 
-    # ═════════════════════════════════════════════════════════════ VAC hose ═══
-    # The mast is the vacuum duct: the swivel feeds its top, a port at the inner stage's foot feeds the wrist loop.
-    hose_r = 27.0
-    r2_ = hose_r * 0.8
-    hose2 = std.swept('CLN-HOS2', 'Vacuum hose, PU 50 mm: mast to wrist swivel',
-                      [(-95, -oB - 23, 0), (-112, -oB - 23, 0), (-145, -oB - 40, 25), (-140, yp + 20, zu - 10), (-100, yp, zu),
-                       (-50, yp, zu)],                   # it ends 12 mm over the swivel's port spigot
-                      r2_, 'hose', 'fluid', r2_ - 3, 'Joins the mast duct to the wrist swivel, beside the fork, clear of the wand.',
-                      {}, 'EN ISO 3994', 'ID 40')
-    m.place(mast3, hose2, Location(), (-120, -60, 0), 'VAC')
     return m

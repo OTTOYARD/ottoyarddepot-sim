@@ -313,7 +313,7 @@ def build(spec: dict) -> Model:
     plate = plate.faces('>Y').workplane(centerOption='CenterOfBoundBox').pushPoints(pts).cboreHole(13.5, 20.5, 12.5)
     m.place(base, m.part(PartDef('CHG-MPL', 'Arm mount plate', plate.val(), 'steel_paint', 'structure', 'machined',
                                  '300 x 300 x 26', 'S355J2', None, 'Carries the J1 actuator and spreads its load into the riser.',
-                                 {'flatness': '0.05 mm'}, 'make')), Location(), (0, 60, 0))
+                                 {'flatness': '0.05 mm'}, 'make', depot='box')), Location(), (0, 60, 0))
     mp_screw = std.shcs(12, 45, '10.9', 'Holds the mount plate to the riser flange.')
     for p in std.circle_points(8, 122, 'y', offset=plate_under + 26 - 12.5, start=22.5):
         m.place(base, mp_screw, std.orient(p, (0, -1, 0)), (0, 200, 0))

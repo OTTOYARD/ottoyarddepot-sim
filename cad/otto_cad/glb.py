@@ -19,10 +19,12 @@ import json
 import math
 import struct
 
+import cadquery as cq
 import numpy as np
 from OCP.BRep import BRep_Tool
 from OCP.BRepLib import BRepLib_ToolTriangulatedShape
 from OCP.BRepMesh import BRepMesh_IncrementalMesh
+from OCP.BRepBuilderAPI import BRepBuilderAPI_Copy
 from OCP.TopAbs import TopAbs_FACE, TopAbs_REVERSED
 from OCP.TopExp import TopExp_Explorer
 from OCP.TopLoc import TopLoc_Location
@@ -42,9 +44,48 @@ def _tolerance(pd) -> tuple[float, float]:
     return lin, ang
 
 
-def tessellate(pd) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    lin, ang = _tolerance(pd)
+# ── the depot model: what the yard draws, many at once, from tens of metres ─────────────────────────────
+# Every outside part, coarsely meshed; no fastener, bearing or seal, nothing sealed inside a joint actuator
+# (its gear set, motor, brake, encoders, drive board, shaft), no reference context, nothing under 12 mm.
+DEPOT_DROP_CATEGORIES = {'fastener', 'bearing', 'seal'}
+DEPOT_DROP_PREFIX = ('SWG', 'MOT-', 'BRK-', 'ENC', 'DRV-', 'XRB', 'BRG-', 'GLAND-')
+DEPOT_DROP_SUFFIX = ('-SHF', '-FSC', '-STR')
+DEPOT_MIN_MM = 30.0
+
+
+def depot_keep(pd) -> bool:
+    if pd.reference or pd.category in DEPOT_DROP_CATEGORIES:
+        return False
+    if pd.id.startswith(DEPOT_DROP_PREFIX) or pd.id.endswith(DEPOT_DROP_SUFFIX):
+        return False
+    bb = pd.shape.BoundingBox()
+    return math.sqrt(bb.xlen ** 2 + bb.ylen ** 2 + bb.zlen ** 2) >= DEPOT_MIN_MM
+
+
+def _depot_tolerance(pd) -> tuple[float, float]:
+    bb = pd.shape.BoundingBox()
+    diag = math.sqrt(bb.xlen ** 2 + bb.ylen ** 2 + bb.zlen ** 2)
+    return min(10.0, max(0.8, diag * 0.009)), 0.75
+
+
+def tessellate(pd, coarse: bool = False) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    lin, ang = _depot_tolerance(pd) if coarse else _tolerance(pd)
     shape = pd.shape.wrapped
+    if coarse and pd.depot is not None:        # the part's outline for the depot model: no holes, fins or bores
+        bb = pd.shape.BoundingBox()
+        if pd.depot == 'box':
+            shape = cq.Solid.makeBox(bb.xlen, bb.ylen, bb.zlen, cq.Vector(bb.xmin, bb.ymin, bb.zmin)).wrapped
+        elif pd.depot == 'cyl_y':                # a cylinder on the part's Y axis, its bounding box's size
+            r = max(bb.xlen, bb.zlen) / 2
+            shape = cq.Solid.makeCylinder(r, bb.ylen, cq.Vector((bb.xmin + bb.xmax) / 2, bb.ymin, (bb.zmin + bb.zmax) / 2),
+                                          cq.Vector(0, 1, 0)).wrapped
+        else:
+            shape = (pd.depot.val() if hasattr(pd.depot, 'val') else pd.depot).wrapped
+    if coarse:
+        # a copy without its mesh: the mesher keeps a finer mesh it already has, and the shapes of standard parts
+        # are cached and shared by every robot built in this process (re-meshing them in place changed the next
+        # robot's full model)
+        shape = BRepBuilderAPI_Copy(shape, True, False).Shape()
     BRepMesh_IncrementalMesh(shape, lin, False, ang, True)
     pos, nrm, idx = [], [], []
     base = 0
@@ -107,7 +148,8 @@ class _Buf:
         return len(self.views) - 1
 
 
-def write_glb(model: Model, path: str, extras: dict | None = None) -> dict:
+def write_glb(model: Model, path: str, extras: dict | None = None, depot: bool = False) -> dict:
+    """The full model, or with depot=True the yard's model: depot_keep's parts, coarsely meshed, same nodes."""
     buf = _Buf()
     accessors: list[dict] = []
     meshes: list[dict] = []
@@ -134,7 +176,7 @@ def write_glb(model: Model, path: str, extras: dict | None = None) -> dict:
     def mesh_for(pd) -> int:
         if pd.id in mesh_index:
             return mesh_index[pd.id]
-        P, N, T = tessellate(pd)
+        P, N, T = tessellate(pd, coarse=depot)
         P = (P * MM).astype(np.float32)
         nl = np.linalg.norm(N, axis=1, keepdims=True)
         nl[nl == 0] = 1
@@ -188,6 +230,8 @@ def write_glb(model: Model, path: str, extras: dict | None = None) -> dict:
         me = len(nodes) - 1
         kids = []
         for it in node.items:
+            if depot and not depot_keep(it.part):
+                continue
             ti, ri = _quat(it.loc)
             ni: dict = {'name': it.name, 'mesh': mesh_for(it.part)}
             if any(abs(c) > 1e-12 for c in ti):

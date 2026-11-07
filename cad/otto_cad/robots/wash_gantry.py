@@ -61,10 +61,11 @@ def build(spec: dict) -> Model:
               'Wash bay frame: origin at the parked car centre on grade, +Y up, X across the bay, +Z north (toward the exit). '
               'Machine at dy = 0, tools retracted.')
     m.subsystem('RAILS', 'Floor rails', 'Two steel rails, 3.25 m each side of the car, carry the machine over the parked car.',
-                how=['Anchor plates every metre hold each rail to the slab with concrete screws.', 'The rails stand outside the door opening.'],
+                how=['Anchor plates every metre hold each rail to the slab with concrete screws.', 'The rails stand outside the door opening.',
+                     'A stop at each rail end holds a wheel if the machine runs past its travel.'],
                 specs={'track': f'{2 * legX / 1000:.2f} m', 'length': f'{(rail["to"] - rail["from"]) / 1000:.2f} m'}, group='Structure')
     m.subsystem('TRAVEL', 'Travel drive', 'Moves the whole machine back and forth over the car, 6 passes a wash.',
-                how=['A geared motor drives one wheel each side. The drives keep in step by encoder.',
+                how=['A geared motor inside each trolley drives one wheel. The drives keep in step by encoder.',
                      'Side rollers keep the wheels on the rails.'],
                 specs={'speed': 'about 10 m/min', 'motors': '2 x 0.75 kW, with brake'}, group='Motion')
     m.subsystem('PORTAL', 'Portal frame', 'Two legs and a beam span the bay. Retracted, everything clears a car by more than 0.48 m.',
@@ -90,9 +91,10 @@ def build(spec: dict) -> Model:
                 specs={'drop': f'{(wand["topY"] - wand["workY"]) / 1000:.2f} m', 'reach': f'{(wand["x"] - wand["reachX"]) / 1000:.2f} m'},
                 group='Tools')
     m.subsystem('CONTROL', 'Control, supply and signals', 'Runs the program, and tells the car when to stop and when to go.',
-                how=['A stainless control cabinet on the east leg holds the controller and the drives.',
+                how=['A stainless control cabinet on the inner side of the west leg holds the controller and the drives.',
                      'A stop light faces the arriving car: red while the program runs, green when the car may go.',
-                     'A drag chain beside the east rail brings power, water, chemicals and air.'],
+                     'A drag chain in a trough inboard of the west rail brings power, water, chemicals and air.',
+                     'Nothing stands outboard of the trolleys: the end bays\' outer walls are 48 mm from them.'],
                 group='Control')
 
     root = m.root
@@ -110,7 +112,8 @@ def build(spec: dict) -> Model:
     plate = cq.Workplane('XY').box(260, 12, 160).translate((0, -6, 0)).faces('>Y').workplane(centerOption='CenterOfBoundBox') \
         .pushPoints([(-100, 0), (100, 0)]).hole(14)
     plate_pd = m.part(PartDef('WSH-RPL', 'Rail anchor plate 260 x 160 x 12', plate.val(), 'steel_s355', 'structure', 'cut plate',
-                              '260 x 160 x 12', 'S355J2', None, 'Spreads the rail load into the slab. Grouted under.', {}, 'make'))
+                              '260 x 160 x 12', 'S355J2', None, 'Spreads the rail load into the slab. Grouted under.', {}, 'make',
+                              depot='box'))
     anchor = PartDef('WSH-ANC', 'Concrete screw anchor M12 x 100', cq.Workplane('XZ').circle(6).extrude(100).union(
         cq.Workplane('XZ').polygon(6, 19 / math.cos(math.pi / 6)).extrude(-9)).val(), 'fast_zn', 'fastener',
         'ETA option 1 anchor', 'M12 x 100', '', 60.0, 'Holds the anchor plate in the slab. No mortar: it cuts its own thread.', {}, 'buy')
@@ -122,6 +125,25 @@ def build(spec: dict) -> Model:
             m.place(bay, plate_pd, loc(sx * legX, 0, z), (sx * 300, -160, 0), 'RAILS')
             for dx in (-100, 100):
                 m.place(bay, anchor, std.orient((sx * legX + dx, 0, z), (0, -1, 0)), (sx * 300, 120, 0), 'RAILS')
+    # end stops: a block in each rail end, with a polyurethane buffer toward the machine. A wheel that runs past the
+    # travel strikes it (the trolley body passes over it): 185 mm past home, 232 mm past the south end
+    gap_w = rail['w'] - 16                               # between the rail's walls
+    stop = (cq.Workplane('XY').box(gap_w - 2, 40, 70).translate((0, 8 + 20, 0)).edges('|Z').fillet(3)
+            .faces('>Y').workplane(centerOption='CenterOfBoundBox').pushPoints([(-40, 0), (40, 0)]).hole(11))
+    stop_pd = m.part(PartDef('WSH-RST', 'Rail end stop block', stop.val(), 'steel_s355', 'structure', 'cut plate',
+                             f'{gap_w - 2:.0f} x 40 x 70', 'S355J2', None,
+                             'Stops a wheel at the rail end if the machine runs past its travel.', {}, 'make'))
+    buf = cq.Solid.makeCylinder(16, 25, Vector(0, 8 + 20, 0), Vector(0, 0, 1))
+    buf_pd = m.part(PartDef('WSH-RBF', 'Rail end buffer, polyurethane', buf, 'pu', 'structure', 'catalogue part', 'D 32 x 25',
+                            '90 Shore A', None, 'Takes the blow of a wheel at the end stop.', {}, 'buy'))
+    st_screw = std.shcs(10, 60, '8.8', 'Holds the end stop through the rail floor to its anchor plate.')
+    for sx in (-1, 1):
+        for (zend, toward) in ((zf(rail['from']), -1), (zf(rail['to']), 1)):
+            zc = zend + toward * 35                      # the block's centre, 70 long from the rail end
+            m.place(bay, stop_pd, loc(sx * legX, 0, zc), (sx * 300, 200, 0), 'RAILS')
+            m.place(bay, buf_pd, loc(sx * legX, 0, zc + toward * 35, ry=0 if toward > 0 else 180), (sx * 300, 200, toward * 80), 'RAILS')
+            for dx in (-40, 40):
+                m.place(bay, st_screw, std.orient((sx * legX + dx, 48, zc), (0, -1, 0)), (sx * 300, 260, 0), 'RAILS')
 
     # ═══════════════════════════════════════════════════════════════ GANTRY ═══
     gan = bay.child('Gantry', Location(), sub='PORTAL',
@@ -145,10 +167,12 @@ def build(spec: dict) -> Model:
              .cut(cq.Workplane('YZ').circle(45).extrude(40, both=True)))        # the bearing's seat
     wheel_pd = m.part(PartDef('WSH-WHL', 'Travel wheel 200 x 60, polyurethane on steel hub', wheel.val(), 'pu', 'drive', 'catalogue part',
                               'D 200 x 60', '92 Shore A', None, 'Rolls in the rail channel. Quiet on wet steel.', {'load': '1,200 kg'}, 'buy'))
-    # hollow-shaft gearmotor on the axle end: flange on the trolley wall, gear case, motor (local +X outboard)
+    # hollow-shaft helical-bevel gearmotor on the axle end, inside the trolley's inner wall: flange on the wall, gear
+    # case on the axle (local +X away from the wall), the motor standing up off the gear case. (Outboard of the trolley
+    # it stood 0.25 m into the outer wall of an end bay: design finding 8.)
     gmw = (cq.Workplane('XY').box(12, 180, 180).translate((6, 0, 0))
            .union(cq.Workplane('XY').box(120, 130, 120).translate((72, 0, 0)))
-           .union(cq.Workplane('YZ', origin=(132, 0, 0)).circle(60).extrude(170)))
+           .union(cq.Solid.makeCylinder(60, 170, Vector(72, 65, 0), Vector(0, 1, 0))))
     gmw_pd = m.part(PartDef('WSH-TGM', 'Travel gearmotor 0.75 kW, helical-bevel, brake, encoder', gmw.val(), 'steel_paint', 'drive',
                             'catalogue part', '0.75 kW, 4 pole', 'IP66, wash-down', None,
                             'Drives one wheel. The brake holds the machine still while it sprays.',
@@ -173,19 +197,22 @@ def build(spec: dict) -> Model:
             for gx in (-1, 1):
                 m.place(gan, guide_pd, loc(sx * legX + gx * (rail['w'] / 2 + 30), rail['h'] + 20 - 18, wz - e * 160), (sx * 360, -60, 0),
                         'TRAVEL')
-            face = sx * (legX + trol['w'] / 2)
+            # the trolley's INNER wall: nothing stands outboard of the trolley, whose outer wall is 48 mm off an end
+            # bay's outer wall (structurePlan.WASH_SHELL)
+            face = sx * (legX - trol['w'] / 2)
+            ry_in = 180 if sx > 0 else 0          # local +X points inboard, toward the car
             if e < 0:       # the idler: an end block over the axle
-                m.place(gan, axb_pd, loc(face, y_ax, wz, rz=0 if sx > 0 else 180), (sx * 560, 0, 0), 'TRAVEL')
+                m.place(gan, axb_pd, loc(face, y_ax, wz, ry=ry_in), (-sx * 560, 0, 0), 'TRAVEL')
                 for yy in (y_ax, y_ax + 60):
                     for dz in (-50, 50):
-                        std.bolt_stack(m, gan, 'TRAVEL', (face + sx * 20, yy, wz + dz), (-sx, 0, 0), 12, 50, 28, nut_kind='',
-                                       fn='Holds the axle end block to the trolley wall.', explode=(sx * 600, 0, 0))
+                        std.bolt_stack(m, gan, 'TRAVEL', (face - sx * 20, yy, wz + dz), (sx, 0, 0), 12, 50, 28, nut_kind='',
+                                       fn='Holds the axle end block to the trolley wall.', explode=(-sx * 600, 0, 0))
             else:           # the driven wheel: the gearmotor's flange over the axle
-                m.place(gan, gmw_pd, loc(face, y_ax, wz, rz=0 if sx > 0 else 180), (sx * 600, 0, 0), 'TRAVEL')
+                m.place(gan, gmw_pd, loc(face, y_ax, wz, ry=ry_in), (-sx * 600, 0, 0), 'TRAVEL')
                 for yy in (y_ax + 10, y_ax + 70):
                     for dz in (-70, 70):
-                        std.bolt_stack(m, gan, 'TRAVEL', (face + sx * 12, yy, wz + dz), (-sx, 0, 0), 10, 35, 20, nut_kind='',
-                                       fn='Holds the travel gearmotor flange to the trolley.', explode=(sx * 640, 0, 0))
+                        std.bolt_stack(m, gan, 'TRAVEL', (face - sx * 12, yy, wz + dz), (sx, 0, 0), 10, 35, 20, nut_kind='',
+                                       fn='Holds the travel gearmotor flange to the trolley.', explode=(-sx * 640, 0, 0))
     # legs + flanges
     leg_y0 = rail['h'] + 20 + trol['h']
     lh = leg['top'] - leg_y0
@@ -610,8 +637,6 @@ def build(spec: dict) -> Model:
         for i in range(8):
             for zz in (zl - leg['d'] / 2 + 100, zl + leg['d'] / 2 - 100):
                 yy = leg_y0 + 120 + i * (lh - 240) / 7
-                if sx > 0 and zz > zl and 1180 < yy < 2020:   # behind the control cabinet: its lugs hold the panel there
-                    continue
                 m.place(gan, std.bhcs(6, 16, 'A4-80', 'Holds the cladding panel to the leg post.'),
                         std.orient((sx * (legX + post_x + 2), leg_y0 + 120 + i * (lh - 240) / 7, zz), (-sx, 0, 0)),
                         (sx * 460, 0, 0), 'PORTAL')
@@ -751,40 +776,42 @@ def build(spec: dict) -> Model:
     m.place(gan, m.part(PartDef('WSH-BCN', 'Status beacon', bea.val(), 'led', 'electrical', 'catalogue part', 'D 250', 'IP66', None,
                                 'Teal at home, green working, amber moving.', {}, 'buy')),
             loc(-1722, 0, zd), (0, 500, 0), 'CONTROL')
-    # the cabinet hangs on 4 lugs over the leg's north post, through the cladding
+    # the cabinet hangs on 4 lugs on the inner face of the west leg's north post, over the car's side of the leg (on
+    # the leg's outer face it stood 0.14 m into the outer wall of an end bay: design finding 8)
     z_cab = zl + leg['d'] / 2 - 100
-    cab_x0 = legX + post_x + 2                           # the cladding's outer face
-    cab = cq.Workplane('XY').box(300, 800, 600).edges('|Y').fillet(10).translate((cab_x0 + 150, 1600, z_cab))
+    x_post = legX - post_x                               # the post's inner face
+    # between the arch brackets on the post (at 1,200 and 2,400 mm): the cabinet stands 1,300 to 2,100 mm up
+    cab = cq.Workplane('XY').box(300, 800, 600).edges('|Y').fillet(10).translate((x_post - 150, 1700, z_cab))
     lug = (cq.Workplane('XY').box(10, 50, 40).translate((5, 25, 0)).union(cq.Workplane('XY').box(40, 8, 40).translate((30, 4, 0))))
     lug_pd = m.part(PartDef('WSH-CLG', 'Cabinet wall lug, stainless', lug.val(), 'ss304', 'structure', 'catalogue part', '50 x 40',
                             'A4', None, 'Hangs the control cabinet on the leg.', {}, 'buy'))
-    for (yy, flip) in ((2000, False), (1200, True)):
+    for (yy, flip) in ((2100, False), (1300, True)):
         for dz in (-70, 70):
-            m.place(gan, lug_pd, loc(cab_x0, yy, z_cab + dz, rx=180 if flip else 0), (420, 0, 0), 'CONTROL')
-            m.place(gan, std.hex_bolt(10, 30, 'A4-70', 'Holds the cabinet lug through the cladding to the leg post.'),
-                    std.orient((cab_x0 + 10, yy + (-30 if flip else 30), z_cab + dz), (-1, 0, 0)), (440, 0, 0), 'CONTROL')
+            m.place(gan, lug_pd, loc(x_post, yy, z_cab + dz, rx=180 if flip else 0, ry=180), (-420, 0, 0), 'CONTROL')
+            m.place(gan, std.hex_bolt(10, 30, 'A4-70', 'Holds the cabinet lug to the leg post.'),
+                    std.orient((x_post - 10, yy + (-30 if flip else 30), z_cab + dz), (1, 0, 0)), (-440, 0, 0), 'CONTROL')
     m.place(gan, m.part(PartDef('WSH-CAB', 'Control cabinet, stainless, IP66', cab.val(), 'ss304', 'electrical', 'EN 62208',
                                 '800 x 600 x 300', 'IP66', None,
                                 'Holds the controller, 8 drives, the safety relay and the valve outputs. It talks to the twin over the site network.',
-                                {}, 'buy', mass_override=85.0)), Location(), (400, 0, 0), 'CONTROL')
-    # the drag chain lies in a trough beside the east rail, outboard of the travel gearmotor's sweep (it hangs to 18 mm
-    # above the slab and reaches 302 mm out from the trolley wall); the trough's 5 mm floor runs on under the gearmotor
-    # to the rail's anchor plates, which hold it. (Beside the rail, the trolley's gearmotor and guide roller ran
-    # through the trough and the chain as the machine travelled.)
+                                {}, 'buy', mass_override=85.0)), Location(), (-400, 0, 0), 'CONTROL')
+    # the drag chain lies in a trough on the floor INBOARD of the west rail, 15 mm inboard of the travel gearmotor's gear
+    # case; the trough's 5 mm floor runs on under the gearmotor and the trolley to the rail's anchor plates, which hold it.
+    # (Outboard of the rail it stood 0.41 m into the outer wall of an end bay: design finding 8.)
     chain = std.chain_link(120, 50, 75)
-    xc0 = legX + 130                                     # the anchor plates' outer edge
-    x_in = legX + trol['w'] / 2 + 302 + 15               # the trough's inner wall: 15 mm outboard of the gearmotor
-    xch = x_in + 5 + 5 + 60                              # the chain's centre: 5 mm clear of each wall
+    x_o = legX - trol['w'] / 2 - 132 - 15                # the trough's outer wall, toward the rail
+    x_i = x_o - 140                                      # its inner wall, toward the car
+    xch = x_i + 5 + 5 + 60                               # the chain's centre: 5 mm clear of each wall
+    xc0 = legX - 130                                     # the anchor plates' inner edge
     z0, n_ch = zf(rail['to']) + 100, 70
     tr_l = n_ch * 75 + 100
-    tr_w = (xch + 70) - xc0
-    trough = (cq.Workplane('XY').box(tr_w, 5, tr_l).translate((xc0 + tr_w / 2, 2.5, z0 - 37.5 - 50 + tr_l / 2))
-              .union(cq.Workplane('XY').box(5, 70, tr_l).translate((x_in + 2.5, 35, z0 - 37.5 - 50 + tr_l / 2)))
-              .union(cq.Workplane('XY').box(5, 70, tr_l).translate((xc0 + tr_w - 2.5, 35, z0 - 37.5 - 50 + tr_l / 2))))
+    tr_w = xc0 - x_i
+    trough = (cq.Workplane('XY').box(tr_w, 5, tr_l).translate((x_i + tr_w / 2, 2.5, z0 - 37.5 - 50 + tr_l / 2))
+              .union(cq.Workplane('XY').box(5, 70, tr_l).translate((x_i + 2.5, 35, z0 - 37.5 - 50 + tr_l / 2)))
+              .union(cq.Workplane('XY').box(5, 70, tr_l).translate((x_o - 2.5, 35, z0 - 37.5 - 50 + tr_l / 2))))
     m.place(bay, m.part(PartDef('WSH-CTR', 'Drag chain trough, galvanised', trough.val(), 'steel', 'structure', 'folded sheet 5 mm',
                                 f'{tr_w:.0f} x 70 x {tr_l:.0f}', 'S235, galvanised', None,
-                                'Guides the drag chain on the floor beside the east rail, clear of the travel drive.', {}, 'make')),
-            Location(), (300, -60, 0), 'CONTROL')
+                                'Guides the drag chain on the floor inboard of the west rail, clear of the travel drive.', {}, 'make')),
+            Location(), (-300, -60, 0), 'CONTROL')
     for i in range(n_ch):
-        m.place(bay, chain, loc(xch, 5 + 25, z0 + i * 75, ry=90), (300, 60, 0), 'CONTROL')
+        m.place(bay, chain, loc(xch, 5 + 25, z0 + i * 75, ry=90), (-300, 60, 0), 'CONTROL')
     return m

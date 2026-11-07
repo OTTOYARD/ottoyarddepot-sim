@@ -263,13 +263,14 @@ def build_actuator(m: Model, fixed: Node, moving: Node, size: int, T_joint: Loca
     hsg = m.part(PartDef(f'{prefix}-HSG', f'{jl} actuator housing', _housing(s, st), 'a356_dark',
                          'structure', 'machined casting', f'OD {s.od:g} x {-st["y_back"] + st["y_front"]:.0f}', '', None,
                          'Holds the gear ring, the motor and both shaft bearings in line. Fins carry the motor heat out.',
-                         {'IP rating': 'IP65', 'machining': 'bores to H7, faces flat to 0.02'}, 'make'))
+                         {'IP rating': 'IP65', 'machining': 'bores to H7, faces flat to 0.02'}, 'make',
+                         depot=_ring(st['y_front'], st['y_g'] - 4, s.od / 2).union(_ring(st['y_g'] - 4, st['y_back'], st['r_bell']))))
     fix(hsg)
     # ── cross-roller bearing (outer ring fixed) and the ring that clamps it ────
     fix(std.cross_roller(xd, xD, xB), loc(0, -s.of_t - xB / 2, 0), (0, 70, 0))
     cr = m.part(PartDef(f'{prefix}-XCR', f'{jl} bearing clamp ring', _clamp_ring(s), 'al6061', 'structure', 'machined',
                         f'OD {s.od:g}', '6061-T6', None, 'Clamps the bearing outer ring to the housing. The output seal sits in its bore.',
-                        {}, 'make'))
+                        {}, 'make', depot=_ring(-s.of_t + 4, -s.of_t - xB, s.od / 2, xD / 2 - 6)))
     fix(cr, Location(), (0, 90, 0))
     n_xrb = 12 if size >= 32 else 8
     sc = std.bhcs(s.out_bolt, _std_len(4 + xB + 1.2 * s.out_bolt - 4, 4 + xB + 1.5 * s.out_bolt), '10.9',
@@ -292,7 +293,8 @@ def build_actuator(m: Model, fixed: Node, moving: Node, size: int, T_joint: Loca
     # ── output side (moving): flange, flexspline, its clamp ring and screws ─────
     of = m.part(PartDef(f'{prefix}-OUT', f'{jl} output flange', _output_flange(s), 'al6061', 'structure',
                         'machined', f'OD {xd + (xD - xd) * 0.55:.0f} x {s.of_t:g}', '', None,
-                        'Carries the next link. It turns on the bearing inner ring.', {}, 'make'))
+                        'Carries the next link. It turns on the bearing inner ring.', {}, 'make',
+                        depot=_ring(0, -s.of_t, (xd + (xD - xd) * 0.55) / 2).union(_ring(-s.of_t, -s.of_t - xB, xd / 2))))
     mov(of, Location(), (0, 160, 0))
     mov(fs, loc(0, st['fs_top'], 0, rx=180), (0, 120, 0))
     clamp = m.part(PartDef(f'{prefix}-FSC', f'{jl} flexspline clamp ring', _fs_clamp(s), 'steel', 'drive',
@@ -353,7 +355,8 @@ def build_actuator(m: Model, fixed: Node, moving: Node, size: int, T_joint: Loca
     for p in std.circle_points(4, st['r_bay_b'] - 2.95, 'y', offset=st['drv_top'] - 1.6, start=45):
         fix(pb, std.orient(p, (0, 1, 0)), (0, -335, 0))
     cov = m.part(PartDef(f'{prefix}-COV', f'{jl} rear cover', _cover(s, st, gland_m, gland_ang, gland_r), 'al6061_blk', 'structure', 'machined',
-                         f'OD {2 * st["r_bell"]:.0f} x 8', '', None, 'Closes the rear of the actuator. The O-ring seals it.', {}, 'make'))
+                         f'OD {2 * st["r_bell"]:.0f} x 8', '', None, 'Closes the rear of the actuator. The O-ring seals it.', {}, 'make',
+                         depot=_ring(st['y_back'], st['y_back'] - 8, st['r_bell'])))
     fix(cov, Location(), (0, -380, 0))
     r_or = st['r_bay_b'] + 2.2
     fix(std.oring(round(2 * r_or - 2.0), 2.0, 'Seals the rear cover to the housing.'), loc(0, st['y_back'] - 0.6, 0), (0, -360, 0))

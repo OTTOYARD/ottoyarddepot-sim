@@ -14,12 +14,14 @@
     "glb": "charge_arm.glb",
     "step": "charge_arm.step.zip",
     "bom": "charge_arm.bom.json",
-    "csv": "charge_arm.bom.csv"
+    "csv": "charge_arm.bom.csv",
+    "depot": "charge_arm.depot.glb"
    },
    "bytes": {
     "glb": 6900196,
     "stepZip": 6202453,
-    "step": 32782171
+    "step": 32782171,
+    "depot": 543232
    },
    "mesh": {
     "vertices": 289659,
@@ -27,6 +29,13 @@
     "meshes": 190,
     "nodes": 677
    },
+   "depotMesh": {
+    "vertices": 21390,
+    "triangles": 23760,
+    "meshes": 65,
+    "nodes": 81
+   },
+   "depotSha256": "f87c84c48a765f07",
    "totals": {
     "parts": 666,
     "uniqueParts": 188,
@@ -93,32 +102,41 @@
     "glb": "clean_arm.glb",
     "step": "clean_arm.step.zip",
     "bom": "clean_arm.bom.json",
-    "csv": "clean_arm.bom.csv"
+    "csv": "clean_arm.bom.csv",
+    "depot": "clean_arm.depot.glb"
    },
    "bytes": {
-    "glb": 4650744,
-    "stepZip": 2856903,
-    "step": 17351075
+    "glb": 3649772,
+    "stepZip": 2329945,
+    "step": 14157170,
+    "depot": 396200
    },
    "mesh": {
-    "vertices": 195464,
-    "triangles": 219411,
-    "meshes": 155,
-    "nodes": 481
+    "vertices": 153489,
+    "triangles": 169178,
+    "meshes": 135,
+    "nodes": 422
    },
+   "depotMesh": {
+    "vertices": 15156,
+    "triangles": 15156,
+    "meshes": 63,
+    "nodes": 122
+   },
+   "depotSha256": "e5f39c7429248722",
    "totals": {
-    "parts": 467,
-    "uniqueParts": 154,
-    "fasteners": 293,
-    "massKg": 317.1,
-    "boughtLines": 102,
-    "madeLines": 52,
+    "parts": 408,
+    "uniqueParts": 134,
+    "fasteners": 253,
+    "massKg": 310.63,
+    "boughtLines": 89,
+    "madeLines": 45,
     "referenceLines": 1
    },
-   "glbSha256": "4b5b2ce9daa74996",
+   "glbSha256": "26056afb19642934",
    "stepCheck": {
-    "namedParts": 469,
-    "solids": 855,
+    "namedParts": 410,
+    "solids": 689,
     "invalid": 0
    },
    "subsystems": [
@@ -180,32 +198,41 @@
     "glb": "wash_gantry.glb",
     "step": "wash_gantry.step.zip",
     "bom": "wash_gantry.bom.json",
-    "csv": "wash_gantry.bom.csv"
+    "csv": "wash_gantry.bom.csv",
+    "depot": "wash_gantry.depot.glb"
    },
    "bytes": {
-    "glb": 1197632,
-    "stepZip": 1081045,
-    "step": 6475262
+    "glb": 1238688,
+    "stepZip": 1099317,
+    "step": 6589393,
+    "depot": 333644
    },
    "mesh": {
-    "vertices": 42764,
-    "triangles": 46774,
-    "meshes": 102,
-    "nodes": 815
+    "vertices": 44293,
+    "triangles": 48596,
+    "meshes": 105,
+    "nodes": 834
    },
+   "depotMesh": {
+    "vertices": 10973,
+    "triangles": 9618,
+    "meshes": 76,
+    "nodes": 269
+   },
+   "depotSha256": "5dc505dc681166e0",
    "totals": {
-    "parts": 792,
-    "uniqueParts": 102,
-    "fasteners": 449,
-    "massKg": 4152.15,
-    "boughtLines": 52,
-    "madeLines": 50,
+    "parts": 811,
+    "uniqueParts": 105,
+    "fasteners": 460,
+    "massKg": 4128.59,
+    "boughtLines": 54,
+    "madeLines": 51,
     "referenceLines": 0
    },
-   "glbSha256": "813e099e72dc9263",
+   "glbSha256": "73e426361cbe10ab",
    "stepCheck": {
-    "namedParts": 792,
-    "solids": 855,
+    "namedParts": 811,
+    "solids": 874,
     "invalid": 0
    },
    "subsystems": [
