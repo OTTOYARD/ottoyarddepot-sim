@@ -25,6 +25,7 @@ vi.mock('@/components/robotics/CadViewer', () => ({
 import { TwinRoboticsTab } from './TwinRoboticsTab';
 import { TabBar } from '@/components/layout/TabBar';
 import { useSimulationStore } from '@/store/simulationStore';
+import { usePhoneSheet } from '@/components/phone/phoneStore';
 
 const PUB = resolve(__dirname, '../../../public/cad');
 const serve = vi.fn(async (url: string) => {
@@ -55,6 +56,10 @@ describe('the Robotics tab', () => {
     expect(screen.getByTestId('robotics-tab').dataset.layout).toBe('narrow');
     expect(within(screen.getByTestId('robot-picker')).getAllByRole('button').map((b) => b.textContent)).toEqual([
       'OTTO-CHARGE ARMCharge arm', 'OTTO-CLEAN ARMCabin clean arm', 'OTTO-WASHWash bay machine']);
+    usePhoneSheet.setState({ fullscreen: false });
+    fireEvent.click(screen.getByTestId('open-full'));
+    expect(useSimulationStore.getState().isPanelExpanded).toBe(true);      // the desktop's panel
+    expect(usePhoneSheet.getState().fullscreen).toBe(true);                 // and the phone's sheet
   });
 
   it('shows the charge arm\'s totals, major functions, load check and the twin\'s steps', async () => {

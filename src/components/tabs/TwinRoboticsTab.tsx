@@ -15,6 +15,7 @@ import { Box, Download, Eye, EyeOff, Loader2, Maximize2, Pause, Play, RotateCcw,
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Slider } from '@/components/ui/slider';
 import { useSimulationStore } from '@/store/simulationStore';
+import { usePhoneSheet } from '@/components/phone/phoneStore';
 import { CadViewer, type CadJointSummary, type CadViewState, type SectionAxis, type ViewDir } from '@/components/robotics/CadViewer';
 import {
   CATEGORY_LABEL, FUNCTIONS, JOINT_LABEL, ROBOT_INFO, ROBOT_KEYS, cadUrl, cycleScript, cycleSteps, fastenerIds, fetchBom, fetchManifest, filterLines,
@@ -508,7 +509,8 @@ export function TwinRoboticsTab() {
       <div className="space-y-3 p-3">
         <Banner />
         {picker}
-        <button type="button" onClick={() => setPanelExpanded(true)}
+        {/* the desktop widens its side panel; the phone cockpit takes its sheet full screen (its own toggle) */}
+        <button type="button" onClick={() => { setPanelExpanded(true); usePhoneSheet.getState().setFullscreen(true); }} data-testid="open-full"
           className="inline-flex items-center gap-1 rounded border border-white/[0.08] bg-white/[0.03] px-2 py-1 text-[11px] text-ink hover:bg-white/[0.06]">
           <Maximize2 size={11} aria-hidden /> Open the full CAD view</button>
         <div className="overflow-hidden rounded border border-white/[0.06]">{toolbar}{cycleBar}<div className="h-[300px]">{viewer}</div></div>
