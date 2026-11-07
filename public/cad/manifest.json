@@ -173,26 +173,26 @@
     "csv": "wash_gantry.bom.csv"
    },
    "bytes": {
-    "glb": 1075040,
-    "stepZip": 843643,
-    "step": 5033298
+    "glb": 1077248,
+    "stepZip": 849903,
+    "step": 5070585
    },
    "mesh": {
-    "vertices": 40939,
-    "triangles": 42230,
-    "meshes": 64,
-    "nodes": 591
+    "vertices": 40987,
+    "triangles": 42262,
+    "meshes": 65,
+    "nodes": 595
    },
    "totals": {
-    "parts": 576,
-    "uniqueParts": 64,
+    "parts": 578,
+    "uniqueParts": 65,
     "fasteners": 370,
-    "massKg": 3429.0,
+    "massKg": 3411.22,
     "boughtLines": 44,
-    "madeLines": 20,
+    "madeLines": 21,
     "referenceLines": 0
    },
-   "glbSha256": "23d9654405ec259e",
+   "glbSha256": "55fc2fc0965227b1",
    "subsystems": [
     {
      "id": "RAILS",

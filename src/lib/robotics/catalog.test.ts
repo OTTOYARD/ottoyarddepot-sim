@@ -27,7 +27,7 @@ describe('pose presets come from the twin\'s own code', () => {
     expect(brush.SIDE_BRUSH_L).toBeCloseTo((WASH_GANTRY.sideBrush.retractX - SIDE_BRUSH_CONTACT_X) * METRES_PER_PLAN_UNIT, 6);
     expect(brush.SIDE_BRUSH_R).toBe(brush.SIDE_BRUSH_L);
     const vac = washAngles('vacuum', 0.5);
-    expect(vac.WAND_L_DROP1 + vac.WAND_L_DROP2).toBeCloseTo((WASH_GANTRY.wand.topY - WASH_GANTRY.wand.workY) * METRES_PER_PLAN_UNIT, 6);
+    expect(vac.WAND_L_DROP1 + vac.WAND_L_DROP2 + vac.WAND_L_DROP3).toBeCloseTo((WASH_GANTRY.wand.topY - WASH_GANTRY.wand.workY) * METRES_PER_PLAN_UNIT, 6);
   });
   it('clean arm: home stows the mast; in the cabin the mast is down and the wand out', () => {
     const [home, , clean] = posePresets('clean_arm');

@@ -19,6 +19,8 @@ from cadquery import Location, Vector
 from .. import std
 from ..core import Model, Node, PartDef, loc
 
+WAND_STAGES = 4      # the sleeve and 3 sliding stages (3 stood the stowed column 4 cm under the wash hall roof)
+
 
 def _brush(r_core: float, r_out: float, length: float, strips: int = 56) -> cq.Shape:
     """A wash brush: a core tube and closed-cell foam strips, drawn as a star prism along local Y."""
@@ -363,43 +365,49 @@ def build(spec: dict) -> Model:
         m.place(gan, blow_pd, loc(sx * (legX - 800), beam['y1'] + 270, zd, ry=0), (sx * 200, 400, 0), 'DRYER')
 
     # ═══════════════════════════════════════════════════════════════ WANDS ═══
-    # Each wand drops on a 3-stage telescoping column: the outer sleeve is fixed through the beam and stands
-    # above it; the middle and inner stages each slide half of the drop (topY -> workY), as the OTTO-CLEAN
-    # ARM's mast does. Retracted, the head stands at topY, just under the beam.
+    # Each wand drops on a 4-stage telescoping column: the outer sleeve is fixed through the beam and stands above
+    # it; the 3 inner stages each slide a third of the drop (topY -> workY), as the OTTO-CLEAN ARM's mast stages do.
+    # Retracted, the head stands at topY, just under the beam. With 3 stages the stowed sleeve stood 4.75 m above
+    # grade, 4 cm under the wash hall's 4.79 m roof (structurePlan.WASH_SHELL, 10 plan units); 4 stages stow lower.
     zw = zf(wand['dy'])
     stroke = wand['topY'] - wand['workY']
-    st_len = stroke / 2 + 120
+    n_mov = WAND_STAGES - 1
+    st_len = stroke / n_mov + 120
+    sections = (110.0, 94.0, 80.0, 66.0)
     for sx, name in ((-1, 'L'), (1, 'R')):
         x = sx * wand['x']
-        sleeve_top = beam['y1'] + st_len - 200
-        sleeve = (cq.Workplane('XZ', origin=(x, sleeve_top, zw)).rect(110, 110).extrude(sleeve_top - (beam['y0'] - 40))
-                  .cut(cq.Workplane('XZ', origin=(x, sleeve_top + 1, zw)).rect(100, 100).extrude(sleeve_top - beam['y0'] + 42)))
-        m.place(gan, m.part(PartDef('WSH-WS1', 'Wand column stage 1 (sleeve), 110 x 110', sleeve.val(), 'ss316', 'structure', 'EN 10219',
-                                    f'{sleeve_top - beam["y0"] + 40:.0f} long', '316L', None,
-                                    'Fixed through the beam. It guides the middle stage.', {}, 'make')), Location(), (sx * 100, 300, 0), 'WAND')
-        d1 = gan.child(f'Wand{name}Drop1', Location(), sub='WAND',
-                       joint={'name': f'WAND_{name}_DROP1', 'axis': [0, -1, 0], 'limits': [0, stroke / 2 / 1000 * 1000],
-                              'kind': 'prismatic', 'stowed': 0})
-        mid = (cq.Workplane('XZ', origin=(x, sleeve_top - 30, zw)).rect(92, 92).extrude(st_len)
-               .cut(cq.Workplane('XZ', origin=(x, sleeve_top - 29, zw)).rect(84, 84).extrude(st_len + 2)))
-        m.place(d1, m.part(PartDef('WSH-WS2', 'Wand column stage 2, 92 x 92', mid.val(), 'ss316', 'structure', 'EN 10219', f'{st_len:.0f} long',
-                                   '316L', None, 'Slides half the drop. A belt over its pulley drives stage 3.', {}, 'make')),
-                Location(), (sx * 140, 200, 0), 'WAND')
-        d2 = d1.child(f'Wand{name}Drop2', Location(), sub='WAND',
-                      joint={'name': f'WAND_{name}_DROP2', 'axis': [0, -1, 0], 'limits': [0, stroke / 2 / 1000 * 1000],
-                             'kind': 'prismatic', 'stowed': 0})
-        inner = (cq.Workplane('XZ', origin=(x, wand['topY'] + st_len, zw)).rect(76, 76).extrude(st_len)
-                 .cut(cq.Workplane('XZ', origin=(x, wand['topY'] + st_len + 1, zw)).rect(68, 68).extrude(st_len + 2)))
-        m.place(d2, m.part(PartDef('WSH-WS3', 'Wand column stage 3, 76 x 76', inner.val(), 'ss316', 'structure', 'EN 10219', f'{st_len:.0f} long',
-                                   '316L', None, 'Carries the reach slide at its foot.', {}, 'make')), Location(), (sx * 180, 100, 0), 'WAND')
-        wh = d2.child(f'Wand{name}Reach', Location(), sub='WAND',
-                      joint={'name': f'WAND_{name}_REACH', 'axis': [-sx, 0, 0], 'limits': [0, (wand['x'] - wand['reachX']) / 1000 * 1000],
-                             'kind': 'prismatic', 'stowed': 0})
-        arm = cq.Workplane('YZ', origin=(x, wand['topY'] - 40, zw)).circle(wand['r'] * 0.6).extrude(-sx * 560)
+        sleeve_top = wand['topY'] + st_len + 60
+        sleeve = (cq.Workplane('XZ', origin=(x, sleeve_top, zw)).rect(sections[0], sections[0]).extrude(sleeve_top - (beam['y0'] - 40))
+                  .cut(cq.Workplane('XZ', origin=(x, sleeve_top + 1, zw)).rect(sections[0] - 10, sections[0] - 10).extrude(sleeve_top - beam['y0'] + 42)))
+        m.place(gan, m.part(PartDef('WSH-WS1', f'Wand column stage 1 (sleeve), {sections[0]:.0f} x {sections[0]:.0f}', sleeve.val(), 'ss316',
+                                    'structure', 'EN 10219', f'{sleeve_top - beam["y0"] + 40:.0f} long', '316L', None,
+                                    'Fixed through the beam. It guides the next stage.', {'stowed top': f'{sleeve_top / 1000:.2f} m above grade'},
+                                    'make')), Location(), (sx * 100, 300, 0), 'WAND')
+        parent = gan
+        for k in range(1, WAND_STAGES):
+            node = parent.child(f'Wand{name}Drop{k}', Location(), sub='WAND',
+                                joint={'name': f'WAND_{name}_DROP{k}', 'axis': [0, -1, 0], 'limits': [0, stroke / n_mov / 1000 * 1000],
+                                       'kind': 'prismatic', 'stowed': 0})
+            a = sections[k]
+            stage_top = sleeve_top - 25 * k
+            tube = (cq.Workplane('XZ', origin=(x, stage_top, zw)).rect(a, a).extrude(st_len)
+                    .cut(cq.Workplane('XZ', origin=(x, stage_top + 1, zw)).rect(a - 8, a - 8).extrude(st_len + 2)))
+            m.place(node, m.part(PartDef(f'WSH-WS{k + 1}', f'Wand column stage {k + 1}, {a:.0f} x {a:.0f}', tube.val(), 'ss316', 'structure',
+                                         'EN 10219', f'{st_len:.0f} long', '316L', None,
+                                         'Slides a third of the drop. A belt over its pulley drives the next stage.' if k < n_mov
+                                         else 'Carries the reach slide at its foot.', {}, 'make')),
+                    Location(), (sx * (100 + 40 * k), 300 - 100 * k, 0), 'WAND')
+            parent = node
+        # the head hangs from the last stage's foot: the reach slide
+        foot_y = sleeve_top - 25 * n_mov - st_len
+        wh = parent.child(f'Wand{name}Reach', Location(), sub='WAND',
+                          joint={'name': f'WAND_{name}_REACH', 'axis': [-sx, 0, 0], 'limits': [0, (wand['x'] - wand['reachX']) / 1000 * 1000],
+                                 'kind': 'prismatic', 'stowed': 0})
+        arm = cq.Workplane('YZ', origin=(x, foot_y - 40, zw)).circle(wand['r'] * 0.6).extrude(-sx * 560)
         m.place(wh, m.part(PartDef('WSH-WAR', 'Wand reach tube, 52 mm', arm.val(), 'ss316', 'structure', 'EN 10217-7', 'D 52',
                                    '316L', None, 'Reaches in through the door opening to the cabin floor. It is the vacuum duct.', {}, 'make')),
                 Location(), (sx * -200, -160, 0), 'WAND')
-        head = (cq.Workplane('XY').box(220, 110, 340).edges().fillet(20).translate((x - sx * 640, wand['topY'] - 40, zw))
+        head = (cq.Workplane('XY').box(220, 110, 340).edges().fillet(20).translate((x - sx * 640, foot_y - 40, zw))
                 .faces('<Y').shell(-3))
         m.place(wh, m.part(PartDef('WSH-WHD', 'Wand vacuum head with lamp', head.val(), 'pa66', 'tool', 'moulded', '220 x 340', '', None,
                                    'Vacuums the floor and lights it for the camera.', {}, 'make')), Location(), (sx * -320, -220, 0), 'WAND')
@@ -407,6 +415,8 @@ def build(spec: dict) -> Model:
         m.place(gan, m.part(PartDef('WSH-WDM', 'Wand drop servo gearmotor 0.4 kW, brake', dr.val(), 'steel_paint', 'drive', 'catalogue part',
                                     '0.4 kW', 'IP66', None, 'Drives stage 2 by a toothed belt. Its brake holds the column with power off.',
                                     {}, 'buy', mass_override=7.5)), Location(), (sx * 220, 320, 0), 'WAND')
+    m.notes['wand_column'] = {'stages': WAND_STAGES, 'stageLengthMm': round(st_len), 'stowedTopMm': round(wand['topY'] + st_len + 60),
+                              'washHallHeightMm': round(10 * spec['yardstick_m_per_plan_unit'] * 1000)}
 
     # ═══════════════════════════════════════════════ fastener sets, by station ═══
     # cladding panels: 3 columns x 8 rows of button heads each

@@ -7,12 +7,12 @@
   "glb": "m"
  },
  "totals": {
-  "parts": 576,
-  "uniqueParts": 64,
+  "parts": 578,
+  "uniqueParts": 65,
   "fasteners": 370,
-  "massKg": 3429.0,
+  "massKg": 3411.22,
   "boughtLines": 44,
-  "madeLines": 20,
+  "madeLines": 21,
   "referenceLines": 0
  },
  "subsystems": [
@@ -158,10 +158,10 @@
    },
    "group": "Tools",
    "order": 7,
-   "partCount": 20,
+   "partCount": 22,
    "fastenerCount": 8,
-   "massKg": 158.937,
-   "uniqueParts": 7
+   "massKg": 141.161,
+   "uniqueParts": 8
   },
   {
    "id": "CONTROL",
@@ -1537,17 +1537,19 @@
    "category": "structure",
    "make": "make",
    "standard": "EN 10219",
-   "size": "1486 long",
+   "size": "966 long",
    "grade": "316L",
    "material": "Stainless steel 1.4401 (316)",
    "materialKey": "ss316",
    "qty": 2,
-   "massKg": 24.9083,
-   "totalMassKg": 49.8165,
+   "massKg": 16.1949,
+   "totalMassKg": 32.3899,
    "torqueNm": null,
    "reference": false,
-   "function": "Fixed through the beam. It guides the middle stage.",
-   "spec": {},
+   "function": "Fixed through the beam. It guides the next stage.",
+   "spec": {
+    "stowed top": "4.23 m above grade"
+   },
    "uses": [
     {
      "sub": "WAND",
@@ -1557,20 +1559,20 @@
   },
   {
    "id": "WSH-WS2",
-   "name": "Wand column stage 2, 92 x 92",
+   "name": "Wand column stage 2, 94 x 94",
    "category": "structure",
    "make": "make",
    "standard": "EN 10219",
-   "size": "1311 long",
+   "size": "914 long",
    "grade": "316L",
    "material": "Stainless steel 1.4401 (316)",
    "materialKey": "ss316",
    "qty": 2,
-   "massKg": 14.7352,
-   "totalMassKg": 29.4705,
+   "massKg": 10.5064,
+   "totalMassKg": 21.0128,
    "torqueNm": null,
    "reference": false,
-   "function": "Slides half the drop. A belt over its pulley drives stage 3.",
+   "function": "Slides a third of the drop. A belt over its pulley drives the next stage.",
    "spec": {},
    "uses": [
     {
@@ -1581,17 +1583,41 @@
   },
   {
    "id": "WSH-WS3",
-   "name": "Wand column stage 3, 76 x 76",
+   "name": "Wand column stage 3, 80 x 80",
    "category": "structure",
    "make": "make",
    "standard": "EN 10219",
-   "size": "1311 long",
+   "size": "914 long",
    "grade": "316L",
    "material": "Stainless steel 1.4401 (316)",
    "materialKey": "ss316",
    "qty": 2,
-   "massKg": 12.0561,
-   "totalMassKg": 24.1122,
+   "massKg": 8.8721,
+   "totalMassKg": 17.7441,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Slides a third of the drop. A belt over its pulley drives the next stage.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WAND",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-WS4",
+   "name": "Wand column stage 4, 66 x 66",
+   "category": "structure",
+   "make": "make",
+   "standard": "EN 10219",
+   "size": "914 long",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 7.2377,
+   "totalMassKg": 14.4755,
    "torqueNm": null,
    "reference": false,
    "function": "Carries the reach slide at its foot.",
@@ -1827,5 +1853,12 @@
    ]
   }
  ],
- "notes": {}
+ "notes": {
+  "wand_column": {
+   "stages": 4,
+   "stageLengthMm": 914,
+   "stowedTopMm": 4228,
+   "washHallHeightMm": 4785
+  }
+ }
 }

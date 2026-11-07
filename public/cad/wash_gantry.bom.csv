@@ -51,9 +51,10 @@ WSH-DKT,"Top air knife, stainless",1,tool,make,made to order,1818 long,,Stainles
 ISO4017-M10x30-8.8,Hex head screw M10 x 30,12,fastener,buy,ISO 4017,M10 x 30,8.8,"Steel, zinc flake coated",0.0294,0.3533,49.0,Air knives (dryer) x12,Holds the blower foot to the beam cover frame.
 ISO4762-M8x20-A4-80,Socket head cap screw M8 x 20,8,fastener,buy,ISO 4762,M8 x 20,A4-80,Stainless steel A4-80,0.0152,0.1218,23.8,Air knives (dryer) x8,Holds the bracket to the air knife.
 WSH-WAR,"Wand reach tube, 52 mm",2,structure,make,EN 10217-7,D 52,316L,Stainless steel 1.4401 (316),9.3885,18.7771,,Detail vacuum wands x2,Reaches in through the door opening to the cabin floor. It is the vacuum duct.
-WSH-WS1,"Wand column stage 1 (sleeve), 110 x 110",2,structure,make,EN 10219,1486 long,316L,Stainless steel 1.4401 (316),24.9083,49.8165,,Detail vacuum wands x2,Fixed through the beam. It guides the middle stage.
-WSH-WS2,"Wand column stage 2, 92 x 92",2,structure,make,EN 10219,1311 long,316L,Stainless steel 1.4401 (316),14.7352,29.4705,,Detail vacuum wands x2,Slides half the drop. A belt over its pulley drives stage 3.
-WSH-WS3,"Wand column stage 3, 76 x 76",2,structure,make,EN 10219,1311 long,316L,Stainless steel 1.4401 (316),12.0561,24.1122,,Detail vacuum wands x2,Carries the reach slide at its foot.
+WSH-WS1,"Wand column stage 1 (sleeve), 110 x 110",2,structure,make,EN 10219,966 long,316L,Stainless steel 1.4401 (316),16.1949,32.3899,,Detail vacuum wands x2,Fixed through the beam. It guides the next stage.
+WSH-WS2,"Wand column stage 2, 94 x 94",2,structure,make,EN 10219,914 long,316L,Stainless steel 1.4401 (316),10.5064,21.0128,,Detail vacuum wands x2,Slides a third of the drop. A belt over its pulley drives the next stage.
+WSH-WS3,"Wand column stage 3, 80 x 80",2,structure,make,EN 10219,914 long,316L,Stainless steel 1.4401 (316),8.8721,17.7441,,Detail vacuum wands x2,Slides a third of the drop. A belt over its pulley drives the next stage.
+WSH-WS4,"Wand column stage 4, 66 x 66",2,structure,make,EN 10219,914 long,316L,Stainless steel 1.4401 (316),7.2377,14.4755,,Detail vacuum wands x2,Carries the reach slide at its foot.
 WSH-WDM,"Wand drop servo gearmotor 0.4 kW, brake",2,drive,buy,catalogue part,0.4 kW,IP66,"Structural steel S355, painted RAL 9005",7.5,15.0,,Detail vacuum wands x2,Drives stage 2 by a toothed belt. Its brake holds the column with power off.
 WSH-WHD,Wand vacuum head with lamp,2,tool,make,moulded,220 x 340,,PA66-GF30,10.8117,21.6234,,Detail vacuum wands x2,Vacuums the floor and lights it for the camera.
 ISO4762-M8x25-A4-80,Socket head cap screw M8 x 25,8,fastener,buy,ISO 4762,M8 x 25,A4-80,Stainless steel A4-80,0.0172,0.1378,23.8,Detail vacuum wands x8,Clamps the wand mast under the beam.

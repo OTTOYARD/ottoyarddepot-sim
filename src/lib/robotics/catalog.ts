@@ -191,6 +191,9 @@ function cleanPoses(): PosePreset[] {
   ];
 }
 
+/** The wash wands' sliding column stages (cad wash_gantry.WAND_STAGES less the fixed sleeve): each takes an equal share. */
+export const WASH_WAND_SLIDES = 3;
+
 /** The wash machine's slides as the CAD's nodes take them, from the twin's washPoseAt (plan units -> metres). */
 export function washAngles(phase: WashPhase, t: number): Record<string, number> {
   const p = washPoseAt({ phase, t, vacuumS: VACUUM_NOMINAL_S, from: null });
@@ -205,8 +208,7 @@ export function washAngles(phase: WashPhase, t: number): Record<string, number> 
   for (const s of ['L', 'R']) {
     out[`SIDE_BRUSH_${s}`] = (WG.sideBrush.retractX - p.sideBrushX) * m;
     out[`DRYER_SIDE_${s}`] = (WG.dryer.side.retractX - p.dryerSideX) * m;
-    out[`WAND_${s}_DROP1`] = drop / 2;
-    out[`WAND_${s}_DROP2`] = drop / 2;
+    for (let k = 1; k <= WASH_WAND_SLIDES; k++) out[`WAND_${s}_DROP${k}`] = drop / WASH_WAND_SLIDES;
     out[`WAND_${s}_REACH`] = reach;
   }
   return out;

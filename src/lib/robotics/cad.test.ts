@@ -21,6 +21,7 @@ import { CLEAN_ARM } from '@/lib/ottoCleanArm/cleanArmSpec';
 import { CLEAN_ARM_NODES } from '@/lib/ottoCleanArm/buildCleanArm';
 import { cleanJointsAt, sidesFor } from '@/lib/ottoCleanArm/cleanArmPose';
 import { WASH_GANTRY, WASH_HOME_DY } from '@/lib/ottoWash/washSpec';
+import { WASH_SHELL } from '@/lib/structurePlan';
 import { cleanAngles, type Bom, type Manifest, type RobotKey } from './catalog';
 
 const PUB = resolve(__dirname, '../../../public/cad');
@@ -135,9 +136,16 @@ describe('wash machine: the twin\'s machine', () => {
   it('stows at the north end, the twin\'s home, and drives every tool the twin drives', () => {
     expect(jointOf(byName(g, 'GANTRY'))!.stowed).toBeCloseTo(-WASH_HOME_DY * METRES_PER_PLAN_UNIT, 4);
     for (const n of ['TOP_BRUSH', 'SIDE_BRUSH_L', 'SIDE_BRUSH_R', 'DRYER_TOP', 'DRYER_SIDE_L', 'DRYER_SIDE_R',
-      'WAND_L_DROP1', 'WAND_L_DROP2', 'WAND_L_REACH', 'WAND_R_DROP1', 'WAND_R_DROP2', 'WAND_R_REACH']) {
+      'WAND_L_DROP1', 'WAND_L_DROP2', 'WAND_L_DROP3', 'WAND_L_REACH', 'WAND_R_DROP1', 'WAND_R_DROP2', 'WAND_R_DROP3', 'WAND_R_REACH']) {
       expect(jointOf(byName(g, n)), n).toBeTruthy();
     }
+  });
+  it('stows its wand columns under the wash hall roof (structurePlan.WASH_SHELL)', () => {
+    const top = Math.max(...g.nodes.filter((n) => n.extras?.part === 'WSH-WS1').map((n) => {
+      const acc = g.accessors[g.meshes[n.mesh!].primitives[0].attributes.POSITION];
+      return acc.max![1] + t(n)[1];
+    }));
+    expect(top).toBeLessThan(WASH_SHELL.height * METRES_PER_PLAN_UNIT - 0.3);
   });
   it('stands its rails where washSpec does', () => {
     const rails = g.nodes.filter((n) => n.extras?.part === 'WSH-RAIL').map((n) => t(n)[0]).sort((a, b) => a - b);
