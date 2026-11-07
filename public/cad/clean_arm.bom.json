@@ -7,12 +7,12 @@
   "glb": "m"
  },
  "totals": {
-  "parts": 454,
-  "uniqueParts": 145,
-  "fasteners": 281,
-  "massKg": 315.84,
-  "boughtLines": 104,
-  "madeLines": 41,
+  "parts": 494,
+  "uniqueParts": 152,
+  "fasteners": 317,
+  "massKg": 318.07,
+  "boughtLines": 107,
+  "madeLines": 45,
   "referenceLines": 1
  },
  "subsystems": [
@@ -31,10 +31,10 @@
    },
    "group": "Structure",
    "order": 0,
-   "partCount": 34,
-   "fastenerCount": 28,
-   "massKg": 197.743,
-   "uniqueParts": 8
+   "partCount": 50,
+   "fastenerCount": 44,
+   "massKg": 197.884,
+   "uniqueParts": 9
   },
   {
    "id": "J1",
@@ -82,10 +82,10 @@
    },
    "group": "Joints",
    "order": 3,
-   "partCount": 82,
+   "partCount": 83,
    "fastenerCount": 58,
-   "massKg": 6.896,
-   "uniqueParts": 32
+   "massKg": 7.086,
+   "uniqueParts": 33
   },
   {
    "id": "LINK2",
@@ -97,10 +97,10 @@
    "specs": {},
    "group": "Links",
    "order": 4,
-   "partCount": 30,
-   "fastenerCount": 12,
-   "massKg": 5.322,
-   "uniqueParts": 3
+   "partCount": 41,
+   "fastenerCount": 22,
+   "massKg": 5.976,
+   "uniqueParts": 5
   },
   {
    "id": "J3",
@@ -115,10 +115,10 @@
    },
    "group": "Joints",
    "order": 5,
-   "partCount": 19,
-   "fastenerCount": 12,
-   "massKg": 20.595,
-   "uniqueParts": 8
+   "partCount": 26,
+   "fastenerCount": 18,
+   "massKg": 21.193,
+   "uniqueParts": 10
   },
   {
    "id": "MAST",
@@ -135,10 +135,10 @@
    },
    "group": "Motion",
    "order": 6,
-   "partCount": 29,
-   "fastenerCount": 11,
-   "massKg": 20.79,
-   "uniqueParts": 10
+   "partCount": 34,
+   "fastenerCount": 15,
+   "massKg": 21.441,
+   "uniqueParts": 12
   },
   {
    "id": "WRIST",
@@ -386,18 +386,18 @@
    ]
   },
   {
-   "id": "ISO4032-M12-8",
-   "name": "Hex nut M12",
+   "id": "ISO7040-M12-8",
+   "name": "Prevailing-torque hex nut (nylon insert) M12",
    "category": "fastener",
    "make": "buy",
-   "standard": "ISO 4032",
+   "standard": "ISO 7040",
    "size": "M12",
    "grade": "8",
    "material": "Steel, zinc flake coated",
    "materialKey": "fast_zn",
    "qty": 8,
-   "massKg": 0.0169,
-   "totalMassKg": 0.1348,
+   "massKg": 0.0219,
+   "totalMassKg": 0.1752,
    "torqueNm": null,
    "reference": false,
    "function": "",
@@ -430,6 +430,30 @@
     {
      "sub": "MOUNT",
      "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "ISO7089-12-fast_zn",
+   "name": "Plain washer 12",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 7089",
+   "size": "13 x 24 x 2.5",
+   "grade": "200 HV",
+   "material": "Steel, zinc flake coated",
+   "materialKey": "fast_zn",
+   "qty": 16,
+   "massKg": 0.0063,
+   "totalMassKg": 0.1004,
+   "torqueNm": null,
+   "reference": false,
+   "function": "",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "MOUNT",
+     "qty": 16
     }
    ]
   },
@@ -1497,9 +1521,9 @@
    "grade": "A2-70",
    "material": "Stainless steel A2-70",
    "materialKey": "fast_a2",
-   "qty": 12,
+   "qty": 22,
    "massKg": 0.0023,
-   "totalMassKg": 0.0274,
+   "totalMassKg": 0.0503,
    "torqueNm": 3.6,
    "reference": false,
    "function": "Holds the link cover.",
@@ -1510,6 +1534,10 @@
     {
      "sub": "LINK1",
      "qty": 12
+    },
+    {
+     "sub": "LINK2",
+     "qty": 10
     }
    ]
   },
@@ -1628,6 +1656,30 @@
    "torqueNm": null,
    "reference": false,
    "function": "Closes the J2 actuator between the links.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "J2",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CLN-J2L",
+   "name": "J2 drum cover, lower",
+   "category": "structure",
+   "make": "make",
+   "standard": "casting",
+   "size": "OD 260",
+   "grade": "",
+   "material": "Aluminium A356-T6 casting, charcoal powder coat",
+   "materialKey": "a356_dark",
+   "qty": 1,
+   "massKg": 0.1897,
+   "totalMassKg": 0.1897,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Turns with link 2 under the upper cover. A labyrinth between them sheds water.",
    "spec": {},
    "uses": [
     {
@@ -2283,6 +2335,30 @@
    ]
   },
   {
+   "id": "CLN-L2C",
+   "name": "Link 2 top cover",
+   "category": "structure",
+   "make": "make",
+   "standard": "sheet 3 mm",
+   "size": "650 x 120",
+   "grade": "",
+   "material": "Aluminium 6061-T6, machined, black anodised",
+   "materialKey": "al6061_blk",
+   "qty": 1,
+   "massKg": 0.6318,
+   "totalMassKg": 0.6318,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Closes link 2. Off for service.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "LINK2",
+     "qty": 1
+    }
+   ]
+  },
+  {
    "id": "ISO4762-M6x25-12.9",
    "name": "Socket head cap screw M6 x 25",
    "category": "fastener",
@@ -2306,6 +2382,30 @@
     {
      "sub": "LINK2",
      "qty": 12
+    }
+   ]
+  },
+  {
+   "id": "CLN-CLD",
+   "name": "Mast carriage lid",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined plate 6 mm",
+   "size": "260 x 260",
+   "grade": "",
+   "material": "Aluminium 6061-T6, machined, black anodised",
+   "materialKey": "al6061_blk",
+   "qty": 1,
+   "massKg": 0.5826,
+   "totalMassKg": 0.5826,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Closes the carriage over the belt drive.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "J3",
+     "qty": 1
     }
    ]
   },
@@ -2520,6 +2620,56 @@
     {
      "sub": "WRIST",
      "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "ISO7380-M5x12-A2-70",
+   "name": "Button head screw M5 x 12",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 7380-1",
+   "size": "M5 x 12",
+   "grade": "A2-70",
+   "material": "Stainless steel A2-70",
+   "materialKey": "fast_a2",
+   "qty": 6,
+   "massKg": 0.0026,
+   "totalMassKg": 0.0156,
+   "torqueNm": 3.6,
+   "reference": false,
+   "function": "Holds the carriage lid.",
+   "spec": {
+    "drive": "hex socket 3 mm"
+   },
+   "uses": [
+    {
+     "sub": "J3",
+     "qty": 6
+    }
+   ]
+  },
+  {
+   "id": "CLN-MCP",
+   "name": "Mast top cap",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined plate 8 mm",
+   "size": "170 sq",
+   "grade": "",
+   "material": "Aluminium 6061-T6, machined, black anodised",
+   "materialKey": "al6061_blk",
+   "qty": 1,
+   "massKg": 0.6242,
+   "totalMassKg": 0.6242,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Closes the mast top above the pulley and keeps rain out of the stages.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "MAST",
+     "qty": 1
     }
    ]
   },
@@ -2744,6 +2894,33 @@
     {
      "sub": "MAST",
      "qty": 11
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M6x16-A2-70",
+   "name": "Socket head cap screw M6 x 16",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M6 x 16",
+   "grade": "A2-70",
+   "material": "Stainless steel A2-70",
+   "materialKey": "fast_a2",
+   "qty": 4,
+   "massKg": 0.0067,
+   "totalMassKg": 0.0267,
+   "torqueNm": 7.4,
+   "reference": false,
+   "function": "Holds the mast top cap.",
+   "spec": {
+    "preload": "7.2 kN",
+    "drive": "hex socket 5 mm"
+   },
+   "uses": [
+    {
+     "sub": "MAST",
+     "qty": 4
     }
    ]
   },

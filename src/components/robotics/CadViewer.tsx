@@ -7,7 +7,7 @@
 // All model handling (pose, explode, isolate, highlight, pick) is src/lib/robotics/cadModel.ts.
 // ============================================================================
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Canvas, useThree, type ThreeEvent } from '@react-three/fiber';
+import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import * as THREE from 'three';
@@ -16,7 +16,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import {
   explodeCad, highlightCad, indexCad, partAt, poseCad, visibleBounds, type CadModel,
 } from '@/lib/robotics/cadModel';
-import { cadUrl, type RobotKey } from '@/lib/robotics/catalog';
+import { cadUrl, type CycleScript, type RobotKey } from '@/lib/robotics/catalog';
 import { bodyProfile, CAR_LENGTH_M, CAR_WIDTH_M } from '@/lib/ottoChargeArm/vehicleEnvelope';
 import { PEDESTAL_TO_CAR_CENTRE_M, MOUNT_HEIGHT_M } from '@/lib/ottoChargeArm/cobotSpec';
 
@@ -35,10 +35,19 @@ export interface CadViewState {
   view: ViewDir;
   /** bumped to re-frame the camera on what is visible */
   fitKey: number;
+  /** frame the car with the robot (while a cycle plays, the robot reaches to the car) */
+  frameCar?: boolean;
 }
+
+export interface CadJointSummary { name: string; kind: 'revolute' | 'prismatic'; limits: [number, number]; stowed: number }
+export interface CadCycle { script: CycleScript; playing: boolean; speed: number }
 
 interface Props {
   robot: RobotKey;
+  /** play the robot's cycle (the twin's own choreography) on the model; null or paused: the state's pose */
+  cycle?: CadCycle | null;
+  onCycle?: (t: number, step: number) => void;
+  onJoints?: (joints: CadJointSummary[]) => void;
   glb: string;
   state: CadViewState;
   fasteners: ReadonlySet<string>;
@@ -89,6 +98,18 @@ function CarGhost({ robot }: { robot: RobotKey }) {
   );
 }
 
+/** The car ghost's bounds in the robot's frame, for framing the robot and the car together. */
+function carBounds(robot: RobotKey): THREE.Box3 {
+  const t = carGhostTransform(robot);
+  const hl = CAR_LENGTH_M / 2, hw = CAR_WIDTH_M / 2;
+  const along = Math.abs(t.rotationY) > 0.1;               // the wash bay's car runs along Z
+  const [x, y, z] = t.position;
+  return new THREE.Box3(
+    new THREE.Vector3(x - (along ? hw : hl), y, z - (along ? hl : hw)),
+    new THREE.Vector3(x + (along ? hw : hl), y + 1.64, z + (along ? hl : hw)),
+  );
+}
+
 function Environment() {
   const { gl, scene } = useThree();
   useEffect(() => {
@@ -110,6 +131,7 @@ function Framer({ model, state, controls }: { model: CadModel | null; state: Cad
     if (!model) return;
     const box = visibleBounds(model);
     if (box.isEmpty()) return;
+    if (state.frameCar) box.union(carBounds(model.robot as RobotKey));
     const c = box.getCenter(new THREE.Vector3());
     const size = Math.max(0.3, box.getSize(new THREE.Vector3()).length());
     const d = new THREE.Vector3(...DIRS[state.view]).normalize();
@@ -124,14 +146,31 @@ function Framer({ model, state, controls }: { model: CadModel | null; state: Cad
   return null;
 }
 
-function Model({ model, state, fasteners, onPick, onHover }: {
+function Model({ model, state, fasteners, onPick, onHover, cycle, onCycle }: {
   model: CadModel; state: CadViewState; fasteners: ReadonlySet<string>;
-  onPick: Props['onPick']; onHover?: Props['onHover'];
+  onPick: Props['onPick']; onHover?: Props['onHover']; cycle?: CadCycle | null; onCycle?: Props['onCycle'];
 }) {
   const [hover, setHover] = useState<string | null>(null);
   const { gl } = useThree();
+  const clock = useRef({ t: 0, sent: -1, step: -1 });
 
-  useEffect(() => { poseCad(model, state.angles); }, [model, state.angles]);
+  const playing = !!cycle?.playing;
+  useEffect(() => { if (!playing) poseCad(model, state.angles); }, [model, state.angles, playing]);
+  useEffect(() => { clock.current = { t: 0, sent: -1, step: -1 }; }, [cycle?.script]);
+  // The cycle plays on the frame clock: the model is posed here, and the tab hears about it at most 8 times a
+  // second (and on every step change), so a playing cycle never re-renders the parts list each frame.
+  useFrame((_, dt) => {
+    if (!cycle?.playing) return;
+    const c = clock.current;
+    c.t = (c.t + Math.min(dt, 0.25) * cycle.speed) % cycle.script.total;
+    const f = cycle.script.at(c.t);
+    poseCad(model, f.angles);
+    if (f.step !== c.step || Math.abs(c.t - c.sent) > 0.125 * cycle.speed) {
+      c.step = f.step;
+      c.sent = c.t;
+      onCycle?.(c.t, f.step);
+    }
+  });
   useEffect(() => { explodeCad(model, state.explode); }, [model, state.explode]);
   useEffect(() => {
     highlightCad(model, {
@@ -187,7 +226,7 @@ function Model({ model, state, fasteners, onPick, onHover }: {
   );
 }
 
-export function CadViewer({ robot, glb, state, fasteners, onPick, onHover, onStatus }: Props) {
+export function CadViewer({ robot, glb, state, fasteners, onPick, onHover, onStatus, cycle, onCycle, onJoints }: Props) {
   const [model, setModel] = useState<CadModel | null>(null);
   const controls = useRef<OrbitControlsImpl>(null);
 
@@ -201,6 +240,7 @@ export function CadViewer({ robot, glb, state, fasteners, onPick, onHover, onSta
         const m = indexCad(scene);
         setModel(m);
         onStatus?.({ loading: false, progress: 1, error: null, parts: m.parts.length });
+        onJoints?.([...m.joints.values()].map((j) => ({ name: j.name, kind: j.kind, limits: j.limits, stowed: j.stowed ?? 0 })));
       })
       .catch((e: unknown) => {
         if (live) onStatus?.({ loading: false, progress: 0, error: e instanceof Error ? e.message : String(e), parts: 0 });
@@ -222,7 +262,7 @@ export function CadViewer({ robot, glb, state, fasteners, onPick, onHover, onSta
       <directionalLight position={[5, 9, 6]} intensity={1.5} />
       <directionalLight position={[-6, 4, -5]} intensity={0.35} />
       <hemisphereLight args={[0xdfe8ff, 0x1a1e24, 0.45]} />
-      {model && <Model model={model} state={state} fasteners={fasteners} onPick={onPick} onHover={onHover} />}
+      {model && <Model model={model} state={state} fasteners={fasteners} onPick={onPick} onHover={onHover} cycle={cycle} onCycle={onCycle} />}
       {model && state.showCar && <CarGhost robot={robot} />}
       <gridHelper args={[20, 40, 0x2a3440, 0x161c24]} position={[0, robot === 'charge_arm' ? -MOUNT_HEIGHT_M : 0, 0]} />
       <Framer model={model} state={state} controls={controls} />

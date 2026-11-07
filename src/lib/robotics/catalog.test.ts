@@ -69,3 +69,33 @@ describe('the parts filter', () => {
     expect(filterLines(lines, { query: 'm8' }).map((l) => l.id)).toEqual(['A']);
   });
 });
+
+describe('the cycle played on the CAD is the twin\'s choreography', () => {
+  it('charge arm: starts stowed, ends the insert on the port, and runs the twin\'s phase times', async () => {
+    const { cycleScript, SHORT_STEP_S } = await import('./catalog');
+    const { STOWED } = await import('@/lib/ottoChargeArm/cobotIK');
+    const s = cycleScript('charge_arm');
+    const timed = Object.values(ARM_TIMING_DEFAULTS).reduce((a, x) => a + x, 0);
+    expect(s.total).toBeCloseTo(timed + SHORT_STEP_S, 6);
+    const start = s.at(0).angles;
+    expect(start.J2).toBeCloseTo(STOWED.j2, 6);
+    expect(start.J3).toBeCloseTo(STOWED.j3, 6);
+    const insertEnd = s.steps.slice(0, s.steps.findIndex((x) => x.id === 'insert') + 1).reduce((a, x) => a + x.seconds, 0) - 1e-6;
+    const a = s.at(insertEnd).angles;
+    const tip = forwardTCP({ j1: a.J1, j2: a.J2, j3: a.J3, j4: a.J4, j5: a.J5, j6: a.J6 });
+    expect(Math.hypot(tip.x - SAMPLE_PORT.along, tip.y - (SAMPLE_PORT.height - MOUNT_HEIGHT_M), tip.z - FLANK_STANDOFF_M)).toBeLessThan(1e-3);
+    expect(s.steps.find((x) => x.id === 'charging')!.short).toBe(true);
+  });
+  it('clean arm and wash: every step of the twin\'s chain, in order, and the wands reach the floor in the vacuum', async () => {
+    const { cycleScript } = await import('./catalog');
+    const { CLEAN_CHAIN } = await import('@/lib/ottoCleanArm/cleanArmSpec');
+    const { washChain } = await import('@/lib/ottoWash/washSpec');
+    expect(cycleScript('clean_arm').steps.map((x) => x.id)).toEqual([...CLEAN_CHAIN]);
+    const w = cycleScript('wash_gantry');
+    expect(w.steps.map((x) => x.id)).toEqual([...washChain(true)]);
+    const i = w.steps.findIndex((x) => x.id === 'vacuum');
+    const mid = w.steps.slice(0, i).reduce((a, x) => a + x.seconds, 0) + w.steps[i].seconds / 2;
+    const v = w.at(mid).angles;
+    expect(v.WAND_L_DROP1 + v.WAND_L_DROP2 + v.WAND_L_DROP3).toBeCloseTo((WASH_GANTRY.wand.topY - WASH_GANTRY.wand.workY) * METRES_PER_PLAN_UNIT, 6);
+  });
+});

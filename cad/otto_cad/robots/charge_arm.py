@@ -502,6 +502,27 @@ def build(spec: dict) -> Model:
                 m.place(node, std.shcs(6, 20, 'A2-70', 'Holds the cable clamp to its link.'),
                         std.orient((sx * 22, y, z + 47), (0, 0, 1)), (0, 0, -160), 'DRESS')
 
+    # dress-pack retract unit: a spring-return slide on the upper arm that takes up the cable's slack as the arm folds
+    rz = zc - 70
+    rtu = (cq.Workplane('XZ', origin=(0, 980, rz)).circle(30).circle(26).extrude(620)
+           .union(cq.Workplane('XZ', origin=(0, 980, rz)).circle(30).extrude(8))
+           .union(cq.Workplane('XZ', origin=(0, 368, rz)).circle(30).extrude(8)))
+    m.place(j2, m.part(PartDef('CHG-RTU', 'Dress-pack retract unit, spring return, 500 mm stroke', rtu.val(), 'al6061_blk', 'electrical',
+                               'catalogue part', 'D 60 x 620', 'IP54', None,
+                               'Takes up the charge cable slack when the arm folds, so the cable never hangs into the aisle or onto the car.',
+                               {'pull': 'about 60 N', 'stroke': '500 mm'}, 'buy')), Location(), (0, 0, -260), 'DRESS')
+    brk = cq.Workplane('XY').box(70, 30, 90).translate((0, 0, 0)).cut(cq.Workplane('XZ').circle(30.5).extrude(20, both=True).translate((0, 0, -25)))
+    brk_pd = m.part(PartDef('CHG-RTB', 'Retract unit clamp bracket', brk.val(), 'al6061', 'electrical', 'machined', '70 x 90 x 30', '6061-T6',
+                            None, 'Clamps the retract unit to the upper arm.', {}, 'make'))
+    for yy in (420, 930):
+        m.place(j2, brk_pd, loc(0, yy, rz + 25), (0, 0, -230), 'DRESS')
+        for dx in (-22, 22):
+            m.place(j2, std.shcs(6, 25, 'A2-70', 'Holds the retract bracket to the upper arm.'), std.orient((dx, yy, rz + 70), (0, 0, 1)),
+                    (0, 0, -210), 'DRESS')
+    sld = cq.Workplane('XY').box(64, 40, 64).cut(cq.Workplane('XZ').circle(31).extrude(30, both=True)).translate((0, 880, rz))
+    m.place(j2, m.part(PartDef('CHG-RTS', 'Retract slider with cable clamp', sld.val(), 'pa66', 'electrical', 'catalogue part', '64 x 64 x 40',
+                               '', None, 'Rides the retract unit and grips the cable.', {}, 'buy')), Location(), (0, 0, -300), 'DRESS')
+
     # ═════════════════════════════════════════════════════════════ SAFETY ═══
     sc = (cq.Workplane('XY').box(110, 150, 104, centered=(True, False, True)).edges('|Y').fillet(10)
           .faces('<Y').shell(-3)
@@ -601,20 +622,52 @@ def build_tool(m: Model, tool: Node, LT: float) -> None:
     m.place(tool, m.part(PartDef('CHG-SOL', 'Latch solenoid, 24 V', sol.val(), 'steel_paint', 'tool', 'catalogue part',
                                  '36 x 46 x 30', '', None, 'Moves the latch hook. A spring locks it when power is off.',
                                  {'force': '35 N at 5 mm stroke'}, 'buy')), Location(), (0, 200, 90))
-    # vision pod: stereo pair + time-of-flight + IR light ring, looking along +Y
-    pod = (cq.Workplane('XY').box(110, 34, 40).edges().fillet(5).translate((0, y + 50, 46 + 30)))
-    m.place(tool, m.part(PartDef('CHG-VIS', 'Vision pod: stereo cameras and time-of-flight', pod.val(), 'a356_dark', 'sensor',
-                                 'made to order', '110 x 40 x 34', 'IP67', None,
-                                 'Finds the inlet and its angle from 0.6 m out. The arm corrects the last 10 mm with it.',
-                                 {'stereo base': '60 mm', 'depth': 'time-of-flight, 0.1-2 m', 'light': '850 nm ring'}, 'buy')),
+    # vision pod: a sealed enclosure looking along +Y, with its parts inside (an x-ray or a cut shows them)
+    pc = (0, y + 50, 46 + 30)                    # pod centre
+    pod = (cq.Workplane('XY').box(110, 34, 40).edges('|Y').fillet(5).faces('>Y').shell(-2.5).translate(pc))
+    m.place(tool, m.part(PartDef('CHG-VIS', 'Vision pod housing, IP67', pod.val(), 'a356_dark', 'sensor', 'die casting, machined',
+                                 '110 x 40 x 34', 'IP67', None,
+                                 'Holds the 2 cameras, the depth sensor and the light, sealed behind one window.',
+                                 {'stereo base': '60 mm', 'depth': 'time-of-flight, 0.1-2 m', 'light': '850 nm'}, 'make')),
             Location(), (0, 160, 140))
-    lens = cq.Workplane('XZ').circle(9).extrude(-4)
-    lens_pd = m.part(PartDef('CHG-LNS', 'Camera window', lens.val(), 'lens', 'sensor', 'catalogue part', 'D 18', '', None,
-                             'Sealed glass in front of each camera.', {}, 'buy'))
-    for x in (-30, 30, 0):
-        m.place(tool, lens_pd, loc(x, y + 67, 76), (0, 180, 140))
+    win = cq.Workplane('XY').box(104, 3, 34).translate((pc[0], pc[1] + 17 + 1.5, pc[2]))
+    m.place(tool, m.part(PartDef('CHG-VWN', 'Vision pod window, coated glass', win.val(), 'lens', 'sensor', 'catalogue part', '104 x 34 x 3',
+                                 'anti-reflective, hydrophobic', None, 'Seals the front. Its coating sheds rain and road film.', {}, 'buy')),
+            Location(), (0, 230, 140))
+    gk = (cq.Workplane('XY').box(108, 1.5, 38).cut(cq.Workplane('XY').box(98, 3, 28))).translate((pc[0], pc[1] + 17 + 0.25, pc[2]))
+    m.place(tool, m.part(PartDef('CHG-VGK', 'Vision pod window gasket', gk.val(), 'nbr', 'seal', 'cut gasket', '108 x 38 x 1.5', 'EPDM', None,
+                                 'Seals the window to the housing (IP67).', {}, 'buy')), Location(), (0, 210, 140))
+    cam = (cq.Workplane('XY').box(30, 4, 26).translate((0, -6, 0))
+           .union(cq.Workplane('XZ', origin=(0, 10, 0)).circle(7).extrude(14)))
+    cam_pd = m.part(PartDef('CHG-CAM', 'Camera module, global shutter, 2 MP', cam.val(), 'pcb', 'sensor', 'catalogue part',
+                            '30 x 26, M12 lens', '', None, 'One eye of the stereo pair. 2 views give the inlet depth and angle.',
+                            {'shutter': 'global', 'lens': 'M12, 6 mm'}, 'buy'))
+    for x in (-30, 30):
+        m.place(tool, cam_pd, loc(pc[0] + x, pc[1] + 2, pc[2]), (x * 2, 190, 160))
+    tof = (cq.Workplane('XY').box(20, 4, 16).translate((0, -6, 0))
+           .union(cq.Workplane('XZ', origin=(-4, 4, 0)).circle(2.5).extrude(6))
+           .union(cq.Workplane('XZ', origin=(4, 4, 0)).circle(2.5).extrude(6)))
+    m.place(tool, m.part(PartDef('CHG-TOF', 'Time-of-flight depth module', tof.val(), 'pcb', 'sensor', 'catalogue part', '20 x 16',
+                                 '', None, 'Measures the distance to the inlet face. It checks the stereo depth.', {'range': '0.1-2 m'}, 'buy')),
+            loc(pc[0], pc[1] + 6, pc[2] + 8), (0, 200, 190))
+    ir = cq.Workplane('XY').box(90, 1.6, 8).translate((0, 0, 0))
+    for k in range(8):
+        ir = ir.union(cq.Workplane('XZ', origin=(-38 + k * 76 / 7, 0.8, 0)).circle(2.5).extrude(-3))
+    m.place(tool, m.part(PartDef('CHG-IRB', 'IR illuminator board, 8 LEDs, 850 nm', ir.val(), 'pcb', 'sensor', 'made to order', '90 x 8',
+                                 '', None, 'Lights the inlet for the cameras at night and in direct sun.', {}, 'buy')),
+            loc(pc[0], pc[1] + 14, pc[2] - 13), (0, 210, 120))
+    for xx in (-49, 49):
+        for zz in (-14, 14):
+            m.place(tool, std.shcs(3, 8, 'A2-70', 'Holds the window clamp to the pod housing.'),
+                    std.orient((pc[0] + xx, pc[1] + 20, pc[2] + zz), (0, -1, 0)), (0, 250, 140))
     for p in ((-45, 76), (45, 76)):
         m.place(tool, std.shcs(4, 12, 'A2-70', 'Holds the vision pod to the holder.'), std.orient((p[0], y + 33, p[1]), (0, 1, 0)), (0, 140, 140))
+    # the connector's face seal and its nose bumper
+    m.place(tool, std.oring(66, 3, 'Seals the connector face to the inlet against rain.'), loc(0, face_y - 4, 0), (0, 300, 0))
+    bump = cq.Workplane('XZ', origin=(0, face_y - 18, 0)).circle(43).circle(39.5).extrude(-12)
+    m.place(tool, m.part(PartDef('CHG-BMP', 'Connector nose bumper, TPE', bump.val(), 'rubber', 'tool', 'moulded', 'OD 86 x 12', '', None,
+                                 'Takes a light knock on the inlet rim without damage. The force sensor stops the arm.', {}, 'buy')),
+            Location(), (0, 280, 0))
     m.place(tool, std.gland(20, 'Seals the charge cable into the connector body.'), std.orient((0, y + 14 + body_len * 0.45, -63), (0, 0, 1)),
             (0, 200, -60))
 

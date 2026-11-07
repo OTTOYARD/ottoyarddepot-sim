@@ -179,12 +179,13 @@ def build(spec: dict) -> Model:
     for sx in (-1, 1):
         m.place(gan, leg_pd, loc(sx * legX, 0, 0), (sx * 200, 0, 0), 'PORTAL')
         m.place(gan, clad_pd, loc(sx * (legX + leg['w'] / 2 + 2), 0, 0), (sx * 420, 0, 0), 'PORTAL')
-        for yy, d in ((leg_y0 + 20, (0, -1, 0)), (leg['top'] - 20, (0, 1, 0))):
+        for yy, d in ((leg_y0 + 15, (0, -1, 0)), (leg['top'] - 15, (0, 1, 0))):
             for zz in (zl - leg['d'] / 2 + 100 - 110, zl - leg['d'] / 2 + 100 + 110, zl + leg['d'] / 2 - 100 - 110,
                        zl + leg['d'] / 2 - 100 + 110):
                 for xx in (-1, 1):
-                    m.place(gan, std.hex_bolt(16, 60, '8.8', 'Bolts the leg flange to the trolley or the beam.'),
-                            std.orient((sx * legX + xx * (leg['w'] / 2 + 18), yy, zz), d), (sx * 200, -d[1] * 120, 0), 'PORTAL')
+                    std.bolt_stack(m, gan, 'PORTAL', (sx * legX + xx * (leg['w'] / 2 + 18), yy, zz), d, 16, 60, 15 + 12,
+                                   fn='Bolts the leg flange to the trolley or the beam. The lock nut holds under vibration.',
+                                   explode=(sx * 200, -d[1] * 120, 0))
     # beam: 2 RHS 300 x 200 side by side (along z), joined by end plates
     bl = 2 * legX + leg['w']
     bz0, bz1 = zf(beam['dy0']), zf(beam['dy1'])
@@ -479,8 +480,8 @@ def build(spec: dict) -> Model:
     for bx in (-900, -(legX - 800), legX - 800):
         for fx in (-150, 150):
             for fz in (-150, 150):
-                m.place(gan, std.hex_bolt(10, 30, '8.8', 'Holds the blower foot to the beam cover frame.'),
-                        std.orient((bx + fx, beam['y1'] + 12, zd + fz), (0, -1, 0)), (0, 430, 0), 'DRYER')
+                std.bolt_stack(m, gan, 'DRYER', (bx + fx, beam['y1'] + 14, zd + fz), (0, -1, 0), 10, 40, 14,
+                               fn='Holds the blower foot to the beam frame, on a rubber mount.', explode=(0, 430, 0))
     # air knife hanger brackets
     kb = (cq.Workplane('XY').box(60, 120, 8).union(cq.Workplane('XY').box(60, 8, 60).translate((0, 56, 26))))
     kb_pd = m.part(PartDef('WSH-KBR', 'Air knife bracket, stainless', kb.val(), 'ss316', 'structure', 'bent sheet 8 mm', '60 x 120',
@@ -511,6 +512,65 @@ def build(spec: dict) -> Model:
             m.place(gan, std.shcs(8, 25, 'A4-80', 'Clamps the wand mast under the beam.'),
                     std.orient((sx * wand['x'] + 60 * math.cos(a), beam['y0'] - 6, zw + 60 * math.sin(a)), (0, 1, 0)), (sx * 100, 160, 0),
                     'WAND')
+
+    # ═══════════════════════════════════════════ drives the first pass left implicit ═══
+    # side brush carriages: a gearmotor and pinion on each, meshing the rack under the beam
+    pin = cq.Workplane('XZ').circle(22).extrude(13, both=True).union(cq.Workplane('XZ').circle(8).extrude(40, both=True))
+    pin_pd = m.part(PartDef('WSH-PIN', 'Pinion module 2, 20 teeth, stainless', pin.val(), 'ss316', 'drive', 'DIN 867 tooth form',
+                            '20 T, m 2', '', None, 'Drives the brush carriage along its rack.', {}, 'buy'))
+    cgm = cq.Workplane('XZ').circle(50).extrude(-160).union(cq.Workplane('XY').box(110, 110, 110).translate((0, 50, 0)))
+    cgm_pd = m.part(PartDef('WSH-CGM', 'Carriage gearmotor 0.37 kW, brake, encoder', cgm.val(), 'steel_paint', 'drive', 'catalogue part',
+                            '0.37 kW', 'IP66, wash-down', None,
+                            'Moves the side brush in to the flank. Its current says how hard the brush presses.', {}, 'buy',
+                            mass_override=12.0))
+    for sx, name in ((-1, 'L'), (1, 'R')):
+        node = next(c for c in gan.children if c.name == f'SideBrush{name}')
+        x = sx * side['retractX']
+        m.place(node, pin_pd, loc(x - sx * 110, beam['y0'] - 34, zs - 180), (sx * 120, 0, -120), 'SIDEBRUSH')
+        m.place(node, cgm_pd, loc(x - sx * 110, beam['y0'] - 60, zs - 180 - 60, rx=90), (sx * 160, 0, -220), 'SIDEBRUSH')
+        for k in range(4):
+            a = math.radians(45 + 90 * k)
+            m.place(node, std.hex_bolt(8, 25, 'A4-70', 'Holds the carriage gearmotor to its bracket.'),
+                    std.orient((x - sx * 110 + 38 * math.cos(a), beam['y0'] - 60 + 38 * math.sin(a), zs - 180 - 6), (0, 0, 1)),
+                    (sx * 160, 0, -240), 'SIDEBRUSH')
+    # top brush lift: a cross shaft on the beam with a belt drum over each hanger, in 2 pillow-block bearings
+    shaft_l = 2 * top['hangerX'] + 300
+    lsh = cq.Workplane('YZ', origin=(-shaft_l / 2, beam['y1'] + 60, zt)).circle(20).extrude(shaft_l)
+    m.place(gan, m.part(PartDef('WSH-LSH', 'Lift cross shaft, 40 mm, stainless', lsh.val(), 'ss316', 'drive', 'machined',
+                                f'D 40 x {shaft_l:.0f}', '', None, 'Turns both belt drums together, so the brush lifts level.', {}, 'make')),
+            Location(), (0, 340, 0), 'TOPBRUSH')
+    drum = cq.Workplane('YZ').circle(70).extrude(30, both=True).cut(cq.Workplane('YZ').circle(20).extrude(40, both=True))
+    drum_pd = m.part(PartDef('WSH-DRM', 'Lift belt drum 140 mm', drum.val(), 'al6061', 'drive', 'machined', 'D 140 x 60',
+                             '6061-T6', None, 'Winds the lift belt that hangs the top brush.', {}, 'make'))
+    pb = (cq.Workplane('XY').box(60, 50, 160).translate((0, -25, 0))
+          .union(cq.Workplane('YZ').circle(40).extrude(26, both=True)).cut(cq.Workplane('YZ').circle(20).extrude(40, both=True)))
+    pb_pd = m.part(PartDef('WSH-PBU', 'Pillow-block bearing unit, 40 mm, stainless', pb.val(), 'ss316', 'bearing', 'ISO 3228',
+                           'bore 40', 'sealed, wash-down', None, 'Carries the lift shaft on the beam.', {}, 'buy'))
+    for sx in (-1, 1):
+        m.place(gan, drum_pd, loc(sx * top['hangerX'], beam['y1'] + 60, zt), (sx * 60, 360, 0), 'TOPBRUSH')
+        m.place(gan, pb_pd, loc(sx * (top['hangerX'] + 110), beam['y1'] + 60, zt), (sx * 90, 380, 0), 'TOPBRUSH')
+        for dz in (-55, 55):
+            std.bolt_stack(m, gan, 'TOPBRUSH', (sx * (top['hangerX'] + 110), beam['y1'] + 10, zt + dz), (0, -1, 0), 12, 50, 14,
+                           fn='Holds the pillow block to the beam.', explode=(sx * 90, 400, 0), stainless=True)
+    # side air knives: a flexible duct each, up to its blower on the beam
+    for sx, name in ((-1, 'L'), (1, 'R')):
+        node = next(c for c in gan.children if c.name == f'DryerSide{name}')
+        x = sx * (dside['retractX'] + dside['w'] / 2)
+        dd = (cq.Workplane('XZ', origin=(x, beam['y0'] - 20, zd)).rect(150, 170).extrude(beam['y0'] - 20 - dside['y1'])
+              .faces('>Y or <Y').shell(-2))
+        m.place(node, m.part(PartDef('WSH-DDS', 'Flexible duct, 150 x 170', dd.val(), 'hose', 'fluid', 'catalogue part', '150 x 170', '',
+                                     None, 'Feeds a side knife from its blower. It flexes as the knife closes on the car.', {}, 'buy')),
+                Location(), (sx * 300, 0, 0), 'DRYER')
+    # arch: a valve manifold on the beam and the feed hose down to the arch's top pipe
+    man = cq.Workplane('XY').box(1100, 60, 60).translate((0, beam['y1'] + 30, za + 60))
+    m.place(gan, m.part(PartDef('WSH-MAN', 'Valve manifold, stainless, 4 stations', man.val(), 'ss316', 'fluid', 'machined',
+                                '1100 x 60 x 60', '316L', None, 'Carries foam, rinse water and the 2 chemicals to the valves.', {}, 'make')),
+            Location(), (0, 240, 200), 'ARCH')
+    feed = std.swept('WSH-AFH', 'Arch feed hose, 1 in, stainless braid',
+                     [(0, beam['y1'] + 30, za + 30), (0, beam['y1'] - 120, za + 10), (0, arch['top'] + ar + 40, za), (0, arch['top'] + ar + 4, za)],
+                     14, 'hose', 'fluid', 10, 'Brings the switched liquid from the manifold to the arch.', {'pressure': '70 bar'},
+                     'EN 853', 'DN 25')
+    m.place(gan, feed, Location(), (0, 200, 300), 'ARCH')
 
     # ═══════════════════════════════════════════════════════════════ CONTROL ═══
     zb1 = zf(beam['dy1'])

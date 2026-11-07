@@ -44,9 +44,17 @@ at home, mid brush pass, dry pass and cabin vacuum (`washPoseAt`). Its run steps
 
 | robot | parts | different parts | screws, nuts, washers, pins | mass | STEP (zip) | GLB |
 |---|---:|---:|---:|---:|---:|---:|
-| OTTO-CHARGE ARM | 713 | 177 | 529 | 296 kg (with its riser) | 23.5 MB (4.0) | 6.2 MB |
-| OTTO-CLEAN ARM | 454 | 145 | 281 | 316 kg (with 198 kg of canopy steel) | 16.0 MB (2.6) | 4.3 MB |
-| OTTO-WASH | 578 | 65 | 370 | 3,411 kg | 5.1 MB (0.9) | 1.1 MB |
+| OTTO-CHARGE ARM | 730 | 188 | 537 | 297 kg (with its riser) | 23.8 MB (4.0) | 6.4 MB |
+| OTTO-CLEAN ARM | 494 | 152 | 317 | 318 kg (with its canopy steel) | 16.2 MB (2.6) | 4.3 MB |
+| OTTO-WASH | 747 | 79 | 526 | 3,511 kg | 5.7 MB (1.0) | 1.3 MB |
+
+**Every STEP is re-imported by the build before it is published** (`build.py step_check`): each placed part must come
+back as a named solid and every solid must pass OpenCascade's validity check, or the build stops. As built: 732, 496
+and 747 named parts (the counts include the reference context parts), 1,417, 877 and 830 solids, 0 invalid.
+
+Through-bolted steel joints are drawn as they are assembled (`std.bolt_stack`): bolt, a washer under the head, the
+clamped plates, a washer and a lock nut (the wash machine's leg flanges, its blower feet and pillow blocks, the clean
+arm's header clips and column top).
 
 Masses are each solid's volume times its material's density, except a bought assembly drawn as its envelope (a foam
 brush, a blower, a gearmotor, a cabinet), which carries a class mass marked "catalogue class mass" in its line. The
@@ -66,14 +74,16 @@ stay with the parent link.
 Riser weldment on 4 injection anchors, mount plate, J1 (size 40, motor bell inside the riser), cast turret, J2 (size 50)
 with a gas-spring balancer, 1.344 m cast upper arm, J3 (size 40), 1.142 m cast forearm, spherical wrist J4/J5/J6
 (sizes 25, 25, 20), ISO 9409-1 tool flange, 6-axis force and torque sensor, lockable compliance unit, DC combo
-connector with its contacts, latch hook and solenoid, vision pod, cable dress pack, safety laser scanner, emergency stop.
+connector with its contacts, face seal, bumper, latch hook and solenoid, a sealed vision pod with its 2 camera modules,
+time-of-flight module, IR illuminator board, window and gasket, the cable dress pack with a spring retract unit on the
+upper arm, safety laser scanner, emergency stop.
 
-**Load check, from the CAD's own masses** (`charge_arm.torque_budget`): at full horizontal reach J2 carries 1,475 N·m
-of gravity and J3 463 N·m (98 kg and 46 kg distal, plus an assumed 4 kg of hanging cable). A size 40 gear's repeated
-peak is 738 N·m: J3 has ×1.59. A size 50's is 1,274 N·m, under J2's load, so J2 needs a balancer. A search over the
+**Load check, from the CAD's own masses** (`charge_arm.torque_budget`): at full horizontal reach J2 carries 1,481 N·m
+of gravity and J3 460 N·m (96 kg and 42 kg distal, plus an assumed 4 kg of hanging cable). A size 40 gear's repeated
+peak is 738 N·m: J3 has ×1.61. A size 50's is 1,274 N·m, under J2's load, so J2 needs a balancer. A search over the
 balancer's preload and rate picked a rate of zero, a constant force: the signature of a nitrogen gas spring, not a coil
 spring. With a gas spring of 15 % progression (9.2 kN extended, 175 mm stroke, 320 mm under and 160 mm over the axis)
-the J2 gear sees at most 284 N·m over the joint's ±110° balanced travel (×4.49). At the ports the twin serves, J2 stays
+the J2 gear sees at most 287 N·m over the joint's ±110° balanced travel (×4.44). At the ports the twin serves, J2 stays
 between 18.7° and 64.7°. Dynamics and the cable's pull are not in these figures.
 
 ### OTTO-CLEAN ARM
@@ -83,14 +93,16 @@ inside the column), welded box links with top covers and energy chains, J2 (size
 a servo gearmotor through a 3:1 belt, a 3-stage mast (rack and pinion on stage 2, a doubling belt for stage 3, acetal
 wear pads), J4 (size 20), a 3-stage carbon wand that is itself the vacuum duct (lip seals between the tubes, a ball-screw
 drive and a doubling cable), and the nozzle (worm-driven pitch, vacuum duct, air knife, brush lip, light ring). Vacuum
-riser, hoses and clips.
+riser, hoses and clips, J2's two drum covers, link covers, the carriage lid and the mast cap.
 
 ### OTTO-WASH
 
 Two galvanised channel rails on anchor plates, trolleys with PU wheels, side rollers and a geared travel motor each
 side, post-and-brace legs with cladding, a two-chord beam, stainless spray arch with 23 nozzles and 4 solenoid valves,
-a top brush on a 2-rail lift, two side brushes on rack-driven carriages, a top and two side air knives with 3 blowers,
-two 4-stage detail vacuum columns with reach slides, stop light, beacon, control cabinet and the supply drag chain.
+a top brush on a 2-rail lift (cross shaft, 2 belt drums, pillow blocks), two side brushes on carriages each driven by a
+gearmotor and pinion on a rack, a top and two side air knives with 3 blowers and their ducts, the valve manifold and arch
+feed hose, two 4-stage detail vacuum columns with reach slides, stop light, beacon, control cabinet and the supply drag
+chain.
 
 ## What the CAD found (design findings, not yet in the depot renderer)
 
@@ -127,6 +139,12 @@ wash bay); turn, frame, explode and cut the model; hide the fasteners; show the 
 code; isolate a major function (what it does, how, specs, parts, screws, mass) and the parts list narrows to it; pick a
 part in the list or the view and the rest x-rays while the camera zooms to it; its card gives the standard, size,
 grade, material, mass, tightening torque and where it is used. Downloads: STEP, GLB, CSV.
+
+**Run the cycle** plays the robot's whole cycle on the CAD, at 1x to 8x, with the step it is on: the charge arm through
+`poseForPhase` (unstow to retract, to the same rear-quarter port), the clean arm through `cleanJointsAt` (doors to
+doors), the wash machine through `washPoseAt` (settle, cabin vacuum, the 6 passes). A step the twin times by the car
+(the charge, a side's clean, the vacuum) plays short and says so. `catalog.test.ts` checks the charge arm's insert ends
+with the connector on the port. **Move the joints** has a slider for every axis the GLB carries, inside its limits.
 
 `node scripts/roboticsShots.mjs --url <dev server>` shoots the tab read-only (every Supabase request aborted);
 `cad-check.html` (dev only) draws one robot at a fixed camera and `scripts/cadShots.mjs` shoots it.

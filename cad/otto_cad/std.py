@@ -736,3 +736,25 @@ def nozzle(kind: str = 'fan', fn: str = '') -> PartDef:
     nm = {'fan': 'Flat-fan spray nozzle 1/4 in, 15 deg', 'jet': 'Solid-jet nozzle 1/4 in'}[kind]
     return PartDef(f'NOZ-{kind}', nm, _nozzle_shape(kind), 'ss316', 'fluid', 'ISO 228-1 thread', 'G 1/4',
                    '', None, fn, {'pressure': 'up to 70 bar'}, 'buy')
+
+
+# ═════════════════════════════════════════════════════════════════ bolted joints ═══
+
+
+def bolt_stack(model, node, sub: str, p: tuple[float, float, float], d: tuple[float, float, float], size: int, length: float,
+               grip: float, grade: str = '8.8', nut_kind: str = 'nyloc', fn: str = '',
+               explode: tuple[float, float, float] = (0, 0, 0), stainless: bool = False) -> None:
+    """A through-bolted joint, as it is assembled: hex bolt, a washer under its head, the clamped parts (`grip` mm
+    thick, starting at p and running along d), a washer, and a nut. p is the surface the head's washer bears on."""
+    n = math.sqrt(sum(c * c for c in d))
+    u = (d[0] / n, d[1] / n, d[2] / n)
+    h = ISO7089[size][2]
+    at = lambda k: (p[0] + u[0] * k, p[1] + u[1] * k, p[2] + u[2] * k)     # noqa: E731
+    back = (-u[0], -u[1], -u[2])
+    g = 'A4-70' if stainless else grade
+    wmat = 'fast_a4' if stainless else 'fast_zn'
+    model.place(node, hex_bolt(size, length, g, fn), orient(at(-h), u), explode, sub)
+    model.place(node, washer(size, wmat), orient(p, u), explode, sub)
+    if nut_kind:
+        model.place(node, washer(size, wmat), orient(at(grip), back), explode, sub)
+        model.place(node, nut(size, 'A4' if stainless else '8', nyloc=(nut_kind == 'nyloc')), orient(at(grip + h), back), explode, sub)

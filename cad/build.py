@@ -27,6 +27,26 @@ OUT = os.path.join(HERE, '..', 'public', 'cad')
 ROBOTS = ['charge_arm', 'clean_arm', 'wash_gantry']
 
 
+def step_check(path: str) -> dict:
+    """Re-import a written STEP: every placed part must come back as a named node, and every solid must be valid."""
+    import cadquery as cq
+    from OCP.BRepCheck import BRepCheck_Analyzer
+    a = cq.Assembly.importStep(path)
+    out = {'namedParts': 0, 'solids': 0, 'invalid': 0}
+
+    def walk(x):
+        for ch in x.children:
+            walk(ch)
+        if x.obj is not None and not x.children:
+            out['namedParts'] += 1
+            for sld in x.obj.Solids():
+                out['solids'] += 1
+                if not BRepCheck_Analyzer(sld.wrapped).IsValid():
+                    out['invalid'] += 1
+    walk(a)
+    return out
+
+
 def build_one(key: str, spec: dict) -> dict:
     mod = __import__(f'otto_cad.robots.{key}', fromlist=['build'])
     t0 = time.time()
@@ -45,7 +65,11 @@ def build_one(key: str, spec: dict) -> dict:
         with open(step_tmp, 'rb') as f:
             z.writestr(info, f.read())
     step_bytes = os.path.getsize(step_tmp)
+    chk = step_check(step_tmp)
     os.remove(step_tmp)
+    placed = sum(l['qty'] for l in bom['lines'])
+    if chk['invalid'] or chk['namedParts'] != placed:
+        raise SystemExit(f'{key}: STEP check failed: {chk} against {placed} placed parts')
     write_json(os.path.join(OUT, f'{key}.bom.json'), bom)
     with open(os.path.join(OUT, f'{key}.bom.csv'), 'w', newline='') as f:
         f.write(model.bom_csv())
@@ -54,13 +78,14 @@ def build_one(key: str, spec: dict) -> dict:
     print(f'{key}: {bom["totals"]["parts"]} parts ({bom["totals"]["uniqueParts"]} unique, '
           f'{bom["totals"]["fasteners"]} fasteners), {bom["totals"]["massKg"]} kg; '
           f'GLB {stats["bytes"] / 1e6:.2f} MB, {stats["triangles"]} tris; STEP {step_bytes / 1e6:.1f} MB '
-          f'({os.path.getsize(zpath) / 1e6:.2f} MB zipped); {time.time() - t0:.0f} s (model {t_model:.0f} s)')
+          f'({os.path.getsize(zpath) / 1e6:.2f} MB zipped, re-imported: {chk["namedParts"]} parts, {chk["solids"]} solids, '
+          f'{chk["invalid"]} invalid); {time.time() - t0:.0f} s (model {t_model:.0f} s)')
     return {
         'key': key, 'title': model.title, 'frame': model.frame,
         'files': {'glb': f'{key}.glb', 'step': f'{key}.step.zip', 'bom': f'{key}.bom.json', 'csv': f'{key}.bom.csv'},
         'bytes': {'glb': stats['bytes'], 'stepZip': os.path.getsize(zpath), 'step': step_bytes},
         'mesh': {k: stats[k] for k in ('vertices', 'triangles', 'meshes', 'nodes')},
-        'totals': bom['totals'], 'glbSha256': digest,
+        'totals': bom['totals'], 'glbSha256': digest, 'stepCheck': chk,
         'subsystems': [{'id': s['id'], 'name': s['name']} for s in bom['subsystems']],
     }
 

@@ -53,6 +53,18 @@ def _sq_tube(a: float, t: float, L: float) -> cq.Shape:
             .cut(cq.Workplane('XZ', origin=(0, 1, 0)).rect(a - 2 * t, a - 2 * t).extrude(L + 2).edges('|Y').fillet(t * 0.8))).val()
 
 
+def _xp(T: Location, p: tuple[float, float, float]) -> tuple[float, float, float]:
+    from OCP.gp import gp_Pnt
+    q = gp_Pnt(*p).Transformed(T.wrapped.Transformation())
+    return (q.X(), q.Y(), q.Z())
+
+
+def _xd(T: Location, d: tuple[float, float, float]) -> tuple[float, float, float]:
+    from OCP.gp import gp_Vec
+    v = gp_Vec(*d).Transformed(T.wrapped.Transformation())
+    return (v.X(), v.Y(), v.Z())
+
+
 def build(spec: dict) -> Model:
     A = spec['cleanArm']
     car = spec['car']
@@ -140,11 +152,9 @@ def build(spec: dict) -> Model:
                                          'EN 10056-1', 'L 100 x 100 x 10, 100 long', 'S355JR', None,
                                          'Joins the header to the purlin. 2 bolts into each.', {}, 'make')), Tc, (0, 300, 0))
             for dy in (30, 70):
-                m.place(base, std.hex_bolt(12, 40, '8.8', 'Bolts the clip to the header web.'),
-                        Th * std.orient((sp + side * 70, hb + hd - 100 + dy, (hw / 2 + 10) * (1 if side > 0 else -1)),
-                                        (0, 0, -side)), (0, 320, 0))
-                m.place(base, std.nut(12), Th * std.orient((sp + side * 70, hb + hd - 100 + dy, (hw / 2 - 8) * (1 if side > 0 else -1)),
-                                                           (0, 0, side)), (0, 330, 0))
+                pt = (sp + side * 70, hb + hd - 100 + dy, (hw / 2 + 10) * (1 if side > 0 else -1))
+                std.bolt_stack(m, base, 'MOUNT', _xp(Th, pt), _xd(Th, (0, 0, -side)), 12, 40, 10 + 8,
+                               fn='Bolts the clip to the header web.', explode=(0, 320, 0))
     col_top, col_bot = hb, A['canopy']['columnBottomAboveDeck'] * M
     col = cq.Workplane('XY').add(_sq_tube(200, 8, col_top - col_bot - 40)).translate((0, col_top - 20, 0))
     col = col.union(cq.Workplane('XY').box(300, 20, 300).translate((0, col_top - 10, 0)))
@@ -248,6 +258,18 @@ def build(spec: dict) -> Model:
     for i in range(n2):
         m.place(j2, chain, loc(L2 * 0.14 + i * 32 + 16, -drop + h2 / 2 + 18, 0), (0, 160, 0), 'LINK2')
 
+    lo_cov = cq.Workplane('XZ', origin=(0, -drop + h2 / 2 + 2, 0)).circle(jr).circle(jr - 4).extrude(-22)
+    m.place(j2, m.part(PartDef('CLN-J2L', 'J2 drum cover, lower', lo_cov.val(), 'a356_dark', 'structure', 'casting',
+                               f'OD {2 * jr:.0f}', '', None, 'Turns with link 2 under the upper cover. A labyrinth between them sheds water.',
+                               {}, 'make')), Location(), (0, -90, 0), 'J2')
+    cover2 = cq.Workplane('XY').box(L2 - 150, 3, A['link2']['w'] * M - 20).translate((L2 / 2, -drop + h2 / 2 + 1.5, 0))
+    m.place(j2, m.part(PartDef('CLN-L2C', 'Link 2 top cover', cover2.val(), 'al6061_blk', 'structure', 'sheet 3 mm', f'{L2 - 150:.0f} x 120',
+                               '', None, 'Closes link 2. Off for service.', {}, 'make')), Location(), (0, 70, 0), 'LINK2')
+    for i in range(5):
+        for zz in (-52, 52):
+            m.place(j2, std.bhcs(5, 10, 'A2-70', 'Holds the link cover.'), std.orient((90 + i * (L2 - 180) / 4, -drop + h2 / 2 + 3, zz), (0, -1, 0)),
+                    (0, 90, 0), 'LINK2')
+
     # ═══════════════════════════════════════════════════════ J3 + carriage ═══
     yl2 = -drop
     carriage = (cq.Workplane('XY').box(260, 200, 260).translate((L2, yl2 + 20, 0)).edges('|Y').fillet(16)
@@ -282,6 +304,14 @@ def build(spec: dict) -> Model:
                            mass_override=4.2))
     m.place(j2, gm_pd, loc(L2 + 150, yl2 + oA + 55, 75), (0, 320, 140), 'J3')
 
+    lid = (cq.Workplane('XY').box(260, 6, 260).translate((L2, yl2 + 20 + 103, 0)).edges('|Y').fillet(16)
+           .cut(cq.Workplane('XZ', origin=(0, yl2 + 130, 0)).center(L2, 0).circle(100).extrude(10)))
+    m.place(j2, m.part(PartDef('CLN-CLD', 'Mast carriage lid', lid.val(), 'al6061_blk', 'structure', 'machined plate 6 mm', '260 x 260',
+                               '', None, 'Closes the carriage over the belt drive.', {}, 'make')), Location(), (0, 160, 0), 'J3')
+    for xx in (-110, 110):
+        for zz in (-110, 0, 110):
+            m.place(j2, std.bhcs(5, 12, 'A2-70', 'Holds the carriage lid.'), std.orient((L2 + xx, yl2 + 126, zz), (0, -1, 0)), (0, 180, 0), 'J3')
+
     # ═══════════════════════════════════════════════════════════════ MAST ═══
     outer = cq.Workplane('XY').add(_sq_tube(s0, 4, oA + oB)).translate((0, oA, 0))
     outer = outer.cut(cq.Workplane('XY').box(30, 90, 60).translate((s0 / 2, -oB + 70, 0)))   # pinion window
@@ -289,6 +319,14 @@ def build(spec: dict) -> Model:
                                'EN 755-9 extrusion', f'{oA + oB:.0f} long', '6063-T6', None,
                                'Turns with J3 and guides the middle stage.', {}, 'make')),
             Location(), (0, 0, 0), 'MAST')
+    cap = cq.Workplane('XY').box(s0 + 10, 8, s0 + 10).translate((0, oA + 4 + 36 + 40, 0))
+    m.place(j3, m.part(PartDef('CLN-MCP', 'Mast top cap', cap.val(), 'al6061_blk', 'structure', 'machined plate 8 mm', f'{s0 + 10:.0f} sq',
+                               '', None, 'Closes the mast top above the pulley and keeps rain out of the stages.', {}, 'make')),
+            Location(), (0, 300, 0), 'MAST')
+    for xx in (-1, 1):
+        for zz in (-1, 1):
+            m.place(j3, std.shcs(6, 16, 'A2-70', 'Holds the mast top cap.'), std.orient((xx * (s0 / 2 - 12), oA + 88, zz * (s0 / 2 - 12)), (0, -1, 0)),
+                    (0, 320, 0), 'MAST')
     strip = cq.Workplane('XY').box(6, oB * 0.7, 30).translate((s0 / 2 + 3, -oB * 0.45, 0))
     m.place(j3, m.part(PartDef('CLN-MSL', 'Status light strip, mast', strip.val(), 'led', 'electrical', 'LED strip in PC diffuser',
                                f'{oB * 0.7:.0f} long', '', None, 'Faces where the wand points. It shows the arm state.', {}, 'buy')),

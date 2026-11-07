@@ -27,7 +27,10 @@ Outputs go to `public/cad/` (the twin's Robotics tab reads them):
 - `<robot>.bom.json`, `<robot>.bom.csv` — the bill of materials: every part to the last washer, with quantity,
   standard, size, grade, material, mass (from the solid's volume x density, or a catalogue mass for a bought assembly
   drawn as its envelope), tightening torque for every screw (VDI 2230), function, and where it is used.
-- `manifest.json` — the list of robots, files, sizes and totals.
+- `manifest.json` — the list of robots, files, sizes, totals and each STEP's re-import check.
+
+Before it publishes a STEP the build re-imports it: every placed part must come back as a named solid and every solid
+must be valid (`build.py step_check`), or the build stops.
 
 ## One home for every number
 

@@ -11,13 +11,13 @@
 // way the depot's robots move. Opening the tab widens the panel to full width on a desktop (Esc returns it).
 // ============================================================================
 import { Component, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Box, Download, Eye, EyeOff, Loader2, Maximize2, RotateCcw, Scissors, Search, Wrench } from 'lucide-react';
+import { Box, Download, Eye, EyeOff, Loader2, Maximize2, Pause, Play, RotateCcw, Scissors, Search, Wrench } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Slider } from '@/components/ui/slider';
 import { useSimulationStore } from '@/store/simulationStore';
-import { CadViewer, type CadViewState, type SectionAxis, type ViewDir } from '@/components/robotics/CadViewer';
+import { CadViewer, type CadJointSummary, type CadViewState, type SectionAxis, type ViewDir } from '@/components/robotics/CadViewer';
 import {
-  CATEGORY_LABEL, FUNCTIONS, ROBOT_INFO, ROBOT_KEYS, cadUrl, cycleSteps, fastenerIds, fetchBom, fetchManifest, filterLines,
+  CATEGORY_LABEL, FUNCTIONS, JOINT_LABEL, ROBOT_INFO, ROBOT_KEYS, cadUrl, cycleScript, cycleSteps, fastenerIds, fetchBom, fetchManifest, filterLines,
   fmtKg, fmtMB, fmtNm, posePresets, qtyIn, type Bom, type BomLine, type BomSubsystem, type Manifest, type RobotKey,
 } from '@/lib/robotics/catalog';
 
@@ -157,6 +157,11 @@ export function TwinRoboticsTab() {
   const [query, setQuery] = useState('');
   const [fastFilter, setFastFilter] = useState<'all' | 'only' | 'none'>('all');
   const [status, setStatus] = useState<{ loading: boolean; progress: number; error: string | null; parts: number }>({ loading: true, progress: 0, error: null, parts: 0 });
+  const [playing, setPlaying] = useState(false);
+  const [speed, setSpeed] = useState(1);
+  const [cyc, setCyc] = useState<{ t: number; step: number }>({ t: 0, step: 0 });
+  const [joints, setJoints] = useState<CadJointSummary[]>([]);
+  const [manual, setManual] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (!autoExpanded && typeof window !== 'undefined' && window.innerWidth >= 1200) {
@@ -181,8 +186,15 @@ export function TwinRoboticsTab() {
   }, [entry]);
 
   const presets = useMemo(() => posePresets(robot), [robot]);
-  useEffect(() => { setPoseId(presets[0].id); setView((v) => ({ ...DEFAULT_VIEW, fitKey: v.fitKey + 1 })); setQuery(''); }, [robot, presets]);
-  const angles = useMemo(() => presets.find((p) => p.id === poseId)?.angles ?? presets[0].angles, [presets, poseId]);
+  useEffect(() => {
+    setPoseId(presets[0].id); setView((v) => ({ ...DEFAULT_VIEW, fitKey: v.fitKey + 1 })); setQuery('');
+    setPlaying(false); setManual({}); setCyc({ t: 0, step: 0 });
+  }, [robot, presets]);
+  const script = useMemo(() => cycleScript(robot), [robot]);
+  const angles = useMemo(
+    () => ({ ...(presets.find((p) => p.id === poseId)?.angles ?? presets[0].angles), ...manual }),
+    [presets, poseId, manual],
+  );
   const fasteners = useMemo(() => (bom ? fastenerIds(bom) : new Set<string>()), [bom]);
   const state: CadViewState = useMemo(() => ({ ...view, angles }), [view, angles]);
   const subs = bom?.subsystems ?? [];
@@ -221,11 +233,36 @@ export function TwinRoboticsTab() {
     </div>
   );
 
+  const step = script.steps[cyc.step] ?? script.steps[0];
+  const cycleBar = (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-white/[0.06] px-2 py-1.5 text-[11px]" data-testid="cycle-bar">
+      <button type="button" onClick={() => {
+        setPlaying(!playing);
+        setView((v) => (playing ? { ...v, frameCar: false } : { ...v, selected: null, isolate: null, explode: 0, frameCar: true, fitKey: v.fitKey + 1 }));
+      }}
+        data-testid="cycle-play" aria-pressed={playing}
+        className={`inline-flex items-center gap-1 rounded border px-2 py-1 ${playing ? 'border-emerald-400/50 bg-emerald-400/10 text-emerald-100' : 'border-white/[0.1] bg-white/[0.04] text-ink hover:bg-white/[0.08]'}`}>
+        {playing ? <Pause size={11} aria-hidden /> : <Play size={11} aria-hidden />} {playing ? 'Pause the cycle' : 'Run the cycle'}
+      </button>
+      <div className="flex items-center gap-1">
+        {[1, 2, 4, 8].map((x) => <Chip key={x} active={speed === x} onClick={() => setSpeed(x)} testId={`speed-${x}`}>{x}×</Chip>)}
+      </div>
+      <div className="min-w-0 flex-1" data-testid="cycle-step">
+        <div className="truncate text-ink">
+          Step {cyc.step + 1} of {script.steps.length}: {step.label}{step.short ? ' (shown short)' : ''}
+        </div>
+        <div className="mt-0.5 h-1 w-full overflow-hidden rounded bg-white/[0.06]">
+          <div className="h-full bg-brand-red/70" style={{ width: `${(100 * cyc.t) / script.total}%` }} />
+        </div>
+      </div>
+    </div>
+  );
+
   const toolbar = (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-white/[0.06] px-2 py-2 text-[11px]" data-testid="cad-toolbar">
       <div className="flex items-center gap-1">
         <span className="text-ink-dim">Pose</span>
-        {presets.map((p) => <Chip key={p.id} active={p.id === poseId} onClick={() => setPoseId(p.id)} testId={`pose-${p.id}`}>{p.label}</Chip>)}
+        {presets.map((p) => <Chip key={p.id} active={!playing && p.id === poseId} onClick={() => { setPlaying(false); setManual({}); setPoseId(p.id); set({ frameCar: false }); }} testId={`pose-${p.id}`}>{p.label}</Chip>)}
       </div>
       <div className="flex items-center gap-1">
         <span className="text-ink-dim">View</span>
@@ -252,7 +289,7 @@ export function TwinRoboticsTab() {
           {view.showFasteners ? <Eye size={11} className="inline" aria-hidden /> : <EyeOff size={11} className="inline" aria-hidden />} Fasteners
         </Chip>
         <Chip active={view.showCar} onClick={() => set({ showCar: !view.showCar })}>Car</Chip>
-        <Chip onClick={() => { setView({ ...DEFAULT_VIEW, fitKey: view.fitKey + 1 }); setPoseId(presets[0].id); }}><RotateCcw size={11} className="inline" aria-hidden /> Reset</Chip>
+        <Chip onClick={() => { setView({ ...DEFAULT_VIEW, fitKey: view.fitKey + 1 }); setPoseId(presets[0].id); setManual({}); setPlaying(false); }}><RotateCcw size={11} className="inline" aria-hidden /> Reset</Chip>
       </div>
     </div>
   );
@@ -262,7 +299,8 @@ export function TwinRoboticsTab() {
       {entry && (
         <ViewerBoundary>
           <CadViewer robot={robot} glb={entry.files.glb} state={state} fasteners={fasteners}
-            onPick={(id) => set({ selected: id })} onStatus={setStatus} />
+            onPick={(id) => set({ selected: id })} onStatus={setStatus}
+            cycle={{ script, playing, speed }} onCycle={(t, st) => setCyc({ t, step: st })} onJoints={setJoints} />
         </ViewerBoundary>
       )}
       {(status.loading || status.error) && (
@@ -285,6 +323,28 @@ export function TwinRoboticsTab() {
           Shown: {isolated.name}. The rest is a ghost.
         </div>
       )}
+    </div>
+  );
+
+  const jointPanel = joints.length > 0 && (
+    <div className="space-y-1" data-testid="joint-panel">
+      <SectionTitle>Move the joints</SectionTitle>
+      <ul className="space-y-1.5">
+        {joints.map((j) => {
+          const v = angles[j.name] ?? j.stowed;
+          const rev = j.kind === 'revolute';
+          return (
+            <li key={j.name} className="space-y-0.5" data-testid="joint" data-joint={j.name}>
+              <div className="flex items-baseline justify-between text-[11px]">
+                <span className="text-ink">{JOINT_LABEL[j.name] ?? j.name}</span>
+                <span className="font-mono tabular-nums text-ink-dim">{rev ? `${(v * 180 / Math.PI).toFixed(0)}°` : `${Math.round(v * 1000)} mm`}</span>
+              </div>
+              <Slider value={[v]} min={j.limits[0]} max={j.limits[1]} step={rev ? 0.005 : 0.002} disabled={playing}
+                onValueChange={(x) => setManual((m) => ({ ...m, [j.name]: x[0] }))} />
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 
@@ -426,9 +486,9 @@ export function TwinRoboticsTab() {
         </div>
         <div className="grid min-h-0 flex-1 grid-cols-[290px,minmax(0,1fr),380px]">
           <ScrollArea className="min-h-0 border-r border-white/[0.06]">
-            <div className="space-y-4 p-3">{subsystemList}{subsystemDetail || overview}</div>
+            <div className="space-y-4 p-3">{subsystemList}{subsystemDetail || overview}{jointPanel}</div>
           </ScrollArea>
-          <div className="flex min-h-0 flex-col">{toolbar}<div className="min-h-0 flex-1">{viewer}</div></div>
+          <div className="flex min-h-0 flex-col">{toolbar}{cycleBar}<div className="min-h-0 flex-1">{viewer}</div></div>
           <div className="flex min-h-0 flex-col border-l border-white/[0.06]">
             {selectedLine && bom && (
               <div className="max-h-[55%] shrink-0 overflow-y-auto border-b border-white/[0.06] p-3">
@@ -451,9 +511,10 @@ export function TwinRoboticsTab() {
         <button type="button" onClick={() => setPanelExpanded(true)}
           className="inline-flex items-center gap-1 rounded border border-white/[0.08] bg-white/[0.03] px-2 py-1 text-[11px] text-ink hover:bg-white/[0.06]">
           <Maximize2 size={11} aria-hidden /> Open the full CAD view</button>
-        <div className="overflow-hidden rounded border border-white/[0.06]">{toolbar}<div className="h-[300px]">{viewer}</div></div>
+        <div className="overflow-hidden rounded border border-white/[0.06]">{toolbar}{cycleBar}<div className="h-[300px]">{viewer}</div></div>
         {functions}
         {subsystemList}
+        {jointPanel}
         {subsystemDetail || overview}
         {selectedLine && bom && <PartCard line={selectedLine} subs={subs} onIsolate={(s) => set({ isolate: s, selected: null })} onClose={() => set({ selected: null })} />}
         {partsList}

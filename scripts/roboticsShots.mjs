@@ -16,6 +16,7 @@ const OUT = arg('--out', './shots');
 const DSF = Number(arg('--dsf', '1'));
 const W = Number(arg('--w', '1600')), H = Number(arg('--h', '1000'));
 const ONLY = arg('--only', null);
+const CYCLE = process.argv.includes('--cycle');   // film each robot's cycle instead: play at 8x, shoot every few seconds
 const exe = arg('--chromium', fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
 fs.mkdirSync(OUT, { recursive: true });
 
@@ -51,6 +52,23 @@ async function click(sel, pressed = true) {
   }
 }
 
+if (CYCLE) {
+  for (const robot of ['charge_arm', 'clean_arm', 'wash_gantry']) {
+    await click(`[data-testid="robot-${robot}"]`);
+    await settle(`cycle-${robot}-0`);
+    await click('[data-testid="speed-8"]');
+    await click('[data-testid="cycle-play"]');
+    for (let i = 1; i <= 5; i++) {
+      await page.waitForTimeout(6000);
+      const step = await page.locator('[data-testid="cycle-step"]').innerText();
+      console.log(robot, i, step.split('\n')[0]);
+      await page.screenshot({ path: `${OUT}/cycle-${robot}-${i}.png` });
+    }
+    await click('[data-testid="cycle-play"]', false);
+  }
+  await browser.close();
+  process.exit(0);
+}
 await settle('01-charge-arm-stowed');
 await click('[data-testid="pose-connected"]');
 await settle('02-charge-arm-connected');

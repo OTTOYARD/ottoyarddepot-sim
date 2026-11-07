@@ -114,6 +114,15 @@ describe('the Robotics tab', () => {
     expect(screen.getByTestId('subsystem-detail')).toHaveTextContent('Side brushes');
   });
 
+  it('offers the twin\'s cycle to play, from its first step', async () => {
+    await open(true);
+    expect(screen.getByTestId('cycle-step')).toHaveTextContent('Step 1 of 9: Lift clear of the stow');
+    fireEvent.click(screen.getByTestId('cycle-play'));
+    await settle();
+    expect(screen.getByTestId('cycle-play')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('cycle-play')).toHaveTextContent('Pause the cycle');
+  });
+
   it('is the last tab in the bar, marked with its own icon', () => {
     render(<TabBar />);
     const labels = screen.getAllByRole('button').map((b) => b.textContent);

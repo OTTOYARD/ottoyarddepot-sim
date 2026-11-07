@@ -7,6 +7,7 @@
  * Viewer copy is ASD-STE100 (AGENTS.md). No product names (publicNames.test.ts).
  */
 import { NOMINAL_SEQUENCE, ARM_TIMING_DEFAULTS } from '@/lib/ottoChargeArm/armStateMachine';
+import { poseForPhase } from '@/lib/ottoChargeArm/armMotion';
 import { STOWED, solveIK } from '@/lib/ottoChargeArm/cobotIK';
 import { FLANK_STANDOFF_M, MOUNT_HEIGHT_M, METRES_PER_PLAN_UNIT } from '@/lib/ottoChargeArm/cobotSpec';
 import { CLEAN_CHAIN, CLEAN_PHASE_S, CLEAN_SIDE_NOMINAL_S, MAST_FOOT_MAX, type CleanPhase } from '@/lib/ottoCleanArm/cleanArmSpec';
@@ -272,3 +273,66 @@ export function cycleSteps(robot: RobotKey): CycleStep[] {
     note: p === 'vacuum' ? 'the twin sets the time' : undefined,
   }));
 }
+
+// ── the cycle, played on the CAD: the twin's own choreography over time ────
+
+
+export interface ScriptStep { id: string; label: string; seconds: number; short?: boolean }
+export interface CycleScript {
+  steps: ScriptStep[];
+  total: number;
+  /** the joint values at `t` seconds into the cycle (wraps), and which step that is */
+  at(t: number): { step: number; angles: Record<string, number> };
+}
+
+/** A step the twin times by the car (a charge, a clean, a vacuum) plays this long, marked "shown short". */
+export const SHORT_STEP_S = 6;
+
+function script(steps: ScriptStep[], anglesAt: (id: string, u: number) => Record<string, number>): CycleScript {
+  const total = steps.reduce((a, s) => a + s.seconds, 0);
+  const starts = steps.map((_, i) => steps.slice(0, i).reduce((a, s) => a + s.seconds, 0));
+  return {
+    steps, total,
+    at(t: number) {
+      const tt = ((t % total) + total) % total;
+      let i = steps.length - 1;
+      while (i > 0 && starts[i] > tt) i--;
+      const u = steps[i].seconds > 0 ? Math.min(1, (tt - starts[i]) / steps[i].seconds) : 1;
+      return { step: i, angles: anglesAt(steps[i].id, u) };
+    },
+  };
+}
+
+export function cycleScript(robot: RobotKey): CycleScript {
+  if (robot === 'charge_arm') {
+    const target = { port: { x: SAMPLE_PORT.along, y: SAMPLE_PORT.height - MOUNT_HEIGHT_M, z: FLANK_STANDOFF_M }, normal: { x: 0, y: 0, z: -1 } };
+    const steps = cycleSteps('charge_arm').map((s) => ({ id: s.id, label: s.label, seconds: s.seconds ?? SHORT_STEP_S, short: s.seconds == null }));
+    return script(steps, (id, u) => {
+      const a = poseForPhase(id as Parameters<typeof poseForPhase>[0], u, target).angles;
+      return { J1: a.j1, J2: a.j2, J3: a.j3, J4: a.j4, J5: a.j5, J6: a.j6 };
+    });
+  }
+  if (robot === 'clean_arm') {
+    const sides = sidesFor(1);
+    const steps = cycleSteps('clean_arm').map((s) => ({
+      id: s.id, label: s.label, seconds: s.note ? SHORT_STEP_S * 2 : (s.seconds ?? 1), short: !!s.note,
+    }));
+    return script(steps, (id, u) => cleanAngles(cleanJointsAt(id as CleanPhase, u, sides)));
+  }
+  const steps = cycleSteps('wash_gantry').map((s) => ({
+    id: s.id, label: s.label, seconds: s.note ? SHORT_STEP_S * 2 : (s.seconds ?? 1), short: !!s.note,
+  }));
+  return script(steps, (id, u) => washAngles(id as WashPhase, u));
+}
+
+// ── the joints, by name, for the sliders ────────────────────────────────────
+
+export const JOINT_LABEL: Record<string, string> = {
+  J1: 'J1 base yaw', J2: 'J2 shoulder pitch', J3: 'J3 elbow pitch', J4: 'J4 forearm roll', J5: 'J5 wrist pitch', J6: 'J6 tool roll',
+  CA_J1: 'J1 shoulder yaw', CA_J2: 'J2 elbow yaw', CA_J3: 'J3 mast yaw', CA_Mast2: 'Mast stage 2', CA_Mast3: 'Mast stage 3',
+  CA_Pitch: 'J4 wrist pitch', CA_Wand2: 'Wand tube 2', CA_Wand3: 'Wand tube 3', CA_Nozzle: 'J5 nozzle pitch',
+  GANTRY: 'Gantry travel', TOP_BRUSH: 'Top brush lift', SIDE_BRUSH_L: 'Left side brush', SIDE_BRUSH_R: 'Right side brush',
+  DRYER_TOP: 'Top air knife', DRYER_SIDE_L: 'Left air knife', DRYER_SIDE_R: 'Right air knife',
+  WAND_L_DROP1: 'Left wand stage 2', WAND_L_DROP2: 'Left wand stage 3', WAND_L_DROP3: 'Left wand stage 4', WAND_L_REACH: 'Left wand reach',
+  WAND_R_DROP1: 'Right wand stage 2', WAND_R_DROP2: 'Right wand stage 3', WAND_R_DROP3: 'Right wand stage 4', WAND_R_REACH: 'Right wand reach',
+};

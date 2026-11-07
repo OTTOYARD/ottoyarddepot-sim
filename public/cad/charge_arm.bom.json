@@ -7,12 +7,12 @@
   "glb": "m"
  },
  "totals": {
-  "parts": 713,
-  "uniqueParts": 177,
-  "fasteners": 529,
-  "massKg": 295.6,
-  "boughtLines": 124,
-  "madeLines": 53,
+  "parts": 730,
+  "uniqueParts": 188,
+  "fasteners": 537,
+  "massKg": 297.32,
+  "boughtLines": 133,
+  "madeLines": 55,
   "referenceLines": 2
  },
  "subsystems": [
@@ -155,10 +155,10 @@
    },
    "group": "Tool",
    "order": 7,
-   "partCount": 30,
-   "fastenerCount": 13,
-   "massKg": 5.701,
-   "uniqueParts": 16
+   "partCount": 39,
+   "fastenerCount": 17,
+   "massKg": 5.465,
+   "uniqueParts": 23
   },
   {
    "id": "DRESS",
@@ -171,10 +171,10 @@
    "specs": {},
    "group": "Cables",
    "order": 8,
-   "partCount": 18,
-   "fastenerCount": 10,
-   "massKg": 3.196,
-   "uniqueParts": 5
+   "partCount": 26,
+   "fastenerCount": 14,
+   "massKg": 5.16,
+   "uniqueParts": 9
   },
   {
    "id": "SAFETY",
@@ -4322,6 +4322,33 @@
    ]
   },
   {
+   "id": "CHG-CAM",
+   "name": "Camera module, global shutter, 2 MP",
+   "category": "sensor",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "30 x 26, M12 lens",
+   "grade": "",
+   "material": "FR-4 circuit board",
+   "materialKey": "pcb",
+   "qty": 2,
+   "massKg": 0.0098,
+   "totalMassKg": 0.0195,
+   "torqueNm": null,
+   "reference": false,
+   "function": "One eye of the stereo pair. 2 views give the inlet depth and angle.",
+   "spec": {
+    "shutter": "global",
+    "lens": "M12, 6 mm"
+   },
+   "uses": [
+    {
+     "sub": "TOOL",
+     "qty": 2
+    }
+   ]
+  },
+  {
    "id": "CHG-FTS",
    "name": "6-axis force and torque sensor",
    "category": "sensor",
@@ -4349,50 +4376,124 @@
    ]
   },
   {
-   "id": "CHG-LNS",
-   "name": "Camera window",
+   "id": "CHG-IRB",
+   "name": "IR illuminator board, 8 LEDs, 850 nm",
    "category": "sensor",
    "make": "buy",
-   "standard": "catalogue part",
-   "size": "D 18",
+   "standard": "made to order",
+   "size": "90 x 8",
    "grade": "",
-   "material": "Optical glass, coated",
-   "materialKey": "lens",
-   "qty": 3,
-   "massKg": 0.0025,
-   "totalMassKg": 0.0076,
+   "material": "FR-4 circuit board",
+   "materialKey": "pcb",
+   "qty": 1,
+   "massKg": 0.003,
+   "totalMassKg": 0.003,
    "torqueNm": null,
    "reference": false,
-   "function": "Sealed glass in front of each camera.",
+   "function": "Lights the inlet for the cameras at night and in direct sun.",
    "spec": {},
    "uses": [
     {
      "sub": "TOOL",
-     "qty": 3
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-TOF",
+   "name": "Time-of-flight depth module",
+   "category": "sensor",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "20 x 16",
+   "grade": "",
+   "material": "FR-4 circuit board",
+   "materialKey": "pcb",
+   "qty": 1,
+   "massKg": 0.0028,
+   "totalMassKg": 0.0028,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Measures the distance to the inlet face. It checks the stereo depth.",
+   "spec": {
+    "range": "0.1-2 m"
+   },
+   "uses": [
+    {
+     "sub": "TOOL",
+     "qty": 1
     }
    ]
   },
   {
    "id": "CHG-VIS",
-   "name": "Vision pod: stereo cameras and time-of-flight",
+   "name": "Vision pod housing, IP67",
    "category": "sensor",
-   "make": "buy",
-   "standard": "made to order",
+   "make": "make",
+   "standard": "die casting, machined",
    "size": "110 x 40 x 34",
    "grade": "IP67",
    "material": "Aluminium A356-T6 casting, charcoal powder coat",
    "materialKey": "a356_dark",
    "qty": 1,
-   "massKg": 0.3908,
-   "totalMassKg": 0.3908,
+   "massKg": 0.0892,
+   "totalMassKg": 0.0892,
    "torqueNm": null,
    "reference": false,
-   "function": "Finds the inlet and its angle from 0.6 m out. The arm corrects the last 10 mm with it.",
+   "function": "Holds the 2 cameras, the depth sensor and the light, sealed behind one window.",
    "spec": {
     "stereo base": "60 mm",
     "depth": "time-of-flight, 0.1-2 m",
-    "light": "850 nm ring"
+    "light": "850 nm"
    },
+   "uses": [
+    {
+     "sub": "TOOL",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-VWN",
+   "name": "Vision pod window, coated glass",
+   "category": "sensor",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "104 x 34 x 3",
+   "grade": "anti-reflective, hydrophobic",
+   "material": "Optical glass, coated",
+   "materialKey": "lens",
+   "qty": 1,
+   "massKg": 0.0265,
+   "totalMassKg": 0.0265,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Seals the front. Its coating sheds rain and road film.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "TOOL",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-BMP",
+   "name": "Connector nose bumper, TPE",
+   "category": "tool",
+   "make": "buy",
+   "standard": "moulded",
+   "size": "OD 86 x 12",
+   "grade": "",
+   "material": "EPDM rubber",
+   "materialKey": "rubber",
+   "qty": 1,
+   "massKg": 0.0125,
+   "totalMassKg": 0.0125,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes a light knock on the inlet rim without damage. The force sensor stops the arm.",
+   "spec": {},
    "uses": [
     {
      "sub": "TOOL",
@@ -4597,6 +4698,81 @@
     {
      "sub": "TOOL",
      "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-VGK",
+   "name": "Vision pod window gasket",
+   "category": "seal",
+   "make": "buy",
+   "standard": "cut gasket",
+   "size": "108 x 38 x 1.5",
+   "grade": "EPDM",
+   "material": "NBR seal elastomer",
+   "materialKey": "nbr",
+   "qty": 1,
+   "massKg": 0.0025,
+   "totalMassKg": 0.0025,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Seals the window to the housing (IP67).",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "TOOL",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "ORING-66x3",
+   "name": "O-ring 66 x 3",
+   "category": "seal",
+   "make": "buy",
+   "standard": "ISO 3601-1",
+   "size": "66 x 3",
+   "grade": "NBR 70",
+   "material": "NBR seal elastomer",
+   "materialKey": "nbr",
+   "qty": 1,
+   "massKg": 0.0019,
+   "totalMassKg": 0.0019,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Seals the connector face to the inlet against rain.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "TOOL",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M3x8-A2-70",
+   "name": "Socket head cap screw M3 x 8",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M3 x 8",
+   "grade": "A2-70",
+   "material": "Stainless steel A2-70",
+   "materialKey": "fast_a2",
+   "qty": 4,
+   "massKg": 0.0009,
+   "totalMassKg": 0.0037,
+   "torqueNm": 1.0,
+   "reference": false,
+   "function": "Holds the window clamp to the pod housing.",
+   "spec": {
+    "preload": "1.8 kN",
+    "drive": "hex socket 2.5 mm"
+   },
+   "uses": [
+    {
+     "sub": "TOOL",
+     "qty": 4
     }
    ]
   },
@@ -4811,6 +4987,81 @@
    ]
   },
   {
+   "id": "CHG-RTB",
+   "name": "Retract unit clamp bracket",
+   "category": "electrical",
+   "make": "make",
+   "standard": "machined",
+   "size": "70 x 90 x 30",
+   "grade": "6061-T6",
+   "material": "Aluminium 6061-T6, machined, clear anodised",
+   "materialKey": "al6061",
+   "qty": 2,
+   "massKg": 0.3007,
+   "totalMassKg": 0.6015,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Clamps the retract unit to the upper arm.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "DRESS",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-RTS",
+   "name": "Retract slider with cable clamp",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "64 x 64 x 40",
+   "grade": "",
+   "material": "PA66-GF30",
+   "materialKey": "pa66",
+   "qty": 1,
+   "massKg": 0.0582,
+   "totalMassKg": 0.0582,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Rides the retract unit and grips the cable.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "DRESS",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-RTU",
+   "name": "Dress-pack retract unit, spring return, 500 mm stroke",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "D 60 x 620",
+   "grade": "IP54",
+   "material": "Aluminium 6061-T6, machined, black anodised",
+   "materialKey": "al6061_blk",
+   "qty": 1,
+   "massKg": 1.2698,
+   "totalMassKg": 1.2698,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes up the charge cable slack when the arm folds, so the cable never hangs into the aisle or onto the car.",
+   "spec": {
+    "pull": "about 60 N",
+    "stroke": "500 mm"
+   },
+   "uses": [
+    {
+     "sub": "DRESS",
+     "qty": 1
+    }
+   ]
+  },
+  {
    "id": "ISO4762-M6x20-A2-70",
    "name": "Socket head cap screw M6 x 20",
    "category": "fastener",
@@ -4834,6 +5085,33 @@
     {
      "sub": "DRESS",
      "qty": 10
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M6x25-A2-70",
+   "name": "Socket head cap screw M6 x 25",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M6 x 25",
+   "grade": "A2-70",
+   "material": "Stainless steel A2-70",
+   "materialKey": "fast_a2",
+   "qty": 4,
+   "massKg": 0.0087,
+   "totalMassKg": 0.0348,
+   "torqueNm": 7.4,
+   "reference": false,
+   "function": "Holds the retract bracket to the upper arm.",
+   "spec": {
+    "preload": "7.2 kN",
+    "drive": "hex socket 5 mm"
+   },
+   "uses": [
+    {
+     "sub": "DRESS",
+     "qty": 4
     }
    ]
   },
@@ -4989,26 +5267,26 @@
   "torque_budget": {
    "method": "Gravity torque with the arm stretched horizontal, masses from the CAD solids, plus 4 kg of hanging cable at the tool (ASSUMPTION). Dynamics and the cable pull are not included.",
    "J3": {
-    "distalMassKg": 45.8,
-    "torqueNm": 463,
+    "distalMassKg": 45.6,
+    "torqueNm": 460,
     "gear": "size 40",
     "repeatedPeakNm": 738,
-    "margin": 1.59
+    "margin": 1.61
    },
    "J2": {
-    "distalMassKg": 98.5,
-    "torqueNm": 1475,
+    "distalMassKg": 100.2,
+    "torqueNm": 1481,
     "gear": "size 50",
     "repeatedPeakNm": 1274,
-    "gearWorstNm": 284,
-    "margin": 4.49,
+    "gearWorstNm": 287,
+    "margin": 4.44,
     "balancer": {
      "type": "nitrogen gas spring",
      "anchorBelowAxisMm": 320.0,
      "crankAboveAxisMm": 160.0,
-     "forceExtendedN": 9200,
+     "forceExtendedN": 9250,
      "progression": 0.15,
-     "forceAt90N": 10163,
+     "forceAt90N": 10219,
      "strokeMm": 175,
      "travelDeg": 110
     },
@@ -5021,69 +5299,69 @@
      },
      {
       "deg": 10,
-      "gravityNm": 256,
-      "balancerNm": 171,
+      "gravityNm": 257,
+      "balancerNm": 172,
       "gearNm": 85
      },
      {
       "deg": 20,
-      "gravityNm": 504,
-      "balancerNm": 342,
-      "gearNm": 162
+      "gravityNm": 507,
+      "balancerNm": 344,
+      "gearNm": 163
      },
      {
       "deg": 30,
-      "gravityNm": 737,
-      "balancerNm": 512,
-      "gearNm": 225
+      "gravityNm": 741,
+      "balancerNm": 515,
+      "gearNm": 226
      },
      {
       "deg": 40,
-      "gravityNm": 948,
-      "balancerNm": 681,
+      "gravityNm": 952,
+      "balancerNm": 685,
       "gearNm": 267
      },
      {
       "deg": 50,
-      "gravityNm": 1130,
-      "balancerNm": 848,
+      "gravityNm": 1135,
+      "balancerNm": 852,
       "gearNm": 282
      },
      {
       "deg": 60,
-      "gravityNm": 1277,
-      "balancerNm": 1010,
+      "gravityNm": 1283,
+      "balancerNm": 1016,
       "gearNm": 267
      },
      {
       "deg": 70,
-      "gravityNm": 1386,
-      "balancerNm": 1168,
+      "gravityNm": 1392,
+      "balancerNm": 1174,
       "gearNm": 218
      },
      {
       "deg": 80,
-      "gravityNm": 1452,
-      "balancerNm": 1317,
-      "gearNm": 135
+      "gravityNm": 1459,
+      "balancerNm": 1324,
+      "gearNm": 134
      },
      {
       "deg": 90,
-      "gravityNm": 1475,
-      "balancerNm": 1454,
-      "gearNm": 20
+      "gravityNm": 1481,
+      "balancerNm": 1462,
+      "gearNm": 19
      },
      {
       "deg": 100,
-      "gravityNm": 1452,
-      "balancerNm": 1574,
-      "gearNm": -122
+      "gravityNm": 1459,
+      "balancerNm": 1583,
+      "gearNm": -124
      },
      {
       "deg": 110,
-      "gravityNm": 1386,
-      "balancerNm": 1669,
-      "gearNm": -284
+      "gravityNm": 1392,
+      "balancerNm": 1678,
+      "gearNm": -287
      }
     ]
    },

@@ -5,8 +5,9 @@ CLN-HDR,"Header beam, RHS 200 x 180 x 8",1,structure,make,EN 10219,1818 long,S35
 CLN-PUR,Canopy purlin (part of the canopy),2,structure,buy,canopy steel,C 200 x 75,,"Structural steel S355, hot-dip galvanised",0.0,0.0,,Canopy mount x2,Carries the solar roof. Shown for context.
 ISO4017-M12x40-8.8,Hex head screw M12 x 40,8,fastener,buy,ISO 4017,M12 x 40,8.8,"Steel, zinc flake coated",0.0517,0.4138,84.2,Canopy mount x8,Bolts the clip to the header web.
 ISO4017-M16x70-8.8,Hex head screw M16 x 70,4,fastener,buy,ISO 4017,M16 x 70,8.8,"Steel, zinc flake coated",0.149,0.5959,206.7,Canopy mount x4,Bolts the column top plate to the header.
-ISO4032-M12-8,Hex nut M12,8,fastener,buy,ISO 4032,M12,8,"Steel, zinc flake coated",0.0169,0.1348,,Canopy mount x8,
+ISO7040-M12-8,Prevailing-torque hex nut (nylon insert) M12,8,fastener,buy,ISO 7040,M12,8,"Steel, zinc flake coated",0.0219,0.1752,,Canopy mount x8,
 ISO7040-M16-8,Prevailing-torque hex nut (nylon insert) M16,4,fastener,buy,ISO 7040,M16,8,"Steel, zinc flake coated",0.05,0.2001,,Canopy mount x4,
+ISO7089-12-fast_zn,Plain washer 12,16,fastener,buy,ISO 7089,13 x 24 x 2.5,200 HV,"Steel, zinc flake coated",0.0063,0.1004,,Canopy mount x16,
 ISO7089-16-fast_zn,Plain washer 16,4,fastener,buy,ISO 7089,17 x 30 x 3,200 HV,"Steel, zinc flake coated",0.0113,0.0452,,Canopy mount x4,
 CLN-BAS,J1 base casting,1,structure,make,"casting, machined",OD 340,A356-T6,"Aluminium A356-T6 casting, charcoal powder coat",18.2465,18.2465,,J1 shoulder yaw x1,Holds the J1 actuator under the column. Its flange bolts to the column foot.
 CLN-BND,"Accent band, J1 base",1,structure,make,moulded,,,"Aluminium, OTTOYARD red powder coat",0.231,0.231,,J1 shoulder yaw x1,OTTOYARD red band at the root of the moving machine.
@@ -46,12 +47,13 @@ CLN-L1,Link 1 weldment,1,structure,make,"EN 1090-3, machined after welding","950
 CLN-L1C,Link 1 top cover,1,structure,make,sheet 3 mm,790 x 150,,"Aluminium 6061-T6, machined, black anodised",0.9599,0.9599,,Link 1 x1,Closes the link. Off for service.
 ECHAIN-60x30,Cable carrier link 60 x 30,40,electrical,buy,catalogue part,"inner 60 x 30, pitch 32",,PA66-GF30,0.0125,0.5,,Link 1 x23; Link 2 x17,Guides the cables and hoses through the moving joint. It keeps the bend radius safe.
 ISO4762-M8x30-12.9,Socket head cap screw M8 x 30,12,fastener,buy,ISO 4762,M8 x 30,12.9,"Alloy steel, black oxide",0.0189,0.2271,43.6,Link 1 x12,Holds link 1 to the J1 output flange.
-ISO7380-M5x10-A2-70,Button head screw M5 x 10,12,fastener,buy,ISO 7380-1,M5 x 10,A2-70,Stainless steel A2-70,0.0023,0.0274,3.6,Link 1 x12,Holds the link cover.
+ISO7380-M5x10-A2-70,Button head screw M5 x 10,22,fastener,buy,ISO 7380-1,M5 x 10,A2-70,Stainless steel A2-70,0.0023,0.0503,3.6,Link 1 x12; Link 2 x10,Holds the link cover.
 CLN-J2-COV,J2 rear cover,1,structure,make,machined,OD 140 x 8,,"Aluminium 6061-T6, machined, black anodised",0.2206,0.2206,,J2 elbow yaw x1,Closes the rear of the actuator. The O-ring seals it.
 CLN-J2-HSG,J2 actuator housing,1,structure,make,machined casting,OD 140 x 119,,"Aluminium A356-T6 casting, charcoal powder coat",1.2183,1.2183,,J2 elbow yaw x1,"Holds the motor, the gear ring and the bearing in line. Fins carry the motor heat out."
 CLN-J2-OUT,J2 output flange,1,structure,make,machined,OD 93 x 10,,"Aluminium 6061-T6, machined, clear anodised",0.2195,0.2195,,J2 elbow yaw x1,Carries the next link. It turns on the bearing inner ring.
 CLN-J2-STR,J2 stator retaining ring,1,structure,make,machined,OD 98,,"Aluminium 6061-T6, machined, clear anodised",0.0251,0.0251,,J2 elbow yaw x1,Holds the stator against its shoulder.
 CLN-J2C,"J2 drum cover, upper",1,structure,make,casting,OD 260,,"Aluminium A356-T6 casting, charcoal powder coat",0.2759,0.2759,,J2 elbow yaw x1,Closes the J2 actuator between the links.
+CLN-J2L,"J2 drum cover, lower",1,structure,make,casting,OD 260,,"Aluminium A356-T6 casting, charcoal powder coat",0.1897,0.1897,,J2 elbow yaw x1,Turns with link 2 under the upper cover. A labyrinth between them sheds water.
 BRK-82x26,Spring-applied holding brake 82,1,drive,buy,catalogue part,82 x 26,,"Steel 42CrMo4, quenched and tempered",0.6918,0.6918,,J2 elbow yaw x1,Springs hold the joint when power is off. The coil releases it. A power cut cannot drop the arm.
 CLN-J2-FSC,J2 flexspline clamp ring,1,drive,make,machined,size 25,,"Steel 42CrMo4, quenched and tempered",0.0153,0.0153,,J2 elbow yaw x1,Spreads the screw load over the thin flexspline diaphragm.
 CLN-J2-SHF,J2 hollow motor shaft,1,drive,make,machined,50 x 107,,"Steel 42CrMo4, quenched and tempered",0.3664,0.3664,,J2 elbow yaw x1,Carries the rotor and the wave generator. Cables pass through its bore.
@@ -76,7 +78,9 @@ ISO4762-M5x24-12.9,Socket head cap screw M5 x 24,20,fastener,buy,ISO 4762,M5 x 2
 ISO4762-M6x27-12.9,Socket head cap screw M6 x 27,12,fastener,buy,ISO 4762,M6 x 27,12.9,"Alloy steel, black oxide",0.009,0.1085,18.0,J2 elbow yaw x12,Fixes the ring gear in the housing.
 ISO4762-M6x34-12.9,Socket head cap screw M6 x 34,8,fastener,buy,ISO 4762,M6 x 34,12.9,"Alloy steel, black oxide",0.0106,0.0848,18.0,J2 elbow yaw x8,Clamps the bearing outer ring to the housing.
 CLN-L2,Link 2 weldment,1,structure,make,"EN 1090-3, machined after welding","800 between axes, 140 x 130",6061-T6,"Aluminium 6061-T6, machined, clear anodised",5.006,5.006,,Link 2 x1,Carries the mast 0.80 m from J2.
+CLN-L2C,Link 2 top cover,1,structure,make,sheet 3 mm,650 x 120,,"Aluminium 6061-T6, machined, black anodised",0.6318,0.6318,,Link 2 x1,Closes link 2. Off for service.
 ISO4762-M6x25-12.9,Socket head cap screw M6 x 25,12,fastener,buy,ISO 4762,M6 x 25,12.9,"Alloy steel, black oxide",0.0086,0.1032,18.0,Link 2 x12,Holds link 2 to the J2 output flange.
+CLN-CLD,Mast carriage lid,1,structure,make,machined plate 6 mm,260 x 260,,"Aluminium 6061-T6, machined, black anodised",0.5826,0.5826,,J3 mast yaw x1,Closes the carriage over the belt drive.
 CLN-CRG,Mast carriage housing,1,structure,make,"casting, machined",260 x 260 x 200,A356-T6,"Aluminium A356-T6 casting, charcoal powder coat",4.2863,4.2863,,J3 mast yaw x1,Holds the mast slewing bearing and the J3 drive at the tip of link 2.
 CLN-MCL,Mast top collar,1,structure,make,machined,OD 190 x 24,6061-T6,"Aluminium 6061-T6, machined, clear anodised",0.2635,0.2635,,J3 mast yaw x1,Joins the mast to the bearing inner ring and the driven pulley.
 BELT-HTD5M-25-575,"Timing belt HTD 5M, 25 mm, 575 mm",1,drive,buy,ISO 13050,"HTD 5M, 25 wide, 575 long",glass-fibre cords,EPDM rubber,0.0539,0.0539,,J3 mast yaw x1,"Turns the mast from the servo gearmotor, 3:1."
@@ -85,6 +89,8 @@ PUL-HTD5M-24T-25,"Timing pulley HTD 5M 24T, 25 mm belt",1,drive,buy,ISO 13050,"2
 PUL-HTD5M-72T-25,"Timing pulley HTD 5M 72T, 25 mm belt",1,drive,buy,ISO 13050,"72 teeth, HTD 5M",,"Aluminium 6061-T6, machined, clear anodised",7.6227,7.6227,,J3 mast yaw x1,Drives the toothed belt with no slip.
 XRB-170x250x24,Cross-roller bearing 170 x 250 x 24,1,bearing,buy,ISO 492 class P5,170 x 250 x 24,"preloaded, split outer ring","Bearing steel 100Cr6, hardened",3.9395,3.9395,,J3 mast yaw x1,Carries the mast and lets it turn. It takes the mast moment in one bearing.
 ISO4762-M6x30-12.9,Socket head cap screw M6 x 30,16,fastener,buy,ISO 4762,M6 x 30,12.9,"Alloy steel, black oxide",0.0097,0.1554,18.0,J3 mast yaw x12; J4 wrist pitch x4,Clamps the slewing bearing outer ring in the carriage.
+ISO7380-M5x12-A2-70,Button head screw M5 x 12,6,fastener,buy,ISO 7380-1,M5 x 12,A2-70,Stainless steel A2-70,0.0026,0.0156,3.6,J3 mast yaw x6,Holds the carriage lid.
+CLN-MCP,Mast top cap,1,structure,make,machined plate 8 mm,170 sq,,"Aluminium 6061-T6, machined, black anodised",0.6242,0.6242,,Telescoping mast x1,Closes the mast top above the pulley and keeps rain out of the stages.
 CLN-MS1,"Mast stage 1 (outer), 160 x 160 x 4",1,structure,make,EN 755-9 extrusion,1050 long,6063-T6,"Aluminium 6063-T6 extrusion, anodised",6.9552,6.9552,,Telescoping mast x1,Turns with J3 and guides the middle stage.
 CLN-MS2,"Mast stage 2 (middle), 125 x 125 x 3.5",1,structure,make,EN 755-9 extrusion,900 long,6063-T6,"Aluminium 6063-T6 extrusion, anodised",4.0923,4.0923,,Telescoping mast x1,Carries the rack and the doubling pulley.
 CLN-MS3,"Mast stage 3 (inner), 95 x 95 x 3",1,structure,make,EN 755-9 extrusion,900 long,6063-T6,"Aluminium 6063-T6 extrusion, anodised",2.6525,2.6525,,Telescoping mast x1,Carries the wrist at its foot.
@@ -94,6 +100,7 @@ CLN-PIN,"Pinion module 2, 14 teeth",1,drive,buy,DIN 867 tooth form,"14 T, m 2","
 CLN-RCK,"Gear rack module 2, 20 x 20",1,drive,buy,DIN 867 tooth form,840 long,"C45, induction hardened","Steel 42CrMo4, quenched and tempered",2.1101,2.1101,,Telescoping mast x1,The pinion drives the middle stage along it.
 PUL-HTD5M-30T-25,"Timing pulley HTD 5M 30T, 25 mm belt",2,drive,buy,ISO 13050,"30 teeth, HTD 5M",,"Aluminium 6061-T6, machined, clear anodised",0.1413,0.2826,,Telescoping mast x2,Drives the toothed belt with no slip.
 ISO4762-M5x25-12.9,Socket head cap screw M5 x 25,11,fastener,buy,ISO 4762,M5 x 25,12.9,"Alloy steel, black oxide",0.0057,0.063,10.6,Telescoping mast x11,Holds the rack to the middle stage.
+ISO4762-M6x16-A2-70,Socket head cap screw M6 x 16,4,fastener,buy,ISO 4762,M6 x 16,A2-70,Stainless steel A2-70,0.0067,0.0267,7.4,Telescoping mast x4,Holds the mast top cap.
 CLN-FRK,Wrist fork,1,structure,make,machined from billet,166 wide,6061-T6,"Aluminium 6061-T6, machined, clear anodised",2.9749,2.9749,,J4 wrist pitch x1,Hangs from the inner stage foot. It holds the J4 actuator on one side and a support bearing on the other.
 CLN-HUB,Wrist hub,1,structure,make,machined,OD 130 x 110,7075-T6,"Aluminium 6061-T6, machined, clear anodised",3.0744,3.0744,,J4 wrist pitch x1,Turns on J4 and carries the wand. The wand slides through its bore.
 CLN-J4-COV,J4 rear cover,1,structure,make,machined,OD 116 x 8,,"Aluminium 6061-T6, machined, black anodised",0.1561,0.1561,,J4 wrist pitch x1,Closes the rear of the actuator. The O-ring seals it.

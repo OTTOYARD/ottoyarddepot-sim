@@ -7,12 +7,12 @@
   "glb": "m"
  },
  "totals": {
-  "parts": 578,
-  "uniqueParts": 65,
-  "fasteners": 370,
-  "massKg": 3411.22,
-  "boughtLines": 44,
-  "madeLines": 21,
+  "parts": 747,
+  "uniqueParts": 79,
+  "fasteners": 526,
+  "massKg": 3511.15,
+  "boughtLines": 55,
+  "madeLines": 24,
   "referenceLines": 0
  },
  "subsystems": [
@@ -67,10 +67,10 @@
    },
    "group": "Structure",
    "order": 2,
-   "partCount": 126,
-   "fastenerCount": 120,
-   "massKg": 1402.407,
-   "uniqueParts": 7
+   "partCount": 222,
+   "fastenerCount": 216,
+   "massKg": 1404.731,
+   "uniqueParts": 9
   },
   {
    "id": "ARCH",
@@ -85,10 +85,10 @@
    },
    "group": "Tools",
    "order": 3,
-   "partCount": 40,
+   "partCount": 42,
    "fastenerCount": 12,
-   "massKg": 83.219,
-   "uniqueParts": 5
+   "massKg": 115.013,
+   "uniqueParts": 7
   },
   {
    "id": "TOPBRUSH",
@@ -103,10 +103,10 @@
    },
    "group": "Tools",
    "order": 4,
-   "partCount": 62,
-   "fastenerCount": 50,
-   "massKg": 187.356,
-   "uniqueParts": 13
+   "partCount": 83,
+   "fastenerCount": 66,
+   "massKg": 221.804,
+   "uniqueParts": 19
   },
   {
    "id": "SIDEBRUSH",
@@ -121,10 +121,10 @@
    },
    "group": "Tools",
    "order": 5,
-   "partCount": 100,
-   "fastenerCount": 80,
-   "massKg": 314.075,
-   "uniqueParts": 13
+   "partCount": 112,
+   "fastenerCount": 88,
+   "massKg": 339.008,
+   "uniqueParts": 16
   },
   {
    "id": "DRYER",
@@ -139,10 +139,10 @@
    },
    "group": "Tools",
    "order": 6,
-   "partCount": 31,
-   "fastenerCount": 20,
-   "massKg": 340.804,
-   "uniqueParts": 7
+   "partCount": 69,
+   "fastenerCount": 56,
+   "massKg": 347.225,
+   "uniqueParts": 10
   },
   {
    "id": "WAND",
@@ -446,9 +446,9 @@
    "grade": "200 HV",
    "material": "Steel, zinc flake coated",
    "materialKey": "fast_zn",
-   "qty": 8,
+   "qty": 32,
    "massKg": 0.0036,
-   "totalMassKg": 0.0286,
+   "totalMassKg": 0.1143,
    "torqueNm": null,
    "reference": false,
    "function": "",
@@ -457,6 +457,10 @@
     {
      "sub": "TRAVEL",
      "qty": 8
+    },
+    {
+     "sub": "DRYER",
+     "qty": 24
     }
    ]
   },
@@ -576,7 +580,7 @@
    "totalMassKg": 4.2625,
    "torqueNm": 206.7,
    "reference": false,
-   "function": "Bolts the leg flange to the trolley or the beam.",
+   "function": "Bolts the leg flange to the trolley or the beam. The lock nut holds under vibration.",
    "spec": {
     "preload": "81.0 kN",
     "drive": "hex 24 mm"
@@ -585,6 +589,54 @@
     {
      "sub": "PORTAL",
      "qty": 32
+    }
+   ]
+  },
+  {
+   "id": "ISO7040-M16-8",
+   "name": "Prevailing-torque hex nut (nylon insert) M16",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 7040",
+   "size": "M16",
+   "grade": "8",
+   "material": "Steel, zinc flake coated",
+   "materialKey": "fast_zn",
+   "qty": 32,
+   "massKg": 0.05,
+   "totalMassKg": 1.601,
+   "torqueNm": null,
+   "reference": false,
+   "function": "",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "PORTAL",
+     "qty": 32
+    }
+   ]
+  },
+  {
+   "id": "ISO7089-16-fast_zn",
+   "name": "Plain washer 16",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 7089",
+   "size": "17 x 30 x 3",
+   "grade": "200 HV",
+   "material": "Steel, zinc flake coated",
+   "materialKey": "fast_zn",
+   "qty": 64,
+   "massKg": 0.0113,
+   "totalMassKg": 0.7233,
+   "torqueNm": null,
+   "reference": false,
+   "function": "",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "PORTAL",
+     "qty": 64
     }
    ]
   },
@@ -667,6 +719,32 @@
    ]
   },
   {
+   "id": "WSH-AFH",
+   "name": "Arch feed hose, 1 in, stainless braid",
+   "category": "fluid",
+   "make": "buy",
+   "standard": "EN 853",
+   "size": "DN 25",
+   "grade": "",
+   "material": "Hose, PVC with steel helix",
+   "materialKey": "hose",
+   "qty": 1,
+   "massKg": 0.1926,
+   "totalMassKg": 0.1926,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Brings the switched liquid from the manifold to the arch.",
+   "spec": {
+    "pressure": "70 bar"
+   },
+   "uses": [
+    {
+     "sub": "ARCH",
+     "qty": 1
+    }
+   ]
+  },
+  {
    "id": "WSH-ARC",
    "name": "Spray arch manifold, 124 mm",
    "category": "fluid",
@@ -682,6 +760,30 @@
    "torqueNm": null,
    "reference": false,
    "function": "Carries the foam and the rinse water to the nozzles. Stainless: wash chemicals do not touch carbon steel.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "ARCH",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-MAN",
+   "name": "Valve manifold, stainless, 4 stations",
+   "category": "fluid",
+   "make": "make",
+   "standard": "machined",
+   "size": "1100 x 60 x 60",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 31.6008,
+   "totalMassKg": 31.6008,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries foam, rinse water and the 2 chemicals to the valves.",
    "spec": {},
    "uses": [
     {
@@ -846,6 +948,54 @@
    ]
   },
   {
+   "id": "WSH-DRM",
+   "name": "Lift belt drum 140 mm",
+   "category": "drive",
+   "make": "make",
+   "standard": "machined",
+   "size": "D 140 x 60",
+   "grade": "6061-T6",
+   "material": "Aluminium 6061-T6, machined, clear anodised",
+   "materialKey": "al6061",
+   "qty": 2,
+   "massKg": 2.2902,
+   "totalMassKg": 4.5804,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Winds the lift belt that hangs the top brush.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "TOPBRUSH",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-LSH",
+   "name": "Lift cross shaft, 40 mm, stainless",
+   "category": "drive",
+   "make": "make",
+   "standard": "machined",
+   "size": "D 40 x 2080",
+   "grade": "",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 20.8582,
+   "totalMassKg": 20.8582,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Turns both belt drums together, so the brush lifts level.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "TOPBRUSH",
+     "qty": 1
+    }
+   ]
+  },
+  {
    "id": "WSH-TBM",
    "name": "Top brush gearmotor 0.75 kW, 135 rpm",
    "category": "drive",
@@ -950,6 +1100,30 @@
    ]
   },
   {
+   "id": "WSH-PBU",
+   "name": "Pillow-block bearing unit, 40 mm, stainless",
+   "category": "bearing",
+   "make": "buy",
+   "standard": "ISO 3228",
+   "size": "bore 40",
+   "grade": "sealed, wash-down",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 4.3117,
+   "totalMassKg": 8.6235,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the lift shaft on the beam.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "TOPBRUSH",
+     "qty": 2
+    }
+   ]
+  },
+  {
    "id": "WSH-TBR",
    "name": "Top brush, closed-cell foam strips",
    "category": "tool",
@@ -1043,6 +1217,33 @@
    ]
   },
   {
+   "id": "ISO4017-M12x50-A4-70",
+   "name": "Hex head screw M12 x 50",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4017",
+   "size": "M12 x 50",
+   "grade": "A4-70",
+   "material": "Stainless steel A4-80",
+   "materialKey": "fast_a4",
+   "qty": 4,
+   "massKg": 0.0616,
+   "totalMassKg": 0.2464,
+   "torqueNm": 59.2,
+   "reference": false,
+   "function": "Holds the pillow block to the beam.",
+   "spec": {
+    "preload": "30.3 kN",
+    "drive": "hex 18 mm"
+   },
+   "uses": [
+    {
+     "sub": "TOPBRUSH",
+     "qty": 4
+    }
+   ]
+  },
+  {
    "id": "ISO4017-M8x25-A4-70",
    "name": "Hex head screw M8 x 25",
    "category": "fastener",
@@ -1052,9 +1253,9 @@
    "grade": "A4-70",
    "material": "Stainless steel A4-80",
    "materialKey": "fast_a4",
-   "qty": 4,
+   "qty": 12,
    "massKg": 0.0161,
-   "totalMassKg": 0.0644,
+   "totalMassKg": 0.1933,
    "torqueNm": 17.6,
    "reference": false,
    "function": "Holds the lift gearmotor to the beam.",
@@ -1066,6 +1267,10 @@
     {
      "sub": "TOPBRUSH",
      "qty": 4
+    },
+    {
+     "sub": "SIDEBRUSH",
+     "qty": 8
     }
    ]
   },
@@ -1093,6 +1298,54 @@
     {
      "sub": "TOPBRUSH",
      "qty": 26
+    }
+   ]
+  },
+  {
+   "id": "ISO7040-M12-A4",
+   "name": "Prevailing-torque hex nut (nylon insert) M12",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 7040",
+   "size": "M12",
+   "grade": "A4",
+   "material": "Stainless steel A4-80",
+   "materialKey": "fast_a4",
+   "qty": 4,
+   "massKg": 0.0223,
+   "totalMassKg": 0.089,
+   "torqueNm": null,
+   "reference": false,
+   "function": "",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "TOPBRUSH",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "ISO7089-12-fast_a4",
+   "name": "Plain washer 12",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 7089",
+   "size": "13 x 24 x 2.5",
+   "grade": "A4",
+   "material": "Stainless steel A4-80",
+   "materialKey": "fast_a4",
+   "qty": 8,
+   "massKg": 0.0064,
+   "totalMassKg": 0.051,
+   "torqueNm": null,
+   "reference": false,
+   "function": "",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "TOPBRUSH",
+     "qty": 8
     }
    ]
   },
@@ -1141,6 +1394,56 @@
     {
      "sub": "SIDEBRUSH",
      "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "WSH-CGM",
+   "name": "Carriage gearmotor 0.37 kW, brake, encoder",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "0.37 kW",
+   "grade": "IP66, wash-down",
+   "material": "Structural steel S355, painted RAL 9005",
+   "materialKey": "steel_paint",
+   "qty": 2,
+   "massKg": 12.0,
+   "totalMassKg": 24.0,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Moves the side brush in to the flank. Its current says how hard the brush presses.",
+   "spec": {
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "SIDEBRUSH",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-PIN",
+   "name": "Pinion module 2, 20 teeth, stainless",
+   "category": "drive",
+   "make": "buy",
+   "standard": "DIN 867 tooth form",
+   "size": "20 T, m 2",
+   "grade": "",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 0.4021,
+   "totalMassKg": 0.8042,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Drives the brush carriage along its rack.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SIDEBRUSH",
+     "qty": 2
     }
    ]
   },
@@ -1382,6 +1685,30 @@
    ]
   },
   {
+   "id": "WSH-DDS",
+   "name": "Flexible duct, 150 x 170",
+   "category": "fluid",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "150 x 170",
+   "grade": "",
+   "material": "Hose, PVC with steel helix",
+   "materialKey": "hose",
+   "qty": 2,
+   "massKg": 3.0337,
+   "totalMassKg": 6.0674,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Feeds a side knife from its blower. It flexes as the knife closes on the car.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "DRYER",
+     "qty": 2
+    }
+   ]
+  },
+  {
    "id": "WSH-DDU",
    "name": "Flexible duct, 380 x 160",
    "category": "fluid",
@@ -1454,21 +1781,21 @@
    ]
   },
   {
-   "id": "ISO4017-M10x30-8.8",
-   "name": "Hex head screw M10 x 30",
+   "id": "ISO4017-M10x40-8.8",
+   "name": "Hex head screw M10 x 40",
    "category": "fastener",
    "make": "buy",
    "standard": "ISO 4017",
-   "size": "M10 x 30",
+   "size": "M10 x 40",
    "grade": "8.8",
    "material": "Steel, zinc flake coated",
    "materialKey": "fast_zn",
    "qty": 12,
-   "massKg": 0.0294,
-   "totalMassKg": 0.3533,
+   "massKg": 0.0356,
+   "totalMassKg": 0.4273,
    "torqueNm": 49.0,
    "reference": false,
-   "function": "Holds the blower foot to the beam cover frame.",
+   "function": "Holds the blower foot to the beam frame, on a rubber mount.",
    "spec": {
     "preload": "29.6 kN",
     "drive": "hex 16 mm"
@@ -1504,6 +1831,30 @@
     {
      "sub": "DRYER",
      "qty": 8
+    }
+   ]
+  },
+  {
+   "id": "ISO7040-M10-8",
+   "name": "Prevailing-torque hex nut (nylon insert) M10",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 7040",
+   "size": "M10",
+   "grade": "8",
+   "material": "Steel, zinc flake coated",
+   "materialKey": "fast_zn",
+   "qty": 12,
+   "massKg": 0.0162,
+   "totalMassKg": 0.1943,
+   "torqueNm": null,
+   "reference": false,
+   "function": "",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "DRYER",
+     "qty": 12
     }
    ]
   },
