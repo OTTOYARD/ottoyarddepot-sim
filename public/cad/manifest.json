@@ -17,13 +17,13 @@
     "csv": "charge_arm.bom.csv"
    },
    "bytes": {
-    "glb": 6759336,
-    "stepZip": 4827453,
-    "step": 27217758
+    "glb": 6805700,
+    "stepZip": 4903371,
+    "step": 27533368
    },
    "mesh": {
-    "vertices": 284081,
-    "triangles": 322321,
+    "vertices": 286195,
+    "triangles": 324411,
     "meshes": 190,
     "nodes": 677
    },
@@ -31,12 +31,12 @@
     "parts": 666,
     "uniqueParts": 188,
     "fasteners": 467,
-    "massKg": 313.57,
+    "massKg": 313.52,
     "boughtLines": 126,
     "madeLines": 62,
     "referenceLines": 2
    },
-   "glbSha256": "eac4baa4db8a9a86",
+   "glbSha256": "5ca8e51ce0c3494b",
    "stepCheck": {
     "namedParts": 668,
     "solids": 1360,

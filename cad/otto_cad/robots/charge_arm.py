@@ -349,6 +349,17 @@ def build(spec: dict) -> Model:
     tur = tur.union(cq.Workplane('XZ', origin=(0, 26 + 18, 0)).circle(rb * 0.95 + 0.5).circle(22).extrude(18))   # the web on J1's flange
     tur = tur.cut(cq.Workplane('XZ', origin=(0, 26 + 19, 0)).pushPoints([(p[0], p[2]) for p in out_flange_points(40)])
                   .circle(4.5).extrude(20))
+    # the J2 drum clamp screws' counterbores: none at the top, none below the axis where the column's box fills the boss
+    # (their heads stood in it); the heads sit 10 mm deep, clear of the upper arm's bridge as it turns over them
+    j2_clamps = []
+    for p in front_ring_points(50, 10):
+        r = math.hypot(p[0], p[2])
+        if p[0] / r > 0.7 or p[0] / r < -0.45:
+            continue
+        u = (0.0, p[0] / r, p[2] / r)
+        j2_clamps.append(u)
+        c0 = boss2_od / 2 - 10
+        tur = tur.cut(cq.Workplane('XY').add(cq.Solid.makeCylinder(8.5, 16, Vector(0, H + u[1] * c0, u[2] * c0), Vector(*u))))
     m.place(j1, m.part(PartDef('CHG-TUR', 'Turret casting', tur.val(), 'a356', 'structure', 'casting, machined',
                                f'OD {rb * 2.24:.0f} x {H + boss2_od / 2:.0f}', 'A356-T6', None,
                                'Turns on J1 and carries the shoulder. Its boss clamps the J2 actuator.',
@@ -371,14 +382,9 @@ def build(spec: dict) -> Model:
     Tm2 = loc(L2['out_x'], 0, 0, rz=-90)      # module +Y -> world +X
     a2 = build_actuator(m, j1, j2, 50, loc(0, H, 0), Tm2, 'CHG-J2', 'J2', gland_m=25)
     clamp_s = std.shcs(10, 40, '12.9', 'Clamps the J2 actuator drum in the turret boss.')
-    for p in front_ring_points(50, 10):
-        # radial screws through the boss into the drum, from outside; none at the top, and none below the axis where
-        # the column's box fills the boss (their heads stood in it)
-        r = math.hypot(p[0], p[2])
-        if p[0] / r > 0.7 or p[0] / r < -0.45:
-            continue
-        dirv = (0, -p[0] / r, -p[2] / r)
-        pos = (0.0, H + p[0] / r * (boss2_od / 2), p[2] / r * (boss2_od / 2))
+    for u in j2_clamps:       # radial screws through the boss into the drum, from outside, heads in their counterbores
+        dirv = (0, -u[1], -u[2])
+        pos = (0.0, H + u[1] * (boss2_od / 2 - 10), u[2] * (boss2_od / 2 - 10))
         m.place(j1, clamp_s, std.orient(pos, dirv), tuple(-c * 90 for c in dirv), 'J2')
     # status ring on the J2 boss faces (both sides): the twin draws two
     for sx in (-1, 1):
@@ -396,6 +402,13 @@ def build(spec: dict) -> Model:
     # clear of J3's front, beside the boss: its bearing clamp ring (OD 214) and its screws stood in the beam's flanks
     upper = (cq.Workplane('XY').add(upper)
              .cut(cq.Workplane('YZ', origin=(_pitch_layout(40)['boss_w'] / 2, LU, 0)).circle(SIZES[40].od / 2 + 2).extrude(50)))
+    # the J3 drum clamp screws' counterbores, 8 mm deep: their heads stood proud of the boss, under the forearm's bridge
+    b3_r = (_pitch_layout(40)['od'] + 36) / 2
+    for p in front_ring_points(40, 8):
+        r = math.hypot(p[0], p[2])
+        u = (0.0, p[0] / r, p[2] / r)
+        upper = upper.cut(cq.Workplane('XY').add(cq.Solid.makeCylinder(7.0, 16, Vector(0, LU + u[1] * (b3_r - 8), u[2] * (b3_r - 8)),
+                                                                       Vector(*u))))
     m.place(j2, m.part(PartDef('CHG-UPR', 'Upper arm casting', upper.val(), 'a356', 'structure', 'casting, machined',
                                f'{LU:.1f} between axes', 'A356-T6', None,
                                'Carries the elbow 1.344 m from the shoulder. Hollow for stiffness per kilogram.',
@@ -498,7 +511,7 @@ def build(spec: dict) -> Model:
     for p in front_ring_points(40, 8):
         r = math.hypot(p[0], p[2])
         dirv = (0, -p[0] / r, -p[2] / r)
-        pos = (0.0, LU + p[0] / r * (boss3_od / 2), p[2] / r * (boss3_od / 2))
+        pos = (0.0, LU + p[0] / r * (boss3_od / 2 - 8), p[2] / r * (boss3_od / 2 - 8))     # the head in its counterbore
         m.place(j2, clamp3, std.orient(pos, dirv), tuple(-c * 80 for c in dirv), 'J3')
     # wrist geometry needed by the forearm's top socket
     s4 = SIZES[25]

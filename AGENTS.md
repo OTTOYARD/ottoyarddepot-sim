@@ -339,7 +339,9 @@ interpolation.** Zero world logic client-side.
   rewrite it with `CAD_SPEC_WRITE=1 npx vitest run src/lib/robotics/cadPoses.test.ts` when a pose or a joint name
   changes) and writes `public/cad/<robot>.clash.json` with the GLB digest it checked. `cad.test.ts` fails on a stale
   report or on more clashes or loose parts than `cad/clash_baseline.json`, which only goes down, and holds the wash
-  machine at zero. A clash left in the baseline is a named design finding in `docs/OTTO-ROBOTICS-CAD.md`, not noise.
+  machine and the clean arm at zero. A clash left in the baseline is a named design finding in
+  `docs/OTTO-ROBOTICS-CAD.md`, not noise. The check clamps each joint to its limits, so a twin move past a limit is
+  invisible to it: `cad.test.ts` checks every pose and cycle frame against every joint's limits for that reason.
   Bought assemblies drawn as envelopes carry a class mass, marked as such: never quote a CAD mass as measured.
   The tab reads no run. Its 3D view decides nothing. It has no number key (Research keeps 0).
 - **From above, the roofs fade (2026-10-20):** the solar modules and roof membranes go to 16% when the camera looks

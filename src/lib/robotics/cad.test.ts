@@ -18,6 +18,7 @@
 // ============================================================================
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { resolve } from 'node:path';
 import { OTTO_CHARGE_ARM, JOINT_NAMES, METRES_PER_PLAN_UNIT } from '@/lib/ottoChargeArm/cobotSpec';
 import { STOWED } from '@/lib/ottoChargeArm/cobotIK';
@@ -210,6 +211,7 @@ describe.each(['charge_arm', 'clean_arm', 'wash_gantry'] as RobotKey[])('%s: cla
   const entry = manifest.robots.find((r) => r.key === k)! as unknown as { glbSha256: string };
 
   it('ran on the committed CAD, at the stowed pose and at every twin pose', () => {
+    expect(createHash('sha256').update(readFileSync(`${PUB}/${k}.glb`)).digest('hex').slice(0, 16)).toBe(entry.glbSha256);
     expect(rep.glbSha256).toBe(entry.glbSha256);
     expect(rep.poses).toEqual(['stowed', ...posesFile.robots[k].map((p) => p.id)]);
   });

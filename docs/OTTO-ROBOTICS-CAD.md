@@ -44,7 +44,7 @@ at home, mid brush pass, dry pass and cabin vacuum (`washPoseAt`). Its run steps
 
 | robot | parts | different parts | screws, nuts, washers, pins | mass | STEP (zip) | GLB |
 |---|---:|---:|---:|---:|---:|---:|
-| OTTO-CHARGE ARM | 666 | 188 | 467 | 314 kg (with its riser) | 27.2 MB (4.8) | 6.8 MB |
+| OTTO-CHARGE ARM | 666 | 188 | 467 | 314 kg (with its riser) | 27.5 MB (4.9) | 6.8 MB |
 | OTTO-CLEAN ARM | 467 | 154 | 293 | 317 kg (with its canopy steel) | 17.4 MB (2.9) | 4.7 MB |
 | OTTO-WASH | 744 | 90 | 467 | 4,014 kg | 6.2 MB (1.0) | 1.3 MB |
 
@@ -133,14 +133,12 @@ As run on the committed CAD (`public/cad/<robot>.clash.json`):
 
 | robot | poses | pairs measured | clashes | loose groups | expected overlaps (screws in tapped holes, seals, retaining rings, gear meshes) |
 |---|---:|---:|---:|---:|---|
-| OTTO-CHARGE ARM | 22 | 32,259 | 3 | 0 | 660, 12, 9, 3 |
+| OTTO-CHARGE ARM | 22 | 32,331 | 1 | 0 | 672, 12, 9, 3 |
 | OTTO-CLEAN ARM | 42 | 19,643 | 0 | 0 | 367, 6, 6, 2 |
 | OTTO-WASH | 39 | 6,063 | 0 | 0 | 513, 0, 0, 0 |
 
-The charge arm's 3 are in its baseline and the tab lists them: the forearm inside the upper arm when the twin folds the
-elbow (design finding 6), and two drum clamp screws whose heads stand 1 to 3 mm proud of their bosses, under the upper
-arm's and the forearm's bridges as they turn over them at the port. The wash machine and the clean arm are held at zero
-by `cad.test.ts`.
+The charge arm's 1 is in its baseline and the tab lists it: the forearm inside the upper arm when the twin folds the
+elbow (design finding 6). The wash machine and the clean arm are held at zero by `cad.test.ts`.
 
 ### What it found, and what changed
 
@@ -193,7 +191,9 @@ The poses found more, which the stowed pose could not show:
     the rod's neck. J3's front clamp ring, its bearing and its screws stood in the upper arm's flanks. The riser's anchor
     nuts stood in the tube's corners (the anchors are now 380 mm apart, not 350). The wrist light ring stood on the J6
     clamp screws' heads (it is now round the socket ring). The retract unit's brackets had flat tops against a curved
-    casting (their flanges are now cut to it). J6's cable gland met the wrist yoke.
+    casting (their flanges are now cut to it). J6's cable gland met the wrist yoke. And the J2 and J3 drum clamp
+    screws' heads stood 1 to 3 mm proud of their bosses, where the upper arm's and the forearm's bridges turn over them
+    at the port: they now sit in counterbores.
 
 ## What the CAD found (design findings, not yet in the depot renderer)
 

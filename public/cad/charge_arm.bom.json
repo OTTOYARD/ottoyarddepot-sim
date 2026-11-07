@@ -10,7 +10,7 @@
   "parts": 666,
   "uniqueParts": 188,
   "fasteners": 467,
-  "massKg": 313.57,
+  "massKg": 313.52,
   "boughtLines": 126,
   "madeLines": 62,
   "referenceLines": 2
@@ -51,7 +51,7 @@
    "order": 1,
    "partCount": 102,
    "fastenerCount": 76,
-   "massKg": 52.945,
+   "massKg": 52.921,
    "uniqueParts": 35
   },
   {
@@ -85,7 +85,7 @@
    "order": 3,
    "partCount": 19,
    "fastenerCount": 18,
-   "massKg": 27.709,
+   "massKg": 27.683,
    "uniqueParts": 3
   },
   {
@@ -606,8 +606,8 @@
    "material": "Aluminium A356-T6 casting, powder-coated",
    "materialKey": "a356",
    "qty": 1,
-   "massKg": 30.0291,
-   "totalMassKg": 30.0291,
+   "massKg": 30.0048,
+   "totalMassKg": 30.0048,
    "torqueNm": null,
    "reference": false,
    "function": "Turns on J1 and carries the shoulder. Its boss clamps the J2 actuator.",
@@ -2456,8 +2456,8 @@
    "material": "Aluminium A356-T6 casting, powder-coated",
    "materialKey": "a356",
    "qty": 1,
-   "massKg": 27.0191,
-   "totalMassKg": 27.0191,
+   "massKg": 26.9931,
+   "totalMassKg": 26.9931,
    "torqueNm": null,
    "reference": false,
    "function": "Carries the elbow 1.344 m from the shoulder. Hollow for stiffness per kilogram.",
@@ -5320,9 +5320,9 @@
      },
      {
       "deg": 80,
-      "gravityNm": 1588,
+      "gravityNm": 1587,
       "balancerNm": 1439,
-      "gearNm": 149
+      "gearNm": 148
      },
      {
       "deg": 90,
@@ -5332,9 +5332,9 @@
      },
      {
       "deg": 100,
-      "gravityNm": 1588,
+      "gravityNm": 1587,
       "balancerNm": 1720,
-      "gearNm": -132
+      "gearNm": -133
      },
      {
       "deg": 110,
