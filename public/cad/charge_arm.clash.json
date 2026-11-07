@@ -1,0 +1,259 @@
+{
+ "robot": "charge_arm",
+ "poses": [
+  "stowed",
+  "pose:stowed",
+  "pose:connected",
+  "pose:zero",
+  "cycle:unstow:mid",
+  "cycle:unstow:end",
+  "cycle:approach:mid",
+  "cycle:approach:end",
+  "cycle:align:mid",
+  "cycle:align:end",
+  "cycle:insert:mid",
+  "cycle:insert:end",
+  "cycle:latch:mid",
+  "cycle:latch:end",
+  "cycle:charging:mid",
+  "cycle:charging:end",
+  "cycle:unlatch:mid",
+  "cycle:unlatch:end",
+  "cycle:extract:mid",
+  "cycle:extract:end",
+  "cycle:retract:mid",
+  "cycle:retract:end"
+ ],
+ "pairsChecked": 32259,
+ "contactPairs": 1369,
+ "counts": {
+  "thread": 660,
+  "seal": 12,
+  "ring": 9,
+  "mesh": 3,
+  "context": 4,
+  "clash": 3,
+  "error": 0
+ },
+ "clashes": [
+  {
+   "kind": "clash",
+   "a": {
+    "item": "CHG-UPR#1",
+    "part": "CHG-UPR",
+    "name": "Upper arm casting",
+    "sub": "UPPER"
+   },
+   "b": {
+    "item": "CHG-FOR#1",
+    "part": "CHG-FOR",
+    "name": "Forearm casting",
+    "sub": "FORE"
+   },
+   "volumeMm3": 114050.2,
+   "at": [
+    -6.7,
+    1554.0,
+    441.5
+   ],
+   "poses": [
+    "stowed",
+    "pose:stowed",
+    "pose:connected",
+    "cycle:unstow:mid",
+    "cycle:unstow:end",
+    "cycle:approach:mid",
+    "cycle:approach:end",
+    "cycle:align:mid",
+    "cycle:align:end",
+    "cycle:insert:mid",
+    "cycle:insert:end",
+    "cycle:latch:mid",
+    "cycle:latch:end",
+    "cycle:charging:mid",
+    "cycle:charging:end",
+    "cycle:unlatch:mid",
+    "cycle:unlatch:end",
+    "cycle:extract:mid",
+    "cycle:extract:end",
+    "cycle:retract:mid",
+    "cycle:retract:end"
+   ]
+  },
+  {
+   "kind": "clash",
+   "a": {
+    "item": "ISO4762-M10x40-12.9#1",
+    "part": "ISO4762-M10x40-12.9",
+    "name": "Socket head cap screw M10 x 40",
+    "sub": "J2"
+   },
+   "b": {
+    "item": "CHG-UPR#1",
+    "part": "CHG-UPR",
+    "name": "Upper arm casting",
+    "sub": "UPPER"
+   },
+   "volumeMm3": 420.4,
+   "at": [
+    64.4,
+    529.4,
+    109.8
+   ],
+   "poses": [
+    "pose:connected",
+    "cycle:approach:end",
+    "cycle:align:mid",
+    "cycle:align:end",
+    "cycle:insert:mid",
+    "cycle:insert:end",
+    "cycle:latch:mid",
+    "cycle:latch:end",
+    "cycle:charging:mid",
+    "cycle:charging:end",
+    "cycle:unlatch:mid",
+    "cycle:unlatch:end",
+    "cycle:extract:mid",
+    "cycle:extract:end",
+    "cycle:retract:mid"
+   ]
+  },
+  {
+   "kind": "clash",
+   "a": {
+    "item": "ISO4762-M8x35-12.9#27",
+    "part": "ISO4762-M8x35-12.9",
+    "name": "Socket head cap screw M8 x 35",
+    "sub": "J3"
+   },
+   "b": {
+    "item": "CHG-FOR#1",
+    "part": "CHG-FOR",
+    "name": "Forearm casting",
+    "sub": "FORE"
+   },
+   "volumeMm3": 90.9,
+   "at": [
+    576.0,
+    1121.5,
+    942.2
+   ],
+   "poses": [
+    "pose:connected",
+    "cycle:align:mid",
+    "cycle:align:end",
+    "cycle:insert:mid",
+    "cycle:insert:end",
+    "cycle:latch:mid",
+    "cycle:latch:end",
+    "cycle:charging:mid",
+    "cycle:charging:end",
+    "cycle:unlatch:mid",
+    "cycle:unlatch:end",
+    "cycle:extract:mid",
+    "cycle:extract:end"
+   ]
+  }
+ ],
+ "floating": [],
+ "context": [
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-PAD#1",
+    "part": "CHG-PAD",
+    "name": "Charger pad (site concrete)",
+    "sub": "MOUNT"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#1",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "MOUNT"
+   },
+   "volumeMm3": 22063.8,
+   "at": [
+    -190.0,
+    -528.3,
+    -190.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-PAD#1",
+    "part": "CHG-PAD",
+    "name": "Charger pad (site concrete)",
+    "sub": "MOUNT"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#2",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "MOUNT"
+   },
+   "volumeMm3": 22063.8,
+   "at": [
+    -190.0,
+    -528.3,
+    190.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-PAD#1",
+    "part": "CHG-PAD",
+    "name": "Charger pad (site concrete)",
+    "sub": "MOUNT"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#3",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "MOUNT"
+   },
+   "volumeMm3": 22063.8,
+   "at": [
+    190.0,
+    -528.3,
+    -190.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-PAD#1",
+    "part": "CHG-PAD",
+    "name": "Charger pad (site concrete)",
+    "sub": "MOUNT"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#4",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "MOUNT"
+   },
+   "volumeMm3": 22063.8,
+   "at": [
+    190.0,
+    -528.3,
+    190.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  }
+ ],
+ "seconds": 2034.6,
+ "glbSha256": "eac4baa4db8a9a86"
+}

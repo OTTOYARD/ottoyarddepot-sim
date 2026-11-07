@@ -237,6 +237,9 @@ def nut(d: int, grade: str = '8', nyloc: bool = False, fn: str = '') -> PartDef:
     std = 'ISO 7040' if nyloc else 'ISO 4032'
     mat = 'fast_a4' if grade.startswith('A') else 'fast_zn'
     nm = 'Prevailing-torque hex nut (nylon insert)' if nyloc else 'Hex nut'
+    fn = fn or ('Holds the bolt\'s clamp force on the far side of the joint. The nylon ring grips the thread, so '
+                'vibration cannot turn the nut loose.' if nyloc else
+                'Holds the bolt\'s clamp force on the far side of the joint.')
     return PartDef(f'{std.replace(" ", "")}-M{d}-{grade}', f'{nm} M{d}', _nut_shape(d, nyloc), mat,
                    'fastener', std, f'M{d}', grade, None, fn, {}, 'buy')
 
@@ -244,7 +247,9 @@ def nut(d: int, grade: str = '8', nyloc: bool = False, fn: str = '') -> PartDef:
 def washer(d: int, mat: str = 'fast_zn', fn: str = '') -> PartDef:
     d1, d2, h = ISO7089[d]
     return PartDef(f'ISO7089-{d}-{mat}', f'Plain washer {d}', _washer_shape(d1, d2, h), mat, 'fastener',
-                   'ISO 7089', f'{d1:g} x {d2:g} x {h:g}', '200 HV' if mat != 'fast_a4' else 'A4', None, fn, {}, 'buy')
+                   'ISO 7089', f'{d1:g} x {d2:g} x {h:g}', '200 HV' if mat != 'fast_a4' else 'A4', None,
+                   fn or 'Puts the clamp force of the head or the nut on a larger area, so the part surface does not '
+                         'crush and the preload stays constant.', {}, 'buy')
 
 
 def wedge_lock(d: int, fn: str = '') -> PartDef:
@@ -283,7 +288,8 @@ def oring(id_: float, cs: float, fn: str = '') -> PartDef:
 def _lip_seal_shape(d: float, D: float, b: float) -> cq.Shape:
     ring = cq.Workplane('XZ').circle(D / 2).circle(D / 2 - (D - d) * 0.35).extrude(-b)
     lip = cq.Workplane('XZ', origin=(0, b * 0.15, 0)).circle(d / 2 + (D - d) * 0.32).circle(d / 2).extrude(-b * 0.55)
-    web = cq.Workplane('XZ', origin=(0, b * 0.75, 0)).circle(D / 2 - (D - d) * 0.3).circle(d / 2 + (D - d) * 0.2).extrude(-b * 0.25)
+    # the web joins the case to the lip across the top (its two radii were once equal, which drew a solid disc)
+    web = cq.Workplane('XZ', origin=(0, b * 0.75, 0)).circle(D / 2 - (D - d) * 0.1).circle(d / 2 + (D - d) * 0.1).extrude(-b * 0.25)
     return ring.union(lip).union(web).val()
 
 
@@ -411,6 +417,17 @@ def swg_dims(size: int) -> dict:
             'cs_n': 8 if size <= 20 else 12 if size <= 40 else 16}
 
 
+def fs_screws(size: int) -> tuple[int, int, float]:
+    """The flexspline hub screws: (count, size, bolt-circle radius). As many as fit their circle with a head's width
+    and 1 mm between heads, at most 8."""
+    g = swg_dims(size)
+    r = g['fs_hub'] * 0.36
+    d = 6 if size >= 45 else 5 if size >= 40 else 4 if size >= 30 else 3
+    n = min(8, int(2 * math.pi * r / (ISO4762[d][0] + 1)))
+    n -= n % 2
+    return n, d, r
+
+
 @lru_cache(maxsize=None)
 def _cs_shape(size: int) -> cq.Shape:
     g = swg_dims(size)
@@ -433,26 +450,26 @@ def _fs_shape(size: int) -> cq.Shape:
              .circle(g['fs_od'] / 2 - w).extrude(-g['cs_w'] * 0.8))
     hub = cq.Workplane('XZ').circle(g['fs_hub'] / 2).circle(g['fs_hub'] * 0.22).extrude(-w * 4)
     out = cup.union(teeth).union(hub)
-    n = 8 if size <= 20 else 12
-    pts = [(p[0], p[2]) for p in circle_points(n, g['fs_hub'] * 0.36, 'y')]
-    out = out.faces('<Y').workplane().pushPoints(pts).hole(HOLE[g['cs_bolt'] - (1 if g['cs_bolt'] <= 6 else 2)] if g['cs_bolt'] > 4 else 3.4)
+    n, d, r = fs_screws(size)
+    pts = [(p[0], p[2]) for p in circle_points(n, r, 'y')]
+    out = out.faces('<Y').workplane().pushPoints(pts).hole(HOLE[d])
     return out.val()
 
 
 @lru_cache(maxsize=None)
-def _wg_shape(size: int) -> cq.Shape:
+def _wg_shape(size: int, bore: float) -> cq.Shape:
+    """The wave generator of a hollow-shaft unit: the cam's plug is bored to the motor shaft it sits on."""
     g = swg_dims(size)
     cam = cq.Workplane('XZ').ellipse(g['wg_major'] / 2 - g['pitch'] * 0.06, g['wg_minor'] / 2 - g['pitch'] * 0.06) \
         .extrude(g['wg_w'] / 2, both=True)
     race = (cq.Workplane('XZ').ellipse(g['wg_major'] / 2, g['wg_minor'] / 2)
             .ellipse(g['wg_major'] / 2 - g['pitch'] * 0.035, g['wg_minor'] / 2 - g['pitch'] * 0.035)
             .extrude(g['wg_w'] / 2 * 0.9, both=True))
-    hub = cq.Workplane('XZ').circle(g['pitch'] * 0.3).extrude(g['wg_w'] * 0.9, both=True)
-    bore = cq.Workplane('XZ').circle(g['pitch'] * 0.17).extrude(g['wg_w'], both=True)
-    return cam.union(race).union(hub).cut(bore).val()
+    hole = cq.Workplane('XZ').circle(bore / 2).extrude(g['wg_w'], both=True)
+    return cam.union(race).cut(hole).val()
 
 
-def strain_wave(size: int, ratio: int = 100) -> tuple[PartDef, PartDef, PartDef]:
+def strain_wave(size: int, ratio: int = 100, bore: float = 0.0) -> tuple[PartDef, PartDef, PartDef]:
     rp, mp = SWG_RATING[size]
     sp = {'ratio': f'{ratio}:1', 'repeated peak torque': f'{rp} N m', 'momentary peak torque': f'{mp} N m',
           'teeth': f'flexspline {2 * ratio}, circular spline {2 * ratio + 2} (drawn simplified)',
@@ -464,7 +481,8 @@ def strain_wave(size: int, ratio: int = 100) -> tuple[PartDef, PartDef, PartDef]
                  'catalogue component set', f'size {size}, ratio {ratio}:1', '', None,
                  'Thin steel cup with 2 fewer teeth than the ring. It flexes into an ellipse and turns the output.',
                  sp, 'buy')
-    wg = PartDef(f'SWG{size}-WG', f'Strain-wave gear size {size}: wave generator', _wg_shape(size), 'bearing', 'drive',
+    wg = PartDef(f'SWG{size}-WG', f'Strain-wave gear size {size}: wave generator', _wg_shape(size, bore or swg_dims(size)['pitch'] * 0.34),
+                 'bearing', 'drive',
                  'catalogue component set', f'size {size}, ratio {ratio}:1', '', None,
                  'Elliptical cam on a thin ball bearing. The motor turns it. Each turn moves the output 2 teeth.',
                  sp, 'buy')
@@ -487,7 +505,7 @@ def _winding_shape(od: float, id_: float, L: float) -> cq.Shape:
     rt = (od - id_) * 0.16
     ends = None
     for s in (-1, 1):
-        t = cq.Workplane('XY').add(cq.Solid.makeTorus(rm, rt, pnt=Vector(0, s * (L / 2 + rt * 0.6), 0), dir=Vector(0, 1, 0)))
+        t = cq.Workplane('XY').add(cq.Solid.makeTorus(rm, rt, pnt=Vector(0, s * (L / 2 + rt), 0), dir=Vector(0, 1, 0)))
         ends = t if ends is None else ends.union(t)
     return ends.val()
 
@@ -505,7 +523,15 @@ def _rotor_shape(od: float, id_: float, L: float) -> cq.Shape:
     return cq.Compound.makeCompound(solids)
 
 
-def frameless_motor(od: float, L: float, kw: float, torque: float) -> tuple[PartDef, PartDef, PartDef]:
+def winding_reach(od: float) -> tuple[float, float]:
+    """(outer radius, axial reach past each stator face) of the winding end turns of a stator of diameter od."""
+    id_ = od * 0.64
+    rm = (od / 2 * 0.86 + id_ / 2 * 1.06) / 2
+    rt = (od - id_) * 0.16
+    return rm + rt, 2 * rt
+
+
+def frameless_motor(od: float, L: float, kw: float, torque: float, bore: float = 0.0) -> tuple[PartDef, PartDef, PartDef]:
     id_s = od * 0.64
     sp = {'continuous torque': f'{torque:g} N m', 'power': f'{kw:g} kW', 'bus voltage': '48 V DC',
           'type': 'brushless, frameless, 3-phase'}
@@ -518,23 +544,26 @@ def frameless_motor(od: float, L: float, kw: float, torque: float) -> tuple[Part
                  'copper', 'drive', 'catalogue motor kit', tag, '', None,
                  'Copper coil ends of the stator winding, with a thermistor for over-temperature stop.', sp, 'buy',
                  ang=0.6)
-    ro = PartDef(f'MOT-{tag}-RO', f'Frameless torque motor {tag}: rotor', _rotor_shape(id_s - 1.2, od * 0.36, L * 0.98),
+    ro = PartDef(f'MOT-{tag}-RO', f'Frameless torque motor {tag}: rotor', _rotor_shape(id_s - 1.2, bore or od * 0.36, L * 0.98),
                  'magnet', 'drive', 'catalogue motor kit', tag, '', None,
                  'Steel hub with the permanent magnets. It turns the hollow motor shaft.', sp, 'buy')
     return st, wd, ro
 
 
 @lru_cache(maxsize=None)
-def _brake_shape(od: float, id_: float, L: float) -> cq.Shape:
-    body = cq.Workplane('XZ').circle(od / 2).circle(id_ / 2).extrude(L * 0.62)
-    body = body.faces('>Y').workplane().circle(od / 2 * 0.72).circle(od / 2 * 0.52).cutBlind(-L * 0.25)
-    arm = cq.Workplane('XZ', origin=(0, L * 0.06, 0)).circle(od / 2 * 0.98).circle(id_ / 2).extrude(-L * 0.12)
-    disc = cq.Workplane('XZ', origin=(0, L * 0.22, 0)).circle(od / 2 * 0.95).circle(id_ / 2 * 1.05).extrude(-L * 0.14)
-    return body.union(arm).union(disc).val()
+def _brake_shape(od: float, bore: float, L: float, plate_r: float) -> cq.Shape:
+    """From y = 0 down to -L: the magnet body (coil and springs), the armature plate, the friction disc keyed on the shaft
+    (bore = the shaft), and the end plate the encoder heads screw to. The 3 body screws pass outside the armature."""
+    r = od / 2
+    body = cq.Workplane('XZ').circle(r).circle(bore / 2 + 1).extrude(L * 0.55)
+    arm = cq.Workplane('XZ', origin=(0, -L * 0.56, 0)).circle(r * 0.8).circle(bore / 2 + 1).extrude(L * 0.1)
+    disc = cq.Workplane('XZ', origin=(0, -L * 0.68, 0)).circle(r * 0.8).circle(bore / 2).extrude(L * 0.12)
+    plate = cq.Workplane('XZ', origin=(0, -L * 0.82, 0)).circle(max(r, plate_r)).circle(bore / 2 + 1).extrude(L * 0.18)
+    return body.union(arm).union(disc).union(plate).val()
 
 
-def brake(od: float, L: float, torque: float) -> PartDef:
-    return PartDef(f'BRK-{od:g}x{L:g}', f'Spring-applied holding brake {od:g}', _brake_shape(od, od * 0.42, L), 'steel',
+def brake(od: float, L: float, torque: float, bore: float = 0.0, plate_r: float = 0.0) -> PartDef:
+    return PartDef(f'BRK-{od:g}x{L:g}', f'Spring-applied holding brake {od:g}', _brake_shape(od, bore or od * 0.42, L, plate_r), 'steel',
                    'drive', 'catalogue part', f'{od:g} x {L:g}', '', None,
                    'Springs hold the joint when power is off. The coil releases it. A power cut cannot drop the arm.',
                    {'holding torque': f'{torque:g} N m (motor side)', 'release': '24 V DC'}, 'buy')
@@ -544,16 +573,19 @@ def brake(od: float, L: float, torque: float) -> PartDef:
 def _encoder_shape(od: float, id_: float) -> cq.Shape:
     disc = cq.Workplane('XZ').circle(od / 2).circle(id_ / 2).extrude(-1.2)
     hub = cq.Workplane('XZ').circle(id_ / 2 + 5).circle(id_ / 2).extrude(-4)
-    head = cq.Workplane('XY').box(od * 0.18 + 10, 9, 16).translate((od / 2 - 2, 4.5, 0))
+    w = od * 0.18 + 10
+    head = cq.Workplane('XY').box(w, 9, 16).translate((od / 2 - 4 + w / 2, 4.5, 0))     # over the disc's outer 4 mm
     return disc.union(hub).union(head).val()
 
 
-def encoder(od: float, kind: str) -> PartDef:
+def encoder(od: float, kind: str, bore: float = 0.0) -> PartDef:
+    """A ring encoder on the motor shaft: the disc on the shaft, the read head at its rim (y from 0 up to 9)."""
     nm = {'motor': 'Motor encoder, 23-bit absolute (rotor position)',
-          'output': 'Output encoder, 20-bit absolute (joint position)'}[kind]
+          'multiturn': 'Multi-turn encoder, 16-bit turn count, battery-free'}[kind]
     fn = {'motor': 'Reads the motor shaft angle for the drive. The drive uses it to commutate and run the speed loop.',
-          'output': 'Reads the true joint angle after the gear. The two encoders together detect gear wind-up and collisions.'}[kind]
-    return PartDef(f'ENC-{kind}-{od:g}', nm, _encoder_shape(od, od * 0.5), 'pcb', 'sensor', 'catalogue part',
+          'multiturn': 'Counts the motor turns, with no battery. With the motor encoder it gives the joint angle after the gear '
+                       'at power-up, so the arm needs no homing move.'}[kind]
+    return PartDef(f'ENC-{kind}-{od:g}', nm, _encoder_shape(od, bore or od * 0.5), 'pcb', 'sensor', 'catalogue part',
                    f'ring {od:g} mm', '', None, fn, {'interface': 'BiSS-C, RS-485'}, 'buy')
 
 
@@ -685,7 +717,7 @@ def gland(m: int, fn: str = '') -> PartDef:
 
 @lru_cache(maxsize=None)
 def _chain_link_shape(w: float, h: float, pitch: float) -> cq.Shape:
-    side = cq.Workplane('XY').box(pitch * 1.05, h, 3.0).edges('|Z').fillet(h * 0.3)
+    side = cq.Workplane('XY').box(pitch, h, 3.0).edges('|Z').fillet(h * 0.3)      # links meet end to end at the pitch
     link = side.translate((0, 0, w / 2 - 1.5)).union(side.translate((0, 0, -w / 2 + 1.5)))
     bars = cq.Workplane('XY').box(pitch * 0.35, 3.0, w).translate((0, h / 2 - 1.5, 0)).union(
         cq.Workplane('XY').box(pitch * 0.35, 3.0, w).translate((0, -h / 2 + 1.5, 0)))
@@ -724,12 +756,14 @@ def swept(pid: str, name: str, points: list[tuple[float, float, float]], r: floa
 
 @lru_cache(maxsize=None)
 def _nozzle_shape(kind: str) -> cq.Shape:
+    # local -Y is the spray: the G 1/4 thread (y 0..+6) goes into the pipe wall, the hex body and tip stand outside it
     if kind == 'fan':
-        body = _hex(14, 9).union(cq.Workplane('XZ').circle(5).extrude(-12).translate((0, 0, 0)))
-        tip = cq.Workplane('XZ', origin=(0, -12, 0)).rect(9, 5).extrude(4)
-        return body.union(tip).val()
-    body = _hex(17, 10).union(cq.Workplane('XZ').circle(6).extrude(-16))
-    return body.val()
+        thread = cq.Workplane('XZ').circle(5).extrude(-6)
+        body = _hex(14, 9).translate((0, -9, 0))
+        tip = cq.Workplane('XZ', origin=(0, -9, 0)).rect(9, 5).extrude(4)
+        return thread.union(body).union(tip).val()
+    thread = cq.Workplane('XZ').circle(6).extrude(-6)
+    return thread.union(_hex(17, 10).translate((0, -10, 0))).val()
 
 
 def nozzle(kind: str = 'fan', fn: str = '') -> PartDef:

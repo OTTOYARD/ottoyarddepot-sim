@@ -10,6 +10,10 @@
 //      TCP, and each joint carries the twin's STOWED angle; the clean arm's nodes are buildCleanArm's, at cleanArmSpec's
 //      offsets, with the twin's home pose; the wash machine stands on washSpec's rails and stows at the twin's home.
 //   3. Every screw has a tightening torque, and the GLB is in metres with the quantised normals it declares.
+//   4. Every joint's limits are in the viewer's units (radians, metres), and every pose the tab offers and every frame
+//      of every cycle it plays lies inside them: the twin never asks the CAD machine for a move it cannot make.
+//   5. The clash check (cad/clash.py) ran on the committed CAD (its GLB digest), at the stowed pose and every twin pose
+//      in cad/spec/poses.json, and found no more clashes or floating parts than cad/clash_baseline.json allows.
 // No network: the files are read from disk.
 // ============================================================================
 import { describe, expect, it } from 'vitest';
@@ -22,7 +26,7 @@ import { CLEAN_ARM_NODES } from '@/lib/ottoCleanArm/buildCleanArm';
 import { cleanJointsAt, sidesFor } from '@/lib/ottoCleanArm/cleanArmPose';
 import { WASH_GANTRY, WASH_HOME_DY } from '@/lib/ottoWash/washSpec';
 import { WASH_SHELL } from '@/lib/structurePlan';
-import { cleanAngles, type Bom, type Manifest, type RobotKey } from './catalog';
+import { cleanAngles, cycleScript, posePresets, type Bom, type Manifest, type RobotKey } from './catalog';
 
 const PUB = resolve(__dirname, '../../../public/cad');
 const manifest = JSON.parse(readFileSync(`${PUB}/manifest.json`, 'utf8')) as Manifest;
@@ -136,7 +140,8 @@ describe('wash machine: the twin\'s machine', () => {
   it('stows at the north end, the twin\'s home, and drives every tool the twin drives', () => {
     expect(jointOf(byName(g, 'GANTRY'))!.stowed).toBeCloseTo(-WASH_HOME_DY * METRES_PER_PLAN_UNIT, 4);
     for (const n of ['TOP_BRUSH', 'SIDE_BRUSH_L', 'SIDE_BRUSH_R', 'DRYER_TOP', 'DRYER_SIDE_L', 'DRYER_SIDE_R',
-      'WAND_L_DROP1', 'WAND_L_DROP2', 'WAND_L_DROP3', 'WAND_L_REACH', 'WAND_R_DROP1', 'WAND_R_DROP2', 'WAND_R_DROP3', 'WAND_R_REACH']) {
+      'WAND_L_DROP1', 'WAND_L_DROP2', 'WAND_L_DROP3', 'WAND_L_REACH1', 'WAND_L_REACH2',
+      'WAND_R_DROP1', 'WAND_R_DROP2', 'WAND_R_DROP3', 'WAND_R_REACH1', 'WAND_R_REACH2']) {
       expect(jointOf(byName(g, n)), n).toBeTruthy();
     }
   });
@@ -153,4 +158,68 @@ describe('wash machine: the twin\'s machine', () => {
     expect(rails).toEqual([expect.closeTo(-x, 4), expect.closeTo(x, 4)]);
     expect(bom.lines.find((l) => l.id === 'WSH-RAIL')!.qty).toBe(2);
   });
+});
+
+describe.each(['charge_arm', 'clean_arm', 'wash_gantry'] as RobotKey[])('%s: the twin\'s moves fit the CAD\'s joints', (k) => {
+  const g = glbOf(k);
+  const joints = new Map(g.nodes.map(jointOf).filter((j): j is NonNullable<typeof j> => !!j).map((j) => [j.name, j as typeof j & { limits: [number, number] }]));
+  const inside = (where: string, angles: Record<string, number>) => {
+    for (const [name, v] of Object.entries(angles)) {
+      const j = joints.get(name);
+      expect(j, `${where}: ${name} is a joint of the CAD`).toBeTruthy();
+      expect(v, `${where}: ${name} = ${v} inside [${j!.limits}]`).toBeGreaterThanOrEqual(j!.limits[0] - 1e-6);
+      expect(v, `${where}: ${name} = ${v} inside [${j!.limits}]`).toBeLessThanOrEqual(j!.limits[1] + 1e-6);
+    }
+  };
+
+  it('keeps every limit in the viewer\'s units: radians for a turn, metres for a slide', () => {
+    expect(joints.size).toBeGreaterThan(0);
+    for (const j of joints.values()) {
+      const [lo, hi] = j.limits;
+      expect(hi, j.name).toBeGreaterThan(lo);
+      if (j.kind === 'revolute') expect(Math.max(Math.abs(lo), Math.abs(hi)), j.name).toBeLessThanOrEqual(2 * Math.PI + 1e-9);
+      else expect(Math.max(Math.abs(lo), Math.abs(hi)), `${j.name} (metres)`).toBeLessThan(10);
+      expect(j.stowed, `${j.name} stows inside its limits`).toBeGreaterThanOrEqual(lo - 1e-6);
+      expect(j.stowed, `${j.name} stows inside its limits`).toBeLessThanOrEqual(hi + 1e-6);
+    }
+  });
+
+  it('holds every pose the tab offers inside the limits', () => {
+    for (const p of posePresets(k)) inside(`pose ${p.id}`, p.angles);
+  });
+
+  it('holds every frame of the cycle the tab plays inside the limits', () => {
+    const s = cycleScript(k);
+    const n = 600;
+    for (let i = 0; i <= n; i++) {
+      const at = s.at((i / n) * s.total * 0.999999);
+      inside(`cycle ${s.steps[at.step].id} at ${((i / n) * s.total).toFixed(1)} s`, at.angles);
+    }
+  });
+});
+
+const baseline = JSON.parse(readFileSync(resolve(__dirname, '../../../cad/clash_baseline.json'), 'utf8')) as
+  Record<RobotKey, { clashes: number; floatingGroups: number }>;
+const posesFile = JSON.parse(readFileSync(resolve(__dirname, '../../../cad/spec/poses.json'), 'utf8')) as
+  { robots: Record<RobotKey, { id: string }[]> };
+
+describe.each(['charge_arm', 'clean_arm', 'wash_gantry'] as RobotKey[])('%s: clash check', (k) => {
+  const rep = JSON.parse(readFileSync(`${PUB}/${k}.clash.json`, 'utf8')) as {
+    glbSha256: string; poses: string[]; clashes: unknown[]; floating: unknown[]; counts: Record<string, number>;
+  };
+  const entry = manifest.robots.find((r) => r.key === k)! as unknown as { glbSha256: string };
+
+  it('ran on the committed CAD, at the stowed pose and at every twin pose', () => {
+    expect(rep.glbSha256).toBe(entry.glbSha256);
+    expect(rep.poses).toEqual(['stowed', ...posesFile.robots[k].map((p) => p.id)]);
+  });
+
+  it('finds no more clashes or floating parts than the baseline allows (it only goes down)', () => {
+    expect(rep.clashes.length).toBeLessThanOrEqual(baseline[k].clashes);
+    expect(rep.floating.length).toBeLessThanOrEqual(baseline[k].floatingGroups);
+  });
+});
+
+it.each(['wash_gantry', 'clean_arm'] as RobotKey[])('%s: no clash and no floating part at any pose', (k) => {
+  expect(baseline[k]).toEqual({ clashes: 0, floatingGroups: 0 });
 });

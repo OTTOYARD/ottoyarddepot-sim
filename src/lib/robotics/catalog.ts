@@ -74,6 +74,26 @@ export async function fetchManifest(fetcher: typeof fetch = fetch): Promise<Mani
   return (await r.json()) as Manifest;
 }
 
+/** cad/clash.py's report for one robot: every placed part against every other, at the stowed pose and the twin's poses. */
+export interface ClashPart { item: string; part: string; name: string; sub: string }
+export interface ClashReport {
+  robot: RobotKey; glbSha256?: string; poses: string[]; pairsChecked: number; contactPairs: number;
+  counts: { thread: number; seal: number; ring: number; mesh?: number; context: number; clash: number };
+  clashes: { kind: string; a: ClashPart; b: ClashPart; volumeMm3: number; poses: string[] }[];
+  floating: ClashPart[][];
+}
+
+/** The clash report, or null when it is missing (the tab still works without it). */
+export async function fetchClash(robot: ManifestRobot, fetcher: typeof fetch = fetch): Promise<ClashReport | null> {
+  try {
+    const r = await fetcher(cadUrl(`${robot.key}.clash.json`));
+    if (!r.ok) return null;
+    return (await r.json()) as ClashReport;
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchBom(robot: ManifestRobot, fetcher: typeof fetch = fetch): Promise<Bom> {
   const r = await fetcher(cadUrl(robot.files.bom));
   if (!r.ok) throw new Error(`The parts list did not load (${r.status}).`);
@@ -175,12 +195,17 @@ function chargePoses(): PosePreset[] {
 }
 
 /** The clean arm's joints as the CAD's nodes take them (buildCleanArm.poseCleanArm's mapping). */
+/** The clean arm wand's sliding tubes (cad clean_arm.WAND_SLIDES; the twin draws 2): each takes a third of the reach. */
+export const CLEAN_WAND_SLIDES = 3;
+
 export function cleanAngles(q: CleanJoints): Record<string, number> {
   const E = Math.max(0, MAST_FOOT_MAX - q.foot);
-  return {
+  const out: Record<string, number> = {
     CA_J1: -q.t1, CA_J2: -q.t2, CA_J3: -(q.yaw - q.t1 - q.t2),
-    CA_Mast2: E / 2, CA_Mast3: E / 2, CA_Pitch: q.pitch, CA_Wand2: q.ext / 2, CA_Wand3: q.ext / 2, CA_Nozzle: q.nozzle,
+    CA_Mast2: E / 2, CA_Mast3: E / 2, CA_Pitch: q.pitch, CA_Nozzle: q.nozzle,
   };
+  for (let k = 2; k <= CLEAN_WAND_SLIDES + 1; k++) out[`CA_Wand${k}`] = q.ext / CLEAN_WAND_SLIDES;
+  return out;
 }
 
 function cleanPoses(): PosePreset[] {
@@ -194,6 +219,8 @@ function cleanPoses(): PosePreset[] {
 
 /** The wash wands' sliding column stages (cad wash_gantry.WAND_STAGES less the fixed sleeve): each takes an equal share. */
 export const WASH_WAND_SLIDES = 3;
+/** The wash wands' telescoping reach tubes (cad wash_gantry.WAND_REACH_STAGES): each takes half the reach. */
+export const WASH_WAND_REACH_STAGES = 2;
 
 /** The wash machine's slides as the CAD's nodes take them, from the twin's washPoseAt (plan units -> metres). */
 export function washAngles(phase: WashPhase, t: number): Record<string, number> {
@@ -210,7 +237,7 @@ export function washAngles(phase: WashPhase, t: number): Record<string, number> 
     out[`SIDE_BRUSH_${s}`] = (WG.sideBrush.retractX - p.sideBrushX) * m;
     out[`DRYER_SIDE_${s}`] = (WG.dryer.side.retractX - p.dryerSideX) * m;
     for (let k = 1; k <= WASH_WAND_SLIDES; k++) out[`WAND_${s}_DROP${k}`] = drop / WASH_WAND_SLIDES;
-    out[`WAND_${s}_REACH`] = reach;
+    for (let k = 1; k <= WASH_WAND_REACH_STAGES; k++) out[`WAND_${s}_REACH${k}`] = reach / WASH_WAND_REACH_STAGES;
   }
   return out;
 }
@@ -330,9 +357,11 @@ export function cycleScript(robot: RobotKey): CycleScript {
 export const JOINT_LABEL: Record<string, string> = {
   J1: 'J1 base yaw', J2: 'J2 shoulder pitch', J3: 'J3 elbow pitch', J4: 'J4 forearm roll', J5: 'J5 wrist pitch', J6: 'J6 tool roll',
   CA_J1: 'J1 shoulder yaw', CA_J2: 'J2 elbow yaw', CA_J3: 'J3 mast yaw', CA_Mast2: 'Mast stage 2', CA_Mast3: 'Mast stage 3',
-  CA_Pitch: 'J4 wrist pitch', CA_Wand2: 'Wand tube 2', CA_Wand3: 'Wand tube 3', CA_Nozzle: 'J5 nozzle pitch',
+  CA_Pitch: 'J4 wrist pitch', CA_Wand2: 'Wand tube 2', CA_Wand3: 'Wand tube 3', CA_Wand4: 'Wand tube 4', CA_Nozzle: 'J5 nozzle pitch',
   GANTRY: 'Gantry travel', TOP_BRUSH: 'Top brush lift', SIDE_BRUSH_L: 'Left side brush', SIDE_BRUSH_R: 'Right side brush',
   DRYER_TOP: 'Top air knife', DRYER_SIDE_L: 'Left air knife', DRYER_SIDE_R: 'Right air knife',
-  WAND_L_DROP1: 'Left wand stage 2', WAND_L_DROP2: 'Left wand stage 3', WAND_L_DROP3: 'Left wand stage 4', WAND_L_REACH: 'Left wand reach',
-  WAND_R_DROP1: 'Right wand stage 2', WAND_R_DROP2: 'Right wand stage 3', WAND_R_DROP3: 'Right wand stage 4', WAND_R_REACH: 'Right wand reach',
+  WAND_L_DROP1: 'Left wand stage 2', WAND_L_DROP2: 'Left wand stage 3', WAND_L_DROP3: 'Left wand stage 4',
+  WAND_L_REACH1: 'Left wand reach tube 1', WAND_L_REACH2: 'Left wand reach tube 2',
+  WAND_R_DROP1: 'Right wand stage 2', WAND_R_DROP2: 'Right wand stage 3', WAND_R_DROP3: 'Right wand stage 4',
+  WAND_R_REACH1: 'Right wand reach tube 1', WAND_R_REACH2: 'Right wand reach tube 2',
 };

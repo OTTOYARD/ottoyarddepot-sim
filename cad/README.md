@@ -30,7 +30,23 @@ Outputs go to `public/cad/` (the twin's Robotics tab reads them):
 - `manifest.json` — the list of robots, files, sizes, totals and each STEP's re-import check.
 
 Before it publishes a STEP the build re-imports it: every placed part must come back as a named solid and every solid
-must be valid (`build.py step_check`), or the build stops.
+must be valid (`build.py step_check`), or the build stops. A part id defined twice with different solids stops it too
+(`core.Model.part`): one id is one solid.
+
+## Clash check
+
+```bash
+CAD_SPEC_WRITE=1 npx vitest run src/lib/robotics/cadPoses.test.ts   # only if the twin's poses changed
+cad/.venv/bin/python cad/clash.py --baseline                          # after build.py; all three, about 30 min
+cad/.venv/bin/python cad/clash.py wash_gantry --stowed                # one robot, stowed pose, prints only
+```
+
+It places every part at the stowed pose and at each of the twin's poses (`cad/spec/poses.json`), measures the volume
+every overlapping pair shares, and checks that every part touches another, in one connected piece
+(`otto_cad/check.py` says what counts as expected: a screw in a tapped hole the CAD does not draw, a seal in its
+groove, a retaining ring, a gear mesh). It writes `public/cad/<robot>.clash.json` with the digest of the GLB it
+checked; `--baseline` lowers `cad/clash_baseline.json` to what it finds (never raises it). `cad.test.ts` fails when a
+report does not match its GLB, did not run at every twin pose, or finds more clashes or loose groups than the baseline.
 
 ## One home for every number
 

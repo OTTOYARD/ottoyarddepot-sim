@@ -334,6 +334,12 @@ interpolation.** Zero world logic client-side.
   `cabinetEnvelope` or the car and `cadSpec.test.ts` fails until you run `CAD_SPEC_WRITE=1 npx vitest run
   src/lib/robotics/cadSpec.test.ts` and `cad/.venv/bin/python cad/build.py`; `cad.test.ts` then checks the rebuilt GLBs
   against the specs. Poses in the tab come from the twin's own IK and choreography, never from angles typed in the tab.
+  **Every CAD change ends with the clash check:** `cad/build.py`, then `cad/clash.py --baseline` with the same code.
+  It places every part at the stowed pose and at every twin pose in `cad/spec/poses.json` (written by `cadPoses.ts`;
+  rewrite it with `CAD_SPEC_WRITE=1 npx vitest run src/lib/robotics/cadPoses.test.ts` when a pose or a joint name
+  changes) and writes `public/cad/<robot>.clash.json` with the GLB digest it checked. `cad.test.ts` fails on a stale
+  report or on more clashes or loose parts than `cad/clash_baseline.json`, which only goes down, and holds the wash
+  machine at zero. A clash left in the baseline is a named design finding in `docs/OTTO-ROBOTICS-CAD.md`, not noise.
   Bought assemblies drawn as envelopes carry a class mass, marked as such: never quote a CAD mass as measured.
   The tab reads no run. Its 3D view decides nothing. It has no number key (Research keeps 0).
 - **From above, the roofs fade (2026-10-20):** the solar modules and roof membranes go to 16% when the camera looks

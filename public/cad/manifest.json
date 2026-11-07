@@ -17,29 +17,29 @@
     "csv": "charge_arm.bom.csv"
    },
    "bytes": {
-    "glb": 6363360,
-    "stepZip": 4021786,
-    "step": 23786999
+    "glb": 6759336,
+    "stepZip": 4827453,
+    "step": 27217758
    },
    "mesh": {
-    "vertices": 262870,
-    "triangles": 310711,
+    "vertices": 284081,
+    "triangles": 322321,
     "meshes": 190,
-    "nodes": 741
+    "nodes": 677
    },
    "totals": {
-    "parts": 730,
+    "parts": 666,
     "uniqueParts": 188,
-    "fasteners": 537,
-    "massKg": 297.32,
-    "boughtLines": 133,
-    "madeLines": 55,
+    "fasteners": 467,
+    "massKg": 313.57,
+    "boughtLines": 126,
+    "madeLines": 62,
     "referenceLines": 2
    },
-   "glbSha256": "f6a7e4e87e617e19",
+   "glbSha256": "eac4baa4db8a9a86",
    "stepCheck": {
-    "namedParts": 732,
-    "solids": 1417,
+    "namedParts": 668,
+    "solids": 1360,
     "invalid": 0
    },
    "subsystems": [
@@ -96,29 +96,29 @@
     "csv": "clean_arm.bom.csv"
    },
    "bytes": {
-    "glb": 4343356,
-    "stepZip": 2635091,
-    "step": 16212999
+    "glb": 4650744,
+    "stepZip": 2856903,
+    "step": 17351075
    },
    "mesh": {
-    "vertices": 180335,
-    "triangles": 207997,
-    "meshes": 153,
-    "nodes": 507
+    "vertices": 195464,
+    "triangles": 219411,
+    "meshes": 155,
+    "nodes": 481
    },
    "totals": {
-    "parts": 494,
-    "uniqueParts": 152,
-    "fasteners": 317,
-    "massKg": 318.07,
-    "boughtLines": 107,
-    "madeLines": 45,
+    "parts": 467,
+    "uniqueParts": 154,
+    "fasteners": 293,
+    "massKg": 317.1,
+    "boughtLines": 102,
+    "madeLines": 52,
     "referenceLines": 1
    },
-   "glbSha256": "bb4d54eadbb28bdc",
+   "glbSha256": "4b5b2ce9daa74996",
    "stepCheck": {
-    "namedParts": 496,
-    "solids": 877,
+    "namedParts": 469,
+    "solids": 855,
     "invalid": 0
    },
    "subsystems": [
@@ -183,29 +183,29 @@
     "csv": "wash_gantry.bom.csv"
    },
    "bytes": {
-    "glb": 1299808,
-    "stepZip": 948894,
-    "step": 5708966
+    "glb": 1335796,
+    "stepZip": 1033087,
+    "step": 6199986
    },
    "mesh": {
-    "vertices": 48498,
-    "triangles": 52188,
-    "meshes": 79,
-    "nodes": 764
+    "vertices": 49748,
+    "triangles": 53958,
+    "meshes": 90,
+    "nodes": 763
    },
    "totals": {
-    "parts": 747,
-    "uniqueParts": 79,
-    "fasteners": 526,
-    "massKg": 3511.15,
-    "boughtLines": 55,
-    "madeLines": 24,
+    "parts": 744,
+    "uniqueParts": 90,
+    "fasteners": 467,
+    "massKg": 4013.83,
+    "boughtLines": 52,
+    "madeLines": 38,
     "referenceLines": 0
    },
-   "glbSha256": "1ce7f4154c3b9edd",
+   "glbSha256": "f3c4f28770bde8be",
    "stepCheck": {
-    "namedParts": 747,
-    "solids": 830,
+    "namedParts": 744,
+    "solids": 807,
     "invalid": 0
    },
    "subsystems": [

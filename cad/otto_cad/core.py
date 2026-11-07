@@ -17,6 +17,7 @@ import csv
 import io
 import json
 import math
+import os
 from dataclasses import dataclass, field
 
 import cadquery as cq
@@ -135,8 +136,24 @@ class Model:
 
     # ── definitions ────────────────────────────────────────────────────────────
     def part(self, pd: PartDef) -> PartDef:
+        """Register a part definition. One id is one solid: a second definition under the same id must be the same
+        shape (the same object, or the same volume and bounding box), or the build stops. A solid with a side's or a
+        station's position built into it, reused under one id, would otherwise draw every copy at the first one."""
         old = self.parts.get(pd.id)
         if old is not None:
+            if pd.shape is not old.shape:
+                a, b = old.shape.BoundingBox(), pd.shape.BoundingBox()
+                va = old.volume
+                vb = abs(pd.shape.Volume())
+                same = abs(va - vb) <= max(1.0, 1e-6 * va) and all(
+                    abs(x - y) < 0.01 for x, y in ((a.xmin, b.xmin), (a.ymin, b.ymin), (a.zmin, b.zmin),
+                                                   (a.xmax, b.xmax), (a.ymax, b.ymax), (a.zmax, b.zmax)))
+                if not same and os.environ.get('CAD_ID_AUDIT'):
+                    print(f'ID AUDIT {pd.id}: box {a.xmin:.0f},{a.ymin:.0f},{a.zmin:.0f} vs {b.xmin:.0f},{b.ymin:.0f},{b.zmin:.0f}')
+                elif not same:
+                    raise ValueError(f'{pd.id}: defined twice with different solids '
+                                     f'(box {a.xmin:.0f},{a.ymin:.0f},{a.zmin:.0f} vs {b.xmin:.0f},{b.ymin:.0f},{b.zmin:.0f}); '
+                                     'build the solid at its own origin and place it, or give each version its own id')
             return old
         self.parts[pd.id] = pd.finish()
         return pd

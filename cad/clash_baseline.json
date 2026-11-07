@@ -1,0 +1,14 @@
+{
+ "wash_gantry": {
+  "clashes": 0,
+  "floatingGroups": 0
+ },
+ "clean_arm": {
+  "clashes": 0,
+  "floatingGroups": 0
+ },
+ "charge_arm": {
+  "clashes": 3,
+  "floatingGroups": 0
+ }
+}

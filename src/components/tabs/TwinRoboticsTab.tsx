@@ -18,8 +18,8 @@ import { useSimulationStore } from '@/store/simulationStore';
 import { usePhoneSheet } from '@/components/phone/phoneStore';
 import { CadViewer, type CadJointSummary, type CadViewState, type SectionAxis, type ViewDir } from '@/components/robotics/CadViewer';
 import {
-  CATEGORY_LABEL, FUNCTIONS, JOINT_LABEL, ROBOT_INFO, ROBOT_KEYS, cadUrl, cycleScript, cycleSteps, fastenerIds, fetchBom, fetchManifest, filterLines,
-  fmtKg, fmtMB, fmtNm, posePresets, qtyIn, type Bom, type BomLine, type BomSubsystem, type Manifest, type RobotKey,
+  CATEGORY_LABEL, FUNCTIONS, JOINT_LABEL, ROBOT_INFO, ROBOT_KEYS, cadUrl, cycleScript, cycleSteps, fastenerIds, fetchBom, fetchClash, fetchManifest, filterLines,
+  fmtKg, fmtMB, fmtNm, posePresets, qtyIn, type Bom, type BomLine, type BomSubsystem, type ClashReport, type Manifest, type RobotKey,
 } from '@/lib/robotics/catalog';
 
 let autoExpanded = false;
@@ -152,6 +152,7 @@ export function TwinRoboticsTab() {
   const [manifest, setManifest] = useState<Manifest | null>(null);
   const [robot, setRobot] = useState<RobotKey>('charge_arm');
   const [bom, setBom] = useState<Bom | null>(null);
+  const [clash, setClash] = useState<ClashReport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [poseId, setPoseId] = useState<string>('');
   const [view, setView] = useState<Omit<CadViewState, 'angles'>>(DEFAULT_VIEW);
@@ -181,8 +182,9 @@ export function TwinRoboticsTab() {
   useEffect(() => {
     if (!entry) return;
     let live = true;
-    setBom(null);
+    setBom(null); setClash(null);
     fetchBom(entry).then((b) => { if (live) setBom(b); }).catch((e: Error) => { if (live) setError(e.message); });
+    fetchClash(entry).then((c) => { if (live) setClash(c); });
     return () => { live = false; };
   }, [entry]);
 
@@ -395,6 +397,49 @@ export function TwinRoboticsTab() {
               </li>
             )}
           </ul>
+        </div>
+      )}
+      {clash && (
+        <div className="space-y-1" data-testid="clash-check">
+          <SectionTitle>Clash check (every part against every other)</SectionTitle>
+          <p className="text-[11px] leading-4 text-ink">
+            {clash.clashes.length === 0 ? 'No clash' : `${clash.clashes.length} clash${clash.clashes.length === 1 ? '' : 'es'}`}
+            {' and '}{clash.floating.length === 0 ? 'no loose part' : `${clash.floating.length} loose group${clash.floating.length === 1 ? '' : 's'}`}
+            {' at '}{clash.poses.length} poses: the stowed pose and the twin's own poses for this machine.
+          </p>
+          <p className="text-[10.5px] leading-4 text-ink-dim">
+            Expected overlaps, counted and not clashes: {clash.counts.thread} screws in tapped holes the CAD does not draw,
+            {' '}{clash.counts.seal} seals in their grooves, {clash.counts.ring} retaining rings{clash.counts.mesh ? `, ${clash.counts.mesh} gear meshes` : ''}.
+            {clash.floating.length === 0
+              ? ' Each part touches the part that holds it, so no part hangs in the air.'
+              : ' A loose group touches no part that holds it.'}
+          </p>
+          {clash.clashes.length > 0 && (
+            <ul className="space-y-0.5" data-testid="clash-list">
+              {clash.clashes.slice(0, 12).map((c) => (
+                <li key={`${c.a.item}|${c.b.item}`}>
+                  <button type="button" onClick={() => set({ selected: c.a.part })} className="w-full rounded px-1.5 py-0.5 text-left text-[10.5px] leading-4 text-ink hover:bg-white/[0.05]">
+                    {c.a.name} and {c.b.name}: {Math.round(c.volumeMm3).toLocaleString('en-US')} mm³
+                    {c.poses.includes('stowed') ? ', stowed' : `, at ${c.poses.length} pose${c.poses.length === 1 ? '' : 's'}`}
+                  </button>
+                </li>
+              ))}
+              {clash.clashes.length > 12 && (
+                <li className="px-1.5 text-[10.5px] leading-4 text-ink-dim">And {clash.clashes.length - 12} more in the report.</li>
+              )}
+            </ul>
+          )}
+          {clash.floating.length > 0 && (
+            <ul className="space-y-0.5" data-testid="loose-list">
+              {clash.floating.slice(0, 6).map((g) => (
+                <li key={g[0].item}>
+                  <button type="button" onClick={() => set({ selected: g[0].part })} className="w-full rounded px-1.5 py-0.5 text-left text-[10.5px] leading-4 text-ink hover:bg-white/[0.05]">
+                    Loose: {g[0].name}{g.length > 1 ? ` and ${g.length - 1} more` : ''}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
       <div className="space-y-1" data-testid="cycle-steps">

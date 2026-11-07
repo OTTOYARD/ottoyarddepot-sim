@@ -22,18 +22,25 @@ describe('pose presets come from the twin\'s own code', () => {
   it('wash: home is the north end with every tool retracted; a brush pass closes the side brushes on the flank', () => {
     const home = washAngles('home', 1);
     expect(home.GANTRY).toBeCloseTo(-WASH_HOME_DY * METRES_PER_PLAN_UNIT, 6);
-    for (const k of ['TOP_BRUSH', 'SIDE_BRUSH_L', 'DRYER_TOP', 'WAND_L_DROP1', 'WAND_R_REACH']) expect(home[k]).toBeCloseTo(0, 6);
+    for (const k of ['TOP_BRUSH', 'SIDE_BRUSH_L', 'DRYER_TOP', 'WAND_L_DROP1', 'WAND_R_REACH1', 'WAND_R_REACH2']) expect(home[k]).toBeCloseTo(0, 6);
     const brush = washAngles('wash_1', 0.5);
     expect(brush.SIDE_BRUSH_L).toBeCloseTo((WASH_GANTRY.sideBrush.retractX - SIDE_BRUSH_CONTACT_X) * METRES_PER_PLAN_UNIT, 6);
     expect(brush.SIDE_BRUSH_R).toBe(brush.SIDE_BRUSH_L);
     const vac = washAngles('vacuum', 0.5);
     expect(vac.WAND_L_DROP1 + vac.WAND_L_DROP2 + vac.WAND_L_DROP3).toBeCloseTo((WASH_GANTRY.wand.topY - WASH_GANTRY.wand.workY) * METRES_PER_PLAN_UNIT, 6);
+    // the 2 reach tubes each take half the twin's reach (cad wash_gantry.WAND_REACH_STAGES)
+    const reachIn = washAngles('wands_in', 1);
+    expect(reachIn.WAND_L_REACH1).toBeCloseTo((WASH_GANTRY.wand.x - WASH_GANTRY.wand.reachX) * METRES_PER_PLAN_UNIT / 2, 6);
+    expect(reachIn.WAND_L_REACH2).toBe(reachIn.WAND_L_REACH1);
   });
   it('clean arm: home stows the mast; in the cabin the mast is down and the wand out', () => {
     const [home, , clean] = posePresets('clean_arm');
     expect(home.angles.CA_Mast2).toBe(0);
     expect(clean.angles.CA_Mast2).toBeGreaterThan(0.3);
     expect(clean.angles.CA_Wand2).toBeGreaterThan(0);
+    // 3 sliding tubes, a third of the twin's extension each (cad clean_arm.WAND_SLIDES)
+    expect(clean.angles.CA_Wand3).toBe(clean.angles.CA_Wand2);
+    expect(clean.angles.CA_Wand4).toBe(clean.angles.CA_Wand2);
   });
 });
 

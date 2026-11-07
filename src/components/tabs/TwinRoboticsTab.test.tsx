@@ -9,6 +9,7 @@
 //   4. A part opens its card: standard, size, grade, material, mass, torque for a screw, where it is used.
 //   5. The search and the fastener filter narrow the list; "Find by function" switches robot and isolates.
 //   6. It is reachable: the last tab in the bar and on the phone, and opening it widens the panel on a desktop.
+//   7. The clash check shows the committed report's counts, a clash opens its part, and the wash machine shows none.
 // ============================================================================
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
@@ -117,6 +118,31 @@ describe('the Robotics tab', () => {
     expect(screen.getByTestId('cad-viewer-stub').dataset.robot).toBe('wash_gantry');
     expect(screen.getByTestId('cad-viewer-stub').dataset.isolate).toBe('SIDEBRUSH');
     expect(screen.getByTestId('subsystem-detail')).toHaveTextContent('Side brushes');
+  });
+
+  it('shows the clash check from the committed report, and a clash opens the part', async () => {
+    await open(true);
+    const rep = JSON.parse(readFileSync(`${PUB}/charge_arm.clash.json`, 'utf8'));
+    const sec = await screen.findByTestId('clash-check');
+    const n = rep.clashes.length;
+    expect(sec).toHaveTextContent(`${n === 0 ? 'No clash' : `${n} clash`}`);
+    expect(sec).toHaveTextContent(`at ${rep.poses.length} poses: the stowed pose and the twin's own poses for this machine.`);
+    expect(sec).toHaveTextContent(`${rep.counts.thread} screws in tapped holes the CAD does not draw`);
+    if (n > 0) {
+      const items = within(screen.getByTestId('clash-list')).getAllByRole('button');
+      expect(items).toHaveLength(Math.min(n, 12));
+      fireEvent.click(items[0]);
+      expect(screen.getByTestId('cad-viewer-stub').dataset.selected).toBe(rep.clashes[0].a.part);
+    } else {
+      expect(screen.queryByTestId('clash-list')).toBeNull();
+    }
+    // The wash machine has no clash and no loose part at any pose (cad.test.ts holds its baseline at zero).
+    fireEvent.click(within(screen.getByTestId('robot-picker')).getByRole('button', { name: /Wash bay machine/ }));
+    await settle();
+    await screen.findAllByTestId('bom-line');
+    expect(await screen.findByTestId('clash-check')).toHaveTextContent(/^Clash check.*No clash and no loose part at \d+ poses/);
+    expect(screen.queryByTestId('clash-list')).toBeNull();
+    expect(screen.queryByTestId('loose-list')).toBeNull();
   });
 
   it('offers the twin\'s cycle to play, from its first step', async () => {
