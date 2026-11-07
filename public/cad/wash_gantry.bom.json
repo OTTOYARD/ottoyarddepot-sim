@@ -7,12 +7,12 @@
   "glb": "m"
  },
  "totals": {
-  "parts": 792,
-  "uniqueParts": 102,
-  "fasteners": 449,
-  "massKg": 4152.15,
-  "boughtLines": 52,
-  "madeLines": 50,
+  "parts": 811,
+  "uniqueParts": 105,
+  "fasteners": 460,
+  "massKg": 4128.59,
+  "boughtLines": 54,
+  "madeLines": 51,
   "referenceLines": 0
  },
  "subsystems": [
@@ -22,7 +22,8 @@
    "function": "Two steel rails, 3.25 m each side of the car, carry the machine over the parked car.",
    "how": [
     "Anchor plates every metre hold each rail to the slab with concrete screws.",
-    "The rails stand outside the door opening."
+    "The rails stand outside the door opening.",
+    "A stop at each rail end holds a wheel if the machine runs past its travel."
    ],
    "specs": {
     "track": "6.51 m",
@@ -30,17 +31,17 @@
    },
    "group": "Structure",
    "order": 0,
-   "partCount": 62,
-   "fastenerCount": 40,
-   "massKg": 411.348,
-   "uniqueParts": 3
+   "partCount": 78,
+   "fastenerCount": 48,
+   "massKg": 423.467,
+   "uniqueParts": 6
   },
   {
    "id": "TRAVEL",
    "name": "Travel drive",
    "function": "Moves the whole machine back and forth over the car, 6 passes a wash.",
    "how": [
-    "A geared motor drives one wheel each side. The drives keep in step by encoder.",
+    "A geared motor inside each trolley drives one wheel. The drives keep in step by encoder.",
     "Side rollers keep the wheels on the rails."
    ],
    "specs": {
@@ -67,9 +68,9 @@
    },
    "group": "Structure",
    "order": 2,
-   "partCount": 164,
-   "fastenerCount": 157,
-   "massKg": 1682.918,
+   "partCount": 167,
+   "fastenerCount": 160,
+   "massKg": 1682.932,
    "uniqueParts": 9
   },
   {
@@ -169,16 +170,17 @@
    "name": "Control, supply and signals",
    "function": "Runs the program, and tells the car when to stop and when to go.",
    "how": [
-    "A stainless control cabinet on the east leg holds the controller and the drives.",
+    "A stainless control cabinet on the inner side of the west leg holds the controller and the drives.",
     "A stop light faces the arriving car: red while the program runs, green when the car may go.",
-    "A drag chain beside the east rail brings power, water, chemicals and air."
+    "A drag chain in a trough inboard of the west rail brings power, water, chemicals and air.",
+    "Nothing stands outboard of the trolleys: the end bays' outer walls are 48 mm from them."
    ],
    "specs": {},
    "group": "Control",
    "order": 8,
    "partCount": 89,
    "fastenerCount": 8,
-   "massKg": 277.316,
+   "massKg": 241.618,
    "uniqueParts": 11
   }
  ],
@@ -208,6 +210,30 @@
    ]
   },
   {
+   "id": "WSH-RBF",
+   "name": "Rail end buffer, polyurethane",
+   "category": "structure",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "D 32 x 25",
+   "grade": "90 Shore A",
+   "material": "Polyurethane, 90 Shore A",
+   "materialKey": "pu",
+   "qty": 4,
+   "massKg": 0.0241,
+   "totalMassKg": 0.0965,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes the blow of a wheel at the end stop.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "RAILS",
+     "qty": 4
+    }
+   ]
+  },
+  {
    "id": "WSH-RPL",
    "name": "Rail anchor plate 260 x 160 x 12",
    "category": "structure",
@@ -228,6 +254,57 @@
     {
      "sub": "RAILS",
      "qty": 20
+    }
+   ]
+  },
+  {
+   "id": "WSH-RST",
+   "name": "Rail end stop block",
+   "category": "structure",
+   "make": "make",
+   "standard": "cut plate",
+   "size": "135 x 40 x 70",
+   "grade": "S355J2",
+   "material": "Structural steel S355, hot-dip galvanised",
+   "materialKey": "steel_s355",
+   "qty": 4,
+   "massKg": 2.9056,
+   "totalMassKg": 11.6223,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Stops a wheel at the rail end if the machine runs past its travel.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "RAILS",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M10x60-8.8",
+   "name": "Socket head cap screw M10 x 60",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M10 x 60",
+   "grade": "8.8",
+   "material": "Steel, zinc flake coated",
+   "materialKey": "fast_zn",
+   "qty": 8,
+   "massKg": 0.0501,
+   "totalMassKg": 0.4006,
+   "torqueNm": 49.7,
+   "reference": false,
+   "function": "Holds the end stop through the rail floor to its anchor plate.",
+   "spec": {
+    "preload": "29.6 kN",
+    "drive": "hex socket 8 mm"
+   },
+   "uses": [
+    {
+     "sub": "RAILS",
+     "qty": 8
     }
    ]
   },
@@ -747,9 +824,9 @@
    "grade": "A4-80",
    "material": "Stainless steel A4-80",
    "materialKey": "fast_a4",
-   "qty": 29,
+   "qty": 32,
    "massKg": 0.0046,
-   "totalMassKg": 0.1348,
+   "totalMassKg": 0.1487,
    "torqueNm": 8.0,
    "reference": false,
    "function": "Holds the cladding panel to the leg post.",
@@ -759,7 +836,7 @@
    "uses": [
     {
      "sub": "PORTAL",
-     "qty": 29
+     "qty": 32
     }
    ]
   },
@@ -2560,16 +2637,16 @@
    "category": "structure",
    "make": "make",
    "standard": "folded sheet 5 mm",
-   "size": "566 x 70 x 5350",
+   "size": "396 x 70 x 5350",
    "grade": "S235, galvanised",
    "material": "Steel 42CrMo4, quenched and tempered",
    "materialKey": "steel",
    "qty": 1,
-   "massKg": 146.2038,
-   "totalMassKg": 146.2038,
+   "massKg": 110.5059,
+   "totalMassKg": 110.5059,
    "torqueNm": null,
    "reference": false,
-   "function": "Guides the drag chain on the floor beside the east rail, clear of the travel drive.",
+   "function": "Guides the drag chain on the floor inboard of the west rail, clear of the travel drive.",
    "spec": {},
    "uses": [
     {

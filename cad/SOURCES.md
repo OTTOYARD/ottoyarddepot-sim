@@ -42,6 +42,24 @@ ASSUMPTION: the gear-set envelopes (outer diameter, cup length) are scaled from 
 (pitch diameter about size x 2.54 mm) and are close to, not copied from, catalogue drawings.
 The teeth are drawn simplified (64 a gear); the real counts (200 and 202 at 100:1) are in each part's spec.
 
+## Clean arm J4 (the wrist pitch, design finding 9)
+
+- Gear: a size 17 strain-wave unit, 100:1, repeated peak 70 N m (the component-set rating above, **used**). The
+  wand side J4 turns weighs 5.15 kg (the CAD's masses) and holds 24.0 N m level at full reach: x2.9.
+- Unit envelope OD 72 x 38 mm with a 100 mm output flange, 0.9 kg: ASSUMPTION (class envelope, scaled like the
+  component sets), pending a supplier drawing.
+- Motor: a 200 W servo, 40 mm frame, with brake and encoder, 40 x 40 x 106 mm, 0.64 N m continuous, 0.8 kg:
+  ASSUMPTION (class figures for the frame size), pending a supplier sheet. Through the 2:1 belt and the gear at an
+  assumed 70 % overall efficiency it gives about 90 N m continuous, so the gear's 70 N m sets the limit.
+- Belt: HTD 3M, 9 mm wide, 40 and 20 teeth (ISO 13050 profile, **used**).
+
+## Wash hall clearance (design finding 8)
+
+The bay walls and partitions are the twin's (`structurePlan.WASH_SHELL`: outer walls 0.6 u, partitions 0.4 u, bays
+18 u apart); the CAD keeps every part 30 mm or more inside them (`cadYard.test.ts`). The rail end stops (a 135 x 40 x
+70 mm block in each rail end, a 32 x 25 mm polyurethane buffer, 2 x M10) are sized here: ASSUMPTION, typical of a
+floor-rail gantry's overtravel stop, pending the supplier's rail system.
+
 ## Robotic charging
 
 - Vision for coarse-to-fine alignment plus compliance (passive, impedance or force control) for the final insertion

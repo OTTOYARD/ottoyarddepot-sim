@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { buildCleanArm, CLEAN_ARM_NODES, type CleanArmHandles, type CleanArmNode } from '@/lib/ottoCleanArm/buildCleanArm';
-import { statusMaterial } from './armInstances';
+import { makeInstancedFleet, writeFleetSlot, clearFleetSlot, type InstancedFleet, type RigidPart } from './instancedFleet';
 
 /**
  * OTTO-CLEAN ARMS, INSTANCED — every cleaning arm on the site in a fixed number of
@@ -24,14 +24,8 @@ export const CLEAN_TEMPLATE: CleanArmHandles = buildCleanArm();
 /** Segment index 0 is the arm's root; 1.. are the joint nodes, in CLEAN_ARM_NODES order. */
 export const CLEAN_SEGMENT_COUNT = CLEAN_ARM_NODES.length + 1;
 
-export interface CleanArmPart {
-  segment: number;
-  geometry: THREE.BufferGeometry;
-  material: THREE.Material;
-  castShadow: boolean;
-  /** the status lights (J1's ring, the mast strip, the nozzle ring): colour and glow per instance */
-  status: boolean;
-}
+/** One rigid segment's meshes of one material; `status` marks the status lights (J1's ring, the mast strip, the nozzle ring). */
+export type CleanArmPart = RigidPart;
 
 function segmentOf(o: THREE.Object3D, root: THREE.Object3D): { index: number; node: THREE.Object3D } {
   let p: THREE.Object3D | null = o.parent;
@@ -88,67 +82,19 @@ export function cleanSkeleton(): { root: THREE.Object3D; nodes: Record<CleanArmN
   return { root, nodes, segments: [root, ...CLEAN_ARM_NODES.map((n) => nodes[n])], hoseRoot };
 }
 
-export interface CleanArmFleet {
-  capacity: number;
-  /** meshes[i] draws CLEAN_PARTS[i]. */
-  meshes: THREE.InstancedMesh[];
-  statusColor: THREE.InstancedBufferAttribute;
-  glow: THREE.InstancedBufferAttribute;
-  dispose(): void;
-}
+/** Every cleaning arm on the site, instanced (instancedFleet.ts): the procedural arm's parts, or the CAD arm's. */
+export type CleanArmFleet = InstancedFleet;
 
-export function makeCleanArmFleet(capacity: number): CleanArmFleet {
-  const statusColor = new THREE.InstancedBufferAttribute(new Float32Array(capacity * 3), 3);
-  statusColor.setUsage(THREE.DynamicDrawUsage);
-  const glow = new THREE.InstancedBufferAttribute(new Float32Array(capacity), 1);
-  glow.setUsage(THREE.DynamicDrawUsage);
-  const owned: { dispose(): void }[] = [];
-  let ledMaterial: THREE.MeshStandardMaterial | null = null;
-  const meshes = CLEAN_PARTS.map((p) => {
-    let geometry = p.geometry;
-    let material = p.material;
-    if (p.status) {
-      geometry = p.geometry.clone();
-      geometry.setAttribute('aGlow', glow);
-      owned.push(geometry);
-      if (!ledMaterial) { ledMaterial = statusMaterial(p.material as THREE.MeshStandardMaterial); owned.push(ledMaterial); }
-      material = ledMaterial;
-    }
-    const im = new THREE.InstancedMesh(geometry, material, capacity);
-    im.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-    im.castShadow = p.castShadow;
-    im.receiveShadow = true;
-    im.frustumCulled = false;
-    (im.instanceMatrix.array as Float32Array).fill(0);
-    if (p.status) im.instanceColor = statusColor;
-    return im;
-  });
-  return {
-    capacity, meshes, statusColor, glow,
-    dispose() {
-      for (const m of meshes) m.dispose();
-      for (const o of owned) o.dispose();
-    },
-  };
+export function makeCleanArmFleet(capacity: number, parts: readonly RigidPart[] = CLEAN_PARTS): CleanArmFleet {
+  return makeInstancedFleet(parts, capacity, { receiveShadow: true });
 }
-
-const scratch = new THREE.Color();
 
 /** Write one arm's segments and status lights into its slot (after its world matrices are current). */
-export function writeCleanArm(fleet: CleanArmFleet, slot: number, segments: THREE.Object3D[], statusHex: number, glow: number): void {
-  for (let i = 0; i < CLEAN_PARTS.length; i++) {
-    const im = fleet.meshes[i];
-    im.setMatrixAt(slot, segments[CLEAN_PARTS[i].segment].matrixWorld);
-    im.instanceMatrix.needsUpdate = true;
-  }
-  scratch.setHex(statusHex).toArray(fleet.statusColor.array as Float32Array, slot * 3);
-  fleet.statusColor.needsUpdate = true;
-  fleet.glow.setX(slot, glow);
-  fleet.glow.needsUpdate = true;
+export function writeCleanArm(fleet: CleanArmFleet, slot: number, segments: readonly THREE.Object3D[], statusHex: number, glow: number): void {
+  writeFleetSlot(fleet, slot, segments, statusHex, glow);
 }
 
 /** Hide a slot (its arm unmounted). */
 export function clearCleanArm(fleet: CleanArmFleet, slot: number): void {
-  const zero = new THREE.Matrix4().makeScale(0, 0, 0);
-  for (const im of fleet.meshes) { im.setMatrixAt(slot, zero); im.instanceMatrix.needsUpdate = true; }
+  clearFleetSlot(fleet, slot);
 }

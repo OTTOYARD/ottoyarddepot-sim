@@ -67,6 +67,11 @@ def build_one(key: str, spec: dict) -> dict:
     step_bytes = os.path.getsize(step_tmp)
     chk = step_check(step_tmp)
     os.remove(step_tmp)
+    # the depot model: what the yard draws (last: it re-meshes the shapes coarsely)
+    depot_path = os.path.join(OUT, f'{key}.depot.glb')
+    dstats = write_glb(model, depot_path, {'specVersion': spec['version'], 'lod': 'depot'}, depot=True)
+    with open(depot_path, 'rb') as f:
+        depot_digest = hashlib.sha256(f.read()).hexdigest()[:16]
     placed = sum(l['qty'] for l in bom['lines'])
     if chk['invalid'] or chk['namedParts'] != placed:
         raise SystemExit(f'{key}: STEP check failed: {chk} against {placed} placed parts')
@@ -79,12 +84,15 @@ def build_one(key: str, spec: dict) -> dict:
           f'{bom["totals"]["fasteners"]} fasteners), {bom["totals"]["massKg"]} kg; '
           f'GLB {stats["bytes"] / 1e6:.2f} MB, {stats["triangles"]} tris; STEP {step_bytes / 1e6:.1f} MB '
           f'({os.path.getsize(zpath) / 1e6:.2f} MB zipped, re-imported: {chk["namedParts"]} parts, {chk["solids"]} solids, '
-          f'{chk["invalid"]} invalid); {time.time() - t0:.0f} s (model {t_model:.0f} s)')
+          f'{chk["invalid"]} invalid); depot GLB {dstats["bytes"] / 1e6:.2f} MB, {dstats["triangles"]} tris; '
+          f'{time.time() - t0:.0f} s (model {t_model:.0f} s)')
     return {
         'key': key, 'title': model.title, 'frame': model.frame,
-        'files': {'glb': f'{key}.glb', 'step': f'{key}.step.zip', 'bom': f'{key}.bom.json', 'csv': f'{key}.bom.csv'},
-        'bytes': {'glb': stats['bytes'], 'stepZip': os.path.getsize(zpath), 'step': step_bytes},
+        'files': {'glb': f'{key}.glb', 'step': f'{key}.step.zip', 'bom': f'{key}.bom.json', 'csv': f'{key}.bom.csv',
+                  'depot': f'{key}.depot.glb'},
+        'bytes': {'glb': stats['bytes'], 'stepZip': os.path.getsize(zpath), 'step': step_bytes, 'depot': dstats['bytes']},
         'mesh': {k: stats[k] for k in ('vertices', 'triangles', 'meshes', 'nodes')},
+        'depotMesh': {k: dstats[k] for k in ('vertices', 'triangles', 'meshes', 'nodes')}, 'depotSha256': depot_digest,
         'totals': bom['totals'], 'glbSha256': digest, 'stepCheck': chk,
         'subsystems': [{'id': s['id'], 'name': s['name']} for s in bom['subsystems']],
     }

@@ -12,7 +12,7 @@ import { STOWED, solveIK } from '@/lib/ottoChargeArm/cobotIK';
 import { FLANK_STANDOFF_M, MOUNT_HEIGHT_M, METRES_PER_PLAN_UNIT } from '@/lib/ottoChargeArm/cobotSpec';
 import { CLEAN_CHAIN, CLEAN_PHASE_S, CLEAN_SIDE_NOMINAL_S, MAST_FOOT_MAX, type CleanPhase } from '@/lib/ottoCleanArm/cleanArmSpec';
 import { cleanJointsAt, sidesFor, type CleanJoints } from '@/lib/ottoCleanArm/cleanArmPose';
-import { washPoseAt } from '@/lib/ottoWash/washPose';
+import { washPoseAt, type WashPose } from '@/lib/ottoWash/washPose';
 import {
   PASS_NOMINAL_S, VACUUM_NOMINAL_S, WASH_GANTRY as WG, WASH_PHASE_S, washChain, isPass, type WashPhase,
 } from '@/lib/ottoWash/washSpec';
@@ -26,9 +26,12 @@ export interface ManifestRobot {
   key: RobotKey;
   title: string;
   frame: string;
-  files: { glb: string; step: string; bom: string; csv: string };
-  bytes: { glb: number; stepZip: number; step: number };
+  files: { glb: string; step: string; bom: string; csv: string; depot: string };
+  bytes: { glb: number; stepZip: number; step: number; depot: number };
   mesh: { vertices: number; triangles: number; meshes: number; nodes: number };
+  /** the depot model the yard draws (the parts you can see from the yard, coarse): cadDepot.ts */
+  depotMesh: { vertices: number; triangles: number; meshes: number; nodes: number };
+  depotSha256: string;
   totals: BomTotals;
   glbSha256: string;
   subsystems: { id: string; name: string }[];
@@ -224,9 +227,13 @@ export const WASH_WAND_REACH_STAGES = 2;
 /** The top brush's and top air knife's lift column stages (cad wash_gantry.TOP_SLIDES): each takes a third of the lift. */
 export const WASH_TOP_SLIDES = 3;
 
-/** The wash machine's slides as the CAD's nodes take them, from the twin's washPoseAt (plan units -> metres). */
+/** The wash machine's slides as the CAD's nodes take them, at a phase of the program (washPoseAt, nominal times). */
 export function washAngles(phase: WashPhase, t: number): Record<string, number> {
-  const p = washPoseAt({ phase, t, vacuumS: VACUUM_NOMINAL_S, from: null });
+  return washJoints(washPoseAt({ phase, t, vacuumS: VACUUM_NOMINAL_S, from: null }));
+}
+
+/** The wash machine's slides as the CAD's nodes take them, from a pose of the twin's machine (plan units -> metres). */
+export function washJoints(p: WashPose): Record<string, number> {
   const m = METRES_PER_PLAN_UNIT;
   const drop = p.wandDrop * (WG.wand.topY - WG.wand.workY) * m;
   const reach = p.wandReach * (WG.wand.x - WG.wand.reachX) * m;

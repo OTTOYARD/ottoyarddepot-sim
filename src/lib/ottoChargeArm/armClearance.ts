@@ -82,14 +82,22 @@ function isToolPart(o: THREE.Object3D): boolean {
 }
 
 export interface ArmClearanceRig {
-  root: THREE.Group;
+  root: THREE.Object3D;
   pose(a: JointAngles): void;
   /**
    * Minimum signed clearance to the car, metres.
    * @param which 'structure' = everything but the connector; 'tool' = the
    *              connector only; 'all' = the whole arm.
+   * @param stopAt nothing at this clearance or more is looked at: the result
+   *              is exact below it and `stopAt` otherwise (a cheap pass/fail
+   *              against a margin, for a sweep of thousands of poses).
    */
-  clearance(car: CarSolid, which?: 'structure' | 'tool' | 'all'): { min: number; part: string };
+  clearance(car: CarSolid, which?: 'structure' | 'tool' | 'all', stopAt?: number): { min: number; part: string };
+  /**
+   * Every vertex inside the car (signed clearance below zero), with its world position and depth. Meshes whose
+   * bounding sphere clears the car are skipped whole.
+   */
+  inside(car: CarSolid, which: 'structure' | 'tool' | 'all', visit: (p: THREE.Vector3, d: number, part: string) => void): void;
   /** World position of a named node — used to check the connector reaches the port. */
   nodeWorld(name: string): THREE.Vector3;
   /**
@@ -116,13 +124,41 @@ export function makeArmClearanceRig(
   lod: CobotLOD = 'studio',
 ): ArmClearanceRig {
   const rig = buildCobot(spec, { withPlinth: true, lod });
+  const ee = rig.root.getObjectByName('EndEffector');
+  if (!ee) throw new Error('armClearance: no EndEffector group');
+  return armClearanceRig({
+    root: rig.root,
+    joints: [rig.j1, rig.j2, rig.j3, rig.j4, rig.j5, rig.j6],
+    tcp: rig.tcp,
+    toolAxis: ee,
+    isTool: isToolPart,
+  });
+}
+
+/**
+ * An arm to measure, from any source: the procedural arm above, or the engineering CAD the depot draws
+ * (robotics/cadClearance.ts). The joints are J1..J6 in the twin's conventions (J1, J4, J6 turn about their own +Y;
+ * J2, J3, J5 about +X) with their rest rotation at zero; `tcp` is the working point the IK drives onto the port;
+ * `toolAxis` is a node whose +Y is the tool axis; `isTool` says which meshes are the connector.
+ */
+export interface ArmRigSource {
+  root: THREE.Object3D;
+  joints: readonly [THREE.Object3D, THREE.Object3D, THREE.Object3D, THREE.Object3D, THREE.Object3D, THREE.Object3D];
+  tcp: THREE.Object3D;
+  toolAxis: THREE.Object3D;
+  isTool: (mesh: THREE.Object3D) => boolean;
+}
+
+export function armClearanceRig(src: ArmRigSource): ArmClearanceRig {
+  const rig = { root: src.root, tcp: src.tcp };
+  const [j1, j2, j3, j4, j5, j6] = src.joints;
   const scene = new THREE.Scene();
-  scene.add(rig.root);
+  scene.add(src.root);
   scene.updateMatrixWorld(true);
 
   const parts: SampledMesh[] = [];
   const cache = new Map<string, Float32Array>();
-  rig.root.traverse((o) => {
+  src.root.traverse((o) => {
     const m = o as THREE.Mesh;
     if (!m.isMesh || !m.geometry) return;
     const key = m.geometry.uuid;
@@ -135,7 +171,7 @@ export function makeArmClearanceRig(
     if (!m.geometry.boundingSphere) m.geometry.computeBoundingSphere();
     const bs = m.geometry.boundingSphere!;
     parts.push({
-      name: m.name || '(unnamed)', mesh: m, verts, isTool: isToolPart(m),
+      name: m.name || '(unnamed)', mesh: m, verts, isTool: src.isTool(m),
       cx: bs.center.x, cy: bs.center.y, cz: bs.center.z, r: bs.radius,
     });
   });
@@ -146,53 +182,57 @@ export function makeArmClearanceRig(
   const bound = new Float64Array(parts.length);
   const indices = new Int32Array(parts.length);
 
+  /**
+   * PASS 1 — bounding-sphere lower bound for every candidate mesh. Cheap: one
+   * distance evaluation each, against thousands for a vertex scan. Then NEAREST
+   * FIRST: the order matters more than it looks — the running minimum is what
+   * prunes, and walking the arm base-to-tip scans the plinth (which is never
+   * anywhere near the car) before the running minimum is small enough to reject
+   * anything. Sorting by the lower bound first turns almost every mesh into a
+   * single distance evaluation. Returns how many of `indices` are sorted.
+   */
+  function cull(car: CarSolid, which: 'structure' | 'tool' | 'all'): number {
+    let n = 0;
+    for (const p of parts) {
+      if (which === 'structure' && p.isTool) continue;
+      if (which === 'tool' && !p.isTool) continue;
+      const mw = p.mesh.matrixWorld;
+      // The end-effector group carries a uniform scale (it is normalised so
+      // the drawn connector tip lands on the TCP), so the cull radius has to
+      // be scaled too — reading it off the matrix rather than assuming 1.
+      const sx = Math.hypot(mw.elements[0], mw.elements[1], mw.elements[2]);
+      v.set(p.cx, p.cy, p.cz).applyMatrix4(mw);
+      order[n] = p;
+      bound[n] = clearanceToCar(v, car) - p.r * sx;
+      n++;
+    }
+    const idx = indices.subarray(0, n);
+    for (let i = 0; i < n; i++) idx[i] = i;
+    idx.sort((a, b) => bound[a] - bound[b]);
+    return n;
+  }
+
   return {
     root: rig.root,
     meshCount: parts.length,
     vertexCount: parts.reduce((n, p) => n + p.verts.length / 3, 0),
 
     pose(a: JointAngles) {
-      rig.j1.rotation.set(0, a.j1, 0);
-      rig.j2.rotation.set(a.j2, 0, 0);
-      rig.j3.rotation.set(a.j3, 0, 0);
-      rig.j4.rotation.set(0, a.j4, 0);
-      rig.j5.rotation.set(a.j5, 0, 0);
-      rig.j6.rotation.set(0, a.j6, 0);
+      j1.rotation.set(0, a.j1, 0);
+      j2.rotation.set(a.j2, 0, 0);
+      j3.rotation.set(a.j3, 0, 0);
+      j4.rotation.set(0, a.j4, 0);
+      j5.rotation.set(a.j5, 0, 0);
+      j6.rotation.set(0, a.j6, 0);
       scene.updateMatrixWorld(true);
     },
 
-    clearance(car: CarSolid, which: 'structure' | 'tool' | 'all' = 'all') {
-      let min = Infinity;
+    clearance(car: CarSolid, which: 'structure' | 'tool' | 'all' = 'all', stopAt = Infinity) {
+      let min = stopAt;
       let part = '';
-
-      // PASS 1 — bounding-sphere lower bound for every candidate mesh. Cheap:
-      // one distance evaluation each, against thousands for a vertex scan.
-      let n = 0;
-      for (const p of parts) {
-        if (which === 'structure' && p.isTool) continue;
-        if (which === 'tool' && !p.isTool) continue;
-        const mw = p.mesh.matrixWorld;
-        // The end-effector group carries a uniform scale (it is normalised so
-        // the drawn connector tip lands on the TCP), so the cull radius has to
-        // be scaled too — reading it off the matrix rather than assuming 1.
-        const sx = Math.hypot(mw.elements[0], mw.elements[1], mw.elements[2]);
-        v.set(p.cx, p.cy, p.cz).applyMatrix4(mw);
-        order[n] = p;
-        bound[n] = clearanceToCar(v, car) - p.r * sx;
-        n++;
-      }
-
-      // PASS 2 — NEAREST FIRST. The order matters more than it looks: the
-      // running minimum is what prunes, and walking the arm base-to-tip scans
-      // the plinth (which is never anywhere near the car) before the running
-      // minimum is small enough to reject anything. Sorting by the lower bound
-      // first turns almost every mesh into a single distance evaluation.
-      const idx = indices.subarray(0, n);
-      for (let i = 0; i < n; i++) idx[i] = i;
-      idx.sort((a, b) => bound[a] - bound[b]);
-
+      const n = cull(car, which);
       for (let k = 0; k < n; k++) {
-        const i = idx[k];
+        const i = indices[k];
         if (bound[i] >= min) break; // sorted: nothing after this can win either
         const p = order[i];
         const mw = p.mesh.matrixWorld;
@@ -206,6 +246,22 @@ export function makeArmClearanceRig(
       return { min, part };
     },
 
+    inside(car: CarSolid, which: 'structure' | 'tool' | 'all', visit: (p: THREE.Vector3, d: number, part: string) => void) {
+      const n = cull(car, which);
+      for (let k = 0; k < n; k++) {
+        const i = indices[k];
+        if (bound[i] >= 0) break;
+        const p = order[i];
+        const mw = p.mesh.matrixWorld;
+        const a = p.verts;
+        for (let j = 0; j < a.length; j += 3) {
+          v.set(a[j], a[j + 1], a[j + 2]).applyMatrix4(mw);
+          const d = clearanceToCar(v, car);
+          if (d < 0) visit(v, d, p.name);
+        }
+      }
+    },
+
     nodeWorld(name: string) {
       const n = rig.root.getObjectByName(name);
       if (!n) throw new Error(`armClearance: no node named ${name}`);
@@ -213,11 +269,9 @@ export function makeArmClearanceRig(
     },
 
     drawnTipVsTcp() {
-      const ee = rig.root.getObjectByName('EndEffector');
-      if (!ee) throw new Error('armClearance: no EndEffector group');
       // tool axis = the end effector's own +Y, in world
       const axis = new THREE.Vector3(0, 1, 0)
-        .applyQuaternion(ee.getWorldQuaternion(new THREE.Quaternion())).normalize();
+        .applyQuaternion(src.toolAxis.getWorldQuaternion(new THREE.Quaternion())).normalize();
       const tcp = rig.tcp.getWorldPosition(new THREE.Vector3());
       let furthest = -Infinity;
       for (const p of parts) {

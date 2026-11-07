@@ -15,6 +15,7 @@ import { chargerStallFrame, chargerStallPaint } from '@/lib/sitePlan';
 import { toWorld, DECK_Y, yawFromHeading2D } from './coordUtils';
 import { StaticBatch } from './staticBatch';
 import { MATERIALS } from './materials';
+import { useDepotCad } from './cadFleet';
 
 interface Props { type: 'dcfc' | 'l2'; count: number; }
 
@@ -213,6 +214,11 @@ export function ChargingField({ type }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [list.map((s) => `${s.id}@${s.position.x},${s.position.y},${s.position.angle}`).join('|'), isDC]);
 
+  // The OTTO-CHARGE ARM's riser and cable trunk are part of the arm's engineering CAD: once the yard draws the CAD
+  // arm (cadFleet.ts), they are drawn with it, and the simple riser and trunk below give way to them.
+  const chargeCad = useDepotCad('charge_arm');
+  const cadMount = isDC && chargeCad !== null;
+
   const housing = useMemo(() => {
     const b = new StaticBatch();
     for (const { wx, wz, fx, fz, yaw, toward, pad } of placed) {
@@ -224,7 +230,7 @@ export function ChargingField({ type }: Props) {
       // pad: long axis with the cabinet's wide face, along the car. A DCFC's runs on
       // under the arm (depotPlacement.chargerPad): cabinet and arm share one pad.
       put('pad', pad.offset, y0 + P / 2, 0, pad.hw * 2, P, pad.hl * 2);
-      if (isDC) {
+      if (isDC && !cadMount) {
         // THE ARM'S MOUNT (cabinetEnvelope.ARM_MOUNT_PU): the OTTO-CHARGE ARM's J1
         // stands CABINET_BACKSET_PU toward the car from this cabinet's centre, on a
         // plate MOUNT_HEIGHT_M up. A riser carries that plate from the pad, and a
@@ -261,7 +267,7 @@ export function ChargingField({ type }: Props) {
       }
     }
     return b.build();
-  }, [placed, isDC, D, H, W, P]);
+  }, [placed, isDC, D, H, W, P, cadMount]);
 
   // The status-driven parts — screen, LED bar, idle coil, live L2 cable — are
   // batched too (phone lane, 2026-09-29), rebuilt only when a stall's status or

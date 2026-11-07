@@ -508,7 +508,9 @@ export const DOOR_HINGE_PU = {
 // the inlet on the NOSE. Likewise the recess sinks inward by translating along
 // pre +Z, which becomes car -X.
 const portRimGeo = new THREE.TorusGeometry(0.075, 0.010, 6, 18);
-const portRecessGeo = new THREE.CylinderGeometry(0.068, 0.068, 0.035, 14);
+/** The charge inlet's recess, metres: the opening a connector enters (robotics/cadYard.test.ts holds the CAD connector to it). */
+export const PORT_RECESS_M = { radius: 0.068, depth: 0.035 } as const;
+const portRecessGeo = new THREE.CylinderGeometry(PORT_RECESS_M.radius, PORT_RECESS_M.radius, PORT_RECESS_M.depth, 14);
 portRecessGeo.rotateX(Math.PI / 2);
 portRecessGeo.translate(0, 0, 0.018); // sunk INTO the bodywork
 const portGlowGeo = new THREE.TorusGeometry(0.092, 0.006, 6, 20);

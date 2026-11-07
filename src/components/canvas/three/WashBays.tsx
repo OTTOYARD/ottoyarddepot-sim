@@ -13,10 +13,11 @@ import { galvanizedSteel, darkSteel, litInterior, safetyYellowPaint } from './bu
  * hall and what stays put in each bay: the two floor rails the rollover machine rides
  * and the trench drain down the drive line. The machine itself moves, so it is drawn
  * apart, by WashGantry.tsx, from the motion driver's session. Bays beyond `count` keep
- * their doors shut.
+ * their doors shut. Once the machine is drawn from its engineering CAD (`cadMachine`),
+ * its rails, anchor plates and end stops are part of it, so the simple rails here give way.
  */
-export function WashBays({ count }: { count: number }) {
-  const geos = useMemo(() => build(count), [count]);
+export function WashBays({ count, cadMachine = false }: { count: number; cadMachine?: boolean }) {
+  const geos = useMemo(() => build(count, cadMachine), [count, cadMachine]);
   const mats = useMemo<Record<string, THREE.Material>>(() => ({
     galv: galvanizedSteel(),
     steel: darkSteel(),
@@ -34,15 +35,15 @@ export function WashBays({ count }: { count: number }) {
   );
 }
 
-function build(count: number): Map<string, THREE.BufferGeometry> {
+function build(count: number, cadMachine: boolean): Map<string, THREE.BufferGeometry> {
   const b = new StaticBatch();
   const f = WASH_SHELL.footprint;
   const deck = WASH_SHELL.height - WASH_SHELL.parapet;
   const R = WASH_GANTRY.rail;
   WASH_SHELL.bays.forEach((bay, i) => {
     if (i >= count) return; // a shut bay is dark and empty
-    // the rollover machine's two floor rails, on a low plinth, with an end stop at each end
-    for (const side of [-1, 1]) {
+    // the rollover machine's two floor rails, on a low plinth, with an end stop at each end (the CAD machine has its own)
+    for (const side of cadMachine ? [] : [-1, 1]) {
       const x = bay.x + side * WASH_GANTRY.legX;
       const y0 = BAY_STALL_Y + R.from, y1 = BAY_STALL_Y + R.to;
       b.planBox('galv', { x0: x - 0.7, x1: x + 0.7, y0, y1 }, 0.28, 0.32);

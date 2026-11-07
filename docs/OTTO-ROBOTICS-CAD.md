@@ -20,6 +20,8 @@ designed part by part to the last screw, and a tab that shows them.
 | `public/cad/` | the outputs: `<robot>.step.zip` (the CAD), `<robot>.glb` (the same assembly for the web), `<robot>.bom.json/.csv` (the bill of materials), `<robot>.clash.json` (the clash report), `manifest.json` |
 | `src/lib/robotics/` | `cadSpec.ts` (the spec bridge), `cadModel.ts` (load, pose, explode, isolate, pick), `catalog.ts` (data, words, pose presets and run steps from the twin's code) |
 | `src/components/robotics/CadViewer.tsx`, `src/components/tabs/TwinRoboticsTab.tsx` | the 3D view and the tab |
+| `public/cad/<robot>.depot.glb`, `src/lib/robotics/cadDepot.ts`, `src/components/canvas/three/cadFleet.ts`, `instancedFleet.ts` | the CAD in the depot's 3D view: the depot model each robot is drawn from, cut into instanced parts and posed from the twin (below, "The CAD in the yard") |
+| `src/lib/robotics/cadYard.test.ts`, `cadDepot.test.ts` | the CAD the yard draws, held to the car, the doors, the cabinet and the wash hall, and to the twin's moves |
 
 ## One home for every number
 
@@ -45,8 +47,8 @@ at home, mid brush pass, dry pass and cabin vacuum (`washPoseAt`). Its run steps
 | robot | parts | different parts | screws, nuts, washers, pins | mass | STEP (zip) | GLB |
 |---|---:|---:|---:|---:|---:|---:|
 | OTTO-CHARGE ARM | 666 | 188 | 467 | 313 kg (with its riser) | 32.8 MB (6.2) | 6.9 MB |
-| OTTO-CLEAN ARM | 467 | 154 | 293 | 317 kg (with its canopy steel) | 17.4 MB (2.9) | 4.7 MB |
-| OTTO-WASH | 792 | 102 | 449 | 4,152 kg | 6.5 MB (1.1) | 1.2 MB |
+| OTTO-CLEAN ARM | 408 | 134 | 253 | 311 kg (with its canopy steel) | 14.2 MB (2.3) | 3.6 MB |
+| OTTO-WASH | 811 | 105 | 460 | 4,129 kg | 6.6 MB (1.1) | 1.2 MB |
 
 (Fewer fasteners than the first pass: where the clash check found a screw standing in another part, or holding a part
 the new layout leaves out (the wash beam's cover, the clean arm's mast cap and first hose), it went. The masses went
@@ -54,8 +56,8 @@ up: the actuators came out longer, the wash machine's beam became a box girder, 
 runs to the rail's anchor plates.)
 
 **Every STEP is re-imported by the build before it is published** (`build.py step_check`): each placed part must come
-back as a named solid and every solid must pass OpenCascade's validity check, or the build stops. As built: 668, 469
-and 792 named parts (the counts include the reference context parts), 1,360, 855 and 855 solids, 0 invalid.
+back as a named solid and every solid must pass OpenCascade's validity check, or the build stops. As built: 668, 410
+and 811 named parts (the counts include the reference context parts), 1,360, 689 and 874 solids, 0 invalid.
 
 Through-bolted steel joints are drawn as they are assembled (`std.bolt_stack`): bolt, a washer under the head, the
 clamped plates, a washer and a lock nut (the wash machine's leg flanges, its blower feet and pillow blocks, the clean
@@ -97,20 +99,24 @@ went up from the first pass, 96 and 42 kg: the actuators are longer with every p
 Canopy header (RHS 200 × 180 × 8) on 4 angle clips under two purlins, SHS 200 drop column, J1 (size 32, its motor bell
 inside the column), welded box links with top covers and energy chains, J2 (size 25), J3 on a slewing bearing driven by
 a servo gearmotor through a 3:1 belt, a 3-stage mast (rack and pinion on stage 2, a doubling belt for stage 3, acetal
-wear pads), J4 (size 20) with the vacuum crossing it through the hub's hollow stub and a swivel on the fork, a 4-tube
+wear pads), J4: a size 17 strain-wave gear unit in the fork's cheek, turned by a 200 W servo motor behind the hub through
+a 2:1 toothed belt (design finding 9), the vacuum crossing the joint through the hub's hollow stub, a swivel on the other
+cheek and a duct up through the fork into the mast, a 4-tube
 carbon wand that is itself the vacuum duct (3 tubes slide, a third of the reach each, on lip seals; a ball-screw drive and
 cables), and the nozzle (worm-driven pitch, vacuum duct, air knife, brush lip, light ring). Vacuum riser, hoses and
 clips, J2's two drum covers, link covers and the carriage lid. The mast stages are the vacuum duct from J3 to the wrist.
+Nothing on the wrist stands more than 95 mm from the pivot along its axis.
 
 ### OTTO-WASH
 
-Two galvanised channel rails on anchor plates, trolleys with PU wheels, side rollers and a geared travel motor each
-side, post-and-brace legs with cladding, a box-girder beam, stainless spray arch with 23 nozzles and 4 solenoid valves,
+Two galvanised channel rails on anchor plates with a buffered stop at each end, trolleys with PU wheels, side rollers
+and a geared travel motor inside each trolley, post-and-brace legs with cladding, a box-girder beam, stainless spray arch with 23 nozzles and 4 solenoid valves,
 a top brush on 2 telescoping lift columns (a sleeve through the beam and 3 stages each, driven by a cross shaft with
 2 belt drums in pillow blocks), two side brushes on carriages each driven by a gearmotor and pinion on a rack, a top air
 knife on 2 more lift columns with a servo gearmotor each, two side air knives, 3 blowers and their ducts, the valve
-manifold and arch feed hose, two 4-stage detail vacuum columns, each with a 2-tube telescoping reach, stop light, beacon, control cabinet
-and the supply drag chain in a trough clear of the travel drive.
+manifold and arch feed hose, two 4-stage detail vacuum columns, each with a 2-tube telescoping reach, stop light, beacon,
+the control cabinet on the inner side of the west leg, and the supply drag chain in a trough inboard of the west rail,
+clear of the travel drive. Nothing stands outboard of the trolleys (design finding 8).
 
 ## Every part against every other: the clash check
 
@@ -135,11 +141,12 @@ As run on the committed CAD (`public/cad/<robot>.clash.json`):
 | robot | poses | pairs measured | clashes | loose groups | expected overlaps (screws in tapped holes, seals, retaining rings, gear meshes) |
 |---|---:|---:|---:|---:|---|
 | OTTO-CHARGE ARM | 22 | 32,311 | 0 | 0 | 672, 12, 9, 3 |
-| OTTO-CLEAN ARM | 42 | 19,643 | 0 | 0 | 367, 6, 6, 2 |
-| OTTO-WASH | 39 | 13,109 | 0 | 0 | 503, 0, 0, 0 |
+| OTTO-CLEAN ARM | 42 | 15,880 | 0 | 0 | 320, 4, 4, 4 |
+| OTTO-WASH | 39 | 13,146 | 0 | 0 | 523, 0, 0, 0 |
 
 No clash and no loose part is left in any robot, at any of the twin's poses, and `cad.test.ts` holds all three at
-zero. The last two were design findings 6 and 7, fixed in the CAD without a change to the twin.
+zero. Design findings 6 and 7 were fixed in the CAD without a change to the twin, and so were 8 and 9, which the yard's
+clearance tests found (below).
 
 ### What it found, and what changed
 
@@ -196,7 +203,7 @@ The poses found more, which the stowed pose could not show:
     screws' heads stood 1 to 3 mm proud of their bosses, where the upper arm's and the forearm's bridges turn over them
     at the port: they now sit in counterbores.
 
-## What the CAD found (design findings, not yet in the depot renderer)
+## What the CAD found (design findings)
 
 1. **J2 needs a balancer, and it should be gas.** Above. The twin draws no balancer.
 2. **The pitch actuators are longer than the drawn drums.** The twin draws the J2 drum 135 mm wide. Built with every
@@ -207,9 +214,8 @@ The poses found more, which the stowed pose could not show:
    half of the 0.92 m reach. Each of those is then 0.52 m long, longer than the base tube, so retracted they stand
    120 mm behind the pitch pivot. The twin hangs the wand straight down while it is retracted (14 of its 41 poses), and
    then the tubes meet the wrist fork and the mast's foot, 100 mm above the pivot. With 3 sliding tubes of 0.37 m every
-   tube lies inside the base tube when retracted; the innermost is still the twin's 44 mm tube. The CAD stands J4
-   beside the hub, so the wrist is 270 mm wide along its pitch axis where the twin draws 150 mm. When the wand points
-   into the car that axis runs along the car.
+   tube lies inside the base tube when retracted; the innermost is still the twin's 44 mm tube. (The wrist's own width
+   along its pitch axis is finding 9.)
 4. **The wash wands need 4 stages, not 1 tube.** The twin draws one tube scaled to the drop. A column that drops
    2.38 m and stows its head just under the beam stood 4.75 m high with 3 stages, 4 cm under the wash hall's 4.79 m
    roof. With 4 stages it stows at 4.23 m (`cad.test.ts` keeps it 0.3 m under the roof).
@@ -238,8 +244,82 @@ The poses found more, which the stowed pose could not show:
    the knife's columns stand 4.01 m high stowed, 0.78 m under the wash hall roof (`cad.test.ts` keeps 0.3 m). The twin
    draws neither mechanism, so its picture of the machine does not change.
 
-None of these changes the twin's kinematics, timings or the engine. Whether the depot renderer adopts the CAD's
-envelopes is a separate change, measured by the clearance tests when it is made.
+8. **The wash machine was wider than the end bays.** The wash hall's outer walls stand 7.4 u (3.541 m) from the drive
+   lines of bays 1 and 3 (`structurePlan.WASH_SHELL`), and the twin's trolleys end 48 mm short of them. The CAD hung a
+   travel gearmotor outboard of each trolley (to 3.795 m from the drive line), the control cabinet on a leg's outer face
+   (3.679 m) and the drag chain's trough outboard of a rail (3.950 m), so in bay 1 the cabinet and the trough stood in
+   the west wall, and in bay 3 a gearmotor stood in the east wall. Found when the yard first drew the CAD
+   (`cadYard.test.ts`: every part at every pose against every bay's walls and partitions). **Fixed in the CAD:** each
+   gearmotor and idler block now sits inside its trolley's inner wall (the gearmotor turned helical-bevel, its motor
+   standing up), the cabinet hangs on the inner side of the west leg between the arch brackets, and the trough lies
+   inboard of the west rail, its floor running on to the rail's anchor plates. Nothing stands outboard of a trolley:
+   48 mm to the walls. The machine also got a buffered stop at each rail end, which the yard's simple rails had and the
+   CAD had not.
+
+9. **The clean arm's wrist had no room for its drive.** The twin holds the wrist pivot 0.20 m off the car in every
+   working pose (`cleanArmSpec.pivotZ`) and every part but the wand 0.10 m off the car and the open doors. That leaves
+   the wrist about ±95 mm along its pitch axis. The CAD's size 20 actuator on that axis stood 250 mm out along it, and
+   when the wand reaches in at an angle the axis turns toward the car: the actuator went 47 mm into the car's outline
+   (into the open door's opening) and came 19 mm from an open door; the swivel on the other end came 73 mm from the car.
+   Found when the yard first drew the CAD. **Fixed in the CAD:** a size 17 strain-wave gear unit in the fork's cheek,
+   turned by a 200 W servo motor behind the hub through a 2:1 toothed belt; a compact swivel; a duct up through the
+   fork into the mast in place of the hose (which had come 41 mm from an open door). The wand side J4 turns weighs
+   5.15 kg and holds 24 N m level at full reach, under the gear's 70 N m repeated peak (`cad/SOURCES.md`). The wrist now
+   keeps 0.104 m off the car and 0.109 m off the doors over the whole cycle, on both stall columns. The twin draws neither, so its picture of
+   the arm does not change. With margins that thin, a bigger pitch drive needs the twin to stand the pivot further out,
+   and the wand's spare reach is 28 mm (0.892 of 0.92 m used).
+
+None of these changes the twin's kinematics, timings or the engine. The depot now draws the CAD, so each is in the
+yard as designed.
+
+## The CAD in the yard
+
+The depot's 3D view draws every OTTO-CHARGE ARM, OTTO-CLEAN ARM and OTTO-WASH from its CAD, in place of the simple
+procedural robots it drew before. The build writes a **depot model** of each robot beside the full one
+(`public/cad/<robot>.depot.glb`, `glb.py`): only the parts you can see from the yard (no fasteners, bearings, seals or
+parts inside the actuators, nothing under 30 mm), tessellated coarse, a few simplified to their outline. 0.54, 0.40
+and 0.33 MB; 23,760, 15,156 and 9,618 triangles in their meshes.
+
+- **Instanced.** `cadDepot.ts` cuts the model into rigid segments (the robot's root, everything each CAD joint carries,
+  each turning brush) and merges each segment's meshes per material. Each (segment, material, shadow) group is one
+  instanced mesh for every robot of the kind (`instancedFleet.ts`, the code the procedural arms already used): the
+  charge arms are 50 draws (10 cast shadows), the clean arms 49 (14), the wash machines 61 (35), whatever their number.
+  Each robot is 24,900, 14,200 and 17,500 triangles as drawn, where the procedural arms were 6,600 and 3,400: at the
+  twin depot's 30 fast chargers that is about 1.2 million triangles for the arms, plus the shadow pass. Only parts half
+  a metre or more cast shadows (a link, a casting, a column).
+- **Posed by the twin.** Each robot keeps a skeleton of the CAD's joint nodes and poses it from the same session as
+  before: the charge arm's IK angles (its joints are the twin's J1 to J6 in the same frames), the clean arm's joints
+  through `catalog.cleanAngles`, the wash machine's pose through `catalog.washJoints`. The light rings, the mast strip,
+  the beacon and the stop lamps show the robot's state per instance; the brushes turn on their shafts.
+- **What the site draws itself stays with the site.** The clean arm's header beam, drop column and clamps are the
+  canopy's steel (`SolarCanopy`). The charge arm's riser and cable trunk and the wash machine's rails are the robots'
+  own, so `ChargingField` and `WashBays` stop drawing their simple ones once the CAD has loaded.
+- **The CAD carries its own cables and hoses,** so the charge arm's drawn cable catenary and the clean arm's drawn hose
+  go with the procedural robots.
+- **Until the CAD has loaded, or if it cannot** (it is fetched once, on first view), the yard draws the procedural
+  robots as before, and says so once in the console.
+
+**Held to everything the procedural robots were held to** (`cadYard.test.ts`, on the depot model's own geometry, against
+the twin's car, doors, cabin, seats, cabinet and buildings, at the twin's poses):
+
+| robot | check | as measured |
+|---|---|---|
+| OTTO-CHARGE ARM | every part but the connector off the car, 135 inlets and window corners, whole cycle (≥ 0.10 m) | ≥ 0.20 m (the sweep looks no further; the full CAD: 0.37 m) |
+| | the connector into the car only through the inlet the car draws | its latch hook goes 14 mm into the inlet's 35 mm recess, 60 mm from its axis (radius 68 mm) |
+| | everything J1 turns off the cabinet (≥ 0.15 m), the riser and trunk (≥ 0.05 m), the fault beacon (≥ 0.20 m), duty cycle and transits | 0.182, 0.411, 0.492 m |
+| OTTO-CLEAN ARM | every part but the wand off the car and the open doors, whole cycle, both columns (≥ 0.10 m) | 0.104, 0.109 m |
+| | the wand only through the door (≥ 0.03 m from its edges), in the cabin's free space, off the seats (≥ 0.01 m) | 0.107, 0.031, 0.014 m |
+| | at home and swinging, nothing under 2 m over the car | 2.12 m |
+| both arms | 0.10 m apart in every pose the twin's interlock lets them share | 0.249 m (the wand in the cabin, the connector latched outside the same flank) |
+| OTTO-WASH | inside every bay's walls and partitions, every pose (≥ 30 mm) | 48 mm |
+| | the frame off the car (≥ 1.0 u); a brush in no deeper than its bristles give; every other moving part off the car (≥ 0.2 u) | 3.47 u; side 0.180, top 0.150 u (their limits); 0.34 u |
+| | off an open door (≥ 0.25 u), the wands into the car only through it | 1.11 u; every wand point inside the car is in the door, in the cabin, off the seats |
+| | a car drives under the retracted machine wherever it stands (≥ 1.0 u) | 1.40 u |
+
+`cadDepot.test.ts` holds that the depot model is the full CAD's machine (the same joints at the same rest frames, only
+its parts), that the instanced parts redraw it exactly, and that posed by the twin's joints the CAD's working points
+stand where the twin's do: the clean arm's wrist pivot and nozzle within 1 mm of `cleanArmPose` all cycle, the wash
+machine's gantry, brushes and knives where `washPose` puts them.
 
 ## Honest limits
 
@@ -258,8 +338,12 @@ envelopes is a separate change, measured by the clearance tests when it is made.
 - The contact test proves that each part touches another within 0.3 mm, not that it is fastened: a part that only
   rests against its neighbour passes. Screws are checked against the threads the CAD does not draw only by volume
   (the overlap must lie inside the screw's own hole cylinder, below its head).
-- The depot's 3D view still draws its own simplified robots; the Robotics tab draws the CAD. The two share every
-  interface dimension, by test.
+- The depot's 3D view draws the CAD's depot model, not the full CAD: fasteners and parts inside the actuators are
+  left out and curved faces are coarser (a curved face is within about 1% of its part's size). The 2D plan still draws
+  each robot's outline from the twin's kinematic points (`robotPlan.ts`).
+- The yard's clearance tests sample the depot model's vertices, as the procedural tests sample the procedural robots'.
+  The two-arm test covers the pairs the twin's interlock lets happen (the clean arm goes out over the car only while
+  the charge arm is stowed or latched; the charge arm moves only while the clean arm is home), not every combination.
 
 ## The tab
 

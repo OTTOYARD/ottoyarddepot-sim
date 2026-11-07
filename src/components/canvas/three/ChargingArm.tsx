@@ -6,6 +6,7 @@ import { useDepotStore } from '@/store/depotStore';
 import { useSimulationStore } from '@/store/simulationStore';
 import { OTTO_CHARGE_ARM, METRES_PER_PLAN_UNIT } from '@/lib/ottoChargeArm/cobotSpec';
 import { armSkeleton, segmentNodes, writeArm, clearArm, type ArmFleet } from './armInstances';
+import type { DepotCad } from '@/lib/robotics/cadDepot';
 import { CAR_WIDTH } from '@/engine/motion/traffic';
 import { statusColor, vehicleMayMove, type ArmPhase } from '@/lib/ottoChargeArm/armStateMachine';
 import { twinMotionDriver } from '@/engine/TwinMotionDriver';
@@ -45,15 +46,19 @@ import {
 const spec = OTTO_CHARGE_ARM;
 
 /**
- * ONE template, INSTANCED across every stall (armInstances.ts). Each arm keeps
- * only a skeleton — the template's joint hierarchy with no meshes — which it
+ * ONE model, INSTANCED across every stall (instancedFleet.ts). Each arm keeps
+ * only a skeleton — the model's joint hierarchy with no meshes — which it
  * drives through IK here and whose segment matrices it writes into its slot of
  * the shared instanced meshes. Ten arms or twenty, the canopy draws in the same
  * number of calls, from one arm's worth of GPU memory.
  *
- * Built at 'depot' detail: fasteners, cooling ribs, connector pins and sensor
- * glass are dropped. They are sub-centimetre features on a 1.9 m arm viewed
- * from tens of metres, and they account for two thirds of the mesh count.
+ * THE MODEL IS THE ENGINEERING CAD (cad/, robotics/cadDepot.ts): every link,
+ * actuator, light ring, cable run and the riser it stands on, as designed, at
+ * the depot's level of detail (the parts you can see from the yard). Its joints
+ * are the twin's J1..J6, in the same frames and on the same axes (cad.test.ts),
+ * so the same angles drive it, and robotics/cadYard.test.ts holds it to the
+ * same car, cabinet and beacon as the procedural arm. Until the CAD has loaded,
+ * or if it cannot, the arm draws the procedural model at 'depot' detail.
  */
 
 /** Rendered vehicle half-width in metres, from the shared plan-unit footprint. */
@@ -82,9 +87,44 @@ interface ChargingArmProps {
   /** The instanced arm meshes this arm draws into, and its slot there. */
   fleet: ArmFleet;
   slot: number;
+  /** The engineering CAD the fleet was built from, or null for the procedural arm. */
+  cad: DepotCad | null;
 }
 
-export function ChargingArm({ stallId, stallType, fleet, slot }: ChargingArmProps) {
+/** One arm's joints to drive: the CAD's skeleton, or the procedural one. */
+interface ArmRig {
+  root: THREE.Object3D;
+  /** segment nodes, in the fleet's segment order */
+  nodes: THREE.Object3D[];
+  j1: THREE.Object3D; j2: THREE.Object3D; j3: THREE.Object3D;
+  j4: THREE.Object3D; j5: THREE.Object3D; j6: THREE.Object3D;
+  /** the procedural arm's connector tip, for its charge cable (the CAD arm carries its own cable) */
+  tcp: THREE.Object3D | null;
+  /** the procedural arm's latch collar (the CAD connector's latch is inside it) */
+  latch: THREE.Object3D | null;
+}
+
+function armRig(cad: DepotCad | null): ArmRig {
+  if (cad) {
+    const s = cad.skeleton();
+    return {
+      root: s.root, nodes: s.segments,
+      j1: s.node('J1_BaseYaw'), j2: s.node('J2_Shoulder'), j3: s.node('J3_Elbow'),
+      j4: s.node('J4_ForearmRoll'), j5: s.node('J5_WristPitch'), j6: s.node('J6_ToolRoll'),
+      tcp: null, latch: null,
+    };
+  }
+  const root = armSkeleton();
+  const byName = (n: string) => root.getObjectByName(n) as THREE.Object3D;
+  return {
+    root, nodes: segmentNodes(root),
+    j1: byName('J1_BaseYaw'), j2: byName('J2_Shoulder'), j3: byName('J3_Elbow'),
+    j4: byName('J4_ForearmRoll'), j5: byName('J5_WristPitch'), j6: byName('J6_ToolRoll'),
+    tcp: byName('TCP_ConnectorTip'), latch: byName('Connector_Latch'),
+  };
+}
+
+export function ChargingArm({ stallId, stallType, fleet, slot, cad }: ChargingArmProps) {
   const groupRef = useRef<THREE.Group>(null);
   const cableRef = useRef<THREE.Mesh>(null);
 
@@ -97,22 +137,7 @@ export function ChargingArm({ stallId, stallType, fleet, slot }: ChargingArmProp
   );
 
   // Per-instance skeleton: joints to drive, no meshes (those are instanced).
-  const rig = useMemo(() => {
-    const root = armSkeleton();
-    const byName = (n: string) => root.getObjectByName(n) as THREE.Group;
-    return {
-      root,
-      nodes: segmentNodes(root),
-      j1: byName('J1_BaseYaw'),
-      j2: byName('J2_Shoulder'),
-      j3: byName('J3_Elbow'),
-      j4: byName('J4_ForearmRoll'),
-      j5: byName('J5_WristPitch'),
-      j6: byName('J6_ToolRoll'),
-      tcp: root.getObjectByName('TCP_ConnectorTip') as THREE.Object3D,
-      latch: byName('Connector_Latch'),
-    };
-  }, []);
+  const rig = useMemo(() => armRig(cad), [cad]);
 
   // an unmounted arm leaves its slot empty
   useEffect(() => () => clearArm(fleet, slot), [fleet, slot]);
@@ -265,8 +290,10 @@ export function ChargingArm({ stallId, stallType, fleet, slot }: ChargingArmProp
     rig.j5.rotation.set(a.j5, 0, 0);
     rig.j6.rotation.set(0, a.j6, 0);
 
-    const s = 1 - 0.28 * shown.current.latch;
-    rig.latch.scale.set(s, 1, s);
+    if (rig.latch) {
+      const s = 1 - 0.28 * shown.current.latch;
+      rig.latch.scale.set(s, 1, s);
+    }
 
     armDebug?.set(stallId, {
       phase, t, vehicleId: session.current.vehicleId, latch: shown.current.latch,
@@ -296,7 +323,8 @@ export function ChargingArm({ stallId, stallType, fleet, slot }: ChargingArmProp
     // OTTO-Q never reported. Publish the absence instead; the LED already goes
     // red, which is the honest signal.
     const cable = cableRef.current;
-    if (cable) {
+    if (cable && !rig.tcp) cable.visible = false;
+    else if (cable && rig.tcp) {
       const show = pose.ok && !isArmHome(phase);
       cable.visible = show;
       if (show) {

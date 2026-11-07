@@ -59,6 +59,7 @@ class PartDef:
     volume: float = 0.0                # mm3
     mass: float = 0.0                  # kg
     com: tuple[float, float, float] = (0.0, 0.0, 0.0)  # mm, part frame
+    depot: object = None               # the depot model's outline: a simpler cq.Shape, or 'box' (its bounding box)
 
     def finish(self) -> 'PartDef':
         props = GProp_GProps()

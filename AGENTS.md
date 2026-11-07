@@ -344,6 +344,17 @@ interpolation.** Zero world logic client-side.
   invisible to it: `cad.test.ts` checks every pose and cycle frame against every joint's limits for that reason.
   Bought assemblies drawn as envelopes carry a class mass, marked as such: never quote a CAD mass as measured.
   The tab reads no run. Its 3D view decides nothing. It has no number key (Research keeps 0).
+- **The yard's robots are that CAD (2026-11-07).** Chase: *"implement these designs into the actual simulation and in
+  the yard so that these are the actual machines"*. The depot draws every charge arm, clean arm and wash machine from
+  `public/cad/<robot>.depot.glb` (`cadFleet.ts` loads it once, `robotics/cadDepot.ts` cuts it into instanced parts,
+  `instancedFleet.ts` draws every robot of a kind in one set of draws), posed from the same sessions as before: the
+  charge arm's IK angles, `catalog.cleanAngles`, `catalog.washJoints`. Until it loads, or if it cannot, the procedural
+  robots draw. **A CAD change must pass `src/lib/robotics/cadYard.test.ts`** as well as the clash check: the CAD as
+  the yard draws it against the car, the doors, the cabin, the cabinet, the riser, the beacon, the other arm and the
+  wash hall's walls, with the procedural robots' margins (design findings 8 and 9 were found this way). The clean
+  arm's header beam and drop column stay with `SolarCanopy` (`CLEAN_CANOPY_STEEL`); `ChargingField` and `WashBays`
+  drop their simple riser, trunk and rails once the CAD has loaded, because the CAD draws its own: never draw them
+  twice. A robot's working point in the CAD must stay where the twin's is (`cadDepot.test.ts`).
 - **From above, the roofs fade (2026-10-20):** the solar modules and roof membranes go to 16% when the camera looks
   down more than 40 degrees (`RoofXray.tsx`, back below 32), because from the Bird Eye view they hid every robot
   the depot has. Presets **Robots** (under canopy A) and **Wash** (inside wash bay 2) frame them close. A view
