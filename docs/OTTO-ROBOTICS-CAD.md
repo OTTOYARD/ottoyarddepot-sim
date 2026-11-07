@@ -46,7 +46,7 @@ at home, mid brush pass, dry pass and cabin vacuum (`washPoseAt`). Its run steps
 |---|---:|---:|---:|---:|---:|---:|
 | OTTO-CHARGE ARM | 666 | 188 | 467 | 314 kg (with its riser) | 27.5 MB (4.9) | 6.8 MB |
 | OTTO-CLEAN ARM | 467 | 154 | 293 | 317 kg (with its canopy steel) | 17.4 MB (2.9) | 4.7 MB |
-| OTTO-WASH | 744 | 90 | 467 | 4,014 kg | 6.2 MB (1.0) | 1.3 MB |
+| OTTO-WASH | 792 | 102 | 449 | 4,152 kg | 6.5 MB (1.1) | 1.2 MB |
 
 (Fewer fasteners than the first pass: where the clash check found a screw standing in another part, or holding a part
 the new layout leaves out (the wash beam's cover, the clean arm's mast cap and first hose), it went. The masses went
@@ -55,7 +55,7 @@ runs to the rail's anchor plates.)
 
 **Every STEP is re-imported by the build before it is published** (`build.py step_check`): each placed part must come
 back as a named solid and every solid must pass OpenCascade's validity check, or the build stops. As built: 668, 469
-and 744 named parts (the counts include the reference context parts), 1,360, 855 and 807 solids, 0 invalid.
+and 792 named parts (the counts include the reference context parts), 1,360, 855 and 855 solids, 0 invalid.
 
 Through-bolted steel joints are drawn as they are assembled (`std.bolt_stack`): bolt, a washer under the head, the
 clamped plates, a washer and a lock nut (the wash machine's leg flanges, its blower feet and pillow blocks, the clean
@@ -105,10 +105,11 @@ clips, J2's two drum covers, link covers and the carriage lid. The mast stages a
 ### OTTO-WASH
 
 Two galvanised channel rails on anchor plates, trolleys with PU wheels, side rollers and a geared travel motor each
-side, post-and-brace legs with cladding, a two-chord beam, stainless spray arch with 23 nozzles and 4 solenoid valves,
-a top brush on a 2-rail lift (cross shaft, 2 belt drums, pillow blocks), two side brushes on carriages each driven by a
-gearmotor and pinion on a rack, a top and two side air knives with 3 blowers and their ducts, the valve manifold and arch
-feed hose, two 4-stage detail vacuum columns, each with a 2-tube telescoping reach, stop light, beacon, control cabinet
+side, post-and-brace legs with cladding, a box-girder beam, stainless spray arch with 23 nozzles and 4 solenoid valves,
+a top brush on 2 telescoping lift columns (a sleeve through the beam and 3 stages each, driven by a cross shaft with
+2 belt drums in pillow blocks), two side brushes on carriages each driven by a gearmotor and pinion on a rack, a top air
+knife on 2 more lift columns with a servo gearmotor each, two side air knives, 3 blowers and their ducts, the valve
+manifold and arch feed hose, two 4-stage detail vacuum columns, each with a 2-tube telescoping reach, stop light, beacon, control cabinet
 and the supply drag chain in a trough clear of the travel drive.
 
 ## Every part against every other: the clash check
@@ -135,7 +136,7 @@ As run on the committed CAD (`public/cad/<robot>.clash.json`):
 |---|---:|---:|---:|---:|---|
 | OTTO-CHARGE ARM | 22 | 32,331 | 1 | 0 | 672, 12, 9, 3 |
 | OTTO-CLEAN ARM | 42 | 19,643 | 0 | 0 | 367, 6, 6, 2 |
-| OTTO-WASH | 39 | 6,063 | 0 | 0 | 513, 0, 0, 0 |
+| OTTO-WASH | 39 | 13,109 | 0 | 0 | 503, 0, 0, 0 |
 
 The charge arm's 1 is in its baseline and the tab lists it: the forearm inside the upper arm when the twin folds the
 elbow (design finding 6). The wash machine and the clean arm are held at zero by `cad.test.ts`.
@@ -229,10 +230,13 @@ The poses found more, which the stowed pose could not show:
 7. **The wash machine's top brush and top air knife travel further than fixed guides can.** Over the hood the twin
    lowers the top brush 1.80 m (its axis to 0.93 m above grade) and the top knife 2.00 m (to 0.87 m). The beam's
    underside is 3.30 m up, and the brush's guides stand over the car's flanks, so a guide that reaches that low stands
-   below the roof (1.46 m) as the machine passes over the car. The CAD's 2 lift rails guide 1.39 m of the brush's lift;
-   its knife hangs on its duct with no guide. Each needs a telescoping hanger, as the wand columns have, or swing arms.
-   The CAD gives both joints the twin's full travel, so the view and the clash check follow the twin; the joints-limit
-   test found it (`cad.test.ts` checks every frame of every cycle against every joint's limits).
+   below the roof (1.46 m) as the machine passes over the car. The first CAD's 2 lift rails guided 1.39 m of the
+   brush's lift, and its knife hung on its duct. The joints-limit test found it (`cad.test.ts` checks every frame of
+   every cycle against every joint's limits). **The CAD now hangs each tool on 2 telescoping lift columns,** the wand
+   columns' scheme: a sleeve fixed through the beam and 3 stages, each a third of the lift, 74 mm kept in the stage
+   outside at full travel. The sleeves end 2.91 m (brush) and 3.23 m (knife) above grade, above the car's roof, and
+   the knife's columns stand 4.01 m high stowed, 0.78 m under the wash hall roof (`cad.test.ts` keeps 0.3 m). The twin
+   draws neither mechanism, so its picture of the machine does not change.
 
 None of these changes the twin's kinematics, timings or the engine. Whether the depot renderer adopts the CAD's
 envelopes is a separate change, measured by the clearance tests when it is made.

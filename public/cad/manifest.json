@@ -183,29 +183,29 @@
     "csv": "wash_gantry.bom.csv"
    },
    "bytes": {
-    "glb": 1335796,
-    "stepZip": 1033087,
-    "step": 6199986
+    "glb": 1197632,
+    "stepZip": 1081045,
+    "step": 6475262
    },
    "mesh": {
-    "vertices": 49748,
-    "triangles": 53958,
-    "meshes": 90,
-    "nodes": 763
+    "vertices": 42764,
+    "triangles": 46774,
+    "meshes": 102,
+    "nodes": 815
    },
    "totals": {
-    "parts": 744,
-    "uniqueParts": 90,
-    "fasteners": 467,
-    "massKg": 4013.83,
+    "parts": 792,
+    "uniqueParts": 102,
+    "fasteners": 449,
+    "massKg": 4152.15,
     "boughtLines": 52,
-    "madeLines": 38,
+    "madeLines": 50,
     "referenceLines": 0
    },
-   "glbSha256": "f3c4f28770bde8be",
+   "glbSha256": "813e099e72dc9263",
    "stepCheck": {
-    "namedParts": 744,
-    "solids": 807,
+    "namedParts": 792,
+    "solids": 855,
     "invalid": 0
    },
    "subsystems": [

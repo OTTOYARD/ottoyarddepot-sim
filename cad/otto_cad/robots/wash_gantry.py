@@ -22,8 +22,10 @@ from ..core import Model, Node, PartDef, loc
 WAND_STAGES = 4      # the sleeve and 3 sliding stages (3 stood the stowed column 4 cm under the wash hall roof)
 WAND_REACH_STAGES = 2   # 2 telescoping reach tubes: 1 tube from the column met the other side's head at the centreline
 TOP_LOW_MM = 850.0   # the lowest the top brush axis and the top knife go: the twin takes them over the hood, 1.80 m and
-                     # 2.00 m below their stowed heights. Design finding 7: the brush's 2 lift rails guide 1.39 m of it
-                     # (they cannot hang lower, over the car), and the knife hangs on its duct.
+                     # 2.00 m below their stowed heights. Fixed rails cannot guide that far without standing below the car's
+                     # roof as the machine passes, so each tool hangs on 2 telescoping lift columns (design finding 7).
+TOP_SLIDES = 3       # sliding stages in each lift column; each takes a third of the travel
+KH_X = 290.0         # the top knife's lift columns, either side of its duct and clear of its blower on the beam
 OVER_MM = 1.0        # each wand slide's over-travel past its share of the twin's stroke, at its end stops (the twin's
                      # stroke, from plan units, runs 0.01 mm past the stroke from the 4-decimal spec)
 
@@ -72,13 +74,16 @@ def build(spec: dict) -> Model:
                 how=[f'{arch["nozzles"]} flat-fan nozzles each side and 5 across the top.', 'Solenoid valves switch the foam and the rinse water.'],
                 specs={'pressure': 'up to 70 bar (nozzle rating)'}, group='Tools')
     m.subsystem('TOPBRUSH', 'Top brush (overhead)', 'Washes the bonnet, the roof and the roof pod. It follows the car top.',
-                how=['A geared motor turns the brush.', 'A lift drive on 2 rails lowers it until the motor current says it touches, then follows the shape.'],
+                how=['A geared motor turns the brush.',
+                     'It hangs on 2 telescoping lift columns, 3 stages each, so it reaches the hood with no guide below the roof.',
+                     'The lift lowers it until the motor current says it touches, then follows the shape.'],
                 specs={'brush': f'{2 * top["r"]:.0f} mm, {2 * top["halfLen"]:.0f} mm long'}, group='Tools')
     m.subsystem('SIDEBRUSH', 'Side brushes', 'Wash the flanks, the doors and the wheels.',
                 how=['Each brush hangs from a carriage on 2 rails under the beam.', 'A rack drive moves it in to the flank. A geared motor turns it.'],
                 specs={'brush': f'{2 * side["r"]:.0f} mm, {side["y1"] - side["y0"]:.0f} mm tall'}, group='Tools')
     m.subsystem('DRYER', 'Air knives (dryer)', 'Blow the water off in the last 2 passes.',
-                how=['A top knife follows the car top. 2 side knives close on the flanks.', '3 blowers on the beam feed them through flexible ducts.'],
+                how=['A top knife on 2 telescoping lift columns follows the car top. 2 side knives close on the flanks.',
+                     '3 blowers on the beam feed them through flexible ducts.'],
                 specs={'blowers': 'top 4 kW, sides 2 x 3 kW (class)'}, group='Tools')
     m.subsystem('WAND', 'Detail vacuum wands', 'Vacuum the cabin floor through the open doors on a detail seat.',
                 how=['Each wand drops on a 4-stage column outside its flank.', '2 telescoping tubes reach in through the door opening.'],
@@ -232,8 +237,10 @@ def build(spec: dict) -> Model:
     dk_w = bz0 - bz1 - 300
     for (pid, nm, yd) in (('WSH-DKB', 'Beam bottom deck', beam['y0'] + 2), ('WSH-DKP', 'Beam top deck', beam['y1'] - 2)):
         deck = cq.Workplane('XY').box(bl, 4, dk_w).translate((0, yd, zmid))
-        for sx in (-1, 1):                                                        # the wand columns pass through both decks
+        for sx in (-1, 1):                    # the wand columns and the top tools' lift columns pass through both decks
             deck = deck.cut(cq.Workplane('XY').box(110, 6, 110).translate((sx * wand['x'], yd, zf(wand['dy']))))
+            deck = deck.cut(cq.Workplane('XY').box(140, 6, 140).translate((sx * top['hangerX'], yd, zf(top['dy']))))
+            deck = deck.cut(cq.Workplane('XY').box(140, 6, 140).translate((sx * KH_X, yd, zf(dry_dy) + dtop['d'] / 2 + 34)))
         m.place(gan, m.part(PartDef(pid, f'{nm}, aluminium checker plate 4 mm', deck.val(), 'al_extr', 'structure', 'EN 1386 tread plate',
                                     f'{bl:.0f} x {dk_w:.0f} x 4', '5754-H114', None,
                                     'Closes the beam between its chords and carries the tools hung below it and the drives on it.',
@@ -297,9 +304,51 @@ def build(spec: dict) -> Model:
 
     # ═══════════════════════════════════════════════════════════ TOP BRUSH ═══
     zt = zf(top['dy'])
-    tb = gan.child('TopBrush', Location(), sub='TOPBRUSH',
-                   joint={'name': 'TOP_BRUSH', 'axis': [0, -1, 0], 'limits': [0, (top['retractY'] - TOP_LOW_MM) / 1000],
-                          'kind': 'prismatic', 'stowed': 0})
+
+    def lift_columns(tag: str, jname: str, xs: tuple, z: float, foot_y: float, stroke: float, label: str, sub: str):
+        """A tool's 2 lift columns, the wand columns' scheme: a sleeve fixed through the beam and TOP_SLIDES stages that
+        slide inside it and each other, each a third of the stroke; at full travel each keeps 74 mm in the one outside it.
+        The stages at both columns move as one (one cross shaft or one drive per tool), so stage k of both is one node.
+        Returns the innermost stage's node (its foot at foot_y, stowed) and the sleeve's top and bottom."""
+        trav = stroke / TOP_SLIDES
+        st_l = trav + 100
+        secs, walls = (140.0, 122.0, 106.0, 90.0), (5.0, 4.0, 4.0, 4.0)
+        y_top = foot_y + 25 * TOP_SLIDES + st_l
+        y_bot = y_top - 25 - trav - 74
+        sl = (cq.Workplane('XZ', origin=(0, y_top, 0)).rect(secs[0], secs[0]).extrude(y_top - y_bot)
+              .cut(cq.Workplane('XZ', origin=(0, y_top + 1, 0)).rect(secs[0] - 2 * walls[0], secs[0] - 2 * walls[0]).extrude(y_top - y_bot + 2)))
+        sl_pd = m.part(PartDef(f'WSH-{tag}0', f'{label} sleeve, 140 x 140 x 5', sl.val(), 'ss316', 'structure', 'EN 10219',
+                               f'{y_top - y_bot:.0f} long', '316L', None, 'Fixed through the beam. It guides the column\'s first stage.',
+                               {'bottom': f'{y_bot / 1000:.2f} m above grade, above the car roof'}, 'make'))
+        pad_pd = m.part(PartDef(f'WSH-{tag}P', f'{label} slide pad, UHMW-PE', cq.Workplane('XY').box(4, 60, 40).val(), 'pa66',
+                                'bearing', 'machined', '4 x 60 x 40', 'UHMW-PE', None,
+                                'Guides a stage in the one outside it. No grease to wash off.', {}, 'make'))
+        for x in xs:
+            m.place(gan, sl_pd, loc(x, 0, z), (x * 0.1, 300, 0), sub)
+        parent = gan
+        for k in range(1, TOP_SLIDES + 1):
+            node = parent.child(f'{jname}{k}', Location(), sub=sub,
+                                joint={'name': f'{jname}{k}', 'axis': [0, -1, 0], 'limits': [0, (trav + OVER_MM) / 1000],
+                                       'kind': 'prismatic', 'stowed': 0})
+            a, w = secs[k], walls[k]
+            stage_top = y_top - 25 * k
+            tube = (cq.Workplane('XZ', origin=(0, stage_top, 0)).rect(a, a).extrude(st_l)
+                    .cut(cq.Workplane('XZ', origin=(0, stage_top + 1, 0)).rect(a - 2 * w, a - 2 * w).extrude(st_l + 2)))
+            tube_pd = m.part(PartDef(f'WSH-{tag}{k}', f'{label} stage {k + 1}, {a:.0f} x {a:.0f}', tube.val(), 'ss316', 'structure',
+                                     'EN 10219', f'{st_l:.0f} long', '316L', None,
+                                     ('Slides a third of the travel. A belt over its pulley drives the next stage.' if k < TOP_SLIDES
+                                      else 'Slides a third of the travel and carries the tool at its foot.'), {}, 'make'))
+            gap = (secs[k - 1] - 2 * walls[k - 1] - a) / 2
+            for x in xs:
+                m.place(node, tube_pd, loc(x, 0, z), (x * 0.1, 300 - 80 * k, 0), sub)
+                for ang in (0, 90, 180, 270):
+                    m.place(node, pad_pd, loc(x, stage_top - 30, z, ry=ang) * loc(a / 2 + gap / 2, 0, 0), (x * 0.1, 300 - 80 * k, 0), sub)
+            parent = node
+        return parent, y_top, y_bot
+
+    HB_ = 220
+    tb, tb_top, tb_bot = lift_columns('TH', 'TOP_BRUSH', (-top['hangerX'], top['hangerX']), zt, top['retractY'] + HB_ / 2,
+                                      top['retractY'] - TOP_LOW_MM, 'Top brush lift column', 'TOPBRUSH')
     m.place(tb, m.part(PartDef('WSH-TBR', 'Top brush, closed-cell foam strips', _brush(30, top['r'], 2 * top['halfLen']),
                                'brush_blue', 'tool', 'catalogue part', f'D {2 * top["r"]:.0f} x {2 * top["halfLen"]:.0f}', '', None,
                                'Scrubs the car top. Foam strips do not hold grit, so they do not scratch the paint.',
@@ -316,15 +365,12 @@ def build(spec: dict) -> Model:
            .union(cq.Workplane('YZ').circle(46).extrude(46)).cut(cq.Workplane('YZ').circle(30).extrude(80, both=True)))
     fbu_pd = m.part(PartDef('WSH-FBU', 'Flanged bearing unit, 4-bolt, stainless, 60 mm', fbu.val(), 'ss316', 'bearing', 'ISO 3228',
                             'bore 60', 'sealed, wash-down', None, 'Carries one end of a brush shaft.', {}, 'buy'))
-    y_hb = top['retractY'] + HB / 2                      # the hollow upper part rises from the bearing block to the deck
-    hh = beam['y0'] - y_hb
-    hcen = (0, y_hb + hh / 2, zt)
-    hanger = (cq.Workplane('XY').box(HW, hh, 140).translate(hcen)
-              .cut(cq.Workplane('XY').box(HW - 10, hh + 2, 130).translate(hcen))
-              .union(cq.Workplane('XY').box(HW, HB, 140).translate((0, top['retractY'], zt)))
+    # each lift column's foot carries a bearing block; the column's innermost tube stands on it
+    hanger = (cq.Workplane('XY').box(HW, HB, 140).translate((0, top['retractY'], zt))
               .cut(cq.Workplane('YZ', origin=(-HW, top['retractY'], zt)).circle(46).extrude(2 * HW)))
-    hanger_pd = m.part(PartDef('WSH-THG', 'Top brush hanger', hanger.val(), 'ss316', 'structure', 'machined weldment',
-                               f'{HW} x 140', '316L', None, 'Hangs the brush from its lift rail. Its block carries a bearing unit.', {}, 'make'))
+    hanger_pd = m.part(PartDef('WSH-THG', 'Top brush bearing block', hanger.val(), 'ss316', 'structure', 'machined',
+                               f'{HW} x {HB} x 140', '316L', None,
+                               'Hangs the brush from its lift column\'s foot. It carries a bearing unit.', {}, 'make'))
     for sx in (-1, 1):
         m.place(tb, hanger_pd, loc(sx * top['hangerX'], 0, 0), (sx * 120, 0, 0), 'TOPBRUSH')
         # the bearing unit on the hanger's inner face, its boss in the hanger block's bore
@@ -345,18 +391,8 @@ def build(spec: dict) -> Model:
         for dz in (-40, 40):
             m.place(tb, std.hex_bolt(10, 30, 'A4-70', 'Holds the top brush gearmotor to its hanger.'),
                     std.orient((x_out + 12, top['retractY'] + dy, zt + dz), (-1, 0, 0)), (440, 0, 0), 'TOPBRUSH')
-    # lift: 2 vertical rails on the beam face and a lift gearmotor with toothed belts
-    # each rail stands on a mast plate hung from the bottom deck; its block's face meets the hanger's north face
-    lr = std.rail(25, 1600)
-    w_r, h_r, bw_r, bh_r = std.RAIL[25][0], std.RAIL[25][1], std.RAIL[25][2], std.RAIL[25][3]
-    z_rb = zt + 70 + bh_r                                 # the rail's base (its blocks reach back to z = zt + 70)
-    lmp = cq.Workplane('XY').box(120, 1600, 12).translate((0, beam['y0'] - 800, z_rb + 6))
-    lmp_pd = m.part(PartDef('WSH-LMP', 'Lift mast plate, stainless', lmp.val(), 'ss316', 'structure', 'cut plate 12 mm', '120 x 1600',
-                            '316L', None, 'Carries a lift rail. Welded under the bottom deck.', {}, 'make'))
-    for sx in (-1, 1):
-        m.place(gan, lmp_pd, loc(sx * top['hangerX'], 0, 0), (sx * 100, 0, 260), 'TOPBRUSH')
-        m.place(gan, lr, loc(sx * top['hangerX'], beam['y0'] - 800, z_rb, rx=-90), (sx * 100, 0, 200), 'TOPBRUSH')
-        m.place(tb, std.rail_block(25), loc(sx * top['hangerX'], top['retractY'] + 400, z_rb, rx=-90), (sx * 140, 0, 160), 'TOPBRUSH')
+    # lift: the lift gearmotor on the top deck turns a cross shaft with a belt drum over each column; the belts go down
+    # into the columns (a belt over each stage's pulley drives the next stage)
     lgm = (cq.Workplane('XY').box(180, 10, 180).translate((0, 5, 0))
            .union(cq.Workplane('XY').box(130, 90, 130).translate((0, 55, 0)))
            .cut(cq.Workplane('YZ', origin=(-100, 50, 0)).circle(20.5).extrude(200))
@@ -432,9 +468,20 @@ def build(spec: dict) -> Model:
 
     # ═══════════════════════════════════════════════════════════════ DRYERS ═══
     zd = zf(dry_dy)
-    dt = gan.child('DryerTop', Location(), sub='DRYER',
-                   joint={'name': 'DRYER_TOP', 'axis': [0, -1, 0], 'limits': [0, (dtop['retractY'] - TOP_LOW_MM) / 1000],
-                          'kind': 'prismatic', 'stowed': 0})
+    z_kh = zd + dtop['d'] / 2 + 34                       # over the knife brackets' flanges, inboard of the beam's chord
+    y_kf = dtop['retractY'] + dtop['h'] + 120            # the flanges' top, stowed
+    dt, kt_top, kt_bot = lift_columns('KH', 'DRYER_TOP', (-KH_X, KH_X), z_kh, y_kf, dtop['retractY'] - TOP_LOW_MM,
+                                      'Top air knife lift column', 'DRYER')
+    # the innermost stage's foot plate stands on its bracket flange; a servo gearmotor on each sleeve drives its column
+    kfp_pd = m.part(PartDef('WSH-KFP', 'Lift column foot plate', cq.Workplane('XY').box(82, 8, 82).val(), 'ss316', 'structure',
+                            'cut plate 8 mm', '82 x 82', '316L', None, 'Closes the column foot and bolts to the knife bracket.', {}, 'make'))
+    kdm = cq.Workplane('XY').box(120, 140, 120).edges('|Y').fillet(10)
+    kdm_pd = m.part(PartDef('WSH-KDM', 'Top knife lift servo gearmotor 0.4 kW, brake', kdm.val(), 'steel_paint', 'drive', 'catalogue part',
+                            '0.4 kW', 'IP66', None, 'Drives its column by a toothed belt. Its brake holds the knife with power off.',
+                            {}, 'buy', mass_override=7.5))
+    for sx in (-1, 1):
+        m.place(dt, kfp_pd, loc(sx * KH_X, y_kf + 4, z_kh), (sx * 30, -120, 0), 'DRYER')
+        m.place(gan, kdm_pd, loc(sx * (KH_X - 130), kt_top - 80, z_kh), (sx * 60, 420, 0), 'DRYER')
     kc = (0, dtop['retractY'] + dtop['h'] / 2, zd)
     knife = (cq.Workplane('XY').box(2 * dtop['halfLen'], dtop['h'], dtop['d']).translate(kc)
              .cut(cq.Workplane('XY').box(2 * dtop['halfLen'] - 6, dtop['h'] - 4, dtop['d'] - 4).translate(kc))
@@ -573,18 +620,18 @@ def build(spec: dict) -> Model:
         for dz in (-75, 75):
             m.place(gan, std.hex_bolt(8, 25, 'A4-70', 'Holds the lift gearmotor to the top deck.'),
                     std.orient((dx, beam['y1'] + 10, zt + dz), (0, -1, 0)), (0, 330, 0), 'TOPBRUSH')
-    # lift rails to the beam face, and the rail blocks to the hangers
-    for sx in (-1, 1):
-        for i in range(13):
-            # in every other counterbored hole of the rail (pitch 60, first at 50 from the end), into the mast plate
-            m.place(gan, std.shcs(6, 20, 'A4-80', 'Holds the lift rail to its mast plate.'),
-                    std.orient((sx * top['hangerX'], beam['y0'] - 800 - 750 + i * 120, z_rb - h_r + h_r * 0.45), (0, 0, 1)),
-                    (sx * 100, 0, 240), 'TOPBRUSH')
-        for dx in (-17.3, 17.3):
-            for dy in (-21.8, 21.8):
-                m.place(tb, std.shcs(6, 16, 'A4-80', 'Holds the rail block to the hanger, from inside it.'),
-                        std.orient((sx * top['hangerX'] + dx, top['retractY'] + 400 + dy, zt + 65), (0, 0, 1)), (sx * 140, 0, 200),
-                        'TOPBRUSH')
+    # the lift columns' sleeves: a clamp plate round each under the bottom deck, 4 x M8 into the deck
+    for (tag, xs_, zc_, half, sub_) in (('WSH-TCL', (-top['hangerX'], top['hangerX']), zt, 110.0, 'TOPBRUSH'),
+                                        ('WSH-KCL', (-KH_X, KH_X), z_kh, 90.0, 'DRYER')):
+        cl = cq.Workplane('XY').box(2 * half, 12, 2 * half).cut(cq.Workplane('XY').box(140, 14, 140))
+        cl_pd = m.part(PartDef(tag, 'Lift column clamp plate, stainless', cl.val(), 'ss316', 'structure', 'cut plate 12 mm',
+                               f'{2 * half:.0f} x {2 * half:.0f}', '316L', None, 'Holds a lift column sleeve under the bottom deck.', {}, 'make'))
+        for x in xs_:
+            m.place(gan, cl_pd, loc(x, beam['y0'] - 6, zc_), (x * 0.1, 140, 0), sub_)
+            for dx in (-(half - 10 if half < 100 else 88), half - 10 if half < 100 else 88):
+                for dz in (dx, -dx):
+                    m.place(gan, std.shcs(8, 20, 'A4-80', 'Holds the lift column clamp plate to the bottom deck.'),
+                            std.orient((x + dx, beam['y0'] - 12, zc_ + dz), (0, 1, 0)), (x * 0.1, 160, 0), sub_)
     # blowers: 4 x M10 feet each
     for bx in (-900, -(legX - 800), legX - 800):
         for fx in (-150, 150):
@@ -597,8 +644,7 @@ def build(spec: dict) -> Model:
     kb = (cq.Workplane('XY').box(60, 120, 8).union(cq.Workplane('XY').box(60, 8, 60).translate((0, 56, 26))))
     kb_pd = m.part(PartDef('WSH-KBR', 'Air knife bracket, stainless', kb.val(), 'ss316', 'structure', 'bent sheet 8 mm', '60 x 120',
                            '316L', None, 'Hangs an air knife from its slide.', {}, 'make'))
-    for i in range(4):
-        xb = -dtop['halfLen'] + 200 + i * (2 * dtop['halfLen'] - 400) / 3
+    for xb in (-dtop['halfLen'] + 200, -KH_X, KH_X, dtop['halfLen'] - 200):     # the 2 inner ones under the lift columns
         m.place(dt, kb_pd, loc(xb, dtop['retractY'] + dtop['h'] + 60, zd + dtop['d'] / 2 + 4), (0, -150, 80), 'DRYER')
         for dy in (-30, 30):
             m.place(dt, std.shcs(8, 20, 'A4-80', 'Holds the bracket to the air knife.'),

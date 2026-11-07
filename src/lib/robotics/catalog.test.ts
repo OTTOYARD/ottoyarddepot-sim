@@ -22,7 +22,9 @@ describe('pose presets come from the twin\'s own code', () => {
   it('wash: home is the north end with every tool retracted; a brush pass closes the side brushes on the flank', () => {
     const home = washAngles('home', 1);
     expect(home.GANTRY).toBeCloseTo(-WASH_HOME_DY * METRES_PER_PLAN_UNIT, 6);
-    for (const k of ['TOP_BRUSH', 'SIDE_BRUSH_L', 'DRYER_TOP', 'WAND_L_DROP1', 'WAND_R_REACH1', 'WAND_R_REACH2']) expect(home[k]).toBeCloseTo(0, 6);
+    for (const k of ['TOP_BRUSH1', 'TOP_BRUSH3', 'SIDE_BRUSH_L', 'DRYER_TOP1', 'DRYER_TOP3', 'WAND_L_DROP1', 'WAND_R_REACH1', 'WAND_R_REACH2']) {
+      expect(home[k]).toBeCloseTo(0, 6);
+    }
     const brush = washAngles('wash_1', 0.5);
     expect(brush.SIDE_BRUSH_L).toBeCloseTo((WASH_GANTRY.sideBrush.retractX - SIDE_BRUSH_CONTACT_X) * METRES_PER_PLAN_UNIT, 6);
     expect(brush.SIDE_BRUSH_R).toBe(brush.SIDE_BRUSH_L);

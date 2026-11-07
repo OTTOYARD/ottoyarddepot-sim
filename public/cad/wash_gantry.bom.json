@@ -7,12 +7,12 @@
   "glb": "m"
  },
  "totals": {
-  "parts": 744,
-  "uniqueParts": 90,
-  "fasteners": 467,
-  "massKg": 4013.83,
+  "parts": 792,
+  "uniqueParts": 102,
+  "fasteners": 449,
+  "massKg": 4152.15,
   "boughtLines": 52,
-  "madeLines": 38,
+  "madeLines": 50,
   "referenceLines": 0
  },
  "subsystems": [
@@ -69,7 +69,7 @@
    "order": 2,
    "partCount": 164,
    "fastenerCount": 157,
-   "massKg": 1684.612,
+   "massKg": 1682.918,
    "uniqueParts": 9
   },
   {
@@ -96,17 +96,18 @@
    "function": "Washes the bonnet, the roof and the roof pod. It follows the car top.",
    "how": [
     "A geared motor turns the brush.",
-    "A lift drive on 2 rails lowers it until the motor current says it touches, then follows the shape."
+    "It hangs on 2 telescoping lift columns, 3 stages each, so it reaches the hood with no guide below the roof.",
+    "The lift lowers it until the motor current says it touches, then follows the shape."
    ],
    "specs": {
     "brush": "718 mm, 1627 mm long"
    },
    "group": "Tools",
    "order": 4,
-   "partCount": 85,
-   "fastenerCount": 66,
-   "massKg": 242.835,
-   "uniqueParts": 19
+   "partCount": 87,
+   "fastenerCount": 40,
+   "massKg": 270.358,
+   "uniqueParts": 21
   },
   {
    "id": "SIDEBRUSH",
@@ -131,7 +132,7 @@
    "name": "Air knives (dryer)",
    "function": "Blow the water off in the last 2 passes.",
    "how": [
-    "A top knife follows the car top. 2 side knives close on the flanks.",
+    "A top knife on 2 telescoping lift columns follows the car top. 2 side knives close on the flanks.",
     "3 blowers on the beam feed them through flexible ducts."
    ],
    "specs": {
@@ -139,10 +140,10 @@
    },
    "group": "Tools",
    "order": 6,
-   "partCount": 69,
-   "fastenerCount": 56,
-   "massKg": 347.347,
-   "uniqueParts": 10
+   "partCount": 115,
+   "fastenerCount": 64,
+   "massKg": 459.84,
+   "uniqueParts": 18
   },
   {
    "id": "WAND",
@@ -573,8 +574,8 @@
    "material": "Aluminium 6063-T6 extrusion, anodised",
    "materialKey": "al_extr",
    "qty": 1,
-   "massKg": 121.6861,
-   "totalMassKg": 121.6861,
+   "massKg": 120.8394,
+   "totalMassKg": 120.8394,
    "torqueNm": null,
    "reference": false,
    "function": "Closes the beam between its chords and carries the tools hung below it and the drives on it.",
@@ -597,8 +598,8 @@
    "material": "Aluminium 6063-T6 extrusion, anodised",
    "materialKey": "al_extr",
    "qty": 1,
-   "massKg": 121.6861,
-   "totalMassKg": 121.6861,
+   "massKg": 120.8394,
+   "totalMassKg": 120.8394,
    "torqueNm": null,
    "reference": false,
    "function": "Closes the beam between its chords and carries the tools hung below it and the drives on it.",
@@ -959,21 +960,119 @@
    ]
   },
   {
-   "id": "WSH-LMP",
-   "name": "Lift mast plate, stainless",
+   "id": "WSH-TCL",
+   "name": "Lift column clamp plate, stainless",
    "category": "structure",
    "make": "make",
    "standard": "cut plate 12 mm",
-   "size": "120 x 1600",
+   "size": "220 x 220",
    "grade": "316L",
    "material": "Stainless steel 1.4401 (316)",
    "materialKey": "ss316",
    "qty": 2,
-   "massKg": 18.3859,
-   "totalMassKg": 36.7718,
+   "massKg": 2.7579,
+   "totalMassKg": 5.5158,
    "torqueNm": null,
    "reference": false,
-   "function": "Carries a lift rail. Welded under the bottom deck.",
+   "function": "Holds a lift column sleeve under the bottom deck.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "TOPBRUSH",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-TH0",
+   "name": "Top brush lift column sleeve, 140 x 140 x 5",
+   "category": "structure",
+   "make": "make",
+   "standard": "EN 10219",
+   "size": "725 long",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 15.6173,
+   "totalMassKg": 31.2345,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Fixed through the beam. It guides the column's first stage.",
+   "spec": {
+    "bottom": "2.91 m above grade, above the car roof"
+   },
+   "uses": [
+    {
+     "sub": "TOPBRUSH",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-TH1",
+   "name": "Top brush lift column stage 2, 122 x 122",
+   "category": "structure",
+   "make": "make",
+   "standard": "EN 10219",
+   "size": "726 long",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 10.9356,
+   "totalMassKg": 21.8712,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Slides a third of the travel. A belt over its pulley drives the next stage.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "TOPBRUSH",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-TH2",
+   "name": "Top brush lift column stage 3, 106 x 106",
+   "category": "structure",
+   "make": "make",
+   "standard": "EN 10219",
+   "size": "726 long",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 9.4528,
+   "totalMassKg": 18.9056,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Slides a third of the travel. A belt over its pulley drives the next stage.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "TOPBRUSH",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-TH3",
+   "name": "Top brush lift column stage 4, 90 x 90",
+   "category": "structure",
+   "make": "make",
+   "standard": "EN 10219",
+   "size": "726 long",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 7.97,
+   "totalMassKg": 15.94,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Slides a third of the travel and carries the tool at its foot.",
    "spec": {},
    "uses": [
     {
@@ -984,72 +1083,20 @@
   },
   {
    "id": "WSH-THG",
-   "name": "Top brush hanger",
+   "name": "Top brush bearing block",
    "category": "structure",
    "make": "make",
-   "standard": "machined weldment",
-   "size": "100 x 140",
+   "standard": "machined",
+   "size": "100 x 220 x 140",
    "grade": "316L",
    "material": "Stainless steel 1.4401 (316)",
    "materialKey": "ss316",
    "qty": 2,
-   "massKg": 27.7935,
-   "totalMassKg": 55.5871,
+   "massKg": 19.2736,
+   "totalMassKg": 38.5472,
    "torqueNm": null,
    "reference": false,
-   "function": "Hangs the brush from its lift rail. Its block carries a bearing unit.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "BLK25",
-   "name": "Profile rail block size 25",
-   "category": "drive",
-   "make": "buy",
-   "standard": "catalogue part (ISO 12090-1 dims)",
-   "size": "size 25",
-   "grade": "preload Z1, wipers",
-   "material": "Steel 42CrMo4, quenched and tempered",
-   "materialKey": "steel",
-   "qty": 6,
-   "massKg": 0.7203,
-   "totalMassKg": 4.3218,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Recirculating ball carriage. It runs on the rail and carries the moving stage.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 2
-    },
-    {
-     "sub": "SIDEBRUSH",
-     "qty": 4
-    }
-   ]
-  },
-  {
-   "id": "RAIL25-1600",
-   "name": "Profile rail size 25 x 1600",
-   "category": "drive",
-   "make": "buy",
-   "standard": "catalogue part (ISO 12090-1 dims)",
-   "size": "size 25, L 1600",
-   "grade": "precision grade",
-   "material": "Bearing steel 100Cr6, hardened",
-   "materialKey": "bearing",
-   "qty": 2,
-   "massKg": 5.4364,
-   "totalMassKg": 10.8728,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Hardened guide rail. It carries the block in a straight line with no play.",
+   "function": "Hangs the brush from its lift column's foot. It carries a bearing unit.",
    "spec": {},
    "uses": [
     {
@@ -1235,6 +1282,30 @@
    ]
   },
   {
+   "id": "WSH-THP",
+   "name": "Top brush lift column slide pad, UHMW-PE",
+   "category": "bearing",
+   "make": "make",
+   "standard": "machined",
+   "size": "4 x 60 x 40",
+   "grade": "UHMW-PE",
+   "material": "PA66-GF30",
+   "materialKey": "pa66",
+   "qty": 24,
+   "massKg": 0.013,
+   "totalMassKg": 0.311,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Guides a stage in the one outside it. No grease to wash off.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "TOPBRUSH",
+     "qty": 24
+    }
+   ]
+  },
+  {
    "id": "WSH-TBR",
    "name": "Top brush, closed-cell foam strips",
    "category": "tool",
@@ -1359,68 +1430,37 @@
    ]
   },
   {
-   "id": "ISO4762-M6x16-A4-80",
-   "name": "Socket head cap screw M6 x 16",
+   "id": "ISO4762-M8x20-A4-80",
+   "name": "Socket head cap screw M8 x 20",
    "category": "fastener",
    "make": "buy",
    "standard": "ISO 4762",
-   "size": "M6 x 16",
+   "size": "M8 x 20",
    "grade": "A4-80",
    "material": "Stainless steel A4-80",
    "materialKey": "fast_a4",
-   "qty": 28,
-   "massKg": 0.0067,
-   "totalMassKg": 0.1879,
-   "torqueNm": 9.8,
+   "qty": 32,
+   "massKg": 0.0152,
+   "totalMassKg": 0.4872,
+   "torqueNm": 23.8,
    "reference": false,
-   "function": "Holds the rail block to the carriage, from inside it.",
+   "function": "Holds the lift column clamp plate to the bottom deck.",
    "spec": {
-    "preload": "9.5 kN",
-    "drive": "hex socket 5 mm"
+    "preload": "17.5 kN",
+    "drive": "hex socket 6 mm"
    },
    "uses": [
-    {
-     "sub": "CONTROL",
-     "qty": 4
-    },
     {
      "sub": "TOPBRUSH",
      "qty": 8
     },
     {
-     "sub": "SIDEBRUSH",
+     "sub": "DRYER",
      "qty": 16
-    }
-   ]
-  },
-  {
-   "id": "ISO4762-M6x20-A4-80",
-   "name": "Socket head cap screw M6 x 20",
-   "category": "fastener",
-   "make": "buy",
-   "standard": "ISO 4762",
-   "size": "M6 x 20",
-   "grade": "A4-80",
-   "material": "Stainless steel A4-80",
-   "materialKey": "fast_a4",
-   "qty": 86,
-   "massKg": 0.0076,
-   "totalMassKg": 0.6549,
-   "torqueNm": 9.8,
-   "reference": false,
-   "function": "Holds the side brush rail to the bottom deck.",
-   "spec": {
-    "preload": "9.5 kN",
-    "drive": "hex socket 5 mm"
-   },
-   "uses": [
-    {
-     "sub": "SIDEBRUSH",
-     "qty": 60
     },
     {
-     "sub": "TOPBRUSH",
-     "qty": 26
+     "sub": "WAND",
+     "qty": 8
     }
    ]
   },
@@ -1493,6 +1533,30 @@
     {
      "sub": "SIDEBRUSH",
      "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "BLK25",
+   "name": "Profile rail block size 25",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue part (ISO 12090-1 dims)",
+   "size": "size 25",
+   "grade": "preload Z1, wipers",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 4,
+   "massKg": 0.7203,
+   "totalMassKg": 2.8812,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Recirculating ball carriage. It runs on the rail and carries the moving stage.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SIDEBRUSH",
+     "qty": 4
     }
    ]
   },
@@ -1699,6 +1763,64 @@
    ]
   },
   {
+   "id": "ISO4762-M6x16-A4-80",
+   "name": "Socket head cap screw M6 x 16",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M6 x 16",
+   "grade": "A4-80",
+   "material": "Stainless steel A4-80",
+   "materialKey": "fast_a4",
+   "qty": 20,
+   "massKg": 0.0067,
+   "totalMassKg": 0.1342,
+   "torqueNm": 9.8,
+   "reference": false,
+   "function": "Holds the rail block to the carriage, from inside it.",
+   "spec": {
+    "preload": "9.5 kN",
+    "drive": "hex socket 5 mm"
+   },
+   "uses": [
+    {
+     "sub": "CONTROL",
+     "qty": 4
+    },
+    {
+     "sub": "SIDEBRUSH",
+     "qty": 16
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M6x20-A4-80",
+   "name": "Socket head cap screw M6 x 20",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M6 x 20",
+   "grade": "A4-80",
+   "material": "Stainless steel A4-80",
+   "materialKey": "fast_a4",
+   "qty": 60,
+   "massKg": 0.0076,
+   "totalMassKg": 0.4569,
+   "torqueNm": 9.8,
+   "reference": false,
+   "function": "Holds the side brush rail to the bottom deck.",
+   "spec": {
+    "preload": "9.5 kN",
+    "drive": "hex socket 5 mm"
+   },
+   "uses": [
+    {
+     "sub": "SIDEBRUSH",
+     "qty": 60
+    }
+   ]
+  },
+  {
    "id": "WSH-KBR",
    "name": "Air knife bracket, stainless",
    "category": "structure",
@@ -1719,6 +1841,152 @@
     {
      "sub": "DRYER",
      "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "WSH-KCL",
+   "name": "Lift column clamp plate, stainless",
+   "category": "structure",
+   "make": "make",
+   "standard": "cut plate 12 mm",
+   "size": "180 x 180",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 1.2257,
+   "totalMassKg": 2.4515,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Holds a lift column sleeve under the bottom deck.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "DRYER",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-KFP",
+   "name": "Lift column foot plate",
+   "category": "structure",
+   "make": "make",
+   "standard": "cut plate 8 mm",
+   "size": "82 x 82",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 0.4293,
+   "totalMassKg": 0.8585,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Closes the column foot and bolts to the knife bracket.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "DRYER",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-KH0",
+   "name": "Top air knife lift column sleeve, 140 x 140 x 5",
+   "category": "structure",
+   "make": "make",
+   "standard": "EN 10219",
+   "size": "773 long",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 16.6479,
+   "totalMassKg": 33.2958,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Fixed through the beam. It guides the column's first stage.",
+   "spec": {
+    "bottom": "3.23 m above grade, above the car roof"
+   },
+   "uses": [
+    {
+     "sub": "DRYER",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-KH1",
+   "name": "Top air knife lift column stage 2, 122 x 122",
+   "category": "structure",
+   "make": "make",
+   "standard": "EN 10219",
+   "size": "774 long",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 11.6562,
+   "totalMassKg": 23.3125,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Slides a third of the travel. A belt over its pulley drives the next stage.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "DRYER",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-KH2",
+   "name": "Top air knife lift column stage 3, 106 x 106",
+   "category": "structure",
+   "make": "make",
+   "standard": "EN 10219",
+   "size": "774 long",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 10.0757,
+   "totalMassKg": 20.1515,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Slides a third of the travel. A belt over its pulley drives the next stage.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "DRYER",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-KH3",
+   "name": "Top air knife lift column stage 4, 90 x 90",
+   "category": "structure",
+   "make": "make",
+   "standard": "EN 10219",
+   "size": "774 long",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 8.4952,
+   "totalMassKg": 16.9905,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Slides a third of the travel and carries the tool at its foot.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "DRYER",
+     "qty": 2
     }
    ]
   },
@@ -1746,6 +2014,56 @@
     {
      "sub": "DRYER",
      "qty": 3
+    }
+   ]
+  },
+  {
+   "id": "WSH-KDM",
+   "name": "Top knife lift servo gearmotor 0.4 kW, brake",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "0.4 kW",
+   "grade": "IP66",
+   "material": "Structural steel S355, painted RAL 9005",
+   "materialKey": "steel_paint",
+   "qty": 2,
+   "massKg": 7.5,
+   "totalMassKg": 15.0,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Drives its column by a toothed belt. Its brake holds the knife with power off.",
+   "spec": {
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "DRYER",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-KHP",
+   "name": "Top air knife lift column slide pad, UHMW-PE",
+   "category": "bearing",
+   "make": "make",
+   "standard": "machined",
+   "size": "4 x 60 x 40",
+   "grade": "UHMW-PE",
+   "material": "PA66-GF30",
+   "materialKey": "pa66",
+   "qty": 24,
+   "massKg": 0.013,
+   "totalMassKg": 0.311,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Guides a stage in the one outside it. No grease to wash off.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "DRYER",
+     "qty": 24
     }
    ]
   },
@@ -1869,37 +2187,6 @@
     {
      "sub": "DRYER",
      "qty": 12
-    }
-   ]
-  },
-  {
-   "id": "ISO4762-M8x20-A4-80",
-   "name": "Socket head cap screw M8 x 20",
-   "category": "fastener",
-   "make": "buy",
-   "standard": "ISO 4762",
-   "size": "M8 x 20",
-   "grade": "A4-80",
-   "material": "Stainless steel A4-80",
-   "materialKey": "fast_a4",
-   "qty": 16,
-   "massKg": 0.0152,
-   "totalMassKg": 0.2436,
-   "torqueNm": 23.8,
-   "reference": false,
-   "function": "Holds the bracket to the air knife.",
-   "spec": {
-    "preload": "17.5 kN",
-    "drive": "hex socket 6 mm"
-   },
-   "uses": [
-    {
-     "sub": "WAND",
-     "qty": 8
-    },
-    {
-     "sub": "DRYER",
-     "qty": 8
     }
    ]
   },

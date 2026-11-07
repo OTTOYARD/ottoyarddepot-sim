@@ -221,6 +221,8 @@ function cleanPoses(): PosePreset[] {
 export const WASH_WAND_SLIDES = 3;
 /** The wash wands' telescoping reach tubes (cad wash_gantry.WAND_REACH_STAGES): each takes half the reach. */
 export const WASH_WAND_REACH_STAGES = 2;
+/** The top brush's and top air knife's lift column stages (cad wash_gantry.TOP_SLIDES): each takes a third of the lift. */
+export const WASH_TOP_SLIDES = 3;
 
 /** The wash machine's slides as the CAD's nodes take them, from the twin's washPoseAt (plan units -> metres). */
 export function washAngles(phase: WashPhase, t: number): Record<string, number> {
@@ -228,11 +230,11 @@ export function washAngles(phase: WashPhase, t: number): Record<string, number> 
   const m = METRES_PER_PLAN_UNIT;
   const drop = p.wandDrop * (WG.wand.topY - WG.wand.workY) * m;
   const reach = p.wandReach * (WG.wand.x - WG.wand.reachX) * m;
-  const out: Record<string, number> = {
-    GANTRY: -p.dy * m,
-    TOP_BRUSH: (WG.topBrush.retractY - p.topBrushY) * m,
-    DRYER_TOP: (WG.dryer.top.retractY - p.dryerTopY) * m,
-  };
+  const out: Record<string, number> = { GANTRY: -p.dy * m };
+  for (let k = 1; k <= WASH_TOP_SLIDES; k++) {
+    out[`TOP_BRUSH${k}`] = (WG.topBrush.retractY - p.topBrushY) * m / WASH_TOP_SLIDES;
+    out[`DRYER_TOP${k}`] = (WG.dryer.top.retractY - p.dryerTopY) * m / WASH_TOP_SLIDES;
+  }
   for (const s of ['L', 'R']) {
     out[`SIDE_BRUSH_${s}`] = (WG.sideBrush.retractX - p.sideBrushX) * m;
     out[`DRYER_SIDE_${s}`] = (WG.dryer.side.retractX - p.dryerSideX) * m;
@@ -358,8 +360,10 @@ export const JOINT_LABEL: Record<string, string> = {
   J1: 'J1 base yaw', J2: 'J2 shoulder pitch', J3: 'J3 elbow pitch', J4: 'J4 forearm roll', J5: 'J5 wrist pitch', J6: 'J6 tool roll',
   CA_J1: 'J1 shoulder yaw', CA_J2: 'J2 elbow yaw', CA_J3: 'J3 mast yaw', CA_Mast2: 'Mast stage 2', CA_Mast3: 'Mast stage 3',
   CA_Pitch: 'J4 wrist pitch', CA_Wand2: 'Wand tube 2', CA_Wand3: 'Wand tube 3', CA_Wand4: 'Wand tube 4', CA_Nozzle: 'J5 nozzle pitch',
-  GANTRY: 'Gantry travel', TOP_BRUSH: 'Top brush lift', SIDE_BRUSH_L: 'Left side brush', SIDE_BRUSH_R: 'Right side brush',
-  DRYER_TOP: 'Top air knife', DRYER_SIDE_L: 'Left air knife', DRYER_SIDE_R: 'Right air knife',
+  GANTRY: 'Gantry travel', SIDE_BRUSH_L: 'Left side brush', SIDE_BRUSH_R: 'Right side brush',
+  TOP_BRUSH1: 'Top brush lift stage 2', TOP_BRUSH2: 'Top brush lift stage 3', TOP_BRUSH3: 'Top brush lift stage 4',
+  DRYER_TOP1: 'Top air knife lift stage 2', DRYER_TOP2: 'Top air knife lift stage 3', DRYER_TOP3: 'Top air knife lift stage 4',
+  DRYER_SIDE_L: 'Left air knife', DRYER_SIDE_R: 'Right air knife',
   WAND_L_DROP1: 'Left wand stage 2', WAND_L_DROP2: 'Left wand stage 3', WAND_L_DROP3: 'Left wand stage 4',
   WAND_L_REACH1: 'Left wand reach tube 1', WAND_L_REACH2: 'Left wand reach tube 2',
   WAND_R_DROP1: 'Right wand stage 2', WAND_R_DROP2: 'Right wand stage 3', WAND_R_DROP3: 'Right wand stage 4',
