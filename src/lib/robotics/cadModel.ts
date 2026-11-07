@@ -133,6 +133,8 @@ export interface CadHighlight {
   hideFasteners?: boolean;
   /** part ids that are fasteners (from the bill of materials) */
   fasteners?: ReadonlySet<string>;
+  /** with a part selected, draw every other part as a ghost, so a part inside an assembly shows through it */
+  xraySelected?: boolean;
 }
 
 const ghostMat = new THREE.MeshStandardMaterial({ color: 0x8fa3b4, transparent: true, opacity: 0.08, depthWrite: false, metalness: 0, roughness: 1 });
@@ -146,9 +148,10 @@ export function highlightCad(m: CadModel, h: CadHighlight): void {
     const outside = !!h.isolate && p.sub !== h.isolate;
     const hidden = (h.hideFasteners && isFast) || (outside && !h.ghostOthers);
     p.obj.visible = !hidden;
+    const xrayed = !!h.xraySelected && !!h.selected && p.part !== h.selected;
     for (const mesh of p.meshes) {
       let mat = m.baseMaterial.get(mesh.id) as THREE.Material;
-      if (outside && h.ghostOthers) mat = ghostMat;
+      if ((outside && h.ghostOthers) || xrayed) mat = ghostMat;
       if (h.hover && p.part === h.hover) mat = hovMat;
       if (h.selected && p.part === h.selected) mat = selMat;
       mesh.material = mat;

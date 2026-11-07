@@ -72,7 +72,7 @@ export interface SimulationConfig {
 }
 
 /** The cockpit's side-panel tabs (see TabBar for what each one answers). */
-export type CockpitTab = 'background' | 'controls' | 'ottoq' | 'agent' | 'kpis' | 'history' | 'world' | 'copilot' | 'value' | 'research';
+export type CockpitTab = 'background' | 'controls' | 'ottoq' | 'agent' | 'kpis' | 'history' | 'world' | 'copilot' | 'value' | 'research' | 'robotics';
 
 interface SimulationState {
   status: 'idle' | 'running' | 'paused';

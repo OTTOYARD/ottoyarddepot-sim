@@ -474,7 +474,7 @@
   },
   {
    "id": "CHG-J1-COV",
-   "name": "CHG-J1 rear cover",
+   "name": "J1 rear cover",
    "category": "structure",
    "make": "make",
    "standard": "machined",
@@ -498,7 +498,7 @@
   },
   {
    "id": "CHG-J1-HSG",
-   "name": "CHG-J1 actuator housing",
+   "name": "J1 actuator housing",
    "category": "structure",
    "make": "make",
    "standard": "machined casting",
@@ -525,7 +525,7 @@
   },
   {
    "id": "CHG-J1-OUT",
-   "name": "CHG-J1 output flange",
+   "name": "J1 output flange",
    "category": "structure",
    "make": "make",
    "standard": "machined",
@@ -549,7 +549,7 @@
   },
   {
    "id": "CHG-J1-STR",
-   "name": "CHG-J1 stator retaining ring",
+   "name": "J1 stator retaining ring",
    "category": "structure",
    "make": "make",
    "standard": "machined",
@@ -630,7 +630,7 @@
   },
   {
    "id": "CHG-J1-FSC",
-   "name": "CHG-J1 flexspline clamp ring",
+   "name": "J1 flexspline clamp ring",
    "category": "drive",
    "make": "make",
    "standard": "machined",
@@ -654,7 +654,7 @@
   },
   {
    "id": "CHG-J1-SHF",
-   "name": "CHG-J1 hollow motor shaft",
+   "name": "J1 hollow motor shaft",
    "category": "drive",
    "make": "make",
    "standard": "machined",
@@ -1588,7 +1588,7 @@
   },
   {
    "id": "CHG-J2-COV",
-   "name": "CHG-J2 rear cover",
+   "name": "J2 rear cover",
    "category": "structure",
    "make": "make",
    "standard": "machined",
@@ -1612,7 +1612,7 @@
   },
   {
    "id": "CHG-J2-HSG",
-   "name": "CHG-J2 actuator housing",
+   "name": "J2 actuator housing",
    "category": "structure",
    "make": "make",
    "standard": "machined casting",
@@ -1639,7 +1639,7 @@
   },
   {
    "id": "CHG-J2-OUT",
-   "name": "CHG-J2 output flange",
+   "name": "J2 output flange",
    "category": "structure",
    "make": "make",
    "standard": "machined",
@@ -1663,7 +1663,7 @@
   },
   {
    "id": "CHG-J2-STR",
-   "name": "CHG-J2 stator retaining ring",
+   "name": "J2 stator retaining ring",
    "category": "structure",
    "make": "make",
    "standard": "machined",
@@ -1789,7 +1789,7 @@
   },
   {
    "id": "CHG-J2-FSC",
-   "name": "CHG-J2 flexspline clamp ring",
+   "name": "J2 flexspline clamp ring",
    "category": "drive",
    "make": "make",
    "standard": "machined",
@@ -1813,7 +1813,7 @@
   },
   {
    "id": "CHG-J2-SHF",
-   "name": "CHG-J2 hollow motor shaft",
+   "name": "J2 hollow motor shaft",
    "category": "drive",
    "make": "make",
    "standard": "machined",
@@ -2503,7 +2503,7 @@
   },
   {
    "id": "CHG-J3-COV",
-   "name": "CHG-J3 rear cover",
+   "name": "J3 rear cover",
    "category": "structure",
    "make": "make",
    "standard": "machined",
@@ -2527,7 +2527,7 @@
   },
   {
    "id": "CHG-J3-HSG",
-   "name": "CHG-J3 actuator housing",
+   "name": "J3 actuator housing",
    "category": "structure",
    "make": "make",
    "standard": "machined casting",
@@ -2554,7 +2554,7 @@
   },
   {
    "id": "CHG-J3-OUT",
-   "name": "CHG-J3 output flange",
+   "name": "J3 output flange",
    "category": "structure",
    "make": "make",
    "standard": "machined",
@@ -2578,7 +2578,7 @@
   },
   {
    "id": "CHG-J3-STR",
-   "name": "CHG-J3 stator retaining ring",
+   "name": "J3 stator retaining ring",
    "category": "structure",
    "make": "make",
    "standard": "machined",
@@ -2602,7 +2602,7 @@
   },
   {
    "id": "CHG-J3-FSC",
-   "name": "CHG-J3 flexspline clamp ring",
+   "name": "J3 flexspline clamp ring",
    "category": "drive",
    "make": "make",
    "standard": "machined",
@@ -2626,7 +2626,7 @@
   },
   {
    "id": "CHG-J3-SHF",
-   "name": "CHG-J3 hollow motor shaft",
+   "name": "J3 hollow motor shaft",
    "category": "drive",
    "make": "make",
    "standard": "machined",
@@ -2703,7 +2703,7 @@
   },
   {
    "id": "CHG-J4-COV",
-   "name": "CHG-J4 rear cover",
+   "name": "J4 rear cover",
    "category": "structure",
    "make": "make",
    "standard": "machined",
@@ -2727,7 +2727,7 @@
   },
   {
    "id": "CHG-J4-HSG",
-   "name": "CHG-J4 actuator housing",
+   "name": "J4 actuator housing",
    "category": "structure",
    "make": "make",
    "standard": "machined casting",
@@ -2754,7 +2754,7 @@
   },
   {
    "id": "CHG-J4-OUT",
-   "name": "CHG-J4 output flange",
+   "name": "J4 output flange",
    "category": "structure",
    "make": "make",
    "standard": "machined",
@@ -2778,7 +2778,7 @@
   },
   {
    "id": "CHG-J4-STR",
-   "name": "CHG-J4 stator retaining ring",
+   "name": "J4 stator retaining ring",
    "category": "structure",
    "make": "make",
    "standard": "machined",
@@ -2802,7 +2802,7 @@
   },
   {
    "id": "CHG-J5-COV",
-   "name": "CHG-J5 rear cover",
+   "name": "J5 rear cover",
    "category": "structure",
    "make": "make",
    "standard": "machined",
@@ -2826,7 +2826,7 @@
   },
   {
    "id": "CHG-J5-HSG",
-   "name": "CHG-J5 actuator housing",
+   "name": "J5 actuator housing",
    "category": "structure",
    "make": "make",
    "standard": "machined casting",
@@ -2853,7 +2853,7 @@
   },
   {
    "id": "CHG-J5-OUT",
-   "name": "CHG-J5 output flange",
+   "name": "J5 output flange",
    "category": "structure",
    "make": "make",
    "standard": "machined",
@@ -2877,7 +2877,7 @@
   },
   {
    "id": "CHG-J5-STR",
-   "name": "CHG-J5 stator retaining ring",
+   "name": "J5 stator retaining ring",
    "category": "structure",
    "make": "make",
    "standard": "machined",
@@ -2901,7 +2901,7 @@
   },
   {
    "id": "CHG-J6-COV",
-   "name": "CHG-J6 rear cover",
+   "name": "J6 rear cover",
    "category": "structure",
    "make": "make",
    "standard": "machined",
@@ -2925,7 +2925,7 @@
   },
   {
    "id": "CHG-J6-HSG",
-   "name": "CHG-J6 actuator housing",
+   "name": "J6 actuator housing",
    "category": "structure",
    "make": "make",
    "standard": "machined casting",
@@ -2952,7 +2952,7 @@
   },
   {
    "id": "CHG-J6-OUT",
-   "name": "CHG-J6 output flange",
+   "name": "J6 output flange",
    "category": "structure",
    "make": "make",
    "standard": "machined",
@@ -2976,7 +2976,7 @@
   },
   {
    "id": "CHG-J6-STR",
-   "name": "CHG-J6 stator retaining ring",
+   "name": "J6 stator retaining ring",
    "category": "structure",
    "make": "make",
    "standard": "machined",
@@ -3102,7 +3102,7 @@
   },
   {
    "id": "CHG-J4-FSC",
-   "name": "CHG-J4 flexspline clamp ring",
+   "name": "J4 flexspline clamp ring",
    "category": "drive",
    "make": "make",
    "standard": "machined",
@@ -3126,7 +3126,7 @@
   },
   {
    "id": "CHG-J4-SHF",
-   "name": "CHG-J4 hollow motor shaft",
+   "name": "J4 hollow motor shaft",
    "category": "drive",
    "make": "make",
    "standard": "machined",
@@ -3150,7 +3150,7 @@
   },
   {
    "id": "CHG-J5-FSC",
-   "name": "CHG-J5 flexspline clamp ring",
+   "name": "J5 flexspline clamp ring",
    "category": "drive",
    "make": "make",
    "standard": "machined",
@@ -3174,7 +3174,7 @@
   },
   {
    "id": "CHG-J5-SHF",
-   "name": "CHG-J5 hollow motor shaft",
+   "name": "J5 hollow motor shaft",
    "category": "drive",
    "make": "make",
    "standard": "machined",
@@ -3198,7 +3198,7 @@
   },
   {
    "id": "CHG-J6-FSC",
-   "name": "CHG-J6 flexspline clamp ring",
+   "name": "J6 flexspline clamp ring",
    "category": "drive",
    "make": "make",
    "standard": "machined",
@@ -3222,7 +3222,7 @@
   },
   {
    "id": "CHG-J6-SHF",
-   "name": "CHG-J6 hollow motor shaft",
+   "name": "J6 hollow motor shaft",
    "category": "drive",
    "make": "make",
    "standard": "machined",

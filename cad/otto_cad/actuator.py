@@ -161,6 +161,7 @@ def build_actuator(m: Model, fixed: Node, moving: Node, size: int, T_joint: Loca
     L = module_length(s)
     xd, xD, xB = s.xrb
     Tf = T_joint * T_mod
+    jl = prefix.split('-')[-1]          # 'CHG-J2' -> 'J2': the id keeps the robot, the name says the joint
     E = explode_out
 
     def put(node, T, pd, at, ex):
@@ -170,7 +171,7 @@ def build_actuator(m: Model, fixed: Node, moving: Node, size: int, T_joint: Loca
     mov = lambda pd, at=Location(), ex=(0, 0, 0): put(moving, T_mod, pd, at, ex)  # noqa: E731
 
     # ── housing (fixed) ─────────────────────────────────────────────────────────
-    hsg = m.part(PartDef(f'{prefix}-HSG', f'{prefix} actuator housing', _housing(s, prefix, L), 'a356_dark',
+    hsg = m.part(PartDef(f'{prefix}-HSG', f'{jl} actuator housing', _housing(s, prefix, L), 'a356_dark',
                          'structure', 'machined casting', f'OD {s.od:g} x {L - s.of_t - xB - 8:.0f}', '', None,
                          'Holds the motor, the gear ring and the bearing in line. Fins carry the motor heat out.',
                          {'IP rating': 'IP65', 'machining': 'bores to H7, faces flat to 0.02'}, 'make'))
@@ -190,12 +191,12 @@ def build_actuator(m: Model, fixed: Node, moving: Node, size: int, T_joint: Loca
     for p in std.circle_points(g['cs_n'], g['cs_bc'] / 2, 'y', offset=y_cs + g['cs_w'] / 2, start=180 / g['cs_n']):
         fix(csb, std.orient(p, (0, -1, 0)), (0, -20, 0))
     # ── output side (moving): flange, flexspline, clamp ring, screws, dowels, seal ──
-    of = m.part(PartDef(f'{prefix}-OUT', f'{prefix} output flange', _output_flange(s), 'al6061', 'structure',
+    of = m.part(PartDef(f'{prefix}-OUT', f'{jl} output flange', _output_flange(s), 'al6061', 'structure',
                         'machined', f'OD {xd + (xD - xd) * 0.55:.0f} x {s.of_t:g}', '', None,
                         'Carries the next link. It turns on the bearing inner ring.', {}, 'make'))
     mov(of, Location(), (0, 160, 0))
     mov(fs, loc(0, -s.of_t - 2, 0, rx=180), (0, 120, 0))
-    clamp = m.part(PartDef(f'{prefix}-FSC', f'{prefix} flexspline clamp ring', _fs_clamp(s), 'steel', 'drive',
+    clamp = m.part(PartDef(f'{prefix}-FSC', f'{jl} flexspline clamp ring', _fs_clamp(s), 'steel', 'drive',
                            'machined', f'size {size}', '', None,
                            'Spreads the screw load over the thin flexspline diaphragm.', {}, 'make'))
     mov(clamp, loc(0, -s.of_t - 2 - std.swg_dims(size)['fs_wall'] * 4 - 6, 0), (0, 60, 0))
@@ -211,7 +212,7 @@ def build_actuator(m: Model, fixed: Node, moving: Node, size: int, T_joint: Loca
     # ── wave generator, motor shaft and its bearings (fixed frame: they turn 100x, not the joint) ──
     y_wg = -s.of_t - g['fs_len'] + g['cs_w'] * 0.45
     fix(wg, loc(0, y_wg, 0), (0, -70, 0))
-    shaft = m.part(PartDef(f'{prefix}-SHF', f'{prefix} hollow motor shaft', _shaft(s, L), 'steel', 'drive', 'machined',
+    shaft = m.part(PartDef(f'{prefix}-SHF', f'{jl} hollow motor shaft', _shaft(s, L), 'steel', 'drive', 'machined',
                            f'{std.DGBB[s.shaft][0]} x {L * 0.7:.0f}', '', None,
                            'Carries the rotor and the wave generator. Cables pass through its bore.', {}, 'make'))
     fix(shaft, Location(), (0, -110, 0))
@@ -228,7 +229,7 @@ def build_actuator(m: Model, fixed: Node, moving: Node, size: int, T_joint: Loca
     fix(st, loc(0, yc, 0), (0, -130, 0))
     fix(wd, loc(0, yc, 0), (0, -130, 0))
     fix(ro, loc(0, yc, 0), (0, -185, 0))
-    sr = m.part(PartDef(f'{prefix}-STR', f'{prefix} stator retaining ring', _stator_ring(s), 'al6061', 'structure',
+    sr = m.part(PartDef(f'{prefix}-STR', f'{jl} stator retaining ring', _stator_ring(s), 'al6061', 'structure',
                         'machined', f'OD {s.mot_od:g}', '', None, 'Holds the stator against its shoulder.', {}, 'make'))
     y_sr = y_m - s.mot_l - 1
     fix(sr, loc(0, y_sr, 0), (0, -200, 0))
@@ -257,7 +258,7 @@ def build_actuator(m: Model, fixed: Node, moving: Node, size: int, T_joint: Loca
     pb = std.shcs(3, 6, '8.8', 'Fastens the drive board to its standoffs.')
     for p in std.circle_points(4, (ro - 14) * 0.36, 'y', offset=y_d + 1.6, start=45):
         fix(pb, std.orient(p, (0, -1, 0)), (0, -335, 0))
-    cov = m.part(PartDef(f'{prefix}-COV', f'{prefix} rear cover', _cover(s), 'al6061_blk', 'structure', 'machined',
+    cov = m.part(PartDef(f'{prefix}-COV', f'{jl} rear cover', _cover(s), 'al6061_blk', 'structure', 'machined',
                          f'OD {s.od:g} x 8', '', None, 'Closes the rear of the actuator. The O-ring seals it.', {}, 'make'))
     y_c = -L + 8
     fix(cov, loc(0, y_c, 0, rx=180), (0, -380, 0))

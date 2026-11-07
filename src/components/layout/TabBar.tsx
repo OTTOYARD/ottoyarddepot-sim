@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { FlaskConical } from 'lucide-react';
+import { FlaskConical, Wrench } from 'lucide-react';
 import { useSimulationStore, type CockpitTab } from '@/store/simulationStore';
 
 // TEN TABS, EACH ONE A DIFFERENT QUESTION (2026-09-30: Intelligence, Orchestration and Events became OTTO-Q and Agent).
@@ -18,6 +18,9 @@ import { useSimulationStore, type CockpitTab } from '@/store/simulationStore';
 //   Research     — what the research wing measured, built and recommends (otto-q-core 0793). RESEARCH, NOT LIVE: a flask
 //                  marks the tab and a banner heads it, and nothing there changes the depot until a person ships it.
 //                  Last, so the number keys 1-9 keep their tabs (0 opens it).
+//   Robotics     — the depot's robots as engineering CAD, every part to the last screw and washer, with each major
+//                  function broken out (Chase, 2026-11-07). DESIGN DATA, NOT LIVE: a wrench marks the tab and a banner
+//                  heads it. After Research, so no number key moves; it has none.
 // Removed from navigation 2026-09-30 (Chase: "a lot of redundancy and slop data"; design note
 // docs/OTTO-Q-FUNNEL-AND-AGENT-TABS.md): Intelligence, Orchestration and Events showed the same facts three times
 // (a car placed on a charger was a trail step, a stream row, a lifecycle tile and an event). Their sources stay in
@@ -36,6 +39,7 @@ const tabs: { id: CockpitTab; label: string }[] = [
   { id: 'copilot', label: 'Copilot' },
   { id: 'value', label: 'Value' },
   { id: 'research', label: 'Research' },
+  { id: 'robotics', label: 'Robotics' },
 ];
 
 /** `trailing` sits at the header's top-right, outside the (wrapping) tab row: the panel's expand button. */
@@ -60,6 +64,8 @@ export const TabBar = ({ trailing }: { trailing?: ReactNode } = {}) => {
               {isOttoQ && <span className="w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0" />}
               {/* Research is the research wing's, not the live depot's: the flask says so before the tab is opened. */}
               {tab.id === 'research' && <FlaskConical size={11} aria-hidden className="text-amber-300 shrink-0" />}
+              {/* Robotics is design data (the CAD), not the live depot: the wrench says so before the tab is opened. */}
+              {tab.id === 'robotics' && <Wrench size={11} aria-hidden className="text-sky-300 shrink-0" />}
               {tab.label}
               {activeTab === tab.id && (
                 <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-red" />

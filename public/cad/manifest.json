@@ -18,7 +18,7 @@
    },
    "bytes": {
     "glb": 6227036,
-    "stepZip": 3968465,
+    "stepZip": 3968420,
     "step": 23457850
    },
    "mesh": {
@@ -92,8 +92,8 @@
    },
    "bytes": {
     "glb": 4278056,
-    "stepZip": 2597305,
-    "step": 15998072
+    "stepZip": 2597589,
+    "step": 15998283
    },
    "mesh": {
     "vertices": 178028,
@@ -174,8 +174,8 @@
    },
    "bytes": {
     "glb": 1075040,
-    "stepZip": 843655,
-    "step": 5032540
+    "stepZip": 843643,
+    "step": 5033298
    },
    "mesh": {
     "vertices": 40939,

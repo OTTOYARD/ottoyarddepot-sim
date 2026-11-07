@@ -507,7 +507,7 @@
   },
   {
    "id": "CLN-J1-COV",
-   "name": "CLN-J1 rear cover",
+   "name": "J1 rear cover",
    "category": "structure",
    "make": "make",
    "standard": "machined",
@@ -531,7 +531,7 @@
   },
   {
    "id": "CLN-J1-HSG",
-   "name": "CLN-J1 actuator housing",
+   "name": "J1 actuator housing",
    "category": "structure",
    "make": "make",
    "standard": "machined casting",
@@ -558,7 +558,7 @@
   },
   {
    "id": "CLN-J1-OUT",
-   "name": "CLN-J1 output flange",
+   "name": "J1 output flange",
    "category": "structure",
    "make": "make",
    "standard": "machined",
@@ -582,7 +582,7 @@
   },
   {
    "id": "CLN-J1-STR",
-   "name": "CLN-J1 stator retaining ring",
+   "name": "J1 stator retaining ring",
    "category": "structure",
    "make": "make",
    "standard": "machined",
@@ -633,7 +633,7 @@
   },
   {
    "id": "CLN-J1-FSC",
-   "name": "CLN-J1 flexspline clamp ring",
+   "name": "J1 flexspline clamp ring",
    "category": "drive",
    "make": "make",
    "standard": "machined",
@@ -657,7 +657,7 @@
   },
   {
    "id": "CLN-J1-SHF",
-   "name": "CLN-J1 hollow motor shaft",
+   "name": "J1 hollow motor shaft",
    "category": "drive",
    "make": "make",
    "standard": "machined",
@@ -1515,7 +1515,7 @@
   },
   {
    "id": "CLN-J2-COV",
-   "name": "CLN-J2 rear cover",
+   "name": "J2 rear cover",
    "category": "structure",
    "make": "make",
    "standard": "machined",
@@ -1539,7 +1539,7 @@
   },
   {
    "id": "CLN-J2-HSG",
-   "name": "CLN-J2 actuator housing",
+   "name": "J2 actuator housing",
    "category": "structure",
    "make": "make",
    "standard": "machined casting",
@@ -1566,7 +1566,7 @@
   },
   {
    "id": "CLN-J2-OUT",
-   "name": "CLN-J2 output flange",
+   "name": "J2 output flange",
    "category": "structure",
    "make": "make",
    "standard": "machined",
@@ -1590,7 +1590,7 @@
   },
   {
    "id": "CLN-J2-STR",
-   "name": "CLN-J2 stator retaining ring",
+   "name": "J2 stator retaining ring",
    "category": "structure",
    "make": "make",
    "standard": "machined",
@@ -1665,7 +1665,7 @@
   },
   {
    "id": "CLN-J2-FSC",
-   "name": "CLN-J2 flexspline clamp ring",
+   "name": "J2 flexspline clamp ring",
    "category": "drive",
    "make": "make",
    "standard": "machined",
@@ -1689,7 +1689,7 @@
   },
   {
    "id": "CLN-J2-SHF",
-   "name": "CLN-J2 hollow motor shaft",
+   "name": "J2 hollow motor shaft",
    "category": "drive",
    "make": "make",
    "standard": "machined",
@@ -2797,7 +2797,7 @@
   },
   {
    "id": "CLN-J4-COV",
-   "name": "CLN-J4 rear cover",
+   "name": "J4 rear cover",
    "category": "structure",
    "make": "make",
    "standard": "machined",
@@ -2821,7 +2821,7 @@
   },
   {
    "id": "CLN-J4-HSG",
-   "name": "CLN-J4 actuator housing",
+   "name": "J4 actuator housing",
    "category": "structure",
    "make": "make",
    "standard": "machined casting",
@@ -2848,7 +2848,7 @@
   },
   {
    "id": "CLN-J4-OUT",
-   "name": "CLN-J4 output flange",
+   "name": "J4 output flange",
    "category": "structure",
    "make": "make",
    "standard": "machined",
@@ -2872,7 +2872,7 @@
   },
   {
    "id": "CLN-J4-STR",
-   "name": "CLN-J4 stator retaining ring",
+   "name": "J4 stator retaining ring",
    "category": "structure",
    "make": "make",
    "standard": "machined",
@@ -2923,7 +2923,7 @@
   },
   {
    "id": "CLN-J4-FSC",
-   "name": "CLN-J4 flexspline clamp ring",
+   "name": "J4 flexspline clamp ring",
    "category": "drive",
    "make": "make",
    "standard": "machined",
@@ -2947,7 +2947,7 @@
   },
   {
    "id": "CLN-J4-SHF",
-   "name": "CLN-J4 hollow motor shaft",
+   "name": "J4 hollow motor shaft",
    "category": "drive",
    "make": "make",
    "standard": "machined",
