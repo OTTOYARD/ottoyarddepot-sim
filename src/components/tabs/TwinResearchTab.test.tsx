@@ -11,7 +11,7 @@
 //   3. Empty and error are their own states; a failed refresh keeps the last reading and says so.
 //   4. It reads when it opens and every 60 seconds while open, and stops when closed.
 //   5. A payload it cannot draw shows a calm line, not a blank cockpit.
-//   6. It is reachable: the last tab in the bar, the side panel draws it, and the 0 key opens it.
+//   6. It is reachable: the tenth tab in the bar (Robotics follows it), the side panel draws it, and the 0 key opens it.
 // ============================================================================
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, renderHook, screen, within } from '@testing-library/react';
@@ -243,11 +243,11 @@ describe('a payload it cannot draw', () => {
 });
 
 describe('navigation', () => {
-  it('puts Research last in the tab bar, after Value, and marks it with the flask', () => {
+  it('puts Research after Value (only Robotics, which has no number key, follows it) and marks it with the flask', () => {
     render(<TabBar />);
     const tabs = screen.getAllByRole('button');
     expect(tabs.map((b) => b.textContent)).toEqual([
-      'Background', 'Control', 'OTTO-Q', 'Agent', 'KPIs', 'Runs', 'Diagnostics', 'Copilot', 'Value', 'Research',
+      'Background', 'Control', 'OTTO-Q', 'Agent', 'KPIs', 'Runs', 'Diagnostics', 'Copilot', 'Value', 'Research', 'Robotics',
     ]);
     expect(tabs[9].querySelector('svg')).not.toBeNull();
   });

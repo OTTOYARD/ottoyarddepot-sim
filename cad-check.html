@@ -1,0 +1,23 @@
+<!doctype html>
+<!--
+  OTTOYARD robot CAD check page (dev only; not in the build's inputs).
+  Renders public/cad/<robot>.glb through src/lib/robotics/cadModel.ts, the module the Robotics tab uses.
+    ?robot=charge_arm   charge_arm | clean_arm | wash_gantry
+    ?pose=stowed        stowed | zero
+    ?explode=0          0 .. 1
+    ?view=iso           iso | front | side | top | back
+    ?sub=J2             isolate one subsystem (others ghosted)
+    ?part=ID            highlight one part
+    ?zoom=1             frame tighter (>1) or looser (<1)
+-->
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Robot CAD check</title>
+    <style>html,body{margin:0;height:100%;background:#0d1117;overflow:hidden}#hud{position:fixed;left:10px;top:8px;font:12px ui-monospace,monospace;color:#cfe6ef;white-space:pre}</style>
+  </head>
+  <body>
+    <div id="hud"></div>
+    <script type="module" src="/src/devtools/cadCheck.ts"></script>
+  </body>
+</html>

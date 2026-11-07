@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { FlaskConical, Maximize2, Minimize2 } from 'lucide-react';
+import { FlaskConical, Maximize2, Minimize2, Wrench } from 'lucide-react';
 import { useSimulationStore, type CockpitTab } from '@/store/simulationStore';
 import { OperatorConsole } from '@/components/cockpit/OperatorConsole';
 import { TwinKpisTab } from '@/components/tabs/TwinKpisTab';
@@ -11,11 +11,12 @@ import { TwinAgentTab } from '@/components/tabs/TwinAgentTab';
 import { TwinValueTab } from '@/components/tabs/TwinValueTab';
 import { TwinBackgroundTab } from '@/components/tabs/TwinBackgroundTab';
 import { TwinResearchTab } from '@/components/tabs/TwinResearchTab';
+import { TwinRoboticsTab } from '@/components/tabs/TwinRoboticsTab';
 import { settleSheet, sheetHeights } from './phoneLayout';
 import { usePhoneSheet } from './phoneStore';
 
 /**
- * The phone's panels: the desktop side panel's TEN TABS, the very same
+ * The phone's panels: the desktop side panel's ELEVEN TABS, the very same
  * components, in a sheet.
  *
  *   landscape  'floating' — a sheet over the 3D view, anchored bottom-left and
@@ -42,6 +43,7 @@ const TAB_LABEL: Record<CockpitTab, string> = {
   copilot: 'Copilot',
   value: 'Value',
   research: 'Research',
+  robotics: 'Robotics',
 };
 const TABS = (Object.keys(TAB_LABEL) as CockpitTab[]).map((id) => ({ id, label: TAB_LABEL[id] }));
 const TAB_COMPONENTS: Record<CockpitTab, () => JSX.Element> = {
@@ -55,6 +57,7 @@ const TAB_COMPONENTS: Record<CockpitTab, () => JSX.Element> = {
   value: TwinValueTab,
   background: TwinBackgroundTab,
   research: TwinResearchTab,
+  robotics: TwinRoboticsTab,
 };
 
 
@@ -173,6 +176,7 @@ export function PhoneSheet({ mode, topInset }: { mode: 'floating' | 'inline'; to
                 activeTab === t.id ? 'bg-white/10 text-ink' : 'text-ink-faint active:bg-white/5'}`}>
               {t.id === 'ottoq' && <span className="w-1.5 h-1.5 rounded-full bg-violet-400" />}
               {t.id === 'research' && <FlaskConical size={12} aria-hidden className="text-amber-300" />}
+              {t.id === 'robotics' && <Wrench size={12} aria-hidden className="text-sky-300" />}
               {t.label}
             </button>
           ))}
