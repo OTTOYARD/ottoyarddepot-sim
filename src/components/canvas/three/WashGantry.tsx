@@ -10,6 +10,11 @@ import { BRUSH_SPIN_RAD_S, WASH_GANTRY as G } from '@/lib/ottoWash/washSpec';
 import { DECK_Y } from './coordUtils';
 import { StaticBatch } from './staticBatch';
 import { galvanizedSteel, darkSteel, safetyYellowPaint, rubberBlack, statusLamp } from './buildingSkin';
+import { PLAN_UNITS_PER_METRE } from '@/lib/ottoChargeArm/cobotSpec';
+import { poseSkeleton, spinNode, type DepotCad } from '@/lib/robotics/cadDepot';
+import { washJoints } from '@/lib/robotics/catalog';
+import { makeInstancedFleet, writeFleetSlot, writeFleetLight, clearFleetSlot, type InstancedFleet } from './instancedFleet';
+import { WASH_BRUSH_PARTS } from './cadFleet';
 
 /**
  * OTTO-WASH — the robotic rollover gantry in each wash bay (docs/OTTO-WASH.md).
@@ -24,6 +29,15 @@ import { galvanizedSteel, darkSteel, safetyYellowPaint, rubberBlack, statusLamp 
  * FRAME: each bay's group stands on the bay's drive line at the parked car's centre, on the deck.
  * The bay frame of washSpec.ts maps to it as local x = -x (plan x runs east, world x west),
  * local z = -dy (plan y runs south, world z north), local y = height.
+ *
+ * THE MACHINE IS THE ENGINEERING CAD (cad/ wash_gantry.py, robotics/cadDepot.ts): its rails and end
+ * stops, trolleys and drives, portal, spray arch, brushes on their lift columns and carriages, air
+ * knives, vacuum wands, cabinet and drag chain, at the depot's level of detail, in the same bay frame
+ * (metres: scaled to plan units here). The twin's pose drives its slides through catalog.washJoints,
+ * its brushes turn on their shafts, and its beacon and stop lamps show the program. Every bay's
+ * machine is one instance of one set of meshes (instancedFleet.ts). robotics/cadYard.test.ts holds it
+ * to the car, the doors and the wash hall's walls. Until the CAD has loaded, or if it cannot, each bay
+ * draws the simple machine below. The spray and the air are drawn on both.
  */
 
 /** Two-tone foam stripes, so a turning brush reads as turning. */
@@ -136,13 +150,57 @@ if (washDebug && typeof window !== 'undefined') {
   (window as unknown as Record<string, unknown>).__washGantries = washDebug;
 }
 
-function WashGantryBay({ bayId, planX, shared, frame }: {
-  bayId: string;
-  planX: number;
-  shared: ReturnType<typeof useMats>;
-  frame: Map<string, THREE.BufferGeometry>;
-}) {
-  // each bay's beacon, spray and air change on their own, so each bay has its own of those
+/** The spray curtain across the arch and the air knives' blast: drawn on the machine, not parts of it (plan units). */
+interface WashEffects { curtain: THREE.Mesh; air: THREE.Mesh[] }
+
+function addWashEffects(gantry: THREE.Group, spray: THREE.Material, air: THREE.Material): WashEffects {
+  const curtain = new THREE.Mesh(new THREE.PlaneGeometry(2 * (G.arch.x - 0.3), G.arch.top - 0.5), spray);
+  curtain.position.set(0, 0.35 + (G.arch.top - 0.5) / 2, -G.arch.dy - 0.02);
+  curtain.rotation.y = Math.PI; // the curtain is drawn from both sides anyway; keep its uv the right way up
+  curtain.visible = false;
+  curtain.renderOrder = 2;
+  gantry.add(curtain);
+  const airGeo = new THREE.PlaneGeometry(1, 1);
+  const blast = [0, 1, 2].map(() => {
+    const m = new THREE.Mesh(airGeo, air);
+    m.visible = false;
+    m.renderOrder = 2;
+    gantry.add(m);
+    return m;
+  });
+  return { curtain, air: blast };
+}
+
+/** Show the spray and the air as the pose has them, scrolling their streaks by the frame's time. */
+function poseWashEffects(fx: WashEffects, p: WashPose, delta: number, mats: {
+  spray: THREE.MeshBasicMaterial; streak: THREE.Texture; airTex: THREE.Texture;
+}): void {
+  if (p.spray !== 'none') {
+    const c = SPRAY_COLOR[p.spray];
+    mats.spray.color.setHex(c.color);
+    mats.spray.opacity = c.opacity;
+    mats.streak.offset.y += Math.min(delta, 0.1) * c.speed;
+    fx.curtain.visible = true;
+  } else fx.curtain.visible = false;
+  if (p.air) {
+    mats.airTex.offset.y -= Math.min(delta, 0.1) * 2.4;
+    const topY = p.dryerTopY;
+    const [a, b, c] = fx.air;
+    a.visible = b.visible = c.visible = true;
+    // the top knife blows down onto the roof; the side knives blow in at the flanks
+    a.scale.set(2 * G.dryer.top.halfLen, Math.max(0.2, topY - 3.2), 1);
+    a.position.set(0, topY - a.scale.y / 2, -G.dryer.dy);
+    a.rotation.set(0, 0, 0);
+    for (const [m, sgn] of [[b, -1], [c, 1]] as const) {
+      m.scale.set(Math.max(0.2, p.dryerSideX - 1.9), G.dryer.side.y1 - G.dryer.side.y0, 1);
+      m.position.set(-sgn * (p.dryerSideX - m.scale.x / 2), (G.dryer.side.y0 + G.dryer.side.y1) / 2, -G.dryer.dy);
+      m.rotation.set(0, 0, 0);
+    }
+  } else for (const m of fx.air) m.visible = false;
+}
+
+/** Each bay's own spray, air and beacon materials (they change per bay), cloned from the shared set. */
+function useBayMats(shared: ReturnType<typeof useMats>) {
   const mats = useMemo(() => {
     const streak = shared.textures.streak.clone(); streak.needsUpdate = true;
     const air = shared.textures.air.clone(); air.needsUpdate = true;
@@ -153,6 +211,17 @@ function WashGantryBay({ bayId, planX, shared, frame }: {
   useEffect(() => () => {
     mats.beacon.dispose(); mats.spray.dispose(); mats.air.dispose(); mats.streak.dispose(); mats.airTex.dispose();
   }, [mats]);
+  return mats;
+}
+
+function WashGantryBay({ bayId, planX, shared, frame }: {
+  bayId: string;
+  planX: number;
+  shared: ReturnType<typeof useMats>;
+  frame: Map<string, THREE.BufferGeometry>;
+}) {
+  // each bay's beacon, spray and air change on their own, so each bay has its own of those
+  const mats = useBayMats(shared);
   const rig = useMemo<Rig>(() => {
     const gantry = new THREE.Group();
     for (const [k, g] of frame) {
@@ -246,20 +315,7 @@ function WashGantryBay({ bayId, planX, shared, frame }: {
       return m;
     });
     // the spray curtain across the arch, and the air knives' blast
-    const curtain = new THREE.Mesh(new THREE.PlaneGeometry(2 * (G.arch.x - 0.3), G.arch.top - 0.5), mats.spray);
-    curtain.position.set(0, 0.35 + (G.arch.top - 0.5) / 2, -G.arch.dy - 0.02);
-    curtain.rotation.y = Math.PI; // the curtain is drawn from both sides anyway; keep its uv the right way up
-    curtain.visible = false;
-    curtain.renderOrder = 2;
-    gantry.add(curtain);
-    const airGeo = new THREE.PlaneGeometry(1, 1);
-    const air = [0, 1, 2].map(() => {
-      const m = new THREE.Mesh(airGeo, mats.air);
-      m.visible = false;
-      m.renderOrder = 2;
-      gantry.add(m);
-      return m;
-    });
+    const { curtain, air } = addWashEffects(gantry, mats.spray, mats.air);
     const beacon = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.26, 0.4, 14), mats.beacon);
     beacon.position.set(-3.6, G.beam.y1 + 1.3, -G.dryer.dy);
     gantry.add(beacon);
@@ -323,28 +379,7 @@ function WashGantryBay({ bayId, planX, shared, frame }: {
       m.position.set(-sgn * tip, foot, -G.wand.dy);
     });
     // spray and air
-    if (p.spray !== 'none') {
-      const c = SPRAY_COLOR[p.spray];
-      mats.spray.color.setHex(c.color);
-      mats.spray.opacity = c.opacity;
-      mats.streak.offset.y += Math.min(delta, 0.1) * c.speed;
-      rig.curtain.visible = true;
-    } else rig.curtain.visible = false;
-    if (p.air) {
-      mats.airTex.offset.y -= Math.min(delta, 0.1) * 2.4;
-      const topY = p.dryerTopY;
-      const [a, b, c] = rig.air;
-      a.visible = b.visible = c.visible = true;
-      // the top knife blows down onto the roof; the side knives blow in at the flanks
-      a.scale.set(2 * G.dryer.top.halfLen, Math.max(0.2, topY - 3.2), 1);
-      a.position.set(0, topY - a.scale.y / 2, -G.dryer.dy);
-      a.rotation.set(0, 0, 0);
-      for (const [m, sgn] of [[b, -1], [c, 1]] as const) {
-        m.scale.set(Math.max(0.2, p.dryerSideX - 1.9), G.dryer.side.y1 - G.dryer.side.y0, 1);
-        m.position.set(-sgn * (p.dryerSideX - m.scale.x / 2), (G.dryer.side.y0 + G.dryer.side.y1) / 2, -G.dryer.dy);
-        m.rotation.set(0, 0, 0);
-      }
-    } else for (const m of rig.air) m.visible = false;
+    poseWashEffects(rig, p, delta, mats);
     // lights
     (rig.beacon.material as THREE.MeshStandardMaterial).emissive.setHex(STATUS_COLOR[p.status]);
     rig.stopRed.material = p.stop ? mats.lampRed : mats.lampOff;
@@ -361,6 +396,86 @@ function WashGantryBay({ bayId, planX, shared, frame }: {
   return (
     <group position={[150 - planX, DECK_Y, 110 - BAY_STALL_Y]}>
       <primitive object={rig.gantry} />
+    </group>
+  );
+}
+
+/** One bay's machine as the engineering CAD: a skeleton posed from the twin, drawn into its slot of the shared meshes. */
+function CadWashBay({ bayId, planX, cad, fleet, slot, shared }: {
+  bayId: string;
+  planX: number;
+  cad: DepotCad;
+  fleet: InstancedFleet;
+  slot: number;
+  shared: ReturnType<typeof useMats>;
+}) {
+  const machineRef = useRef<THREE.Group>(null);
+  const mats = useBayMats(shared);
+  const rig = useMemo(() => {
+    const skel = cad.skeleton();
+    // the brushes turn on their shafts: each is its own segment (cadFleet WASH_BRUSH_PARTS); the pair turn opposite ways
+    const brushes = skel.segments.flatMap((n) => {
+      const part = (n.userData as { part?: string }).part;
+      if (!part || !WASH_BRUSH_PARTS.includes(part)) return [];
+      return [{ node: n, rest: n.quaternion.clone(), sign: part === 'WSH-SBRR' ? -1 : 1 }];
+    });
+    const effects = new THREE.Group();
+    const fx = addWashEffects(effects, mats.spray, mats.air);
+    return { skel, brushes, effects, fx };
+  }, [cad, mats]);
+  useEffect(() => () => clearFleetSlot(fleet, slot), [fleet, slot]);
+  useEffect(() => () => {
+    rig.fx.curtain.geometry.dispose();
+    rig.fx.air[0].geometry.dispose();
+  }, [rig]);
+
+  const spin = useRef(0);
+  const axis = useMemo(() => new THREE.Vector3(0, 1, 0), []);
+  useFrame((_state, delta) => {
+    const s = twinMotionDriver.washSessionAt(bayId) ?? IDLE_WASH;
+    const p = washPoseAt(s);
+    poseSkeleton(rig.skel, washJoints(p));
+    if (p.spinning) spin.current += Math.min(delta, 0.1) * BRUSH_SPIN_RAD_S;
+    for (const b of rig.brushes) spinNode(b.node, b.rest, axis, b.sign * spin.current);
+    machineRef.current?.updateWorldMatrix(true, true);
+    // the beacon shows the program's state; the stop lamps face the arriving car (red while it runs)
+    writeFleetSlot(fleet, slot, rig.skel.segments, STATUS_COLOR[p.status], 2.2);
+    writeFleetLight(fleet, slot, 1, p.stop ? 0xff2a2a : 0x2a1214, p.stop ? 2.4 : 0);
+    writeFleetLight(fleet, slot, 2, p.stop ? 0x122a16 : 0x2aff6a, p.stop ? 0 : 2.4);
+    rig.effects.position.z = -p.dy;
+    poseWashEffects(rig.fx, p, delta, mats);
+    if (washDebug) {
+      washDebug.set(bayId, {
+        phase: s.phase, t: Math.round(s.t * 1000) / 1000, vehicleId: s.vehicleId, dy: Math.round(p.dy * 1000) / 1000,
+        brushX: Math.round(p.sideBrushX * 1000) / 1000, topY: Math.round(p.topBrushY * 1000) / 1000, doors: p.doors,
+      });
+    }
+  });
+
+  return (
+    <group position={[150 - planX, DECK_Y, 110 - BAY_STALL_Y]}>
+      {/* the CAD is in metres, in this same bay frame: scale it to plan units */}
+      <group ref={machineRef} scale={PLAN_UNITS_PER_METRE}>
+        <primitive object={rig.skel.root} />
+      </group>
+      <primitive object={rig.effects} />
+    </group>
+  );
+}
+
+/** Every bay's machine as one instance of the CAD's meshes. */
+function CadWashGantries({ cad, bays, shared }: {
+  cad: DepotCad;
+  bays: readonly { id: string; x: number }[];
+  shared: ReturnType<typeof useMats>;
+}) {
+  const fleet = useMemo(() => makeInstancedFleet(cad.parts, WASH_SHELL.bays.length, { receiveShadow: true }), [cad]);
+  useEffect(() => () => fleet.dispose(), [fleet]);
+  useEffect(() => { for (const m of fleet.meshes) m.count = bays.length; }, [fleet, bays.length]);
+  return (
+    <group name="washGantries">
+      {fleet.meshes.map((m, i) => <primitive key={`washpart-${i}`} object={m} />)}
+      {bays.map((b, i) => <CadWashBay key={b.id} bayId={b.id} planX={b.x} cad={cad} fleet={fleet} slot={i} shared={shared} />)}
     </group>
   );
 }
@@ -400,8 +515,8 @@ function useMats() {
   }, []);
 }
 
-/** The wash hall's machines: one gantry in each open bay. */
-export function WashGantries({ count }: { count: number }) {
+/** The wash hall's machines: one gantry in each open bay; the engineering CAD once it has loaded (cadFleet.ts). */
+export function WashGantries({ count, cad }: { count: number; cad: DepotCad | null }) {
   const all = useMats();
   const frame = useMemo(() => buildFrame(), []);
   useEffect(() => () => {
@@ -411,6 +526,7 @@ export function WashGantries({ count }: { count: number }) {
   }, [frame, all]);
   // a bay's machine is named by the bay's own id, which is the renderer stall the car parks on (WASH-01 ..)
   const bays = WASH_SHELL.bays.slice(0, count);
+  if (cad) return <CadWashGantries cad={cad} bays={bays} shared={all} />;
   return (
     <group name="washGantries">
       {bays.map((b) => <WashGantryBay key={b.id} bayId={b.id} planX={b.x} shared={all} frame={frame} />)}

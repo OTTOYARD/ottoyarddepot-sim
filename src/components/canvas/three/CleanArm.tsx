@@ -10,6 +10,9 @@ import { placeCleanArm } from '@/lib/ottoCleanArm/cleanArmPlacement';
 import { CLEAN_ARM } from '@/lib/ottoCleanArm/cleanArmSpec';
 import { DECK_Y } from './coordUtils';
 import { cleanSkeleton, writeCleanArm, clearCleanArm, type CleanArmFleet } from './cleanArmInstances';
+import { poseSkeleton, type DepotCad } from '@/lib/robotics/cadDepot';
+import { cleanAngles } from '@/lib/robotics/catalog';
+import type { CleanJoints } from '@/lib/ottoCleanArm/cleanArmPose';
 
 /**
  * OTTO-CLEAN ARM — the overhead robot over each robotic fast-charger stall that
@@ -28,8 +31,15 @@ import { cleanSkeleton, writeCleanArm, clearCleanArm, type CleanArmFleet } from 
  * where the car is drawn. Its canopy steel (the header beam and the drop column) is
  * drawn with the canopy (SolarCanopy).
  *
- * Instanced (cleanArmInstances.ts): each arm keeps a skeleton, poses it with the
+ * Instanced (instancedFleet.ts): each arm keeps a skeleton, poses it with the
  * session's joints, and writes its segments into its slot.
+ *
+ * THE MODEL IS THE ENGINEERING CAD (cad/, robotics/cadDepot.ts): links, actuators,
+ * the 3-stage mast, the 4-tube wand, the nozzle and the vacuum line through the arm,
+ * as designed, at the depot's level of detail. Its nodes are the twin's (cad.test.ts),
+ * posed through catalog.cleanAngles from the same joints, and robotics/cadYard.test.ts
+ * holds it to the same car, doors, cabin and seats as the procedural arm. Until the
+ * CAD has loaded, or if it cannot, the arm draws the procedural model.
  */
 
 /**
@@ -49,9 +59,37 @@ interface CleanArmProps {
   stallId: string;
   fleet: CleanArmFleet;
   slot: number;
+  /** The engineering CAD the fleet was built from, or null for the procedural arm. */
+  cad: DepotCad | null;
 }
 
-export function CleanArm({ stallId, fleet, slot }: CleanArmProps) {
+/** One arm's nodes to pose: the CAD's skeleton, or the procedural one. */
+interface CleanRig {
+  root: THREE.Object3D;
+  /** segment nodes, in the fleet's segment order */
+  segments: THREE.Object3D[];
+  pose(q: CleanJoints): void;
+  j1: THREE.Object3D; pitch: THREE.Object3D; nozzle: THREE.Object3D;
+  /** the procedural arm's hose end on the J3 carriage (the CAD arm carries its vacuum line inside) */
+  hoseRoot: THREE.Object3D | null;
+}
+
+function cleanRig(cad: DepotCad | null): CleanRig {
+  if (cad) {
+    const s = cad.skeleton();
+    return {
+      root: s.root, segments: s.segments, pose: (q) => poseSkeleton(s, cleanAngles(q)),
+      j1: s.node('CA_J1'), pitch: s.node('CA_Pitch'), nozzle: s.node('CA_Nozzle'), hoseRoot: null,
+    };
+  }
+  const s = cleanSkeleton();
+  return {
+    root: s.root, segments: s.segments, pose: (q) => poseCleanArm(s.nodes, q),
+    j1: s.nodes.CA_J1, pitch: s.nodes.CA_Pitch, nozzle: s.nodes.CA_Nozzle, hoseRoot: s.hoseRoot,
+  };
+}
+
+export function CleanArm({ stallId, fleet, slot, cad }: CleanArmProps) {
   const groupRef = useRef<THREE.Group>(null);
   const frameRef = useRef<THREE.Group>(null);
   const hoseRef = useRef<THREE.Mesh>(null);
@@ -63,7 +101,7 @@ export function CleanArm({ stallId, fleet, slot }: CleanArmProps) {
     [stall],
   );
 
-  const rig = useMemo(() => cleanSkeleton(), []);
+  const rig = useMemo(() => cleanRig(cad), [cad]);
   useEffect(() => () => clearCleanArm(fleet, slot), [fleet, slot]);
 
   const hoseMat = useMemo(() => new THREE.MeshStandardMaterial({ color: 0x15181d, roughness: 0.82, metalness: 0.05 }), []);
@@ -78,7 +116,7 @@ export function CleanArm({ stallId, fleet, slot }: CleanArmProps) {
   useFrame(({ clock }) => {
     if (!place) return;
     const s = twinMotionDriver.cleanSessionAt(stallId) ?? IDLE_CLEAN;
-    poseCleanArm(rig.nodes, cleanSessionJoints(s, place.sides));
+    rig.pose(cleanSessionJoints(s, place.sides));
     groupRef.current?.updateWorldMatrix(true, true);
     const working = s.phase === 'clean_a' || s.phase === 'clean_b';
     const glow = working ? 1.0 + Math.sin(clock.elapsedTime * 3.1) * 0.4 : 1.3;
@@ -88,7 +126,7 @@ export function CleanArm({ stallId, fleet, slot }: CleanArmProps) {
       const at = (o: THREE.Object3D) => o.getWorldPosition(v).toArray().map((x) => Math.round(x * 1000) / 1000);
       cleanDebug.set(stallId, {
         phase: s.phase, t: s.t, vehicleId: s.vehicleId,
-        j1: at(rig.nodes.CA_J1), pivot: at(rig.nodes.CA_Pitch), knuckle: at(rig.nodes.CA_Nozzle),
+        j1: at(rig.j1), pivot: at(rig.pitch), knuckle: at(rig.nozzle),
       });
     }
 
@@ -98,11 +136,12 @@ export function CleanArm({ stallId, fleet, slot }: CleanArmProps) {
     const hose = hoseRef.current;
     const frame = frameRef.current;
     if (!hose || !frame) return;
+    if (!rig.hoseRoot) { hose.visible = false; return; }
     const home = s.phase === 'home';
     if (home && hoseAtHome.current) return;
     hoseAtHome.current = home;
     frame.worldToLocal(rig.hoseRoot.getWorldPosition(scratch.a));
-    frame.worldToLocal(rig.nodes.CA_Pitch.getWorldPosition(scratch.w));
+    frame.worldToLocal(rig.pitch.getWorldPosition(scratch.w));
     const a = scratch.a, w = scratch.w;
     const out = scratch.out.set(w.x - CLEAN_ARM.mountX, 0, w.z).normalize().multiplyScalar(0.12);
     const m1 = scratch.m1.set((a.x * 2 + w.x) / 3, (a.y * 2 + w.y) / 3 + 0.05, (a.z * 2 + w.z) / 3).add(out);

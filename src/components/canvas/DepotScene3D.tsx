@@ -21,6 +21,7 @@ import { ChargingArm } from './three/ChargingArm';
 import { makeArmFleet } from './three/armInstances';
 import { CleanArm } from './three/CleanArm';
 import { makeCleanArmFleet } from './three/cleanArmInstances';
+import { useDepotCad } from './three/cadFleet';
 import { Lanes3D } from './three/Lanes3D';
 import { UtilityEquipment } from './three/UtilityEquipment';
 import { VehicleFleet } from './three/Vehicle3D';
@@ -191,13 +192,17 @@ export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0, viewe
   // canopy costs the same draw calls at 10, 20 or 30 fast chargers. Capacity
   // grows in steps of 8 so a build-out change rarely rebuilds the buffers.
   const armCapacity = Math.max(8, Math.ceil(roboticStalls.length / 8) * 8);
-  const armFleet = useMemo(() => makeArmFleet(armCapacity), [armCapacity]);
+  // The robots are the engineering CAD (cadFleet.ts) once it has loaded; the procedural models until then.
+  const chargeCad = useDepotCad('charge_arm');
+  const cleanCad = useDepotCad('clean_arm');
+  const washCad = useDepotCad('wash_gantry');
+  const armFleet = useMemo(() => makeArmFleet(armCapacity, chargeCad?.parts), [armCapacity, chargeCad]);
   useEffect(() => () => armFleet.dispose(), [armFleet]);
   // draw only the slots in use (the rest of the capacity costs no vertices)
   useEffect(() => { for (const m of armFleet.meshes) m.count = roboticStalls.length; }, [armFleet, roboticStalls.length]);
   // …and so does every OTTO-CLEAN ARM, one over each robotic fast charger (cleanArmInstances.ts),
   // with its canopy steel drawn by the canopy, which is rebuilt only when those stalls move.
-  const cleanFleet = useMemo(() => makeCleanArmFleet(armCapacity), [armCapacity]);
+  const cleanFleet = useMemo(() => makeCleanArmFleet(armCapacity, cleanCad?.parts), [armCapacity, cleanCad]);
   useEffect(() => () => cleanFleet.dispose(), [cleanFleet]);
   useEffect(() => { for (const m of cleanFleet.meshes) m.count = roboticStalls.length; }, [cleanFleet, roboticStalls.length]);
   const armStalls = useMemo(() => roboticStalls.map((s) => s.position), [roboticStalls]);
@@ -282,20 +287,22 @@ export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0, viewe
           <StaticMerge name="solarCanopy" version={`${config.solarCanopy}/${armKey}`}><SolarCanopy solarKWdc={config.solarCanopy} armStalls={armStalls} /></StaticMerge>
           <group name="chargersDcfc"><ChargingField type="dcfc" count={config.dcfcCount} /></group>
           <group name="chargersL2"><ChargingField type="l2" count={config.l2Count} /></group>
-          <StaticMerge name="washBays" version={config.washBayCount}><WashBays count={config.washBayCount} /></StaticMerge>
+          <StaticMerge name="washBays" version={`${config.washBayCount}/${washCad ? 'cad' : 'simple'}`}>
+            <WashBays count={config.washBayCount} cadMachine={washCad !== null} />
+          </StaticMerge>
           {/* the wash bays' rollover machines move, so they stand outside the static merge */}
-          <WashGantries count={config.washBayCount} />
+          <WashGantries count={config.washBayCount} cad={washCad} />
           <StaticMerge name="staging" version={config.stagingStalls}><StagingZone count={config.stagingStalls} /></StaticMerge>
           <group name="lanes"><Lanes3D /></group>
           <StaticMerge name="utility" version={`${config.bessCapacity}/${config.bessPower}`}><UtilityEquipment bessCapacity={config.bessCapacity} bessPower={config.bessPower} /></StaticMerge>
           <group name="arms">
             {armFleet.meshes.map((m, i) => <primitive key={`armpart-${i}`} object={m} />)}
             {roboticStalls.map((s, i) => (
-              <ChargingArm key={`arm-${s.id}`} stallId={s.id} stallType={s.type as 'dcfc' | 'l2'} fleet={armFleet} slot={i} />
+              <ChargingArm key={`arm-${s.id}`} stallId={s.id} stallType={s.type as 'dcfc' | 'l2'} fleet={armFleet} slot={i} cad={chargeCad} />
             ))}
             {cleanFleet.meshes.map((m, i) => <primitive key={`cleanpart-${i}`} object={m} />)}
             {roboticStalls.map((s, i) => (
-              <CleanArm key={`clean-${s.id}`} stallId={s.id} fleet={cleanFleet} slot={i} />
+              <CleanArm key={`clean-${s.id}`} stallId={s.id} fleet={cleanFleet} slot={i} cad={cleanCad} />
             ))}
           </group>
           <StaticMerge name="landscaping"><Landscaping /></StaticMerge>
