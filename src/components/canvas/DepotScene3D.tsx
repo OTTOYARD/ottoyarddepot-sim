@@ -21,6 +21,7 @@ import { ChargingArm } from './three/ChargingArm';
 import { makeArmFleet } from './three/armInstances';
 import { CleanArm } from './three/CleanArm';
 import { makeCleanArmFleet } from './three/cleanArmInstances';
+import { makeFlexFleet } from '@/lib/robotics/flexMesh';
 import { useDepotCad } from './three/cadFleet';
 import { Lanes3D } from './three/Lanes3D';
 import { UtilityEquipment } from './three/UtilityEquipment';
@@ -205,6 +206,11 @@ export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0, viewe
   const cleanFleet = useMemo(() => makeCleanArmFleet(armCapacity, cleanCad?.parts), [armCapacity, cleanCad]);
   useEffect(() => () => cleanFleet.dispose(), [cleanFleet]);
   useEffect(() => { for (const m of cleanFleet.meshes) m.count = roboticStalls.length; }, [cleanFleet, roboticStalls.length]);
+  // their flexible lines (the charge cable; the clean arm's coil, reel cable and nozzle air), one merged draw per material
+  const armFlex = useMemo(() => (chargeCad?.flex.length ? makeFlexFleet(chargeCad.flex, armCapacity) : null), [chargeCad, armCapacity]);
+  useEffect(() => () => armFlex?.dispose(), [armFlex]);
+  const cleanFlex = useMemo(() => (cleanCad?.flex.length ? makeFlexFleet(cleanCad.flex, armCapacity) : null), [cleanCad, armCapacity]);
+  useEffect(() => () => cleanFlex?.dispose(), [cleanFlex]);
   const armStalls = useMemo(() => roboticStalls.map((s) => s.position), [roboticStalls]);
   const armKey = armStallsKey(armStalls);
   const controlsRef = useRef<OrbitControlsImpl>(null);
@@ -298,11 +304,13 @@ export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0, viewe
           <group name="arms">
             {armFleet.meshes.map((m, i) => <primitive key={`armpart-${i}`} object={m} />)}
             {roboticStalls.map((s, i) => (
-              <ChargingArm key={`arm-${s.id}`} stallId={s.id} stallType={s.type as 'dcfc' | 'l2'} fleet={armFleet} slot={i} cad={chargeCad} />
+              <ChargingArm key={`arm-${s.id}`} stallId={s.id} stallType={s.type as 'dcfc' | 'l2'} fleet={armFleet} slot={i} cad={chargeCad} flex={armFlex} />
             ))}
+            {armFlex && <primitive object={armFlex.group} />}
             {cleanFleet.meshes.map((m, i) => <primitive key={`cleanpart-${i}`} object={m} />)}
+            {cleanFlex && <primitive object={cleanFlex.group} />}
             {roboticStalls.map((s, i) => (
-              <CleanArm key={`clean-${s.id}`} stallId={s.id} fleet={cleanFleet} slot={i} cad={cleanCad} />
+              <CleanArm key={`clean-${s.id}`} stallId={s.id} fleet={cleanFleet} slot={i} cad={cleanCad} flex={cleanFlex} />
             ))}
           </group>
           <StaticMerge name="landscaping"><Landscaping /></StaticMerge>

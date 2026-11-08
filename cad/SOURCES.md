@@ -90,3 +90,42 @@ floor-rail gantry's overtravel stop, pending the supplier's rail system.
 
 The balancer search (charge_arm.torque_budget) found the best spring to be a near-constant force: the signature of a
 nitrogen gas spring. Gas springs: ISO 11901-1. Progression 15 % over the stroke is an ASSUMPTION typical of the type.
+
+## Service lines (design findings 10 to 14, read 2026-11-07)
+
+- 500 A DC liquid-cooled charging cable: OD 35.7 mm, minimum bend radius 357 mm (10 x OD) moved, 1.94 kg/m
+  (**used** for the charge cable span, its take-up groove radius of 380 mm and its mass):
+  https://www.phoenixcontact.com/us/products/1089665/pdf · https://www.phoenixcontact.com/us/products/1085637/pdf
+- A second 500 A class cable: bend radius 200 mm fixed, 305 mm in free movement, 1.6 kg/m (*checked*: the 357 mm
+  figure is the stricter one, so it governs): https://www.mouser.com/datasheet/2/829/HPC500_CCS1_Standard_CC56_B-3105972.pdf
+- Hybrid cable (power + EtherCAT), OD 10 mm: bend radius 7 x OD moved, 4 x OD fixed (**used** for the joints'
+  harness, the clean arm's coil and its fixed wrist lead):
+  https://www.beckhoff.com/es-es/products/i-o/accessories/cable-by-the-meter/hybrid-cables/zb7200-xxxx.html
+- PU vacuum hose ID 50 / OD 60: static inner bend radius 95 mm (**used** as the base for the clean arm's vacuum
+  figures): https://www.marek.eu/katalog-obrazku/produkt-6619/15467-10-07-09-00020-vsl-60-50-pu-ds.pdf
+- A hose's moving bend radius is about twice its static one (**used** as a rule of thumb for every moving hose and
+  duct; ASSUMPTION for any one product): https://www.varcopumper.com/what_is_hose_bend_radius_why_important.asp
+- 152 mm PU wire-helix duct: bend radius 138 mm (**used**: the wash side knives' 170 mm ducts are held to 280 mm
+  moving, twice the static figure, ASSUMPTION pending the duct maker):
+  https://uk.rs-online.com/web/p/flexible-ducting/0271411
+- Spiral (coiled) cables extend 3 to 5 times their retracted length: 4 times for one maker's control cable, 3 times
+  for another of its power cables (**used** to judge every coiled line; design finding 15): read 2026-11-07,
+  https://datasheets.globalspec.com/ds/4257/LAPP · https://docs.rs-online.com/077e/A700000015880550.pdf
+- Coil-frame concertina ducts fold to 5 to 8 % of their extended length: a duct hose that collapses to 5 % of its
+  length, and a 300 mm duct of 5 m that packs to 0.4 m (**used** for the wash top knife's duct, which needs 11 %;
+  design finding 15): read 2026-11-07, https://www.mcmaster.com/products/hvac-flex-ducts/ ·
+  https://www.beyondtools.com/products/300mm-12-x-5m-replacement-flexible-ventilation-pvc-ducting-suit-fan-1025-1-by-tradequip
+- Energy chain class 120 x 50, bend radius 200 mm, for the wash machine's supply (*checked* against a maker's range):
+  https://pdf2.datasheet.su/igus/200-03-125.pdf. The upper run's unsupported length with the machine at an end (up to
+  3.7 m) is to be confirmed by the chain maker; else it lies on the lower run.
+- Cable reels with a slip ring and a rotary joint for hoses on one hub exist: up to 200 A in a compact series and
+  1,600 A low voltage in a heavy series, rotary joints 3/8 to 3 in (*checked*, the class of the charge cable
+  take-up's hub union): https://www.conductix.ch/sites/default/files/downloads/KAT7100-0002-E_Product_Overview_Motor_Driven_Reels.pdf ·
+  reels with current up to 400 A and fluid joints up to 200 bar: https://www.directindustry.com/prod/raasm-spa/product-181436-2647547.html
+- Flat-cable clock-spring cups for a part that turns back and forth exist (*checked*, the class of the clean arm
+  wrist's clock spring; read 2026-11-07): https://elocab.bizlinktech.com/products/elocab/elocab-clock-spring-cables/
+- ASSUMPTION, figures for those classes without a product source: the take-up's hub union as built here (2 x 500 A DC
+  at 1000 V, signals, 2 coolant passages and air, made to order); the take-up's spring (about 80 N at the rim); the
+  wrist clock spring's 8 circuits at 2 A with an EtherCAT pair, 1.5 turns either way, in 8 mm; the wrist swivel's air
+  passage (a groove between 2 lip seals and a 3 mm channel along the stub's wall); the wash trench (0.52 m deep,
+  slotted checker-plate cover, brush strips).

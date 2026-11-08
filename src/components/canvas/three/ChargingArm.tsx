@@ -6,7 +6,8 @@ import { useDepotStore } from '@/store/depotStore';
 import { useSimulationStore } from '@/store/simulationStore';
 import { OTTO_CHARGE_ARM, METRES_PER_PLAN_UNIT } from '@/lib/ottoChargeArm/cobotSpec';
 import { armSkeleton, segmentNodes, writeArm, clearArm, type ArmFleet } from './armInstances';
-import type { DepotCad } from '@/lib/robotics/cadDepot';
+import type { DepotCad, DepotSkeleton } from '@/lib/robotics/cadDepot';
+import type { FlexFleet } from '@/lib/robotics/flexMesh';
 import { CAR_WIDTH } from '@/engine/motion/traffic';
 import { statusColor, vehicleMayMove, type ArmPhase } from '@/lib/ottoChargeArm/armStateMachine';
 import { twinMotionDriver } from '@/engine/TwinMotionDriver';
@@ -89,6 +90,8 @@ interface ChargingArmProps {
   slot: number;
   /** The engineering CAD the fleet was built from, or null for the procedural arm. */
   cad: DepotCad | null;
+  /** The CAD's flexible lines for every arm (its charge cable), drawn into the same slot; null without the CAD. */
+  flex?: FlexFleet | null;
 }
 
 /** One arm's joints to drive: the CAD's skeleton, or the procedural one. */
@@ -102,6 +105,8 @@ interface ArmRig {
   tcp: THREE.Object3D | null;
   /** the procedural arm's latch collar (the CAD connector's latch is inside it) */
   latch: THREE.Object3D | null;
+  /** the CAD's skeleton, for its flexible lines */
+  skel: DepotSkeleton | null;
 }
 
 function armRig(cad: DepotCad | null): ArmRig {
@@ -111,7 +116,7 @@ function armRig(cad: DepotCad | null): ArmRig {
       root: s.root, nodes: s.segments,
       j1: s.node('J1_BaseYaw'), j2: s.node('J2_Shoulder'), j3: s.node('J3_Elbow'),
       j4: s.node('J4_ForearmRoll'), j5: s.node('J5_WristPitch'), j6: s.node('J6_ToolRoll'),
-      tcp: null, latch: null,
+      tcp: null, latch: null, skel: s,
     };
   }
   const root = armSkeleton();
@@ -120,11 +125,11 @@ function armRig(cad: DepotCad | null): ArmRig {
     root, nodes: segmentNodes(root),
     j1: byName('J1_BaseYaw'), j2: byName('J2_Shoulder'), j3: byName('J3_Elbow'),
     j4: byName('J4_ForearmRoll'), j5: byName('J5_WristPitch'), j6: byName('J6_ToolRoll'),
-    tcp: byName('TCP_ConnectorTip'), latch: byName('Connector_Latch'),
+    tcp: byName('TCP_ConnectorTip'), latch: byName('Connector_Latch'), skel: null,
   };
 }
 
-export function ChargingArm({ stallId, stallType, fleet, slot, cad }: ChargingArmProps) {
+export function ChargingArm({ stallId, stallType, fleet, slot, cad, flex }: ChargingArmProps) {
   const groupRef = useRef<THREE.Group>(null);
   const cableRef = useRef<THREE.Mesh>(null);
 
@@ -141,6 +146,7 @@ export function ChargingArm({ stallId, stallType, fleet, slot, cad }: ChargingAr
 
   // an unmounted arm leaves its slot empty
   useEffect(() => () => clearArm(fleet, slot), [fleet, slot]);
+  useEffect(() => () => flex?.clear(slot), [flex, slot]);
 
   const cableMat = useMemo(
     () => new THREE.MeshStandardMaterial({ color: 0x101216, roughness: 0.85, metalness: 0.05 }),
@@ -307,6 +313,8 @@ export function ChargingArm({ stallId, stallType, fleet, slot, cad }: ChargingAr
     // hand its segments to the instanced meshes.
     groupRef.current?.updateWorldMatrix(true, true);
     writeArm(fleet, slot, rig.nodes, col, glow);
+    // the CAD's charge cable: its take-up wheel on the cabinet to the connector, solved at this pose
+    if (flex && rig.skel) flex.write(slot, rig.skel);
 
     // Charge cable, drawn whenever the arm is out of its cradle. It used to be
     // drawn only while LATCHED, which popped the cable out of existence the

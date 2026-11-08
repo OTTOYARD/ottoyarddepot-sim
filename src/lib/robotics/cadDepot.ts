@@ -21,6 +21,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { CadJointInfo } from './cadModel';
 import type { RobotKey } from './catalog';
+import { flexDefs, type FlexDefJson } from './flexLines';
 
 /** The depot model's file in public/cad (the manifest names it too, as `files.depot`). */
 export const depotFile = (robot: RobotKey): string => `${robot}.depot.glb`;
@@ -79,6 +80,8 @@ export interface DepotCad {
   parts: DepotPart[];
   /** a fresh skeleton for one robot */
   skeleton(): DepotSkeleton;
+  /** the robot's flexible lines (the GLB root's extras.flex): cables, hoses, ducts, energy chains */
+  flex: FlexDefJson[];
   /** what the depot model holds, for the dev check and the tests */
   stats: { parts: number; draws: number; shadowDraws: number; triangles: number; partIds: Set<string> };
 }
@@ -194,9 +197,13 @@ export function buildDepotCad(robot: RobotKey, scene: THREE.Object3D, opts: Depo
   // a stable draw order: by segment, then material name
   parts.sort((a, b) => a.segment - b.segment || a.material.name.localeCompare(b.material.name) || Number(b.castShadow) - Number(a.castShadow));
 
-  // the skeleton template: segment nodes and their ancestors, no meshes
+  // the skeleton template: segment nodes, the nodes the flexible lines hang from, and their ancestors, no meshes
+  const flex = flexDefs(scene);
+  const anchorNames = new Set(flex.flatMap((d) => [d.a.node, d.b.node, d.pairA?.node, d.pairB?.node].filter((x): x is string => !!x)));
+  const anchors: THREE.Object3D[] = [];
+  scene.traverse((o) => { if (o.name && anchorNames.has(o.name)) anchors.push(o); });
   const keep = new Set<THREE.Object3D>();
-  for (const n of segNodes) for (let o: THREE.Object3D | null = n; o; o = o.parent) keep.add(o);
+  for (const n of [...segNodes, ...anchors]) for (let o: THREE.Object3D | null = n; o; o = o.parent) keep.add(o);
   const segmentNames = segNodes.map((n, i) => (i === 0 ? '' : n.name));
 
   function skeleton(): DepotSkeleton {
@@ -241,6 +248,7 @@ export function buildDepotCad(robot: RobotKey, scene: THREE.Object3D, opts: Depo
     segmentNames,
     parts,
     skeleton,
+    flex,
     stats: {
       parts: partIds.size,
       draws: parts.length,

@@ -26,6 +26,7 @@ from cadquery import Location, Vector
 from .. import std
 from ..actuator import SIZES, build_actuator, module_length, out_flange_points, rear_od, front_ring_points
 from ..core import Model, Node, PartDef, loc
+from ..flex import Anchor, FlexDef
 
 G = 9.81
 BAL_A = 320.0     # balancer anchor below the J2 axis, mm
@@ -36,6 +37,10 @@ ANC_XZ = 190.0    # the riser's 4 anchors at (+/-190, +/-190): at 175 the nuts' 
 # last 155 mm before its J3 boss narrows to 110 mm, so the forearm's cheek plate folds past it.
 FORE_JOG = (190.0, 120.0, 330.0, 640.0)
 UPR_END_W = 110.0
+# the charge cable's outlet on the connector (tool frame): where the free span starts, and the direction the span arrives
+# along (the outlet points the other way, out along the tool's +X: parallel to J5, so the wrist's pitch does not bend it)
+TOOL_OUTLET = (0.0, 177.84, -151.72)
+TOOL_OUTLET_IN = (-0.9159, -0.1997, 0.3482)
 J6_GLAND_ANG, J6_GLAND_R = 0.0, 0.52   # J6's gland (axial, on its rear cover) clear of the wrist yoke's flank: at 0.44 of the
                                        # cover's radius it met the yoke, pointing any way round
 BAL_R = 160.0     # balancer crank pin above the J2 axis, mm
@@ -137,8 +142,8 @@ _RAYS: dict[int, tuple] = {}
 
 def _surface_at(shape, x: float | None, y: float | None, z: float | None, side: str) -> float:
     """The extreme of a solid along one axis on a line through it: e.g. _surface_at(s, None, 160, 0, 'xmin') is the
-    smallest x of the solid on the line y = 160, z = 0. The brackets, clamps and cables meet the castings where they
-    are. A ray against the solid's faces (a boolean per probe took seconds; the dress pack probes hundreds of times)."""
+    smallest x of the solid on the line y = 160, z = 0. Brackets meet the castings where they are. A ray against the
+    solid's faces (a boolean per probe took seconds)."""
     ent = _RAYS.get(id(shape))
     if ent is None or ent[0] is not shape:
         ray = IntCurvesFace_ShapeIntersector()
@@ -155,36 +160,6 @@ def _surface_at(shape, x: float | None, y: float | None, z: float | None, side: 
         raise ValueError(f'the line misses the solid at {x}, {y}, {z}')
     vals = [ray.Pnt(i).Coord(ax + 1) for i in range(1, ray.NbPnt() + 1)]
     return min(vals) if side.endswith('min') else max(vals)
-
-
-def _under(shape, ys, half_w: float, clear: float, x0: float = 0.0, win: float = 20.0) -> list[tuple[float, float, float]]:
-    """(x0, y, z) points that keep a cable of radius `half_w` `clear` mm under a casting's -Z face: at each y, the lowest
-    point of the face across the cable's width and within `win` mm along it. A spline through 4 or 5 far-apart points
-    bulged up into the castings between them; through these it follows the face."""
-    out = []
-    for y in ys:
-        zs = []
-        for dy in (-win, 0.0, win):
-            for dx in (-half_w, 0.0, half_w):
-                try:
-                    zs.append(_surface_at(shape, x0 + dx, y + dy, None, 'zmin'))
-                except Exception:      # noqa: BLE001  the line misses the casting there
-                    pass
-        if zs:
-            out.append((x0, float(y), min(zs) - half_w - clear))
-    return out
-
-
-def _low(shape, xs, ys) -> float:
-    """The lowest point of a casting's -Z face over a footprint (the grid xs x ys)."""
-    zs = []
-    for x in xs:
-        for y in ys:
-            try:
-                zs.append(_surface_at(shape, float(x), float(y), None, 'zmin'))
-            except Exception:          # noqa: BLE001
-                pass
-    return min(zs)
 
 
 # ═════════════════════════════════════════════════════════════════════ build ═══
@@ -210,7 +185,8 @@ def build(spec: dict) -> Model:
     m.subsystem('MOUNT', 'Riser and mount', 'A steel riser on the charger pad carries the arm. Its J1 axis is 550 mm above the deck and 2.82 m from the car centreline.',
                 how=['4 chemical anchors M16 hold the riser to the concrete pad.',
                      '8 screws M12 hold the mount plate to the riser.',
-                     'The cable trunk joins the riser to the charger cabinet. The power and data cables run inside it.'],
+                     'The cable trunk joins the riser to the charger cabinet. The arm\'s power and network cables run inside it '
+                     'into the riser and up through J1\'s hollow shaft.'],
                 specs={'J1 height': '550 mm above the deck', 'riser': '345 mm square, S355 galvanised'}, group='Structure')
     m.subsystem('J1', 'J1 base yaw', 'Turns the whole arm about the vertical axis to face the charge port.',
                 how=['A size 40 actuator in the riser top turns the turret.', 'Range is +/- 180 degrees. Cables pass through the hollow shaft.'],
@@ -232,13 +208,22 @@ def build(spec: dict) -> Model:
                 specs={'gears': 'size 25, 25, 20, 100:1'}, group='Joints')
     m.subsystem('TOOL', 'Connector tool', 'Finds the inlet, plugs in, latches, and lets go. It measures the force on every move.',
                 how=['A 6-axis force and torque sensor reads the insertion force.',
-                     'A compliance unit lets the connector float up to 6 mm and 3 degrees, so a small error cannot jam it.',
+                     'A compliance unit lets the connector float up to 6 mm and 3 degrees. A small error cannot jam it.',
                      'Stereo cameras and a time-of-flight sensor find the inlet. A light ring helps at night.',
                      'A solenoid latch locks the connector in the inlet for the charge.'],
                 specs={'connector': 'DC combo class (CCS), liquid-cooled', 'TCP': '369.6 mm from the tool flange'}, group='Tool')
-    m.subsystem('DRESS', 'Cable dress pack', 'Carries the charge cable and the signal lines along the arm without strain.',
-                how=['Clamps on each link hold the liquid-cooled cable.', 'A loop at each joint lets it turn.'],
-                group='Cables')
+    m.subsystem('DRESS', 'Cables and take-up', 'Brings the charge current, coolant and tool lines to the connector, and power and '
+                'network to the joints.',
+                how=['The charge cable comes up out of the cabinet roof into a take-up wheel.',
+                     'The wheel\'s hub has a slip ring and a coolant union. They pass the current, coolant, signals and air into the '
+                     'wheel as it turns.',
+                     'The cable lies in the wheel\'s rim and leaves it above the cabinet\'s front edge. From there it spans free to an '
+                     'outlet on the connector. A spring turns the wheel back, so the span is never slack onto the car.',
+                     'The joints\' 10 mm power and network cable runs inside the arm, through the hollow shafts of J1 to J5.',
+                     'The tool\'s cable and its air line ride with the charge cable in its sleeve. J6 is too small to pass them.'],
+                specs={'charge cable': '500 A DC, liquid-cooled, OD 35.7 mm, bend radius 357 mm moved',
+                       'take-up': 'wheel 820 mm, groove radius 380 mm, turns up to 178 degrees',
+                       'span': '2.72 to 3.91 m free, 1.36 x its chord'}, group='Cables')
     m.subsystem('SAFETY', 'Safety and status', 'Stops the arm when a person comes near and shows its state to the site.',
                 how=['A safety laser scanner on the riser watches the stall at knee height.',
                      'An emergency stop on the riser cuts motor power (safe torque off).',
@@ -623,80 +608,80 @@ def build(spec: dict) -> Model:
     tool = j6.child('Tool', loc(0, 0, 0), sub='TOOL')
     build_tool(m, tool, LT)
 
-    # ═════════════════════════════════════════════════════════ DRESS PACK ═══
-    cab_r = 16.0
-    cab_part = lambda pid, pts, nm: m.part(std.swept(pid, nm, pts, cab_r, 'cable', 'electrical', 0.0,  # noqa: E731
-        'Liquid-cooled DC charge cable, 2 x 50 mm2 copper with coolant lines, plus the CP/PP signal pair.',
-        {'rating': '500 A DC, 1000 V', 'bend radius': 'min 250 mm'}, 'IEC 62893-4-2', 'OD 32'))
-    zc = -radii['upper'] * 1.18 - 30
-    upr_s, for_s = upper.val(), fore.val()
-    surf = lambda shp, x, y: _surface_at(shp, x, y, None, 'zmin')       # noqa: E731  the casting's -Z face
-    # each clamp stands on its casting's -Z face (the face's lowest point under the clamp, so it does not cut in); its
-    # bore (8 mm off its centre, toward the casting) holds the cable. Between the clamps the cable follows the face
-    # 1.5 mm under it, so the spline through its points cannot bulge into the casting.
-    cl_u = [(y, _low(upr_s, (-30, 0, 30), (y - 9, y + 9)) - 25) for y in (360, 760, 1160)]
-    cl_f = [(y, _low(for_s, (-30, 0, 30), (y - 9, y + 9)) - 25) for y in (680, 860)]    # past the forearm's jog
-
-    def run(shape, y0, y1, clamps):
-        near = [y for (y, _) in clamps]
-        ys = [y for y in range(int(y0), int(y1) + 1, 40) if all(abs(y - c) > 30 for c in near)]
-        pts = _under(shape, ys, cab_r, 1.5) + [(0.0, float(y), z + 8) for (y, z) in clamps]
-        return sorted(pts, key=lambda q: q[1])
-    pts_u = [(0, 220, cl_u[0][1] + 8 - 20)] + run(upr_s, 300, 1150, cl_u) + [(0, LU - 110, cl_u[-1][1] + 8 - 10)]
-    pts_f = [(0, 200, cl_f[0][1] + 8 - 20)] + run(for_s, 600, 900, cl_f) + [(0, 945, cl_f[-1][1] + 8 - 8)]
-    m.place(j2, cab_part('CHG-CBL-U', pts_u, 'Charge cable, upper arm run'), Location(), (0, 0, -160), 'DRESS')
-    m.place(j3, cab_part('CHG-CBL-F', pts_f, 'Charge cable, forearm run'), Location(), (0, 0, -140), 'DRESS')
-    # the turret run lies on the column's -Z face at mid height (its one support there) and 1.5 mm under it elsewhere
-    z_t = _surface_at(tur.val(), 0.0, H * 0.5, None, 'zmin')
-    ys_t = [y for y in range(100, int(H * 0.5) - 25, 30)] + [y for y in range(int(H * 0.5) + 30, 300, 30)]
-    pts_t = sorted([(0, 60, -rb * 1.12 - 30), (0, H * 0.5, z_t - cab_r + 0.6)] + _under(tur.val(), ys_t, cab_r, 1.5)
-                   + [(0, H - 60, zc - 60), (0, H + 140, zc - 40)], key=lambda q: q[1])
-    m.place(j1, cab_part('CHG-CBL-T', pts_t, 'Charge cable, turret run'), Location(), (0, 0, -160), 'DRESS')
-    clamp_shape = (cq.Workplane('XY').box(60, 18, 50).edges('|Y').fillet(6)
-                   .cut(cq.Workplane('XZ').circle(cab_r + 0.25).extrude(20, both=True).translate((0, 0, 8))))   # its liner
-    clamp_pd = PartDef('CHG-CLP', 'Cable saddle clamp, 32 mm', clamp_shape.val(), 'pa66', 'electrical', 'catalogue part',
-                       'for OD 32 cable', '', None, 'Holds the charge cable to the link. Its rubber liner stops wear.', {}, 'buy')
-    for node, cls in ((j2, cl_u), (j3, cl_f)):
-        for (y, z) in cls:
-            m.place(node, clamp_pd, loc(0, y, z), (0, 0, -120), 'DRESS')
-            for sx in (-1, 1):
-                m.place(node, std.shcs(6, 60, 'A2-70', 'Holds the cable clamp to its link, through the clamp.'),
-                        std.orient((sx * 22, y, z - 25), (0, 0, 1)), (0, 0, -160), 'DRESS')
-
-    # dress-pack retract unit: a spring-return slide beside the cable under the upper arm, taking up its slack as the arm folds
-    xr_ = -75.0
-    # each bracket: a 12 mm web carrying the unit, under a flange whose top is cut to the casting's face (on a flat
-    # top it cut into the casting's curved face); 2 screws go up through the flange into the casting
-    yb_r = (420, 930)
-    z_bot = [_low(upr_s, (xr_ - 35, xr_ - 15, xr_ + 5, xr_ + 35), (y - 18, y, y + 18)) - 8 for y in yb_r]   # flange undersides
-    rz = min(z_bot) - 45                                 # the unit's axis
-    rtu = (cq.Workplane('XZ', origin=(xr_, 980, rz)).circle(30).circle(26).extrude(620)
-           .union(cq.Workplane('XZ', origin=(xr_, 980, rz)).circle(30).extrude(8))
-           .union(cq.Workplane('XZ', origin=(xr_, 368, rz)).circle(30).extrude(8)))
-    m.place(j2, m.part(PartDef('CHG-RTU', 'Dress-pack retract unit, spring return, 500 mm stroke', rtu.val(), 'al6061_blk', 'electrical',
-                               'catalogue part', 'D 60 x 620', 'IP54', None,
-                               'Takes up the charge cable slack when the arm folds, so the cable never hangs into the aisle or onto the car.',
-                               {'pull': 'about 60 N', 'stroke': '500 mm'}, 'buy')), Location(), (0, 0, -260), 'DRESS')
-    for k, (yy, zb) in enumerate(zip(yb_r, z_bot)):
-        h = zb - (rz - 20)
-        web = (cq.Workplane('XY').box(70, 12, h).translate((xr_, yy, rz - 20 + h / 2))
-               .cut(cq.Workplane('XZ', origin=(xr_, yy + 20, rz)).circle(30).extrude(40)))
-        fl = cq.Workplane('XY').box(70, 36, 60).translate((xr_, yy, zb + 30)).cut(cq.Workplane('XY').add(upr_s))
-        xs_ = xr_ + 20                                   # the screws: on the casting's side of the flange
-        for yo in (-12, 12):
-            fl = fl.cut(cq.Workplane('XY').circle(3.2).extrude(80).translate((xs_, yy + yo, zb - 1)))
-        brk = web.union(fl)
-        m.place(j2, m.part(PartDef(f'CHG-RTB{k + 1}', 'Retract unit clamp bracket', brk.val(), 'al6061', 'electrical', 'machined',
-                                   f'70 x {h:.0f} x 36', '6061-T6', None, 'Clamps the retract unit to the upper arm.', {}, 'make')),
-                Location(), (0, 0, -230), 'DRESS')
-        t_fl = surf(upr_s, xs_, yy) - zb                 # the flange's thickness at the screws
-        L_s = next(L for L in (16, 20, 25, 30, 35, 40, 45, 50) if L >= t_fl + 9)
-        for yo in (-12, 12):
-            m.place(j2, std.shcs(6, L_s, 'A2-70', 'Holds the retract bracket to the upper arm, up through its flange.'),
-                    std.orient((xs_, yy + yo, zb), (0, 0, 1)), (0, 0, -210), 'DRESS')
-    sld = cq.Workplane('XY').box(64, 40, 64).cut(cq.Workplane('XZ').circle(30).extrude(30, both=True)).translate((xr_, 880, rz))
-    m.place(j2, m.part(PartDef('CHG-RTS', 'Retract slider with cable clamp', sld.val(), 'pa66', 'electrical', 'catalogue part', '64 x 64 x 40',
-                               '', None, 'Rides the retract unit and grips the cable.', {}, 'buy')), Location(), (0, 0, -300), 'DRESS')
+    # ═══════════════════════════════════════════════════════ CHARGE CABLE ═══
+    # The charge cable does not ride the arm. It leaves the cabinet's roof into a slip ring and coolant union on the hub of
+    # a take-up wheel, lies in the wheel's rim, leaves the rim at a fixed point above the cabinet's front edge and spans
+    # free to the connector's outlet. A spring turns the wheel back to take up what the span does not need, so the span
+    # keeps 1.36 times its chord: never slack onto the car, never tight. (Clamped along the links with a retract unit under
+    # the upper arm, the cable stopped at each joint, with no way across J1, J2 or J3: design finding 11.) It leaves the rim
+    # in the wheel's plane, tangent to the groove: a cable turned sideways at the rim rides up the wheel's flange. The
+    # leaving point (136 degrees round from the top) was searched over the duty cycle's 11,070 poses (cadFlex.test.ts):
+    # tightest bend 418 mm against the cable's 357 mm. Its free length runs 2.72 to 3.91 m: the wheel turns 178 degrees.
+    r_cb = 20.0                                          # the cable, OD 35.7, with the tool's cable and air line in a sleeve
+    R_tw = 380.0                                         # the rim groove: the cable's centreline radius
+    c_w = (0.0, 1906.27, -803.31)                        # the wheel's axle (base frame)
+    phi_A = math.radians(136.0)                          # where the cable leaves the rim: round from up (+Y) toward the car
+    A_pt = (0.0, c_w[1] + R_tw * math.cos(phi_A), c_w[2] + R_tw * math.sin(phi_A))
+    t_A = (0.0, math.sin(phi_A), -math.cos(phi_A))       # along the groove there: up and toward the car
+    w_g = 28.0                                           # the groove's half width: the span's side leaves 3 mm off the flange
+    ring = lambda ro, ri, x0, x1: (cq.Workplane('YZ', origin=(x0, c_w[1], c_w[2])).circle(ro).circle(ri)   # noqa: E731
+                                   .extrude(x1 - x0))
+    wheel = (ring(410, 340, -50, 50).cut(ring(411, R_tw - r_cb, -w_g, w_g))          # the rim and the groove the cable lies in
+             .union(ring(345, 99, -6, 6)).union(ring(100, 25, -80, 80)))         # the web and the hub
+    m.place(base, m.part(PartDef('CHG-TUW', 'Cable take-up wheel, 820 mm, spring return', wheel.val(), 'al6061', 'electrical',
+                                 'made to order', 'D 820 x 100', '6061-T6', None,
+                                 'Holds the cable in its rim and turns back on its spring to take up the slack as the arm folds in.',
+                                 {'groove': '380 mm radius (the cable\'s 357 mm moved, with margin), 56 mm wide',
+                                  'turn': 'up to 178 degrees',
+                                  'spring': 'spiral spring in the hub, about 80 N at the rim'}, 'make', mass_override=24.0)),
+            Location(), (0, 260, -200), 'DRESS')
+    axle = cq.Workplane('YZ', origin=(-100, c_w[1], c_w[2])).circle(25).extrude(200)
+    m.place(base, m.part(PartDef('CHG-TUA', 'Take-up wheel axle, 50 mm', axle.val(), 'steel', 'drive', 'machined', 'D 50 x 200', 'C45',
+                                 None, 'Carries the wheel between the frame cheeks, on 2 bearings.', {}, 'make')),
+            Location(), (0, 260, -240), 'DRESS')
+    y_rf = pad_top + cab['height'] * M                   # the cabinet's roof
+    cheek = (cq.Workplane('YZ').polyline([(y_rf, -805), (y_rf, -560), (c_w[1] + 70, c_w[2] + 60), (c_w[1] + 70, c_w[2] - 70),
+                                          (c_w[1] - 210, c_w[2] - 70)]).close().extrude(10)
+             .cut(cq.Workplane('YZ', origin=(-1, c_w[1], c_w[2])).circle(25).extrude(12)))
+    frame = (cheek.translate((85, 0, 0)).union(cheek.translate((-95, 0, 0)))
+             .union(cq.Workplane('XY').box(220, 10, 245).translate((0, y_rf + 5, -682.5))))
+    m.place(base, m.part(PartDef('CHG-TUF', 'Take-up frame, 2 cheeks on a base plate, stainless', frame.val(), 'ss304', 'structure',
+                                 'cut and welded plate 10 mm', '220 x 245 base', '304', None,
+                                 'Stands on the cabinet roof and carries the wheel\'s axle.', {}, 'make')),
+            Location(), (0, 220, -200), 'DRESS')
+    un = (cq.Workplane('YZ', origin=(100, c_w[1], c_w[2])).circle(90).circle(25.5).extrude(120)
+          .union(cq.Workplane('XY').box(60, 40, 60).translate((160, c_w[1] - 100, c_w[2] + 40))))      # the inlet, down
+    m.place(base, m.part(PartDef('CHG-TUU', 'Take-up hub union: 2 x 500 A DC slip ring, signals, 2 coolant passages, air', un.val(),
+                                 'steel_paint', 'electrical', 'made to order', 'D 180 x 120', 'IP55', None,
+                                 'Passes the charge current, the coolant, the charge and tool signals and the air into the turning '
+                                 'wheel, so nothing twists.', {'current': '2 x 500 A DC, 1000 V', 'coolant': '2 passages, 3 bar',
+                                                              'signals': 'CP, PP, PE, tool EtherCAT pair, 4 x 24 V'}, 'buy',
+                                 mass_override=18.0)),
+            Location(), (0, 260, -260), 'DRESS')
+    feed = cq.Workplane('XZ', origin=(160, c_w[1] - 120, c_w[2] + 40)).circle(r_cb).extrude(c_w[1] - 120 - y_rf)
+    m.place(base, m.part(PartDef('CHG-TUC', 'Charge cable, cabinet to the take-up union', feed.val(), 'cable', 'electrical',
+                                 'IEC 62893-4-2', 'OD 35.7 in a 40 mm sleeve', '', None,
+                                 'Brings the cable up out of the cabinet roof to the union. It does not move.', {}, 'buy')),
+            Location(), (0, 200, -260), 'DRESS')
+    # the cable in the rim: drawn over the 120 degrees it always holds (at full reach) up to the leaving point; folded in, it
+    # wraps 178 more
+    on_rim = lambda ph: Vector(0, c_w[1] + R_tw * math.cos(ph), c_w[2] + R_tw * math.sin(ph))   # noqa: E731
+    arc = cq.Edge.makeThreePointArc(on_rim(phi_A + math.radians(120)), on_rim(phi_A + math.radians(60)), on_rim(phi_A))
+    d0 = arc.tangentAt(0)
+    wrap = (cq.Workplane(cq.Plane(origin=arc.startPoint(), xDir=Vector(1, 0, 0), normal=d0)).circle(r_cb)
+            .sweep(cq.Workplane().add(cq.Wire.assembleEdges([arc])), transition='round'))
+    m.place(base, m.part(PartDef('CHG-TUK', 'Charge cable on the take-up wheel', wrap.val(), 'cable', 'electrical', 'IEC 62893-4-2',
+                                 'OD 35.7 in a 40 mm sleeve', '', None, 'Lies in the rim. It winds on and off as the arm moves.', {},
+                                 'buy')), Location(), (0, 240, -200), 'DRESS')
+    m.flex(FlexDef('CHG-CCB', 'Charge cable span, 500 A liquid-cooled, with the tool cable and air line', 'loop',
+                   Anchor(base, A_pt, t_A), Anchor(tool, TOOL_OUTLET, TOOL_OUTLET_IN), r_cb, 'DRESS',
+                   'Carries the charge current, the coolant, the charge signals and the tool\'s signals and air from the take-up '
+                   'wheel to the connector. It spans free between them.',
+                   mat='cable', category='electrical', length=3300, min_bend=357, shape='cubic', sag=0.08, retract_k=1.36,
+                   lmin=400, lmax=4000, swivel_b=33.97, kg_per_m=2.1, size='OD 35.7 in a 40 mm sleeve',
+                   standard='IEC 62893-4-2',
+                   spec={'cable': '500 A DC, 1000 V, liquid-cooled, OD 35.7 mm, 1.94 kg/m', 'bend radius': '357 mm moved (10 x OD)',
+                         'free length': '1.36 x the chord, 2.72 to 3.91 m', 'in the sleeve': 'tool cable (EtherCAT + 24 V) and air 6 mm'}))
 
     # ═════════════════════════════════════════════════════════════ SAFETY ═══
     sc = (cq.Workplane('XY').box(110, 150, 104, centered=(True, False, True)).edges('|Y').fillet(10)
@@ -763,8 +748,7 @@ def build_tool(m: Model, tool: Node, LT: float) -> None:
     body_len = face_y - (y + 14) - 46
     body = (cq.Workplane('XZ', origin=(0, y + 14, 0)).circle(50).workplane(offset=-body_len * 0.6).circle(46).loft()
             .union(cq.Workplane('XZ', origin=(0, y + 14 + body_len * 0.6, 0)).circle(46).extrude(-body_len * 0.4))
-            .union(cq.Workplane('XY').box(30, body_len * 0.5, 22).translate((0, y + 14 + body_len * 0.45, -52)))
-            .cut(cq.Workplane('XY', origin=(0, y + 14 + body_len * 0.45, -64)).circle(10).extrude(12)))   # the gland's thread
+            .union(cq.Workplane('XY').box(60, 70, 8).translate((0, 175, -46))))       # the pad the cable outlet housing bolts to
     m.place(tool, m.part(PartDef('CHG-CON', 'DC combo connector body, robotic', body.val(), 'pa66', 'tool',
                                  'IEC 62196-3 / SAE J1772 combo interface', 'body OD 100', '', None,
                                  'Carries the DC and signal contacts to the inlet. The coolant flows to the contacts inside.',
@@ -848,8 +832,26 @@ def build_tool(m: Model, tool: Node, LT: float) -> None:
     m.place(tool, m.part(PartDef('CHG-BMP', 'Connector nose bumper, TPE', bump.val(), 'rubber', 'tool', 'moulded', 'OD 86 x 12', '', None,
                                  'Takes a light knock on the inlet rim without damage. The force sensor stops the arm.', {}, 'buy')),
             Location(), (0, 280, 0))
-    m.place(tool, std.gland(20, 'Seals the charge cable into the connector body.'), std.orient((0, y + 14 + body_len * 0.45, -63), (0, 0, 1)),
-            (0, 200, -60))
+    # the cable outlet: a housing on the body's pad, its elbow down and round to a swivel gland that points out along +X
+    o = tuple(-c for c in TOOL_OUTLET_IN)
+    L_g = std.gland_length(50) + 12.0                    # the dome and 12 mm for the swivel to turn the cable in
+    F = tuple(TOOL_OUTLET[k] - L_g * o[k] for k in range(3))             # the gland's seat
+    s_c = (F[0] + 92) / o[0]                                             # the elbow's corner, under the block
+    C = tuple(F[k] - s_c * o[k] for k in range(3))
+    elbow = std._bent_tube_shape(((-92.0, 172.0, -60.0), C, F), 32.0, 0.0, 45.0)
+    coh = (cq.Workplane('XY').box(142, 65, 30).translate((-41, 172.5, -65)).union(cq.Workplane('XY').add(elbow))
+           .cut(cq.Workplane('XY').add(cq.Solid.makeCylinder(25.5, 24.0, Vector(*F), Vector(*(-c for c in o))))))   # the M50 thread
+    m.place(tool, m.part(PartDef('CHG-COH', 'Cable outlet housing, glass-filled PA66', coh.val(), 'pa66', 'tool', 'moulded',
+                                 '142 x 65, elbow D 64', 'PA66-GF30', None,
+                                 'Leads the charge cable out of the connector body to the side, so the span leaves along J5\'s axis.',
+                                 {}, 'make')), Location(), (-60, 200, -60))
+    for (xs, ys) in ((-20, 150), (20, 150), (-20, 195), (20, 195)):
+        m.place(tool, std.shcs(6, 40, 'A2-70', 'Holds the cable outlet housing to the connector body.'),
+                std.orient((xs, ys, -80), (0, 0, 1)), (-60, 200, -90))
+    swg = PartDef('GLAND-M50S', 'Swivel cable gland M50 x 1.5, ball joint 35 degrees, IP67', std._gland_shape(50), 'pa66',
+                  'electrical', 'IEC 62444', 'M50 x 1.5, cable 30 to 38', 'IP67', None,
+                  'Seals the cable into the outlet and lets it leave at up to 35 degrees off the axis without a kink.', {}, 'buy')
+    m.place(tool, swg, std.orient(F, TOOL_OUTLET_IN), (-80, 200, -80))
 
 
 def _ik_q2(along: float, height: float, S: dict) -> float:

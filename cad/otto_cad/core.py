@@ -134,6 +134,7 @@ class Model:
         self.subsystems: dict[str, dict] = {}
         self._counts: dict[str, int] = {}
         self.notes: dict = {}
+        self.flexes: list = []                         # flex.FlexDef: the lines that cross the joints, solved per pose
 
     # ── definitions ────────────────────────────────────────────────────────────
     def part(self, pd: PartDef) -> PartDef:
@@ -179,6 +180,36 @@ class Model:
         node.items.append(it)
         return it
 
+    def flex(self, fd):
+        """Add a flexible line (flex.FlexDef): a cable, hose, duct or energy chain that crosses a joint. Its shape
+        is solved at each pose; the bill of materials counts it once (a chain: once per link)."""
+        ids = {id(n) for n in self.root.walk()}
+        for an in (fd.a, fd.b):
+            if id(an.node) not in ids:
+                raise ValueError(f'{fd.id}: an anchor is on a node outside the model')
+        if any(f.id == fd.id for f in self.flexes):
+            raise ValueError(f'{fd.id}: a line with this id is already in the model')
+        if fd.sub not in self.subsystems:
+            raise ValueError(f'{fd.id}: no subsystem {fd.sub}')
+        self.flexes.append(fd)
+        return fd
+
+    def flex_parts(self) -> dict:
+        """Each line's bill-of-materials part (flex.part_for), made once: a loop's or a reel's solid at the stowed pose
+        with its mass by length, or a chain's link."""
+        from .flex import part_for
+        cache = getattr(self, '_flex_parts', None)
+        if cache is None or len(cache) != len(self.flexes):
+            cache = {}
+            for fd in self.flexes:
+                pd = part_for(fd, self.root)
+                pd = self.parts.get(pd.id, pd)
+                if not pd.volume:
+                    pd.finish()
+                cache[pd.id] = pd
+            self._flex_parts = cache
+        return cache
+
     # ── mass properties ────────────────────────────────────────────────────────
     def mass_props(self, node: Node) -> tuple[float, Vector]:
         """Mass (kg) and centre of mass (mm) of a node and everything under it, in the node's frame."""
@@ -197,15 +228,27 @@ class Model:
 
     # ── exports ────────────────────────────────────────────────────────────────
     def to_step(self, path: str) -> None:
+        """The assembly at the STOWED pose (each joint at its `stowed` value), with every flexible line solved there."""
+        from .check import motion
+        from .flex import items_at
+
         def build(node: Node) -> cq.Assembly:
-            a = cq.Assembly(name=node.name, loc=node.loc)
+            L = node.loc
+            if node.joint:
+                j = node.joint
+                L = L * motion(j, min(j['limits'][1], max(j['limits'][0], j.get('stowed', 0.0))))
+            a = cq.Assembly(name=node.name, loc=L)
             for it in node.items:
                 r, g, b = srgb_to_linear(material(it.part.mat).color)
                 a.add(it.part.shape, name=it.name, loc=it.loc, color=cq.Color(r, g, b, 1.0))
             for ch in node.children:
                 a.add(build(ch))
             return a
-        build(self.root).export(path, 'STEP')
+        top = build(self.root)
+        for (it, L, _) in items_at(self.flexes, self.root, {}, segmented=False):
+            r, g, b = srgb_to_linear(material(it.part.mat).color)
+            top.add(it.part.shape, name=it.name, loc=L, color=cq.Color(r, g, b, 1.0))
+        top.export(path, 'STEP')
 
     def bom(self) -> dict:
         uses: dict[str, dict[str, int]] = {}
@@ -213,9 +256,14 @@ class Model:
             for it in node.items:
                 uses.setdefault(it.part.id, {})
                 uses[it.part.id][it.sub] = uses[it.part.id].get(it.sub, 0) + 1
+        flex_parts = self.flex_parts()
+        for fd in self.flexes:
+            pid = fd.link_part.id if fd.kind == 'chain' else fd.id
+            uses.setdefault(pid, {})
+            uses[pid][fd.sub] = uses[pid].get(fd.sub, 0) + (fd.links if fd.kind == 'chain' else 1)
         lines = []
         for pid, by_sub in uses.items():
-            p = self.parts[pid]
+            p = self.parts.get(pid) or flex_parts[pid]
             mat = material(p.mat)
             qty = sum(by_sub.values())
             lines.append({
@@ -238,7 +286,7 @@ class Model:
             parts = [l for l in real if any(u['sub'] == s['id'] for u in l['uses'])]
             count = sum(u['qty'] for l in parts for u in l['uses'] if u['sub'] == s['id'])
             fast = sum(u['qty'] for l in parts if l['category'] == 'fastener' for u in l['uses'] if u['sub'] == s['id'])
-            mass = sum(self.parts[l['id']].mass * u['qty'] for l in parts for u in l['uses'] if u['sub'] == s['id'])
+            mass = sum((self.parts.get(l['id']) or flex_parts[l['id']]).mass * u['qty'] for l in parts for u in l['uses'] if u['sub'] == s['id'])
             subs.append({**s, 'partCount': count, 'fastenerCount': fast, 'massKg': round(mass, 3),
                          'uniqueParts': len(parts)})
         return {

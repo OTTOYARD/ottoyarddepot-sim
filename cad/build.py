@@ -55,7 +55,13 @@ def build_one(key: str, spec: dict) -> dict:
     bom = model.bom()
     os.makedirs(OUT, exist_ok=True)
     glb_path = os.path.join(OUT, f'{key}.glb')
-    stats = write_glb(model, glb_path, {'specVersion': spec['version']})
+    gx = {'specVersion': spec['version']}
+    if model.flexes:   # each line solved at a few poses, for the viewer's test to solve the same and compare
+        from otto_cad.flex import samples
+        pp = json.load(open(os.path.join(HERE, 'spec', 'poses.json')))['robots'].get(key, []) if os.path.exists(
+            os.path.join(HERE, 'spec', 'poses.json')) else []
+        gx['flexCheck'] = samples(model.flexes, model.root, [{'id': 'stowed', 'angles': {}}] + pp[:4])
+    stats = write_glb(model, glb_path, gx)
     step_tmp = os.path.join(HERE, f'.{key}.step')
     model.to_step(step_tmp)
     zpath = os.path.join(OUT, f'{key}.step.zip')
@@ -69,7 +75,7 @@ def build_one(key: str, spec: dict) -> dict:
     os.remove(step_tmp)
     # the depot model: what the yard draws (last: it re-meshes the shapes coarsely)
     depot_path = os.path.join(OUT, f'{key}.depot.glb')
-    dstats = write_glb(model, depot_path, {'specVersion': spec['version'], 'lod': 'depot'}, depot=True)
+    dstats = write_glb(model, depot_path, {'specVersion': spec['version'], 'lod': 'depot'}, depot=True)   # carries the lines too
     with open(depot_path, 'rb') as f:
         depot_digest = hashlib.sha256(f.read()).hexdigest()[:16]
     placed = sum(l['qty'] for l in bom['lines'])

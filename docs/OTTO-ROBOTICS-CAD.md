@@ -269,8 +269,104 @@ The poses found more, which the stowed pose could not show:
    the arm does not change. With margins that thin, a bigger pitch drive needs the twin to stand the pivot further out,
    and the wand's spare reach is 28 mm (0.892 of 0.92 m used).
 
+10. **The clean arm's J1 and J2 could not carry a hose.** J1 swings the arm 178 degrees round the column in a cleaning
+    cycle and J2 folds link 2 54 degrees under link 1. A hose from the column would pass through the column at
+    mid-swing, and at J2's fold its 2 ports stand closer than its bend allows. The energy chains first drawn there
+    were decorative: they crossed no joint the way the joint moves. **J1 and J2 are now built as J3 was (finding 5):**
+    the vacuum, the air and the signals cross each joint on its axis in a rotary union with a slip ring, the joint is
+    driven off its axis by a pinion on a ring gear, and the duct and the cables run inside the links.
+11. **The charge cable stopped at every joint.** It was drawn in 3 rigid runs, clamped along the turret, the upper arm
+    and the forearm, with a retract unit under the upper arm, and nothing crossed J1, J2 or J3. Its gland on the
+    connector was an M20, for a cable 35.7 mm across. A 500 A liquid-cooled cable bends no tighter than 357 mm when it
+    moves, so it cannot follow a 6-axis arm through its joints. **It now does not ride the arm:** it comes up out of
+    the cabinet roof into a slip ring and coolant union in the hub of a take-up wheel (820 mm, groove radius 380 mm),
+    lies in the rim's groove, leaves it in the wheel's plane at a fixed point above the cabinet's front edge and spans
+    free to a side outlet on the connector, through an M50 swivel gland. A spring turns the wheel back, so the span
+    keeps 1.36 times its chord: never slack onto the car. The span's anchors, outlet directions and ratio were searched
+    over the duty cycle's poses. Over 11,070 poses (every inlet and every corner of the window) the tightest bend is
+    418 mm (against 357 mm). Over 5,275 the span stays at least 52 mm from the arm, its free length runs 2.72 to
+    3.91 m, and the wheel turns 178 degrees. A first draft let the span turn sideways as it left the rim. The clash
+    check found it riding up the wheel's flange at most poses, so it now leaves in the wheel's plane, and the groove is
+    56 mm wide for its 40 mm sleeve (as it leaves, the span keeps at least 3 mm off the flange). The arm's zero
+    pose (straight up) is outside the cable's reach: it would bend the cable to 251 mm. The twin never plays it, so the
+    Robotics tab no longer offers it and the clash check no longer tests it. The joints' own power and network (a 10 mm
+    hybrid cable) runs inside the arm through the hollow shafts of J1 to J5. J6's bore (9.4 mm) is too small for it, so
+    the tool's cable and air line ride with the charge cable in its sleeve.
+12. **No line can loop across the clean arm's wrist (J4).** J4 turns 135 degrees, and the wrist keeps only 4 to 9 mm
+    over the 0.10 m it must keep off the car and the doors (finding 9), so it cannot grow. The best loop of a 10 mm
+    hybrid cable across it, searched over the cycle, bent to 27 mm against the 70 mm it needs. A 6 mm air line bent to
+    21 mm against 30. **So nothing loops there:** the power and network cross in a flat-cable clock spring (8 mm thick)
+    in the 10 mm between the hub and the +Z cheek, and the air crosses in a second passage of the vacuum swivel, in its
+    old envelope. Their fixed leads run up the cheek and over the back of the fork's top block to a clamp. The mast's
+    own supply changed for the same reason: a coil from the mast top can only end at the fork (the 3 stages are flush
+    when the mast is in), and there it stood 79 mm from the car on one side of the fork and 80 mm from an open door on
+    the other. A spring reel on the outer stage's back now pays the cable and the air line straight down, 12 mm off the
+    stage, to that clamp, inside the wrist's outline.
+13. **The wash machine's drag chain stood in the side air knife's path.** On the floor its upper run stood 0.43 m up;
+    the retracted right knife's foot is 0.26 m up, over the same strip of floor, at every gantry position. Its moving
+    end was also drawn fixed: the chain did not follow the machine. **The chain now runs in a covered trench**
+    (floor 0.52 m down, galvanised liner, slotted checker-plate cover with brush strips, tied to the rail anchor plates).
+    A driver duct joins its moving end through the slot to an arm on the trolley's inner wall, and a conduit takes the
+    lines up the leg to the cabinet. Its bend rolls at half the machine's speed over the whole 7.37 m of travel.
+14. **The wash wands' cable reel stood in the reach tubes and the arch.** Hung under the beam, its drum met the reach
+    tubes at the stowed pose, and moved to clear them it met the spray arch. Its cable also climbed from the reel to
+    the slide block at the stowed pose. **The reel now stands on the top deck,** outboard of the column, and pays its
+    cable straight down through a conduit in the beam to an arm on the slide block.
+15. **Two of the wash machine's stretching lines stretched further than their kind can.** Played through every program
+    (`cadFlex.test.ts`), the top brush's coiled motor cable ran from 0.29 to 2.10 m, 7.3 times its shortest length;
+    spiral cables are rated 3 to 5 times (`cad/SOURCES.md`). The top knife's bellows duct ran from 0.26 to 2.26 m as
+    the knife drops 2 m to the hood, where a PU bellows folds to about 15 % of its length. **The top brush's cable is
+    now on a spring reel** under the beam behind its lift column, and **the duct is a concertina duct on a steel coil
+    frame** (its class folds to 5 to 8 % of its length; this one needs 11 %). The clean arm's mast line passed the
+    same test as a coil (3.8 times) before finding 12 moved it to a reel.
+
+The audit also found the wash machine's tools fed by rigid pipes that could not follow them. They now have flexible
+lines that do (below), and each wand has its own vacuum unit and each side brush its own cable chain.
+
 None of these changes the twin's kinematics, timings or the engine. The depot now draws the CAD, so each is in the
 yard as designed.
+
+## The service lines: power, signal, coolant, vacuum, water and air
+
+Every robot needs power, a network and its media at its tool, and every line that crosses a moving joint must move
+with it. A rigid part moves with its node; a line that runs from one node to another cannot, because its shape
+changes with the pose. So the CAD gives each line what does not change, and the shape is solved at each pose
+(`cad/otto_cad/flex.py`):
+
+| kind | what it is | its rule | its checks |
+|---|---|---|---|
+| loop | a cable or hose between 2 anchors | a fixed length, or a take-up's share of the chord; 2 cubics through a middle point, or one cubic for a long span | its tightest bend against its minimum radius; never pulled straight |
+| stretch | a cable on a spring reel, a coiled cable, a bellows duct | a straight run whose length follows its anchors | its length within the reel's or coil's range |
+| chain | an energy chain on a linear axis | a fixed run, a 180 degree bend, a moving run | its travel within the chain's links |
+
+The clash check places every line at every pose as a solid (a tube, a coil's envelope, a duct's box, a chain's links)
+against every part. The GLB carries each line (its root's `extras.flex`, in metres) and the CAD's own solution at a
+few poses (`extras.flexCheck`). `src/lib/robotics/flexLines.ts` solves the lines exactly as flex.py does, and
+`flexMesh.ts` draws them: the Robotics tab bends them with the joints (a selected line lights up), and the yard draws
+every robot's lines, one merged draw per material per robot kind, re-solved only when that robot moves.
+`cadFlex.test.ts` holds the 2 solvers to the same points (within 0.5 mm) and sweeps each robot's whole duty cycle.
+
+**OTTO-CHARGE ARM.** The charge cable: from the cabinet roof into the take-up wheel's hub union, round the rim, and
+free to the connector (finding 11). Over the whole duty cycle, at every inlet and every corner of the window, it keeps
+at least 0.172 m off the car (at its outlet, fully inserted); it never lies on the paint. The joints' power and network: inside the arm, through J1 to J5's hollow shafts
+from the riser, fed by the cable trunk from the cabinet. The tool's cable (force sensor, cameras, light ring, latch)
+and its air line (the compliance lock): in the charge cable's sleeve.
+
+**OTTO-CLEAN ARM.** The vacuum: the canopy plant's riser down the column, a rotary union at J1, J2 and J3 (findings
+5 and 10), a duct in each link, the mast stages, a passage through the wrist fork, the swivel on the fork, the hub and
+the wand's tubes to the nozzle. The air and the signals: through the same unions; down the mast from a spring reel on
+its outer stage (the line runs 0.65 to 1.95 m over the cycle); across J4 in a clock spring and a passage in the swivel
+(finding 12); along the wand on a reel in its drive (0.06 to 0.94 m); and a loop of air line across the nozzle joint
+(tightest bend 32 mm against 30, 22 mm clear, searched over the cycle).
+
+**OTTO-WASH.** Power, network, water, 2 chemicals and air: from the bay in the drag chain in its trench to the
+moving machine (finding 13; its bend travels 3.68 m either way, the full 7.37 m of the machine's travel), up the leg
+to the cabinet. On the machine: a concertina duct from the top knife's blower (0.26 to 2.26 m as the knife moves), a
+flexible duct loop to each side knife (tightest bend 337 mm against 280), a reel cable to the top brush's motor (0.05
+to 1.86 m), a cable chain to each side brush's carriage (0.20 to 0.96 m of travel), and a reel cable down each wand
+column (0.04 to 2.42 m, finding 14), with a vacuum unit for each wand on the deck.
+
+Each line's minimum bend radius, mass and standard are in the bill of materials and `cad/SOURCES.md`.
 
 ## The CAD in the yard
 

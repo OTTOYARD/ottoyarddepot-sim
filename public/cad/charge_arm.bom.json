@@ -7,12 +7,12 @@
   "glb": "m"
  },
  "totals": {
-  "parts": 666,
+  "parts": 652,
   "uniqueParts": 188,
-  "fasteners": 467,
-  "massKg": 312.75,
-  "boughtLines": 126,
-  "madeLines": 62,
+  "fasteners": 457,
+  "massKg": 390.79,
+  "boughtLines": 124,
+  "madeLines": 64,
   "referenceLines": 2
  },
  "subsystems": [
@@ -23,7 +23,7 @@
    "how": [
     "4 chemical anchors M16 hold the riser to the concrete pad.",
     "8 screws M12 hold the mount plate to the riser.",
-    "The cable trunk joins the riser to the charger cabinet. The power and data cables run inside it."
+    "The cable trunk joins the riser to the charger cabinet. The arm's power and network cables run inside it into the riser and up through J1's hollow shaft."
    ],
    "specs": {
     "J1 height": "550 mm above the deck",
@@ -145,7 +145,7 @@
    "function": "Finds the inlet, plugs in, latches, and lets go. It measures the force on every move.",
    "how": [
     "A 6-axis force and torque sensor reads the insertion force.",
-    "A compliance unit lets the connector float up to 6 mm and 3 degrees, so a small error cannot jam it.",
+    "A compliance unit lets the connector float up to 6 mm and 3 degrees. A small error cannot jam it.",
     "Stereo cameras and a time-of-flight sensor find the inlet. A light ring helps at night.",
     "A solenoid latch locks the connector in the inlet for the charge."
    ],
@@ -155,26 +155,33 @@
    },
    "group": "Tool",
    "order": 7,
-   "partCount": 35,
-   "fastenerCount": 13,
-   "massKg": 5.448,
-   "uniqueParts": 22
+   "partCount": 40,
+   "fastenerCount": 17,
+   "massKg": 6.179,
+   "uniqueParts": 24
   },
   {
    "id": "DRESS",
-   "name": "Cable dress pack",
-   "function": "Carries the charge cable and the signal lines along the arm without strain.",
+   "name": "Cables and take-up",
+   "function": "Brings the charge current, coolant and tool lines to the connector, and power and network to the joints.",
    "how": [
-    "Clamps on each link hold the liquid-cooled cable.",
-    "A loop at each joint lets it turn."
+    "The charge cable comes up out of the cabinet roof into a take-up wheel.",
+    "The wheel's hub has a slip ring and a coolant union. They pass the current, coolant, signals and air into the wheel as it turns.",
+    "The cable lies in the wheel's rim and leaves it above the cabinet's front edge. From there it spans free to an outlet on the connector. A spring turns the wheel back, so the span is never slack onto the car.",
+    "The joints' 10 mm power and network cable runs inside the arm, through the hollow shafts of J1 to J5.",
+    "The tool's cable and its air line ride with the charge cable in its sleeve. J6 is too small to pass them."
    ],
-   "specs": {},
+   "specs": {
+    "charge cable": "500 A DC, liquid-cooled, OD 35.7 mm, bend radius 357 mm moved",
+    "take-up": "wheel 820 mm, groove radius 380 mm, turns up to 178 degrees",
+    "span": "2.72 to 3.91 m free, 1.36 x its chord"
+   },
    "group": "Cables",
    "order": 8,
-   "partCount": 26,
-   "fastenerCount": 14,
-   "massKg": 5.406,
-   "uniqueParts": 10
+   "partCount": 7,
+   "fastenerCount": 0,
+   "massKg": 82.71,
+   "uniqueParts": 7
   },
   {
    "id": "SAFETY",
@@ -1063,9 +1070,9 @@
    "grade": "IP68",
    "material": "PA66-GF30",
    "materialKey": "pa66",
-   "qty": 3,
+   "qty": 2,
    "massKg": 0.0095,
-   "totalMassKg": 0.0284,
+   "totalMassKg": 0.0189,
    "torqueNm": null,
    "reference": false,
    "function": "Seals the motor power, the safety signal and the EtherCAT cable into the actuator.",
@@ -1077,10 +1084,6 @@
     },
     {
      "sub": "J3",
-     "qty": 1
-    },
-    {
-     "sub": "TOOL",
      "qty": 1
     }
    ]
@@ -4460,6 +4463,30 @@
    ]
   },
   {
+   "id": "GLAND-M50S",
+   "name": "Swivel cable gland M50 x 1.5, ball joint 35 degrees, IP67",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "IEC 62444",
+   "size": "M50 x 1.5, cable 30 to 38",
+   "grade": "IP67",
+   "material": "PA66-GF30",
+   "materialKey": "pa66",
+   "qty": 1,
+   "massKg": 0.1303,
+   "totalMassKg": 0.1303,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Seals the cable into the outlet and lets it leave at up to 35 degrees off the axis without a kink.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "TOOL",
+     "qty": 1
+    }
+   ]
+  },
+  {
    "id": "CHG-BMP",
    "name": "Connector nose bumper, TPE",
    "category": "tool",
@@ -4535,6 +4562,30 @@
    ]
   },
   {
+   "id": "CHG-COH",
+   "name": "Cable outlet housing, glass-filled PA66",
+   "category": "tool",
+   "make": "make",
+   "standard": "moulded",
+   "size": "142 x 65, elbow D 64",
+   "grade": "PA66-GF30",
+   "material": "PA66-GF30",
+   "materialKey": "pa66",
+   "qty": 1,
+   "massKg": 0.6013,
+   "totalMassKg": 0.6013,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Leads the charge cable out of the connector body to the side, so the span leaves along J5's axis.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "TOOL",
+     "qty": 1
+    }
+   ]
+  },
+  {
    "id": "CHG-CON",
    "name": "DC combo connector body, robotic",
    "category": "tool",
@@ -4545,8 +4596,8 @@
    "material": "PA66-GF30",
    "materialKey": "pa66",
    "qty": 1,
-   "massKg": 2.0484,
-   "totalMassKg": 2.0484,
+   "massKg": 2.0092,
+   "totalMassKg": 2.0092,
    "torqueNm": null,
    "reference": false,
    "function": "Carries the DC and signal contacts to the inlet. The coolant flows to the contacts inside.",
@@ -4813,6 +4864,33 @@
    ]
   },
   {
+   "id": "ISO4762-M6x40-A2-70",
+   "name": "Socket head cap screw M6 x 40",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M6 x 40",
+   "grade": "A2-70",
+   "material": "Stainless steel A2-70",
+   "materialKey": "fast_a2",
+   "qty": 4,
+   "massKg": 0.0121,
+   "totalMassKg": 0.0482,
+   "torqueNm": 7.4,
+   "reference": false,
+   "function": "Holds the cable outlet housing to the connector body.",
+   "spec": {
+    "preload": "7.2 kN",
+    "drive": "hex socket 5 mm"
+   },
+   "uses": [
+    {
+     "sub": "TOOL",
+     "qty": 4
+    }
+   ]
+  },
+  {
    "id": "ISO8734-6x12",
    "name": "Dowel pin 6 x 12",
    "category": "fastener",
@@ -4837,260 +4915,188 @@
    ]
   },
   {
-   "id": "CHG-CBL-F",
-   "name": "Charge cable, forearm run",
-   "category": "electrical",
-   "make": "buy",
-   "standard": "IEC 62893-4-2",
-   "size": "OD 32",
-   "grade": "",
-   "material": "Cable, TPE jacket",
-   "materialKey": "cable",
+   "id": "CHG-TUF",
+   "name": "Take-up frame, 2 cheeks on a base plate, stainless",
+   "category": "structure",
+   "make": "make",
+   "standard": "cut and welded plate 10 mm",
+   "size": "220 x 245 base",
+   "grade": "304",
+   "material": "Stainless steel 1.4301 (304)",
+   "materialKey": "ss304",
    "qty": 1,
-   "massKg": 0.8966,
-   "totalMassKg": 0.8966,
+   "massKg": 26.7143,
+   "totalMassKg": 26.7143,
    "torqueNm": null,
    "reference": false,
-   "function": "Liquid-cooled DC charge cable, 2 x 50 mm2 copper with coolant lines, plus the CP/PP signal pair.",
-   "spec": {
-    "rating": "500 A DC, 1000 V",
-    "bend radius": "min 250 mm"
-   },
-   "uses": [
-    {
-     "sub": "DRESS",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "CHG-CBL-T",
-   "name": "Charge cable, turret run",
-   "category": "electrical",
-   "make": "buy",
-   "standard": "IEC 62893-4-2",
-   "size": "OD 32",
-   "grade": "",
-   "material": "Cable, TPE jacket",
-   "materialKey": "cable",
-   "qty": 1,
-   "massKg": 0.6568,
-   "totalMassKg": 0.6568,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Liquid-cooled DC charge cable, 2 x 50 mm2 copper with coolant lines, plus the CP/PP signal pair.",
-   "spec": {
-    "rating": "500 A DC, 1000 V",
-    "bend radius": "min 250 mm"
-   },
-   "uses": [
-    {
-     "sub": "DRESS",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "CHG-CBL-U",
-   "name": "Charge cable, upper arm run",
-   "category": "electrical",
-   "make": "buy",
-   "standard": "IEC 62893-4-2",
-   "size": "OD 32",
-   "grade": "",
-   "material": "Cable, TPE jacket",
-   "materialKey": "cable",
-   "qty": 1,
-   "massKg": 1.2048,
-   "totalMassKg": 1.2048,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Liquid-cooled DC charge cable, 2 x 50 mm2 copper with coolant lines, plus the CP/PP signal pair.",
-   "spec": {
-    "rating": "500 A DC, 1000 V",
-    "bend radius": "min 250 mm"
-   },
-   "uses": [
-    {
-     "sub": "DRESS",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "CHG-CLP",
-   "name": "Cable saddle clamp, 32 mm",
-   "category": "electrical",
-   "make": "buy",
-   "standard": "catalogue part",
-   "size": "for OD 32 cable",
-   "grade": "",
-   "material": "PA66-GF30",
-   "materialKey": "pa66",
-   "qty": 5,
-   "massKg": 0.052,
-   "totalMassKg": 0.26,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Holds the charge cable to the link. Its rubber liner stops wear.",
+   "function": "Stands on the cabinet roof and carries the wheel's axle.",
    "spec": {},
    "uses": [
     {
      "sub": "DRESS",
-     "qty": 5
+     "qty": 1
     }
    ]
   },
   {
-   "id": "CHG-RTB1",
-   "name": "Retract unit clamp bracket",
-   "category": "electrical",
+   "id": "CHG-TUA",
+   "name": "Take-up wheel axle, 50 mm",
+   "category": "drive",
    "make": "make",
    "standard": "machined",
-   "size": "70 x 65 x 36",
+   "size": "D 50 x 200",
+   "grade": "C45",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 1,
+   "massKg": 3.0827,
+   "totalMassKg": 3.0827,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the wheel between the frame cheeks, on 2 bearings.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "DRESS",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-CCB",
+   "name": "Charge cable span, 500 A liquid-cooled, with the tool cable and air line",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "IEC 62893-4-2",
+   "size": "OD 35.7 in a 40 mm sleeve",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 1,
+   "massKg": 8.4,
+   "totalMassKg": 8.4,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the charge current, the coolant, the charge signals and the tool's signals and air from the take-up wheel to the connector. It spans free between them.",
+   "spec": {
+    "cable": "500 A DC, 1000 V, liquid-cooled, OD 35.7 mm, 1.94 kg/m",
+    "bend radius": "357 mm moved (10 x OD)",
+    "free length": "1.36 x the chord, 2.72 to 3.91 m",
+    "in the sleeve": "tool cable (EtherCAT + 24 V) and air 6 mm",
+    "length": "4000 mm",
+    "min bend radius": "357 mm",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "DRESS",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-TUC",
+   "name": "Charge cable, cabinet to the take-up union",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "IEC 62893-4-2",
+   "size": "OD 35.7 in a 40 mm sleeve",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 1,
+   "massKg": 1.0124,
+   "totalMassKg": 1.0124,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Brings the cable up out of the cabinet roof to the union. It does not move.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "DRESS",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-TUK",
+   "name": "Charge cable on the take-up wheel",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "IEC 62893-4-2",
+   "size": "OD 35.7 in a 40 mm sleeve",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 1,
+   "massKg": 1.5002,
+   "totalMassKg": 1.5002,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Lies in the rim. It winds on and off as the arm moves.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "DRESS",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-TUU",
+   "name": "Take-up hub union: 2 x 500 A DC slip ring, signals, 2 coolant passages, air",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "made to order",
+   "size": "D 180 x 120",
+   "grade": "IP55",
+   "material": "Structural steel S355, painted RAL 9005",
+   "materialKey": "steel_paint",
+   "qty": 1,
+   "massKg": 18.0,
+   "totalMassKg": 18.0,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Passes the charge current, the coolant, the charge and tool signals and the air into the turning wheel, so nothing twists.",
+   "spec": {
+    "current": "2 x 500 A DC, 1000 V",
+    "coolant": "2 passages, 3 bar",
+    "signals": "CP, PP, PE, tool EtherCAT pair, 4 x 24 V",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "DRESS",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-TUW",
+   "name": "Cable take-up wheel, 820 mm, spring return",
+   "category": "electrical",
+   "make": "make",
+   "standard": "made to order",
+   "size": "D 820 x 100",
    "grade": "6061-T6",
    "material": "Aluminium 6061-T6, machined, clear anodised",
    "materialKey": "al6061",
    "qty": 1,
-   "massKg": 0.4096,
-   "totalMassKg": 0.4096,
+   "massKg": 24.0,
+   "totalMassKg": 24.0,
    "torqueNm": null,
    "reference": false,
-   "function": "Clamps the retract unit to the upper arm.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "DRESS",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "CHG-RTB2",
-   "name": "Retract unit clamp bracket",
-   "category": "electrical",
-   "make": "make",
-   "standard": "machined",
-   "size": "70 x 78 x 36",
-   "grade": "6061-T6",
-   "material": "Aluminium 6061-T6, machined, clear anodised",
-   "materialKey": "al6061",
-   "qty": 1,
-   "massKg": 0.4396,
-   "totalMassKg": 0.4396,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Clamps the retract unit to the upper arm.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "DRESS",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "CHG-RTS",
-   "name": "Retract slider with cable clamp",
-   "category": "electrical",
-   "make": "buy",
-   "standard": "catalogue part",
-   "size": "64 x 64 x 40",
-   "grade": "",
-   "material": "PA66-GF30",
-   "materialKey": "pa66",
-   "qty": 1,
-   "massKg": 0.0685,
-   "totalMassKg": 0.0685,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Rides the retract unit and grips the cable.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "DRESS",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "CHG-RTU",
-   "name": "Dress-pack retract unit, spring return, 500 mm stroke",
-   "category": "electrical",
-   "make": "buy",
-   "standard": "catalogue part",
-   "size": "D 60 x 620",
-   "grade": "IP54",
-   "material": "Aluminium 6061-T6, machined, black anodised",
-   "materialKey": "al6061_blk",
-   "qty": 1,
-   "massKg": 1.2698,
-   "totalMassKg": 1.2698,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Takes up the charge cable slack when the arm folds, so the cable never hangs into the aisle or onto the car.",
+   "function": "Holds the cable in its rim and turns back on its spring to take up the slack as the arm folds in.",
    "spec": {
-    "pull": "about 60 N",
-    "stroke": "500 mm"
+    "groove": "380 mm radius (the cable's 357 mm moved, with margin), 56 mm wide",
+    "turn": "up to 178 degrees",
+    "spring": "spiral spring in the hub, about 80 N at the rim",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
    },
    "uses": [
     {
      "sub": "DRESS",
      "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "ISO4762-M6x25-A2-70",
-   "name": "Socket head cap screw M6 x 25",
-   "category": "fastener",
-   "make": "buy",
-   "standard": "ISO 4762",
-   "size": "M6 x 25",
-   "grade": "A2-70",
-   "material": "Stainless steel A2-70",
-   "materialKey": "fast_a2",
-   "qty": 4,
-   "massKg": 0.0087,
-   "totalMassKg": 0.0348,
-   "torqueNm": 7.4,
-   "reference": false,
-   "function": "Holds the retract bracket to the upper arm, up through its flange.",
-   "spec": {
-    "preload": "7.2 kN",
-    "drive": "hex socket 5 mm"
-   },
-   "uses": [
-    {
-     "sub": "DRESS",
-     "qty": 4
-    }
-   ]
-  },
-  {
-   "id": "ISO4762-M6x60-A2-70",
-   "name": "Socket head cap screw M6 x 60",
-   "category": "fastener",
-   "make": "buy",
-   "standard": "ISO 4762",
-   "size": "M6 x 60",
-   "grade": "A2-70",
-   "material": "Stainless steel A2-70",
-   "materialKey": "fast_a2",
-   "qty": 10,
-   "massKg": 0.0165,
-   "totalMassKg": 0.1654,
-   "torqueNm": 7.4,
-   "reference": false,
-   "function": "Holds the cable clamp to its link, through the clamp.",
-   "spec": {
-    "preload": "7.2 kN",
-    "drive": "hex socket 5 mm"
-   },
-   "uses": [
-    {
-     "sub": "DRESS",
-     "qty": 10
     }
    ]
   },
@@ -5246,26 +5252,26 @@
   "torque_budget": {
    "method": "Gravity torque with the arm stretched horizontal, masses from the CAD solids, plus 4 kg of hanging cable at the tool (ASSUMPTION). Dynamics and the cable pull are not included.",
    "J3": {
-    "distalMassKg": 50.8,
-    "torqueNm": 476,
+    "distalMassKg": 50.4,
+    "torqueNm": 481,
     "gear": "size 40",
     "repeatedPeakNm": 738,
-    "margin": 1.55
+    "margin": 1.53
    },
    "J2": {
-    "distalMassKg": 112.7,
-    "torqueNm": 1602,
+    "distalMassKg": 108.7,
+    "torqueNm": 1577,
     "gear": "size 50",
     "repeatedPeakNm": 1274,
-    "gearWorstNm": 310,
-    "margin": 4.12,
+    "gearWorstNm": 305,
+    "margin": 4.18,
     "balancer": {
      "type": "nitrogen gas spring",
      "anchorBelowAxisMm": 320.0,
      "crankAboveAxisMm": 160.0,
-     "forceExtendedN": 10000,
+     "forceExtendedN": 9800,
      "progression": 0.15,
-     "forceAt90N": 11047,
+     "forceAt90N": 10826,
      "strokeMm": 175,
      "travelDeg": 110
     },
@@ -5278,69 +5284,69 @@
      },
      {
       "deg": 10,
-      "gravityNm": 278,
-      "balancerNm": 186,
-      "gearNm": 92
+      "gravityNm": 274,
+      "balancerNm": 182,
+      "gearNm": 91
      },
      {
       "deg": 20,
-      "gravityNm": 548,
-      "balancerNm": 372,
-      "gearNm": 176
+      "gravityNm": 539,
+      "balancerNm": 364,
+      "gearNm": 175
      },
      {
       "deg": 30,
-      "gravityNm": 801,
-      "balancerNm": 557,
-      "gearNm": 244
+      "gravityNm": 788,
+      "balancerNm": 546,
+      "gearNm": 243
      },
      {
       "deg": 40,
-      "gravityNm": 1029,
-      "balancerNm": 740,
-      "gearNm": 289
+      "gravityNm": 1014,
+      "balancerNm": 725,
+      "gearNm": 288
      },
      {
       "deg": 50,
-      "gravityNm": 1227,
-      "balancerNm": 921,
-      "gearNm": 306
+      "gravityNm": 1208,
+      "balancerNm": 903,
+      "gearNm": 305
      },
      {
       "deg": 60,
-      "gravityNm": 1387,
-      "balancerNm": 1098,
+      "gravityNm": 1366,
+      "balancerNm": 1076,
       "gearNm": 289
      },
      {
       "deg": 70,
-      "gravityNm": 1505,
-      "balancerNm": 1269,
-      "gearNm": 236
+      "gravityNm": 1482,
+      "balancerNm": 1244,
+      "gearNm": 238
      },
      {
       "deg": 80,
-      "gravityNm": 1577,
-      "balancerNm": 1432,
-      "gearNm": 146
+      "gravityNm": 1553,
+      "balancerNm": 1403,
+      "gearNm": 150
      },
      {
       "deg": 90,
-      "gravityNm": 1602,
-      "balancerNm": 1581,
-      "gearNm": 21
+      "gravityNm": 1577,
+      "balancerNm": 1549,
+      "gearNm": 27
      },
      {
       "deg": 100,
-      "gravityNm": 1577,
-      "balancerNm": 1711,
-      "gearNm": -134
+      "gravityNm": 1553,
+      "balancerNm": 1677,
+      "gearNm": -124
      },
      {
       "deg": 110,
-      "gravityNm": 1505,
-      "balancerNm": 1815,
-      "gearNm": -310
+      "gravityNm": 1482,
+      "balancerNm": 1778,
+      "gearNm": -297
      }
     ]
    },

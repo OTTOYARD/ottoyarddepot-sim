@@ -18,37 +18,37 @@
     "depot": "charge_arm.depot.glb"
    },
    "bytes": {
-    "glb": 6900196,
-    "stepZip": 6202453,
-    "step": 32782171,
-    "depot": 543232
+    "glb": 6786156,
+    "stepZip": 6051114,
+    "step": 32110843,
+    "depot": 524260
    },
    "mesh": {
-    "vertices": 289659,
-    "triangles": 330923,
-    "meshes": 190,
-    "nodes": 677
+    "vertices": 285390,
+    "triangles": 322975,
+    "meshes": 189,
+    "nodes": 662
    },
    "depotMesh": {
-    "vertices": 21390,
-    "triangles": 23760,
-    "meshes": 65,
-    "nodes": 81
+    "vertices": 20691,
+    "triangles": 22616,
+    "meshes": 64,
+    "nodes": 76
    },
-   "depotSha256": "f87c84c48a765f07",
+   "depotSha256": "6df302dcd8a151c8",
    "totals": {
-    "parts": 666,
+    "parts": 652,
     "uniqueParts": 188,
-    "fasteners": 467,
-    "massKg": 312.75,
-    "boughtLines": 126,
-    "madeLines": 62,
+    "fasteners": 457,
+    "massKg": 390.79,
+    "boughtLines": 124,
+    "madeLines": 64,
     "referenceLines": 2
    },
-   "glbSha256": "44cb1056154f1186",
+   "glbSha256": "b40aa1a8ffb9552b",
    "stepCheck": {
-    "namedParts": 668,
-    "solids": 1360,
+    "namedParts": 654,
+    "solids": 1344,
     "invalid": 0
    },
    "subsystems": [
@@ -86,7 +86,7 @@
     },
     {
      "id": "DRESS",
-     "name": "Cable dress pack"
+     "name": "Cables and take-up"
     },
     {
      "id": "SAFETY",
@@ -106,37 +106,37 @@
     "depot": "clean_arm.depot.glb"
    },
    "bytes": {
-    "glb": 3649772,
-    "stepZip": 2329945,
-    "step": 14157170,
-    "depot": 396200
+    "glb": 1980108,
+    "stepZip": 1253034,
+    "step": 6925643,
+    "depot": 472000
    },
    "mesh": {
-    "vertices": 153489,
-    "triangles": 169178,
-    "meshes": 135,
-    "nodes": 422
+    "vertices": 80663,
+    "triangles": 94228,
+    "meshes": 100,
+    "nodes": 249
    },
    "depotMesh": {
-    "vertices": 15156,
-    "triangles": 15156,
-    "meshes": 63,
-    "nodes": 122
+    "vertices": 18068,
+    "triangles": 19552,
+    "meshes": 72,
+    "nodes": 96
    },
-   "depotSha256": "e5f39c7429248722",
+   "depotSha256": "28690fbf7e88804c",
    "totals": {
-    "parts": 408,
-    "uniqueParts": 134,
-    "fasteners": 253,
-    "massKg": 310.63,
-    "boughtLines": 89,
-    "madeLines": 45,
+    "parts": 238,
+    "uniqueParts": 102,
+    "fasteners": 141,
+    "massKg": 327.46,
+    "boughtLines": 63,
+    "madeLines": 39,
     "referenceLines": 1
    },
-   "glbSha256": "26056afb19642934",
+   "glbSha256": "b0832bfb66801363",
    "stepCheck": {
-    "namedParts": 410,
-    "solids": 689,
+    "namedParts": 240,
+    "solids": 372,
     "invalid": 0
    },
    "subsystems": [
@@ -202,37 +202,37 @@
     "depot": "wash_gantry.depot.glb"
    },
    "bytes": {
-    "glb": 1238688,
-    "stepZip": 1099317,
-    "step": 6589393,
-    "depot": 333644
+    "glb": 1525904,
+    "stepZip": 1419676,
+    "step": 8341087,
+    "depot": 413312
    },
    "mesh": {
-    "vertices": 44293,
-    "triangles": 48596,
-    "meshes": 105,
-    "nodes": 834
+    "vertices": 54115,
+    "triangles": 64106,
+    "meshes": 123,
+    "nodes": 801
    },
    "depotMesh": {
-    "vertices": 10973,
-    "triangles": 9618,
-    "meshes": 76,
-    "nodes": 269
+    "vertices": 14171,
+    "triangles": 13600,
+    "meshes": 93,
+    "nodes": 234
    },
-   "depotSha256": "5dc505dc681166e0",
+   "depotSha256": "67fabe90fa1b63b0",
    "totals": {
-    "parts": 811,
-    "uniqueParts": 105,
+    "parts": 931,
+    "uniqueParts": 131,
     "fasteners": 460,
-    "massKg": 4128.59,
-    "boughtLines": 54,
-    "madeLines": 51,
+    "massKg": 4616.37,
+    "boughtLines": 64,
+    "madeLines": 67,
     "referenceLines": 0
    },
-   "glbSha256": "73e426361cbe10ab",
+   "glbSha256": "32020fb536082377",
    "stepCheck": {
-    "namedParts": 811,
-    "solids": 874,
+    "namedParts": 931,
+    "solids": 1000,
     "invalid": 0
    },
    "subsystems": [

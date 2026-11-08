@@ -77,7 +77,9 @@ def motion(joint: dict, v: float) -> Location:
 
 
 def placements(model: Model, angles: dict[str, float]) -> list[tuple]:
-    """(item, world location, rigid body) for every placed part, the joints at `angles` (missing joints stowed)."""
+    """(item, world location, rigid body) for every placed part, the joints at `angles` (missing joints stowed), and
+    every flexible line's solids solved at those angles (flex.items_at: each line is its own body)."""
+    from .flex import items_at
     out = []
 
     def rec(node, parent: Location, body: str):
@@ -93,19 +95,21 @@ def placements(model: Model, angles: dict[str, float]) -> list[tuple]:
         for c in node.children:
             rec(c, L, body)
     rec(model.root, Location(), 'base')
-    return out
+    return out + items_at(getattr(model, 'flexes', []), model.root, angles)
 
 
 _LOCAL_BOX: dict[str, tuple] = {}
 
 
 def _local_box(pd: PartDef) -> tuple:
-    b = _LOCAL_BOX.get(pd.id)
+    transient = getattr(pd, 'transient', False)      # a flexible line's solid at one pose: not cached by its id
+    b = None if transient else _LOCAL_BOX.get(pd.id)
     if b is None:
         box = Bnd_Box()
         BRepBndLib.AddOptimal_s(pd.shape.wrapped, box, False, False)
         b = box.Get()
-        _LOCAL_BOX[pd.id] = b
+        if not transient:
+            _LOCAL_BOX[pd.id] = b
     return b
 
 
@@ -276,6 +280,8 @@ def check(model: Model, poses: list[dict], procs: int = 4, only_subs: set | None
             pairs = [(i, j) for (i, j) in pairs if pl[i][0].sub in only_subs or pl[j][0].sub in only_subs]
         if pi > 0:
             pairs = [(i, j) for (i, j) in pairs if bodies[i] != bodies[j]]   # inside a body: measured at stowed
+        else:   # a chain's links hinge into each other by design: never measured against their own chain
+            pairs = [(i, j) for (i, j) in pairs if not (bodies[i] == bodies[j] and bodies[i].startswith('flex:'))]
         pairs_checked += len(pairs)
         _G['pl'] = pl
         for (i, j, (kind, v, at)) in _run(_work, pairs, procs):
