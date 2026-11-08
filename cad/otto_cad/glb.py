@@ -253,6 +253,9 @@ def write_glb(model: Model, path: str, extras: dict | None = None, depot: bool =
     root = emit(model.root)
     nodes[root].setdefault('extras', {}).update(
         {'robot': model.key, 'title': model.title, 'frame': model.frame, **(extras or {})})
+    if getattr(model, 'flexes', None):
+        from .flex import to_extras
+        nodes[root]['extras']['flex'] = [to_extras(fd) for fd in model.flexes]
     stats['nodes'] = len(nodes)
 
     while len(buf.data) % 4:

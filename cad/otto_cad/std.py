@@ -20,6 +20,7 @@ import math
 from functools import lru_cache
 
 import cadquery as cq
+import numpy as np
 from cadquery import Location, Vector
 from OCP.gp import gp_Quaternion, gp_Trsf, gp_Vec
 
@@ -706,11 +707,17 @@ def belt(pitch: float, w: float, c: float, d1: float, d2: float, fn: str = '') -
 
 @lru_cache(maxsize=None)
 def _gland_shape(m: int) -> cq.Shape:
-    s = {16: 20, 20: 24, 25: 30, 32: 39, 40: 50}[m]
+    s = {16: 20, 20: 24, 25: 30, 32: 39, 40: 50, 50: 64}[m]
+    bore = 18.5 if m == 50 else m * 0.28                 # an M50 takes a 30 to 38 mm cable
     body = _hex(s, s * 0.32)
     dome = cq.Workplane('XZ', origin=(0, s * 0.32, 0)).circle(s * 0.46).workplane(offset=-s * 0.5).circle(s * 0.3).loft()
     thread = cq.Workplane('XZ').circle(m / 2).extrude(m * 0.45)
-    return body.union(dome).union(thread).cut(cq.Workplane('XZ', origin=(0, s, 0)).circle(m * 0.28).extrude(s * 2)).val()
+    return body.union(dome).union(thread).cut(cq.Workplane('XZ', origin=(0, s, 0)).circle(bore).extrude(s * 2)).val()
+
+
+def gland_length(m: int) -> float:
+    """How far a gland's dome stands out from the face it is screwed into."""
+    return {16: 20, 20: 24, 25: 30, 32: 39, 40: 50, 50: 64}[m] * 0.82
 
 
 def gland(m: int, fn: str = '') -> PartDef:
@@ -733,6 +740,40 @@ def chain_link(w: float, h: float, pitch: float) -> PartDef:
                    'Guides the cables and hoses through the moving joint. It keeps the bend radius safe.', {}, 'buy', depot='box')
 
 
+def _bent_path(points: tuple, R: float) -> cq.Wire:
+    """Straight runs between `points`, each corner bent on a centreline radius R: a pipe or conduit as it is bent."""
+    P = [np.array(p, dtype=float) for p in points]
+    edges, cur = [], P[0]
+    for i in range(1, len(P) - 1):
+        u1 = (P[i] - P[i - 1]) / np.linalg.norm(P[i] - P[i - 1])
+        u2 = (P[i + 1] - P[i]) / np.linalg.norm(P[i + 1] - P[i])
+        ang = math.acos(max(-1.0, min(1.0, float(np.dot(u1, u2)))))
+        if ang < 1e-6:
+            continue
+        t = R * math.tan(ang / 2)
+        p_in, p_out = P[i] - u1 * t, P[i] + u2 * t
+        bis = (u2 - u1) / np.linalg.norm(u2 - u1)
+        centre = P[i] + bis * (R / math.cos(ang / 2))
+        mid = centre + (P[i] - centre) / np.linalg.norm(P[i] - centre) * R
+        if np.linalg.norm(p_in - cur) > 1e-6:
+            edges.append(cq.Edge.makeLine(Vector(*cur), Vector(*p_in)))
+        edges.append(cq.Edge.makeThreePointArc(Vector(*p_in), Vector(*mid), Vector(*p_out)))
+        cur = p_out
+    edges.append(cq.Edge.makeLine(Vector(*cur), Vector(*P[-1])))
+    return cq.Wire.assembleEdges(edges)
+
+
+@lru_cache(maxsize=None)
+def _bent_tube_shape(points: tuple, r: float, ri: float, R: float) -> cq.Shape:
+    path = _bent_path(points, R)
+    d = Vector(*points[1]) - Vector(*points[0])
+    plane = cq.Plane(origin=Vector(*points[0]), xDir=_perp(d), normal=d)
+    prof = cq.Workplane(plane).circle(r)
+    if ri > 0:
+        prof = prof.circle(ri)
+    return prof.sweep(path, transition='round').val()
+
+
 @lru_cache(maxsize=None)
 def _tube_path_shape(points: tuple, r: float, ri: float) -> cq.Shape:
     pts = [Vector(*p) for p in points]
@@ -752,9 +793,11 @@ def _perp(d: Vector) -> Vector:
 
 def swept(pid: str, name: str, points: list[tuple[float, float, float]], r: float, mat: str, category: str,
           ri: float = 0.0, fn: str = '', spec: dict | None = None, standard: str = '', size: str = '',
-          make: str = 'buy') -> PartDef:
-    return PartDef(pid, name, _tube_path_shape(tuple(points), r, ri), mat, category, standard, size, '', None, fn,
-                   spec or {}, make)
+          make: str = 'buy', bend: float | None = None) -> PartDef:
+    """A tube along a spline through `points`, or, with `bend`, along straight runs between them bent on that radius."""
+    pts = tuple(tuple(p) for p in points)
+    shape = _bent_tube_shape(pts, r, ri, bend) if bend is not None else _tube_path_shape(pts, r, ri)
+    return PartDef(pid, name, shape, mat, category, standard, size, '', None, fn, spec or {}, make)
 
 
 @lru_cache(maxsize=None)
