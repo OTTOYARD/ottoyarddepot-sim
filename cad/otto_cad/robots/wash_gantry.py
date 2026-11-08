@@ -77,9 +77,9 @@ def build(spec: dict) -> Model:
                 specs={'pressure': 'up to 70 bar (nozzle rating)'}, group='Tools')
     m.subsystem('TOPBRUSH', 'Top brush (overhead)', 'Washes the bonnet, the roof and the roof pod. It follows the car top.',
                 how=['A geared motor turns the brush.',
-                     'It hangs on 2 telescoping lift columns, 3 stages each, so it reaches the hood with no guide below the roof.',
+                     'It hangs on 2 telescoping lift columns of 3 stages each. It reaches the hood with no guide below the roof.',
                      'The lift lowers it until the motor current says it touches, then follows the shape.',
-                     'A coiled cable from the beam feeds the brush motor. It stretches as the brush goes down.'],
+                     'A spring reel under the beam feeds the brush motor. Its cable pays out as the brush goes down.'],
                 specs={'brush': f'{2 * top["r"]:.0f} mm, {2 * top["halfLen"]:.0f} mm long'}, group='Tools')
     m.subsystem('SIDEBRUSH', 'Side brushes', 'Wash the flanks, the doors and the wheels.',
                 how=['Each brush hangs from a carriage on 2 rails under the beam.', 'A rack drive moves it in to the flank. A geared motor turns it.',
@@ -87,20 +87,23 @@ def build(spec: dict) -> Model:
                 specs={'brush': f'{2 * side["r"]:.0f} mm, {side["y1"] - side["y0"]:.0f} mm tall'}, group='Tools')
     m.subsystem('DRYER', 'Air knives (dryer)', 'Blow the water off in the last 2 passes.',
                 how=['A top knife on 2 telescoping lift columns follows the car top. 2 side knives close on the flanks.',
-                     '3 blowers on the beam feed them through flexible ducts: a bellows duct that stretches as the top knife goes down, '
-                     'and a duct loop to each side knife that swings in with it.'],
+                     '3 blowers on the beam feed the knives through flexible ducts.',
+                     'A concertina duct draws out as the top knife goes down. A duct loop to each side knife swings in with it.'],
                 specs={'blowers': 'top 4 kW, sides 2 x 3 kW (class)'}, group='Tools')
     m.subsystem('WAND', 'Detail vacuum wands', 'Vacuum the cabin floor through the open doors on a detail seat.',
                 how=['Each wand drops on a 4-stage column outside its flank.', '2 telescoping tubes reach in through the door opening.',
-                     'The air goes up the reach tubes and the column stages, which slide on lip seals, to a vacuum unit on the beam.',
-                     'A spring reel under the beam feeds the reach drive and the head lamp. Its cable pays out as the wand goes down.'],
+                     'The air goes up the reach tubes and the column stages to a vacuum unit on the beam. The stages slide on lip seals.',
+                     'A spring reel on the beam feeds the reach drive and the head lamp. Its cable goes down through the beam and pays '
+                     'out as the wand goes down.'],
                 specs={'drop': f'{(wand["topY"] - wand["workY"]) / 1000:.2f} m', 'reach': f'{(wand["x"] - wand["reachX"]) / 1000:.2f} m'},
                 group='Tools')
     m.subsystem('CONTROL', 'Control, supply and signals', 'Runs the program, and tells the car when to stop and when to go.',
                 how=['A stainless control cabinet on the inner side of the west leg holds the controller and the drives.',
                      'A stop light faces the arriving car: red while the program runs, green when the car may go.',
-                     'A drag chain in a trough inboard of the west rail brings power, water, chemicals and air. Its fixed end is at mid travel; '
-                     'its other end rides the west leg, and its bend rolls along at half the machine\'s speed.',
+                     'A drag chain brings power, water, chemicals and air. It lies in a covered trench in the floor, inboard of the '
+                     'west rail. Its fixed end is at mid travel.',
+                     'A driver in the cover\'s slot joins its other end to the west trolley. Its bend rolls along at half the '
+                     'machine\'s speed. A conduit takes the lines up the leg to the cabinet.',
                      'Nothing stands outboard of the trolleys: the end bays\' outer walls are 48 mm from them.'],
                 group='Control')
 

@@ -104,23 +104,23 @@ def build(spec: dict) -> Model:
     m.subsystem('J1', 'J1 shoulder yaw', 'Swings link 1 about the column. With J2 it puts the mast anywhere over the car.',
                 how=['A cross-roller bearing in the base casting carries link 1. A servo gearmotor beside the column turns it by a '
                      'pinion on a ring gear.',
-                     'J1 turns 178 degrees in a cleaning cycle, round the column: a rotary union with a slip ring on its axis passes '
-                     'the vacuum, the air and the signals. No hose winds round the column.'],
+                     'J1 turns 178 degrees round the column in a cleaning cycle.',
+                     'A rotary union with a slip ring on its axis passes the vacuum, air and signals. No hose winds round the column.'],
                 specs={'drive': 'servo + 25:1 planetary + 130:14 gear', 'range': '-175 to +175 degrees'}, group='Joints')
     m.subsystem('LINK1', 'Link 1', f'The {L1 / 1000:.2f} m box link from J1 to J2.',
                 how=['Welded aluminium box with a bolted top cover.', 'The vacuum duct, the air line and the cables run inside it.'], group='Links')
     m.subsystem('J2', 'J2 elbow yaw', 'Folds link 2 under link 1, so the arm can tuck in over the roof.',
                 how=['A cross-roller bearing under link 1 carries link 2. A right-angle gearmotor inside link 1 turns it by a pinion '
                      'on a ring gear.',
-                     'A rotary union with a slip ring in link 1\'s tip passes the vacuum, the air and the signals to link 2.'],
+                     'A rotary union with a slip ring in link 1\'s tip passes the vacuum, air and signals to link 2.'],
                 specs={'drive': 'servo + 30:1 right-angle + 94:14 gear'}, group='Joints')
     m.subsystem('LINK2', 'Link 2', f'The {L2 / 1000:.2f} m box link from J2 to the mast.',
                 how=['It rides 190 mm under link 1.', 'The vacuum duct runs inside it and up to the J3 union.'], group='Links')
     m.subsystem('J3', 'J3 mast yaw', 'Turns the mast, so the wand points along or across the car.',
                 how=['A cross-roller bearing carries the mast collar in the carriage at the tip of link 2.',
                      'A servo gearmotor on the lid turns a 120-tooth ring on the collar through a toothed belt, 5:1.',
-                     'J3 turns 462 degrees in one cleaning cycle, so the vacuum and the signals cross it in a rotary union '
-                     'with a slip ring on the mast axis: no hose or cable winds up.'],
+                     'J3 turns 462 degrees in one cleaning cycle.',
+                     'The vacuum and the signals cross it in a rotary union with a slip ring on the mast axis. No hose or cable winds up.'],
                 specs={'drive': 'servo + 20:1 planetary + 5:1 belt', 'range': '-186 to +292 degrees'}, group='Joints')
     m.subsystem('MAST', 'Telescoping mast', 'Lowers the wrist from 2.18 m to 0.58 m above grade, beside the car, never over it.',
                 how=['A rack and pinion drives the middle stage.', 'A belt over a pulley on the middle stage moves the inner stage twice as far.',
@@ -129,32 +129,32 @@ def build(spec: dict) -> Model:
     m.subsystem('WRIST', 'J4 wrist pitch', 'Tilts the wand from level to hanging down, and into the door opening.',
                 how=['A size 17 strain-wave gear unit in the fork turns the hub. Its servo motor stands behind the hub and drives '
                      'it by a toothed belt (2:1).',
-                     'The vacuum crosses the joint on its axis: through the hub\'s hollow stub and a swivel on the other cheek, then '
-                     'up a duct through the fork into the mast.',
-                     'The power and network cross in a flat-cable clock spring between the hub and the cheek; the air in a second '
-                     'passage of the swivel.',
-                     'Nothing on the wrist stands more than 95 mm along the axis from the pivot: the twin keeps the pivot 0.20 m '
-                     'off the car, and the wrist keeps 0.10 m.'],
+                     'The vacuum crosses the joint on its axis, through the hub\'s hollow stub and a swivel on the other cheek.',
+                     'A duct takes it up through the fork into the mast.',
+                     'The power and network cross in a flat-cable clock spring between the hub and the cheek.',
+                     'The air crosses in a second passage of the swivel.',
+                     'Nothing on the wrist stands more than 95 mm along the axis from the pivot.',
+                     'The twin keeps the pivot 0.20 m off the car, and the wrist keeps 0.10 m.'],
                 specs={'gear': 'strain-wave unit, size 17, 100:1, belt 2:1', 'motor': '200 W servo, brake, encoder (class)',
                        'range': '-90 to +45 degrees'}, group='Joints')
     m.subsystem('WAND', 'Telescoping vacuum wand', 'Reaches into the cabin through the open door. The wand is the vacuum duct.',
                 how=['3 tubes slide inside the base tube and each other on lip seals. The air flows inside them.',
-                     'An electric linear drive moves tube 2; cables over pulleys move tubes 3 and 4 with it, a third of the reach each.',
+                     'An electric linear drive moves tube 2. Cables over pulleys move tubes 3 and 4 with it, a third of the reach each.',
                      'Retracted, all the tubes lie inside the base tube, in front of the hub.'],
                 specs={'reach': f'{wb / 1000:.2f} m + {wext / 1000:.2f} m', 'tubes': '68, 58.6, 51.3, 44 mm'}, group='Motion')
-    m.subsystem('NOZZLE', 'Nozzle head (J5)', 'Cleans the floor, the benches and the seat backs: vacuum, an air knife and a brush lip.',
+    m.subsystem('NOZZLE', 'Nozzle head (J5)', 'Cleans the floor, the benches and the seat backs with vacuum, an air knife and a brush lip.',
                 how=['A gearmotor with a worm stage pitches the head.', 'The air knife blows dust out of seams into the vacuum flow.',
                      'A light ring shows that it works, and lights the cabin for the camera.'],
                 specs={'mouth': f'{N["w"]:.0f} x {N["h"]:.0f} mm', 'air knife': '6 bar'}, group='Tool')
     m.subsystem('VAC', 'Vacuum and air supply', 'Brings vacuum and compressed air from the canopy plant to the nozzle.',
                 how=['A central vacuum producer on each canopy (about 3 kW per working arm, 30 kPa class) serves its arms.',
-                     'A riser pipe down the column, a rotary union at each yaw joint (J1, J2, J3) and a duct inside each link bring '
-                     'the flow to the mast; the mast stages are the duct down to the wrist; a passage through the wrist fork, a short '
-                     'duct and the swivel on the fork, the hub and the wand carry it to the nozzle.',
-                     'A 6 mm line carries the air through the same unions. A spring reel on the mast pays the cable and the air '
-                     'line down to the wrist. At the '
-                     'wrist the cable crosses in a clock spring and the air in the swivel; a reel in the wand feeds both along it, '
-                     'and a loop takes the air across the nozzle joint.'],
+                     'A riser pipe brings the flow down the column.',
+                     'A rotary union at each yaw joint and a duct in each link take it to the mast.',
+                     'The mast stages are the duct down to the wrist. The fork, the swivel, the hub and the wand take it to the nozzle.',
+                     'A 6 mm line carries the air through the same unions.',
+                     'A spring reel on the mast pays the cable and the air line down to the wrist.',
+                     'At the wrist, the cable crosses in a clock spring and the air in the swivel.',
+                     'A reel in the wand feeds both along it. A loop takes the air across the nozzle joint.'],
                 specs={'duct': 'DN 50 throughout', 'airflow': 'about 400 m3/h per producer (class)'}, group='Supply')
     m.subsystem('STATUS', 'Status lights', 'Show the arm state to the site and to the camera.',
                 how=['A ring on the J1 base, a strip on the mast and a ring at the nozzle.'], group='Safety')
@@ -262,19 +262,19 @@ def build(spec: dict) -> Model:
                                {}, 'make')), Location(), (0, 160, 0), 'J1')
     for p in std.circle_points(6, 65, 'y', offset=y_hf + 8):
         m.place(j1, std.shcs(8, 20, '12.9', 'Holds the J1 hub to link 1.'), std.orient(p, (0, -1, 0)), (0, 180, 0), 'J1')
-    rg_y0 = y_hf + 11
-    rgear = cq.Workplane('XZ', origin=(0, rg_y0 + 20, 0)).circle(RG1).circle(50.5).extrude(20)
+    rg_y0 = y_hf + 17                                    # 1 mm over the hub screws' heads
+    rgear = cq.Workplane('XZ', origin=(0, rg_y0 + 20, 0)).circle(RG1).circle(50).extrude(20)
     m.place(j1, m.part(PartDef('CLN-RCK1', 'J1 ring gear, module 2, 130 teeth (drawn at its pitch circle)', rgear.val(), 'steel', 'drive',
                                'ISO 1328 class 7', 'pitch D 260', 'C45, induction hardened', None,
                                'Turns link 1. The pinion on the gearmotor drives it.', {'ratio': '130:14 over the gearmotor'}, 'buy')),
             Location(), (0, 200, 0), 'J1')
     pin1 = (cq.Workplane('XZ', origin=(0, 20, 0)).circle(PN1).extrude(20)
-            .union(cq.Workplane('XZ', origin=(0, col_bot + 21 - (y1 + rg_y0), 0)).circle(8).extrude(col_bot + 21 - (y1 + rg_y0) - 20)))
+            .union(cq.Workplane('XZ', origin=(0, col_bot + 20 - (y1 + rg_y0), 0)).circle(8).extrude(col_bot + 20 - (y1 + rg_y0) - 20)))
     m.place(base, m.part(PartDef('CLN-PIN1', 'J1 pinion and shaft, module 2, 14 teeth', pin1.val(), 'steel', 'drive', 'ISO 1328 class 7',
                                  'pitch D 28', 'C45, induction hardened', None, 'Drives the J1 ring gear from the gearmotor above.', {}, 'make')),
             loc(mx + XP1, y1 + rg_y0, 0), (220, 0, 0), 'J1')
     gm1 = (cq.Workplane('XZ', origin=(0, 10, 0)).circle(40).extrude(10)
-           .union(cq.Workplane('XY').box(80, 100, 80).translate((0, 60, 0)))
+           .union(cq.Workplane('XY').box(80, 100, 76).translate((0, 60, 0)))
            .union(cq.Workplane('XZ', origin=(0, 230, 0)).circle(35).extrude(120)))
     m.place(base, m.part(PartDef('CLN-SGM1', 'J1 servo gearmotor, 750 W, 25:1 planetary, brake', gm1.val(), 'a356_dark', 'drive',
                                  'catalogue part', '80 flange', '', None,
@@ -342,8 +342,8 @@ def build(spec: dict) -> Model:
                                {}, 'make')), Location(), (0, -120, 0), 'J2')
     for p in std.circle_points(6, 60, 'y', offset=y_l2t + 5):
         m.place(j2, std.shcs(6, 16, '12.9', 'Holds the J2 hub to link 2.'), std.orient(p, (0, -1, 0)), (0, -140, 0), 'J2')
-    rg2_y0 = y_l2t + 7
-    rgear2 = cq.Workplane('XZ', origin=(0, rg2_y0 + 16, 0)).circle(RG2).circle(50.5).extrude(16)
+    rg2_y0 = y_l2t + 12                                  # 1 mm over the hub screws' heads, 9 mm under the bearing
+    rgear2 = cq.Workplane('XZ', origin=(0, rg2_y0 + 16, 0)).circle(RG2).circle(50).extrude(16)
     m.place(j2, m.part(PartDef('CLN-RCK2', 'J2 ring gear, module 2, 94 teeth (drawn at its pitch circle)', rgear2.val(), 'steel', 'drive',
                                'ISO 1328 class 7', 'pitch D 188', 'C45, induction hardened', None,
                                'Turns link 2. The pinion on the gearmotor in link 1 drives it.', {}, 'buy')),
@@ -362,7 +362,7 @@ def build(spec: dict) -> Model:
     # the J2 union: its body in link 1's tip, the duct into its side, its rotor down the hub into link 2
     swv2 = (cq.Workplane('XZ', origin=(0, 50, 0)).circle(54).extrude(100)
             .union(cq.Workplane('YZ', origin=(-40, 0, 40)).circle(27).extrude(-35))
-            .union(cq.Workplane('XZ', origin=(0, -50, 0)).circle(25).extrude(-50 - (-drop - 30))))
+            .union(cq.Workplane('XZ', origin=(0, -50, 0)).circle(25).extrude(-50 - (-drop + 30))))      # to the duct's start
     m.place(j1, m.part(PartDef('CLN-SWV2', 'Rotary union with slip ring, J2: DN 50 vacuum, air, 24 circuits', swv2.val(), 'steel_paint',
                                'fluid', 'catalogue part', 'DN 50, G 1/4 air, 24 x 2 A', 'IP65', None,
                                'Passes the vacuum, the air and the signals across J2. Its body sits in link 1\'s tip; its rotor turns '
@@ -460,10 +460,10 @@ def build(spec: dict) -> Model:
             loc(L2, 0, 0), (0, 400, 0), 'J3')
     # the duct from link 2 up into the J3 union's side port (the J2 rotor's outlet is in link 2, at the J2 axis)
     y_port = y_xb + 8 + 60
-    d2 = std.swept('CLN-L2D', 'Vacuum duct in link 2, 54 x 2', [(0, -drop + 30, 0), (25, -drop + 4, 0), (70, -drop, 0), (x_d2 - 60, -drop, 0),
-                   (x_d2 - 10, -drop + 20, 0), (x_d2, -drop + h2 / 2 + 30, 0), (x_d2, y_port - 45, 0), (x_d2 + 18, y_port - 6, 0),
-                   (L2 - 130, y_port, 0)], 27, 'al6061', 'fluid', 25, 'Carries the vacuum along link 2 from J2 and up into the J3 union.',
-                   {}, 'EN 754-2', 'D 54 x 2', 'make')
+    d2 = std.swept('CLN-L2D', 'Vacuum duct in link 2, 54 x 2', [(0, -drop + 30, 0), (0, -drop - 12, 0), (x_d2, -drop - 12, 0),
+                   (x_d2, y_port, 0), (L2 - 130, y_port, 0)], 27, 'al6061', 'fluid', 25,
+                   'Carries the vacuum along link 2 from J2 and up into the J3 union.', {'bends': 'mandrel, centreline R 36'},
+                   'EN 754-2', 'D 54 x 2', 'make', bend=36.0)
     m.place(j2, d2, Location(), (0, 60, 0), 'VAC')
 
     # ═══════════════════════════════════════════════════════════════ MAST ═══
@@ -742,7 +742,7 @@ def build(spec: dict) -> Model:
     m.place(tip, m.part(PartDef('CLN-NRG', 'Light ring, wand tip', nring.val(), 'led', 'electrical', 'LED ring in PC diffuser', 'OD 60',
                                   '', None, 'Lights the cabin for the camera and shows that the nozzle works.', {}, 'buy')),
             loc(wb, 0, 0), (40, 0, 0), 'STATUS')
-    for zz in (-50, 0, 50):
+    for zz in (-50, -22, 50):                           # the air line enters the knife at its middle
         m.place(noz, std.shcs(3, 10, 'A2-70', 'Holds the air knife to the head.'), std.orient((xk, yk + 8, zz), (0, -1, 0)),
                 (90, 80, 0), 'NOZZLE')
 
@@ -756,19 +756,20 @@ def build(spec: dict) -> Model:
     # 0.10 m from the car and the doors: 79 mm from the car on the -Z side, 80 mm from an open door on the -X side. The
     # reel's line keeps inside the wrist's outline. Design finding 12.)
     x_ml, y_rl = -92.0, -300.0                           # the line: 12 mm off the outer stage's -X face; the reel's axle
-    feed = std.swept('CLN-MFR', 'Hybrid cable and air line, J3 union to the mast reel', [(-106, 80, 0), (-86, 40, 0), (-86, -150, 0),
-                     (-130, -192, 0), (x_ml - 90, y_rl + 90, 0)], 6, 'cable', 'electrical', 0,
+    x_dr = x_ml - 96                                     # the drum's axle: its rim tangent to the line
+    feed = std.swept('CLN-MFR', 'Hybrid cable and air line, J3 union to the mast reel', [(x_ml, oA - 36, 0), (x_ml, -130, 0), (x_dr, -130, 0),
+                     (x_dr, y_rl + 90, 0)], 6, 'cable', 'electrical', 0,
                      'Brings the signals, power and air from the J3 union down the outer mast stage to the reel.', {}, 'EN 50525', 'OD 12',
-                     'buy')
+                     'buy', bend=25.0)
     m.place(j3, feed, Location(), (0, 0, -120), 'VAC')
-    mcr = (cq.Workplane('XY', origin=(x_ml - 90, y_rl, -30)).circle(90).extrude(60)
-           .union(cq.Workplane('XY', origin=(x_ml - 90, y_rl, -32)).circle(25).extrude(64)))           # the drum and its hub
+    mcr = (cq.Workplane('XY', origin=(x_dr, y_rl, -30)).circle(90).extrude(60)
+           .union(cq.Workplane('XY', origin=(x_dr, y_rl, -32)).circle(25).extrude(64)))                # the drum and its hub
     m.place(j3, m.part(PartDef('CLN-MCR', 'Spring reel for a hybrid cable and an air line, 3 m', mcr.val(), 'steel_paint', 'electrical',
                                'catalogue part', 'D 180', 'IP65', None,
                                'Pays out and takes back the wrist\'s cable and air line as the mast goes down and up.',
                                {'cable': 'hybrid 10 mm + air 6 mm, 3 m', 'hub': 'slip ring and air swivel'}, 'buy', mass_override=7.0)),
             Location(), (-160, 0, 0), 'VAC')
-    mrb = (cq.Workplane('XY').box(-80 - (x_ml - 90), 40, 6).translate(((x_ml - 90 - 80) / 2, y_rl, -35))
+    mrb = (cq.Workplane('XY').box(-80 - x_dr, 40, 6).translate(((x_dr - 80) / 2, y_rl, -35))
            .union(cq.Workplane('XY').box(6, 80, 76).translate((-83, y_rl, 0))))
     m.place(j3, m.part(PartDef('CLN-MRB', 'Mast reel bracket, aluminium', mrb.val(), 'al6061', 'structure', 'machined', '102 x 80',
                                '6061-T6', None, 'Holds the reel on the outer mast stage.', {}, 'make')), Location(), (-140, 0, 0), 'VAC')
@@ -786,9 +787,9 @@ def build(spec: dict) -> Model:
     # cheek's face and over the back of the fork's top block to the coil's clamp; the air crosses in the swivel. (A 10 mm hybrid
     # cable looped across J4 bent to 27 mm at best against its 70 mm, and a slip ring has no room: the wrist keeps
     # 0.10 m off the car and doors with 4 to 9 mm to spare. Design finding 12.)
-    wcs = cq.Workplane('XY').circle(48).circle(27).extrude(8).translate((0, yp, hub_w / 2 + 1))
+    wcs = cq.Workplane('XY').circle(48).circle(27).extrude(10).translate((0, yp, hub_w / 2))
     m.place(mast3, m.part(PartDef('CLN-WCS', 'Wrist clock-spring cassette, flat cable, 8 circuits + EtherCAT pair', wcs.val(),
-                                  'pa66', 'electrical', 'catalogue part', 'OD 96 x 8, bore 54', '', None,
+                                  'pa66', 'electrical', 'catalogue part', 'OD 96 x 10, bore 54', '', None,
                                   'Carries the wand\'s power and network across J4. Its flat cable winds and unwinds as the wrist turns.',
                                   {'turns': '+/- 1.5', 'circuits': '8 x 2 A at 48 V DC, EtherCAT pair'}, 'buy')),
             Location(), (0, 0, 70), 'WRIST')
@@ -797,23 +798,30 @@ def build(spec: dict) -> Model:
                                   'IEC 61076-2-104', 'M8, 8 pole', 'IP67', None, 'Joins the cassette\'s lead to the fixed cable.', {},
                                   'buy')), Location(), (0, 0, 120), 'WRIST')
     wfc = std.swept('CLN-WFC', 'Wrist fixed cable, cassette to the coil clamp', [
-        (-46, yp + 38, c_out + 6), (-46, -1000, c_out + 6), (-54, -988, 60), (-64, -980, 44), (-66, -975, 24), (-66, -970, 10)],
+        (-46, yp + 38, c_out + 6), (-46, -1000, c_out + 6), (-54, -988, 60), (-64, -980, 44), (-66, -978, 24), (-66, -974, 10)],
         4.0, 'cable', 'electrical', 0.0,
         'Joins the clock spring to the coil cable. It does not move.', {}, 'EN 50525', 'OD 8')
     m.place(mast3, wfc, Location(), (0, 0, 100), 'WRIST')
     wat = std.swept('CLN-WAT', 'Wrist fixed air line, union to the coil clamp', [
-        (-40, yp, z0s + 11.5), (-47, yp + 4, z0s + 11), (-52, yp + 20, 73), (-52, -1000, 72), (-62, -988, 64), (-72, -980, 46),
-        (-76, -975, 26), (-78, -970, 10)], 3.0, 'hose', 'fluid', 2.0,
+        (-40, yp, z0s + 11.5), (-48, yp + 4, z0s + 11), (-57, yp + 20, 74), (-57, -1000, 73), (-64, -988, 64), (-72, -980, 46),
+        (-76, -978, 26), (-78, -974, 10)], 3.0, 'hose', 'fluid', 2.0,
         'Joins the union\'s air passage to the coil\'s air line. It does not move.', {}, 'ISO 14743', 'PU 6 x 4')
     m.place(mast3, wat, Location(), (0, 0, 110), 'WRIST')
     m.flex(FlexDef('CLN-WCB', 'Wand cable with air line, on a reel in the drive', 'stretch',
-                   Anchor(pitch, (hub_od / 2 + 10 + (wb - k_cl - hub_od / 2 - 40) + 2, wr + 16, 0), (1, 0, 0)),
+                   Anchor(pitch, (hub_od / 2 + 10 + (wb - k_cl - hub_od / 2 - 40), wr + 16, 0), (1, 0, 0)),
                    Anchor(tip, (wb - 20, 37 + 4, 0), (1, 0, 0)), 4.0, 'WAND',
                    'Feeds the nozzle drive, the light ring and the air knife along the wand. The reel takes up what the wand does not need.',
                    style='tube', lmin=0, lmax=1100, kg_per_m=0.1, size='OD 8'))
-    # the nozzle loop, searched over the duty cycle: it leaves the tip up and out, and swings over the joint
-    m.flex(FlexDef('CLN-NAL', 'Air line 6 mm, nozzle loop', 'loop', Anchor(tip, (wb + 18.4, 36 + 3, 0), (0.4939, 0.8695, 0.0)),
-                   Anchor(noz, (xk, yk + 8 + 3, 0), (-0.7594, -0.6506, 0.0)), 3.0, 'NOZZLE',
+    # the nozzle loop, searched over the duty cycle: it leaves the tip up and out, and swings over the joint. A push-in
+    # fitting holds each end: on the tip's top (36 mm from the wand's axis) and on the knife's top
+    fit = cq.Workplane('XZ').circle(4).extrude(-3)                 # local y 0 .. 3
+    fit_pd = m.part(PartDef('CLN-NAF', 'Push-in fitting, 6 mm tube, M5', fit.val(), 'brass', 'fluid', 'ISO 14743', 'M5 x 6 mm', '', None,
+                            'Holds the air line\'s end and seals it.', {}, 'buy'))
+    m.place(tip, fit_pd, loc(wb + 18.4, 36, 0), (40, 40, 0), 'NOZZLE')
+    m.place(noz, fit_pd, loc(xk, yk + 8, 0), (40, 60, 0), 'NOZZLE')
+    # each end sits on its fitting's top: lifted by how far its slanted end face reaches down (3 mm x the slant's sine)
+    m.flex(FlexDef('CLN-NAL', 'Air line 6 mm, nozzle loop', 'loop', Anchor(tip, (wb + 18.4, 36 + 3 + 1.6, 0), (0.4939, 0.8695, 0.0)),
+                   Anchor(noz, (xk, yk + 8 + 3 + 2.4, 0), (-0.7594, -0.6506, 0.0)), 3.0, 'NOZZLE',
                    'Brings the air across the nozzle joint to the air knife.',
                    mat='hose', category='fluid', length=366.8, min_bend=30, bulge=(0.0, (1.279, 1.252, 0), (0, 1.252, 0)), hk=0.359,
                    kg_per_m=0.02, size='OD 6',

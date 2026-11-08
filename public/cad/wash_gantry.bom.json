@@ -7,12 +7,12 @@
   "glb": "m"
  },
  "totals": {
-  "parts": 811,
-  "uniqueParts": 105,
+  "parts": 931,
+  "uniqueParts": 131,
   "fasteners": 460,
-  "massKg": 4128.59,
-  "boughtLines": 54,
-  "madeLines": 51,
+  "massKg": 4616.37,
+  "boughtLines": 64,
+  "madeLines": 67,
   "referenceLines": 0
  },
  "subsystems": [
@@ -70,7 +70,7 @@
    "order": 2,
    "partCount": 167,
    "fastenerCount": 160,
-   "massKg": 1682.932,
+   "massKg": 1682.893,
    "uniqueParts": 9
   },
   {
@@ -97,18 +97,19 @@
    "function": "Washes the bonnet, the roof and the roof pod. It follows the car top.",
    "how": [
     "A geared motor turns the brush.",
-    "It hangs on 2 telescoping lift columns, 3 stages each, so it reaches the hood with no guide below the roof.",
-    "The lift lowers it until the motor current says it touches, then follows the shape."
+    "It hangs on 2 telescoping lift columns of 3 stages each. It reaches the hood with no guide below the roof.",
+    "The lift lowers it until the motor current says it touches, then follows the shape.",
+    "A spring reel under the beam feeds the brush motor. Its cable pays out as the brush goes down."
    ],
    "specs": {
     "brush": "718 mm, 1627 mm long"
    },
    "group": "Tools",
    "order": 4,
-   "partCount": 87,
+   "partCount": 91,
    "fastenerCount": 40,
-   "massKg": 270.358,
-   "uniqueParts": 21
+   "massKg": 278.581,
+   "uniqueParts": 25
   },
   {
    "id": "SIDEBRUSH",
@@ -116,17 +117,18 @@
    "function": "Wash the flanks, the doors and the wheels.",
    "how": [
     "Each brush hangs from a carriage on 2 rails under the beam.",
-    "A rack drive moves it in to the flank. A geared motor turns it."
+    "A rack drive moves it in to the flank. A geared motor turns it.",
+    "A cable chain under the beam feeds the 2 motors on each carriage. Its bend rolls along as the carriage moves."
    ],
    "specs": {
     "brush": "861 mm, 2536 mm tall"
    },
    "group": "Tools",
    "order": 5,
-   "partCount": 124,
+   "partCount": 216,
    "fastenerCount": 100,
-   "massKg": 331.531,
-   "uniqueParts": 16
+   "massKg": 334.473,
+   "uniqueParts": 19
   },
   {
    "id": "DRYER",
@@ -134,17 +136,18 @@
    "function": "Blow the water off in the last 2 passes.",
    "how": [
     "A top knife on 2 telescoping lift columns follows the car top. 2 side knives close on the flanks.",
-    "3 blowers on the beam feed them through flexible ducts."
+    "3 blowers on the beam feed the knives through flexible ducts.",
+    "A concertina duct draws out as the top knife goes down. A duct loop to each side knife swings in with it."
    ],
    "specs": {
     "blowers": "top 4 kW, sides 2 x 3 kW (class)"
    },
    "group": "Tools",
    "order": 6,
-   "partCount": 115,
+   "partCount": 119,
    "fastenerCount": 64,
-   "massKg": 459.84,
-   "uniqueParts": 18
+   "massKg": 467.052,
+   "uniqueParts": 20
   },
   {
    "id": "WAND",
@@ -152,7 +155,9 @@
    "function": "Vacuum the cabin floor through the open doors on a detail seat.",
    "how": [
     "Each wand drops on a 4-stage column outside its flank.",
-    "2 telescoping tubes reach in through the door opening."
+    "2 telescoping tubes reach in through the door opening.",
+    "The air goes up the reach tubes and the column stages to a vacuum unit on the beam. The stages slide on lip seals.",
+    "A spring reel on the beam feeds the reach drive and the head lamp. Its cable goes down through the beam and pays out as the wand goes down."
    ],
    "specs": {
     "drop": "2.38 m",
@@ -160,10 +165,10 @@
    },
    "group": "Tools",
    "order": 7,
-   "partCount": 52,
+   "partCount": 68,
    "fastenerCount": 8,
-   "massKg": 135.124,
-   "uniqueParts": 14
+   "massKg": 237.563,
+   "uniqueParts": 24
   },
   {
    "id": "CONTROL",
@@ -172,16 +177,17 @@
    "how": [
     "A stainless control cabinet on the inner side of the west leg holds the controller and the drives.",
     "A stop light faces the arriving car: red while the program runs, green when the car may go.",
-    "A drag chain in a trough inboard of the west rail brings power, water, chemicals and air.",
+    "A drag chain brings power, water, chemicals and air. It lies in a covered trench in the floor, inboard of the west rail. Its fixed end is at mid travel.",
+    "A driver in the cover's slot joins its other end to the west trolley. Its bend rolls along at half the machine's speed. A conduit takes the lines up the leg to the cabinet.",
     "Nothing stands outboard of the trolleys: the end bays' outer walls are 48 mm from them."
    ],
    "specs": {},
    "group": "Control",
    "order": 8,
-   "partCount": 89,
+   "partCount": 93,
    "fastenerCount": 8,
-   "massKg": 241.618,
-   "uniqueParts": 11
+   "massKg": 608.621,
+   "uniqueParts": 18
   }
  ],
  "lines": [
@@ -651,8 +657,8 @@
    "material": "Aluminium 6063-T6 extrusion, anodised",
    "materialKey": "al_extr",
    "qty": 1,
-   "massKg": 120.8394,
-   "totalMassKg": 120.8394,
+   "massKg": 120.8198,
+   "totalMassKg": 120.8198,
    "torqueNm": null,
    "reference": false,
    "function": "Closes the beam between its chords and carries the tools hung below it and the drives on it.",
@@ -675,8 +681,8 @@
    "material": "Aluminium 6063-T6 extrusion, anodised",
    "materialKey": "al_extr",
    "qty": 1,
-   "massKg": 120.8394,
-   "totalMassKg": 120.8394,
+   "massKg": 120.8198,
+   "totalMassKg": 120.8198,
    "torqueNm": null,
    "reference": false,
    "function": "Closes the beam between its chords and carries the tools hung below it and the drives on it.",
@@ -1037,6 +1043,30 @@
    ]
   },
   {
+   "id": "WSH-TCK",
+   "name": "Cable reel bracket, stainless",
+   "category": "structure",
+   "make": "make",
+   "standard": "bent plate 10 mm",
+   "size": "120 x 100",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 0.9576,
+   "totalMassKg": 0.9576,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Hangs the top brush cable reel under the bottom deck.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "TOPBRUSH",
+     "qty": 1
+    }
+   ]
+  },
+  {
    "id": "WSH-TCL",
    "name": "Lift column clamp plate, stainless",
    "category": "structure",
@@ -1383,6 +1413,85 @@
    ]
   },
   {
+   "id": "WSH-TBC",
+   "name": "Top brush motor cable 4G1.5 + brake + PTC, PUR, on its reel",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "EN 50525",
+   "size": "OD 13",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 1,
+   "massKg": 1.015,
+   "totalMassKg": 1.015,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Feeds the top brush motor from its reel as the brush goes down.",
+   "spec": {
+    "length": "2900 mm",
+    "length range": "0 to 2900 mm",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "TOPBRUSH",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-TBJ",
+   "name": "Motor terminal box with cable gland, toward the reel",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "40 x 30 x 155",
+   "grade": "IP66",
+   "material": "PA66-GF30",
+   "materialKey": "pa66",
+   "qty": 1,
+   "massKg": 0.2511,
+   "totalMassKg": 0.2511,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes the reel's cable into the motor.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "TOPBRUSH",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-TCR",
+   "name": "Spring cable reel, 3 m, IP65",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "D 180",
+   "grade": "IP65",
+   "material": "Structural steel S355, painted RAL 9005",
+   "materialKey": "steel_paint",
+   "qty": 1,
+   "massKg": 6.0,
+   "totalMassKg": 6.0,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Pays out and takes back the top brush motor cable as the brush goes down and up.",
+   "spec": {
+    "cable": "4G1.5 + brake + PTC, 3 m",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "TOPBRUSH",
+     "qty": 1
+    }
+   ]
+  },
+  {
    "id": "WSH-TBR",
    "name": "Top brush, closed-cell foam strips",
    "category": "tool",
@@ -1590,6 +1699,54 @@
    ]
   },
   {
+   "id": "WSH-SBF",
+   "name": "Cable chain end bracket, stainless",
+   "category": "structure",
+   "make": "make",
+   "standard": "bent plate",
+   "size": "40 x 38",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 0.3275,
+   "totalMassKg": 0.655,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Holds the chain's fixed end under the deck.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SIDEBRUSH",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-SBK",
+   "name": "Cable chain carrier bracket, stainless",
+   "category": "structure",
+   "make": "make",
+   "standard": "bent plate",
+   "size": "60 x 50",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 0.6703,
+   "totalMassKg": 1.3406,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Joins the chain's moving end to the carriage.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SIDEBRUSH",
+     "qty": 2
+    }
+   ]
+  },
+  {
    "id": "WSH-SCG",
    "name": "Side brush carriage",
    "category": "structure",
@@ -1782,6 +1939,30 @@
     {
      "sub": "SIDEBRUSH",
      "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "ECHAIN-38x25",
+   "name": "Cable carrier link 38 x 25",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "inner 38 x 25, pitch 38",
+   "grade": "",
+   "material": "PA66-GF30",
+   "materialKey": "pa66",
+   "qty": 88,
+   "massKg": 0.0108,
+   "totalMassKg": 0.9461,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Guides the cables and hoses through the moving joint. It keeps the bend radius safe.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SIDEBRUSH",
+     "qty": 88
     }
    ]
   },
@@ -2145,50 +2326,114 @@
    ]
   },
   {
-   "id": "WSH-DDS",
-   "name": "Flexible duct, 150 x 170",
+   "id": "WSH-DDSL",
+   "name": "Flexible duct, 170 mm, PU with wire helix",
    "category": "fluid",
    "make": "buy",
-   "standard": "catalogue part",
-   "size": "150 x 170",
+   "standard": "",
+   "size": "D 170",
    "grade": "",
    "material": "Hose, PVC with steel helix",
    "materialKey": "hose",
-   "qty": 2,
-   "massKg": 3.0665,
-   "totalMassKg": 6.1331,
+   "qty": 1,
+   "massKg": 2.97,
+   "totalMassKg": 2.97,
    "torqueNm": null,
    "reference": false,
-   "function": "Feeds a side knife from its blower. It flexes as the knife closes on the car.",
-   "spec": {},
+   "function": "Feeds a side knife from its blower. Its loop swings in as the knife closes on the car.",
+   "spec": {
+    "bend radius": "about 2 x the static 138 mm of a 150 mm wire duct (rule of thumb)",
+    "length": "2700 mm",
+    "min bend radius": "280 mm",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
    "uses": [
     {
      "sub": "DRYER",
-     "qty": 2
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-DDSR",
+   "name": "Flexible duct, 170 mm, PU with wire helix",
+   "category": "fluid",
+   "make": "buy",
+   "standard": "",
+   "size": "D 170",
+   "grade": "",
+   "material": "Hose, PVC with steel helix",
+   "materialKey": "hose",
+   "qty": 1,
+   "massKg": 2.97,
+   "totalMassKg": 2.97,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Feeds a side knife from its blower. Its loop swings in as the knife closes on the car.",
+   "spec": {
+    "bend radius": "about 2 x the static 138 mm of a 150 mm wire duct (rule of thumb)",
+    "length": "2700 mm",
+    "min bend radius": "280 mm",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "DRYER",
+     "qty": 1
     }
    ]
   },
   {
    "id": "WSH-DDU",
-   "name": "Flexible duct, 380 x 160",
+   "name": "Concertina duct, 380 x 160, coated fabric on a steel coil frame",
    "category": "fluid",
    "make": "buy",
-   "standard": "catalogue part",
+   "standard": "",
    "size": "380 x 160",
    "grade": "",
    "material": "Hose, PVC with steel helix",
    "materialKey": "hose",
    "qty": 1,
-   "massKg": 0.7336,
-   "totalMassKg": 0.7336,
+   "massKg": 7.2,
+   "totalMassKg": 7.2,
    "torqueNm": null,
    "reference": false,
-   "function": "Feeds the top knife from its blower. It folds as the knife lifts.",
-   "spec": {},
+   "function": "Feeds the top knife from its blower. It folds as the knife goes up and stretches as it goes down.",
+   "spec": {
+    "type": "concertina duct on a steel coil frame",
+    "compressed": "0.26 m at the top, 11 % of its 2.4 m (the class: 5 to 8 %)",
+    "length": "2400 mm",
+    "length range": "200 to 2400 mm",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
    "uses": [
     {
      "sub": "DRYER",
      "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-DSC",
+   "name": "Duct collar 160 mm, stainless",
+   "category": "fluid",
+   "make": "make",
+   "standard": "rolled sheet 4 mm",
+   "size": "D 160 x 15",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 4,
+   "massKg": 0.2347,
+   "totalMassKg": 0.9386,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes the flexible duct's end. A hose clamp holds the duct on it.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "DRYER",
+     "qty": 4
     }
    ]
   },
@@ -2340,6 +2585,30 @@
    ]
   },
   {
+   "id": "WSH-WCK",
+   "name": "Cable reel bracket, stainless",
+   "category": "structure",
+   "make": "make",
+   "standard": "bent plate 8 mm",
+   "size": "2 x 130 x 120",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 1.9918,
+   "totalMassKg": 3.9836,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the cable reel's axle on the top deck.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WAND",
+     "qty": 2
+    }
+   ]
+  },
+  {
    "id": "WSH-WCL",
    "name": "Wand column clamp plate, stainless",
    "category": "structure",
@@ -2355,6 +2624,30 @@
    "torqueNm": null,
    "reference": false,
    "function": "Holds the wand column sleeve under the bottom deck.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WAND",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-WRA",
+   "name": "Cable entry arm on the slide block, stainless",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined",
+   "size": "105 x 40 x 10",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 0.3352,
+   "totalMassKg": 0.6703,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes the reel's cable into the slide block, outboard of the sleeve.",
    "spec": {},
    "uses": [
     {
@@ -2454,6 +2747,34 @@
    "reference": false,
    "function": "Carries the reach slide at its foot.",
    "spec": {},
+   "uses": [
+    {
+     "sub": "WAND",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-VAC",
+   "name": "Vacuum unit 1.5 kW, wash-down, with dirt bin",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "360 x 360 x 460",
+   "grade": "IP55",
+   "material": "Structural steel S355, painted RAL 9005",
+   "materialKey": "steel_paint",
+   "qty": 2,
+   "massKg": 38.0,
+   "totalMassKg": 76.0,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Makes the vacuum for one wand and keeps what it picks up.",
+   "spec": {
+    "power": "1.5 kW",
+    "class": "side-channel blower with cyclone bin",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
    "uses": [
     {
      "sub": "WAND",
@@ -2584,6 +2905,185 @@
    ]
   },
   {
+   "id": "WSH-WCR",
+   "name": "Spring cable reel, 3 m, IP65",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "D 180",
+   "grade": "IP65",
+   "material": "Structural steel S355, painted RAL 9005",
+   "materialKey": "steel_paint",
+   "qty": 2,
+   "massKg": 6.0,
+   "totalMassKg": 12.0,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Pays out and takes back the reach drive cable as the wand goes down and up.",
+   "spec": {
+    "cable": "7G1 + data, 3 m",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "WAND",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-WCT",
+   "name": "Cable conduit through the beam, 32 x 3",
+   "category": "electrical",
+   "make": "make",
+   "standard": "EN 10217-7",
+   "size": "D 32 x 350",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 0.7632,
+   "totalMassKg": 1.5263,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Leads the reel's cable through the beam, clear of the column.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WAND",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-WRCBL",
+   "name": "Reach drive cable, PUR, on its reel",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "EN 50525",
+   "size": "OD 10",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 1,
+   "massKg": 0.435,
+   "totalMassKg": 0.435,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Feeds the reach drive and the head lamp from the reel as the wand goes down.",
+   "spec": {
+    "length": "2900 mm",
+    "length range": "0 to 2900 mm",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "WAND",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-WRCBR",
+   "name": "Reach drive cable, PUR, on its reel",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "EN 50525",
+   "size": "OD 10",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 1,
+   "massKg": 0.435,
+   "totalMassKg": 0.435,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Feeds the reach drive and the head lamp from the reel as the wand goes down.",
+   "spec": {
+    "length": "2900 mm",
+    "length range": "0 to 2900 mm",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "WAND",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-WSC",
+   "name": "Wand column top cap with vacuum port",
+   "category": "fluid",
+   "make": "make",
+   "standard": "machined plate 12 mm",
+   "size": "110 sq",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 0.8696,
+   "totalMassKg": 1.7392,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Closes the sleeve top and takes the vacuum pipe.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WAND",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-WVPL",
+   "name": "Vacuum pipe 63 mm, unit to column",
+   "category": "fluid",
+   "make": "make",
+   "standard": "EN 10217-7",
+   "size": "D 63",
+   "grade": "",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 2.8247,
+   "totalMassKg": 2.8247,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Joins the vacuum unit to the column top.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WAND",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-WVPR",
+   "name": "Vacuum pipe 63 mm, unit to column",
+   "category": "fluid",
+   "make": "make",
+   "standard": "EN 10217-7",
+   "size": "D 63",
+   "grade": "",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 2.8247,
+   "totalMassKg": 2.8247,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Joins the vacuum unit to the column top.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WAND",
+     "qty": 1
+    }
+   ]
+  },
+  {
    "id": "WSH-WHD",
    "name": "Wand vacuum head with lamp",
    "category": "tool",
@@ -2632,21 +3132,141 @@
    ]
   },
   {
+   "id": "WSH-CTC",
+   "name": "Trench cover, slotted, galvanised checker plate",
+   "category": "structure",
+   "make": "make",
+   "standard": "checker plate 10 mm",
+   "size": "2 x 7900, slot 70",
+   "grade": "S235, galvanised, R11 slip",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 1,
+   "massKg": 86.8212,
+   "totalMassKg": 86.8212,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Covers the trench flush with the floor. The driver runs in its slot.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "CONTROL",
+     "qty": 1
+    }
+   ]
+  },
+  {
    "id": "WSH-CTR",
-   "name": "Drag chain trough, galvanised",
+   "name": "Drag chain trench liner, galvanised",
    "category": "structure",
    "make": "make",
    "standard": "folded sheet 5 mm",
-   "size": "396 x 70 x 5350",
+   "size": "140 x 520 x 7900",
    "grade": "S235, galvanised",
    "material": "Steel 42CrMo4, quenched and tempered",
    "materialKey": "steel",
    "qty": 1,
-   "massKg": 110.5059,
-   "totalMassKg": 110.5059,
+   "massKg": 381.393,
+   "totalMassKg": 381.393,
    "torqueNm": null,
    "reference": false,
-   "function": "Guides the drag chain on the floor inboard of the west rail, clear of the travel drive.",
+   "function": "Lines the trench the drag chain runs in, inboard of the west rail, under the cover.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "CONTROL",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-CTS",
+   "name": "Trench tie strap, galvanised flat 40 x 3",
+   "category": "structure",
+   "make": "make",
+   "standard": "flat bar",
+   "size": "40 x 3 x 237",
+   "grade": "S235, galvanised",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 8,
+   "massKg": 0.2235,
+   "totalMassKg": 1.7879,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Ties the trench liner to the rail anchor plates, so the two stay in line.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "CONTROL",
+     "qty": 8
+    }
+   ]
+  },
+  {
+   "id": "WSH-DCB",
+   "name": "Drag chain carrier arm, stainless",
+   "category": "structure",
+   "make": "make",
+   "standard": "welded box 60 x 160 x 3",
+   "size": "187 long",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 1.9161,
+   "totalMassKg": 1.9161,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Joins the driver to the trolley's inner wall. The lines run through it to the conduit.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "CONTROL",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-DCD",
+   "name": "Drag chain driver duct, stainless",
+   "category": "structure",
+   "make": "make",
+   "standard": "welded box 60 x 160 x 3",
+   "size": "271 long",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 2.7768,
+   "totalMassKg": 2.7768,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Pushes and pulls the chain's moving end through the cover's slot. The lines rise inside it.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "CONTROL",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-DCE",
+   "name": "Drag chain end bracket, stainless",
+   "category": "structure",
+   "make": "make",
+   "standard": "bent plate",
+   "size": "120 x 50",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 0.4788,
+   "totalMassKg": 0.4788,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Joins the chain's last link to the driver.",
    "spec": {},
    "uses": [
     {
@@ -2689,9 +3309,9 @@
    "grade": "",
    "material": "PA66-GF30",
    "materialKey": "pa66",
-   "qty": 70,
+   "qty": 59,
    "massKg": 0.053,
-   "totalMassKg": 3.7135,
+   "totalMassKg": 3.1299,
    "torqueNm": null,
    "reference": false,
    "function": "Guides the cables and hoses through the moving joint. It keeps the bend radius safe.",
@@ -2699,7 +3319,7 @@
    "uses": [
     {
      "sub": "CONTROL",
-     "qty": 70
+     "qty": 59
     }
    ]
   },
@@ -2745,6 +3365,32 @@
    "function": "Holds the controller, 8 drives, the safety relay and the valve outputs. It talks to the twin over the site network.",
    "spec": {
     "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "CONTROL",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-DCC",
+   "name": "Cable conduit, chain to cabinet, 60 mm",
+   "category": "electrical",
+   "make": "make",
+   "standard": "EN 61386",
+   "size": "D 60",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 1,
+   "massKg": 1.3188,
+   "totalMassKg": 1.3188,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the chain's lines from the arm up the leg to the control cabinet.",
+   "spec": {
+    "bend": "R 300 (5 x D)"
    },
    "uses": [
     {
@@ -2822,6 +3468,30 @@
     {
      "sub": "CONTROL",
      "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-CTB",
+   "name": "Slot brush strip, nylon on aluminium back",
+   "category": "seal",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "25 x 7900",
+   "grade": "",
+   "material": "PA66-GF30",
+   "materialKey": "pa66",
+   "qty": 2,
+   "massKg": 0.7999,
+   "totalMassKg": 1.5998,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Closes the cover's slot round the driver against grit and spray.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "CONTROL",
+     "qty": 2
     }
    ]
   }

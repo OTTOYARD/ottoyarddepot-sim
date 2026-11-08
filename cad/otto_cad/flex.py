@@ -423,14 +423,44 @@ def box_solid(pA: np.ndarray, pB: np.ndarray, w: float, h: float, xdir: np.ndarr
     return b.moved(matrix_location(M))
 
 
-def solids_at(fd: FlexDef, res: dict, frames: dict[int, np.ndarray]) -> list[tuple]:
-    """What the clash check measures for a line at a pose: [(PartDef-like, Location)]. A loop or a reel's cable is
-    its round solid; a coil, the cylinder its turns sweep; a bellows duct, its box; a chain, its links."""
-    from cadquery import Location
+def solids_at(fd: FlexDef, res: dict, frames: dict[int, np.ndarray], segmented: bool = True) -> list[tuple]:
+    """What the clash check measures for a line at a pose: [(PartDef-like, Location)]. A loop is a cylinder along each
+    of its N_SEG pieces (with `segmented`; else, for the STEP, its smooth swept solid); a reel's cable, its cylinder; a
+    coil, the cylinder its turns sweep; a bellows duct, its box; a chain, its links. A loop is cut into pieces because a
+    long swept solid's bounding box takes in most of a machine: every part in it was measured against a spline surface,
+    and the charge arm's check went from about 33 minutes to hours. Each piece's box is small, its surface a cylinder,
+    and its chord stands under 4 mm off the curve (a 100 mm piece on a 357 mm bend)."""
+    import cadquery as cq
+    from cadquery import Location, Vector
     from .core import PartDef
     P = res['points']
     if fd.kind == 'chain':
         return [(fd.link_part, matrix_location(_frame_from(t, n, c))) for (c, t, n) in res['links']]
+    if fd.kind == 'loop' and segmented:
+        # the first and last pieces leave and arrive along the anchors' directions, so each end face sits square on
+        # what holds it (a duct's collar, a gland) as the smooth solid's does: a piece along the first chord would
+        # tilt its face into the collar
+        Q = [P[0]]
+        if res.get('tA') is not None:
+            Q.append(P[0] + np.asarray(res['tA'], dtype=float) * 0.5 * float(np.linalg.norm(P[1] - P[0])))
+        Q += list(P[1:-1])
+        if res.get('tB') is not None:
+            Q.append(P[-1] - np.asarray(res['tB'], dtype=float) * 0.5 * float(np.linalg.norm(P[-1] - P[-2])))
+        Q.append(P[-1])
+        P = np.array(Q)
+        out = []
+        t_ = np.asarray(res.get('tA') if res.get('tA') is not None else P[1] - P[0], dtype=float)
+        for k in range(len(P) - 1):
+            d = P[k + 1] - P[k]
+            L = float(np.linalg.norm(d))
+            if L < 1e-6:                          # the same number of pieces at every pose: a 0.01 mm sliver here
+                d, L = t_ / np.linalg.norm(t_), 0.01
+            else:
+                d = d / L
+            cyl = cq.Solid.makeCylinder(fd.r, L, Vector(*map(float, P[k])), Vector(*map(float, d)))
+            out.append((PartDef(fd.id, fd.name, cyl, fd.mat, fd.category, fd.standard, fd.size, '', None, fd.function, {},
+                                fd.make), Location()))
+        return out
     if fd.kind == 'stretch' and fd.style == 'bellows' and fd.w > 0:
         MA = frames[id(fd.a.node)]
         xdir = MA[:3, :3] @ np.array(fd.xd, dtype=float)
@@ -528,7 +558,7 @@ def part_for(fd: FlexDef, root) -> object:
         return fd.link_part
     frames = node_frames(root, {})
     res = solve(fd, frames)
-    (pd0, _), = solids_at(fd, res, frames)
+    (pd0, _), = solids_at(fd, res, frames, segmented=False)
     L = fd.bom_length()
     spec = {**fd.spec, 'length': f'{L:.0f} mm'}
     if fd.kind == 'loop':
@@ -539,9 +569,10 @@ def part_for(fd: FlexDef, root) -> object:
                    spec, fd.make, mass_override=fd.kg_per_m * L / 1000.0)
 
 
-def items_at(flexes: list[FlexDef], root, angles: dict[str, float]) -> list[tuple]:
+def items_at(flexes: list[FlexDef], root, angles: dict[str, float], segmented: bool = True) -> list[tuple]:
     """(Item, world Location, rigid body) for every line's solids at a pose, as check.placements lists the parts.
-    Each line is its own body, so it is measured against every part at every pose."""
+    Each line is its own body, so it is measured against every part at every pose (its own pieces are not measured
+    against each other). The STEP asks for the smooth solids (segmented=False)."""
     from .core import Item
     if not flexes:
         return []
@@ -549,7 +580,7 @@ def items_at(flexes: list[FlexDef], root, angles: dict[str, float]) -> list[tupl
     out = []
     for fd in flexes:
         res = solve(fd, frames)
-        for k, (pd, L) in enumerate(solids_at(fd, res, frames)):
+        for k, (pd, L) in enumerate(solids_at(fd, res, frames, segmented)):
             pd.transient = fd.kind != 'chain'          # its solid changes with the pose: no cached bounding box
             out.append((Item(pd, L, (0, 0, 0), fd.sub, f'{fd.id}#{k + 1}'), L, f'flex:{fd.id}'))
     return out

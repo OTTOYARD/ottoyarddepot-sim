@@ -245,7 +245,7 @@ class Model:
                 a.add(build(ch))
             return a
         top = build(self.root)
-        for (it, L, _) in items_at(self.flexes, self.root, {}):
+        for (it, L, _) in items_at(self.flexes, self.root, {}, segmented=False):
             r, g, b = srgb_to_linear(material(it.part.mat).color)
             top.add(it.part.shape, name=it.name, loc=L, color=cq.Color(r, g, b, 1.0))
         top.export(path, 'STEP')
