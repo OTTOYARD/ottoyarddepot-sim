@@ -18,6 +18,7 @@ from cadquery import Location, Vector
 
 from .. import std
 from ..core import Model, Node, PartDef, loc
+from ..flex import Anchor, FlexDef
 
 WAND_STAGES = 4      # the sleeve and 3 sliding stages (3 stood the stowed column 4 cm under the wash hall roof)
 WAND_REACH_STAGES = 2   # 2 telescoping reach tubes: 1 tube from the column met the other side's head at the centreline
@@ -77,23 +78,29 @@ def build(spec: dict) -> Model:
     m.subsystem('TOPBRUSH', 'Top brush (overhead)', 'Washes the bonnet, the roof and the roof pod. It follows the car top.',
                 how=['A geared motor turns the brush.',
                      'It hangs on 2 telescoping lift columns, 3 stages each, so it reaches the hood with no guide below the roof.',
-                     'The lift lowers it until the motor current says it touches, then follows the shape.'],
+                     'The lift lowers it until the motor current says it touches, then follows the shape.',
+                     'A coiled cable from the beam feeds the brush motor. It stretches as the brush goes down.'],
                 specs={'brush': f'{2 * top["r"]:.0f} mm, {2 * top["halfLen"]:.0f} mm long'}, group='Tools')
     m.subsystem('SIDEBRUSH', 'Side brushes', 'Wash the flanks, the doors and the wheels.',
-                how=['Each brush hangs from a carriage on 2 rails under the beam.', 'A rack drive moves it in to the flank. A geared motor turns it.'],
+                how=['Each brush hangs from a carriage on 2 rails under the beam.', 'A rack drive moves it in to the flank. A geared motor turns it.',
+                     'A cable chain under the beam feeds the 2 motors on each carriage. Its bend rolls along as the carriage moves.'],
                 specs={'brush': f'{2 * side["r"]:.0f} mm, {side["y1"] - side["y0"]:.0f} mm tall'}, group='Tools')
     m.subsystem('DRYER', 'Air knives (dryer)', 'Blow the water off in the last 2 passes.',
                 how=['A top knife on 2 telescoping lift columns follows the car top. 2 side knives close on the flanks.',
-                     '3 blowers on the beam feed them through flexible ducts.'],
+                     '3 blowers on the beam feed them through flexible ducts: a bellows duct that stretches as the top knife goes down, '
+                     'and a duct loop to each side knife that swings in with it.'],
                 specs={'blowers': 'top 4 kW, sides 2 x 3 kW (class)'}, group='Tools')
     m.subsystem('WAND', 'Detail vacuum wands', 'Vacuum the cabin floor through the open doors on a detail seat.',
-                how=['Each wand drops on a 4-stage column outside its flank.', '2 telescoping tubes reach in through the door opening.'],
+                how=['Each wand drops on a 4-stage column outside its flank.', '2 telescoping tubes reach in through the door opening.',
+                     'The air goes up the reach tubes and the column stages, which slide on lip seals, to a vacuum unit on the beam.',
+                     'A spring reel under the beam feeds the reach drive and the head lamp. Its cable pays out as the wand goes down.'],
                 specs={'drop': f'{(wand["topY"] - wand["workY"]) / 1000:.2f} m', 'reach': f'{(wand["x"] - wand["reachX"]) / 1000:.2f} m'},
                 group='Tools')
     m.subsystem('CONTROL', 'Control, supply and signals', 'Runs the program, and tells the car when to stop and when to go.',
                 how=['A stainless control cabinet on the inner side of the west leg holds the controller and the drives.',
                      'A stop light faces the arriving car: red while the program runs, green when the car may go.',
-                     'A drag chain in a trough inboard of the west rail brings power, water, chemicals and air.',
+                     'A drag chain in a trough inboard of the west rail brings power, water, chemicals and air. Its fixed end is at mid travel; '
+                     'its other end rides the west leg, and its bend rolls along at half the machine\'s speed.',
                      'Nothing stands outboard of the trolleys: the end bays\' outer walls are 48 mm from them.'],
                 group='Control')
 
@@ -266,6 +273,7 @@ def build(spec: dict) -> Model:
         deck = cq.Workplane('XY').box(bl, 4, dk_w).translate((0, yd, zmid))
         for sx in (-1, 1):                    # the wand columns and the top tools' lift columns pass through both decks
             deck = deck.cut(cq.Workplane('XY').box(110, 6, 110).translate((sx * wand['x'], yd, zf(wand['dy']))))
+            deck = deck.cut(cq.Workplane('XZ', origin=(sx * (wand['x'] + 125), yd + 3, zf(wand['dy']))).circle(17).extrude(6))  # reel cable
             deck = deck.cut(cq.Workplane('XY').box(140, 6, 140).translate((sx * top['hangerX'], yd, zf(top['dy']))))
             deck = deck.cut(cq.Workplane('XY').box(140, 6, 140).translate((sx * KH_X, yd, zf(dry_dy) + dtop['d'] / 2 + 34)))
         m.place(gan, m.part(PartDef(pid, f'{nm}, aluminium checker plate 4 mm', deck.val(), 'al_extr', 'structure', 'EN 1386 tread plate',
@@ -418,6 +426,27 @@ def build(spec: dict) -> Model:
         for dz in (-40, 40):
             m.place(tb, std.hex_bolt(10, 30, 'A4-70', 'Holds the top brush gearmotor to its hanger.'),
                     std.orient((x_out + 12, top['retractY'] + dy, zt + dz), (-1, 0, 0)), (440, 0, 0), 'TOPBRUSH')
+    # its power: a spring reel under the beam, beside the lift column, pays the motor cable straight down to a terminal box
+    # on the motor. (A coiled cable here had to stretch from 0.29 to 2.10 m, 7.3 times its shortest length; spiral cables
+    # are rated 3 to 5 times: design finding 15.)
+    x_tc, z_tc = x_out + 82, zt - 165                    # behind the lift column: clear of its clamp plate and the wand head
+    tcr = (cq.Workplane('XY', origin=(x_tc, beam['y0'] - 100, z_tc - 45)).circle(90).extrude(90)
+           .union(cq.Workplane('XY').box(30, 30, 40).translate((x_tc, beam['y0'] - 205, z_tc))))      # the outlet, down
+    m.place(gan, m.part(PartDef('WSH-TCR', 'Spring cable reel, 3 m, IP65', tcr.val(), 'steel_paint', 'electrical', 'catalogue part',
+                                'D 180', 'IP65', None, 'Pays out and takes back the top brush motor cable as the brush goes down and up.',
+                                {'cable': '4G1.5 + brake + PTC, 3 m'}, 'buy', mass_override=6.0)), Location(), (300, 160, 0), 'TOPBRUSH')
+    tck = cq.Workplane('XY').box(120, 10, 100).translate((x_tc, beam['y0'] - 5, z_tc))
+    m.place(gan, m.part(PartDef('WSH-TCK', 'Cable reel bracket, stainless', tck.val(), 'ss316', 'structure', 'bent plate 10 mm',
+                                '120 x 100', '316L', None, 'Hangs the top brush cable reel under the bottom deck.', {}, 'make')),
+            Location(), (300, 180, 0), 'TOPBRUSH')
+    tbj = cq.Workplane('XY').box(40, 30, 155).translate((x_tc, top['retractY'] + 290, zt - 97.5))
+    m.place(tb, m.part(PartDef('WSH-TBJ', 'Motor terminal box with cable gland, toward the reel', tbj.val(), 'pa66', 'electrical',
+                               'catalogue part', '40 x 30 x 155', 'IP66', None, 'Takes the reel\'s cable into the motor.', {}, 'buy')),
+            Location(), (420, 40, 0), 'TOPBRUSH')
+    m.flex(FlexDef('WSH-TBC', 'Top brush motor cable 4G1.5 + brake + PTC, PUR, on its reel', 'stretch',
+                   Anchor(gan, (x_tc, beam['y0'] - 220, z_tc), (0, -1, 0)), Anchor(tb, (x_tc, top['retractY'] + 305, z_tc), (0, 1, 0)),
+                   6.5, 'TOPBRUSH', 'Feeds the top brush motor from its reel as the brush goes down.',
+                   style='tube', lmin=0, lmax=2900, kg_per_m=0.35, size='OD 13', standard='EN 50525'))
     # lift: the lift gearmotor on the top deck turns a cross shaft with a belt drum over each column; the belts go down
     # into the columns (a belt over each stage's pulley drives the next stage)
     lgm = (cq.Workplane('XY').box(180, 10, 180).translate((0, 5, 0))
@@ -516,11 +545,14 @@ def build(spec: dict) -> Model:
     m.place(dt, m.part(PartDef('WSH-DKT', 'Top air knife, stainless', knife.val(), 'ss316', 'tool', 'made to order',
                                f'{2 * dtop["halfLen"]:.0f} long', '', None, 'Blows a sheet of air down over the car top. It follows the shape.',
                                {}, 'make')), Location(), (0, -200, 0), 'DRYER')
-    duct = (cq.Workplane('XZ', origin=(0, beam['y0'], zd)).rect(380, 160).extrude(beam['y0'] - dtop['retractY'] - dtop['h'])
-            .faces('>Y or <Y').shell(-2))
-    m.place(dt, m.part(PartDef('WSH-DDU', 'Flexible duct, 380 x 160', duct.val(), 'hose', 'fluid', 'catalogue part', '380 x 160', '', None,
-                               'Feeds the top knife from its blower. It folds as the knife lifts.', {}, 'buy')),
-            Location(), (0, -100, 0), 'DRYER')
+    # the top knife's duct: a concertina duct from the beam's underside down to the knife top, drawn out and folded by the
+    # lift. It runs 0.26 to 2.26 m as the knife drops 2 m to the hood (a PU bellows folds to about 15 %: design finding 15)
+    m.flex(FlexDef('WSH-DDU', 'Concertina duct, 380 x 160, coated fabric on a steel coil frame', 'stretch',
+                   Anchor(gan, (0, beam['y0'], zd), (0, -1, 0)), Anchor(dt, (0, dtop['retractY'] + dtop['h'], zd), (0, -1, 0)),
+                   80.0, 'DRYER', 'Feeds the top knife from its blower. It folds as the knife goes up and stretches as it goes down.',
+                   mat='hose', category='fluid', style='bellows', w=380, h=160, xd=(1, 0, 0), lmin=200, lmax=2400, kg_per_m=3.0,
+                   size='380 x 160', spec={'type': 'concertina duct on a steel coil frame',
+                                           'compressed': '0.26 m at the top, 11 % of its 2.4 m (the class: 5 to 8 %)'}))
     blower = (cq.Workplane('YZ').circle(260).extrude(280, both=True).union(cq.Workplane('XY').box(300, 260, 300).translate((380, 0, 0)))
               .union(cq.Workplane('XY').box(640, 14, 400).translate((80, -260 - 7, 0))))      # its base plate
     blow_pd = m.part(PartDef('WSH-BLW', 'Centrifugal blower 4 kW, wash-down', blower.val(), 'steel_paint', 'drive', 'catalogue part',
@@ -627,6 +659,58 @@ def build(spec: dict) -> Model:
         m.place(gan, m.part(PartDef('WSH-WDM', 'Wand drop servo gearmotor 0.4 kW, brake', dr.val(), 'steel_paint', 'drive', 'catalogue part',
                                     '0.4 kW', 'IP66', None, 'Drives stage 2 by a toothed belt. Its brake holds the column with power off.',
                                     {}, 'buy', mass_override=7.5)), col, (sx * 220, 320, 0), 'WAND')
+    # the wands' supply. The air goes up the reach tubes and the column stages (on lip seals) to a cap on the sleeve, and from
+    # there in a pipe to a vacuum unit on the top deck, inboard of the column. A spring reel on the deck, outboard of the
+    # column, pays its cable straight down through a conduit in the beam to an arm on the slide block at the column's foot,
+    # for the reach drive and the head lamp. (Under the deck it stood in the reach tubes and the arch: design finding 14.)
+    wx = wand['x']
+    vac = (cq.Workplane('XY').box(360, 400, 360).edges('|Y').fillet(20)
+           .union(cq.Workplane('XZ', origin=(0, 200, 0)).circle(60).extrude(-60)))
+    vac_pd = m.part(PartDef('WSH-VAC', 'Vacuum unit 1.5 kW, wash-down, with dirt bin', vac.val(), 'steel_paint', 'drive', 'catalogue part',
+                            '360 x 360 x 460', 'IP55', None, 'Makes the vacuum for one wand and keeps what it picks up.',
+                            {'power': '1.5 kW', 'class': 'side-channel blower with cyclone bin'}, 'buy', mass_override=38.0))
+    cap = (cq.Workplane('XY').box(sections[0], 12, sections[0]).cut(cq.Workplane('XZ', origin=(0, 7, 0)).circle(31).extrude(14)))
+    cap_pd = m.part(PartDef('WSH-WSC', 'Wand column top cap with vacuum port', cap.val(), 'ss316', 'fluid', 'machined plate 12 mm',
+                            f'{sections[0]:.0f} sq', '316L', None, 'Closes the sleeve top and takes the vacuum pipe.', {}, 'make'))
+    # the column's local frame (as `col` places it): +X inboard. The reel's drum turns about X, outboard of the sleeve.
+    x_rl = -125.0                                        # the cable's line, 70 mm outboard of the sleeve's face, clear of its clamp
+    y_dr = beam['y1'] + 120                              # the drum's axle
+    reel = (cq.Workplane('YZ', origin=(x_rl, y_dr, 0)).circle(90).extrude(45, both=True)
+            .union(cq.Workplane('XY').box(30, 30, 40).translate((x_rl, y_dr - 105, 0))))      # the cable outlet, at its bottom
+    rbk = (cq.Workplane('XY').box(8, 130, 120).translate((x_rl - 54, beam['y1'] + 65, 0))
+           .union(cq.Workplane('XY').box(8, 130, 120).translate((x_rl + 54, beam['y1'] + 65, 0))))
+    rbk_pd = m.part(PartDef('WSH-WCK', 'Cable reel bracket, stainless', rbk.val(), 'ss316', 'structure', 'bent plate 8 mm', '2 x 130 x 120',
+                            '316L', None, 'Carries the cable reel\'s axle on the top deck.', {}, 'make'))
+    wct = (cq.Workplane('XZ', origin=(x_rl, beam['y1'], 0)).circle(16).circle(13).extrude(beam['y1'] - beam['y0'] + 15))
+    wct_pd = m.part(PartDef('WSH-WCT', 'Cable conduit through the beam, 32 x 3', wct.val(), 'ss316', 'electrical', 'EN 10217-7',
+                            f'D 32 x {beam["y1"] - beam["y0"] + 15:.0f}', '316L', None,
+                            'Leads the reel\'s cable through the beam, clear of the column.', {}, 'make'))
+    wra = cq.Workplane('XY').box(105, 10, 40).translate((-92.5, 0, 0))
+    wra_pd = m.part(PartDef('WSH-WRA', 'Cable entry arm on the slide block, stainless', wra.val(), 'ss316', 'structure', 'machined',
+                            '105 x 40 x 10', '316L', None, 'Takes the reel\'s cable into the slide block, outboard of the sleeve.', {}, 'make'))
+    reel_pd = m.part(PartDef('WSH-WCR', 'Spring cable reel, 3 m, IP65', reel.val(), 'steel_paint', 'electrical', 'catalogue part',
+                             'D 180', 'IP65', None, 'Pays out and takes back the reach drive cable as the wand goes down and up.',
+                             {'cable': '7G1 + data, 3 m'}, 'buy', mass_override=6.0))
+    for sx, name in ((-1, 'L'), (1, 'R')):
+        xv = sx * (wx - 330)
+        m.place(gan, vac_pd, loc(xv, beam['y1'] + 200, zw + 100), (sx * 100, 300, 0), 'WAND')
+        m.place(gan, cap_pd, loc(sx * wx, sleeve_top + 6, zw), (0, 340, 0), 'WAND')
+        pipe = std.swept(f'WSH-WVP{name}', 'Vacuum pipe 63 mm, unit to column', [(xv, beam['y1'] + 460, zw + 100),
+                         (xv, sleeve_top + 160, zw + 100), (sx * wx, sleeve_top + 160, zw), (sx * wx, sleeve_top + 12, zw)],
+                         31.5, 'ss316', 'fluid', 28.5, 'Joins the vacuum unit to the column top.', {}, 'EN 10217-7', 'D 63', 'make')
+        m.place(gan, pipe, Location(), (0, 360, 0), 'WAND')
+        drop3 = next(n for n in gan.walk() if n.name == f'Wand{name}Drop{WAND_STAGES - 1}')
+        col = loc(sx * wx, 0, zw, ry=180 if sx > 0 else 0)
+        xr = sx * (wx - x_rl)                            # the cable's line, in the gantry's frame
+        m.place(gan, rbk_pd, col, (sx * 120, 30, 0), 'WAND')
+        m.place(gan, reel_pd, col, (sx * 120, 60, 0), 'WAND')
+        m.place(gan, wct_pd, col, (sx * 120, 0, 0), 'WAND')
+        m.place(drop3, wra_pd, col * loc(0, y_r + 45, 0), (sx * 120, -40, 0), 'WAND')
+        m.flex(FlexDef(f'WSH-WRCB{name}', 'Reach drive cable, PUR, on its reel', 'stretch',
+                       Anchor(gan, (xr, beam['y0'] - 15, zw), (0, -1, 0)),
+                       Anchor(drop3, (xr, y_r + 50, zw), (0, 1, 0)),
+                       5.0, 'WAND', 'Feeds the reach drive and the head lamp from the reel as the wand goes down.',
+                       style='tube', lmin=0, lmax=2900, kg_per_m=0.15, size='OD 10', standard='EN 50525'))
     m.notes['wand_column'] = {'stages': WAND_STAGES, 'reachStages': WAND_REACH_STAGES,
                               'stageLengthMm': round(st_len), 'stowedTopMm': round(wand['topY'] + st_len + 60),
                               'washHallHeightMm': round(10 * spec['yardstick_m_per_plan_unit'] * 1000)}
@@ -706,6 +790,29 @@ def build(spec: dict) -> Model:
             for dy in (-30, 30):
                 m.place(node, std.hex_bolt(8, 25, 'A4-70', 'Holds the carriage gearmotor to the carriage, from inside it.'),
                         std.orient((xg + dx, beam['y0'] - 86 + dy, zs - 150 + 8), (0, 0, -1)), (sx * 160, 0, -240), 'SIDEBRUSH')
+    # each carriage's power: a cable chain on the north side of the carriage, its fixed run under the deck outboard of the
+    # carriage's home, its bend hanging below; the moving run rides a bracket on the carriage's north face
+    sb_link = std.chain_link(38, 25, 38)
+    R_sb, n_sb = 90.0, 44
+    y_sf = beam['y0'] - 14.5                             # the fixed run's centre, its links against the deck
+    z_ch = zs + 150 + 47                                 # 28 mm off the carriage's north face
+    sbf = cq.Workplane('XY').box(40, 27, 38)
+    sbm = cq.Workplane('XY').box(60, 50, 28)
+    for sx, name in ((-1, 'L'), (1, 'R')):
+        node = next(c for c in gan.children if c.name == f'SideBrush{name}')
+        x = sx * side['retractX']
+        x_f = x + sx * 200                               # the fixed end, outboard of the carriage at home
+        m.flex(FlexDef(f'WSH-SBC{name}', 'Cable chain 38 x 25, R 90', 'chain',
+                       Anchor(gan, (x_f, y_sf, z_ch), (-sx, 0, 0)), Anchor(node, (x, y_sf - 2 * R_sb, z_ch), (-sx, 0, 0)),
+                       12.5, 'SIDEBRUSH', 'Carries the brush motor and carriage motor cables to the moving carriage. Its bend rolls along with it.',
+                       mat='pa66', category='electrical', pitch=38, bend_r=R_sb, links=n_sb, up=(0, -1, 0), w=38, h=25,
+                       link_part=sb_link, kg_per_m=0.9, spec={'carries': '2 motor cables (4G1.5 + brake), encoder'}))
+        m.place(gan, m.part(PartDef('WSH-SBF', 'Cable chain end bracket, stainless', sbf.val(), 'ss316', 'structure', 'bent plate',
+                                    '40 x 38', '316L', None, 'Holds the chain\'s fixed end under the deck.', {}, 'make')),
+                loc(x_f + sx * 20, beam['y0'] - 13.5, z_ch), (sx * 60, 40, 60), 'SIDEBRUSH')
+        m.place(node, m.part(PartDef('WSH-SBK', 'Cable chain carrier bracket, stainless', sbm.val(), 'ss316', 'structure', 'bent plate',
+                                     '60 x 50', '316L', None, 'Joins the chain\'s moving end to the carriage.', {}, 'make')),
+                loc(x, y_sf - 2 * R_sb + 12.5, zs + 150 + 14), (0, -40, 60), 'SIDEBRUSH')
     # top brush lift: a cross shaft on the beam with a belt drum over each hanger, in 2 pillow-block bearings
     shaft_l = 2 * top['hangerX'] + 300
     y_ls = beam['y1'] + 50                               # the lift shaft's axis, 50 above the top deck
@@ -727,15 +834,21 @@ def build(spec: dict) -> Model:
         for dz in (-55, 55):
             std.bolt_stack(m, gan, 'TOPBRUSH', (sx * (top['hangerX'] + 110), beam['y1'] + 14, zt + dz), (0, -1, 0), 12, 40, 18,
                            fn='Holds the pillow block to the top deck.', explode=(sx * 90, 400, 0), stainless=True)
-    # side air knives: a flexible duct each, up to its blower on the beam
+    # side air knives: a flexible duct loop each, from the beam's underside over the knife's home to the knife top. The knife
+    # slides in 1.46 m; the loop bows in toward the car, never out into the leg
+    dsc = cq.Workplane('XZ').circle(80).circle(76).extrude(15)                  # local: y 0 .. -15
+    dsc_pd = m.part(PartDef('WSH-DSC', 'Duct collar 160 mm, stainless', dsc.val(), 'ss316', 'fluid', 'rolled sheet 4 mm', 'D 160 x 15',
+                            '316L', None, 'Takes the flexible duct\'s end. A hose clamp holds the duct on it.', {}, 'make'))
     for sx, name in ((-1, 'L'), (1, 'R')):
         node = next(c for c in gan.children if c.name == f'DryerSide{name}')
         x = sx * (dside['retractX'] + dside['w'] / 2)
-        dd = (cq.Workplane('XZ', origin=(0, beam['y0'], 0)).rect(150, 170).extrude(beam['y0'] - dside['y1'])
-              .faces('>Y or <Y').shell(-2))
-        m.place(node, m.part(PartDef('WSH-DDS', 'Flexible duct, 150 x 170', dd.val(), 'hose', 'fluid', 'catalogue part', '150 x 170', '',
-                                     None, 'Feeds a side knife from its blower. It flexes as the knife closes on the car.', {}, 'buy')),
-                loc(x, 0, zd), (sx * 300, 0, 0), 'DRYER')
+        m.place(gan, dsc_pd, loc(x, beam['y0'], zd), (sx * 60, 100, 0), 'DRYER')
+        m.place(node, dsc_pd, loc(x, dside['y1'] + 15, zd), (sx * 60, 60, 0), 'DRYER')
+        m.flex(FlexDef(f'WSH-DDS{name}', 'Flexible duct, 170 mm, PU with wire helix', 'loop',
+                       Anchor(gan, (x, beam['y0'] - 15, zd), (0, -1, 0)), Anchor(node, (x, dside['y1'] + 15, zd), (0, -1, 0)),
+                       85.0, 'DRYER', 'Feeds a side knife from its blower. Its loop swings in as the knife closes on the car.',
+                       mat='hose', category='fluid', length=2700, min_bend=280, bulge=(0.0, (-sx, 0, 0), (-sx, 0, 0)), kg_per_m=1.1,
+                       size='D 170', spec={'bend radius': 'about 2 x the static 138 mm of a 150 mm wire duct (rule of thumb)'}))
     # arch: a valve manifold on the beam and the feed hose down to the arch's top pipe
     man = cq.Workplane('XY').box(1100, 60, 60).translate((0, beam['y1'] + 30, za + 60))
     m.place(gan, m.part(PartDef('WSH-MAN', 'Valve manifold, stainless, 4 stations', man.val(), 'ss316', 'fluid', 'machined',
@@ -794,24 +907,88 @@ def build(spec: dict) -> Model:
                                 '800 x 600 x 300', 'IP66', None,
                                 'Holds the controller, 8 drives, the safety relay and the valve outputs. It talks to the twin over the site network.',
                                 {}, 'buy', mass_override=85.0)), Location(), (-400, 0, 0), 'CONTROL')
-    # the drag chain lies in a trough on the floor INBOARD of the west rail, 15 mm inboard of the travel gearmotor's gear
-    # case; the trough's 5 mm floor runs on under the gearmotor and the trolley to the rail's anchor plates, which hold it.
-    # (Outboard of the rail it stood 0.41 m into the outer wall of an end bay: design finding 8.)
+    # the drag chain lies in a covered trench in the floor INBOARD of the west rail, 15 mm inboard of the travel gearmotor's
+    # gear case. (Outboard of the rail it stood 0.41 m into the outer wall of an end bay: design finding 8. On the floor its
+    # upper run stood 0.43 m up, in the path of the retracted side air knife, whose foot is 0.26 m up: design finding 13.)
+    # A driver duct joins the chain's moving end, through the cover's slot, to an arm on the trolley's inner wall.
     chain = std.chain_link(120, 50, 75)
-    x_o = legX - trol['w'] / 2 - 132 - 15                # the trough's outer wall, toward the rail
+    x_o = legX - trol['w'] / 2 - 132 - 15                # the trench's outer wall, toward the rail
     x_i = x_o - 140                                      # its inner wall, toward the car
-    xch = x_i + 5 + 5 + 60                               # the chain's centre: 5 mm clear of each wall
-    xc0 = legX - 130                                     # the anchor plates' inner edge
-    z0, n_ch = zf(rail['to']) + 100, 70
-    tr_l = n_ch * 75 + 100
-    tr_w = xc0 - x_i
-    trough = (cq.Workplane('XY').box(tr_w, 5, tr_l).translate((x_i + tr_w / 2, 2.5, z0 - 37.5 - 50 + tr_l / 2))
-              .union(cq.Workplane('XY').box(5, 70, tr_l).translate((x_i + 2.5, 35, z0 - 37.5 - 50 + tr_l / 2)))
-              .union(cq.Workplane('XY').box(5, 70, tr_l).translate((x_o - 2.5, 35, z0 - 37.5 - 50 + tr_l / 2))))
-    m.place(bay, m.part(PartDef('WSH-CTR', 'Drag chain trough, galvanised', trough.val(), 'steel', 'structure', 'folded sheet 5 mm',
-                                f'{tr_w:.0f} x 70 x {tr_l:.0f}', 'S235, galvanised', None,
-                                'Guides the drag chain on the floor inboard of the west rail, clear of the travel drive.', {}, 'make')),
+    xch = x_i + 5 + 5 + 60                               # the chain's centre: 10 mm clear of each wall
+    R_dc, n_dc = 200.0, 59
+    g_lo, g_hi = gan.joint['limits']
+    z_fix = (g_lo + g_hi) / 2 * 1000.0                  # mid travel (the gantry's frame stands at z = GANTRY, metres)
+    y_fl = -520.0                                        # the trench floor
+    y_lo = y_fl + 25 + 9                                 # the lower run's centre, 9 mm over the floor (links tip in the bend)
+    y_up = y_lo + 2 * R_dc                               # the upper run's centre: its links' tops 57 mm under the cover
+    # the trench runs from beyond the bend at the north end of travel to beyond the driver at the south end
+    tz0 = z_fix - (n_dc * 75 - math.pi * R_dc + (z_fix - g_lo * 1000.0)) / 2 - R_dc - 25 - 40
+    tz1 = g_hi * 1000.0 + 170 + 40
+    tr_l = tz1 - tz0
+    tzc = (tz0 + tz1) / 2
+    trench = (cq.Workplane('XY').box(x_o - x_i + 10, 5, tr_l).translate(((x_i + x_o) / 2, y_fl - 2.5, tzc))
+              .union(cq.Workplane('XY').box(5, -y_fl - 5, tr_l).translate((x_i - 2.5, (y_fl - 15) / 2, tzc)))   # walls up to the cover
+              .union(cq.Workplane('XY').box(5, -y_fl - 5, tr_l).translate((x_o + 2.5, (y_fl - 15) / 2, tzc)))
+              .union(cq.Workplane('XY').box(30, 5, tr_l).translate((x_i - 20, -12.5, tzc)))      # the cover's seat angles
+              .union(cq.Workplane('XY').box(30, 5, tr_l).translate((x_o + 20, -12.5, tzc))))
+    m.place(bay, m.part(PartDef('WSH-CTR', 'Drag chain trench liner, galvanised', trench.val(), 'steel', 'structure', 'folded sheet 5 mm',
+                                f'{x_o - x_i:.0f} x {-y_fl:.0f} x {tr_l:.0f}', 'S235, galvanised', None,
+                                'Lines the trench the drag chain runs in, inboard of the west rail, under the cover.', {}, 'make')),
             Location(), (-300, -60, 0), 'CONTROL')
-    for i in range(n_ch):
-        m.place(bay, chain, loc(xch, 5 + 25, z0 + i * 75, ry=90), (-300, 60, 0), 'CONTROL')
+    s_w = 70.0                                           # the cover's slot, for the 60 mm driver
+    cov = (cq.Workplane('XY').box(xch - s_w / 2 - (x_i - 35), 10, tr_l).translate(((xch - s_w / 2 + x_i - 35) / 2, -5, tzc))
+           .union(cq.Workplane('XY').box(x_o + 35 - (xch + s_w / 2), 10, tr_l).translate(((x_o + 35 + xch + s_w / 2) / 2, -5, tzc))))
+    m.place(bay, m.part(PartDef('WSH-CTC', 'Trench cover, slotted, galvanised checker plate', cov.val(), 'steel', 'structure',
+                                'checker plate 10 mm', f'2 x {tr_l:.0f}, slot {s_w:.0f}', 'S235, galvanised, R11 slip', None,
+                                'Covers the trench flush with the floor. The driver runs in its slot.', {}, 'make')),
+            Location(), (-300, 60, 0), 'CONTROL')
+    brush = cq.Workplane('XY').box(3, 25, tr_l).translate((0, -12.5, tzc))
+    brush_pd = m.part(PartDef('WSH-CTB', 'Slot brush strip, nylon on aluminium back', brush.val(), 'pa66', 'seal', 'catalogue part',
+                              f'25 x {tr_l:.0f}', '', None, 'Closes the cover\'s slot round the driver against grit and spray.', {}, 'buy'))
+    for dx in (-(s_w / 2 - 1.5), s_w / 2 - 1.5):
+        m.place(bay, brush_pd, loc(xch + dx, 0, 0), (-300, 90, 0), 'CONTROL')
+    # tie straps from the liner's outer seat to the west rail's anchor plates, one at each plate along the trench
+    x_ap = legX - 130                                    # the anchor plates' inner edge
+    strap = cq.Workplane('XY').box(x_ap + 16 - (x_o + 35), 3, 40).translate(((x_ap + 16 + x_o + 35) / 2, -13.5, 0))
+    strap_pd = m.part(PartDef('WSH-CTS', 'Trench tie strap, galvanised flat 40 x 3', strap.val(), 'steel', 'structure', 'flat bar',
+                              f'40 x 3 x {x_ap + 16 - x_o - 35:.0f}', 'S235, galvanised', None,
+                              'Ties the trench liner to the rail anchor plates, so the two stay in line.', {}, 'make'))
+    for i in range(n_plates):
+        z_p = zf(rail['from']) - i * (rl / (n_plates - 1))
+        if tz0 + 40 < z_p < tz1 - 40:
+            m.place(bay, strap_pd, loc(0, 0, z_p), (-300, 20, 0), 'CONTROL')
+    m.flex(FlexDef('WSH-DCH', 'Drag chain 120 x 50, R 200', 'chain',
+                   Anchor(bay, (xch, y_lo, z_fix), (0, 0, -1)), Anchor(gan, (xch, y_up, 0), (0, 0, -1)),
+                   25.0, 'CONTROL', 'Brings power, water, chemicals, air and the network to the moving machine. Its bend rolls along '
+                   'at half the machine\'s speed.', mat='pa66', category='electrical', pitch=75, bend_r=R_dc, links=n_dc, up=(0, 1, 0),
+                   w=120, h=50, link_part=chain, kg_per_m=6.5,
+                   spec={'carries': 'supply cable 5G10, network, water DN 20, 2 chemicals DN 10, air DN 12',
+                         'upper run': 'self-supporting up to 3.7 m with the machine at an end (chain maker to confirm), '
+                                      'else it lies on the lower run'}))
+    # its moving end: an end bracket on the last link, a driver duct up through the slot, an arm to the trolley's inner wall,
+    # and a conduit up the leg to the cabinet's floor
+    x_tw = legX - trol['w'] / 2                          # the trolley's inner wall
+    dce = cq.Workplane('XY').box(120, 50, 10).translate((xch, y_up, 5))
+    m.place(gan, m.part(PartDef('WSH-DCE', 'Drag chain end bracket, stainless', dce.val(), 'ss316', 'structure', 'bent plate',
+                                '120 x 50', '316L', None, 'Joins the chain\'s last link to the driver.', {}, 'make')),
+            Location(), (-200, 40, 0), 'CONTROL')
+    y_arm = 100.0
+    dcd = (cq.Workplane('XY').box(60, y_arm + 60 - (y_up - 25), 160).translate((xch, (y_arm + 60 + y_up - 25) / 2, 90))
+           .cut(cq.Workplane('XY').box(54, y_arm + 60 - (y_up - 25) + 2, 154).translate((xch, (y_arm + 60 + y_up - 25) / 2, 90))))
+    m.place(gan, m.part(PartDef('WSH-DCD', 'Drag chain driver duct, stainless', dcd.val(), 'ss316', 'structure', 'welded box 60 x 160 x 3',
+                                f'{y_arm + 60 - y_up + 25:.0f} long', '316L', None,
+                                'Pushes and pulls the chain\'s moving end through the cover\'s slot. The lines rise inside it.', {}, 'make')),
+            Location(), (-200, 80, 0), 'CONTROL')
+    dcb = (cq.Workplane('XY').box(x_tw - (xch + 30), 60, 160).translate(((x_tw + xch + 30) / 2, y_arm + 30, 90))
+           .cut(cq.Workplane('XY').box(x_tw - (xch + 30) + 2, 54, 154).translate(((x_tw + xch + 30) / 2, y_arm + 30, 90))))
+    m.place(gan, m.part(PartDef('WSH-DCB', 'Drag chain carrier arm, stainless', dcb.val(), 'ss316', 'structure', 'welded box 60 x 160 x 3',
+                                f'{x_tw - xch - 30:.0f} long', '316L', None,
+                                'Joins the driver to the trolley\'s inner wall. The lines run through it to the conduit.', {}, 'make')),
+            Location(), (-200, 60, 0), 'CONTROL')
+    x_cd = x_tw - 45                                     # the conduit, 15 mm off the trolley's inner wall
+    cond = std.swept('WSH-DCC', 'Cable conduit, chain to cabinet, 60 mm',
+                     [(x_cd, y_arm + 60, 90), (x_cd, 520, 90), (x_post - 150, 1120, z_cab - 200), (x_post - 150, 1299, z_cab - 200)],
+                     30, 'cable', 'electrical', 26, 'Carries the chain\'s lines from the arm up the leg to the control cabinet.',
+                     {'bend': 'R 300 (5 x D)'}, 'EN 61386', 'D 60', 'make', bend=300.0)
+    m.place(gan, cond, Location(), (-200, 100, 0), 'CONTROL')
     return m
