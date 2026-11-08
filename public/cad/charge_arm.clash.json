@@ -4,7 +4,6 @@
   "stowed",
   "pose:stowed",
   "pose:connected",
-  "pose:zero",
   "cycle:unstow:mid",
   "cycle:unstow:end",
   "cycle:approach:mid",
@@ -24,10 +23,10 @@
   "cycle:retract:mid",
   "cycle:retract:end"
  ],
- "pairsChecked": 32311,
- "contactPairs": 1380,
+ "pairsChecked": 31577,
+ "contactPairs": 1386,
  "counts": {
-  "thread": 672,
+  "thread": 656,
   "seal": 12,
   "ring": 9,
   "mesh": 3,
@@ -135,6 +134,6 @@
    ]
   }
  ],
- "seconds": 2006.3,
- "glbSha256": "44cb1056154f1186"
+ "seconds": 1979.1,
+ "glbSha256": "b40aa1a8ffb9552b"
 }

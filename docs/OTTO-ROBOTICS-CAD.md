@@ -280,11 +280,16 @@ The poses found more, which the stowed pose could not show:
     connector was an M20, for a cable 35.7 mm across. A 500 A liquid-cooled cable bends no tighter than 357 mm when it
     moves, so it cannot follow a 6-axis arm through its joints. **It now does not ride the arm:** it comes up out of
     the cabinet roof into a slip ring and coolant union in the hub of a take-up wheel (820 mm, groove radius 380 mm),
-    lies in the rim, leaves it at a fixed point over the cabinet's front edge and spans free to a side outlet on the
-    connector, through an M50 swivel gland. A spring turns the wheel back, so the span keeps 1.36 times its chord: never
-    slack onto the car. The span's anchors, outlet directions and ratio were searched over the duty cycle's poses.
-    Over 5,275 poses the tightest bend is 390 mm (against 357 mm), the span stays at least 67 mm from the arm, its
-    free length runs 2.67 to 3.92 m, and the wheel turns 189 degrees. The joints' own power and network (a 10 mm
+    lies in the rim's groove, leaves it in the wheel's plane at a fixed point above the cabinet's front edge and spans
+    free to a side outlet on the connector, through an M50 swivel gland. A spring turns the wheel back, so the span
+    keeps 1.36 times its chord: never slack onto the car. The span's anchors, outlet directions and ratio were searched
+    over the duty cycle's poses. Over 11,070 poses (every inlet and every corner of the window) the tightest bend is
+    418 mm (against 357 mm). Over 5,275 the span stays at least 52 mm from the arm, its free length runs 2.72 to
+    3.91 m, and the wheel turns 178 degrees. A first draft let the span turn sideways as it left the rim. The clash
+    check found it riding up the wheel's flange at most poses, so it now leaves in the wheel's plane, and the groove is
+    56 mm wide for its 40 mm sleeve (as it leaves, the span keeps at least 3 mm off the flange). The arm's zero
+    pose (straight up) is outside the cable's reach: it would bend the cable to 251 mm. The twin never plays it, so the
+    Robotics tab no longer offers it and the clash check no longer tests it. The joints' own power and network (a 10 mm
     hybrid cable) runs inside the arm through the hollow shafts of J1 to J5. J6's bore (9.4 mm) is too small for it, so
     the tool's cable and air line ride with the charge cable in its sleeve.
 12. **No line can loop across the clean arm's wrist (J4).** J4 turns 135 degrees, and the wrist keeps only 4 to 9 mm

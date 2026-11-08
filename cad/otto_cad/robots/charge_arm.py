@@ -208,21 +208,22 @@ def build(spec: dict) -> Model:
                 specs={'gears': 'size 25, 25, 20, 100:1'}, group='Joints')
     m.subsystem('TOOL', 'Connector tool', 'Finds the inlet, plugs in, latches, and lets go. It measures the force on every move.',
                 how=['A 6-axis force and torque sensor reads the insertion force.',
-                     'A compliance unit lets the connector float up to 6 mm and 3 degrees, so a small error cannot jam it.',
+                     'A compliance unit lets the connector float up to 6 mm and 3 degrees. A small error cannot jam it.',
                      'Stereo cameras and a time-of-flight sensor find the inlet. A light ring helps at night.',
                      'A solenoid latch locks the connector in the inlet for the charge.'],
                 specs={'connector': 'DC combo class (CCS), liquid-cooled', 'TCP': '369.6 mm from the tool flange'}, group='Tool')
-    m.subsystem('DRESS', 'Cables and take-up', 'Brings the charge current, the coolant and the tool\'s lines to the connector, '
-                'and the joints\' power and network along the arm.',
-                how=['The charge cable comes up out of the cabinet roof into a take-up wheel. A slip ring and a coolant union in the '
-                     'wheel\'s hub pass the current, the coolant, the signals and the air into the turning wheel.',
-                     'The cable lies in the wheel\'s rim and leaves it over the cabinet\'s front edge. From there it spans free to an '
+    m.subsystem('DRESS', 'Cables and take-up', 'Brings the charge current, coolant and tool lines to the connector, and power and '
+                'network to the joints.',
+                how=['The charge cable comes up out of the cabinet roof into a take-up wheel.',
+                     'The wheel\'s hub has a slip ring and a coolant union. They pass the current, coolant, signals and air into the '
+                     'wheel as it turns.',
+                     'The cable lies in the wheel\'s rim and leaves it above the cabinet\'s front edge. From there it spans free to an '
                      'outlet on the connector. A spring turns the wheel back, so the span is never slack onto the car.',
-                     'The joints\' power and network cable (10 mm hybrid) runs inside the arm, through the hollow shafts of J1 to J5. '
-                     'The tool\'s cable and its air line ride with the charge cable in its sleeve, because J6 is too small to pass them.'],
+                     'The joints\' 10 mm power and network cable runs inside the arm, through the hollow shafts of J1 to J5.',
+                     'The tool\'s cable and its air line ride with the charge cable in its sleeve. J6 is too small to pass them.'],
                 specs={'charge cable': '500 A DC, liquid-cooled, OD 35.7 mm, bend radius 357 mm moved',
-                       'take-up': 'wheel 820 mm, groove radius 380 mm, turns up to 189 degrees',
-                       'span': '2.67 to 3.92 m free, 1.36 x its chord'}, group='Cables')
+                       'take-up': 'wheel 820 mm, groove radius 380 mm, turns up to 178 degrees',
+                       'span': '2.72 to 3.91 m free, 1.36 x its chord'}, group='Cables')
     m.subsystem('SAFETY', 'Safety and status', 'Stops the arm when a person comes near and shows its state to the site.',
                 how=['A safety laser scanner on the riser watches the stall at knee height.',
                      'An emergency stop on the riser cuts motor power (safe torque off).',
@@ -609,26 +610,29 @@ def build(spec: dict) -> Model:
 
     # ═══════════════════════════════════════════════════════ CHARGE CABLE ═══
     # The charge cable does not ride the arm. It leaves the cabinet's roof into a slip ring and coolant union on the hub of
-    # a take-up wheel, lies in the wheel's rim, leaves the rim at a fixed point over the cabinet's front edge and spans free
-    # to the connector's outlet. A spring turns the wheel back to take up what the span does not need, so the span keeps
-    # 1.36 times its chord: never slack onto the car, never tight. (Clamped along the links with a retract unit under the
-    # upper arm, the cable stopped at each joint, with no way across J1, J2 or J3: design finding 11.) The span's anchors,
-    # outlet directions and ratio were searched over the duty cycle's 5,275 poses (armSweeps): tightest bend 390 mm against
-    # the cable's 357 mm, at least 67 mm from the arm. Its free length runs 2.67 to 3.92 m: the wheel turns 189 degrees.
+    # a take-up wheel, lies in the wheel's rim, leaves the rim at a fixed point above the cabinet's front edge and spans
+    # free to the connector's outlet. A spring turns the wheel back to take up what the span does not need, so the span
+    # keeps 1.36 times its chord: never slack onto the car, never tight. (Clamped along the links with a retract unit under
+    # the upper arm, the cable stopped at each joint, with no way across J1, J2 or J3: design finding 11.) It leaves the rim
+    # in the wheel's plane, tangent to the groove: a cable turned sideways at the rim rides up the wheel's flange. The
+    # leaving point (136 degrees round from the top) was searched over the duty cycle's 11,070 poses (cadFlex.test.ts):
+    # tightest bend 418 mm against the cable's 357 mm. Its free length runs 2.72 to 3.91 m: the wheel turns 178 degrees.
     r_cb = 20.0                                          # the cable, OD 35.7, with the tool's cable and air line in a sleeve
-    A_pt = (0.0, 1778.86, -445.31)                       # where the cable leaves the rim (base frame)
-    a_A = math.radians(70.41)
-    t_A = (0.0, math.sin(a_A), math.cos(a_A))            # up and toward the car
     R_tw = 380.0                                         # the rim groove: the cable's centreline radius
-    c_w = (0.0, A_pt[1] + R_tw * t_A[2], A_pt[2] - R_tw * t_A[1])   # the wheel's axle
+    c_w = (0.0, 1906.27, -803.31)                        # the wheel's axle (base frame)
+    phi_A = math.radians(136.0)                          # where the cable leaves the rim: round from up (+Y) toward the car
+    A_pt = (0.0, c_w[1] + R_tw * math.cos(phi_A), c_w[2] + R_tw * math.sin(phi_A))
+    t_A = (0.0, math.sin(phi_A), -math.cos(phi_A))       # along the groove there: up and toward the car
+    w_g = 28.0                                           # the groove's half width: the span's side leaves 3 mm off the flange
     ring = lambda ro, ri, x0, x1: (cq.Workplane('YZ', origin=(x0, c_w[1], c_w[2])).circle(ro).circle(ri)   # noqa: E731
                                    .extrude(x1 - x0))
-    wheel = (ring(410, 340, -50, 50).cut(ring(411, R_tw - r_cb, -22, 22))          # the rim and the groove the cable lies in
+    wheel = (ring(410, 340, -50, 50).cut(ring(411, R_tw - r_cb, -w_g, w_g))          # the rim and the groove the cable lies in
              .union(ring(345, 99, -6, 6)).union(ring(100, 25, -80, 80)))         # the web and the hub
     m.place(base, m.part(PartDef('CHG-TUW', 'Cable take-up wheel, 820 mm, spring return', wheel.val(), 'al6061', 'electrical',
                                  'made to order', 'D 820 x 100', '6061-T6', None,
                                  'Holds the cable in its rim and turns back on its spring to take up the slack as the arm folds in.',
-                                 {'groove radius': '380 mm (the cable\'s 357 mm moved, with margin)', 'turn': 'up to 189 degrees',
+                                 {'groove': '380 mm radius (the cable\'s 357 mm moved, with margin), 56 mm wide',
+                                  'turn': 'up to 178 degrees',
                                   'spring': 'spiral spring in the hub, about 80 N at the rim'}, 'make', mass_override=24.0)),
             Location(), (0, 260, -200), 'DRESS')
     axle = cq.Workplane('YZ', origin=(-100, c_w[1], c_w[2])).circle(25).extrude(200)
@@ -638,7 +642,7 @@ def build(spec: dict) -> Model:
     y_rf = pad_top + cab['height'] * M                   # the cabinet's roof
     cheek = (cq.Workplane('YZ').polyline([(y_rf, -805), (y_rf, -560), (c_w[1] + 70, c_w[2] + 60), (c_w[1] + 70, c_w[2] - 70),
                                           (c_w[1] - 210, c_w[2] - 70)]).close().extrude(10)
-             .cut(cq.Workplane('YZ', origin=(-1, c_w[1], c_w[2])).circle(25.5).extrude(12)))
+             .cut(cq.Workplane('YZ', origin=(-1, c_w[1], c_w[2])).circle(25).extrude(12)))
     frame = (cheek.translate((85, 0, 0)).union(cheek.translate((-95, 0, 0)))
              .union(cq.Workplane('XY').box(220, 10, 245).translate((0, y_rf + 5, -682.5))))
     m.place(base, m.part(PartDef('CHG-TUF', 'Take-up frame, 2 cheeks on a base plate, stainless', frame.val(), 'ss304', 'structure',
@@ -659,8 +663,8 @@ def build(spec: dict) -> Model:
                                  'IEC 62893-4-2', 'OD 35.7 in a 40 mm sleeve', '', None,
                                  'Brings the cable up out of the cabinet roof to the union. It does not move.', {}, 'buy')),
             Location(), (0, 200, -260), 'DRESS')
-    # the cable in the rim: drawn over the 120 degrees it always holds (at full reach); folded in, it wraps 189 more
-    phi_A = math.atan2(A_pt[2] - c_w[2], A_pt[1] - c_w[1])
+    # the cable in the rim: drawn over the 120 degrees it always holds (at full reach) up to the leaving point; folded in, it
+    # wraps 178 more
     on_rim = lambda ph: Vector(0, c_w[1] + R_tw * math.cos(ph), c_w[2] + R_tw * math.sin(ph))   # noqa: E731
     arc = cq.Edge.makeThreePointArc(on_rim(phi_A + math.radians(120)), on_rim(phi_A + math.radians(60)), on_rim(phi_A))
     d0 = arc.tangentAt(0)
@@ -674,10 +678,10 @@ def build(spec: dict) -> Model:
                    'Carries the charge current, the coolant, the charge signals and the tool\'s signals and air from the take-up '
                    'wheel to the connector. It spans free between them.',
                    mat='cable', category='electrical', length=3300, min_bend=357, shape='cubic', sag=0.08, retract_k=1.36,
-                   lmin=400, lmax=4000, swivel_a=26.8, swivel_b=33.97, kg_per_m=2.1, size='OD 35.7 in a 40 mm sleeve',
+                   lmin=400, lmax=4000, swivel_b=33.97, kg_per_m=2.1, size='OD 35.7 in a 40 mm sleeve',
                    standard='IEC 62893-4-2',
                    spec={'cable': '500 A DC, 1000 V, liquid-cooled, OD 35.7 mm, 1.94 kg/m', 'bend radius': '357 mm moved (10 x OD)',
-                         'free length': '1.36 x the chord, 2.67 to 3.92 m', 'in the sleeve': 'tool cable (EtherCAT + 24 V) and air 6 mm'}))
+                         'free length': '1.36 x the chord, 2.72 to 3.91 m', 'in the sleeve': 'tool cable (EtherCAT + 24 V) and air 6 mm'}))
 
     # ═════════════════════════════════════════════════════════════ SAFETY ═══
     sc = (cq.Workplane('XY').box(110, 150, 104, centered=(True, False, True)).edges('|Y').fillet(10)
@@ -830,12 +834,13 @@ def build_tool(m: Model, tool: Node, LT: float) -> None:
             Location(), (0, 280, 0))
     # the cable outlet: a housing on the body's pad, its elbow down and round to a swivel gland that points out along +X
     o = tuple(-c for c in TOOL_OUTLET_IN)
-    L_g = std.gland_length(50)
+    L_g = std.gland_length(50) + 12.0                    # the dome and 12 mm for the swivel to turn the cable in
     F = tuple(TOOL_OUTLET[k] - L_g * o[k] for k in range(3))             # the gland's seat
-    s_c = (F[0] + 80) / o[0]                                             # the elbow's corner, under the block
+    s_c = (F[0] + 92) / o[0]                                             # the elbow's corner, under the block
     C = tuple(F[k] - s_c * o[k] for k in range(3))
-    elbow = std._bent_tube_shape(((-80.0, 172.0, -60.0), C, F), 32.0, 0.0, 45.0)
-    coh = cq.Workplane('XY').box(142, 65, 30).translate((-41, 172.5, -65)).union(cq.Workplane('XY').add(elbow))
+    elbow = std._bent_tube_shape(((-92.0, 172.0, -60.0), C, F), 32.0, 0.0, 45.0)
+    coh = (cq.Workplane('XY').box(142, 65, 30).translate((-41, 172.5, -65)).union(cq.Workplane('XY').add(elbow))
+           .cut(cq.Workplane('XY').add(cq.Solid.makeCylinder(25.5, 24.0, Vector(*F), Vector(*(-c for c in o))))))   # the M50 thread
     m.place(tool, m.part(PartDef('CHG-COH', 'Cable outlet housing, glass-filled PA66', coh.val(), 'pa66', 'tool', 'moulded',
                                  '142 x 65, elbow D 64', 'PA66-GF30', None,
                                  'Leads the charge cable out of the connector body to the side, so the span leaves along J5\'s axis.',

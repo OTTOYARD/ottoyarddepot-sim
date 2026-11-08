@@ -157,7 +157,7 @@ describe('OTTO-CHARGE ARM: the charge cable through the duty cycle', () => {
     const c = worst.get('CHG-CCB');
     expect(c, 'the charge cable').toBeTruthy();
     expect(c!.fails, `the charge cable fails at ${c!.fails.join('; ')}`).toEqual([]);
-    // measured 0.390 m against 0.357 m (5,275 poses) when this was written
+    // measured 0.418 m against 0.357 m (11,070 poses) when this was written
     expect(c!.minR).toBeGreaterThanOrEqual(c!.def.minBend ?? 0);
     expect(c!.lmin).toBeGreaterThanOrEqual(c!.def.lmin ?? 0);
     expect(c!.lmax).toBeLessThanOrEqual(c!.def.lmax ?? Infinity);
