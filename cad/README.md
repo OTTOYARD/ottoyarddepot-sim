@@ -20,7 +20,8 @@ cad/.venv/bin/python cad/build.py            # all three, about 40 s
 Outputs go to `public/cad/` (the twin's Robotics tab reads them):
 
 - `<robot>.step.zip` — the CAD: a STEP AP214 assembly, millimetres, Y up, every part a named solid, repeated
-  parts stored once and placed many times. Opens in SolidWorks, Fusion, Onshape, FreeCAD.
+  parts stored once and placed many times. Opens in SolidWorks, Fusion, Onshape, FreeCAD. The assembly is written at
+  the robot's STOWED pose, with its flexible lines (cables, hoses, ducts, chains) as solids solved at that pose.
 - `<robot>.glb` — the same assembly for the web: metres, Y up, in the twin's own frame, one mesh per part shared by
   every placement. Node `extras` carry the part id, its subsystem, its explode vector, and each joint's axis, limits and
   the twin's stowed angle.
@@ -32,6 +33,13 @@ Outputs go to `public/cad/` (the twin's Robotics tab reads them):
   their outline (`PartDef.depot`), with the same joints. `src/lib/robotics/cadYard.test.ts` holds it to the car, the
   doors, the cabinet and the wash hall at the twin's poses; run it after a CAD change.
 - `manifest.json` — the list of robots, files, sizes, totals and each STEP's re-import check.
+
+The flexible lines (`otto_cad/flex.py`): a line that crosses a moving joint is defined by its anchors (a point and a
+direction on a node), its length rule and its tightest allowed bend, and is solved at each pose: a loop (a fixed
+length or a take-up's share of the chord), a stretch (a reel cable, a coil, a bellows duct) or an energy chain. The
+clash check places each one at every pose; both GLBs carry them in the root's `extras.flex` (metres) with the CAD's own
+solutions at a few poses (`extras.flexCheck`), and the twin's viewer and yard solve them the same way
+(`src/lib/robotics/flexLines.ts`, held to these points by `cadFlex.test.ts`).
 
 Before it publishes a STEP the build re-imports it: every placed part must come back as a named solid and every solid
 must be valid (`build.py step_check`), or the build stops. A part id defined twice with different solids stops it too
