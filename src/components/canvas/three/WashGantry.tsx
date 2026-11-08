@@ -14,6 +14,7 @@ import { PLAN_UNITS_PER_METRE } from '@/lib/ottoChargeArm/cobotSpec';
 import { poseSkeleton, spinNode, type DepotCad } from '@/lib/robotics/cadDepot';
 import { washJoints } from '@/lib/robotics/catalog';
 import { makeInstancedFleet, writeFleetSlot, writeFleetLight, clearFleetSlot, type InstancedFleet } from './instancedFleet';
+import { makeFlexFleet, type FlexFleet } from '@/lib/robotics/flexMesh';
 import { WASH_BRUSH_PARTS } from './cadFleet';
 
 /**
@@ -401,11 +402,12 @@ function WashGantryBay({ bayId, planX, shared, frame }: {
 }
 
 /** One bay's machine as the engineering CAD: a skeleton posed from the twin, drawn into its slot of the shared meshes. */
-function CadWashBay({ bayId, planX, cad, fleet, slot, shared }: {
+function CadWashBay({ bayId, planX, cad, fleet, flex, slot, shared }: {
   bayId: string;
   planX: number;
   cad: DepotCad;
   fleet: InstancedFleet;
+  flex: FlexFleet | null;
   slot: number;
   shared: ReturnType<typeof useMats>;
 }) {
@@ -424,6 +426,7 @@ function CadWashBay({ bayId, planX, cad, fleet, slot, shared }: {
     return { skel, brushes, effects, fx };
   }, [cad, mats]);
   useEffect(() => () => clearFleetSlot(fleet, slot), [fleet, slot]);
+  useEffect(() => () => flex?.clear(slot), [flex, slot]);
   useEffect(() => () => {
     rig.fx.curtain.geometry.dispose();
     rig.fx.air[0].geometry.dispose();
@@ -442,6 +445,8 @@ function CadWashBay({ bayId, planX, cad, fleet, slot, shared }: {
     writeFleetSlot(fleet, slot, rig.skel.segments, STATUS_COLOR[p.status], 2.2);
     writeFleetLight(fleet, slot, 1, p.stop ? 0xff2a2a : 0x2a1214, p.stop ? 2.4 : 0);
     writeFleetLight(fleet, slot, 2, p.stop ? 0x122a16 : 0x2aff6a, p.stop ? 0 : 2.4);
+    // its lines: the drag chain in its trench, the brush and knife ducts and chains, the wands' reel cables
+    flex?.write(slot, rig.skel);
     rig.effects.position.z = -p.dy;
     poseWashEffects(rig.fx, p, delta, mats);
     if (washDebug) {
@@ -471,11 +476,14 @@ function CadWashGantries({ cad, bays, shared }: {
 }) {
   const fleet = useMemo(() => makeInstancedFleet(cad.parts, WASH_SHELL.bays.length, { receiveShadow: true }), [cad]);
   useEffect(() => () => fleet.dispose(), [fleet]);
+  const flex = useMemo(() => (cad.flex.length ? makeFlexFleet(cad.flex, WASH_SHELL.bays.length) : null), [cad]);
+  useEffect(() => () => flex?.dispose(), [flex]);
   useEffect(() => { for (const m of fleet.meshes) m.count = bays.length; }, [fleet, bays.length]);
   return (
     <group name="washGantries">
       {fleet.meshes.map((m, i) => <primitive key={`washpart-${i}`} object={m} />)}
-      {bays.map((b, i) => <CadWashBay key={b.id} bayId={b.id} planX={b.x} cad={cad} fleet={fleet} slot={i} shared={shared} />)}
+      {flex && <primitive object={flex.group} />}
+      {bays.map((b, i) => <CadWashBay key={b.id} bayId={b.id} planX={b.x} cad={cad} fleet={fleet} flex={flex} slot={i} shared={shared} />)}
     </group>
   );
 }

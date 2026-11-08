@@ -10,7 +10,8 @@ import { placeCleanArm } from '@/lib/ottoCleanArm/cleanArmPlacement';
 import { CLEAN_ARM } from '@/lib/ottoCleanArm/cleanArmSpec';
 import { DECK_Y } from './coordUtils';
 import { cleanSkeleton, writeCleanArm, clearCleanArm, type CleanArmFleet } from './cleanArmInstances';
-import { poseSkeleton, type DepotCad } from '@/lib/robotics/cadDepot';
+import { poseSkeleton, type DepotCad, type DepotSkeleton } from '@/lib/robotics/cadDepot';
+import type { FlexFleet } from '@/lib/robotics/flexMesh';
 import { cleanAngles } from '@/lib/robotics/catalog';
 import type { CleanJoints } from '@/lib/ottoCleanArm/cleanArmPose';
 
@@ -61,6 +62,8 @@ interface CleanArmProps {
   slot: number;
   /** The engineering CAD the fleet was built from, or null for the procedural arm. */
   cad: DepotCad | null;
+  /** The CAD's flexible lines for every arm (mast coil, wand reel cable, nozzle air loop); null without the CAD. */
+  flex?: FlexFleet | null;
 }
 
 /** One arm's nodes to pose: the CAD's skeleton, or the procedural one. */
@@ -72,6 +75,8 @@ interface CleanRig {
   j1: THREE.Object3D; pitch: THREE.Object3D; nozzle: THREE.Object3D;
   /** the procedural arm's hose end on the J3 carriage (the CAD arm carries its vacuum line inside) */
   hoseRoot: THREE.Object3D | null;
+  /** the CAD's skeleton, for its flexible lines */
+  skel: DepotSkeleton | null;
 }
 
 function cleanRig(cad: DepotCad | null): CleanRig {
@@ -79,17 +84,17 @@ function cleanRig(cad: DepotCad | null): CleanRig {
     const s = cad.skeleton();
     return {
       root: s.root, segments: s.segments, pose: (q) => poseSkeleton(s, cleanAngles(q)),
-      j1: s.node('CA_J1'), pitch: s.node('CA_Pitch'), nozzle: s.node('CA_Nozzle'), hoseRoot: null,
+      j1: s.node('CA_J1'), pitch: s.node('CA_Pitch'), nozzle: s.node('CA_Nozzle'), hoseRoot: null, skel: s,
     };
   }
   const s = cleanSkeleton();
   return {
     root: s.root, segments: s.segments, pose: (q) => poseCleanArm(s.nodes, q),
-    j1: s.nodes.CA_J1, pitch: s.nodes.CA_Pitch, nozzle: s.nodes.CA_Nozzle, hoseRoot: s.hoseRoot,
+    j1: s.nodes.CA_J1, pitch: s.nodes.CA_Pitch, nozzle: s.nodes.CA_Nozzle, hoseRoot: s.hoseRoot, skel: null,
   };
 }
 
-export function CleanArm({ stallId, fleet, slot, cad }: CleanArmProps) {
+export function CleanArm({ stallId, fleet, slot, cad, flex }: CleanArmProps) {
   const groupRef = useRef<THREE.Group>(null);
   const frameRef = useRef<THREE.Group>(null);
   const hoseRef = useRef<THREE.Mesh>(null);
@@ -103,6 +108,7 @@ export function CleanArm({ stallId, fleet, slot, cad }: CleanArmProps) {
 
   const rig = useMemo(() => cleanRig(cad), [cad]);
   useEffect(() => () => clearCleanArm(fleet, slot), [fleet, slot]);
+  useEffect(() => () => flex?.clear(slot), [flex, slot]);
 
   const hoseMat = useMemo(() => new THREE.MeshStandardMaterial({ color: 0x15181d, roughness: 0.82, metalness: 0.05 }), []);
   useEffect(() => () => { hoseMat.dispose(); hoseRef.current?.geometry.dispose(); }, [hoseMat]);
@@ -121,6 +127,7 @@ export function CleanArm({ stallId, fleet, slot, cad }: CleanArmProps) {
     const working = s.phase === 'clean_a' || s.phase === 'clean_b';
     const glow = working ? 1.0 + Math.sin(clock.elapsedTime * 3.1) * 0.4 : 1.3;
     writeCleanArm(fleet, slot, rig.segments, cleanStatusColor(s), glow);
+    if (flex && rig.skel) flex.write(slot, rig.skel);
     if (cleanDebug) {
       const v = new THREE.Vector3();
       const at = (o: THREE.Object3D) => o.getWorldPosition(v).toArray().map((x) => Math.round(x * 1000) / 1000);

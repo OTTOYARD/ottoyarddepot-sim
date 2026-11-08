@@ -69,6 +69,13 @@ describe.each(['charge_arm', 'clean_arm', 'wash_gantry'] as RobotKey[])('%s: fil
       expect(subs.has(n.extras!.sub as string), `${n.name} in ${String(n.extras!.sub)}`).toBe(true);
       expect(n.mesh).toBeTypeOf('number');
     }
+    // the flexible lines are in the GLB as lines (the root's extras.flex), not as placed parts: a chain counts its links
+    const root = g.nodes[g.scenes[0].nodes[0]];
+    for (const f of (root.extras?.flex ?? []) as { id: string; kind: string; sub: string; links?: number; linkPart?: string }[]) {
+      expect(subs.has(f.sub), `${f.id} in ${f.sub}`).toBe(true);
+      const id = f.kind === 'chain' ? f.linkPart! : f.id;
+      placed.set(id, (placed.get(id) ?? 0) + (f.kind === 'chain' ? f.links! : 1));
+    }
     for (const l of bom.lines) expect(placed.get(l.id), l.id).toBe(l.qty);
     expect([...placed.keys()].sort()).toEqual(bom.lines.map((l) => l.id).sort());
     const real = bom.lines.filter((l) => !l.reference);

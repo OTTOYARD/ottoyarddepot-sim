@@ -17,6 +17,8 @@ import {
   explodeCad, highlightCad, indexCad, partAt, poseCad, visibleBounds, type CadModel,
 } from '@/lib/robotics/cadModel';
 import { cadUrl, type CycleScript, type RobotKey } from '@/lib/robotics/catalog';
+import { flexDefs } from '@/lib/robotics/flexLines';
+import { makeFlexFleet } from '@/lib/robotics/flexMesh';
 import { bodyProfile, CAR_LENGTH_M, CAR_WIDTH_M } from '@/lib/ottoChargeArm/vehicleEnvelope';
 import { PEDESTAL_TO_CAR_CENTRE_M, MOUNT_HEIGHT_M } from '@/lib/ottoChargeArm/cobotSpec';
 
@@ -226,6 +228,55 @@ function Model({ model, state, fasteners, onPick, onHover, cycle, onCycle }: {
   );
 }
 
+/**
+ * The robot's flexible lines (cables, hoses, ducts, energy chains): solved at the model's pose every frame, after the
+ * pose is set, so they bend with the joints as the CAD's flex check says they do. Hidden while the model is exploded
+ * (the parts fly apart, the lines' ends do not). A selected or isolated line is picked out; the rest ghost with the parts.
+ */
+function FlexLines({ model, state }: { model: CadModel; state: CadViewState }) {
+  const fleet = useMemo(() => {
+    const defs = flexDefs(model.root);
+    return defs.length ? makeFlexFleet(defs, 1, { radial: 12, coilPerTurn: 16, split: true }) : null;
+  }, [model]);
+  useEffect(() => () => fleet?.dispose(), [fleet]);
+  const skel = useMemo(() => {
+    const byName = new Map<string, THREE.Object3D>();
+    model.root.traverse((o) => { if (o.name && !byName.has(o.name)) byName.set(o.name, o); });
+    return {
+      root: model.root,
+      node: (n: string) => {
+        const o = byName.get(n);
+        if (!o) throw new Error(`CadViewer: the model has no node ${n}`);
+        return o;
+      },
+    };
+  }, [model]);
+  const subOf = useMemo(() => new Map(flexDefs(model.root).map((d) => [d.id, d.sub])), [model]);
+  useEffect(() => {
+    if (!fleet) return;
+    for (const { ids, material } of fleet.meshes) {
+      // a line belongs to its subsystem: isolating that subsystem keeps it, and selecting the line lights it up
+      const inIsolated = !!state.isolate && ids.some((id) => id === state.isolate || subOf.get(id) === state.isolate);
+      const mine = (!!state.selected && ids.includes(state.selected)) || (!!state.isolate && ids.includes(state.isolate));
+      const ghost = !!state.isolate && !inIsolated;
+      material.transparent = ghost;
+      material.opacity = ghost ? 0.12 : 1;
+      material.depthWrite = !ghost;
+      material.emissive.setHex(mine ? 0x1d6fd6 : 0x000000);
+      material.emissiveIntensity = mine ? 0.9 : 0;
+      material.needsUpdate = true;
+    }
+  }, [fleet, subOf, state.isolate, state.selected]);
+  useFrame(() => {
+    if (!fleet) return;
+    fleet.group.visible = state.explode < 0.02;
+    if (!fleet.group.visible) return;
+    model.root.updateMatrixWorld(true);
+    fleet.write(0, skel);
+  });   // registered after the model's own frame callback (which sets the pose), so it runs after it
+  return fleet ? <primitive object={fleet.group} /> : null;
+}
+
 export function CadViewer({ robot, glb, state, fasteners, onPick, onHover, onStatus, cycle, onCycle, onJoints }: Props) {
   const [model, setModel] = useState<CadModel | null>(null);
   const controls = useRef<OrbitControlsImpl>(null);
@@ -263,6 +314,7 @@ export function CadViewer({ robot, glb, state, fasteners, onPick, onHover, onSta
       <directionalLight position={[-6, 4, -5]} intensity={0.35} />
       <hemisphereLight args={[0xdfe8ff, 0x1a1e24, 0.45]} />
       {model && <Model model={model} state={state} fasteners={fasteners} onPick={onPick} onHover={onHover} cycle={cycle} onCycle={onCycle} />}
+      {model && <FlexLines model={model} state={state} />}
       {model && state.showCar && <CarGhost robot={robot} />}
       <gridHelper args={[20, 40, 0x2a3440, 0x161c24]} position={[0, robot === 'charge_arm' ? -MOUNT_HEIGHT_M : 0, 0]} />
       <Framer model={model} state={state} controls={controls} />
