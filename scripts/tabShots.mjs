@@ -15,7 +15,10 @@
 //
 //   npm run dev                                          # in another shell (PORT=8080)
 //   node scripts/tabShots.mjs --out ./shots              # after (this branch)
-//   node scripts/tabShots.mjs --out ./shots --before     # before (main: Intelligence, Orchestration, Events)
+//   node scripts/tabShots.mjs --out ./shots --before     # the three tabs they replaced (Intelligence, Orchestration,
+//                                                        # Events). Those tabs left navigation on 2026-09-30 and their
+//                                                        # sources were removed on 2026-11-10, so --before finds
+//                                                        # nothing to open on any checkout after df30456.
 //
 //   --url U         dev server (http://127.0.0.1:8080/)
 //   --events FILE   ottoq_run_event_feed payload for the Events tab (--before only)

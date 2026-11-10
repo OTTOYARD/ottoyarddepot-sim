@@ -13,7 +13,7 @@
 // shield and a client-side battery model, deciding every tick in parallel with
 // the engine and — through the motion driver's command inbox — able to choose
 // which stall a car was drawn driving to. None of it was OTTO-Q. The engine's
-// real decisions are on the Intelligence tab; the browser pipeline is gone.
+// real decisions are on the OTTO-Q and Agent tabs; the browser pipeline is gone.
 // ============================================================================
 import { useMemo, useState } from "react";
 import {

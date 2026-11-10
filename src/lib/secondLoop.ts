@@ -16,11 +16,12 @@
 //   public.ottoq_challenger_board(p_sim_run_id uuid)
 //   public.ottoq_learning_board()
 //
-// THE RULE is the Intelligence panel's: render what the engine measured and
-// never fill a gap. A missing number is null, never a zero.
+// THE RULE: render what the engine measured and never fill a gap. A missing
+// number is null, never a zero.
 //
-// This file is carried verbatim by the twin cockpit (ottoyarddepot-sim) and
-// PULSE (ottoyard-field-ops). It imports nothing, so it can be.
+// Pure: no React, no stores, no imports. The twin carries it at
+// src/lib/secondLoop.ts and OTTO-PULSE and OrchestrAV carry it byte for byte at
+// src/lib/twin/secondLoop.ts. Change the twin's copy first, then copy it.
 // ============================================================================
 
 export type LoopTone = 'ok' | 'warn' | 'bad' | 'idle' | 'info';

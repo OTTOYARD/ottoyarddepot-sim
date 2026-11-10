@@ -99,6 +99,22 @@ describe("the learning strip's order section", () => {
     expect([v.headline, ...v.facts, ...v.head.map((h) => h.text)].join(" ")).not.toMatch(/undefined|NaN|null|nemotron|cp-?sat|cuopt/i);
   });
 
+  // The order's reason and each car's reason are the agent's own words, like its summary and directives.
+  it("puts a product the agent names in its order in its public name, and keeps the rest of its words", () => {
+    const a = learning.agent_order!;
+    const o = { ...a.order!, why: "CP-SAT found no better line, so low batteries go first.",
+      head: a.order!.head!.map((c, i) => (i === 0 ? { ...c, why: "cuOpt ranked it first, per CLAUDE.md rule 9" } : c)) };
+    const v = agentOrderView({ ...learning, agent_order: { ...a, live: true, order: o } })!;
+    expect(v.headline).toMatch(/ The lexicographic planner found no better line, so low batteries go first\.$/);
+    expect(v.head[0].text).toMatch(/ · the GPU planner ranked it first, per rule 9$/);
+    expect([v.headline, ...v.head.map((h) => h.text)].join(" ")).not.toMatch(/CP-SAT|cuOpt|CLAUDE/);
+    // an order that names nothing reads exactly as the agent wrote it
+    const plain = agentOrderView({ ...learning, agent_order: { ...a, live: true } })!;
+    const said = a.order!.head!.find((c) => c.why)?.why;
+    expect(said).toBeTruthy(); // the capture's own words: "immediate_dispatch due 14min, 102min L2 vs 24min DCFC"
+    expect(plain.head.some((h) => h.text.endsWith(` · ${said}`))).toBe(true);
+  });
+
   it("is absent on a run that takes no order, and quiet before the first one", () => {
     const { agent_order: _ignored, ...without } = learning;
     expect(agentOrderView(without as RunLearning)).toBeNull();

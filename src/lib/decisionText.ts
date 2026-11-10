@@ -179,8 +179,8 @@ export function describeDecision(r: ActivityFeedRow): DecisionText {
     case "gate_intake_no_charge":
       return { title: "Gate intake, no charge needed", detail: null, tone: "enacted" };
     case "orchestrator_agent": {
-      // One line for the agent's pass: objective -> solver -> kernel. The twin draws this as three chips
-      // (AgentPipeline); a cockpit with one line to spare reads the same three facts from here.
+      // One line for the agent's pass: objective -> solver -> kernel. OTTO-PULSE and OrchestrAV draw this line. The
+      // twin writes each pass as sentences (agentStream.ts), from the same three facts.
       const modelError = modelErrorText(v.model_error);
       const status = human(String(v.handoff_status ?? v.solver_status ?? "queued"));
       const returned = Number(v.proposals_returned ?? 0);
@@ -284,9 +284,9 @@ export function holdText(
 
 // Display names for the providers ottoq_model_call_ledger records. An unknown
 // provider renders as its raw key rather than a guess — see solverLabel.
-// Exported so intelligenceStack.test.ts can assert it agrees with
-// STACK_PROVIDER_LABEL — two provider maps in one app is a drift waiting to
-// happen, and a provider renamed in one place must fail a test, not a demo.
+// Exported so a test can assert that every label here is the names table's own:
+// two provider maps in one app is a drift waiting to happen, and a provider
+// renamed in one place must fail a test, not a demo.
 // The names themselves live in src/lib/publicNames.ts (no product names on screen, Chase 2026-10-07).
 export const PROVIDER_LABEL: Record<string, string> = Object.fromEntries(
   ["nvidia_cuopt", "nvidia_nemotron", "cpsat_service", "anthropic_advisor", "local_fallback"].map((k) => [k, publicLabel(k)]),

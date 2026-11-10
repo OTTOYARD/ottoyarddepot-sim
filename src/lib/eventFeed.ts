@@ -1,4 +1,4 @@
-// eventFeed — the Events tab's vocabulary, kept pure so it can be tested without a run.
+// eventFeed — the vocabulary of a run's events, kept pure so it can be tested without a run.
 //
 // The feed is `ottoq_run_event_feed` (otto-q-core 0462): the run's events in SIM time, without the row-diff
 // audit trail and the rule evaluations, with a per-tick summary collapsed into one row that says how many times
@@ -6,8 +6,12 @@
 // four domains, and says how its severity should look.
 //
 // Pure: no React, no stores, no imports. The twin carries it at src/lib/eventFeed.ts and OTTO-PULSE and OrchestrAV
-// carry it byte for byte at src/lib/twin/eventFeed.ts, so all three cockpits word every event the same way. Change the
-// twin's copy first, then copy it.
+// carry it byte for byte at src/lib/twin/eventFeed.ts, where their Incidents lists draw it. Change the twin's copy
+// first, then copy it.
+//
+// NOTHING IN THE TWIN IMPORTS THIS FILE, AND IT IS NOT DEAD. The twin's own Events tab left navigation on 2026-09-30 and
+// its source was removed on 2026-11-10. This file and its test stay here because the twin is where the cockpits' words
+// are kept.
 
 export interface RunEventRow {
   row_key: string;

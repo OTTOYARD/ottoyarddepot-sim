@@ -318,6 +318,15 @@ interpolation.** Zero world logic client-side.
   `as_built` is only what is drawn before the first layout read lands. A build-dependent thing that reads the build
   any other way than through the layout misstates the depot the same way. Tests play the layout as the twin served it
   (`__fixtures__/twinLayout.served1102.json`); `scripts/idleDepotShots.mjs` shoots both pages with no run.
+- **The old Intelligence, Orchestration and Events tabs are removed (2026-11-10).** Chase called them *"a lot of
+  redundancy and slop data"* on 2026-09-29, the OTTO-Q and Agent tabs replaced them the next day, and their sources
+  sat in the tree unmounted for six weeks, where one still drew a model's id from data. Do not bring them back: what they showed that was
+  kept is on those two tabs (`docs/OTTO-Q-FUNNEL-AND-AGENT-TABS.md`; the last commit that holds the old sources is
+  `cdaaf24`). Two things that look dead and are not: **nothing in the twin imports `src/lib/eventFeed.ts`**, and the
+  cockpits carry it byte for byte, so it and its test stay; and `src/lib/intelligenceStack.ts` is types only, because
+  the hook and both tabs read the stack through them. To find code the app cannot reach, walk the imports from the
+  five entry points (`index.html`, `view.html`, the three `*-check.html` pages), not a search for the file's name: a
+  name in a comment reads as a use.
 - **The Research tab is research, not live (2026-11-03).** Chase asked for the research lab's results *"into a
   'Research' tab in the twin"*. `TwinResearchTab` reads one thing, otto-q-core 0793's `ottoq_research_feed`
   (`twin.researchFeed`, anon, read-only), when it opens and every minute while open. Nothing in the engine reads those
@@ -437,8 +446,8 @@ file and line, so add a name to the table, never to a component. **That scan can
 (2026-11-10): the activity feed's `engine` column is the model's id on an agent decision
 (`nvidia/nemotron-… -> cpsat_service`), and the agent has quoted `CLAUDE.md` in its directives. So never draw `engine`,
 `agent_model` or a provider key as it comes: `proposedBy()` and `publicLabel()` name them, and a model's id is never
-drawn. OTTO-PULSE and OrchestrAV carry `publicNames.ts`, `decisionText.ts`, `plainWords.ts` and `eventFeed.ts` verbatim
-(`src/lib/twin/`): change them here first. Sources for vendor facts go in a code comment beside the claim, dated, not in a link on screen
+drawn. OTTO-PULSE and OrchestrAV carry `publicNames.ts`, `decisionText.ts`, `plainWords.ts`, `eventFeed.ts` and
+`secondLoop.ts` verbatim (`src/lib/twin/`): change them here first. Sources for vendor facts go in a code comment beside the claim, dated, not in a link on screen
 (a link names the product in its address). And the layer cards say how OTTO-Q is built without the formula: no code
 object names on screen (`refs` stay in `layerInfo.ts` for engineers and tests).
 

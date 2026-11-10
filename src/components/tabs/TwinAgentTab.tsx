@@ -22,7 +22,7 @@ import { useIntelligenceStack } from "@/hooks/useIntelligenceStack";
 import { useDispositions } from "@/hooks/useDispositions";
 import { useAgentOrders } from "@/hooks/useAgentOrders";
 import { useSecondLoop } from "@/hooks/useSecondLoop";
-import { EndedState, StreamState } from "@/components/tabs/TwinDecisionLogTab";
+import { EndedState, StreamState } from "@/components/tabs/StreamState";
 import SecondLoopPanel from "@/components/tabs/SecondLoopPanel";
 import { TONE_COLOR } from "@/components/tabs/ottoq/funnelGeometry";
 import {

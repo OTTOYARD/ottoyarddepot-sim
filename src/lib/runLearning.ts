@@ -11,7 +11,7 @@
 // pass. This file draws the same object for a viewer. A missing number is "—", never 0. The charger and queue lines
 // are the depot NOW, so they are drawn only while the run is live; an ended run shows its offer totals and nothing else.
 // ============================================================================
-import { publicPhrase, sentenceCase } from "./publicNames";
+import { publicPhrase, publicText, publicTextInline, sentenceCase } from "./publicNames";
 
 export interface ChargerCount {
   total?: number | null;
@@ -375,7 +375,8 @@ export function agentOrderView(l: RunLearning | null | undefined): AgentOrderVie
     headline = a.live
       ? `The agent's order stands: ${named}.`
       : `The agent's last order (${count(o.accepted, "car")}) has expired. The decide path seats cars in its own order until the next one.`;
-    if (a.live && o.why) headline += ` ${sentenceCase(o.why.replace(/\.$/, ""))}.`;
+    // the order's reason, and each car's below, are the agent's own words: a product they name reads by its public name
+    if (a.live && o.why) headline += ` ${sentenceCase(publicText(o.why).replace(/\.$/, ""))}.`;
   }
   const facts: string[] = [];
   facts.push(`Orders: ${n(u.orders)}, ${n(u.orders_seating)} of them seated cars`
@@ -391,7 +392,7 @@ export function agentOrderView(l: RunLearning | null | undefined): AgentOrderVie
   const head = a.live && o && !refusedLast
     ? (o.head ?? []).map((c, i) => ({
         key: `h${o.order_id ?? ""}:${c.vehicle_id ?? i}`,
-        text: `${n(c.rank)}. ${c.vehicle ?? "a car"} · ${KIND_WORD[c.kind ?? ""] ?? "either charger"}${c.why ? ` · ${c.why}` : ""}`,
+        text: `${n(c.rank)}. ${c.vehicle ?? "a car"} · ${KIND_WORD[c.kind ?? ""] ?? "either charger"}${c.why ? ` · ${publicTextInline(c.why)}` : ""}`,
       }))
     : [];
   return { tone, headline, facts, head };
