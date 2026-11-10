@@ -355,6 +355,18 @@ interpolation.** Zero world logic client-side.
   arm's header beam and drop column stay with `SolarCanopy` (`CLEAN_CANOPY_STEEL`); `ChargingField` and `WashBays`
   drop their simple riser, trunk and rails once the CAD has loaded, because the CAD draws its own: never draw them
   twice. A robot's working point in the CAD must stay where the twin's is (`cadDepot.test.ts`).
+- **The two cockpits read the robots from here (2026-11-09).** Chase: *"Pulse should have depot/operator level info on
+  the functionality of the machines ... Orchestra needs just user/asset/vehicle owner detail from a stall or stage
+  perspective. ... I think just the twin needs the CAD level detail."* What a machine IS has one home:
+  `src/lib/robotics/machineFacts.ts` builds `public/cad/robot-facts.json` from this tab's own sources, and
+  `machineFacts.test.ts` fails when the file is stale (`ROBOT_FACTS_WRITE=1 npx vitest run
+  src/lib/robotics/machineFacts.test.ts` writes it). **OTTO-PULSE and OrchestrAV carry a byte copy at
+  `src/lib/twin/robotFacts.json`: when the file changes, copy it to both**, with the wire types
+  (`src/lib/ottoTwin.ts` to their `src/lib/twin/types.ts`) if those moved. What a machine is DOING they read from the
+  snapshot and the depot cards, never from that file. A cockpit opens this tab on one machine with
+  `/?tab=robotics&robot=<charge_arm|clean_arm|wash_gantry>` (`cockpitLinks.ts`): keep those three keys. The tab's
+  banner links back to PULSE's Robots tab (`pulseRobotsUrl`, `/?tab=robots`).
+  `docs/OTTO-ROBOTICS-CAD.md`, "What the two cockpits show".
 - **From above, the roofs fade (2026-10-20):** the solar modules and roof membranes go to 16% when the camera looks
   down more than 40 degrees (`RoofXray.tsx`, back below 32), because from the Bird Eye view they hid every robot
   the depot has. Presets **Robots** (under canopy A) and **Wash** (inside wash bay 2) frame them close. A view

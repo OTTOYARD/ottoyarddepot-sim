@@ -22,6 +22,7 @@ designed part by part to the last screw, and a tab that shows them.
 | `src/components/robotics/CadViewer.tsx`, `src/components/tabs/TwinRoboticsTab.tsx` | the 3D view and the tab |
 | `public/cad/<robot>.depot.glb`, `src/lib/robotics/cadDepot.ts`, `src/components/canvas/three/cadFleet.ts`, `instancedFleet.ts` | the CAD in the depot's 3D view: the depot model each robot is drawn from, cut into instanced parts and posed from the twin (below, "The CAD in the yard") |
 | `src/lib/robotics/cadYard.test.ts`, `cadDepot.test.ts` | the CAD the yard draws, held to the car, the doors, the cabinet and the wash hall, and to the twin's moves |
+| `src/lib/robotics/machineFacts.ts`, `public/cad/robot-facts.json` | what each machine is and does, in the words of a depot crew and of a car's owner, for OTTO-PULSE and OrchestrAV (below, "What the two cockpits show") |
 
 ## One home for every number
 
@@ -416,6 +417,53 @@ the twin's car, doors, cabin, seats, cabinet and buildings, at the twin's poses)
 its parts), that the instanced parts redraw it exactly, and that posed by the twin's joints the CAD's working points
 stand where the twin's do: the clean arm's wrist pivot and nozzle within 1 mm of `cleanArmPose` all cycle, the wash
 machine's gantry, brushes and knives where `washPose` puts them.
+
+## What the two cockpits show
+
+Chase, 2026-11-09: *"Pulse should have depot/operator level info on the functionality of the machines (not
+necessarily CAD-level, but functionality and facts). Orchestra needs just user/asset/vehicle owner detail from a stall
+or stage perspective. ... I think just the twin needs the CAD level detail."*
+
+So the CAD stays in this tab, and the two cockpits get the robots at their own level:
+
+| | who reads it | what it shows |
+|---|---|---|
+| the twin, Robotics tab | engineering | every part, the clash check, the service lines, the cycle on the CAD |
+| OTTO-PULSE, Robots tab | the depot's crew, every owner's cars | what each machine does, its steps, facts and safety lines; what each arm and each wash bay is doing now; the run's results |
+| OrchestrAV, each car's card | one fleet owner, its own cars | the machines at work on the car, the visit stage by stage with the station and the machine that does each stage, and what each machine does to the car |
+
+**What a machine IS has one home, here.** `machineFacts.ts` builds `public/cad/robot-facts.json` from what this tab
+already holds: `ROBOT_INFO` and `FUNCTIONS` (the name, the summary, the functions), `cycleSteps()` (the steps and their
+times, from the twin's phase tables), the parts lists' subsystem sentences and specs (the facts and the safety lines),
+and the cycle times in `cleanArmSpec.ts` and `washSpec.ts`. A fact that quotes a parts-list sentence fails the build
+when that sentence is gone. It adds the sentences an owner reads. `machineFacts.test.ts` holds the committed file to
+the builder's output, the steps to the tab's, the charge arm's connect and release times to `ARM_TIMING_DEFAULTS`,
+and every sentence to plain words (20 words at most, no semicolons, no joint names for an owner). Write the file again
+with `ROBOT_FACTS_WRITE=1 npx vitest run src/lib/robotics/machineFacts.test.ts`.
+
+Each cockpit carries a copy at `src/lib/twin/robotFacts.json`. **When `public/cad/robot-facts.json` changes, copy it
+to both cockpits**, byte for byte. Their `src/lib/twin/robots.ts` reads it, and their tests read the machine names and
+step words from it.
+
+**What a machine is DOING is never in that file.** The cockpits read it from the feeds this cockpit reads:
+
+- the charge arm: the snapshot's `stalls_status` (`tethered`, `tether_direction`, `tether_phase`), its open cycles with
+  their retries (`arm.cycles`), its times and its results for the run (`arm.timings`, `arm.accuracy`);
+- the cleaning arm: the car's visit atom `interior_tidy` with `performed_by: 'stall_cabin_robot'`, the stall
+  (`robot_stall_id`) and its times (`started_at`, `ends_at`, `done_at`);
+- the wash machine: the car's `bay_seat` (`since`, `ends_at`) while its state is `in_wash_bay` or `in_detail_bay`;
+- a car's stages: `ottoq_depot_cards` 1.5, each step with its station (`to_stall_code`, `to_stall_kind`);
+- the run's service counts: `ottoq_twin_kpi_board` (`service.by_service`), and `ottoq_twin_events_window.by_type`
+  for the arm's events.
+
+So `TwinVisitAtom` in `src/lib/ottoTwin.ts` carries `performed_by`, `awaiting_triage` and `triage_verdict` (the
+snapshot has published them since otto-q-core 0512), and the cockpits copy that type with the rest of the wire types.
+
+**Links both ways.** `/?tab=robotics&robot=<charge_arm|clean_arm|wash_gantry>` opens this tab on one machine
+(`cockpitLinks.ts`: `tabFromSearch`, `robotFromSearch`; an unknown robot opens the charge arm). PULSE's Robots tab
+links each machine to it ("Engineering model in the twin"). This tab's banner links the other way, to PULSE's Robots
+tab (`pulseRobotsUrl`: `/?tab=robots`, with `source=twin&run=` while the run on screen is live), because the CAD is
+design data and PULSE shows what each machine is doing now.
 
 ## Honest limits
 

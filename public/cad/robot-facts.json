@@ -1,0 +1,456 @@
+{
+ "version": 1,
+ "source": {
+  "repo": "OTTOYARD/ottoyarddepot-sim",
+  "file": "public/cad/robot-facts.json",
+  "builtBy": "src/lib/robotics/machineFacts.ts"
+ },
+ "chargeArm": {
+  "connectSeconds": 18.5,
+  "releaseSeconds": 11.5
+ },
+ "machines": [
+  {
+   "key": "charge_arm",
+   "name": "OTTO-CHARGE ARM",
+   "short": "Charge arm",
+   "stallType": "dcfc",
+   "where": "One at each fast charger.",
+   "summary": [
+    "A 6-axis robot arm at each fast charger.",
+    "It finds the charge port, pushes the DC connector in and locks it.",
+    "It lets go when the charge ends. The car cannot move until the arm is home."
+   ],
+   "owner": [
+    "A robot arm plugs your car in and unplugs it. No person handles the cable.",
+    "The arm measures the force on every move. A small error cannot jam the connector.",
+    "Your car cannot move until the arm is home."
+   ],
+   "functions": [
+    "Robotic charging"
+   ],
+   "services": [
+    "charge"
+   ],
+   "steps": [
+    {
+     "id": "unstow",
+     "label": "Lift clear of the stow",
+     "seconds": 3
+    },
+    {
+     "id": "approach",
+     "label": "Move to the port",
+     "seconds": 6
+    },
+    {
+     "id": "align",
+     "label": "Align with the cameras",
+     "seconds": 4.5
+    },
+    {
+     "id": "insert",
+     "label": "Push the connector in",
+     "seconds": 3
+    },
+    {
+     "id": "latch",
+     "label": "Lock the connector",
+     "seconds": 2
+    },
+    {
+     "id": "charging",
+     "label": "Charge",
+     "seconds": null,
+     "note": "as long as the charge"
+    },
+    {
+     "id": "unlatch",
+     "label": "Unlock the connector",
+     "seconds": 2
+    },
+    {
+     "id": "extract",
+     "label": "Pull the connector out",
+     "seconds": 3
+    },
+    {
+     "id": "retract",
+     "label": "Fold home",
+     "seconds": 6.5
+    }
+   ],
+   "facts": [
+    {
+     "label": "Connector",
+     "value": "DC combo class (CCS), liquid-cooled"
+    },
+    {
+     "label": "Charge cable",
+     "value": "500 A DC, liquid-cooled"
+    },
+    {
+     "label": "Time to connect",
+     "value": "18.5 s of arm motion"
+    },
+    {
+     "label": "Time to release",
+     "value": "11.5 s of arm motion"
+    },
+    {
+     "label": "Finds the port",
+     "value": "Stereo cameras and a time-of-flight sensor find the inlet. A light ring helps at night."
+    },
+    {
+     "label": "Force control",
+     "value": "A 6-axis force and torque sensor reads the insertion force. A compliance unit lets the connector float up to 6 mm and 3 degrees. A small error cannot jam it."
+    },
+    {
+     "label": "Latch",
+     "value": "A solenoid latch locks the connector in the inlet for the charge."
+    },
+    {
+     "label": "Cable",
+     "value": "The charge cable comes up out of the cabinet roof into a take-up wheel. A spring keeps the cable off the car."
+    },
+    {
+     "label": "Status lights",
+     "value": "Light rings on the arm show its state: teal ready, amber moving, green charging, red fault."
+    }
+   ],
+   "safety": [
+    "A safety laser scanner on the riser watches the stall at knee height. A person in its field stops the arm.",
+    "An emergency stop on the riser cuts motor power (safe torque off).",
+    "OTTO-Q does not move a car while an arm is connected to it.",
+    "When a charger has a fault, the arm lets the car go at once. OTTO-Q sends the car to another charger."
+   ]
+  },
+  {
+   "key": "clean_arm",
+   "name": "OTTO-CLEAN ARM",
+   "short": "Cabin clean arm",
+   "stallType": "dcfc",
+   "where": "One over each fast charger.",
+   "summary": [
+    "An overhead arm over each fast charger. It vacuums the cabin while the car charges.",
+    "It swings in a plane 1.8 m above the roof. Only the wand goes into the car, and only through a door.",
+    "The doors open. The arm cleans one side, then the other side. Then the doors close."
+   ],
+   "owner": [
+    "An overhead arm vacuums the cabin of your car while it charges.",
+    "Only the wand goes into the car, and only through an open door.",
+    "Every part of the arm keeps 0.10 m off the bodywork and the open doors.",
+    "Your car stays at its charger until the arm is home."
+   ],
+   "functions": [
+    "Interior",
+    "Vacuum",
+    "Overhead cleaning"
+   ],
+   "services": [
+    "interior_tidy"
+   ],
+   "steps": [
+    {
+     "id": "doors_open",
+     "label": "The doors open",
+     "seconds": 3
+    },
+    {
+     "id": "swing_a",
+     "label": "Swing over side A",
+     "seconds": 4
+    },
+    {
+     "id": "lower_a",
+     "label": "Turn the wand down",
+     "seconds": 1.5
+    },
+    {
+     "id": "descend_a",
+     "label": "Lower the mast",
+     "seconds": 3.5
+    },
+    {
+     "id": "enter_a",
+     "label": "Reach in through the door",
+     "seconds": 3.5
+    },
+    {
+     "id": "clean_a",
+     "label": "Clean side A",
+     "seconds": 150,
+     "note": "the twin sets the time"
+    },
+    {
+     "id": "exit_a",
+     "label": "Come out of the car",
+     "seconds": 3.5
+    },
+    {
+     "id": "ascend_a",
+     "label": "Raise the mast",
+     "seconds": 3
+    },
+    {
+     "id": "raise_a",
+     "label": "Turn the wand up",
+     "seconds": 1.5
+    },
+    {
+     "id": "swing_b",
+     "label": "Swing over side B",
+     "seconds": 5
+    },
+    {
+     "id": "lower_b",
+     "label": "Turn the wand down",
+     "seconds": 1.5
+    },
+    {
+     "id": "descend_b",
+     "label": "Lower the mast",
+     "seconds": 3.5
+    },
+    {
+     "id": "enter_b",
+     "label": "Reach in through the door",
+     "seconds": 3.5
+    },
+    {
+     "id": "clean_b",
+     "label": "Clean side B",
+     "seconds": 150,
+     "note": "the twin sets the time"
+    },
+    {
+     "id": "exit_b",
+     "label": "Come out of the car",
+     "seconds": 3.5
+    },
+    {
+     "id": "ascend_b",
+     "label": "Raise the mast",
+     "seconds": 3
+    },
+    {
+     "id": "raise_b",
+     "label": "Turn the wand up",
+     "seconds": 1.5
+    },
+    {
+     "id": "return",
+     "label": "Swing home",
+     "seconds": 4
+    },
+    {
+     "id": "doors_close",
+     "label": "The doors close",
+     "seconds": 3
+    }
+   ],
+   "facts": [
+    {
+     "label": "Nozzle head",
+     "value": "Cleans the floor, the benches and the seat backs with vacuum, an air knife and a brush lip."
+    },
+    {
+     "label": "Time for a clean",
+     "value": "About 6 min: 2.5 min on each side, and the moves between. The twin sets the time."
+    },
+    {
+     "label": "Reach",
+     "value": "The wand reaches 1.37 m into the cabin."
+    },
+    {
+     "label": "Mast",
+     "value": "Lowers the wrist from 2.18 m to 0.58 m above grade, beside the car, never over it."
+    },
+    {
+     "label": "Clearance",
+     "value": "0.10 m off the car and the open doors, at every point of the cycle."
+    },
+    {
+     "label": "Vacuum supply",
+     "value": "A central vacuum producer on each canopy (about 3 kW per working arm, 30 kPa class) serves its arms."
+    },
+    {
+     "label": "Crew",
+     "value": "The arm needs no technician."
+    },
+    {
+     "label": "Status lights",
+     "value": "Lights on the base, the mast and the nozzle show the arm state."
+    }
+   ],
+   "safety": [
+    "The arm swings above the roof. Nothing stands where a car drives.",
+    "The car stays on its stall until the arm is home.",
+    "A brake holds the mast when power is off.",
+    "A charger fault lets the car go at once. The arm at the next charger does the clean."
+   ]
+  },
+  {
+   "key": "wash_gantry",
+   "name": "OTTO-WASH",
+   "short": "Wash bay machine",
+   "stallType": "wash_bay",
+   "where": "One in each wash bay.",
+   "summary": [
+    "A rollover machine in each wash bay. It moves over the parked car 6 times.",
+    "The passes are: pre-soak, 2 brush passes, rinse, 2 dry passes.",
+    "On a detail seat, 2 vacuum wands clean the cabin first."
+   ],
+   "owner": [
+    "A machine washes your car in the wash bay. It moves over the parked car 6 times.",
+    "The passes are pre-soak, 2 brush passes, rinse and 2 dry passes.",
+    "On a detail visit, 2 vacuum wands clean the cabin first, through the open doors."
+   ],
+   "functions": [
+    "Wash bay",
+    "Wash bay vacuum",
+    "Wash bay overhead"
+   ],
+   "services": [
+    "exterior_wash",
+    "interior_deep_clean"
+   ],
+   "steps": [
+    {
+     "id": "settle",
+     "label": "The car stops under the light",
+     "seconds": 2.5
+    },
+    {
+     "id": "to_cabin",
+     "label": "Move to the cabin",
+     "seconds": 6
+    },
+    {
+     "id": "doors_open",
+     "label": "The doors open",
+     "seconds": 3
+    },
+    {
+     "id": "wands_down",
+     "label": "Lower the wands",
+     "seconds": 3
+    },
+    {
+     "id": "wands_in",
+     "label": "Reach in through the doors",
+     "seconds": 3
+    },
+    {
+     "id": "vacuum",
+     "label": "Vacuum the cabin",
+     "seconds": 600,
+     "note": "the twin sets the time"
+    },
+    {
+     "id": "wands_out",
+     "label": "Come out of the car",
+     "seconds": 3
+    },
+    {
+     "id": "wands_up",
+     "label": "Raise the wands",
+     "seconds": 3
+    },
+    {
+     "id": "doors_close",
+     "label": "The doors close",
+     "seconds": 3
+    },
+    {
+     "id": "to_start",
+     "label": "Move to the start",
+     "seconds": 6
+    },
+    {
+     "id": "soak",
+     "label": "Pass 1: pre-soak foam",
+     "seconds": 30
+    },
+    {
+     "id": "wash_1",
+     "label": "Pass 2: brushes",
+     "seconds": 40
+    },
+    {
+     "id": "wash_2",
+     "label": "Pass 3: brushes",
+     "seconds": 40
+    },
+    {
+     "id": "rinse",
+     "label": "Pass 4: rinse",
+     "seconds": 30
+    },
+    {
+     "id": "dry_1",
+     "label": "Pass 5: dry",
+     "seconds": 35
+    },
+    {
+     "id": "dry_2",
+     "label": "Pass 6: dry",
+     "seconds": 35
+    },
+    {
+     "id": "done",
+     "label": "Home. The light turns green",
+     "seconds": 2
+    }
+   ],
+   "facts": [
+    {
+     "label": "Passes",
+     "value": "6 passes in about 3.5 min: pre-soak, 2 brush passes, rinse, 2 dry passes."
+    },
+    {
+     "label": "Cabin vacuum",
+     "value": "On a detail seat, about 10 min before the wash. The twin sets the time."
+    },
+    {
+     "label": "Top brush",
+     "value": "Washes the bonnet, the roof and the roof pod. It follows the car top."
+    },
+    {
+     "label": "Side brushes",
+     "value": "Wash the flanks, the doors and the wheels."
+    },
+    {
+     "label": "Spray arch",
+     "value": "Sprays the pre-soak foam, then the clear-water rinse. 9 flat-fan nozzles each side and 5 across the top."
+    },
+    {
+     "label": "Air knives",
+     "value": "Blow the water off in the last 2 passes. Blowers: top 4 kW, sides 2 x 3 kW (class)."
+    },
+    {
+     "label": "Travel speed",
+     "value": "about 10 m/min"
+    },
+    {
+     "label": "Stop light",
+     "value": "A stop light faces the arriving car: red while the program runs, green when the car may go."
+    },
+    {
+     "label": "Supply",
+     "value": "A drag chain brings power, water, chemicals and air. It lies in a covered trench in the floor, inboard of the west rail."
+    },
+    {
+     "label": "Clear height",
+     "value": "3.30 m under the beam"
+    }
+   ],
+   "safety": [
+    "Retracted, everything clears a car by more than 0.48 m.",
+    "The machine never moves over the car with a tool still on it.",
+    "A stop at each rail end holds a wheel if the machine runs past its travel.",
+    "The car leaves only when the light is green."
+   ]
+  }
+ ]
+}

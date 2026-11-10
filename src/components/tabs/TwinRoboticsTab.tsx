@@ -7,7 +7,7 @@
 //
 // What it reads: public/cad/manifest.json and each robot's bill of materials and GLB, built by cad/build.py from the
 // twin's own robot specs (src/lib/robotics/cadSpec.ts). Nothing here reads the run: it is DESIGN DATA, not live, and
-// the banner says so. Pose presets and the run steps come from the twin's own code (catalog.ts), so the CAD moves the
+// the banner says so, and links to OTTO-PULSE's Robots tab for what each machine is doing now. Pose presets and the run steps come from the twin's own code (catalog.ts), so the CAD moves the
 // way the depot's robots move. Opening the tab widens the panel to full width on a desktop (Esc returns it).
 // ============================================================================
 import { Component, useEffect, useMemo, useState, type ReactNode } from 'react';
@@ -16,6 +16,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Slider } from '@/components/ui/slider';
 import { useSimulationStore } from '@/store/simulationStore';
 import { usePhoneSheet } from '@/components/phone/phoneStore';
+import { useTwinStore } from '@/store/twinStore';
+import { isLiveRunStatus, pulseRobotsUrl, robotFromSearch } from '@/lib/cockpitLinks';
 import { CadViewer, type CadJointSummary, type CadViewState, type SectionAxis, type ViewDir } from '@/components/robotics/CadViewer';
 import {
   CATEGORY_LABEL, FUNCTIONS, JOINT_LABEL, ROBOT_INFO, ROBOT_KEYS, cadUrl, cycleScript, cycleSteps, fastenerIds, fetchBom, fetchClash, fetchManifest, filterLines,
@@ -32,13 +34,21 @@ const DEFAULT_VIEW: Omit<CadViewState, 'angles'> = {
 // ── small pieces ───────────────────────────────────────────────────────────
 
 function Banner() {
+  // The CAD reads no run. The link to OTTO-PULSE carries the live run's id when there is one, as "View in" does.
+  const activeSimRunId = useTwinStore((s) => s.activeSimRunId);
+  const run = useTwinStore((s) => s.snapshot?.run);
+  const liveRunId = run && run.sim_run_id === activeSimRunId && isLiveRunStatus(run.status) ? run.sim_run_id : null;
   return (
     <div role="note" data-testid="robotics-banner"
       className="flex items-start gap-2 rounded border border-dashed border-sky-300/40 bg-sky-300/[0.06] px-2.5 py-2">
       <Wrench size={14} aria-hidden className="mt-0.5 shrink-0 text-sky-300" />
       <p className="min-w-0 text-[11.5px] leading-5 text-ink">
         <span className="font-semibold text-sky-200">Engineering CAD. Design data, not live.</span>{' '}
-        Each robot has every part in the model, to the last screw and washer. The twin uses the same dimensions.
+        Each robot has every part in the model, to the last screw and washer. The twin uses the same dimensions.{' '}
+        <a href={pulseRobotsUrl(liveRunId)} target="_blank" rel="noreferrer" data-testid="robotics-live-link"
+          className="whitespace-nowrap text-sky-200 underline decoration-sky-300/50 underline-offset-2 hover:text-sky-100">
+          OTTO-PULSE shows what each machine does now.
+        </a>
       </p>
     </div>
   );
@@ -150,7 +160,8 @@ export function TwinRoboticsTab() {
   const expanded = useSimulationStore((s) => s.isPanelExpanded && s.isPanelOpen);
   const setPanelExpanded = useSimulationStore((s) => s.setPanelExpanded);
   const [manifest, setManifest] = useState<Manifest | null>(null);
-  const [robot, setRobot] = useState<RobotKey>('charge_arm');
+  // a cockpit's "Engineering model" link names the machine (?robot=); else the charge arm
+  const [robot, setRobot] = useState<RobotKey>(() => robotFromSearch(typeof window === 'undefined' ? '' : window.location.search) ?? 'charge_arm');
   const [bom, setBom] = useState<Bom | null>(null);
   const [clash, setClash] = useState<ClashReport | null>(null);
   const [error, setError] = useState<string | null>(null);
