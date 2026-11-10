@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  cockpitBaseUrl, cockpitUrl, fleetOwnersFromCards, isLiveRunStatus, robotFromSearch, runFromSearch, tabFromSearch,
+  cockpitBaseUrl, cockpitUrl, fleetOwnersFromCards, isLiveRunStatus, pulseRobotsUrl, robotFromSearch, runFromSearch, tabFromSearch,
   type LinkRobot, type LinkTab,
 } from './cockpitLinks';
 import type { CockpitTab } from '@/store/simulationStore';
@@ -46,6 +46,12 @@ describe('cockpit links', () => {
     const tabs: [LinkTab] extends [CockpitTab] ? ([CockpitTab] extends [LinkTab] ? true : never) : never = true;
     const robots: [LinkRobot] extends [RobotKey] ? ([RobotKey] extends [LinkRobot] ? true : never) : never = true;
     expect(tabs && robots).toBe(true);
+  });
+
+  it('opens OTTO-PULSE on its Robots tab, pinned to the run only while one is live', () => {
+    expect(pulseRobotsUrl(RUN, {})).toBe(`https://ottoyard-otto-pulse.lovable.app/?source=twin&run=${RUN}&tab=robots`);
+    expect(pulseRobotsUrl(null, {})).toBe('https://ottoyard-otto-pulse.lovable.app/?tab=robots');
+    expect(pulseRobotsUrl(undefined, { VITE_PULSE_URL: 'http://localhost:8081' })).toBe('http://localhost:8081/?tab=robots');
   });
 
   it('treats only running, active and paused as live', () => {

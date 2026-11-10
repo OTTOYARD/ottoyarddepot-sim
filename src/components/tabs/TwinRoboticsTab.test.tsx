@@ -27,6 +27,7 @@ import { TwinRoboticsTab } from './TwinRoboticsTab';
 import { TabBar } from '@/components/layout/TabBar';
 import { useSimulationStore } from '@/store/simulationStore';
 import { usePhoneSheet } from '@/components/phone/phoneStore';
+import { useTwinStore } from '@/store/twinStore';
 
 const PUB = resolve(__dirname, '../../../public/cad');
 const serve = vi.fn(async (url: string) => {
@@ -54,6 +55,10 @@ describe('the Robotics tab', () => {
     await open(false);
     expect(screen.getByTestId('robotics-banner')).toHaveTextContent(
       'Engineering CAD. Design data, not live. Each robot has every part in the model, to the last screw and washer. The twin uses the same dimensions.');
+    // the CAD is not live: the banner links to OTTO-PULSE's Robots tab for what each machine is doing now
+    const live = screen.getByTestId('robotics-live-link');
+    expect(live).toHaveTextContent('OTTO-PULSE shows what each machine does now.');
+    expect(live.getAttribute('href')).toBe('https://ottoyard-otto-pulse.lovable.app/?tab=robots');
     expect(screen.getByTestId('robotics-tab').dataset.layout).toBe('narrow');
     expect(within(screen.getByTestId('robot-picker')).getAllByRole('button').map((b) => b.textContent)).toEqual([
       'OTTO-CHARGE ARMCharge arm', 'OTTO-CLEAN ARMCabin clean arm', 'OTTO-WASHWash bay machine']);
@@ -61,6 +66,22 @@ describe('the Robotics tab', () => {
     fireEvent.click(screen.getByTestId('open-full'));
     expect(useSimulationStore.getState().isPanelExpanded).toBe(true);      // the desktop's panel
     expect(usePhoneSheet.getState().fullscreen).toBe(true);                 // and the phone's sheet
+  });
+
+  it('pins the OTTO-PULSE link to the run on screen while it is live, and to no run when it has ended', async () => {
+    const RUN = '4b09c1de-0000-4000-8000-000000000001';
+    const before = useTwinStore.getState();
+    const withRun = (status: string) => useTwinStore.setState({ activeSimRunId: RUN, snapshot: { run: { sim_run_id: RUN, status } } } as never);
+    try {
+      withRun('running');
+      await open(false);
+      expect(screen.getByTestId('robotics-live-link').getAttribute('href'))
+        .toBe(`https://ottoyard-otto-pulse.lovable.app/?source=twin&run=${RUN}&tab=robots`);
+      act(() => withRun('completed'));
+      expect(screen.getByTestId('robotics-live-link').getAttribute('href')).toBe('https://ottoyard-otto-pulse.lovable.app/?tab=robots');
+    } finally {
+      act(() => useTwinStore.setState({ activeSimRunId: before.activeSimRunId, snapshot: before.snapshot }));
+    }
   });
 
   it('shows the charge arm\'s totals, major functions, load check and the twin\'s steps', async () => {

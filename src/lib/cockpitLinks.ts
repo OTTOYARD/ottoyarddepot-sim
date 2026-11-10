@@ -10,6 +10,7 @@
 //
 // The other way, a cockpit opens the twin at  /?run=<sim_run_id>  ("Back to the twin") or at
 // /?tab=robotics&robot=<charge_arm|clean_arm|wash_gantry>  (a machine's engineering model).
+// The Robotics tab links back to PULSE's Robots tab (&tab=robots) for what each machine is doing now.
 // ============================================================================
 
 export type Cockpit = 'orchestrav' | 'pulse';
@@ -47,6 +48,21 @@ export function cockpitUrl(cockpit: Cockpit, opts: CockpitLinkOpts): string {
   url.searchParams.set('run', opts.runId);
   if (cockpit === 'orchestrav' && opts.owner) url.searchParams.set('owner', opts.owner);
   if (opts.embed) url.searchParams.set('embed', '1');
+  return url.toString();
+}
+
+/**
+ * OTTO-PULSE's Robots tab: what each machine is doing now, and its results for the run. The Robotics tab here holds
+ * the engineering CAD and links to it. Pinned to the run on screen while one is live, as every "View in" link is.
+ * With no live run PULSE opens by itself, and its Robots tab says that no run is live.
+ */
+export function pulseRobotsUrl(runId: string | null | undefined, env?: Record<string, string | undefined>): string {
+  const url = new URL(cockpitBaseUrl('pulse', env));
+  if (runId) {
+    url.searchParams.set('source', 'twin');
+    url.searchParams.set('run', runId);
+  }
+  url.searchParams.set('tab', 'robots');
   return url.toString();
 }
 
