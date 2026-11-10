@@ -2,12 +2,13 @@
 //
 // Pure, and deliberately free of React and of this app's stores, so the other cockpits that read the same feed
 // (PULSE, OrchestrAV: "one read contract, three projections") can carry this file verbatim and word every
-// decision the same way. The row type is the feed's columns; each cockpit supplies its own alias for it.
+// decision the same way. The row type is the feed's columns; each cockpit supplies its own alias for it, and that
+// import (with the note above it in a cockpit's copy) is the only line that differs.
 import type { ActivityFeedRow } from "@/store/activityFeedStore";
 import { confirmedText, isLocalGrade } from "./secondLoop";
 // The words a viewer reads come from one glossary (plainWords.ts), carried verbatim beside this file in every cockpit.
 import { ruleWords } from "./plainWords";
-import { publicLabel, publicPhrase } from "./publicNames";
+import { publicLabel, publicPhrase, publicText, publicTextInline } from "./publicNames";
 
 /** Every clock in the cockpit reads Nashville time (the TopBar says "CT"). */
 export const DEPOT_TZ = "America/Chicago";
@@ -251,14 +252,15 @@ export function challengerText(r: ActivityFeedRow): DecisionText {
   };
 }
 
-/** Scalar fields of a structured rationale, as text. The last resort for an unknown verdict. */
+/** Scalar fields of a structured rationale, as text. The last resort for an unknown verdict. The engine or a model
+ *  wrote these words, not this app, so a product they name reads by its public name (publicNames.publicText). */
 export function decisionReasonText(r: ActivityFeedRow): string | null {
-  if (r.reason && !/^[a-z0-9_]+$/.test(r.reason) && !r.reason.startsWith("{")) return r.reason;
-  if (!r.rationale) return r.reason ?? null;
+  if (r.reason && !/^[a-z0-9_]+$/.test(r.reason) && !r.reason.startsWith("{")) return publicText(r.reason);
+  if (!r.rationale) return r.reason ? publicText(r.reason) : null;
   const entries = Object.entries(r.rationale).filter(([key, value]) =>
     key !== "verb" && value !== null && value !== undefined && !Array.isArray(value) && typeof value !== "object"
   );
-  return entries.length ? entries.map(([key, value]) => `${key}: ${String(value)}`).join(" · ") : null;
+  return entries.length ? entries.map(([key, value]) => `${key}: ${publicTextInline(String(value))}`).join(" · ") : null;
 }
 
 /** "held 18 min", or "since 14:05, still in force". Null for a one-tick event. `clock` lets a cockpit print the
@@ -344,7 +346,8 @@ export function starvationNote(detail: Record<string, unknown>): string | null {
   return null;
 }
 
-/** "model timeout after 75000 ms" -> "model timed out after 75 s". Anything else passes through. */
+/** "model timeout after 75000 ms" -> "model timed out after 75 s". Anything else passes through, with a product it
+ *  names put in its public name: an upstream error is text this app does not write. */
 export function modelErrorText(err: unknown): string | null {
   if (typeof err !== "string" || !err.trim()) return null;
   const s = err.trim();
@@ -357,6 +360,7 @@ export function modelErrorText(err: unknown): string | null {
     // A JSON body, often cut off mid-string by the ledger, is not words; the status says enough.
     if (h[2].trim().startsWith("{")) return `HTTP ${h[1]}`;
   }
-  return s;
+  // The error is drawn inside a sentence ("The agent did not answer (…)"), so a name that starts it keeps a small letter.
+  return publicTextInline(s);
 }
 

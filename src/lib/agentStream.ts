@@ -14,7 +14,7 @@
 // sentence depends on it, it says "not recorded".
 import type { ActivityFeedRow } from "@/store/activityFeedStore";
 import { human, modelErrorText, num, solverPhrase } from "@/lib/decisionText";
-import { sentenceCase } from "@/lib/publicNames";
+import { publicText, publicTextInline, sentenceCase } from "@/lib/publicNames";
 import { proposerWord, type DispositionRow } from "@/lib/ottoqFunnel";
 import { hindsightWords, verdictText, type AgentOrderEntry, type AgentOrderUsage } from "@/lib/runLearning";
 
@@ -91,12 +91,14 @@ export function agentPass(r: ActivityFeedRow, orders: OrderIndex = NO_ORDERS): A
   const chain = typeof v.chain_id === "string" ? v.chain_id : null;
   const order = chain ? index.get(chain) ?? null : null;
   const modelError = modelErrorText(v.model_error);
-  const summary = typeof v.summary === "string" && v.summary.trim() ? v.summary.trim() : null;
+  // The summary, the directives and the reason are the model's own words. A product or a file of ours that they name
+  // reads by its public name (publicNames.publicText); nothing else in them is changed.
+  const summary = typeof v.summary === "string" && v.summary.trim() ? publicText(v.summary.trim()) : null;
   const applied = Array.isArray(v.applied) ? (v.applied as { text?: unknown }[]) : [];
-  const directives = applied.map((a) => (typeof a?.text === "string" ? a.text.trim() : "")).filter(Boolean);
+  const directives = applied.map((a) => (typeof a?.text === "string" ? publicText(a.text.trim()) : "")).filter(Boolean);
   const queued = Array.isArray(v.queued) ? v.queued.length : 0;
   const rejected = Array.isArray(v.rejected) ? v.rejected.length : 0;
-  const why = typeof v.objective_why === "string" ? v.objective_why.trim() : "";
+  const why = typeof v.objective_why === "string" ? publicTextInline(v.objective_why.trim()) : "";
 
   const chose = modelError
     ? `The agent did not answer (${modelError}). The decide path kept the goal: ${objectiveWord(v.objective)}.`

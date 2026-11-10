@@ -4,6 +4,10 @@
 // audit trail and the rule evaluations, with a per-tick summary collapsed into one row that says how many times
 // it fired and since when. This file turns each row into words an operator reads at a glance, puts it in one of
 // four domains, and says how its severity should look.
+//
+// Pure: no React, no stores, no imports. The twin carries it at src/lib/eventFeed.ts and OTTO-PULSE and OrchestrAV
+// carry it byte for byte at src/lib/twin/eventFeed.ts, so all three cockpits word every event the same way. Change the
+// twin's copy first, then copy it.
 
 export interface RunEventRow {
   row_key: string;

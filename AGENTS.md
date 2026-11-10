@@ -431,9 +431,14 @@ and feed lines built in `src/lib`. **Not** comments, console output, test names,
 descriptions ... rather terms like 'leverages Nvidia open source model for…'"*. A model or solver is named by what it
 does, and a vendor only as the maker of the hardware or open model underneath: "the agent, on an NVIDIA open model",
 "the lexicographic planner", "the GPU planner". Every viewer name comes from `src/lib/publicNames.ts`; text the app does
-not write (a model's review, an upstream error) goes through `publicText()`. `publicNames.test.ts` parses every string
-literal, template and JSX text in `src` and fails on a product name with its file and line, so add a name to the table,
-never to a component. Sources for vendor facts go in a code comment beside the claim, dated, not in a link on screen
+not write (a model's review, the agent's own summary and directives, an upstream error) goes through `publicText()`.
+`publicNames.test.ts` parses every string literal, template and JSX text in `src` and fails on a product name with its
+file and line, so add a name to the table, never to a component. **That scan cannot see a name that arrives as data**
+(2026-11-10): the activity feed's `engine` column is the model's id on an agent decision
+(`nvidia/nemotron-… -> cpsat_service`), and the agent has quoted `CLAUDE.md` in its directives. So never draw `engine`,
+`agent_model` or a provider key as it comes: `proposedBy()` and `publicLabel()` name them, and a model's id is never
+drawn. OTTO-PULSE and OrchestrAV carry `publicNames.ts`, `decisionText.ts`, `plainWords.ts` and `eventFeed.ts` verbatim
+(`src/lib/twin/`): change them here first. Sources for vendor facts go in a code comment beside the claim, dated, not in a link on screen
 (a link names the product in its address). And the layer cards say how OTTO-Q is built without the formula: no code
 object names on screen (`refs` stay in `layerInfo.ts` for engineers and tests).
 
