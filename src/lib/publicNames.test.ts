@@ -63,6 +63,17 @@ describe("no product names on screen", () => {
     expect(hits).toEqual([]);
   });
 
+  it("the list holds the model makers' products as well as the planners', and no engine key", () => {
+    const hit = (t: string) => PRODUCT_NAMES.some((re) => re.test(t));
+    for (const t of ["Claude (Anthropic)", "GPT-4o (OpenAI)", "Gemini (Google)", "NVIDIA cuOpt", "Google OR-Tools CP-SAT", "Nemotron 3 Ultra"]) {
+      expect(hit(t), t).toBe(true);
+    }
+    // a maker named as a maker, a public name and an engine's own lower-case key are not products
+    for (const t of ["the agent, on an NVIDIA open model", "the lexicographic planner", "nvidia_cuopt", "cpsat_service", "openai"]) {
+      expect(hit(t), t).toBe(false);
+    }
+  });
+
   it("the scan sees JSX text, template text and plain strings, and skips comments and module paths", () => {
     // A guard that cannot fail proves nothing: run its parser over a file that has one of each.
     const found = screenStringsOf("probe.tsx", [

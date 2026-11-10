@@ -122,7 +122,7 @@ export const TwinAiSummaryTab = () => {
                   <Brain className="w-4 h-4 mr-1.5" /> Generate Analysis
                 </Button>
                 <Button size="sm" variant="ghost" className="text-[10px] text-ink-dim hover:text-ink" disabled={loading === "ai"} onClick={() => generate("ai")}>
-                  {loading === "ai" ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Sparkles className="w-3 h-3 mr-1" />} or richer AI narrative (Gemini)
+                  {loading === "ai" ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Sparkles className="w-3 h-3 mr-1" />} or richer AI narrative
                 </Button>
               </div>
             </div>

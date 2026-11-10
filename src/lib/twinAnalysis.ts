@@ -286,7 +286,7 @@ export function deterministicAnalysis(ctx: TwinContext): string {
 // ============================================================================
 // Opt-in LLM narrative (Lovable AI gateway / Gemini) with deterministic fallback
 // ============================================================================
-export interface AnalysisResult { text: string; source: "OTTO-AI · Gemini" | "OTTO-Q engine"; }
+export interface AnalysisResult { text: string; source: "OTTO-AI" | "OTTO-Q engine"; }
 
 export async function requestLlmAnalysis(ctx: TwinContext): Promise<AnalysisResult> {
   const fallback = (): AnalysisResult => ({ text: deterministicAnalysis(ctx), source: "OTTO-Q engine" });
@@ -298,7 +298,7 @@ export async function requestLlmAnalysis(ctx: TwinContext): Promise<AnalysisResu
     if (data?.error) throw new Error(data.error);
     const text = (data?.analysis ?? "").trim();
     if (!text) throw new Error("empty analysis");
-    return { text, source: "OTTO-AI · Gemini" };
+    return { text, source: "OTTO-AI" };
   } catch (e) {
     console.warn("[twinAnalysis] LLM unavailable, using deterministic engine:", e);
     return fallback();

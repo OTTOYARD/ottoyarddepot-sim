@@ -77,7 +77,7 @@ export const LANE_ORDER: readonly string[] = [LEXICOGRAPHIC.phrase, GPU.phrase, 
  */
 export const PRODUCT_NAMES: readonly RegExp[] = [
   /Nemotron/, /cuOpt/, /CP-SAT/, /OR-Tools/, /\bOR Tools\b/, /Isaac Sim/, /Omniverse/, /\bGurobi\b/, /\bHiGHS\b/,
-  /\bPuLP\b/, /\bClaude\b/, /\bAnthropic\b/, /\bGPT-\d/, /\bLlama\b/,
+  /\bPuLP\b/, /\bClaude\b/, /\bAnthropic\b/, /\bGPT-\d/, /\bOpenAI\b/, /\bGemini\b/, /\bLlama\b/,
 ];
 
 /** Capital first letter, for a phrase that starts a sentence. */
