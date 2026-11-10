@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { cockpitBaseUrl, cockpitUrl, fleetOwnersFromCards, isLiveRunStatus, runFromSearch } from './cockpitLinks';
+import {
+  cockpitBaseUrl, cockpitUrl, fleetOwnersFromCards, isLiveRunStatus, robotFromSearch, runFromSearch, tabFromSearch,
+  type LinkRobot, type LinkTab,
+} from './cockpitLinks';
+import type { CockpitTab } from '@/store/simulationStore';
+import { ROBOT_KEYS, type RobotKey } from '@/lib/robotics/catalog';
 
 const RUN = '4b09c1de-0000-4000-8000-000000000001';
 const WAYMO = '22222222-2222-2222-2222-222222222222';
@@ -27,6 +32,20 @@ describe('cockpit links', () => {
     expect(runFromSearch(`?source=twin&run=${RUN.toUpperCase()}`)).toBe(RUN);
     expect(runFromSearch('?run=latest')).toBeNull();
     expect(runFromSearch('')).toBeNull();
+  });
+
+  it('opens the twin on a tab and a machine a cockpit names, and on nothing it does not know', () => {
+    expect(tabFromSearch('?tab=robotics&robot=clean_arm')).toBe('robotics');
+    expect(robotFromSearch('?tab=robotics&robot=clean_arm')).toBe('clean_arm');
+    expect(tabFromSearch('?tab=settings')).toBeNull();
+    expect(robotFromSearch('?robot=forklift')).toBeNull();
+    expect(tabFromSearch('')).toBeNull();
+    expect(robotFromSearch('?tab=robotics')).toBeNull();
+    for (const k of ROBOT_KEYS) expect(robotFromSearch(`?robot=${k}`)).toBe(k);
+    // the link's tabs and machines are the store's and the catalog's, both ways (a compile error when they part)
+    const tabs: [LinkTab] extends [CockpitTab] ? ([CockpitTab] extends [LinkTab] ? true : never) : never = true;
+    const robots: [LinkRobot] extends [RobotKey] ? ([RobotKey] extends [LinkRobot] ? true : never) : never = true;
+    expect(tabs && robots).toBe(true);
   });
 
   it('treats only running, active and paused as live', () => {

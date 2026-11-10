@@ -51,6 +51,16 @@ export interface TwinVisitAtom {
   /** OTTO-Q's estimate for this atom, minutes. NULL when the atom carried none. */
   est_min: number | null;
   /**
+   * Who performed it (otto-q-core 0512, G236): 'charger_sensors' when the charger's own sensors did the work during
+   * the charge (an interior inspection, a cabin-only triage), 'stall_cabin_robot' when the stall's OTTO-CLEAN ARM did
+   * (0758), null for a technician. Absent before 0512.
+   */
+  performed_by?: string | null;
+  /** 0512: a pending need that waits on the triage check's verdict (confirm, clear or escalate), not on a technician. */
+  awaiting_triage?: boolean;
+  /** 0512: the triage check's verdict once given: 'confirm' | 'clear' | 'escalate'. */
+  triage_verdict?: string | null;
+  /**
    * When the work started, ends and was done: the BACKEND's sim clock (ISO), as the
    * engine wrote them (otto-q-core 0758). Absent from an older backend; null when the
    * atom carries none.

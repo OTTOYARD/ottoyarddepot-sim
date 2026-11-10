@@ -16,6 +16,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Slider } from '@/components/ui/slider';
 import { useSimulationStore } from '@/store/simulationStore';
 import { usePhoneSheet } from '@/components/phone/phoneStore';
+import { robotFromSearch } from '@/lib/cockpitLinks';
 import { CadViewer, type CadJointSummary, type CadViewState, type SectionAxis, type ViewDir } from '@/components/robotics/CadViewer';
 import {
   CATEGORY_LABEL, FUNCTIONS, JOINT_LABEL, ROBOT_INFO, ROBOT_KEYS, cadUrl, cycleScript, cycleSteps, fastenerIds, fetchBom, fetchClash, fetchManifest, filterLines,
@@ -150,7 +151,8 @@ export function TwinRoboticsTab() {
   const expanded = useSimulationStore((s) => s.isPanelExpanded && s.isPanelOpen);
   const setPanelExpanded = useSimulationStore((s) => s.setPanelExpanded);
   const [manifest, setManifest] = useState<Manifest | null>(null);
-  const [robot, setRobot] = useState<RobotKey>('charge_arm');
+  // a cockpit's "Engineering model" link names the machine (?robot=); else the charge arm
+  const [robot, setRobot] = useState<RobotKey>(() => robotFromSearch(typeof window === 'undefined' ? '' : window.location.search) ?? 'charge_arm');
   const [bom, setBom] = useState<Bom | null>(null);
   const [clash, setClash] = useState<ClashReport | null>(null);
   const [error, setError] = useState<string | null>(null);
