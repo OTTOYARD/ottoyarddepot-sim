@@ -86,8 +86,8 @@
      "value": "DC combo class (CCS), liquid-cooled"
     },
     {
-     "label": "Charge cable",
-     "value": "500 A DC, liquid-cooled"
+     "label": "Charge current",
+     "value": "500 A DC, 1000 V, liquid-cooled at the connector"
     },
     {
      "label": "Time to connect",
@@ -110,8 +110,8 @@
      "value": "A solenoid latch locks the connector in the inlet for the charge."
     },
     {
-     "label": "Cable",
-     "value": "The charge cable comes up out of the cabinet roof into a take-up wheel. A spring keeps the cable off the car."
+     "label": "Power path",
+     "value": "The charge current runs inside the arm. In each hollow link 2 copper bars carry it, one a pole. Nothing live is in the open. At each joint a short link of braided copper in a sealed boot joins 2 terminal boxes. It bends as the joint turns."
     },
     {
      "label": "Status lights",

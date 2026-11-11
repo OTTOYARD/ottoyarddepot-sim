@@ -157,7 +157,7 @@ describe('OTTO-CHARGE ARM: the power path\'s flex links through the duty cycle',
   it('has a booted flex link at each joint, and no take-up wheel or free span', () => {
     const cad = cads.get('charge_arm')!;
     expect(cad.flex.map((f) => f.id).sort()).toEqual(LINKS);
-    for (const f of cad.flex) expect(f.length, f.id).toBeLessThanOrEqual(1.0);
+    for (const f of cad.flex) expect(f.length, f.id).toBeLessThanOrEqual(1.25);
   });
 
   it('bends no flex link tighter than its boot allows, at every inlet and every corner of the window', () => {

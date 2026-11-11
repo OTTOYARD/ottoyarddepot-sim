@@ -18,34 +18,34 @@
     "depot": "charge_arm.depot.glb"
    },
    "bytes": {
-    "glb": 6865996,
-    "stepZip": 6927894,
-    "step": 35698226,
-    "depot": 546308
+    "glb": 6867008,
+    "stepZip": 7138457,
+    "step": 36466152,
+    "depot": 546724
    },
    "mesh": {
-    "vertices": 287682,
-    "triangles": 326653,
+    "vertices": 287714,
+    "triangles": 326681,
     "meshes": 190,
     "nodes": 663
    },
    "depotMesh": {
-    "vertices": 21578,
-    "triangles": 23572,
+    "vertices": 21598,
+    "triangles": 23588,
     "meshes": 65,
     "nodes": 77
    },
-   "depotSha256": "80cd18aaba919f5f",
+   "depotSha256": "0b3df025d60b52e8",
    "totals": {
     "parts": 657,
     "uniqueParts": 193,
     "fasteners": 457,
-    "massKg": 374.2,
+    "massKg": 382.28,
     "boughtLines": 132,
     "madeLines": 61,
     "referenceLines": 2
    },
-   "glbSha256": "2587092b93f87c6a",
+   "glbSha256": "1979f82de0a215e1",
    "stepCheck": {
     "namedParts": 659,
     "solids": 1349,

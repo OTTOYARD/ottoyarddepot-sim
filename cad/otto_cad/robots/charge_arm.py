@@ -222,7 +222,7 @@ def build(spec: dict) -> Model:
                      'The joints\' 10 mm power and network cable runs inside the arm, through the hollow shafts of J1 to J5.'],
                 specs={'current': '500 A DC, 1000 V', 'bars': '2 x 40 x 10 mm copper in each link, insulated',
                        'flex links': '5, braided copper 400 mm2 a pole, in a silicone boot OD 60 mm',
-                       'bend radius': '80 mm moved (the tightest in the twin\'s poses is 91 mm)',
+                       'bend radius': '80 mm moved (the tightest in the twin\'s 20 poses is 100 mm)',
                        'cooling': 'liquid at the connector\'s contacts, 2 tubes 8 mm'}, group='Cables')
     m.subsystem('SAFETY', 'Safety and status', 'Stops the arm when a person comes near and shows its state to the site.',
                 how=['A safety laser scanner on the riser watches the stall at knee height.',
@@ -642,8 +642,9 @@ def build(spec: dict) -> Model:
                                       'rating basis': 'about 1.4 to 1.8 A/mm2, rule of thumb'}, 'buy', mass_override=kg)),
                 Location(), explode, 'DRESS')
 
-    tbox(base, None, (0.0, -150.0, -riser_w / 2 - 25.0), (130.0, 110.0, 50.0), 'CHG-PB0', 'DC terminal box, riser',
-         'Takes the 2 copper bars up the riser from the cabinet trunk and hands the current to the J1 flex link.', 3.0, (0, 0, -160))
+    # the riser's back holds the cable trunk up to its top plate, so the riser's box and the J1 link are on its side
+    tbox(base, None, (-riser_w / 2 - 25.0, -150.0, -100.0), (50.0, 110.0, 130.0), 'CHG-PB0', 'DC terminal box, riser',
+         'Takes the 2 copper bars up the riser from the cabinet trunk and hands the current to the J1 flex link.', 3.0, (-160, 0, 0))
     tbox(j1, tur, (0.0, 265.0, -180.0), (130.0, 240.0, 80.0), 'CHG-PB1', 'DC junction box, turret',
          'Joins the J1 flex link to the J2 flex link on the turret\'s back.', 6.0, (0, 0, -180))
     tbox(j2, upper, (0.0, 300.0, -140.0), (110.0, 130.0, 80.0), 'CHG-PB2', 'DC terminal box, upper arm, shoulder end',
@@ -654,7 +655,7 @@ def build(spec: dict) -> Model:
          'Takes the J3 flex link into the 2 copper bars that run inside the forearm.', 4.5, (0, 0, -180))
     tbox(j3, fore, (85.0, LF - 520.0, 0.0), (80.0, 130.0, 104.0), 'CHG-PB5', 'DC terminal box, forearm, wrist end',
          'Brings the forearm\'s bars out to the J4 flex link.', 4.5, (180, 0, 0))
-    tbox(j4, yoke, (105.0, 25.0, 0.0), (60.0, 80.0, 170.0), 'CHG-PB6', 'DC junction box, wrist yoke',
+    tbox(j4, yoke, (75.0, 25.0, 0.0), (60.0, 80.0, 170.0), 'CHG-PB6', 'DC junction box, wrist yoke',
          'Joins the J4 flex link to the last link, which runs to the connector.', 2.5, (180, 0, 0))
 
     def boot(pid, name, a, b, L, bulge, fn, radius_note, hk=0.5):
@@ -662,23 +663,25 @@ def build(spec: dict) -> Model:
                        min_bend=MB_BOOT, bulge=bulge, hk=hk, kg_per_m=9.5, size=f'OD 60 x {L:.0f}', standard='IEC 61238-1 (lugs)',
                        spec={**BOOT_SPEC, 'length': f'{L:.0f} mm', 'tightest bend over the twin\'s poses': radius_note}))
 
-    zb0 = -riser_w / 2 - 50.0
-    boot('CHG-FL1', 'J1 flex link, 500 A braided copper in a boot', Anchor(base, (0.0, -150.0, zb0), (0, 0, -1)),
-         Anchor(j1, (0.0, 200.0, -220.0), (0, 0, 1)), 650.0, (0.0, (0, 0, -1), (0, 0, -1)),
-         'Carries the charge current across J1, from the riser to the turret, as the base turns.', '144 mm', hk=0.4)
-    boot('CHG-FL2', 'J2 flex link, 500 A braided copper in a boot', Anchor(j1, (0.0, 300.0, -220.0), (0, 1, -1)),
-         Anchor(j2, (0.0, 300.0, -180.0), (0, 0.2, 1)), 800.0, (0.0, (0, 0, -1), (0, 0, -1)),
-         'Carries the charge current across J2, behind the shoulder.', '121 mm')
-    boot('CHG-FL3', 'J3 flex link, 500 A braided copper in a boot', Anchor(j2, (0.0, LU - 250.0, -165.0), (0, 0.3, -1)),
-         Anchor(j3, (FORE_JOG[0], 250.0, -130.0), (0, 0.2, 1)), 1000.0, (0.0, (0, 0.5, -1), (0, -0.5, -1)),
-         'Carries the charge current over the outside of the elbow.', '94 mm')
-    boot('CHG-FL4', 'J4 flex link, 500 A braided copper in a boot', Anchor(j3, (125.0, LF - 520.0, -30.0), (1, 1, 0)),
-         Anchor(j4, (135.0, 5.0, -50.0), (-1, 1, 0)), 560.0, (0.0, (1, 0, 0), (1, 0, 0)),
-         'Carries the charge current across the forearm\'s roll joint.', '111 mm')
-    boot('CHG-FL5', 'Wrist flex link to the connector, 500 A braided copper in a boot', Anchor(j4, (135.0, 45.0, 50.0), (1, 0.3, 0)),
-         Anchor(tool, TOOL_OUTLET, TOOL_OUTLET_IN), 800.0, (0.0, (1, 0.3, 0), (0, 0, 0)),
+    # every link leaves and arrives square to its box's face, so its end sits flush on the box and never inside it
+    NX, PX, NZ, PZ = (-1, 0, 0), (1, 0, 0), (0, 0, -1), (0, 0, 1)
+    boot('CHG-FL1', 'J1 flex link, 500 A braided copper in a boot', Anchor(base, (-riser_w / 2 - 50.0, -150.0, -100.0), NX),
+         Anchor(j1, (-65.0, 200.0, -185.0), PX), 900.0, (0.0, NX, NX),
+         'Carries the charge current across J1, from the riser to the turret, as the base turns.',
+         '115 mm with the base turned 50 degrees either way', hk=0.4)
+    boot('CHG-FL2', 'J2 flex link, 500 A braided copper in a boot', Anchor(j1, (0.0, 340.0, -220.0), NZ),
+         Anchor(j2, (0.0, 300.0, -180.0), PZ), 1000.0, (0.0, NZ, NZ),
+         'Carries the charge current across J2, behind the shoulder.', '124 mm', hk=0.4)
+    boot('CHG-FL3', 'J3 flex link, 500 A braided copper in a boot', Anchor(j2, (0.0, LU - 250.0, -165.0), NZ),
+         Anchor(j3, (FORE_JOG[0], 250.0, -130.0), PZ), 1200.0, (0.0, (0, 0.5, -1), (0, -0.5, -1)),
+         'Carries the charge current over the outside of the elbow.', '100 mm')
+    boot('CHG-FL4', 'J4 flex link, 500 A braided copper in a boot', Anchor(j3, (125.0, LF - 520.0, -30.0), PX),
+         Anchor(j4, (105.0, 5.0, -50.0), NX), 700.0, (0.5, PX, PX),
+         'Carries the charge current across the forearm\'s roll joint.', '152 mm', hk=0.4)
+    boot('CHG-FL5', 'Wrist flex link to the connector, 500 A braided copper in a boot', Anchor(j4, (105.0, 45.0, 50.0), PX),
+         Anchor(tool, TOOL_OUTLET, TOOL_OUTLET_IN), 800.0, (0.0, PX, (0, 0, 0)),
          'Carries the charge current, the coolant and the tool\'s signals and air from the wrist yoke to the connector, '
-         'across J5 and J6.', '91 mm')
+         'across J5 and J6.', '126 mm', hk=0.4)
 
     # ═════════════════════════════════════════════════════════════ SAFETY ═══
     sc = (cq.Workplane('XY').box(110, 150, 104, centered=(True, False, True)).edges('|Y').fillet(10)

@@ -109,7 +109,7 @@ function chargeArm(bom: Bom, connect: number, release: number): MachineFacts {
       { label: 'Finds the port', value: how(bom, 'TOOL', /cameras/) },
       { label: 'Force control', value: `${how(bom, 'TOOL', /force and torque sensor/)} ${how(bom, 'TOOL', /compliance unit/)}` },
       { label: 'Latch', value: how(bom, 'TOOL', /latch locks/) },
-      { label: 'Power path', value: `${how(bom, 'DRESS', /Nothing live is in the open\.$/)} ${how(bom, 'DRESS', /sealed boot/)}` },
+      { label: 'Power path', value: `The charge current runs inside the arm. ${how(bom, 'DRESS', /Nothing live is in the open\.$/)} ${how(bom, 'DRESS', /sealed boot/)}` },
       { label: 'Status lights', value: 'Light rings on the arm show its state: teal ready, amber moving, green charging, red fault.' },
     ],
     safety: [
