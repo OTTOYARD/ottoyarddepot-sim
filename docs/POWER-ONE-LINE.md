@@ -28,7 +28,13 @@ charge as a charger fault and re-queues the car to finish on a post under anothe
 draws the feeder's breaker open in red, and the card says when power returns. The door is
 `ottoq_twin_trip_power_node`, reached through `otto-twin-control` (`inject_fault`, kind `power_zone`).
 
-**Before 0810 is applied** the function does not exist. The tab says so in one calm line and draws nothing else.
+**Applied.** 0810 has been in production since 2026-11-11 at 9:16 AM CT (ledger 20261111151626) and `otto-twin-control`
+v31 (`1.11.0-power-zone`) since 9:17 AM CT. If the function is ever missing, the tab says so in one calm line and draws
+nothing else.
+
+**Where the control function's source lives.** otto-q-core `edge-functions/otto-twin-control/index.ts` is what is
+deployed. This repo's copy under `supabase/functions/` had fallen two versions behind it (1.9.1 against 1.10.0); it is
+now the same file. Deploy from otto-q-core.
 
 **What is not built.** The 3D yard still draws one transformer in the battery compound and no primary switchgear.
 Where seven pad-mounted units stand on the site is a site-plan decision (working clearances, bollards, the lane
