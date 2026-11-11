@@ -75,7 +75,7 @@ export function runFromSearch(search: string): string | null {
 }
 
 /** The twin's tabs a link may open (simulationStore's CockpitTab). */
-const LINK_TABS = ['background', 'controls', 'ottoq', 'agent', 'kpis', 'history', 'world', 'copilot', 'value', 'research', 'robotics'] as const;
+const LINK_TABS = ['background', 'controls', 'ottoq', 'agent', 'kpis', 'history', 'world', 'copilot', 'value', 'research', 'robotics', 'power'] as const;
 export type LinkTab = (typeof LINK_TABS)[number];
 const LINK_ROBOTS = ['charge_arm', 'clean_arm', 'wash_gantry'] as const;
 export type LinkRobot = (typeof LINK_ROBOTS)[number];

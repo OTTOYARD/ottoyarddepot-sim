@@ -8,7 +8,7 @@
 //   3. A function isolates (the detail card shows what it does and how), and the parts list narrows to it.
 //   4. A part opens its card: standard, size, grade, material, mass, torque for a screw, where it is used.
 //   5. The search and the fastener filter narrow the list; "Find by function" switches robot and isolates.
-//   6. It is reachable: the last tab in the bar and on the phone, and opening it widens the panel on a desktop.
+//   6. It is reachable: after the ten numbered tabs in the bar and on the phone (only Power follows it), and opening it widens the panel on a desktop.
 //   7. The clash check shows the committed report's counts, a clash opens its part, and the wash machine shows none.
 // ============================================================================
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -175,9 +175,9 @@ describe('the Robotics tab', () => {
     expect(screen.getByTestId('cycle-play')).toHaveTextContent('Pause the cycle');
   });
 
-  it('is the last tab in the bar, marked with its own icon', () => {
+  it('comes after the ten numbered tabs, with only Power after it, marked with its own icon', () => {
     render(<TabBar />);
     const labels = screen.getAllByRole('button').map((b) => b.textContent);
-    expect(labels[labels.length - 1]).toBe('Robotics');
+    expect(labels.slice(10)).toEqual(['Robotics', 'Power']);
   });
 });

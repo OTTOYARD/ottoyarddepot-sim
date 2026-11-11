@@ -243,11 +243,11 @@ describe('a payload it cannot draw', () => {
 });
 
 describe('navigation', () => {
-  it('puts Research after Value (only Robotics, which has no number key, follows it) and marks it with the flask', () => {
+  it('puts Research after Value (only Robotics and Power, which have no number key, follow it) and marks it with the flask', () => {
     render(<TabBar />);
     const tabs = screen.getAllByRole('button');
     expect(tabs.map((b) => b.textContent)).toEqual([
-      'Background', 'Control', 'OTTO-Q', 'Agent', 'KPIs', 'Runs', 'Diagnostics', 'Copilot', 'Value', 'Research', 'Robotics',
+      'Background', 'Control', 'OTTO-Q', 'Agent', 'KPIs', 'Runs', 'Diagnostics', 'Copilot', 'Value', 'Research', 'Robotics', 'Power',
     ]);
     expect(tabs[9].querySelector('svg')).not.toBeNull();
   });

@@ -40,6 +40,8 @@ const tabs: { id: CockpitTab; label: string }[] = [
   { id: 'value', label: 'Value' },
   { id: 'research', label: 'Research' },
   { id: 'robotics', label: 'Robotics' },
+  // Power comes last, as Robotics did: the number keys 1-0 belong to the first ten tabs and none of them moves.
+  { id: 'power', label: 'Power' },
 ];
 
 /** `trailing` sits at the header's top-right, outside the (wrapping) tab row: the panel's expand button. */
