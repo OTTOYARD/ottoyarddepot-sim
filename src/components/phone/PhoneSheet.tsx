@@ -12,6 +12,7 @@ import { TwinValueTab } from '@/components/tabs/TwinValueTab';
 import { TwinBackgroundTab } from '@/components/tabs/TwinBackgroundTab';
 import { TwinResearchTab } from '@/components/tabs/TwinResearchTab';
 import { TwinRoboticsTab } from '@/components/tabs/TwinRoboticsTab';
+import { TwinPowerTab } from '@/components/tabs/TwinPowerTab';
 import { settleSheet, sheetHeights } from './phoneLayout';
 import { usePhoneSheet } from './phoneStore';
 
@@ -44,6 +45,7 @@ const TAB_LABEL: Record<CockpitTab, string> = {
   value: 'Value',
   research: 'Research',
   robotics: 'Robotics',
+  power: 'Power',
 };
 const TABS = (Object.keys(TAB_LABEL) as CockpitTab[]).map((id) => ({ id, label: TAB_LABEL[id] }));
 const TAB_COMPONENTS: Record<CockpitTab, () => JSX.Element> = {
@@ -58,6 +60,7 @@ const TAB_COMPONENTS: Record<CockpitTab, () => JSX.Element> = {
   background: TwinBackgroundTab,
   research: TwinResearchTab,
   robotics: TwinRoboticsTab,
+  power: TwinPowerTab,
 };
 
 

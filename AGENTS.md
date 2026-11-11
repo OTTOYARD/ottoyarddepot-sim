@@ -21,6 +21,15 @@ have broken the pitch.**
 The twin owns **discrete truth** (which stall, which state, what time). The renderer owns **only
 interpolation.** Zero world logic client-side.
 
+## The Power tab (2026-11-11)
+
+The cockpit's Power tab draws the depot's electrical one-line from otto-q-core 0810 (`ottoq_power_one_line`): the
+13.8 kV service, seven transformers with their load and winding temperature, thirty posts, and a control that trips a
+whole transformer through `otto-twin-control` (`inject_fault`, kind `power_zone`). Read `docs/POWER-ONE-LINE.md` first.
+Two lines never leave the page: every size is what is installed and limits no car (otto-q-core rule 13), and the
+right-size sentence is one run's reading, never a change. The browser computes sums and words only. The 3D yard does
+not draw the seven units yet; where they stand is a site-plan decision.
+
 ## Landmines specific to this repo
 
 - **1 plan unit = 0.4785 m = 1.57 ft.** `src/lib/sitePlan.ts` is drawn to real dimensions and the 3D
