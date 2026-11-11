@@ -1,7 +1,7 @@
 {
   "meta": {
     "source": "src/lib/sitePlan.ts",
-    "exportedAt": "2026-09-28T19:28:25.930Z",
+    "exportedAt": "2026-11-11T16:33:18.062Z",
     "units": {
       "logical": 1,
       "feet": 1.57,
@@ -25,10 +25,66 @@
     "y": 215
   },
   "bessYard": {
-    "x": 12,
-    "y": 12,
-    "w": 50,
-    "h": 36
+    "x": 10,
+    "y": 10,
+    "w": 56,
+    "h": 34
+  },
+  "txYard": {
+    "x": 68,
+    "y": 8,
+    "w": 41,
+    "h": 16.5
+  },
+  "txPad": {
+    "w": 4.8,
+    "d": 4.4,
+    "h": 4.2
+  },
+  "chargerTransformers": [
+    {
+      "code": "TX-A1",
+      "x": 71.4,
+      "y": 14
+    },
+    {
+      "code": "TX-A2",
+      "x": 78.2,
+      "y": 14
+    },
+    {
+      "code": "TX-B1",
+      "x": 85,
+      "y": 14
+    },
+    {
+      "code": "TX-B2",
+      "x": 91.80000000000001,
+      "y": 14
+    },
+    {
+      "code": "TX-C1",
+      "x": 98.60000000000001,
+      "y": 14
+    },
+    {
+      "code": "TX-C2",
+      "x": 105.4,
+      "y": 14
+    }
+  ],
+  "auxTransformer": {
+    "code": "TX-AUX",
+    "x": 16.5,
+    "y": 20
+  },
+  "mvSwitchgear": {
+    "code": "MV-SWGR",
+    "x": 42,
+    "y": 14.2,
+    "w": 16,
+    "d": 3.2,
+    "h": 4.6
   },
   "building": {
     "x": 70,
@@ -228,7 +284,6 @@
     "southLaneY": 172,
     "rearLaneY": 16,
     "forecourtY": 62,
-    "westLinkX": 66,
     "tempLaneX": 247,
     "gapLanes": {
       "westOfA": 80,

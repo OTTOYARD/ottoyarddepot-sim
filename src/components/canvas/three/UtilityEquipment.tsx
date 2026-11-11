@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import * as THREE from 'three';
 import { MATERIALS } from './materials';
-import { BESS_YARD, LIGHT_POLES } from '@/lib/sitePlan';
+import { AUX_TRANSFORMER, BESS_YARD, CHARGER_TRANSFORMERS, LIGHT_POLES, MV_SWITCHGEAR, TX_PAD, TX_YARD } from '@/lib/sitePlan';
 import { toWorld, DECK_Y } from './coordUtils';
 import { StaticBatch } from './staticBatch';
 
@@ -28,6 +28,8 @@ export function UtilityEquipment({ bessCapacity, bessPower }: UtilityEquipmentPr
   const [bx, , bz] = toWorld({ x: BESS_YARD.x + BESS_YARD.w / 2, y: BESS_YARD.y + BESS_YARD.h / 2 }, 0);
   const containers = Math.max(2, Math.min(4, Math.round(bessCapacity)));
   const yard = useMemo(() => buildBessYard(containers), [containers]);
+  const [tx, , tz] = toWorld({ x: TX_YARD.x + TX_YARD.w / 2, y: TX_YARD.y + TX_YARD.h / 2 }, 0);
+  const txYard = useMemo(() => buildTransformerYard(), []);
   const yardMats = useMemo<Record<string, THREE.Material>>(() => ({
     shell: new THREE.MeshStandardMaterial({ color: '#cdd2d8', roughness: 0.5, metalness: 0.2 }),
     seam: new THREE.MeshStandardMaterial({ color: '#8d959e', roughness: 0.6, metalness: 0.3 }),
@@ -63,6 +65,24 @@ export function UtilityEquipment({ bessCapacity, bessPower }: UtilityEquipmentPr
         <mesh position={[0, 3.2, BESS_YARD.h / 2 + 0.08]} material={mats.amber}>
           <boxGeometry args={[7, 1.6, 0.08]} />
         </mesh>
+      </group>
+
+      {/* ---- transformer yard behind the office: the six charger transformers of the one-line ---- */}
+      <group position={[tx, DECK_Y, tz]}>
+        {[...txYard.entries()].map(([k, g]) => (
+          <mesh key={k} geometry={g} material={yardMats[k]} castShadow={k !== 'pad'} receiveShadow />
+        ))}
+        {[
+          { x: 0, z: -TX_YARD.h / 2, len: TX_YARD.w, rot: 0 },
+          { x: 0, z: TX_YARD.h / 2, len: TX_YARD.w, rot: 0 },
+          { x: -TX_YARD.w / 2, z: 0, len: TX_YARD.h, rot: Math.PI / 2 },
+          { x: TX_YARD.w / 2, z: 0, len: TX_YARD.h, rot: Math.PI / 2 },
+        ].map((f, i) => (
+          <mesh key={i} position={[f.x, 2.2, f.z]} rotation={[0, f.rot, 0]}>
+            <boxGeometry args={[f.len, 4.0, 0.03]} />
+            <meshStandardMaterial color="#15181d" roughness={0.8} metalness={0.6} transparent opacity={0.28} />
+          </mesh>
+        ))}
       </group>
 
       {/* ---- site light poles (24/7 ops) ---- */}
@@ -138,10 +158,51 @@ function buildBessYard(n: number): Map<string, THREE.BufferGeometry> {
     b.box('shell', ex, 0.4 + 2.2, -8 + dz, 6, 4.4, 2.6);
     for (let k = 0; k < 5; k++) b.box('seam', ex - 3.02, 1.2 + k * 0.6, -8 + dz, 0.04, 0.25, 2.0);
   }
-  b.box('transformer', ex, 0.2 + 2.1, 7, 5.2, 4.2, 5.6);
-  for (let k = -2; k <= 2; k++) {
-    for (const side of [-1, 1]) b.box('transformer', ex + side * 2.9, 0.2 + 1.9, 7 + k * 0.9, 0.6, 3.2, 0.12);
+  // TX-AUX (battery, building, solar), where the site plan stands it, and the primary switchgear along the north
+  // fence: one section per transformer feeder and one for the utility's incoming line.
+  const c = { x: BESS_YARD.x + W / 2, y: BESS_YARD.y + D / 2 };
+  padMount(b, -(AUX_TRANSFORMER.x - c.x), -(AUX_TRANSFORMER.y - c.y));
+  const sx = -(MV_SWITCHGEAR.x - c.x), sz = -(MV_SWITCHGEAR.y - c.y);
+  b.box('skid', sx, 0.14, sz, MV_SWITCHGEAR.w + 0.8, 0.2, MV_SWITCHGEAR.d + 0.8);
+  b.box('shell', sx, 0.24 + MV_SWITCHGEAR.h / 2, sz, MV_SWITCHGEAR.w, MV_SWITCHGEAR.h, MV_SWITCHGEAR.d);
+  for (let k = 0; k < 8; k++) {
+    const kx = sx - MV_SWITCHGEAR.w / 2 + (k + 0.5) * (MV_SWITCHGEAR.w / 8);
+    b.box('seam', kx + MV_SWITCHGEAR.w / 16, 0.24 + MV_SWITCHGEAR.h / 2, sz - MV_SWITCHGEAR.d / 2 - 0.01, 0.05, MV_SWITCHGEAR.h - 0.4, 0.03);
+    b.box('hazard', kx, 0.24 + MV_SWITCHGEAR.h * 0.72, sz - MV_SWITCHGEAR.d / 2 - 0.02, 0.7, 0.5, 0.03);
   }
-  b.box('hazard', ex - 2.62, 3.0, 7, 0.04, 1.0, 1.4);
+  return b.build();
+}
+
+/** One pad-mounted transformer at a yard-local point: concrete pad, tank, cooling fins both sides, hazard label on
+ *  its south (front) face. World +X is west and +Z is north, so a plan offset is negated on both axes by the caller. */
+function padMount(b: StaticBatch, lx: number, lz: number) {
+  b.box('skid', lx, 0.1, lz, TX_PAD.w + 1.4, 0.2, TX_PAD.d + 1.4);
+  b.box('transformer', lx, 0.2 + TX_PAD.h / 2, lz, TX_PAD.w, TX_PAD.h, TX_PAD.d);
+  for (let k = -2; k <= 2; k++) {
+    for (const side of [-1, 1]) b.box('transformer', lx + side * (TX_PAD.w / 2 + 0.3), 0.2 + TX_PAD.h * 0.45, lz + k * 0.8, 0.6, TX_PAD.h * 0.76, 0.12);
+  }
+  b.box('hazard', lx, 0.2 + TX_PAD.h * 0.7, lz - TX_PAD.d / 2 - 0.02, 1.4, 1.0, 0.04);
+}
+
+/**
+ * The transformer yard behind the office, in yard-local world units: a concrete pad, a fence, and the six charger
+ * transformers in one row with their fronts to the south, where the working room is.
+ */
+function buildTransformerYard(): Map<string, THREE.BufferGeometry> {
+  const b = new StaticBatch();
+  const W = TX_YARD.w, D = TX_YARD.h;
+  const c = { x: TX_YARD.x + W / 2, y: TX_YARD.y + D / 2 };
+  b.box('pad', 0, 0.02, 0, W - 1, 0.04, D - 1);
+  for (let x = -W / 2; x <= W / 2 + 1e-6; x += W / 8) {
+    for (const z of [-D / 2, D / 2]) b.box('steel', x, 2.2, z, 0.16, 4.4, 0.16);
+  }
+  for (const x of [-W / 2, W / 2]) b.box('steel', x, 2.2, 0, 0.16, 4.4, 0.16);
+  b.box('steel', 0, 4.35, -D / 2, W, 0.1, 0.1);
+  b.box('steel', 0, 4.35, D / 2, W, 0.1, 0.1);
+  b.box('steel', -W / 2, 4.35, 0, 0.1, 0.1, D);
+  b.box('steel', W / 2, 4.35, 0, 0.1, 0.1, D);
+  for (const t of CHARGER_TRANSFORMERS) padMount(b, -(t.x - c.x), -(t.y - c.y));
+  // the feeders' trench along the north fence, back toward the switchgear
+  b.box('skid', 0, 0.08, D / 2 - 1.6, W - 3, 0.12, 1.0);
   return b.build();
 }

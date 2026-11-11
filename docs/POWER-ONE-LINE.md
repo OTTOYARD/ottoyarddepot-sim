@@ -36,7 +36,9 @@ nothing else.
 deployed. This repo's copy under `supabase/functions/` had fallen two versions behind it (1.9.1 against 1.10.0); it is
 now the same file. Deploy from otto-q-core.
 
-**What is not built.** The 3D yard still draws one transformer in the battery compound and no primary switchgear.
+**Where the gear stands (built 2026-11-11).** The founder gave the fenced northwest corner and the strip behind the office to electrical gear; no car drives there. `sitePlan.ts` holds it: `BESS_YARD` (the battery, the 13.8 kV switchgear `MV-SWGR` and `TX-AUX`) and `TX_YARD` behind the office (the six charger transformers, `TX-A1` to `TX-C2`, in a row). The plan, the 3D scene, the layout seed and `structurePlan` all read those constants, and `electricalYard.test.ts` holds them to the engine's node codes. The old west-link lane constant is retired: no route used it. The battery yard's south fence is at plan y 44, not further south, because a recorded car's body corner reaches y 45.7 on the west aisle turn (the clearance replays caught it).
+
+**The fourth solar array is on the carports.** The engine has generated from four 180 kW DC arrays since before `CANOPY-04` was retired, and the scene has always drawn panels on the five perimeter carports. The layout seed now records `canopy_4`'s 288 panels across those five roofs by roof area, so the picture and the solar table agree and no energy number changes.
 Where seven pad-mounted units stand on the site is a site-plan decision (working clearances, bollards, the lane
 network is founder-locked), so it was not guessed.
 

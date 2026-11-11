@@ -24,7 +24,7 @@
  * rear-apron exit side). Bays are pull-through: in the south door, out the north.
  */
 import {
-  BUILDING, WASH, CANOPIES, LOT, PARK_RUNS, SERVICE_BAY_XS, WASH_BAY_XS, BAY_STALL_Y,
+  BUILDING, WASH, CANOPIES, LOT, PARK_RUNS, SERVICE_BAY_XS, WASH_BAY_XS, BAY_STALL_Y, BESS_YARD, TX_YARD,
   generateStallsV2, type CanopyDef, type ParkRun,
 } from './sitePlan';
 import { CAR_LENGTH, CAR_WIDTH } from '@/engine/motion/traffic';
@@ -482,6 +482,14 @@ export function signWallRect(): Rect {
 }
 
 /** A built solid: its exact oriented shape, and its axis-aligned bounds. */
+/** The two fenced electrical yards: the battery yard and the transformer yard behind the office. */
+export function electricalYardSolids(): { kind: string; r: Rect }[] {
+  return [
+    { kind: 'battery-yard', r: rectOf(BESS_YARD) },
+    { kind: 'transformer-yard', r: rectOf(TX_YARD) },
+  ];
+}
+
 export interface Solid { kind: string; r: Rect; box: OBox }
 
 const solid = (kind: string, r: Rect): Solid => ({ kind, r, box: boxOf(r) });
@@ -504,6 +512,9 @@ export function allStructureSolids(): Solid[] {
     // The entrance sign wall, outside the fence. In the set so that if it is ever
     // moved back over a stall or a road, the stall and clearance tests say so.
     solid('sign-wall', signWallRect()),
+    // The electrical ground, fence to fence (founder, 2026-11-11: no vehicle travels there). Whole yards, not each
+    // unit: a car inside the fence is already wrong, whatever it has or has not touched.
+    ...electricalYardSolids().map((k) => solid(k.kind, k.r)),
   ];
 }
 
