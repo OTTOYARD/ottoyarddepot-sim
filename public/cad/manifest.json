@@ -18,37 +18,37 @@
     "depot": "charge_arm.depot.glb"
    },
    "bytes": {
-    "glb": 6867008,
-    "stepZip": 7138457,
-    "step": 36466152,
-    "depot": 546724
+    "glb": 6840948,
+    "stepZip": 6888479,
+    "step": 35462577,
+    "depot": 535616
    },
    "mesh": {
-    "vertices": 287714,
-    "triangles": 326681,
-    "meshes": 190,
-    "nodes": 663
+    "vertices": 286858,
+    "triangles": 325615,
+    "meshes": 189,
+    "nodes": 662
    },
    "depotMesh": {
-    "vertices": 21598,
-    "triangles": 23588,
-    "meshes": 65,
-    "nodes": 77
+    "vertices": 21161,
+    "triangles": 23102,
+    "meshes": 64,
+    "nodes": 76
    },
-   "depotSha256": "0b3df025d60b52e8",
+   "depotSha256": "68c041cae873d3dc",
    "totals": {
-    "parts": 657,
-    "uniqueParts": 193,
+    "parts": 655,
+    "uniqueParts": 191,
     "fasteners": 457,
-    "massKg": 382.28,
-    "boughtLines": 132,
+    "massKg": 376.93,
+    "boughtLines": 130,
     "madeLines": 61,
     "referenceLines": 2
    },
-   "glbSha256": "1979f82de0a215e1",
+   "glbSha256": "1f2627e49905a0a5",
    "stepCheck": {
-    "namedParts": 659,
-    "solids": 1349,
+    "namedParts": 657,
+    "solids": 1347,
     "invalid": 0
    },
    "subsystems": [

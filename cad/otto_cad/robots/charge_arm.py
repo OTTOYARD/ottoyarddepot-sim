@@ -216,12 +216,12 @@ def build(spec: dict) -> Model:
                 'inside the arm, and power and network to the joints.',
                 how=['The charge current comes up the riser from the cabinet in 2 insulated copper bars.',
                      'In each hollow link 2 copper bars carry it, one a pole. Nothing live is in the open.',
-                     'At each joint a short link of braided copper in a sealed boot joins 2 terminal boxes. It bends as the joint turns.',
-                     'From the wrist yoke one last booted link, 0.8 m long, runs to the connector.',
+                     'At the base, the shoulder and the elbow a link of braided copper in a sealed boot joins 2 terminal boxes. It bends as the joint turns.',
+                     'From the forearm one last booted link, 1.2 m long, runs to the connector across the wrist.',
                      'The coolant for the connector\'s contacts, the tool\'s cable and its air line run with the bars and through each boot.',
                      'The joints\' 10 mm power and network cable runs inside the arm, through the hollow shafts of J1 to J5.'],
                 specs={'current': '500 A DC, 1000 V', 'bars': '2 x 40 x 10 mm copper in each link, insulated',
-                       'flex links': '5, braided copper 400 mm2 a pole, in a silicone boot OD 60 mm',
+                       'flex links': '4, braided copper 400 mm2 a pole, in a silicone boot OD 60 mm, 0.9 to 1.2 m',
                        'bend radius': '80 mm moved (the tightest in the twin\'s 20 poses is 100 mm)',
                        'cooling': 'liquid at the connector\'s contacts, 2 tubes 8 mm'}, group='Cables')
     m.subsystem('SAFETY', 'Safety and status', 'Stops the arm when a person comes near and shows its state to the site.',
@@ -613,8 +613,8 @@ def build(spec: dict) -> Model:
     # wire needs to either be safely mounted inside the arm, or to the outside, OR charging is integrated into the arm".
     # So there is no take-up wheel and no free span. The charge current runs IN the arm:
     #   - in the riser and in each hollow link, 2 insulated copper bars (DC+ and DC-), 40 x 10 mm;
-    #   - across each joint, a short link of braided copper in a sealed boot, between 2 terminal boxes;
-    #   - from the wrist yoke to the connector, one last booted link, 0.8 m.
+    #   - across each of J1, J2 and J3, a link of braided copper in a sealed boot, between 2 terminal boxes;
+    #   - from the forearm to the connector, one last booted link, 1.2 m, across the 3 wrist joints.
     # Why not through the joints: each joint's through-bore is the bore of its gear's cup hub, 24 mm at J2 down to 9 mm
     # at J6 (actuator._output_flange). That passes the joints' 10 mm cable and nothing more. A booted link beside the
     # joint needs no bore, and a braid bends far tighter than the 357 mm the one-piece liquid-cooled cable needed (design
@@ -653,10 +653,10 @@ def build(spec: dict) -> Model:
          'Brings the upper arm\'s bars out to the J3 flex link.', 5.0, (0, 0, -180))
     tbox(j3, fore, (FORE_JOG[0], 250.0, -90.0), (104.0, 130.0, 80.0), 'CHG-PB4', 'DC terminal box, forearm, elbow end',
          'Takes the J3 flex link into the 2 copper bars that run inside the forearm.', 4.5, (0, 0, -180))
-    tbox(j3, fore, (85.0, LF - 520.0, 0.0), (80.0, 130.0, 104.0), 'CHG-PB5', 'DC terminal box, forearm, wrist end',
-         'Brings the forearm\'s bars out to the J4 flex link.', 4.5, (180, 0, 0))
-    tbox(j4, yoke, (75.0, 25.0, 0.0), (60.0, 80.0, 170.0), 'CHG-PB6', 'DC junction box, wrist yoke',
-         'Joins the J4 flex link to the last link, which runs to the connector.', 2.5, (180, 0, 0))
+    tbox(j3, fore, (85.0, LF - 420.0, 0.0), (80.0, 130.0, 104.0), 'CHG-PB5', 'DC terminal box, forearm, wrist end',
+         'Brings the forearm\'s bars out to the wrist flex link.', 4.5, (180, 0, 0))
+    # no box on the wrist yoke: J4's bearing, J5's cheek and their screws fill both of its sides (the clash check found a
+    # box there in all of them), so one link crosses J4, J5 and J6 from the forearm's box to the connector
 
     def boot(pid, name, a, b, L, bulge, fn, radius_note, hk=0.5):
         m.flex(FlexDef(pid, name, 'loop', a, b, R_BOOT, 'DRESS', fn, mat='cable', category='electrical', length=L,
@@ -666,7 +666,7 @@ def build(spec: dict) -> Model:
     # every link leaves and arrives square to its box's face, so its end sits flush on the box and never inside it
     NX, PX, NZ, PZ = (-1, 0, 0), (1, 0, 0), (0, 0, -1), (0, 0, 1)
     boot('CHG-FL1', 'J1 flex link, 500 A braided copper in a boot', Anchor(base, (-riser_w / 2 - 50.0, -150.0, -100.0), NX),
-         Anchor(j1, (-65.0, 200.0, -185.0), PX), 900.0, (0.0, NX, NX),
+         Anchor(j1, (-65.0, 200.0, -190.0), PX), 900.0, (0.0, NX, NX),
          'Carries the charge current across J1, from the riser to the turret, as the base turns.',
          '115 mm with the base turned 50 degrees either way', hk=0.4)
     boot('CHG-FL2', 'J2 flex link, 500 A braided copper in a boot', Anchor(j1, (0.0, 340.0, -220.0), NZ),
@@ -675,13 +675,10 @@ def build(spec: dict) -> Model:
     boot('CHG-FL3', 'J3 flex link, 500 A braided copper in a boot', Anchor(j2, (0.0, LU - 250.0, -165.0), NZ),
          Anchor(j3, (FORE_JOG[0], 250.0, -130.0), PZ), 1200.0, (0.0, (0, 0.5, -1), (0, -0.5, -1)),
          'Carries the charge current over the outside of the elbow.', '100 mm')
-    boot('CHG-FL4', 'J4 flex link, 500 A braided copper in a boot', Anchor(j3, (125.0, LF - 520.0, -30.0), PX),
-         Anchor(j4, (105.0, 5.0, -50.0), NX), 700.0, (0.5, PX, PX),
-         'Carries the charge current across the forearm\'s roll joint.', '152 mm', hk=0.4)
-    boot('CHG-FL5', 'Wrist flex link to the connector, 500 A braided copper in a boot', Anchor(j4, (105.0, 45.0, 50.0), PX),
-         Anchor(tool, TOOL_OUTLET, TOOL_OUTLET_IN), 800.0, (0.0, PX, (0, 0, 0)),
-         'Carries the charge current, the coolant and the tool\'s signals and air from the wrist yoke to the connector, '
-         'across J5 and J6.', '126 mm', hk=0.4)
+    boot('CHG-FL4', 'Wrist flex link to the connector, 500 A braided copper in a boot',
+         Anchor(j3, (125.0, LF - 420.0, -30.0), PX), Anchor(tool, TOOL_OUTLET, TOOL_OUTLET_IN), 1200.0, (0.0, PX, PX),
+         'Carries the charge current, the coolant and the tool\'s signals and air from the forearm to the connector, '
+         'across J4, J5 and J6.', '150 mm', hk=0.4)
 
     # ═════════════════════════════════════════════════════════════ SAFETY ═══
     sc = (cq.Workplane('XY').box(110, 150, 104, centered=(True, False, True)).edges('|Y').fillet(10)

@@ -83,7 +83,7 @@ Riser weldment on 4 injection anchors, mount plate, J1 (size 40, motor bell insi
 with a gas-spring balancer, 1.344 m cast upper arm, J3 (size 40), 1.142 m cast forearm, spherical wrist J4/J5/J6
 (sizes 25, 25, 20), ISO 9409-1 tool flange, 6-axis force and torque sensor, lockable compliance unit, DC combo
 connector with its contacts, face seal, bumper, latch hook and solenoid, a sealed vision pod with its 2 camera modules,
-time-of-flight module, IR illuminator board, window and gasket, the power path in the arm (7 DC terminal boxes and 5
+time-of-flight module, IR illuminator board, window and gasket, the power path in the arm (6 DC terminal boxes and 4
 booted flex links, finding 16), safety laser scanner, emergency stop.
 
 **Load check, from the CAD's own masses** (`charge_arm.torque_budget`): at full horizontal reach J2 carries 1,602 N·m
@@ -325,9 +325,10 @@ The poses found more, which the stowed pose could not show:
     exposed cable that the arm pulls to extend out of a pulley. The wire needs to either be safely mounted inside the
     arm, or to the outside, OR charging is integrated into the arm."* Finding 11's answer (a take-up wheel on the
     cabinet and a free span of 2.7 to 3.9 m) is gone. **The current now runs in the arm.** Two insulated copper bars,
-    40 x 10 mm, one a pole, run up the riser and inside each hollow link. At each of J1 to J4 a short link of braided
-    copper in a sealed silicone boot (OD 60 mm) joins two terminal boxes, and one last booted link, 0.8 m, runs from
-    the wrist yoke to the connector across J5 and J6. Nothing live is in the open, and no link is longer than 1.0 m.
+    40 x 10 mm, one a pole, run up the riser and inside each hollow link. At each of J1, J2 and J3 a link of braided
+    copper in a sealed silicone boot (OD 60 mm) joins two terminal boxes, and one last booted link, 1.2 m, runs from
+    the forearm to the connector across the three wrist joints (the wrist yoke has no room for a box: J4's bearing and
+    J5's cheek fill both its sides). Nothing live is in the open, and no link is longer than 1.2 m.
     **Why the current does not go through the joints:** a joint's through-bore is the bore of its gear's cup hub,
     24 mm at J2 down to 9 mm at J6. That passes the joints' 10 mm cable and no more. **Why this works where finding
     11 did not:** the one-piece liquid-cooled cable bends no tighter than 357 mm, and a braid in a boot bends to
@@ -337,8 +338,7 @@ The poses found more, which the stowed pose could not show:
     1.8 A/mm2, so 560 to 720 A for 400 mm2; https://payapress.com/busbar-sizing/, read 2026-11-11), not a rating:
     check it against the Copper Development Association's ampacity tables before a bar is bought. The connector's
     contacts stay liquid-cooled: two 8 mm coolant tubes, the tool's cable and its air line run with the bars and
-    through each boot. **What you still see:** five black boots, at the base, the shoulder, the elbow, the forearm's
-    roll joint and the wrist. They are the arm's own, they move with it, and nothing is pulled from anywhere.
+    through each boot. **What you still see:** four black boots, at the base, the shoulder, the elbow and the wrist. They are the arm's own, they move with it, and nothing is pulled from anywhere.
 
 The audit also found the wash machine's tools fed by rigid pipes that could not follow them. They now have flexible
 lines that do (below), and each wand has its own vacuum unit and each side brush its own cable chain.

@@ -111,7 +111,7 @@
     },
     {
      "label": "Power path",
-     "value": "The charge current runs inside the arm. In each hollow link 2 copper bars carry it, one a pole. Nothing live is in the open. At each joint a short link of braided copper in a sealed boot joins 2 terminal boxes. It bends as the joint turns."
+     "value": "The charge current runs inside the arm. In each hollow link 2 copper bars carry it, one a pole. Nothing live is in the open. At the base, the shoulder and the elbow a link of braided copper in a sealed boot joins 2 terminal boxes. It bends as the joint turns."
     },
     {
      "label": "Status lights",
