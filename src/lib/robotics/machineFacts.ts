@@ -103,13 +103,13 @@ function chargeArm(bom: Bom, connect: number, release: number): MachineFacts {
     steps: stepsOf(k),
     facts: [
       { label: 'Connector', value: spec(bom, 'TOOL', 'connector') },
-      { label: 'Charge cable', value: spec(bom, 'DRESS', 'charge cable').split(',').slice(0, 2).join(',').trim() },
+      { label: 'Charge current', value: `${spec(bom, 'DRESS', 'current')}, liquid-cooled at the connector` },
       { label: 'Time to connect', value: `${one(connect)} s of arm motion` },
       { label: 'Time to release', value: `${one(release)} s of arm motion` },
       { label: 'Finds the port', value: how(bom, 'TOOL', /cameras/) },
       { label: 'Force control', value: `${how(bom, 'TOOL', /force and torque sensor/)} ${how(bom, 'TOOL', /compliance unit/)}` },
       { label: 'Latch', value: how(bom, 'TOOL', /latch locks/) },
-      { label: 'Cable', value: `${how(bom, 'DRESS', /take-up wheel\.$/)} A spring keeps the cable off the car.` },
+      { label: 'Power path', value: `${how(bom, 'DRESS', /Nothing live is in the open\.$/)} ${how(bom, 'DRESS', /sealed boot/)}` },
       { label: 'Status lights', value: 'Light rings on the arm show its state: teal ready, amber moving, green charging, red fault.' },
     ],
     safety: [

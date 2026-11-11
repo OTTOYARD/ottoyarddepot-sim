@@ -212,18 +212,18 @@ def build(spec: dict) -> Model:
                      'Stereo cameras and a time-of-flight sensor find the inlet. A light ring helps at night.',
                      'A solenoid latch locks the connector in the inlet for the charge.'],
                 specs={'connector': 'DC combo class (CCS), liquid-cooled', 'TCP': '369.6 mm from the tool flange'}, group='Tool')
-    m.subsystem('DRESS', 'Cables and take-up', 'Brings the charge current, coolant and tool lines to the connector, and power and '
-                'network to the joints.',
-                how=['The charge cable comes up out of the cabinet roof into a take-up wheel.',
-                     'The wheel\'s hub has a slip ring and a coolant union. They pass the current, coolant, signals and air into the '
-                     'wheel as it turns.',
-                     'The cable lies in the wheel\'s rim and leaves it above the cabinet\'s front edge. From there it spans free to an '
-                     'outlet on the connector. A spring turns the wheel back, so the span is never slack onto the car.',
-                     'The joints\' 10 mm power and network cable runs inside the arm, through the hollow shafts of J1 to J5.',
-                     'The tool\'s cable and its air line ride with the charge cable in its sleeve. J6 is too small to pass them.'],
-                specs={'charge cable': '500 A DC, liquid-cooled, OD 35.7 mm, bend radius 357 mm moved',
-                       'take-up': 'wheel 820 mm, groove radius 380 mm, turns up to 178 degrees',
-                       'span': '2.72 to 3.91 m free, 1.36 x its chord'}, group='Cables')
+    m.subsystem('DRESS', 'Power path in the arm', 'Carries the charge current, the coolant and the tool\'s lines to the connector '
+                'inside the arm, and power and network to the joints.',
+                how=['The charge current comes up the riser from the cabinet in 2 insulated copper bars.',
+                     'In each hollow link 2 copper bars carry it, one a pole. Nothing live is in the open.',
+                     'At each joint a short link of braided copper in a sealed boot joins 2 terminal boxes. It bends as the joint turns.',
+                     'From the wrist yoke one last booted link, 0.8 m long, runs to the connector.',
+                     'The coolant for the connector\'s contacts, the tool\'s cable and its air line run with the bars and through each boot.',
+                     'The joints\' 10 mm power and network cable runs inside the arm, through the hollow shafts of J1 to J5.'],
+                specs={'current': '500 A DC, 1000 V', 'bars': '2 x 40 x 10 mm copper in each link, insulated',
+                       'flex links': '5, braided copper 400 mm2 a pole, in a silicone boot OD 60 mm',
+                       'bend radius': '80 mm moved (the tightest in the twin\'s poses is 91 mm)',
+                       'cooling': 'liquid at the connector\'s contacts, 2 tubes 8 mm'}, group='Cables')
     m.subsystem('SAFETY', 'Safety and status', 'Stops the arm when a person comes near and shows its state to the site.',
                 how=['A safety laser scanner on the riser watches the stall at knee height.',
                      'An emergency stop on the riser cuts motor power (safe torque off).',
@@ -608,80 +608,77 @@ def build(spec: dict) -> Model:
     tool = j6.child('Tool', loc(0, 0, 0), sub='TOOL')
     build_tool(m, tool, LT)
 
-    # ═══════════════════════════════════════════════════════ CHARGE CABLE ═══
-    # The charge cable does not ride the arm. It leaves the cabinet's roof into a slip ring and coolant union on the hub of
-    # a take-up wheel, lies in the wheel's rim, leaves the rim at a fixed point above the cabinet's front edge and spans
-    # free to the connector's outlet. A spring turns the wheel back to take up what the span does not need, so the span
-    # keeps 1.36 times its chord: never slack onto the car, never tight. (Clamped along the links with a retract unit under
-    # the upper arm, the cable stopped at each joint, with no way across J1, J2 or J3: design finding 11.) It leaves the rim
-    # in the wheel's plane, tangent to the groove: a cable turned sideways at the rim rides up the wheel's flange. The
-    # leaving point (136 degrees round from the top) was searched over the duty cycle's 11,070 poses (cadFlex.test.ts):
-    # tightest bend 418 mm against the cable's 357 mm. Its free length runs 2.72 to 3.91 m: the wheel turns 178 degrees.
-    r_cb = 20.0                                          # the cable, OD 35.7, with the tool's cable and air line in a sleeve
-    R_tw = 380.0                                         # the rim groove: the cable's centreline radius
-    c_w = (0.0, 1906.27, -803.31)                        # the wheel's axle (base frame)
-    phi_A = math.radians(136.0)                          # where the cable leaves the rim: round from up (+Y) toward the car
-    A_pt = (0.0, c_w[1] + R_tw * math.cos(phi_A), c_w[2] + R_tw * math.sin(phi_A))
-    t_A = (0.0, math.sin(phi_A), -math.cos(phi_A))       # along the groove there: up and toward the car
-    w_g = 28.0                                           # the groove's half width: the span's side leaves 3 mm off the flange
-    ring = lambda ro, ri, x0, x1: (cq.Workplane('YZ', origin=(x0, c_w[1], c_w[2])).circle(ro).circle(ri)   # noqa: E731
-                                   .extrude(x1 - x0))
-    wheel = (ring(410, 340, -50, 50).cut(ring(411, R_tw - r_cb, -w_g, w_g))          # the rim and the groove the cable lies in
-             .union(ring(345, 99, -6, 6)).union(ring(100, 25, -80, 80)))         # the web and the hub
-    m.place(base, m.part(PartDef('CHG-TUW', 'Cable take-up wheel, 820 mm, spring return', wheel.val(), 'al6061', 'electrical',
-                                 'made to order', 'D 820 x 100', '6061-T6', None,
-                                 'Holds the cable in its rim and turns back on its spring to take up the slack as the arm folds in.',
-                                 {'groove': '380 mm radius (the cable\'s 357 mm moved, with margin), 56 mm wide',
-                                  'turn': 'up to 178 degrees',
-                                  'spring': 'spiral spring in the hub, about 80 N at the rim'}, 'make', mass_override=24.0)),
-            Location(), (0, 260, -200), 'DRESS')
-    axle = cq.Workplane('YZ', origin=(-100, c_w[1], c_w[2])).circle(25).extrude(200)
-    m.place(base, m.part(PartDef('CHG-TUA', 'Take-up wheel axle, 50 mm', axle.val(), 'steel', 'drive', 'machined', 'D 50 x 200', 'C45',
-                                 None, 'Carries the wheel between the frame cheeks, on 2 bearings.', {}, 'make')),
-            Location(), (0, 260, -240), 'DRESS')
-    y_rf = pad_top + cab['height'] * M                   # the cabinet's roof
-    cheek = (cq.Workplane('YZ').polyline([(y_rf, -805), (y_rf, -560), (c_w[1] + 70, c_w[2] + 60), (c_w[1] + 70, c_w[2] - 70),
-                                          (c_w[1] - 210, c_w[2] - 70)]).close().extrude(10)
-             .cut(cq.Workplane('YZ', origin=(-1, c_w[1], c_w[2])).circle(25).extrude(12)))
-    frame = (cheek.translate((85, 0, 0)).union(cheek.translate((-95, 0, 0)))
-             .union(cq.Workplane('XY').box(220, 10, 245).translate((0, y_rf + 5, -682.5))))
-    m.place(base, m.part(PartDef('CHG-TUF', 'Take-up frame, 2 cheeks on a base plate, stainless', frame.val(), 'ss304', 'structure',
-                                 'cut and welded plate 10 mm', '220 x 245 base', '304', None,
-                                 'Stands on the cabinet roof and carries the wheel\'s axle.', {}, 'make')),
-            Location(), (0, 220, -200), 'DRESS')
-    un = (cq.Workplane('YZ', origin=(100, c_w[1], c_w[2])).circle(90).circle(25.5).extrude(120)
-          .union(cq.Workplane('XY').box(60, 40, 60).translate((160, c_w[1] - 100, c_w[2] + 40))))      # the inlet, down
-    m.place(base, m.part(PartDef('CHG-TUU', 'Take-up hub union: 2 x 500 A DC slip ring, signals, 2 coolant passages, air', un.val(),
-                                 'steel_paint', 'electrical', 'made to order', 'D 180 x 120', 'IP55', None,
-                                 'Passes the charge current, the coolant, the charge and tool signals and the air into the turning '
-                                 'wheel, so nothing twists.', {'current': '2 x 500 A DC, 1000 V', 'coolant': '2 passages, 3 bar',
-                                                              'signals': 'CP, PP, PE, tool EtherCAT pair, 4 x 24 V'}, 'buy',
-                                 mass_override=18.0)),
-            Location(), (0, 260, -260), 'DRESS')
-    feed = cq.Workplane('XZ', origin=(160, c_w[1] - 120, c_w[2] + 40)).circle(r_cb).extrude(c_w[1] - 120 - y_rf)
-    m.place(base, m.part(PartDef('CHG-TUC', 'Charge cable, cabinet to the take-up union', feed.val(), 'cable', 'electrical',
-                                 'IEC 62893-4-2', 'OD 35.7 in a 40 mm sleeve', '', None,
-                                 'Brings the cable up out of the cabinet roof to the union. It does not move.', {}, 'buy')),
-            Location(), (0, 200, -260), 'DRESS')
-    # the cable in the rim: drawn over the 120 degrees it always holds (at full reach) up to the leaving point; folded in, it
-    # wraps 178 more
-    on_rim = lambda ph: Vector(0, c_w[1] + R_tw * math.cos(ph), c_w[2] + R_tw * math.sin(ph))   # noqa: E731
-    arc = cq.Edge.makeThreePointArc(on_rim(phi_A + math.radians(120)), on_rim(phi_A + math.radians(60)), on_rim(phi_A))
-    d0 = arc.tangentAt(0)
-    wrap = (cq.Workplane(cq.Plane(origin=arc.startPoint(), xDir=Vector(1, 0, 0), normal=d0)).circle(r_cb)
-            .sweep(cq.Workplane().add(cq.Wire.assembleEdges([arc])), transition='round'))
-    m.place(base, m.part(PartDef('CHG-TUK', 'Charge cable on the take-up wheel', wrap.val(), 'cable', 'electrical', 'IEC 62893-4-2',
-                                 'OD 35.7 in a 40 mm sleeve', '', None, 'Lies in the rim. It winds on and off as the arm moves.', {},
-                                 'buy')), Location(), (0, 240, -200), 'DRESS')
-    m.flex(FlexDef('CHG-CCB', 'Charge cable span, 500 A liquid-cooled, with the tool cable and air line', 'loop',
-                   Anchor(base, A_pt, t_A), Anchor(tool, TOOL_OUTLET, TOOL_OUTLET_IN), r_cb, 'DRESS',
-                   'Carries the charge current, the coolant, the charge signals and the tool\'s signals and air from the take-up '
-                   'wheel to the connector. It spans free between them.',
-                   mat='cable', category='electrical', length=3300, min_bend=357, shape='cubic', sag=0.08, retract_k=1.36,
-                   lmin=400, lmax=4000, swivel_b=33.97, kg_per_m=2.1, size='OD 35.7 in a 40 mm sleeve',
-                   standard='IEC 62893-4-2',
-                   spec={'cable': '500 A DC, 1000 V, liquid-cooled, OD 35.7 mm, 1.94 kg/m', 'bend radius': '357 mm moved (10 x OD)',
-                         'free length': '1.36 x the chord, 2.72 to 3.91 m', 'in the sleeve': 'tool cable (EtherCAT + 24 V) and air 6 mm'}))
+    # ════════════════════════════════════════════════════════ POWER PATH ═══
+    # Chase, 2026-11-11: "I dont think there should be an exposed cable that the arm pulls to extend out of a pulley. The
+    # wire needs to either be safely mounted inside the arm, or to the outside, OR charging is integrated into the arm".
+    # So there is no take-up wheel and no free span. The charge current runs IN the arm:
+    #   - in the riser and in each hollow link, 2 insulated copper bars (DC+ and DC-), 40 x 10 mm;
+    #   - across each joint, a short link of braided copper in a sealed boot, between 2 terminal boxes;
+    #   - from the wrist yoke to the connector, one last booted link, 0.8 m.
+    # Why not through the joints: each joint's through-bore is the bore of its gear's cup hub, 24 mm at J2 down to 9 mm
+    # at J6 (actuator._output_flange). That passes the joints' 10 mm cable and nothing more. A booted link beside the
+    # joint needs no bore, and a braid bends far tighter than the 357 mm the one-piece liquid-cooled cable needed (design
+    # finding 11: that cable had no way across J1, J2 or J3).
+    # Bar size: 400 mm2 a pole. A copper bar carries about 1.4 to 1.8 A/mm2 continuous as a rule of thumb, so 560 to 720 A
+    # for 500 A of charge (https://payapress.com/busbar-sizing/, read 2026-11-11; a rule of thumb, not a rating: check
+    # the bar against the Copper Development Association's ampacity tables before it is bought). The connector's contacts
+    # are still liquid-cooled: 2 coolant tubes of 8 mm, the tool's cable and its 6 mm air line run with the bars and
+    # through every boot.
+    # Each link's length and ends were searched over the twin's 20 poses (flex.solve): the tightest bend is given beside
+    # each one, against the boot's 80 mm.
+    R_BOOT, MB_BOOT = 30.0, 80.0
+    BOOT_SPEC = {'conductors': '2 x 400 mm2 braided copper, tinned, insulated for 1000 V DC', 'boot': 'silicone bellows, OD 60 mm, IP67',
+                 'also inside': '2 coolant tubes 8 mm, tool cable (EtherCAT + 24 V), air 6 mm', 'bend radius': '80 mm moved'}
+
+    def tbox(node, casting, centre, size, pid, name, fn, kg, explode):
+        """A terminal box that sits on a casting: a block cut to the casting's own surface, so it touches and never overlaps."""
+        b = cq.Workplane('XY').box(*size).translate(centre).edges().fillet(8)
+        if casting is not None:
+            b = b.cut(cq.Workplane('XY').add(casting.val()))
+        sol = max(b.val().Solids(), key=lambda q: q.Volume()) if len(b.val().Solids()) > 1 else b.val()
+        m.place(node, m.part(PartDef(pid, name, sol, 'al6061_blk', 'electrical', 'made to order', ' x '.join(f'{v:.0f}' for v in size),
+                                     'IP67', None, fn,
+                                     {'terminals': '2 x 500 A DC, bolted M12, touch-safe covers', 'bars in the link': '2 x 40 x 10 mm copper, insulated',
+                                      'rating basis': 'about 1.4 to 1.8 A/mm2, rule of thumb'}, 'buy', mass_override=kg)),
+                Location(), explode, 'DRESS')
+
+    tbox(base, None, (0.0, -150.0, -riser_w / 2 - 25.0), (130.0, 110.0, 50.0), 'CHG-PB0', 'DC terminal box, riser',
+         'Takes the 2 copper bars up the riser from the cabinet trunk and hands the current to the J1 flex link.', 3.0, (0, 0, -160))
+    tbox(j1, tur, (0.0, 265.0, -180.0), (130.0, 240.0, 80.0), 'CHG-PB1', 'DC junction box, turret',
+         'Joins the J1 flex link to the J2 flex link on the turret\'s back.', 6.0, (0, 0, -180))
+    tbox(j2, upper, (0.0, 300.0, -140.0), (110.0, 130.0, 80.0), 'CHG-PB2', 'DC terminal box, upper arm, shoulder end',
+         'Takes the J2 flex link into the 2 copper bars that run inside the upper arm.', 5.0, (0, 0, -180))
+    tbox(j2, upper, (0.0, LU - 250.0, -125.0), (104.0, 130.0, 80.0), 'CHG-PB3', 'DC terminal box, upper arm, elbow end',
+         'Brings the upper arm\'s bars out to the J3 flex link.', 5.0, (0, 0, -180))
+    tbox(j3, fore, (FORE_JOG[0], 250.0, -90.0), (104.0, 130.0, 80.0), 'CHG-PB4', 'DC terminal box, forearm, elbow end',
+         'Takes the J3 flex link into the 2 copper bars that run inside the forearm.', 4.5, (0, 0, -180))
+    tbox(j3, fore, (85.0, LF - 520.0, 0.0), (80.0, 130.0, 104.0), 'CHG-PB5', 'DC terminal box, forearm, wrist end',
+         'Brings the forearm\'s bars out to the J4 flex link.', 4.5, (180, 0, 0))
+    tbox(j4, yoke, (105.0, 25.0, 0.0), (60.0, 80.0, 170.0), 'CHG-PB6', 'DC junction box, wrist yoke',
+         'Joins the J4 flex link to the last link, which runs to the connector.', 2.5, (180, 0, 0))
+
+    def boot(pid, name, a, b, L, bulge, fn, radius_note, hk=0.5):
+        m.flex(FlexDef(pid, name, 'loop', a, b, R_BOOT, 'DRESS', fn, mat='cable', category='electrical', length=L,
+                       min_bend=MB_BOOT, bulge=bulge, hk=hk, kg_per_m=9.5, size=f'OD 60 x {L:.0f}', standard='IEC 61238-1 (lugs)',
+                       spec={**BOOT_SPEC, 'length': f'{L:.0f} mm', 'tightest bend over the twin\'s poses': radius_note}))
+
+    zb0 = -riser_w / 2 - 50.0
+    boot('CHG-FL1', 'J1 flex link, 500 A braided copper in a boot', Anchor(base, (0.0, -150.0, zb0), (0, 0, -1)),
+         Anchor(j1, (0.0, 200.0, -220.0), (0, 0, 1)), 650.0, (0.0, (0, 0, -1), (0, 0, -1)),
+         'Carries the charge current across J1, from the riser to the turret, as the base turns.', '144 mm', hk=0.4)
+    boot('CHG-FL2', 'J2 flex link, 500 A braided copper in a boot', Anchor(j1, (0.0, 300.0, -220.0), (0, 1, -1)),
+         Anchor(j2, (0.0, 300.0, -180.0), (0, 0.2, 1)), 800.0, (0.0, (0, 0, -1), (0, 0, -1)),
+         'Carries the charge current across J2, behind the shoulder.', '121 mm')
+    boot('CHG-FL3', 'J3 flex link, 500 A braided copper in a boot', Anchor(j2, (0.0, LU - 250.0, -165.0), (0, 0.3, -1)),
+         Anchor(j3, (FORE_JOG[0], 250.0, -130.0), (0, 0.2, 1)), 1000.0, (0.0, (0, 0.5, -1), (0, -0.5, -1)),
+         'Carries the charge current over the outside of the elbow.', '94 mm')
+    boot('CHG-FL4', 'J4 flex link, 500 A braided copper in a boot', Anchor(j3, (125.0, LF - 520.0, -30.0), (1, 1, 0)),
+         Anchor(j4, (135.0, 5.0, -50.0), (-1, 1, 0)), 560.0, (0.0, (1, 0, 0), (1, 0, 0)),
+         'Carries the charge current across the forearm\'s roll joint.', '111 mm')
+    boot('CHG-FL5', 'Wrist flex link to the connector, 500 A braided copper in a boot', Anchor(j4, (135.0, 45.0, 50.0), (1, 0.3, 0)),
+         Anchor(tool, TOOL_OUTLET, TOOL_OUTLET_IN), 800.0, (0.0, (1, 0.3, 0), (0, 0, 0)),
+         'Carries the charge current, the coolant and the tool\'s signals and air from the wrist yoke to the connector, '
+         'across J5 and J6.', '91 mm')
 
     # ═════════════════════════════════════════════════════════════ SAFETY ═══
     sc = (cq.Workplane('XY').box(110, 150, 104, centered=(True, False, True)).edges('|Y').fillet(10)
@@ -872,7 +869,7 @@ def torque_budget(m: Model, j1: Node, j2: Node, j3: Node, j4: Node, H: float, LU
     from ..std import SWG_RATING
     m_j3, c_j3 = m.mass_props(j3)
     m_j2, c_j2 = m.mass_props(j2)
-    cable = 4.0                                # kg of free cable hanging at the tool (ASSUMPTION)
+    cable = 4.0                                # kg of the wrist flex link and its coolant at the tool (ASSUMPTION)
     t3 = (m_j3 * c_j3.y / 1000.0 + cable * (LF + 600) / 1000.0) * G
     t2 = (m_j2 * c_j2.y / 1000.0 + cable * (LU + LF + 600) / 1000.0) * G
     # balancer: a nitrogen gas spring, F(d) = F0 + k (d0 - d) with the force rising GAS_PROGRESSION over its
@@ -909,8 +906,8 @@ def torque_budget(m: Model, j1: Node, j2: Node, j3: Node, j4: Node, H: float, LU
             for h in (0.48, 0.96, 1.44):
                 service.append(math.degrees(_ik_q2(al, h, S)))
     return {
-        'method': 'Gravity torque with the arm stretched horizontal, masses from the CAD solids, plus 4 kg of '
-                  'hanging cable at the tool (ASSUMPTION). Dynamics and the cable pull are not included.',
+        'method': 'Gravity torque with the arm stretched horizontal, masses from the CAD solids, plus 4 kg for '
+                  'the wrist flex link at the tool (ASSUMPTION). Dynamics are not included.',
         'J3': {'distalMassKg': round(m_j3 + cable, 1), 'torqueNm': round(t3), 'gear': 'size 40',
                'repeatedPeakNm': SWG_RATING[40][0], 'margin': round(SWG_RATING[40][0] / t3, 2)},
         'J2': {'distalMassKg': round(m_j2 + cable, 1), 'torqueNm': round(t2), 'gear': 'size 50',

@@ -190,8 +190,8 @@ function chargePoses(): PosePreset[] {
   const ik = solveIK(port, { x: 0, y: 0, z: -1 });
   const j = (a: { j1: number; j2: number; j3: number; j4: number; j5: number; j6: number }) =>
     ({ J1: a.j1, J2: a.j2, J3: a.j3, J4: a.j4, J5: a.j5, J6: a.j6 });
-  // No "straight up" (all joints 0) preset: with the arm straight up, over the take-up wheel, the charge cable would bend
-  // to 251 mm against its 357 mm. The twin never plays that pose, and a real controller keeps the arm out of it.
+  // No "straight up" (all joints 0) preset: the flex links that carry the charge current across the joints are sized
+  // for the poses the twin plays (cadFlex.test.ts), and straight up is not one of them.
   return [
     { id: 'stowed', label: 'Stowed', angles: j(STOWED) },
     { id: 'connected', label: 'Connected', angles: j(ik) },

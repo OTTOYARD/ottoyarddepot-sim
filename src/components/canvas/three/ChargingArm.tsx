@@ -313,7 +313,7 @@ export function ChargingArm({ stallId, stallType, fleet, slot, cad, flex }: Char
     // hand its segments to the instanced meshes.
     groupRef.current?.updateWorldMatrix(true, true);
     writeArm(fleet, slot, rig.nodes, col, glow);
-    // the CAD's charge cable: its take-up wheel on the cabinet to the connector, solved at this pose
+    // the CAD's flex links: the booted copper links that carry the charge current across the joints, solved at this pose
     if (flex && rig.skel) flex.write(slot, rig.skel);
 
     // Charge cable, drawn whenever the arm is out of its cradle. It used to be

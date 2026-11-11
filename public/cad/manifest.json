@@ -18,37 +18,37 @@
     "depot": "charge_arm.depot.glb"
    },
    "bytes": {
-    "glb": 6786156,
-    "stepZip": 6051114,
-    "step": 32110843,
-    "depot": 524260
+    "glb": 6865996,
+    "stepZip": 6927894,
+    "step": 35698226,
+    "depot": 546308
    },
    "mesh": {
-    "vertices": 285390,
-    "triangles": 322975,
-    "meshes": 189,
-    "nodes": 662
+    "vertices": 287682,
+    "triangles": 326653,
+    "meshes": 190,
+    "nodes": 663
    },
    "depotMesh": {
-    "vertices": 20691,
-    "triangles": 22616,
-    "meshes": 64,
-    "nodes": 76
+    "vertices": 21578,
+    "triangles": 23572,
+    "meshes": 65,
+    "nodes": 77
    },
-   "depotSha256": "6df302dcd8a151c8",
+   "depotSha256": "80cd18aaba919f5f",
    "totals": {
-    "parts": 652,
-    "uniqueParts": 188,
+    "parts": 657,
+    "uniqueParts": 193,
     "fasteners": 457,
-    "massKg": 390.79,
-    "boughtLines": 124,
-    "madeLines": 64,
+    "massKg": 374.2,
+    "boughtLines": 132,
+    "madeLines": 61,
     "referenceLines": 2
    },
-   "glbSha256": "b40aa1a8ffb9552b",
+   "glbSha256": "2587092b93f87c6a",
    "stepCheck": {
-    "namedParts": 654,
-    "solids": 1344,
+    "namedParts": 659,
+    "solids": 1349,
     "invalid": 0
    },
    "subsystems": [
@@ -86,7 +86,7 @@
     },
     {
      "id": "DRESS",
-     "name": "Cables and take-up"
+     "name": "Power path in the arm"
     },
     {
      "id": "SAFETY",
