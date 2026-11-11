@@ -48,6 +48,9 @@ interface Props {
   robot: RobotKey;
   /** play the robot's cycle (the twin's own choreography) on the model; null or paused: the state's pose */
   cycle?: CadCycle | null;
+  /** follow a running robot: called on every frame, its joint values pose the model in place of the state's pose
+   *  and the cycle. null: no robot is followed. The viewer only draws what it is given. */
+  live?: (() => Record<string, number> | null) | null;
   onCycle?: (t: number, step: number) => void;
   onJoints?: (joints: CadJointSummary[]) => void;
   glb: string;
@@ -148,20 +151,23 @@ function Framer({ model, state, controls }: { model: CadModel | null; state: Cad
   return null;
 }
 
-function Model({ model, state, fasteners, onPick, onHover, cycle, onCycle }: {
+function Model({ model, state, fasteners, onPick, onHover, cycle, onCycle, live }: {
   model: CadModel; state: CadViewState; fasteners: ReadonlySet<string>;
-  onPick: Props['onPick']; onHover?: Props['onHover']; cycle?: CadCycle | null; onCycle?: Props['onCycle'];
+  onPick: Props['onPick']; onHover?: Props['onHover']; cycle?: CadCycle | null; onCycle?: Props['onCycle']; live?: Props['live'];
 }) {
   const [hover, setHover] = useState<string | null>(null);
   const { gl } = useThree();
   const clock = useRef({ t: 0, sent: -1, step: -1 });
 
   const playing = !!cycle?.playing;
-  useEffect(() => { if (!playing) poseCad(model, state.angles); }, [model, state.angles, playing]);
+  const following = !!live;
+  useEffect(() => { if (!playing && !following) poseCad(model, state.angles); }, [model, state.angles, playing, following]);
   useEffect(() => { clock.current = { t: 0, sent: -1, step: -1 }; }, [cycle?.script]);
   // The cycle plays on the frame clock: the model is posed here, and the tab hears about it at most 8 times a
   // second (and on every step change), so a playing cycle never re-renders the parts list each frame.
   useFrame((_, dt) => {
+    const followed = live?.();
+    if (followed) { poseCad(model, followed); return; }
     if (!cycle?.playing) return;
     const c = clock.current;
     c.t = (c.t + Math.min(dt, 0.25) * cycle.speed) % cycle.script.total;
@@ -277,7 +283,7 @@ function FlexLines({ model, state }: { model: CadModel; state: CadViewState }) {
   return fleet ? <primitive object={fleet.group} /> : null;
 }
 
-export function CadViewer({ robot, glb, state, fasteners, onPick, onHover, onStatus, cycle, onCycle, onJoints }: Props) {
+export function CadViewer({ robot, glb, state, fasteners, onPick, onHover, onStatus, cycle, onCycle, onJoints, live }: Props) {
   const [model, setModel] = useState<CadModel | null>(null);
   const controls = useRef<OrbitControlsImpl>(null);
 
@@ -313,7 +319,7 @@ export function CadViewer({ robot, glb, state, fasteners, onPick, onHover, onSta
       <directionalLight position={[5, 9, 6]} intensity={1.5} />
       <directionalLight position={[-6, 4, -5]} intensity={0.35} />
       <hemisphereLight args={[0xdfe8ff, 0x1a1e24, 0.45]} />
-      {model && <Model model={model} state={state} fasteners={fasteners} onPick={onPick} onHover={onHover} cycle={cycle} onCycle={onCycle} />}
+      {model && <Model model={model} state={state} fasteners={fasteners} onPick={onPick} onHover={onHover} cycle={cycle} onCycle={onCycle} live={live} />}
       {model && <FlexLines model={model} state={state} />}
       {model && state.showCar && <CarGhost robot={robot} />}
       <gridHelper args={[20, 40, 0x2a3440, 0x161c24]} position={[0, robot === 'charge_arm' ? -MOUNT_HEIGHT_M : 0, 0]} />

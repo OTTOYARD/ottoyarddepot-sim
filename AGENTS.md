@@ -352,6 +352,11 @@ not draw the seven units yet; where they stand is a site-plan decision.
   `cabinetEnvelope` or the car and `cadSpec.test.ts` fails until you run `CAD_SPEC_WRITE=1 npx vitest run
   src/lib/robotics/cadSpec.test.ts` and `cad/.venv/bin/python cad/build.py`; `cad.test.ts` then checks the rebuilt GLBs
   against the specs. Poses in the tab come from the twin's own IK and choreography, never from angles typed in the tab.
+  **The one time the tab reads the run is "Follow a robot in the depot" (2026-11-11):** the model takes the pose of a
+  machine the yard draws now, from the motion driver's own session (`armSessionAt`, `cleanSessionAt`,
+  `washSessionAt`) through the yard's own pose code (`src/lib/robotics/liveFollow.ts`,
+  `src/components/robotics/useLiveFollow.ts`). It reads and decides nothing, and the banner names the machine it
+  follows. Do not give the follow a session, a pose or a clock of its own.
   **Every CAD change ends with the clash check:** `cad/build.py`, then `cad/clash.py --baseline` with the same code.
   It places every part at the stowed pose and at every twin pose in `cad/spec/poses.json` (written by `cadPoses.ts`;
   rewrite it with `CAD_SPEC_WRITE=1 npx vitest run src/lib/robotics/cadPoses.test.ts` when a pose or a joint name
