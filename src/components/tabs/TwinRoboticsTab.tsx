@@ -6,18 +6,24 @@
 // individual major robotic, or mechanical or engineering function".
 //
 // What it reads: public/cad/manifest.json and each robot's bill of materials and GLB, built by cad/build.py from the
-// twin's own robot specs (src/lib/robotics/cadSpec.ts). Nothing here reads the run: it is DESIGN DATA, not live, and
-// the banner says so, and links to OTTO-PULSE's Robots tab for what each machine is doing now. Pose presets and the run steps come from the twin's own code (catalog.ts), so the CAD moves the
-// way the depot's robots move. Opening the tab widens the panel to full width on a desktop (Esc returns it).
+// twin's own robot specs (src/lib/robotics/cadSpec.ts). It is DESIGN DATA, and the banner says so, and links to
+// OTTO-PULSE's Robots tab for what each machine is doing now. Pose presets and the run steps come from the twin's own
+// code (catalog.ts), so the CAD moves the way the depot's robots move.
+//
+// Chase, 2026-11-11: "now do the live-follow in the twin's Robotics tab". The one time the tab reads the run: "Follow
+// a robot in the depot" poses the model from a machine the yard draws now (useLiveFollow: the motion driver's own
+// session, the yard's own pose code). The banner then names the machine it follows. It reads; it decides nothing. Opening the tab widens the panel to full width on a desktop (Esc returns it).
 // ============================================================================
 import { Component, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Box, Download, Eye, EyeOff, Loader2, Maximize2, Pause, Play, RotateCcw, Scissors, Search, Wrench } from 'lucide-react';
+import { Box, Download, Eye, EyeOff, Loader2, Maximize2, Pause, Play, Radio, RotateCcw, Scissors, Search, Wrench } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Slider } from '@/components/ui/slider';
 import { useSimulationStore } from '@/store/simulationStore';
 import { usePhoneSheet } from '@/components/phone/phoneStore';
 import { useTwinStore } from '@/store/twinStore';
 import { isLiveRunStatus, pulseRobotsUrl, robotFromSearch } from '@/lib/cockpitLinks';
+import { useLiveFollow } from '@/components/robotics/useLiveFollow';
+import { followLine, type LiveUnit } from '@/lib/robotics/liveFollow';
 import { CadViewer, type CadJointSummary, type CadViewState, type SectionAxis, type ViewDir } from '@/components/robotics/CadViewer';
 import {
   CATEGORY_LABEL, FUNCTIONS, JOINT_LABEL, ROBOT_INFO, ROBOT_KEYS, cadUrl, cycleScript, cycleSteps, fastenerIds, fetchBom, fetchClash, fetchManifest, filterLines,
@@ -33,8 +39,8 @@ const DEFAULT_VIEW: Omit<CadViewState, 'angles'> = {
 
 // ── small pieces ───────────────────────────────────────────────────────────
 
-function Banner() {
-  // The CAD reads no run. The link to OTTO-PULSE carries the live run's id when there is one, as "View in" does.
+function Banner({ following }: { following: LiveUnit | null }) {
+  // The CAD reads no run, but for the pose of a machine it follows. The link to OTTO-PULSE carries the live run's id when there is one, as "View in" does.
   const activeSimRunId = useTwinStore((s) => s.activeSimRunId);
   const run = useTwinStore((s) => s.snapshot?.run);
   const liveRunId = run && run.sim_run_id === activeSimRunId && isLiveRunStatus(run.status) ? run.sim_run_id : null;
@@ -43,7 +49,9 @@ function Banner() {
       className="flex items-start gap-2 rounded border border-dashed border-sky-300/40 bg-sky-300/[0.06] px-2.5 py-2">
       <Wrench size={14} aria-hidden className="mt-0.5 shrink-0 text-sky-300" />
       <p className="min-w-0 text-[11.5px] leading-5 text-ink">
-        <span className="font-semibold text-sky-200">Engineering CAD. Design data, not live.</span>{' '}
+        <span className="font-semibold text-sky-200" data-testid="robotics-banner-head">
+          {following ? `Engineering CAD. The pose follows ${following.label} now.` : 'Engineering CAD. Design data, not live.'}
+        </span>{' '}
         Each robot has every part in the model, to the last screw and washer. The twin uses the same dimensions.{' '}
         <a href={pulseRobotsUrl(liveRunId)} target="_blank" rel="noreferrer" data-testid="robotics-live-link"
           className="whitespace-nowrap text-sky-200 underline decoration-sky-300/50 underline-offset-2 hover:text-sky-100">
@@ -205,6 +213,14 @@ export function TwinRoboticsTab() {
     setPlaying(false); setManual({}); setCyc({ t: 0, step: 0 });
   }, [robot, presets]);
   const script = useMemo(() => cycleScript(robot), [robot]);
+  const followed = useLiveFollow(robot);
+  const following = followed.following;
+  const startFollow = (id: string) => {
+    setPlaying(false); setManual({});
+    if (!following) setView((v) => ({ ...v, selected: null, isolate: null, explode: 0, frameCar: true, fitKey: v.fitKey + 1 }));
+    followed.follow(id);
+  };
+  const stopFollow = () => { followed.follow(null); set({ frameCar: false }); };
   const angles = useMemo(
     () => ({ ...(presets.find((p) => p.id === poseId)?.angles ?? presets[0].angles), ...manual }),
     [presets, poseId, manual],
@@ -251,6 +267,7 @@ export function TwinRoboticsTab() {
   const cycleBar = (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-white/[0.06] px-2 py-1.5 text-[11px]" data-testid="cycle-bar">
       <button type="button" onClick={() => {
+        followed.follow(null);
         setPlaying(!playing);
         setView((v) => (playing ? { ...v, frameCar: false } : { ...v, selected: null, isolate: null, explode: 0, frameCar: true, fitKey: v.fitKey + 1 }));
       }}
@@ -272,11 +289,40 @@ export function TwinRoboticsTab() {
     </div>
   );
 
+  // Follow a robot in the depot: the model takes the pose of a machine the yard draws now.
+  const followBar = (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-white/[0.06] px-2 py-1.5 text-[11px]" data-testid="follow-bar">
+      <button type="button" disabled={!followed.live && !following} data-testid="follow-toggle" aria-pressed={!!following}
+        onClick={() => (following ? stopFollow() : startFollow((followed.units.find((u) => u.working) ?? followed.units[0]).id))}
+        className={`inline-flex items-center gap-1 rounded border px-2 py-1 disabled:cursor-not-allowed disabled:opacity-50 ${following ? 'border-emerald-400/50 bg-emerald-400/10 text-emerald-100' : 'border-white/[0.1] bg-white/[0.04] text-ink hover:bg-white/[0.08]'}`}>
+        <Radio size={11} aria-hidden /> {following ? 'Stop the follow' : 'Follow a robot in the depot'}
+      </button>
+      {following && (
+        <select value={following.id} onChange={(e) => startFollow(e.target.value)} data-testid="follow-unit" aria-label="The robot to follow"
+          className="rounded border border-white/[0.1] bg-canvas-panel px-1.5 py-1 text-[11px] text-ink">
+          {followed.units.map((u) => <option key={u.id} value={u.id}>{u.label} · {u.phaseLabel}</option>)}
+        </select>
+      )}
+      <div className="min-w-0 flex-1 text-ink" data-testid="follow-status" aria-live="polite">
+        {following ? (
+          <>
+            <div className="truncate">{followLine(following)}</div>
+            {followed.mirrored && <div className="truncate text-ink-dim">This machine is the mirror image of the model. Each joint moves the same amount.</div>}
+          </>
+        ) : (
+          <span className="text-ink-dim">
+            {followed.live ? 'The model takes the pose of a machine the yard shows now.' : 'No run plays in the yard now. Start or open a run to follow a robot.'}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+
   const toolbar = (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-white/[0.06] px-2 py-2 text-[11px]" data-testid="cad-toolbar">
       <div className="flex items-center gap-1">
         <span className="text-ink-dim">Pose</span>
-        {presets.map((p) => <Chip key={p.id} active={!playing && p.id === poseId} onClick={() => { setPlaying(false); setManual({}); setPoseId(p.id); set({ frameCar: false }); }} testId={`pose-${p.id}`}>{p.label}</Chip>)}
+        {presets.map((p) => <Chip key={p.id} active={!playing && !following && p.id === poseId} onClick={() => { followed.follow(null); setPlaying(false); setManual({}); setPoseId(p.id); set({ frameCar: false }); }} testId={`pose-${p.id}`}>{p.label}</Chip>)}
       </div>
       <div className="flex items-center gap-1">
         <span className="text-ink-dim">View</span>
@@ -303,7 +349,7 @@ export function TwinRoboticsTab() {
           {view.showFasteners ? <Eye size={11} className="inline" aria-hidden /> : <EyeOff size={11} className="inline" aria-hidden />} Fasteners
         </Chip>
         <Chip active={view.showCar} onClick={() => set({ showCar: !view.showCar })}>Car</Chip>
-        <Chip onClick={() => { setView({ ...DEFAULT_VIEW, fitKey: view.fitKey + 1 }); setPoseId(presets[0].id); setManual({}); setPlaying(false); }}><RotateCcw size={11} className="inline" aria-hidden /> Reset</Chip>
+        <Chip onClick={() => { setView({ ...DEFAULT_VIEW, fitKey: view.fitKey + 1 }); setPoseId(presets[0].id); setManual({}); setPlaying(false); followed.follow(null); }}><RotateCcw size={11} className="inline" aria-hidden /> Reset</Chip>
       </div>
     </div>
   );
@@ -314,7 +360,7 @@ export function TwinRoboticsTab() {
         <ViewerBoundary>
           <CadViewer robot={robot} glb={entry.files.glb} state={state} fasteners={fasteners}
             onPick={(id) => set({ selected: id })} onStatus={setStatus}
-            cycle={{ script, playing, speed }} onCycle={(t, st) => setCyc({ t, step: st })} onJoints={setJoints} />
+            cycle={{ script, playing, speed }} onCycle={(t, st) => setCyc({ t, step: st })} onJoints={setJoints} live={followed.read} />
         </ViewerBoundary>
       )}
       {(status.loading || status.error) && (
@@ -342,10 +388,10 @@ export function TwinRoboticsTab() {
 
   const jointPanel = joints.length > 0 && (
     <div className="space-y-1" data-testid="joint-panel">
-      <SectionTitle>Move the joints</SectionTitle>
+      <SectionTitle>{following ? 'The joints now' : 'Move the joints'}</SectionTitle>
       <ul className="space-y-1.5">
         {joints.map((j) => {
-          const v = angles[j.name] ?? j.stowed;
+          const v = (following && followed.angles ? followed.angles[j.name] : undefined) ?? angles[j.name] ?? j.stowed;
           const rev = j.kind === 'revolute';
           return (
             <li key={j.name} className="space-y-0.5" data-testid="joint" data-joint={j.name}>
@@ -353,7 +399,7 @@ export function TwinRoboticsTab() {
                 <span className="text-ink">{JOINT_LABEL[j.name] ?? j.name}</span>
                 <span className="font-mono tabular-nums text-ink-dim">{rev ? `${(v * 180 / Math.PI).toFixed(0)}°` : `${Math.round(v * 1000)} mm`}</span>
               </div>
-              <Slider value={[v]} min={j.limits[0]} max={j.limits[1]} step={rev ? 0.005 : 0.002} disabled={playing}
+              <Slider value={[v]} min={j.limits[0]} max={j.limits[1]} step={rev ? 0.005 : 0.002} disabled={playing || !!following}
                 onValueChange={(x) => setManual((m) => ({ ...m, [j.name]: x[0] }))} />
             </li>
           );
@@ -538,14 +584,14 @@ export function TwinRoboticsTab() {
     return (
       <div className="flex min-h-0 flex-1 flex-col" data-testid="robotics-tab" data-layout="wide">
         <div className="space-y-2 border-b border-white/[0.06] px-3 py-2">
-          <Banner />
+          <Banner following={following} />
           <div className="flex flex-wrap items-start justify-between gap-3">{picker}{functions}</div>
         </div>
         <div className="grid min-h-0 flex-1 grid-cols-[290px,minmax(0,1fr),380px]">
           <ScrollArea className="min-h-0 border-r border-white/[0.06]">
             <div className="space-y-4 p-3">{subsystemList}{subsystemDetail || overview}{jointPanel}</div>
           </ScrollArea>
-          <div className="flex min-h-0 flex-col">{toolbar}{cycleBar}<div className="min-h-0 flex-1">{viewer}</div></div>
+          <div className="flex min-h-0 flex-col">{toolbar}{cycleBar}{followBar}<div className="min-h-0 flex-1">{viewer}</div></div>
           <div className="flex min-h-0 flex-col border-l border-white/[0.06]">
             {selectedLine && bom && (
               <div className="max-h-[55%] shrink-0 overflow-y-auto border-b border-white/[0.06] p-3">
@@ -563,13 +609,13 @@ export function TwinRoboticsTab() {
   return (
     <ScrollArea className="min-h-0 flex-1" data-testid="robotics-tab" data-layout="narrow">
       <div className="space-y-3 p-3">
-        <Banner />
+        <Banner following={following} />
         {picker}
         {/* the desktop widens its side panel; the phone cockpit takes its sheet full screen (its own toggle) */}
         <button type="button" onClick={() => { setPanelExpanded(true); usePhoneSheet.getState().setFullscreen(true); }} data-testid="open-full"
           className="inline-flex items-center gap-1 rounded border border-white/[0.08] bg-white/[0.03] px-2 py-1 text-[11px] text-ink hover:bg-white/[0.06]">
           <Maximize2 size={11} aria-hidden /> Open the full CAD view</button>
-        <div className="overflow-hidden rounded border border-white/[0.06]">{toolbar}{cycleBar}<div className="h-[300px]">{viewer}</div></div>
+        <div className="overflow-hidden rounded border border-white/[0.06]">{toolbar}{cycleBar}{followBar}<div className="h-[300px]">{viewer}</div></div>
         {functions}
         {subsystemList}
         {jointPanel}

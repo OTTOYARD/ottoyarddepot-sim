@@ -17,8 +17,9 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 vi.mock('@/components/robotics/CadViewer', () => ({
-  CadViewer: (p: { robot: string; state: { isolate: string | null; selected: string | null; angles: Record<string, number> } }) => (
+  CadViewer: (p: { robot: string; live?: (() => Record<string, number> | null) | null; state: { isolate: string | null; selected: string | null; angles: Record<string, number> } }) => (
     <div data-testid="cad-viewer-stub" data-robot={p.robot} data-isolate={p.state.isolate ?? ''} data-selected={p.state.selected ?? ''}
+      data-live={p.live ? JSON.stringify(p.live()) : ''}
       data-joints={Object.keys(p.state.angles).join(',')} />
   ),
 }));
@@ -28,6 +29,11 @@ import { TabBar } from '@/components/layout/TabBar';
 import { useSimulationStore } from '@/store/simulationStore';
 import { usePhoneSheet } from '@/components/phone/phoneStore';
 import { useTwinStore } from '@/store/twinStore';
+import { useDepotStore } from '@/store/depotStore';
+import { useVehicleStore } from '@/store/vehicleStore';
+import { twinMotionDriver } from '@/engine/TwinMotionDriver';
+import { portFor } from '@/lib/ottoChargeArm/chargePort';
+import { chargeLiveAngles } from '@/lib/robotics/liveFollow';
 
 const PUB = resolve(__dirname, '../../../public/cad');
 const serve = vi.fn(async (url: string) => {
@@ -173,6 +179,48 @@ describe('the Robotics tab', () => {
     await settle();
     expect(screen.getByTestId('cycle-play')).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByTestId('cycle-play')).toHaveTextContent('Pause the cycle');
+  });
+
+  it('follows no robot when no run plays in the yard, and says so', async () => {
+    await open(true);
+    expect(screen.getByTestId('follow-toggle')).toBeDisabled();
+    expect(screen.getByTestId('follow-status')).toHaveTextContent('No run plays in the yard now.');
+    expect(screen.getByTestId('cad-viewer-stub').dataset.live).toBe('');
+  });
+
+  it('follows a robot the yard shows: the working one first, its own car\'s port, and the banner says so', async () => {
+    const stall = (id: string) => ({ id, type: 'dcfc', status: 'occupied', vehicleId: null, position: { x: 0, y: 0, angle: 0 } });
+    const before = { stalls: useDepotStore.getState().stalls, vehicles: useVehicleStore.getState().vehicles };
+    useDepotStore.setState({ stalls: [stall('dcfc-03'), stall('dcfc-07')] as never });
+    useVehicleStore.setState({ vehicles: [{ id: 'veh-1', label: 'Zoox-AV-004', oem: 'zoox' }] as never });
+    const arm = vi.spyOn(twinMotionDriver, 'armSessionAt').mockImplementation((id: string) => (
+      id === 'dcfc-07' ? { phase: 'charging', phaseElapsed: 40, t: 1, vehicleId: 'veh-1' } : { phase: 'stowed', phaseElapsed: 0, t: 0, vehicleId: null }
+    ) as never);
+    try {
+      await open(true);
+      expect(screen.getByTestId('robotics-banner-head')).toHaveTextContent('Design data, not live.');
+      fireEvent.click(screen.getByTestId('follow-toggle'));
+      await settle();
+      expect(screen.getByTestId('robotics-banner-head')).toHaveTextContent('The pose follows Fast charger 07 now.');
+      expect(screen.getByTestId('follow-status')).toHaveTextContent('Fast charger 07: Charge · Zoox-AV-004');
+      const port = portFor('veh-1', 'zoox' as never);
+      const want = chargeLiveAngles({ phase: 'charging', t: 1 }, port);
+      const drawn = JSON.parse(screen.getByTestId('cad-viewer-stub').dataset.live!);
+      for (const k of Object.keys(want)) expect(drawn[k]).toBeCloseTo(want[k], 9);
+      // another machine, from the list
+      fireEvent.change(screen.getByTestId('follow-unit'), { target: { value: 'dcfc-03' } });
+      await settle();
+      expect(screen.getByTestId('follow-status')).toHaveTextContent('Fast charger 03: Stowed');
+      // a pose preset ends the follow
+      fireEvent.click(screen.getByTestId('pose-stowed'));
+      await settle();
+      expect(screen.getByTestId('robotics-banner-head')).toHaveTextContent('Design data, not live.');
+      expect(screen.getByTestId('cad-viewer-stub').dataset.live).toBe('');
+    } finally {
+      arm.mockRestore();
+      useDepotStore.setState({ stalls: before.stalls });
+      useVehicleStore.setState({ vehicles: before.vehicles });
+    }
   });
 
   it('comes after the ten numbered tabs, with only Power after it, marked with its own icon', () => {

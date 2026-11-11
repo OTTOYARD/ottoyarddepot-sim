@@ -498,6 +498,18 @@ code; isolate a major function (what it does, how, specs, parts, screws, mass) a
 part in the list or the view and the rest x-rays while the camera zooms to it; its card gives the standard, size,
 grade, material, mass, tightening torque and where it is used. Downloads: STEP, GLB, CSV.
 
+**Follow a robot in the depot** (2026-11-11) poses the model from a machine the yard draws now. It is offered while a
+run plays in the yard, and it is the one time this tab reads the run. The pose is not a second evaluation: it is the
+motion driver's own session for that stall or wash bay (`armSessionAt`, `cleanSessionAt`, `washSessionAt`) through the
+pose code the yard uses (`poseFor` with the port of the car the arm serves, `cleanSessionJoints`, `washPoseAt`), in
+`src/lib/robotics/liveFollow.ts` and `src/components/robotics/useLiveFollow.ts`. The machine that works is picked
+first, and a list gives the others. The banner then reads *Engineering CAD. The pose follows Fast charger 02 now.*, a
+line gives the step and the car, and the joint sliders become read-outs. A pose preset, the cycle or Reset ends it.
+Three limits, stated on purpose. The model stands on one side of its car, so an arm on the other side shows as its
+mirror image, and the tab says so. The model's car is the sample car, at the followed car's port position. The 3D yard
+limits how fast a drawn joint turns, and the model shows the solved pose, so the two can differ for a moment in a fast
+move. The follow reads and decides nothing.
+
 **Run the cycle** plays the robot's whole cycle on the CAD, at 1x to 8x, with the step it is on: the charge arm through
 `poseForPhase` (unstow to retract, to the same rear-quarter port), the clean arm through `cleanJointsAt` (doors to
 doors), the wash machine through `washPoseAt` (settle, cabin vacuum, the 6 passes). A step the twin times by the car
