@@ -18,6 +18,10 @@ browser but sums and words (`src/lib/powerOneLine.ts`).
 2. "This day would have fit on 1,000 kVA" is one run's reading for a person. It changes nothing. The depot's ceiling is
    set after the build, from what the cars drew.
 
+**Two readings made at a run's end.** For each charger transformer: had it tripped at its busiest moment, could the
+posts under the other transformers have taken its cars. For the depot: the most any post delivered against its
+350 kW rating, and how many of the depot's cars can take more than 150 kW at all. Both are one run's reading.
+
 **Tripping a transformer.** With a run live, pick a transformer and press
 "Trip this transformer", then confirm. Every post under it goes dark for 90 sim minutes. The engine ends each open
 charge as a charger fault and re-queues the car to finish on a post under another transformer (rule 9). The diagram

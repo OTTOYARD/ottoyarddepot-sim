@@ -22,6 +22,7 @@
     "peak_kva": 941.4,
     "rightsize": null,
     "peak_kw_ac": 913.2,
+    "resilience": null,
     "aging_hours": 0.0,
     "load_seconds": [
      0,
@@ -75,6 +76,7 @@
     "peak_kva": 209.6,
     "rightsize": null,
     "peak_kw_ac": 203.3,
+    "resilience": null,
     "aging_hours": 0.0,
     "load_seconds": [
      0,
@@ -136,6 +138,7 @@
     "peak_kva": 53.2,
     "rightsize": null,
     "peak_kw_ac": 51.6,
+    "resilience": null,
     "aging_hours": 0.0,
     "load_seconds": [
      0,
@@ -183,6 +186,7 @@
     "peak_kva": 120.5,
     "rightsize": null,
     "peak_kw_ac": 116.9,
+    "resilience": null,
     "aging_hours": 0.0,
     "load_seconds": [
      0,
@@ -230,6 +234,7 @@
     "peak_kva": 131.0,
     "rightsize": null,
     "peak_kw_ac": 127.1,
+    "resilience": null,
     "aging_hours": 0.0,
     "load_seconds": [
      0,
@@ -277,6 +282,7 @@
     "peak_kva": 126.0,
     "rightsize": null,
     "peak_kw_ac": 122.2,
+    "resilience": null,
     "aging_hours": 0.0,
     "load_seconds": [
      0,
@@ -324,6 +330,7 @@
     "peak_kva": 127.4,
     "rightsize": null,
     "peak_kw_ac": 123.6,
+    "resilience": null,
     "aging_hours": 0.0,
     "load_seconds": [
      0,
@@ -371,6 +378,7 @@
     "peak_kva": 49.6,
     "rightsize": null,
     "peak_kw_ac": 48.1,
+    "resilience": null,
     "aging_hours": 0.0,
     "load_seconds": [
      0,
@@ -418,6 +426,7 @@
     "peak_kva": 106.4,
     "rightsize": null,
     "peak_kw_ac": 103.2,
+    "resilience": null,
     "aging_hours": 0.0,
     "load_seconds": [
      0,
@@ -465,6 +474,7 @@
     "peak_kva": 115.9,
     "rightsize": null,
     "peak_kw_ac": 112.4,
+    "resilience": null,
     "aging_hours": 0.0,
     "load_seconds": [
      0,
@@ -512,6 +522,7 @@
     "peak_kva": 118.7,
     "rightsize": null,
     "peak_kw_ac": 115.2,
+    "resilience": null,
     "aging_hours": 0.0,
     "load_seconds": [
      0,
@@ -559,6 +570,7 @@
     "peak_kva": 117.9,
     "rightsize": null,
     "peak_kw_ac": 114.3,
+    "resilience": null,
     "aging_hours": 0.0,
     "load_seconds": [
      0,
@@ -606,6 +618,7 @@
     "peak_kva": 92.7,
     "rightsize": null,
     "peak_kw_ac": 89.9,
+    "resilience": null,
     "aging_hours": 0.0,
     "load_seconds": [
      0,
@@ -653,6 +666,7 @@
     "peak_kva": 112.2,
     "rightsize": null,
     "peak_kw_ac": 108.8,
+    "resilience": null,
     "aging_hours": 0.0,
     "load_seconds": [
      0,
@@ -700,6 +714,7 @@
     "peak_kva": 128.2,
     "rightsize": null,
     "peak_kw_ac": 124.3,
+    "resilience": null,
     "aging_hours": 0.0,
     "load_seconds": [
      0,
@@ -747,6 +762,7 @@
     "peak_kva": 118.8,
     "rightsize": null,
     "peak_kw_ac": 115.2,
+    "resilience": null,
     "aging_hours": 0.0,
     "load_seconds": [
      0,
@@ -794,6 +810,7 @@
     "peak_kva": 122.1,
     "rightsize": null,
     "peak_kw_ac": 118.4,
+    "resilience": null,
     "aging_hours": 0.0,
     "load_seconds": [
      0,
@@ -841,6 +858,7 @@
     "peak_kva": 123.8,
     "rightsize": null,
     "peak_kw_ac": 120.1,
+    "resilience": null,
     "aging_hours": 0.0,
     "load_seconds": [
      0,
@@ -888,6 +906,7 @@
     "peak_kva": 110.6,
     "rightsize": null,
     "peak_kw_ac": 107.3,
+    "resilience": null,
     "aging_hours": 0.0,
     "load_seconds": [
      0,
@@ -935,6 +954,7 @@
     "peak_kva": 95.8,
     "rightsize": null,
     "peak_kw_ac": 92.9,
+    "resilience": null,
     "aging_hours": 0.0,
     "load_seconds": [
      0,
@@ -982,6 +1002,7 @@
     "peak_kva": 120.8,
     "rightsize": null,
     "peak_kw_ac": 117.2,
+    "resilience": null,
     "aging_hours": 0.0,
     "load_seconds": [
      0,
@@ -1029,6 +1050,7 @@
     "peak_kva": 134.4,
     "rightsize": null,
     "peak_kw_ac": 130.3,
+    "resilience": null,
     "aging_hours": 0.0,
     "load_seconds": [
      0,
@@ -1076,6 +1098,7 @@
     "peak_kva": 104.8,
     "rightsize": null,
     "peak_kw_ac": 101.7,
+    "resilience": null,
     "aging_hours": 0.0,
     "load_seconds": [
      0,
@@ -1123,6 +1146,7 @@
     "peak_kva": 108.5,
     "rightsize": null,
     "peak_kw_ac": 105.2,
+    "resilience": null,
     "aging_hours": 0.0,
     "load_seconds": [
      0,
@@ -1170,6 +1194,7 @@
     "peak_kva": 134.3,
     "rightsize": null,
     "peak_kw_ac": 130.3,
+    "resilience": null,
     "aging_hours": 0.0,
     "load_seconds": [
      0,
@@ -1217,6 +1242,7 @@
     "peak_kva": 132.6,
     "rightsize": null,
     "peak_kw_ac": 128.6,
+    "resilience": null,
     "aging_hours": 0.0,
     "load_seconds": [
      0,
@@ -1264,6 +1290,7 @@
     "peak_kva": 126.8,
     "rightsize": null,
     "peak_kw_ac": 123.0,
+    "resilience": null,
     "aging_hours": 0.0,
     "load_seconds": [
      0,
@@ -1311,6 +1338,7 @@
     "peak_kva": 40.9,
     "rightsize": null,
     "peak_kw_ac": 39.7,
+    "resilience": null,
     "aging_hours": 0.0,
     "load_seconds": [
      0,
@@ -1358,6 +1386,7 @@
     "peak_kva": 94.5,
     "rightsize": null,
     "peak_kw_ac": 91.7,
+    "resilience": null,
     "aging_hours": 0.0,
     "load_seconds": [
      0,
@@ -1405,6 +1434,7 @@
     "peak_kva": 103.6,
     "rightsize": null,
     "peak_kw_ac": 100.4,
+    "resilience": null,
     "aging_hours": 0.0,
     "load_seconds": [
      0,
@@ -1452,6 +1482,7 @@
     "peak_kva": 109.7,
     "rightsize": null,
     "peak_kw_ac": 106.4,
+    "resilience": null,
     "aging_hours": 0.0,
     "load_seconds": [
      0,
@@ -1499,6 +1530,7 @@
     "peak_kva": 131.1,
     "rightsize": null,
     "peak_kw_ac": 127.1,
+    "resilience": null,
     "aging_hours": 0.0,
     "load_seconds": [
      0,
@@ -1552,6 +1584,7 @@
     "peak_kva": 430.7,
     "rightsize": null,
     "peak_kw_ac": 417.8,
+    "resilience": null,
     "aging_hours": 0.0,
     "load_seconds": [
      0,
@@ -1657,6 +1690,15 @@
      "smallest_kva_this_day_fits": 300
     },
     "peak_kw_ac": 250.8,
+    "resilience": {
+     "is": "a reading of one run: posts already down are not counted out, and a car moved is still a charge interrupted",
+     "busiest_at": "2026-09-01T11:40:00+00:00",
+     "cars_at_busiest": 5,
+     "posts_elsewhere": 25,
+     "worst_shortfall_at": "2026-09-01T11:38:00+00:00",
+     "worst_shortfall_cars": 1,
+     "free_posts_elsewhere_then": 5
+    },
     "aging_hours": 0.002,
     "load_seconds": [
      50160.0,
@@ -1762,6 +1804,15 @@
      "smallest_kva_this_day_fits": 300
     },
     "peak_kw_ac": 211.9,
+    "resilience": {
+     "is": "a reading of one run: posts already down are not counted out, and a car moved is still a charge interrupted",
+     "busiest_at": "2026-09-01T11:34:00+00:00",
+     "cars_at_busiest": 5,
+     "posts_elsewhere": 25,
+     "worst_shortfall_at": "2026-09-01T11:34:00+00:00",
+     "worst_shortfall_cars": 3,
+     "free_posts_elsewhere_then": 2
+    },
     "aging_hours": 0.002,
     "load_seconds": [
      50280.0,
@@ -1867,6 +1918,7 @@
      "smallest_kva_this_day_fits": 1000
     },
     "peak_kw_ac": 955.1,
+    "resilience": null,
     "aging_hours": 0.002,
     "load_seconds": [
      44040.0,
@@ -1972,6 +2024,15 @@
      "smallest_kva_this_day_fits": 300
     },
     "peak_kw_ac": 314.3,
+    "resilience": {
+     "is": "a reading of one run: posts already down are not counted out, and a car moved is still a charge interrupted",
+     "busiest_at": "2026-09-01T11:30:00+00:00",
+     "cars_at_busiest": 5,
+     "posts_elsewhere": 25,
+     "worst_shortfall_at": "2026-09-01T11:30:00+00:00",
+     "worst_shortfall_cars": 3,
+     "free_posts_elsewhere_then": 2
+    },
     "aging_hours": 0.002,
     "load_seconds": [
      49440.0,
@@ -2077,6 +2138,15 @@
      "smallest_kva_this_day_fits": 300
     },
     "peak_kw_ac": 289.3,
+    "resilience": {
+     "is": "a reading of one run: posts already down are not counted out, and a car moved is still a charge interrupted",
+     "busiest_at": "2026-09-01T11:30:00+00:00",
+     "cars_at_busiest": 5,
+     "posts_elsewhere": 25,
+     "worst_shortfall_at": "2026-09-01T11:30:00+00:00",
+     "worst_shortfall_cars": 3,
+     "free_posts_elsewhere_then": 2
+    },
     "aging_hours": 0.002,
     "load_seconds": [
      49920.0,
@@ -2182,6 +2252,15 @@
      "smallest_kva_this_day_fits": 300
     },
     "peak_kw_ac": 253.4,
+    "resilience": {
+     "is": "a reading of one run: posts already down are not counted out, and a car moved is still a charge interrupted",
+     "busiest_at": "2026-09-01T11:30:00+00:00",
+     "cars_at_busiest": 5,
+     "posts_elsewhere": 25,
+     "worst_shortfall_at": "2026-09-01T11:30:00+00:00",
+     "worst_shortfall_cars": 3,
+     "free_posts_elsewhere_then": 2
+    },
     "aging_hours": 0.002,
     "load_seconds": [
      50040.0,
@@ -2287,6 +2366,15 @@
      "smallest_kva_this_day_fits": 300
     },
     "peak_kw_ac": 252.2,
+    "resilience": {
+     "is": "a reading of one run: posts already down are not counted out, and a car moved is still a charge interrupted",
+     "busiest_at": "2026-09-01T16:38:00+00:00",
+     "cars_at_busiest": 5,
+     "posts_elsewhere": 25,
+     "worst_shortfall_at": "2026-09-01T11:30:00+00:00",
+     "worst_shortfall_cars": 3,
+     "free_posts_elsewhere_then": 5
+    },
     "aging_hours": 0.002,
     "load_seconds": [
      50160.0,
@@ -2340,6 +2428,16 @@
     "peak_kva": 1018.0,
     "rightsize": null,
     "peak_kw_ac": 987.5,
+    "resilience": {
+     "cars": 120,
+     "sessions": 170,
+     "post_rating_kw": 350,
+     "sessions_over_150_kw": 0,
+     "most_any_post_delivered_kw": 122.52,
+     "lowest_battery_at_plug_in_pct": 39,
+     "cars_that_can_take_over_150_kw": 30,
+     "cars_with_no_inlet_limit_on_file": 12
+    },
     "aging_hours": 0.0,
     "load_seconds": [
      0,
@@ -2377,7 +2475,7 @@
   {
    "node": "TX-B1",
    "actor": "lab_power_day",
-   "trip_id": "f0f9ae6d-b4c1-4e63-a42e-3ddb85a86b5b",
+   "trip_id": "05c7866f-c36a-4de4-85c5-2ed302bc62de",
    "cars_on_posts": 1,
    "posts_faulted": 4,
    "tripped_at_sim": "2026-09-01T19:00:00+00:00",
@@ -2389,6 +2487,6 @@
  "depot_id": "11111111-1111-1111-1111-111111111111",
  "as_of_sim": "2026-09-02T01:00:00+00:00",
  "run_status": "completed",
- "sim_run_id": "4c87dd16-8596-48e5-b9c1-f08b9c0c4c6e",
+ "sim_run_id": "e2c1a471-d954-4ecb-bbbe-045b8823c678",
  "site_meter_kw": 516.8
 }

@@ -3,7 +3,7 @@
 //
 // The fixture (components/tabs/__fixtures__/powerOneLine.labDay.json) is a REAL answer of otto-q-core 0810's
 // ottoq_power_one_line: one lab day on a copy of production's engine (busy_day, seed 171717, 2-minute ticks, 6 AM to
-// 8 PM depot time, transformer TX-B1 tripped for an hour at 2 PM, run 4c87dd16). It is a research-lab day, not a production run.
+// 8 PM depot time, transformer TX-B1 tripped for an hour at 2 PM, run e2c1a471). It is a research-lab day, not a production run.
 //
 // What is asserted, and why:
 //   1. The tree is the depot's: one service, seven transformers, thirty posts, five to a charger transformer.
@@ -16,7 +16,7 @@ import { describe, expect, it } from 'vitest';
 import labDay from '@/components/tabs/__fixtures__/powerOneLine.labDay.json';
 import {
   DASH, activeTrip, childrenOf, fmtC, fmtKv, fmtKva, fmtKw, fmtMwh, fmtPct, heatOf, lifeWords, loadShares, notMeasuredText,
-  num, postState, readOneLine, rightsizeWords, service, siteNow, transformers, type OneLine, type PowerNode,
+  num, postState, postsAskedWords, readOneLine, resilienceWords, rightsizeWords, service, siteNow, transformers, type OneLine, type PowerNode,
 } from './powerOneLine';
 
 const day = (): OneLine => readOneLine(JSON.parse(JSON.stringify(labDay)))!;
@@ -146,6 +146,29 @@ describe('totals and words', () => {
     const none: PowerNode = { ...t, study: { ...t.study!, rightsize: { installed_kva: 2500, smallest_kva_this_day_fits: null, by_size: [{ kva: 3750, max_hot_spot_c: 130, aging_vs_normal: 4 }] } } };
     expect(rightsizeWords(none)).toMatch(/No standard size up to 3,750 kVA/);
     expect(rightsizeWords({ ...t, study: null })).toBeNull();
+  });
+
+  it('says whether the day could have ridden through losing a transformer, and never more than the reading knows', () => {
+    const o = day();
+    const clock = (iso: string | null) => (iso ? iso.slice(11, 16) : '?');
+    const short = transformers(o).find((t) => (t.study?.resilience?.worst_shortfall_cars ?? 0) > 0)!;
+    expect(resilienceWords(short, clock)).toMatch(/would have had no free post under the other transformers and would have waited/);
+    const fine: PowerNode = { ...short, study: { ...short.study!, resilience: { ...short.study!.resilience!, worst_shortfall_cars: 0, cars_at_busiest: 4, free_posts_elsewhere_then: 19, busiest_at: '2026-09-01T19:14:00+00:00' } } };
+    expect(resilienceWords(fine, clock)).toBe('Had it tripped at its busiest moment (19:14, 4 cars), the other transformers had 19 posts free: every car could have moved and finished.');
+    const idle: PowerNode = { ...short, study: { ...short.study!, resilience: { ...short.study!.resilience!, cars_at_busiest: 0 } } };
+    expect(resilienceWords(idle, clock)).toBe('No car charged under this transformer on this run.');
+    expect(resilienceWords({ ...short, study: { ...short.study!, resilience: null } }, clock)).toBeNull();
+    expect(resilienceWords(transformers(o).find((t) => t.code === 'TX-AUX')!, clock)).toBeNull();   // no posts under it
+  });
+
+  it('says what the day asked of the posts', () => {
+    const o = day();
+    const r = service(o)!.study!.resilience!;
+    expect(postsAskedWords(o)).toBe(
+      `The most any post delivered was ${Math.round(r.most_any_post_delivered_kw!)} kW of its 350 kW, over ${r.sessions} charges. ${r.cars_that_can_take_over_150_kw} of the depot's ${r.cars} cars can take more than 150 kW at all.`);
+    expect(r.most_any_post_delivered_kw!).toBeLessThan(150);
+    const none: OneLine = { ...o, nodes: o.nodes.map((n) => (n.kind === 'utility_service' ? { ...n, study: { ...n.study!, resilience: null } } : n)) };
+    expect(postsAskedWords(none)).toBeNull();
   });
 
   it('says what is missing in plain words', () => {

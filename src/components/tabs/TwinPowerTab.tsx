@@ -26,7 +26,7 @@ import { twin } from '@/lib/ottoTwin';
 import { usePowerOneLine } from '@/hooks/usePowerOneLine';
 import {
   DASH, activeTrip, childrenOf, fmtC, fmtKv, fmtKva, fmtKw, fmtMwh, fmtPct, heatOf, lifeWords, loadShares,
-  notMeasuredText, postState, rightsizeWords, service, siteNow, transformers,
+  notMeasuredText, postState, postsAskedWords, resilienceWords, rightsizeWords, service, siteNow, transformers,
   type Heat, type OneLine, type PowerNode,
 } from '@/lib/powerOneLine';
 
@@ -196,6 +196,7 @@ function TransformerCard({ o, node, live }: { o: OneLine; node: PowerNode; live:
   const s = node.study;
   const posts = childrenOf(o, node.code).filter((k) => k.kind === 'post');
   const size = rightsizeWords(node);
+  const ride = resilienceWords(node, clockCT);
   const canTrip = live && !!o.sim_run_id && posts.length > 0 && !trip;
 
   const doTrip = async () => {
@@ -246,6 +247,7 @@ function TransformerCard({ o, node, live }: { o: OneLine; node: PowerNode; live:
           {size} <span className="text-ink-dim">One run's reading, for a person. It changes nothing: the depot's ceiling is set after the build, from what the cars drew.</span>
         </p>
       )}
+      {ride && <p className="text-[11px] leading-4 text-ink" data-testid="power-resilience">{ride}</p>}
       {posts.length > 0 && (
         canTrip ? (
           <div className="flex items-center gap-2">
@@ -347,6 +349,7 @@ export const TwinPowerTab = () => {
                   <Thermometer size={11} aria-hidden className="mt-0.5 shrink-0" />
                   <span>A transformer's limit is its temperature, not the sum of the nameplates under it. That is why each one carries its own, and why the depot's ceiling is set from a measured day.</span>
                 </p>
+                {postsAskedWords(oneLine) && <p className="text-[11px] leading-4 text-ink" data-testid="power-posts-asked">{postsAskedWords(oneLine)}</p>}
                 {oneLine.sim_run_id && <p className="font-mono text-[9px] text-ink-dim break-all" data-testid="power-run-id">run {oneLine.sim_run_id}</p>}
               </section>
             )}

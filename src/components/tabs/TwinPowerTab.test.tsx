@@ -61,6 +61,7 @@ describe('the one-line', () => {
     expect(diagram.querySelectorAll('[data-testid^="power-leaf-"]')).toHaveLength(3);
     expect(screen.getByTestId('power-utility')).toHaveTextContent('17,500 kVA');
     expect(screen.getByTestId('power-run-id')).toHaveTextContent(clone().sim_run_id);
+    expect(screen.getByTestId('power-posts-asked')).toHaveTextContent('kW of its 350 kW');
     // asked for the depot, and for no particular run while none is live
     expect(rpc).toHaveBeenCalledWith('ottoq_power_one_line', { p_depot_id: '11111111-1111-1111-1111-111111111111', p_sim_run_id: null });
   });
@@ -80,6 +81,7 @@ describe('the one-line', () => {
     fireEvent.keyDown(screen.getByTestId('power-tx-TX-A1'), { key: 'Enter' });
     expect(screen.getByTestId('power-tx-card').dataset.node).toBe('TX-A1');
     expect(screen.getByTestId('power-trip-why-not')).toHaveTextContent('while a run is live');
+    expect(screen.getByTestId('power-resilience')).toHaveTextContent(/Had it tripped at/);
   });
 
   it('invents nothing before the engine answers', async () => {

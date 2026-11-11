@@ -52,6 +52,23 @@ export interface NodeStudy {
   max_hot_spot_at: string | null;
   aging_hours: number | null;
   rightsize: Rightsize | null;
+  /** On a charger transformer: could the other posts have taken its cars. On the service: what the posts were asked for. */
+  resilience: Resilience | null;
+}
+
+/** otto-q-core 0810, ottoq_power_resilience: made once, at the run's end, from the run's charge sessions. */
+export interface Resilience {
+  busiest_at: string | null;
+  cars_at_busiest: number | null;
+  free_posts_elsewhere_then: number | null;
+  worst_shortfall_cars: number | null;
+  worst_shortfall_at: string | null;
+  most_any_post_delivered_kw: number | null;
+  post_rating_kw: number | null;
+  sessions: number | null;
+  sessions_over_150_kw: number | null;
+  cars: number | null;
+  cars_that_can_take_over_150_kw: number | null;
 }
 
 export interface PowerNode {
@@ -127,6 +144,16 @@ function readRightsize(v: unknown): Rightsize | null {
   };
 }
 
+function readResilience(v: unknown): Resilience | null {
+  if (!isObj(v)) return null;
+  return {
+    busiest_at: str(v.busiest_at), cars_at_busiest: num(v.cars_at_busiest), free_posts_elsewhere_then: num(v.free_posts_elsewhere_then),
+    worst_shortfall_cars: num(v.worst_shortfall_cars), worst_shortfall_at: str(v.worst_shortfall_at),
+    most_any_post_delivered_kw: num(v.most_any_post_delivered_kw), post_rating_kw: num(v.post_rating_kw), sessions: num(v.sessions),
+    sessions_over_150_kw: num(v.sessions_over_150_kw), cars: num(v.cars), cars_that_can_take_over_150_kw: num(v.cars_that_can_take_over_150_kw),
+  };
+}
+
 function readStudy(v: unknown): NodeStudy | null {
   if (!isObj(v)) return null;
   const bins = Array.isArray(v.load_seconds) ? v.load_seconds.map((b) => num(b) ?? 0) : [];
@@ -135,7 +162,7 @@ function readStudy(v: unknown): NodeStudy | null {
     peak_kw_ac: num(v.peak_kw_ac), peak_kva: num(v.peak_kva), peak_at: str(v.peak_at), peak_30min_kva: num(v.peak_30min_kva),
     peak_load_pu: num(v.peak_load_pu), hours_energized: num(v.hours_energized), load_seconds: bins,
     max_top_oil_c: num(v.max_top_oil_c), max_hot_spot_c: num(v.max_hot_spot_c), max_hot_spot_at: str(v.max_hot_spot_at),
-    aging_hours: num(v.aging_hours), rightsize: readRightsize(v.rightsize),
+    aging_hours: num(v.aging_hours), rightsize: readRightsize(v.rightsize), resilience: readResilience(v.resilience),
   };
 }
 
@@ -275,6 +302,31 @@ export function rightsizeWords(n: PowerNode): string | null {
     return `This day needed the ${fix(r.installed_kva, 0)} kVA that is installed.`;
   }
   return `This day would have fit on ${fix(r.smallest_kva_this_day_fits, 0)} kVA. ${fix(r.installed_kva, 0)} kVA is installed.`;
+}
+
+/**
+ * "Had this transformer tripped at its busiest moment ...": one sentence, or null when the run's end has not made the
+ * reading. It is the best case (posts already down are not counted out) and says so where it matters.
+ */
+export function resilienceWords(n: PowerNode, clock: (iso: string | null) => string): string | null {
+  const r = n.study?.resilience;
+  if (!r || r.cars_at_busiest === null) return null;
+  if (r.cars_at_busiest === 0) return 'No car charged under this transformer on this run.';
+  const cars = `${r.cars_at_busiest} ${r.cars_at_busiest === 1 ? 'car' : 'cars'}`;
+  const short = r.worst_shortfall_cars ?? 0;
+  if (short > 0) {
+    return `Had it tripped at ${clock(r.worst_shortfall_at)}, ${short} of its cars would have had no free post under the other transformers and would have waited.`;
+  }
+  return `Had it tripped at its busiest moment (${clock(r.busiest_at)}, ${cars}), the other transformers had ${r.free_posts_elsewhere_then ?? 0} posts free: every car could have moved and finished.`;
+}
+
+/** What the day asked of the posts, in one sentence, or null before the run's end has read it. */
+export function postsAskedWords(o: OneLine): string | null {
+  const r = service(o)?.study?.resilience;
+  if (!r || r.most_any_post_delivered_kw === null || r.post_rating_kw === null) return null;
+  const cars = r.cars !== null && r.cars_that_can_take_over_150_kw !== null
+    ? ` ${r.cars_that_can_take_over_150_kw} of the depot's ${r.cars} cars can take more than 150 kW at all.` : '';
+  return `The most any post delivered was ${fix(r.most_any_post_delivered_kw, 0)} kW of its ${fix(r.post_rating_kw, 0)} kW, over ${r.sessions ?? 0} charges.${cars}`;
 }
 
 /** Share of the measured time in each tenth of rating: 11 numbers, the last is "at or over 100%". Sums to 1, or all 0. */
