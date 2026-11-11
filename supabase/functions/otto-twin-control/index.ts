@@ -15,7 +15,8 @@
 // ENDPOINTS
 // ---------
 //   GET  /scenarios                       list seeded scenarios
-//   POST /scenarios/start                 {scenario_code, seed?, run_by?}      → {sim_run_id}
+//   POST /scenarios/start                 {scenario_code, seed?, run_by?}      → {sim_run_id, interrupted_checks}
+//        a manual start always interrupts a running check (0564: ottoq_operator_start_run)
 //   POST /scenarios/stop                  {sim_run_id}                          → {ok}
 //   GET  /sim_runs/:id/status             → full sim_run row + counters + last event
 //   POST /sim_runs/:id/tick               → advance exactly one tick
@@ -28,7 +29,8 @@
 //        kind = power_zone, target_id = a power node (TX-A1 ...) → ottoq_twin_trip_power_node (0810):
 //               every post under that transformer faults at once
 //        other kinds            → an event only; the response says engine_effect = "none"
-//   GET  /sim_runs/:id/kpis               → ottoq_kpi_five: the five canonical KPIs for the run
+//   GET  /sim_runs/:id/kpis               → ottoq_kpi_five: the five canonical KPIs for the run, and beside them
+//                                           charge_wait (ottoq_kpi_charge_wait, 0501): the wait for a charger
 //   POST /sim_runs/:id/inject_dr_call     {duration_min, cap_kw, reason?}       → {dr_call_id}
 //   POST /advance_due                     → drives ottoq_sim_advance_due_runs() (cron entrypoint)
 //
@@ -112,13 +114,20 @@ async function startScenario(req: Request) {
   // ottoq_start_demo_run wrapper also purges archived run data and can exceed
   // that limit. The core scenario function already supersedes the live run and
   // is the authoritative door that arms the full agent/solver chain.
-  const { data: simRunId, error } = await supabase.rpc("ottoq_sim_run_scenario", {
+  // 0564: a MANUAL start always interrupts a running check. ottoq_operator_start_run
+  // cancels a recertification / dial / A-B pair holding the twin depot, takes the
+  // world lock so none starts before this run is live, then starts through
+  // ottoq_sim_run_scenario unchanged. Before it, every start inside a check sweep
+  // waited on the pair's rows and died on the 8 s lock timeout (8 of 8 on 2026-09-28).
+  const { data: started, error } = await supabase.rpc("ottoq_operator_start_run", {
     p_scenario_code: body.scenario_code,
     p_seed:          body.seed ?? null,
     p_run_by:        "operator_demo",
   });
   if (error) return err("scenario start failed", 500, error.message);
-  if (!simRunId) return err("scenario start returned no run", 500);
+  const start = started as { sim_run_id?: string; interrupted?: unknown[] } | null;
+  const simRunId = start?.sim_run_id;
+  if (!simRunId) return err("scenario start returned no run", 500, started);
 
   const speed = body.speed_x ?? 1;
   const { error: playbackError } = await supabase.rpc("ottoq_set_playback", {
@@ -144,6 +153,8 @@ async function startScenario(req: Request) {
     scenario_code: body.scenario_code,
     demo_speed_x: speed,
     real_seconds_per_tick: Math.round((6 / speed) * 100) / 100,
+    // 0564: the checks this start interrupted (each re-runs after the run ends); [] when none was running.
+    interrupted_checks: start?.interrupted ?? [],
     runs_for_sim_days: body.days ?? 1,
   });
 }
@@ -438,10 +449,20 @@ async function injectFault(simRunId: string, req: Request) {
 
 // 0451: the five canonical KPIs (CLAUDE.md 2.9) for one run. ottoq_kpi_five(p_run) is service-role only,
 // so the cockpit reads it through this door.
+// 0501 (G233): the wait for a charger rides beside the five as `charge_wait`, from ottoq_kpi_charge_wait(p_run).
+// KPI 5 counts from recall to the FIRST operation and cannot see the charger queue. A failure here never fails
+// the five: `charge_wait` is null and `charge_wait_error` names the failure.
 async function runKpis(simRunId: string) {
-  const { data, error } = await supabase.rpc("ottoq_kpi_five", { p_run: simRunId });
-  if (error) return err("kpi read failed", 500, error.message);
-  return ok(data);
+  const [five, wait] = await Promise.all([
+    supabase.rpc("ottoq_kpi_five", { p_run: simRunId }),
+    supabase.rpc("ottoq_kpi_charge_wait", { p_run: simRunId }),
+  ]);
+  if (five.error) return err("kpi read failed", 500, five.error.message);
+  return ok({
+    ...(five.data as Record<string, unknown>),
+    charge_wait: wait.error ? null : wait.data,
+    ...(wait.error ? { charge_wait_error: wait.error.message } : {}),
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -614,7 +635,7 @@ serve(async (req: Request) => {
   // POST /sim_runs/:id/inject_fault
   if (method === "POST" && parts[0] === "sim_runs" && parts[2] === "inject_fault") return injectFault(parts[1], req);
 
-  // GET /sim_runs/:id/kpis  (0451: the five canonical KPIs for this run)
+  // GET /sim_runs/:id/kpis  (0451: the five canonical KPIs for this run; 0501: charge_wait beside them)
   if (method === "GET" && parts[0] === "sim_runs" && parts[2] === "kpis") return runKpis(parts[1]);
 
   // GET/PUT /sim_runs/:id/variability  (A.8 live distribution-shaping knobs)
@@ -638,7 +659,7 @@ serve(async (req: Request) => {
 
   // Health probe
   if (method === "GET" && (parts[0] === "" || parts[0] === "health")) {
-    return ok({ service: "otto-twin-control", version: "1.9.1-kpis-fault-door", time: new Date().toISOString() });
+    return ok({ service: "otto-twin-control", version: "1.11.0-power-zone", time: new Date().toISOString() });
   }
 
   return err(`route not found: ${method} /${parts.join("/")}`, 404);
