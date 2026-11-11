@@ -1305,6 +1305,18 @@ class TwinMotionDriver {
     this.last = null; // re-seed so the change never applies one giant catch-up dt
   }
 
+  /**
+   * The speed the yard plays at now (1 to MAX_VIEW_MULT): the run's own speed_x, as setViewMult took it.
+   *
+   * For anything DRAWN whose rate is a rate of the world: a servo's travel limit, a brush's turns. Chase,
+   * 2026-11-11: "robots and vehicles and all aspects of the yard reflect real timing of the speed selected ... if 3x
+   * is selected, robots, cars, etc should move that quickly." The cars and the robots' cycles already run on the sim
+   * clock. A drawn rate that counted real seconds did not, and fell behind the clock above about 4x.
+   */
+  playbackSpeed(): number {
+    return this.viewMult;
+  }
+
   // ─── T4 RENDER CONTRACT: OTTO-Q's timed legs pace the motion ────────────────
   /** Active TRAVEL legs from the last snapshot, keyed by vehicle id. */
   private legs = new Map<string, TwinLeg>();

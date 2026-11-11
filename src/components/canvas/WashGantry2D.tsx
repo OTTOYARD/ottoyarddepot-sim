@@ -89,7 +89,7 @@ function WashGantryBay2D({ bayId, bayX }: { bayId: string; bayX: number }) {
         const p = washPoseAt(twinMotionDriver.washSessionAt(bayId) ?? IDLE_WASH);
         const dt = last ? Math.min((now - last) / 1000, 0.1) : 0;
         last = now;
-        if (p.spinning) spin = (spin + dt * BRUSH_SPIN_RAD_S * (180 / Math.PI)) % 360;
+        if (p.spinning) spin = (spin + dt * twinMotionDriver.playbackSpeed() * BRUSH_SPIN_RAD_S * (180 / Math.PI)) % 360; // turns per depot second
         paintWashGantry2D(g, bayX, p, spin);
       }
       raf = requestAnimationFrame(step);

@@ -95,6 +95,12 @@ export function robotFromSearch(search: string): LinkRobot | null {
   return (LINK_ROBOTS as readonly string[]).includes(robot ?? '') ? (robot as LinkRobot) : null;
 }
 
+/** `?step=`: the step of the machine's cycle a cockpit asks the Robotics tab to show (the tab checks it is one). */
+export function stepFromSearch(search: string): string | null {
+  const step = new URLSearchParams(search).get('step');
+  return step && /^[a-z0-9_]{1,40}$/.test(step) ? step : null;
+}
+
 /** A run the switcher may open: the one the twin is showing, and only while it is live. */
 export const isLiveRunStatus = (s: string | null | undefined) =>
   ['running', 'active', 'paused'].includes(String(s ?? '').toLowerCase());

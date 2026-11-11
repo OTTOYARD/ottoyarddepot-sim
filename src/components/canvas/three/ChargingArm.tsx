@@ -12,7 +12,7 @@ import { CAR_WIDTH } from '@/engine/motion/traffic';
 import { statusColor, vehicleMayMove, type ArmPhase } from '@/lib/ottoChargeArm/armStateMachine';
 import { twinMotionDriver } from '@/engine/TwinMotionDriver';
 import {
-  poseFor, slewAngles, slewScalar, type ArmTarget,
+  poseFor, servoDt, slewAngles, slewScalar, type ArmTarget,
 } from '@/lib/ottoChargeArm/armMotion';
 import { STOWED, type JointAngles } from '@/lib/ottoChargeArm/cobotIK';
 import { placeArm, portInArmFrame } from '@/lib/ottoChargeArm/depotPlacement';
@@ -280,11 +280,11 @@ export function ChargingArm({ stallId, stallType, fleet, slot, cad, flex }: Char
     // The solved pose is a REQUEST. What gets drawn chases it at a bounded joint
     // speed, so no input — a phase change, a re-planned target, a car swapped
     // under the arm, a stale frame — can move the machine by more than
-    // MAX_JOINT_RATE * dt. Real time, not sim time: this is servo travel, and it
-    // is the only thing standing between a jumpy feed and the SNAP the founder
-    // reported. Above ~4x playback it becomes the binding constraint and the arm
-    // trails the clock slightly, the same way the cars do.
-    const rdt = Math.min(Math.max(frameDelta, 0), 0.1);
+    // MAX_JOINT_RATE * dt. It is servo travel, and it is the only thing standing
+    // between a jumpy feed and the SNAP the founder reported. The dt is depot
+    // time (armMotion.servoDt): the frame's real length times the speed the yard
+    // plays at, so at 8x the arm keeps up with its own cycle as the cars do.
+    const rdt = servoDt(frameDelta, twinMotionDriver.playbackSpeed());
     shown.current.angles = slewAngles(shown.current.angles, pose.angles, rdt);
     shown.current.latch = slewScalar(shown.current.latch, pose.latch, rdt);
     const a = shown.current.angles;

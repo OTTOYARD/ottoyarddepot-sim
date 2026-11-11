@@ -82,6 +82,15 @@ not draw the seven units yet; where they stand is a site-plan decision.
     measured better or equal, and cars behind their OTTO-Q leg halved. When you compare flow
     across multipliers, use `overlapRate` and `viewer` (pairs on screen per poll), never the raw
     overlap count: samples are per MOTION second, so 8x motion holds 8/3 as many per wall window.
+  - **Every drawn rate is a rate of the world, so it scales with the playback speed (2026-11-11).** Chase: *"if 3x is
+    selected, robots, cars, etc should move that quickly. Same with 5x, or 8x, or 1x."* The cars (`viewMult`) and the
+    robots' cycles (`simNow`) already ran on the sim clock, and the engine keeps to it: run `54c0d20f` at 8x advanced
+    8.00 and 7.95 sim seconds per real second (two 5-minute windows of its event feed, read 2026-11-11). What did not
+    scale was DRAWN: the 3D charge arm's servo limit and the wash brushes' spin counted real seconds, so above about 4x
+    the arm trailed its own cycle. Both now use `twinMotionDriver.playbackSpeed()` (`armMotion.servoDt`,
+    `armSpeed.test.ts`). A new drawn rate reads that speed too. Never count real seconds for a thing in the yard.
+    The speed on screen is the RUN's (`snapshot.run.speed_x`), not the slider's: the yard speeds up when the engine
+    does, so the picture never runs ahead of the world.
 - **Corners and docking (2026-09-28) — read before touching `roundCorners`, `routeToStall` or the dock blend:**
   - **Built things live in `src/lib/structurePlan.ts`** (walls, doors, lifts, wash gantries, canopy and
     carport columns, bollards, charger cabinets). The renderer draws from it and
@@ -357,6 +366,9 @@ not draw the seven units yet; where they stand is a site-plan decision.
   `washSessionAt`) through the yard's own pose code (`src/lib/robotics/liveFollow.ts`,
   `src/components/robotics/useLiveFollow.ts`). It reads and decides nothing, and the banner names the machine it
   follows. Do not give the follow a session, a pose or a clock of its own.
+  **A step of the cycle can be picked (2026-11-11):** in "How it runs", or by a cockpit's link `?step=<id>`
+  (`cockpitLinks.stepFromSearch`); the model takes the pose that step ends in, from `cycleScript`. PULSE links here
+  from its status feed. PULSE draws no model and has no live follow, on Chase's call.
   **Every CAD change ends with the clash check:** `cad/build.py`, then `cad/clash.py --baseline` with the same code.
   It places every part at the stowed pose and at every twin pose in `cad/spec/poses.json` (written by `cadPoses.ts`;
   rewrite it with `CAD_SPEC_WRITE=1 npx vitest run src/lib/robotics/cadPoses.test.ts` when a pose or a joint name
