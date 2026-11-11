@@ -684,8 +684,20 @@ S({
   structure_code: 'BESS-COMPOUND', structure_kind: 'bess_compound',
   title: 'BESS + Transformer Compound',
   ...bessRect, height_ft: 12, rotation_deg: 0, status: 'active',
-  properties: { fenced: true, pad_material: 'concrete', bess_power_kw: 1500, bess_energy_kwh: 3000, transformer_count: 2 },
+  properties: { fenced: true, pad_material: 'concrete', bess_power_kw: 1500, bess_energy_kwh: 3000, transformer_count: 7,
+    one_line: 'one_line_v1 (0810)', holds: ['NASH-BESS-01', 'TX-AUX', 'MV-SWGR'] },
 });
+// The seven transformers of otto-q-core's one-line (ottoq_power_nodes, 0810), where the site plan stands them:
+// six charger units in the yard behind the office, TX-AUX in the battery compound. structure_code is the power node's.
+const txRect = (t) => rectToDb({ x: t.x - sp.TX_PAD.w / 2, y: t.y - sp.TX_PAD.d / 2, w: sp.TX_PAD.w, h: sp.TX_PAD.d });
+for (const t of [...sp.CHARGER_TRANSFORMERS, sp.AUX_TRANSFORMER]) {
+  S({
+    structure_code: t.code, structure_kind: 'transformer',
+    title: `Transformer ${t.code} (2,500 kVA, 13.8 kV to 480 V)`,
+    ...txRect(t), height_ft: toFt(sp.TX_PAD.h), rotation_deg: 0, status: 'active',
+    properties: { power_node: t.code, rated_kva: 2500, yard: t.code === 'TX-AUX' ? 'BESS-COMPOUND' : 'TX-YARD', pad_mounted: true },
+  });
+}
 S({
   structure_code: 'OFFICE-01', structure_kind: 'office_building',
   // RELABELLED. The two service bays sit inside this footprint on purpose.
@@ -739,15 +751,28 @@ for (const c of sp.CANOPIES) {
 // Solar carports over the 5 covered perimeter runs. These REPLACE the single
 // blanket METAL-CANOPY-PERIM row, which claimed to cover 100 stalls with no
 // geometry at all (width and length were both NULL).
-for (const r of sp.PARK_RUNS.filter((p) => p.carport)) {
+// THE FOURTH SOLAR ARRAY IS THE CARPORTS' (founder's call delegated 2026-11-11). ottoq_canopy_state has generated from
+// four 180 kW DC arrays since before 0010 retired CANOPY-04, and the renderer has drawn panels on every carport since
+// StagingZone was built, but no carport's record said what it generates. canopy_4's 180 kW DC and 288 panels are
+// shared across the five carport roofs by roof area, so the picture, these records and the solar table agree and no
+// energy number changes. The five roofs are about 1,500 m2, 2.6 times a charging canopy's, so the array fits.
+const carports = sp.PARK_RUNS.filter((p) => p.carport);
+const roofArea = (r) => r.carport.w * r.carport.h;
+const roofTotal = carports.reduce((s, r) => s + roofArea(r), 0);
+let panelsLeft = 288;
+carports.forEach((r, i) => {
   const n = stalls.filter((s) => s.run_id === r.id).length;
+  const share = roofArea(r) / roofTotal;
+  const panels = i === carports.length - 1 ? panelsLeft : Math.round(288 * share);
+  panelsLeft -= panels;
   S({
     structure_code: `CARPORT-${r.id}`, structure_kind: 'metal_canopy',
     title: `Solar Carport ${r.id} (covered staging)`,
     ...rectToDb(r.carport), height_ft: 12, rotation_deg: 0, status: 'active',
-    properties: { covers: 'perimeter_staging_stalls', purpose: 'inspection-while-parked weather coverage', stall_count: n },
+    properties: { covers: 'perimeter_staging_stalls', purpose: 'inspection-while-parked weather coverage', stall_count: n,
+      solar_array: 'canopy_4', panel_count: panels, solar_kw_dc: Math.round(panels * 0.625 * 100) / 100 },
   });
-}
+});
 
 // Gates. Taken from sitePlan.ts, NOT sitePlan.json — the JSON has them SWAPPED.
 // The renderer puts the gate stubs at y=215, which is 9 units OUTSIDE the south
@@ -1124,7 +1149,7 @@ const json = {
     west_aisle_x: toX(sp.WEST_AISLE_X), east_aisle_x: toX(sp.EAST_AISLE_X),
     north_lane_y: toY(sp.NORTH_LANE_Y), south_lane_y: toY(sp.SOUTH_LANE_Y),
     rear_lane_y: toY(sp.REAR_LANE_Y), forecourt_y: toY(sp.FORECOURT_Y),
-    west_link_x: toX(sp.WEST_LINK_X), temp_lane_x: toX(sp.TEMP_LANE_X),
+    temp_lane_x: toX(sp.TEMP_LANE_X),   // west_link_x retired 2026-11-11: that corridor is the electrical yard
     gap_lanes_x: Object.fromEntries(Object.entries(sp.GAP_LANES).map(([k, v]) => [k, toX(v)])),
     // A one-way lane, or each side of a two-way aisle, is offset this far from its
     // centreline. Exported so the geometry guards (JS check 7, migration 0010

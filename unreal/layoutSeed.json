@@ -38,7 +38,6 @@
     "south_lane_y": 53.3759842519685,
     "rear_lane_y": 298.2775590551181,
     "forecourt_y": 226.06299212598424,
-    "west_link_x": 94.19291338582677,
     "temp_lane_x": 378.3415354330708,
     "gap_lanes_x": {
       "westOfA": 116.17125984251967,
@@ -3927,10 +3926,10 @@
       "structure_code": "BESS-COMPOUND",
       "structure_kind": "bess_compound",
       "title": "BESS + Transformer Compound",
-      "origin_x_ft": 9.419291338582676,
-      "origin_y_ft": 248.04133858267716,
-      "width_ft": 78.49409448818896,
-      "length_ft": 56.51574803149606,
+      "origin_x_ft": 6.279527559055118,
+      "origin_y_ft": 254.32086614173227,
+      "width_ft": 87.91338582677164,
+      "length_ft": 53.3759842519685,
       "height_ft": 12,
       "rotation_deg": 0,
       "status": "active",
@@ -3939,10 +3938,16 @@
         "pad_material": "concrete",
         "bess_power_kw": 1500,
         "bess_energy_kwh": 3000,
-        "transformer_count": 2
+        "transformer_count": 7,
+        "one_line": "one_line_v1 (0810)",
+        "holds": [
+          "NASH-BESS-01",
+          "TX-AUX",
+          "MV-SWGR"
+        ]
       },
-      "absolute_lat": 36.14045906377087,
-      "absolute_lng": -86.77263444551097
+      "absolute_lat": 36.140472002357875,
+      "absolute_lng": -86.77262910504359
     },
     {
       "structure_code": "CANOPY-01",
@@ -4024,7 +4029,10 @@
       "properties": {
         "covers": "perimeter_staging_stalls",
         "purpose": "inspection-while-parked weather coverage",
-        "stall_count": 25
+        "stall_count": 25,
+        "solar_array": "canopy_4",
+        "panel_count": 80,
+        "solar_kw_dc": 50
       },
       "absolute_lat": 36.140090314041274,
       "absolute_lng": -86.77129799354717
@@ -4043,7 +4051,10 @@
       "properties": {
         "covers": "perimeter_staging_stalls",
         "purpose": "inspection-while-parked weather coverage",
-        "stall_count": 11
+        "stall_count": 11,
+        "solar_array": "canopy_4",
+        "panel_count": 41,
+        "solar_kw_dc": 25.63
       },
       "absolute_lat": 36.13973665932984,
       "absolute_lng": -86.77253297663061
@@ -4062,7 +4073,10 @@
       "properties": {
         "covers": "perimeter_staging_stalls",
         "purpose": "inspection-while-parked weather coverage",
-        "stall_count": 12
+        "stall_count": 12,
+        "solar_array": "canopy_4",
+        "panel_count": 48,
+        "solar_kw_dc": 30
       },
       "absolute_lat": 36.13973665932984,
       "absolute_lng": -86.77203097269614
@@ -4081,7 +4095,10 @@
       "properties": {
         "covers": "perimeter_staging_stalls",
         "purpose": "inspection-while-parked weather coverage",
-        "stall_count": 10
+        "stall_count": 10,
+        "solar_array": "canopy_4",
+        "panel_count": 39,
+        "solar_kw_dc": 24.38
       },
       "absolute_lat": 36.13973665932984,
       "absolute_lng": -86.77153964969646
@@ -4100,7 +4117,10 @@
       "properties": {
         "covers": "perimeter_staging_stalls",
         "purpose": "inspection-while-parked weather coverage",
-        "stall_count": 24
+        "stall_count": 24,
+        "solar_array": "canopy_4",
+        "panel_count": 80,
+        "solar_kw_dc": 50
       },
       "absolute_lat": 36.14005149828026,
       "absolute_lng": -86.77274926555982
@@ -4428,6 +4448,146 @@
       },
       "absolute_lat": 36.139693530706495,
       "absolute_lng": -86.77203097269614
+    },
+    {
+      "structure_code": "TX-A1",
+      "structure_kind": "transformer",
+      "title": "Transformer TX-A1 (2,500 kVA, 13.8 kV to 480 V)",
+      "origin_x_ft": 98.9025590551181,
+      "origin_y_ft": 297.96358267716533,
+      "width_ft": 7.535433070866141,
+      "length_ft": 6.90748031496063,
+      "height_ft": 6.593503937007874,
+      "rotation_deg": 0,
+      "status": "active",
+      "properties": {
+        "power_node": "TX-A1",
+        "rated_kva": 2500,
+        "yard": "TX-YARD",
+        "pad_mounted": true
+      },
+      "absolute_lat": 36.14052806956823,
+      "absolute_lng": -86.77245073343283
+    },
+    {
+      "structure_code": "TX-A2",
+      "structure_kind": "transformer",
+      "title": "Transformer TX-A2 (2,500 kVA, 13.8 kV to 480 V)",
+      "origin_x_ft": 109.5777559055118,
+      "origin_y_ft": 297.96358267716533,
+      "width_ft": 7.535433070866141,
+      "length_ft": 6.90748031496063,
+      "height_ft": 6.593503937007874,
+      "rotation_deg": 0,
+      "status": "active",
+      "properties": {
+        "power_node": "TX-A2",
+        "rated_kva": 2500,
+        "yard": "TX-YARD",
+        "pad_mounted": true
+      },
+      "absolute_lat": 36.14052806956823,
+      "absolute_lng": -86.7724144182546
+    },
+    {
+      "structure_code": "TX-AUX",
+      "structure_kind": "transformer",
+      "title": "Transformer TX-AUX (2,500 kVA, 13.8 kV to 480 V)",
+      "origin_x_ft": 12.716043307086613,
+      "origin_y_ft": 288.5442913385827,
+      "width_ft": 7.535433070866141,
+      "length_ft": 6.90748031496063,
+      "height_ft": 6.593503937007874,
+      "rotation_deg": 0,
+      "status": "active",
+      "properties": {
+        "power_node": "TX-AUX",
+        "rated_kva": 2500,
+        "yard": "BESS-COMPOUND",
+        "pad_mounted": true
+      },
+      "absolute_lat": 36.140502192394216,
+      "absolute_lng": -86.77274392509243
+    },
+    {
+      "structure_code": "TX-B1",
+      "structure_kind": "transformer",
+      "title": "Transformer TX-B1 (2,500 kVA, 13.8 kV to 480 V)",
+      "origin_x_ft": 120.2529527559055,
+      "origin_y_ft": 297.96358267716533,
+      "width_ft": 7.535433070866141,
+      "length_ft": 6.90748031496063,
+      "height_ft": 6.593503937007874,
+      "rotation_deg": 0,
+      "status": "active",
+      "properties": {
+        "power_node": "TX-B1",
+        "rated_kva": 2500,
+        "yard": "TX-YARD",
+        "pad_mounted": true
+      },
+      "absolute_lat": 36.14052806956823,
+      "absolute_lng": -86.77237810307636
+    },
+    {
+      "structure_code": "TX-B2",
+      "structure_kind": "transformer",
+      "title": "Transformer TX-B2 (2,500 kVA, 13.8 kV to 480 V)",
+      "origin_x_ft": 130.9281496062992,
+      "origin_y_ft": 297.96358267716533,
+      "width_ft": 7.535433070866141,
+      "length_ft": 6.90748031496063,
+      "height_ft": 6.593503937007874,
+      "rotation_deg": 0,
+      "status": "active",
+      "properties": {
+        "power_node": "TX-B2",
+        "rated_kva": 2500,
+        "yard": "TX-YARD",
+        "pad_mounted": true
+      },
+      "absolute_lat": 36.14052806956823,
+      "absolute_lng": -86.77234178789813
+    },
+    {
+      "structure_code": "TX-C1",
+      "structure_kind": "transformer",
+      "title": "Transformer TX-C1 (2,500 kVA, 13.8 kV to 480 V)",
+      "origin_x_ft": 141.60334645669292,
+      "origin_y_ft": 297.96358267716533,
+      "width_ft": 7.535433070866141,
+      "length_ft": 6.90748031496063,
+      "height_ft": 6.593503937007874,
+      "rotation_deg": 0,
+      "status": "active",
+      "properties": {
+        "power_node": "TX-C1",
+        "rated_kva": 2500,
+        "yard": "TX-YARD",
+        "pad_mounted": true
+      },
+      "absolute_lat": 36.14052806956823,
+      "absolute_lng": -86.77230547271989
+    },
+    {
+      "structure_code": "TX-C2",
+      "structure_kind": "transformer",
+      "title": "Transformer TX-C2 (2,500 kVA, 13.8 kV to 480 V)",
+      "origin_x_ft": 152.2785433070866,
+      "origin_y_ft": 297.96358267716533,
+      "width_ft": 7.535433070866141,
+      "length_ft": 6.90748031496063,
+      "height_ft": 6.593503937007874,
+      "rotation_deg": 0,
+      "status": "active",
+      "properties": {
+        "power_node": "TX-C2",
+        "rated_kva": 2500,
+        "yard": "TX-YARD",
+        "pad_mounted": true
+      },
+      "absolute_lat": 36.14052806956823,
+      "absolute_lng": -86.77226915754164
     },
     {
       "structure_code": "WASH-01-BLDG",

@@ -115,7 +115,28 @@ export const UNIT_FT = 0.4785 / 0.3048;
 export function planFromDbFeet(xFt: number, yFt: number): { x: number; y: number } {
   return { x: LOT.x + xFt / UNIT_FT, y: LOT.y + LOT.h - yFt / UNIT_FT };
 }
-export const BESS_YARD = { x: 12, y: 12, w: 50, h: 36 };
+// THE ELECTRICAL GROUND (founder, 2026-11-11: "Utilize all the area within red ... No vehicles travel there"): the
+// fenced north-west corner out to the building's west wall, and the strip behind the office between the north fence
+// and the office's rear wall. No lane runs in either: the rear apron starts at the first service bay (x 120) and
+// drains east only.
+// Its south fence is at y 44, two units NORTH of where it stood: a car turning round at the west avenue's north end
+// (x 34, y 51) swings a corner to y 45.7 in the busyday capture, 1.1 m inside the old fence line at y 48, which no
+// test saw because the yard was not a solid. West, north and east the yard grew to the founder's red line.
+export const BESS_YARD = { x: 10, y: 10, w: 56, h: 34 };   // batteries, power conversion, TX-AUX, primary switchgear
+/** The transformer yard behind the office (the office is x 70..110, its rear wall y 26). */
+export const TX_YARD = { x: 68, y: 8, w: 41, h: 16.5 };
+/** A 2,500 kVA pad-mounted unit's footprint in plan units (about 2.3 m x 2.1 m: ASSUMPTION, otto-q-core R-22). */
+export const TX_PAD = { w: 4.8, d: 4.4, h: 4.2 };
+/** Six charger transformers in one row, west to east, fronts facing south with 4 m of working room to the wall.
+ *  The codes are otto-q-core's power nodes (ottoq_power_nodes, 0810): one per canopy column of five posts. */
+export const TX_ROW_Y = 14;
+export const TX_PITCH = 6.8;                                 // 0.96 m between neighbours
+export const CHARGER_TRANSFORMERS = (['TX-A1', 'TX-A2', 'TX-B1', 'TX-B2', 'TX-C1', 'TX-C2'] as const)
+  .map((code, i) => ({ code, x: 71.4 + i * TX_PITCH, y: TX_ROW_Y }));
+/** TX-AUX (battery, building, solar) stands in the battery yard's equipment column; the primary switchgear lines the
+ *  yard's north fence. Both in plan units, centre points. */
+export const AUX_TRANSFORMER = { code: 'TX-AUX', x: BESS_YARD.x + 6.5, y: BESS_YARD.y + BESS_YARD.h / 2 - 7 };
+export const MV_SWITCHGEAR = { code: 'MV-SWGR', x: BESS_YARD.x + BESS_YARD.w / 2 + 4, y: BESS_YARD.y + 4.2, w: 16, d: 3.2, h: 4.6 };
 export const BUILDING = { x: 70, y: 26, w: 80, h: 30 };   // office (west) + 2 service bays (east)
 export const WASH = { x: 160, y: 26, w: 52, h: 30 };      // 3 pull-through bays
 export const GATE_W = 14;
@@ -138,9 +159,6 @@ export interface CanopyDef {
   y: number; h: number;
   kind: 'dcfc' | 'l2';
 }
-// West link: the corridor between the BESS yard (ends x=62) and the building
-// (starts x=70) tying the rear apron to the collector for left-hand exits.
-export const WEST_LINK_X = 66;
 
 export const CANOPIES: CanopyDef[] = [
   { id: 'A', cx: 103, x: 88, w: 30, y: 80, h: 84, kind: 'dcfc' },
@@ -536,8 +554,8 @@ const inN1 = (p: Pt) => {
 /** Legs from a position onto the NORTH collector (the main artery). */
 function toCollector(from: Pt): Pt[] {
   if (inBays(from)) {
-    // pull through the rear, swing right (east aisle side) or left (west link)
-    const exitX = from.x >= 150 ? EAST_AISLE_X : WEST_LINK_X;
+    // pull through the rear and drain east, as the lane graph's one-way apron does (the west end is the electrical yard)
+    const exitX = EAST_AISLE_X;
     return [
       { x: from.x, y: REAR_LANE_Y },
       { x: exitX, y: REAR_LANE_Y },

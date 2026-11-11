@@ -12,9 +12,9 @@ import { ReservationGlow } from './ReservationGlow';
 import { WashGantries2D } from './WashGantry2D';
 import { Doors2D, FastChargerRobots2D } from './Robots2D';
 import {
-  LOT, BESS_YARD, BUILDING, WASH, CANOPIES, PARK_RUNS, GATE_W, canopyKind,
+  LOT, BESS_YARD, TX_YARD, TX_PAD, CHARGER_TRANSFORMERS, AUX_TRANSFORMER, MV_SWITCHGEAR, BUILDING, WASH, CANOPIES, PARK_RUNS, GATE_W, canopyKind,
   INGRESS, EGRESS,
-  WEST_AISLE_X, EAST_AISLE_X, TEMP_LANE_X, WEST_LINK_X, GAP_LANES,
+  WEST_AISLE_X, EAST_AISLE_X, TEMP_LANE_X, GAP_LANES,
   TEMP_AISLE, EAST_AVENUE, N1_LANE_Y, NORTH_LANE_Y, SOUTH_LANE_Y,
 } from '@/lib/sitePlan';
 import { buildDepotLanes } from '@/engine/motion/LaneGraph';
@@ -172,7 +172,6 @@ export const DepotSVG = forwardRef<SVGSVGElement>((_, ref) => {
       })()}
       <rect x={TEMP_AISLE.x0} y={N1_LANE_Y} width={TEMP_AISLE.width}
         height={NORTH_LANE_Y - N1_LANE_Y} fill="#262635" opacity={0.8} />
-      <rect x={WEST_LINK_X - 4} y={16} width={8} height={52} fill="#262635" opacity={0.8} />
 
       {/* ---- RIGHT-OF-WAY paint (RAILS P2) ----
            Generated from the SAME directed LaneGraph the cars route on, so the
@@ -182,12 +181,24 @@ export const DepotSVG = forwardRef<SVGSVGElement>((_, ref) => {
       <LaneOverlay />
 
       {/* ---- structures ---- */}
-      {/* BESS yard */}
+      {/* Electrical ground: the battery yard (batteries, TX-AUX, primary switchgear) and the transformer yard
+          behind the office. Positions are sitePlan's, the same the 3D yard and the clearance solids read. */}
       <rect x={BESS_YARD.x} y={BESS_YARD.y} width={BESS_YARD.w} height={BESS_YARD.h} fill="#23262e" stroke="#9E9E9E" strokeWidth={0.4} strokeDasharray="2,1.5" rx={1} />
-      {[0, 1, 2].map((i) => (
-        <rect key={`bc${i}`} x={BESS_YARD.x + 5 + i * 15} y={BESS_YARD.y + 8} width={11} height={20} fill="#30343e" stroke="#9E9E9E" strokeWidth={0.3} rx={0.5} />
+      {[0, 1].map((i) => (
+        <rect key={`bc${i}`} x={BESS_YARD.x + 18 + i * 10} y={BESS_YARD.y + 13} width={7} height={16} fill="#30343e" stroke="#9E9E9E" strokeWidth={0.3} rx={0.5} />
       ))}
-      <text x={BESS_YARD.x + BESS_YARD.w / 2} y={BESS_YARD.y + 5.5} textAnchor="middle" fontSize={3.2} fill="#ffffff" fontWeight="bold">BESS · SWGR</text>
+      <rect x={MV_SWITCHGEAR.x - MV_SWITCHGEAR.w / 2} y={MV_SWITCHGEAR.y - MV_SWITCHGEAR.d / 2} width={MV_SWITCHGEAR.w} height={MV_SWITCHGEAR.d}
+        fill="#3a3f4b" stroke="#cfd4dc" strokeWidth={0.3} data-testid="plan-switchgear"><title>Primary switchgear, 13.8 kV</title></rect>
+      <rect x={TX_YARD.x} y={TX_YARD.y} width={TX_YARD.w} height={TX_YARD.h} fill="#23262e" stroke="#9E9E9E" strokeWidth={0.4} strokeDasharray="2,1.5" rx={1} data-testid="plan-tx-yard" />
+      {[...CHARGER_TRANSFORMERS, AUX_TRANSFORMER].map((t) => (
+        <g key={t.code} data-testid={`plan-tx-${t.code}`}>
+          <title>{`Transformer ${t.code}, 2,500 kVA`}</title>
+          <rect x={t.x - TX_PAD.w / 2} y={t.y - TX_PAD.d / 2} width={TX_PAD.w} height={TX_PAD.d} fill="#56705a" stroke="#cfd4dc" strokeWidth={0.25} rx={0.4} />
+          <text x={t.x} y={t.y + TX_PAD.d / 2 + 2.6} textAnchor="middle" fontSize={1.9} fill="#ffffff">{t.code.replace('TX-', '')}</text>
+        </g>
+      ))}
+      <text x={BESS_YARD.x + BESS_YARD.w / 2} y={BESS_YARD.y + BESS_YARD.h - 3} textAnchor="middle" fontSize={3.2} fill="#ffffff" fontWeight="bold">BESS · SWGR</text>
+      <text x={TX_YARD.x + TX_YARD.w / 2} y={TX_YARD.y + 3.4} textAnchor="middle" fontSize={2.6} fill="#ffffff" fontWeight="bold">TRANSFORMERS</text>
 
       {/* office + service bays */}
       <rect x={BUILDING.x} y={BUILDING.y} width={BUILDING.w} height={BUILDING.h} fill="#33343c" stroke="#ffffff" strokeWidth={0.4} rx={1} />
