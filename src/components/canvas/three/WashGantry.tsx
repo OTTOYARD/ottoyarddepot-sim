@@ -344,7 +344,7 @@ function WashGantryBay({ bayId, planX, shared, frame }: {
     const s = twinMotionDriver.washSessionAt(bayId) ?? IDLE_WASH;
     const p = washPoseAt(s);
     rig.gantry.position.z = -p.dy;
-    if (p.spinning) spin.current += Math.min(delta, 0.1) * BRUSH_SPIN_RAD_S;
+    if (p.spinning) spin.current += Math.min(delta, 0.1) * twinMotionDriver.playbackSpeed() * BRUSH_SPIN_RAD_S; // turns per depot second
     // the side brushes: east (bay +x) is local -x; they turn opposite ways, like a real pair
     rig.side.forEach((m, i) => {
       const sgn = i === 0 ? -1 : 1;
@@ -438,7 +438,7 @@ function CadWashBay({ bayId, planX, cad, fleet, flex, slot, shared }: {
     const s = twinMotionDriver.washSessionAt(bayId) ?? IDLE_WASH;
     const p = washPoseAt(s);
     poseSkeleton(rig.skel, washJoints(p));
-    if (p.spinning) spin.current += Math.min(delta, 0.1) * BRUSH_SPIN_RAD_S;
+    if (p.spinning) spin.current += Math.min(delta, 0.1) * twinMotionDriver.playbackSpeed() * BRUSH_SPIN_RAD_S; // turns per depot second
     for (const b of rig.brushes) spinNode(b.node, b.rest, axis, b.sign * spin.current);
     machineRef.current?.updateWorldMatrix(true, true);
     // the beacon shows the program's state; the stop lamps face the arriving car (red while it runs)

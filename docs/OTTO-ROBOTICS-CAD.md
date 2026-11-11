@@ -498,6 +498,10 @@ code; isolate a major function (what it does, how, specs, parts, screws, mass) a
 part in the list or the view and the rest x-rays while the camera zooms to it; its card gives the standard, size,
 grade, material, mass, tightening torque and where it is used. Downloads: STEP, GLB, CSV.
 
+**Pick a step** (2026-11-11). Each step in "How it runs" is a button: the model takes the pose that step ends in (the
+connector in, the wand in the cabin). A cockpit can ask for a step with `?tab=robotics&robot=<machine>&step=<id>`.
+OTTO-PULSE's status feed links each step here. PULSE draws no model and has no live follow (Chase, 2026-11-11).
+
 **Follow a robot in the depot** (2026-11-11) poses the model from a machine the yard draws now. It is offered while a
 run plays in the yard, and it is the one time this tab reads the run. The pose is not a second evaluation: it is the
 motion driver's own session for that stall or wash bay (`armSessionAt`, `cleanSessionAt`, `washSessionAt`) through the

@@ -21,7 +21,7 @@ import { Slider } from '@/components/ui/slider';
 import { useSimulationStore } from '@/store/simulationStore';
 import { usePhoneSheet } from '@/components/phone/phoneStore';
 import { useTwinStore } from '@/store/twinStore';
-import { isLiveRunStatus, pulseRobotsUrl, robotFromSearch } from '@/lib/cockpitLinks';
+import { isLiveRunStatus, pulseRobotsUrl, robotFromSearch, stepFromSearch } from '@/lib/cockpitLinks';
 import { useLiveFollow } from '@/components/robotics/useLiveFollow';
 import { followLine, type LiveUnit } from '@/lib/robotics/liveFollow';
 import { CadViewer, type CadJointSummary, type CadViewState, type SectionAxis, type ViewDir } from '@/components/robotics/CadViewer';
@@ -183,6 +183,9 @@ export function TwinRoboticsTab() {
   const [cyc, setCyc] = useState<{ t: number; step: number }>({ t: 0, step: 0 });
   const [joints, setJoints] = useState<CadJointSummary[]>([]);
   const [manual, setManual] = useState<Record<string, number>>({});
+  // one step of the cycle, shown as a still pose: picked in the step list, or asked for by a cockpit's link (?step=)
+  const [stepShown, setStepShown] = useState<string | null>(null);
+  const [linkStep, setLinkStep] = useState<string | null>(() => stepFromSearch(typeof window === 'undefined' ? '' : window.location.search));
 
   useEffect(() => {
     if (!autoExpanded && typeof window !== 'undefined' && window.innerWidth >= 1200) {
@@ -210,17 +213,32 @@ export function TwinRoboticsTab() {
   const presets = useMemo(() => posePresets(robot), [robot]);
   useEffect(() => {
     setPoseId(presets[0].id); setView((v) => ({ ...DEFAULT_VIEW, fitKey: v.fitKey + 1 })); setQuery('');
-    setPlaying(false); setManual({}); setCyc({ t: 0, step: 0 });
+    setPlaying(false); setManual({}); setCyc({ t: 0, step: 0 }); setStepShown(null);
   }, [robot, presets]);
   const script = useMemo(() => cycleScript(robot), [robot]);
   const followed = useLiveFollow(robot);
   const following = followed.following;
   const startFollow = (id: string) => {
-    setPlaying(false); setManual({});
+    setPlaying(false); setManual({}); setStepShown(null);
     if (!following) setView((v) => ({ ...v, selected: null, isolate: null, explode: 0, frameCar: true, fitKey: v.fitKey + 1 }));
     followed.follow(id);
   };
   const stopFollow = () => { followed.follow(null); set({ frameCar: false }); };
+  // Show one step: the model takes the pose that step ends in (the connector in, the wand in the cabin).
+  const showStep = (id: string) => {
+    const i = script.steps.findIndex((x) => x.id === id);
+    if (i < 0) return;
+    const end = script.steps.slice(0, i + 1).reduce((a, x) => a + x.seconds, 0);
+    followed.follow(null); setPlaying(false);
+    setManual(script.at(Math.max(0, end - 1e-6)).angles);
+    setStepShown(id);
+    setView((v) => ({ ...v, selected: null, isolate: null, explode: 0, frameCar: true, fitKey: v.fitKey + 1 }));
+  };
+  useEffect(() => {
+    if (!linkStep || !entry) return;
+    setLinkStep(null);
+    showStep(linkStep);
+  }, [linkStep, entry, script]); // eslint-disable-line react-hooks/exhaustive-deps
   const angles = useMemo(
     () => ({ ...(presets.find((p) => p.id === poseId)?.angles ?? presets[0].angles), ...manual }),
     [presets, poseId, manual],
@@ -267,7 +285,7 @@ export function TwinRoboticsTab() {
   const cycleBar = (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-white/[0.06] px-2 py-1.5 text-[11px]" data-testid="cycle-bar">
       <button type="button" onClick={() => {
-        followed.follow(null);
+        followed.follow(null); setStepShown(null); if (!playing) setManual({});
         setPlaying(!playing);
         setView((v) => (playing ? { ...v, frameCar: false } : { ...v, selected: null, isolate: null, explode: 0, frameCar: true, fitKey: v.fitKey + 1 }));
       }}
@@ -322,7 +340,7 @@ export function TwinRoboticsTab() {
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-white/[0.06] px-2 py-2 text-[11px]" data-testid="cad-toolbar">
       <div className="flex items-center gap-1">
         <span className="text-ink-dim">Pose</span>
-        {presets.map((p) => <Chip key={p.id} active={!playing && !following && p.id === poseId} onClick={() => { followed.follow(null); setPlaying(false); setManual({}); setPoseId(p.id); set({ frameCar: false }); }} testId={`pose-${p.id}`}>{p.label}</Chip>)}
+        {presets.map((p) => <Chip key={p.id} active={!playing && !following && !stepShown && p.id === poseId} onClick={() => { followed.follow(null); setPlaying(false); setManual({}); setStepShown(null); setPoseId(p.id); set({ frameCar: false }); }} testId={`pose-${p.id}`}>{p.label}</Chip>)}
       </div>
       <div className="flex items-center gap-1">
         <span className="text-ink-dim">View</span>
@@ -349,7 +367,7 @@ export function TwinRoboticsTab() {
           {view.showFasteners ? <Eye size={11} className="inline" aria-hidden /> : <EyeOff size={11} className="inline" aria-hidden />} Fasteners
         </Chip>
         <Chip active={view.showCar} onClick={() => set({ showCar: !view.showCar })}>Car</Chip>
-        <Chip onClick={() => { setView({ ...DEFAULT_VIEW, fitKey: view.fitKey + 1 }); setPoseId(presets[0].id); setManual({}); setPlaying(false); followed.follow(null); }}><RotateCcw size={11} className="inline" aria-hidden /> Reset</Chip>
+        <Chip onClick={() => { setView({ ...DEFAULT_VIEW, fitKey: view.fitKey + 1 }); setPoseId(presets[0].id); setManual({}); setStepShown(null); setPlaying(false); followed.follow(null); }}><RotateCcw size={11} className="inline" aria-hidden /> Reset</Chip>
       </div>
     </div>
   );
@@ -400,7 +418,7 @@ export function TwinRoboticsTab() {
                 <span className="font-mono tabular-nums text-ink-dim">{rev ? `${(v * 180 / Math.PI).toFixed(0)}°` : `${Math.round(v * 1000)} mm`}</span>
               </div>
               <Slider value={[v]} min={j.limits[0]} max={j.limits[1]} step={rev ? 0.005 : 0.002} disabled={playing || !!following}
-                onValueChange={(x) => setManual((m) => ({ ...m, [j.name]: x[0] }))} />
+                onValueChange={(x) => { setStepShown(null); setManual((m) => ({ ...m, [j.name]: x[0] })); }} />
             </li>
           );
         })}
@@ -501,12 +519,16 @@ export function TwinRoboticsTab() {
       )}
       <div className="space-y-1" data-testid="cycle-steps">
         <SectionTitle>How it runs (the twin's steps)</SectionTitle>
+        <p className="text-[10.5px] leading-4 text-ink-dim">Pick a step. The model takes the pose that step ends in.</p>
         <ol className="space-y-0.5 text-[11px] leading-4">
           {steps.map((s, i) => (
-            <li key={s.id} className="flex items-baseline gap-2">
-              <span className="w-5 shrink-0 text-right font-mono tabular-nums text-ink-dim">{i + 1}</span>
-              <span className="min-w-0 flex-1 text-ink">{s.label}</span>
-              <span className="shrink-0 font-mono tabular-nums text-ink-dim">{s.seconds != null ? `${s.seconds} s` : ''}{s.note ? ` ${s.note}` : ''}</span>
+            <li key={s.id}>
+              <button type="button" onClick={() => showStep(s.id)} data-testid="cycle-step-pick" data-step={s.id} aria-pressed={stepShown === s.id}
+                className={`flex w-full items-baseline gap-2 rounded px-1 py-0.5 text-left transition-colors ${stepShown === s.id ? 'bg-brand-red/15' : 'hover:bg-white/[0.05]'}`}>
+                <span className="w-5 shrink-0 text-right font-mono tabular-nums text-ink-dim">{i + 1}</span>
+                <span className="min-w-0 flex-1 text-ink">{s.label}</span>
+                <span className="shrink-0 font-mono tabular-nums text-ink-dim">{s.seconds != null ? `${s.seconds} s` : ''}{s.note ? ` ${s.note}` : ''}</span>
+              </button>
             </li>
           ))}
         </ol>

@@ -19,7 +19,7 @@ import { resolve } from 'node:path';
 vi.mock('@/components/robotics/CadViewer', () => ({
   CadViewer: (p: { robot: string; live?: (() => Record<string, number> | null) | null; state: { isolate: string | null; selected: string | null; angles: Record<string, number> } }) => (
     <div data-testid="cad-viewer-stub" data-robot={p.robot} data-isolate={p.state.isolate ?? ''} data-selected={p.state.selected ?? ''}
-      data-live={p.live ? JSON.stringify(p.live()) : ''}
+      data-live={p.live ? JSON.stringify(p.live()) : ''} data-angles={JSON.stringify(p.state.angles)}
       data-joints={Object.keys(p.state.angles).join(',')} />
   ),
 }));
@@ -179,6 +179,27 @@ describe('the Robotics tab', () => {
     await settle();
     expect(screen.getByTestId('cycle-play')).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByTestId('cycle-play')).toHaveTextContent('Pause the cycle');
+  });
+
+  it('shows one step as a still pose: picked in the list, or asked for by a cockpit link', async () => {
+    await open(true);
+    const stowed = screen.getByTestId('cad-viewer-stub').dataset.angles;
+    const pick = screen.getAllByTestId('cycle-step-pick').find((b) => b.dataset.step === 'insert')!;
+    fireEvent.click(pick);
+    await settle();
+    expect(pick).toHaveAttribute('aria-pressed', 'true');
+    const inserted = screen.getByTestId('cad-viewer-stub').dataset.angles;
+    expect(inserted).not.toBe(stowed);
+    fireEvent.click(screen.getByTestId('pose-stowed'));
+    await settle();
+    expect(screen.getByTestId('cad-viewer-stub').dataset.angles).toBe(stowed);
+    cleanup();
+    window.history.replaceState(null, '', '/?robot=charge_arm&step=insert');
+    try {
+      await open(true);
+      expect(screen.getByTestId('cad-viewer-stub').dataset.angles).toBe(inserted);
+      expect(screen.getAllByTestId('cycle-step-pick').find((b) => b.dataset.step === 'insert')).toHaveAttribute('aria-pressed', 'true');
+    } finally { window.history.replaceState(null, '', '/'); }
   });
 
   it('follows no robot when no run plays in the yard, and says so', async () => {

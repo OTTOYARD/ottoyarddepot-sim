@@ -338,6 +338,22 @@ export function slewAngles(
   };
 }
 
+/** Longest frame the drawn arm treats as elapsed, real seconds: a stalled tab is not a second of travel. */
+export const MAX_SERVO_FRAME_S = 0.1;
+
+/**
+ * The seconds of servo travel one drawn frame is worth: the frame's real length (at most MAX_SERVO_FRAME_S) times
+ * the speed the yard plays at. MAX_JOINT_RATE is a rate of the WORLD, radians per depot second, so at 8x a joint may
+ * turn eight times as far in a frame, as the car beside it drives eight times as far. Counted in real seconds, the
+ * limit bound above about 4x and the drawn arm trailed its own cycle. The bound per frame stays: no input moves a
+ * joint more than MAX_JOINT_RATE x this.
+ */
+export function servoDt(frameDelta: number, playbackSpeed: number): number {
+  const dt = Math.min(Math.max(Number.isFinite(frameDelta) ? frameDelta : 0, 0), MAX_SERVO_FRAME_S);
+  const x = Number.isFinite(playbackSpeed) && playbackSpeed > 1 ? playbackSpeed : 1;
+  return dt * x;
+}
+
 /** The same bound for a scalar — the latch collar, which is just as visible. */
 export function slewScalar(
   from: number, to: number, dt: number, rate: number = MAX_LATCH_RATE,
