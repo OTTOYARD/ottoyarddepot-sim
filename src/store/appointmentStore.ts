@@ -1,7 +1,8 @@
 // ============================================================================
 // appointmentStore — the OTTO-Q appointment / reservation / servicing seam,
 // fed by the public RPC `ottoq_twin_appointments(p_sim_run_id)`. Polled by
-// useAppointments while a run is active; consumed by TwinOrchestrationTab.
+// useAppointments while a run is active; consumed by the depot view's reservation
+// glow (src/components/canvas/ReservationGlow.tsx).
 // Render ONLY what the RPC returns — no fabricated metrics or history.
 // ============================================================================
 import { create } from "zustand";

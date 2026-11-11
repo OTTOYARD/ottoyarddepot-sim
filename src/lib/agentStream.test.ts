@@ -33,6 +33,24 @@ describe("an agent pass in words", () => {
     expect(p.outcome).toContain("No solver was asked this pass.");
   });
 
+  // The summary, the directives and the reason are the model's words, not ours: a product or a file of ours that they
+  // name reads by its public name, and nothing else in them changes (10 of 9,360 agent decisions, read 2026-11-10).
+  it("puts a product the agent names in its public name and keeps the rest of its words", () => {
+    const r = passes.find((p) => p.outcome === "enacted")!;
+    const said = {
+      ...(r.rationale as Record<string, unknown>),
+      summary: "CP-SAT returned 3 offers and cuOpt none. Two cars are due.",
+      applied: [{ text: "Tesla-AV-054: stranded 5 h, per CLAUDE.md rule 9." }, { text: "Hold nothing back." }],
+      objective_why: "Nemotron sees two cars due inside the hour.",
+    };
+    const p = agentPass({ ...r, rationale: said } as ActivityFeedRow);
+    expect(p.read).toBe("The lexicographic planner returned 3 offers and the GPU planner none. Two cars are due.");
+    expect(p.directives).toEqual(["Tesla-AV-054: stranded 5 h, per rule 9.", "Hold nothing back."]);
+    expect(p.chose).toBe("It chose to get cars ready first, because the agent model sees two cars due inside the hour.");
+    // a pass that names nothing reads exactly as the model wrote it
+    expect(agentPass(r).read).toBe((r.rationale as { summary: string }).summary);
+  });
+
   it("never names an objective it was not given", () => {
     expect(objectiveWord(undefined)).toBe("a goal not recorded");
     expect(objectiveWord("readiness_first")).toBe("get cars ready first");

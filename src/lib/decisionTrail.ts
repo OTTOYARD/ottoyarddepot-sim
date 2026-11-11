@@ -1,4 +1,4 @@
-// decisionTrail — one car's visit as a plain-English timeline, and the depot's funnel, from reads that already exist.
+// decisionTrail — one car's visit as a plain-English timeline, from reads that already exist.
 //
 // Chase, 2026-09-28: "Like scenario requested by vehicle, scanned, found best solution, proposed, passed, dispatched.
 // But then all variability and combinations that might coincide with the OTTO-Q funnel of thinking and orchestration."
@@ -14,9 +14,9 @@
 // "not recorded" rather than being filled in.
 import type { ActivityFeedRow } from "@/store/activityFeedStore";
 import {
-  MISSING, STEP_LABEL, arrivedText, blockedText, chargeCompareText, checkedText, clockCT, doneText, minutesBetween,
-  optionsText, ownerRequestText, pickedText, placeName, replannedText, safetyText, sentText, serviceAddedText,
-  serviceWord, waitedText, whyPickedText, type Sentence, type TrailStepKind,
+  MISSING, arrivedText, blockedText, chargeCompareText, checkedText, doneText, minutesBetween, optionsText,
+  ownerRequestText, pickedText, placeName, replannedText, safetyText, sentText, serviceAddedText, serviceWord,
+  waitedText, whyPickedText, type Sentence, type TrailStepKind,
 } from "./plainWords";
 
 // ── inputs ──────────────────────────────────────────────────────────────────
@@ -117,8 +117,6 @@ const numOf = (v: unknown): number | null => (typeof v === "number" && Number.is
 
 /** Decisions that put the car somewhere. */
 const SEND_VERBS = new Set(["assign_stall", "admit_service", "admit_wash"]);
-/** Every verb that is OTTO-Q producing a plan for a car (a send, a gate intake, a departure). */
-const PLAN_VERBS = new Set([...SEND_VERBS, "gate_intake", "deploy"]);
 /** Actions about a car (the agent, the depot battery and the challenger are not cars). */
 const CAR_ACTIONS = new Set([
   "stall_assignment", "task_start", "redeployment", "triage_verdict", "itinerary_amended",
@@ -382,61 +380,3 @@ export function stepWords(s: TrailCardStep): string {
   const w = serviceWord(s.atom || s.leg_type);
   return w.charAt(0).toUpperCase() + w.slice(1);
 }
-
-// ── the depot funnel ────────────────────────────────────────────────────────
-export interface FunnelCounts {
-  asked: number;
-  planned: number;
-  passed: number;
-  sent: number;
-  /** Cars that left ready. Throughput is OTTO-Q's main objective, so this is the headline. */
-  done: number;
-  branches: { replanned: number; waited: number; blocked: number; serviceAdded: number };
-}
-
-/** Cars through each stage, counted as distinct cars from the changes-only feed, from `since` on (null = whole run). */
-export function depotFunnel(rows: readonly ActivityFeedRow[], since: string | null = null): FunnelCounts {
-  const t0 = since ? Date.parse(since) : -Infinity;
-  const sets = {
-    asked: new Set<string>(), planned: new Set<string>(), passed: new Set<string>(), sent: new Set<string>(), done: new Set<string>(),
-    replanned: new Set<string>(), waited: new Set<string>(), blocked: new Set<string>(), serviceAdded: new Set<string>(),
-  };
-  for (const r of rows) {
-    if (!isCarRow(r) || Date.parse(r.occurred_at) < t0) continue;
-    const id = r.vehicle_id;
-    const verb = verbOf(r);
-    sets.asked.add(id);
-    if (PLAN_VERBS.has(verb) || isOverridden(r)) sets.planned.add(id);
-    if (PLAN_VERBS.has(verb) && r.outcome === "enacted") sets.passed.add(id);
-    if (isSend(r)) sets.sent.add(id);
-    if (isDeploy(r)) sets.done.add(id);
-    if (r.action === "itinerary_amended" || verb === "displace_and_bind") sets.replanned.add(id);
-    if (isWait(r)) sets.waited.add(id);
-    if (isOverridden(r)) sets.blocked.add(id);
-    if (verb === "triage_confirm" || verb === "triage_escalate") sets.serviceAdded.add(id);
-  }
-  return {
-    asked: sets.asked.size, planned: sets.planned.size, passed: sets.passed.size, sent: sets.sent.size, done: sets.done.size,
-    branches: {
-      replanned: sets.replanned.size, waited: sets.waited.size, blocked: sets.blocked.size, serviceAdded: sets.serviceAdded.size,
-    },
-  };
-}
-
-export const FUNNEL_LABEL: Record<"asked" | "planned" | "passed" | "sent" | "done", string> = {
-  asked: "Asked",
-  planned: "Planned",
-  passed: "Passed safety",
-  sent: "Sent",
-  done: "Done",
-};
-
-export const BRANCH_LABEL: Record<keyof FunnelCounts["branches"], string> = {
-  replanned: STEP_LABEL.replanned,
-  waited: STEP_LABEL.waited,
-  blocked: "Stopped by safety",
-  serviceAdded: STEP_LABEL.service_added,
-};
-
-/** "since 1:05 PM" for a window that starts at `since`. */
-export const windowLabel = (since: string | null): string => (since ? `since ${clockCT(since)}` : "whole run");

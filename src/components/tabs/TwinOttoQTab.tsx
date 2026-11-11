@@ -24,7 +24,7 @@ import { useSelfReview } from "@/hooks/useSelfReview";
 import { useAgentOrders } from "@/hooks/useAgentOrders";
 import { LearnedThisRun } from "@/components/tabs/ottoq/LearnedThisRun";
 import { SelfReview } from "@/components/tabs/ottoq/SelfReview";
-import { EndedState, StreamState } from "@/components/tabs/TwinDecisionLogTab";
+import { EndedState, StreamState } from "@/components/tabs/StreamState";
 import { useSimulationStore } from "@/store/simulationStore";
 import { OttoQStack, type PickKind, type StackReplay } from "@/components/tabs/ottoq/stack/OttoQStack";
 import {

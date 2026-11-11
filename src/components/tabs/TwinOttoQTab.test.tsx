@@ -28,8 +28,8 @@ vi.mock("@/hooks/useSecondLoop", () => ({
 }));
 vi.mock("@/hooks/useDecisionTrail", () => ({
   TWIN_DEPOT_ID: "11111111-1111-1111-1111-111111111111",
-  useDecisionTrail: () => ({ simRunId: fx.sim_run_id, simClock: null, cards: [], cardMemory: new Map(), runRows: [], runRowsCapped: false,
-    carRows: [], decisions: [], proposals: [], choices: [], error: null, loading: true }),
+  useDecisionTrail: () => ({ simRunId: fx.sim_run_id, simClock: null, cards: [], cardMemory: new Map(),
+    carRows: [], decisions: [], proposals: [], choices: [], error: null }),
 }));
 
 const { useTwinStore } = await import("@/store/twinStore");
@@ -250,5 +250,18 @@ describe("Agent tab", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Learning" }));
     expect(screen.getByText(/never OTTO-Q in production/)).toBeTruthy();
     expect(screen.getByText(/Overnight estimates .* are not built yet/)).toBeTruthy();
+  });
+
+  // otto-q-core 0536: the second loop needs no live run (the research wing works overnight, and the challenger's board
+  // names the last operator run). This was the old Intelligence tab's case; the loop lives on this tab now.
+  it("with no run, keeps the toggle, and Learning still shows the challenger and the research wing", () => {
+    act(() => useTwinStore.setState({ activeSimRunId: null }));
+    render(<TwinAgentTab />);
+    expect(screen.getByText(/No run is active/)).toBeTruthy();
+    expect(screen.queryByText("Challenger")).toBeNull();
+    fireEvent.click(screen.getByRole("tab", { name: "Learning" }));
+    expect(screen.getByText("Challenger")).toBeTruthy();
+    expect(screen.getByText("Research (twin)")).toBeTruthy();
+    expect(screen.queryByText(/No run is active/)).toBeNull();
   });
 });

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ActivityFeedRow } from "@/store/activityFeedStore";
 import {
-  buildTrail, depotFunnel, splitVisits, type TrailCard, type TrailChoice, type TrailDecision, type TrailProposal,
+  buildTrail, splitVisits, type TrailCard, type TrailChoice, type TrailDecision, type TrailProposal,
 } from "./decisionTrail";
 
 // Rows shaped exactly as ottoq_activity_feed_v2 returned them on twin runs 8ddd0752 and e9e3b922 (2026-09-28).
@@ -250,32 +250,5 @@ describe("a car's trail with the engine's own record of each charger choice (ott
   it("never shows a stall code, a rule code or an engine name", () => {
     const text = run([wait, pickChoice()]).steps.map((x) => `${x.title} ${x.detail ?? ""}`).join(" | ");
     expect(text).not.toMatch(/NASH-|deterministic|[A-Z]{2,3}\.\d{3}|_|tick/);
-  });
-});
-
-describe("the depot funnel", () => {
-  const other = "11111111-2222-3333-4444-555555555555";
-  const rows = [
-    ...everything,
-    { ...noFreeCharger, vehicle_id: other, decision_seq: 900 },
-  ];
-
-  it("counts cars at each stage, and cars that took each branch", () => {
-    const f = depotFunnel(rows);
-    expect(f).toEqual({
-      asked: 2, planned: 1, passed: 1, sent: 1, done: 1,
-      branches: { replanned: 1, waited: 2, blocked: 1, serviceAdded: 1 },
-    });
-  });
-
-  it("counts only the window it is asked for", () => {
-    const f = depotFunnel(rows, "2026-09-28T19:00:00Z");
-    expect(f.asked).toBe(1);
-    expect(f.done).toBe(1);
-    expect(f.sent).toBe(0);
-  });
-
-  it("does not count the agent or the depot battery as a car", () => {
-    expect(depotFunnel([agent]).asked).toBe(0);
   });
 });

@@ -210,12 +210,25 @@ renders nothing while the page is hidden.
 
 - **The 5 auditor cards' raw counters** (packets, integrity, by-probe-point, arming dials, per-provider call counts).
   They answer "is the instrument healthy", which is Diagnostics' question, not "how does OTTO-Q think". Their sources
-  stay in `TwinIntelligenceTab.tsx` for review.
+  stayed in `TwinIntelligenceTab.tsx` for review until 2026-11-10 (see the update below).
 - **The Orchestration tab's hero tiles** ("Vehicles / charger", "Unsafe deploys") and lifecycle tiles: the same states as
   the funnel's physical layers, counted a second time.
 - **The Events tab**: the third copy of the same facts, in audit words.
 - **Site battery rows** in the stream: energy dispatch is not a car decision. Value and KPIs cover energy.
 - The old components stay in the tree (as PR #108 did) and are no longer in navigation.
+
+**Update, 2026-11-10: the old components are removed.** Nothing had mounted them for six weeks, and they still cost
+work: every copy pass edited text no viewer could read, and the Intelligence tab drew the agent model's id and raw
+solver keys from data, with a test that pinned the id on screen (the names rule, `AGENTS.md`). Removed:
+`TwinIntelligenceTab`, the decision log and the decision trail it mounted, `TwinOrchestrationTab`, `TwinAlertsTab` (the
+Events tab), `TwinAiSummaryTab` with `src/lib/twinAnalysis.ts`, the Intelligence panel's formatters in
+`src/lib/intelligenceStack.ts` (its wire types stay), and the 5-box funnel in `src/lib/decisionTrail.ts` (`buildTrail`
+stays: the OTTO-Q tab's car trail is built with it). `useDecisionTrail` no longer reads the whole run's feed, which
+only that funnel used. The last commit that holds all of it is `cdaaf24`.
+
+Kept, and still in use: the LIVE / PAUSED / ENDED chips (`src/components/tabs/StreamState.tsx`), the decision wording
+and its tests (`src/lib/decisionText.ts`), and `src/lib/eventFeed.ts`, which nothing in the twin imports and which
+OTTO-PULSE and OrchestrAV carry byte for byte.
 
 ## Found on the way (for Chase)
 

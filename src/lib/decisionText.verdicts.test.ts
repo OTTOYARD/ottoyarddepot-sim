@@ -1,3 +1,8 @@
+// decisionText.verdicts.test.ts — a decision in words: its reason, the agent pass's solver and kernel labels, each
+// verdict's title and detail, and how the stream prints times and holds.
+//
+// These were the decision log tab's tests (src/components/tabs/TwinDecisionLogTab.test.tsx). They never rendered the
+// tab: every one tests decisionText.ts, so they moved beside it when the tab's source was removed (2026-11-10).
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_CATEGORIES,
@@ -6,13 +11,13 @@ import {
   describeDecision,
   formatClockCT,
   holdText,
+  isPlace,
   kernelLabel,
   modelErrorText,
   solverLabel,
   starvationNote,
-} from "./TwinDecisionLogTab";
+} from "./decisionText";
 import type { ActivityFeedRow } from "@/store/activityFeedStore";
-import { isPlace } from "@/lib/decisionText";
 
 const row = (overrides: Partial<ActivityFeedRow>): ActivityFeedRow => ({
   occurred_at: "2026-09-16T12:00:00Z",
@@ -24,10 +29,16 @@ const row = (overrides: Partial<ActivityFeedRow>): ActivityFeedRow => ({
   outcome: "enacted",
   rationale: null,
   reason: null,
+  // null, as the feed sends them outside changes-only mode. The cockpits' row type requires the five to be present.
+  decision_seq: null,
+  tick_seq: null,
+  held_ticks: null,
+  last_at: null,
+  standing: null,
   ...overrides,
 });
 
-describe("Decision Log reason rendering", () => {
+describe("a decision's reason, as text", () => {
   it("renders the database reason as plain text instead of string characters", () => {
     expect(decisionReasonText(row({ reason: "blocked: grid ceiling" })))
       .toBe("blocked: grid ceiling");
@@ -39,7 +50,7 @@ describe("Decision Log reason rendering", () => {
   });
 });
 
-// These three exist because this strip used to assert "CP-SAT" on every line it
+// These exist because the decision strip (since removed) used to assert "CP-SAT" on every line it
 // rendered. otto-q-core 0346: the feed joined the proposer fire log on a key
 // present on 0 of 112 rows and COALESCEd the solver name onto a hardcoded CP-SAT
 // literal, so the label was a constant dressed as a measurement. The rule now is
@@ -148,7 +159,7 @@ describe("decision verdicts in words", () => {
       .toBe("Do the thing");
   });
 
-  it("puts an agent pass on one line: objective, solver, kernel (for cockpits without the chip strip)", () => {
+  it("puts an agent pass on one line: objective, solver, kernel (the line OTTO-PULSE and OrchestrAV draw)", () => {
     const pass = describeDecision(row({
       action: "orchestrator_agent",
       rationale: {

@@ -1,12 +1,15 @@
-// useDecisionTrail — the reads behind the plain-English decision trail (TwinDecisionTrail).
+// useDecisionTrail — the reads behind one car's plain-English decision trail (src/components/tabs/ottoq/CarTrail.tsx).
 //
 // Composed from reads that already exist; no RPC was added for this:
 //   ottoq_depot_cards(depot)                 every car's needs, due time and plan steps       every 10 s
-//   ottoq_activity_feed_v2(run, changes)     the whole run's decisions, for the depot funnel   every 20 s
 //   ottoq_activity_feed_v2(run, vehicle)     the picked car's decisions                        every 8 s
 //   ottoq_decisions (vehicle)                their safety-check results                         every 8 s
 //   ottoq_external_proposals (vehicle)       the planners' offers for the car                   every 8 s
 //   ottoq_decision_options(run, vehicle)     what each charger choice had to choose from (0590) every 8 s
+//
+// It used to read the whole run's feed too (up to 5,000 rows, then every 20 s) for the old Intelligence tab's depot
+// funnel. Nothing has drawn that funnel since 2026-09-30, and the read went with its source on 2026-11-10. A car's
+// trail never used it.
 //
 // Pause follows the sim, exactly as useActivityFeed: a paused cockpit issues no reads and keeps what it has.
 // A depot card goes null once its car leaves, which would take the car's due time with it, so the last card seen for
@@ -16,17 +19,10 @@ import { ottoQ } from "@/lib/ottoQClient";
 import { useTwinStore } from "@/store/twinStore";
 import type { ActivityFeedRow } from "@/store/activityFeedStore";
 import type { TrailCard, TrailChoice, TrailDecision, TrailProposal } from "@/lib/decisionTrail";
-import { decisionKey } from "@/lib/decisionText";
 
 export const TWIN_DEPOT_ID = "11111111-1111-1111-1111-111111111111";
 const CARDS_MS = 10_000;
-const RUN_MS = 20_000;
 const CAR_MS = 8_000;
-/** One changes-only page of the whole run. A longer run shows the funnel from its oldest row returned, and says so. */
-export const RUN_FEED_LIMIT = 5000;
-/** After the first full read, each poll asks only for the last 2 sim-hours (as useActivityFeed does) and merges it:
- *  a row is ~850 bytes, so re-reading a whole day's feed every poll would be megabytes a minute. */
-const RUN_WINDOW_TICKS = 240;
 
 export interface DecisionTrailData {
   simRunId: string | null;
@@ -34,15 +30,13 @@ export interface DecisionTrailData {
   cards: TrailCard[];
   /** Last card seen per car this run (see above). */
   cardMemory: Map<string, TrailCard>;
-  runRows: ActivityFeedRow[];
-  runRowsCapped: boolean;
   carRows: ActivityFeedRow[];
   decisions: TrailDecision[];
   proposals: TrailProposal[];
   /** Empty until otto-q-core 0590 is applied; the trail then says "not recorded" where it would use them. */
   choices: TrailChoice[];
+  /** The last read that failed, until the picked car's reads answer again. */
   error: string | null;
-  loading: boolean;
 }
 
 const errText = (e: unknown): string =>
@@ -63,7 +57,6 @@ export function useDecisionTrail(vehicleId: string | null, enabled = true): Deci
   const paused = useTwinStore((s) => s.paused);
   const [cards, setCards] = useState<TrailCard[]>([]);
   const [simClock, setSimClock] = useState<string | null>(null);
-  const [runRows, setRunRows] = useState<ActivityFeedRow[]>([]);
   const [carRows, setCarRows] = useState<ActivityFeedRow[]>([]);
   const [decisions, setDecisions] = useState<TrailDecision[]>([]);
   const [proposals, setProposals] = useState<TrailProposal[]>([]);
@@ -71,23 +64,18 @@ export function useDecisionTrail(vehicleId: string | null, enabled = true): Deci
   /** A backend without 0590 answers PGRST202; stop asking it for this run. */
   const noOptionsRpc = useRef(false);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const memory = useRef(new Map<string, TrailCard>());
-  const runMap = useRef(new Map<string, ActivityFeedRow>());
-  const [capped, setCapped] = useState(false);
 
   // A new run starts clean.
   useEffect(() => {
     memory.current = new Map();
-    runMap.current = new Map();
-    setCapped(false);
-    setCards([]); setRunRows([]); setCarRows([]); setDecisions([]); setProposals([]); setChoices([]); setError(null); setSimClock(null);
+    setCards([]); setCarRows([]); setDecisions([]); setProposals([]); setChoices([]); setError(null); setSimClock(null);
     noOptionsRpc.current = false;
   }, [simRunId]);
 
   const live = enabled && !!simRunId && !paused;
 
-  // Depot cards + the run's feed.
+  // Depot cards.
   useEffect(() => {
     if (!live || !simRunId) return;
     let cancelled = false;
@@ -107,30 +95,9 @@ export function useDecisionTrail(vehicleId: string | null, enabled = true): Deci
         if (!cancelled) setError(errText(e));
       }
     };
-    const pollRun = async () => {
-      try {
-        setLoading(true);
-        const first = runMap.current.size === 0;
-        const rows = await readFeed({
-          p_sim_run_id: simRunId, p_limit: RUN_FEED_LIMIT, p_changes_only: true,
-          p_window_ticks: first ? 1_000_000 : RUN_WINDOW_TICKS,
-        });
-        if (cancelled) return;
-        if (first && rows.length >= RUN_FEED_LIMIT) setCapped(true);
-        // Merge by the decision's own identity; a standing verdict comes back with a longer hold and replaces itself.
-        for (const r of rows) runMap.current.set(decisionKey(r), r);
-        setRunRows([...runMap.current.values()]);
-        setError(null);
-      } catch (e) {
-        if (!cancelled) setError(errText(e));
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-    pollCards(); pollRun();
+    pollCards();
     const a = setInterval(pollCards, CARDS_MS);
-    const b = setInterval(pollRun, RUN_MS);
-    return () => { cancelled = true; clearInterval(a); clearInterval(b); };
+    return () => { cancelled = true; clearInterval(a); };
   }, [live, simRunId]);
 
   // The picked car.
@@ -174,6 +141,9 @@ export function useDecisionTrail(vehicleId: string | null, enabled = true): Deci
           else throw opts.error;
         }
         setCarRows(rows);
+        // These reads answered, so an earlier failure is over. (The whole-run read used to clear it, on its own
+        // clock, whether or not the car's reads had recovered.)
+        setError(null);
         const body = (opts.data ?? null) as { choices?: TrailChoice[] } | null;
         setChoices(Array.isArray(body?.choices) ? body!.choices : []);
         setDecisions(((dec.data ?? []) as unknown as TrailDecision[]).map((d) => ({ ...d, decision_seq: Number(d.decision_seq) })));
@@ -196,8 +166,5 @@ export function useDecisionTrail(vehicleId: string | null, enabled = true): Deci
     return () => { cancelled = true; clearInterval(t); };
   }, [live, simRunId, vehicleId]);
 
-  return {
-    simRunId, simClock, cards, cardMemory: memory.current, runRows, runRowsCapped: capped,
-    carRows, decisions, proposals, choices, error, loading,
-  };
+  return { simRunId, simClock, cards, cardMemory: memory.current, carRows, decisions, proposals, choices, error };
 }
