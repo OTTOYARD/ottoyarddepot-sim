@@ -1,0 +1,1418 @@
+diff --git a/src/components/canvas/WashGantry2D.test.tsx b/src/components/canvas/WashGantry2D.test.tsx
+index 4d443df..04e69c1 100644
+--- a/src/components/canvas/WashGantry2D.test.tsx
++++ b/src/components/canvas/WashGantry2D.test.tsx
+@@ -5,7 +5,6 @@ import { BAY_STALL_Y } from '@/lib/sitePlan';
+ import { advanceWashSession, IDLE_WASH, type WashSession } from '@/lib/ottoWash/washSession';
+ import { washPoseAt, type WashPose } from '@/lib/ottoWash/washPose';
+ import { WASH_GANTRY as G, WASH_HOME_DY } from '@/lib/ottoWash/washSpec';
+-import { CAR_HALF_WIDTH_U } from '@/lib/ottoWash/carShape';
+ import { paintWashGantry2D, SPRAY_FILL, STATUS_FILL, WashGantries2D } from './WashGantry2D';
+ 
+ /** The poses of one whole program, a frame at a time, kept every `keep` sim seconds. */
+@@ -43,17 +42,17 @@ describe('the wash machines on the 2D plan', () => {
+     const g = mount().querySelector('[data-wash-gantry]')!;
+     const bay = WASH_SHELL.bays[0];
+     expect(gantryDy(g)).toBeCloseTo(WASH_HOME_DY, 6);
+-    expect(num(part(g, 'brush-w'), 'cx')).toBeCloseTo(bay.x - G.sideBrush.retractX, 6);
+-    expect(num(part(g, 'brush-e'), 'cx')).toBeCloseTo(bay.x + G.sideBrush.retractX, 6);
++    expect(num(part(g, 'arm-w-pad'), 'cx')).toBeCloseTo(bay.x - (G.wipe.parkX - G.wipe.forearm), 6);
++    expect(num(part(g, 'arm-e-pad'), 'cx')).toBeCloseTo(bay.x + (G.wipe.parkX - G.wipe.forearm), 6);
+     expect(part(g, 'beacon').getAttribute('fill')).toBe(STATUS_FILL.home);
+     expect(part(g, 'stop').getAttribute('fill')).toBe('#35d07f');
+     expect(part(g, 'spray').getAttribute('visibility')).toBe('hidden');
+     expect(part(g, 'air').getAttribute('visibility')).toBe('hidden');
+-    expect(part(g, 'wand-w').getAttribute('visibility')).toBe('hidden');
++    expect(g.querySelector('[data-part^="brush"]')).toBeNull();
+     // and painting the idle pose changes nothing
+     paintWashGantry2D(g as SVGGElement, bay.x, washPoseAt(IDLE_WASH));
+     expect(gantryDy(g)).toBeCloseTo(WASH_HOME_DY, 3);
+-    expect(num(part(g, 'brush-w'), 'cx')).toBeCloseTo(bay.x - G.sideBrush.retractX, 3);
++    expect(num(part(g, 'arm-w-pad'), 'cx')).toBeCloseTo(bay.x - (G.wipe.parkX - G.wipe.forearm), 3);
+   });
+ 
+   it('draws exactly the pose the 3D view draws, through a whole detail program', () => {
+@@ -64,17 +63,17 @@ describe('the wash machines on the 2D plan', () => {
+       paintWashGantry2D(g, bay.x, p);
+       seen.add(s.phase);
+       expect(gantryDy(g)).toBeCloseTo(p.dy, 2);
+-      expect(num(part(g, 'brush-w'), 'cx')).toBeCloseTo(bay.x - p.sideBrushX, 2);
+-      expect(num(part(g, 'brush-e'), 'cx')).toBeCloseTo(bay.x + p.sideBrushX, 2);
++      expect(num(part(g, 'arm-w-pad'), 'cx')).toBeCloseTo(bay.x - p.padX, 2);
++      expect(num(part(g, 'arm-e-pad'), 'cx')).toBeCloseTo(bay.x + p.padX, 2);
++      expect(g.getAttribute('data-station')).toBe(p.station ?? '');
+       expect(part(g, 'spray').getAttribute('visibility')).toBe(p.spray === 'none' ? 'hidden' : 'visible');
+       if (p.spray !== 'none') expect(part(g, 'spray').getAttribute('fill')).toBe(SPRAY_FILL[p.spray]);
+       expect(part(g, 'air').getAttribute('visibility')).toBe(p.air ? 'visible' : 'hidden');
+       expect(part(g, 'stop').getAttribute('fill')).toBe(p.stop ? '#ff3b30' : '#35d07f');
+       expect(part(g, 'beacon').getAttribute('fill')).toBe(STATUS_FILL[p.status]);
+-      expect(part(g, 'wand-w').getAttribute('visibility')).toBe(p.wandDrop > 0.02 ? 'visible' : 'hidden');
+     }
+-    // every phase of the program was drawn, the vacuum and all six passes among them
+-    for (const ph of ['vacuum', 'soak', 'wash_1', 'wash_2', 'rinse', 'dry_1', 'dry_2']) expect(seen).toContain(ph);
++    // every phase of the program was drawn: the cabin hold, all six passes and the four places the arms wipe
++    for (const ph of ['cabin_hold', 'soak', 'wash_1', 'wash_2', 'rinse', 'dry_1', 'dry_2', 'wipe_front', 'wipe_sides', 'wipe_roof', 'wipe_rear']) expect(seen).toContain(ph);
+   });
+ 
+   it('shows the machine passing over the car: from north of its nose to south of its tail', () => {
+@@ -87,24 +86,21 @@ describe('the wash machines on the 2D plan', () => {
+     expect(BAY_STALL_Y + G.rail.to).toBeGreaterThan(BAY_STALL_Y + Math.max(...dys));
+   });
+ 
+-  it('closes the side brushes on the car while it washes, and reaches the wands in while it vacuums', () => {
++  it('sprays water jets while it washes, blows while it dries, and puts the pads on the car while it wipes', () => {
+     const g = mount().querySelector('[data-wash-gantry]')! as SVGGElement;
+     const bay = WASH_SHELL.bays[0];
+-    const all = program(true, 990);
+-    const washing = all.find(({ s, p }) => s.phase === 'wash_1' && p.brushEngage > 0.99)!;
++    const all = program(false, 300);
++    const washing = all.find(({ s, p }) => s.phase === 'wash_1' && p.spray === 'jet')!;
+     paintWashGantry2D(g, bay.x, washing.p);
+-    expect(num(part(g, 'brush-e'), 'cx') - bay.x).toBeLessThan(G.sideBrush.retractX - 1);
+-    expect(part(g, 'spray').getAttribute('fill')).toBe(SPRAY_FILL.foam);
+-    const vacuum = all.find(({ s }) => s.phase === 'vacuum')!;
+-    paintWashGantry2D(g, bay.x, vacuum.p);
+-    expect(part(g, 'wand-e-head').getAttribute('visibility')).toBe('visible');
+-    // in through the doorway: inside the car's flank, no deeper than its furthest reach
+-    const reach = num(part(g, 'wand-e-head'), 'cx') - bay.x;
+-    expect(reach).toBeLessThan(CAR_HALF_WIDTH_U);
+-    expect(reach).toBeGreaterThanOrEqual(G.wand.reachX - 1e-6);
++    expect(part(g, 'spray').getAttribute('fill')).toBe(SPRAY_FILL.jet);
+     const drying = all.find(({ s, p }) => s.phase === 'dry_1' && p.air)!;
+     paintWashGantry2D(g, bay.x, drying.p);
+     expect(part(g, 'air').getAttribute('visibility')).toBe('visible');
++    const wiping = all.find(({ s, p }) => s.phase === 'wipe_roof' && p.wipeEngage === 1)!;
++    paintWashGantry2D(g, bay.x, wiping.p);
++    // on the roof pod: well inside the car's flank, and green while pressed
++    expect(num(part(g, 'arm-e-pad'), 'cx') - bay.x).toBeLessThan(1);
++    expect(part(g, 'arm-e-pad').getAttribute('fill')).toBe('#35d07f');
+   });
+ 
+   it('lets clicks through to the stalls and cars under it', () => {
+diff --git a/src/components/canvas/WashGantry2D.tsx b/src/components/canvas/WashGantry2D.tsx
+index ce6cd98..071b73c 100644
+--- a/src/components/canvas/WashGantry2D.tsx
++++ b/src/components/canvas/WashGantry2D.tsx
+@@ -4,15 +4,15 @@ import { WASH_SHELL } from '@/lib/structurePlan';
+ import { BAY_STALL_Y } from '@/lib/sitePlan';
+ import { washPoseAt, type WashPose } from '@/lib/ottoWash/washPose';
+ import { IDLE_WASH } from '@/lib/ottoWash/washSession';
+-import { BRUSH_SPIN_RAD_S, WASH_GANTRY as G, WASH_HOME_DY } from '@/lib/ottoWash/washSpec';
++import { WASH_GANTRY as G, WASH_HOME_DY } from '@/lib/ottoWash/washSpec';
+ 
+ /**
+- * THE WASH BAYS' ROLLOVER MACHINES ON THE 2D PLAN (docs/OTTO-WASH.md).
++ * THE WASH BAYS' TOUCHLESS MACHINES ON THE 2D PLAN (docs/OTTO-WASH.md).
+  *
+  * Seen from above, as the 3D view draws them: each gantry's portal (its trolleys on the two
+- * floor rails and the beam across), the spray arch, the top brush, the two side brushes closing
+- * in on the car and turning, the air knives, the two vacuum wands of a detail seat, the beacon
+- * and the stop light. It reads the same session the 3D view draws
++ * floor rails and the beam across), the spray arch, the air knives, the two sensor-wipe arms on
++ * their cross rail with their pads on the car, the beacon and the stop light. No brush, and no
++ * door opens (Chase, 2026-11-11). It reads the same session the 3D view draws
+  * (TwinMotionDriver.washSessionAt) through the same pose (washPoseAt), so the plan and the 3D
+  * view show the machine in the same place doing the same thing.
+  *
+@@ -25,7 +25,7 @@ export const STATUS_FILL: Record<WashPose['status'], string> = {
+ };
+ /** The 3D view's spray colours (WashGantry.tsx SPRAY_COLOR). */
+ export const SPRAY_FILL: Record<Exclude<WashPose['spray'], 'none'>, string> = {
+-  soak: '#ffd9f0', foam: '#9fd2ff', rinse: '#d8f1ff',
++  soak: '#ffd9f0', jet: '#9fd2ff', rinse: '#d8f1ff',
+ };
+ const STOP_RED = '#ff3b30';
+ const STOP_GREEN = '#35d07f';
+@@ -34,23 +34,12 @@ const STOP_GREEN = '#35d07f';
+ const PORTAL_HALF_X = G.legX + G.trolley.w / 2;
+ 
+ /**
+- * Write one bay's machine onto its plan group: where the gantry stands along the bay, the side
+- * brushes across it, what the arch sprays and the knives blow, the wands, and the lights.
+- * `spinDeg` turns the side brushes' bristle marks while they spin.
++ * Write one bay's machine onto its plan group: where the gantry stands along the bay, what the
++ * arch sprays and the knives blow, the wipe arms across it with their pads, and the lights.
+  */
+-export function paintWashGantry2D(g: SVGGElement, bayX: number, p: WashPose, spinDeg = 0): void {
++export function paintWashGantry2D(g: SVGGElement, bayX: number, p: WashPose): void {
+   const q = (k: string) => g.querySelector<SVGElement>(`[data-part="${k}"]`);
+   q('gantry')?.setAttribute('transform', `translate(0 ${p.dy.toFixed(3)})`);
+-  const y = BAY_STALL_Y + G.sideBrush.dy;
+-  // west is plan -x (the 3D view's blue brush), east plan +x (red); they turn opposite ways
+-  for (const [k, sgn] of [['brush-w', -1], ['brush-e', 1]] as const) {
+-    const cx = (bayX + sgn * p.sideBrushX).toFixed(3);
+-    const b = q(k);
+-    b?.setAttribute('cx', cx);
+-    q(`${k}-marks`)?.setAttribute('cx', cx);
+-    q(`${k}-marks`)?.setAttribute('transform', `rotate(${(-sgn * spinDeg).toFixed(1)} ${cx} ${y})`);
+-  }
+-  q('top-brush')?.setAttribute('opacity', (0.35 + 0.55 * p.brushEngage).toFixed(2));
+   const spray = q('spray');
+   if (spray) {
+     spray.setAttribute('visibility', p.spray === 'none' ? 'hidden' : 'visible');
+@@ -60,18 +49,19 @@ export function paintWashGantry2D(g: SVGGElement, bayX: number, p: WashPose, spi
+   for (const [k, sgn] of [['knife-w', -1], ['knife-e', 1]] as const) {
+     q(k)?.setAttribute('x', (bayX + sgn * (p.dryerSideX + G.dryer.side.w / 2) - G.dryer.side.w / 2).toFixed(3));
+   }
+-  // the wands: seen from above only while down in the car's doorway, reaching in toward the cabin
+-  const tip = G.wand.x + (G.wand.reachX - G.wand.x) * p.wandReach;
+-  const wandsShow = p.wandDrop > 0.02 ? 'visible' : 'hidden';
+-  for (const [k, sgn] of [['wand-w', -1], ['wand-e', 1]] as const) {
+-    const w = q(k);
+-    if (!w) continue;
+-    w.setAttribute('visibility', wandsShow);
+-    w.setAttribute('x1', (bayX + sgn * G.wand.x).toFixed(3));
+-    w.setAttribute('x2', (bayX + sgn * tip).toFixed(3));
+-    q(`${k}-head`)?.setAttribute('visibility', wandsShow);
+-    q(`${k}-head`)?.setAttribute('cx', (bayX + sgn * tip).toFixed(3));
++  // the wipe arms: a carriage each side on the cross rail, and its pad. The pad shows amber on its way and green
++  // while it is pressed on a sensor. Stowed, the pads sit faint at their parking place.
++  const armsOut = p.station !== null;
++  const padCy = (BAY_STALL_Y + G.wipe.dy + (p.padDy - p.dy - G.wipe.dy)).toFixed(3);
++  for (const [k, sgn] of [['arm-w', -1], ['arm-e', 1]] as const) {
++    q(k)?.setAttribute('x', (bayX + sgn * p.mastX - G.wipe.carriage.w / 2).toFixed(3));
++    const pad = q(`${k}-pad`);
++    pad?.setAttribute('cx', (bayX + sgn * p.padX).toFixed(3));
++    pad?.setAttribute('cy', padCy);
++    pad?.setAttribute('fill', p.wipeEngage > 0.5 ? '#35d07f' : '#ffb020');
++    pad?.setAttribute('opacity', armsOut ? '0.95' : '0.3');
+   }
++  g.setAttribute('data-station', p.station ?? '');
+   q('beacon')?.setAttribute('fill', STATUS_FILL[p.status]);
+   q('stop')?.setAttribute('fill', p.stop ? STOP_RED : STOP_GREEN);
+   g.setAttribute('data-phase', p.status);
+@@ -81,17 +71,9 @@ function WashGantryBay2D({ bayId, bayX }: { bayId: string; bayX: number }) {
+   const ref = useRef<SVGGElement | null>(null);
+   useEffect(() => {
+     let raf = 0;
+-    let last = 0;
+-    let spin = 0;
+-    const step = (now: number) => {
++    const step = () => {
+       const g = ref.current;
+-      if (g) {
+-        const p = washPoseAt(twinMotionDriver.washSessionAt(bayId) ?? IDLE_WASH);
+-        const dt = last ? Math.min((now - last) / 1000, 0.1) : 0;
+-        last = now;
+-        if (p.spinning) spin = (spin + dt * twinMotionDriver.playbackSpeed() * BRUSH_SPIN_RAD_S * (180 / Math.PI)) % 360; // turns per depot second
+-        paintWashGantry2D(g, bayX, p, spin);
+-      }
++      if (g) paintWashGantry2D(g, bayX, washPoseAt(twinMotionDriver.washSessionAt(bayId) ?? IDLE_WASH));
+       raf = requestAnimationFrame(step);
+     };
+     raf = requestAnimationFrame(step);
+@@ -127,15 +109,15 @@ function WashGantryBay2D({ bayId, bayX }: { bayId: string; bayX: number }) {
+         <rect x={bayX - G.arch.x} y={y0 + G.arch.dy - 0.15} width={2 * G.arch.x} height={0.3} fill="#9aa3ad" />
+         <rect data-part="spray" x={bayX - G.arch.x} y={y0 + G.arch.dy - 0.9} width={2 * G.arch.x} height={1.8}
+           fill={SPRAY_FILL.soak} opacity={0.6} visibility="hidden" rx={0.4} />
+-        {/* the top brush: faint up in the beam, solid on the car */}
+-        <rect data-part="top-brush" x={bayX - G.topBrush.halfLen} y={y0 + G.topBrush.dy - G.topBrush.r}
+-          width={2 * G.topBrush.halfLen} height={2 * G.topBrush.r} fill="#2a6fd6" opacity={0.35} rx={G.topBrush.r} />
+-        {/* the side brushes, with bristle marks that turn while they spin */}
+-        <circle data-part="brush-w" cx={bayX - G.sideBrush.retractX} cy={y0 + G.sideBrush.dy} r={G.sideBrush.r} fill="#2a6fd6" />
+-        <circle data-part="brush-e" cx={bayX + G.sideBrush.retractX} cy={y0 + G.sideBrush.dy} r={G.sideBrush.r} fill="#c8313f" />
+-        {(['brush-w', 'brush-e'] as const).map((k, i) => (
+-          <circle key={k} data-part={`${k}-marks`} cx={bayX + (i ? 1 : -1) * G.sideBrush.retractX} cy={y0 + G.sideBrush.dy}
+-            r={G.sideBrush.r * 0.72} fill="none" stroke="#ffffff" strokeWidth={0.18} strokeDasharray="0.5 0.42" opacity={0.75} />
++        {/* the wipe arms' cross rail, each arm's carriage on it, and its soft pad */}
++        <rect x={bayX - G.wipe.parkX - 0.5} y={y0 + G.wipe.dy - 0.09} width={2 * (G.wipe.parkX + 0.5)} height={0.18} fill="#9aa3ad" />
++        {(['arm-w', 'arm-e'] as const).map((k, i) => (
++          <g key={k}>
++            <rect data-part={k} x={bayX + (i ? 1 : -1) * G.wipe.parkX - G.wipe.carriage.w / 2} y={y0 + G.wipe.dy - G.wipe.carriage.d / 2}
++              width={G.wipe.carriage.w} height={G.wipe.carriage.d} fill="#3a3f48" rx={0.1} />
++            <circle data-part={`${k}-pad`} cx={bayX + (i ? 1 : -1) * (G.wipe.parkX - G.wipe.forearm)} cy={y0 + G.wipe.dy} r={G.wipe.padR}
++              fill="#ffb020" stroke="#ffffff" strokeWidth={0.06} opacity={0.3} />
++          </g>
+         ))}
+         {/* the air knives, and their blast while they blow */}
+         <rect data-part="air" x={bayX - G.dryer.top.halfLen - 0.6} y={y0 + G.dryer.dy - 0.8}
+@@ -147,15 +129,6 @@ function WashGantryBay2D({ bayId, bayX }: { bayId: string; bayX: number }) {
+             x={bayX + (i ? 1 : -1) * (G.dryer.side.retractX + G.dryer.side.w / 2) - G.dryer.side.w / 2}
+             y={y0 + G.dryer.dy - G.dryer.side.d / 2} width={G.dryer.side.w} height={G.dryer.side.d} fill="#5d6673" />
+         ))}
+-        {/* a detail seat's vacuum wands, in through the doors */}
+-        {(['wand-w', 'wand-e'] as const).map((k, i) => (
+-          <g key={k}>
+-            <line data-part={k} x1={bayX + (i ? 1 : -1) * G.wand.x} y1={y0 + G.wand.dy} x2={bayX + (i ? 1 : -1) * G.wand.x}
+-              y2={y0 + G.wand.dy} stroke="#d0d6de" strokeWidth={2 * G.wand.r + 0.1} strokeLinecap="round" visibility="hidden" />
+-            <circle data-part={`${k}-head`} cx={bayX + (i ? 1 : -1) * G.wand.x} cy={y0 + G.wand.dy} r={0.32} fill="#ffb020"
+-              visibility="hidden" />
+-          </g>
+-        ))}
+         {/* the beacon (the 3D view's, east of the beam) and the stop light on the beam's south face */}
+         <circle data-part="beacon" cx={bayX + 3.6} cy={y0 + G.dryer.dy} r={0.45} fill={STATUS_FILL.home} />
+         <circle data-part="stop" cx={bayX} cy={y0 + G.beam.dy1 + 0.45} r={0.4} fill={STOP_GREEN} />
+diff --git a/src/components/canvas/three/WashGantry.tsx b/src/components/canvas/three/WashGantry.tsx
+index 63c8f90..44d95e9 100644
+--- a/src/components/canvas/three/WashGantry.tsx
++++ b/src/components/canvas/three/WashGantry.tsx
+@@ -6,53 +6,39 @@ import { WASH_SHELL } from '@/lib/structurePlan';
+ import { BAY_STALL_Y } from '@/lib/sitePlan';
+ import { washPoseAt, type WashPose } from '@/lib/ottoWash/washPose';
+ import { IDLE_WASH } from '@/lib/ottoWash/washSession';
+-import { BRUSH_SPIN_RAD_S, WASH_GANTRY as G } from '@/lib/ottoWash/washSpec';
++import { WASH_GANTRY as G } from '@/lib/ottoWash/washSpec';
+ import { DECK_Y } from './coordUtils';
+ import { StaticBatch } from './staticBatch';
+ import { galvanizedSteel, darkSteel, safetyYellowPaint, rubberBlack, statusLamp } from './buildingSkin';
+ import { PLAN_UNITS_PER_METRE } from '@/lib/ottoChargeArm/cobotSpec';
+-import { poseSkeleton, spinNode, type DepotCad } from '@/lib/robotics/cadDepot';
++import { poseSkeleton, type DepotCad } from '@/lib/robotics/cadDepot';
+ import { washJoints } from '@/lib/robotics/catalog';
+ import { makeInstancedFleet, writeFleetSlot, writeFleetLight, clearFleetSlot, type InstancedFleet } from './instancedFleet';
+ import { makeFlexFleet, type FlexFleet } from '@/lib/robotics/flexMesh';
+-import { WASH_BRUSH_PARTS } from './cadFleet';
+ 
+ /**
+- * OTTO-WASH — the robotic rollover gantry in each wash bay (docs/OTTO-WASH.md).
++ * OTTO-WASH — the touchless wash machine in each wash bay (docs/OTTO-WASH.md).
+  *
+  * This component DRAWS; it decides nothing. The machine's session is stepped once, in the
+  * motion driver (engine/motion/washGate.ts), from what the twin publishes (the car's seat in
+  * the bay and when it ends, otto-q-core 0762) and what the motion layer knows (the car standing
+- * on the bay's pose). The same session opens a detail seat's doors (doorStore) and holds the car
+- * until the machine is home, so the drawn machine, the drawn doors and the car's right to move
+- * are one evaluation.
++ * on the bay's pose). The same session holds the car until the machine is home, so the drawn
++ * machine and the car's right to move are one evaluation. No door opens in a wash bay.
+  *
+  * FRAME: each bay's group stands on the bay's drive line at the parked car's centre, on the deck.
+  * The bay frame of washSpec.ts maps to it as local x = -x (plan x runs east, world x west),
+  * local z = -dy (plan y runs south, world z north), local y = height.
+  *
+  * THE MACHINE IS THE ENGINEERING CAD (cad/ wash_gantry.py, robotics/cadDepot.ts): its rails and end
+- * stops, trolleys and drives, portal, spray arch, brushes on their lift columns and carriages, air
+- * knives, vacuum wands, cabinet and drag chain, at the depot's level of detail, in the same bay frame
+- * (metres: scaled to plan units here). The twin's pose drives its slides through catalog.washJoints,
+- * its brushes turn on their shafts, and its beacon and stop lamps show the program. Every bay's
++ * stops, trolleys and drives, portal, spray arch, air knives, the two sensor-wipe arms on their cross
++ * rail, cabinet and drag chain, at the depot's level of detail, in the same bay frame (metres: scaled
++ * to plan units here). The twin's pose drives its slides and wrists through catalog.washJoints, and
++ * its beacon and stop lamps show the program. Nothing on it turns against the car. Every bay's
+  * machine is one instance of one set of meshes (instancedFleet.ts). robotics/cadYard.test.ts holds it
+  * to the car, the doors and the wash hall's walls. Until the CAD has loaded, or if it cannot, each bay
+  * draws the simple machine below. The spray and the air are drawn on both.
+  */
+ 
+-/** Two-tone foam stripes, so a turning brush reads as turning. */
+-function stripeTexture(a: string, b: string): THREE.Texture {
+-  const c = document.createElement('canvas');
+-  c.width = 64; c.height = 8;
+-  const g = c.getContext('2d')!;
+-  for (let i = 0; i < 8; i++) { g.fillStyle = i % 2 ? a : b; g.fillRect(i * 8, 0, 8, 8); }
+-  const t = new THREE.CanvasTexture(c);
+-  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+-  t.colorSpace = THREE.SRGBColorSpace;
+-  return t;
+-}
+-
+ /** Falling streaks with soft edges: the spray curtain, scrolled each frame. */
+ function streakTexture(seed: number): THREE.Texture {
+   const c = document.createElement('canvas');
+@@ -105,10 +91,8 @@ function buildFrame(): Map<string, THREE.BufferGeometry> {
+     for (const side of [-1, 1]) b.box('dark', side * (G.arch.x - 0.2), 0.7 + f * (G.arch.top - 1.2), z(G.arch.dy), 0.22, 0.12, 0.12);
+     b.box('dark', (f - 0.5) * 2 * (G.arch.x - 0.6), G.arch.top - 0.2, z(G.arch.dy), 0.12, 0.22, 0.12);
+   }
+-  // the side brushes' and the wands' carriage tracks under the beam
+-  for (const dy of [G.sideBrush.dy, G.wand.dy]) b.box('dark', 0, G.beam.y0 - 0.12, z(dy), 2 * (G.legX - 0.6), 0.24, 0.28);
+-  // the top brush's slides
+-  for (const side of [-1, 1]) b.box('dark', side * G.topBrush.hangerX, G.beam.y0 - 0.5, z(G.topBrush.dy), 0.24, 1.0, 0.3);
++  // the wipe arms' cross rail under the beam
++  b.box('dark', 0, G.beam.y0 - 0.12, z(G.wipe.dy), 2 * (G.legX - 0.6), 0.24, 0.28);
+   // the stop light's housing, facing south toward an arriving car
+   b.box('dark', G.light.x, G.light.y, z(G.beam.dy1) - 0.12, 1.5, 0.75, 0.24);
+   return b.build();
+@@ -117,17 +101,12 @@ function buildFrame(): Map<string, THREE.BufferGeometry> {
+ /** One bay's moving parts. */
+ interface Rig {
+   gantry: THREE.Group;
+-  side: THREE.Mesh[];          // the two side brushes (spin about their axis)
+-  sideHub: THREE.Mesh[];       // their motors and shafts
+-  top: THREE.Group;            // the top brush's axle frame (moves in y)
+-  topBrush: THREE.Mesh;        // spins about x
+-  hangers: THREE.Mesh[];       // from the top brush up to its slides
+   knifeTop: THREE.Mesh;
+   knifeSide: THREE.Mesh[];
+   duct: THREE.Mesh;            // the top knife's duct up to the beam
+-  mast: THREE.Mesh[];          // the wands' vertical stages
+-  arm: THREE.Mesh[];           // the wands' horizontal stages
+-  head: THREE.Mesh[];          // the vacuum heads
++  carriage: THREE.Mesh[];      // the wipe arms' carriages on the cross rail
++  mast: THREE.Mesh[];          // their masts, from the carriage down to the pad
++  pad: THREE.Mesh[];           // the soft pads
+   curtain: THREE.Mesh;         // the arch's spray
+   air: THREE.Mesh[];           // the air knives' blast
+   beacon: THREE.Mesh;
+@@ -140,12 +119,12 @@ const STATUS_COLOR: Record<WashPose['status'], number> = {
+ };
+ const SPRAY_COLOR: Record<Exclude<WashPose['spray'], 'none'>, { color: number; opacity: number; speed: number }> = {
+   soak: { color: 0xffd9f0, opacity: 0.55, speed: 0.6 },   // pre-soak foam
+-  foam: { color: 0x9fd2ff, opacity: 0.42, speed: 0.8 },   // the brushes' foam
++  jet: { color: 0x9fd2ff, opacity: 0.42, speed: 2.2 },    // the wash jets
+   rinse: { color: 0xd8f1ff, opacity: 0.36, speed: 1.6 },  // clear rinse water
+ };
+ 
+ /** DEV-ONLY: each bay's machine as drawn, for the playback scripts (the R3F scene graph is not reachable from the DOM). */
+-const washDebug: Map<string, { phase: string; t: number; vehicleId: string | null; dy: number; brushX: number; topY: number; doors: number }> | null =
++const washDebug: Map<string, { phase: string; t: number; vehicleId: string | null; dy: number; padX: number; padY: number; station: string | null }> | null =
+   import.meta.env.DEV ? new Map() : null;
+ if (washDebug && typeof window !== 'undefined') {
+   (window as unknown as Record<string, unknown>).__washGantries = washDebug;
+@@ -230,48 +209,6 @@ function WashGantryBay({ bayId, planX, shared, frame }: {
+       m.castShadow = true; m.receiveShadow = true;
+       gantry.add(m);
+     }
+-    const brushH = G.sideBrush.y1 - G.sideBrush.y0;
+-    const sideGeo = new THREE.CylinderGeometry(G.sideBrush.r, G.sideBrush.r, brushH, 28, 1, false);
+-    const side = [-1, 1].map((sgn) => {
+-      const m = new THREE.Mesh(sideGeo, sgn < 0 ? mats.brushBlue : mats.brushRed);
+-      m.position.set(0, (G.sideBrush.y0 + G.sideBrush.y1) / 2, -G.sideBrush.dy);
+-      m.castShadow = true;
+-      gantry.add(m);
+-      return m;
+-    });
+-    const hubGeo = new THREE.CylinderGeometry(0.16, 0.16, 1.0, 10);
+-    hubGeo.translate(0, G.sideBrush.y1 + 0.5, 0);
+-    const sideHub = [-1, 1].map(() => {
+-      const m = new THREE.Mesh(hubGeo, mats.dark);
+-      m.position.set(0, 0, -G.sideBrush.dy);
+-      gantry.add(m);
+-      return m;
+-    });
+-    const top = new THREE.Group();
+-    top.position.set(0, G.topBrush.retractY, -G.topBrush.dy);
+-    gantry.add(top);
+-    const topGeo = new THREE.CylinderGeometry(G.topBrush.r, G.topBrush.r, 2 * G.topBrush.halfLen, 28, 1, false);
+-    const topAxle = new THREE.Group();
+-    topAxle.rotation.z = Math.PI / 2;
+-    top.add(topAxle);
+-    const topBrush = new THREE.Mesh(topGeo, mats.brushBlue);
+-    topBrush.castShadow = true;
+-    topAxle.add(topBrush);
+-    const capGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.2, 12);
+-    capGeo.rotateZ(Math.PI / 2);
+-    for (const sgn of [-1, 1]) {
+-      const cap = new THREE.Mesh(capGeo, mats.dark);
+-      cap.position.set(sgn * (G.topBrush.halfLen + 0.1), 0, 0);
+-      top.add(cap);
+-    }
+-    const hangerGeo = new THREE.BoxGeometry(0.16, 1, 0.16);
+-    hangerGeo.translate(0, 0.5, 0);
+-    const hangers = [-1, 1].map((sgn) => {
+-      const m = new THREE.Mesh(hangerGeo, mats.galv);
+-      m.position.set(sgn * G.topBrush.hangerX, 0, -G.topBrush.dy);
+-      gantry.add(m);
+-      return m;
+-    });
+     const knifeTop = new THREE.Mesh(new THREE.BoxGeometry(2 * G.dryer.top.halfLen, G.dryer.top.h, G.dryer.top.d), mats.galv);
+     knifeTop.position.z = -G.dryer.dy;
+     knifeTop.castShadow = true;
+@@ -289,29 +226,27 @@ function WashGantryBay({ bayId, planX, shared, frame }: {
+       gantry.add(m);
+       return m;
+     });
+-    const mastGeo = new THREE.CylinderGeometry(G.wand.r, G.wand.r, 1, 10);
+-    mastGeo.translate(0, 0.5, 0);
+-    const mast = [-1, 1].map(() => {
+-      const m = new THREE.Mesh(mastGeo, mats.galv);
+-      m.position.z = -G.wand.dy;
++    // the wipe arms: a carriage on the cross rail, a mast down from it, and the pad (a disc whose axis is its face)
++    const W = G.wipe;
++    const carGeo = new THREE.BoxGeometry(W.carriage.w, W.carriage.h, W.carriage.d);
++    const carriage = [-1, 1].map(() => {
++      const m = new THREE.Mesh(carGeo, mats.dark);
++      m.position.set(0, G.beam.y0 - 0.24 - W.carriage.h / 2, -W.dy);
+       gantry.add(m);
+       return m;
+     });
+-    // the arm runs from its mast along local +x (scaled to its reach); the west arm is turned half round
+-    const armGeo = new THREE.CylinderGeometry(G.wand.r * 0.8, G.wand.r * 0.8, 1, 10);
+-    armGeo.rotateZ(Math.PI / 2);
+-    armGeo.translate(0.5, 0, 0);
+-    const arm = [-1, 1].map((sgn) => {
+-      const m = new THREE.Mesh(armGeo, mats.galv);
+-      m.position.z = -G.wand.dy;
+-      if (sgn < 0) m.rotation.y = Math.PI;
++    const mastGeo = new THREE.CylinderGeometry(W.mastR, W.mastR, 1, 10);
++    mastGeo.translate(0, 0.5, 0);
++    const mast = [-1, 1].map(() => {
++      const m = new THREE.Mesh(mastGeo, mats.galv);
++      m.position.z = -W.dy;
+       gantry.add(m);
+       return m;
+     });
+-    const headGeo = new THREE.BoxGeometry(0.22, 0.14, 0.34);
+-    const head = [-1, 1].map(() => {
+-      const m = new THREE.Mesh(headGeo, mats.headLamp);
+-      m.position.z = -G.wand.dy;
++    const padGeo = new THREE.CylinderGeometry(W.padR, W.padR, W.padT, 20);
++    const pad = [-1, 1].map(() => {
++      const m = new THREE.Mesh(padGeo, mats.pad);
++      m.position.z = -W.dy;
+       gantry.add(m);
+       return m;
+     });
+@@ -329,7 +264,7 @@ function WashGantryBay({ bayId, planX, shared, frame }: {
+     stopGreen.position.set(G.light.x + 0.36, G.light.y, -G.beam.dy1 - 0.25);
+     stopGreen.rotation.y = Math.PI;
+     gantry.add(stopGreen);
+-    return { gantry, side, sideHub, top, topBrush, hangers, knifeTop, knifeSide, duct, mast, arm, head, curtain, air, beacon, stopRed, stopGreen };
++    return { gantry, knifeTop, knifeSide, duct, carriage, mast, pad, curtain, air, beacon, stopRed, stopGreen };
+   }, [frame, mats]);
+ 
+   useEffect(() => () => {
+@@ -339,45 +274,27 @@ function WashGantryBay({ bayId, planX, shared, frame }: {
+     });
+   }, [rig, frame]);
+ 
+-  const spin = useRef(0);
+   useFrame((_state, delta) => {
+     const s = twinMotionDriver.washSessionAt(bayId) ?? IDLE_WASH;
+     const p = washPoseAt(s);
+     rig.gantry.position.z = -p.dy;
+-    if (p.spinning) spin.current += Math.min(delta, 0.1) * twinMotionDriver.playbackSpeed() * BRUSH_SPIN_RAD_S; // turns per depot second
+-    // the side brushes: east (bay +x) is local -x; they turn opposite ways, like a real pair
+-    rig.side.forEach((m, i) => {
+-      const sgn = i === 0 ? -1 : 1;
+-      m.position.x = -sgn * p.sideBrushX;
+-      m.rotation.y = sgn * spin.current;
+-      rig.sideHub[i].position.x = -sgn * p.sideBrushX;
+-    });
+-    rig.top.position.y = p.topBrushY;
+-    rig.topBrush.rotation.y = spin.current;
+-    for (const h of rig.hangers) { h.position.y = p.topBrushY; h.scale.y = Math.max(0.05, G.beam.y0 - p.topBrushY); }
+     rig.knifeTop.position.y = p.dryerTopY + G.dryer.top.h / 2;
+     rig.duct.position.y = p.dryerTopY + G.dryer.top.h;
+     rig.duct.scale.y = Math.max(0.05, G.beam.y0 - (p.dryerTopY + G.dryer.top.h));
+     rig.knifeSide.forEach((m, i) => { const sgn = i === 0 ? -1 : 1; m.position.x = -sgn * (p.dryerSideX + G.dryer.side.w / 2); });
+-    // the wands: the mast from under the beam down to its foot, the arm in through the door
+-    const foot = G.wand.topY + (G.wand.workY - G.wand.topY) * p.wandDrop;
+-    const tip = G.wand.x + (G.wand.reachX - G.wand.x) * p.wandReach;
++    // the wipe arms: east (bay +x) is local -x. The pad's disc turns to face the car: down when stowed, in toward
++    // the drive line on the flanks and the roof pod, along the bay on the nose and the tail.
++    const padZ = -(p.padDy - p.dy);
++    rig.carriage.forEach((m, i) => { const sgn = i === 0 ? -1 : 1; m.position.x = -sgn * p.mastX; });
+     rig.mast.forEach((m, i) => {
+       const sgn = i === 0 ? -1 : 1;
+-      m.position.set(-sgn * G.wand.x, foot, -G.wand.dy);
+-      m.scale.y = Math.max(0.05, G.beam.y0 - foot);
++      m.position.set(-sgn * p.mastX, p.padY, -G.wipe.dy);
++      m.scale.y = Math.max(0.05, G.beam.y0 - 0.24 - p.padY);
+     });
+-    rig.arm.forEach((m, i) => {
++    rig.pad.forEach((m, i) => {
+       const sgn = i === 0 ? -1 : 1;
+-      m.visible = p.wandDrop > 0.02;
+-      m.position.set(-sgn * G.wand.x, foot, -G.wand.dy);
+-      // from the mast in toward the car's centreline (turned half round on the west side)
+-      m.scale.x = Math.max(0.05, G.wand.x - tip);
+-    });
+-    rig.head.forEach((m, i) => {
+-      const sgn = i === 0 ? -1 : 1;
+-      m.visible = p.wandDrop > 0.02;
+-      m.position.set(-sgn * tip, foot, -G.wand.dy);
++      m.position.set(-sgn * p.padX, p.padY, padZ);
++      m.rotation.set(p.padFace === 'aft' || p.padFace === 'fore' ? Math.PI / 2 : 0, 0, p.padFace === 'in' ? Math.PI / 2 : 0);
+     });
+     // spray and air
+     poseWashEffects(rig, p, delta, mats);
+@@ -388,7 +305,7 @@ function WashGantryBay({ bayId, planX, shared, frame }: {
+     if (washDebug) {
+       washDebug.set(bayId, {
+         phase: s.phase, t: Math.round(s.t * 1000) / 1000, vehicleId: s.vehicleId, dy: Math.round(p.dy * 1000) / 1000,
+-        brushX: Math.round(p.sideBrushX * 1000) / 1000, topY: Math.round(p.topBrushY * 1000) / 1000, doors: p.doors,
++        padX: Math.round(p.padX * 1000) / 1000, padY: Math.round(p.padY * 1000) / 1000, station: p.station,
+       });
+     }
+   });
+@@ -415,15 +332,9 @@ function CadWashBay({ bayId, planX, cad, fleet, flex, slot, shared }: {
+   const mats = useBayMats(shared);
+   const rig = useMemo(() => {
+     const skel = cad.skeleton();
+-    // the brushes turn on their shafts: each is its own segment (cadFleet WASH_BRUSH_PARTS); the pair turn opposite ways
+-    const brushes = skel.segments.flatMap((n) => {
+-      const part = (n.userData as { part?: string }).part;
+-      if (!part || !WASH_BRUSH_PARTS.includes(part)) return [];
+-      return [{ node: n, rest: n.quaternion.clone(), sign: part === 'WSH-SBRR' ? -1 : 1 }];
+-    });
+     const effects = new THREE.Group();
+     const fx = addWashEffects(effects, mats.spray, mats.air);
+-    return { skel, brushes, effects, fx };
++    return { skel, effects, fx };
+   }, [cad, mats]);
+   useEffect(() => () => clearFleetSlot(fleet, slot), [fleet, slot]);
+   useEffect(() => () => flex?.clear(slot), [flex, slot]);
+@@ -432,27 +343,23 @@ function CadWashBay({ bayId, planX, cad, fleet, flex, slot, shared }: {
+     rig.fx.air[0].geometry.dispose();
+   }, [rig]);
+ 
+-  const spin = useRef(0);
+-  const axis = useMemo(() => new THREE.Vector3(0, 1, 0), []);
+   useFrame((_state, delta) => {
+     const s = twinMotionDriver.washSessionAt(bayId) ?? IDLE_WASH;
+     const p = washPoseAt(s);
+     poseSkeleton(rig.skel, washJoints(p));
+-    if (p.spinning) spin.current += Math.min(delta, 0.1) * twinMotionDriver.playbackSpeed() * BRUSH_SPIN_RAD_S; // turns per depot second
+-    for (const b of rig.brushes) spinNode(b.node, b.rest, axis, b.sign * spin.current);
+     machineRef.current?.updateWorldMatrix(true, true);
+     // the beacon shows the program's state; the stop lamps face the arriving car (red while it runs)
+     writeFleetSlot(fleet, slot, rig.skel.segments, STATUS_COLOR[p.status], 2.2);
+     writeFleetLight(fleet, slot, 1, p.stop ? 0xff2a2a : 0x2a1214, p.stop ? 2.4 : 0);
+     writeFleetLight(fleet, slot, 2, p.stop ? 0x122a16 : 0x2aff6a, p.stop ? 0 : 2.4);
+-    // its lines: the drag chain in its trench, the brush and knife ducts and chains, the wands' reel cables
++    // its lines: the drag chain in its trench, the knives' ducts and chains, the wipe arms' cables and pad-rinse lines
+     flex?.write(slot, rig.skel);
+     rig.effects.position.z = -p.dy;
+     poseWashEffects(rig.fx, p, delta, mats);
+     if (washDebug) {
+       washDebug.set(bayId, {
+         phase: s.phase, t: Math.round(s.t * 1000) / 1000, vehicleId: s.vehicleId, dy: Math.round(p.dy * 1000) / 1000,
+-        brushX: Math.round(p.sideBrushX * 1000) / 1000, topY: Math.round(p.topBrushY * 1000) / 1000, doors: p.doors,
++        padX: Math.round(p.padX * 1000) / 1000, padY: Math.round(p.padY * 1000) / 1000, station: p.station,
+       });
+     }
+   });
+@@ -490,23 +397,18 @@ function CadWashGantries({ cad, bays, shared }: {
+ 
+ function useMats() {
+   return useMemo(() => {
+-    const blue = stripeTexture('#2a6fd6', '#7fb3ff');
+-    const red = stripeTexture('#c8313f', '#ff8a96');
+-    blue.repeat.set(3, 1); red.repeat.set(3, 1);
+     const streak = streakTexture(7);
+     streak.repeat.set(4, 2);
+     const air = streakTexture(31);
+     air.repeat.set(3, 1);
+     const beacon = new THREE.MeshStandardMaterial({ color: 0x223038, emissive: new THREE.Color(0x00e5ff), emissiveIntensity: 2.2, toneMapped: false });
+     return {
+-      textures: { blue, red, streak, air },
++      textures: { streak, air },
+       galv: galvanizedSteel(),
+       dark: darkSteel(),
+       yellow: safetyYellowPaint(),
+       rubber: rubberBlack(),
+-      brushBlue: new THREE.MeshStandardMaterial({ map: blue, roughness: 0.95, metalness: 0 }),
+-      brushRed: new THREE.MeshStandardMaterial({ map: red, roughness: 0.95, metalness: 0 }),
+-      headLamp: statusLamp('#35d07f'),
++      pad: new THREE.MeshStandardMaterial({ color: 0xf2f4f7, roughness: 1, metalness: 0 }),
+       spray: new THREE.MeshBasicMaterial({
+         map: streak, color: 0xd8f1ff, transparent: true, opacity: 0.4, depthWrite: false, side: THREE.DoubleSide,
+         blending: THREE.AdditiveBlending,
+@@ -530,7 +432,7 @@ export function WashGantries({ count, cad }: { count: number; cad: DepotCad | nu
+   useEffect(() => () => {
+     for (const g of frame.values()) g.dispose();
+     for (const t of Object.values(all.textures)) t.dispose();
+-    all.brushBlue.dispose(); all.brushRed.dispose(); all.spray.dispose(); all.air.dispose(); all.beacon.dispose(); all.lampOff.dispose();
++    all.pad.dispose(); all.spray.dispose(); all.air.dispose(); all.beacon.dispose(); all.lampOff.dispose();
+   }, [frame, all]);
+   // a bay's machine is named by the bay's own id, which is the renderer stall the car parks on (WASH-01 ..)
+   const bays = WASH_SHELL.bays.slice(0, count);
+diff --git a/src/lib/ottoWash/washPose.ts b/src/lib/ottoWash/washPose.ts
+index da5fc23..9cb9a31 100644
+--- a/src/lib/ottoWash/washPose.ts
++++ b/src/lib/ottoWash/washPose.ts
+@@ -1,44 +1,54 @@
+ /**
+- * Where every moving part of a bay's rollover machine is, for one session, in the BAY frame
++ * Where every moving part of a bay's wash machine is, for one session, in the BAY frame
+  * (washSpec.ts): plan units, `dy` from the parked car's centre (negative = north, toward
+  * the nose), `x` from the drive line, heights above grade.
+  *
+- * Pure: (phase, t, the session's pace and the pose its phase began from) -> pose. The
+- * brushes and air knives meet the car where carShape.ts says the car is, which is the
+- * solid the car mesh is drawn from (vehicleEnvelope.ts).
++ * Pure: (phase, t, the pose its phase began from) -> pose. The air knives and the wipe pads
++ * meet the car where carShape.ts says the car is, which is the solid the car mesh is drawn
++ * from (vehicleEnvelope.ts). Nothing that turns touches the car, and no door opens.
+  */
+ import {
+-  PASS_EASE, PASS_FROM, PASS_KIND, WASH_CABIN_DY, WASH_GANTRY, WASH_HOME_DY, isPass, passTo, type WashPhase,
++  PASS_EASE, PASS_FROM, PASS_KIND, WASH_GANTRY, WASH_HOME_DY, WIPE_PARTS, isPass, isWipe, passTo, stationOf,
++  type WashPhase, type WipeStation,
+ } from './washSpec';
+-import { CAR_HALF_LEN_U, CAR_HALF_WIDTH_U, carTopU } from './carShape';
++import { CAR_HALF_LEN_U, carHalfWidthAtU, carTopU } from './carShape';
++import { BODY_ROOF_M, ROOF_POD } from '@/lib/ottoChargeArm/vehicleEnvelope';
++import { PLAN_UNITS_PER_METRE } from '@/lib/ottoChargeArm/cobotSpec';
++
++/** Which way a wipe pad faces: down (stowed), in toward the drive line, aft (south, onto the nose), fore (north, onto the tail). */
++export type PadFace = 'down' | 'in' | 'aft' | 'fore';
+ 
+ export interface WashPose {
+   /** the gantry's centreline, plan u from the car's centre (negative = north) */
+   dy: number;
+-  /** 0..1: the side and top brushes on the car */
+-  brushEngage: number;
+   /** 0..1: the air knives on the car */
+   dryEngage: number;
+-  /** each side brush's axis, plan u from the drive line */
+-  sideBrushX: number;
+-  /** the top brush's axis height, plan u */
+-  topBrushY: number;
+   /** the top air knife's lower face, plan u above grade */
+   dryerTopY: number;
+   /** each side air knife's inner face, plan u from the drive line */
+   dryerSideX: number;
+-  /** 0..1: each vacuum wand's vertical stage, from under the beam to the door's mid-height */
+-  wandDrop: number;
+-  /** 0..1: each wand's horizontal stage, from its carriage into the cabin */
+-  wandReach: number;
++  /** each wipe arm's mast axis from the drive line, plan u (the two arms mirror each other) */
++  mastX: number;
++  /** each wipe pad's centre above grade, plan u (the mast's foot) */
++  padY: number;
++  /** the wrist's turn: 0 = the pad faces in toward the drive line, +1 = aft (south, onto the nose), -1 = fore (north, onto the tail) */
++  padYaw: number;
++  /** the wrist's tilt: 0 = the pad faces down (stowed), 1 = it faces the car */
++  padTilt: number;
++  /** each wipe pad's centre from the drive line, plan u: the mast's axis less the forearm, as the wrist is turned */
++  padX: number;
++  /** the pads' centre along the bay, plan u from the car's centre */
++  padDy: number;
++  /** which way the pads face, from the wrist */
++  padFace: PadFace;
++  /** 0..1: the pads pressed on a sensor */
++  wipeEngage: number;
++  /** the place the arms are working at, or going to */
++  station: WipeStation | null;
+   /** what the arch sprays */
+-  spray: 'none' | 'soak' | 'foam' | 'rinse';
++  spray: 'none' | 'soak' | 'jet' | 'rinse';
+   /** the air knives blow */
+   air: boolean;
+-  /** the brushes turn */
+-  spinning: boolean;
+-  /** the car's doors, 0 shut .. 1 open */
+-  doors: number;
+   /** the status beacon */
+   status: 'home' | 'working' | 'moving' | 'finishing';
+   /** the stop light shows red: the car must stay where it is */
+@@ -46,6 +56,7 @@ export interface WashPose {
+ }
+ 
+ const G = WASH_GANTRY;
++const W = G.wipe;
+ const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
+ const lerp = (a: number, b: number, f: number) => a + (b - a) * f;
+ /** Smooth start and stop (smoothstep). */
+@@ -57,23 +68,6 @@ function topHeld(dy: number): number {
+   return carTopU(Math.max(-lim, Math.min(lim, dy))) ?? 0;
+ }
+ 
+-/**
+- * Where the top brush's axis rides over the car at `dy`: a cylinder of radius r rolling on
+- * the car's top, pressed in by its squash. Past the car's ends it holds the bumper's height.
+- */
+-export function topBrushContactY(dy: number): number {
+-  const { r, squash } = G.topBrush;
+-  let h = 0;
+-  for (let k = -8; k <= 8; k++) {
+-    const s = (k / 8) * r;
+-    h = Math.max(h, topHeld(dy + s) + Math.sqrt(Math.max(0, r * r - s * s)));
+-  }
+-  return h - squash;
+-}
+-
+-/** The side brushes' axis on the car: the brush's radius off the flank, less its squash. */
+-export const SIDE_BRUSH_CONTACT_X = CAR_HALF_WIDTH_U + G.sideBrush.r - G.sideBrush.squash;
+-
+ /**
+  * The top air knife's lower face over the car at `dy`: the car's highest point under it plus
+  * its gap, ramped (DRYER_RAMP_SLOPE) so it rises before the roof pod and settles after it,
+@@ -93,112 +87,149 @@ export function dryerTopContactY(dy: number): number {
+ }
+ 
+ /** The side air knives' inner face on the car. */
+-export const DRYER_SIDE_CONTACT_X = CAR_HALF_WIDTH_U + G.dryer.side.gap;
++export const DRYER_SIDE_CONTACT_X = carHalfWidthAtU(0) + G.dryer.side.gap;
+ 
+-/** Everything off the car, the machine at `dy`. */
++/**
++ * Where the pads work at each place. `armDy` is the cross rail's line along the bay, `x` and `y` the pad's centre
++ * with its face on the car, and `sweep` the small motion that wipes: across the bay (the pads slide) or along it
++ * (the gantry moves).
++ *   front  the nose: the corner sensors and the cameras behind the bumper's face
++ *   sides  the front wings: the side cameras, low on the flank
++ *   roof   the roof pod, from its two sides
++ *   rear   the tail: the rear cameras and corner sensors
++ */
++export interface WipeTarget { padDy: number; x: number; y: number; yaw: -1 | 0 | 1; sweep: { axis: 'x' | 'dy'; amp: number } }
++const POD_R = ROOF_POD.radius * PLAN_UNITS_PER_METRE;
++const ROOF_U = BODY_ROOF_M * PLAN_UNITS_PER_METRE;
++export const WIPE_TARGET: Readonly<Record<WipeStation, WipeTarget>> = {
++  front: { padDy: -(CAR_HALF_LEN_U + W.padT / 2), x: 1.2, y: 1.5, yaw: 1, sweep: { axis: 'x', amp: 0.45 } },
++  sides: { padDy: -2.4, x: carHalfWidthAtU(2.0) + W.padT / 2, y: 2.0, yaw: 0, sweep: { axis: 'dy', amp: 0.45 } },
++  roof: { padDy: 0, x: POD_R + W.padT / 2, y: ROOF_U + W.padR + 0.1, yaw: 0, sweep: { axis: 'dy', amp: 0.2 } },
++  rear: { padDy: CAR_HALF_LEN_U + W.padT / 2, x: 1.2, y: 1.7, yaw: -1, sweep: { axis: 'x', amp: 0.45 } },
++};
++const yawRad = (yaw: number) => (yaw * Math.PI) / 2;
++/** The mast's axis and the gantry's line that put the pad's centre on a place's point, with the wrist turned for it. */
++export function wipeJoints(k: WipeTarget): { mastX: number; dy: number } {
++  return { mastX: k.x + W.forearm * Math.cos(yawRad(k.yaw)), dy: k.padDy - W.dy - W.forearm * Math.sin(yawRad(k.yaw)) };
++}
++/** Fill in the pad's centre and its face from the joints. */
++function wrist(p: WashPose): WashPose {
++  p.padX = p.mastX - W.forearm * Math.cos(yawRad(p.padYaw));
++  p.padDy = p.dy + W.dy + W.forearm * Math.sin(yawRad(p.padYaw));
++  p.padFace = p.padTilt < 0.5 ? 'down' : p.padYaw > 0.5 ? 'aft' : p.padYaw < -0.5 ? 'fore' : 'in';
++  return p;
++}
++/** Whole wipes a place: the pose is the same at the wipe's two ends. */
++export const WIPE_STROKES = 2;
++
++/** Everything off the car and stowed, the machine at `dy`. */
+ function retracted(dy: number): WashPose {
+   return {
+-    dy, brushEngage: 0, dryEngage: 0,
+-    sideBrushX: G.sideBrush.retractX, topBrushY: G.topBrush.retractY,
+-    dryerTopY: G.dryer.top.retractY, dryerSideX: G.dryer.side.retractX,
+-    wandDrop: 0, wandReach: 0, spray: 'none', air: false, spinning: false, doors: 0,
+-    status: 'moving', stop: true,
++    dy, dryEngage: 0, dryerTopY: G.dryer.top.retractY, dryerSideX: G.dryer.side.retractX,
++    mastX: W.parkX, padY: W.stowY, padYaw: 0, padTilt: 0, padX: W.parkX - W.forearm, padDy: dy + W.dy, padFace: 'down',
++    wipeEngage: 0, station: null,
++    spray: 'none', air: false, status: 'moving', stop: true,
+   };
+ }
+ 
+-/** Fill in the brushes' and air knives' positions from their engagement at the machine's `dy`. */
++/** Fill in the air knives' positions from their engagement at the machine's `dy`. */
+ function place(p: WashPose): WashPose {
+-  const td = p.dy + G.topBrush.dy;
+   const kd = p.dy + G.dryer.dy;
+-  // the side brushes close to the flank's line; past the car's ends they turn in the air
+-  p.sideBrushX = lerp(G.sideBrush.retractX, SIDE_BRUSH_CONTACT_X, p.brushEngage);
+-  p.topBrushY = lerp(G.topBrush.retractY, topBrushContactY(td), p.brushEngage);
+   p.dryerTopY = lerp(G.dryer.top.retractY, dryerTopContactY(kd), p.dryEngage);
+   p.dryerSideX = lerp(G.dryer.side.retractX, DRYER_SIDE_CONTACT_X, p.dryEngage);
+-  return p;
++  return wrist(p);
+ }
+ 
+ export interface PoseSource {
+   phase: WashPhase;
+   t: number;
+-  /** the vacuum's length, sim seconds (it sets how many sweeps the wands make) */
+-  vacuumS: number;
+   /** the pose the current phase began from (the phases that start from wherever the machine is) */
+   from: WashPose | null;
+ }
+ 
+-/** The vacuum's sweep: the gantry's small travel along the cabin floor, plan u either way. */
+-export const VACUUM_SWEEP_U = 0.15;
++/** The arms as they come down at the north end: at the nose's height, the wrists turned for the nose. */
++function armsReady(): WashPose {
++  const p = retracted(WASH_HOME_DY);
++  p.padY = WIPE_TARGET.front.y; p.padYaw = WIPE_TARGET.front.yaw; p.padTilt = 1; p.station = 'front';
++  return p;
++}
++
++/** One place: out to clear the car, travel, close in, wipe, back out. */
++function wipeAt(station: WipeStation, t: number, from: WashPose | null): WashPose {
++  const k = WIPE_TARGET[station];
++  const j = wipeJoints(k);
++  const f = from ?? armsReady();
++  const { travel, close, wipe } = WIPE_PARTS;
++  const p = retracted(j.dy);
++  p.station = station; p.padTilt = 1; p.padYaw = k.yaw; p.padY = k.y; p.mastX = W.parkX;
++  if (t < travel) {
++    // the masts go out to clear the car first, then the gantry travels, the masts set their height and the wrists turn
++    const u = t / travel;
++    p.mastX = lerp(f.mastX, W.parkX, ease(u / 0.3));
++    const m = ease((u - 0.3) / 0.7);
++    p.dy = lerp(f.dy, j.dy, m);
++    p.padY = lerp(f.padY, k.y, m);
++    p.padYaw = lerp(f.padYaw, k.yaw, m);
++    return place(p);
++  }
++  if (t < travel + close) {
++    p.mastX = lerp(W.parkX, j.mastX, ease((t - travel) / close));
++    return place(p);
++  }
++  if (t < travel + close + wipe) {
++    const s = Math.sin(2 * Math.PI * WIPE_STROKES * ((t - travel - close) / wipe));
++    p.mastX = j.mastX; p.wipeEngage = 1; p.status = 'working';
++    if (k.sweep.axis === 'x') p.mastX = j.mastX + k.sweep.amp * s;
++    else p.dy = j.dy + k.sweep.amp * s;
++    return place(p);
++  }
++  p.mastX = lerp(j.mastX, W.parkX, ease((t - travel - close - wipe) / (1 - travel - close - wipe)));
++  return place(p);
++}
+ 
+ /** The machine's pose for this session. */
+ export function washPoseAt(s: PoseSource): WashPose {
+   const t = clamp01(s.t);
+   const from = s.from;
+   switch (s.phase) {
+-    case 'home': {
++    case 'home': case 'done': {
+       const p = retracted(WASH_HOME_DY);
+       p.status = 'home'; p.stop = false;
+       return place(p);
+     }
+     case 'settle':
+       return place(retracted(WASH_HOME_DY));
+-    case 'to_cabin':
+-      return place(retracted(lerp(from?.dy ?? WASH_HOME_DY, WASH_CABIN_DY, ease(t))));
+-    case 'doors_open': {
+-      const p = retracted(WASH_CABIN_DY);
+-      p.doors = ease(t);
+-      return place(p);
+-    }
+-    case 'wands_down': {
+-      const p = retracted(WASH_CABIN_DY);
+-      p.doors = 1; p.wandDrop = ease(t);
+-      return place(p);
+-    }
+-    case 'wands_in': {
+-      const p = retracted(WASH_CABIN_DY);
+-      p.doors = 1; p.wandDrop = 1; p.wandReach = ease(t);
+-      return place(p);
+-    }
+-    case 'vacuum': {
+-      // whole sweeps, so the pose is the same at the vacuum's two ends as at wands_in's end
+-      const n = Math.max(1, Math.round(s.vacuumS / 9));
+-      const m = Math.max(1, Math.round(s.vacuumS / 4));
+-      const p = retracted(WASH_CABIN_DY + VACUUM_SWEEP_U * Math.sin(2 * Math.PI * n * t));
+-      p.doors = 1; p.wandDrop = 1;
+-      p.wandReach = 1 - 0.4 * (1 - Math.cos(2 * Math.PI * m * t)) / 2;
++    case 'cabin_hold': {
++      // a detail seat's cabin time: the machine stands parked and dry, and the car stays (washSpec.ts)
++      const p = retracted(WASH_HOME_DY);
+       p.status = 'working';
+       return place(p);
+     }
+-    case 'wands_out': {
+-      const p = retracted(from?.dy ?? WASH_CABIN_DY);
+-      p.doors = 1; p.wandDrop = from?.wandDrop ?? 1;
+-      p.wandReach = lerp(from?.wandReach ?? 1, 0, ease(t));
+-      return place(p);
+-    }
+-    case 'wands_up': {
+-      const p = retracted(from?.dy ?? WASH_CABIN_DY);
+-      p.doors = 1; p.wandDrop = lerp(from?.wandDrop ?? 1, 0, ease(t));
+-      return place(p);
+-    }
+-    case 'doors_close': {
+-      const p = retracted(from?.dy ?? WASH_CABIN_DY);
+-      p.doors = 1 - ease(t);
++    case 'arms_down': {
++      const r = armsReady();
++      const p = retracted(WASH_HOME_DY);
++      p.station = 'front';
++      p.padY = lerp(W.stowY, r.padY, ease(t));
++      p.padTilt = ease(t); p.padYaw = r.padYaw * ease(t);
+       return place(p);
+     }
+-    case 'to_start':
+-      return place(retracted(lerp(from?.dy ?? WASH_CABIN_DY, PASS_FROM.soak, ease(t))));
+-    case 'done': {
+-      const p = retracted(WASH_HOME_DY);
+-      p.status = 'home'; p.stop = false;
++    case 'arms_up': {
++      const p = retracted(from?.dy ?? WASH_HOME_DY);
++      p.mastX = from?.mastX ?? W.parkX;
++      p.padY = lerp(from?.padY ?? W.stowY, W.stowY, ease(t));
++      p.padTilt = lerp(from?.padTilt ?? 0, 0, ease(t)); p.padYaw = lerp(from?.padYaw ?? 0, 0, ease(t));
+       return place(p);
+     }
++    case 'to_home':
++      return place(retracted(lerp(from?.dy ?? WASH_HOME_DY, WASH_HOME_DY, ease(t))));
+     case 'retract': {
+-      // the seat ended mid-pass: brushes and air knives come off the car where it stands
+-      const f = ease(t);
++      // the seat ended mid-program: the air knives come off the car and the pads go out, then up, where it stands
+       const p = retracted(from?.dy ?? WASH_HOME_DY);
+-      p.brushEngage = lerp(from?.brushEngage ?? 0, 0, f);
+-      p.dryEngage = lerp(from?.dryEngage ?? 0, 0, f);
+-      p.spinning = p.brushEngage > 0.02;
++      p.dryEngage = lerp(from?.dryEngage ?? 0, 0, ease(t));
++      p.mastX = lerp(from?.mastX ?? W.parkX, W.parkX, ease(t / 0.5));
++      const up = ease((t - 0.5) / 0.5);
++      p.padY = lerp(from?.padY ?? W.stowY, W.stowY, up);
++      p.padTilt = lerp(from?.padTilt ?? 0, 0, up); p.padYaw = lerp(from?.padYaw ?? 0, 0, up);
+       p.status = 'finishing';
+       return place(p);
+     }
+@@ -208,8 +239,9 @@ export function washPoseAt(s: PoseSource): WashPose {
+       return place(p);
+     }
+     default: {
++      if (isWipe(s.phase)) return wipeAt(stationOf(s.phase), t, from);
+       if (!isPass(s.phase)) return place(retracted(WASH_HOME_DY));
+-      // a pass: close in standing still, travel, open out standing still
++      // a pass: a steady travel from one end to the other; the air knives close in standing still and open out so
+       const u = ease((t - PASS_EASE) / (1 - 2 * PASS_EASE));
+       const p = retracted(lerp(PASS_FROM[s.phase], passTo(s.phase), u));
+       const e = t < PASS_EASE ? ease(t / PASS_EASE) : t > 1 - PASS_EASE ? ease((1 - t) / PASS_EASE) : 1;
+@@ -217,7 +249,7 @@ export function washPoseAt(s: PoseSource): WashPose {
+       p.status = 'working';
+       switch (PASS_KIND[s.phase]) {
+         case 'soak': p.spray = on ? 'soak' : 'none'; break;
+-        case 'brush': p.brushEngage = e; p.spinning = true; p.spray = on ? 'foam' : 'none'; break;
++        case 'jet': p.spray = on ? 'jet' : 'none'; break;
+         case 'rinse': p.spray = on ? 'rinse' : 'none'; break;
+         case 'dry': p.dryEngage = e; p.air = on; break;
+       }
+diff --git a/src/lib/ottoWash/washSession.ts b/src/lib/ottoWash/washSession.ts
+index 0e8a755..6207bc0 100644
+--- a/src/lib/ottoWash/washSession.ts
++++ b/src/lib/ottoWash/washSession.ts
+@@ -10,21 +10,21 @@
+  * program inside that window:
+  *   · it STARTS when the car is parked on the bay's pose and its seat is on;
+  *   · the program's length is fixed as it starts (paceProgram): the passes stretch or
+- *     shrink within what a real machine can do, and a detail seat's vacuum takes what is
+- *     left after the exterior;
++ *     shrink within what a real machine can do, the sensor wipe keeps its own time, and a
++ *     detail seat's cabin hold takes what is left;
+  *   · when the seat ends first, or the car is not the one the machine started on, it
+- *     FINISHES from wherever it is: wands out the way they went in, doors shut, brushes
+- *     and air knives off the car at their own speed, then home at WASH_ABORT_SPEED. It
+- *     never moves over the car with anything still on it.
++ *     FINISHES from wherever it is: the air knives off the car and the wipe pads out and
++ *     up at their own speed, then home at WASH_ABORT_SPEED. It never moves over the car
++ *     with anything still on it.
+  *
+  * ONE EVALUATION. The motion driver steps this once per bay (engine/motion/washGate.ts);
+- * WashGantry.tsx draws that session, the doors read it through doorStore, and the car's
+- * right to move is read from it.
++ * WashGantry.tsx draws that session, and the car's right to move is read from it. No door
++ * opens in a wash bay (Chase, 2026-11-11), so the doors read nothing from it.
+  */
+ import {
+-  INTERIOR_FIXED_S, PASS_NOMINAL_S, PASS_SCALE_MAX, PASS_SCALE_MIN, PASSES_NOMINAL_S, VACUUM_MAX_S,
+-  VACUUM_MIN_S, VACUUM_NOMINAL_S, WASH_ABORT_SPEED, WASH_END_MARGIN_S, WASH_HOME_DY, WASH_PHASE_S,
+-  WASH_RETURN_UPS, isPass, washChain, type WashPhase,
++  CABIN_HOLD_MAX_S, CABIN_HOLD_MIN_S, CABIN_HOLD_NOMINAL_S, PASS_NOMINAL_S, PASS_SCALE_MAX, PASS_SCALE_MIN,
++  PASSES_NOMINAL_S, WASH_ABORT_SPEED, WASH_END_MARGIN_S, WASH_HOME_DY, WASH_PHASE_S, WASH_RETURN_UPS, WIPE_FIXED_S,
++  isPass, isWipe, washChain, type WashPhase,
+ } from './washSpec';
+ import { washPoseAt, type WashPose } from './washPose';
+ 
+@@ -41,12 +41,12 @@ export interface WashSession {
+   t: number;
+   /** the car this program is for; held to the end so the machine finishes on the car it started on */
+   vehicleId: string | null;
+-  /** this program includes the interior clean (a detail seat) */
++  /** a detail seat: the twin times a cabin clean in it, and the machine holds, parked and dry, for that time */
+   interior: boolean;
+   /** the passes' pace: 1 = nominal (PASS_NOMINAL_S); fixed when the program starts */
+   passScale: number;
+-  /** the vacuum's length, sim seconds; fixed when the program starts */
+-  vacuumS: number;
++  /** a detail seat's cabin hold, sim seconds; fixed when the program starts */
++  cabinS: number;
+   /** the seat is over and the machine is on its way home */
+   finishing: boolean;
+   /** the machine's pose when the current phase began, for the phases that start from wherever it is */
+@@ -61,7 +61,7 @@ export interface WashSession {
+ 
+ export const IDLE_WASH: WashSession = Object.freeze({
+   phase: 'home' as WashPhase, phaseElapsed: 0, t: 1, vehicleId: null, interior: false,
+-  passScale: 1, vacuumS: VACUUM_NOMINAL_S, finishing: false, from: null, completedFor: null,
++  passScale: 1, cabinS: CABIN_HOLD_NOMINAL_S, finishing: false, from: null, completedFor: null,
+ });
+ 
+ export interface WashInput {
+@@ -71,7 +71,7 @@ export interface WashInput {
+   vehicleId: string | null;
+   /** the twin has this car's seat on in this bay, and the car stands on the bay's pose */
+   active: boolean;
+-  /** the seat is a detail seat: the interior is cleaned before the exterior */
++  /** the seat is a detail seat: the twin times a cabin clean in it before the wash */
+   interior: boolean;
+   /** sim seconds until the twin's seat ends, or null when it published no end */
+   endsInS: number | null;
+@@ -92,10 +92,10 @@ export const PULL_IN_S = 30;
+ export const JOIN_LATE_S = 50;
+ 
+ /** A phase's length at nominal speed for this session. */
+-export function washPhaseLength(p: WashPhase, s: Pick<WashSession, 'passScale' | 'vacuumS' | 'from'>): number {
++export function washPhaseLength(p: WashPhase, s: Pick<WashSession, 'passScale' | 'cabinS' | 'from'>): number {
+   if (p === 'home') return Infinity;
+   if (isPass(p)) return PASS_NOMINAL_S[p] * s.passScale;
+-  if (p === 'vacuum') return s.vacuumS;
++  if (p === 'cabin_hold') return s.cabinS;
+   if (p === 'return') {
+     const dy = s.from?.dy ?? WASH_HOME_DY;
+     return Math.max(1, Math.abs(dy - WASH_HOME_DY) / WASH_RETURN_UPS + 1);
+@@ -105,23 +105,24 @@ export function washPhaseLength(p: WashPhase, s: Pick<WashSession, 'passScale' |
+ 
+ /**
+  * The program's pace for a seat that ends in `endsInS` sim seconds: how much the passes
+- * stretch or shrink, and how long the vacuum runs. No end published -> nominal.
++ * stretch or shrink, and how long a detail seat's cabin hold is. The sensor wipe keeps its
++ * own time. No end published -> nominal.
+  */
+-export function paceProgram(interior: boolean, endsInS: number | null): { passScale: number; vacuumS: number } {
+-  if (endsInS === null || !Number.isFinite(endsInS)) return { passScale: 1, vacuumS: VACUUM_NOMINAL_S };
+-  const avail = endsInS - WASH_END_MARGIN_S - WASH_PHASE_S.done;
++export function paceProgram(interior: boolean, endsInS: number | null): { passScale: number; cabinS: number } {
++  if (endsInS === null || !Number.isFinite(endsInS)) return { passScale: 1, cabinS: CABIN_HOLD_NOMINAL_S };
++  const avail = endsInS - WASH_END_MARGIN_S - WASH_PHASE_S.done - WIPE_FIXED_S;
+   if (!interior) {
+-    return { passScale: clamp(avail / PASSES_NOMINAL_S, PASS_SCALE_MIN, PASS_SCALE_MAX), vacuumS: VACUUM_NOMINAL_S };
++    return { passScale: clamp(avail / PASSES_NOMINAL_S, PASS_SCALE_MIN, PASS_SCALE_MAX), cabinS: CABIN_HOLD_NOMINAL_S };
+   }
+-  const forVacuum = avail - INTERIOR_FIXED_S - PASSES_NOMINAL_S;
+-  if (forVacuum >= VACUUM_MIN_S) return { passScale: 1, vacuumS: Math.min(forVacuum, VACUUM_MAX_S) };
+-  // a short seat: the passes give up time down to their floor, the vacuum keeps its floor
+-  const passes = avail - INTERIOR_FIXED_S - VACUUM_MIN_S;
+-  return { passScale: clamp(passes / PASSES_NOMINAL_S, PASS_SCALE_MIN, 1), vacuumS: VACUUM_MIN_S };
++  const forCabin = avail - PASSES_NOMINAL_S;
++  if (forCabin >= CABIN_HOLD_MIN_S) return { passScale: 1, cabinS: Math.min(forCabin, CABIN_HOLD_MAX_S) };
++  // a short seat: the passes give up time down to their floor, the cabin hold keeps its floor
++  const passes = avail - CABIN_HOLD_MIN_S;
++  return { passScale: clamp(passes / PASSES_NOMINAL_S, PASS_SCALE_MIN, 1), cabinS: CABIN_HOLD_MIN_S };
+ }
+ 
+ /** Sim seconds of the program still to run from (phase, elapsed), at nominal speed. */
+-export function remainingProgramS(s: Pick<WashSession, 'phase' | 'phaseElapsed' | 'interior' | 'passScale' | 'vacuumS' | 'from'>): number {
++export function remainingProgramS(s: Pick<WashSession, 'phase' | 'phaseElapsed' | 'interior' | 'passScale' | 'cabinS' | 'from'>): number {
+   if (s.phase === 'home') return 0;
+   const chain = washChain(s.interior);
+   const i = chain.indexOf(s.phase);
+@@ -133,13 +134,7 @@ export function remainingProgramS(s: Pick<WashSession, 'phase' | 'phaseElapsed'
+ 
+ /** The next phase on the way home once the seat is over. */
+ function finishingNext(p: WashPhase): WashPhase {
+-  switch (p) {
+-    case 'wands_out': return 'wands_up';
+-    case 'wands_up': return 'doors_close';
+-    case 'doors_close': return 'return';
+-    case 'retract': return 'return';
+-    default: return 'home';
+-  }
++  return p === 'retract' ? 'return' : 'home';
+ }
+ 
+ /**
+@@ -148,18 +143,17 @@ function finishingNext(p: WashPhase): WashPhase {
+  * holds. Null: already on the way home.
+  */
+ function finishInto(phase: WashPhase, t: number): { phase: WashPhase; t: number } | null {
++  void t;
+   switch (phase) {
+-    case 'settle': case 'done': return { phase: 'home', t: 0 };
+-    case 'doors_open': return { phase: 'doors_close', t: 1 - t };
+-    case 'wands_down': return { phase: 'wands_up', t: 0 }; // wands_up starts from the drop it has
+-    case 'wands_in': case 'vacuum': return { phase: 'wands_out', t: 0 };
+-    case 'wands_out': case 'wands_up': case 'doors_close': case 'retract': case 'return': return null;
+-    default: return { phase: 'retract', t: 0 }; // travel or a pass: off the car, then home
++    // nothing is on the car and the machine is at home: the car may go at once
++    case 'settle': case 'cabin_hold': case 'done': return { phase: 'home', t: 0 };
++    case 'retract': case 'return': return null;
++    default: return { phase: 'retract', t: 0 }; // a pass, a wipe or a travel: everything off the car, then home
+   }
+ }
+ 
+ /** The phases that start from wherever the machine is, and capture `from` as they begin. */
+-const FROM_PHASES: ReadonlySet<WashPhase> = new Set(['wands_out', 'wands_up', 'doors_close', 'retract', 'return', 'to_cabin', 'to_start']);
++const FROM_PHASES: ReadonlySet<WashPhase> = new Set<WashPhase>(['wipe_front', 'wipe_sides', 'wipe_roof', 'wipe_rear', 'arms_up', 'to_home', 'retract', 'return']);
+ 
+ /** Advance one bay's machine by one frame. Pure. */
+ export function advanceWashSession(prev: WashSession, input: WashInput): WashSession {
+@@ -184,7 +178,7 @@ export function advanceWashSession(prev: WashSession, input: WashInput): WashSes
+   }
+ 
+   const { phase, phaseElapsed } = prev;
+-  let { finishing, from, passScale, vacuumS } = prev;
++  let { finishing, from, passScale, cabinS } = prev;
+   const { vehicleId, interior } = prev;
+   const poseNow = (): WashPose => washPoseAt(prev);
+ 
+@@ -197,7 +191,7 @@ export function advanceWashSession(prev: WashSession, input: WashInput): WashSes
+     if (into) {
+       if (into.phase === 'home') return { ...IDLE_WASH, vehicleId: input.vehicleId };
+       const fromPose = FROM_PHASES.has(into.phase) ? poseNow() : null;
+-      const next = { phase: into.phase, phaseElapsed: 0, vehicleId, interior, passScale, vacuumS, finishing, from: fromPose, completedFor: null };
++      const next = { phase: into.phase, phaseElapsed: 0, vehicleId, interior, passScale, cabinS, finishing, from: fromPose, completedFor: null };
+       next.phaseElapsed = into.t * washPhaseLength(into.phase, next);
+       return finishStep(next);
+     }
+@@ -214,7 +208,7 @@ export function advanceWashSession(prev: WashSession, input: WashInput): WashSes
+   const len = washPhaseLength(phase, prev);
+   const budget = dt * speed;
+   if (phaseElapsed + budget < len) {
+-    return finishStep({ phase, phaseElapsed: phaseElapsed + budget, vehicleId, interior, passScale, vacuumS, finishing, from, completedFor: null });
++    return finishStep({ phase, phaseElapsed: phaseElapsed + budget, vehicleId, interior, passScale, cabinS, finishing, from, completedFor: null });
+   }
+ 
+   // ONE transition per call; the unspent time is dropped
+@@ -230,9 +224,9 @@ export function advanceWashSession(prev: WashSession, input: WashInput): WashSes
+     const still = input.active && input.vehicleId === vehicleId ? vehicleId : null;
+     return { ...IDLE_WASH, vehicleId: input.vehicleId, completedFor: still };
+   }
+-  if (phase === 'settle') ({ passScale, vacuumS } = paceProgram(interior, input.endsInS));
++  if (phase === 'settle') ({ passScale, cabinS } = paceProgram(interior, input.endsInS));
+   from = FROM_PHASES.has(next) ? endPose : null;
+-  return finishStep({ phase: next, phaseElapsed: 0, vehicleId, interior, passScale, vacuumS, finishing, from, completedFor: null });
++  return finishStep({ phase: next, phaseElapsed: 0, vehicleId, interior, passScale, cabinS, finishing, from, completedFor: null });
+ }
+ 
+ /**
+@@ -242,11 +236,11 @@ export function advanceWashSession(prev: WashSession, input: WashInput): WashSes
+  */
+ export function seekProgram(vehicleId: string | null, interior: boolean, offset: number, endsInS: number): WashSession | null {
+   const settle = WASH_PHASE_S.settle;
+-  const { passScale, vacuumS } = paceProgram(interior, offset + endsInS - settle);
++  const { passScale, cabinS } = paceProgram(interior, offset + endsInS - settle);
+   let left = Math.max(0, offset);
+   let from: WashPose | null = null;
+   for (const phase of washChain(interior)) {
+-    const base = { phase, phaseElapsed: 0, vehicleId, interior, passScale, vacuumS, finishing: false, completedFor: null };
++    const base = { phase, phaseElapsed: 0, vehicleId, interior, passScale, cabinS, finishing: false, completedFor: null };
+     const here = { ...base, from: FROM_PHASES.has(phase) ? from : null };
+     const L = washPhaseLength(phase, here);
+     if (left < L) return finishStep({ ...here, phaseElapsed: left });
+@@ -267,7 +261,7 @@ export function washLetsCarMove(p: WashPhase): boolean {
+   return p === 'home' || p === 'done';
+ }
+ 
+-/** How far the car's doors stand open (0..1) for this session: the pose's own doors, one evaluation. */
+-export function washDoorsAt(s: WashSession): number {
+-  return washPoseAt(s).doors;
++/** The arms are wiping the sensors, or on their way to or from them. */
++export function washWiping(p: WashPhase): boolean {
++  return isWipe(p) || p === 'arms_down' || p === 'arms_up';
+ }
+diff --git a/src/lib/ottoWash/washSpec.ts b/src/lib/ottoWash/washSpec.ts
+index 94fdfd1..a01897b 100644
+--- a/src/lib/ottoWash/washSpec.ts
++++ b/src/lib/ottoWash/washSpec.ts
+@@ -1,11 +1,20 @@
+ /**
+- * OTTO-WASH — the robotic rollover gantry in each wash bay (docs/OTTO-WASH.md).
++ * OTTO-WASH — the touchless wash machine in each wash bay (docs/OTTO-WASH.md).
+  *
+  * Chase, 2026-10-20: "Wash bays are robotic too. Car pulls in and the machine moves
+  * back and forth over it several times to wash and rinse and blow dry before vehicle
+  * leave." So each bay has ONE machine: a portal gantry on two floor rails that travels
+- * over the parked car, carrying everything the wash needs (an in-bay automatic, the
+- * rollover kind). The car does not move while it works.
++ * over the parked car. The car does not move while it works.
++ *
++ * Chase, 2026-11-11: "I don't think it makes sense to have giant brushes that will be
++ * whipping the vehicle since a lot of AV's have extended areas with cameras and and lidar
++ * ... much more delicate, and maybe only rinses and dries, then ... an robot arm will locate
++ * all sensors and hand wipe gently with a cloth ... I don't think doors should open
++ * whatsoever once in the large external wash bay." So NOTHING THAT TURNS TOUCHES THE CAR:
++ *   1. the arch soaks the car, washes it with water jets, and rinses it;
++ *   2. the air knives dry it;
++ *   3. two arms come down from the beam and wipe each sensor with a soft pad;
++ *   4. the doors stay shut. The cabin is cleaned at the fast charger (otto-q-core 0815).
+  *
+  * UNITS: PLAN UNITS throughout (1 u = 0.4785 m), heights above grade in plan units too,
+  * because the wash hall is drawn in them (structurePlan.WASH_SHELL). The car's shape
+@@ -19,15 +28,11 @@
+  * THE MACHINE, side on (car facing left, north), along the beam's 4.1 u depth:
+  *
+  *     ┌──────────────── beam ────────────────┐   at 6.9..7.6 u
+- *     │ arch │ top brush │ side brushes │ air │   dy -1.6, -0.7, +0.6, +1.9 from the gantry's line
+- *         the two vacuum wands' carriages        dy -1.2, outboard of everything but the arch
++ *     │ arch │   wipe arms' cross rail   │ air │   dy -1.6, -0.2, +1.9 from the gantry's line
+  *     legs ride the rails at x = ±6.8, outside the door opening (±5.5)
+  *
+- * The parts stand at different points along the beam so none can meet another: the top
+- * brush is narrower than the gap between the side brushes, and its hangers stand clear of
+- * them along the beam. Every moving part sits inside the portal. Retracted, the portal
+- * clears a car and its roof pod with room to spare, so a car drives in under the machine
+- * and out under it.
++ * Every moving part sits inside the portal. Stowed, the portal clears a car and its roof
++ * pod with room to spare, so a car drives in under the machine and out under it.
+  *
+  * TIMES are SIM seconds, like the cleaning arm's: the twin times the seat (otto-q-core
+  * 0746, 0762) and this machine plays its program inside it.
+@@ -44,13 +49,6 @@ export const WASH_TRAVEL = {
+ /** Where the machine waits between cars: the north end, so an arriving car pulls up to its stop light. */
+ export const WASH_HOME_DY = WASH_TRAVEL.north;
+ 
+-/**
+- * Where it stands for the interior clean. Its wands then stand at the car's middle, in the door
+- * apertures' rear half (the doors open from their front hinge, so the rear half is free), and
+- * its side brushes stand south of every point an opening door sweeps.
+- */
+-export const WASH_CABIN_DY = 1.2;
+-
+ export const WASH_GANTRY = {
+   /** the portal's legs ride the rails at this offset from the drive line */
+   legX: 6.8,
+@@ -62,54 +60,68 @@ export const WASH_GANTRY = {
+   beam: { y0: 6.9, y1: 7.6, dy0: -1.9, dy1: 2.2 },
+   /** floor rails: from the car's centre, plan u */
+   rail: { w: 0.32, h: 0.14, from: -10.0, to: 10.2 },
+-  /** the spray arch on the beam's north face */
++  /** the spray arch on the beam's north face: a soak circuit and a jet circuit, one ring of nozzles each */
+   arch: { dy: -1.6, x: 5.6, top: 6.5, r: 0.13, nozzles: 9 },
+-  /** the horizontal top brush, north of the side brushes, on hangers at its ends */
+-  topBrush: { dy: -0.7, r: 0.75, halfLen: 1.7, retractY: 5.7, squash: 0.15, hangerX: 1.86 },
+-  /** the two vertical side brushes */
+-  sideBrush: { dy: 0.6, r: 0.9, y0: 0.6, y1: 5.9, retractX: 4.3, squash: 0.18 },
+   /** air knives on the beam's south side: one over the roof, one beside each flank */
+   dryer: {
+     dy: 1.9,
+     top: { halfLen: 1.9, d: 0.4, h: 0.35, gap: 0.5, retractY: 6.0 },
+     side: { w: 0.35, d: 0.4, y0: 0.55, y1: 3.0, gap: 0.55, retractX: 5.6 },
+   },
+-  /** the interior clean: a vacuum wand each side, on a carriage north of the top brush's hangers */
+-  wand: {
+-    dy: -1.2,
+-    /** the carriage's x: 0.3 m outboard of the flank */
+-    x: 2.62,
+-    /** the vertical stage's reach: from under the beam to the door's mid-height */
+-    topY: 6.8, workY: 1.82,
+-    /** the horizontal stage: from the carriage in to 0.24 m off the car's centreline */
+-    reachX: 0.5,
+-    r: 0.09,
++  /**
++   * The two sensor-wipe arms, one each side, on a cross rail under the beam. Each has a carriage that
++   * slides across the bay, a mast that lowers the pad, and a wrist that turns the pad to face the car.
++   */
++  wipe: {
++    /** the cross rail's line along the beam, from the gantry's line */
++    dy: -0.2,
++    /** where a mast parks: outboard of the car, its pad clear of the flank at any height and any turn of the wrist */
++    parkX: 3.4,
++    /** the pad's height with the mast up: above the roof pod, under the beam */
++    stowY: 5.9,
++    /** the pad: a soft disc on a sprung head (radius, thickness) */
++    padR: 0.26, padT: 0.12,
++    /** the wrist's forearm: the pad's centre stands this far from the mast's axis, the way the pad faces */
++    forearm: 0.35,
++    /** the mast's section and the carriage's block */
++    mastR: 0.1, carriage: { w: 0.7, d: 0.6, h: 0.4 },
+   },
+   /** stop light on the beam's south face, toward an arriving car */
+   light: { y: 6.35, x: 0 },
+ } as const;
+ 
+-/** The program, in order. A detail seat runs the interior first, then the exterior. */
++/**
++ * The program, in order: the six passes, then the sensor wipe, then home.
++ *
++ * `cabin_hold` is the one phase of a DETAIL seat that a wash seat does not have. The twin still seats a car for a
++ * detail when no fast charger's arm reached it (otto-q-core 0815 §3), and times a cabin clean in that seat. The
++ * machine does no cabin work and no door opens here: it stands parked and dry for that time, before the water.
++ */
+ export type WashPhase =
+   | 'home'
+   | 'settle'
+-  | 'to_cabin' | 'doors_open' | 'wands_down' | 'wands_in' | 'vacuum' | 'wands_out' | 'wands_up' | 'doors_close' | 'to_start'
++  | 'cabin_hold'
+   | 'soak' | 'wash_1' | 'wash_2' | 'rinse' | 'dry_1' | 'dry_2'
++  | 'arms_down' | 'wipe_front' | 'wipe_sides' | 'wipe_roof' | 'wipe_rear' | 'arms_up' | 'to_home'
+   | 'done'
+   | 'retract' | 'return';
+ 
+-export const WASH_INTERIOR: readonly WashPhase[] = [
+-  'to_cabin', 'doors_open', 'wands_down', 'wands_in', 'vacuum', 'wands_out', 'wands_up', 'doors_close', 'to_start',
+-];
+ export const WASH_EXTERIOR: readonly WashPhase[] = ['soak', 'wash_1', 'wash_2', 'rinse', 'dry_1', 'dry_2'];
++export const WASH_WIPE: readonly WashPhase[] = ['arms_down', 'wipe_front', 'wipe_sides', 'wipe_roof', 'wipe_rear', 'arms_up', 'to_home'];
+ 
+ /** The whole program for a seat, home to home. */
+ export function washChain(interior: boolean): readonly WashPhase[] {
+   return interior
+-    ? ['settle', ...WASH_INTERIOR, ...WASH_EXTERIOR, 'done']
+-    : ['settle', ...WASH_EXTERIOR, 'done'];
++    ? ['settle', 'cabin_hold', ...WASH_EXTERIOR, ...WASH_WIPE, 'done']
++    : ['settle', ...WASH_EXTERIOR, ...WASH_WIPE, 'done'];
+ }
+ 
++/** The four places the arms wipe, in order. */
++export type WipeStation = 'front' | 'sides' | 'roof' | 'rear';
++export const WIPE_STATIONS: readonly WipeStation[] = ['front', 'sides', 'roof', 'rear'];
++export const isWipe = (p: WashPhase): p is `wipe_${WipeStation}` => p.startsWith('wipe_');
++export const stationOf = (p: `wipe_${WipeStation}`): WipeStation => p.slice(5) as WipeStation;
++
+ /** The passes over the car, each from one end of the travel to the other. */
+ export type WashPass = 'soak' | 'wash_1' | 'wash_2' | 'rinse' | 'dry_1' | 'dry_2';
+ export const isPass = (p: WashPhase): p is WashPass => (WASH_EXTERIOR as readonly string[]).includes(p);
+@@ -123,45 +135,48 @@ export const passTo = (p: WashPass): number =>
+   PASS_FROM[p] === WASH_TRAVEL.north ? WASH_TRAVEL.south : WASH_TRAVEL.north;
+ 
+ /** What each pass does. */
+-export const PASS_KIND: Readonly<Record<WashPass, 'soak' | 'brush' | 'rinse' | 'dry'>> = {
+-  soak: 'soak', wash_1: 'brush', wash_2: 'brush', rinse: 'rinse', dry_1: 'dry', dry_2: 'dry',
++export const PASS_KIND: Readonly<Record<WashPass, 'soak' | 'jet' | 'rinse' | 'dry'>> = {
++  soak: 'soak', wash_1: 'jet', wash_2: 'jet', rinse: 'rinse', dry_1: 'dry', dry_2: 'dry',
+ };
+ 
+ /**
+- * A pass's length at nominal pace, sim seconds. Six passes of 15.4 u (7.4 m, 24 ft) in 210 s is
+- * 44 m (145 ft) in 3.5 minutes, 0.21 m/s on average with the brushes' stops. Read 2026-10-21:
+- *   - a 5-brush rollover on a 23 ft guiderail "would travel 138' in six passes (3 minutes)"
++ * A pass's length at nominal pace, sim seconds. Six passes of 15.4 u (7.4 m, 24 ft) in 180 s is
++ * 44 m (145 ft) in 3 minutes, 0.25 m/s. Read 2026-10-21:
++ *   - a rollover on a 23 ft guiderail "would travel 138' in six passes (3 minutes)"
+  *     (carwashforum.com, 2015-10-12, https://carwashforum.com/goto/post?id=99620);
+  *   - an in-bay automatic runs about 4 minutes a car (ccentral.ca,
+  *     https://ccentral.ca/experts-weigh-small-footprint-car-wash-opportunities, via search results);
+  *   - a gantry's dryer pass at 0.33 ft/s (0.1 m/s) in US 6,863,739
+  *     (https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/6863739, via search results).
+- * The six passes, the settle and the finish make 3.6 minutes, inside the twin's robotic wash of
+- * 5 minutes (pull in 0.5, program 4.0, pull out 0.5; otto-q-core 0746, robotic_wash_min).
++ * With no brush to dwell on the car, a pass is a steady travel. The six passes (180 s), the sensor wipe
++ * (WIPE_FIXED_S) and the settle and finish make 4.6 minutes at nominal pace. The twin's robotic wash allows a
++ * 4.0-minute program (otto-q-core 0746, robotic_wash_min 5.0), so the passes run at about 0.8 of nominal there.
+  */
+ export const PASS_NOMINAL_S: Readonly<Record<WashPass, number>> = {
+-  soak: 30, wash_1: 40, wash_2: 40, rinse: 30, dry_1: 35, dry_2: 35,
++  soak: 25, wash_1: 35, wash_2: 35, rinse: 25, dry_1: 30, dry_2: 30,
+ };
+ export const PASSES_NOMINAL_S = Object.values(PASS_NOMINAL_S).reduce((a, b) => a + b, 0);
+ 
+-/** Fixed phases, sim seconds. `vacuum` and the passes are paced to the seat; `return` by the way home. */
+-export const WASH_PHASE_S: Readonly<Record<Exclude<WashPhase, WashPass | 'home' | 'vacuum' | 'return'>, number>> = {
++/**
++ * Fixed phases, sim seconds. The passes and `cabin_hold` are paced to the seat; `return` by the way home.
++ * A wipe phase is: pads out to clear the car, travel to the place, close in, wipe, back out. ASSUMPTION: no public
++ * source gives a measured time for a robot arm wiping a car's sensors. 14 to 18 s a place is a gentle hand's pace.
++ */
++export const WASH_PHASE_S: Readonly<Record<Exclude<WashPhase, WashPass | 'home' | 'cabin_hold' | 'return'>, number>> = {
+   settle: 2.5,
+-  to_cabin: 6, doors_open: 3, wands_down: 3, wands_in: 3, wands_out: 3, wands_up: 3, doors_close: 3, to_start: 6,
++  arms_down: 3, wipe_front: 14, wipe_sides: 14, wipe_roof: 16, wipe_rear: 18, arms_up: 3, to_home: 17,
+   done: 2,
+-  // a seat that ends mid-pass: brushes and air knives come off the car at their own speed, never hurried
++  // a seat that ends mid-program: air knives and pads come off the car at their own speed, never hurried
+   retract: 2,
+ };
+ 
+-/** The interior's fixed motion, sim seconds. */
+-export const INTERIOR_FIXED_S = WASH_INTERIOR
+-  .filter((p) => p !== 'vacuum')
+-  .reduce((a, p) => a + WASH_PHASE_S[p as keyof typeof WASH_PHASE_S], 0);
++/** The sensor wipe's fixed length, sim seconds. */
++export const WIPE_FIXED_S = WASH_WIPE.reduce((a, p) => a + WASH_PHASE_S[p as keyof typeof WASH_PHASE_S], 0);
+ 
+-/** The vacuum's nominal length when the twin publishes no end: the twin's robot, 10 of 16.5 minutes (0746). */
+-export const VACUUM_NOMINAL_S = 600;
+-export const VACUUM_MIN_S = 20;
+-export const VACUUM_MAX_S = 1800;
++/** A detail seat's cabin hold when the twin publishes no end: the twin's ten minutes in the cabin (0746). */
++export const CABIN_HOLD_NOMINAL_S = 600;
++export const CABIN_HOLD_MIN_S = 20;
++export const CABIN_HOLD_MAX_S = 1800;
+ 
+ /** How far the passes may be slowed or hurried to fit the seat. */
+ export const PASS_SCALE_MIN = 0.4;
+@@ -170,7 +185,7 @@ export const PASS_SCALE_MAX = 2.0;
+ /** The program ends this long before the twin's seat does, so the machine is home when the car may go. */
+ export const WASH_END_MARGIN_S = 8;
+ 
+-/** Brushes close in (and open out) over this share of a brush pass, at the pass's two ends, standing still. */
++/** The air knives close in (and open out) over this share of a dry pass, at the pass's two ends, standing still. */
+ export const PASS_EASE = 0.12;
+ 
+ /** Return travel: how fast the machine goes home when the seat ends before its program does. */
+@@ -178,5 +193,5 @@ export const WASH_ABORT_SPEED = 3;
+ /** Return travel at nominal speed, plan u per sim second (0.38 m/s, a gantry's quick traverse). */
+ export const WASH_RETURN_UPS = 0.8;
+ 
+-/** Brush spin, radians per WALL second (decoration, kept off the sim clock so 8x play does not strobe it). */
+-export const BRUSH_SPIN_RAD_S = 9;
++/** The share of a wipe phase spent on each part: out to clear and travel, close in, wipe, back out. */
++export const WIPE_PARTS = { travel: 0.42, close: 0.14, wipe: 0.30, open: 0.14 } as const;
