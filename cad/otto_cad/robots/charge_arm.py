@@ -165,173 +165,16 @@ def _surface_at(shape, x: float | None, y: float | None, z: float | None, side: 
 # ═════════════════════════════════════════════════════════════════════ build ═══
 
 
-def build(spec: dict) -> Model:
-    S = spec['chargeArm']
-    M = 1000.0
-    H = S['shoulderHeight'] * M
-    LU = S['upperArm'] * M
-    LF = S['forearm'] * M
-    LW = S['wrist'] * M
-    LT = S['tool'] * M
-    MOUNT = S['mountHeight'] * M
-    deck = -MOUNT
-    radii = {k: v * M for k, v in S['radii'].items()}
-
-    m = Model('charge_arm', 'OTTO-CHARGE ARM',
-              'Arm base frame: origin on J1 axis at the mount collar top, +Y up, +Z toward the car, X along the car. '
-              'Zero pose (all joints 0).')
-
-    # ── subsystems (the tab's breakout) ───────────────────────────────────────────
-    m.subsystem('MOUNT', 'Riser and mount', 'A steel riser on the charger pad carries the arm. Its J1 axis is 550 mm above the deck and 2.82 m from the car centreline.',
-                how=['4 chemical anchors M16 hold the riser to the concrete pad.',
-                     '8 screws M12 hold the mount plate to the riser.',
-                     'The cable trunk joins the riser to the charger cabinet. The arm\'s power and network cables run inside it '
-                     'into the riser and up through J1\'s hollow shaft.'],
-                specs={'J1 height': '550 mm above the deck', 'riser': '345 mm square, S355 galvanised'}, group='Structure')
-    m.subsystem('J1', 'J1 base yaw', 'Turns the whole arm about the vertical axis to face the charge port.',
-                how=['A size 40 actuator in the riser top turns the turret.', 'Range is +/- 180 degrees. Cables pass through the hollow shaft.'],
-                specs={'gear': 'strain-wave, size 40, 100:1'}, group='Joints')
-    m.subsystem('J2', 'J2 shoulder pitch', 'Leans the upper arm toward or away from the car. It carries the highest load of any joint.',
-                how=['A size 50 actuator in the turret boss drives the upper arm.',
-                     'A nitrogen gas spring balancer carries most of the gravity load, so the gear and brake see less.'],
-                specs={'gear': 'strain-wave, size 50, 100:1'}, group='Joints')
-    m.subsystem('UPPER', 'Upper arm', 'The 1.344 m cast link from the shoulder to the elbow.',
-                how=['A hollow aluminium casting, 7 mm wall.', 'Its cheek bolts to the J2 output. Its boss clamps the J3 actuator.'],
-                group='Links')
-    m.subsystem('J3', 'J3 elbow pitch', 'Folds the forearm to set the reach and the height of the wrist.',
-                how=['A size 40 actuator in the upper arm boss drives the forearm.'], specs={'gear': 'strain-wave, size 40, 100:1'},
-                group='Joints')
-    m.subsystem('FORE', 'Forearm', 'The 1.142 m cast link from the elbow to the wrist centre.',
-                how=['A hollow aluminium casting. Its top socket holds the J4 actuator.'], group='Links')
-    m.subsystem('WRIST', 'Spherical wrist (J4, J5, J6)', 'Points the connector along the port axis. The 3 wrist axes meet at one point, so position and angle solve apart.',
-                how=['J4 rolls the forearm end (size 25).', 'J5 pitches the wrist (size 25).', 'J6 rolls the tool (size 20). Its output is the tool flange (ISO 9409-1).'],
-                specs={'gears': 'size 25, 25, 20, 100:1'}, group='Joints')
-    m.subsystem('TOOL', 'Connector tool', 'Finds the inlet, plugs in, latches, and lets go. It measures the force on every move.',
-                how=['A 6-axis force and torque sensor reads the insertion force.',
-                     'A compliance unit lets the connector float up to 6 mm and 3 degrees. A small error cannot jam it.',
-                     'Stereo cameras and a time-of-flight sensor find the inlet. A light ring helps at night.',
-                     'A solenoid latch locks the connector in the inlet for the charge.'],
-                specs={'connector': 'DC combo class (CCS), liquid-cooled', 'TCP': '369.6 mm from the tool flange'}, group='Tool')
-    m.subsystem('DRESS', 'Cables and take-up', 'Brings the charge current, coolant and tool lines to the connector, and power and '
-                'network to the joints.',
-                how=['The charge cable comes up out of the cabinet roof into a take-up wheel.',
-                     'The wheel\'s hub has a slip ring and a coolant union. They pass the current, coolant, signals and air into the '
-                     'wheel as it turns.',
-                     'The cable lies in the wheel\'s rim and leaves it above the cabinet\'s front edge. From there it spans free to an '
-                     'outlet on the connector. A spring turns the wheel back, so the span is never slack onto the car.',
-                     'The joints\' 10 mm power and network cable runs inside the arm, through the hollow shafts of J1 to J5.',
-                     'The tool\'s cable and its air line ride with the charge cable in its sleeve. J6 is too small to pass them.'],
-                specs={'charge cable': '500 A DC, liquid-cooled, OD 35.7 mm, bend radius 357 mm moved',
-                       'take-up': 'wheel 820 mm, groove radius 380 mm, turns up to 178 degrees',
-                       'span': '2.72 to 3.91 m free, 1.36 x its chord'}, group='Cables')
-    m.subsystem('SAFETY', 'Safety and status', 'Stops the arm when a person comes near and shows its state to the site.',
-                how=['A safety laser scanner on the riser watches the stall at knee height.',
-                     'An emergency stop on the riser cuts motor power (safe torque off).',
-                     'Light rings on J2 and the wrist show the state: teal ready, amber moving, green charging, red fault.'],
-                group='Safety')
-
-    root = m.root
-    base = root.child('Base', sub='MOUNT')
-
-    # ════════════════════════════════════════════════════════════ MOUNT ═══
-    pad_top = deck + S['cabinet']['padHeight'] * M
-    riser_w = S['armMount']['riser'] * M
-    plate_under = -S['mountPlateUnderside'] * M          # -81
-    cab = S['cabinet']
-    cab_cz = -cab['backset'] * M
-    cab_front = cab_cz + cab['depth'] * M / 2
-    pad_back = cab_cz - cab['depth'] * M / 2 - 191.4
-    pad_front = riser_w / 2 + S['armMount']['padFront'] * M
-    pad = m.part(PartDef('CHG-PAD', 'Charger pad (site concrete)',
-                         cq.Workplane('XY').box(cab['width'] * M + 200, pad_top - deck + 150, pad_front - pad_back,
-                                                centered=(True, False, False))
-                         .translate((0, deck - 150, pad_back)).edges('|X and >Y').chamfer(15).val(),
-                         'concrete', 'structure', 'site works', f"{cab['width'] * M + 200:.0f} x {pad_front - pad_back:.0f}",
-                         '', None, 'Carries the cabinet and the arm on one plinth. Cast by the site works.', {}, 'make',
-                         reference=True))
-    m.place(base, pad, Location(), (0, -250, 0))
-    # riser weldment
-    bp_t, fl_t, tw = 20.0, 20.0, 10.0
-    tube_y0, tube_y1 = pad_top + bp_t, plate_under - fl_t
-    riser = (cq.Workplane('XY').box(450, bp_t, 450, centered=(True, False, True)).translate((0, pad_top, 0))
-             .union(cq.Workplane('XY').box(riser_w, tube_y1 - tube_y0, riser_w, centered=(True, False, True))
-                    .translate((0, tube_y0, 0)).edges('|Y').fillet(14))
-             .cut(cq.Workplane('XY').box(riser_w - 2 * tw, tube_y1 - tube_y0 + 2, riser_w - 2 * tw, centered=(True, False, True))
-                  .translate((0, tube_y0 - 1, 0)).edges('|Y').fillet(6))
-             .union(cq.Workplane('XY').box(riser_w, fl_t, riser_w, centered=(True, False, True)).translate((0, tube_y1, 0))))
-    for sx, sz in ((1, 0), (-1, 0), (0, 1)):            # three base gussets (the trunk comes in on the -Z face)
-        g = (cq.Workplane('XY').polyline([(0, 0), (52, 0), (0, 150)]).close().extrude(5, both=True))
-        if sx:
-            g = g.rotate((0, 0, 0), (0, 1, 0), 0 if sx > 0 else 180)
-        else:
-            g = g.rotate((0, 0, 0), (0, 1, 0), -90 if sz > 0 else 90)
-        g = g.rotate((0, 0, 0), (1, 0, 0), 0).translate((sx * riser_w / 2, tube_y0, sz * riser_w / 2))
-        riser = riser.union(g)
-    riser = riser.faces('<Y').workplane(centerOption='CenterOfBoundBox').pushPoints(
-        [(x, z) for x in (-ANC_XZ, ANC_XZ) for z in (-ANC_XZ, ANC_XZ)]).hole(18)
-    riser = riser.cut(cq.Workplane('XY').box(riser_w - 80, 160, 30, centered=(True, False, True))
-                      .translate((0, tube_y0 + 60, -riser_w / 2)))          # cable window to the trunk
-    riser = riser.cut(cq.Workplane('XY').circle(118).extrude(fl_t + 2).rotate((0, 0, 0), (1, 0, 0), -90)
-                      .translate((0, tube_y1 - 1, 0)))                       # J1 bore in the top flange
-    pts = [(p[0], p[2]) for p in std.circle_points(8, 122, 'y', start=22.5)]
-    riser = riser.faces('>Y').workplane(centerOption='CenterOfBoundBox').pushPoints(pts).hole(10.2, fl_t)
-    m.place(base, m.part(PartDef('CHG-RSR', 'Riser weldment', riser.val(), 'steel_s355', 'structure', 'EN 1090-2 EXC2',
-                                 f'{riser_w:.0f} sq x {plate_under - pad_top:.0f}', 'S355J2', None,
-                                 'Lifts the arm to its J1 height. Welded, then hot-dip galvanised.',
-                                 {'tube': f'{riser_w:.0f} x {riser_w:.0f} x {tw:g}', 'welds': 'fillet a5, all round'}, 'make')),
-            Location(), (0, -120, 0))
-    anc = PartDef('CHG-ANC-M16', 'Anchor rod M16 x 190, injection mortar', cq.Workplane('XZ').circle(8).extrude(190)
-                  .faces('<Y').chamfer(1.5).translate((0, 60, 0)).val(), 'fast_zn', 'fastener', 'ETA option 1 anchor',
-                  'M16 x 190', '8.8', 145.0, 'Holds the riser to the pad. The mortar bonds it into a 125 mm hole.',
-                  {'embedment': '125 mm', 'tension (design)': 'about 20 kN per rod'}, 'buy')
-    for x in (-ANC_XZ, ANC_XZ):
-        for z in (-ANC_XZ, ANC_XZ):
-            m.place(base, anc, loc(x, pad_top + bp_t, z), (0, 140, 0))
-            m.place(base, std.washer(16), std.orient((x, pad_top + bp_t, z), (0, -1, 0)), (0, 160, 0))
-            m.place(base, std.nut(16), loc(x, pad_top + bp_t + 3, z), (0, 180, 0))
-    # mount plate + collar (the twin's plinth: plate 300 sq x 26 from y -81, collar 135/155 x 55)
-    from ..actuator import stack as _stack
-    y_sh = 26 + _stack(SIZES[40])['y_drum']               # J1's drum shoulder, base frame
-    plate = (cq.Workplane('XY').box(300, 26, 300, centered=(True, False, True)).translate((0, plate_under, 0))
-             .edges('|Y').fillet(12).cut(cq.Workplane('XZ', origin=(0, plate_under + 27, 0)).circle(rear_od(SIZES[40]) / 2 + 1).extrude(28))
-             .cut(cq.Workplane('XZ', origin=(0, plate_under + 27, 0)).circle(SIZES[40].od / 2).extrude(plate_under + 27 - y_sh)))
-    plate = plate.faces('>Y').workplane(centerOption='CenterOfBoundBox').pushPoints(pts).cboreHole(13.5, 20.5, 12.5)
-    m.place(base, m.part(PartDef('CHG-MPL', 'Arm mount plate', plate.val(), 'steel_paint', 'structure', 'machined',
-                                 '300 x 300 x 26', 'S355J2', None, 'Carries the J1 actuator and spreads its load into the riser.',
-                                 {'flatness': '0.05 mm'}, 'make', depot='box')), Location(), (0, 60, 0))
-    mp_screw = std.shcs(12, 45, '10.9', 'Holds the mount plate to the riser flange.')
-    for p in std.circle_points(8, 122, 'y', offset=plate_under + 26 - 12.5, start=22.5):
-        m.place(base, mp_screw, std.orient(p, (0, -1, 0)), (0, 200, 0))
-    collar = (cq.Workplane('XY').add(cq.Solid.makeCone(155, 135, 55, pnt=Vector(0, -55, 0), dir=Vector(0, 1, 0)))
-              .cut(cq.Workplane('XZ', origin=(0, 1, 0)).circle(108.5).extrude(57)))
-    m.place(base, m.part(PartDef('CHG-COL', 'J1 collar', collar.val(), 'a356', 'structure', 'casting',
-                                 'OD 310 x 55', '', None, 'Covers the J1 actuator drum and sheds water off the mount.', {}, 'make')),
-            Location(), (0, 90, 0))
-    # cable trunk to the cabinet
-    tr_w = S['armMount']['bridge'] * M
-    z0, z1 = cab_front, -riser_w / 2              # from the cabinet's face to the riser's back face
-    th = plate_under - pad_top - 40
-    trunk = (cq.Workplane('XY').box(tr_w, th, z1 - z0, centered=(True, False, False)).translate((0, pad_top + bp_t, z0))
-             .cut(cq.Workplane('XY').box(tr_w - 6, th - 6, z1 - z0 + 2, centered=(True, False, False))
-                  .translate((0, pad_top + bp_t + 3, z0 - 1))))
-    m.place(base, m.part(PartDef('CHG-TRK', 'Cable trunk', trunk.val(), 'steel_paint', 'structure', 'sheet metal 3 mm',
-                                 f'{tr_w:.0f} wide', '', None,
-                                 'Joins the riser to the cabinet. The DC cable, the coolant lines and the data cable run inside.',
-                                 {}, 'make')), Location(), (0, 0, -80))
-    cab_box = (cq.Workplane('XY').box(cab['width'] * M, cab['height'] * M, cab['depth'] * M, centered=(True, False, True))
-               .translate((0, pad_top, cab_cz)).edges('|Z').fillet(18))
-    cab_box = cab_box.cut(cq.Workplane('XY').box(cab['width'] * M - 80, cab['height'] * M - 160, 4, centered=(True, False, True))
-                          .translate((0, pad_top + 80, cab_front)))     # door seam
-    m.place(base, m.part(PartDef('CHG-CAB', 'DC power cabinet (envelope)', cab_box.val(), 'steel_paint', 'structure',
-                                 'reference envelope', f"{cab['width'] * M:.0f} x {cab['height'] * M:.0f} x {cab['depth'] * M:.0f}",
-                                 '', None, 'The charger: rectifiers, contactors, metering. Shown as its envelope only.',
-                                 {'output': 'about 350 kW DC (the twin site: 10,500 kW over 30 posts)'}, 'buy',
-                                 reference=True)),
-            Location(), (0, 0, -260))
-
+def build_chain(m: Model, base: Node, S: dict, H: float, LU: float, LF: float, LW: float, radii: dict,
+                plate_under: float, jp: str = '') -> dict:
+    """The arm itself, from the J1 actuator in its mount plate to the J6 output flange: six actuators, the turret, the
+    balancer, the upper arm, the forearm and the wrist. `base` carries a mount plate cut as the charge arm's is (its top
+    26 mm under J1's output face). The OTTO-CHARGE ARM and the wash bay's two detail arms are this one arm: the same
+    castings and the same six actuators, so one set of spares serves both. `jp` prefixes the joint and node names, so a
+    machine with two arms keeps them apart."""
     # ════════════════════════════════════════════════════════ J1 + TURRET ═══
-    j1 = base.child('J1_BaseYaw', loc(0, 0, 0), sub='J1',
-                    joint={'name': 'J1', 'axis': [0, 1, 0], 'limits': S['limits']['j1'], 'kind': 'revolute',
+    j1 = base.child(jp + 'J1_BaseYaw', loc(0, 0, 0), sub='J1',
+                    joint={'name': jp + 'J1', 'axis': [0, 1, 0], 'limits': S['limits']['j1'], 'kind': 'revolute',
                            'stowed': S['stowed']['j1']})
     a1 = build_actuator(m, base, j1, 40, loc(0, 0, 0), loc(0, 26, 0), 'CHG-J1', 'J1')
     j1b = std.shcs(8, 30, '12.9', 'Holds the J1 actuator by its drum shoulder to the mount plate, from below.')
@@ -381,8 +224,8 @@ def build(spec: dict) -> Model:
             Location(), (0, 40, 0), 'J1')
 
     # ═══════════════════════════════════════════════ J2 + balancer + upper arm ═══
-    j2 = j1.child('J2_Shoulder', loc(0, H, 0), sub='J2',
-                  joint={'name': 'J2', 'axis': [1, 0, 0], 'limits': S['limits']['j2'], 'kind': 'revolute',
+    j2 = j1.child(jp + 'J2_Shoulder', loc(0, H, 0), sub='J2',
+                  joint={'name': jp + 'J2', 'axis': [1, 0, 0], 'limits': S['limits']['j2'], 'kind': 'revolute',
                          'stowed': S['stowed']['j2']})
     Tm2 = loc(L2['out_x'], 0, 0, rz=-90)      # module +Y -> world +X
     a2 = build_actuator(m, j1, j2, 50, loc(0, H, 0), Tm2, 'CHG-J2', 'J2', gland_m=25)
@@ -507,8 +350,8 @@ def build(spec: dict) -> Model:
                         std.orient((p[0] + 42 + reach, p[1] + yc + dy, p[2] + dz), (1, 0, 0)), (-110, 0, 0), 'J2')
     # ════════════════════════════════════════════════════════ J3 + forearm ═══
     L3 = _pitch_layout(40)
-    j3 = j2.child('J3_Elbow', loc(0, LU, 0), sub='J3',
-                  joint={'name': 'J3', 'axis': [1, 0, 0], 'limits': S['limits']['j3'], 'kind': 'revolute',
+    j3 = j2.child(jp + 'J3_Elbow', loc(0, LU, 0), sub='J3',
+                  joint={'name': jp + 'J3', 'axis': [1, 0, 0], 'limits': S['limits']['j3'], 'kind': 'revolute',
                          'stowed': S['stowed']['j3']})
     Tm3 = loc(L3['out_x'], 0, 0, rz=-90)
     a3 = build_actuator(m, j2, j3, 40, loc(0, LU, 0), Tm3, 'CHG-J3', 'J3')
@@ -539,8 +382,8 @@ def build(spec: dict) -> Model:
 
     # ═════════════════════════════════════════════════════════════ WRIST ═══
     yc = LF                                   # wrist centre, J3 frame
-    j4 = j3.child('J4_ForearmRoll', loc(0, y4_out, 0), sub='WRIST',
-                  joint={'name': 'J4', 'axis': [0, 1, 0], 'limits': S['limits']['j4'], 'kind': 'revolute',
+    j4 = j3.child(jp + 'J4_ForearmRoll', loc(0, y4_out, 0), sub='WRIST',
+                  joint={'name': jp + 'J4', 'axis': [0, 1, 0], 'limits': S['limits']['j4'], 'kind': 'revolute',
                          'stowed': S['stowed']['j4']})
     build_actuator(m, j3, j4, 25, loc(0, y4_out, 0), Location(), 'CHG-J4', 'WRIST', gland_m=16)
     s4b = std.shcs(6, 25, '12.9', 'Clamps the J4 actuator in the forearm socket.')
@@ -564,8 +407,8 @@ def build(spec: dict) -> Model:
     ys = std.shcs(6, 25, '12.9', 'Holds the wrist yoke to the J4 output flange.')
     for p in out_flange_points(25):
         m.place(j4, ys, std.orient((p[0], 14, p[2]), (0, -1, 0)), (0, 110, 0), 'WRIST')
-    j5 = j4.child('J5_WristPitch', loc(0, dy5, 0), sub='WRIST',
-                  joint={'name': 'J5', 'axis': [1, 0, 0], 'limits': S['limits']['j5'], 'kind': 'revolute',
+    j5 = j4.child(jp + 'J5_WristPitch', loc(0, dy5, 0), sub='WRIST',
+                  joint={'name': jp + 'J5', 'axis': [1, 0, 0], 'limits': S['limits']['j5'], 'kind': 'revolute',
                          'stowed': S['stowed']['j5']})
     a5 = build_actuator(m, j4, j5, 25, loc(0, dy5, 0), loc(L5['out_x'], 0, 0, rz=-90), 'CHG-J5', 'WRIST', gland_m=16)
     # J5 output cheek -> wrist tube up to J6 (J6 output face = the tool flange at the wrist centre + LW)
@@ -587,8 +430,8 @@ def build(spec: dict) -> Model:
     for p in out_flange_points(25):
         m.place(j5, std.shcs(6, 25, '12.9', 'Holds the wrist tube cheek to the J5 output flange.'),
                 std.orient((cheek5_x, p[0], p[2]), (-1, 0, 0)), (120, 0, 0), 'WRIST')
-    j6 = j5.child('J6_ToolRoll', loc(0, LW, 0), sub='WRIST',
-                  joint={'name': 'J6', 'axis': [0, 1, 0], 'limits': S['limits']['j6'], 'kind': 'revolute',
+    j6 = j5.child(jp + 'J6_ToolRoll', loc(0, LW, 0), sub='WRIST',
+                  joint={'name': jp + 'J6', 'axis': [0, 1, 0], 'limits': S['limits']['j6'], 'kind': 'revolute',
                          'stowed': S['stowed']['j6']})
     build_actuator(m, j5, j6, 20, loc(0, LW, 0), Location(), 'CHG-J6', 'WRIST', gland_m=16, gland_ang=J6_GLAND_ANG,
                    gland_r=J6_GLAND_R)
@@ -604,84 +447,254 @@ def build(spec: dict) -> Model:
                                'Shows the arm state at the connector, where the camera and a person look.', {}, 'buy')),
             Location(), (0, 30, 0), 'SAFETY')
 
+    return {'j1': j1, 'j2': j2, 'j3': j3, 'j4': j4, 'j5': j5, 'j6': j6, 'tur': tur, 'upper': upper, 'fore': fore}
+
+
+
+def build(spec: dict) -> Model:
+    S = spec['chargeArm']
+    M = 1000.0
+    H = S['shoulderHeight'] * M
+    LU = S['upperArm'] * M
+    LF = S['forearm'] * M
+    LW = S['wrist'] * M
+    LT = S['tool'] * M
+    MOUNT = S['mountHeight'] * M
+    deck = -MOUNT
+    radii = {k: v * M for k, v in S['radii'].items()}
+
+    m = Model('charge_arm', 'OTTO-CHARGE ARM',
+              'Arm base frame: origin on J1 axis at the mount collar top, +Y up, +Z toward the car, X along the car. '
+              'Zero pose (all joints 0).')
+
+    # ── subsystems (the tab's breakout) ───────────────────────────────────────────
+    m.subsystem('MOUNT', 'Riser and mount', 'A steel riser on the charger pad carries the arm. Its J1 axis is 550 mm above the deck and 2.82 m from the car centreline.',
+                how=['4 chemical anchors M16 hold the riser to the concrete pad.',
+                     '8 screws M12 hold the mount plate to the riser.',
+                     'The cable trunk joins the riser to the charger cabinet. The arm\'s power and network cables run inside it '
+                     'into the riser and up through J1\'s hollow shaft.'],
+                specs={'J1 height': '550 mm above the deck', 'riser': '345 mm square, S355 galvanised'}, group='Structure')
+    m.subsystem('J1', 'J1 base yaw', 'Turns the whole arm about the vertical axis to face the charge port.',
+                how=['A size 40 actuator in the riser top turns the turret.', 'Range is +/- 180 degrees. Cables pass through the hollow shaft.'],
+                specs={'gear': 'strain-wave, size 40, 100:1'}, group='Joints')
+    m.subsystem('J2', 'J2 shoulder pitch', 'Leans the upper arm toward or away from the car. It carries the highest load of any joint.',
+                how=['A size 50 actuator in the turret boss drives the upper arm.',
+                     'A nitrogen gas spring balancer carries most of the gravity load, so the gear and brake see less.'],
+                specs={'gear': 'strain-wave, size 50, 100:1'}, group='Joints')
+    m.subsystem('UPPER', 'Upper arm', 'The 1.344 m cast link from the shoulder to the elbow.',
+                how=['A hollow aluminium casting, 7 mm wall.', 'Its cheek bolts to the J2 output. Its boss clamps the J3 actuator.'],
+                group='Links')
+    m.subsystem('J3', 'J3 elbow pitch', 'Folds the forearm to set the reach and the height of the wrist.',
+                how=['A size 40 actuator in the upper arm boss drives the forearm.'], specs={'gear': 'strain-wave, size 40, 100:1'},
+                group='Joints')
+    m.subsystem('FORE', 'Forearm', 'The 1.142 m cast link from the elbow to the wrist centre.',
+                how=['A hollow aluminium casting. Its top socket holds the J4 actuator.'], group='Links')
+    m.subsystem('WRIST', 'Spherical wrist (J4, J5, J6)', 'Points the connector along the port axis. The 3 wrist axes meet at one point, so position and angle solve apart.',
+                how=['J4 rolls the forearm end (size 25).', 'J5 pitches the wrist (size 25).', 'J6 rolls the tool (size 20). Its output is the tool flange (ISO 9409-1).'],
+                specs={'gears': 'size 25, 25, 20, 100:1'}, group='Joints')
+    m.subsystem('TOOL', 'Connector tool', 'Finds the inlet, plugs in, latches, and lets go. It measures the force on every move.',
+                how=['A 6-axis force and torque sensor reads the insertion force.',
+                     'A compliance unit lets the connector float up to 6 mm and 3 degrees. A small error cannot jam it.',
+                     'Stereo cameras and a time-of-flight sensor find the inlet. A light ring helps at night.',
+                     'A solenoid latch locks the connector in the inlet for the charge.'],
+                specs={'connector': 'DC combo class (CCS), liquid-cooled', 'TCP': '369.6 mm from the tool flange'}, group='Tool')
+    m.subsystem('DRESS', 'Power path in the arm', 'Carries the charge current, the coolant and the tool\'s lines to the connector '
+                'inside the arm, and power and network to the joints.',
+                how=['The charge current comes up the riser from the cabinet in 2 insulated copper bars.',
+                     'In each hollow link 2 copper bars carry it, one a pole. Nothing live is in the open.',
+                     'At the base, the shoulder and the elbow a booted link of braided copper joins 2 terminal boxes. It bends as the joint turns.',
+                     'From the forearm one last booted link, 1.2 m long, runs to the connector across the wrist.',
+                     'The coolant for the connector\'s contacts, the tool\'s cable and its air line run with the bars and through each boot.',
+                     'The joints\' 10 mm power and network cable runs inside the arm, through the hollow shafts of J1 to J5.'],
+                specs={'current': '500 A DC, 1000 V', 'bars': '2 x 40 x 10 mm copper in each link, insulated',
+                       'flex links': '4, braided copper 400 mm2 a pole, in a silicone boot OD 60 mm, 0.9 to 1.2 m',
+                       'bend radius': '80 mm moved (the tightest in the twin\'s 20 poses is 100 mm)',
+                       'cooling': 'liquid at the connector\'s contacts, 2 tubes 8 mm'}, group='Cables')
+    m.subsystem('SAFETY', 'Safety and status', 'Stops the arm when a person comes near and shows its state to the site.',
+                how=['A safety laser scanner on the riser watches the stall at knee height.',
+                     'An emergency stop on the riser cuts motor power (safe torque off).',
+                     'Light rings on J2 and the wrist show the state: teal ready, amber moving, green charging, red fault.'],
+                group='Safety')
+
+    root = m.root
+    base = root.child('Base', sub='MOUNT')
+
+    # ════════════════════════════════════════════════════════════ MOUNT ═══
+    pad_top = deck + S['cabinet']['padHeight'] * M
+    riser_w = S['armMount']['riser'] * M
+    plate_under = -S['mountPlateUnderside'] * M          # -81
+    cab = S['cabinet']
+    cab_cz = -cab['backset'] * M
+    cab_front = cab_cz + cab['depth'] * M / 2
+    pad_back = cab_cz - cab['depth'] * M / 2 - 191.4
+    pad_front = riser_w / 2 + S['armMount']['padFront'] * M
+    pad = m.part(PartDef('CHG-PAD', 'Charger pad (site concrete)',
+                         cq.Workplane('XY').box(cab['width'] * M + 200, pad_top - deck + 150, pad_front - pad_back,
+                                                centered=(True, False, False))
+                         .translate((0, deck - 150, pad_back)).edges('|X and >Y').chamfer(15).val(),
+                         'concrete', 'structure', 'site works', f"{cab['width'] * M + 200:.0f} x {pad_front - pad_back:.0f}",
+                         '', None, 'Carries the cabinet and the arm on one plinth. Cast by the site works.', {}, 'make',
+                         reference=True))
+    m.place(base, pad, Location(), (0, -250, 0))
+    # riser weldment
+    bp_t, fl_t, tw = 20.0, 20.0, 10.0
+    tube_y0, tube_y1 = pad_top + bp_t, plate_under - fl_t
+    riser = (cq.Workplane('XY').box(450, bp_t, 450, centered=(True, False, True)).translate((0, pad_top, 0))
+             .union(cq.Workplane('XY').box(riser_w, tube_y1 - tube_y0, riser_w, centered=(True, False, True))
+                    .translate((0, tube_y0, 0)).edges('|Y').fillet(14))
+             .cut(cq.Workplane('XY').box(riser_w - 2 * tw, tube_y1 - tube_y0 + 2, riser_w - 2 * tw, centered=(True, False, True))
+                  .translate((0, tube_y0 - 1, 0)).edges('|Y').fillet(6))
+             .union(cq.Workplane('XY').box(riser_w, fl_t, riser_w, centered=(True, False, True)).translate((0, tube_y1, 0))))
+    for sx, sz in ((1, 0), (-1, 0), (0, 1)):            # three base gussets (the trunk comes in on the -Z face)
+        g = (cq.Workplane('XY').polyline([(0, 0), (52, 0), (0, 150)]).close().extrude(5, both=True))
+        if sx:
+            g = g.rotate((0, 0, 0), (0, 1, 0), 0 if sx > 0 else 180)
+        else:
+            g = g.rotate((0, 0, 0), (0, 1, 0), -90 if sz > 0 else 90)
+        g = g.rotate((0, 0, 0), (1, 0, 0), 0).translate((sx * riser_w / 2, tube_y0, sz * riser_w / 2))
+        riser = riser.union(g)
+    riser = riser.faces('<Y').workplane(centerOption='CenterOfBoundBox').pushPoints(
+        [(x, z) for x in (-ANC_XZ, ANC_XZ) for z in (-ANC_XZ, ANC_XZ)]).hole(18)
+    riser = riser.cut(cq.Workplane('XY').box(riser_w - 80, 160, 30, centered=(True, False, True))
+                      .translate((0, tube_y0 + 60, -riser_w / 2)))          # cable window to the trunk
+    riser = riser.cut(cq.Workplane('XY').circle(118).extrude(fl_t + 2).rotate((0, 0, 0), (1, 0, 0), -90)
+                      .translate((0, tube_y1 - 1, 0)))                       # J1 bore in the top flange
+    pts = [(p[0], p[2]) for p in std.circle_points(8, 122, 'y', start=22.5)]
+    riser = riser.faces('>Y').workplane(centerOption='CenterOfBoundBox').pushPoints(pts).hole(10.2, fl_t)
+    m.place(base, m.part(PartDef('CHG-RSR', 'Riser weldment', riser.val(), 'steel_s355', 'structure', 'EN 1090-2 EXC2',
+                                 f'{riser_w:.0f} sq x {plate_under - pad_top:.0f}', 'S355J2', None,
+                                 'Lifts the arm to its J1 height. Welded, then hot-dip galvanised.',
+                                 {'tube': f'{riser_w:.0f} x {riser_w:.0f} x {tw:g}', 'welds': 'fillet a5, all round'}, 'make')),
+            Location(), (0, -120, 0))
+    anc = PartDef('CHG-ANC-M16', 'Anchor rod M16 x 190, injection mortar', cq.Workplane('XZ').circle(8).extrude(190)
+                  .faces('<Y').chamfer(1.5).translate((0, 60, 0)).val(), 'fast_zn', 'fastener', 'ETA option 1 anchor',
+                  'M16 x 190', '8.8', 145.0, 'Holds the riser to the pad. The mortar bonds it into a 125 mm hole.',
+                  {'embedment': '125 mm', 'tension (design)': 'about 20 kN per rod'}, 'buy')
+    for x in (-ANC_XZ, ANC_XZ):
+        for z in (-ANC_XZ, ANC_XZ):
+            m.place(base, anc, loc(x, pad_top + bp_t, z), (0, 140, 0))
+            m.place(base, std.washer(16), std.orient((x, pad_top + bp_t, z), (0, -1, 0)), (0, 160, 0))
+            m.place(base, std.nut(16), loc(x, pad_top + bp_t + 3, z), (0, 180, 0))
+    # mount plate + collar (the twin's plinth: plate 300 sq x 26 from y -81, collar 135/155 x 55)
+    from ..actuator import stack as _stack
+    y_sh = 26 + _stack(SIZES[40])['y_drum']               # J1's drum shoulder, base frame
+    plate = (cq.Workplane('XY').box(300, 26, 300, centered=(True, False, True)).translate((0, plate_under, 0))
+             .edges('|Y').fillet(12).cut(cq.Workplane('XZ', origin=(0, plate_under + 27, 0)).circle(rear_od(SIZES[40]) / 2 + 1).extrude(28))
+             .cut(cq.Workplane('XZ', origin=(0, plate_under + 27, 0)).circle(SIZES[40].od / 2).extrude(plate_under + 27 - y_sh)))
+    plate = plate.faces('>Y').workplane(centerOption='CenterOfBoundBox').pushPoints(pts).cboreHole(13.5, 20.5, 12.5)
+    m.place(base, m.part(PartDef('CHG-MPL', 'Arm mount plate', plate.val(), 'steel_paint', 'structure', 'machined',
+                                 '300 x 300 x 26', 'S355J2', None, 'Carries the J1 actuator and spreads its load into the riser.',
+                                 {'flatness': '0.05 mm'}, 'make', depot='box')), Location(), (0, 60, 0))
+    mp_screw = std.shcs(12, 45, '10.9', 'Holds the mount plate to the riser flange.')
+    for p in std.circle_points(8, 122, 'y', offset=plate_under + 26 - 12.5, start=22.5):
+        m.place(base, mp_screw, std.orient(p, (0, -1, 0)), (0, 200, 0))
+    collar = (cq.Workplane('XY').add(cq.Solid.makeCone(155, 135, 55, pnt=Vector(0, -55, 0), dir=Vector(0, 1, 0)))
+              .cut(cq.Workplane('XZ', origin=(0, 1, 0)).circle(108.5).extrude(57)))
+    m.place(base, m.part(PartDef('CHG-COL', 'J1 collar', collar.val(), 'a356', 'structure', 'casting',
+                                 'OD 310 x 55', '', None, 'Covers the J1 actuator drum and sheds water off the mount.', {}, 'make')),
+            Location(), (0, 90, 0))
+    # cable trunk to the cabinet
+    tr_w = S['armMount']['bridge'] * M
+    z0, z1 = cab_front, -riser_w / 2              # from the cabinet's face to the riser's back face
+    th = plate_under - pad_top - 40
+    trunk = (cq.Workplane('XY').box(tr_w, th, z1 - z0, centered=(True, False, False)).translate((0, pad_top + bp_t, z0))
+             .cut(cq.Workplane('XY').box(tr_w - 6, th - 6, z1 - z0 + 2, centered=(True, False, False))
+                  .translate((0, pad_top + bp_t + 3, z0 - 1))))
+    m.place(base, m.part(PartDef('CHG-TRK', 'Cable trunk', trunk.val(), 'steel_paint', 'structure', 'sheet metal 3 mm',
+                                 f'{tr_w:.0f} wide', '', None,
+                                 'Joins the riser to the cabinet. The DC cable, the coolant lines and the data cable run inside.',
+                                 {}, 'make')), Location(), (0, 0, -80))
+    cab_box = (cq.Workplane('XY').box(cab['width'] * M, cab['height'] * M, cab['depth'] * M, centered=(True, False, True))
+               .translate((0, pad_top, cab_cz)).edges('|Z').fillet(18))
+    cab_box = cab_box.cut(cq.Workplane('XY').box(cab['width'] * M - 80, cab['height'] * M - 160, 4, centered=(True, False, True))
+                          .translate((0, pad_top + 80, cab_front)))     # door seam
+    m.place(base, m.part(PartDef('CHG-CAB', 'DC power cabinet (envelope)', cab_box.val(), 'steel_paint', 'structure',
+                                 'reference envelope', f"{cab['width'] * M:.0f} x {cab['height'] * M:.0f} x {cab['depth'] * M:.0f}",
+                                 '', None, 'The charger: rectifiers, contactors, metering. Shown as its envelope only.',
+                                 {'output': 'about 350 kW DC (the twin site: 10,500 kW over 30 posts)'}, 'buy',
+                                 reference=True)),
+            Location(), (0, 0, -260))
+
+    # ═══════════════════════════════════════════════════════ THE ARM (build_chain, above) ═══
+    _c = build_chain(m, base, S, H, LU, LF, LW, radii, plate_under)
+    j1, j2, j3, j4, j6, tur, upper, fore = (_c[k] for k in ('j1', 'j2', 'j3', 'j4', 'j6', 'tur', 'upper', 'fore'))
+
+
     # ═════════════════════════════════════════════════════════════ TOOL ═══
     tool = j6.child('Tool', loc(0, 0, 0), sub='TOOL')
     build_tool(m, tool, LT)
 
-    # ═══════════════════════════════════════════════════════ CHARGE CABLE ═══
-    # The charge cable does not ride the arm. It leaves the cabinet's roof into a slip ring and coolant union on the hub of
-    # a take-up wheel, lies in the wheel's rim, leaves the rim at a fixed point above the cabinet's front edge and spans
-    # free to the connector's outlet. A spring turns the wheel back to take up what the span does not need, so the span
-    # keeps 1.36 times its chord: never slack onto the car, never tight. (Clamped along the links with a retract unit under
-    # the upper arm, the cable stopped at each joint, with no way across J1, J2 or J3: design finding 11.) It leaves the rim
-    # in the wheel's plane, tangent to the groove: a cable turned sideways at the rim rides up the wheel's flange. The
-    # leaving point (136 degrees round from the top) was searched over the duty cycle's 11,070 poses (cadFlex.test.ts):
-    # tightest bend 418 mm against the cable's 357 mm. Its free length runs 2.72 to 3.91 m: the wheel turns 178 degrees.
-    r_cb = 20.0                                          # the cable, OD 35.7, with the tool's cable and air line in a sleeve
-    R_tw = 380.0                                         # the rim groove: the cable's centreline radius
-    c_w = (0.0, 1906.27, -803.31)                        # the wheel's axle (base frame)
-    phi_A = math.radians(136.0)                          # where the cable leaves the rim: round from up (+Y) toward the car
-    A_pt = (0.0, c_w[1] + R_tw * math.cos(phi_A), c_w[2] + R_tw * math.sin(phi_A))
-    t_A = (0.0, math.sin(phi_A), -math.cos(phi_A))       # along the groove there: up and toward the car
-    w_g = 28.0                                           # the groove's half width: the span's side leaves 3 mm off the flange
-    ring = lambda ro, ri, x0, x1: (cq.Workplane('YZ', origin=(x0, c_w[1], c_w[2])).circle(ro).circle(ri)   # noqa: E731
-                                   .extrude(x1 - x0))
-    wheel = (ring(410, 340, -50, 50).cut(ring(411, R_tw - r_cb, -w_g, w_g))          # the rim and the groove the cable lies in
-             .union(ring(345, 99, -6, 6)).union(ring(100, 25, -80, 80)))         # the web and the hub
-    m.place(base, m.part(PartDef('CHG-TUW', 'Cable take-up wheel, 820 mm, spring return', wheel.val(), 'al6061', 'electrical',
-                                 'made to order', 'D 820 x 100', '6061-T6', None,
-                                 'Holds the cable in its rim and turns back on its spring to take up the slack as the arm folds in.',
-                                 {'groove': '380 mm radius (the cable\'s 357 mm moved, with margin), 56 mm wide',
-                                  'turn': 'up to 178 degrees',
-                                  'spring': 'spiral spring in the hub, about 80 N at the rim'}, 'make', mass_override=24.0)),
-            Location(), (0, 260, -200), 'DRESS')
-    axle = cq.Workplane('YZ', origin=(-100, c_w[1], c_w[2])).circle(25).extrude(200)
-    m.place(base, m.part(PartDef('CHG-TUA', 'Take-up wheel axle, 50 mm', axle.val(), 'steel', 'drive', 'machined', 'D 50 x 200', 'C45',
-                                 None, 'Carries the wheel between the frame cheeks, on 2 bearings.', {}, 'make')),
-            Location(), (0, 260, -240), 'DRESS')
-    y_rf = pad_top + cab['height'] * M                   # the cabinet's roof
-    cheek = (cq.Workplane('YZ').polyline([(y_rf, -805), (y_rf, -560), (c_w[1] + 70, c_w[2] + 60), (c_w[1] + 70, c_w[2] - 70),
-                                          (c_w[1] - 210, c_w[2] - 70)]).close().extrude(10)
-             .cut(cq.Workplane('YZ', origin=(-1, c_w[1], c_w[2])).circle(25).extrude(12)))
-    frame = (cheek.translate((85, 0, 0)).union(cheek.translate((-95, 0, 0)))
-             .union(cq.Workplane('XY').box(220, 10, 245).translate((0, y_rf + 5, -682.5))))
-    m.place(base, m.part(PartDef('CHG-TUF', 'Take-up frame, 2 cheeks on a base plate, stainless', frame.val(), 'ss304', 'structure',
-                                 'cut and welded plate 10 mm', '220 x 245 base', '304', None,
-                                 'Stands on the cabinet roof and carries the wheel\'s axle.', {}, 'make')),
-            Location(), (0, 220, -200), 'DRESS')
-    un = (cq.Workplane('YZ', origin=(100, c_w[1], c_w[2])).circle(90).circle(25.5).extrude(120)
-          .union(cq.Workplane('XY').box(60, 40, 60).translate((160, c_w[1] - 100, c_w[2] + 40))))      # the inlet, down
-    m.place(base, m.part(PartDef('CHG-TUU', 'Take-up hub union: 2 x 500 A DC slip ring, signals, 2 coolant passages, air', un.val(),
-                                 'steel_paint', 'electrical', 'made to order', 'D 180 x 120', 'IP55', None,
-                                 'Passes the charge current, the coolant, the charge and tool signals and the air into the turning '
-                                 'wheel, so nothing twists.', {'current': '2 x 500 A DC, 1000 V', 'coolant': '2 passages, 3 bar',
-                                                              'signals': 'CP, PP, PE, tool EtherCAT pair, 4 x 24 V'}, 'buy',
-                                 mass_override=18.0)),
-            Location(), (0, 260, -260), 'DRESS')
-    feed = cq.Workplane('XZ', origin=(160, c_w[1] - 120, c_w[2] + 40)).circle(r_cb).extrude(c_w[1] - 120 - y_rf)
-    m.place(base, m.part(PartDef('CHG-TUC', 'Charge cable, cabinet to the take-up union', feed.val(), 'cable', 'electrical',
-                                 'IEC 62893-4-2', 'OD 35.7 in a 40 mm sleeve', '', None,
-                                 'Brings the cable up out of the cabinet roof to the union. It does not move.', {}, 'buy')),
-            Location(), (0, 200, -260), 'DRESS')
-    # the cable in the rim: drawn over the 120 degrees it always holds (at full reach) up to the leaving point; folded in, it
-    # wraps 178 more
-    on_rim = lambda ph: Vector(0, c_w[1] + R_tw * math.cos(ph), c_w[2] + R_tw * math.sin(ph))   # noqa: E731
-    arc = cq.Edge.makeThreePointArc(on_rim(phi_A + math.radians(120)), on_rim(phi_A + math.radians(60)), on_rim(phi_A))
-    d0 = arc.tangentAt(0)
-    wrap = (cq.Workplane(cq.Plane(origin=arc.startPoint(), xDir=Vector(1, 0, 0), normal=d0)).circle(r_cb)
-            .sweep(cq.Workplane().add(cq.Wire.assembleEdges([arc])), transition='round'))
-    m.place(base, m.part(PartDef('CHG-TUK', 'Charge cable on the take-up wheel', wrap.val(), 'cable', 'electrical', 'IEC 62893-4-2',
-                                 'OD 35.7 in a 40 mm sleeve', '', None, 'Lies in the rim. It winds on and off as the arm moves.', {},
-                                 'buy')), Location(), (0, 240, -200), 'DRESS')
-    m.flex(FlexDef('CHG-CCB', 'Charge cable span, 500 A liquid-cooled, with the tool cable and air line', 'loop',
-                   Anchor(base, A_pt, t_A), Anchor(tool, TOOL_OUTLET, TOOL_OUTLET_IN), r_cb, 'DRESS',
-                   'Carries the charge current, the coolant, the charge signals and the tool\'s signals and air from the take-up '
-                   'wheel to the connector. It spans free between them.',
-                   mat='cable', category='electrical', length=3300, min_bend=357, shape='cubic', sag=0.08, retract_k=1.36,
-                   lmin=400, lmax=4000, swivel_b=33.97, kg_per_m=2.1, size='OD 35.7 in a 40 mm sleeve',
-                   standard='IEC 62893-4-2',
-                   spec={'cable': '500 A DC, 1000 V, liquid-cooled, OD 35.7 mm, 1.94 kg/m', 'bend radius': '357 mm moved (10 x OD)',
-                         'free length': '1.36 x the chord, 2.72 to 3.91 m', 'in the sleeve': 'tool cable (EtherCAT + 24 V) and air 6 mm'}))
+    # ════════════════════════════════════════════════════════ POWER PATH ═══
+    # Chase, 2026-11-11: "I dont think there should be an exposed cable that the arm pulls to extend out of a pulley. The
+    # wire needs to either be safely mounted inside the arm, or to the outside, OR charging is integrated into the arm".
+    # So there is no take-up wheel and no free span. The charge current runs IN the arm:
+    #   - in the riser and in each hollow link, 2 insulated copper bars (DC+ and DC-), 40 x 10 mm;
+    #   - across each of J1, J2 and J3, a link of braided copper in a sealed boot, between 2 terminal boxes;
+    #   - from the forearm to the connector, one last booted link, 1.2 m, across the 3 wrist joints.
+    # Why not through the joints: each joint's through-bore is the bore of its gear's cup hub, 24 mm at J2 down to 9 mm
+    # at J6 (actuator._output_flange). That passes the joints' 10 mm cable and nothing more. A booted link beside the
+    # joint needs no bore, and a braid bends far tighter than the 357 mm the one-piece liquid-cooled cable needed (design
+    # finding 11: that cable had no way across J1, J2 or J3).
+    # Bar size: 400 mm2 a pole. A copper bar carries about 1.4 to 1.8 A/mm2 continuous as a rule of thumb, so 560 to 720 A
+    # for 500 A of charge (https://payapress.com/busbar-sizing/, read 2026-11-11; a rule of thumb, not a rating: check
+    # the bar against the Copper Development Association's ampacity tables before it is bought). The connector's contacts
+    # are still liquid-cooled: 2 coolant tubes of 8 mm, the tool's cable and its 6 mm air line run with the bars and
+    # through every boot.
+    # Each link's length and ends were searched over the twin's 20 poses (flex.solve): the tightest bend is given beside
+    # each one, against the boot's 80 mm.
+    R_BOOT, MB_BOOT = 30.0, 80.0
+    BOOT_SPEC = {'conductors': '2 x 400 mm2 braided copper, tinned, insulated for 1000 V DC', 'boot': 'silicone bellows, OD 60 mm, IP67',
+                 'also inside': '2 coolant tubes 8 mm, tool cable (EtherCAT + 24 V), air 6 mm', 'bend radius': '80 mm moved'}
+
+    def tbox(node, casting, centre, size, pid, name, fn, kg, explode):
+        """A terminal box that sits on a casting: a block cut to the casting's own surface, so it touches and never overlaps."""
+        b = cq.Workplane('XY').box(*size).translate(centre).edges().fillet(8)
+        if casting is not None:
+            b = b.cut(cq.Workplane('XY').add(casting.val()))
+        sol = max(b.val().Solids(), key=lambda q: q.Volume()) if len(b.val().Solids()) > 1 else b.val()
+        m.place(node, m.part(PartDef(pid, name, sol, 'al6061_blk', 'electrical', 'made to order', ' x '.join(f'{v:.0f}' for v in size),
+                                     'IP67', None, fn,
+                                     {'terminals': '2 x 500 A DC, bolted M12, touch-safe covers', 'bars in the link': '2 x 40 x 10 mm copper, insulated',
+                                      'rating basis': 'about 1.4 to 1.8 A/mm2, rule of thumb'}, 'buy', mass_override=kg)),
+                Location(), explode, 'DRESS')
+
+    # the riser's back holds the cable trunk up to its top plate, so the riser's box and the J1 link are on its side
+    tbox(base, None, (-riser_w / 2 - 25.0, -150.0, -100.0), (50.0, 110.0, 130.0), 'CHG-PB0', 'DC terminal box, riser',
+         'Takes the 2 copper bars up the riser from the cabinet trunk and hands the current to the J1 flex link.', 3.0, (-160, 0, 0))
+    tbox(j1, tur, (0.0, 265.0, -180.0), (130.0, 240.0, 80.0), 'CHG-PB1', 'DC junction box, turret',
+         'Joins the J1 flex link to the J2 flex link on the turret\'s back.', 6.0, (0, 0, -180))
+    tbox(j2, upper, (0.0, 300.0, -140.0), (110.0, 130.0, 80.0), 'CHG-PB2', 'DC terminal box, upper arm, shoulder end',
+         'Takes the J2 flex link into the 2 copper bars that run inside the upper arm.', 5.0, (0, 0, -180))
+    tbox(j2, upper, (0.0, LU - 250.0, -125.0), (104.0, 130.0, 80.0), 'CHG-PB3', 'DC terminal box, upper arm, elbow end',
+         'Brings the upper arm\'s bars out to the J3 flex link.', 5.0, (0, 0, -180))
+    tbox(j3, fore, (FORE_JOG[0], 250.0, -90.0), (104.0, 130.0, 80.0), 'CHG-PB4', 'DC terminal box, forearm, elbow end',
+         'Takes the J3 flex link into the 2 copper bars that run inside the forearm.', 4.5, (0, 0, -180))
+    tbox(j3, fore, (85.0, LF - 420.0, 0.0), (80.0, 130.0, 104.0), 'CHG-PB5', 'DC terminal box, forearm, wrist end',
+         'Brings the forearm\'s bars out to the wrist flex link.', 4.5, (180, 0, 0))
+    # no box on the wrist yoke: J4's bearing, J5's cheek and their screws fill both of its sides (the clash check found a
+    # box there in all of them), so one link crosses J4, J5 and J6 from the forearm's box to the connector
+
+    def boot(pid, name, a, b, L, bulge, fn, radius_note, hk=0.5):
+        m.flex(FlexDef(pid, name, 'loop', a, b, R_BOOT, 'DRESS', fn, mat='cable', category='electrical', length=L,
+                       min_bend=MB_BOOT, bulge=bulge, hk=hk, kg_per_m=9.5, size=f'OD 60 x {L:.0f}', standard='IEC 61238-1 (lugs)',
+                       spec={**BOOT_SPEC, 'length': f'{L:.0f} mm', 'tightest bend over the twin\'s poses': radius_note}))
+
+    # every link leaves and arrives square to its box's face, so its end sits flush on the box and never inside it
+    NX, PX, NZ, PZ = (-1, 0, 0), (1, 0, 0), (0, 0, -1), (0, 0, 1)
+    boot('CHG-FL1', 'J1 flex link, 500 A braided copper in a boot', Anchor(base, (-riser_w / 2 - 50.0, -150.0, -100.0), NX),
+         Anchor(j1, (-65.0, 200.0, -190.0), PX), 900.0, (0.0, NX, NX),
+         'Carries the charge current across J1, from the riser to the turret, as the base turns.',
+         '115 mm with the base turned 50 degrees either way', hk=0.4)
+    boot('CHG-FL2', 'J2 flex link, 500 A braided copper in a boot', Anchor(j1, (0.0, 340.0, -220.0), NZ),
+         Anchor(j2, (0.0, 300.0, -180.0), PZ), 1000.0, (0.0, NZ, NZ),
+         'Carries the charge current across J2, behind the shoulder.', '124 mm', hk=0.4)
+    boot('CHG-FL3', 'J3 flex link, 500 A braided copper in a boot', Anchor(j2, (0.0, LU - 250.0, -165.0), NZ),
+         Anchor(j3, (FORE_JOG[0], 250.0, -130.0), PZ), 1200.0, (0.0, (0, 0.5, -1), (0, -0.5, -1)),
+         'Carries the charge current over the outside of the elbow.', '100 mm')
+    boot('CHG-FL4', 'Wrist flex link to the connector, 500 A braided copper in a boot',
+         Anchor(j3, (125.0, LF - 420.0, -30.0), PX), Anchor(tool, TOOL_OUTLET, TOOL_OUTLET_IN), 1200.0, (0.0, PX, PX),
+         'Carries the charge current, the coolant and the tool\'s signals and air from the forearm to the connector, '
+         'across J4, J5 and J6.', '150 mm', hk=0.4)
 
     # ═════════════════════════════════════════════════════════════ SAFETY ═══
     sc = (cq.Workplane('XY').box(110, 150, 104, centered=(True, False, True)).edges('|Y').fillet(10)
@@ -706,8 +719,10 @@ def build(spec: dict) -> Model:
     return m
 
 
-def build_tool(m: Model, tool: Node, LT: float) -> None:
-    """The connector tool on the J6 flange (tool frame: origin at the flange face, +Y out along the tool axis)."""
+def build_ft_sensor(m: Model, tool: Node, sub: str | None = None) -> float:
+    """The 6-axis force and torque sensor on the J6 tool flange, with its 4 screws and its dowel (tool frame: origin at
+    the flange face, +Y out). Returns its outer face's y. The charge arm's connector tool and the wash bay's detail
+    arms' polishing head both start with it."""
     # ISO 9409-1-50-4-M6 on a size 20 output (pitch circle 50, 4 x M6, spigot 31.5): the adapter starts here
     y = 0.0
     ft = (cq.Workplane('XZ', origin=(0, y, 0)).circle(52).extrude(-40).faces('>Y').edges().chamfer(1.5)
@@ -719,10 +734,16 @@ def build_tool(m: Model, tool: Node, LT: float) -> None:
                                  'ISO 9409-1-50-4-M6 both faces', 'OD 104 x 40', '', None,
                                  'Reads the 3 forces and 3 torques at the tool. The arm stops the insertion past its force limit.',
                                  {'range': 'Fz 1,000 N, Fxy 500 N, Txyz 40 N m', 'rate': '1 kHz'}, 'buy')),
-            Location(), (0, 60, 0))
+            Location(), (0, 60, 0), sub)
     for p in std.circle_points(4, 25, 'y', offset=y + 12, start=45):
-        m.place(tool, std.shcs(6, 20, '12.9', 'Holds the sensor to the J6 tool flange (ISO 9409-1).'), std.orient(p, (0, -1, 0)), (0, 80, 0))
-    m.place(tool, std.dowel(6, 12), loc(0, 40, 25), (0, 70, 0))
+        m.place(tool, std.shcs(6, 20, '12.9', 'Holds the sensor to the J6 tool flange (ISO 9409-1).'), std.orient(p, (0, -1, 0)), (0, 80, 0), sub)
+    m.place(tool, std.dowel(6, 12), loc(0, 40, 25), (0, 70, 0), sub)
+    return 40.0
+
+
+def build_tool(m: Model, tool: Node, LT: float) -> None:
+    """The connector tool on the J6 flange (tool frame: origin at the flange face, +Y out along the tool axis)."""
+    build_ft_sensor(m, tool)
     y = 40.0
     cu = (cq.Workplane('XZ', origin=(0, y, 0)).circle(56).extrude(-12)
           .union(cq.Workplane('XZ', origin=(0, y + 48, 0)).circle(56).extrude(-12)))
@@ -872,7 +893,7 @@ def torque_budget(m: Model, j1: Node, j2: Node, j3: Node, j4: Node, H: float, LU
     from ..std import SWG_RATING
     m_j3, c_j3 = m.mass_props(j3)
     m_j2, c_j2 = m.mass_props(j2)
-    cable = 4.0                                # kg of free cable hanging at the tool (ASSUMPTION)
+    cable = 4.0                                # kg of the wrist flex link and its coolant at the tool (ASSUMPTION)
     t3 = (m_j3 * c_j3.y / 1000.0 + cable * (LF + 600) / 1000.0) * G
     t2 = (m_j2 * c_j2.y / 1000.0 + cable * (LU + LF + 600) / 1000.0) * G
     # balancer: a nitrogen gas spring, F(d) = F0 + k (d0 - d) with the force rising GAS_PROGRESSION over its
@@ -909,8 +930,8 @@ def torque_budget(m: Model, j1: Node, j2: Node, j3: Node, j4: Node, H: float, LU
             for h in (0.48, 0.96, 1.44):
                 service.append(math.degrees(_ik_q2(al, h, S)))
     return {
-        'method': 'Gravity torque with the arm stretched horizontal, masses from the CAD solids, plus 4 kg of '
-                  'hanging cable at the tool (ASSUMPTION). Dynamics and the cable pull are not included.',
+        'method': 'Gravity torque with the arm stretched horizontal, masses from the CAD solids, plus 4 kg for '
+                  'the wrist flex link at the tool (ASSUMPTION). Dynamics are not included.',
         'J3': {'distalMassKg': round(m_j3 + cable, 1), 'torqueNm': round(t3), 'gear': 'size 40',
                'repeatedPeakNm': SWG_RATING[40][0], 'margin': round(SWG_RATING[40][0] / t3, 2)},
         'J2': {'distalMassKg': round(m_j2 + cable, 1), 'torqueNm': round(t2), 'gear': 'size 50',

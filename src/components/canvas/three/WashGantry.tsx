@@ -6,52 +6,56 @@ import { WASH_SHELL } from '@/lib/structurePlan';
 import { BAY_STALL_Y } from '@/lib/sitePlan';
 import { washPoseAt, type WashPose } from '@/lib/ottoWash/washPose';
 import { IDLE_WASH } from '@/lib/ottoWash/washSession';
-import { BRUSH_SPIN_RAD_S, WASH_GANTRY as G } from '@/lib/ottoWash/washSpec';
+import { WASH_GANTRY as G } from '@/lib/ottoWash/washSpec';
 import { DECK_Y } from './coordUtils';
 import { StaticBatch } from './staticBatch';
 import { galvanizedSteel, darkSteel, safetyYellowPaint, rubberBlack, statusLamp } from './buildingSkin';
-import { PLAN_UNITS_PER_METRE } from '@/lib/ottoChargeArm/cobotSpec';
-import { poseSkeleton, spinNode, type DepotCad } from '@/lib/robotics/cadDepot';
+import { MOUNT_HEIGHT_M, OTTO_CHARGE_ARM, PLAN_UNITS_PER_METRE } from '@/lib/ottoChargeArm/cobotSpec';
+import { TRACK_X_M } from '@/lib/ottoWash/detailArm';
+import { poseSkeleton, type DepotCad } from '@/lib/robotics/cadDepot';
 import { washJoints } from '@/lib/robotics/catalog';
 import { makeInstancedFleet, writeFleetSlot, writeFleetLight, clearFleetSlot, type InstancedFleet } from './instancedFleet';
 import { makeFlexFleet, type FlexFleet } from '@/lib/robotics/flexMesh';
-import { WASH_BRUSH_PARTS } from './cadFleet';
 
 /**
- * OTTO-WASH — the robotic rollover gantry in each wash bay (docs/OTTO-WASH.md).
+ * OTTO-WASH — the touchless wash machine in each wash bay (docs/OTTO-WASH.md).
  *
  * This component DRAWS; it decides nothing. The machine's session is stepped once, in the
  * motion driver (engine/motion/washGate.ts), from what the twin publishes (the car's seat in
  * the bay and when it ends, otto-q-core 0762) and what the motion layer knows (the car standing
- * on the bay's pose). The same session opens a detail seat's doors (doorStore) and holds the car
- * until the machine is home, so the drawn machine, the drawn doors and the car's right to move
- * are one evaluation.
+ * on the bay's pose). The same session holds the car until the machine is home, so the drawn
+ * machine and the car's right to move are one evaluation. No door opens in a wash bay.
  *
  * FRAME: each bay's group stands on the bay's drive line at the parked car's centre, on the deck.
  * The bay frame of washSpec.ts maps to it as local x = -x (plan x runs east, world x west),
  * local z = -dy (plan y runs south, world z north), local y = height.
  *
  * THE MACHINE IS THE ENGINEERING CAD (cad/ wash_gantry.py, robotics/cadDepot.ts): its rails and end
- * stops, trolleys and drives, portal, spray arch, brushes on their lift columns and carriages, air
- * knives, vacuum wands, cabinet and drag chain, at the depot's level of detail, in the same bay frame
- * (metres: scaled to plan units here). The twin's pose drives its slides through catalog.washJoints,
- * its brushes turn on their shafts, and its beacon and stop lamps show the program. Every bay's
+ * stops, trolleys and drives, portal, spray arch, air knives, cabinet and drag chain, and the two detail
+ * arms on their tracks with their docks, at the depot's level of detail, in the same bay frame (metres: scaled
+ * to plan units here). The twin's pose drives its slides and wrists through catalog.washJoints, and
+ * its beacon and stop lamps show the program. Nothing on it turns against the car. Every bay's
  * machine is one instance of one set of meshes (instancedFleet.ts). robotics/cadYard.test.ts holds it
  * to the car, the doors and the wash hall's walls. Until the CAD has loaded, or if it cannot, each bay
  * draws the simple machine below. The spray and the air are drawn on both.
  */
 
-/** Two-tone foam stripes, so a turning brush reads as turning. */
-function stripeTexture(a: string, b: string): THREE.Texture {
-  const c = document.createElement('canvas');
-  c.width = 64; c.height = 8;
-  const g = c.getContext('2d')!;
-  for (let i = 0; i < 8; i++) { g.fillStyle = i % 2 ? a : b; g.fillRect(i * 8, 0, 8, 8); }
-  const t = new THREE.CanvasTexture(c);
-  t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  t.colorSpace = THREE.SRGBColorSpace;
-  return t;
+const UP = new THREE.Vector3(0, 1, 0);
+const vA = new THREE.Vector3(), vB = new THREE.Vector3(), vC = new THREE.Vector3();
+/** A bay point in metres (x east, dy south, y up) in a bay group's own frame, plan units (x west, z north). */
+const V = (x: number, dy: number, y: number, out: THREE.Vector3) => out.set(-x * PLAN_UNITS_PER_METRE, y * PLAN_UNITS_PER_METRE, -dy * PLAN_UNITS_PER_METRE);
+/** Lay a unit stick (along +Y from its foot) from a to b. */
+function span(m: THREE.Mesh, a: THREE.Vector3, b: THREE.Vector3): void {
+  const d = vD.subVectors(b, a);
+  const len = d.length() || 1e-6;
+  m.position.copy(a);
+  m.scale.set(1, len, 1);
+  m.quaternion.setFromUnitVectors(UP, d.divideScalar(len));
 }
+const vD = new THREE.Vector3();
+/** A detail arm's shoulder above grade: the charge arm's mount height and its shoulder height. */
+const SHOULDER_M = MOUNT_HEIGHT_M + OTTO_CHARGE_ARM.shoulderHeight;
+const SHOULDER_U = SHOULDER_M * PLAN_UNITS_PER_METRE;
 
 /** Falling streaks with soft edges: the spray curtain, scrolled each frame. */
 function streakTexture(seed: number): THREE.Texture {
@@ -105,10 +109,6 @@ function buildFrame(): Map<string, THREE.BufferGeometry> {
     for (const side of [-1, 1]) b.box('dark', side * (G.arch.x - 0.2), 0.7 + f * (G.arch.top - 1.2), z(G.arch.dy), 0.22, 0.12, 0.12);
     b.box('dark', (f - 0.5) * 2 * (G.arch.x - 0.6), G.arch.top - 0.2, z(G.arch.dy), 0.12, 0.22, 0.12);
   }
-  // the side brushes' and the wands' carriage tracks under the beam
-  for (const dy of [G.sideBrush.dy, G.wand.dy]) b.box('dark', 0, G.beam.y0 - 0.12, z(dy), 2 * (G.legX - 0.6), 0.24, 0.28);
-  // the top brush's slides
-  for (const side of [-1, 1]) b.box('dark', side * G.topBrush.hangerX, G.beam.y0 - 0.5, z(G.topBrush.dy), 0.24, 1.0, 0.3);
   // the stop light's housing, facing south toward an arriving car
   b.box('dark', G.light.x, G.light.y, z(G.beam.dy1) - 0.12, 1.5, 0.75, 0.24);
   return b.build();
@@ -117,17 +117,15 @@ function buildFrame(): Map<string, THREE.BufferGeometry> {
 /** One bay's moving parts. */
 interface Rig {
   gantry: THREE.Group;
-  side: THREE.Mesh[];          // the two side brushes (spin about their axis)
-  sideHub: THREE.Mesh[];       // their motors and shafts
-  top: THREE.Group;            // the top brush's axle frame (moves in y)
-  topBrush: THREE.Mesh;        // spins about x
-  hangers: THREE.Mesh[];       // from the top brush up to its slides
   knifeTop: THREE.Mesh;
   knifeSide: THREE.Mesh[];
   duct: THREE.Mesh;            // the top knife's duct up to the beam
-  mast: THREE.Mesh[];          // the wands' vertical stages
-  arm: THREE.Mesh[];           // the wands' horizontal stages
-  head: THREE.Mesh[];          // the vacuum heads
+  arms: THREE.Group;           // the two detail arms: they do not ride the gantry
+  car: THREE.Mesh[];           // each arm's carriage and pedestal
+  upper: THREE.Mesh[];         // shoulder to elbow
+  fore: THREE.Mesh[];          // elbow to wrist
+  tool: THREE.Mesh[];          // wrist to pad
+  pad: THREE.Mesh[];           // the soft pads
   curtain: THREE.Mesh;         // the arch's spray
   air: THREE.Mesh[];           // the air knives' blast
   beacon: THREE.Mesh;
@@ -140,12 +138,12 @@ const STATUS_COLOR: Record<WashPose['status'], number> = {
 };
 const SPRAY_COLOR: Record<Exclude<WashPose['spray'], 'none'>, { color: number; opacity: number; speed: number }> = {
   soak: { color: 0xffd9f0, opacity: 0.55, speed: 0.6 },   // pre-soak foam
-  foam: { color: 0x9fd2ff, opacity: 0.42, speed: 0.8 },   // the brushes' foam
+  jet: { color: 0x9fd2ff, opacity: 0.42, speed: 2.2 },    // the wash jets
   rinse: { color: 0xd8f1ff, opacity: 0.36, speed: 1.6 },  // clear rinse water
 };
 
 /** DEV-ONLY: each bay's machine as drawn, for the playback scripts (the R3F scene graph is not reachable from the DOM). */
-const washDebug: Map<string, { phase: string; t: number; vehicleId: string | null; dy: number; brushX: number; topY: number; doors: number }> | null =
+const washDebug: Map<string, { phase: string; t: number; vehicleId: string | null; dy: number; padX: number; padY: number; station: string | null }> | null =
   import.meta.env.DEV ? new Map() : null;
 if (washDebug && typeof window !== 'undefined') {
   (window as unknown as Record<string, unknown>).__washGantries = washDebug;
@@ -230,48 +228,6 @@ function WashGantryBay({ bayId, planX, shared, frame }: {
       m.castShadow = true; m.receiveShadow = true;
       gantry.add(m);
     }
-    const brushH = G.sideBrush.y1 - G.sideBrush.y0;
-    const sideGeo = new THREE.CylinderGeometry(G.sideBrush.r, G.sideBrush.r, brushH, 28, 1, false);
-    const side = [-1, 1].map((sgn) => {
-      const m = new THREE.Mesh(sideGeo, sgn < 0 ? mats.brushBlue : mats.brushRed);
-      m.position.set(0, (G.sideBrush.y0 + G.sideBrush.y1) / 2, -G.sideBrush.dy);
-      m.castShadow = true;
-      gantry.add(m);
-      return m;
-    });
-    const hubGeo = new THREE.CylinderGeometry(0.16, 0.16, 1.0, 10);
-    hubGeo.translate(0, G.sideBrush.y1 + 0.5, 0);
-    const sideHub = [-1, 1].map(() => {
-      const m = new THREE.Mesh(hubGeo, mats.dark);
-      m.position.set(0, 0, -G.sideBrush.dy);
-      gantry.add(m);
-      return m;
-    });
-    const top = new THREE.Group();
-    top.position.set(0, G.topBrush.retractY, -G.topBrush.dy);
-    gantry.add(top);
-    const topGeo = new THREE.CylinderGeometry(G.topBrush.r, G.topBrush.r, 2 * G.topBrush.halfLen, 28, 1, false);
-    const topAxle = new THREE.Group();
-    topAxle.rotation.z = Math.PI / 2;
-    top.add(topAxle);
-    const topBrush = new THREE.Mesh(topGeo, mats.brushBlue);
-    topBrush.castShadow = true;
-    topAxle.add(topBrush);
-    const capGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.2, 12);
-    capGeo.rotateZ(Math.PI / 2);
-    for (const sgn of [-1, 1]) {
-      const cap = new THREE.Mesh(capGeo, mats.dark);
-      cap.position.set(sgn * (G.topBrush.halfLen + 0.1), 0, 0);
-      top.add(cap);
-    }
-    const hangerGeo = new THREE.BoxGeometry(0.16, 1, 0.16);
-    hangerGeo.translate(0, 0.5, 0);
-    const hangers = [-1, 1].map((sgn) => {
-      const m = new THREE.Mesh(hangerGeo, mats.galv);
-      m.position.set(sgn * G.topBrush.hangerX, 0, -G.topBrush.dy);
-      gantry.add(m);
-      return m;
-    });
     const knifeTop = new THREE.Mesh(new THREE.BoxGeometry(2 * G.dryer.top.halfLen, G.dryer.top.h, G.dryer.top.d), mats.galv);
     knifeTop.position.z = -G.dryer.dy;
     knifeTop.castShadow = true;
@@ -289,32 +245,17 @@ function WashGantryBay({ bayId, planX, shared, frame }: {
       gantry.add(m);
       return m;
     });
-    const mastGeo = new THREE.CylinderGeometry(G.wand.r, G.wand.r, 1, 10);
-    mastGeo.translate(0, 0.5, 0);
-    const mast = [-1, 1].map(() => {
-      const m = new THREE.Mesh(mastGeo, mats.galv);
-      m.position.z = -G.wand.dy;
-      gantry.add(m);
-      return m;
-    });
-    // the arm runs from its mast along local +x (scaled to its reach); the west arm is turned half round
-    const armGeo = new THREE.CylinderGeometry(G.wand.r * 0.8, G.wand.r * 0.8, 1, 10);
-    armGeo.rotateZ(Math.PI / 2);
-    armGeo.translate(0.5, 0, 0);
-    const arm = [-1, 1].map((sgn) => {
-      const m = new THREE.Mesh(armGeo, mats.galv);
-      m.position.z = -G.wand.dy;
-      if (sgn < 0) m.rotation.y = Math.PI;
-      gantry.add(m);
-      return m;
-    });
-    const headGeo = new THREE.BoxGeometry(0.22, 0.14, 0.34);
-    const head = [-1, 1].map(() => {
-      const m = new THREE.Mesh(headGeo, mats.headLamp);
-      m.position.z = -G.wand.dy;
-      gantry.add(m);
-      return m;
-    });
+    // the detail arms, as sticks until the CAD has loaded: a carriage and pedestal on each track, the upper arm, the
+    // forearm, the tool and the pad (a disc whose axis is its face). They stand in the bay, not on the gantry.
+    const arms = new THREE.Group();
+    const stick = (r: number) => { const g = new THREE.CylinderGeometry(r, r, 1, 10); g.translate(0, 0.5, 0); return g; };
+    const pedGeo = new THREE.BoxGeometry(0.75, SHOULDER_U, 0.75); pedGeo.translate(0, SHOULDER_U / 2, 0);
+    const mk = (geo: THREE.BufferGeometry, mat: THREE.Material) => [0, 1].map(() => { const m = new THREE.Mesh(geo, mat); m.castShadow = true; arms.add(m); return m; });
+    const car = mk(pedGeo, mats.dark);
+    const upper = mk(stick(0.24), mats.galv);
+    const fore = mk(stick(0.19), mats.galv);
+    const tool = mk(stick(0.12), mats.dark);
+    const pad = mk(new THREE.CylinderGeometry(G.detail.padR, G.detail.padR, 0.12, 20), mats.pad);
     // the spray curtain across the arch, and the air knives' blast
     const { curtain, air } = addWashEffects(gantry, mats.spray, mats.air);
     const beacon = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.26, 0.4, 14), mats.beacon);
@@ -329,7 +270,7 @@ function WashGantryBay({ bayId, planX, shared, frame }: {
     stopGreen.position.set(G.light.x + 0.36, G.light.y, -G.beam.dy1 - 0.25);
     stopGreen.rotation.y = Math.PI;
     gantry.add(stopGreen);
-    return { gantry, side, sideHub, top, topBrush, hangers, knifeTop, knifeSide, duct, mast, arm, head, curtain, air, beacon, stopRed, stopGreen };
+    return { gantry, knifeTop, knifeSide, duct, arms, car, upper, fore, tool, pad, curtain, air, beacon, stopRed, stopGreen };
   }, [frame, mats]);
 
   useEffect(() => () => {
@@ -339,45 +280,23 @@ function WashGantryBay({ bayId, planX, shared, frame }: {
     });
   }, [rig, frame]);
 
-  const spin = useRef(0);
   useFrame((_state, delta) => {
     const s = twinMotionDriver.washSessionAt(bayId) ?? IDLE_WASH;
     const p = washPoseAt(s);
     rig.gantry.position.z = -p.dy;
-    if (p.spinning) spin.current += Math.min(delta, 0.1) * twinMotionDriver.playbackSpeed() * BRUSH_SPIN_RAD_S; // turns per depot second
-    // the side brushes: east (bay +x) is local -x; they turn opposite ways, like a real pair
-    rig.side.forEach((m, i) => {
-      const sgn = i === 0 ? -1 : 1;
-      m.position.x = -sgn * p.sideBrushX;
-      m.rotation.y = sgn * spin.current;
-      rig.sideHub[i].position.x = -sgn * p.sideBrushX;
-    });
-    rig.top.position.y = p.topBrushY;
-    rig.topBrush.rotation.y = spin.current;
-    for (const h of rig.hangers) { h.position.y = p.topBrushY; h.scale.y = Math.max(0.05, G.beam.y0 - p.topBrushY); }
     rig.knifeTop.position.y = p.dryerTopY + G.dryer.top.h / 2;
     rig.duct.position.y = p.dryerTopY + G.dryer.top.h;
     rig.duct.scale.y = Math.max(0.05, G.beam.y0 - (p.dryerTopY + G.dryer.top.h));
     rig.knifeSide.forEach((m, i) => { const sgn = i === 0 ? -1 : 1; m.position.x = -sgn * (p.dryerSideX + G.dryer.side.w / 2); });
-    // the wands: the mast from under the beam down to its foot, the arm in through the door
-    const foot = G.wand.topY + (G.wand.workY - G.wand.topY) * p.wandDrop;
-    const tip = G.wand.x + (G.wand.reachX - G.wand.x) * p.wandReach;
-    rig.mast.forEach((m, i) => {
-      const sgn = i === 0 ? -1 : 1;
-      m.position.set(-sgn * G.wand.x, foot, -G.wand.dy);
-      m.scale.y = Math.max(0.05, G.beam.y0 - foot);
-    });
-    rig.arm.forEach((m, i) => {
-      const sgn = i === 0 ? -1 : 1;
-      m.visible = p.wandDrop > 0.02;
-      m.position.set(-sgn * G.wand.x, foot, -G.wand.dy);
-      // from the mast in toward the car's centreline (turned half round on the west side)
-      m.scale.x = Math.max(0.05, G.wand.x - tip);
-    });
-    rig.head.forEach((m, i) => {
-      const sgn = i === 0 ? -1 : 1;
-      m.visible = p.wandDrop > 0.02;
-      m.position.set(-sgn * tip, foot, -G.wand.dy);
+    // the detail arms: each from its carriage up to its shoulder, then elbow, wrist and pad, where detailArm.ts has them
+    p.arms.forEach((a, i) => {
+      const shoulder = V(a.side * TRACK_X_M, a.rail, SHOULDER_M, vA);
+      rig.car[i].position.set(shoulder.x, 0, shoulder.z);
+      span(rig.upper[i], shoulder, V(a.elbow.x, a.elbow.dy, a.elbow.y, vB));
+      span(rig.fore[i], vB, V(a.wrist.x, a.wrist.dy, a.wrist.y, vC));
+      span(rig.tool[i], vC, V(a.pad.x, a.pad.dy, a.pad.y, vA));
+      rig.pad[i].position.copy(vA);
+      rig.pad[i].quaternion.setFromUnitVectors(UP, vB.set(-a.axis.x, a.axis.y, -a.axis.dy).normalize());
     });
     // spray and air
     poseWashEffects(rig, p, delta, mats);
@@ -388,7 +307,7 @@ function WashGantryBay({ bayId, planX, shared, frame }: {
     if (washDebug) {
       washDebug.set(bayId, {
         phase: s.phase, t: Math.round(s.t * 1000) / 1000, vehicleId: s.vehicleId, dy: Math.round(p.dy * 1000) / 1000,
-        brushX: Math.round(p.sideBrushX * 1000) / 1000, topY: Math.round(p.topBrushY * 1000) / 1000, doors: p.doors,
+        padX: Math.round(p.arms[0].pad.x * 1000) / 1000, padY: Math.round(p.arms[0].pad.y * 1000) / 1000, station: p.station,
       });
     }
   });
@@ -397,6 +316,7 @@ function WashGantryBay({ bayId, planX, shared, frame }: {
   return (
     <group position={[150 - planX, DECK_Y, 110 - BAY_STALL_Y]}>
       <primitive object={rig.gantry} />
+      <primitive object={rig.arms} />
     </group>
   );
 }
@@ -415,15 +335,9 @@ function CadWashBay({ bayId, planX, cad, fleet, flex, slot, shared }: {
   const mats = useBayMats(shared);
   const rig = useMemo(() => {
     const skel = cad.skeleton();
-    // the brushes turn on their shafts: each is its own segment (cadFleet WASH_BRUSH_PARTS); the pair turn opposite ways
-    const brushes = skel.segments.flatMap((n) => {
-      const part = (n.userData as { part?: string }).part;
-      if (!part || !WASH_BRUSH_PARTS.includes(part)) return [];
-      return [{ node: n, rest: n.quaternion.clone(), sign: part === 'WSH-SBRR' ? -1 : 1 }];
-    });
     const effects = new THREE.Group();
     const fx = addWashEffects(effects, mats.spray, mats.air);
-    return { skel, brushes, effects, fx };
+    return { skel, effects, fx };
   }, [cad, mats]);
   useEffect(() => () => clearFleetSlot(fleet, slot), [fleet, slot]);
   useEffect(() => () => flex?.clear(slot), [flex, slot]);
@@ -432,27 +346,23 @@ function CadWashBay({ bayId, planX, cad, fleet, flex, slot, shared }: {
     rig.fx.air[0].geometry.dispose();
   }, [rig]);
 
-  const spin = useRef(0);
-  const axis = useMemo(() => new THREE.Vector3(0, 1, 0), []);
   useFrame((_state, delta) => {
     const s = twinMotionDriver.washSessionAt(bayId) ?? IDLE_WASH;
     const p = washPoseAt(s);
     poseSkeleton(rig.skel, washJoints(p));
-    if (p.spinning) spin.current += Math.min(delta, 0.1) * twinMotionDriver.playbackSpeed() * BRUSH_SPIN_RAD_S; // turns per depot second
-    for (const b of rig.brushes) spinNode(b.node, b.rest, axis, b.sign * spin.current);
     machineRef.current?.updateWorldMatrix(true, true);
     // the beacon shows the program's state; the stop lamps face the arriving car (red while it runs)
     writeFleetSlot(fleet, slot, rig.skel.segments, STATUS_COLOR[p.status], 2.2);
     writeFleetLight(fleet, slot, 1, p.stop ? 0xff2a2a : 0x2a1214, p.stop ? 2.4 : 0);
     writeFleetLight(fleet, slot, 2, p.stop ? 0x122a16 : 0x2aff6a, p.stop ? 0 : 2.4);
-    // its lines: the drag chain in its trench, the brush and knife ducts and chains, the wands' reel cables
+    // its lines: the drag chain in its trench, the knives' ducts, and each detail arm's cable chain beside its track
     flex?.write(slot, rig.skel);
     rig.effects.position.z = -p.dy;
     poseWashEffects(rig.fx, p, delta, mats);
     if (washDebug) {
       washDebug.set(bayId, {
         phase: s.phase, t: Math.round(s.t * 1000) / 1000, vehicleId: s.vehicleId, dy: Math.round(p.dy * 1000) / 1000,
-        brushX: Math.round(p.sideBrushX * 1000) / 1000, topY: Math.round(p.topBrushY * 1000) / 1000, doors: p.doors,
+        padX: Math.round(p.arms[0].pad.x * 1000) / 1000, padY: Math.round(p.arms[0].pad.y * 1000) / 1000, station: p.station,
       });
     }
   });
@@ -490,23 +400,18 @@ function CadWashGantries({ cad, bays, shared }: {
 
 function useMats() {
   return useMemo(() => {
-    const blue = stripeTexture('#2a6fd6', '#7fb3ff');
-    const red = stripeTexture('#c8313f', '#ff8a96');
-    blue.repeat.set(3, 1); red.repeat.set(3, 1);
     const streak = streakTexture(7);
     streak.repeat.set(4, 2);
     const air = streakTexture(31);
     air.repeat.set(3, 1);
     const beacon = new THREE.MeshStandardMaterial({ color: 0x223038, emissive: new THREE.Color(0x00e5ff), emissiveIntensity: 2.2, toneMapped: false });
     return {
-      textures: { blue, red, streak, air },
+      textures: { streak, air },
       galv: galvanizedSteel(),
       dark: darkSteel(),
       yellow: safetyYellowPaint(),
       rubber: rubberBlack(),
-      brushBlue: new THREE.MeshStandardMaterial({ map: blue, roughness: 0.95, metalness: 0 }),
-      brushRed: new THREE.MeshStandardMaterial({ map: red, roughness: 0.95, metalness: 0 }),
-      headLamp: statusLamp('#35d07f'),
+      pad: new THREE.MeshStandardMaterial({ color: 0xf2f4f7, roughness: 1, metalness: 0 }),
       spray: new THREE.MeshBasicMaterial({
         map: streak, color: 0xd8f1ff, transparent: true, opacity: 0.4, depthWrite: false, side: THREE.DoubleSide,
         blending: THREE.AdditiveBlending,
@@ -530,7 +435,7 @@ export function WashGantries({ count, cad }: { count: number; cad: DepotCad | nu
   useEffect(() => () => {
     for (const g of frame.values()) g.dispose();
     for (const t of Object.values(all.textures)) t.dispose();
-    all.brushBlue.dispose(); all.brushRed.dispose(); all.spray.dispose(); all.air.dispose(); all.beacon.dispose(); all.lampOff.dispose();
+    all.pad.dispose(); all.spray.dispose(); all.air.dispose(); all.beacon.dispose(); all.lampOff.dispose();
   }, [frame, all]);
   // a bay's machine is named by the bay's own id, which is the renderer stall the car parks on (WASH-01 ..)
   const bays = WASH_SHELL.bays.slice(0, count);

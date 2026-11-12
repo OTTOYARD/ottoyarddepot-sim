@@ -68,3 +68,38 @@ describe('cadModel', () => {
     expect(partAt(m, root)).toBeNull();
   });
 });
+
+describe('fitDistance', () => {
+  it('fits a sphere on the tighter angle: a wide view by its height, a narrow view by its width', async () => {
+    const { fitDistance } = await import('./cadModel');
+    const v = (35 * Math.PI) / 180 / 2;
+    expect(fitDistance(1, 35, 2, 1)).toBeCloseTo(1 / Math.sin(v), 9);            // wide: the vertical angle binds
+    const h = Math.atan(Math.tan(v) * 0.5);
+    expect(fitDistance(1, 35, 0.5, 1)).toBeCloseTo(1 / Math.sin(h), 9);          // tall: the horizontal angle binds
+    expect(fitDistance(1, 35, 0.5)).toBeGreaterThan(fitDistance(1, 35, 2));
+    expect(fitDistance(2, 35, 1)).toBeCloseTo(2 * fitDistance(1, 35, 1), 9);
+  });
+});
+
+describe('fitBox', () => {
+  it('puts every corner of the box inside both view angles, and no further back than it must', async () => {
+    const { fitBox } = await import('./cadModel');
+    const box = new THREE.Box3(new THREE.Vector3(-0.3, -2.2, -0.4), new THREE.Vector3(0.9, 0.4, 0.5)); // tall and thin
+    for (const [dir, aspect] of [[[1, 0.6, 1.15], 2.4], [[0, 0.12, 1], 0.6], [[0.0001, 1, 0.02], 1.9], [[1, 0.12, 0], 1]] as const) {
+      const d = new THREE.Vector3(...dir).normalize();
+      const { centre, distance } = fitBox(box, d, 35, aspect, 1);
+      const cam = new THREE.PerspectiveCamera(35, aspect, 0.01, 100);
+      cam.position.copy(centre).addScaledVector(d, distance);
+      cam.lookAt(centre);
+      cam.updateMatrixWorld(true);
+      let edge = 0;
+      for (let i = 0; i < 8; i++) {
+        const p = new THREE.Vector3(i & 1 ? box.max.x : box.min.x, i & 2 ? box.max.y : box.min.y, i & 4 ? box.max.z : box.min.z).project(cam);
+        expect(Math.abs(p.x)).toBeLessThanOrEqual(1 + 1e-6);
+        expect(Math.abs(p.y)).toBeLessThanOrEqual(1 + 1e-6);
+        edge = Math.max(edge, Math.abs(p.x), Math.abs(p.y));
+      }
+      expect(edge).toBeGreaterThan(0.98); // a corner touches the edge: the fit is tight
+    }
+  });
+});

@@ -183,3 +183,37 @@ export function visibleBounds(m: CadModel): THREE.Box3 {
   }
   return box;
 }
+
+/**
+ * How far back a camera must stand so a sphere of radius `r` fits the view, on the tighter of its two angles. The
+ * view is often wide and short (the tab's viewer on a desktop) or tall and narrow (a phone): a fit that reads the
+ * vertical angle alone cuts a tall robot off at the bottom.
+ */
+export function fitDistance(r: number, fovDeg: number, aspect: number, margin = 1.12): number {
+  const v = (Math.max(1, Math.min(170, fovDeg)) * Math.PI) / 180 / 2;
+  const h = Math.atan(Math.tan(v) * Math.max(0.05, aspect));
+  return (Math.max(1e-6, r) * margin) / Math.sin(Math.min(v, h));
+}
+
+/**
+ * Where a camera that looks along `dir` (from the camera's side toward the box's centre) must stand so the whole box
+ * is in view: every corner inside both view angles, with a margin. Tighter than a bounding sphere, which leaves a
+ * tall thin robot small in a wide view.
+ */
+export function fitBox(box: THREE.Box3, dir: THREE.Vector3, fovDeg: number, aspect: number, margin = 1.1): { centre: THREE.Vector3; distance: number } {
+  const centre = box.getCenter(new THREE.Vector3());
+  const d = dir.clone().normalize();
+  const up0 = Math.abs(d.y) > 0.9999999 ? new THREE.Vector3(0, 0, -1) : new THREE.Vector3(0, 1, 0);
+  const right = new THREE.Vector3().crossVectors(up0, d).normalize();
+  const up = new THREE.Vector3().crossVectors(d, right).normalize();
+  const tv = Math.tan((Math.max(1, Math.min(170, fovDeg)) * Math.PI) / 180 / 2);
+  const th = tv * Math.max(0.05, aspect);
+  let distance = 0;
+  const p = new THREE.Vector3();
+  for (let i = 0; i < 8; i++) {
+    p.set(i & 1 ? box.max.x : box.min.x, i & 2 ? box.max.y : box.min.y, i & 4 ? box.max.z : box.min.z).sub(centre);
+    const along = p.dot(d);
+    distance = Math.max(distance, along + (Math.abs(p.dot(up)) * margin) / tv, along + (Math.abs(p.dot(right)) * margin) / th);
+  }
+  return { centre, distance: Math.max(distance, 0.3) };
+}

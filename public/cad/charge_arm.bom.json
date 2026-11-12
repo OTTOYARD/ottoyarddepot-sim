@@ -7,12 +7,12 @@
   "glb": "m"
  },
  "totals": {
-  "parts": 652,
-  "uniqueParts": 188,
+  "parts": 655,
+  "uniqueParts": 191,
   "fasteners": 457,
-  "massKg": 390.79,
-  "boughtLines": 124,
-  "madeLines": 64,
+  "massKg": 376.93,
+  "boughtLines": 130,
+  "madeLines": 61,
   "referenceLines": 2
  },
  "subsystems": [
@@ -162,26 +162,29 @@
   },
   {
    "id": "DRESS",
-   "name": "Cables and take-up",
-   "function": "Brings the charge current, coolant and tool lines to the connector, and power and network to the joints.",
+   "name": "Power path in the arm",
+   "function": "Carries the charge current, the coolant and the tool's lines to the connector inside the arm, and power and network to the joints.",
    "how": [
-    "The charge cable comes up out of the cabinet roof into a take-up wheel.",
-    "The wheel's hub has a slip ring and a coolant union. They pass the current, coolant, signals and air into the wheel as it turns.",
-    "The cable lies in the wheel's rim and leaves it above the cabinet's front edge. From there it spans free to an outlet on the connector. A spring turns the wheel back, so the span is never slack onto the car.",
-    "The joints' 10 mm power and network cable runs inside the arm, through the hollow shafts of J1 to J5.",
-    "The tool's cable and its air line ride with the charge cable in its sleeve. J6 is too small to pass them."
+    "The charge current comes up the riser from the cabinet in 2 insulated copper bars.",
+    "In each hollow link 2 copper bars carry it, one a pole. Nothing live is in the open.",
+    "At the base, the shoulder and the elbow a booted link of braided copper joins 2 terminal boxes. It bends as the joint turns.",
+    "From the forearm one last booted link, 1.2 m long, runs to the connector across the wrist.",
+    "The coolant for the connector's contacts, the tool's cable and its air line run with the bars and through each boot.",
+    "The joints' 10 mm power and network cable runs inside the arm, through the hollow shafts of J1 to J5."
    ],
    "specs": {
-    "charge cable": "500 A DC, liquid-cooled, OD 35.7 mm, bend radius 357 mm moved",
-    "take-up": "wheel 820 mm, groove radius 380 mm, turns up to 178 degrees",
-    "span": "2.72 to 3.91 m free, 1.36 x its chord"
+    "current": "500 A DC, 1000 V",
+    "bars": "2 x 40 x 10 mm copper in each link, insulated",
+    "flex links": "4, braided copper 400 mm2 a pole, in a silicone boot OD 60 mm, 0.9 to 1.2 m",
+    "bend radius": "80 mm moved (the tightest in the twin's 20 poses is 100 mm)",
+    "cooling": "liquid at the connector's contacts, 2 tubes 8 mm"
    },
    "group": "Cables",
    "order": 8,
-   "partCount": 7,
+   "partCount": 10,
    "fastenerCount": 0,
-   "massKg": 82.71,
-   "uniqueParts": 7
+   "massKg": 68.85,
+   "uniqueParts": 10
   },
   {
    "id": "SAFETY",
@@ -4915,76 +4918,29 @@
    ]
   },
   {
-   "id": "CHG-TUF",
-   "name": "Take-up frame, 2 cheeks on a base plate, stainless",
-   "category": "structure",
-   "make": "make",
-   "standard": "cut and welded plate 10 mm",
-   "size": "220 x 245 base",
-   "grade": "304",
-   "material": "Stainless steel 1.4301 (304)",
-   "materialKey": "ss304",
-   "qty": 1,
-   "massKg": 26.7143,
-   "totalMassKg": 26.7143,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Stands on the cabinet roof and carries the wheel's axle.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "DRESS",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "CHG-TUA",
-   "name": "Take-up wheel axle, 50 mm",
-   "category": "drive",
-   "make": "make",
-   "standard": "machined",
-   "size": "D 50 x 200",
-   "grade": "C45",
-   "material": "Steel 42CrMo4, quenched and tempered",
-   "materialKey": "steel",
-   "qty": 1,
-   "massKg": 3.0827,
-   "totalMassKg": 3.0827,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Carries the wheel between the frame cheeks, on 2 bearings.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "DRESS",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "CHG-CCB",
-   "name": "Charge cable span, 500 A liquid-cooled, with the tool cable and air line",
+   "id": "CHG-FL1",
+   "name": "J1 flex link, 500 A braided copper in a boot",
    "category": "electrical",
    "make": "buy",
-   "standard": "IEC 62893-4-2",
-   "size": "OD 35.7 in a 40 mm sleeve",
+   "standard": "IEC 61238-1 (lugs)",
+   "size": "OD 60 x 900",
    "grade": "",
    "material": "Cable, TPE jacket",
    "materialKey": "cable",
    "qty": 1,
-   "massKg": 8.4,
-   "totalMassKg": 8.4,
+   "massKg": 8.55,
+   "totalMassKg": 8.55,
    "torqueNm": null,
    "reference": false,
-   "function": "Carries the charge current, the coolant, the charge signals and the tool's signals and air from the take-up wheel to the connector. It spans free between them.",
+   "function": "Carries the charge current across J1, from the riser to the turret, as the base turns.",
    "spec": {
-    "cable": "500 A DC, 1000 V, liquid-cooled, OD 35.7 mm, 1.94 kg/m",
-    "bend radius": "357 mm moved (10 x OD)",
-    "free length": "1.36 x the chord, 2.72 to 3.91 m",
-    "in the sleeve": "tool cable (EtherCAT + 24 V) and air 6 mm",
-    "length": "4000 mm",
-    "min bend radius": "357 mm",
+    "conductors": "2 x 400 mm2 braided copper, tinned, insulated for 1000 V DC",
+    "boot": "silicone bellows, OD 60 mm, IP67",
+    "also inside": "2 coolant tubes 8 mm, tool cable (EtherCAT + 24 V), air 6 mm",
+    "bend radius": "80 mm moved",
+    "length": "900 mm",
+    "tightest bend over the twin's poses": "115 mm with the base turned 50 degrees either way",
+    "min bend radius": "80 mm",
     "mass basis": "catalogue class mass (the CAD draws its envelope)"
    },
    "uses": [
@@ -4995,73 +4951,29 @@
    ]
   },
   {
-   "id": "CHG-TUC",
-   "name": "Charge cable, cabinet to the take-up union",
+   "id": "CHG-FL2",
+   "name": "J2 flex link, 500 A braided copper in a boot",
    "category": "electrical",
    "make": "buy",
-   "standard": "IEC 62893-4-2",
-   "size": "OD 35.7 in a 40 mm sleeve",
+   "standard": "IEC 61238-1 (lugs)",
+   "size": "OD 60 x 1000",
    "grade": "",
    "material": "Cable, TPE jacket",
    "materialKey": "cable",
    "qty": 1,
-   "massKg": 1.0124,
-   "totalMassKg": 1.0124,
+   "massKg": 9.5,
+   "totalMassKg": 9.5,
    "torqueNm": null,
    "reference": false,
-   "function": "Brings the cable up out of the cabinet roof to the union. It does not move.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "DRESS",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "CHG-TUK",
-   "name": "Charge cable on the take-up wheel",
-   "category": "electrical",
-   "make": "buy",
-   "standard": "IEC 62893-4-2",
-   "size": "OD 35.7 in a 40 mm sleeve",
-   "grade": "",
-   "material": "Cable, TPE jacket",
-   "materialKey": "cable",
-   "qty": 1,
-   "massKg": 1.5002,
-   "totalMassKg": 1.5002,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Lies in the rim. It winds on and off as the arm moves.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "DRESS",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "CHG-TUU",
-   "name": "Take-up hub union: 2 x 500 A DC slip ring, signals, 2 coolant passages, air",
-   "category": "electrical",
-   "make": "buy",
-   "standard": "made to order",
-   "size": "D 180 x 120",
-   "grade": "IP55",
-   "material": "Structural steel S355, painted RAL 9005",
-   "materialKey": "steel_paint",
-   "qty": 1,
-   "massKg": 18.0,
-   "totalMassKg": 18.0,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Passes the charge current, the coolant, the charge and tool signals and the air into the turning wheel, so nothing twists.",
+   "function": "Carries the charge current across J2, behind the shoulder.",
    "spec": {
-    "current": "2 x 500 A DC, 1000 V",
-    "coolant": "2 passages, 3 bar",
-    "signals": "CP, PP, PE, tool EtherCAT pair, 4 x 24 V",
+    "conductors": "2 x 400 mm2 braided copper, tinned, insulated for 1000 V DC",
+    "boot": "silicone bellows, OD 60 mm, IP67",
+    "also inside": "2 coolant tubes 8 mm, tool cable (EtherCAT + 24 V), air 6 mm",
+    "bend radius": "80 mm moved",
+    "length": "1000 mm",
+    "tightest bend over the twin's poses": "124 mm",
+    "min bend radius": "80 mm",
     "mass basis": "catalogue class mass (the CAD draws its envelope)"
    },
    "uses": [
@@ -5072,25 +4984,236 @@
    ]
   },
   {
-   "id": "CHG-TUW",
-   "name": "Cable take-up wheel, 820 mm, spring return",
+   "id": "CHG-FL3",
+   "name": "J3 flex link, 500 A braided copper in a boot",
    "category": "electrical",
-   "make": "make",
-   "standard": "made to order",
-   "size": "D 820 x 100",
-   "grade": "6061-T6",
-   "material": "Aluminium 6061-T6, machined, clear anodised",
-   "materialKey": "al6061",
+   "make": "buy",
+   "standard": "IEC 61238-1 (lugs)",
+   "size": "OD 60 x 1200",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
    "qty": 1,
-   "massKg": 24.0,
-   "totalMassKg": 24.0,
+   "massKg": 11.4,
+   "totalMassKg": 11.4,
    "torqueNm": null,
    "reference": false,
-   "function": "Holds the cable in its rim and turns back on its spring to take up the slack as the arm folds in.",
+   "function": "Carries the charge current over the outside of the elbow.",
    "spec": {
-    "groove": "380 mm radius (the cable's 357 mm moved, with margin), 56 mm wide",
-    "turn": "up to 178 degrees",
-    "spring": "spiral spring in the hub, about 80 N at the rim",
+    "conductors": "2 x 400 mm2 braided copper, tinned, insulated for 1000 V DC",
+    "boot": "silicone bellows, OD 60 mm, IP67",
+    "also inside": "2 coolant tubes 8 mm, tool cable (EtherCAT + 24 V), air 6 mm",
+    "bend radius": "80 mm moved",
+    "length": "1200 mm",
+    "tightest bend over the twin's poses": "100 mm",
+    "min bend radius": "80 mm",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "DRESS",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-FL4",
+   "name": "Wrist flex link to the connector, 500 A braided copper in a boot",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "IEC 61238-1 (lugs)",
+   "size": "OD 60 x 1200",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 1,
+   "massKg": 11.4,
+   "totalMassKg": 11.4,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the charge current, the coolant and the tool's signals and air from the forearm to the connector, across J4, J5 and J6.",
+   "spec": {
+    "conductors": "2 x 400 mm2 braided copper, tinned, insulated for 1000 V DC",
+    "boot": "silicone bellows, OD 60 mm, IP67",
+    "also inside": "2 coolant tubes 8 mm, tool cable (EtherCAT + 24 V), air 6 mm",
+    "bend radius": "80 mm moved",
+    "length": "1200 mm",
+    "tightest bend over the twin's poses": "150 mm",
+    "min bend radius": "80 mm",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "DRESS",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-PB0",
+   "name": "DC terminal box, riser",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "made to order",
+   "size": "50 x 110 x 130",
+   "grade": "IP67",
+   "material": "Aluminium 6061-T6, machined, black anodised",
+   "materialKey": "al6061_blk",
+   "qty": 1,
+   "massKg": 3.0,
+   "totalMassKg": 3.0,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes the 2 copper bars up the riser from the cabinet trunk and hands the current to the J1 flex link.",
+   "spec": {
+    "terminals": "2 x 500 A DC, bolted M12, touch-safe covers",
+    "bars in the link": "2 x 40 x 10 mm copper, insulated",
+    "rating basis": "about 1.4 to 1.8 A/mm2, rule of thumb",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "DRESS",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-PB1",
+   "name": "DC junction box, turret",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "made to order",
+   "size": "130 x 240 x 80",
+   "grade": "IP67",
+   "material": "Aluminium 6061-T6, machined, black anodised",
+   "materialKey": "al6061_blk",
+   "qty": 1,
+   "massKg": 6.0,
+   "totalMassKg": 6.0,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Joins the J1 flex link to the J2 flex link on the turret's back.",
+   "spec": {
+    "terminals": "2 x 500 A DC, bolted M12, touch-safe covers",
+    "bars in the link": "2 x 40 x 10 mm copper, insulated",
+    "rating basis": "about 1.4 to 1.8 A/mm2, rule of thumb",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "DRESS",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-PB2",
+   "name": "DC terminal box, upper arm, shoulder end",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "made to order",
+   "size": "110 x 130 x 80",
+   "grade": "IP67",
+   "material": "Aluminium 6061-T6, machined, black anodised",
+   "materialKey": "al6061_blk",
+   "qty": 1,
+   "massKg": 5.0,
+   "totalMassKg": 5.0,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes the J2 flex link into the 2 copper bars that run inside the upper arm.",
+   "spec": {
+    "terminals": "2 x 500 A DC, bolted M12, touch-safe covers",
+    "bars in the link": "2 x 40 x 10 mm copper, insulated",
+    "rating basis": "about 1.4 to 1.8 A/mm2, rule of thumb",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "DRESS",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-PB3",
+   "name": "DC terminal box, upper arm, elbow end",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "made to order",
+   "size": "104 x 130 x 80",
+   "grade": "IP67",
+   "material": "Aluminium 6061-T6, machined, black anodised",
+   "materialKey": "al6061_blk",
+   "qty": 1,
+   "massKg": 5.0,
+   "totalMassKg": 5.0,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Brings the upper arm's bars out to the J3 flex link.",
+   "spec": {
+    "terminals": "2 x 500 A DC, bolted M12, touch-safe covers",
+    "bars in the link": "2 x 40 x 10 mm copper, insulated",
+    "rating basis": "about 1.4 to 1.8 A/mm2, rule of thumb",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "DRESS",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-PB4",
+   "name": "DC terminal box, forearm, elbow end",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "made to order",
+   "size": "104 x 130 x 80",
+   "grade": "IP67",
+   "material": "Aluminium 6061-T6, machined, black anodised",
+   "materialKey": "al6061_blk",
+   "qty": 1,
+   "massKg": 4.5,
+   "totalMassKg": 4.5,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes the J3 flex link into the 2 copper bars that run inside the forearm.",
+   "spec": {
+    "terminals": "2 x 500 A DC, bolted M12, touch-safe covers",
+    "bars in the link": "2 x 40 x 10 mm copper, insulated",
+    "rating basis": "about 1.4 to 1.8 A/mm2, rule of thumb",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "DRESS",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-PB5",
+   "name": "DC terminal box, forearm, wrist end",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "made to order",
+   "size": "80 x 130 x 104",
+   "grade": "IP67",
+   "material": "Aluminium 6061-T6, machined, black anodised",
+   "materialKey": "al6061_blk",
+   "qty": 1,
+   "massKg": 4.5,
+   "totalMassKg": 4.5,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Brings the forearm's bars out to the wrist flex link.",
+   "spec": {
+    "terminals": "2 x 500 A DC, bolted M12, touch-safe covers",
+    "bars in the link": "2 x 40 x 10 mm copper, insulated",
+    "rating basis": "about 1.4 to 1.8 A/mm2, rule of thumb",
     "mass basis": "catalogue class mass (the CAD draws its envelope)"
    },
    "uses": [
@@ -5250,28 +5373,28 @@
  ],
  "notes": {
   "torque_budget": {
-   "method": "Gravity torque with the arm stretched horizontal, masses from the CAD solids, plus 4 kg of hanging cable at the tool (ASSUMPTION). Dynamics and the cable pull are not included.",
+   "method": "Gravity torque with the arm stretched horizontal, masses from the CAD solids, plus 4 kg for the wrist flex link at the tool (ASSUMPTION). Dynamics are not included.",
    "J3": {
-    "distalMassKg": 50.4,
-    "torqueNm": 481,
+    "distalMassKg": 59.4,
+    "torqueNm": 524,
     "gear": "size 40",
     "repeatedPeakNm": 738,
-    "margin": 1.53
+    "margin": 1.41
    },
    "J2": {
-    "distalMassKg": 108.7,
-    "torqueNm": 1577,
+    "distalMassKg": 127.7,
+    "torqueNm": 1807,
     "gear": "size 50",
     "repeatedPeakNm": 1274,
-    "gearWorstNm": 305,
-    "margin": 4.18,
+    "gearWorstNm": 348,
+    "margin": 3.66,
     "balancer": {
      "type": "nitrogen gas spring",
      "anchorBelowAxisMm": 320.0,
      "crankAboveAxisMm": 160.0,
-     "forceExtendedN": 9800,
+     "forceExtendedN": 11250,
      "progression": 0.15,
-     "forceAt90N": 10826,
+     "forceAt90N": 12428,
      "strokeMm": 175,
      "travelDeg": 110
     },
@@ -5284,69 +5407,69 @@
      },
      {
       "deg": 10,
-      "gravityNm": 274,
-      "balancerNm": 182,
-      "gearNm": 91
+      "gravityNm": 314,
+      "balancerNm": 209,
+      "gearNm": 104
      },
      {
       "deg": 20,
-      "gravityNm": 539,
-      "balancerNm": 364,
-      "gearNm": 175
+      "gravityNm": 618,
+      "balancerNm": 418,
+      "gearNm": 200
      },
      {
       "deg": 30,
-      "gravityNm": 788,
-      "balancerNm": 546,
-      "gearNm": 243
+      "gravityNm": 903,
+      "balancerNm": 626,
+      "gearNm": 277
      },
      {
       "deg": 40,
-      "gravityNm": 1014,
-      "balancerNm": 725,
-      "gearNm": 288
+      "gravityNm": 1161,
+      "balancerNm": 833,
+      "gearNm": 329
      },
      {
       "deg": 50,
-      "gravityNm": 1208,
-      "balancerNm": 903,
-      "gearNm": 305
+      "gravityNm": 1384,
+      "balancerNm": 1036,
+      "gearNm": 348
      },
      {
       "deg": 60,
-      "gravityNm": 1366,
-      "balancerNm": 1076,
-      "gearNm": 289
+      "gravityNm": 1565,
+      "balancerNm": 1236,
+      "gearNm": 329
      },
      {
       "deg": 70,
-      "gravityNm": 1482,
-      "balancerNm": 1244,
-      "gearNm": 238
+      "gravityNm": 1698,
+      "balancerNm": 1428,
+      "gearNm": 270
      },
      {
       "deg": 80,
-      "gravityNm": 1553,
-      "balancerNm": 1403,
-      "gearNm": 150
+      "gravityNm": 1779,
+      "balancerNm": 1611,
+      "gearNm": 169
      },
      {
       "deg": 90,
-      "gravityNm": 1577,
-      "balancerNm": 1549,
-      "gearNm": 27
+      "gravityNm": 1807,
+      "balancerNm": 1779,
+      "gearNm": 28
      },
      {
       "deg": 100,
-      "gravityNm": 1553,
-      "balancerNm": 1677,
-      "gearNm": -124
+      "gravityNm": 1779,
+      "balancerNm": 1925,
+      "gearNm": -146
      },
      {
       "deg": 110,
-      "gravityNm": 1482,
-      "balancerNm": 1778,
-      "gearNm": -297
+      "gravityNm": 1698,
+      "balancerNm": 2041,
+      "gearNm": -343
      }
     ]
    },

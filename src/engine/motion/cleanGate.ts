@@ -53,6 +53,7 @@ function advanceBy(s: CleanSession, dt: number, input: Omit<CleanInput, "dt">): 
     const before = dt - done; // how long before the frame's end this step ends
     s = advanceCleanSession(s, {
       ...input, dt: step, endsInS: input.endsInS === null ? null : input.endsInS + before,
+      heldS: (input.heldS ?? 0) > 0 ? (input.heldS ?? 0) + before : 0,
     });
   } while (dt - done > 1e-9);
   return s;
@@ -89,7 +90,7 @@ const ms = (v: unknown): number | null => {
 /**
  * The cabin clean the twin has in progress for this car by a stall's arm, or null.
  *
- * The atom is the interior tidy with status 'in_progress' and a robot_stall_id that
+ * The atom is the interior tidy, or the arm's deep clean, with status 'in_progress' and a robot_stall_id that
  * maps to a renderer stall. A technician's tidy carries no robot_stall_id, so it is
  * never played here. Total: any missing or malformed field reads as no clean.
  */
@@ -100,12 +101,39 @@ export function cabinCleanOf(
   const atoms = bv.visit?.atoms;
   if (!Array.isArray(atoms)) return null;
   for (const a of atoms) {
-    if (!a || a.svc !== "interior_tidy" || a.status !== "in_progress") continue;
+    // the arm's deep program (otto-q-core 0815) is an interior deep clean with the same fields: the visit's tidy, when it
+    // has one, runs with it over the same window, so either atom gives the same clean
+    if (!a || (a.svc !== "interior_tidy" && a.svc !== "interior_deep_clean") || a.status !== "in_progress") continue;
     if (typeof a.robot_stall_id !== "string" || a.robot_stall_id === "") continue;
     const stall = rendererStall(a.robot_stall_id);
     if (!stall) continue;
     const placedHere = typeof bv.stall_id === "string" && rendererStall(bv.stall_id) === stall;
     return { stall, placedHere, startMs: ms(a.started_at), endsMs: ms(a.ends_at) };
+  }
+  return null;
+}
+
+/**
+ * The post of this car's CABIN STOP, as a renderer stall, or null (otto-q-core 0817).
+ *
+ * A parked car with an interior deep clean and no charge to do is sent to a free fast-charger post. It stands there,
+ * not plugged in, while the post's arm runs the deep program. The engine marks the stop on the deep-clean atom
+ * (cabin_stop_stall_id) from the tick it sends the car until the post is freed. The car's state says only "charged,
+ * holding", which is also every car that has just finished a charge, so the mark is the one thing that says this car
+ * belongs ON the post. True only while the twin also places the car on that stall. Total: a missing or malformed
+ * field reads as no stop.
+ */
+export function cabinStopOf(
+  bv: Pick<TwinVehicle, "stall_id" | "visit">,
+  rendererStall: (twinStallId: string) => string | undefined,
+): string | null {
+  const atoms = bv.visit?.atoms;
+  if (!Array.isArray(atoms) || typeof bv.stall_id !== "string") return null;
+  for (const a of atoms) {
+    if (!a || a.svc !== "interior_deep_clean") continue;
+    if (a.status !== "pending" && a.status !== "in_progress") continue;
+    if (typeof a.cabin_stop_stall_id !== "string" || a.cabin_stop_stall_id !== bv.stall_id) continue;
+    return rendererStall(a.cabin_stop_stall_id) ?? null;
   }
   return null;
 }
@@ -123,6 +151,8 @@ export interface CleanStallInput {
   active: boolean;
   /** Sim seconds until the twin's step ends, or null when it published no end. */
   endsInS: number | null;
+  /** Sim seconds the arm still stands still for an item it found in the cabin (otto-q-core 0814), or 0. */
+  heldS?: number;
   /** The stall's charge-port sign (depotPlacement.towardFor). */
   toward: 1 | -1;
   /** The charge arm is still (latched, or not working), so the cleaning arm may go in. */
@@ -161,7 +191,7 @@ export class CleanGate {
       const sides = sidesFor(input.toward);
       const session = advanceBy(prev?.session ?? IDLE_CLEAN, dt, {
         vehicleId: input.vehicleId, active: input.active, endsInS: input.endsInS,
-        sides, mayEnter: input.mayEnter,
+        sides, mayEnter: input.mayEnter, heldS: input.heldS,
       });
       this.store(input.stallId, prev, session, sides, dt);
     }

@@ -20,7 +20,8 @@ import { DEPOT_CAD_OPTIONS, CLEAN_CANOPY_STEEL } from '@/components/canvas/three
 import { armSkeleton } from '@/components/canvas/three/armInstances';
 import { cleanJointsAt, cleanArmPoints, sidesFor } from '@/lib/ottoCleanArm/cleanArmPose';
 import { CLEAN_CHAIN } from '@/lib/ottoCleanArm/cleanArmSpec';
-import { washPoseAt } from '@/lib/ottoWash/washPose';
+import { programPoseAt } from '@/lib/ottoWash/washPose';
+import { DETAIL_SPEC, TRACK_X_M } from '@/lib/ottoWash/detailArm';
 import { WASH_GANTRY as G } from '@/lib/ottoWash/washSpec';
 import { METRES_PER_PLAN_UNIT } from '@/lib/ottoChargeArm/cobotSpec';
 import { cleanAngles, washJoints, ROBOT_KEYS, type Manifest, type RobotKey } from './catalog';
@@ -165,22 +166,33 @@ describe('the yard\'s robots move as the twin\'s do', () => {
     expect(placed(scenes.get('clean_arm')!).has('CLN-HDR')).toBe(true);
   });
 
-  it('the CAD wash machine\'s gantry, brushes and knives stand where washPose puts them', () => {
+  it("the CAD wash bay's gantry, knives and detail arms stand where washPose puts them", () => {
     const skel = cads.get('wash_gantry')!.skeleton();
-    for (const [phase, t] of [['home', 1], ['wash_1', 0.5], ['dry_1', 0.45], ['vacuum', 0.5]] as const) {
-      const p = washPoseAt({ phase, t, vacuumS: 600, from: null });
+    for (const [phase, t] of [['home', 1], ['wash_1', 0.5], ['dry_1', 0.45], ['arms_out', 0.7], ['wipe_front', 0.25], ['wipe_sides', 0.58], ['wipe_roof', 0.19], ['wipe_roof', 0.9], ['wipe_rear', 0.8], ['arms_stow', 0.5]] as const) {
+      const p = programPoseAt(phase, t);
       poseSkeleton(skel, washJoints(p));
       skel.root.updateMatrixWorld(true);
+      const at = (joint: string) => skel.joints.get(joint)!.node.getWorldPosition(new THREE.Vector3());
       // the gantry rides its rails: its frame stands at z = -dy (metres)
-      expect(skel.joints.get('GANTRY')!.node.getWorldPosition(new THREE.Vector3()).z, phase).toBeCloseTo(-p.dy * M, 6);
-      // each side brush slides in from its retracted stand by what the pose asks
-      const l = skel.joints.get('SIDE_BRUSH_L')!.node.position.x, r = skel.joints.get('SIDE_BRUSH_R')!.node.position.x;
-      expect(Math.abs(l), phase).toBeCloseTo((G.sideBrush.retractX - p.sideBrushX) * M, 6);
-      expect(Math.abs(r), phase).toBeCloseTo((G.sideBrush.retractX - p.sideBrushX) * M, 6);
-      // the top brush and the top knife come down on their lift columns by what the pose asks
-      const drop = (pre: string) => [1, 2, 3].reduce((s, n) => s - skel.joints.get(`${pre}${n}`)!.node.position.y, 0);
-      expect(drop('TOP_BRUSH'), phase).toBeCloseTo((G.topBrush.retractY - p.topBrushY) * M, 6);
-      expect(drop('DRYER_TOP'), phase).toBeCloseTo((G.dryer.top.retractY - p.dryerTopY) * M, 6);
+      expect(at('GANTRY').z, phase).toBeCloseTo(-p.dy * M, 6);
+      // the top knife comes down on its lift columns by what the pose asks
+      const drop = (pre: string, n: number) => Array.from({ length: n }, (_, i) => i + 1).reduce((s, k) => s - skel.joints.get(`${pre}${k}`)!.node.position.y, 0);
+      expect(drop('DRYER_TOP', 3), phase).toBeCloseTo((G.dryer.top.retractY - p.dryerTopY) * M, 6);
+      // each detail arm: its carriage on its track, and its elbow and wrist centre where the twin's own kinematics put
+      // them (the CAD's +X is west and its +Z north; the east arm is the CAD's 'L'). The spec file carries 0.1 mm.
+      p.arms.forEach((a, i) => {
+        const s = i === 0 ? 'L' : 'R';
+        expect(at(`DARM_${s}_J1`).z, `${phase} ${s} carriage`).toBeCloseTo(-a.rail, 3);
+        expect(at(`DARM_${s}_J1`).x, `${phase} ${s} track`).toBeCloseTo(-a.side * TRACK_X_M, 3);
+        const elbow = at(`DARM_${s}_J3`), wrist = at(`DARM_${s}_J5`);
+        expect(elbow.distanceTo(new THREE.Vector3(-a.elbow.x, a.elbow.y, -a.elbow.dy)), `${phase}@${t} ${s} elbow`).toBeLessThan(1e-3);
+        expect(wrist.distanceTo(new THREE.Vector3(-a.wrist.x, a.wrist.y, -a.wrist.dy)), `${phase}@${t} ${s} wrist`).toBeLessThan(1e-3);
+        // and the pad's face: the tool's length out from the wrist's flange, along the wrist-to-pad line
+        const flange = at(`DARM_${s}_J6`);
+        const pad = new THREE.Vector3(-a.pad.x, a.pad.y, -a.pad.dy);
+        expect(wrist.distanceTo(pad), `${phase} ${s} pad`).toBeCloseTo(DETAIL_SPEC.wrist + DETAIL_SPEC.tool, 3);
+        expect(flange.distanceTo(wrist) + flange.distanceTo(pad), `${phase} ${s} flange on the line`).toBeCloseTo(wrist.distanceTo(pad), 3);
+      });
     }
   });
 });

@@ -204,10 +204,9 @@
   "wash": {
     "travel": {
       "north": -3.7323,
-      "south": 3.6366
+      "south": 5.5506
     },
-    "homeDy": -3.7323,
-    "cabinDy": 0.5742,
+    "homeDy": 5.5506,
     "gantry": {
       "legX": 3.2538,
       "leg": {
@@ -231,7 +230,7 @@
         "w": 0.1531,
         "h": 0.067,
         "from": -4.785,
-        "to": 4.8807
+        "to": 6.7947
       },
       "arch": {
         "dy": -0.7656,
@@ -239,22 +238,6 @@
         "top": 3.1102,
         "r": 0.0622,
         "nozzles": 9
-      },
-      "topBrush": {
-        "dy": -0.3349,
-        "r": 0.3589,
-        "halfLen": 0.8134,
-        "retractY": 2.7275,
-        "squash": 0.0718,
-        "hangerX": 0.89
-      },
-      "sideBrush": {
-        "dy": 0.2871,
-        "r": 0.4307,
-        "y0": 0.2871,
-        "y1": 2.8232,
-        "retractX": 2.0576,
-        "squash": 0.0861
       },
       "dryer": {
         "dy": 0.9091,
@@ -274,39 +257,40 @@
           "retractX": 2.6796
         }
       },
-      "wand": {
-        "dy": -0.5742,
-        "x": 1.2537,
-        "topY": 3.2538,
-        "workY": 0.8709,
-        "reachX": 0.2393,
-        "r": 0.0431
-      },
       "light": {
         "y": 3.0385,
         "x": 0
       }
     },
+    "detail": {
+      "trackX": 2.1,
+      "dockDy": -5.2156,
+      "trackTo": 3.0624,
+      "tool": 0.14,
+      "padR": 0.06,
+      "stow": {
+        "j2": 0.3,
+        "j3": 2.3
+      }
+    },
     "passSeconds": {
-      "soak": 30,
-      "wash_1": 40,
-      "wash_2": 40,
-      "rinse": 30,
-      "dry_1": 35,
-      "dry_2": 35
+      "soak": 25,
+      "wash_1": 35,
+      "wash_2": 35,
+      "rinse": 25,
+      "dry_1": 30,
+      "dry_2": 30
     },
     "phaseSeconds": {
       "settle": 2.5,
-      "to_cabin": 6,
-      "doors_open": 3,
-      "wands_down": 3,
-      "wands_in": 3,
-      "wands_out": 3,
-      "wands_up": 3,
-      "doors_close": 3,
-      "to_start": 6,
+      "arms_out": 10,
+      "wipe_front": 21,
+      "wipe_sides": 21,
+      "wipe_roof": 38,
+      "wipe_rear": 40,
+      "arms_stow": 15,
       "done": 2,
-      "retract": 2
+      "retract": 9
     }
   },
   "car": {

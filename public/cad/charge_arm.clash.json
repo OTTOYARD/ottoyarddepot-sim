@@ -23,14 +23,14 @@
   "cycle:retract:mid",
   "cycle:retract:end"
  ],
- "pairsChecked": 31577,
- "contactPairs": 1386,
+ "pairsChecked": 33659,
+ "contactPairs": 1503,
  "counts": {
   "thread": 656,
   "seal": 12,
   "ring": 9,
   "mesh": 3,
-  "context": 4,
+  "context": 17,
   "clash": 0,
   "error": 0
  },
@@ -88,6 +88,360 @@
   {
    "kind": "context",
    "a": {
+    "item": "CHG-CAB#1",
+    "part": "CHG-CAB",
+    "name": "DC power cabinet (envelope)",
+    "sub": "MOUNT"
+   },
+   "b": {
+    "item": "CHG-FL2#10",
+    "part": "CHG-FL2",
+    "name": "J2 flex link, 500 A braided copper in a boot",
+    "sub": "DRESS"
+   },
+   "volumeMm3": 391.0,
+   "at": [
+    0.0,
+    414.2,
+    -481.8
+   ],
+   "poses": [
+    "stowed",
+    "pose:stowed",
+    "cycle:retract:end"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-CAB#1",
+    "part": "CHG-CAB",
+    "name": "DC power cabinet (envelope)",
+    "sub": "MOUNT"
+   },
+   "b": {
+    "item": "CHG-FL2#11",
+    "part": "CHG-FL2",
+    "name": "J2 flex link, 500 A braided copper in a boot",
+    "sub": "DRESS"
+   },
+   "volumeMm3": 25312.3,
+   "at": [
+    0.0,
+    438.1,
+    -488.2
+   ],
+   "poses": [
+    "stowed",
+    "pose:stowed",
+    "cycle:unstow:mid",
+    "cycle:retract:end"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-CAB#1",
+    "part": "CHG-CAB",
+    "name": "DC power cabinet (envelope)",
+    "sub": "MOUNT"
+   },
+   "b": {
+    "item": "CHG-FL2#12",
+    "part": "CHG-FL2",
+    "name": "J2 flex link, 500 A braided copper in a boot",
+    "sub": "DRESS"
+   },
+   "volumeMm3": 58863.5,
+   "at": [
+    -0.0,
+    465.2,
+    -496.5
+   ],
+   "poses": [
+    "stowed",
+    "pose:stowed",
+    "cycle:unstow:mid",
+    "cycle:retract:end"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-CAB#1",
+    "part": "CHG-CAB",
+    "name": "DC power cabinet (envelope)",
+    "sub": "MOUNT"
+   },
+   "b": {
+    "item": "CHG-FL2#13",
+    "part": "CHG-FL2",
+    "name": "J2 flex link, 500 A braided copper in a boot",
+    "sub": "DRESS"
+   },
+   "volumeMm3": 75239.7,
+   "at": [
+    0.0,
+    491.0,
+    -505.9
+   ],
+   "poses": [
+    "stowed",
+    "pose:stowed",
+    "cycle:unstow:mid",
+    "cycle:unstow:end",
+    "cycle:retract:end"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-CAB#1",
+    "part": "CHG-CAB",
+    "name": "DC power cabinet (envelope)",
+    "sub": "MOUNT"
+   },
+   "b": {
+    "item": "CHG-FL2#14",
+    "part": "CHG-FL2",
+    "name": "J2 flex link, 500 A braided copper in a boot",
+    "sub": "DRESS"
+   },
+   "volumeMm3": 77516.9,
+   "at": [
+    0.0,
+    516.2,
+    -516.1
+   ],
+   "poses": [
+    "stowed",
+    "pose:stowed",
+    "cycle:unstow:mid",
+    "cycle:unstow:end",
+    "cycle:retract:end"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-CAB#1",
+    "part": "CHG-CAB",
+    "name": "DC power cabinet (envelope)",
+    "sub": "MOUNT"
+   },
+   "b": {
+    "item": "CHG-FL2#15",
+    "part": "CHG-FL2",
+    "name": "J2 flex link, 500 A braided copper in a boot",
+    "sub": "DRESS"
+   },
+   "volumeMm3": 78690.8,
+   "at": [
+    0.0,
+    542.7,
+    -523.6
+   ],
+   "poses": [
+    "stowed",
+    "pose:stowed",
+    "cycle:unstow:mid",
+    "cycle:unstow:end",
+    "cycle:retract:end"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-CAB#1",
+    "part": "CHG-CAB",
+    "name": "DC power cabinet (envelope)",
+    "sub": "MOUNT"
+   },
+   "b": {
+    "item": "CHG-FL2#16",
+    "part": "CHG-FL2",
+    "name": "J2 flex link, 500 A braided copper in a boot",
+    "sub": "DRESS"
+   },
+   "volumeMm3": 81048.3,
+   "at": [
+    -0.0,
+    570.6,
+    -527.3
+   ],
+   "poses": [
+    "stowed",
+    "pose:stowed",
+    "cycle:unstow:mid",
+    "cycle:unstow:end",
+    "cycle:retract:end"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-CAB#1",
+    "part": "CHG-CAB",
+    "name": "DC power cabinet (envelope)",
+    "sub": "MOUNT"
+   },
+   "b": {
+    "item": "CHG-FL2#17",
+    "part": "CHG-FL2",
+    "name": "J2 flex link, 500 A braided copper in a boot",
+    "sub": "DRESS"
+   },
+   "volumeMm3": 84766.2,
+   "at": [
+    -0.0,
+    599.9,
+    -527.0
+   ],
+   "poses": [
+    "stowed",
+    "pose:stowed",
+    "cycle:unstow:mid",
+    "cycle:unstow:end",
+    "cycle:retract:end"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-CAB#1",
+    "part": "CHG-CAB",
+    "name": "DC power cabinet (envelope)",
+    "sub": "MOUNT"
+   },
+   "b": {
+    "item": "CHG-FL2#18",
+    "part": "CHG-FL2",
+    "name": "J2 flex link, 500 A braided copper in a boot",
+    "sub": "DRESS"
+   },
+   "volumeMm3": 96132.6,
+   "at": [
+    -0.0,
+    631.4,
+    -521.9
+   ],
+   "poses": [
+    "stowed",
+    "pose:stowed",
+    "cycle:unstow:mid",
+    "cycle:unstow:end",
+    "cycle:retract:end"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-CAB#1",
+    "part": "CHG-CAB",
+    "name": "DC power cabinet (envelope)",
+    "sub": "MOUNT"
+   },
+   "b": {
+    "item": "CHG-FL2#19",
+    "part": "CHG-FL2",
+    "name": "J2 flex link, 500 A braided copper in a boot",
+    "sub": "DRESS"
+   },
+   "volumeMm3": 90284.8,
+   "at": [
+    -0.0,
+    662.8,
+    -512.1
+   ],
+   "poses": [
+    "stowed",
+    "pose:stowed",
+    "cycle:unstow:mid",
+    "cycle:retract:end"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-CAB#1",
+    "part": "CHG-CAB",
+    "name": "DC power cabinet (envelope)",
+    "sub": "MOUNT"
+   },
+   "b": {
+    "item": "CHG-FL2#20",
+    "part": "CHG-FL2",
+    "name": "J2 flex link, 500 A braided copper in a boot",
+    "sub": "DRESS"
+   },
+   "volumeMm3": 77096.8,
+   "at": [
+    0.0,
+    691.4,
+    -500.8
+   ],
+   "poses": [
+    "stowed",
+    "pose:stowed",
+    "cycle:unstow:mid",
+    "cycle:retract:end"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-CAB#1",
+    "part": "CHG-CAB",
+    "name": "DC power cabinet (envelope)",
+    "sub": "MOUNT"
+   },
+   "b": {
+    "item": "CHG-FL2#21",
+    "part": "CHG-FL2",
+    "name": "J2 flex link, 500 A braided copper in a boot",
+    "sub": "DRESS"
+   },
+   "volumeMm3": 41383.9,
+   "at": [
+    -0.0,
+    720.8,
+    -490.8
+   ],
+   "poses": [
+    "stowed",
+    "pose:stowed",
+    "cycle:retract:end"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-CAB#1",
+    "part": "CHG-CAB",
+    "name": "DC power cabinet (envelope)",
+    "sub": "MOUNT"
+   },
+   "b": {
+    "item": "CHG-FL2#22",
+    "part": "CHG-FL2",
+    "name": "J2 flex link, 500 A braided copper in a boot",
+    "sub": "DRESS"
+   },
+   "volumeMm3": 2323.3,
+   "at": [
+    -0.0,
+    747.2,
+    -483.1
+   ],
+   "poses": [
+    "stowed",
+    "pose:stowed",
+    "cycle:retract:end"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
     "item": "CHG-PAD#1",
     "part": "CHG-PAD",
     "name": "Charger pad (site concrete)",
@@ -134,6 +488,6 @@
    ]
   }
  ],
- "seconds": 1979.1,
- "glbSha256": "b40aa1a8ffb9552b"
+ "seconds": 1960.5,
+ "glbSha256": "1f2627e49905a0a5"
 }

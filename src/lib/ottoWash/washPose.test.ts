@@ -1,21 +1,21 @@
 /**
  * The wash machine against the car it works on, measured against the solid the car mesh is
  * built from (vehicleEnvelope.ts), at every moment of both programs and of every early end:
- *   · nothing rigid touches the car, and a brush presses in no deeper than its bristles give;
- *   · the air knives keep their gap; the wands enter the car only through an open door, into
- *     the cabin's free space, clear of the seats;
- *   · nothing touches an open door;
- *   · retracted, the machine clears a car driving under it, roof pod and all.
+ *   · nothing rigid touches the car: the frame, the air knives and the detail arms' links keep their gap;
+ *   · only the soft pads touch the car, only on a sensor (detailArm.test.ts measures each one);
+ *   · no door opens, and nothing goes into the car;
+ *   · the gantry and the arms never share a part of the bay: the gantry stows at the entrance, the arms at the exit;
+ *   · stowed, the machine clears a car driving under it, roof pod and all.
  */
 import { describe, it, expect } from 'vitest';
-import {
-  carSolidInArmFrame, clearanceToCar, clearanceToDoor, CABIN_VOID, DOOR, seatBoxes,
-} from '@/lib/ottoChargeArm/vehicleEnvelope';
+import { carSolidInArmFrame, clearanceToCar } from '@/lib/ottoChargeArm/vehicleEnvelope';
 import { METRES_PER_PLAN_UNIT } from '@/lib/ottoChargeArm/cobotSpec';
 import { advanceWashSession, IDLE_WASH, type WashSession } from './washSession';
 import { washPoseAt, type WashPose } from './washPose';
-import { WASH_GANTRY as G, WASH_TRAVEL, washChain } from './washSpec';
-import { CAR_HALF_LEN_U, CAR_HALF_WIDTH_U, CAR_TOP_U, carTopU } from './carShape';
+import { WASH_GANTRY as G, WASH_HOME_DY, WASH_TRAVEL, isPass, isWipe, washChain } from './washSpec';
+import { DETAIL_SPEC, DOCK_DY_M, TRACK_TO_M, TRACK_X_M, carGapM, stowed, type ArmState, type B3 } from './detailArm';
+import { MOUNT_HEIGHT_M } from '@/lib/ottoChargeArm/cobotSpec';
+import { CAR_HALF_LEN_U, CAR_HALF_WIDTH_U, CAR_TOP_U } from './carShape';
 
 const M = METRES_PER_PLAN_UNIT;
 const CAR = carSolidInArmFrame(0, 0);
@@ -31,19 +31,6 @@ function carGap(x: number, dy: number, y: number): number {
   if (far > 1.5) return far;
   return clearanceToCar(toCar(x, dy, y), CAR) / M;
 }
-/** The box every door stays inside at any opening, bay frame: either flank, out to its swing, hinge to rear edge. */
-const DOOR_BOX = {
-  x0: CAR_HALF_WIDTH_U - 0.2, x1: (CAR_HALF_WIDTH_U * M + DOOR.hingeOut + (DOOR.alongMax - DOOR.alongMin)) / M + 0.2,
-  dy0: -DOOR.alongMax / M - 0.2, dy1: -DOOR.alongMin / M + 0.2, y0: DOOR.sill / M - 0.2, y1: DOOR.top / M + 0.2,
-};
-/** Clearance from a bay-frame point to the nearer door, open `f`, plan u (a lower bound when far from both). */
-function doorGap(x: number, dy: number, y: number, f: number): number {
-  const ax = Math.abs(x);
-  const far = Math.max(DOOR_BOX.x0 - ax, ax - DOOR_BOX.x1, DOOR_BOX.dy0 - dy, dy - DOOR_BOX.dy1, DOOR_BOX.y0 - y, y - DOOR_BOX.y1);
-  if (far > 1.0) return far;
-  return Math.min(clearanceToDoor(toCar(x, dy, y), 1, f), clearanceToDoor(toCar(x, dy, y), -1, f)) / M;
-}
-
 /** The poses of a program, stepped a frame at a time and kept every `keep` sim seconds, and of an early end of it. */
 function poses(interior: boolean, seat: number, endAt?: number, keep = 0.5): { s: WashSession; p: WashPose }[] {
   const out: { s: WashSession; p: WashPose }[] = [];
@@ -58,10 +45,12 @@ function poses(interior: boolean, seat: number, endAt?: number, keep = 0.5): { s
 }
 
 const ALL: { s: WashSession; p: WashPose }[] = [
-  ...poses(false, 300),
+  ...poses(false, 390),
   ...poses(true, 990),
-  // ended early, mid-pass, mid-vacuum and mid-travel
-  ...poses(false, 300, 120), ...poses(true, 990, 300), ...poses(true, 990, 8), ...poses(true, 990, 900),
+  // ended early: mid-pass, in the cabin hold, in the settle
+  ...poses(false, 390, 120), ...poses(true, 990, 300), ...poses(true, 990, 8),
+  // and every 4 s of the detail arms' work
+  ...Array.from({ length: 40 }, (_, k) => poses(false, 390, 216 + 4 * k)).flat(),
 ];
 
 /** Sample points on a vertical cylinder's surface (axis at x, dy; heights y0..y1), radius r. */
@@ -70,16 +59,6 @@ function cylinderPoints(x: number, dy: number, y0: number, y1: number, r: number
   for (let k = 0; k < 16; k++) {
     const a = (k / 16) * 2 * Math.PI;
     for (let j = 0; j <= 8; j++) out.push([x + r * Math.cos(a), dy + r * Math.sin(a), y0 + ((y1 - y0) * j) / 8]);
-  }
-  return out;
-}
-
-/** Sample points on a horizontal cylinder along x (from x0 to x1) at (dy, y), radius r. */
-function hCylinderPoints(x0: number, x1: number, dy: number, y: number, r: number): [number, number, number][] {
-  const out: [number, number, number][] = [];
-  for (let k = 0; k < 16; k++) {
-    const a = (k / 16) * 2 * Math.PI;
-    for (let j = 0; j <= 10; j++) out.push([x0 + ((x1 - x0) * j) / 10, dy + r * Math.cos(a), y + r * Math.sin(a)]);
   }
   return out;
 }
@@ -95,7 +74,7 @@ function boxPoints(x0: number, x1: number, dy0: number, dy1: number, y0: number,
   return out;
 }
 
-/** The parts that never come near the car or its doors, in the bay frame, for the machine at `dy`. */
+/** The parts that never come near the car, in the bay frame, for the machine at `dy`. */
 function frameParts(dy: number): [number, number, number][] {
   const pts: [number, number, number][] = [];
   for (const side of [-1, 1]) {
@@ -107,133 +86,133 @@ function frameParts(dy: number): [number, number, number][] {
   return pts;
 }
 
-/** The moving parts, in the bay frame, for one pose: each with its allowed penetration into the car, plan u. */
-function movingParts(p: WashPose): { name: string; pts: [number, number, number][]; squash: number }[] {
-  const out: { name: string; pts: [number, number, number][]; squash: number }[] = [];
-  for (const side of [-1, 1]) {
-    out.push({ name: 'side brush', squash: G.sideBrush.squash,
-      pts: cylinderPoints(side * p.sideBrushX, p.dy + G.sideBrush.dy, G.sideBrush.y0, G.sideBrush.y1, G.sideBrush.r) });
-    out.push({ name: 'side air knife', squash: 0,
-      pts: boxPoints(side * (p.dryerSideX + G.dryer.side.w / 2) - G.dryer.side.w / 2, side * (p.dryerSideX + G.dryer.side.w / 2) + G.dryer.side.w / 2,
-        p.dy + G.dryer.dy - G.dryer.side.d / 2, p.dy + G.dryer.dy + G.dryer.side.d / 2, G.dryer.side.y0, G.dryer.side.y1) });
-    // the top brush's hangers, from its axle up to the beam
-    out.push({ name: 'top brush hanger', squash: 0,
-      pts: boxPoints(side * G.topBrush.hangerX - 0.08, side * G.topBrush.hangerX + 0.08,
-        p.dy + G.topBrush.dy - 0.08, p.dy + G.topBrush.dy + 0.08, p.topBrushY, G.beam.y0) });
-    // the wand's vertical stage: carriage to its foot
-    const foot = G.wand.topY + (G.wand.workY - G.wand.topY) * p.wandDrop;
-    out.push({ name: 'wand mast', squash: 0,
-      pts: cylinderPoints(side * G.wand.x, p.dy + G.wand.dy, foot, G.beam.y0, G.wand.r) });
+/** The least a rigid part of an arm keeps off the car, metres (the cleaning arm's rule). */
+const RIGID_GAP_M = 0.10;
+/** The least distance from a link (a line from a to b, radius r) to the car, metres. */
+function linkGap(a: B3, b: B3, r: number): number {
+  let m = Infinity;
+  for (let i = 0; i <= 10; i++) {
+    const f = i / 10;
+    m = Math.min(m, carGapM({ x: a.x + (b.x - a.x) * f, dy: a.dy + (b.dy - a.dy) * f, y: a.y + (b.y - a.y) * f }) - r);
   }
-  out.push({ name: 'top brush', squash: G.topBrush.squash,
-    pts: hCylinderPoints(-G.topBrush.halfLen, G.topBrush.halfLen, p.dy + G.topBrush.dy, p.topBrushY, G.topBrush.r) });
-  out.push({ name: 'top air knife', squash: 0,
-    pts: boxPoints(-G.dryer.top.halfLen, G.dryer.top.halfLen, p.dy + G.dryer.dy - G.dryer.top.d / 2, p.dy + G.dryer.dy + G.dryer.top.d / 2,
-      p.dryerTopY, p.dryerTopY + G.dryer.top.h) });
-  return out;
+  return m;
 }
+const shoulder = (a: ArmState): B3 => ({ x: a.side * TRACK_X_M, dy: a.rail, y: MOUNT_HEIGHT_M + DETAIL_SPEC.shoulderHeight });
+/** An arm's links off the car: upper arm, forearm, wrist. */
+const armGap = (a: ArmState) => Math.min(
+  linkGap(shoulder(a), a.elbow, DETAIL_SPEC.radii.upper), linkGap(a.elbow, a.wrist, DETAIL_SPEC.radii.fore),
+  carGapM(a.wrist) - DETAIL_SPEC.radii.wristR);
+/** The farthest south any part of an arm is (its reach toward the gantry), and the farthest any part is from grade. */
+const armSouth = (a: ArmState) => Math.max(a.rail, a.elbow.dy, a.wrist.dy, a.pad.dy);
 
-/** The wand's horizontal stage (and nozzle): from the carriage in to its tip. */
-function wandArm(p: WashPose, side: 1 | -1): [number, number, number][] {
-  if (p.wandDrop < 1) return [];
-  const tip = G.wand.x + (G.wand.reachX - G.wand.x) * p.wandReach;
-  return hCylinderPoints(side * G.wand.x, side * tip, p.dy + G.wand.dy, G.wand.workY, G.wand.r);
+/** The air knives, in the bay frame. */
+function knifePoints(p: WashPose): [number, number, number][] {
+  const kd = p.dy + G.dryer.dy;
+  const pts = boxPoints(-G.dryer.top.halfLen, G.dryer.top.halfLen, kd - G.dryer.top.d / 2, kd + G.dryer.top.d / 2, p.dryerTopY, p.dryerTopY + G.dryer.top.h);
+  for (const side of [-1, 1]) {
+    const x0 = side * p.dryerSideX, x1 = side * (p.dryerSideX + G.dryer.side.w);
+    pts.push(...boxPoints(Math.min(x0, x1), Math.max(x0, x1), kd - G.dryer.side.d / 2, kd + G.dryer.side.d / 2, G.dryer.side.y0, G.dryer.side.y1));
+  }
+  return pts;
 }
 
 describe('the machine and the car', () => {
   it('samples both programs and their early ends', () => {
+    const seen = new Set(ALL.map(({ s }) => s.phase));
+    for (const ph of [...washChain(true), 'retract', 'return', 'home']) expect(seen, ph).toContain(ph);
     expect(ALL.length).toBeGreaterThan(5000);
-    const seen = new Set(ALL.map((r) => r.s.phase));
-    for (const ph of washChain(true)) expect(seen.has(ph)).toBe(true);
-    expect(seen.has('retract')).toBe(true);
-    expect(seen.has('return')).toBe(true);
-  });
+  }, 120_000);
 
   it('never touches the car with the frame: legs, beam and arch', () => {
-    let worst = Infinity;
-    for (const dy of [WASH_TRAVEL.north, -4, -2, 0, 2, 4, WASH_TRAVEL.south]) {
-      for (const [x, d, y] of frameParts(dy)) worst = Math.min(worst, carGap(x, d, y));
-    }
-    expect(worst).toBeGreaterThan(1.0);
-  });
+    let least = Infinity;
+    for (const { p } of ALL) for (const [x, dy, y] of frameParts(p.dy)) least = Math.min(least, carGap(x, dy, y));
+    expect(least).toBeGreaterThan(1.0);
+  }, 120_000);
 
-  it('presses a brush in no deeper than its bristles give, and keeps every rigid part off the car', () => {
-    const worst = new Map<string, number>();
-    for (const { p } of ALL) {
-      for (const part of movingParts(p)) {
-        let w = worst.get(part.name) ?? Infinity;
-        for (const [x, d, y] of part.pts) w = Math.min(w, carGap(x, d, y));
-        worst.set(part.name, w);
+  it('keeps the air knives off the car, at their gap', () => {
+    let least = Infinity;
+    for (const { p } of ALL) for (const [x, dy, y] of knifePoints(p)) least = Math.min(least, carGap(x, dy, y));
+    expect(least).toBeGreaterThan(0.3);
+  }, 120_000);
+
+  it('keeps each detail arm\'s links 0.10 m off the car at every moment, early ends and all', () => {
+    let least = Infinity, where = '';
+    for (const { s, p } of ALL) for (const a of p.arms) {
+      const g = armGap(a);
+      if (g < least) { least = g; where = `${s.phase}@${s.t.toFixed(2)} ${a.side}`; }
+    }
+    expect(least, where).toBeGreaterThan(RIGID_GAP_M);
+  }, 120_000);
+
+  it('touches the car with the pads only, and only while the arms work', () => {
+    let touched = 0;
+    for (const { s, p } of ALL) for (const a of p.arms) {
+      const gap = carGapM(a.pad);
+      expect(gap, `${s.phase}@${s.t.toFixed(2)}`).toBeGreaterThan(-1e-3);
+      if (a.engage > 0) { expect(isWipe(s.phase)).toBe(true); expect(gap).toBeLessThan(1e-3); touched++; }
+      if (!isWipe(s.phase) && s.phase !== 'retract') expect(gap, `${s.phase} clear`).toBeGreaterThan(0.14);
+    }
+    expect(touched).toBeGreaterThan(200);
+  }, 120_000);
+
+  it('keeps the arms in their docks while the gantry travels, and the gantry home while the arms are out', () => {
+    for (const { s, p } of ALL) {
+      const docked = p.arms.every((a, k) => {
+        const st = stowed(k === 0 ? 1 : -1);
+        return Math.abs(a.rail - DOCK_DY_M) < 1e-9 && Math.abs(a.q.j2 - st.q.j2) < 1e-9 && Math.abs(a.q.j3 - st.q.j3) < 1e-9;
+      });
+      const home = Math.abs(p.dy - WASH_HOME_DY) < 1e-9;
+      if (isPass(s.phase) || s.phase === 'cabin_hold' || s.phase === 'settle') expect(docked, s.phase).toBe(true);
+      if (isWipe(s.phase) || s.phase === 'arms_out' || s.phase === 'arms_stow') expect(home, s.phase).toBe(true);
+      // whatever the moment, the gantry's north face is south of every part of both arms, with room between
+      const gantryNorth = (p.dy + G.beam.dy0) * M;
+      for (const a of p.arms) expect(gantryNorth - armSouth(a), `${s.phase}@${s.t.toFixed(2)}`).toBeGreaterThan(0.5);
+    }
+  }, 120_000);
+
+  it('keeps each carriage on its track and the gantry on its rails', () => {
+    for (const { s, p } of ALL) {
+      expect(p.dy).toBeGreaterThanOrEqual(WASH_TRAVEL.north - 1e-9);
+      expect(p.dy).toBeLessThanOrEqual(WASH_TRAVEL.home + 1e-9);
+      expect(p.dy + G.leg.dy + G.trolley.d / 2).toBeLessThan(G.rail.to);
+      for (const a of p.arms) {
+        expect(a.rail, s.phase).toBeGreaterThanOrEqual(DOCK_DY_M - 1e-9);
+        expect(a.rail, s.phase).toBeLessThanOrEqual(TRACK_TO_M + 1e-9);
       }
     }
-    expect(worst.get('side brush')!).toBeGreaterThanOrEqual(-G.sideBrush.squash - 1e-3);
-    expect(worst.get('top brush')!).toBeGreaterThanOrEqual(-G.topBrush.squash - 1e-3);
-    // and both brushes do reach the car (a brush that never touches washes nothing)
-    expect(worst.get('side brush')!).toBeLessThan(0);
-    expect(worst.get('top brush')!).toBeLessThan(0);
-    for (const name of ['side air knife', 'top air knife', 'top brush hanger', 'wand mast']) {
-      expect(worst.get(name)!, name).toBeGreaterThan(0.2);
-    }
-  });
+  }, 120_000);
 
-  it('keeps every part off an open door', () => {
-    let worst = Infinity;
-    let checked = 0;
+  it('opens no door and puts nothing into the car', () => {
     for (const { p } of ALL) {
-      if (p.doors <= 0) continue;
-      checked++;
-      const pts = [...frameParts(p.dy), ...movingParts(p).flatMap((m) => m.pts)];
-      for (const [x, d, y] of pts) worst = Math.min(worst, doorGap(x, d, y, p.doors));
+      expect(p).not.toHaveProperty('doors');
+      for (const a of p.arms) for (const q of [a.pad, a.wrist, a.elbow]) expect(carGapM(q)).toBeGreaterThan(-1e-3);
     }
-    expect(checked).toBeGreaterThan(1000);
-    expect(worst).toBeGreaterThan(0.25);
-  });
-
-  it('puts a wand into the car only through an open door, into the cabin’s free space, clear of the seats', () => {
-    const seats = seatBoxes();
-    let inside = 0;
-    const bad: string[] = [];
-    for (const { p } of ALL) {
-      for (const side of [1, -1] as const) {
-        for (const [x, d, y] of wandArm(p, side)) {
-          if (carGap(x, d, y) > 0) continue;
-          inside++;
-          const c = toCar(x, d, y);
-          // through the aperture where it crosses the flank, then in the cabin's void
-          const ok = p.doors === 1
-            && c.x > Math.max(DOOR.alongMin, CABIN_VOID.alongMin) && c.x < Math.min(DOOR.alongMax, CABIN_VOID.alongMax)
-            && c.y > Math.max(DOOR.sill, CABIN_VOID.floor) && c.y < Math.min(DOOR.top, CABIN_VOID.ceiling)
-            && !seats.some((b) => c.x > b.x0 && c.x < b.x1 && c.y > b.y0 && c.y < b.y1 && c.z > b.z0 && c.z < b.z1);
-          if (!ok && bad.length < 5) bad.push(`${JSON.stringify(c)} doors ${p.doors}`);
-        }
-      }
-    }
-    expect(bad).toEqual([]);
-    expect(inside).toBeGreaterThan(1000);
-  });
+  }, 120_000);
 });
 
-describe('a car driving under the machine', () => {
-  it('clears the retracted machine, roof pod and all, wherever it stands on its rails', () => {
-    // the car's swept volume as it drives along the drive line: its full width and height, every dy
-    let worst = Infinity;
-    const home = washPoseAt({ phase: 'home', t: 1, vacuumS: 600, from: null });
-    for (const dy of [WASH_TRAVEL.north, -5, -2.5, 0, 2.5, 5, WASH_TRAVEL.south]) {
-      const p = { ...home, dy };
-      const pts = [...frameParts(dy), ...movingParts({ ...washPoseAt({ phase: 'home', t: 1, vacuumS: 600, from: null }), dy }).flatMap((m) => m.pts)];
-      void p;
-      for (const [x, , y] of pts) {
-        const outX = Math.abs(x) - CAR_HALF_WIDTH_U;
-        const outY = y - CAR_TOP_U;
-        worst = Math.min(worst, Math.max(outX, outY));
-      }
+describe('a car driving through the bay', () => {
+  it('clears the stowed machine, roof pod and all, wherever the gantry stands on its rails', () => {
+    for (let dy = WASH_TRAVEL.north; dy <= WASH_TRAVEL.home; dy += 0.4) {
+      const p = washPoseAt({ phase: 'home', t: 1, from: null });
+      // the beam and the stowed top knife over the car's path; the side knives beside it
+      expect(G.beam.y0 - CAR_TOP_U).toBeGreaterThan(1.0);
+      expect(p.dryerTopY - CAR_TOP_U).toBeGreaterThan(1.0);
+      expect(p.dryerSideX - CAR_HALF_WIDTH_U).toBeGreaterThan(1.0);
     }
-    expect(worst).toBeGreaterThan(1.0);
-  });
+  }, 120_000);
 
-  it('waits clear of the parked car’s nose, so a car pulls up to it', () => {
-    const home = washPoseAt({ phase: 'home', t: 1, vacuumS: 600, from: null });
-    expect(home.dy + G.dryer.dy + G.dryer.top.d / 2).toBeLessThan(-CAR_HALF_LEN_U - 0.5);
-    expect(carTopU(home.dy + G.dryer.dy)).toBeNull();
-  });
+  it('passes between the docked arms on its way out, with 0.6 m a side', () => {
+    const p = washPoseAt({ phase: 'home', t: 1, from: null });
+    for (const a of p.arms) {
+      for (const q of [a.pad, a.wrist, a.elbow]) expect(Math.abs(q.x) - CAR_HALF_WIDTH_U * M).toBeGreaterThan(0.6);
+      expect(TRACK_X_M - DETAIL_SPEC.radii.base - CAR_HALF_WIDTH_U * M).toBeGreaterThan(0.6);
+    }
+  }, 120_000);
+
+  it('finds the gantry stowed at the entrance, behind the parked car, and the stop light green', () => {
+    const p = washPoseAt({ phase: 'home', t: 1, from: null });
+    expect(p.dy).toBe(WASH_TRAVEL.home);
+    expect(p.dy + G.beam.dy0).toBeGreaterThan(CAR_HALF_LEN_U);
+    expect(p.stop).toBe(false);
+  }, 120_000);
 });

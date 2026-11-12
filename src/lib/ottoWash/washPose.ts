@@ -1,47 +1,38 @@
 /**
- * Where every moving part of a bay's rollover machine is, for one session, in the BAY frame
- * (washSpec.ts): plan units, `dy` from the parked car's centre (negative = north, toward
- * the nose), `x` from the drive line, heights above grade.
+ * Where every moving part of a wash bay is, for one session: the gantry (in the BAY frame of washSpec.ts: plan units,
+ * `dy` from the parked car's centre, negative = north, `x` from the drive line, heights above grade) and the two
+ * detail arms (detailArm.ts, metres).
  *
- * Pure: (phase, t, the session's pace and the pose its phase began from) -> pose. The
- * brushes and air knives meet the car where carShape.ts says the car is, which is the
- * solid the car mesh is drawn from (vehicleEnvelope.ts).
+ * Pure: (phase, t, the pose its phase began from) -> pose. The air knives meet the car where carShape.ts says the
+ * car is, and the arms' pads where its solid is (vehicleEnvelope.ts). No brush touches the car, and no door opens.
  */
 import {
-  PASS_EASE, PASS_FROM, PASS_KIND, WASH_CABIN_DY, WASH_GANTRY, WASH_HOME_DY, isPass, passTo, type WashPhase,
+  PASS_EASE, PASS_FROM, PASS_KIND, WASH_GANTRY, WASH_HOME_DY, WIPE_PARTS, isPass, isWipe, passTo, stationOf,
+  washChain, type WashPhase, type WipeStation,
 } from './washSpec';
-import { CAR_HALF_LEN_U, CAR_HALF_WIDTH_U, carTopU } from './carShape';
+import { CAR_HALF_LEN_U, carHalfWidthAtU, carTopU } from './carShape';
+import { armInZone, armOut, armReturn, armStow, armTuck, stowed, type ArmState } from './detailArm';
 
 export interface WashPose {
   /** the gantry's centreline, plan u from the car's centre (negative = north) */
   dy: number;
-  /** 0..1: the side and top brushes on the car */
-  brushEngage: number;
   /** 0..1: the air knives on the car */
   dryEngage: number;
-  /** each side brush's axis, plan u from the drive line */
-  sideBrushX: number;
-  /** the top brush's axis height, plan u */
-  topBrushY: number;
   /** the top air knife's lower face, plan u above grade */
   dryerTopY: number;
   /** each side air knife's inner face, plan u from the drive line */
   dryerSideX: number;
-  /** 0..1: each vacuum wand's vertical stage, from under the beam to the door's mid-height */
-  wandDrop: number;
-  /** 0..1: each wand's horizontal stage, from its carriage into the cabin */
-  wandReach: number;
+  /** the two detail arms: east, then west. Each moves on its own (detailArm.ts; points in metres) */
+  arms: readonly [ArmState, ArmState];
+  /** the part of the car the arms are working on, or going to */
+  station: WipeStation | null;
   /** what the arch sprays */
-  spray: 'none' | 'soak' | 'foam' | 'rinse';
+  spray: 'none' | 'soak' | 'jet' | 'rinse';
   /** the air knives blow */
   air: boolean;
-  /** the brushes turn */
-  spinning: boolean;
-  /** the car's doors, 0 shut .. 1 open */
-  doors: number;
   /** the status beacon */
   status: 'home' | 'working' | 'moving' | 'finishing';
-  /** the stop light shows red: the car must stay where it is */
+  /** the stop lights show red: the car must stay where it is */
   stop: boolean;
 }
 
@@ -56,23 +47,6 @@ function topHeld(dy: number): number {
   const lim = CAR_HALF_LEN_U - 1e-6;
   return carTopU(Math.max(-lim, Math.min(lim, dy))) ?? 0;
 }
-
-/**
- * Where the top brush's axis rides over the car at `dy`: a cylinder of radius r rolling on
- * the car's top, pressed in by its squash. Past the car's ends it holds the bumper's height.
- */
-export function topBrushContactY(dy: number): number {
-  const { r, squash } = G.topBrush;
-  let h = 0;
-  for (let k = -8; k <= 8; k++) {
-    const s = (k / 8) * r;
-    h = Math.max(h, topHeld(dy + s) + Math.sqrt(Math.max(0, r * r - s * s)));
-  }
-  return h - squash;
-}
-
-/** The side brushes' axis on the car: the brush's radius off the flank, less its squash. */
-export const SIDE_BRUSH_CONTACT_X = CAR_HALF_WIDTH_U + G.sideBrush.r - G.sideBrush.squash;
 
 /**
  * The top air knife's lower face over the car at `dy`: the car's highest point under it plus
@@ -93,26 +67,21 @@ export function dryerTopContactY(dy: number): number {
 }
 
 /** The side air knives' inner face on the car. */
-export const DRYER_SIDE_CONTACT_X = CAR_HALF_WIDTH_U + G.dryer.side.gap;
+export const DRYER_SIDE_CONTACT_X = carHalfWidthAtU(0) + G.dryer.side.gap;
 
-/** Everything off the car, the machine at `dy`. */
+const STOWED_ARMS: readonly [ArmState, ArmState] = [stowed(1), stowed(-1)];
+
+/** The gantry with everything off the car, at `dy`, and both arms in their docks. */
 function retracted(dy: number): WashPose {
   return {
-    dy, brushEngage: 0, dryEngage: 0,
-    sideBrushX: G.sideBrush.retractX, topBrushY: G.topBrush.retractY,
-    dryerTopY: G.dryer.top.retractY, dryerSideX: G.dryer.side.retractX,
-    wandDrop: 0, wandReach: 0, spray: 'none', air: false, spinning: false, doors: 0,
-    status: 'moving', stop: true,
+    dy, dryEngage: 0, dryerTopY: G.dryer.top.retractY, dryerSideX: G.dryer.side.retractX,
+    arms: STOWED_ARMS, station: null, spray: 'none', air: false, status: 'moving', stop: true,
   };
 }
 
-/** Fill in the brushes' and air knives' positions from their engagement at the machine's `dy`. */
+/** Fill in the air knives' positions from their engagement at the gantry's `dy`. */
 function place(p: WashPose): WashPose {
-  const td = p.dy + G.topBrush.dy;
   const kd = p.dy + G.dryer.dy;
-  // the side brushes close to the flank's line; past the car's ends they turn in the air
-  p.sideBrushX = lerp(G.sideBrush.retractX, SIDE_BRUSH_CONTACT_X, p.brushEngage);
-  p.topBrushY = lerp(G.topBrush.retractY, topBrushContactY(td), p.brushEngage);
   p.dryerTopY = lerp(G.dryer.top.retractY, dryerTopContactY(kd), p.dryEngage);
   p.dryerSideX = lerp(G.dryer.side.retractX, DRYER_SIDE_CONTACT_X, p.dryEngage);
   return p;
@@ -121,95 +90,66 @@ function place(p: WashPose): WashPose {
 export interface PoseSource {
   phase: WashPhase;
   t: number;
-  /** the vacuum's length, sim seconds (it sets how many sweeps the wands make) */
-  vacuumS: number;
   /** the pose the current phase began from (the phases that start from wherever the machine is) */
   from: WashPose | null;
 }
-
-/** The vacuum's sweep: the gantry's small travel along the cabin floor, plan u either way. */
-export const VACUUM_SWEEP_U = 0.15;
 
 /** The machine's pose for this session. */
 export function washPoseAt(s: PoseSource): WashPose {
   const t = clamp01(s.t);
   const from = s.from;
   switch (s.phase) {
-    case 'home': {
+    case 'home': case 'done': {
       const p = retracted(WASH_HOME_DY);
       p.status = 'home'; p.stop = false;
       return place(p);
     }
     case 'settle':
       return place(retracted(WASH_HOME_DY));
-    case 'to_cabin':
-      return place(retracted(lerp(from?.dy ?? WASH_HOME_DY, WASH_CABIN_DY, ease(t))));
-    case 'doors_open': {
-      const p = retracted(WASH_CABIN_DY);
-      p.doors = ease(t);
-      return place(p);
-    }
-    case 'wands_down': {
-      const p = retracted(WASH_CABIN_DY);
-      p.doors = 1; p.wandDrop = ease(t);
-      return place(p);
-    }
-    case 'wands_in': {
-      const p = retracted(WASH_CABIN_DY);
-      p.doors = 1; p.wandDrop = 1; p.wandReach = ease(t);
-      return place(p);
-    }
-    case 'vacuum': {
-      // whole sweeps, so the pose is the same at the vacuum's two ends as at wands_in's end
-      const n = Math.max(1, Math.round(s.vacuumS / 9));
-      const m = Math.max(1, Math.round(s.vacuumS / 4));
-      const p = retracted(WASH_CABIN_DY + VACUUM_SWEEP_U * Math.sin(2 * Math.PI * n * t));
-      p.doors = 1; p.wandDrop = 1;
-      p.wandReach = 1 - 0.4 * (1 - Math.cos(2 * Math.PI * m * t)) / 2;
+    case 'cabin_hold': {
+      // a detail seat's cabin time: the machine stands parked and dry, and the car stays (washSpec.ts)
+      const p = retracted(WASH_HOME_DY);
       p.status = 'working';
       return place(p);
     }
-    case 'wands_out': {
-      const p = retracted(from?.dy ?? WASH_CABIN_DY);
-      p.doors = 1; p.wandDrop = from?.wandDrop ?? 1;
-      p.wandReach = lerp(from?.wandReach ?? 1, 0, ease(t));
-      return place(p);
-    }
-    case 'wands_up': {
-      const p = retracted(from?.dy ?? WASH_CABIN_DY);
-      p.doors = 1; p.wandDrop = lerp(from?.wandDrop ?? 1, 0, ease(t));
-      return place(p);
-    }
-    case 'doors_close': {
-      const p = retracted(from?.dy ?? WASH_CABIN_DY);
-      p.doors = 1 - ease(t);
-      return place(p);
-    }
-    case 'to_start':
-      return place(retracted(lerp(from?.dy ?? WASH_CABIN_DY, PASS_FROM.soak, ease(t))));
-    case 'done': {
+    case 'arms_out': {
+      // the gantry is home at the entrance; each arm unfolds at its dock and rides down its track to the nose
       const p = retracted(WASH_HOME_DY);
-      p.status = 'home'; p.stop = false;
+      p.arms = [armOut(1, t), armOut(-1, t)];
+      p.station = 'front';
+      return place(p);
+    }
+    case 'arms_stow': {
+      const p = retracted(WASH_HOME_DY);
+      p.arms = [armStow(1, t), armStow(-1, t)];
       return place(p);
     }
     case 'retract': {
-      // the seat ended mid-pass: brushes and air knives come off the car where it stands
-      const f = ease(t);
+      // the seat ended mid-program: the air knives come off the car and each arm tucks, where it stands
       const p = retracted(from?.dy ?? WASH_HOME_DY);
-      p.brushEngage = lerp(from?.brushEngage ?? 0, 0, f);
-      p.dryEngage = lerp(from?.dryEngage ?? 0, 0, f);
-      p.spinning = p.brushEngage > 0.02;
+      p.dryEngage = lerp(from?.dryEngage ?? 0, 0, ease(t));
+      if (from) p.arms = [armTuck(from.arms[0], t), armTuck(from.arms[1], t)];
       p.status = 'finishing';
       return place(p);
     }
     case 'return': {
+      // the gantry goes home to the entrance, and each arm to its dock at the exit
       const p = retracted(lerp(from?.dy ?? WASH_HOME_DY, WASH_HOME_DY, ease(t)));
+      if (from) p.arms = [armReturn(from.arms[0], t), armReturn(from.arms[1], t)];
       p.status = 'finishing';
       return place(p);
     }
     default: {
+      if (isWipe(s.phase)) {
+        const zone = stationOf(s.phase);
+        const p = retracted(WASH_HOME_DY);
+        p.arms = [armInZone(1, zone, t, WIPE_PARTS), armInZone(-1, zone, t, WIPE_PARTS)];
+        p.station = zone;
+        p.status = p.arms.some((a) => a.engage > 0) ? 'working' : 'moving';
+        return place(p);
+      }
       if (!isPass(s.phase)) return place(retracted(WASH_HOME_DY));
-      // a pass: close in standing still, travel, open out standing still
+      // a pass: a steady travel from one end to the other; the air knives close in standing still and open out so
       const u = ease((t - PASS_EASE) / (1 - 2 * PASS_EASE));
       const p = retracted(lerp(PASS_FROM[s.phase], passTo(s.phase), u));
       const e = t < PASS_EASE ? ease(t / PASS_EASE) : t > 1 - PASS_EASE ? ease((1 - t) / PASS_EASE) : 1;
@@ -217,11 +157,21 @@ export function washPoseAt(s: PoseSource): WashPose {
       p.status = 'working';
       switch (PASS_KIND[s.phase]) {
         case 'soak': p.spray = on ? 'soak' : 'none'; break;
-        case 'brush': p.brushEngage = e; p.spinning = true; p.spray = on ? 'foam' : 'none'; break;
+        case 'jet': p.spray = on ? 'jet' : 'none'; break;
         case 'rinse': p.spray = on ? 'rinse' : 'none'; break;
         case 'dry': p.dryEngage = e; p.air = on; break;
       }
       return place(p);
     }
   }
+}
+
+/**
+ * The pose at (phase, t) of the whole program played from its start: each phase begins from the end of the one before
+ * it, as a session plays it. For the engineering model's cycle and its clash poses, which have no session.
+ */
+export function programPoseAt(phase: WashPhase, t: number): WashPose {
+  const chain = washChain(true);
+  const i = chain.indexOf(phase);
+  return washPoseAt({ phase, t, from: i > 0 ? programPoseAt(chain[i - 1], 1) : null });
 }

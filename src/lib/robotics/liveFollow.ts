@@ -75,9 +75,10 @@ export interface LiveUnit {
   car: string | null;
 }
 
-export function liveUnit(robot: RobotKey, id: string, s: Pick<LiveSession, 'phase' | 'vehicleId'>, carName: (vehicleId: string) => string | null): LiveUnit {
+export function liveUnit(robot: RobotKey, id: string, s: Pick<LiveSession, 'phase' | 'vehicleId'> & { held?: boolean }, carName: (vehicleId: string) => string | null): LiveUnit {
   return {
-    id, label: unitLabel(robot, id), phase: s.phase, phaseLabel: phaseLabel(robot, s.phase),
+    // a cleaning arm that found an item in the cabin stands still until an attendant secures it (otto-q-core 0814)
+    id, label: unitLabel(robot, id), phase: s.phase, phaseLabel: s.held ? 'Stopped. An item is in the cabin' : phaseLabel(robot, s.phase),
     working: !isAtRest(robot, s.phase), car: s.vehicleId ? carName(s.vehicleId) : null,
   };
 }

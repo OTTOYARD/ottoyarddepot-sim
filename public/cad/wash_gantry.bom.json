@@ -7,12 +7,12 @@
   "glb": "m"
  },
  "totals": {
-  "parts": 931,
-  "uniqueParts": 131,
-  "fasteners": 460,
-  "massKg": 4616.37,
-  "boughtLines": 64,
-  "madeLines": 67,
+  "parts": 2639,
+  "uniqueParts": 250,
+  "fasteners": 1636,
+  "massKg": 5631.01,
+  "boughtLines": 151,
+  "madeLines": 99,
   "referenceLines": 0
  },
  "subsystems": [
@@ -27,13 +27,13 @@
    ],
    "specs": {
     "track": "6.51 m",
-    "length": "9.67 m"
+    "length": "11.58 m"
    },
    "group": "Structure",
    "order": 0,
-   "partCount": 78,
-   "fastenerCount": 48,
-   "massKg": 423.467,
+   "partCount": 90,
+   "fastenerCount": 56,
+   "massKg": 505.085,
    "uniqueParts": 6
   },
   {
@@ -42,7 +42,8 @@
    "function": "Moves the whole machine back and forth over the car, 6 passes a wash.",
    "how": [
     "A geared motor inside each trolley drives one wheel. The drives keep in step by encoder.",
-    "Side rollers keep the wheels on the rails."
+    "Side rollers keep the wheels on the rails.",
+    "Between cars, and while the arms work, the machine is stowed at the entrance end, 1.8 m behind the car."
    ],
    "specs": {
     "speed": "about 10 m/min",
@@ -70,16 +71,17 @@
    "order": 2,
    "partCount": 167,
    "fastenerCount": 160,
-   "massKg": 1682.893,
+   "massKg": 1684.302,
    "uniqueParts": 9
   },
   {
    "id": "ARCH",
    "name": "Spray arch",
-   "function": "Sprays the pre-soak foam, then the clear-water rinse.",
+   "function": "Sprays the pre-soak, the wash water jets and the clear-water rinse.",
    "how": [
     "9 flat-fan nozzles each side and 5 across the top.",
-    "Solenoid valves switch the foam and the rinse water."
+    "Solenoid valves switch the pre-soak, the wash water and the rinse water.",
+    "The water does the washing. No brush touches the car, its cameras or its lidar."
    ],
    "specs": {
     "pressure": "up to 70 bar (nozzle rating)"
@@ -90,45 +92,6 @@
    "fastenerCount": 0,
    "massKg": 130.305,
    "uniqueParts": 8
-  },
-  {
-   "id": "TOPBRUSH",
-   "name": "Top brush (overhead)",
-   "function": "Washes the bonnet, the roof and the roof pod. It follows the car top.",
-   "how": [
-    "A geared motor turns the brush.",
-    "It hangs on 2 telescoping lift columns of 3 stages each. It reaches the hood with no guide below the roof.",
-    "The lift lowers it until the motor current says it touches, then follows the shape.",
-    "A spring reel under the beam feeds the brush motor. Its cable pays out as the brush goes down."
-   ],
-   "specs": {
-    "brush": "718 mm, 1627 mm long"
-   },
-   "group": "Tools",
-   "order": 4,
-   "partCount": 91,
-   "fastenerCount": 40,
-   "massKg": 278.581,
-   "uniqueParts": 25
-  },
-  {
-   "id": "SIDEBRUSH",
-   "name": "Side brushes",
-   "function": "Wash the flanks, the doors and the wheels.",
-   "how": [
-    "Each brush hangs from a carriage on 2 rails under the beam.",
-    "A rack drive moves it in to the flank. A geared motor turns it.",
-    "A cable chain under the beam feeds the 2 motors on each carriage. Its bend rolls along as the carriage moves."
-   ],
-   "specs": {
-    "brush": "861 mm, 2536 mm tall"
-   },
-   "group": "Tools",
-   "order": 5,
-   "partCount": 216,
-   "fastenerCount": 100,
-   "massKg": 334.473,
-   "uniqueParts": 19
   },
   {
    "id": "DRYER",
@@ -143,32 +106,190 @@
     "blowers": "top 4 kW, sides 2 x 3 kW (class)"
    },
    "group": "Tools",
-   "order": 6,
+   "order": 4,
    "partCount": 119,
    "fastenerCount": 64,
    "massKg": 467.052,
    "uniqueParts": 20
   },
   {
-   "id": "WAND",
-   "name": "Detail vacuum wands",
-   "function": "Vacuum the cabin floor through the open doors on a detail seat.",
+   "id": "TRACK",
+   "name": "Detail arm tracks",
+   "function": "A floor track each side of the car takes a detail arm to any place along the car.",
    "how": [
-    "Each wand drops on a 4-stage column outside its flank.",
-    "2 telescoping tubes reach in through the door opening.",
-    "The air goes up the reach tubes and the column stages to a vacuum unit on the beam. The stages slide on lip seals.",
-    "A spring reel on the beam feeds the reach drive and the head lamp. Its cable goes down through the beam and pays out as the wand goes down."
+    "2 profile rails on a steel beam, anchored to the slab every metre.",
+    "A servo gearmotor on the carriage drives a pinion on a rack between the rails.",
+    "A cable chain beside the track brings power, network and pure water to the carriage.",
+    "The tracks stand 2.1 m from the drive line, inside the gantry rails. The gantry passes over them."
    ],
    "specs": {
-    "drop": "2.38 m",
-    "reach": "1.01 m"
+    "travel": "8.28 m",
+    "speed": "1.5 m/s (class)",
+    "from the flank": "1.14 m"
+   },
+   "group": "Motion",
+   "order": 5,
+   "partCount": 830,
+   "fastenerCount": 436,
+   "massKg": 1179.031,
+   "uniqueParts": 18
+  },
+  {
+   "id": "DOCK",
+   "name": "Arm docks and pad care",
+   "function": "Each arm parks at the exit end, folded along its track, with its pad in a rinse cup.",
+   "how": [
+    "A nozzle in the cup rinses the pad with pure water after each car. The pad turns in the cup to throw the water off.",
+    "The dock stands north of the gantry's travel, so a parked arm is never under the gantry.",
+    "A signal on each dock faces the car: red while the bay works, green when the car may go."
+   ],
+   "specs": {
+    "pad rinse": "pure water, after each car"
    },
    "group": "Tools",
-   "order": 7,
-   "partCount": 68,
+   "order": 6,
+   "partCount": 20,
    "fastenerCount": 8,
-   "massKg": 237.563,
-   "uniqueParts": 24
+   "massKg": 62.957,
+   "uniqueParts": 7
+  },
+  {
+   "id": "J1",
+   "name": "Detail arm J1 base turn",
+   "function": "Turns the whole arm about the vertical axis.",
+   "how": [
+    "A size 40 actuator in the pedestal top turns the turret.",
+    "It is the charge arm's own joint."
+   ],
+   "specs": {
+    "gear": "strain-wave, size 40, 100:1"
+   },
+   "group": "Detail arm",
+   "order": 7,
+   "partCount": 222,
+   "fastenerCount": 168,
+   "massKg": 132.501,
+   "uniqueParts": 37
+  },
+  {
+   "id": "J2",
+   "name": "Detail arm J2 shoulder",
+   "function": "Leans the upper arm toward or away from the car.",
+   "how": [
+    "A size 50 actuator in the turret boss drives the upper arm.",
+    "A gas spring balancer carries most of the gravity load."
+   ],
+   "specs": {
+    "gear": "strain-wave, size 50, 100:1"
+   },
+   "group": "Detail arm",
+   "order": 8,
+   "partCount": 204,
+   "fastenerCount": 144,
+   "massKg": 108.708,
+   "uniqueParts": 40
+  },
+  {
+   "id": "UPPER",
+   "name": "Detail arm upper arm",
+   "function": "The 1.344 m cast link from the shoulder to the elbow.",
+   "how": [
+    "A hollow aluminium casting, 7 mm wall."
+   ],
+   "specs": {},
+   "group": "Detail arm",
+   "order": 9,
+   "partCount": 38,
+   "fastenerCount": 36,
+   "massKg": 54.456,
+   "uniqueParts": 3
+  },
+  {
+   "id": "J3",
+   "name": "Detail arm J3 elbow",
+   "function": "Folds the forearm to set the reach and the height of the wrist.",
+   "how": [
+    "A size 40 actuator in the upper arm boss drives the forearm."
+   ],
+   "specs": {
+    "gear": "strain-wave, size 40, 100:1"
+   },
+   "group": "Detail arm",
+   "order": 10,
+   "partCount": 168,
+   "fastenerCount": 120,
+   "massKg": 44.891,
+   "uniqueParts": 32
+  },
+  {
+   "id": "FORE",
+   "name": "Detail arm forearm",
+   "function": "The 1.142 m cast link from the elbow to the wrist centre.",
+   "how": [
+    "A hollow aluminium casting with a dog-leg, so it folds past the upper arm."
+   ],
+   "specs": {},
+   "group": "Detail arm",
+   "order": 11,
+   "partCount": 34,
+   "fastenerCount": 32,
+   "massKg": 30.365,
+   "uniqueParts": 2
+  },
+  {
+   "id": "WRIST",
+   "name": "Detail arm wrist (J4, J5, J6)",
+   "function": "Points the pad square onto a sensor at any angle, as a hand does.",
+   "how": [
+    "The 3 wrist axes meet at one point. So the pad turns about that point and stays on the sensor.",
+    "J6 turns the pad a quarter turn each way to polish. It does not spin free, so no cable winds up."
+   ],
+   "specs": {
+    "gears": "strain-wave, sizes 25, 25 and 20"
+   },
+   "group": "Detail arm",
+   "order": 12,
+   "partCount": 500,
+   "fastenerCount": 352,
+   "massKg": 47.76,
+   "uniqueParts": 66
+  },
+  {
+   "id": "SAFETY",
+   "name": "Detail arm status",
+   "function": "Light rings on the arm show its state.",
+   "how": [
+    "Teal at rest, green at work, amber on the move."
+   ],
+   "specs": {},
+   "group": "Detail arm",
+   "order": 13,
+   "partCount": 6,
+   "fastenerCount": 0,
+   "massKg": 0.249,
+   "uniqueParts": 3
+  },
+  {
+   "id": "POLISH",
+   "name": "Polishing head",
+   "function": "A soft pad on a floating, force-sensing head polishes each camera, lidar and radar cover.",
+   "how": [
+    "A 6-axis force sensor reads the push. The arm holds it at 5 N and stops at 10 N.",
+    "A floating joint lets the pad tilt 6 degrees and give 8 mm. So it lies flat on a curved cover.",
+    "The pad is microfibre over soft foam, 120 mm across. It is small enough for the edge of a roof lidar.",
+    "A camera beside the pad finds each sensor. A nozzle mists it with pure water first. No chemical is used."
+   ],
+   "specs": {
+    "pad": "120 mm microfibre on foam, hook-and-loop",
+    "push": "5 N working, 10 N limit (ASSUMPTION, to be set on test)",
+    "reach": "2.49 m from the shoulder"
+   },
+   "group": "Tools",
+   "order": 14,
+   "partCount": 34,
+   "fastenerCount": 20,
+   "massKg": 5.817,
+   "uniqueParts": 11
   },
   {
    "id": "CONTROL",
@@ -183,10 +304,10 @@
    ],
    "specs": {},
    "group": "Control",
-   "order": 8,
-   "partCount": 93,
+   "order": 15,
+   "partCount": 108,
    "fastenerCount": 8,
-   "massKg": 608.621,
+   "massKg": 724.118,
    "uniqueParts": 18
   }
  ],
@@ -197,13 +318,13 @@
    "category": "structure",
    "make": "make",
    "standard": "welded profile",
-   "size": "153 x 67 x 8, 9666 long",
+   "size": "153 x 67 x 8, 11580 long",
    "grade": "S355J2",
    "material": "Structural steel S355, hot-dip galvanised",
    "materialKey": "steel_s355",
    "qty": 2,
-   "massKg": 164.5593,
-   "totalMassKg": 329.1186,
+   "massKg": 197.1453,
+   "totalMassKg": 394.2906,
    "torqueNm": null,
    "reference": false,
    "function": "Carries one side of the machine. The wheels run in its channel.",
@@ -249,9 +370,9 @@
    "grade": "S355J2",
    "material": "Structural steel S355, hot-dip galvanised",
    "materialKey": "steel_s355",
-   "qty": 20,
+   "qty": 24,
    "massKg": 3.8897,
-   "totalMassKg": 77.7944,
+   "totalMassKg": 93.3532,
    "torqueNm": null,
    "reference": false,
    "function": "Spreads the rail load into the slab. Grouted under.",
@@ -259,7 +380,7 @@
    "uses": [
     {
      "sub": "RAILS",
-     "qty": 20
+     "qty": 24
     }
    ]
   },
@@ -324,9 +445,9 @@
    "grade": "",
    "material": "Steel, zinc flake coated",
    "materialKey": "fast_zn",
-   "qty": 40,
+   "qty": 96,
    "massKg": 0.1109,
-   "totalMassKg": 4.4348,
+   "totalMassKg": 10.6434,
    "torqueNm": 60.0,
    "reference": false,
    "function": "Holds the anchor plate in the slab. No mortar: it cuts its own thread.",
@@ -334,7 +455,11 @@
    "uses": [
     {
      "sub": "RAILS",
-     "qty": 40
+     "qty": 48
+    },
+    {
+     "sub": "TRACK",
+     "qty": 48
     }
    ]
   },
@@ -637,7 +762,7 @@
    "reference": false,
    "function": "Spans the bay: 2 chords and 4 cross members, closed by a deck top and bottom into a box girder. Every tool hangs below it at its own station, so none can meet another; the drives stand on top.",
    "spec": {
-    "stations (z, mm)": "arch 766, wands 574, top brush 335, side brushes -287, air knives -909"
+    "stations (z, mm)": "arch 766, air knives -909"
    },
    "uses": [
     {
@@ -657,8 +782,8 @@
    "material": "Aluminium 6063-T6 extrusion, anodised",
    "materialKey": "al_extr",
    "qty": 1,
-   "massKg": 120.8198,
-   "totalMassKg": 120.8198,
+   "massKg": 121.5241,
+   "totalMassKg": 121.5241,
    "torqueNm": null,
    "reference": false,
    "function": "Closes the beam between its chords and carries the tools hung below it and the drives on it.",
@@ -681,8 +806,8 @@
    "material": "Aluminium 6063-T6 extrusion, anodised",
    "materialKey": "al_extr",
    "qty": 1,
-   "massKg": 120.8198,
-   "totalMassKg": 120.8198,
+   "massKg": 121.5241,
+   "totalMassKg": 121.5241,
    "torqueNm": null,
    "reference": false,
    "function": "Closes the beam between its chords and carries the tools hung below it and the drives on it.",
@@ -928,9 +1053,9 @@
    "grade": "",
    "material": "Stainless steel 1.4401 (316)",
    "materialKey": "ss316",
-   "qty": 23,
+   "qty": 25,
    "massKg": 0.0174,
-   "totalMassKg": 0.3999,
+   "totalMassKg": 0.4347,
    "torqueNm": null,
    "reference": false,
    "function": "Makes a 15 degree flat fan. Its tip is the only part that wears.",
@@ -941,6 +1066,10 @@
     {
      "sub": "ARCH",
      "qty": 23
+    },
+    {
+     "sub": "POLISH",
+     "qty": 2
     }
    ]
   },
@@ -985,7 +1114,7 @@
    "totalMassKg": 66.7402,
    "torqueNm": null,
    "reference": false,
-   "function": "Carries the foam and the rinse water to the nozzles. Stainless: wash chemicals do not touch carbon steel.",
+   "function": "Carries the pre-soak, the wash water and the rinse water to the nozzles. Stainless: wash chemicals do not touch carbon steel.",
    "spec": {},
    "uses": [
     {
@@ -1039,1042 +1168,6 @@
     {
      "sub": "ARCH",
      "qty": 4
-    }
-   ]
-  },
-  {
-   "id": "WSH-TCK",
-   "name": "Cable reel bracket, stainless",
-   "category": "structure",
-   "make": "make",
-   "standard": "bent plate 10 mm",
-   "size": "120 x 100",
-   "grade": "316L",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 1,
-   "massKg": 0.9576,
-   "totalMassKg": 0.9576,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Hangs the top brush cable reel under the bottom deck.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "WSH-TCL",
-   "name": "Lift column clamp plate, stainless",
-   "category": "structure",
-   "make": "make",
-   "standard": "cut plate 12 mm",
-   "size": "220 x 220",
-   "grade": "316L",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 2,
-   "massKg": 2.7579,
-   "totalMassKg": 5.5158,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Holds a lift column sleeve under the bottom deck.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "WSH-TH0",
-   "name": "Top brush lift column sleeve, 140 x 140 x 5",
-   "category": "structure",
-   "make": "make",
-   "standard": "EN 10219",
-   "size": "725 long",
-   "grade": "316L",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 2,
-   "massKg": 15.6173,
-   "totalMassKg": 31.2345,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Fixed through the beam. It guides the column's first stage.",
-   "spec": {
-    "bottom": "2.91 m above grade, above the car roof"
-   },
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "WSH-TH1",
-   "name": "Top brush lift column stage 2, 122 x 122",
-   "category": "structure",
-   "make": "make",
-   "standard": "EN 10219",
-   "size": "726 long",
-   "grade": "316L",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 2,
-   "massKg": 10.9356,
-   "totalMassKg": 21.8712,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Slides a third of the travel. A belt over its pulley drives the next stage.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "WSH-TH2",
-   "name": "Top brush lift column stage 3, 106 x 106",
-   "category": "structure",
-   "make": "make",
-   "standard": "EN 10219",
-   "size": "726 long",
-   "grade": "316L",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 2,
-   "massKg": 9.4528,
-   "totalMassKg": 18.9056,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Slides a third of the travel. A belt over its pulley drives the next stage.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "WSH-TH3",
-   "name": "Top brush lift column stage 4, 90 x 90",
-   "category": "structure",
-   "make": "make",
-   "standard": "EN 10219",
-   "size": "726 long",
-   "grade": "316L",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 2,
-   "massKg": 7.97,
-   "totalMassKg": 15.94,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Slides a third of the travel and carries the tool at its foot.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "WSH-THG",
-   "name": "Top brush bearing block",
-   "category": "structure",
-   "make": "make",
-   "standard": "machined",
-   "size": "100 x 220 x 140",
-   "grade": "316L",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 2,
-   "massKg": 19.2736,
-   "totalMassKg": 38.5472,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Hangs the brush from its lift column's foot. It carries a bearing unit.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "WSH-DRM",
-   "name": "Lift belt drum 90 mm",
-   "category": "drive",
-   "make": "make",
-   "standard": "machined",
-   "size": "D 90 x 60",
-   "grade": "6061-T6",
-   "material": "Aluminium 6061-T6, machined, clear anodised",
-   "materialKey": "al6061",
-   "qty": 2,
-   "massKg": 0.827,
-   "totalMassKg": 1.654,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Winds the lift belt that hangs the top brush.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "WSH-LSH",
-   "name": "Lift cross shaft, 40 mm, stainless",
-   "category": "drive",
-   "make": "make",
-   "standard": "machined",
-   "size": "D 40 x 2080",
-   "grade": "",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 1,
-   "massKg": 20.8582,
-   "totalMassKg": 20.8582,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Turns both belt drums together, so the brush lifts level.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "WSH-TBM",
-   "name": "Top brush gearmotor 0.75 kW, 135 rpm, right-angle",
-   "category": "drive",
-   "make": "buy",
-   "standard": "catalogue part",
-   "size": "0.75 kW",
-   "grade": "IP66, wash-down",
-   "material": "Structural steel S355, painted RAL 9005",
-   "materialKey": "steel_paint",
-   "qty": 1,
-   "massKg": 26.0,
-   "totalMassKg": 26.0,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Turns the top brush. Its current tells the lift how hard the brush presses.",
-   "spec": {
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
-   },
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "WSH-TLM",
-   "name": "Top brush lift gearmotor 0.37 kW, brake, hollow shaft",
-   "category": "drive",
-   "make": "buy",
-   "standard": "catalogue part",
-   "size": "0.37 kW",
-   "grade": "IP66",
-   "material": "Structural steel S355, painted RAL 9005",
-   "materialKey": "steel_paint",
-   "qty": 1,
-   "massKg": 16.0,
-   "totalMassKg": 16.0,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Turns the lift cross shaft: raises and lowers the top brush. Its brake holds it when power is off.",
-   "spec": {
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
-   },
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "WSH-TSH",
-   "name": "Top brush shaft, stainless",
-   "category": "drive",
-   "make": "make",
-   "standard": "machined",
-   "size": "D 60 x 1990",
-   "grade": "",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 1,
-   "massKg": 16.1641,
-   "totalMassKg": 16.1641,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Carries the brush between its 2 bearings. Its right end drives from the gearmotor's hollow output.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "WSH-FBU",
-   "name": "Flanged bearing unit, 4-bolt, stainless, 60 mm",
-   "category": "bearing",
-   "make": "buy",
-   "standard": "ISO 3228",
-   "size": "bore 60",
-   "grade": "sealed, wash-down",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 4,
-   "massKg": 2.8248,
-   "totalMassKg": 11.2992,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Carries one end of a brush shaft.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 2
-    },
-    {
-     "sub": "SIDEBRUSH",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "WSH-PBU",
-   "name": "Pillow-block bearing unit, 40 mm, stainless",
-   "category": "bearing",
-   "make": "buy",
-   "standard": "ISO 3228",
-   "size": "bore 40",
-   "grade": "sealed, wash-down",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 2,
-   "massKg": 2.8147,
-   "totalMassKg": 5.6294,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Carries the lift shaft on the beam.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "WSH-THP",
-   "name": "Top brush lift column slide pad, UHMW-PE",
-   "category": "bearing",
-   "make": "make",
-   "standard": "machined",
-   "size": "4 x 60 x 40",
-   "grade": "UHMW-PE",
-   "material": "PA66-GF30",
-   "materialKey": "pa66",
-   "qty": 24,
-   "massKg": 0.013,
-   "totalMassKg": 0.311,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Guides a stage in the one outside it. No grease to wash off.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 24
-    }
-   ]
-  },
-  {
-   "id": "WSH-TBC",
-   "name": "Top brush motor cable 4G1.5 + brake + PTC, PUR, on its reel",
-   "category": "electrical",
-   "make": "buy",
-   "standard": "EN 50525",
-   "size": "OD 13",
-   "grade": "",
-   "material": "Cable, TPE jacket",
-   "materialKey": "cable",
-   "qty": 1,
-   "massKg": 1.015,
-   "totalMassKg": 1.015,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Feeds the top brush motor from its reel as the brush goes down.",
-   "spec": {
-    "length": "2900 mm",
-    "length range": "0 to 2900 mm",
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
-   },
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "WSH-TBJ",
-   "name": "Motor terminal box with cable gland, toward the reel",
-   "category": "electrical",
-   "make": "buy",
-   "standard": "catalogue part",
-   "size": "40 x 30 x 155",
-   "grade": "IP66",
-   "material": "PA66-GF30",
-   "materialKey": "pa66",
-   "qty": 1,
-   "massKg": 0.2511,
-   "totalMassKg": 0.2511,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Takes the reel's cable into the motor.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "WSH-TCR",
-   "name": "Spring cable reel, 3 m, IP65",
-   "category": "electrical",
-   "make": "buy",
-   "standard": "catalogue part",
-   "size": "D 180",
-   "grade": "IP65",
-   "material": "Structural steel S355, painted RAL 9005",
-   "materialKey": "steel_paint",
-   "qty": 1,
-   "massKg": 6.0,
-   "totalMassKg": 6.0,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Pays out and takes back the top brush motor cable as the brush goes down and up.",
-   "spec": {
-    "cable": "4G1.5 + brake + PTC, 3 m",
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
-   },
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "WSH-TBR",
-   "name": "Top brush, closed-cell foam strips",
-   "category": "tool",
-   "make": "buy",
-   "standard": "catalogue part",
-   "size": "D 718 x 1627",
-   "grade": "",
-   "material": "Closed-cell PE foam strips, blue",
-   "materialKey": "brush_blue",
-   "qty": 1,
-   "massKg": 45.0,
-   "totalMassKg": 45.0,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Scrubs the car top. Foam strips do not hold grit, so they do not scratch the paint.",
-   "spec": {
-    "speed": "about 135 rpm",
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
-   },
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "ISO4017-M10x30-A4-70",
-   "name": "Hex head screw M10 x 30",
-   "category": "fastener",
-   "make": "buy",
-   "standard": "ISO 4017",
-   "size": "M10 x 30",
-   "grade": "A4-70",
-   "material": "Stainless steel A4-80",
-   "materialKey": "fast_a4",
-   "qty": 16,
-   "massKg": 0.0299,
-   "totalMassKg": 0.4789,
-   "torqueNm": 34.4,
-   "reference": false,
-   "function": "Holds the top brush gearmotor to its hanger.",
-   "spec": {
-    "preload": "20.8 kN",
-    "drive": "hex 16 mm"
-   },
-   "uses": [
-    {
-     "sub": "CONTROL",
-     "qty": 4
-    },
-    {
-     "sub": "TOPBRUSH",
-     "qty": 4
-    },
-    {
-     "sub": "SIDEBRUSH",
-     "qty": 8
-    }
-   ]
-  },
-  {
-   "id": "ISO4017-M12x40-A4-70",
-   "name": "Hex head screw M12 x 40",
-   "category": "fastener",
-   "make": "buy",
-   "standard": "ISO 4017",
-   "size": "M12 x 40",
-   "grade": "A4-70",
-   "material": "Stainless steel A4-80",
-   "materialKey": "fast_a4",
-   "qty": 20,
-   "massKg": 0.0526,
-   "totalMassKg": 1.0517,
-   "torqueNm": 59.2,
-   "reference": false,
-   "function": "Holds the bearing unit to the hanger.",
-   "spec": {
-    "preload": "30.3 kN",
-    "drive": "hex 18 mm"
-   },
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 12
-    },
-    {
-     "sub": "SIDEBRUSH",
-     "qty": 8
-    }
-   ]
-  },
-  {
-   "id": "ISO4017-M8x25-A4-70",
-   "name": "Hex head screw M8 x 25",
-   "category": "fastener",
-   "make": "buy",
-   "standard": "ISO 4017",
-   "size": "M8 x 25",
-   "grade": "A4-70",
-   "material": "Stainless steel A4-80",
-   "materialKey": "fast_a4",
-   "qty": 12,
-   "massKg": 0.0161,
-   "totalMassKg": 0.1933,
-   "torqueNm": 17.6,
-   "reference": false,
-   "function": "Holds the lift gearmotor to the top deck.",
-   "spec": {
-    "preload": "13.1 kN",
-    "drive": "hex 13 mm"
-   },
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 4
-    },
-    {
-     "sub": "SIDEBRUSH",
-     "qty": 8
-    }
-   ]
-  },
-  {
-   "id": "ISO4762-M8x20-A4-80",
-   "name": "Socket head cap screw M8 x 20",
-   "category": "fastener",
-   "make": "buy",
-   "standard": "ISO 4762",
-   "size": "M8 x 20",
-   "grade": "A4-80",
-   "material": "Stainless steel A4-80",
-   "materialKey": "fast_a4",
-   "qty": 32,
-   "massKg": 0.0152,
-   "totalMassKg": 0.4872,
-   "torqueNm": 23.8,
-   "reference": false,
-   "function": "Holds the lift column clamp plate to the bottom deck.",
-   "spec": {
-    "preload": "17.5 kN",
-    "drive": "hex socket 6 mm"
-   },
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 8
-    },
-    {
-     "sub": "DRYER",
-     "qty": 16
-    },
-    {
-     "sub": "WAND",
-     "qty": 8
-    }
-   ]
-  },
-  {
-   "id": "ISO7040-M12-A4",
-   "name": "Prevailing-torque hex nut (nylon insert) M12",
-   "category": "fastener",
-   "make": "buy",
-   "standard": "ISO 7040",
-   "size": "M12",
-   "grade": "A4",
-   "material": "Stainless steel A4-80",
-   "materialKey": "fast_a4",
-   "qty": 4,
-   "massKg": 0.0223,
-   "totalMassKg": 0.089,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Holds the bolt's clamp force on the far side of the joint. The nylon ring grips the thread, so vibration cannot turn the nut loose.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 4
-    }
-   ]
-  },
-  {
-   "id": "ISO7089-12-fast_a4",
-   "name": "Plain washer 12",
-   "category": "fastener",
-   "make": "buy",
-   "standard": "ISO 7089",
-   "size": "13 x 24 x 2.5",
-   "grade": "A4",
-   "material": "Stainless steel A4-80",
-   "materialKey": "fast_a4",
-   "qty": 8,
-   "massKg": 0.0064,
-   "totalMassKg": 0.051,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Puts the clamp force of the head or the nut on a larger area, so the part surface does not crush and the preload stays constant.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 8
-    }
-   ]
-  },
-  {
-   "id": "WSH-SBF",
-   "name": "Cable chain end bracket, stainless",
-   "category": "structure",
-   "make": "make",
-   "standard": "bent plate",
-   "size": "40 x 38",
-   "grade": "316L",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 2,
-   "massKg": 0.3275,
-   "totalMassKg": 0.655,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Holds the chain's fixed end under the deck.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "SIDEBRUSH",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "WSH-SBK",
-   "name": "Cable chain carrier bracket, stainless",
-   "category": "structure",
-   "make": "make",
-   "standard": "bent plate",
-   "size": "60 x 50",
-   "grade": "316L",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 2,
-   "massKg": 0.6703,
-   "totalMassKg": 1.3406,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Joins the chain's moving end to the carriage.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "SIDEBRUSH",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "WSH-SCG",
-   "name": "Side brush carriage",
-   "category": "structure",
-   "make": "make",
-   "standard": "machined weldment",
-   "size": "300 x 300 x 160",
-   "grade": "316L",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 2,
-   "massKg": 22.0481,
-   "totalMassKg": 44.0961,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Runs on 2 rails under the beam and carries the brush, its motor and bearing.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "SIDEBRUSH",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "BLK25",
-   "name": "Profile rail block size 25",
-   "category": "drive",
-   "make": "buy",
-   "standard": "catalogue part (ISO 12090-1 dims)",
-   "size": "size 25",
-   "grade": "preload Z1, wipers",
-   "material": "Steel 42CrMo4, quenched and tempered",
-   "materialKey": "steel",
-   "qty": 4,
-   "massKg": 0.7203,
-   "totalMassKg": 2.8812,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Recirculating ball carriage. It runs on the rail and carries the moving stage.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "SIDEBRUSH",
-     "qty": 4
-    }
-   ]
-  },
-  {
-   "id": "RAIL25-1800",
-   "name": "Profile rail size 25 x 1800",
-   "category": "drive",
-   "make": "buy",
-   "standard": "catalogue part (ISO 12090-1 dims)",
-   "size": "size 25, L 1800",
-   "grade": "precision grade",
-   "material": "Bearing steel 100Cr6, hardened",
-   "materialKey": "bearing",
-   "qty": 4,
-   "massKg": 6.1086,
-   "totalMassKg": 24.4343,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Hardened guide rail. It carries the block in a straight line with no play.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "SIDEBRUSH",
-     "qty": 4
-    }
-   ]
-  },
-  {
-   "id": "WSH-CGM",
-   "name": "Carriage gearmotor 0.37 kW, brake, encoder, right-angle",
-   "category": "drive",
-   "make": "buy",
-   "standard": "catalogue part",
-   "size": "0.37 kW",
-   "grade": "IP66, wash-down",
-   "material": "Structural steel S355, painted RAL 9005",
-   "materialKey": "steel_paint",
-   "qty": 2,
-   "massKg": 12.0,
-   "totalMassKg": 24.0,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Moves the side brush in to the flank. Its current says how hard the brush presses.",
-   "spec": {
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
-   },
-   "uses": [
-    {
-     "sub": "SIDEBRUSH",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "WSH-PIN",
-   "name": "Pinion module 2, 20 teeth, stainless",
-   "category": "drive",
-   "make": "buy",
-   "standard": "DIN 867 tooth form",
-   "size": "20 T, m 2",
-   "grade": "",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 2,
-   "massKg": 0.2748,
-   "totalMassKg": 0.5495,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Drives the brush carriage along its rack.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "SIDEBRUSH",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "WSH-SBM",
-   "name": "Side brush gearmotor 1.1 kW, 113 rpm, right-angle, hollow shaft",
-   "category": "drive",
-   "make": "buy",
-   "standard": "catalogue part",
-   "size": "1.1 kW",
-   "grade": "IP66, wash-down",
-   "material": "Structural steel S355, painted RAL 9005",
-   "materialKey": "steel_paint",
-   "qty": 2,
-   "massKg": 31.0,
-   "totalMassKg": 62.0,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Turns one side brush. Its current tells the carriage how hard the brush presses.",
-   "spec": {
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
-   },
-   "uses": [
-    {
-     "sub": "SIDEBRUSH",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "WSH-SRK",
-   "name": "Gear rack module 2, 20 x 20, stainless",
-   "category": "drive",
-   "make": "buy",
-   "standard": "DIN 867 tooth form",
-   "size": "1500 long",
-   "grade": "",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 2,
-   "massKg": 4.788,
-   "totalMassKg": 9.576,
-   "torqueNm": null,
-   "reference": false,
-   "function": "The carriage pinion runs along it.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "SIDEBRUSH",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "WSH-SSH",
-   "name": "Side brush shaft, stainless",
-   "category": "drive",
-   "make": "make",
-   "standard": "machined",
-   "size": "D 60 x 6 tube, 2893",
-   "grade": "",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 2,
-   "massKg": 23.4956,
-   "totalMassKg": 46.9912,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Carries the brush. The gearmotor turns it; the bearing unit in the carriage holds it.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "SIDEBRUSH",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "ECHAIN-38x25",
-   "name": "Cable carrier link 38 x 25",
-   "category": "electrical",
-   "make": "buy",
-   "standard": "catalogue part",
-   "size": "inner 38 x 25, pitch 38",
-   "grade": "",
-   "material": "PA66-GF30",
-   "materialKey": "pa66",
-   "qty": 88,
-   "massKg": 0.0108,
-   "totalMassKg": 0.9461,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Guides the cables and hoses through the moving joint. It keeps the bend radius safe.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "SIDEBRUSH",
-     "qty": 88
-    }
-   ]
-  },
-  {
-   "id": "WSH-SBRL",
-   "name": "Side brush, closed-cell foam strips",
-   "category": "tool",
-   "make": "buy",
-   "standard": "catalogue part",
-   "size": "D 861 x 2536",
-   "grade": "",
-   "material": "Closed-cell PE foam strips, blue",
-   "materialKey": "brush_blue",
-   "qty": 1,
-   "massKg": 55.0,
-   "totalMassKg": 55.0,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Scrubs one flank, its doors and wheels.",
-   "spec": {
-    "speed": "about 113 rpm",
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
-   },
-   "uses": [
-    {
-     "sub": "SIDEBRUSH",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "WSH-SBRR",
-   "name": "Side brush, closed-cell foam strips",
-   "category": "tool",
-   "make": "buy",
-   "standard": "catalogue part",
-   "size": "D 861 x 2536",
-   "grade": "",
-   "material": "Closed-cell PE foam strips, red",
-   "materialKey": "brush_red",
-   "qty": 1,
-   "massKg": 55.0,
-   "totalMassKg": 55.0,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Scrubs one flank, its doors and wheels.",
-   "spec": {
-    "speed": "about 113 rpm",
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
-   },
-   "uses": [
-    {
-     "sub": "SIDEBRUSH",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "ISO4762-M6x16-A4-80",
-   "name": "Socket head cap screw M6 x 16",
-   "category": "fastener",
-   "make": "buy",
-   "standard": "ISO 4762",
-   "size": "M6 x 16",
-   "grade": "A4-80",
-   "material": "Stainless steel A4-80",
-   "materialKey": "fast_a4",
-   "qty": 20,
-   "massKg": 0.0067,
-   "totalMassKg": 0.1342,
-   "torqueNm": 9.8,
-   "reference": false,
-   "function": "Holds the rail block to the carriage, from inside it.",
-   "spec": {
-    "preload": "9.5 kN",
-    "drive": "hex socket 5 mm"
-   },
-   "uses": [
-    {
-     "sub": "CONTROL",
-     "qty": 4
-    },
-    {
-     "sub": "SIDEBRUSH",
-     "qty": 16
-    }
-   ]
-  },
-  {
-   "id": "ISO4762-M6x20-A4-80",
-   "name": "Socket head cap screw M6 x 20",
-   "category": "fastener",
-   "make": "buy",
-   "standard": "ISO 4762",
-   "size": "M6 x 20",
-   "grade": "A4-80",
-   "material": "Stainless steel A4-80",
-   "materialKey": "fast_a4",
-   "qty": 60,
-   "massKg": 0.0076,
-   "totalMassKg": 0.4569,
-   "torqueNm": 9.8,
-   "reference": false,
-   "function": "Holds the side brush rail to the bottom deck.",
-   "spec": {
-    "preload": "9.5 kN",
-    "drive": "hex socket 5 mm"
-   },
-   "uses": [
-    {
-     "sub": "SIDEBRUSH",
-     "qty": 60
     }
    ]
   },
@@ -2513,6 +1606,33 @@
    ]
   },
   {
+   "id": "ISO4762-M8x20-A4-80",
+   "name": "Socket head cap screw M8 x 20",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M8 x 20",
+   "grade": "A4-80",
+   "material": "Stainless steel A4-80",
+   "materialKey": "fast_a4",
+   "qty": 16,
+   "massKg": 0.0152,
+   "totalMassKg": 0.2436,
+   "torqueNm": 23.8,
+   "reference": false,
+   "function": "Holds the lift column clamp plate to the bottom deck.",
+   "spec": {
+    "preload": "17.5 kN",
+    "drive": "hex socket 6 mm"
+   },
+   "uses": [
+    {
+     "sub": "DRYER",
+     "qty": 16
+    }
+   ]
+  },
+  {
    "id": "ISO7040-M10-8",
    "name": "Prevailing-torque hex nut (nylon insert) M10",
    "category": "fastener",
@@ -2537,572 +1657,4846 @@
    ]
   },
   {
-   "id": "WSH-WAR1",
-   "name": "Wand reach tube 1, 60 x 4",
+   "id": "WSH-DCAL",
+   "name": "Cable chain carrier arm, stainless",
    "category": "structure",
    "make": "make",
-   "standard": "EN 10217-7",
-   "size": "D 60 x 4 x 567",
+   "standard": "bent plate",
+   "size": "138 x 80",
    "grade": "316L",
    "material": "Stainless steel 1.4401 (316)",
    "materialKey": "ss316",
-   "qty": 2,
-   "massKg": 3.1852,
-   "totalMassKg": 6.3704,
+   "qty": 1,
+   "massKg": 1.6471,
+   "totalMassKg": 1.6471,
    "torqueNm": null,
    "reference": false,
-   "function": "Slides half the reach in the slide block. Tube 2 slides in it.",
+   "function": "Joins the chain's moving end to the carriage.",
    "spec": {},
    "uses": [
     {
-     "sub": "WAND",
+     "sub": "TRACK",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-DCAR",
+   "name": "Cable chain carrier arm, stainless",
+   "category": "structure",
+   "make": "make",
+   "standard": "bent plate",
+   "size": "138 x 80",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 1.6471,
+   "totalMassKg": 1.6471,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Joins the chain's moving end to the carriage.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "TRACK",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-DCP",
+   "name": "Arm carriage plate, 440 x 660 x 20",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined plate",
+   "size": "440 x 660 x 20",
+   "grade": "S355J2",
+   "material": "Structural steel S355, hot-dip galvanised",
+   "materialKey": "steel_s355",
+   "qty": 2,
+   "massKg": 45.37,
+   "totalMassKg": 90.7401,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Rides the 4 rail blocks and carries the pedestal and the track drive.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "TRACK",
      "qty": 2
     }
    ]
   },
   {
-   "id": "WSH-WAR2",
-   "name": "Wand reach tube 2, 52 x 3, the vacuum duct",
+   "id": "WSH-DPD",
+   "name": "Arm pedestal weldment",
    "category": "structure",
    "make": "make",
-   "standard": "EN 10217-7",
-   "size": "D 52 x 3 x 572",
-   "grade": "316L",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
+   "standard": "EN 1090-2 EXC2",
+   "size": "300 sq x 341",
+   "grade": "S355J2, hot-dip galvanised",
+   "material": "Structural steel S355, hot-dip galvanised",
+   "materialKey": "steel_s355",
    "qty": 2,
-   "massKg": 2.1087,
-   "totalMassKg": 4.2174,
+   "massKg": 42.356,
+   "totalMassKg": 84.712,
    "torqueNm": null,
    "reference": false,
-   "function": "Slides the other half of the reach in tube 1 and carries the head in through the door opening. The air goes up it.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "WAND",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "WSH-WCK",
-   "name": "Cable reel bracket, stainless",
-   "category": "structure",
-   "make": "make",
-   "standard": "bent plate 8 mm",
-   "size": "2 x 130 x 120",
-   "grade": "316L",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 2,
-   "massKg": 1.9918,
-   "totalMassKg": 3.9836,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Carries the cable reel's axle on the top deck.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "WAND",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "WSH-WCL",
-   "name": "Wand column clamp plate, stainless",
-   "category": "structure",
-   "make": "make",
-   "standard": "cut plate 12 mm",
-   "size": "200 x 200",
-   "grade": "316L",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 2,
-   "massKg": 2.6717,
-   "totalMassKg": 5.3434,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Holds the wand column sleeve under the bottom deck.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "WAND",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "WSH-WRA",
-   "name": "Cable entry arm on the slide block, stainless",
-   "category": "structure",
-   "make": "make",
-   "standard": "machined",
-   "size": "105 x 40 x 10",
-   "grade": "316L",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 2,
-   "massKg": 0.3352,
-   "totalMassKg": 0.6703,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Takes the reel's cable into the slide block, outboard of the sleeve.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "WAND",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "WSH-WS1",
-   "name": "Wand column stage 1 (sleeve), 110 x 110",
-   "category": "structure",
-   "make": "make",
-   "standard": "EN 10219",
-   "size": "966 long",
-   "grade": "316L",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 2,
-   "massKg": 16.1949,
-   "totalMassKg": 32.3899,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Fixed through the beam. It guides the next stage.",
+   "function": "Lifts the arm to the charge arm's own mount height on the carriage. The J1 actuator hangs inside it.",
    "spec": {
-    "stowed top": "4.23 m above grade"
+    "window": "for the cables, toward the cable chain"
    },
    "uses": [
     {
-     "sub": "WAND",
+     "sub": "TRACK",
      "qty": 2
     }
    ]
   },
   {
-   "id": "WSH-WS2",
-   "name": "Wand column stage 2, 94 x 94",
+   "id": "WSH-DTB",
+   "name": "Detail arm track beam, RHS 240 x 60 x 6",
    "category": "structure",
    "make": "make",
    "standard": "EN 10219",
-   "size": "914 long",
-   "grade": "316L",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
+   "size": "10896 long",
+   "grade": "S355J2, hot-dip galvanised",
+   "material": "Structural steel S355, hot-dip galvanised",
+   "materialKey": "steel_s355",
    "qty": 2,
-   "massKg": 10.5064,
-   "totalMassKg": 21.0128,
+   "massKg": 295.6065,
+   "totalMassKg": 591.213,
    "torqueNm": null,
    "reference": false,
-   "function": "Slides a third of the drop. A belt over its pulley drives the next stage.",
-   "spec": {},
+   "function": "Carries the 2 rails and the rack of one detail arm track, flat and straight, and the dock at its north end.",
+   "spec": {
+    "flatness": "0.3 mm per metre, shimmed on its anchor plates"
+   },
    "uses": [
     {
-     "sub": "WAND",
+     "sub": "TRACK",
      "qty": 2
     }
    ]
   },
   {
-   "id": "WSH-WS3",
-   "name": "Wand column stage 3, 80 x 80",
+   "id": "WSH-DTP",
+   "name": "Track anchor plate 360 x 160 x 12",
    "category": "structure",
    "make": "make",
-   "standard": "EN 10219",
-   "size": "914 long",
-   "grade": "316L",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 2,
-   "massKg": 8.8721,
-   "totalMassKg": 17.7441,
+   "standard": "cut plate",
+   "size": "360 x 160 x 12",
+   "grade": "S355J2",
+   "material": "Structural steel S355, hot-dip galvanised",
+   "materialKey": "steel_s355",
+   "qty": 24,
+   "massKg": 5.3969,
+   "totalMassKg": 129.526,
    "torqueNm": null,
    "reference": false,
-   "function": "Slides a third of the drop. A belt over its pulley drives the next stage.",
+   "function": "Holds the track beam to the slab.",
    "spec": {},
    "uses": [
     {
-     "sub": "WAND",
-     "qty": 2
+     "sub": "TRACK",
+     "qty": 24
     }
    ]
   },
   {
-   "id": "WSH-WS4",
-   "name": "Wand column stage 4, 66 x 66",
+   "id": "WSH-DTS",
+   "name": "Track end stop with buffer",
    "category": "structure",
    "make": "make",
-   "standard": "EN 10219",
-   "size": "914 long",
-   "grade": "316L",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 2,
-   "massKg": 7.2377,
-   "totalMassKg": 14.4755,
+   "standard": "welded to the beam, PU buffer",
+   "size": "120 x 70 x 50",
+   "grade": "",
+   "material": "Structural steel S355, hot-dip galvanised",
+   "materialKey": "steel_s355",
+   "qty": 4,
+   "massKg": 2.0982,
+   "totalMassKg": 8.3929,
    "torqueNm": null,
    "reference": false,
-   "function": "Carries the reach slide at its foot.",
+   "function": "Stops the carriage if it runs past its travel.",
    "spec": {},
    "uses": [
     {
-     "sub": "WAND",
+     "sub": "TRACK",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "WSH-DTT",
+   "name": "Track tie bar, galvanised flat 60 x 8",
+   "category": "structure",
+   "make": "make",
+   "standard": "flat bar",
+   "size": "60 x 8 x 859",
+   "grade": "S235, galvanised",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 2,
+   "massKg": 3.236,
+   "totalMassKg": 6.4719,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Ties the arm track to the gantry rail, so the two stay parallel.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "TRACK",
      "qty": 2
     }
    ]
   },
   {
-   "id": "WSH-VAC",
-   "name": "Vacuum unit 1.5 kW, wash-down, with dirt bin",
+   "id": "BLK25",
+   "name": "Profile rail block size 25",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue part (ISO 12090-1 dims)",
+   "size": "size 25",
+   "grade": "preload Z1, wipers",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 8,
+   "massKg": 0.7203,
+   "totalMassKg": 5.7624,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Recirculating ball carriage. It runs on the rail and carries the moving stage.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "TRACK",
+     "qty": 8
+    }
+   ]
+  },
+  {
+   "id": "RAIL25-2040",
+   "name": "Profile rail size 25 x 2040",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue part (ISO 12090-1 dims)",
+   "size": "size 25, L 2040",
+   "grade": "precision grade",
+   "material": "Bearing steel 100Cr6, hardened",
+   "materialKey": "bearing",
+   "qty": 20,
+   "massKg": 6.923,
+   "totalMassKg": 138.4609,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Hardened guide rail. It carries the block in a straight line with no play.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "TRACK",
+     "qty": 20
+    }
+   ]
+  },
+  {
+   "id": "WSH-DGM",
+   "name": "Track servo gearmotor 1.5 kW, brake, absolute encoder",
    "category": "drive",
    "make": "buy",
    "standard": "catalogue part",
-   "size": "360 x 360 x 460",
-   "grade": "IP55",
+   "size": "1.5 kW",
+   "grade": "IP66, wash-down",
    "material": "Structural steel S355, painted RAL 9005",
    "materialKey": "steel_paint",
    "qty": 2,
-   "massKg": 38.0,
-   "totalMassKg": 76.0,
+   "massKg": 19.0,
+   "totalMassKg": 38.0,
    "torqueNm": null,
    "reference": false,
-   "function": "Makes the vacuum for one wand and keeps what it picks up.",
+   "function": "Drives the carriage along the track. Its brake holds the carriage when power is off.",
    "spec": {
-    "power": "1.5 kW",
-    "class": "side-channel blower with cyclone bin",
     "mass basis": "catalogue class mass (the CAD draws its envelope)"
    },
    "uses": [
     {
-     "sub": "WAND",
+     "sub": "TRACK",
      "qty": 2
     }
    ]
   },
   {
-   "id": "WSH-WDM",
-   "name": "Wand drop servo gearmotor 0.4 kW, brake",
+   "id": "WSH-DPN",
+   "name": "Pinion module 3, 20 teeth, stainless",
    "category": "drive",
    "make": "buy",
+   "standard": "DIN 867 tooth form",
+   "size": "20 T, m 3",
+   "grade": "",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 0.6137,
+   "totalMassKg": 1.2274,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Drives the carriage along its rack.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "TRACK",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-DRK",
+   "name": "Gear rack module 3, 20 x 20, stainless",
+   "category": "drive",
+   "make": "buy",
+   "standard": "DIN 867 tooth form",
+   "size": "10200 long, in pieces",
+   "grade": "",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 32.5584,
+   "totalMassKg": 65.1168,
+   "torqueNm": null,
+   "reference": false,
+   "function": "The carriage pinion runs along it.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "TRACK",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "ECHAIN-57x35",
+   "name": "Cable carrier link 57 x 35",
+   "category": "electrical",
+   "make": "buy",
    "standard": "catalogue part",
-   "size": "0.4 kW",
+   "size": "inner 57 x 35, pitch 56",
+   "grade": "",
+   "material": "PA66-GF30",
+   "materialKey": "pa66",
+   "qty": 322,
+   "massKg": 0.0232,
+   "totalMassKg": 7.4724,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Guides the cables and hoses through the moving joint. It keeps the bend radius safe.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "TRACK",
+     "qty": 322
+    }
+   ]
+  },
+  {
+   "id": "ISO4017-M12x30-A4-70",
+   "name": "Hex head screw M12 x 30",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4017",
+   "size": "M12 x 30",
+   "grade": "A4-70",
+   "material": "Stainless steel A4-80",
+   "materialKey": "fast_a4",
+   "qty": 8,
+   "massKg": 0.0436,
+   "totalMassKg": 0.3485,
+   "torqueNm": 59.2,
+   "reference": false,
+   "function": "Holds the pedestal's foot to the carriage plate.",
+   "spec": {
+    "preload": "30.3 kN",
+    "drive": "hex 18 mm"
+   },
+   "uses": [
+    {
+     "sub": "TRACK",
+     "qty": 8
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M6x20-A4-80",
+   "name": "Socket head cap screw M6 x 20",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M6 x 20",
+   "grade": "A4-80",
+   "material": "Stainless steel A4-80",
+   "materialKey": "fast_a4",
+   "qty": 372,
+   "massKg": 0.0076,
+   "totalMassKg": 2.8327,
+   "torqueNm": 9.8,
+   "reference": false,
+   "function": "Holds the track rail to its beam.",
+   "spec": {
+    "preload": "9.5 kN",
+    "drive": "hex socket 5 mm"
+   },
+   "uses": [
+    {
+     "sub": "TRACK",
+     "qty": 372
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M8x25-A4-80",
+   "name": "Socket head cap screw M8 x 25",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M8 x 25",
+   "grade": "A4-80",
+   "material": "Stainless steel A4-80",
+   "materialKey": "fast_a4",
+   "qty": 8,
+   "massKg": 0.0172,
+   "totalMassKg": 0.1378,
+   "torqueNm": 23.8,
+   "reference": false,
+   "function": "Holds the track gearmotor to the carriage plate.",
+   "spec": {
+    "preload": "17.5 kN",
+    "drive": "hex socket 6 mm"
+   },
+   "uses": [
+    {
+     "sub": "TRACK",
+     "qty": 8
+    }
+   ]
+  },
+  {
+   "id": "WSH-DCKP",
+   "name": "Dock post weldment",
+   "category": "structure",
+   "make": "make",
+   "standard": "EN 1090-2 EXC2",
+   "size": "80 sq x 768",
+   "grade": "S355J2, hot-dip galvanised",
+   "material": "Structural steel S355, hot-dip galvanised",
+   "materialKey": "steel_s355",
+   "qty": 2,
+   "massKg": 16.1431,
+   "totalMassKg": 32.2862,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the rinse cup and the exit signal. It is bolted to the track beam's north end.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "DOCK",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-DCKS",
+   "name": "Exit signal housing",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "120 x 240 x 60",
    "grade": "IP66",
    "material": "Structural steel S355, painted RAL 9005",
    "materialKey": "steel_paint",
    "qty": 2,
-   "massKg": 7.5,
-   "totalMassKg": 15.0,
+   "massKg": 13.5648,
+   "totalMassKg": 27.1296,
    "torqueNm": null,
    "reference": false,
-   "function": "Drives stage 2 by a toothed belt. Its brake holds the column with power off.",
-   "spec": {
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
-   },
+   "function": "Faces the car in the bay: red while the bay works, green when the car may go.",
+   "spec": {},
    "uses": [
     {
-     "sub": "WAND",
+     "sub": "DOCK",
      "qty": 2
     }
    ]
   },
   {
-   "id": "WSH-WRC",
-   "name": "Wand reach slide block",
-   "category": "drive",
-   "make": "make",
-   "standard": "machined",
-   "size": "100 x 100 x 80",
-   "grade": "316L",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 2,
-   "massKg": 4.1277,
-   "totalMassKg": 8.2554,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Guides reach tube 1 under the last stage. A belt in it drives the reach.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "WAND",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "WSH-WP2",
-   "name": "Column slide pad, UHMW-PE, stage 2",
-   "category": "bearing",
-   "make": "make",
-   "standard": "machined",
-   "size": "3.0 x 60 x 40",
-   "grade": "UHMW-PE",
-   "material": "PA66-GF30",
-   "materialKey": "pa66",
-   "qty": 8,
-   "massKg": 0.0097,
-   "totalMassKg": 0.0778,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Guides the stage in the one outside it. No grease to wash off.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "WAND",
-     "qty": 8
-    }
-   ]
-  },
-  {
-   "id": "WSH-WP3",
-   "name": "Column slide pad, UHMW-PE, stage 3",
-   "category": "bearing",
-   "make": "make",
-   "standard": "machined",
-   "size": "3.0 x 60 x 40",
-   "grade": "UHMW-PE",
-   "material": "PA66-GF30",
-   "materialKey": "pa66",
-   "qty": 8,
-   "massKg": 0.0097,
-   "totalMassKg": 0.0778,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Guides the stage in the one outside it. No grease to wash off.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "WAND",
-     "qty": 8
-    }
-   ]
-  },
-  {
-   "id": "WSH-WP4",
-   "name": "Column slide pad, UHMW-PE, stage 4",
-   "category": "bearing",
-   "make": "make",
-   "standard": "machined",
-   "size": "3.0 x 60 x 40",
-   "grade": "UHMW-PE",
-   "material": "PA66-GF30",
-   "materialKey": "pa66",
-   "qty": 8,
-   "massKg": 0.0097,
-   "totalMassKg": 0.0778,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Guides the stage in the one outside it. No grease to wash off.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "WAND",
-     "qty": 8
-    }
-   ]
-  },
-  {
-   "id": "WSH-WCR",
-   "name": "Spring cable reel, 3 m, IP65",
+   "id": "WSH-LMG",
+   "name": "Signal lamp, green, 100 mm",
    "category": "electrical",
    "make": "buy",
    "standard": "catalogue part",
-   "size": "D 180",
-   "grade": "IP65",
+   "size": "D 100",
+   "grade": "IP66",
+   "material": "LED module, green",
+   "materialKey": "led_green",
+   "qty": 3,
+   "massKg": 0.0724,
+   "totalMassKg": 0.2171,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Green: the car may go.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "DOCK",
+     "qty": 2
+    },
+    {
+     "sub": "CONTROL",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-LMR",
+   "name": "Signal lamp, red, 100 mm",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "D 100",
+   "grade": "IP66",
+   "material": "LED module, red",
+   "materialKey": "led_red",
+   "qty": 3,
+   "massKg": 0.0724,
+   "totalMassKg": 0.2171,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Red: the car must stay.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "DOCK",
+     "qty": 2
+    },
+    {
+     "sub": "CONTROL",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "NOZ-jet",
+   "name": "Solid-jet nozzle 1/4 in",
+   "category": "fluid",
+   "make": "buy",
+   "standard": "ISO 228-1 thread",
+   "size": "G 1/4",
+   "grade": "",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 0.0254,
+   "totalMassKg": 0.0508,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Rinses the parked pad with pure water.",
+   "spec": {
+    "pressure": "up to 70 bar"
+   },
+   "uses": [
+    {
+     "sub": "DOCK",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-DCKC",
+   "name": "Pad rinse cup, stainless",
+   "category": "fluid",
+   "make": "make",
+   "standard": "spun sheet 3 mm",
+   "size": "D 176 x 73",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 1.4932,
+   "totalMassKg": 2.9864,
+   "torqueNm": null,
+   "reference": false,
+   "function": "The parked pad hangs in it. A nozzle rinses the pad, and the pad turns to throw the water off.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "DOCK",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "ISO4017-M10x25-A4-70",
+   "name": "Hex head screw M10 x 25",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4017",
+   "size": "M10 x 25",
+   "grade": "A4-70",
+   "material": "Stainless steel A4-80",
+   "materialKey": "fast_a4",
+   "qty": 8,
+   "massKg": 0.0268,
+   "totalMassKg": 0.2144,
+   "torqueNm": 34.4,
+   "reference": false,
+   "function": "Holds the dock post to the track beam, into a rivet nut.",
+   "spec": {
+    "preload": "20.8 kN",
+    "drive": "hex 16 mm"
+   },
+   "uses": [
+    {
+     "sub": "DOCK",
+     "qty": 8
+    }
+   ]
+  },
+  {
+   "id": "CHG-BAND1",
+   "name": "Turret accent band",
+   "category": "structure",
+   "make": "make",
+   "standard": "moulded",
+   "size": "",
+   "grade": "",
+   "material": "Aluminium, OTTOYARD red powder coat",
+   "materialKey": "accent",
+   "qty": 2,
+   "massKg": 0.1837,
+   "totalMassKg": 0.3674,
+   "torqueNm": null,
+   "reference": false,
+   "function": "OTTOYARD red band. It marks the moving part of the machine.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "J1",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-J1-COV",
+   "name": "J1 rear cover",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined",
+   "size": "OD 168 x 8",
+   "grade": "",
+   "material": "Aluminium 6061-T6, machined, black anodised",
+   "materialKey": "al6061_blk",
+   "qty": 2,
+   "massKg": 0.4587,
+   "totalMassKg": 0.9173,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Closes the rear of the actuator. The O-ring seals it.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "J1",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-J1-HSG",
+   "name": "J1 actuator housing",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined casting",
+   "size": "OD 214 x 230",
+   "grade": "",
+   "material": "Aluminium A356-T6 casting, charcoal powder coat",
+   "materialKey": "a356_dark",
+   "qty": 2,
+   "massKg": 5.291,
+   "totalMassKg": 10.582,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Holds the gear ring, the motor and both shaft bearings in line. Fins carry the motor heat out.",
+   "spec": {
+    "IP rating": "IP65",
+    "machining": "bores to H7, faces flat to 0.02"
+   },
+   "uses": [
+    {
+     "sub": "J1",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-J1-OUT",
+   "name": "J1 output flange",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined",
+   "size": "OD 150 x 14",
+   "grade": "",
+   "material": "Aluminium 6061-T6, machined, clear anodised",
+   "materialKey": "al6061",
+   "qty": 2,
+   "massKg": 0.8027,
+   "totalMassKg": 1.6054,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the next link. It turns on the bearing inner ring.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "J1",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-J1-STR",
+   "name": "J1 stator retaining ring",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined",
+   "size": "OD 148",
+   "grade": "",
+   "material": "Aluminium 6061-T6, machined, clear anodised",
+   "materialKey": "al6061",
+   "qty": 2,
+   "massKg": 0.0419,
+   "totalMassKg": 0.0837,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Pressed into the bore behind the stator. It holds the stator against its shoulder.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "J1",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-J1-XCR",
+   "name": "J1 bearing clamp ring",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined",
+   "size": "OD 214",
+   "grade": "6061-T6",
+   "material": "Aluminium 6061-T6, machined, clear anodised",
+   "materialKey": "al6061",
+   "qty": 2,
+   "massKg": 0.898,
+   "totalMassKg": 1.796,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Clamps the bearing outer ring to the housing. The output seal sits in its bore.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "J1",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-TUR",
+   "name": "Turret casting",
+   "category": "structure",
+   "make": "make",
+   "standard": "casting, machined",
+   "size": "OD 433 x 586",
+   "grade": "A356-T6",
+   "material": "Aluminium A356-T6 casting, powder-coated",
+   "materialKey": "a356",
+   "qty": 2,
+   "massKg": 30.0048,
+   "totalMassKg": 60.0095,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Turns on J1 and carries the shoulder. Its boss clamps the J2 actuator.",
+   "spec": {
+    "wall": "8 mm"
+   },
+   "uses": [
+    {
+     "sub": "J1",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-DMP",
+   "name": "Arm mount plate",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined",
+   "size": "300 x 300 x 26",
+   "grade": "S355J2",
    "material": "Structural steel S355, painted RAL 9005",
    "materialKey": "steel_paint",
    "qty": 2,
-   "massKg": 6.0,
-   "totalMassKg": 12.0,
+   "massKg": 12.8578,
+   "totalMassKg": 25.7156,
    "torqueNm": null,
    "reference": false,
-   "function": "Pays out and takes back the reach drive cable as the wand goes down and up.",
+   "function": "Carries the J1 actuator and spreads its load into the pedestal.",
    "spec": {
-    "cable": "7G1 + data, 3 m",
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+    "flatness": "0.05 mm"
    },
    "uses": [
     {
-     "sub": "WAND",
+     "sub": "J1",
      "qty": 2
     }
    ]
   },
   {
-   "id": "WSH-WCT",
-   "name": "Cable conduit through the beam, 32 x 3",
-   "category": "electrical",
-   "make": "make",
-   "standard": "EN 10217-7",
-   "size": "D 32 x 350",
-   "grade": "316L",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 2,
-   "massKg": 0.7632,
-   "totalMassKg": 1.5263,
+   "id": "BRK-124x34",
+   "name": "Spring-applied holding brake 124",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "124 x 34",
+   "grade": "",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 4,
+   "massKg": 1.9414,
+   "totalMassKg": 7.7657,
    "torqueNm": null,
    "reference": false,
-   "function": "Leads the reel's cable through the beam, clear of the column.",
+   "function": "Springs hold the joint when power is off. The coil releases it. A power cut cannot drop the arm.",
+   "spec": {
+    "holding torque": "5.5 N m (motor side)",
+    "release": "24 V DC"
+   },
+   "uses": [
+    {
+     "sub": "J1",
+     "qty": 2
+    },
+    {
+     "sub": "J3",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-J1-FSC",
+   "name": "J1 flexspline clamp ring",
+   "category": "drive",
+   "make": "make",
+   "standard": "machined",
+   "size": "size 40",
+   "grade": "",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 2,
+   "massKg": 0.0363,
+   "totalMassKg": 0.0726,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Spreads the screw load over the thin flexspline diaphragm.",
    "spec": {},
    "uses": [
     {
-     "sub": "WAND",
+     "sub": "J1",
      "qty": 2
     }
    ]
   },
   {
-   "id": "WSH-WRCBL",
-   "name": "Reach drive cable, PUR, on its reel",
+   "id": "CHG-J1-SHF",
+   "name": "J1 hollow motor shaft",
+   "category": "drive",
+   "make": "make",
+   "standard": "machined",
+   "size": "70 x 181",
+   "grade": "",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 2,
+   "massKg": 1.1151,
+   "totalMassKg": 2.2303,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the wave generator, the rotor, the brake disc and the encoder discs. Cables pass through its bore.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "J1",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "MOT-148x52-RO",
+   "name": "Frameless torque motor 148x52: rotor",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue motor kit",
+   "size": "148x52",
+   "grade": "",
+   "material": "NdFeB magnet, nickel plated",
+   "materialKey": "magnet",
+   "qty": 4,
+   "massKg": 1.0821,
+   "totalMassKg": 4.3283,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Steel hub with the permanent magnets. It turns the hollow motor shaft.",
+   "spec": {
+    "continuous torque": "4 N m",
+    "power": "1 kW",
+    "bus voltage": "48 V DC",
+    "type": "brushless, frameless, 3-phase"
+   },
+   "uses": [
+    {
+     "sub": "J1",
+     "qty": 2
+    },
+    {
+     "sub": "J3",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "MOT-148x52-ST",
+   "name": "Frameless torque motor 148x52: stator core",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue motor kit",
+   "size": "148x52",
+   "grade": "",
+   "material": "Electrical steel laminations M270-35A",
+   "materialKey": "lam",
+   "qty": 4,
+   "massKg": 3.1621,
+   "totalMassKg": 12.6484,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Laminated core with the 3-phase coils. It is bonded into the housing and makes the rotating field.",
+   "spec": {
+    "continuous torque": "4 N m",
+    "power": "1 kW",
+    "bus voltage": "48 V DC",
+    "type": "brushless, frameless, 3-phase"
+   },
+   "uses": [
+    {
+     "sub": "J1",
+     "qty": 2
+    },
+    {
+     "sub": "J3",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "MOT-148x52-WD",
+   "name": "Frameless torque motor 148x52: winding end turns",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue motor kit",
+   "size": "148x52",
+   "grade": "",
+   "material": "Copper winding, enamelled",
+   "materialKey": "copper",
+   "qty": 4,
+   "massKg": 1.4632,
+   "totalMassKg": 5.8528,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Copper coil ends of the stator winding, with a thermistor for over-temperature stop.",
+   "spec": {
+    "continuous torque": "4 N m",
+    "power": "1 kW",
+    "bus voltage": "48 V DC",
+    "type": "brushless, frameless, 3-phase"
+   },
+   "uses": [
+    {
+     "sub": "J1",
+     "qty": 2
+    },
+    {
+     "sub": "J3",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "SWG40-CS",
+   "name": "Strain-wave gear size 40: circular spline",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue component set",
+   "size": "size 40, ratio 100:1",
+   "grade": "",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 4,
+   "massKg": 2.6453,
+   "totalMassKg": 10.5813,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Rigid ring gear with internal teeth. It is bolted to the housing and does not turn.",
+   "spec": {
+    "ratio": "100:1",
+    "repeated peak torque": "738 N m",
+    "momentary peak torque": "1400 N m",
+    "teeth": "flexspline 200, circular spline 202 (drawn simplified)",
+    "backlash": "zero (about 1 arc-min lost motion)"
+   },
+   "uses": [
+    {
+     "sub": "J1",
+     "qty": 2
+    },
+    {
+     "sub": "J3",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "SWG40-FS",
+   "name": "Strain-wave gear size 40: flexspline",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue component set",
+   "size": "size 40, ratio 100:1",
+   "grade": "",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 4,
+   "massKg": 0.3046,
+   "totalMassKg": 1.2185,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Thin steel cup with 2 fewer teeth than the ring. It flexes into an ellipse and turns the output.",
+   "spec": {
+    "ratio": "100:1",
+    "repeated peak torque": "738 N m",
+    "momentary peak torque": "1400 N m",
+    "teeth": "flexspline 200, circular spline 202 (drawn simplified)",
+    "backlash": "zero (about 1 arc-min lost motion)"
+   },
+   "uses": [
+    {
+     "sub": "J1",
+     "qty": 2
+    },
+    {
+     "sub": "J3",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "SWG40-WG",
+   "name": "Strain-wave gear size 40: wave generator",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue component set",
+   "size": "size 40, ratio 100:1",
+   "grade": "",
+   "material": "Bearing steel 100Cr6, hardened",
+   "materialKey": "bearing",
+   "qty": 4,
+   "massKg": 0.4122,
+   "totalMassKg": 1.6488,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Elliptical cam on a thin ball bearing. The motor turns it. Each turn moves the output 2 teeth.",
+   "spec": {
+    "ratio": "100:1",
+    "repeated peak torque": "738 N m",
+    "momentary peak torque": "1400 N m",
+    "teeth": "flexspline 200, circular spline 202 (drawn simplified)",
+    "backlash": "zero (about 1 arc-min lost motion)"
+   },
+   "uses": [
+    {
+     "sub": "J1",
+     "qty": 2
+    },
+    {
+     "sub": "J3",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "BRG-6814-2RS",
+   "name": "Deep groove ball bearing 6814-2RS",
+   "category": "bearing",
+   "make": "buy",
+   "standard": "ISO 15",
+   "size": "70 x 90 x 10",
+   "grade": "C3, sealed 2RS",
+   "material": "Bearing steel 100Cr6, hardened",
+   "materialKey": "bearing",
+   "qty": 8,
+   "massKg": 0.1361,
+   "totalMassKg": 1.0888,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Supports the motor shaft.",
+   "spec": {
+    "bore": "70 mm"
+   },
+   "uses": [
+    {
+     "sub": "J1",
+     "qty": 4
+    },
+    {
+     "sub": "J3",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "XRB-120x174x24",
+   "name": "Cross-roller bearing 120 x 174 x 24",
+   "category": "bearing",
+   "make": "buy",
+   "standard": "ISO 492 class P5",
+   "size": "120 x 174 x 24",
+   "grade": "preloaded, split outer ring",
+   "material": "Bearing steel 100Cr6, hardened",
+   "materialKey": "bearing",
+   "qty": 4,
+   "massKg": 1.6223,
+   "totalMassKg": 6.4891,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the joint output. It takes the radial, axial and tilt loads in one bearing.",
+   "spec": {
+    "rollers": "crossed at 90 degrees"
+   },
+   "uses": [
+    {
+     "sub": "J1",
+     "qty": 2
+    },
+    {
+     "sub": "J3",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "ENC-motor-92",
+   "name": "Motor encoder, 23-bit absolute (rotor position)",
+   "category": "sensor",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "ring 92 mm",
+   "grade": "",
+   "material": "FR-4 circuit board",
+   "materialKey": "pcb",
+   "qty": 4,
+   "massKg": 0.0193,
+   "totalMassKg": 0.077,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Reads the motor shaft angle for the drive. The drive uses it to commutate and run the speed loop.",
+   "spec": {
+    "interface": "BiSS-C, RS-485"
+   },
+   "uses": [
+    {
+     "sub": "J1",
+     "qty": 2
+    },
+    {
+     "sub": "J3",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "ENC-multiturn-92",
+   "name": "Multi-turn encoder, 16-bit turn count, battery-free",
+   "category": "sensor",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "ring 92 mm",
+   "grade": "",
+   "material": "FR-4 circuit board",
+   "materialKey": "pcb",
+   "qty": 4,
+   "massKg": 0.0193,
+   "totalMassKg": 0.077,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Counts the motor turns, with no battery. With the motor encoder it gives the joint angle after the gear at power-up, so the arm needs no homing move.",
+   "spec": {
+    "interface": "BiSS-C, RS-485"
+   },
+   "uses": [
+    {
+     "sub": "J1",
+     "qty": 2
+    },
+    {
+     "sub": "J3",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "DRV-148",
+   "name": "Integrated servo drive board 148",
    "category": "electrical",
    "make": "buy",
-   "standard": "EN 50525",
-   "size": "OD 10",
+   "standard": "made to order",
+   "size": "ring 148 mm",
    "grade": "",
-   "material": "Cable, TPE jacket",
-   "materialKey": "cable",
-   "qty": 1,
-   "massKg": 0.435,
-   "totalMassKg": 0.435,
+   "material": "FR-4 circuit board",
+   "materialKey": "pcb",
+   "qty": 4,
+   "massKg": 0.0589,
+   "totalMassKg": 0.2356,
    "torqueNm": null,
    "reference": false,
-   "function": "Feeds the reach drive and the head lamp from the reel as the wand goes down.",
+   "function": "Runs the motor: field-oriented current control, safe torque off (STO) and an EtherCAT link.",
    "spec": {
-    "length": "2900 mm",
-    "length range": "0 to 2900 mm",
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+    "continuous current": "22 A",
+    "bus": "EtherCAT",
+    "safety": "STO, SIL 2 / PL d"
    },
    "uses": [
     {
-     "sub": "WAND",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "WSH-WRCBR",
-   "name": "Reach drive cable, PUR, on its reel",
-   "category": "electrical",
-   "make": "buy",
-   "standard": "EN 50525",
-   "size": "OD 10",
-   "grade": "",
-   "material": "Cable, TPE jacket",
-   "materialKey": "cable",
-   "qty": 1,
-   "massKg": 0.435,
-   "totalMassKg": 0.435,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Feeds the reach drive and the head lamp from the reel as the wand goes down.",
-   "spec": {
-    "length": "2900 mm",
-    "length range": "0 to 2900 mm",
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
-   },
-   "uses": [
+     "sub": "J1",
+     "qty": 2
+    },
     {
-     "sub": "WAND",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "WSH-WSC",
-   "name": "Wand column top cap with vacuum port",
-   "category": "fluid",
-   "make": "make",
-   "standard": "machined plate 12 mm",
-   "size": "110 sq",
-   "grade": "316L",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 2,
-   "massKg": 0.8696,
-   "totalMassKg": 1.7392,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Closes the sleeve top and takes the vacuum pipe.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "WAND",
+     "sub": "J3",
      "qty": 2
     }
    ]
   },
   {
-   "id": "WSH-WVPL",
-   "name": "Vacuum pipe 63 mm, unit to column",
-   "category": "fluid",
-   "make": "make",
-   "standard": "EN 10217-7",
-   "size": "D 63",
-   "grade": "",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 1,
-   "massKg": 2.8247,
-   "totalMassKg": 2.8247,
+   "id": "GLAND-M20",
+   "name": "Cable gland M20 x 1.5, IP68",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "IEC 62444",
+   "size": "M20 x 1.5",
+   "grade": "IP68",
+   "material": "PA66-GF30",
+   "materialKey": "pa66",
+   "qty": 4,
+   "massKg": 0.0095,
+   "totalMassKg": 0.0379,
    "torqueNm": null,
    "reference": false,
-   "function": "Joins the vacuum unit to the column top.",
+   "function": "Seals the motor power, the safety signal and the EtherCAT cable into the actuator.",
    "spec": {},
    "uses": [
     {
-     "sub": "WAND",
-     "qty": 1
+     "sub": "J1",
+     "qty": 2
+    },
+    {
+     "sub": "J3",
+     "qty": 2
     }
    ]
   },
   {
-   "id": "WSH-WVPR",
-   "name": "Vacuum pipe 63 mm, unit to column",
-   "category": "fluid",
-   "make": "make",
-   "standard": "EN 10217-7",
-   "size": "D 63",
-   "grade": "",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 1,
-   "massKg": 2.8247,
-   "totalMassKg": 2.8247,
+   "id": "ORING-152x2",
+   "name": "O-ring 152 x 2",
+   "category": "seal",
+   "make": "buy",
+   "standard": "ISO 3601-1",
+   "size": "152 x 2",
+   "grade": "NBR 70",
+   "material": "NBR seal elastomer",
+   "materialKey": "nbr",
+   "qty": 4,
+   "massKg": 0.0019,
+   "totalMassKg": 0.0076,
    "torqueNm": null,
    "reference": false,
-   "function": "Joins the vacuum unit to the column top.",
+   "function": "Seals the rear cover to the housing.",
    "spec": {},
    "uses": [
     {
-     "sub": "WAND",
-     "qty": 1
+     "sub": "J1",
+     "qty": 2
+    },
+    {
+     "sub": "J3",
+     "qty": 2
     }
    ]
   },
   {
-   "id": "WSH-WHD",
-   "name": "Wand vacuum head with lamp",
-   "category": "tool",
+   "id": "ORING-164x2.5",
+   "name": "O-ring 164 x 2.5",
+   "category": "seal",
+   "make": "buy",
+   "standard": "ISO 3601-1",
+   "size": "164 x 2.5",
+   "grade": "NBR 70",
+   "material": "NBR seal elastomer",
+   "materialKey": "nbr",
+   "qty": 4,
+   "massKg": 0.0032,
+   "totalMassKg": 0.0128,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Seals the bearing outer ring to the housing face.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "J1",
+     "qty": 2
+    },
+    {
+     "sub": "J3",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "SEAL-149.7x162x6",
+   "name": "Radial shaft seal 149.7 x 162 x 6",
+   "category": "seal",
+   "make": "buy",
+   "standard": "ISO 6194-1",
+   "size": "149.7 x 162 x 6",
+   "grade": "FKM, with dust lip",
+   "material": "NBR seal elastomer",
+   "materialKey": "nbr",
+   "qty": 4,
+   "massKg": 0.0202,
+   "totalMassKg": 0.0807,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Seals the turning output flange against the clamp ring (IP65).",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "J1",
+     "qty": 2
+    },
+    {
+     "sub": "J3",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "DIN471-70",
+   "name": "Retaining ring, shaft 70",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "DIN 471",
+   "size": "70 x 2.5",
+   "grade": "spring steel",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 4,
+   "massKg": 0.0256,
+   "totalMassKg": 0.1025,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Holds the bearing in its seat.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "J1",
+     "qty": 2
+    },
+    {
+     "sub": "J3",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M12x45-10.9",
+   "name": "Socket head cap screw M12 x 45",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M12 x 45",
+   "grade": "10.9",
+   "material": "Steel, zinc flake coated",
+   "materialKey": "fast_zn",
+   "qty": 16,
+   "massKg": 0.059,
+   "totalMassKg": 0.9432,
+   "torqueNm": 125.4,
+   "reference": false,
+   "function": "Holds the mount plate to the pedestal's top flange.",
+   "spec": {
+    "preload": "63.3 kN",
+    "drive": "hex socket 10 mm"
+   },
+   "uses": [
+    {
+     "sub": "J1",
+     "qty": 16
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M3x16-8.8",
+   "name": "Socket head cap screw M3 x 16",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M3 x 16",
+   "grade": "8.8",
+   "material": "Steel, zinc flake coated",
+   "materialKey": "fast_zn",
+   "qty": 12,
+   "massKg": 0.0014,
+   "totalMassKg": 0.0163,
+   "torqueNm": 1.4,
+   "reference": false,
+   "function": "Fastens the encoder read head to the brake end plate.",
+   "spec": {
+    "preload": "2.5 kN",
+    "drive": "hex socket 2.5 mm"
+   },
+   "uses": [
+    {
+     "sub": "J1",
+     "qty": 4
+    },
+    {
+     "sub": "J2",
+     "qty": 4
+    },
+    {
+     "sub": "J3",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M3x25-8.8",
+   "name": "Socket head cap screw M3 x 25",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M3 x 25",
+   "grade": "8.8",
+   "material": "Steel, zinc flake coated",
+   "materialKey": "fast_zn",
+   "qty": 24,
+   "massKg": 0.0019,
+   "totalMassKg": 0.0446,
+   "torqueNm": 1.4,
+   "reference": false,
+   "function": "Fastens the encoder read head to the brake end plate.",
+   "spec": {
+    "preload": "2.5 kN",
+    "drive": "hex socket 2.5 mm"
+   },
+   "uses": [
+    {
+     "sub": "J1",
+     "qty": 4
+    },
+    {
+     "sub": "J2",
+     "qty": 4
+    },
+    {
+     "sub": "J3",
+     "qty": 4
+    },
+    {
+     "sub": "WRIST",
+     "qty": 12
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M3x6-8.8",
+   "name": "Socket head cap screw M3 x 6",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M3 x 6",
+   "grade": "8.8",
+   "material": "Steel, zinc flake coated",
+   "materialKey": "fast_zn",
+   "qty": 48,
+   "massKg": 0.0008,
+   "totalMassKg": 0.0386,
+   "torqueNm": 1.4,
+   "reference": false,
+   "function": "Fastens the drive board to its ledge in the housing.",
+   "spec": {
+    "preload": "2.5 kN",
+    "drive": "hex socket 2.5 mm"
+   },
+   "uses": [
+    {
+     "sub": "J1",
+     "qty": 8
+    },
+    {
+     "sub": "J2",
+     "qty": 8
+    },
+    {
+     "sub": "J3",
+     "qty": 8
+    },
+    {
+     "sub": "WRIST",
+     "qty": 24
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M5x20-12.9",
+   "name": "Socket head cap screw M5 x 20",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M5 x 20",
+   "grade": "12.9",
+   "material": "Alloy steel, black oxide",
+   "materialKey": "fast_blk",
+   "qty": 60,
+   "massKg": 0.005,
+   "totalMassKg": 0.2973,
+   "torqueNm": 10.6,
+   "reference": false,
+   "function": "Fastens the flexspline and its clamp ring to the output flange.",
+   "spec": {
+    "preload": "12.4 kN",
+    "drive": "hex socket 4 mm"
+   },
+   "uses": [
+    {
+     "sub": "J1",
+     "qty": 16
+    },
+    {
+     "sub": "J3",
+     "qty": 16
+    },
+    {
+     "sub": "WRIST",
+     "qty": 28
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M5x45-8.8",
+   "name": "Socket head cap screw M5 x 45",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M5 x 45",
+   "grade": "8.8",
+   "material": "Steel, zinc flake coated",
+   "materialKey": "fast_zn",
+   "qty": 12,
+   "massKg": 0.0088,
+   "totalMassKg": 0.1057,
+   "torqueNm": 6.2,
+   "reference": false,
+   "function": "Fastens the brake to the rear bearing web.",
+   "spec": {
+    "preload": "7.2 kN",
+    "drive": "hex socket 4 mm"
+   },
+   "uses": [
+    {
+     "sub": "J1",
+     "qty": 6
+    },
+    {
+     "sub": "J3",
+     "qty": 6
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M8x30-12.9",
+   "name": "Socket head cap screw M8 x 30",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M8 x 30",
+   "grade": "12.9",
+   "material": "Alloy steel, black oxide",
+   "materialKey": "fast_blk",
+   "qty": 48,
+   "massKg": 0.0189,
+   "totalMassKg": 0.9082,
+   "torqueNm": 43.6,
+   "reference": false,
+   "function": "Holds the J1 actuator by its drum shoulder to the mount plate, from below.",
+   "spec": {
+    "preload": "32.0 kN",
+    "drive": "hex socket 6 mm"
+   },
+   "uses": [
+    {
+     "sub": "J1",
+     "qty": 48
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M8x35-12.9",
+   "name": "Socket head cap screw M8 x 35",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M8 x 35",
+   "grade": "12.9",
+   "material": "Alloy steel, black oxide",
+   "materialKey": "fast_blk",
+   "qty": 64,
+   "massKg": 0.0209,
+   "totalMassKg": 1.3372,
+   "torqueNm": 43.6,
+   "reference": false,
+   "function": "Fixes the ring gear in the housing.",
+   "spec": {
+    "preload": "32.0 kN",
+    "drive": "hex socket 6 mm"
+   },
+   "uses": [
+    {
+     "sub": "J1",
+     "qty": 24
+    },
+    {
+     "sub": "J3",
+     "qty": 40
+    }
+   ]
+  },
+  {
+   "id": "ISO7380-M5x16-A2-70",
+   "name": "Button head screw M5 x 16",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 7380-1",
+   "size": "M5 x 16",
+   "grade": "A2-70",
+   "material": "Stainless steel A2-70",
+   "materialKey": "fast_a2",
+   "qty": 96,
+   "massKg": 0.0032,
+   "totalMassKg": 0.3091,
+   "torqueNm": 3.6,
+   "reference": false,
+   "function": "Fastens the rear cover.",
+   "spec": {
+    "drive": "hex socket 3 mm"
+   },
+   "uses": [
+    {
+     "sub": "J1",
+     "qty": 16
+    },
+    {
+     "sub": "J2",
+     "qty": 16
+    },
+    {
+     "sub": "J3",
+     "qty": 16
+    },
+    {
+     "sub": "WRIST",
+     "qty": 48
+    }
+   ]
+  },
+  {
+   "id": "ISO7380-M8x40-10.9",
+   "name": "Button head screw M8 x 40",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 7380-1",
+   "size": "M8 x 40",
+   "grade": "10.9",
+   "material": "Steel, zinc flake coated",
+   "materialKey": "fast_zn",
+   "qty": 48,
+   "massKg": 0.0183,
+   "totalMassKg": 0.8771,
+   "torqueNm": 30.4,
+   "reference": false,
+   "function": "Clamps the bearing outer ring to the housing through the clamp ring.",
+   "spec": {
+    "drive": "hex socket 5 mm"
+   },
+   "uses": [
+    {
+     "sub": "J1",
+     "qty": 24
+    },
+    {
+     "sub": "J3",
+     "qty": 24
+    }
+   ]
+  },
+  {
+   "id": "CHG-BAL-ANC",
+   "name": "Balancer anchor bracket, turret",
+   "category": "structure",
    "make": "make",
-   "standard": "moulded",
-   "size": "140 x 250",
+   "standard": "machined weldment",
+   "size": "84 x 110 x 116",
+   "grade": "S355J2",
+   "material": "Structural steel S355, painted RAL 9005",
+   "materialKey": "steel_paint",
+   "qty": 2,
+   "massKg": 3.3391,
+   "totalMassKg": 6.6783,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Anchors the balancer below the J2 axis. Its flange bolts to the turret column.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "J2",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-BAL-CRK",
+   "name": "Balancer crank bracket, upper arm",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined weldment",
+   "size": "84 x 110 x 180",
+   "grade": "S355J2",
+   "material": "Structural steel S355, painted RAL 9005",
+   "materialKey": "steel_paint",
+   "qty": 2,
+   "massKg": 3.8511,
+   "totalMassKg": 7.7022,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the crank pin above the J2 axis. Its flange bolts to the upper arm.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "J2",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-J2-COV",
+   "name": "J2 rear cover",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined",
+   "size": "OD 195 x 8",
    "grade": "",
+   "material": "Aluminium 6061-T6, machined, black anodised",
+   "materialKey": "al6061_blk",
+   "qty": 2,
+   "massKg": 0.6189,
+   "totalMassKg": 1.2377,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Closes the rear of the actuator. The O-ring seals it.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "J2",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-J2-HSG",
+   "name": "J2 actuator housing",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined casting",
+   "size": "OD 262 x 265",
+   "grade": "",
+   "material": "Aluminium A356-T6 casting, charcoal powder coat",
+   "materialKey": "a356_dark",
+   "qty": 2,
+   "massKg": 7.585,
+   "totalMassKg": 15.1699,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Holds the gear ring, the motor and both shaft bearings in line. Fins carry the motor heat out.",
+   "spec": {
+    "IP rating": "IP65",
+    "machining": "bores to H7, faces flat to 0.02"
+   },
+   "uses": [
+    {
+     "sub": "J2",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-J2-OUT",
+   "name": "J2 output flange",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined",
+   "size": "OD 185 x 16",
+   "grade": "",
+   "material": "Aluminium 6061-T6, machined, clear anodised",
+   "materialKey": "al6061",
+   "qty": 2,
+   "massKg": 1.3555,
+   "totalMassKg": 2.711,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the next link. It turns on the bearing inner ring.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "J2",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-J2-STR",
+   "name": "J2 stator retaining ring",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined",
+   "size": "OD 180",
+   "grade": "",
+   "material": "Aluminium 6061-T6, machined, clear anodised",
+   "materialKey": "al6061",
+   "qty": 2,
+   "massKg": 0.0514,
+   "totalMassKg": 0.1027,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Pressed into the bore behind the stator. It holds the stator against its shoulder.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "J2",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-J2-XCR",
+   "name": "J2 bearing clamp ring",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined",
+   "size": "OD 262",
+   "grade": "6061-T6",
+   "material": "Aluminium 6061-T6, machined, clear anodised",
+   "materialKey": "al6061",
+   "qty": 2,
+   "massKg": 1.4942,
+   "totalMassKg": 2.9885,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Clamps the bearing outer ring to the housing. The output seal sits in its bore.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "J2",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "BRK-150x40",
+   "name": "Spring-applied holding brake 150",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "150 x 40",
+   "grade": "",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 2,
+   "massKg": 3.5069,
+   "totalMassKg": 7.0137,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Springs hold the joint when power is off. The coil releases it. A power cut cannot drop the arm.",
+   "spec": {
+    "holding torque": "9 N m (motor side)",
+    "release": "24 V DC"
+   },
+   "uses": [
+    {
+     "sub": "J2",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-BAL-CYL",
+   "name": "J2 balancer gas spring, 10 kN class",
+   "category": "drive",
+   "make": "buy",
+   "standard": "ISO 11901-1 (gas springs)",
+   "size": "OD 90 x 329",
+   "grade": "nitrogen, about 150 bar",
+   "material": "Structural steel S355, painted RAL 9005",
+   "materialKey": "steel_paint",
+   "qty": 2,
+   "massKg": 4.9064,
+   "totalMassKg": 9.8127,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Its nearly constant push holds the upper arm toward upright. The gear and brake carry the rest.",
+   "spec": {
+    "stroke": "175 mm",
+    "progression": "15 %"
+   },
+   "uses": [
+    {
+     "sub": "J2",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-BAL-PIN",
+   "name": "Balancer clevis pin 25 x 90",
+   "category": "drive",
+   "make": "buy",
+   "standard": "ISO 2341",
+   "size": "25 x 90",
+   "grade": "hardened",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 4,
+   "massKg": 0.3468,
+   "totalMassKg": 1.3872,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Hinges the cartridge eye. Two retaining rings hold it.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "J2",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "CHG-BAL-ROD",
+   "name": "J2 balancer rod and eye",
+   "category": "drive",
+   "make": "make",
+   "standard": "made to order",
+   "size": "OD 40 x 240",
+   "grade": "",
+   "material": "Stainless steel 1.4301 (304)",
+   "materialKey": "ss304",
+   "qty": 2,
+   "massKg": 3.3318,
+   "totalMassKg": 6.6635,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Pushes on the upper arm crank pin.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "J2",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-J2-FSC",
+   "name": "J2 flexspline clamp ring",
+   "category": "drive",
+   "make": "make",
+   "standard": "machined",
+   "size": "size 50",
+   "grade": "",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 2,
+   "massKg": 0.0574,
+   "totalMassKg": 0.1147,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Spreads the screw load over the thin flexspline diaphragm.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "J2",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-J2-SHF",
+   "name": "J2 hollow motor shaft",
+   "category": "drive",
+   "make": "make",
+   "standard": "machined",
+   "size": "80 x 208",
+   "grade": "",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 2,
+   "massKg": 1.4738,
+   "totalMassKg": 2.9477,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the wave generator, the rotor, the brake disc and the encoder discs. Cables pass through its bore.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "J2",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "MOT-180x62-RO",
+   "name": "Frameless torque motor 180x62: rotor",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue motor kit",
+   "size": "180x62",
+   "grade": "",
+   "material": "NdFeB magnet, nickel plated",
+   "materialKey": "magnet",
+   "qty": 2,
+   "massKg": 2.2325,
+   "totalMassKg": 4.4649,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Steel hub with the permanent magnets. It turns the hollow motor shaft.",
+   "spec": {
+    "continuous torque": "6.5 N m",
+    "power": "1.5 kW",
+    "bus voltage": "48 V DC",
+    "type": "brushless, frameless, 3-phase"
+   },
+   "uses": [
+    {
+     "sub": "J2",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "MOT-180x62-ST",
+   "name": "Frameless torque motor 180x62: stator core",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue motor kit",
+   "size": "180x62",
+   "grade": "",
+   "material": "Electrical steel laminations M270-35A",
+   "materialKey": "lam",
+   "qty": 2,
+   "massKg": 5.5768,
+   "totalMassKg": 11.1536,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Laminated core with the 3-phase coils. It is bonded into the housing and makes the rotating field.",
+   "spec": {
+    "continuous torque": "6.5 N m",
+    "power": "1.5 kW",
+    "bus voltage": "48 V DC",
+    "type": "brushless, frameless, 3-phase"
+   },
+   "uses": [
+    {
+     "sub": "J2",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "MOT-180x62-WD",
+   "name": "Frameless torque motor 180x62: winding end turns",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue motor kit",
+   "size": "180x62",
+   "grade": "",
+   "material": "Copper winding, enamelled",
+   "materialKey": "copper",
+   "qty": 2,
+   "massKg": 2.6323,
+   "totalMassKg": 5.2647,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Copper coil ends of the stator winding, with a thermistor for over-temperature stop.",
+   "spec": {
+    "continuous torque": "6.5 N m",
+    "power": "1.5 kW",
+    "bus voltage": "48 V DC",
+    "type": "brushless, frameless, 3-phase"
+   },
+   "uses": [
+    {
+     "sub": "J2",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "SWG50-CS",
+   "name": "Strain-wave gear size 50: circular spline",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue component set",
+   "size": "size 50, ratio 100:1",
+   "grade": "",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 2,
+   "massKg": 5.0883,
+   "totalMassKg": 10.1765,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Rigid ring gear with internal teeth. It is bolted to the housing and does not turn.",
+   "spec": {
+    "ratio": "100:1",
+    "repeated peak torque": "1274 N m",
+    "momentary peak torque": "2678 N m",
+    "teeth": "flexspline 200, circular spline 202 (drawn simplified)",
+    "backlash": "zero (about 1 arc-min lost motion)"
+   },
+   "uses": [
+    {
+     "sub": "J2",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "SWG50-FS",
+   "name": "Strain-wave gear size 50: flexspline",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue component set",
+   "size": "size 50, ratio 100:1",
+   "grade": "",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 2,
+   "massKg": 0.5975,
+   "totalMassKg": 1.1949,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Thin steel cup with 2 fewer teeth than the ring. It flexes into an ellipse and turns the output.",
+   "spec": {
+    "ratio": "100:1",
+    "repeated peak torque": "1274 N m",
+    "momentary peak torque": "2678 N m",
+    "teeth": "flexspline 200, circular spline 202 (drawn simplified)",
+    "backlash": "zero (about 1 arc-min lost motion)"
+   },
+   "uses": [
+    {
+     "sub": "J2",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "SWG50-WG",
+   "name": "Strain-wave gear size 50: wave generator",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue component set",
+   "size": "size 50, ratio 100:1",
+   "grade": "",
+   "material": "Bearing steel 100Cr6, hardened",
+   "materialKey": "bearing",
+   "qty": 2,
+   "massKg": 1.0008,
+   "totalMassKg": 2.0016,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Elliptical cam on a thin ball bearing. The motor turns it. Each turn moves the output 2 teeth.",
+   "spec": {
+    "ratio": "100:1",
+    "repeated peak torque": "1274 N m",
+    "momentary peak torque": "2678 N m",
+    "teeth": "flexspline 200, circular spline 202 (drawn simplified)",
+    "backlash": "zero (about 1 arc-min lost motion)"
+   },
+   "uses": [
+    {
+     "sub": "J2",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "BRG-6816-2RS",
+   "name": "Deep groove ball bearing 6816-2RS",
+   "category": "bearing",
+   "make": "buy",
+   "standard": "ISO 15",
+   "size": "80 x 100 x 10",
+   "grade": "C3, sealed 2RS",
+   "material": "Bearing steel 100Cr6, hardened",
+   "materialKey": "bearing",
+   "qty": 4,
+   "massKg": 0.1533,
+   "totalMassKg": 0.6134,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Supports the motor shaft.",
+   "spec": {
+    "bore": "80 mm"
+   },
+   "uses": [
+    {
+     "sub": "J2",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "XRB-150x214x28",
+   "name": "Cross-roller bearing 150 x 214 x 28",
+   "category": "bearing",
+   "make": "buy",
+   "standard": "ISO 492 class P5",
+   "size": "150 x 214 x 28",
+   "grade": "preloaded, split outer ring",
+   "material": "Bearing steel 100Cr6, hardened",
+   "materialKey": "bearing",
+   "qty": 2,
+   "massKg": 2.8143,
+   "totalMassKg": 5.6286,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the joint output. It takes the radial, axial and tilt loads in one bearing.",
+   "spec": {
+    "rollers": "crossed at 90 degrees"
+   },
+   "uses": [
+    {
+     "sub": "J2",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "ENC-motor-112",
+   "name": "Motor encoder, 23-bit absolute (rotor position)",
+   "category": "sensor",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "ring 112 mm",
+   "grade": "",
+   "material": "FR-4 circuit board",
+   "materialKey": "pcb",
+   "qty": 2,
+   "massKg": 0.0255,
+   "totalMassKg": 0.0511,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Reads the motor shaft angle for the drive. The drive uses it to commutate and run the speed loop.",
+   "spec": {
+    "interface": "BiSS-C, RS-485"
+   },
+   "uses": [
+    {
+     "sub": "J2",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "ENC-multiturn-112",
+   "name": "Multi-turn encoder, 16-bit turn count, battery-free",
+   "category": "sensor",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "ring 112 mm",
+   "grade": "",
+   "material": "FR-4 circuit board",
+   "materialKey": "pcb",
+   "qty": 2,
+   "massKg": 0.0255,
+   "totalMassKg": 0.0511,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Counts the motor turns, with no battery. With the motor encoder it gives the joint angle after the gear at power-up, so the arm needs no homing move.",
+   "spec": {
+    "interface": "BiSS-C, RS-485"
+   },
+   "uses": [
+    {
+     "sub": "J2",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "DRV-175",
+   "name": "Integrated servo drive board 175",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "made to order",
+   "size": "ring 175 mm",
+   "grade": "",
+   "material": "FR-4 circuit board",
+   "materialKey": "pcb",
+   "qty": 2,
+   "massKg": 0.0824,
+   "totalMassKg": 0.1647,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Runs the motor: field-oriented current control, safe torque off (STO) and an EtherCAT link.",
+   "spec": {
+    "continuous current": "32 A",
+    "bus": "EtherCAT",
+    "safety": "STO, SIL 2 / PL d"
+   },
+   "uses": [
+    {
+     "sub": "J2",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "GLAND-M25",
+   "name": "Cable gland M25 x 1.5, IP68",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "IEC 62444",
+   "size": "M25 x 1.5",
+   "grade": "IP68",
    "material": "PA66-GF30",
    "materialKey": "pa66",
    "qty": 2,
-   "massKg": 4.9802,
-   "totalMassKg": 9.9604,
+   "massKg": 0.0185,
+   "totalMassKg": 0.037,
    "torqueNm": null,
    "reference": false,
-   "function": "Vacuums the floor and lights it for the camera.",
+   "function": "Seals the motor power, the safety signal and the EtherCAT cable into the actuator.",
    "spec": {},
    "uses": [
     {
-     "sub": "WAND",
+     "sub": "J2",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "ORING-179x2",
+   "name": "O-ring 179 x 2",
+   "category": "seal",
+   "make": "buy",
+   "standard": "ISO 3601-1",
+   "size": "179 x 2",
+   "grade": "NBR 70",
+   "material": "NBR seal elastomer",
+   "materialKey": "nbr",
+   "qty": 2,
+   "massKg": 0.0022,
+   "totalMassKg": 0.0045,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Seals the rear cover to the housing.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "J2",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "ORING-204x2.5",
+   "name": "O-ring 204 x 2.5",
+   "category": "seal",
+   "make": "buy",
+   "standard": "ISO 3601-1",
+   "size": "204 x 2.5",
+   "grade": "NBR 70",
+   "material": "NBR seal elastomer",
+   "materialKey": "nbr",
+   "qty": 2,
+   "massKg": 0.004,
+   "totalMassKg": 0.008,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Seals the bearing outer ring to the housing face.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "J2",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "SEAL-185.2x202x6",
+   "name": "Radial shaft seal 185.2 x 202 x 6",
+   "category": "seal",
+   "make": "buy",
+   "standard": "ISO 6194-1",
+   "size": "185.2 x 202 x 6",
+   "grade": "FKM, with dust lip",
+   "material": "NBR seal elastomer",
+   "materialKey": "nbr",
+   "qty": 2,
+   "massKg": 0.0342,
+   "totalMassKg": 0.0685,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Seals the turning output flange against the clamp ring (IP65).",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "J2",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "DIN471-25",
+   "name": "Retaining ring, shaft 25",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "DIN 471",
+   "size": "25 x 1.2",
+   "grade": "spring steel",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 8,
+   "massKg": 0.0021,
+   "totalMassKg": 0.0169,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Holds the bearing in its seat.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "J2",
+     "qty": 8
+    }
+   ]
+  },
+  {
+   "id": "DIN471-80",
+   "name": "Retaining ring, shaft 80",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "DIN 471",
+   "size": "80 x 2.5",
+   "grade": "spring steel",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 2,
+   "massKg": 0.0327,
+   "totalMassKg": 0.0654,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Holds the bearing in its seat.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "J2",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M10x35-12.9",
+   "name": "Socket head cap screw M10 x 35",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M10 x 35",
+   "grade": "12.9",
+   "material": "Alloy steel, black oxide",
+   "materialKey": "fast_blk",
+   "qty": 16,
+   "massKg": 0.0347,
+   "totalMassKg": 0.5546,
+   "torqueNm": 85.4,
+   "reference": false,
+   "function": "Holds the balancer bracket flange to the casting.",
+   "spec": {
+    "preload": "50.9 kN",
+    "drive": "hex socket 8 mm"
+   },
+   "uses": [
+    {
+     "sub": "J2",
+     "qty": 16
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M10x40-12.9",
+   "name": "Socket head cap screw M10 x 40",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M10 x 40",
+   "grade": "12.9",
+   "material": "Alloy steel, black oxide",
+   "materialKey": "fast_blk",
+   "qty": 8,
+   "massKg": 0.0377,
+   "totalMassKg": 0.3019,
+   "torqueNm": 85.4,
+   "reference": false,
+   "function": "Clamps the J2 actuator drum in the turret boss.",
+   "spec": {
+    "preload": "50.9 kN",
+    "drive": "hex socket 8 mm"
+   },
+   "uses": [
+    {
+     "sub": "J2",
+     "qty": 8
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M10x45-12.9",
+   "name": "Socket head cap screw M10 x 45",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M10 x 45",
+   "grade": "12.9",
+   "material": "Alloy steel, black oxide",
+   "materialKey": "fast_blk",
+   "qty": 64,
+   "massKg": 0.0408,
+   "totalMassKg": 2.6129,
+   "torqueNm": 85.4,
+   "reference": false,
+   "function": "Fixes the ring gear in the housing.",
+   "spec": {
+    "preload": "50.9 kN",
+    "drive": "hex socket 8 mm"
+   },
+   "uses": [
+    {
+     "sub": "J2",
+     "qty": 32
+    },
+    {
+     "sub": "UPPER",
+     "qty": 32
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M5x50-8.8",
+   "name": "Socket head cap screw M5 x 50",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M5 x 50",
+   "grade": "8.8",
+   "material": "Steel, zinc flake coated",
+   "materialKey": "fast_zn",
+   "qty": 6,
+   "massKg": 0.0096,
+   "totalMassKg": 0.0575,
+   "torqueNm": 6.2,
+   "reference": false,
+   "function": "Fastens the brake to the rear bearing web.",
+   "spec": {
+    "preload": "7.2 kN",
+    "drive": "hex socket 4 mm"
+   },
+   "uses": [
+    {
+     "sub": "J2",
+     "qty": 6
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M6x25-12.9",
+   "name": "Socket head cap screw M6 x 25",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M6 x 25",
+   "grade": "12.9",
+   "material": "Alloy steel, black oxide",
+   "materialKey": "fast_blk",
+   "qty": 128,
+   "massKg": 0.0086,
+   "totalMassKg": 1.1009,
+   "torqueNm": 18.0,
+   "reference": false,
+   "function": "Fastens the flexspline and its clamp ring to the output flange.",
+   "spec": {
+    "preload": "17.5 kN",
+    "drive": "hex socket 5 mm"
+   },
+   "uses": [
+    {
+     "sub": "J2",
+     "qty": 16
+    },
+    {
+     "sub": "WRIST",
+     "qty": 112
+    }
+   ]
+  },
+  {
+   "id": "ISO7380-M10x45-10.9",
+   "name": "Button head screw M10 x 45",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 7380-1",
+   "size": "M10 x 45",
+   "grade": "10.9",
+   "material": "Steel, zinc flake coated",
+   "materialKey": "fast_zn",
+   "qty": 24,
+   "massKg": 0.0327,
+   "totalMassKg": 0.7845,
+   "torqueNm": 59.9,
+   "reference": false,
+   "function": "Clamps the bearing outer ring to the housing through the clamp ring.",
+   "spec": {
+    "drive": "hex socket 6 mm"
+   },
+   "uses": [
+    {
+     "sub": "J2",
+     "qty": 24
+    }
+   ]
+  },
+  {
+   "id": "CHG-UPR",
+   "name": "Upper arm casting",
+   "category": "structure",
+   "make": "make",
+   "standard": "casting, machined",
+   "size": "1344.0 between axes",
+   "grade": "A356-T6",
+   "material": "Aluminium A356-T6 casting, powder-coated",
+   "materialKey": "a356",
+   "qty": 2,
+   "massKg": 26.5386,
+   "totalMassKg": 53.0772,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the elbow 1.344 m from the shoulder. Hollow for stiffness per kilogram.",
+   "spec": {
+    "wall": "7 mm",
+    "axis distance": "1344.0 mm, bored in one set-up"
+   },
+   "uses": [
+    {
+     "sub": "UPPER",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "ISO8734-10x30",
+   "name": "Dowel pin 10 x 30",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 8734",
+   "size": "10 m6 x 30",
+   "grade": "hardened 58 HRC",
+   "material": "Bearing steel 100Cr6, hardened",
+   "materialKey": "bearing",
+   "qty": 4,
+   "massKg": 0.0182,
+   "totalMassKg": 0.0729,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Locates the two parts. The screws only clamp them.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "UPPER",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "CHG-J3-COV",
+   "name": "J3 rear cover",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined",
+   "size": "OD 168 x 8",
+   "grade": "",
+   "material": "Aluminium 6061-T6, machined, black anodised",
+   "materialKey": "al6061_blk",
+   "qty": 2,
+   "massKg": 0.4587,
+   "totalMassKg": 0.9173,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Closes the rear of the actuator. The O-ring seals it.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "J3",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-J3-HSG",
+   "name": "J3 actuator housing",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined casting",
+   "size": "OD 214 x 230",
+   "grade": "",
+   "material": "Aluminium A356-T6 casting, charcoal powder coat",
+   "materialKey": "a356_dark",
+   "qty": 2,
+   "massKg": 5.291,
+   "totalMassKg": 10.582,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Holds the gear ring, the motor and both shaft bearings in line. Fins carry the motor heat out.",
+   "spec": {
+    "IP rating": "IP65",
+    "machining": "bores to H7, faces flat to 0.02"
+   },
+   "uses": [
+    {
+     "sub": "J3",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-J3-OUT",
+   "name": "J3 output flange",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined",
+   "size": "OD 150 x 14",
+   "grade": "",
+   "material": "Aluminium 6061-T6, machined, clear anodised",
+   "materialKey": "al6061",
+   "qty": 2,
+   "massKg": 0.8027,
+   "totalMassKg": 1.6054,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the next link. It turns on the bearing inner ring.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "J3",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-J3-STR",
+   "name": "J3 stator retaining ring",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined",
+   "size": "OD 148",
+   "grade": "",
+   "material": "Aluminium 6061-T6, machined, clear anodised",
+   "materialKey": "al6061",
+   "qty": 2,
+   "massKg": 0.0419,
+   "totalMassKg": 0.0837,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Pressed into the bore behind the stator. It holds the stator against its shoulder.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "J3",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-J3-XCR",
+   "name": "J3 bearing clamp ring",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined",
+   "size": "OD 214",
+   "grade": "6061-T6",
+   "material": "Aluminium 6061-T6, machined, clear anodised",
+   "materialKey": "al6061",
+   "qty": 2,
+   "massKg": 0.898,
+   "totalMassKg": 1.796,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Clamps the bearing outer ring to the housing. The output seal sits in its bore.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "J3",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-J3-FSC",
+   "name": "J3 flexspline clamp ring",
+   "category": "drive",
+   "make": "make",
+   "standard": "machined",
+   "size": "size 40",
+   "grade": "",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 2,
+   "massKg": 0.0363,
+   "totalMassKg": 0.0726,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Spreads the screw load over the thin flexspline diaphragm.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "J3",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-J3-SHF",
+   "name": "J3 hollow motor shaft",
+   "category": "drive",
+   "make": "make",
+   "standard": "machined",
+   "size": "70 x 181",
+   "grade": "",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 2,
+   "massKg": 1.1151,
+   "totalMassKg": 2.2303,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the wave generator, the rotor, the brake disc and the encoder discs. Cables pass through its bore.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "J3",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-FOR",
+   "name": "Forearm casting",
+   "category": "structure",
+   "make": "make",
+   "standard": "casting, machined",
+   "size": "1142.4 elbow to wrist centre",
+   "grade": "A356-T6",
+   "material": "Aluminium A356-T6 casting, powder-coated",
+   "materialKey": "a356",
+   "qty": 2,
+   "massKg": 14.8166,
+   "totalMassKg": 29.6333,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the wrist 1.142 m from the elbow. Its top socket holds J4.",
+   "spec": {
+    "wall": "6 mm"
+   },
+   "uses": [
+    {
+     "sub": "FORE",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M8x40-12.9",
+   "name": "Socket head cap screw M8 x 40",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M8 x 40",
+   "grade": "12.9",
+   "material": "Alloy steel, black oxide",
+   "materialKey": "fast_blk",
+   "qty": 32,
+   "massKg": 0.0229,
+   "totalMassKg": 0.7318,
+   "torqueNm": 43.6,
+   "reference": false,
+   "function": "Holds the forearm cheek to the J3 output flange.",
+   "spec": {
+    "preload": "32.0 kN",
+    "drive": "hex socket 6 mm"
+   },
+   "uses": [
+    {
+     "sub": "FORE",
+     "qty": 32
+    }
+   ]
+  },
+  {
+   "id": "CHG-J4-COV",
+   "name": "J4 rear cover",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined",
+   "size": "OD 131 x 8",
+   "grade": "",
+   "material": "Aluminium 6061-T6, machined, black anodised",
+   "materialKey": "al6061_blk",
+   "qty": 2,
+   "massKg": 0.2733,
+   "totalMassKg": 0.5466,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Closes the rear of the actuator. The O-ring seals it.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-J4-HSG",
+   "name": "J4 actuator housing",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined casting",
+   "size": "OD 140 x 171",
+   "grade": "",
+   "material": "Aluminium A356-T6 casting, charcoal powder coat",
+   "materialKey": "a356_dark",
+   "qty": 2,
+   "massKg": 2.827,
+   "totalMassKg": 5.654,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Holds the gear ring, the motor and both shaft bearings in line. Fins carry the motor heat out.",
+   "spec": {
+    "IP rating": "IP65",
+    "machining": "bores to H7, faces flat to 0.02"
+   },
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-J4-OUT",
+   "name": "J4 output flange",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined",
+   "size": "OD 93 x 10",
+   "grade": "",
+   "material": "Aluminium 6061-T6, machined, clear anodised",
+   "materialKey": "al6061",
+   "qty": 2,
+   "massKg": 0.1996,
+   "totalMassKg": 0.3992,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the next link. It turns on the bearing inner ring.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-J4-STR",
+   "name": "J4 stator retaining ring",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined",
+   "size": "OD 96",
+   "grade": "",
+   "material": "Aluminium 6061-T6, machined, clear anodised",
+   "materialKey": "al6061",
+   "qty": 2,
+   "massKg": 0.0195,
+   "totalMassKg": 0.039,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Pressed into the bore behind the stator. It holds the stator against its shoulder.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-J4-XCR",
+   "name": "J4 bearing clamp ring",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined",
+   "size": "OD 140",
+   "grade": "6061-T6",
+   "material": "Aluminium 6061-T6, machined, clear anodised",
+   "materialKey": "al6061",
+   "qty": 2,
+   "massKg": 0.3061,
+   "totalMassKg": 0.6121,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Clamps the bearing outer ring to the housing. The output seal sits in its bore.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-J5-COV",
+   "name": "J5 rear cover",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined",
+   "size": "OD 131 x 8",
+   "grade": "",
+   "material": "Aluminium 6061-T6, machined, black anodised",
+   "materialKey": "al6061_blk",
+   "qty": 2,
+   "massKg": 0.2733,
+   "totalMassKg": 0.5466,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Closes the rear of the actuator. The O-ring seals it.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-J5-HSG",
+   "name": "J5 actuator housing",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined casting",
+   "size": "OD 140 x 171",
+   "grade": "",
+   "material": "Aluminium A356-T6 casting, charcoal powder coat",
+   "materialKey": "a356_dark",
+   "qty": 2,
+   "massKg": 2.827,
+   "totalMassKg": 5.654,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Holds the gear ring, the motor and both shaft bearings in line. Fins carry the motor heat out.",
+   "spec": {
+    "IP rating": "IP65",
+    "machining": "bores to H7, faces flat to 0.02"
+   },
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-J5-OUT",
+   "name": "J5 output flange",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined",
+   "size": "OD 93 x 10",
+   "grade": "",
+   "material": "Aluminium 6061-T6, machined, clear anodised",
+   "materialKey": "al6061",
+   "qty": 2,
+   "massKg": 0.1996,
+   "totalMassKg": 0.3992,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the next link. It turns on the bearing inner ring.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-J5-STR",
+   "name": "J5 stator retaining ring",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined",
+   "size": "OD 96",
+   "grade": "",
+   "material": "Aluminium 6061-T6, machined, clear anodised",
+   "materialKey": "al6061",
+   "qty": 2,
+   "massKg": 0.0195,
+   "totalMassKg": 0.039,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Pressed into the bore behind the stator. It holds the stator against its shoulder.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-J5-XCR",
+   "name": "J5 bearing clamp ring",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined",
+   "size": "OD 140",
+   "grade": "6061-T6",
+   "material": "Aluminium 6061-T6, machined, clear anodised",
+   "materialKey": "al6061",
+   "qty": 2,
+   "massKg": 0.3061,
+   "totalMassKg": 0.6121,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Clamps the bearing outer ring to the housing. The output seal sits in its bore.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-J6-COV",
+   "name": "J6 rear cover",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined",
+   "size": "OD 117 x 8",
+   "grade": "",
+   "material": "Aluminium 6061-T6, machined, black anodised",
+   "materialKey": "al6061_blk",
+   "qty": 2,
+   "massKg": 0.2181,
+   "totalMassKg": 0.4362,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Closes the rear of the actuator. The O-ring seals it.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-J6-HSG",
+   "name": "J6 actuator housing",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined casting",
+   "size": "OD 116 x 151",
+   "grade": "",
+   "material": "Aluminium A356-T6 casting, charcoal powder coat",
+   "materialKey": "a356_dark",
+   "qty": 2,
+   "massKg": 2.1846,
+   "totalMassKg": 4.3693,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Holds the gear ring, the motor and both shaft bearings in line. Fins carry the motor heat out.",
+   "spec": {
+    "IP rating": "IP65",
+    "machining": "bores to H7, faces flat to 0.02"
+   },
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-J6-OUT",
+   "name": "J6 output flange",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined",
+   "size": "OD 76 x 9",
+   "grade": "",
+   "material": "Aluminium 6061-T6, machined, clear anodised",
+   "materialKey": "al6061",
+   "qty": 2,
+   "massKg": 0.1168,
+   "totalMassKg": 0.2336,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the next link. It turns on the bearing inner ring.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-J6-STR",
+   "name": "J6 stator retaining ring",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined",
+   "size": "OD 78",
+   "grade": "",
+   "material": "Aluminium 6061-T6, machined, clear anodised",
+   "materialKey": "al6061",
+   "qty": 2,
+   "massKg": 0.0126,
+   "totalMassKg": 0.0252,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Pressed into the bore behind the stator. It holds the stator against its shoulder.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-J6-XCR",
+   "name": "J6 bearing clamp ring",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined",
+   "size": "OD 116",
+   "grade": "6061-T6",
+   "material": "Aluminium 6061-T6, machined, clear anodised",
+   "materialKey": "al6061",
+   "qty": 2,
+   "massKg": 0.1948,
+   "totalMassKg": 0.3895,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Clamps the bearing outer ring to the housing. The output seal sits in its bore.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-WTB",
+   "name": "Wrist tube",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined from billet",
+   "size": "J5 cheek to J6, 114",
+   "grade": "6061-T6",
+   "material": "Aluminium 6061-T6, machined, clear anodised",
+   "materialKey": "al6061",
+   "qty": 2,
+   "massKg": 0.8618,
+   "totalMassKg": 1.7237,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Turns on J5 and holds the J6 actuator on the tool axis.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-YK5",
+   "name": "Wrist yoke",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined from billet",
+   "size": "37 x 104",
+   "grade": "6061-T6",
+   "material": "Aluminium 6061-T6, machined, clear anodised",
+   "materialKey": "al6061",
+   "qty": 2,
+   "massKg": 1.12,
+   "totalMassKg": 2.24,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Turns on J4 and holds the J5 actuator on the wrist centre.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "BRK-66x22",
+   "name": "Spring-applied holding brake 66",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "66 x 22",
+   "grade": "",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 2,
+   "massKg": 0.3766,
+   "totalMassKg": 0.7532,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Springs hold the joint when power is off. The coil releases it. A power cut cannot drop the arm.",
+   "spec": {
+    "holding torque": "1.2 N m (motor side)",
+    "release": "24 V DC"
+   },
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "BRK-82x26",
+   "name": "Spring-applied holding brake 82",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "82 x 26",
+   "grade": "",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 4,
+   "massKg": 0.6388,
+   "totalMassKg": 2.5553,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Springs hold the joint when power is off. The coil releases it. A power cut cannot drop the arm.",
+   "spec": {
+    "holding torque": "2 N m (motor side)",
+    "release": "24 V DC"
+   },
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "CHG-J4-FSC",
+   "name": "J4 flexspline clamp ring",
+   "category": "drive",
+   "make": "make",
+   "standard": "machined",
+   "size": "size 25",
+   "grade": "",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 2,
+   "massKg": 0.0143,
+   "totalMassKg": 0.0287,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Spreads the screw load over the thin flexspline diaphragm.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-J4-SHF",
+   "name": "J4 hollow motor shaft",
+   "category": "drive",
+   "make": "make",
+   "standard": "machined",
+   "size": "50 x 135",
+   "grade": "",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 2,
+   "massKg": 0.578,
+   "totalMassKg": 1.1561,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the wave generator, the rotor, the brake disc and the encoder discs. Cables pass through its bore.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-J5-FSC",
+   "name": "J5 flexspline clamp ring",
+   "category": "drive",
+   "make": "make",
+   "standard": "machined",
+   "size": "size 25",
+   "grade": "",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 2,
+   "massKg": 0.0143,
+   "totalMassKg": 0.0287,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Spreads the screw load over the thin flexspline diaphragm.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-J5-SHF",
+   "name": "J5 hollow motor shaft",
+   "category": "drive",
+   "make": "make",
+   "standard": "machined",
+   "size": "50 x 135",
+   "grade": "",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 2,
+   "massKg": 0.578,
+   "totalMassKg": 1.1561,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the wave generator, the rotor, the brake disc and the encoder discs. Cables pass through its bore.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-J6-FSC",
+   "name": "J6 flexspline clamp ring",
+   "category": "drive",
+   "make": "make",
+   "standard": "machined",
+   "size": "size 20",
+   "grade": "",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 2,
+   "massKg": 0.009,
+   "totalMassKg": 0.0179,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Spreads the screw load over the thin flexspline diaphragm.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-J6-SHF",
+   "name": "J6 hollow motor shaft",
+   "category": "drive",
+   "make": "make",
+   "standard": "machined",
+   "size": "40 x 119",
+   "grade": "",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 2,
+   "massKg": 0.4007,
+   "totalMassKg": 0.8013,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the wave generator, the rotor, the brake disc and the encoder discs. Cables pass through its bore.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "MOT-78x30-RO",
+   "name": "Frameless torque motor 78x30: rotor",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue motor kit",
+   "size": "78x30",
+   "grade": "",
+   "material": "NdFeB magnet, nickel plated",
+   "materialKey": "magnet",
+   "qty": 2,
+   "massKg": 0.1226,
+   "totalMassKg": 0.2453,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Steel hub with the permanent magnets. It turns the hollow motor shaft.",
+   "spec": {
+    "continuous torque": "0.8 N m",
+    "power": "0.25 kW",
+    "bus voltage": "48 V DC",
+    "type": "brushless, frameless, 3-phase"
+   },
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "MOT-78x30-ST",
+   "name": "Frameless torque motor 78x30: stator core",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue motor kit",
+   "size": "78x30",
+   "grade": "",
+   "material": "Electrical steel laminations M270-35A",
+   "materialKey": "lam",
+   "qty": 2,
+   "massKg": 0.5076,
+   "totalMassKg": 1.0153,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Laminated core with the 3-phase coils. It is bonded into the housing and makes the rotating field.",
+   "spec": {
+    "continuous torque": "0.8 N m",
+    "power": "0.25 kW",
+    "bus voltage": "48 V DC",
+    "type": "brushless, frameless, 3-phase"
+   },
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "MOT-78x30-WD",
+   "name": "Frameless torque motor 78x30: winding end turns",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue motor kit",
+   "size": "78x30",
+   "grade": "",
+   "material": "Copper winding, enamelled",
+   "materialKey": "copper",
+   "qty": 2,
+   "massKg": 0.2142,
+   "totalMassKg": 0.4284,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Copper coil ends of the stator winding, with a thermistor for over-temperature stop.",
+   "spec": {
+    "continuous torque": "0.8 N m",
+    "power": "0.25 kW",
+    "bus voltage": "48 V DC",
+    "type": "brushless, frameless, 3-phase"
+   },
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "MOT-96x36-RO",
+   "name": "Frameless torque motor 96x36: rotor",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue motor kit",
+   "size": "96x36",
+   "grade": "",
+   "material": "NdFeB magnet, nickel plated",
+   "materialKey": "magnet",
+   "qty": 4,
+   "massKg": 0.2138,
+   "totalMassKg": 0.8552,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Steel hub with the permanent magnets. It turns the hollow motor shaft.",
+   "spec": {
+    "continuous torque": "1.3 N m",
+    "power": "0.4 kW",
+    "bus voltage": "48 V DC",
+    "type": "brushless, frameless, 3-phase"
+   },
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "MOT-96x36-ST",
+   "name": "Frameless torque motor 96x36: stator core",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue motor kit",
+   "size": "96x36",
+   "grade": "",
+   "material": "Electrical steel laminations M270-35A",
+   "materialKey": "lam",
+   "qty": 4,
+   "massKg": 0.9228,
+   "totalMassKg": 3.6911,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Laminated core with the 3-phase coils. It is bonded into the housing and makes the rotating field.",
+   "spec": {
+    "continuous torque": "1.3 N m",
+    "power": "0.4 kW",
+    "bus voltage": "48 V DC",
+    "type": "brushless, frameless, 3-phase"
+   },
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "MOT-96x36-WD",
+   "name": "Frameless torque motor 96x36: winding end turns",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue motor kit",
+   "size": "96x36",
+   "grade": "",
+   "material": "Copper winding, enamelled",
+   "materialKey": "copper",
+   "qty": 4,
+   "massKg": 0.3993,
+   "totalMassKg": 1.5973,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Copper coil ends of the stator winding, with a thermistor for over-temperature stop.",
+   "spec": {
+    "continuous torque": "1.3 N m",
+    "power": "0.4 kW",
+    "bus voltage": "48 V DC",
+    "type": "brushless, frameless, 3-phase"
+   },
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "SWG20-CS",
+   "name": "Strain-wave gear size 20: circular spline",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue component set",
+   "size": "size 20, ratio 100:1",
+   "grade": "",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 2,
+   "massKg": 0.3307,
+   "totalMassKg": 0.6615,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Rigid ring gear with internal teeth. It is bolted to the housing and does not turn.",
+   "spec": {
+    "ratio": "100:1",
+    "repeated peak torque": "107 N m",
+    "momentary peak torque": "191 N m",
+    "teeth": "flexspline 200, circular spline 202 (drawn simplified)",
+    "backlash": "zero (about 1 arc-min lost motion)"
+   },
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "SWG20-FS",
+   "name": "Strain-wave gear size 20: flexspline",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue component set",
+   "size": "size 20, ratio 100:1",
+   "grade": "",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 2,
+   "massKg": 0.0376,
+   "totalMassKg": 0.0752,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Thin steel cup with 2 fewer teeth than the ring. It flexes into an ellipse and turns the output.",
+   "spec": {
+    "ratio": "100:1",
+    "repeated peak torque": "107 N m",
+    "momentary peak torque": "191 N m",
+    "teeth": "flexspline 200, circular spline 202 (drawn simplified)",
+    "backlash": "zero (about 1 arc-min lost motion)"
+   },
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "SWG20-WG",
+   "name": "Strain-wave gear size 20: wave generator",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue component set",
+   "size": "size 20, ratio 100:1",
+   "grade": "",
+   "material": "Bearing steel 100Cr6, hardened",
+   "materialKey": "bearing",
+   "qty": 2,
+   "massKg": 0.0282,
+   "totalMassKg": 0.0563,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Elliptical cam on a thin ball bearing. The motor turns it. Each turn moves the output 2 teeth.",
+   "spec": {
+    "ratio": "100:1",
+    "repeated peak torque": "107 N m",
+    "momentary peak torque": "191 N m",
+    "teeth": "flexspline 200, circular spline 202 (drawn simplified)",
+    "backlash": "zero (about 1 arc-min lost motion)"
+   },
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "SWG25-CS",
+   "name": "Strain-wave gear size 25: circular spline",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue component set",
+   "size": "size 25, ratio 100:1",
+   "grade": "",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 4,
+   "massKg": 0.6324,
+   "totalMassKg": 2.5296,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Rigid ring gear with internal teeth. It is bolted to the housing and does not turn.",
+   "spec": {
+    "ratio": "100:1",
+    "repeated peak torque": "204 N m",
+    "momentary peak torque": "369 N m",
+    "teeth": "flexspline 200, circular spline 202 (drawn simplified)",
+    "backlash": "zero (about 1 arc-min lost motion)"
+   },
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "SWG25-FS",
+   "name": "Strain-wave gear size 25: flexspline",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue component set",
+   "size": "size 25, ratio 100:1",
+   "grade": "",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 4,
+   "massKg": 0.074,
+   "totalMassKg": 0.2959,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Thin steel cup with 2 fewer teeth than the ring. It flexes into an ellipse and turns the output.",
+   "spec": {
+    "ratio": "100:1",
+    "repeated peak torque": "204 N m",
+    "momentary peak torque": "369 N m",
+    "teeth": "flexspline 200, circular spline 202 (drawn simplified)",
+    "backlash": "zero (about 1 arc-min lost motion)"
+   },
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "SWG25-WG",
+   "name": "Strain-wave gear size 25: wave generator",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue component set",
+   "size": "size 25, ratio 100:1",
+   "grade": "",
+   "material": "Bearing steel 100Cr6, hardened",
+   "materialKey": "bearing",
+   "qty": 4,
+   "massKg": 0.055,
+   "totalMassKg": 0.22,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Elliptical cam on a thin ball bearing. The motor turns it. Each turn moves the output 2 teeth.",
+   "spec": {
+    "ratio": "100:1",
+    "repeated peak torque": "204 N m",
+    "momentary peak torque": "369 N m",
+    "teeth": "flexspline 200, circular spline 202 (drawn simplified)",
+    "backlash": "zero (about 1 arc-min lost motion)"
+   },
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "BRG-6808-2RS",
+   "name": "Deep groove ball bearing 6808-2RS",
+   "category": "bearing",
+   "make": "buy",
+   "standard": "ISO 15",
+   "size": "40 x 52 x 7",
+   "grade": "C3, sealed 2RS",
+   "material": "Bearing steel 100Cr6, hardened",
+   "materialKey": "bearing",
+   "qty": 4,
+   "massKg": 0.0325,
+   "totalMassKg": 0.1298,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Supports the motor shaft.",
+   "spec": {
+    "bore": "40 mm"
+   },
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "BRG-6810-2RS",
+   "name": "Deep groove ball bearing 6810-2RS",
+   "category": "bearing",
+   "make": "buy",
+   "standard": "ISO 15",
+   "size": "50 x 65 x 7",
+   "grade": "C3, sealed 2RS",
+   "material": "Bearing steel 100Cr6, hardened",
+   "materialKey": "bearing",
+   "qty": 8,
+   "massKg": 0.0517,
+   "totalMassKg": 0.4138,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Supports the motor shaft.",
+   "spec": {
+    "bore": "50 mm"
+   },
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 8
+    }
+   ]
+  },
+  {
+   "id": "XRB-56x92x14",
+   "name": "Cross-roller bearing 56 x 92 x 14",
+   "category": "bearing",
+   "make": "buy",
+   "standard": "ISO 492 class P5",
+   "size": "56 x 92 x 14",
+   "grade": "preloaded, split outer ring",
+   "material": "Bearing steel 100Cr6, hardened",
+   "materialKey": "bearing",
+   "qty": 2,
+   "massKg": 0.3355,
+   "totalMassKg": 0.671,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the joint output. It takes the radial, axial and tilt loads in one bearing.",
+   "spec": {
+    "rollers": "crossed at 90 degrees"
+   },
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "XRB-70x112x16",
+   "name": "Cross-roller bearing 70 x 112 x 16",
+   "category": "bearing",
+   "make": "buy",
+   "standard": "ISO 492 class P5",
+   "size": "70 x 112 x 16",
+   "grade": "preloaded, split outer ring",
+   "material": "Bearing steel 100Cr6, hardened",
+   "materialKey": "bearing",
+   "qty": 4,
+   "massKg": 0.557,
+   "totalMassKg": 2.2282,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the joint output. It takes the radial, axial and tilt loads in one bearing.",
+   "spec": {
+    "rollers": "crossed at 90 degrees"
+   },
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "ENC-motor-54",
+   "name": "Motor encoder, 23-bit absolute (rotor position)",
+   "category": "sensor",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "ring 54 mm",
+   "grade": "",
+   "material": "FR-4 circuit board",
+   "materialKey": "pcb",
+   "qty": 2,
+   "massKg": 0.011,
+   "totalMassKg": 0.0219,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Reads the motor shaft angle for the drive. The drive uses it to commutate and run the speed loop.",
+   "spec": {
+    "interface": "BiSS-C, RS-485"
+   },
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "ENC-motor-64",
+   "name": "Motor encoder, 23-bit absolute (rotor position)",
+   "category": "sensor",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "ring 64 mm",
+   "grade": "",
+   "material": "FR-4 circuit board",
+   "materialKey": "pcb",
+   "qty": 4,
+   "massKg": 0.0127,
+   "totalMassKg": 0.0509,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Reads the motor shaft angle for the drive. The drive uses it to commutate and run the speed loop.",
+   "spec": {
+    "interface": "BiSS-C, RS-485"
+   },
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "ENC-multiturn-54",
+   "name": "Multi-turn encoder, 16-bit turn count, battery-free",
+   "category": "sensor",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "ring 54 mm",
+   "grade": "",
+   "material": "FR-4 circuit board",
+   "materialKey": "pcb",
+   "qty": 2,
+   "massKg": 0.011,
+   "totalMassKg": 0.0219,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Counts the motor turns, with no battery. With the motor encoder it gives the joint angle after the gear at power-up, so the arm needs no homing move.",
+   "spec": {
+    "interface": "BiSS-C, RS-485"
+   },
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "ENC-multiturn-64",
+   "name": "Multi-turn encoder, 16-bit turn count, battery-free",
+   "category": "sensor",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "ring 64 mm",
+   "grade": "",
+   "material": "FR-4 circuit board",
+   "materialKey": "pcb",
+   "qty": 4,
+   "massKg": 0.0127,
+   "totalMassKg": 0.0509,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Counts the motor turns, with no battery. With the motor encoder it gives the joint angle after the gear at power-up, so the arm needs no homing move.",
+   "spec": {
+    "interface": "BiSS-C, RS-485"
+   },
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "DRV-111",
+   "name": "Integrated servo drive board 111",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "made to order",
+   "size": "ring 111 mm",
+   "grade": "",
+   "material": "FR-4 circuit board",
+   "materialKey": "pcb",
+   "qty": 4,
+   "massKg": 0.0331,
+   "totalMassKg": 0.1325,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Runs the motor: field-oriented current control, safe torque off (STO) and an EtherCAT link.",
+   "spec": {
+    "continuous current": "9 A",
+    "bus": "EtherCAT",
+    "safety": "STO, SIL 2 / PL d"
+   },
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "DRV-97",
+   "name": "Integrated servo drive board 97",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "made to order",
+   "size": "ring 97 mm",
+   "grade": "",
+   "material": "FR-4 circuit board",
+   "materialKey": "pcb",
+   "qty": 2,
+   "massKg": 0.0253,
+   "totalMassKg": 0.0506,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Runs the motor: field-oriented current control, safe torque off (STO) and an EtherCAT link.",
+   "spec": {
+    "continuous current": "6 A",
+    "bus": "EtherCAT",
+    "safety": "STO, SIL 2 / PL d"
+   },
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "GLAND-M16",
+   "name": "Cable gland M16 x 1.5, IP68",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "IEC 62444",
+   "size": "M16 x 1.5",
+   "grade": "IP68",
+   "material": "PA66-GF30",
+   "materialKey": "pa66",
+   "qty": 6,
+   "massKg": 0.0054,
+   "totalMassKg": 0.0325,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Seals the motor power, the safety signal and the EtherCAT cable into the actuator.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 6
+    }
+   ]
+  },
+  {
+   "id": "ORING-101x2",
+   "name": "O-ring 101 x 2",
+   "category": "seal",
+   "make": "buy",
+   "standard": "ISO 3601-1",
+   "size": "101 x 2",
+   "grade": "NBR 70",
+   "material": "NBR seal elastomer",
+   "materialKey": "nbr",
+   "qty": 2,
+   "massKg": 0.0013,
+   "totalMassKg": 0.0025,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Seals the rear cover to the housing.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "ORING-102x2",
+   "name": "O-ring 102 x 2",
+   "category": "seal",
+   "make": "buy",
+   "standard": "ISO 3601-1",
+   "size": "102 x 2",
+   "grade": "NBR 70",
+   "material": "NBR seal elastomer",
+   "materialKey": "nbr",
+   "qty": 4,
+   "massKg": 0.0013,
+   "totalMassKg": 0.0051,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Seals the bearing outer ring to the housing face.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "ORING-114x2",
+   "name": "O-ring 114 x 2",
+   "category": "seal",
+   "make": "buy",
+   "standard": "ISO 3601-1",
+   "size": "114 x 2",
+   "grade": "NBR 70",
+   "material": "NBR seal elastomer",
+   "materialKey": "nbr",
+   "qty": 4,
+   "massKg": 0.0014,
+   "totalMassKg": 0.0057,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Seals the rear cover to the housing.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "ORING-82x2",
+   "name": "O-ring 82 x 2",
+   "category": "seal",
+   "make": "buy",
+   "standard": "ISO 3601-1",
+   "size": "82 x 2",
+   "grade": "NBR 70",
+   "material": "NBR seal elastomer",
+   "materialKey": "nbr",
+   "qty": 2,
+   "massKg": 0.001,
+   "totalMassKg": 0.0021,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Seals the bearing outer ring to the housing face.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "SEAL-75.8x80x6",
+   "name": "Radial shaft seal 75.8 x 80 x 6",
+   "category": "seal",
+   "make": "buy",
+   "standard": "ISO 6194-1",
+   "size": "75.8 x 80 x 6",
+   "grade": "FKM, with dust lip",
+   "material": "NBR seal elastomer",
+   "materialKey": "nbr",
+   "qty": 2,
+   "massKg": 0.0034,
+   "totalMassKg": 0.0069,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Seals the turning output flange against the clamp ring (IP65).",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "SEAL-93.1x100x6",
+   "name": "Radial shaft seal 93.1 x 100 x 6",
+   "category": "seal",
+   "make": "buy",
+   "standard": "ISO 6194-1",
+   "size": "93.1 x 100 x 6",
+   "grade": "FKM, with dust lip",
+   "material": "NBR seal elastomer",
+   "materialKey": "nbr",
+   "qty": 4,
+   "massKg": 0.007,
+   "totalMassKg": 0.028,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Seals the turning output flange against the clamp ring (IP65).",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "DIN471-40",
+   "name": "Retaining ring, shaft 40",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "DIN 471",
+   "size": "40 x 1.75",
+   "grade": "spring steel",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 2,
+   "massKg": 0.0067,
+   "totalMassKg": 0.0134,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Holds the bearing in its seat.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "DIN471-50",
+   "name": "Retaining ring, shaft 50",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "DIN 471",
+   "size": "50 x 1.75",
+   "grade": "spring steel",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 4,
+   "massKg": 0.0098,
+   "totalMassKg": 0.0393,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Holds the bearing in its seat.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M3x12-8.8",
+   "name": "Socket head cap screw M3 x 12",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M3 x 12",
+   "grade": "8.8",
+   "material": "Steel, zinc flake coated",
+   "materialKey": "fast_zn",
+   "qty": 12,
+   "massKg": 0.0011,
+   "totalMassKg": 0.0137,
+   "torqueNm": 1.4,
+   "reference": false,
+   "function": "Fastens the encoder read head to the brake end plate.",
+   "spec": {
+    "preload": "2.5 kN",
+    "drive": "hex socket 2.5 mm"
+   },
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 12
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M3x16-12.9",
+   "name": "Socket head cap screw M3 x 16",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M3 x 16",
+   "grade": "12.9",
+   "material": "Alloy steel, black oxide",
+   "materialKey": "fast_blk",
+   "qty": 44,
+   "massKg": 0.0014,
+   "totalMassKg": 0.0598,
+   "torqueNm": 2.3,
+   "reference": false,
+   "function": "Fastens the flexspline and its clamp ring to the output flange.",
+   "spec": {
+    "preload": "4.4 kN",
+    "drive": "hex socket 2.5 mm"
+   },
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 44
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M4x30-8.8",
+   "name": "Socket head cap screw M4 x 30",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M4 x 30",
+   "grade": "8.8",
+   "material": "Steel, zinc flake coated",
+   "materialKey": "fast_zn",
+   "qty": 6,
+   "massKg": 0.004,
+   "totalMassKg": 0.024,
+   "torqueNm": 3.1,
+   "reference": false,
+   "function": "Fastens the brake to the rear bearing web.",
+   "spec": {
+    "preload": "4.4 kN",
+    "drive": "hex socket 3 mm"
+   },
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 6
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M4x35-8.8",
+   "name": "Socket head cap screw M4 x 35",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M4 x 35",
+   "grade": "8.8",
+   "material": "Steel, zinc flake coated",
+   "materialKey": "fast_zn",
+   "qty": 12,
+   "massKg": 0.0045,
+   "totalMassKg": 0.0539,
+   "torqueNm": 3.1,
+   "reference": false,
+   "function": "Fastens the brake to the rear bearing web.",
+   "spec": {
+    "preload": "4.4 kN",
+    "drive": "hex socket 3 mm"
+   },
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 12
+    }
+   ]
+  },
+  {
+   "id": "ISO7380-M6x25-10.9",
+   "name": "Button head screw M6 x 25",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 7380-1",
+   "size": "M6 x 25",
+   "grade": "10.9",
+   "material": "Steel, zinc flake coated",
+   "materialKey": "fast_zn",
+   "qty": 48,
+   "massKg": 0.0066,
+   "totalMassKg": 0.3154,
+   "torqueNm": 12.5,
+   "reference": false,
+   "function": "Clamps the bearing outer ring to the housing through the clamp ring.",
+   "spec": {
+    "drive": "hex socket 4 mm"
+   },
+   "uses": [
+    {
+     "sub": "WRIST",
+     "qty": 48
+    }
+   ]
+  },
+  {
+   "id": "CHG-J2-RINGL",
+   "name": "Status light ring, J2",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "LED strip in PC diffuser",
+   "size": "OD 280",
+   "grade": "",
+   "material": "LED module, PC diffuser",
+   "materialKey": "led",
+   "qty": 2,
+   "massKg": 0.0532,
+   "totalMassKg": 0.1063,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Shows the arm state: teal ready, amber moving, green charging, red fault.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SAFETY",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-J2-RINGR",
+   "name": "Status light ring, J2",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "LED strip in PC diffuser",
+   "size": "OD 280",
+   "grade": "",
+   "material": "LED module, PC diffuser",
+   "materialKey": "led",
+   "qty": 2,
+   "massKg": 0.0532,
+   "totalMassKg": 0.1063,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Shows the arm state: teal ready, amber moving, green charging, red fault.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SAFETY",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-WRING",
+   "name": "Status light ring, wrist",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "LED strip in PC diffuser",
+   "size": "OD 153",
+   "grade": "",
+   "material": "LED module, PC diffuser",
+   "materialKey": "led",
+   "qty": 2,
+   "massKg": 0.018,
+   "totalMassKg": 0.036,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Shows the arm state at the connector, where the camera and a person look.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SAFETY",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-PSB",
+   "name": "Sensor bracket, stainless",
+   "category": "structure",
+   "make": "make",
+   "standard": "bent and welded plate",
+   "size": "273 long",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 1.1228,
+   "totalMassKg": 2.2455,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the camera and the mist nozzle beside the pad, on the wrist and not on the turning head. Its foot bolts to the wrist tube's flat cheek.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "POLISH",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-FTS",
+   "name": "6-axis force and torque sensor",
+   "category": "sensor",
+   "make": "buy",
+   "standard": "ISO 9409-1-50-4-M6 both faces",
+   "size": "OD 104 x 40",
+   "grade": "",
+   "material": "Aluminium 6061-T6, machined, clear anodised",
+   "materialKey": "al6061",
+   "qty": 2,
+   "massKg": 0.7553,
+   "totalMassKg": 1.5106,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Reads the 3 forces and 3 torques at the tool. The arm stops the insertion past its force limit.",
+   "spec": {
+    "range": "Fz 1,000 N, Fxy 500 N, Txyz 40 N m",
+    "rate": "1 kHz"
+   },
+   "uses": [
+    {
+     "sub": "POLISH",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-PCM",
+   "name": "Sensor-finding camera with ring light, IP67",
+   "category": "sensor",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "44 x 60 x 44",
+   "grade": "IP67",
+   "material": "PA66-GF30",
+   "materialKey": "pa66",
+   "qty": 2,
+   "massKg": 0.35,
+   "totalMassKg": 0.7,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Finds each camera, lidar and radar cover on the car, so the pad goes to the sensor and not to the paint.",
+   "spec": {
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "POLISH",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-PAD",
+   "name": "Polishing pad, microfibre on soft foam",
+   "category": "tool",
+   "make": "buy",
+   "standard": "consumable",
+   "size": "D 120 x 62",
+   "grade": "lint-free microfibre",
+   "material": "Microfibre on open-cell foam, white",
+   "materialKey": "pad_white",
+   "qty": 2,
+   "massKg": 0.06,
+   "totalMassKg": 0.12,
+   "torqueNm": null,
+   "reference": false,
+   "function": "The only part that touches the car. It polishes a sensor cover as a soft cloth in a hand does.",
+   "spec": {
+    "change": "each shift, by hand, in seconds",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "POLISH",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-PBP",
+   "name": "Pad backing plate, hook face",
+   "category": "tool",
+   "make": "make",
+   "standard": "moulded",
+   "size": "D 104 x 8",
+   "grade": "PA66",
+   "material": "PA66-GF30",
+   "materialKey": "pa66",
+   "qty": 2,
+   "massKg": 0.0917,
+   "totalMassKg": 0.1835,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Holds the pad by hook-and-loop. Smaller than the pad, so only foam comes near the paint.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "POLISH",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-PFL",
+   "name": "Floating joint: elastomer gimbal and 3 springs",
+   "category": "tool",
+   "make": "make",
+   "standard": "machined, elastomer bonded",
+   "size": "OD 100 x 30",
+   "grade": "",
+   "material": "Aluminium 6061-T6, machined, clear anodised",
+   "materialKey": "al6061",
+   "qty": 2,
+   "massKg": 0.45,
+   "totalMassKg": 0.9,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Lets the pad tilt 6 degrees and give 8 mm, so it lies flat on a curved cover with an even, light push.",
+   "spec": {
+    "tilt": "6 deg",
+    "give": "8 mm",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "POLISH",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M5x16-A4-80",
+   "name": "Socket head cap screw M5 x 16",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M5 x 16",
+   "grade": "A4-80",
+   "material": "Stainless steel A4-80",
+   "materialKey": "fast_a4",
+   "qty": 4,
+   "massKg": 0.0044,
+   "totalMassKg": 0.0176,
+   "torqueNm": 5.8,
+   "reference": false,
+   "function": "Holds the sensor bracket to the wrist tube.",
+   "spec": {
+    "preload": "6.8 kN",
+    "drive": "hex socket 4 mm"
+   },
+   "uses": [
+    {
+     "sub": "POLISH",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M6x16-A4-80",
+   "name": "Socket head cap screw M6 x 16",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M6 x 16",
+   "grade": "A4-80",
+   "material": "Stainless steel A4-80",
+   "materialKey": "fast_a4",
+   "qty": 10,
+   "massKg": 0.0067,
+   "totalMassKg": 0.0671,
+   "torqueNm": 9.8,
+   "reference": false,
+   "function": "Holds the floating joint to the force sensor.",
+   "spec": {
+    "preload": "9.5 kN",
+    "drive": "hex socket 5 mm"
+   },
+   "uses": [
+    {
+     "sub": "CONTROL",
+     "qty": 4
+    },
+    {
+     "sub": "POLISH",
+     "qty": 6
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M6x20-12.9",
+   "name": "Socket head cap screw M6 x 20",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M6 x 20",
+   "grade": "12.9",
+   "material": "Alloy steel, black oxide",
+   "materialKey": "fast_blk",
+   "qty": 8,
+   "massKg": 0.0075,
+   "totalMassKg": 0.0599,
+   "torqueNm": 18.0,
+   "reference": false,
+   "function": "Holds the sensor to the J6 tool flange (ISO 9409-1).",
+   "spec": {
+    "preload": "17.5 kN",
+    "drive": "hex socket 5 mm"
+   },
+   "uses": [
+    {
+     "sub": "POLISH",
+     "qty": 8
+    }
+   ]
+  },
+  {
+   "id": "ISO8734-6x12",
+   "name": "Dowel pin 6 x 12",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 8734",
+   "size": "6 m6 x 12",
+   "grade": "hardened 58 HRC",
+   "material": "Bearing steel 100Cr6, hardened",
+   "materialKey": "bearing",
+   "qty": 2,
+   "massKg": 0.0026,
+   "totalMassKg": 0.0052,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Locates the two parts. The screws only clamp them.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "POLISH",
      "qty": 2
     }
    ]
@@ -3137,13 +6531,13 @@
    "category": "structure",
    "make": "make",
    "standard": "checker plate 10 mm",
-   "size": "2 x 7900, slot 70",
+   "size": "2 x 9823, slot 70",
    "grade": "S235, galvanised, R11 slip",
    "material": "Steel 42CrMo4, quenched and tempered",
    "materialKey": "steel",
    "qty": 1,
-   "massKg": 86.8212,
-   "totalMassKg": 86.8212,
+   "massKg": 107.9549,
+   "totalMassKg": 107.9549,
    "torqueNm": null,
    "reference": false,
    "function": "Covers the trench flush with the floor. The driver runs in its slot.",
@@ -3161,13 +6555,13 @@
    "category": "structure",
    "make": "make",
    "standard": "folded sheet 5 mm",
-   "size": "140 x 520 x 7900",
+   "size": "140 x 520 x 9823",
    "grade": "S235, galvanised",
    "material": "Steel 42CrMo4, quenched and tempered",
    "materialKey": "steel",
    "qty": 1,
-   "massKg": 381.393,
-   "totalMassKg": 381.393,
+   "massKg": 474.2306,
+   "totalMassKg": 474.2306,
    "torqueNm": null,
    "reference": false,
    "function": "Lines the trench the drag chain runs in, inboard of the west rail, under the cover.",
@@ -3189,9 +6583,9 @@
    "grade": "S235, galvanised",
    "material": "Steel 42CrMo4, quenched and tempered",
    "materialKey": "steel",
-   "qty": 8,
+   "qty": 10,
    "massKg": 0.2235,
-   "totalMassKg": 1.7879,
+   "totalMassKg": 2.2349,
    "torqueNm": null,
    "reference": false,
    "function": "Ties the trench liner to the rail anchor plates, so the two stay in line.",
@@ -3199,7 +6593,7 @@
    "uses": [
     {
      "sub": "CONTROL",
-     "qty": 8
+     "qty": 10
     }
    ]
   },
@@ -3309,9 +6703,9 @@
    "grade": "",
    "material": "PA66-GF30",
    "materialKey": "pa66",
-   "qty": 59,
+   "qty": 72,
    "massKg": 0.053,
-   "totalMassKg": 3.1299,
+   "totalMassKg": 3.8196,
    "torqueNm": null,
    "reference": false,
    "function": "Guides the cables and hoses through the moving joint. It keeps the bend radius safe.",
@@ -3319,7 +6713,7 @@
    "uses": [
     {
      "sub": "CONTROL",
-     "qty": 59
+     "qty": 72
     }
    ]
   },
@@ -3400,54 +6794,6 @@
    ]
   },
   {
-   "id": "WSH-LMG",
-   "name": "Signal lamp, green, 100 mm",
-   "category": "electrical",
-   "make": "buy",
-   "standard": "EN 12368",
-   "size": "D 100",
-   "grade": "",
-   "material": "LED module, green",
-   "materialKey": "led_green",
-   "qty": 1,
-   "massKg": 0.0724,
-   "totalMassKg": 0.0724,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Green: the machine is home. The car may go.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "CONTROL",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "WSH-LMR",
-   "name": "Signal lamp, red, 100 mm",
-   "category": "electrical",
-   "make": "buy",
-   "standard": "EN 12368",
-   "size": "D 100",
-   "grade": "",
-   "material": "LED module, red",
-   "materialKey": "led_red",
-   "qty": 1,
-   "massKg": 0.0724,
-   "totalMassKg": 0.0724,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Red: the program runs. The car must not move.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "CONTROL",
-     "qty": 1
-    }
-   ]
-  },
-  {
    "id": "WSH-STL",
    "name": "Stop light housing",
    "category": "electrical",
@@ -3477,13 +6823,13 @@
    "category": "seal",
    "make": "buy",
    "standard": "catalogue part",
-   "size": "25 x 7900",
+   "size": "25 x 9823",
    "grade": "",
    "material": "PA66-GF30",
    "materialKey": "pa66",
    "qty": 2,
-   "massKg": 0.7999,
-   "totalMassKg": 1.5998,
+   "massKg": 0.9946,
+   "totalMassKg": 1.9892,
    "torqueNm": null,
    "reference": false,
    "function": "Closes the cover's slot round the driver against grit and spray.",
@@ -3494,15 +6840,34 @@
      "qty": 2
     }
    ]
+  },
+  {
+   "id": "ISO4017-M10x30-A4-70",
+   "name": "Hex head screw M10 x 30",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4017",
+   "size": "M10 x 30",
+   "grade": "A4-70",
+   "material": "Stainless steel A4-80",
+   "materialKey": "fast_a4",
+   "qty": 4,
+   "massKg": 0.0299,
+   "totalMassKg": 0.1197,
+   "torqueNm": 34.4,
+   "reference": false,
+   "function": "Holds the cabinet lug to the leg post.",
+   "spec": {
+    "preload": "20.8 kN",
+    "drive": "hex 16 mm"
+   },
+   "uses": [
+    {
+     "sub": "CONTROL",
+     "qty": 4
+    }
+   ]
   }
  ],
- "notes": {
-  "wand_column": {
-   "stages": 4,
-   "reachStages": 2,
-   "stageLengthMm": 914,
-   "stowedTopMm": 4228,
-   "washHallHeightMm": 4785
-  }
- }
+ "notes": {}
 }

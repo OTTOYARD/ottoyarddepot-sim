@@ -18,37 +18,37 @@
     "depot": "charge_arm.depot.glb"
    },
    "bytes": {
-    "glb": 6786156,
-    "stepZip": 6051114,
-    "step": 32110843,
-    "depot": 524260
+    "glb": 6840948,
+    "stepZip": 6888422,
+    "step": 35462577,
+    "depot": 535616
    },
    "mesh": {
-    "vertices": 285390,
-    "triangles": 322975,
+    "vertices": 286858,
+    "triangles": 325615,
     "meshes": 189,
     "nodes": 662
    },
    "depotMesh": {
-    "vertices": 20691,
-    "triangles": 22616,
+    "vertices": 21161,
+    "triangles": 23102,
     "meshes": 64,
     "nodes": 76
    },
-   "depotSha256": "6df302dcd8a151c8",
+   "depotSha256": "68c041cae873d3dc",
    "totals": {
-    "parts": 652,
-    "uniqueParts": 188,
+    "parts": 655,
+    "uniqueParts": 191,
     "fasteners": 457,
-    "massKg": 390.79,
-    "boughtLines": 124,
-    "madeLines": 64,
+    "massKg": 376.93,
+    "boughtLines": 130,
+    "madeLines": 61,
     "referenceLines": 2
    },
-   "glbSha256": "b40aa1a8ffb9552b",
+   "glbSha256": "1f2627e49905a0a5",
    "stepCheck": {
-    "namedParts": 654,
-    "solids": 1344,
+    "namedParts": 657,
+    "solids": 1347,
     "invalid": 0
    },
    "subsystems": [
@@ -86,7 +86,7 @@
     },
     {
      "id": "DRESS",
-     "name": "Cables and take-up"
+     "name": "Power path in the arm"
     },
     {
      "id": "SAFETY",
@@ -202,37 +202,37 @@
     "depot": "wash_gantry.depot.glb"
    },
    "bytes": {
-    "glb": 1525904,
-    "stepZip": 1419676,
-    "step": 8341087,
-    "depot": 413312
+    "glb": 7807488,
+    "stepZip": 6728865,
+    "step": 36906073,
+    "depot": 734784
    },
    "mesh": {
-    "vertices": 54115,
-    "triangles": 64106,
-    "meshes": 123,
-    "nodes": 801
+    "vertices": 312918,
+    "triangles": 352917,
+    "meshes": 245,
+    "nodes": 2268
    },
    "depotMesh": {
-    "vertices": 14171,
-    "triangles": 13600,
-    "meshes": 93,
-    "nodes": 234
+    "vertices": 26993,
+    "triangles": 28632,
+    "meshes": 110,
+    "nodes": 337
    },
-   "depotSha256": "67fabe90fa1b63b0",
+   "depotSha256": "48e6781fa9ae01ae",
    "totals": {
-    "parts": 931,
-    "uniqueParts": 131,
-    "fasteners": 460,
-    "massKg": 4616.37,
-    "boughtLines": 64,
-    "madeLines": 67,
+    "parts": 2639,
+    "uniqueParts": 250,
+    "fasteners": 1636,
+    "massKg": 5631.01,
+    "boughtLines": 151,
+    "madeLines": 99,
     "referenceLines": 0
    },
-   "glbSha256": "32020fb536082377",
+   "glbSha256": "0c1aa3e1026acfb0",
    "stepCheck": {
-    "namedParts": 931,
-    "solids": 1000,
+    "namedParts": 2639,
+    "solids": 4081,
     "invalid": 0
    },
    "subsystems": [
@@ -253,20 +253,48 @@
      "name": "Spray arch"
     },
     {
-     "id": "TOPBRUSH",
-     "name": "Top brush (overhead)"
-    },
-    {
-     "id": "SIDEBRUSH",
-     "name": "Side brushes"
-    },
-    {
      "id": "DRYER",
      "name": "Air knives (dryer)"
     },
     {
-     "id": "WAND",
-     "name": "Detail vacuum wands"
+     "id": "TRACK",
+     "name": "Detail arm tracks"
+    },
+    {
+     "id": "DOCK",
+     "name": "Arm docks and pad care"
+    },
+    {
+     "id": "J1",
+     "name": "Detail arm J1 base turn"
+    },
+    {
+     "id": "J2",
+     "name": "Detail arm J2 shoulder"
+    },
+    {
+     "id": "UPPER",
+     "name": "Detail arm upper arm"
+    },
+    {
+     "id": "J3",
+     "name": "Detail arm J3 elbow"
+    },
+    {
+     "id": "FORE",
+     "name": "Detail arm forearm"
+    },
+    {
+     "id": "WRIST",
+     "name": "Detail arm wrist (J4, J5, J6)"
+    },
+    {
+     "id": "SAFETY",
+     "name": "Detail arm status"
+    },
+    {
+     "id": "POLISH",
+     "name": "Polishing head"
     },
     {
      "id": "CONTROL",

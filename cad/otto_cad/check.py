@@ -29,6 +29,7 @@ from __future__ import annotations
 import math
 import multiprocessing as mp
 import re
+import sys
 import time
 
 from cadquery import Location, Vector
@@ -49,7 +50,7 @@ THREAD_CLEAR_MM = 0.6        # a hole cylinder's radius past the nominal diamete
 SEAL_SHARE = 1 / 3
 RING_SHARE = 0.5
 MESH_SHARE = 0.1
-MESH_PAIRS = (('SWG', 'SWG'), ('PUL-', 'BELT-'), ('WSH-PIN', 'WSH-SRK'), ('CLN-PIN', 'CLN-RCK'))
+MESH_PAIRS = (('SWG', 'SWG'), ('PUL-', 'BELT-'), ('WSH-PIN', 'WSH-SRK'), ('WSH-DPN', 'WSH-DRK'), ('CLN-PIN', 'CLN-RCK'))
 
 _SCREW = re.compile(r'^ISO(4762|7380|10642|4017|4026)-M(\d+)x([\d.]+)')
 _DOWEL = re.compile(r'^ISO8734-([\d.]+)x([\d.]+)')
@@ -142,6 +143,45 @@ def candidate_pairs(boxes: list[tuple]) -> list[tuple[int, int]]:
                 out.append((min(i, j), max(i, j)))
         active.append(i)
     return out
+
+
+def oriented_box(pd: PartDef, L: Location, pad: float = 0.0) -> tuple:
+    """A part's own box, where the part stands: its centre, its three axes and its half sizes. A part turned 45
+    degrees has an axis-aligned box far larger than itself, and its own box is not."""
+    x0, y0, z0, x1, y1, z1 = _local_box(pd)
+    T = L.wrapped.Transformation()
+    c = gp_Pnt((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2).Transformed(T)
+    axes = tuple((T.Value(1, k), T.Value(2, k), T.Value(3, k)) for k in (1, 2, 3))
+    return ((c.X(), c.Y(), c.Z()), axes, ((x1 - x0) / 2 + pad, (y1 - y0) / 2 + pad, (z1 - z0) / 2 + pad))
+
+
+def boxes_meet(A: tuple, B: tuple, eps: float = 1e-6) -> bool:
+    """Two oriented boxes share space or touch (the separating-axis test, 15 axes). It errs toward True, so a pair it
+    drops cannot share volume: the boxes hold the parts."""
+    ca, ua, ea = A
+    cb, ub, eb = B
+    t = (cb[0] - ca[0], cb[1] - ca[1], cb[2] - ca[2])
+    R = [[ua[i][0] * ub[j][0] + ua[i][1] * ub[j][1] + ua[i][2] * ub[j][2] for j in range(3)] for i in range(3)]
+    AR = [[abs(R[i][j]) + eps for j in range(3)] for i in range(3)]
+    T = [t[0] * ua[i][0] + t[1] * ua[i][1] + t[2] * ua[i][2] for i in range(3)]
+    for i in range(3):
+        if abs(T[i]) > ea[i] + eb[0] * AR[i][0] + eb[1] * AR[i][1] + eb[2] * AR[i][2]:
+            return False
+    for j in range(3):
+        if abs(T[0] * R[0][j] + T[1] * R[1][j] + T[2] * R[2][j]) > ea[0] * AR[0][j] + ea[1] * AR[1][j] + ea[2] * AR[2][j] + eb[j]:
+            return False
+    for i in range(3):
+        i1, i2 = (i + 1) % 3, (i + 2) % 3
+        for j in range(3):
+            j1, j2 = (j + 1) % 3, (j + 2) % 3
+            ra = ea[i1] * AR[i2][j] + ea[i2] * AR[i1][j]
+            rb = eb[j1] * AR[i][j2] + eb[j2] * AR[i][j1]
+            if abs(T[i2] * R[i1][j] - T[i1] * R[i2][j]) > ra + rb:
+                return False
+    return True
+
+
+OBB_PAD_MM = 0.01            # the oriented boxes are held this much larger, so rounding never drops a pair that touches
 
 
 _HOLE: dict[str, object] = {}
@@ -244,6 +284,61 @@ def _work_touch(chunk):
     return out
 
 
+def _loc_key(L: Location) -> tuple:
+    t, r = L.toTuple()
+    return (tuple(round(c, 3) for c in t), tuple(round(c, 5) for c in r))
+
+
+def _solid_key(pd: PartDef, L: Location) -> tuple:
+    """A flexible line's solid is made anew at each pose, so its id does not name its shape. Its volume, its centre
+    of mass and where it is placed do: the same three mean the same solid in the same place (a line whose ends did
+    not move since an earlier pose)."""
+    p = GProp_GProps()
+    BRepGProp.VolumeProperties_s(pd.shape.wrapped, p)
+    c = p.CentreOfMass()
+    return ('flex', round(abs(p.Mass()), 2), (round(c.X(), 2), round(c.Y(), 2), round(c.Z(), 2)), _loc_key(L))
+
+
+def _relkey(pa: PartDef, La: Location, pb: PartDef, Lb: Location):
+    """What a pair's result depends on: the two parts and where the second stands in the first's frame. Two pairs with
+    the same key are the same geometry problem (a part id is one solid), so one measurement serves both: the same pair
+    at a later pose in which neither part moved against the other, or the matching pair in a second copy of an assembly
+    (the wash bay's two detail arms). A pair with a flexible line's solid in it is keyed by where both stand in the
+    world: it is the same problem only when neither moved at all."""
+    ta, tb = getattr(pa, 'transient', False), getattr(pb, 'transient', False)
+    if ta or tb:
+        return ('world', _solid_key(pa, La) if ta else (pa.id, _loc_key(La)), _solid_key(pb, Lb) if tb else (pb.id, _loc_key(Lb)))
+    t, r = (La.inverse * Lb).toTuple()
+    return (pa.id, pb.id, tuple(round(c, 3) for c in t), tuple(round(c, 5) for c in r))
+
+
+def _to_local(L: Location, pt) -> tuple:
+    return (L.inverse * Location(Vector(*pt))).toTuple()[0]
+
+
+def _to_world(L: Location, pt) -> tuple:
+    return tuple(round(c, 1) for c in (L * Location(Vector(*pt))).toTuple()[0])
+
+
+def _split(pl, pairs, cache):
+    """Pairs to measure (one for each new key), the pairs each stands for, and the pairs already answered."""
+    todo, stands, known = [], {}, []
+    first: dict = {}
+    for (i, j) in pairs:
+        k = _relkey(pl[i][0].part, pl[i][1], pl[j][0].part, pl[j][1])
+        if k is None:
+            todo.append((i, j))
+        elif k in cache:
+            known.append((i, j, cache[k]))
+        elif k in first:
+            stands[first[k]].append((i, j))
+        else:
+            first[k] = (i, j)
+            stands[(i, j)] = []
+            todo.append((i, j))
+    return todo, stands, known, {v: k for k, v in first.items()}
+
+
 def _run(fn, pairs, procs):
     if not pairs:
         return []
@@ -269,6 +364,8 @@ def check(model: Model, poses: list[dict], procs: int = 4, only_subs: set | None
         contact = False
     bodies = [b for (_, _, b) in stow]
     pairs_checked = 0
+    pairs_measured = 0
+    cache: dict = {}
     found: dict[tuple[str, str], dict] = {}
     counts = {'thread': 0, 'seal': 0, 'ring': 0, 'mesh': 0, 'context': 0, 'clash': 0, 'error': 0}
     all_poses = [{'id': 'stowed', 'angles': {}}] + [p for p in poses if p.get('angles')]
@@ -276,6 +373,10 @@ def check(model: Model, poses: list[dict], procs: int = 4, only_subs: set | None
         pl = placements(model, pose['angles'])
         boxes = [world_box(it.part, L) for (it, L, _) in pl]
         pairs = candidate_pairs(boxes)
+        # then each part's own box where it stands: at a pose that turns an arm, the axis-aligned boxes of its parts
+        # swell and overlap by the hundred, and their own boxes do not
+        obb = [oriented_box(it.part, L, OBB_PAD_MM) for (it, L, _) in pl]
+        pairs = [(i, j) for (i, j) in pairs if boxes_meet(obb[i], obb[j])]
         if only_subs:
             pairs = [(i, j) for (i, j) in pairs if pl[i][0].sub in only_subs or pl[j][0].sub in only_subs]
         if pi > 0:
@@ -284,7 +385,24 @@ def check(model: Model, poses: list[dict], procs: int = 4, only_subs: set | None
             pairs = [(i, j) for (i, j) in pairs if not (bodies[i] == bodies[j] and bodies[i].startswith('flex:'))]
         pairs_checked += len(pairs)
         _G['pl'] = pl
-        for (i, j, (kind, v, at)) in _run(_work, pairs, procs):
+        # measure one pair for each new (parts, relative placement), and reuse the answer for every pair like it
+        todo, stands, known, key_of = _split(pl, pairs, cache)
+        pairs_measured += len(todo)
+        got = {(i, j): r for (i, j, r) in _run(_work, todo, procs)}
+        print(f"   {pose['id']}: {len(pairs)} pairs, {len(todo)} measured, {time.time() - t0:.0f} s", file=sys.stderr, flush=True)
+        results = []
+        for (i, j) in todo:
+            r = got.get((i, j))
+            if (i, j) in key_of:
+                cache[key_of[(i, j)]] = None if r is None else (r[0], r[1], _to_local(pl[i][1], r[2]))
+            if r is not None:
+                results.append((i, j, r))
+                for (i2, j2) in stands.get((i, j), []):
+                    results.append((i2, j2, (r[0], r[1], _to_world(pl[i2][1], _to_local(pl[i][1], r[2])))))
+        for (i, j, c) in known:
+            if c is not None:
+                results.append((i, j, (c[0], c[1], _to_world(pl[i][1], c[2]))))
+        for (i, j, (kind, v, at)) in results:
             a, b = pl[i][0], pl[j][0]
             key = (a.name, b.name)
             if key not in found:
@@ -297,19 +415,23 @@ def check(model: Model, poses: list[dict], procs: int = 4, only_subs: set | None
     if not contact:
         clashes = [r for r in found.values() if r['kind'] in ('clash', 'error')]
         clashes.sort(key=lambda r: -r['volumeMm3'])
-        return {'robot': model.key, 'poses': [p['id'] for p in all_poses], 'pairsChecked': pairs_checked, 'contactPairs': 0,
+        return {'robot': model.key, 'poses': [p['id'] for p in all_poses], 'pairsChecked': pairs_checked, 'pairsMeasured': pairs_measured, 'contactPairs': 0,
                 'counts': counts, 'clashes': clashes, 'floating': [], 'context': [], 'seconds': round(time.time() - t0, 1)}
     # contact graph at the stowed pose
     _G['pl'] = stow
     boxes = [world_box(it.part, L, CONTACT_MM) for (it, L, _) in stow]
     near = candidate_pairs(boxes)
+    obb = [oriented_box(it.part, L, CONTACT_MM) for (it, L, _) in stow]
+    near = [(i, j) for (i, j) in near if boxes_meet(obb[i], obb[j])]
     overlapping: set[tuple[int, int]] = set()
     names = {it.name: k for k, (it, _, _) in enumerate(stow)}
     for rec in found.values():
         if 'stowed' in rec['poses']:
             overlapping.add(tuple(sorted((names[rec['a']['item']], names[rec['b']['item']]))))
     rest = [p for p in near if p not in overlapping]
-    touch = set(_run(_work_touch, rest, procs)) | overlapping
+    t_todo, t_stands, _, _ = _split(stow, rest, {})
+    t_got = set(_run(_work_touch, t_todo, procs))
+    touch = t_got | {q for p in t_got for q in t_stands.get(p, [])} | overlapping
     parent = list(range(len(stow)))
 
     def root(i):
@@ -332,6 +454,7 @@ def check(model: Model, poses: list[dict], procs: int = 4, only_subs: set | None
         'robot': model.key,
         'poses': [p['id'] for p in all_poses],
         'pairsChecked': pairs_checked,
+        'pairsMeasured': pairs_measured,
         'contactPairs': len(touch),
         'counts': counts,
         'clashes': clashes,

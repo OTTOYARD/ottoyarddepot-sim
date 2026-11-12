@@ -86,8 +86,8 @@
      "value": "DC combo class (CCS), liquid-cooled"
     },
     {
-     "label": "Charge cable",
-     "value": "500 A DC, liquid-cooled"
+     "label": "Charge current",
+     "value": "500 A DC, 1000 V, liquid-cooled at the connector"
     },
     {
      "label": "Time to connect",
@@ -110,8 +110,8 @@
      "value": "A solenoid latch locks the connector in the inlet for the charge."
     },
     {
-     "label": "Cable",
-     "value": "The charge cable comes up out of the cabinet roof into a take-up wheel. A spring keeps the cable off the car."
+     "label": "Power path",
+     "value": "The charge current runs inside the arm. In each hollow link 2 copper bars carry it, one a pole. Nothing live is in the open. At the base, the shoulder and the elbow a booted link of braided copper joins 2 terminal boxes. It bends as the joint turns."
     },
     {
      "label": "Status lights",
@@ -148,7 +148,8 @@
     "Overhead cleaning"
    ],
    "services": [
-    "interior_tidy"
+    "interior_tidy",
+    "interior_deep_clean"
    ],
    "steps": [
     {
@@ -297,132 +298,148 @@
    "stallType": "wash_bay",
    "where": "One in each wash bay.",
    "summary": [
-    "A rollover machine in each wash bay. It moves over the parked car 6 times.",
-    "The passes are: pre-soak, 2 brush passes, rinse, 2 dry passes.",
-    "On a detail seat, 2 vacuum wands clean the cabin first."
+    "A touchless wash line in each wash bay. The car stands still and the machines move round it.",
+    "A gantry makes 6 passes: pre-soak, 2 water-jet passes, rinse, 2 dry passes. Then it stows at the entrance.",
+    "Then 2 six-axis arms come from the exit end, one each side, and polish each sensor with a soft pad.",
+    "No brush touches the car. The doors stay shut."
    ],
    "owner": [
-    "A machine washes your car in the wash bay. It moves over the parked car 6 times.",
-    "The passes are pre-soak, 2 brush passes, rinse and 2 dry passes.",
-    "On a detail visit, 2 vacuum wands clean the cabin first, through the open doors."
+    "A machine washes your car in the wash bay. No brush touches the car.",
+    "It moves over the parked car 6 times: pre-soak, 2 water-jet passes, rinse and 2 dry passes.",
+    "The machine then stows at the entrance. 2 robot arms come down their tracks, one each side of the car.",
+    "They polish each camera, lidar and radar cover with a soft pad. The doors stay shut."
    ],
    "functions": [
     "Wash bay",
-    "Wash bay vacuum",
+    "Wash bay sensor polish",
     "Wash bay overhead"
    ],
    "services": [
     "exterior_wash",
-    "interior_deep_clean"
+    "sensor_clean"
    ],
    "steps": [
     {
      "id": "settle",
-     "label": "The car stops under the light",
+     "label": "The car stops at the bay centre",
      "seconds": 2.5
     },
     {
-     "id": "to_cabin",
-     "label": "Move to the cabin",
-     "seconds": 6
-    },
-    {
-     "id": "doors_open",
-     "label": "The doors open",
-     "seconds": 3
-    },
-    {
-     "id": "wands_down",
-     "label": "Lower the wands",
-     "seconds": 3
-    },
-    {
-     "id": "wands_in",
-     "label": "Reach in through the doors",
-     "seconds": 3
-    },
-    {
-     "id": "vacuum",
-     "label": "Vacuum the cabin",
+     "id": "cabin_hold",
+     "label": "Hold for the cabin clean. The doors stay shut",
      "seconds": 600,
-     "note": "the twin sets the time"
-    },
-    {
-     "id": "wands_out",
-     "label": "Come out of the car",
-     "seconds": 3
-    },
-    {
-     "id": "wands_up",
-     "label": "Raise the wands",
-     "seconds": 3
-    },
-    {
-     "id": "doors_close",
-     "label": "The doors close",
-     "seconds": 3
-    },
-    {
-     "id": "to_start",
-     "label": "Move to the start",
-     "seconds": 6
+     "note": "a detail seat only. The twin sets the time"
     },
     {
      "id": "soak",
-     "label": "Pass 1: pre-soak foam",
-     "seconds": 30
+     "label": "Pass 1: pre-soak",
+     "seconds": 25
     },
     {
      "id": "wash_1",
-     "label": "Pass 2: brushes",
-     "seconds": 40
+     "label": "Pass 2: water jets",
+     "seconds": 35
     },
     {
      "id": "wash_2",
-     "label": "Pass 3: brushes",
-     "seconds": 40
+     "label": "Pass 3: water jets",
+     "seconds": 35
     },
     {
      "id": "rinse",
      "label": "Pass 4: rinse",
-     "seconds": 30
+     "seconds": 25
     },
     {
      "id": "dry_1",
      "label": "Pass 5: dry",
-     "seconds": 35
+     "seconds": 30
     },
     {
      "id": "dry_2",
-     "label": "Pass 6: dry",
-     "seconds": 35
+     "label": "Pass 6: dry. The gantry stows at the entrance",
+     "seconds": 30
+    },
+    {
+     "id": "arms_out",
+     "label": "The detail arms leave their docks",
+     "seconds": 10
+    },
+    {
+     "id": "wipe_front",
+     "label": "Polish the front sensors",
+     "seconds": 21
+    },
+    {
+     "id": "wipe_sides",
+     "label": "Polish the side cameras",
+     "seconds": 21
+    },
+    {
+     "id": "wipe_roof",
+     "label": "Polish the roof lidar",
+     "seconds": 38
+    },
+    {
+     "id": "wipe_rear",
+     "label": "Polish the rear sensors",
+     "seconds": 40
+    },
+    {
+     "id": "arms_stow",
+     "label": "The detail arms go back to their docks",
+     "seconds": 15
     },
     {
      "id": "done",
-     "label": "Home. The light turns green",
+     "label": "All stowed. The light turns green",
      "seconds": 2
     }
    ],
    "facts": [
     {
      "label": "Passes",
-     "value": "6 passes in about 3.5 min: pre-soak, 2 brush passes, rinse, 2 dry passes."
+     "value": "6 passes in about 3 min: pre-soak, 2 water-jet passes, rinse, 2 dry passes."
     },
     {
-     "label": "Cabin vacuum",
-     "value": "On a detail seat, about 10 min before the wash. The twin sets the time."
+     "label": "Touch",
+     "value": "No brush. Only the soft pads touch the car, and only on its sensors."
     },
     {
-     "label": "Top brush",
-     "value": "Washes the bonnet, the roof and the roof pod. It follows the car top."
+     "label": "Sensor polish",
+     "value": "A soft pad on a floating, force-sensing head polishes each camera, lidar and radar cover. The 2 arms do 24 places in about 2.4 min."
     },
     {
-     "label": "Side brushes",
-     "value": "Wash the flanks, the doors and the wheels."
+     "label": "Detail arms",
+     "value": "2 six-axis arms, one each side of the car. Points the pad square onto a sensor at any angle, as a hand does. The 3 wrist axes meet at one point. So the pad turns about that point and stays on the sensor."
+    },
+    {
+     "label": "Pad",
+     "value": "The pad is microfibre over soft foam, 120 mm across. It is small enough for the edge of a roof lidar. J6 turns the pad a quarter turn each way to polish. It does not spin free, so no cable winds up."
+    },
+    {
+     "label": "Push",
+     "value": "A 6-axis force sensor reads the push. The arm holds it at 5 N and stops at 10 N. A floating joint lets the pad tilt 6 degrees and give 8 mm. So it lies flat on a curved cover."
+    },
+    {
+     "label": "Finds each sensor",
+     "value": "A camera beside the pad finds each sensor. A nozzle mists it with pure water first. No chemical is used."
+    },
+    {
+     "label": "Arm tracks",
+     "value": "A floor track each side of the car takes a detail arm to any place along the car. Travel: 8.28 m."
+    },
+    {
+     "label": "Pad care",
+     "value": "Each arm parks at the exit end, folded along its track, with its pad in a rinse cup. A nozzle in the cup rinses the pad with pure water after each car. The pad turns in the cup to throw the water off."
+    },
+    {
+     "label": "Doors",
+     "value": "The doors stay shut in the wash bay. The cabin is cleaned at the fast charger."
     },
     {
      "label": "Spray arch",
-     "value": "Sprays the pre-soak foam, then the clear-water rinse. 9 flat-fan nozzles each side and 5 across the top."
+     "value": "Sprays the pre-soak, the wash water jets and the clear-water rinse. 9 flat-fan nozzles each side and 5 across the top."
     },
     {
      "label": "Air knives",
@@ -448,6 +465,10 @@
    "safety": [
     "Retracted, everything clears a car by more than 0.48 m.",
     "The machine never moves over the car with a tool still on it.",
+    "The gantry and the arms never work at the same time. Each waits at its own end of the bay.",
+    "The dock stands north of the gantry's travel, so a parked arm is never under the gantry.",
+    "An arm stops its push at 10 N. If a wash ends early, each pad backs straight off the car.",
+    "No joint of an arm is hurried, even when a wash ends early.",
     "A stop at each rail end holds a wheel if the machine runs past its travel.",
     "The car leaves only when the light is green."
    ]

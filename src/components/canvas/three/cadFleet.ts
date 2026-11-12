@@ -19,14 +19,11 @@ import { cadUrl, type RobotKey } from '@/lib/robotics/catalog';
 
 /** The OTTO-CLEAN ARM's canopy steel in the CAD: the canopy draws it. */
 export const CLEAN_CANOPY_STEEL: readonly string[] = ['CLN-HDR', 'CLN-COL', 'CLN-CLP'];
-/** The OTTO-WASH brushes: each turns on its own shaft, so each is its own segment. */
-export const WASH_BRUSH_PARTS: readonly string[] = ['WSH-TBR', 'WSH-SBRL', 'WSH-SBRR'];
-
 export const DEPOT_CAD_OPTIONS: Readonly<Record<RobotKey, DepotCadOptions>> = {
   charge_arm: {},
   clean_arm: { exclude: (id) => CLEAN_CANOPY_STEEL.includes(id) },
   // the beacon is the status light; the stop lamps are lights of their own (red, green)
-  wash_gantry: { ownSegment: (id) => WASH_BRUSH_PARTS.includes(id), lights: { led: 0, led_red: 1, led_green: 2 } },
+  wash_gantry: { lights: { led: 0, led_red: 1, led_green: 2 } },
 };
 
 const loads = new Map<RobotKey, Promise<DepotCad>>();

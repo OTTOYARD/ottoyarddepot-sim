@@ -61,8 +61,11 @@ describe("the wash gate keeps the machine on the twin's clock at any frame rate"
       it(`plays every pass of a ${interior ? "detail" : "wash"} seat at ${frame} sim-s a frame, and is home before the seat ends`, () => {
         const trace = play(interior, seat, frame);
         const seen = phasesOf(trace);
-        // the passes and the vacuum outlast any frame here; a 2.5 s settle can start and end between two samples
-        for (const p of [...(interior ? ["vacuum"] : []), ...WASH_EXTERIOR]) expect(seen, `${p} at ${frame}`).toContain(p);
+        // the passes, the cabin hold and each place the arms wipe outlast any frame here; a 2.5 s settle can start and
+        // end between two samples
+        for (const p of [...(interior ? ["cabin_hold"] : []), ...WASH_EXTERIOR, "wipe_front", "wipe_sides", "wipe_roof", "wipe_rear"]) {
+          expect(seen, `${p} at ${frame}`).toContain(p);
+        }
         expect(trace.some((s) => s.finishing), "cut off by the seat's end").toBe(false);
         expect(homeAt(trace)).toBeLessThanOrEqual(seat);
       });
@@ -81,7 +84,7 @@ describe("the wash gate keeps the machine on the twin's clock at any frame rate"
     }
   });
 
-  it("REPRODUCES what it fixes: one reducer call a frame at 3 sim-s, the detail program is cut off in its vacuum", () => {
+  it("REPRODUCES what it fixes: one reducer call a frame at 3 sim-s, the detail program is cut off before its end", () => {
     // the gate as it was: one call of the reducer per frame, which takes at most 2 s and drops the rest
     let s: WashSession = IDLE_WASH;
     const seat = 830; // run 96371023's car db9d7b6e: seated 14:53:31, timed to 15:07:21 sim
@@ -96,7 +99,9 @@ describe("the wash gate keeps the machine on the twin's clock at any frame rate"
       if (s.finishing && cutIn === null) cutIn = prev;
     }
     expect(cutIn).not.toBeNull();
-    expect(WASH_EXTERIOR.some((p) => !seen.has(p))).toBe(true);
+    // it never reached the end of its program: the seat ended on it part way through
+    expect(seen.has("done")).toBe(false);
+    expect([...WASH_EXTERIOR, "wipe_front", "wipe_sides", "wipe_roof", "wipe_rear"].some((p) => !seen.has(p))).toBe(true);
     // and through the gate, the same seat at the same frame rate runs every pass
     const trace = play(true, seat, 3);
     expect(trace.some((x) => x.finishing)).toBe(false);
@@ -113,7 +118,7 @@ describe("the wash gate keeps the machine on the twin's clock at any frame rate"
   });
 
   it("still finishes a seat the twin ends early, from wherever the machine is, inside the hold cap", () => {
-    // the twin ends a detail seat 400 s in (mid-vacuum), at a frame a second
+    // the twin ends a detail seat 400 s in (in the cabin hold), at a frame a second
     const gate = new WashGate();
     let releasedAt = Infinity;
     for (let t = 0; t <= 520; t += 3) {
@@ -130,7 +135,7 @@ describe("the wash gate keeps the machine on the twin's clock at any frame rate"
     // a viewer opens the page 300 s into a detail seat: the first frame finds the car well into it
     const gate = new WashGate();
     gate.step(0, [{ bayId: BAY, vehicleId: CAR, active: true, interior: true, endsInS: 690, sinceS: 300 }]);
-    expect(gate.session(BAY)?.phase).toBe("vacuum");
+    expect(gate.session(BAY)?.phase).toBe("cabin_hold");
     let t = 300;
     const trace: Trace[] = [];
     while (t < 1050) {

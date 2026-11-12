@@ -17,7 +17,7 @@
 // must not freeze a car.
 // ============================================================================
 import {
-  advanceWashSession, IDLE_WASH, washDoorsAt, washLetsCarMove, type WashInput, type WashSession,
+  advanceWashSession, IDLE_WASH, washLetsCarMove, type WashInput, type WashSession,
 } from "@/lib/ottoWash/washSession";
 
 /** Largest sim-clock step treated as elapsed time, seconds (the depart gate's, for its reason). */
@@ -147,16 +147,9 @@ export class WashGate {
     return out;
   }
 
-  /** Every car with its doors open in a bay, and how far (0..1, both doors alike). */
+  /** No door opens in a wash bay (Chase, 2026-11-11): the machine washes, dries and wipes the sensors, doors shut. */
   doors(): [string, number][] {
-    const out: [string, number][] = [];
-    for (const s of this.bays.values()) {
-      const id = s.session.vehicleId;
-      if (!id) continue;
-      const f = washDoorsAt(s.session);
-      if (f > 0) out.push([id, f]);
-    }
-    return out;
+    return [];
   }
 
   clear(): void {

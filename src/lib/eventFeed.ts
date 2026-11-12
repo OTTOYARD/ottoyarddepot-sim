@@ -51,6 +51,7 @@ const VEHICLE_TYPES = new Set([
 export function eventDomain(type: string): EventDomain {
   if (type === "sdr_issued" || type === "twin.oem_webhook_emitted") return "records";
   if (type.startsWith("charge.") || type.startsWith("arm.") || type === "ottoq.charge_start_refused") return "charging";
+  if (type.startsWith("cabin.")) return "vehicles";
   if (VEHICLE_TYPES.has(type) || type.startsWith("fleet.") || type.startsWith("vehicle.")) return "vehicles";
   return "depot";
 }
@@ -97,6 +98,8 @@ export function describeEvent(type: string, payload: Record<string, unknown> | n
     case "arm.demate_started": return { title: "Arm disconnecting" };
     case "arm.demate_cleared": return { title: "Arm clear" };
     case "arm.emergency_release": return { title: "Arm emergency release", detail: s(p.reason) || undefined };
+    case "cabin.item_found": return { title: "Item found in the cabin", detail: join(words(p.item_kind), "the cleaning arm stopped") };
+    case "cabin.item_secured": return { title: "Item secured, the arm restarted", detail: join(words(p.item_kind), p.human === true ? "by an attendant" : "by the twin's attendant") };
     case "arm.move_refused": return { title: "Move refused: the arm is attached", detail: words(p.mover) || undefined };
     // ── vehicles ──
     case "twin.vehicle_arrived": return { title: "Arrived at the depot", detail: words(p.mode) || undefined };

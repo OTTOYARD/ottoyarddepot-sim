@@ -61,6 +61,11 @@ export interface CleanSession {
    * same car again. Cleared as soon as the step is not in progress or the car changes.
    */
   completedFor: string | null;
+  /**
+   * The arm stands still: it found an item in the cabin and waits for an attendant to secure it (otto-q-core 0814,
+   * foundItems.ts). The twin says so. Every joint keeps its pose until the stop ends. Absent reads false.
+   */
+  held?: boolean;
 }
 
 export const IDLE_CLEAN: CleanSession = Object.freeze({
@@ -87,6 +92,11 @@ export interface CleanInput {
    * set out. Absent reads true.
    */
   mayEnter?: boolean;
+  /**
+   * Sim seconds the arm must still stand still for an item it found in the cabin (0814), or 0. The twin's end time
+   * already counts this wait, so the caller passes `endsInS` less it: the arm's own work is as long as before.
+   */
+  heldS?: number;
 }
 
 /** A phase's length at nominal speed, given the session's planned clean lengths. */
@@ -204,6 +214,12 @@ export function advanceCleanSession(prev: CleanSession, input: CleanInput): Clea
     }
   }
 
+  // THE STOP FOR A FOUND ITEM: while the twin says an attendant has not secured it, the arm keeps its pose. Only an
+  // arm that works stops: one already on its way home goes home (the car left, or the step is over).
+  if (!finishing && (input.heldS ?? 0) > 0) {
+    return { ...finishStep({ phase, phaseElapsed, vehicleId, cleanA, cleanB, finishing, from, completedFor }), held: true };
+  }
+
   // pace: while the step is on, keep to the twin's end; once it is over, hurry home
   let speed = 1;
   if (finishing) speed = ABORT_SPEED;
@@ -254,9 +270,10 @@ export function cleanSessionJoints(s: CleanSession, sides: CleanSides): CleanJoi
  * The arm's status light, by what it is doing: the OTTO-CHARGE ARM's palette, so one light means
  * one thing. One function for the 3D arm (CleanArm.tsx) and the 2D plan's (Robots2D.tsx).
  */
-export function cleanStatusColor(s: Pick<CleanSession, 'phase' | 'finishing'>): number {
+export function cleanStatusColor(s: Pick<CleanSession, 'phase' | 'finishing' | 'held'>): number {
   const p = s.phase;
   if (p === 'home') return 0x00e5ff;                       // teal: home, safe
+  if (s.held) return 0xff5ea8;                             // pink: stopped for an item in the cabin, a person is needed
   if (s.finishing) return 0xffb020;                        // amber: on its way out
   if (p === 'clean_a' || p === 'clean_b') return 0x35d07f; // green: working
   if (p.startsWith('enter') || p.startsWith('exit')) return 0xffd54a; // bright amber: through the door

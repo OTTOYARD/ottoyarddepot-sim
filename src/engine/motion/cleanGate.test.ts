@@ -32,6 +32,15 @@ describe("reading the twin's step off the snapshot", () => {
     expect(c).toEqual({ stall: "DCFC-01", placedHere: true, startMs: T0, endsMs: T0 + 348_000 });
   });
 
+  it("finds the arm's deep program (otto-q-core 0815), with or without a tidy beside it", () => {
+    const deep = atom({ svc: "interior_deep_clean", ends_at: new Date(T0 + 648_000).toISOString(), deep_program: true });
+    expect(cabinCleanOf(vehicle([deep]), map)).toEqual({ stall: "DCFC-01", placedHere: true, startMs: T0, endsMs: T0 + 648_000 });
+    const tidy = atom({ ends_at: new Date(T0 + 648_000).toISOString(), with_deep_clean: true });
+    expect(cabinCleanOf(vehicle([tidy, deep]), map)?.endsMs).toBe(T0 + 648_000);
+    // a deep clean in a wash bay's seat carries no arm's stall, and is not this arm's
+    expect(cabinCleanOf(vehicle([atom({ svc: "interior_deep_clean", robot_stall_id: null })]), map)).toBeNull();
+  });
+
   it("does not play a technician's tidy, a tidy not yet started or done, or one on an unknown stall", () => {
     expect(cabinCleanOf(vehicle([atom({ robot_stall_id: null })]), map)).toBeNull();
     expect(cabinCleanOf(vehicle([atom({ status: "pending" })]), map)).toBeNull();

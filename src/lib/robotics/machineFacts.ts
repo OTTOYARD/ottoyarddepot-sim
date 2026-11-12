@@ -15,7 +15,8 @@
 // ============================================================================
 import { ARM_TIMING_DEFAULTS } from '@/lib/ottoChargeArm/armStateMachine';
 import { CLEAN_MOTION_S, CLEAN_SIDE_NOMINAL_S } from '@/lib/ottoCleanArm/cleanArmSpec';
-import { PASSES_NOMINAL_S, VACUUM_NOMINAL_S } from '@/lib/ottoWash/washSpec';
+import { PASSES_NOMINAL_S, WIPE_FIXED_S } from '@/lib/ottoWash/washSpec';
+import { SENSORS } from '@/lib/ottoWash/detailArm';
 import { FUNCTIONS, ROBOT_INFO, ROBOT_KEYS, cycleSteps, type Bom, type BomSubsystem, type RobotKey } from './catalog';
 
 export interface MachineStep { id: string; label: string; seconds: number | null; note?: string }
@@ -103,13 +104,13 @@ function chargeArm(bom: Bom, connect: number, release: number): MachineFacts {
     steps: stepsOf(k),
     facts: [
       { label: 'Connector', value: spec(bom, 'TOOL', 'connector') },
-      { label: 'Charge cable', value: spec(bom, 'DRESS', 'charge cable').split(',').slice(0, 2).join(',').trim() },
+      { label: 'Charge current', value: `${spec(bom, 'DRESS', 'current')}, liquid-cooled at the connector` },
       { label: 'Time to connect', value: `${one(connect)} s of arm motion` },
       { label: 'Time to release', value: `${one(release)} s of arm motion` },
       { label: 'Finds the port', value: how(bom, 'TOOL', /cameras/) },
       { label: 'Force control', value: `${how(bom, 'TOOL', /force and torque sensor/)} ${how(bom, 'TOOL', /compliance unit/)}` },
       { label: 'Latch', value: how(bom, 'TOOL', /latch locks/) },
-      { label: 'Cable', value: `${how(bom, 'DRESS', /take-up wheel\.$/)} A spring keeps the cable off the car.` },
+      { label: 'Power path', value: `The charge current runs inside the arm. ${how(bom, 'DRESS', /Nothing live is in the open\.$/)} ${how(bom, 'DRESS', /booted link of braided copper joins/)}` },
       { label: 'Status lights', value: 'Light rings on the arm show its state: teal ready, amber moving, green charging, red fault.' },
     ],
     safety: [
@@ -143,7 +144,7 @@ function cleanArm(bom: Bom): MachineFacts {
       'Your car stays at its charger until the arm is home.',
     ],
     functions: functionsOf(k),
-    services: ['interior_tidy'],
+    services: ['interior_tidy', 'interior_deep_clean'],
     steps: stepsOf(k),
     facts: [
       { label: 'Nozzle head', value: sub(bom, 'NOZZLE').function },
@@ -171,18 +172,25 @@ function washMachine(bom: Bom): MachineFacts {
     where: 'One in each wash bay.',
     summary: [...ROBOT_INFO[k].summary],
     owner: [
-      'A machine washes your car in the wash bay. It moves over the parked car 6 times.',
-      'The passes are pre-soak, 2 brush passes, rinse and 2 dry passes.',
-      'On a detail visit, 2 vacuum wands clean the cabin first, through the open doors.',
+      'A machine washes your car in the wash bay. No brush touches the car.',
+      'It moves over the parked car 6 times: pre-soak, 2 water-jet passes, rinse and 2 dry passes.',
+      'The machine then stows at the entrance. 2 robot arms come down their tracks, one each side of the car.',
+      'They polish each camera, lidar and radar cover with a soft pad. The doors stay shut.',
     ],
     functions: functionsOf(k),
-    services: ['exterior_wash', 'interior_deep_clean'],
+    services: ['exterior_wash', 'sensor_clean'],
     steps: stepsOf(k),
     facts: [
-      { label: 'Passes', value: `6 passes in about ${minutes(PASSES_NOMINAL_S)}: pre-soak, 2 brush passes, rinse, 2 dry passes.` },
-      { label: 'Cabin vacuum', value: `On a detail seat, about ${minutes(VACUUM_NOMINAL_S)} before the wash. The twin sets the time.` },
-      { label: 'Top brush', value: sub(bom, 'TOPBRUSH').function },
-      { label: 'Side brushes', value: sub(bom, 'SIDEBRUSH').function },
+      { label: 'Passes', value: `6 passes in about ${minutes(PASSES_NOMINAL_S)}: pre-soak, 2 water-jet passes, rinse, 2 dry passes.` },
+      { label: 'Touch', value: 'No brush. Only the soft pads touch the car, and only on its sensors.' },
+      { label: 'Sensor polish', value: `${sub(bom, 'POLISH').function} The 2 arms do ${SENSORS[1].length + SENSORS[-1].length} places in about ${minutes(WIPE_FIXED_S)}.` },
+      { label: 'Detail arms', value: `2 six-axis arms, one each side of the car. ${sub(bom, 'WRIST').function} ${how(bom, 'WRIST', /meet at one point/)}` },
+      { label: 'Pad', value: `${how(bom, 'POLISH', /microfibre/)} ${how(bom, 'WRIST', /quarter turn/)}` },
+      { label: 'Push', value: `${how(bom, 'POLISH', /force sensor/)} ${how(bom, 'POLISH', /floating joint/)}` },
+      { label: 'Finds each sensor', value: how(bom, 'POLISH', /camera beside the pad/) },
+      { label: 'Arm tracks', value: `${sub(bom, 'TRACK').function} Travel: ${spec(bom, 'TRACK', 'travel')}.` },
+      { label: 'Pad care', value: `${sub(bom, 'DOCK').function} ${how(bom, 'DOCK', /rinses the pad/)}` },
+      { label: 'Doors', value: 'The doors stay shut in the wash bay. The cabin is cleaned at the fast charger.' },
       { label: 'Spray arch', value: `${sub(bom, 'ARCH').function} ${how(bom, 'ARCH', /nozzles/)}` },
       { label: 'Air knives', value: `${sub(bom, 'DRYER').function} Blowers: ${spec(bom, 'DRYER', 'blowers')}.` },
       { label: 'Travel speed', value: spec(bom, 'TRAVEL', 'speed') },
@@ -193,6 +201,10 @@ function washMachine(bom: Bom): MachineFacts {
     safety: [
       sub(bom, 'PORTAL').function.split('. ').slice(-1)[0],
       'The machine never moves over the car with a tool still on it.',
+      'The gantry and the arms never work at the same time. Each waits at its own end of the bay.',
+      how(bom, 'DOCK', /never under the gantry/),
+      'An arm stops its push at 10 N. If a wash ends early, each pad backs straight off the car.',
+      'No joint of an arm is hurried, even when a wash ends early.',
       how(bom, 'RAILS', /stop at each rail end/),
       'The car leaves only when the light is green.',
     ],

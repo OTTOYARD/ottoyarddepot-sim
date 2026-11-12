@@ -131,7 +131,7 @@ describe.each(ROBOT_KEYS)('%s: the flexible lines', (k) => {
   });
 });
 
-describe('OTTO-CHARGE ARM: the charge cable through the duty cycle', () => {
+describe('OTTO-CHARGE ARM: the power path\'s flex links through the duty cycle', () => {
   /** every phase of the nominal cycle, 9 steps each (the charge itself once), at a set of ports */
   function* cyclePoses(ports: { label: string; along: number; height: number }[]) {
     for (const v of ports) {
@@ -150,22 +150,30 @@ describe('OTTO-CHARGE ARM: the charge cable through the duty cycle', () => {
     }
   }
 
-  it('bends no tighter than the cable allows and stays inside its take-up, at every inlet and every corner of the window', () => {
+  // Chase, 2026-11-11: no exposed cable pulled from a pulley. The current runs in the arm: copper bars in each link and a
+  // booted link of braided copper at the base, the shoulder, the elbow and the wrist (cad/otto_cad/robots/charge_arm.py, POWER PATH).
+  const LINKS = ['CHG-FL1', 'CHG-FL2', 'CHG-FL3', 'CHG-FL4'];
+
+  it('has a booted flex link at each joint, and no take-up wheel or free span', () => {
+    const cad = cads.get('charge_arm')!;
+    expect(cad.flex.map((f) => f.id).sort()).toEqual(LINKS);
+    for (const f of cad.flex) expect(f.length, f.id).toBeLessThanOrEqual(1.25);
+  });
+
+  it('bends no flex link tighter than its boot allows, at every inlet and every corner of the window', () => {
     const cad = cads.get('charge_arm')!;
     const { n, worst } = sweepLines(cad, cyclePoses([...portVariants(), ...windowVariants()]));
     expect(n).toBeGreaterThan(5000);
-    const c = worst.get('CHG-CCB');
-    expect(c, 'the charge cable').toBeTruthy();
-    expect(c!.fails, `the charge cable fails at ${c!.fails.join('; ')}`).toEqual([]);
-    // measured 0.418 m against 0.357 m (11,070 poses) when this was written
-    expect(c!.minR).toBeGreaterThanOrEqual(c!.def.minBend ?? 0);
-    expect(c!.lmin).toBeGreaterThanOrEqual(c!.def.lmin ?? 0);
-    expect(c!.lmax).toBeLessThanOrEqual(c!.def.lmax ?? Infinity);
-  });
+    for (const id of LINKS) {
+      const c = worst.get(id);
+      expect(c, id).toBeTruthy();
+      expect(c!.fails, `${id} fails at ${c!.fails.slice(0, 4).join('; ')} (${c!.fails.length} poses), tightest ${c!.minR.toFixed(4)} m`).toEqual([]);
+      expect(c!.minR, id).toBeGreaterThanOrEqual(c!.def.minBend ?? 0);
+    }
+  }, 120_000);   // the same sweep: past the 5 s default on a slow CI runner
 
-  it('never lays the cable on the car: 0.10 m off the bodywork, connector end included, all cycle', () => {
+  it('never lays a flex link on the car: 0.10 m off the bodywork, connector end included, all cycle', () => {
     const cad = cads.get('charge_arm')!;
-    const d = cad.flex.find((f) => f.id === 'CHG-CCB')!;
     const skel = cad.skeleton();
     const car = carSolidInArmFrame();               // the GLB's root is the arm's base frame, in metres
     const v = new THREE.Vector3();
@@ -174,15 +182,16 @@ describe('OTTO-CHARGE ARM: the charge cable through the duty cycle', () => {
       poseSkeleton(skel, p.angles);
       skel.root.updateMatrixWorld(true);
       const m = (n: string) => skel.node(n).matrixWorld;
-      const s = solveFlex(d, m(d.a.node), m(d.b.node), m);
-      for (let k = 0; k < s.points.length / 3; k++) {
-        const c = clearanceToCar(v.set(s.points[3 * k], s.points[3 * k + 1], s.points[3 * k + 2]), car) - d.r;
-        if (c < worst) { worst = c; at = p.label; }
+      for (const d of cad.flex) {
+        const s = solveFlex(d, m(d.a.node), m(d.b.node), m);
+        for (let k = 0; k < s.points.length / 3; k++) {
+          const c = clearanceToCar(v.set(s.points[3 * k], s.points[3 * k + 1], s.points[3 * k + 2]), car) - d.r;
+          if (c < worst) { worst = c; at = `${d.id} ${p.label}`; }
+        }
       }
     }
-    // measured 0.172 m (the outlet, fully inserted at a Tesla inlet) when this was written
-    expect(worst, `the charge cable comes ${worst.toFixed(4)} m from the car at ${at}`).toBeGreaterThanOrEqual(0.1);
-  });
+    expect(worst, `a flex link comes ${worst.toFixed(4)} m from the car at ${at}`).toBeGreaterThanOrEqual(0.1);
+  }, 120_000);   // 11,070 poses: past vitest's 5 s default on a slow CI runner
 });
 
 describe('OTTO-CLEAN ARM: its lines through both sides of the cleaning cycle', () => {

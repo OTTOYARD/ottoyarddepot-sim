@@ -14,7 +14,7 @@ import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import {
-  explodeCad, highlightCad, indexCad, partAt, poseCad, visibleBounds, type CadModel,
+  explodeCad, fitBox, highlightCad, indexCad, partAt, poseCad, visibleBounds, type CadModel,
 } from '@/lib/robotics/cadModel';
 import { cadUrl, type CycleScript, type RobotKey } from '@/lib/robotics/catalog';
 import { flexDefs } from '@/lib/robotics/flexLines';
@@ -130,24 +130,59 @@ const DIRS: Record<ViewDir, [number, number, number]> = {
   iso: [1, 0.6, 1.15], front: [0, 0.12, 1], side: [1, 0.12, 0], top: [0.0001, 1, 0.02],
 };
 
-function Framer({ model, state, controls }: { model: CadModel | null; state: CadViewState; controls: React.RefObject<OrbitControlsImpl> }) {
-  const { camera } = useThree();
+/**
+ * The space the robot's motion fills: its bounds at the end of every step of its cycle. A robot that plays its cycle,
+ * follows a machine in the depot or shows one step is framed to this, so no pose of it leaves the view (the cleaning
+ * arm's wand reaches 2 m below its home pose). Worked out once per model, and the model is put back as it was.
+ */
+function reachBounds(model: CadModel, cycle: CadCycle | null | undefined, restore: Record<string, number>): THREE.Box3 | null {
+  if (!cycle) return null;
+  const cache = model.root.userData as { reachBox?: THREE.Box3; reachFor?: unknown };
+  if (cache.reachBox && cache.reachFor === cycle.script) return cache.reachBox;
+  const box = new THREE.Box3();
+  let t = 0;
+  for (const step of cycle.script.steps) {
+    for (const u of [0.5, 1]) {
+      poseCad(model, cycle.script.at(Math.max(0, t + step.seconds * u - 1e-6)).angles);
+      box.union(visibleBounds(model));
+    }
+    t += step.seconds;
+  }
+  poseCad(model, restore);
+  cache.reachBox = box; cache.reachFor = cycle.script;
+  return box;
+}
+
+function Framer({ model, state, controls, cycle, moving }: {
+  model: CadModel | null; state: CadViewState; controls: React.RefObject<OrbitControlsImpl>; cycle?: CadCycle | null;
+  /** the model's pose is set every frame (a cycle plays, or a robot is followed): frame the whole motion */
+  moving: boolean;
+}) {
+  const { camera, size } = useThree();
+  const aspect = size.height > 0 ? size.width / size.height : 1;
   useEffect(() => {
     if (!model) return;
+    // the pose first, then the measure: this effect can run before the model's own pose effect does
+    if (!moving) poseCad(model, state.angles);
     const box = visibleBounds(model);
     if (box.isEmpty()) return;
+    const whole = !state.isolate && !state.selected;
+    if (whole && (moving || state.frameCar)) {
+      const reach = reachBounds(model, cycle, state.angles);
+      if (reach) box.union(reach);
+    }
     if (state.frameCar) box.union(carBounds(model.robot as RobotKey));
-    const c = box.getCenter(new THREE.Vector3());
-    const size = Math.max(0.3, box.getSize(new THREE.Vector3()).length());
-    const d = new THREE.Vector3(...DIRS[state.view]).normalize();
-    camera.position.copy(c).addScaledVector(d, size * 1.15);
-    camera.near = size / 400;
-    camera.far = size * 40;
+    const fov = (camera as THREE.PerspectiveCamera).fov ?? 35;
+    const { centre, distance } = fitBox(box, new THREE.Vector3(...DIRS[state.view]), fov, aspect);
+    camera.position.copy(centre).addScaledVector(new THREE.Vector3(...DIRS[state.view]).normalize(), distance);
+    camera.near = distance / 400;
+    camera.far = distance * 40;
     camera.updateProjectionMatrix();
-    controls.current?.target.copy(c);
+    controls.current?.target.copy(centre);
     controls.current?.update();
-    // re-frame on an explicit request (robot, view, fit, pose, isolate, a selected part): never on an explode change
-  }, [model, state.view, state.fitKey, state.isolate, state.selected, state.angles]); // eslint-disable-line react-hooks/exhaustive-deps
+    // re-frame on an explicit request (robot, view, fit, pose, isolate, a selected part), when the motion starts or
+    // stops, and when the view changes shape: never on an explode change
+  }, [model, state.view, state.fitKey, state.isolate, state.selected, state.angles, state.frameCar, moving, aspect]); // eslint-disable-line react-hooks/exhaustive-deps
   return null;
 }
 
@@ -323,7 +358,7 @@ export function CadViewer({ robot, glb, state, fasteners, onPick, onHover, onSta
       {model && <FlexLines model={model} state={state} />}
       {model && state.showCar && <CarGhost robot={robot} />}
       <gridHelper args={[20, 40, 0x2a3440, 0x161c24]} position={[0, robot === 'charge_arm' ? -MOUNT_HEIGHT_M : 0, 0]} />
-      <Framer model={model} state={state} controls={controls} />
+      <Framer model={model} state={state} controls={controls} cycle={cycle} moving={!!cycle?.playing || !!live} />
       <OrbitControls ref={controls} makeDefault enableDamping dampingFactor={0.12} />
     </Canvas>
   );
