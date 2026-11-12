@@ -90,7 +90,7 @@ const ms = (v: unknown): number | null => {
 /**
  * The cabin clean the twin has in progress for this car by a stall's arm, or null.
  *
- * The atom is the interior tidy with status 'in_progress' and a robot_stall_id that
+ * The atom is the interior tidy, or the arm's deep clean, with status 'in_progress' and a robot_stall_id that
  * maps to a renderer stall. A technician's tidy carries no robot_stall_id, so it is
  * never played here. Total: any missing or malformed field reads as no clean.
  */
@@ -101,7 +101,9 @@ export function cabinCleanOf(
   const atoms = bv.visit?.atoms;
   if (!Array.isArray(atoms)) return null;
   for (const a of atoms) {
-    if (!a || a.svc !== "interior_tidy" || a.status !== "in_progress") continue;
+    // the arm's deep program (otto-q-core 0815) is an interior deep clean with the same fields: the visit's tidy, when it
+    // has one, runs with it over the same window, so either atom gives the same clean
+    if (!a || (a.svc !== "interior_tidy" && a.svc !== "interior_deep_clean") || a.status !== "in_progress") continue;
     if (typeof a.robot_stall_id !== "string" || a.robot_stall_id === "") continue;
     const stall = rendererStall(a.robot_stall_id);
     if (!stall) continue;
