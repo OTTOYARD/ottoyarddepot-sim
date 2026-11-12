@@ -48,7 +48,7 @@ import {
 } from '@/lib/ottoCleanArm/cleanArmPlacement';
 import { DECK_Y } from '@/components/canvas/three/coordUtils';
 import {
-  PASS_NOMINAL_S, WASH_CABIN_DY, WASH_GANTRY, WASH_HOME_DY, WASH_PHASE_S, WASH_TRAVEL,
+  PASS_NOMINAL_S, WASH_GANTRY, WASH_HOME_DY, WASH_PHASE_S, WASH_TRAVEL,
 } from '@/lib/ottoWash/washSpec';
 
 const M = METRES_PER_PLAN_UNIT;
@@ -137,7 +137,6 @@ export function cadSpec() {
     wash: {
       travel: { north: mm(WASH_TRAVEL.north), south: mm(WASH_TRAVEL.south) },
       homeDy: mm(WASH_HOME_DY),
-      cabinDy: mm(WASH_CABIN_DY),
       gantry: {
         legX: mm(G.legX),
         leg: { w: mm(G.leg.w), d: mm(G.leg.d), dy: mm(G.leg.dy), top: mm(G.leg.top) },
@@ -145,14 +144,6 @@ export function cadSpec() {
         beam: { y0: mm(G.beam.y0), y1: mm(G.beam.y1), dy0: mm(G.beam.dy0), dy1: mm(G.beam.dy1) },
         rail: { w: mm(G.rail.w), h: mm(G.rail.h), from: mm(G.rail.from), to: mm(G.rail.to) },
         arch: { dy: mm(G.arch.dy), x: mm(G.arch.x), top: mm(G.arch.top), r: mm(G.arch.r), nozzles: G.arch.nozzles },
-        topBrush: {
-          dy: mm(G.topBrush.dy), r: mm(G.topBrush.r), halfLen: mm(G.topBrush.halfLen),
-          retractY: mm(G.topBrush.retractY), squash: mm(G.topBrush.squash), hangerX: mm(G.topBrush.hangerX),
-        },
-        sideBrush: {
-          dy: mm(G.sideBrush.dy), r: mm(G.sideBrush.r), y0: mm(G.sideBrush.y0), y1: mm(G.sideBrush.y1),
-          retractX: mm(G.sideBrush.retractX), squash: mm(G.sideBrush.squash),
-        },
         dryer: {
           dy: mm(G.dryer.dy),
           top: {
@@ -164,9 +155,9 @@ export function cadSpec() {
             gap: mm(G.dryer.side.gap), retractX: mm(G.dryer.side.retractX),
           },
         },
-        wand: {
-          dy: mm(G.wand.dy), x: mm(G.wand.x), topY: mm(G.wand.topY), workY: mm(G.wand.workY),
-          reachX: mm(G.wand.reachX), r: mm(G.wand.r),
+        wipe: {
+          dy: mm(G.wipe.dy), parkX: mm(G.wipe.parkX), stowY: mm(G.wipe.stowY), padR: mm(G.wipe.padR), padT: mm(G.wipe.padT),
+          forearm: mm(G.wipe.forearm), mastR: mm(G.wipe.mastR),
         },
         light: { y: mm(G.light.y), x: mm(G.light.x) },
       },

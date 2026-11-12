@@ -438,13 +438,15 @@ function washPoses(interior: boolean, seat: number, endAt?: number, keep = 2): W
 const WASH_ALL: WashPose[] = [
   ...washPoses(false, 300), ...washPoses(true, 990),
   ...washPoses(false, 300, 120), ...washPoses(true, 990, 300), ...washPoses(true, 990, 8), ...washPoses(true, 990, 900),
+  // ended early at each place the arms wipe
+  ...washPoses(false, 300, 210, 1), ...washPoses(false, 300, 225, 1), ...washPoses(false, 300, 240, 1), ...washPoses(false, 300, 258, 1),
 ];
 
 /** The CAD's bay frame (metres: +X west, +Y up, +Z north) to the car frame (metres: +X forward, which is north). */
 const carOf = (q: THREE.Vector3, out: THREE.Vector3) => out.set(q.z, q.y, -q.x);
 const CAR = carSolidInArmFrame(0, 0);
 
-describe('OTTO-WASH, as the yard draws it (its CAD): the bay, the car and its doors', () => {
+describe('OTTO-WASH, as the yard draws it (its CAD): the bay and the car', () => {
   let model: CadModel;
   let parts: Sampled[];
   beforeAll(async () => {
@@ -453,10 +455,10 @@ describe('OTTO-WASH, as the yard draws it (its CAD): the bay, the car and its do
     parts = sampled(scene);
   });
   const poseAt = (p: WashPose) => { poseCad(model, washJoints(p)); model.root.updateMatrixWorld(true); };
-  const kind = (s: Sampled): 'frame' | 'topBrush' | 'sideBrush' | 'wandIn' | 'tool' => {
-    if (s.part === 'WSH-TBR') return 'topBrush';
-    if (s.part === 'WSH-SBRL' || s.part === 'WSH-SBRR') return 'sideBrush';
-    if (onJoint(s.mesh, /^WAND_[LR]_REACH/)) return 'wandIn';
+  // the pad is the only part made to touch the car; the wrist behind it comes near; every other tool stays off
+  const kind = (s: Sampled): 'frame' | 'pad' | 'wrist' | 'tool' => {
+    if (s.part === 'WSH-WPD') return 'pad';
+    if (onJoint(s.mesh, /^WIPE_[LR]_(YAW|TILT)$/)) return 'wrist';
     return ['RAILS', 'TRAVEL', 'PORTAL', 'ARCH', 'CONTROL'].includes(s.sub) ? 'frame' : 'tool';
   };
   const cq = new THREE.Vector3();
@@ -494,78 +496,42 @@ describe('OTTO-WASH, as the yard draws it (its CAD): the bay, the car and its do
     expect(worst / M, `${at} comes ${(worst / M).toFixed(3)} u from the car`).toBeGreaterThan(1.0);
   }, 120_000);
 
-  it('presses a brush in no deeper than its bristles give, and keeps every other moving part 0.2 u off the car', () => {
-    const worst = { topBrush: Infinity, sideBrush: Infinity, tool: Infinity };
-    let at = '';
+  it('touches the car with the soft pads only, no deeper than a pad gives, and keeps every rigid part off it', () => {
+    const worst = { pad: Infinity, wrist: Infinity, tool: Infinity };
+    const at = { pad: '', wrist: '', tool: '' };
     for (const p of WASH_ALL) {
       poseAt(p);
       for (const s of parts) {
         const k = kind(s);
-        if (k === 'frame' || k === 'wandIn') continue;
+        if (k === 'frame') continue;
         const r = sphere(s, vs);
         if (clearanceToCar(carOf(vs, cq), CAR) - r >= Math.min(worst[k], 1.0)) continue;
         eachVertex(s, (q) => {
           const d = clearanceToCar(carOf(q, cq), CAR);
-          if (d < worst[k]) { worst[k] = d; if (k === 'tool') at = s.part; }
+          if (d < worst[k]) { worst[k] = d; at[k] = s.part; }
         });
       }
     }
-    expect(worst.sideBrush / M).toBeGreaterThanOrEqual(-G.sideBrush.squash - 1e-3);
-    expect(worst.topBrush / M).toBeGreaterThanOrEqual(-G.topBrush.squash - 1e-3);
-    // and both brushes do reach the car (a brush that never touches washes nothing)
-    expect(worst.sideBrush).toBeLessThan(0);
-    expect(worst.topBrush).toBeLessThan(0);
-    expect(worst.tool / M, `${at} comes ${(worst.tool / M).toFixed(3)} u from the car`).toBeGreaterThan(0.2);
+    // the pad's face is on the car, pressed in by no more than its 6 mm of spring and its foam (0.03 u, 14 mm)
+    expect(worst.pad / M).toBeGreaterThanOrEqual(-0.03);
+    expect(worst.pad / M, 'the pads do reach the car').toBeLessThan(0.03);
+    // the wrist behind the pad (its plate, sensor, hinge, forearm, camera) stays 0.1 u (48 mm) off the car
+    expect(worst.wrist / M, `${at.wrist} comes ${(worst.wrist / M).toFixed(3)} u from the car`).toBeGreaterThan(0.1);
+    // and every other moving part (the masts, the carriages, the air knives) 0.2 u
+    expect(worst.tool / M, `${at.tool} comes ${(worst.tool / M).toFixed(3)} u from the car`).toBeGreaterThan(0.2);
   }, 120_000);
 
-  it('keeps every part 0.25 u off an open door, except the wands it puts through it', () => {
-    let worst = Infinity, at = '', checked = 0;
-    for (const p of WASH_ALL) {
-      if (p.doors <= 0) continue;
-      checked++;
-      poseAt(p);
-      for (const s of parts) {
-        if (kind(s) === 'wandIn') continue;
-        const r = sphere(s, vs);
-        carOf(vs, cq);
-        if (Math.min(clearanceToDoor(cq, 1, p.doors), clearanceToDoor(cq, -1, p.doors)) - r >= Math.min(worst, 1.0)) continue;
-        eachVertex(s, (q) => {
-          carOf(q, cq);
-          const d = Math.min(clearanceToDoor(cq, 1, p.doors), clearanceToDoor(cq, -1, p.doors));
-          if (d < worst) { worst = d; at = s.part; }
-        });
-      }
-    }
-    expect(checked).toBeGreaterThan(200);
-    expect(worst / M, `${at} comes ${(worst / M).toFixed(3)} u from an open door`).toBeGreaterThan(0.25);
-  }, 120_000);
+  it('has no part that goes into the car: no door opens in a wash bay', () => {
+    expect(model.joints.has('WAND_L_DROP1')).toBe(false);
+    expect([...model.joints.keys()].filter((k) => /BRUSH|WAND/.test(k))).toEqual([]);
+    expect([...model.joints.keys()].filter((k) => k.startsWith('WIPE_')).sort()).toEqual([
+      'WIPE_L_DROP1', 'WIPE_L_DROP2', 'WIPE_L_TILT', 'WIPE_L_X', 'WIPE_L_YAW',
+      'WIPE_R_DROP1', 'WIPE_R_DROP2', 'WIPE_R_TILT', 'WIPE_R_X', 'WIPE_R_YAW',
+    ]);
+  });
 
-  it('puts a wand into the car only through an open door, into the cabin\'s free space, clear of the seats', () => {
-    const seats = seatBoxes();
-    let inside = 0;
-    const bad: string[] = [];
-    for (const p of WASH_ALL) {
-      poseAt(p);
-      for (const s of parts) {
-        if (kind(s) !== 'wandIn') continue;
-        eachVertex(s, (q) => {
-          const c = carOf(q, cq);
-          if (clearanceToCar(c, CAR) > 0) return;
-          inside++;
-          const ok = p.doors === 1
-            && c.x > Math.max(DOOR.alongMin, CABIN_VOID.alongMin) && c.x < Math.min(DOOR.alongMax, CABIN_VOID.alongMax)
-            && c.y > Math.max(DOOR.sill, CABIN_VOID.floor) && c.y < Math.min(DOOR.top, CABIN_VOID.ceiling)
-            && !seats.some((b) => c.x > b.x0 && c.x < b.x1 && c.y > b.y0 && c.y < b.y1 && c.z > b.z0 && c.z < b.z1);
-          if (!ok && bad.length < 5) bad.push(`${s.part} ${c.x.toFixed(3)},${c.y.toFixed(3)},${c.z.toFixed(3)} doors ${p.doors}`);
-        });
-      }
-    }
-    expect(bad).toEqual([]);
-    expect(inside, 'the wands do reach into the cabin').toBeGreaterThan(100);
-  }, 120_000);
-
-  it('clears a car driving under it, retracted, wherever it stands on its rails', () => {
-    const home = washPoseAt({ phase: 'home', t: 1, vacuumS: 600, from: null });
+  it('clears a car driving under it, stowed, wherever it stands on its rails', () => {
+    const home = washPoseAt({ phase: 'home', t: 1, from: null });
     let worst = Infinity, at = '';
     for (const dy of [WASH_TRAVEL.north, -5, -2.5, 0, 2.5, 5, WASH_TRAVEL.south]) {
       poseAt({ ...home, dy });

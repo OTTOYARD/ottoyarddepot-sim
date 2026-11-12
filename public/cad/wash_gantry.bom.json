@@ -7,12 +7,12 @@
   "glb": "m"
  },
  "totals": {
-  "parts": 931,
-  "uniqueParts": 131,
-  "fasteners": 460,
-  "massKg": 4616.37,
-  "boughtLines": 64,
-  "madeLines": 67,
+  "parts": 856,
+  "uniqueParts": 99,
+  "fasteners": 424,
+  "massKg": 3993.58,
+  "boughtLines": 53,
+  "madeLines": 46,
   "referenceLines": 0
  },
  "subsystems": [
@@ -70,16 +70,17 @@
    "order": 2,
    "partCount": 167,
    "fastenerCount": 160,
-   "massKg": 1682.893,
+   "massKg": 1684.302,
    "uniqueParts": 9
   },
   {
    "id": "ARCH",
    "name": "Spray arch",
-   "function": "Sprays the pre-soak foam, then the clear-water rinse.",
+   "function": "Sprays the pre-soak, the wash water jets and the clear-water rinse.",
    "how": [
     "9 flat-fan nozzles each side and 5 across the top.",
-    "Solenoid valves switch the foam and the rinse water."
+    "Solenoid valves switch the pre-soak, the wash water and the rinse water.",
+    "The water does the washing. No brush touches the car, its cameras or its lidar."
    ],
    "specs": {
     "pressure": "up to 70 bar (nozzle rating)"
@@ -90,45 +91,6 @@
    "fastenerCount": 0,
    "massKg": 130.305,
    "uniqueParts": 8
-  },
-  {
-   "id": "TOPBRUSH",
-   "name": "Top brush (overhead)",
-   "function": "Washes the bonnet, the roof and the roof pod. It follows the car top.",
-   "how": [
-    "A geared motor turns the brush.",
-    "It hangs on 2 telescoping lift columns of 3 stages each. It reaches the hood with no guide below the roof.",
-    "The lift lowers it until the motor current says it touches, then follows the shape.",
-    "A spring reel under the beam feeds the brush motor. Its cable pays out as the brush goes down."
-   ],
-   "specs": {
-    "brush": "718 mm, 1627 mm long"
-   },
-   "group": "Tools",
-   "order": 4,
-   "partCount": 91,
-   "fastenerCount": 40,
-   "massKg": 278.581,
-   "uniqueParts": 25
-  },
-  {
-   "id": "SIDEBRUSH",
-   "name": "Side brushes",
-   "function": "Wash the flanks, the doors and the wheels.",
-   "how": [
-    "Each brush hangs from a carriage on 2 rails under the beam.",
-    "A rack drive moves it in to the flank. A geared motor turns it.",
-    "A cable chain under the beam feeds the 2 motors on each carriage. Its bend rolls along as the carriage moves."
-   ],
-   "specs": {
-    "brush": "861 mm, 2536 mm tall"
-   },
-   "group": "Tools",
-   "order": 5,
-   "partCount": 216,
-   "fastenerCount": 100,
-   "massKg": 334.473,
-   "uniqueParts": 19
   },
   {
    "id": "DRYER",
@@ -143,32 +105,36 @@
     "blowers": "top 4 kW, sides 2 x 3 kW (class)"
    },
    "group": "Tools",
-   "order": 6,
+   "order": 4,
    "partCount": 119,
    "fastenerCount": 64,
    "massKg": 467.052,
    "uniqueParts": 20
   },
   {
-   "id": "WAND",
-   "name": "Detail vacuum wands",
-   "function": "Vacuum the cabin floor through the open doors on a detail seat.",
+   "id": "WIPE",
+   "name": "Sensor-wipe arms",
+   "function": "Two arms wipe each camera, lidar and radar cover with a soft, damp pad after the car is dry.",
    "how": [
-    "Each wand drops on a 4-stage column outside its flank.",
-    "2 telescoping tubes reach in through the door opening.",
-    "The air goes up the reach tubes and the column stages to a vacuum unit on the beam. The stages slide on lip seals.",
-    "A spring reel on the beam feeds the reach drive and the head lamp. Its cable goes down through the beam and pays out as the wand goes down."
+    "Each arm hangs from a carriage on 2 rails under the beam. A rack drive moves it across the bay.",
+    "A mast of 2 sliding stages lowers the wrist. The wrist turns and tilts the pad to face the car.",
+    "A camera on the wrist finds each sensor. The pad is on a sprung plate with a force sensor.",
+    "The arm stops its push at 10 N. A nozzle mists the sensor with pure water first. No chemical is used.",
+    "The gantry carries both arms along the car: the nose, the side cameras, the roof pod, the tail.",
+    "The arms park beside the car path, 1.1 m off the flank. The doors stay shut."
    ],
    "specs": {
-    "drop": "2.38 m",
-    "reach": "1.01 m"
+    "pad": "249 mm microfibre, hook-and-loop",
+    "push": "10 N limit (ASSUMPTION, to be set on test)",
+    "cross travel": "1.73 m each arm",
+    "drop": "1.12 m"
    },
    "group": "Tools",
-   "order": 7,
-   "partCount": 68,
-   "fastenerCount": 8,
-   "massKg": 237.563,
-   "uniqueParts": 24
+   "order": 5,
+   "partCount": 300,
+   "fastenerCount": 112,
+   "massKg": 226.423,
+   "uniqueParts": 30
   },
   {
    "id": "CONTROL",
@@ -183,7 +149,7 @@
    ],
    "specs": {},
    "group": "Control",
-   "order": 8,
+   "order": 6,
    "partCount": 93,
    "fastenerCount": 8,
    "massKg": 608.621,
@@ -637,7 +603,7 @@
    "reference": false,
    "function": "Spans the bay: 2 chords and 4 cross members, closed by a deck top and bottom into a box girder. Every tool hangs below it at its own station, so none can meet another; the drives stand on top.",
    "spec": {
-    "stations (z, mm)": "arch 766, wands 574, top brush 335, side brushes -287, air knives -909"
+    "stations (z, mm)": "arch 766, wipe arms 96, air knives -909"
    },
    "uses": [
     {
@@ -657,8 +623,8 @@
    "material": "Aluminium 6063-T6 extrusion, anodised",
    "materialKey": "al_extr",
    "qty": 1,
-   "massKg": 120.8198,
-   "totalMassKg": 120.8198,
+   "massKg": 121.5241,
+   "totalMassKg": 121.5241,
    "torqueNm": null,
    "reference": false,
    "function": "Closes the beam between its chords and carries the tools hung below it and the drives on it.",
@@ -681,8 +647,8 @@
    "material": "Aluminium 6063-T6 extrusion, anodised",
    "materialKey": "al_extr",
    "qty": 1,
-   "massKg": 120.8198,
-   "totalMassKg": 120.8198,
+   "massKg": 121.5241,
+   "totalMassKg": 121.5241,
    "torqueNm": null,
    "reference": false,
    "function": "Closes the beam between its chords and carries the tools hung below it and the drives on it.",
@@ -928,9 +894,9 @@
    "grade": "",
    "material": "Stainless steel 1.4401 (316)",
    "materialKey": "ss316",
-   "qty": 23,
+   "qty": 25,
    "massKg": 0.0174,
-   "totalMassKg": 0.3999,
+   "totalMassKg": 0.4347,
    "torqueNm": null,
    "reference": false,
    "function": "Makes a 15 degree flat fan. Its tip is the only part that wears.",
@@ -941,6 +907,10 @@
     {
      "sub": "ARCH",
      "qty": 23
+    },
+    {
+     "sub": "WIPE",
+     "qty": 2
     }
    ]
   },
@@ -985,7 +955,7 @@
    "totalMassKg": 66.7402,
    "torqueNm": null,
    "reference": false,
-   "function": "Carries the foam and the rinse water to the nozzles. Stainless: wash chemicals do not touch carbon steel.",
+   "function": "Carries the pre-soak, the wash water and the rinse water to the nozzles. Stainless: wash chemicals do not touch carbon steel.",
    "spec": {},
    "uses": [
     {
@@ -1039,1042 +1009,6 @@
     {
      "sub": "ARCH",
      "qty": 4
-    }
-   ]
-  },
-  {
-   "id": "WSH-TCK",
-   "name": "Cable reel bracket, stainless",
-   "category": "structure",
-   "make": "make",
-   "standard": "bent plate 10 mm",
-   "size": "120 x 100",
-   "grade": "316L",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 1,
-   "massKg": 0.9576,
-   "totalMassKg": 0.9576,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Hangs the top brush cable reel under the bottom deck.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "WSH-TCL",
-   "name": "Lift column clamp plate, stainless",
-   "category": "structure",
-   "make": "make",
-   "standard": "cut plate 12 mm",
-   "size": "220 x 220",
-   "grade": "316L",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 2,
-   "massKg": 2.7579,
-   "totalMassKg": 5.5158,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Holds a lift column sleeve under the bottom deck.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "WSH-TH0",
-   "name": "Top brush lift column sleeve, 140 x 140 x 5",
-   "category": "structure",
-   "make": "make",
-   "standard": "EN 10219",
-   "size": "725 long",
-   "grade": "316L",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 2,
-   "massKg": 15.6173,
-   "totalMassKg": 31.2345,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Fixed through the beam. It guides the column's first stage.",
-   "spec": {
-    "bottom": "2.91 m above grade, above the car roof"
-   },
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "WSH-TH1",
-   "name": "Top brush lift column stage 2, 122 x 122",
-   "category": "structure",
-   "make": "make",
-   "standard": "EN 10219",
-   "size": "726 long",
-   "grade": "316L",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 2,
-   "massKg": 10.9356,
-   "totalMassKg": 21.8712,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Slides a third of the travel. A belt over its pulley drives the next stage.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "WSH-TH2",
-   "name": "Top brush lift column stage 3, 106 x 106",
-   "category": "structure",
-   "make": "make",
-   "standard": "EN 10219",
-   "size": "726 long",
-   "grade": "316L",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 2,
-   "massKg": 9.4528,
-   "totalMassKg": 18.9056,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Slides a third of the travel. A belt over its pulley drives the next stage.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "WSH-TH3",
-   "name": "Top brush lift column stage 4, 90 x 90",
-   "category": "structure",
-   "make": "make",
-   "standard": "EN 10219",
-   "size": "726 long",
-   "grade": "316L",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 2,
-   "massKg": 7.97,
-   "totalMassKg": 15.94,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Slides a third of the travel and carries the tool at its foot.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "WSH-THG",
-   "name": "Top brush bearing block",
-   "category": "structure",
-   "make": "make",
-   "standard": "machined",
-   "size": "100 x 220 x 140",
-   "grade": "316L",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 2,
-   "massKg": 19.2736,
-   "totalMassKg": 38.5472,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Hangs the brush from its lift column's foot. It carries a bearing unit.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "WSH-DRM",
-   "name": "Lift belt drum 90 mm",
-   "category": "drive",
-   "make": "make",
-   "standard": "machined",
-   "size": "D 90 x 60",
-   "grade": "6061-T6",
-   "material": "Aluminium 6061-T6, machined, clear anodised",
-   "materialKey": "al6061",
-   "qty": 2,
-   "massKg": 0.827,
-   "totalMassKg": 1.654,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Winds the lift belt that hangs the top brush.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "WSH-LSH",
-   "name": "Lift cross shaft, 40 mm, stainless",
-   "category": "drive",
-   "make": "make",
-   "standard": "machined",
-   "size": "D 40 x 2080",
-   "grade": "",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 1,
-   "massKg": 20.8582,
-   "totalMassKg": 20.8582,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Turns both belt drums together, so the brush lifts level.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "WSH-TBM",
-   "name": "Top brush gearmotor 0.75 kW, 135 rpm, right-angle",
-   "category": "drive",
-   "make": "buy",
-   "standard": "catalogue part",
-   "size": "0.75 kW",
-   "grade": "IP66, wash-down",
-   "material": "Structural steel S355, painted RAL 9005",
-   "materialKey": "steel_paint",
-   "qty": 1,
-   "massKg": 26.0,
-   "totalMassKg": 26.0,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Turns the top brush. Its current tells the lift how hard the brush presses.",
-   "spec": {
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
-   },
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "WSH-TLM",
-   "name": "Top brush lift gearmotor 0.37 kW, brake, hollow shaft",
-   "category": "drive",
-   "make": "buy",
-   "standard": "catalogue part",
-   "size": "0.37 kW",
-   "grade": "IP66",
-   "material": "Structural steel S355, painted RAL 9005",
-   "materialKey": "steel_paint",
-   "qty": 1,
-   "massKg": 16.0,
-   "totalMassKg": 16.0,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Turns the lift cross shaft: raises and lowers the top brush. Its brake holds it when power is off.",
-   "spec": {
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
-   },
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "WSH-TSH",
-   "name": "Top brush shaft, stainless",
-   "category": "drive",
-   "make": "make",
-   "standard": "machined",
-   "size": "D 60 x 1990",
-   "grade": "",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 1,
-   "massKg": 16.1641,
-   "totalMassKg": 16.1641,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Carries the brush between its 2 bearings. Its right end drives from the gearmotor's hollow output.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "WSH-FBU",
-   "name": "Flanged bearing unit, 4-bolt, stainless, 60 mm",
-   "category": "bearing",
-   "make": "buy",
-   "standard": "ISO 3228",
-   "size": "bore 60",
-   "grade": "sealed, wash-down",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 4,
-   "massKg": 2.8248,
-   "totalMassKg": 11.2992,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Carries one end of a brush shaft.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 2
-    },
-    {
-     "sub": "SIDEBRUSH",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "WSH-PBU",
-   "name": "Pillow-block bearing unit, 40 mm, stainless",
-   "category": "bearing",
-   "make": "buy",
-   "standard": "ISO 3228",
-   "size": "bore 40",
-   "grade": "sealed, wash-down",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 2,
-   "massKg": 2.8147,
-   "totalMassKg": 5.6294,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Carries the lift shaft on the beam.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "WSH-THP",
-   "name": "Top brush lift column slide pad, UHMW-PE",
-   "category": "bearing",
-   "make": "make",
-   "standard": "machined",
-   "size": "4 x 60 x 40",
-   "grade": "UHMW-PE",
-   "material": "PA66-GF30",
-   "materialKey": "pa66",
-   "qty": 24,
-   "massKg": 0.013,
-   "totalMassKg": 0.311,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Guides a stage in the one outside it. No grease to wash off.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 24
-    }
-   ]
-  },
-  {
-   "id": "WSH-TBC",
-   "name": "Top brush motor cable 4G1.5 + brake + PTC, PUR, on its reel",
-   "category": "electrical",
-   "make": "buy",
-   "standard": "EN 50525",
-   "size": "OD 13",
-   "grade": "",
-   "material": "Cable, TPE jacket",
-   "materialKey": "cable",
-   "qty": 1,
-   "massKg": 1.015,
-   "totalMassKg": 1.015,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Feeds the top brush motor from its reel as the brush goes down.",
-   "spec": {
-    "length": "2900 mm",
-    "length range": "0 to 2900 mm",
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
-   },
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "WSH-TBJ",
-   "name": "Motor terminal box with cable gland, toward the reel",
-   "category": "electrical",
-   "make": "buy",
-   "standard": "catalogue part",
-   "size": "40 x 30 x 155",
-   "grade": "IP66",
-   "material": "PA66-GF30",
-   "materialKey": "pa66",
-   "qty": 1,
-   "massKg": 0.2511,
-   "totalMassKg": 0.2511,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Takes the reel's cable into the motor.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "WSH-TCR",
-   "name": "Spring cable reel, 3 m, IP65",
-   "category": "electrical",
-   "make": "buy",
-   "standard": "catalogue part",
-   "size": "D 180",
-   "grade": "IP65",
-   "material": "Structural steel S355, painted RAL 9005",
-   "materialKey": "steel_paint",
-   "qty": 1,
-   "massKg": 6.0,
-   "totalMassKg": 6.0,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Pays out and takes back the top brush motor cable as the brush goes down and up.",
-   "spec": {
-    "cable": "4G1.5 + brake + PTC, 3 m",
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
-   },
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "WSH-TBR",
-   "name": "Top brush, closed-cell foam strips",
-   "category": "tool",
-   "make": "buy",
-   "standard": "catalogue part",
-   "size": "D 718 x 1627",
-   "grade": "",
-   "material": "Closed-cell PE foam strips, blue",
-   "materialKey": "brush_blue",
-   "qty": 1,
-   "massKg": 45.0,
-   "totalMassKg": 45.0,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Scrubs the car top. Foam strips do not hold grit, so they do not scratch the paint.",
-   "spec": {
-    "speed": "about 135 rpm",
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
-   },
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "ISO4017-M10x30-A4-70",
-   "name": "Hex head screw M10 x 30",
-   "category": "fastener",
-   "make": "buy",
-   "standard": "ISO 4017",
-   "size": "M10 x 30",
-   "grade": "A4-70",
-   "material": "Stainless steel A4-80",
-   "materialKey": "fast_a4",
-   "qty": 16,
-   "massKg": 0.0299,
-   "totalMassKg": 0.4789,
-   "torqueNm": 34.4,
-   "reference": false,
-   "function": "Holds the top brush gearmotor to its hanger.",
-   "spec": {
-    "preload": "20.8 kN",
-    "drive": "hex 16 mm"
-   },
-   "uses": [
-    {
-     "sub": "CONTROL",
-     "qty": 4
-    },
-    {
-     "sub": "TOPBRUSH",
-     "qty": 4
-    },
-    {
-     "sub": "SIDEBRUSH",
-     "qty": 8
-    }
-   ]
-  },
-  {
-   "id": "ISO4017-M12x40-A4-70",
-   "name": "Hex head screw M12 x 40",
-   "category": "fastener",
-   "make": "buy",
-   "standard": "ISO 4017",
-   "size": "M12 x 40",
-   "grade": "A4-70",
-   "material": "Stainless steel A4-80",
-   "materialKey": "fast_a4",
-   "qty": 20,
-   "massKg": 0.0526,
-   "totalMassKg": 1.0517,
-   "torqueNm": 59.2,
-   "reference": false,
-   "function": "Holds the bearing unit to the hanger.",
-   "spec": {
-    "preload": "30.3 kN",
-    "drive": "hex 18 mm"
-   },
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 12
-    },
-    {
-     "sub": "SIDEBRUSH",
-     "qty": 8
-    }
-   ]
-  },
-  {
-   "id": "ISO4017-M8x25-A4-70",
-   "name": "Hex head screw M8 x 25",
-   "category": "fastener",
-   "make": "buy",
-   "standard": "ISO 4017",
-   "size": "M8 x 25",
-   "grade": "A4-70",
-   "material": "Stainless steel A4-80",
-   "materialKey": "fast_a4",
-   "qty": 12,
-   "massKg": 0.0161,
-   "totalMassKg": 0.1933,
-   "torqueNm": 17.6,
-   "reference": false,
-   "function": "Holds the lift gearmotor to the top deck.",
-   "spec": {
-    "preload": "13.1 kN",
-    "drive": "hex 13 mm"
-   },
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 4
-    },
-    {
-     "sub": "SIDEBRUSH",
-     "qty": 8
-    }
-   ]
-  },
-  {
-   "id": "ISO4762-M8x20-A4-80",
-   "name": "Socket head cap screw M8 x 20",
-   "category": "fastener",
-   "make": "buy",
-   "standard": "ISO 4762",
-   "size": "M8 x 20",
-   "grade": "A4-80",
-   "material": "Stainless steel A4-80",
-   "materialKey": "fast_a4",
-   "qty": 32,
-   "massKg": 0.0152,
-   "totalMassKg": 0.4872,
-   "torqueNm": 23.8,
-   "reference": false,
-   "function": "Holds the lift column clamp plate to the bottom deck.",
-   "spec": {
-    "preload": "17.5 kN",
-    "drive": "hex socket 6 mm"
-   },
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 8
-    },
-    {
-     "sub": "DRYER",
-     "qty": 16
-    },
-    {
-     "sub": "WAND",
-     "qty": 8
-    }
-   ]
-  },
-  {
-   "id": "ISO7040-M12-A4",
-   "name": "Prevailing-torque hex nut (nylon insert) M12",
-   "category": "fastener",
-   "make": "buy",
-   "standard": "ISO 7040",
-   "size": "M12",
-   "grade": "A4",
-   "material": "Stainless steel A4-80",
-   "materialKey": "fast_a4",
-   "qty": 4,
-   "massKg": 0.0223,
-   "totalMassKg": 0.089,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Holds the bolt's clamp force on the far side of the joint. The nylon ring grips the thread, so vibration cannot turn the nut loose.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 4
-    }
-   ]
-  },
-  {
-   "id": "ISO7089-12-fast_a4",
-   "name": "Plain washer 12",
-   "category": "fastener",
-   "make": "buy",
-   "standard": "ISO 7089",
-   "size": "13 x 24 x 2.5",
-   "grade": "A4",
-   "material": "Stainless steel A4-80",
-   "materialKey": "fast_a4",
-   "qty": 8,
-   "massKg": 0.0064,
-   "totalMassKg": 0.051,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Puts the clamp force of the head or the nut on a larger area, so the part surface does not crush and the preload stays constant.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "TOPBRUSH",
-     "qty": 8
-    }
-   ]
-  },
-  {
-   "id": "WSH-SBF",
-   "name": "Cable chain end bracket, stainless",
-   "category": "structure",
-   "make": "make",
-   "standard": "bent plate",
-   "size": "40 x 38",
-   "grade": "316L",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 2,
-   "massKg": 0.3275,
-   "totalMassKg": 0.655,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Holds the chain's fixed end under the deck.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "SIDEBRUSH",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "WSH-SBK",
-   "name": "Cable chain carrier bracket, stainless",
-   "category": "structure",
-   "make": "make",
-   "standard": "bent plate",
-   "size": "60 x 50",
-   "grade": "316L",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 2,
-   "massKg": 0.6703,
-   "totalMassKg": 1.3406,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Joins the chain's moving end to the carriage.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "SIDEBRUSH",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "WSH-SCG",
-   "name": "Side brush carriage",
-   "category": "structure",
-   "make": "make",
-   "standard": "machined weldment",
-   "size": "300 x 300 x 160",
-   "grade": "316L",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 2,
-   "massKg": 22.0481,
-   "totalMassKg": 44.0961,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Runs on 2 rails under the beam and carries the brush, its motor and bearing.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "SIDEBRUSH",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "BLK25",
-   "name": "Profile rail block size 25",
-   "category": "drive",
-   "make": "buy",
-   "standard": "catalogue part (ISO 12090-1 dims)",
-   "size": "size 25",
-   "grade": "preload Z1, wipers",
-   "material": "Steel 42CrMo4, quenched and tempered",
-   "materialKey": "steel",
-   "qty": 4,
-   "massKg": 0.7203,
-   "totalMassKg": 2.8812,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Recirculating ball carriage. It runs on the rail and carries the moving stage.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "SIDEBRUSH",
-     "qty": 4
-    }
-   ]
-  },
-  {
-   "id": "RAIL25-1800",
-   "name": "Profile rail size 25 x 1800",
-   "category": "drive",
-   "make": "buy",
-   "standard": "catalogue part (ISO 12090-1 dims)",
-   "size": "size 25, L 1800",
-   "grade": "precision grade",
-   "material": "Bearing steel 100Cr6, hardened",
-   "materialKey": "bearing",
-   "qty": 4,
-   "massKg": 6.1086,
-   "totalMassKg": 24.4343,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Hardened guide rail. It carries the block in a straight line with no play.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "SIDEBRUSH",
-     "qty": 4
-    }
-   ]
-  },
-  {
-   "id": "WSH-CGM",
-   "name": "Carriage gearmotor 0.37 kW, brake, encoder, right-angle",
-   "category": "drive",
-   "make": "buy",
-   "standard": "catalogue part",
-   "size": "0.37 kW",
-   "grade": "IP66, wash-down",
-   "material": "Structural steel S355, painted RAL 9005",
-   "materialKey": "steel_paint",
-   "qty": 2,
-   "massKg": 12.0,
-   "totalMassKg": 24.0,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Moves the side brush in to the flank. Its current says how hard the brush presses.",
-   "spec": {
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
-   },
-   "uses": [
-    {
-     "sub": "SIDEBRUSH",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "WSH-PIN",
-   "name": "Pinion module 2, 20 teeth, stainless",
-   "category": "drive",
-   "make": "buy",
-   "standard": "DIN 867 tooth form",
-   "size": "20 T, m 2",
-   "grade": "",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 2,
-   "massKg": 0.2748,
-   "totalMassKg": 0.5495,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Drives the brush carriage along its rack.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "SIDEBRUSH",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "WSH-SBM",
-   "name": "Side brush gearmotor 1.1 kW, 113 rpm, right-angle, hollow shaft",
-   "category": "drive",
-   "make": "buy",
-   "standard": "catalogue part",
-   "size": "1.1 kW",
-   "grade": "IP66, wash-down",
-   "material": "Structural steel S355, painted RAL 9005",
-   "materialKey": "steel_paint",
-   "qty": 2,
-   "massKg": 31.0,
-   "totalMassKg": 62.0,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Turns one side brush. Its current tells the carriage how hard the brush presses.",
-   "spec": {
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
-   },
-   "uses": [
-    {
-     "sub": "SIDEBRUSH",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "WSH-SRK",
-   "name": "Gear rack module 2, 20 x 20, stainless",
-   "category": "drive",
-   "make": "buy",
-   "standard": "DIN 867 tooth form",
-   "size": "1500 long",
-   "grade": "",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 2,
-   "massKg": 4.788,
-   "totalMassKg": 9.576,
-   "torqueNm": null,
-   "reference": false,
-   "function": "The carriage pinion runs along it.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "SIDEBRUSH",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "WSH-SSH",
-   "name": "Side brush shaft, stainless",
-   "category": "drive",
-   "make": "make",
-   "standard": "machined",
-   "size": "D 60 x 6 tube, 2893",
-   "grade": "",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 2,
-   "massKg": 23.4956,
-   "totalMassKg": 46.9912,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Carries the brush. The gearmotor turns it; the bearing unit in the carriage holds it.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "SIDEBRUSH",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "ECHAIN-38x25",
-   "name": "Cable carrier link 38 x 25",
-   "category": "electrical",
-   "make": "buy",
-   "standard": "catalogue part",
-   "size": "inner 38 x 25, pitch 38",
-   "grade": "",
-   "material": "PA66-GF30",
-   "materialKey": "pa66",
-   "qty": 88,
-   "massKg": 0.0108,
-   "totalMassKg": 0.9461,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Guides the cables and hoses through the moving joint. It keeps the bend radius safe.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "SIDEBRUSH",
-     "qty": 88
-    }
-   ]
-  },
-  {
-   "id": "WSH-SBRL",
-   "name": "Side brush, closed-cell foam strips",
-   "category": "tool",
-   "make": "buy",
-   "standard": "catalogue part",
-   "size": "D 861 x 2536",
-   "grade": "",
-   "material": "Closed-cell PE foam strips, blue",
-   "materialKey": "brush_blue",
-   "qty": 1,
-   "massKg": 55.0,
-   "totalMassKg": 55.0,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Scrubs one flank, its doors and wheels.",
-   "spec": {
-    "speed": "about 113 rpm",
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
-   },
-   "uses": [
-    {
-     "sub": "SIDEBRUSH",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "WSH-SBRR",
-   "name": "Side brush, closed-cell foam strips",
-   "category": "tool",
-   "make": "buy",
-   "standard": "catalogue part",
-   "size": "D 861 x 2536",
-   "grade": "",
-   "material": "Closed-cell PE foam strips, red",
-   "materialKey": "brush_red",
-   "qty": 1,
-   "massKg": 55.0,
-   "totalMassKg": 55.0,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Scrubs one flank, its doors and wheels.",
-   "spec": {
-    "speed": "about 113 rpm",
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
-   },
-   "uses": [
-    {
-     "sub": "SIDEBRUSH",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "ISO4762-M6x16-A4-80",
-   "name": "Socket head cap screw M6 x 16",
-   "category": "fastener",
-   "make": "buy",
-   "standard": "ISO 4762",
-   "size": "M6 x 16",
-   "grade": "A4-80",
-   "material": "Stainless steel A4-80",
-   "materialKey": "fast_a4",
-   "qty": 20,
-   "massKg": 0.0067,
-   "totalMassKg": 0.1342,
-   "torqueNm": 9.8,
-   "reference": false,
-   "function": "Holds the rail block to the carriage, from inside it.",
-   "spec": {
-    "preload": "9.5 kN",
-    "drive": "hex socket 5 mm"
-   },
-   "uses": [
-    {
-     "sub": "CONTROL",
-     "qty": 4
-    },
-    {
-     "sub": "SIDEBRUSH",
-     "qty": 16
-    }
-   ]
-  },
-  {
-   "id": "ISO4762-M6x20-A4-80",
-   "name": "Socket head cap screw M6 x 20",
-   "category": "fastener",
-   "make": "buy",
-   "standard": "ISO 4762",
-   "size": "M6 x 20",
-   "grade": "A4-80",
-   "material": "Stainless steel A4-80",
-   "materialKey": "fast_a4",
-   "qty": 60,
-   "massKg": 0.0076,
-   "totalMassKg": 0.4569,
-   "torqueNm": 9.8,
-   "reference": false,
-   "function": "Holds the side brush rail to the bottom deck.",
-   "spec": {
-    "preload": "9.5 kN",
-    "drive": "hex socket 5 mm"
-   },
-   "uses": [
-    {
-     "sub": "SIDEBRUSH",
-     "qty": 60
     }
    ]
   },
@@ -2513,6 +1447,33 @@
    ]
   },
   {
+   "id": "ISO4762-M8x20-A4-80",
+   "name": "Socket head cap screw M8 x 20",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M8 x 20",
+   "grade": "A4-80",
+   "material": "Stainless steel A4-80",
+   "materialKey": "fast_a4",
+   "qty": 16,
+   "massKg": 0.0152,
+   "totalMassKg": 0.2436,
+   "torqueNm": 23.8,
+   "reference": false,
+   "function": "Holds the lift column clamp plate to the bottom deck.",
+   "spec": {
+    "preload": "17.5 kN",
+    "drive": "hex socket 6 mm"
+   },
+   "uses": [
+    {
+     "sub": "DRYER",
+     "qty": 16
+    }
+   ]
+  },
+  {
    "id": "ISO7040-M10-8",
    "name": "Prevailing-torque hex nut (nylon insert) M10",
    "category": "fastener",
@@ -2537,259 +1498,329 @@
    ]
   },
   {
-   "id": "WSH-WAR1",
-   "name": "Wand reach tube 1, 60 x 4",
+   "id": "WSH-WCG",
+   "name": "Wipe arm carriage",
    "category": "structure",
    "make": "make",
-   "standard": "EN 10217-7",
-   "size": "D 60 x 4 x 567",
+   "standard": "machined weldment",
+   "size": "300 x 300 x 160",
    "grade": "316L",
    "material": "Stainless steel 1.4401 (316)",
    "materialKey": "ss316",
    "qty": 2,
-   "massKg": 3.1852,
-   "totalMassKg": 6.3704,
+   "massKg": 22.2286,
+   "totalMassKg": 44.4572,
    "torqueNm": null,
    "reference": false,
-   "function": "Slides half the reach in the slide block. Tube 2 slides in it.",
+   "function": "Runs on 2 rails under the beam and carries one wipe arm across the bay.",
    "spec": {},
    "uses": [
     {
-     "sub": "WAND",
+     "sub": "WIPE",
      "qty": 2
     }
    ]
   },
   {
-   "id": "WSH-WAR2",
-   "name": "Wand reach tube 2, 52 x 3, the vacuum duct",
+   "id": "WSH-WFA",
+   "name": "Wrist forearm with hinge fork, stainless",
    "category": "structure",
    "make": "make",
-   "standard": "EN 10217-7",
-   "size": "D 52 x 3 x 572",
+   "standard": "welded, machined",
+   "size": "168 reach",
    "grade": "316L",
    "material": "Stainless steel 1.4401 (316)",
    "materialKey": "ss316",
    "qty": 2,
-   "massKg": 2.1087,
-   "totalMassKg": 4.2174,
+   "massKg": 2.8532,
+   "totalMassKg": 5.7063,
    "torqueNm": null,
    "reference": false,
-   "function": "Slides the other half of the reach in tube 1 and carries the head in through the door opening. The air goes up it.",
+   "function": "Carries the pad out from the mast, so the mast stays clear of the car while the pad is on it.",
    "spec": {},
    "uses": [
     {
-     "sub": "WAND",
+     "sub": "WIPE",
      "qty": 2
     }
    ]
   },
   {
-   "id": "WSH-WCK",
-   "name": "Cable reel bracket, stainless",
+   "id": "WSH-WFP",
+   "name": "Mast foot plate, stainless",
    "category": "structure",
    "make": "make",
-   "standard": "bent plate 8 mm",
-   "size": "2 x 130 x 120",
+   "standard": "cut plate 10 mm",
+   "size": "100 x 100",
    "grade": "316L",
    "material": "Stainless steel 1.4401 (316)",
    "materialKey": "ss316",
    "qty": 2,
-   "massKg": 1.9918,
-   "totalMassKg": 3.9836,
+   "massKg": 0.798,
+   "totalMassKg": 1.596,
    "torqueNm": null,
    "reference": false,
-   "function": "Carries the cable reel's axle on the top deck.",
+   "function": "Closes the mast's last stage and carries the wrist.",
    "spec": {},
    "uses": [
     {
-     "sub": "WAND",
+     "sub": "WIPE",
      "qty": 2
     }
    ]
   },
   {
-   "id": "WSH-WCL",
-   "name": "Wand column clamp plate, stainless",
-   "category": "structure",
-   "make": "make",
-   "standard": "cut plate 12 mm",
-   "size": "200 x 200",
-   "grade": "316L",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 2,
-   "massKg": 2.6717,
-   "totalMassKg": 5.3434,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Holds the wand column sleeve under the bottom deck.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "WAND",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "WSH-WRA",
-   "name": "Cable entry arm on the slide block, stainless",
+   "id": "WSH-WHB",
+   "name": "Pad hinge hub, stainless",
    "category": "structure",
    "make": "make",
    "standard": "machined",
-   "size": "105 x 40 x 10",
+   "size": "D 40 x 60",
    "grade": "316L",
    "material": "Stainless steel 1.4401 (316)",
    "materialKey": "ss316",
    "qty": 2,
-   "massKg": 0.3352,
-   "totalMassKg": 0.6703,
+   "massKg": 0.748,
+   "totalMassKg": 1.4961,
    "torqueNm": null,
    "reference": false,
-   "function": "Takes the reel's cable into the slide block, outboard of the sleeve.",
+   "function": "Turns in the forearm's fork and carries the pad head.",
    "spec": {},
    "uses": [
     {
-     "sub": "WAND",
+     "sub": "WIPE",
      "qty": 2
     }
    ]
   },
   {
-   "id": "WSH-WS1",
-   "name": "Wand column stage 1 (sleeve), 110 x 110",
+   "id": "WSH-WKF",
+   "name": "Cable chain end bracket, stainless",
    "category": "structure",
    "make": "make",
-   "standard": "EN 10219",
-   "size": "966 long",
+   "standard": "bent plate",
+   "size": "40 x 38",
    "grade": "316L",
    "material": "Stainless steel 1.4401 (316)",
    "materialKey": "ss316",
    "qty": 2,
-   "massKg": 16.1949,
-   "totalMassKg": 32.3899,
+   "massKg": 0.3275,
+   "totalMassKg": 0.655,
    "torqueNm": null,
    "reference": false,
-   "function": "Fixed through the beam. It guides the next stage.",
+   "function": "Holds the chain's fixed end under the deck.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WIPE",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-WKK",
+   "name": "Cable chain carrier bracket, stainless",
+   "category": "structure",
+   "make": "make",
+   "standard": "bent plate",
+   "size": "60 x 50",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 0.6703,
+   "totalMassKg": 1.3406,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Joins the chain's moving end to the carriage.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WIPE",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-WM0",
+   "name": "Wipe arm mast sleeve, 110 x 110 x 5, with flange",
+   "category": "structure",
+   "make": "make",
+   "standard": "EN 10219",
+   "size": "1200 long",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 22.3343,
+   "totalMassKg": 44.6687,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Hangs from the carriage. It guides the mast's first stage.",
    "spec": {
-    "stowed top": "4.23 m above grade"
+    "bottom": "1.91 m above grade, above the car roof and its pod"
    },
    "uses": [
     {
-     "sub": "WAND",
+     "sub": "WIPE",
      "qty": 2
     }
    ]
   },
   {
-   "id": "WSH-WS2",
-   "name": "Wand column stage 2, 94 x 94",
+   "id": "WSH-WM1",
+   "name": "Wipe arm mast stage 2, 92 x 92",
    "category": "structure",
    "make": "make",
    "standard": "EN 10219",
-   "size": "914 long",
+   "size": "662 long",
    "grade": "316L",
    "material": "Stainless steel 1.4401 (316)",
    "materialKey": "ss316",
    "qty": 2,
-   "massKg": 10.5064,
-   "totalMassKg": 21.0128,
+   "massKg": 7.4426,
+   "totalMassKg": 14.8852,
    "torqueNm": null,
    "reference": false,
-   "function": "Slides a third of the drop. A belt over its pulley drives the next stage.",
+   "function": "Slides half the drop. A belt over its pulley drives the next stage.",
    "spec": {},
    "uses": [
     {
-     "sub": "WAND",
+     "sub": "WIPE",
      "qty": 2
     }
    ]
   },
   {
-   "id": "WSH-WS3",
-   "name": "Wand column stage 3, 80 x 80",
+   "id": "WSH-WM2",
+   "name": "Wipe arm mast stage 3, 76 x 76",
    "category": "structure",
    "make": "make",
    "standard": "EN 10219",
-   "size": "914 long",
+   "size": "662 long",
    "grade": "316L",
    "material": "Stainless steel 1.4401 (316)",
    "materialKey": "ss316",
    "qty": 2,
-   "massKg": 8.8721,
-   "totalMassKg": 17.7441,
+   "massKg": 6.0894,
+   "totalMassKg": 12.1788,
    "torqueNm": null,
    "reference": false,
-   "function": "Slides a third of the drop. A belt over its pulley drives the next stage.",
+   "function": "Slides half the drop and carries the wrist at its foot.",
    "spec": {},
    "uses": [
     {
-     "sub": "WAND",
+     "sub": "WIPE",
      "qty": 2
     }
    ]
   },
   {
-   "id": "WSH-WS4",
-   "name": "Wand column stage 4, 66 x 66",
-   "category": "structure",
-   "make": "make",
-   "standard": "EN 10219",
-   "size": "914 long",
-   "grade": "316L",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 2,
-   "massKg": 7.2377,
-   "totalMassKg": 14.4755,
+   "id": "BLK25",
+   "name": "Profile rail block size 25",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue part (ISO 12090-1 dims)",
+   "size": "size 25",
+   "grade": "preload Z1, wipers",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 4,
+   "massKg": 0.7203,
+   "totalMassKg": 2.8812,
    "torqueNm": null,
    "reference": false,
-   "function": "Carries the reach slide at its foot.",
+   "function": "Recirculating ball carriage. It runs on the rail and carries the moving stage.",
    "spec": {},
    "uses": [
     {
-     "sub": "WAND",
-     "qty": 2
+     "sub": "WIPE",
+     "qty": 4
     }
    ]
   },
   {
-   "id": "WSH-VAC",
-   "name": "Vacuum unit 1.5 kW, wash-down, with dirt bin",
+   "id": "RAIL25-2100",
+   "name": "Profile rail size 25 x 2100",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue part (ISO 12090-1 dims)",
+   "size": "size 25, L 2100",
+   "grade": "precision grade",
+   "material": "Bearing steel 100Cr6, hardened",
+   "materialKey": "bearing",
+   "qty": 4,
+   "massKg": 7.1267,
+   "totalMassKg": 28.5066,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Hardened guide rail. It carries the block in a straight line with no play.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WIPE",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "WSH-CGM",
+   "name": "Carriage gearmotor 0.37 kW, brake, encoder, right-angle",
    "category": "drive",
    "make": "buy",
    "standard": "catalogue part",
-   "size": "360 x 360 x 460",
-   "grade": "IP55",
+   "size": "0.37 kW",
+   "grade": "IP66, wash-down",
    "material": "Structural steel S355, painted RAL 9005",
    "materialKey": "steel_paint",
    "qty": 2,
-   "massKg": 38.0,
-   "totalMassKg": 76.0,
+   "massKg": 12.0,
+   "totalMassKg": 24.0,
    "torqueNm": null,
    "reference": false,
-   "function": "Makes the vacuum for one wand and keeps what it picks up.",
+   "function": "Moves the wipe arm across the bay.",
    "spec": {
-    "power": "1.5 kW",
-    "class": "side-channel blower with cyclone bin",
     "mass basis": "catalogue class mass (the CAD draws its envelope)"
    },
    "uses": [
     {
-     "sub": "WAND",
+     "sub": "WIPE",
      "qty": 2
     }
    ]
   },
   {
-   "id": "WSH-WDM",
-   "name": "Wand drop servo gearmotor 0.4 kW, brake",
+   "id": "WSH-PIN",
+   "name": "Pinion module 2, 20 teeth, stainless",
+   "category": "drive",
+   "make": "buy",
+   "standard": "DIN 867 tooth form",
+   "size": "20 T, m 2",
+   "grade": "",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 0.2748,
+   "totalMassKg": 0.5495,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Drives the wipe arm carriage along its rack.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WIPE",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-WMM",
+   "name": "Mast servo gearmotor 0.2 kW, brake, absolute encoder",
    "category": "drive",
    "make": "buy",
    "standard": "catalogue part",
-   "size": "0.4 kW",
-   "grade": "IP66",
+   "size": "0.2 kW",
+   "grade": "IP66, wash-down",
    "material": "Structural steel S355, painted RAL 9005",
    "materialKey": "steel_paint",
    "qty": 2,
@@ -2797,313 +1828,409 @@
    "totalMassKg": 15.0,
    "torqueNm": null,
    "reference": false,
-   "function": "Drives stage 2 by a toothed belt. Its brake holds the column with power off.",
+   "function": "Raises and lowers the mast by a belt inside it. Its brake holds the mast when power is off.",
    "spec": {
     "mass basis": "catalogue class mass (the CAD draws its envelope)"
    },
    "uses": [
     {
-     "sub": "WAND",
+     "sub": "WIPE",
      "qty": 2
     }
    ]
   },
   {
-   "id": "WSH-WRC",
-   "name": "Wand reach slide block",
+   "id": "WSH-WRK",
+   "name": "Gear rack module 2, 20 x 20, stainless",
    "category": "drive",
-   "make": "make",
-   "standard": "machined",
-   "size": "100 x 100 x 80",
-   "grade": "316L",
+   "make": "buy",
+   "standard": "DIN 867 tooth form",
+   "size": "2028 long",
+   "grade": "",
    "material": "Stainless steel 1.4401 (316)",
    "materialKey": "ss316",
    "qty": 2,
-   "massKg": 4.1277,
-   "totalMassKg": 8.2554,
+   "massKg": 6.4721,
+   "totalMassKg": 12.9442,
    "torqueNm": null,
    "reference": false,
-   "function": "Guides reach tube 1 under the last stage. A belt in it drives the reach.",
+   "function": "The carriage pinion runs along it.",
    "spec": {},
    "uses": [
     {
-     "sub": "WAND",
+     "sub": "WIPE",
      "qty": 2
     }
    ]
   },
   {
-   "id": "WSH-WP2",
-   "name": "Column slide pad, UHMW-PE, stage 2",
-   "category": "bearing",
-   "make": "make",
-   "standard": "machined",
-   "size": "3.0 x 60 x 40",
-   "grade": "UHMW-PE",
-   "material": "PA66-GF30",
-   "materialKey": "pa66",
-   "qty": 8,
-   "massKg": 0.0097,
-   "totalMassKg": 0.0778,
+   "id": "WSH-WTA",
+   "name": "Wrist tilt actuator, 12 Nm, IP67",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "D 60 x 70",
+   "grade": "IP67",
+   "material": "Aluminium 6061-T6, machined, clear anodised",
+   "materialKey": "al6061",
+   "qty": 2,
+   "massKg": 1.4,
+   "totalMassKg": 2.8,
    "torqueNm": null,
    "reference": false,
-   "function": "Guides the stage in the one outside it. No grease to wash off.",
-   "spec": {},
+   "function": "Swings the pad from face-down, stowed, to face-on to the car.",
+   "spec": {
+    "travel": "90 deg",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
    "uses": [
     {
-     "sub": "WAND",
-     "qty": 8
+     "sub": "WIPE",
+     "qty": 2
     }
    ]
   },
   {
-   "id": "WSH-WP3",
-   "name": "Column slide pad, UHMW-PE, stage 3",
-   "category": "bearing",
-   "make": "make",
-   "standard": "machined",
-   "size": "3.0 x 60 x 40",
-   "grade": "UHMW-PE",
-   "material": "PA66-GF30",
-   "materialKey": "pa66",
-   "qty": 8,
-   "massKg": 0.0097,
-   "totalMassKg": 0.0778,
+   "id": "WSH-WYA",
+   "name": "Wrist turn actuator, hollow shaft, 30 Nm, IP67",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "D 110 x 100",
+   "grade": "IP67",
+   "material": "Aluminium 6061-T6, machined, clear anodised",
+   "materialKey": "al6061",
+   "qty": 2,
+   "massKg": 3.2,
+   "totalMassKg": 6.4,
    "torqueNm": null,
    "reference": false,
-   "function": "Guides the stage in the one outside it. No grease to wash off.",
-   "spec": {},
+   "function": "Turns the forearm about the mast's axis, so the pad faces the flank, the nose or the tail.",
+   "spec": {
+    "travel": "+/- 90 deg",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
    "uses": [
     {
-     "sub": "WAND",
-     "qty": 8
+     "sub": "WIPE",
+     "qty": 2
     }
    ]
   },
   {
-   "id": "WSH-WP4",
-   "name": "Column slide pad, UHMW-PE, stage 4",
+   "id": "WSH-WMP",
+   "name": "Wipe arm mast slide pad, UHMW-PE",
    "category": "bearing",
    "make": "make",
    "standard": "machined",
-   "size": "3.0 x 60 x 40",
+   "size": "4 x 60 x 40",
    "grade": "UHMW-PE",
    "material": "PA66-GF30",
    "materialKey": "pa66",
-   "qty": 8,
-   "massKg": 0.0097,
-   "totalMassKg": 0.0778,
+   "qty": 16,
+   "massKg": 0.013,
+   "totalMassKg": 0.2074,
    "torqueNm": null,
    "reference": false,
-   "function": "Guides the stage in the one outside it. No grease to wash off.",
+   "function": "Guides a mast stage in the one outside it. No grease to wash off.",
    "spec": {},
    "uses": [
     {
-     "sub": "WAND",
-     "qty": 8
+     "sub": "WIPE",
+     "qty": 16
     }
    ]
   },
   {
-   "id": "WSH-WCR",
-   "name": "Spring cable reel, 3 m, IP65",
+   "id": "WSH-WCM",
+   "name": "Sensor-finding camera with ring light, IP67",
+   "category": "sensor",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "60 x 44 x 44",
+   "grade": "IP67",
+   "material": "PA66-GF30",
+   "materialKey": "pa66",
+   "qty": 2,
+   "massKg": 0.35,
+   "totalMassKg": 0.7,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Finds each camera, lidar and radar cover on the car, so the pad goes to the sensor and not to the paint.",
+   "spec": {
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "WIPE",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-WFS",
+   "name": "Force sensor, 50 N, IP67",
+   "category": "sensor",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "D 60 x 12",
+   "grade": "IP67",
+   "material": "Aluminium 6061-T6, machined, clear anodised",
+   "materialKey": "al6061",
+   "qty": 2,
+   "massKg": 0.2,
+   "totalMassKg": 0.4,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Measures the pad's push on the car. The arm stops its push at the set limit.",
+   "spec": {
+    "limit": "10 N (ASSUMPTION, to be set on test)",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "WIPE",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "ECHAIN-38x25",
+   "name": "Cable carrier link 38 x 25",
    "category": "electrical",
    "make": "buy",
    "standard": "catalogue part",
-   "size": "D 180",
-   "grade": "IP65",
-   "material": "Structural steel S355, painted RAL 9005",
-   "materialKey": "steel_paint",
-   "qty": 2,
-   "massKg": 6.0,
-   "totalMassKg": 12.0,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Pays out and takes back the reach drive cable as the wand goes down and up.",
-   "spec": {
-    "cable": "7G1 + data, 3 m",
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
-   },
-   "uses": [
-    {
-     "sub": "WAND",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "WSH-WCT",
-   "name": "Cable conduit through the beam, 32 x 3",
-   "category": "electrical",
-   "make": "make",
-   "standard": "EN 10217-7",
-   "size": "D 32 x 350",
-   "grade": "316L",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 2,
-   "massKg": 0.7632,
-   "totalMassKg": 1.5263,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Leads the reel's cable through the beam, clear of the column.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "WAND",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "WSH-WRCBL",
-   "name": "Reach drive cable, PUR, on its reel",
-   "category": "electrical",
-   "make": "buy",
-   "standard": "EN 50525",
-   "size": "OD 10",
-   "grade": "",
-   "material": "Cable, TPE jacket",
-   "materialKey": "cable",
-   "qty": 1,
-   "massKg": 0.435,
-   "totalMassKg": 0.435,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Feeds the reach drive and the head lamp from the reel as the wand goes down.",
-   "spec": {
-    "length": "2900 mm",
-    "length range": "0 to 2900 mm",
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
-   },
-   "uses": [
-    {
-     "sub": "WAND",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "WSH-WRCBR",
-   "name": "Reach drive cable, PUR, on its reel",
-   "category": "electrical",
-   "make": "buy",
-   "standard": "EN 50525",
-   "size": "OD 10",
-   "grade": "",
-   "material": "Cable, TPE jacket",
-   "materialKey": "cable",
-   "qty": 1,
-   "massKg": 0.435,
-   "totalMassKg": 0.435,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Feeds the reach drive and the head lamp from the reel as the wand goes down.",
-   "spec": {
-    "length": "2900 mm",
-    "length range": "0 to 2900 mm",
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
-   },
-   "uses": [
-    {
-     "sub": "WAND",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "WSH-WSC",
-   "name": "Wand column top cap with vacuum port",
-   "category": "fluid",
-   "make": "make",
-   "standard": "machined plate 12 mm",
-   "size": "110 sq",
-   "grade": "316L",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 2,
-   "massKg": 0.8696,
-   "totalMassKg": 1.7392,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Closes the sleeve top and takes the vacuum pipe.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "WAND",
-     "qty": 2
-    }
-   ]
-  },
-  {
-   "id": "WSH-WVPL",
-   "name": "Vacuum pipe 63 mm, unit to column",
-   "category": "fluid",
-   "make": "make",
-   "standard": "EN 10217-7",
-   "size": "D 63",
-   "grade": "",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 1,
-   "massKg": 2.8247,
-   "totalMassKg": 2.8247,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Joins the vacuum unit to the column top.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "WAND",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "WSH-WVPR",
-   "name": "Vacuum pipe 63 mm, unit to column",
-   "category": "fluid",
-   "make": "make",
-   "standard": "EN 10217-7",
-   "size": "D 63",
-   "grade": "",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 1,
-   "massKg": 2.8247,
-   "totalMassKg": 2.8247,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Joins the vacuum unit to the column top.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "WAND",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "WSH-WHD",
-   "name": "Wand vacuum head with lamp",
-   "category": "tool",
-   "make": "make",
-   "standard": "moulded",
-   "size": "140 x 250",
+   "size": "inner 38 x 25, pitch 38",
    "grade": "",
    "material": "PA66-GF30",
    "materialKey": "pa66",
-   "qty": 2,
-   "massKg": 4.9802,
-   "totalMassKg": 9.9604,
+   "qty": 120,
+   "massKg": 0.0108,
+   "totalMassKg": 1.2901,
    "torqueNm": null,
    "reference": false,
-   "function": "Vacuums the floor and lights it for the camera.",
+   "function": "Guides the cables and hoses through the moving joint. It keeps the bend radius safe.",
    "spec": {},
    "uses": [
     {
-     "sub": "WAND",
+     "sub": "WIPE",
+     "qty": 120
+    }
+   ]
+  },
+  {
+   "id": "WSH-WGL",
+   "name": "Cable gland block, stainless",
+   "category": "electrical",
+   "make": "make",
+   "standard": "machined",
+   "size": "30 x 40 x 30",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 0.2873,
+   "totalMassKg": 0.5746,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes the wrist's line out of the sleeve's side at its foot.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WIPE",
      "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-WWCL",
+   "name": "Wrist line: 2 motor cables, camera, sensor, 6 mm water, in a PUR jacket",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "EN 50525",
+   "size": "OD 15",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 1,
+   "massKg": 0.3833,
+   "totalMassKg": 0.3833,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Feeds the wrist, the camera and the pad's water nozzle as the mast goes down.",
+   "spec": {
+    "length": "1278 mm",
+    "length range": "0 to 1278 mm",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "WIPE",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-WWCR",
+   "name": "Wrist line: 2 motor cables, camera, sensor, 6 mm water, in a PUR jacket",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "EN 50525",
+   "size": "OD 15",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 1,
+   "massKg": 0.3833,
+   "totalMassKg": 0.3833,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Feeds the wrist, the camera and the pad's water nozzle as the mast goes down.",
+   "spec": {
+    "length": "1278 mm",
+    "length range": "0 to 1278 mm",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "WIPE",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-WPD",
+   "name": "Wipe pad, microfibre on foam, hook-and-loop",
+   "category": "tool",
+   "make": "buy",
+   "standard": "consumable",
+   "size": "D 249 x 57",
+   "grade": "lint-free microfibre",
+   "material": "Microfibre on open-cell foam, white",
+   "materialKey": "pad_white",
+   "qty": 2,
+   "massKg": 0.12,
+   "totalMassKg": 0.24,
+   "torqueNm": null,
+   "reference": false,
+   "function": "The only part that touches the car. It wipes a sensor cover as a soft cloth in a hand does.",
+   "spec": {
+    "change": "each shift, by hand, in seconds",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "WIPE",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-WPP",
+   "name": "Pad plate on springs, 6 mm travel",
+   "category": "tool",
+   "make": "make",
+   "standard": "machined, 4 springs",
+   "size": "D 159 x 11",
+   "grade": "6061-T6",
+   "material": "Aluminium 6061-T6, machined, clear anodised",
+   "materialKey": "al6061",
+   "qty": 2,
+   "massKg": 0.5882,
+   "totalMassKg": 1.1765,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Lets the pad give 6 mm, so it follows a curved cover with an even, light push.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "WIPE",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "ISO4017-M8x25-A4-70",
+   "name": "Hex head screw M8 x 25",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4017",
+   "size": "M8 x 25",
+   "grade": "A4-70",
+   "material": "Stainless steel A4-80",
+   "materialKey": "fast_a4",
+   "qty": 16,
+   "massKg": 0.0161,
+   "totalMassKg": 0.2577,
+   "torqueNm": 17.6,
+   "reference": false,
+   "function": "Holds the mast sleeve's flange under the carriage floor.",
+   "spec": {
+    "preload": "13.1 kN",
+    "drive": "hex 13 mm"
+   },
+   "uses": [
+    {
+     "sub": "WIPE",
+     "qty": 16
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M6x16-A4-80",
+   "name": "Socket head cap screw M6 x 16",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M6 x 16",
+   "grade": "A4-80",
+   "material": "Stainless steel A4-80",
+   "materialKey": "fast_a4",
+   "qty": 28,
+   "massKg": 0.0067,
+   "totalMassKg": 0.1879,
+   "torqueNm": 9.8,
+   "reference": false,
+   "function": "Holds the mast gearmotor to the sleeve.",
+   "spec": {
+    "preload": "9.5 kN",
+    "drive": "hex socket 5 mm"
+   },
+   "uses": [
+    {
+     "sub": "CONTROL",
+     "qty": 4
+    },
+    {
+     "sub": "WIPE",
+     "qty": 24
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M6x20-A4-80",
+   "name": "Socket head cap screw M6 x 20",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M6 x 20",
+   "grade": "A4-80",
+   "material": "Stainless steel A4-80",
+   "materialKey": "fast_a4",
+   "qty": 72,
+   "massKg": 0.0076,
+   "totalMassKg": 0.5483,
+   "torqueNm": 9.8,
+   "reference": false,
+   "function": "Holds the wipe arm rail to the bottom deck.",
+   "spec": {
+    "preload": "9.5 kN",
+    "drive": "hex socket 5 mm"
+   },
+   "uses": [
+    {
+     "sub": "WIPE",
+     "qty": 72
     }
    ]
   },
@@ -3494,15 +2621,34 @@
      "qty": 2
     }
    ]
+  },
+  {
+   "id": "ISO4017-M10x30-A4-70",
+   "name": "Hex head screw M10 x 30",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4017",
+   "size": "M10 x 30",
+   "grade": "A4-70",
+   "material": "Stainless steel A4-80",
+   "materialKey": "fast_a4",
+   "qty": 4,
+   "massKg": 0.0299,
+   "totalMassKg": 0.1197,
+   "torqueNm": 34.4,
+   "reference": false,
+   "function": "Holds the cabinet lug to the leg post.",
+   "spec": {
+    "preload": "20.8 kN",
+    "drive": "hex 16 mm"
+   },
+   "uses": [
+    {
+     "sub": "CONTROL",
+     "qty": 4
+    }
+   ]
   }
  ],
- "notes": {
-  "wand_column": {
-   "stages": 4,
-   "reachStages": 2,
-   "stageLengthMm": 914,
-   "stowedTopMm": 4228,
-   "washHallHeightMm": 4785
-  }
- }
+ "notes": {}
 }

@@ -251,11 +251,12 @@ export function bayEquipmentSolids(s: ShellDef): { kind: string; r: Rect }[] {
       const G = WASH_GANTRY;
       const home = BAY_STALL_Y + WASH_HOME_DY;
       for (const side of [-1, 1]) {
-        // the trolley and leg, the retracted side brush and air knife, the arch's upright
+        // the trolley and leg, the parked wipe arm and air knife, the arch's upright
         out.push({ kind: 'wash-gantry-leg', r: {
           x0: b.x + side * G.legX - G.trolley.w / 2, x1: b.x + side * G.legX + G.trolley.w / 2,
           y0: home + G.leg.dy - G.trolley.d / 2, y1: home + G.leg.dy + G.trolley.d / 2 } });
-        sq('wash-brush', b.x + side * G.sideBrush.retractX, home + G.sideBrush.dy, G.sideBrush.r * 2);
+        // the wipe arm parked beside the car's path: its mast and, inboard of it, its pad
+        sq('wash-wipe-arm', b.x + side * (G.wipe.parkX - G.wipe.forearm / 2), home + G.wipe.dy, G.wipe.forearm + 2 * G.wipe.padR);
         const kx = b.x + side * (G.dryer.side.retractX + G.dryer.side.w / 2);
         out.push({ kind: 'wash-air-knife', r: {
           x0: kx - G.dryer.side.w / 2, x1: kx + G.dryer.side.w / 2,

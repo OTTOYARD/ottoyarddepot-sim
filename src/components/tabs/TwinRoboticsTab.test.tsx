@@ -143,8 +143,8 @@ describe('the Robotics tab', () => {
     await act(async () => { await new Promise((r) => setTimeout(r, 5)); });
     await settle();
     expect(screen.getByTestId('cad-viewer-stub').dataset.robot).toBe('wash_gantry');
-    expect(screen.getByTestId('cad-viewer-stub').dataset.isolate).toBe('SIDEBRUSH');
-    expect(screen.getByTestId('subsystem-detail')).toHaveTextContent('Side brushes');
+    expect(screen.getByTestId('cad-viewer-stub').dataset.isolate).toBe('ARCH');
+    expect(screen.getByTestId('subsystem-detail')).toHaveTextContent('Spray arch');
   });
 
   it('shows the clash check from the committed report, and a clash opens the part', async () => {

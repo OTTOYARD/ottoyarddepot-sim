@@ -40,7 +40,7 @@ The CAD never types a link length, a mount height, a joint offset, a brush radiu
 The tab's poses are the twin's own code, not copies: the charge arm stowed (`STOWED`) or connected (`solveIK` to a
 rear-quarter port, and `catalog.test.ts` checks that `forwardTCP` of the result is the port); the clean arm at home,
 over side A and in the cabin (`cleanJointsAt`, through `buildCleanArm.poseCleanArm`'s node mapping); the wash machine
-at home, mid brush pass, dry pass and cabin vacuum (`washPoseAt`). Its run steps are the twin's phase tables
+at home, mid wash pass, dry pass and on the roof and front sensors (`programPoseAt`). Its run steps are the twin's phase tables
 (`NOMINAL_SEQUENCE` and `ARM_TIMING_DEFAULTS`, `CLEAN_CHAIN` and `CLEAN_PHASE_S`, `washChain` and `PASS_NOMINAL_S`).
 
 ## The three machines (as built 2026-11-07)
@@ -49,7 +49,7 @@ at home, mid brush pass, dry pass and cabin vacuum (`washPoseAt`). Its run steps
 |---|---:|---:|---:|---:|---:|---:|
 | OTTO-CHARGE ARM | 666 | 188 | 467 | 313 kg (with its riser) | 32.8 MB (6.2) | 6.9 MB |
 | OTTO-CLEAN ARM | 408 | 134 | 253 | 311 kg (with its canopy steel) | 14.2 MB (2.3) | 3.6 MB |
-| OTTO-WASH | 811 | 105 | 460 | 4,129 kg | 6.6 MB (1.1) | 1.2 MB |
+| OTTO-WASH (touchless, 2026-11-11) | 856 | 99 | 424 | 3,994 kg | 5.7 MB (1.0) | 1.2 MB |
 
 (Fewer fasteners than the first pass: where the clash check found a screw standing in another part, or holding a part
 the new layout leaves out (the wash beam's cover, the clean arm's mast cap and first hose), it went. The masses went
@@ -112,10 +112,12 @@ Nothing on the wrist stands more than 95 mm from the pivot along its axis.
 
 Two galvanised channel rails on anchor plates with a buffered stop at each end, trolleys with PU wheels, side rollers
 and a geared travel motor inside each trolley, post-and-brace legs with cladding, a box-girder beam, stainless spray arch with 23 nozzles and 4 solenoid valves,
-a top brush on 2 telescoping lift columns (a sleeve through the beam and 3 stages each, driven by a cross shaft with
-2 belt drums in pillow blocks), two side brushes on carriages each driven by a gearmotor and pinion on a rack, a top air
-knife on 2 more lift columns with a servo gearmotor each, two side air knives, 3 blowers and their ducts, the valve
-manifold and arch feed hose, two 4-stage detail vacuum columns, each with a 2-tube telescoping reach, stop light, beacon,
+a top air knife on 2 telescoping lift columns with a servo gearmotor each, two side air knives, 3 blowers and their
+ducts, the valve manifold and arch feed hose, and two sensor-wipe arms (finding 17). Each wipe arm is a carriage on 2
+profile rails under the beam with a gearmotor and pinion on a rack, a mast of a sleeve and 2 sliding stages with a
+servo gearmotor and brake, a wrist turn actuator, a forearm with a hinge fork, a tilt actuator, a camera, a pure-water
+mist nozzle, and a pad head (hinge hub, force sensor, sprung plate, microfibre pad), with a cable chain to the carriage
+and a coiled line down the mast. No brush and no vacuum wand. The stop light, beacon,
 the control cabinet on the inner side of the west leg, and the supply drag chain in a trough inboard of the west rail,
 clear of the travel drive. Nothing stands outboard of the trolleys (design finding 8).
 
@@ -143,7 +145,7 @@ As run on the committed CAD (`public/cad/<robot>.clash.json`):
 |---|---:|---:|---:|---:|---|
 | OTTO-CHARGE ARM | 22 | 32,311 | 0 | 0 | 672, 12, 9, 3 |
 | OTTO-CLEAN ARM | 42 | 15,880 | 0 | 0 | 320, 4, 4, 4 |
-| OTTO-WASH | 39 | 13,146 | 0 | 0 | 523, 0, 0, 0 |
+| OTTO-WASH (touchless, 2026-11-11) | 38 | 9,520 | 0 | 0 | 451, 0, 0, 0 |
 
 No clash and no loose part is left in any robot, at any of the twin's poses, and `cad.test.ts` holds all three at
 zero. Design findings 6 and 7 were fixed in the CAD without a change to the twin, and so were 8 and 9, which the yard's
@@ -339,6 +341,29 @@ The poses found more, which the stowed pose could not show:
     check it against the Copper Development Association's ampacity tables before a bar is bought. The connector's
     contacts stay liquid-cooled: two 8 mm coolant tubes, the tool's cable and its air line run with the bars and
     through each boot. **What you still see:** four black boots, at the base, the shoulder, the elbow and the wrist. They are the arm's own, they move with it, and nothing is pulled from anywhere.
+
+17. **The wash machine whipped the car with brushes and opened its doors in the wet.** Chase, 2026-11-11: *"I don't
+    think it makes sense to have giant brushes that will be whipping the vehicle since a lot of AV's have extended
+    areas with cameras and and lidar ... only rinses and dries, then ... an robot arm will locate all sensors and hand
+    wipe gently with a cloth ... I don't think doors should open whatsoever once in the large external wash bay."*
+    **The top brush, the two side brushes and the two vacuum wands are gone**, with their lift columns, carriages,
+    drives, reels and vacuum units (finding 7's top-brush columns, finding 10's reach tubes and finding 15's brush
+    reel go with them). The machine is now touchless: the arch soaks, washes with water jets and rinses, and the air
+    knives dry. **Two sensor-wipe arms** then wipe each sensor. Each is 4 axes on the gantry's own travel: a carriage
+    across the bay (1.73 m), a mast of 2 sliding stages (1.12 m), a wrist that turns the forearm in, aft or fore, and a
+    hinge that swings the pad from face-down to face-on. A camera on the wrist finds each sensor, a nozzle mists it
+    with pure water, and the pad on its sprung plate pushes no harder than its force sensor allows. **Choices made,
+    and why:** the arms ride the gantry and not the hall's roof, so the gantry's travel carries them along the car and
+    no second structure stands over the wet bay. They park beside the car's path, 1.1 m off the flank, and not over
+    the roof, so a mast of 2 stages is enough (a column stowed above the roof needed 4 stages through the beam, and the
+    beam's cross members stand in its way). The pad's plate is 45 mm smaller in radius than the pad, so beside the roof
+    pod only foam is near the paint. **Held by:** `cad/clash.py` (38 poses, 9,520 pairs, 0 clashes, 0 loose parts),
+    `washPose.test.ts` (the masts keep 0.10 m off the car at every moment, only the pads touch it, only at the four
+    places, no deeper than a pad gives) and `cadYard.test.ts` (the same, measured on the CAD's own meshes).
+    **Assumptions, stated:** the 10 N push limit and the wipe times are not from a source. The sensor places (the
+    nose's and tail's upright face at 0.57 m, the front wings at 0.96 m, the roof pod) are the twin's one car shape:
+    a real fleet needs each model's sensor map. Pad cleaning between cars is by hand, each shift: a pad wash station
+    is not designed.
 
 The audit also found the wash machine's tools fed by rigid pipes that could not follow them. They now have flexible
 lines that do (below), and each wand has its own vacuum unit and each side brush its own cable chain.

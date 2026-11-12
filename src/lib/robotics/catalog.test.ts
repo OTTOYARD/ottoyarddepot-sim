@@ -6,7 +6,7 @@ import { forwardTCP } from '@/lib/ottoChargeArm/cobotIK';
 import { ARM_TIMING_DEFAULTS } from '@/lib/ottoChargeArm/armStateMachine';
 import { FLANK_STANDOFF_M, MOUNT_HEIGHT_M, METRES_PER_PLAN_UNIT } from '@/lib/ottoChargeArm/cobotSpec';
 import { CLEAN_MOTION_S } from '@/lib/ottoCleanArm/cleanArmSpec';
-import { SIDE_BRUSH_CONTACT_X } from '@/lib/ottoWash/washPose';
+import { WIPE_TARGET, wipeJoints } from '@/lib/ottoWash/washPose';
 import { WASH_GANTRY, WASH_HOME_DY, PASSES_NOMINAL_S } from '@/lib/ottoWash/washSpec';
 import { SAMPLE_PORT, cycleSteps, filterLines, posePresets, washAngles, type BomLine } from './catalog';
 
@@ -19,21 +19,28 @@ describe('pose presets come from the twin\'s own code', () => {
     expect(tip.y).toBeCloseTo(SAMPLE_PORT.height - MOUNT_HEIGHT_M, 6);
     expect(tip.z).toBeCloseTo(FLANK_STANDOFF_M, 6);
   });
-  it('wash: home is the north end with every tool retracted; a brush pass closes the side brushes on the flank', () => {
+  it('wash: home is the north end with every tool stowed; the wipe arms go to the roof pod and turn for the nose', () => {
     const home = washAngles('home', 1);
     expect(home.GANTRY).toBeCloseTo(-WASH_HOME_DY * METRES_PER_PLAN_UNIT, 6);
-    for (const k of ['TOP_BRUSH1', 'TOP_BRUSH3', 'SIDE_BRUSH_L', 'DRYER_TOP1', 'DRYER_TOP3', 'WAND_L_DROP1', 'WAND_R_REACH1', 'WAND_R_REACH2']) {
+    for (const k of ['DRYER_TOP1', 'DRYER_TOP3', 'DRYER_SIDE_L', 'WIPE_L_X', 'WIPE_R_X', 'WIPE_L_DROP1', 'WIPE_R_DROP2', 'WIPE_L_YAW', 'WIPE_R_TILT']) {
       expect(home[k]).toBeCloseTo(0, 6);
     }
-    const brush = washAngles('wash_1', 0.5);
-    expect(brush.SIDE_BRUSH_L).toBeCloseTo((WASH_GANTRY.sideBrush.retractX - SIDE_BRUSH_CONTACT_X) * METRES_PER_PLAN_UNIT, 6);
-    expect(brush.SIDE_BRUSH_R).toBe(brush.SIDE_BRUSH_L);
-    const vac = washAngles('vacuum', 0.5);
-    expect(vac.WAND_L_DROP1 + vac.WAND_L_DROP2 + vac.WAND_L_DROP3).toBeCloseTo((WASH_GANTRY.wand.topY - WASH_GANTRY.wand.workY) * METRES_PER_PLAN_UNIT, 6);
-    // the 2 reach tubes each take half the twin's reach (cad wash_gantry.WAND_REACH_STAGES)
-    const reachIn = washAngles('wands_in', 1);
-    expect(reachIn.WAND_L_REACH1).toBeCloseTo((WASH_GANTRY.wand.x - WASH_GANTRY.wand.reachX) * METRES_PER_PLAN_UNIT / 2, 6);
-    expect(reachIn.WAND_L_REACH2).toBe(reachIn.WAND_L_REACH1);
+    expect(Object.keys(home).filter((k) => /BRUSH|WAND/.test(k))).toEqual([]);
+    // on the roof pod: each carriage has come in from its park to the pod's side, the pads face in
+    const roof = washAngles('wipe_roof', 0.7);
+    const j = wipeJoints(WIPE_TARGET.roof);
+    expect(roof.WIPE_L_X).toBeCloseTo((WASH_GANTRY.wipe.parkX - j.mastX) * METRES_PER_PLAN_UNIT, 6);
+    expect(roof.WIPE_R_X).toBe(roof.WIPE_L_X);
+    expect(roof.WIPE_L_DROP1 + roof.WIPE_L_DROP2).toBeCloseTo((WASH_GANTRY.wipe.stowY - WIPE_TARGET.roof.y) * METRES_PER_PLAN_UNIT, 6);
+    expect(roof.WIPE_L_YAW).toBeCloseTo(0, 6);
+    expect(roof.WIPE_L_TILT).toBeCloseTo(Math.PI / 2, 6);
+    expect(roof.WIPE_R_TILT).toBeCloseTo(Math.PI / 2, 6);
+    // on the nose: the wrists turn a quarter turn, opposite ways, so both pads face the car
+    const front = washAngles('wipe_front', 0.7);
+    expect(front.WIPE_L_YAW).toBeCloseTo(Math.PI / 2, 6);
+    expect(front.WIPE_R_YAW).toBeCloseTo(-Math.PI / 2, 6);
+    const rear = washAngles('wipe_rear', 0.7);
+    expect(rear.WIPE_L_YAW).toBeCloseTo(-Math.PI / 2, 6);
   });
   it('clean arm: home stows the mast; in the cabin the mast is down and the wand out', () => {
     const [home, , clean] = posePresets('clean_arm');
@@ -95,16 +102,25 @@ describe('the cycle played on the CAD is the twin\'s choreography', () => {
     expect(Math.hypot(tip.x - SAMPLE_PORT.along, tip.y - (SAMPLE_PORT.height - MOUNT_HEIGHT_M), tip.z - FLANK_STANDOFF_M)).toBeLessThan(1e-3);
     expect(s.steps.find((x) => x.id === 'charging')!.short).toBe(true);
   });
-  it('clean arm and wash: every step of the twin\'s chain, in order, and the wands reach the floor in the vacuum', async () => {
+  it('clean arm and wash: every step of the twin\'s chain, in order, and the wash program is one motion', async () => {
     const { cycleScript } = await import('./catalog');
     const { CLEAN_CHAIN } = await import('@/lib/ottoCleanArm/cleanArmSpec');
     const { washChain } = await import('@/lib/ottoWash/washSpec');
     expect(cycleScript('clean_arm').steps.map((x) => x.id)).toEqual([...CLEAN_CHAIN]);
     const w = cycleScript('wash_gantry');
     expect(w.steps.map((x) => x.id)).toEqual([...washChain(true)]);
-    const i = w.steps.findIndex((x) => x.id === 'vacuum');
-    const mid = w.steps.slice(0, i).reduce((a, x) => a + x.seconds, 0) + w.steps[i].seconds / 2;
-    const v = w.at(mid).angles;
-    expect(v.WAND_L_DROP1 + v.WAND_L_DROP2 + v.WAND_L_DROP3).toBeCloseTo((WASH_GANTRY.wand.topY - WASH_GANTRY.wand.workY) * METRES_PER_PLAN_UNIT, 6);
+    // the wipe arms are on the roof pod in the middle of that step's wipe: both carriages in, both pads face-on
+    const i = w.steps.findIndex((x) => x.id === 'wipe_roof');
+    const at = w.steps.slice(0, i).reduce((a, x) => a + x.seconds, 0) + w.steps[i].seconds * 0.7;
+    const v = w.at(at).angles;
+    expect(v.WIPE_L_X).toBeGreaterThan(1.5);
+    expect(v.WIPE_L_TILT).toBeCloseTo(Math.PI / 2, 6);
+    // and the program is one motion: no joint jumps from the end of a step to the start of the next
+    let start = 0;
+    for (let k = 0; k + 1 < w.steps.length; k++) {
+      start += w.steps[k].seconds;
+      const a = w.at(start - 1e-6).angles, b = w.at(start + 1e-6).angles;
+      for (const key of Object.keys(a)) expect(Math.abs(a[key] - b[key]), `${w.steps[k].id} -> ${w.steps[k + 1].id}: ${key}`).toBeLessThan(1e-3);
+    }
   });
 });

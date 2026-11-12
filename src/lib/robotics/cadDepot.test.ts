@@ -165,22 +165,32 @@ describe('the yard\'s robots move as the twin\'s do', () => {
     expect(placed(scenes.get('clean_arm')!).has('CLN-HDR')).toBe(true);
   });
 
-  it('the CAD wash machine\'s gantry, brushes and knives stand where washPose puts them', () => {
+  it("the CAD wash machine's gantry, knives and wipe arms stand where washPose puts them", () => {
     const skel = cads.get('wash_gantry')!.skeleton();
-    for (const [phase, t] of [['home', 1], ['wash_1', 0.5], ['dry_1', 0.45], ['vacuum', 0.5]] as const) {
-      const p = washPoseAt({ phase, t, vacuumS: 600, from: null });
+    for (const [phase, t] of [['home', 1], ['wash_1', 0.5], ['dry_1', 0.45], ['wipe_roof', 0.7], ['wipe_front', 0.7], ['wipe_rear', 0.7]] as const) {
+      const p = washPoseAt({ phase, t, from: null });
       poseSkeleton(skel, washJoints(p));
       skel.root.updateMatrixWorld(true);
       // the gantry rides its rails: its frame stands at z = -dy (metres)
       expect(skel.joints.get('GANTRY')!.node.getWorldPosition(new THREE.Vector3()).z, phase).toBeCloseTo(-p.dy * M, 6);
-      // each side brush slides in from its retracted stand by what the pose asks
-      const l = skel.joints.get('SIDE_BRUSH_L')!.node.position.x, r = skel.joints.get('SIDE_BRUSH_R')!.node.position.x;
-      expect(Math.abs(l), phase).toBeCloseTo((G.sideBrush.retractX - p.sideBrushX) * M, 6);
-      expect(Math.abs(r), phase).toBeCloseTo((G.sideBrush.retractX - p.sideBrushX) * M, 6);
-      // the top brush and the top knife come down on their lift columns by what the pose asks
-      const drop = (pre: string) => [1, 2, 3].reduce((s, n) => s - skel.joints.get(`${pre}${n}`)!.node.position.y, 0);
-      expect(drop('TOP_BRUSH'), phase).toBeCloseTo((G.topBrush.retractY - p.topBrushY) * M, 6);
-      expect(drop('DRYER_TOP'), phase).toBeCloseTo((G.dryer.top.retractY - p.dryerTopY) * M, 6);
+      // the top knife comes down on its lift columns by what the pose asks
+      const drop = (pre: string, n: number) => Array.from({ length: n }, (_, i) => i + 1).reduce((s, k) => s - skel.joints.get(`${pre}${k}`)!.node.position.y, 0);
+      expect(drop('DRYER_TOP', 3), phase).toBeCloseTo((G.dryer.top.retractY - p.dryerTopY) * M, 6);
+      // each wipe arm's carriage slides in from its park, and its mast comes down, by what the pose asks
+      for (const side of ['L', 'R']) {
+        expect(Math.abs(skel.joints.get(`WIPE_${side}_X`)!.node.position.x), phase).toBeCloseTo((G.wipe.parkX - p.mastX) * M, 3);
+        expect(drop(`WIPE_${side}_DROP`, 2), phase).toBeCloseTo((G.wipe.stowY - p.padY) * M, 3);
+      }
+      // each pad's hinge: the two arms mirror each other across the drive line, at the same place along the bay and the
+      // same height, 0.09 m behind the twin's pad centre (cad wash_gantry.WIPE_HINGE) along the way the wrist points
+      const hl = skel.joints.get('WIPE_L_TILT')!.node.getWorldPosition(new THREE.Vector3());
+      const hr = skel.joints.get('WIPE_R_TILT')!.node.getWorldPosition(new THREE.Vector3());
+      expect(hl.x, phase).toBeCloseTo(-hr.x, 6);
+      expect(hl.z, phase).toBeCloseTo(hr.z, 6);
+      expect(hl.y, phase).toBeCloseTo(p.padY * M, 3);   // the spec file carries heights to 0.1 mm
+      const back = 0.09, a = (p.padYaw * Math.PI) / 2;
+      expect(Math.abs(hl.x), phase).toBeCloseTo(p.padX * M + back * Math.cos(a), 3);
+      expect(hl.z, phase).toBeCloseTo(-(p.padDy * M - back * Math.sin(a)), 3);
     }
   });
 });

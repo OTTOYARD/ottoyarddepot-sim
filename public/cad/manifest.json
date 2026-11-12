@@ -202,37 +202,37 @@
     "depot": "wash_gantry.depot.glb"
    },
    "bytes": {
-    "glb": 1525904,
-    "stepZip": 1419676,
-    "step": 8341087,
-    "depot": 413312
+    "glb": 1153040,
+    "stepZip": 975582,
+    "step": 5667666,
+    "depot": 259612
    },
    "mesh": {
-    "vertices": 54115,
-    "triangles": 64106,
-    "meshes": 123,
-    "nodes": 801
+    "vertices": 40158,
+    "triangles": 45560,
+    "meshes": 92,
+    "nodes": 690
    },
    "depotMesh": {
-    "vertices": 14171,
-    "triangles": 13600,
-    "meshes": 93,
-    "nodes": 234
+    "vertices": 8174,
+    "triangles": 7656,
+    "meshes": 70,
+    "nodes": 195
    },
-   "depotSha256": "67fabe90fa1b63b0",
+   "depotSha256": "98c9203bf1501cfa",
    "totals": {
-    "parts": 931,
-    "uniqueParts": 131,
-    "fasteners": 460,
-    "massKg": 4616.37,
-    "boughtLines": 64,
-    "madeLines": 67,
+    "parts": 856,
+    "uniqueParts": 99,
+    "fasteners": 424,
+    "massKg": 3993.58,
+    "boughtLines": 53,
+    "madeLines": 46,
     "referenceLines": 0
    },
-   "glbSha256": "32020fb536082377",
+   "glbSha256": "17b3fcfe7b20f895",
    "stepCheck": {
-    "namedParts": 931,
-    "solids": 1000,
+    "namedParts": 856,
+    "solids": 920,
     "invalid": 0
    },
    "subsystems": [
@@ -253,20 +253,12 @@
      "name": "Spray arch"
     },
     {
-     "id": "TOPBRUSH",
-     "name": "Top brush (overhead)"
-    },
-    {
-     "id": "SIDEBRUSH",
-     "name": "Side brushes"
-    },
-    {
      "id": "DRYER",
      "name": "Air knives (dryer)"
     },
     {
-     "id": "WAND",
-     "name": "Detail vacuum wands"
+     "id": "WIPE",
+     "name": "Sensor-wipe arms"
     },
     {
      "id": "CONTROL",

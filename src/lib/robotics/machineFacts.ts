@@ -15,7 +15,7 @@
 // ============================================================================
 import { ARM_TIMING_DEFAULTS } from '@/lib/ottoChargeArm/armStateMachine';
 import { CLEAN_MOTION_S, CLEAN_SIDE_NOMINAL_S } from '@/lib/ottoCleanArm/cleanArmSpec';
-import { PASSES_NOMINAL_S, VACUUM_NOMINAL_S } from '@/lib/ottoWash/washSpec';
+import { PASSES_NOMINAL_S, WIPE_FIXED_S } from '@/lib/ottoWash/washSpec';
 import { FUNCTIONS, ROBOT_INFO, ROBOT_KEYS, cycleSteps, type Bom, type BomSubsystem, type RobotKey } from './catalog';
 
 export interface MachineStep { id: string; label: string; seconds: number | null; note?: string }
@@ -143,7 +143,7 @@ function cleanArm(bom: Bom): MachineFacts {
       'Your car stays at its charger until the arm is home.',
     ],
     functions: functionsOf(k),
-    services: ['interior_tidy'],
+    services: ['interior_tidy', 'interior_deep_clean'],
     steps: stepsOf(k),
     facts: [
       { label: 'Nozzle head', value: sub(bom, 'NOZZLE').function },
@@ -171,18 +171,19 @@ function washMachine(bom: Bom): MachineFacts {
     where: 'One in each wash bay.',
     summary: [...ROBOT_INFO[k].summary],
     owner: [
-      'A machine washes your car in the wash bay. It moves over the parked car 6 times.',
-      'The passes are pre-soak, 2 brush passes, rinse and 2 dry passes.',
-      'On a detail visit, 2 vacuum wands clean the cabin first, through the open doors.',
+      'A machine washes your car in the wash bay. No brush touches the car.',
+      'It moves over the parked car 6 times: pre-soak, 2 water-jet passes, rinse and 2 dry passes.',
+      'Then 2 arms wipe each camera and sensor with a soft pad. The doors stay shut.',
     ],
     functions: functionsOf(k),
-    services: ['exterior_wash', 'interior_deep_clean'],
+    services: ['exterior_wash', 'sensor_clean'],
     steps: stepsOf(k),
     facts: [
-      { label: 'Passes', value: `6 passes in about ${minutes(PASSES_NOMINAL_S)}: pre-soak, 2 brush passes, rinse, 2 dry passes.` },
-      { label: 'Cabin vacuum', value: `On a detail seat, about ${minutes(VACUUM_NOMINAL_S)} before the wash. The twin sets the time.` },
-      { label: 'Top brush', value: sub(bom, 'TOPBRUSH').function },
-      { label: 'Side brushes', value: sub(bom, 'SIDEBRUSH').function },
+      { label: 'Passes', value: `6 passes in about ${minutes(PASSES_NOMINAL_S)}: pre-soak, 2 water-jet passes, rinse, 2 dry passes.` },
+      { label: 'Touch', value: 'No brush. Only the soft pads touch the car, and only on its sensors.' },
+      { label: 'Sensor wipe', value: `${sub(bom, 'WIPE').function} It takes about ${minutes(WIPE_FIXED_S)}.` },
+      { label: 'Wipe arms', value: `${how(bom, 'WIPE', /camera on the wrist/)} ${how(bom, 'WIPE', /stops its push/)}` },
+      { label: 'Doors', value: 'The doors stay shut in the wash bay. The cabin is cleaned at the fast charger.' },
       { label: 'Spray arch', value: `${sub(bom, 'ARCH').function} ${how(bom, 'ARCH', /nozzles/)}` },
       { label: 'Air knives', value: `${sub(bom, 'DRYER').function} Blowers: ${spec(bom, 'DRYER', 'blowers')}.` },
       { label: 'Travel speed', value: spec(bom, 'TRAVEL', 'speed') },
@@ -193,6 +194,7 @@ function washMachine(bom: Bom): MachineFacts {
     safety: [
       sub(bom, 'PORTAL').function.split('. ').slice(-1)[0],
       'The machine never moves over the car with a tool still on it.',
+      how(bom, 'WIPE', /park beside the car path/),
       how(bom, 'RAILS', /stop at each rail end/),
       'The car leaves only when the light is green.',
     ],

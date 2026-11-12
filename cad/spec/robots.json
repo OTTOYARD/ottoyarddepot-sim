@@ -207,7 +207,6 @@
       "south": 3.6366
     },
     "homeDy": -3.7323,
-    "cabinDy": 0.5742,
     "gantry": {
       "legX": 3.2538,
       "leg": {
@@ -240,22 +239,6 @@
         "r": 0.0622,
         "nozzles": 9
       },
-      "topBrush": {
-        "dy": -0.3349,
-        "r": 0.3589,
-        "halfLen": 0.8134,
-        "retractY": 2.7275,
-        "squash": 0.0718,
-        "hangerX": 0.89
-      },
-      "sideBrush": {
-        "dy": 0.2871,
-        "r": 0.4307,
-        "y0": 0.2871,
-        "y1": 2.8232,
-        "retractX": 2.0576,
-        "squash": 0.0861
-      },
       "dryer": {
         "dy": 0.9091,
         "top": {
@@ -274,13 +257,14 @@
           "retractX": 2.6796
         }
       },
-      "wand": {
-        "dy": -0.5742,
-        "x": 1.2537,
-        "topY": 3.2538,
-        "workY": 0.8709,
-        "reachX": 0.2393,
-        "r": 0.0431
+      "wipe": {
+        "dy": -0.0957,
+        "parkX": 2.0576,
+        "stowY": 1.6748,
+        "padR": 0.1244,
+        "padT": 0.0574,
+        "forearm": 0.1675,
+        "mastR": 0.0479
       },
       "light": {
         "y": 3.0385,
@@ -288,23 +272,22 @@
       }
     },
     "passSeconds": {
-      "soak": 30,
-      "wash_1": 40,
-      "wash_2": 40,
-      "rinse": 30,
-      "dry_1": 35,
-      "dry_2": 35
+      "soak": 25,
+      "wash_1": 35,
+      "wash_2": 35,
+      "rinse": 25,
+      "dry_1": 30,
+      "dry_2": 30
     },
     "phaseSeconds": {
       "settle": 2.5,
-      "to_cabin": 6,
-      "doors_open": 3,
-      "wands_down": 3,
-      "wands_in": 3,
-      "wands_out": 3,
-      "wands_up": 3,
-      "doors_close": 3,
-      "to_start": 6,
+      "arms_down": 3,
+      "wipe_front": 14,
+      "wipe_sides": 14,
+      "wipe_roof": 16,
+      "wipe_rear": 18,
+      "arms_up": 3,
+      "to_home": 17,
       "done": 2,
       "retract": 2
     }

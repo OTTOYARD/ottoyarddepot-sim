@@ -68,7 +68,7 @@ describe('the cleaning arm and the wash machine', () => {
 
   it('mid-cycle read the pose the tab\'s cycle plays for that phase', () => {
     close(cleanLiveAngles({ ...IDLE_CLEAN, phase: 'clean_a', t: 0.35, vehicleId: 'v1' }), preset('clean_arm', 'clean'));
-    close(washLiveAngles({ ...IDLE_WASH, phase: 'wash_1', t: 0.5, vehicleId: 'v1' }), preset('wash_gantry', 'brush'));
+    close(washLiveAngles({ ...IDLE_WASH, phase: 'wash_1', t: 0.5, vehicleId: 'v1' }), preset('wash_gantry', 'jet'));
   });
 });
 
