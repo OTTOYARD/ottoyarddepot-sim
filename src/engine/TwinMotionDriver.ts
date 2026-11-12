@@ -2969,9 +2969,13 @@ class TwinMotionDriver {
       // mark on the atom says the car belongs on the post, so it is drawn there: on the fast-charger lane, not
       // charging (no charge arm mates), with the cleaning arm at work once the program starts. Absent the mark, which
       // is every fixture and every older backend, nothing here changes.
+      let cabinStopPost: string | null = null;
       if (m.lane === "staging" && bv.state === "charge_complete_holding") {
         const post = cabinStopOf(bv, (id) => this.twinStall.get(id));
-        if (post && stallType.get(post) === "dcfc") m = { lane: "dcfc", vstatus: "staging", sstatus: "occupied" };
+        if (post && stallType.get(post) === "dcfc") {
+          m = { lane: "dcfc", vstatus: "staging", sstatus: "occupied" };
+          cabinStopPost = post;
+        }
       }
       present.add(bv.id);
       let e = this.entries.get(bv.id);
@@ -2992,7 +2996,7 @@ class TwinMotionDriver {
       // Inert when no stall is down, which is every captured fixture (none carries
       // stalls_status), so no replay or ratchet can move because of it.
       const twinPlacesHere = !!e?.stallId && !!bv.stall_id && this.twinStall.get(bv.stall_id) === e.stallId;
-      const claimDown = !!e?.stallId && twinFaulted.has(e.stallId) && !twinPlacesHere;
+      const claimDown = !!e?.stallId && twinFaulted.has(e.stallId) && !twinPlacesHere && e.stallId !== cabinStopPost;
 
       // COMMIT-AND-HOLD: a car driving to / dwelling at a SERVICE stall must be
       // SEEN docked (the charge/wash) before a downstream twin flip re-lanes it.
@@ -3221,7 +3225,11 @@ class TwinMotionDriver {
         : bv.state === "staged_for_departure" ? stagingDeparture
         : bv.state === "arrived_at_gate" ? stagingIngressFirst
         : stagingIntake;
-      const cands = (stagingPool ?? byLane[lane] ?? []).map((s) => s.id).filter((sid) => !twinFaulted.has(sid));
+      // A stall that is down is no candidate, with one exception: the post of this car's own cabin stop (otto-q-core
+      // 0820). A cabin stop does not use the charger, so the engine may seat it on a post whose charger is faulted,
+      // and the car is drawn where the engine put it.
+      const cands = (stagingPool ?? byLane[lane] ?? []).map((s) => s.id)
+        .filter((sid) => !twinFaulted.has(sid) || sid === cabinStopPost);
       // EXACT-STALL FIDELITY: if the twin named this vehicle's stall and it maps
       // to a renderer stall in the right zone, claim exactly that one — what you
       // see is literally OTTO-Q's assignment. Zone-based pick is the fallback
