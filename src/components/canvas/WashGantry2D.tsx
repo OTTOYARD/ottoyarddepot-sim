@@ -5,14 +5,16 @@ import { BAY_STALL_Y } from '@/lib/sitePlan';
 import { washPoseAt, type WashPose } from '@/lib/ottoWash/washPose';
 import { IDLE_WASH } from '@/lib/ottoWash/washSession';
 import { WASH_GANTRY as G, WASH_HOME_DY } from '@/lib/ottoWash/washSpec';
+import { TRACK_X_M, stowed } from '@/lib/ottoWash/detailArm';
+import { METRES_PER_PLAN_UNIT as M } from '@/lib/ottoChargeArm/cobotSpec';
 
 /**
  * THE WASH BAYS' TOUCHLESS MACHINES ON THE 2D PLAN (docs/OTTO-WASH.md).
  *
  * Seen from above, as the 3D view draws them: each gantry's portal (its trolleys on the two
- * floor rails and the beam across), the spray arch, the air knives, the two sensor-wipe arms on
- * their cross rail with their pads on the car, the beacon and the stop light. No brush, and no
- * door opens (Chase, 2026-11-11). It reads the same session the 3D view draws
+ * floor rails and the beam across), the spray arch, the air knives, the beacon and the stop light;
+ * and the two detail arms, each on its own track: its carriage, its two links and its pad. No brush,
+ * and no door opens (Chase, 2026-11-11, 2026-11-12). It reads the same session the 3D view draws
  * (TwinMotionDriver.washSessionAt) through the same pose (washPoseAt), so the plan and the 3D
  * view show the machine in the same place doing the same thing.
  *
@@ -32,10 +34,12 @@ const STOP_GREEN = '#35d07f';
 
 /** Half the portal's width across the bay, plan u: to the trolleys' outer faces. */
 const PORTAL_HALF_X = G.legX + G.trolley.w / 2;
+/** A detail arm's carriage on the plan, plan u (0.44 x 0.52 m). */
+const CAR_W = 0.92, CAR_D = 1.09;
 
 /**
  * Write one bay's machine onto its plan group: where the gantry stands along the bay, what the
- * arch sprays and the knives blow, the wipe arms across it with their pads, and the lights.
+ * arch sprays and the knives blow, each detail arm where it is, and the lights.
  */
 export function paintWashGantry2D(g: SVGGElement, bayX: number, p: WashPose): void {
   const q = (k: string) => g.querySelector<SVGElement>(`[data-part="${k}"]`);
@@ -49,18 +53,22 @@ export function paintWashGantry2D(g: SVGGElement, bayX: number, p: WashPose): vo
   for (const [k, sgn] of [['knife-w', -1], ['knife-e', 1]] as const) {
     q(k)?.setAttribute('x', (bayX + sgn * (p.dryerSideX + G.dryer.side.w / 2) - G.dryer.side.w / 2).toFixed(3));
   }
-  // the wipe arms: a carriage each side on the cross rail, and its pad. The pad shows amber on its way and green
-  // while it is pressed on a sensor. Stowed, the pads sit faint at their parking place.
-  const armsOut = p.station !== null;
-  const padCy = (BAY_STALL_Y + G.wipe.dy + (p.padDy - p.dy - G.wipe.dy)).toFixed(3);
-  for (const [k, sgn] of [['arm-w', -1], ['arm-e', 1]] as const) {
-    q(k)?.setAttribute('x', (bayX + sgn * p.mastX - G.wipe.carriage.w / 2).toFixed(3));
-    const pad = q(`${k}-pad`);
-    pad?.setAttribute('cx', (bayX + sgn * p.padX).toFixed(3));
-    pad?.setAttribute('cy', padCy);
-    pad?.setAttribute('fill', p.wipeEngage > 0.5 ? '#35d07f' : '#ffb020');
-    pad?.setAttribute('opacity', armsOut ? '0.95' : '0.3');
-  }
+  // the detail arms: each carriage on its track, the arm's two links from above, and the pad. The pad shows amber on
+  // its way and green while it is pressed on a sensor. Docked, the arm lies folded along its track at the exit end.
+  p.arms.forEach((a, i) => {
+    const k = i === 0 ? 'arm-e' : 'arm-w';
+    const px = (m: number) => (bayX + m / M).toFixed(3), py = (m: number) => (BAY_STALL_Y + m / M).toFixed(3);
+    const base = { x: a.side * TRACK_X_M, dy: a.rail };
+    q(`${k}-car`)?.setAttribute('y', (BAY_STALL_Y + a.rail / M - CAR_D / 2).toFixed(3));
+    const up = q(`${k}-up`), fore = q(`${k}-fore`), pad = q(`${k}-pad`);
+    up?.setAttribute('x1', px(base.x)); up?.setAttribute('y1', py(base.dy));
+    up?.setAttribute('x2', px(a.elbow.x)); up?.setAttribute('y2', py(a.elbow.dy));
+    fore?.setAttribute('x1', px(a.elbow.x)); fore?.setAttribute('y1', py(a.elbow.dy));
+    fore?.setAttribute('x2', px(a.pad.x)); fore?.setAttribute('y2', py(a.pad.dy));
+    pad?.setAttribute('cx', px(a.pad.x)); pad?.setAttribute('cy', py(a.pad.dy));
+    pad?.setAttribute('fill', a.engage > 0.5 ? '#35d07f' : '#ffb020');
+    g.setAttribute(`data-${k}-sensor`, a.sensor ?? '');
+  });
   g.setAttribute('data-station', p.station ?? '');
   q('beacon')?.setAttribute('fill', STATUS_FILL[p.status]);
   q('stop')?.setAttribute('fill', p.stop ? STOP_RED : STOP_GREEN);
@@ -89,6 +97,24 @@ function WashGantryBay2D({ bayId, bayX }: { bayId: string; bayX: number }) {
         <line key={sgn} x1={bayX + sgn * G.legX} y1={y0 + G.rail.from} x2={bayX + sgn * G.legX} y2={y0 + G.rail.to}
           stroke="#8a93a3" strokeWidth={G.rail.w} opacity={0.8} />
       ))}
+      {/* the detail arms' tracks (fixed), and each arm on its own: carriage, upper arm, forearm, pad */}
+      {(['arm-e', 'arm-w'] as const).map((k, i) => {
+        const side = i === 0 ? 1 : -1;
+        const tx = bayX + side * G.detail.trackX;
+        const st = stowed(side);
+        return (
+          <g key={k}>
+            <line x1={tx} y1={y0 + G.detail.dockDy - 0.7} x2={tx} y2={y0 + G.detail.trackTo + 0.7} stroke="#8a93a3" strokeWidth={0.22} opacity={0.8} />
+            <rect data-part={`${k}-car`} x={tx - CAR_W / 2} y={y0 + G.detail.dockDy - CAR_D / 2} width={CAR_W} height={CAR_D} fill="#3a3f48" rx={0.1} />
+            <line data-part={`${k}-up`} x1={tx} y1={y0 + G.detail.dockDy} x2={bayX + st.elbow.x / M} y2={y0 + st.elbow.dy / M}
+              stroke="#e8eaee" strokeWidth={0.34} strokeLinecap="round" />
+            <line data-part={`${k}-fore`} x1={bayX + st.elbow.x / M} y1={y0 + st.elbow.dy / M} x2={bayX + st.pad.x / M} y2={y0 + st.pad.dy / M}
+              stroke="#c9ced6" strokeWidth={0.26} strokeLinecap="round" />
+            <circle data-part={`${k}-pad`} cx={bayX + st.pad.x / M} cy={y0 + st.pad.dy / M} r={Math.max(G.detail.padR, 0.22)}
+              fill="#ffb020" stroke="#ffffff" strokeWidth={0.06} />
+          </g>
+        );
+      })}
       <g data-part="gantry" transform={`translate(0 ${WASH_HOME_DY})`}>
         {/* the portal: an open frame, so the car under it shows */}
         <rect x={bayX - PORTAL_HALF_X} y={y0 + G.beam.dy0} width={2 * PORTAL_HALF_X} height={G.beam.dy1 - G.beam.dy0}
@@ -109,16 +135,6 @@ function WashGantryBay2D({ bayId, bayX }: { bayId: string; bayX: number }) {
         <rect x={bayX - G.arch.x} y={y0 + G.arch.dy - 0.15} width={2 * G.arch.x} height={0.3} fill="#9aa3ad" />
         <rect data-part="spray" x={bayX - G.arch.x} y={y0 + G.arch.dy - 0.9} width={2 * G.arch.x} height={1.8}
           fill={SPRAY_FILL.soak} opacity={0.6} visibility="hidden" rx={0.4} />
-        {/* the wipe arms' cross rail, each arm's carriage on it, and its soft pad */}
-        <rect x={bayX - G.wipe.parkX - 0.5} y={y0 + G.wipe.dy - 0.09} width={2 * (G.wipe.parkX + 0.5)} height={0.18} fill="#9aa3ad" />
-        {(['arm-w', 'arm-e'] as const).map((k, i) => (
-          <g key={k}>
-            <rect data-part={k} x={bayX + (i ? 1 : -1) * G.wipe.parkX - G.wipe.carriage.w / 2} y={y0 + G.wipe.dy - G.wipe.carriage.d / 2}
-              width={G.wipe.carriage.w} height={G.wipe.carriage.d} fill="#3a3f48" rx={0.1} />
-            <circle data-part={`${k}-pad`} cx={bayX + (i ? 1 : -1) * (G.wipe.parkX - G.wipe.forearm)} cy={y0 + G.wipe.dy} r={G.wipe.padR}
-              fill="#ffb020" stroke="#ffffff" strokeWidth={0.06} opacity={0.3} />
-          </g>
-        ))}
         {/* the air knives, and their blast while they blow */}
         <rect data-part="air" x={bayX - G.dryer.top.halfLen - 0.6} y={y0 + G.dryer.dy - 0.8}
           width={2 * G.dryer.top.halfLen + 1.2} height={1.6} fill="#eef6ff" opacity={0.45} visibility="hidden" rx={0.4} />

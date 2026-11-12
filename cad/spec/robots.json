@@ -204,9 +204,9 @@
   "wash": {
     "travel": {
       "north": -3.7323,
-      "south": 3.6366
+      "south": 5.0721
     },
-    "homeDy": -3.7323,
+    "homeDy": 5.0721,
     "gantry": {
       "legX": 3.2538,
       "leg": {
@@ -230,7 +230,7 @@
         "w": 0.1531,
         "h": 0.067,
         "from": -4.785,
-        "to": 4.8807
+        "to": 6.3162
       },
       "arch": {
         "dy": -0.7656,
@@ -257,18 +257,20 @@
           "retractX": 2.6796
         }
       },
-      "wipe": {
-        "dy": -0.0957,
-        "parkX": 2.0576,
-        "stowY": 1.6748,
-        "padR": 0.1244,
-        "padT": 0.0574,
-        "forearm": 0.1675,
-        "mastR": 0.0479
-      },
       "light": {
         "y": 3.0385,
         "x": 0
+      }
+    },
+    "detail": {
+      "trackX": 2.1,
+      "dockDy": -5.2156,
+      "trackTo": 2.3925,
+      "tool": 0.14,
+      "padR": 0.06,
+      "stow": {
+        "j2": 0.3,
+        "j3": 2.3
       }
     },
     "passSeconds": {
@@ -281,15 +283,14 @@
     },
     "phaseSeconds": {
       "settle": 2.5,
-      "arms_down": 3,
-      "wipe_front": 14,
-      "wipe_sides": 14,
-      "wipe_roof": 16,
-      "wipe_rear": 18,
-      "arms_up": 3,
-      "to_home": 17,
+      "arms_out": 10,
+      "wipe_front": 24,
+      "wipe_sides": 24,
+      "wipe_roof": 38,
+      "wipe_rear": 36,
+      "arms_stow": 15,
       "done": 2,
-      "retract": 2
+      "retract": 9
     }
   },
   "car": {

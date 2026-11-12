@@ -23,10 +23,11 @@
  */
 import {
   CABIN_HOLD_MAX_S, CABIN_HOLD_MIN_S, CABIN_HOLD_NOMINAL_S, PASS_NOMINAL_S, PASS_SCALE_MAX, PASS_SCALE_MIN,
-  PASSES_NOMINAL_S, WASH_ABORT_SPEED, WASH_END_MARGIN_S, WASH_HOME_DY, WASH_PHASE_S, WASH_RETURN_UPS, WIPE_FIXED_S,
-  isPass, isWipe, washChain, type WashPhase,
+  DETAIL_ARM, PASSES_NOMINAL_S, WASH_ABORT_SPEED, WASH_END_MARGIN_S, WASH_HOME_DY, WASH_PHASE_S, WASH_RETURN_UPS,
+  WIPE_FIXED_S, isPass, isWipe, washChain, type WashPhase,
 } from './washSpec';
 import { washPoseAt, type WashPose } from './washPose';
+import { DOCK_DY_M } from './detailArm';
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
@@ -91,14 +92,25 @@ export const PULL_IN_S = 30;
 /** A car first seen this far into its seat is joined in progress; a car seen sooner is still pulling in. */
 export const JOIN_LATE_S = 50;
 
+/** An arm's fold into its dock from the tuck, sim seconds (arms_out unfolds in the same time). */
+export const ARM_FOLD_S = 4;
+/** The phases the detail arms move in: these are never hurried, because an arm's joints have a top speed. */
+export const armsMove = (p: WashPhase): boolean => isWipe(p) || p === 'arms_out' || p === 'arms_stow' || p === 'retract' || p === 'return';
+
 /** A phase's length at nominal speed for this session. */
 export function washPhaseLength(p: WashPhase, s: Pick<WashSession, 'passScale' | 'cabinS' | 'from'>): number {
   if (p === 'home') return Infinity;
   if (isPass(p)) return PASS_NOMINAL_S[p] * s.passScale;
   if (p === 'cabin_hold') return s.cabinS;
   if (p === 'return') {
+    // The gantry's way home to the entrance, hurried (WASH_ABORT_SPEED); or an arm's way to its dock and its fold, at
+    // the arm's own pace, never hurried: 70% of the time is the ride (its peak is 1.5 times its mean) and 30% the fold.
     const dy = s.from?.dy ?? WASH_HOME_DY;
-    return Math.max(1, Math.abs(dy - WASH_HOME_DY) / WASH_RETURN_UPS + 1);
+    const gantry = (Math.abs(dy - WASH_HOME_DY) / WASH_RETURN_UPS + 1) / WASH_ABORT_SPEED;
+    const out = s.from ? s.from.arms.filter((a) => Math.abs(a.rail - DOCK_DY_M) > 1e-6 || Math.abs(a.q.j2 - DETAIL_ARM.stow.j2) > 1e-6) : [];
+    const arms = out.length === 0 ? 0
+      : Math.max(ARM_FOLD_S / 0.3, ...out.map((a) => (Math.abs(a.rail - DOCK_DY_M) * 1.5) / (0.9 * DETAIL_ARM.railMps) / 0.7));
+    return Math.max(1, gantry, arms);
   }
   return WASH_PHASE_S[p];
 }
@@ -153,7 +165,7 @@ function finishInto(phase: WashPhase, t: number): { phase: WashPhase; t: number 
 }
 
 /** The phases that start from wherever the machine is, and capture `from` as they begin. */
-const FROM_PHASES: ReadonlySet<WashPhase> = new Set<WashPhase>(['wipe_front', 'wipe_sides', 'wipe_roof', 'wipe_rear', 'arms_up', 'to_home', 'retract', 'return']);
+const FROM_PHASES: ReadonlySet<WashPhase> = new Set<WashPhase>(['retract', 'return']);
 
 /** Advance one bay's machine by one frame. Pure. */
 export function advanceWashSession(prev: WashSession, input: WashInput): WashSession {
@@ -198,8 +210,10 @@ export function advanceWashSession(prev: WashSession, input: WashInput): WashSes
   }
 
   // pace: while the seat is on, keep to the twin's end; once it is over, hurry home
+  // (the way home's own length already has the gantry hurried: washPhaseLength)
   let speed = 1;
-  if (finishing) speed = phase === 'retract' ? 1 : WASH_ABORT_SPEED;
+  if (armsMove(phase)) speed = 1;
+  else if (finishing) speed = WASH_ABORT_SPEED;
   else if (input.endsInS !== null && Number.isFinite(input.endsInS)) {
     const left = remainingProgramS(prev);
     if (left > 0) speed = clamp(left / Math.max(input.endsInS - WASH_END_MARGIN_S, 0.25), 1, 2);
@@ -261,7 +275,7 @@ export function washLetsCarMove(p: WashPhase): boolean {
   return p === 'home' || p === 'done';
 }
 
-/** The arms are wiping the sensors, or on their way to or from them. */
+/** The detail arms are out of their docks: polishing the sensors, or on their way to or from them. */
 export function washWiping(p: WashPhase): boolean {
-  return isWipe(p) || p === 'arms_down' || p === 'arms_up';
+  return isWipe(p) || p === 'arms_out' || p === 'arms_stow';
 }

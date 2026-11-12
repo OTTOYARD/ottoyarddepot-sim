@@ -1,9 +1,10 @@
 """OTTO-WASH — the touchless wash machine in each wash bay (docs/OTTO-WASH.md).
 
 Geometry is the twin's (cad/spec/robots.json <- washSpec.ts, plan units converted once): one portal gantry on
-two floor rails at x = +/-3.25 m that travels 7.37 m over the parked car, carrying a spray arch, a top and two
-side air knives, and two sensor-wipe arms on a cross rail. Nothing that turns touches the car (Chase, 2026-11-11):
-the arch soaks, washes with water jets and rinses, the knives dry, and the arms wipe each sensor with a soft pad.
+two floor rails at x = +/-3.25 m that travels 7.37 m over the parked car, carrying a spray arch and a top and two
+side air knives; and two detail arms, one each side of the car, each on its own floor track. No brush touches the car
+(Chase, 2026-11-11): the arch soaks, washes with water jets and rinses, the knives dry, the gantry stows at the
+entrance, and the arms come from their docks at the exit and polish each sensor with a soft pad (Chase, 2026-11-12).
 
 FRAME: the bay's, as the twin's renderer draws it (WashGantry.tsx). Origin at the parked car's centre on grade,
 +Y up, X across the bay, +Z = -dy (north, toward the exit door). The machine is modelled at dy = 0 with every
@@ -20,12 +21,10 @@ from cadquery import Location, Vector
 from .. import std
 from ..core import Model, Node, PartDef, loc
 from ..flex import Anchor, FlexDef
+from ..actuator import SIZES, module_length, rear_od
+from .charge_arm import _pitch_layout, build_chain, build_ft_sensor
 
-WIPE_SLIDES = 2      # sliding stages in each wipe arm's mast; each takes half the drop
-WIPE_X_MIN = 330.0   # the nearest a mast's axis comes to the drive line, mm: 16 mm inside the roof pod station's 346 mm
-WIPE_LOW_MM = 550.0  # the lowest a pad's centre goes: 24 mm under the nose and tail stations' 574 mm
-WIPE_HINGE = 90.0    # the tilt hinge stands this far behind the pad's centre, along the forearm
-WIPE_WRIST = 180.0   # from the mast's foot down to the forearm's axis
+DARM_MOUNT = 550.0   # each detail arm's J1 mount above grade: the charge arm's own height, so its shoulder stands at 0.99 m
 TOP_LOW_MM = 850.0   # the lowest the top knife goes: the twin takes it over the hood, 2.00 m below its stowed height. Fixed rails cannot guide that far without standing below the car's
                      # roof as the machine passes, so it hangs on 2 telescoping lift columns (design finding 7).
 TOP_SLIDES = 3       # sliding stages in each lift column; each takes a third of the travel
@@ -42,7 +41,8 @@ def build(spec: dict) -> Model:
     sub = lambda k: {kk: vv * M if isinstance(vv, (int, float)) else vv for kk, vv in G[k].items()}  # noqa: E731
     legX = G['legX'] * M
     leg, trol, beam, rail = sub('leg'), sub('trolley'), sub('beam'), sub('rail')
-    arch, wipe, light = sub('arch'), sub('wipe'), sub('light')
+    arch, light = sub('arch'), sub('light')
+    det = W['detail']                       # the detail arms: track, dock, tool and stow (metres, radians)
     arch['nozzles'] = G['arch']['nozzles']
     dry_dy = G['dryer']['dy'] * M
     dtop = {k: v * M for k, v in G['dryer']['top'].items()}
@@ -59,7 +59,8 @@ def build(spec: dict) -> Model:
                 specs={'track': f'{2 * legX / 1000:.2f} m', 'length': f'{(rail["to"] - rail["from"]) / 1000:.2f} m'}, group='Structure')
     m.subsystem('TRAVEL', 'Travel drive', 'Moves the whole machine back and forth over the car, 6 passes a wash.',
                 how=['A geared motor inside each trolley drives one wheel. The drives keep in step by encoder.',
-                     'Side rollers keep the wheels on the rails.'],
+                     'Side rollers keep the wheels on the rails.',
+                     'Between cars, and while the arms work, the machine is stowed at the entrance end, 1.8 m behind the car.'],
                 specs={'speed': 'about 10 m/min', 'motors': '2 x 0.75 kW, with brake'}, group='Motion')
     m.subsystem('PORTAL', 'Portal frame', 'Two legs and a beam span the bay. Retracted, everything clears a car by more than 0.48 m.',
                 how=['Bolted flanges join the legs to the trolleys and to the beam.', 'Galvanised steel, painted safety yellow.'],
@@ -73,17 +74,44 @@ def build(spec: dict) -> Model:
                      '3 blowers on the beam feed the knives through flexible ducts.',
                      'A concertina duct draws out as the top knife goes down. A duct loop to each side knife swings in with it.'],
                 specs={'blowers': 'top 4 kW, sides 2 x 3 kW (class)'}, group='Tools')
-    m.subsystem('WIPE', 'Sensor-wipe arms', 'Two arms wipe each camera, lidar and radar cover with a soft, damp pad after the car is dry.',
-                how=['Each arm hangs from a carriage on 2 rails under the beam. A rack drive moves it across the bay.',
-                     'A mast of 2 sliding stages lowers the wrist. The wrist turns and tilts the pad to face the car.',
-                     'A camera on the wrist finds each sensor. The pad is on a sprung plate with a force sensor.',
-                     'The arm stops its push at 10 N. A nozzle mists the sensor with pure water first. No chemical is used.',
-                     'The gantry carries both arms along the car: the nose, the side cameras, the roof pod, the tail.',
-                     'The arms park beside the car path, 1.1 m off the flank. The doors stay shut.'],
-                specs={'pad': f'{2 * wipe["padR"]:.0f} mm microfibre, hook-and-loop', 'push': '10 N limit (ASSUMPTION, to be set on test)',
-                       'cross travel': f'{(wipe["parkX"] - WIPE_X_MIN) / 1000:.2f} m each arm',
-                       'drop': f'{(wipe["stowY"] - WIPE_LOW_MM) / 1000:.2f} m'},
-                group='Tools')
+    m.subsystem('TRACK', 'Detail arm tracks', 'A floor track each side of the car takes a detail arm to any place along the car.',
+                how=['2 profile rails on a steel beam, anchored to the slab every metre.',
+                     'A servo gearmotor on the carriage drives a pinion on a rack between the rails.',
+                     'A cable chain beside the track brings power, network and pure water to the carriage.',
+                     'The tracks stand 2.1 m from the drive line, inside the gantry rails. The gantry passes over them.'],
+                specs={'travel': f'{(det["trackTo"] - det["dockDy"]):.2f} m', 'speed': '1.5 m/s (class)',
+                       'from the flank': f'{det["trackX"] - spec["car"]["width"] / 2:.2f} m'}, group='Motion')
+    m.subsystem('DOCK', 'Arm docks and pad care', 'Each arm parks at the exit end, folded along its track, with its pad in a rinse cup.',
+                how=['A nozzle in the cup rinses the pad with pure water after each car. The pad turns in the cup to throw the water off.',
+                     'The dock stands north of the gantry\'s travel, so a parked arm is never under the gantry.',
+                     'A signal on each dock faces the car: red while the bay works, green when the car may go.'],
+                specs={'pad rinse': 'pure water, after each car'}, group='Tools')
+    m.subsystem('J1', 'Detail arm J1 base turn', 'Turns the whole arm about the vertical axis.',
+                how=['A size 40 actuator in the pedestal top turns the turret.', 'It is the charge arm\'s own joint.'],
+                specs={'gear': 'strain-wave, size 40, 100:1'}, group='Detail arm')
+    m.subsystem('J2', 'Detail arm J2 shoulder', 'Leans the upper arm toward or away from the car.',
+                how=['A size 50 actuator in the turret boss drives the upper arm.', 'A gas spring balancer carries most of the gravity load.'],
+                specs={'gear': 'strain-wave, size 50, 100:1'}, group='Detail arm')
+    m.subsystem('UPPER', 'Detail arm upper arm', 'The 1.344 m cast link from the shoulder to the elbow.',
+                how=['A hollow aluminium casting, 7 mm wall.'], group='Detail arm')
+    m.subsystem('J3', 'Detail arm J3 elbow', 'Folds the forearm to set the reach and the height of the wrist.',
+                how=['A size 40 actuator in the upper arm boss drives the forearm.'], specs={'gear': 'strain-wave, size 40, 100:1'},
+                group='Detail arm')
+    m.subsystem('FORE', 'Detail arm forearm', 'The 1.142 m cast link from the elbow to the wrist centre.',
+                how=['A hollow aluminium casting with a dog-leg, so it folds past the upper arm.'], group='Detail arm')
+    m.subsystem('WRIST', 'Detail arm wrist (J4, J5, J6)', 'Points the pad square onto a sensor at any angle, as a hand does.',
+                how=['The 3 wrist axes meet at one point. So the pad turns about that point and stays on the sensor.',
+                     'J6 turns the pad a quarter turn each way to polish. It does not spin free, so no cable winds up.'],
+                specs={'gears': 'strain-wave, sizes 25, 25 and 20'}, group='Detail arm')
+    m.subsystem('SAFETY', 'Detail arm status', 'Light rings on the arm show its state.',
+                how=['Teal at rest, green at work, amber on the move.'], group='Detail arm')
+    m.subsystem('POLISH', 'Polishing head', 'A soft pad on a floating, force-sensing head polishes each camera, lidar and radar cover.',
+                how=['A 6-axis force sensor reads the push. The arm holds it at 5 N and stops at 10 N.',
+                     'A floating joint lets the pad tilt 6 degrees and give 8 mm. So it lies flat on a curved cover.',
+                     'The pad is microfibre over soft foam, 120 mm across. It is small enough for the edge of a roof lidar.',
+                     'A camera beside the pad finds each sensor. A nozzle mists it with pure water first. No chemical is used.'],
+                specs={'pad': f'{2000 * det["padR"]:.0f} mm microfibre on foam, hook-and-loop', 'push': '5 N working, 10 N limit (ASSUMPTION, to be set on test)',
+                       'reach': '2.49 m from the shoulder'}, group='Tools')
     m.subsystem('CONTROL', 'Control, supply and signals', 'Runs the program, and tells the car when to stop and when to go.',
                 how=['A stainless control cabinet on the inner side of the west leg holds the controller and the drives.',
                      'A stop light faces the arriving car: red while the program runs, green when the car may go.',
@@ -271,8 +299,7 @@ def build(spec: dict) -> Model:
                                 f'{bl:.0f} x {bh:.0f} x {bz0 - bz1:.0f}', 'S355J2', None,
                                 'Spans the bay: 2 chords and 4 cross members, closed by a deck top and bottom into a box girder. Every tool '
                                 'hangs below it at its own station, so none can meet another; the drives stand on top.',
-                                {'stations (z, mm)': f'arch {zf(arch["dy"]):.0f}, wipe arms {zf(wipe["dy"]):.0f}, '
-                                                     f'air knives {zf(dry_dy):.0f}'}, 'make')),
+                                {'stations (z, mm)': f'arch {zf(arch["dy"]):.0f}, air knives {zf(dry_dy):.0f}'}, 'make')),
             Location(), (0, 400, 0), 'PORTAL')
 
     # ═══════════════════════════════════════════════════════════════ ARCH ═══
@@ -367,237 +394,264 @@ def build(spec: dict) -> Model:
         return parent, y_top, y_bot
 
 
-    # ═══════════════════════════════════════════════════════ SENSOR-WIPE ARMS ═══
-    # Two arms, one each side, on a cross rail under the beam (Chase, 2026-11-11: no brush; "an robot arm will locate all
-    # sensors and hand wipe gently with a cloth"). Each is 4 axes on the gantry's own travel:
-    #   X      a carriage on 2 profile rails under the bottom deck, rack driven, from its park beside the car's path in to
-    #          WIPE_X_MIN from the drive line (the roof pod's side);
-    #   DROP   a mast of a fixed sleeve and WIPE_SLIDES sliding stages, lowering the wrist from stowY to WIPE_LOW_MM;
-    #   YAW    the wrist turns about the mast's axis: the forearm points in at the car (0), aft or fore (+/-90 deg);
-    #   TILT   the pad swings on a hinge at the forearm's end, from face-down (stowed) to face-on (90 deg).
-    # The pad's centre, face-on, stands `forearm` from the mast's axis: the twin's pose is this (washPose.wipeJoints).
-    zw = zf(wipe['dy'])
-    rw, rh, rbw, rbh, rbl = std.RAIL[25][0], std.RAIL[25][1], std.RAIL[25][2], std.RAIL[25][3], std.RAIL[25][4]
-    y_ct = beam['y0'] - rbh                              # the carriage's top: the blocks' mounting faces
-    y_cb = y_ct - 160                                    # its floor's underside
-    x_trav = wipe['parkX'] - WIPE_X_MIN                  # each carriage's travel
-    w_trav = (wipe['stowY'] - WIPE_LOW_MM) / WIPE_SLIDES   # each stage's travel
-    w_stl = w_trav + 100                                 # a stage's length: its travel and 100 mm kept in the one outside
-    w_foot = wipe['stowY'] + WIPE_WRIST                  # the last stage's foot, stowed
-    w_top = w_foot + 25 * WIPE_SLIDES + w_stl            # the nested stages' top, stowed
-    w_bot = w_top - 25 - w_trav - 74                     # the sleeve's bottom
-    w_secs, w_walls = (110.0, 92.0, 76.0), (5.0, 4.0, 4.0)   # a 4 mm slide pad in each gap
-    fa = wipe['forearm']
-    padR, padT = wipe['padR'], wipe['padT']
-
-    wcg = cq.Workplane('XY').box(300, 160, 300).cut(cq.Workplane('XY').box(284, 144, 284))
-    wcg_pd = m.part(PartDef('WSH-WCG', 'Wipe arm carriage', wcg.val(), 'ss316', 'structure', 'machined weldment', '300 x 300 x 160',
-                            '316L', None, 'Runs on 2 rails under the beam and carries one wipe arm across the bay.', {}, 'make'))
-    # the sleeve hangs from the carriage floor on a flange and guides the first stage
-    wsl = (cq.Workplane('XY').box(200, 10, 200).translate((0, y_cb - 5, 0))
-           .union(cq.Workplane('XZ', origin=(0, y_cb - 10, 0)).rect(w_secs[0], w_secs[0]).extrude(y_cb - 10 - w_bot))
-           .cut(cq.Workplane('XZ', origin=(0, y_cb + 1, 0)).rect(w_secs[0] - 2 * w_walls[0], w_secs[0] - 2 * w_walls[0])
-                .extrude(y_cb + 2 - w_bot)))
-    wsl_pd = m.part(PartDef('WSH-WM0', 'Wipe arm mast sleeve, 110 x 110 x 5, with flange', wsl.val(), 'ss316', 'structure', 'EN 10219',
-                            f'{y_cb - w_bot:.0f} long', '316L', None,
-                            'Hangs from the carriage. It guides the mast\'s first stage.',
-                            {'bottom': f'{w_bot / 1000:.2f} m above grade, above the car roof and its pod'}, 'make'))
-    wpad_pd = m.part(PartDef('WSH-WMP', 'Wipe arm mast slide pad, UHMW-PE', cq.Workplane('XY').box(4, 60, 40).val(), 'pa66',
-                             'bearing', 'machined', '4 x 60 x 40', 'UHMW-PE', None,
-                             'Guides a mast stage in the one outside it. No grease to wash off.', {}, 'make'))
-    wst_pd = []
-    for k in range(1, WIPE_SLIDES + 1):
-        a, w = w_secs[k], w_walls[k]
-        st_top = w_top - 25 * k
-        tube = (cq.Workplane('XZ', origin=(0, st_top, 0)).rect(a, a).extrude(w_stl)
-                .cut(cq.Workplane('XZ', origin=(0, st_top + 1, 0)).rect(a - 2 * w, a - 2 * w).extrude(w_stl + 2)))
-        wst_pd.append(m.part(PartDef(f'WSH-WM{k}', f'Wipe arm mast stage {k + 1}, {a:.0f} x {a:.0f}', tube.val(), 'ss316', 'structure',
-                                     'EN 10219', f'{w_stl:.0f} long', '316L', None,
-                                     ('Slides half the drop. A belt over its pulley drives the next stage.' if k < WIPE_SLIDES
-                                      else 'Slides half the drop and carries the wrist at its foot.'), {}, 'make')))
-    # the mast drive: a servo gearmotor with a brake on the sleeve's outboard face; a belt inside the mast lifts the stages
-    wmm = (cq.Workplane('XY').box(12, 150, 100).translate((6, 0, 0))
-           .union(cq.Workplane('XY').box(90, 100, 90).translate((12 + 45, 0, 0)))
-           .union(cq.Workplane('XZ', origin=(12 + 45, 50, 0)).circle(38).extrude(-150)))
-    wmm_pd = m.part(PartDef('WSH-WMM', 'Mast servo gearmotor 0.2 kW, brake, absolute encoder', wmm.val(), 'steel_paint', 'drive',
-                            'catalogue part', '0.2 kW', 'IP66, wash-down', None,
-                            'Raises and lowers the mast by a belt inside it. Its brake holds the mast when power is off.', {}, 'buy',
-                            mass_override=7.5))
-    # the mast's foot: a plate closing the last stage, and the wrist's turn actuator under it
-    wfp = cq.Workplane('XY').box(100, 10, 100).translate((0, w_foot - 5, 0))
-    wfp_pd = m.part(PartDef('WSH-WFP', 'Mast foot plate, stainless', wfp.val(), 'ss316', 'structure', 'cut plate 10 mm', '100 x 100',
-                            '316L', None, 'Closes the mast\'s last stage and carries the wrist.', {}, 'make'))
-    wya = cq.Workplane('XZ', origin=(0, w_foot - 10, 0)).circle(55).extrude(100)
-    wya_pd = m.part(PartDef('WSH-WYA', 'Wrist turn actuator, hollow shaft, 30 Nm, IP67', wya.val(), 'al6061', 'drive', 'catalogue part',
-                            'D 110 x 100', 'IP67', None,
-                            'Turns the forearm about the mast\'s axis, so the pad faces the flank, the nose or the tail.',
-                            {'travel': '+/- 90 deg'}, 'buy', mass_override=3.2))
-    # the forearm (built pointing +X; the right arm's is turned half round): a drop from the actuator's output to the
-    # forearm's axis, the forearm, and a fork for the tilt hinge WIPE_HINGE behind the pad's centre
-    y_fa = wipe['stowY']
-    xh = fa - WIPE_HINGE
-    wfa = (cq.Workplane('XZ', origin=(0, w_foot - 110, 0)).circle(40).extrude(12)
-           .union(cq.Workplane('XZ', origin=(0, w_foot - 122, 0)).circle(22).extrude(w_foot - 122 - y_fa + 22))
-           .union(cq.Workplane('YZ', origin=(0, y_fa, 0)).circle(22).extrude(xh - 34))
-           .union(cq.Workplane('XY').box(68, 50, 8).translate((xh, y_fa, 34)))
-           .union(cq.Workplane('XY').box(68, 50, 8).translate((xh, y_fa, -34)))
-           .union(cq.Workplane('XY').box(10, 50, 76).translate((xh - 39, y_fa, 0)))
-           # a tab each side of the drop, under the turn actuator's flange: the camera on one, the water nozzle on the other
-           .union(cq.Workplane('XY').box(40, 44, 21).translate((10, y_fa + 47, 47.5)))
-           .union(cq.Workplane('XY').box(40, 30, 21).translate((10, y_fa + 47, -47.5)))
-           .cut(cq.Workplane('YZ', origin=(22, y_fa + 47, -47.5)).circle(5.2).extrude(10)))
-    wfa_pd = m.part(PartDef('WSH-WFA', 'Wrist forearm with hinge fork, stainless', wfa.val(), 'ss316', 'structure', 'welded, machined',
-                            f'{fa:.0f} reach', '316L', None,
-                            'Carries the pad out from the mast, so the mast stays clear of the car while the pad is on it.', {}, 'make'))
-    wta = cq.Workplane('XY', origin=(0, 0, 38)).circle(30).extrude(70)
-    wta_pd = m.part(PartDef('WSH-WTA', 'Wrist tilt actuator, 12 Nm, IP67', wta.val(), 'al6061', 'drive', 'catalogue part', 'D 60 x 70',
-                            'IP67', None, 'Swings the pad from face-down, stowed, to face-on to the car.', {'travel': '90 deg'}, 'buy',
-                            mass_override=1.4))
-    wcm = (cq.Workplane('XY').box(60, 44, 44).union(cq.Workplane('YZ', origin=(30, 0, 0)).circle(16).extrude(14)))
-    wcm_pd = m.part(PartDef('WSH-WCM', 'Sensor-finding camera with ring light, IP67', wcm.val(), 'pa66', 'sensor', 'catalogue part',
-                            '60 x 44 x 44', 'IP67', None,
+    # ═══════════════════════════════════════════════════════ DETAIL ARMS ═══
+    # Chase, 2026-11-12: "the final sensor polisher should be swivel/mechanical arms similar to robocharging arm ... able to
+    # move like a hand almost to reach difficult angles of cameras and sensors ... independent arms on either side of the
+    # car slide down the rail ... and stow before the vehicle departs". So each side of the car has ONE six-axis arm on its
+    # own floor track. The arm IS the OTTO-CHARGE ARM's arm (charge_arm.build_chain): the same castings, the same six
+    # actuators, the same balancer, so one set of spares and one set of skills serves both. It carries a polishing head
+    # where the charge arm carries its connector, and it rides a carriage where the charge arm stands on a riser.
+    #   track     2 size-25 rails on a beam at x = +/-trackX, from the dock (north, the exit) to past the car's tail;
+    #   dock      north of the gantry's travel: a parked arm is folded along its track, heading north, its pad in a rinse cup;
+    #   base      the arm's own frame, as the charge arm's: origin on J1's axis at the mount, +Y up, +Z toward the car.
+    CA = spec['chargeArm']
+    A_H, A_LU, A_LF, A_LW = (CA[k] * M for k in ('shoulderHeight', 'upperArm', 'forearm', 'wrist'))
+    a_radii = {k: v * M for k, v in CA['radii'].items()}
+    a_plate_under = -CA['mountPlateUnderside'] * M
+    XT = det['trackX'] * M
+    z_dock = zf(det['dockDy'] * M)
+    z_end = zf(det['trackTo'] * M)                       # the carriage's south stop
+    d_trav = z_dock - z_end                              # the carriage's travel, mm
+    LT_P = det['tool'] * M                               # J6 flange to the pad's face
+    padR = det['padR'] * M
+    st_q2, st_q3 = det['stow']['j2'], det['stow']['j3']
+    st_q5 = math.pi - (st_q2 + st_q3)                    # the tool hangs straight down
+    wc_y = A_H + A_LU * math.cos(st_q2) + A_LF * math.cos(st_q2 + st_q3)       # stowed wrist centre, base frame
+    wc_r = A_LU * math.sin(st_q2) + A_LF * math.sin(st_q2 + st_q3)             # and its distance north of J1
+    pad_y = DARM_MOUNT + wc_y - (A_LW + LT_P)            # the stowed pad's face, above grade
+    rw_, rh_, rbw_, rbh_, rbl_ = std.RAIL[25][0], std.RAIL[25][1], std.RAIL[25][2], std.RAIL[25][3], std.RAIL[25][4]
+    RAIL_PC = 2040.0                                     # one rail piece (34 holes at 60)
+    n_pc = math.ceil((d_trav + 700) / RAIL_PC)
+    tr_l = n_pc * RAIL_PC                                # the track's length
+    z_tn = z_dock + 330                                  # its north end: the carriage's north edge at the dock, and 70 mm
+    y_bt = 72.0                                          # the beam's top: the rails' seat
+    y_cp = y_bt + rbh_                                   # the carriage plate's underside
+    CP_T, CP_X, CP_Z = 20.0, 440.0, 520.0                # the carriage plate
+    PED_W = 300.0
+    y_pt = DARM_MOUNT + a_plate_under                    # the pedestal's top: the mount plate's underside
+    tbeam = (cq.Workplane('XY').box(240, y_bt - 12, tr_l).cut(cq.Workplane('XY').box(228, y_bt - 24, tr_l + 2))
+             .union(cq.Workplane('XY').box(240, 6, tr_l).translate((0, 0, 0))))
+    tbeam_pd = m.part(PartDef('WSH-DTB', 'Detail arm track beam, RHS 240 x 60 x 6', tbeam.val(), 'steel_s355', 'structure', 'EN 10219',
+                              f'{tr_l:.0f} long', 'S355J2, hot-dip galvanised', None,
+                              'Carries the 2 rails and the rack of one detail arm track, flat and straight.',
+                              {'flatness': '0.3 mm per metre, shimmed on its anchor plates'}, 'make'))
+    tpl = cq.Workplane('XY').box(360, 12, 160)
+    tpl_pd = m.part(PartDef('WSH-DTP', 'Track anchor plate 360 x 160 x 12', tpl.val(), 'steel_s355', 'structure', 'cut plate',
+                            '360 x 160 x 12', 'S355J2', None, 'Holds the track beam to the slab.', {}, 'make'))
+    trk = cq.Workplane('XY').box(20, 20, tr_l)
+    trk_pd = m.part(PartDef('WSH-DRK', 'Gear rack module 3, 20 x 20, stainless', trk.val(), 'ss316', 'drive', 'DIN 867 tooth form',
+                            f'{tr_l:.0f} long, in pieces', '', None, 'The carriage pinion runs along it.', {}, 'buy'))
+    tst = cq.Workplane('XY').box(120, 60, 30).union(cq.Workplane('XY').circle(22).extrude(20).translate((0, 0, 15)))
+    tst_pd = m.part(PartDef('WSH-DTS', 'Track end stop with buffer', tst.val(), 'steel_s355', 'structure', 'welded, PU buffer',
+                            '120 x 60 x 50', '', None, 'Stops the carriage if it runs past its travel.', {}, 'make'))
+    cpl = (cq.Workplane('XY').box(CP_X, CP_T, CP_Z)
+           .cut(cq.Workplane('XZ', origin=(0, CP_T, 0)).pushPoints([(sxx * 140, szz * 140) for sxx in (-1, 1) for szz in (-1, 1)])
+                .circle(7).extrude(2 * CP_T)))
+    cpl_pd = m.part(PartDef('WSH-DCP', 'Arm carriage plate, 440 x 520 x 20', cpl.val(), 'steel_s355', 'structure', 'machined plate',
+                            '440 x 520 x 20', 'S355J2', None, 'Rides the 4 rail blocks and carries the pedestal and the track drive.', {}, 'make'))
+    ped_h = y_pt - (y_cp + CP_T)
+    ped = (cq.Workplane('XY').box(380, 14, 380, centered=(True, False, True))
+           .union(cq.Workplane('XY').box(PED_W, ped_h - 16, PED_W, centered=(True, False, True))
+                  .cut(cq.Workplane('XY').box(PED_W - 16, ped_h, PED_W - 16, centered=(True, False, True))))
+           .union(cq.Workplane('XY').box(PED_W, 16, PED_W, centered=(True, False, True)).translate((0, ped_h - 16, 0)))
+           .cut(cq.Workplane('XZ', origin=(0, ped_h + 1, 0)).circle(118).extrude(18))
+           .cut(cq.Workplane('XY').box(PED_W - 80, 150, 30, centered=(True, False, True)).translate((0, 40, PED_W / 2))))
+    ped_pd = m.part(PartDef('WSH-DPD', 'Arm pedestal weldment', ped.val(), 'steel_s355', 'structure', 'EN 1090-2 EXC2',
+                            f'{PED_W:.0f} sq x {ped_h:.0f}', 'S355J2, hot-dip galvanised', None,
+                            'Lifts the arm to the charge arm\'s own mount height on the carriage. The J1 actuator hangs inside it.',
+                            {'window': 'for the cables, toward the cable chain'}, 'make'))
+    from ..actuator import stack as _stack
+    y_sh = 26 + _stack(SIZES[40])['y_drum']               # J1's drum shoulder, base frame
+    mpl = (cq.Workplane('XY').box(300, 26, 300, centered=(True, False, True)).translate((0, a_plate_under, 0))
+           .edges('|Y').fillet(12)
+           .cut(cq.Workplane('XZ', origin=(0, a_plate_under + 27, 0)).circle(rear_od(SIZES[40]) / 2 + 1).extrude(28))
+           .cut(cq.Workplane('XZ', origin=(0, a_plate_under + 27, 0)).circle(SIZES[40].od / 2).extrude(a_plate_under + 27 - y_sh)))
+    mp_pts = [(p[0], p[2]) for p in std.circle_points(8, 122, 'y', start=22.5)]
+    mpl = mpl.faces('>Y').workplane(centerOption='CenterOfBoundBox').pushPoints(mp_pts).cboreHole(13.5, 20.5, 12.5)
+    mpl_pd = m.part(PartDef('WSH-DMP', 'Arm mount plate', mpl.val(), 'steel_paint', 'structure', 'machined', '300 x 300 x 26',
+                            'S355J2', None, 'Carries the J1 actuator and spreads its load into the pedestal.', {'flatness': '0.05 mm'},
+                            'make'))
+    dgm = (cq.Workplane('XY').box(120, 12, 120).translate((0, 6, 0))
+           .union(cq.Workplane('XY').box(100, 110, 100).translate((0, 12 + 55, 0)))
+           .union(cq.Workplane('XZ', origin=(0, 122, 0)).circle(45).extrude(-170)))
+    dgm_pd = m.part(PartDef('WSH-DGM', 'Track servo gearmotor 1.5 kW, brake, absolute encoder', dgm.val(), 'steel_paint', 'drive',
+                            'catalogue part', '1.5 kW', 'IP66, wash-down', None,
+                            'Drives the carriage along the track. Its brake holds the carriage when power is off.', {}, 'buy',
+                            mass_override=19.0))
+    dpn = cq.Workplane('XZ', origin=(0, 0, 0)).circle(30).extrude(24).union(cq.Workplane('XZ', origin=(0, 30, 0)).circle(12).extrude(30))
+    dpn_pd = m.part(PartDef('WSH-DPN', 'Pinion module 3, 20 teeth, stainless', dpn.val(), 'ss316', 'drive', 'DIN 867 tooth form',
+                            '20 T, m 3', '', None, 'Drives the carriage along its rack.', {}, 'buy'))
+    # the polishing head, in the tool frame (origin on the J6 flange face, +Y out): the force sensor (charge arm's own),
+    # a floating joint, the backing plate and the pad
+    y_ft = 40.0
+    fl = (cq.Workplane('XZ', origin=(0, y_ft, 0)).circle(50).extrude(-8)
+          .cut(cq.Workplane('XZ', origin=(0, y_ft + 9, 0)).pushPoints([(p[0], p[2]) for p in std.circle_points(4, 25, 'y', start=45)])
+               .circle(3.4).extrude(10))
+          .union(cq.Workplane('XZ', origin=(0, y_ft + 22, 0)).circle(50).extrude(-8)))
+    fl_el = cq.Solid.makeCylinder(26, 14, Vector(0, y_ft + 8, 0), Vector(0, 1, 0))
+    fl_sp = [cq.Solid.makeCylinder(7, 14, Vector(38 * math.cos(2 * math.pi * i / 3), y_ft + 8, 38 * math.sin(2 * math.pi * i / 3)),
+                                   Vector(0, 1, 0)) for i in range(3)]
+    fl_pd = m.part(PartDef('WSH-PFL', 'Floating joint: elastomer gimbal and 3 springs', cq.Compound.makeCompound(fl.vals() + [fl_el] + fl_sp),
+                           'al6061', 'tool', 'machined, elastomer bonded', 'OD 100 x 30', '', None,
+                           'Lets the pad tilt 6 degrees and give 8 mm, so it lies flat on a curved cover with an even, light push.',
+                           {'tilt': '6 deg', 'give': '8 mm'}, 'make', mass_override=0.45))
+    bp = cq.Workplane('XZ', origin=(0, y_ft + 30, 0)).circle(padR - 8).extrude(-8)
+    bp_pd = m.part(PartDef('WSH-PBP', 'Pad backing plate, hook face', bp.val(), 'pa66', 'tool', 'moulded', f'D {2 * (padR - 8):.0f} x 8',
+                           'PA66', None, 'Holds the pad by hook-and-loop. Smaller than the pad, so only foam comes near the paint.', {},
+                           'make'))
+    pad = cq.Workplane('XZ', origin=(0, y_ft + 38, 0)).circle(padR).extrude(-(LT_P - y_ft - 38))
+    pad_pd = m.part(PartDef('WSH-PAD', 'Polishing pad, microfibre on soft foam', pad.val(), 'pad_white', 'tool', 'consumable',
+                            f'D {2 * padR:.0f} x {LT_P - y_ft - 38:.0f}', 'lint-free microfibre', None,
+                            'The only part that touches the car. It polishes a sensor cover as a soft cloth in a hand does.',
+                            {'change': 'each shift, by hand, in seconds'}, 'buy', mass_override=0.06))
+    # the wrist's own dimensions (charge_arm.build_chain): the sensor bracket bolts to the wrist tube's side plate
+    L5_ = _pitch_layout(25)
+    cheek5_x = L5_['out_x'] + 14
+    s6_ = SIZES[20]
+    tube_top = A_LW - module_length(s6_) + s6_.of_t + s6_.xrb[2] + 4
+    r6_ = max(s6_.od, rear_od(s6_)) / 2
+    rc5_ = (SIZES[25].xrb[0] + (SIZES[25].xrb[1] - SIZES[25].xrb[0]) * 0.55) / 2 + 10
+    xb = max(cheek5_x, r6_ + 22) + 8                     # the bracket's outer face: clear of the J6 socket and its light ring
+    y_b0, y_b1 = rc5_ + 14, tube_top - 36
+    sbr = (cq.Workplane('XY').box(xb - cheek5_x, y_b1 - y_b0, 44).translate(((xb + cheek5_x) / 2, (y_b0 + y_b1) / 2, 0))
+           .union(cq.Workplane('XY').box(8, A_LW + 60 - y_b0, 44).translate((xb - 4, (A_LW + 60 + y_b0) / 2, 0))))
+    sbr_pd = m.part(PartDef('WSH-PSB', 'Sensor bracket, stainless', sbr.val(), 'ss316', 'structure', 'bent and welded plate',
+                            f'{A_LW + 60 - y_b0:.0f} long', '316L', None,
+                            'Carries the camera and the mist nozzle beside the pad, on the wrist and not on the turning head.', {}, 'make'))
+    cam = (cq.Workplane('XY').box(44, 60, 44).union(cq.Workplane('XZ', origin=(0, 30, 0)).circle(16).extrude(-14)))
+    cam_pd = m.part(PartDef('WSH-PCM', 'Sensor-finding camera with ring light, IP67', cam.val(), 'pa66', 'sensor', 'catalogue part',
+                            '44 x 60 x 44', 'IP67', None,
                             'Finds each camera, lidar and radar cover on the car, so the pad goes to the sensor and not to the paint.',
                             {}, 'buy', mass_override=0.35))
-    wmn = std.nozzle('fan', 'Mists the sensor cover with pure water before the pad swings up. A damp wipe lifts the film a dry pad would drag.')
-    # the pad head, in the hinge's frame (origin on the hinge axis, the pad face-down below it): a hub, a force sensor, a sprung
-    # plate, and the pad. The pad's mid-thickness stands WIPE_HINGE below the hinge.
-    y_p0, y_p1 = -WIPE_HINGE + padT / 2, -WIPE_HINGE - padT / 2
-    hub_l = abs(y_p0) - 23                               # the hub's stub, from the hinge axis down to the force sensor
-    whb = (cq.Workplane('XY').circle(20).extrude(30, both=True)
-           .union(cq.Workplane('XY').box(30, hub_l, 30).translate((0, -hub_l / 2, 0))))
-    whb_pd = m.part(PartDef('WSH-WHB', 'Pad hinge hub, stainless', whb.val(), 'ss316', 'structure', 'machined', 'D 40 x 60', '316L', None,
-                            'Turns in the forearm\'s fork and carries the pad head.', {}, 'make'))
-    wfs = cq.Workplane('XZ', origin=(0, y_p0 + 23, 0)).circle(30).extrude(12)
-    wfs_pd = m.part(PartDef('WSH-WFS', 'Force sensor, 50 N, IP67', wfs.val(), 'al6061', 'sensor', 'catalogue part', 'D 60 x 12', 'IP67',
-                            None, 'Measures the pad\'s push on the car. The arm stops its push at the set limit.',
-                            {'limit': '10 N (ASSUMPTION, to be set on test)'}, 'buy', mass_override=0.2))
-    # the plate is 45 mm smaller in radius than the pad: beside the roof pod its rim stands 55 mm above the roof, and the
-    # pad's own foam rim is all that comes near the paint
-    wpp = cq.Workplane('XZ', origin=(0, y_p0 + 11, 0)).circle(padR - 45).extrude(11)
-    wpp_pd = m.part(PartDef('WSH-WPP', 'Pad plate on springs, 6 mm travel', wpp.val(), 'al6061', 'tool', 'machined, 4 springs',
-                            f'D {2 * (padR - 45):.0f} x 11', '6061-T6', None,
-                            'Lets the pad give 6 mm, so it follows a curved cover with an even, light push.', {}, 'make'))
-    wpd = cq.Workplane('XZ', origin=(0, y_p0, 0)).circle(padR).extrude(padT)
-    wpd_pd = m.part(PartDef('WSH-WPD', 'Wipe pad, microfibre on foam, hook-and-loop', wpd.val(), 'pad_white', 'tool', 'consumable',
-                            f'D {2 * padR:.0f} x {padT:.0f}', 'lint-free microfibre', None,
-                            'The only part that touches the car. It wipes a sensor cover as a soft cloth in a hand does.',
-                            {'change': 'each shift, by hand, in seconds'}, 'buy', mass_override=0.12))
-    # the carriage drive: a gearmotor on the carriage's south face, its pinion on a rack under the deck
-    pin = cq.Workplane('XZ', origin=(0, 10, 0)).circle(22).extrude(20).union(cq.Workplane('XZ', origin=(0, 10, 0)).circle(8).extrude(40))
-    pin_pd = m.part(PartDef('WSH-PIN', 'Pinion module 2, 20 teeth, stainless', pin.val(), 'ss316', 'drive', 'DIN 867 tooth form',
-                            '20 T, m 2', '', None, 'Drives the wipe arm carriage along its rack.', {}, 'buy'))
-    cgm = (cq.Workplane('XY').box(90, 90, 90).union(cq.Workplane('YZ', origin=(45, 0, 0)).circle(45).extrude(160)))
-    cgm_pd = m.part(PartDef('WSH-CGM', 'Carriage gearmotor 0.37 kW, brake, encoder, right-angle', cgm.val(), 'steel_paint', 'drive',
-                            'catalogue part', '0.37 kW', 'IP66, wash-down', None,
-                            'Moves the wipe arm across the bay.', {}, 'buy', mass_override=12.0))
-    rk_l = x_trav + 300
-    rk_pd = m.part(PartDef('WSH-WRK', 'Gear rack module 2, 20 x 20, stainless', cq.Workplane('XY').box(rk_l, 20, 20).val(), 'ss316',
-                           'drive', 'DIN 867 tooth form', f'{rk_l:.0f} long', '', None, 'The carriage pinion runs along it.', {}, 'buy'))
-    rail_l = round((x_trav + 380) / 60) * 60
-    z_cgm = zw - 150 - 45
-    wk_link = std.chain_link(38, 25, 38)
-    # the chain's fixed end stands 200 mm outboard of the carriage's park; fully in, its bend stands just inboard of the carriage
-    R_wk, n_wk = 90.0, math.ceil((x_trav + 200 + math.pi * 90.0 + 60) / 38)
-    y_wf = beam['y0'] - 14.5                             # the chain's fixed run, its links against the deck
-    z_wk = zw + 150 + 47                                 # 28 mm off the carriage's north face
-    wkf = cq.Workplane('XY').box(40, 27, 38)
-    wkm = cq.Workplane('XY').box(60, 50, 28)
-    wgl = cq.Workplane('XY').box(30, 40, 30)
+    mist = std.nozzle('fan', 'Mists the sensor cover with pure water before the pad touches it. A damp polish lifts the film a dry pad would drag.')
+    # the dock: a post north of the track with the rinse cup under the parked pad, and the exit signal
+    cup_r = padR + 25
+    cup = (cq.Workplane('XZ', origin=(0, pad_y + 30, 0)).circle(cup_r + 3).extrude(30 + 40 + 3)
+           .cut(cq.Workplane('XZ', origin=(0, pad_y + 31, 0)).circle(cup_r).extrude(31 + 40)))
+    cup_pd = m.part(PartDef('WSH-DCKC', 'Pad rinse cup, stainless', cup.val(), 'ss316', 'fluid', 'spun sheet 3 mm',
+                            f'D {2 * (cup_r + 3):.0f} x 73', '316L', None,
+                            'The parked pad hangs in it. A nozzle rinses the pad, and the pad turns to throw the water off.', {}, 'make'))
+    post_h = pad_y - 43
+    post = (cq.Workplane('XY').box(200, 12, 200, centered=(True, False, True))
+            .union(cq.Workplane('XY').box(80, post_h - 12, 80, centered=(True, False, True)).translate((0, 12, 0))
+                   .cut(cq.Workplane('XY').box(68, post_h, 68, centered=(True, False, True)).translate((0, 12, 0))))
+            .union(cq.Workplane('XY').box(160, 10, 160, centered=(True, False, True)).translate((0, post_h - 10, 0)))
+            .cut(cq.Workplane('XZ', origin=(0, 13, 0)).pushPoints([(sxx * 75, szz * 75) for sxx in (-1, 1) for szz in (-1, 1)])
+                 .circle(7).extrude(14)))
+    post_pd = m.part(PartDef('WSH-DCKP', 'Dock post weldment', post.val(), 'steel_s355', 'structure', 'EN 1090-2 EXC2',
+                             f'80 sq x {post_h:.0f}', 'S355J2, hot-dip galvanised', None,
+                             'Carries the rinse cup and the exit signal at the end of the track.', {}, 'make'))
+    sig = cq.Workplane('XY').box(120, 240, 60)
+    sig_pd = m.part(PartDef('WSH-DCKS', 'Exit signal housing', sig.val(), 'steel_paint', 'electrical', 'catalogue part',
+                            '120 x 240 x 60', 'IP66', None, 'Faces the car in the bay: red while the bay works, green when the car may go.',
+                            {}, 'buy'))
+    lamp_r2 = PartDef('WSH-LMR', 'Signal lamp, red, 100 mm', cq.Workplane('XY').circle(40).extrude(-12).val(), 'led_red', 'electrical',
+                      'catalogue part', 'D 100', 'IP66', None, 'Red: the car must stay.', {}, 'buy')
+    lamp_g2 = PartDef('WSH-LMG', 'Signal lamp, green, 100 mm', cq.Workplane('XY').circle(40).extrude(-12).val(), 'led_green', 'electrical',
+                      'catalogue part', 'D 100', 'IP66', None, 'Green: the car may go.', {}, 'buy')
+    dk_link = std.chain_link(57, 35, 56)
+    R_dk = 100.0
+    n_dk = math.ceil((d_trav + 250 + math.pi * R_dk + 120) / 56)
+    S_ARM = {'L': None, 'R': None}
     for sx, name in ((-1, 'L'), (1, 'R')):
-        x = sx * wipe['parkX']
-        T = loc(0, 0, 0, ry=0 if sx < 0 else 180)        # the parts built pointing +X: the left arm's inboard is +X
-        cx = gan.child(f'WipeX{name}', Location(), sub='WIPE',
-                       joint={'name': f'WIPE_{name}_X', 'axis': [-sx, 0, 0], 'limits': [0, (x_trav + OVER_MM) / 1000],
-                              'kind': 'prismatic', 'stowed': 0})
-        m.place(cx, wcg_pd, loc(x, y_ct - 80, zw), (0, -120, 0), 'WIPE')
-        m.place(cx, wsl_pd, loc(x, 0, zw), (sx * 60, -200, 0), 'WIPE')
-        m.place(cx, wmm_pd, loc(x, (y_cb + w_top) / 2, zw) * loc(0, 0, 0, ry=0 if sx > 0 else 180) * loc(w_secs[0] / 2, 0, 0),
-                (sx * 260, -160, 0), 'WIPE')
-        for dy in (-62, 62):
-            for dz in (-35, 35):
-                m.place(cx, std.shcs(6, 16, 'A4-80', 'Holds the mast gearmotor to the sleeve.'),
-                        std.orient((x + sx * (w_secs[0] / 2 + 12), (y_cb + w_top) / 2 + dy, zw + dz), (-sx, 0, 0)),
-                        (sx * 300, -160, 0), 'WIPE')
-        for zz in (-110, 110):
-            m.place(cx, std.rail_block(25), loc(x, beam['y0'], zw + zz, ry=90, rx=180), (0, 60, 0), 'WIPE')
-            for dx in (-rbl * 0.26, rbl * 0.26):
-                for dz in (-rbw * 0.36, rbw * 0.36):
-                    m.place(cx, std.shcs(6, 16, 'A4-80', 'Holds the rail block to the carriage, from inside it.'),
-                            std.orient((x + dx, y_ct - 8, zw + zz + dz), (0, 1, 0)), (0, 90, 0), 'WIPE')
-        for dx in (-78, 78):
-            for dz in (-78, 78):
-                m.place(cx, std.hex_bolt(8, 25, 'A4-70', 'Holds the mast sleeve\'s flange under the carriage floor.'),
-                        std.orient((x + dx, y_cb - 10, zw + dz), (0, 1, 0)), (sx * 60, -230, 0), 'WIPE')
-        xg = x - sx * 60
-        m.place(cx, pin_pd, loc(xg, beam['y0'] - 11, z_cgm), (sx * 120, 0, -120), 'WIPE')
-        m.place(cx, cgm_pd, loc(xg, beam['y0'] - 41 - 45, z_cgm, ry=0 if sx > 0 else 180), (sx * 160, 0, -220), 'WIPE')
-        for dx in (-30, 30):
-            for dy in (-30, 30):
-                m.place(cx, std.hex_bolt(8, 25, 'A4-70', 'Holds the carriage gearmotor to the carriage, from inside it.'),
-                        std.orient((xg + dx, beam['y0'] - 86 + dy, zw - 150 + 8), (0, 0, -1)), (sx * 160, 0, -240), 'WIPE')
-        # the rack under the deck, south of the carriage; the 2 rails, a screw in every other counterbored hole
-        x_mid = sx * (WIPE_X_MIN + wipe['parkX']) / 2
-        m.place(gan, rk_pd, loc(x_mid - sx * 60, beam['y0'] - 10, z_cgm - 22 - 10), (0, 80, 0), 'WIPE')
-        for zz in (-110, 110):
-            m.place(gan, std.rail(25, rail_l), loc(x_mid, beam['y0'], zw + zz, ry=90, rx=180), (0, 100, 0), 'WIPE')
-            for i in range(0, int(rail_l / 60), 2):
-                m.place(gan, std.shcs(6, 20, 'A4-80', 'Holds the wipe arm rail to the bottom deck.'),
-                        std.orient((x_mid - rail_l / 2 + 30 + 60 * i, beam['y0'] - rh + rh * 0.45, zw + zz), (0, 1, 0)),
-                        (0, 150, 0), 'WIPE')
-        # the mast's stages, each a node sliding down in the one outside it
-        parent = cx
-        for k in range(1, WIPE_SLIDES + 1):
-            node = parent.child(f'WipeDrop{name}{k}', Location(), sub='WIPE',
-                                joint={'name': f'WIPE_{name}_DROP{k}', 'axis': [0, -1, 0], 'limits': [0, (w_trav + OVER_MM) / 1000],
-                                       'kind': 'prismatic', 'stowed': 0})
-            a = w_secs[k]
-            gap = (w_secs[k - 1] - 2 * w_walls[k - 1] - a) / 2
-            m.place(node, wst_pd[k - 1], loc(x, 0, zw), (sx * 60, -200 - 80 * k, 0), 'WIPE')
-            for ang in (0, 90, 180, 270):
-                m.place(node, wpad_pd, loc(x, w_top - 25 * k - 30, zw, ry=ang) * loc(a / 2 + gap / 2, 0, 0),
-                        (sx * 60, -200 - 80 * k, 0), 'WIPE')
-            parent = node
-        m.place(parent, wfp_pd, loc(x, 0, zw), (sx * 60, -420, 0), 'WIPE')
-        m.place(parent, wya_pd, loc(x, 0, zw), (sx * 60, -460, 0), 'WIPE')
-        # the wrist: it turns about the mast's axis (the node's origin stands on it)
-        yaw = parent.child(f'WipeYaw{name}', loc(x, 0, zw), sub='WIPE',
-                           joint={'name': f'WIPE_{name}_YAW', 'axis': [0, 1, 0], 'limits': [-1.62, 1.62], 'kind': 'revolute', 'stowed': 0})
-        m.place(yaw, wfa_pd, T, (-sx * 80, -520, 0), 'WIPE')
-        m.place(yaw, wta_pd, T * loc(xh, y_fa, 0), (-sx * 80, -520, 160), 'WIPE')
-        m.place(yaw, wcm_pd, T * loc(10, y_fa + 47, 58 + 22), (-sx * 80, -440, 120), 'WIPE')
-        m.place(yaw, wmn, T * std.orient((30, y_fa + 47, -47.5), (1, 0, 0)), (-sx * 80, -440, -120), 'WIPE')
-        # the pad head: it tilts on the fork's hinge
-        tilt = yaw.child(f'WipeTilt{name}', T * loc(xh, y_fa, 0), sub='WIPE',
-                         joint={'name': f'WIPE_{name}_TILT', 'axis': [0, 0, 1], 'limits': [-0.05, 1.62],
-                                'kind': 'revolute', 'stowed': 0})
-        m.place(tilt, whb_pd, Location(), (-sx * 120, -560, 0), 'WIPE')
-        m.place(tilt, wfs_pd, Location(), (-sx * 120, -600, 0), 'WIPE')
-        m.place(tilt, wpp_pd, Location(), (-sx * 120, -640, 0), 'WIPE')
-        m.place(tilt, wpd_pd, Location(), (-sx * 120, -700, 0), 'WIPE')
-        # the carriage's power and signals: a cable chain under the deck, its bend rolling along as the carriage moves
-        x_f = x + sx * 200
-        m.flex(FlexDef(f'WSH-WKC{name}', 'Cable chain 38 x 25, R 90', 'chain',
-                       Anchor(gan, (x_f, y_wf, z_wk), (-sx, 0, 0)), Anchor(cx, (x, y_wf - 2 * R_wk, z_wk), (-sx, 0, 0)),
-                       12.5, 'WIPE', 'Carries the arm\'s motor cables, its camera cable and its water line to the moving carriage.',
-                       mat='pa66', category='electrical', pitch=38, bend_r=R_wk, links=n_wk, up=(0, -1, 0), w=38, h=25,
-                       link_part=wk_link, kg_per_m=0.9,
-                       spec={'carries': '4 motor cables, camera and sensor cables, a 6 mm pure-water line'}))
-        m.place(gan, m.part(PartDef('WSH-WKF', 'Cable chain end bracket, stainless', wkf.val(), 'ss316', 'structure', 'bent plate',
-                                    '40 x 38', '316L', None, 'Holds the chain\'s fixed end under the deck.', {}, 'make')),
-                loc(x_f + sx * 20, beam['y0'] - 13.5, z_wk), (sx * 60, 40, 60), 'WIPE')
-        m.place(cx, m.part(PartDef('WSH-WKK', 'Cable chain carrier bracket, stainless', wkm.val(), 'ss316', 'structure', 'bent plate',
-                                   '60 x 50', '316L', None, 'Joins the chain\'s moving end to the carriage.', {}, 'make')),
-                loc(x, y_wf - 2 * R_wk + 12.5, zw + 150 + 14), (0, -40, 60), 'WIPE')
-        # the mast's line: from a gland on the sleeve's foot down to the wrist, paid out as the mast goes down
-        z_wc = zw + (w_secs[0] / 2 + 15)
-        m.place(cx, m.part(PartDef('WSH-WGL', 'Cable gland block, stainless', wgl.val(), 'ss316', 'electrical', 'machined',
-                                   '30 x 40 x 30', '316L', None, 'Takes the wrist\'s line out of the sleeve\'s side at its foot.', {}, 'make')),
-                loc(x, w_bot + 20, z_wc), (sx * 60, -260, 80), 'WIPE')
-        m.flex(FlexDef(f'WSH-WWC{name}', 'Wrist line: 2 motor cables, camera, sensor, 6 mm water, in a PUR jacket', 'stretch',
-                       Anchor(cx, (x, w_bot, z_wc), (0, -1, 0)), Anchor(parent, (x, w_foot - 60, z_wc), (0, 1, 0)),
-                       7.5, 'WIPE', 'Feeds the wrist, the camera and the pad\'s water nozzle as the mast goes down.',
-                       style='coil', lmin=0, lmax=w_bot - (w_foot - 60) + WIPE_SLIDES * (w_trav + OVER_MM) + 40, kg_per_m=0.3,
-                       size='OD 15', standard='EN 50525'))
+        x0 = sx * XT
+        # ── the track, on the slab ──
+        z_tc = z_tn - tr_l / 2
+        m.place(bay, tbeam_pd, loc(x0, (y_bt + 12) / 2, z_tc), (sx * 200, 0, 0), 'TRACK')
+        for i in range(int(tr_l // 1000) + 1):
+            zp = min(z_tn - 80 - i * 1000, z_tn - 80) if i < int(tr_l // 1000) else z_tn - tr_l + 80
+            m.place(bay, tpl_pd, loc(x0, 6, zp), (sx * 200, -60, 0), 'TRACK')
+            for dx in (-150, 150):
+                m.place(bay, anchor, std.orient((x0 + dx, 12, zp), (0, -1, 0)), (sx * 200, 100, 0), 'TRACK')
+        for k in range(n_pc):
+            zc = z_tn - RAIL_PC / 2 - k * RAIL_PC
+            for dx in (-85, 85):
+                m.place(bay, std.rail(25, RAIL_PC), loc(x0 + dx, y_bt, zc), (sx * 200, 80, 0), 'TRACK')
+                for i in range(0, 34, 2):
+                    m.place(bay, std.shcs(6, 20, 'A4-80', 'Holds the track rail to its beam.'),
+                            std.orient((x0 + dx, y_bt + rh_ * 0.45, zc - RAIL_PC / 2 + 30 + 60 * i), (0, -1, 0)), (sx * 200, 130, 0), 'TRACK')
+        m.place(bay, trk_pd, loc(x0, y_bt + 10, z_tc), (sx * 200, 60, 0), 'TRACK')
+        for zz, ry_ in ((z_tn - 40, 180), (z_tn - tr_l + 40, 0)):
+            m.place(bay, tst_pd, loc(x0, y_bt + 30 + 20, zz, ry=ry_), (sx * 200, 160, 0), 'TRACK')
+        # ── the carriage: it slides south from the dock ──
+        car_ = bay.child(f'DArmRail{name}', Location(), sub='TRACK',
+                         joint={'name': f'DARM_{name}_RAIL', 'axis': [0, 0, -1], 'limits': [0, (d_trav + OVER_MM) / 1000],
+                                'kind': 'prismatic', 'stowed': 0})
+        m.place(car_, cpl_pd, loc(x0, y_cp + CP_T / 2, z_dock), (0, 60, 0), 'TRACK')
+        for dx in (-85, 85):
+            for dz in (-190, 190):
+                m.place(car_, std.rail_block(25), loc(x0 + dx, y_bt, z_dock + dz), (0, 30, 0), 'TRACK')
+                for ex in (-rbw_ * 0.36, rbw_ * 0.36):
+                    for ez in (-rbl_ * 0.26, rbl_ * 0.26):
+                        m.place(car_, std.shcs(6, 25, 'A4-80', 'Holds the carriage plate to a rail block.'),
+                                std.orient((x0 + dx + ex, y_cp + CP_T, z_dock + dz + ez), (0, -1, 0)), (0, 110, 0), 'TRACK')
+        m.place(car_, ped_pd, loc(x0, y_cp + CP_T, z_dock, ry=0 if sx < 0 else 180), (0, 90, 0), 'TRACK')
+        for ex in (-140, 140):
+            for ez in (-140, 140):
+                m.place(car_, std.hex_bolt(12, 40, 'A4-70', 'Holds the pedestal\'s foot to the carriage plate.'),
+                        std.orient((x0 + ex, y_cp + CP_T + 14, z_dock + ez), (0, -1, 0)), (0, 140, 0), 'TRACK')
+        # the track drive at the carriage's south end: the gearmotor on the plate, its pinion under it on the rack's flank
+        xg = x0 + 10 + 30
+        m.place(car_, dgm_pd, loc(xg, y_cp + CP_T, z_dock - 215), (0, 180, -120), 'TRACK')
+        m.place(car_, dpn_pd, loc(xg, y_cp, z_dock - 215), (0, -60, -120), 'TRACK')
+        for ex in (-48, 48):
+            for ez in (-48, 48):
+                m.place(car_, std.shcs(8, 25, 'A4-80', 'Holds the track gearmotor to the carriage plate.'),
+                        std.orient((xg + ex, y_cp + CP_T + 12, z_dock - 215 + ez), (0, -1, 0)), (0, 220, -120), 'TRACK')
+        # ── the arm's base frame on the carriage: +Z toward the car ──
+        base_ = car_.child(f'DArmBase{name}', loc(x0, DARM_MOUNT, z_dock, ry=-sx * 90), sub='J1')
+        m.place(base_, mpl_pd, Location(), (0, 60, 0), 'J1')
+        for p in std.circle_points(8, 122, 'y', offset=a_plate_under + 26 - 12.5, start=22.5):
+            m.place(base_, std.shcs(12, 45, '10.9', 'Holds the mount plate to the pedestal\'s top flange.'), std.orient(p, (0, -1, 0)),
+                    (0, 200, 0), 'J1')
+        S_side = dict(CA)
+        S_side['stowed'] = {'j1': sx * math.pi / 2, 'j2': st_q2, 'j3': st_q3, 'j4': 0.0, 'j5': st_q5, 'j6': 0.0}
+        ch = build_chain(m, base_, S_side, A_H, A_LU, A_LF, A_LW, a_radii, a_plate_under, jp=f'DARM_{name}_')
+        # ── the polishing head on J6 ──
+        tool_ = ch['j6'].child(f'DArmTool{name}', loc(0, 0, 0), sub='POLISH')
+        build_ft_sensor(m, tool_, 'POLISH')
+        m.place(tool_, fl_pd, Location(), (0, 100, 0), 'POLISH')
+        for p in std.circle_points(4, 25, 'y', offset=y_ft + 8, start=45):
+            m.place(tool_, std.shcs(6, 16, 'A4-80', 'Holds the floating joint to the force sensor.'), std.orient(p, (0, -1, 0)),
+                    (0, 120, 0), 'POLISH')
+        m.place(tool_, bp_pd, Location(), (0, 140, 0), 'POLISH')
+        m.place(tool_, pad_pd, Location(), (0, 180, 0), 'POLISH')
+        # ── on the wrist, not on the turning head: the camera and the mist nozzle ──
+        m.place(ch['j5'], sbr_pd, Location(), (120, 0, 0), 'POLISH')
+        for yy in (y_b0 + 14, y_b1 - 14):
+            m.place(ch['j5'], std.shcs(5, 16, 'A4-80', 'Holds the sensor bracket to the wrist tube.'),
+                    std.orient((xb, yy, 0), (-1, 0, 0)) if xb - cheek5_x <= 12 else std.orient((cheek5_x + 6, yy, 14), (-1, 0, 0)),
+                    (160, 0, 0), 'POLISH')
+        m.place(ch['j5'], cam_pd, loc(xb + 22, A_LW + 20, 0), (200, 0, 0), 'POLISH')
+        m.place(ch['j5'], mist, std.orient((xb - 4, A_LW + 60, 0), (0, 1, 0)), (160, 80, 0), 'POLISH')
+        # ── the dock, north of the track ──
+        z_cup = z_dock + wc_r
+        m.place(bay, post_pd, loc(x0, 0, z_cup), (sx * 260, 0, 200), 'DOCK')
+        m.place(bay, cup_pd, loc(x0, 0, z_cup), (sx * 260, 80, 200), 'DOCK')
+        m.place(bay, std.nozzle('jet', 'Rinses the parked pad with pure water.'), std.orient((x0, pad_y - 40, z_cup), (0, 1, 0)),
+                (sx * 260, 40, 200), 'DOCK')
+        for ex in (-75, 75):
+            for ez in (-75, 75):
+                m.place(bay, anchor, std.orient((x0 + ex, 12, z_cup + ez), (0, -1, 0)), (sx * 260, 100, 200), 'DOCK')
+        # the exit signal on the post's car side, facing south to the car in the bay
+        xs_ = x0 - sx * (40 + 60)
+        m.place(bay, sig_pd, loc(xs_, post_h - 10 - 140, z_cup), (-sx * 120, 0, 200), 'DOCK')
+        m.place(bay, m.part(lamp_r2), loc(xs_, post_h - 10 - 90, z_cup - 30), (-sx * 120, 0, 100), 'DOCK')
+        m.place(bay, m.part(lamp_g2), loc(xs_, post_h - 10 - 190, z_cup - 30), (-sx * 120, 0, 100), 'DOCK')
+        # ── the carriage's supply: a cable chain on the floor, outboard of the track ──
+        x_ch = x0 + sx * 300
+        m.flex(FlexDef(f'WSH-DCH{name}', 'Cable chain 57 x 35, R 100', 'chain',
+                       Anchor(bay, (x_ch, 30.0, z_dock + 250), (0, 0, -1)), Anchor(car_, (x_ch, 30.0 + 2 * R_dk, z_dock), (0, 0, -1)),
+                       17.5, 'TRACK', 'Carries power, network and pure water to the moving carriage. Its bend rolls along with it.',
+                       mat='pa66', category='electrical', pitch=56, bend_r=R_dk, links=n_dk, up=(0, 1, 0), w=57, h=35,
+                       link_part=dk_link, kg_per_m=1.6,
+                       spec={'carries': '7 motor cables, EtherCAT, 24 V, a 6 mm pure-water line'}))
+        dka = (cq.Workplane('XY').box(100, 10, 80).translate((sx * 50, 0, 0))
+               .union(cq.Workplane('XY').box(10, 30.0 + 2 * R_dk + 17.5 - (y_cp + CP_T) + 10, 80)
+                      .translate((sx * 95, (30.0 + 2 * R_dk + 17.5 - (y_cp + CP_T)) / 2, 0))))
+        m.place(car_, m.part(PartDef(f'WSH-DCA{name}', 'Cable chain carrier arm, stainless', dka.val(), 'ss316', 'structure', 'bent plate',
+                                     '100 x 80', '316L', None, 'Joins the chain\'s moving end to the carriage.', {}, 'make')),
+                loc(x0 + sx * 215, y_cp + CP_T + 5, z_dock), (sx * 80, 60, 0), 'TRACK')
 
     # ═══════════════════════════════════════════════════════════════ DRYERS ═══
     zd = zf(dry_dy)
@@ -770,8 +824,10 @@ def build(spec: dict) -> Model:
     x_o = legX - trol['w'] / 2 - 132 - 15                # the trench's outer wall, toward the rail
     x_i = x_o - 140                                      # its inner wall, toward the car
     xch = x_i + 5 + 5 + 60                               # the chain's centre: 10 mm clear of each wall
-    R_dc, n_dc = 200.0, 59
+    R_dc = 200.0
     g_lo, g_hi = gan.joint['limits']
+    # the chain's length: half the travel (pass ends and the stow at the entrance), its half-turn bend, and 110 mm spare
+    n_dc = math.ceil(((g_hi - g_lo) * 1000.0 / 2 + math.pi * R_dc + 110) / 75)
     z_fix = (g_lo + g_hi) / 2 * 1000.0                  # mid travel (the gantry's frame stands at z = GANTRY, metres)
     y_fl = -520.0                                        # the trench floor
     y_lo = y_fl + 25 + 9                                 # the lower run's centre, 9 mm over the floor (links tip in the bend)

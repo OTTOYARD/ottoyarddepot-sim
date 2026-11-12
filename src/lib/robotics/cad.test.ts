@@ -148,13 +148,13 @@ describe('wash machine: the twin\'s machine', () => {
   it('stows at the north end, the twin\'s home, and drives every tool the twin drives', () => {
     expect(jointOf(byName(g, 'GANTRY'))!.stowed).toBeCloseTo(-WASH_HOME_DY * METRES_PER_PLAN_UNIT, 4);
     for (const n of ['DRYER_TOP1', 'DRYER_TOP2', 'DRYER_TOP3', 'DRYER_SIDE_L', 'DRYER_SIDE_R',
-      'WIPE_L_X', 'WIPE_L_DROP1', 'WIPE_L_DROP2', 'WIPE_L_YAW', 'WIPE_L_TILT',
-      'WIPE_R_X', 'WIPE_R_DROP1', 'WIPE_R_DROP2', 'WIPE_R_YAW', 'WIPE_R_TILT']) {
+      'DARM_L_RAIL', 'DARM_L_J1', 'DARM_L_J2', 'DARM_L_J3', 'DARM_L_J4', 'DARM_L_J5', 'DARM_L_J6',
+      'DARM_R_RAIL', 'DARM_R_J1', 'DARM_R_J2', 'DARM_R_J3', 'DARM_R_J4', 'DARM_R_J5', 'DARM_R_J6']) {
       expect(jointOf(byName(g, n)), n).toBeTruthy();
     }
   });
-  it('stows its lift columns and its wipe arms\' masts under the wash hall roof (structurePlan.WASH_SHELL)', () => {
-    const top = Math.max(...g.nodes.filter((n) => ['WSH-KH0', 'WSH-WM0'].includes(String(n.extras?.part))).map((n) => {
+  it('stows its lift columns under the wash hall roof (structurePlan.WASH_SHELL)', () => {
+    const top = Math.max(...g.nodes.filter((n) => ['WSH-KH0'].includes(String(n.extras?.part))).map((n) => {
       const acc = g.accessors[g.meshes[n.mesh!].primitives[0].attributes.POSITION];
       return acc.max![1] + t(n)[1];
     }));

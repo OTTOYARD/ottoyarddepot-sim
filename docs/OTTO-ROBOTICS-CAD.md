@@ -49,7 +49,7 @@ at home, mid wash pass, dry pass and on the roof and front sensors (`programPose
 |---|---:|---:|---:|---:|---:|---:|
 | OTTO-CHARGE ARM | 666 | 188 | 467 | 313 kg (with its riser) | 32.8 MB (6.2) | 6.9 MB |
 | OTTO-CLEAN ARM | 408 | 134 | 253 | 311 kg (with its canopy steel) | 14.2 MB (2.3) | 3.6 MB |
-| OTTO-WASH (touchless, 2026-11-11) | 856 | 99 | 424 | 3,994 kg | 5.7 MB (1.0) | 1.2 MB |
+| OTTO-WASH (touchless, with 2 detail arms, 2026-11-12) | 2,606 | 249 | 1,634 | 5,732 kg | 37.2 MB (6.8) | 7.7 MB |
 
 (Fewer fasteners than the first pass: where the clash check found a screw standing in another part, or holding a part
 the new layout leaves out (the wash beam's cover, the clean arm's mast cap and first hose), it went. The masses went
@@ -113,11 +113,12 @@ Nothing on the wrist stands more than 95 mm from the pivot along its axis.
 Two galvanised channel rails on anchor plates with a buffered stop at each end, trolleys with PU wheels, side rollers
 and a geared travel motor inside each trolley, post-and-brace legs with cladding, a box-girder beam, stainless spray arch with 23 nozzles and 4 solenoid valves,
 a top air knife on 2 telescoping lift columns with a servo gearmotor each, two side air knives, 3 blowers and their
-ducts, the valve manifold and arch feed hose, and two sensor-wipe arms (finding 17). Each wipe arm is a carriage on 2
-profile rails under the beam with a gearmotor and pinion on a rack, a mast of a sleeve and 2 sliding stages with a
-servo gearmotor and brake, a wrist turn actuator, a forearm with a hinge fork, a tilt actuator, a camera, a pure-water
-mist nozzle, and a pad head (hinge hub, force sensor, sprung plate, microfibre pad), with a cable chain to the carriage
-and a coiled line down the mast. No brush and no vacuum wand. The stop light, beacon,
+ducts, the valve manifold and arch feed hose. No brush and no vacuum wand. Beside the car, two detail arms (finding
+18): each is the charge arm's six-axis arm (`charge_arm.build_chain`, the same castings and actuators) on a pedestal
+on a carriage, with a servo gearmotor and pinion, on a floor track of 2 profile rails and a rack on a steel beam with
+anchor plates and end stops. Each carries a polishing head (force sensor, floating joint, backing plate, microfibre
+pad), a wrist camera and a pure-water mist nozzle, and has a cable chain beside its track and a dock at the exit end
+(post, rinse cup, signal). The stop light, beacon,
 the control cabinet on the inner side of the west leg, and the supply drag chain in a trough inboard of the west rail,
 clear of the travel drive. Nothing stands outboard of the trolleys (design finding 8).
 
@@ -363,7 +364,54 @@ The poses found more, which the stowed pose could not show:
     **Assumptions, stated:** the 10 N push limit and the wipe times are not from a source. The sensor places (the
     nose's and tail's upright face at 0.57 m, the front wings at 0.96 m, the roof pod) are the twin's one car shape:
     a real fleet needs each model's sensor map. Pad cleaning between cars is by hand, each shift: a pad wash station
-    is not designed.
+    is not designed. (Finding 18 replaces these arms, and gives each pad a rinse cup.)
+
+18. **The wipe arms rode the gantry, so the gantry had to stand over the car while a pad was on it, and each arm had 4
+    axes.** Chase, 2026-11-11 (evening): *"swivel/mechanical arms similar to robocharging arm ... very delicate and
+    able to move like a hand almost to reach difficult angles of cameras and sensors ... the wash arch ... stows at the
+    front entrance, and then the detail arms come from the opposite end of the wash bay (the exit side) and come down
+    each of their rails independently ... more like an assembly line."* **The 2 wipe arms, their cross rail, masts and
+    wrists are gone. Two detail arms replace them.** Each is the OTTO-CHARGE ARM's own six-axis arm: `wash_gantry.py`
+    calls `charge_arm.build_chain`, so the turret, the two cast links, the six actuators and the wrist are the same
+    parts, and the twin solves it with the same `cobotIK`. One arm design is built, held in spares and serviced for
+    both jobs. Each stands on a pedestal on a carriage (runner blocks, a servo gearmotor and a pinion) on its own
+    floor track: 2 profile rails and a rack on a steel beam, anchored each metre, 2.10 m from the drive line, inside
+    the gantry's rails. The tool is a polishing head: a 6-axis force sensor, a floating joint (6 degrees, 8 mm), a
+    backing plate and a 120 mm microfibre-on-foam pad, with a camera and a pure-water mist nozzle on the wrist.
+    **Choices made, and why:**
+    - *The charge arm's arm, not a new one.* Its three wrist axes meet at one point, which is what "like a hand"
+      needs: the pad turns about its own centre without leaving the sensor. A 4-axis arm cannot put a pad square on a
+      corner lidar or on the roof lidar's shoulder.
+    - *A floor track, not the gantry's rails and not the roof.* The gantry's rails stand 3.25 m out,
+      too far for a 2.49 m reach to the roof's centre. A track 1.10 m off the flank puts every sensor in reach, and
+      the gantry passes over it. Nothing new hangs over the wet bay.
+    - *The gantry stows at the entrance and the arms dock at the exit.* The gantry's rails are 1.44 m longer so that it
+      stows 1.8 m behind the car's tail, clear of an arm working on the tail (its wrist reaches 3.15 m from the car's
+      centre). Its drag chain is 10 links longer for that travel (sized from the travel in the model). The docks stand
+      north of the gantry's travel, so the two machines never share a part of the bay. A car drives in under the
+      gantry and out between the docked arms, with 0.6 m a side.
+    - *The pad turns a quarter turn each way and never spins free.* So no cable or water line winds up, and the last
+      joint stays under its speed.
+    - *Each dock has a rinse cup.* A parked arm's pad hangs in it, and a nozzle rinses the pad with pure water after
+      each car. This closes finding 17's "pad cleaning is by hand".
+    **What the motion model found, and what changed** (`detailArm.ts`):
+    - A wrist has two ways to any direction, and on one of them the forearm's roll reached its limit at the roof
+      lidar and jumped a whole turn. The arm uses one way round the car's sides and the other on the roof, and turns
+      over above its own track with the pad pointing down, where the wrist is well away from straight.
+    - Moved at an even pace along the pad's path, the shoulder ran at 243 deg/s. Each part of a path is now as long as
+      its line or its busiest joint's turn, whichever is more, and the program is timed so that no joint passes a
+      1.75 m collaborative arm's speeds (120, 120, 150, 210, 210, 210 deg/s). The arms' work takes 147 s for 24 places.
+    - A seat that ended early sent each arm's joints straight to the tuck, through the car. Now the pad backs straight
+      off the way it faces, lifts if it is over the roof, and only then tucks. An arm is never hurried on the way home.
+    - A leaned pad on the roof lidar's flat top dug 20 mm into it on one side. The lidar's window is its side wall, so
+      each arm polishes 3 places round its top edge and no pad goes on the cap.
+    **Held by:** `cad/clash.py` (CLASH_NUMBERS), `detailArm.test.ts`, `washPose.test.ts` (both programs and 43 early
+    ends) and `cadYard.test.ts` on the CAD's own meshes: the pad's face on the car to 0.1 mm, the head 62 mm off, every
+    link and joint of an arm 0.14 m off, the gantry never within 0.5 m of an arm.
+    **Assumptions, stated:** the joint speeds are a shorter arm's (above). The 5 N working push and 10 N limit are not
+    from a source. The 24 sensor places are rays aimed at the twin's one car shape: a real fleet gives each model's
+    sensor map, and the wrist camera corrects each point. No public source gives a measured time for a robot arm that
+    polishes a car's sensors.
 
 The audit also found the wash machine's tools fed by rigid pipes that could not follow them. They now have flexible
 lines that do (below), and each wand has its own vacuum unit and each side brush its own cable chain.
@@ -460,7 +508,8 @@ the twin's car, doors, cabin, seats, cabinet and buildings, at the twin's poses)
 `cadDepot.test.ts` holds that the depot model is the full CAD's machine (the same joints at the same rest frames, only
 its parts), that the instanced parts redraw it exactly, and that posed by the twin's joints the CAD's working points
 stand where the twin's do: the clean arm's wrist pivot and nozzle within 1 mm of `cleanArmPose` all cycle, the wash
-machine's gantry, brushes and knives where `washPose` puts them.
+machine's gantry and knives where `washPose` puts them, and each detail arm's elbow, wrist and pad within 1 mm of
+`detailArm.ts`.
 
 ## What the two cockpits show
 

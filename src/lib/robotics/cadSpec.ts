@@ -48,7 +48,7 @@ import {
 } from '@/lib/ottoCleanArm/cleanArmPlacement';
 import { DECK_Y } from '@/components/canvas/three/coordUtils';
 import {
-  PASS_NOMINAL_S, WASH_GANTRY, WASH_HOME_DY, WASH_PHASE_S, WASH_TRAVEL,
+  DETAIL_ARM, PASS_NOMINAL_S, WASH_GANTRY, WASH_HOME_DY, WASH_PHASE_S, WASH_TRAVEL,
 } from '@/lib/ottoWash/washSpec';
 
 const M = METRES_PER_PLAN_UNIT;
@@ -135,7 +135,7 @@ export function cadSpec() {
       },
     },
     wash: {
-      travel: { north: mm(WASH_TRAVEL.north), south: mm(WASH_TRAVEL.south) },
+      travel: { north: mm(WASH_TRAVEL.north), south: mm(WASH_TRAVEL.home) },
       homeDy: mm(WASH_HOME_DY),
       gantry: {
         legX: mm(G.legX),
@@ -155,11 +155,12 @@ export function cadSpec() {
             gap: mm(G.dryer.side.gap), retractX: mm(G.dryer.side.retractX),
           },
         },
-        wipe: {
-          dy: mm(G.wipe.dy), parkX: mm(G.wipe.parkX), stowY: mm(G.wipe.stowY), padR: mm(G.wipe.padR), padT: mm(G.wipe.padT),
-          forearm: mm(G.wipe.forearm), mastR: mm(G.wipe.mastR),
-        },
         light: { y: mm(G.light.y), x: mm(G.light.x) },
+      },
+      /** the two detail arms: each track and dock, the polishing head, and the parked pose (metres, radians) */
+      detail: {
+        trackX: mm(G.detail.trackX), dockDy: mm(G.detail.dockDy), trackTo: mm(G.detail.trackTo),
+        tool: DETAIL_ARM.toolM, padR: mm(G.detail.padR), stow: { ...DETAIL_ARM.stow },
       },
       passSeconds: { ...PASS_NOMINAL_S },
       phaseSeconds: { ...WASH_PHASE_S },

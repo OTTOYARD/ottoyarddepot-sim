@@ -8,13 +8,24 @@
  *
  * Chase, 2026-11-11: "I don't think it makes sense to have giant brushes that will be
  * whipping the vehicle since a lot of AV's have extended areas with cameras and and lidar
- * ... much more delicate, and maybe only rinses and dries, then ... an robot arm will locate
- * all sensors and hand wipe gently with a cloth ... I don't think doors should open
- * whatsoever once in the large external wash bay." So NOTHING THAT TURNS TOUCHES THE CAR:
- *   1. the arch soaks the car, washes it with water jets, and rinses it;
- *   2. the air knives dry it;
- *   3. two arms come down from the beam and wipe each sensor with a soft pad;
- *   4. the doors stay shut. The cabin is cleaned at the fast charger (otto-q-core 0815).
+ * ... I don't think doors should open whatsoever once in the large external wash bay."
+ *
+ * Chase, 2026-11-12: "the final sensor polisher should be swivel/mechanical arms similar to
+ * robocharging arm ... able to move like a hand almost to reach difficult angles of cameras
+ * and sensors ... the wash arch ... stows at the front of the wash entrance ... then the
+ * detail arms come from the opposite end of the ways bay (the exit side) and come down each
+ * of their rails independently ... and stow before the vehicle departs the bay completely.
+ * This will be more like an assembly line."
+ *
+ * So the bay is a short line of machines round a car that stands still:
+ *   1. THE GANTRY (arch and air knives) waits at the ENTRANCE (south). It soaks the car,
+ *      washes it with water jets, rinses it and dries it in six passes, and stows there.
+ *   2. TWO DETAIL ARMS, one each side, wait at the EXIT (north), each folded on its own
+ *      floor track. Each is the OTTO-CHARGE ARM's own six-axis arm with a polishing head. They
+ *      come down their tracks and polish every sensor with a soft pad, each on its own
+ *      timing, and go back to their docks.
+ *   3. No brush touches the car and no door opens. The cabin is cleaned at the fast
+ *      charger (otto-q-core 0815).
  *
  * UNITS: PLAN UNITS throughout (1 u = 0.4785 m), heights above grade in plan units too,
  * because the wash hall is drawn in them (structurePlan.WASH_SHELL). The car's shape
@@ -25,14 +36,15 @@
  * (a car in a bay parks facing north, TwinMotionDriver.parkedHeading). The car enters
  * through the south door and leaves through the north one.
  *
- * THE MACHINE, side on (car facing left, north), along the beam's 4.1 u depth:
+ * THE GANTRY, side on (car facing left, north), along the beam's 4.1 u depth:
  *
- *     ┌──────────────── beam ────────────────┐   at 6.9..7.6 u
- *     │ arch │   wipe arms' cross rail   │ air │   dy -1.6, -0.2, +1.9 from the gantry's line
+ *     ┌──────────── beam ────────────┐   at 6.9..7.6 u
+ *     │ arch │                  │ air │   dy -1.6 and +1.9 from the gantry's line
  *     legs ride the rails at x = ±6.8, outside the door opening (±5.5)
  *
- * Every moving part sits inside the portal. Stowed, the portal clears a car and its roof
- * pod with room to spare, so a car drives in under the machine and out under it.
+ * THE DETAIL ARMS' TRACKS run at x = ±4.39 u (2.10 m), inside the gantry's rails, from the docks
+ * north of the gantry's travel to the car's tail. The gantry passes over the tracks, never over
+ * an arm: the docks stand north of where the gantry goes.
  *
  * TIMES are SIM seconds, like the cleaning arm's: the twin times the seat (otto-q-core
  * 0746, 0762) and this machine plays its program inside it.
@@ -42,12 +54,20 @@
 export const WASH_TRAVEL = {
   /** north end: the air knives' line stands 1 u ahead of the car's nose (the car's half-length is 4.9 u) */
   north: -7.8,
-  /** south end: the arch's line stands 1.1 u behind its tail */
+  /** south end of a pass: the arch's line stands 1.1 u behind its tail */
   south: 7.6,
+  /**
+   * where it stows: 3 u (1.44 m) farther south, at the entrance. Its north face is then 4.14 m from the car's centre,
+   * 1.8 m behind the tail: room for a detail arm's wrist and elbow behind the tail (they reach 3.2 m), with 0.9 m spare.
+   */
+  home: 10.6,
 } as const;
 
-/** Where the machine waits between cars: the north end, so an arriving car pulls up to its stop light. */
-export const WASH_HOME_DY = WASH_TRAVEL.north;
+/**
+ * Where the gantry waits between cars and while the detail arms work: stowed at the entrance. A car drives in under
+ * it and on to the bay's centre. The first pass starts from here and the last pass ends here.
+ */
+export const WASH_HOME_DY = WASH_TRAVEL.home;
 
 export const WASH_GANTRY = {
   /** the portal's legs ride the rails at this offset from the drive line */
@@ -59,7 +79,7 @@ export const WASH_GANTRY = {
   /** the beam across the top, along the gantry's line from dy0 to dy1 */
   beam: { y0: 6.9, y1: 7.6, dy0: -1.9, dy1: 2.2 },
   /** floor rails: from the car's centre, plan u */
-  rail: { w: 0.32, h: 0.14, from: -10.0, to: 10.2 },
+  rail: { w: 0.32, h: 0.14, from: -10.0, to: 13.2 },
   /** the spray arch on the beam's north face: a soak circuit and a jet circuit, one ring of nozzles each */
   arch: { dy: -1.6, x: 5.6, top: 6.5, r: 0.13, nozzles: 9 },
   /** air knives on the beam's south side: one over the roof, one beside each flank */
@@ -69,29 +89,24 @@ export const WASH_GANTRY = {
     side: { w: 0.35, d: 0.4, y0: 0.55, y1: 3.0, gap: 0.55, retractX: 5.6 },
   },
   /**
-   * The two sensor-wipe arms, one each side, on a cross rail under the beam. Each has a carriage that
-   * slides across the bay, a mast that lowers the pad, and a wrist that turns the pad to face the car.
+   * The two detail arms' tracks and docks (the arm itself is cobotSpec's, in metres: DETAIL_ARM below).
    */
-  wipe: {
-    /** the cross rail's line along the beam, from the gantry's line */
-    dy: -0.2,
-    /** where a mast parks: outboard of the car, 1.1 m off its flank, where the side brushes of the first machine stood */
-    parkX: 4.3,
-    /** the pad's height with the mast up. The masts park beside the car's path, not over it, so they need not clear the roof */
-    stowY: 3.5,
-    /** the pad: a soft disc on a sprung head (radius, thickness) */
-    padR: 0.26, padT: 0.12,
-    /** the wrist's forearm: the pad's centre stands this far from the mast's axis, the way the pad faces */
-    forearm: 0.35,
-    /** the mast's section and the carriage's block */
-    mastR: 0.1, carriage: { w: 0.7, d: 0.6, h: 0.4 },
+  detail: {
+    /** each track's line from the drive line: 2.10 m, 1.14 m off the flank */
+    trackX: 4.3887,
+    /** the dock: each arm's J1 axis when parked, north of the gantry's travel (its trolleys reach -9.9) */
+    dockDy: -10.9,
+    /** the carriage's south stop: level with the car's tail */
+    trackTo: 5.0,
+    /** the polishing pad: a soft disc (radius 60 mm), small enough to fit between the roof pod and the roof */
+    padR: 0.1254,
   },
   /** stop light on the beam's south face, toward an arriving car */
   light: { y: 6.35, x: 0 },
 } as const;
 
 /**
- * The program, in order: the six passes, then the sensor wipe, then home.
+ * The program, in order: the gantry's six passes, then the detail arms' work, then everything stowed.
  *
  * `cabin_hold` is the one phase of a DETAIL seat that a wash seat does not have. The twin still seats a car for a
  * detail when no fast charger's arm reached it (otto-q-core 0815 §3), and times a cabin clean in that seat. The
@@ -102,12 +117,12 @@ export type WashPhase =
   | 'settle'
   | 'cabin_hold'
   | 'soak' | 'wash_1' | 'wash_2' | 'rinse' | 'dry_1' | 'dry_2'
-  | 'arms_down' | 'wipe_front' | 'wipe_sides' | 'wipe_roof' | 'wipe_rear' | 'arms_up' | 'to_home'
+  | 'arms_out' | 'wipe_front' | 'wipe_sides' | 'wipe_roof' | 'wipe_rear' | 'arms_stow'
   | 'done'
   | 'retract' | 'return';
 
 export const WASH_EXTERIOR: readonly WashPhase[] = ['soak', 'wash_1', 'wash_2', 'rinse', 'dry_1', 'dry_2'];
-export const WASH_WIPE: readonly WashPhase[] = ['arms_down', 'wipe_front', 'wipe_sides', 'wipe_roof', 'wipe_rear', 'arms_up', 'to_home'];
+export const WASH_WIPE: readonly WashPhase[] = ['arms_out', 'wipe_front', 'wipe_sides', 'wipe_roof', 'wipe_rear', 'arms_stow'];
 
 /** The whole program for a seat, home to home. */
 export function washChain(interior: boolean): readonly WashPhase[] {
@@ -126,13 +141,14 @@ export const stationOf = (p: `wipe_${WipeStation}`): WipeStation => p.slice(5) a
 export type WashPass = 'soak' | 'wash_1' | 'wash_2' | 'rinse' | 'dry_1' | 'dry_2';
 export const isPass = (p: WashPhase): p is WashPass => (WASH_EXTERIOR as readonly string[]).includes(p);
 
-/** Which way each pass travels: from home (north) on the odd passes, back to it on the even ones. */
+/** Which way each pass travels: from home (south, the entrance) on the odd passes, back to it on the even ones. */
 export const PASS_FROM: Readonly<Record<WashPass, number>> = {
-  soak: WASH_TRAVEL.north, wash_1: WASH_TRAVEL.south, wash_2: WASH_TRAVEL.north,
-  rinse: WASH_TRAVEL.south, dry_1: WASH_TRAVEL.north, dry_2: WASH_TRAVEL.south,
+  soak: WASH_HOME_DY, wash_1: WASH_TRAVEL.north, wash_2: WASH_TRAVEL.south,
+  rinse: WASH_TRAVEL.north, dry_1: WASH_TRAVEL.south, dry_2: WASH_TRAVEL.north,
 };
+/** The last pass ends at the stow; the others turn at the ends of the car. */
 export const passTo = (p: WashPass): number =>
-  PASS_FROM[p] === WASH_TRAVEL.north ? WASH_TRAVEL.south : WASH_TRAVEL.north;
+  p === 'dry_2' ? WASH_HOME_DY : PASS_FROM[p] === WASH_TRAVEL.north ? WASH_TRAVEL.south : WASH_TRAVEL.north;
 
 /** What each pass does. */
 export const PASS_KIND: Readonly<Record<WashPass, 'soak' | 'jet' | 'rinse' | 'dry'>> = {
@@ -148,9 +164,9 @@ export const PASS_KIND: Readonly<Record<WashPass, 'soak' | 'jet' | 'rinse' | 'dr
  *     https://ccentral.ca/experts-weigh-small-footprint-car-wash-opportunities, via search results);
  *   - a gantry's dryer pass at 0.33 ft/s (0.1 m/s) in US 6,863,739
  *     (https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/6863739, via search results).
- * With no brush to dwell on the car, a pass is a steady travel. The six passes (180 s), the sensor wipe
- * (WIPE_FIXED_S) and the settle and finish make 4.6 minutes at nominal pace. The twin's robotic wash allows a
- * 4.0-minute program (otto-q-core 0746, robotic_wash_min 5.0), so the passes run at about 0.8 of nominal there.
+ * With no brush to dwell on the car, a pass is a steady travel. The six passes (180 s), the detail arms' work
+ * (WIPE_FIXED_S) and the settle and finish make 4.5 minutes at nominal pace, which is the twin's program since
+ * 2026-11-11 (otto-q-core robotic_wash_min 5.5 at the twin depot: pull in 0.5, program 4.5, pull out 0.5).
  */
 export const PASS_NOMINAL_S: Readonly<Record<WashPass, number>> = {
   soak: 25, wash_1: 35, wash_2: 35, rinse: 25, dry_1: 30, dry_2: 30,
@@ -159,18 +175,19 @@ export const PASSES_NOMINAL_S = Object.values(PASS_NOMINAL_S).reduce((a, b) => a
 
 /**
  * Fixed phases, sim seconds. The passes and `cabin_hold` are paced to the seat; `return` by the way home.
- * A wipe phase is: pads out to clear the car, travel to the place, close in, wipe, back out. ASSUMPTION: no public
- * source gives a measured time for a robot arm wiping a car's sensors. 14 to 18 s a place is a gentle hand's pace.
+ * `arms_out`: each arm unfolds at its dock and rides to the nose. A wipe phase gives each of its sensors a move, a
+ * touch, a polish and a lift. `arms_stow`: each arm tucks, rides to its dock and folds. ASSUMPTION: no public source
+ * gives a measured time for a robot arm polishing a car's sensors. About 5 s a sensor is a careful hand's pace.
  */
 export const WASH_PHASE_S: Readonly<Record<Exclude<WashPhase, WashPass | 'home' | 'cabin_hold' | 'return'>, number>> = {
   settle: 2.5,
-  arms_down: 3, wipe_front: 14, wipe_sides: 14, wipe_roof: 16, wipe_rear: 18, arms_up: 3, to_home: 17,
+  arms_out: 10, wipe_front: 24, wipe_sides: 24, wipe_roof: 38, wipe_rear: 36, arms_stow: 15,
   done: 2,
-  // a seat that ends mid-program: air knives and pads come off the car at their own speed, never hurried
-  retract: 2,
+  // a seat that ends mid-program: the air knives come off the car and the arms tuck, at their own speed, never hurried
+  retract: 9,
 };
 
-/** The sensor wipe's fixed length, sim seconds. */
+/** The detail arms' fixed length, sim seconds. */
 export const WIPE_FIXED_S = WASH_WIPE.reduce((a, p) => a + WASH_PHASE_S[p as keyof typeof WASH_PHASE_S], 0);
 
 /** A detail seat's cabin hold when the twin publishes no end: the twin's ten minutes in the cabin (0746). */
@@ -193,5 +210,23 @@ export const WASH_ABORT_SPEED = 3;
 /** Return travel at nominal speed, plan u per sim second (0.38 m/s, a gantry's quick traverse). */
 export const WASH_RETURN_UPS = 0.8;
 
-/** The share of a wipe phase spent on each part: out to clear and travel, close in, wipe, back out. */
-export const WIPE_PARTS = { travel: 0.42, close: 0.14, wipe: 0.30, open: 0.14 } as const;
+/** The share of one sensor's time spent on each part: the move to it, the touch, the polish, the lift. */
+export const WIPE_PARTS = { move: 0.45, touch: 0.075, polish: 0.4, lift: 0.075 } as const;
+
+/**
+ * THE DETAIL ARM, in metres and radians. It is the OTTO-CHARGE ARM's arm (cobotSpec.OTTO_CHARGE_ARM: the same links,
+ * joints and limits, solved by the same cobotIK) with a shorter tool, standing on a track carriage at the charge arm's
+ * own mount height.
+ */
+export const DETAIL_ARM = {
+  /** J6 flange to the pad's face: force sensor 40, floating joint 30, backing plate 8, pad 62 mm */
+  toolM: 0.14,
+  /** parked: the upper arm leans along the track and the forearm folds back over it; the tool hangs straight down */
+  stow: { j2: 0.30, j3: 2.30 },
+  /** how far the pad stands off a sensor before it touches, and the safe shell it moves in between sensors */
+  hoverM: 0.15, safeM: 0.40,
+  /** the height the pad lifts to when it crosses over the car */
+  overM: 2.05,
+  /** the carriage's fastest travel, m/s */
+  railMps: 1.5,
+} as const;

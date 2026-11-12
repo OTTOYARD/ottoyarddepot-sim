@@ -202,37 +202,37 @@
     "depot": "wash_gantry.depot.glb"
    },
    "bytes": {
-    "glb": 1153040,
-    "stepZip": 975582,
-    "step": 5667666,
-    "depot": 259612
+    "glb": 7701540,
+    "stepZip": 6787012,
+    "step": 37192640,
+    "depot": 680268
    },
    "mesh": {
-    "vertices": 40158,
-    "triangles": 45560,
-    "meshes": 92,
-    "nodes": 690
+    "vertices": 308196,
+    "triangles": 348465,
+    "meshes": 244,
+    "nodes": 2262
    },
    "depotMesh": {
-    "vertices": 8174,
-    "triangles": 7656,
-    "meshes": 70,
-    "nodes": 195
+    "vertices": 24565,
+    "triangles": 26224,
+    "meshes": 109,
+    "nodes": 333
    },
-   "depotSha256": "98c9203bf1501cfa",
+   "depotSha256": "478a1d2a4191f658",
    "totals": {
-    "parts": 856,
-    "uniqueParts": 99,
-    "fasteners": 424,
-    "massKg": 3993.58,
-    "boughtLines": 53,
-    "madeLines": 46,
+    "parts": 2606,
+    "uniqueParts": 249,
+    "fasteners": 1634,
+    "massKg": 5732.27,
+    "boughtLines": 151,
+    "madeLines": 98,
     "referenceLines": 0
    },
-   "glbSha256": "17b3fcfe7b20f895",
+   "glbSha256": "ee7f06825b23bf9f",
    "stepCheck": {
-    "namedParts": 856,
-    "solids": 920,
+    "namedParts": 2606,
+    "solids": 4048,
     "invalid": 0
    },
    "subsystems": [
@@ -257,8 +257,44 @@
      "name": "Air knives (dryer)"
     },
     {
-     "id": "WIPE",
-     "name": "Sensor-wipe arms"
+     "id": "TRACK",
+     "name": "Detail arm tracks"
+    },
+    {
+     "id": "DOCK",
+     "name": "Arm docks and pad care"
+    },
+    {
+     "id": "J1",
+     "name": "Detail arm J1 base turn"
+    },
+    {
+     "id": "J2",
+     "name": "Detail arm J2 shoulder"
+    },
+    {
+     "id": "UPPER",
+     "name": "Detail arm upper arm"
+    },
+    {
+     "id": "J3",
+     "name": "Detail arm J3 elbow"
+    },
+    {
+     "id": "FORE",
+     "name": "Detail arm forearm"
+    },
+    {
+     "id": "WRIST",
+     "name": "Detail arm wrist (J4, J5, J6)"
+    },
+    {
+     "id": "SAFETY",
+     "name": "Detail arm status"
+    },
+    {
+     "id": "POLISH",
+     "name": "Polishing head"
     },
     {
      "id": "CONTROL",

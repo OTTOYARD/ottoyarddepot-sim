@@ -165,6 +165,292 @@ def _surface_at(shape, x: float | None, y: float | None, z: float | None, side: 
 # ═════════════════════════════════════════════════════════════════════ build ═══
 
 
+def build_chain(m: Model, base: Node, S: dict, H: float, LU: float, LF: float, LW: float, radii: dict,
+                plate_under: float, jp: str = '') -> dict:
+    """The arm itself, from the J1 actuator in its mount plate to the J6 output flange: six actuators, the turret, the
+    balancer, the upper arm, the forearm and the wrist. `base` carries a mount plate cut as the charge arm's is (its top
+    26 mm under J1's output face). The OTTO-CHARGE ARM and the wash bay's two detail arms are this one arm: the same
+    castings and the same six actuators, so one set of spares serves both. `jp` prefixes the joint and node names, so a
+    machine with two arms keeps them apart."""
+    # ════════════════════════════════════════════════════════ J1 + TURRET ═══
+    j1 = base.child(jp + 'J1_BaseYaw', loc(0, 0, 0), sub='J1',
+                    joint={'name': jp + 'J1', 'axis': [0, 1, 0], 'limits': S['limits']['j1'], 'kind': 'revolute',
+                           'stowed': S['stowed']['j1']})
+    a1 = build_actuator(m, base, j1, 40, loc(0, 0, 0), loc(0, 26, 0), 'CHG-J1', 'J1')
+    j1b = std.shcs(8, 30, '12.9', 'Holds the J1 actuator by its drum shoulder to the mount plate, from below.')
+    r_j1b = (rear_od(SIZES[40]) / 2 + 1 + SIZES[40].od / 2) / 2
+    for p in std.circle_points(8, r_j1b, 'y', offset=plate_under, start=11.25):
+        m.place(base, j1b, std.orient(p, (0, 1, 0)), (0, -60, 0), 'J1')
+    # turret casting: skirt (twin base housing r 193 -> 216, y 0..130), column to the J2 boss
+    L2 = _pitch_layout(50)
+    boss2_od = L2['od'] + 36
+    rb = radii['base']
+    tur = (cq.Workplane('XY').add(cq.Solid.makeCone(rb * 1.12, rb, 128, pnt=Vector(0, 2, 0), dir=Vector(0, 1, 0)))
+           .union(cq.Workplane('XY').add(cq.Solid.makeCone(rb * 0.98, radii['shoulder'] * 0.92, H - 130 - SIZES[50].od / 2 - 5,
+                                                           pnt=Vector(0, 130, 0), dir=Vector(0, 1, 0)))))
+    tur = tur.union(cq.Workplane('YZ', origin=(-L2['boss_w'] / 2, H, 0)).circle(boss2_od / 2).extrude(L2['boss_w']))
+    tur = tur.union(cq.Workplane('XY').box(L2['boss_w'], boss2_od * 0.62, boss2_od * 0.8, centered=(True, False, True))
+                    .translate((0, H - boss2_od * 0.62, 0)))
+    tur = tur.cut(cq.Workplane('YZ', origin=(-L2['boss_w'], H, 0)).circle(L2['od'] / 2).extrude(L2['boss_w'] * 2))
+    tur = tur.cut(cq.Workplane('XZ', origin=(0, -1, 0)).circle(rb * 0.95).extrude(-122))      # skirt cavity
+    tur = tur.cut(cq.Workplane('XZ', origin=(0, 118, 0)).circle(rb * 0.78).extrude(-(H - 130 - SIZES[50].od / 2 - 5 - 12)))
+    tur = tur.union(cq.Workplane('XZ', origin=(0, 26 + 18, 0)).circle(rb * 0.95 + 0.5).circle(22).extrude(18))   # the web on J1's flange
+    tur = tur.cut(cq.Workplane('XZ', origin=(0, 26 + 19, 0)).pushPoints([(p[0], p[2]) for p in out_flange_points(40)])
+                  .circle(4.5).extrude(20))
+    # the J2 drum clamp screws' counterbores: none at the top, none below the axis where the column's box fills the boss
+    # (their heads stood in it); the heads sit 10 mm deep, clear of the upper arm's bridge as it turns over them
+    j2_clamps = []
+    for p in front_ring_points(50, 10):
+        r = math.hypot(p[0], p[2])
+        if p[0] / r > 0.7 or p[0] / r < -0.45:
+            continue
+        u = (0.0, p[0] / r, p[2] / r)
+        j2_clamps.append(u)
+        c0 = boss2_od / 2 - 10
+        tur = tur.cut(cq.Workplane('XY').add(cq.Solid.makeCylinder(8.5, 16, Vector(0, H + u[1] * c0, u[2] * c0), Vector(*u))))
+    m.place(j1, m.part(PartDef('CHG-TUR', 'Turret casting', tur.val(), 'a356', 'structure', 'casting, machined',
+                               f'OD {rb * 2.24:.0f} x {H + boss2_od / 2:.0f}', 'A356-T6', None,
+                               'Turns on J1 and carries the shoulder. Its boss clamps the J2 actuator.',
+                               {'wall': '8 mm'}, 'make')), Location(), (0, 80, 0), 'J1')
+    t1 = std.shcs(8, 30, '12.9', 'Holds the turret web to the J1 output flange.')
+    for p in out_flange_points(40):
+        m.place(j1, t1, std.orient((p[0], 26 + 18, p[2]), (0, -1, 0)), (0, 260, 0), 'J1')
+    # accent band and status ring on the skirt
+    # on the skirt cone (slope 0.12 rb in 128 mm), the 4 mm tube tangent to it
+    band_r = rb * (1.12 - 0.12 * 28 / 128) + 4 / math.cos(math.atan(0.12 * rb / 128)) + 0.03
+    band = cq.Workplane('XY').add(cq.Solid.makeTorus(band_r, 4, pnt=Vector(0, 30, 0), dir=Vector(0, 1, 0)))
+    m.place(j1, m.part(PartDef('CHG-BAND1', 'Turret accent band', band.val(), 'accent', 'structure', 'moulded', '',
+                               '', None, 'OTTOYARD red band. It marks the moving part of the machine.', {}, 'make')),
+            Location(), (0, 40, 0), 'J1')
+
+    # ═══════════════════════════════════════════════ J2 + balancer + upper arm ═══
+    j2 = j1.child(jp + 'J2_Shoulder', loc(0, H, 0), sub='J2',
+                  joint={'name': jp + 'J2', 'axis': [1, 0, 0], 'limits': S['limits']['j2'], 'kind': 'revolute',
+                         'stowed': S['stowed']['j2']})
+    Tm2 = loc(L2['out_x'], 0, 0, rz=-90)      # module +Y -> world +X
+    a2 = build_actuator(m, j1, j2, 50, loc(0, H, 0), Tm2, 'CHG-J2', 'J2', gland_m=25)
+    clamp_s = std.shcs(10, 40, '12.9', 'Clamps the J2 actuator drum in the turret boss.')
+    for u in j2_clamps:       # radial screws through the boss into the drum, from outside, heads in their counterbores
+        dirv = (0, -u[1], -u[2])
+        pos = (0.0, H + u[1] * (boss2_od / 2 - 10), u[2] * (boss2_od / 2 - 10))
+        m.place(j1, clamp_s, std.orient(pos, dirv), tuple(-c * 90 for c in dirv), 'J2')
+    # status ring on the J2 boss faces (both sides): the twin draws two
+    for sx in (-1, 1):
+        ring = (cq.Workplane('XY').add(cq.Solid.makeTorus(boss2_od / 2 * 0.94, 5,
+                                                          pnt=Vector(sx * (L2['boss_w'] / 2 + 5), H, 0), dir=Vector(1, 0, 0)))
+                .cut(cq.Workplane('XY').box(60, 400, 600).translate((sx * (L2['boss_w'] / 2 + 5), H - 60 - 200, 0))))
+        m.place(j1, m.part(PartDef(f'CHG-J2-RING{"R" if sx > 0 else "L"}', 'Status light ring, J2', ring.val(), 'led',
+                                   'electrical', 'LED strip in PC diffuser', f'OD {boss2_od * 0.94:.0f}', '', None,
+                                   'Shows the arm state: teal ready, amber moving, green charging, red fault.', {}, 'buy')),
+                Location(), (sx * 60, 0, 0), 'SAFETY')
+    upper = _link_casting(LU, radii['upper'] * 1.18, radii['elbow'] * 0.86,
+                          cheek_x=L2['out_x'] + 20, cheek_r=a2['of_od'] / 2 + 14, cheek_t=20,
+                          boss_od=_pitch_layout(40)['od'] + 36, boss_w=_pitch_layout(40)['boss_w'],
+                          boss_bore=SIZES[40].od, act_r=rear_od(SIZES[50]) / 2 if rear_od(SIZES[50]) > SIZES[50].od else SIZES[50].od / 2,
+                          end_w=UPR_END_W)
+    # clear of J3's front, beside the boss: its bearing clamp ring (OD 214) and its screws stood in the beam's flanks
+    upper = (cq.Workplane('XY').add(upper)
+             .cut(cq.Workplane('YZ', origin=(_pitch_layout(40)['boss_w'] / 2, LU, 0)).circle(SIZES[40].od / 2 + 2).extrude(50)))
+    # the J3 drum clamp screws' counterbores, 8 mm deep: their heads stood proud of the boss, under the forearm's bridge
+    b3_r = (_pitch_layout(40)['od'] + 36) / 2
+    for p in front_ring_points(40, 8):
+        r = math.hypot(p[0], p[2])
+        u = (0.0, p[0] / r, p[2] / r)
+        upper = upper.cut(cq.Workplane('XY').add(cq.Solid.makeCylinder(7.0, 16, Vector(0, LU + u[1] * (b3_r - 8), u[2] * (b3_r - 8)),
+                                                                       Vector(*u))))
+    m.place(j2, m.part(PartDef('CHG-UPR', 'Upper arm casting', upper.val(), 'a356', 'structure', 'casting, machined',
+                               f'{LU:.1f} between axes', 'A356-T6', None,
+                               'Carries the elbow 1.344 m from the shoulder. Hollow for stiffness per kilogram.',
+                               {'wall': '7 mm', 'axis distance': f'{LU:.1f} mm, bored in one set-up'}, 'make')),
+            Location(), (0, 0, 220), 'UPPER')
+    us = std.shcs(10, 45, '12.9', 'Holds the upper arm cheek to the J2 output flange.')
+    for p in out_flange_points(50):
+        x = L2['out_x'] + 20
+        m.place(j2, us, std.orient((x, p[0], p[2]), (-1, 0, 0)), (160, 0, 0), 'UPPER')
+    for k in range(2):
+        a = math.radians(360 / 32 + 180 * k)
+        r = out_flange_points(50)[0][0]
+        m.place(j2, std.dowel(10, 30), loc(L2['out_x'] + 5, r * math.cos(a), r * math.sin(a), rz=90), (140, 0, 0), 'UPPER')
+
+    # gravity balancer, the inverted-pendulum kind: a compression spring cartridge between an anchor BAL_A
+    # below the J2 axis (on the turret) and a crank pin BAL_R above it (on the upper arm). Leaning the arm
+    # either way shortens it, and its push makes a restoring torque F * a * r * sin(q2) / d: the shape of
+    # the gravity torque itself. On the -X side, outside the J2 motor bell and the turret column.
+    bal_x = L2['out_x'] - L2['L'] - 80                  # outboard of the J2 actuator's rear cover and its gland
+    p_low = (bal_x, H - BAL_A, 0.0)               # J1 frame
+    p_up = (bal_x, BAL_R, 0.0)                    # J2 frame (zero pose: straight above the axis)
+    Lb = BAL_A + BAL_R
+    eye = (cq.Workplane('XY').box(40, 56, 64).edges('|X').fillet(16)
+           .cut(cq.Workplane('YZ', origin=(-25, 0, 0)).circle(12.5).extrude(50)))
+    cyl = (cq.Workplane('XZ', origin=(0, 36, 0)).circle(45).circle(39).extrude(-(Lb * 0.56))      # clear of the clevis cheeks
+           .union(cq.Workplane('XZ', origin=(0, 36, 0)).circle(45).extrude(-8))
+           .union(cq.Workplane('XZ', origin=(0, 36 + Lb * 0.56, 0)).circle(45).circle(21).extrude(-8))
+           .union(cq.Workplane('XZ', origin=(0, 28, 0)).circle(16).extrude(-8))                      # its neck to the eye
+           .union(eye))
+    rod = (cq.Workplane('XZ', origin=(0, -36, 0)).circle(20).extrude(Lb * 0.5)
+           .union(cq.Workplane('XZ', origin=(0, -28, 0)).circle(12).extrude(8))
+           .union(eye))
+    bal_body = m.part(PartDef('CHG-BAL-CYL', 'J2 balancer gas spring, 10 kN class', cyl.val(), 'steel_paint', 'drive',
+                              'ISO 11901-1 (gas springs)', f'OD 90 x {Lb * 0.56 + 60:.0f}', 'nitrogen, about 150 bar', None,
+                              'Its nearly constant push holds the upper arm toward upright. The gear and brake carry the rest.',
+                              {'stroke': '175 mm', 'progression': '15 %'}, 'buy'))
+    m.place(j1, bal_body, loc(*p_low), (-80, 0, 0), 'J2')
+    m.place(j2, m.part(PartDef('CHG-BAL-ROD', 'J2 balancer rod and eye', rod.val(), 'ss304', 'drive', 'made to order',
+                               f'OD 40 x {Lb * 0.5:.0f}', '', None, 'Pushes on the upper arm crank pin.', {}, 'make')),
+            loc(p_up[0], p_up[1], p_up[2], rx=180), (-80, 0, 0), 'J2')
+    pin = PartDef('CHG-BAL-PIN', 'Balancer clevis pin 25 x 90', cq.Workplane('YZ').circle(12.5).extrude(45, both=True).val(),
+                  'steel', 'drive', 'ISO 2341', '25 x 90', 'hardened', None,
+                  'Hinges the cartridge eye. Two retaining rings hold it.', {}, 'buy')
+    m.place(j1, pin, loc(*p_low), (-130, 0, 0), 'J2')
+    m.place(j2, pin, loc(*p_up), (-130, 0, 0), 'J2')
+    for sx in (-1, 1):
+        m.place(j1, std.circlip(25, False), std.orient((p_low[0] + sx * 46, p_low[1], p_low[2]), (sx, 0, 0)), (-150, 0, 0), 'J2')
+        m.place(j2, std.circlip(25, False), std.orient((p_up[0] + sx * 46, p_up[1], p_up[2]), (sx, 0, 0)), (-150, 0, 0), 'J2')
+    # anchor bracket on the turret, crank bracket on the upper arm: a clevis on a short arm each
+    def bracket(reach: float, up: bool) -> cq.Workplane:
+        # the clevis: 2 cheeks round the eye, the pin through both; its base (away from the slot) carries the arm,
+        # clear of the pin's retaining rings; the arm ends in a flange on the casting
+        # Both slots open toward +Y: the cylinder rises from the anchor's eye, and the rod, turned half round, leaves the
+        # crank's eye the same way (the crank's slot opened the other way, so its base stood across the rod's neck)
+        sgn = 1 if up else -1                            # the arm's side: up for the crank, down for the anchor
+        clev = (cq.Workplane('XY').box(84, 70, 64).edges('|X').fillet(10)
+                .cut(cq.Workplane('XY').box(44, 80, 70).translate((0, 12, 0))))
+        yc = sgn * 26
+        arm = cq.Workplane('XY').box(reach, 18, 56).translate((42 + reach / 2, yc, 0))
+        fl = cq.Workplane('XY').box(16, 110, 110).translate((42 + reach + 8, yc, 0))
+        return clev.union(arm).union(fl).cut(cq.Workplane('YZ', origin=(-50, 0, 0)).circle(12.6).extrude(100))
+    y_low = p_low[1]
+    grid = [(dy, dz) for dy in range(-55, 56, 5) for dz in (-55, -45, -27, 0, 27, 45, 55)]   # the flange's face, 110 x 110
+
+    def face_x(shape, yc_):
+        xs = []
+        for (dy, dz) in grid:
+            try:
+                xs.append(_surface_at(shape, None, yc_ + dy, dz, 'xmin'))
+            except Exception:          # noqa: BLE001  the line misses the casting there
+                pass
+        return min(xs)
+    x_tur = face_x(tur.val(), y_low - 26)
+    reach_a = x_tur - (bal_x + 42) - 16
+    x_upr = face_x(upper.val(), p_up[1] + 26)
+    reach_c = x_upr - (bal_x + 42) - 16
+    m.place(j1, m.part(PartDef('CHG-BAL-ANC', 'Balancer anchor bracket, turret', bracket(reach_a, False).val(), 'steel_paint',
+                               'structure', 'machined weldment', f'84 x 110 x {reach_a + 58:.0f}', 'S355J2', None,
+                               'Anchors the balancer below the J2 axis. Its flange bolts to the turret column.', {}, 'make')),
+            loc(*p_low), (-100, 0, 0), 'J2')
+    m.place(j2, m.part(PartDef('CHG-BAL-CRK', 'Balancer crank bracket, upper arm', bracket(reach_c, True).val(), 'steel_paint',
+                               'structure', 'machined weldment', f'84 x 110 x {reach_c + 58:.0f}', 'S355J2', None,
+                               'Carries the crank pin above the J2 axis. Its flange bolts to the upper arm.', {}, 'make')),
+            loc(*p_up), (-100, 0, 0), 'J2')
+    for node, p, up, reach in ((j1, p_low, False, reach_a), (j2, p_up, True, reach_c)):
+        yc = 26 if up else -26
+        for dz in (-40, 40):
+            for dy in (-40, 40):
+                m.place(node, std.shcs(10, 35, '12.9', 'Holds the balancer bracket flange to the casting.'),
+                        std.orient((p[0] + 42 + reach, p[1] + yc + dy, p[2] + dz), (1, 0, 0)), (-110, 0, 0), 'J2')
+    # ════════════════════════════════════════════════════════ J3 + forearm ═══
+    L3 = _pitch_layout(40)
+    j3 = j2.child(jp + 'J3_Elbow', loc(0, LU, 0), sub='J3',
+                  joint={'name': jp + 'J3', 'axis': [1, 0, 0], 'limits': S['limits']['j3'], 'kind': 'revolute',
+                         'stowed': S['stowed']['j3']})
+    Tm3 = loc(L3['out_x'], 0, 0, rz=-90)
+    a3 = build_actuator(m, j2, j3, 40, loc(0, LU, 0), Tm3, 'CHG-J3', 'J3')
+    boss3_od = L3['od'] + 36
+    clamp3 = std.shcs(8, 35, '12.9', 'Clamps the J3 actuator drum in the upper arm boss.')
+    for p in front_ring_points(40, 8):
+        r = math.hypot(p[0], p[2])
+        dirv = (0, -p[0] / r, -p[2] / r)
+        pos = (0.0, LU + p[0] / r * (boss3_od / 2 - 8), p[2] / r * (boss3_od / 2 - 8))     # the head in its counterbore
+        m.place(j2, clamp3, std.orient(pos, dirv), tuple(-c * 80 for c in dirv), 'J3')
+    # wrist geometry needed by the forearm's top socket
+    s4 = SIZES[25]
+    L4 = module_length(s4)
+    y4_out = LF - 104.0                       # J4 output face, below the wrist centre
+    y_sock1 = y4_out - s4.of_t - s4.xrb[2]          # J4's housing front face: the socket's top
+    fore = _link_casting(y_sock1, radii['fore'] * 1.16, radii['wristR'] * 1.02,
+                         cheek_x=L3['out_x'] + 18, cheek_r=a3['of_od'] / 2 + 12, cheek_t=18, wall=6.0,
+                         socket_r=s4.od / 2 + 12, socket_bore=s4.od, socket_len=(s4.od - rear_od(s4)) * 0.4 + 48,
+                         act_r=SIZES[40].od / 2, jog=FORE_JOG)
+    fore = cq.Workplane('XY').add(fore)
+    m.place(j3, m.part(PartDef('CHG-FOR', 'Forearm casting', fore.val(), 'a356', 'structure', 'casting, machined',
+                               f'{LF:.1f} elbow to wrist centre', 'A356-T6', None,
+                               'Carries the wrist 1.142 m from the elbow. Its top socket holds J4.',
+                               {'wall': '6 mm'}, 'make')), Location(), (0, 0, 180), 'FORE')
+    fs_ = std.shcs(8, 40, '12.9', 'Holds the forearm cheek to the J3 output flange.')
+    for p in out_flange_points(40):
+        m.place(j3, fs_, std.orient((L3['out_x'] + 18, p[0], p[2]), (-1, 0, 0)), (140, 0, 0), 'FORE')
+
+    # ═════════════════════════════════════════════════════════════ WRIST ═══
+    yc = LF                                   # wrist centre, J3 frame
+    j4 = j3.child(jp + 'J4_ForearmRoll', loc(0, y4_out, 0), sub='WRIST',
+                  joint={'name': jp + 'J4', 'axis': [0, 1, 0], 'limits': S['limits']['j4'], 'kind': 'revolute',
+                         'stowed': S['stowed']['j4']})
+    build_actuator(m, j3, j4, 25, loc(0, y4_out, 0), Location(), 'CHG-J4', 'WRIST', gland_m=16)
+    s4b = std.shcs(6, 25, '12.9', 'Clamps the J4 actuator in the forearm socket.')
+    for p in std.circle_points(8, s4.od / 2 + 6, 'y', offset=y4_out - s4.of_t - s4.xrb[2] + 0.0, start=22.5):
+        m.place(j3, s4b, std.orient(p, (0, -1, 0)), (0, 120, 0), 'WRIST')
+    # wrist yoke: from J4's output face up around J5 (a fork on the +X side carrying J5's housing boss)
+    L5 = _pitch_layout(25)
+    boss5_od = L5['od'] + 24
+    dy5 = yc - y4_out                          # J5 axis above the J4 output face
+    yoke = (cq.Workplane('XZ').circle(SIZES[25].xrb[0] / 2 + 14).extrude(-14)
+            .union(cq.Workplane('XY').box(L5['boss_w'] + 10, dy5, boss5_od * 0.8, centered=(True, False, True))
+                   .edges('|Y').fillet(14))
+            .union(cq.Workplane('YZ', origin=(-(L5['boss_w'] + 10) / 2, dy5, 0)).circle(boss5_od / 2).extrude(L5['boss_w'] + 10))
+            .cut(cq.Workplane('YZ', origin=(-L5['boss_w'] * 2, dy5, 0)).circle(L5['od'] / 2).extrude(L5['boss_w'] * 4))
+            .cut(cq.Workplane('XZ', origin=(0, 14 + 7, 0)).pushPoints([(p[0], p[2]) for p in out_flange_points(25)])
+                 .circle(5.5).extrude(7)))                  # pockets for the J4 flange screws' heads
+    m.place(j4, m.part(PartDef('CHG-YK5', 'Wrist yoke', yoke.val(), 'al6061', 'structure', 'machined from billet',
+                               f'{L5["boss_w"] + 10:.0f} x {dy5:.0f}', '6061-T6', None,
+                               'Turns on J4 and holds the J5 actuator on the wrist centre.', {}, 'make')),
+            Location(), (0, 90, 0), 'WRIST')
+    ys = std.shcs(6, 25, '12.9', 'Holds the wrist yoke to the J4 output flange.')
+    for p in out_flange_points(25):
+        m.place(j4, ys, std.orient((p[0], 14, p[2]), (0, -1, 0)), (0, 110, 0), 'WRIST')
+    j5 = j4.child(jp + 'J5_WristPitch', loc(0, dy5, 0), sub='WRIST',
+                  joint={'name': jp + 'J5', 'axis': [1, 0, 0], 'limits': S['limits']['j5'], 'kind': 'revolute',
+                         'stowed': S['stowed']['j5']})
+    a5 = build_actuator(m, j4, j5, 25, loc(0, dy5, 0), loc(L5['out_x'], 0, 0, rz=-90), 'CHG-J5', 'WRIST', gland_m=16)
+    # J5 output cheek -> wrist tube up to J6 (J6 output face = the tool flange at the wrist centre + LW)
+    s6 = SIZES[20]
+    L6 = module_length(s6)
+    cheek5_x = L5['out_x'] + 14
+    tube_top = LW - L6 + s6.of_t + s6.xrb[2] + 4
+    r6 = max(s6.od, rear_od(s6)) / 2                    # J6's rear bell sits in the socket
+    rc5 = a5['of_od'] / 2 + 10
+    wt = (cq.Workplane('YZ', origin=(cheek5_x - 14, 0, 0)).circle(rc5).extrude(14)
+          .union(cq.Workplane('XY').box(14, tube_top, 2 * rc5).translate((cheek5_x - 7, tube_top / 2, 0)))
+          .union(cq.Workplane('XZ', origin=(0, tube_top, 0)).circle(r6 + 10).extrude(30))
+          .union(cq.Workplane('XY').box(cheek5_x, 30, 90).translate((cheek5_x / 2, tube_top - 15, 0)))
+          .cut(cq.Workplane('XZ', origin=(0, tube_top + 1, 0)).circle(r6).extrude(41)))
+    m.place(j5, m.part(PartDef('CHG-WTB', 'Wrist tube', wt.val(), 'al6061', 'structure', 'machined from billet',
+                               f'J5 cheek to J6, {tube_top:.0f}', '6061-T6', None,
+                               'Turns on J5 and holds the J6 actuator on the tool axis.', {}, 'make')),
+            Location(), (60, 40, 0), 'WRIST')
+    for p in out_flange_points(25):
+        m.place(j5, std.shcs(6, 25, '12.9', 'Holds the wrist tube cheek to the J5 output flange.'),
+                std.orient((cheek5_x, p[0], p[2]), (-1, 0, 0)), (120, 0, 0), 'WRIST')
+    j6 = j5.child(jp + 'J6_ToolRoll', loc(0, LW, 0), sub='WRIST',
+                  joint={'name': jp + 'J6', 'axis': [0, 1, 0], 'limits': S['limits']['j6'], 'kind': 'revolute',
+                         'stowed': S['stowed']['j6']})
+    build_actuator(m, j5, j6, 20, loc(0, LW, 0), Location(), 'CHG-J6', 'WRIST', gland_m=16, gland_ang=J6_GLAND_ANG,
+                   gland_r=J6_GLAND_R)
+    for p in std.circle_points(6, r6 + 5, 'y', offset=tube_top, start=30):
+        m.place(j5, std.shcs(5, 20, '12.9', 'Clamps the J6 actuator in the wrist tube.'), std.orient(p, (0, -1, 0)),
+                (0, 100, 0), 'WRIST')
+    # round the socket ring's outside at mid height (on its top it stood on the J6 clamp screws' heads), open where
+    # the cheek arm joins the ring
+    wring = (cq.Workplane('XY').add(cq.Solid.makeTorus(r6 + 10 + 4, 4, pnt=Vector(0, tube_top - 15, 0), dir=Vector(0, 1, 0)))
+             .cut(cq.Workplane('XY').box(200, 20, 2 * rc5 + 16).translate((130, tube_top - 15, 0))))   # past the side plate
+    m.place(j5, m.part(PartDef('CHG-WRING', 'Status light ring, wrist', wring.val(), 'led', 'electrical',
+                               'LED strip in PC diffuser', f'OD {2 * (r6 + 18):.0f}', '', None,
+                               'Shows the arm state at the connector, where the camera and a person look.', {}, 'buy')),
+            Location(), (0, 30, 0), 'SAFETY')
+
+    return {'j1': j1, 'j2': j2, 'j3': j3, 'j4': j4, 'j5': j5, 'j6': j6, 'tur': tur, 'upper': upper, 'fore': fore}
+
+
+
 def build(spec: dict) -> Model:
     S = spec['chargeArm']
     M = 1000.0
@@ -329,280 +615,10 @@ def build(spec: dict) -> Model:
                                  reference=True)),
             Location(), (0, 0, -260))
 
-    # ════════════════════════════════════════════════════════ J1 + TURRET ═══
-    j1 = base.child('J1_BaseYaw', loc(0, 0, 0), sub='J1',
-                    joint={'name': 'J1', 'axis': [0, 1, 0], 'limits': S['limits']['j1'], 'kind': 'revolute',
-                           'stowed': S['stowed']['j1']})
-    a1 = build_actuator(m, base, j1, 40, loc(0, 0, 0), loc(0, 26, 0), 'CHG-J1', 'J1')
-    j1b = std.shcs(8, 30, '12.9', 'Holds the J1 actuator by its drum shoulder to the mount plate, from below.')
-    r_j1b = (rear_od(SIZES[40]) / 2 + 1 + SIZES[40].od / 2) / 2
-    for p in std.circle_points(8, r_j1b, 'y', offset=plate_under, start=11.25):
-        m.place(base, j1b, std.orient(p, (0, 1, 0)), (0, -60, 0), 'J1')
-    # turret casting: skirt (twin base housing r 193 -> 216, y 0..130), column to the J2 boss
-    L2 = _pitch_layout(50)
-    boss2_od = L2['od'] + 36
-    rb = radii['base']
-    tur = (cq.Workplane('XY').add(cq.Solid.makeCone(rb * 1.12, rb, 128, pnt=Vector(0, 2, 0), dir=Vector(0, 1, 0)))
-           .union(cq.Workplane('XY').add(cq.Solid.makeCone(rb * 0.98, radii['shoulder'] * 0.92, H - 130 - SIZES[50].od / 2 - 5,
-                                                           pnt=Vector(0, 130, 0), dir=Vector(0, 1, 0)))))
-    tur = tur.union(cq.Workplane('YZ', origin=(-L2['boss_w'] / 2, H, 0)).circle(boss2_od / 2).extrude(L2['boss_w']))
-    tur = tur.union(cq.Workplane('XY').box(L2['boss_w'], boss2_od * 0.62, boss2_od * 0.8, centered=(True, False, True))
-                    .translate((0, H - boss2_od * 0.62, 0)))
-    tur = tur.cut(cq.Workplane('YZ', origin=(-L2['boss_w'], H, 0)).circle(L2['od'] / 2).extrude(L2['boss_w'] * 2))
-    tur = tur.cut(cq.Workplane('XZ', origin=(0, -1, 0)).circle(rb * 0.95).extrude(-122))      # skirt cavity
-    tur = tur.cut(cq.Workplane('XZ', origin=(0, 118, 0)).circle(rb * 0.78).extrude(-(H - 130 - SIZES[50].od / 2 - 5 - 12)))
-    tur = tur.union(cq.Workplane('XZ', origin=(0, 26 + 18, 0)).circle(rb * 0.95 + 0.5).circle(22).extrude(18))   # the web on J1's flange
-    tur = tur.cut(cq.Workplane('XZ', origin=(0, 26 + 19, 0)).pushPoints([(p[0], p[2]) for p in out_flange_points(40)])
-                  .circle(4.5).extrude(20))
-    # the J2 drum clamp screws' counterbores: none at the top, none below the axis where the column's box fills the boss
-    # (their heads stood in it); the heads sit 10 mm deep, clear of the upper arm's bridge as it turns over them
-    j2_clamps = []
-    for p in front_ring_points(50, 10):
-        r = math.hypot(p[0], p[2])
-        if p[0] / r > 0.7 or p[0] / r < -0.45:
-            continue
-        u = (0.0, p[0] / r, p[2] / r)
-        j2_clamps.append(u)
-        c0 = boss2_od / 2 - 10
-        tur = tur.cut(cq.Workplane('XY').add(cq.Solid.makeCylinder(8.5, 16, Vector(0, H + u[1] * c0, u[2] * c0), Vector(*u))))
-    m.place(j1, m.part(PartDef('CHG-TUR', 'Turret casting', tur.val(), 'a356', 'structure', 'casting, machined',
-                               f'OD {rb * 2.24:.0f} x {H + boss2_od / 2:.0f}', 'A356-T6', None,
-                               'Turns on J1 and carries the shoulder. Its boss clamps the J2 actuator.',
-                               {'wall': '8 mm'}, 'make')), Location(), (0, 80, 0), 'J1')
-    t1 = std.shcs(8, 30, '12.9', 'Holds the turret web to the J1 output flange.')
-    for p in out_flange_points(40):
-        m.place(j1, t1, std.orient((p[0], 26 + 18, p[2]), (0, -1, 0)), (0, 260, 0), 'J1')
-    # accent band and status ring on the skirt
-    # on the skirt cone (slope 0.12 rb in 128 mm), the 4 mm tube tangent to it
-    band_r = rb * (1.12 - 0.12 * 28 / 128) + 4 / math.cos(math.atan(0.12 * rb / 128)) + 0.03
-    band = cq.Workplane('XY').add(cq.Solid.makeTorus(band_r, 4, pnt=Vector(0, 30, 0), dir=Vector(0, 1, 0)))
-    m.place(j1, m.part(PartDef('CHG-BAND1', 'Turret accent band', band.val(), 'accent', 'structure', 'moulded', '',
-                               '', None, 'OTTOYARD red band. It marks the moving part of the machine.', {}, 'make')),
-            Location(), (0, 40, 0), 'J1')
+    # ═══════════════════════════════════════════════════════ THE ARM (build_chain, above) ═══
+    _c = build_chain(m, base, S, H, LU, LF, LW, radii, plate_under)
+    j1, j2, j3, j4, j6, tur, upper, fore = (_c[k] for k in ('j1', 'j2', 'j3', 'j4', 'j6', 'tur', 'upper', 'fore'))
 
-    # ═══════════════════════════════════════════════ J2 + balancer + upper arm ═══
-    j2 = j1.child('J2_Shoulder', loc(0, H, 0), sub='J2',
-                  joint={'name': 'J2', 'axis': [1, 0, 0], 'limits': S['limits']['j2'], 'kind': 'revolute',
-                         'stowed': S['stowed']['j2']})
-    Tm2 = loc(L2['out_x'], 0, 0, rz=-90)      # module +Y -> world +X
-    a2 = build_actuator(m, j1, j2, 50, loc(0, H, 0), Tm2, 'CHG-J2', 'J2', gland_m=25)
-    clamp_s = std.shcs(10, 40, '12.9', 'Clamps the J2 actuator drum in the turret boss.')
-    for u in j2_clamps:       # radial screws through the boss into the drum, from outside, heads in their counterbores
-        dirv = (0, -u[1], -u[2])
-        pos = (0.0, H + u[1] * (boss2_od / 2 - 10), u[2] * (boss2_od / 2 - 10))
-        m.place(j1, clamp_s, std.orient(pos, dirv), tuple(-c * 90 for c in dirv), 'J2')
-    # status ring on the J2 boss faces (both sides): the twin draws two
-    for sx in (-1, 1):
-        ring = (cq.Workplane('XY').add(cq.Solid.makeTorus(boss2_od / 2 * 0.94, 5,
-                                                          pnt=Vector(sx * (L2['boss_w'] / 2 + 5), H, 0), dir=Vector(1, 0, 0)))
-                .cut(cq.Workplane('XY').box(60, 400, 600).translate((sx * (L2['boss_w'] / 2 + 5), H - 60 - 200, 0))))
-        m.place(j1, m.part(PartDef(f'CHG-J2-RING{"R" if sx > 0 else "L"}', 'Status light ring, J2', ring.val(), 'led',
-                                   'electrical', 'LED strip in PC diffuser', f'OD {boss2_od * 0.94:.0f}', '', None,
-                                   'Shows the arm state: teal ready, amber moving, green charging, red fault.', {}, 'buy')),
-                Location(), (sx * 60, 0, 0), 'SAFETY')
-    upper = _link_casting(LU, radii['upper'] * 1.18, radii['elbow'] * 0.86,
-                          cheek_x=L2['out_x'] + 20, cheek_r=a2['of_od'] / 2 + 14, cheek_t=20,
-                          boss_od=_pitch_layout(40)['od'] + 36, boss_w=_pitch_layout(40)['boss_w'],
-                          boss_bore=SIZES[40].od, act_r=rear_od(SIZES[50]) / 2 if rear_od(SIZES[50]) > SIZES[50].od else SIZES[50].od / 2,
-                          end_w=UPR_END_W)
-    # clear of J3's front, beside the boss: its bearing clamp ring (OD 214) and its screws stood in the beam's flanks
-    upper = (cq.Workplane('XY').add(upper)
-             .cut(cq.Workplane('YZ', origin=(_pitch_layout(40)['boss_w'] / 2, LU, 0)).circle(SIZES[40].od / 2 + 2).extrude(50)))
-    # the J3 drum clamp screws' counterbores, 8 mm deep: their heads stood proud of the boss, under the forearm's bridge
-    b3_r = (_pitch_layout(40)['od'] + 36) / 2
-    for p in front_ring_points(40, 8):
-        r = math.hypot(p[0], p[2])
-        u = (0.0, p[0] / r, p[2] / r)
-        upper = upper.cut(cq.Workplane('XY').add(cq.Solid.makeCylinder(7.0, 16, Vector(0, LU + u[1] * (b3_r - 8), u[2] * (b3_r - 8)),
-                                                                       Vector(*u))))
-    m.place(j2, m.part(PartDef('CHG-UPR', 'Upper arm casting', upper.val(), 'a356', 'structure', 'casting, machined',
-                               f'{LU:.1f} between axes', 'A356-T6', None,
-                               'Carries the elbow 1.344 m from the shoulder. Hollow for stiffness per kilogram.',
-                               {'wall': '7 mm', 'axis distance': f'{LU:.1f} mm, bored in one set-up'}, 'make')),
-            Location(), (0, 0, 220), 'UPPER')
-    us = std.shcs(10, 45, '12.9', 'Holds the upper arm cheek to the J2 output flange.')
-    for p in out_flange_points(50):
-        x = L2['out_x'] + 20
-        m.place(j2, us, std.orient((x, p[0], p[2]), (-1, 0, 0)), (160, 0, 0), 'UPPER')
-    for k in range(2):
-        a = math.radians(360 / 32 + 180 * k)
-        r = out_flange_points(50)[0][0]
-        m.place(j2, std.dowel(10, 30), loc(L2['out_x'] + 5, r * math.cos(a), r * math.sin(a), rz=90), (140, 0, 0), 'UPPER')
-
-    # gravity balancer, the inverted-pendulum kind: a compression spring cartridge between an anchor BAL_A
-    # below the J2 axis (on the turret) and a crank pin BAL_R above it (on the upper arm). Leaning the arm
-    # either way shortens it, and its push makes a restoring torque F * a * r * sin(q2) / d: the shape of
-    # the gravity torque itself. On the -X side, outside the J2 motor bell and the turret column.
-    bal_x = L2['out_x'] - L2['L'] - 80                  # outboard of the J2 actuator's rear cover and its gland
-    p_low = (bal_x, H - BAL_A, 0.0)               # J1 frame
-    p_up = (bal_x, BAL_R, 0.0)                    # J2 frame (zero pose: straight above the axis)
-    Lb = BAL_A + BAL_R
-    eye = (cq.Workplane('XY').box(40, 56, 64).edges('|X').fillet(16)
-           .cut(cq.Workplane('YZ', origin=(-25, 0, 0)).circle(12.5).extrude(50)))
-    cyl = (cq.Workplane('XZ', origin=(0, 36, 0)).circle(45).circle(39).extrude(-(Lb * 0.56))      # clear of the clevis cheeks
-           .union(cq.Workplane('XZ', origin=(0, 36, 0)).circle(45).extrude(-8))
-           .union(cq.Workplane('XZ', origin=(0, 36 + Lb * 0.56, 0)).circle(45).circle(21).extrude(-8))
-           .union(cq.Workplane('XZ', origin=(0, 28, 0)).circle(16).extrude(-8))                      # its neck to the eye
-           .union(eye))
-    rod = (cq.Workplane('XZ', origin=(0, -36, 0)).circle(20).extrude(Lb * 0.5)
-           .union(cq.Workplane('XZ', origin=(0, -28, 0)).circle(12).extrude(8))
-           .union(eye))
-    bal_body = m.part(PartDef('CHG-BAL-CYL', 'J2 balancer gas spring, 10 kN class', cyl.val(), 'steel_paint', 'drive',
-                              'ISO 11901-1 (gas springs)', f'OD 90 x {Lb * 0.56 + 60:.0f}', 'nitrogen, about 150 bar', None,
-                              'Its nearly constant push holds the upper arm toward upright. The gear and brake carry the rest.',
-                              {'stroke': '175 mm', 'progression': '15 %'}, 'buy'))
-    m.place(j1, bal_body, loc(*p_low), (-80, 0, 0), 'J2')
-    m.place(j2, m.part(PartDef('CHG-BAL-ROD', 'J2 balancer rod and eye', rod.val(), 'ss304', 'drive', 'made to order',
-                               f'OD 40 x {Lb * 0.5:.0f}', '', None, 'Pushes on the upper arm crank pin.', {}, 'make')),
-            loc(p_up[0], p_up[1], p_up[2], rx=180), (-80, 0, 0), 'J2')
-    pin = PartDef('CHG-BAL-PIN', 'Balancer clevis pin 25 x 90', cq.Workplane('YZ').circle(12.5).extrude(45, both=True).val(),
-                  'steel', 'drive', 'ISO 2341', '25 x 90', 'hardened', None,
-                  'Hinges the cartridge eye. Two retaining rings hold it.', {}, 'buy')
-    m.place(j1, pin, loc(*p_low), (-130, 0, 0), 'J2')
-    m.place(j2, pin, loc(*p_up), (-130, 0, 0), 'J2')
-    for sx in (-1, 1):
-        m.place(j1, std.circlip(25, False), std.orient((p_low[0] + sx * 46, p_low[1], p_low[2]), (sx, 0, 0)), (-150, 0, 0), 'J2')
-        m.place(j2, std.circlip(25, False), std.orient((p_up[0] + sx * 46, p_up[1], p_up[2]), (sx, 0, 0)), (-150, 0, 0), 'J2')
-    # anchor bracket on the turret, crank bracket on the upper arm: a clevis on a short arm each
-    def bracket(reach: float, up: bool) -> cq.Workplane:
-        # the clevis: 2 cheeks round the eye, the pin through both; its base (away from the slot) carries the arm,
-        # clear of the pin's retaining rings; the arm ends in a flange on the casting
-        # Both slots open toward +Y: the cylinder rises from the anchor's eye, and the rod, turned half round, leaves the
-        # crank's eye the same way (the crank's slot opened the other way, so its base stood across the rod's neck)
-        sgn = 1 if up else -1                            # the arm's side: up for the crank, down for the anchor
-        clev = (cq.Workplane('XY').box(84, 70, 64).edges('|X').fillet(10)
-                .cut(cq.Workplane('XY').box(44, 80, 70).translate((0, 12, 0))))
-        yc = sgn * 26
-        arm = cq.Workplane('XY').box(reach, 18, 56).translate((42 + reach / 2, yc, 0))
-        fl = cq.Workplane('XY').box(16, 110, 110).translate((42 + reach + 8, yc, 0))
-        return clev.union(arm).union(fl).cut(cq.Workplane('YZ', origin=(-50, 0, 0)).circle(12.6).extrude(100))
-    y_low = p_low[1]
-    grid = [(dy, dz) for dy in range(-55, 56, 5) for dz in (-55, -45, -27, 0, 27, 45, 55)]   # the flange's face, 110 x 110
-
-    def face_x(shape, yc_):
-        xs = []
-        for (dy, dz) in grid:
-            try:
-                xs.append(_surface_at(shape, None, yc_ + dy, dz, 'xmin'))
-            except Exception:          # noqa: BLE001  the line misses the casting there
-                pass
-        return min(xs)
-    x_tur = face_x(tur.val(), y_low - 26)
-    reach_a = x_tur - (bal_x + 42) - 16
-    x_upr = face_x(upper.val(), p_up[1] + 26)
-    reach_c = x_upr - (bal_x + 42) - 16
-    m.place(j1, m.part(PartDef('CHG-BAL-ANC', 'Balancer anchor bracket, turret', bracket(reach_a, False).val(), 'steel_paint',
-                               'structure', 'machined weldment', f'84 x 110 x {reach_a + 58:.0f}', 'S355J2', None,
-                               'Anchors the balancer below the J2 axis. Its flange bolts to the turret column.', {}, 'make')),
-            loc(*p_low), (-100, 0, 0), 'J2')
-    m.place(j2, m.part(PartDef('CHG-BAL-CRK', 'Balancer crank bracket, upper arm', bracket(reach_c, True).val(), 'steel_paint',
-                               'structure', 'machined weldment', f'84 x 110 x {reach_c + 58:.0f}', 'S355J2', None,
-                               'Carries the crank pin above the J2 axis. Its flange bolts to the upper arm.', {}, 'make')),
-            loc(*p_up), (-100, 0, 0), 'J2')
-    for node, p, up, reach in ((j1, p_low, False, reach_a), (j2, p_up, True, reach_c)):
-        yc = 26 if up else -26
-        for dz in (-40, 40):
-            for dy in (-40, 40):
-                m.place(node, std.shcs(10, 35, '12.9', 'Holds the balancer bracket flange to the casting.'),
-                        std.orient((p[0] + 42 + reach, p[1] + yc + dy, p[2] + dz), (1, 0, 0)), (-110, 0, 0), 'J2')
-    # ════════════════════════════════════════════════════════ J3 + forearm ═══
-    L3 = _pitch_layout(40)
-    j3 = j2.child('J3_Elbow', loc(0, LU, 0), sub='J3',
-                  joint={'name': 'J3', 'axis': [1, 0, 0], 'limits': S['limits']['j3'], 'kind': 'revolute',
-                         'stowed': S['stowed']['j3']})
-    Tm3 = loc(L3['out_x'], 0, 0, rz=-90)
-    a3 = build_actuator(m, j2, j3, 40, loc(0, LU, 0), Tm3, 'CHG-J3', 'J3')
-    boss3_od = L3['od'] + 36
-    clamp3 = std.shcs(8, 35, '12.9', 'Clamps the J3 actuator drum in the upper arm boss.')
-    for p in front_ring_points(40, 8):
-        r = math.hypot(p[0], p[2])
-        dirv = (0, -p[0] / r, -p[2] / r)
-        pos = (0.0, LU + p[0] / r * (boss3_od / 2 - 8), p[2] / r * (boss3_od / 2 - 8))     # the head in its counterbore
-        m.place(j2, clamp3, std.orient(pos, dirv), tuple(-c * 80 for c in dirv), 'J3')
-    # wrist geometry needed by the forearm's top socket
-    s4 = SIZES[25]
-    L4 = module_length(s4)
-    y4_out = LF - 104.0                       # J4 output face, below the wrist centre
-    y_sock1 = y4_out - s4.of_t - s4.xrb[2]          # J4's housing front face: the socket's top
-    fore = _link_casting(y_sock1, radii['fore'] * 1.16, radii['wristR'] * 1.02,
-                         cheek_x=L3['out_x'] + 18, cheek_r=a3['of_od'] / 2 + 12, cheek_t=18, wall=6.0,
-                         socket_r=s4.od / 2 + 12, socket_bore=s4.od, socket_len=(s4.od - rear_od(s4)) * 0.4 + 48,
-                         act_r=SIZES[40].od / 2, jog=FORE_JOG)
-    fore = cq.Workplane('XY').add(fore)
-    m.place(j3, m.part(PartDef('CHG-FOR', 'Forearm casting', fore.val(), 'a356', 'structure', 'casting, machined',
-                               f'{LF:.1f} elbow to wrist centre', 'A356-T6', None,
-                               'Carries the wrist 1.142 m from the elbow. Its top socket holds J4.',
-                               {'wall': '6 mm'}, 'make')), Location(), (0, 0, 180), 'FORE')
-    fs_ = std.shcs(8, 40, '12.9', 'Holds the forearm cheek to the J3 output flange.')
-    for p in out_flange_points(40):
-        m.place(j3, fs_, std.orient((L3['out_x'] + 18, p[0], p[2]), (-1, 0, 0)), (140, 0, 0), 'FORE')
-
-    # ═════════════════════════════════════════════════════════════ WRIST ═══
-    yc = LF                                   # wrist centre, J3 frame
-    j4 = j3.child('J4_ForearmRoll', loc(0, y4_out, 0), sub='WRIST',
-                  joint={'name': 'J4', 'axis': [0, 1, 0], 'limits': S['limits']['j4'], 'kind': 'revolute',
-                         'stowed': S['stowed']['j4']})
-    build_actuator(m, j3, j4, 25, loc(0, y4_out, 0), Location(), 'CHG-J4', 'WRIST', gland_m=16)
-    s4b = std.shcs(6, 25, '12.9', 'Clamps the J4 actuator in the forearm socket.')
-    for p in std.circle_points(8, s4.od / 2 + 6, 'y', offset=y4_out - s4.of_t - s4.xrb[2] + 0.0, start=22.5):
-        m.place(j3, s4b, std.orient(p, (0, -1, 0)), (0, 120, 0), 'WRIST')
-    # wrist yoke: from J4's output face up around J5 (a fork on the +X side carrying J5's housing boss)
-    L5 = _pitch_layout(25)
-    boss5_od = L5['od'] + 24
-    dy5 = yc - y4_out                          # J5 axis above the J4 output face
-    yoke = (cq.Workplane('XZ').circle(SIZES[25].xrb[0] / 2 + 14).extrude(-14)
-            .union(cq.Workplane('XY').box(L5['boss_w'] + 10, dy5, boss5_od * 0.8, centered=(True, False, True))
-                   .edges('|Y').fillet(14))
-            .union(cq.Workplane('YZ', origin=(-(L5['boss_w'] + 10) / 2, dy5, 0)).circle(boss5_od / 2).extrude(L5['boss_w'] + 10))
-            .cut(cq.Workplane('YZ', origin=(-L5['boss_w'] * 2, dy5, 0)).circle(L5['od'] / 2).extrude(L5['boss_w'] * 4))
-            .cut(cq.Workplane('XZ', origin=(0, 14 + 7, 0)).pushPoints([(p[0], p[2]) for p in out_flange_points(25)])
-                 .circle(5.5).extrude(7)))                  # pockets for the J4 flange screws' heads
-    m.place(j4, m.part(PartDef('CHG-YK5', 'Wrist yoke', yoke.val(), 'al6061', 'structure', 'machined from billet',
-                               f'{L5["boss_w"] + 10:.0f} x {dy5:.0f}', '6061-T6', None,
-                               'Turns on J4 and holds the J5 actuator on the wrist centre.', {}, 'make')),
-            Location(), (0, 90, 0), 'WRIST')
-    ys = std.shcs(6, 25, '12.9', 'Holds the wrist yoke to the J4 output flange.')
-    for p in out_flange_points(25):
-        m.place(j4, ys, std.orient((p[0], 14, p[2]), (0, -1, 0)), (0, 110, 0), 'WRIST')
-    j5 = j4.child('J5_WristPitch', loc(0, dy5, 0), sub='WRIST',
-                  joint={'name': 'J5', 'axis': [1, 0, 0], 'limits': S['limits']['j5'], 'kind': 'revolute',
-                         'stowed': S['stowed']['j5']})
-    a5 = build_actuator(m, j4, j5, 25, loc(0, dy5, 0), loc(L5['out_x'], 0, 0, rz=-90), 'CHG-J5', 'WRIST', gland_m=16)
-    # J5 output cheek -> wrist tube up to J6 (J6 output face = the tool flange at the wrist centre + LW)
-    s6 = SIZES[20]
-    L6 = module_length(s6)
-    cheek5_x = L5['out_x'] + 14
-    tube_top = LW - L6 + s6.of_t + s6.xrb[2] + 4
-    r6 = max(s6.od, rear_od(s6)) / 2                    # J6's rear bell sits in the socket
-    rc5 = a5['of_od'] / 2 + 10
-    wt = (cq.Workplane('YZ', origin=(cheek5_x - 14, 0, 0)).circle(rc5).extrude(14)
-          .union(cq.Workplane('XY').box(14, tube_top, 2 * rc5).translate((cheek5_x - 7, tube_top / 2, 0)))
-          .union(cq.Workplane('XZ', origin=(0, tube_top, 0)).circle(r6 + 10).extrude(30))
-          .union(cq.Workplane('XY').box(cheek5_x, 30, 90).translate((cheek5_x / 2, tube_top - 15, 0)))
-          .cut(cq.Workplane('XZ', origin=(0, tube_top + 1, 0)).circle(r6).extrude(41)))
-    m.place(j5, m.part(PartDef('CHG-WTB', 'Wrist tube', wt.val(), 'al6061', 'structure', 'machined from billet',
-                               f'J5 cheek to J6, {tube_top:.0f}', '6061-T6', None,
-                               'Turns on J5 and holds the J6 actuator on the tool axis.', {}, 'make')),
-            Location(), (60, 40, 0), 'WRIST')
-    for p in out_flange_points(25):
-        m.place(j5, std.shcs(6, 25, '12.9', 'Holds the wrist tube cheek to the J5 output flange.'),
-                std.orient((cheek5_x, p[0], p[2]), (-1, 0, 0)), (120, 0, 0), 'WRIST')
-    j6 = j5.child('J6_ToolRoll', loc(0, LW, 0), sub='WRIST',
-                  joint={'name': 'J6', 'axis': [0, 1, 0], 'limits': S['limits']['j6'], 'kind': 'revolute',
-                         'stowed': S['stowed']['j6']})
-    build_actuator(m, j5, j6, 20, loc(0, LW, 0), Location(), 'CHG-J6', 'WRIST', gland_m=16, gland_ang=J6_GLAND_ANG,
-                   gland_r=J6_GLAND_R)
-    for p in std.circle_points(6, r6 + 5, 'y', offset=tube_top, start=30):
-        m.place(j5, std.shcs(5, 20, '12.9', 'Clamps the J6 actuator in the wrist tube.'), std.orient(p, (0, -1, 0)),
-                (0, 100, 0), 'WRIST')
-    # round the socket ring's outside at mid height (on its top it stood on the J6 clamp screws' heads), open where
-    # the cheek arm joins the ring
-    wring = (cq.Workplane('XY').add(cq.Solid.makeTorus(r6 + 10 + 4, 4, pnt=Vector(0, tube_top - 15, 0), dir=Vector(0, 1, 0)))
-             .cut(cq.Workplane('XY').box(200, 20, 2 * rc5 + 16).translate((130, tube_top - 15, 0))))   # past the side plate
-    m.place(j5, m.part(PartDef('CHG-WRING', 'Status light ring, wrist', wring.val(), 'led', 'electrical',
-                               'LED strip in PC diffuser', f'OD {2 * (r6 + 18):.0f}', '', None,
-                               'Shows the arm state at the connector, where the camera and a person look.', {}, 'buy')),
-            Location(), (0, 30, 0), 'SAFETY')
 
     # ═════════════════════════════════════════════════════════════ TOOL ═══
     tool = j6.child('Tool', loc(0, 0, 0), sub='TOOL')
@@ -703,8 +719,10 @@ def build(spec: dict) -> Model:
     return m
 
 
-def build_tool(m: Model, tool: Node, LT: float) -> None:
-    """The connector tool on the J6 flange (tool frame: origin at the flange face, +Y out along the tool axis)."""
+def build_ft_sensor(m: Model, tool: Node, sub: str | None = None) -> float:
+    """The 6-axis force and torque sensor on the J6 tool flange, with its 4 screws and its dowel (tool frame: origin at
+    the flange face, +Y out). Returns its outer face's y. The charge arm's connector tool and the wash bay's detail
+    arms' polishing head both start with it."""
     # ISO 9409-1-50-4-M6 on a size 20 output (pitch circle 50, 4 x M6, spigot 31.5): the adapter starts here
     y = 0.0
     ft = (cq.Workplane('XZ', origin=(0, y, 0)).circle(52).extrude(-40).faces('>Y').edges().chamfer(1.5)
@@ -716,10 +734,16 @@ def build_tool(m: Model, tool: Node, LT: float) -> None:
                                  'ISO 9409-1-50-4-M6 both faces', 'OD 104 x 40', '', None,
                                  'Reads the 3 forces and 3 torques at the tool. The arm stops the insertion past its force limit.',
                                  {'range': 'Fz 1,000 N, Fxy 500 N, Txyz 40 N m', 'rate': '1 kHz'}, 'buy')),
-            Location(), (0, 60, 0))
+            Location(), (0, 60, 0), sub)
     for p in std.circle_points(4, 25, 'y', offset=y + 12, start=45):
-        m.place(tool, std.shcs(6, 20, '12.9', 'Holds the sensor to the J6 tool flange (ISO 9409-1).'), std.orient(p, (0, -1, 0)), (0, 80, 0))
-    m.place(tool, std.dowel(6, 12), loc(0, 40, 25), (0, 70, 0))
+        m.place(tool, std.shcs(6, 20, '12.9', 'Holds the sensor to the J6 tool flange (ISO 9409-1).'), std.orient(p, (0, -1, 0)), (0, 80, 0), sub)
+    m.place(tool, std.dowel(6, 12), loc(0, 40, 25), (0, 70, 0), sub)
+    return 40.0
+
+
+def build_tool(m: Model, tool: Node, LT: float) -> None:
+    """The connector tool on the J6 flange (tool frame: origin at the flange face, +Y out along the tool axis)."""
+    build_ft_sensor(m, tool)
     y = 40.0
     cu = (cq.Workplane('XZ', origin=(0, y, 0)).circle(56).extrude(-12)
           .union(cq.Workplane('XZ', origin=(0, y + 48, 0)).circle(56).extrude(-12)))

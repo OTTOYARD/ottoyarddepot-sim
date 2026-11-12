@@ -13,6 +13,7 @@ import { FLANK_STANDOFF_M, MOUNT_HEIGHT_M, METRES_PER_PLAN_UNIT } from '@/lib/ot
 import { CLEAN_CHAIN, CLEAN_PHASE_S, CLEAN_SIDE_NOMINAL_S, MAST_FOOT_MAX, type CleanPhase } from '@/lib/ottoCleanArm/cleanArmSpec';
 import { cleanJointsAt, sidesFor, type CleanJoints } from '@/lib/ottoCleanArm/cleanArmPose';
 import { programPoseAt, type WashPose } from '@/lib/ottoWash/washPose';
+import { DOCK_DY_M } from '@/lib/ottoWash/detailArm';
 import {
   CABIN_HOLD_NOMINAL_S, PASS_NOMINAL_S, WASH_GANTRY as WG, WASH_PHASE_S, washChain, isPass, type WashPhase,
 } from '@/lib/ottoWash/washSpec';
@@ -127,9 +128,10 @@ export const ROBOT_INFO: Record<RobotKey, { name: string; short: string; summary
     name: 'OTTO-WASH',
     short: 'Wash bay machine',
     summary: [
-      'A touchless machine in each wash bay. It moves over the parked car 6 times.',
-      'The passes are: pre-soak, 2 water-jet passes, rinse, 2 dry passes. No brush touches the car.',
-      'Then 2 arms wipe each sensor with a soft pad. The doors stay shut.',
+      'A touchless wash line in each wash bay. The car stands still and the machines move round it.',
+      'A gantry makes 6 passes: pre-soak, 2 water-jet passes, rinse, 2 dry passes. Then it stows at the entrance.',
+      'Then 2 six-axis arms come from the exit end, one each side, and polish each sensor with a soft pad.',
+      'No brush touches the car. The doors stay shut.',
     ],
   },
 };
@@ -141,9 +143,9 @@ export const FUNCTIONS: readonly RoboticFunction[] = [
   { id: 'interior', label: 'Interior', robot: 'clean_arm', subs: ['NOZZLE', 'WAND', 'WRIST'] },
   { id: 'vacuum', label: 'Vacuum', robot: 'clean_arm', subs: ['VAC', 'WAND', 'NOZZLE'] },
   { id: 'overhead', label: 'Overhead cleaning', robot: 'clean_arm', subs: ['J1', 'LINK1', 'J2', 'LINK2', 'MAST'] },
-  { id: 'wash', label: 'Wash bay', robot: 'wash_gantry', subs: ['ARCH', 'DRYER', 'WIPE'] },
-  { id: 'wash_wipe', label: 'Wash bay sensor wipe', robot: 'wash_gantry', subs: ['WIPE'] },
-  { id: 'wash_overhead', label: 'Wash bay overhead', robot: 'wash_gantry', subs: ['DRYER', 'WIPE'] },
+  { id: 'wash', label: 'Wash bay', robot: 'wash_gantry', subs: ['ARCH', 'DRYER', 'POLISH'] },
+  { id: 'wash_wipe', label: 'Wash bay sensor polish', robot: 'wash_gantry', subs: ['POLISH', 'WRIST', 'TRACK', 'DOCK'] },
+  { id: 'wash_overhead', label: 'Wash bay overhead', robot: 'wash_gantry', subs: ['DRYER', 'ARCH'] },
 ];
 
 export const CATEGORY_LABEL: Record<string, string> = {
@@ -221,32 +223,30 @@ function cleanPoses(): PosePreset[] {
   ];
 }
 
-/** The wipe arms' sliding mast stages (cad wash_gantry.WIPE_SLIDES): each takes half the drop. */
-export const WASH_WIPE_SLIDES = 2;
 /** The top air knife's lift column stages (cad wash_gantry.TOP_SLIDES): each takes a third of the lift. */
 export const WASH_TOP_SLIDES = 3;
 
-/** The wash machine's slides as the CAD's nodes take them, at a phase of the program played from its start. */
+/** The wash bay's moving parts as the CAD's nodes take them, at a phase of the program played from its start. */
 export function washAngles(phase: WashPhase, t: number): Record<string, number> {
   return washJoints(programPoseAt(phase, t));
 }
 
 /**
- * The wash machine's slides and wrists as the CAD's nodes take them, from a pose of the twin's machine (plan units ->
- * metres, wrist turns in radians). The two arms mirror each other, so their wrists turn opposite ways about the mast.
+ * The wash bay's moving parts as the CAD's nodes take them, from a pose of the twin's bay: the gantry and its knives
+ * (plan units -> metres), and each detail arm's carriage (metres from its dock) and six joints (radians). The east arm
+ * is the CAD's 'L', the west its 'R' (the CAD's +X is west).
  */
 export function washJoints(p: WashPose): Record<string, number> {
   const m = METRES_PER_PLAN_UNIT;
   const out: Record<string, number> = { GANTRY: -p.dy * m };
   for (let k = 1; k <= WASH_TOP_SLIDES; k++) out[`DRYER_TOP${k}`] = (WG.dryer.top.retractY - p.dryerTopY) * m / WASH_TOP_SLIDES;
-  for (const [s, sgn] of [['L', 1], ['R', -1]] as const) {
-    out[`DRYER_SIDE_${s}`] = (WG.dryer.side.retractX - p.dryerSideX) * m;
-    out[`WIPE_${s}_X`] = (WG.wipe.parkX - p.mastX) * m;
-    for (let k = 1; k <= WASH_WIPE_SLIDES; k++) out[`WIPE_${s}_DROP${k}`] = (WG.wipe.stowY - p.padY) * m / WASH_WIPE_SLIDES;
-    out[`WIPE_${s}_YAW`] = sgn * p.padYaw * (Math.PI / 2);
-    // the tilt hinge is in the forearm's own frame, which the right arm's CAD turns half round: the same sign for both
-    out[`WIPE_${s}_TILT`] = p.padTilt * (Math.PI / 2);
-  }
+  for (const s of ['L', 'R']) out[`DRYER_SIDE_${s}`] = (WG.dryer.side.retractX - p.dryerSideX) * m;
+  p.arms.forEach((a, i) => {
+    const s = i === 0 ? 'L' : 'R';
+    out[`DARM_${s}_RAIL`] = a.rail - DOCK_DY_M;
+    out[`DARM_${s}_J1`] = a.q.j1; out[`DARM_${s}_J2`] = a.q.j2; out[`DARM_${s}_J3`] = a.q.j3;
+    out[`DARM_${s}_J4`] = a.q.j4; out[`DARM_${s}_J5`] = a.q.j5; out[`DARM_${s}_J6`] = a.q.j6;
+  });
   return out;
 }
 
@@ -255,8 +255,9 @@ function washPoses(): PosePreset[] {
     { id: 'home', label: 'Home', angles: washAngles('home', 1) },
     { id: 'jet', label: 'Wash pass', angles: washAngles('wash_1', 0.5) },
     { id: 'dry', label: 'Dry pass', angles: washAngles('dry_1', 0.45) },
-    { id: 'wipe_roof', label: 'Wipe the roof sensors', angles: washAngles('wipe_roof', 0.7) },
-    { id: 'wipe_front', label: 'Wipe the front sensors', angles: washAngles('wipe_front', 0.7) },
+    { id: 'wipe_roof', label: 'Polish the roof lidar', angles: washAngles('wipe_roof', 0.19) },
+    { id: 'wipe_front', label: 'Polish the front sensors', angles: washAngles('wipe_front', 0.25) },
+    { id: 'wipe_sides', label: 'Polish a side camera', angles: washAngles('wipe_sides', 0.58) },
   ];
 }
 
@@ -281,12 +282,12 @@ const CLEAN_LABEL: Record<CleanPhase, string> = {
   ascend_b: 'Raise the mast', raise_b: 'Turn the wand up', return: 'Swing home', doors_close: 'The doors close',
 };
 const WASH_LABEL: Partial<Record<WashPhase, string>> = {
-  settle: 'The car stops under the light', cabin_hold: 'Hold for the cabin clean. The doors stay shut',
+  settle: 'The car stops at the bay centre', cabin_hold: 'Hold for the cabin clean. The doors stay shut',
   soak: 'Pass 1: pre-soak', wash_1: 'Pass 2: water jets', wash_2: 'Pass 3: water jets', rinse: 'Pass 4: rinse',
-  dry_1: 'Pass 5: dry', dry_2: 'Pass 6: dry',
-  arms_down: 'Lower the wipe arms', wipe_front: 'Wipe the front sensors', wipe_sides: 'Wipe the side cameras',
-  wipe_roof: 'Wipe the roof sensors', wipe_rear: 'Wipe the rear sensors', arms_up: 'Raise the wipe arms',
-  to_home: 'Go home', done: 'Home. The light turns green',
+  dry_1: 'Pass 5: dry', dry_2: 'Pass 6: dry. The gantry stows at the entrance',
+  arms_out: 'The detail arms leave their docks', wipe_front: 'Polish the front sensors', wipe_sides: 'Polish the side cameras',
+  wipe_roof: 'Polish the roof lidar', wipe_rear: 'Polish the rear sensors', arms_stow: 'The detail arms go back to their docks',
+  done: 'All stowed. The light turns green',
 };
 
 export function cycleSteps(robot: RobotKey): CycleStep[] {

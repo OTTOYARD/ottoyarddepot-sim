@@ -5,6 +5,8 @@ import { BAY_STALL_Y } from '@/lib/sitePlan';
 import { advanceWashSession, IDLE_WASH, type WashSession } from '@/lib/ottoWash/washSession';
 import { washPoseAt, type WashPose } from '@/lib/ottoWash/washPose';
 import { WASH_GANTRY as G, WASH_HOME_DY } from '@/lib/ottoWash/washSpec';
+import { stowed } from '@/lib/ottoWash/detailArm';
+import { METRES_PER_PLAN_UNIT as M } from '@/lib/ottoChargeArm/cobotSpec';
 import { paintWashGantry2D, SPRAY_FILL, STATUS_FILL, WashGantries2D } from './WashGantry2D';
 
 /** The poses of one whole program, a frame at a time, kept every `keep` sim seconds. */
@@ -42,8 +44,11 @@ describe('the wash machines on the 2D plan', () => {
     const g = mount().querySelector('[data-wash-gantry]')!;
     const bay = WASH_SHELL.bays[0];
     expect(gantryDy(g)).toBeCloseTo(WASH_HOME_DY, 6);
-    expect(num(part(g, 'arm-w-pad'), 'cx')).toBeCloseTo(bay.x - (G.wipe.parkX - G.wipe.forearm), 6);
-    expect(num(part(g, 'arm-e-pad'), 'cx')).toBeCloseTo(bay.x + (G.wipe.parkX - G.wipe.forearm), 6);
+    // both arms docked at the exit end: each pad beside its track, north of the car
+    expect(num(part(g, 'arm-w-pad'), 'cx')).toBeCloseTo(bay.x + stowed(-1).pad.x / M, 6);
+    expect(num(part(g, 'arm-e-pad'), 'cx')).toBeCloseTo(bay.x + stowed(1).pad.x / M, 6);
+    expect(num(part(g, 'arm-e-pad'), 'cy')).toBeLessThan(BAY_STALL_Y - 9);
+    expect(num(part(g, 'arm-e-car'), 'y') + 1.09 / 2).toBeCloseTo(BAY_STALL_Y + G.detail.dockDy, 6);
     expect(part(g, 'beacon').getAttribute('fill')).toBe(STATUS_FILL.home);
     expect(part(g, 'stop').getAttribute('fill')).toBe('#35d07f');
     expect(part(g, 'spray').getAttribute('visibility')).toBe('hidden');
@@ -52,19 +57,22 @@ describe('the wash machines on the 2D plan', () => {
     // and painting the idle pose changes nothing
     paintWashGantry2D(g as SVGGElement, bay.x, washPoseAt(IDLE_WASH));
     expect(gantryDy(g)).toBeCloseTo(WASH_HOME_DY, 3);
-    expect(num(part(g, 'arm-w-pad'), 'cx')).toBeCloseTo(bay.x - (G.wipe.parkX - G.wipe.forearm), 3);
+    expect(num(part(g, 'arm-w-pad'), 'cx')).toBeCloseTo(bay.x + stowed(-1).pad.x / M, 3);
   });
 
   it('draws exactly the pose the 3D view draws, through a whole detail program', () => {
     const g = mount().querySelector('[data-wash-gantry]')! as SVGGElement;
     const bay = WASH_SHELL.bays[0];
     const seen = new Set<string>();
-    for (const { s, p } of program(true, 990)) {
+    for (const { s, p } of program(true, 1050)) {
       paintWashGantry2D(g, bay.x, p);
       seen.add(s.phase);
       expect(gantryDy(g)).toBeCloseTo(p.dy, 2);
-      expect(num(part(g, 'arm-w-pad'), 'cx')).toBeCloseTo(bay.x - p.padX, 2);
-      expect(num(part(g, 'arm-e-pad'), 'cx')).toBeCloseTo(bay.x + p.padX, 2);
+      expect(num(part(g, 'arm-e-pad'), 'cx')).toBeCloseTo(bay.x + p.arms[0].pad.x / M, 2);
+      expect(num(part(g, 'arm-w-pad'), 'cx')).toBeCloseTo(bay.x + p.arms[1].pad.x / M, 2);
+      expect(num(part(g, 'arm-e-pad'), 'cy')).toBeCloseTo(BAY_STALL_Y + p.arms[0].pad.dy / M, 2);
+      expect(num(part(g, 'arm-w-car'), 'y') + 1.09 / 2).toBeCloseTo(BAY_STALL_Y + p.arms[1].rail / M, 2);
+      expect(g.getAttribute('data-arm-e-sensor')).toBe(p.arms[0].sensor ?? '');
       expect(g.getAttribute('data-station')).toBe(p.station ?? '');
       expect(part(g, 'spray').getAttribute('visibility')).toBe(p.spray === 'none' ? 'hidden' : 'visible');
       if (p.spray !== 'none') expect(part(g, 'spray').getAttribute('fill')).toBe(SPRAY_FILL[p.spray]);
@@ -78,9 +86,9 @@ describe('the wash machines on the 2D plan', () => {
 
   it('shows the machine passing over the car: from north of its nose to south of its tail', () => {
     const g = mount().querySelector('[data-wash-gantry]')! as SVGGElement;
-    const dys = program(false, 300).map(({ p }) => { paintWashGantry2D(g, WASH_SHELL.bays[0].x, p); return gantryDy(g); });
+    const dys = program(false, 390).map(({ p }) => { paintWashGantry2D(g, WASH_SHELL.bays[0].x, p); return gantryDy(g); });
     expect(Math.min(...dys)).toBeLessThan(-7);
-    expect(Math.max(...dys)).toBeGreaterThan(7);
+    expect(Math.max(...dys)).toBeGreaterThan(10);
     // and the car stands at the bay's stall line, under the rails' span
     expect(BAY_STALL_Y + G.rail.from).toBeLessThan(BAY_STALL_Y + Math.min(...dys));
     expect(BAY_STALL_Y + G.rail.to).toBeGreaterThan(BAY_STALL_Y + Math.max(...dys));
@@ -89,14 +97,14 @@ describe('the wash machines on the 2D plan', () => {
   it('sprays water jets while it washes, blows while it dries, and puts the pads on the car while it wipes', () => {
     const g = mount().querySelector('[data-wash-gantry]')! as SVGGElement;
     const bay = WASH_SHELL.bays[0];
-    const all = program(false, 300);
+    const all = program(false, 390);
     const washing = all.find(({ s, p }) => s.phase === 'wash_1' && p.spray === 'jet')!;
     paintWashGantry2D(g, bay.x, washing.p);
     expect(part(g, 'spray').getAttribute('fill')).toBe(SPRAY_FILL.jet);
     const drying = all.find(({ s, p }) => s.phase === 'dry_1' && p.air)!;
     paintWashGantry2D(g, bay.x, drying.p);
     expect(part(g, 'air').getAttribute('visibility')).toBe('visible');
-    const wiping = all.find(({ s, p }) => s.phase === 'wipe_roof' && p.wipeEngage === 1)!;
+    const wiping = all.find(({ s, p }) => s.phase === 'wipe_roof' && p.arms[0].engage === 1)!;
     paintWashGantry2D(g, bay.x, wiping.p);
     // on the roof pod: well inside the car's flank, and green while pressed
     expect(num(part(g, 'arm-e-pad'), 'cx') - bay.x).toBeLessThan(1);
