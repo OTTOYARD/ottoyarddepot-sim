@@ -113,11 +113,15 @@ The machine keeps to the twin's clock at any frame rate. The gate plays each fra
 96371023 a detail seat ended while its machine was still in its interior phase. `washGate.test.ts` plays both programs at
 0.05, 1, 3 and 8 sim-seconds a frame and requires every pass, no early end, and the last pass within a frame of 60 fps.
 
-A detail seat (the twin's `in_detail_bay`) still exists for a car that no fast charger's arm reached (otto-q-core 0815
-§3: 10 of 43 deep cleans on the twin depot's last three runs). The twin times a cabin clean in that seat, 16.5 minutes
-within 20%. The machine does no cabin work and no door opens: it holds, parked and dry, for that time (`cabin_hold`),
-and then runs the same program. This is a gap, and it is stated: the twin's seat says a cabin was cleaned in a bay
-where nothing now cleans a cabin. It closes when the engine sends such a car to a fast charger for its clean.
+The wash bay is exterior only (Chase, 2026-11-12; otto-q-core 0817, behind `wash_bay_exterior_only`, on at the twin
+depot). No cabin work is sent to a wash bay, so the engine gives no detail seat there. A car with an interior deep
+clean and no charge to do takes a **cabin stop**: it stands on a free fast-charger post, not plugged in, while the
+post's arm runs the deep program, and then goes to the wash bay if it has an exterior wash to do. The engine marks the
+stop on the visit's atom, the snapshot publishes the mark (0818, `cabin_stop_stall_id`), and the driver draws the car
+on its post with no charge arm on it (`cabinStopOf`, `TwinMotionDriver.cabinstop.test.ts`).
+
+The detail seat's program (`in_detail_bay`, `cabin_hold`) stays in the code for a depot with the dial off. There the
+machine holds, parked and dry, for the cabin time, and then runs the same program. No door opens in either case.
 
 ## A seat that ends first, and the hold
 

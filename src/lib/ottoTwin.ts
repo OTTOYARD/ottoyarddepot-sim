@@ -70,6 +70,11 @@ export interface TwinVisitAtom {
   done_at?: string | null;
   /** The twin stall whose OTTO-CLEAN ARM does this work (an interior tidy during a fast charge), or null. */
   robot_stall_id?: string | null;
+  /**
+   * The fast-charger post a car was sent to for a cabin stop (otto-q-core 0817, published by 0818), while the stop is
+   * open. The car stands on the post, not plugged in, for the arm's deep clean. Absent from an older backend.
+   */
+  cabin_stop_stall_id?: string | null;
 }
 
 /**

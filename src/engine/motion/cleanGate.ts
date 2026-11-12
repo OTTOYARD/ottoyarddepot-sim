@@ -113,6 +113,31 @@ export function cabinCleanOf(
   return null;
 }
 
+/**
+ * The post of this car's CABIN STOP, as a renderer stall, or null (otto-q-core 0817).
+ *
+ * A parked car with an interior deep clean and no charge to do is sent to a free fast-charger post. It stands there,
+ * not plugged in, while the post's arm runs the deep program. The engine marks the stop on the deep-clean atom
+ * (cabin_stop_stall_id) from the tick it sends the car until the post is freed. The car's state says only "charged,
+ * holding", which is also every car that has just finished a charge, so the mark is the one thing that says this car
+ * belongs ON the post. True only while the twin also places the car on that stall. Total: a missing or malformed
+ * field reads as no stop.
+ */
+export function cabinStopOf(
+  bv: Pick<TwinVehicle, "stall_id" | "visit">,
+  rendererStall: (twinStallId: string) => string | undefined,
+): string | null {
+  const atoms = bv.visit?.atoms;
+  if (!Array.isArray(atoms) || typeof bv.stall_id !== "string") return null;
+  for (const a of atoms) {
+    if (!a || a.svc !== "interior_deep_clean") continue;
+    if (a.status !== "pending" && a.status !== "in_progress") continue;
+    if (typeof a.cabin_stop_stall_id !== "string" || a.cabin_stop_stall_id !== bv.stall_id) continue;
+    return rendererStall(a.cabin_stop_stall_id) ?? null;
+  }
+  return null;
+}
+
 /** What the depot says at one fast-charger stall, this step. */
 export interface CleanStallInput {
   /** RENDERER stall id. */

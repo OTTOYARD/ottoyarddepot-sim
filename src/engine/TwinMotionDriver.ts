@@ -25,7 +25,7 @@ import { allStructureSolids, parkedBox, bodyHitsBox, boxGap, type OBox } from "@
 import { findLeader, StallLedger, CAR_BODY_LENGTH, CAR_BODY_WIDTH, type MovingCar } from "./motion/traffic";
 import { buildDepotLanes, U_TURN_COST, LaneGraph } from "./motion/LaneGraph";
 import { ArmGate, type ArmStallInput } from "./motion/armGate";
-import { CleanGate, cabinCleanOf, type CabinClean, type CleanStallInput } from "./motion/cleanGate";
+import { CleanGate, cabinCleanOf, cabinStopOf, type CabinClean, type CleanStallInput } from "./motion/cleanGate";
 import { WashGate, type WashBayInput } from "./motion/washGate";
 import type { WashSession } from "@/lib/ottoWash/washSession";
 import { poseStore } from "./motion/poseStore";
@@ -2962,8 +2962,17 @@ class TwinMotionDriver {
         }
         continue;
       }
-      const m = mapState(bv.state, bv.stall_id);
+      let m = mapState(bv.state, bv.stall_id);
       if (!m) continue;
+      // A CABIN STOP (otto-q-core 0817). The car was sent to a fast-charger post for its interior deep clean and stands
+      // there, not plugged in. Its state word is "charged, holding", which mapState reads as staging. The engine's own
+      // mark on the atom says the car belongs on the post, so it is drawn there: on the fast-charger lane, not
+      // charging (no charge arm mates), with the cleaning arm at work once the program starts. Absent the mark, which
+      // is every fixture and every older backend, nothing here changes.
+      if (m.lane === "staging" && bv.state === "charge_complete_holding") {
+        const post = cabinStopOf(bv, (id) => this.twinStall.get(id));
+        if (post && stallType.get(post) === "dcfc") m = { lane: "dcfc", vstatus: "staging", sstatus: "occupied" };
+      }
       present.add(bv.id);
       let e = this.entries.get(bv.id);
       const oem = bv.platform ?? e?.oem ?? "waymo";
