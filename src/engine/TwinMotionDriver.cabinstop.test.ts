@@ -37,7 +37,7 @@ const CYCLE_S = 648;   // 2 x 5.0 min + 0.8 min, the arm's deep program (0815)
 
 const entry = () => (twinMotionDriver as unknown as Internals).entries.get(VEHICLE);
 
-interface World { state: string; stall: string | null; atom: Record<string, unknown> }
+interface World { state: string; stall: string | null; atom: Record<string, unknown>; faulted?: boolean }
 
 const pending = { svc: "interior_deep_clean", status: "pending", must_do: true, est_min: 16, cabin_stop_stall_id: TWIN_POST };
 const working = (startMs: number) => ({
@@ -66,7 +66,8 @@ function snap(atMs: number, w: World): TwinSnapshot {
         },
       }],
     },
-    stalls_status: [], energy: null, bess: null, weather: null, grid: null,
+    stalls_status: w.faulted ? [{ id: TWIN_POST, status: "available", charger_state: "Faulted", fault_code: "fault.station_hardware" }] : [],
+    energy: null, bess: null, weather: null, grid: null,
     counters: {}, recent_events: [], variability: {},
   } as unknown as TwinSnapshot;
 }
@@ -135,6 +136,23 @@ describe("a car on a cabin stop", () => {
     expect([...phases].some((p) => p !== "home" && p !== "none")).toBe(true);
     // the charge arm never mated: the car is not plugged in on a cabin stop
     expect(arms.has("charging")).toBe(false);
+    expect(entry()?.stallId).toBe(RENDER_POST);
+  });
+
+  it("is drawn on its post when the post's charger is faulted, with the cleaning arm at work (otto-q-core 0820)", () => {
+    // Chase, 2026-11-12: "they can use faulted charging bays for cleaning, as long as they do not ALSO need a charge."
+    const start = T0 + 60_000;
+    const phases = new Set<string>();
+    let t = run(T0, 60, 250, () => ({ state: "charge_complete_holding", stall: TWIN_POST, atom: pending, faulted: true }));
+    expect(entry()?.lane).toBe("dcfc");
+    expect(entry()?.stallId).toBe(RENDER_POST);
+    expect(twinMotionDriver.stallChargerFaulted(RENDER_POST)).toBe(true);
+    while (t < start + 200_000) {
+      t = run(t, 5, 250, () => ({ state: "charge_complete_holding", stall: TWIN_POST, atom: working(start), faulted: true }));
+      phases.add(twinMotionDriver.cleanSessionAt(RENDER_POST)?.phase ?? "none");
+      expect(twinMotionDriver.armPhaseAt(RENDER_POST)).not.toBe("charging");
+    }
+    expect([...phases].some((p) => p !== "home" && p !== "none")).toBe(true);
     expect(entry()?.stallId).toBe(RENDER_POST);
   });
 
