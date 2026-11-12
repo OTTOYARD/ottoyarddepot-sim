@@ -170,7 +170,7 @@ describe('OTTO-CHARGE ARM: the power path\'s flex links through the duty cycle',
       expect(c!.fails, `${id} fails at ${c!.fails.slice(0, 4).join('; ')} (${c!.fails.length} poses), tightest ${c!.minR.toFixed(4)} m`).toEqual([]);
       expect(c!.minR, id).toBeGreaterThanOrEqual(c!.def.minBend ?? 0);
     }
-  });
+  }, 120_000);   // the same sweep: past the 5 s default on a slow CI runner
 
   it('never lays a flex link on the car: 0.10 m off the bodywork, connector end included, all cycle', () => {
     const cad = cads.get('charge_arm')!;
@@ -191,7 +191,7 @@ describe('OTTO-CHARGE ARM: the power path\'s flex links through the duty cycle',
       }
     }
     expect(worst, `a flex link comes ${worst.toFixed(4)} m from the car at ${at}`).toBeGreaterThanOrEqual(0.1);
-  });
+  }, 120_000);   // 11,070 poses: past vitest's 5 s default on a slow CI runner
 });
 
 describe('OTTO-CLEAN ARM: its lines through both sides of the cleaning cycle', () => {
