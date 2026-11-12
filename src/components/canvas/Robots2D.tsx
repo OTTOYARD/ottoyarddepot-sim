@@ -90,7 +90,7 @@ export function paintChargeArm2D(
  * the mast, the mast, and, while it is out, the wand from the mast's foot to the nozzle, and the
  * status light.
  */
-export function paintCleanArm2D(g: SVGGElement, pts: CleanArmPlanPoints, s: Pick<CleanSession, 'phase' | 'finishing'>): void {
+export function paintCleanArm2D(g: SVGGElement, pts: CleanArmPlanPoints, s: Pick<CleanSession, 'phase' | 'finishing' | 'held'>): void {
   const q = (k: string) => g.querySelector<SVGElement>(`[data-part="${k}"]`);
   const chain = `${xy(pts.j1)} ${xy(pts.elbow)} ${xy(pts.mast)}`;
   q('links-edge')?.setAttribute('points', chain);
@@ -106,7 +106,14 @@ export function paintCleanArm2D(g: SVGGElement, pts: CleanArmPlanPoints, s: Pick
   const led = q('led');
   setDot(led, pts.j1);
   led?.setAttribute('stroke', hex(cleanStatusColor(s)));
+  // stopped for an item in the cabin (otto-q-core 0814): a flag over the arm, until an attendant secures the item
+  const flag = q('item-flag');
+  if (flag) {
+    flag.setAttribute('visibility', s.held ? 'visible' : 'hidden');
+    if (s.held) flag.setAttribute('transform', `translate(${pts.j1.x.toFixed(2)} ${pts.j1.y.toFixed(2)})`);
+  }
   g.setAttribute('data-phase', s.phase);
+  g.setAttribute('data-held', s.held ? '1' : '0');
 }
 
 /** One fast charger's two robots, placed once; painted by FastChargerRobots2D's frame loop. */
@@ -169,7 +176,7 @@ export function FastChargerRobots2D() {
         const sd = sides.get(stall.id);
         if (cg && sd) {
           const s = twinMotionDriver.cleanSessionAt(stall.id) ?? IDLE_CLEAN;
-          const key = `${s.phase}|${s.t.toFixed(4)}|${s.finishing}`;
+          const key = `${s.phase}|${s.t.toFixed(4)}|${s.finishing}|${s.held ? 1 : 0}`;
           if (key !== r.cleanKey) {
             r.cleanKey = key;
             const { x, y, angle } = stall.position;
@@ -209,6 +216,10 @@ export function FastChargerRobots2D() {
           <circle data-part="tip" r={0.22} fill="#ffb020" visibility="hidden" />
           {/* a ring, not a disc: J1 stands over the roof's centre, where the car shows its charging bolt */}
           <circle data-part="led" r={0.42} fill="none" stroke={hex(cleanStatusColor(IDLE_CLEAN))} strokeWidth={0.16} />
+          <g data-part="item-flag" visibility="hidden">
+            <rect x={-2.3} y={-1.75} width={4.6} height={1.0} rx={0.2} fill="#ff5ea8" stroke="#3a0d22" strokeWidth={0.06} />
+            <text x={0} y={-1.02} textAnchor="middle" fontSize={0.66} fontWeight={700} fill="#1a0610" fontFamily="system-ui, sans-serif">ITEM FOUND</text>
+          </g>
         </g>
       ))}
     </g>

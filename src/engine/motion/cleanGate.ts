@@ -53,6 +53,7 @@ function advanceBy(s: CleanSession, dt: number, input: Omit<CleanInput, "dt">): 
     const before = dt - done; // how long before the frame's end this step ends
     s = advanceCleanSession(s, {
       ...input, dt: step, endsInS: input.endsInS === null ? null : input.endsInS + before,
+      heldS: (input.heldS ?? 0) > 0 ? (input.heldS ?? 0) + before : 0,
     });
   } while (dt - done > 1e-9);
   return s;
@@ -123,6 +124,8 @@ export interface CleanStallInput {
   active: boolean;
   /** Sim seconds until the twin's step ends, or null when it published no end. */
   endsInS: number | null;
+  /** Sim seconds the arm still stands still for an item it found in the cabin (otto-q-core 0814), or 0. */
+  heldS?: number;
   /** The stall's charge-port sign (depotPlacement.towardFor). */
   toward: 1 | -1;
   /** The charge arm is still (latched, or not working), so the cleaning arm may go in. */
@@ -161,7 +164,7 @@ export class CleanGate {
       const sides = sidesFor(input.toward);
       const session = advanceBy(prev?.session ?? IDLE_CLEAN, dt, {
         vehicleId: input.vehicleId, active: input.active, endsInS: input.endsInS,
-        sides, mayEnter: input.mayEnter,
+        sides, mayEnter: input.mayEnter, heldS: input.heldS,
       });
       this.store(input.stallId, prev, session, sides, dt);
     }

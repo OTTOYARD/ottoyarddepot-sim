@@ -11,6 +11,7 @@ import { VehicleTooltip } from './VehicleTooltip';
 import { AlertToasts } from './AlertToasts';
 import { SceneErrorBoundary } from './SceneErrorBoundary';
 import { useAppointments } from '@/hooks/useAppointments';
+import { useFoundItems } from '@/hooks/useFoundItems';
 import { useSimulationStore } from '@/store/simulationStore';
 
 const DepotScene3D = lazy(() => import('./DepotScene3D'));
@@ -24,6 +25,7 @@ export const DepotCanvas = () => {
   const setViewMode = useSimulationStore((s) => s.setViewMode);
 
   useAppointments(); // poll the reservation seam so the on-map glow stays live
+  useFoundItems(); // an item a cleaning arm found in a cabin: the arm stands still until an attendant secures it
 
   // The open Q card's car on screen: its drawn pose (the same poseStore pose the dot is moved by) through the map's
   // own transform, in client pixels. Camera-free and world-free: it only says where to draw.

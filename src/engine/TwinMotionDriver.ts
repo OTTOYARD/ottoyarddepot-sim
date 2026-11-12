@@ -17,6 +17,7 @@
 //
 // Runs only in backend-twin mode (active sim_run + offline engine NOT running).
 // ============================================================================
+import { stopFor, type FoundItem } from '@/lib/ottoCleanArm/foundItems';
 import { KinematicCar, DEFAULT_CAR_PARAMS, wrapAngle } from "./motion/KinematicCar";
 import { type Pt } from "./motion/PathTracker";
 import { buildRail, pointAt, stepRail, RailLocks, setCornerObstacles, startOnHeading, hairpins, drawnClearance, NODE_STOP, type Rail, type RailBody } from "./motion/RailFlow";
@@ -757,6 +758,17 @@ class TwinMotionDriver {
   private cleanGate = new CleanGate();
   /** vehicle id -> the twin's cabin clean of it by a stall's arm (0758), rebuilt every snapshot. */
   private cabinCleans = new Map<string, CabinClean>();
+  /** Items the cleaning arms found in cabins this run (otto-q-core 0814's feed, useFoundItems). The twin's; read only. */
+  private foundItems: readonly FoundItem[] = [];
+  /** The feed's items, as the engine published them. An empty list when the run has none or the feed is not there. */
+  setFoundItems(items: readonly FoundItem[]) {
+    this.foundItems = items;
+  }
+  /** The item this car's cleaning arm stands still for now, or null. For the stall's flag and the car's card. */
+  foundItemFor(vehicleId: string): FoundItem | null {
+    const nowMs = this.simNow();
+    return nowMs ? stopFor(this.foundItems, vehicleId, nowMs)?.item ?? null : null;
+  }
   /** THE WASH MACHINES: one rollover gantry session per wash bay, stepped beside the arms.
    *  The ONE evaluation of that machine: WashGantry.tsx draws it, a detail seat's doors are
    *  written from it, and armReleases() reads it. See motion/washGate.ts. */
@@ -1227,12 +1239,17 @@ class TwinMotionDriver {
       // only on a parked, charging car — armSessionInput)
       const mateComing = charging && this.serviceWindow(e) !== null;
       const still = armPhase === null || armPhase === "charging" || (isArmHome(armPhase) && !mateComing);
+      // an item the arm found in this car's cabin (0814): it stands still until an attendant secures it. The twin's
+      // end time counts the wait, so the arm's own work is paced to the end less what is left of the stop.
+      const stop = nowMs ? stopFor(this.foundItems, id, nowMs) : null;
+      const heldS = stop ? stop.remainingS : 0;
       cleans.push({
         stallId: e.stallId,
         stallType: this.stallTypes.get(e.stallId),
         vehicleId: id,
         active: !!c && c.stall === e.stallId && c.placedHere && this.onStallPose(e),
-        endsInS: c?.endsMs != null && nowMs ? (c.endsMs - nowMs) / 1000 : null,
+        endsInS: c?.endsMs != null && nowMs ? (c.endsMs - nowMs) / 1000 - heldS : null,
+        heldS,
         toward: at ? towardFor(at.x) : 1,
         mayEnter: still,
       });
@@ -1613,6 +1630,7 @@ class TwinMotionDriver {
     this.armGate.clear();
     this.cleanGate.clear();
     this.cabinCleans.clear();
+    this.foundItems = [];
     this.washGate.clear();
     this.baySeats.clear();
     doorStore.clear();
@@ -1667,6 +1685,7 @@ class TwinMotionDriver {
     this.twinChargerFaulted.clear();
     this.cleanGate.clear();
     this.cabinCleans.clear();
+    this.foundItems = [];
     this.washGate.clear();
     this.baySeats.clear();
     doorStore.clear();
