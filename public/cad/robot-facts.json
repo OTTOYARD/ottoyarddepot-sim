@@ -368,12 +368,12 @@
     {
      "id": "wipe_front",
      "label": "Polish the front sensors",
-     "seconds": 24
+     "seconds": 21
     },
     {
      "id": "wipe_sides",
      "label": "Polish the side cameras",
-     "seconds": 24
+     "seconds": 21
     },
     {
      "id": "wipe_roof",
@@ -383,7 +383,7 @@
     {
      "id": "wipe_rear",
      "label": "Polish the rear sensors",
-     "seconds": 36
+     "seconds": 40
     },
     {
      "id": "arms_stow",
@@ -407,7 +407,7 @@
     },
     {
      "label": "Sensor polish",
-     "value": "A soft pad on a floating, force-sensing head polishes each camera, lidar and radar cover. The 2 arms do 24 places in about 2.5 min."
+     "value": "A soft pad on a floating, force-sensing head polishes each camera, lidar and radar cover. The 2 arms do 24 places in about 2.4 min."
     },
     {
      "label": "Detail arms",
@@ -427,7 +427,7 @@
     },
     {
      "label": "Arm tracks",
-     "value": "A floor track each side of the car takes a detail arm to any place along the car. Travel: 7.61 m."
+     "value": "A floor track each side of the car takes a detail arm to any place along the car. Travel: 8.28 m."
     },
     {
      "label": "Pad care",

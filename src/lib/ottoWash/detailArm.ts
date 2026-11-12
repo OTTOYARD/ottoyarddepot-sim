@@ -21,8 +21,18 @@ import { DETAIL_ARM, WASH_GANTRY, type WipeStation } from './washSpec';
 const M = METRES_PER_PLAN_UNIT;
 const D = WASH_GANTRY.detail;
 
-/** The arm: the charge arm's links, joints and limits, with the polishing head's length for a tool. */
-export const DETAIL_SPEC: CobotSpec = { ...OTTO_CHARGE_ARM, tool: DETAIL_ARM.toolM };
+/**
+ * How far this arm's own parts let it fold, found by the CAD's clash check (cad/clash.py, 2026-11-12): past 2.46 rad
+ * of elbow the forearm's casting meets the upper arm's, and at 1.85 rad of wrist bend the wrist tube meets its yoke.
+ * The charge arm never goes past 2.30 and 1.48, so it never found them. The detail arm is held to an elbow fold of
+ * 2.30 rad (the charge arm's own stow) and a wrist bend of 1.70 rad (it is clear at 1.66).
+ */
+export const DETAIL_FOLD = { elbowMax: 2.30, wristMax: 1.70 } as const;
+/** The arm: the charge arm's links and joints, with the polishing head's length for a tool and its own fold limits. */
+export const DETAIL_SPEC: CobotSpec = {
+  ...OTTO_CHARGE_ARM, tool: DETAIL_ARM.toolM,
+  limits: { ...OTTO_CHARGE_ARM.limits, j3: [-DETAIL_FOLD.elbowMax, DETAIL_FOLD.elbowMax], j5: [-DETAIL_FOLD.wristMax, DETAIL_FOLD.wristMax] },
+};
 /** Each track's line from the drive line, metres. */
 export const TRACK_X_M = D.trackX * M;
 export const DOCK_DY_M = D.dockDy * M;
@@ -94,23 +104,28 @@ export interface Sensor {
  *   roof   the roof lidar from 3 sides
  *   rear   the tail's corner and 2 on its upright face
  */
+/**
+ * A corner lidar is met 45 degrees round the corner and 20 degrees from above. Level, the wrist had to bend past its
+ * limit on the way down to the rear corner (the CAD's clash check found that limit, see DETAIL_FOLD).
+ */
+const CORNER_D = Math.sin((20 * Math.PI) / 180), CORNER_H = Math.SQRT1_2 * Math.cos((20 * Math.PI) / 180);
 /** The pad's tilt down onto the roof lidar's shoulder: cos and sin of 40 degrees. */
 const POD_C = Math.cos((40 * Math.PI) / 180), POD_S = Math.sin((40 * Math.PI) / 180);
 const RAYS: { id: string; label: string; zone: WipeStation; from: [number, number, number]; axis: [number, number, number]; rail: number; eastOnly?: boolean }[] = [
-  { id: 'nose_in', label: 'front radar', zone: 'front', from: [0.25, -3.2, 0.57], axis: [0, 1, 0], rail: -3.05 },
-  { id: 'nose_out', label: 'front camera', zone: 'front', from: [0.70, -3.2, 0.57], axis: [0, 1, 0], rail: -3.05 },
-  { id: 'nose_corner', label: 'front corner lidar', zone: 'front', from: [1.523, -2.911, 0.62], axis: [-Math.SQRT1_2, Math.SQRT1_2, 0], rail: -2.9 },
-  { id: 'wing', label: 'wing camera', zone: 'sides', from: [2.0, -1.15, 0.95], axis: [-1, 0, 0], rail: -1.45 },
-  { id: 'pillar', label: 'pillar camera', zone: 'sides', from: [2.0, 0.15, 1.05], axis: [-1, 0, 0], rail: -0.15 },
-  { id: 'quarter', label: 'rear-quarter camera', zone: 'sides', from: [2.0, 1.25, 0.95], axis: [-1, 0, 0], rail: 0.95 },
+  { id: 'nose_in', label: 'front radar', zone: 'front', from: [0.25, -3.2, 0.57], axis: [0, 1, 0], rail: -3.8 },
+  { id: 'nose_out', label: 'front camera', zone: 'front', from: [0.70, -3.2, 0.57], axis: [0, 1, 0], rail: -3.8 },
+  { id: 'nose_corner', label: 'front corner lidar', zone: 'front', from: [1.491, -2.871, 0.894], axis: [-CORNER_H, CORNER_H, -CORNER_D], rail: -3.8 },
+  { id: 'wing', label: 'wing camera', zone: 'sides', from: [2.0, -1.15, 0.95], axis: [-1, 0, 0], rail: -2.8 },
+  { id: 'pillar', label: 'pillar camera', zone: 'sides', from: [2.0, 0.15, 1.05], axis: [-1, 0, 0], rail: -1.5 },
+  { id: 'quarter', label: 'rear-quarter camera', zone: 'sides', from: [2.0, 1.25, 0.95], axis: [-1, 0, 0], rail: -0.4 },
   // the roof lidar: from 3 sides, the pad looking 40 degrees down onto the top edge of its window, so the forearm comes
   // in over the roof and not along it. The two arms do 6 places round it. Its cap's top is not a sensor, and no pad goes there.
   { id: 'pod_fore', label: 'roof lidar, front side', zone: 'roof', from: [0.481, -0.687, 2.2185], axis: [-POD_C * 0.5736, POD_C * 0.8192, -POD_S], rail: -0.3 },
   { id: 'pod_side', label: 'roof lidar, side', zone: 'roof', from: [0.839, 0, 2.2185], axis: [-POD_C, 0, -POD_S], rail: 0 },
   { id: 'pod_aft', label: 'roof lidar, rear side', zone: 'roof', from: [0.481, 0.687, 2.2185], axis: [-POD_C * 0.5736, -POD_C * 0.8192, -POD_S], rail: 0.3 },
-  { id: 'tail_corner', label: 'rear corner lidar', zone: 'rear', from: [1.523, 2.911, 0.62], axis: [-Math.SQRT1_2, -Math.SQRT1_2, 0], rail: 2.35 },
-  { id: 'tail_out', label: 'rear camera', zone: 'rear', from: [0.70, 3.2, 0.57], axis: [0, -1, 0], rail: 2.35 },
-  { id: 'tail_in', label: 'rear radar', zone: 'rear', from: [0.25, 3.2, 0.57], axis: [0, -1, 0], rail: 2.35 },
+  { id: 'tail_corner', label: 'rear corner lidar', zone: 'rear', from: [1.491, 2.871, 0.894], axis: [-CORNER_H, -CORNER_H, -CORNER_D], rail: 1.4 },
+  { id: 'tail_out', label: 'rear camera', zone: 'rear', from: [0.70, 3.2, 0.57], axis: [0, -1, 0], rail: 3.0 },
+  { id: 'tail_in', label: 'rear radar', zone: 'rear', from: [0.25, 3.2, 0.57], axis: [0, -1, 0], rail: 3.0 },
 ];
 
 /** Is a point over the car's plan, where a move must go over the roof and not through the cabin? */
@@ -165,9 +180,19 @@ export function stowAngles(side: Side): JointAngles {
   return { j1: -side * (Math.PI / 2), j2, j3, j4: 0, j5: Math.PI - (j2 + j3), j6: 0 };
 }
 
-/** Tucked for travel: the pad 0.85 m inboard of the track at 1.25 m, facing the car. The same joints wherever the carriage is. */
-const CARRY_P = (side: Side, rail: number): B3 => ({ x: side * 1.25, dy: rail, y: 1.25 });
-const CARRY_AXIS = (side: Side): B3 => ({ x: -side, dy: 0, y: 0 });
+/**
+ * There the pad looks about 55 degrees down, toward the car and a little along the track. So the wrist is bent well
+ * away from straight (where its two ways meet), and the forearm's roll is well inside its limit on both ways.
+ */
+const APEX_AXIS = (side: Side): B3 => unit({ x: -side * 0.5, dy: -0.3, y: -0.81 });
+/**
+ * Tucked for travel: the pad 1.0 m inboard of the track and 2.2 m up, above the roof line, looking at the car and 30
+ * degrees up. The elbow is then folded 2.15 rad, inside its limit. The forearm's roll is at zero and the wrist is bent
+ * 0.75 rad, well away from straight, so the paths that leave this pose do not pass the wrist's straight pose. The same
+ * joints wherever the carriage is.
+ */
+const CARRY_P = (side: Side, rail: number): B3 => ({ x: side * 1.1, dy: rail, y: 2.2 });
+const CARRY_AXIS = (side: Side): B3 => ({ x: -side * Math.cos(Math.PI / 6), dy: 0, y: Math.sin(Math.PI / 6) });
 export const carryAngles = (side: Side): JointAngles => aim(side, 0, CARRY_P(side, 0), CARRY_AXIS(side)).q;
 
 /** A place on a path: the pad's point, the way it looks, the carriage's place, and which way the wrist is. */
@@ -253,11 +278,6 @@ const lifted = (w: Way): Way => ({ ...w, p: { x: w.p.x, dy: w.p.dy, y: Math.max(
  * car's roof line. The pad's point and its direction stay. The forearm rolls half a turn and the wrist bends the other way.
  */
 const apex = (side: Side, w: Way, flip: boolean): Way => ({ p: { x: side * 1.25, dy: w.rail, y: DETAIL_ARM.overM }, axis: APEX_AXIS(side), rail: w.rail, flip });
-/**
- * There the pad looks about 55 degrees down, toward the car and a little along the track. So the wrist is bent well
- * away from straight (where its two ways meet), and the forearm's roll is well inside its limit on both ways.
- */
-const APEX_AXIS = (side: Side): B3 => unit({ x: -side * 0.5, dy: -0.3, y: -0.81 });
 const turnOver = (side: Side, w: Way, to: boolean): Way[] => [apex(side, w, w.flip), apex(side, w, to)];
 /**
  * From one place to the next sensor's hover: out to its safe point; over the roof if either is over the car; the
@@ -267,7 +287,12 @@ function route(side: Side, a: End, b: Sensor): Way[] {
   const sa: Way = { p: a.safe, axis: a.axis, rail: a.rail, flip: a.flip }, sb: Way = { p: b.safe, axis: b.axis, rail: b.rail, flip: b.flip };
   const flips = a.flip !== b.flip;
   const over = overCar(sa.p) !== overCar(sb.p) || flips;
-  const mid: Way[] = !over ? [] : flips ? [lifted(sa), ...turnOver(side, sa, b.flip), lifted(sb)] : [lifted(sa), lifted(sb)];
+  // a place beside the car goes straight to and from the turn-over place: only a place over the car is lifted first
+  // after the turn-over the carriage rides to the next place's stop in that same pose, and then the pad goes down
+  const mid: Way[] = !over ? []
+    : flips ? [...(overCar(sa.p) ? [lifted(sa)] : []), ...turnOver(side, sa, b.flip), apex(side, sb, b.flip),
+      ...(overCar(sb.p) ? [lifted(sb)] : [])]
+      : [lifted(sa), lifted(sb)];
   return [a, sa, ...mid, sb, { p: hover(b), axis: b.axis, rail: b.rail, flip: b.flip }];
 }
 const carryWay = (side: Side, rail: number): End => ({ p: CARRY_P(side, rail), axis: CARRY_AXIS(side), rail, flip: false, safe: CARRY_P(side, rail) });

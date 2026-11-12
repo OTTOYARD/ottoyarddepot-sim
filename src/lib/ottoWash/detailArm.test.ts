@@ -8,7 +8,7 @@
 import { describe, it, expect } from 'vitest';
 import { MOUNT_HEIGHT_M } from '@/lib/ottoChargeArm/cobotSpec';
 import {
-  DETAIL_SPEC, DOCK_DY_M, POLISH_TURN, SENSORS, SIDES, TRACK_TO_M, TRACK_X_M, aim, carGapM, stowed, zoneSensors,
+  DETAIL_FOLD, DETAIL_SPEC, DOCK_DY_M, POLISH_TURN, SENSORS, SIDES, TRACK_TO_M, TRACK_X_M, aim, carGapM, stowed, zoneSensors,
   zoneTurns, type ArmState, type B3,
 } from './detailArm';
 import { programPoseAt } from './washPose';
@@ -82,7 +82,22 @@ describe('the arms through their work', () => {
     // (it reaches the limit only above the track, where the wrist turns over: `mid`)
     let j4 = 0;
     each((a) => { if (!a.mid && carGapM(a.pad) < DETAIL_ARM.safeM) j4 = Math.max(j4, Math.abs(a.q.j4)); });
-    expect(j4).toBeLessThan(2.4);
+    expect(j4).toBeLessThan(2.7);
+  }, 120_000);
+
+  it('is in reach at every point of every path, and never folds past what its own parts allow', () => {
+    // the CAD's clash check found where the arm's castings meet (DETAIL_FOLD): the limits are in DETAIL_SPEC, and the
+    // solver says "not reachable" when a pose would need more
+    let elbow = 0, wrist = 0;
+    each((a, k, s) => {
+      if (a.esc && !a.mid) {
+        expect(aim(a.side, a.rail, a.esc.p, a.esc.axis, a.esc.flip).reachable, `${s.phase}@${s.t.toFixed(3)} ${k ? 'W' : 'E'} ${a.sensor}`).toBe(true);
+      }
+      elbow = Math.max(elbow, Math.abs(a.q.j3)); wrist = Math.max(wrist, Math.abs(a.q.j5));
+    });
+    expect(elbow).toBeLessThanOrEqual(DETAIL_FOLD.elbowMax + 1e-9);
+    expect(wrist).toBeLessThanOrEqual(DETAIL_FOLD.wristMax + 1e-9);
+    expect(wrist).toBeLessThan(1.66);  // the clash check measured the wrist clear at 1.66, and found the clash at 1.85
   }, 120_000);
 
   it('moves no joint faster than an arm of this kind does, and no carriage faster than its drive', () => {

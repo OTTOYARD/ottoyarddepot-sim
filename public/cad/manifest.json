@@ -202,37 +202,37 @@
     "depot": "wash_gantry.depot.glb"
    },
    "bytes": {
-    "glb": 7701540,
-    "stepZip": 6787012,
-    "step": 37192640,
-    "depot": 680268
+    "glb": 7807488,
+    "stepZip": 6728865,
+    "step": 36906073,
+    "depot": 734784
    },
    "mesh": {
-    "vertices": 308196,
-    "triangles": 348465,
-    "meshes": 244,
-    "nodes": 2262
+    "vertices": 312918,
+    "triangles": 352917,
+    "meshes": 245,
+    "nodes": 2268
    },
    "depotMesh": {
-    "vertices": 24565,
-    "triangles": 26224,
-    "meshes": 109,
-    "nodes": 333
+    "vertices": 26993,
+    "triangles": 28632,
+    "meshes": 110,
+    "nodes": 337
    },
-   "depotSha256": "478a1d2a4191f658",
+   "depotSha256": "48e6781fa9ae01ae",
    "totals": {
-    "parts": 2606,
-    "uniqueParts": 249,
-    "fasteners": 1634,
-    "massKg": 5732.27,
+    "parts": 2639,
+    "uniqueParts": 250,
+    "fasteners": 1636,
+    "massKg": 5631.01,
     "boughtLines": 151,
-    "madeLines": 98,
+    "madeLines": 99,
     "referenceLines": 0
    },
-   "glbSha256": "ee7f06825b23bf9f",
+   "glbSha256": "0c1aa3e1026acfb0",
    "stepCheck": {
-    "namedParts": 2606,
-    "solids": 4048,
+    "namedParts": 2639,
+    "solids": 4081,
     "invalid": 0
    },
    "subsystems": [

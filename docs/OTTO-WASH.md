@@ -38,7 +38,7 @@ centre, negative to the north (the car faces north, enters by the south door and
 
 **The gantry.**
 
-- Two floor rails at x = ±6.8 u, outside the door opening (±5.5 u), from dy -10.0 to +13.2.
+- Two floor rails at x = ±6.8 u, outside the door opening (±5.5 u), from dy -10.0 to +14.2.
 - A yellow portal: a trolley and a leg on each rail and a beam across at 6.9-7.6 u, 4.1 u deep along the bay.
 - Along the beam: the spray arch (dy -1.6) and the air knives (+1.9).
 - Spray arch: one ring of nozzles, with a pre-soak circuit, a wash-water circuit and a rinse circuit.
@@ -47,8 +47,8 @@ centre, negative to the north (the car faces north, enters by the south door and
 - A stop light on the beam's south face, toward an arriving car: red while the program runs, green when the car may go.
 - A beacon: teal at home, green working, amber moving.
 
-Its passes turn at dy -7.8 and +7.6. It stows at dy +10.6, the entrance end (`WASH_TRAVEL.home`): its north face is
-then 1.8 m behind the car's tail. A car drives in under it. Stowed, the portal clears a car and its roof pod by more
+Its passes turn at dy -7.8 and +7.6. It stows at dy +11.6, the entrance end (`WASH_TRAVEL.home`): its north face is
+then 2.3 m behind the car's tail. A car drives in under it. Stowed, the portal clears a car and its roof pod by more
 than 1 u everywhere.
 
 **The detail arms** (`detailArm.ts`).
@@ -62,7 +62,10 @@ than 1 u everywhere.
 - The wrist's three axes meet at one point. So the arm can put the pad square on a surface at any angle and turn the
   pad about its own centre. The last joint turns the pad a quarter turn each way to polish. It never spins free.
 - Each arm docks at the exit end (dy -10.9 u), north of the gantry's travel, folded along its track with its pad in a
-  rinse cup. A car drives out between the docked arms with 0.6 m a side.
+  rinse cup. The dock stands on the track beam's north end. A car drives out between the docked arms with 0.6 m a side.
+- The arm folds only as far as its own parts allow: 2.30 rad at the elbow and 1.70 rad at the wrist (`DETAIL_FOLD`).
+  The CAD's clash check found where the castings meet, and the motion is held inside it. So the carriage stops 1.0 to
+  1.65 m along the track from each sensor, and the arm reaches it at a slant, stretched out.
 
 The gantry and the arms never share a part of the bay. The gantry works with the arms docked, and the arms work with
 the gantry stowed.
@@ -77,16 +80,17 @@ the gantry stowed.
 | rinse | pass 4: clear water | 25 s |
 | dry_1, dry_2 | passes 5 and 6: the air knives close in and blow. Pass 6 ends at the stow | 30 s each |
 | arms_out | each arm unfolds at its dock and rides to the nose | 10 s |
-| wipe_front | the nose: the radar, the camera and the corner lidar, each side | 24 s |
-| wipe_sides | the wing camera, the pillar camera and the rear-quarter camera, each side | 24 s |
+| wipe_front | the nose: the radar, the camera and the corner lidar, each side | 21 s |
+| wipe_sides | the wing camera, the pillar camera and the rear-quarter camera, each side | 21 s |
 | wipe_roof | the roof lidar, 3 places each arm, the two pads on opposite faces of it | 38 s |
-| wipe_rear | the tail: the corner lidar, the camera and the radar, each side | 36 s |
+| wipe_rear | the tail: the corner lidar, the camera and the radar, each side | 40 s |
 | arms_stow | each arm tucks, rides to its dock and folds | 15 s |
 | done | the stop light turns green | 2 s |
 
 Each arm does 12 places, 24 in all. For each place the pad moves to a point 0.15 m off the sensor, touches, turns a
 quarter turn each way while it presses, and lifts. Between places the pad moves in a shell 0.40 m off the car. To go
-from a flank to the roof, the pad lifts to 2.05 m and the wrist turns over above the track, clear of the car.
+from a flank to the roof, the pad lifts to 2.05 m and the wrist turns over above the track, clear of the car. A corner
+lidar is met 45 degrees round the corner and 20 degrees from above.
 
 **No joint is hurried.** The moves are timed so that the base and shoulder stay under 120 deg/s, the elbow under
 150 deg/s and the wrist joints under 210 deg/s, which are a 1.75 m collaborative arm's joint speeds (read 2026-11-12,
@@ -94,7 +98,7 @@ https://www.universal-robots.com/manuals/latest/en/techsheets/ur20/, through sea
 arm is held to the same joint speeds. ASSUMPTION: no public source gives a measured time for a robot arm that polishes
 a car's sensors. The times here are what those joint speeds allow.
 
-Six passes (180 s) and the arms' work (147 s) make 5.5 minutes at nominal pace. The twin's robotic wash seat is 6.5
+Six passes (180 s) and the arms' work (145 s) make 5.5 minutes at nominal pace. The twin's robotic wash seat is 6.5
 minutes at the twin depot since 2026-11-12 (pull in 0.5, program 5.5, pull out 0.5). A real rollover on a 23 ft
 guiderail "would travel 138' in six passes (3 minutes)" (carwashforum.com, 2015-10-12,
 https://carwashforum.com/goto/post?id=99620, read 2026-10-21), and an in-bay automatic runs about 4 minutes a car
@@ -144,7 +148,8 @@ size the 3D view paints it.
   twin draws ends; nominal pace with no end; never twice for one seat; and every phase of both programs ended early
   finishes home with nothing spraying or blowing and nothing jumping.
 - `detailArm.test.ts`: the two arms through all of their work. Every one of the 24 places is on the car and in
-  reach. Every joint stays inside its limits, never jumps, and stays under its speed. Each carriage stays under 1.5 m/s.
+  reach, and so is every point of every path between them. Every joint stays inside its limits and the arm's fold
+  limits, never jumps, and stays under its speed. Each carriage stays under 1.5 m/s.
   Every link keeps 0.10 m off the car. A pad touches the car only on a sensor, square to it, and turns its quarter turn
   on every one. The two pads are on opposite faces of the roof lidar. Each arm starts and ends folded in its dock.
 - `washPose.test.ts`: against the car's solid, at every moment of both programs and of 43 early ends (one every 4 s of
@@ -152,8 +157,9 @@ size the 3D view paints it.
   only the pads touch the car, only while the arms work; the arms are docked while the gantry travels, and the gantry
   is stowed while the arms are out, with 0.5 m or more between them at every moment; no door opens and nothing goes
   into the car; a car drives under the stowed gantry and between the docked arms.
-- `cadYard.test.ts`: the same, measured on the CAD's own meshes. The pad's face is on the car to 0.1 mm, the head
-  behind it stays 62 mm off (the pad's thickness), every link and joint of an arm 0.14 m, and every other tool 0.20 m.
+- `cadYard.test.ts`: the same, measured on the CAD's own meshes. The pad's face is on the car (on a corner lidar its
+  foam gives 6 mm at the rim), the head behind it stays 53 mm off or more, every link and joint of an arm 0.13 m, and
+  every other tool 0.20 m.
 - `structureClearance.replay.test.ts`: the wash bays' solids are the machine at home and its rails
   (`structurePlan.bayEquipmentSolids`), and no recorded car meets them.
 - `washGate.test.ts`: both programs at 0.05, 1, 3 and 8 sim-seconds a frame run every pass and are home before the

@@ -7,12 +7,12 @@
   "glb": "m"
  },
  "totals": {
-  "parts": 2606,
-  "uniqueParts": 249,
-  "fasteners": 1634,
-  "massKg": 5732.27,
+  "parts": 2639,
+  "uniqueParts": 250,
+  "fasteners": 1636,
+  "massKg": 5631.01,
   "boughtLines": 151,
-  "madeLines": 98,
+  "madeLines": 99,
   "referenceLines": 0
  },
  "subsystems": [
@@ -27,13 +27,13 @@
    ],
    "specs": {
     "track": "6.51 m",
-    "length": "11.10 m"
+    "length": "11.58 m"
    },
    "group": "Structure",
    "order": 0,
    "partCount": 90,
    "fastenerCount": 56,
-   "massKg": 488.792,
+   "massKg": 505.085,
    "uniqueParts": 6
   },
   {
@@ -123,15 +123,15 @@
     "The tracks stand 2.1 m from the drive line, inside the gantry rails. The gantry passes over them."
    ],
    "specs": {
-    "travel": "7.61 m",
+    "travel": "8.28 m",
     "speed": "1.5 m/s (class)",
     "from the flank": "1.14 m"
    },
    "group": "Motion",
    "order": 5,
-   "partCount": 798,
-   "fastenerCount": 432,
-   "massKg": 1322.774,
+   "partCount": 830,
+   "fastenerCount": 436,
+   "massKg": 1179.031,
    "uniqueParts": 18
   },
   {
@@ -150,7 +150,7 @@
    "order": 6,
    "partCount": 20,
    "fastenerCount": 8,
-   "massKg": 65.593,
+   "massKg": 62.957,
    "uniqueParts": 7
   },
   {
@@ -286,9 +286,9 @@
    },
    "group": "Tools",
    "order": 14,
-   "partCount": 36,
-   "fastenerCount": 22,
-   "massKg": 5.179,
+   "partCount": 34,
+   "fastenerCount": 20,
+   "massKg": 5.817,
    "uniqueParts": 11
   },
   {
@@ -305,9 +305,9 @@
    "specs": {},
    "group": "Control",
    "order": 15,
-   "partCount": 105,
+   "partCount": 108,
    "fastenerCount": 8,
-   "massKg": 695.926,
+   "massKg": 724.118,
    "uniqueParts": 18
   }
  ],
@@ -318,13 +318,13 @@
    "category": "structure",
    "make": "make",
    "standard": "welded profile",
-   "size": "153 x 67 x 8, 11101 long",
+   "size": "153 x 67 x 8, 11580 long",
    "grade": "S355J2",
    "material": "Structural steel S355, hot-dip galvanised",
    "materialKey": "steel_s355",
    "qty": 2,
-   "massKg": 188.9988,
-   "totalMassKg": 377.9976,
+   "massKg": 197.1453,
+   "totalMassKg": 394.2906,
    "torqueNm": null,
    "reference": false,
    "function": "Carries one side of the machine. The wheels run in its channel.",
@@ -445,9 +445,9 @@
    "grade": "",
    "material": "Steel, zinc flake coated",
    "materialKey": "fast_zn",
-   "qty": 100,
+   "qty": 96,
    "massKg": 0.1109,
-   "totalMassKg": 11.0869,
+   "totalMassKg": 10.6434,
    "torqueNm": 60.0,
    "reference": false,
    "function": "Holds the anchor plate in the slab. No mortar: it cuts its own thread.",
@@ -459,11 +459,7 @@
     },
     {
      "sub": "TRACK",
-     "qty": 44
-    },
-    {
-     "sub": "DOCK",
-     "qty": 8
+     "qty": 48
     }
    ]
   },
@@ -1666,13 +1662,13 @@
    "category": "structure",
    "make": "make",
    "standard": "bent plate",
-   "size": "100 x 80",
+   "size": "138 x 80",
    "grade": "316L",
    "material": "Stainless steel 1.4401 (316)",
    "materialKey": "ss316",
    "qty": 1,
-   "massKg": 1.4013,
-   "totalMassKg": 1.4013,
+   "massKg": 1.6471,
+   "totalMassKg": 1.6471,
    "torqueNm": null,
    "reference": false,
    "function": "Joins the chain's moving end to the carriage.",
@@ -1690,13 +1686,13 @@
    "category": "structure",
    "make": "make",
    "standard": "bent plate",
-   "size": "100 x 80",
+   "size": "138 x 80",
    "grade": "316L",
    "material": "Stainless steel 1.4401 (316)",
    "materialKey": "ss316",
    "qty": 1,
-   "massKg": 1.4013,
-   "totalMassKg": 1.4013,
+   "massKg": 1.6471,
+   "totalMassKg": 1.6471,
    "torqueNm": null,
    "reference": false,
    "function": "Joins the chain's moving end to the carriage.",
@@ -1710,17 +1706,17 @@
   },
   {
    "id": "WSH-DCP",
-   "name": "Arm carriage plate, 440 x 520 x 20",
+   "name": "Arm carriage plate, 440 x 660 x 20",
    "category": "structure",
    "make": "make",
    "standard": "machined plate",
-   "size": "440 x 520 x 20",
+   "size": "440 x 660 x 20",
    "grade": "S355J2",
    "material": "Structural steel S355, hot-dip galvanised",
    "materialKey": "steel_s355",
    "qty": 2,
-   "massKg": 35.8249,
-   "totalMassKg": 71.6499,
+   "massKg": 45.37,
+   "totalMassKg": 90.7401,
    "torqueNm": null,
    "reference": false,
    "function": "Rides the 4 rail blocks and carries the pedestal and the track drive.",
@@ -1743,8 +1739,8 @@
    "material": "Structural steel S355, hot-dip galvanised",
    "materialKey": "steel_s355",
    "qty": 2,
-   "massKg": 42.4189,
-   "totalMassKg": 84.8379,
+   "massKg": 42.356,
+   "totalMassKg": 84.712,
    "torqueNm": null,
    "reference": false,
    "function": "Lifts the arm to the charge arm's own mount height on the carriage. The J1 actuator hangs inside it.",
@@ -1764,16 +1760,16 @@
    "category": "structure",
    "make": "make",
    "standard": "EN 10219",
-   "size": "10200 long",
+   "size": "10896 long",
    "grade": "S355J2, hot-dip galvanised",
    "material": "Structural steel S355, hot-dip galvanised",
    "materialKey": "steel_s355",
    "qty": 2,
-   "massKg": 386.2577,
-   "totalMassKg": 772.5154,
+   "massKg": 295.6065,
+   "totalMassKg": 591.213,
    "torqueNm": null,
    "reference": false,
-   "function": "Carries the 2 rails and the rack of one detail arm track, flat and straight.",
+   "function": "Carries the 2 rails and the rack of one detail arm track, flat and straight, and the dock at its north end.",
    "spec": {
     "flatness": "0.3 mm per metre, shimmed on its anchor plates"
    },
@@ -1794,9 +1790,9 @@
    "grade": "S355J2",
    "material": "Structural steel S355, hot-dip galvanised",
    "materialKey": "steel_s355",
-   "qty": 22,
-   "massKg": 5.4259,
-   "totalMassKg": 119.3702,
+   "qty": 24,
+   "massKg": 5.3969,
+   "totalMassKg": 129.526,
    "torqueNm": null,
    "reference": false,
    "function": "Holds the track beam to the slab.",
@@ -1804,7 +1800,7 @@
    "uses": [
     {
      "sub": "TRACK",
-     "qty": 22
+     "qty": 24
     }
    ]
   },
@@ -1813,14 +1809,14 @@
    "name": "Track end stop with buffer",
    "category": "structure",
    "make": "make",
-   "standard": "welded, PU buffer",
-   "size": "120 x 60 x 50",
+   "standard": "welded to the beam, PU buffer",
+   "size": "120 x 70 x 50",
    "grade": "",
    "material": "Structural steel S355, hot-dip galvanised",
    "materialKey": "steel_s355",
    "qty": 4,
-   "massKg": 1.9343,
-   "totalMassKg": 7.7373,
+   "massKg": 2.0982,
+   "totalMassKg": 8.3929,
    "torqueNm": null,
    "reference": false,
    "function": "Stops the carriage if it runs past its travel.",
@@ -1829,6 +1825,30 @@
     {
      "sub": "TRACK",
      "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "WSH-DTT",
+   "name": "Track tie bar, galvanised flat 60 x 8",
+   "category": "structure",
+   "make": "make",
+   "standard": "flat bar",
+   "size": "60 x 8 x 859",
+   "grade": "S235, galvanised",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 2,
+   "massKg": 3.236,
+   "totalMassKg": 6.4719,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Ties the arm track to the gantry rail, so the two stay parallel.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "TRACK",
+     "qty": 2
     }
    ]
   },
@@ -1917,8 +1937,8 @@
    "material": "Stainless steel 1.4401 (316)",
    "materialKey": "ss316",
    "qty": 2,
-   "massKg": 0.6498,
-   "totalMassKg": 1.2996,
+   "massKg": 0.6137,
+   "totalMassKg": 1.2274,
    "torqueNm": null,
    "reference": false,
    "function": "Drives the carriage along its rack.",
@@ -1964,9 +1984,9 @@
    "grade": "",
    "material": "PA66-GF30",
    "materialKey": "pa66",
-   "qty": 298,
+   "qty": 322,
    "massKg": 0.0232,
-   "totalMassKg": 6.9154,
+   "totalMassKg": 7.4724,
    "torqueNm": null,
    "reference": false,
    "function": "Guides the cables and hoses through the moving joint. It keeps the bend radius safe.",
@@ -1974,23 +1994,23 @@
    "uses": [
     {
      "sub": "TRACK",
-     "qty": 298
+     "qty": 322
     }
    ]
   },
   {
-   "id": "ISO4017-M12x40-A4-70",
-   "name": "Hex head screw M12 x 40",
+   "id": "ISO4017-M12x30-A4-70",
+   "name": "Hex head screw M12 x 30",
    "category": "fastener",
    "make": "buy",
    "standard": "ISO 4017",
-   "size": "M12 x 40",
+   "size": "M12 x 30",
    "grade": "A4-70",
    "material": "Stainless steel A4-80",
    "materialKey": "fast_a4",
    "qty": 8,
-   "massKg": 0.0526,
-   "totalMassKg": 0.4207,
+   "massKg": 0.0436,
+   "totalMassKg": 0.3485,
    "torqueNm": 59.2,
    "reference": false,
    "function": "Holds the pedestal's foot to the carriage plate.",
@@ -2015,9 +2035,9 @@
    "grade": "A4-80",
    "material": "Stainless steel A4-80",
    "materialKey": "fast_a4",
-   "qty": 340,
+   "qty": 372,
    "massKg": 0.0076,
-   "totalMassKg": 2.5891,
+   "totalMassKg": 2.8327,
    "torqueNm": 9.8,
    "reference": false,
    "function": "Holds the track rail to its beam.",
@@ -2028,34 +2048,7 @@
    "uses": [
     {
      "sub": "TRACK",
-     "qty": 340
-    }
-   ]
-  },
-  {
-   "id": "ISO4762-M6x25-A4-80",
-   "name": "Socket head cap screw M6 x 25",
-   "category": "fastener",
-   "make": "buy",
-   "standard": "ISO 4762",
-   "size": "M6 x 25",
-   "grade": "A4-80",
-   "material": "Stainless steel A4-80",
-   "materialKey": "fast_a4",
-   "qty": 32,
-   "massKg": 0.0087,
-   "totalMassKg": 0.2798,
-   "torqueNm": 9.8,
-   "reference": false,
-   "function": "Holds the carriage plate to a rail block.",
-   "spec": {
-    "preload": "9.5 kN",
-    "drive": "hex socket 5 mm"
-   },
-   "uses": [
-    {
-     "sub": "TRACK",
-     "qty": 32
+     "qty": 372
     }
    ]
   },
@@ -2092,16 +2085,16 @@
    "category": "structure",
    "make": "make",
    "standard": "EN 1090-2 EXC2",
-   "size": "80 sq x 840",
+   "size": "80 sq x 768",
    "grade": "S355J2, hot-dip galvanised",
    "material": "Structural steel S355, hot-dip galvanised",
    "materialKey": "steel_s355",
    "qty": 2,
-   "massKg": 17.1247,
-   "totalMassKg": 34.2494,
+   "massKg": 16.1431,
+   "totalMassKg": 32.2862,
    "torqueNm": null,
    "reference": false,
-   "function": "Carries the rinse cup and the exit signal at the end of the track.",
+   "function": "Carries the rinse cup and the exit signal. It is bolted to the track beam's north end.",
    "spec": {},
    "uses": [
     {
@@ -2237,6 +2230,33 @@
     {
      "sub": "DOCK",
      "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "ISO4017-M10x25-A4-70",
+   "name": "Hex head screw M10 x 25",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4017",
+   "size": "M10 x 25",
+   "grade": "A4-70",
+   "material": "Stainless steel A4-80",
+   "materialKey": "fast_a4",
+   "qty": 8,
+   "massKg": 0.0268,
+   "totalMassKg": 0.2144,
+   "torqueNm": 34.4,
+   "reference": false,
+   "function": "Holds the dock post to the track beam, into a rivet nut.",
+   "spec": {
+    "preload": "20.8 kN",
+    "drive": "hex 16 mm"
+   },
+   "uses": [
+    {
+     "sub": "DOCK",
+     "qty": 8
     }
    ]
   },
@@ -6222,16 +6242,16 @@
    "category": "structure",
    "make": "make",
    "standard": "bent and welded plate",
-   "size": "258 long",
+   "size": "273 long",
    "grade": "316L",
    "material": "Stainless steel 1.4401 (316)",
    "materialKey": "ss316",
    "qty": 2,
-   "massKg": 0.7968,
-   "totalMassKg": 1.5936,
+   "massKg": 1.1228,
+   "totalMassKg": 2.2455,
    "torqueNm": null,
    "reference": false,
-   "function": "Carries the camera and the mist nozzle beside the pad, on the wrist and not on the turning head.",
+   "function": "Carries the camera and the mist nozzle beside the pad, on the wrist and not on the turning head. Its foot bolts to the wrist tube's flat cheek.",
    "spec": {},
    "uses": [
     {
@@ -6409,9 +6429,9 @@
    "grade": "A4-80",
    "material": "Stainless steel A4-80",
    "materialKey": "fast_a4",
-   "qty": 12,
+   "qty": 10,
    "massKg": 0.0067,
-   "totalMassKg": 0.0805,
+   "totalMassKg": 0.0671,
    "torqueNm": 9.8,
    "reference": false,
    "function": "Holds the floating joint to the force sensor.",
@@ -6426,7 +6446,7 @@
     },
     {
      "sub": "POLISH",
-     "qty": 8
+     "qty": 6
     }
    ]
   },
@@ -6511,13 +6531,13 @@
    "category": "structure",
    "make": "make",
    "standard": "checker plate 10 mm",
-   "size": "2 x 9352, slot 70",
+   "size": "2 x 9823, slot 70",
    "grade": "S235, galvanised, R11 slip",
    "material": "Steel 42CrMo4, quenched and tempered",
    "materialKey": "steel",
    "qty": 1,
-   "massKg": 102.7745,
-   "totalMassKg": 102.7745,
+   "massKg": 107.9549,
+   "totalMassKg": 107.9549,
    "torqueNm": null,
    "reference": false,
    "function": "Covers the trench flush with the floor. The driver runs in its slot.",
@@ -6535,13 +6555,13 @@
    "category": "structure",
    "make": "make",
    "standard": "folded sheet 5 mm",
-   "size": "140 x 520 x 9352",
+   "size": "140 x 520 x 9823",
    "grade": "S235, galvanised",
    "material": "Steel 42CrMo4, quenched and tempered",
    "materialKey": "steel",
    "qty": 1,
-   "massKg": 451.4738,
-   "totalMassKg": 451.4738,
+   "massKg": 474.2306,
+   "totalMassKg": 474.2306,
    "torqueNm": null,
    "reference": false,
    "function": "Lines the trench the drag chain runs in, inboard of the west rail, under the cover.",
@@ -6683,9 +6703,9 @@
    "grade": "",
    "material": "PA66-GF30",
    "materialKey": "pa66",
-   "qty": 69,
+   "qty": 72,
    "massKg": 0.053,
-   "totalMassKg": 3.6604,
+   "totalMassKg": 3.8196,
    "torqueNm": null,
    "reference": false,
    "function": "Guides the cables and hoses through the moving joint. It keeps the bend radius safe.",
@@ -6693,7 +6713,7 @@
    "uses": [
     {
      "sub": "CONTROL",
-     "qty": 69
+     "qty": 72
     }
    ]
   },
@@ -6803,13 +6823,13 @@
    "category": "seal",
    "make": "buy",
    "standard": "catalogue part",
-   "size": "25 x 9352",
+   "size": "25 x 9823",
    "grade": "",
    "material": "PA66-GF30",
    "materialKey": "pa66",
    "qty": 2,
-   "massKg": 0.9469,
-   "totalMassKg": 1.8937,
+   "massKg": 0.9946,
+   "totalMassKg": 1.9892,
    "torqueNm": null,
    "reference": false,
    "function": "Closes the cover's slot round the driver against grit and spray.",

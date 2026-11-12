@@ -57,10 +57,10 @@ export const WASH_TRAVEL = {
   /** south end of a pass: the arch's line stands 1.1 u behind its tail */
   south: 7.6,
   /**
-   * where it stows: 3 u (1.44 m) farther south, at the entrance. Its north face is then 4.14 m from the car's centre,
-   * 1.8 m behind the tail: room for a detail arm's wrist and elbow behind the tail (they reach 3.2 m), with 0.9 m spare.
+   * where it stows: 4 u (1.91 m) farther south, at the entrance. Its north face is then 4.62 m from the car's centre,
+   * 2.3 m behind the tail: room for a detail arm working on the tail from a carriage 3.0 m from the car's centre.
    */
-  home: 10.6,
+  home: 11.6,
 } as const;
 
 /**
@@ -79,7 +79,7 @@ export const WASH_GANTRY = {
   /** the beam across the top, along the gantry's line from dy0 to dy1 */
   beam: { y0: 6.9, y1: 7.6, dy0: -1.9, dy1: 2.2 },
   /** floor rails: from the car's centre, plan u */
-  rail: { w: 0.32, h: 0.14, from: -10.0, to: 13.2 },
+  rail: { w: 0.32, h: 0.14, from: -10.0, to: 14.2 },
   /** the spray arch on the beam's north face: a soak circuit and a jet circuit, one ring of nozzles each */
   arch: { dy: -1.6, x: 5.6, top: 6.5, r: 0.13, nozzles: 9 },
   /** air knives on the beam's south side: one over the roof, one beside each flank */
@@ -96,8 +96,8 @@ export const WASH_GANTRY = {
     trackX: 4.3887,
     /** the dock: each arm's J1 axis when parked, north of the gantry's travel (its trolleys reach -9.9) */
     dockDy: -10.9,
-    /** the carriage's south stop: level with the car's tail */
-    trackTo: 5.0,
+    /** the carriage's south stop: 3.06 m from the car's centre, 0.72 m past its tail, for the tail's sensors */
+    trackTo: 6.4,
     /** the polishing pad: a soft disc (radius 60 mm), small enough to fit between the roof pod and the roof */
     padR: 0.1254,
   },
@@ -181,7 +181,7 @@ export const PASSES_NOMINAL_S = Object.values(PASS_NOMINAL_S).reduce((a, b) => a
  */
 export const WASH_PHASE_S: Readonly<Record<Exclude<WashPhase, WashPass | 'home' | 'cabin_hold' | 'return'>, number>> = {
   settle: 2.5,
-  arms_out: 10, wipe_front: 24, wipe_sides: 24, wipe_roof: 38, wipe_rear: 36, arms_stow: 15,
+  arms_out: 10, wipe_front: 21, wipe_sides: 21, wipe_roof: 38, wipe_rear: 40, arms_stow: 15,
   done: 2,
   // a seat that ends mid-program: the air knives come off the car and the arms tuck, at their own speed, never hurried
   retract: 9,

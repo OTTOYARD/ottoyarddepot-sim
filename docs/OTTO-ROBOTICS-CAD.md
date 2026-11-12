@@ -49,7 +49,7 @@ at home, mid wash pass, dry pass and on the roof and front sensors (`programPose
 |---|---:|---:|---:|---:|---:|---:|
 | OTTO-CHARGE ARM | 666 | 188 | 467 | 313 kg (with its riser) | 32.8 MB (6.2) | 6.9 MB |
 | OTTO-CLEAN ARM | 408 | 134 | 253 | 311 kg (with its canopy steel) | 14.2 MB (2.3) | 3.6 MB |
-| OTTO-WASH (touchless, with 2 detail arms, 2026-11-12) | 2,606 | 249 | 1,634 | 5,732 kg | 37.2 MB (6.8) | 7.7 MB |
+| OTTO-WASH (touchless, with 2 detail arms, 2026-11-12) | 2,639 | 250 | 1,636 | 5,631 kg | 36.9 MB (6.7) | 7.8 MB |
 
 (Fewer fasteners than the first pass: where the clash check found a screw standing in another part, or holding a part
 the new layout leaves out (the wash beam's cover, the clean arm's mast cap and first hose), it went. The masses went
@@ -130,6 +130,19 @@ cycle, from the twin's own pose code (`cadPoses.ts`). It finds the pairs of part
 volume they share with an OpenCascade boolean. A pair inside one rigid body is measured once; a pair across a joint is
 measured again at every pose.
 
+A measurement depends only on the two parts and on where one stands in the other's frame. So the check measures a
+pair once for each such placement and uses that answer again wherever the same two parts stand the same way: at a
+later pose in which neither moved against the other, and in a second copy of an assembly (the wash bay's two detail
+arms). A part number is one solid, so the answer is the same answer. A flexible line's solid is made anew at each pose,
+so a pair with one in it is used again only when neither it nor the other part moved at all (its volume, its centre
+of mass and its place are the same). And before any pair is measured, each part's own box where it stands is tested
+against the other's (the separating-axis test): a part turned 45 degrees has an axis-aligned box far larger than
+itself, and at an arm's working poses those boxes overlapped by the hundred. The test errs toward keeping a pair. The
+wash bay with its two arms did not finish in two hours without these (2026-11-12). With them it takes 18 minutes. On
+the clean arm they give the same findings as before (no clash, no loose group, the same 185 expected overlaps and the
+same 407 touching pairs) from 2,691 measurements in place of 9,045. The report says how many pairs it looked at and how
+many it measured (`pairsChecked`, `pairsMeasured`).
+
 Some overlap is expected and is counted, not flagged: a screw's shank in a tapped hole the CAD does not draw (only if
 the shared volume lies inside the screw's own hole cylinder, below its head), a seal pressed into its groove, a
 retaining ring in its groove, and the drawn teeth of a gear mesh. Anything else is a **clash**. A second test runs at
@@ -146,7 +159,7 @@ As run on the committed CAD (`public/cad/<robot>.clash.json`):
 |---|---:|---:|---:|---:|---|
 | OTTO-CHARGE ARM | 22 | 32,311 | 0 | 0 | 672, 12, 9, 3 |
 | OTTO-CLEAN ARM | 42 | 15,880 | 0 | 0 | 320, 4, 4, 4 |
-| OTTO-WASH (touchless, 2026-11-11) | 38 | 9,520 | 0 | 0 | 451, 0, 0, 0 |
+| OTTO-WASH (touchless, with 2 detail arms, 2026-11-12) | 37 | 66,264 (14,467 measured) | 0 | 0 | 1,975, 24, 18, 6 |
 
 No clash and no loose part is left in any robot, at any of the twin's poses, and `cad.test.ts` holds all three at
 zero. Design findings 6 and 7 were fixed in the CAD without a change to the twin, and so were 8 and 9, which the yard's
@@ -385,29 +398,49 @@ The poses found more, which the stowed pose could not show:
     - *A floor track, not the gantry's rails and not the roof.* The gantry's rails stand 3.25 m out,
       too far for a 2.49 m reach to the roof's centre. A track 1.10 m off the flank puts every sensor in reach, and
       the gantry passes over it. Nothing new hangs over the wet bay.
-    - *The gantry stows at the entrance and the arms dock at the exit.* The gantry's rails are 1.44 m longer so that it
-      stows 1.8 m behind the car's tail, clear of an arm working on the tail (its wrist reaches 3.15 m from the car's
-      centre). Its drag chain is 10 links longer for that travel (sized from the travel in the model). The docks stand
+    - *The gantry stows at the entrance and the arms dock at the exit.* The gantry's rails are 1.9 m longer so that it
+      stows 2.3 m behind the car's tail, clear of an arm working on the tail from a carriage 3.0 m from the car's
+      centre. Its drag chain is sized from that travel in the model. The docks stand
       north of the gantry's travel, so the two machines never share a part of the bay. A car drives in under the
       gantry and out between the docked arms, with 0.6 m a side.
     - *The pad turns a quarter turn each way and never spins free.* So no cable or water line winds up, and the last
       joint stays under its speed.
     - *Each dock has a rinse cup.* A parked arm's pad hangs in it, and a nozzle rinses the pad with pure water after
-      each car. This closes finding 17's "pad cleaning is by hand".
+      each car. This closes finding 17's "pad cleaning is by hand". The dock's post is bolted to the track beam's north
+      end, and a tie bar joins each track to the gantry rail's north anchor plate, so the tracks stay parallel to the
+      gantry's rails and the whole bay is one assembly.
     **What the motion model found, and what changed** (`detailArm.ts`):
     - A wrist has two ways to any direction, and on one of them the forearm's roll reached its limit at the roof
       lidar and jumped a whole turn. The arm uses one way round the car's sides and the other on the roof, and turns
       over above its own track with the pad pointing down, where the wrist is well away from straight.
     - Moved at an even pace along the pad's path, the shoulder ran at 243 deg/s. Each part of a path is now as long as
       its line or its busiest joint's turn, whichever is more, and the program is timed so that no joint passes a
-      1.75 m collaborative arm's speeds (120, 120, 150, 210, 210, 210 deg/s). The arms' work takes 147 s for 24 places.
+      1.75 m collaborative arm's speeds (120, 120, 150, 210, 210, 210 deg/s). The arms' work takes 145 s for 24 places.
     - A seat that ended early sent each arm's joints straight to the tuck, through the car. Now the pad backs straight
       off the way it faces, lifts if it is over the roof, and only then tucks. An arm is never hurried on the way home.
     - A leaned pad on the roof lidar's flat top dug 20 mm into it on one side. The lidar's window is its side wall, so
       each arm polishes 3 places round its top edge and no pad goes on the cap.
-    **Held by:** `cad/clash.py` (CLASH_NUMBERS), `detailArm.test.ts`, `washPose.test.ts` (both programs and 43 early
-    ends) and `cadYard.test.ts` on the CAD's own meshes: the pad's face on the car to 0.1 mm, the head 62 mm off, every
-    link and joint of an arm 0.14 m off, the gantry never within 0.5 m of an arm.
+    **What the clash check found in the first build, and what changed.** It found 450 clashes and 4 loose groups, all in
+    the new parts, and none of them was a rounding matter:
+    - *The arm folded into itself.* With the track 1.10 m off the flank and the carriage beside each sensor, the elbow
+      folded to 2.76 rad and the forearm's casting cut 36 cm3 out of the upper arm's. The wrist bent to 1.85 rad and
+      its tube met its yoke. The charge arm never folds past 2.30 and 1.48, so its own check never found these. The
+      motion is now held to 2.30 and 1.70 rad (`DETAIL_FOLD`): the carriage stops 1.0 to 1.65 m along the track from
+      each sensor, the tuck pose is higher, and the corner lidars are met 20 degrees from above.
+    - *340 rail screws stood 2 mm proud of their counterbores' floors.* Their heads are now on the floors.
+    - *The carriage was too short for what stood on it.* The pedestal's foot stood on the gearmotor and on the block
+      screws' heads, its bolts were under its own tube wall, and the pinion ran through the plate and a rail block. The
+      plate is now 660 mm long with the rails 200 mm apart: the block screws are sunk in it, the foot's bolts are
+      outside the tube, and the gearmotor stands south of the foot with its pinion's shaft in its own hole.
+    - *The sensor bracket's screws went into the J6 socket ring.* The bracket now has a foot on the wrist tube's flat
+      cheek, in the clear strip between the J5 flange screws and the socket ring.
+    - *The floating joint's screws were inside its elastomer.* They are now between its 3 springs.
+    - *The chain's carrier arm stood in the chain.* Its upright now lies on the outer side of the last link.
+    - *The tracks, the docks and the gantry were 5 separate islands.* See the dock and the tie bar above.
+    **Held by:** `cad/clash.py` (after the fixes: 37 poses, 66,264 pairs, 0 clashes, 0 loose groups), `detailArm.test.ts`, `washPose.test.ts` (both programs and 43 early
+    ends) and `cadYard.test.ts` on the CAD's own meshes: the pad's face on the car (its foam gives 6 mm at the rim on a
+    corner lidar), the head 53 mm off or more, every link and joint of an arm 0.13 m off, the gantry never within 0.5 m
+    of an arm.
     **Assumptions, stated:** the joint speeds are a shorter arm's (above). The 5 N working push and 10 N limit are not
     from a source. The 24 sensor places are rays aimed at the twin's one car shape: a real fleet gives each model's
     sensor map, and the wrist camera corrects each point. No public source gives a measured time for a robot arm that

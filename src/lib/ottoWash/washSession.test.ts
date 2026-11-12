@@ -66,8 +66,8 @@ describe('the program', () => {
       'arms_out', 'wipe_front', 'wipe_sides', 'wipe_roof', 'wipe_rear', 'arms_stow', 'done',
     ]);
     expect(PASSES_NOMINAL_S).toBe(180);
-    expect(WIPE_FIXED_S).toBe(147);
-    expect(PASSES_NOMINAL_S + WIPE_FIXED_S + WASH_PHASE_S.settle + WASH_PHASE_S.done).toBeCloseTo(331.5, 6);
+    expect(WIPE_FIXED_S).toBe(145);
+    expect(PASSES_NOMINAL_S + WIPE_FIXED_S + WASH_PHASE_S.settle + WASH_PHASE_S.done).toBeCloseTo(329.5, 6);
   });
 
   it('has no brush pass, no vacuum and no door phase in either program', () => {
