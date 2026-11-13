@@ -153,11 +153,13 @@ describe('OTTO-CHARGE ARM: the power path\'s flex links through the duty cycle',
   // Chase, 2026-11-11: no exposed cable pulled from a pulley. The current runs in the arm: copper bars in each link and a
   // booted link of braided copper at the base, the shoulder, the elbow and the wrist (cad/otto_cad/robots/charge_arm.py, POWER PATH).
   const LINKS = ['CHG-FL1', 'CHG-FL2', 'CHG-FL3', 'CHG-FL4'];
+  const CHAINS = ['CHG-BCN', 'CHG-BZN'];
 
   it('has a booted flex link at each joint, and no take-up wheel or free span', () => {
     const cad = cads.get('charge_arm')!;
-    expect(cad.flex.map((f) => f.id).sort()).toEqual(LINKS);
-    for (const f of cad.flex) expect(f.length, f.id).toBeLessThanOrEqual(1.25);
+    // the 4 booted links in the arm, and the base stage's 2 cable chains (the carriage's, in its floor channel, and the saddle's)
+    expect(cad.flex.map((f) => f.id).sort()).toEqual([...CHAINS, ...LINKS]);
+    for (const f of cad.flex.filter((x) => LINKS.includes(x.id))) expect(f.length, f.id).toBeLessThanOrEqual(1.25);
   });
 
   it('bends no flex link tighter than its boot allows, at every inlet and every corner of the window', () => {

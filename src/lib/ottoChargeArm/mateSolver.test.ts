@@ -3,7 +3,7 @@ import { FLEET_SPECS } from '@/lib/fleetModels';
 import { chargeableArmSides, mateTarget } from '@/lib/fleetModels/ports';
 import { solveIK } from './cobotIK';
 import { MOUNT_HEIGHT_M, PEDESTAL_TO_CAR_CENTRE_M, SERVICE_WINDOW } from './cobotSpec';
-import { ARM_REACH, railTravelNeeded, solveMate } from './mateSolver';
+import { ARM_REACH, connectorFace, railTravelNeeded, solveMate, toolToBase } from './mateSolver';
 
 const fleet = FLEET_SPECS.map((spec) => ({ key: spec.key, spec, target: mateTarget(spec)! }));
 
@@ -39,20 +39,22 @@ describe('charge arm: mating each vehicle where its inlet is', () => {
         expect(m.crossM).toBeLessThanOrEqual(ARM_REACH.crossInM + 1e-9);
         expect(m.planClearanceM!).toBeGreaterThanOrEqual(ARM_REACH.rearMateClearanceM);
       } else {
-        // A side inlet is met dead abeam the base, at the standoff the safe window was measured at.
-        expect(Math.abs(m.port.x - m.slideM)).toBeLessThan(1e-9);
+        // A side inlet is met with the tool axis dead abeam the base, at the standoff the safe window was measured at.
+        expect(Math.abs(m.axisPort.x)).toBeLessThan(1e-6);
         expect(m.flankStandoffM).toBeCloseTo(SERVICE_WINDOW.flankStandoff, 6);
       }
     }
   });
 
-  it('left and right stalls mirror each other for a vehicle both can charge', () => {
+  it('a vehicle both sides can charge is mated from either, inside the base\'s travel', () => {
+    // The head's two connectors stand on opposite sides of the tool axis, so the two sides are not mirror images.
     for (const key of ['tesla_cybercab', 'zoox_robotaxi']) {
       const t = fleet.find((f) => f.key === key)!.target;
-      const r = solveMate(t, true);
-      const l = solveMate(t, false);
-      expect(l.crossM).toBeCloseTo(r.crossM, 6);
-      if (t.face === 'rear') expect(l.slideM).toBeCloseTo(-r.slideM, 6);
+      for (const right of [true, false]) {
+        const m = solveMate(t, right);
+        expect(m.ok).toBe(true);
+        expect(Math.abs(m.slideM)).toBeLessThanOrEqual(ARM_REACH.railTailM + 1e-9);
+      }
     }
   });
 
@@ -62,6 +64,25 @@ describe('charge arm: mating each vehicle where its inlet is', () => {
     expect(ARM_REACH.railNoseM).toBeGreaterThanOrEqual(need.noseM);
     expect(ARM_REACH.railTailM - need.tailM).toBeLessThan(0.25);
     expect(ARM_REACH.railNoseM - need.noseM).toBeLessThan(0.25);
+  });
+
+  it.each(fleet)('$key: the connector the car takes lands on its inlet, square to it and upright', ({ spec, target }) => {
+    for (const right of [true, false]) {
+      const m = solveMate(target, right);
+      if (!m.ok) continue;
+      // The inlet relative to the base where this mate puts it.
+      const rel = { x: m.port.x - m.slideM, y: m.port.y, z: m.port.z - m.crossM };
+      const face = connectorFace(m.ik!, m.head!);
+      expect(Math.hypot(face.x - rel.x, face.y - rel.y, face.z - rel.z), `${spec.key} face on inlet`).toBeLessThan(0.001);
+      // The tool points into the inlet.
+      const axis = toolToBase({ x: 0, y: 1, z: 0 }, m.ik!);
+      expect(axis.x * -m.normal.x + axis.y * -m.normal.y + axis.z * -m.normal.z).toBeGreaterThan(0.9999);
+      // And the head's Z points straight down on a level approach, so the connector's key is upright.
+      const z = toolToBase({ x: 0, y: 0, z: 1 }, m.ik!);
+      expect(z.y).toBeLessThan(-0.9999);
+      // The other connector stays back: its face is headStrokeM behind the inlet's plane.
+      expect(ARM_REACH.headStrokeM).toBeGreaterThanOrEqual(0.06);
+    }
   });
 
   it('two connectors on the head cover the fleet', () => {

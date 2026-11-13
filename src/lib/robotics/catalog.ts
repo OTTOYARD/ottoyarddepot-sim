@@ -6,6 +6,9 @@
  *
  * Viewer copy is ASD-STE100 (AGENTS.md). No product names (publicNames.test.ts).
  */
+import { ARM_REACH, BASE_JOINT_NAMES, HEAD_JOINT_NAMES, headIK, solveMate } from '@/lib/ottoChargeArm/mateSolver';
+import { FLEET_SPECS } from '@/lib/fleetModels';
+import { mateTarget } from '@/lib/fleetModels/ports';
 import { NOMINAL_SEQUENCE, ARM_TIMING_DEFAULTS } from '@/lib/ottoChargeArm/armStateMachine';
 import { poseForPhase } from '@/lib/ottoChargeArm/armMotion';
 import { STOWED, solveIK } from '@/lib/ottoChargeArm/cobotIK';
@@ -180,6 +183,9 @@ export const qtyIn = (l: BomLine, sub?: string | null): number =>
 /** The part ids that are fasteners (for the viewer's fastener switch). */
 export const fastenerIds = (bom: Bom): Set<string> => new Set(bom.lines.filter((l) => l.category === 'fastener').map((l) => l.id));
 
+/** The CAD model's stall faces this way (liveFollow.MODEL_TOWARD = -1): the arm stands on the car's left. */
+const MODEL_ARM_ON_CARS_RIGHT = false;
+
 // ── poses, from the twin's own code ────────────────────────────────────────
 
 export interface PosePreset { id: string; label: string; angles: Record<string, number> }
@@ -194,10 +200,31 @@ function chargePoses(): PosePreset[] {
     ({ J1: a.j1, J2: a.j2, J3: a.j3, J4: a.j4, J5: a.j5, J6: a.j6 });
   // No "straight up" (all joints 0) preset: the flex links that carry the charge current across the joints are sized
   // for the poses the twin plays (cadFlex.test.ts), and straight up is not one of them.
-  return [
+  // The connected preset, with the head's CCS1 connector forward on that inlet.
+  const hk = headIK(port, { x: 0, y: 0, z: -1 }, 'CCS1');
+  const out: PosePreset[] = [
     { id: 'stowed', label: 'Stowed', angles: j(STOWED) },
-    { id: 'connected', label: 'Connected', angles: j(ik) },
+    { id: 'connected', label: 'Connected', angles: { ...j(hk.ik), [HEAD_JOINT_NAMES.CCS1]: ARM_REACH.headStrokeM } },
+    { id: 'connected_axis', label: 'Tool axis on the port, both connectors back', angles: j(ik) },
   ];
+  // One preset a fleet vehicle, on this model's stall side: the base where the mate puts it, the connector the car
+  // takes forward (mateSolver.solveMate, from the fleet models' own port facts).
+  for (const spec of FLEET_SPECS) {
+    const t = mateTarget(spec);
+    if (!t) continue;
+    const m = solveMate(t, MODEL_ARM_ON_CARS_RIGHT);
+    if (!m.ok || !m.ik || !m.head) continue;
+    out.push({
+      id: `mate_${spec.key}`, label: `Connected: ${spec.name}`,
+      angles: { ...j(m.ik), [BASE_JOINT_NAMES[1]]: m.slideM, [BASE_JOINT_NAMES[2]]: m.crossM, [HEAD_JOINT_NAMES[m.head]]: ARM_REACH.headStrokeM },
+    });
+    // and the base there with the arm still folded: the carriage travels with the arm stowed
+    out.push({
+      id: `base_${spec.key}`, label: `Base at the inlet, arm folded: ${spec.name}`,
+      angles: { ...j(STOWED), [BASE_JOINT_NAMES[1]]: m.slideM, [BASE_JOINT_NAMES[2]]: m.crossM },
+    });
+  }
+  return out;
 }
 
 /** The clean arm's joints as the CAD's nodes take them (buildCleanArm.poseCleanArm's mapping). */

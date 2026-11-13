@@ -17,6 +17,7 @@
 //
 // Runs only in backend-twin mode (active sim_run + offline engine NOT running).
 // ============================================================================
+import { publishVehiclePorts } from '@/lib/ottoChargeArm/vehiclePort';
 import { stopFor, type FoundItem } from '@/lib/ottoCleanArm/foundItems';
 import { KinematicCar, DEFAULT_CAR_PARAMS, wrapAngle } from "./motion/KinematicCar";
 import { type Pt } from "./motion/PathTracker";
@@ -2910,6 +2911,7 @@ class TwinMotionDriver {
     // maps: a step the twin has closed must stop the arm on the next frame. The times
     // stay on the backend's sim clock (epoch ms), the one domain simNow() runs in.
     const cabin = new Map<string, CabinClean>();
+    publishVehiclePorts(snap.fleet?.vehicles ?? []);
     for (const bv of snap.fleet?.vehicles ?? []) {
       const c = cabinCleanOf(bv, (id) => this.twinStall.get(id));
       if (c) cabin.set(bv.id, c);

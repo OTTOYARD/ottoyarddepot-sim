@@ -49,6 +49,7 @@ import { WASH_GANTRY as G, WASH_TRAVEL } from '@/lib/ottoWash/washSpec';
 import { CAR_HALF_WIDTH_U, CAR_TOP_U } from '@/lib/ottoWash/carShape';
 import { WASH_SHELL, PARTITION_T } from '@/lib/structurePlan';
 import { cadArmRigSource, partOfMesh, subOf } from './cadClearance';
+import { ARM_REACH, headIK } from '@/lib/ottoChargeArm/mateSolver';
 import { indexCad, poseCad, type CadModel } from './cadModel';
 import { cleanAngles, washJoints } from './catalog';
 
@@ -106,6 +107,17 @@ const onJoint = (o: THREE.Object3D, re: RegExp): boolean => {
 describe('OTTO-CHARGE ARM, as the yard draws it (its CAD), and the car it charges', () => {
   let rig: ArmClearanceRig;
   beforeAll(async () => { rig = armClearanceRig(cadArmRigSource(await depotSceneFromDisk('charge_arm'))); });
+  /** The head's CCS1 connector at an inlet: what the tool axis is solved to, the head's roll, and the inlet itself. */
+  const headAt = (along: number, height: number) => {
+    const t = target(along, height);
+    const h = headIK(t.port, t.normal, 'CCS1');
+    return { axis: { port: h.axisPort, normal: t.normal }, j6: h.ik.j6, inlet: t.port };
+  };
+  /** Bring the CCS1 connector forward to the tool point's plane, or back. */
+  const plunge = (out: boolean) => {
+    rig.root.getObjectByName('Head_CCS')!.position.y = out ? ARM_REACH.headStrokeM : 0;
+    rig.root.getObjectByName('Head_NACS')!.position.y = 0;
+  };
 
   it('keeps every part but the connector 0.10 m off the car, at every inlet and every corner of the window, all cycle', () => {
     const car = carSolidInArmFrame();
@@ -130,21 +142,23 @@ describe('OTTO-CHARGE ARM, as the yard draws it (its CAD), and the car it charge
     const car = carSolidInArmFrame();
     let radial = 0, depth = 0, inside = 0;
     const near: ArmPhase[] = ['align', 'insert', 'latch', 'charging', 'unlatch', 'extract'];
+    plunge(true);
     for (const v of portVariants()) {
-      const t = target(v.along, v.height);
+      const t = headAt(v.along, v.height);
       for (const phase of near) {
         const steps = phase === 'charging' ? 0 : 8;
         for (let k = 0; k <= steps; k++) {
-          const p = poseFor({ phase, t: steps ? k / steps : 0 }, t, OTTO_CHARGE_ARM);
-          rig.pose(p.angles);
+          const p = poseFor({ phase, t: steps ? k / steps : 0 }, t.axis, OTTO_CHARGE_ARM);
+          rig.pose({ ...p.angles, j6: t.j6 });
           rig.inside(car, 'all', (q, d) => {
             inside++;
-            radial = Math.max(radial, Math.hypot(q.x - t.port.x, q.y - t.port.y));
+            radial = Math.max(radial, Math.hypot(q.x - t.inlet.x, q.y - t.inlet.y));
             depth = Math.max(depth, -d);
           });
         }
       }
     }
+    plunge(false);
     expect(inside, 'the latch does reach into the inlet').toBeGreaterThan(0);
     expect(radial, `a vertex inside the car ${radial.toFixed(4)} m from the inlet's axis`).toBeLessThan(PORT_RECESS_M.radius);
     expect(depth, `a vertex ${depth.toFixed(4)} m inside the car`).toBeLessThan(PORT_RECESS_M.depth);
@@ -153,12 +167,15 @@ describe('OTTO-CHARGE ARM, as the yard draws it (its CAD), and the car it charge
   it('lands the connector on the inlet at full mate, for every inlet the fleet presents', () => {
     const car = carSolidInArmFrame();
     let worst = -Infinity, detail = '';
+    plunge(true);
     for (const v of portVariants()) {
-      const p = poseFor({ phase: 'charging', t: 0 }, target(v.along, v.height), OTTO_CHARGE_ARM);
-      rig.pose(p.angles);
+      const t = headAt(v.along, v.height);
+      const p = poseFor({ phase: 'charging', t: 0 }, t.axis, OTTO_CHARGE_ARM);
+      rig.pose({ ...p.angles, j6: t.j6 });
       const c = rig.clearance(car, 'tool');
       if (c.min > worst) { worst = c.min; detail = `${v.label} along=${v.along.toFixed(2)} ${c.part}`; }
     }
+    plunge(false);
     expect(worst, `the connector stands ${worst.toFixed(4)} m off the inlet at ${detail}`).toBeLessThan(0.02);
   });
 });

@@ -82,6 +82,34 @@
       "bridge": 0.268,
       "padFront": 0.1435,
       "top": 0.469
+    },
+    "baseStage": {
+      "railTail": 2.5,
+      "railNose": 1.3,
+      "crossIn": 0.65,
+      "crossOut": 0.06,
+      "modelToward": -1,
+      "jointNames": [
+        "CR_BED",
+        "CR_X",
+        "CR_Z"
+      ]
+    },
+    "head": {
+      "connectors": [
+        "CCS1",
+        "NACS"
+      ],
+      "offsetX": {
+        "CCS1": 0.1,
+        "NACS": -0.1
+      },
+      "offsetZ": 0.025,
+      "stroke": 0.09,
+      "jointNames": {
+        "CCS1": "HD_CCS",
+        "NACS": "HD_NACS"
+      }
     }
   },
   "cleanArm": {

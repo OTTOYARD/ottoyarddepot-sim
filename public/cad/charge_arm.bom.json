@@ -7,23 +7,23 @@
   "glb": "m"
  },
  "totals": {
-  "parts": 655,
-  "uniqueParts": 191,
-  "fasteners": 457,
-  "massKg": 376.93,
-  "boughtLines": 130,
-  "madeLines": 61,
-  "referenceLines": 2
+  "parts": 966,
+  "uniqueParts": 217,
+  "fasteners": 661,
+  "massKg": 836.44,
+  "boughtLines": 147,
+  "madeLines": 70,
+  "referenceLines": 4
  },
  "subsystems": [
   {
    "id": "MOUNT",
    "name": "Riser and mount",
-   "function": "A steel riser on the charger pad carries the arm. Its J1 axis is 550 mm above the deck and 2.82 m from the car centreline.",
+   "function": "A short steel riser on the cross-slide carries the arm. Its J1 axis is 550 mm above the deck.",
    "how": [
-    "4 chemical anchors M16 hold the riser to the concrete pad.",
+    "4 screws M16 hold the riser to the cross-slide saddle.",
     "8 screws M12 hold the mount plate to the riser.",
-    "The cable trunk joins the riser to the charger cabinet. The arm's power and network cables run inside it into the riser and up through J1's hollow shaft."
+    "The arm's power and network cables come up through the riser and J1's hollow shaft."
    ],
    "specs": {
     "J1 height": "550 mm above the deck",
@@ -31,10 +31,36 @@
    },
    "group": "Structure",
    "order": 0,
-   "partCount": 24,
-   "fastenerCount": 20,
-   "massKg": 104.605,
-   "uniqueParts": 8
+   "partCount": 19,
+   "fastenerCount": 16,
+   "massKg": 74.93,
+   "uniqueParts": 6
+  },
+  {
+   "id": "BASE",
+   "name": "Rail, carriage and cross-slide",
+   "function": "Moves the arm's base to where the car's charge inlet is: along the car on a floor rail, and toward the car on a cross-slide.",
+   "how": [
+    "2 steel beams on the slab carry 2 profile rails and a rack, along the car.",
+    "A carriage rides the rails on 4 blocks. A servo gearmotor under it turns a pinion on the rack.",
+    "On the carriage 2 rails and a ball screw carry the saddle toward the car and back.",
+    "For an inlet on the car's side the base stops beside it, at the same distance from every car.",
+    "For an inlet in the rear bumper the base goes past the tail and in behind the car's corner.",
+    "The power and coolant lines run in a cable chain in a covered channel in the slab, under the carriage.",
+    "The bed is set toward the tail end of the stall. A stall that faces the other way has the same bed, set the other way."
+   ],
+   "specs": {
+    "along the car": "1.3 m toward the nose, 2.5 m toward the tail",
+    "toward the car": "0.65 m in, 0.06 m out",
+    "rails": "size 25 along the car, size 20 across",
+    "drive": "rack and pinion module 3 along, ball screw 20 x 5 across"
+   },
+   "group": "Motion",
+   "order": 1,
+   "partCount": 301,
+   "fastenerCount": 208,
+   "massKg": 485.85,
+   "uniqueParts": 27
   },
   {
    "id": "J1",
@@ -48,7 +74,7 @@
     "gear": "strain-wave, size 40, 100:1"
    },
    "group": "Joints",
-   "order": 1,
+   "order": 2,
    "partCount": 102,
    "fastenerCount": 76,
    "massKg": 52.921,
@@ -66,7 +92,7 @@
     "gear": "strain-wave, size 50, 100:1"
    },
    "group": "Joints",
-   "order": 2,
+   "order": 3,
    "partCount": 102,
    "fastenerCount": 72,
    "massKg": 54.354,
@@ -82,7 +108,7 @@
    ],
    "specs": {},
    "group": "Links",
-   "order": 3,
+   "order": 4,
    "partCount": 19,
    "fastenerCount": 18,
    "massKg": 27.228,
@@ -99,7 +125,7 @@
     "gear": "strain-wave, size 40, 100:1"
    },
    "group": "Joints",
-   "order": 4,
+   "order": 5,
    "partCount": 84,
    "fastenerCount": 60,
    "massKg": 22.446,
@@ -114,7 +140,7 @@
    ],
    "specs": {},
    "group": "Links",
-   "order": 5,
+   "order": 6,
    "partCount": 17,
    "fastenerCount": 16,
    "massKg": 15.183,
@@ -133,7 +159,7 @@
     "gears": "size 25, 25, 20, 100:1"
    },
    "group": "Joints",
-   "order": 6,
+   "order": 7,
    "partCount": 250,
    "fastenerCount": 176,
    "massKg": 23.88,
@@ -141,31 +167,34 @@
   },
   {
    "id": "TOOL",
-   "name": "Connector tool",
-   "function": "Finds the inlet, plugs in, latches, and lets go. It measures the force on every move.",
+   "name": "Connector head",
+   "function": "Carries 2 connectors, CCS1 and NACS. It finds the inlet, brings forward the connector the car takes, plugs in, latches, and lets go.",
    "how": [
     "A 6-axis force and torque sensor reads the insertion force.",
-    "A compliance unit lets the connector float up to 6 mm and 3 degrees. A small error cannot jam it.",
+    "A compliance unit lets the head float up to 6 mm and 3 degrees. A small error cannot jam it.",
     "Stereo cameras and a time-of-flight sensor find the inlet. A light ring helps at night.",
+    "Each connector rides a plunge cylinder. The one the car takes comes forward 90 mm. The other stays back, clear of the car.",
     "A solenoid latch locks the connector in the inlet for the charge."
    ],
    "specs": {
-    "connector": "DC combo class (CCS), liquid-cooled",
-    "TCP": "369.6 mm from the tool flange"
+    "connectors": "CCS1 (SAE J1772 combo) and NACS (SAE J3400), liquid-cooled",
+    "TCP": "369.6 mm from the tool flange",
+    "spacing": "100 mm each side of the tool axis",
+    "stroke": "90 mm"
    },
    "group": "Tool",
-   "order": 7,
-   "partCount": 40,
+   "order": 8,
+   "partCount": 55,
    "fastenerCount": 17,
-   "massKg": 6.179,
-   "uniqueParts": 24
+   "massKg": 9.514,
+   "uniqueParts": 29
   },
   {
    "id": "DRESS",
    "name": "Power path in the arm",
    "function": "Carries the charge current, the coolant and the tool's lines to the connector inside the arm, and power and network to the joints.",
    "how": [
-    "The charge current comes up the riser from the cabinet in 2 insulated copper bars.",
+    "The charge current comes from the cabinet under the pad to the cable chain, and up the riser in 2 cables.",
     "In each hollow link 2 copper bars carry it, one a pole. Nothing live is in the open.",
     "At the base, the shoulder and the elbow a booted link of braided copper joins 2 terminal boxes. It bends as the joint turns.",
     "From the forearm one last booted link, 1.2 m long, runs to the connector across the wrist.",
@@ -180,7 +209,7 @@
     "cooling": "liquid at the connector's contacts, 2 tubes 8 mm"
    },
    "group": "Cables",
-   "order": 8,
+   "order": 9,
    "partCount": 10,
    "fastenerCount": 0,
    "massKg": 68.85,
@@ -197,7 +226,7 @@
    ],
    "specs": {},
    "group": "Safety",
-   "order": 9,
+   "order": 10,
    "partCount": 7,
    "fastenerCount": 2,
    "massKg": 1.28,
@@ -287,7 +316,7 @@
    "category": "structure",
    "make": "make",
    "standard": "site works",
-   "size": "918 x 1321",
+   "size": "918 x 586",
    "grade": "",
    "material": "Concrete C30/37",
    "materialKey": "concrete",
@@ -296,7 +325,7 @@
    "totalMassKg": 0.0,
    "torqueNm": null,
    "reference": true,
-   "function": "Carries the cabinet and the arm on one plinth. Cast by the site works.",
+   "function": "Carries the cabinet. Cast by the site works.",
    "spec": {},
    "uses": [
     {
@@ -311,16 +340,16 @@
    "category": "structure",
    "make": "make",
    "standard": "EN 1090-2 EXC2",
-   "size": "344 sq x 392",
+   "size": "344 sq x 194",
    "grade": "S355J2",
    "material": "Structural steel S355, hot-dip galvanised",
    "materialKey": "steel_s355",
    "qty": 1,
-   "massKg": 76.7046,
-   "totalMassKg": 76.7046,
+   "massKg": 56.8803,
+   "totalMassKg": 56.8803,
    "torqueNm": null,
    "reference": false,
-   "function": "Lifts the arm to its J1 height. Welded, then hot-dip galvanised.",
+   "function": "Lifts the arm from the saddle to its J1 height. Welded, then hot-dip galvanised.",
    "spec": {
     "tube": "344 x 344 x 10",
     "welds": "fillet a5, all round"
@@ -333,73 +362,25 @@
    ]
   },
   {
-   "id": "CHG-TRK",
-   "name": "Cable trunk",
-   "category": "structure",
-   "make": "make",
-   "standard": "sheet metal 3 mm",
-   "size": "268 wide",
-   "grade": "",
-   "material": "Structural steel S355, painted RAL 9005",
-   "materialKey": "steel_paint",
-   "qty": 1,
-   "massKg": 8.8638,
-   "totalMassKg": 8.8638,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Joins the riser to the cabinet. The DC cable, the coolant lines and the data cable run inside.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "MOUNT",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "CHG-ANC-M16",
-   "name": "Anchor rod M16 x 190, injection mortar",
+   "id": "ISO4017-M16x35-8.8",
+   "name": "Hex head screw M16 x 35",
    "category": "fastener",
    "make": "buy",
-   "standard": "ETA option 1 anchor",
-   "size": "M16 x 190",
+   "standard": "ISO 4017",
+   "size": "M16 x 35",
    "grade": "8.8",
    "material": "Steel, zinc flake coated",
    "materialKey": "fast_zn",
    "qty": 4,
-   "massKg": 0.2995,
-   "totalMassKg": 1.1979,
-   "torqueNm": 145.0,
+   "massKg": 0.0937,
+   "totalMassKg": 0.375,
+   "torqueNm": 206.7,
    "reference": false,
-   "function": "Holds the riser to the pad. The mortar bonds it into a 125 mm hole.",
+   "function": "Holds the riser's foot to the saddle, into a tapped hole.",
    "spec": {
-    "embedment": "125 mm",
-    "tension (design)": "about 20 kN per rod"
+    "preload": "81.0 kN",
+    "drive": "hex 24 mm"
    },
-   "uses": [
-    {
-     "sub": "MOUNT",
-     "qty": 4
-    }
-   ]
-  },
-  {
-   "id": "ISO4032-M16-8",
-   "name": "Hex nut M16",
-   "category": "fastener",
-   "make": "buy",
-   "standard": "ISO 4032",
-   "size": "M16",
-   "grade": "8",
-   "material": "Steel, zinc flake coated",
-   "materialKey": "fast_zn",
-   "qty": 4,
-   "massKg": 0.0411,
-   "totalMassKg": 0.1643,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Holds the bolt's clamp force on the far side of the joint.",
-   "spec": {},
    "uses": [
     {
      "sub": "MOUNT",
@@ -444,17 +425,743 @@
    "grade": "200 HV",
    "material": "Steel, zinc flake coated",
    "materialKey": "fast_zn",
-   "qty": 4,
+   "qty": 28,
    "massKg": 0.0113,
-   "totalMassKg": 0.0452,
+   "totalMassKg": 0.3164,
    "torqueNm": null,
    "reference": false,
    "function": "Puts the clamp force of the head or the nut on a larger area, so the part surface does not crush and the preload stays constant.",
    "spec": {},
    "uses": [
     {
+     "sub": "BASE",
+     "qty": 24
+    },
+    {
      "sub": "MOUNT",
      "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "CHG-BBM",
+   "name": "Bed beam, RHS 120 x 80 x 6",
+   "category": "structure",
+   "make": "make",
+   "standard": "EN 10219",
+   "size": "4840 long",
+   "grade": "S355J2, hot-dip galvanised",
+   "material": "Structural steel S355, hot-dip galvanised",
+   "materialKey": "steel_s355",
+   "qty": 2,
+   "massKg": 85.7145,
+   "totalMassKg": 171.4289,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries one rail of the bed, flat and straight. The rear beam carries the rack too.",
+   "spec": {
+    "flatness": "0.3 mm per metre, shimmed on its plates"
+   },
+   "uses": [
+    {
+     "sub": "BASE",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-BCA",
+   "name": "Cable chain hanger, stainless",
+   "category": "structure",
+   "make": "make",
+   "standard": "cut plate 10 mm",
+   "size": "80 x 270",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 1.7211,
+   "totalMassKg": 1.7211,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Joins the chain's moving end to the carriage, down in the channel.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "BASE",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-BCH",
+   "name": "Cable channel liner in the slab (site works)",
+   "category": "structure",
+   "make": "make",
+   "standard": "site works, galvanised sheet 5 mm",
+   "size": "4750 x 160 x 330 deep",
+   "grade": "",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 1,
+   "massKg": 0.0,
+   "totalMassKg": 0.0,
+   "torqueNm": null,
+   "reference": true,
+   "function": "A covered trench under the carriage. The cable chain runs in it, below the deck, clear of doors and feet.",
+   "spec": {
+    "cover": "brush strip, the carriage's hanger passes through it"
+   },
+   "uses": [
+    {
+     "sub": "BASE",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-BCP",
+   "name": "Carriage plate, 660 x 1210 x 20",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined plate",
+   "size": "660 x 1210 x 20",
+   "grade": "S355J2",
+   "material": "Structural steel S355, hot-dip galvanised",
+   "materialKey": "steel_s355",
+   "qty": 1,
+   "massKg": 125.1753,
+   "totalMassKg": 125.1753,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Rides the 4 bed blocks. It carries the cross rails, the ball screw and the rail drive.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "BASE",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-BGB",
+   "name": "Grout block under a bed plate (site works)",
+   "category": "structure",
+   "make": "make",
+   "standard": "site works",
+   "size": "340 x 200 x 77",
+   "grade": "",
+   "material": "Concrete C30/37",
+   "materialKey": "concrete",
+   "qty": 12,
+   "massKg": 0.0,
+   "totalMassKg": 0.0,
+   "torqueNm": null,
+   "reference": true,
+   "function": "Lifts a bed plate to the pad's height and levels it.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "BASE",
+     "qty": 12
+    }
+   ]
+  },
+  {
+   "id": "CHG-BGF",
+   "name": "Rail drive mounting flange",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined",
+   "size": "140 x 98 x 28",
+   "grade": "6061-T6",
+   "material": "Aluminium 6061-T6, machined, clear anodised",
+   "materialKey": "al6061",
+   "qty": 1,
+   "massKg": 0.8004,
+   "totalMassKg": 0.8004,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Holds the rail gearbox under the carriage plate, round the pinion.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "BASE",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-BPL",
+   "name": "Bed plate 300 x 160 x 12",
+   "category": "structure",
+   "make": "make",
+   "standard": "cut plate",
+   "size": "300 x 160 x 12",
+   "grade": "S355J2",
+   "material": "Structural steel S355, hot-dip galvanised",
+   "materialKey": "steel_s355",
+   "qty": 12,
+   "massKg": 4.4737,
+   "totalMassKg": 53.6839,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Holds a bed beam to the slab. The beam is welded to it.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "BASE",
+     "qty": 12
+    }
+   ]
+  },
+  {
+   "id": "CHG-BSD",
+   "name": "Cross-slide saddle, 460 x 460 x 20",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined plate",
+   "size": "460 x 460 x 20",
+   "grade": "S355J2",
+   "material": "Structural steel S355, hot-dip galvanised",
+   "materialKey": "steel_s355",
+   "qty": 1,
+   "massKg": 33.1233,
+   "totalMassKg": 33.1233,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Rides the 4 cross blocks and carries the riser.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "BASE",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-BST",
+   "name": "Bed end stop with buffer",
+   "category": "structure",
+   "make": "make",
+   "standard": "welded to the beam, PU buffer",
+   "size": "30 x 70 x 30",
+   "grade": "",
+   "material": "Structural steel S355, hot-dip galvanised",
+   "materialKey": "steel_s355",
+   "qty": 2,
+   "massKg": 0.5585,
+   "totalMassKg": 1.1169,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Stops the carriage if it runs past its travel.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "BASE",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-BZB",
+   "name": "Saddle chain bracket, stainless",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined",
+   "size": "35 x 73 x 50",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 1.0194,
+   "totalMassKg": 1.0194,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Joins the small chain's moving end to the saddle.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "BASE",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "BLK20",
+   "name": "Profile rail block size 20",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue part (ISO 12090-1 dims)",
+   "size": "size 20",
+   "grade": "preload Z1, wipers",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 4,
+   "massKg": 0.5067,
+   "totalMassKg": 2.0266,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Recirculating ball carriage. It runs on the rail and carries the moving stage.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "BASE",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "BLK25",
+   "name": "Profile rail block size 25",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue part (ISO 12090-1 dims)",
+   "size": "size 25",
+   "grade": "preload Z1, wipers",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 4,
+   "massKg": 0.7203,
+   "totalMassKg": 2.8812,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Recirculating ball carriage. It runs on the rail and carries the moving stage.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "BASE",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "CHG-BGX",
+   "name": "Rail servo gearmotor 1.5 kW, right angle, brake, absolute encoder",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "1.5 kW",
+   "grade": "IP66",
+   "material": "Structural steel S355, painted RAL 9005",
+   "materialKey": "steel_paint",
+   "qty": 1,
+   "massKg": 19.0,
+   "totalMassKg": 19.0,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Drives the carriage along the bed. Its brake holds the carriage when power is off.",
+   "spec": {
+    "speed": "1.0 m/s (class)",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "BASE",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-BMZ",
+   "name": "Cross-slide servo motor 0.75 kW, brake, absolute encoder",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "0.75 kW",
+   "grade": "IP65",
+   "material": "Structural steel S355, painted RAL 9005",
+   "materialKey": "steel_paint",
+   "qty": 1,
+   "massKg": 3.4,
+   "totalMassKg": 3.4,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Turns the ball screw. Its brake holds the saddle when power is off.",
+   "spec": {
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "BASE",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-BPN",
+   "name": "Pinion module 3, 20 teeth",
+   "category": "drive",
+   "make": "buy",
+   "standard": "DIN 867 tooth form",
+   "size": "20 T, m 3",
+   "grade": "hardened",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 1,
+   "massKg": 0.5327,
+   "totalMassKg": 0.5327,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Drives the carriage along its rack.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "BASE",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-BRK",
+   "name": "Gear rack module 3, 20 x 20",
+   "category": "drive",
+   "make": "buy",
+   "standard": "DIN 867 tooth form",
+   "size": "4680 long, in pieces",
+   "grade": "hardened",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 1,
+   "massKg": 14.6952,
+   "totalMassKg": 14.6952,
+   "torqueNm": null,
+   "reference": false,
+   "function": "The carriage pinion runs along it.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "BASE",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-BSN",
+   "name": "Ball nut housing",
+   "category": "drive",
+   "make": "make",
+   "standard": "machined",
+   "size": "50 x 28 x 60",
+   "grade": "6061-T6",
+   "material": "Aluminium 6061-T6, machined, clear anodised",
+   "materialKey": "al6061",
+   "qty": 1,
+   "massKg": 0.1707,
+   "totalMassKg": 0.1707,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Joins the ball nut to the saddle.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "BASE",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-BSZ",
+   "name": "Cross-slide ball screw 20 x 5 with 2 bearing supports",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "20 x 5, 1210 long",
+   "grade": "C7 rolled",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 1,
+   "massKg": 6.5,
+   "totalMassKg": 6.5,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Moves the saddle toward the car and back.",
+   "spec": {
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "BASE",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "RAIL20-1140",
+   "name": "Profile rail size 20 x 1140",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue part (ISO 12090-1 dims)",
+   "size": "size 20, L 1140",
+   "grade": "precision grade",
+   "material": "Bearing steel 100Cr6, hardened",
+   "materialKey": "bearing",
+   "qty": 2,
+   "massKg": 2.7923,
+   "totalMassKg": 5.5847,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Hardened guide rail. It carries the block in a straight line with no play.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "BASE",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "RAIL25-2340",
+   "name": "Profile rail size 25 x 2340",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue part (ISO 12090-1 dims)",
+   "size": "size 25, L 2340",
+   "grade": "precision grade",
+   "material": "Bearing steel 100Cr6, hardened",
+   "materialKey": "bearing",
+   "qty": 4,
+   "massKg": 7.9411,
+   "totalMassKg": 31.7645,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Hardened guide rail. It carries the block in a straight line with no play.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "BASE",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "ECHAIN-100x50",
+   "name": "Cable carrier link 100 x 50",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "inner 100 x 50, pitch 67",
+   "grade": "",
+   "material": "PA66-GF30",
+   "materialKey": "pa66",
+   "qty": 38,
+   "massKg": 0.0434,
+   "totalMassKg": 1.6502,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Guides the cables and hoses through the moving joint. It keeps the bend radius safe.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "BASE",
+     "qty": 38
+    }
+   ]
+  },
+  {
+   "id": "ECHAIN-40x25",
+   "name": "Cable carrier link 40 x 25",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "inner 40 x 25, pitch 40",
+   "grade": "",
+   "material": "PA66-GF30",
+   "materialKey": "pa66",
+   "qty": 14,
+   "massKg": 0.0116,
+   "totalMassKg": 0.1619,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Guides the cables and hoses through the moving joint. It keeps the bend radius safe.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "BASE",
+     "qty": 14
+    }
+   ]
+  },
+  {
+   "id": "CHG-ANC-M16",
+   "name": "Anchor rod M16 x 190, injection mortar",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ETA option 1 anchor",
+   "size": "M16 x 190",
+   "grade": "8.8",
+   "material": "Steel, zinc flake coated",
+   "materialKey": "fast_zn",
+   "qty": 24,
+   "massKg": 0.2995,
+   "totalMassKg": 7.1872,
+   "torqueNm": 145.0,
+   "reference": false,
+   "function": "Holds a bed plate to the slab. The mortar bonds it into a 125 mm hole.",
+   "spec": {
+    "embedment": "125 mm",
+    "tension (design)": "about 20 kN per rod"
+   },
+   "uses": [
+    {
+     "sub": "BASE",
+     "qty": 24
+    }
+   ]
+  },
+  {
+   "id": "ISO4032-M16-8",
+   "name": "Hex nut M16",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4032",
+   "size": "M16",
+   "grade": "8",
+   "material": "Steel, zinc flake coated",
+   "materialKey": "fast_zn",
+   "qty": 24,
+   "massKg": 0.0411,
+   "totalMassKg": 0.9855,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Holds the bolt's clamp force on the far side of the joint.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "BASE",
+     "qty": 24
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M5x16-12.9",
+   "name": "Socket head cap screw M5 x 16",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M5 x 16",
+   "grade": "12.9",
+   "material": "Alloy steel, black oxide",
+   "materialKey": "fast_blk",
+   "qty": 20,
+   "massKg": 0.0043,
+   "totalMassKg": 0.0868,
+   "torqueNm": 10.6,
+   "reference": false,
+   "function": "Holds a cross rail to the carriage plate.",
+   "spec": {
+    "preload": "12.4 kN",
+    "drive": "hex socket 4 mm"
+   },
+   "uses": [
+    {
+     "sub": "BASE",
+     "qty": 20
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M5x20-12.9",
+   "name": "Socket head cap screw M5 x 20",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M5 x 20",
+   "grade": "12.9",
+   "material": "Alloy steel, black oxide",
+   "materialKey": "fast_blk",
+   "qty": 46,
+   "massKg": 0.005,
+   "totalMassKg": 0.2279,
+   "torqueNm": 10.6,
+   "reference": false,
+   "function": "Holds the saddle to a cross block.",
+   "spec": {
+    "preload": "12.4 kN",
+    "drive": "hex socket 4 mm"
+   },
+   "uses": [
+    {
+     "sub": "BASE",
+     "qty": 16
+    },
+    {
+     "sub": "J1",
+     "qty": 8
+    },
+    {
+     "sub": "J3",
+     "qty": 8
+    },
+    {
+     "sub": "WRIST",
+     "qty": 14
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M6x20-12.9",
+   "name": "Socket head cap screw M6 x 20",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M6 x 20",
+   "grade": "12.9",
+   "material": "Alloy steel, black oxide",
+   "materialKey": "fast_blk",
+   "qty": 100,
+   "massKg": 0.0075,
+   "totalMassKg": 0.7491,
+   "torqueNm": 18.0,
+   "reference": false,
+   "function": "Holds a bed rail to its beam.",
+   "spec": {
+    "preload": "17.5 kN",
+    "drive": "hex socket 5 mm"
+   },
+   "uses": [
+    {
+     "sub": "BASE",
+     "qty": 96
+    },
+    {
+     "sub": "TOOL",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M8x35-12.9",
+   "name": "Socket head cap screw M8 x 35",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M8 x 35",
+   "grade": "12.9",
+   "material": "Alloy steel, black oxide",
+   "materialKey": "fast_blk",
+   "qty": 36,
+   "massKg": 0.0209,
+   "totalMassKg": 0.7522,
+   "torqueNm": 43.6,
+   "reference": false,
+   "function": "Holds the rail drive's flange up to the carriage plate.",
+   "spec": {
+    "preload": "32.0 kN",
+    "drive": "hex socket 6 mm"
+   },
+   "uses": [
+    {
+     "sub": "BASE",
+     "qty": 4
+    },
+    {
+     "sub": "J1",
+     "qty": 12
+    },
+    {
+     "sub": "J3",
+     "qty": 20
     }
    ]
   },
@@ -1317,41 +2024,6 @@
    ]
   },
   {
-   "id": "ISO4762-M5x20-12.9",
-   "name": "Socket head cap screw M5 x 20",
-   "category": "fastener",
-   "make": "buy",
-   "standard": "ISO 4762",
-   "size": "M5 x 20",
-   "grade": "12.9",
-   "material": "Alloy steel, black oxide",
-   "materialKey": "fast_blk",
-   "qty": 30,
-   "massKg": 0.005,
-   "totalMassKg": 0.1486,
-   "torqueNm": 10.6,
-   "reference": false,
-   "function": "Fastens the flexspline and its clamp ring to the output flange.",
-   "spec": {
-    "preload": "12.4 kN",
-    "drive": "hex socket 4 mm"
-   },
-   "uses": [
-    {
-     "sub": "J1",
-     "qty": 8
-    },
-    {
-     "sub": "J3",
-     "qty": 8
-    },
-    {
-     "sub": "WRIST",
-     "qty": 14
-    }
-   ]
-  },
-  {
    "id": "ISO4762-M5x45-8.8",
    "name": "Socket head cap screw M5 x 45",
    "category": "fastener",
@@ -1406,37 +2078,6 @@
     {
      "sub": "J1",
      "qty": 24
-    }
-   ]
-  },
-  {
-   "id": "ISO4762-M8x35-12.9",
-   "name": "Socket head cap screw M8 x 35",
-   "category": "fastener",
-   "make": "buy",
-   "standard": "ISO 4762",
-   "size": "M8 x 35",
-   "grade": "12.9",
-   "material": "Alloy steel, black oxide",
-   "materialKey": "fast_blk",
-   "qty": 32,
-   "massKg": 0.0209,
-   "totalMassKg": 0.6686,
-   "torqueNm": 43.6,
-   "reference": false,
-   "function": "Fixes the ring gear in the housing.",
-   "spec": {
-    "preload": "32.0 kN",
-    "drive": "hex socket 6 mm"
-   },
-   "uses": [
-    {
-     "sub": "J1",
-     "qty": 12
-    },
-    {
-     "sub": "J3",
-     "qty": 20
     }
    ]
   },
@@ -4490,18 +5131,42 @@
    ]
   },
   {
-   "id": "CHG-BMP",
+   "id": "CHG-BMP-CCS",
    "name": "Connector nose bumper, TPE",
    "category": "tool",
    "make": "buy",
    "standard": "moulded",
-   "size": "OD 86 x 12",
+   "size": "OD 81 x 12",
    "grade": "",
    "material": "EPDM rubber",
    "materialKey": "rubber",
    "qty": 1,
-   "massKg": 0.019,
-   "totalMassKg": 0.019,
+   "massKg": 0.0102,
+   "totalMassKg": 0.0102,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes a light knock on the inlet rim without damage. The force sensor stops the arm.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "TOOL",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-BMP-NACS",
+   "name": "Connector nose bumper, TPE",
+   "category": "tool",
+   "make": "buy",
+   "standard": "moulded",
+   "size": "OD 69 x 12",
+   "grade": "",
+   "material": "EPDM rubber",
+   "materialKey": "rubber",
+   "qty": 1,
+   "massKg": 0.0086,
+   "totalMassKg": 0.0086,
    "torqueNm": null,
    "reference": false,
    "function": "Takes a light knock on the inlet rim without damage. The force sensor stops the arm.",
@@ -4515,20 +5180,20 @@
   },
   {
    "id": "CHG-CHL",
-   "name": "Connector holder",
+   "name": "Head holder",
    "category": "tool",
    "make": "make",
    "standard": "machined",
-   "size": "OD 116",
+   "size": "316 x 116",
    "grade": "6061-T6",
    "material": "Aluminium 6061-T6, machined, clear anodised",
    "materialKey": "al6061",
    "qty": 1,
-   "massKg": 0.8369,
-   "totalMassKg": 0.8369,
+   "massKg": 2.0185,
+   "totalMassKg": 2.0185,
    "torqueNm": null,
    "reference": false,
-   "function": "Holds the connector body and the camera pod on the tool axis.",
+   "function": "Holds the 2 connectors' plunge cylinders, the camera pod and the cable outlet on the tool flange.",
    "spec": {},
    "uses": [
     {
@@ -4579,7 +5244,7 @@
    "totalMassKg": 0.6013,
    "torqueNm": null,
    "reference": false,
-   "function": "Leads the charge cable out of the connector body to the side, so the span leaves along J5's axis.",
+   "function": "Leads the charge cable out of the head to the side, so the span leaves along J5's axis. Inside the head 2 short braids a pole reach each connector.",
    "spec": {},
    "uses": [
     {
@@ -4589,18 +5254,45 @@
    ]
   },
   {
-   "id": "CHG-CON",
-   "name": "DC combo connector body, robotic",
+   "id": "CHG-CON-CCS",
+   "name": "DC connector body, robotic, CCS1 (SAE J1772 combo)",
    "category": "tool",
    "make": "buy",
-   "standard": "IEC 62196-3 / SAE J1772 combo interface",
+   "standard": "CCS1 (SAE J1772 combo)",
    "size": "body OD 100",
    "grade": "",
    "material": "PA66-GF30",
    "materialKey": "pa66",
    "qty": 1,
-   "massKg": 2.0092,
-   "totalMassKg": 2.0092,
+   "massKg": 1.0784,
+   "totalMassKg": 1.0784,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the DC and signal contacts to the inlet. The coolant flows to the contacts inside.",
+   "spec": {
+    "current": "500 A, liquid-cooled",
+    "voltage": "1000 V DC"
+   },
+   "uses": [
+    {
+     "sub": "TOOL",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-CON-NACS",
+   "name": "DC connector body, robotic, NACS (SAE J3400)",
+   "category": "tool",
+   "make": "buy",
+   "standard": "NACS (SAE J3400)",
+   "size": "body OD 100",
+   "grade": "",
+   "material": "PA66-GF30",
+   "materialKey": "pa66",
+   "qty": 1,
+   "massKg": 1.0784,
+   "totalMassKg": 1.0784,
    "torqueNm": null,
    "reference": false,
    "function": "Carries the DC and signal contacts to the inlet. The coolant flows to the contacts inside.",
@@ -4625,13 +5317,41 @@
    "grade": "silver plated",
    "material": "Copper alloy, silver plated",
    "materialKey": "silver",
-   "qty": 2,
+   "qty": 4,
    "massKg": 0.0281,
-   "totalMassKg": 0.0561,
+   "totalMassKg": 0.1123,
    "torqueNm": null,
    "reference": false,
    "function": "Carries the DC current. Spring bands give low resistance.",
    "spec": {},
+   "uses": [
+    {
+     "sub": "TOOL",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "CHG-HPC",
+   "name": "Connector plunge cylinder, 90 mm stroke, with lock",
+   "category": "tool",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "D 20 x 114",
+   "grade": "",
+   "material": "Stainless steel 1.4301 (304)",
+   "materialKey": "ss304",
+   "qty": 2,
+   "massKg": 0.6,
+   "totalMassKg": 1.2,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Brings its connector forward 90 mm to the inlet and locks there. It draws back when the other connector works.",
+   "spec": {
+    "stroke": "90 mm",
+    "drive": "pneumatic, 6 bar, rod lock",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
    "uses": [
     {
      "sub": "TOOL",
@@ -4649,12 +5369,36 @@
    "grade": "",
    "material": "Stainless steel 1.4301 (304)",
    "materialKey": "ss304",
-   "qty": 1,
+   "qty": 2,
    "massKg": 0.1596,
-   "totalMassKg": 0.1596,
+   "totalMassKg": 0.3192,
    "torqueNm": null,
    "reference": false,
    "function": "Hooks the inlet catch. The car cannot pull the connector out under load.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "TOOL",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-NOS-CCS",
+   "name": "Connector nose and face, CCS1 (SAE J1772 combo)",
+   "category": "tool",
+   "make": "make",
+   "standard": "moulded",
+   "size": "OD 80 x 46",
+   "grade": "",
+   "material": "PA66-GF30",
+   "materialKey": "pa66",
+   "qty": 1,
+   "massKg": 0.2604,
+   "totalMassKg": 0.2604,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Enters the inlet. Its shape guides the last few millimetres.",
    "spec": {},
    "uses": [
     {
@@ -4664,18 +5408,18 @@
    ]
   },
   {
-   "id": "CHG-NOS",
-   "name": "Connector nose and face",
+   "id": "CHG-NOS-NACS",
+   "name": "Connector nose and face, NACS (SAE J3400)",
    "category": "tool",
    "make": "make",
    "standard": "moulded",
-   "size": "OD 80 x 46",
+   "size": "OD 68 x 46",
    "grade": "",
    "material": "PA66-GF30",
    "materialKey": "pa66",
    "qty": 1,
-   "massKg": 0.2507,
-   "totalMassKg": 0.2507,
+   "massKg": 0.1808,
+   "totalMassKg": 0.1808,
    "torqueNm": null,
    "reference": false,
    "function": "Enters the inlet. Its shape guides the last few millimetres.",
@@ -4689,25 +5433,25 @@
   },
   {
    "id": "CHG-SGC",
-   "name": "Signal contact socket, 3 mm (PE, CP, PP)",
+   "name": "Signal contact socket, 3 mm",
    "category": "tool",
    "make": "buy",
-   "standard": "IEC 62196-3",
+   "standard": "IEC 62196-3 / SAE J3400",
    "size": "3 mm pin",
    "grade": "silver plated",
    "material": "Copper alloy, silver plated",
    "materialKey": "silver",
-   "qty": 3,
+   "qty": 8,
    "massKg": 0.0027,
-   "totalMassKg": 0.008,
+   "totalMassKg": 0.0213,
    "torqueNm": null,
    "reference": false,
-   "function": "Protective earth, control pilot and proximity: the car and charger talk on CP.",
+   "function": "Earth, control pilot and proximity: the car and charger talk on the pilot.",
    "spec": {},
    "uses": [
     {
      "sub": "TOOL",
-     "qty": 3
+     "qty": 8
     }
    ]
   },
@@ -4721,9 +5465,9 @@
    "grade": "",
    "material": "Structural steel S355, painted RAL 9005",
    "materialKey": "steel_paint",
-   "qty": 1,
+   "qty": 2,
    "massKg": 0.385,
-   "totalMassKg": 0.385,
+   "totalMassKg": 0.7701,
    "torqueNm": null,
    "reference": false,
    "function": "Moves the latch hook. A spring locks it when power is off.",
@@ -4733,7 +5477,7 @@
    "uses": [
     {
      "sub": "TOOL",
-     "qty": 1
+     "qty": 2
     }
    ]
   },
@@ -4753,6 +5497,30 @@
    "torqueNm": null,
    "reference": false,
    "function": "Seals the window to the housing (IP67). The window is bonded to it.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "TOOL",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "ORING-55x3",
+   "name": "O-ring 55 x 3",
+   "category": "seal",
+   "make": "buy",
+   "standard": "ISO 3601-1",
+   "size": "55 x 3",
+   "grade": "NBR 70",
+   "material": "NBR seal elastomer",
+   "materialKey": "nbr",
+   "qty": 1,
+   "massKg": 0.0016,
+   "totalMassKg": 0.0016,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Seals the connector nose in the inlet against rain.",
    "spec": {},
    "uses": [
     {
@@ -4840,33 +5608,6 @@
    ]
   },
   {
-   "id": "ISO4762-M6x20-12.9",
-   "name": "Socket head cap screw M6 x 20",
-   "category": "fastener",
-   "make": "buy",
-   "standard": "ISO 4762",
-   "size": "M6 x 20",
-   "grade": "12.9",
-   "material": "Alloy steel, black oxide",
-   "materialKey": "fast_blk",
-   "qty": 4,
-   "massKg": 0.0075,
-   "totalMassKg": 0.03,
-   "torqueNm": 18.0,
-   "reference": false,
-   "function": "Holds the sensor to the J6 tool flange (ISO 9409-1).",
-   "spec": {
-    "preload": "17.5 kN",
-    "drive": "hex socket 5 mm"
-   },
-   "uses": [
-    {
-     "sub": "TOOL",
-     "qty": 4
-    }
-   ]
-  },
-  {
    "id": "ISO4762-M6x40-A2-70",
    "name": "Socket head cap screw M6 x 40",
    "category": "fastener",
@@ -4881,7 +5622,7 @@
    "totalMassKg": 0.0482,
    "torqueNm": 7.4,
    "reference": false,
-   "function": "Holds the cable outlet housing to the connector body.",
+   "function": "Holds the cable outlet housing to the holder's spine.",
    "spec": {
     "preload": "7.2 kN",
     "drive": "hex socket 5 mm"
@@ -5064,7 +5805,7 @@
    "totalMassKg": 3.0,
    "torqueNm": null,
    "reference": false,
-   "function": "Takes the 2 copper bars up the riser from the cabinet trunk and hands the current to the J1 flex link.",
+   "function": "Takes the 2 DC cables up the riser from the cable chain and hands the current to the J1 flex link.",
    "spec": {
     "terminals": "2 x 500 A DC, bolted M12, touch-safe covers",
     "bars in the link": "2 x 40 x 10 mm copper, insulated",
@@ -5375,26 +6116,26 @@
   "torque_budget": {
    "method": "Gravity torque with the arm stretched horizontal, masses from the CAD solids, plus 4 kg for the wrist flex link at the tool (ASSUMPTION). Dynamics are not included.",
    "J3": {
-    "distalMassKg": 59.4,
-    "torqueNm": 524,
+    "distalMassKg": 62.8,
+    "torqueNm": 574,
     "gear": "size 40",
     "repeatedPeakNm": 738,
-    "margin": 1.41
+    "margin": 1.29
    },
    "J2": {
-    "distalMassKg": 127.7,
-    "torqueNm": 1807,
+    "distalMassKg": 131.0,
+    "torqueNm": 1901,
     "gear": "size 50",
     "repeatedPeakNm": 1274,
-    "gearWorstNm": 348,
-    "margin": 3.66,
+    "gearWorstNm": 364,
+    "margin": 3.5,
     "balancer": {
      "type": "nitrogen gas spring",
      "anchorBelowAxisMm": 320.0,
      "crankAboveAxisMm": 160.0,
-     "forceExtendedN": 11250,
+     "forceExtendedN": 11850,
      "progression": 0.15,
-     "forceAt90N": 12428,
+     "forceAt90N": 13091,
      "strokeMm": 175,
      "travelDeg": 110
     },
@@ -5407,69 +6148,69 @@
      },
      {
       "deg": 10,
-      "gravityNm": 314,
-      "balancerNm": 209,
-      "gearNm": 104
+      "gravityNm": 330,
+      "balancerNm": 221,
+      "gearNm": 110
      },
      {
       "deg": 20,
-      "gravityNm": 618,
-      "balancerNm": 418,
-      "gearNm": 200
+      "gravityNm": 650,
+      "balancerNm": 441,
+      "gearNm": 209
      },
      {
       "deg": 30,
-      "gravityNm": 903,
-      "balancerNm": 626,
-      "gearNm": 277
+      "gravityNm": 950,
+      "balancerNm": 660,
+      "gearNm": 291
      },
      {
       "deg": 40,
-      "gravityNm": 1161,
-      "balancerNm": 833,
-      "gearNm": 329
+      "gravityNm": 1222,
+      "balancerNm": 877,
+      "gearNm": 345
      },
      {
       "deg": 50,
-      "gravityNm": 1384,
-      "balancerNm": 1036,
-      "gearNm": 348
+      "gravityNm": 1456,
+      "balancerNm": 1092,
+      "gearNm": 364
      },
      {
       "deg": 60,
-      "gravityNm": 1565,
-      "balancerNm": 1236,
-      "gearNm": 329
+      "gravityNm": 1646,
+      "balancerNm": 1301,
+      "gearNm": 345
      },
      {
       "deg": 70,
-      "gravityNm": 1698,
-      "balancerNm": 1428,
-      "gearNm": 270
+      "gravityNm": 1786,
+      "balancerNm": 1504,
+      "gearNm": 282
      },
      {
       "deg": 80,
-      "gravityNm": 1779,
-      "balancerNm": 1611,
-      "gearNm": 169
+      "gravityNm": 1872,
+      "balancerNm": 1697,
+      "gearNm": 175
      },
      {
       "deg": 90,
-      "gravityNm": 1807,
-      "balancerNm": 1779,
-      "gearNm": 28
+      "gravityNm": 1901,
+      "balancerNm": 1873,
+      "gearNm": 27
      },
      {
       "deg": 100,
-      "gravityNm": 1779,
-      "balancerNm": 1925,
-      "gearNm": -146
+      "gravityNm": 1872,
+      "balancerNm": 2028,
+      "gearNm": -156
      },
      {
       "deg": 110,
-      "gravityNm": 1698,
-      "balancerNm": 2041,
-      "gearNm": -343
+      "gravityNm": 1786,
+      "balancerNm": 2150,
+      "gearNm": -364
      }
     ]
    },

@@ -38,6 +38,8 @@ import {
 import {
   BODY_ROOF_M, CABIN, CAR_LENGTH_M, CAR_WIDTH_M, DOOR, ROOF_POD, WHEEL_RADIUS_M,
 } from '@/lib/ottoChargeArm/vehicleEnvelope';
+import { ARM_REACH, BASE_JOINT_NAMES, HEAD_JOINT_NAMES } from '@/lib/ottoChargeArm/mateSolver';
+import { MODEL_TOWARD } from '@/lib/robotics/liveFollow';
 import {
   CLEAN_ARM, CLEAN_PHASE_S, MAST_FOOT_MAX, MAST_FOOT_MIN, PIVOT_Y_MAX, PIVOT_Y_MIN, WAND_RETRACTED,
 } from '@/lib/ottoCleanArm/cleanArmSpec';
@@ -95,6 +97,17 @@ export function cadSpec() {
       armMount: {
         riser: mm(ARM_MOUNT_PU.riser), bridge: mm(ARM_MOUNT_PU.bridge), padFront: mm(ARM_MOUNT_PU.padFront),
         top: mm(ARM_MOUNT_PU.top),
+      },
+      // The moving base (mateSolver.ARM_REACH): the rail along the car, the cross-slide toward it, the two-connector head.
+      baseStage: {
+        railTail: ARM_REACH.railTailM, railNose: ARM_REACH.railNoseM,
+        crossIn: ARM_REACH.crossInM, crossOut: ARM_REACH.crossOutM,
+        modelToward: MODEL_TOWARD,
+        jointNames: [...BASE_JOINT_NAMES],
+      },
+      head: {
+        connectors: [...ARM_REACH.heads], offsetX: { ...ARM_REACH.headOffsetX }, offsetZ: ARM_REACH.headOffsetZ,
+        stroke: ARM_REACH.headStrokeM, jointNames: { ...HEAD_JOINT_NAMES },
       },
     },
     cleanArm: {

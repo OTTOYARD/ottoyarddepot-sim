@@ -18,43 +18,47 @@
     "depot": "charge_arm.depot.glb"
    },
    "bytes": {
-    "glb": 6840948,
-    "stepZip": 6888422,
-    "step": 35462577,
-    "depot": 535616
+    "glb": 7730664,
+    "stepZip": 7216844,
+    "step": 37644322,
+    "depot": 717104
    },
    "mesh": {
-    "vertices": 286858,
-    "triangles": 325615,
-    "meshes": 189,
-    "nodes": 662
+    "vertices": 323744,
+    "triangles": 364153,
+    "meshes": 215,
+    "nodes": 939
    },
    "depotMesh": {
-    "vertices": 21161,
-    "triangles": 23102,
-    "meshes": 64,
-    "nodes": 76
+    "vertices": 28397,
+    "triangles": 30126,
+    "meshes": 85,
+    "nodes": 130
    },
-   "depotSha256": "68c041cae873d3dc",
+   "depotSha256": "4e34e3fe0e79f9b5",
    "totals": {
-    "parts": 655,
-    "uniqueParts": 191,
-    "fasteners": 457,
-    "massKg": 376.93,
-    "boughtLines": 130,
-    "madeLines": 61,
-    "referenceLines": 2
+    "parts": 966,
+    "uniqueParts": 217,
+    "fasteners": 661,
+    "massKg": 836.44,
+    "boughtLines": 147,
+    "madeLines": 70,
+    "referenceLines": 4
    },
-   "glbSha256": "1f2627e49905a0a5",
+   "glbSha256": "017d042b6d7bcd00",
    "stepCheck": {
-    "namedParts": 657,
-    "solids": 1347,
+    "namedParts": 981,
+    "solids": 1671,
     "invalid": 0
    },
    "subsystems": [
     {
      "id": "MOUNT",
      "name": "Riser and mount"
+    },
+    {
+     "id": "BASE",
+     "name": "Rail, carriage and cross-slide"
     },
     {
      "id": "J1",
@@ -82,7 +86,7 @@
     },
     {
      "id": "TOOL",
-     "name": "Connector tool"
+     "name": "Connector head"
     },
     {
      "id": "DRESS",

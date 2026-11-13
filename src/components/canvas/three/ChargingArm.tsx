@@ -17,6 +17,9 @@ import {
 import { STOWED, type JointAngles } from '@/lib/ottoChargeArm/cobotIK';
 import { placeArm, portInArmFrame } from '@/lib/ottoChargeArm/depotPlacement';
 import { portFor } from '@/lib/ottoChargeArm/chargePort';
+import { armMateFor, vehiclePort, type ArmMate } from '@/lib/ottoChargeArm/vehiclePort';
+import { ARM_REACH, BASE_JOINT_NAMES, HEAD_JOINT_NAMES, bedCentreX } from '@/lib/ottoChargeArm/mateSolver';
+import { poseSkeleton } from '@/lib/robotics/cadDepot';
 import {
   playArmSession, isArmHome, stallHasArm,
   IDLE_SESSION, type ArmSession,
@@ -129,6 +132,11 @@ function armRig(cad: DepotCad | null): ArmRig {
   };
 }
 
+/** Drawn speeds of the base stage and the head's plunge, metres a depot second. */
+const RAIL_SPEED_MPS = 1.0;
+const CROSS_SPEED_MPS = 0.25;
+const PLUNGE_SPEED_MPS = 0.15;
+
 export function ChargingArm({ stallId, stallType, fleet, slot, cad, flex }: ChargingArmProps) {
   const groupRef = useRef<THREE.Group>(null);
   const cableRef = useRef<THREE.Mesh>(null);
@@ -183,6 +191,15 @@ export function ChargingArm({ stallId, stallType, fleet, slot, cad, flex }: Char
   const target = useRef<ArmTarget | null>(null);
   /** What the joints are actually SHOWING, as opposed to what was solved. */
   const shown = useRef<{ angles: JointAngles; latch: number }>({ angles: { ...STOWED }, latch: 0 });
+  const baseJoints = useMemo<Record<string, number>>(() => ({}), []);
+  /**
+   * The mate the twin's own port facts solve to (vehiclePort.armMateFor): where the base goes on its rail and
+   * cross-slide, which connector comes forward. Null for a car whose port the twin has not published: that car keeps
+   * the old drawing, base at the stall's middle. Held after the car leaves the roster, as `target` is.
+   */
+  const mate = useRef<ArmMate | null>(null);
+  /** Where the base and the two connectors are SHOWN: metres along the rail, toward the car, and each plunge. */
+  const base = useRef({ slide: 0, cross: 0, ccs: 0, nacs: 0 });
 
   useFrame((_state, frameDelta) => {
     if (!placement || !stall || !rig.root) return;
@@ -263,18 +280,46 @@ export function ChargingArm({ stallId, stallType, fleet, slot, cad, flex }: Char
       ? vehicles.find((x) => x.id === session.current.vehicleId)
       : undefined;
     if (served) {
-      const port = portFor(served.id, served.oem);
-      target.current = {
-        port: portInArmFrame(port.along, port.height, CAR_HALF_WIDTH_M, placement.toward),
-        normal: { x: 0, y: 0, z: -1 },
-      };
+      const twinPort = vehiclePort(served.id);
+      if (twinPort) {
+        // The twin says which vehicle this is and where its inlet is: solve the real mate.
+        mate.current = armMateFor(twinPort, placement.toward);
+        target.current = mate.current.target;
+      } else {
+        mate.current = null;
+        const port = portFor(served.id, served.oem);
+        target.current = {
+          port: portInArmFrame(port.along, port.height, CAR_HALF_WIDTH_M, placement.toward),
+          normal: { x: 0, y: 0, z: -1 },
+        };
+      }
     }
+
+    // THE BASE GOES FIRST. Out of its cradle the arm works from where the mate puts its base; home, the base is
+    // back at the stall's middle. A mate the solver refuses (the inlet is on the car's other side) moves nothing.
+    const m = mate.current;
+    const out = !isArmHome(phase) && !!m?.mate.ok;
+    const rdtBase = servoDt(frameDelta, twinMotionDriver.playbackSpeed());
+    const goSlide = out ? m!.mate.slideM : 0;
+    const goCross = out ? m!.mate.crossM : 0;
+    const step = (cur: number, goal: number, rate: number) => cur + Math.max(-rate * rdtBase, Math.min(rate * rdtBase, goal - cur));
+    base.current.slide = step(base.current.slide, goSlide, RAIL_SPEED_MPS);
+    base.current.cross = step(base.current.cross, goCross, CROSS_SPEED_MPS);
+    const baseThere = Math.abs(base.current.slide - goSlide) < 0.03 && Math.abs(base.current.cross - goCross) < 0.01;
+    // The connector the car takes is forward whenever the arm is working at the inlet.
+    const working = out && baseThere && phase !== 'unstow';
+    base.current.ccs = step(base.current.ccs, working && m!.mate.head === 'CCS1' ? ARM_REACH.headStrokeM : 0, PLUNGE_SPEED_MPS);
+    base.current.nacs = step(base.current.nacs, working && m!.mate.head === 'NACS' ? ARM_REACH.headStrokeM : 0, PLUNGE_SPEED_MPS);
 
     // No car has ever docked here, so there is no inlet to solve to. Publish the
     // absence: sit folded. Never synthesise a plausible port.
-    const pose = target.current
-      ? poseFor({ phase, t }, target.current, spec)
+    let pose = target.current
+      ? (m && !m.mate.ok
+        ? { angles: STOWED, latch: 0, engaged: false, ok: false }
+        : poseFor(out && !baseThere ? { phase: 'unstow' as ArmPhase, t: 1 } : { phase, t }, target.current, spec))
       : { angles: STOWED, latch: 0, engaged: false, ok: true };
+    // The head's roll keeps the connector upright on this approach (0 on a square side mate).
+    if (m?.mate.ok && out && pose.ok) pose = { ...pose, angles: { ...pose.angles, j6: m.j6 } };
 
     // ── RENDER THROUGH A RATE LIMIT ───────────────────────────────────────────
     // The solved pose is a REQUEST. What gets drawn chases it at a bounded joint
@@ -295,6 +340,15 @@ export function ChargingArm({ stallId, stallType, fleet, slot, cad, flex }: Char
     rig.j4.rotation.set(0, a.j4, 0);
     rig.j5.rotation.set(a.j5, 0, 0);
     rig.j6.rotation.set(0, a.j6, 0);
+    // The CAD's base stage and head (the procedural arm has neither and stays at the stall's middle).
+    if (rig.skel) {
+      baseJoints[BASE_JOINT_NAMES[0]] = bedCentreX(placement.toward);
+      baseJoints[BASE_JOINT_NAMES[1]] = base.current.slide;
+      baseJoints[BASE_JOINT_NAMES[2]] = base.current.cross;
+      baseJoints[HEAD_JOINT_NAMES.CCS1] = base.current.ccs;
+      baseJoints[HEAD_JOINT_NAMES.NACS] = base.current.nacs;
+      poseSkeleton(rig.skel, baseJoints);
+    }
 
     if (rig.latch) {
       const s = 1 - 0.28 * shown.current.latch;

@@ -103,7 +103,7 @@ function chargeArm(bom: Bom, connect: number, release: number): MachineFacts {
     services: ['charge'],
     steps: stepsOf(k),
     facts: [
-      { label: 'Connector', value: spec(bom, 'TOOL', 'connector') },
+      { label: 'Connectors', value: spec(bom, 'TOOL', 'connectors') },
       { label: 'Charge current', value: `${spec(bom, 'DRESS', 'current')}, liquid-cooled at the connector` },
       { label: 'Time to connect', value: `${one(connect)} s of arm motion` },
       { label: 'Time to release', value: `${one(release)} s of arm motion` },
