@@ -12,7 +12,7 @@ describe('charge arm: mating each vehicle where its inlet is', () => {
     expect(fleet.every((f) => f.target)).toBe(true);
   });
 
-  it('the fixed pedestal could not do this: that is why the rail and the telescope exist', () => {
+  it('the fixed pedestal could not do this: that is why the rail and the cross-slide exist', () => {
     // Square-on from a base beside the middle of the car, only inlets within the measured window are met.
     const fixedOk = fleet.filter((f) => f.target.face !== 'rear' && Math.abs(f.target.alongM) <= SERVICE_WINDOW.alongMax).map((f) => f.key);
     expect(fixedOk).toEqual([]);
@@ -35,13 +35,13 @@ describe('charge arm: mating each vehicle where its inlet is', () => {
       expect(m.head).toBe(target.connector);
       expect(m.ik!.reachable).toBe(true);
       if (target.face === 'rear') {
-        expect(m.extendM).toBeGreaterThan(0);
-        expect(m.extendM).toBeLessThanOrEqual(ARM_REACH.telescopeM + 1e-9);
+        expect(m.crossM).toBeGreaterThan(0);
+        expect(m.crossM).toBeLessThanOrEqual(ARM_REACH.crossInM + 1e-9);
         expect(m.planClearanceM!).toBeGreaterThanOrEqual(ARM_REACH.rearMateClearanceM);
       } else {
-        // A side inlet is met dead abeam the base, with the forearm at its fixed length.
+        // A side inlet is met dead abeam the base, at the standoff the safe window was measured at.
         expect(Math.abs(m.port.x - m.slideM)).toBeLessThan(1e-9);
-        expect(m.extendM).toBe(0);
+        expect(m.flankStandoffM).toBeCloseTo(SERVICE_WINDOW.flankStandoff, 6);
       }
     }
   });
@@ -51,7 +51,7 @@ describe('charge arm: mating each vehicle where its inlet is', () => {
       const t = fleet.find((f) => f.key === key)!.target;
       const r = solveMate(t, true);
       const l = solveMate(t, false);
-      expect(l.extendM).toBeCloseTo(r.extendM, 6);
+      expect(l.crossM).toBeCloseTo(r.crossM, 6);
       if (t.face === 'rear') expect(l.slideM).toBeCloseTo(-r.slideM, 6);
     }
   });
@@ -69,11 +69,11 @@ describe('charge arm: mating each vehicle where its inlet is', () => {
     expect(fleet.every((f) => ARM_REACH.heads.includes(f.target.connector))).toBe(true);
   });
 
-  it('reports each side mate\'s flank standoff, because the safe window was measured at one', () => {
+  it('the cross-slide travel covers every vehicle width and the rear mate', () => {
     for (const f of fleet) {
       const m = solveMate(f.target, f.target.face !== 'left');
-      // Within 0.1 m of the standoff the window was measured at, for every vehicle in the fleet.
-      expect(Math.abs(m.flankStandoffM - SERVICE_WINDOW.flankStandoff)).toBeLessThan(0.1);
+      expect(m.crossM).toBeGreaterThanOrEqual(-ARM_REACH.crossOutM - 1e-9);
+      expect(m.crossM).toBeLessThanOrEqual(ARM_REACH.crossInM + 1e-9);
     }
   });
 });
