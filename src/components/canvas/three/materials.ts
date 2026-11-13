@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {
   pvCellTexture, grassTexture, foliageTexture, asphaltFineTexture, concreteSlabTexture,
   paintWearTexture, barkTexture, ribbedSteelTexture, chainLinkTexture, bollardTexture,
-  weatherTexture, spangleTexture, rustTexture, rippleTexture,
+  weatherTexture, spangleTexture, rustTexture, rippleTexture, roofSheetTexture,
 } from './textures';
 
 export const BRAND = {
@@ -400,6 +400,12 @@ export function rippled<M extends THREE.MeshStandardMaterial>(m: M): M {
 export function pastured<M extends THREE.MeshStandardMaterial>(m: M): M {
   m.map = grassTexture();
   return worldMapped(m, { tile: 120, patch: 0.9, gain: 1.0 });
+}
+
+/** A flat roof's membrane over the material's own colour: sheets 6 u wide, seams, ponding, dust. */
+export function roofed<M extends THREE.MeshStandardMaterial>(m: M): M {
+  m.map = roofSheetTexture();
+  return worldMapped(m, { tile: 24, patch: 0.45, mid: 1.05, amp: 1.4, gain: 1.32 });
 }
 
 /** Turn any standard material into mown turf (the city's lawns use their own material). */

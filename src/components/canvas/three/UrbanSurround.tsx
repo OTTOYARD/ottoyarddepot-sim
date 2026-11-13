@@ -4,9 +4,9 @@ import * as THREE from 'three';
 import { useSimulationStore } from '@/store/simulationStore';
 import { buildCityPlan, FACADE_SPEC, type Facade, type Tree, type StreetLight, type Signal } from './cityPlan';
 import { buildCityGeometry, type CityMaterialKey } from './cityMesh';
-import { facadeTextures, roofTexture } from './cityTextures';
+import { facadeTextures } from './cityTextures';
 import { skyTexture } from './textures';
-import { MATERIALS, turfed, leafed, barked, asphalted, concreted, pastured, rippled } from './materials';
+import { MATERIALS, turfed, leafed, barked, asphalted, concreted, pastured, rippled, roofed } from './materials';
 import { nightLevel } from './dayNight';
 
 /**
@@ -71,7 +71,7 @@ function cityMaterials(): Record<CityMaterialKey, THREE.Material> {
     'paint:white': paint('#e8e8e0'),
     'paint:yellow': paint('#e3b23c'),
     'paint:amber': amber,
-    roof: std({ map: roofTexture(), vertexColors: true, roughness: 0.9 }),
+    roof: roofed(std({ vertexColors: true, roughness: 0.9 })),
     plain: std({ vertexColors: true, roughness: 0.8, metalness: 0.05 }),
     skylight: std({ color: '#c6d6e4', roughness: 0.2, metalness: 0.3 }),
     solar: MATERIALS.solarPanelGlass().clone(), // a copy: its night dimming must not reach the depot's canopies
@@ -138,18 +138,24 @@ function lampMeshes(lights: StreetLight[], headMat: THREE.Material) {
   const poles = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.17, 0.26, 16, 6, 1, true).translate(0, 8, 0), steel, n);
   const arms = new THREE.InstancedMesh(new THREE.BoxGeometry(5, 0.22, 0.22), steel, n);
   const heads = new THREE.InstancedMesh(new THREE.BoxGeometry(1.8, 0.35, 0.8), headMat, n);
+  // a flared base at the kerb and a housing over the lens, so the lit part is the lens and not the whole head
+  const bases = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.3, 0.46, 1.5, 8).translate(0, 0.75, 0), steel, n);
+  const housings = new THREE.InstancedMesh(new THREE.BoxGeometry(2.1, 0.3, 1.0), steel, n);
   const o = new THREE.Object3D();
   lights.forEach((l, i) => {
     const rot = Math.atan2(-l.dz, l.dx); // the box's +X along the arm
     o.position.set(l.x, 0, l.z); o.rotation.set(0, rot, 0); o.scale.set(1, 1, 1); o.updateMatrix();
     poles.setMatrixAt(i, o.matrix);
+    bases.setMatrixAt(i, o.matrix);
+    o.position.set(l.x + l.dx * 4.7, 15.9, l.z + l.dz * 4.7); o.updateMatrix();
+    housings.setMatrixAt(i, o.matrix);
     o.position.set(l.x + l.dx * 2.4, 15.85, l.z + l.dz * 2.4); o.updateMatrix();
     arms.setMatrixAt(i, o.matrix);
     o.position.set(l.x + l.dx * 4.7, 15.6, l.z + l.dz * 4.7); o.updateMatrix();
     heads.setMatrixAt(i, o.matrix);
   });
-  for (const m of [poles, arms, heads]) { m.instanceMatrix.needsUpdate = true; m.computeBoundingSphere(); }
-  return [poles, arms, heads];
+  for (const m of [poles, arms, heads, bases, housings]) { m.instanceMatrix.needsUpdate = true; m.computeBoundingSphere(); }
+  return [poles, arms, heads, bases, housings];
 }
 
 /** Traffic signals: pole, mast arm, head, and a lit lamp on each face (one phase for the

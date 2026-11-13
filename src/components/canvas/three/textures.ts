@@ -728,6 +728,72 @@ export function tyreMarkTexture(): THREE.Texture {
   });
 }
 
+/** A flat roof's single-ply membrane, seen from above: sheets with welded seams, ponding rings
+ *  where water stands and dries, dirt washed toward the drains, a few patches, and scuffs. Tiles. */
+export function roofSheetTexture(): THREE.Texture {
+  return cachedTex('roofSheet', () => {
+    const rnd = mulberry(6161);
+    const c = canvas(1024, 1024, (g, w, h) => {
+      g.fillStyle = '#c3c6c8';
+      g.fillRect(0, 0, w, h);
+      // dust lying in broad drifts
+      for (let i = 0; i < 80; i++) {
+        const x = rnd() * w, y = rnd() * h, r = 50 + rnd() * 190;
+        const col = rnd() > 0.5 ? 'rgba(120,114,104,0.13)' : 'rgba(236,238,240,0.16)';
+        wrap(w, h, x, y, r, (px, py) => {
+          const grad = g.createRadialGradient(px, py, 0, px, py, r);
+          grad.addColorStop(0, col); grad.addColorStop(1, 'rgba(0,0,0,0)');
+          g.fillStyle = grad; g.fillRect(px - r, py - r, r * 2, r * 2);
+        });
+      }
+      // ponding: a dark tide line round a paler dried middle
+      for (let i = 0; i < 22; i++) {
+        const x = rnd() * w, y = rnd() * h, rx = 30 + rnd() * 80, ry = rx * (0.5 + rnd() * 0.5), a = rnd() * Math.PI;
+        wrap(w, h, x, y, rx + 6, (px, py) => {
+          g.fillStyle = 'rgba(206,204,196,0.22)';
+          g.beginPath(); g.ellipse(px, py, rx, ry, a, 0, Math.PI * 2); g.fill();
+          g.strokeStyle = `rgba(84,80,72,${0.22 + rnd() * 0.2})`; g.lineWidth = 2 + rnd() * 3;
+          g.beginPath(); g.ellipse(px, py, rx, ry, a, 0, Math.PI * 2); g.stroke();
+        });
+      }
+      // membrane sheets: a welded lap every quarter tile, and an end lap part-way along each
+      const N = 4, sw = w / N;
+      for (let i = 0; i < N; i++) {
+        const x = i * sw;
+        g.fillStyle = 'rgba(70,72,76,0.50)'; g.fillRect(x, 0, 2, h);
+        g.fillStyle = 'rgba(250,250,250,0.35)'; g.fillRect(x + 2, 0, 5, h);
+        g.fillStyle = 'rgba(96,92,84,0.14)'; g.fillRect(x + 7, 0, 14, h);
+        const y = ((i * 0.37 + 0.2) % 1) * h;
+        g.fillStyle = 'rgba(70,72,76,0.45)'; g.fillRect(x, y, sw, 2);
+        g.fillStyle = 'rgba(250,250,250,0.30)'; g.fillRect(x, y + 2, sw, 4);
+      }
+      // patches, lighter and newer than the roof around them
+      for (let i = 0; i < 7; i++) {
+        const x = rnd() * (w - 90), y = rnd() * (h - 70), pw = 28 + rnd() * 50, ph = 22 + rnd() * 36;
+        g.fillStyle = 'rgba(228,230,232,0.6)'; g.fillRect(x, y, pw, ph);
+        g.strokeStyle = 'rgba(80,82,86,0.5)'; g.lineWidth = 1.5; g.strokeRect(x, y, pw, ph);
+      }
+      // grit and scuffs
+      for (let i = 0; i < 40000; i++) {
+        const v = 90 + rnd() * 130;
+        g.fillStyle = `rgba(${v},${v},${v - 4},${0.05 + rnd() * 0.12})`;
+        g.fillRect(rnd() * w, rnd() * h, 1, 1);
+      }
+      g.lineWidth = 1;
+      for (let i = 0; i < 160; i++) {
+        const x = rnd() * w, y = rnd() * h, a = rnd() * Math.PI, len = 6 + rnd() * 30;
+        g.strokeStyle = `rgba(70,70,74,${0.1 + rnd() * 0.16})`;
+        g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * len, y + Math.sin(a) * len); g.stroke();
+      }
+    });
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.anisotropy = 8;
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  });
+}
+
 /** Subtle oil-stain decal (radial dark blotch). */
 export function oilStainTexture(): THREE.Texture {
   return cachedTex('oil', () => {

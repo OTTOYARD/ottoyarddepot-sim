@@ -22,8 +22,6 @@ export function UtilityEquipment({ bessCapacity, bessPower }: UtilityEquipmentPr
     steel: MATERIALS.structuralSteel(),
     teal: MATERIALS.tealLED(1.6),
     amber: MATERIALS.amberIndicator(),
-    pole: MATERIALS.structuralSteel(),
-    head: MATERIALS.whiteLED(1.8),
   }), []);
 
   const [bx, , bz] = toWorld({ x: BESS_YARD.x + BESS_YARD.w / 2, y: BESS_YARD.y + BESS_YARD.h / 2 }, 0);
@@ -48,6 +46,14 @@ export function UtilityEquipment({ bessCapacity, bessPower }: UtilityEquipmentPr
     const map = dangerSignTexture();
     return new THREE.MeshStandardMaterial({ map, emissiveMap: map, emissive: new THREE.Color('#ffffff'), emissiveIntensity: 0.12, roughness: 0.6 });
   }, []);
+  const poles = useMemo(() => buildLightPoles(), []);
+  const poleMats = useMemo<Record<string, THREE.Material>>(() => ({
+    base: MATERIALS.polishedConcrete(),
+    steel: MATERIALS.structuralSteel(),
+    galv: MATERIALS.brushedAluminum(),
+    lens: MATERIALS.whiteLED(1.8),
+    glass: MATERIALS.screenGlass(),
+  }), []);
   void bessPower;
 
   return (
@@ -96,23 +102,10 @@ export function UtilityEquipment({ bessCapacity, bessPower }: UtilityEquipmentPr
         ))}
       </group>
 
-      {/* ---- site light poles (24/7 ops) ---- */}
-      {LIGHT_POLES.map((p, i) => {
-        const [wx, , wz] = toWorld({ x: p.x, y: p.y }, 0);
-        return (
-          <group key={i} position={[wx, 0, wz]}>
-            <mesh position={[0, 9, 0]} castShadow material={mats.pole}>
-              <cylinderGeometry args={[0.28, 0.4, 18, 8]} />
-            </mesh>
-            <mesh position={[2.6, 17.7, 0]} material={mats.pole}>
-              <boxGeometry args={[5.2, 0.3, 0.3]} />
-            </mesh>
-            <mesh position={[5, 17.5, 0]} material={mats.head}>
-              <boxGeometry args={[2.6, 0.5, 1.3]} />
-            </mesh>
-          </group>
-        );
-      })}
+      {/* ---- site light poles (24/7 ops): one batch per material, every pole built by lightPole ---- */}
+      {[...poles.entries()].map(([k, g]) => (
+        <mesh key={`pole-${k}`} geometry={g} material={poleMats[k]} castShadow={k !== 'lens'} receiveShadow={k === 'base'} />
+      ))}
     </group>
   );
 }
@@ -215,5 +208,56 @@ function buildTransformerYard(): Map<string, THREE.BufferGeometry> {
   for (const t of CHARGER_TRANSFORMERS) padMount(b, -(t.x - c.x), -(t.y - c.y));
   // the feeders' trench along the north fence, back toward the switchgear
   b.box('skid', 0, 0.08, D / 2 - 1.6, W - 3, 0.12, 1.0);
+  return b.build();
+}
+
+/**
+ * The yard's light poles, batched by material. Each is what a commercial area light is: a
+ * round concrete footing with a base plate and four anchor bolts, a tapered eight-sided shaft
+ * with a handhole cover, a cap, an arm with a brace under it, and a luminaire that is a dark
+ * finned housing with the lit lens on its underside (it was one glowing white block). Every
+ * other pole carries a security camera dome on a short bracket.
+ * The arm runs along world +X, as it did. The footing stands 0.7 u in radius where the bare
+ * shaft stood 0.4 u; LIGHT_POLES' clearances in sitePlan are all 1.5 ft (about 1 u) or more.
+ */
+function buildLightPoles(): Map<string, THREE.BufferGeometry> {
+  const b = new StaticBatch();
+  const H = 18;
+  LIGHT_POLES.forEach((p, i) => {
+    const [x, , z] = toWorld({ x: p.x, y: p.y }, 0);
+    // footing, base plate, anchor bolts
+    b.cylinder('base', x, 0, z, 0.7, 1.3, 14);
+    b.box('steel', x, 1.34, z, 0.95, 0.08, 0.95);
+    for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) b.cylinder('galv', x + dx * 0.36, 1.38, z + dz * 0.36, 0.05, 0.16, 6);
+    // tapered shaft
+    const shaft = new THREE.CylinderGeometry(0.2, 0.36, H - 1.38, 8);
+    shaft.translate(x, 1.38 + (H - 1.38) / 2, z);
+    b.geometry('steel', shaft);
+    b.box('galv', x, 2.6, z - 0.33, 0.3, 0.55, 0.05);           // handhole cover
+    b.cylinder('steel', x, H, z, 0.26, 0.14, 8);                 // cap
+    // arm, rising a little toward the luminaire, and its brace
+    const arm = new THREE.CylinderGeometry(0.11, 0.13, 4.5, 6);
+    arm.rotateZ(Math.PI / 2 - 0.09);
+    arm.translate(x + 2.25, H - 0.5, z);
+    b.geometry('steel', arm);
+    const brace = new THREE.CylinderGeometry(0.06, 0.06, 2.3, 5);
+    brace.rotateZ(Math.PI / 2 - 0.72);
+    brace.translate(x + 0.9, H - 1.25, z);
+    b.geometry('steel', brace);
+    // luminaire: housing, heat-sink fins, lens underneath, photocell on top
+    const lx = x + 5.2, ly = H - 0.28;
+    b.box('steel', lx, ly, z, 2.7, 0.3, 1.25);
+    for (let k = -4; k <= 4; k++) b.box('steel', lx + k * 0.27, ly + 0.24, z, 0.05, 0.18, 1.05);
+    b.box('lens', lx, ly - 0.17, z, 2.35, 0.06, 0.95);
+    b.cylinder('galv', lx - 1.0, ly + 0.15, z, 0.09, 0.2, 8);
+    // security camera on every other pole, facing the yard from under the arm
+    if (i % 2 === 0) {
+      b.box('steel', x + 0.55, 10.4, z, 0.9, 0.08, 0.12);
+      b.cylinder('galv', x + 0.95, 10.02, z, 0.2, 0.34, 10);
+      const dome = new THREE.SphereGeometry(0.24, 10, 6, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2);
+      dome.translate(x + 0.95, 10.02, z);
+      b.geometry('glass', dome);
+    }
+  });
   return b.build();
 }
