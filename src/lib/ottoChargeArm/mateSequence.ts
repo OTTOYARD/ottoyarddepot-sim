@@ -54,14 +54,16 @@ const gap = (x: JointAngles, y: JointAngles) => Math.max(
  */
 export function stepMateSeq(
   s: MateSeq, phase: ArmPhase, t: number, target: ArmTarget | null, mate: ArmMate | null, dt: number,
-  spec: CobotSpec = OTTO_CHARGE_ARM,
+  spec: CobotSpec = OTTO_CHARGE_ARM, parkSlideM = 0,
 ): ArmPose {
   const ok = !!mate?.mate.ok;
   const out = !isArmHome(phase) && ok;
   const step = (cur: number, goal: number, rate: number) => cur + Math.max(-rate * dt, Math.min(rate * dt, goal - cur));
   const want = !out ? 0 : AT_INLET.has(phase) ? 4 : 2;
   if (ok) s.last = { unfold: mate!.mate.unfoldSlideM, slide: mate!.mate.slideM, cross: mate!.mate.crossM };
-  const stopBase = (n: number) => ({ slide: n === 0 ? 0 : n <= 2 ? s.last.unfold : s.last.slide, cross: n === 4 ? s.last.cross : 0 });
+  // Stop 0 is the base's home: the rail's middle, or the park position of the vehicle in the stall (a vehicle whose
+  // open door leaf reaches the arm stowed at the middle: ottoCleanArm/chargeArmBeside.ts).
+  const stopBase = (n: number) => ({ slide: n === 0 ? parkSlideM : n <= 2 ? s.last.unfold : s.last.slide, cross: n === 4 ? s.last.cross : 0 });
   const roll = (a: JointAngles): JointAngles => (ok ? { ...a, j6: mate!.j6 } : a);
   const standoff = target && ok ? roll(poseFor({ phase: 'approach', t: 1 }, target, spec).angles) : STOWED;
   const stopArm = (n: number) => (n <= 1 ? STOWED : standoff);
@@ -82,7 +84,7 @@ export function stepMateSeq(
       }
     }
   } else if (s.stop === 0) {
-    s.slide = step(s.slide, 0, RAIL_SPEED_MPS);
+    s.slide = step(s.slide, parkSlideM, RAIL_SPEED_MPS);
     s.cross = step(s.cross, 0, CROSS_SPEED_MPS);
   }
   // The connector the car takes is forward only while the machine is at the inlet and staying there.
@@ -104,4 +106,25 @@ export function stepMateSeq(
   }
   s.shown = slewAngles(s.shown, pose.angles, dt);
   return pose;
+}
+
+/** What the charge arm is doing, for the cleaning arm's interlock: still in one of two places, or not still. */
+export type ChargeArmState = 'stowed' | 'latched' | 'moving';
+
+/**
+ * Is the machine STILL, and where? 'stowed': folded at its home (`parkSlideM`), cross-slide out, both connectors
+ * back, the session home. 'latched': the session charging, the base at the mate, the working connector forward.
+ * Anything else is 'moving'. With no mate (a car whose port the twin has not said) the base has no travel and the
+ * session's phase alone says it.
+ */
+export function chargeArmState(s: MateSeq, phase: ArmPhase, mate: ArmMate | null, parkSlideM = 0): ChargeArmState {
+  const headsBack = s.ccs < 0.004 && s.nacs < 0.004;
+  if (isArmHome(phase)) {
+    const home = s.stop === 0 && Math.abs(s.slide - parkSlideM) < 0.005 && Math.abs(s.cross) < 0.004 && headsBack && gap(s.shown, STOWED) < 0.02;
+    return home ? 'stowed' : 'moving';
+  }
+  if (phase !== 'charging') return 'moving';
+  if (!mate?.mate.ok) return 'latched';
+  const fwd = mate.mate.head === 'CCS1' ? s.ccs : s.nacs;
+  return s.stop === 4 && fwd > ARM_REACH.headStrokeM - 0.004 ? 'latched' : 'moving';
 }

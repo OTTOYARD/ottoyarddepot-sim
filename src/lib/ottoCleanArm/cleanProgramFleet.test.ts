@@ -13,6 +13,7 @@ import { resolve } from 'node:path';
 import { FLEET_SPECS } from '@/lib/fleetModels/fleet';
 import { cabinProfile } from '@/lib/fleetModels/cabin';
 import { fleetCleanProgram, type FleetProgramResult } from './cleanProgramFleet';
+import { measureChargeBeside } from './chargeArmBeside';
 import { cleanProgramFor, FLEET_PROGRAM_KEYS, type StoredCleanProgram } from './cleanPrograms';
 import { GENERIC_PROGRAM } from './cleanArmPose';
 
@@ -32,6 +33,7 @@ function stored(p: StoredCleanProgram): StoredCleanProgram {
       })),
     })),
     notReached: [...p.notReached],
+    beside: { ...p.beside },
   };
 }
 
@@ -41,7 +43,8 @@ describe('the fleet\'s clean programs', () => {
     const out: Record<string, StoredCleanProgram> = {};
     for (const spec of FLEET_SPECS) {
       const t0 = performance.now();
-      const r = fleetCleanProgram(cabinProfile(spec));
+      const beside = measureChargeBeside(spec, cabinProfile(spec));
+      const r = fleetCleanProgram(cabinProfile(spec), beside.facts);
       made.set(spec.key, r);
       out[spec.key] = stored(r.stored);
       const v = r.stored.visits;
@@ -50,6 +53,9 @@ describe('the fleet\'s clean programs', () => {
         console.log(`  ${o.opening}: ${o.used ? 'used' : `NOT USED: ${o.why}`}; wrist run ${o.corridor ? `${o.corridor[0].toFixed(2)}..${o.corridor[1].toFixed(2)} m` : 'none'}; cleans ${o.cleaned.join(', ') || 'nothing'}${o.left.length ? `; leaves ${o.left.join(', ')}` : ''}`);
       }
       for (const n of r.stored.notReached) console.log(`  not reached: ${n}`);
+      const m = (v: number | null) => (v === null ? 'no mate' : v >= 0.58 ? 'over 0.58' : v.toFixed(3));
+      console.log(`  BESIDE ${spec.key}: port doors open with the charge arm stowed ${beside.facts.stowed}${beside.facts.parkX === undefined ? '' : ` (parked at ${beside.facts.parkX} m)`}, latched ${beside.facts.latched}; `
+        + `measured stowed at the middle ${m(beside.stowedM)} m, latched ${m(beside.latchedM)} m${beside.parkedM === null ? '' : `, parked ${m(beside.parkedM)} m, run to the park position ${m(beside.parkRunBodyM)} m from the body`}`);
     }
     const text = `${JSON.stringify(out, null, 1)}\n`;
     if (WRITE) writeFileSync(FILE, text);

@@ -71,7 +71,9 @@ function snap(atMs: number, w: World = {}): TwinSnapshot {
     fleet: {
       counts: {}, total: 1,
       vehicles: [{
-        id: VEHICLE, av_id: "AV-1", make: "Zoox", platform: "robotaxi",
+        // a car the twin does not name: the generic program, whose port flank may be cleaned with the connector in.
+        // A named vehicle follows its own rule (cleanInterlock.test.ts: a Zoox's port flank waits for the charge to end).
+        id: VEHICLE, av_id: "AV-1", make: "Acme", platform: "robotaxi",
         state: w.state ?? "charging_dcfc", soc: 42, stall_id: TWIN_STALL,
         visit: {
           visit_id: "visit-1", visit_status: "in_progress", archetype: null, urgency: null,
@@ -110,7 +112,8 @@ function run(fromMs: number, seconds: number, stepMs: number, world: (t: number)
       t: (t - T0) / 1000,
       clean: s?.phase ?? "none",
       arm: twinMotionDriver.armPhaseAt(RENDER_STALL),
-      doors: d ? Math.min(d.right, d.left) : 0,
+      // how far the widest-open flank stands: the doors are per flank since 2026-11-13 (the worked flank's are open)
+      doors: d ? Math.max(d.right, d.left) : 0,
       moving: !!now && (now.tracker !== null || now.reverse !== null),
     });
   }
@@ -159,7 +162,7 @@ describe("the cabin clean during a fast charge, in Chase's order", () => {
     expect(home).toBeLessThanOrEqual(CYCLE_S + 1);
     expect(home).toBeGreaterThan(CYCLE_S - 6);
     // the doors stood open for the whole time the arm was out, and are shut after
-    for (const s of trace) if (s.clean !== "home" && s.clean !== "doors_open" && s.clean !== "doors_close") expect(s.doors).toBe(1);
+    for (const s of trace) if (s.clean !== "home" && s.clean !== "doors_open" && s.clean !== "doors_close" && !s.clean.startsWith("swing_")) expect(s.doors).toBe(1);
     expect(trace[trace.length - 1].doors).toBe(0);
     expect(doorStore.get(VEHICLE)).toBeUndefined();
     // and the car never moved while any of it happened

@@ -10,7 +10,7 @@
  * A vehicle whose stored program visits NO opening is one the arm as built cannot clean: its arm stays home
  * (cleanSession.advanceCleanSession), and `notReached` says why.
  */
-import { GENERIC_PROGRAM, makeCleanProgram, type CleanProgram, type CleanVisit } from './cleanArmPose';
+import { GENERIC_PROGRAM, makeCleanProgram, type ChargeBeside, type CleanProgram, type CleanVisit } from './cleanArmPose';
 import STORED from './programs/fleetPrograms.json';
 
 /** One vehicle's program as the file holds it. */
@@ -18,6 +18,8 @@ export interface StoredCleanProgram {
   pivotZ: number;
   visits: CleanVisit[];
   notReached: string[];
+  /** When the port-flank doors may be open beside the charge arm (chargeArmBeside.measureChargeBeside). */
+  beside: ChargeBeside;
 }
 
 const stored = STORED as unknown as Record<string, StoredCleanProgram>;
@@ -33,7 +35,7 @@ export function cleanProgramFor(key: string | null | undefined): CleanProgram {
   if (hit) return hit;
   const st = stored[key];
   if (!st) return GENERIC_PROGRAM;
-  const made = makeCleanProgram(key, st.pivotZ, st.visits, st.notReached);
+  const made = makeCleanProgram(key, st.pivotZ, st.visits, st.notReached, st.beside);
   built.set(key, made);
   return made;
 }

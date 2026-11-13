@@ -270,8 +270,7 @@ export function ChargingArm({ stallId, stallType, fleet, slot, cad, flex }: Char
       chargingState,
       parked,
       tetherRemainingS: tetherLeft,
-      cleanBusy: twinMotionDriver.cleanArmBusy(stallId),
-      cleanBlocksMate: twinMotionDriver.cleanArmBlocksMate(stallId),
+      ...twinMotionDriver.cleanFactsAt(stallId),
       chargerFaulted: twinMotionDriver.stallChargerFaulted(stallId),
     });
     const { phase, t } = session.current;
@@ -303,7 +302,8 @@ export function ChargingArm({ stallId, stallType, fleet, slot, cad, flex }: Char
     // arm, a stale frame) moves the machine by more than MAX_JOINT_RATE * dt.
     const m = mate.current;
     const rdt = servoDt(frameDelta, twinMotionDriver.playbackSpeed());
-    const pose = stepMateSeq(seq.current, phase, t, target.current, m, rdt, spec);
+    // the base's home is the rail's middle, or this car's park position (clear of its open doors)
+    const pose = stepMateSeq(seq.current, phase, t, target.current, m, rdt, spec, twinMotionDriver.chargeParkSlideAt(stallId));
     shown.current.angles = seq.current.shown;
     shown.current.latch = slewScalar(shown.current.latch, pose.latch, rdt);
     const a = shown.current.angles;

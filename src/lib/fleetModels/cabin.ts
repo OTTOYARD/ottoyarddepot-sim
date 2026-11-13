@@ -121,6 +121,16 @@ export interface CabinProfile {
   /** Distance to the nearest door leaf on either flank, open `open01` (1 by default). Capped at LEAF_FAR_M. */
   leafClearance(p: Vec3, open01?: number): number;
   /**
+   * The same with each flank's doors at their own opening: the right flank's (+z) and the left flank's. A flank
+   * whose doors are shut is not measured (a shut door is the body). Openings are read to the nearest 1 / LEAF_STEPS.
+   */
+  leafClearanceAt(p: Vec3, openRight: number, openLeft: number): number;
+  /**
+   * Distance to the nearest door leaf on either flank ANYWHERE IN ITS TRAVEL, shut to open (LEAF_STEPS positions): a
+   * hinged leaf's free edge and a butterfly door pass nearer some things on the way than where they come to rest.
+   */
+  leafSweptClearance(p: Vec3): number;
+  /**
    * Where the segment a -> b crosses the body side on `side` at the outer skin and at the door's inner face, and the
    * WORST margin of a round section of radius `r` inside aperture `index` there. Null when it does not cross.
    */
@@ -128,6 +138,9 @@ export interface CabinProfile {
   /** Is this station and height inside aperture `index`, and by how much (metres, negative outside)? */
   openingMargin(x: number, y: number, index: number): number;
 }
+
+/** A door's travel is measured at this many positions, shut to open (a 65 degree swing in steps of 1.3 degrees). */
+export const LEAF_STEPS = 50;
 
 /** leafClearance never reports more than this: far from every leaf is all a caller needs to know. */
 export const LEAF_FAR_M = 0.6;
@@ -427,6 +440,21 @@ function makeProfile(spec: VehicleSpec): CabinProfile {
     for (const c of cloudsAt(open01)) best = Math.min(best, c.distance(q, LEAF_FAR_M));
     return best >= LEAF_FAR_M ? LEAF_FAR_M : best - LEAF_SLACK_M;
   }
+  const stepOf = (open01: number) => Math.round(Math.min(1, Math.max(0, open01)) * LEAF_STEPS) / LEAF_STEPS;
+  function leafClearanceAt(p: Vec3, openRight: number, openLeft: number): number {
+    let best = LEAF_FAR_M;
+    const r = stepOf(openRight), l = stepOf(openLeft);
+    if (openRight > 0) for (const c of cloudsAt(Math.max(r, 1 / LEAF_STEPS))) best = Math.min(best, c.distance(p, LEAF_FAR_M));
+    const q = { x: p.x, y: p.y, z: -p.z };
+    if (openLeft > 0) for (const c of cloudsAt(Math.max(l, 1 / LEAF_STEPS))) best = Math.min(best, c.distance(q, LEAF_FAR_M));
+    return best >= LEAF_FAR_M ? LEAF_FAR_M : best - LEAF_SLACK_M;
+  }
+  function leafSweptClearance(p: Vec3): number {
+    const q = p.z >= 0 ? p : { x: p.x, y: p.y, z: -p.z };
+    let best = LEAF_FAR_M;
+    for (let k = 1; k <= LEAF_STEPS; k++) for (const c of cloudsAt(k / LEAF_STEPS)) best = Math.min(best, c.distance(q, LEAF_FAR_M));
+    return best >= LEAF_FAR_M ? LEAF_FAR_M : best - LEAF_SLACK_M;
+  }
   const stands = (k: DoorKind): LeafStands => (k === 'hinge' ? 'out' : k === 'slide' ? 'along' : 'up');
   const leaves: CabinLeaf[] = right.map((q, i) => ({ id: q.id, kind: q.kind, stands: stands(q.kind), box: { ...cloudsAt(1)[i].box } }));
 
@@ -609,6 +637,6 @@ function makeProfile(spec: VehicleSpec): CabinProfile {
     key: spec.key, length: L, width: d.width, height: d.height,
     floorTop, headliner: ceilingAt(mid, 0), x0: cabinX0, x1: cabinX1,
     apertures, leaves, seats, fixtures, solid, equipment,
-    skin, outsideSkin, room, seatClearance, ceilingAt, bodyClearance, leafClearance, crossing, openingMargin,
+    skin, outsideSkin, room, seatClearance, ceilingAt, bodyClearance, leafClearance, leafClearanceAt, leafSweptClearance, crossing, openingMargin,
   };
 }

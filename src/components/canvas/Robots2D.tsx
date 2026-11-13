@@ -183,7 +183,7 @@ export function FastChargerRobots2D() {
             }
           }
           // the mate's five stops and the base's travel, as the 3D yard plays them (mateSequence.ts)
-          const pose = stepMateSeq(r.seq, s.phase, s.t, r.target, r.mate, sdt);
+          const pose = stepMateSeq(r.seq, s.phase, s.t, r.target, r.mate, sdt, undefined, twinMotionDriver.chargeParkSlideAt(stall.id));
           const q = r.seq;
           const key = `${s.phase}|${q.slide.toFixed(3)}|${q.cross.toFixed(3)}|${q.shown.j1.toFixed(3)}|${q.shown.j2.toFixed(3)}|${q.shown.j3.toFixed(3)}|${r.targetFor ?? ''}`;
           if (key !== r.armKey) {

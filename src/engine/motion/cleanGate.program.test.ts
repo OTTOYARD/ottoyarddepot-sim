@@ -6,7 +6,7 @@ import { CleanGate, type CleanStallInput } from "./cleanGate";
 import { cleanSessionJoints, cleanSessionProgram, type CleanSession } from "@/lib/ottoCleanArm/cleanSession";
 import { cleanJointsAt, sidesFor, GENERIC_PROGRAM } from "@/lib/ottoCleanArm/cleanArmPose";
 import { cleanProgramFor } from "@/lib/ottoCleanArm/cleanPrograms";
-import { CLEAN_CHAIN, phaseMove, wandMayBeInside, type CleanPhase } from "@/lib/ottoCleanArm/cleanArmSpec";
+import { CLEAN_CHAIN, phaseMove, phaseVisit, wandMayBeInside, type CleanPhase } from "@/lib/ottoCleanArm/cleanArmSpec";
 import { FLEET_MODEL_KEYS, fleetModelKeyFor } from "@/lib/fleetModels/assign";
 import { cabinArmWords } from "@/lib/vehicleQCard";
 
@@ -20,22 +20,29 @@ function play(model: string | null, vehicleId = "car-1") {
   const TOTAL = 348;
   const seen: CleanPhase[] = [];
   const sessions: CleanSession[] = [];
-  let doorsWhileOut = 1, blocksWhileOut = true, heldWhileOut = true;
+  let doorsWhileOut = 1, otherFlankOpen = 0, blocksWhileOut = true, heldWhileOut = true;
   for (let t = 0; t < TOTAL + 60; t += 0.25) {
     gate.step(0.25, [{ ...base, vehicleId, model, active: t < TOTAL + 5, endsInS: Math.max(0, TOTAL - t) }]);
     const s = gate.session("A-01")!;
     sessions.push(s);
     if (seen[seen.length - 1] !== s.phase) seen.push(s.phase);
     if (phaseMove(s.phase) !== null || s.phase === "return") {
-      // out over or beside the car: both flanks' doors stand fully open, no charge arm may start a mate, the car is held
-      const d = gate.doors().find(([id]) => id === vehicleId);
-      doorsWhileOut = Math.min(doorsWhileOut, d ? d[1] : 0);
+      // out over or beside the car: no charge arm may start a mate, the car is held
       blocksWhileOut = blocksWhileOut && gate.blocksMate("A-01");
       heldWhileOut = heldWhileOut && !gate.mayMove("A-01");
     }
+    const move = phaseMove(s.phase);
+    if (move !== null && move !== "swing") {
+      // down at an opening: that flank's doors stand fully open and the other flank's are shut. The stall faces -1,
+      // so the far flank (worked first) is the car's right and the port flank its left.
+      const d = gate.doorsByFlank().find(([id]) => id === vehicleId) ?? [vehicleId, 0, 0];
+      const far = cleanSessionProgram(s).visits[phaseVisit(s.phase)].flank === "far";
+      doorsWhileOut = Math.min(doorsWhileOut, far ? d[1] : d[2]);
+      otherFlankOpen = Math.max(otherFlankOpen, far ? d[2] : d[1]);
+    }
     if (s.phase === "home" && seen.length > 1) break;
   }
-  return { seen, sessions, doorsWhileOut, blocksWhileOut, heldWhileOut };
+  return { seen, sessions, doorsWhileOut, otherFlankOpen, blocksWhileOut, heldWhileOut };
 }
 
 describe("the cleaning arm's program follows the car in the stall", () => {
@@ -46,12 +53,13 @@ describe("the cleaning arm's program follows the car in the stall", () => {
     expect(play("a_car_with_no_program").seen).toEqual([...CLEAN_CHAIN, "home"]);
   });
 
-  it.each(FLEET_MODEL_KEYS.map((key) => ({ key })))("$key: plays that vehicle's own program, doors open and the car held all the way", ({ key }) => {
+  it.each(FLEET_MODEL_KEYS.map((key) => ({ key })))("$key: plays that vehicle's own program, the worked flank's doors open and the car held all the way", ({ key }) => {
     const program = cleanProgramFor(key);
     expect(program.key).toBe(key);
     const r = play(key);
     expect(r.seen).toEqual([...program.chain, "home"]);
     expect(r.doorsWhileOut).toBe(1);
+    expect(r.otherFlankOpen).toBe(0);
     expect(r.blocksWhileOut).toBe(true);
     expect(r.heldWhileOut).toBe(true);
     const sides = sidesFor(-1);
