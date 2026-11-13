@@ -11,7 +11,7 @@
 //   3. No number is invented: before 0810 answers the tab says so and draws no diagram.
 //   4. A tripped transformer reads open, its five posts read down, and the card says the cars were re-queued.
 //   5. The trip is two presses, only while a run is live, and goes through the control door as kind power_zone.
-//   6. Power is the last tab in the bar, so the number keys 1-0 keep their tabs.
+//   6. Power is the last tab in the bar; the number keys 1-0 belong to the ten before the last two.
 // ============================================================================
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
@@ -161,10 +161,10 @@ describe('tripping one', () => {
 });
 
 describe('where it sits', () => {
-  it('Power is the last tab, so no number key moves', () => {
+  it('Power is the last tab, after the ten the number keys open', () => {
     render(<TabBar />);
     const labels = screen.getAllByRole('button').map((b) => b.textContent);
     expect(labels[labels.length - 1]).toBe('Power');
-    expect(labels.slice(0, 10)).toEqual(['Background', 'Control', 'OTTO-Q', 'Agent', 'KPIs', 'Runs', 'Diagnostics', 'Copilot', 'Value', 'Research']);
+    expect(labels.slice(0, 10)).toEqual(['Background', 'Control', 'OTTO-Q', 'Robotics', 'Agent', 'KPIs', 'Runs', 'Diagnostics', 'Copilot', 'Value']);
   });
 });

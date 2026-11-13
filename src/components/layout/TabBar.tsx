@@ -17,10 +17,11 @@ import { useSimulationStore, type CockpitTab } from '@/store/simulationStore';
 //   Value        — what OTTO-Q is worth at this depot: power bill, chargers, revenue time (night-2 sweep, otto-q-core 0575/0576)
 //   Research     — what the research wing measured, built and recommends (otto-q-core 0793). RESEARCH, NOT LIVE: a flask
 //                  marks the tab and a banner heads it, and nothing there changes the depot until a person ships it.
-//                  Last, so the number keys 1-9 keep their tabs (0 opens it).
+//                  The eleventh tab, so it has no number key.
 //   Robotics     — the depot's robots as engineering CAD, every part to the last screw and washer, with each major
 //                  function broken out (Chase, 2026-11-07). DESIGN DATA, NOT LIVE: a wrench marks the tab and a banner
-//                  heads it. After Research, so no number key moves; it has none.
+//                  heads it. Right after OTTO-Q (Chase, 2026-11-13): it is key 4, and the tabs after it each move one
+//                  key along (Value is 0; Research and Power have none).
 // Removed from navigation 2026-09-30 (Chase: "a lot of redundancy and slop data"; design note
 // docs/OTTO-Q-FUNNEL-AND-AGENT-TABS.md): Intelligence, Orchestration and Events showed the same facts three times
 // (a car placed on a charger was a trail step, a stream row, a lifecycle tile and an event). Their sources stay in
@@ -32,6 +33,7 @@ const tabs: { id: CockpitTab; label: string }[] = [
   { id: 'background', label: 'Background' },
   { id: 'controls', label: 'Control' },
   { id: 'ottoq', label: 'OTTO-Q' },
+  { id: 'robotics', label: 'Robotics' },
   { id: 'agent', label: 'Agent' },
   { id: 'kpis', label: 'KPIs' },
   { id: 'history', label: 'Runs' },
@@ -39,8 +41,7 @@ const tabs: { id: CockpitTab; label: string }[] = [
   { id: 'copilot', label: 'Copilot' },
   { id: 'value', label: 'Value' },
   { id: 'research', label: 'Research' },
-  { id: 'robotics', label: 'Robotics' },
-  // Power comes last, as Robotics did: the number keys 1-0 belong to the first ten tabs and none of them moves.
+  // Power comes last: the number keys 1-0 belong to the first ten tabs.
   { id: 'power', label: 'Power' },
 ];
 

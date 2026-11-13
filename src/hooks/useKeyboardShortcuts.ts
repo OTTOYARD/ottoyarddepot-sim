@@ -8,13 +8,13 @@ const TAB_KEYS: Record<string, CockpitTab> = {
   '1': 'background',
   '2': 'controls',
   '3': 'ottoq',
-  '4': 'agent',
-  '5': 'kpis',
-  '6': 'history',
-  '7': 'world',
-  '8': 'copilot',
-  '9': 'value',
-  '0': 'research',
+  '4': 'robotics',
+  '5': 'agent',
+  '6': 'kpis',
+  '7': 'history',
+  '8': 'world',
+  '9': 'copilot',
+  '0': 'value',
 };
 
 export function useKeyboardShortcuts() {

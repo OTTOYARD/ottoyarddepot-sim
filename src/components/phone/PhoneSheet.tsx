@@ -37,6 +37,7 @@ const TAB_LABEL: Record<CockpitTab, string> = {
   background: 'Background',
   controls: 'Control',
   ottoq: 'OTTO-Q',
+  robotics: 'Robotics',
   agent: 'Agent',
   kpis: 'KPIs',
   history: 'Runs',
@@ -44,7 +45,6 @@ const TAB_LABEL: Record<CockpitTab, string> = {
   copilot: 'Copilot',
   value: 'Value',
   research: 'Research',
-  robotics: 'Robotics',
   power: 'Power',
 };
 const TABS = (Object.keys(TAB_LABEL) as CockpitTab[]).map((id) => ({ id, label: TAB_LABEL[id] }));
