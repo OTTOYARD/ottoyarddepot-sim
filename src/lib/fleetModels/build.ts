@@ -464,7 +464,7 @@ export function buildVehicle(spec: VehicleSpec, opts: BuildOptions = {}): THREE.
       const side = cp.face === 'left' ? -1 : 1;
       // Find the ring position at the port's height.
       let lo = K_SILL_SAFE;
-      let hi = K_BELT;
+      let hi = K_RAIL; // a tall-glazed body (the Zoox) carries its inlet above its beltline
       for (let i = 0; i < 24; i++) { const m2 = (lo + hi) / 2; if (s.point(cp.xr, m2, side)[1] < cp.y) lo = m2; else hi = m2; }
       p = s.point(cp.xr, lo, side);
       n = s.normalAt(cp.xr, lo, side);

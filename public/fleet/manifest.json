@@ -454,8 +454,8 @@
     -0.9839
    ],
    "file": "waymo_ojai.glb",
-   "bytes": 5588060,
-   "sha256": "b6051ea9153617d7",
+   "bytes": 5588064,
+   "sha256": "696cd647161a367e",
    "triangles": 144844,
    "sensorCounts": {
     "lidar": 4,
@@ -887,8 +887,8 @@
     -0.9299
    ],
    "file": "waymo_ipace.glb",
-   "bytes": 5097512,
-   "sha256": "36d3bdb2f260c6fa",
+   "bytes": 5097508,
+   "sha256": "973b9c12cf12a60c",
    "triangles": 141389,
    "sensorCounts": {
     "lidar": 5,
@@ -1433,12 +1433,12 @@
    ],
    "chargePortPosition": [
     -1.1852,
-    0.7036,
-    -0.8955
+    0.7801,
+    -0.893
    ],
    "file": "zoox_robotaxi.glb",
    "bytes": 5649208,
-   "sha256": "cad95a88e07853e5",
+   "sha256": "f6a42b9cee37e761",
    "triangles": 139377,
    "sensorCounts": {
     "lidar": 8,
@@ -1809,8 +1809,8 @@
     -0.8361
    ],
    "file": "tesla_model_y.glb",
-   "bytes": 4498920,
-   "sha256": "818084b09dca7cf6",
+   "bytes": 4498916,
+   "sha256": "f40ec48f9f215067",
    "triangles": 134584,
    "sensorCounts": {
     "lidar": 0,
