@@ -11,6 +11,7 @@ import {
 } from './surface';
 import { makeMaterials, type MaterialSet } from './materials';
 import type { DoorSpec, RegionHelpers, RegionSpec, SensorSpec, VehicleSpec } from './spec';
+import { doorRigOf } from './doorRigs';
 
 const H_SCALE = 0.45; // metres per unit of glass-band height, for distances in [xr, h]
 const W_SCALE = 0.7; //  metres per unit of roof-band width
@@ -411,38 +412,10 @@ export function buildVehicle(spec: VehicleSpec, opts: BuildOptions = {}): THREE.
   for (const { d: door, tris } of doorTris) {
     const node = new THREE.Group();
     node.name = `door_${door.id}`;
-    const ttMid = 4.2;
-    const xf = polyline(door.front)(ttMid);
-    const xb = polyline(door.rear)(ttMid);
-    const pivot = new THREE.Vector3();
-    const info: Record<string, unknown> = { id: door.id, kind: door.kind, side: door.side };
-    if (door.kind === 'hinge') {
-      const xh = door.hingeAtRear ? xb - 0.02 : xf + 0.02;
-      const p = s.point(xh, ttMid, door.side);
-      pivot.set(p[0], 0, p[2] - door.side * 0.035);
-      info.axis = [0, 1, 0];
-      info.angle = ((door.swingDeg ?? 65) * Math.PI / 180) * door.side * (door.hingeAtRear ? -1 : 1);
-    } else if (door.kind === 'slide') {
-      const p = s.point((xf + xb) / 2, ttMid, door.side);
-      pivot.set(p[0], 0, p[2]);
-      info.out = [0, 0, door.side * (door.popOut ?? 0.14)];
-      info.along = [(door.slideDir ?? -1) * (door.travel ?? xb - xf), 0, 0];
-    } else {
-      const [a, b] = door.axis!;
-      const za = s.point(a[0], ttMid, door.side)[2] - door.side * a[2];
-      const zb = s.point(b[0], ttMid, door.side)[2] - door.side * b[2];
-      pivot.set(L / 2 - a[0], a[1], za);
-      const axis = new THREE.Vector3(L / 2 - b[0], b[1], zb).sub(pivot).normalize();
-      // Pick the sense that lifts the door: its trailing edge, at the belt, must end higher and further out.
-      const full = (door.swingDeg ?? 80) * Math.PI / 180;
-      const probe = new THREE.Vector3(...s.point(xb, K_BELT, door.side)).sub(pivot);
-      const gain = (sgn: number) => { const q = probe.clone().applyAxisAngle(axis, sgn * full); return (q.y - probe.y) + door.side * (q.z - probe.z); };
-      const up = gain(1) - gain(-1);
-      info.axis = axis.toArray();
-      info.angle = full * (up >= 0 ? 1 : -1);
-    }
+    // The door's motion has one derivation (doorRigs.ts): the robots place the open leaf with the same rig.
+    const info = doorRigOf(door, s);
+    const pivot = new THREE.Vector3(...info.pivot);
     node.position.copy(pivot);
-    info.pivot = pivot.toArray();
     node.userData.door = info;
     node.add(...finishPanel(s, tris, regions, 'doors', 0.055, 'interior', yard).meshes(mats, pivot));
     root.add(node);

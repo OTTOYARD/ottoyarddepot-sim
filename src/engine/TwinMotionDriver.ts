@@ -19,6 +19,8 @@
 // ============================================================================
 import { publishVehiclePorts } from '@/lib/ottoChargeArm/vehiclePort';
 import { publishVehicleModels, vehicleModelKey } from '@/lib/fleetModels/vehicleModel';
+import { fleetModelKeyFor, type FleetModelKey } from '@/lib/fleetModels/assign';
+import { cleanSessionProgram } from '@/lib/ottoCleanArm/cleanSession';
 import { stopFor, type FoundItem } from '@/lib/ottoCleanArm/foundItems';
 import { KinematicCar, DEFAULT_CAR_PARAMS, wrapAngle } from "./motion/KinematicCar";
 import { type Pt } from "./motion/PathTracker";
@@ -760,6 +762,8 @@ class TwinMotionDriver {
   private cleanGate = new CleanGate();
   /** vehicle id -> the twin's cabin clean of it by a stall's arm (0758), rebuilt every snapshot. */
   private cabinCleans = new Map<string, CabinClean>();
+  /** vehicle id -> its fleet model, as the twin's row names it; rebuilt every snapshot. It picks a cleaning arm's program. */
+  private vehicleModels = new Map<string, FleetModelKey>();
   /** Items the cleaning arms found in cabins this run (otto-q-core 0814's feed, useFoundItems). The twin's; read only. */
   private foundItems: readonly FoundItem[] = [];
   /** The feed's items, as the engine published them. An empty list when the run has none or the feed is not there. */
@@ -1111,6 +1115,11 @@ class TwinMotionDriver {
     return this.twinChargerFaulted.has(rendererStallId);
   }
 
+  /** A car's fleet model as the twin's row names it, or null: what its cleaning arm's program and its drawn doors follow. */
+  fleetModelOf(vehicleId: string): FleetModelKey | null {
+    return this.vehicleModels.get(vehicleId) ?? null;
+  }
+
   /** The cleaning arm at this stall is not home (ChargingArm keeps a latched connector in). */
   cleanArmBusy(rendererStallId: string): boolean {
     return this.cleanGate.busy(rendererStallId);
@@ -1131,7 +1140,7 @@ class TwinMotionDriver {
    * fast-charger stall that has one. `sideA` is the flank it cleans first: the one away from the charge port
    * (authored z = -toward), so the car's left on a west column and its right on an east one.
    */
-  cabinArmFor(vehicleId: string): { phase: string; sideA: "left" | "right"; sideB: "left" | "right"; done: boolean } | null {
+  cabinArmFor(vehicleId: string): { phase: string; sideA: "left" | "right"; sideB: "left" | "right"; done: boolean; stops: ("a" | "b")[] } | null {
     const e = this.entries.get(vehicleId);
     if (!e?.stallId || e.lane !== "dcfc") return null;
     const s = this.cleanGate.session(e.stallId);
@@ -1141,6 +1150,8 @@ class TwinMotionDriver {
     return {
       phase: s.phase, sideA, sideB: sideA === "left" ? "right" : "left",
       done: s.phase === "home" && s.completedFor === vehicleId,
+      // the flank of each door opening this car's program visits, in order (two on the generic car, four on a four-door car)
+      stops: cleanSessionProgram(s).visits.map((v) => (v.flank === "far" ? "a" : "b")),
     };
   }
 
@@ -1254,6 +1265,7 @@ class TwinMotionDriver {
         heldS,
         toward: at ? towardFor(at.x) : 1,
         mayEnter: still,
+        model: this.vehicleModels.get(id) ?? null,
       });
     }
     this.cleanGate.step(simDt, cleans);
@@ -1634,6 +1646,7 @@ class TwinMotionDriver {
     this.armGate.clear();
     this.cleanGate.clear();
     this.cabinCleans.clear();
+    this.vehicleModels.clear();
     this.foundItems = [];
     this.washGate.clear();
     this.baySeats.clear();
@@ -1689,6 +1702,7 @@ class TwinMotionDriver {
     this.twinChargerFaulted.clear();
     this.cleanGate.clear();
     this.cabinCleans.clear();
+    this.vehicleModels.clear();
     this.foundItems = [];
     this.washGate.clear();
     this.baySeats.clear();
@@ -2914,13 +2928,17 @@ class TwinMotionDriver {
     // maps: a step the twin has closed must stop the arm on the next frame. The times
     // stay on the backend's sim clock (epoch ms), the one domain simNow() runs in.
     const cabin = new Map<string, CabinClean>();
+    const models = new Map<string, FleetModelKey>();
     publishVehiclePorts(snap.fleet?.vehicles ?? []);
     publishVehicleModels(snap.fleet?.vehicles ?? []);
     for (const bv of snap.fleet?.vehicles ?? []) {
       const c = cabinCleanOf(bv, (id) => this.twinStall.get(id));
       if (c) cabin.set(bv.id, c);
+      const model = fleetModelKeyFor(bv);
+      if (model) models.set(bv.id, model);
     }
     this.cabinCleans = cabin;
+    this.vehicleModels = models;
     // THE BAY SEATS (otto-q-core 0762): when the twin seated each car in a bay and when its
     // timer ends the work, on the backend's sim clock. Rebuilt wholesale like the cleans.
     const seats = new Map<string, { sinceMs: number | null; endsMs: number | null; stall: string | null }>();

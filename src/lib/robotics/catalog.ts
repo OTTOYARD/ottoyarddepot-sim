@@ -13,7 +13,7 @@ import { NOMINAL_SEQUENCE, ARM_TIMING_DEFAULTS } from '@/lib/ottoChargeArm/armSt
 import { poseForPhase } from '@/lib/ottoChargeArm/armMotion';
 import { STOWED, solveIK } from '@/lib/ottoChargeArm/cobotIK';
 import { FLANK_STANDOFF_M, MOUNT_HEIGHT_M, METRES_PER_PLAN_UNIT } from '@/lib/ottoChargeArm/cobotSpec';
-import { CLEAN_CHAIN, CLEAN_PHASE_S, CLEAN_SIDE_NOMINAL_S, MAST_FOOT_MAX, type CleanPhase } from '@/lib/ottoCleanArm/cleanArmSpec';
+import { CLEAN_CHAIN, CLEAN_PHASE_S, CLEAN_SIDE_NOMINAL_S, MAST_FOOT_MAX, type CleanPhase, type GenericCleanPhase } from '@/lib/ottoCleanArm/cleanArmSpec';
 import { cleanJointsAt, sidesFor, type CleanJoints } from '@/lib/ottoCleanArm/cleanArmPose';
 import { programPoseAt, type WashPose } from '@/lib/ottoWash/washPose';
 import { DOCK_DY_M } from '@/lib/ottoWash/detailArm';
@@ -301,7 +301,7 @@ const CHARGE_LABEL: Record<string, string> = {
   latch: 'Lock the connector', charging: 'Charge', unlatch: 'Unlock the connector', extract: 'Pull the connector out',
   retract: 'Fold home',
 };
-const CLEAN_LABEL: Record<CleanPhase, string> = {
+const CLEAN_LABEL: Record<GenericCleanPhase, string> = {
   home: 'Home', doors_open: 'The doors open', swing_a: 'Swing over side A', lower_a: 'Turn the wand down',
   descend_a: 'Lower the mast', enter_a: 'Reach in through the door', clean_a: 'Clean side A', exit_a: 'Come out of the car',
   ascend_a: 'Raise the mast', raise_a: 'Turn the wand up', swing_b: 'Swing over side B', lower_b: 'Turn the wand down',

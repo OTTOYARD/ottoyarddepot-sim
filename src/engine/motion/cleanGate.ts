@@ -8,6 +8,11 @@
 // stall, reduced by cleanSession.advanceCleanSession from what the snapshot and the
 // motion layer say, stepped on the sim clock by TwinMotionDriver.
 //
+// ONE PROGRAM PER VEHICLE (2026-11-13). The twin's row says which car is in the stall, and the session
+// that starts for it plays that vehicle's own clean program: its door openings, its seats, its roof
+// (ottoCleanArm/cleanPrograms.ts). The session carries the program's key, so CleanArm.tsx, the 2D plan
+// and the Robotics tab's follow all draw the same program from the same session.
+//
 // ONE EVALUATION, NOT TWO. The OTTO-CHARGE ARM is evaluated twice (ChargingArm.tsx draws
 // one, armGate.ts gates motion on the other) and has to keep them in step. The cleaning
 // arm is evaluated here only: CleanArm.tsx draws this session, the fleet's doors are
@@ -157,6 +162,12 @@ export interface CleanStallInput {
   toward: 1 | -1;
   /** The charge arm is still (latched, or not working), so the cleaning arm may go in. */
   mayEnter: boolean;
+  /**
+   * The model of the car in the stall, as the twin's row names it (fleetModels/assign.fleetModelKeyFor), or null.
+   * It picks the arm's program for this car (ottoCleanArm/cleanPrograms.ts): each vehicle has its own doors, seats
+   * and roof. Null or absent: the generic car's program.
+   */
+  model?: string | null;
 }
 
 interface StallState {
@@ -191,7 +202,7 @@ export class CleanGate {
       const sides = sidesFor(input.toward);
       const session = advanceBy(prev?.session ?? IDLE_CLEAN, dt, {
         vehicleId: input.vehicleId, active: input.active, endsInS: input.endsInS,
-        sides, mayEnter: input.mayEnter, heldS: input.heldS,
+        sides, mayEnter: input.mayEnter, heldS: input.heldS, model: input.model ?? null,
       });
       this.store(input.stallId, prev, session, sides, dt);
     }

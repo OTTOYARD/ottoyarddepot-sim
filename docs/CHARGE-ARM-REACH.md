@@ -124,10 +124,11 @@ joins the fleet, the routing rule (0824, 0825) is still there.
 
 ## What is not built
 
-- **The cleaning arm and the wash machine still work to the one generic car's cabin, doors and sensors.** Their
-  sizes clear every vehicle (above). Their work does not follow each vehicle yet: the cleaning arm's path goes
-  through the generic car's door opening, and the wash arms' pads go to the generic car's sensor positions. Each
-  needs a per-vehicle target as the charge arm now has (door opening and cabin space; sensor positions).
+- **The wash machine still works to the one generic car's sensors.** Its size clears every vehicle (above). Its
+  arms' pads go to the generic car's sensor positions, and need a per-vehicle target as the charge arm has.
+  **The cleaning arm has one program a vehicle since 2026-11-13**: `docs/CLEAN-ARM-PER-VEHICLE.md` says what each
+  program cleans, what it does not reach, and what is short (the open left doors stand in the charge arm's way on
+  every fleet vehicle, and the stowed cleaning arm is 0.059 m over the Ojai's roof lidar).
 - **The yard's traffic and parking use one car size** (4.69 m by 1.91 m). The Gravity is 5.03 m by 2.00 m. A
   per-vehicle envelope for driving and for stall clearance is not built.
 - **Door clearance at the charger**: the arm is measured against each vehicle with its doors shut. A hinged door

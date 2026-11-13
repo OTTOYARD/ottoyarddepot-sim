@@ -3,9 +3,10 @@
 // sensor). The six real ones are up to 5.03 m long, 2.00 m wide and 1.94 m tall. This measures:
 //   - OTTO-CLEAN ARM parked and swinging over the stall: how far its lowest part is above each vehicle's top;
 //   - OTTO-WASH stowed, a car driving through the bay: how far the machine is from each vehicle's swept box.
-// It does NOT cover the work inside a cabin or on a body: the cleaning arm's path through a door and the wash
-// arms' pad positions are written for the generic car's cabin and sensors (docs/CHARGE-ARM-REACH.md, "What is not
-// built").
+// It does NOT cover the work inside a cabin or on a body. The cleaning arm's path through each vehicle's own doors is
+// held by ottoCleanArm/cleanArmFleet.test.ts (which also measures the arm over each vehicle's roof EQUIPMENT: this
+// file measures against dims.height, and the Ojai's roof lidar stands 0.285 m over that). The wash arms' pad
+// positions are still written for the generic car's sensors (docs/CHARGE-ARM-REACH.md, "What is not built").
 import { beforeAll, describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { depotSceneFromDisk } from '@/test/cadDisk';

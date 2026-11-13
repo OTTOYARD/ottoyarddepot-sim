@@ -1,18 +1,8 @@
 // Door motion. A door node carries userData.door, written by build.ts; this is the only code that moves one.
 import * as THREE from 'three';
 
-export interface DoorRig {
-  id: string;
-  kind: 'hinge' | 'slide' | 'butterfly';
-  side: -1 | 1;
-  pivot: [number, number, number];
-  /** hinge / butterfly: unit axis through the pivot and the signed full-open angle, radians. */
-  axis?: [number, number, number];
-  angle?: number;
-  /** slide: the step outboard and the run along the body, metres. */
-  out?: [number, number, number];
-  along?: [number, number, number];
-}
+import type { DoorRig } from './doorRigs';
+export type { DoorRig } from './doorRigs';
 
 const smooth = (a: number, b: number, t: number) => { const x = Math.min(1, Math.max(0, (t - a) / (b - a))); return x * x * (3 - 2 * x); };
 
