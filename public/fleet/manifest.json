@@ -27,10 +27,12 @@
     "chargePort": "Not published. Placed on the left rear quarter as an assumption."
    },
    "chargePort": {
-    "side": -1,
+    "face": "left",
     "xr": 4.2,
     "y": 0.95,
-    "note": "ASSUMPTION: left rear quarter, as on the related Zeekr Mix. Waymo has not published it."
+    "connector": "CCS1",
+    "assumed": true,
+    "note": "ASSUMPTION: left rear quarter, CCS1. Waymo has published neither the position nor the connector."
    },
    "doors": [
     {
@@ -452,8 +454,8 @@
     -0.9839
    ],
    "file": "waymo_ojai.glb",
-   "bytes": 5587948,
-   "sha256": "b8a1c8e249cca6e0",
+   "bytes": 5588060,
+   "sha256": "b6051ea9153617d7",
    "triangles": 144844,
    "sensorCounts": {
     "lidar": 4,
@@ -485,9 +487,11 @@
     "chargePort": "Left front wing (Jaguar I-PACE)."
    },
    "chargePort": {
-    "side": -1,
+    "face": "left",
     "xr": 1.14,
     "y": 0.9,
+    "connector": "CCS1",
+    "assumed": false,
     "note": "Left front wing, above and behind the wheel arch (CCS1)."
    },
    "doors": [
@@ -883,8 +887,8 @@
     -0.9299
    ],
    "file": "waymo_ipace.glb",
-   "bytes": 5097416,
-   "sha256": "a22634da1d151bff",
+   "bytes": 5097512,
+   "sha256": "36d3bdb2f260c6fa",
    "triangles": 141389,
    "sensorCounts": {
     "lidar": 5,
@@ -914,9 +918,17 @@
     "dimensions": "Published length 3.63 m and height 1.936 m. Width (about 1.83 m, \"nearly six feet\"), wheelbase, track and tyres are estimated from photographs.",
     "doors": "Two glass sliding panels a side that part from the middle. Travel is estimated.",
     "sensors": "Published: a sensor pod at each of the four roof corners with lidar, radar, cameras and long-wave infrared, about 270 degrees each. Counts per pod are not published; what is drawn is illustrative.",
-    "chargePort": "Not published; none is drawn."
+    "chargePort": "Not published. Placed low on one side near a corner, CCS1, as an assumption. The vehicle drives either way, so it can present that side to a charger on its left or its right."
    },
-   "chargePort": null,
+   "chargePort": {
+    "face": "left",
+    "xr": 3,
+    "y": 0.78,
+    "connector": "CCS1",
+    "presentsEitherSide": true,
+    "assumed": true,
+    "note": "ASSUMPTION: one CCS1 inlet low on a side, near a corner. Zoox has not published it."
+   },
    "doors": [
     {
      "id": "FL",
@@ -1419,11 +1431,15 @@
      ]
     }
    ],
-   "chargePortPosition": null,
+   "chargePortPosition": [
+    -1.1852,
+    0.7036,
+    -0.8955
+   ],
    "file": "zoox_robotaxi.glb",
-   "bytes": 5645016,
-   "sha256": "a3478be2fd7bf137",
-   "triangles": 139313,
+   "bytes": 5649208,
+   "sha256": "cad95a88e07853e5",
+   "triangles": 139377,
    "sensorCounts": {
     "lidar": 8,
     "camera": 12,
@@ -1451,9 +1467,16 @@
     "dimensions": "Reported height 1.407 m and width 1.753 m (a second source says 1.60 m); length about 4.445 m is an estimate from a drone photograph. Wheelbase is not published: 2.84 m is measured off a side photograph.",
     "doors": "Two powered butterfly doors, no handles. Hinge line and 78 degree swing are fitted to a photograph of the open door.",
     "sensors": "Reported: eight outward cameras, no lidar or radar. Positions follow Tesla's usual layout and are an assumption.",
-    "chargePort": "Tesla describes inductive charging under the car as the main method; no plug location is published, so none is drawn."
+    "chargePort": "Reported: a NACS inlet behind a drop-down door in the rear bumper, DC only, no onboard AC charger. Its height and exact position are not published; the centre of the bumper at 0.62 m is an assumption. Inductive pads are planned, not in service."
    },
-   "chargePort": null,
+   "chargePort": {
+    "face": "rear",
+    "xr": 4.445,
+    "y": 0.62,
+    "connector": "NACS",
+    "assumed": true,
+    "note": "Rear bumper, behind a drop-down door (NACS, DC only). Height and lateral position assumed: centre, 0.62 m."
+   },
    "doors": [
     {
      "id": "L",
@@ -1578,11 +1601,15 @@
      ]
     }
    ],
-   "chargePortPosition": null,
+   "chargePortPosition": [
+    -2.2165,
+    0.62,
+    0
+   ],
    "file": "tesla_cybercab.glb",
-   "bytes": 2984532,
-   "sha256": "a16690121ae5b02f",
-   "triangles": 114034,
+   "bytes": 2988580,
+   "sha256": "167ccb437ca79bbc",
+   "triangles": 114098,
    "sensorCounts": {
     "lidar": 0,
     "camera": 8,
@@ -1613,9 +1640,11 @@
     "chargePort": "Left rear, in the tail-lamp cluster."
    },
    "chargePort": {
-    "side": -1,
+    "face": "left",
     "xr": 4.56,
     "y": 1,
+    "connector": "NACS",
+    "assumed": false,
     "note": "Left rear, in the tail-lamp cluster (NACS)."
    },
    "doors": [
@@ -1780,8 +1809,8 @@
     -0.8361
    ],
    "file": "tesla_model_y.glb",
-   "bytes": 4498824,
-   "sha256": "ecae8d395dbf6916",
+   "bytes": 4498920,
+   "sha256": "818084b09dca7cf6",
    "triangles": 134584,
    "sensorCounts": {
     "lidar": 0,
@@ -1813,9 +1842,11 @@
     "chargePort": "Left rear quarter."
    },
    "chargePort": {
-    "side": -1,
+    "face": "left",
     "xr": 4.55,
     "y": 1.02,
+    "connector": "NACS",
+    "assumed": false,
     "note": "Left rear quarter (NACS)."
    },
    "doors": [
@@ -2167,8 +2198,8 @@
     -0.9549
    ],
    "file": "lucid_gravity_nuro.glb",
-   "bytes": 5239368,
-   "sha256": "964d158e8edb665c",
+   "bytes": 5239464,
+   "sha256": "e56023ac5401eee0",
    "triangles": 144288,
    "sensorCounts": {
     "lidar": 5,
