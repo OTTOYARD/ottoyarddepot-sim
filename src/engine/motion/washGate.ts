@@ -58,6 +58,8 @@ export interface WashBayInput {
   active: boolean;
   /** A detail seat: the interior is cleaned first. */
   interior: boolean;
+  /** The car's fleet model key (fleetModels/assign.ts), or null: the machine plays that vehicle's own program. */
+  model?: string | null;
   /** Sim seconds until the twin's seat ends, or null when it published no end. */
   endsInS: number | null;
   /** Sim seconds since the twin seated the car, or null when it published no start. */
@@ -107,7 +109,7 @@ export class WashGate {
       seen.add(input.bayId);
       const prev = this.bays.get(input.bayId);
       const session = advanceBy(prev?.session ?? IDLE_WASH, dt, {
-        vehicleId: input.vehicleId, active: input.active, interior: input.interior, endsInS: input.endsInS,
+        vehicleId: input.vehicleId, active: input.active, interior: input.interior, model: input.model ?? null, endsInS: input.endsInS,
         sinceS: input.sinceS ?? null,
       });
       this.store(input.bayId, prev, session, dt);
