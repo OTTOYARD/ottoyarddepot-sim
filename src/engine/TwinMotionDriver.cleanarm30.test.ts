@@ -68,7 +68,8 @@ function snap(twinStall: string, atMs: number, state = "charging_dcfc"): TwinSna
     fleet: {
       counts: {}, total: 1,
       vehicles: [{
-        id: VEHICLE, av_id: "AV-30", make: "Zoox", platform: "robotaxi",
+        // a car the twin does not name: the generic program (see TwinMotionDriver.cleanarm.test.ts)
+        id: VEHICLE, av_id: "AV-30", make: "Acme", platform: "robotaxi",
         state, soc: 42, stall_id: twinStall,
         visit: {
           visit_id: "visit-30", visit_status: "in_progress", archetype: null, urgency: null,
@@ -107,7 +108,8 @@ function play(twinStall: string, renderStall: string, seconds: number, stateAt: 
       t: (t - T0) / 1000,
       clean: s?.phase ?? "none",
       arm: twinMotionDriver.armPhaseAt(renderStall),
-      doors: d ? Math.min(d.right, d.left) : 0,
+      // how far the widest-open flank stands: the doors are per flank since 2026-11-13 (the worked flank's are open)
+      doors: d ? Math.max(d.right, d.left) : 0,
       moving: !!now && (now.tracker !== null || now.reverse !== null),
     });
   }
@@ -172,7 +174,7 @@ describe("the charge arm and the cleaning arm on canopies B and C, on the served
       expect(leftHome).toBeGreaterThanOrEqual(latched);
       expect(home).toBeLessThanOrEqual(CYCLE_S + 1);
       expect(home).toBeGreaterThan(CYCLE_S - 6);
-      for (const s of trace) if (s.clean !== "home" && s.clean !== "doors_open" && s.clean !== "doors_close") expect(s.doors).toBe(1);
+      for (const s of trace) if (s.clean !== "home" && s.clean !== "doors_open" && s.clean !== "doors_close" && !s.clean.startsWith("swing_")) expect(s.doors).toBe(1);
       expect(trace[trace.length - 1].doors).toBe(0);
       expect(trace.some((s) => s.moving)).toBe(false);
     });

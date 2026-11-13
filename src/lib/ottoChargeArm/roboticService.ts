@@ -233,8 +233,11 @@ export interface ArmStallFacts {
   tetherRemainingS: number | null;
   /** The stall's OTTO-CLEAN ARM is not home: it is out over the car, or the car's doors are open. */
   cleanBusy?: boolean;
-  /** The stall's OTTO-CLEAN ARM is moving over or beside the car (past opening the doors). */
+  /** The stall's OTTO-CLEAN ARM is moving over or beside the car (past opening the doors), or a door on the charger's
+   *  flank is not shut. */
   cleanBlocksMate?: boolean;
+  /** A door on the charger's flank of the car is not shut (cleanSession.portDoorsOpen). No release starts. */
+  cleanPortDoorsOpen?: boolean;
   /** The twin reports the stall's charger Faulted (otto-q-core 0612: stalls_status 'faulted' / charger_state
    *  'Faulted'). A faulted charger is out of service: no mate starts on it, and a committed arm lets go. */
   chargerFaulted?: boolean;
@@ -266,7 +269,15 @@ export function armSessionInput(
   // that is the order for a charge that ENDS (the doors close, then the charge arm lets go), and a charger that
   // faulted has ended nothing. The two arms are clear of each other at every pose of the release
   // (cleanArmClearance.test.ts), so the connector can come out while the cleaning arm is still in the cabin.
-  if (f.chargerFaulted) return { charging: false, tetherRemainingS: f.tetherRemainingS };
+  // ONE THING COMES FIRST: a door on the charger's flank that is not shut. The arm's way out passes where an open
+  // port-flank door leaf stands (ottoCleanArm/chargeArmBeside.ts), so a latched connector stays in until those
+  // doors are shut. The cleaning arm is told to leave that flank at once (cleanGate portYield), so this ends.
+  if (f.chargerFaulted) {
+    const waitForDoors = before.phase === 'charging' && !!f.cleanPortDoorsOpen
+      && f.vehicleId !== null && f.vehicleId === before.vehicleId;
+    if (waitForDoors) return { charging: true, tetherRemainingS: null };
+    return { charging: false, tetherRemainingS: f.tetherRemainingS };
+  }
   const committed = isArmCommitted(before.phase);
   let charging = f.vehicleId !== null && f.chargingState && (f.parked || committed);
   if (charging && !committed && f.cleanBlocksMate) charging = false;

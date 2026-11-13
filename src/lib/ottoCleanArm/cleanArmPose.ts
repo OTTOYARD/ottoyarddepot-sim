@@ -297,6 +297,25 @@ export interface CleanVisit {
   strokes: readonly StrokeKey[];
 }
 
+/**
+ * May a vehicle's PORT-flank doors stand open beside the OTTO-CHARGE ARM (which stands on that flank)? Measured per
+ * vehicle by chargeArmBeside.ts: true only where the charge arm keeps 0.10 m from every open port-flank leaf.
+ */
+export interface ChargeBeside {
+  /** with the charge arm stowed at its rail's middle, or at `parkX` when that is given */
+  stowed: boolean;
+  /** with the charge arm latched at this vehicle's own mate */
+  latched: boolean;
+  /**
+   * Where the charge arm's base parks while this vehicle is in the stall, metres along the CAR from its middle
+   * (+ nose), when the open leaf reaches the arm stowed at the rail's middle. Absent: the rail's middle.
+   */
+  parkX?: number;
+}
+
+/** The generic car's one door a flank keeps 0.10 m from the charge arm at every pose (cleanArmClearance.test.ts). */
+export const GENERIC_BESIDE: ChargeBeside = { stowed: true, latched: true };
+
 /** What the arm does for one kind of vehicle: the openings it visits, in order, and its wrist's standoff. */
 export interface CleanProgram {
   /** 'generic', or the vehicle's fleet model key. */
@@ -310,6 +329,8 @@ export interface CleanProgram {
   seconds: Readonly<Partial<Record<CleanPhase, number>>>;
   /** What this program leaves uncleaned, and why, in plain words. Empty when it reaches everything. */
   notReached: readonly string[];
+  /** When this vehicle's port-flank doors may be open beside the charge arm (cleanSession holds the arm to it). */
+  beside: ChargeBeside;
 }
 
 const MOVE_S: Readonly<Record<Exclude<CleanMove, 'swing' | 'clean'>, number>> = {
@@ -321,7 +342,9 @@ const MOVE_S: Readonly<Record<Exclude<CleanMove, 'swing' | 'clean'>, number>> = 
  * swing (from stowed) takes 4 s, a swing across the roof to the other flank 5 s, a swing along the same flank
  * CLEAN_SWING_ALONG_S; the rest are the generic cycle's (cleanArmSpec.CLEAN_PHASE_S, held equal by the tests).
  */
-export function makeCleanProgram(key: string, pivotZ: number, visits: readonly CleanVisit[], notReached: readonly string[] = []): CleanProgram {
+export function makeCleanProgram(
+  key: string, pivotZ: number, visits: readonly CleanVisit[], notReached: readonly string[] = [], beside: ChargeBeside = GENERIC_BESIDE,
+): CleanProgram {
   const chain = visits.length ? cleanChainFor(visits.length) : [];
   const seconds: Partial<Record<CleanPhase, number>> = { doors_open: 3, return: 4, doors_close: 3 };
   for (const p of chain) {
@@ -330,7 +353,7 @@ export function makeCleanProgram(key: string, pivotZ: number, visits: readonly C
     const i = phaseVisit(p);
     seconds[p] = m === 'swing' ? (i === 0 ? 4 : visits[i - 1].flank === visits[i].flank ? CLEAN_SWING_ALONG_S : 5) : MOVE_S[m];
   }
-  return { key, pivotZ, visits, chain, seconds, notReached };
+  return { key, pivotZ, visits, chain, seconds, notReached, beside };
 }
 
 const GENERIC_VISIT = { opening: 'door', aperture: 0, planeZ: FLANK_PAINT_Z, readyX: GENERIC_READY_X, scoopY: SCOOP_Y, strokes: STROKES } as const;

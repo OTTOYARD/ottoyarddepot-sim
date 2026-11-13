@@ -51,6 +51,18 @@ export const doorStore = {
     }
     for (const id of [...doors.keys()]) if (!keep.has(id)) doors.delete(id);
   },
+  /** Make the store hold exactly these cars' openings, each flank its own; every other car's doors shut. */
+  syncFlanks(open: Iterable<readonly [string, number, number]>): void {
+    const keep = new Set<string>();
+    for (const [id, right, left] of open) {
+      const r = clamp01(right), l = clamp01(left);
+      if (r === 0 && l === 0) continue;
+      keep.add(id);
+      const d = doors.get(id);
+      if (d) { d.right = r; d.left = l; } else doors.set(id, { right: r, left: l });
+    }
+    for (const id of [...doors.keys()]) if (!keep.has(id)) doors.delete(id);
+  },
   clear(): void {
     doors.clear();
   },

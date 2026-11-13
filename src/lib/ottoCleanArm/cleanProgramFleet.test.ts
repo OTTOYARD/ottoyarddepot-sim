@@ -13,6 +13,7 @@ import { resolve } from 'node:path';
 import { FLEET_SPECS } from '@/lib/fleetModels/fleet';
 import { cabinProfile } from '@/lib/fleetModels/cabin';
 import { fleetCleanProgram, type FleetProgramResult } from './cleanProgramFleet';
+import { measureChargeBeside } from './chargeArmBeside';
 import { cleanProgramFor, FLEET_PROGRAM_KEYS, type StoredCleanProgram } from './cleanPrograms';
 import { GENERIC_PROGRAM } from './cleanArmPose';
 
@@ -32,6 +33,7 @@ function stored(p: StoredCleanProgram): StoredCleanProgram {
       })),
     })),
     notReached: [...p.notReached],
+    beside: { ...p.beside },
   };
 }
 
@@ -43,13 +45,15 @@ describe('the fleet\'s clean programs', () => {
   it.each(FLEET_SPECS.map((spec) => ({ key: spec.key, spec })))('makes $key\'s program', { timeout: 300_000 }, async ({ spec }) => {
     await new Promise((r) => setTimeout(r, 0));
     const t0 = performance.now();
-    const r = fleetCleanProgram(cabinProfile(spec));
+    const beside = measureChargeBeside(spec, cabinProfile(spec));
+    const r = fleetCleanProgram(cabinProfile(spec), beside.facts);
     made.set(spec.key, r);
     out[spec.key] = stored(r.stored);
     const v = r.stored.visits;
     console.log(`PROGRAM ${spec.key}: ${v.length} visits, ${(performance.now() - t0).toFixed(0)} ms`);
     for (const o of r.openings) console.log(`  ${o.opening}: ${o.used ? 'used' : `NOT USED: ${o.why}`}; cleans ${o.cleaned.join(', ') || 'nothing'}`);
     for (const n of r.stored.notReached) console.log(`  not reached: ${n}`);
+    console.log(`  BESIDE ${spec.key}: ${JSON.stringify(beside.facts)}; stowed at the middle ${beside.stowedM}, latched ${beside.latchedM}, parked ${beside.parkedM}`);
     expect(v.length).toBeGreaterThan(0);
   });
 

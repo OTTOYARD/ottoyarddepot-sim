@@ -140,7 +140,10 @@ export interface QCardInputs {
    * flanks it cleans first and second; `done` is true once the arm has finished this car's cycle (before the twin
    * closes the step, which it does on its next tick).
    */
-  cabinArm?: { phase: string; sideA: "left" | "right"; sideB: "left" | "right"; done?: boolean; stops?: readonly ("a" | "b")[] } | null;
+  cabinArm?: {
+    phase: string; sideA: "left" | "right"; sideB: "left" | "right"; done?: boolean; stops?: readonly ("a" | "b")[];
+    waiting?: boolean; portNotDone?: boolean;
+  } | null;
   /**
    * What the car's wash bay's rollover machine is doing now, as the motion driver plays it (TwinMotionDriver.washBayFor),
    * or null when the car is not in a wash bay the machine works for it in. `interior` is a detail seat (the cabin is
@@ -334,7 +337,13 @@ const byCleaningArm = (n: QNeedRecord | null | undefined): boolean =>
  */
 export function cabinArmWords(
   phase: string, sideA: "left" | "right", sideB: "left" | "right", done = false, stops: readonly ("a" | "b")[] = ["a", "b"],
+  state: { waiting?: boolean; portNotDone?: boolean } = {},
 ): { starting: boolean; words: string } {
+  // the charger stands on side B. Its side is cleaned only while the charge arm is still and clear of the open doors.
+  if (phase === "home" && state.portNotDone) {
+    return { starting: false, words: `The arm did not clean the ${sideB} side. The charge arm was in the way of the doors.` };
+  }
+  if (state.waiting) return { starting: false, words: `The arm waits for the charge arm. The ${sideB} doors stay closed.` };
   if (phase === "home") {
     return done
       ? { starting: false, words: "The arm is done. The doors are closed." }
@@ -558,7 +567,7 @@ export function buildQCard(inp: QCardInputs): QCard {
       const t0 = Date.parse(startedAt ?? ""), t1 = Date.parse(endsAt ?? ""), at = Date.parse(snap?.run?.sim_clock ?? "");
       const progress = Number.isFinite(t0) && Number.isFinite(t1) && Number.isFinite(at) && t1 > t0
         ? Math.max(0, Math.min(100, ((at - t0) / (t1 - t0)) * 100)) : null;
-      const live = inp.cabinArm ? cabinArmWords(inp.cabinArm.phase, inp.cabinArm.sideA, inp.cabinArm.sideB, inp.cabinArm.done, inp.cabinArm.stops) : null;
+      const live = inp.cabinArm ? cabinArmWords(inp.cabinArm.phase, inp.cabinArm.sideA, inp.cabinArm.sideB, inp.cabinArm.done, inp.cabinArm.stops, inp.cabinArm) : null;
       cabinClean = {
         state: live?.starting ? "starting" : "in_progress",
         words: live?.words ?? "The arm cleans the cabin.",

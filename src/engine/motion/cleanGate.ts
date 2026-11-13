@@ -25,9 +25,12 @@
 // is over (CLEAN_HOLD_CAP_S): a wedged signal must not freeze a car.
 // ============================================================================
 import {
-  advanceCleanSession, cleanLetsCarMove, IDLE_CLEAN, type CleanInput, type CleanSession,
+  advanceCleanSession, cleanDoors, cleanLetsCarMove, cleanSessionProgram, IDLE_CLEAN, portDoorsOpen,
+  type CleanInput, type CleanSession,
 } from "@/lib/ottoCleanArm/cleanSession";
-import { doorsAt, sidesFor, type CleanSides } from "@/lib/ottoCleanArm/cleanArmPose";
+import type { ChargeArmState } from "@/lib/ottoChargeArm/mateSequence";
+import { sidesFor, type CleanSides } from "@/lib/ottoCleanArm/cleanArmPose";
+import { cleanProgramFor } from "@/lib/ottoCleanArm/cleanPrograms";
 import { stallHasArm } from "@/lib/ottoChargeArm/roboticService";
 import type { TwinVehicle } from "@/lib/ottoTwin";
 
@@ -143,6 +146,24 @@ export function cabinStopOf(
   return null;
 }
 
+/**
+ * What the cleaning arm needs to know of its stall's OTTO-CHARGE ARM, from what that arm is doing and what the twin
+ * says of the car. ONE composition, for the motion driver and for the tests that drive the two gates together.
+ * The charge arm is STILL when it is latched, or stowed with no mate coming (a mate starts only on a parked car that
+ * is charging on a charger that has not faulted). A faulted charger's arm lets go: the cleaning arm leaves the
+ * charger's flank so that it can.
+ */
+export function chargeArmFacts(
+  chargeArm: ChargeArmState, car: { charging: boolean; parked: boolean; chargerFaulted: boolean },
+): Pick<CleanStallInput, "mayEnter" | "chargeArm" | "mateComing" | "portYield"> {
+  const mateComing = car.charging && car.parked && !car.chargerFaulted;
+  return {
+    mayEnter: chargeArm === "latched" || (chargeArm === "stowed" && !mateComing),
+    chargeArm, mateComing,
+    portYield: car.chargerFaulted && chargeArm !== "stowed",
+  };
+}
+
 /** What the depot says at one fast-charger stall, this step. */
 export interface CleanStallInput {
   /** RENDERER stall id. */
@@ -168,6 +189,29 @@ export interface CleanStallInput {
    * and roof. Null or absent: the generic car's program.
    */
   model?: string | null;
+  /**
+   * What the stall's OTTO-CHARGE ARM is doing (armGate.armState) and whether a mate is about to start. The gate
+   * reads the PORT flank's rule from them and from the car's program (portAllowed). Absent: no charge arm beside
+   * the car, so the port flank needs nothing.
+   */
+  chargeArm?: ChargeArmState;
+  mateComing?: boolean;
+  /** The charge arm must move now (its charger faulted with the connector in): the arm leaves the port flank. */
+  portYield?: boolean;
+}
+
+/**
+ * MAY THE PORT FLANK'S DOORS BE OPEN NOW? Only while the charge arm is still, with no mate coming, in a state the
+ * car's program measured clear of its open port-flank door leaves (CleanProgram.beside, chargeArmBeside.ts):
+ * latched at this vehicle's mate, or stowed at its home.
+ */
+export function portAllowed(
+  beside: { stowed: boolean; latched: boolean }, chargeArm: ChargeArmState | undefined, mateComing: boolean,
+): boolean {
+  if (chargeArm === undefined) return true;
+  if (chargeArm === "latched") return beside.latched;
+  if (chargeArm === "stowed") return beside.stowed && !mateComing;
+  return false;
 }
 
 interface StallState {
@@ -203,6 +247,11 @@ export class CleanGate {
       const session = advanceBy(prev?.session ?? IDLE_CLEAN, dt, {
         vehicleId: input.vehicleId, active: input.active, endsInS: input.endsInS,
         sides, mayEnter: input.mayEnter, heldS: input.heldS, model: input.model ?? null,
+        // the port flank's rule is the program's the session plays (the one it started with), or the one it would start
+        portOk: portAllowed(
+          cleanProgramFor(prev && prev.session.phase !== "home" ? prev.session.program : input.model).beside,
+          input.chargeArm, input.mateComing === true),
+        portYield: input.portYield === true,
       });
       this.store(input.stallId, prev, session, sides, dt);
     }
@@ -242,10 +291,43 @@ export class CleanGate {
     return !!s && s.phase !== "home";
   }
 
-  /** The cleaning arm is moving over or beside the car: no charge arm may start a mate. */
+  /**
+   * No charge arm may start a mate: the cleaning arm is moving over or beside the car, or a door on the charger's
+   * flank is not shut. An arm that WAITS for the charge arm (parked up, port doors shut) blocks nothing: it waits
+   * so that the charge arm can move.
+   */
   blocksMate(stallId: string | null | undefined): boolean {
     const s = this.session(stallId);
-    return !!s && OUT_OVER_THE_CAR(s.phase);
+    return !!s && ((OUT_OVER_THE_CAR(s.phase) && !s.waiting) || portDoorsOpen(s));
+  }
+
+  /**
+   * What this stall's cleaning arm means for its charge arm: the facts roboticService.armSessionInput reads. ONE
+   * composition, for the depart gate and for the drawn arm.
+   */
+  factsForChargeArm(stallId: string | null | undefined): { cleanBusy: boolean; cleanBlocksMate: boolean; cleanPortDoorsOpen: boolean } {
+    return { cleanBusy: this.holdsConnector(stallId), cleanBlocksMate: this.blocksMate(stallId), cleanPortDoorsOpen: this.portDoorsOpen(stallId) };
+  }
+
+  /** A door on the charger's flank of the car in this stall is not shut. */
+  portDoorsOpen(stallId: string | null | undefined): boolean {
+    const s = this.session(stallId);
+    return !!s && portDoorsOpen(s);
+  }
+
+  /** The cleaning arm waits, parked up with the port doors shut, for the charge arm. */
+  waitsForChargeArm(stallId: string | null | undefined): boolean {
+    return this.session(stallId)?.waiting === true;
+  }
+
+  /**
+   * Must a latched connector stay in for the cleaning arm? While that arm is not home (Chase, 2026-10-19: the doors
+   * close, the charge completes, then the charge arm retracts), except while it WAITS for the charge arm: then the
+   * charge arm is what it waits for.
+   */
+  holdsConnector(stallId: string | null | undefined): boolean {
+    const s = this.session(stallId);
+    return !!s && s.phase !== "home" && !s.waiting;
   }
 
   /** Sim seconds this stall has held its car while finishing; 0 when not holding. */
@@ -262,14 +344,22 @@ export class CleanGate {
     return out;
   }
 
-  /** Every car with its doors open, and how far (0..1, both doors alike). */
+  /** Every car with a door open, and how far its widest-open flank stands (0..1). */
   doors(): [string, number][] {
-    const out: [string, number][] = [];
+    return this.doorsByFlank().map(([id, right, left]) => [id, Math.max(right, left)]);
+  }
+
+  /**
+   * Every car with a door open, and how far each flank's doors stand: [car, right flank, left flank], 0..1. The far
+   * flank's doors open first; the port flank's (the charger's) open only while the charge arm allows (cleanSession).
+   */
+  doorsByFlank(): [string, number, number][] {
+    const out: [string, number, number][] = [];
     for (const s of this.stalls.values()) {
       const id = s.session.vehicleId;
       if (!id) continue;
-      const f = doorsAt(s.session.phase, s.session.t);
-      if (f > 0) out.push([id, f]);
+      const d = cleanDoors(s.session, s.sides);
+      if (d.right > 0 || d.left > 0) out.push([id, d.right, d.left]);
     }
     return out;
   }

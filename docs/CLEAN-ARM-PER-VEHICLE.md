@@ -20,7 +20,7 @@ the twin: no real arm has been run on a real car.
 | A fleet vehicle | `cleanProgramFleet.ts` | Made BY RULE from the cabin: in by the door, an air pass under the headliner, each seat's cushion then its back, the floor deep, the floor by the door. Each stroke's wand is searched over the door opening; only a wand that holds every margin with room to spare, and has a way out, is kept. What has none is left out and named. |
 | The stored file | `programs/fleetPrograms.json` | The yard reads this and does no search. `cleanProgramFleet.test.ts` makes all six again and fails when the file differs (`CLEAN_PROGRAM_WRITE=1` rewrites it). |
 | Which program | `cleanGate` -> `cleanSession` | The twin's row names the car (`fleetModelKeyFor`). The gate passes the key as a cycle starts, the session keeps it to the end, and the 3D arm, the 2D plan and the Robotics tab's follow all draw `cleanSessionJoints(session)`. A car the row does not name gets the generic program. |
-| The doors | `doorStore`, `fleetYard`, `doorPlan.ts` | The 3D yard already opened each vehicle's own doors by the door store's value. The 2D plan now draws them too (one line a door, from the same rig). Both flanks' doors open for the whole cycle, as before. |
+| The doors | `doorStore`, `fleetYard`, `doorPlan.ts` | The 3D yard already opened each vehicle's own doors by the door store's value. The 2D plan now draws them too (one line a door, from the same rig). A flank's doors are open only while the arm is at that flank ("The doors and the charge arm", below). |
 
 **Where the mast stands.** An open door leaf is a wall beside its opening. A hinged leaf stands out from its hinge,
 and its window frame leans back over the opening (0.18 m on the I-PACE). A sliding panel lies along the body. A
@@ -70,18 +70,20 @@ way out from 40 points an opening. Metres. The floor each is held to is in brack
 
 | Vehicle | Links to body [0.10] | Links to a door leaf [0.10] | Wand in the opening [0.03] | Wand outside the door [0.03] | Cabin room [0] | Seats [0.01] | Robots apart [0.10] |
 |---|---|---|---|---|---|---|---|
-| Ojai | 0.112 | 0.176 | 0.137 | 0.118 | 0.025 | 0.025 | 0.250 |
-| I-PACE | 0.112 | 0.122 | 0.078 | 0.132 | 0.082 | 0.028 | 0.253 |
-| Zoox | 0.112 | 0.127 | 0.077 | 0.108 | 0.024 | 0.022 | 0.311 |
-| Cybercab | 0.112 | 0.133 | 0.064 | 0.082 | 0.113 | 0.027 | 0.274 |
-| Model Y | 0.112 | 0.150 | 0.052 | 0.128 | 0.051 | 0.016 | 0.243 |
-| Gravity | 0.112 | 0.138 | 0.064 | 0.158 | 0.025 | 0.027 | 0.223 |
+| Ojai | 0.112 | 0.176 | 0.137 | 0.148 | 0.025 | 0.025 | 0.281 |
+| I-PACE | 0.112 | 0.122 | 0.078 | 0.132 | 0.082 | 0.028 | 0.283 |
+| Zoox | 0.112 | 0.127 | 0.077 | 0.108 | 0.024 | 0.022 | 0.342 |
+| Cybercab | 0.112 | 0.133 | 0.064 | 0.082 | 0.113 | 0.027 | 0.235 |
+| Model Y | 0.112 | 0.123 | 0.052 | 0.128 | 0.051 | 0.016 | 0.265 |
+| Gravity | 0.112 | 0.138 | 0.064 | 0.158 | 0.025 | 0.027 | 0.250 |
 
 - "Links to body" is 0.112 m on every vehicle because the wrist's standoff (0.20 m) less the mast's radius (0.088 m)
   fixes it. The body is taken at its full width at every height.
-- "Robots apart" is the cleaning arm against the OTTO-CHARGE ARM on the car's left, stowed and latched at that
-  vehicle's own mate (`solveMate`), and the cleaning arm home against the charge arm's whole mate. The charge arm
-  is its links as capsules plus its two connectors, not its CAD. The CAD pair is held for the generic car only
+- "Robots apart" is the cleaning arm against the OTTO-CHARGE ARM on the car's left, in every pair of poses the
+  interlocks allow: the cleaning arm anywhere in its cycle with the charge arm stowed at its home or latched at that
+  vehicle's own mate (`solveMate`); and the charge arm moving (its mate, its release, its base on its rail) with the
+  cleaning arm home, swinging over the car, or waiting at a ready point with its wand up. The charge arm is its
+  links as capsules plus its two connectors, not its CAD. The CAD pair is held for the generic car only
   (`cadYard.test.ts`).
 - Every joint stays inside the arm's travel and reach on every vehicle (elbow, mast, wand extension, wrist and
   nozzle pitch).
@@ -90,41 +92,100 @@ Parked and swinging, over the vehicle's highest point, which is its roof equipme
 
 | Vehicle | Highest point (m) | Arm over it (m) |
 |---|---|---|
-| Ojai | 2.040 (roof lidar) | **0.059** |
-| I-PACE | 1.920 (roof lidar) | 0.179 |
-| Zoox | 1.936 | 0.163 |
-| Cybercab | 1.407 | 0.692 (0.174 from the raised door) |
-| Model Y | 1.624 | 0.475 |
-| Gravity | 1.728 | 0.371 |
+| Ojai | 2.040 (roof lidar) | 0.119 |
+| I-PACE | 1.920 (roof lidar) | 0.239 |
+| Zoox | 1.936 | 0.223 |
+| Cybercab | 1.407 | 0.752 (0.233 from the door, anywhere in its travel) |
+| Model Y | 1.624 | 0.535 |
+| Gravity | 1.728 | 0.431 |
 
-## What is short
+The arm was raised 0.06 m on 2026-11-13 (`CLEAN_ARM.link1Y` 3.48). Before that it parked 0.059 m over the Ojai's
+roof lidar.
 
-Two things do not hold 0.10 m. The test states each as a number and fails if it moves by more than 5 mm. Neither
-margin was relaxed.
+## The doors and the charge arm
 
-1. **The stowed arm is 0.059 m over the Ojai's roof lidar.** The drawn lidar stands 0.20 m on a mark at 1.84 m, so
-   it tops at 2.04 m, 0.285 m over the published 1.755 m height that `fleetEnvelope.test.ts` measures against. The
-   arm's wrist parks at 2.099 m, right over it. 0.041 m is missing. Raise the arm 0.05 m (`CLEAN_ARM.link1Y`), or
-   park the wrist 0.25 m further ahead (`STOW_POLAR`). Both change the generic poses and the CAD pose file, so
-   neither was done here. First check the lidar's height: its position is read off photographs.
-2. **With the left doors open, the charge arm is in them, on all six vehicles.** Every charger stands on the car's
-   left. The doors open on both flanks for a clean, and they open while the charge arm mates. Measured, charge arm
-   (capsules) to the nearest open left door leaf, negative is overlap:
+Chase, 2026-11-12: *"If a car can't be cleaned from over head with doors open AND being charged simultaneously, then
+they can charge first, then clean with doors open (if both services are needed). I'd prefer simultaneously, if at
+all possible and design allows."*
 
-   | Vehicle | Stowed at the rail's middle | On its way and at the mate | Latched |
-   |---|---|---|---|
-   | Ojai | 0.378 | -0.122 | -0.122 (the open rear panel lies over the assumed inlet) |
-   | I-PACE | 0.149 | -0.141 (passes the front door's leaf) | -0.120 |
-   | Zoox | 0.378 | -0.122 | -0.121 (the open panel lies over the assumed inlet) |
-   | Cybercab | -0.077 (the raised door reaches the stowed arm) | -0.077 | 0.378 |
-   | Model Y | 0.152 | -0.064 | 0.378 |
-   | Gravity | 0.184 | -0.138 | 0.378 |
+Every charger stands on the car's left. The cleaning arm calls that the PORT flank, and the other the FAR flank. An
+open left door leaf is where the charge arm stands or passes: with both flanks' doors open for the whole cycle, as
+it was, the charge arm overlapped an open left leaf on all six vehicles (by 0.064 m to 0.141 m).
 
-   This is a choreography and door-order problem, not the cleaning arm's reach. The generic car's one door a flank
-   keeps 0.10 m from the charge arm (`cleanArmClearance.test.ts`); the real doors are longer and open wider. What
-   would fix it is a decision for the twin and for Chase: open the left doors only when the charge arm is latched
-   or parked clear, and only as far as clears it; or clean the left flank only on a car that is not on charge; and
-   for the Ojai and the Zoox, whose inlet positions are assumptions, move the assumed inlet clear of the open panel.
+**The rule, measured per vehicle** (`chargeArmBeside.measureChargeBeside`, stored with each program as `beside`,
+measured again by `cleanArmFleet.test.ts`). The port flank's doors may be open only while the charge arm is STILL in
+a place where it keeps 0.10 m from every port-flank door leaf at every position of the door's travel, shut to open.
+A hinged leaf's free edge passes nearer the arm on its way than where it comes to rest, so the travel counts.
+
+| Vehicle | Charge arm stowed at its home | Its home | Charge arm latched | Port flank during the charge |
+|---|---|---|---|---|
+| Ojai | over 0.37 m | the rail's middle | **-0.124 m: not allowed** (the open rear panel lies over the assumed inlet) | waits |
+| I-PACE | 0.108 m | the rail's middle | **-0.122 m: not allowed** (the front door's leaf is at the inlet) | waits |
+| Zoox | over 0.37 m | the rail's middle | **-0.123 m: not allowed** (the open panel lies over the assumed inlet) | waits |
+| Cybercab | 0.129 m | parked 0.55 m toward the nose (-0.125 m at the middle: the raised door) | over 0.37 m | cleaned |
+| Model Y | 0.147 m | parked 0.10 m toward the tail (0.071 m at the middle) | over 0.37 m | cleaned |
+| Gravity | 0.134 m | parked 0.10 m toward the tail (0.055 m at the middle) | over 0.37 m | cleaned |
+
+"Over 0.37 m" is the far limit of the measure. A park position is the place on the rail nearest its middle where
+the stowed arm is clear; while that vehicle is in the stall it is the charge arm's home (`mateSequence.stepMateSeq`,
+stop 0). The stowed run to it is more than 0.37 m from the body with the doors shut.
+
+**The order** (`cleanSession.ts`, `cleanGate.ts`, `armGate.ts`, `roboticService.armSessionInput`):
+
+1. The far flank's doors open (`doors_open`). The arm leaves home when the charge arm is still: latched, or stowed
+   with no mate coming. This is the order it always had. The far doors are open while the charge arm mates; no
+   charger stands on that side.
+2. The arm works the far flank's openings. As it leaves that flank its doors shut.
+3. The port flank's doors open as the arm swings to that flank, and only if the rule above holds now. If it does
+   not, the arm WAITS at the last far opening's ready point, wand up, every door shut. The wand goes down only when
+   the port doors are fully open.
+4. The charge arm starts no mate and no release while a port-flank door is not shut, or while the cleaning arm
+   moves over the car. A waiting arm blocks nothing: it waits so that the charge arm can move.
+5. A charge that ends keeps its connector in while the cleaning arm works (the doors close, then the charge arm
+   retracts: Chase, 2026-10-19). While the cleaning arm waits, the connector comes out, and the port flank is
+   worked with the charge arm stowed.
+6. A charger that faults with the connector in and a port door open: the cleaning arm comes out of that opening and
+   up, the port doors shut, then the connector comes out. The arm works that opening again when the charge arm is
+   stowed at its home.
+7. If the twin's step ends while the arm waits, it goes home, and the home session says the port flank was not done
+   (`CleanSession.portNotDoneFor`; the car's card says so). Nothing shows it as cleaned.
+
+**What that gives, per vehicle** (`cleanInterlock.test.ts` drives the two gates together, one frame at a time, and
+measures the charge arm where the gate has it against every door leaf where the session has it):
+
+| Vehicle | A clean and a charge together (step 5.8 min, charge longer) | Cabin stop, no charge | Charge ends at 120 s | Worst charge arm to a door leaf |
+|---|---|---|---|---|
+| Ojai | far flank only: 1 of 2 openings, waits 175 s, **port flank not done** | 2 of 2 | 2 of 2 (waits 15 s) | over 0.37 m |
+| I-PACE | far flank only: 2 of 4, waits 226 s, **port flank not done** | 4 of 4 | 4 of 4 (waits 16 s) | 0.108 m |
+| Zoox | far flank only: 1 of 2, waits 175 s, **port flank not done** | 2 of 2 | 2 of 2 (waits 14 s) | over 0.37 m |
+| Cybercab | 2 of 2 during the charge | 2 of 2 | 2 of 2 | 0.129 m |
+| Model Y | 4 of 4 during the charge | 4 of 4 | 4 of 4 | 0.152 m |
+| Gravity | 4 of 4 during the charge | 4 of 4 | 4 of 4 | 0.134 m |
+
+A charger fault at 100 s and at 230 s: every opening is still cleaned on all six, and both arms are home inside the
+step. In every frame of every case: no port door open unless the rule holds, no charge-arm motion with a port door
+open, the wand down only at a flank whose doors are fully open, and at the end both arms home and every door shut.
+
+**What changed for the generic car.** Its joints in every phase are bit for bit what they were
+(`cleanProgramGeneric.test.ts`). Its doors changed: the far flank's doors open in `doors_open` and shut during the
+swing to the port flank (they stood open to the end); the port flank's doors open during that swing (they opened at
+the start) and shut in `doors_close`. Both of its states are allowed, so it never waits and its timing is the same.
+Since the generic rule is "latched allowed", a car the twin does not name is cleaned on both flanks during its charge.
+
+**What is left.**
+
+- **For the Ojai, the I-PACE and the Zoox the port flank is not cleaned during a charge.** It needs a clean step
+  that is open when the charge arm is stowed: after the charge, or on a cabin stop with no charge. The twin runs the
+  cabin clean during the charge today. A clean step after the charge for these three is **not built on the engine
+  side**; until it is, a charging Ojai, I-PACE or Zoox leaves with its left half not cleaned by the arm, and the
+  session says so.
+- The Ojai's and the Zoox's inlet positions are assumptions. An inlet clear of the open panel would let them be
+  cleaned latched.
+- The charge arm's drawn base and joints are each view's own play of `stepMateSeq` (3D, 2D) with the same inputs;
+  the gate plays a third for the interlock and reads a state only after it has been still for 1 s. The views do not
+  read the gate's play.
+- The door leaves' travel is measured at 50 positions (about 4 cm of a hinged leaf's free edge a step).
+- The charge arm is capsules here, not its CAD.
 
 ## Assumptions
 
@@ -144,5 +205,5 @@ margin was relaxed.
   check was not needed and was not run.
 - The cleaning arm's CAD against each vehicle (the `cadYard.test.ts` check, per vehicle) was not built. The
   procedural capsules were measured.
-- Nothing was looked at in the running twin, 2D or 3D.
+- Nothing was looked at in the running twin, 2D or 3D, for the programs or for the door order.
 - The wash machine still works to the generic car.

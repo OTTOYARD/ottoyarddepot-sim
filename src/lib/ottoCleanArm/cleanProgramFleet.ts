@@ -31,7 +31,7 @@ import type { CabinProfile, CabinSeat } from '@/lib/fleetModels/cabin';
 import { CLEAN_ARM, MAST_FOOT_MAX, PIVOT_Y_MAX, PIVOT_Y_MIN } from './cleanArmSpec';
 import {
   cleanArmPoints, cleanJointsAt, makeCleanProgram, scaraIK, strokeJoints,
-  type CleanGeom, type CleanJoints, type CleanProgram, type CleanSides, type CleanVisit, type StrokeKey,
+  type ChargeBeside, type CleanGeom, type CleanJoints, type CleanProgram, type CleanSides, type CleanVisit, type StrokeKey,
 } from './cleanArmPose';
 import { fleetBreach, jointLimitBreach, measureFleetPose, type ExtraMargin } from './cleanArmFleetClearance';
 import type { StoredCleanProgram } from './cleanPrograms';
@@ -402,8 +402,11 @@ const seatName = (cabin: CabinProfile, s: CabinSeat): string => {
   return i === 0 ? 'front seat' : i === rows.length - 1 ? 'rear seat' : 'middle seat';
 };
 
-/** Make one vehicle's program from its cabin. */
-export function fleetCleanProgram(cabin: CabinProfile): FleetProgramResult {
+/**
+ * Make one vehicle's program from its cabin. `beside` is when its port-flank doors may be open beside the charge arm
+ * (chargeArmBeside.measureChargeBeside): measured from the same cabin, and stored with the program.
+ */
+export function fleetCleanProgram(cabin: CabinProfile, beside: ChargeBeside): FleetProgramResult {
   const pivotZ = cabin.width / 2 + PIVOT_STANDOFF_M;
   const plans = cabin.apertures.map((_, i) => new OpeningPlan(cabin, i, pivotZ));
   const refused = plans.map((p) => p.makeBase());
@@ -526,5 +529,5 @@ export function fleetCleanProgram(cabin: CabinProfile): FleetProgramResult {
     ...perOpening.map((v) => ({ flank: 'far' as const, ...v })),
     ...perOpening.map((v) => ({ flank: 'port' as const, ...v })),
   ];
-  return { stored: { pivotZ, visits, notReached: left }, openings: reports };
+  return { stored: { pivotZ, visits, notReached: left, beside }, openings: reports };
 }

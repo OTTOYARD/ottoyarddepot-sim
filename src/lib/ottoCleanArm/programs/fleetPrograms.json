@@ -229,7 +229,11 @@
    "the front seat's cushion: at the door, on the way out: the wand off a seat (120 of 120 wands measured)",
    "the front seat's back: at the door, no wand through the opening points the nozzle at it",
    "the rear seat's back: at the door, on the way out from between two strokes: the wand 0.013 m off a seat, between rear seat, back and rear seat, back"
-  ]
+  ],
+  "beside": {
+   "stowed": true,
+   "latched": false
+  }
  },
  "waymo_ipace": {
   "pivotZ": 1.1475,
@@ -544,7 +548,11 @@
    "the floor by the door at the front door: the wand off a seat (63 of 120 wands measured)",
    "the floor deep at the rear door: the wand off a seat (119 of 119 wands measured)",
    "the floor by the door at the rear door: the wand off a seat (118 of 120 wands measured)"
-  ]
+  ],
+  "beside": {
+   "stowed": true,
+   "latched": false
+  }
  },
  "zoox_robotaxi": {
   "pivotZ": 1.115,
@@ -952,7 +960,11 @@
   ],
   "notReached": [
    "the front seat's cushion: at the door, on the way out from between two strokes: the wand 0.009 m off a seat, between front seat, cushion and front seat, cushion"
-  ]
+  ],
+  "beside": {
+   "stowed": true,
+   "latched": false
+  }
  },
  "tesla_cybercab": {
   "pivotZ": 1.0765,
@@ -1104,7 +1116,12 @@
    "the seat's back: at the door, no wand through the opening reaches it inside the arm's travel and the cabin's free space",
    "the floor deep at the door: the wand off a seat (74 of 74 wands measured)",
    "the floor by the door at the door: the wand off a seat (117 of 120 wands measured)"
-  ]
+  ],
+  "beside": {
+   "stowed": true,
+   "latched": true,
+   "parkX": 0.55
+  }
  },
  "tesla_model_y": {
   "pivotZ": 1.16,
@@ -1476,7 +1493,12 @@
    "the floor by the door at the front door: on the way: the wand 0.013 m off a seat, between turn and floor by the door",
    "the floor deep at the rear door: the wand off a seat (118 of 120 wands measured)",
    "the floor by the door at the rear door: the wand off a seat (110 of 120 wands measured)"
-  ]
+  ],
+  "beside": {
+   "stowed": true,
+   "latched": true,
+   "parkX": -0.1
+  }
  },
  "lucid_gravity_nuro": {
   "pivotZ": 1.2,
@@ -1947,6 +1969,11 @@
    "the rear seat's back: at the rear door, no wand through the opening reaches it inside the arm's travel and the cabin's free space",
    "the floor deep at the front door: the wand off a seat (68 of 120 wands measured)",
    "the floor by the door at the front door: on the way: the wand 0.001 m off a seat, between turn and floor by the door"
-  ]
+  ],
+  "beside": {
+   "stowed": true,
+   "latched": true,
+   "parkX": -0.1
+  }
  }
 }
