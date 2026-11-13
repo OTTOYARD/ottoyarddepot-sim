@@ -6,7 +6,7 @@ import { buildCityPlan, FACADE_SPEC, type Facade, type Tree, type StreetLight, t
 import { buildCityGeometry, type CityMaterialKey } from './cityMesh';
 import { facadeTextures, roofTexture } from './cityTextures';
 import { asphaltTexture, concreteTexture, skyTexture } from './textures';
-import { MATERIALS } from './materials';
+import { MATERIALS, turfed, leafed } from './materials';
 import { nightLevel } from './dayNight';
 
 /**
@@ -76,7 +76,7 @@ function cityMaterials(): Record<CityMaterialKey, THREE.Material> {
     plaza: std({ map: concrete, color: '#d9d6cf', roughness: 0.8 }),
     path: std({ map: concrete, color: '#e6e2da', roughness: 0.8 }),
     sidewalk: std({ map: concrete, color: '#d0cec8', roughness: 0.82 }),
-    lawn: std({ color: '#4a7a36', roughness: 0.95 }),
+    lawn: turfed(std({ roughness: 0.95 })),
     far: std({ color: '#66745f', roughness: 1 }),
     'paint:white': paint('#e8e8e0'),
     'paint:yellow': paint('#e3b23c'),
@@ -101,7 +101,7 @@ function treeMeshes(trees: Tree[]) {
   const trunkGeo = new THREE.CylinderGeometry(0.16, 0.3, 1, 6, 1, true).translate(0, 0.5, 0);
   const trunkMat = new THREE.MeshStandardMaterial({ color: '#4a3726', roughness: 0.9 });
   const crownMat = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.85, flatShading: true });
-  ownSky(trunkMat); ownSky(crownMat);
+  ownSky(trunkMat); ownSky(leafed(crownMat));
   const trunks = new THREE.InstancedMesh(trunkGeo, trunkMat, Math.max(1, trees.length));
   const near = trees.filter((t) => Math.hypot(t.x, t.z - 4) < NEAR_TREE);
   const far = trees.filter((t) => Math.hypot(t.x, t.z - 4) >= NEAR_TREE);

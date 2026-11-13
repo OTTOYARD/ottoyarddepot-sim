@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { asphaltTexture, pvCellTexture, concreteTexture } from './textures';
+import { asphaltTexture, pvCellTexture, concreteTexture, grassTexture, foliageTexture } from './textures';
 
 export const BRAND = {
   teal: new THREE.Color('#00D4AA'),
@@ -265,16 +265,83 @@ export function chargerConnector() {
 
 // ===================== LANDSCAPING =====================
 
+/**
+ * Lay a material's texture by WORLD position instead of the mesh's own UVs, so a 2 u planter
+ * and a 300 u lawn show blades the same size and neighbouring lawns join without a seam.
+ * The texture is read at two scales (the second turned, so the tile's repeat never lines up)
+ * and tinted by a third, very slow read of itself: patches tens of metres across, the way real
+ * turf is greener in one corner than another. `stripes` adds a mower's light and dark passes.
+ * `solid` is for a hedge or a tree crown: the texture is read along all three axes, so upright
+ * faces are leafed too, not streaked.
+ */
+function worldMapped<M extends THREE.MeshStandardMaterial>(m: M, o: { tile: number; stripes?: number; patch?: number; gain?: number; solid?: boolean }): M {
+  const gain = (o.gain ?? 1).toFixed(2), patch = (o.patch ?? 0.55).toFixed(3), stripes = (o.stripes ?? 0).toFixed(3), tile = o.tile.toFixed(2);
+  m.onBeforeCompile = (shader) => {
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vTurfPos;')
+      .replace('#include <worldpos_vertex>', `#include <worldpos_vertex>
+        vec4 turfWorld = vec4(transformed, 1.0);
+        #ifdef USE_INSTANCING
+          turfWorld = instanceMatrix * turfWorld;
+        #endif
+        vTurfPos = (modelMatrix * turfWorld).xyz;`);
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vTurfPos;')
+      // the bump height is read where the colour is, not at the mesh's own UVs
+      .replace('#include <bumpmap_pars_fragment>', THREE.ShaderChunk.bumpmap_pars_fragment
+        .replace(/vBumpMapUv/g, `(vTurfPos.xz / ${tile})`))
+      .replace('#include <map_fragment>', o.solid ? /* glsl */ `
+        // a solid (a hedge, a tree crown): read the texture along each axis and blend by which way the face looks
+        vec3 turfN = abs(normalize(cross(dFdx(vTurfPos), dFdy(vTurfPos))));
+        turfN = turfN * turfN / dot(turfN, turfN);
+        vec3 turfP = vTurfPos / ${tile};
+        vec3 turf = texture2D(map, turfP.xz).rgb * turfN.y + texture2D(map, turfP.xy + 0.31).rgb * turfN.z + texture2D(map, turfP.zy + 0.67).rgb * turfN.x;
+        float turfSlow = texture2D(map, turfP.xz / 9.0 + turfP.y * 0.07).g;
+        turf *= 1.0 + ${patch} * (turfSlow - 0.3) * 3.0;
+        diffuseColor.rgb *= turf * ${gain};
+      ` : /* glsl */ `
+        vec2 turfUv = vTurfPos.xz;
+        vec3 turfA = texture2D(map, turfUv / ${tile}).rgb;
+        vec3 turfB = texture2D(map, mat2(0.8, -0.6, 0.6, 0.8) * turfUv / (${tile} * 3.7) + 0.37).rgb;
+        float turfSlow = texture2D(map, mat2(0.6, 0.8, -0.8, 0.6) * turfUv / (${tile} * 23.0) + 0.11).g
+                       + texture2D(map, turfUv / (${tile} * 61.0) + 0.53).g;
+        vec3 turf = mix(turfA, turfB, 0.4) * (1.0 + ${patch} * (turfSlow - 0.62) * 2.2);
+        turf *= 1.0 + ${stripes} * (smoothstep(-0.25, 0.25, sin(dot(vTurfPos.xz, vec2(0.6, 0.8)) * 0.52)) - 0.5);
+        diffuseColor.rgb *= turf * ${gain};
+      `);
+  };
+  // one program per (tile, stripes, patch), not one shared with every other mapped material
+  m.customProgramCacheKey = () => `turf:${tile}:${stripes}:${patch}:${gain}:${o.solid ? 1 : 0}`;
+  return m;
+}
+
+/** Turn any standard material into mown turf (the city's lawns use their own material). */
+export function turfed<M extends THREE.MeshStandardMaterial>(m: M): M {
+  m.color.set('#ffffff');
+  m.map = grassTexture();
+  m.bumpMap = grassTexture();
+  m.bumpScale = 0.6;
+  return worldMapped(m, { tile: 26, stripes: 0.09 });
+}
+
 export function grass() {
-  return cached('grass', () => new THREE.MeshPhysicalMaterial({
-    color: '#4a7a36', roughness: 0.9, metalness: 0.0, envMapIntensity: 0.35,
-  }));
+  // The turf texture carries the colour (grassTexture); it used to be one flat green, #4a7a36.
+  return cached('grass', () => turfed(new THREE.MeshPhysicalMaterial({
+    roughness: 0.92, metalness: 0.0, envMapIntensity: 0.35,
+  })));
+}
+
+/** Leaf a tree crown's material: the foliage texture over whatever green each tree already has. */
+export function leafed<M extends THREE.MeshStandardMaterial>(m: M): M {
+  m.map = foliageTexture();
+  return worldMapped(m, { tile: 9, patch: 0.3, gain: 3.5, solid: true });
 }
 
 export function shrubGreen() {
-  return cached('shrubGreen', () => new THREE.MeshPhysicalMaterial({
-    color: '#3c6b2e', roughness: 0.9, metalness: 0.0, envMapIntensity: 0.35,
-  }));
+  return cached('shrubGreen', () => worldMapped(new THREE.MeshPhysicalMaterial({
+    color: '#ffffff', map: foliageTexture(),
+    roughness: 0.9, metalness: 0.0, envMapIntensity: 0.35,
+  }), { tile: 7, patch: 0.3, gain: 1.25, solid: true }));
 }
 
 export function safetyYellow() {

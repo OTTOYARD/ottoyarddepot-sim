@@ -27,13 +27,14 @@ import { Lanes3D } from './three/Lanes3D';
 import { UtilityEquipment } from './three/UtilityEquipment';
 import { VehicleFleet } from './three/Vehicle3D';
 import { WeatherEffects } from './three/WeatherEffects';
+import { SkyDome } from './three/SkyDome';
 import { DayNightLighting } from './three/DayNightLighting';
 import { DAY_SKY } from './three/dayNight';
 import { DepotPostProcessing } from './three/DepotPostProcessing';
 import { SiteDetails } from './three/SiteDetails';
 import { UrbanSurround } from './three/UrbanSurround';
 import { CITY_VIEW_FAR } from './three/cityPlan';
-import { MATERIALS } from './three/materials';
+import { MATERIALS, leafed } from './three/materials';
 import { skyTexture } from './three/textures';
 import { PerfProbe } from './three/perf/PerfProbe';
 import { CameraRig } from './three/CameraRig';
@@ -67,7 +68,7 @@ function Landscaping() {
     trunkGeo.translate(0, 0.5, 0);
     const trunkMat = new THREE.MeshStandardMaterial({ color: '#4a3726', roughness: 0.9 });
     const crownGeo = new THREE.IcosahedronGeometry(1, 1);
-    const crownMat = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.85, flatShading: true });
+    const crownMat = leafed(new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.85, flatShading: true }));
     const BLOBS = 4;
     const trunks = new THREE.InstancedMesh(trunkGeo, trunkMat, positions.length);
     const crowns = new THREE.InstancedMesh(crownGeo, crownMat, positions.length * BLOBS);
@@ -284,6 +285,8 @@ export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0, viewe
       >
         <Suspense fallback={null}>
           <DayNightLighting simTime={simTime} />
+          {/* the sky the eye sees: gradient, sun, drifting clouds, stars (the sky texture still lights the scene) */}
+          <SkyDome simTime={simTime} weather={config.weather} />
           {/* from above, the roofs fade so the robots and cars under them show (a view choice only) */}
           <RoofXray />
 

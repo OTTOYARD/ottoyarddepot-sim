@@ -62,3 +62,17 @@ export const DAY_SKY = { fog: '#b9cde4', background: 0.42 } as const;
 /** ...and at full night: the sky dims and the haze turns to dark blue, so the lot, the lamps
  *  and the city's lit windows read against a night sky instead of a daylight one. */
 export const NIGHT_SKY = { fog: '#18202d', background: 0.06 } as const;
+
+/** Where the sun stands, in world units from the lot's centre: it sweeps east to west across
+ *  the day and climbs with the keyframes' elevation. The sun light stands here and the sky
+ *  draws its disc in the same direction (SkyDome). */
+export function sunPosition(hour: number, elev: number): [number, number, number] {
+  const az = ((hour - 6) / 12) * Math.PI;
+  const R = 420;
+  return [Math.cos(az) * R * 0.8, 60 + elev * 300, Math.sin(az) * R * 0.45 + 80];
+}
+
+/** How much of dawn or dusk is in the sky: 1 at 06:30 and 18:30, 0 from 90 minutes either side. */
+export function twilight(hour: number): number {
+  return Math.max(0, 1 - Math.min(Math.abs(hour - 6.5), Math.abs(hour - 18.5)) / 1.5);
+}

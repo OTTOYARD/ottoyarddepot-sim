@@ -182,6 +182,110 @@ export function skyTexture(): THREE.Texture {
   });
 }
 
+/**
+ * Mown turf, seen from above: mottled greens, thousands of short blades in a dozen shades,
+ * a little clover and a few dry flecks. It tiles (everything is drawn wrapped across the
+ * edges), and the red channel doubles as the bump height, so blades catch the sun.
+ * Laid by world position (materials.grass), so one tile is the same size on every lawn.
+ */
+export function grassTexture(): THREE.Texture {
+  return cachedTex('grass', () => {
+    const rnd = mulberry(1213);
+    const c = canvas(1024, 1024, (g, w, h) => {
+      g.fillStyle = '#41702f';
+      g.fillRect(0, 0, w, h);
+      /** draw at (x, y) and at its wrapped copies, so the tile has no seam */
+      const wrapped = (x: number, y: number, r: number, draw: (x: number, y: number) => void) => {
+        for (const ox of [0, x < r ? w : x > w - r ? -w : null]) {
+          for (const oy of [0, y < r ? h : y > h - r ? -h : null]) {
+            if (ox !== null && oy !== null) draw(x + ox, y + oy);
+          }
+        }
+      };
+      // broad patches: lush, thin, sun-yellowed, shaded
+      const PATCH = ['rgba(92,150,58,0.20)', 'rgba(40,84,34,0.24)', 'rgba(132,150,62,0.16)', 'rgba(58,112,44,0.22)', 'rgba(30,70,30,0.18)'];
+      for (let i = 0; i < 90; i++) {
+        const x = rnd() * w, y = rnd() * h, r = 30 + rnd() * 130, col = PATCH[Math.floor(rnd() * PATCH.length)];
+        wrapped(x, y, r, (px, py) => {
+          const grad = g.createRadialGradient(px, py, 0, px, py, r);
+          grad.addColorStop(0, col);
+          grad.addColorStop(1, 'rgba(0,0,0,0)');
+          g.fillStyle = grad;
+          g.fillRect(px - r, py - r, r * 2, r * 2);
+        });
+      }
+      // blades: short strokes leaning every way, dark ones first so the light ones lie on top
+      const BLADE = ['#244d1f', '#2d5a24', '#356a2a', '#3f7a30', '#4c8a38', '#5a9a40', '#6aa848', '#7fb655', '#93bf62'];
+      g.lineCap = 'round';
+      for (let pass = 0; pass < BLADE.length; pass++) {
+        g.strokeStyle = BLADE[pass];
+        const n = pass < 4 ? 9000 : pass < 7 ? 6500 : 2600;
+        g.globalAlpha = pass < 4 ? 0.55 : 0.5;
+        g.lineWidth = pass < 4 ? 1.6 : 1.1;
+        g.beginPath();
+        for (let i = 0; i < n; i++) {
+          const x = rnd() * w, y = rnd() * h, a = rnd() * Math.PI * 2, len = 3 + rnd() * 7;
+          const dx = Math.cos(a) * len, dy = Math.sin(a) * len;
+          wrapped(x, y, 10, (px, py) => { g.moveTo(px, py); g.lineTo(px + dx, py + dy); });
+        }
+        g.stroke();
+      }
+      g.globalAlpha = 1;
+      // clover and weeds: small dark-green clusters
+      for (let i = 0; i < 70; i++) {
+        const x = rnd() * w, y = rnd() * h;
+        for (let k = 0; k < 9; k++) {
+          const px = x + (rnd() - 0.5) * 22, py = y + (rnd() - 0.5) * 22, r = 1.5 + rnd() * 2.5;
+          g.fillStyle = `rgba(${36 + rnd() * 20},${96 + rnd() * 30},${44 + rnd() * 16},0.55)`;
+          wrapped(px, py, 4, (qx, qy) => { g.beginPath(); g.arc(qx, qy, r, 0, Math.PI * 2); g.fill(); });
+        }
+      }
+      // dry flecks and the odd bare speck of soil
+      for (let i = 0; i < 2600; i++) {
+        const dry = rnd() > 0.25;
+        g.fillStyle = dry ? `rgba(${170 + rnd() * 40},${168 + rnd() * 30},${90 + rnd() * 30},${0.25 + rnd() * 0.3})` : `rgba(70,56,36,${0.2 + rnd() * 0.25})`;
+        g.fillRect(rnd() * w, rnd() * h, 1 + rnd() * 2, 1 + rnd());
+      }
+    });
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.anisotropy = 8;
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  });
+}
+
+/** Clipped hedge foliage: small overlapping leaves, light over dark, with shadowed gaps. Tiles. */
+export function foliageTexture(): THREE.Texture {
+  return cachedTex('foliage', () => {
+    const rnd = mulberry(4441);
+    const c = canvas(512, 512, (g, w, h) => {
+      g.fillStyle = '#1f3d1a';
+      g.fillRect(0, 0, w, h);
+      const LEAF = ['#254a1e', '#2d5a24', '#37692b', '#427a32', '#4f8a3a', '#5f9a45'];
+      for (let pass = 0; pass < LEAF.length; pass++) {
+        g.fillStyle = LEAF[pass];
+        g.globalAlpha = 0.8;
+        for (let i = 0; i < (pass < 3 ? 2600 : 1500); i++) {
+          const x = rnd() * w, y = rnd() * h, a = rnd() * Math.PI, rx = 3 + rnd() * 4, ry = 1.5 + rnd() * 2;
+          for (const ox of [0, x < 8 ? w : x > w - 8 ? -w : null]) {
+            for (const oy of [0, y < 8 ? h : y > h - 8 ? -h : null]) {
+              if (ox === null || oy === null) continue;
+              g.beginPath(); g.ellipse(x + ox, y + oy, rx, ry, a, 0, Math.PI * 2); g.fill();
+            }
+          }
+        }
+      }
+      g.globalAlpha = 1;
+    });
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.anisotropy = 8;
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  });
+}
+
 /** Subtle oil-stain decal (radial dark blotch). */
 export function oilStainTexture(): THREE.Texture {
   return cachedTex('oil', () => {

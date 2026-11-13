@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { calcLighting, nightFromSun, DAY_SKY, NIGHT_SKY } from './dayNight';
+import { calcLighting, nightFromSun, sunPosition, DAY_SKY, NIGHT_SKY } from './dayNight';
 
 /**
  * Consolidated site lighting rig driven by sim time.
@@ -24,13 +24,7 @@ export function DayNightLighting({ simTime }: { simTime: number }) {
   }, [scene, night]);
 
   // sun sweeps east→west across the day; elevation from the curve
-  const az = ((l.hour - 6) / 12) * Math.PI;
-  const R = 420;
-  const sunPos: [number, number, number] = [
-    Math.cos(az) * R * 0.8,
-    60 + l.elev * 300,
-    Math.sin(az) * R * 0.45 + 80,
-  ];
+  const sunPos = sunPosition(l.hour, l.elev);
 
   return (
     <>
