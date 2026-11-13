@@ -18,6 +18,7 @@
 // Runs only in backend-twin mode (active sim_run + offline engine NOT running).
 // ============================================================================
 import { publishVehiclePorts } from '@/lib/ottoChargeArm/vehiclePort';
+import { publishVehicleModels, vehicleModelKey } from '@/lib/fleetModels/vehicleModel';
 import { stopFor, type FoundItem } from '@/lib/ottoCleanArm/foundItems';
 import { KinematicCar, DEFAULT_CAR_PARAMS, wrapAngle } from "./motion/KinematicCar";
 import { type Pt } from "./motion/PathTracker";
@@ -1271,6 +1272,8 @@ class TwinMotionDriver {
         vehicleId: id,
         active: seated && here && this.onStallPose(e),
         interior: e.vstatus === "detailing",
+        // the machine plays this vehicle's own program: the model the yard draws the car as (washProgram.ts)
+        model: vehicleModelKey(id),
         endsInS: seat?.endsMs != null && nowMs ? (seat.endsMs - nowMs) / 1000 : null,
         sinceS: seat?.sinceMs != null && nowMs ? (nowMs - seat.sinceMs) / 1000 : null,
       });
@@ -2912,6 +2915,7 @@ class TwinMotionDriver {
     // stay on the backend's sim clock (epoch ms), the one domain simNow() runs in.
     const cabin = new Map<string, CabinClean>();
     publishVehiclePorts(snap.fleet?.vehicles ?? []);
+    publishVehicleModels(snap.fleet?.vehicles ?? []);
     for (const bv of snap.fleet?.vehicles ?? []) {
       const c = cabinCleanOf(bv, (id) => this.twinStall.get(id));
       if (c) cabin.set(bv.id, c);

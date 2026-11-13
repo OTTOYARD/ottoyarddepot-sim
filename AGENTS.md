@@ -297,6 +297,17 @@ not draw the seven units yet; where they stand is a site-plan decision.
   or a changed `ARM_REACH` needs all five, then `CAD_SPEC_WRITE=1` for the pose file and `cad/clash.py`.
   The cleaning arm and the wash machine still work to the generic car. `docs/CHARGE-ARM-REACH.md`.
   `scripts/liveChargeShots.mjs --run <id>` films live mates and prints each arm's base position.
+- **OTTO-WASH plays each vehicle's own program (2026-11-13).** Chase: *"train all robotics individually for each
+  vehicle type ... sensor cleaning at the detail line."* The car's model (`fleetModels/vehicleModel.ts`, the key the
+  yard draws it with) goes from the motion driver through `washGate` into the session (`WashSession.model`), and
+  `washPoseAt` plays `ottoWash/washProgram.washProgramFor(model)`: the detail arms' places and paths, made BY RULE
+  from the vehicle's sensor map and its true-shape solid (`fleetModels/sensorMap.ts`, `washSolid.ts`,
+  `ottoWash/fleetWash.ts`), and the shape the air knives follow (`carShape.fleetShape`). A car with no model gets
+  the generic program, pinned to the poses before this change. A place the machine cannot do is LEFT OUT with its
+  measured shortfall (`FleetDetail.skipped`): never fudge a margin to keep one. Held by `sensorMap.test.ts`,
+  `fleetWash.test.ts`, `washProgram.test.ts` and `robotics/washFleetClearance.test.ts` (the CAD against each
+  vehicle). ⚠️ A new vehicle, a moved sensor, a changed `washSpec`/`DETAIL_SPEC` or a changed rule needs all four.
+  This supersedes "the wash machine still works to the generic car" above. `docs/WASH-PER-VEHICLE.md`.
 - **`ResponsiveGuard` routes phones to the PHONE cockpit** (`src/components/phone`, since 2026-09-30):
   a touch-first screen whose short side is < 600 px, or any window < 900 px (`phoneLayout.isPhoneViewport`;
   `?phone=1` forces it). Everything else gets the desktop cockpit, unchanged — test the desktop at
