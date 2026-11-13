@@ -133,6 +133,8 @@ function armRig(cad: DepotCad | null): ArmRig {
 }
 
 /** Drawn speeds of the base stage and the head's plunge, metres a depot second. */
+/** The phases the arm plays at the inlet, with the cross-slide in. */
+const AT_INLET = new Set<ArmPhase>(['align', 'insert', 'latch', 'charging', 'unlatch', 'extract']);
 const RAIL_SPEED_MPS = 1.0;
 const CROSS_SPEED_MPS = 0.25;
 const PLUNGE_SPEED_MPS = 0.15;
@@ -200,6 +202,9 @@ export function ChargingArm({ stallId, stallType, fleet, slot, cad, flex }: Char
   const mate = useRef<ArmMate | null>(null);
   /** Where the base and the two connectors are SHOWN: metres along the rail, toward the car, and each plunge. */
   const base = useRef({ slide: 0, cross: 0, ccs: 0, nacs: 0 });
+  /** Which of the mate's five stops the machine is at (see the frame loop), and the last mate's base positions. */
+  const stop = useRef(0);
+  const lastMate = useRef({ unfold: 0, slide: 0, cross: 0 });
 
   useFrame((_state, frameDelta) => {
     if (!placement || !stall || !rig.root) return;
@@ -295,31 +300,70 @@ export function ChargingArm({ stallId, stallType, fleet, slot, cad, flex }: Char
       }
     }
 
-    // THE BASE GOES FIRST. Out of its cradle the arm works from where the mate puts its base; home, the base is
-    // back at the stall's middle. A mate the solver refuses (the inlet is on the car's other side) moves nothing.
+    // THE ORDER OF A MATE (armFleetClearance.test.ts holds this order clear of every fleet vehicle). The machine
+    // goes through five stops, one at a time, and back the same way:
+    //   0 home: base at the stall's middle, arm folded
+    //   1 base where the arm unfolds, arm folded
+    //   2 the same place, arm at its standoff pose (here the session's unstow, approach and retract play)
+    //   3 base where it mates along the rail, arm holding the standoff pose
+    //   4 cross-slide in (here the session's align to extract play, with the car's connector forward)
+    // At each step the arm takes the next stop's pose FIRST and only then does the base move. A mate the solver
+    // refuses (the inlet is on the car's other side) moves nothing.
     const m = mate.current;
-    const out = !isArmHome(phase) && !!m?.mate.ok;
+    const ok = !!m?.mate.ok;
+    const out = !isArmHome(phase) && ok;
     const rdtBase = servoDt(frameDelta, twinMotionDriver.playbackSpeed());
-    const goSlide = out ? m!.mate.slideM : 0;
-    const goCross = out ? m!.mate.crossM : 0;
     const step = (cur: number, goal: number, rate: number) => cur + Math.max(-rate * rdtBase, Math.min(rate * rdtBase, goal - cur));
-    base.current.slide = step(base.current.slide, goSlide, RAIL_SPEED_MPS);
-    base.current.cross = step(base.current.cross, goCross, CROSS_SPEED_MPS);
-    const baseThere = Math.abs(base.current.slide - goSlide) < 0.03 && Math.abs(base.current.cross - goCross) < 0.01;
-    // The connector the car takes is forward whenever the arm is working at the inlet.
-    const working = out && baseThere && phase !== 'unstow';
+    const wantStop = !out ? 0 : AT_INLET.has(phase) ? 4 : 2;
+    if (ok) lastMate.current = { unfold: m!.mate.unfoldSlideM, slide: m!.mate.slideM, cross: m!.mate.crossM };
+    const lm = lastMate.current;
+    const stopBase = (n: number) => ({ slide: n === 0 ? 0 : n <= 2 ? lm.unfold : lm.slide, cross: n === 4 ? lm.cross : 0 });
+    const standoff = target.current && ok ? poseFor({ phase: 'approach' as ArmPhase, t: 1 }, target.current, spec).angles : STOWED;
+    const withRoll = (ang: typeof STOWED) => (ok ? { ...ang, j6: m!.j6 } : ang);
+    const stopArm = (n: number) => (n <= 1 ? STOWED : withRoll(standoff));
+    const gap = (x: typeof STOWED, y: typeof STOWED) => Math.max(
+      Math.abs(x.j1 - y.j1), Math.abs(x.j2 - y.j2), Math.abs(x.j3 - y.j3), Math.abs(x.j4 - y.j4), Math.abs(x.j5 - y.j5));
+    const headsBack = base.current.ccs < 0.004 && base.current.nacs < 0.004;
+    const next = Math.sign(wantStop - stop.current);
+    let request: typeof STOWED | null = null; // null: the session's own pose plays
+    if (next !== 0) {
+      const n = stop.current + next;
+      const g = stopBase(n);
+      request = stopArm(n);
+      const armThere = gap(shown.current.angles, request) < 0.06 && headsBack;
+      if (armThere) {
+        base.current.slide = step(base.current.slide, g.slide, RAIL_SPEED_MPS);
+        base.current.cross = step(base.current.cross, g.cross, CROSS_SPEED_MPS);
+        if (Math.abs(base.current.slide - g.slide) < 0.01 && Math.abs(base.current.cross - g.cross) < 0.004) {
+          base.current.slide = g.slide;
+          base.current.cross = g.cross;
+          stop.current = n;
+        }
+      }
+    } else if (stop.current === 0) {
+      // home: the base stays at the stall's middle
+      base.current.slide = step(base.current.slide, 0, RAIL_SPEED_MPS);
+      base.current.cross = step(base.current.cross, 0, CROSS_SPEED_MPS);
+    }
+    // The connector the car takes is forward only while the machine is at the inlet and staying there.
+    const working = ok && stop.current === 4 && wantStop === 4;
     base.current.ccs = step(base.current.ccs, working && m!.mate.head === 'CCS1' ? ARM_REACH.headStrokeM : 0, PLUNGE_SPEED_MPS);
     base.current.nacs = step(base.current.nacs, working && m!.mate.head === 'NACS' ? ARM_REACH.headStrokeM : 0, PLUNGE_SPEED_MPS);
 
     // No car has ever docked here, so there is no inlet to solve to. Publish the
     // absence: sit folded. Never synthesise a plausible port.
-    let pose = target.current
-      ? (m && !m.mate.ok
-        ? { angles: STOWED, latch: 0, engaged: false, ok: false }
-        : poseFor(out && !baseThere ? { phase: 'unstow' as ArmPhase, t: 1 } : { phase, t }, target.current, spec))
-      : { angles: STOWED, latch: 0, engaged: false, ok: true };
-    // The head's roll keeps the connector upright on this approach (0 on a square side mate).
-    if (m?.mate.ok && out && pose.ok) pose = { ...pose, angles: { ...pose.angles, j6: m.j6 } };
+    let pose = { angles: STOWED, latch: 0, engaged: false, ok: true };
+    if (target.current) {
+      if (!m) pose = poseFor({ phase, t }, target.current, spec); // no twin port: the arm works from the stall's middle
+      else if (!ok) pose = { angles: STOWED, latch: 0, engaged: false, ok: false };
+      else if (request) pose = { angles: request, latch: 0, engaged: false, ok: true };
+      else if (stop.current === 0) pose = { angles: STOWED, latch: 0, engaged: false, ok: true };
+      else {
+        // The head's roll keeps the connector upright on this approach (0 on a square side mate).
+        const p = poseFor({ phase, t }, target.current, spec);
+        pose = p.ok ? { ...p, angles: { ...p.angles, j6: m.j6 } } : p;
+      }
+    }
 
     // ── RENDER THROUGH A RATE LIMIT ───────────────────────────────────────────
     // The solved pose is a REQUEST. What gets drawn chases it at a bounded joint

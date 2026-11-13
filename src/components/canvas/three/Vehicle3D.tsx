@@ -1,3 +1,5 @@
+import { PLAN_UNITS_PER_METRE } from '@/lib/ottoChargeArm/cobotSpec';
+import { vehiclePort } from '@/lib/ottoChargeArm/vehiclePort';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
@@ -303,9 +305,16 @@ export function VehicleFleet({ vehicles }: { vehicles: Vehicle[] }) {
       const wantedModel = modelOf.get(v.id);
       const model = wantedModel && ready.has(wantedModel) ? wantedModel : null;
       const stallToward = (v.assignedStall ? towardOf.get(v.assignedStall) : undefined) ?? 0;
-      const p = portFor(v.id, v.oem);
-      const side = portSideFor(v.id, stallToward);
-      const pv = portInVehicleFrame(p.along, p.height, CAR_W_PU / 2, side);
+      // The twin's own port for this car (otto-q-core 0824), drawn on the model the car is drawn as: its real flank, or
+      // its tail. A car with no published port keeps the generic car's ring on its charger's flank.
+      const tp = model ? vehiclePort(v.id) : null;
+      const p = tp ? { along: tp.along_m, height: tp.height_m } : portFor(v.id, v.oem);
+      // local +X is the car's LEFT flank
+      const side: 1 | -1 = tp && tp.face !== 'rear' ? (tp.face === 'left' ? 1 : -1) : portSideFor(v.id, stallToward);
+      const halfW = tp ? (tp.width_m / 2) * PLAN_UNITS_PER_METRE : CAR_W_PU / 2;
+      const pv = tp?.face === 'rear'
+        ? { x: tp.lateral_m * -PLAN_UNITS_PER_METRE, y: portInVehicleFrame(0, tp.height_m, 0, 1).y, z: -(tp.length_m / 2) * PLAN_UNITS_PER_METRE }
+        : portInVehicleFrame(p.along, p.height, halfW, side);
       const light = STATUS_LIGHT[v.status];
       return {
         id: v.id,
@@ -313,7 +322,8 @@ export function VehicleFleet({ vehicles }: { vehicles: Vehicle[] }) {
         status: light ? new THREE.Color(light).multiplyScalar(1.8) : null,
         // The socket is authored with its normal on +X; on the -X flank the whole
         // group turns about Y so the recess still sinks INTO the bodywork.
-        port: { pos: [pv.x, pv.y, pv.z], yaw: side > 0 ? 0 : Math.PI },
+        // (a rear inlet's ring faces back: the socket's +X normal turned to the car's -Z)
+        port: { pos: [pv.x, pv.y, pv.z], yaw: tp?.face === 'rear' ? Math.PI / 2 : side > 0 ? 0 : Math.PI },
         live: v.status === 'charging',
         plan: v.position,
         model,

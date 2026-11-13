@@ -3,6 +3,7 @@
 // are washPoseAt's, and the run steps are the twin's phase tables. Plus the parts-list filter.
 import { describe, expect, it } from 'vitest';
 import { forwardTCP } from '@/lib/ottoChargeArm/cobotIK';
+import { connectorFace } from '@/lib/ottoChargeArm/mateSolver';
 import { ARM_TIMING_DEFAULTS } from '@/lib/ottoChargeArm/armStateMachine';
 import { FLANK_STANDOFF_M, MOUNT_HEIGHT_M, METRES_PER_PLAN_UNIT } from '@/lib/ottoChargeArm/cobotSpec';
 import { CLEAN_MOTION_S } from '@/lib/ottoCleanArm/cleanArmSpec';
@@ -11,10 +12,11 @@ import { DETAIL_SPEC, POLISH_TURN, SENSORS, stowAngles } from '@/lib/ottoWash/de
 import { SAMPLE_PORT, cycleSteps, filterLines, posePresets, washAngles, type BomLine } from './catalog';
 
 describe('pose presets come from the twin\'s own code', () => {
-  it('charge arm: "connected" is the twin\'s IK, and puts the connector tip on the port', () => {
+  it('charge arm: "connected" is the twin\'s IK, and puts the CCS connector\'s face on the port, that connector forward', () => {
     const p = posePresets('charge_arm').find((x) => x.id === 'connected')!;
     const a = p.angles;
-    const tip = forwardTCP({ j1: a.J1, j2: a.J2, j3: a.J3, j4: a.J4, j5: a.J5, j6: a.J6 });
+    const tip = connectorFace({ j1: a.J1, j2: a.J2, j3: a.J3, j4: a.J4, j5: a.J5, j6: a.J6 }, 'CCS1');
+    expect(a.HD_CCS).toBeGreaterThan(0);
     expect(tip.x).toBeCloseTo(SAMPLE_PORT.along, 6);
     expect(tip.y).toBeCloseTo(SAMPLE_PORT.height - MOUNT_HEIGHT_M, 6);
     expect(tip.z).toBeCloseTo(FLANK_STANDOFF_M, 6);
@@ -98,7 +100,8 @@ describe('the cycle played on the CAD is the twin\'s choreography', () => {
     expect(start.J3).toBeCloseTo(STOWED.j3, 6);
     const insertEnd = s.steps.slice(0, s.steps.findIndex((x) => x.id === 'insert') + 1).reduce((a, x) => a + x.seconds, 0) - 1e-6;
     const a = s.at(insertEnd).angles;
-    const tip = forwardTCP({ j1: a.J1, j2: a.J2, j3: a.J3, j4: a.J4, j5: a.J5, j6: a.J6 });
+    const tip = connectorFace({ j1: a.J1, j2: a.J2, j3: a.J3, j4: a.J4, j5: a.J5, j6: a.J6 }, 'CCS1');
+    expect(a.HD_CCS).toBeGreaterThan(0);
     expect(Math.hypot(tip.x - SAMPLE_PORT.along, tip.y - (SAMPLE_PORT.height - MOUNT_HEIGHT_M), tip.z - FLANK_STANDOFF_M)).toBeLessThan(1e-3);
     expect(s.steps.find((x) => x.id === 'charging')!.short).toBe(true);
   });

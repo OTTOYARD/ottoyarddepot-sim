@@ -368,14 +368,29 @@ function script(steps: ScriptStep[], anglesAt: (id: string, u: number) => Record
   };
 }
 
+type ArmPhaseId = Parameters<typeof poseForPhase>[0];
+/** The phases the arm plays at the inlet: the connector the car takes is forward through these. */
+const CHARGE_AT_INLET = new Set<string>(['align', 'insert', 'latch', 'charging', 'unlatch', 'extract']);
+
+/**
+ * The charge arm's joints for one moment of a mate on a side inlet at `port` (the arm's frame), with the head's
+ * CCS1 connector: the six arm joints, and the connector's plunge while the arm is at the inlet. The tab's cycle and
+ * its live follow (liveFollow.chargeLiveAngles) are both this.
+ */
+export function chargeModelAngles(phase: ArmPhaseId, u: number, port: { x: number; y: number; z: number }): Record<string, number> {
+  const normal = { x: 0, y: 0, z: -1 };
+  const hk = headIK(port, normal, 'CCS1');
+  const a = poseForPhase(phase, u, { port: hk.axisPort, normal }).angles;
+  const out: Record<string, number> = { J1: a.j1, J2: a.j2, J3: a.j3, J4: a.j4, J5: a.j5, J6: hk.ik.j6 };
+  if (CHARGE_AT_INLET.has(phase)) out[HEAD_JOINT_NAMES.CCS1] = ARM_REACH.headStrokeM;
+  return out;
+}
+
 export function cycleScript(robot: RobotKey): CycleScript {
   if (robot === 'charge_arm') {
     const target = { port: { x: SAMPLE_PORT.along, y: SAMPLE_PORT.height - MOUNT_HEIGHT_M, z: FLANK_STANDOFF_M }, normal: { x: 0, y: 0, z: -1 } };
     const steps = cycleSteps('charge_arm').map((s) => ({ id: s.id, label: s.label, seconds: s.seconds ?? SHORT_STEP_S, short: s.seconds == null }));
-    return script(steps, (id, u) => {
-      const a = poseForPhase(id as Parameters<typeof poseForPhase>[0], u, target).angles;
-      return { J1: a.j1, J2: a.j2, J3: a.j3, J4: a.j4, J5: a.j5, J6: a.j6 };
-    });
+    return script(steps, (id, u) => chargeModelAngles(id as ArmPhaseId, u, target.port));
   }
   if (robot === 'clean_arm') {
     const sides = sidesFor(1);

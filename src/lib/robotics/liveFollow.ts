@@ -10,7 +10,6 @@
 // model's frame with its own car's port (how far along the car, how high), so every joint moves as that arm's does and
 // a mirrored arm reads as its mirror. The 3D yard also limits how fast a drawn joint may turn. The model does not: it
 // shows the solved pose.
-import { poseFor } from '@/lib/ottoChargeArm/armMotion';
 import { STOWED } from '@/lib/ottoChargeArm/cobotIK';
 import { portInArmFrame } from '@/lib/ottoChargeArm/depotPlacement';
 import { isArmHome, type ArmSession } from '@/lib/ottoChargeArm/roboticService';
@@ -19,7 +18,7 @@ import { sidesFor } from '@/lib/ottoCleanArm/cleanArmPose';
 import { cleanSessionJoints, type CleanSession } from '@/lib/ottoCleanArm/cleanSession';
 import { washPoseAt } from '@/lib/ottoWash/washPose';
 import type { WashSession } from '@/lib/ottoWash/washSession';
-import { cleanAngles, cycleSteps, washJoints, type RobotKey } from './catalog';
+import { chargeModelAngles, cleanAngles, cycleSteps, washJoints, type RobotKey } from './catalog';
 
 /** The side the model stands on: catalog.SAMPLE_PORT puts the port at +x, which is portInArmFrame's toward = -1. */
 export const MODEL_TOWARD = -1 as const;
@@ -32,12 +31,8 @@ export interface PortAt { along: number; height: number }
 
 /** The charge arm's six joints for this session. With no port known the arm has nothing to reach to: it reads stowed. */
 export function chargeLiveAngles(s: Pick<ArmSession, 'phase' | 't'>, port: PortAt | null): Record<string, number> {
-  const a = port
-    ? poseFor({ phase: s.phase, t: s.t }, {
-        port: portInArmFrame(port.along, port.height, CAR_WIDTH_M / 2, MODEL_TOWARD), normal: { x: 0, y: 0, z: -1 },
-      }).angles
-    : STOWED;
-  return { J1: a.j1, J2: a.j2, J3: a.j3, J4: a.j4, J5: a.j5, J6: a.j6 };
+  if (!port || isArmHome(s.phase)) return { J1: STOWED.j1, J2: STOWED.j2, J3: STOWED.j3, J4: STOWED.j4, J5: STOWED.j5, J6: STOWED.j6 };
+  return chargeModelAngles(s.phase as Parameters<typeof chargeModelAngles>[0], s.t, portInArmFrame(port.along, port.height, CAR_WIDTH_M / 2, MODEL_TOWARD));
 }
 
 export const cleanLiveAngles = (s: CleanSession): Record<string, number> => cleanAngles(cleanSessionJoints(s, MODEL_SIDES));

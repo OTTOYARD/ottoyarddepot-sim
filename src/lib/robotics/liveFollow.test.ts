@@ -1,4 +1,5 @@
 // liveFollow.test.ts — a followed robot's model pose is the yard's own pose code, in the model's frame.
+import { headIK } from '@/lib/ottoChargeArm/mateSolver';
 import { describe, expect, it } from 'vitest';
 import { poseFor } from '@/lib/ottoChargeArm/armMotion';
 import { FLANK_STANDOFF_M, MOUNT_HEIGHT_M } from '@/lib/ottoChargeArm/cobotSpec';
@@ -53,7 +54,8 @@ describe('the charge arm', () => {
 
   it('reaches to its own car\'s port, not to the sample', () => {
     const high = chargeLiveAngles({ phase: 'charging', t: 1 }, { along: 1.4, height: 0.95 });
-    const own = poseFor({ phase: 'charging', t: 1 }, { port: portInArmFrame(1.4, 0.95, CAR_WIDTH_M / 2, MODEL_TOWARD), normal: { x: 0, y: 0, z: -1 } }).angles;
+    // the head's CCS1 connector on that port: the tool axis stands beside it (mateSolver.headIK)
+    const own = headIK(portInArmFrame(1.4, 0.95, CAR_WIDTH_M / 2, MODEL_TOWARD), { x: 0, y: 0, z: -1 }, 'CCS1').ik;
     expect(high.J1).toBeCloseTo(own.j1, 9);
     expect(high.J2).toBeCloseTo(own.j2, 9);
     expect(high.J2).not.toBeCloseTo(preset('charge_arm', 'connected').J2, 3);

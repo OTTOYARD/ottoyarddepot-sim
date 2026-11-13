@@ -43,6 +43,9 @@ export const ARM_REACH = {
   headStrokeM: 0.09,
   /** A rear mate keeps the arm's base, elbow and forearm this far from the car's plan outline. */
   rearMateClearanceM: 0.25,
+  /** For a rear mate the arm unfolds and folds with the carriage this much further past the car's tail than where
+   *  it mates, so that the head swings clear of the tail's corner (armFleetClearance.test.ts holds it). */
+  rearUnfoldBackM: 0.15,
 } as const;
 
 /** A rear mate is taken only with the elbow bent at least this far, radians. */
@@ -79,6 +82,9 @@ export interface Mate {
   reason?: 'wrong_side' | 'no_connector' | 'out_of_reach' | 'no_clear_path';
   /** Where the base stands on its rail, metres from the stall's middle along the arm's +X. */
   slideM: number;
+  /** Where the base stands while the arm unfolds and folds. The same place for a side mate; for a rear mate,
+   *  `rearUnfoldBackM` further past the tail. */
+  unfoldSlideM: number;
   /** Where the cross-slide stands, metres toward the car (+) from the line the fixed pedestal stood on. */
   crossM: number;
   /** Which of the head's connectors comes forward. */
@@ -163,7 +169,7 @@ export function solveMate(t: MateTarget, armOnCarsRight: boolean, spec: CobotSpe
   const flankStandoffM = PEDESTAL_TO_CAR_CENTRE_M - half;
   const head = ARM_REACH.heads.includes(t.connector) ? t.connector : null;
   const fail = (reason: Mate['reason'], port: Vec3): Mate =>
-    ({ ok: false, reason, slideM: 0, crossM: 0, head, ik: null, axisPort: port, normal: { x: 0, y: 0, z: -1 }, port, flankStandoffM, planClearanceM: null });
+    ({ ok: false, reason, slideM: 0, unfoldSlideM: 0, crossM: 0, head, ik: null, axisPort: port, normal: { x: 0, y: 0, z: -1 }, port, flankStandoffM, planClearanceM: null });
   // The rail's two ends in the arm's +X: the tail end is +X where toward is +1.
   const slideMin = toward > 0 ? -ARM_REACH.railNoseM : -ARM_REACH.railTailM;
   const slideMax = toward > 0 ? ARM_REACH.railTailM : ARM_REACH.railNoseM;
@@ -185,8 +191,8 @@ export function solveMate(t: MateTarget, armOnCarsRight: boolean, spec: CobotSpe
     const normal: Vec3 = { x: 0, y: 0, z: -1 };
     const h = headIK(rel, normal, head, spec);
     const inWindow = Math.abs(h.axisPort.x) <= SERVICE_WINDOW.alongMax && t.heightM >= SERVICE_WINDOW.heightMin && t.heightM <= SERVICE_WINDOW.heightMax;
-    if (!h.ik.reachable || !inWindow) return { ...fail('out_of_reach', { ...port, x: px }), slideM, crossM, ik: h.ik };
-    return { ok: true, slideM, crossM, head, ik: h.ik, axisPort: h.axisPort, normal, port: { ...port, x: px }, flankStandoffM: standoff, planClearanceM: null };
+    if (!h.ik.reachable || !inWindow) return { ...fail('out_of_reach', { ...port, x: px }), slideM, unfoldSlideM: slideM, crossM, ik: h.ik };
+    return { ok: true, slideM, unfoldSlideM: slideM, crossM, head, ik: h.ik, axisPort: h.axisPort, normal, port: { ...port, x: px }, flankStandoffM: standoff, planClearanceM: null };
   }
 
   // A rear inlet: on the tail, facing backward. In the arm's frame the car's tail is toward +X * toward.
@@ -203,6 +209,9 @@ export function solveMate(t: MateTarget, armOnCarsRight: boolean, spec: CobotSpe
   for (let c = 0; c <= ARM_REACH.crossInM + 1e-9 && !best; c += 0.05) {
     for (let k = Math.ceil(slideMin / 0.05); k <= Math.floor(slideMax / 0.05 + 1e-9); k++) {
       const s = k * 0.05;
+      // room left on the rail, past the mate, for the arm to unfold clear of the tail
+      const unfold = s + toward * ARM_REACH.rearUnfoldBackM;
+      if (unfold < slideMin - 1e-9 || unfold > slideMax + 1e-9) continue;
       const h = headIK({ x: port.x - s, y: port.y, z: port.z - c }, normal, head, spec);
       const ik = h.ik;
       // Not at full stretch: the elbow keeps a bend, so the arm has travel left to insert and to comply.
@@ -218,7 +227,7 @@ export function solveMate(t: MateTarget, armOnCarsRight: boolean, spec: CobotSpe
       );
       if (clear < ARM_REACH.rearMateClearanceM) continue;
       if (!best || Math.abs(s) < Math.abs(best.slideM) - 1e-9) {
-        best = { ok: true, slideM: s, crossM: c, head, ik, axisPort: h.axisPort, normal, port, flankStandoffM: flankStandoffM - c, planClearanceM: clear };
+        best = { ok: true, slideM: s, unfoldSlideM: unfold, crossM: c, head, ik, axisPort: h.axisPort, normal, port, flankStandoffM: flankStandoffM - c, planClearanceM: clear };
       }
     }
   }
