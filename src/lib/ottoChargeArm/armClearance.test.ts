@@ -410,7 +410,8 @@ describe('the depot places every arm where this measurement applies', () => {
         expect(Math.abs(t.x)).toBeCloseTo(0.3, 9);
       }
     }
-    // both pedestal sides occur, and the sweep covers both by mirroring `along`
-    expect(towards).toEqual(new Set([1, -1]));
+    // every pedestal stands on its car's left since 2026-11-13 (depotPlacement.towardFor); the sweep still covers
+    // both sides by mirroring `along`, for a depot that stands a column's machines on the right again
+    expect(towards).toEqual(new Set([-1]));
   });
 });

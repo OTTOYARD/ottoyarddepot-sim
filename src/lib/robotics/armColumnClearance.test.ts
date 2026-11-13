@@ -56,7 +56,8 @@ describe('OTTO-CHARGE ARM and its rail bed against the canopy columns', () => {
         if (Math.hypot(cx, cz) < 7) cols.push({ cx, cz, cos: c, sin: n, stall: s.id });
       }
     }
-    expect(cols.length).toBeGreaterThan(0);
+    // every charger stands on its car's left since 2026-11-13: no stall has the other sign, and there is nothing to measure
+    if (!cols.length) { expect(toward).toBe(1); return; }
     const v = new THREE.Vector3();
     let worst = Infinity, where = '';
     let fixed = Infinity, fixedWhere = '';
