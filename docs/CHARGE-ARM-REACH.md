@@ -1,6 +1,6 @@
 # Charge arm: reaching each vehicle's real inlet
 
-Status on 2026-11-13 (early morning CT): **built.** The arm stands on a floor rail with a cross-slide, its head
+Status on 2026-11-13 (morning CT): **built.** The arm stands on a floor rail with a cross-slide, its head
 carries two connectors, the twin tells the yard which vehicle each car is and where its inlet is, and OTTO-Q seats a
 car only at a post whose arm can reach its inlet (otto-q-core 0824, on at the twin depot). This page says what was
 built, what was measured, and what is not done.
@@ -93,27 +93,34 @@ A release on the session's own clock is folded, with the cross-slide out, before
 
 ## Which posts can charge which cars
 
-A west-column post's arm stands on the car's right; an east-column post's on its left (`depotPlacement.portFlank`).
-The twin depot has 15 of each.
+**Every post's arm stands on the car's left since 2026-11-13** (Chase: "flip the right hand charger arms to the
+left-hand side ... still keep it angled"). `depotPlacement.towardFor` is the one rule; the arm, its rail bed, the
+cabinet, the cleaning arm's sides and the car's drawn port follow it. The stalls keep their place and their 60 degree
+angle. No vehicle in the fleet has its inlet on the right, so every post now fits every vehicle:
 
-| Car | Posts that fit |
-|---|---|
-| I-PACE, Model Y, Gravity, Ojai (inlet on the left) | the 15 left-arm posts |
-| Zoox (drives either way, so presents either flank) | all 30 |
-| Cybercab (rear inlet) | all 30 |
+| Car | Inlet | Posts that fit |
+|---|---|---|
+| I-PACE, Model Y, Gravity, Ojai | left | all 30 |
+| Zoox | either side (it drives either way) | all 30 |
+| Cybercab | rear | all 30 |
 
-At the twin depot that is **78 of 116 cars on 15 posts**, and 38 cars that fit all 30. otto-q-core 0824 seats by
-this rule and has a both-sides car take a right-arm post when one is free. On run a95e51a3 after the change: 22 of
-22 left-port seats were at left-arm posts, 27 of 27 both-side seats at right-arm posts, and 22 proposals were
-declined for the side (`db/checks/0489` in otto-q-core).
+Before the flip a west-column post's arm stood on the car's right, and 78 of the twin depot's 116 cars fitted only
+the 15 east-column posts.
 
-**This is an open layout decision.** No vehicle in today's fleet has its inlet on the right, so the 15 right-arm
-posts serve only the Zoox cars. Two ways to give them to left-port cars, neither built:
+Measured after the flip:
 
-1. Stand the west column's arms on the cars' left. Every post then fits every vehicle in the fleet. It moves 15
-   machines, their cabinets and their beds, and the cleaning arm's side with them.
-2. A left-port car backs into a right-arm post. The stalls stand at 60 degrees to the lane for nose-in parking, so
-   a car would have to reverse through about 120 degrees in the aisle. Not measured; it reads as impractical.
+- A moving car comes no nearer than 0.875 m to a rail bed on either recorded run (0.966 m before the flip), and
+  1.017 m to a cabinet (unchanged). No stall had to move.
+- A bed is 3.61 m or more from the next stall's bed and 3.77 m from its cabinet.
+- The west column's beds reach 0.41 m past the roof's west edge (their tail ends). The east column's stay under it.
+- The canopy columns keep clear of the beds as placed (`armColumnClearance.test.ts`: bed 0.13 m from the nearest
+  plinth, the moving machine 0.38 m).
+
+**The engine must follow the drawn depot.** otto-q-core 0824 reads a post's side from its heading (the west column:
+right). Migration 0826 makes every post read left. It is written and NOT applied: apply it when this change is
+merged and deployed. Until then OTTO-Q still sends left-port cars only to the east column, which is correct for the
+depot the deployed twin draws. If a depot is built with posts on both sides, or a vehicle with a right-side inlet
+joins the fleet, the routing rule (0824, 0825) is still there.
 
 ## What is not built
 

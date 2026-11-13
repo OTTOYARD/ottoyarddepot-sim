@@ -287,6 +287,9 @@ not draw the seven units yet; where they stand is a site-plan decision.
   connectors comes forward (`HD_CCS`, `HD_NACS`) and the joint angles, and refuses a car whose inlet is on the
   flank away from the arm. **`mateSequence.ts` is the one order of a mate** (five stops; the arm's pose first,
   then the base), played by `ChargingArm.tsx` and `Robots2D.tsx`: change the order there, never in a view.
+  **Every charger stands on its car's LEFT** (`depotPlacement.towardFor` returns -1 for every stall since
+  2026-11-13, by Chase's instruction; no fleet vehicle has a right-side inlet). That one function moves the arm, the
+  bed, the cabinet, the cleaning arm's sides and the port ring together; otto-q-core 0826 is its engine half.
   A car with no `port` on its row is served the old way, from the stall's middle. The rail bed is a yard solid
   (`dcfc-arm-bed`), and the canopy columns keep clear of it (`structurePlan.canopyColumnYs`). Held by
   `mateSolver.test.ts`, `mateSequence.test.ts`, `armFleetClearance.test.ts` (the CAD arm against each
