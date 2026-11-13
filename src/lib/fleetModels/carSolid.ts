@@ -45,3 +45,13 @@ export function fleetCarSolid(spec: VehicleSpec, toward: 1 | -1, slideM = 0, cro
     gradeY: -MOUNT_HEIGHT_M,
   };
 }
+
+/**
+ * The same solid in the CAR's own frame (the cleaning arm's, cleanArmPose.ts): x along the car + toward the nose from
+ * its middle, y up from grade, z across + toward the right flank.
+ */
+export function fleetCarSolidInCarFrame(spec: VehicleSpec): CarSolid {
+  const a = fleetCarSolid(spec, -1);
+  const w = spec.dims.width / 2;
+  return { ...a, zMin: -w, zMax: w, pod: { ...a.pod, z: 0 }, gradeY: 0 };
+}

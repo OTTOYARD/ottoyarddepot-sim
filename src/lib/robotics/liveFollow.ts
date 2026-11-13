@@ -48,7 +48,14 @@ const REST_WORD: Record<RobotKey, string> = { charge_arm: 'Stowed', clean_arm: '
 /** A phase in the words the tab's step list uses (catalog.cycleSteps), so the live line and the list agree. */
 export function phaseLabel(robot: RobotKey, phase: string): string {
   if (isAtRest(robot, phase)) return REST_WORD[robot];
-  return cycleSteps(robot).find((s) => s.id === phase)?.label ?? phase.replace(/_/g, ' ');
+  const step = cycleSteps(robot).find((s) => s.id === phase)?.label;
+  if (step) return step;
+  // a cleaning arm at the third or fourth door opening of a four-door car: the step list shows the two-door cycle,
+  // so the move is named as that list names it at the first opening
+  const move = robot === 'clean_arm' ? /^([a-z]+)_[cd]$/.exec(phase)?.[1] : undefined;
+  const same = move === 'swing' ? 'Swing to the next door' : move === 'clean' ? 'Clean the cabin'
+    : move ? cycleSteps(robot).find((s) => s.id === `${move}_a`)?.label : undefined;
+  return same ?? phase.replace(/_/g, ' ');
 }
 
 /** "Fast charger 07", "Wash bay 02": the renderer's stall id, in words. */

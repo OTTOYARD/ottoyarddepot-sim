@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { twinMotionDriver } from '@/engine/TwinMotionDriver';
 import { doorStore } from '@/engine/motion/doorStore';
+import { fleetDoorPlanLines } from '@/lib/fleetModels/doorPlan';
 import { poseStore } from '@/engine/motion/poseStore';
 import { useDepotStore, type StallState } from '@/store/depotStore';
 import { useVehicleStore } from '@/store/vehicleStore';
@@ -16,7 +17,7 @@ import { cleanSessionJoints, cleanStatusColor, IDLE_CLEAN, type CleanSession } f
 import { placeCleanArm } from '@/lib/ottoCleanArm/cleanArmPlacement';
 import { DECK_Y } from '@/components/canvas/three/coordUtils';
 import {
-  armPlanPoints, cleanArmPlanPoints, doorPlanEdge,
+  armPlanPoints, carToPlan, cleanArmPlanPoints, doorPlanEdge,
   type ArmPlanPoints, type CleanArmPlanPoints, type PlanPoint,
 } from '@/lib/planRobots/robotPlan';
 
@@ -244,8 +245,8 @@ export function FastChargerRobots2D() {
   );
 }
 
-/** How many cars' doors the plan can show open at once: every fast charger and every bay, twice over. */
-export const DOOR_POOL = 48;
+/** How many door leaves the plan can show open at once: every fast charger and every bay, four doors a car. */
+export const DOOR_POOL = 144;
 
 /**
  * Write the open doors onto the pool: each car with a door open (doorStore), at the car's live
@@ -257,13 +258,21 @@ export function paintDoors2D(slots: readonly SVGLineElement[]): number {
   doorStore.forEach((id, d) => {
     const pose = poseStore.get(id);
     if (!pose) return;
+    // a car the twin names is drawn with its own doors (hinged, sliding or butterfly, one or two a flank), where
+    // the 3D yard and the cleaning arm's program have them; any other car with the generic car's one door a flank
+    const model = twinMotionDriver.fleetModelOf(id);
     for (const [side, f] of [[1, d.right], [-1, d.left]] as const) {
-      if (!(f > 0) || n >= slots.length) continue;
-      const { hinge, edge } = doorPlanEdge(pose.x, pose.y, pose.heading, side, f);
-      const el = slots[n++];
-      setLine(el, hinge, edge);
-      el.setAttribute('visibility', 'visible');
-      el.setAttribute('data-vid', id);
+      if (!(f > 0)) continue;
+      const lines = model
+        ? fleetDoorPlanLines(model, side, f).map((l) => ({ hinge: carToPlan(pose.x, pose.y, pose.heading, l.a), edge: carToPlan(pose.x, pose.y, pose.heading, l.b) }))
+        : [doorPlanEdge(pose.x, pose.y, pose.heading, side, f)];
+      for (const { hinge, edge } of lines) {
+        if (n >= slots.length) break;
+        const el = slots[n++];
+        setLine(el, hinge, edge);
+        el.setAttribute('visibility', 'visible');
+        el.setAttribute('data-vid', id);
+      }
     }
   });
   for (let i = n; i < slots.length; i++) {

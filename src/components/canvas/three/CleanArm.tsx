@@ -7,7 +7,7 @@ import { PLAN_UNITS_PER_METRE } from '@/lib/ottoChargeArm/cobotSpec';
 import { poseCleanArm } from '@/lib/ottoCleanArm/buildCleanArm';
 import { cleanSessionJoints, cleanStatusColor, IDLE_CLEAN } from '@/lib/ottoCleanArm/cleanSession';
 import { placeCleanArm } from '@/lib/ottoCleanArm/cleanArmPlacement';
-import { CLEAN_ARM } from '@/lib/ottoCleanArm/cleanArmSpec';
+import { CLEAN_ARM, isCleanWork } from '@/lib/ottoCleanArm/cleanArmSpec';
 import { DECK_Y } from './coordUtils';
 import { cleanSkeleton, writeCleanArm, clearCleanArm, type CleanArmFleet } from './cleanArmInstances';
 import { poseSkeleton, type DepotCad, type DepotSkeleton } from '@/lib/robotics/cadDepot';
@@ -124,7 +124,7 @@ export function CleanArm({ stallId, fleet, slot, cad, flex }: CleanArmProps) {
     const s = twinMotionDriver.cleanSessionAt(stallId) ?? IDLE_CLEAN;
     rig.pose(cleanSessionJoints(s, place.sides));
     groupRef.current?.updateWorldMatrix(true, true);
-    const working = s.phase === 'clean_a' || s.phase === 'clean_b';
+    const working = isCleanWork(s.phase);
     const glow = working ? 1.0 + Math.sin(clock.elapsedTime * 3.1) * 0.4 : 1.3;
     writeCleanArm(fleet, slot, rig.segments, cleanStatusColor(s), glow);
     if (flex && rig.skel) flex.write(slot, rig.skel);
