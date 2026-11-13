@@ -81,7 +81,7 @@ describe("a live run", () => {
     }))!;
     expect(ok.tone).toBe("ok");
     expect(ok.headline).toBe("5 free chargers for 2 waiting cars. In the last 20 ticks, the planners made 4 offers. The decide path used 3.");
-    expect(learningView(live({ lesson: { code: "something_new" } }))!.headline).toBe("The run's learning has no lesson yet.");
+    expect(learningView(live({ lesson: { code: "something_new" } }))!.headline).toBe("Nothing learned on this run yet.");
   });
 
   it("draws a missing number as —, never 0", () => {

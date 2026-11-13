@@ -151,7 +151,7 @@ export function RunBootSplash() {
         </div>
 
         {!draw?.ok ? (
-          <div className="mt-6 text-xs text-white">attaching to run…</div>
+          <div className="mt-6 text-xs text-white">connecting to the run…</div>
         ) : (
           <>
             <div className="mt-4 flex gap-6 text-xs text-white">

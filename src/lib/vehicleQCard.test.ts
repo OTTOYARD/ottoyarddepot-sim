@@ -485,10 +485,10 @@ describe("the robotic wash by the bay's machine (otto-q-core 0746, 0762)", () =>
   it("names the pass the machine is on, with a meter to the twin's end", () => {
     const q = buildQCard({ vehicleId: VID, snapshot: inBay("in_wash_bay", MID), bayWash: { phase: "wash_1", interior: false } });
     expect(q.bayWash).toEqual({
-      state: "in_progress", title: "Robotic wash", words: "Pass 2 of 6: brush wash.", progress: 50, startedAt: T0, endsAt: T1,
+      state: "in_progress", title: "Robotic wash", words: "Pass 2 of 6: water jets.", progress: 50, startedAt: T0, endsAt: T1,
     });
     for (const [phase, words] of [
-      ["soak", "Pass 1 of 6: pre-soak."], ["wash_2", "Pass 3 of 6: brush wash."], ["rinse", "Pass 4 of 6: rinse."],
+      ["soak", "Pass 1 of 6: pre-soak."], ["wash_2", "Pass 3 of 6: water jets."], ["rinse", "Pass 4 of 6: rinse."],
       ["dry_1", "Pass 5 of 6: air dry."], ["dry_2", "Pass 6 of 6: air dry."],
     ] as const) {
       expect(buildQCard({ vehicleId: VID, snapshot: inBay("in_wash_bay", MID), bayWash: { phase, interior: false } }).bayWash?.words).toBe(words);

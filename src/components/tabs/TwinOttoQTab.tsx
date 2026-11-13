@@ -402,7 +402,7 @@ function PickedCard({ picked, onClose, onPick, rowByKey, dispByKey, passByKey, c
       </button>
     ) : null;
   };
-  let body: React.ReactNode = <p className="text-[11px] text-ink-faint">This record is no longer in what was read.</p>;
+  let body: React.ReactNode = <p className="text-[11px] text-ink-faint">This record is older than the window this tab keeps.</p>;
   let title = "";
   let at: string | null = null;
   if (picked.kind === "pass") {
@@ -428,8 +428,8 @@ function PickedCard({ picked, onClose, onPick, rowByKey, dispByKey, passByKey, c
       body = (
         <>
           <p className="text-[11px] leading-4 text-ink-dim">
-            A planner's offer is a proposal for one car. The decide path disposes of every offer; planners never place a car.
-            {d.disposed_tick != null ? ` Disposed on tick ${d.disposed_tick}.` : ""}
+            A planner's offer is a proposal for one car. The decide path rules on every offer; planners never place a car.
+            {d.disposed_tick != null ? ` Ruled on at tick ${d.disposed_tick}.` : ""}
           </p>
           {carButton(d.entity_id)}
         </>
@@ -501,7 +501,7 @@ function ReplayBar({ replay, at, count, line, onStart, onStop }: {
           <Play aria-hidden size={9} fill="currentColor" strokeWidth={0} /> Replay
         </button>
         <span className="min-w-0 truncate text-[10px] text-ink-faint">
-          {count ? `the newest ${count} records, in the order of writing` : "nothing to replay yet"}
+          {count ? `the newest ${count} records, in the order they were written` : "nothing to replay yet"}
         </span>
       </div>
     );

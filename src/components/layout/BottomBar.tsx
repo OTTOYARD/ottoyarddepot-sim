@@ -47,7 +47,7 @@ export const BottomBar = () => {
         max={86399}
         value={simTime}
         disabled={simClockLive}
-        title={simClockLive ? 'The live run sets the depot clock. You cannot move this slider.' : undefined}
+        title={simClockLive ? 'The live run sets the depot clock, so this slider is locked.' : undefined}
         onChange={(e) => setSimTime(Number(e.target.value))}
         className={`flex-1 h-1.5 appearance-none rounded-full bg-otto-teal/30
           [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5

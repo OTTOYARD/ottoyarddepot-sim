@@ -18,7 +18,7 @@ export function StopRunDialog({ open, onOpenChange, onStop }: {
         <AlertDialogHeader>
           <AlertDialogTitle>Stop this run?</AlertDialogTitle>
           <AlertDialogDescription className="text-ink-dim">
-            The run stops for all viewers. The depot becomes empty. Its Black Box stays on the Runs tab.
+            The run stops for everyone watching, and the depot empties. Its Black Box stays on the Runs tab.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

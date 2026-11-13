@@ -40,7 +40,7 @@ const STATUS_COLOR: Record<string, string> = {
 const METRICS: { key: keyof TwinRunCounters; label: string; better: boolean | null }[] = [
   { key: "dispatches_total", label: "Dispatches", better: true },
   { key: "charge_sessions", label: "Charge sessions", better: null },
-  { key: "telemetry_packets", label: "Telemetry pkts", better: null },
+  { key: "telemetry_packets", label: "Telemetry packets", better: null },
   { key: "faults", label: "Faults", better: false },
   { key: "incidents_open", label: "Incidents open", better: false },
   { key: "events_total", label: "Events", better: null },
@@ -163,7 +163,7 @@ const CompareView = ({ a, b, onBack }: { a: TwinRunSummary; b: TwinRunSummary; o
         </div>
 
         <div className="space-y-1">
-          <h4 className="font-display text-[10px] text-ink-faint uppercase tracking-wider">Run-scoped metrics</h4>
+          <h4 className="font-display text-[10px] text-ink-faint uppercase tracking-wider">Run totals</h4>
           {METRICS.map((m) => {
             // A run the list did not count is not a zero: show a dash and no direction.
             const counted = a.counters !== null && b.counters !== null;

@@ -68,7 +68,7 @@ function PassCard({ p }: { p: AgentPass }) {
           {p.outcome.length > 0 && <p className="mt-0.5 break-words text-[11px] leading-4 text-ink-dim">{p.outcome.join(" ")}</p>}
           {(p.read || p.directives.length > 0) && (
             <button type="button" onClick={() => setOpen((o) => !o)} className="mt-1 text-[10px] text-ink-faint hover:text-ink-dim">
-              {open ? "Show less" : p.directives.length ? `Read all, and the ${p.directives.length} directive${p.directives.length === 1 ? "" : "s"}` : "Read all"}
+              {open ? "Show less" : p.directives.length ? `Show all, with its ${p.directives.length} directive${p.directives.length === 1 ? "" : "s"}` : "Show all"}
             </button>
           )}
         </div>
@@ -402,7 +402,7 @@ export function TwinAgentTab() {
       <p className="text-[11px] leading-4 text-ink-dim">
         OTTO-Q grades its own decisions after they occur. The challenger asks if the depot could have done better. It
         checks the answer later and never changes the engine. The research wing tests new settings in the twin, never
-        OTTO-Q in production. Each result is a recommendation, and a person decides to ship it.
+        in production. Each result is a recommendation, and a person decides to ship it.
       </p>
       <p className="rounded border border-white/[0.06] p-2 text-[10px] leading-4 text-ink-faint">
         Overnight estimates (charge times, return times, charger faults) are not built yet. No engine job makes them, so
@@ -466,7 +466,7 @@ export function TwinAgentTab() {
                 Also show the {quietCount} ticks where every offer was replaced, expired or declined
               </label>
             )}
-            {(error || disp.error) && <p className="text-[11px] text-amber-200">Could not read the latest records. This shows the last records read.</p>}
+            {(error || disp.error) && <p className="text-[11px] text-amber-200">Could not read the latest records. Showing the last ones read.</p>}
             {items.length === 0 ? (
               <p className="text-[12px] text-ink-dim">
                 {frozen ? "Paused before any agent pass arrived." : "No agent pass or offer in the last two sim-hours yet."}

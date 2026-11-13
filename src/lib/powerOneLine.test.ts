@@ -172,7 +172,7 @@ describe('totals and words', () => {
   });
 
   it('says what is missing in plain words', () => {
-    expect(notMeasuredText(null)).toMatch(/0810/);
+    expect(notMeasuredText(null)).toMatch(/has not returned the depot’s one-line/);
     expect(notMeasuredText(day())).toMatch(/Start a run/);
   });
 });

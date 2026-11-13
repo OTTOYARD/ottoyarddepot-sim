@@ -191,7 +191,7 @@ const HOW: { icon: typeof Zap; text: string }[] = [
   },
   {
     icon: BatteryCharging,
-    text: "Uses the depot battery and solar power to decrease peak demand. The busiest half hour of the month sets the demand charge.",
+    text: "Uses the depot battery and solar power to cut peak demand. The busiest half hour of the month sets the demand charge.",
   },
   { icon: Route, text: 'Sends each car to the right charger at the right time. Cars due out first go first.' },
   { icon: Wrench, text: 'Does cleaning, checks and software updates during the charge, so one stop does all of it.' },

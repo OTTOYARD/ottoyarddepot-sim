@@ -214,8 +214,8 @@ function VarControl({ v, knobs, expanded, onToggleExpand, commit, verdict }: {
             <span className="ml-auto text-[9px] text-brand-red/80 border border-brand-red/30 rounded px-1 cursor-default">no effect</span>
           </TooltipTrigger>
           <TooltipContent className="max-w-[260px] bg-canvas-elev border-white/10 text-ink text-[11px]">
-            This variable is registered, but no OTTO-Q channel changes when you move it.
-            So it does not change what OTTO-Q sees.
+            Moving this slider changes nothing OTTO-Q can see. The variable is registered,
+            but no data channel carries it yet.
           </TooltipContent>
         </Tooltip></TooltipProvider>
       )}
@@ -225,8 +225,8 @@ function VarControl({ v, knobs, expanded, onToggleExpand, commit, verdict }: {
             <span className="ml-auto text-[9px] text-ink-faint border border-white/10 rounded px-1 cursor-default">no data</span>
           </TooltipTrigger>
           <TooltipContent className="max-w-[260px] bg-canvas-elev border-white/10 text-ink text-[11px]">
-            This variable has a channel field, but the current frame has no value for it.
-            Usually, the run has not made that signal yet.
+            OTTO-Q can read this variable, but the current frame holds no value for it.
+            Usually the run has not produced that signal yet.
           </TooltipContent>
         </Tooltip></TooltipProvider>
       )}
@@ -406,7 +406,7 @@ export const OperatorConsole = () => {
       // ON merges chaos over the scenario instead of replacing it; OFF returns to the baseline.
       if (on) await twin.setVariability(runId, { merge: { _global: CHAOS_GLOBAL } });
       else await twin.setVariability(runId, { template: baselineTemplate });
-      toast.success(on ? "Chaos Mode on: variance ×2.5, event rates ×3, added to the scenario"
+      toast.success(on ? "Chaos Mode on: variance ×2.5, event rates ×3, on top of the scenario"
                        : "Chaos Mode off: the run uses the scenario baseline");
     } catch (e: unknown) { toast.error("Failed", { description: e instanceof Error ? e.message : String(e) }); }
   };
@@ -528,7 +528,7 @@ export const OperatorConsole = () => {
         <div className="flex items-center justify-between">
           <div className="flex flex-col">
             <span className="text-[12px] text-ink">Chaos Mode</span>
-            <span className="text-[10px] text-ink-faint">variance ×2.5 · event rates ×3 · added to the scenario</span>
+            <span className="text-[10px] text-ink-faint">variance ×2.5 · event rates ×3 · on top of the scenario</span>
           </div>
           <Switch checked={isChaos(knobs)} onCheckedChange={toggleChaos} disabled={!runId} />
         </div>
@@ -593,7 +593,7 @@ export const OperatorConsole = () => {
               (r) => r?.stall_code ? `${r.stall_code}: charger fault${r.had_vehicle ? ", with a car on it" : ""}. A technician repairs it in ${r.repair_minutes} sim min.` : undefined)}
             disabled={!runId || !!busy} variant="outline" className="h-9 border-white/[0.06] text-ink-dim hover:text-ink text-[11px] justify-start"><AlertTriangle size={13} className="text-state-warn" /> Charger Fault</Button>
         </div>
-        <span className="text-[10px] text-ink-faint">DR Call: sets a real demand-response power cap. Charger Fault: stops one fast charger. OTTO-Q makes a new plan for the car on it. A technician repairs it in 1 sim hour.</span>
+        <span className="text-[10px] text-ink-faint">DR Call caps site power at 500 kW for two sim hours, as a utility demand-response event would. Charger Fault takes one fast charger down for a sim hour, and OTTO-Q re-plans the car on it.</span>
       </Group>
     </ScrollArea>
   );

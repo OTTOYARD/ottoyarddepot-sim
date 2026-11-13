@@ -60,7 +60,7 @@ describe('the Robotics tab', () => {
   it('says it is design data, not live, and offers the three robots', async () => {
     await open(false);
     expect(screen.getByTestId('robotics-banner')).toHaveTextContent(
-      'Engineering CAD. Design data, not live. Each robot has every part in the model, to the last screw and washer. The twin uses the same dimensions.');
+      'Engineering CAD. Design data, not live. Every robot is modelled part for part, down to the last screw and washer. The twin uses the same dimensions.');
     // the CAD is not live: the banner links to OTTO-PULSE's Robots tab for what each machine is doing now
     const live = screen.getByTestId('robotics-live-link');
     expect(live).toHaveTextContent('OTTO-PULSE shows what each machine does now.');
@@ -205,7 +205,7 @@ describe('the Robotics tab', () => {
   it('follows no robot when no run plays in the yard, and says so', async () => {
     await open(true);
     expect(screen.getByTestId('follow-toggle')).toBeDisabled();
-    expect(screen.getByTestId('follow-status')).toHaveTextContent('No run plays in the yard now.');
+    expect(screen.getByTestId('follow-status')).toHaveTextContent('No run is playing in the yard.');
     expect(screen.getByTestId('cad-viewer-stub').dataset.live).toBe('');
   });
 

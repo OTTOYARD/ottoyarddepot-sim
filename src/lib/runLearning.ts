@@ -227,7 +227,7 @@ function headlineOf(l: RunLearning): { tone: LearningTone; text: string } {
     case "more_cars_than_chargers":
       return {
         tone: "held",
-        text: `${count(need, "car")} wait for ${count(free, "free charger")}. The planners plan only the next ${n(batch)}. `
+        text: `${count(need, "car")} ${need === 1 ? "waits" : "wait"} for ${count(free, "free charger")}. The planners plan only the next ${n(batch)}. `
           + "When an offered charger is taken first, a car ahead in line got it.",
       };
     case "offers_lost_their_charger":
@@ -241,7 +241,7 @@ function headlineOf(l: RunLearning): { tone: LearningTone; text: string } {
         text: `${count(free, "free charger")} for ${count(need, "waiting car")}. In the last ${count(window, "tick")}, the planners made ${count(recent.offered, "offer")}. The decide path used ${n(recent.used)}.`,
       };
     default:
-      return { tone: "idle", text: "The run's learning has no lesson yet." };
+      return { tone: "idle", text: "Nothing learned on this run yet." };
   }
 }
 
