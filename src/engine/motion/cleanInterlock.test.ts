@@ -43,7 +43,12 @@ interface Result {
 }
 
 /** Play one stall for `seconds`, the world given per frame. Throws (expect) on any frame that breaks an interlock. */
-function play(spec: VehicleSpec | null, seconds: number, world: (t: number) => World): Result {
+/** One turn of the event loop, on the real timer: a play is minutes of sim time, and on a slow machine a play that
+ *  never yields keeps the test runner's worker from answering it (CI, 2026-11-13: 133 s in one test). */
+const realImmediate = globalThis.setImmediate;
+const breathe = () => new Promise<void>((r) => { realImmediate(r); });
+
+async function play(spec: VehicleSpec | null, seconds: number, world: (t: number) => World): Promise<Result> {
   const arm = new ArmGate(), clean = new CleanGate();
   const model = spec?.key ?? null;
   const program = cleanProgramFor(model);
@@ -56,7 +61,9 @@ function play(spec: VehicleSpec | null, seconds: number, world: (t: number) => W
   };
   let before: string | null = null;
   let everBusy = false;
+  let sinceBreath = 0;
   for (let t = 0; t < seconds; t += DT) {
+    if (++sinceBreath >= 200) { sinceBreath = 0; await breathe(); }
     const w = world(t);
     // the motion driver's order: the charge arms, reading the cleaning arm as of the last step; then the cleaning arms
     arm.step(DT, [{
@@ -130,9 +137,9 @@ describe.each(FLEET_SPECS.map((spec) => ({ key: spec.key, spec })))("$key: the c
   const farVisits = program.visits.filter((v) => v.flank === "far").length;
   const { latched, stowed } = program.beside;
 
-  it("a clean and a charge due together: the far flank during the charge, the port flank only where it is measured clear", () => {
+  it("a clean and a charge due together: the far flank during the charge, the port flank only where it is measured clear", async () => {
     // the charge outlasts the twin's clean step by ten minutes
-    const r = play(spec, STEP + 720, (t) => ({ charging: t < STEP + 600, faulted: false, tether: null, ...cleanWorld(t) }));
+    const r = await play(spec, STEP + 720, (t) => ({ charging: t < STEP + 600, faulted: false, tether: null, ...cleanWorld(t) }));
     expect(r.visitsCleaned).toBeGreaterThanOrEqual(farVisits);
     if (latched) {
       // the whole clean runs during the charge, the connector in
@@ -151,8 +158,8 @@ describe.each(FLEET_SPECS.map((spec) => ({ key: spec.key, spec })))("$key: the c
     console.log(`INTERLOCK ${spec.key} clean + charge: ${r.visitsCleaned} of ${program.visits.length} openings cleaned${r.portNotDone ? ", port flank NOT done" : ""}; waited ${r.waitedS.toFixed(0)} s; charge arm to a door leaf ${r.worstLeaf.toFixed(3)} m (${r.worstAt})`);
   });
 
-  it("a cabin stop with no charge: both flanks, the charge arm stowed at its home", () => {
-    const r = play(spec, STEP + 60, (t) => ({ charging: false, faulted: false, tether: null, ...cleanWorld(t) }));
+  it("a cabin stop with no charge: both flanks, the charge arm stowed at its home", async () => {
+    const r = await play(spec, STEP + 60, (t) => ({ charging: false, faulted: false, tether: null, ...cleanWorld(t) }));
     expect(stowed).toBe(true);
     expect(r.visitsCleaned).toBe(program.visits.length);
     expect(r.portNotDone).toBe(false);
@@ -162,9 +169,9 @@ describe.each(FLEET_SPECS.map((spec) => ({ key: spec.key, spec })))("$key: the c
     console.log(`INTERLOCK ${spec.key} cabin stop: ${r.visitsCleaned} of ${program.visits.length} openings cleaned; charge arm (stowed${program.beside.parkX === undefined ? "" : `, parked at ${program.beside.parkX} m`}) to a door leaf ${r.worstLeaf.toFixed(3)} m (${r.worstAt})`);
   });
 
-  it("a charge that ends in the middle of the clean: no release with a port door open, and no deadlock", () => {
+  it("a charge that ends in the middle of the clean: no release with a port door open, and no deadlock", async () => {
     // the charge ends at 120 s with an 18 s demate allowed by the twin
-    const r = play(spec, STEP + 120, (t) => ({ charging: t < 120, faulted: false, tether: t >= 120 && t < 138 ? 138 - t : null, ...cleanWorld(t) }));
+    const r = await play(spec, STEP + 120, (t) => ({ charging: t < 120, faulted: false, tether: t >= 120 && t < 138 ? 138 - t : null, ...cleanWorld(t) }));
     expect(r.visitsCleaned).toBeGreaterThanOrEqual(farVisits);
     // where the port flank may be worked latched the connector stays in to the end; elsewhere the arm waits, the
     // connector comes out, and the port flank is worked with the charge arm stowed in what is left of the step
@@ -174,10 +181,10 @@ describe.each(FLEET_SPECS.map((spec) => ({ key: spec.key, spec })))("$key: the c
     console.log(`INTERLOCK ${spec.key} charge ends mid-clean: ${r.visitsCleaned} of ${program.visits.length} openings cleaned; waited ${r.waitedS.toFixed(0)} s; charge arm to a door leaf ${r.worstLeaf.toFixed(3)} m (${r.worstAt})`);
   });
 
-  it("a charger fault in the middle of the clean: the port doors shut before the connector comes out", () => {
+  it("a charger fault in the middle of the clean: the port doors shut before the connector comes out", async () => {
     // late enough that a vehicle cleaned latched is at its port flank
     for (const faultAt of [100, 230]) {
-      const r = play(spec, STEP + 120, (t) => ({ charging: true, faulted: t >= faultAt, tether: null, ...cleanWorld(t) }));
+      const r = await play(spec, STEP + 120, (t) => ({ charging: true, faulted: t >= faultAt, tether: null, ...cleanWorld(t) }));
       expect(r.visitsCleaned).toBeGreaterThanOrEqual(farVisits);
       expect(r.homeAt).toBeLessThan(STEP + 30);
       console.log(`INTERLOCK ${spec.key} fault at ${faultAt} s: ${r.visitsCleaned} of ${program.visits.length} openings cleaned${r.portNotDone ? ", port flank not finished" : ""}; charge arm to a door leaf ${r.worstLeaf.toFixed(3)} m (${r.worstAt})`);
@@ -186,17 +193,17 @@ describe.each(FLEET_SPECS.map((spec) => ({ key: spec.key, spec })))("$key: the c
 });
 
 describe("the generic car: the same order, and nothing waits", () => {
-  it("cleans both flanks during the charge, the far flank's doors first and the port flank's as the arm swings to it", () => {
-    const r = play(null, STEP + 720, (t) => ({ charging: t < STEP + 600, faulted: false, tether: null, ...cleanWorld(t) }));
+  it("cleans both flanks during the charge, the far flank's doors first and the port flank's as the arm swings to it", async () => {
+    const r = await play(null, STEP + 720, (t) => ({ charging: t < STEP + 600, faulted: false, tether: null, ...cleanWorld(t) }));
     expect(r.visitsCleaned).toBe(2);
     expect(r.portNotDone).toBe(false);
     expect(r.waitedS).toBe(0);
     expect(r.latchedWhilePortOpen).toBe(true);
   });
-  it("cleans both flanks on a cabin stop, and after a charge that ends mid-clean, and through a fault", () => {
-    expect(play(null, STEP + 60, (t) => ({ charging: false, faulted: false, tether: null, ...cleanWorld(t) })).visitsCleaned).toBe(2);
-    expect(play(null, STEP + 120, (t) => ({ charging: t < 120, faulted: false, tether: null, ...cleanWorld(t) })).visitsCleaned).toBe(2);
-    const f = play(null, STEP + 120, (t) => ({ charging: true, faulted: t >= 230, tether: null, ...cleanWorld(t) }));
+  it("cleans both flanks on a cabin stop, and after a charge that ends mid-clean, and through a fault", async () => {
+    expect((await play(null, STEP + 60, (t) => ({ charging: false, faulted: false, tether: null, ...cleanWorld(t) }))).visitsCleaned).toBe(2);
+    expect((await play(null, STEP + 120, (t) => ({ charging: t < 120, faulted: false, tether: null, ...cleanWorld(t) }))).visitsCleaned).toBe(2);
+    const f = await play(null, STEP + 120, (t) => ({ charging: true, faulted: t >= 230, tether: null, ...cleanWorld(t) }));
     expect(f.homeAt).toBeLessThan(STEP + 30);
   });
 });

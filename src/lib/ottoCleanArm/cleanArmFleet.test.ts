@@ -154,16 +154,20 @@ describe.each(CASES)('$key: the cleaning arm and the vehicle it cleans', ({ spec
     }
   });
 
-  it('comes out the way it went in when the step ends early, from any point at any opening', { timeout: 600_000 }, () => {
+  it('comes out the way it went in when the step ends early, from any point at any opening', { timeout: 600_000 }, async () => {
     const w = newWorst();
     let aborts = 0;
+    // one turn of the event loop a start point: on a slow machine this test is over a minute of unbroken work, and a
+    // worker that never yields cannot answer the test runner (src/test/setup.ts)
+    const realImmediate = globalThis.setImmediate;
     for (const sides of BOTH) {
-      program.visits.forEach((v, vi) => {
+      for (const [vi, v] of program.visits.entries()) {
         const side = visitSide(program, vi, sides);
         const g = visitGeom(program, vi);
         for (const move of ['enter', 'clean'] as const) {
           const n = move === 'clean' ? 30 : 8;
           for (let i = 0; i <= n; i++) {
+            await new Promise<void>((r) => { realImmediate(r); });
             const from = cleanJointsAt(cleanPhaseOf(move, vi), i / n, sides, { program });
             aborts++;
             for (let k = 0; k <= 20; k++) {
@@ -179,7 +183,7 @@ describe.each(CASES)('$key: the cleaning arm and the vehicle it cleans', ({ spec
             }
           }
         }
-      });
+      }
     }
     expect(aborts).toBe(2 * program.visits.length * (31 + 9));
     console.log(`FLEET-CLEAN ${spec.key} way out from anywhere: links to body ${f3(w.linkCar)} m, to a door leaf ${f3(w.linkLeaf)} m; wand in the opening ${f3(w.aperture)} m (${w.at.aperture}); `
