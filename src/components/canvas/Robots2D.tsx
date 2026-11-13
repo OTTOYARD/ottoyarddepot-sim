@@ -5,8 +5,9 @@ import { poseStore } from '@/engine/motion/poseStore';
 import { useDepotStore, type StallState } from '@/store/depotStore';
 import { useVehicleStore } from '@/store/vehicleStore';
 import { chargerCabinet, placeArm, portInArmFrame, type ArmPlacement } from '@/lib/ottoChargeArm/depotPlacement';
-import { poseFor, type ArmTarget } from '@/lib/ottoChargeArm/armMotion';
-import { STOWED } from '@/lib/ottoChargeArm/cobotIK';
+import { servoDt, type ArmTarget } from '@/lib/ottoChargeArm/armMotion';
+import { newMateSeq, stepMateSeq, type MateSeq } from '@/lib/ottoChargeArm/mateSequence';
+import { armMateFor, vehiclePort, type ArmMate } from '@/lib/ottoChargeArm/vehiclePort';
 import { portFor } from '@/lib/ottoChargeArm/chargePort';
 import { statusColor, type ArmPhase } from '@/lib/ottoChargeArm/armStateMachine';
 import { IDLE_SESSION, isArmHome } from '@/lib/ottoChargeArm/roboticService';
@@ -124,6 +125,9 @@ interface StallRobots {
   /** the port the arm last worked to: a retract plays out against the inlet it came out of */
   target: ArmTarget | null;
   targetFor: string | null;
+  /** the mate the twin's port solves to (null: the twin has not said this car's port), and where the machine is in it */
+  mate: ArmMate | null;
+  seq: MateSeq;
   armKey: string;
   cleanKey: string;
 }
@@ -145,12 +149,16 @@ export function FastChargerRobots2D() {
       const k = chargerCabinet('dcfc', x, y, angle);
       return {
         stall, arm: placeArm(stall.id, x, y, angle), cabinet: { x: k.x, y: k.y },
-        target: null, targetFor: null, armKey: '', cleanKey: '',
+        target: null, targetFor: null, mate: null, seq: newMateSeq(), armKey: '', cleanKey: '',
       };
     });
     const sides = new Map(robotic.map((s) => [s.id, placeCleanArm(s.position.x, s.position.y, s.position.angle, DECK_Y).sides]));
     let raf = 0;
+    let last = performance.now();
     const frame = () => {
+      const now = performance.now();
+      const sdt = servoDt((now - last) / 1000, twinMotionDriver.playbackSpeed());
+      last = now;
       for (const r of robots) {
         const { stall } = r;
         const ag = armRefs.current.get(stall.id);
@@ -160,16 +168,26 @@ export function FastChargerRobots2D() {
           if (s.vehicleId && s.vehicleId !== r.targetFor) {
             const v = useVehicleStore.getState().vehicles.find((x) => x.id === s.vehicleId);
             if (v) {
-              const port = portFor(v.id, v.oem);
-              r.target = { port: portInArmFrame(port.along, port.height, CAR_WIDTH_M / 2, r.arm.toward), normal: { x: 0, y: 0, z: -1 } };
+              const twinPort = vehiclePort(v.id);
+              if (twinPort) {
+                // the twin says which vehicle this is and where its inlet is: the real mate (ChargingArm's)
+                r.mate = armMateFor(twinPort, r.arm.toward);
+                r.target = r.mate.target;
+              } else {
+                r.mate = null;
+                const port = portFor(v.id, v.oem);
+                r.target = { port: portInArmFrame(port.along, port.height, CAR_WIDTH_M / 2, r.arm.toward), normal: { x: 0, y: 0, z: -1 } };
+              }
               r.targetFor = v.id;
             }
           }
-          const key = `${s.phase}|${s.t.toFixed(4)}|${r.targetFor ?? ''}`;
+          // the mate's five stops and the base's travel, as the 3D yard plays them (mateSequence.ts)
+          const pose = stepMateSeq(r.seq, s.phase, s.t, r.target, r.mate, sdt);
+          const q = r.seq;
+          const key = `${s.phase}|${q.slide.toFixed(3)}|${q.cross.toFixed(3)}|${q.shown.j1.toFixed(3)}|${q.shown.j2.toFixed(3)}|${q.shown.j3.toFixed(3)}|${r.targetFor ?? ''}`;
           if (key !== r.armKey) {
             r.armKey = key;
-            const pose = r.target ? poseFor({ phase: s.phase, t: s.t }, r.target) : { angles: STOWED, ok: true };
-            paintChargeArm2D(ag, armPlanPoints(r.arm, pose.angles), s.phase, pose.ok, r.cabinet);
+            paintChargeArm2D(ag, armPlanPoints(r.arm, q.shown, undefined, q.slide, q.cross), s.phase, pose.ok, r.cabinet);
           }
         }
         const cg = cleanRefs.current.get(stall.id);
