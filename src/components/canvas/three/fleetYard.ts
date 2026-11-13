@@ -33,12 +33,19 @@ function darkBack<M extends THREE.Material>(m: M, key: string): M {
   return m;
 }
 
+/**
+ * A solid paint takes the generic fleet's own paint numbers (Vehicle3D MAT.paint), which the yard's sun, exposure and
+ * bloom were tuned with: the spec's solid finish (metalness 0.05) is tuned for the check page's studio light, and in
+ * the yard it is brighter still. Metallic and satin keep the spec's.
+ */
+const YARD_SOLID = { roughness: 0.42, metalness: 0.45, clearcoat: 1, clearcoatRoughness: 0.06 };
+
 const paints = new Map<string, THREE.MeshPhysicalMaterial>();
 /** Clear-coated paint in a model's finish. The colour is per vertex (the spec's paint, second colour and accent). */
 function paintMaterial(finish: YardModel['finish']): THREE.MeshPhysicalMaterial {
   let m = paints.get(finish);
   if (!m) {
-    m = darkBack(new THREE.MeshPhysicalMaterial({ color: '#ffffff', vertexColors: true, ...paintFinishOf(finish) }), `otto-yard-paint-${finish}`);
+    m = darkBack(new THREE.MeshPhysicalMaterial({ color: '#ffffff', vertexColors: true, ...(finish === 'solid' ? YARD_SOLID : paintFinishOf(finish)) }), `otto-yard-paint-${finish}`);
     paints.set(finish, m);
   }
   return m;

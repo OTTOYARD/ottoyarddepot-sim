@@ -99,6 +99,8 @@ launch slipped to early 2027. It is here because Nuro was asked for and this is 
 ![Fast chargers](pr-shots/fleet-yard/chargers.png)
 ![Staging](pr-shots/fleet-yard/staging.png)
 
+The same staging row before, every car the generic car: `pr-shots/fleet-yard/staging-before.png`.
+
 **Which model a car is** comes from the twin's snapshot row, in `fleetModelKeyFor`: the row's `port.profile` when it
 is one of the six keys, else the first match on the make and model text (`cybercab`, `tesla`, `zeekr|ojai`,
 `jaguar|i-pace|waymo`, `zoox`, `lucid|gravity`), else the generic car. The recorded run `fresh0922` has 116 cars:
@@ -121,6 +123,24 @@ by `yardLod.test.ts` and `fleetYard.test.ts`:
 and a window for each door, the status strips and the shadow body. The shadow pass draws one more, a closed body of
 572 triangles, in place of the model. The body box is within 3 cm of the full model's. A model is built in the
 browser once, in about 0.1 s, and its cars are the generic car until then.
+
+**Measured in the cockpit** (`scripts/perfHarness.mjs`, recorded run `fresh0922`, desktop profile, whole frame with
+the shadow and post passes; a software renderer, so frame times are not quoted):
+
+| Camera | Cars on site | Draw calls, generic car | Draw calls, models | Triangles, generic car | Triangles, models |
+|---|---|---|---|---|---|
+| Bird Eye | 50 | 522 | 566 | 2.68M | 3.02M |
+| Operator | 38 | 535 | 579 | 2.62M | 2.88M |
+| Canopy | 32 | 500 | 544 | 2.56M | 2.75M |
+
+That run draws four models. The 44 more draw calls do not grow with the number of cars. Triangles do: a model is 7,340 to
+9,018 a car plus its 572-triangle shadow body, and the generic car is 2,464 with its body, glass and doors drawn
+again in the shadow pass. Measured: 0.34M more triangles a frame with 50 cars on site. Not measured: a frame with
+all 116 cars on site, and frame rate on a real GPU or a phone.
+
+A solid paint takes the generic fleet's paint numbers in the yard (`fleetYard.YARD_SOLID`). A white car is still
+very bright in the yard's sun, as the generic fleet's white cars are (see the before picture). Metallic and satin
+paints keep the spec's.
 
 **What stays the generic car's:** the pose, the charge-port ring (it is where the charge arm mates, on the generic
 car's flank, so it stands a few centimetres off a narrower model and inside a wider one), the hover badge and the
