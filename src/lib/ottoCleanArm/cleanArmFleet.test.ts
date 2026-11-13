@@ -21,10 +21,12 @@ import { describe, it, expect } from 'vitest';
 import { FLEET_SPECS } from '@/lib/fleetModels/fleet';
 import { cabinProfile } from '@/lib/fleetModels/cabin';
 import { mateTarget } from '@/lib/fleetModels/ports';
-import { OTTO_CHARGE_ARM, MOUNT_HEIGHT_M, PEDESTAL_TO_CAR_CENTRE_M, METRES_PER_PLAN_UNIT } from '@/lib/ottoChargeArm/cobotSpec';
-import { forwardElbow, forwardWristCentre, forwardTCP, STOWED, type JointAngles } from '@/lib/ottoChargeArm/cobotIK';
+import { OTTO_CHARGE_ARM, METRES_PER_PLAN_UNIT } from '@/lib/ottoChargeArm/cobotSpec';
 import { poseFor } from '@/lib/ottoChargeArm/armMotion';
-import { ARM_REACH, connectorFace, solveMate, type Mate } from '@/lib/ottoChargeArm/mateSolver';
+import { ARM_REACH, solveMate } from '@/lib/ottoChargeArm/mateSolver';
+import {
+  capsulesMin, chargeArmCapsules, latchedCapsules, measureChargeBeside, slideOfCarX, stowedCapsules, CHARGE_LEAF_MARGIN_M,
+} from './chargeArmBeside';
 import type { ArmPhase } from '@/lib/ottoChargeArm/armStateMachine';
 import { CHARGER_STALL_ANGLE, DCFC_ROW_PITCH } from '@/lib/sitePlan';
 import { CLEAN_ARM, isCleanWork, phaseMove, phaseVisit, wandMayBeInside, cleanPhaseOf, type CleanPhase } from './cleanArmSpec';
@@ -41,22 +43,14 @@ const BOTH: CleanSides[] = [sidesFor(1), sidesFor(-1)];
 
 /**
  * WHAT THE MACHINES AS BUILT DO NOT HOLD, MEASURED. Nothing below is a margin relaxed for a vehicle: each is a number
- * this file measured and found short of 0.10 m, stated here so that the test says it (docs/CLEAN-ARM-PER-VEHICLE.md,
- * "What is short"). A vehicle not named holds 0.10 m. A value that moves by more than 5 mm fails the test: when a
+ * this file measured and found short of 0.10 m, stated here so that the test says it (docs/CLEAN-ARM-PER-VEHICLE.md).
+ * A vehicle not named holds 0.10 m. (The charge arm in the open port-flank doors was the second: the door order closed it.) A value that moves by more than 5 mm fails the test: when a
  * machine or a vehicle changes, measure again and write the new number, or delete the line when it holds.
  */
 /** The stowed arm's wrist over the vehicle's highest point, metres, where it is short. None is short since the arm was
  *  raised 0.06 m on 2026-11-13 (CLEAN_ARM.link1Y 3.48): it parked 0.059 m over the Ojai's roof lidar (top 2.04 m)
  *  before, and 0.119 m after. */
 const PARKED_OVER_M: Record<string, number> = {};
-/**
- * The OTTO-CHARGE ARM (on the car's left) to the nearest OPEN left door leaf, over its stowed pose, its run along its
- * rail, its mate and its latched pose, metres. Negative: the two overlap. The doors open on both flanks for a clean,
- * so on every fleet vehicle an open left door is where the charge arm stands or passes.
- */
-const CHARGE_ARM_TO_OPEN_LEAF_M: Record<string, number> = {
-  waymo_ojai: -0.122, waymo_ipace: -0.141, zoox_robotaxi: -0.122, tesla_cybercab: -0.077, tesla_model_y: -0.064, lucid_gravity_nuro: -0.138,
-};
 const CASES = FLEET_SPECS.map((spec) => ({ key: spec.key, spec }));
 
 /** Every pose of a program's cycle on one stall side: the clean phases at 1/240, the moves at 1/40. */
@@ -198,7 +192,7 @@ describe.each(CASES)('$key: the cleaning arm and the vehicle it cleans', ({ spec
     expect(w.seat, w.at.seat).toBeGreaterThanOrEqual(FLEET_MARGIN.seat);
   });
 
-  it('parks above it: stowed and swinging, the whole arm stays 0.10 m over the vehicle (or the shortfall stated above) and over its doors as they move', () => {
+  it('parks above it: stowed and swinging, the whole arm stays 0.10 m over the vehicle (or the shortfall stated above) and over its doors as they move', { timeout: 300_000 }, () => {
     let over = Infinity, clear = Infinity, leaf = Infinity;
     let top = cabin.height;
     for (const e of cabin.equipment) top = Math.max(top, e.y1);
@@ -213,9 +207,9 @@ describe.each(CASES)('$key: the cleaning arm and the vehicle it cleans', ({ spec
           for (let k = 0; k <= 12; k++) {
             const p = { x: c.a.x + ((c.b.x - c.a.x) * k) / 12, y: c.a.y + ((c.b.y - c.a.y) * k) / 12, z: c.a.z + ((c.b.z - c.a.z) * k) / 12 };
             clear = Math.min(clear, cabin.bodyClearance(p) - c.r);
-            // the doors swing, slide or lift while the arm is stowed, and stand open while it swings
-            const opens = phase === 'doors_open' || phase === 'doors_close' ? [0.25, 0.5, 0.75, 1] : [1];
-            for (const o of opens) leaf = Math.min(leaf, cabin.leafClearance(p, o) - c.r);
+            // a flank's doors swing, slide or lift while the arm is stowed, swings over the car or stands waiting at a
+            // ready point: every position of their travel is measured
+            leaf = Math.min(leaf, cabin.leafSweptClearance(p) - c.r);
           }
         }
       }
@@ -313,121 +307,87 @@ function segSeg(p1: { x: number; y: number; z: number }, q1: { x: number; y: num
   return Math.hypot(c1.x - c2.x, c1.y - c2.y, c1.z - c2.z);
 }
 
-/**
- * The OTTO-CHARGE ARM as capsules in the CAR frame, its base where a mate put it (`slide` along its rail, `cross`
- * toward the car). cleanArmClearance.test.ts's model, plus the head's two connectors (the working one `plunge`
- * metres forward). Radii are its housings' rounded UP.
- */
-function chargeArmCapsules(a: JointAngles, toward: 1 | -1, slide: number, cross: number, head: Mate['head'], plunge: number): Capsule[] {
-  const s = OTTO_CHARGE_ARM;
-  const toCar = (p: { x: number; y: number; z: number }) => ({
-    x: toward > 0 ? -(p.x + slide) : p.x + slide,
-    y: p.y + MOUNT_HEIGHT_M,
-    z: toward > 0 ? PEDESTAL_TO_CAR_CENTRE_M - cross - p.z : -PEDESTAL_TO_CAR_CENTRE_M + cross + p.z,
-  });
-  const base = toCar({ x: 0, y: 0, z: 0 });
-  const shoulder = toCar({ x: 0, y: s.shoulderHeight, z: 0 });
-  const elbow = toCar(forwardElbow(a, s));
-  const wristB = forwardWristCentre(a, s), tcpB = forwardTCP(a, s);
-  const wrist = toCar(wristB), tcp = toCar(tcpB);
-  const out: Capsule[] = [
-    { name: 'charge base', a: base, b: shoulder, r: s.radii.base * 1.15 },
-    { name: 'charge upper arm', a: shoulder, b: elbow, r: Math.max(s.radii.shoulder, s.radii.upper * 1.2, s.radii.elbow) },
-    { name: 'charge forearm', a: elbow, b: wrist, r: Math.max(s.radii.elbow, s.radii.fore * 1.2) },
-    { name: 'charge wrist', a: wrist, b: tcp, r: s.radii.wristR * 1.3 },
-  ];
-  const L = Math.hypot(tcpB.x - wristB.x, tcpB.y - wristB.y, tcpB.z - wristB.z) || 1;
-  const fwd = { x: (tcpB.x - wristB.x) / L, y: (tcpB.y - wristB.y) / L, z: (tcpB.z - wristB.z) / L };
-  for (const h of ARM_REACH.heads) {
-    const face = connectorFace(a, h, s);
-    const push = h === head ? plunge : 0;
-    out.push({
-      name: `charge connector ${h}`, r: s.radii.wristR * 1.3,
-      a: toCar({ x: face.x - fwd.x * 0.16, y: face.y - fwd.y * 0.16, z: face.z - fwd.z * 0.16 }),
-      b: toCar({ x: face.x + fwd.x * push, y: face.y + fwd.y * push, z: face.z + fwd.z * push }),
-    });
-  }
-  return out;
-}
-
-describe.each(CASES)('$key: the cleaning arm beside the charge arm at this vehicle\'s own mate', ({ spec }) => {
+describe.each(CASES)('$key: the cleaning arm and the doors beside the charge arm at this vehicle\'s own mate', ({ spec }) => {
   const cabin = cabinProfile(spec);
   const program = cleanProgramFor(spec.key);
   const DUTY: ArmPhase[] = ['unstow', 'approach', 'align', 'insert', 'latch', 'charging', 'unlatch', 'extract', 'retract'];
+  // every charger stands on the car's LEFT (depotPlacement.towardFor is -1), and no fleet vehicle has a right inlet
+  const toward = -1 as const;
+  const sides = sidesFor(toward);
+  const m = solveMate(mateTarget(spec)!, false);
+  const park = slideOfCarX(program.beside.parkX ?? 0, toward);
+  const target = { port: m.axisPort, normal: m.normal };
 
-  it('keeps the two robots 0.10 m apart in every pose the twin lets them share; the charge arm to the open left doors is the shortfall stated above', { timeout: 600_000 }, () => {
-    let worst = Infinity, at = '', leafWorst = Infinity, leafAt = '', mates = 0;
-    const byState: Record<string, number> = {};
-    // every charger stands on the car's LEFT (depotPlacement.towardFor is -1), and no fleet vehicle has a right inlet
-    for (const toward of [-1] as (1 | -1)[]) {
-      const sides = sidesFor(toward);
-      const m = solveMate(mateTarget(spec)!, toward === 1);
-      if (m.ok) mates++;
-      // what the charge arm may be doing while the cleaning arm is out: stowed at its rail's middle, or latched
-      const still: { label: string; caps: Capsule[] }[] = [{ label: 'stowed', caps: chargeArmCapsules(STOWED, toward, 0, 0, null, 0) }];
-      const target = { port: m.axisPort, normal: m.normal };
-      if (m.ok) {
-        const a = { ...poseFor({ phase: 'charging', t: 0 }, target, OTTO_CHARGE_ARM).angles, j6: m.ik!.j6 };
-        still.push({ label: 'latched', caps: chargeArmCapsules(a, toward, m.slideM, m.crossM, m.head, ARM_REACH.headStrokeM) });
+  it('the left-side arm can charge it, and the stored rule for its port-flank doors is the one measured now', () => {
+    expect(m.ok).toBe(true);
+    expect(program.beside).toEqual(measureChargeBeside(spec, cabin).facts);
+    // every vehicle's port flank can be cleaned with the charge arm stowed at its home
+    expect(program.beside.stowed).toBe(true);
+  });
+
+  it('keeps the charge arm 0.10 m from every port-flank door leaf, through the doors\' whole travel, in each state the interlock allows', () => {
+    const swept = (p: { x: number; y: number; z: number }) => cabin.leafSweptClearance(p);
+    const stowedM = capsulesMin(stowedCapsules(toward, park), swept);
+    const latchedM = capsulesMin(latchedCapsules(m, toward), swept);
+    const middleM = capsulesMin(stowedCapsules(toward, 0), swept);
+    console.log(`FLEET-CLEAN ${spec.key} charge arm to a port-flank door leaf, anywhere in its travel: stowed at its home ${program.beside.parkX === undefined ? '(the rail\'s middle)' : `(parked ${program.beside.parkX} m along the car; ${f3(middleM)} m at the rail's middle)`} ${f3(stowedM)} m; `
+      + `latched ${f3(latchedM)} m, ${program.beside.latched ? 'allowed' : 'NOT allowed: the port flank waits for the charge to end'}`);
+    expect(stowedM, 'stowed at its home').toBeGreaterThanOrEqual(CHARGE_LEAF_MARGIN_M);
+    // latched is allowed exactly where it is measured clear
+    expect(program.beside.latched).toBe(latchedM >= CHARGE_LEAF_MARGIN_M);
+    // a park position is given only where the rail's middle is short, and the stowed run to it clears the body, doors shut
+    expect(program.beside.parkX !== undefined).toBe(middleM < CHARGE_LEAF_MARGIN_M);
+    let run = Infinity;
+    for (let k = 0; k <= 32; k++) run = Math.min(run, capsulesMin(stowedCapsules(toward, (park * k) / 32), cabin.bodyClearance));
+    expect(run, 'the stowed run to the park position, to the body').toBeGreaterThanOrEqual(0.1);
+  });
+
+  it('keeps the two robots 0.10 m apart in every pose the twin lets them share', { timeout: 600_000 }, () => {
+    let worst = Infinity, at = '';
+    const pair = (clean: Capsule[], charge: Capsule[], label: string) => {
+      for (const c of clean) for (const ch of charge) {
+        const d = segSeg(c.a, c.b, ch.a, ch.b) - c.r - ch.r;
+        if (d < worst) { worst = d; at = `${c.name} vs ${ch.name}, ${label}`; }
       }
-      const pair = (clean: Capsule[], charge: Capsule[], label: string) => {
-        for (const c of clean) for (const ch of charge) {
-          const d = segSeg(c.a, c.b, ch.a, ch.b) - c.r - ch.r;
-          if (d < worst) { worst = d; at = `${c.name} vs ${ch.name}, ${label}, toward ${toward}`; }
-        }
-      };
-      const leaves = (charge: Capsule[], label: string) => {
-        for (const ch of charge) for (let k = 0; k <= 16; k++) {
-          const p = { x: ch.a.x + ((ch.b.x - ch.a.x) * k) / 16, y: ch.a.y + ((ch.b.y - ch.a.y) * k) / 16, z: ch.a.z + ((ch.b.z - ch.a.z) * k) / 16 };
-          const d = cabin.leafClearance(p) - ch.r;
-          const state = label === 'charge stowed' ? 'stowed at the rail\'s middle' : label === 'charge latched' ? 'latched' : 'moving';
-          byState[state] = Math.min(byState[state] ?? Infinity, d);
-          if (d < leafWorst) { leafWorst = d; leafAt = `${ch.name}, ${label}, toward ${toward}`; }
-        }
-      };
-      // (A) the cleaning arm out over the car, the charge arm stowed or latched
-      for (const phase of program.chain) {
-        const n = isCleanWork(phase) ? 80 : 12;
-        for (let i = 0; i <= n; i++) {
-          const caps = cleanArmCapsules(cleanArmPoints(cleanJointsAt(phase, i / n, sides, { program })), FLEET_COLUMN_TOP);
-          const clean = [...caps.outside, caps.wand, ...caps.nozzle];
-          for (const c of still) pair(clean, c.caps, `clean ${phase}@${(i / n).toFixed(2)}, charge ${c.label}`);
-        }
-      }
-      for (const c of still) leaves(c.caps, `charge ${c.label}`);
-      // (B) the cleaning arm home (the doors may stand open), the charge arm through its duty cycle and its base's moves
-      if (m.ok) {
-        const home = cleanArmCapsules(cleanArmPoints(cleanJointsAt('home', 0, sides, { program })), FLEET_COLUMN_TOP);
-        const homeCaps = [...home.outside, home.wand, ...home.nozzle];
-        const AT_INLET = new Set<ArmPhase>(['align', 'insert', 'latch', 'charging', 'unlatch', 'extract']);
-        for (const phase of DUTY) {
-          for (let i = 0; i <= 6; i++) {
-            const a = { ...poseFor({ phase, t: i / 6 }, target, OTTO_CHARGE_ARM).angles, j6: m.ik!.j6 };
-            const inlet = AT_INLET.has(phase);
-            const caps = chargeArmCapsules(a, toward, inlet ? m.slideM : m.unfoldSlideM, inlet ? m.crossM : 0, m.head, inlet ? ARM_REACH.headStrokeM : 0);
-            pair(homeCaps, caps, `clean home, charge ${phase}@${(i / 6).toFixed(2)}`);
-            leaves(caps, `charge ${phase}@${(i / 6).toFixed(2)}`);
-          }
-        }
-        // the carriage's run along the rail, arm folded; then the standoff pose carried in on the cross-slide
-        const hold = { ...poseFor({ phase: 'approach', t: 1 }, target, OTTO_CHARGE_ARM).angles, j6: m.ik!.j6 };
-        for (let k = 0; k <= 16; k++) {
-          const rail = chargeArmCapsules(STOWED, toward, (m.unfoldSlideM * k) / 16, 0, null, 0);
-          pair(homeCaps, rail, `clean home, charge on its rail ${k}/16`); leaves(rail, `charge on its rail ${k}/16`);
-          const inn = chargeArmCapsules(hold, toward, m.unfoldSlideM + ((m.slideM - m.unfoldSlideM) * k) / 16, (m.crossM * k) / 16, m.head, 0);
-          pair(homeCaps, inn, `clean home, charge base in ${k}/16`); leaves(inn, `charge base in ${k}/16`);
-        }
+    };
+    const cleanAt = (phase: CleanPhase, t: number) => {
+      const caps = cleanArmCapsules(cleanArmPoints(cleanJointsAt(phase, t, sides, { program })), FLEET_COLUMN_TOP);
+      return [...caps.outside, caps.wand, ...caps.nozzle];
+    };
+    // (A) the cleaning arm anywhere in its cycle, the charge arm still: stowed at its home, or latched
+    const still = [{ label: 'stowed', caps: stowedCapsules(toward, park) }, { label: 'latched', caps: latchedCapsules(m, toward) }];
+    for (const phase of program.chain) {
+      const n = isCleanWork(phase) ? 80 : 12;
+      for (let i = 0; i <= n; i++) {
+        const clean = cleanAt(phase, i / n);
+        for (const c of still) pair(clean, c.caps, `clean ${phase}@${(i / n).toFixed(2)}, charge ${c.label}`);
       }
     }
-    console.log(`FLEET-CLEAN ${spec.key} beside the charge arm (on the car's left): robots ${f3(worst)} m apart at ${at}; charge arm to an open door leaf ${f3(leafWorst)} m at ${leafAt} `
-      + `(${Object.entries(byState).map(([k, v]) => `${k} ${v >= 0.58 ? 'over 0.58' : f3(v)} m`).join(', ')})`);
-    // the left-side arm can charge every fleet vehicle
-    expect(mates).toBe(1);
+    // (B) the charge arm MOVING (its mate, its release, its base on its rail from its home), the cleaning arm where
+    // it may be then: home, or up over the car (swinging, going home, or waiting at a ready point with the wand up)
+    const up: { label: string; caps: Capsule[] }[] = [{ label: 'home', caps: cleanAt('home', 0) }];
+    for (const phase of program.chain) {
+      const move = phaseMove(phase);
+      if (move === 'swing' || phase === 'return') for (let i = 0; i <= 8; i++) up.push({ label: `${phase}@${(i / 8).toFixed(2)}`, caps: cleanAt(phase, i / 8) });
+      if (move === 'raise') up.push({ label: `${phase}@1 (waiting)`, caps: cleanAt(phase, 1) });
+    }
+    const moving: { label: string; caps: Capsule[] }[] = [];
+    const AT_INLET = new Set<ArmPhase>(['align', 'insert', 'latch', 'charging', 'unlatch', 'extract']);
+    for (const phase of DUTY) {
+      for (let i = 0; i <= 6; i++) {
+        const a = { ...poseFor({ phase, t: i / 6 }, target, OTTO_CHARGE_ARM).angles, j6: m.ik!.j6 };
+        const inlet = AT_INLET.has(phase);
+        moving.push({ label: `charge ${phase}@${(i / 6).toFixed(2)}`, caps: chargeArmCapsules(a, toward, inlet ? m.slideM : m.unfoldSlideM, inlet ? m.crossM : 0, m.head, inlet ? ARM_REACH.headStrokeM : 0) });
+      }
+    }
+    const hold = { ...poseFor({ phase: 'approach', t: 1 }, target, OTTO_CHARGE_ARM).angles, j6: m.ik!.j6 };
+    for (let k = 0; k <= 16; k++) {
+      moving.push({ label: `charge on its rail ${k}/16`, caps: stowedCapsules(toward, park + ((m.unfoldSlideM - park) * k) / 16) });
+      moving.push({ label: `charge base in ${k}/16`, caps: chargeArmCapsules(hold, toward, m.unfoldSlideM + ((m.slideM - m.unfoldSlideM) * k) / 16, (m.crossM * k) / 16, m.head, 0) });
+      moving.push({ label: `charge to its home ${k}/16`, caps: stowedCapsules(toward, (park * k) / 16) });
+    }
+    for (const c of up) for (const ch of moving) pair(c.caps, ch.caps, `clean ${c.label}, ${ch.label}`);
+    console.log(`FLEET-CLEAN ${spec.key} beside the charge arm (on the car's left): robots ${f3(worst)} m apart at ${at}`);
     expect(worst, `${worst.toFixed(4)} m at ${at}`).toBeGreaterThanOrEqual(0.1);
-    // MEASURED SHORTFALL: with the left doors open, the charge arm does not keep 0.10 m from them on any fleet vehicle
-    const short = CHARGE_ARM_TO_OPEN_LEAF_M[spec.key];
-    expect(short).toBeDefined();
-    expect(leafWorst).toBeLessThan(0.1);
-    expect(Math.abs(leafWorst - short), `charge arm to an open door leaf ${leafWorst.toFixed(3)} m at ${leafAt}; this file states ${short} m`).toBeLessThanOrEqual(0.005);
   });
 });
