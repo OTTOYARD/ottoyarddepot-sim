@@ -59,7 +59,6 @@ function toWorld(x2d: number, y2d: number): [number, number] {
  * charge port, so they cannot drift apart. `stallX` is kept so a later depot can stand a column's machines on the
  * other side again in one place.
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function towardFor(_stallX: number): 1 | -1 {
   return -1;
 }
