@@ -114,7 +114,7 @@
   },
   "cleanArm": {
     "mountX": 0.18,
-    "link1Y": 3.42,
+    "link1Y": 3.48,
     "link2Drop": 0.19,
     "link1": {
       "len": 0.95,
@@ -180,10 +180,10 @@
         0.7854
       ]
     },
-    "mastFootMax": 2.28,
-    "mastFootMin": 0.68,
-    "pivotYMax": 2.18,
-    "pivotYMin": 0.58,
+    "mastFootMax": 2.34,
+    "mastFootMin": 0.74,
+    "pivotYMax": 2.24,
+    "pivotYMin": 0.64,
     "wandRetracted": 0.61,
     "phaseSeconds": {
       "doors_open": 3,
@@ -207,7 +207,7 @@
     "home": {
       "t1": -0.9993,
       "t2": 2.6187,
-      "foot": 2.28,
+      "foot": 2.34,
       "yaw": 0,
       "pitch": 0,
       "ext": 0,
@@ -226,7 +226,7 @@
       "headerWidth": 0.1818,
       "nominalStallOffset": 3.3495,
       "headerBottomAboveDeck": 5.289,
-      "columnBottomAboveDeck": 3.59
+      "columnBottomAboveDeck": 3.65
     }
   },
   "wash": {

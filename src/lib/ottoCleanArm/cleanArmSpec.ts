@@ -29,8 +29,9 @@ const deg = (d: number) => (d * Math.PI) / 180;
 export const CLEAN_ARM = {
   /** J1's vertical axis, along the car from its centre: over the door aperture (DOOR -0.25..0.85). */
   mountX: 0.18,
-  /** Height of link 1's centre line above grade. */
-  link1Y: 3.42,
+  /** Height of link 1's centre line above grade. Raised from 3.42 on 2026-11-13: the stowed wrist then parks 0.119 m
+   *  over the tallest thing a fleet vehicle carries, the Ojai's roof lidar at 2.04 m (cleanArmFleet.test.ts). */
+  link1Y: 3.48,
   /** Link 2 rides this far below link 1, so it can fold under it. */
   link2Drop: 0.19,
   link1: { len: 0.95, w: 0.17, h: 0.15 },

@@ -11,6 +11,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { depotSceneFromDisk } from '@/test/cadDisk';
 import { FLEET_SPECS } from '@/lib/fleetModels';
+import { cabinProfile } from '@/lib/fleetModels/cabin';
 import { cleanJointsAt, sidesFor, type CleanSides } from '@/lib/ottoCleanArm/cleanArmPose';
 import { CLEAN_CHAIN, type CleanPhase } from '@/lib/ottoCleanArm/cleanArmSpec';
 import { washPoseAt } from '@/lib/ottoWash/washPose';
@@ -20,7 +21,7 @@ import { indexCad, poseCad, type CadModel } from './cadModel';
 import { cleanAngles, washJoints } from './catalog';
 
 /** The least room a machine keeps over or beside a vehicle it does not touch, metres. */
-const OVER_M = 0.05;
+const OVER_M = 0.10;
 const BESIDE_M = 0.25;
 
 function vertices(root: THREE.Object3D, keep: (m: THREE.Mesh) => boolean, visit: (p: THREE.Vector3, part: string) => void): void {
@@ -65,11 +66,14 @@ describe('each fleet vehicle\'s size against the machines that stand over it', (
   }, 120_000);
 
   it.each(FLEET_SPECS.map((s) => ({ key: s.key, spec: s })))('$key: the cleaning arm parks over it, and it drives through the wash bay', ({ spec }) => {
-    const over = cleanLow - spec.dims.height;
+    // the vehicle's highest point is its roof equipment as drawn, not its body height (the Ojai's lidar tops at 2.04 m)
+    const cabin = cabinProfile(spec);
+    const top = Math.max(cabin.height, ...cabin.equipment.map((e) => e.y1));
+    const over = cleanLow - top;
     expect(over, `${spec.key}: the cleaning arm's lowest parked point is ${over.toFixed(3)} m over the vehicle's top`).toBeGreaterThan(OVER_M);
     let beside = Infinity, at = '';
     for (const p of washPts) {
-      const out = Math.max(p.x - spec.dims.width / 2, p.y - spec.dims.height);
+      const out = Math.max(p.x - spec.dims.width / 2, p.y - top);
       if (out < beside) { beside = out; at = p.part; }
     }
     expect(beside, `${spec.key}: ${at} stands ${beside.toFixed(3)} m from the vehicle's swept box`).toBeGreaterThan(BESIDE_M);

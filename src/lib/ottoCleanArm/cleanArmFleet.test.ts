@@ -45,8 +45,10 @@ const BOTH: CleanSides[] = [sidesFor(1), sidesFor(-1)];
  * "What is short"). A vehicle not named holds 0.10 m. A value that moves by more than 5 mm fails the test: when a
  * machine or a vehicle changes, measure again and write the new number, or delete the line when it holds.
  */
-/** The stowed arm's wrist over the vehicle's highest point, metres. The Ojai's roof lidar tops at 2.04 m. */
-const PARKED_OVER_M: Record<string, number> = { waymo_ojai: 0.059 };
+/** The stowed arm's wrist over the vehicle's highest point, metres, where it is short. None is short since the arm was
+ *  raised 0.06 m on 2026-11-13 (CLEAN_ARM.link1Y 3.48): it parked 0.059 m over the Ojai's roof lidar (top 2.04 m)
+ *  before, and 0.119 m after. */
+const PARKED_OVER_M: Record<string, number> = {};
 /**
  * The OTTO-CHARGE ARM (on the car's left) to the nearest OPEN left door leaf, over its stowed pose, its run along its
  * rail, its mate and its latched pose, metres. Negative: the two overlap. The doors open on both flanks for a clean,

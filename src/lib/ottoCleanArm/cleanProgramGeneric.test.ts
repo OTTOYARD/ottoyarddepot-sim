@@ -5,6 +5,9 @@
  * until 2026-11-13; they are now a CleanProgram, and the generic car's is GENERIC_PROGRAM. This pins that program to
  * the joints the old code gave, to the last bit: __fixtures__/genericCleanJoints.json was written by the code as it
  * stood at ed3cb95, before the change (every phase, both stall sides; the clean phases at 61 points, the moves at 13).
+ * Rewritten once since, on 2026-11-13, when the arm was raised 0.06 m to park 0.10 m over the tallest roof sensor
+ * (CLEAN_ARM.link1Y 3.42 to 3.48): the mast foot's height moved in 356 of the 712 rows, by 0.06 m at most, and no other
+ * joint moved in any row.
  */
 import { describe, it, expect } from 'vitest';
 import PINNED from './__fixtures__/genericCleanJoints.json';

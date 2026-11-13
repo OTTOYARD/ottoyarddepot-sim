@@ -111,8 +111,8 @@
    },
    "bytes": {
     "glb": 1980108,
-    "stepZip": 1253034,
-    "step": 6925643,
+    "stepZip": 1253137,
+    "step": 6925670,
     "depot": 472000
    },
    "mesh": {
@@ -127,17 +127,17 @@
     "meshes": 72,
     "nodes": 96
    },
-   "depotSha256": "28690fbf7e88804c",
+   "depotSha256": "d25c91b243f16f67",
    "totals": {
     "parts": 238,
     "uniqueParts": 102,
     "fasteners": 141,
-    "massKg": 327.46,
+    "massKg": 324.4,
     "boughtLines": 63,
     "madeLines": 39,
     "referenceLines": 1
    },
-   "glbSha256": "b0832bfb66801363",
+   "glbSha256": "9d107ec7c0fe14d5",
    "stepCheck": {
     "namedParts": 240,
     "solids": 372,

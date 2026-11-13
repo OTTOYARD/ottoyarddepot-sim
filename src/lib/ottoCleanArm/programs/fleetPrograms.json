@@ -540,10 +540,10 @@
   "notReached": [
    "the front seat's back: at the front door, no wand through the opening reaches it inside the arm's travel and the cabin's free space",
    "the rear seat's back: at the rear door, no wand through the opening reaches it inside the arm's travel and the cabin's free space",
-   "the floor deep at the front door: the wand off a seat (87 of 120 wands measured)",
-   "the floor by the door at the front door: the wand off a seat (62 of 120 wands measured)",
-   "the floor deep at the rear door: the wand off a seat (120 of 120 wands measured)",
-   "the floor by the door at the rear door: the wand off a seat (119 of 120 wands measured)"
+   "the floor deep at the front door: the wand off a seat (94 of 120 wands measured)",
+   "the floor by the door at the front door: the wand off a seat (63 of 120 wands measured)",
+   "the floor deep at the rear door: the wand off a seat (119 of 119 wands measured)",
+   "the floor by the door at the rear door: the wand off a seat (118 of 120 wands measured)"
   ]
  },
  "zoox_robotaxi": {
@@ -1102,7 +1102,7 @@
   ],
   "notReached": [
    "the seat's back: at the door, no wand through the opening reaches it inside the arm's travel and the cabin's free space",
-   "the floor deep at the door: the wand off a seat (85 of 85 wands measured)",
+   "the floor deep at the door: the wand off a seat (74 of 74 wands measured)",
    "the floor by the door at the door: the wand off a seat (117 of 120 wands measured)"
   ]
  },
@@ -1278,11 +1278,11 @@
       "w": 2
      },
      {
-      "cx": -0.855,
+      "cx": -0.805,
       "cy": 1.012996,
-      "yaw": 4.258846,
-      "pitch": -8.652261,
-      "ext": 0.652698,
+      "yaw": 1.218875,
+      "pitch": -8.673442,
+      "ext": 0.649884,
       "nozzle": -62,
       "what": "rear seat, cushion",
       "w": 1
@@ -1458,11 +1458,11 @@
       "w": 2
      },
      {
-      "cx": -0.855,
+      "cx": -0.805,
       "cy": 1.012996,
-      "yaw": 4.258846,
-      "pitch": -8.652261,
-      "ext": 0.652698,
+      "yaw": 1.218875,
+      "pitch": -8.673442,
+      "ext": 0.649884,
       "nozzle": -62,
       "what": "rear seat, cushion",
       "w": 1
@@ -1475,7 +1475,7 @@
    "the floor deep at the front door: on the way: the wand -0.015 m off a seat, between turn and floor, deep",
    "the floor by the door at the front door: on the way: the wand 0.013 m off a seat, between turn and floor by the door",
    "the floor deep at the rear door: the wand off a seat (118 of 120 wands measured)",
-   "the floor by the door at the rear door: the wand off a seat (109 of 120 wands measured)"
+   "the floor by the door at the rear door: the wand off a seat (110 of 120 wands measured)"
   ]
  },
  "lucid_gravity_nuro": {
@@ -1945,7 +1945,7 @@
   "notReached": [
    "the front seat's back: at the front door, on the way out from between two strokes: the wand 0.017 m off a seat, between front seat, back and front seat, back",
    "the rear seat's back: at the rear door, no wand through the opening reaches it inside the arm's travel and the cabin's free space",
-   "the floor deep at the front door: on the way out: the wand off a seat (60 of 120 wands measured)",
+   "the floor deep at the front door: the wand off a seat (68 of 120 wands measured)",
    "the floor by the door at the front door: on the way: the wand 0.001 m off a seat, between turn and floor by the door"
   ]
  }
