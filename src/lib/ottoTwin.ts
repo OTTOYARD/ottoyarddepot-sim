@@ -105,20 +105,11 @@ export interface TwinVisitCard {
 export interface TwinVehicle {
   id: string; av_id: string; make: string; platform: string;
   state: string; soc: number; stall_id: string | null;
-  /** otto-q-core 0824: the car's model, and where its charge inlet is. Absent on an engine before 0824; `port` is
-   *  null for a car with no profile. */
+  /** otto-q-core 0824: the car's model name, and its charge inlet as the engine holds it. Absent on an engine before
+   *  0824; `port` is null for a car with no profile. `port.profile` names the vehicle model: the yard draws that model
+   *  (lib/fleetModels/assign.ts) and the charge arm mates that inlet (lib/ottoChargeArm/vehiclePort.ts). */
   model?: string | null;
   port?: import('@/lib/ottoChargeArm/vehiclePort').TwinPort | null;
-  /**
-   * The car's model name ("Model Y", "Ojai"), beside `make`. Absent from a backend that does not send it yet.
-   * The 3D yard reads it only to pick which vehicle model to draw (lib/fleetModels/assign.ts).
-   */
-  model?: string;
-  /**
-   * The car's charge inlet as the engine holds it. `profile` names the vehicle model the inlet belongs to; when it is
-   * one of the six fleet model keys the yard draws that model. Absent from a backend that does not send it yet.
-   */
-  port?: { profile: string; [field: string]: unknown };
   /**
    * The vehicle's open visit workflow. THREE distinct readings, and collapsing
    * any two of them would put a claim on screen that OTTO-Q never made:

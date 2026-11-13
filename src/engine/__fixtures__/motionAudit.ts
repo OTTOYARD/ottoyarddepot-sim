@@ -42,7 +42,7 @@ import { bodiesOverlap } from "./replay";
 import { twinMotionDriver, MAX_VIEW_MULT } from "../TwinMotionDriver";
 import { pointAt, type Rail } from "../motion/RailFlow";
 import { buildDepotLanes } from "../motion/LaneGraph";
-import { allStructureSolids, bodyHitsRect, type Rect } from "@/lib/structurePlan";
+import { allStructureSolids, bodyHitsBox, type OBox, type Rect } from "@/lib/structurePlan";
 import { CAR_BODY_LENGTH, CAR_BODY_WIDTH } from "../motion/traffic";
 
 const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
@@ -149,12 +149,12 @@ function solidGrid() {
   const solids = allStructureSolids();
   const reach = Math.hypot(CAR_BODY_LENGTH / 2, CAR_BODY_WIDTH / 2) + 0.1;
   const CELL = 16;
-  const grid = new Map<string, { kind: string; r: Rect }[]>();
+  const grid = new Map<string, { kind: string; r: Rect; box: OBox }[]>();
   for (const k of solids) {
     for (let cx = Math.floor((k.r.x0 - reach) / CELL); cx <= Math.floor((k.r.x1 + reach) / CELL); cx++) {
       for (let cy = Math.floor((k.r.y0 - reach) / CELL); cy <= Math.floor((k.r.y1 + reach) / CELL); cy++) {
         const key = `${cx},${cy}`;
-        (grid.get(key) ?? grid.set(key, []).get(key)!).push({ kind: k.kind, r: k.r });
+        (grid.get(key) ?? grid.set(key, []).get(key)!).push({ kind: k.kind, r: k.r, box: k.box });
       }
     }
   }
@@ -288,7 +288,7 @@ export function auditFixture(
         if (!e) continue;
         // ── structures (every pose, every step, as structureClearance.replay.test) ──
         for (const s of solidsAt(p.x, p.y)) {
-          if (bodyHitsRect(p, s.r, 0.05)) {
+          if (bodyHitsBox(p, s.box, 0.05)) {
             structureHits++;
             const kind = s.kind.replace(/-\d+$/, "");
             structureKinds[kind] = (structureKinds[kind] ?? 0) + 1;

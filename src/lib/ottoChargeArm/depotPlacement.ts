@@ -29,6 +29,7 @@
 import { CANOPIES, chargerStallFrame } from '@/lib/sitePlan';
 import { DECK_Y } from '@/components/canvas/three/coordUtils';
 import { PLAN_UNITS_PER_METRE, MOUNT_HEIGHT_M, PEDESTAL_OFFSET_PU } from './cobotSpec';
+import { bedCentreX } from './mateSolver';
 import {
   CABINET_BACKSET_PU, L2_POST_ALONG_PU, L2_POST_LATERAL_PU, DCFC_CABINET_PU, L2_CABINET_PU, dcfcPadSpan,
 } from './cabinetEnvelope';
@@ -136,6 +137,31 @@ export function chargerPad(
     cx: k.x + k.face.x * offset, cy: k.y + k.face.y * offset,
     hl: (dims.width + 0.6) / 2, hw: (span.front - span.back) / 2,
     th: Math.atan2(k.along.y, k.along.x), offset,
+  };
+}
+
+/** The rail bed's size on the deck, metres (cad charge_arm.py: 2 beams 4.84 m long; the carriage, its cross plate and
+ *  the cross-slide's motor sweep from 0.42 m behind the J1 line to 0.90 m in front of it, toward the car). */
+export const ARM_BED_M = { length: 4.84, back: 0.42, front: 0.9 } as const;
+
+/**
+ * The OTTO-CHARGE ARM's rail bed at a fast-charger stall, PLAN coordinates: the strip of deck its carriage rides,
+ * beside the car on its charger's flank. Its middle sits toward the car's tail from the stall's middle
+ * (mateSolver.bedCentreX: most inlets are behind the middle of the car). The one footprint structurePlan drives cars
+ * against and the 2D plan draws. Same shape as chargerPad: `hl` along the car, `hw` square to it.
+ */
+export function chargerBed(stallX: number, stallY: number, bearing: number): { cx: number; cy: number; hl: number; hw: number; th: number } {
+  const f = portFlank(stallX, bearing);
+  const { fwd } = chargerStallFrame(bearing);
+  const P = PLAN_UNITS_PER_METRE;
+  // toward the tail by half the difference of the two travels, whichever way the stall faces
+  const along = -Math.abs(bedCentreX(1)) * P;
+  // out from the car: the J1 line is PEDESTAL_OFFSET_PU off the centreline; the strip's middle is (front - back) / 2 nearer the car
+  const out = PEDESTAL_OFFSET_PU - ((ARM_BED_M.front - ARM_BED_M.back) / 2) * P;
+  return {
+    cx: stallX + fwd.x * along + f.x * out, cy: stallY + fwd.y * along + f.y * out,
+    hl: (ARM_BED_M.length / 2) * P, hw: ((ARM_BED_M.front + ARM_BED_M.back) / 2) * P,
+    th: Math.atan2(fwd.y, fwd.x),
   };
 }
 
