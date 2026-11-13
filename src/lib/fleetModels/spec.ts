@@ -88,7 +88,27 @@ export interface VehicleSpec {
   /** Door mirrors [xr, y] of the mount, or none. */
   mirrors?: { xr: number; y: number };
   /** Charge port: side, station and height. */
-  chargePort?: { side: -1 | 1; xr: number; y: number; note: string };
+  chargePort?: ChargePortSpec;
+}
+
+export type Connector = 'CCS1' | 'NACS';
+
+/** Where a vehicle's charge inlet is. The robots and the engine read this, so every field is a fact or a named assumption. */
+export interface ChargePortSpec {
+  /** Which face of the body the inlet is on. A rear inlet faces backward, on the centreline unless `z` says otherwise. */
+  face: 'left' | 'right' | 'rear';
+  /** Metres back from the front bumper. For a rear inlet this is the body length. */
+  xr: number;
+  /** Height of the inlet's centre above the ground, metres. */
+  y: number;
+  /** Lateral offset of a rear inlet from the centreline, metres (+ right). */
+  z?: number;
+  connector: Connector;
+  /** A vehicle that drives equally well in both directions can present either flank to a charger. */
+  presentsEitherSide?: boolean;
+  /** True when the position is not published and is placed as an assumption. */
+  assumed: boolean;
+  note: string;
 }
 
 /** Field builders handed to a spec's `regions`. */

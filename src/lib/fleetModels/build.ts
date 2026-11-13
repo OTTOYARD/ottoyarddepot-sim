@@ -450,17 +450,29 @@ export function buildVehicle(spec: VehicleSpec, opts: BuildOptions = {}): THREE.
     const cp = spec.chargePort;
     const g = new THREE.Group();
     g.name = 'charge_port';
-    // Find the ring position at the port's height.
-    let lo = K_SILL_SAFE;
-    let hi = K_BELT;
-    for (let i = 0; i < 24; i++) { const m2 = (lo + hi) / 2; if (s.point(cp.xr, m2, cp.side)[1] < cp.y) lo = m2; else hi = m2; }
-    const p = s.point(cp.xr, lo, cp.side);
-    const n = s.normalAt(cp.xr, lo, cp.side);
+    let p: [number, number, number];
+    let n: [number, number, number];
+    if (cp.face === 'rear') {
+      // On the tail: walk forward from the bumper's tip until the body is as tall as the inlet is high.
+      p = [-L / 2, cp.y, cp.z ?? 0];
+      n = [-1, 0, 0];
+      for (let xr = L; xr > L - 0.4; xr -= 0.002) {
+        const st = s.at(xr);
+        if (st.yb < cp.y - 0.08 && st.yt > cp.y + 0.08 && st.hw > Math.abs(cp.z ?? 0) + 0.1) { p = [L / 2 - xr, cp.y, cp.z ?? 0]; break; }
+      }
+    } else {
+      const side = cp.face === 'left' ? -1 : 1;
+      // Find the ring position at the port's height.
+      let lo = K_SILL_SAFE;
+      let hi = K_BELT;
+      for (let i = 0; i < 24; i++) { const m2 = (lo + hi) / 2; if (s.point(cp.xr, m2, side)[1] < cp.y) lo = m2; else hi = m2; }
+      p = s.point(cp.xr, lo, side);
+      n = s.normalAt(cp.xr, lo, side);
+    }
     g.position.set(p[0] + n[0] * 0.002, p[1] + n[1] * 0.002, p[2] + n[2] * 0.002);
     g.lookAt(g.position.clone().add(new THREE.Vector3(n[0], n[1], n[2])));
-    const ringGeo = new THREE.RingGeometry(0.072, 0.078, 32);
-    g.add(new THREE.Mesh(ringGeo, mats.cavity));
-    g.userData.chargePort = { side: cp.side, note: cp.note, normal: n };
+    g.add(new THREE.Mesh(new THREE.RingGeometry(0.072, 0.078, 32), mats.cavity));
+    g.userData.chargePort = { ...cp, normal: n };
     root.add(g);
   }
 

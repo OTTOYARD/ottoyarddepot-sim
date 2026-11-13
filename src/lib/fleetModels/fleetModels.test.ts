@@ -117,12 +117,23 @@ describe('fleet vehicle models', () => {
     }
   });
 
-  it('records a charge port only where one is known or stated as an assumption', () => {
-    const port = (key: string) => cars.find((c) => c.spec.key === key)!.car.getObjectByName('charge_port');
-    expect(port('waymo_ipace')!.position.z).toBeLessThan(0); // left front wing
-    expect(port('waymo_ipace')!.position.x).toBeGreaterThan(0);
-    expect(port('tesla_model_y')!.position.x).toBeLessThan(0); // left rear
-    expect(port('tesla_cybercab')).toBeUndefined();
-    expect(port('zoox_robotaxi')).toBeUndefined();
+  it('records every charge port on the face its maker puts it', () => {
+    const port = (key: string) => cars.find((c) => c.spec.key === key)!.car.getObjectByName('charge_port')!;
+    const half = (key: string) => cars.find((c) => c.spec.key === key)!.spec.dims.length / 2;
+    expect(port('waymo_ipace').position.z).toBeLessThan(0); // left
+    expect(port('waymo_ipace').position.x).toBeGreaterThan(0); // front wing
+    for (const key of ['tesla_model_y', 'lucid_gravity_nuro', 'waymo_ojai']) {
+      expect(port(key).position.z).toBeLessThan(0);
+      expect(port(key).position.x).toBeLessThan(-1.5); // rear quarter
+    }
+    // The Cybercab's inlet is in the rear bumper, on the centreline, facing back.
+    const cc = port('tesla_cybercab');
+    expect(Math.abs(cc.position.z)).toBeLessThan(0.01);
+    expect(cc.position.x).toBeLessThan(-half('tesla_cybercab') + 0.4);
+    expect(cc.userData.chargePort.normal[0]).toBe(-1);
+    // Two connectors cover the six vehicles.
+    expect(new Set(cars.map((c) => c.spec.chargePort!.connector))).toEqual(new Set(['CCS1', 'NACS']));
+    // What is assumed says so.
+    expect(cars.filter((c) => c.spec.chargePort!.assumed).map((c) => c.spec.key).sort()).toEqual(['tesla_cybercab', 'waymo_ojai', 'zoox_robotaxi']);
   });
 });

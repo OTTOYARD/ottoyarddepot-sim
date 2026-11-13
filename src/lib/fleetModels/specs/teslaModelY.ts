@@ -77,5 +77,5 @@ export const teslaModelY: VehicleSpec = {
   ],
   steeringWheel: true,
   mirrors: { xr: 1.76, y: 1.07 },
-  chargePort: { side: -1, xr: 4.56, y: 1.0, note: 'Left rear, in the tail-lamp cluster (NACS).' },
+  chargePort: { face: 'left', xr: 4.56, y: 1.0, connector: 'NACS', assumed: false, note: 'Left rear, in the tail-lamp cluster (NACS).' },
 };

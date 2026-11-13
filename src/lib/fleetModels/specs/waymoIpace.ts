@@ -97,5 +97,5 @@ export const waymoIpace: VehicleSpec = {
   ],
   steeringWheel: true,
   mirrors: { xr: 1.6, y: 1.06 },
-  chargePort: { side: -1, xr: 1.14, y: 0.9, note: 'Left front wing, above and behind the wheel arch (CCS1).' },
+  chargePort: { face: 'left', xr: 1.14, y: 0.9, connector: 'CCS1', assumed: false, note: 'Left front wing, above and behind the wheel arch (CCS1).' },
 };

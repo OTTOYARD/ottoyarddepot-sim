@@ -102,5 +102,5 @@ export const waymoOjai: VehicleSpec = {
   ],
   steeringWheel: true,
   mirrors: { xr: 1.36, y: 1.18 },
-  chargePort: { side: -1, xr: 4.2, y: 0.95, note: 'ASSUMPTION: left rear quarter, as on the related Zeekr Mix. Waymo has not published it.' },
+  chargePort: { face: 'left', xr: 4.2, y: 0.95, connector: 'CCS1', assumed: true, note: 'ASSUMPTION: left rear quarter, CCS1. Waymo has published neither the position nor the connector.' },
 };

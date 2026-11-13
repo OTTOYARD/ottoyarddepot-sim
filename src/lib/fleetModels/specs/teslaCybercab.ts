@@ -16,7 +16,7 @@ export const teslaCybercab: VehicleSpec = {
     dimensions: "Reported height 1.407 m and width 1.753 m (a second source says 1.60 m); length about 4.445 m is an estimate from a drone photograph. Wheelbase is not published: 2.84 m is measured off a side photograph.",
     doors: "Two powered butterfly doors, no handles. Hinge line and 78 degree swing are fitted to a photograph of the open door.",
     sensors: "Reported: eight outward cameras, no lidar or radar. Positions follow Tesla's usual layout and are an assumption.",
-    chargePort: "Tesla describes inductive charging under the car as the main method; no plug location is published, so none is drawn.",
+    chargePort: "Reported: a NACS inlet behind a drop-down door in the rear bumper, DC only, no onboard AC charger. Its height and exact position are not published; the centre of the bumper at 0.62 m is an assumption. Inductive pads are planned, not in service.",
   },
   dims: { length: L, width: 1.753, height: 1.407, wheelbase: WB, frontAxle: FA, track: 1.5, tyreRadius: 0.385, tyreWidth: 0.235, rimRadius: 0.28 },
   finish: 'satin',
@@ -66,4 +66,5 @@ export const teslaCybercab: VehicleSpec = {
   ],
   seats: [{ xr: 2.5, z: -0.36, facing: 1 }, { xr: 2.5, z: 0.36, facing: 1 }],
   steeringWheel: false,
+  chargePort: { face: 'rear', xr: L, y: 0.62, connector: 'NACS', assumed: true, note: 'Rear bumper, behind a drop-down door (NACS, DC only). Height and lateral position assumed: centre, 0.62 m.' },
 };

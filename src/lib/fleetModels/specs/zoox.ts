@@ -34,7 +34,7 @@ export const zoox: VehicleSpec = {
     dimensions: "Published length 3.63 m and height 1.936 m. Width (about 1.83 m, \"nearly six feet\"), wheelbase, track and tyres are estimated from photographs.",
     doors: "Two glass sliding panels a side that part from the middle. Travel is estimated.",
     sensors: "Published: a sensor pod at each of the four roof corners with lidar, radar, cameras and long-wave infrared, about 270 degrees each. Counts per pod are not published; what is drawn is illustrative.",
-    chargePort: "Not published; none is drawn.",
+    chargePort: "Not published. Placed low on one side near a corner, CCS1, as an assumption. The vehicle drives either way, so it can present that side to a charger on its left or its right.",
   },
   dims: { length: L, width: 1.83, height: 1.936, bodyHeight: 1.885, wheelbase: WB, frontAxle: FA, track: 1.6, tyreRadius: 0.37, tyreWidth: 0.225, rimRadius: 0.27 },
   finish: 'metallic',
@@ -90,4 +90,5 @@ export const zoox: VehicleSpec = {
     { xr: L - 0.98, z: 0, facing: 1, width: 1.2 },
   ],
   steeringWheel: false,
+  chargePort: { face: 'left', xr: 3.0, y: 0.78, connector: 'CCS1', presentsEitherSide: true, assumed: true, note: 'ASSUMPTION: one CCS1 inlet low on a side, near a corner. Zoox has not published it.' },
 };

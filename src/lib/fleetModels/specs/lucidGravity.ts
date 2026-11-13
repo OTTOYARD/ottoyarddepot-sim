@@ -97,5 +97,5 @@ export const lucidGravity: VehicleSpec = {
   ],
   steeringWheel: true,
   mirrors: { xr: 1.82, y: 1.1 },
-  chargePort: { side: -1, xr: 4.55, y: 1.02, note: 'Left rear quarter (NACS).' },
+  chargePort: { face: 'left', xr: 4.55, y: 1.02, connector: 'NACS', assumed: false, note: 'Left rear quarter (NACS).' },
 };
