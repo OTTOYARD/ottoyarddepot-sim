@@ -4,14 +4,19 @@ import type { VehicleSpec } from './spec';
 
 export type MaterialSet = Record<string, THREE.Material>;
 
+/** A paint finish as material numbers. The yard's light model reads the same ones (fleetYard.ts). */
+export function paintFinishOf(finish: 'solid' | 'metallic' | 'satin'): { metalness: number; roughness: number; clearcoat: number; clearcoatRoughness: number } {
+  return finish === 'metallic'
+    ? { metalness: 0.75, roughness: 0.32, clearcoat: 1, clearcoatRoughness: 0.05 }
+    : finish === 'satin'
+      ? { metalness: 0.55, roughness: 0.42, clearcoat: 0.35, clearcoatRoughness: 0.3 }
+      : { metalness: 0.05, roughness: 0.38, clearcoat: 1, clearcoatRoughness: 0.05 };
+}
+
 export function makeMaterials(c: VehicleSpec['colors'], paintFinish: 'solid' | 'metallic' | 'satin' = 'solid'): MaterialSet {
   const phys = (o: THREE.MeshPhysicalMaterialParameters & { name: string }) => new THREE.MeshPhysicalMaterial(o);
   const std = (o: THREE.MeshStandardMaterialParameters & { name: string }) => new THREE.MeshStandardMaterial(o);
-  const paintBase = paintFinish === 'metallic'
-    ? { metalness: 0.75, roughness: 0.32, clearcoat: 1, clearcoatRoughness: 0.05 }
-    : paintFinish === 'satin'
-      ? { metalness: 0.55, roughness: 0.42, clearcoat: 0.35, clearcoatRoughness: 0.3 }
-      : { metalness: 0.05, roughness: 0.38, clearcoat: 1, clearcoatRoughness: 0.05 };
+  const paintBase = paintFinishOf(paintFinish);
   return {
     paint: phys({ name: 'paint', color: c.paint, ...paintBase }),
     paint2: phys({ name: 'paint2', color: c.paint2 ?? 0x101214, ...paintBase }),

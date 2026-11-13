@@ -4,9 +4,10 @@ Six 3D models of autonomous vehicles that carry riders in the United States in N
 that a depot can show more than one maker's cars. Each has working doors of the right kind, the maker's sensors as
 named parts, and a recorded charge port where one is known.
 
-They are **not in the yard yet**. The yard still draws one car at one size (`vehicleBody.ts`), and every clearance,
-following gap and robot reach is measured against that car. Putting these in the yard is a separate change
-(see "What comes next").
+**The 3D yard draws them (2026-11-13), and only draws them.** Each car is drawn as its own model at a light level of
+detail (see "In the yard"). Every clearance, following gap and robot reach is still measured against the one generic
+car (`traffic.CAR_LENGTH` x `CAR_WIDTH`, `vehicleEnvelope.ts`), and the 2D plan still draws that car. The models
+differ in size from it. Giving each vehicle its own envelope is a separate change (see "What comes next").
 
 ![All six, doors shut](pr-shots/fleet/fleet_closed.png)
 ![All six, doors open](pr-shots/fleet/fleet_open.png)
@@ -19,7 +20,10 @@ following gap and robot reach is measured against that car. Putting these in the
 | `src/lib/fleetModels/specs/` | One spec per vehicle: dimensions, body curves, door cuts, glass, lamps, sensors, seats. |
 | `public/fleet/<key>.glb` | The same models as files (metres, +X nose, +Y up), each with a `doors_open` animation. |
 | `public/fleet/manifest.json` | Per vehicle: dimensions, door rigs (pivot, axis, travel), every sensor's type and position, charge port, and what is assumed. |
-| `fleet-check.html` | Dev page: `?model=<key>&view=iso&doors=0..1`, `&glb=1` to load the file instead of building. |
+| `src/lib/fleetModels/yardLod.ts` | `bakeYardModel(spec)`: the light model the yard draws, merged by finish, doors kept apart. |
+| `src/lib/fleetModels/assign.ts` | `fleetModelKeyFor(row)`: which model a car of the twin's snapshot is drawn as. |
+| `src/components/canvas/three/fleetYard.ts` | The instanced fleet of one model: every car of a model in a fixed number of draw calls. |
+| `fleet-check.html` | Dev page: `?model=<key>&view=iso&doors=0..1`, `&glb=1` to load the file instead of building, `&yard=1` for the yard's light model through the yard's own draw path. |
 | `scripts/fleetShots.mjs`, `scripts/exportFleetModels.mjs` | Shoot the page; rewrite the GLBs and the manifest. |
 
 Rebuild the files after a spec change (dev server on 8094): `node scripts/exportFleetModels.mjs`.
@@ -90,13 +94,66 @@ view dllu.jpg" and "Tesla_Cybercab_-_San_Francisco_-_June_2026.jpg". No photogra
 Was the Lucid in public service on 2026-11-13? Not established. Nuro's page says "late 2026"; one tracker says the
 launch slipped to early 2027. It is here because Nuro was asked for and this is the only Nuro Driver passenger car.
 
+## In the yard
+
+![Fast chargers](pr-shots/fleet-yard/chargers.png)
+![Staging](pr-shots/fleet-yard/staging.png)
+
+The same staging row before, every car the generic car: `pr-shots/fleet-yard/staging-before.png`.
+
+**Which model a car is** comes from the twin's snapshot row, in `fleetModelKeyFor`: the row's `port.profile` when it
+is one of the six keys, else the first match on the make and model text (`cybercab`, `tesla`, `zeekr|ojai`,
+`jaguar|i-pace|waymo`, `zoox`, `lucid|gravity`), else the generic car. The recorded run `fresh0922` has 116 cars:
+44 I-PACE, 36 Model Y, 34 Zoox, 2 Ojai. Its rows carry a make and no model, so no car there is a Cybercab or a Gravity.
+
+**The light model** is the same surface and the same cuts on a coarser grid (`buildVehicle(spec, { yard: true })`):
+the outer skin alone, plain wheels, box seats, no sensor under 5 cm. `bakeYardModel` merges it by finish. Measured
+by `yardLod.test.ts` and `fleetYard.test.ts`:
+
+| Key | Triangles a car | Body draws | Door draws | All draws |
+|---|---|---|---|---|
+| `waymo_ojai` | 8,666 | 5 | 8 | 15 |
+| `waymo_ipace` | 9,016 | 5 | 8 | 15 |
+| `zoox_robotaxi` | 8,846 | 5 | 8 | 15 |
+| `tesla_cybercab` | 7,340 | 5 | 4 | 11 |
+| `tesla_model_y` | 8,367 | 5 | 8 | 15 |
+| `lucid_gravity_nuro` | 9,018 | 5 | 8 | 15 |
+
+"All draws" is for every car of that model together: five body finishes (paint, gloss, matte, rim, lamps), a panel
+and a window for each door, the status strips and the shadow body. The shadow pass draws one more, a closed body of
+572 triangles, in place of the model. The body box is within 3 cm of the full model's. A model is built in the
+browser once, in about 0.1 s, and its cars are the generic car until then.
+
+**Measured in the cockpit** (`scripts/perfHarness.mjs`, recorded run `fresh0922`, desktop profile, whole frame with
+the shadow and post passes; a software renderer, so frame times are not quoted):
+
+| Camera | Cars on site | Draw calls, generic car | Draw calls, models | Triangles, generic car | Triangles, models |
+|---|---|---|---|---|---|
+| Bird Eye | 50 | 522 | 566 | 2.68M | 3.02M |
+| Operator | 38 | 535 | 579 | 2.62M | 2.88M |
+| Canopy | 32 | 500 | 544 | 2.56M | 2.75M |
+
+That run draws four models. The 44 more draw calls do not grow with the number of cars. Triangles do: a model is 7,340 to
+9,018 a car plus its 572-triangle shadow body, and the generic car is 2,464 with its body, glass and doors drawn
+again in the shadow pass. Measured: 0.34M more triangles a frame with 50 cars on site. Not measured: a frame with
+all 116 cars on site, and frame rate on a real GPU or a phone.
+
+A solid paint takes the generic fleet's paint numbers in the yard (`fleetYard.YARD_SOLID`). A white car is still
+very bright in the yard's sun, as the generic fleet's white cars are (see the before picture). Metallic and satin
+paints keep the spec's.
+
+**What stays the generic car's:** the pose, the charge-port ring (it is where the charge arm mates, on the generic
+car's flank, so it stands a few centimetres off a narrower model and inside a wider one), the hover badge and the
+owner marks. Doors open by the same door store value, through each model's own rig. Paint is each model's own, so
+cars of one model are one colour.
+
 ## What these models are, and are not
 
 - They are built from code and published dimensions, not scanned or traced from a maker's CAD. Proportions, door
   kinds and sensor layout are right enough to tell the six apart at a glance and to measure reach against. Surface
   detail (panel creases, lamp internals, wheel designs, grilles) is simplified. They carry no badges.
 - About 115,000 to 145,000 triangles each in the files (3 to 5.7 MB). That is a close-up model. The yard draws up to
-  116 cars and needs a lighter level of detail before these go in it.
+  116 cars, so it draws the light model above, not these files.
 
 ## What the robots will have to deal with
 
@@ -117,7 +174,8 @@ These came out of building the models. None is fixed here.
 
 ## What comes next
 
-1. A light level of detail per vehicle (a few thousand triangles) for the yard.
+1. Done 2026-11-13: a light level of detail per vehicle for the yard (7,300 to 9,000 triangles).
 2. A per-vehicle envelope in the place `vehicleEnvelope.ts` holds the one car's, so traffic gaps, stall fit and the
    robots' clearance tests read each vehicle's own body.
-3. Map each owner in the twin to its vehicles, from the engine's data, not in the renderer.
+3. Map each owner in the twin to its vehicles, from the engine's data, not in the renderer. The yard reads the row's
+   `model` and `port.profile` when the engine sends them; until then it reads the make.

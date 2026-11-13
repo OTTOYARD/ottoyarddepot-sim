@@ -272,6 +272,14 @@ not draw the seven units yet; where they stand is a site-plan decision.
   pedestal in rather than making the arm reach further than it was measured to.
   ⚠️ Changing `rightOffset` or the car's size moves routed motion and every replay: measure all of
   them (fixture, flow, turn radius, docking, structure clearance, arm clearance), not a drive-by edit.
+- **The 3D yard DRAWS each car as its vehicle model (2026-11-13); nothing else reads the model.**
+  `fleetModels/assign.ts` names a car's model from the twin's row (`port.profile`, else make and model),
+  `fleetModels/yardLod.ts` bakes a light model (at most 12,000 triangles, `yardLod.test.ts`) and
+  `three/fleetYard.ts` draws every car of a model instanced (at most 15 draw calls a model, one in the
+  shadow pass). The traffic body, every clearance, every robot, the charge-port ring and the 2D plan
+  are still the one generic car above, which is also what a car the row does not name is drawn as.
+  The models differ from it in size (3.63 to 5.03 m long): do not "fix" that in the renderer. A new
+  thing drawn on a car goes in both draw paths (`Vehicle3D.tsx`). `docs/FLEET-MODELS.md`, "In the yard".
 - **`ResponsiveGuard` routes phones to the PHONE cockpit** (`src/components/phone`, since 2026-09-30):
   a touch-first screen whose short side is < 600 px, or any window < 900 px (`phoneLayout.isPhoneViewport`;
   `?phone=1` forces it). Everything else gets the desktop cockpit, unchanged — test the desktop at
