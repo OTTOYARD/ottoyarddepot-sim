@@ -221,9 +221,9 @@ class OpeningPlan {
       const why = this.full(q);
       if (why) return `on the way: ${why}`;
       // a step can end at any point of a stroke: the way out is checked from points along it, not only from its ends
-      if (i % 2 === 0 && this.base) {
+      if (this.base) {
         const program = this.probe([this.base.hub], this.base.scoopY, this.base.readyX, this.base.turnYaw);
-        for (const t of [0.25, 0.35, 0.45, 0.55, 0.65, 0.85]) {
+        for (const t of [0.08, 0.16, 0.25, 0.35, 0.45, 0.55, 0.65, 0.85]) {
           const out = this.full(cleanJointsAt('exit_a', t, SIDES, { from: q, program }));
           if (out) return `on the way out from between two strokes: ${out}`;
         }

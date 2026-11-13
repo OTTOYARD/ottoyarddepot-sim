@@ -292,8 +292,24 @@ not draw the seven units yet; where they stand is a site-plan decision.
   `mateSolver.test.ts`, `mateSequence.test.ts`, `armFleetClearance.test.ts` (the CAD arm against each
   vehicle's body), `armColumnClearance.test.ts` and `fleetEnvelope.test.ts`. ⚠️ A new vehicle, a moved inlet
   or a changed `ARM_REACH` needs all five, then `CAD_SPEC_WRITE=1` for the pose file and `cad/clash.py`.
-  The cleaning arm and the wash machine still work to the generic car. `docs/CHARGE-ARM-REACH.md`.
+  The wash machine still works to the generic car. `docs/CHARGE-ARM-REACH.md`.
   `scripts/liveChargeShots.mjs --run <id>` films live mates and prints each arm's base position.
+- **The OTTO-CLEAN ARM plays one program a vehicle (2026-11-13).** Chase: *"train all robotics individually for
+  each vehicle type ... Our system knows which car is pulling into which stall."* A `CleanProgram`
+  (`ottoCleanArm/cleanArmPose.ts`) is a list of VISITS, one a door opening, each with its strokes, its aperture
+  plane, its swing-in height and its ready point; the phase chain is built from it (eight moves a visit,
+  `cleanArmSpec.cleanChainFor`), so a four-door car has four visits (`clean_a` .. `clean_d`). The generic car's is
+  `GENERIC_PROGRAM`, pinned to the old joints to the last bit (`cleanProgramGeneric.test.ts`). Each fleet vehicle's
+  is MADE BY RULE from its cabin (`fleetModels/cabin.ts` derives openings, door leaves, seats, floor and headliner
+  from the spec; `cleanProgramFleet.ts` searches each stroke's wand and keeps only what holds every margin) and
+  STORED in `ottoCleanArm/programs/fleetPrograms.json`. The gate passes the row's model key
+  (`cleanGate` `model`, `TwinMotionDriver.fleetModelOf`), the session keeps it (`CleanSession.program`), and every
+  view draws `cleanSessionJoints(session)`: never pick a program in a view. ⚠️ A changed vehicle spec, `CLEAN_ARM`,
+  or generator rule makes `cleanProgramFleet.test.ts` fail until
+  `CLEAN_PROGRAM_WRITE=1 npx vitest run src/lib/ottoCleanArm/cleanProgramFleet.test.ts` rewrites the file; then
+  `cleanArmFleet.test.ts` must hold (every pose of every vehicle's cycle against its own body, leaves, openings,
+  cabin, seats, and the charge arm at its own mate). That test STATES two measured shortfalls instead of hiding
+  them: do not relax them, fix the machine or the choreography. `docs/CLEAN-ARM-PER-VEHICLE.md`.
 - **`ResponsiveGuard` routes phones to the PHONE cockpit** (`src/components/phone`, since 2026-09-30):
   a touch-first screen whose short side is < 600 px, or any window < 900 px (`phoneLayout.isPhoneViewport`;
   `?phone=1` forces it). Everything else gets the desktop cockpit, unchanged — test the desktop at
