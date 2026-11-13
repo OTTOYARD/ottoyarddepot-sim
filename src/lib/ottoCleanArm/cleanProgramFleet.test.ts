@@ -37,24 +37,31 @@ function stored(p: StoredCleanProgram): StoredCleanProgram {
 
 describe('the fleet\'s clean programs', () => {
   const made = new Map<string, FleetProgramResult>();
-  it('makes one for every fleet vehicle, and the stored file holds exactly those', { timeout: 600_000 }, () => {
-    const out: Record<string, StoredCleanProgram> = {};
-    for (const spec of FLEET_SPECS) {
-      const t0 = performance.now();
-      const r = fleetCleanProgram(cabinProfile(spec));
-      made.set(spec.key, r);
-      out[spec.key] = stored(r.stored);
-      const v = r.stored.visits;
-      console.log(`PROGRAM ${spec.key}: ${v.length} visits (${v.filter((q) => q.flank === 'far').map((q) => `${q.opening} ${q.strokes.length} keys`).join(', ') || 'none'}), ${(performance.now() - t0).toFixed(0)} ms`);
-      for (const o of r.openings) {
-        console.log(`  ${o.opening}: ${o.used ? 'used' : `NOT USED: ${o.why}`}; wrist run ${o.corridor ? `${o.corridor[0].toFixed(2)}..${o.corridor[1].toFixed(2)} m` : 'none'}; cleans ${o.cleaned.join(', ') || 'nothing'}${o.left.length ? `; leaves ${o.left.join(', ')}` : ''}`);
-      }
-      for (const n of r.stored.notReached) console.log(`  not reached: ${n}`);
-    }
-    const text = `${JSON.stringify(out, null, 1)}\n`;
+  const out: Record<string, StoredCleanProgram> = {};
+  // One test a vehicle: each takes about 9 s of unbroken work, and one test for all six kept its worker silent for
+  // 53 s, long enough for the runner to report a timeout on a busy machine (CI, 2026-11-13).
+  it.each(FLEET_SPECS.map((spec) => ({ key: spec.key, spec })))('makes $key\'s program', { timeout: 300_000 }, async ({ spec }) => {
+    await new Promise((r) => setTimeout(r, 0));
+    const t0 = performance.now();
+    const r = fleetCleanProgram(cabinProfile(spec));
+    made.set(spec.key, r);
+    out[spec.key] = stored(r.stored);
+    const v = r.stored.visits;
+    console.log(`PROGRAM ${spec.key}: ${v.length} visits, ${(performance.now() - t0).toFixed(0)} ms`);
+    for (const o of r.openings) console.log(`  ${o.opening}: ${o.used ? 'used' : `NOT USED: ${o.why}`}; cleans ${o.cleaned.join(', ') || 'nothing'}`);
+    for (const n of r.stored.notReached) console.log(`  not reached: ${n}`);
+    expect(v.length).toBeGreaterThan(0);
+  });
+
+  it('the stored file holds exactly those programs', () => {
+    expect(Object.keys(out).sort()).toEqual(FLEET_SPECS.map((s) => s.key).sort());
+    // in the specs' own order, as the file is written
+    const ordered: Record<string, StoredCleanProgram> = {};
+    for (const spec of FLEET_SPECS) ordered[spec.key] = out[spec.key];
+    const text = `${JSON.stringify(ordered, null, 1)}\n`;
     if (WRITE) writeFileSync(FILE, text);
     expect(existsSync(FILE)).toBe(true);
-    expect(JSON.parse(readFileSync(FILE, 'utf8')), 'programs/fleetPrograms.json is stale: run with CLEAN_PROGRAM_WRITE=1').toEqual(out);
+    expect(JSON.parse(readFileSync(FILE, 'utf8')), 'programs/fleetPrograms.json is stale: run with CLEAN_PROGRAM_WRITE=1').toEqual(ordered);
   });
 
   it('the yard reads those programs by model key, and the generic one for anything else', () => {
