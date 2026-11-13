@@ -4,6 +4,19 @@
   "stowed",
   "pose:stowed",
   "pose:connected",
+  "pose:connected_axis",
+  "pose:mate_waymo_ojai",
+  "pose:base_waymo_ojai",
+  "pose:mate_waymo_ipace",
+  "pose:base_waymo_ipace",
+  "pose:mate_zoox_robotaxi",
+  "pose:base_zoox_robotaxi",
+  "pose:mate_tesla_cybercab",
+  "pose:base_tesla_cybercab",
+  "pose:mate_tesla_model_y",
+  "pose:base_tesla_model_y",
+  "pose:mate_lucid_gravity_nuro",
+  "pose:base_lucid_gravity_nuro",
   "cycle:unstow:mid",
   "cycle:unstow:end",
   "cycle:approach:mid",
@@ -23,39 +36,1782 @@
   "cycle:retract:mid",
   "cycle:retract:end"
  ],
- "pairsChecked": 33659,
- "contactPairs": 1503,
+ "pairsChecked": 30253,
+ "pairsMeasured": 15032,
+ "contactPairs": 1987,
  "counts": {
-  "thread": 656,
-  "seal": 12,
+  "thread": 816,
+  "seal": 13,
   "ring": 9,
   "mesh": 3,
-  "context": 17,
-  "clash": 0,
+  "context": 37,
+  "clash": 3,
   "error": 0
  },
- "clashes": [],
- "floating": [],
+ "clashes": [
+  {
+   "kind": "clash",
+   "a": {
+    "item": "CHG-RSR#1",
+    "part": "CHG-RSR",
+    "name": "Riser weldment",
+    "sub": "MOUNT"
+   },
+   "b": {
+    "item": "GLAND-M20#1",
+    "part": "GLAND-M20",
+    "name": "Cable gland M20 x 1.5, IP68",
+    "sub": "J1"
+   },
+   "volumeMm3": 2323.8,
+   "at": [
+    37.0,
+    -261.2,
+    0.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "clash",
+   "a": {
+    "item": "CHG-CON-NACS#1",
+    "part": "CHG-CON-NACS",
+    "name": "DC connector body, robotic, NACS (SAE J3400)",
+    "sub": "TOOL"
+   },
+   "b": {
+    "item": "CHG-SOL#2",
+    "part": "CHG-SOL",
+    "name": "Latch solenoid, 24 V",
+    "sub": "TOOL"
+   },
+   "volumeMm3": 108.8,
+   "at": [
+    -100.0,
+    354.0,
+    764.7
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "clash",
+   "a": {
+    "item": "CHG-CON-CCS#1",
+    "part": "CHG-CON-CCS",
+    "name": "DC connector body, robotic, CCS1 (SAE J1772 combo)",
+    "sub": "TOOL"
+   },
+   "b": {
+    "item": "CHG-SOL#1",
+    "part": "CHG-SOL",
+    "name": "Latch solenoid, 24 V",
+    "sub": "TOOL"
+   },
+   "volumeMm3": 108.8,
+   "at": [
+    100.0,
+    354.0,
+    764.7
+   ],
+   "poses": [
+    "stowed"
+   ]
+  }
+ ],
+ "floating": [
+  [
+   {
+    "item": "CHG-BBM#1",
+    "part": "CHG-BBM",
+    "name": "Bed beam, RHS 120 x 80 x 6",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BPL#1",
+    "part": "CHG-BPL",
+    "name": "Bed plate 300 x 160 x 12",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BGB#1",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-ANC-M16#1",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO7089-16-fast_zn#1",
+    "part": "ISO7089-16-fast_zn",
+    "name": "Plain washer 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4032-M16-8#1",
+    "part": "ISO4032-M16-8",
+    "name": "Hex nut M16",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-ANC-M16#2",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO7089-16-fast_zn#2",
+    "part": "ISO7089-16-fast_zn",
+    "name": "Plain washer 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4032-M16-8#2",
+    "part": "ISO4032-M16-8",
+    "name": "Hex nut M16",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BPL#2",
+    "part": "CHG-BPL",
+    "name": "Bed plate 300 x 160 x 12",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BGB#2",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-ANC-M16#3",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO7089-16-fast_zn#3",
+    "part": "ISO7089-16-fast_zn",
+    "name": "Plain washer 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4032-M16-8#3",
+    "part": "ISO4032-M16-8",
+    "name": "Hex nut M16",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-ANC-M16#4",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO7089-16-fast_zn#4",
+    "part": "ISO7089-16-fast_zn",
+    "name": "Plain washer 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4032-M16-8#4",
+    "part": "ISO4032-M16-8",
+    "name": "Hex nut M16",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BPL#3",
+    "part": "CHG-BPL",
+    "name": "Bed plate 300 x 160 x 12",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BGB#3",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-ANC-M16#5",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO7089-16-fast_zn#5",
+    "part": "ISO7089-16-fast_zn",
+    "name": "Plain washer 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4032-M16-8#5",
+    "part": "ISO4032-M16-8",
+    "name": "Hex nut M16",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-ANC-M16#6",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO7089-16-fast_zn#6",
+    "part": "ISO7089-16-fast_zn",
+    "name": "Plain washer 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4032-M16-8#6",
+    "part": "ISO4032-M16-8",
+    "name": "Hex nut M16",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BPL#4",
+    "part": "CHG-BPL",
+    "name": "Bed plate 300 x 160 x 12",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BGB#4",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-ANC-M16#7",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO7089-16-fast_zn#7",
+    "part": "ISO7089-16-fast_zn",
+    "name": "Plain washer 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4032-M16-8#7",
+    "part": "ISO4032-M16-8",
+    "name": "Hex nut M16",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-ANC-M16#8",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO7089-16-fast_zn#8",
+    "part": "ISO7089-16-fast_zn",
+    "name": "Plain washer 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4032-M16-8#8",
+    "part": "ISO4032-M16-8",
+    "name": "Hex nut M16",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BPL#5",
+    "part": "CHG-BPL",
+    "name": "Bed plate 300 x 160 x 12",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BGB#5",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-ANC-M16#9",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO7089-16-fast_zn#9",
+    "part": "ISO7089-16-fast_zn",
+    "name": "Plain washer 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4032-M16-8#9",
+    "part": "ISO4032-M16-8",
+    "name": "Hex nut M16",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-ANC-M16#10",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO7089-16-fast_zn#10",
+    "part": "ISO7089-16-fast_zn",
+    "name": "Plain washer 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4032-M16-8#10",
+    "part": "ISO4032-M16-8",
+    "name": "Hex nut M16",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BPL#6",
+    "part": "CHG-BPL",
+    "name": "Bed plate 300 x 160 x 12",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BGB#6",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-ANC-M16#11",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO7089-16-fast_zn#11",
+    "part": "ISO7089-16-fast_zn",
+    "name": "Plain washer 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4032-M16-8#11",
+    "part": "ISO4032-M16-8",
+    "name": "Hex nut M16",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-ANC-M16#12",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO7089-16-fast_zn#12",
+    "part": "ISO7089-16-fast_zn",
+    "name": "Plain washer 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4032-M16-8#12",
+    "part": "ISO4032-M16-8",
+    "name": "Hex nut M16",
+    "sub": "BASE"
+   },
+   {
+    "item": "RAIL25-2340#1",
+    "part": "RAIL25-2340",
+    "name": "Profile rail size 25 x 2340",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#1",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#2",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#3",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#4",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#5",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#6",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#7",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#8",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#9",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#10",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#11",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#12",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#13",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#14",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#15",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#16",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#17",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#18",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#19",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#20",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "RAIL25-2340#2",
+    "part": "RAIL25-2340",
+    "name": "Profile rail size 25 x 2340",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#21",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#22",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#23",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#24",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#25",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#26",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#27",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#28",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#29",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#30",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#31",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#32",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#33",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#34",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#35",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#36",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#37",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#38",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#39",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#40",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BRK#1",
+    "part": "CHG-BRK",
+    "name": "Gear rack module 3, 20 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BST#1",
+    "part": "CHG-BST",
+    "name": "Bed end stop with buffer",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BST#2",
+    "part": "CHG-BST",
+    "name": "Bed end stop with buffer",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BCP#1",
+    "part": "CHG-BCP",
+    "name": "Carriage plate, 660 x 1210 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "BLK25#1",
+    "part": "BLK25",
+    "name": "Profile rail block size 25",
+    "sub": "BASE"
+   },
+   {
+    "item": "BLK25#2",
+    "part": "BLK25",
+    "name": "Profile rail block size 25",
+    "sub": "BASE"
+   },
+   {
+    "item": "BLK25#3",
+    "part": "BLK25",
+    "name": "Profile rail block size 25",
+    "sub": "BASE"
+   },
+   {
+    "item": "BLK25#4",
+    "part": "BLK25",
+    "name": "Profile rail block size 25",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#81",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#82",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#83",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#84",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#85",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#86",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#87",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#88",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#89",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#90",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#91",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#92",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#93",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#94",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#95",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#96",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BGF#1",
+    "part": "CHG-BGF",
+    "name": "Rail drive mounting flange",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BGX#1",
+    "part": "CHG-BGX",
+    "name": "Rail servo gearmotor 1.5 kW, right angle, brake, absolute encoder",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BPN#1",
+    "part": "CHG-BPN",
+    "name": "Pinion module 3, 20 teeth",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M8x35-12.9#1",
+    "part": "ISO4762-M8x35-12.9",
+    "name": "Socket head cap screw M8 x 35",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M8x35-12.9#2",
+    "part": "ISO4762-M8x35-12.9",
+    "name": "Socket head cap screw M8 x 35",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M8x35-12.9#3",
+    "part": "ISO4762-M8x35-12.9",
+    "name": "Socket head cap screw M8 x 35",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M8x35-12.9#4",
+    "part": "ISO4762-M8x35-12.9",
+    "name": "Socket head cap screw M8 x 35",
+    "sub": "BASE"
+   },
+   {
+    "item": "RAIL20-1140#1",
+    "part": "RAIL20-1140",
+    "name": "Profile rail size 20 x 1140",
+    "sub": "BASE"
+   },
+   {
+    "item": "RAIL20-1140#2",
+    "part": "RAIL20-1140",
+    "name": "Profile rail size 20 x 1140",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M5x16-12.9#1",
+    "part": "ISO4762-M5x16-12.9",
+    "name": "Socket head cap screw M5 x 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M5x16-12.9#2",
+    "part": "ISO4762-M5x16-12.9",
+    "name": "Socket head cap screw M5 x 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M5x16-12.9#3",
+    "part": "ISO4762-M5x16-12.9",
+    "name": "Socket head cap screw M5 x 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M5x16-12.9#4",
+    "part": "ISO4762-M5x16-12.9",
+    "name": "Socket head cap screw M5 x 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M5x16-12.9#5",
+    "part": "ISO4762-M5x16-12.9",
+    "name": "Socket head cap screw M5 x 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M5x16-12.9#6",
+    "part": "ISO4762-M5x16-12.9",
+    "name": "Socket head cap screw M5 x 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M5x16-12.9#7",
+    "part": "ISO4762-M5x16-12.9",
+    "name": "Socket head cap screw M5 x 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M5x16-12.9#8",
+    "part": "ISO4762-M5x16-12.9",
+    "name": "Socket head cap screw M5 x 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M5x16-12.9#9",
+    "part": "ISO4762-M5x16-12.9",
+    "name": "Socket head cap screw M5 x 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M5x16-12.9#10",
+    "part": "ISO4762-M5x16-12.9",
+    "name": "Socket head cap screw M5 x 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M5x16-12.9#11",
+    "part": "ISO4762-M5x16-12.9",
+    "name": "Socket head cap screw M5 x 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M5x16-12.9#12",
+    "part": "ISO4762-M5x16-12.9",
+    "name": "Socket head cap screw M5 x 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M5x16-12.9#13",
+    "part": "ISO4762-M5x16-12.9",
+    "name": "Socket head cap screw M5 x 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M5x16-12.9#14",
+    "part": "ISO4762-M5x16-12.9",
+    "name": "Socket head cap screw M5 x 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M5x16-12.9#15",
+    "part": "ISO4762-M5x16-12.9",
+    "name": "Socket head cap screw M5 x 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M5x16-12.9#16",
+    "part": "ISO4762-M5x16-12.9",
+    "name": "Socket head cap screw M5 x 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M5x16-12.9#17",
+    "part": "ISO4762-M5x16-12.9",
+    "name": "Socket head cap screw M5 x 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M5x16-12.9#18",
+    "part": "ISO4762-M5x16-12.9",
+    "name": "Socket head cap screw M5 x 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M5x16-12.9#19",
+    "part": "ISO4762-M5x16-12.9",
+    "name": "Socket head cap screw M5 x 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M5x16-12.9#20",
+    "part": "ISO4762-M5x16-12.9",
+    "name": "Socket head cap screw M5 x 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BSZ#1",
+    "part": "CHG-BSZ",
+    "name": "Cross-slide ball screw 20 x 5 with 2 bearing supports",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BMZ#1",
+    "part": "CHG-BMZ",
+    "name": "Cross-slide servo motor 0.75 kW, brake, absolute encoder",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BCA#1",
+    "part": "CHG-BCA",
+    "name": "Cable chain hanger, stainless",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BCN#1",
+    "part": "ECHAIN-100x50",
+    "name": "Cable carrier link 100 x 50",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BCN#2",
+    "part": "ECHAIN-100x50",
+    "name": "Cable carrier link 100 x 50",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BCN#3",
+    "part": "ECHAIN-100x50",
+    "name": "Cable carrier link 100 x 50",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BCN#4",
+    "part": "ECHAIN-100x50",
+    "name": "Cable carrier link 100 x 50",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BCN#5",
+    "part": "ECHAIN-100x50",
+    "name": "Cable carrier link 100 x 50",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BCN#6",
+    "part": "ECHAIN-100x50",
+    "name": "Cable carrier link 100 x 50",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BCN#7",
+    "part": "ECHAIN-100x50",
+    "name": "Cable carrier link 100 x 50",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BCN#8",
+    "part": "ECHAIN-100x50",
+    "name": "Cable carrier link 100 x 50",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BCN#9",
+    "part": "ECHAIN-100x50",
+    "name": "Cable carrier link 100 x 50",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BCN#10",
+    "part": "ECHAIN-100x50",
+    "name": "Cable carrier link 100 x 50",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BCN#11",
+    "part": "ECHAIN-100x50",
+    "name": "Cable carrier link 100 x 50",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BCN#12",
+    "part": "ECHAIN-100x50",
+    "name": "Cable carrier link 100 x 50",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BCN#13",
+    "part": "ECHAIN-100x50",
+    "name": "Cable carrier link 100 x 50",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BCN#14",
+    "part": "ECHAIN-100x50",
+    "name": "Cable carrier link 100 x 50",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BCN#15",
+    "part": "ECHAIN-100x50",
+    "name": "Cable carrier link 100 x 50",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BCN#16",
+    "part": "ECHAIN-100x50",
+    "name": "Cable carrier link 100 x 50",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BCN#17",
+    "part": "ECHAIN-100x50",
+    "name": "Cable carrier link 100 x 50",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BCN#18",
+    "part": "ECHAIN-100x50",
+    "name": "Cable carrier link 100 x 50",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BCN#19",
+    "part": "ECHAIN-100x50",
+    "name": "Cable carrier link 100 x 50",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BCN#20",
+    "part": "ECHAIN-100x50",
+    "name": "Cable carrier link 100 x 50",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BCN#21",
+    "part": "ECHAIN-100x50",
+    "name": "Cable carrier link 100 x 50",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BCN#22",
+    "part": "ECHAIN-100x50",
+    "name": "Cable carrier link 100 x 50",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BCN#23",
+    "part": "ECHAIN-100x50",
+    "name": "Cable carrier link 100 x 50",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BCN#24",
+    "part": "ECHAIN-100x50",
+    "name": "Cable carrier link 100 x 50",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BCN#25",
+    "part": "ECHAIN-100x50",
+    "name": "Cable carrier link 100 x 50",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BCN#26",
+    "part": "ECHAIN-100x50",
+    "name": "Cable carrier link 100 x 50",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BCN#27",
+    "part": "ECHAIN-100x50",
+    "name": "Cable carrier link 100 x 50",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BCN#28",
+    "part": "ECHAIN-100x50",
+    "name": "Cable carrier link 100 x 50",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BCN#29",
+    "part": "ECHAIN-100x50",
+    "name": "Cable carrier link 100 x 50",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BCN#30",
+    "part": "ECHAIN-100x50",
+    "name": "Cable carrier link 100 x 50",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BCN#31",
+    "part": "ECHAIN-100x50",
+    "name": "Cable carrier link 100 x 50",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BCN#32",
+    "part": "ECHAIN-100x50",
+    "name": "Cable carrier link 100 x 50",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BCN#33",
+    "part": "ECHAIN-100x50",
+    "name": "Cable carrier link 100 x 50",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BCN#34",
+    "part": "ECHAIN-100x50",
+    "name": "Cable carrier link 100 x 50",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BCN#35",
+    "part": "ECHAIN-100x50",
+    "name": "Cable carrier link 100 x 50",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BCN#36",
+    "part": "ECHAIN-100x50",
+    "name": "Cable carrier link 100 x 50",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BCN#37",
+    "part": "ECHAIN-100x50",
+    "name": "Cable carrier link 100 x 50",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BCN#38",
+    "part": "ECHAIN-100x50",
+    "name": "Cable carrier link 100 x 50",
+    "sub": "BASE"
+   }
+  ],
+  [
+   {
+    "item": "CHG-BBM#2",
+    "part": "CHG-BBM",
+    "name": "Bed beam, RHS 120 x 80 x 6",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BPL#7",
+    "part": "CHG-BPL",
+    "name": "Bed plate 300 x 160 x 12",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BGB#7",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-ANC-M16#13",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO7089-16-fast_zn#13",
+    "part": "ISO7089-16-fast_zn",
+    "name": "Plain washer 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4032-M16-8#13",
+    "part": "ISO4032-M16-8",
+    "name": "Hex nut M16",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-ANC-M16#14",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO7089-16-fast_zn#14",
+    "part": "ISO7089-16-fast_zn",
+    "name": "Plain washer 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4032-M16-8#14",
+    "part": "ISO4032-M16-8",
+    "name": "Hex nut M16",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BPL#8",
+    "part": "CHG-BPL",
+    "name": "Bed plate 300 x 160 x 12",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BGB#8",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-ANC-M16#15",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO7089-16-fast_zn#15",
+    "part": "ISO7089-16-fast_zn",
+    "name": "Plain washer 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4032-M16-8#15",
+    "part": "ISO4032-M16-8",
+    "name": "Hex nut M16",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-ANC-M16#16",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO7089-16-fast_zn#16",
+    "part": "ISO7089-16-fast_zn",
+    "name": "Plain washer 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4032-M16-8#16",
+    "part": "ISO4032-M16-8",
+    "name": "Hex nut M16",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BPL#9",
+    "part": "CHG-BPL",
+    "name": "Bed plate 300 x 160 x 12",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BGB#9",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-ANC-M16#17",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO7089-16-fast_zn#17",
+    "part": "ISO7089-16-fast_zn",
+    "name": "Plain washer 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4032-M16-8#17",
+    "part": "ISO4032-M16-8",
+    "name": "Hex nut M16",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-ANC-M16#18",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO7089-16-fast_zn#18",
+    "part": "ISO7089-16-fast_zn",
+    "name": "Plain washer 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4032-M16-8#18",
+    "part": "ISO4032-M16-8",
+    "name": "Hex nut M16",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BPL#10",
+    "part": "CHG-BPL",
+    "name": "Bed plate 300 x 160 x 12",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BGB#10",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-ANC-M16#19",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO7089-16-fast_zn#19",
+    "part": "ISO7089-16-fast_zn",
+    "name": "Plain washer 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4032-M16-8#19",
+    "part": "ISO4032-M16-8",
+    "name": "Hex nut M16",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-ANC-M16#20",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO7089-16-fast_zn#20",
+    "part": "ISO7089-16-fast_zn",
+    "name": "Plain washer 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4032-M16-8#20",
+    "part": "ISO4032-M16-8",
+    "name": "Hex nut M16",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BPL#11",
+    "part": "CHG-BPL",
+    "name": "Bed plate 300 x 160 x 12",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BGB#11",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-ANC-M16#21",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO7089-16-fast_zn#21",
+    "part": "ISO7089-16-fast_zn",
+    "name": "Plain washer 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4032-M16-8#21",
+    "part": "ISO4032-M16-8",
+    "name": "Hex nut M16",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-ANC-M16#22",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO7089-16-fast_zn#22",
+    "part": "ISO7089-16-fast_zn",
+    "name": "Plain washer 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4032-M16-8#22",
+    "part": "ISO4032-M16-8",
+    "name": "Hex nut M16",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BPL#12",
+    "part": "CHG-BPL",
+    "name": "Bed plate 300 x 160 x 12",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-BGB#12",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-ANC-M16#23",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO7089-16-fast_zn#23",
+    "part": "ISO7089-16-fast_zn",
+    "name": "Plain washer 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4032-M16-8#23",
+    "part": "ISO4032-M16-8",
+    "name": "Hex nut M16",
+    "sub": "BASE"
+   },
+   {
+    "item": "CHG-ANC-M16#24",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO7089-16-fast_zn#24",
+    "part": "ISO7089-16-fast_zn",
+    "name": "Plain washer 16",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4032-M16-8#24",
+    "part": "ISO4032-M16-8",
+    "name": "Hex nut M16",
+    "sub": "BASE"
+   },
+   {
+    "item": "RAIL25-2340#3",
+    "part": "RAIL25-2340",
+    "name": "Profile rail size 25 x 2340",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#41",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#42",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#43",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#44",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#45",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#46",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#47",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#48",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#49",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#50",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#51",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#52",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#53",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#54",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#55",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#56",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#57",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#58",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#59",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#60",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "RAIL25-2340#4",
+    "part": "RAIL25-2340",
+    "name": "Profile rail size 25 x 2340",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#61",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#62",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#63",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#64",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#65",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#66",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#67",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#68",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#69",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#70",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#71",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#72",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#73",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#74",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#75",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#76",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#77",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#78",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#79",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   },
+   {
+    "item": "ISO4762-M6x20-12.9#80",
+    "part": "ISO4762-M6x20-12.9",
+    "name": "Socket head cap screw M6 x 20",
+    "sub": "BASE"
+   }
+  ],
+  [
+   {
+    "item": "CHG-BCH#1",
+    "part": "CHG-BCH",
+    "name": "Cable channel liner in the slab (site works)",
+    "sub": "BASE"
+   }
+  ]
+ ],
  "context": [
   {
    "kind": "context",
    "a": {
-    "item": "CHG-PAD#1",
-    "part": "CHG-PAD",
-    "name": "Charger pad (site concrete)",
-    "sub": "MOUNT"
+    "item": "CHG-BGB#1",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
    },
    "b": {
     "item": "CHG-ANC-M16#1",
     "part": "CHG-ANC-M16",
     "name": "Anchor rod M16 x 190, injection mortar",
-    "sub": "MOUNT"
+    "sub": "BASE"
    },
-   "volumeMm3": 22063.8,
+   "volumeMm3": 15401.3,
    "at": [
-    -190.0,
-    -528.3,
-    -190.0
+    -2980.0,
+    -511.7,
+    -268.0
    ],
    "poses": [
     "stowed"
@@ -64,22 +1820,550 @@
   {
    "kind": "context",
    "a": {
-    "item": "CHG-PAD#1",
-    "part": "CHG-PAD",
-    "name": "Charger pad (site concrete)",
-    "sub": "MOUNT"
+    "item": "CHG-BGB#2",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#3",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    -2072.0,
+    -511.7,
+    -268.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#3",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#5",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    -1164.0,
+    -511.7,
+    -268.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#4",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#7",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    -256.0,
+    -511.7,
+    -268.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#5",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#9",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    652.0,
+    -511.7,
+    -268.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#6",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#11",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    1560.0,
+    -511.7,
+    -268.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#7",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#13",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    -2980.0,
+    -511.7,
+    508.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#8",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#15",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    -2072.0,
+    -511.7,
+    508.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#9",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#17",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    -1164.0,
+    -511.7,
+    508.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#10",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#19",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    -256.0,
+    -511.7,
+    508.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#11",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#21",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    652.0,
+    -511.7,
+    508.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#12",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#23",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    1560.0,
+    -511.7,
+    508.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#1",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
    },
    "b": {
     "item": "CHG-ANC-M16#2",
     "part": "CHG-ANC-M16",
     "name": "Anchor rod M16 x 190, injection mortar",
-    "sub": "MOUNT"
+    "sub": "BASE"
    },
-   "volumeMm3": 22063.8,
+   "volumeMm3": 15401.3,
    "at": [
-    -190.0,
-    -528.3,
-    190.0
+    -2760.0,
+    -511.7,
+    -268.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#2",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#4",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    -1852.0,
+    -511.7,
+    -268.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#3",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#6",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    -944.0,
+    -511.7,
+    -268.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#4",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#8",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    -36.0,
+    -511.7,
+    -268.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#5",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#10",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    872.0,
+    -511.7,
+    -268.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#6",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#12",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    1780.0,
+    -511.7,
+    -268.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#7",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#14",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    -2760.0,
+    -511.7,
+    508.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#8",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#16",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    -1852.0,
+    -511.7,
+    508.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#9",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#18",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    -944.0,
+    -511.7,
+    508.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#10",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#20",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    -36.0,
+    -511.7,
+    508.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#11",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#22",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    872.0,
+    -511.7,
+    508.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#12",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#24",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    1780.0,
+    -511.7,
+    508.0
    ],
    "poses": [
     "stowed"
@@ -438,56 +2722,8 @@
     "pose:stowed",
     "cycle:retract:end"
    ]
-  },
-  {
-   "kind": "context",
-   "a": {
-    "item": "CHG-PAD#1",
-    "part": "CHG-PAD",
-    "name": "Charger pad (site concrete)",
-    "sub": "MOUNT"
-   },
-   "b": {
-    "item": "CHG-ANC-M16#3",
-    "part": "CHG-ANC-M16",
-    "name": "Anchor rod M16 x 190, injection mortar",
-    "sub": "MOUNT"
-   },
-   "volumeMm3": 22063.8,
-   "at": [
-    190.0,
-    -528.3,
-    -190.0
-   ],
-   "poses": [
-    "stowed"
-   ]
-  },
-  {
-   "kind": "context",
-   "a": {
-    "item": "CHG-PAD#1",
-    "part": "CHG-PAD",
-    "name": "Charger pad (site concrete)",
-    "sub": "MOUNT"
-   },
-   "b": {
-    "item": "CHG-ANC-M16#4",
-    "part": "CHG-ANC-M16",
-    "name": "Anchor rod M16 x 190, injection mortar",
-    "sub": "MOUNT"
-   },
-   "volumeMm3": 22063.8,
-   "at": [
-    190.0,
-    -528.3,
-    190.0
-   ],
-   "poses": [
-    "stowed"
-   ]
   }
  ],
- "seconds": 1960.5,
- "glbSha256": "1f2627e49905a0a5"
+ "seconds": 2017.5,
+ "glbSha256": "017d042b6d7bcd00"
 }

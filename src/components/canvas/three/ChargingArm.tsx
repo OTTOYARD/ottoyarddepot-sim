@@ -80,7 +80,11 @@ const CAR_HALF_WIDTH_M = (CAR_WIDTH * METRES_PER_PLAN_UNIT) / 2;
  * arm still latched?" from outside the renderer, which is otherwise unanswerable
  * except by eye at ten metres.
  */
-const armDebug: Map<string, { phase: ArmPhase; t: number; vehicleId: string | null; latch: number }> | null =
+const armDebug: Map<string, {
+  phase: ArmPhase; t: number; vehicleId: string | null; latch: number;
+  /** the mate: which of its five stops, the base's travel, the connector forward, whether the solver took it */
+  stop: number; slideM: number; crossM: number; head: string | null; mateOk: boolean | null; profile: string | null;
+}> | null =
   import.meta.env.DEV ? new Map() : null;
 if (armDebug && typeof window !== 'undefined') {
   (window as unknown as Record<string, unknown>).__arms = armDebug;
@@ -327,6 +331,9 @@ export function ChargingArm({ stallId, stallType, fleet, slot, cad, flex }: Char
 
     armDebug?.set(stallId, {
       phase, t, vehicleId: session.current.vehicleId, latch: shown.current.latch,
+      stop: seq.current.stop, slideM: seq.current.slide, crossM: seq.current.cross,
+      head: seq.current.ccs > 0.01 ? 'CCS1' : seq.current.nacs > 0.01 ? 'NACS' : null,
+      mateOk: m ? m.mate.ok : null, profile: served ? vehiclePort(served.id)?.profile ?? null : null,
     });
 
     const col = pose.ok ? statusColor(phase) : 0xff2d2d;

@@ -280,6 +280,20 @@ not draw the seven units yet; where they stand is a site-plan decision.
   are still the one generic car above, which is also what a car the row does not name is drawn as.
   The models differ from it in size (3.63 to 5.03 m long): do not "fix" that in the renderer. A new
   thing drawn on a car goes in both draw paths (`Vehicle3D.tsx`). `docs/FLEET-MODELS.md`, "In the yard".
+  **One exception since 2026-11-13: the OTTO-CHARGE ARM works to the vehicle's own inlet** (next entry).
+- **The OTTO-CHARGE ARM mates each vehicle at its own inlet (2026-11-13).** The twin's snapshot row carries
+  `model` and `port` (otto-q-core 0824); `ottoChargeArm/vehiclePort.ts` holds them, `mateSolver.solveMate`
+  returns where the base stands on its floor rail (`CR_X`) and cross-slide (`CR_Z`), which of the head's two
+  connectors comes forward (`HD_CCS`, `HD_NACS`) and the joint angles, and refuses a car whose inlet is on the
+  flank away from the arm. **`mateSequence.ts` is the one order of a mate** (five stops; the arm's pose first,
+  then the base), played by `ChargingArm.tsx` and `Robots2D.tsx`: change the order there, never in a view.
+  A car with no `port` on its row is served the old way, from the stall's middle. The rail bed is a yard solid
+  (`dcfc-arm-bed`), and the canopy columns keep clear of it (`structurePlan.canopyColumnYs`). Held by
+  `mateSolver.test.ts`, `mateSequence.test.ts`, `armFleetClearance.test.ts` (the CAD arm against each
+  vehicle's body), `armColumnClearance.test.ts` and `fleetEnvelope.test.ts`. ⚠️ A new vehicle, a moved inlet
+  or a changed `ARM_REACH` needs all five, then `CAD_SPEC_WRITE=1` for the pose file and `cad/clash.py`.
+  The cleaning arm and the wash machine still work to the generic car. `docs/CHARGE-ARM-REACH.md`.
+  `scripts/liveChargeShots.mjs --run <id>` films live mates and prints each arm's base position.
 - **`ResponsiveGuard` routes phones to the PHONE cockpit** (`src/components/phone`, since 2026-09-30):
   a touch-first screen whose short side is < 600 px, or any window < 900 px (`phoneLayout.isPhoneViewport`;
   `?phone=1` forces it). Everything else gets the desktop cockpit, unchanged — test the desktop at
