@@ -6,7 +6,7 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import {
-  boundaryEdges, K_BELT, K_RAIL, K_TOP, makeSurface, polyline, sdPolygon, splitAll,
+  boundaryEdges, K_BELT, K_RAIL, K_TOP, makeSurface, polyline, sdPolygon, splitAll, YARD_SPAN_SAMPLES,
   type Field, type Pt, type Surface, type SurfVertex, type Tri,
 } from './surface';
 import { makeMaterials, type MaterialSet } from './materials';
@@ -121,7 +121,7 @@ class Collector {
 const SEE_THROUGH = new Set(['glass', 'glassDark']);
 
 /** Paint a panel's regions, then give it thickness: an inner skin and a wall round its rim. */
-function finishPanel(s: Surface, tris: Tri[], regions: RegionSpec[], which: 'body' | 'doors', thickness: number, innerMat: string): Collector {
+function finishPanel(s: Surface, tris: Tri[], regions: RegionSpec[], which: 'body' | 'doors', thickness: number, innerMat: string, shell = false): Collector {
   const col = new Collector();
   let rest = tris;
   const opaque: Tri[] = [];
@@ -135,12 +135,14 @@ function finishPanel(s: Surface, tris: Tri[], regions: RegionSpec[], which: 'bod
   }
   col.skin('paint', rest);
   opaque.push(...rest);
+  // The yard's light model is the outer skin alone: its renderer shades the back of a panel dark instead.
+  if (shell) return col;
   col.skin(innerMat, opaque, thickness, true);
   col.walls('cavity', boundaryEdges(tris), thickness);
   return col;
 }
 
-function doorFields(d: DoorSpec, wheels: { xr: number; y: number; r: number }[], gap: number): Field[] {
+function doorFields(d: DoorSpec, wheels: { xr: number; y: number; r: number }[], gap: number, oneSide = false): Field[] {
   const front = polyline(d.front);
   const rear = polyline(d.rear);
   const f: Field[] = [
@@ -150,19 +152,32 @@ function doorFields(d: DoorSpec, wheels: { xr: number; y: number; r: number }[],
     (p) => p.tt - d.ttHigh + gap * 8,
   ];
   for (const w of wheels) f.push((p) => w.r + 0.03 + gap - Math.hypot(p.xr - w.xr, p.y - w.y));
-  f.push((p) => -d.side * p.z);
+  // `oneSide`: the triangles handed in are already the door's own side of the car.
+  if (!oneSide) f.push((p) => -d.side * p.z);
   return f;
 }
 
-function tyre(R: number, width: number, rimR: number): THREE.BufferGeometry {
+function tyre(R: number, width: number, rimR: number, yard = false): THREE.BufferGeometry {
   const w = width / 2;
-  const pts = [
+  const pts = yard ? [
+    [rimR - 0.01, -w + 0.012], [R - 0.03, -w], [R, -w + 0.035], [R, w - 0.035], [R - 0.03, w], [rimR - 0.01, w - 0.012],
+  ].map(([r, a]) => new THREE.Vector2(r, a)) : [
     [rimR - 0.01, -w + 0.012], [rimR + 0.015, -w + 0.004], [R - 0.045, -w], [R - 0.012, -w + 0.012], [R, -w + 0.04],
     [R, w - 0.04], [R - 0.012, w - 0.012], [R - 0.045, w], [rimR + 0.015, w - 0.004], [rimR - 0.01, w - 0.012],
   ].map(([r, a]) => new THREE.Vector2(r, a));
-  const g = new THREE.LatheGeometry(pts, 56);
+  const g = new THREE.LatheGeometry(pts, yard ? YARD_WHEEL_SEGMENTS : 56);
   g.rotateX(Math.PI / 2);
   return g;
+}
+
+/** Segments round a wheel and round a sensor in the yard's light model. */
+const YARD_WHEEL_SEGMENTS = 16;
+const YARD_ROUND_SEGMENTS = 10;
+/** A sensor whose largest side is under this is not drawn in the yard's light model (its node stays). */
+export const YARD_MIN_SENSOR_M = 0.05;
+/** A rounded box, or a plain one in the yard's light model. */
+function rbox(yard: boolean, l: number, h: number, w: number, seg: number, r: number): THREE.BufferGeometry {
+  return yard ? new THREE.BoxGeometry(l, h, w) : new RoundedBoxGeometry(l, h, w, seg, r);
 }
 
 function lathe(points: Pt[], seg = 48): THREE.BufferGeometry {
@@ -172,14 +187,25 @@ function lathe(points: Pt[], seg = 48): THREE.BufferGeometry {
 }
 
 /** A wheel with its outer face toward +Z. */
-function wheel(spec: VehicleSpec, mats: MaterialSet): THREE.Group {
+function wheel(spec: VehicleSpec, mats: MaterialSet, yard = false): THREE.Group {
   const { tyreRadius: R, tyreWidth: W, rimRadius: rr } = spec.dims;
   const g = new THREE.Group();
-  g.add(new THREE.Mesh(tyre(R, W, rr), mats.rubber));
+  g.add(new THREE.Mesh(tyre(R, W, rr, yard), mats.rubber));
   const face = W / 2 - 0.012;
+  const add = (geo: THREE.BufferGeometry, m: THREE.Material) => { const x = new THREE.Mesh(geo, m); g.add(x); return x; };
+  if (yard) {
+    // The yard's wheel: the tyre, a dark dished face and the rim's colour on it as a ring and a hub.
+    const n = YARD_WHEEL_SEGMENTS;
+    const covered = spec.wheelStyle === 'disc';
+    add(lathe([[0, face - 0.02], [rr, face - 0.02]], n), covered ? mats.rim : mats.rimDark);
+    if (!covered) {
+      add(lathe([[rr * 0.72, face - 0.012], [rr, face - 0.004]], n), mats.rim);
+      add(lathe([[0, face - 0.006], [rr * 0.3, face - 0.012]], n), mats.rim);
+    }
+    return g;
+  }
   // Barrel and back of the rim.
   g.add(new THREE.Mesh(lathe([[rr, face], [rr - 0.02, face - 0.03], [rr - 0.03, -face], [0.05, -face + 0.02]]), mats.rimDark));
-  const add = (geo: THREE.BufferGeometry, m: THREE.Material) => { const x = new THREE.Mesh(geo, m); g.add(x); return x; };
   if (spec.wheelStyle === 'disc') {
     // A smooth cover reaching onto the sidewall.
     const edge = R * 0.86;
@@ -218,7 +244,7 @@ function wheel(spec: VehicleSpec, mats: MaterialSet): THREE.Group {
   return g;
 }
 
-function sensorNode(sp: SensorSpec, s: Surface, mats: MaterialSet): THREE.Group {
+function sensorNode(sp: SensorSpec, s: Surface, mats: MaterialSet, yard = false): THREE.Group {
   const g = new THREE.Group();
   g.name = `sensor_${sp.id}`;
   const L = s.length;
@@ -237,6 +263,39 @@ function sensorNode(sp: SensorSpec, s: Surface, mats: MaterialSet): THREE.Group 
   g.rotation.y = -yaw;
   const sz = sp.size ?? [];
   const add = (geo: THREE.BufferGeometry, m: THREE.Material) => { const x = new THREE.Mesh(geo, m); g.add(x); return x; };
+  g.userData.sensor = { id: sp.id, type: sp.type, shape: sp.shape, note: sp.note ?? '' };
+  if (yard) {
+    const round = YARD_ROUND_SEGMENTS;
+    if (sp.shape === 'spinLidar') {
+      const [r = 0.08, h = 0.12] = sz;
+      if (Math.max(2 * r, h) < YARD_MIN_SENSOR_M) return g;
+      const c = new THREE.CylinderGeometry(r, r * 1.1, h, round); c.translate(0, h / 2, 0);
+      add(c, mats.sensorGloss);
+    } else if (sp.shape === 'puckLidar') {
+      const [r = 0.05, h = 0.07] = sz;
+      if (Math.max(2 * r, h) < YARD_MIN_SENSOR_M) return g;
+      const c = new THREE.CylinderGeometry(r, r, h, round); c.rotateZ(Math.PI / 2); c.translate(h / 2 - 0.01, 0, 0);
+      add(c, mats.sensorGloss);
+    } else if (sp.shape === 'camera') {
+      const [r = 0.018, d = 0.03] = sz;
+      if (Math.max(2 * r, d) < YARD_MIN_SENSOR_M) return g;
+      const c = new THREE.CylinderGeometry(r, r * 1.15, d, 8); c.rotateZ(-Math.PI / 2); c.translate(d / 2 - 0.006, 0, 0);
+      add(c, mats.sensorBody);
+    } else if (sp.shape === 'dome') {
+      const [r = 0.3, hh = 0.14] = sz;
+      const pr: Pt[] = [[0, hh], [r * 0.5, hh], [r * 0.9, hh * 0.5], [r, 0]];
+      add(new THREE.LatheGeometry(pr.map(([a, b]) => new THREE.Vector2(a, b)).reverse(), 16), mats.sensorGloss);
+    } else if (sp.shape === 'radar') {
+      const [l = 0.02, h = 0.07, w = 0.1] = sz;
+      if (Math.max(l, h, w) < YARD_MIN_SENSOR_M) return g;
+      add(new THREE.BoxGeometry(l, h, w), mats.sensorBody);
+    } else {
+      const [l = 0.1, h = 0.08, w = 0.12] = sz;
+      if (Math.max(l, h, w) < YARD_MIN_SENSOR_M) return g;
+      add(new THREE.BoxGeometry(l, h, w), mats[sp.material ?? 'sensorGloss']);
+    }
+    return g;
+  }
   if (sp.shape === 'spinLidar') {
     const [r = 0.08, h = 0.12] = sz;
     const base = new THREE.CylinderGeometry(r * 1.08, r * 1.15, h * 0.22, 40); base.translate(0, h * 0.11, 0);
@@ -271,17 +330,16 @@ function sensorNode(sp: SensorSpec, s: Surface, mats: MaterialSet): THREE.Group 
       add(win, mats.lens);
     }
   }
-  g.userData.sensor = { id: sp.id, type: sp.type, shape: sp.shape, note: sp.note ?? '' };
   return g;
 }
 
-function seat(width: number, mats: MaterialSet): THREE.Group {
+function seat(width: number, mats: MaterialSet, yard = false): THREE.Group {
   const g = new THREE.Group();
-  const cushion = new RoundedBoxGeometry(0.5, 0.13, width, 4, 0.05); cushion.translate(0.02, 0, 0);
-  const back = new RoundedBoxGeometry(0.13, 0.62, width, 4, 0.05); back.translate(0, 0.31, 0); back.rotateZ(0.2); back.translate(-0.24, 0.02, 0);
+  const cushion = rbox(yard, 0.5, 0.13, width, 4, 0.05); cushion.translate(0.02, 0, 0);
+  const back = rbox(yard, 0.13, 0.62, width, 4, 0.05); back.translate(0, 0.31, 0); back.rotateZ(0.2); back.translate(-0.24, 0.02, 0);
   const n = Math.max(1, Math.round(width / 0.5));
   g.add(new THREE.Mesh(cushion, mats.seat), new THREE.Mesh(back, mats.seat));
-  for (let i = 0; i < n; i++) {
+  for (let i = 0; i < n && !yard; i++) {
     const head = new RoundedBoxGeometry(0.1, 0.18, 0.26, 3, 0.04);
     head.translate(-0.39, 0.72, (i - (n - 1) / 2) * (width / n));
     g.add(new THREE.Mesh(head, mats.seat));
@@ -289,7 +347,19 @@ function seat(width: number, mats: MaterialSet): THREE.Group {
   return g;
 }
 
-export interface BuildOptions { /** Stations along the body. Lower for a lighter mesh. */ detail?: number }
+export interface BuildOptions {
+  /** Stations along the body. Lower for a lighter mesh. */
+  detail?: number;
+  /**
+   * The yard's light model (yardLod.ts bakes it): the outer skin alone on a coarser ring, with no inner skin, edge
+   * walls or wheel-housing liners, plain wheels, box seats, and no sensor under YARD_MIN_SENSOR_M. Same surface, same
+   * cuts, same node names and door rigs as the full model.
+   */
+  yard?: boolean;
+}
+
+/** Stations along the body of the yard's light model. */
+export const YARD_DETAIL = 44;
 
 export function buildVehicle(spec: VehicleSpec, opts: BuildOptions = {}): THREE.Group {
   const s = makeSurface(spec.curves);
@@ -304,7 +374,8 @@ export function buildVehicle(spec: VehicleSpec, opts: BuildOptions = {}): THREE.
   const wheels = axles.map((xr) => ({ xr, y: d.tyreRadius, r: spec.archRadius }));
 
   // 1. Skin, with the wheel arches opened.
-  let body = s.grid(opts.detail ?? 230);
+  const yard = opts.yard === true;
+  let body = yard ? s.grid(opts.detail ?? YARD_DETAIL, YARD_SPAN_SAMPLES) : s.grid(opts.detail ?? 230);
   for (const w of wheels) {
     body = splitAll(s, body, [(p) => Math.hypot(p.xr - w.xr, p.y - w.y) - w.r, (p) => 1.25 - p.tt, (p) => p.tt - (K_BELT - 0.05)]).outside;
   }
@@ -313,6 +384,18 @@ export function buildVehicle(spec: VehicleSpec, opts: BuildOptions = {}): THREE.
   const doors = spec.doors(s);
   const doorTris: { d: DoorSpec; tris: Tri[] }[] = [];
   for (const door of doors) {
+    if (yard) {
+      // The yard's light model cuts only the door's own side of the car, so the cut lines do not run on round the
+      // far side and the roof, where they only add triangles. Its panel fills its opening: a 4 mm shut line is under
+      // a pixel in the yard and costs a second cut.
+      const own: Tri[] = [];
+      const far: Tri[] = [];
+      for (const t of body) (door.side * (t[0].z + t[1].z + t[2].z) > 0 ? own : far).push(t);
+      const cut = splitAll(s, own, doorFields(door, wheels, 0, true));
+      body = far.concat(cut.outside);
+      doorTris.push({ d: door, tris: cut.inside });
+      continue;
+    }
     const cut = splitAll(s, body, doorFields(door, wheels, 0));
     body = cut.outside;
     doorTris.push({ d: door, tris: splitAll(s, cut.inside, doorFields(door, wheels, 0.004)).inside });
@@ -321,7 +404,7 @@ export function buildVehicle(spec: VehicleSpec, opts: BuildOptions = {}): THREE.
   // 3. Body.
   const bodyNode = new THREE.Group();
   bodyNode.name = 'body';
-  bodyNode.add(...finishPanel(s, body, regions, 'body', 0.04, 'cavity').meshes(mats, new THREE.Vector3()));
+  bodyNode.add(...finishPanel(s, body, regions, 'body', 0.04, 'cavity', yard).meshes(mats, new THREE.Vector3()));
   root.add(bodyNode);
 
   // 4. Door panels on their pivots.
@@ -361,7 +444,7 @@ export function buildVehicle(spec: VehicleSpec, opts: BuildOptions = {}): THREE.
     node.position.copy(pivot);
     info.pivot = pivot.toArray();
     node.userData.door = info;
-    node.add(...finishPanel(s, tris, regions, 'doors', 0.055, 'interior').meshes(mats, pivot));
+    node.add(...finishPanel(s, tris, regions, 'doors', 0.055, 'interior', yard).meshes(mats, pivot));
     root.add(node);
   }
 
@@ -369,11 +452,12 @@ export function buildVehicle(spec: VehicleSpec, opts: BuildOptions = {}): THREE.
   const names = ['F', 'R'];
   axles.forEach((xr, ai) => {
     for (const side of [-1, 1] as const) {
-      const w = wheel(spec, mats);
+      const w = wheel(spec, mats, yard);
       w.name = `wheel_${names[ai]}${side < 0 ? 'L' : 'R'}`;
       w.position.set(L / 2 - xr, d.tyreRadius, side * d.track / 2);
       if (side < 0) w.rotation.y = Math.PI;
       root.add(w);
+      if (yard) continue;
       const hw = s.at(xr).hw;
       const depth = 0.36;
       // The top of the wheel housing: an open half barrel and its back wall.
@@ -399,7 +483,7 @@ export function buildVehicle(spec: VehicleSpec, opts: BuildOptions = {}): THREE.
   fl.position.set(L / 2 - (d.frontAxle + d.wheelbase / 2), floorY, 0);
   cabin.add(fl);
   for (const st of spec.seats) {
-    const g = seat(st.width ?? 0.5, mats);
+    const g = seat(st.width ?? 0.5, mats, yard);
     g.position.set(L / 2 - st.xr, floorY + 0.3, st.z);
     if (st.facing < 0) g.rotation.y = Math.PI;
     cabin.add(g);
@@ -409,10 +493,10 @@ export function buildVehicle(spec: VehicleSpec, opts: BuildOptions = {}): THREE.
     const firstRow = Math.min(...forward.map((x) => x.xr));
     const dashXr = firstRow - 0.72;
     const st = s.at(dashXr);
-    const dash = new THREE.Mesh(new RoundedBoxGeometry(0.34, 0.2, st.hw * 2 - 0.3, 3, 0.06), mats.interior);
+    const dash = new THREE.Mesh(rbox(yard, 0.34, 0.2, st.hw * 2 - 0.3, 3, 0.06), mats.interior);
     dash.position.set(L / 2 - dashXr, st.belt - 0.12, 0);
     cabin.add(dash);
-    if (spec.steeringWheel) {
+    if (spec.steeringWheel && !yard) {
       const sw = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.016, 10, 32), mats.trim);
       sw.rotation.y = Math.PI / 2;
       sw.rotation.z = -0.4;
@@ -429,13 +513,16 @@ export function buildVehicle(spec: VehicleSpec, opts: BuildOptions = {}): THREE.
       m.name = `mirror_${side < 0 ? 'L' : 'R'}`;
       const p = s.point(spec.mirrors.xr, K_BELT + 0.25, side);
       m.position.set(p[0], spec.mirrors.y, p[2]);
-      const arm = new THREE.Mesh(new RoundedBoxGeometry(0.07, 0.03, 0.12, 2, 0.012), mats.trim);
+      const arm = new THREE.Mesh(rbox(yard, 0.07, 0.03, 0.12, 2, 0.012), mats.trim);
       arm.position.set(0, -0.02, side * 0.05);
-      const head = new THREE.Mesh(new RoundedBoxGeometry(0.1, 0.13, 0.2, 4, 0.04), mats.paint);
+      const head = new THREE.Mesh(rbox(yard, 0.1, 0.13, 0.2, 4, 0.04), mats.paint);
       head.position.set(-0.01, 0.03, side * 0.17);
-      const glass = new THREE.Mesh(new RoundedBoxGeometry(0.006, 0.1, 0.16, 2, 0.002), mats.lens);
-      glass.position.set(-0.062, 0.03, side * 0.17);
-      m.add(arm, head, glass);
+      m.add(arm, head);
+      if (!yard) {
+        const glass = new THREE.Mesh(new RoundedBoxGeometry(0.006, 0.1, 0.16, 2, 0.002), mats.lens);
+        glass.position.set(-0.062, 0.03, side * 0.17);
+        m.add(glass);
+      }
       const host = doors.find((x) => x.side === side && polyline(x.front)(K_BELT) <= spec.mirrors!.xr && spec.mirrors!.xr <= polyline(x.rear)(K_BELT));
       const hostNode = host ? root.getObjectByName(`door_${host.id}`) : undefined;
       if (hostNode) { m.position.sub(hostNode.position); hostNode.add(m); } else root.add(m);
@@ -443,7 +530,7 @@ export function buildVehicle(spec: VehicleSpec, opts: BuildOptions = {}): THREE.
   }
 
   // 8. Sensors.
-  for (const sp of spec.sensors) root.add(sensorNode(sp, s, mats));
+  for (const sp of spec.sensors) root.add(sensorNode(sp, s, mats, yard));
 
   // 9. Charge port: a flap outline with the port's position recorded for the robots.
   if (spec.chargePort) {
@@ -471,7 +558,7 @@ export function buildVehicle(spec: VehicleSpec, opts: BuildOptions = {}): THREE.
     }
     g.position.set(p[0] + n[0] * 0.002, p[1] + n[1] * 0.002, p[2] + n[2] * 0.002);
     g.lookAt(g.position.clone().add(new THREE.Vector3(n[0], n[1], n[2])));
-    g.add(new THREE.Mesh(new THREE.RingGeometry(0.072, 0.078, 32), mats.cavity));
+    if (!yard) g.add(new THREE.Mesh(new THREE.RingGeometry(0.072, 0.078, 32), mats.cavity));
     g.userData.chargePort = { ...cp, normal: n };
     root.add(g);
   }

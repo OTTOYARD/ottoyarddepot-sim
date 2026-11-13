@@ -5,6 +5,9 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
 import { buildVehicle, doorClip, fleetSpec, FLEET_SPECS, setDoors } from '@/lib/fleetModels';
+import { bakeYardModel } from '@/lib/fleetModels/yardLod';
+import { commitModelFleet, makeModelFleet, writeModelCar } from '@/components/canvas/three/fleetYard';
+import { METRES_PER_PLAN_UNIT } from '@/lib/ottoChargeArm/cobotSpec';
 
 const q = new URLSearchParams(location.search);
 const key = q.get('model') ?? FLEET_SPECS[0].key;
@@ -41,7 +44,23 @@ const w = window as unknown as { __fleetReady?: boolean; __fleetError?: string; 
   if (!spec) throw new Error(`no fleet model "${key}"`);
   const t0 = performance.now();
   let car: THREE.Object3D;
-  if (q.get('glb')) car = (await new GLTFLoader().loadAsync(`/fleet/${key}.glb`)).scene;
+  let yardTris = 0;
+  if (q.get('yard')) {
+    // The yard's light model, drawn by the yard's own instanced path (fleetYard.ts), one car, turned back to this
+    // page's frame (metres, +X nose). `status=1` lights its strips.
+    const model = bakeYardModel(spec);
+    const fleet = makeModelFleet(model, 1);
+    const doors = Number(q.get('doors') ?? 0);
+    writeModelCar(fleet, 0, 0, 0, 0, 0, doors, doors, q.get('status') === '1');
+    commitModelFleet(fleet);
+    fleet.setCount(1);
+    fleet.status.instanceColor!.setXYZ(0, 0, 1.5, 1.4);
+    yardTris = model.triangles;
+    car = new THREE.Group();
+    car.add(...fleet.meshes);
+    car.scale.setScalar(METRES_PER_PLAN_UNIT);
+    car.rotation.y = Math.PI / 2;
+  } else if (q.get('glb')) car = (await new GLTFLoader().loadAsync(`/fleet/${key}.glb`)).scene;
   else car = buildVehicle(spec, q.get('detail') ? { detail: Number(q.get('detail')) } : {});
   if (q.get('export')) {
     // Hand the binary to scripts/exportFleetModels.mjs.
@@ -52,11 +71,14 @@ const w = window as unknown as { __fleetReady?: boolean; __fleetError?: string; 
     (w as unknown as { __fleetGlb: string }).__fleetGlb = btoa(bin);
   }
   const ms = performance.now() - t0;
-  car.traverse((o) => { if ((o as THREE.Mesh).isMesh) { o.castShadow = true; } });
+  if (!yardTris) car.traverse((o) => { if ((o as THREE.Mesh).isMesh) { o.castShadow = true; } });
   scene.add(car);
   setDoors(car, Number(q.get('doors') ?? 0));
   car.updateMatrixWorld(true);
-  const box = new THREE.Box3().setFromObject(car);
+  // an instanced mesh's own bounds are its geometry's, so the yard model is framed by its stated size
+  const box = yardTris
+    ? new THREE.Box3(new THREE.Vector3(-spec.dims.length / 2, 0, -spec.dims.width / 2), new THREE.Vector3(spec.dims.length / 2, spec.dims.height, spec.dims.width / 2))
+    : new THREE.Box3().setFromObject(car);
   const c = box.getCenter(new THREE.Vector3());
   const size = box.getSize(new THREE.Vector3());
   const dirs: Record<string, [number, number, number]> = {
@@ -69,7 +91,8 @@ const w = window as unknown as { __fleetReady?: boolean; __fleetError?: string; 
   renderer.render(scene, camera);
   let tris = 0;
   car.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) tris += (m.geometry.index ? m.geometry.index.count : m.geometry.attributes.position.count) / 3; });
-  w.__fleetStats = { size: size.toArray(), tris, ms };
+  if (yardTris) tris = yardTris;
+  w.__fleetStats = { size: size.toArray(), tris, ms, draws: renderer.info.render.calls };
   hud.textContent = `${spec.name}   ${size.x.toFixed(3)} x ${size.z.toFixed(3)} x ${size.y.toFixed(3)} m   ${Math.round(tris).toLocaleString()} tris   ${ms.toFixed(0)} ms`;
   w.__fleetReady = true;
 })().catch((e) => { hud.textContent = String(e); w.__fleetError = String(e?.stack ?? e); });

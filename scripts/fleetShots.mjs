@@ -2,7 +2,7 @@
 // PORT=8094 npx vite --host 127.0.0.1 --port 8094).
 //   node scripts/fleetShots.mjs --url http://127.0.0.1:8094 --out docs/pr-shots/fleet \
 //        --shot waymo_ojai:iso:0 --shot waymo_ojai:side:1
-// Each --shot is model:view:doors[:zoom[:glb]].
+// Each --shot is model:view:doors[:zoom[:glb[:yard]]]. `yard` = 1 shoots the yard's light model (lib/fleetModels/yardLod).
 import { chromium } from 'playwright';
 import { existsSync, mkdirSync } from 'node:fs';
 
@@ -22,8 +22,8 @@ const page = await browser.newPage({ viewport: { width: w, height: h }, deviceSc
 page.on('pageerror', (e) => console.error('pageerror', e.message));
 page.on('console', (m) => { if (m.type() === 'error') console.error('console', m.text()); });
 for (const s of shots) {
-  const [model, view = 'iso', doors = '0', zoom = '1', glb = ''] = s.split(':');
-  const qs = new URLSearchParams({ model, view, doors, zoom, ...(glb ? { glb } : {}) });
+  const [model, view = 'iso', doors = '0', zoom = '1', glb = '', yard = ''] = s.split(':');
+  const qs = new URLSearchParams({ model, view, doors, zoom, ...(glb ? { glb } : {}), ...(yard ? { yard, status: '1' } : {}) });
   await page.goto(`${url}/fleet-check.html?${qs}`);
   await page.waitForFunction(() => window.__fleetReady || window.__fleetError, null, { timeout: 180000 });
   const err = await page.evaluate(() => window.__fleetError);

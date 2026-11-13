@@ -106,6 +106,16 @@ export interface TwinVehicle {
   id: string; av_id: string; make: string; platform: string;
   state: string; soc: number; stall_id: string | null;
   /**
+   * The car's model name ("Model Y", "Ojai"), beside `make`. Absent from a backend that does not send it yet.
+   * The 3D yard reads it only to pick which vehicle model to draw (lib/fleetModels/assign.ts).
+   */
+  model?: string;
+  /**
+   * The car's charge inlet as the engine holds it. `profile` names the vehicle model the inlet belongs to; when it is
+   * one of the six fleet model keys the yard draws that model. Absent from a backend that does not send it yet.
+   */
+  port?: { profile: string; [field: string]: unknown };
+  /**
    * The vehicle's open visit workflow. THREE distinct readings, and collapsing
    * any two of them would put a claim on screen that OTTO-Q never made:
    *   `undefined` — the backend predates this field. NOTHING is known about the

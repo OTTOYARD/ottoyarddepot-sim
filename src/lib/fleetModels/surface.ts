@@ -118,8 +118,11 @@ export const K_BELT = 6;
 export const K_RAIL = 8;
 export const K_TOP = 11;
 const N_RING = 2 * K_TOP;
-/** Samples per control span of the half ring. Denser where the section turns. */
-const SPAN_SAMPLES = [4, 5, 5, 6, 6, 5, 6, 6, 6, 5, 4];
+/** Samples per control span of the half ring at full detail. Denser where the section turns. */
+const SPAN_SAMPLES: readonly number[] = [4, 5, 5, 6, 6, 5, 6, 6, 6, 5, 4];
+/** The same ring for the yard's light model (yardLod.ts): every knot is still a sample, so the widest point, the
+ *  beltline, the roof rail and the roof centre stay exactly on their marks. */
+export const YARD_SPAN_SAMPLES: readonly number[] = [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1];
 
 export interface SurfVertex {
   id: number;
@@ -143,8 +146,9 @@ export interface Surface {
   curves: BodyCurves;
   length: number;
   vertex(u: number, v: number): SurfVertex;
-  /** The whole skin as triangles, outward-facing. */
-  grid(nu?: number): Tri[];
+  /** The whole skin as triangles, outward-facing. `nu` stations along the body; `ringSamples` is the number of
+   *  samples in each of the half ring's 11 control spans (default: the full-detail density). */
+  grid(nu?: number, ringSamples?: readonly number[]): Tri[];
   /** Height of a curve at xr, after the bumper rounding. */
   at(xr: number): { hw: number; yb: number; yt: number; belt: number; rail: number; railW: number };
   /** Surface point at a station and folded ring parameter, on one side. */
@@ -289,11 +293,12 @@ export function makeSurface(c: BodyCurves): Surface {
     return { id: nextId++, u, v: vv, x: p[0], y: p[1], z: p[2], nx: n[0], ny: n[1], nz: n[2], xr: L / 2 - p[0], tt, side: t <= K_TOP ? 1 : -1 };
   }
 
-  function grid(nu = 230): Tri[] {
+  function grid(nu = 230, ringSamples: readonly number[] = SPAN_SAMPLES): Tri[] {
+    if (ringSamples.length !== K_TOP) throw new Error(`grid: ringSamples needs ${K_TOP} spans`);
     const vs: number[] = [];
     for (let k = 0; k < N_RING; k++) {
       const span = k < K_TOP ? k : N_RING - 1 - k;
-      const n = SPAN_SAMPLES[span];
+      const n = Math.max(1, Math.round(ringSamples[span]));
       for (let j = 0; j < n; j++) vs.push((k + j / n) / N_RING);
     }
     const nv = vs.length;

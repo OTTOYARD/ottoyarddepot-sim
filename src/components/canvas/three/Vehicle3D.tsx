@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useRef } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
@@ -14,6 +14,11 @@ import { portFor } from '@/lib/ottoChargeArm/chargePort';
 import { towardFor, portInVehicleFrame } from '@/lib/ottoChargeArm/depotPlacement';
 import { writeYaw, writeZero, portWorld, doorWorld } from './fleetMath';
 import { OwnerMarkers } from './OwnerMarkers';
+import { commitModelFleet, makeModelFleet, writeModelCar, type ModelFleet } from './fleetYard';
+import { fleetSpec } from '@/lib/fleetModels';
+import { fleetModelKeyFor, isFleetModelKey, type FleetModelKey } from '@/lib/fleetModels/assign';
+import { bakedYardModel, yardModel, type YardModel } from '@/lib/fleetModels/yardLod';
+import { useTwinStore } from '@/store/twinStore';
 import type { Vehicle } from '@/engine/types';
 
 // ── PERF: the fleet used to clone a 22.5MB GLB per car (176 meshes / 684k tris
@@ -35,6 +40,15 @@ import type { Vehicle } from '@/engine/types';
 // What each car LOOKS like did not change: same geometry, same materials, same
 // paint pick, same port position — the transforms are written from the same
 // poseStore pose through the same toWorld / yawFromHeading2D.
+//
+// EACH CAR IS NOW DRAWN AS ITS OWN VEHICLE MODEL (2026-11-13): a car the twin's
+// row names (lib/fleetModels/assign.ts) is drawn as that model's light yard
+// model (lib/fleetModels/yardLod.ts, fleetYard.ts): one more set of instanced
+// meshes per model, at most 15 draw calls for every car of a model together.
+// A car the row does not name, and every car until its model is baked, is the
+// generic car below. This is a drawing choice only: the pose, the charge port,
+// the hover badge and the owner marks are the generic car's, unchanged, and the
+// traffic model, every clearance and every robot still read the one generic car.
 
 // Realistic fleet paint mix (weights ≈ real-world car-color distribution),
 // picked stably per vehicle id. Ops color-coding stays on the 2D dots/badges.
@@ -154,7 +168,37 @@ interface CarRow {
   live: boolean;
   /** Initial mount position (plan), used until the driver publishes a pose. */
   plan: { x: number; y: number };
+  /** The vehicle model this car is drawn as, and its slot in that model's fleet; null draws the generic car. */
+  model: FleetModelKey | null;
+  slot: number;
 }
+
+/**
+ * The yard models that are ready to draw, of the ones the roster needs. A model is built and baked once per page
+ * (about 0.1 s each), one a turn of the event loop so a roster of six models never holds a frame for all six; until
+ * a model is ready its cars are the generic car.
+ */
+function useYardModels(wanted: readonly FleetModelKey[]): ReadonlyMap<FleetModelKey, YardModel> {
+  const [, setBaked] = useState(0);
+  const missing = wanted.find((k) => !bakedYardModel(k) && !failed.has(k));
+  useEffect(() => {
+    if (!missing) return;
+    const spec = fleetSpec(missing);
+    if (!spec) return;
+    const t = setTimeout(() => {
+      try { yardModel(spec); } catch (err) {
+        console.warn(`[fleet] the ${missing} yard model did not build, so its cars are the generic car:`, err);
+        failed.add(missing);
+      }
+      setBaked((n) => n + 1);
+    }, 0);
+    return () => clearTimeout(t);
+  }, [missing]);
+  const out = new Map<FleetModelKey, YardModel>();
+  for (const k of wanted) { const m = bakedYardModel(k); if (m) out.set(k, m); }
+  return out;
+}
+const failed = new Set<FleetModelKey>();
 
 function matrixBuffer(capacity: number): THREE.InstancedBufferAttribute {
   const b = new THREE.InstancedBufferAttribute(new Float32Array(capacity * 16), 16);
@@ -234,28 +278,93 @@ export function VehicleFleet({ vehicles }: { vehicles: Vehicle[] }) {
     [stallsKey],
   );
 
-  const rows = useMemo<CarRow[]>(() => vehicles.map((v) => {
-    const stallToward = (v.assignedStall ? towardOf.get(v.assignedStall) : undefined) ?? 0;
-    const p = portFor(v.id, v.oem);
-    const side = portSideFor(v.id, stallToward);
-    const pv = portInVehicleFrame(p.along, p.height, CAR_W_PU / 2, side);
-    const light = STATUS_LIGHT[v.status];
-    return {
-      id: v.id,
-      paint: new THREE.Color(paintFor(v.id)),
-      status: light ? new THREE.Color(light).multiplyScalar(1.8) : null,
-      // The socket is authored with its normal on +X; on the -X flank the whole
-      // group turns about Y so the recess still sinks INTO the bodywork.
-      port: { pos: [pv.x, pv.y, pv.z], yaw: side > 0 ? 0 : Math.PI },
-      live: v.status === 'charging',
-      plan: v.position,
-    };
-  }), [vehicles, towardOf]);
+  // Which vehicle model each car is, from the twin's own row (make, model, port profile). A string, so the fleet
+  // recomputes only when a car's model changes, not on every snapshot.
+  const modelsKey = useTwinStore((s) =>
+    (s.snapshot?.fleet?.vehicles ?? []).map((v) => { const k = fleetModelKeyFor(v); return k ? `${v.id}:${k}` : ''; }).filter(Boolean).join('|'));
+  const modelOf = useMemo(() => {
+    const m = new Map<string, FleetModelKey>();
+    for (const kv of modelsKey ? modelsKey.split('|') : []) {
+      const i = kv.lastIndexOf(':');
+      const k = kv.slice(i + 1);
+      if (isFleetModelKey(k)) m.set(kv.slice(0, i), k);
+    }
+    return m;
+  }, [modelsKey]);
+  const wanted = useMemo(() => [...new Set(modelOf.values())].sort(), [modelOf]);
+  const yardModels = useYardModels(wanted);
+  // a string again: the rows below are rebuilt when a model becomes ready, not on every render
+  const readyKey = [...yardModels.keys()].join('|');
+
+  const rows = useMemo<CarRow[]>(() => {
+    const ready = new Set(readyKey ? readyKey.split('|') : []);
+    const slots = new Map<FleetModelKey, number>();
+    const list = vehicles.map((v): CarRow => {
+      const wantedModel = modelOf.get(v.id);
+      const model = wantedModel && ready.has(wantedModel) ? wantedModel : null;
+      const stallToward = (v.assignedStall ? towardOf.get(v.assignedStall) : undefined) ?? 0;
+      const p = portFor(v.id, v.oem);
+      const side = portSideFor(v.id, stallToward);
+      const pv = portInVehicleFrame(p.along, p.height, CAR_W_PU / 2, side);
+      const light = STATUS_LIGHT[v.status];
+      return {
+        id: v.id,
+        paint: new THREE.Color(paintFor(v.id)),
+        status: light ? new THREE.Color(light).multiplyScalar(1.8) : null,
+        // The socket is authored with its normal on +X; on the -X flank the whole
+        // group turns about Y so the recess still sinks INTO the bodywork.
+        port: { pos: [pv.x, pv.y, pv.z], yaw: side > 0 ? 0 : Math.PI },
+        live: v.status === 'charging',
+        plan: v.position,
+        model,
+        slot: 0,
+      };
+    });
+    // Generic cars first: their row index is their slot in the generic fleet, which then draws only that many.
+    // The charge port is every car's, by row index.
+    list.sort((a, b) => (a.model ? 1 : 0) - (b.model ? 1 : 0));
+    for (const r of list) {
+      if (!r.model) continue;
+      r.slot = slots.get(r.model) ?? 0;
+      slots.set(r.model, r.slot + 1);
+    }
+    return list;
+  }, [vehicles, towardOf, modelOf, readyKey]);
+  const genericCount = useMemo(() => rows.filter((r) => !r.model).length, [rows]);
 
   // Capacity grows in steps of 64 so a car arriving never rebuilds the buffers.
   const capacity = Math.max(64, Math.ceil(rows.length / 64) * 64);
   const fleet = useMemo(() => makeFleet(capacity), [capacity]);
   useEffect(() => () => { for (const m of allMeshes(fleet)) m.dispose(); }, [fleet]);
+
+  // One instanced fleet per vehicle model on the roster, its capacity in steps of 32.
+  const modelCaps = useMemo(() => {
+    const n = new Map<FleetModelKey, number>();
+    for (const r of rows) if (r.model) n.set(r.model, (n.get(r.model) ?? 0) + 1);
+    return [...n].sort(([a], [b]) => a.localeCompare(b)).map(([k, c]) => `${k}:${Math.ceil(c / 32) * 32}`).join('|');
+  }, [rows]);
+  const modelFleets = useMemo(() => {
+    const out = new Map<FleetModelKey, ModelFleet>();
+    for (const kv of modelCaps ? modelCaps.split('|') : []) {
+      const [k, cap] = kv.split(':');
+      const m = bakedYardModel(k);
+      if (m && isFleetModelKey(k)) out.set(k, makeModelFleet(m, Number(cap)));
+    }
+    return out;
+  }, [modelCaps]);
+  useEffect(() => () => { for (const f of modelFleets.values()) f.dispose(); }, [modelFleets]);
+  const modelFleetList = useMemo(() => [...modelFleets.values()], [modelFleets]);
+  // each model's cars by slot, for the pointer
+  const modelRows = useMemo(() => {
+    const out = new Map<FleetModelKey, CarRow[]>();
+    for (const r of rows) {
+      if (!r.model) continue;
+      const list = out.get(r.model) ?? [];
+      list[r.slot] = r;
+      out.set(r.model, list);
+    }
+    return out;
+  }, [rows]);
 
   // colours change with the roster, not per frame
   useEffect(() => {
@@ -274,8 +383,19 @@ export function VehicleFleet({ vehicles }: { vehicles: Vehicle[] }) {
     fleet.body.instanceColor!.needsUpdate = true;
     fleet.status.instanceColor!.needsUpdate = true;
     for (const d of doors) { d.panel.instanceColor!.needsUpdate = true; d.strip.instanceColor!.needsUpdate = true; }
-    for (const m of allMeshes(fleet)) m.count = n;
-  }, [fleet, rows]);
+    // the generic car's own parts draw the generic cars; the charge port draws on every car
+    for (const m of allMeshes(fleet)) m.count = genericCount;
+    for (const m of [fleet.socket, fleet.ring, fleet.ringLive]) m.count = n;
+    const counts = new Map<FleetModelKey, number>();
+    for (const r of rows) {
+      if (!r.model) continue;
+      const mf = modelFleets.get(r.model);
+      if (!mf) continue;
+      (r.status ?? BLACK).toArray(mf.status.instanceColor!.array as Float32Array, r.slot * 3);
+      counts.set(r.model, (counts.get(r.model) ?? 0) + 1);
+    }
+    for (const [k, mf] of modelFleets) { mf.status.instanceColor!.needsUpdate = true; mf.setCount(counts.get(k) ?? 0); }
+  }, [fleet, rows, genericCount, modelFleets]);
 
   const drawn = useRef(new Map<string, Drawn>());
   const portScratch = useRef({ x: 0, y: 0, z: 0, yaw: 0 }).current;
@@ -305,20 +425,26 @@ export function VehicleFleet({ vehicles }: { vehicles: Vehicle[] }) {
         d = { x: tx, z: tz, yaw: 0 };
         drawn.current.set(r.id, d);
       }
-      // Tyres rest ON the deck, the same grade the OTTO-CHARGE ARM mounts off.
-      writeYaw(car, i, d.x, DECK_Y, d.z, d.yaw);
-      if (r.status) writeYaw(st, i, d.x, DECK_Y, d.z, d.yaw); else writeZero(st, i);
       // Doors: shut unless the stall's cleaning arm has them open (doorStore).
       const open = doorStore.get(r.id);
-      for (let k = 0; k < 2; k++) {
-        const side = k === 0 ? 1 : -1;
-        const dm = k === 0 ? fleet.doors.right : fleet.doors.left;
-        const h = k === 0 ? DOOR_HINGE_PU.right : DOOR_HINGE_PU.left;
-        const phi = open ? doorSwing(side, k === 0 ? open.right : open.left) : 0;
-        const dw = doorWorld(d.x, d.z, d.yaw, h.x, h.z, phi, doorScratch);
-        writeYaw(dm.m.array as Float32Array, i, dw.x, DECK_Y, dw.z, dw.yaw);
-        const sa = dm.strip.instanceMatrix.array as Float32Array;
-        if (r.status) writeYaw(sa, i, dw.x, DECK_Y, dw.z, dw.yaw); else writeZero(sa, i);
+      const mf = r.model ? modelFleets.get(r.model) : undefined;
+      if (mf) {
+        // This car's own vehicle model, at the generic car's pose; its doors open by the same door store value.
+        writeModelCar(mf, r.slot, d.x, DECK_Y, d.z, d.yaw, open ? open.right : 0, open ? open.left : 0, r.status !== null);
+      } else {
+        // Tyres rest ON the deck, the same grade the OTTO-CHARGE ARM mounts off.
+        writeYaw(car, i, d.x, DECK_Y, d.z, d.yaw);
+        if (r.status) writeYaw(st, i, d.x, DECK_Y, d.z, d.yaw); else writeZero(st, i);
+        for (let k = 0; k < 2; k++) {
+          const side = k === 0 ? 1 : -1;
+          const dm = k === 0 ? fleet.doors.right : fleet.doors.left;
+          const h = k === 0 ? DOOR_HINGE_PU.right : DOOR_HINGE_PU.left;
+          const phi = open ? doorSwing(side, k === 0 ? open.right : open.left) : 0;
+          const dw = doorWorld(d.x, d.z, d.yaw, h.x, h.z, phi, doorScratch);
+          writeYaw(dm.m.array as Float32Array, i, dw.x, DECK_Y, dw.z, dw.yaw);
+          const sa = dm.strip.instanceMatrix.array as Float32Array;
+          if (r.status) writeYaw(sa, i, dw.x, DECK_Y, dw.z, dw.yaw); else writeZero(sa, i);
+        }
       }
       // Charge port — the inlet the OTTO-CHARGE ARM actually mates with, positioned
       // from portFor() through the same resolver the arm solves against, so what
@@ -334,6 +460,7 @@ export function VehicleFleet({ vehicles }: { vehicles: Vehicle[] }) {
     fleet.socket.instanceMatrix.needsUpdate = true;
     fleet.ring.instanceMatrix.needsUpdate = true;
     fleet.ringLive.instanceMatrix.needsUpdate = true;
+    for (const mf of modelFleetList) commitModelFleet(mf);
   });
 
   // forget cars that left the roster
@@ -362,6 +489,21 @@ export function VehicleFleet({ vehicles }: { vehicles: Vehicle[] }) {
       <primitive object={fleet.ring} />
       <primitive object={fleet.ringLive} />
       {doorMeshes(fleet).map((m, i) => <primitive key={`door-${i}`} object={m} />)}
+      {/* each vehicle model's cars: the painted body carries the pointer events, as the generic body does */}
+      {modelFleetList.map((mf) => (
+        <group key={`${mf.key}-${mf.capacity}`} name={`fleet-${mf.key}`}>
+          <primitive
+            object={mf.pick}
+            onPointerMove={(e: { stopPropagation: () => void; instanceId?: number }) => {
+              e.stopPropagation();
+              const id = (e.instanceId !== undefined ? modelRows.get(mf.key as FleetModelKey)?.[e.instanceId]?.id : undefined) ?? null;
+              if (id !== useVehicleStore.getState().hoveredVehicleId) setHovered(id);
+            }}
+            onPointerOut={() => setHovered(null)}
+          />
+          {mf.meshes.slice(1).map((m, i) => <primitive key={i} object={m} />)}
+        </group>
+      ))}
       <HoverBadge drawn={drawn.current} />
       {/* a violet badge over each car its owner's agent set something on (one draw call, read from the same poses) */}
       <OwnerMarkers drawn={drawn.current} />
