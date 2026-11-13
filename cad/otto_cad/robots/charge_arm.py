@@ -636,6 +636,22 @@ def build(spec: dict) -> Model:
                                 {'cover': 'brush strip, the carriage\'s hanger passes through it'}, 'make', reference=True)),
             Location(), (0, -300, 0), 'BASE')
 
+    # the slab the bed stands on (site works): the grout blocks sit on it, the cable channel is cast into it, and the
+    # cabinet's pad is cast 150 mm into it. It is what holds the bed, the channel and the pad to one another.
+    SL_T = 200.0
+    sl_x = bm_l / 2 + 250.0
+    sl_z0, sl_z1 = pad_back - 150.0, ZF + 330.0
+    pad_w = cab['width'] * M + 200
+    slab = (cq.Workplane('XY').box(2 * sl_x, SL_T, sl_z1 - sl_z0, centered=(True, False, False)).translate((0, deck - SL_T, sl_z0))
+            .cut(cq.Workplane('XY').box(ch_l, CH_D, CH_W, centered=(True, False, True)).translate((0, deck - CH_D, ZC)))
+            .cut(cq.Workplane('XY').box(pad_w, 150, pad_front - pad_back, centered=(True, False, False))
+                 .translate((-BED_X, deck - 150, pad_back))))
+    m.place(bed, m.part(PartDef('CHG-SLB', 'Floor slab under the bed (site works)', slab.val(), 'concrete', 'structure',
+                                'site works', f'{2 * sl_x:.0f} x {sl_z1 - sl_z0:.0f} x {SL_T:.0f}', '', None,
+                                'The depot floor here. It carries the bed\'s grout blocks, the cable channel and the cabinet\'s pad.',
+                                {'flatness': '5 mm under a 3 m straightedge'}, 'make', reference=True)),
+            Location(), (0, -420, 0), 'BASE')
+
     carx = root.child('Carriage', Location(), sub='BASE',
                       joint={'name': 'CR_X', 'axis': [1, 0, 0], 'limits': [-TAIL / 1000, TAIL / 1000], 'kind': 'prismatic', 'stowed': 0})
     blk25 = [(sx_ * XB_X + ex, zb + ez) for sx_ in (-1, 1) for zb in (ZR, ZF)
@@ -780,6 +796,8 @@ def build(spec: dict) -> Model:
                       .translate((0, tube_y0 + 20, -riser_w / 2)))          # cable window, toward the carriage's cable run
     riser = riser.cut(cq.Workplane('XY').circle(118).extrude(fl_t + 2).rotate((0, 0, 0), (1, 0, 0), -90)
                       .translate((0, tube_y1 - 1, 0)))                       # J1 bore in the top flange
+    riser = riser.cut(cq.Workplane('XY').circle(90).extrude(bp_t + 2).rotate((0, 0, 0), (1, 0, 0), -90)
+                      .translate((0, rb - 1, 0)))                            # the J1 actuator's cable glands hang into this
     pts = [(p[0], p[2]) for p in std.circle_points(8, 122, 'y', start=22.5)]
     riser = riser.faces('>Y').workplane(centerOption='CenterOfBoundBox').pushPoints(pts).hole(10.2, fl_t)
     m.place(base, m.part(PartDef('CHG-RSR', 'Riser weldment', riser.val(), 'steel_s355', 'structure', 'EN 1090-2 EXC2',
@@ -1005,7 +1023,8 @@ def build_tool(m: Model, tool: Node, LT: float) -> None:
              .union(cq.Workplane('XY').box(16, 14, 22).translate((0, rest_face + 7, 41))))
     latch_pd = m.part(PartDef('CHG-LAT', 'Connector latch hook', latch.val(), 'ss304', 'tool', 'machined', '16 x 70',
                               '', None, 'Hooks the inlet catch. The car cannot pull the connector out under load.', {}, 'make'))
-    sol = cq.Workplane('XY').box(36, 46, 30).edges('|Y').fillet(4).translate((0, rest_face - 90, 46 + 15))
+    # on the latch's tail, 1 mm clear of the connector body (radius 50 at its widest)
+    sol = cq.Workplane('XY').box(36, 48, 30).edges('|Y').fillet(4).translate((0, rest_face - 89, 51 + 15))
     sol_pd = m.part(PartDef('CHG-SOL', 'Latch solenoid, 24 V', sol.val(), 'steel_paint', 'tool', 'catalogue part',
                             '36 x 46 x 30', '', None, 'Moves the latch hook. A spring locks it when power is off.',
                             {'force': '35 N at 5 mm stroke'}, 'buy'))

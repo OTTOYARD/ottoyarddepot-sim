@@ -10,10 +10,10 @@
   "parts": 966,
   "uniqueParts": 217,
   "fasteners": 661,
-  "massKg": 836.44,
+  "massKg": 832.67,
   "boughtLines": 147,
   "madeLines": 70,
-  "referenceLines": 4
+  "referenceLines": 5
  },
  "subsystems": [
   {
@@ -33,7 +33,7 @@
    "order": 0,
    "partCount": 19,
    "fastenerCount": 16,
-   "massKg": 74.93,
+   "massKg": 71.135,
    "uniqueParts": 6
   },
   {
@@ -186,7 +186,7 @@
    "order": 8,
    "partCount": 55,
    "fastenerCount": 17,
-   "massKg": 9.514,
+   "massKg": 9.548,
    "uniqueParts": 29
   },
   {
@@ -345,8 +345,8 @@
    "material": "Structural steel S355, hot-dip galvanised",
    "materialKey": "steel_s355",
    "qty": 1,
-   "massKg": 56.8803,
-   "totalMassKg": 56.8803,
+   "massKg": 53.0849,
+   "totalMassKg": 53.0849,
    "torqueNm": null,
    "reference": false,
    "function": "Lifts the arm from the saddle to its J1 height. Welded, then hot-dip galvanised.",
@@ -680,6 +680,32 @@
    "reference": false,
    "function": "Joins the small chain's moving end to the saddle.",
    "spec": {},
+   "uses": [
+    {
+     "sub": "BASE",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-SLB",
+   "name": "Floor slab under the bed (site works)",
+   "category": "structure",
+   "make": "make",
+   "standard": "site works",
+   "size": "5340 x 1915 x 200",
+   "grade": "",
+   "material": "Concrete C30/37",
+   "materialKey": "concrete",
+   "qty": 1,
+   "massKg": 0.0,
+   "totalMassKg": 0.0,
+   "torqueNm": null,
+   "reference": true,
+   "function": "The depot floor here. It carries the bed's grout blocks, the cable channel and the cabinet's pad.",
+   "spec": {
+    "flatness": "5 mm under a 3 m straightedge"
+   },
    "uses": [
     {
      "sub": "BASE",
@@ -5466,8 +5492,8 @@
    "material": "Structural steel S355, painted RAL 9005",
    "materialKey": "steel_paint",
    "qty": 2,
-   "massKg": 0.385,
-   "totalMassKg": 0.7701,
+   "massKg": 0.4018,
+   "totalMassKg": 0.8035,
    "torqueNm": null,
    "reference": false,
    "function": "Moves the latch hook. A spring locks it when power is off.",
@@ -6117,18 +6143,18 @@
    "method": "Gravity torque with the arm stretched horizontal, masses from the CAD solids, plus 4 kg for the wrist flex link at the tool (ASSUMPTION). Dynamics are not included.",
    "J3": {
     "distalMassKg": 62.8,
-    "torqueNm": 574,
+    "torqueNm": 575,
     "gear": "size 40",
     "repeatedPeakNm": 738,
-    "margin": 1.29
+    "margin": 1.28
    },
    "J2": {
-    "distalMassKg": 131.0,
-    "torqueNm": 1901,
+    "distalMassKg": 131.1,
+    "torqueNm": 1902,
     "gear": "size 50",
     "repeatedPeakNm": 1274,
-    "gearWorstNm": 364,
-    "margin": 3.5,
+    "gearWorstNm": 365,
+    "margin": 3.49,
     "balancer": {
      "type": "nitrogen gas spring",
      "anchorBelowAxisMm": 320.0,
@@ -6156,11 +6182,11 @@
       "deg": 20,
       "gravityNm": 650,
       "balancerNm": 441,
-      "gearNm": 209
+      "gearNm": 210
      },
      {
       "deg": 30,
-      "gravityNm": 950,
+      "gravityNm": 951,
       "balancerNm": 660,
       "gearNm": 291
      },
@@ -6172,45 +6198,45 @@
      },
      {
       "deg": 50,
-      "gravityNm": 1456,
+      "gravityNm": 1457,
       "balancerNm": 1092,
-      "gearNm": 364
+      "gearNm": 365
      },
      {
       "deg": 60,
-      "gravityNm": 1646,
+      "gravityNm": 1647,
       "balancerNm": 1301,
       "gearNm": 345
      },
      {
       "deg": 70,
-      "gravityNm": 1786,
+      "gravityNm": 1787,
       "balancerNm": 1504,
-      "gearNm": 282
+      "gearNm": 283
      },
      {
       "deg": 80,
-      "gravityNm": 1872,
+      "gravityNm": 1873,
       "balancerNm": 1697,
-      "gearNm": 175
+      "gearNm": 176
      },
      {
       "deg": 90,
-      "gravityNm": 1901,
+      "gravityNm": 1902,
       "balancerNm": 1873,
-      "gearNm": 27
+      "gearNm": 28
      },
      {
       "deg": 100,
-      "gravityNm": 1872,
+      "gravityNm": 1873,
       "balancerNm": 2028,
-      "gearNm": -156
+      "gearNm": -155
      },
      {
       "deg": 110,
-      "gravityNm": 1786,
+      "gravityNm": 1787,
       "balancerNm": 2150,
-      "gearNm": -364
+      "gearNm": -363
      }
     ]
    },
