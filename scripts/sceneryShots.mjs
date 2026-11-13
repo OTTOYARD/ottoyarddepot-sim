@@ -45,6 +45,10 @@ const SURVEY = {
   staging: [[-100, 6, -30], [-140, 1, 10]],
   lot: [[20, 5, -60], [0, 0, -30]],
   road: [[-10, 3.5, -120], [60, 1, -100]],
+  planter: [[-55, 3.2, -84], [-62, 0.6, -90]],
+  column: [[58, 3, -18], [47, 2.5, -10]],
+  river: [[-330, 120, -260], [-560, 0, 40]],
+  far: [[0, 420, -700], [0, 0, 300]],
 };
 // --only a,b: just those cameras
 if (arg("survey", false) === true) { for (const k of Object.keys(CAMS)) delete CAMS[k]; Object.assign(CAMS, SURVEY); }

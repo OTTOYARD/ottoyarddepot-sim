@@ -6,7 +6,7 @@ import { buildCityPlan, FACADE_SPEC, type Facade, type Tree, type StreetLight, t
 import { buildCityGeometry, type CityMaterialKey } from './cityMesh';
 import { facadeTextures, roofTexture } from './cityTextures';
 import { skyTexture } from './textures';
-import { MATERIALS, turfed, leafed, barked, asphalted, concreted } from './materials';
+import { MATERIALS, turfed, leafed, barked, asphalted, concreted, pastured, rippled } from './materials';
 import { nightLevel } from './dayNight';
 
 /**
@@ -67,7 +67,7 @@ function cityMaterials(): Record<CityMaterialKey, THREE.Material> {
     path: concreted(std({ color: '#efeae0', roughness: 0.8 }), 5),
     sidewalk: concreted(std({ color: '#dedbd4', roughness: 0.82 }), 5),
     lawn: turfed(std({ roughness: 0.95 })),
-    far: std({ color: '#66745f', roughness: 1 }),
+    far: pastured(std({ color: '#c9cdb4', roughness: 1 })),
     'paint:white': paint('#e8e8e0'),
     'paint:yellow': paint('#e3b23c'),
     'paint:amber': amber,
@@ -77,7 +77,7 @@ function cityMaterials(): Record<CityMaterialKey, THREE.Material> {
     solar: MATERIALS.solarPanelGlass().clone(), // a copy: its night dimming must not reach the depot's canopies
     glassCrown: std({ vertexColors: true, roughness: 0.18, metalness: 0.6 }),
     beacon: std({ color: '#ff2a1a', emissive: new THREE.Color('#ff2a1a'), emissiveIntensity: 1.5, toneMapped: false }),
-    water: std({ color: '#3f6075', roughness: 0.06, metalness: 0.15 }),
+    water: rippled(std({ color: '#3f6075', roughness: 0.1, metalness: 0.15 })),
   };
   for (const m of Object.values(all)) ownSky(m);
   return all;

@@ -560,6 +560,174 @@ export function dangerSignTexture(): THREE.Texture {
   });
 }
 
+/** Weathering for any painted or bare metal: near-white (it multiplies the metal's own colour)
+ *  with dust mottling, fine scratches, rain streaks and the odd chip. */
+export function weatherTexture(): THREE.Texture {
+  return cachedTex('weather', () => {
+    const rnd = mulberry(8088);
+    const c = canvas(512, 512, (g, w, h) => {
+      g.fillStyle = '#eeeeee';
+      g.fillRect(0, 0, w, h);
+      for (let i = 0; i < 70; i++) {
+        const x = rnd() * w, y = rnd() * h, r = 20 + rnd() * 90;
+        const col = rnd() > 0.45 ? 'rgba(96,92,86,0.16)' : 'rgba(255,255,255,0.22)';
+        wrap(w, h, x, y, r, (px, py) => {
+          const grad = g.createRadialGradient(px, py, 0, px, py, r);
+          grad.addColorStop(0, col); grad.addColorStop(1, 'rgba(0,0,0,0)');
+          g.fillStyle = grad; g.fillRect(px - r, py - r, r * 2, r * 2);
+        });
+      }
+      // rain streaks run down the tile
+      for (let i = 0; i < 120; i++) {
+        const x = rnd() * w, y = rnd() * h, len = 50 + rnd() * 240;
+        const grad = g.createLinearGradient(0, y, 0, y + len);
+        grad.addColorStop(0, `rgba(70,66,60,${0.06 + rnd() * 0.12})`); grad.addColorStop(1, 'rgba(70,66,60,0)');
+        g.fillStyle = grad;
+        for (const oy of [-h, 0]) g.fillRect(x, y + oy, 1 + rnd() * 2.5, len);
+      }
+      // scratches
+      g.lineWidth = 1;
+      for (let i = 0; i < 260; i++) {
+        const x = rnd() * w, y = rnd() * h, a = rnd() * Math.PI, len = 4 + rnd() * 26;
+        g.strokeStyle = rnd() > 0.5 ? `rgba(255,255,255,${0.2 + rnd() * 0.3})` : `rgba(50,50,54,${0.12 + rnd() * 0.2})`;
+        g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * len, y + Math.sin(a) * len); g.stroke();
+      }
+      for (let i = 0; i < 9000; i++) {
+        g.fillStyle = `rgba(${90 + rnd() * 60},${88 + rnd() * 56},${84 + rnd() * 50},${0.05 + rnd() * 0.12})`;
+        g.fillRect(rnd() * w, rnd() * h, 1, 1);
+      }
+    });
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.anisotropy = 8;
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  });
+}
+
+/** Hot-dip galvanised steel: the zinc's spangle, crystals a few centimetres across in a dozen grays. */
+export function spangleTexture(): THREE.Texture {
+  return cachedTex('spangle', () => {
+    const rnd = mulberry(3030);
+    const c = canvas(512, 512, (g, w, h) => {
+      g.fillStyle = '#d9dcdf';
+      g.fillRect(0, 0, w, h);
+      for (let i = 0; i < 2600; i++) {
+        const x = rnd() * w, y = rnd() * h, r = 7 + rnd() * 15, n = 5 + Math.floor(rnd() * 3), a0 = rnd() * Math.PI;
+        const v = 176 + rnd() * 76;
+        g.fillStyle = `rgba(${v},${v + 2},${v + 5},0.55)`;
+        wrap(w, h, x, y, r, (px, py) => {
+          g.beginPath();
+          for (let k = 0; k < n; k++) {
+            const a = a0 + (k / n) * Math.PI * 2, rr = r * (0.6 + ((k * 37) % 10) / 25);
+            if (k) g.lineTo(px + Math.cos(a) * rr, py + Math.sin(a) * rr); else g.moveTo(px + Math.cos(a) * rr, py + Math.sin(a) * rr);
+          }
+          g.closePath(); g.fill();
+        });
+      }
+      for (let i = 0; i < 40; i++) {
+        const x = rnd() * w, y = rnd() * h, len = 40 + rnd() * 160;
+        const grad = g.createLinearGradient(0, y, 0, y + len);
+        grad.addColorStop(0, 'rgba(120,118,112,0.16)'); grad.addColorStop(1, 'rgba(120,118,112,0)');
+        g.fillStyle = grad;
+        for (const oy of [-h, 0]) g.fillRect(x, y + oy, 2 + rnd() * 3, len);
+      }
+    });
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.anisotropy = 8;
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  });
+}
+
+/** Weathering steel (the planters): orange and brown rust in blotches, darker runs down the face. */
+export function rustTexture(): THREE.Texture {
+  return cachedTex('rust', () => {
+    const rnd = mulberry(1717);
+    const c = canvas(512, 512, (g, w, h) => {
+      g.fillStyle = '#8a4a26';
+      g.fillRect(0, 0, w, h);
+      const BLOT = ['rgba(176,96,44,0.35)', 'rgba(92,44,24,0.38)', 'rgba(204,128,60,0.25)', 'rgba(58,30,20,0.32)', 'rgba(150,74,34,0.3)'];
+      for (let i = 0; i < 260; i++) {
+        const x = rnd() * w, y = rnd() * h, r = 8 + rnd() * 60, col = BLOT[Math.floor(rnd() * BLOT.length)];
+        wrap(w, h, x, y, r, (px, py) => {
+          const grad = g.createRadialGradient(px, py, 0, px, py, r);
+          grad.addColorStop(0, col); grad.addColorStop(1, 'rgba(0,0,0,0)');
+          g.fillStyle = grad; g.fillRect(px - r, py - r, r * 2, r * 2);
+        });
+      }
+      for (let i = 0; i < 70; i++) {
+        const x = rnd() * w, y = rnd() * h, len = 60 + rnd() * 220;
+        const grad = g.createLinearGradient(0, y, 0, y + len);
+        grad.addColorStop(0, `rgba(44,22,14,${0.15 + rnd() * 0.2})`); grad.addColorStop(1, 'rgba(44,22,14,0)');
+        g.fillStyle = grad;
+        for (const oy of [-h, 0]) g.fillRect(x, y + oy, 2 + rnd() * 4, len);
+      }
+      for (let i = 0; i < 14000; i++) {
+        g.fillStyle = `rgba(${120 + rnd() * 110},${50 + rnd() * 70},${20 + rnd() * 40},${0.12 + rnd() * 0.2})`;
+        g.fillRect(rnd() * w, rnd() * h, 1, 1);
+      }
+    });
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.anisotropy = 8;
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  });
+}
+
+/** Moving water seen from above: long soft ripples, lighter crests and darker troughs. */
+export function rippleTexture(): THREE.Texture {
+  return cachedTex('ripple', () => {
+    const rnd = mulberry(4242);
+    const c = canvas(512, 512, (g, w, h) => {
+      g.fillStyle = '#9aa6ae';
+      g.fillRect(0, 0, w, h);
+      g.lineCap = 'round';
+      for (let i = 0; i < 520; i++) {
+        const x = rnd() * w, y = rnd() * h, len = 20 + rnd() * 90, bend = (rnd() - 0.5) * 14;
+        g.strokeStyle = rnd() > 0.5 ? `rgba(236,244,250,${0.10 + rnd() * 0.22})` : `rgba(34,52,66,${0.10 + rnd() * 0.2})`;
+        g.lineWidth = 1 + rnd() * 3.5;
+        for (const ox of [-w, 0, w]) for (const oy of [-h, 0, h]) {
+          g.beginPath(); g.moveTo(x + ox, y + oy);
+          g.quadraticCurveTo(x + ox + len / 2, y + oy + bend, x + ox + len, y + oy + (rnd() - 0.5) * 4);
+          g.stroke();
+        }
+      }
+    });
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.anisotropy = 8;
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  });
+}
+
+/** A stall's tyre marks: two rubbed-in tracks, heavier toward the stall's head, clear around them. */
+export function tyreMarkTexture(): THREE.Texture {
+  return cachedTex('tyreMark', () => {
+    const rnd = mulberry(1881);
+    const c = canvas(128, 256, (g, w, h) => {
+      g.clearRect(0, 0, w, h);
+      for (const cx of [w * 0.2, w * 0.8]) {
+        for (let i = 0; i < 26; i++) {
+          const x = cx + (rnd() - 0.5) * 16, y0 = rnd() * h * 0.5, len = h * (0.3 + rnd() * 0.5);
+          const grad = g.createLinearGradient(0, y0, 0, y0 + len);
+          grad.addColorStop(0, 'rgba(8,8,10,0)');
+          grad.addColorStop(0.5, `rgba(8,8,10,${0.10 + rnd() * 0.16})`);
+          grad.addColorStop(1, 'rgba(8,8,10,0)');
+          g.fillStyle = grad;
+          g.fillRect(x, y0, 3 + rnd() * 9, len);
+        }
+      }
+    });
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  });
+}
+
 /** Subtle oil-stain decal (radial dark blotch). */
 export function oilStainTexture(): THREE.Texture {
   return cachedTex('oil', () => {

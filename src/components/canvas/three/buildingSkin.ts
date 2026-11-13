@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { galvanised, weathered } from './materials';
 
 /**
  * Materials + procedural textures for the built environment (walls, doors, roofs,
@@ -190,11 +191,11 @@ export function aluminiumTrim() {
 }
 
 export function darkSteel() {
-  return mat('darkSteel', () => new THREE.MeshStandardMaterial({ color: '#262a31', roughness: 0.5, metalness: 0.6 }));
+  return mat('darkSteel', () => weathered(new THREE.MeshStandardMaterial({ color: '#262a31', roughness: 0.5, metalness: 0.6 })));
 }
 
 export function galvanizedSteel() {
-  return mat('galvanizedSteel', () => new THREE.MeshStandardMaterial({ color: '#8e969f', roughness: 0.42, metalness: 0.8, envMapIntensity: 0.9 }));
+  return mat('galvanizedSteel', () => galvanised(new THREE.MeshStandardMaterial({ color: '#8e969f', roughness: 0.42, metalness: 0.8, envMapIntensity: 0.9 })));
 }
 
 export function liftBlue() {

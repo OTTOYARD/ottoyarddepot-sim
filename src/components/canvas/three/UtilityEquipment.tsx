@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import * as THREE from 'three';
-import { MATERIALS, chainLink, ribbed } from './materials';
+import { MATERIALS, chainLink, ribbed, weathered } from './materials';
 import { dangerSignTexture } from './textures';
 import { AUX_TRANSFORMER, BESS_YARD, CHARGER_TRANSFORMERS, LIGHT_POLES, MV_SWITCHGEAR, TX_PAD, TX_YARD } from '@/lib/sitePlan';
 import { toWorld, DECK_Y } from './coordUtils';
@@ -36,7 +36,7 @@ export function UtilityEquipment({ bessCapacity, bessPower }: UtilityEquipmentPr
     seam: new THREE.MeshStandardMaterial({ color: '#8d959e', roughness: 0.6, metalness: 0.3 }),
     skid: MATERIALS.darkCladding(),
     steel: MATERIALS.structuralSteel(),
-    transformer: new THREE.MeshStandardMaterial({ color: '#56705a', roughness: 0.6, metalness: 0.25 }),
+    transformer: weathered(new THREE.MeshStandardMaterial({ color: '#56705a', roughness: 0.6, metalness: 0.25 }), 4),
     hazard: new THREE.MeshStandardMaterial({ color: '#e8b923', roughness: 0.6 }),
     teal: MATERIALS.tealLED(1.6),
     pad: MATERIALS.polishedConcrete(),
