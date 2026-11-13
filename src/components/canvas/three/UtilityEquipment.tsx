@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import * as THREE from 'three';
-import { MATERIALS } from './materials';
+import { MATERIALS, chainLink, ribbed } from './materials';
+import { dangerSignTexture } from './textures';
 import { AUX_TRANSFORMER, BESS_YARD, CHARGER_TRANSFORMERS, LIGHT_POLES, MV_SWITCHGEAR, TX_PAD, TX_YARD } from '@/lib/sitePlan';
 import { toWorld, DECK_Y } from './coordUtils';
 import { StaticBatch } from './staticBatch';
@@ -31,7 +32,7 @@ export function UtilityEquipment({ bessCapacity, bessPower }: UtilityEquipmentPr
   const [tx, , tz] = toWorld({ x: TX_YARD.x + TX_YARD.w / 2, y: TX_YARD.y + TX_YARD.h / 2 }, 0);
   const txYard = useMemo(() => buildTransformerYard(), []);
   const yardMats = useMemo<Record<string, THREE.Material>>(() => ({
-    shell: new THREE.MeshStandardMaterial({ color: '#cdd2d8', roughness: 0.5, metalness: 0.2 }),
+    shell: ribbed(new THREE.MeshStandardMaterial({ color: '#cdd2d8', roughness: 0.5, metalness: 0.2 })),
     seam: new THREE.MeshStandardMaterial({ color: '#8d959e', roughness: 0.6, metalness: 0.3 }),
     skid: MATERIALS.darkCladding(),
     steel: MATERIALS.structuralSteel(),
@@ -40,6 +41,13 @@ export function UtilityEquipment({ bessCapacity, bessPower }: UtilityEquipmentPr
     teal: MATERIALS.tealLED(1.6),
     pad: MATERIALS.polishedConcrete(),
   }), []);
+  // chain-link infill for the two yards' fences, one material per panel length
+  const bessFence = useMemo(() => ({ w: chainLink(BESS_YARD.w, 4), d: chainLink(BESS_YARD.h, 4) }), []);
+  const txFence = useMemo(() => ({ w: chainLink(TX_YARD.w, 4), d: chainLink(TX_YARD.h, 4) }), []);
+  const danger = useMemo(() => {
+    const map = dangerSignTexture();
+    return new THREE.MeshStandardMaterial({ map, emissiveMap: map, emissive: new THREE.Color('#ffffff'), emissiveIntensity: 0.12, roughness: 0.6 });
+  }, []);
   void bessPower;
 
   return (
@@ -56,15 +64,19 @@ export function UtilityEquipment({ bessCapacity, bessPower }: UtilityEquipmentPr
           { x: -BESS_YARD.w / 2, z: 0, len: BESS_YARD.h, rot: Math.PI / 2 },
           { x: BESS_YARD.w / 2, z: 0, len: BESS_YARD.h, rot: Math.PI / 2 },
         ].map((f, i) => (
-          <mesh key={i} position={[f.x, 2.2, f.z]} rotation={[0, f.rot, 0]}>
-            <boxGeometry args={[f.len, 4.0, 0.03]} />
-            <meshStandardMaterial color="#15181d" roughness={0.8} metalness={0.6} transparent opacity={0.28} />
+          <mesh key={i} position={[f.x, 2.2, f.z]} rotation={[0, f.rot, 0]} material={f.len === BESS_YARD.w ? bessFence.w : bessFence.d}>
+            <planeGeometry args={[f.len, 4.0]} />
           </mesh>
         ))}
         {/* hazard placard on the south fence */}
-        <mesh position={[0, 3.2, BESS_YARD.h / 2 + 0.08]} material={mats.amber}>
-          <boxGeometry args={[7, 1.6, 0.08]} />
+        <mesh position={[0, 3.2, BESS_YARD.h / 2 + 0.08]} material={mats.steel}>
+          <boxGeometry args={[7.2, 1.8, 0.08]} />
         </mesh>
+        {[1, -1].map((side) => (
+          <mesh key={side} position={[0, 3.2, BESS_YARD.h / 2 + 0.08 + side * 0.05]} rotation-y={side > 0 ? 0 : Math.PI} material={danger}>
+            <planeGeometry args={[7, 1.62]} />
+          </mesh>
+        ))}
       </group>
 
       {/* ---- transformer yard behind the office: the six charger transformers of the one-line ---- */}
@@ -78,9 +90,8 @@ export function UtilityEquipment({ bessCapacity, bessPower }: UtilityEquipmentPr
           { x: -TX_YARD.w / 2, z: 0, len: TX_YARD.h, rot: Math.PI / 2 },
           { x: TX_YARD.w / 2, z: 0, len: TX_YARD.h, rot: Math.PI / 2 },
         ].map((f, i) => (
-          <mesh key={i} position={[f.x, 2.2, f.z]} rotation={[0, f.rot, 0]}>
-            <boxGeometry args={[f.len, 4.0, 0.03]} />
-            <meshStandardMaterial color="#15181d" roughness={0.8} metalness={0.6} transparent opacity={0.28} />
+          <mesh key={i} position={[f.x, 2.2, f.z]} rotation={[0, f.rot, 0]} material={f.len === TX_YARD.w ? txFence.w : txFence.d}>
+            <planeGeometry args={[f.len, 4.0]} />
           </mesh>
         ))}
       </group>

@@ -34,7 +34,7 @@ import { DepotPostProcessing } from './three/DepotPostProcessing';
 import { SiteDetails } from './three/SiteDetails';
 import { UrbanSurround } from './three/UrbanSurround';
 import { CITY_VIEW_FAR } from './three/cityPlan';
-import { MATERIALS, leafed } from './three/materials';
+import { MATERIALS, leafed, barked } from './three/materials';
 import { skyTexture } from './three/textures';
 import { PerfProbe } from './three/perf/PerfProbe';
 import { CameraRig } from './three/CameraRig';
@@ -66,7 +66,7 @@ function Landscaping() {
     ];
     const trunkGeo = new THREE.CylinderGeometry(0.16, 0.3, 1, 7);
     trunkGeo.translate(0, 0.5, 0);
-    const trunkMat = new THREE.MeshStandardMaterial({ color: '#4a3726', roughness: 0.9 });
+    const trunkMat = barked(new THREE.MeshStandardMaterial({ roughness: 0.9 }));
     const crownGeo = new THREE.IcosahedronGeometry(1, 1);
     const crownMat = leafed(new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.85, flatShading: true }));
     const BLOBS = 4;

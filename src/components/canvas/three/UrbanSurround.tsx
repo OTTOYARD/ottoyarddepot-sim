@@ -5,8 +5,8 @@ import { useSimulationStore } from '@/store/simulationStore';
 import { buildCityPlan, FACADE_SPEC, type Facade, type Tree, type StreetLight, type Signal } from './cityPlan';
 import { buildCityGeometry, type CityMaterialKey } from './cityMesh';
 import { facadeTextures, roofTexture } from './cityTextures';
-import { asphaltTexture, concreteTexture, skyTexture } from './textures';
-import { MATERIALS, turfed, leafed } from './materials';
+import { skyTexture } from './textures';
+import { MATERIALS, turfed, leafed, barked, asphalted, concreted } from './materials';
 import { nightLevel } from './dayNight';
 
 /**
@@ -43,15 +43,6 @@ function ownSky(m: THREE.Material) {
   s.envMapIntensity = 1;
 }
 
-/** Ground textures re-used from the depot's own, repeating on the city's world-unit UVs. */
-function worldTex(src: THREE.Texture): THREE.Texture {
-  const t = src.clone();
-  t.repeat.set(1, 1);
-  t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  t.needsUpdate = true;
-  return t;
-}
-
 function cityMaterials(): Record<CityMaterialKey, THREE.Material> {
   const std = (o: THREE.MeshStandardMaterialParameters) => new THREE.MeshStandardMaterial(o);
   const facades = Object.fromEntries((Object.keys(FACADE_SPEC) as Facade[]).map((f) => {
@@ -62,8 +53,6 @@ function cityMaterials(): Record<CityMaterialKey, THREE.Material> {
       vertexColors: true, roughness: fin.roughness, metalness: fin.metalness,
     })];
   })) as Record<`f:${Facade}`, THREE.MeshStandardMaterial>;
-  const asphalt = worldTex(asphaltTexture());
-  const concrete = worldTex(concreteTexture());
   const paint = (color: string) => std({ color, roughness: 0.75, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 });
   const amber = MATERIALS.amberIndicator().clone();
   amber.polygonOffset = true;
@@ -71,11 +60,12 @@ function cityMaterials(): Record<CityMaterialKey, THREE.Material> {
   amber.polygonOffsetUnits = -4;
   const all = {
     ...facades,
-    street: std({ map: asphalt, color: '#bcbcc4', roughness: 0.92 }),
-    yard: std({ map: asphalt, color: '#dadae0', roughness: 0.9 }),
-    plaza: std({ map: concrete, color: '#d9d6cf', roughness: 0.8 }),
-    path: std({ map: concrete, color: '#e6e2da', roughness: 0.8 }),
-    sidewalk: std({ map: concrete, color: '#d0cec8', roughness: 0.82 }),
+    // the depot's own paving, laid by world position, so its road and the city's are one surface
+    street: asphalted(std({ color: '#c9c9d2', roughness: 0.92 })),
+    yard: asphalted(std({ color: '#e2e2ea', roughness: 0.9 })),
+    plaza: concreted(std({ color: '#e4e0d8', roughness: 0.8 })),
+    path: concreted(std({ color: '#efeae0', roughness: 0.8 }), 5),
+    sidewalk: concreted(std({ color: '#dedbd4', roughness: 0.82 }), 5),
     lawn: turfed(std({ roughness: 0.95 })),
     far: std({ color: '#66745f', roughness: 1 }),
     'paint:white': paint('#e8e8e0'),
@@ -99,7 +89,7 @@ const NEAR_TREE = 330;
 
 function treeMeshes(trees: Tree[]) {
   const trunkGeo = new THREE.CylinderGeometry(0.16, 0.3, 1, 6, 1, true).translate(0, 0.5, 0);
-  const trunkMat = new THREE.MeshStandardMaterial({ color: '#4a3726', roughness: 0.9 });
+  const trunkMat = barked(new THREE.MeshStandardMaterial({ roughness: 0.9 }));
   const crownMat = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.85, flatShading: true });
   ownSky(trunkMat); ownSky(leafed(crownMat));
   const trunks = new THREE.InstancedMesh(trunkGeo, trunkMat, Math.max(1, trees.length));

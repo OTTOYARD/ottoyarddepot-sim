@@ -65,7 +65,7 @@ export function SiteDetails() {
   const bollardSets = useMemo(() => {
     const pts = [...bayBollards(), { x: BESS_YARD.x + BESS_YARD.w + 2, y: BESS_YARD.y + BESS_YARD.h + 2 }];
     const inst = new THREE.InstancedMesh(
-      new THREE.CylinderGeometry(BOLLARD_RADIUS, BOLLARD_RADIUS, 2.6, 12), MATERIALS.safetyYellow(), pts.length,
+      new THREE.CylinderGeometry(BOLLARD_RADIUS, BOLLARD_RADIUS, 2.6, 16), MATERIALS.bollard(), pts.length,
     );
     const d = new THREE.Object3D();
     pts.forEach((p, i) => {

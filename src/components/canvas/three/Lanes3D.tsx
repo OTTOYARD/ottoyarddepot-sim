@@ -21,6 +21,7 @@ import { buildDepotLanes } from "@/engine/motion/LaneGraph";
 import { paintLanes, LANE_PAINT_WIDTH } from "@/engine/motion/lanePaint";
 import { toWorld, yawFromHeading2D, DECK_Y } from "./coordUtils";
 import { StaticBatch } from "./staticBatch";
+import { worn } from "./materials";
 
 // ON the drivable deck (DECK_Y), not the ground under it. This was 0.055 — a
 // datum from before DepotGround laid the 0.26 asphalt deck over the lot — so
@@ -34,15 +35,16 @@ export function Lanes3D() {
   // Lit, opaque road paint: now that the markings are actually on the deck they
   // have to read as paint in the sun and in shadow, not as unlit overlays that
   // glow at night. Same hues as the 2D overlay, so the two views still agree.
+  // `worn`: driven-on paint, chipped and scuffed (materials.worn).
   const materials = useMemo(
     () => ({
-      oneWay: new THREE.MeshStandardMaterial({ color: "#27b5a3", roughness: 0.75, metalness: 0 }),
-      twoWay: new THREE.MeshStandardMaterial({ color: "#c2c8d0", roughness: 0.8, metalness: 0 }),
-      stripe: new THREE.MeshStandardMaterial({ color: "#d9a431", roughness: 0.75, metalness: 0 }),
+      oneWay: worn(new THREE.MeshStandardMaterial({ color: "#27b5a3", roughness: 0.75, metalness: 0 })),
+      twoWay: worn(new THREE.MeshStandardMaterial({ color: "#c2c8d0", roughness: 0.8, metalness: 0 })),
+      stripe: worn(new THREE.MeshStandardMaterial({ color: "#d9a431", roughness: 0.75, metalness: 0 })),
       // the median's hatching: the same yellow, worn back toward the asphalt so the
       // strip reads as empty road rather than a solid block of paint
-      hatch: new THREE.MeshStandardMaterial({ color: "#8a7440", roughness: 0.85, metalness: 0 }),
-      stop: new THREE.MeshStandardMaterial({ color: "#e9edf2", roughness: 0.75, metalness: 0 }),
+      hatch: worn(new THREE.MeshStandardMaterial({ color: "#8a7440", roughness: 0.85, metalness: 0 })),
+      stop: worn(new THREE.MeshStandardMaterial({ color: "#e9edf2", roughness: 0.75, metalness: 0 })),
     }),
     []
   );

@@ -31,6 +31,25 @@ const CAMS = {
   verge: [[-170, 9, -40], [-150, 0, 30]],       // close on the grass outside the west fence
   lawnTop: [[-158, 30, 60], [-158, 0, 61]],     // straight down on the verge
 };
+// --survey: the yard's fixtures up close (the cockpit's own camera presets, plus the fence, the utility yard and the road)
+const SURVEY = {
+  entrance: [[50, 6, -135], [50, 3, -70]],
+  canopy: [[75, 7, -50], [47, 5, 30]],
+  service: [[10, 9, 30], [25, 6, 75]],
+  hero: [[-95, 14, -75], [-47, 6, 25]],
+  bays: [[-70, 10, 38], [5, 3.5, 66]],
+  rear: [[-30, 12, 108], [-10, 4, 70]],
+  robots: [[70, 5.5, 2], [52, 2.5, -6]],
+  utility: [[95, 9, 62], [118, 2, 86]],
+  fence: [[-120, 4, -108], [-150, 2, -84]],
+  staging: [[-100, 6, -30], [-140, 1, 10]],
+  lot: [[20, 5, -60], [0, 0, -30]],
+  road: [[-10, 3.5, -120], [60, 1, -100]],
+};
+// --only a,b: just those cameras
+if (arg("survey", false) === true) { for (const k of Object.keys(CAMS)) delete CAMS[k]; Object.assign(CAMS, SURVEY); }
+const only = arg("only", null);
+if (typeof only === "string") for (const k of Object.keys(CAMS)) if (!only.split(",").includes(k)) delete CAMS[k];
 const page = await (await browser.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
 const errors = [];
 page.on("pageerror", (e) => errors.push(String(e).slice(0, 300)));
