@@ -517,7 +517,8 @@ def build(spec: dict) -> Model:
     m.subsystem('MOUNT', 'Riser and mount', 'A short steel riser on the cross-slide carries the arm. Its J1 axis is 550 mm above the deck.',
                 how=['4 screws M16 hold the riser to the cross-slide saddle.',
                      '8 screws M12 hold the mount plate to the riser.',
-                     'The arm\'s power and network cables come up through the riser and J1\'s hollow shaft.'],
+                     'The supply lines enter the riser from the saddle duct, through the cable window in its back.',
+                     'The joint supply cable goes up through J1\'s hollow shaft. The DC cores go through the wall to the terminal box.'],
                 specs={'J1 height': '550 mm above the deck', 'riser': '345 mm square, S355 galvanised'}, group='Structure')
     m.subsystem('BASE', 'Rail, carriage and cross-slide', 'Moves the arm\'s base to where the car\'s charge inlet is: along the car on a floor rail, and toward the car on a cross-slide.',
                 how=['2 steel beams on the slab carry 2 profile rails and a rack, along the car.',
@@ -525,11 +526,20 @@ def build(spec: dict) -> Model:
                      'On the carriage 2 rails and a ball screw carry the saddle toward the car and back.',
                      'For an inlet on the car\'s side the base stops beside it, at the same distance from every car.',
                      'For an inlet in the rear bumper the base goes past the tail and in behind the car\'s corner.',
-                     'The power and coolant lines run in a cable chain in a covered channel in the slab, under the carriage.',
+                     'Every supply line comes from the cabinet: 8 DC cores, 2 coolant hoses, 1 air tube and 5 cables.',
+                     'They leave the cabinet through its floor and drop through the pad into a lined trench in the slab.',
+                     'The trench runs under a flush cover plate to the cable channel between the bed\'s beams.',
+                     'In the channel each line turns onto its own lane and enters the cable chain at its fixed end.',
+                     'The chain\'s bend rolls along the channel as the carriage moves. Cover plates close the channel, flush with the deck.',
+                     'A driver on the carriage runs in the slot between the cover plates. 2 brush strips close the slot.',
+                     'The lines rise inside the driver and bend into a second chain, on a tray at the carriage plate\'s edge.',
+                     'That chain follows the saddle. A duct on the saddle takes the lines to the riser.',
+                     'The 2 servo cables leave the driver in conduits, one to the rail gearmotor and one to the cross-slide motor.',
                      'The bed is set toward the tail end of the stall. A stall that faces the other way has the same bed, set the other way.'],
                 specs={'along the car': f"{S['baseStage']['railNose']:.1f} m toward the nose, {S['baseStage']['railTail']:.1f} m toward the tail",
                        'toward the car': f"{S['baseStage']['crossIn']:.2f} m in, {S['baseStage']['crossOut']:.2f} m out",
-                       'rails': 'size 25 along the car, size 20 across', 'drive': 'rack and pinion module 3 along, ball screw 20 x 5 across'},
+                       'rails': 'size 25 along the car, size 20 across', 'drive': 'rack and pinion module 3 along, ball screw 20 x 5 across',
+                       'above the deck': 'the driver, the cross chain and the ducts, all on the carriage'},   # the supply's sizes are added where they are worked out
                 group='Motion')
     m.subsystem('J1', 'J1 base yaw', 'Turns the whole arm about the vertical axis to face the charge port.',
                 how=['A size 40 actuator in the riser top turns the turret.', 'Range is +/- 180 degrees. Cables pass through the hollow shaft.'],
@@ -559,16 +569,19 @@ def build(spec: dict) -> Model:
                        'spacing': '100 mm each side of the tool axis', 'stroke': '90 mm'}, group='Tool')
     m.subsystem('DRESS', 'Power path in the arm', 'Carries the charge current, the coolant and the tool\'s lines to the connector '
                 'inside the arm, and power and network to the joints.',
-                how=['The charge current comes from the cabinet under the pad to the cable chain, and up the riser in 2 cables.',
+                how=['The charge current reaches the riser in 8 cable cores, 4 a pole, from the cabinet by the 2 cable chains.',
+                     'A terminal box on the riser joins the 4 cores of each pole to one flex link.',
                      'In each hollow link 2 copper bars carry it, one a pole. Nothing live is in the open.',
                      'At the base, the shoulder and the elbow a booted link of braided copper joins 2 terminal boxes. It bends as the joint turns.',
                      'From the forearm one last booted link, 1.2 m long, runs to the connector across the wrist.',
                      'The coolant for the connector\'s contacts, the tool\'s cable and its air line run with the bars and through each boot.',
+                     'The coolant comes from a cooling unit in the cabinet and goes back to it. The air comes through the cabinet from the site.',
                      'The joints\' 10 mm power and network cable runs inside the arm, through the hollow shafts of J1 to J5.'],
                 specs={'current': '500 A DC, 1000 V', 'bars': '2 x 40 x 10 mm copper in each link, insulated',
                        'flex links': '4, braided copper 400 mm2 a pole, in a silicone boot OD 60 mm, 0.9 to 1.2 m',
                        'bend radius': '80 mm moved (the tightest in the twin\'s 20 poses is 100 mm)',
-                       'cooling': 'liquid at the connector\'s contacts, 2 tubes 8 mm'}, group='Cables')
+                       'cooling': 'liquid at the connector\'s contacts, 2 tubes 8 mm, cooling unit in the cabinet',
+                       'not drawn': 'the lines inside the ducts, the chains and the riser, one by one'}, group='Cables')
     m.subsystem('SAFETY', 'Safety and status', 'Stops the arm when a person comes near and shows its state to the site.',
                 how=['A safety laser scanner on the riser watches the stall at knee height.',
                      'An emergency stop on the riser cuts motor power (safe torque off).',
@@ -990,6 +1003,12 @@ def build(spec: dict) -> Model:
                                  'catalogue part', '0.75 kW', 'IP65', None,
                                  'Turns the ball screw. Its brake holds the saddle when power is off.', {}, 'buy', mass_override=3.4)),
             loc(0, y_xr, 0), (0, 120, -140), 'BASE')
+    m.subsystems['BASE']['specs'].update({
+        'DC cable': f'{DC_N} cores of 50 mm2 a pole, {DC_D:g} mm each, {500 / DC_N:.0f} A a core at 500 A',
+        'cable chains': f'2, of one link, {CN_IW:.0f} x {CN_IH:.0f} mm inside, bend radius {R_CH:.0f} mm',
+        'bend rule': f'{K_CHAIN:g} x the diameter in a chain ({K_CHAIN * DC_D:g} mm for the DC core), {K_FIXED:g} x where fixed ({K_FIXED * DC_D:g} mm)',
+        'channel': f'{CH_W:.0f} mm wide, {CH_D:.0f} mm deep, {ch_l / 1000:.2f} m long, cover plates {COV_T:.0f} mm, slot {SLOT:.0f} mm',
+        'feed trench': f'{ft_x1 - ft_x0 + 2 * LIN_T:.0f} mm wide, from the cabinet to the channel, {z_wo - ft_z0:.0f} mm'})
     # THE DRIVER: the chain's moving end, under the carriage. A closed stainless head hangs in the channel on the nose
     # side of the chain's last link; in it the lines turn from lying side by side to standing one over the other
     # (HB deep: the 8 cores stacked, 2 abreast). A flat neck, SW_T thick, takes them up through the cover's slot past
@@ -1199,7 +1218,7 @@ def build(spec: dict) -> Model:
                           .translate((0, pad_top + 80, cab_front)))     # door seam
     m.place(site, m.part(PartDef('CHG-CAB', 'DC power cabinet (envelope)', cab_box.val(), 'steel_paint', 'structure',
                                  'reference envelope', f"{cab['width'] * M:.0f} x {cab['height'] * M:.0f} x {cab['depth'] * M:.0f}",
-                                 '', None, 'The charger: rectifiers, contactors, metering. Shown as its envelope only.',
+                                 '', None, 'The charger: rectifiers, contactors, metering, the connector\'s cooling unit, the arm\'s controller and 2 servo drives. Shown as its envelope only.',
                                  {'output': 'about 350 kW DC (the twin site: 10,500 kW over 30 posts)'}, 'buy',
                                  reference=True)),
             Location(), (0, 0, -260))
