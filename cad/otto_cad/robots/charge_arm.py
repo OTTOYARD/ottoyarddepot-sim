@@ -1063,7 +1063,8 @@ def build(spec: dict) -> Model:
     XC2 = (SW_X0 + SW_X1) / 2                             # the cross chain's middle line
     Z_F = ZC + 165.0                                      # its fixed end: the lines come up at ZC and bend into it
     y_tt = y_xr + 10.0                                    # the tray's top
-    y_zb = y_tt + CN_H / 2                                # the cross chain's lower run, on the tray
+    TR_C = 6.0                                            # the lower run's air over the tray: a link tips about 4 mm as it enters the bend
+    y_zb = y_tt + TR_C + CN_H / 2                         # the cross chain's lower run
     y_zt = y_zb + 2 * R_CH                                # and its upper run, which the saddle carries
     z_mid = (Z_IN - Z_OUT) / 2
     Z_A = Z_F - z_mid                                     # where the saddle holds the chain's moving end (saddle frame)
@@ -1076,7 +1077,8 @@ def build(spec: dict) -> Model:
     ty_pts = [(TX0 + 40.0, y_tt, z) for z in (Z_F + 40.0, (Z_F + TZ1) / 2, TZ1 - 40.0)]
     tray = _csk(_bx(TX0, TX1, y_xr, y_tt, Z_F, TZ1)
                 .union(_bx(XC2 - CN_W / 2 - 4.5, XC2 - CN_W / 2 - 1.5, y_tt, y_tt + 40.0, Z_F, TZ1))
-                .union(_bx(XC2 + CN_W / 2 + 1.5, XC2 + CN_W / 2 + 4.5, y_tt, y_tt + 40.0, Z_F, TZ1)), ty_pts, 8)
+                .union(_bx(XC2 + CN_W / 2 + 1.5, XC2 + CN_W / 2 + 4.5, y_tt, y_tt + 40.0, Z_F, TZ1))
+                .union(_bx(XC2 - CN_W / 2, XC2 + CN_W / 2, y_tt, y_tt + TR_C, Z_F, Z_F + CN_P)), ty_pts, 8)   # the first link's seat
     m.place(carx, m.part(PartDef('CHG-BZT', 'Cross chain tray, stainless', tray.val(), 'ss316', 'structure', 'welded plate 10 mm and sheet 3 mm',
                                  f'{TX1 - TX0:.0f} x {TZ1 - Z_F:.0f}', '316L', None,
                                  'Carries the cross chain beside the saddle. It is screwed to the carriage plate and reaches past its edge.',

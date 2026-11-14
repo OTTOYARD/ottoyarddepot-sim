@@ -1155,7 +1155,10 @@ def build(spec: dict) -> Model:
         m.place(bay, s_pd[tag], loc(x, VALVE_Y, z_w), (0, 0, -100), 'SUPPLY')
         m.place(bay, d_pd[tag], loc(x, 0, z_w), (0, 0, -200), 'SUPPLY')
     sz_ap, sz_ad, sz_aw = duct_size([A_SUP, A_MOT, A_24V]), duct_size([A_ECT, A_SIG]), duct_size([A_H2O])
-    sz_p, sz_n, sz_m = duct_size([L_PWR]), duct_size([L_NET]), duct_size([L_WAT, L_CHM, L_CHM, L_AIR])
+    sz_p, sz_n = duct_size([L_PWR]), duct_size([L_NET])
+    # the hose duct is one size over what the fill asks (2-1/2): in a 3 in bore the 4 hoses lie in the order of their lanes,
+    # so they fan out in the pit without one crossing another
+    sz_m = list(PVC40)[list(PVC40).index(duct_size([L_WAT, L_CHM, L_CHM, L_AIR])) + 1]
     drop_pd = {}
     for (x, size, y1_, what) in ((ex[0], sz_ap, 1100, 'arm power'), (ex[1], sz_ad, 1100, 'arm data'), (ex[2], sz_ap, 1100, 'arm power'),
                                  (ex[3], sz_ad, 1100, 'arm data'), (ex[4], sz_n, 1100, 'machine network'), (ix, sz_p, 1300, 'machine power')):
@@ -1238,7 +1241,7 @@ def build(spec: dict) -> Model:
                                 'Clamps each line in front of the chain\'s fixed end, so no pull reaches the chain or the duct.',
                                 {'rule': 'strain relief at the fixed end (chain maker\'s filling rule)'}, 'buy')),
             Location(), (-300, -200, 0), 'SUPPLY')
-    src = {'W': (xpM - 10, y_md - 5), 'A': (xpM + 14, y_md + 10), 'B': (xpM + 14, y_md - 9), 'R': (xpM - 8, y_md + 17),
+    src = {'W': (xpM - 22, y_md - 3), 'A': (xpM, y_md + 14), 'B': (xpM + 14, y_md - 16), 'R': (xpM + 26, y_md + 4),
            'N': (xpN, y_md), 'P': (xpP, y_md)}           # each line's place in its duct's mouth (the 4 hoses share the media duct)
     for (tag, nm, od, lx, bend, mat, cat) in lanes:
         (xs, ys) = src[tag]
