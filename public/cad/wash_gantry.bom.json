@@ -10,7 +10,7 @@
   "parts": 2700,
   "uniqueParts": 292,
   "fasteners": 1636,
-  "massKg": 5894.73,
+  "massKg": 5894.6,
   "boughtLines": 170,
   "madeLines": 122,
   "referenceLines": 14
@@ -120,7 +120,7 @@
     "2 profile rails on a steel beam, anchored to the slab every metre.",
     "A servo gearmotor on the carriage drives a pinion on a rack between the rails.",
     "A cable chain beside the track brings power, network and pure water to the carriage.",
-    "The chain's fixed end is bolted to the floor at a floor box. 3 ducts in the slab feed the box from the wall panel.",
+    "A bracket holds the chain's fixed end in front of a floor box. 3 ducts in the slab feed the box from the wall panel.",
     "The tracks stand 2.1 m from the drive line, inside the gantry rails. The gantry passes over them."
    ],
    "specs": {
@@ -329,7 +329,7 @@
     "The wall, the ducts in the slab and the plant's stubs belong to the building. They are shown for context."
    ],
    "specs": {
-    "hand-over": "north wall, west of the exit door, 1.4 m and more north of the gantry's travel",
+    "hand-over": "north wall, west of the exit door, 1.8 m north of the rails' end",
     "duct fill": "53 % for 1 cable, 31 % for 2, 40 % for more (NEC chapter 9, table 1)",
     "machine lines": "supply cable 5G10, network, water 19 mm, 2 chemicals 10 mm, air 12 mm tube",
     "each arm's lines": "supply, track motor, 24 V, network, 6 mm pure water"
@@ -338,7 +338,7 @@
    "order": 16,
    "partCount": 48,
    "fastenerCount": 0,
-   "massKg": 204.061,
+   "massKg": 203.923,
    "uniqueParts": 32
   }
  ],
@@ -6816,7 +6816,7 @@
    "function": "Carries the supply cable and the network cable from the arm up the leg to the control cabinet.",
    "spec": {
     "bend": "R 300 (5 x D)",
-    "fill": "26 % of its 52 mm bore (2 cables: limit 31 %)"
+    "fill": "19 % of its 52 mm bore (2 cables: limit 31 %)"
    },
    "uses": [
     {
@@ -6992,7 +6992,7 @@
    "totalMassKg": 0.5324,
    "torqueNm": null,
    "reference": false,
-   "function": "Brings the 4 valve cables from the trunk to the manifold.",
+   "function": "Brings the valves' cable (one cable, 8 cores, for the 4 valves) from the trunk to the manifold.",
    "spec": {},
    "uses": [
     {
@@ -7162,8 +7162,8 @@
    "material": "Steel 42CrMo4, quenched and tempered",
    "materialKey": "steel",
    "qty": 1,
-   "massKg": 40.6283,
-   "totalMassKg": 40.6283,
+   "massKg": 40.5488,
+   "totalMassKg": 40.5488,
    "torqueNm": null,
    "reference": false,
    "function": "Lines the pit at the trench's north end. The 3 ducts from the wall end in its north wall, and the lines turn here into the tray on the trench floor.",
@@ -7510,8 +7510,8 @@
    "material": "Cable, TPE jacket",
    "materialKey": "cable",
    "qty": 1,
-   "massKg": 0.4061,
-   "totalMassKg": 0.4061,
+   "massKg": 0.404,
+   "totalMassKg": 0.404,
    "torqueNm": null,
    "reference": false,
    "function": "Runs from the panel in its duct to the pit, along the tray, through the strain relief and into the chain. Drawn from the duct's mouth to the chain's fixed end.",
@@ -7536,8 +7536,8 @@
    "material": "Cable, TPE jacket",
    "materialKey": "cable",
    "qty": 1,
-   "massKg": 2.791,
-   "totalMassKg": 2.791,
+   "massKg": 2.7912,
+   "totalMassKg": 2.7912,
    "torqueNm": null,
    "reference": false,
    "function": "Runs from the panel in its duct to the pit, along the tray, through the strain relief and into the chain. Drawn from the duct's mouth to the chain's fixed end.",
@@ -7733,11 +7733,11 @@
   },
   {
    "id": "WSH-SDM",
-   "name": "Duct in the slab, PVC, trade size 2-1/2: machine media (part of the building)",
+   "name": "Duct in the slab, PVC, trade size 3: machine media (part of the building)",
    "category": "electrical",
    "make": "buy",
    "standard": "UL 651",
-   "size": "2-1/2",
+   "size": "3",
    "grade": "",
    "material": "Hose, PVC with steel helix",
    "materialKey": "hose",
@@ -7749,8 +7749,8 @@
    "function": "Takes the machine media lines under the floor. Cast into the slab before the machine comes.",
    "spec": {
     "lines": "27 mm, 16 mm, 16 mm, 12 mm",
-    "fill": "36 % of the bore (limit 40 %)",
-    "bends": "R 267, 360 degrees or less in all"
+    "fill": "23 % of the bore (limit 40 %)",
+    "bends": "R 330, 360 degrees or less in all"
    },
    "uses": [
     {
@@ -8083,8 +8083,8 @@
    "material": "Hose, PVC with steel helix",
    "materialKey": "hose",
    "qty": 1,
-   "massKg": 1.4146,
-   "totalMassKg": 1.4146,
+   "massKg": 1.4043,
+   "totalMassKg": 1.4043,
    "torqueNm": null,
    "reference": false,
    "function": "Runs from the panel in its duct to the pit, along the tray, through the strain relief and into the chain. Drawn from the duct's mouth to the chain's fixed end.",
@@ -8109,8 +8109,8 @@
    "material": "Hose, PVC with steel helix",
    "materialKey": "hose",
    "qty": 1,
-   "massKg": 1.4154,
-   "totalMassKg": 1.4154,
+   "massKg": 1.4043,
+   "totalMassKg": 1.4043,
    "torqueNm": null,
    "reference": false,
    "function": "Runs from the panel in its duct to the pit, along the tray, through the strain relief and into the chain. Drawn from the duct's mouth to the chain's fixed end.",
@@ -8135,8 +8135,8 @@
    "material": "Hose, PVC with steel helix",
    "materialKey": "hose",
    "qty": 1,
-   "massKg": 0.8003,
-   "totalMassKg": 0.8003,
+   "massKg": 0.79,
+   "totalMassKg": 0.79,
    "torqueNm": null,
    "reference": false,
    "function": "Runs from the panel in its duct to the pit, along the tray, through the strain relief and into the chain. Drawn from the duct's mouth to the chain's fixed end.",
@@ -8161,8 +8161,8 @@
    "material": "Hose, PVC with steel helix",
    "materialKey": "hose",
    "qty": 1,
-   "massKg": 4.0231,
-   "totalMassKg": 4.0231,
+   "massKg": 3.9975,
+   "totalMassKg": 3.9975,
    "torqueNm": null,
    "reference": false,
    "function": "Runs from the panel in its duct to the pit, along the tray, through the strain relief and into the chain. Drawn from the duct's mouth to the chain's fixed end.",

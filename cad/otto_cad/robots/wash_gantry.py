@@ -78,7 +78,7 @@ def build(spec: dict) -> Model:
                 how=['2 profile rails on a steel beam, anchored to the slab every metre.',
                      'A servo gearmotor on the carriage drives a pinion on a rack between the rails.',
                      'A cable chain beside the track brings power, network and pure water to the carriage.',
-                     'The chain\'s fixed end is bolted to the floor at a floor box. 3 ducts in the slab feed the box from the wall panel.',
+                     'A bracket holds the chain\'s fixed end in front of a floor box. 3 ducts in the slab feed the box from the wall panel.',
                      'The tracks stand 2.1 m from the drive line, inside the gantry rails. The gantry passes over them.'],
                 specs={'travel': f'{(det["trackTo"] - det["dockDy"]):.2f} m', 'speed': '1.5 m/s (class)',
                        'from the flank': f'{det["trackX"] - spec["car"]["width"] / 2:.2f} m'}, group='Motion')
@@ -135,7 +135,7 @@ def build(spec: dict) -> Model:
                      'A bracket holds the chain\'s first link there. A strain relief block clamps each line in front of it.',
                      '3 more ducts go to a floor box at each arm chain\'s fixed end: power, data and pure water.',
                      'The wall, the ducts in the slab and the plant\'s stubs belong to the building. They are shown for context.'],
-                specs={'hand-over': 'north wall, west of the exit door, 1.4 m and more north of the gantry\'s travel',
+                specs={'hand-over': 'north wall, west of the exit door, 1.8 m north of the rails\' end',
                        'duct fill': '53 % for 1 cable, 31 % for 2, 40 % for more (NEC chapter 9, table 1)',
                        'machine lines': 'supply cable 5G10, network, water 19 mm, 2 chemicals 10 mm, air 12 mm tube',
                        'each arm\'s lines': 'supply, track motor, 24 V, network, 6 mm pure water'}, group='Control')
@@ -963,7 +963,7 @@ def build(spec: dict) -> Model:
     cond = std.swept('WSH-DCC', 'Cable conduit, chain to cabinet, 60 mm',
                      [(x_cd, y_arm + 60, 90), (x_cd, 520, 90), (x_post - 150, 1120, z_cab - 200), (x_post - 150, 1299, z_cab - 200)],
                      30, 'cable', 'electrical', 26, 'Carries the supply cable and the network cable from the arm up the leg to the control cabinet.',
-                     {'bend': 'R 300 (5 x D)', 'fill': '26 % of its 52 mm bore (2 cables: limit 31 %)'}, 'EN 61386', 'D 60', 'make', bend=300.0)
+                     {'bend': 'R 300 (5 x D)', 'fill': '19 % of its 52 mm bore (2 cables: limit 31 %)'}, 'EN 61386', 'D 60', 'make', bend=300.0)
     m.place(gan, cond, Location(), (-200, 100, 0), 'CONTROL')
     # ═══════════════════════════════════════════ ON THE MACHINE: FROM THE CHAIN AND THE CABINET TO EACH CONSUMER ═══
     # The chain's lines part at the carrier arm. The supply cable and the network cable go up the conduit (WSH-DCC) to the
@@ -1012,7 +1012,7 @@ def build(spec: dict) -> Model:
                                 'Carries the motor, valve and signal cables from the control cabinet up through the beam and along its top. '
                                 'Each cable leaves it in its own conduit.', {}, 'make')),
             Location(), (-100, 260, -100), 'CONTROL')
-    CD_R = 8.0                                           # each consumer's conduit: 16 mm, one cable of 10 mm or less (39 % of its 14 mm bore)
+    CD_R = 8.0                                           # each consumer's conduit: 16 mm, one cable of 10 mm or less (51 % of its 14 mm bore; limit 53 %)
     CD_BEND = 40.0                                       # 4 x a 10 mm cable, fixed installation (ASSUMPTION: a class figure)
 
     def e_conduit(pid: str, to: str, pts: list, fn: str) -> PartDef:
@@ -1041,7 +1041,7 @@ def build(spec: dict) -> Model:
     for sx in (-1, 1):
         m.place(gan, eck, loc(sx * (KH_X - 130), yT, zL), (0, 460, 0), 'CONTROL')
     m.place(gan, e_conduit('WSH-ECV', 'valve manifold', [(-300.0, yT + 30, zL + TK / 2), (-300.0, yT + 30, za + 30)],
-                           'Brings the 4 valve cables from the trunk to the manifold.'), Location(), (0, 300, 0), 'CONTROL')
+                           'Brings the valves\' cable (one cable, 8 cores, for the 4 valves) from the trunk to the manifold.'), Location(), (0, 300, 0), 'CONTROL')
     m.place(gan, e_conduit('WSH-ECN', 'status beacon', [(-1722.0, yT + 10, zL - TK / 2), (-1722.0, yT + 10, zd + 125 - 20 * 10 / 400 - 0.1)],
                            'Brings the beacon\'s cable from the trunk.'), Location(), (0, 300, 0), 'CONTROL')
     m.place(gan, e_conduit('WSH-ECS', 'stop light', [(light['x'], yT + 48, zL - TK / 2), (light['x'], yT + 48, zb1 - 40), (light['x'], light['y'] + 60, zb1 - 40)],
@@ -1156,8 +1156,8 @@ def build(spec: dict) -> Model:
         m.place(bay, d_pd[tag], loc(x, 0, z_w), (0, 0, -200), 'SUPPLY')
     sz_ap, sz_ad, sz_aw = duct_size([A_SUP, A_MOT, A_24V]), duct_size([A_ECT, A_SIG]), duct_size([A_H2O])
     sz_p, sz_n = duct_size([L_PWR]), duct_size([L_NET])
-    # the hose duct is one size over what the fill asks (2-1/2): in a 3 in bore the 4 hoses lie in the order of their lanes,
-    # so they fan out in the pit without one crossing another
+    # the hose duct is one size over what the fill asks (2-1/2): in a 3 in bore the 4 hoses lie side by side (74 of 77 mm),
+    # in the order of their lanes on the trench floor
     sz_m = list(PVC40)[list(PVC40).index(duct_size([L_WAT, L_CHM, L_CHM, L_AIR])) + 1]
     drop_pd = {}
     for (x, size, y1_, what) in ((ex[0], sz_ap, 1100, 'arm power'), (ex[1], sz_ad, 1100, 'arm data'), (ex[2], sz_ap, 1100, 'arm power'),
@@ -1187,7 +1187,10 @@ def build(spec: dict) -> Model:
     px0, px1 = x_i - 190, x_o + 25
     z_pn = tz1 + 5 + PIT_L                               # the pit's north wall, inner face
     y_md = -400.0                                        # the machine's ducts: under the arm ducts, and deep enough for their elbows
-    xpM, xpN, xpP = px0 + 70, xch - 57.5, px1 - 62.5      # where they enter the pit: media, network, power
+    y_nd = y_md - 80.0                                   # the network duct runs 25 mm under the hose duct, which it crosses on the way
+    # where they enter the pit: each duct in line with its own lanes on the trench floor, so no line crosses another in
+    # the pit and none runs askew beside its neighbour (askew, 2 hoses 1 mm apart close on each other)
+    xpN, xpM, xpP = xch - 68, xch - 3, xch + 65
     pit = (cq.Workplane('XY').box(px1 - px0 + 10, 5, PIT_L + 10, centered=(False, False, False)).translate((px0 - 5, y_fl - 5, tz1))
            .union(cq.Workplane('XY').box(5, -y_fl - 10, PIT_L + 10, centered=(False, False, False)).translate((px0 - 5, y_fl, tz1)))
            .union(cq.Workplane('XY').box(5, -y_fl - 10, PIT_L + 10, centered=(False, False, False)).translate((px1, y_fl, tz1)))
@@ -1197,8 +1200,8 @@ def build(spec: dict) -> Model:
            .union(cq.Workplane('XY').box(30, 5, PIT_L + 10, centered=(False, False, False)).translate((px1 + 5, -15, tz1)))
            .union(cq.Workplane('XY').box(px1 - px0 + 70, 5, 30, centered=(False, False, False)).translate((px0 - 35, -15, z_pn + 5)))
            .cut(cq.Workplane('XY').box(x_o - x_i, -y_fl - 15, 7, centered=(False, False, False)).translate((x_i, y_fl, tz1 - 1))))
-    for (x, size) in ((xpM, sz_m), (xpN, sz_n), (xpP, sz_p)):
-        pit = pit.cut(cq.Workplane('XY', origin=(x, y_md, z_pn - 1)).circle(PVC40[size][0] / 2 + 0.1).extrude(7))
+    for (x, size, yy) in ((xpM, sz_m, y_md), (xpN, sz_n, y_nd), (xpP, sz_p, y_md)):
+        pit = pit.cut(cq.Workplane('XY', origin=(x, yy, z_pn - 1)).circle(PVC40[size][0] / 2 + 0.1).extrude(7))
     m.place(bay, m.part(PartDef('WSH-CTP', 'Supply pit liner, galvanised', pit.val(), 'steel', 'structure', 'folded and welded sheet 5 mm',
                                 f'{px1 - px0:.0f} x {-y_fl:.0f} x {PIT_L:.0f}', 'S235, galvanised', None,
                                 'Lines the pit at the trench\'s north end. The 3 ducts from the wall end in its north wall, and the lines '
@@ -1209,10 +1212,10 @@ def build(spec: dict) -> Model:
                                 'Covers the pit flush with the floor. Off to pull or change a line.', {}, 'make')),
             Location(), (-300, 60, 200), 'SUPPLY')
     xwM, xwN, xwP = vx[2], ex[4], ix
-    for (pid, what, size, xw, xp, ods) in (('WSH-SDM', 'machine media', sz_m, xwM, xpM, [L_WAT, L_CHM, L_CHM, L_AIR]),
-                                           ('WSH-SDN', 'machine network', sz_n, xwN, xpN, [L_NET]),
-                                           ('WSH-SDP', 'machine power', sz_p, xwP, xpP, [L_PWR])):
-        cast_duct(pid, what, size, [(xw, 0, zdw), (xw, y_md, zdw), (xw, y_md, zdw - 420), (xp, y_md, z_pn + 1000), (xp, y_md, z_pn)], ods)
+    for (pid, what, size, xw, xp, yy, ods) in (('WSH-SDM', 'machine media', sz_m, xwM, xpM, y_md, [L_WAT, L_CHM, L_CHM, L_AIR]),
+                                               ('WSH-SDN', 'machine network', sz_n, xwN, xpN, y_nd, [L_NET]),
+                                               ('WSH-SDP', 'machine power', sz_p, xwP, xpP, y_md, [L_PWR])):
+        cast_duct(pid, what, size, [(xw, 0, zdw), (xw, yy, zdw), (xw, yy, zdw - 420), (xp, yy, z_pn + 1000), (xp, yy, z_pn)], ods)
     # ── the tray on the trench floor, the chain's fixed-end bracket and strain relief, and the 6 lines ──
     z_t0, z_t1 = z_fix + 130, tz1 + 60
     tray = (cq.Workplane('XY').box(124, 46, z_t1 - z_t0, centered=(True, False, False))
@@ -1230,9 +1233,9 @@ def build(spec: dict) -> Model:
                                 'Holds the chain\'s first link on the trench floor at mid travel. The lines enter the chain through its window.',
                                 {}, 'make')), Location(), (-300, -160, 0), 'SUPPLY')
     y_ln = y_fl + 13                                     # the lines' underside: level with the chain's floor
-    lanes = (('W', 'water hose 19 x 27', L_WAT, -41.5, 135.0, 'hose', 'fluid'), ('A', 'chemical hose A 10 x 16', L_CHM, -18.0, 80.0, 'hose', 'fluid'),
-             ('B', 'chemical hose B 10 x 16', L_CHM, 0.0, 80.0, 'hose', 'fluid'), ('R', 'air tube 12 x 9', L_AIR, 16.0, 60.0, 'hose', 'fluid'),
-             ('N', 'network cable', L_NET, 28.0, 32.0, 'cable', 'electrical'), ('P', 'supply cable 5G10', L_PWR, 44.5, 84.0, 'cable', 'electrical'))
+    lanes = (('N', 'network cable', L_NET, -51.0, 32.0, 'cable', 'electrical'), ('W', 'water hose 19 x 27', L_WAT, -31.5, 135.0, 'hose', 'fluid'),
+             ('A', 'chemical hose A 10 x 16', L_CHM, -8.0, 80.0, 'hose', 'fluid'), ('B', 'chemical hose B 10 x 16', L_CHM, 10.0, 80.0, 'hose', 'fluid'),
+             ('R', 'air tube 12 x 9', L_AIR, 26.0, 60.0, 'hose', 'fluid'), ('P', 'supply cable 5G10', L_PWR, 44.5, 84.0, 'cable', 'electrical'))
     comb = cq.Workplane('XY').box(120, 40, 30, centered=(True, False, False)).translate((xch, y_fl + 8, z_fix + 55))
     for (_, _, od, lx, _, _, _) in lanes:
         comb = comb.cut(cq.Workplane('XY', origin=(xch + lx, y_ln + od / 2, z_fix + 54)).circle(od / 2 + 0.1).extrude(32))
@@ -1241,8 +1244,8 @@ def build(spec: dict) -> Model:
                                 'Clamps each line in front of the chain\'s fixed end, so no pull reaches the chain or the duct.',
                                 {'rule': 'strain relief at the fixed end (chain maker\'s filling rule)'}, 'buy')),
             Location(), (-300, -200, 0), 'SUPPLY')
-    src = {'W': (xpM - 22, y_md - 3), 'A': (xpM, y_md + 14), 'B': (xpM + 14, y_md - 16), 'R': (xpM + 26, y_md + 4),
-           'N': (xpN, y_md), 'P': (xpP, y_md)}           # each line's place in its duct's mouth (the 4 hoses share the media duct)
+    src = {'W': (xpM - 23.5, y_md), 'A': (xpM - 1, y_md), 'B': (xpM + 16, y_md), 'R': (xpM + 31, y_md),
+           'N': (xpN, y_nd), 'P': (xpP, y_md)}           # each line's place in its duct's mouth (the 4 hoses lie side by side in theirs)
     for (tag, nm, od, lx, bend, mat, cat) in lanes:
         (xs, ys) = src[tag]
         ln = std.swept(f'WSH-ML{tag}', f'Machine {nm}, wall to the chain\'s fixed end', [(xs, ys, z_pn), (xs, ys, z_pn - 70),
