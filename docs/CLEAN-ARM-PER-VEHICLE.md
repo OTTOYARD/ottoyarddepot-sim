@@ -251,9 +251,10 @@ swings to the rear door, and the rear door opens during that swing: before, both
   the per-opening order the arm needs 137 s to 147 s after the charge in the case measured above, and about 65 s at
   the least. To start the clean step during the charge and hold the car only for what waited is an engine change
   (otto-q-core). It was not made here.
-- An owner's immediate turnaround of these three is not held past its charge for a routine clean, so it gets none; a
-  needed tidy is still done. If the twin gave it a clean step during its charge, the arm would now do the far flank
-  and one port visit in it.
+- **An owner's immediate turnaround of these three is cleaned too, since otto-q-core 0831 (2026-11-14 03:12 UTC)**:
+  charge then clean is one stop, back to back (Chase, 2026-11-13), so the car stays on its post for the arm. On run
+  1902d13b at tick 349: 88 charged visits of these three, 87 cleaned by the arm (27 of them immediate turnarounds);
+  the 1 not cleaned had its clean cut short by a charger fault (otto-q-core 0832, `db/checks/0491`). A mid-run read.
 - Not watched in the running twin: the arm at one port opening with the connector in, and the arm doing what waited
   after the connector is out.
 - The Ojai's right front seat cushion: the visit with the front panel only reaches it on the charger's flank. No such
