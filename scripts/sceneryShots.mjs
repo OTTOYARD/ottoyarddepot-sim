@@ -1,0 +1,84 @@
+#!/usr/bin/env node
+// sceneryShots — the yard's grass and sky from four cameras, with no run (READ-ONLY; see idleDepotShots).
+//   node scripts/sceneryShots.mjs --url http://127.0.0.1:8093/ --out DIR [--relay] [--hour 18.5] [--weather Rain]
+// --hour and --weather set the renderer's own clock and weather through the dev server's store module (vite dev only).
+import { chromium } from "@playwright/test";
+import { existsSync, mkdirSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { installFixtureRoutes, loadFixture } from "./lib/fixturePlayback.mjs";
+
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const arg = (name, dflt) => {
+  const i = process.argv.indexOf(`--${name}`);
+  if (i < 0) return dflt;
+  const v = process.argv[i + 1];
+  return v === undefined || v.startsWith("--") ? true : v;
+};
+const URL_ = String(arg("url", "http://127.0.0.1:8080/")).replace(/\/?$/, "/");
+const OUT = resolve(arg("out", "scenery-shots"));
+const CHROMIUM = existsSync("/opt/pw-browsers/chromium") ? "/opt/pw-browsers/chromium" : undefined;
+mkdirSync(OUT, { recursive: true });
+
+const F = loadFixture(ROOT, "fresh0922");
+const browser = await chromium.launch({
+  ...(CHROMIUM ? { executablePath: CHROMIUM } : {}),
+  args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"],
+});
+const CAMS = {
+  aerial: [[0, 150, -210], [0, 0, 0]],          // the whole block, grass verge and city
+  horizon: [[-200, 14, -150], [40, 30, 60]],    // low, looking up at the sky over the depot
+  verge: [[-170, 9, -40], [-150, 0, 30]],       // close on the grass outside the west fence
+  lawnTop: [[-158, 30, 60], [-158, 0, 61]],     // straight down on the verge
+};
+// --survey: the yard's fixtures up close (the cockpit's own camera presets, plus the fence, the utility yard and the road)
+const SURVEY = {
+  entrance: [[50, 6, -135], [50, 3, -70]],
+  canopy: [[75, 7, -50], [47, 5, 30]],
+  service: [[10, 9, 30], [25, 6, 75]],
+  hero: [[-95, 14, -75], [-47, 6, 25]],
+  bays: [[-70, 10, 38], [5, 3.5, 66]],
+  rear: [[-30, 12, 108], [-10, 4, 70]],
+  robots: [[70, 5.5, 2], [52, 2.5, -6]],
+  utility: [[95, 9, 62], [118, 2, 86]],
+  fence: [[-120, 4, -108], [-150, 2, -84]],
+  staging: [[-100, 6, -30], [-140, 1, 10]],
+  lot: [[20, 5, -60], [0, 0, -30]],
+  road: [[-10, 3.5, -120], [60, 1, -100]],
+  planter: [[-55, 3.2, -84], [-62, 0.6, -90]],
+  pole: [[98, 7, 36], [112, 8, 50]],
+  poletop: [[104, 13.5, 43], [114, 17.6, 50]],
+  polebase: [[108, 2.2, 45], [112, 0.8, 50]],
+  roofs: [[-10, 34, 22], [14, 12, 78]],
+  cityroofs: [[150, 70, -230], [330, 20, -400]],
+  column: [[58, 3, -18], [47, 2.5, -10]],
+  river: [[-330, 120, -260], [-560, 0, 40]],
+  far: [[0, 420, -700], [0, 0, 300]],
+};
+// --only a,b: just those cameras
+if (arg("survey", false) === true) { for (const k of Object.keys(CAMS)) delete CAMS[k]; Object.assign(CAMS, SURVEY); }
+const only = arg("only", null);
+if (typeof only === "string") for (const k of Object.keys(CAMS)) if (!only.split(",").includes(k)) delete CAMS[k];
+const page = await (await browser.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
+const errors = [];
+page.on("pageerror", (e) => errors.push(String(e).slice(0, 300)));
+await installFixtureRoutes(page, F, { relay: arg("relay", false) === true, noRun: true });
+await page.goto(URL_ + "view.html", { waitUntil: "domcontentloaded" });
+await page.waitForFunction(() => typeof window.__depotCam === "function", null, { timeout: 120000 });
+await page.waitForTimeout(15000);
+if (arg("hour", null) !== null || arg("weather", null) !== null) {
+  await page.evaluate(async ([hour, weather]) => {
+    const { useSimulationStore } = await import("/src/store/simulationStore.ts");
+    const s = useSimulationStore.getState();
+    if (hour !== null) s.setSimTime(Number(hour) * 3600);
+    if (weather !== null) useSimulationStore.setState({ config: { ...s.config, weather } });
+  }, [arg("hour", null), arg("weather", null)]);
+}
+for (const [name, [p, t]] of Object.entries(CAMS)) {
+  await page.evaluate(([p, t]) => window.__depotCam?.(p, t), [p, t]);
+  await page.waitForTimeout(8000);
+  await page.screenshot({ path: join(OUT, `${name}.jpg`), type: "jpeg", quality: 86 });
+}
+await browser.close();
+if (errors.length) { console.error(errors); process.exit(1); }
+console.log("ok", OUT);

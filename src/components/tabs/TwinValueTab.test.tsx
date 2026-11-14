@@ -241,11 +241,11 @@ describe('not measured yet', () => {
 });
 
 describe('the tab bar', () => {
-  it('opens with Background, Control and OTTO-Q, and ends with Value, Research, Robotics and Power', () => {
+  it('opens with Background, Control, OTTO-Q and Robotics, and ends with Value, Research and Power', () => {
     render(<TabBar />);
     const tabs = screen.getAllByRole('button').map((b) => b.textContent);
-    expect(tabs.slice(0, 3)).toEqual(['Background', 'Control', 'OTTO-Q']);
-    expect(tabs.slice(-4)).toEqual(['Value', 'Research', 'Robotics', 'Power']);
+    expect(tabs.slice(0, 4)).toEqual(['Background', 'Control', 'OTTO-Q', 'Robotics']);
+    expect(tabs.slice(-3)).toEqual(['Value', 'Research', 'Power']);
   });
 });
 

@@ -1,5 +1,9 @@
 import * as THREE from 'three';
-import { asphaltTexture, pvCellTexture, concreteTexture } from './textures';
+import {
+  pvCellTexture, grassTexture, foliageTexture, asphaltFineTexture, concreteSlabTexture,
+  paintWearTexture, barkTexture, ribbedSteelTexture, chainLinkTexture, bollardTexture,
+  weatherTexture, spangleTexture, rustTexture, rippleTexture, roofSheetTexture,
+} from './textures';
 
 export const BRAND = {
   teal: new THREE.Color('#00D4AA'),
@@ -27,20 +31,20 @@ function cached(key: string, factory: () => THREE.MeshPhysicalMaterial): THREE.M
 // ===================== GROUND & PAVING =====================
 
 export function polishedConcrete() {
-  return cached('polishedConcrete', () => new THREE.MeshPhysicalMaterial({
-    map: concreteTexture(),
-    color: '#c9cbcd', roughness: 0.65, metalness: 0.0,
-    clearcoat: 0.06, clearcoatRoughness: 0.5,
+  // cast concrete, laid by world position along all three axes: 8 u slabs with a joint between
+  // them on a pad, the same pores and stains up a canopy pier
+  return cached('polishedConcrete', () => concreted(new THREE.MeshPhysicalMaterial({
+    color: '#dfe1e2', roughness: 0.7, metalness: 0.0,
+    clearcoat: 0.04, clearcoatRoughness: 0.6,
     reflectivity: 0.4, envMapIntensity: 0.6,
-  }));
+  })));
 }
 
 export function asphalt() {
-  return cached('asphalt', () => new THREE.MeshPhysicalMaterial({
-    map: asphaltTexture(),
-    color: '#bcbcc4', // multiplies the texture — keeps it dark but alive
+  return cached('asphalt', () => asphalted(new THREE.MeshPhysicalMaterial({
+    color: '#c9c9d2', // multiplies the texture — keeps it dark but alive
     roughness: 0.92, metalness: 0.0, envMapIntensity: 0.3,
-  }));
+  })));
 }
 
 export function epoxyFloor() {
@@ -52,9 +56,9 @@ export function epoxyFloor() {
 }
 
 export function laneMarkingWhite() {
-  return cached('laneMarkingWhite', () => new THREE.MeshPhysicalMaterial({
+  return cached('laneMarkingWhite', () => worn(new THREE.MeshPhysicalMaterial({
     color: '#E8E8E0', roughness: 0.6, metalness: 0.0, envMapIntensity: 0.3,
-  }));
+  })));
 }
 
 export function laneMarkingTeal() {
@@ -68,9 +72,9 @@ export function laneMarkingTeal() {
 // ===================== STRUCTURAL METALS =====================
 
 export function structuralSteel() {
-  return cached('structuralSteel', () => new THREE.MeshPhysicalMaterial({
+  return cached('structuralSteel', () => weathered(new THREE.MeshPhysicalMaterial({
     color: '#2A2A3E', roughness: 0.5, metalness: 0.4, envMapIntensity: 0.6,
-  }));
+  })));
 }
 
 export function brushedAluminum() {
@@ -80,10 +84,10 @@ export function brushedAluminum() {
 }
 
 export function darkCladding() {
-  return cached('darkCladding', () => new THREE.MeshPhysicalMaterial({
+  return cached('darkCladding', () => weathered(new THREE.MeshPhysicalMaterial({
     color: '#2A2A34', roughness: 0.4, metalness: 0.05,
     envMapIntensity: 0.5, clearcoat: 0.1, clearcoatRoughness: 0.5,
-  }));
+  })));
 }
 
 export function anodizedPanel() {
@@ -94,9 +98,9 @@ export function anodizedPanel() {
 }
 
 export function cortenSteel() {
-  return cached('cortenSteel', () => new THREE.MeshPhysicalMaterial({
-    color: '#8B4513', roughness: 0.8, metalness: 0.6, envMapIntensity: 0.5,
-  }));
+  return cached('cortenSteel', () => worldMapped(new THREE.MeshPhysicalMaterial({
+    color: '#ffffff', map: rustTexture(), roughness: 0.85, metalness: 0.35, envMapIntensity: 0.4,
+  }), { tile: 5, patch: 0, gain: 1.5, solid: true }));
 }
 
 // ===================== GLASS =====================
@@ -265,16 +269,172 @@ export function chargerConnector() {
 
 // ===================== LANDSCAPING =====================
 
-export function grass() {
-  return cached('grass', () => new THREE.MeshPhysicalMaterial({
-    color: '#4a7a36', roughness: 0.9, metalness: 0.0, envMapIntensity: 0.35,
+/**
+ * Lay a material's texture by WORLD position instead of the mesh's own UVs, so a 2 u planter
+ * and a 300 u lawn show blades the same size and neighbouring lawns join without a seam.
+ * The texture is read at two scales (the second turned, so the tile's repeat never lines up)
+ * and tinted by a third, very slow read of itself: patches tens of metres across, the way real
+ * turf is greener in one corner than another. `stripes` adds a mower's light and dark passes.
+ * `solid` is for a hedge or a tree crown: the texture is read along all three axes, so upright
+ * faces are leafed too, not streaked.
+ */
+function worldMapped<M extends THREE.MeshStandardMaterial>(m: M, o: { tile: number; stripes?: number; patch?: number; gain?: number; solid?: boolean; mid?: number; amp?: number }): M {
+  const mid = (o.mid ?? (o.solid ? 0.3 : 0.62)).toFixed(3), amp = (o.amp ?? (o.solid ? 3 : 2.2)).toFixed(2);
+  const gain = (o.gain ?? 1).toFixed(2), patch = (o.patch ?? 0.55).toFixed(3), stripes = (o.stripes ?? 0).toFixed(3), tile = o.tile.toFixed(2);
+  m.onBeforeCompile = (shader) => {
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vTurfPos;')
+      .replace('#include <worldpos_vertex>', `#include <worldpos_vertex>
+        vec4 turfWorld = vec4(transformed, 1.0);
+        #ifdef USE_INSTANCING
+          turfWorld = instanceMatrix * turfWorld;
+        #endif
+        vTurfPos = (modelMatrix * turfWorld).xyz;`);
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vTurfPos;')
+      // the bump height is read where the colour is, not at the mesh's own UVs
+      .replace('#include <bumpmap_pars_fragment>', THREE.ShaderChunk.bumpmap_pars_fragment
+        .replace(/vBumpMapUv/g, `(vTurfPos.xz / ${tile})`))
+      .replace('#include <map_fragment>', o.solid ? /* glsl */ `
+        // a solid (a hedge, a tree crown): read the texture along each axis and blend by which way the face looks
+        vec3 turfN = abs(normalize(cross(dFdx(vTurfPos), dFdy(vTurfPos))));
+        turfN = turfN * turfN / dot(turfN, turfN);
+        vec3 turfP = vTurfPos / ${tile};
+        vec3 turf = texture2D(map, turfP.xz).rgb * turfN.y + texture2D(map, turfP.xy + 0.31).rgb * turfN.z + texture2D(map, turfP.zy + 0.67).rgb * turfN.x;
+        float turfSlow = texture2D(map, turfP.xz / 9.0 + turfP.y * 0.07).g;
+        turf *= max(0.0, 1.0 + ${patch} * (turfSlow - ${mid}) * ${amp});
+        diffuseColor.rgb *= turf * ${gain};
+      ` : /* glsl */ `
+        vec2 turfUv = vTurfPos.xz;
+        vec3 turfA = texture2D(map, turfUv / ${tile}).rgb;
+        vec3 turfB = texture2D(map, mat2(0.8, -0.6, 0.6, 0.8) * turfUv / (${tile} * 3.7) + 0.37).rgb;
+        float turfSlow = texture2D(map, mat2(0.6, 0.8, -0.8, 0.6) * turfUv / (${tile} * 23.0) + 0.11).g
+                       + texture2D(map, turfUv / (${tile} * 61.0) + 0.53).g;
+        vec3 turf = mix(turfA, turfB, 0.4) * max(0.0, 1.0 + ${patch} * (turfSlow - ${mid}) * ${amp});
+        turf *= 1.0 + ${stripes} * (smoothstep(-0.25, 0.25, sin(dot(vTurfPos.xz, vec2(0.6, 0.8)) * 0.52)) - 0.5);
+        diffuseColor.rgb *= turf * ${gain};
+      `);
+  };
+  // one program per (tile, stripes, patch), not one shared with every other mapped material
+  m.customProgramCacheKey = () => `turf:${tile}:${stripes}:${patch}:${gain}:${o.solid ? 1 : 0}:${mid}:${amp}`;
+  return m;
+}
+
+/** Yard asphalt on any standard material: aggregate up close, worn and resealed patches from the air. */
+export function asphalted<M extends THREE.MeshStandardMaterial>(m: M): M {
+  m.map = asphaltFineTexture();
+  m.bumpMap = asphaltFineTexture();
+  m.bumpScale = 0.35;
+  return worldMapped(m, { tile: 13, patch: 0.5, mid: 0.045, amp: 14, gain: 1.15 });
+}
+
+/** Cast concrete on any standard material, slab or upright. */
+export function concreted<M extends THREE.MeshStandardMaterial>(m: M, slab = 8): M {
+  m.map = concreteSlabTexture();
+  return worldMapped(m, { tile: slab, patch: 0.1, mid: 0.44, amp: 2.2, gain: 1.5, solid: true });
+}
+
+/** Road paint that has been driven on: chips and scuffs over the paint's own colour. */
+export function worn<M extends THREE.MeshStandardMaterial>(m: M): M {
+  m.map = paintWearTexture();
+  return worldMapped(m, { tile: 7, patch: 0.25, mid: 1.7, amp: 0.6, gain: 1.12 });
+}
+
+/** Bark on a trunk's material. */
+export function barked<M extends THREE.MeshStandardMaterial>(m: M): M {
+  m.color.set('#ffffff');
+  m.map = barkTexture();
+  return worldMapped(m, { tile: 2.2, patch: 0, gain: 1.15, solid: true });
+}
+
+/** Ribbed, painted steel over the material's own colour (battery enclosures, switchgear). */
+export function ribbed<M extends THREE.MeshStandardMaterial>(m: M): M {
+  m.map = ribbedSteelTexture();
+  return worldMapped(m, { tile: 4, patch: 0, gain: 1.18, solid: true });
+}
+
+/**
+ * Chain-link infill for a fence panel `len` u long and `h` u high: woven wire you can see
+ * through, where a translucent dark slab used to stand. Lay it on a plane (its UVs run 0..1).
+ */
+export function chainLink(len: number, h: number): THREE.MeshStandardMaterial {
+  const map = chainLinkTexture().clone();
+  map.repeat.set(len / 0.55, h / 0.55);
+  map.needsUpdate = true;
+  return new THREE.MeshStandardMaterial({
+    map, color: '#7f8690', transparent: true, alphaTest: 0.08, side: THREE.DoubleSide, depthWrite: false,
+    // little of the (always daytime) sky in it, or the wire glows white after dark
+    roughness: 0.6, metalness: 0.25, envMapIntensity: 0.15,
+  });
+}
+
+/** A safety bollard: yellow, with its reflective band, scuffs and grime (bollardTexture). */
+export function bollard() {
+  return cached('bollard', () => new THREE.MeshPhysicalMaterial({
+    map: bollardTexture(), color: '#ffffff', roughness: 0.55, metalness: 0.0, envMapIntensity: 0.45,
+    clearcoat: 0.3, clearcoatRoughness: 0.4,
   }));
 }
 
+/** Weather a painted or bare metal: dust, scratches and rain streaks over its own colour. */
+export function weathered<M extends THREE.MeshStandardMaterial>(m: M, tile = 6): M {
+  m.map = weatherTexture();
+  return worldMapped(m, { tile, patch: 0, gain: 1.22, solid: true });
+}
+
+/** Hot-dip galvanised steel: the zinc's spangle over the material's own gray. */
+export function galvanised<M extends THREE.MeshStandardMaterial>(m: M): M {
+  m.map = spangleTexture();
+  return worldMapped(m, { tile: 3, patch: 0, gain: 1.5, solid: true });
+}
+
+/** River and fountain water: ripples over the material's own colour. */
+export function rippled<M extends THREE.MeshStandardMaterial>(m: M): M {
+  m.map = rippleTexture();
+  m.bumpMap = rippleTexture();
+  m.bumpScale = 1.4;
+  return worldMapped(m, { tile: 34, patch: 0.5, mid: 0.72, amp: 1.6, gain: 2.3 });
+}
+
+/** The plain beyond the city: rough pasture, the turf texture at field scale. */
+export function pastured<M extends THREE.MeshStandardMaterial>(m: M): M {
+  m.map = grassTexture();
+  return worldMapped(m, { tile: 120, patch: 0.9, gain: 1.0 });
+}
+
+/** A flat roof's membrane over the material's own colour: sheets 6 u wide, seams, ponding, dust. */
+export function roofed<M extends THREE.MeshStandardMaterial>(m: M): M {
+  m.map = roofSheetTexture();
+  return worldMapped(m, { tile: 24, patch: 0.45, mid: 1.05, amp: 1.4, gain: 1.32 });
+}
+
+/** Turn any standard material into mown turf (the city's lawns use their own material). */
+export function turfed<M extends THREE.MeshStandardMaterial>(m: M): M {
+  m.color.set('#ffffff');
+  m.map = grassTexture();
+  m.bumpMap = grassTexture();
+  m.bumpScale = 0.6;
+  return worldMapped(m, { tile: 26, stripes: 0.09 });
+}
+
+export function grass() {
+  // The turf texture carries the colour (grassTexture); it used to be one flat green, #4a7a36.
+  return cached('grass', () => turfed(new THREE.MeshPhysicalMaterial({
+    roughness: 0.92, metalness: 0.0, envMapIntensity: 0.35,
+  })));
+}
+
+/** Leaf a tree crown's material: the foliage texture over whatever green each tree already has. */
+export function leafed<M extends THREE.MeshStandardMaterial>(m: M): M {
+  m.map = foliageTexture();
+  return worldMapped(m, { tile: 9, patch: 0.3, gain: 3.5, solid: true });
+}
+
 export function shrubGreen() {
-  return cached('shrubGreen', () => new THREE.MeshPhysicalMaterial({
-    color: '#3c6b2e', roughness: 0.9, metalness: 0.0, envMapIntensity: 0.35,
-  }));
+  return cached('shrubGreen', () => worldMapped(new THREE.MeshPhysicalMaterial({
+    color: '#ffffff', map: foliageTexture(),
+    roughness: 0.9, metalness: 0.0, envMapIntensity: 0.35,
+  }), { tile: 7, patch: 0.3, gain: 1.25, solid: true }));
 }
 
 export function safetyYellow() {
@@ -299,9 +459,9 @@ export function gravel() {
 }
 
 export function curbing() {
-  return cached('curbing', () => new THREE.MeshPhysicalMaterial({
-    color: '#999999', roughness: 0.7, metalness: 0.0, envMapIntensity: 0.3,
-  }));
+  return cached('curbing', () => concreted(new THREE.MeshPhysicalMaterial({
+    color: '#b4b4b4', roughness: 0.75, metalness: 0.0, envMapIntensity: 0.3,
+  }), 5));
 }
 
 export const MATERIALS = {
@@ -312,5 +472,5 @@ export const MATERIALS = {
   tealLED, whiteLED, greenIndicator, amberIndicator, redIndicator,
   concreteBlock, woodAccent,
   chargerHousing, chargerCable, chargerConnector,
-  grass, gravel, curbing, shrubGreen, safetyYellow, safetyOrange,
+  grass, gravel, curbing, shrubGreen, safetyYellow, safetyOrange, bollard,
 } as const;

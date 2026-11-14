@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import * as THREE from 'three';
-import { MATERIALS } from './materials';
+import { MATERIALS, chainLink } from './materials';
 import { LOT, INGRESS, EGRESS, GATE_W, southFenceSpans } from '@/lib/sitePlan';
 import { toWorld, DECK_Y } from './coordUtils';
 import { logoSignMaterial, LOGO_SIGN_ASPECT, gateSignTexture } from './textures';
@@ -22,11 +22,11 @@ function rectWorld(r: { x: number; y: number; w: number; h: number }) {
 }
 
 function FenceRun({ x1, y1, x2, y2 }: { x1: number; y1: number; x2: number; y2: number }) {
-  const mats = useMemo(() => ({ steel: MATERIALS.structuralSteel() }), []);
   const [wx1, , wz1] = toWorld({ x: x1, y: y1 }, 0);
   const [wx2, , wz2] = toWorld({ x: x2, y: y2 }, 0);
   const len = Math.hypot(wx2 - wx1, wz2 - wz1);
   const rotY = Math.atan2(wz2 - wz1, wx2 - wx1);
+  const mats = useMemo(() => ({ steel: MATERIALS.structuralSteel(), mesh: chainLink(len, 3.2) }), [len]);
   const posts = useMemo(() => {
     const n = Math.max(2, Math.floor(len / 6));
     const inst = new THREE.InstancedMesh(
@@ -51,10 +51,9 @@ function FenceRun({ x1, y1, x2, y2 }: { x1: number; y1: number; x2: number; y2: 
       <mesh position={[0, 1.1, 0]} material={mats.steel}>
         <boxGeometry args={[len, 0.14, 0.12]} />
       </mesh>
-      {/* mesh infill */}
-      <mesh position={[0, 2.7, 0]}>
-        <boxGeometry args={[len, 3.2, 0.03]} />
-        <meshPhysicalMaterial color="#15181d" roughness={0.8} metalness={0.6} transparent opacity={0.35} />
+      {/* chain-link infill: woven wire, see-through (it was a translucent dark slab) */}
+      <mesh position={[0, 2.7, 0]} material={mats.mesh}>
+        <planeGeometry args={[len, 3.2]} />
       </mesh>
     </group>
   );

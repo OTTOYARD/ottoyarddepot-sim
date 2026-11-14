@@ -244,9 +244,9 @@ describe('the Robotics tab', () => {
     }
   });
 
-  it('comes after the ten numbered tabs, with only Power after it, marked with its own icon', () => {
+  it('comes right after OTTO-Q (Chase, 2026-11-13)', () => {
     render(<TabBar />);
     const labels = screen.getAllByRole('button').map((b) => b.textContent);
-    expect(labels.slice(10)).toEqual(['Robotics', 'Power']);
+    expect(labels.slice(2, 5)).toEqual(['OTTO-Q', 'Robotics', 'Agent']);
   });
 });

@@ -182,6 +182,618 @@ export function skyTexture(): THREE.Texture {
   });
 }
 
+/**
+ * Mown turf, seen from above: mottled greens, thousands of short blades in a dozen shades,
+ * a little clover and a few dry flecks. It tiles (everything is drawn wrapped across the
+ * edges), and the red channel doubles as the bump height, so blades catch the sun.
+ * Laid by world position (materials.grass), so one tile is the same size on every lawn.
+ */
+export function grassTexture(): THREE.Texture {
+  return cachedTex('grass', () => {
+    const rnd = mulberry(1213);
+    const c = canvas(1024, 1024, (g, w, h) => {
+      g.fillStyle = '#41702f';
+      g.fillRect(0, 0, w, h);
+      /** draw at (x, y) and at its wrapped copies, so the tile has no seam */
+      const wrapped = (x: number, y: number, r: number, draw: (x: number, y: number) => void) => {
+        for (const ox of [0, x < r ? w : x > w - r ? -w : null]) {
+          for (const oy of [0, y < r ? h : y > h - r ? -h : null]) {
+            if (ox !== null && oy !== null) draw(x + ox, y + oy);
+          }
+        }
+      };
+      // broad patches: lush, thin, sun-yellowed, shaded
+      const PATCH = ['rgba(92,150,58,0.20)', 'rgba(40,84,34,0.24)', 'rgba(132,150,62,0.16)', 'rgba(58,112,44,0.22)', 'rgba(30,70,30,0.18)'];
+      for (let i = 0; i < 90; i++) {
+        const x = rnd() * w, y = rnd() * h, r = 30 + rnd() * 130, col = PATCH[Math.floor(rnd() * PATCH.length)];
+        wrapped(x, y, r, (px, py) => {
+          const grad = g.createRadialGradient(px, py, 0, px, py, r);
+          grad.addColorStop(0, col);
+          grad.addColorStop(1, 'rgba(0,0,0,0)');
+          g.fillStyle = grad;
+          g.fillRect(px - r, py - r, r * 2, r * 2);
+        });
+      }
+      // blades: short strokes leaning every way, dark ones first so the light ones lie on top
+      const BLADE = ['#244d1f', '#2d5a24', '#356a2a', '#3f7a30', '#4c8a38', '#5a9a40', '#6aa848', '#7fb655', '#93bf62'];
+      g.lineCap = 'round';
+      for (let pass = 0; pass < BLADE.length; pass++) {
+        g.strokeStyle = BLADE[pass];
+        const n = pass < 4 ? 9000 : pass < 7 ? 6500 : 2600;
+        g.globalAlpha = pass < 4 ? 0.55 : 0.5;
+        g.lineWidth = pass < 4 ? 1.6 : 1.1;
+        g.beginPath();
+        for (let i = 0; i < n; i++) {
+          const x = rnd() * w, y = rnd() * h, a = rnd() * Math.PI * 2, len = 3 + rnd() * 7;
+          const dx = Math.cos(a) * len, dy = Math.sin(a) * len;
+          wrapped(x, y, 10, (px, py) => { g.moveTo(px, py); g.lineTo(px + dx, py + dy); });
+        }
+        g.stroke();
+      }
+      g.globalAlpha = 1;
+      // clover and weeds: small dark-green clusters
+      for (let i = 0; i < 70; i++) {
+        const x = rnd() * w, y = rnd() * h;
+        for (let k = 0; k < 9; k++) {
+          const px = x + (rnd() - 0.5) * 22, py = y + (rnd() - 0.5) * 22, r = 1.5 + rnd() * 2.5;
+          g.fillStyle = `rgba(${36 + rnd() * 20},${96 + rnd() * 30},${44 + rnd() * 16},0.55)`;
+          wrapped(px, py, 4, (qx, qy) => { g.beginPath(); g.arc(qx, qy, r, 0, Math.PI * 2); g.fill(); });
+        }
+      }
+      // dry flecks and the odd bare speck of soil
+      for (let i = 0; i < 2600; i++) {
+        const dry = rnd() > 0.25;
+        g.fillStyle = dry ? `rgba(${170 + rnd() * 40},${168 + rnd() * 30},${90 + rnd() * 30},${0.25 + rnd() * 0.3})` : `rgba(70,56,36,${0.2 + rnd() * 0.25})`;
+        g.fillRect(rnd() * w, rnd() * h, 1 + rnd() * 2, 1 + rnd());
+      }
+    });
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.anisotropy = 8;
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  });
+}
+
+/** Clipped hedge foliage: small overlapping leaves, light over dark, with shadowed gaps. Tiles. */
+export function foliageTexture(): THREE.Texture {
+  return cachedTex('foliage', () => {
+    const rnd = mulberry(4441);
+    const c = canvas(512, 512, (g, w, h) => {
+      g.fillStyle = '#1f3d1a';
+      g.fillRect(0, 0, w, h);
+      const LEAF = ['#254a1e', '#2d5a24', '#37692b', '#427a32', '#4f8a3a', '#5f9a45'];
+      for (let pass = 0; pass < LEAF.length; pass++) {
+        g.fillStyle = LEAF[pass];
+        g.globalAlpha = 0.8;
+        for (let i = 0; i < (pass < 3 ? 2600 : 1500); i++) {
+          const x = rnd() * w, y = rnd() * h, a = rnd() * Math.PI, rx = 3 + rnd() * 4, ry = 1.5 + rnd() * 2;
+          for (const ox of [0, x < 8 ? w : x > w - 8 ? -w : null]) {
+            for (const oy of [0, y < 8 ? h : y > h - 8 ? -h : null]) {
+              if (ox === null || oy === null) continue;
+              g.beginPath(); g.ellipse(x + ox, y + oy, rx, ry, a, 0, Math.PI * 2); g.fill();
+            }
+          }
+        }
+      }
+      g.globalAlpha = 1;
+    });
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.anisotropy = 8;
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  });
+}
+
+// ── SURFACES LAID BY WORLD POSITION (materials.worldMapped) ───────────────────
+// Each tiles (everything is drawn wrapped across the edges) and is read at two scales by the
+// material, so a 300 u lot shows aggregate up close and repaved patches from the air.
+
+/** Draw at (x, y) and at its wrapped copies, so a tile has no seam. `r` is the mark's reach. */
+function wrap(w: number, h: number, x: number, y: number, r: number, draw: (x: number, y: number) => void) {
+  for (const ox of [0, x < r ? w : x > w - r ? -w : null]) {
+    for (const oy of [0, y < r ? h : y > h - r ? -h : null]) {
+      if (ox !== null && oy !== null) draw(x + ox, y + oy);
+    }
+  }
+}
+
+/** Yard asphalt: fine aggregate in a dark binder, lighter worn patches, darker resealed ones,
+ *  hairline cracks and a few tar-sealed ones. */
+export function asphaltFineTexture(): THREE.Texture {
+  return cachedTex('asphaltFine', () => {
+    const rnd = mulberry(77);
+    const c = canvas(1024, 1024, (g, w, h) => {
+      g.fillStyle = '#2b2b31';
+      g.fillRect(0, 0, w, h);
+      for (let i = 0; i < 70; i++) {
+        const x = rnd() * w, y = rnd() * h, r = 50 + rnd() * 170;
+        const col = rnd() > 0.5 ? 'rgba(74,74,82,0.17)' : 'rgba(10,10,14,0.22)';
+        wrap(w, h, x, y, r, (px, py) => {
+          const grad = g.createRadialGradient(px, py, 0, px, py, r);
+          grad.addColorStop(0, col); grad.addColorStop(1, 'rgba(0,0,0,0)');
+          g.fillStyle = grad; g.fillRect(px - r, py - r, r * 2, r * 2);
+        });
+      }
+      // aggregate: mostly gray stones, a few pale and a few brown
+      for (let i = 0; i < 90000; i++) {
+        const k = rnd(), v = 34 + rnd() * 74;
+        g.fillStyle = k > 0.96 ? `rgba(${v + 70},${v + 66},${v + 58},0.5)` : k > 0.92 ? `rgba(${v + 22},${v + 8},${v - 6},0.4)` : `rgba(${v},${v},${v + 5},${0.14 + rnd() * 0.26})`;
+        const sz = k > 0.9 ? 2 : 1;
+        g.fillRect(rnd() * w, rnd() * h, sz, sz);
+      }
+      // hairline cracks, and a few sealed with tar
+      for (let i = 0; i < 26; i++) {
+        const sealed = i < 7;
+        g.strokeStyle = sealed ? 'rgba(6,6,8,0.75)' : 'rgba(8,8,10,0.42)';
+        g.lineWidth = sealed ? 3.2 : 1;
+        g.lineJoin = 'round';
+        const pts: [number, number][] = [];
+        let x = rnd() * w, y = rnd() * h, a = rnd() * Math.PI * 2;
+        for (let k = 0; k < 9; k++) { pts.push([x, y]); a += (rnd() - 0.5) * 1.3; const len = 18 + rnd() * 44; x += Math.cos(a) * len; y += Math.sin(a) * len; }
+        for (const ox of [-w, 0, w]) for (const oy of [-h, 0, h]) {
+          g.beginPath();
+          pts.forEach(([px, py], k) => (k ? g.lineTo(px + ox, py + oy) : g.moveTo(px + ox, py + oy)));
+          g.stroke();
+        }
+      }
+    });
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.anisotropy = 8;
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  });
+}
+
+/** Cast concrete: pores, trowel mottling, water stains, and a control joint round the tile
+ *  (the material sets how many units a tile spans, so that is the slab size). */
+export function concreteSlabTexture(): THREE.Texture {
+  return cachedTex('concreteSlab', () => {
+    const rnd = mulberry(313);
+    const c = canvas(512, 512, (g, w, h) => {
+      g.fillStyle = '#b3b4b3';
+      g.fillRect(0, 0, w, h);
+      for (let i = 0; i < 60; i++) {
+        const x = rnd() * w, y = rnd() * h, r = 24 + rnd() * 110;
+        const col = rnd() > 0.5 ? 'rgba(214,213,208,0.12)' : 'rgba(112,114,116,0.10)';
+        wrap(w, h, x, y, r, (px, py) => {
+          const grad = g.createRadialGradient(px, py, 0, px, py, r);
+          grad.addColorStop(0, col); grad.addColorStop(1, 'rgba(0,0,0,0)');
+          g.fillStyle = grad; g.fillRect(px - r, py - r, r * 2, r * 2);
+        });
+      }
+      for (let i = 0; i < 30000; i++) {
+        const v = 120 + rnd() * 110;
+        g.fillStyle = `rgba(${v},${v},${v - 3},${0.10 + rnd() * 0.16})`;
+        g.fillRect(rnd() * w, rnd() * h, 1, 1);
+      }
+      // pores and pinholes
+      for (let i = 0; i < 700; i++) {
+        g.fillStyle = `rgba(70,72,74,${0.25 + rnd() * 0.35})`;
+        g.beginPath(); g.arc(rnd() * w, rnd() * h, 0.6 + rnd() * 1.3, 0, Math.PI * 2); g.fill();
+      }
+      // the joint, half on each edge, with the darker damp line beside it
+      for (const [x0, y0, x1, y1] of [[0, 0, w, 0], [0, h, w, h], [0, 0, 0, h], [w, 0, w, h]] as const) {
+        g.strokeStyle = 'rgba(96,98,100,0.30)'; g.lineWidth = 9;
+        g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
+        g.strokeStyle = 'rgba(52,54,56,0.80)'; g.lineWidth = 3;
+        g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
+      }
+    });
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.anisotropy = 8;
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  });
+}
+
+/** Road paint that has been driven on: near-white (it multiplies the paint's own colour) with
+ *  chips and scuffs worn through. */
+export function paintWearTexture(): THREE.Texture {
+  return cachedTex('paintWear', () => {
+    const rnd = mulberry(909);
+    const c = canvas(512, 512, (g, w, h) => {
+      g.fillStyle = '#f4f4f4';
+      g.fillRect(0, 0, w, h);
+      for (let i = 0; i < 46; i++) {
+        const x = rnd() * w, y = rnd() * h, r = 20 + rnd() * 70;
+        wrap(w, h, x, y, r, (px, py) => {
+          const grad = g.createRadialGradient(px, py, 0, px, py, r);
+          grad.addColorStop(0, 'rgba(120,120,124,0.30)'); grad.addColorStop(1, 'rgba(120,120,124,0)');
+          g.fillStyle = grad; g.fillRect(px - r, py - r, r * 2, r * 2);
+        });
+      }
+      for (let i = 0; i < 5200; i++) {
+        g.fillStyle = `rgba(${60 + rnd() * 50},${60 + rnd() * 50},${66 + rnd() * 50},${0.25 + rnd() * 0.5})`;
+        g.fillRect(rnd() * w, rnd() * h, 1 + rnd() * 3, 1 + rnd() * 2);
+      }
+    });
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.anisotropy = 8;
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  });
+}
+
+/** Bark: dark furrows running up the trunk between lighter ridges. */
+export function barkTexture(): THREE.Texture {
+  return cachedTex('bark', () => {
+    const rnd = mulberry(5150);
+    const c = canvas(256, 256, (g, w, h) => {
+      g.fillStyle = '#6b5440';
+      g.fillRect(0, 0, w, h);
+      for (let i = 0; i < 150; i++) {
+        const x = rnd() * w, y0 = rnd() * h, len = 30 + rnd() * 120, dark = rnd() > 0.4;
+        g.strokeStyle = dark ? `rgba(34,24,16,${0.4 + rnd() * 0.4})` : `rgba(150,128,104,${0.25 + rnd() * 0.3})`;
+        g.lineWidth = dark ? 1.5 + rnd() * 3 : 1 + rnd() * 2;
+        for (const ox of [-w, 0, w]) for (const oy of [-h, 0, h]) {
+          g.beginPath(); g.moveTo(x + ox, y0 + oy);
+          g.bezierCurveTo(x + ox + (rnd() - 0.5) * 10, y0 + oy + len / 3, x + ox + (rnd() - 0.5) * 10, y0 + oy + (len * 2) / 3, x + ox + (rnd() - 0.5) * 6, y0 + oy + len);
+          g.stroke();
+        }
+      }
+    });
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  });
+}
+
+/** Ribbed, painted steel (a battery enclosure, a switchgear cabinet): a pressed rib every
+ *  eighth of the tile, each with its lit and shaded edge, and faint rain streaks down the paint. */
+export function ribbedSteelTexture(): THREE.Texture {
+  return cachedTex('ribbedSteel', () => {
+    const rnd = mulberry(2468);
+    const c = canvas(512, 512, (g, w, h) => {
+      g.fillStyle = '#eceeef';
+      g.fillRect(0, 0, w, h);
+      const N = 8, rw = w / N;
+      for (let i = 0; i < N; i++) {
+        const x = i * rw;
+        const grad = g.createLinearGradient(x, 0, x + rw, 0);
+        grad.addColorStop(0.00, 'rgba(60,66,74,0.55)');
+        grad.addColorStop(0.07, 'rgba(60,66,74,0.10)');
+        grad.addColorStop(0.16, 'rgba(255,255,255,0.55)');
+        grad.addColorStop(0.30, 'rgba(255,255,255,0)');
+        grad.addColorStop(0.86, 'rgba(60,66,74,0)');
+        grad.addColorStop(1.00, 'rgba(60,66,74,0.40)');
+        g.fillStyle = grad; g.fillRect(x, 0, rw, h);
+      }
+      // rain streaks and dust
+      for (let i = 0; i < 90; i++) {
+        const x = rnd() * w, y = rnd() * h, len = 60 + rnd() * 260;
+        const grad = g.createLinearGradient(0, y, 0, y + len);
+        grad.addColorStop(0, `rgba(96,92,84,${0.05 + rnd() * 0.10})`); grad.addColorStop(1, 'rgba(96,92,84,0)');
+        g.fillStyle = grad;
+        for (const oy of [-h, 0]) g.fillRect(x, y + oy, 1 + rnd() * 3, len);
+      }
+      for (let i = 0; i < 5000; i++) {
+        g.fillStyle = `rgba(110,112,116,${0.05 + rnd() * 0.10})`;
+        g.fillRect(rnd() * w, rnd() * h, 1, 1);
+      }
+    });
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.anisotropy = 8;
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  });
+}
+
+/** Chain-link mesh: galvanised wire woven in diamonds, clear between the wires. */
+export function chainLinkTexture(): THREE.Texture {
+  return cachedTex('chainLink', () => {
+    const c = canvas(128, 128, (g, w, h) => {
+      g.clearRect(0, 0, w, h);
+      const wire = (dir: 1 | -1, colour: string, width: number) => {
+        g.strokeStyle = colour; g.lineWidth = width;
+        g.beginPath();
+        for (let k = -2; k <= 4; k++) {
+          const o = k * (w / 2);
+          g.moveTo(o, dir > 0 ? 0 : h); g.lineTo(o + w, dir > 0 ? h : 0);
+        }
+        g.stroke();
+      };
+      wire(1, '#5b626b', 9); wire(1, '#aab2bb', 4);
+      wire(-1, '#5b626b', 9); wire(-1, '#c3cad2', 4);
+    });
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.anisotropy = 8;
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  });
+}
+
+/** A bollard's wrap (u round it, v up it): safety yellow, a reflective band near the top,
+ *  scuffs at bumper height and road grime at the foot. */
+export function bollardTexture(): THREE.Texture {
+  return cachedTex('bollard', () => {
+    const rnd = mulberry(606);
+    const c = canvas(128, 256, (g, w, h) => {
+      g.fillStyle = '#f2c417';
+      g.fillRect(0, 0, w, h);
+      // canvas y runs down: the top of the post is y = 0
+      g.fillStyle = '#17181b'; g.fillRect(0, 26, w, 44);
+      g.fillStyle = '#f4f5f6'; g.fillRect(0, 31, w, 34);
+      g.strokeStyle = 'rgba(160,166,172,0.55)'; g.lineWidth = 1;
+      for (let x = -40; x < w + 40; x += 7) { g.beginPath(); g.moveTo(x, 31); g.lineTo(x + 20, 65); g.stroke(); }
+      for (let i = 0; i < 60; i++) {
+        g.fillStyle = `rgba(${40 + rnd() * 40},${36 + rnd() * 30},${30 + rnd() * 20},${0.15 + rnd() * 0.35})`;
+        g.fillRect(rnd() * w, 120 + rnd() * 60, 4 + rnd() * 22, 1 + rnd() * 2);
+      }
+      const grime = g.createLinearGradient(0, h - 56, 0, h);
+      grime.addColorStop(0, 'rgba(50,44,36,0)'); grime.addColorStop(1, 'rgba(50,44,36,0.6)');
+      g.fillStyle = grime; g.fillRect(0, h - 56, w, 56);
+    });
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = THREE.RepeatWrapping;
+    t.anisotropy = 4;
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  });
+}
+
+/** The high-voltage placard on the battery yard's fence. */
+export function dangerSignTexture(): THREE.Texture {
+  return cachedTex('dangerSign', () => {
+    const c = canvas(896, 208, (g, w, h) => {
+      g.fillStyle = '#f4f4f2'; g.fillRect(0, 0, w, h);
+      g.fillStyle = '#c8102e'; g.fillRect(0, 0, w, 78);
+      g.fillStyle = '#ffffff'; g.font = 'bold 60px Arial, Helvetica, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText('DANGER', w / 2, 42);
+      g.fillStyle = '#16181b'; g.font = 'bold 46px Arial, Helvetica, sans-serif';
+      g.fillText('HIGH VOLTAGE  ·  BATTERY ENERGY STORAGE', w / 2, 118);
+      g.font = '32px Arial, Helvetica, sans-serif';
+      g.fillText('AUTHORIZED PERSONNEL ONLY', w / 2, 170);
+      g.strokeStyle = '#16181b'; g.lineWidth = 6; g.strokeRect(3, 3, w - 6, h - 6);
+    });
+    const t = new THREE.CanvasTexture(c);
+    t.anisotropy = 8;
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  });
+}
+
+/** Weathering for any painted or bare metal: near-white (it multiplies the metal's own colour)
+ *  with dust mottling, fine scratches, rain streaks and the odd chip. */
+export function weatherTexture(): THREE.Texture {
+  return cachedTex('weather', () => {
+    const rnd = mulberry(8088);
+    const c = canvas(512, 512, (g, w, h) => {
+      g.fillStyle = '#eeeeee';
+      g.fillRect(0, 0, w, h);
+      for (let i = 0; i < 70; i++) {
+        const x = rnd() * w, y = rnd() * h, r = 20 + rnd() * 90;
+        const col = rnd() > 0.45 ? 'rgba(96,92,86,0.16)' : 'rgba(255,255,255,0.22)';
+        wrap(w, h, x, y, r, (px, py) => {
+          const grad = g.createRadialGradient(px, py, 0, px, py, r);
+          grad.addColorStop(0, col); grad.addColorStop(1, 'rgba(0,0,0,0)');
+          g.fillStyle = grad; g.fillRect(px - r, py - r, r * 2, r * 2);
+        });
+      }
+      // rain streaks run down the tile
+      for (let i = 0; i < 120; i++) {
+        const x = rnd() * w, y = rnd() * h, len = 50 + rnd() * 240;
+        const grad = g.createLinearGradient(0, y, 0, y + len);
+        grad.addColorStop(0, `rgba(70,66,60,${0.06 + rnd() * 0.12})`); grad.addColorStop(1, 'rgba(70,66,60,0)');
+        g.fillStyle = grad;
+        for (const oy of [-h, 0]) g.fillRect(x, y + oy, 1 + rnd() * 2.5, len);
+      }
+      // scratches
+      g.lineWidth = 1;
+      for (let i = 0; i < 260; i++) {
+        const x = rnd() * w, y = rnd() * h, a = rnd() * Math.PI, len = 4 + rnd() * 26;
+        g.strokeStyle = rnd() > 0.5 ? `rgba(255,255,255,${0.2 + rnd() * 0.3})` : `rgba(50,50,54,${0.12 + rnd() * 0.2})`;
+        g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * len, y + Math.sin(a) * len); g.stroke();
+      }
+      for (let i = 0; i < 9000; i++) {
+        g.fillStyle = `rgba(${90 + rnd() * 60},${88 + rnd() * 56},${84 + rnd() * 50},${0.05 + rnd() * 0.12})`;
+        g.fillRect(rnd() * w, rnd() * h, 1, 1);
+      }
+    });
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.anisotropy = 8;
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  });
+}
+
+/** Hot-dip galvanised steel: the zinc's spangle, crystals a few centimetres across in a dozen grays. */
+export function spangleTexture(): THREE.Texture {
+  return cachedTex('spangle', () => {
+    const rnd = mulberry(3030);
+    const c = canvas(512, 512, (g, w, h) => {
+      g.fillStyle = '#d9dcdf';
+      g.fillRect(0, 0, w, h);
+      for (let i = 0; i < 2600; i++) {
+        const x = rnd() * w, y = rnd() * h, r = 7 + rnd() * 15, n = 5 + Math.floor(rnd() * 3), a0 = rnd() * Math.PI;
+        const v = 176 + rnd() * 76;
+        g.fillStyle = `rgba(${v},${v + 2},${v + 5},0.55)`;
+        wrap(w, h, x, y, r, (px, py) => {
+          g.beginPath();
+          for (let k = 0; k < n; k++) {
+            const a = a0 + (k / n) * Math.PI * 2, rr = r * (0.6 + ((k * 37) % 10) / 25);
+            if (k) g.lineTo(px + Math.cos(a) * rr, py + Math.sin(a) * rr); else g.moveTo(px + Math.cos(a) * rr, py + Math.sin(a) * rr);
+          }
+          g.closePath(); g.fill();
+        });
+      }
+      for (let i = 0; i < 40; i++) {
+        const x = rnd() * w, y = rnd() * h, len = 40 + rnd() * 160;
+        const grad = g.createLinearGradient(0, y, 0, y + len);
+        grad.addColorStop(0, 'rgba(120,118,112,0.16)'); grad.addColorStop(1, 'rgba(120,118,112,0)');
+        g.fillStyle = grad;
+        for (const oy of [-h, 0]) g.fillRect(x, y + oy, 2 + rnd() * 3, len);
+      }
+    });
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.anisotropy = 8;
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  });
+}
+
+/** Weathering steel (the planters): orange and brown rust in blotches, darker runs down the face. */
+export function rustTexture(): THREE.Texture {
+  return cachedTex('rust', () => {
+    const rnd = mulberry(1717);
+    const c = canvas(512, 512, (g, w, h) => {
+      g.fillStyle = '#8a4a26';
+      g.fillRect(0, 0, w, h);
+      const BLOT = ['rgba(176,96,44,0.35)', 'rgba(92,44,24,0.38)', 'rgba(204,128,60,0.25)', 'rgba(58,30,20,0.32)', 'rgba(150,74,34,0.3)'];
+      for (let i = 0; i < 260; i++) {
+        const x = rnd() * w, y = rnd() * h, r = 8 + rnd() * 60, col = BLOT[Math.floor(rnd() * BLOT.length)];
+        wrap(w, h, x, y, r, (px, py) => {
+          const grad = g.createRadialGradient(px, py, 0, px, py, r);
+          grad.addColorStop(0, col); grad.addColorStop(1, 'rgba(0,0,0,0)');
+          g.fillStyle = grad; g.fillRect(px - r, py - r, r * 2, r * 2);
+        });
+      }
+      for (let i = 0; i < 70; i++) {
+        const x = rnd() * w, y = rnd() * h, len = 60 + rnd() * 220;
+        const grad = g.createLinearGradient(0, y, 0, y + len);
+        grad.addColorStop(0, `rgba(44,22,14,${0.15 + rnd() * 0.2})`); grad.addColorStop(1, 'rgba(44,22,14,0)');
+        g.fillStyle = grad;
+        for (const oy of [-h, 0]) g.fillRect(x, y + oy, 2 + rnd() * 4, len);
+      }
+      for (let i = 0; i < 14000; i++) {
+        g.fillStyle = `rgba(${120 + rnd() * 110},${50 + rnd() * 70},${20 + rnd() * 40},${0.12 + rnd() * 0.2})`;
+        g.fillRect(rnd() * w, rnd() * h, 1, 1);
+      }
+    });
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.anisotropy = 8;
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  });
+}
+
+/** Moving water seen from above: long soft ripples, lighter crests and darker troughs. */
+export function rippleTexture(): THREE.Texture {
+  return cachedTex('ripple', () => {
+    const rnd = mulberry(4242);
+    const c = canvas(512, 512, (g, w, h) => {
+      g.fillStyle = '#9aa6ae';
+      g.fillRect(0, 0, w, h);
+      g.lineCap = 'round';
+      for (let i = 0; i < 520; i++) {
+        const x = rnd() * w, y = rnd() * h, len = 20 + rnd() * 90, bend = (rnd() - 0.5) * 14;
+        g.strokeStyle = rnd() > 0.5 ? `rgba(236,244,250,${0.10 + rnd() * 0.22})` : `rgba(34,52,66,${0.10 + rnd() * 0.2})`;
+        g.lineWidth = 1 + rnd() * 3.5;
+        for (const ox of [-w, 0, w]) for (const oy of [-h, 0, h]) {
+          g.beginPath(); g.moveTo(x + ox, y + oy);
+          g.quadraticCurveTo(x + ox + len / 2, y + oy + bend, x + ox + len, y + oy + (rnd() - 0.5) * 4);
+          g.stroke();
+        }
+      }
+    });
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.anisotropy = 8;
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  });
+}
+
+/** A stall's tyre marks: two rubbed-in tracks, heavier toward the stall's head, clear around them. */
+export function tyreMarkTexture(): THREE.Texture {
+  return cachedTex('tyreMark', () => {
+    const rnd = mulberry(1881);
+    const c = canvas(128, 256, (g, w, h) => {
+      g.clearRect(0, 0, w, h);
+      for (const cx of [w * 0.2, w * 0.8]) {
+        for (let i = 0; i < 26; i++) {
+          const x = cx + (rnd() - 0.5) * 16, y0 = rnd() * h * 0.5, len = h * (0.3 + rnd() * 0.5);
+          const grad = g.createLinearGradient(0, y0, 0, y0 + len);
+          grad.addColorStop(0, 'rgba(8,8,10,0)');
+          grad.addColorStop(0.5, `rgba(8,8,10,${0.10 + rnd() * 0.16})`);
+          grad.addColorStop(1, 'rgba(8,8,10,0)');
+          g.fillStyle = grad;
+          g.fillRect(x, y0, 3 + rnd() * 9, len);
+        }
+      }
+    });
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  });
+}
+
+/** A flat roof's single-ply membrane, seen from above: sheets with welded seams, ponding rings
+ *  where water stands and dries, dirt washed toward the drains, a few patches, and scuffs. Tiles. */
+export function roofSheetTexture(): THREE.Texture {
+  return cachedTex('roofSheet', () => {
+    const rnd = mulberry(6161);
+    const c = canvas(1024, 1024, (g, w, h) => {
+      g.fillStyle = '#c3c6c8';
+      g.fillRect(0, 0, w, h);
+      // dust lying in broad drifts
+      for (let i = 0; i < 80; i++) {
+        const x = rnd() * w, y = rnd() * h, r = 50 + rnd() * 190;
+        const col = rnd() > 0.5 ? 'rgba(120,114,104,0.13)' : 'rgba(236,238,240,0.16)';
+        wrap(w, h, x, y, r, (px, py) => {
+          const grad = g.createRadialGradient(px, py, 0, px, py, r);
+          grad.addColorStop(0, col); grad.addColorStop(1, 'rgba(0,0,0,0)');
+          g.fillStyle = grad; g.fillRect(px - r, py - r, r * 2, r * 2);
+        });
+      }
+      // ponding: a dark tide line round a paler dried middle
+      for (let i = 0; i < 22; i++) {
+        const x = rnd() * w, y = rnd() * h, rx = 30 + rnd() * 80, ry = rx * (0.5 + rnd() * 0.5), a = rnd() * Math.PI;
+        wrap(w, h, x, y, rx + 6, (px, py) => {
+          g.fillStyle = 'rgba(206,204,196,0.22)';
+          g.beginPath(); g.ellipse(px, py, rx, ry, a, 0, Math.PI * 2); g.fill();
+          g.strokeStyle = `rgba(84,80,72,${0.22 + rnd() * 0.2})`; g.lineWidth = 2 + rnd() * 3;
+          g.beginPath(); g.ellipse(px, py, rx, ry, a, 0, Math.PI * 2); g.stroke();
+        });
+      }
+      // membrane sheets: a welded lap every quarter tile, and an end lap part-way along each
+      const N = 4, sw = w / N;
+      for (let i = 0; i < N; i++) {
+        const x = i * sw;
+        g.fillStyle = 'rgba(70,72,76,0.50)'; g.fillRect(x, 0, 2, h);
+        g.fillStyle = 'rgba(250,250,250,0.35)'; g.fillRect(x + 2, 0, 5, h);
+        g.fillStyle = 'rgba(96,92,84,0.14)'; g.fillRect(x + 7, 0, 14, h);
+        const y = ((i * 0.37 + 0.2) % 1) * h;
+        g.fillStyle = 'rgba(70,72,76,0.45)'; g.fillRect(x, y, sw, 2);
+        g.fillStyle = 'rgba(250,250,250,0.30)'; g.fillRect(x, y + 2, sw, 4);
+      }
+      // patches, lighter and newer than the roof around them
+      for (let i = 0; i < 7; i++) {
+        const x = rnd() * (w - 90), y = rnd() * (h - 70), pw = 28 + rnd() * 50, ph = 22 + rnd() * 36;
+        g.fillStyle = 'rgba(228,230,232,0.6)'; g.fillRect(x, y, pw, ph);
+        g.strokeStyle = 'rgba(80,82,86,0.5)'; g.lineWidth = 1.5; g.strokeRect(x, y, pw, ph);
+      }
+      // grit and scuffs
+      for (let i = 0; i < 40000; i++) {
+        const v = 90 + rnd() * 130;
+        g.fillStyle = `rgba(${v},${v},${v - 4},${0.05 + rnd() * 0.12})`;
+        g.fillRect(rnd() * w, rnd() * h, 1, 1);
+      }
+      g.lineWidth = 1;
+      for (let i = 0; i < 160; i++) {
+        const x = rnd() * w, y = rnd() * h, a = rnd() * Math.PI, len = 6 + rnd() * 30;
+        g.strokeStyle = `rgba(70,70,74,${0.1 + rnd() * 0.16})`;
+        g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * len, y + Math.sin(a) * len); g.stroke();
+      }
+    });
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.anisotropy = 8;
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  });
+}
+
 /** Subtle oil-stain decal (radial dark blotch). */
 export function oilStainTexture(): THREE.Texture {
   return cachedTex('oil', () => {

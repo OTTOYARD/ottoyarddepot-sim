@@ -1,5 +1,5 @@
 // ============================================================================
-// TwinPowerTab — the depot's electrical one-line, live. The last tab in the bar (the number keys keep their tabs).
+// TwinPowerTab — the depot's electrical one-line, live. The last tab in the bar (it has no number key).
 //
 // What it shows: how power reaches a post. The utility's 13.8 kV service, the switchgear, seven transformers (one per
 // canopy column of five posts, and one for the battery, the building and the canopy solar), and the thirty posts. Each

@@ -243,13 +243,13 @@ describe('a payload it cannot draw', () => {
 });
 
 describe('navigation', () => {
-  it('puts Research after Value (only Robotics and Power, which have no number key, follow it) and marks it with the flask', () => {
+  it('puts Robotics right after OTTO-Q and Research after Value (only Power follows it), and marks Research with the flask', () => {
     render(<TabBar />);
     const tabs = screen.getAllByRole('button');
     expect(tabs.map((b) => b.textContent)).toEqual([
-      'Background', 'Control', 'OTTO-Q', 'Agent', 'KPIs', 'Runs', 'Diagnostics', 'Copilot', 'Value', 'Research', 'Robotics', 'Power',
+      'Background', 'Control', 'OTTO-Q', 'Robotics', 'Agent', 'KPIs', 'Runs', 'Diagnostics', 'Copilot', 'Value', 'Research', 'Power',
     ]);
-    expect(tabs[9].querySelector('svg')).not.toBeNull();
+    expect(tabs[10].querySelector('svg')).not.toBeNull();
   });
 
   it('opens the Research tab from the side panel', async () => {
@@ -262,11 +262,13 @@ describe('navigation', () => {
     expect(await screen.findAllByTestId('research-finding')).toHaveLength(5);
   });
 
-  it('opens it with the 0 key, the tenth tab', () => {
+  it('has no number key: it is the eleventh tab, and 0 opens Value, the tenth', () => {
     renderHook(() => useKeyboardShortcuts());
     act(() => { window.dispatchEvent(new KeyboardEvent('keydown', { key: '0' })); });
-    expect(useSimulationStore.getState().activeTab).toBe('research');
-    act(() => { window.dispatchEvent(new KeyboardEvent('keydown', { key: '9' })); });
     expect(useSimulationStore.getState().activeTab).toBe('value');
+    act(() => { window.dispatchEvent(new KeyboardEvent('keydown', { key: '4' })); });
+    expect(useSimulationStore.getState().activeTab).toBe('robotics');
+    act(() => { window.dispatchEvent(new KeyboardEvent('keydown', { key: '9' })); });
+    expect(useSimulationStore.getState().activeTab).toBe('copilot');
   });
 });

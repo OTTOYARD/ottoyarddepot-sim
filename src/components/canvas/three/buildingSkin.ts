@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { galvanised, roofed, weathered } from './materials';
 
 /**
  * Materials + procedural textures for the built environment (walls, doors, roofs,
@@ -139,18 +140,12 @@ export function washFloor() {
   }));
 }
 
-/** Single-ply roof membrane (TPO), light grey. */
+/** Single-ply roof membrane (TPO), light grey: welded sheets, ponding stains and dust, laid by
+ *  world position (materials.roofed). RoofXray fades this same material from above. */
 export function roofMembrane() {
-  return mat('roofMembrane', () => new THREE.MeshStandardMaterial({
-    map: tex('tpo', 256, 256, (g, w, h) => {
-      g.fillStyle = '#b9bdc2'; g.fillRect(0, 0, w, h);
-      g.fillStyle = 'rgba(0,0,0,0.06)';
-      for (let x = 0; x < w; x += 64) g.fillRect(x, 0, 2, h); // seams
-      const r = rng(5);
-      for (let i = 0; i < 3000; i++) { g.fillStyle = `rgba(0,0,0,${r() * 0.05})`; g.fillRect(r() * w, r() * h, 2, 2); }
-    }, [1 / 6, 1 / 6]),
-    color: '#ffffff', roughness: 0.85, metalness: 0,
-  }));
+  return mat('roofMembrane', () => roofed(new THREE.MeshStandardMaterial({
+    color: '#e9ecef', roughness: 0.85, metalness: 0,
+  })));
 }
 
 /** Rolled-up door curtain: horizontal aluminium slats. */
@@ -190,11 +185,11 @@ export function aluminiumTrim() {
 }
 
 export function darkSteel() {
-  return mat('darkSteel', () => new THREE.MeshStandardMaterial({ color: '#262a31', roughness: 0.5, metalness: 0.6 }));
+  return mat('darkSteel', () => weathered(new THREE.MeshStandardMaterial({ color: '#262a31', roughness: 0.5, metalness: 0.6 })));
 }
 
 export function galvanizedSteel() {
-  return mat('galvanizedSteel', () => new THREE.MeshStandardMaterial({ color: '#8e969f', roughness: 0.42, metalness: 0.8, envMapIntensity: 0.9 }));
+  return mat('galvanizedSteel', () => galvanised(new THREE.MeshStandardMaterial({ color: '#8e969f', roughness: 0.42, metalness: 0.8, envMapIntensity: 0.9 })));
 }
 
 export function liftBlue() {

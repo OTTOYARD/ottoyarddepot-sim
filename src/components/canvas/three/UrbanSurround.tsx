@@ -4,9 +4,9 @@ import * as THREE from 'three';
 import { useSimulationStore } from '@/store/simulationStore';
 import { buildCityPlan, FACADE_SPEC, type Facade, type Tree, type StreetLight, type Signal } from './cityPlan';
 import { buildCityGeometry, type CityMaterialKey } from './cityMesh';
-import { facadeTextures, roofTexture } from './cityTextures';
-import { asphaltTexture, concreteTexture, skyTexture } from './textures';
-import { MATERIALS } from './materials';
+import { facadeTextures } from './cityTextures';
+import { skyTexture } from './textures';
+import { MATERIALS, turfed, leafed, barked, asphalted, concreted, pastured, rippled, roofed } from './materials';
 import { nightLevel } from './dayNight';
 
 /**
@@ -43,15 +43,6 @@ function ownSky(m: THREE.Material) {
   s.envMapIntensity = 1;
 }
 
-/** Ground textures re-used from the depot's own, repeating on the city's world-unit UVs. */
-function worldTex(src: THREE.Texture): THREE.Texture {
-  const t = src.clone();
-  t.repeat.set(1, 1);
-  t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  t.needsUpdate = true;
-  return t;
-}
-
 function cityMaterials(): Record<CityMaterialKey, THREE.Material> {
   const std = (o: THREE.MeshStandardMaterialParameters) => new THREE.MeshStandardMaterial(o);
   const facades = Object.fromEntries((Object.keys(FACADE_SPEC) as Facade[]).map((f) => {
@@ -62,8 +53,6 @@ function cityMaterials(): Record<CityMaterialKey, THREE.Material> {
       vertexColors: true, roughness: fin.roughness, metalness: fin.metalness,
     })];
   })) as Record<`f:${Facade}`, THREE.MeshStandardMaterial>;
-  const asphalt = worldTex(asphaltTexture());
-  const concrete = worldTex(concreteTexture());
   const paint = (color: string) => std({ color, roughness: 0.75, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 });
   const amber = MATERIALS.amberIndicator().clone();
   amber.polygonOffset = true;
@@ -71,23 +60,24 @@ function cityMaterials(): Record<CityMaterialKey, THREE.Material> {
   amber.polygonOffsetUnits = -4;
   const all = {
     ...facades,
-    street: std({ map: asphalt, color: '#bcbcc4', roughness: 0.92 }),
-    yard: std({ map: asphalt, color: '#dadae0', roughness: 0.9 }),
-    plaza: std({ map: concrete, color: '#d9d6cf', roughness: 0.8 }),
-    path: std({ map: concrete, color: '#e6e2da', roughness: 0.8 }),
-    sidewalk: std({ map: concrete, color: '#d0cec8', roughness: 0.82 }),
-    lawn: std({ color: '#4a7a36', roughness: 0.95 }),
-    far: std({ color: '#66745f', roughness: 1 }),
+    // the depot's own paving, laid by world position, so its road and the city's are one surface
+    street: asphalted(std({ color: '#c9c9d2', roughness: 0.92 })),
+    yard: asphalted(std({ color: '#e2e2ea', roughness: 0.9 })),
+    plaza: concreted(std({ color: '#e4e0d8', roughness: 0.8 })),
+    path: concreted(std({ color: '#efeae0', roughness: 0.8 }), 5),
+    sidewalk: concreted(std({ color: '#dedbd4', roughness: 0.82 }), 5),
+    lawn: turfed(std({ roughness: 0.95 })),
+    far: pastured(std({ color: '#c9cdb4', roughness: 1 })),
     'paint:white': paint('#e8e8e0'),
     'paint:yellow': paint('#e3b23c'),
     'paint:amber': amber,
-    roof: std({ map: roofTexture(), vertexColors: true, roughness: 0.9 }),
+    roof: roofed(std({ vertexColors: true, roughness: 0.9 })),
     plain: std({ vertexColors: true, roughness: 0.8, metalness: 0.05 }),
     skylight: std({ color: '#c6d6e4', roughness: 0.2, metalness: 0.3 }),
     solar: MATERIALS.solarPanelGlass().clone(), // a copy: its night dimming must not reach the depot's canopies
     glassCrown: std({ vertexColors: true, roughness: 0.18, metalness: 0.6 }),
     beacon: std({ color: '#ff2a1a', emissive: new THREE.Color('#ff2a1a'), emissiveIntensity: 1.5, toneMapped: false }),
-    water: std({ color: '#3f6075', roughness: 0.06, metalness: 0.15 }),
+    water: rippled(std({ color: '#3f6075', roughness: 0.1, metalness: 0.15 })),
   };
   for (const m of Object.values(all)) ownSky(m);
   return all;
@@ -99,9 +89,9 @@ const NEAR_TREE = 330;
 
 function treeMeshes(trees: Tree[]) {
   const trunkGeo = new THREE.CylinderGeometry(0.16, 0.3, 1, 6, 1, true).translate(0, 0.5, 0);
-  const trunkMat = new THREE.MeshStandardMaterial({ color: '#4a3726', roughness: 0.9 });
+  const trunkMat = barked(new THREE.MeshStandardMaterial({ roughness: 0.9 }));
   const crownMat = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.85, flatShading: true });
-  ownSky(trunkMat); ownSky(crownMat);
+  ownSky(trunkMat); ownSky(leafed(crownMat));
   const trunks = new THREE.InstancedMesh(trunkGeo, trunkMat, Math.max(1, trees.length));
   const near = trees.filter((t) => Math.hypot(t.x, t.z - 4) < NEAR_TREE);
   const far = trees.filter((t) => Math.hypot(t.x, t.z - 4) >= NEAR_TREE);
@@ -148,18 +138,24 @@ function lampMeshes(lights: StreetLight[], headMat: THREE.Material) {
   const poles = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.17, 0.26, 16, 6, 1, true).translate(0, 8, 0), steel, n);
   const arms = new THREE.InstancedMesh(new THREE.BoxGeometry(5, 0.22, 0.22), steel, n);
   const heads = new THREE.InstancedMesh(new THREE.BoxGeometry(1.8, 0.35, 0.8), headMat, n);
+  // a flared base at the kerb and a housing over the lens, so the lit part is the lens and not the whole head
+  const bases = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.3, 0.46, 1.5, 8).translate(0, 0.75, 0), steel, n);
+  const housings = new THREE.InstancedMesh(new THREE.BoxGeometry(2.1, 0.3, 1.0), steel, n);
   const o = new THREE.Object3D();
   lights.forEach((l, i) => {
     const rot = Math.atan2(-l.dz, l.dx); // the box's +X along the arm
     o.position.set(l.x, 0, l.z); o.rotation.set(0, rot, 0); o.scale.set(1, 1, 1); o.updateMatrix();
     poles.setMatrixAt(i, o.matrix);
+    bases.setMatrixAt(i, o.matrix);
+    o.position.set(l.x + l.dx * 4.7, 15.9, l.z + l.dz * 4.7); o.updateMatrix();
+    housings.setMatrixAt(i, o.matrix);
     o.position.set(l.x + l.dx * 2.4, 15.85, l.z + l.dz * 2.4); o.updateMatrix();
     arms.setMatrixAt(i, o.matrix);
     o.position.set(l.x + l.dx * 4.7, 15.6, l.z + l.dz * 4.7); o.updateMatrix();
     heads.setMatrixAt(i, o.matrix);
   });
-  for (const m of [poles, arms, heads]) { m.instanceMatrix.needsUpdate = true; m.computeBoundingSphere(); }
-  return [poles, arms, heads];
+  for (const m of [poles, arms, heads, bases, housings]) { m.instanceMatrix.needsUpdate = true; m.computeBoundingSphere(); }
+  return [poles, arms, heads, bases, housings];
 }
 
 /** Traffic signals: pole, mast arm, head, and a lit lamp on each face (one phase for the

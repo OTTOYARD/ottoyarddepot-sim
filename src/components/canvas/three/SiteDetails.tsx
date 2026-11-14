@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import * as THREE from 'three';
 import { MATERIALS } from './materials';
-import { oilStainTexture } from './textures';
+import { oilStainTexture, tyreMarkTexture } from './textures';
 import { useDepotStore } from '@/store/depotStore';
 import { BESS_YARD, INGRESS, EGRESS, LOT } from '@/lib/sitePlan';
 import { bayBollards, BOLLARD_RADIUS } from '@/lib/structurePlan';
@@ -65,7 +65,7 @@ export function SiteDetails() {
   const bollardSets = useMemo(() => {
     const pts = [...bayBollards(), { x: BESS_YARD.x + BESS_YARD.w + 2, y: BESS_YARD.y + BESS_YARD.h + 2 }];
     const inst = new THREE.InstancedMesh(
-      new THREE.CylinderGeometry(BOLLARD_RADIUS, BOLLARD_RADIUS, 2.6, 12), MATERIALS.safetyYellow(), pts.length,
+      new THREE.CylinderGeometry(BOLLARD_RADIUS, BOLLARD_RADIUS, 2.6, 16), MATERIALS.bollard(), pts.length,
     );
     const d = new THREE.Object3D();
     pts.forEach((p, i) => {
@@ -77,6 +77,26 @@ export function SiteDetails() {
     inst.instanceMatrix.needsUpdate = true;
     return [inst];
   }, []);
+
+  // ---- tyre marks in most stalls: two rubbed-in tracks along the car's axis, one draw call ----
+  const tyreMarks = useMemo(() => {
+    const parking = stalls.filter(hasWheelStop).filter((_, i) => seeded(i * 5 + 2) < 0.7);
+    const geo = new THREE.PlaneGeometry(3.5, 8.4).rotateX(-Math.PI / 2);
+    const mat = new THREE.MeshBasicMaterial({ map: tyreMarkTexture(), transparent: true, depthWrite: false, opacity: 0.9 });
+    const inst = new THREE.InstancedMesh(geo, mat, Math.max(1, parking.length));
+    const d = new THREE.Object3D();
+    parking.forEach((s, i) => {
+      const [wx, , wz] = toWorld({ x: s.position.x, y: s.position.y }, 0);
+      d.position.set(wx, DECK_Y + 0.011, wz);
+      d.rotation.set(0, wheelStopPose(s).rotY + (seeded(i * 9 + 4) > 0.5 ? Math.PI : 0), 0);
+      d.scale.set(1, 1, 0.8 + seeded(i * 13) * 0.3);
+      d.updateMatrix();
+      inst.setMatrixAt(i, d.matrix);
+    });
+    inst.count = parking.length;
+    inst.instanceMatrix.needsUpdate = true;
+    return inst;
+  }, [stalls]);
 
   // ---- oil stains under ~30% of charging stalls ----
   const stains = useMemo(() => {
@@ -126,6 +146,8 @@ export function SiteDetails() {
     <group>
       <primitive object={wheelStops} />
       <primitive object={bollardSets[0]} />
+
+      <primitive object={tyreMarks} />
 
       {/* oil stains */}
       {stains.map((s) => (
