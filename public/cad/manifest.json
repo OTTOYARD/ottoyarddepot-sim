@@ -110,37 +110,37 @@
     "depot": "clean_arm.depot.glb"
    },
    "bytes": {
-    "glb": 1980108,
-    "stepZip": 1253137,
-    "step": 6925670,
-    "depot": 472000
+    "glb": 2257600,
+    "stepZip": 1383702,
+    "step": 7637660,
+    "depot": 566488
    },
    "mesh": {
-    "vertices": 80663,
-    "triangles": 94228,
-    "meshes": 100,
-    "nodes": 249
+    "vertices": 91775,
+    "triangles": 108154,
+    "meshes": 118,
+    "nodes": 272
    },
    "depotMesh": {
-    "vertices": 18068,
-    "triangles": 19552,
-    "meshes": 72,
-    "nodes": 96
+    "vertices": 21782,
+    "triangles": 23636,
+    "meshes": 85,
+    "nodes": 110
    },
-   "depotSha256": "d25c91b243f16f67",
+   "depotSha256": "1b8764d260cc1c85",
    "totals": {
-    "parts": 238,
-    "uniqueParts": 102,
-    "fasteners": 141,
-    "massKg": 324.4,
-    "boughtLines": 63,
-    "madeLines": 39,
-    "referenceLines": 1
+    "parts": 258,
+    "uniqueParts": 117,
+    "fasteners": 147,
+    "massKg": 374.86,
+    "boughtLines": 72,
+    "madeLines": 45,
+    "referenceLines": 4
    },
-   "glbSha256": "9d107ec7c0fe14d5",
+   "glbSha256": "ca7c4f5b96584670",
    "stepCheck": {
-    "namedParts": 240,
-    "solids": 372,
+    "namedParts": 263,
+    "solids": 395,
     "invalid": 0
    },
    "subsystems": [
@@ -187,6 +187,10 @@
     {
      "id": "VAC",
      "name": "Vacuum and air supply"
+    },
+    {
+     "id": "POWER",
+     "name": "Power, control and network"
     },
     {
      "id": "STATUS",

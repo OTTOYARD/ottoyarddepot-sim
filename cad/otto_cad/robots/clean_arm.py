@@ -28,6 +28,35 @@ from ..flex import Anchor, FlexDef
 WAND_SLIDES = 3                 # sliding wand tubes (the twin draws 2)
 WAND_R = (29.3, 25.65)          # outer radii of wand tubes 2 and 3; tube 1 is the twin's 68 mm, tube 4 its 44 mm
 
+# ── the supply at the column head ─────────────────────────────────────────────────────────────────────────────
+# What the canopy brings and where it joins the arm. The canopy plant's own lines (the vacuum main, the air main, the
+# cable tray) are site works: drawn as reference parts, for context, as the purlins are.
+VAC_MAIN_OD = 110.0             # ASSUMPTION: the canopy vacuum main, DN 100. The plant (one producer for a canopy's arms)
+                                # is not sized in this CAD; a main is one or two sizes over its DN 50 branches.
+VAC_BEND_R = 75.0               # the riser's bends: 1.5 x its 50 mm diameter on the centreline, a long-radius pipe elbow
+                                # (ASSUMPTION: the usual long-radius rule, 1.5 x D; not read from a standard here)
+AIR_OD = 6.0                    # the arm's air line (VAC subsystem: "a 6 mm line")
+AIR_BEND_R = 30.0               # 5 x 6 mm: this file's own rule for PU tube (the nozzle loop)
+ENC_H, ENC_W, ENC_D = 600.0, 400.0, 200.0   # ASSUMPTION: the supply enclosure, a catalogue wall enclosure size. Its
+                                # contents (controller, power supplies, J1 drive, safety relay) are not laid out here.
+ENC_Y0 = 4250.0                 # its underside above grade: 350 mm over the J1 gearmotor's top, so the motor cable
+                                # drops straight, and far above every car, door and moving link (all under 3.65 m)
+# Conduit: one cable in each, so the fill limit is 53 % of the bore (NEC chapter 9, table 1: 53 % one conductor, 31 %
+# two, 40 % over two; read 2026-11-14, https://www.ecmweb.com/national-electrical-code/code-basics/article/20892946/fill-er-up).
+# ASSUMPTION (from memory of NEC chapter 9, table 4, rigid conduit; not re-read): trade size 1/2 has a 15.3 mm bore and
+# a 21.3 mm OD; 3/4 has a 20.4 mm bore and a 26.7 mm OD.
+CONDUIT = {'1/2': (21.3, 15.3), '3/4': (26.7, 20.4)}      # trade size: (OD, bore), mm
+SUPPLY_CABLE_OD = 10.5          # ASSUMPTION: a 4 x 2.5 mm2 supply cable (the arm's motors total about 2.4 kW)
+NET_CABLE_OD = 8.0              # ASSUMPTION: an industrial Cat 6A cable
+
+
+def _conduit_for(cable_od: float) -> str:
+    """The smallest trade size whose bore one cable fills to 53 % or less."""
+    for size, (_, bore) in CONDUIT.items():
+        if cable_od ** 2 <= 0.53 * bore ** 2:
+            return size
+    raise ValueError(f'no conduit for a {cable_od} mm cable')
+
 
 def _stadium(L: float, w: float, h: float, r0: float, r1: float) -> cq.Workplane:
     """A link: from a round end of radius r0 at x = 0 to one of radius r1 at x = L, h tall (Y), centred on y = 0."""
@@ -99,7 +128,8 @@ def build(spec: dict) -> Model:
               'flank. Zero pose: links along +X, mast retracted, wand level.')
     m.subsystem('MOUNT', 'Canopy mount', 'A header beam under 2 canopy purlins and a drop column carry the arm over the stall. Nothing stands where a car drives.',
                 how=['4 angle clips bolt the header to the purlins.', 'The drop column bolts to the header and carries the J1 base.',
-                     'The vacuum riser runs down inside the column to the J1 union.'],
+                     'The vacuum riser, the air line and the arm\'s cable run inside the column to the J1 union.',
+                     'The supply enclosure and the air service unit hang on the column, 4.25 m up and higher.'],
                 specs={'J1 height': f'{y1 / 1000:.2f} m above grade', 'column': 'SHS 200 x 200 x 8'}, group='Structure')
     m.subsystem('J1', 'J1 shoulder yaw', 'Swings link 1 about the column. With J2 it puts the mast anywhere over the car.',
                 how=['A cross-roller bearing in the base casting carries link 1. A servo gearmotor beside the column turns it by a '
@@ -148,14 +178,29 @@ def build(spec: dict) -> Model:
                 specs={'mouth': f'{N["w"]:.0f} x {N["h"]:.0f} mm', 'air knife': '6 bar'}, group='Tool')
     m.subsystem('VAC', 'Vacuum and air supply', 'Brings vacuum and compressed air from the canopy plant to the nozzle.',
                 how=['A central vacuum producer on each canopy (about 3 kW per working arm, 30 kPa class) serves its arms.',
-                     'A riser pipe brings the flow down the column.',
-                     'A rotary union at each yaw joint and a duct in each link take it to the mast.',
+                     'A vacuum main and an air main run under the canopy roof, over the header. They belong to the canopy plant.',
+                     'A branch drops from the vacuum main through a gate valve, in through the column wall, and down to the J1 union.',
+                     'A drop from the air main feeds a service unit on the column: a lockable shut-off valve and a filter regulator.',
+                     'A 6 mm line runs from the unit in through the column wall and down to the J1 union.',
+                     'A rotary union at each yaw joint and a duct in each link take the vacuum to the mast.',
                      'The mast stages are the duct down to the wrist. The fork, the swivel, the hub and the wand take it to the nozzle.',
-                     'A 6 mm line carries the air through the same unions.',
+                     'The air goes through the same unions.',
                      'A spring reel on the mast pays the cable and the air line down to the wrist.',
                      'At the wrist, the cable crosses in a clock spring and the air in the swivel.',
                      'A reel in the wand feeds both along it. A loop takes the air across the nozzle joint.'],
-                specs={'duct': 'DN 50 throughout', 'airflow': 'about 400 m3/h per producer (class)'}, group='Supply')
+                specs={'duct': 'DN 50 throughout', 'airflow': 'about 400 m3/h per producer (class)',
+                       'vacuum main': f'{VAC_MAIN_OD:.0f} mm (ASSUMPTION: the canopy plant is not sized here)',
+                       'isolation': 'gate valve DN 50 on the vacuum branch, lockable valve on the air drop'}, group='Supply')
+    m.subsystem('POWER', 'Power, control and network', 'Brings electric power and the site network to the arm, and holds its controller.',
+                how=['A supply enclosure on the drop column holds the controller, the power supplies, the J1 drive and the safety relay.',
+                     'A lockable isolator on its door cuts the supply for work on the arm.',
+                     'The supply cable and the network cable come down from the canopy cable tray, each in its own conduit.',
+                     'A motor cable runs from the enclosure down to the J1 gearmotor.',
+                     'A second cable goes in through the column wall and down to the J1 union. Its slip ring feeds the rest of the arm.',
+                     'The disconnect that a person reaches from the ground is on the canopy\'s board. It is site work and is not drawn.'],
+                specs={'enclosure': f'{ENC_H:.0f} x {ENC_W:.0f} x {ENC_D:.0f} mm, stainless, IP66 (class)',
+                       'height': f'{ENC_Y0 / 1000:.2f} m above grade, on the column',
+                       'conduit fill': 'one cable in each conduit, under 53 % (NEC chapter 9, table 1)'}, group='Supply')
     m.subsystem('STATUS', 'Status lights', 'Show the arm state to the site and to the camera.',
                 how=['A ring on the J1 base, a strip on the mast and a ring at the nozzle.'], group='Safety')
 
@@ -191,11 +236,21 @@ def build(spec: dict) -> Model:
                 std.bolt_stack(m, base, 'MOUNT', _xp(Th, pt), _xd(Th, (0, 0, -side)), 12, 40, 10 + 8,
                                fn='Bolts the clip to the header web.', explode=(0, 320, 0))
     col_top, col_bot = hb, A['canopy']['columnBottomAboveDeck'] * M
+    AIR_X, AIR_Z = 40.0, -30.0                     # the air line inside the column, from the column's axis: on the J1 union's
+    CAB_X, CAB_Z = 30.0, 40.0                      # top face (r 50 of its 60), 22 mm off the riser; and the arm's cable, the same
     col = cq.Workplane('XY').add(_sq_tube(200, 8, col_top - col_bot - 40)).translate((0, col_top - 20, 0))
     col = col.union(cq.Workplane('XY').box(300, 20, 300).translate((0, col_top - 10, 0)))
     col = col.union(cq.Workplane('XY').box(300, 20, 300).translate((0, col_bot + 10, 0))
                     .cut(cq.Workplane('XZ', origin=(0, col_bot + 21, 0)).circle(SIZES[32].od / 2).extrude(22))    # the J1 union's rotor
                     .cut(cq.Workplane('XZ', origin=(144.0, col_bot + 21, 0)).circle(9).extrude(22)))           # the J1 pinion shaft
+    # the column's wall is opened 3 times for the supply (THE SUPPLY AT THE COLUMN HEAD, below): the vacuum riser and the
+    # air line come in through its -Z face, the arm's cable through its +X face, behind the enclosure
+    y_vo = col_top - 250.0                         # the riser's way in: its bend ends 155 mm under the top plate
+    y_ao = ENC_Y0 + 230.0                          # the air line's
+    y_co = ENC_Y0 + ENC_H / 2                      # the cable's, behind the enclosure's middle
+    col = (col.cut(cq.Workplane('XY', origin=(0, y_vo, -110)).circle(28).extrude(20))
+           .cut(cq.Workplane('XY', origin=(AIR_X, y_ao, -110)).circle(AIR_OD / 2 + 2).extrude(20))
+           .cut(cq.Workplane('YZ', origin=(90, y_co, CAB_Z)).circle(8).extrude(20)))
     _ca, _sa = math.cos(math.radians(30.0)), math.sin(math.radians(30.0))
     _pts = [(u * _ca - v * _sa, u * _sa + v * _ca) for u in (-115, 115) for v in (-70, 70)]
     col = col.faces('>Y').workplane(centerOption='CenterOfBoundBox').pushPoints([(-x, z) for (x, z) in _pts]).hole(17.5)
@@ -292,11 +347,165 @@ def build(spec: dict) -> Model:
                                  'with link 1.', {'vacuum': 'DN 50, -30 kPa', 'air': '6 bar', 'circuits': '24 x 2 A, EtherCAT pair'}, 'buy',
                                  mass_override=7.5)),
             loc(mx, 0, 0), (0, 420, 0), 'VAC')
-    riser = cq.Workplane('XZ', origin=(0, col_top - 20, 0)).circle(25).circle(22).extrude(col_top - 20 - (u_y0 + 140))
-    m.place(base, m.part(PartDef('CLN-VRS', 'Vacuum riser pipe, 50 mm', riser.val(), 'ss304', 'fluid', 'EN 10217-7',
-                                 f'50 x 3, {col_top - 20 - u_y0 - 140:.0f}', '', None,
-                                 'Brings the vacuum from the canopy duct down the column to the J1 union.', {}, 'make')),
-            loc(mx, 0, 0), (-160, 0, 0), 'VAC')
+    # ══════════════════════════════════════════ THE SUPPLY AT THE COLUMN HEAD ═══
+    # Every line the arm needs comes from the canopy, and each one is drawn from the canopy's own line to the arm:
+    #   vacuum   canopy vacuum main -> branch stub -> gate valve -> riser, in through the column's -Z face and down to the J1 union;
+    #   air      canopy air main -> drop -> service unit on the column (lockable shut-off, filter regulator) -> a 6 mm line,
+    #            in through the column's -Z face and down to the J1 union;
+    #   power    canopy cable tray -> conduit -> supply enclosure on the column's +X face (isolator on its door)
+    #            -> a motor cable down to the J1 gearmotor, and a cable in through the column's +X face down to the J1
+    #            union's slip ring, which feeds everything that turns;
+    #   network  canopy cable tray -> its own conduit -> the same enclosure (the controller); onward in the slip-ring cable.
+    # The mains and the tray run along the purlins, over the header and between the 2 purlins. Each drop stands on the
+    # header's -v side, clear of its 182 mm width. Nothing here is lower than the enclosure's underside (ENC_Y0), and the
+    # arm's highest moving part is the J1 hub, inside the base casting under the column's foot.
+    def _uv(dx: float, dz: float) -> tuple[float, float]:
+        """A point's place in the header's frame (u along the header, v along the purlins), from its offset off the column's axis."""
+        return dx * _ca + dz * _sa, -dx * _sa + dz * _ca
+
+    FL_R = 82.5                                    # a DN 50 flange's radius (EN 1092-1, PN 10/16: OD 165 mm)
+    VR_Z = -(150.0 + FL_R + 27.5)                  # the riser outside the column: its valve's flanges 27.5 mm off the top plate's edge
+    y_main = hb + hd + 55.0 + VAC_MAIN_OD / 2      # the mains' level: 55 mm over the header's top, over the column bolts' heads
+    y_sp = y_main - VAC_MAIN_OD / 2 - 60.0         # each main's branch spigot ends here, 60 mm under the vacuum main
+    y_v0 = y_vo + VAC_BEND_R + 40.0                # the valve's lower flange face: 40 mm of straight pipe over the bend
+    VALVE_H = 84.0                                 # 2 flanges of 18 mm and a 48 mm wafer body (ASSUMPTION: a knife gate valve's class size)
+    riser = std.swept('CLN-VRS', 'Vacuum riser pipe, 50 x 3, with 2 bends',
+                      [(0, u_y0 + 140, 0), (0, y_vo, 0), (0, y_vo, VR_Z), (0, y_v0, VR_Z)], 25, 'ss304', 'fluid', 22,
+                      'Brings the vacuum from the gate valve in through the column\'s wall and down the column to the J1 union.',
+                      {'bends': f'centreline R {VAC_BEND_R:.0f} (1.5 x D)', 'through the column': 'a 56 mm hole in its -Z face, with a grommet'},
+                      'EN 10217-7', f'50 x 3, {y_vo - u_y0 - 140 + -VR_Z + y_v0 - y_vo:.0f} developed', 'make', bend=VAC_BEND_R)
+    m.place(base, riser, loc(mx, 0, 0), (-160, 0, 0), 'VAC')
+    gate = (cq.Workplane('XZ', origin=(0, 18, 0)).circle(FL_R).extrude(18)
+            .union(cq.Workplane('XZ', origin=(0, VALVE_H - 18, 0)).circle(45).extrude(VALVE_H - 36))
+            .union(cq.Workplane('XZ', origin=(0, VALVE_H, 0)).circle(FL_R).extrude(18))
+            .union(cq.Workplane('XY').box(70, VALVE_H - 40, 190).translate((0, VALVE_H / 2, -FL_R - 55)))      # the bonnet, away from the column
+            .union(cq.Workplane('XY', origin=(0, VALVE_H / 2, -FL_R - 150)).circle(70).extrude(-10)))         # the handwheel
+    m.place(base, m.part(PartDef('CLN-VGV', 'Vacuum gate valve DN 50, flanged, handwheel', gate.val(), 'steel_paint', 'fluid',
+                                 'catalogue part', 'DN 50, PN 10 flanges', '', None,
+                                 'Shuts this arm off from the canopy\'s vacuum main, so the arm can be opened while the other arms work.',
+                                 {'flanges': 'EN 1092-1, OD 165'}, 'buy', mass_override=9.0)),
+            loc(mx, y_v0, VR_Z), (-160, 0, -160), 'VAC')
+    stub = cq.Workplane('XZ', origin=(0, y_sp, 0)).circle(25).circle(22).extrude(y_sp - (y_v0 + VALVE_H))
+    m.place(base, m.part(PartDef('CLN-VBR', 'Vacuum branch stub, 50 x 3', stub.val(), 'ss304', 'fluid', 'EN 10217-7',
+                                 f'50 x 3, {y_sp - y_v0 - VALVE_H:.0f}', '', None,
+                                 'Joins the gate valve to the canopy vacuum main\'s branch.', {}, 'make')),
+            loc(mx, 0, VR_Z), (-160, 120, -160), 'VAC')
+    MAIN_HALF = 700.0                              # each canopy line is shown for 1.4 m, inside the purlins' 1.6 m
+    u_v, v_v = _uv(0, VR_Z)
+    vmain = (cq.Workplane('XY', origin=(u_v, y_main, -MAIN_HALF)).circle(VAC_MAIN_OD / 2).circle(VAC_MAIN_OD / 2 - 3).extrude(2 * MAIN_HALF)
+             .union(cq.Workplane('XZ', origin=(u_v, y_main - VAC_MAIN_OD / 2 + 3, v_v)).circle(25).circle(22).extrude(63)))
+    m.place(base, m.part(PartDef('CLN-VMN', 'Canopy vacuum main with a branch (part of the canopy plant)', vmain.val(), 'ss304', 'fluid',
+                                 'canopy plant', f'D {VAC_MAIN_OD:.0f}, branch D 50', '', None,
+                                 'Brings the vacuum from the canopy\'s producer to its arms. Shown for context.', {}, 'buy',
+                                 reference=True)), Th, (0, 420, 0), 'VAC')
+    # air: the drop from the main, the service unit on a channel bracket on the column's -Z face, the line into the column
+    AU_Z = -165.0                                  # the unit's ports: its drop passes 9 mm outside the column's top plate
+    y_u0 = y_ao + 2 * AIR_BEND_R                   # the unit's underside: the line's bend ends in its port
+    AU_H = 140.0
+    DROP_R = 6.0                                   # the drop from the main: a 12 mm tube, 2 sizes over the arm's 6 mm line
+    u_a, v_a = _uv(AIR_X, AU_Z)
+    amain = (cq.Workplane('XY', origin=(u_a, y_main, -MAIN_HALF)).circle(11).circle(9).extrude(2 * MAIN_HALF)
+             .union(cq.Workplane('XZ', origin=(u_a, y_main - 9, v_a)).circle(DROP_R).extrude(y_main - 9 - y_sp)))
+    m.place(base, m.part(PartDef('CLN-AMN', 'Canopy compressed-air main with a drop (part of the canopy plant)', amain.val(), 'al_extr',
+                                 'fluid', 'canopy plant', 'D 22, drop D 12', '', None,
+                                 'Brings compressed air from the canopy\'s compressor to its arms. Shown for context.', {}, 'buy',
+                                 reference=True)), Th, (0, 420, 0), 'VAC')
+    adrop = cq.Workplane('XZ', origin=(0, y_sp, 0)).circle(DROP_R).circle(DROP_R - 1.5).extrude(y_sp - (y_u0 + AU_H))
+    m.place(base, m.part(PartDef('CLN-ADR', 'Air drop tube, 12 x 1.5, stainless', adrop.val(), 'ss304', 'fluid', 'EN 10216-5',
+                                 f'12 x 1.5, {y_sp - y_u0 - AU_H:.0f}', '', None,
+                                 'Brings the air from the canopy main\'s drop down to the service unit.', {}, 'make')),
+            loc(mx + AIR_X, 0, AU_Z), (0, 120, -200), 'VAC')
+    afr = cq.Workplane('XY').box(90, AU_H, 70).edges('|Y').fillet(8).translate((0, AU_H / 2, 0))
+    m.place(base, m.part(PartDef('CLN-AFR', 'Air service unit: lockable shut-off valve and filter regulator, G 1/4', afr.val(), 'a356_dark',
+                                 'fluid', 'catalogue part', '90 x 140 x 70', '', None,
+                                 'Shuts the arm\'s air off and locks it off for service. It filters the air and sets it to 6 bar.',
+                                 {'set pressure': '6 bar'}, 'buy', mass_override=0.9)),
+            loc(mx + AIR_X, y_u0, AU_Z), (0, 0, -200), 'VAC')
+    ab_d = -AU_Z - 35.0 - 100.0                    # the bracket's depth: from the column's face to the unit's back
+    abr = (cq.Workplane('XY').box(110, AU_H, ab_d).cut(cq.Workplane('XY').box(102, AU_H + 2, ab_d - 8))
+           .translate((0, AU_H / 2, -ab_d / 2)))
+    m.place(base, m.part(PartDef('CLN-AFB', 'Air service unit bracket, stainless channel', abr.val(), 'ss304', 'structure', 'folded sheet 4 mm',
+                                 f'110 x {AU_H:.0f} x {ab_d:.0f}', '', None, 'Holds the air service unit off the column\'s face.', {}, 'make')),
+            loc(mx + AIR_X, y_u0, -100), (0, 0, -120), 'VAC')
+    for yy in (y_u0 + 30, y_u0 + AU_H - 30):
+        m.place(base, std.bhcs(6, 12, 'A2-70', 'Holds the air unit\'s bracket to the column, into a rivet nut.'),
+                std.orient((mx + AIR_X, yy, -104), (0, 0, 1)), (0, 0, -150), 'VAC')
+    aline = std.swept('CLN-AIL', 'Air line 6 x 1, service unit to the J1 union',
+                      [(AIR_X, y_u0, AU_Z), (AIR_X, y_ao, AU_Z), (AIR_X, y_ao, AIR_Z), (AIR_X, u_y0 + 120, AIR_Z)], AIR_OD / 2, 'hose',
+                      'fluid', AIR_OD / 2 - 1, 'Brings the air from the service unit in through the column\'s wall and down to the J1 union.',
+                      {'bends': f'R {AIR_BEND_R:.0f} (5 x D)', 'through the column': 'a 10 mm hole in its -Z face, with a grommet'},
+                      'ISO 14743', 'PU 6 x 4', 'buy', bend=AIR_BEND_R)
+    m.place(base, aline, loc(mx, 0, 0), (0, 0, -160), 'VAC')
+    # power and network: the enclosure on 2 rails welded across the column's +X face, over the J1 gearmotor
+    ENC_Z0 = -100.0                                # its -Z side, flush with the column's: its top entries clear the header
+    ex0 = 100.0 + 10.0                             # its back, on the rails
+    zc_e = ENC_Z0 + ENC_W / 2
+    lug_y = (40.0, ENC_H - 40.0)
+    lug_z = (ENC_Z0 - 17.0, ENC_Z0 + ENC_W + 17.0)
+    ent = ((210.0, -70.0, 'power'), (270.0, -70.0, 'network'))    # the conduit entries on its top: 62 mm and more off the header
+    enc = (cq.Workplane('XY').box(ENC_D, ENC_H, ENC_W).edges('|Y').fillet(10).translate((ex0 + ENC_D / 2, ENC_H / 2, zc_e))
+           .union(cq.Workplane('XZ', origin=(XP1, 0, 0)).circle(12).extrude(20)))                               # the motor cable's gland
+    for (ex, ez, _) in ent:
+        enc = enc.union(cq.Workplane('XZ', origin=(ex, ENC_H + 15, ez)).circle(19).extrude(15))                # a conduit hub
+    for ly in lug_y:
+        for lz in lug_z:
+            enc = enc.union(cq.Workplane('XY').box(5, 40, 36).translate((ex0 + 2.5, ly, lz + (1 if lz < zc_e else -1)))
+                            .cut(cq.Workplane('YZ', origin=(ex0 - 1, ly, lz)).circle(4.5).extrude(8)))
+    m.place(base, m.part(PartDef('CLN-ENC', 'Supply enclosure, stainless, IP66: controller, power supplies, J1 drive', enc.val(), 'ss304',
+                                 'electrical', 'EN 62208', f'{ENC_H:.0f} x {ENC_W:.0f} x {ENC_D:.0f}', 'IP66', None,
+                                 'Holds the arm\'s controller, its power supplies, the J1 drive and the safety relay. It takes the supply '
+                                 'and the site network from the canopy, and feeds the J1 gearmotor and the J1 union\'s slip ring.',
+                                 {}, 'buy', mass_override=32.0)),
+            loc(mx, ENC_Y0, 0), (320, 0, 0), 'POWER')
+    erl = cq.Workplane('XY').box(10, 50, lug_z[1] - lug_z[0] + 60).translate((105, 0, zc_e))
+    erl_pd = m.part(PartDef('CLN-ENR', 'Enclosure rail, flat 50 x 10, welded to the column', erl.val(), 'steel_s355', 'structure', 'flat bar',
+                            f'50 x 10 x {lug_z[1] - lug_z[0] + 60:.0f}', 'S355J2', None,
+                            'Carries the supply enclosure across the column\'s face. Welded on before galvanising.', {}, 'make'))
+    for ly in lug_y:
+        m.place(base, erl_pd, loc(mx, ENC_Y0 + ly, 0), (160, 0, 0), 'POWER')
+        for lz in lug_z:
+            m.place(base, std.hex_bolt(8, 16, 'A4-70', 'Holds an enclosure lug to its rail, into a tapped hole.'),
+                    std.orient((mx + ex0 + 5, ENC_Y0 + ly, lz), (-1, 0, 0)), (360, 0, 0), 'POWER')
+    iso = (cq.Workplane('YZ').circle(36).extrude(8).union(cq.Workplane('XY').box(26, 16, 64).translate((8 + 13, 0, 0))))
+    m.place(base, m.part(PartDef('CLN-ISO', 'Supply isolator handle, lockable, door-coupled', iso.val(), 'accent', 'electrical',
+                                 'IEC 60947-3', 'D 72', 'IP66', None,
+                                 'Switches the arm\'s supply off at the enclosure and takes a padlock, for work on the arm.',
+                                 {'ASSUMPTION': 'the disconnect a person reaches from the ground is on the canopy board (site works, not drawn)'},
+                                 'buy')),
+            loc(mx + ex0 + ENC_D, ENC_Y0 + ENC_H - 150, zc_e + 100), (420, 0, 0), 'POWER')
+    y_tray = y_main - VAC_MAIN_OD / 2 - 5.0        # the tray's underside: 50 mm over the header's top
+    us = [_uv(ex, ez)[0] for (ex, ez, _) in ent]
+    u_t = sum(us) / len(us)
+    tray = (cq.Workplane('XY').box(150, 60, 2 * MAIN_HALF).cut(cq.Workplane('XY').box(146, 60, 2 * MAIN_HALF + 2).translate((0, 2, 0)))
+            .translate((u_t, y_tray + 30, 0)))
+    m.place(base, m.part(PartDef('CLN-CTY', 'Canopy cable tray 150 x 60 (part of the canopy)', tray.val(), 'steel_s355', 'electrical',
+                                 'canopy steel', '150 x 60', '', None,
+                                 'Carries the arms\' supply and network cables along the canopy from its board. Shown for context.', {},
+                                 'buy', reference=True)), Th, (0, 420, 0), 'POWER')
+    for (ex, ez, what), cod in zip(ent, (SUPPLY_CABLE_OD, NET_CABLE_OD)):
+        size = _conduit_for(cod)
+        c_od, c_id = CONDUIT[size]
+        y_c0 = ENC_Y0 + ENC_H + 15
+        cd = cq.Workplane('XZ', origin=(0, y_tray, 0)).circle(c_od / 2).circle(c_id / 2).extrude(y_tray - y_c0)
+        m.place(base, m.part(PartDef(f'CLN-ECD{what[0].upper()}', f'Conduit, trade size {size}, {what} drop', cd.val(), 'steel_s355',
+                                     'electrical', 'rigid conduit', f'{size} x {y_tray - y_c0:.0f}', '', None,
+                                     f'Brings the {what} cable from the canopy cable tray down to the supply enclosure.',
+                                     {'cable': f'{cod:g} mm', 'fill': f'{100 * cod ** 2 / c_id ** 2:.0f} % of the bore (limit 53 %)'},
+                                     'make')), loc(mx + ex, 0, ez), (320, 120, 0), 'POWER')
+    y_gm = col_bot + 20 + 230                      # the J1 gearmotor's top
+    mcab = cq.Workplane('XZ', origin=(0, ENC_Y0 - 20, 0)).circle(6).extrude(ENC_Y0 - 20 - y_gm)
+    m.place(base, m.part(PartDef('CLN-EMC', 'J1 motor cable, power and feedback, 12 mm', mcab.val(), 'cable', 'electrical', 'EN 50525',
+                                 f'OD 12 x {ENC_Y0 - 20 - y_gm:.0f}', '', None,
+                                 'Joins the J1 gearmotor to its drive in the supply enclosure. It does not move.', {}, 'buy')),
+            loc(mx + XP1, 0, 0), (320, -60, 0), 'POWER')
+    CAB_BEND = 40.0                                # 4 x the cable's 10 mm, fixed installation (ASSUMPTION: a class figure for a PUR hybrid cable)
+    scab = std.swept('CLN-ESC', 'Arm cable, enclosure to the J1 union: power and network, 10 mm',
+                     [(ex0, y_co, CAB_Z), (CAB_X, y_co, CAB_Z), (CAB_X, u_y0 + 120, CAB_Z)], 5.0, 'cable', 'electrical', 0.0,
+                     'Brings power and the network from the supply enclosure in through the column\'s wall and down to the J1 '
+                     'union\'s slip ring. It does not move.',
+                     {'bend': f'R {CAB_BEND:.0f} (4 x D)', 'through the column': 'a 16 mm hole in its +X face, with a gland'},
+                     'EN 50525', 'OD 10', 'buy', bend=CAB_BEND)
+    m.place(base, scab, loc(mx, 0, 0), (200, 0, 0), 'POWER')
     s25 = SIZES[25]
     RG2, PN2 = 94.0, 14.0                                # the J2 ring gear's and pinion's pitch radii
     a_p2 = math.radians(22.0)                            # the J2 pinion, 22 degrees round from link 1's axis, toward -Z
