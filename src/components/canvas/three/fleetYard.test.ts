@@ -62,6 +62,27 @@ describe('the instanced vehicle model fleet', () => {
     fleet.dispose();
   });
 
+  it.each(models)('$spec.key: each door of a flank takes its own opening when the door store gives one, front to rear', ({ spec, model }) => {
+    const fleet = makeModelFleet(model, 1);
+    const full = buildVehicle(spec, { detail: 40 });
+    const car = new THREE.Matrix4().makeRotationY(YAW).setPosition(X, Y, Z).multiply(YARD_FROM_MODEL);
+    // a flank's doors front to rear: the door whose pivot is nearer the nose first
+    const rank = (d: (typeof model.doors)[number]) => model.doors.filter((o) => o.rig.side === d.rig.side && o.rig.pivot[0] > d.rig.pivot[0]).length;
+    const perFlank = Math.max(...model.doors.map(rank)) + 1;
+    for (let open = 0; open < perFlank; open++) {
+      // the left flank: only door `open` stands open (0.8), the flank's value says 1; the right flank all at 0.3
+      const leftEach = Array.from({ length: perFlank }, (_, k) => (k === open ? 0.8 : 0));
+      writeModelCar(fleet, 0, X, Y, Z, YAW, 0.3, 1, false, undefined, leftEach);
+      setDoors(full, Object.fromEntries(model.doors.map((d) => [d.id, d.rig.side > 0 ? 0.3 : leftEach[rank(d)]])));
+      full.updateMatrixWorld(true);
+      model.doors.forEach((d, i) => {
+        const want = car.clone().multiply(full.getObjectByName(`door_${d.id}`)!.matrixWorld);
+        expect(close(at(fleet.doors[i].m.array, 0), want), `${d.id}, left door ${open} open`).toBe(true);
+      });
+    }
+    fleet.dispose();
+  });
+
   it.each(models)('$spec.key: an open door stands outboard on its own flank of the yard car', ({ model }) => {
     const fleet = makeModelFleet(model, 1);
     // car at the origin facing +Z: its right flank is -X (the generic car's convention)

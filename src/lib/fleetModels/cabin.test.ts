@@ -142,3 +142,51 @@ describe.each(FLEET_SPECS.map((spec) => ({ key: spec.key, spec })))('$key: the c
     expect(cabin.bodyClearance({ x: 0, y: 1, z: spec.dims.width / 2 + 0.3 })).toBeCloseTo(0.3, 6);
   });
 });
+
+describe.each(FLEET_SPECS.map((spec) => ({ key: spec.key, spec })))('$key: one door, and one opening\'s doors, on their own', ({ spec }) => {
+  const cabin = cabinProfile(spec);
+  const W = spec.dims.width / 2;
+
+  it('measures one leaf\'s travel alone: never nearer than the flank\'s, and all the leaves together are the flank', () => {
+    const ids = cabin.leaves.map((l) => l.id);
+    for (let x = -1.6; x <= 1.6; x += 0.4) for (const y of [0.6, 1.1, 1.6]) for (const out of [0.1, 0.4, 0.8]) {
+      const p = { x, y, z: W + out };
+      const all = cabin.leafSweptClearance(p);
+      const each = ids.map((id) => cabin.leafSweptClearanceOf(p, [id]));
+      for (const d of each) expect(d).toBeGreaterThanOrEqual(all - 1e-12);
+      expect(Math.min(...each)).toBeCloseTo(all, 12);
+      expect(cabin.leafSweptClearanceOf(p, ids)).toBeCloseTo(all, 12);
+      // the left flank's leaves are the mirror of the right flank's
+      expect(cabin.leafSweptClearanceOf({ ...p, z: -p.z }, [ids[0]])).toBeCloseTo(each[0], 12);
+      // each door at its own opening: all alike is the flank's measure, and a door left shut is not measured
+      const n = ids.length;
+      expect(cabin.leafClearanceDoors(p, Array(n).fill(0.6), Array(n).fill(0))).toBeCloseTo(cabin.leafClearanceAt(p, 0.6, 0), 12);
+      expect(cabin.leafClearanceDoors(p, Array(n).fill(0), Array(n).fill(0))).toBe(cabin.leafClearanceAt(p, 0, 0));
+      if (n > 1) expect(cabin.leafClearanceDoors(p, [1, 0], [])).toBeGreaterThanOrEqual(cabin.leafClearanceAt(p, 1, 0) - 1e-12);
+    }
+  });
+
+  it('with only one panel of a two-panel opening able to open: that panel\'s own part of the opening, one leaf, the same body', () => {
+    const two = cabin.apertures.find((a) => a.doorIds.length === 2);
+    if (!two) { expect(cabin.apertures.every((a) => a.doorIds.length === 1)).toBe(true); return; }
+    const [front, rear] = two.doorIds;
+    const f = cabinProfile(spec, [front]), r = cabinProfile(spec, [rear]);
+    for (const part of [f, r]) {
+      expect(part.apertures.length).toBe(1);
+      expect(part.leaves.length).toBe(1);
+      expect(part.seats).toEqual(cabin.seats);
+      expect(part.apertures[0].z).toBeCloseTo(two.z, 2);
+    }
+    // the two parts meet at the line the panels part from, and together are the whole opening
+    expect(f.apertures[0].x1).toBeCloseTo(two.x1, 9);
+    expect(r.apertures[0].x0).toBeCloseTo(two.x0, 9);
+    expect(f.apertures[0].x0).toBeCloseTo(r.apertures[0].x1, 9);
+    // where the other panel is shut there is a wall: a point just inside the whole opening's rear half
+    const y = (two.sill + two.top) / 2, x = (two.x0 + r.apertures[0].x1) / 2;
+    expect(cabin.openingMargin(x, y, 0)).toBeGreaterThan(0.1);
+    expect(f.openingMargin(x, y, 0)).toBeLessThan(0);
+    // the profile is kept by its doors: the whole cabin is still the whole cabin
+    expect(cabinProfile(spec)).toBe(cabin);
+    expect(cabinProfile(spec, [front])).toBe(f);
+  });
+});

@@ -1168,7 +1168,7 @@ class TwinMotionDriver {
    */
   cabinArmFor(vehicleId: string): {
     phase: string; sideA: "left" | "right"; sideB: "left" | "right"; done: boolean; stops: ("a" | "b")[];
-    waiting: boolean; portNotDone: boolean;
+    waiting: boolean; portNotDone: boolean; portPartDone: boolean; widens: boolean[];
   } | null {
     const e = this.entries.get(vehicleId);
     if (!e?.stallId || e.lane !== "dcfc") return null;
@@ -1181,9 +1181,13 @@ class TwinMotionDriver {
       done: s.phase === "home" && s.completedFor === vehicleId,
       // the flank of each door opening this car's program visits, in order (two on the generic car, four on a four-door car)
       stops: cleanSessionProgram(s).visits.map((v) => (v.flank === "far" ? "a" : "b")),
+      // a stop at the door opening of the stop before it, now with all its doors open (that stop had one sliding door of two open)
+      widens: cleanSessionProgram(s).visits.map((v, i, all) => i > 0 && all[i - 1].partial === true && all[i - 1].flank === v.flank),
       // the arm waits for the charge arm before it works the charger's side; or it went home with that side not done
       waiting: s.waiting === true,
       portNotDone: s.portNotDoneFor === vehicleId,
+      // ...and it cleaned at least one door opening on that side (one whose doors are clear of the latched charge arm)
+      portPartDone: s.portNotDoneFor === vehicleId && s.portPartDone === true,
     };
   }
 
@@ -1327,7 +1331,7 @@ class TwinMotionDriver {
     }
     this.washGate.step(simDt, washes);
     doorStore.syncFlanks([
-      ...this.cleanGate.doorsByFlank(),
+      ...this.cleanGate.doorsByDoor(),
       ...this.washGate.doors().map(([id, f]) => [id, f, f] as [string, number, number]),
     ]);
   }

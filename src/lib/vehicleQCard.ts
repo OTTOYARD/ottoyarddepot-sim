@@ -142,7 +142,7 @@ export interface QCardInputs {
    */
   cabinArm?: {
     phase: string; sideA: "left" | "right"; sideB: "left" | "right"; done?: boolean; stops?: readonly ("a" | "b")[];
-    waiting?: boolean; portNotDone?: boolean;
+    waiting?: boolean; portNotDone?: boolean; portPartDone?: boolean; widens?: readonly boolean[];
   } | null;
   /**
    * What the car's wash bay's rollover machine is doing now, as the motion driver plays it (TwinMotionDriver.washBayFor),
@@ -337,9 +337,12 @@ const byCleaningArm = (n: QNeedRecord | null | undefined): boolean =>
  */
 export function cabinArmWords(
   phase: string, sideA: "left" | "right", sideB: "left" | "right", done = false, stops: readonly ("a" | "b")[] = ["a", "b"],
-  state: { waiting?: boolean; portNotDone?: boolean } = {},
+  state: { waiting?: boolean; portNotDone?: boolean; portPartDone?: boolean; widens?: readonly boolean[] } = {},
 ): { starting: boolean; words: string } {
-  // the charger stands on side B. Its side is cleaned only while the charge arm is still and clear of the open doors.
+  // the charger stands on side B. A door on its side is opened only while the charge arm is still and clear of it.
+  if (phase === "home" && state.portNotDone && state.portPartDone) {
+    return { starting: false, words: `The arm did not complete the ${sideB} side. The charge arm was in the way of a door.` };
+  }
   if (phase === "home" && state.portNotDone) {
     return { starting: false, words: `The arm did not clean the ${sideB} side. The charge arm was in the way of the doors.` };
   }
@@ -359,8 +362,12 @@ export function cabinArmWords(
   const at = ["a", "b", "c", "d"].indexOf(phase.slice(cut + 1));
   if (cut < 0 || at < 0 || at >= stops.length) return { starting: false, words: "The arm cleans the cabin." };
   const side = (i: number) => (stops[i] === "a" ? sideA : sideB);
+  // `widens[i]`: stop i is the same door opening as the stop before it, now with all its doors open (the stop
+  // before had one sliding door of two open, the one that is clear of the charge arm)
   const moveTo = (i: number) => (i > 0 && stops[i - 1] === stops[i]
-    ? `The arm moves to the next door on the ${side(i)} side.`
+    ? state.widens?.[i]
+      ? `The arm moves to the full door opening on the ${side(i)} side.`
+      : `The arm moves to the next door on the ${side(i)} side.`
     : `The arm moves to the ${side(i)} side.`);
   switch (move) {
     case "swing": case "lower": case "descend": case "enter":

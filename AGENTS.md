@@ -323,21 +323,31 @@ not draw the seven units yet; where they stand is a site-plan decision.
   `CLEAN_PROGRAM_WRITE=1 npx vitest run src/lib/ottoCleanArm/cleanProgramFleet.test.ts` rewrites the file; then
   `cleanArmFleet.test.ts` must hold (every pose of every vehicle's cycle against its own body, leaves, openings,
   cabin, seats, and the charge arm at its own mate). `docs/CLEAN-ARM-PER-VEHICLE.md`.
-- **A car's doors are per flank, and the charger's flank waits for the charge arm (2026-11-13).** Every charger
-  stands on the car's left (the cleaning arm's PORT flank), and an open left door leaf is where the charge arm
-  stands or passes. Chase: charge and clean together where the design allows, else charge first. So the far
-  flank's doors open first and shut as the arm leaves that flank; the port flank's open only while the charge arm
-  is STILL in a state measured clear of them for that vehicle (`CleanProgram.beside`, computed by
-  `ottoCleanArm/chargeArmBeside.ts` over the doors' whole travel and stored with the program): latched (Cybercab,
-  Model Y, Gravity, generic) or stowed at its home (all), which for three vehicles is a PARK position on the rail
-  (`beside.parkX`, `mateSequence.stepMateSeq` stop 0, `TwinMotionDriver.chargeParkSlideAt`). Otherwise the arm
-  WAITS parked up (`CleanSession.waiting`), and if the twin's step ends first the home session says the port flank
-  was not done (`portNotDoneFor`). The charge arm starts no mate and no release with a port door not shut
-  (`cleanGate.factsForChargeArm` -> `armSessionInput`; a faulted charger's connector waits for the doors too).
-  `armGate` plays its own `MateSeq` to know when the machine is still (`armState`). The compositions are
-  `cleanGate.chargeArmFacts` and `factsForChargeArm`: use them, never re-derive in a view. Held frame by frame by
-  `engine/motion/cleanInterlock.test.ts`. ⚠️ An Ojai, I-PACE or Zoox on charge gets its far flank only: the
-  port flank needs a clean step after the charge, which the engine does not give yet.
+- **A car's doors are per flank, and on the charger's flank per OPENING (2026-11-13, per opening 2026-11-14).**
+  Every charger stands on the car's left (the cleaning arm's PORT flank), and an open left door leaf is where the
+  charge arm stands or passes. Chase: charge and clean together where the design allows, one after the other only
+  where clearance forbids it. So the far flank's doors open first and shut as the arm leaves that flank. A
+  port-flank opening's doors open only while the charge arm is STILL in a state measured clear of THOSE doors for
+  that vehicle (`CleanVisit.beside`, from `chargeArmBeside.measureOpeningBeside` over the doors' whole travel,
+  stored with the visit; `CleanProgram.beside` is the whole flank's and gives the charge arm's PARK position,
+  `beside.parkX`, `mateSequence.stepMateSeq` stop 0, `TwinMotionDriver.chargeParkSlideAt`). Only the doors of the
+  opening the arm is at are open (`CleanSession.doorPortBy`, in the program's `flankDoors` order, drawn per door
+  through `doorStore` `leftEach` / `rightEach`). A program puts first the port visits that may be worked with the
+  connector in: the I-PACE's rear door (its front door's leaf is at the inlet), and on the Ojai and the Zoox a
+  visit with ONLY the front sliding panel open (`CleanVisit.partial`, strokes made in `cabinProfile(spec, doors)`;
+  the rear panel lies over the assumed inlet). At an opening that may not open yet the arm WAITS parked up
+  (`CleanSession.waiting`), and if the twin's step ends first the home session says the port flank was not finished
+  (`portNotDoneFor`, `portPartDone`). The charge arm starts no mate and no release with a port door not shut
+  (`cleanGate.factsForChargeArm` -> `armSessionInput`; `holdsConnector` keeps the connector in while a waiting
+  arm's door is still closing; a faulted charger's connector waits for the doors too). `armGate` plays its own
+  `MateSeq` to know when the machine is still (`armState`). The compositions are `cleanGate.chargeArmFacts`,
+  `portRule` and `factsForChargeArm`: use them, never re-derive in a view. Held frame by frame by
+  `engine/motion/cleanInterlock.test.ts`. ⚠️ Do not reorder a program's port visits by hand: the I-PACE's straight
+  swing across the roof to its rear door measured 0.011 m from the charge arm on its rail, so that swing goes by
+  the front door's ready point (`CleanVisit.swingVia`, 0.230 m). ⚠️ An Ojai, I-PACE or Zoox on charge still has ONE
+  port visit that waits for the connector to come out (137 s to 147 s after the charge in the measured case, 44 s
+  to 45 s of it fixed); the engine still holds these cars for up to a whole cycle after the charge.
+  `docs/CLEAN-ARM-PER-VEHICLE.md`.
 - **`ResponsiveGuard` routes phones to the PHONE cockpit** (`src/components/phone`, since 2026-09-30):
   a touch-first screen whose short side is < 600 px, or any window < 900 px (`phoneLayout.isPhoneViewport`;
   `?phone=1` forces it). Everything else gets the desktop cockpit, unchanged — test the desktop at

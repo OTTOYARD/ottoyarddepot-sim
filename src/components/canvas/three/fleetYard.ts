@@ -103,6 +103,8 @@ export interface ModelFleetDoor {
   shut: THREE.Matrix4;
   m: THREE.InstancedBufferAttribute;
   meshes: THREE.InstancedMesh[];
+  /** Which door of its flank this is, front to rear (0 = the front one): the order the door store's per-door values are in. */
+  rank: number;
 }
 
 export interface ModelFleet {
@@ -150,6 +152,8 @@ export function makeModelFleet(model: YardModel, capacity: number): ModelFleet {
     return {
       rig: d.rig,
       shut: doorLocal(d.rig, 0, new THREE.Matrix4()),
+      // doors of the same flank whose pivot is nearer the nose
+      rank: model.doors.filter((o) => o.rig.side === d.rig.side && o.rig.pivot[0] > d.rig.pivot[0]).length,
       m,
       meshes: d.parts.map((p) => mesh(p.geometry, materialFor(p.kind, model.finish), m)),
     };
@@ -186,13 +190,17 @@ const outScratch = new THREE.Matrix4();
  * each door at its opening. `right` and `left` are the door store's opening fractions for the two flanks; a door on the
  * car's right (rig.side +1) reads `right`.
  */
-export function writeModelCar(fleet: ModelFleet, slot: number, x: number, y: number, z: number, yaw: number, right: number, left: number, lit: boolean): void {
+export function writeModelCar(
+  fleet: ModelFleet, slot: number, x: number, y: number, z: number, yaw: number, right: number, left: number, lit: boolean,
+  rightEach?: readonly number[], leftEach?: readonly number[],
+): void {
   carScratch.makeRotationY(yaw).setPosition(x, y, z);
   carScratch.toArray(fleet.carM.array, slot * 16);
   const st = fleet.status.instanceMatrix.array as Float32Array;
   if (lit) carScratch.toArray(st, slot * 16); else st.fill(0, slot * 16, slot * 16 + 16);
+  // each door its own opening where given (a flank's doors front to rear), else the flank's
   for (const d of fleet.doors) {
-    const t = d.rig.side > 0 ? right : left;
+    const t = d.rig.side > 0 ? rightEach?.[d.rank] ?? right : leftEach?.[d.rank] ?? left;
     const local = t > 0 ? doorLocal(d.rig, t, doorScratch) : d.shut;
     outScratch.multiplyMatrices(carScratch, local).toArray(d.m.array, slot * 16);
   }

@@ -37,6 +37,9 @@ import {
 import { cleanArmCapsules, type Capsule } from './cleanArmClearance';
 import { FLEET_COLUMN_TOP, FLEET_MARGIN, jointLimitBreach, measureFleetPose, type FleetPoseMeasure } from './cleanArmFleetClearance';
 import { cleanProgramFor } from './cleanPrograms';
+import { cabinForVisit } from './cleanProgramFleet';
+import { measureOpeningBeside } from './chargeArmBeside';
+import { visitBeside } from './cleanArmPose';
 import { advanceCleanSession, cleanSessionJoints, IDLE_CLEAN, type CleanSession } from './cleanSession';
 
 const BOTH: CleanSides[] = [sidesFor(1), sidesFor(-1)];
@@ -78,16 +81,38 @@ describe.each(CASES)('$key: the cleaning arm and the vehicle it cleans', ({ spec
     expect(program.key).toBe(spec.key);
     expect(program.pivotZ).toBeCloseTo(spec.dims.width / 2 + 0.2, 6);
     const far = program.visits.filter((v) => v.flank === 'far'), port = program.visits.filter((v) => v.flank === 'port');
-    // the far flank first, then the port flank, the same openings on each, front to rear
+    // the far flank first, front to rear, then the port flank
     expect(program.visits.map((v) => v.flank)).toEqual([...far.map(() => 'far'), ...port.map(() => 'port')]);
-    expect(port.map((v) => v.aperture)).toEqual(far.map((v) => v.aperture));
     expect(far.map((v) => v.aperture)).toEqual([...far.map((v) => v.aperture)].sort((a, b) => a - b));
     expect(far.length).toBeGreaterThanOrEqual(1);
     expect(far.length).toBeLessThanOrEqual(cabin.apertures.length);
+    // the port flank: every opening the far flank has, whole, with the same strokes; each names its doors and its rule
+    const whole = port.filter((v) => !v.partial);
+    expect(whole.map((v) => v.aperture).sort((a, b) => a - b)).toEqual(far.map((v) => v.aperture));
+    for (const v of whole) {
+      expect(v.strokes).toEqual(far.find((f) => f.aperture === v.aperture)!.strokes);
+      expect(v.doors).toEqual(cabin.apertures[v.aperture].doorIds);
+    }
+    expect(program.flankDoors).toEqual(cabin.leaves.map((l) => l.id));
+    // the doors of a flank are in order front to rear: the door store's per-door values are in that order
+    const fronts = cabin.leaves.map((l) => cabin.apertures.find((a) => a.doorIds.includes(l.id))!).map((a, i) => a.x1 - i * 1e-6);
+    expect(fronts).toEqual([...fronts].sort((a, b) => b - a));
+    for (const v of port) expect(v.beside, `${v.opening}: its own rule beside the charge arm`).toBeDefined();
+    // a visit with one panel of two open: only where the whole opening may not be worked latched, and before it
+    for (const v of port.filter((q) => q.partial)) {
+      const full = whole.find((q) => v.doors!.every((d) => q.doors!.includes(d)))!;
+      expect(full.beside!.latched).toBe(false);
+      expect(v.beside).toEqual({ stowed: true, latched: true });
+      expect(v.doors!.length).toBeLessThan(full.doors!.length);
+      expect(port.indexOf(v)).toBeLessThan(port.indexOf(full));
+    }
+    // what may be worked latched comes first: the arm waits once
+    const latchedOk = port.map((v) => v.beside!.latched);
+    expect(latchedOk).toEqual([...latchedOk].sort((a, b) => Number(b) - Number(a)));
     expect(program.chain.length).toBe(1 + 8 * program.visits.length + 2);
     for (const v of program.visits) {
       expect(v.strokes.length).toBeGreaterThanOrEqual(2);
-      expect(v.planeZ).toBeCloseTo(cabin.apertures[v.aperture].z, 6);
+      expect(v.planeZ).toBeCloseTo(cabinForVisit(spec, v).apertures[v.aperture].z, 6);
     }
   });
 
@@ -112,7 +137,8 @@ describe.each(CASES)('$key: the cleaning arm and the vehicle it cleans', ({ spec
       for (const { phase, t, q } of cycle(program, sides)) {
         const vi = phaseVisit(phase);
         const side = phaseSide(phase, sides, program);
-        const m = measureFleetPose(cabin, q, side, vi >= 0 ? program.visits[vi].aperture : 0, doorsAt(phase, t));
+        // a visit made with one panel of two open is measured in that cabin: the shut panel is the body
+        const m = measureFleetPose(vi >= 0 ? cabinForVisit(spec, program.visits[vi]) : cabin, q, side, vi >= 0 ? program.visits[vi].aperture : 0, doorsAt(phase, t));
         // stowed and swinging, the arm is over the roof: the park test below measures that, vehicle by vehicle
         const parked = phaseMove(phase) === null || phaseMove(phase) === 'swing';
         take(w, parked ? { ...m, linkCar: Infinity } : m, `${phase}@${t.toFixed(3)} side ${side}`);
@@ -137,12 +163,13 @@ describe.each(CASES)('$key: the cleaning arm and the vehicle it cleans', ({ spec
   });
 
   it('cleans what it says: the nozzle mouth 2-8 cm off a cushion or the floor, 2-15 cm off a seat back, under the headliner', () => {
-    for (const v of program.visits.filter((q) => q.flank === 'far')) {
+    // each far-flank visit, and each visit made with one panel of two open (its strokes are its own)
+    for (const v of program.visits.filter((q) => q.flank === 'far' || q.partial)) {
       const g = visitGeom(program, program.visits.indexOf(v));
       v.strokes.forEach((k, i) => {
         if (k.what === 'turn' || i === 0) return;
         // side +1: the stroke as written
-        const q = cleanJointsAt(cleanPhaseOf('clean', 0), 0, sidesFor(-1), { program: { ...program, visits: [{ ...v, strokes: [k, k] }] } });
+        const q = cleanJointsAt(cleanPhaseOf('clean', 0), 0, sidesFor(-1), { program: { ...program, visits: [{ ...v, flank: 'far', strokes: [k, k] }] } });
         const tip = cleanArmPoints(q).tip;
         expect(g.planeZ - tip.z, `${k.what} k${i}: inside the body side`).toBeGreaterThan(0.2);
         const gap = cabin.seatClearance(tip);
@@ -173,13 +200,13 @@ describe.each(CASES)('$key: the cleaning arm and the vehicle it cleans', ({ spec
             for (let k = 0; k <= 20; k++) {
               const q = cleanJointsAt(cleanPhaseOf('exit', vi), k / 20, sides, { from, program });
               expect(jointLimitBreach(q)).toBeNull();
-              take(w, measureFleetPose(cabin, q, side, v.aperture), `exit@${(k / 20).toFixed(2)} from ${move}_${vi}@${(i / n).toFixed(2)} side ${side}`);
+              take(w, measureFleetPose(cabinForVisit(spec, v), q, side, v.aperture), `exit@${(k / 20).toFixed(2)} from ${move}_${vi}@${(i / n).toFixed(2)} side ${side}`);
             }
             // and on up to the ready pose from where the exit left it
             const end = exitEnd(from, side, g);
             for (let k = 0; k <= 8; k++) {
               const q = cleanJointsAt(cleanPhaseOf('ascend', vi), k / 8, sides, { from: end, program });
-              take(w, measureFleetPose(cabin, q, side, v.aperture), `ascend@${(k / 8).toFixed(2)} after ${move}_${vi}@${(i / n).toFixed(2)} side ${side}`);
+              take(w, measureFleetPose(cabinForVisit(spec, v), q, side, v.aperture), `ascend@${(k / 8).toFixed(2)} after ${move}_${vi}@${(i / n).toFixed(2)} side ${side}`);
             }
           }
         }
@@ -327,6 +354,27 @@ describe.each(CASES)('$key: the cleaning arm and the doors beside the charge arm
     expect(program.beside).toEqual(measureChargeBeside(spec, cabin).facts);
     // every vehicle's port flank can be cleaned with the charge arm stowed at its home
     expect(program.beside.stowed).toBe(true);
+    // and each port opening's own rule is the one its own doors measure now
+    program.visits.forEach((v, i) => {
+      if (v.flank !== 'port') return;
+      expect(visitBeside(program, i), v.opening).toEqual(measureOpeningBeside(spec, cabin, v.doors!, program.beside.parkX).facts);
+      expect(v.beside!.stowed, `${v.opening}: worked with the charge arm stowed`).toBe(true);
+    });
+  });
+
+  it('each port opening by its own doors: worked during the charge exactly where those doors keep 0.10 m from the latched arm, through their whole travel', () => {
+    for (const v of program.visits.filter((q) => q.flank === 'port')) {
+      const swept = (p: { x: number; y: number; z: number }) => cabin.leafSweptClearanceOf(p, v.doors!);
+      const stowedM = capsulesMin(stowedCapsules(toward, park), swept);
+      const latchedM = capsulesMin(latchedCapsules(m, toward), swept);
+      console.log(`FLEET-CLEAN ${spec.key} port ${v.opening} [${v.doors!.join(', ')}]: charge arm stowed at its home ${f3(stowedM)} m, latched ${f3(latchedM)} m: ${v.beside!.latched ? 'worked during the charge' : 'waits for the connector to come out'}`);
+      expect(stowedM).toBeGreaterThanOrEqual(CHARGE_LEAF_MARGIN_M);
+      expect(v.beside!.latched).toBe(latchedM >= CHARGE_LEAF_MARGIN_M);
+      // one door's leaves are never nearer than the flank's
+      expect(latchedM).toBeGreaterThanOrEqual(capsulesMin(latchedCapsules(m, toward), (p) => cabin.leafSweptClearance(p)) - 1e-9);
+    }
+    // the whole flank's rule says "latched" only where every opening's does
+    expect(program.beside.latched).toBe(program.visits.filter((q) => q.flank === 'port' && !q.partial).every((q) => q.beside!.latched));
   });
 
   it('keeps the charge arm 0.10 m from every port-flank door leaf, through the doors\' whole travel, in each state the interlock allows', () => {

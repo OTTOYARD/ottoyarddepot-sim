@@ -2,7 +2,9 @@
 // Robotics tab's follow all draw cleanSessionJoints(session), so the program a session carries is the one all
 // three play. A car the twin does not name is cleaned by the generic program, as before.
 import { describe, expect, it } from "vitest";
-import { CleanGate, type CleanStallInput } from "./cleanGate";
+import { CleanGate, portRule, type CleanStallInput } from "./cleanGate";
+import { doorOpenAt, doorStore } from "./doorStore";
+import { fleetDoorPlanLines } from "@/lib/fleetModels/doorPlan";
 import { cleanSessionJoints, cleanSessionProgram, type CleanSession } from "@/lib/ottoCleanArm/cleanSession";
 import { cleanJointsAt, sidesFor, GENERIC_PROGRAM } from "@/lib/ottoCleanArm/cleanArmPose";
 import { cleanProgramFor } from "@/lib/ottoCleanArm/cleanPrograms";
@@ -110,6 +112,17 @@ describe("the car's card says where the arm is, at every opening of its program"
     expect(cabinArmWords("swing_b", "right", "left").starting).toBe(false);
   });
 
+  it("says when the charger's side was done in part, and when a stop opens the full door opening", () => {
+    expect(cabinArmWords("home", "right", "left", false, ["a", "b"], { portNotDone: true }).words)
+      .toBe("The arm did not clean the left side. The charge arm was in the way of the doors.");
+    expect(cabinArmWords("home", "right", "left", false, ["a", "a", "b", "b"], { portNotDone: true, portPartDone: true }).words)
+      .toBe("The arm did not complete the left side. The charge arm was in the way of a door.");
+    const st = { widens: [false, false, true] };
+    expect(cabinArmWords("raise_b", "right", "left", false, ["a", "b", "b"], st).words).toBe("The arm moves to the full door opening on the left side.");
+    expect(cabinArmWords("clean_c", "right", "left", false, ["a", "b", "b"], st).words).toBe("The arm cleans the left side.");
+    expect(cabinArmWords("raise_a", "right", "left", false, ["a", "b", "b"], st).words).toBe("The arm moves to the left side.");
+  });
+
   it("names the side of each of a four-door car's openings", () => {
     const stops = ["a", "a", "b", "b"] as const;
     const w = (p: string) => cabinArmWords(p, "right", "left", false, stops).words;
@@ -122,5 +135,63 @@ describe("the car's card says where the arm is, at every opening of its program"
     expect(w("clean_d")).toBe("The arm cleans the left side.");
     expect(w("exit_d")).toBe("The arm moves out of the car.");
     expect(w("ascend_d")).toBe("The arm moves back to its start position.");
+  });
+});
+
+describe("the charger's flank per opening, from the gate to the door store", () => {
+  it("the I-PACE with the connector in: the gate opens the rear left door alone, and the door store carries each door", () => {
+    const program = cleanProgramFor("waymo_ipace");
+    // each port visit's own rule, as the gate composes it
+    const latched = portRule(program, "latched", true), stowed = portRule(program, "stowed", false), moving = portRule(program, "moving", true);
+    expect(latched.portOk).toBe(false);
+    expect(program.visits.map((v, i) => (v.flank === "port" ? `${v.opening} ${latched.portOkAt[i]}` : null)).filter(Boolean)).toEqual(["rear door true", "front door false"]);
+    expect(stowed.portOkAt.every(Boolean)).toBe(true);
+    expect(moving.portOkAt.some(Boolean)).toBe(false);
+    expect(portRule(program, "stowed", true).portOkAt.slice(2)).toEqual([false, false]);
+    // a program whose visits carry no rule of their own takes the flank's at every visit
+    expect(portRule(GENERIC_PROGRAM, "latched", true)).toEqual({ portOk: true, portOkAt: [true, true] });
+
+    const gate = new CleanGate();
+    let sawRearAlone = false, waited = false;
+    for (let t = 0; t < 348 + 60; t += 0.25) {
+      gate.step(0.25, [{ ...base, model: "waymo_ipace", active: t < 348, endsInS: Math.max(0, 348 - t), chargeArm: "latched", mateComing: true }]);
+      const s = gate.session("A-01")!;
+      doorStore.syncFlanks(gate.doorsByDoor());
+      const d = doorStore.get("car-1");
+      // the front left door (the one at the inlet) is never open, in the session or in the store
+      expect(s.doorPortBy?.[0] ?? 0).toBe(0);
+      if (d) expect(doorOpenAt(d, -1, 0)).toBe(0);
+      if (s.phase === "clean_c") {
+        expect(d!.leftEach).toEqual([0, 1]);
+        expect(doorOpenAt(d!, -1, 1)).toBe(1);
+        expect(d!.left).toBe(1);
+        // the far flank's doors have no value of their own: they stand at the flank's
+        expect(d!.rightEach).toBeUndefined();
+        expect(doorOpenAt(d!, 1, 0)).toBe(d!.right);
+        sawRearAlone = true;
+      }
+      if (gate.waitsForChargeArm("A-01")) {
+        waited = true;
+        // a wait that begins with a port door still closing keeps the connector in; once it is shut it does not
+        expect(gate.holdsConnector("A-01")).toBe(gate.portDoorsOpen("A-01"));
+      }
+    }
+    expect(sawRearAlone).toBe(true);
+    expect(waited).toBe(true);
+    expect(gate.session("A-01")!.portNotDoneFor).toBe("car-1");
+    expect(gate.session("A-01")!.portPartDone).toBe(true);
+    doorStore.clear();
+  });
+
+  it("the 2D plan draws only the doors that are open", () => {
+    expect(fleetDoorPlanLines("waymo_ipace", -1, 1).length).toBe(2);
+    const rear = fleetDoorPlanLines("waymo_ipace", -1, 1, [0, 1]);
+    expect(rear.length).toBe(1);
+    // the rear door: behind the car's middle, on its left
+    expect(rear[0].a.x).toBeLessThan(0.2);
+    expect(rear[0].a.z).toBeLessThan(0);
+    const front = fleetDoorPlanLines("waymo_ipace", -1, 1, [1, 0]);
+    expect(front.length).toBe(1);
+    expect(Math.max(front[0].a.x, front[0].b.x)).toBeGreaterThan(Math.max(rear[0].a.x, rear[0].b.x));
   });
 });

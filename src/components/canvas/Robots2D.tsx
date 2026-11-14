@@ -261,10 +261,10 @@ export function paintDoors2D(slots: readonly SVGLineElement[]): number {
     // a car the twin names is drawn with its own doors (hinged, sliding or butterfly, one or two a flank), where
     // the 3D yard and the cleaning arm's program have them; any other car with the generic car's one door a flank
     const model = twinMotionDriver.fleetModelOf(id);
-    for (const [side, f] of [[1, d.right], [-1, d.left]] as const) {
+    for (const [side, f, each] of [[1, d.right, d.rightEach], [-1, d.left, d.leftEach]] as const) {
       if (!(f > 0)) continue;
       const lines = model
-        ? fleetDoorPlanLines(model, side, f).map((l) => ({ hinge: carToPlan(pose.x, pose.y, pose.heading, l.a), edge: carToPlan(pose.x, pose.y, pose.heading, l.b) }))
+        ? fleetDoorPlanLines(model, side, f, each).map((l) => ({ hinge: carToPlan(pose.x, pose.y, pose.heading, l.a), edge: carToPlan(pose.x, pose.y, pose.heading, l.b) }))
         : [doorPlanEdge(pose.x, pose.y, pose.heading, side, f)];
       for (const { hinge, edge } of lines) {
         if (n >= slots.length) break;

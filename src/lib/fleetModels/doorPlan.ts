@@ -29,12 +29,19 @@ function doorsOf(key: string): ShutDoor[] {
   return made;
 }
 
-/** The doors of one flank of a fleet vehicle, open `open01` (0 shut .. 1 open), as plan lines. Empty for an unknown key. */
-export function fleetDoorPlanLines(key: string, side: 1 | -1, open01: number): DoorPlanLine[] {
+/**
+ * The doors of one flank of a fleet vehicle, open `open01` (0 shut .. 1 open), as plan lines. Empty for an unknown key.
+ * `each` gives each door of the flank its own opening, front to rear in the vehicle's own door order; a door it
+ * leaves shut is not drawn.
+ */
+export function fleetDoorPlanLines(key: string, side: 1 | -1, open01: number, each?: readonly number[]): DoorPlanLine[] {
   const out: DoorPlanLine[] = [];
-  for (const d of doorsOf(key)) {
-    if (d.rig.side !== side) continue;
-    const a = doorPointAt(d.rig, open01, d.lead), b = doorPointAt(d.rig, open01, d.trail);
+  const flank = doorsOf(key).filter((d) => d.rig.side === side);
+  for (const d of flank) {
+    // which door of its flank, front to rear: the doors whose pivot is nearer the nose
+    const f = each?.[flank.filter((o) => o.rig.pivot[0] > d.rig.pivot[0]).length] ?? open01;
+    if (each && !(f > 0)) continue;
+    const a = doorPointAt(d.rig, f, d.lead), b = doorPointAt(d.rig, f, d.trail);
     out.push({ a: { x: a[0], z: a[2] }, b: { x: b[0], z: b[2] } });
   }
   return out;

@@ -440,7 +440,7 @@ export function VehicleFleet({ vehicles }: { vehicles: Vehicle[] }) {
       const mf = r.model ? modelFleets.get(r.model) : undefined;
       if (mf) {
         // This car's own vehicle model, at the generic car's pose; its doors open by the same door store value.
-        writeModelCar(mf, r.slot, d.x, DECK_Y, d.z, d.yaw, open ? open.right : 0, open ? open.left : 0, r.status !== null);
+        writeModelCar(mf, r.slot, d.x, DECK_Y, d.z, d.yaw, open ? open.right : 0, open ? open.left : 0, r.status !== null, open?.rightEach, open?.leftEach);
       } else {
         // Tyres rest ON the deck, the same grade the OTTO-CHARGE ARM mounts off.
         writeYaw(car, i, d.x, DECK_Y, d.z, d.yaw);

@@ -25,11 +25,11 @@
 // is over (CLEAN_HOLD_CAP_S): a wedged signal must not freeze a car.
 // ============================================================================
 import {
-  advanceCleanSession, cleanDoors, cleanLetsCarMove, cleanSessionProgram, IDLE_CLEAN, portDoorsOpen,
+  advanceCleanSession, cleanDoors, cleanDoorsEach, cleanLetsCarMove, IDLE_CLEAN, portDoorsOpen,
   type CleanInput, type CleanSession,
 } from "@/lib/ottoCleanArm/cleanSession";
 import type { ChargeArmState } from "@/lib/ottoChargeArm/mateSequence";
-import { sidesFor, type CleanSides } from "@/lib/ottoCleanArm/cleanArmPose";
+import { sidesFor, visitBeside, type CleanProgram, type CleanSides } from "@/lib/ottoCleanArm/cleanArmPose";
 import { cleanProgramFor } from "@/lib/ottoCleanArm/cleanPrograms";
 import { stallHasArm } from "@/lib/ottoChargeArm/roboticService";
 import type { TwinVehicle } from "@/lib/ottoTwin";
@@ -214,6 +214,19 @@ export function portAllowed(
   return false;
 }
 
+/**
+ * The port flank's rule for one program, now: the whole flank's (`portOk`), and each visit's own (`portOkAt`, by visit
+ * index: an opening whose own doors clear the latched charge arm is worked during the charge, CleanVisit.beside).
+ */
+export function portRule(
+  program: CleanProgram, chargeArm: ChargeArmState | undefined, mateComing: boolean,
+): { portOk: boolean; portOkAt: boolean[] } {
+  return {
+    portOk: portAllowed(program.beside, chargeArm, mateComing),
+    portOkAt: program.visits.map((_, i) => portAllowed(visitBeside(program, i), chargeArm, mateComing)),
+  };
+}
+
 interface StallState {
   session: CleanSession;
   sides: CleanSides;
@@ -247,10 +260,9 @@ export class CleanGate {
       const session = advanceBy(prev?.session ?? IDLE_CLEAN, dt, {
         vehicleId: input.vehicleId, active: input.active, endsInS: input.endsInS,
         sides, mayEnter: input.mayEnter, heldS: input.heldS, model: input.model ?? null,
-        // the port flank's rule is the program's the session plays (the one it started with), or the one it would start
-        portOk: portAllowed(
-          cleanProgramFor(prev && prev.session.phase !== "home" ? prev.session.program : input.model).beside,
-          input.chargeArm, input.mateComing === true),
+        // the port flank's rule is the program's the session plays (the one it started with), or the one it would
+        // start: each port opening's own (its doors against the charge arm where it is now)
+        ...portRule(cleanProgramFor(prev && prev.session.phase !== "home" ? prev.session.program : input.model), input.chargeArm, input.mateComing === true),
         portYield: input.portYield === true,
       });
       this.store(input.stallId, prev, session, sides, dt);
@@ -323,11 +335,13 @@ export class CleanGate {
   /**
    * Must a latched connector stay in for the cleaning arm? While that arm is not home (Chase, 2026-10-19: the doors
    * close, the charge completes, then the charge arm retracts), except while it WAITS for the charge arm: then the
-   * charge arm is what it waits for.
+   * charge arm is what it waits for. A wait that begins at a port-flank opening begins with that opening's door still
+   * shutting: the connector stays in until every port door is shut (the charge arm's way out passes where an open
+   * port leaf stands).
    */
   holdsConnector(stallId: string | null | undefined): boolean {
     const s = this.session(stallId);
-    return !!s && s.phase !== "home" && !s.waiting;
+    return !!s && s.phase !== "home" && (!s.waiting || portDoorsOpen(s));
   }
 
   /** Sim seconds this stall has held its car while finishing; 0 when not holding. */
@@ -360,6 +374,23 @@ export class CleanGate {
       if (!id) continue;
       const d = cleanDoors(s.session, s.sides);
       if (d.right > 0 || d.left > 0) out.push([id, d.right, d.left]);
+    }
+    return out;
+  }
+
+  /**
+   * The same with each door of a flank on its own, where a flank's doors do not all stand alike: [car, right flank,
+   * left flank, each right door or null, each left door or null], doors front to rear in the vehicle's own order.
+   * Only the doors of the port opening the arm is at are open (cleanSession).
+   */
+  doorsByDoor(): [string, number, number, number[] | null, number[] | null][] {
+    const out: [string, number, number, number[] | null, number[] | null][] = [];
+    for (const s of this.stalls.values()) {
+      const id = s.session.vehicleId;
+      if (!id) continue;
+      const d = cleanDoors(s.session, s.sides);
+      const each = cleanDoorsEach(s.session, s.sides);
+      if (d.right > 0 || d.left > 0) out.push([id, d.right, d.left, each.right, each.left]);
     }
     return out;
   }

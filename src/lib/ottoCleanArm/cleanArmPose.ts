@@ -295,6 +295,31 @@ export interface CleanVisit {
    */
   turnYaw?: number;
   strokes: readonly StrokeKey[];
+  /**
+   * The swing to this opening first goes to the ready point at `swingVia` (metres along the car) on this opening's
+   * flank, wand up, and from there along the flank. Given where the program's order makes the straight swing a path
+   * of its own: with a via the arm keeps to the two paths every program has (across the roof to the flank's front
+   * opening, then along the flank). Absent: one swing.
+   */
+  swingVia?: number;
+  /**
+   * The doors that are open for this visit, and no other door of its flank: door ids as the vehicle's cabin profile
+   * names its leaves (the right flank's ids; the other flank's are their mirror). Absent: every door of the flank
+   * (the generic car, and every far-flank visit: no charger stands on that flank).
+   */
+  doors?: readonly string[];
+  /**
+   * `doors` is PART of an opening: two sliding panels make it and only these open, the other stays shut and is the
+   * body. `aperture` then counts the openings of the cabin with only these doors able to open
+   * (fleetModels/cabin.cabinProfile(spec, doors)), and the strokes were made in that cabin.
+   */
+  partial?: true;
+  /**
+   * A PORT-flank visit: may its `doors` be open beside the OTTO-CHARGE ARM stowed at its home, and latched?
+   * Measured for these doors only, over their whole travel (chargeArmBeside.measureOpeningBeside). Absent: the
+   * program's `beside`, which is for the whole flank.
+   */
+  beside?: { stowed: boolean; latched: boolean };
 }
 
 /**
@@ -329,8 +354,19 @@ export interface CleanProgram {
   seconds: Readonly<Partial<Record<CleanPhase, number>>>;
   /** What this program leaves uncleaned, and why, in plain words. Empty when it reaches everything. */
   notReached: readonly string[];
-  /** When this vehicle's port-flank doors may be open beside the charge arm (cleanSession holds the arm to it). */
+  /**
+   * When this vehicle's port-flank doors, ALL of them, may be open beside the charge arm, and where the charge arm
+   * parks. A port-flank visit that names its own doors carries its own rule (CleanVisit.beside), which is the one
+   * cleanSession holds the arm to at that opening.
+   */
   beside: ChargeBeside;
+  /** Every door of one flank, front to rear, by id (the cabin profile's leaves). Given when a visit names its doors. */
+  flankDoors?: readonly string[];
+}
+
+/** When the doors of visit `index` may be open beside the charge arm: the visit's own rule, else the program's. */
+export function visitBeside(program: Pick<CleanProgram, 'visits' | 'beside'>, index: number): { stowed: boolean; latched: boolean } {
+  return program.visits[index]?.beside ?? program.beside;
 }
 
 const MOVE_S: Readonly<Record<Exclude<CleanMove, 'swing' | 'clean'>, number>> = {
@@ -344,6 +380,7 @@ const MOVE_S: Readonly<Record<Exclude<CleanMove, 'swing' | 'clean'>, number>> = 
  */
 export function makeCleanProgram(
   key: string, pivotZ: number, visits: readonly CleanVisit[], notReached: readonly string[] = [], beside: ChargeBeside = GENERIC_BESIDE,
+  flankDoors?: readonly string[],
 ): CleanProgram {
   const chain = visits.length ? cleanChainFor(visits.length) : [];
   const seconds: Partial<Record<CleanPhase, number>> = { doors_open: 3, return: 4, doors_close: 3 };
@@ -351,9 +388,11 @@ export function makeCleanProgram(
     const m = phaseMove(p);
     if (m === null || m === 'clean') continue;
     const i = phaseVisit(p);
-    seconds[p] = m === 'swing' ? (i === 0 ? 4 : visits[i - 1].flank === visits[i].flank ? CLEAN_SWING_ALONG_S : 5) : MOVE_S[m];
+    seconds[p] = m === 'swing'
+      ? (i === 0 ? 4 : visits[i - 1].flank === visits[i].flank ? CLEAN_SWING_ALONG_S : 5) + (visits[i].swingVia === undefined ? 0 : CLEAN_SWING_ALONG_S)
+      : MOVE_S[m];
   }
-  return { key, pivotZ, visits, chain, seconds, notReached, beside };
+  return flankDoors ? { key, pivotZ, visits, chain, seconds, notReached, beside, flankDoors } : { key, pivotZ, visits, chain, seconds, notReached, beside };
 }
 
 const GENERIC_VISIT = { opening: 'door', aperture: 0, planeZ: FLANK_PAINT_Z, readyX: GENERIC_READY_X, scoopY: SCOOP_Y, strokes: STROKES } as const;
@@ -548,8 +587,15 @@ export function cleanJointsAt(phase: CleanPhase, t: number, sides: CleanSides, c
   const first = strokeJoints(visit.strokes[0], side, g);
   const last = strokeJoints(visit.strokes[visit.strokes.length - 1], side, g);
   switch (move) {
-    case 'swing':
-      return swing(vi === 0 ? STOW_POLAR : readyOf(vi - 1), ready, t, hi, 0);
+    case 'swing': {
+      const from = vi === 0 ? STOW_POLAR : readyOf(vi - 1);
+      if (visit.swingVia === undefined) return swing(from, ready, t, hi, 0);
+      // two swings, each at its own share of the phase: to the via point, then along the flank
+      const via = readyPolar(side, visit.swingVia, program.pivotZ);
+      const total = program.seconds[phase] ?? 1;
+      const cut = Math.min(0.95, Math.max(0.05, (total - CLEAN_SWING_ALONG_S) / total));
+      return t < cut ? swing(from, via, t / cut, hi, 0) : swing(via, ready, (t - cut) / (1 - cut), hi, 0);
+    }
     case 'lower':
       return parkedJoints(ready.phi, ready.r, hi, lerp(0, HANG, f));
     case 'raise':

@@ -11,9 +11,7 @@ import { describe, it, expect } from 'vitest';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { FLEET_SPECS } from '@/lib/fleetModels/fleet';
-import { cabinProfile } from '@/lib/fleetModels/cabin';
 import { fleetCleanProgram, type FleetProgramResult } from './cleanProgramFleet';
-import { measureChargeBeside } from './chargeArmBeside';
 import { cleanProgramFor, FLEET_PROGRAM_KEYS, type StoredCleanProgram } from './cleanPrograms';
 import { GENERIC_PROGRAM } from './cleanArmPose';
 
@@ -28,12 +26,17 @@ function stored(p: StoredCleanProgram): StoredCleanProgram {
     visits: p.visits.map((v) => ({
       flank: v.flank, opening: v.opening, aperture: v.aperture, planeZ: round(v.planeZ), readyX: round(v.readyX), scoopY: round(v.scoopY),
       ...(v.turnYaw === undefined ? {} : { turnYaw: round(v.turnYaw) }),
+      ...(v.swingVia === undefined ? {} : { swingVia: round(v.swingVia) }),
+      ...(v.doors === undefined ? {} : { doors: [...v.doors] }),
+      ...(v.partial ? { partial: true as const } : {}),
+      ...(v.beside === undefined ? {} : { beside: { ...v.beside } }),
       strokes: v.strokes.map((k) => ({
         cx: round(k.cx), cy: round(k.cy), yaw: round(k.yaw), pitch: round(k.pitch), ext: round(k.ext), nozzle: round(k.nozzle), what: k.what, w: k.w,
       })),
     })),
     notReached: [...p.notReached],
     beside: { ...p.beside },
+    flankDoors: [...p.flankDoors],
   };
 }
 
@@ -45,8 +48,8 @@ describe('the fleet\'s clean programs', () => {
   it.each(FLEET_SPECS.map((spec) => ({ key: spec.key, spec })))('makes $key\'s program', { timeout: 300_000 }, async ({ spec }) => {
     await new Promise((r) => setTimeout(r, 0));
     const t0 = performance.now();
-    const beside = measureChargeBeside(spec, cabinProfile(spec));
-    const r = fleetCleanProgram(cabinProfile(spec), beside.facts);
+    const r = fleetCleanProgram(spec);
+    const beside = r.beside;
     made.set(spec.key, r);
     out[spec.key] = stored(r.stored);
     const v = r.stored.visits;
@@ -54,6 +57,8 @@ describe('the fleet\'s clean programs', () => {
     for (const o of r.openings) console.log(`  ${o.opening}: ${o.used ? 'used' : `NOT USED: ${o.why}`}; cleans ${o.cleaned.join(', ') || 'nothing'}`);
     for (const n of r.stored.notReached) console.log(`  not reached: ${n}`);
     console.log(`  BESIDE ${spec.key}: ${JSON.stringify(beside.facts)}; stowed at the middle ${beside.stowedM}, latched ${beside.latchedM}, parked ${beside.parkedM}`);
+    for (const o of r.openingBeside) console.log(`  BESIDE ${spec.key} ${o.opening} [${o.doors.join(', ')}]: stowed at its home ${o.stowedM.toFixed(3)} m, latched ${o.latchedM === null ? 'n/a' : o.latchedM.toFixed(3)} m: ${o.latched ? 'worked during the charge' : 'waits for the connector to come out'}`);
+    console.log(`  ORDER ${spec.key}: ${v.map((q) => `${q.flank} ${q.opening}`).join(' -> ')}`);
     expect(v.length).toBeGreaterThan(0);
   });
 

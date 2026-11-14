@@ -27,7 +27,9 @@
  * PURE and deterministic. It is not run in the yard: its results are stored (programs/fleetPrograms.json,
  * cleanPrograms.ts) and cleanProgramFleet.test.ts makes them again and compares.
  */
-import type { CabinProfile, CabinSeat } from '@/lib/fleetModels/cabin';
+import { cabinProfile, type CabinProfile, type CabinSeat } from '@/lib/fleetModels/cabin';
+import type { VehicleSpec } from '@/lib/fleetModels/spec';
+import { measureChargeBeside, measureOpeningBeside, type ChargeBesideMeasure } from './chargeArmBeside';
 import { CLEAN_ARM, MAST_FOOT_MAX, PIVOT_Y_MAX, PIVOT_Y_MIN } from './cleanArmSpec';
 import {
   cleanArmPoints, cleanJointsAt, makeCleanProgram, scaraIK, strokeJoints,
@@ -94,9 +96,15 @@ export interface OpeningReport {
   left: string[];
 }
 
+/** One opening's doors beside the charge arm, as measured, metres. */
+export interface OpeningBeside { opening: string; doors: string[]; stowedM: number; latchedM: number | null; stowed: boolean; latched: boolean }
+
 export interface FleetProgramResult {
   stored: StoredCleanProgram;
   openings: OpeningReport[];
+  /** the whole port flank beside the charge arm, and each opening's own doors */
+  beside: ChargeBesideMeasure;
+  openingBeside: OpeningBeside[];
 }
 
 interface Base {
@@ -402,11 +410,11 @@ const seatName = (cabin: CabinProfile, s: CabinSeat): string => {
   return i === 0 ? 'front seat' : i === rows.length - 1 ? 'rear seat' : 'middle seat';
 };
 
-/**
- * Make one vehicle's program from its cabin. `beside` is when its port-flank doors may be open beside the charge arm
- * (chargeArmBeside.measureChargeBeside): measured from the same cabin, and stored with the program.
- */
-export function fleetCleanProgram(cabin: CabinProfile, beside: ChargeBeside): FleetProgramResult {
+/** What one cabin gives: a visit for each opening the arm can stand at, front to rear, and what is left. */
+interface CabinPlan { pivotZ: number; perOpening: Omit<CleanVisit, 'flank'>[]; left: string[]; reports: OpeningReport[] }
+
+/** Make the visits of one flank from a cabin: every opening the arm can stand at, front to rear. */
+function planCabin(cabin: CabinProfile): CabinPlan {
   const pivotZ = cabin.width / 2 + PIVOT_STANDOFF_M;
   const plans = cabin.apertures.map((_, i) => new OpeningPlan(cabin, i, pivotZ));
   const refused = plans.map((p) => p.makeBase());
@@ -525,9 +533,70 @@ export function fleetCleanProgram(cabin: CabinProfile, beside: ChargeBeside): Fl
     if (b.turnYaw !== 0) v.turnYaw = b.turnYaw;
     perOpening.push(v);
   }
-  const visits: CleanVisit[] = [
-    ...perOpening.map((v) => ({ flank: 'far' as const, ...v })),
-    ...perOpening.map((v) => ({ flank: 'port' as const, ...v })),
-  ];
-  return { stored: { pivotZ, visits, notReached: left, beside }, openings: reports };
+  return { pivotZ, perOpening, left, reports };
+}
+
+/** The cabin a visit's strokes were made in: the vehicle's, or the one with only the visit's doors able to open. */
+export function cabinForVisit(spec: VehicleSpec, v: Pick<CleanVisit, 'doors' | 'partial'>): CabinProfile {
+  return v.partial && v.doors ? cabinProfile(spec, v.doors) : cabinProfile(spec);
+}
+
+/**
+ * Make one vehicle's program from its cabin.
+ *
+ * THE FAR FLANK: one visit an opening, front to rear. No charger stands on that flank.
+ *
+ * THE PORT FLANK, PER OPENING (2026-11-14). The charge arm stands on this flank, and an opening's doors may be open
+ * only while that arm is still in a place measured clear of THOSE doors over their whole travel
+ * (chargeArmBeside.measureOpeningBeside). So each port visit names its doors and carries its own rule:
+ *   - an opening whose doors clear the latched arm is worked during the charge;
+ *   - an opening whose doors do not is worked with the charge arm stowed: after the charge, or with no charge;
+ *   - an opening made by two sliding panels, of which one clears the latched arm and one does not, gets a visit
+ *     with ONLY the clear panel open, if the cabin with that one panel open gives the arm a program by the same
+ *     rules and margins (its strokes are made in that cabin: the shut panel is the body). The whole opening is
+ *     still worked, both panels open, when the charge arm is stowed.
+ * The visits that may be worked latched come first, so the arm waits once, at the last of them.
+ *
+ * `beside` (the whole flank's rule and the charge arm's park position) is stored with the program as before.
+ */
+export function fleetCleanProgram(spec: VehicleSpec): FleetProgramResult {
+  const cabin = cabinProfile(spec);
+  const whole = measureChargeBeside(spec, cabin);
+  const beside: ChargeBeside = whole.facts;
+  const plan = planCabin(cabin);
+  const far: CleanVisit[] = plan.perOpening.map((v) => ({ flank: 'far' as const, ...v }));
+  const port: CleanVisit[] = [];
+  const besides: OpeningBeside[] = [];
+  const reports = [...plan.reports];
+  for (const v of plan.perOpening) {
+    const doors = cabin.apertures[v.aperture].doorIds;
+    const m = measureOpeningBeside(spec, cabin, doors, beside.parkX);
+    besides.push({ opening: v.opening, doors: [...doors], stowedM: m.stowedM, latchedM: m.latchedM, ...m.facts });
+    if (!m.facts.latched && doors.length > 1) {
+      // two panels make this opening: the ones that clear the latched arm, each alone and together
+      const clear = doors.filter((d) => measureOpeningBeside(spec, cabin, [d], beside.parkX).facts.latched);
+      const part = clear.length && clear.length < doors.length ? measureOpeningBeside(spec, cabin, clear, beside.parkX) : null;
+      if (part && part.facts.latched && part.facts.stowed) {
+        const partCabin = cabinProfile(spec, clear);
+        const partPlan = planCabin(partCabin);
+        const name = `${v.opening}, ${clear.map((d) => (d === doors[0] ? 'front' : d === doors[doors.length - 1] ? 'rear' : d)).join(' and ')} panel only`;
+        besides.push({ opening: name, doors: [...clear], stowedM: part.stowedM, latchedM: part.latchedM, ...part.facts });
+        for (const r of partPlan.reports) reports.push({ ...r, opening: name, left: [...partPlan.left] });
+        for (const pv of partPlan.perOpening) {
+          port.push({ flank: 'port', ...pv, opening: name, doors: [...clear], partial: true, beside: part.facts });
+        }
+      }
+    }
+    port.push({ flank: 'port', ...v, doors: [...doors], beside: m.facts });
+  }
+  // what may be worked latched first: the arm then waits once, for the rest
+  const order = [...port.filter((v) => v.beside!.latched), ...port.filter((v) => !v.beside!.latched)];
+  // Across the roof the arm always comes to the flank's FRONT opening's ready point, the swing every program has
+  // and every vehicle is measured on. Where the order starts at another whole opening it goes there by that point.
+  const front = port.find((v) => !v.partial);
+  if (front && order[0] !== front && !order[0].partial) order[0] = { ...order[0], swingVia: front.readyX };
+  return {
+    stored: { pivotZ: plan.pivotZ, visits: [...far, ...order], notReached: plan.left, beside, flankDoors: cabin.leaves.map((l) => l.id) },
+    openings: reports, beside: whole, openingBeside: besides,
+  };
 }

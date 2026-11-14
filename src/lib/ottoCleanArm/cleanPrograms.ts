@@ -20,6 +20,8 @@ export interface StoredCleanProgram {
   notReached: string[];
   /** When the port-flank doors may be open beside the charge arm (chargeArmBeside.measureChargeBeside). */
   beside: ChargeBeside;
+  /** Every door of one flank, front to rear (the cabin profile's leaves): what a visit's `doors` are taken from. */
+  flankDoors: string[];
 }
 
 const stored = STORED as unknown as Record<string, StoredCleanProgram>;
@@ -35,7 +37,7 @@ export function cleanProgramFor(key: string | null | undefined): CleanProgram {
   if (hit) return hit;
   const st = stored[key];
   if (!st) return GENERIC_PROGRAM;
-  const made = makeCleanProgram(key, st.pivotZ, st.visits, st.notReached, st.beside);
+  const made = makeCleanProgram(key, st.pivotZ, st.visits, st.notReached, st.beside, st.flankDoors);
   built.set(key, made);
   return made;
 }

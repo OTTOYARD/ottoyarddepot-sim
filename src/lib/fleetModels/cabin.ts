@@ -131,6 +131,16 @@ export interface CabinProfile {
    */
   leafSweptClearance(p: Vec3): number;
   /**
+   * The same against ONLY the named leaves (CabinLeaf.id, the right flank's ids; the left flank's are their mirror):
+   * the doors of one opening, or one door. A door that stays shut is the body and is not measured.
+   */
+  leafSweptClearanceOf(p: Vec3, doorIds: readonly string[]): number;
+  /**
+   * Distance to the nearest door leaf with EACH door at its own opening: `right[i]` and `left[i]` are how far leaf
+   * `leaves[i]` stands open on that flank (0 or absent: shut, not measured). Read to the nearest 1 / LEAF_STEPS.
+   */
+  leafClearanceDoors(p: Vec3, right: readonly number[], left: readonly number[]): number;
+  /**
    * Where the segment a -> b crosses the body side on `side` at the outer skin and at the door's inner face, and the
    * WORST margin of a round section of radius `r` inside aperture `index` there. Null when it does not cross.
    */
@@ -267,16 +277,24 @@ function openingsOf(doors: DoorSpec[]): Opening[] {
 
 const cache = new Map<string, CabinProfile>();
 
-/** The cabin of a fleet vehicle. Memoized by the spec's key: the profile carries the body's sampled sections. */
-export function cabinProfile(spec: VehicleSpec): CabinProfile {
-  const hit = cache.get(spec.key);
+/**
+ * The cabin of a fleet vehicle. Memoized by the spec's key: the profile carries the body's sampled sections.
+ *
+ * `openDoors` (right-flank door ids) gives the cabin with ONLY those doors able to open, each flank alike: every
+ * other door stays shut and is the body. A sliding panel that opens alone uncovers its own half of the opening it
+ * shares. The cleaning arm works such a cabin where the charge arm's place lets one panel open and not the other
+ * (ottoCleanArm/chargeArmBeside.ts). Absent: every door opens.
+ */
+export function cabinProfile(spec: VehicleSpec, openDoors?: readonly string[]): CabinProfile {
+  const key = openDoors ? `${spec.key}|${[...openDoors].sort().join(',')}` : spec.key;
+  const hit = cache.get(key);
   if (hit) return hit;
-  const made = makeProfile(spec);
-  cache.set(spec.key, made);
+  const made = makeProfile(spec, openDoors);
+  cache.set(key, made);
   return made;
 }
 
-function makeProfile(spec: VehicleSpec): CabinProfile {
+function makeProfile(spec: VehicleSpec, openDoors?: readonly string[]): CabinProfile {
   const s: Surface = makeSurface(spec.curves);
   const L = s.length;
   const d = spec.dims;
@@ -346,7 +364,7 @@ function makeProfile(spec: VehicleSpec): CabinProfile {
 
   // ── doors, openings, leaves ──────────────────────────────────────────────────────────────────────────────────
   const allDoors = spec.doors(s);
-  const right = allDoors.filter((q) => q.side === 1);
+  const right = allDoors.filter((q) => q.side === 1 && (!openDoors || openDoors.includes(q.id)));
   const openings = openingsOf(right);
   const wheels = [d.frontAxle, d.frontAxle + d.wheelbase].map((xr) => ({ xr, y: d.tyreRadius, r: spec.archRadius + 0.03 }));
 
@@ -453,6 +471,23 @@ function makeProfile(spec: VehicleSpec): CabinProfile {
     const q = p.z >= 0 ? p : { x: p.x, y: p.y, z: -p.z };
     let best = LEAF_FAR_M;
     for (let k = 1; k <= LEAF_STEPS; k++) for (const c of cloudsAt(k / LEAF_STEPS)) best = Math.min(best, c.distance(q, LEAF_FAR_M));
+    return best >= LEAF_FAR_M ? LEAF_FAR_M : best - LEAF_SLACK_M;
+  }
+  function leafSweptClearanceOf(p: Vec3, doorIds: readonly string[]): number {
+    const q = p.z >= 0 ? p : { x: p.x, y: p.y, z: -p.z };
+    const which = right.map((d, i) => (doorIds.includes(d.id) ? i : -1)).filter((i) => i >= 0);
+    let best = LEAF_FAR_M;
+    for (let k = 1; k <= LEAF_STEPS; k++) { const cs = cloudsAt(k / LEAF_STEPS); for (const i of which) best = Math.min(best, cs[i].distance(q, LEAF_FAR_M)); }
+    return best >= LEAF_FAR_M ? LEAF_FAR_M : best - LEAF_SLACK_M;
+  }
+  function leafClearanceDoors(p: Vec3, openRight: readonly number[], openLeft: readonly number[]): number {
+    let best = LEAF_FAR_M;
+    const q = { x: p.x, y: p.y, z: -p.z };
+    for (let i = 0; i < right.length; i++) {
+      const r = openRight[i] ?? 0, l = openLeft[i] ?? 0;
+      if (r > 0) best = Math.min(best, cloudsAt(Math.max(stepOf(r), 1 / LEAF_STEPS))[i].distance(p, LEAF_FAR_M));
+      if (l > 0) best = Math.min(best, cloudsAt(Math.max(stepOf(l), 1 / LEAF_STEPS))[i].distance(q, LEAF_FAR_M));
+    }
     return best >= LEAF_FAR_M ? LEAF_FAR_M : best - LEAF_SLACK_M;
   }
   const stands = (k: DoorKind): LeafStands => (k === 'hinge' ? 'out' : k === 'slide' ? 'along' : 'up');
@@ -637,6 +672,6 @@ function makeProfile(spec: VehicleSpec): CabinProfile {
     key: spec.key, length: L, width: d.width, height: d.height,
     floorTop, headliner: ceilingAt(mid, 0), x0: cabinX0, x1: cabinX1,
     apertures, leaves, seats, fixtures, solid, equipment,
-    skin, outsideSkin, room, seatClearance, ceilingAt, bodyClearance, leafClearance, leafClearanceAt, leafSweptClearance, crossing, openingMargin,
+    skin, outsideSkin, room, seatClearance, ceilingAt, bodyClearance, leafClearance, leafClearanceAt, leafSweptClearance, leafSweptClearanceOf, leafClearanceDoors, crossing, openingMargin,
   };
 }

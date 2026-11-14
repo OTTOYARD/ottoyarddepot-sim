@@ -143,3 +143,29 @@ export function measureChargeBeside(spec: VehicleSpec, cabin: CabinProfile): Cha
   }
   return { facts, stowedM, latchedM, parkedM, parkRunBodyM };
 }
+
+/** What the measurement of one opening's doors found, metres (LEAF_FAR_M caps both). */
+export interface OpeningBesideMeasure {
+  facts: { stowed: boolean; latched: boolean };
+  /** the charge arm stowed at its home (the park position when the vehicle has one), to these doors' leaves */
+  stowedM: number;
+  latchedM: number | null;
+}
+
+/**
+ * THE SAME RULE FOR ONE OPENING. May the named port-flank doors (one opening's, or one panel of it) stand open with
+ * the charge arm stowed at its home, and with it latched? Only these doors' leaves are measured, over their whole
+ * travel: the flank's other doors stay shut while the arm works this opening (cleanSession), and a shut door is the
+ * body. The I-PACE's inlet is at its front door, so its rear door clears the latched arm and its front door does
+ * not; measureChargeBeside, which takes the whole flank, says "not latched" for both.
+ * @param parkX the vehicle's park position (measureChargeBeside's facts.parkX), metres along the car; absent: the rail's middle
+ */
+export function measureOpeningBeside(spec: VehicleSpec, cabin: CabinProfile, doorIds: readonly string[], parkX?: number): OpeningBesideMeasure {
+  const toward = -1 as const;
+  const leaf = (p: { x: number; y: number; z: number }) => cabin.leafSweptClearanceOf(p, doorIds);
+  const stowedM = capsulesMin(stowedCapsules(toward, slideOfCarX(parkX ?? 0, toward)), leaf);
+  const target = mateTarget(spec);
+  const m = target ? solveMate(target, false) : null;
+  const latchedM = m && m.ok ? capsulesMin(latchedCapsules(m, toward), leaf) : null;
+  return { facts: { stowed: stowedM >= CHARGE_LEAF_MARGIN_M, latched: latchedM !== null && latchedM >= CHARGE_LEAF_MARGIN_M }, stowedM, latchedM };
+}
