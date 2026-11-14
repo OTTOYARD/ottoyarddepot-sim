@@ -30,7 +30,7 @@ import { carOwnerView, type OwnerCarView } from '@/lib/ownerBoard';
 const OK = '#34D399';
 const WARN = '#FBBF24';
 const TEAL = '#00B4A6';
-const OEM_COLORS: Record<string, string> = { waymo: '#5B9BFF', tesla: '#FF453A', zoox: '#B06BFF' };
+const OEM_COLORS: Record<string, string> = { waymo: '#5B9BFF', tesla: '#FF453A', zoox: '#B06BFF', nuro: '#FF6FB5' };
 
 // ── pieces ──────────────────────────────────────────────────────────────────
 function Meter({ value, color = TEAL, mark, label }: { value: number | null; color?: string; mark?: number | null; label: string }) {

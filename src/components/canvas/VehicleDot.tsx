@@ -32,11 +32,13 @@ const OEM_COLORS: Record<string, string> = {
   waymo: '#5B9BFF', // Waymo blue
   tesla: '#FF453A', // Tesla red
   zoox: '#B06BFF',  // Zoox violet
+  nuro: '#FF6FB5',  // Lucid Gravity (platform nuro) pink
 };
 const OEM_STROKE: Record<string, string> = {
   waymo: '#2E6BD6',
   tesla: '#C32B22',
   zoox: '#7E3FCF',
+  nuro: '#C93F86',
 };
 
 function getRotation(v: Vehicle): number {

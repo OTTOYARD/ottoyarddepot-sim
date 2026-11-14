@@ -21,10 +21,10 @@ const TYPE_COLORS: Record<string, string> = {
 
 // OEM platform palette — matches VehicleDot.tsx / Vehicle3D.tsx / DepotLegend.tsx
 const OEM_COLORS: Record<string, string> = {
-  waymo: '#5B9BFF', tesla: '#FF453A', zoox: '#B06BFF',
+  waymo: '#5B9BFF', tesla: '#FF453A', zoox: '#B06BFF', nuro: '#FF6FB5',
 };
 const OEM_LABELS: Record<string, string> = {
-  waymo: 'Waymo', tesla: 'Tesla', zoox: 'Zoox',
+  waymo: 'Waymo', tesla: 'Tesla', zoox: 'Zoox', nuro: 'Lucid',
 };
 
 const TEAL = '#00B4A6';

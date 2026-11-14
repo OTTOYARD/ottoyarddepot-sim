@@ -22,6 +22,7 @@ const oems = [
   { label: 'Waymo', color: '#5B9BFF' },
   { label: 'Tesla', color: '#FF453A' },
   { label: 'Zoox', color: '#B06BFF' },
+  { label: 'Lucid', color: '#FF6FB5' },
 ];
 
 export const DepotLegend = () => {
