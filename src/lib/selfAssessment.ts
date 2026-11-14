@@ -188,7 +188,7 @@ export function ctTime(iso: string | null | undefined): string {
   return `${get("month")} ${get("day")}, ${get("hour")}:${get("minute")} ${get("dayPeriod").toUpperCase()} CT`;
 }
 
-const MAKE: Record<string, string> = { waymo: "Waymo", tesla: "Tesla", zoox: "Zoox" };
+const MAKE: Record<string, string> = { waymo: "Waymo", tesla: "Tesla", zoox: "Zoox", lucid: "Lucid" };
 
 /** A vehicle class code (zoox_robotaxi_2024) by its make, the name the twin gives a fleet everywhere else. */
 export function classMake(code: string | null | undefined): string {
