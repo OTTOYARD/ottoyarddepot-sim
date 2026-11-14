@@ -248,7 +248,7 @@ describe("Agent tab", () => {
   it("learning says OTTO-Q does not experiment in production, and that estimates are not built", () => {
     render(<TwinAgentTab />);
     fireEvent.click(screen.getByRole("tab", { name: "Learning" }));
-    expect(screen.getByText(/never OTTO-Q in production/)).toBeTruthy();
+    expect(screen.getByText(/in the twin, never in production/)).toBeTruthy();
     expect(screen.getByText(/Overnight estimates .* are not built yet/)).toBeTruthy();
   });
 

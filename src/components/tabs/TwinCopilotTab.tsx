@@ -71,7 +71,7 @@ export const TwinCopilotTab = () => {
       <div className="p-3 space-y-3">
         <div>
           <div className="font-display text-[10px] text-ink-dim uppercase tracking-[0.08em]">OTTO-Q Copilot · NVIDIA open model</div>
-          <p className="text-[11px] text-ink-faint mt-1 leading-snug">On request, a reasoning model reviews up to 80 recent decisions. The live decisions in the OTTO-Q tab are the evidence.</p>
+          <p className="text-[11px] text-ink-faint mt-1 leading-snug">On request, a reasoning model reviews up to 80 of this run's recent decisions and writes up what it finds. They are the same decisions the OTTO-Q tab shows live.</p>
         </div>
 
         <button

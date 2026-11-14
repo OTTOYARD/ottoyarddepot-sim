@@ -88,7 +88,7 @@ describe('the one-line', () => {
     rpc.mockResolvedValue({ data: null, error: { message: 'Could not find the function public.ottoq_power_one_line' } });
     render(<TwinPowerTab />);
     await settle();
-    expect(screen.getByTestId('power-empty')).toHaveTextContent('0810');
+    expect(screen.getByTestId('power-empty')).toHaveTextContent('has not returned the depot’s one-line');
     expect(screen.queryByTestId('power-diagram')).toBeNull();
     expect(screen.queryByTestId('power-utility')).toBeNull();
   });

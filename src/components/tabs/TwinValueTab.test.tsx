@@ -171,7 +171,7 @@ describe('not measured yet', () => {
   /** The calm panel is up, and nothing that looks like a measured result is on the page (the guarantee aside). */
   async function expectCalmPanel(container: HTMLElement) {
     expect(await screen.findByTestId('value-not-measured')).toHaveTextContent(
-      'Night 2 measures this: 24 test days on the calibrated twin, each OTTO-Q against a baseline depot.',
+      'The measurement is 24 test days on the calibrated twin, each pairing OTTO-Q with a baseline depot.',
     );
     const promise = screen.queryByTestId('value-guarantee')?.textContent ?? '';
     expect((container.textContent ?? '').replace(promise, '')).not.toMatch(/\$|%|kW|¢/);

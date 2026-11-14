@@ -531,7 +531,7 @@ export function notMeasuredText(sweep: ValueSummary['sweep'], now: number = Date
   const days = planned !== null && planned > 0 ? fmtNumber(planned) : '24';
   const when = now < FIRST_RESULTS_DUE_UTC ? 'First results Thursday morning.' : 'Results appear here as the test days finish.';
   return {
-    lead: `Night 2 measures this: ${days} test days on the calibrated twin, each OTTO-Q against a baseline depot. ${when}`,
+    lead: `The measurement is ${days} test days on the calibrated twin, each pairing OTTO-Q with a baseline depot. ${when}`,
     progress: sweep ? progressText(sweep) : null,
   };
 }

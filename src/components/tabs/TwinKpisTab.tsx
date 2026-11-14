@@ -156,8 +156,8 @@ const KpiFivePanel = ({ simRunId, simClock }: { simRunId: string; simClock: stri
         <span className="font-mono text-[9px] text-ink-faint" title={simRunId}>run {simRunId.slice(0, 8)}</span>
       </div>
       {error && !kpis && <div className="text-[11px] text-otto-red mt-2">KPI read failed: {error}</div>}
-      {!error && !kpis && <div className="text-[11px] text-ink-faint mt-2">Computing from the run's rows…</div>}
-      {kpis?.purged != null && <div className="text-[11px] text-ink-faint mt-2">This run's rows were purged; its KPIs live in the run archive.</div>}
+      {!error && !kpis && <div className="text-[11px] text-ink-faint mt-2">Computing from this run's records…</div>}
+      {kpis?.purged != null && <div className="text-[11px] text-ink-faint mt-2">This run's working records have been cleared. Its KPIs are kept in the run archive.</div>}
       {kpis && kpis.purged == null && (
         <div className="mt-1">
           <KpiRow n={1} label="Asset-hours available"

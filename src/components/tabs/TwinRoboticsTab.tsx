@@ -52,7 +52,7 @@ function Banner({ following }: { following: LiveUnit | null }) {
         <span className="font-semibold text-sky-200" data-testid="robotics-banner-head">
           {following ? `Engineering CAD. The pose follows ${following.label} now.` : 'Engineering CAD. Design data, not live.'}
         </span>{' '}
-        Each robot has every part in the model, to the last screw and washer. The twin uses the same dimensions.{' '}
+        Every robot is modelled part for part, down to the last screw and washer. The twin uses the same dimensions.{' '}
         <a href={pulseRobotsUrl(liveRunId)} target="_blank" rel="noreferrer" data-testid="robotics-live-link"
           className="whitespace-nowrap text-sky-200 underline decoration-sky-300/50 underline-offset-2 hover:text-sky-100">
           OTTO-PULSE shows what each machine does now.
@@ -313,7 +313,7 @@ export function TwinRoboticsTab() {
       <button type="button" disabled={!followed.live && !following} data-testid="follow-toggle" aria-pressed={!!following}
         onClick={() => (following ? stopFollow() : startFollow((followed.units.find((u) => u.working) ?? followed.units[0]).id))}
         className={`inline-flex items-center gap-1 rounded border px-2 py-1 disabled:cursor-not-allowed disabled:opacity-50 ${following ? 'border-emerald-400/50 bg-emerald-400/10 text-emerald-100' : 'border-white/[0.1] bg-white/[0.04] text-ink hover:bg-white/[0.08]'}`}>
-        <Radio size={11} aria-hidden /> {following ? 'Stop the follow' : 'Follow a robot in the depot'}
+        <Radio size={11} aria-hidden /> {following ? 'Stop following' : 'Follow a robot in the depot'}
       </button>
       {following && (
         <select value={following.id} onChange={(e) => startFollow(e.target.value)} data-testid="follow-unit" aria-label="The robot to follow"
@@ -329,7 +329,7 @@ export function TwinRoboticsTab() {
           </>
         ) : (
           <span className="text-ink-dim">
-            {followed.live ? 'The model takes the pose of a machine the yard shows now.' : 'No run plays in the yard now. Start or open a run to follow a robot.'}
+            {followed.live ? 'The model takes the pose of a machine the yard shows now.' : 'No run is playing in the yard. Start or open a run to follow a robot.'}
           </span>
         )}
       </div>
@@ -393,12 +393,12 @@ export function TwinRoboticsTab() {
       )}
       {selectedLine && (
         <div className="pointer-events-none absolute left-2 top-2 max-w-[60%] rounded bg-black/55 px-2 py-1 text-[11px] text-ink" data-testid="selected-label">
-          <span className="font-semibold">{selectedLine.name}</span> · {selectedLine.qty}× · {selectedLine.size}. The rest shows as a ghost.
+          <span className="font-semibold">{selectedLine.name}</span> · {selectedLine.qty}× · {selectedLine.size}. Everything else is ghosted.
         </div>
       )}
       {isolated && (
         <div className="pointer-events-none absolute bottom-2 left-2 rounded bg-black/55 px-2 py-1 text-[11px] text-ink">
-          Shown: {isolated.name}. The rest is a ghost.
+          Shown: {isolated.name}. Everything else is ghosted.
         </div>
       )}
     </div>
@@ -451,7 +451,7 @@ export function TwinRoboticsTab() {
       </div>
       <div className="grid grid-cols-2 gap-1.5" data-testid="robot-totals">
         <Stat label="Parts" value={bom.totals.parts.toLocaleString('en-US')} />
-        <Stat label="Different parts" value={`${bom.totals.uniqueParts}`} />
+        <Stat label="Unique parts" value={`${bom.totals.uniqueParts}`} />
         <Stat label="Screws, nuts, washers, pins" value={bom.totals.fasteners.toLocaleString('en-US')} />
         <Stat label="Mass" value={fmtKg(bom.totals.massKg)} />
       </div>
@@ -483,7 +483,7 @@ export function TwinRoboticsTab() {
             {' at '}{clash.poses.length} poses: the stowed pose and the twin's own poses for this machine.
           </p>
           <p className="text-[10.5px] leading-4 text-ink-dim">
-            Expected overlaps, counted and not clashes: {clash.counts.thread} screws in tapped holes the CAD does not draw,
+            Expected overlaps, counted but not treated as clashes: {clash.counts.thread} screws in tapped holes the CAD does not draw,
             {' '}{clash.counts.seal} seals in their grooves, {clash.counts.ring} retaining rings{clash.counts.mesh ? `, ${clash.counts.mesh} gear meshes` : ''}.
             {clash.floating.length === 0
               ? ' Each part touches the part that holds it, so no part hangs in the air.'

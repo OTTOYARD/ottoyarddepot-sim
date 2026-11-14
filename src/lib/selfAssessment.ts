@@ -350,7 +350,7 @@ function areaOf(a: ImprovementArea, i: number): ReviewArea {
     unseen: a.status === "unseen",
     unseenDetail: a.status !== "unseen" ? null
       : a.unseen_reason === "left_window"
-        ? "Kept from an earlier review: what showed it is older than this week, and with it the review still shows it."
+        ? "Kept from an earlier review: its evidence is now more than a week old, and with that evidence counted the review still finds it."
         : "Kept from an earlier review: this week's evidence does not show it. Answered, or no longer something the review can test.",
     action: plainFinding(a.action),
   };

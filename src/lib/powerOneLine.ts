@@ -338,6 +338,6 @@ export function loadShares(s: NodeStudy | null): number[] {
 
 /** Nothing measured yet for this run: the calm panel's line. */
 export function notMeasuredText(o: OneLine | null): string {
-  if (!o) return 'The engine has not answered with the depot’s one-line yet. It appears once otto-q-core 0810 is applied.';
+  if (!o) return 'The engine has not returned the depot’s one-line diagram yet.';
   return 'No run has been measured yet. Start a run and each transformer’s load and temperature appear here as the day goes.';
 }

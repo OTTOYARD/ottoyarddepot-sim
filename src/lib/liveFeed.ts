@@ -117,7 +117,7 @@ export function carLine(r: ActivityFeedRow): FeedLine | null {
     case "task_start:admit_service":
       return line(`${name} → ${placeName(r.target, "service") || "service bay"}${v.step ? ` for ${human(v.step)}` : ""}`, "ok", "bay");
     case "task_start:skip_wash":
-      return line(`${name}: no wash needed → skipped`, "idle", "next");
+      return line(`${name}: no wash needed`, "idle", "next");
     case "task_start:hold_no_bay":
       return line(`${name} waits: no ${human(v.purpose) || "bay"} bay free${v.must_do ? " (must-do work)" : ""}`, "held", "waiting");
     case "task_start:hold_in_queue": {

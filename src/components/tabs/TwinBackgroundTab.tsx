@@ -340,7 +340,7 @@ export function TwinBackgroundTab() {
         <Section id="bg-data" icon={Database} title="Public data"
           kicker="A simulated day is useful only if it looks like a real one. So the twin draws its random values from distributions fitted to public data. Each source shows its link, its period and how we got it.">
           {facts.datasets == null ? (
-            <p className="text-ink-faint">{loading ? 'The tab reads the calibration registry…' : 'The calibration registry did not answer. —'}</p>
+            <p className="text-ink-faint">{loading ? 'Reading the calibration registry…' : 'The calibration registry did not answer. —'}</p>
           ) : (
             <ul className="space-y-2">
               {sources.map((s) => (
@@ -489,7 +489,7 @@ export function TwinBackgroundTab() {
 
         {/* ── 5. agentic ─────────────────────────────────────────── */}
         <Section id="bg-agentic" icon={BrainCircuit} title="The agentic system"
-          kicker="Models and solvers propose. One deterministic, reproducible decide path commits. A reasoning model and GPU-accelerated optimization can then direct real cars: each call is recorded, and each decision can be replayed.">
+          kicker="Models and solvers propose. One deterministic, reproducible decide path commits. That is what lets a reasoning model and GPU-accelerated optimization direct real cars: every call is recorded, and every decision can be replayed.">
           <ol className="space-y-1.5">
             {PLATES.map((p, i) => (
               <li key={p.id} className="flex items-start gap-2 rounded border border-white/[0.06] p-2">
@@ -508,7 +508,7 @@ export function TwinBackgroundTab() {
           <div>
             <div className="text-[10px] font-semibold uppercase tracking-[0.07em] text-ink-faint">Every model and solver call, in an append-only ledger</div>
             {facts.ledger == null ? (
-              <p className="mt-1 text-ink-faint">{loading ? 'The tab reads the intelligence ledger…' : 'The intelligence ledger did not answer. —'}</p>
+              <p className="mt-1 text-ink-faint">{loading ? 'Reading the intelligence ledger…' : 'The intelligence ledger did not answer. —'}</p>
             ) : (
               <ul className="mt-1 space-y-1.5">
                 {providers.map((p) => (
@@ -561,7 +561,7 @@ export function TwinBackgroundTab() {
           </P>
           <div className="space-y-2">
             <Layer n={1} title="Physical limits in the database" status="enforced">
-              <p>Under all rules, the database refuses some writes in every case:</p>
+              <p>Beneath every rule, the database itself refuses certain writes, whoever asks:</p>
               <Bullets items={[
                 'A calendar constraint makes a double booking impossible.',
                 'A unique index allows only one car per stall.',
@@ -590,7 +590,7 @@ export function TwinBackgroundTab() {
                         <B>Points that only record ({fmtInt(shield.advisory.length)}):</B> when{' '}
                         {shield.advisory.map((c) => CONTEXT_WORDS[c] ?? c.replace(/_/g, ' ')).join(', when ')}.
                       </p>
-                      <p>A point starts to refuse only after its inputs are proven correct, one point at a time.</p>
+                      <p>A point is switched from recording to refusing only after its inputs are proven correct, one point at a time.</p>
                     </>
                   )}
                   <Source>public.ottoq_rules, public.ottoq_shield_probe_posture() (derived from the engine's own code on every read)</Source>
@@ -814,7 +814,7 @@ export function TwinBackgroundTab() {
 
         {/* ── 11. live facts ─────────────────────────────────────── */}
         <Section id="bg-facts" icon={CircuitBoard} title="Live facts, read from the engine"
-          kicker="The tab reads each card from the engine when it opens, and each card names its source. A card that shows — is a source that did not answer. It is never a zero.">
+          kicker="Each card is read from the engine when this tab opens, and names its source. A card that shows — is a source that did not answer. It is never a zero.">
           <div className="grid gap-2 sm:grid-cols-2">
             <Fact
               value={canon ? `${fmtInt(canon.passing)} / ${fmtInt(canon.columns)}` : '—'}
@@ -847,7 +847,7 @@ export function TwinBackgroundTab() {
             <p className="text-[10.5px] text-amber-300">Did not answer on the last read: {facts.failed.join(', ')}.</p>
           )}
           <p className="text-[10px] text-ink-faint">
-            {facts.readAt ? `Last read ${dayCT(facts.readAt)}. ` : ''}The tab reads the engine again every five minutes while it is open.
+            {facts.readAt ? `Last read ${dayCT(facts.readAt)}. ` : ''}Refreshes every five minutes while this tab is open.
           </p>
           <button type="button" onClick={() => top.current?.scrollIntoView({ behavior: 'smooth' })}
             className="text-[10.5px] text-ink-faint hover:text-ink-dim">Back to the top</button>

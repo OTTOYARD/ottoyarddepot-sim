@@ -312,7 +312,7 @@ export function SecondLoopPanel({ state }: { state?: SecondLoopState } = {}) {
       {error && <p className="break-words px-1 font-mono text-[9px] text-red-300">read failed: {error}</p>}
       <p className="px-1 pb-1 text-[9px] leading-4 text-ink-faint">
         Read from <span className="font-mono">ottoq_challenger_board</span> and{' '}
-        <span className="font-mono">ottoq_learning_board</span>. The verdicts are the dial runner's own, not recomputed here.
+        <span className="font-mono">ottoq_learning_board</span>. The verdicts are the engine's own. This page does not recompute them.
       </p>
     </div>
   );
