@@ -140,7 +140,10 @@ export interface QCardInputs {
    * flanks it cleans first and second; `done` is true once the arm has finished this car's cycle (before the twin
    * closes the step, which it does on its next tick).
    */
-  cabinArm?: { phase: string; sideA: "left" | "right"; sideB: "left" | "right"; done?: boolean } | null;
+  cabinArm?: {
+    phase: string; sideA: "left" | "right"; sideB: "left" | "right"; done?: boolean; stops?: readonly ("a" | "b")[];
+    waiting?: boolean; portNotDone?: boolean; portPartDone?: boolean; widens?: readonly boolean[];
+  } | null;
   /**
    * What the car's wash bay's rollover machine is doing now, as the motion driver plays it (TwinMotionDriver.washBayFor),
    * or null when the car is not in a wash bay the machine works for it in. `interior` is a detail seat (the cabin is
@@ -333,24 +336,47 @@ const byCleaningArm = (n: QNeedRecord | null | undefined): boolean =>
  * closes the doors. An unknown phase reads as the plain fact that the arm is cleaning.
  */
 export function cabinArmWords(
-  phase: string, sideA: "left" | "right", sideB: "left" | "right", done = false,
+  phase: string, sideA: "left" | "right", sideB: "left" | "right", done = false, stops: readonly ("a" | "b")[] = ["a", "b"],
+  state: { waiting?: boolean; portNotDone?: boolean; portPartDone?: boolean; widens?: readonly boolean[] } = {},
 ): { starting: boolean; words: string } {
-  switch (phase) {
-    case "home": return done
+  // the charger stands on side B. A door on its side is opened only while the charge arm is still and clear of it.
+  if (phase === "home" && state.portNotDone && state.portPartDone) {
+    return { starting: false, words: `The arm did not complete the ${sideB} side. The charge arm was in the way of a door.` };
+  }
+  if (phase === "home" && state.portNotDone) {
+    return { starting: false, words: `The arm did not clean the ${sideB} side. The charge arm was in the way of the doors.` };
+  }
+  if (state.waiting) return { starting: false, words: `The arm waits for the charge arm. The ${sideB} doors stay closed.` };
+  if (phase === "home") {
+    return done
       ? { starting: false, words: "The arm is done. The doors are closed." }
       : { starting: true, words: "The arm starts when the car is in the stall." };
-    case "doors_open": return { starting: true, words: "The doors open." };
-    case "swing_a": case "lower_a": case "descend_a": case "enter_a":
-      return { starting: true, words: `The arm moves to the ${sideA} side.` };
-    case "clean_a": return { starting: false, words: `The arm cleans the ${sideA} side.` };
-    case "exit_a": case "ascend_a": case "raise_a": case "swing_b": case "lower_b": case "descend_b": case "enter_b":
-      return { starting: false, words: `The arm moves to the ${sideB} side.` };
-    case "clean_b": return { starting: false, words: `The arm cleans the ${sideB} side.` };
-    case "exit_b": return { starting: false, words: "The arm moves out of the car." };
-    // out of the car: the mast goes up, the wand turns up, and the arm goes back over the roof
-    case "ascend_b": case "raise_b": case "return":
-      return { starting: false, words: "The arm moves back to its start position." };
-    case "doors_close": return { starting: false, words: "The doors close." };
+  }
+  if (phase === "doors_open") return { starting: true, words: "The doors open." };
+  if (phase === "return") return { starting: false, words: "The arm moves back to its start position." };
+  if (phase === "doors_close") return { starting: false, words: "The doors close." };
+  // a phase is a move at one door opening: "<move>_<a|b|c|d>". The car's program says which side each opening is on
+  // (one opening a side on most cars, two a side on a four-door car).
+  const cut = phase.lastIndexOf("_");
+  const move = phase.slice(0, cut);
+  const at = ["a", "b", "c", "d"].indexOf(phase.slice(cut + 1));
+  if (cut < 0 || at < 0 || at >= stops.length) return { starting: false, words: "The arm cleans the cabin." };
+  const side = (i: number) => (stops[i] === "a" ? sideA : sideB);
+  // `widens[i]`: stop i is the same door opening as the stop before it, now with all its doors open (the stop
+  // before had one sliding door of two open, the one that is clear of the charge arm)
+  const moveTo = (i: number) => (i > 0 && stops[i - 1] === stops[i]
+    ? state.widens?.[i]
+      ? `The arm moves to the full door opening on the ${side(i)} side.`
+      : `The arm moves to the next door on the ${side(i)} side.`
+    : `The arm moves to the ${side(i)} side.`);
+  switch (move) {
+    case "swing": case "lower": case "descend": case "enter":
+      return { starting: at === 0, words: moveTo(at) };
+    case "clean": return { starting: false, words: `The arm cleans the ${side(at)} side.` };
+    case "exit": case "ascend": case "raise":
+      if (at + 1 < stops.length) return { starting: false, words: moveTo(at + 1) };
+      // out of the car at the last opening: the mast goes up, the wand turns up, and the arm goes back over the roof
+      return { starting: false, words: move === "exit" ? "The arm moves out of the car." : "The arm moves back to its start position." };
     default: return { starting: false, words: "The arm cleans the cabin." };
   }
 }
@@ -548,7 +574,7 @@ export function buildQCard(inp: QCardInputs): QCard {
       const t0 = Date.parse(startedAt ?? ""), t1 = Date.parse(endsAt ?? ""), at = Date.parse(snap?.run?.sim_clock ?? "");
       const progress = Number.isFinite(t0) && Number.isFinite(t1) && Number.isFinite(at) && t1 > t0
         ? Math.max(0, Math.min(100, ((at - t0) / (t1 - t0)) * 100)) : null;
-      const live = inp.cabinArm ? cabinArmWords(inp.cabinArm.phase, inp.cabinArm.sideA, inp.cabinArm.sideB, inp.cabinArm.done) : null;
+      const live = inp.cabinArm ? cabinArmWords(inp.cabinArm.phase, inp.cabinArm.sideA, inp.cabinArm.sideB, inp.cabinArm.done, inp.cabinArm.stops, inp.cabinArm) : null;
       cabinClean = {
         state: live?.starting ? "starting" : "in_progress",
         words: live?.words ?? "The arm cleans the cabin.",

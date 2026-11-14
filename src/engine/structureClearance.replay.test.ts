@@ -10,7 +10,7 @@
 // ============================================================================
 import { describe, expect, it } from "vitest";
 import { replayFlow } from "./__fixtures__/flowReplay";
-import { allStructureSolids, bodyHitsRect, type Rect } from "@/lib/structurePlan";
+import { allStructureSolids, bodyHitsBox, boxOf, type Rect } from "@/lib/structurePlan";
 import { twinMotionDriver } from "./TwinMotionDriver";
 import { drawnClearance } from "./motion/RailFlow";
 import { buildDepotLanes } from "./motion/LaneGraph";
@@ -32,7 +32,8 @@ function probe(run: () => void, sink: ProbeResult) {
       for (const k of SOLIDS) {
         if (!near(k.r, p.x, p.y)) continue;
         // 0.05u of shrink absorbs float noise on a body sliding along a face
-        if (bodyHitsRect(p, k.r, 0.05)) {
+        // the solid as it stands, turned (an angled strip's axis-aligned bounds reach over the car beside it)
+        if (bodyHitsBox(p, k.box ?? boxOf(k.r), 0.05)) {
           const kind = k.kind.replace(/-\d+$/, "");
           sink.hits[kind] = (sink.hits[kind] ?? 0) + 1;
           (sink.hitCars[kind] ??= new Set()).add(p.id);

@@ -47,7 +47,7 @@ at home, mid wash pass, dry pass and on the roof and front sensors (`programPose
 
 | robot | parts | different parts | screws, nuts, washers, pins | mass | STEP (zip) | GLB |
 |---|---:|---:|---:|---:|---:|---:|
-| OTTO-CHARGE ARM | 666 | 188 | 467 | 313 kg (with its riser) | 32.8 MB (6.2) | 6.9 MB |
+| OTTO-CHARGE ARM (with its rail bed and two-connector head, 2026-11-13) | 966 | 217 | 661 | 833 kg (with its bed, carriage, cross-slide and riser) | 37.7 MB (7.2) | 7.7 MB |
 | OTTO-CLEAN ARM | 408 | 134 | 253 | 311 kg (with its canopy steel) | 14.2 MB (2.3) | 3.6 MB |
 | OTTO-WASH (touchless, with 2 detail arms, 2026-11-12) | 2,639 | 250 | 1,636 | 5,631 kg | 36.9 MB (6.7) | 7.8 MB |
 
@@ -94,6 +94,25 @@ not a coil spring. With a gas spring of 15 % progression (10.0 kN extended, 175 
 over the axis) the J2 gear sees at most 310 N·m over the joint's ±110° balanced travel (×4.12). At the ports the twin
 serves, J2 stays between 18.7° and 64.7°. Dynamics and the cable's pull are not in these figures. (The distal masses
 went up from the first pass, 96 and 42 kg: the actuators are longer with every part in its own space.)
+
+**The base stage and the two-connector head (2026-11-13).** The arm no longer stands on a fixed pad. From the floor
+up: 2 bed beams (RHS 120 x 80 x 6) on plates, grout blocks and M16 injection anchors, each with a size 25 profile
+rail, the rear one with a module 3 rack; a carriage plate on 4 blocks with a rack-and-pinion drive (`CR_X`, 1.3 m
+toward the car's nose and 2.5 m toward its tail); on it 2 size 20 cross rails, a 20 x 5 ball screw and a saddle
+(`CR_Z`, 0.65 m toward the car, 0.06 m away); the riser, shortened, on the saddle. The power and coolant lines run in
+a cable chain in a steel-lined channel in the slab, with a second small chain across the carriage. `CR_BED` is the
+bed's set position, not a drive. The tool is a holder with 2 connectors side by side, CCS1 and NACS, 100 mm each side
+of the tool axis, each on a 90 mm plunge cylinder (`HD_CCS`, `HD_NACS`) with its own contacts, seal, bumper, latch and
+solenoid. The mass went from 313 kg to 833 kg: the bed, its anchors and the carriage are steel. The six-axis arm's links and joints are unchanged.
+**The head is heavier, and the load check moved with it** (`charge_arm.torque_budget`, rebuilt 2026-11-13): at full
+horizontal reach J2 now carries 1,902 N·m of gravity (131.1 kg distal) and J3 575 N·m (62.8 kg), against 1,602 and 476
+with the one-connector tool. J3's size 40 gear has x1.28 on its 738 N·m repeated peak, down from x1.55. The balancer
+search now picks a gas spring of 11.85 kN extended (was 10.0 kN), and the J2 gear sees at most 365 N·m (x3.49, was
+x4.12). The figures in the paragraph below are the one-connector tool's. J3's margin is the one to watch if the head
+gains mass: dynamics are not in these figures.
+The slab under the bed, the grout blocks, the channel liner, the pad and the cabinet are reference parts: drawn in the
+tab, left out of the totals and out of the yard's model. Why these additions, and what each vehicle's mate uses of
+them: `docs/CHARGE-ARM-REACH.md`.
 
 ### OTTO-CLEAN ARM
 
@@ -219,6 +238,16 @@ The poses found more, which the stowed pose could not show:
     casting (their flanges are now cut to it). J6's cable gland met the wrist yoke. And the J2 and J3 drum clamp
     screws' heads stood 1 to 3 mm proud of their bosses, where the upper arm's and the forearm's bridges turn over them
     at the port: they now sit in counterbores.
+
+15. **The charge arm's base stage and head (2026-11-13).** The first all-pose check of the new parts (34 poses: stowed,
+    each fleet vehicle's mate and its base position with the arm folded, and the cycle) found 3 clashes and 3 loose
+    groups. The J1 actuator's cable gland stood 2,324 mm3 into the riser's base plate, because the riser is shorter on
+    the saddle than it was on the pad: the plate now has a 180 mm hole under the actuator. Each connector's latch
+    solenoid sat 109 mm3 into its connector body: it now sits on the latch's tail, 1 mm clear of the body. And the 2
+    bed beams and the cable channel were held by nothing, because a rail block runs 0.5 mm off its rail and the check
+    counts 0.3 mm as touching: the floor slab is now drawn (a reference part), and the grout blocks stand on it, the
+    channel is cast into it and the pad is cast 150 mm into it. After: 31,024 pairs measured, 0 clashes, 0 loose
+    groups.
 
 ## What the CAD found (design findings)
 

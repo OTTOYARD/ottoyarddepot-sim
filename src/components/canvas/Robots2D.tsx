@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { twinMotionDriver } from '@/engine/TwinMotionDriver';
 import { doorStore } from '@/engine/motion/doorStore';
+import { fleetDoorPlanLines } from '@/lib/fleetModels/doorPlan';
 import { poseStore } from '@/engine/motion/poseStore';
 import { useDepotStore, type StallState } from '@/store/depotStore';
 import { useVehicleStore } from '@/store/vehicleStore';
 import { chargerCabinet, placeArm, portInArmFrame, type ArmPlacement } from '@/lib/ottoChargeArm/depotPlacement';
-import { poseFor, type ArmTarget } from '@/lib/ottoChargeArm/armMotion';
-import { STOWED } from '@/lib/ottoChargeArm/cobotIK';
+import { servoDt, type ArmTarget } from '@/lib/ottoChargeArm/armMotion';
+import { newMateSeq, stepMateSeq, type MateSeq } from '@/lib/ottoChargeArm/mateSequence';
+import { armMateFor, vehiclePort, type ArmMate } from '@/lib/ottoChargeArm/vehiclePort';
 import { portFor } from '@/lib/ottoChargeArm/chargePort';
 import { statusColor, type ArmPhase } from '@/lib/ottoChargeArm/armStateMachine';
 import { IDLE_SESSION, isArmHome } from '@/lib/ottoChargeArm/roboticService';
@@ -15,7 +17,7 @@ import { cleanSessionJoints, cleanStatusColor, IDLE_CLEAN, type CleanSession } f
 import { placeCleanArm } from '@/lib/ottoCleanArm/cleanArmPlacement';
 import { DECK_Y } from '@/components/canvas/three/coordUtils';
 import {
-  armPlanPoints, cleanArmPlanPoints, doorPlanEdge,
+  armPlanPoints, carToPlan, cleanArmPlanPoints, doorPlanEdge,
   type ArmPlanPoints, type CleanArmPlanPoints, type PlanPoint,
 } from '@/lib/planRobots/robotPlan';
 
@@ -124,6 +126,9 @@ interface StallRobots {
   /** the port the arm last worked to: a retract plays out against the inlet it came out of */
   target: ArmTarget | null;
   targetFor: string | null;
+  /** the mate the twin's port solves to (null: the twin has not said this car's port), and where the machine is in it */
+  mate: ArmMate | null;
+  seq: MateSeq;
   armKey: string;
   cleanKey: string;
 }
@@ -145,12 +150,16 @@ export function FastChargerRobots2D() {
       const k = chargerCabinet('dcfc', x, y, angle);
       return {
         stall, arm: placeArm(stall.id, x, y, angle), cabinet: { x: k.x, y: k.y },
-        target: null, targetFor: null, armKey: '', cleanKey: '',
+        target: null, targetFor: null, mate: null, seq: newMateSeq(), armKey: '', cleanKey: '',
       };
     });
     const sides = new Map(robotic.map((s) => [s.id, placeCleanArm(s.position.x, s.position.y, s.position.angle, DECK_Y).sides]));
     let raf = 0;
+    let last = performance.now();
     const frame = () => {
+      const now = performance.now();
+      const sdt = servoDt((now - last) / 1000, twinMotionDriver.playbackSpeed());
+      last = now;
       for (const r of robots) {
         const { stall } = r;
         const ag = armRefs.current.get(stall.id);
@@ -160,16 +169,26 @@ export function FastChargerRobots2D() {
           if (s.vehicleId && s.vehicleId !== r.targetFor) {
             const v = useVehicleStore.getState().vehicles.find((x) => x.id === s.vehicleId);
             if (v) {
-              const port = portFor(v.id, v.oem);
-              r.target = { port: portInArmFrame(port.along, port.height, CAR_WIDTH_M / 2, r.arm.toward), normal: { x: 0, y: 0, z: -1 } };
+              const twinPort = vehiclePort(v.id);
+              if (twinPort) {
+                // the twin says which vehicle this is and where its inlet is: the real mate (ChargingArm's)
+                r.mate = armMateFor(twinPort, r.arm.toward);
+                r.target = r.mate.target;
+              } else {
+                r.mate = null;
+                const port = portFor(v.id, v.oem);
+                r.target = { port: portInArmFrame(port.along, port.height, CAR_WIDTH_M / 2, r.arm.toward), normal: { x: 0, y: 0, z: -1 } };
+              }
               r.targetFor = v.id;
             }
           }
-          const key = `${s.phase}|${s.t.toFixed(4)}|${r.targetFor ?? ''}`;
+          // the mate's five stops and the base's travel, as the 3D yard plays them (mateSequence.ts)
+          const pose = stepMateSeq(r.seq, s.phase, s.t, r.target, r.mate, sdt, undefined, twinMotionDriver.chargeParkSlideAt(stall.id));
+          const q = r.seq;
+          const key = `${s.phase}|${q.slide.toFixed(3)}|${q.cross.toFixed(3)}|${q.shown.j1.toFixed(3)}|${q.shown.j2.toFixed(3)}|${q.shown.j3.toFixed(3)}|${r.targetFor ?? ''}`;
           if (key !== r.armKey) {
             r.armKey = key;
-            const pose = r.target ? poseFor({ phase: s.phase, t: s.t }, r.target) : { angles: STOWED, ok: true };
-            paintChargeArm2D(ag, armPlanPoints(r.arm, pose.angles), s.phase, pose.ok, r.cabinet);
+            paintChargeArm2D(ag, armPlanPoints(r.arm, q.shown, undefined, q.slide, q.cross), s.phase, pose.ok, r.cabinet);
           }
         }
         const cg = cleanRefs.current.get(stall.id);
@@ -226,8 +245,8 @@ export function FastChargerRobots2D() {
   );
 }
 
-/** How many cars' doors the plan can show open at once: every fast charger and every bay, twice over. */
-export const DOOR_POOL = 48;
+/** How many door leaves the plan can show open at once: every fast charger and every bay, four doors a car. */
+export const DOOR_POOL = 144;
 
 /**
  * Write the open doors onto the pool: each car with a door open (doorStore), at the car's live
@@ -239,13 +258,21 @@ export function paintDoors2D(slots: readonly SVGLineElement[]): number {
   doorStore.forEach((id, d) => {
     const pose = poseStore.get(id);
     if (!pose) return;
-    for (const [side, f] of [[1, d.right], [-1, d.left]] as const) {
-      if (!(f > 0) || n >= slots.length) continue;
-      const { hinge, edge } = doorPlanEdge(pose.x, pose.y, pose.heading, side, f);
-      const el = slots[n++];
-      setLine(el, hinge, edge);
-      el.setAttribute('visibility', 'visible');
-      el.setAttribute('data-vid', id);
+    // a car the twin names is drawn with its own doors (hinged, sliding or butterfly, one or two a flank), where
+    // the 3D yard and the cleaning arm's program have them; any other car with the generic car's one door a flank
+    const model = twinMotionDriver.fleetModelOf(id);
+    for (const [side, f, each] of [[1, d.right, d.rightEach], [-1, d.left, d.leftEach]] as const) {
+      if (!(f > 0)) continue;
+      const lines = model
+        ? fleetDoorPlanLines(model, side, f, each).map((l) => ({ hinge: carToPlan(pose.x, pose.y, pose.heading, l.a), edge: carToPlan(pose.x, pose.y, pose.heading, l.b) }))
+        : [doorPlanEdge(pose.x, pose.y, pose.heading, side, f)];
+      for (const { hinge, edge } of lines) {
+        if (n >= slots.length) break;
+        const el = slots[n++];
+        setLine(el, hinge, edge);
+        el.setAttribute('visibility', 'visible');
+        el.setAttribute('data-vid', id);
+      }
     }
   });
   for (let i = n; i < slots.length; i++) {

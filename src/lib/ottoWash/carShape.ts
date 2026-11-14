@@ -10,6 +10,7 @@ import {
   bevelledBodyProfile, CAR_LENGTH_M, CAR_WIDTH_M, ROOF_POD, tumblehomeScale, BODY_ROOF_M, BODY_BEVEL_M,
 } from '@/lib/ottoChargeArm/vehicleEnvelope';
 import { METRES_PER_PLAN_UNIT, PLAN_UNITS_PER_METRE } from '@/lib/ottoChargeArm/cobotSpec';
+import type { WashSolid } from '@/lib/fleetModels/washSolid';
 
 /** Half the car's length and width, plan u (the body drawn: 9.8 x 4.0). */
 export const CAR_HALF_LEN_U = (CAR_LENGTH_M / 2) * PLAN_UNITS_PER_METRE;
@@ -62,4 +63,40 @@ export function insideCar(x: number, dy: number, y: number): boolean {
   const top = carTopU(dy);
   if (top === null || y > top || y < 0) return false;
   return Math.abs(x) <= carHalfWidthAtU(y);
+}
+
+/**
+ * A vehicle's shape as the GANTRY meets it: what its air knives follow and what its frame must clear. Plan units, in
+ * the bay's frame. `GENERIC_SHAPE` is the twin's one car. A fleet vehicle's is read from its own solid
+ * (`fleetShape`), so the top knife rides over a taller roof and its sensors, and the side knives stand off a wider
+ * body, its mirrors and its side pods.
+ */
+export interface CarShape {
+  /** half the vehicle's length */
+  halfLenU: number;
+  /** half its width, everything on it counted */
+  halfWidthU: number;
+  /** its highest point */
+  topU: number;
+  /** its highest point at `dy` south of its centre, or null past its ends */
+  topAtU(dy: number): number | null;
+  /** half its width where the side knives blow: between their lower and upper ends, and 0.35 m past each */
+  sideU: number;
+}
+
+export const GENERIC_SHAPE: CarShape = {
+  halfLenU: CAR_HALF_LEN_U, halfWidthU: CAR_HALF_WIDTH_U, topU: CAR_TOP_U, topAtU: carTopU, sideU: carHalfWidthAtU(0),
+};
+
+/** How far past the side knives' ends a part of the vehicle still sets where they stand, metres. */
+export const SIDE_KNIFE_REACH_M = 0.35;
+
+/** A fleet vehicle's shape, from its wash solid (fleetModels/washSolid.ts). `knife`: the side knives' lower and upper ends, plan u. */
+export function fleetShape(solid: Pick<WashSolid, 'halfLen' | 'halfWidth' | 'top' | 'topAt' | 'halfWidthIn'>, knife: { y0: number; y1: number }): CarShape {
+  const U = PLAN_UNITS_PER_METRE, M = METRES_PER_PLAN_UNIT;
+  return {
+    halfLenU: solid.halfLen * U, halfWidthU: solid.halfWidth * U, topU: solid.top * U,
+    topAtU: (dy) => { const t = solid.topAt(dy * M); return t === null ? null : t * U; },
+    sideU: solid.halfWidthIn(knife.y0 * M - SIDE_KNIFE_REACH_M, knife.y1 * M + SIDE_KNIFE_REACH_M) * U,
+  };
 }

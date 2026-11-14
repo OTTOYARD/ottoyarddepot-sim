@@ -108,7 +108,7 @@ describe('the Robotics tab', () => {
     const all = screen.getAllByTestId('bom-line').length;
     fireEvent.click(screen.getAllByTestId('subsystem').find((s) => s.dataset.sub === 'TOOL')!);
     await settle();
-    expect(screen.getByTestId('subsystem-detail')).toHaveTextContent('Connector tool');
+    expect(screen.getByTestId('subsystem-detail')).toHaveTextContent('Connector head');
     expect(screen.getByTestId('subsystem-detail')).toHaveTextContent('6-axis force and torque sensor');
     expect(screen.getByTestId('cad-viewer-stub').dataset.isolate).toBe('TOOL');
     expect(screen.getAllByTestId('bom-line').length).toBeLessThan(all);

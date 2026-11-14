@@ -29,8 +29,9 @@ const deg = (d: number) => (d * Math.PI) / 180;
 export const CLEAN_ARM = {
   /** J1's vertical axis, along the car from its centre: over the door aperture (DOOR -0.25..0.85). */
   mountX: 0.18,
-  /** Height of link 1's centre line above grade. */
-  link1Y: 3.42,
+  /** Height of link 1's centre line above grade. Raised from 3.42 on 2026-11-13: the stowed wrist then parks 0.119 m
+   *  over the tallest thing a fleet vehicle carries, the Ojai's roof lidar at 2.04 m (cleanArmFleet.test.ts). */
+  link1Y: 3.48,
   /** Link 2 rides this far below link 1, so it can fold under it. */
   link2Drop: 0.19,
   link1: { len: 0.95, w: 0.17, h: 0.15 },
@@ -93,27 +94,63 @@ export const WAND_RETRACTED = CLEAN_ARM.wand.base + CLEAN_ARM.nozzle.len;
 // 4 s over the twin's 48: each side cleans 2 s less than the twin's 150, which no
 // viewer can see.
 
-export type CleanPhase =
+/** What the arm does at ONE door opening, in order: swing over it, lower the wand, lower the mast, reach in, clean,
+ *  come out, lift the mast, lift the wand. */
+export const CLEAN_MOVES = ['swing', 'lower', 'descend', 'enter', 'clean', 'exit', 'ascend', 'raise'] as const;
+export type CleanMove = (typeof CLEAN_MOVES)[number];
+
+/** A door opening the arm works, in the order it works them. The generic car has two (a, b); a four-door car has four. */
+export const CLEAN_VISIT_IDS = ['a', 'b', 'c', 'd'] as const;
+export type CleanVisitId = (typeof CLEAN_VISIT_IDS)[number];
+
+/** The phases of the generic car's cycle (one opening a flank). */
+export type GenericCleanPhase =
   | 'home'
   | 'doors_open' | 'swing_a' | 'lower_a' | 'descend_a' | 'enter_a' | 'clean_a' | 'exit_a' | 'ascend_a' | 'raise_a'
   | 'swing_b' | 'lower_b' | 'descend_b' | 'enter_b' | 'clean_b' | 'exit_b' | 'ascend_b' | 'raise_b'
   | 'return' | 'doors_close';
 
-/** The cycle in order, home to home. Side A is the car's far flank (no charge arm on it), side B its port flank. */
-export const CLEAN_CHAIN: readonly CleanPhase[] = [
-  'doors_open', 'swing_a', 'lower_a', 'descend_a', 'enter_a', 'clean_a', 'exit_a', 'ascend_a', 'raise_a',
-  'swing_b', 'lower_b', 'descend_b', 'enter_b', 'clean_b', 'exit_b', 'ascend_b', 'raise_b',
-  'return', 'doors_close',
-];
+/** Every phase a clean program can have: the same eight moves at each opening it visits (cleanArmPose CleanProgram). */
+export type CleanPhase = 'home' | 'doors_open' | `${CleanMove}_${CleanVisitId}` | 'return' | 'doors_close';
 
-/** Seconds per fixed phase at nominal speed. */
-export const CLEAN_PHASE_S: Readonly<Record<Exclude<CleanPhase, 'home' | 'clean_a' | 'clean_b'>, number>> = {
+/** The move a phase is, or null for home, the doors and the return. */
+export function phaseMove(p: CleanPhase): CleanMove | null {
+  const i = p.lastIndexOf('_');
+  const m = i > 0 ? p.slice(0, i) : '';
+  return (CLEAN_MOVES as readonly string[]).includes(m) ? (m as CleanMove) : null;
+}
+
+/** Which visit a phase belongs to (0 = a, 1 = b, ...), or -1 for home, the doors and the return. */
+export function phaseVisit(p: CleanPhase): number {
+  return phaseMove(p) === null ? -1 : (CLEAN_VISIT_IDS as readonly string[]).indexOf(p.slice(p.lastIndexOf('_') + 1));
+}
+
+/** The phase of `move` at visit `index`. */
+export const cleanPhaseOf = (move: CleanMove, index: number): CleanPhase => `${move}_${CLEAN_VISIT_IDS[index]}`;
+
+/** The cycle of a program that visits `visits` openings, home to home. */
+export function cleanChainFor(visits: number): CleanPhase[] {
+  if (visits < 1 || visits > CLEAN_VISIT_IDS.length) throw new Error(`cleanChainFor: ${visits} visits`);
+  const out: CleanPhase[] = ['doors_open'];
+  for (let i = 0; i < visits; i++) for (const m of CLEAN_MOVES) out.push(cleanPhaseOf(m, i));
+  out.push('return', 'doors_close');
+  return out;
+}
+
+/** The generic cycle in order, home to home. Side A is the car's far flank (no charge arm on it), side B its port flank. */
+export const CLEAN_CHAIN: readonly GenericCleanPhase[] = cleanChainFor(2) as GenericCleanPhase[];
+
+/** Seconds per fixed phase of the generic cycle at nominal speed. */
+export const CLEAN_PHASE_S: Readonly<Record<Exclude<GenericCleanPhase, 'home' | 'clean_a' | 'clean_b'>, number>> = {
   doors_open: 3,
   swing_a: 4, lower_a: 1.5, descend_a: 3.5, enter_a: 3.5, exit_a: 3.5, ascend_a: 3, raise_a: 1.5,
   swing_b: 5, lower_b: 1.5, descend_b: 3.5, enter_b: 3.5, exit_b: 3.5, ascend_b: 3, raise_b: 1.5,
   return: 4,
   doors_close: 3,
 };
+
+/** A swing from one opening to the next on the SAME flank, seconds: a short arc beside the car, wand up. */
+export const CLEAN_SWING_ALONG_S = 3;
 
 /** A clean phase's nominal length, used when the twin publishes no end time. */
 export const CLEAN_SIDE_NOMINAL_S = 150;
@@ -127,6 +164,10 @@ export const CLEAN_MOTION_S = Object.values(CLEAN_PHASE_S).reduce((a, b) => a + 
 
 /** Is the arm (and its doors) home: folded over the roof, doors shut? */
 export const isCleanHome = (p: CleanPhase): boolean => p === 'home';
-/** Is any part of the arm inside the car right now? (enter .. exit, both sides) */
-export const wandMayBeInside = (p: CleanPhase): boolean =>
-  p === 'enter_a' || p === 'clean_a' || p === 'exit_a' || p === 'enter_b' || p === 'clean_b' || p === 'exit_b';
+/** Is this a phase the arm cleans in (the twin sets its length)? */
+export const isCleanWork = (p: CleanPhase): boolean => phaseMove(p) === 'clean';
+/** Is any part of the arm inside the car right now? (enter .. exit, at every opening) */
+export const wandMayBeInside = (p: CleanPhase): boolean => {
+  const m = phaseMove(p);
+  return m === 'enter' || m === 'clean' || m === 'exit';
+};

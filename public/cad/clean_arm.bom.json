@@ -10,7 +10,7 @@
   "parts": 238,
   "uniqueParts": 102,
   "fasteners": 141,
-  "massKg": 327.46,
+  "massKg": 324.4,
   "boughtLines": 63,
   "madeLines": 39,
   "referenceLines": 1
@@ -26,14 +26,14 @@
     "The vacuum riser runs down inside the column to the J1 union."
    ],
    "specs": {
-    "J1 height": "3.42 m above grade",
+    "J1 height": "3.48 m above grade",
     "column": "SHS 200 x 200 x 8"
    },
    "group": "Structure",
    "order": 0,
    "partCount": 50,
    "fastenerCount": 44,
-   "massKg": 193.797,
+   "massKg": 190.945,
    "uniqueParts": 9
   },
   {
@@ -234,7 +234,7 @@
    "order": 10,
    "partCount": 16,
    "fastenerCount": 4,
-   "massKg": 28.787,
+   "massKg": 28.576,
    "uniqueParts": 13
   },
   {
@@ -284,13 +284,13 @@
    "category": "structure",
    "make": "make",
    "standard": "EN 1090-2 EXC2",
-   "size": "SHS 200 x 200 x 8, 1699",
+   "size": "SHS 200 x 200 x 8, 1639",
    "grade": "S355J2H",
    "material": "Structural steel S355, hot-dip galvanised",
    "materialKey": "steel_s355",
    "qty": 1,
-   "massKg": 102.531,
-   "totalMassKg": 102.531,
+   "massKg": 99.6788,
+   "totalMassKg": 99.6788,
    "torqueNm": null,
    "reference": false,
    "function": "Hangs from the header and carries the J1 base. Hot-dip galvanised.",
@@ -2701,13 +2701,13 @@
    "category": "fluid",
    "make": "make",
    "standard": "EN 10217-7",
-   "size": "50 x 3, 1509",
+   "size": "50 x 3, 1449",
    "grade": "",
    "material": "Stainless steel 1.4301 (304)",
    "materialKey": "ss304",
    "qty": 1,
-   "massKg": 5.3007,
-   "totalMassKg": 5.3007,
+   "massKg": 5.0899,
+   "totalMassKg": 5.0899,
    "torqueNm": null,
    "reference": false,
    "function": "Brings the vacuum from the canopy duct down the column to the J1 union.",

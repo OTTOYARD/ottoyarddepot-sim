@@ -28,7 +28,7 @@ import {
   generateStallsV2, type CanopyDef, type ParkRun,
 } from './sitePlan';
 import { CAR_LENGTH, CAR_WIDTH } from '@/engine/motion/traffic';
-import { chargerPad } from '@/lib/ottoChargeArm/depotPlacement';
+import { chargerBed, chargerPad } from '@/lib/ottoChargeArm/depotPlacement';
 import { WASH_GANTRY, WASH_HOME_DY } from '@/lib/ottoWash/washSpec';
 
 /** Axis-aligned rectangle in plan units. */
@@ -285,6 +285,11 @@ const CABINET_CLEAR = 1.0;
  *  so this is a daylight gap, not a walkway: enough that no column stands touching
  *  a bumper. */
 const HEAD_CLEAR = 0.3;
+/** Keep-out between a column's steel and an OTTO-CHARGE ARM's rail bed. The column stands on a concrete plinth 0.4 u
+ *  wider than the steel on every side (SolarCanopy.tsx), and the bed's foot plates and its carriage run at floor
+ *  level: 0.7 u leaves 0.3 u (0.14 m) between the plinth and the bed (armColumnClearance.test.ts measures the
+ *  parts themselves). */
+const BED_CLEAR = 0.7;
 
 export interface CabinetFootprint {
   stallId: string;
@@ -318,9 +323,24 @@ export function cabinetFootprints(stalls = generateStallsV2()): CabinetFootprint
 }
 
 /**
+ * The OTTO-CHARGE ARM's rail bed at every fast-charger stall (depotPlacement.chargerBed): a low strip of beams, rails
+ * and a moving carriage beside the car. A car may not drive over it.
+ */
+export function armBedFootprints(stalls = generateStallsV2()): { stallId: string; box: OBox; r: Rect }[] {
+  const out: { stallId: string; box: OBox; r: Rect }[] = [];
+  for (const s of stalls) {
+    if (s.type !== 'dcfc') continue;
+    const p = chargerBed(s.position.x, s.position.y, s.position.angle);
+    const box: OBox = { cx: p.cx, cy: p.cy, hl: p.hl, hw: p.hw, th: p.th };
+    out.push({ stallId: s.id, box, r: boxAabb(box) });
+  }
+  return out;
+}
+
+/**
  * Spine column positions (plan y) for one canopy: the fewest columns that keep
  * every span <= CANOPY_MAX_SPAN, stand within 3u of each roof end, clear every
- * charger cabinet by CABINET_CLEAR, and clear every parked car's body by
+ * charger cabinet by CABINET_CLEAR, every charge arm's rail bed by BED_CLEAR, and clear every parked car's body by
  * HEAD_CLEAR (parkedBox — the car as it lies, at its angle). Deterministic.
  */
 export function canopyColumnYs(c: CanopyDef, cabinets = cabinetFootprints(), stalls = generateStallsV2()): number[] {
@@ -330,9 +350,11 @@ export function canopyColumnYs(c: CanopyDef, cabinets = cabinetFootprints(), sta
   const nearCars = stalls
     .filter((s) => Math.abs(s.position.x - c.cx) <= c.w / 2 + 2)
     .map((s) => parkedBox(s.position));
+  const nearBeds = armBedFootprints(stalls).filter((k) => Math.abs(k.box.cx - c.cx) < reach + 8);
   const feasible = (y: number) => {
     const col: OBox = { cx: c.cx, cy: y, hl: half, hw: half, th: 0 };
     return nearCabs.every((k) => boxGap(col, k.box) >= CABINET_CLEAR)
+      && nearBeds.every((k) => boxGap(col, k.box) >= BED_CLEAR)
       && nearCars.every((b) => boxGap(col, b) >= HEAD_CLEAR);
   };
   const step = 0.25;
@@ -510,6 +532,7 @@ export function allStructureSolids(): Solid[] {
     // recorded car against them, and so a widened corner has to clear them. They
     // stand at their stall's 60°, so they are the one solid that is not square.
     ...cabinetFootprints().map((k) => ({ kind: k.dc ? 'dcfc-cabinet' : 'l2-cabinet', r: k.r, box: k.box })),
+    ...armBedFootprints().map((k) => ({ kind: 'dcfc-arm-bed', r: k.r, box: k.box })),
     // The entrance sign wall, outside the fence. In the set so that if it is ever
     // moved back over a stall or a road, the stall and clearance tests say so.
     solid('sign-wall', signWallRect()),

@@ -6,11 +6,14 @@
  *
  * Viewer copy is ASD-STE100 (AGENTS.md). No product names (publicNames.test.ts).
  */
+import { ARM_REACH, BASE_JOINT_NAMES, HEAD_JOINT_NAMES, headIK, solveMate } from '@/lib/ottoChargeArm/mateSolver';
+import { FLEET_SPECS } from '@/lib/fleetModels';
+import { mateTarget } from '@/lib/fleetModels/ports';
 import { NOMINAL_SEQUENCE, ARM_TIMING_DEFAULTS } from '@/lib/ottoChargeArm/armStateMachine';
 import { poseForPhase } from '@/lib/ottoChargeArm/armMotion';
 import { STOWED, solveIK } from '@/lib/ottoChargeArm/cobotIK';
 import { FLANK_STANDOFF_M, MOUNT_HEIGHT_M, METRES_PER_PLAN_UNIT } from '@/lib/ottoChargeArm/cobotSpec';
-import { CLEAN_CHAIN, CLEAN_PHASE_S, CLEAN_SIDE_NOMINAL_S, MAST_FOOT_MAX, type CleanPhase } from '@/lib/ottoCleanArm/cleanArmSpec';
+import { CLEAN_CHAIN, CLEAN_PHASE_S, CLEAN_SIDE_NOMINAL_S, MAST_FOOT_MAX, type CleanPhase, type GenericCleanPhase } from '@/lib/ottoCleanArm/cleanArmSpec';
 import { cleanJointsAt, sidesFor, type CleanJoints } from '@/lib/ottoCleanArm/cleanArmPose';
 import { programPoseAt, type WashPose } from '@/lib/ottoWash/washPose';
 import { DOCK_DY_M } from '@/lib/ottoWash/detailArm';
@@ -180,6 +183,9 @@ export const qtyIn = (l: BomLine, sub?: string | null): number =>
 /** The part ids that are fasteners (for the viewer's fastener switch). */
 export const fastenerIds = (bom: Bom): Set<string> => new Set(bom.lines.filter((l) => l.category === 'fastener').map((l) => l.id));
 
+/** The CAD model's stall faces this way (liveFollow.MODEL_TOWARD = -1): the arm stands on the car's left. */
+const MODEL_ARM_ON_CARS_RIGHT = false;
+
 // ── poses, from the twin's own code ────────────────────────────────────────
 
 export interface PosePreset { id: string; label: string; angles: Record<string, number> }
@@ -194,10 +200,31 @@ function chargePoses(): PosePreset[] {
     ({ J1: a.j1, J2: a.j2, J3: a.j3, J4: a.j4, J5: a.j5, J6: a.j6 });
   // No "straight up" (all joints 0) preset: the flex links that carry the charge current across the joints are sized
   // for the poses the twin plays (cadFlex.test.ts), and straight up is not one of them.
-  return [
+  // The connected preset, with the head's CCS1 connector forward on that inlet.
+  const hk = headIK(port, { x: 0, y: 0, z: -1 }, 'CCS1');
+  const out: PosePreset[] = [
     { id: 'stowed', label: 'Stowed', angles: j(STOWED) },
-    { id: 'connected', label: 'Connected', angles: j(ik) },
+    { id: 'connected', label: 'Connected', angles: { ...j(hk.ik), [HEAD_JOINT_NAMES.CCS1]: ARM_REACH.headStrokeM } },
+    { id: 'connected_axis', label: 'Tool axis on the port, both connectors back', angles: j(ik) },
   ];
+  // One preset a fleet vehicle, on this model's stall side: the base where the mate puts it, the connector the car
+  // takes forward (mateSolver.solveMate, from the fleet models' own port facts).
+  for (const spec of FLEET_SPECS) {
+    const t = mateTarget(spec);
+    if (!t) continue;
+    const m = solveMate(t, MODEL_ARM_ON_CARS_RIGHT);
+    if (!m.ok || !m.ik || !m.head) continue;
+    out.push({
+      id: `mate_${spec.key}`, label: `Connected: ${spec.name}`,
+      angles: { ...j(m.ik), [BASE_JOINT_NAMES[1]]: m.slideM, [BASE_JOINT_NAMES[2]]: m.crossM, [HEAD_JOINT_NAMES[m.head]]: ARM_REACH.headStrokeM },
+    });
+    // and the base there with the arm still folded: the carriage travels with the arm stowed
+    out.push({
+      id: `base_${spec.key}`, label: `Base at the inlet, arm folded: ${spec.name}`,
+      angles: { ...j(STOWED), [BASE_JOINT_NAMES[1]]: m.slideM, [BASE_JOINT_NAMES[2]]: m.crossM },
+    });
+  }
+  return out;
 }
 
 /** The clean arm's joints as the CAD's nodes take them (buildCleanArm.poseCleanArm's mapping). */
@@ -274,7 +301,7 @@ const CHARGE_LABEL: Record<string, string> = {
   latch: 'Lock the connector', charging: 'Charge', unlatch: 'Unlock the connector', extract: 'Pull the connector out',
   retract: 'Fold home',
 };
-const CLEAN_LABEL: Record<CleanPhase, string> = {
+const CLEAN_LABEL: Record<GenericCleanPhase, string> = {
   home: 'Home', doors_open: 'The doors open', swing_a: 'Swing over side A', lower_a: 'Turn the wand down',
   descend_a: 'Lower the mast', enter_a: 'Reach in through the door', clean_a: 'Clean side A', exit_a: 'Come out of the car',
   ascend_a: 'Raise the mast', raise_a: 'Turn the wand up', swing_b: 'Swing over side B', lower_b: 'Turn the wand down',
@@ -341,14 +368,29 @@ function script(steps: ScriptStep[], anglesAt: (id: string, u: number) => Record
   };
 }
 
+type ArmPhaseId = Parameters<typeof poseForPhase>[0];
+/** The phases the arm plays at the inlet: the connector the car takes is forward through these. */
+const CHARGE_AT_INLET = new Set<string>(['align', 'insert', 'latch', 'charging', 'unlatch', 'extract']);
+
+/**
+ * The charge arm's joints for one moment of a mate on a side inlet at `port` (the arm's frame), with the head's
+ * CCS1 connector: the six arm joints, and the connector's plunge while the arm is at the inlet. The tab's cycle and
+ * its live follow (liveFollow.chargeLiveAngles) are both this.
+ */
+export function chargeModelAngles(phase: ArmPhaseId, u: number, port: { x: number; y: number; z: number }): Record<string, number> {
+  const normal = { x: 0, y: 0, z: -1 };
+  const hk = headIK(port, normal, 'CCS1');
+  const a = poseForPhase(phase, u, { port: hk.axisPort, normal }).angles;
+  const out: Record<string, number> = { J1: a.j1, J2: a.j2, J3: a.j3, J4: a.j4, J5: a.j5, J6: hk.ik.j6 };
+  if (CHARGE_AT_INLET.has(phase)) out[HEAD_JOINT_NAMES.CCS1] = ARM_REACH.headStrokeM;
+  return out;
+}
+
 export function cycleScript(robot: RobotKey): CycleScript {
   if (robot === 'charge_arm') {
     const target = { port: { x: SAMPLE_PORT.along, y: SAMPLE_PORT.height - MOUNT_HEIGHT_M, z: FLANK_STANDOFF_M }, normal: { x: 0, y: 0, z: -1 } };
     const steps = cycleSteps('charge_arm').map((s) => ({ id: s.id, label: s.label, seconds: s.seconds ?? SHORT_STEP_S, short: s.seconds == null }));
-    return script(steps, (id, u) => {
-      const a = poseForPhase(id as Parameters<typeof poseForPhase>[0], u, target).angles;
-      return { J1: a.j1, J2: a.j2, J3: a.j3, J4: a.j4, J5: a.j5, J6: a.j6 };
-    });
+    return script(steps, (id, u) => chargeModelAngles(id as ArmPhaseId, u, target.port));
   }
   if (robot === 'clean_arm') {
     const sides = sidesFor(1);

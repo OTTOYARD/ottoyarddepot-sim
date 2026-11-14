@@ -105,6 +105,11 @@ export interface TwinVisitCard {
 export interface TwinVehicle {
   id: string; av_id: string; make: string; platform: string;
   state: string; soc: number; stall_id: string | null;
+  /** otto-q-core 0824: the car's model name, and its charge inlet as the engine holds it. Absent on an engine before
+   *  0824; `port` is null for a car with no profile. `port.profile` names the vehicle model: the yard draws that model
+   *  (lib/fleetModels/assign.ts) and the charge arm mates that inlet (lib/ottoChargeArm/vehiclePort.ts). */
+  model?: string | null;
+  port?: import('@/lib/ottoChargeArm/vehiclePort').TwinPort | null;
   /**
    * The vehicle's open visit workflow. THREE distinct readings, and collapsing
    * any two of them would put a claim on screen that OTTO-Q never made:

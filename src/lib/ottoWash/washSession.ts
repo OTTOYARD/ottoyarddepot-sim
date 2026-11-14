@@ -24,10 +24,11 @@
 import {
   CABIN_HOLD_MAX_S, CABIN_HOLD_MIN_S, CABIN_HOLD_NOMINAL_S, PASS_NOMINAL_S, PASS_SCALE_MAX, PASS_SCALE_MIN,
   DETAIL_ARM, PASSES_NOMINAL_S, WASH_ABORT_SPEED, WASH_END_MARGIN_S, WASH_HOME_DY, WASH_PHASE_S, WASH_RETURN_UPS,
-  WIPE_FIXED_S, isPass, isWipe, washChain, type WashPhase,
+  isPass, isWipe, stationOf, washChain, type WashPhase,
 } from './washSpec';
 import { washPoseAt, type WashPose } from './washPose';
 import { DOCK_DY_M } from './detailArm';
+import { washProgramFor } from './washProgram';
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
@@ -44,6 +45,11 @@ export interface WashSession {
   vehicleId: string | null;
   /** a detail seat: the twin times a cabin clean in it, and the machine holds, parked and dry, for that time */
   interior: boolean;
+  /**
+   * The vehicle's fleet model (fleetModels/assign.ts), or null when the twin's row names none. The machine plays that
+   * model's own program (washProgram.ts), and holds it to the end, as it holds the car.
+   */
+  model: string | null;
   /** the passes' pace: 1 = nominal (PASS_NOMINAL_S); fixed when the program starts */
   passScale: number;
   /** a detail seat's cabin hold, sim seconds; fixed when the program starts */
@@ -61,7 +67,7 @@ export interface WashSession {
 }
 
 export const IDLE_WASH: WashSession = Object.freeze({
-  phase: 'home' as WashPhase, phaseElapsed: 0, t: 1, vehicleId: null, interior: false,
+  phase: 'home' as WashPhase, phaseElapsed: 0, t: 1, vehicleId: null, interior: false, model: null,
   passScale: 1, cabinS: CABIN_HOLD_NOMINAL_S, finishing: false, from: null, completedFor: null,
 });
 
@@ -74,6 +80,8 @@ export interface WashInput {
   active: boolean;
   /** the seat is a detail seat: the twin times a cabin clean in it before the wash */
   interior: boolean;
+  /** the car's fleet model, when the twin's row names one: its own program plays. Read when the program starts. */
+  model?: string | null;
   /** sim seconds until the twin's seat ends, or null when it published no end */
   endsInS: number | null;
   /**
@@ -98,7 +106,7 @@ export const ARM_FOLD_S = 4;
 export const armsMove = (p: WashPhase): boolean => isWipe(p) || p === 'arms_out' || p === 'arms_stow' || p === 'retract' || p === 'return';
 
 /** A phase's length at nominal speed for this session. */
-export function washPhaseLength(p: WashPhase, s: Pick<WashSession, 'passScale' | 'cabinS' | 'from'>): number {
+export function washPhaseLength(p: WashPhase, s: Pick<WashSession, 'passScale' | 'cabinS' | 'from'> & { model?: string | null }): number {
   if (p === 'home') return Infinity;
   if (isPass(p)) return PASS_NOMINAL_S[p] * s.passScale;
   if (p === 'cabin_hold') return s.cabinS;
@@ -112,6 +120,10 @@ export function washPhaseLength(p: WashPhase, s: Pick<WashSession, 'passScale' |
       : Math.max(ARM_FOLD_S / 0.3, ...out.map((a) => (Math.abs(a.rail - DOCK_DY_M) * 1.5) / (0.9 * DETAIL_ARM.railMps) / 0.7));
     return Math.max(1, gantry, arms);
   }
+  // a polish zone is as long as the vehicle's own program makes it (the generic one: WASH_PHASE_S)
+  if (isWipe(p) && s.model) return washProgramFor(s.model).zoneS[stationOf(p)];
+  if (p === 'arms_stow' && s.model) return washProgramFor(s.model).stowS;
+  if (p === 'retract' && s.model) return washProgramFor(s.model).retractS;
   return WASH_PHASE_S[p];
 }
 
@@ -120,9 +132,10 @@ export function washPhaseLength(p: WashPhase, s: Pick<WashSession, 'passScale' |
  * stretch or shrink, and how long a detail seat's cabin hold is. The sensor wipe keeps its
  * own time. No end published -> nominal.
  */
-export function paceProgram(interior: boolean, endsInS: number | null): { passScale: number; cabinS: number } {
+export function paceProgram(interior: boolean, endsInS: number | null, model: string | null = null): { passScale: number; cabinS: number } {
   if (endsInS === null || !Number.isFinite(endsInS)) return { passScale: 1, cabinS: CABIN_HOLD_NOMINAL_S };
-  const avail = endsInS - WASH_END_MARGIN_S - WASH_PHASE_S.done - WIPE_FIXED_S;
+  // a vehicle with more places to polish takes longer at the arms, and the passes give up that time
+  const avail = endsInS - WASH_END_MARGIN_S - WASH_PHASE_S.done - washProgramFor(model).wipeS;
   if (!interior) {
     return { passScale: clamp(avail / PASSES_NOMINAL_S, PASS_SCALE_MIN, PASS_SCALE_MAX), cabinS: CABIN_HOLD_NOMINAL_S };
   }
@@ -134,7 +147,7 @@ export function paceProgram(interior: boolean, endsInS: number | null): { passSc
 }
 
 /** Sim seconds of the program still to run from (phase, elapsed), at nominal speed. */
-export function remainingProgramS(s: Pick<WashSession, 'phase' | 'phaseElapsed' | 'interior' | 'passScale' | 'cabinS' | 'from'>): number {
+export function remainingProgramS(s: Pick<WashSession, 'phase' | 'phaseElapsed' | 'interior' | 'passScale' | 'cabinS' | 'from'> & { model?: string | null }): number {
   if (s.phase === 'home') return 0;
   const chain = washChain(s.interior);
   const i = chain.indexOf(s.phase);
@@ -180,18 +193,18 @@ export function advanceWashSession(prev: WashSession, input: WashInput): WashSes
     const since = input.sinceS;
     if (since != null && Number.isFinite(since) && since > JOIN_LATE_S
         && input.endsInS !== null && Number.isFinite(input.endsInS)) {
-      const joined = seekProgram(input.vehicleId, input.interior, since - PULL_IN_S, input.endsInS);
+      const joined = seekProgram(input.vehicleId, input.interior, since - PULL_IN_S, input.endsInS, input.model ?? null);
       if (joined) return joined;
       // the program is already over: the machine is home and done with this car
       return { ...IDLE_WASH, vehicleId: input.vehicleId, completedFor: input.vehicleId };
     }
     // START: the car has stopped under the stop light
-    return finishStep({ ...IDLE_WASH, phase: 'settle', phaseElapsed: 0, vehicleId: input.vehicleId, interior: input.interior });
+    return finishStep({ ...IDLE_WASH, phase: 'settle', phaseElapsed: 0, vehicleId: input.vehicleId, interior: input.interior, model: input.model ?? null });
   }
 
   const { phase, phaseElapsed } = prev;
   let { finishing, from, passScale, cabinS } = prev;
-  const { vehicleId, interior } = prev;
+  const { vehicleId, interior, model } = prev;
   const poseNow = (): WashPose => washPoseAt(prev);
 
   // THE STOP CONDITION: the twin no longer has this car's seat on here, or the car in the
@@ -203,7 +216,7 @@ export function advanceWashSession(prev: WashSession, input: WashInput): WashSes
     if (into) {
       if (into.phase === 'home') return { ...IDLE_WASH, vehicleId: input.vehicleId };
       const fromPose = FROM_PHASES.has(into.phase) ? poseNow() : null;
-      const next = { phase: into.phase, phaseElapsed: 0, vehicleId, interior, passScale, cabinS, finishing, from: fromPose, completedFor: null };
+      const next = { phase: into.phase, phaseElapsed: 0, vehicleId, interior, model, passScale, cabinS, finishing, from: fromPose, completedFor: null };
       next.phaseElapsed = into.t * washPhaseLength(into.phase, next);
       return finishStep(next);
     }
@@ -222,7 +235,7 @@ export function advanceWashSession(prev: WashSession, input: WashInput): WashSes
   const len = washPhaseLength(phase, prev);
   const budget = dt * speed;
   if (phaseElapsed + budget < len) {
-    return finishStep({ phase, phaseElapsed: phaseElapsed + budget, vehicleId, interior, passScale, cabinS, finishing, from, completedFor: null });
+    return finishStep({ phase, phaseElapsed: phaseElapsed + budget, vehicleId, interior, model, passScale, cabinS, finishing, from, completedFor: null });
   }
 
   // ONE transition per call; the unspent time is dropped
@@ -238,9 +251,9 @@ export function advanceWashSession(prev: WashSession, input: WashInput): WashSes
     const still = input.active && input.vehicleId === vehicleId ? vehicleId : null;
     return { ...IDLE_WASH, vehicleId: input.vehicleId, completedFor: still };
   }
-  if (phase === 'settle') ({ passScale, cabinS } = paceProgram(interior, input.endsInS));
+  if (phase === 'settle') ({ passScale, cabinS } = paceProgram(interior, input.endsInS, model));
   from = FROM_PHASES.has(next) ? endPose : null;
-  return finishStep({ phase: next, phaseElapsed: 0, vehicleId, interior, passScale, cabinS, finishing, from, completedFor: null });
+  return finishStep({ phase: next, phaseElapsed: 0, vehicleId, interior, model, passScale, cabinS, finishing, from, completedFor: null });
 }
 
 /**
@@ -248,13 +261,13 @@ export function advanceWashSession(prev: WashSession, input: WashInput): WashSes
  * seconds from now: paced as it would have been when it started, the phase and the time into it found by walking the
  * chain, each from-phase's pose the end of the phase before it. Null when the program is already over.
  */
-export function seekProgram(vehicleId: string | null, interior: boolean, offset: number, endsInS: number): WashSession | null {
+export function seekProgram(vehicleId: string | null, interior: boolean, offset: number, endsInS: number, model: string | null = null): WashSession | null {
   const settle = WASH_PHASE_S.settle;
-  const { passScale, cabinS } = paceProgram(interior, offset + endsInS - settle);
+  const { passScale, cabinS } = paceProgram(interior, offset + endsInS - settle, model);
   let left = Math.max(0, offset);
   let from: WashPose | null = null;
   for (const phase of washChain(interior)) {
-    const base = { phase, phaseElapsed: 0, vehicleId, interior, passScale, cabinS, finishing: false, completedFor: null };
+    const base = { phase, phaseElapsed: 0, vehicleId, interior, model, passScale, cabinS, finishing: false, completedFor: null };
     const here = { ...base, from: FROM_PHASES.has(phase) ? from : null };
     const L = washPhaseLength(phase, here);
     if (left < L) return finishStep({ ...here, phaseElapsed: left });

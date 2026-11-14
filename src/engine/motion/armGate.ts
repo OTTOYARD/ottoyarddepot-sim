@@ -41,6 +41,9 @@
 //
 // And the hold is BOUNDED even when a signal is stuck — see HOLD_CAP_S.
 // ============================================================================
+import { ARM_SUBSTEP_S } from "@/lib/ottoChargeArm/roboticService";
+import { chargeArmState, newMateSeq, stepMateSeq, type ChargeArmState, type MateSeq } from "@/lib/ottoChargeArm/mateSequence";
+import { armMateFor, type ArmMate, type TwinPort } from "@/lib/ottoChargeArm/vehiclePort";
 import {
   armElapsedS, playArmSession, IDLE_SESSION, stallHasArm, MIN_DEMATE_SPEED, MAX_ARM_CLOCK_STEP_S,
   type ArmSession,
@@ -105,6 +108,9 @@ export function maxPhysicalDemateS(): number {
  */
 export const HOLD_CAP_S = 60;
 
+/** The charge arm counts as still for the cleaning arm's doors only after this long in one place, sim seconds. */
+export const ARM_SETTLE_S = 1;
+
 /** What the depot says is true at one arm-served stall, this step. */
 export interface ArmStallInput {
   /** RENDERER stall id. */
@@ -133,10 +139,25 @@ export interface ArmStallInput {
   cleanBlocksMate?: boolean;
   /** The twin reports the stall's charger Faulted. See armSessionInput: the arm lets go at once. */
   chargerFaulted?: boolean;
+  /** A door on the charger's flank of the car is not shut (cleanGate.portDoorsOpen). See armSessionInput. */
+  cleanPortDoorsOpen?: boolean;
+  /** The served car's inlet as the twin says it, and the stall's facing sign: the gate solves the same mate the
+   *  views do, to know where the base is. Absent or null: a car with no published port (no base travel). */
+  port?: TwinPort | null;
+  toward?: 1 | -1;
+  /** The base's home on its rail while this car is in the stall, metres in the arm's slide (0: the rail's middle). */
+  parkSlideM?: number;
 }
 
 interface StallState {
   session: ArmSession;
+  /** the gate's own play of the mate's five stops (mateSequence.ts): where the base and the head are */
+  seq: MateSeq;
+  mate: ArmMate | null;
+  parkSlideM: number;
+  /** sim seconds the machine has been in its present state: an interlock reads a state only once it has settled */
+  state: ChargeArmState;
+  stateForS: number;
   /** true while this stall is refusing to release its car */
   held: boolean;
   /** consecutive SIM seconds spent held in a TRANSIENT phase — the cap's clock.
@@ -190,7 +211,24 @@ export class ArmGate {
       // The cap's clock runs only while the hold is TRANSIENT — see HOLD_CAP_S.
       const transient = held && session.phase !== "charging";
       const heldForS = transient ? (prev?.held ? prev.heldForS + dt : 0) : 0;
-      this.stalls.set(input.stallId, { session, held, heldForS });
+
+      // THE BASE AND THE HEAD, played here with the views' own function (mateSequence.stepMateSeq) on the sim
+      // clock, so the interlock with the cleaning arm's doors knows when the machine is STILL and where. The views
+      // draw their own play of the same function with the same inputs.
+      const seq = prev?.seq ?? newMateSeq();
+      const parkSlideM = input.parkSlideM ?? 0;
+      // the port of the car the session serves, held after it has gone (the views' rule)
+      let mate = prev?.mate ?? null;
+      if (session.vehicleId && session.vehicleId === input.vehicleId) mate = input.port ? armMateFor(input.port, input.toward ?? -1) : null;
+      let left = dt;
+      do {
+        const step = Math.min(left, ARM_SUBSTEP_S);
+        left -= step;
+        stepMateSeq(seq, session.phase, session.t, mate ? mate.target : null, mate, step, undefined, parkSlideM);
+      } while (left > 1e-9);
+      const state = chargeArmState(seq, session.phase, mate, parkSlideM);
+      const stateForS = prev && prev.state === state ? prev.stateForS + dt : 0;
+      this.stalls.set(input.stallId, { session, held, heldForS, seq, mate, parkSlideM, state, stateForS });
     }
 
     for (const id of this.stalls.keys()) if (!seen.has(id)) this.stalls.delete(id);
@@ -221,6 +259,24 @@ export class ArmGate {
   session(stallId: string | null | undefined): ArmSession | null {
     if (!stallId) return null;
     return this.stalls.get(stallId)?.session ?? null;
+  }
+
+  /**
+   * What the charge arm at this stall is doing, for the cleaning arm's interlock: 'stowed' or 'latched' only once
+   * it has been still there for ARM_SETTLE_S (the views play the same sequence a frame or two apart), else
+   * 'moving'. A stall this gate does not track has no arm at work: 'stowed'.
+   */
+  armState(stallId: string | null | undefined): ChargeArmState {
+    const s = stallId ? this.stalls.get(stallId) : undefined;
+    if (!s) return "stowed";
+    return s.state !== "moving" && s.stateForS < ARM_SETTLE_S ? "moving" : s.state;
+  }
+
+  /** The gate's play of the machine at this stall: its base, its head, its drawn joints and the mate it serves
+   *  (for the tests and the operator trace). Read only. */
+  machineAt(stallId: string | null | undefined): { seq: Readonly<MateSeq>; mate: ArmMate | null; state: ChargeArmState } | null {
+    const s = stallId ? this.stalls.get(stallId) : undefined;
+    return s ? { seq: s.seq, mate: s.mate, state: s.state } : null;
   }
 
   /** Sim seconds this stall has been holding its car. 0 when it is not holding. */

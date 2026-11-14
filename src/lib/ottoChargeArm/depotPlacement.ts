@@ -29,6 +29,7 @@
 import { CANOPIES, chargerStallFrame } from '@/lib/sitePlan';
 import { DECK_Y } from '@/components/canvas/three/coordUtils';
 import { PLAN_UNITS_PER_METRE, MOUNT_HEIGHT_M, PEDESTAL_OFFSET_PU } from './cobotSpec';
+import { bedCentreX } from './mateSolver';
 import {
   CABINET_BACKSET_PU, L2_POST_ALONG_PU, L2_POST_LATERAL_PU, DCFC_CABINET_PU, L2_CABINET_PU, dcfcPadSpan,
 } from './cabinetEnvelope';
@@ -44,23 +45,22 @@ function toWorld(x2d: number, y2d: number): [number, number] {
 }
 
 /**
- * Which way a charging stall's car faces, as a plan-x sign: toward its canopy's
- * centre spine. +1 => the car's nose points plan EAST (the west column, compass
- * 90); -1 => plan WEST (the east column, compass 270). Canopy A's two stall
- * columns sit at cx-7 and cx+7, so both signs occur in a single canopy.
+ * THE CHARGE-PORT SIGN of a charging stall: which flank of the parked car its charger, its OTTO-CHARGE ARM and
+ * its rail bed stand on. -1 is the car's LEFT, +1 its RIGHT.
  *
- * ONE RULE for the arm, the cabinet, the L2 post and the VEHICLE's visible
- * charge port, so they cannot drift apart. The port presents on the car's
- * vehicle-frame -toward flank (portInVehicleFrame), which for an angled car is
- * its SOUTH-side flank on both columns (portFlank): the flank the DCFC pedestal
- * and the L2 post stand on.
+ * Every charger stands on the car's LEFT since 2026-11-13 (Chase: "let's go ahead and flip the right hand charger
+ * arms to the left-hand side ... still keep it angled"). No vehicle in the fleet has its charge inlet on the right
+ * (docs/CHARGE-ARM-REACH.md), so a west-column post, whose arm stood on the car's right, could charge only the cars
+ * that present either flank. The stalls keep their place and their 60 degree angle; the machine moved to the other
+ * side of the car. Before that day the sign was +1 on the west column of each canopy and -1 on the east one (both
+ * the cars' south-side flanks), and this function read the column from `stallX`.
+ *
+ * ONE RULE for the arm, the bed, the cabinet, the L2 post, the cleaning arm's sides and the VEHICLE's visible
+ * charge port, so they cannot drift apart. `stallX` is kept so a later depot can stand a column's machines on the
+ * other side again in one place.
  */
-export function towardFor(stallX: number): 1 | -1 {
-  const canopy = CANOPIES.reduce(
-    (best, c) => (Math.abs(c.cx - stallX) < Math.abs(best.cx - stallX) ? c : best),
-    CANOPIES[0],
-  );
-  return (Math.sign(canopy.cx - stallX) || 1) as 1 | -1;
+export function towardFor(_stallX: number): 1 | -1 {
+  return -1;
 }
 
 /**
@@ -136,6 +136,31 @@ export function chargerPad(
     cx: k.x + k.face.x * offset, cy: k.y + k.face.y * offset,
     hl: (dims.width + 0.6) / 2, hw: (span.front - span.back) / 2,
     th: Math.atan2(k.along.y, k.along.x), offset,
+  };
+}
+
+/** The rail bed's size on the deck, metres (cad charge_arm.py: 2 beams 4.84 m long; the carriage, its cross plate and
+ *  the cross-slide's motor sweep from 0.42 m behind the J1 line to 0.90 m in front of it, toward the car). */
+export const ARM_BED_M = { length: 4.84, back: 0.42, front: 0.9 } as const;
+
+/**
+ * The OTTO-CHARGE ARM's rail bed at a fast-charger stall, PLAN coordinates: the strip of deck its carriage rides,
+ * beside the car on its charger's flank. Its middle sits toward the car's tail from the stall's middle
+ * (mateSolver.bedCentreX: most inlets are behind the middle of the car). The one footprint structurePlan drives cars
+ * against and the 2D plan draws. Same shape as chargerPad: `hl` along the car, `hw` square to it.
+ */
+export function chargerBed(stallX: number, stallY: number, bearing: number): { cx: number; cy: number; hl: number; hw: number; th: number } {
+  const f = portFlank(stallX, bearing);
+  const { fwd } = chargerStallFrame(bearing);
+  const P = PLAN_UNITS_PER_METRE;
+  // toward the tail by half the difference of the two travels, whichever way the stall faces
+  const along = -Math.abs(bedCentreX(1)) * P;
+  // out from the car: the J1 line is PEDESTAL_OFFSET_PU off the centreline; the strip's middle is (front - back) / 2 nearer the car
+  const out = PEDESTAL_OFFSET_PU - ((ARM_BED_M.front - ARM_BED_M.back) / 2) * P;
+  return {
+    cx: stallX + fwd.x * along + f.x * out, cy: stallY + fwd.y * along + f.y * out,
+    hl: (ARM_BED_M.length / 2) * P, hw: ((ARM_BED_M.front + ARM_BED_M.back) / 2) * P,
+    th: Math.atan2(fwd.y, fwd.x),
   };
 }
 

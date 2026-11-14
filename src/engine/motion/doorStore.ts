@@ -18,6 +18,19 @@
 export interface DoorState {
   right: number;
   left: number;
+  /**
+   * Each door of that flank on its own, front to rear in the vehicle's own door order, where the flank's doors do
+   * not all stand alike (the cleaning arm opens only the doors of the opening it is at on the charger's flank).
+   * Absent: every door of the flank stands at `right` / `left`.
+   */
+  rightEach?: readonly number[];
+  leftEach?: readonly number[];
+}
+
+/** How far door `index` of a flank (front to rear) stands open: its own value, else the flank's. */
+export function doorOpenAt(d: Readonly<DoorState>, side: 1 | -1, index: number): number {
+  const each = side > 0 ? d.rightEach : d.leftEach;
+  return each?.[index] ?? (side > 0 ? d.right : d.left);
 }
 
 const doors = new Map<string, DoorState>();
@@ -30,7 +43,7 @@ export const doorStore = {
     const r = clamp01(right), l = clamp01(left);
     if (r === 0 && l === 0) { doors.delete(id); return; }
     const d = doors.get(id);
-    if (d) { d.right = r; d.left = l; } else doors.set(id, { right: r, left: l });
+    if (d) { d.right = r; d.left = l; delete d.rightEach; delete d.leftEach; } else doors.set(id, { right: r, left: l });
   },
   /** A car's door openings, or undefined when both are shut. */
   get(id: string): DoorState | undefined {
@@ -47,7 +60,24 @@ export const doorStore = {
       if (v === 0) continue;
       keep.add(id);
       const d = doors.get(id);
-      if (d) { d.right = v; d.left = v; } else doors.set(id, { right: v, left: v });
+      if (d) { d.right = v; d.left = v; delete d.rightEach; delete d.leftEach; } else doors.set(id, { right: v, left: v });
+    }
+    for (const id of [...doors.keys()]) if (!keep.has(id)) doors.delete(id);
+  },
+  /**
+   * Make the store hold exactly these cars' openings, each flank its own, and each door its own where given (4th and
+   * 5th entries: the right and the left flank's doors, front to rear); every other car's doors shut.
+   */
+  syncFlanks(open: Iterable<readonly [string, number, number, (readonly number[] | null)?, (readonly number[] | null)?]>): void {
+    const keep = new Set<string>();
+    for (const [id, right, left, rightEach, leftEach] of open) {
+      const r = clamp01(right), l = clamp01(left);
+      if (r === 0 && l === 0) continue;
+      keep.add(id);
+      let d = doors.get(id);
+      if (d) { d.right = r; d.left = l; } else { d = { right: r, left: l }; doors.set(id, d); }
+      if (rightEach) d.rightEach = rightEach.map(clamp01); else delete d.rightEach;
+      if (leftEach) d.leftEach = leftEach.map(clamp01); else delete d.leftEach;
     }
     for (const id of [...doors.keys()]) if (!keep.has(id)) doors.delete(id);
   },

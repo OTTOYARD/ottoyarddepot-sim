@@ -1,0 +1,21 @@
+<!doctype html>
+<!--
+  Fleet vehicle model check page (dev only; not in the build's inputs).
+  Draws one vehicle from src/lib/fleetModels at a fixed camera, so scripts/fleetShots.mjs can shoot it.
+    ?model=waymo_ojai   a key from FLEET_SPECS
+    ?view=iso           iso | side | front | rear | top | back | low
+    ?doors=0            0 shut .. 1 open
+    ?zoom=1             frame tighter (>1) or looser (<1)
+    ?glb=1              load public/fleet/<model>.glb instead of building from the spec
+-->
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Fleet model check</title>
+    <style>html,body{margin:0;height:100%;background:#c9ced4;overflow:hidden}#hud{position:fixed;left:10px;top:8px;font:12px ui-monospace,monospace;color:#1c2530;white-space:pre}</style>
+  </head>
+  <body>
+    <div id="hud"></div>
+    <script type="module" src="/src/devtools/fleetCheck.ts"></script>
+  </body>
+</html>

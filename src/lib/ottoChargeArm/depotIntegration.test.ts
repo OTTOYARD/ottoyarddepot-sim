@@ -60,19 +60,27 @@ describe('arm placement in the depot', () => {
     }
   });
 
-  it('faces the vehicle from whichever side of the canopy it is on', () => {
+  it('stands on the left of every car, on both columns of every canopy, and faces the car', () => {
     const stalls = dcfc();
-    const towards = new Set(stalls.map((s) => placeArm(s.id, s.position.x, s.position.y, s.position.angle).toward));
-    // Each canopy has two stall columns straddling its spine, so both signs must
-    // occur. If they did not, one column's arms would face into empty tarmac.
-    expect(towards).toEqual(new Set([1, -1]));
-    // …under every canopy, not only across the depot
+    // Every charger is on its car's left since 2026-11-13 (depotPlacement.towardFor): no vehicle in the fleet has
+    // its charge inlet on the right.
+    const lateral = new Set<number>();
     for (const c of CANOPIES) {
       const mine = stalls.filter((s) => Math.abs(s.position.x - c.cx) < c.w / 2);
       expect(mine, c.id).toHaveLength(10);
-      expect(new Set(mine.map((s) => placeArm(s.id, s.position.x, s.position.y, s.position.angle).toward)), c.id)
-        .toEqual(new Set([1, -1]));
+      // both columns of the canopy are there: cars facing east and cars facing west
+      expect(new Set(mine.map((s) => Math.sign(c.cx - s.position.x))), c.id).toEqual(new Set([1, -1]));
+      for (const s of mine) {
+        const p = placeArm(s.id, s.position.x, s.position.y, s.position.angle);
+        expect(p.toward, s.id).toBe(-1);
+        const h = parkedHeading('dcfc', s.position.angle, s.position.x, s.position.y);
+        const dx = -(p.world[0] - p.carWorld[0]);
+        const dy = -(p.world[2] - p.carWorld[2]);
+        // which side of the car's own axis the pedestal is on: one sign for every stall
+        lateral.add(Math.sign(-dx * Math.sin(h) + dy * Math.cos(h)));
+      }
     }
+    expect(lateral.size).toBe(1);
 
     for (const s of stalls) {
       const p = placeArm(s.id, s.position.x, s.position.y, s.position.angle);

@@ -17,6 +17,8 @@
 // No network: the files are read from disk.
 // ============================================================================
 import { describe, expect, it } from 'vitest';
+import { ARM_REACH, BASE_JOINT_NAMES, bedCentreX } from '@/lib/ottoChargeArm/mateSolver';
+import { MODEL_TOWARD } from './liveFollow';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { resolve } from 'node:path';
@@ -46,7 +48,7 @@ function glbOf(k: RobotKey): Gltf {
 }
 const byName = (g: Gltf, name: string) => g.nodes.find((n) => n.name === name || (n.extras?.joint as { name?: string })?.name === name);
 const t = (n: GNode | undefined) => n?.translation ?? [0, 0, 0];
-const jointOf = (n: GNode | undefined) => n?.extras?.joint as { name: string; axis: number[]; stowed: number; kind: string } | undefined;
+const jointOf = (n: GNode | undefined) => n?.extras?.joint as { name: string; axis: number[]; stowed: number; kind: string; limits: number[] } | undefined;
 
 describe.each(['charge_arm', 'clean_arm', 'wash_gantry'] as RobotKey[])('%s: files', (k) => {
   const bom = bomOf(k);
@@ -118,10 +120,30 @@ describe('charge arm: the twin\'s kinematics', () => {
     expect(t(byName(g, 'J6'))[1]).toBeCloseTo(s.wrist, 4);
     for (const n of ['J2', 'J3', 'J5', 'J6']) { expect(t(byName(g, n))[0]).toBeCloseTo(0, 6); expect(t(byName(g, n))[2]).toBeCloseTo(0, 6); }
   });
-  it('puts the connector face at the twin\'s TCP: `tool` metres past the J6 flange', () => {
-    const nose = g.nodes.find((n) => n.extras?.part === 'CHG-NOS')!;
-    const acc = g.accessors[g.meshes[nose.mesh!].primitives[0].attributes.POSITION];
-    expect(acc.max![1] + t(nose)[1]).toBeCloseTo(s.tool, 3);
+  it('puts each connector\'s face at the twin\'s tool point plane when it is forward, beside the tool axis where mateSolver says', () => {
+    for (const head of ARM_REACH.heads) {
+      const hn = head === 'CCS1' ? 'CCS' : 'NACS';
+      const node = byName(g, `HD_${hn}`);
+      const j = jointOf(node)!;
+      expect(j.kind).toBe('prismatic');
+      expect(j.limits[1]).toBeCloseTo(ARM_REACH.headStrokeM, 6);
+      expect(t(node)[0]).toBeCloseTo(ARM_REACH.headOffsetX[head], 6);
+      expect(t(node)[2]).toBeCloseTo(ARM_REACH.headOffsetZ, 6);
+      const nose = g.nodes.find((n) => n.extras?.part === `CHG-NOS-${hn}`)!;
+      const acc = g.accessors[g.meshes[nose.mesh!].primitives[0].attributes.POSITION];
+      // at rest the face is one stroke back; forward, it is `tool` metres past the J6 flange
+      expect(acc.max![1] + t(nose)[1] + ARM_REACH.headStrokeM).toBeCloseTo(s.tool, 3);
+    }
+  });
+  it('carries the base stage as three slides: the bed\'s set position, the carriage along the car, the cross-slide toward it', () => {
+    const [bed, cx, cz] = BASE_JOINT_NAMES.map((n) => jointOf(byName(g, n))!);
+    expect(bed.kind).toBe('prismatic'); expect(cx.kind).toBe('prismatic'); expect(cz.kind).toBe('prismatic');
+    expect(cx.axis).toEqual([1, 0, 0]);
+    expect(cz.axis).toEqual([0, 0, 1]);
+    expect(cx.limits[1]).toBeCloseTo(ARM_REACH.railTailM, 6);
+    expect(cz.limits).toEqual([expect.closeTo(-ARM_REACH.crossOutM, 6), expect.closeTo(ARM_REACH.crossInM, 6)]);
+    expect(bed.stowed).toBeCloseTo(bedCentreX(MODEL_TOWARD), 6);
+    expect(cx.stowed).toBe(0); expect(cz.stowed).toBe(0);
   });
 });
 

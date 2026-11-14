@@ -4,6 +4,19 @@
   "stowed",
   "pose:stowed",
   "pose:connected",
+  "pose:connected_axis",
+  "pose:mate_waymo_ojai",
+  "pose:base_waymo_ojai",
+  "pose:mate_waymo_ipace",
+  "pose:base_waymo_ipace",
+  "pose:mate_zoox_robotaxi",
+  "pose:base_zoox_robotaxi",
+  "pose:mate_tesla_cybercab",
+  "pose:base_tesla_cybercab",
+  "pose:mate_tesla_model_y",
+  "pose:base_tesla_model_y",
+  "pose:mate_lucid_gravity_nuro",
+  "pose:base_lucid_gravity_nuro",
   "cycle:unstow:mid",
   "cycle:unstow:end",
   "cycle:approach:mid",
@@ -23,14 +36,15 @@
   "cycle:retract:mid",
   "cycle:retract:end"
  ],
- "pairsChecked": 33659,
- "contactPairs": 1503,
+ "pairsChecked": 31024,
+ "pairsMeasured": 15249,
+ "contactPairs": 2024,
  "counts": {
-  "thread": 656,
-  "seal": 12,
+  "thread": 816,
+  "seal": 13,
   "ring": 9,
   "mesh": 3,
-  "context": 17,
+  "context": 61,
   "clash": 0,
   "error": 0
  },
@@ -40,22 +54,22 @@
   {
    "kind": "context",
    "a": {
-    "item": "CHG-PAD#1",
-    "part": "CHG-PAD",
-    "name": "Charger pad (site concrete)",
-    "sub": "MOUNT"
-   },
-   "b": {
     "item": "CHG-ANC-M16#1",
     "part": "CHG-ANC-M16",
     "name": "Anchor rod M16 x 190, injection mortar",
-    "sub": "MOUNT"
+    "sub": "BASE"
    },
-   "volumeMm3": 22063.8,
+   "b": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "volumeMm3": 8270.9,
    "at": [
-    -190.0,
-    -528.3,
-    -190.0
+    -2980.0,
+    -570.6,
+    -268.0
    ],
    "poses": [
     "stowed"
@@ -64,22 +78,934 @@
   {
    "kind": "context",
    "a": {
-    "item": "CHG-PAD#1",
-    "part": "CHG-PAD",
-    "name": "Charger pad (site concrete)",
-    "sub": "MOUNT"
+    "item": "CHG-BGB#1",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#1",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    -2980.0,
+    -511.7,
+    -268.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#2",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#3",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    -2072.0,
+    -511.7,
+    -268.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#3",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#5",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    -1164.0,
+    -511.7,
+    -268.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#4",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#7",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    -256.0,
+    -511.7,
+    -268.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#5",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#9",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    652.0,
+    -511.7,
+    -268.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#6",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#11",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    1560.0,
+    -511.7,
+    -268.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-ANC-M16#13",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "volumeMm3": 8270.9,
+   "at": [
+    -2980.0,
+    -570.6,
+    508.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#7",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#13",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    -2980.0,
+    -511.7,
+    508.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#8",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#15",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    -2072.0,
+    -511.7,
+    508.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#9",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#17",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    -1164.0,
+    -511.7,
+    508.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#10",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#19",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    -256.0,
+    -511.7,
+    508.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#11",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#21",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    652.0,
+    -511.7,
+    508.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#12",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#23",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    1560.0,
+    -511.7,
+    508.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-ANC-M16#2",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "volumeMm3": 8270.9,
+   "at": [
+    -2760.0,
+    -570.6,
+    -268.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#1",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
    },
    "b": {
     "item": "CHG-ANC-M16#2",
     "part": "CHG-ANC-M16",
     "name": "Anchor rod M16 x 190, injection mortar",
-    "sub": "MOUNT"
+    "sub": "BASE"
    },
-   "volumeMm3": 22063.8,
+   "volumeMm3": 15401.3,
    "at": [
-    -190.0,
-    -528.3,
-    190.0
+    -2760.0,
+    -511.7,
+    -268.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#2",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#4",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    -1852.0,
+    -511.7,
+    -268.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#3",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#6",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    -944.0,
+    -511.7,
+    -268.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#4",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#8",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    -36.0,
+    -511.7,
+    -268.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#5",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#10",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    872.0,
+    -511.7,
+    -268.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#6",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#12",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    1780.0,
+    -511.7,
+    -268.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-ANC-M16#14",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "volumeMm3": 8270.9,
+   "at": [
+    -2760.0,
+    -570.6,
+    508.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#7",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#14",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    -2760.0,
+    -511.7,
+    508.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#8",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#16",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    -1852.0,
+    -511.7,
+    508.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#9",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#18",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    -944.0,
+    -511.7,
+    508.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#10",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#20",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    -36.0,
+    -511.7,
+    508.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#11",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#22",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    872.0,
+    -511.7,
+    508.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BGB#12",
+    "part": "CHG-BGB",
+    "name": "Grout block under a bed plate (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-ANC-M16#24",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "volumeMm3": 15401.3,
+   "at": [
+    1780.0,
+    -511.7,
+    508.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-ANC-M16#3",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "volumeMm3": 8270.9,
+   "at": [
+    -2072.0,
+    -570.6,
+    -268.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-ANC-M16#15",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "volumeMm3": 8270.9,
+   "at": [
+    -2072.0,
+    -570.6,
+    508.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-ANC-M16#4",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "volumeMm3": 8270.9,
+   "at": [
+    -1852.0,
+    -570.6,
+    -268.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-ANC-M16#16",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "volumeMm3": 8270.9,
+   "at": [
+    -1852.0,
+    -570.6,
+    508.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-ANC-M16#5",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "volumeMm3": 8270.9,
+   "at": [
+    -1164.0,
+    -570.6,
+    -268.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-ANC-M16#17",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "volumeMm3": 8270.9,
+   "at": [
+    -1164.0,
+    -570.6,
+    508.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-ANC-M16#6",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "volumeMm3": 8270.9,
+   "at": [
+    -944.0,
+    -570.6,
+    -268.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-ANC-M16#18",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "volumeMm3": 8270.9,
+   "at": [
+    -944.0,
+    -570.6,
+    508.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-ANC-M16#7",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "volumeMm3": 8270.9,
+   "at": [
+    -256.0,
+    -570.6,
+    -268.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-ANC-M16#19",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "volumeMm3": 8270.9,
+   "at": [
+    -256.0,
+    -570.6,
+    508.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-ANC-M16#8",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "volumeMm3": 8270.9,
+   "at": [
+    -36.0,
+    -570.6,
+    -268.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-ANC-M16#20",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "volumeMm3": 8270.9,
+   "at": [
+    -36.0,
+    -570.6,
+    508.0
    ],
    "poses": [
     "stowed"
@@ -442,22 +1368,22 @@
   {
    "kind": "context",
    "a": {
-    "item": "CHG-PAD#1",
-    "part": "CHG-PAD",
-    "name": "Charger pad (site concrete)",
-    "sub": "MOUNT"
-   },
-   "b": {
-    "item": "CHG-ANC-M16#3",
+    "item": "CHG-ANC-M16#9",
     "part": "CHG-ANC-M16",
     "name": "Anchor rod M16 x 190, injection mortar",
-    "sub": "MOUNT"
+    "sub": "BASE"
    },
-   "volumeMm3": 22063.8,
+   "b": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "volumeMm3": 8270.9,
    "at": [
-    190.0,
-    -528.3,
-    -190.0
+    652.0,
+    -570.6,
+    -268.0
    ],
    "poses": [
     "stowed"
@@ -466,28 +1392,172 @@
   {
    "kind": "context",
    "a": {
-    "item": "CHG-PAD#1",
-    "part": "CHG-PAD",
-    "name": "Charger pad (site concrete)",
-    "sub": "MOUNT"
-   },
-   "b": {
-    "item": "CHG-ANC-M16#4",
+    "item": "CHG-ANC-M16#21",
     "part": "CHG-ANC-M16",
     "name": "Anchor rod M16 x 190, injection mortar",
-    "sub": "MOUNT"
+    "sub": "BASE"
    },
-   "volumeMm3": 22063.8,
+   "b": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "volumeMm3": 8270.9,
    "at": [
-    190.0,
-    -528.3,
-    190.0
+    652.0,
+    -570.6,
+    508.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-ANC-M16#10",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "volumeMm3": 8270.9,
+   "at": [
+    872.0,
+    -570.6,
+    -268.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-ANC-M16#22",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "volumeMm3": 8270.9,
+   "at": [
+    872.0,
+    -570.6,
+    508.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-ANC-M16#11",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "volumeMm3": 8270.9,
+   "at": [
+    1560.0,
+    -570.6,
+    -268.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-ANC-M16#23",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "volumeMm3": 8270.9,
+   "at": [
+    1560.0,
+    -570.6,
+    508.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-ANC-M16#12",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "volumeMm3": 8270.9,
+   "at": [
+    1780.0,
+    -570.6,
+    -268.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-ANC-M16#24",
+    "part": "CHG-ANC-M16",
+    "name": "Anchor rod M16 x 190, injection mortar",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "volumeMm3": 8270.9,
+   "at": [
+    1780.0,
+    -570.6,
+    508.0
    ],
    "poses": [
     "stowed"
    ]
   }
  ],
- "seconds": 1960.5,
- "glbSha256": "1f2627e49905a0a5"
+ "seconds": 1253.5,
+ "glbSha256": "8fdd0c3aa0897834"
 }

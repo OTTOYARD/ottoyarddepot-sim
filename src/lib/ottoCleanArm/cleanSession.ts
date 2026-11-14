@@ -18,6 +18,28 @@
  *     back, and the arm goes home and the doors shut, at up to ABORT_SPEED. It never
  *     takes a short cut across the car.
  *
+ * ONE PROGRAM PER VEHICLE (2026-11-13). The cycle a session plays is its vehicle's CleanProgram (cleanArmPose.ts,
+ * cleanPrograms.ts): the openings it visits and the strokes at each. The twin says which car is in the stall, the
+ * gate passes its model key as the cycle starts, and the session keeps it to the end: the arm finishes on the
+ * program it started. A car the twin does not name is cleaned by the generic program, as before.
+ *
+ * THE DOORS ARE PER FLANK, AND ON THE PORT FLANK PER OPENING; A PORT OPENING WAITS FOR THE CHARGE ARM ONLY WHERE
+ * ITS OWN DOORS DO NOT CLEAR IT (2026-11-13, per opening 2026-11-14). Every charger stands on the car's port flank,
+ * and an open port-flank door leaf is where the charge arm stands or passes. So:
+ *   · the FAR flank's doors open first (doors_open) and shut as the arm leaves that flank;
+ *   · a PORT opening's doors open only as the arm swings to that opening, and only while the charge arm is still
+ *     in a state measured clear of THOSE doors for this vehicle (input.portOkAt, from the visit's `beside` facts;
+ *     input.portOk for a program whose visits carry none). Only the doors of the opening the arm is at are open:
+ *     every other port door is shut (doorPortBy). A program puts the openings that may be worked with the
+ *     connector latched first. Until the next one may be opened the arm WAITS, parked up at the ready point of
+ *     the opening it last worked, every door shut;
+ *   · if the charge arm must move while the arm is at the port flank (input.portYield: its charger faulted), the
+ *     arm comes out and up, the port doors shut, and it waits there; it works that opening again when it may;
+ *   · if the twin's step ends first, the arm goes home and the home session says the port flank was not done
+ *     (`portNotDoneFor`). Nothing pretends it was cleaned.
+ * The arm's joints in every phase are what they were: only waits were added. Founder's order (2026-11-12): charge
+ * and clean together where the design allows, else charge first, then clean.
+ *
  * ONE EVALUATION. The motion driver steps this reducer once per stall (engine/motion/
  * cleanGate.ts); the renderer draws that session, the fleet's doors read it through
  * doorStore, and the car's right to move is read from it. The doors, the arm and the
@@ -25,10 +47,11 @@
  */
 
 import {
-  CLEAN_CHAIN, CLEAN_PHASE_S, CLEAN_SIDE_NOMINAL_S, CLEAN_SIDE_MIN_S, CLEAN_SIDE_MAX_S,
-  isCleanHome, type CleanPhase,
+  CLEAN_SIDE_NOMINAL_S, CLEAN_SIDE_MIN_S, CLEAN_SIDE_MAX_S, cleanPhaseOf,
+  isCleanHome, isCleanWork, phaseMove, phaseVisit, type CleanPhase,
 } from './cleanArmSpec';
-import { cleanJointsAt, type CleanJoints, type CleanSides } from './cleanArmPose';
+import { cleanJointsAt, ease, GENERIC_PROGRAM, type CleanJoints, type CleanProgram, type CleanSides } from './cleanArmPose';
+import { cleanProgramFor } from './cleanPrograms';
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
@@ -47,9 +70,14 @@ export interface CleanSession {
   t: number;
   /** the car this cycle is cleaning; held to the end so the arm finishes against the car it entered */
   vehicleId: string | null;
-  /** the clean phases' planned lengths, sim seconds, fixed as each one begins */
+  /** the clean phases' planned lengths, sim seconds, fixed as each one begins: the first and second opening's */
   cleanA: number;
   cleanB: number;
+  /** ...and the third and fourth opening's, on a vehicle whose program visits that many */
+  cleanC?: number;
+  cleanD?: number;
+  /** the program this cycle plays: the vehicle's fleet model key. Absent: the generic car's. Set as the cycle starts. */
+  program?: string;
   /** true once the twin's step is over and the arm is on its way home */
   finishing: boolean;
   /** the joints when the current phase began, for the phases that start from wherever the arm is */
@@ -66,7 +94,32 @@ export interface CleanSession {
    * foundItems.ts). The twin says so. Every joint keeps its pose until the stop ends. Absent reads false.
    */
   held?: boolean;
+  /** How far each flank's doors are through opening, 0..1 (drawn eased, cleanDoors). Absent reads 0: shut. */
+  doorFar?: number;
+  /** The port flank's widest-open door. */
+  doorPort?: number;
+  /**
+   * Each port-flank door's own opening, in the program's `flankDoors` order, on a vehicle whose port visits name
+   * their doors: only the doors of the opening the arm is at are open. Absent: every port door stands at `doorPort`.
+   */
+  doorPortBy?: number[];
+  /** The arm waits, parked up with the port doors shut, for the charge arm to be still and clear of them. */
+  waiting?: boolean;
+  /** It left a port-flank opening for the charge arm and will work that opening again from its ready point. */
+  redo?: boolean;
+  /** How many openings' cleans this cycle has played to their end. */
+  visitsDone?: number;
+  /**
+   * HOME, and the car whose PORT flank this arm did not clean, or did not finish: the twin's step ended while the
+   * arm waited for the charge arm. Kept while that car stays in the stall, for the views and the car's card.
+   */
+  portNotDoneFor?: string;
+  /** With `portNotDoneFor`: the arm cleaned at least one port-flank opening of that car (during its charge), not all. */
+  portPartDone?: boolean;
 }
+
+/** Seconds a door takes to open or shut (the doors_open and doors_close phases' own length). */
+export const DOOR_S = 3;
 
 export const IDLE_CLEAN: CleanSession = Object.freeze({
   phase: 'home' as CleanPhase, phaseElapsed: 0, t: 1, vehicleId: null,
@@ -86,6 +139,11 @@ export interface CleanInput {
   /** which flank this stall's arm cleans first (the far one) and second (the port one) */
   sides: CleanSides;
   /**
+   * The model of the car in the stall, as the twin names it (fleetModels/assign.fleetModelKeyFor), or null. Read as
+   * the cycle starts; a cycle under way keeps the program it started.
+   */
+  model?: string | null;
+  /**
    * May the arm leave home for the car? False while the stall's OTTO-CHARGE ARM is
    * moving (reaching for the port or letting go): the doors open as the charge arm
    * mates, and the cleaning arm goes in once the connector is latched, the order Chase
@@ -97,33 +155,50 @@ export interface CleanInput {
    * already counts this wait, so the caller passes `endsInS` less it: the arm's own work is as long as before.
    */
   heldS?: number;
+  /**
+   * May the PORT flank's doors be open now? True only while the stall's OTTO-CHARGE ARM is still, with no mate
+   * coming, in a state this vehicle's program measured clear of its open port-flank doors (CleanProgram.beside:
+   * stowed at its park position, or latched). Absent reads true (a stall with no charge arm beside it).
+   */
+  portOk?: boolean;
+  /**
+   * The same PER VISIT of the session's program (index = visit): may THAT opening's doors be open now? A port
+   * opening whose own doors clear the latched charge arm is worked during the charge; one whose doors do not
+   * waits for the connector to come out (CleanVisit.beside). Absent, or no entry: `portOk`.
+   */
+  portOkAt?: readonly boolean[];
+  /** The charge arm must move now (its charger faulted with the connector in): the arm leaves the port flank. */
+  portYield?: boolean;
 }
 
+type Planned = Pick<CleanSession, 'cleanA' | 'cleanB' | 'cleanC' | 'cleanD'>;
+const PLAN_KEYS = ['cleanA', 'cleanB', 'cleanC', 'cleanD'] as const;
+
 /** A phase's length at nominal speed, given the session's planned clean lengths. */
-export function cleanPhaseLength(p: CleanPhase, s: Pick<CleanSession, 'cleanA' | 'cleanB'>): number {
+export function cleanPhaseLength(p: CleanPhase, s: Planned, program: CleanProgram = GENERIC_PROGRAM): number {
   if (p === 'home') return Infinity;
-  if (p === 'clean_a') return s.cleanA;
-  if (p === 'clean_b') return s.cleanB;
-  return CLEAN_PHASE_S[p];
+  if (isCleanWork(p)) return s[PLAN_KEYS[phaseVisit(p)]] ?? CLEAN_SIDE_NOMINAL_S;
+  return program.seconds[p] ?? 0;
 }
 
 /** Sim seconds of the cycle still to run from (phase, elapsed), at nominal speed, along the full chain. */
-export function remainingCycleS(s: Pick<CleanSession, 'phase' | 'phaseElapsed' | 'cleanA' | 'cleanB'>): number {
+export function remainingCycleS(s: Pick<CleanSession, 'phase' | 'phaseElapsed' | 'program'> & Planned): number {
   if (s.phase === 'home') return 0;
-  const i = CLEAN_CHAIN.indexOf(s.phase);
-  let r = Math.max(0, cleanPhaseLength(s.phase, s) - s.phaseElapsed);
-  for (let k = i + 1; k < CLEAN_CHAIN.length; k++) r += cleanPhaseLength(CLEAN_CHAIN[k], s);
+  const program = cleanProgramFor(s.program);
+  const i = program.chain.indexOf(s.phase);
+  let r = Math.max(0, cleanPhaseLength(s.phase, s, program) - s.phaseElapsed);
+  for (let k = i + 1; k < program.chain.length; k++) r += cleanPhaseLength(program.chain[k], s, program);
   return r;
 }
 
 /** Fixed motion and clean phases still to come AFTER `phase` on the full chain. */
-function after(phase: CleanPhase): { fixed: number; cleans: number } {
-  const i = CLEAN_CHAIN.indexOf(phase);
+function after(phase: CleanPhase, program: CleanProgram): { fixed: number; cleans: number } {
+  const i = program.chain.indexOf(phase);
   let fixed = 0, cleans = 0;
-  for (let k = i + 1; k < CLEAN_CHAIN.length; k++) {
-    const p = CLEAN_CHAIN[k];
-    if (p === 'clean_a' || p === 'clean_b') cleans++;
-    else fixed += CLEAN_PHASE_S[p];
+  for (let k = i + 1; k < program.chain.length; k++) {
+    const p = program.chain[k];
+    if (isCleanWork(p)) cleans++;
+    else fixed += program.seconds[p] ?? 0;
   }
   return { fixed, cleans };
 }
@@ -134,26 +209,29 @@ function after(phase: CleanPhase): { fixed: number; cleans: number } {
  * the strokes blur below CLEAN_SIDE_MIN_S, and nothing is cleaned for an hour. No end
  * time published -> the nominal length.
  */
-export function paceClean(phase: 'clean_a' | 'clean_b', endsInS: number | null): number {
+export function paceClean(phase: CleanPhase, endsInS: number | null, program: CleanProgram = GENERIC_PROGRAM): number {
   if (endsInS === null || !Number.isFinite(endsInS)) return CLEAN_SIDE_NOMINAL_S;
-  const { fixed, cleans } = after(phase);
+  const { fixed, cleans } = after(phase, program);
   return clamp((endsInS - fixed) / (cleans + 1), CLEAN_SIDE_MIN_S, CLEAN_SIDE_MAX_S);
 }
 
-/** The next phase on the way. While finishing, side B is skipped once side A is out. */
-function nextPhase(p: CleanPhase, finishing: boolean): CleanPhase {
+/** The next phase on the way. While finishing, the openings still to come are skipped once the arm is out and up. */
+function nextPhase(p: CleanPhase, finishing: boolean, program: CleanProgram): CleanPhase {
   if (finishing) {
-    if (p === 'raise_a') return 'return';
-    if (p === 'swing_b') return 'return';
+    const m = phaseMove(p);
+    if (m === 'raise' || m === 'swing') return 'return';
     if (p === 'return') return 'doors_close';
     if (p === 'doors_close') return 'home';
   }
-  const i = CLEAN_CHAIN.indexOf(p);
-  return i >= 0 && i + 1 < CLEAN_CHAIN.length ? CLEAN_CHAIN[i + 1] : 'home';
+  const i = program.chain.indexOf(p);
+  return i >= 0 && i + 1 < program.chain.length ? program.chain[i + 1] : 'home';
 }
 
 /** The phases that start from wherever the arm is, and so capture `from` as they begin. */
-const FROM_PHASES: ReadonlySet<CleanPhase> = new Set(['exit_a', 'exit_b', 'ascend_a', 'ascend_b', 'return']);
+const startsFromPose = (p: CleanPhase): boolean => {
+  const m = phaseMove(p);
+  return m === 'exit' || m === 'ascend' || p === 'return';
+};
 
 /**
  * Where to go when the step ends mid-cycle, and at what point of that phase, so the
@@ -161,109 +239,238 @@ const FROM_PHASES: ReadonlySet<CleanPhase> = new Set(['exit_a', 'exit_b', 'ascen
  * phases (exit, ascend, return) start from the pose the arm holds. Null: carry on.
  */
 function finishInto(phase: CleanPhase, t: number): { phase: CleanPhase; t: number } | null {
-  switch (phase) {
-    case 'doors_open': return { phase: 'doors_close', t: 1 - t };
-    case 'swing_a': return { phase: 'return', t: 0 };
-    case 'lower_a': return { phase: 'raise_a', t: 1 - t };
-    case 'descend_a': return { phase: 'ascend_a', t: 0 };
-    case 'enter_a': case 'clean_a': return { phase: 'exit_a', t: 0 };
-    case 'swing_b': return { phase: 'return', t: 0 };
-    case 'lower_b': return { phase: 'raise_b', t: 1 - t };
-    case 'descend_b': return { phase: 'ascend_b', t: 0 };
-    case 'enter_b': case 'clean_b': return { phase: 'exit_b', t: 0 };
+  if (phase === 'doors_open') return { phase: 'doors_close', t: 1 - t };
+  const i = phaseVisit(phase);
+  switch (phaseMove(phase)) {
+    case 'swing': return { phase: 'return', t: 0 };
+    case 'lower': return { phase: cleanPhaseOf('raise', i), t: 1 - t };
+    case 'descend': return { phase: cleanPhaseOf('ascend', i), t: 0 };
+    case 'enter': case 'clean': return { phase: cleanPhaseOf('exit', i), t: 0 };
     default: return null; // already on the way out or home
   }
+}
+
+/** The flank a phase's opening is on, or null for home, the doors and the return. */
+function flankOf(p: CleanPhase, program: CleanProgram): 'far' | 'port' | null {
+  const i = phaseVisit(p);
+  return i < 0 ? null : program.visits[i]?.flank ?? null;
+}
+
+/** Is the arm DOWN beside the car at this point of a phase (anything but swinging over it or standing at a ready point)? */
+function armIsLow(p: CleanPhase, t: number): boolean {
+  const m = phaseMove(p);
+  if (m === null || m === 'swing') return false;
+  if (m === 'lower') return t > 0;
+  if (m === 'raise') return t < 1;
+  return true;
+}
+
+/**
+ * Move the two flanks' doors by one step. In doors_open the far doors follow the phase; in doors_close every door
+ * follows it shut. Between, each flank's doors go toward open or shut at 1 / DOOR_S:
+ *   far   open while the arm is at a far opening (not while it stands waiting to leave that flank);
+ *   port  open while the arm is at a port opening AND (the charge arm allows it OR the arm is still down there).
+ */
+function stepDoors(
+  s: Omit<CleanSession, 't'>, t: number, dt: number, program: CleanProgram, portOk: (visit: number) => boolean, waiting: boolean,
+): { doorFar: number; doorPort: number; doorPortBy?: number[] } {
+  let far = s.doorFar ?? 0, port = s.doorPort ?? 0;
+  const ids = program.flankDoors;
+  // each port door on its own, where the program's port visits name their doors
+  const by = ids ? ids.map((_, k) => s.doorPortBy?.[k] ?? port) : null;
+  const out = (f: number, p: number, b: number[] | null) => (b ? { doorFar: f, doorPort: Math.max(0, ...b), doorPortBy: b } : { doorFar: f, doorPort: p });
+  if (s.phase === 'home') return { doorFar: 0, doorPort: 0 };
+  if (s.phase === 'doors_open') {
+    // the first opening's flank (the far one on every program)
+    if (program.visits[0]?.flank === 'port') port = Math.max(port, t); else far = Math.max(far, t);
+    return out(far, port, by && program.visits[0]?.flank === 'port' ? by.map((v) => Math.max(v, t)) : by);
+  }
+  if (s.phase === 'doors_close') return out(Math.min(far, 1 - t), Math.min(port, 1 - t), by ? by.map((v) => Math.min(v, 1 - t)) : null);
+  if (s.phase === 'return') return out(far, port, by);
+  const flank = flankOf(s.phase, program);
+  const vi = phaseVisit(s.phase);
+  const wantFar = flank === 'far' && !waiting ? 1 : 0;
+  const wantPort = flank === 'port' && ((portOk(vi) && !waiting) || armIsLow(s.phase, t)) ? 1 : 0;
+  const move = (v: number, want: number) => v + clamp(want - v, -dt / DOOR_S, dt / DOOR_S);
+  if (by && ids) {
+    // only the doors of the opening the arm is at: every other port door is shut
+    const mine = program.visits[vi]?.doors;
+    return out(move(far, wantFar), 0, by.map((v, k) => move(v, wantPort && (!mine || mine.includes(ids[k])) ? 1 : 0)));
+  }
+  return out(move(far, wantFar), move(port, wantPort), null);
+}
+
+/**
+ * Are the doors of port visit `index` where the wand may go down: every one of its doors fully open, and, when its
+ * strokes were made with the opening's other panel shut (CleanVisit.partial), every other port door shut?
+ */
+function portDoorsReady(s: Pick<CleanSession, 'doorPort' | 'doorPortBy'>, program: CleanProgram, index: number): boolean {
+  const ids = program.flankDoors, v = program.visits[index];
+  if (!ids || !v?.doors) return (s.doorPort ?? 0) >= 1;
+  return ids.every((id, k) => {
+    const open = s.doorPortBy?.[k] ?? s.doorPort ?? 0;
+    return v.doors!.includes(id) ? open >= 1 : !v.partial || open <= 0;
+  });
 }
 
 /** Advance one cleaning arm by one frame. Pure. */
 export function advanceCleanSession(prev: CleanSession, input: CleanInput): CleanSession {
   const dt = clamp(Number.isFinite(input.dt) ? input.dt : 0, 0, MAX_CLEAN_STEP_S);
   const { sides } = input;
+  /** May the doors of port visit `i` be open now? */
+  const portOk = (i: number): boolean => (input.portOkAt?.[i] ?? input.portOk) !== false && !input.portYield;
 
   if (isCleanHome(prev.phase)) {
     // the same car, still in the same step, after its cycle ran to the end: stay home
     const stillDone = prev.completedFor !== null && input.active && input.vehicleId === prev.completedFor;
-    if (!(input.active && input.vehicleId) || stillDone) {
-      return { ...IDLE_CLEAN, vehicleId: input.vehicleId, completedFor: stillDone ? prev.completedFor : null };
+    // a vehicle whose program visits no opening is one this arm cannot clean (cleanPrograms.ts): it stays home
+    const startWith = cleanProgramFor(input.model);
+    // the car whose port flank was not done is remembered while it stays in the stall
+    const notDone = prev.portNotDoneFor !== undefined && prev.portNotDoneFor === input.vehicleId
+      ? { portNotDoneFor: prev.portNotDoneFor, ...(prev.portPartDone ? { portPartDone: true } : {}) } : {};
+    if (!(input.active && input.vehicleId) || stillDone || startWith.visits.length === 0) {
+      return { ...IDLE_CLEAN, vehicleId: input.vehicleId, completedFor: stillDone ? prev.completedFor : null, ...notDone };
     }
     // START: the doors open first; each clean phase's length is set as it begins
-    return { ...IDLE_CLEAN, phase: 'doors_open', t: 0, vehicleId: input.vehicleId };
+    const started: CleanSession = { ...IDLE_CLEAN, phase: 'doors_open', t: 0, vehicleId: input.vehicleId };
+    if (startWith !== GENERIC_PROGRAM) started.program = startWith.key;
+    return started;
   }
 
-  const { phase, phaseElapsed } = prev;
-  let { cleanA, cleanB, finishing, from } = prev;
+  const program = cleanProgramFor(prev.program);
+  let { phase, phaseElapsed } = prev;
+  let { finishing, from } = prev;
+  let redo = prev.redo === true;
+  let visitsDone = prev.visitsDone ?? 0;
+  const plan: Planned = { cleanA: prev.cleanA, cleanB: prev.cleanB };
+  if (prev.cleanC !== undefined) plan.cleanC = prev.cleanC;
+  if (prev.cleanD !== undefined) plan.cleanD = prev.cleanD;
   const vehicleId = prev.vehicleId;
   const completedFor: string | null = null;
+  const keep = (): Pick<CleanSession, 'program'> & Planned => (prev.program === undefined ? plan : { ...plan, program: prev.program });
+  const lengthOf = (p: CleanPhase) => cleanPhaseLength(p, plan, program);
   const poseNow = (): CleanJoints =>
-    cleanJointsAt(phase, cleanPhaseLength(phase, { cleanA, cleanB }) > 0
-      ? clamp(phaseElapsed / cleanPhaseLength(phase, { cleanA, cleanB }), 0, 1) : 1, sides, { from });
+    cleanJointsAt(phase, lengthOf(phase) > 0 ? clamp(phaseElapsed / lengthOf(phase), 0, 1) : 1, sides, { from, program });
+  /** Close the step: the phase's t, the doors moved by this step, and the bookkeeping that is not at its default. */
+  const done = (s: Pick<CleanSession, 'phase' | 'phaseElapsed' | 'from'>, waiting = false): CleanSession => {
+    const out = finishStep({ ...s, vehicleId, finishing, completedFor, ...keep() }, program);
+    const doors = stepDoors({ ...out, doorFar: prev.doorFar, doorPort: prev.doorPort, doorPortBy: prev.doorPortBy }, out.t, dt, program, portOk, waiting);
+    out.doorFar = doors.doorFar;
+    out.doorPort = doors.doorPort;
+    if (doors.doorPortBy) out.doorPortBy = doors.doorPortBy;
+    if (waiting) out.waiting = true;
+    if (redo) out.redo = true;
+    if (visitsDone > 0) out.visitsDone = visitsDone;
+    return out;
+  };
 
   // THE STOP CONDITION: the twin no longer says this car is being cleaned here, or the
   // car in the stall is not the car the arm went into.
   const over = !input.active || input.vehicleId !== vehicleId;
   if (over && !finishing) {
     finishing = true;
-    const L = cleanPhaseLength(phase, { cleanA, cleanB });
+    redo = false;
+    const L = lengthOf(phase);
     const tNow = L > 0 ? clamp(phaseElapsed / L, 0, 1) : 1;
     const into = finishInto(phase, tNow);
     if (into) {
-      const fromPose = FROM_PHASES.has(into.phase) ? poseNow() : null;
-      const L2 = cleanPhaseLength(into.phase, { cleanA, cleanB });
+      const fromPose = startsFromPose(into.phase) ? poseNow() : null;
       // one transition this call; the pose is continuous across it by construction
-      return finishStep({ phase: into.phase, phaseElapsed: into.t * L2, vehicleId, cleanA, cleanB, finishing, from: fromPose, completedFor });
+      return done({ phase: into.phase, phaseElapsed: into.t * lengthOf(into.phase), from: fromPose });
+    }
+  }
+
+  // THE CHARGE ARM MUST MOVE (its charger faulted with the connector in) while the arm is down at a PORT opening:
+  // it comes out the way a step that ends does, but only out of this opening. It stands at the ready point with the
+  // port doors shut until the charge arm is still again, and then works this opening again.
+  if (!finishing && input.portYield && flankOf(phase, program) === 'port' && !redo) {
+    const L = lengthOf(phase);
+    const tNow = L > 0 ? clamp(phaseElapsed / L, 0, 1) : 1;
+    const m = phaseMove(phase);
+    const into = m === 'lower' || m === 'descend' || m === 'enter' || m === 'clean' ? finishInto(phase, tNow) : null;
+    if (into) {
+      redo = true;
+      const fromPose = startsFromPose(into.phase) ? poseNow() : null;
+      return done({ phase: into.phase, phaseElapsed: into.t * lengthOf(into.phase), from: fromPose });
     }
   }
 
   // THE STOP FOR A FOUND ITEM: while the twin says an attendant has not secured it, the arm keeps its pose. Only an
   // arm that works stops: one already on its way home goes home (the car left, or the step is over).
   if (!finishing && (input.heldS ?? 0) > 0) {
-    return { ...finishStep({ phase, phaseElapsed, vehicleId, cleanA, cleanB, finishing, from, completedFor }), held: true };
+    return { ...done({ phase, phaseElapsed, from }, prev.waiting === true), held: true };
   }
 
   // pace: while the step is on, keep to the twin's end; once it is over, hurry home
   let speed = 1;
   if (finishing) speed = ABORT_SPEED;
   else if (input.endsInS !== null && Number.isFinite(input.endsInS)) {
-    const left = remainingCycleS({ phase, phaseElapsed, cleanA, cleanB });
+    const left = remainingCycleS({ phase, phaseElapsed, ...keep() });
     if (left > 0) speed = clamp(left / Math.max(input.endsInS, 0.25), 1, MAX_PACE);
   }
 
-  const len = cleanPhaseLength(phase, { cleanA, cleanB });
+  const len = lengthOf(phase);
   const budget = dt * speed;
-  // THE WAIT FOR THE CHARGE ARM: the doors stand open and the arm stays home until
-  // the connector is latched (or no charge arm is working). Static: doors_open's pose
-  // at its end is the stowed pose with the doors fully open.
-  if (phase === 'doors_open' && !finishing && input.mayEnter === false && phaseElapsed + budget >= len) {
-    return finishStep({ phase, phaseElapsed: len, vehicleId, cleanA, cleanB, finishing, from, completedFor });
+  // What comes after this phase, and whether the arm may go on to it. A phase that may not be left is held at its
+  // end, a static pose: the stowed pose with the far doors open (doors_open), or a ready point with the wand up.
+  let next = nextPhase(phase, finishing, program);
+  // back to the opening it left for the charge arm: its ready point is where raise ends and lower starts
+  if (redo && !finishing && phaseMove(phase) === 'raise') next = cleanPhaseOf('lower', phaseVisit(phase));
+  if (!finishing && phaseElapsed + budget >= len) {
+    const nextFlank = flankOf(next, program);
+    const nextMove = phaseMove(next);
+    // THE WAIT FOR THE CHARGE ARM, far flank: the far doors stand open and the arm stays home until the connector
+    // is latched (or no charge arm is working).
+    if (phase === 'doors_open' && input.mayEnter === false) return done({ phase, phaseElapsed: len, from });
+    // ...and port flank: no swing to a port opening, and no wand down at one, unless the charge arm is still and
+    // clear of this vehicle's open port doors; and the wand goes down only once those doors are fully open.
+    if (nextFlank === 'port' && (nextMove === 'swing' || nextMove === 'lower')) {
+      const allowed = portOk(phaseVisit(next));
+      const doorsOpen = portDoorsReady(prev, program, phaseVisit(next));
+      if (!allowed || (nextMove === 'lower' && !doorsOpen)) return done({ phase, phaseElapsed: len, from }, !allowed);
+    }
   }
   if (phaseElapsed + budget < len) {
-    return finishStep({ phase, phaseElapsed: phaseElapsed + budget, vehicleId, cleanA, cleanB, finishing, from, completedFor });
+    return done({ phase, phaseElapsed: phaseElapsed + budget, from });
   }
 
   // ONE transition per call (the charge arm's rule: a phase entered and left inside one
   // call is a phase the viewer never sees); the unspent time is dropped.
-  const endPose = cleanJointsAt(phase, 1, sides, { from });
-  const next = nextPhase(phase, finishing);
+  const endPose = cleanJointsAt(phase, 1, sides, { from, program });
   if (next === 'home') {
     // home, doors shut: remember the car if the twin still has its step open
     const still = input.active && input.vehicleId === vehicleId ? vehicleId : null;
-    return { ...IDLE_CLEAN, vehicleId: input.vehicleId, completedFor: still };
+    const home: CleanSession = { ...IDLE_CLEAN, vehicleId: input.vehicleId, completedFor: still };
+    // the port flank was not done (or not finished) for this car: say so while it stays
+    const portLeft = program.visits.some((v, i) => v.flank === 'port' && i >= visitsDone);
+    if (portLeft && vehicleId && input.vehicleId === vehicleId) {
+      home.portNotDoneFor = vehicleId;
+      if (program.visits.some((v, i) => v.flank === 'port' && i < visitsDone)) home.portPartDone = true;
+    }
+    return home;
   }
-  if (next === 'clean_a') cleanA = paceClean('clean_a', input.endsInS);
-  if (next === 'clean_b') cleanB = paceClean('clean_b', input.endsInS);
-  from = FROM_PHASES.has(next) ? endPose : null;
-  return finishStep({ phase: next, phaseElapsed: 0, vehicleId, cleanA, cleanB, finishing, from, completedFor });
+  if (isCleanWork(phase) && !finishing && !redo) visitsDone = Math.max(visitsDone, phaseVisit(phase) + 1);
+  if (isCleanWork(next)) plan[PLAN_KEYS[phaseVisit(next)]] = paceClean(next, input.endsInS, program);
+  if (phaseMove(next) === 'lower') redo = false;
+  from = startsFromPose(next) ? endPose : null;
+  phase = next; phaseElapsed = 0;
+  return done({ phase, phaseElapsed, from });
 }
 
-function finishStep(s: Omit<CleanSession, 't'>): CleanSession {
-  const L = cleanPhaseLength(s.phase, s);
+function finishStep(s: Omit<CleanSession, 't'>, program: CleanProgram): CleanSession {
+  const L = cleanPhaseLength(s.phase, s, program);
   const t = Number.isFinite(L) && L > 0 ? clamp(s.phaseElapsed / L, 0, 1) : 1;
   return { ...s, t };
 }
 
+/** The program a session plays: its vehicle's, or the generic car's. */
+export function cleanSessionProgram(s: Pick<CleanSession, 'program'>): CleanProgram {
+  return cleanProgramFor(s.program);
+}
+
 /** The joints this session shows. */
 export function cleanSessionJoints(s: CleanSession, sides: CleanSides): CleanJoints {
-  return cleanJointsAt(s.phase, s.t, sides, { from: s.from });
+  return cleanJointsAt(s.phase, s.t, sides, { from: s.from, program: cleanProgramFor(s.program) });
 }
 
 /**
@@ -275,10 +482,32 @@ export function cleanStatusColor(s: Pick<CleanSession, 'phase' | 'finishing' | '
   if (p === 'home') return 0x00e5ff;                       // teal: home, safe
   if (s.held) return 0xff5ea8;                             // pink: stopped for an item in the cabin, a person is needed
   if (s.finishing) return 0xffb020;                        // amber: on its way out
-  if (p === 'clean_a' || p === 'clean_b') return 0x35d07f; // green: working
+  if (isCleanWork(p)) return 0x35d07f;                     // green: working
   if (p.startsWith('enter') || p.startsWith('exit')) return 0xffd54a; // bright amber: through the door
   return 0xffb020;                                         // amber: moving
 }
+
+/**
+ * How far each of the car's two flanks' doors stand open, 0..1, as drawn: the right flank's and the left flank's
+ * (a flank's widest-open door, where its doors stand each on its own: cleanDoorsEach).
+ */
+export function cleanDoors(s: Pick<CleanSession, 'doorFar' | 'doorPort'>, sides: CleanSides): { right: number; left: number } {
+  const far = ease(s.doorFar ?? 0), port = ease(s.doorPort ?? 0);
+  return sides.a === 1 ? { right: far, left: port } : { right: port, left: far };
+}
+
+/**
+ * Each door of each flank on its own, 0..1, as drawn, front to rear in the vehicle's own door order; null for a
+ * flank whose doors all stand at cleanDoors' value. The port flank's are each on its own where the program's port
+ * visits name their doors: only the doors of the opening the arm is at are open.
+ */
+export function cleanDoorsEach(s: Pick<CleanSession, 'doorPortBy'>, sides: CleanSides): { right: number[] | null; left: number[] | null } {
+  const port = s.doorPortBy ? s.doorPortBy.map(ease) : null;
+  return sides.a === 1 ? { right: null, left: port } : { right: port, left: null };
+}
+
+/** Is any PORT-flank door of the car not shut? The charge arm starts no mate and no release while one is. */
+export const portDoorsOpen = (s: Pick<CleanSession, 'doorPort'>): boolean => (s.doorPort ?? 0) > 0;
 
 /** May the car in this stall move? Only when its cleaning arm is home and its doors are shut. */
 export function cleanLetsCarMove(p: CleanPhase): boolean {

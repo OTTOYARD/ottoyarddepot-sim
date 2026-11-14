@@ -1,0 +1,2212 @@
+{
+ "generator": "scripts/exportFleetModels.mjs from src/lib/fleetModels",
+ "units": "metres",
+ "frame": "+X nose, +Y up, +Z right; origin on the ground under the middle of the body",
+ "nodes": "body, door_<id>, wheel_<FL|FR|RL|RR>, sensor_<id>, interior, mirror_<L|R>, charge_port; animation \"doors_open\"",
+ "vehicles": [
+  {
+   "key": "waymo_ojai",
+   "name": "Waymo Ojai",
+   "operator": "Waymo",
+   "maker": "Zeekr",
+   "dims": {
+    "length": 4.688,
+    "width": 1.995,
+    "height": 1.755,
+    "wheelbase": 3.008,
+    "frontAxle": 0.8,
+    "track": 1.7,
+    "tyreRadius": 0.365,
+    "tyreWidth": 0.245,
+    "rimRadius": 0.25
+   },
+   "provenance": {
+    "dimensions": "Not published by Waymo. Length, width, height and wheelbase are the related Zeekr Mix's (same SEA-M platform); axle position, track and tyres are read off photographs.",
+    "doors": "Two sliding doors a side with no pillar between them: the front runs forward, the rear runs back. Travel is estimated.",
+    "sensors": "Published counts: 13 cameras, 4 lidar, 6 radar. Positions are read off photographs; per-sensor placement is not published.",
+    "chargePort": "Not published. Placed on the left rear quarter as an assumption."
+   },
+   "chargePort": {
+    "face": "left",
+    "xr": 4.2,
+    "y": 0.95,
+    "connector": "CCS1",
+    "assumed": true,
+    "note": "ASSUMPTION: left rear quarter, CCS1. Waymo has published neither the position nor the connector."
+   },
+   "doors": [
+    {
+     "id": "FL",
+     "kind": "slide",
+     "side": -1,
+     "out": [
+      0,
+      0,
+      -0.16
+     ],
+     "along": [
+      0.66,
+      0,
+      0
+     ],
+     "pivot": [
+      0.5789999999999997,
+      0,
+      -0.9988944552701505
+     ]
+    },
+    {
+     "id": "RL",
+     "kind": "slide",
+     "side": -1,
+     "out": [
+      0,
+      0,
+      -0.16
+     ],
+     "along": [
+      -0.82,
+      0,
+      0
+     ],
+     "pivot": [
+      -0.6460000000000008,
+      0,
+      -0.9988944552701505
+     ]
+    },
+    {
+     "id": "FR",
+     "kind": "slide",
+     "side": 1,
+     "out": [
+      0,
+      0,
+      0.16
+     ],
+     "along": [
+      0.66,
+      0,
+      0
+     ],
+     "pivot": [
+      0.5789999999999997,
+      0,
+      0.9988944552701505
+     ]
+    },
+    {
+     "id": "RR",
+     "kind": "slide",
+     "side": 1,
+     "out": [
+      0,
+      0,
+      0.16
+     ],
+     "along": [
+      -0.82,
+      0,
+      0
+     ],
+     "pivot": [
+      -0.6460000000000008,
+      0,
+      0.9988944552701505
+     ]
+    }
+   ],
+   "sensors": [
+    {
+     "id": "roof_pod",
+     "type": "pod",
+     "shape": "box",
+     "note": "Roof sensor bar over the windscreen header: forward and side cameras",
+     "position": [
+      0.564,
+      1.8,
+      0
+     ]
+    },
+    {
+     "id": "roof_plinth",
+     "type": "pod",
+     "shape": "box",
+     "note": "Roof plinth",
+     "position": [
+      0.044,
+      1.775,
+      0
+     ]
+    },
+    {
+     "id": "lidar_roof",
+     "type": "lidar",
+     "shape": "spinLidar",
+     "note": "360 degree roof lidar",
+     "position": [
+      0.474,
+      1.84,
+      0
+     ]
+    },
+    {
+     "id": "cam_roof_f",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      0.824,
+      1.8,
+      0
+     ]
+    },
+    {
+     "id": "cam_roof_fl",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      0.804,
+      1.8,
+      -0.42
+     ]
+    },
+    {
+     "id": "cam_roof_fr",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      0.804,
+      1.8,
+      0.42
+     ]
+    },
+    {
+     "id": "cam_roof_l",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      0.564,
+      1.8,
+      -0.555
+     ]
+    },
+    {
+     "id": "cam_roof_r",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      0.564,
+      1.8,
+      0.555
+     ]
+    },
+    {
+     "id": "pod_fl",
+     "type": "pod",
+     "shape": "windowLidar",
+     "note": "Front wing pod: perimeter lidar and camera",
+     "position": [
+      1.3642,
+      0.9321,
+      -1.0184
+     ]
+    },
+    {
+     "id": "pod_fr",
+     "type": "pod",
+     "shape": "windowLidar",
+     "note": "Front wing pod: perimeter lidar and camera",
+     "position": [
+      1.3642,
+      0.9321,
+      1.0184
+     ]
+    },
+    {
+     "id": "lidar_fl",
+     "type": "lidar",
+     "shape": "puckLidar",
+     "note": "",
+     "position": [
+      1.4456,
+      0.9334,
+      -1.0573
+     ]
+    },
+    {
+     "id": "lidar_fr",
+     "type": "lidar",
+     "shape": "puckLidar",
+     "note": "",
+     "position": [
+      1.4456,
+      0.9334,
+      1.0573
+     ]
+    },
+    {
+     "id": "cam_fl",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      1.2841,
+      0.9369,
+      -1.0633
+     ]
+    },
+    {
+     "id": "cam_fr",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      1.2841,
+      0.9369,
+      1.0633
+     ]
+    },
+    {
+     "id": "pod_nose",
+     "type": "pod",
+     "shape": "box",
+     "note": "Nose pod: radar and camera",
+     "position": [
+      2.314,
+      0.72,
+      0.52
+     ]
+    },
+    {
+     "id": "radar_f",
+     "type": "radar",
+     "shape": "radar",
+     "note": "Front radar",
+     "position": [
+      2.344,
+      0.6,
+      0
+     ]
+    },
+    {
+     "id": "cam_nose",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      2.349,
+      0.76,
+      0.52
+     ]
+    },
+    {
+     "id": "pod_rl",
+     "type": "pod",
+     "shape": "windowLidar",
+     "note": "Rear corner pod: camera and radar",
+     "position": [
+      -2.0984,
+      1.5014,
+      -0.8755
+     ]
+    },
+    {
+     "id": "pod_rr",
+     "type": "pod",
+     "shape": "windowLidar",
+     "note": "Rear corner pod: camera and radar",
+     "position": [
+      -2.0984,
+      1.5014,
+      0.8755
+     ]
+    },
+    {
+     "id": "cam_rl",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      -2.1637,
+      1.5151,
+      -0.9164
+     ]
+    },
+    {
+     "id": "cam_rr",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      -2.1637,
+      1.5151,
+      0.9164
+     ]
+    },
+    {
+     "id": "lidar_rear",
+     "type": "lidar",
+     "shape": "puckLidar",
+     "note": "Rear perimeter lidar",
+     "position": [
+      -2.349,
+      0.95,
+      0
+     ]
+    },
+    {
+     "id": "cam_rear",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      -2.284,
+      1.62,
+      0
+     ]
+    },
+    {
+     "id": "cam_roof_rl",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      0.244,
+      1.8,
+      -0.5
+     ]
+    },
+    {
+     "id": "cam_roof_rr",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      0.244,
+      1.8,
+      0.5
+     ]
+    },
+    {
+     "id": "radar_fl",
+     "type": "radar",
+     "shape": "radar",
+     "note": "",
+     "position": [
+      2.0462,
+      0.6249,
+      -0.9126
+     ]
+    },
+    {
+     "id": "radar_fr",
+     "type": "radar",
+     "shape": "radar",
+     "note": "",
+     "position": [
+      2.0462,
+      0.6249,
+      0.9126
+     ]
+    },
+    {
+     "id": "radar_rl",
+     "type": "radar",
+     "shape": "radar",
+     "note": "",
+     "position": [
+      -2.0958,
+      0.7332,
+      -0.9677
+     ]
+    },
+    {
+     "id": "radar_rr",
+     "type": "radar",
+     "shape": "radar",
+     "note": "",
+     "position": [
+      -2.0958,
+      0.7332,
+      0.9677
+     ]
+    },
+    {
+     "id": "radar_r",
+     "type": "radar",
+     "shape": "radar",
+     "note": "",
+     "position": [
+      -2.344,
+      0.62,
+      0.3
+     ]
+    }
+   ],
+   "chargePortPosition": [
+    -1.8561,
+    0.9502,
+    -0.9839
+   ],
+   "file": "waymo_ojai.glb",
+   "bytes": 5588064,
+   "sha256": "696cd647161a367e",
+   "triangles": 144844,
+   "sensorCounts": {
+    "lidar": 4,
+    "camera": 13,
+    "radar": 6,
+    "thermal": 0
+   }
+  },
+  {
+   "key": "waymo_ipace",
+   "name": "Waymo Jaguar I-PACE",
+   "operator": "Waymo",
+   "maker": "Jaguar",
+   "dims": {
+    "length": 4.682,
+    "width": 1.895,
+    "height": 1.565,
+    "wheelbase": 2.99,
+    "frontAxle": 0.845,
+    "track": 1.64,
+    "tyreRadius": 0.376,
+    "tyreWidth": 0.245,
+    "rimRadius": 0.262
+   },
+   "provenance": {
+    "dimensions": "Jaguar's published length, body width, height and wheelbase. Axle position, track and tyres are estimated.",
+    "doors": "Four conventional front-hinged doors.",
+    "sensors": "Published: one 360 degree roof lidar and four perimeter lidars, 29 cameras. Six radars is reported, not confirmed by Waymo. This model draws 5 lidars, 6 radars and 10 camera positions; placement is read off photographs.",
+    "chargePort": "Left front wing (Jaguar I-PACE)."
+   },
+   "chargePort": {
+    "face": "left",
+    "xr": 1.14,
+    "y": 0.9,
+    "connector": "CCS1",
+    "assumed": false,
+    "note": "Left front wing, above and behind the wheel arch (CCS1)."
+   },
+   "doors": [
+    {
+     "id": "FL",
+     "kind": "hinge",
+     "side": -1,
+     "axis": [
+      0,
+      1,
+      0
+     ],
+     "angle": -1.0821041362364843,
+     "pivot": [
+      1.021,
+      0,
+      -0.9142897668503603
+     ]
+    },
+    {
+     "id": "RL",
+     "kind": "hinge",
+     "side": -1,
+     "axis": [
+      0,
+      1,
+      0
+     ],
+     "angle": -1.0821041362364843,
+     "pivot": [
+      -0.0990000000000002,
+      0,
+      -0.9142897668503603
+     ]
+    },
+    {
+     "id": "FR",
+     "kind": "hinge",
+     "side": 1,
+     "axis": [
+      0,
+      1,
+      0
+     ],
+     "angle": 1.0821041362364843,
+     "pivot": [
+      1.021,
+      0,
+      0.9142897668503603
+     ]
+    },
+    {
+     "id": "RR",
+     "kind": "hinge",
+     "side": 1,
+     "axis": [
+      0,
+      1,
+      0
+     ],
+     "angle": 1.0821041362364843,
+     "pivot": [
+      -0.0990000000000002,
+      0,
+      0.9142897668503603
+     ]
+    }
+   ],
+   "sensors": [
+    {
+     "id": "roof_base",
+     "type": "pod",
+     "shape": "box",
+     "note": "Roof sensor tray",
+     "position": [
+      0.041,
+      1.59,
+      0
+     ]
+    },
+    {
+     "id": "roof_dome",
+     "type": "pod",
+     "shape": "dome",
+     "note": "Roof dome: camera ring and long-range cameras",
+     "position": [
+      0.041,
+      1.6,
+      0
+     ]
+    },
+    {
+     "id": "lidar_roof",
+     "type": "lidar",
+     "shape": "spinLidar",
+     "note": "360 degree roof lidar",
+     "position": [
+      0.041,
+      1.72,
+      0
+     ]
+    },
+    {
+     "id": "cam_dome_0",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      0.341,
+      1.66,
+      0
+     ]
+    },
+    {
+     "id": "cam_dome_1",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      0.2531,
+      1.66,
+      0.2121
+     ]
+    },
+    {
+     "id": "cam_dome_2",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      0.041,
+      1.66,
+      0.3
+     ]
+    },
+    {
+     "id": "cam_dome_3",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      -0.1711,
+      1.66,
+      0.2121
+     ]
+    },
+    {
+     "id": "cam_dome_4",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      -0.259,
+      1.66,
+      0
+     ]
+    },
+    {
+     "id": "cam_dome_5",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      -0.1711,
+      1.66,
+      -0.2121
+     ]
+    },
+    {
+     "id": "cam_dome_6",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      0.041,
+      1.66,
+      -0.3
+     ]
+    },
+    {
+     "id": "cam_dome_7",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      0.2531,
+      1.66,
+      -0.2121
+     ]
+    },
+    {
+     "id": "pod_front",
+     "type": "pod",
+     "shape": "windowLidar",
+     "note": "Front perimeter lidar and camera, above the grille",
+     "position": [
+      2.341,
+      0.83,
+      0
+     ]
+    },
+    {
+     "id": "lidar_front",
+     "type": "lidar",
+     "shape": "puckLidar",
+     "note": "",
+     "position": [
+      2.361,
+      0.83,
+      0
+     ]
+    },
+    {
+     "id": "pod_fl",
+     "type": "pod",
+     "shape": "windowLidar",
+     "note": "Front wing pod: perimeter lidar and camera",
+     "position": [
+      1.3215,
+      0.8942,
+      -0.9629
+     ]
+    },
+    {
+     "id": "pod_fr",
+     "type": "pod",
+     "shape": "windowLidar",
+     "note": "Front wing pod: perimeter lidar and camera",
+     "position": [
+      1.3215,
+      0.8942,
+      0.9629
+     ]
+    },
+    {
+     "id": "lidar_fl",
+     "type": "lidar",
+     "shape": "puckLidar",
+     "note": "",
+     "position": [
+      1.3831,
+      0.8949,
+      -1.0071
+     ]
+    },
+    {
+     "id": "lidar_fr",
+     "type": "lidar",
+     "shape": "puckLidar",
+     "note": "",
+     "position": [
+      1.3831,
+      0.8949,
+      1.0071
+     ]
+    },
+    {
+     "id": "cam_fl",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      1.2619,
+      0.9067,
+      -1.0123
+     ]
+    },
+    {
+     "id": "cam_fr",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      1.2619,
+      0.9067,
+      1.0123
+     ]
+    },
+    {
+     "id": "pod_rear",
+     "type": "pod",
+     "shape": "windowLidar",
+     "note": "Rear perimeter lidar and camera",
+     "position": [
+      -2.321,
+      1.02,
+      0
+     ]
+    },
+    {
+     "id": "lidar_rear",
+     "type": "lidar",
+     "shape": "puckLidar",
+     "note": "",
+     "position": [
+      -2.341,
+      1.02,
+      0
+     ]
+    },
+    {
+     "id": "pod_rl",
+     "type": "pod",
+     "shape": "box",
+     "note": "Rear corner radar and camera",
+     "position": [
+      -2.0961,
+      0.9742,
+      -0.8762
+     ]
+    },
+    {
+     "id": "pod_rr",
+     "type": "pod",
+     "shape": "box",
+     "note": "Rear corner radar and camera",
+     "position": [
+      -2.0961,
+      0.9742,
+      0.8762
+     ]
+    },
+    {
+     "id": "radar_fl",
+     "type": "radar",
+     "shape": "radar",
+     "note": "",
+     "position": [
+      2.0636,
+      0.6065,
+      -0.8383
+     ]
+    },
+    {
+     "id": "radar_fr",
+     "type": "radar",
+     "shape": "radar",
+     "note": "",
+     "position": [
+      2.0636,
+      0.6065,
+      0.8383
+     ]
+    },
+    {
+     "id": "radar_rl",
+     "type": "radar",
+     "shape": "radar",
+     "note": "",
+     "position": [
+      -2.1527,
+      0.9777,
+      -0.9022
+     ]
+    },
+    {
+     "id": "radar_rr",
+     "type": "radar",
+     "shape": "radar",
+     "note": "",
+     "position": [
+      -2.1527,
+      0.9777,
+      0.9022
+     ]
+    },
+    {
+     "id": "radar_roof_f",
+     "type": "radar",
+     "shape": "radar",
+     "note": "",
+     "position": [
+      0.521,
+      1.6,
+      0
+     ]
+    },
+    {
+     "id": "radar_roof_r",
+     "type": "radar",
+     "shape": "radar",
+     "note": "",
+     "position": [
+      -0.439,
+      1.6,
+      0
+     ]
+    }
+   ],
+   "chargePortPosition": [
+    1.201,
+    0.9003,
+    -0.9299
+   ],
+   "file": "waymo_ipace.glb",
+   "bytes": 5097508,
+   "sha256": "973b9c12cf12a60c",
+   "triangles": 141389,
+   "sensorCounts": {
+    "lidar": 5,
+    "camera": 10,
+    "radar": 6,
+    "thermal": 0
+   }
+  },
+  {
+   "key": "zoox_robotaxi",
+   "name": "Zoox robotaxi",
+   "operator": "Zoox",
+   "maker": "Zoox",
+   "dims": {
+    "length": 3.63,
+    "width": 1.83,
+    "height": 1.936,
+    "bodyHeight": 1.885,
+    "wheelbase": 2.79,
+    "frontAxle": 0.42,
+    "track": 1.6,
+    "tyreRadius": 0.37,
+    "tyreWidth": 0.225,
+    "rimRadius": 0.27
+   },
+   "provenance": {
+    "dimensions": "Published length 3.63 m and height 1.936 m. Width (about 1.83 m, \"nearly six feet\"), wheelbase, track and tyres are estimated from photographs.",
+    "doors": "Two glass sliding panels a side that part from the middle. Travel is estimated.",
+    "sensors": "Published: a sensor pod at each of the four roof corners with lidar, radar, cameras and long-wave infrared, about 270 degrees each. Counts per pod are not published; what is drawn is illustrative.",
+    "chargePort": "Not published. Placed low on one side near a corner, CCS1, as an assumption. The vehicle drives either way, so it can present that side to a charger on its left or its right."
+   },
+   "chargePort": {
+    "face": "left",
+    "xr": 3,
+    "y": 0.78,
+    "connector": "CCS1",
+    "presentsEitherSide": true,
+    "assumed": true,
+    "note": "ASSUMPTION: one CCS1 inlet low on a side, near a corner. Zoox has not published it."
+   },
+   "doors": [
+    {
+     "id": "FL",
+     "kind": "slide",
+     "side": -1,
+     "out": [
+      0,
+      0,
+      -0.1
+     ],
+     "along": [
+      0.6,
+      0,
+      0
+     ],
+     "pivot": [
+      0.3075000000000001,
+      0,
+      -0.9165865949218094
+     ]
+    },
+    {
+     "id": "RL",
+     "kind": "slide",
+     "side": -1,
+     "out": [
+      0,
+      0,
+      -0.1
+     ],
+     "along": [
+      -0.6,
+      0,
+      0
+     ],
+     "pivot": [
+      -0.3075000000000001,
+      0,
+      -0.9165865949218094
+     ]
+    },
+    {
+     "id": "FR",
+     "kind": "slide",
+     "side": 1,
+     "out": [
+      0,
+      0,
+      0.1
+     ],
+     "along": [
+      0.6,
+      0,
+      0
+     ],
+     "pivot": [
+      0.3075000000000001,
+      0,
+      0.9165865949218093
+     ]
+    },
+    {
+     "id": "RR",
+     "kind": "slide",
+     "side": 1,
+     "out": [
+      0,
+      0,
+      0.1
+     ],
+     "along": [
+      -0.6,
+      0,
+      0
+     ],
+     "pivot": [
+      -0.3075000000000001,
+      0,
+      0.9165865949218093
+     ]
+    }
+   ],
+   "sensors": [
+    {
+     "id": "arm_fl",
+     "type": "pod",
+     "shape": "box",
+     "note": "Corner sensor pod: lidar, radar, cameras and long-wave infrared, about 270 degrees of view",
+     "position": [
+      1.415,
+      1.74,
+      -0.84
+     ]
+    },
+    {
+     "id": "pod_fl",
+     "type": "pod",
+     "shape": "box",
+     "note": "",
+     "position": [
+      1.415,
+      1.72,
+      -0.94
+     ]
+    },
+    {
+     "id": "lidar_fl_top",
+     "type": "lidar",
+     "shape": "spinLidar",
+     "note": "",
+     "position": [
+      1.415,
+      1.775,
+      -0.94
+     ]
+    },
+    {
+     "id": "lidar_fl_low",
+     "type": "lidar",
+     "shape": "puckLidar",
+     "note": "",
+     "position": [
+      1.415,
+      1.66,
+      -0.94
+     ]
+    },
+    {
+     "id": "cam_fl_a",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      1.485,
+      1.72,
+      -0.94
+     ]
+    },
+    {
+     "id": "cam_fl_b",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      1.415,
+      1.72,
+      -1.015
+     ]
+    },
+    {
+     "id": "cam_fl_c",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      1.465,
+      1.7,
+      -0.99
+     ]
+    },
+    {
+     "id": "thermal_fl",
+     "type": "thermal",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      1.465,
+      1.745,
+      -0.99
+     ]
+    },
+    {
+     "id": "radar_fl",
+     "type": "radar",
+     "shape": "radar",
+     "note": "",
+     "position": [
+      1.465,
+      1.655,
+      -0.985
+     ]
+    },
+    {
+     "id": "arm_fr",
+     "type": "pod",
+     "shape": "box",
+     "note": "Corner sensor pod: lidar, radar, cameras and long-wave infrared, about 270 degrees of view",
+     "position": [
+      1.415,
+      1.74,
+      0.84
+     ]
+    },
+    {
+     "id": "pod_fr",
+     "type": "pod",
+     "shape": "box",
+     "note": "",
+     "position": [
+      1.415,
+      1.72,
+      0.94
+     ]
+    },
+    {
+     "id": "lidar_fr_top",
+     "type": "lidar",
+     "shape": "spinLidar",
+     "note": "",
+     "position": [
+      1.415,
+      1.775,
+      0.94
+     ]
+    },
+    {
+     "id": "lidar_fr_low",
+     "type": "lidar",
+     "shape": "puckLidar",
+     "note": "",
+     "position": [
+      1.415,
+      1.66,
+      0.94
+     ]
+    },
+    {
+     "id": "cam_fr_a",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      1.485,
+      1.72,
+      0.94
+     ]
+    },
+    {
+     "id": "cam_fr_b",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      1.415,
+      1.72,
+      1.015
+     ]
+    },
+    {
+     "id": "cam_fr_c",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      1.465,
+      1.7,
+      0.99
+     ]
+    },
+    {
+     "id": "thermal_fr",
+     "type": "thermal",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      1.465,
+      1.745,
+      0.99
+     ]
+    },
+    {
+     "id": "radar_fr",
+     "type": "radar",
+     "shape": "radar",
+     "note": "",
+     "position": [
+      1.465,
+      1.655,
+      0.985
+     ]
+    },
+    {
+     "id": "arm_rl",
+     "type": "pod",
+     "shape": "box",
+     "note": "Corner sensor pod: lidar, radar, cameras and long-wave infrared, about 270 degrees of view",
+     "position": [
+      -1.415,
+      1.74,
+      -0.84
+     ]
+    },
+    {
+     "id": "pod_rl",
+     "type": "pod",
+     "shape": "box",
+     "note": "",
+     "position": [
+      -1.415,
+      1.72,
+      -0.94
+     ]
+    },
+    {
+     "id": "lidar_rl_top",
+     "type": "lidar",
+     "shape": "spinLidar",
+     "note": "",
+     "position": [
+      -1.415,
+      1.775,
+      -0.94
+     ]
+    },
+    {
+     "id": "lidar_rl_low",
+     "type": "lidar",
+     "shape": "puckLidar",
+     "note": "",
+     "position": [
+      -1.415,
+      1.66,
+      -0.94
+     ]
+    },
+    {
+     "id": "cam_rl_a",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      -1.485,
+      1.72,
+      -0.94
+     ]
+    },
+    {
+     "id": "cam_rl_b",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      -1.415,
+      1.72,
+      -1.015
+     ]
+    },
+    {
+     "id": "cam_rl_c",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      -1.465,
+      1.7,
+      -0.99
+     ]
+    },
+    {
+     "id": "thermal_rl",
+     "type": "thermal",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      -1.465,
+      1.745,
+      -0.99
+     ]
+    },
+    {
+     "id": "radar_rl",
+     "type": "radar",
+     "shape": "radar",
+     "note": "",
+     "position": [
+      -1.465,
+      1.655,
+      -0.985
+     ]
+    },
+    {
+     "id": "arm_rr",
+     "type": "pod",
+     "shape": "box",
+     "note": "Corner sensor pod: lidar, radar, cameras and long-wave infrared, about 270 degrees of view",
+     "position": [
+      -1.415,
+      1.74,
+      0.84
+     ]
+    },
+    {
+     "id": "pod_rr",
+     "type": "pod",
+     "shape": "box",
+     "note": "",
+     "position": [
+      -1.415,
+      1.72,
+      0.94
+     ]
+    },
+    {
+     "id": "lidar_rr_top",
+     "type": "lidar",
+     "shape": "spinLidar",
+     "note": "",
+     "position": [
+      -1.415,
+      1.775,
+      0.94
+     ]
+    },
+    {
+     "id": "lidar_rr_low",
+     "type": "lidar",
+     "shape": "puckLidar",
+     "note": "",
+     "position": [
+      -1.415,
+      1.66,
+      0.94
+     ]
+    },
+    {
+     "id": "cam_rr_a",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      -1.485,
+      1.72,
+      0.94
+     ]
+    },
+    {
+     "id": "cam_rr_b",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      -1.415,
+      1.72,
+      1.015
+     ]
+    },
+    {
+     "id": "cam_rr_c",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      -1.465,
+      1.7,
+      0.99
+     ]
+    },
+    {
+     "id": "thermal_rr",
+     "type": "thermal",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      -1.465,
+      1.745,
+      0.99
+     ]
+    },
+    {
+     "id": "radar_rr",
+     "type": "radar",
+     "shape": "radar",
+     "note": "",
+     "position": [
+      -1.465,
+      1.655,
+      0.985
+     ]
+    },
+    {
+     "id": "roof_f",
+     "type": "pod",
+     "shape": "box",
+     "note": "Roof antenna and sensor housing",
+     "position": [
+      1.095,
+      1.906,
+      0
+     ]
+    },
+    {
+     "id": "roof_r",
+     "type": "pod",
+     "shape": "box",
+     "note": "Roof antenna and sensor housing",
+     "position": [
+      -1.095,
+      1.906,
+      0
+     ]
+    }
+   ],
+   "chargePortPosition": [
+    -1.1852,
+    0.7801,
+    -0.893
+   ],
+   "file": "zoox_robotaxi.glb",
+   "bytes": 5649208,
+   "sha256": "f6a42b9cee37e761",
+   "triangles": 139377,
+   "sensorCounts": {
+    "lidar": 8,
+    "camera": 12,
+    "radar": 4,
+    "thermal": 4
+   }
+  },
+  {
+   "key": "tesla_cybercab",
+   "name": "Tesla Cybercab",
+   "operator": "Tesla Robotaxi",
+   "maker": "Tesla",
+   "dims": {
+    "length": 4.445,
+    "width": 1.753,
+    "height": 1.407,
+    "wheelbase": 2.84,
+    "frontAxle": 0.79,
+    "track": 1.5,
+    "tyreRadius": 0.385,
+    "tyreWidth": 0.235,
+    "rimRadius": 0.28
+   },
+   "provenance": {
+    "dimensions": "Reported height 1.407 m and width 1.753 m (a second source says 1.60 m); length about 4.445 m is an estimate from a drone photograph. Wheelbase is not published: 2.84 m is measured off a side photograph.",
+    "doors": "Two powered butterfly doors, no handles. Hinge line and 78 degree swing are fitted to a photograph of the open door.",
+    "sensors": "Reported: eight outward cameras, no lidar or radar. Positions follow Tesla's usual layout and are an assumption.",
+    "chargePort": "Reported: a NACS inlet behind a drop-down door in the rear bumper, DC only, no onboard AC charger. Its height and exact position are not published; the centre of the bumper at 0.62 m is an assumption. Inductive pads are planned, not in service."
+   },
+   "chargePort": {
+    "face": "rear",
+    "xr": 4.445,
+    "y": 0.62,
+    "connector": "NACS",
+    "assumed": true,
+    "note": "Rear bumper, behind a drop-down door (NACS, DC only). Height and lateral position assumed: centre, 0.62 m."
+   },
+   "doors": [
+    {
+     "id": "L",
+     "kind": "butterfly",
+     "side": -1,
+     "axis": [
+      -0.7753139686913425,
+      0.5676405842204474,
+      0.27689784596119393
+     ],
+     "angle": -1.361356816555577,
+     "pivot": [
+      0.8625,
+      0.93,
+      -0.8181556523950826
+     ]
+    },
+    {
+     "id": "R",
+     "kind": "butterfly",
+     "side": 1,
+     "axis": [
+      -0.7753139686913425,
+      0.5676405842204474,
+      -0.27689784596119377
+     ],
+     "angle": 1.361356816555577,
+     "pivot": [
+      0.8625,
+      0.93,
+      0.8181556523950826
+     ]
+    }
+   ],
+   "sensors": [
+    {
+     "id": "cam_ws_main",
+     "type": "camera",
+     "shape": "camera",
+     "note": "Windscreen camera, main",
+     "position": [
+      0.3225,
+      1.33,
+      -0.03
+     ]
+    },
+    {
+     "id": "cam_ws_wide",
+     "type": "camera",
+     "shape": "camera",
+     "note": "Windscreen camera, wide",
+     "position": [
+      0.3225,
+      1.33,
+      0.03
+     ]
+    },
+    {
+     "id": "cam_bumper",
+     "type": "camera",
+     "shape": "camera",
+     "note": "Front bumper camera",
+     "position": [
+      2.2225,
+      0.5,
+      0
+     ]
+    },
+    {
+     "id": "cam_wing_l",
+     "type": "camera",
+     "shape": "camera",
+     "note": "Front wing camera, looking back",
+     "position": [
+      0.9426,
+      0.863,
+      -0.8667
+     ]
+    },
+    {
+     "id": "cam_wing_r",
+     "type": "camera",
+     "shape": "camera",
+     "note": "Front wing camera, looking back",
+     "position": [
+      0.9426,
+      0.863,
+      0.8667
+     ]
+    },
+    {
+     "id": "cam_pillar_l",
+     "type": "camera",
+     "shape": "camera",
+     "note": "Door pillar camera, looking forward and out",
+     "position": [
+      -0.5776,
+      1.1935,
+      -0.7282
+     ]
+    },
+    {
+     "id": "cam_pillar_r",
+     "type": "camera",
+     "shape": "camera",
+     "note": "Door pillar camera, looking forward and out",
+     "position": [
+      -0.5776,
+      1.1935,
+      0.7282
+     ]
+    },
+    {
+     "id": "cam_rear",
+     "type": "camera",
+     "shape": "camera",
+     "note": "Rear camera",
+     "position": [
+      -2.2225,
+      0.97,
+      0
+     ]
+    }
+   ],
+   "chargePortPosition": [
+    -2.2165,
+    0.62,
+    0
+   ],
+   "file": "tesla_cybercab.glb",
+   "bytes": 2988580,
+   "sha256": "167ccb437ca79bbc",
+   "triangles": 114098,
+   "sensorCounts": {
+    "lidar": 0,
+    "camera": 8,
+    "radar": 0,
+    "thermal": 0
+   }
+  },
+  {
+   "key": "tesla_model_y",
+   "name": "Tesla Model Y Robotaxi",
+   "operator": "Tesla Robotaxi",
+   "maker": "Tesla",
+   "dims": {
+    "length": 4.79,
+    "width": 1.92,
+    "height": 1.624,
+    "wheelbase": 2.89,
+    "frontAxle": 0.87,
+    "track": 1.64,
+    "tyreRadius": 0.356,
+    "tyreWidth": 0.255,
+    "rimRadius": 0.245
+   },
+   "provenance": {
+    "dimensions": "Tesla's published length, width, height and wheelbase for the 2025-on car. Axle position, track and tyres are estimated.",
+    "doors": "Four conventional front-hinged doors.",
+    "sensors": "Eight outward cameras in Tesla's usual positions; no lidar or radar.",
+    "chargePort": "Left rear, in the tail-lamp cluster."
+   },
+   "chargePort": {
+    "face": "left",
+    "xr": 4.56,
+    "y": 1,
+    "connector": "NACS",
+    "assumed": false,
+    "note": "Left rear, in the tail-lamp cluster (NACS)."
+   },
+   "doors": [
+    {
+     "id": "FL",
+     "kind": "hinge",
+     "side": -1,
+     "axis": [
+      0,
+      1,
+      0
+     ],
+     "angle": -1.1344640137963142,
+     "pivot": [
+      1.0349999999999997,
+      0,
+      -0.926813378550233
+     ]
+    },
+    {
+     "id": "RL",
+     "kind": "hinge",
+     "side": -1,
+     "axis": [
+      0,
+      1,
+      0
+     ],
+     "angle": -1.1344640137963142,
+     "pivot": [
+      -0.125,
+      0,
+      -0.926813378550233
+     ]
+    },
+    {
+     "id": "FR",
+     "kind": "hinge",
+     "side": 1,
+     "axis": [
+      0,
+      1,
+      0
+     ],
+     "angle": 1.1344640137963142,
+     "pivot": [
+      1.0349999999999997,
+      0,
+      0.9268133785502329
+     ]
+    },
+    {
+     "id": "RR",
+     "kind": "hinge",
+     "side": 1,
+     "axis": [
+      0,
+      1,
+      0
+     ],
+     "angle": 1.1344640137963142,
+     "pivot": [
+      -0.125,
+      0,
+      0.9268133785502329
+     ]
+    }
+   ],
+   "sensors": [
+    {
+     "id": "cam_ws_main",
+     "type": "camera",
+     "shape": "camera",
+     "note": "Windscreen camera, main",
+     "position": [
+      0.355,
+      1.5,
+      -0.03
+     ]
+    },
+    {
+     "id": "cam_ws_wide",
+     "type": "camera",
+     "shape": "camera",
+     "note": "Windscreen camera, wide",
+     "position": [
+      0.355,
+      1.5,
+      0.03
+     ]
+    },
+    {
+     "id": "cam_bumper",
+     "type": "camera",
+     "shape": "camera",
+     "note": "Front bumper camera",
+     "position": [
+      2.395,
+      0.52,
+      0
+     ]
+    },
+    {
+     "id": "cam_wing_l",
+     "type": "camera",
+     "shape": "camera",
+     "note": "Front wing camera, looking back",
+     "position": [
+      1.1751,
+      0.8971,
+      -0.9465
+     ]
+    },
+    {
+     "id": "cam_wing_r",
+     "type": "camera",
+     "shape": "camera",
+     "note": "Front wing camera, looking back",
+     "position": [
+      1.1751,
+      0.8971,
+      0.9465
+     ]
+    },
+    {
+     "id": "cam_pillar_l",
+     "type": "camera",
+     "shape": "camera",
+     "note": "Door pillar camera, looking forward and out",
+     "position": [
+      -0.1049,
+      1.2922,
+      -0.8153
+     ]
+    },
+    {
+     "id": "cam_pillar_r",
+     "type": "camera",
+     "shape": "camera",
+     "note": "Door pillar camera, looking forward and out",
+     "position": [
+      -0.1049,
+      1.2922,
+      0.8153
+     ]
+    },
+    {
+     "id": "cam_rear",
+     "type": "camera",
+     "shape": "camera",
+     "note": "Rear camera, above the number plate",
+     "position": [
+      -2.385,
+      0.93,
+      0
+     ]
+    }
+   ],
+   "chargePortPosition": [
+    -2.1663,
+    1.0004,
+    -0.8361
+   ],
+   "file": "tesla_model_y.glb",
+   "bytes": 4498916,
+   "sha256": "f40ec48f9f215067",
+   "triangles": 134584,
+   "sensorCounts": {
+    "lidar": 0,
+    "camera": 8,
+    "radar": 0,
+    "thermal": 0
+   }
+  },
+  {
+   "key": "lucid_gravity_nuro",
+   "name": "Lucid Gravity (Nuro Driver)",
+   "operator": "Uber",
+   "maker": "Lucid",
+   "dims": {
+    "length": 5.03,
+    "width": 2,
+    "height": 1.66,
+    "wheelbase": 3.04,
+    "frontAxle": 0.9,
+    "track": 1.7,
+    "tyreRadius": 0.385,
+    "tyreWidth": 0.265,
+    "rimRadius": 0.27
+   },
+   "provenance": {
+    "dimensions": "Lucid's published length, width, height and wheelbase. Axle position, track and tyres are estimated. The roof halo adds height that is not published.",
+    "doors": "Four conventional front-hinged doors.",
+    "sensors": "Published: cameras, solid-state lidar and radar in the body and in a low roof halo with an LED rider display. Counts and positions are not published; what is drawn is illustrative.",
+    "chargePort": "Left rear quarter."
+   },
+   "chargePort": {
+    "face": "left",
+    "xr": 4.55,
+    "y": 1.02,
+    "connector": "NACS",
+    "assumed": false,
+    "note": "Left rear quarter (NACS)."
+   },
+   "doors": [
+    {
+     "id": "FL",
+     "kind": "hinge",
+     "side": -1,
+     "axis": [
+      0,
+      1,
+      0
+     ],
+     "angle": -1.1344640137963142,
+     "pivot": [
+      1.0950000000000004,
+      0,
+      -0.966448547138688
+     ]
+    },
+    {
+     "id": "RL",
+     "kind": "hinge",
+     "side": -1,
+     "axis": [
+      0,
+      1,
+      0
+     ],
+     "angle": -1.1868238913561442,
+     "pivot": [
+      -0.10499999999999998,
+      0,
+      -0.966448547138688
+     ]
+    },
+    {
+     "id": "FR",
+     "kind": "hinge",
+     "side": 1,
+     "axis": [
+      0,
+      1,
+      0
+     ],
+     "angle": 1.1344640137963142,
+     "pivot": [
+      1.0950000000000004,
+      0,
+      0.9664485471386878
+     ]
+    },
+    {
+     "id": "RR",
+     "kind": "hinge",
+     "side": 1,
+     "axis": [
+      0,
+      1,
+      0
+     ],
+     "angle": 1.1868238913561442,
+     "pivot": [
+      -0.10499999999999998,
+      0,
+      0.9664485471386878
+     ]
+    }
+   ],
+   "sensors": [
+    {
+     "id": "halo_front",
+     "type": "pod",
+     "shape": "box",
+     "note": "Roof halo: cameras, solid-state lidar and radar, with an LED rider display",
+     "position": [
+      0.385,
+      1.69,
+      0
+     ]
+    },
+    {
+     "id": "halo_rear",
+     "type": "pod",
+     "shape": "box",
+     "note": "",
+     "position": [
+      -0.855,
+      1.69,
+      0
+     ]
+    },
+    {
+     "id": "halo_left",
+     "type": "pod",
+     "shape": "box",
+     "note": "",
+     "position": [
+      -0.235,
+      1.69,
+      -0.56
+     ]
+    },
+    {
+     "id": "halo_right",
+     "type": "pod",
+     "shape": "box",
+     "note": "",
+     "position": [
+      -0.235,
+      1.69,
+      0.56
+     ]
+    },
+    {
+     "id": "lidar_halo_f",
+     "type": "lidar",
+     "shape": "windowLidar",
+     "note": "Forward solid-state lidar in the halo",
+     "position": [
+      0.465,
+      1.69,
+      0
+     ]
+    },
+    {
+     "id": "lidar_halo_l",
+     "type": "lidar",
+     "shape": "windowLidar",
+     "note": "",
+     "position": [
+      -0.235,
+      1.69,
+      -0.61
+     ]
+    },
+    {
+     "id": "lidar_halo_r",
+     "type": "lidar",
+     "shape": "windowLidar",
+     "note": "",
+     "position": [
+      -0.235,
+      1.69,
+      0.61
+     ]
+    },
+    {
+     "id": "lidar_halo_b",
+     "type": "lidar",
+     "shape": "windowLidar",
+     "note": "",
+     "position": [
+      -0.935,
+      1.69,
+      0
+     ]
+    },
+    {
+     "id": "cam_halo_fl",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      0.465,
+      1.69,
+      -0.5
+     ]
+    },
+    {
+     "id": "cam_halo_fr",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      0.465,
+      1.69,
+      0.5
+     ]
+    },
+    {
+     "id": "cam_halo_f",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      0.465,
+      1.69,
+      0.2
+     ]
+    },
+    {
+     "id": "cam_halo_l",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      0.065,
+      1.69,
+      -0.61
+     ]
+    },
+    {
+     "id": "cam_halo_r",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      0.065,
+      1.69,
+      0.61
+     ]
+    },
+    {
+     "id": "cam_halo_bl",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      -0.935,
+      1.69,
+      -0.5
+     ]
+    },
+    {
+     "id": "cam_halo_br",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      -0.935,
+      1.69,
+      0.5
+     ]
+    },
+    {
+     "id": "cam_halo_b",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      -0.935,
+      1.69,
+      0.2
+     ]
+    },
+    {
+     "id": "lidar_nose",
+     "type": "lidar",
+     "shape": "windowLidar",
+     "note": "Solid-state lidar in the front apron, under the light blade",
+     "position": [
+      2.515,
+      0.62,
+      0
+     ]
+    },
+    {
+     "id": "radar_f",
+     "type": "radar",
+     "shape": "radar",
+     "note": "",
+     "position": [
+      2.515,
+      0.46,
+      0
+     ]
+    },
+    {
+     "id": "radar_fl",
+     "type": "radar",
+     "shape": "radar",
+     "note": "",
+     "position": [
+      2.2175,
+      0.5903,
+      -0.8897
+     ]
+    },
+    {
+     "id": "radar_fr",
+     "type": "radar",
+     "shape": "radar",
+     "note": "",
+     "position": [
+      2.2175,
+      0.5903,
+      0.8897
+     ]
+    },
+    {
+     "id": "radar_rl",
+     "type": "radar",
+     "shape": "radar",
+     "note": "",
+     "position": [
+      -2.237,
+      0.7549,
+      -0.932
+     ]
+    },
+    {
+     "id": "radar_rr",
+     "type": "radar",
+     "shape": "radar",
+     "note": "",
+     "position": [
+      -2.237,
+      0.7549,
+      0.932
+     ]
+    },
+    {
+     "id": "cam_wing_l",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      1.215,
+      0.928,
+      -0.9872
+     ]
+    },
+    {
+     "id": "cam_wing_r",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      1.215,
+      0.928,
+      0.9872
+     ]
+    },
+    {
+     "id": "cam_rear",
+     "type": "camera",
+     "shape": "camera",
+     "note": "",
+     "position": [
+      -2.505,
+      0.98,
+      0
+     ]
+    }
+   ],
+   "chargePortPosition": [
+    -2.0352,
+    1.0204,
+    -0.9549
+   ],
+   "file": "lucid_gravity_nuro.glb",
+   "bytes": 5239464,
+   "sha256": "e56023ac5401eee0",
+   "triangles": 144288,
+   "sensorCounts": {
+    "lidar": 5,
+    "camera": 11,
+    "radar": 5,
+    "thermal": 0
+   }
+  }
+ ]
+}

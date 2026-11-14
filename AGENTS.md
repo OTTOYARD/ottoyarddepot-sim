@@ -272,6 +272,82 @@ not draw the seven units yet; where they stand is a site-plan decision.
   pedestal in rather than making the arm reach further than it was measured to.
   ⚠️ Changing `rightOffset` or the car's size moves routed motion and every replay: measure all of
   them (fixture, flow, turn radius, docking, structure clearance, arm clearance), not a drive-by edit.
+- **The 3D yard DRAWS each car as its vehicle model (2026-11-13); nothing else reads the model.**
+  `fleetModels/assign.ts` names a car's model from the twin's row (`port.profile`, else make and model),
+  `fleetModels/yardLod.ts` bakes a light model (at most 12,000 triangles, `yardLod.test.ts`) and
+  `three/fleetYard.ts` draws every car of a model instanced (at most 15 draw calls a model, one in the
+  shadow pass). The traffic body, every clearance, every robot, the charge-port ring and the 2D plan
+  are still the one generic car above, which is also what a car the row does not name is drawn as.
+  The models differ from it in size (3.63 to 5.03 m long): do not "fix" that in the renderer. A new
+  thing drawn on a car goes in both draw paths (`Vehicle3D.tsx`). `docs/FLEET-MODELS.md`, "In the yard".
+  **One exception since 2026-11-13: the OTTO-CHARGE ARM works to the vehicle's own inlet** (next entry).
+- **The OTTO-CHARGE ARM mates each vehicle at its own inlet (2026-11-13).** The twin's snapshot row carries
+  `model` and `port` (otto-q-core 0824); `ottoChargeArm/vehiclePort.ts` holds them, `mateSolver.solveMate`
+  returns where the base stands on its floor rail (`CR_X`) and cross-slide (`CR_Z`), which of the head's two
+  connectors comes forward (`HD_CCS`, `HD_NACS`) and the joint angles, and refuses a car whose inlet is on the
+  flank away from the arm. **`mateSequence.ts` is the one order of a mate** (five stops; the arm's pose first,
+  then the base), played by `ChargingArm.tsx` and `Robots2D.tsx`: change the order there, never in a view.
+  **Every charger stands on its car's LEFT** (`depotPlacement.towardFor` returns -1 for every stall since
+  2026-11-13, by Chase's instruction; no fleet vehicle has a right-side inlet). That one function moves the arm, the
+  bed, the cabinet, the cleaning arm's sides and the port ring together; otto-q-core 0826 is its engine half.
+  A car with no `port` on its row is served the old way, from the stall's middle. The rail bed is a yard solid
+  (`dcfc-arm-bed`), and the canopy columns keep clear of it (`structurePlan.canopyColumnYs`). Held by
+  `mateSolver.test.ts`, `mateSequence.test.ts`, `armFleetClearance.test.ts` (the CAD arm against each
+  vehicle's body), `armColumnClearance.test.ts` and `fleetEnvelope.test.ts`. ⚠️ A new vehicle, a moved inlet
+  or a changed `ARM_REACH` needs all five, then `CAD_SPEC_WRITE=1` for the pose file and `cad/clash.py`.
+  The cleaning arm and the wash machine have their own per-vehicle programs (next two entries). `docs/CHARGE-ARM-REACH.md`.
+  `scripts/liveChargeShots.mjs --run <id>` films live mates and prints each arm's base position.
+- **OTTO-WASH plays each vehicle's own program (2026-11-13).** Chase: *"train all robotics individually for each
+  vehicle type ... sensor cleaning at the detail line."* The car's model (`fleetModels/vehicleModel.ts`, the key the
+  yard draws it with) goes from the motion driver through `washGate` into the session (`WashSession.model`), and
+  `washPoseAt` plays `ottoWash/washProgram.washProgramFor(model)`: the detail arms' places and paths, made BY RULE
+  from the vehicle's sensor map and its true-shape solid (`fleetModels/sensorMap.ts`, `washSolid.ts`,
+  `ottoWash/fleetWash.ts`), and the shape the air knives follow (`carShape.fleetShape`). A car with no model gets
+  the generic program, pinned to the poses before this change. A place the machine cannot do is LEFT OUT with its
+  measured shortfall (`FleetDetail.skipped`): never fudge a margin to keep one. Held by `sensorMap.test.ts`,
+  `fleetWash.test.ts`, `washProgram.test.ts` and `robotics/washFleetClearance.test.ts` (the CAD against each
+  vehicle). ⚠️ A new vehicle, a moved sensor, a changed `washSpec`/`DETAIL_SPEC` or a changed rule needs all four.
+  `docs/WASH-PER-VEHICLE.md`.
+- **The OTTO-CLEAN ARM plays one program a vehicle (2026-11-13).** Chase: *"train all robotics individually for
+  each vehicle type ... Our system knows which car is pulling into which stall."* A `CleanProgram`
+  (`ottoCleanArm/cleanArmPose.ts`) is a list of VISITS, one a door opening, each with its strokes, its aperture
+  plane, its swing-in height and its ready point; the phase chain is built from it (eight moves a visit,
+  `cleanArmSpec.cleanChainFor`), so a four-door car has four visits (`clean_a` .. `clean_d`). The generic car's is
+  `GENERIC_PROGRAM`, pinned to the old joints to the last bit (`cleanProgramGeneric.test.ts`). Each fleet vehicle's
+  is MADE BY RULE from its cabin (`fleetModels/cabin.ts` derives openings, door leaves, seats, floor and headliner
+  from the spec; `cleanProgramFleet.ts` searches each stroke's wand and keeps only what holds every margin) and
+  STORED in `ottoCleanArm/programs/fleetPrograms.json`. The gate passes the row's model key
+  (`cleanGate` `model`, `TwinMotionDriver.fleetModelOf`), the session keeps it (`CleanSession.program`), and every
+  view draws `cleanSessionJoints(session)`: never pick a program in a view. ⚠️ A changed vehicle spec, `CLEAN_ARM`,
+  or generator rule makes `cleanProgramFleet.test.ts` fail until
+  `CLEAN_PROGRAM_WRITE=1 npx vitest run src/lib/ottoCleanArm/cleanProgramFleet.test.ts` rewrites the file; then
+  `cleanArmFleet.test.ts` must hold (every pose of every vehicle's cycle against its own body, leaves, openings,
+  cabin, seats, and the charge arm at its own mate). `docs/CLEAN-ARM-PER-VEHICLE.md`.
+- **A car's doors are per flank, and on the charger's flank per OPENING (2026-11-13, per opening 2026-11-14).**
+  Every charger stands on the car's left (the cleaning arm's PORT flank), and an open left door leaf is where the
+  charge arm stands or passes. Chase: charge and clean together where the design allows, one after the other only
+  where clearance forbids it. So the far flank's doors open first and shut as the arm leaves that flank. A
+  port-flank opening's doors open only while the charge arm is STILL in a state measured clear of THOSE doors for
+  that vehicle (`CleanVisit.beside`, from `chargeArmBeside.measureOpeningBeside` over the doors' whole travel,
+  stored with the visit; `CleanProgram.beside` is the whole flank's and gives the charge arm's PARK position,
+  `beside.parkX`, `mateSequence.stepMateSeq` stop 0, `TwinMotionDriver.chargeParkSlideAt`). Only the doors of the
+  opening the arm is at are open (`CleanSession.doorPortBy`, in the program's `flankDoors` order, drawn per door
+  through `doorStore` `leftEach` / `rightEach`). A program puts first the port visits that may be worked with the
+  connector in: the I-PACE's rear door (its front door's leaf is at the inlet), and on the Ojai and the Zoox a
+  visit with ONLY the front sliding panel open (`CleanVisit.partial`, strokes made in `cabinProfile(spec, doors)`;
+  the rear panel lies over the assumed inlet). At an opening that may not open yet the arm WAITS parked up
+  (`CleanSession.waiting`), and if the twin's step ends first the home session says the port flank was not finished
+  (`portNotDoneFor`, `portPartDone`). The charge arm starts no mate and no release with a port door not shut
+  (`cleanGate.factsForChargeArm` -> `armSessionInput`; `holdsConnector` keeps the connector in while a waiting
+  arm's door is still closing; a faulted charger's connector waits for the doors too). `armGate` plays its own
+  `MateSeq` to know when the machine is still (`armState`). The compositions are `cleanGate.chargeArmFacts`,
+  `portRule` and `factsForChargeArm`: use them, never re-derive in a view. Held frame by frame by
+  `engine/motion/cleanInterlock.test.ts`. ⚠️ Do not reorder a program's port visits by hand: the I-PACE's straight
+  swing across the roof to its rear door measured 0.011 m from the charge arm on its rail, so that swing goes by
+  the front door's ready point (`CleanVisit.swingVia`, 0.230 m). ⚠️ An Ojai, I-PACE or Zoox on charge still has ONE
+  port visit that waits for the connector to come out (137 s to 147 s after the charge in the measured case, 44 s
+  to 45 s of it fixed); the engine still holds these cars for up to a whole cycle after the charge.
+  `docs/CLEAN-ARM-PER-VEHICLE.md`.
 - **`ResponsiveGuard` routes phones to the PHONE cockpit** (`src/components/phone`, since 2026-09-30):
   a touch-first screen whose short side is < 600 px, or any window < 900 px (`phoneLayout.isPhoneViewport`;
   `?phone=1` forces it). Everything else gets the desktop cockpit, unchanged — test the desktop at

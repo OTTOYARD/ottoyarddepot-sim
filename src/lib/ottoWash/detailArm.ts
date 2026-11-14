@@ -93,7 +93,70 @@ export interface Sensor {
   safe: B3;
   /** which of the wrist's two ways the arm uses here: the roof's sensors take the other one (see aim) */
   flip: boolean;
+  /** the vehicle's own sensors this place cleans (a fleet vehicle's program, fleetWash.ts): their ids in its spec */
+  covers?: readonly string[];
+  /** the arm tucks and rides to this place's stop, because the straight way from the place before is not clear */
+  viaCarry?: boolean;
+  /** the faces of the vehicle's sensor map this place cleans (fleetModels/sensorMap.ts): their ids */
+  faces?: readonly string[];
+  /** the pace of the move to this place, when it is not even along the path (see `paced`) */
+  pace?: readonly number[];
 }
+
+/**
+ * A MOVE'S PACE. On the generic car every move goes along its path at an even pace. On a fleet vehicle a path can
+ * ask a joint for a fast turn over a short part of it (the forearm's roll near a straight wrist, the elbow near
+ * straight). So the rule gives each move a table: the share of the move's time used up at each even step along the
+ * path, more where the joints must turn far and less where they turn little. The path is the same. `paced` reads it
+ * the other way: how far along the path the arm is when `f` of the move's time has gone.
+ */
+export function paced(table: readonly number[] | undefined, f: number): number {
+  if (!table) return f;
+  const x = clamp01(f), n = table.length - 1;
+  let lo = 0, hi = n;
+  while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (table[mid] <= x) lo = mid; else hi = mid; }
+  const span = table[lo + 1] - table[lo];
+  return (lo + (span > 0 ? clamp01((x - table[lo]) / span) : 0)) / n;
+}
+
+/**
+ * A PROGRAM: what the two arms do for one kind of vehicle. The places the pads go, the solid the arms keep off, the
+ * height the pad lifts to over the roof, and the turns an arm stands idle in a zone before its first place (so two
+ * pads are never at one spot together). `GENERIC` is the twin's one car shape. A fleet vehicle's program is made by
+ * rule from its sensor map and its body (fleetWash.ts), and every function here plays whichever it is given.
+ */
+export interface DetailProgram {
+  key: string;
+  sensors: Readonly<Record<Side, readonly Sensor[]>>;
+  /** clearance from a bay point to the vehicle's solid, metres (negative inside) */
+  gap: (p: B3) => number;
+  /** the vehicle's plan, grown: a move that ends over it goes over the roof and not through the cabin */
+  over: { x: number; dy: number };
+  /** the height the pad lifts to when it crosses over the vehicle */
+  overM: number;
+  /** idle turns before each arm's first place in a zone */
+  lead: Readonly<Record<WipeStation, Readonly<Record<Side, number>>>>;
+  /**
+   * Each zone's turns, when they are not all one length: when each turn ends (0..1 of the zone) and the share of the
+   * turn its move, touch, polish and lift take. Without it every turn of a zone is the same length (the generic car).
+   */
+  timing?: Readonly<Record<WipeStation, { ends: readonly number[]; parts: readonly TurnParts[] }>>;
+  /** The shares of `arms_stow`: the tuck from the last place, the ride to the dock, the fold. Without it, the generic car's. */
+  stow?: StowShares;
+  /** The pace of each arm's tuck out of the other's way, in a zone the arms take one after the other (see `taken`). */
+  awayPace?: Readonly<Record<WipeStation, Readonly<Record<Side, readonly number[] | undefined>>>>;
+}
+/**
+ * Do the arms take this zone one after the other? Then two of their places are too near each other for both pads to
+ * be there together, and the arm that is done first tucks out of the other's way and does not wait above its place.
+ */
+export const taken = (zone: WipeStation, prog: DetailProgram): boolean => prog.lead[zone][1] > 0 || prog.lead[zone][-1] > 0;
+/** `arms_stow`, 0..1: the tuck ends at `tuck`, the ride takes `ride` and ends at `rideEnd`, the fold takes `fold`. */
+export interface StowShares { tuck: number; ride: number; rideEnd: number; fold: number; pace?: Readonly<Record<Side, readonly number[] | undefined>> }
+/** The generic program's: 3 s to tuck, 8.4 s to ride, 3.6 s to fold, of 15 s. */
+const GENERIC_STOW: StowShares = { tuck: 0.2, ride: 0.56, rideEnd: 0.76, fold: 0.24 };
+/** The share of one turn spent on each part: the move to the place, the touch, the polish, the lift. */
+export interface TurnParts { move: number; touch: number; polish: number; lift: number }
 
 /**
  * The east arm's sensors, in the order it visits them, as rays aimed at the twin's one car shape: a real fleet gives
@@ -128,16 +191,22 @@ const RAYS: { id: string; label: string; zone: WipeStation; from: [number, numbe
   { id: 'tail_in', label: 'rear radar', zone: 'rear', from: [0.25, 3.2, 0.57], axis: [0, -1, 0], rail: 3.0 },
 ];
 
+/** The generic car's plan, grown: half its width and its length, each with about a quarter of a metre. */
+const GENERIC_OVER = { x: 1.2, dy: 2.55 } as const;
 /** Is a point over the car's plan, where a move must go over the roof and not through the cabin? */
-const overCar = (p: B3) => Math.abs(p.x) < 1.2 && Math.abs(p.dy) < 2.55;
+const overCar = (p: B3, prog: Pick<DetailProgram, 'over'>) => Math.abs(p.x) < prog.over.x && Math.abs(p.dy) < prog.over.dy;
+/** The safe point of a place: straight out from its face, or above it when that is over the vehicle. */
+export function safePoint(p: B3, axis: B3, prog: Pick<DetailProgram, 'over' | 'overM'>): B3 {
+  const out = add(p, axis, -DETAIL_ARM.safeM);
+  return overCar(out, prog) ? { x: out.x, dy: out.dy, y: prog.overM } : out;
+}
 
 function sensorsFor(side: Side): Sensor[] {
   const list = RAYS.filter((r) => side === 1 || !r.eastOnly).map((r) => {
     const axis = unit({ x: side * r.axis[0], dy: r.axis[1], y: r.axis[2] });
     const p = onCar({ x: side * r.from[0], dy: r.from[1], y: r.from[2] }, axis);
-    const out = add(p, axis, -DETAIL_ARM.safeM);
     // a sensor on the roof is left and reached from above; any other, straight out from its face
-    const safe = overCar(out) ? { x: out.x, dy: out.dy, y: DETAIL_ARM.overM } : out;
+    const safe = safePoint(p, axis, { over: GENERIC_OVER, overM: DETAIL_ARM.overM });
     return { id: r.id, label: r.label, zone: r.zone, p, axis, rail: r.rail, safe, flip: r.zone === 'roof' };
   });
   if (side === 1) return list;
@@ -148,8 +217,14 @@ function sensorsFor(side: Side): Sensor[] {
   return list.map((s) => (s.zone === 'roof' ? roof[k++] : s));
 }
 export const SENSORS: Readonly<Record<Side, readonly Sensor[]>> = { 1: sensorsFor(1), [-1]: sensorsFor(-1) } as Record<Side, readonly Sensor[]>;
-export const zoneSensors = (side: Side, zone: WipeStation): Sensor[] => SENSORS[side].filter((s) => s.zone === zone);
-const hover = (s: Sensor): B3 => add(s.p, s.axis, -DETAIL_ARM.hoverM);
+const NO_LEAD = { 1: 0, [-1]: 0 } as Record<Side, number>;
+/** The twin's one car shape: 12 places a side, three in each zone. */
+export const GENERIC: DetailProgram = {
+  key: 'generic', sensors: SENSORS, gap: carGapM, over: GENERIC_OVER, overM: DETAIL_ARM.overM,
+  lead: { front: NO_LEAD, sides: NO_LEAD, roof: NO_LEAD, rear: NO_LEAD },
+};
+export const zoneSensors = (side: Side, zone: WipeStation, prog: DetailProgram = GENERIC): Sensor[] => prog.sensors[side].filter((s) => s.zone === zone);
+export const hover = (s: Sensor): B3 => add(s.p, s.axis, -DETAIL_ARM.hoverM);
 
 // ── one arm's kinematics ─────────────────────────────────────────────────────
 
@@ -235,7 +310,8 @@ export const stowed = (side: Side): ArmState => state(side, DOCK_DY_M, stowAngle
 
 // ── the path between two places ──────────────────────────────────────────────
 
-type End = Way & { safe: B3 };
+/** A place a path starts from: a way, its safe point, and whether it is the tuck. */
+export type End = Way & { safe: B3; carry?: boolean; id?: string };
 /**
  * How long a part of a path is, as time at an even pace: its line at 1 m/s, or its busiest joint's turn at that
  * joint's share of speed, whichever is more. So no joint hurries on a part where the pad moves little.
@@ -243,12 +319,16 @@ type End = Way & { safe: B3 };
 const PACE = { j1: 0.7, j2: 0.7, j3: 0.9, j4: 1.4, j5: 1.4 } as const;
 const turn = (a: JointAngles, b: JointAngles) => Math.max(...(['j1', 'j2', 'j3', 'j4', 'j5'] as const).map((k) => Math.abs(a[k] - b[k]) / PACE[k]));
 const qOf = (side: Side, w: Way) => aim(side, w.rail, w.p, w.axis, w.flip).q;
+/** Each part of a polyline of ways, as time at an even pace. */
+export const segments = (side: Side, ways: Way[]): number[] => ways.slice(1).map((w, i) => {
+  const a = ways[i];
+  return Math.max(1e-6, dist(a.p, w.p) + 0.5 * Math.abs(a.rail - w.rail), turn(qOf(side, a), qOf(side, w)));
+});
+/** A whole path's length, as time at an even pace. */
+export const pathLength = (side: Side, ways: Way[]): number => segments(side, ways).reduce((a, b) => a + b, 0);
 /** Where an arm is on a polyline of ways, by its length, 0..1: the two ways it is between, and how far. */
-function along(side: Side, ways: Way[], f: number): { a: Way; b: Way; u: number } {
-  const seg = ways.slice(1).map((w, i) => {
-    const a = ways[i];
-    return Math.max(1e-6, dist(a.p, w.p) + 0.5 * Math.abs(a.rail - w.rail), turn(qOf(side, a), qOf(side, w)));
-  });
+export function along(side: Side, ways: Way[], f: number): { a: Way; b: Way; u: number } {
+  const seg = segments(side, ways);
   const total = seg.reduce((a, b) => a + b, 0);
   let d = clamp01(f) * total;
   for (let i = 0; i < seg.length; i++) {
@@ -263,7 +343,7 @@ function along(side: Side, ways: Way[], f: number): { a: Way; b: Way; u: number 
  * joints follow. Between two on different sides the pad's point does not change (they are the same place above the
  * track, see `turnOver`): only the wrist's joints turn, from one way to the other.
  */
-function onWays(side: Side, ways: Way[], f: number, sensor: string | null): ArmState {
+export function onWays(side: Side, ways: Way[], f: number, sensor: string | null): ArmState {
   const { a, b, u } = along(side, ways, f);
   const rail = a.rail + (b.rail - a.rail) * u;
   if (a.flip !== b.flip) {
@@ -272,80 +352,114 @@ function onWays(side: Side, ways: Way[], f: number, sensor: string | null): ArmS
   }
   return at(side, rail, lerp3(a.p, b.p, u), unit(lerp3(a.axis, b.axis, u)), a.flip, 0, sensor);
 }
-const lifted = (w: Way): Way => ({ ...w, p: { x: w.p.x, dy: w.p.dy, y: Math.max(w.p.y, DETAIL_ARM.overM) } });
+const lifted = (w: Way, prog: DetailProgram): Way => ({ ...w, p: { x: w.p.x, dy: w.p.dy, y: Math.max(w.p.y, prog.overM) } });
 /**
  * The place the wrist turns over: above the arm's own side of the bay, 0.85 m inboard of its track and above the
  * car's roof line. The pad's point and its direction stay. The forearm rolls half a turn and the wrist bends the other way.
  */
-const apex = (side: Side, w: Way, flip: boolean): Way => ({ p: { x: side * 1.25, dy: w.rail, y: DETAIL_ARM.overM }, axis: APEX_AXIS(side), rail: w.rail, flip });
-const turnOver = (side: Side, w: Way, to: boolean): Way[] => [apex(side, w, w.flip), apex(side, w, to)];
+const apex = (side: Side, w: Way, flip: boolean, prog: DetailProgram): Way => ({ p: { x: side * 1.25, dy: w.rail, y: prog.overM }, axis: APEX_AXIS(side), rail: w.rail, flip });
+const turnOver = (side: Side, w: Way, to: boolean, prog: DetailProgram): Way[] => [apex(side, w, w.flip, prog), apex(side, w, to, prog)];
 /**
  * From one place to the next sensor's hover: out to its safe point; over the roof if either is over the car; the
  * wrist turned over above the track if the two need different ways of it; and in.
  */
-function route(side: Side, a: End, b: Sensor): Way[] {
+export function route(side: Side, a: End, b: Sensor, prog: DetailProgram = GENERIC): Way[] {
+  if (b.viaCarry && !a.carry) {
+    // home to the tuck, the ride in that one pose, and in from the tuck
+    return [...toCarry(side, a, a.safe, prog), ...route(side, carryWay(side, b.rail), b, prog)];
+  }
   const sa: Way = { p: a.safe, axis: a.axis, rail: a.rail, flip: a.flip }, sb: Way = { p: b.safe, axis: b.axis, rail: b.rail, flip: b.flip };
   const flips = a.flip !== b.flip;
-  const over = overCar(sa.p) !== overCar(sb.p) || flips;
+  const over = overCar(sa.p, prog) !== overCar(sb.p, prog) || flips;
   // a place beside the car goes straight to and from the turn-over place: only a place over the car is lifted first
   // after the turn-over the carriage rides to the next place's stop in that same pose, and then the pad goes down
   const mid: Way[] = !over ? []
-    : flips ? [...(overCar(sa.p) ? [lifted(sa)] : []), ...turnOver(side, sa, b.flip), apex(side, sb, b.flip),
-      ...(overCar(sb.p) ? [lifted(sb)] : [])]
-      : [lifted(sa), lifted(sb)];
+    : flips ? [...(overCar(sa.p, prog) ? [lifted(sa, prog)] : []), ...turnOver(side, sa, b.flip, prog), apex(side, sb, b.flip, prog),
+      ...(overCar(sb.p, prog) ? [lifted(sb, prog)] : [])]
+      : [lifted(sa, prog), lifted(sb, prog)];
   return [a, sa, ...mid, sb, { p: hover(b), axis: b.axis, rail: b.rail, flip: b.flip }];
 }
-const carryWay = (side: Side, rail: number): End => ({ p: CARRY_P(side, rail), axis: CARRY_AXIS(side), rail, flip: false, safe: CARRY_P(side, rail) });
-const hoverWay = (s: Sensor): End => ({ p: hover(s), axis: s.axis, rail: s.rail, flip: s.flip, safe: s.safe });
+export const carryWay = (side: Side, rail: number): End => ({ p: CARRY_P(side, rail), axis: CARRY_AXIS(side), rail, flip: false, safe: CARRY_P(side, rail), carry: true });
+export const hoverWay = (s: Sensor): End => ({ p: hover(s), axis: s.axis, rail: s.rail, flip: s.flip, safe: s.safe, id: s.id });
 /** Waiting above a sensor it has done, at its safe point, while the other arm works near by. */
-const waitWay = (s: Sensor): End => ({ p: s.safe, axis: s.axis, rail: s.rail, flip: s.flip, safe: s.safe });
+export const waitWay = (s: Sensor): End => ({ p: s.safe, axis: s.axis, rail: s.rail, flip: s.flip, safe: s.safe, id: s.id });
 /** From a place to the tuck: out, up if it is over the car, the wrist turned back if it is the roof's way, and down. */
-function toCarry(side: Side, from: Way, safe: B3): Way[] {
-  const s: Way = { ...from, p: safe };
-  const over = overCar(safe) || from.flip;
-  return [from, s, ...(over ? [lifted(s)] : []), ...(from.flip ? turnOver(side, s, false) : over ? [apex(side, s, false)] : []), carryWay(side, from.rail)];
+export function toCarry(side: Side, from: Way, safe: B3, prog: DetailProgram = GENERIC): Way[] {
+  const s: Way = { p: safe, axis: from.axis, rail: from.rail, flip: from.flip };
+  const over = overCar(safe, prog) || from.flip;
+  return [from, s, ...(over ? [lifted(s, prog)] : []), ...(from.flip ? turnOver(side, s, false, prog) : over ? [apex(side, s, false, prog)] : []), carryWay(side, from.rail)];
 }
 
 // ── the program, one arm at a time ───────────────────────────────────────────
 
 const ZONES: readonly WipeStation[] = ['front', 'sides', 'roof', 'rear'];
 /**
- * The turns an arm takes in a zone: one for each of its sensors, and the same number for both arms. An arm with
- * fewer sensors in a zone than the other waits, lifted, for the turns it has none.
+ * The turns an arm takes in a zone: one for each of its sensors after its idle turns, and the same number for both
+ * arms. An arm with fewer than the other waits, lifted, for the turns it has none.
  */
-export const zoneTurns = (zone: WipeStation): number => Math.max(zoneSensors(1, zone).length, zoneSensors(-1, zone).length);
-/** Where an arm is when a zone ends: at its last sensor's hover, or waiting above it. */
-function zoneEnd(side: Side, zone: WipeStation): End {
-  const list = zoneSensors(side, zone);
+export const zoneTurns = (zone: WipeStation, prog: DetailProgram = GENERIC): number =>
+  Math.max(...SIDES.map((side) => { const n = zoneSensors(side, zone, prog).length; return n ? prog.lead[zone][side] + n : 0; }));
+/** Where an arm is when a zone ends: at its last sensor's hover, or waiting above it. With no sensor there, where it began. */
+export function zoneEnd(side: Side, zone: WipeStation, prog: DetailProgram = GENERIC): End {
+  const list = zoneSensors(side, zone, prog);
+  if (list.length === 0) return zoneStart(side, zone, prog);
   const last = list[list.length - 1];
-  return list.length < zoneTurns(zone) ? waitWay(last) : hoverWay(last);
+  if (prog.lead[zone][side] + list.length >= zoneTurns(zone, prog)) return hoverWay(last);
+  return taken(zone, prog) ? carryWay(side, last.rail) : waitWay(last);
 }
-/** Where an arm is when a zone starts: where the zone before ended, or tucked at the nose's place. */
-function zoneStart(side: Side, zone: WipeStation): End {
+/** Where an arm is when a zone starts: where the zone before ended, or tucked at its first place's stop. */
+export function zoneStart(side: Side, zone: WipeStation, prog: DetailProgram = GENERIC): End {
   const i = ZONES.indexOf(zone);
-  return i <= 0 ? carryWay(side, firstRail(side)) : zoneEnd(side, ZONES[i - 1]);
+  return i <= 0 ? carryWay(side, firstRail(side, prog)) : zoneEnd(side, ZONES[i - 1], prog);
 }
-export const firstRail = (side: Side): number => zoneSensors(side, 'front')[0].rail;
+/** The carriage's stop for an arm's first place. An arm with no place stays at its dock. */
+export const firstRail = (side: Side, prog: DetailProgram = GENERIC): number => {
+  for (const z of ZONES) { const first = zoneSensors(side, z, prog)[0]; if (first) return first.rail; }
+  return DOCK_DY_M;
+};
+/** An arm standing at a place a path starts from: tucked, or still at the place it did last (its hover, or waiting above it). */
+const hold = (side: Side, e: End): ArmState =>
+  e.carry ? state(side, e.rail, carryAngles(side)) : at(side, e.rail, e.p, e.axis, e.flip, 0, e.id ?? null);
 
 /** The polish: the pad turns a quarter turn each way on the sensor, `POLISH_STROKES` times. It never spins free. */
 export const POLISH_STROKES = 1;
 export const POLISH_TURN = Math.PI / 2;
 
 /** One arm through a zone, t 0..1: each sensor in turn gets a move, a touch, a polish and a lift. */
-export function armInZone(side: Side, zone: WipeStation, t: number, parts: { move: number; touch: number; polish: number; lift: number }): ArmState {
-  const list = zoneSensors(side, zone);
-  const n = zoneTurns(zone);
-  const k = Math.min(n - 1, Math.floor(clamp01(t) * n));
-  const u = clamp01(t) * n - k;
+export function armInZone(side: Side, zone: WipeStation, t: number, parts: TurnParts, prog: DetailProgram = GENERIC): ArmState {
+  const list = zoneSensors(side, zone, prog);
+  const n = zoneTurns(zone, prog);
+  // no sensor of its own in this zone: it stays where the zone before left it
+  if (list.length === 0 || n === 0) return hold(side, zoneStart(side, zone, prog));
+  const tm = prog.timing?.[zone];
+  let turnNow = Math.min(n - 1, Math.floor(clamp01(t) * n));
+  let u = clamp01(t) * n - turnNow;
+  if (tm) {
+    // turns of their own lengths: the turn this moment is in, and how far through it
+    const tt = clamp01(t);
+    turnNow = tm.ends.findIndex((e) => tt < e);
+    if (turnNow < 0) turnNow = n - 1;
+    const began = turnNow > 0 ? tm.ends[turnNow - 1] : 0;
+    u = clamp01((tt - began) / Math.max(1e-9, tm.ends[turnNow] - began));
+    parts = tm.parts[turnNow];
+  }
+  const k = turnNow - prog.lead[zone][side];
+  // an idle turn before its first place: the other arm is at a place too near this arm's
+  if (k < 0) return hold(side, zoneStart(side, zone, prog));
   if (k >= list.length) {
     // no sensor of its own this turn: up to the safe point above its last one, and wait there
     const last = list[list.length - 1];
+    if (taken(zone, prog)) {
+      // the other arm's places are too near this one's: tuck, out of its way
+      if (k > list.length) return state(side, last.rail, carryAngles(side));
+      return onWays(side, toCarry(side, hoverWay(last), last.safe, prog), paced(prog.awayPace?.[zone][side], glide(u / parts.move)), last.id);
+    }
     const w = waitWay(last);
-    return onWays(side, [hoverWay(last), w], ease(u / parts.move), null);
+    return onWays(side, [hoverWay(last), w], k > list.length ? 1 : ease(u / parts.move), prog === GENERIC ? null : last.id);
   }
   const s = list[k];
-  const from = k > 0 ? hoverWay(list[k - 1]) : zoneStart(side, zone);
-  if (u < parts.move) return onWays(side, route(side, from, s), glide(u / parts.move), s.id);
+  const from = k > 0 ? hoverWay(list[k - 1]) : zoneStart(side, zone, prog);
+  if (u < parts.move) return onWays(side, route(side, from, s, prog), paced(s.pace, glide(u / parts.move)), s.id);
   const h = hover(s);
   if (u < parts.move + parts.touch) {
     return at(side, s.rail, lerp3(h, s.p, ease((u - parts.move) / parts.touch)), s.axis, s.flip, 0, s.id);
@@ -358,21 +472,24 @@ export function armInZone(side: Side, zone: WipeStation, t: number, parts: { mov
 }
 
 /** Out of the dock: unfold where it stands, then ride to the nose, tucked. */
-export function armOut(side: Side, t: number): ArmState {
+export function armOut(side: Side, t: number, prog: DetailProgram = GENERIC): ArmState {
   const carry = carryAngles(side);
   if (t < 0.4) return state(side, DOCK_DY_M, lerpAngles(stowAngles(side), carry, ease(t / 0.4)));
-  return state(side, DOCK_DY_M + (firstRail(side) - DOCK_DY_M) * ease((t - 0.4) / 0.6), carry);
+  return state(side, DOCK_DY_M + (firstRail(side, prog) - DOCK_DY_M) * ease((t - 0.4) / 0.6), carry);
 }
 
 /** Back to the dock: tuck from the last sensor, ride north, fold. */
-export function armStow(side: Side, t: number): ArmState {
-  const end = zoneEnd(side, 'rear');
-  if (t < 0.2) {
-    return onWays(side, toCarry(side, end, end.safe), glide(t / 0.2), null);
+export function armStow(side: Side, t: number, prog: DetailProgram = GENERIC): ArmState {
+  const end = zoneEnd(side, 'rear', prog);
+  const S = prog.stow ?? GENERIC_STOW;
+  if (t < S.tuck) {
+    // an arm that never left the tuck (no place on this vehicle) stays in it
+    if (end.carry) return state(side, end.rail, carryAngles(side));
+    return onWays(side, toCarry(side, end, end.safe, prog), paced(S.pace?.[side], glide(t / S.tuck)), null);
   }
   const carry = carryAngles(side);
-  if (t < 0.76) return state(side, end.rail + (DOCK_DY_M - end.rail) * ease((t - 0.2) / 0.56), carry);
-  return state(side, DOCK_DY_M, lerpAngles(carry, stowAngles(side), ease((t - 0.76) / 0.24)));
+  if (t < S.rideEnd) return state(side, end.rail + (DOCK_DY_M - end.rail) * ease((t - S.tuck) / S.ride), carry);
+  return state(side, DOCK_DY_M, lerpAngles(carry, stowAngles(side), ease((t - S.rideEnd) / S.fold)));
 }
 
 /**
@@ -380,7 +497,7 @@ export function armStow(side: Side, t: number): ArmState {
  * joints go straight there. Anywhere else the pad backs off the car the way it faces, to the safe shell, and takes the
  * same path home as from a sensor. A wrist that is turning over finishes back the plain way first.
  */
-export function armTuck(from: ArmState, t: number): ArmState {
+export function armTuck(from: ArmState, t: number, prog: DetailProgram = GENERIC): ArmState {
   const side = from.side;
   // at its dock (parked, or unfolding or folding there): it folds where it stands
   if (!from.esc && Math.abs(from.rail - DOCK_DY_M) < 1e-6) return state(side, from.rail, lerpAngles(from.q, stowAngles(side), ease(t)));
@@ -391,8 +508,8 @@ export function armTuck(from: ArmState, t: number): ArmState {
     return onWays(side, [from.esc, carryWay(side, from.rail)], glide((t - 0.34) / 0.66), null);
   }
   const e = from.esc;
-  const back = Math.max(0, DETAIL_ARM.safeM - Math.max(0, carGapM(e.p)));
-  const st = onWays(side, toCarry(side, e, add(e.p, e.axis, -back)), glide(t), null);
+  const back = Math.max(0, DETAIL_ARM.safeM - Math.max(0, prog.gap(e.p)));
+  const st = onWays(side, toCarry(side, e, add(e.p, e.axis, -back), prog), glide(t), null);
   // the pad's own turn (the polish) runs out as it leaves
   const j6 = from.q.j6 * (1 - ease(t / 0.3));
   return j6 === 0 ? st : state(side, st.rail, { ...st.q, j6 }, 0, null, st.esc, st.mid);

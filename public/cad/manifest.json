@@ -18,43 +18,47 @@
     "depot": "charge_arm.depot.glb"
    },
    "bytes": {
-    "glb": 6840948,
-    "stepZip": 6888422,
-    "step": 35462577,
-    "depot": 535616
+    "glb": 7736176,
+    "stepZip": 7225380,
+    "step": 37701196,
+    "depot": 718656
    },
    "mesh": {
-    "vertices": 286858,
-    "triangles": 325615,
-    "meshes": 189,
-    "nodes": 662
+    "vertices": 323966,
+    "triangles": 364353,
+    "meshes": 216,
+    "nodes": 940
    },
    "depotMesh": {
-    "vertices": 21161,
-    "triangles": 23102,
-    "meshes": 64,
-    "nodes": 76
+    "vertices": 28467,
+    "triangles": 30198,
+    "meshes": 85,
+    "nodes": 130
    },
-   "depotSha256": "68c041cae873d3dc",
+   "depotSha256": "e02e5c2123eab65a",
    "totals": {
-    "parts": 655,
-    "uniqueParts": 191,
-    "fasteners": 457,
-    "massKg": 376.93,
-    "boughtLines": 130,
-    "madeLines": 61,
-    "referenceLines": 2
+    "parts": 966,
+    "uniqueParts": 217,
+    "fasteners": 661,
+    "massKg": 832.67,
+    "boughtLines": 147,
+    "madeLines": 70,
+    "referenceLines": 5
    },
-   "glbSha256": "1f2627e49905a0a5",
+   "glbSha256": "8fdd0c3aa0897834",
    "stepCheck": {
-    "namedParts": 657,
-    "solids": 1347,
+    "namedParts": 982,
+    "solids": 1672,
     "invalid": 0
    },
    "subsystems": [
     {
      "id": "MOUNT",
      "name": "Riser and mount"
+    },
+    {
+     "id": "BASE",
+     "name": "Rail, carriage and cross-slide"
     },
     {
      "id": "J1",
@@ -82,7 +86,7 @@
     },
     {
      "id": "TOOL",
-     "name": "Connector tool"
+     "name": "Connector head"
     },
     {
      "id": "DRESS",
@@ -107,8 +111,8 @@
    },
    "bytes": {
     "glb": 1980108,
-    "stepZip": 1253034,
-    "step": 6925643,
+    "stepZip": 1253137,
+    "step": 6925670,
     "depot": 472000
    },
    "mesh": {
@@ -123,17 +127,17 @@
     "meshes": 72,
     "nodes": 96
    },
-   "depotSha256": "28690fbf7e88804c",
+   "depotSha256": "d25c91b243f16f67",
    "totals": {
     "parts": 238,
     "uniqueParts": 102,
     "fasteners": 141,
-    "massKg": 327.46,
+    "massKg": 324.4,
     "boughtLines": 63,
     "madeLines": 39,
     "referenceLines": 1
    },
-   "glbSha256": "b0832bfb66801363",
+   "glbSha256": "9d107ec7c0fe14d5",
    "stepCheck": {
     "namedParts": 240,
     "solids": 372,

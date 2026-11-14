@@ -9,7 +9,8 @@ import {
   advanceCleanSession, cleanSessionJoints, IDLE_CLEAN, paceClean, remainingCycleS, MAX_PACE,
   type CleanSession, type CleanInput,
 } from './cleanSession';
-import { CLEAN_CHAIN, CLEAN_MOTION_S, CLEAN_SIDE_NOMINAL_S, CLEAN_SIDE_MIN_S, type CleanPhase } from './cleanArmSpec';
+import { CLEAN_CHAIN, CLEAN_MOTION_S, CLEAN_SIDE_NOMINAL_S, CLEAN_SIDE_MIN_S, phaseMove, phaseVisit, type CleanPhase } from './cleanArmSpec';
+import { cleanProgramFor } from './cleanPrograms';
 import { sidesFor, doorsAt, type CleanJoints } from './cleanArmPose';
 
 const sides = sidesFor(1);
@@ -181,5 +182,93 @@ describe('one clean per step', () => {
   it('counts the time left along the whole chain', () => {
     const s = { ...IDLE_CLEAN, phase: 'doors_open' as CleanPhase, phaseElapsed: 0 };
     expect(remainingCycleS(s)).toBeCloseTo(CLEAN_MOTION_S + 2 * CLEAN_SIDE_NOMINAL_S, 9);
+  });
+});
+
+// ════════════════════════════════════════════════ THE PORT FLANK, PER OPENING ═══
+describe('the port flank per opening: a door opens only for its own opening, and only when its own rule allows', () => {
+  const S = sidesFor(-1);
+  /** Play a fleet vehicle's program; `ok(t, visit)` says whether that visit's doors may be open at sim second t. */
+  function playFleet(model: string, seconds: number, ok: (t: number, visit: number) => boolean, activeUntil = Infinity) {
+    const program = cleanProgramFor(model);
+    let s: CleanSession = IDLE_CLEAN;
+    const trace: { t: number; s: CleanSession }[] = [];
+    for (let t = 0; t < seconds; t += 0.25) {
+      s = advanceCleanSession(s, {
+        dt: 0.25, vehicleId: 'car-1', active: t < activeUntil, endsInS: Math.max(0, 348 - t), sides: S, model,
+        portOk: false, portOkAt: program.visits.map((_, i) => ok(t, i)),
+      });
+      trace.push({ t, s });
+    }
+    return { program, trace };
+  }
+
+  it('the I-PACE: the rear door on the charger\'s side is worked while the front one may not open; the arm then waits there, every door shut', () => {
+    const program = cleanProgramFor('waymo_ipace');
+    expect(program.visits.map((v) => `${v.flank} ${v.opening}`)).toEqual(['far front door', 'far rear door', 'port rear door', 'port front door']);
+    expect(program.flankDoors).toEqual(['FR', 'RR']);
+    const front = 3, rear = 2;
+    // latched all the way: the rear opening's doors may open, the front one's may not
+    const { trace } = playFleet('waymo_ipace', 420, (_, i) => i !== front, 348);
+    const seen = phasesSeen(trace);
+    expect(seen).toContain('clean_c');
+    expect(seen).not.toContain('swing_d');
+    for (const { s, t } of trace) {
+      const by = s.doorPortBy ?? [0, 0];
+      // the front door on the charger's side is never open
+      expect(by[0], `front port door at ${t}`).toBe(0);
+      // the rear one is open only while the arm is at that opening
+      if (by[1] > 0) expect(phaseVisit(s.phase), `rear port door open in ${s.phase}`).toBe(rear);
+      expect(s.doorPort ?? 0).toBe(Math.max(...by));
+      if (s.waiting) { expect(s.phase).toBe('raise_c'); expect(s.t).toBe(1); }
+    }
+    // it waited with every door shut, and the home session says the side was done in part
+    const waited = trace.filter(({ s }) => s.waiting);
+    expect(waited.length).toBeGreaterThan(40);
+    expect(waited.slice(13).every(({ s }) => (s.doorPort ?? 0) === 0 && (s.doorFar ?? 0) === 0)).toBe(true);
+    const end = trace[trace.length - 1].s;
+    expect(end.phase).toBe('home');
+    expect(end.portNotDoneFor).toBe('car-1');
+    expect(end.portPartDone).toBe(true);
+  });
+
+  it('the I-PACE: when the front door may open the arm goes on, opens it alone, and finishes', () => {
+    const front = 3;
+    const { program, trace } = playFleet('waymo_ipace', 420, (t, i) => i !== front || t >= 250);
+    expect(phasesSeen(trace)).toEqual([...program.chain, 'home']);
+    const end = trace[trace.length - 1].s;
+    expect(end.portNotDoneFor).toBeUndefined();
+    for (const { s } of trace) {
+      const by = s.doorPortBy ?? [0, 0];
+      const move = phaseMove(s.phase);
+      // the wand is down at a port opening only with that opening's door fully open
+      if (phaseVisit(s.phase) >= 2 && (move === 'descend' || move === 'enter' || move === 'clean' || move === 'exit' || move === 'ascend')) {
+        expect(by[phaseVisit(s.phase) === front ? 0 : 1], s.phase).toBe(1);
+      }
+      // the front door is open only at its own opening, and on the way home from it (it shuts in doors_close)
+      if (by[0] > 0) expect(phaseVisit(s.phase) === front || s.phase === 'return' || s.phase === 'doors_close', s.phase).toBe(true);
+    }
+  });
+
+  it.each(['waymo_ojai', 'zoox_robotaxi'])('%s: with the connector in, only the panel clear of the charge arm opens; both open when the whole opening may', (model) => {
+    const { program, trace } = playFleet(model, 420, (t, i) => i !== 2 || t >= 230);
+    expect(program.visits.map((v) => [v.flank, v.partial === true, v.doors])).toEqual([['far', false, undefined], ['port', true, ['FR']], ['port', false, ['FR', 'RR']]]);
+    expect(phasesSeen(trace)).toEqual([...program.chain, 'home']);
+    let both = false;
+    for (const { s } of trace) {
+      const by = s.doorPortBy ?? [0, 0];
+      const vi = phaseVisit(s.phase), move = phaseMove(s.phase);
+      // the rear panel (over the inlet) is open only at the whole opening's visit
+      if (by[1] > 0) { expect(vi === 2 || s.phase === 'return' || s.phase === 'doors_close', `rear panel open in ${s.phase}`).toBe(true); both = true; }
+      const down = move === 'lower' && s.t > 0 || move === 'descend' || move === 'enter' || move === 'clean' || move === 'exit' || move === 'ascend';
+      if (vi === 1 && down) expect(by, `${s.phase}: front panel open, rear panel shut`).toEqual([1, 0]);
+      if (vi === 2 && (move === 'descend' || move === 'enter' || move === 'clean' || move === 'exit' || move === 'ascend')) expect(by).toEqual([1, 1]);
+    }
+    expect(both).toBe(true);
+  });
+
+  it('a program whose visits name no doors keeps one value for the whole port flank', () => {
+    const trace = run(120, 0.25, () => ({ endsInS: null }));
+    expect(trace.every(({ s }) => s.doorPortBy === undefined)).toBe(true);
   });
 });

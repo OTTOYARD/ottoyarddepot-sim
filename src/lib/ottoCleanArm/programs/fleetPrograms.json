@@ -1,0 +1,2295 @@
+{
+ "waymo_ojai": {
+  "pivotZ": 1.1975,
+  "visits": [
+   {
+    "flank": "far",
+    "opening": "door",
+    "aperture": 0,
+    "planeZ": 0.9975,
+    "readyX": -0.30241,
+    "scoopY": 0.84921,
+    "turnYaw": -15,
+    "strokes": [
+     {
+      "cx": -0.356,
+      "cy": 1.08,
+      "yaw": -15,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 0
+     },
+     {
+      "cx": -0.146,
+      "cy": 1.44921,
+      "yaw": 1.59114,
+      "pitch": 3.328313,
+      "ext": 0.324742,
+      "nozzle": 20,
+      "what": "air pass",
+      "w": 1.6
+     },
+     {
+      "cx": -0.356,
+      "cy": 1.08,
+      "yaw": -15,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 1
+     },
+     {
+      "cx": -0.596,
+      "cy": 1.02921,
+      "yaw": -12.757532,
+      "pitch": -18.371425,
+      "ext": 0.167325,
+      "nozzle": -62,
+      "what": "rear seat, cushion",
+      "w": 1
+     },
+     {
+      "cx": -0.646,
+      "cy": 1.02921,
+      "yaw": -16.98553,
+      "pitch": -11.041654,
+      "ext": 0.447934,
+      "nozzle": -62,
+      "what": "rear seat, cushion",
+      "w": 2
+     },
+     {
+      "cx": -0.596,
+      "cy": 1.02921,
+      "yaw": -8.150616,
+      "pitch": -8.154436,
+      "ext": 0.696793,
+      "nozzle": -62,
+      "what": "rear seat, cushion",
+      "w": 1
+     },
+     {
+      "cx": -0.356,
+      "cy": 1.08,
+      "yaw": -15,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 1
+     },
+     {
+      "cx": -0.196,
+      "cy": 0.66921,
+      "yaw": 0.638367,
+      "pitch": -8.940357,
+      "ext": 0.608176,
+      "nozzle": -62,
+      "what": "floor, deep",
+      "w": 2
+     },
+     {
+      "cx": -0.356,
+      "cy": 1.08,
+      "yaw": -15,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 1
+     },
+     {
+      "cx": -0.196,
+      "cy": 0.66921,
+      "yaw": -2.489553,
+      "pitch": -16.550945,
+      "ext": 0.206046,
+      "nozzle": -62,
+      "what": "floor by the door",
+      "w": 2
+     }
+    ]
+   },
+   {
+    "flank": "port",
+    "opening": "door, front panel only",
+    "aperture": 0,
+    "planeZ": 0.9975,
+    "readyX": 0.25041,
+    "scoopY": 0.849106,
+    "turnYaw": 15,
+    "doors": [
+     "FR"
+    ],
+    "partial": true,
+    "beside": {
+     "stowed": true,
+     "latched": true
+    },
+    "strokes": [
+     {
+      "cx": 0.304,
+      "cy": 1.38,
+      "yaw": 15,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 0
+     },
+     {
+      "cx": 0.374,
+      "cy": 1.449106,
+      "yaw": 9.462322,
+      "pitch": 1.876542,
+      "ext": 0.334633,
+      "nozzle": 20,
+      "what": "air pass",
+      "w": 1.6
+     },
+     {
+      "cx": 0.174,
+      "cy": 1.449106,
+      "yaw": -7.125016,
+      "pitch": 3.312213,
+      "ext": 0.331527,
+      "nozzle": 20,
+      "what": "air pass",
+      "w": 2.6
+     },
+     {
+      "cx": 0.304,
+      "cy": 1.38,
+      "yaw": 15,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 1
+     },
+     {
+      "cx": 0.424,
+      "cy": 1.029106,
+      "yaw": 18.132865,
+      "pitch": -16.877149,
+      "ext": 0.207756,
+      "nozzle": -62,
+      "what": "front seat, cushion",
+      "w": 1
+     },
+     {
+      "cx": 0.374,
+      "cy": 1.029106,
+      "yaw": 1.983477,
+      "pitch": -13.508125,
+      "ext": 0.308921,
+      "nozzle": -62,
+      "what": "front seat, cushion",
+      "w": 2
+     },
+     {
+      "cx": 0.374,
+      "cy": 1.029106,
+      "yaw": 10.89283,
+      "pitch": -10.725235,
+      "ext": 0.462954,
+      "nozzle": -62,
+      "what": "front seat, cushion",
+      "w": 1
+     }
+    ]
+   },
+   {
+    "flank": "port",
+    "opening": "door",
+    "aperture": 0,
+    "planeZ": 0.9975,
+    "readyX": -0.30241,
+    "scoopY": 0.84921,
+    "turnYaw": -15,
+    "doors": [
+     "FR",
+     "RR"
+    ],
+    "beside": {
+     "stowed": true,
+     "latched": false
+    },
+    "strokes": [
+     {
+      "cx": -0.356,
+      "cy": 1.08,
+      "yaw": -15,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 0
+     },
+     {
+      "cx": -0.146,
+      "cy": 1.44921,
+      "yaw": 1.59114,
+      "pitch": 3.328313,
+      "ext": 0.324742,
+      "nozzle": 20,
+      "what": "air pass",
+      "w": 1.6
+     },
+     {
+      "cx": -0.356,
+      "cy": 1.08,
+      "yaw": -15,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 1
+     },
+     {
+      "cx": -0.596,
+      "cy": 1.02921,
+      "yaw": -12.757532,
+      "pitch": -18.371425,
+      "ext": 0.167325,
+      "nozzle": -62,
+      "what": "rear seat, cushion",
+      "w": 1
+     },
+     {
+      "cx": -0.646,
+      "cy": 1.02921,
+      "yaw": -16.98553,
+      "pitch": -11.041654,
+      "ext": 0.447934,
+      "nozzle": -62,
+      "what": "rear seat, cushion",
+      "w": 2
+     },
+     {
+      "cx": -0.596,
+      "cy": 1.02921,
+      "yaw": -8.150616,
+      "pitch": -8.154436,
+      "ext": 0.696793,
+      "nozzle": -62,
+      "what": "rear seat, cushion",
+      "w": 1
+     },
+     {
+      "cx": -0.356,
+      "cy": 1.08,
+      "yaw": -15,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 1
+     },
+     {
+      "cx": -0.196,
+      "cy": 0.66921,
+      "yaw": 0.638367,
+      "pitch": -8.940357,
+      "ext": 0.608176,
+      "nozzle": -62,
+      "what": "floor, deep",
+      "w": 2
+     },
+     {
+      "cx": -0.356,
+      "cy": 1.08,
+      "yaw": -15,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 1
+     },
+     {
+      "cx": -0.196,
+      "cy": 0.66921,
+      "yaw": -2.489553,
+      "pitch": -16.550945,
+      "ext": 0.206046,
+      "nozzle": -62,
+      "what": "floor by the door",
+      "w": 2
+     }
+    ]
+   }
+  ],
+  "notReached": [
+   "the front seat's cushion: at the door, on the way out: the wand off a seat (120 of 120 wands measured)",
+   "the front seat's back: at the door, no wand through the opening points the nozzle at it",
+   "the rear seat's back: at the door, on the way out from between two strokes: the wand 0.013 m off a seat, between rear seat, back and rear seat, back"
+  ],
+  "beside": {
+   "stowed": true,
+   "latched": false
+  },
+  "flankDoors": [
+   "FR",
+   "RR"
+  ]
+ },
+ "waymo_ipace": {
+  "pivotZ": 1.1475,
+  "visits": [
+   {
+    "flank": "far",
+    "opening": "front door",
+    "aperture": 0,
+    "planeZ": 0.9475,
+    "readyX": 0.191,
+    "scoopY": 0.757614,
+    "strokes": [
+     {
+      "cx": 0.191,
+      "cy": 1.071669,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 0
+     },
+     {
+      "cx": 0.331,
+      "cy": 1.257614,
+      "yaw": -1.59114,
+      "pitch": -0.536372,
+      "ext": 0.319532,
+      "nozzle": 20,
+      "what": "air pass",
+      "w": 1.6
+     },
+     {
+      "cx": 0.191,
+      "cy": 1.071669,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 1
+     },
+     {
+      "cx": 0.281,
+      "cy": 1.017614,
+      "yaw": 1.372092,
+      "pitch": -17.629213,
+      "ext": 0.167893,
+      "nozzle": -62,
+      "what": "front seat, cushion",
+      "w": 1
+     },
+     {
+      "cx": 0.131,
+      "cy": 1.017614,
+      "yaw": -1.009513,
+      "pitch": -13.445195,
+      "ext": 0.297908,
+      "nozzle": -62,
+      "what": "front seat, cushion",
+      "w": 2
+     },
+     {
+      "cx": 0.231,
+      "cy": 1.017614,
+      "yaw": 0.798496,
+      "pitch": -10.817948,
+      "ext": 0.43607,
+      "nozzle": -62,
+      "what": "front seat, cushion",
+      "w": 1
+     }
+    ]
+   },
+   {
+    "flank": "far",
+    "opening": "rear door",
+    "aperture": 1,
+    "planeZ": 0.9475,
+    "readyX": -0.93259,
+    "scoopY": 0.762291,
+    "turnYaw": 15,
+    "strokes": [
+     {
+      "cx": -0.879,
+      "cy": 1.221669,
+      "yaw": 15,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 0
+     },
+     {
+      "cx": -0.759,
+      "cy": 1.262291,
+      "yaw": 22.619865,
+      "pitch": 2.481464,
+      "ext": 0.399623,
+      "nozzle": 20,
+      "what": "air pass",
+      "w": 1.6
+     },
+     {
+      "cx": -0.909,
+      "cy": 1.262291,
+      "yaw": -1.59114,
+      "pitch": 1.138863,
+      "ext": 0.321274,
+      "nozzle": 20,
+      "what": "air pass",
+      "w": 2.6
+     },
+     {
+      "cx": -0.879,
+      "cy": 1.221669,
+      "yaw": 15,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 1
+     },
+     {
+      "cx": -0.759,
+      "cy": 1.022291,
+      "yaw": 20.674425,
+      "pitch": -17.893103,
+      "ext": 0.191581,
+      "nozzle": -62,
+      "what": "rear seat, cushion",
+      "w": 1
+     },
+     {
+      "cx": -0.809,
+      "cy": 1.022291,
+      "yaw": 2.592755,
+      "pitch": -12.018279,
+      "ext": 0.387692,
+      "nozzle": -62,
+      "what": "rear seat, cushion",
+      "w": 2
+     },
+     {
+      "cx": -0.759,
+      "cy": 1.022291,
+      "yaw": 6.153672,
+      "pitch": -8.6974,
+      "ext": 0.643722,
+      "nozzle": -62,
+      "what": "rear seat, cushion",
+      "w": 1
+     }
+    ]
+   },
+   {
+    "flank": "port",
+    "opening": "rear door",
+    "aperture": 1,
+    "planeZ": 0.9475,
+    "readyX": -0.93259,
+    "scoopY": 0.762291,
+    "turnYaw": 15,
+    "swingVia": 0.191,
+    "doors": [
+     "RR"
+    ],
+    "beside": {
+     "stowed": true,
+     "latched": true
+    },
+    "strokes": [
+     {
+      "cx": -0.879,
+      "cy": 1.221669,
+      "yaw": 15,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 0
+     },
+     {
+      "cx": -0.759,
+      "cy": 1.262291,
+      "yaw": 22.619865,
+      "pitch": 2.481464,
+      "ext": 0.399623,
+      "nozzle": 20,
+      "what": "air pass",
+      "w": 1.6
+     },
+     {
+      "cx": -0.909,
+      "cy": 1.262291,
+      "yaw": -1.59114,
+      "pitch": 1.138863,
+      "ext": 0.321274,
+      "nozzle": 20,
+      "what": "air pass",
+      "w": 2.6
+     },
+     {
+      "cx": -0.879,
+      "cy": 1.221669,
+      "yaw": 15,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 1
+     },
+     {
+      "cx": -0.759,
+      "cy": 1.022291,
+      "yaw": 20.674425,
+      "pitch": -17.893103,
+      "ext": 0.191581,
+      "nozzle": -62,
+      "what": "rear seat, cushion",
+      "w": 1
+     },
+     {
+      "cx": -0.809,
+      "cy": 1.022291,
+      "yaw": 2.592755,
+      "pitch": -12.018279,
+      "ext": 0.387692,
+      "nozzle": -62,
+      "what": "rear seat, cushion",
+      "w": 2
+     },
+     {
+      "cx": -0.759,
+      "cy": 1.022291,
+      "yaw": 6.153672,
+      "pitch": -8.6974,
+      "ext": 0.643722,
+      "nozzle": -62,
+      "what": "rear seat, cushion",
+      "w": 1
+     }
+    ]
+   },
+   {
+    "flank": "port",
+    "opening": "front door",
+    "aperture": 0,
+    "planeZ": 0.9475,
+    "readyX": 0.191,
+    "scoopY": 0.757614,
+    "doors": [
+     "FR"
+    ],
+    "beside": {
+     "stowed": true,
+     "latched": false
+    },
+    "strokes": [
+     {
+      "cx": 0.191,
+      "cy": 1.071669,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 0
+     },
+     {
+      "cx": 0.331,
+      "cy": 1.257614,
+      "yaw": -1.59114,
+      "pitch": -0.536372,
+      "ext": 0.319532,
+      "nozzle": 20,
+      "what": "air pass",
+      "w": 1.6
+     },
+     {
+      "cx": 0.191,
+      "cy": 1.071669,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 1
+     },
+     {
+      "cx": 0.281,
+      "cy": 1.017614,
+      "yaw": 1.372092,
+      "pitch": -17.629213,
+      "ext": 0.167893,
+      "nozzle": -62,
+      "what": "front seat, cushion",
+      "w": 1
+     },
+     {
+      "cx": 0.131,
+      "cy": 1.017614,
+      "yaw": -1.009513,
+      "pitch": -13.445195,
+      "ext": 0.297908,
+      "nozzle": -62,
+      "what": "front seat, cushion",
+      "w": 2
+     },
+     {
+      "cx": 0.231,
+      "cy": 1.017614,
+      "yaw": 0.798496,
+      "pitch": -10.817948,
+      "ext": 0.43607,
+      "nozzle": -62,
+      "what": "front seat, cushion",
+      "w": 1
+     }
+    ]
+   }
+  ],
+  "notReached": [
+   "the front seat's back: at the front door, no wand through the opening reaches it inside the arm's travel and the cabin's free space",
+   "the rear seat's back: at the rear door, no wand through the opening reaches it inside the arm's travel and the cabin's free space",
+   "the floor deep at the front door: the wand off a seat (94 of 120 wands measured)",
+   "the floor by the door at the front door: the wand off a seat (63 of 120 wands measured)",
+   "the floor deep at the rear door: the wand off a seat (119 of 119 wands measured)",
+   "the floor by the door at the rear door: the wand off a seat (118 of 120 wands measured)"
+  ],
+  "beside": {
+   "stowed": true,
+   "latched": false
+  },
+  "flankDoors": [
+   "FR",
+   "RR"
+  ]
+ },
+ "zoox_robotaxi": {
+  "pivotZ": 1.115,
+  "visits": [
+   {
+    "flank": "far",
+    "opening": "door",
+    "aperture": 0,
+    "planeZ": 0.915,
+    "readyX": -0.02,
+    "scoopY": 0.816948,
+    "strokes": [
+     {
+      "cx": -0.02,
+      "cy": 0.94,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 0
+     },
+     {
+      "cx": 0.41,
+      "cy": 1.596948,
+      "yaw": 4.763642,
+      "pitch": 1.856092,
+      "ext": 0.325096,
+      "nozzle": 20,
+      "what": "air pass",
+      "w": 1.6
+     },
+     {
+      "cx": -0.39,
+      "cy": 1.596948,
+      "yaw": -7.125016,
+      "pitch": 1.840273,
+      "ext": 0.329046,
+      "nozzle": 20,
+      "what": "air pass",
+      "w": 2.6
+     },
+     {
+      "cx": -0.02,
+      "cy": 0.94,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 1
+     },
+     {
+      "cx": 0.41,
+      "cy": 0.816948,
+      "yaw": 36.497364,
+      "pitch": 1.269203,
+      "ext": 0.453847,
+      "nozzle": 0,
+      "what": "front seat, back",
+      "w": 1
+     },
+     {
+      "cx": 0.41,
+      "cy": 0.816948,
+      "yaw": 38.938417,
+      "pitch": 15.785082,
+      "ext": 0.532301,
+      "nozzle": 0,
+      "what": "front seat, back",
+      "w": 1.5
+     },
+     {
+      "cx": -0.02,
+      "cy": 0.94,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 1
+     },
+     {
+      "cx": -0.44,
+      "cy": 0.876948,
+      "yaw": -28.465162,
+      "pitch": 2.358549,
+      "ext": 0.169233,
+      "nozzle": -62,
+      "what": "rear seat, cushion",
+      "w": 1
+     },
+     {
+      "cx": -0.44,
+      "cy": 0.876948,
+      "yaw": -31.092222,
+      "pitch": 1.450575,
+      "ext": 0.470066,
+      "nozzle": -62,
+      "what": "rear seat, cushion",
+      "w": 2
+     },
+     {
+      "cx": -0.44,
+      "cy": 0.876948,
+      "yaw": -17.080234,
+      "pitch": 1.184174,
+      "ext": 0.617733,
+      "nozzle": -62,
+      "what": "rear seat, cushion",
+      "w": 1
+     },
+     {
+      "cx": -0.02,
+      "cy": 0.94,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 1
+     },
+     {
+      "cx": -0.39,
+      "cy": 0.816948,
+      "yaw": -37.611528,
+      "pitch": 1.250709,
+      "ext": 0.469575,
+      "nozzle": 0,
+      "what": "rear seat, back",
+      "w": 1
+     },
+     {
+      "cx": -0.39,
+      "cy": 0.816948,
+      "yaw": -39.981188,
+      "pitch": 15.561806,
+      "ext": 0.548276,
+      "nozzle": 0,
+      "what": "rear seat, back",
+      "w": 1.5
+     },
+     {
+      "cx": -0.02,
+      "cy": 0.94,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 1
+     },
+     {
+      "cx": 0.41,
+      "cy": 0.696948,
+      "yaw": 3.510678,
+      "pitch": -10.955113,
+      "ext": 0.538014,
+      "nozzle": -62,
+      "what": "floor, deep",
+      "w": 1
+     },
+     {
+      "cx": -0.39,
+      "cy": 0.696948,
+      "yaw": -4.909062,
+      "pitch": -10.936532,
+      "ext": 0.539764,
+      "nozzle": -62,
+      "what": "floor, deep",
+      "w": 3
+     },
+     {
+      "cx": -0.02,
+      "cy": 0.94,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 1
+     },
+     {
+      "cx": -0.39,
+      "cy": 0.696948,
+      "yaw": -8.652542,
+      "pitch": -18.225894,
+      "ext": 0.224263,
+      "nozzle": -62,
+      "what": "floor by the door",
+      "w": 1
+     },
+     {
+      "cx": 0.41,
+      "cy": 0.696948,
+      "yaw": 6.203448,
+      "pitch": -18.312675,
+      "ext": 0.220943,
+      "nozzle": -62,
+      "what": "floor by the door",
+      "w": 3
+     }
+    ]
+   },
+   {
+    "flank": "port",
+    "opening": "door, front panel only",
+    "aperture": 0,
+    "planeZ": 0.915,
+    "readyX": 0.26,
+    "scoopY": 0.816948,
+    "doors": [
+     "FR"
+    ],
+    "partial": true,
+    "beside": {
+     "stowed": true,
+     "latched": true
+    },
+    "strokes": [
+     {
+      "cx": 0.26,
+      "cy": 1.39,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 0
+     },
+     {
+      "cx": 0.41,
+      "cy": 1.596948,
+      "yaw": 4.763642,
+      "pitch": 1.856092,
+      "ext": 0.325096,
+      "nozzle": 20,
+      "what": "air pass",
+      "w": 1.6
+     },
+     {
+      "cx": 0.21,
+      "cy": 1.596948,
+      "yaw": -7.125016,
+      "pitch": 2.010811,
+      "ext": 0.329301,
+      "nozzle": 20,
+      "what": "air pass",
+      "w": 2.6
+     },
+     {
+      "cx": 0.26,
+      "cy": 1.39,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 1
+     },
+     {
+      "cx": 0.41,
+      "cy": 0.816948,
+      "yaw": 36.497364,
+      "pitch": 1.269203,
+      "ext": 0.453847,
+      "nozzle": 0,
+      "what": "front seat, back",
+      "w": 1
+     },
+     {
+      "cx": 0.41,
+      "cy": 0.816948,
+      "yaw": 38.938417,
+      "pitch": 15.785082,
+      "ext": 0.532301,
+      "nozzle": 0,
+      "what": "front seat, back",
+      "w": 1.5
+     },
+     {
+      "cx": 0.26,
+      "cy": 1.39,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 1
+     },
+     {
+      "cx": 0.41,
+      "cy": 0.696948,
+      "yaw": 3.510678,
+      "pitch": -10.955113,
+      "ext": 0.538014,
+      "nozzle": -62,
+      "what": "floor, deep",
+      "w": 1
+     },
+     {
+      "cx": 0.21,
+      "cy": 0.696948,
+      "yaw": -7.686722,
+      "pitch": -10.881353,
+      "ext": 0.544997,
+      "nozzle": -62,
+      "what": "floor, deep",
+      "w": 3
+     },
+     {
+      "cx": 0.26,
+      "cy": 1.39,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 1
+     },
+     {
+      "cx": 0.11,
+      "cy": 0.696948,
+      "yaw": -1.245364,
+      "pitch": -18.400717,
+      "ext": 0.217608,
+      "nozzle": -62,
+      "what": "floor by the door",
+      "w": 1
+     },
+     {
+      "cx": 0.41,
+      "cy": 0.696948,
+      "yaw": 6.203448,
+      "pitch": -18.312675,
+      "ext": 0.220943,
+      "nozzle": -62,
+      "what": "floor by the door",
+      "w": 3
+     }
+    ]
+   },
+   {
+    "flank": "port",
+    "opening": "door",
+    "aperture": 0,
+    "planeZ": 0.915,
+    "readyX": -0.02,
+    "scoopY": 0.816948,
+    "doors": [
+     "FR",
+     "RR"
+    ],
+    "beside": {
+     "stowed": true,
+     "latched": false
+    },
+    "strokes": [
+     {
+      "cx": -0.02,
+      "cy": 0.94,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 0
+     },
+     {
+      "cx": 0.41,
+      "cy": 1.596948,
+      "yaw": 4.763642,
+      "pitch": 1.856092,
+      "ext": 0.325096,
+      "nozzle": 20,
+      "what": "air pass",
+      "w": 1.6
+     },
+     {
+      "cx": -0.39,
+      "cy": 1.596948,
+      "yaw": -7.125016,
+      "pitch": 1.840273,
+      "ext": 0.329046,
+      "nozzle": 20,
+      "what": "air pass",
+      "w": 2.6
+     },
+     {
+      "cx": -0.02,
+      "cy": 0.94,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 1
+     },
+     {
+      "cx": 0.41,
+      "cy": 0.816948,
+      "yaw": 36.497364,
+      "pitch": 1.269203,
+      "ext": 0.453847,
+      "nozzle": 0,
+      "what": "front seat, back",
+      "w": 1
+     },
+     {
+      "cx": 0.41,
+      "cy": 0.816948,
+      "yaw": 38.938417,
+      "pitch": 15.785082,
+      "ext": 0.532301,
+      "nozzle": 0,
+      "what": "front seat, back",
+      "w": 1.5
+     },
+     {
+      "cx": -0.02,
+      "cy": 0.94,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 1
+     },
+     {
+      "cx": -0.44,
+      "cy": 0.876948,
+      "yaw": -28.465162,
+      "pitch": 2.358549,
+      "ext": 0.169233,
+      "nozzle": -62,
+      "what": "rear seat, cushion",
+      "w": 1
+     },
+     {
+      "cx": -0.44,
+      "cy": 0.876948,
+      "yaw": -31.092222,
+      "pitch": 1.450575,
+      "ext": 0.470066,
+      "nozzle": -62,
+      "what": "rear seat, cushion",
+      "w": 2
+     },
+     {
+      "cx": -0.44,
+      "cy": 0.876948,
+      "yaw": -17.080234,
+      "pitch": 1.184174,
+      "ext": 0.617733,
+      "nozzle": -62,
+      "what": "rear seat, cushion",
+      "w": 1
+     },
+     {
+      "cx": -0.02,
+      "cy": 0.94,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 1
+     },
+     {
+      "cx": -0.39,
+      "cy": 0.816948,
+      "yaw": -37.611528,
+      "pitch": 1.250709,
+      "ext": 0.469575,
+      "nozzle": 0,
+      "what": "rear seat, back",
+      "w": 1
+     },
+     {
+      "cx": -0.39,
+      "cy": 0.816948,
+      "yaw": -39.981188,
+      "pitch": 15.561806,
+      "ext": 0.548276,
+      "nozzle": 0,
+      "what": "rear seat, back",
+      "w": 1.5
+     },
+     {
+      "cx": -0.02,
+      "cy": 0.94,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 1
+     },
+     {
+      "cx": 0.41,
+      "cy": 0.696948,
+      "yaw": 3.510678,
+      "pitch": -10.955113,
+      "ext": 0.538014,
+      "nozzle": -62,
+      "what": "floor, deep",
+      "w": 1
+     },
+     {
+      "cx": -0.39,
+      "cy": 0.696948,
+      "yaw": -4.909062,
+      "pitch": -10.936532,
+      "ext": 0.539764,
+      "nozzle": -62,
+      "what": "floor, deep",
+      "w": 3
+     },
+     {
+      "cx": -0.02,
+      "cy": 0.94,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 1
+     },
+     {
+      "cx": -0.39,
+      "cy": 0.696948,
+      "yaw": -8.652542,
+      "pitch": -18.225894,
+      "ext": 0.224263,
+      "nozzle": -62,
+      "what": "floor by the door",
+      "w": 1
+     },
+     {
+      "cx": 0.41,
+      "cy": 0.696948,
+      "yaw": 6.203448,
+      "pitch": -18.312675,
+      "ext": 0.220943,
+      "nozzle": -62,
+      "what": "floor by the door",
+      "w": 3
+     }
+    ]
+   }
+  ],
+  "notReached": [
+   "the front seat's cushion: at the door, on the way out from between two strokes: the wand 0.009 m off a seat, between front seat, cushion and front seat, cushion"
+  ],
+  "beside": {
+   "stowed": true,
+   "latched": false
+  },
+  "flankDoors": [
+   "FR",
+   "RR"
+  ]
+ },
+ "tesla_cybercab": {
+  "pivotZ": 1.0765,
+  "visits": [
+   {
+    "flank": "far",
+    "opening": "door",
+    "aperture": 0,
+    "planeZ": 0.8765,
+    "readyX": -0.61297,
+    "scoopY": 0.826505,
+    "turnYaw": 30,
+    "strokes": [
+     {
+      "cx": -0.4975,
+      "cy": 1.17,
+      "yaw": 30,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 0
+     },
+     {
+      "cx": -0.4775,
+      "cy": 1.126505,
+      "yaw": 25.602188,
+      "pitch": 1.337022,
+      "ext": 0.421368,
+      "nozzle": 20,
+      "what": "air pass",
+      "w": 1.6
+     },
+     {
+      "cx": -0.4975,
+      "cy": 1.17,
+      "yaw": 30,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 1
+     },
+     {
+      "cx": -0.4275,
+      "cy": 0.946505,
+      "yaw": 41.124996,
+      "pitch": -13.438539,
+      "ext": 0.281859,
+      "nozzle": -62,
+      "what": "seat, cushion",
+      "w": 1
+     },
+     {
+      "cx": -0.4775,
+      "cy": 0.946505,
+      "yaw": 21.167484,
+      "pitch": -11.938737,
+      "ext": 0.290083,
+      "nozzle": -62,
+      "what": "seat, cushion",
+      "w": 2
+     },
+     {
+      "cx": -0.4775,
+      "cy": 0.946505,
+      "yaw": 25.646595,
+      "pitch": -9.100705,
+      "ext": 0.470965,
+      "nozzle": -62,
+      "what": "seat, cushion",
+      "w": 1
+     }
+    ]
+   },
+   {
+    "flank": "port",
+    "opening": "door",
+    "aperture": 0,
+    "planeZ": 0.8765,
+    "readyX": -0.61297,
+    "scoopY": 0.826505,
+    "turnYaw": 30,
+    "doors": [
+     "R"
+    ],
+    "beside": {
+     "stowed": true,
+     "latched": true
+    },
+    "strokes": [
+     {
+      "cx": -0.4975,
+      "cy": 1.17,
+      "yaw": 30,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 0
+     },
+     {
+      "cx": -0.4775,
+      "cy": 1.126505,
+      "yaw": 25.602188,
+      "pitch": 1.337022,
+      "ext": 0.421368,
+      "nozzle": 20,
+      "what": "air pass",
+      "w": 1.6
+     },
+     {
+      "cx": -0.4975,
+      "cy": 1.17,
+      "yaw": 30,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 1
+     },
+     {
+      "cx": -0.4275,
+      "cy": 0.946505,
+      "yaw": 41.124996,
+      "pitch": -13.438539,
+      "ext": 0.281859,
+      "nozzle": -62,
+      "what": "seat, cushion",
+      "w": 1
+     },
+     {
+      "cx": -0.4775,
+      "cy": 0.946505,
+      "yaw": 21.167484,
+      "pitch": -11.938737,
+      "ext": 0.290083,
+      "nozzle": -62,
+      "what": "seat, cushion",
+      "w": 2
+     },
+     {
+      "cx": -0.4775,
+      "cy": 0.946505,
+      "yaw": 25.646595,
+      "pitch": -9.100705,
+      "ext": 0.470965,
+      "nozzle": -62,
+      "what": "seat, cushion",
+      "w": 1
+     }
+    ]
+   }
+  ],
+  "notReached": [
+   "the seat's back: at the door, no wand through the opening reaches it inside the arm's travel and the cabin's free space",
+   "the floor deep at the door: the wand off a seat (74 of 74 wands measured)",
+   "the floor by the door at the door: the wand off a seat (117 of 120 wands measured)"
+  ],
+  "beside": {
+   "stowed": true,
+   "latched": true,
+   "parkX": 0.55
+  },
+  "flankDoors": [
+   "R"
+  ]
+ },
+ "tesla_model_y": {
+  "pivotZ": 1.16,
+  "visits": [
+   {
+    "flank": "far",
+    "opening": "front door",
+    "aperture": 0,
+    "planeZ": 0.96,
+    "readyX": 0.125,
+    "scoopY": 0.828117,
+    "strokes": [
+     {
+      "cx": 0.125,
+      "cy": 1.286664,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 0
+     },
+     {
+      "cx": 0.205,
+      "cy": 1.308117,
+      "yaw": 1.59114,
+      "pitch": -0.673757,
+      "ext": 0.319424,
+      "nozzle": 20,
+      "what": "air pass",
+      "w": 1.6
+     },
+     {
+      "cx": 0.125,
+      "cy": 1.286664,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 1
+     },
+     {
+      "cx": 0.155,
+      "cy": 1.008117,
+      "yaw": -1.33222,
+      "pitch": -17.247061,
+      "ext": 0.178583,
+      "nozzle": -62,
+      "what": "front seat, cushion",
+      "w": 1
+     },
+     {
+      "cx": 0.105,
+      "cy": 1.008117,
+      "yaw": -12.633362,
+      "pitch": -12.933945,
+      "ext": 0.327489,
+      "nozzle": -62,
+      "what": "front seat, cushion",
+      "w": 2
+     },
+     {
+      "cx": 0.105,
+      "cy": 1.008117,
+      "yaw": -0.784825,
+      "pitch": -10.680551,
+      "ext": 0.448013,
+      "nozzle": -62,
+      "what": "front seat, cushion",
+      "w": 1
+     },
+     {
+      "cx": 0.125,
+      "cy": 1.286664,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 1
+     },
+     {
+      "cx": 0.255,
+      "cy": 1.068117,
+      "yaw": -30.35176,
+      "pitch": -21.255902,
+      "ext": 0.359867,
+      "nozzle": 0,
+      "what": "front seat, back",
+      "w": 1
+     },
+     {
+      "cx": 0.205,
+      "cy": 1.248117,
+      "yaw": -29.954097,
+      "pitch": -18.30501,
+      "ext": 0.338233,
+      "nozzle": 0,
+      "what": "front seat, back",
+      "w": 1.5
+     }
+    ]
+   },
+   {
+    "flank": "far",
+    "opening": "rear door",
+    "aperture": 1,
+    "planeZ": 0.96,
+    "readyX": -0.945,
+    "scoopY": 0.752996,
+    "strokes": [
+     {
+      "cx": -0.945,
+      "cy": 1.136664,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 0
+     },
+     {
+      "cx": -0.805,
+      "cy": 1.312996,
+      "yaw": 15.524111,
+      "pitch": 2.947132,
+      "ext": 0.358565,
+      "nozzle": 20,
+      "what": "air pass",
+      "w": 1.6
+     },
+     {
+      "cx": -0.905,
+      "cy": 1.312996,
+      "yaw": -11.003541,
+      "pitch": 0.634184,
+      "ext": 0.337543,
+      "nozzle": 20,
+      "what": "air pass",
+      "w": 2.6
+     },
+     {
+      "cx": -0.945,
+      "cy": 1.136664,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 1
+     },
+     {
+      "cx": -0.805,
+      "cy": 1.012996,
+      "yaw": 9.688787,
+      "pitch": -18.29766,
+      "ext": 0.173381,
+      "nozzle": -62,
+      "what": "rear seat, cushion",
+      "w": 1
+     },
+     {
+      "cx": -0.905,
+      "cy": 1.012996,
+      "yaw": 0,
+      "pitch": -11.877676,
+      "ext": 0.398742,
+      "nozzle": -62,
+      "what": "rear seat, cushion",
+      "w": 2
+     },
+     {
+      "cx": -0.805,
+      "cy": 1.012996,
+      "yaw": 1.218875,
+      "pitch": -8.673442,
+      "ext": 0.649884,
+      "nozzle": -62,
+      "what": "rear seat, cushion",
+      "w": 1
+     }
+    ]
+   },
+   {
+    "flank": "port",
+    "opening": "front door",
+    "aperture": 0,
+    "planeZ": 0.96,
+    "readyX": 0.125,
+    "scoopY": 0.828117,
+    "doors": [
+     "FR"
+    ],
+    "beside": {
+     "stowed": true,
+     "latched": true
+    },
+    "strokes": [
+     {
+      "cx": 0.125,
+      "cy": 1.286664,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 0
+     },
+     {
+      "cx": 0.205,
+      "cy": 1.308117,
+      "yaw": 1.59114,
+      "pitch": -0.673757,
+      "ext": 0.319424,
+      "nozzle": 20,
+      "what": "air pass",
+      "w": 1.6
+     },
+     {
+      "cx": 0.125,
+      "cy": 1.286664,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 1
+     },
+     {
+      "cx": 0.155,
+      "cy": 1.008117,
+      "yaw": -1.33222,
+      "pitch": -17.247061,
+      "ext": 0.178583,
+      "nozzle": -62,
+      "what": "front seat, cushion",
+      "w": 1
+     },
+     {
+      "cx": 0.105,
+      "cy": 1.008117,
+      "yaw": -12.633362,
+      "pitch": -12.933945,
+      "ext": 0.327489,
+      "nozzle": -62,
+      "what": "front seat, cushion",
+      "w": 2
+     },
+     {
+      "cx": 0.105,
+      "cy": 1.008117,
+      "yaw": -0.784825,
+      "pitch": -10.680551,
+      "ext": 0.448013,
+      "nozzle": -62,
+      "what": "front seat, cushion",
+      "w": 1
+     },
+     {
+      "cx": 0.125,
+      "cy": 1.286664,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 1
+     },
+     {
+      "cx": 0.255,
+      "cy": 1.068117,
+      "yaw": -30.35176,
+      "pitch": -21.255902,
+      "ext": 0.359867,
+      "nozzle": 0,
+      "what": "front seat, back",
+      "w": 1
+     },
+     {
+      "cx": 0.205,
+      "cy": 1.248117,
+      "yaw": -29.954097,
+      "pitch": -18.30501,
+      "ext": 0.338233,
+      "nozzle": 0,
+      "what": "front seat, back",
+      "w": 1.5
+     }
+    ]
+   },
+   {
+    "flank": "port",
+    "opening": "rear door",
+    "aperture": 1,
+    "planeZ": 0.96,
+    "readyX": -0.945,
+    "scoopY": 0.752996,
+    "doors": [
+     "RR"
+    ],
+    "beside": {
+     "stowed": true,
+     "latched": true
+    },
+    "strokes": [
+     {
+      "cx": -0.945,
+      "cy": 1.136664,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 0
+     },
+     {
+      "cx": -0.805,
+      "cy": 1.312996,
+      "yaw": 15.524111,
+      "pitch": 2.947132,
+      "ext": 0.358565,
+      "nozzle": 20,
+      "what": "air pass",
+      "w": 1.6
+     },
+     {
+      "cx": -0.905,
+      "cy": 1.312996,
+      "yaw": -11.003541,
+      "pitch": 0.634184,
+      "ext": 0.337543,
+      "nozzle": 20,
+      "what": "air pass",
+      "w": 2.6
+     },
+     {
+      "cx": -0.945,
+      "cy": 1.136664,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 1
+     },
+     {
+      "cx": -0.805,
+      "cy": 1.012996,
+      "yaw": 9.688787,
+      "pitch": -18.29766,
+      "ext": 0.173381,
+      "nozzle": -62,
+      "what": "rear seat, cushion",
+      "w": 1
+     },
+     {
+      "cx": -0.905,
+      "cy": 1.012996,
+      "yaw": 0,
+      "pitch": -11.877676,
+      "ext": 0.398742,
+      "nozzle": -62,
+      "what": "rear seat, cushion",
+      "w": 2
+     },
+     {
+      "cx": -0.805,
+      "cy": 1.012996,
+      "yaw": 1.218875,
+      "pitch": -8.673442,
+      "ext": 0.649884,
+      "nozzle": -62,
+      "what": "rear seat, cushion",
+      "w": 1
+     }
+    ]
+   }
+  ],
+  "notReached": [
+   "the rear seat's back: at the rear door, no wand through the opening reaches it inside the arm's travel and the cabin's free space",
+   "the floor deep at the front door: on the way: the wand -0.015 m off a seat, between turn and floor, deep",
+   "the floor by the door at the front door: on the way: the wand 0.013 m off a seat, between turn and floor by the door",
+   "the floor deep at the rear door: the wand off a seat (118 of 120 wands measured)",
+   "the floor by the door at the rear door: the wand off a seat (110 of 120 wands measured)"
+  ],
+  "beside": {
+   "stowed": true,
+   "latched": true,
+   "parkX": -0.1
+  },
+  "flankDoors": [
+   "FR",
+   "RR"
+  ]
+ },
+ "lucid_gravity_nuro": {
+  "pivotZ": 1.2,
+  "visits": [
+   {
+    "flank": "far",
+    "opening": "front door",
+    "aperture": 0,
+    "planeZ": 1,
+    "readyX": 0.185,
+    "scoopY": 0.84753,
+    "strokes": [
+     {
+      "cx": 0.185,
+      "cy": 1.305,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 0
+     },
+     {
+      "cx": 0.225,
+      "cy": 1.32753,
+      "yaw": 1.59114,
+      "pitch": 0.816311,
+      "ext": 0.320877,
+      "nozzle": 20,
+      "what": "air pass",
+      "w": 1.6
+     },
+     {
+      "cx": 0.185,
+      "cy": 1.305,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 1
+     },
+     {
+      "cx": 0.175,
+      "cy": 1.02753,
+      "yaw": 1.27303,
+      "pitch": -16.699783,
+      "ext": 0.196057,
+      "nozzle": -62,
+      "what": "front seat, cushion",
+      "w": 1
+     },
+     {
+      "cx": 0.125,
+      "cy": 1.02753,
+      "yaw": -10.388858,
+      "pitch": -12.720943,
+      "ext": 0.340575,
+      "nozzle": -62,
+      "what": "front seat, cushion",
+      "w": 2
+     },
+     {
+      "cx": 0.175,
+      "cy": 1.02753,
+      "yaw": -3.052883,
+      "pitch": -10.475104,
+      "ext": 0.468478,
+      "nozzle": -62,
+      "what": "front seat, cushion",
+      "w": 1
+     }
+    ]
+   },
+   {
+    "flank": "far",
+    "opening": "rear door",
+    "aperture": 1,
+    "planeZ": 1,
+    "readyX": -0.925,
+    "scoopY": 0.848886,
+    "strokes": [
+     {
+      "cx": -0.925,
+      "cy": 1.23,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 0
+     },
+     {
+      "cx": -0.765,
+      "cy": 1.388886,
+      "yaw": 16.990823,
+      "pitch": 0.276511,
+      "ext": 0.361914,
+      "nozzle": 20,
+      "what": "air pass",
+      "w": 1.6
+     },
+     {
+      "cx": -0.965,
+      "cy": 1.388886,
+      "yaw": -11.003541,
+      "pitch": -1.223652,
+      "ext": 0.335925,
+      "nozzle": 20,
+      "what": "air pass",
+      "w": 2.6
+     },
+     {
+      "cx": -0.925,
+      "cy": 1.23,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 1
+     },
+     {
+      "cx": -0.815,
+      "cy": 1.028886,
+      "yaw": 6.788975,
+      "pitch": -17.767941,
+      "ext": 0.175807,
+      "nozzle": -62,
+      "what": "rear seat, cushion",
+      "w": 1
+     },
+     {
+      "cx": -0.915,
+      "cy": 1.028886,
+      "yaw": -1.636577,
+      "pitch": -11.291746,
+      "ext": 0.421232,
+      "nozzle": -62,
+      "what": "rear seat, cushion",
+      "w": 2
+     },
+     {
+      "cx": -0.815,
+      "cy": 1.028886,
+      "yaw": 0,
+      "pitch": -8.196361,
+      "ext": 0.687411,
+      "nozzle": -62,
+      "what": "rear seat, cushion",
+      "w": 1
+     },
+     {
+      "cx": -0.925,
+      "cy": 1.23,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 1
+     },
+     {
+      "cx": -0.715,
+      "cy": 0.968886,
+      "yaw": 17.860094,
+      "pitch": -24.391965,
+      "ext": 0.607905,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 0.8
+     },
+     {
+      "cx": -0.715,
+      "cy": 0.968886,
+      "yaw": 17.860094,
+      "pitch": -24.391965,
+      "ext": 0.807905,
+      "nozzle": -62,
+      "what": "floor, deep",
+      "w": 2
+     },
+     {
+      "cx": -0.715,
+      "cy": 0.968886,
+      "yaw": 17.860094,
+      "pitch": -24.391965,
+      "ext": 0.607905,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 0.8
+     },
+     {
+      "cx": -0.925,
+      "cy": 1.23,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 1
+     },
+     {
+      "cx": -0.715,
+      "cy": 0.908886,
+      "yaw": 30.411081,
+      "pitch": -33.593236,
+      "ext": 0.287454,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 0.8
+     },
+     {
+      "cx": -0.715,
+      "cy": 0.908886,
+      "yaw": 30.411081,
+      "pitch": -33.593236,
+      "ext": 0.487454,
+      "nozzle": -62,
+      "what": "floor by the door",
+      "w": 2
+     },
+     {
+      "cx": -0.715,
+      "cy": 0.908886,
+      "yaw": 30.411081,
+      "pitch": -33.593236,
+      "ext": 0.287454,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 0.8
+     }
+    ]
+   },
+   {
+    "flank": "port",
+    "opening": "front door",
+    "aperture": 0,
+    "planeZ": 1,
+    "readyX": 0.185,
+    "scoopY": 0.84753,
+    "doors": [
+     "FR"
+    ],
+    "beside": {
+     "stowed": true,
+     "latched": true
+    },
+    "strokes": [
+     {
+      "cx": 0.185,
+      "cy": 1.305,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 0
+     },
+     {
+      "cx": 0.225,
+      "cy": 1.32753,
+      "yaw": 1.59114,
+      "pitch": 0.816311,
+      "ext": 0.320877,
+      "nozzle": 20,
+      "what": "air pass",
+      "w": 1.6
+     },
+     {
+      "cx": 0.185,
+      "cy": 1.305,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 1
+     },
+     {
+      "cx": 0.175,
+      "cy": 1.02753,
+      "yaw": 1.27303,
+      "pitch": -16.699783,
+      "ext": 0.196057,
+      "nozzle": -62,
+      "what": "front seat, cushion",
+      "w": 1
+     },
+     {
+      "cx": 0.125,
+      "cy": 1.02753,
+      "yaw": -10.388858,
+      "pitch": -12.720943,
+      "ext": 0.340575,
+      "nozzle": -62,
+      "what": "front seat, cushion",
+      "w": 2
+     },
+     {
+      "cx": 0.175,
+      "cy": 1.02753,
+      "yaw": -3.052883,
+      "pitch": -10.475104,
+      "ext": 0.468478,
+      "nozzle": -62,
+      "what": "front seat, cushion",
+      "w": 1
+     }
+    ]
+   },
+   {
+    "flank": "port",
+    "opening": "rear door",
+    "aperture": 1,
+    "planeZ": 1,
+    "readyX": -0.925,
+    "scoopY": 0.848886,
+    "doors": [
+     "RR"
+    ],
+    "beside": {
+     "stowed": true,
+     "latched": true
+    },
+    "strokes": [
+     {
+      "cx": -0.925,
+      "cy": 1.23,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 0
+     },
+     {
+      "cx": -0.765,
+      "cy": 1.388886,
+      "yaw": 16.990823,
+      "pitch": 0.276511,
+      "ext": 0.361914,
+      "nozzle": 20,
+      "what": "air pass",
+      "w": 1.6
+     },
+     {
+      "cx": -0.965,
+      "cy": 1.388886,
+      "yaw": -11.003541,
+      "pitch": -1.223652,
+      "ext": 0.335925,
+      "nozzle": 20,
+      "what": "air pass",
+      "w": 2.6
+     },
+     {
+      "cx": -0.925,
+      "cy": 1.23,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 1
+     },
+     {
+      "cx": -0.815,
+      "cy": 1.028886,
+      "yaw": 6.788975,
+      "pitch": -17.767941,
+      "ext": 0.175807,
+      "nozzle": -62,
+      "what": "rear seat, cushion",
+      "w": 1
+     },
+     {
+      "cx": -0.915,
+      "cy": 1.028886,
+      "yaw": -1.636577,
+      "pitch": -11.291746,
+      "ext": 0.421232,
+      "nozzle": -62,
+      "what": "rear seat, cushion",
+      "w": 2
+     },
+     {
+      "cx": -0.815,
+      "cy": 1.028886,
+      "yaw": 0,
+      "pitch": -8.196361,
+      "ext": 0.687411,
+      "nozzle": -62,
+      "what": "rear seat, cushion",
+      "w": 1
+     },
+     {
+      "cx": -0.925,
+      "cy": 1.23,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 1
+     },
+     {
+      "cx": -0.715,
+      "cy": 0.968886,
+      "yaw": 17.860094,
+      "pitch": -24.391965,
+      "ext": 0.607905,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 0.8
+     },
+     {
+      "cx": -0.715,
+      "cy": 0.968886,
+      "yaw": 17.860094,
+      "pitch": -24.391965,
+      "ext": 0.807905,
+      "nozzle": -62,
+      "what": "floor, deep",
+      "w": 2
+     },
+     {
+      "cx": -0.715,
+      "cy": 0.968886,
+      "yaw": 17.860094,
+      "pitch": -24.391965,
+      "ext": 0.607905,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 0.8
+     },
+     {
+      "cx": -0.925,
+      "cy": 1.23,
+      "yaw": 0,
+      "pitch": -3,
+      "ext": 0.03,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 1
+     },
+     {
+      "cx": -0.715,
+      "cy": 0.908886,
+      "yaw": 30.411081,
+      "pitch": -33.593236,
+      "ext": 0.287454,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 0.8
+     },
+     {
+      "cx": -0.715,
+      "cy": 0.908886,
+      "yaw": 30.411081,
+      "pitch": -33.593236,
+      "ext": 0.487454,
+      "nozzle": -62,
+      "what": "floor by the door",
+      "w": 2
+     },
+     {
+      "cx": -0.715,
+      "cy": 0.908886,
+      "yaw": 30.411081,
+      "pitch": -33.593236,
+      "ext": 0.287454,
+      "nozzle": 0,
+      "what": "turn",
+      "w": 0.8
+     }
+    ]
+   }
+  ],
+  "notReached": [
+   "the front seat's back: at the front door, on the way out from between two strokes: the wand 0.017 m off a seat, between front seat, back and front seat, back",
+   "the rear seat's back: at the rear door, no wand through the opening reaches it inside the arm's travel and the cabin's free space",
+   "the floor deep at the front door: the wand off a seat (68 of 120 wands measured)",
+   "the floor by the door at the front door: on the way: the wand 0.001 m off a seat, between turn and floor by the door"
+  ],
+  "beside": {
+   "stowed": true,
+   "latched": true,
+   "parkX": -0.1
+  },
+  "flankDoors": [
+   "FR",
+   "RR"
+  ]
+ }
+}

@@ -10,8 +10,9 @@ import {
   PASS_EASE, PASS_FROM, PASS_KIND, WASH_GANTRY, WASH_HOME_DY, WIPE_PARTS, isPass, isWipe, passTo, stationOf,
   washChain, type WashPhase, type WipeStation,
 } from './washSpec';
-import { CAR_HALF_LEN_U, carHalfWidthAtU, carTopU } from './carShape';
+import { GENERIC_SHAPE, type CarShape } from './carShape';
 import { armInZone, armOut, armReturn, armStow, armTuck, stowed, type ArmState } from './detailArm';
+import { washProgramFor } from './washProgram';
 
 export interface WashPose {
   /** the gantry's centreline, plan u from the car's centre (negative = north) */
@@ -43,9 +44,9 @@ const lerp = (a: number, b: number, f: number) => a + (b - a) * f;
 const ease = (t: number) => { const u = clamp01(t); return u * u * (3 - 2 * u); };
 
 /** The car's top at `dy`, holding the end's height past either end (the bumper's top). */
-function topHeld(dy: number): number {
-  const lim = CAR_HALF_LEN_U - 1e-6;
-  return carTopU(Math.max(-lim, Math.min(lim, dy))) ?? 0;
+function topHeld(dy: number, shape: CarShape): number {
+  const lim = shape.halfLenU - 1e-6;
+  return shape.topAtU(Math.max(-lim, Math.min(lim, dy))) ?? 0;
 }
 
 /**
@@ -54,20 +55,21 @@ function topHeld(dy: number): number {
  * the way a profile-following knife moves, instead of stepping 0.27 u at the pod's edge.
  */
 export const DRYER_RAMP_SLOPE = 0.6;
-export function dryerTopContactY(dy: number): number {
+export function dryerTopContactY(dy: number, shape: CarShape = GENERIC_SHAPE): number {
   const d = G.dryer.top.d / 2;
   const reach = d + 0.6;
   let h = 0;
   for (let k = -12; k <= 12; k++) {
     const s = (k / 12) * reach;
     const off = Math.max(0, Math.abs(s) - d);
-    h = Math.max(h, topHeld(dy + s) - DRYER_RAMP_SLOPE * off);
+    h = Math.max(h, topHeld(dy + s, shape) - DRYER_RAMP_SLOPE * off);
   }
   return h + G.dryer.top.gap;
 }
 
 /** The side air knives' inner face on the car. */
-export const DRYER_SIDE_CONTACT_X = carHalfWidthAtU(0) + G.dryer.side.gap;
+export const dryerSideContactX = (shape: CarShape = GENERIC_SHAPE): number => shape.sideU + G.dryer.side.gap;
+export const DRYER_SIDE_CONTACT_X = dryerSideContactX();
 
 const STOWED_ARMS: readonly [ArmState, ArmState] = [stowed(1), stowed(-1)];
 
@@ -80,10 +82,11 @@ function retracted(dy: number): WashPose {
 }
 
 /** Fill in the air knives' positions from their engagement at the gantry's `dy`. */
-function place(p: WashPose): WashPose {
+function placeFor(p: WashPose, shape: CarShape): WashPose {
   const kd = p.dy + G.dryer.dy;
-  p.dryerTopY = lerp(G.dryer.top.retractY, dryerTopContactY(kd), p.dryEngage);
-  p.dryerSideX = lerp(G.dryer.side.retractX, DRYER_SIDE_CONTACT_X, p.dryEngage);
+  // standing off the vehicle no knife is moved for its shape: the generic car's answer exactly
+  p.dryerTopY = p.dryEngage === 0 ? G.dryer.top.retractY : lerp(G.dryer.top.retractY, Math.min(G.dryer.top.retractY, dryerTopContactY(kd, shape)), p.dryEngage);
+  p.dryerSideX = p.dryEngage === 0 ? G.dryer.side.retractX : lerp(G.dryer.side.retractX, Math.min(G.dryer.side.retractX, dryerSideContactX(shape)), p.dryEngage);
   return p;
 }
 
@@ -92,12 +95,16 @@ export interface PoseSource {
   t: number;
   /** the pose the current phase began from (the phases that start from wherever the machine is) */
   from: WashPose | null;
+  /** the vehicle's model, when the twin's row names one of the fleet's (fleetModels/assign.ts): its own program plays */
+  model?: string | null;
 }
 
 /** The machine's pose for this session. */
 export function washPoseAt(s: PoseSource): WashPose {
   const t = clamp01(s.t);
   const from = s.from;
+  const prog = washProgramFor(s.model);
+  const place = (p: WashPose) => placeFor(p, prog.shape);
   switch (s.phase) {
     case 'home': case 'done': {
       const p = retracted(WASH_HOME_DY);
@@ -115,20 +122,20 @@ export function washPoseAt(s: PoseSource): WashPose {
     case 'arms_out': {
       // the gantry is home at the entrance; each arm unfolds at its dock and rides down its track to the nose
       const p = retracted(WASH_HOME_DY);
-      p.arms = [armOut(1, t), armOut(-1, t)];
+      p.arms = [armOut(1, t, prog.detail), armOut(-1, t, prog.detail)];
       p.station = 'front';
       return place(p);
     }
     case 'arms_stow': {
       const p = retracted(WASH_HOME_DY);
-      p.arms = [armStow(1, t), armStow(-1, t)];
+      p.arms = [armStow(1, t, prog.detail), armStow(-1, t, prog.detail)];
       return place(p);
     }
     case 'retract': {
       // the seat ended mid-program: the air knives come off the car and each arm tucks, where it stands
       const p = retracted(from?.dy ?? WASH_HOME_DY);
       p.dryEngage = lerp(from?.dryEngage ?? 0, 0, ease(t));
-      if (from) p.arms = [armTuck(from.arms[0], t), armTuck(from.arms[1], t)];
+      if (from) p.arms = [armTuck(from.arms[0], t, prog.detail), armTuck(from.arms[1], t, prog.detail)];
       p.status = 'finishing';
       return place(p);
     }
@@ -143,7 +150,7 @@ export function washPoseAt(s: PoseSource): WashPose {
       if (isWipe(s.phase)) {
         const zone = stationOf(s.phase);
         const p = retracted(WASH_HOME_DY);
-        p.arms = [armInZone(1, zone, t, WIPE_PARTS), armInZone(-1, zone, t, WIPE_PARTS)];
+        p.arms = [armInZone(1, zone, t, WIPE_PARTS, prog.detail), armInZone(-1, zone, t, WIPE_PARTS, prog.detail)];
         p.station = zone;
         p.status = p.arms.some((a) => a.engage > 0) ? 'working' : 'moving';
         return place(p);
@@ -170,8 +177,8 @@ export function washPoseAt(s: PoseSource): WashPose {
  * The pose at (phase, t) of the whole program played from its start: each phase begins from the end of the one before
  * it, as a session plays it. For the engineering model's cycle and its clash poses, which have no session.
  */
-export function programPoseAt(phase: WashPhase, t: number): WashPose {
+export function programPoseAt(phase: WashPhase, t: number, model: string | null = null): WashPose {
   const chain = washChain(true);
   const i = chain.indexOf(phase);
-  return washPoseAt({ phase, t, from: i > 0 ? programPoseAt(chain[i - 1], 1) : null });
+  return washPoseAt({ phase, t, from: i > 0 ? programPoseAt(chain[i - 1], 1, model) : null, model });
 }

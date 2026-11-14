@@ -27,10 +27,18 @@
  *   ENTRY and EXIT: the wrist pivot fixed outside the door, the wand pitching between
  *   hanging and its first (or last) stroke, and telescoping in or out along its own
  *   axis — the only way the wand ever goes into the car or comes out of it.
+ *
+ * ONE PROGRAM PER VEHICLE (2026-11-13). What is cleaned, through which door openings and in what order is a
+ * CleanProgram: a list of VISITS, each one opening with its own strokes, aperture plane, entry height and ready
+ * point. The phase chain is built from that list (cleanArmSpec.cleanChainFor), eight moves an opening. The yard's
+ * generic car is GENERIC_PROGRAM (two visits, one a flank, the numbers below); each fleet vehicle's program is
+ * made by rule from its cabin (cleanProgramFleet.ts). Every function here takes the program, and works to the
+ * generic one when none is given.
  */
 
 import {
-  CLEAN_ARM, FLANK_PAINT_Z, PIVOT_Y_MAX, type CleanPhase,
+  CLEAN_ARM, CLEAN_SWING_ALONG_S, FLANK_PAINT_Z, PIVOT_Y_MAX, cleanChainFor, phaseMove, phaseVisit,
+  type CleanMove, type CleanPhase,
 } from './cleanArmSpec';
 
 export interface Vec3 { x: number; y: number; z: number }
@@ -132,9 +140,15 @@ export function parkedJoints(phi: number, r: number, pivotY: number, pitch: numb
   };
 }
 
-/** The ready point over a flank: the wrist pivot at the working standoff, abeam J1. */
-export function readyPolar(side: 1 | -1): { phi: number; r: number } {
-  const x = CLEAN_ARM.mountX + 0.02, z = side * CLEAN_ARM.pivotZ;
+/** The generic car's ready point along the car: just ahead of J1, abeam its door. */
+export const GENERIC_READY_X = CLEAN_ARM.mountX + 0.02;
+
+/**
+ * The ready point over a door opening: the wrist pivot at the working standoff (`pivotZ` from the centre line), `readyX`
+ * along the car. The generic car's is abeam J1.
+ */
+export function readyPolar(side: 1 | -1, readyX: number = GENERIC_READY_X, pivotZ: number = CLEAN_ARM.pivotZ): { phi: number; r: number } {
+  const x = readyX, z = side * pivotZ;
   return { phi: Math.atan2(z - J1.z, x - J1.x), r: Math.hypot(x - J1.x, z - J1.z) };
 }
 
@@ -208,19 +222,23 @@ export const STROKE_TARGETS: readonly StrokeTarget[] = [
   { tip: { x: 0.40, y: 0.53, z: 0.48 }, yaw: 0, pitch: -30, nozzle: -45, what: 'floor by the door', w: 3 },
 ];
 
+/** Where the wand works at one opening: its wrist's standoff and the plane it crosses, metres from the centre line. */
+export interface CleanGeom { pivotZ: number; planeZ: number }
+export const GENERIC_GEOM: CleanGeom = { pivotZ: CLEAN_ARM.pivotZ, planeZ: FLANK_PAINT_Z };
+
 /**
  * The keyframe that puts the nozzle tip on `target`: solve the crossing point and the
  * extension from the angles. The tip is C + (L - dOut) u + nozzle n, with C on the
  * aperture plane; its lateral equation fixes (L - dOut), the other two fix C.
  */
-export function strokeKeyFor(k: StrokeTarget): StrokeKey {
+export function strokeKeyFor(k: StrokeTarget, g: CleanGeom = GENERIC_GEOM): StrokeKey {
   const ps = deg(k.yaw), th = deg(k.pitch), tn = deg(k.pitch + k.nozzle);
   // side +1 (the right flank): inward is -z; the result is side-relative and mirrors exactly
   const u = { x: Math.sin(ps) * Math.cos(th), y: Math.sin(th), z: -Math.cos(ps) * Math.cos(th) };
   const n = { x: Math.sin(ps) * Math.cos(tn), y: Math.sin(tn), z: -Math.cos(ps) * Math.cos(tn) };
   const N = CLEAN_ARM.nozzle.len;
-  const dOut = (CLEAN_ARM.pivotZ - FLANK_PAINT_Z) / (Math.cos(ps) * Math.cos(th));
-  const inside = (k.tip.z - FLANK_PAINT_Z - N * n.z) / u.z; // L - dOut
+  const dOut = (g.pivotZ - g.planeZ) / (Math.cos(ps) * Math.cos(th));
+  const inside = (k.tip.z - g.planeZ - N * n.z) / u.z; // L - dOut
   const L = inside + dOut;
   return {
     cx: k.tip.x - inside * u.x - N * n.x,
@@ -231,16 +249,16 @@ export function strokeKeyFor(k: StrokeTarget): StrokeKey {
   };
 }
 
-export const STROKES: readonly StrokeKey[] = STROKE_TARGETS.map(strokeKeyFor);
-
-const STROKE_W = STROKES.reduce((a, k) => a + k.w, 0);
+export const STROKES: readonly StrokeKey[] = STROKE_TARGETS.map((k) => strokeKeyFor(k));
 
 /** A stroke keyframe on `side`, as joints. Throws if the wrist pivot is out of the SCARA's reach. */
-export function strokeJoints(k: Pick<StrokeKey, 'cx' | 'cy' | 'yaw' | 'pitch' | 'ext' | 'nozzle'>, side: 1 | -1): CleanJoints {
+export function strokeJoints(
+  k: Pick<StrokeKey, 'cx' | 'cy' | 'yaw' | 'pitch' | 'ext' | 'nozzle'>, side: 1 | -1, g: CleanGeom = GENERIC_GEOM,
+): CleanJoints {
   const ps = deg(k.yaw), th = deg(k.pitch);
   const u = { x: Math.sin(ps) * Math.cos(th), y: Math.sin(th), z: -side * Math.cos(ps) * Math.cos(th) };
-  const dOut = (CLEAN_ARM.pivotZ - FLANK_PAINT_Z) / (Math.cos(ps) * Math.cos(th));
-  const P = { x: k.cx - dOut * u.x, y: k.cy - dOut * u.y, z: side * FLANK_PAINT_Z - dOut * u.z };
+  const dOut = (g.pivotZ - g.planeZ) / (Math.cos(ps) * Math.cos(th));
+  const P = { x: k.cx - dOut * u.x, y: k.cy - dOut * u.y, z: side * g.planeZ - dOut * u.z };
   const ik = scaraIK(P.x, P.z);
   if (!ik) throw new Error('cleanArmPose: stroke pivot out of reach');
   return {
@@ -249,24 +267,163 @@ export function strokeJoints(k: Pick<StrokeKey, 'cx' | 'cy' | 'yaw' | 'pitch' | 
   };
 }
 
-/** The stroke keyframes interpolated at progress t (0..1) through the clean, on `side`. */
-export function strokeAt(t: number, side: 1 | -1): { joints: CleanJoints; what: string; index: number } {
-  const target = clamp01(t) * STROKE_W;
+// ══════════════════════════════════════════════════════════════ THE PROGRAM ═══
+
+/**
+ * Where the nozzle crosses the aperture plane as the wand swings in from hanging (or out
+ * to it), metres above grade, on the generic car: the middle of the door, well clear of the sill.
+ */
+export const SCOOP_Y = 0.76;
+
+/** One door opening the arm works: where, and the strokes it makes there. Side-relative, so it serves either flank. */
+export interface CleanVisit {
+  /** 'far' is side A (the flank away from the charge port, cleaned first), 'port' side B. */
+  flank: 'far' | 'port';
+  /** The opening's name for the tests and the docs: 'door', 'front door', 'rear door'. */
+  opening: string;
+  /** Which of the flank's openings this is, front to rear (the vehicle's cabin profile). 0 on the generic car. */
+  aperture: number;
+  /** The plane the strokes are written at: the flank's distance from the centre line at this opening, metres. */
+  planeZ: number;
+  /** Where the wrist stands along the car before it comes down: the ready point over this opening. */
+  readyX: number;
+  /** The height the nozzle crosses the plane at as the wand swings in or out. */
+  scoopY: number;
+  /**
+   * The wand's yaw as it swings in and out, degrees from straight in, + toward the nose. Absent: straight in. A
+   * vehicle whose door leaf leaves the mast no place abeam the opening is entered at an angle, from beside the leaf.
+   */
+  turnYaw?: number;
+  strokes: readonly StrokeKey[];
+  /**
+   * The swing to this opening first goes to the ready point at `swingVia` (metres along the car) on this opening's
+   * flank, wand up, and from there along the flank. Given where the program's order makes the straight swing a path
+   * of its own: with a via the arm keeps to the two paths every program has (across the roof to the flank's front
+   * opening, then along the flank). Absent: one swing.
+   */
+  swingVia?: number;
+  /**
+   * The doors that are open for this visit, and no other door of its flank: door ids as the vehicle's cabin profile
+   * names its leaves (the right flank's ids; the other flank's are their mirror). Absent: every door of the flank
+   * (the generic car, and every far-flank visit: no charger stands on that flank).
+   */
+  doors?: readonly string[];
+  /**
+   * `doors` is PART of an opening: two sliding panels make it and only these open, the other stays shut and is the
+   * body. `aperture` then counts the openings of the cabin with only these doors able to open
+   * (fleetModels/cabin.cabinProfile(spec, doors)), and the strokes were made in that cabin.
+   */
+  partial?: true;
+  /**
+   * A PORT-flank visit: may its `doors` be open beside the OTTO-CHARGE ARM stowed at its home, and latched?
+   * Measured for these doors only, over their whole travel (chargeArmBeside.measureOpeningBeside). Absent: the
+   * program's `beside`, which is for the whole flank.
+   */
+  beside?: { stowed: boolean; latched: boolean };
+}
+
+/**
+ * May a vehicle's PORT-flank doors stand open beside the OTTO-CHARGE ARM (which stands on that flank)? Measured per
+ * vehicle by chargeArmBeside.ts: true only where the charge arm keeps 0.10 m from every open port-flank leaf.
+ */
+export interface ChargeBeside {
+  /** with the charge arm stowed at its rail's middle, or at `parkX` when that is given */
+  stowed: boolean;
+  /** with the charge arm latched at this vehicle's own mate */
+  latched: boolean;
+  /**
+   * Where the charge arm's base parks while this vehicle is in the stall, metres along the CAR from its middle
+   * (+ nose), when the open leaf reaches the arm stowed at the rail's middle. Absent: the rail's middle.
+   */
+  parkX?: number;
+}
+
+/** The generic car's one door a flank keeps 0.10 m from the charge arm at every pose (cleanArmClearance.test.ts). */
+export const GENERIC_BESIDE: ChargeBeside = { stowed: true, latched: true };
+
+/** What the arm does for one kind of vehicle: the openings it visits, in order, and its wrist's standoff. */
+export interface CleanProgram {
+  /** 'generic', or the vehicle's fleet model key. */
+  key: string;
+  /** The wrist pivot's distance from the car's centre line in every working pose, metres. */
+  pivotZ: number;
+  visits: readonly CleanVisit[];
+  /** The cycle, home to home: built from the visits (cleanChainFor). */
+  chain: readonly CleanPhase[];
+  /** Seconds each fixed phase takes at nominal speed. The clean phases take what the twin's step leaves. */
+  seconds: Readonly<Partial<Record<CleanPhase, number>>>;
+  /** What this program leaves uncleaned, and why, in plain words. Empty when it reaches everything. */
+  notReached: readonly string[];
+  /**
+   * When this vehicle's port-flank doors, ALL of them, may be open beside the charge arm, and where the charge arm
+   * parks. A port-flank visit that names its own doors carries its own rule (CleanVisit.beside), which is the one
+   * cleanSession holds the arm to at that opening.
+   */
+  beside: ChargeBeside;
+  /** Every door of one flank, front to rear, by id (the cabin profile's leaves). Given when a visit names its doors. */
+  flankDoors?: readonly string[];
+}
+
+/** When the doors of visit `index` may be open beside the charge arm: the visit's own rule, else the program's. */
+export function visitBeside(program: Pick<CleanProgram, 'visits' | 'beside'>, index: number): { stowed: boolean; latched: boolean } {
+  return program.visits[index]?.beside ?? program.beside;
+}
+
+const MOVE_S: Readonly<Record<Exclude<CleanMove, 'swing' | 'clean'>, number>> = {
+  lower: 1.5, descend: 3.5, enter: 3.5, exit: 3.5, ascend: 3, raise: 1.5,
+};
+
+/**
+ * A program from its visits: the chain, and each fixed phase's seconds by one rule for every vehicle. The first
+ * swing (from stowed) takes 4 s, a swing across the roof to the other flank 5 s, a swing along the same flank
+ * CLEAN_SWING_ALONG_S; the rest are the generic cycle's (cleanArmSpec.CLEAN_PHASE_S, held equal by the tests).
+ */
+export function makeCleanProgram(
+  key: string, pivotZ: number, visits: readonly CleanVisit[], notReached: readonly string[] = [], beside: ChargeBeside = GENERIC_BESIDE,
+  flankDoors?: readonly string[],
+): CleanProgram {
+  const chain = visits.length ? cleanChainFor(visits.length) : [];
+  const seconds: Partial<Record<CleanPhase, number>> = { doors_open: 3, return: 4, doors_close: 3 };
+  for (const p of chain) {
+    const m = phaseMove(p);
+    if (m === null || m === 'clean') continue;
+    const i = phaseVisit(p);
+    seconds[p] = m === 'swing'
+      ? (i === 0 ? 4 : visits[i - 1].flank === visits[i].flank ? CLEAN_SWING_ALONG_S : 5) + (visits[i].swingVia === undefined ? 0 : CLEAN_SWING_ALONG_S)
+      : MOVE_S[m];
+  }
+  return flankDoors ? { key, pivotZ, visits, chain, seconds, notReached, beside, flankDoors } : { key, pivotZ, visits, chain, seconds, notReached, beside };
+}
+
+const GENERIC_VISIT = { opening: 'door', aperture: 0, planeZ: FLANK_PAINT_Z, readyX: GENERIC_READY_X, scoopY: SCOOP_Y, strokes: STROKES } as const;
+
+/** The yard's one generic car: one opening a flank, the far flank first. Every number is the one this file always had. */
+export const GENERIC_PROGRAM: CleanProgram = makeCleanProgram('generic', CLEAN_ARM.pivotZ, [
+  { flank: 'far', ...GENERIC_VISIT }, { flank: 'port', ...GENERIC_VISIT },
+]);
+
+/** The stroke keyframes of one visit interpolated at progress t (0..1) through its clean, on `side`. */
+export function strokeAt(
+  t: number, side: 1 | -1, program: CleanProgram = GENERIC_PROGRAM, visit = 0,
+): { joints: CleanJoints; what: string; index: number } {
+  const S = program.visits[visit].strokes;
+  const g: CleanGeom = { pivotZ: program.pivotZ, planeZ: program.visits[visit].planeZ };
+  const target = clamp01(t) * S.reduce((a, k) => a + k.w, 0);
   let acc = 0;
-  for (let i = 1; i < STROKES.length; i++) {
-    const w = STROKES[i].w;
-    if (target <= acc + w || i === STROKES.length - 1) {
+  for (let i = 1; i < S.length; i++) {
+    const w = S[i].w;
+    if (target <= acc + w || i === S.length - 1) {
       const f = w > 0 ? ease((target - acc) / w) : 1;
-      const a = STROKES[i - 1], b = STROKES[i];
+      const a = S[i - 1], b = S[i];
       const k = {
         cx: lerp(a.cx, b.cx, f), cy: lerp(a.cy, b.cy, f), yaw: lerp(a.yaw, b.yaw, f),
         pitch: lerp(a.pitch, b.pitch, f), ext: lerp(a.ext, b.ext, f), nozzle: lerp(a.nozzle, b.nozzle, f),
       };
-      return { joints: strokeJoints(k, side), what: b.what, index: i };
+      return { joints: strokeJoints(k, side, g), what: b.what, index: i };
     }
     acc += w;
   }
-  return { joints: strokeJoints(STROKES[STROKES.length - 1], side), what: STROKES[STROKES.length - 1].what, index: STROKES.length - 1 };
+  return { joints: strokeJoints(S[S.length - 1], side, g), what: S[S.length - 1].what, index: S.length - 1 };
 }
 
 // ═══════════════════════════════════════════════════════════════ THE CYCLE ═══
@@ -306,18 +463,27 @@ function swing(
 
 const HANG = -Math.PI / 2;
 
+/** What the swing in and out needs of a visit: its plane, the wrist's standoff and the crossing height. */
+export interface ScoopGeom extends CleanGeom { scoopY: number; turnYaw?: number }
+const GENERIC_SCOOP: ScoopGeom = { ...GENERIC_GEOM, scoopY: SCOOP_Y };
+
 /**
- * Where the nozzle crosses the aperture plane as the wand swings in from hanging (or out
- * to it), metres above grade: the middle of the door, well clear of the sill. The wand
- * swings about the wrist pivot, so it crosses the plane where its retracted length
- * reaches it: SCOOP_DROP below the pivot.
+ * The wand swings about the wrist pivot, so its nozzle crosses the aperture plane where its retracted length
+ * reaches it: this far below the pivot.
  */
-export const SCOOP_Y = 0.76;
-const SCOOP_DROP = Math.sqrt(Math.max(0, (CLEAN_ARM.wand.base + CLEAN_ARM.nozzle.len) ** 2 - (CLEAN_ARM.pivotZ - FLANK_PAINT_Z) ** 2));
+function scoopDrop(g: ScoopGeom): number {
+  // at a yaw the plane is further along the wand: its standoff over the cosine (1 when it swings straight in)
+  const out = (g.pivotZ - g.planeZ) / Math.cos(deg(g.turnYaw ?? 0));
+  return Math.sqrt(Math.max(0, (CLEAN_ARM.wand.base + CLEAN_ARM.nozzle.len) ** 2 - out ** 2));
+}
+/** The pivot height at which the retracted wand swings through the aperture at the visit's crossing height. */
+export function scoopPivotY(g: ScoopGeom = GENERIC_SCOOP): number {
+  return g.scoopY + scoopDrop(g);
+}
 /** How much higher the wrist must be for the swing in (or out) than for stroke `q`. */
-export function entryLift(q: CleanJoints): number {
+export function entryLift(q: CleanJoints, g: ScoopGeom = GENERIC_SCOOP): number {
   const pivotY = q.foot - CLEAN_ARM.pivotBelowFoot;
-  return Math.max(0, SCOOP_Y + SCOOP_DROP - pivotY);
+  return Math.max(0, g.scoopY + scoopDrop(g) - pivotY);
 }
 
 /**
@@ -329,7 +495,11 @@ export function entryLift(q: CleanJoints): number {
  *   return  — from any level pose over the car (a swing cut short, or the ready pose).
  * Without a `from` they start from the nominal pose (the last stroke, the ready pose).
  */
-export interface CleanPoseContext { from?: CleanJoints | null }
+export interface CleanPoseContext {
+  from?: CleanJoints | null;
+  /** The program being played. Absent: the generic car's. */
+  program?: CleanProgram;
+}
 
 /** The pivot's azimuth and radius about J1, for a set of joints. */
 export function polarOf(q: CleanJoints): { phi: number; r: number } {
@@ -337,95 +507,127 @@ export function polarOf(q: CleanJoints): { phi: number; r: number } {
   return { phi: Math.atan2(p.z - J1.z, p.x - J1.x), r: Math.hypot(p.x - J1.x, p.z - J1.z) };
 }
 
-/** The pivot height at which the retracted wand swings through the aperture's middle. */
-export const SCOOP_PIVOT_Y = SCOOP_Y + SCOOP_DROP;
+/** The generic car's swing-in pivot height. */
+export const SCOOP_PIVOT_Y = scoopPivotY();
 
 /**
  * THE WAY OUT, from any pose with the wand in the car, on `side`:
  *   0.00-0.25  telescope in along the wand's own axis (it can only slide out);
- *   0.25-0.45  turn to straight in and 30 deg down, pivot still (the short wand left in
+ *   0.25-0.45  turn to straight in (or the visit's own swing-in yaw) and 30 deg down, pivot still (the short wand left in
  *              the cabin is near the door, and the turn keeps its crossing in the door);
  *   0.45-0.65  rise until the pivot is high enough to swing the wand out mid-door;
  *   0.65-1.00  swing out to hanging (the longest part: a 60 deg swing of the wrist).
  */
-function exitPose(from: CleanJoints, side: 1 | -1, t: number): CleanJoints {
-  const straightIn = Math.atan2(-side, 0);
+function exitPose(from: CleanJoints, side: 1 | -1, t: number, g: ScoopGeom = GENERIC_SCOOP): CleanJoints {
+  const ps = deg(g.turnYaw ?? 0);
+  const straightIn = Math.atan2(-side * Math.cos(ps), Math.sin(ps));
   const DOWN = deg(-30);
-  const riseFoot = Math.max(from.foot, SCOOP_PIVOT_Y + CLEAN_ARM.pivotBelowFoot);
+  const riseFoot = Math.max(from.foot, scoopPivotY(g) + CLEAN_ARM.pivotBelowFoot);
   if (t < 0.25) {
-    const g = ease(t / 0.25);
-    return { ...from, ext: lerp(from.ext, 0, g), nozzle: lerp(from.nozzle, 0, g) };
+    const k = ease(t / 0.25);
+    return { ...from, ext: lerp(from.ext, 0, k), nozzle: lerp(from.nozzle, 0, k) };
   }
   const retracted = { ...from, ext: 0, nozzle: 0 };
   if (t < 0.45) {
-    const g = ease((t - 0.25) / 0.2);
-    return { ...retracted, yaw: lerpAngle(from.yaw, straightIn, g), pitch: lerp(from.pitch, DOWN, g) };
+    const k = ease((t - 0.25) / 0.2);
+    return { ...retracted, yaw: lerpAngle(from.yaw, straightIn, k), pitch: lerp(from.pitch, DOWN, k) };
   }
   const turned = { ...retracted, yaw: straightIn, pitch: DOWN };
   if (t < 0.65) {
-    const g = ease((t - 0.45) / 0.2);
-    return { ...turned, foot: lerp(from.foot, riseFoot, g) };
+    const k = ease((t - 0.45) / 0.2);
+    return { ...turned, foot: lerp(from.foot, riseFoot, k) };
   }
-  const g = ease((t - 0.65) / 0.35);
-  return { ...turned, foot: riseFoot, pitch: lerp(DOWN, HANG, g) };
+  const k = ease((t - 0.65) / 0.35);
+  return { ...turned, foot: riseFoot, pitch: lerp(DOWN, HANG, k) };
 }
 
 /** Where exitPose ends: what ascend starts from when nothing else says. */
-export function exitEnd(from: CleanJoints, side: 1 | -1): CleanJoints {
-  return exitPose(from, side, 1);
+export function exitEnd(from: CleanJoints, side: 1 | -1, g: ScoopGeom = GENERIC_SCOOP): CleanJoints {
+  return exitPose(from, side, 1, g);
+}
+
+/** The flank a visit works, for a stall's sides. */
+export function visitSide(program: CleanProgram, visit: number, sides: CleanSides): 1 | -1 {
+  return program.visits[visit]?.flank === 'port' ? sides.b : sides.a;
+}
+
+/** The flank the arm is at in `phase` (side A for home, the doors and the return). */
+export function phaseSide(phase: CleanPhase, sides: CleanSides, program: CleanProgram = GENERIC_PROGRAM): 1 | -1 {
+  const i = phaseVisit(phase);
+  return i < 0 ? sides.a : visitSide(program, i, sides);
+}
+
+/** What the swing in and out needs, for one visit of a program. */
+export function visitGeom(program: CleanProgram, visit: number): ScoopGeom {
+  const v = program.visits[visit];
+  return v.turnYaw === undefined
+    ? { pivotZ: program.pivotZ, planeZ: v.planeZ, scoopY: v.scoopY }
+    : { pivotZ: program.pivotZ, planeZ: v.planeZ, scoopY: v.scoopY, turnYaw: v.turnYaw };
 }
 
 /** The joints at `t` (0..1) through `phase`. 'home' is the stowed pose. */
 export function cleanJointsAt(phase: CleanPhase, t: number, sides: CleanSides, ctx: CleanPoseContext = {}): CleanJoints {
+  const program = ctx.program ?? GENERIC_PROGRAM;
   const hi = PIVOT_Y_MAX;
   const f = ease(t);
-  const side = phase.endsWith('_b') ? sides.b : sides.a;
-  const ready = readyPolar(side);
-  const first = strokeJoints(STROKES[0], side);
-  const last = strokeJoints(STROKES[STROKES.length - 1], side);
-  switch (phase) {
-    case 'home':
-    case 'doors_open':
-    case 'doors_close':
-      return parkedJoints(STOW_POLAR.phi, STOW_POLAR.r, hi, 0);
-    case 'swing_a':
-      return swing(STOW_POLAR, readyPolar(sides.a), t, hi, 0);
-    case 'swing_b':
-      return swing(readyPolar(sides.a), readyPolar(sides.b), t, hi, 0);
-    case 'return':
-      return swing(ctx.from ? polarOf(ctx.from) : readyPolar(sides.b), STOW_POLAR, t, hi, 0);
-    case 'lower_a': case 'lower_b':
+  const move = phaseMove(phase);
+  const vi = phaseVisit(phase);
+  const visit = vi >= 0 ? program.visits[vi] : undefined;
+  const readyOf = (i: number) => readyPolar(visitSide(program, i, sides), program.visits[i].readyX, program.pivotZ);
+  if (move === null || !visit) {
+    if (phase === 'return') {
+      return swing(ctx.from ? polarOf(ctx.from) : readyOf(program.visits.length - 1), STOW_POLAR, t, hi, 0);
+    }
+    // home, the doors, and any phase this program does not have: stowed
+    return parkedJoints(STOW_POLAR.phi, STOW_POLAR.r, hi, 0);
+  }
+  const side = visitSide(program, vi, sides);
+  const g = visitGeom(program, vi);
+  const ready = readyOf(vi);
+  const first = strokeJoints(visit.strokes[0], side, g);
+  const last = strokeJoints(visit.strokes[visit.strokes.length - 1], side, g);
+  switch (move) {
+    case 'swing': {
+      const from = vi === 0 ? STOW_POLAR : readyOf(vi - 1);
+      if (visit.swingVia === undefined) return swing(from, ready, t, hi, 0);
+      // two swings, each at its own share of the phase: to the via point, then along the flank
+      const via = readyPolar(side, visit.swingVia, program.pivotZ);
+      const total = program.seconds[phase] ?? 1;
+      const cut = Math.min(0.95, Math.max(0.05, (total - CLEAN_SWING_ALONG_S) / total));
+      return t < cut ? swing(from, via, t / cut, hi, 0) : swing(via, ready, (t - cut) / (1 - cut), hi, 0);
+    }
+    case 'lower':
       return parkedJoints(ready.phi, ready.r, hi, lerp(0, HANG, f));
-    case 'raise_a': case 'raise_b':
+    case 'raise':
       return parkedJoints(ready.phi, ready.r, hi, lerp(HANG, 0, f));
-    case 'descend_a': case 'descend_b': {
+    case 'descend': {
       const from = parkedJoints(ready.phi, ready.r, hi, HANG);
-      const to = { ...first, foot: first.foot + entryLift(first), pitch: HANG, ext: 0, nozzle: 0 };
+      const to = { ...first, foot: first.foot + entryLift(first, g), pitch: HANG, ext: 0, nozzle: 0 };
       return lerpJoints(from, to, f);
     }
-    case 'ascend_a': case 'ascend_b': {
-      const from = ctx.from ?? exitEnd(last, side);
+    case 'ascend': {
+      const from = ctx.from ?? exitEnd(last, side, g);
       const to = parkedJoints(ready.phi, ready.r, hi, HANG);
       return lerpJoints(from, to, f);
     }
-    case 'enter_a': case 'enter_b': {
+    case 'enter': {
       // Pitch up from hanging with the pivot raised (entryLift), so the nozzle swings
       // in through the middle of the aperture rather than over the sill; then lower
       // onto the first stroke while the wand telescopes in. Lowering with the wand in
       // only slides its crossing down the aperture.
-      const lift = entryLift(first);
+      const lift = entryLift(first, g);
       const PITCH_SHARE = 0.5;
       if (t < PITCH_SHARE) {
-        const g = ease(t / PITCH_SHARE);
-        return { ...first, foot: first.foot + lift, pitch: lerp(HANG, first.pitch, g), ext: 0, nozzle: 0 };
+        const k = ease(t / PITCH_SHARE);
+        return { ...first, foot: first.foot + lift, pitch: lerp(HANG, first.pitch, k), ext: 0, nozzle: 0 };
       }
-      const g = ease((t - PITCH_SHARE) / (1 - PITCH_SHARE));
-      return { ...first, foot: first.foot + lift * (1 - g), ext: lerp(0, first.ext, g), nozzle: lerp(0, first.nozzle, g) };
+      const k = ease((t - PITCH_SHARE) / (1 - PITCH_SHARE));
+      return { ...first, foot: first.foot + lift * (1 - k), ext: lerp(0, first.ext, k), nozzle: lerp(0, first.nozzle, k) };
     }
-    case 'exit_a': case 'exit_b':
-      return exitPose(ctx.from ?? last, side, t);
-    case 'clean_a': case 'clean_b':
-      return strokeAt(t, side).joints;
+    case 'exit':
+      return exitPose(ctx.from ?? last, side, t, g);
+    case 'clean':
+      return strokeAt(t, side, program, vi).joints;
   }
 }
 

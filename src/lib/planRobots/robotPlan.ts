@@ -44,13 +44,15 @@ export interface ArmPlanPoints {
   tcp: PlanPoint;
 }
 
-/** The OTTO-CHARGE ARM's joints on the plan, for one set of joint angles. */
-export function armPlanPoints(p: ArmPlacement, a: JointAngles, spec: CobotSpec = OTTO_CHARGE_ARM): ArmPlanPoints {
+/** The OTTO-CHARGE ARM's joints on the plan, for one set of joint angles, with its base moved `slideM` along its
+ *  rail and `crossM` toward the car (mateSequence.ts). */
+export function armPlanPoints(p: ArmPlacement, a: JointAngles, spec: CobotSpec = OTTO_CHARGE_ARM, slideM = 0, crossM = 0): ArmPlanPoints {
+  const at = (v: { x: number; z: number }) => armToPlan(p, { x: v.x + slideM, z: v.z + crossM });
   return {
-    base: armToPlan(p, { x: 0, z: 0 }),
-    elbow: armToPlan(p, forwardElbow(a, spec)),
-    wrist: armToPlan(p, forwardWristCentre(a, spec)),
-    tcp: armToPlan(p, forwardTCP(a, spec)),
+    base: at({ x: 0, z: 0 }),
+    elbow: at(forwardElbow(a, spec)),
+    wrist: at(forwardWristCentre(a, spec)),
+    tcp: at(forwardTCP(a, spec)),
   };
 }
 

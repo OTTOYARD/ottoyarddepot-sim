@@ -82,8 +82,8 @@
    ],
    "facts": [
     {
-     "label": "Connector",
-     "value": "DC combo class (CCS), liquid-cooled"
+     "label": "Connectors",
+     "value": "CCS1 (SAE J1772 combo) and NACS (SAE J3400), liquid-cooled"
     },
     {
      "label": "Charge current",
@@ -103,7 +103,7 @@
     },
     {
      "label": "Force control",
-     "value": "A 6-axis force and torque sensor reads the insertion force. A compliance unit lets the connector float up to 6 mm and 3 degrees. A small error cannot jam it."
+     "value": "A 6-axis force and torque sensor reads the insertion force. A compliance unit lets the head float up to 6 mm and 3 degrees. A small error cannot jam it."
     },
     {
      "label": "Latch",
