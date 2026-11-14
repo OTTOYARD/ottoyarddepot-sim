@@ -176,13 +176,15 @@ Since the generic rule is "latched allowed", a car the twin does not name is cle
 
 - **For the Ojai, the I-PACE and the Zoox the port flank is not cleaned during a charge.** It needs a clean step
   that is open when the charge arm is stowed: after the charge, or on a cabin stop with no charge. The twin runs the
-  cabin clean during the charge today. A clean step after the charge for these three was **tried on the engine and
-  is OFF** (otto-q-core 0827 and 0828, 2026-11-13; Chase: "clean after charge is fine"). With it on, the arm's clean
-  started in the last minutes of the charge and ran on after it, and it missed about 4 in 10 of these cars' arm
-  cleans on two runs (40 of 72 charged visits cleaned on run c86b46e1, against 10 of 10 with it off; otto-q-core
-  `db/checks/0491`). So the setting `cabin_robot_after_charge` is 0 at the twin depot. Until a version that does not
-  miss is on, a charging Ojai, I-PACE or Zoox leaves with its left half not cleaned by the arm, and the session says
-  so.
+  cabin clean during the charge for the other vehicles. For these three a clean step after the charge is **ON at
+  the twin depot since 2026-11-14 01:56 UTC** (otto-q-core 0827, 0828 and 0830; Chase: "clean after charge is fine").
+  The arm's clean starts in the last minutes of the charge, or at the moment the charge is stopped, and the car stays
+  on its post until the arm is home (one cycle, 5.8 min, at most). The first two versions missed about 4 in 10 of
+  these cars' arm cleans (0827, 0828); 0830 starts the clean where the charge is stopped, and on its first run
+  (c8913ea2) none was missed: 135 charged visits, 107 cleaned by the arm, 28 an owner's immediate turnaround
+  (otto-q-core `db/checks/0491`). One run.
+  An owner's immediate turnaround of these three is not held past its charge for a routine clean, so it gets none; a
+  needed tidy is still done. Not watched in the running twin: the arm doing the left side after the connector is out.
 - The Ojai's and the Zoox's inlet positions are assumptions. An inlet clear of the open panel would let them be
   cleaned latched.
 - The charge arm's drawn base and joints are each view's own play of `stepMateSeq` (3D, 2D) with the same inputs;
