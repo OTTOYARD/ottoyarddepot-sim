@@ -7,13 +7,13 @@
   "glb": "m"
  },
  "totals": {
-  "parts": 2639,
-  "uniqueParts": 250,
+  "parts": 2700,
+  "uniqueParts": 292,
   "fasteners": 1636,
-  "massKg": 5631.01,
-  "boughtLines": 151,
-  "madeLines": 99,
-  "referenceLines": 0
+  "massKg": 5894.73,
+  "boughtLines": 170,
+  "madeLines": 122,
+  "referenceLines": 14
  },
  "subsystems": [
   {
@@ -71,7 +71,7 @@
    "order": 2,
    "partCount": 167,
    "fastenerCount": 160,
-   "massKg": 1684.302,
+   "massKg": 1684.125,
    "uniqueParts": 9
   },
   {
@@ -120,6 +120,7 @@
     "2 profile rails on a steel beam, anchored to the slab every metre.",
     "A servo gearmotor on the carriage drives a pinion on a rack between the rails.",
     "A cable chain beside the track brings power, network and pure water to the carriage.",
+    "The chain's fixed end is bolted to the floor at a floor box. 3 ducts in the slab feed the box from the wall panel.",
     "The tracks stand 2.1 m from the drive line, inside the gantry rails. The gantry passes over them."
    ],
    "specs": {
@@ -298,17 +299,47 @@
    "how": [
     "A stainless control cabinet on the inner side of the west leg holds the controller and the drives.",
     "A stop light faces the arriving car: red while the program runs, green when the car may go.",
-    "A drag chain brings power, water, chemicals and air. It lies in a covered trench in the floor, inboard of the west rail. Its fixed end is at mid travel.",
-    "A driver in the cover's slot joins its other end to the west trolley. Its bend rolls along at half the machine's speed. A conduit takes the lines up the leg to the cabinet.",
+    "A drag chain brings power, the network, water, 2 chemicals and air. It lies in a covered trench in the floor, inboard of the west rail. Its fixed end is at mid travel.",
+    "A driver in the cover's slot joins its other end to the west trolley. Its bend rolls along at half the machine's speed.",
+    "A conduit takes the supply cable and the network cable up the leg to the cabinet.",
+    "A closed duct takes the water, the chemicals and the air up the leg, through the beam, to the valve manifold.",
+    "A cable trunk runs from the cabinet through the beam and along its top. A conduit leaves it to each blower, each lift motor, the east travel motor, the valves, the beacon and the stop light.",
     "Nothing stands outboard of the trolleys: the end bays' outer walls are 48 mm from them."
    ],
    "specs": {},
    "group": "Control",
    "order": 15,
-   "partCount": 108,
+   "partCount": 121,
    "fastenerCount": 8,
-   "massKg": 724.118,
-   "uniqueParts": 18
+   "massKg": 783.958,
+   "uniqueParts": 28
+  },
+  {
+   "id": "SUPPLY",
+   "name": "Bay supply",
+   "function": "Brings power, the network, water, chemicals and air from the building to the machine and to the 2 detail arms.",
+   "how": [
+    "A service panel on the north wall, beside the exit door, is where the building hands over every line.",
+    "On it: a lockable isolator, the detail arms' drive cabinet, and a shut-off valve for each of the 5 media.",
+    "Every line drops to a pull box at the wall's foot. From there it runs in a duct cast into the slab.",
+    "3 ducts end in a pit at the north end of the drag chain's trench: power, network and media.",
+    "A closed tray on the trench floor takes those lines to the chain's fixed end, at mid travel.",
+    "A bracket holds the chain's first link there. A strain relief block clamps each line in front of it.",
+    "3 more ducts go to a floor box at each arm chain's fixed end: power, data and pure water.",
+    "The wall, the ducts in the slab and the plant's stubs belong to the building. They are shown for context."
+   ],
+   "specs": {
+    "hand-over": "north wall, west of the exit door, 1.4 m and more north of the gantry's travel",
+    "duct fill": "53 % for 1 cable, 31 % for 2, 40 % for more (NEC chapter 9, table 1)",
+    "machine lines": "supply cable 5G10, network, water 19 mm, 2 chemicals 10 mm, air 12 mm tube",
+    "each arm's lines": "supply, track motor, 24 V, network, 6 mm pure water"
+   },
+   "group": "Control",
+   "order": 16,
+   "partCount": 48,
+   "fastenerCount": 0,
+   "massKg": 204.061,
+   "uniqueParts": 32
   }
  ],
  "lines": [
@@ -782,8 +813,8 @@
    "material": "Aluminium 6063-T6 extrusion, anodised",
    "materialKey": "al_extr",
    "qty": 1,
-   "massKg": 121.5241,
-   "totalMassKg": 121.5241,
+   "massKg": 121.4356,
+   "totalMassKg": 121.4356,
    "torqueNm": null,
    "reference": false,
    "function": "Closes the beam between its chords and carries the tools hung below it and the drives on it.",
@@ -806,8 +837,8 @@
    "material": "Aluminium 6063-T6 extrusion, anodised",
    "materialKey": "al_extr",
    "qty": 1,
-   "massKg": 121.5241,
-   "totalMassKg": 121.5241,
+   "massKg": 121.4356,
+   "totalMassKg": 121.4356,
    "torqueNm": null,
    "reference": false,
    "function": "Closes the beam between its chords and carries the tools hung below it and the drives on it.",
@@ -6612,7 +6643,7 @@
    "totalMassKg": 1.9161,
    "torqueNm": null,
    "reference": false,
-   "function": "Joins the driver to the trolley's inner wall. The lines run through it to the conduit.",
+   "function": "Joins the driver to the trolley's inner wall. The lines run through it to the conduit and the media duct.",
    "spec": {},
    "uses": [
     {
@@ -6782,10 +6813,211 @@
    "totalMassKg": 1.3188,
    "torqueNm": null,
    "reference": false,
-   "function": "Carries the chain's lines from the arm up the leg to the control cabinet.",
+   "function": "Carries the supply cable and the network cable from the arm up the leg to the control cabinet.",
    "spec": {
-    "bend": "R 300 (5 x D)"
+    "bend": "R 300 (5 x D)",
+    "fill": "26 % of its 52 mm bore (2 cables: limit 31 %)"
    },
+   "uses": [
+    {
+     "sub": "CONTROL",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-ECB",
+   "name": "Conduit 16 x 1, stainless: blower motor",
+   "category": "electrical",
+   "make": "make",
+   "standard": "EN 61386",
+   "size": "D 16",
+   "grade": "",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 3,
+   "massKg": 0.0872,
+   "totalMassKg": 0.2615,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Brings a blower motor's cable from the trunk.",
+   "spec": {
+    "bend": "R 40"
+   },
+   "uses": [
+    {
+     "sub": "CONTROL",
+     "qty": 3
+    }
+   ]
+  },
+  {
+   "id": "WSH-ECK",
+   "name": "Conduit 16 x 1, stainless: top knife lift motor",
+   "category": "electrical",
+   "make": "make",
+   "standard": "EN 61386",
+   "size": "D 16",
+   "grade": "",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 0.1063,
+   "totalMassKg": 0.2126,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Brings a lift motor's cable from the trunk.",
+   "spec": {
+    "bend": "R 40"
+   },
+   "uses": [
+    {
+     "sub": "CONTROL",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-ECL",
+   "name": "Conduit 16 x 1, stainless: east travel motor",
+   "category": "electrical",
+   "make": "make",
+   "standard": "EN 61386",
+   "size": "D 16",
+   "grade": "",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 1.7515,
+   "totalMassKg": 1.7515,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Brings the east travel motor's cable from the trunk, through the beam and down the east leg.",
+   "spec": {
+    "bend": "R 40"
+   },
+   "uses": [
+    {
+     "sub": "CONTROL",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-ECN",
+   "name": "Conduit 16 x 1, stainless: status beacon",
+   "category": "electrical",
+   "make": "make",
+   "standard": "EN 61386",
+   "size": "D 16",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 0.0393,
+   "totalMassKg": 0.0393,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Brings the beacon's cable from the trunk.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "CONTROL",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-ECR",
+   "name": "Conduit 16 x 1, stainless: west travel motor",
+   "category": "electrical",
+   "make": "make",
+   "standard": "EN 61386",
+   "size": "D 16",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 0.3599,
+   "totalMassKg": 0.3599,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Brings the west travel motor's cable down from the cabinet's floor.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "CONTROL",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-ECS",
+   "name": "Conduit 16 x 1, stainless: stop light",
+   "category": "electrical",
+   "make": "make",
+   "standard": "EN 61386",
+   "size": "D 16",
+   "grade": "",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 0.3691,
+   "totalMassKg": 0.3691,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Brings the stop light's cable from the trunk, over the beam and down its south face.",
+   "spec": {
+    "bend": "R 40"
+   },
+   "uses": [
+    {
+     "sub": "CONTROL",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-ECV",
+   "name": "Conduit 16 x 1, stainless: valve manifold",
+   "category": "electrical",
+   "make": "make",
+   "standard": "EN 61386",
+   "size": "D 16",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 0.5324,
+   "totalMassKg": 0.5324,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Brings the 4 valve cables from the trunk to the manifold.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "CONTROL",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-ETK",
+   "name": "Cable trunk, cabinet to the beam top, stainless 60 x 60 x 2",
+   "category": "electrical",
+   "make": "make",
+   "standard": "welded box duct with a screwed lid",
+   "size": "60 x 60, 6000 along the beam",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 32.0293,
+   "totalMassKg": 32.0293,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the motor, valve and signal cables from the control cabinet up through the beam and along its top. Each cable leaves it in its own conduit.",
+   "spec": {},
    "uses": [
     {
      "sub": "CONTROL",
@@ -6810,6 +7042,57 @@
    "reference": false,
    "function": "Faces the arriving car. It tells the car and its driver to stop or go.",
    "spec": {},
+   "uses": [
+    {
+     "sub": "CONTROL",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-APT",
+   "name": "Air service coupling G 1/2, self-sealing",
+   "category": "fluid",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "G 1/2",
+   "grade": "",
+   "material": "Brass CW614N",
+   "materialKey": "brass",
+   "qty": 1,
+   "massKg": 0.173,
+   "totalMassKg": 0.173,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Ends the air tube on the beam. It gives compressed air for service on the machine. No tool on this machine uses air.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "CONTROL",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-MRD",
+   "name": "Media duct, carrier arm to valve manifold, stainless 80 x 40 x 2",
+   "category": "fluid",
+   "make": "make",
+   "standard": "welded box duct",
+   "size": "80 x 40, 3537 up and 3015 along the beam",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 24.1112,
+   "totalMassKg": 24.1112,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the water tube, the 2 chemical tubes and the air tube from the chain's carrier arm up the leg, through the beam and along its top to the valve manifold.",
+   "spec": {
+    "carries": "water 22 x 1, 2 chemicals 12 x 1, air 12 x 1 (stainless tube)",
+    "through the beam": "a sleeve in each deck, between the chords"
+   },
    "uses": [
     {
      "sub": "CONTROL",
@@ -6865,6 +7148,1175 @@
     {
      "sub": "CONTROL",
      "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "WSH-CTP",
+   "name": "Supply pit liner, galvanised",
+   "category": "structure",
+   "make": "make",
+   "standard": "folded and welded sheet 5 mm",
+   "size": "355 x 520 x 500",
+   "grade": "S235, galvanised",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 1,
+   "massKg": 40.6283,
+   "totalMassKg": 40.6283,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Lines the pit at the trench's north end. The 3 ducts from the wall end in its north wall, and the lines turn here into the tray on the trench floor.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-CTQ",
+   "name": "Supply pit cover, galvanised checker plate, bolted",
+   "category": "structure",
+   "make": "make",
+   "standard": "checker plate 10 mm",
+   "size": "425 x 540",
+   "grade": "S235, galvanised, R11 slip",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 1,
+   "massKg": 18.0157,
+   "totalMassKg": 18.0157,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Covers the pit flush with the floor. Off to pull or change a line.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-CTT",
+   "name": "Supply tray on the trench floor, closed, stainless 124 x 46 x 2",
+   "category": "structure",
+   "make": "make",
+   "standard": "folded sheet with a screwed lid",
+   "size": "124 x 46 x 4781",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 25.3356,
+   "totalMassKg": 25.3356,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the 6 lines along the trench floor from the pit to the chain's fixed end, under the chain's upper run.",
+   "spec": {
+    "clear under the upper run": "363 mm"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-DFB",
+   "name": "Drag chain fixed-end bracket, stainless, welded to the trench liner",
+   "category": "structure",
+   "make": "make",
+   "standard": "cut and welded plate 8 mm",
+   "size": "126 x 62 x 165",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 1.4268,
+   "totalMassKg": 1.4268,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Holds the chain's first link on the trench floor at mid travel. The lines enter the chain through its window.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-DFE",
+   "name": "Arm chain fixed-end bracket, stainless",
+   "category": "structure",
+   "make": "make",
+   "standard": "cut and welded plate",
+   "size": "80 x 52 x 115",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 0.647,
+   "totalMassKg": 1.294,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Holds the arm chain's first link on the floor, in front of the floor box.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-SWL",
+   "name": "Wash hall north wall, the pier west of the exit door (part of the building)",
+   "category": "structure",
+   "make": "buy",
+   "standard": "building",
+   "size": "909 x 2200 x 287",
+   "grade": "",
+   "material": "Concrete C30/37",
+   "materialKey": "concrete",
+   "qty": 1,
+   "massKg": 0.0,
+   "totalMassKg": 0.0,
+   "torqueNm": null,
+   "reference": true,
+   "function": "Carries the bay's service panel. Shown for context.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-DAC",
+   "name": "Detail arm drive cabinet, stainless, IP66",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "EN 62208",
+   "size": "700 x 500 x 250",
+   "grade": "IP66",
+   "material": "Stainless steel 1.4301 (304)",
+   "materialKey": "ss304",
+   "qty": 1,
+   "massKg": 48.0,
+   "totalMassKg": 48.0,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Holds the 2 detail arms' power supplies, their 2 track drives, their safety relay and the bay's network switch. It feeds each arm through the slab and its cable chain.",
+   "spec": {
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-DFS",
+   "name": "Strain relief block, 6 saddles, at the chain's fixed end",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "120 x 40 x 30",
+   "grade": "",
+   "material": "PA66-GF30",
+   "materialKey": "pa66",
+   "qty": 1,
+   "massKg": 0.133,
+   "totalMassKg": 0.133,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Clamps each line in front of the chain's fixed end, so no pull reaches the chain or the duct.",
+   "spec": {
+    "rule": "strain relief at the fixed end (chain maker's filling rule)"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-DJB",
+   "name": "Floor box at an arm chain's fixed end, stainless, IP67",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "EN 62208",
+   "size": "160 x 110 x 240",
+   "grade": "IP67",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 6.5,
+   "totalMassKg": 13.0,
+   "torqueNm": null,
+   "reference": false,
+   "function": "The 3 ducts from the wall come up into it. The arm's lines leave it through glands into the chain, and the dock's feed leaves its other end.",
+   "spec": {
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-DKFL",
+   "name": "Dock feed conduit 20 x 1, stainless: signal cable and rinse tube",
+   "category": "electrical",
+   "make": "make",
+   "standard": "EN 61386",
+   "size": "D 20",
+   "grade": "",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 0.2455,
+   "totalMassKg": 0.2455,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes the exit signal's cable and the pad rinse nozzle's tube from the floor box into the track beam under the dock post. They rise inside the post.",
+   "spec": {
+    "bend": "R 60"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-DKFR",
+   "name": "Dock feed conduit 20 x 1, stainless: signal cable and rinse tube",
+   "category": "electrical",
+   "make": "make",
+   "standard": "EN 61386",
+   "size": "D 20",
+   "grade": "",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 0.2455,
+   "totalMassKg": 0.2455,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes the exit signal's cable and the pad rinse nozzle's tube from the floor box into the track beam under the dock post. They rise inside the post.",
+   "spec": {
+    "bend": "R 60"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-DL12",
+   "name": "Arm line, 12 mm, floor box to the chain",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "",
+   "size": "OD 12",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 4,
+   "massKg": 0.0161,
+   "totalMassKg": 0.0645,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Runs from the cabinet on the wall in its duct to the floor box, and from the box into the chain. Drawn from the box to the chain's fixed end.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "WSH-DL7",
+   "name": "Arm line, 7 mm, floor box to the chain",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "",
+   "size": "OD 7",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 2,
+   "massKg": 0.0055,
+   "totalMassKg": 0.011,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Runs from the cabinet on the wall in its duct to the floor box, and from the box into the chain. Drawn from the box to the chain's fixed end.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-DL8",
+   "name": "Arm line, 8 mm, floor box to the chain",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "",
+   "size": "OD 8",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 2,
+   "massKg": 0.0072,
+   "totalMassKg": 0.0143,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Runs from the cabinet on the wall in its duct to the floor box, and from the box into the chain. Drawn from the box to the chain's fixed end.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-MLN",
+   "name": "Machine network cable, wall to the chain's fixed end",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "",
+   "size": "OD 8",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 1,
+   "massKg": 0.4061,
+   "totalMassKg": 0.4061,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Runs from the panel in its duct to the pit, along the tray, through the strain relief and into the chain. Drawn from the duct's mouth to the chain's fixed end.",
+   "spec": {
+    "bend": "R 32 or more"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-MLP",
+   "name": "Machine supply cable 5G10, wall to the chain's fixed end",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "",
+   "size": "OD 21",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 1,
+   "massKg": 2.791,
+   "totalMassKg": 2.791,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Runs from the panel in its duct to the pit, along the tray, through the strain relief and into the chain. Drawn from the duct's mouth to the chain's fixed end.",
+   "spec": {
+    "bend": "R 84 or more"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-SDC114",
+   "name": "Conduit drop, trade size 1-1/4, panel to the pull box",
+   "category": "electrical",
+   "make": "make",
+   "standard": "rigid conduit",
+   "size": "1-1/4 x 950",
+   "grade": "",
+   "material": "Structural steel S355, hot-dip galvanised",
+   "materialKey": "steel_s355",
+   "qty": 2,
+   "massKg": 3.4591,
+   "totalMassKg": 6.9183,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes cables from the panel down the wall to the pull box.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-SDC114I",
+   "name": "Conduit drop, trade size 1-1/4, panel to the pull box",
+   "category": "electrical",
+   "make": "make",
+   "standard": "rigid conduit",
+   "size": "1-1/4 x 1150",
+   "grade": "",
+   "material": "Structural steel S355, hot-dip galvanised",
+   "materialKey": "steel_s355",
+   "qty": 1,
+   "massKg": 4.1874,
+   "totalMassKg": 4.1874,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes cables from the panel down the wall to the pull box.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-SDC12",
+   "name": "Conduit drop, trade size 1/2, panel to the pull box",
+   "category": "electrical",
+   "make": "make",
+   "standard": "rigid conduit",
+   "size": "1/2 x 950",
+   "grade": "",
+   "material": "Structural steel S355, hot-dip galvanised",
+   "materialKey": "steel_s355",
+   "qty": 1,
+   "massKg": 1.2862,
+   "totalMassKg": 1.2862,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes cables from the panel down the wall to the pull box.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-SDC34",
+   "name": "Conduit drop, trade size 3/4, panel to the pull box",
+   "category": "electrical",
+   "make": "make",
+   "standard": "rigid conduit",
+   "size": "3/4 x 950",
+   "grade": "",
+   "material": "Structural steel S355, hot-dip galvanised",
+   "materialKey": "steel_s355",
+   "qty": 2,
+   "massKg": 1.738,
+   "totalMassKg": 3.476,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes cables from the panel down the wall to the pull box.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-SDLD",
+   "name": "Duct in the slab, PVC, trade size 3/4: east arm data (part of the building)",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "UL 651",
+   "size": "3/4",
+   "grade": "",
+   "material": "Hose, PVC with steel helix",
+   "materialKey": "hose",
+   "qty": 1,
+   "massKg": 0.0,
+   "totalMassKg": 0.0,
+   "torqueNm": null,
+   "reference": true,
+   "function": "Takes the east arm data lines under the floor. Cast into the slab before the machine comes.",
+   "spec": {
+    "lines": "7 mm, 7 mm",
+    "fill": "24 % of the bore (limit 31 %)",
+    "bends": "R 114, 360 degrees or less in all"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-SDLP",
+   "name": "Duct in the slab, PVC, trade size 1-1/4: east arm power (part of the building)",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "UL 651",
+   "size": "1-1/4",
+   "grade": "",
+   "material": "Hose, PVC with steel helix",
+   "materialKey": "hose",
+   "qty": 1,
+   "massKg": 0.0,
+   "totalMassKg": 0.0,
+   "torqueNm": null,
+   "reference": true,
+   "function": "Takes the east arm power lines under the floor. Cast into the slab before the machine comes.",
+   "spec": {
+    "lines": "12 mm, 12 mm, 8 mm",
+    "fill": "30 % of the bore (limit 40 %)",
+    "bends": "R 184, 360 degrees or less in all"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-SDLW",
+   "name": "Duct in the slab, PVC, trade size 1/2: east arm pure water (part of the building)",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "UL 651",
+   "size": "1/2",
+   "grade": "",
+   "material": "Hose, PVC with steel helix",
+   "materialKey": "hose",
+   "qty": 1,
+   "massKg": 0.0,
+   "totalMassKg": 0.0,
+   "torqueNm": null,
+   "reference": true,
+   "function": "Takes the east arm pure water lines under the floor. Cast into the slab before the machine comes.",
+   "spec": {
+    "lines": "6 mm",
+    "fill": "15 % of the bore (limit 53 %)",
+    "bends": "R 102, 360 degrees or less in all"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-SDM",
+   "name": "Duct in the slab, PVC, trade size 2-1/2: machine media (part of the building)",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "UL 651",
+   "size": "2-1/2",
+   "grade": "",
+   "material": "Hose, PVC with steel helix",
+   "materialKey": "hose",
+   "qty": 1,
+   "massKg": 0.0,
+   "totalMassKg": 0.0,
+   "torqueNm": null,
+   "reference": true,
+   "function": "Takes the machine media lines under the floor. Cast into the slab before the machine comes.",
+   "spec": {
+    "lines": "27 mm, 16 mm, 16 mm, 12 mm",
+    "fill": "36 % of the bore (limit 40 %)",
+    "bends": "R 267, 360 degrees or less in all"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-SDN",
+   "name": "Duct in the slab, PVC, trade size 1/2: machine network (part of the building)",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "UL 651",
+   "size": "1/2",
+   "grade": "",
+   "material": "Hose, PVC with steel helix",
+   "materialKey": "hose",
+   "qty": 1,
+   "massKg": 0.0,
+   "totalMassKg": 0.0,
+   "torqueNm": null,
+   "reference": true,
+   "function": "Takes the machine network lines under the floor. Cast into the slab before the machine comes.",
+   "spec": {
+    "lines": "8 mm",
+    "fill": "27 % of the bore (limit 53 %)",
+    "bends": "R 102, 360 degrees or less in all"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-SDP",
+   "name": "Duct in the slab, PVC, trade size 1-1/4: machine power (part of the building)",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "UL 651",
+   "size": "1-1/4",
+   "grade": "",
+   "material": "Hose, PVC with steel helix",
+   "materialKey": "hose",
+   "qty": 1,
+   "massKg": 0.0,
+   "totalMassKg": 0.0,
+   "torqueNm": null,
+   "reference": true,
+   "function": "Takes the machine power lines under the floor. Cast into the slab before the machine comes.",
+   "spec": {
+    "lines": "21 mm",
+    "fill": "37 % of the bore (limit 53 %)",
+    "bends": "R 184, 360 degrees or less in all"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-SDRD",
+   "name": "Duct in the slab, PVC, trade size 3/4: west arm data (part of the building)",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "UL 651",
+   "size": "3/4",
+   "grade": "",
+   "material": "Hose, PVC with steel helix",
+   "materialKey": "hose",
+   "qty": 1,
+   "massKg": 0.0,
+   "totalMassKg": 0.0,
+   "torqueNm": null,
+   "reference": true,
+   "function": "Takes the west arm data lines under the floor. Cast into the slab before the machine comes.",
+   "spec": {
+    "lines": "7 mm, 7 mm",
+    "fill": "24 % of the bore (limit 31 %)",
+    "bends": "R 114, 360 degrees or less in all"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-SDRP",
+   "name": "Duct in the slab, PVC, trade size 1-1/4: west arm power (part of the building)",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "UL 651",
+   "size": "1-1/4",
+   "grade": "",
+   "material": "Hose, PVC with steel helix",
+   "materialKey": "hose",
+   "qty": 1,
+   "massKg": 0.0,
+   "totalMassKg": 0.0,
+   "torqueNm": null,
+   "reference": true,
+   "function": "Takes the west arm power lines under the floor. Cast into the slab before the machine comes.",
+   "spec": {
+    "lines": "12 mm, 12 mm, 8 mm",
+    "fill": "30 % of the bore (limit 40 %)",
+    "bends": "R 184, 360 degrees or less in all"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-SDRW",
+   "name": "Duct in the slab, PVC, trade size 1/2: west arm pure water (part of the building)",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "UL 651",
+   "size": "1/2",
+   "grade": "",
+   "material": "Hose, PVC with steel helix",
+   "materialKey": "hose",
+   "qty": 1,
+   "massKg": 0.0,
+   "totalMassKg": 0.0,
+   "torqueNm": null,
+   "reference": true,
+   "function": "Takes the west arm pure water lines under the floor. Cast into the slab before the machine comes.",
+   "spec": {
+    "lines": "6 mm",
+    "fill": "15 % of the bore (limit 53 %)",
+    "bends": "R 102, 360 degrees or less in all"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-SIH",
+   "name": "Isolator handle, red on yellow, padlockable",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "IEC 60947-3",
+   "size": "D 90",
+   "grade": "",
+   "material": "Aluminium, OTTOYARD red powder coat",
+   "materialKey": "accent",
+   "qty": 1,
+   "massKg": 0.2638,
+   "totalMassKg": 0.2638,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Turns the bay isolator.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-SIS",
+   "name": "Bay isolator, 3 pole, lockable, in a stainless enclosure",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "IEC 60947-3",
+   "size": "400 x 300 x 180",
+   "grade": "IP66",
+   "material": "Stainless steel 1.4301 (304)",
+   "materialKey": "ss304",
+   "qty": 1,
+   "massKg": 9.0,
+   "totalMassKg": 9.0,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Switches off the supply to the machine and to the detail arms' cabinet, in sight of both. It takes a padlock.",
+   "spec": {
+    "handle height": "1.5 m",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-SNP",
+   "name": "Conduit nipple, trade size 3/4, isolator to the arm cabinet",
+   "category": "electrical",
+   "make": "make",
+   "standard": "rigid conduit",
+   "size": "3/4 x 28",
+   "grade": "",
+   "material": "Structural steel S355, hot-dip galvanised",
+   "materialKey": "steel_s355",
+   "qty": 1,
+   "massKg": 0.1244,
+   "totalMassKg": 0.1244,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Brings the detail arm cabinet's supply from the isolator.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-SPB",
+   "name": "Pull box at the wall foot, stainless, IP66, 3 compartments",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "EN 62208",
+   "size": "833 x 150 x 150",
+   "grade": "IP66",
+   "material": "Stainless steel 1.4301 (304)",
+   "materialKey": "ss304",
+   "qty": 1,
+   "massKg": 14.0,
+   "totalMassKg": 14.0,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Every drop from the panel ends in it and every duct in the slab starts under it. Its compartments keep power, network and media apart.",
+   "spec": {
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-SSE",
+   "name": "Supply conduit from the plant room switchboard (part of the building)",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "building",
+   "size": "D 42",
+   "grade": "",
+   "material": "Structural steel S355, hot-dip galvanised",
+   "materialKey": "steel_s355",
+   "qty": 1,
+   "massKg": 0.0,
+   "totalMassKg": 0.0,
+   "torqueNm": null,
+   "reference": true,
+   "function": "Brings the 3-phase supply to the bay isolator. Shown for context.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-SSN",
+   "name": "Network conduit from the site network (part of the building)",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "building",
+   "size": "D 27",
+   "grade": "",
+   "material": "Structural steel S355, hot-dip galvanised",
+   "materialKey": "steel_s355",
+   "qty": 1,
+   "massKg": 0.0,
+   "totalMassKg": 0.0,
+   "torqueNm": null,
+   "reference": true,
+   "function": "Brings the site network to the switch in the arm cabinet. Shown for context.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-DL6",
+   "name": "Arm line, 6 mm, floor box to the chain",
+   "category": "fluid",
+   "make": "buy",
+   "standard": "",
+   "size": "OD 6",
+   "grade": "",
+   "material": "Hose, PVC with steel helix",
+   "materialKey": "hose",
+   "qty": 2,
+   "massKg": 0.0035,
+   "totalMassKg": 0.007,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Runs from the cabinet on the wall in its duct to the floor box, and from the box into the chain. Drawn from the box to the chain's fixed end.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-MLA",
+   "name": "Machine chemical hose A 10 x 16, wall to the chain's fixed end",
+   "category": "fluid",
+   "make": "buy",
+   "standard": "",
+   "size": "OD 16",
+   "grade": "",
+   "material": "Hose, PVC with steel helix",
+   "materialKey": "hose",
+   "qty": 1,
+   "massKg": 1.4146,
+   "totalMassKg": 1.4146,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Runs from the panel in its duct to the pit, along the tray, through the strain relief and into the chain. Drawn from the duct's mouth to the chain's fixed end.",
+   "spec": {
+    "bend": "R 80 or more"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-MLB",
+   "name": "Machine chemical hose B 10 x 16, wall to the chain's fixed end",
+   "category": "fluid",
+   "make": "buy",
+   "standard": "",
+   "size": "OD 16",
+   "grade": "",
+   "material": "Hose, PVC with steel helix",
+   "materialKey": "hose",
+   "qty": 1,
+   "massKg": 1.4154,
+   "totalMassKg": 1.4154,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Runs from the panel in its duct to the pit, along the tray, through the strain relief and into the chain. Drawn from the duct's mouth to the chain's fixed end.",
+   "spec": {
+    "bend": "R 80 or more"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-MLR",
+   "name": "Machine air tube 12 x 9, wall to the chain's fixed end",
+   "category": "fluid",
+   "make": "buy",
+   "standard": "",
+   "size": "OD 12",
+   "grade": "",
+   "material": "Hose, PVC with steel helix",
+   "materialKey": "hose",
+   "qty": 1,
+   "massKg": 0.8003,
+   "totalMassKg": 0.8003,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Runs from the panel in its duct to the pit, along the tray, through the strain relief and into the chain. Drawn from the duct's mouth to the chain's fixed end.",
+   "spec": {
+    "bend": "R 60 or more"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-MLW",
+   "name": "Machine water hose 19 x 27, wall to the chain's fixed end",
+   "category": "fluid",
+   "make": "buy",
+   "standard": "",
+   "size": "OD 27",
+   "grade": "",
+   "material": "Hose, PVC with steel helix",
+   "materialKey": "hose",
+   "qty": 1,
+   "massKg": 4.0231,
+   "totalMassKg": 4.0231,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Runs from the panel in its duct to the pit, along the tray, through the strain relief and into the chain. Drawn from the duct's mouth to the chain's fixed end.",
+   "spec": {
+    "bend": "R 135 or more"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-SBV12",
+   "name": "Shut-off ball valve, angle pattern, 12 mm, stainless, lockable lever",
+   "category": "fluid",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "12 mm",
+   "grade": "",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 4,
+   "massKg": 0.8299,
+   "totalMassKg": 3.3197,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Shuts one medium off at the wall. The line beyond it can then be opened.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "WSH-SBV22",
+   "name": "Shut-off ball valve, angle pattern, 22 mm, stainless, lockable lever",
+   "category": "fluid",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "22 mm",
+   "grade": "",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 1.1874,
+   "totalMassKg": 1.1874,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Shuts one medium off at the wall. The line beyond it can then be opened.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-SD12",
+   "name": "Valve drop tube, 12 x 1, stainless",
+   "category": "fluid",
+   "make": "make",
+   "standard": "EN 10216-5",
+   "size": "12 x 1, 630",
+   "grade": "",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 4,
+   "massKg": 0.1737,
+   "totalMassKg": 0.6949,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes one medium from its valve down to the pull box.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "WSH-SD22",
+   "name": "Valve drop tube, 22 x 1, stainless",
+   "category": "fluid",
+   "make": "make",
+   "standard": "EN 10216-5",
+   "size": "22 x 1, 630",
+   "grade": "",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 0.3317,
+   "totalMassKg": 0.3317,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes one medium from its valve down to the pull box.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-SS12",
+   "name": "Plant supply stub through the wall, 12 mm (part of the building)",
+   "category": "fluid",
+   "make": "buy",
+   "standard": "building",
+   "size": "D 12",
+   "grade": "",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 4,
+   "massKg": 0.0,
+   "totalMassKg": 0.0,
+   "torqueNm": null,
+   "reference": true,
+   "function": "Brings one medium from the plant room to its valve. Shown for context.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "WSH-SS22",
+   "name": "Plant supply stub through the wall, 22 mm (part of the building)",
+   "category": "fluid",
+   "make": "buy",
+   "standard": "building",
+   "size": "D 22",
+   "grade": "",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 0.0,
+   "totalMassKg": 0.0,
+   "torqueNm": null,
+   "reference": true,
+   "function": "Brings one medium from the plant room to its valve. Shown for context.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
     }
    ]
   }
