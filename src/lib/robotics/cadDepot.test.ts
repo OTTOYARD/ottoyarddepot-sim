@@ -120,8 +120,10 @@ describe.each([...ROBOT_KEYS])('%s: the depot model', (k) => {
     // went from 119 to 121 on 2026-11-15 when its flush trench and pit covers and rail anchor plates got their own
     // deck-paint draws (DepotCadOptions.deckY), so its bound moved from 120 to 124; and from 121 to 129 the same day
     // when each side air knife got the belt axis, carriage, hanger and gearmotor it hangs from, and each arm chain the
-    // elbow duct into its pedestal (design finding 20): parts of their own materials on their own segments, so 132
-    expect(cad.stats.draws).toBeLessThanOrEqual(k === 'wash_gantry' ? 132 : 90);
+    // elbow duct into its pedestal (design finding 20): parts of their own materials on their own segments, so 132; and
+    // from 129 to 133 the same day when each detail arm got its J2 status rings' lead (cable, on J1) and the plate and
+    // bulkhead its pure water leaves the forearm by (stainless, on J3; design finding 21), so 136
+    expect(cad.stats.draws).toBeLessThanOrEqual(k === 'wash_gantry' ? 136 : 90);
   });
 });
 

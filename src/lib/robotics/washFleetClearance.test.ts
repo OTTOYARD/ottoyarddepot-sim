@@ -6,7 +6,8 @@
 //   - the frame 1.0 u off the vehicle;
 //   - the pad's face no deeper in it than its foam gives, 15 mm, and on it at every place;
 //   - the head behind the pad, and the camera beside it, 0.045 m off it;
-//   - every link and joint of an arm 0.08 m off it, and every other moving part (the air knives, the carriages) 0.1 m.
+//   - every link and joint of an arm 0.08 m off it, and every other moving part (the air knives, the carriages) 0.1 m;
+//   - the pure-water loop across each arm's wrist, solved at each pose, 0.08 m off it (the arm's own margin).
 // The vehicle is its wash solid (fleetModels/washSolid.ts): its own skin, sensors, housings, mirrors and tyres.
 // Vertices are sampled (the depot model's own). No network: the model is read from disk.
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -21,6 +22,7 @@ import { washProgramFor } from '@/lib/ottoWash/washProgram';
 import { WASH_PHASE_S, WASH_TRAVEL, WASH_WIPE, isWipe, stationOf } from '@/lib/ottoWash/washSpec';
 import { partOfMesh, subOf } from './cadClearance';
 import { indexCad, poseCad, type CadModel } from './cadModel';
+import { flexDefs, solveFlex, type FlexDefJson } from './flexLines';
 import { washJoints } from './catalog';
 
 const M = METRES_PER_PLAN_UNIT;
@@ -59,9 +61,15 @@ function poses(model: string, seat: number, endAt: number | undefined, keep: num
 describe('OTTO-WASH (its CAD) against each fleet vehicle, playing that vehicle\'s own program', () => {
   let model: CadModel;
   let parts: Sampled[];
+  // the lines that ride a detail arm's wrist (the pure-water loop across J4 and J5, 2026-11-15): solved at each pose and
+  // held to the arm's own margin, since a line is no mesh in the depot model
+  let wristLines: FlexDefJson[];
+  let nodeOf: (name: string) => THREE.Object3D;
   beforeAll(async () => {
     const scene = await depotSceneFromDisk('wash_gantry');
     model = indexCad(scene);
+    wristLines = flexDefs(scene).filter((d) => d.id.startsWith('WSH-PWL'));
+    nodeOf = (name) => scene.getObjectByName(name)!;
     parts = [];
     scene.traverse((o) => {
       const m = o as THREE.Mesh;
@@ -104,6 +112,8 @@ describe('OTTO-WASH (its CAD) against each fleet vehicle, playing that vehicle\'
 
     const worst: Record<Kind, number> = { frame: Infinity, pad: Infinity, head: Infinity, arm: Infinity, tool: Infinity };
     const at: Record<Kind, string> = { frame: '', pad: '', head: '', arm: '', tool: '' };
+    expect(wristLines.length, 'each detail arm\'s pure-water loop').toBe(2);
+    let lineWorst = Infinity, lineAt = '';
     const vs = new THREE.Vector3(), vw = new THREE.Vector3();
     for (const p of all) {
       poseCad(model, washJoints(p)); model.root.updateMatrixWorld(true);
@@ -119,7 +129,17 @@ describe('OTTO-WASH (its CAD) against each fleet vehicle, playing that vehicle\'
           if (d < worst[s.kind]) { worst[s.kind] = d; at[s.kind] = `${s.part} (${p.station ?? 'no zone'}: ${p.arms.map((x) => x.sensor ?? '-').join(' ')})`; }
         }
       }
+      for (const d of wristLines) {
+        const sol = solveFlex(d, nodeOf(d.a.node).matrixWorld, nodeOf(d.b.node).matrixWorld, (n) => nodeOf(n).matrixWorld);
+        const P = sol.points, r = d.r;
+        for (let j = 0; j < P.length; j += 3) {
+          const g = gap(vw.set(P[j], P[j + 1], P[j + 2])) - r;
+          if (g < lineWorst) { lineWorst = g; lineAt = `${d.id} (${p.station ?? 'no zone'}: ${p.arms.map((x) => x.sensor ?? '-').join(' ')})`; }
+        }
+      }
     }
+    console.log(`WASHLINE ${key} ${lineWorst.toFixed(4)} m: ${lineAt}`);
+    expect(lineWorst, `${lineAt} comes ${lineWorst.toFixed(3)} m from the vehicle`).toBeGreaterThan(0.08);
     console.log(`WASHCAD ${key} poses ${all.length} places ${places} m: ${JSON.stringify(Object.fromEntries(Object.entries(worst).map(([k, v]) => [k, +v.toFixed(4)])))} ${JSON.stringify(at)}`);
     expect(worst.frame / M, `${at.frame} comes ${(worst.frame / M).toFixed(3)} u from the vehicle`).toBeGreaterThan(1.0);
     expect(worst.pad, `${at.pad}: the pad goes ${(-worst.pad * 1000).toFixed(1)} mm into the vehicle`).toBeGreaterThanOrEqual(-0.015);

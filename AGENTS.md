@@ -475,8 +475,9 @@ not draw the seven units yet; where they stand is a site-plan decision.
   view, never by frame rate), the rest from the depot model. **A CAD change must pass `src/lib/robotics/cadDetail.test.ts`:**
   no floating part (1 mm on the full and detail models, 10 mm on the depot model), every line's end seated in what
   holds it at every twin pose, every chain's lines inside its links at their constant length, and no left-out part
-  visible. Mark a part sealed inside an actuator `sealed=True` and a part under the deck or in a pad `yard_hidden=True`;
-  never leave one out by name alone. A boot that ends in a fitting's collar takes `lead_a`/`lead_b` (straight that far):
+  visible. Mark a part sealed inside an actuator `sealed=True` and a part under the deck, in a pad or closed inside a
+  casting (the charge arm's copper) `yard_hidden=True`; never leave one out by name alone. The charge arm's castings are
+  the wash arms' too (`build_chain`): a port cut in one is in both, so close it on the machine that does not use it. A boot that ends in a fitting's collar takes `lead_a`/`lead_b` (straight that far):
   a loop solved bending from its very end cuts its collar (design finding 20).
 - **Every line is in the cable schedule (2026-11-15).** Chase: *"I know the exact pieces and length of certain cables and
   exact routing of electrical wire."* Each robot's builder declares its cables, hoses and tubes once, end to end
