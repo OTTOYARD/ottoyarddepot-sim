@@ -15,40 +15,55 @@
     "step": "charge_arm.step.zip",
     "bom": "charge_arm.bom.json",
     "csv": "charge_arm.bom.csv",
-    "depot": "charge_arm.depot.glb"
+    "depot": "charge_arm.depot.glb",
+    "near": "charge_arm.near.glb",
+    "cables": "charge_arm.cables.csv"
+   },
+   "cables": {
+    "lines": 36,
+    "routeM": 159.4,
+    "orderM": 196.3
    },
    "bytes": {
-    "glb": 8494900,
-    "stepZip": 7419912,
-    "step": 38941662,
-    "depot": 975120
+    "glb": 8590964,
+    "stepZip": 7426216,
+    "step": 38957410,
+    "depot": 852632,
+    "near": 6362764
    },
    "mesh": {
-    "vertices": 353526,
-    "triangles": 405711,
-    "meshes": 249,
-    "nodes": 1028
+    "vertices": 357045,
+    "triangles": 409483,
+    "meshes": 255,
+    "nodes": 1038
    },
    "depotMesh": {
-    "vertices": 38371,
-    "triangles": 41982,
-    "meshes": 114,
-    "nodes": 186
+    "vertices": 33387,
+    "triangles": 35160,
+    "meshes": 103,
+    "nodes": 173
    },
-   "depotSha256": "2caa19f6cfab3f72",
+   "depotSha256": "964724ccdfbdef06",
+   "nearMesh": {
+    "vertices": 267819,
+    "triangles": 304631,
+    "meshes": 142,
+    "nodes": 743
+   },
+   "nearSha256": "2f2c321723f01166",
    "totals": {
-    "parts": 1052,
-    "uniqueParts": 248,
+    "parts": 1060,
+    "uniqueParts": 253,
     "fasteners": 702,
-    "massKg": 990.04,
+    "massKg": 1003.73,
     "boughtLines": 168,
-    "madeLines": 80,
+    "madeLines": 85,
     "referenceLines": 6
    },
-   "glbSha256": "5369386b43533542",
+   "glbSha256": "35eda3b2dec3529f",
    "stepCheck": {
-    "namedParts": 1069,
-    "solids": 1759,
+    "namedParts": 1077,
+    "solids": 1767,
     "invalid": 0
    },
    "subsystems": [
@@ -111,40 +126,55 @@
     "step": "clean_arm.step.zip",
     "bom": "clean_arm.bom.json",
     "csv": "clean_arm.bom.csv",
-    "depot": "clean_arm.depot.glb"
+    "depot": "clean_arm.depot.glb",
+    "near": "clean_arm.near.glb",
+    "cables": "clean_arm.cables.csv"
+   },
+   "cables": {
+    "lines": 16,
+    "routeM": 13.2,
+    "orderM": 17.6
    },
    "bytes": {
-    "glb": 2257600,
-    "stepZip": 1383804,
-    "step": 7637660,
-    "depot": 566488
+    "glb": 2271320,
+    "stepZip": 1409395,
+    "step": 7755439,
+    "depot": 576340,
+    "near": 3068136
    },
    "mesh": {
-    "vertices": 91775,
-    "triangles": 108154,
-    "meshes": 118,
-    "nodes": 272
+    "vertices": 92312,
+    "triangles": 108748,
+    "meshes": 120,
+    "nodes": 274
    },
    "depotMesh": {
-    "vertices": 21782,
-    "triangles": 23636,
-    "meshes": 85,
-    "nodes": 110
+    "vertices": 22119,
+    "triangles": 23932,
+    "meshes": 88,
+    "nodes": 114
    },
-   "depotSha256": "1b8764d260cc1c85",
+   "depotSha256": "c09fbcb3abcd986d",
+   "nearMesh": {
+    "vertices": 125728,
+    "triangles": 154028,
+    "meshes": 116,
+    "nodes": 269
+   },
+   "nearSha256": "abeaa400e6088dbc",
    "totals": {
-    "parts": 258,
-    "uniqueParts": 117,
+    "parts": 260,
+    "uniqueParts": 119,
     "fasteners": 147,
-    "massKg": 374.86,
+    "massKg": 374.87,
     "boughtLines": 72,
-    "madeLines": 45,
+    "madeLines": 47,
     "referenceLines": 4
    },
-   "glbSha256": "ca7c4f5b96584670",
+   "glbSha256": "4eaca213f85332be",
    "stepCheck": {
-    "namedParts": 263,
-    "solids": 395,
+    "namedParts": 265,
+    "solids": 397,
     "invalid": 0
    },
    "subsystems": [
@@ -211,40 +241,55 @@
     "step": "wash_gantry.step.zip",
     "bom": "wash_gantry.bom.json",
     "csv": "wash_gantry.bom.csv",
-    "depot": "wash_gantry.depot.glb"
+    "depot": "wash_gantry.depot.glb",
+    "near": "wash_gantry.near.glb",
+    "cables": "wash_gantry.cables.csv"
+   },
+   "cables": {
+    "lines": 46,
+    "routeM": 365.8,
+    "orderM": 396.4
    },
    "bytes": {
-    "glb": 9117708,
-    "stepZip": 7020795,
-    "step": 38737439,
-    "depot": 948580
+    "glb": 9198304,
+    "stepZip": 7097030,
+    "step": 39220815,
+    "depot": 927692,
+    "near": 6607332
    },
    "mesh": {
-    "vertices": 363824,
-    "triangles": 426203,
-    "meshes": 301,
-    "nodes": 2346
+    "vertices": 366517,
+    "triangles": 428751,
+    "meshes": 311,
+    "nodes": 2371
    },
    "depotMesh": {
-    "vertices": 34903,
-    "triangles": 37118,
-    "meshes": 152,
-    "nodes": 398
+    "vertices": 33868,
+    "triangles": 35654,
+    "meshes": 151,
+    "nodes": 401
    },
-   "depotSha256": "5a5a8a482feec0c5",
+   "depotSha256": "4fdc288383ba7a27",
+   "nearMesh": {
+    "vertices": 265403,
+    "triangles": 310389,
+    "meshes": 198,
+    "nodes": 1828
+   },
+   "nearSha256": "a06dcd3735e76ce8",
    "totals": {
-    "parts": 2777,
-    "uniqueParts": 292,
-    "fasteners": 1636,
-    "massKg": 5949.54,
-    "boughtLines": 170,
-    "madeLines": 122,
+    "parts": 2799,
+    "uniqueParts": 300,
+    "fasteners": 1648,
+    "massKg": 6045.23,
+    "boughtLines": 175,
+    "madeLines": 125,
     "referenceLines": 14
    },
-   "glbSha256": "555748446c3ebd3e",
+   "glbSha256": "cf07d33bee4d746d",
    "stepCheck": {
-    "namedParts": 2794,
-    "solids": 4236,
+    "namedParts": 2816,
+    "solids": 4258,
     "invalid": 0
    },
    "subsystems": [

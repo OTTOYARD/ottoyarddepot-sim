@@ -7,12 +7,12 @@
   "glb": "m"
  },
  "totals": {
-  "parts": 258,
-  "uniqueParts": 117,
+  "parts": 260,
+  "uniqueParts": 119,
   "fasteners": 147,
-  "massKg": 374.86,
+  "massKg": 374.87,
   "boughtLines": 72,
-  "madeLines": 45,
+  "madeLines": 47,
   "referenceLines": 4
  },
  "subsystems": [
@@ -208,10 +208,10 @@
    },
    "group": "Tool",
    "order": 9,
-   "partCount": 11,
+   "partCount": 12,
    "fastenerCount": 3,
-   "massKg": 1.317,
-   "uniqueParts": 8
+   "massKg": 1.322,
+   "uniqueParts": 9
   },
   {
    "id": "VAC",
@@ -238,10 +238,10 @@
    },
    "group": "Supply",
    "order": 10,
-   "partCount": 24,
+   "partCount": 25,
    "fastenerCount": 6,
-   "massKg": 41.14,
-   "uniqueParts": 20
+   "massKg": 41.151,
+   "uniqueParts": 21
   },
   {
    "id": "POWER",
@@ -778,7 +778,8 @@
    "reference": false,
    "function": "Carries J2 at 0.95 m from J1. A box section: stiff in bending and twist. The duct and cables run inside.",
    "spec": {
-    "wall": "6 mm"
+    "wall": "6 mm",
+    "in the cable schedule": "CLN-AC1, 1.10 m from end to end; CLN-AT1, 1.10 m from end to end"
    },
    "uses": [
     {
@@ -1060,7 +1061,8 @@
    "reference": false,
    "function": "Carries the mast 0.80 m from J2. The duct and cables run inside.",
    "spec": {
-    "wall": "5 mm"
+    "wall": "5 mm",
+    "in the cable schedule": "CLN-AC2, 0.89 m from end to end; CLN-AT2, 0.89 m from end to end"
    },
    "uses": [
     {
@@ -1157,7 +1159,9 @@
    "torqueNm": null,
    "reference": false,
    "function": "Grips the mast top in its socket and carries the driven ring and the bearing inner ring.",
-   "spec": {},
+   "spec": {
+    "in the cable schedule": "CLN-MFR, 0.45 m from end to end"
+   },
    "uses": [
     {
      "sub": "J3",
@@ -1948,7 +1952,9 @@
    "torqueNm": null,
    "reference": false,
    "function": "Joins the clock spring to the coil cable. It does not move.",
-   "spec": {},
+   "spec": {
+    "in the cable schedule": "CLN-WFC, 0.08 m from end to end"
+   },
    "uses": [
     {
      "sub": "WRIST",
@@ -1972,7 +1978,9 @@
    "torqueNm": null,
    "reference": false,
    "function": "Joins the union's air passage to the coil's air line. It does not move.",
-   "spec": {},
+   "spec": {
+    "in the cable schedule": "CLN-WAT, 0.13 m from end to end"
+   },
    "uses": [
     {
      "sub": "WRIST",
@@ -2200,7 +2208,8 @@
    "spec": {
     "length": "1100 mm",
     "length range": "0 to 1100 mm",
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+    "mass basis": "catalogue class mass (the CAD draws its envelope)",
+    "in the cable schedule": "CLN-WCB, 1.10 m from end to end"
    },
    "uses": [
     {
@@ -2292,8 +2301,8 @@
    "material": "Aluminium A356-T6 casting, charcoal powder coat",
    "materialKey": "a356_dark",
    "qty": 1,
-   "massKg": 0.5165,
-   "totalMassKg": 0.5165,
+   "massKg": 0.5176,
+   "totalMassKg": 0.5176,
    "torqueNm": null,
    "reference": false,
    "function": "Carries the nozzle pivot and its worm drive on the wand tip.",
@@ -2324,6 +2333,32 @@
    "spec": {
     "ratio": "50:1 worm",
     "torque": "6 N m"
+   },
+   "uses": [
+    {
+     "sub": "NOZZLE",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CLN-WCE",
+   "name": "Wand cable entry block, glass-filled PA66",
+   "category": "electrical",
+   "make": "make",
+   "standard": "moulded",
+   "size": "16 x 27 x 14",
+   "grade": "IP67",
+   "material": "PA66-GF30",
+   "materialKey": "pa66",
+   "qty": 1,
+   "massKg": 0.004,
+   "totalMassKg": 0.004,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes the wand cable's end on the knuckle. Inside it the cable turns down into the knuckle to the nozzle drive.",
+   "spec": {
+    "seal": "a grommet on the cable"
    },
    "uses": [
     {
@@ -2376,7 +2411,8 @@
     "bend radius": "about 5 x 6 mm (PU tube)",
     "length": "367 mm",
     "min bend radius": "30 mm",
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+    "mass basis": "catalogue class mass (the CAD draws its envelope)",
+    "in the cable schedule": "CLN-NAL, 0.37 m from end to end"
    },
    "uses": [
     {
@@ -2578,7 +2614,8 @@
     "carries": "hybrid cable 10 mm (power + EtherCAT) and air 6 mm, side by side in a flat jacket",
     "length": "2900 mm",
     "length range": "0 to 2900 mm",
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+    "mass basis": "catalogue class mass (the CAD draws its envelope)",
+    "in the cable schedule": "CLN-MCB, 2.90 m from end to end"
    },
    "uses": [
     {
@@ -2626,11 +2663,37 @@
    "material": "Cable, TPE jacket",
    "materialKey": "cable",
    "qty": 1,
-   "massKg": 0.0591,
-   "totalMassKg": 0.0591,
+   "massKg": 0.0601,
+   "totalMassKg": 0.0601,
    "torqueNm": null,
    "reference": false,
    "function": "Brings the signals, power and air from the J3 union down the outer mast stage to the reel.",
+   "spec": {
+    "in the cable schedule": "CLN-MFR, 0.45 m from end to end"
+   },
+   "uses": [
+    {
+     "sub": "VAC",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CLN-MOB",
+   "name": "Collar cable outlet, glass-filled PA66, with a grommet",
+   "category": "electrical",
+   "make": "make",
+   "standard": "moulded",
+   "size": "12 x 20 x 32",
+   "grade": "IP65",
+   "material": "PA66-GF30",
+   "materialKey": "pa66",
+   "qty": 1,
+   "massKg": 0.0103,
+   "totalMassKg": 0.0103,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes the hybrid cable and the air line out of the mast top, from the J3 union's turning side, down the outer stage.",
    "spec": {},
    "uses": [
     {
@@ -2655,7 +2718,9 @@
    "torqueNm": null,
    "reference": false,
    "function": "Brings the air from the canopy main's drop down to the service unit.",
-   "spec": {},
+   "spec": {
+    "in the cable schedule": "CLN-ADR, 0.81 m from end to end"
+   },
    "uses": [
     {
      "sub": "VAC",
@@ -2708,7 +2773,8 @@
    "function": "Brings the air from the service unit in through the column's wall and down to the J1 union.",
    "spec": {
     "bends": "R 30 (5 x D)",
-    "through the column": "a 10 mm hole in its -Z face, with a grommet"
+    "through the column": "a 10 mm hole in its -Z face, with a grommet",
+    "in the cable schedule": "CLN-AIL, 0.85 m from end to end"
    },
    "uses": [
     {
@@ -3096,7 +3162,9 @@
    "torqueNm": null,
    "reference": true,
    "function": "Carries the arms' supply and network cables along the canopy from its board. Shown for context.",
-   "spec": {},
+   "spec": {
+    "in the cable schedule": "CLN-SPW, 0.68 m from end to end; CLN-SNW, 0.68 m from end to end"
+   },
    "uses": [
     {
      "sub": "POWER",
@@ -3122,7 +3190,8 @@
    "function": "Brings the network cable from the canopy cable tray down to the supply enclosure.",
    "spec": {
     "cable": "8 mm",
-    "fill": "27 % of the bore (limit 53 %)"
+    "fill": "27 % of the bore (limit 53 %)",
+    "in the cable schedule": "CLN-SNW, 0.68 m from end to end"
    },
    "uses": [
     {
@@ -3149,7 +3218,8 @@
    "function": "Brings the power cable from the canopy cable tray down to the supply enclosure.",
    "spec": {
     "cable": "10.5 mm",
-    "fill": "47 % of the bore (limit 53 %)"
+    "fill": "47 % of the bore (limit 53 %)",
+    "in the cable schedule": "CLN-SPW, 0.68 m from end to end"
    },
    "uses": [
     {
@@ -3174,7 +3244,9 @@
    "torqueNm": null,
    "reference": false,
    "function": "Joins the J1 gearmotor to its drive in the supply enclosure. It does not move.",
-   "spec": {},
+   "spec": {
+    "in the cable schedule": "CLN-EMC, 0.33 m from end to end"
+   },
    "uses": [
     {
      "sub": "POWER",
@@ -3226,7 +3298,8 @@
    "function": "Brings power and the network from the supply enclosure in through the column's wall and down to the J1 union's slip ring. It does not move.",
    "spec": {
     "bend": "R 40 (4 x D)",
-    "through the column": "a 16 mm hole in its +X face, with a gland"
+    "through the column": "a 16 mm hole in its +X face, with a gland",
+    "in the cable schedule": "CLN-ESC, 0.81 m from end to end"
    },
    "uses": [
     {
@@ -3361,5 +3434,703 @@
    ]
   }
  ],
- "notes": {}
+ "notes": {},
+ "cables": [
+  {
+   "id": "CLN-SPW",
+   "name": "Supply cable 4 x 2.5 mm2, canopy board to the supply enclosure",
+   "kind": "power",
+   "od": 10.5,
+   "spec": "ASSUMPTION: a cable of its kind (cad clean_arm, SUPPLY_CABLE_OD and NET_CABLE_OD)",
+   "from": "the canopy's board (site works)",
+   "to": "the supply enclosure (CLN-ENC): its isolator",
+   "sub": "POWER",
+   "runs": [
+    {
+     "kind": "site",
+     "via": "CLN-CTY",
+     "where": "along the canopy's cable tray from its board: the site's length, not in the model",
+     "mm": 0.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "CLN-ECDP",
+     "where": "down its rigid conduit from the tray to the enclosure's top",
+     "mm": 675.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 675.0,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 0.0,
+    "b": 300.0,
+    "basis": "300 mm inside the supply enclosure to its terminal (ASSUMPTION)"
+   },
+   "orderMm": 1000.0,
+   "bendMm": {
+    "fixed": 42.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "CLN-ECDP"
+   ],
+   "notes": [],
+   "open": [
+    "Its run from the canopy's board along the cable tray is the site's: add it from the site's layout."
+   ]
+  },
+  {
+   "id": "CLN-SNW",
+   "name": "Network cable, industrial Cat 6A, canopy switch to the supply enclosure",
+   "kind": "network",
+   "od": 8.0,
+   "spec": "ASSUMPTION: a cable of its kind (cad clean_arm, SUPPLY_CABLE_OD and NET_CABLE_OD)",
+   "from": "the canopy's board (site works)",
+   "to": "the supply enclosure (CLN-ENC): its controller",
+   "sub": "POWER",
+   "runs": [
+    {
+     "kind": "site",
+     "via": "CLN-CTY",
+     "where": "along the canopy's cable tray from its board: the site's length, not in the model",
+     "mm": 0.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "CLN-ECDN",
+     "where": "down its rigid conduit from the tray to the enclosure's top",
+     "mm": 675.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 675.0,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 0.0,
+    "b": 300.0,
+    "basis": "300 mm inside the supply enclosure to its terminal (ASSUMPTION)"
+   },
+   "orderMm": 1000.0,
+   "bendMm": {
+    "fixed": 32.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "CLN-ECDN"
+   ],
+   "notes": [],
+   "open": [
+    "Its run from the canopy's board along the cable tray is the site's: add it from the site's layout."
+   ]
+  },
+  {
+   "id": "CLN-EMC",
+   "name": "J1 motor cable, power and feedback, 12 mm",
+   "kind": "power",
+   "od": 12.0,
+   "spec": "EN 50525",
+   "from": "the J1 drive in the supply enclosure",
+   "to": "the J1 gearmotor",
+   "sub": "POWER",
+   "runs": [
+    {
+     "kind": "drawn",
+     "via": "CLN-EMC",
+     "where": "straight down from the enclosure's gland to the gearmotor",
+     "mm": 330.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 330.0,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 300.0,
+    "b": 100.0,
+    "basis": "300 mm inside the supply enclosure to its terminal (ASSUMPTION); 100 mm to make it off at its connector (ASSUMPTION)"
+   },
+   "orderMm": 800.0,
+   "bendMm": {
+    "fixed": 48.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "CLN-EMC"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "CLN-ESC",
+   "name": "Arm cable, enclosure to the J1 union: power and network, 10 mm",
+   "kind": "power",
+   "od": 10.0,
+   "spec": "EN 50525",
+   "from": "the supply enclosure (CLN-ENC)",
+   "to": "the J1 union's slip ring, its fixed side (CLN-SWV1)",
+   "sub": "POWER",
+   "runs": [
+    {
+     "kind": "drawn",
+     "via": "CLN-ESC",
+     "where": "in through the column's wall and down to the J1 union",
+     "mm": 812.8,
+     "tol": 0.0,
+     "bend": 40.0,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 812.8,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 300.0,
+    "b": 100.0,
+    "basis": "300 mm inside the supply enclosure to its terminal (ASSUMPTION); 100 mm to make it off at its connector (ASSUMPTION)"
+   },
+   "orderMm": 1300.0,
+   "bendMm": {
+    "fixed": 40.0,
+    "moving": 0.0,
+    "tightestFixed": 40.0,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "CLN-ESC"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "CLN-AC1",
+   "name": "Arm cable in link 1: power and network, 10 mm",
+   "kind": "power",
+   "od": 10.0,
+   "spec": "EN 50525",
+   "from": "the CLN-SWV1 union's turning side",
+   "to": "the CLN-SWV2 union's fixed side (24 circuits and the EtherCAT pair)",
+   "sub": "LINK1",
+   "runs": [
+    {
+     "kind": "arm",
+     "via": "CLN-L1",
+     "where": "inside the link from union to union: straight 981 mm, and up to a quarter more for its dressing in the box section",
+     "mm": 1104.0,
+     "tol": 122.7,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 1104.0,
+   "tolMm": 122.7,
+   "tails": {
+    "a": 100.0,
+    "b": 100.0,
+    "basis": "100 mm to make it off at its connector (ASSUMPTION), at each union"
+   },
+   "orderMm": 1500.0,
+   "bendMm": {
+    "fixed": 40.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [],
+   "notes": [],
+   "open": [
+    "Not drawn: the CAD draws the link's duct, not the cables and tube beside it."
+   ]
+  },
+  {
+   "id": "CLN-AC2",
+   "name": "Arm cable in link 2: power and network, 10 mm",
+   "kind": "power",
+   "od": 10.0,
+   "spec": "EN 50525",
+   "from": "the CLN-SWV2 union's turning side",
+   "to": "the CLN-SWV union's fixed side (12 circuits and the EtherCAT pair)",
+   "sub": "LINK2",
+   "runs": [
+    {
+     "kind": "arm",
+     "via": "CLN-L2",
+     "where": "inside the link from union to union: straight 789 mm, and up to a quarter more for its dressing in the box section",
+     "mm": 887.1,
+     "tol": 98.6,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 887.1,
+   "tolMm": 98.6,
+   "tails": {
+    "a": 100.0,
+    "b": 100.0,
+    "basis": "100 mm to make it off at its connector (ASSUMPTION), at each union"
+   },
+   "orderMm": 1200.0,
+   "bendMm": {
+    "fixed": 40.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [],
+   "notes": [],
+   "open": [
+    "Not drawn: the CAD draws the link's duct, not the cables and tube beside it."
+   ]
+  },
+  {
+   "id": "CLN-AT1",
+   "name": "Air tube 6 x 4 in link 1",
+   "kind": "air",
+   "od": 6.0,
+   "spec": "ISO 14743, PU 6 x 4",
+   "from": "the CLN-SWV1 union's turning side",
+   "to": "the CLN-SWV2 union's fixed side (its air passage)",
+   "sub": "VAC",
+   "runs": [
+    {
+     "kind": "arm",
+     "via": "CLN-L1",
+     "where": "inside the link from union to union: straight 981 mm, and up to a quarter more for its dressing in the box section",
+     "mm": 1104.0,
+     "tol": 122.7,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 1104.0,
+   "tolMm": 122.7,
+   "tails": {
+    "a": 100.0,
+    "b": 100.0,
+    "basis": "100 mm to make it off at its connector (ASSUMPTION), at each union"
+   },
+   "orderMm": 1500.0,
+   "bendMm": {
+    "fixed": 30.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [],
+   "notes": [],
+   "open": [
+    "Not drawn: the CAD draws the link's duct, not the cables and tube beside it."
+   ]
+  },
+  {
+   "id": "CLN-AT2",
+   "name": "Air tube 6 x 4 in link 2",
+   "kind": "air",
+   "od": 6.0,
+   "spec": "ISO 14743, PU 6 x 4",
+   "from": "the CLN-SWV2 union's turning side",
+   "to": "the CLN-SWV union's fixed side (its air passage)",
+   "sub": "VAC",
+   "runs": [
+    {
+     "kind": "arm",
+     "via": "CLN-L2",
+     "where": "inside the link from union to union: straight 789 mm, and up to a quarter more for its dressing in the box section",
+     "mm": 887.1,
+     "tol": 98.6,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 887.1,
+   "tolMm": 98.6,
+   "tails": {
+    "a": 100.0,
+    "b": 100.0,
+    "basis": "100 mm to make it off at its connector (ASSUMPTION), at each union"
+   },
+   "orderMm": 1200.0,
+   "bendMm": {
+    "fixed": 30.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [],
+   "notes": [],
+   "open": [
+    "Not drawn: the CAD draws the link's duct, not the cables and tube beside it."
+   ]
+  },
+  {
+   "id": "CLN-MFR",
+   "name": "Hybrid cable and air line, J3 union to the mast reel",
+   "kind": "hybrid",
+   "od": 12.0,
+   "spec": "EN 50525: a 10 mm hybrid cable and a 6 mm air line in one jacket",
+   "from": "the J3 union's turning side (CLN-SWV)",
+   "to": "the mast reel's hub: its slip ring and air swivel (CLN-MCR)",
+   "sub": "VAC",
+   "runs": [
+    {
+     "kind": "duct",
+     "via": "CLN-MCL",
+     "where": "inside the mast top collar, from the union's turning side out to the collar's cable outlet (CLN-MOB)",
+     "mm": 100.0,
+     "tol": 25.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "drawn",
+     "via": "CLN-MFR",
+     "where": "from the outlet down the outer mast stage, clipped to it, to the reel",
+     "mm": 354.5,
+     "tol": 0.0,
+     "bend": 25.0,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 454.5,
+   "tolMm": 25.0,
+   "tails": {
+    "a": 100.0,
+    "b": 100.0,
+    "basis": "100 mm to make it off at its connector (ASSUMPTION), at each end"
+   },
+   "orderMm": 700.0,
+   "bendMm": {
+    "fixed": 25.0,
+    "moving": 0.0,
+    "tightestFixed": 25.0,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "CLN-MFR"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "CLN-MCB",
+   "name": "Hybrid cable and air line on the mast reel, PUR",
+   "kind": "hybrid",
+   "od": 12.0,
+   "spec": "EN 50525: the reel's cable, hybrid 10 mm and air 6 mm in a flat jacket",
+   "from": "the mast reel's drum (CLN-MCR)",
+   "to": "its clamp on the wrist fork (CLN-MCK)",
+   "sub": "VAC",
+   "runs": [
+    {
+     "kind": "reel",
+     "via": "CLN-MCB",
+     "where": "on the reel: what it holds; it pays out straight down as the mast goes down; 650 to 1991 mm of it out over the twin's poses",
+     "mm": 2900.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": true,
+     "range": [
+      650.0,
+      1991.1
+     ]
+    }
+   ],
+   "routeMm": 2900.0,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 0.0,
+    "b": 100.0,
+    "basis": "100 mm to make it off at its connector (ASSUMPTION)"
+   },
+   "orderMm": 3000.0,
+   "bendMm": {
+    "fixed": 0.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "CLN-MCB"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "CLN-WFC",
+   "name": "Wrist fixed cable, coil clamp to the clock spring",
+   "kind": "power",
+   "od": 8.0,
+   "spec": "EN 50525",
+   "from": "the reel cable's clamp on the wrist fork",
+   "to": "the clock spring's lead connector, M8 (CLN-WCN)",
+   "sub": "WRIST",
+   "runs": [
+    {
+     "kind": "drawn",
+     "via": "CLN-WFC",
+     "where": "up the cheek's face and over the fork's top block",
+     "mm": 83.9,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 83.9,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 100.0,
+    "b": 0.0,
+    "basis": "100 mm to make it off at its connector (ASSUMPTION)"
+   },
+   "orderMm": 200.0,
+   "bendMm": {
+    "fixed": 32.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "CLN-WFC"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "CLN-WCB",
+   "name": "Wand cable with air line, on a reel in the drive",
+   "kind": "hybrid",
+   "od": 8.0,
+   "spec": "a cable and an air line on one reel",
+   "from": "the wand drive's reel",
+   "to": "the nozzle drive in the knuckle, through the entry block (CLN-WCE)",
+   "sub": "WAND",
+   "runs": [
+    {
+     "kind": "reel",
+     "via": "CLN-WCB",
+     "where": "on the reel: what it holds; it runs along the wand to the knuckle; 61 to 789 mm of it out over the twin's poses",
+     "mm": 1100.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": true,
+     "range": [
+      60.7,
+      788.9
+     ]
+    }
+   ],
+   "routeMm": 1100.0,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 0.0,
+    "b": 100.0,
+    "basis": "100 mm to make it off at its connector (ASSUMPTION), inside the knuckle"
+   },
+   "orderMm": 1200.0,
+   "bendMm": {
+    "fixed": 0.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "CLN-WCB"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "CLN-ADR",
+   "name": "Air drop tube, 12 x 1.5, stainless",
+   "kind": "air",
+   "od": 12.0,
+   "spec": "EN 10216-5",
+   "from": "the canopy main's drop",
+   "to": "the air service unit (CLN-AFR)",
+   "sub": "VAC",
+   "runs": [
+    {
+     "kind": "drawn",
+     "via": "CLN-ADR",
+     "where": "straight down from the main's drop to the service unit",
+     "mm": 805.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 805.0,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 100.0,
+    "b": 100.0,
+    "basis": "100 mm to make it off at its connector (ASSUMPTION), at each fitting"
+   },
+   "orderMm": 1100.0,
+   "bendMm": {
+    "fixed": 0.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "CLN-ADR"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "CLN-AIL",
+   "name": "Air line 6 x 1, service unit to the J1 union",
+   "kind": "air",
+   "od": 6.0,
+   "spec": "ISO 14743, PU 6 x 4",
+   "from": "the air service unit (CLN-AFR)",
+   "to": "the J1 union's air passage (CLN-SWV1)",
+   "sub": "VAC",
+   "runs": [
+    {
+     "kind": "drawn",
+     "via": "CLN-AIL",
+     "where": "in through the column's wall and down to the union",
+     "mm": 849.2,
+     "tol": 0.0,
+     "bend": 30.0,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 849.2,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 100.0,
+    "b": 100.0,
+    "basis": "100 mm to make it off at its connector (ASSUMPTION), at each fitting"
+   },
+   "orderMm": 1100.0,
+   "bendMm": {
+    "fixed": 30.0,
+    "moving": 0.0,
+    "tightestFixed": 30.0,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "CLN-AIL"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "CLN-WAT",
+   "name": "Wrist fixed air line, coil clamp to the wrist union",
+   "kind": "air",
+   "od": 6.0,
+   "spec": "ISO 14743, PU 6 x 4",
+   "from": "the reel line's clamp on the wrist fork",
+   "to": "the wrist union's air passage (CLN-WSW)",
+   "sub": "WRIST",
+   "runs": [
+    {
+     "kind": "drawn",
+     "via": "CLN-WAT",
+     "where": "along the fork to the union",
+     "mm": 133.9,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 133.9,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 100.0,
+    "b": 100.0,
+    "basis": "100 mm to make it off at its connector (ASSUMPTION), at each fitting"
+   },
+   "orderMm": 400.0,
+   "bendMm": {
+    "fixed": 30.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "CLN-WAT"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "CLN-NAL",
+   "name": "Air line 6 mm, nozzle loop",
+   "kind": "air",
+   "od": 6.0,
+   "spec": "ISO 14743, PU tube",
+   "from": "its push-in fitting on the wand's tip (CLN-NAF)",
+   "to": "its push-in fitting on the air knife (CLN-NAF)",
+   "sub": "NOZZLE",
+   "runs": [
+    {
+     "kind": "loop",
+     "via": "CLN-NAL",
+     "where": "a free loop across the nozzle joint",
+     "mm": 366.8,
+     "tol": 0.0,
+     "bend": 35.6,
+     "moving": true,
+     "range": null
+    }
+   ],
+   "routeMm": 366.8,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 0.0,
+    "b": 0.0,
+    "basis": ""
+   },
+   "orderMm": 400.0,
+   "bendMm": {
+    "fixed": 30.0,
+    "moving": 30.0,
+    "tightestFixed": null,
+    "tightestMoving": 35.6
+   },
+   "pieces": [
+    "CLN-NAL"
+   ],
+   "notes": [],
+   "open": []
+  }
+ ]
 }
