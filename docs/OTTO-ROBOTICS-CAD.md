@@ -43,13 +43,16 @@ over side A and in the cabin (`cleanJointsAt`, through `buildCleanArm.poseCleanA
 at home, mid wash pass, dry pass and on the roof and front sensors (`programPoseAt`). Its run steps are the twin's phase tables
 (`NOMINAL_SEQUENCE` and `ARM_TIMING_DEFAULTS`, `CLEAN_CHAIN` and `CLEAN_PHASE_S`, `washChain` and `PASS_NOMINAL_S`).
 
-## The three machines (as built 2026-11-07)
+## The three machines (as built 2026-11-15, with their supplies drawn: finding 19)
 
 | robot | parts | different parts | screws, nuts, washers, pins | mass | STEP (zip) | GLB |
 |---|---:|---:|---:|---:|---:|---:|
-| OTTO-CHARGE ARM (with its rail bed and two-connector head, 2026-11-13) | 966 | 217 | 661 | 833 kg (with its bed, carriage, cross-slide and riser) | 37.7 MB (7.2) | 7.7 MB |
-| OTTO-CLEAN ARM | 408 | 134 | 253 | 311 kg (with its canopy steel) | 14.2 MB (2.3) | 3.6 MB |
-| OTTO-WASH (touchless, with 2 detail arms, 2026-11-12) | 2,639 | 250 | 1,636 | 5,631 kg | 36.9 MB (6.7) | 7.8 MB |
+| OTTO-CHARGE ARM (rail bed, two-connector head, supply from the cabinet) | 1,052 | 248 | 702 | 990 kg (with its bed, carriage, cross-slide, riser and supply) | 38.9 MB (7.4) | 8.5 MB |
+| OTTO-CLEAN ARM (with its power and its vacuum and air drops) | 258 | 117 | 147 | 375 kg (with its canopy steel) | 7.6 MB (1.4) | 2.3 MB |
+| OTTO-WASH (touchless, 2 detail arms, bay supply) | 2,777 | 292 | 1,636 | 5,950 kg | 38.7 MB (7.0) | 9.1 MB |
+
+(The table read 966, 408 and 2,639 parts until 2026-11-15. The clean arm's row was already stale: it had 238. The
+supplies added 86, 20 and 138 parts.)
 
 (Fewer fasteners than the first pass: where the clash check found a screw standing in another part, or holding a part
 the new layout leaves out (the wash beam's cover, the clean arm's mast cap and first hose), it went. The masses went
@@ -57,8 +60,9 @@ up: the actuators came out longer, the wash machine's beam became a box girder, 
 runs to the rail's anchor plates.)
 
 **Every STEP is re-imported by the build before it is published** (`build.py step_check`): each placed part must come
-back as a named solid and every solid must pass OpenCascade's validity check, or the build stops. As built: 668, 410
-and 811 named parts (the counts include the reference context parts), 1,360, 689 and 874 solids, 0 invalid.
+back as a named solid and every solid must pass OpenCascade's validity check, or the build stops. As built
+2026-11-15: 1,069, 263 and 2,794 named parts (the counts include the reference context parts), 1,759, 395 and 4,236
+solids, 0 invalid.
 
 Through-bolted steel joints are drawn as they are assembled (`std.bolt_stack`): bolt, a washer under the head, the
 clamped plates, a washer and a lock nut (the wash machine's leg flanges, its blower feet and pillow blocks, the clean
@@ -482,8 +486,9 @@ The poses found more, which the stowed pose could not show:
     was right on all three. The charge arm's 2 chains were drawn, but no line reached their fixed end and the cabinet
     had no way out: this file said the arm was "fed by the cable trunk from the cabinet", and a trunk cannot follow
     3.8 m of rail. The wash machine's drag chain began at a point in its trench: no bracket held its first link and no
-    line reached it. The clean arm had a vacuum riser in its column and no power at all. **Every line is now drawn from where the site hands it over to the tool** (the paths are in "The
-    service lines", below): the charge arm's from the cabinet's floor, down through the pad, along a covered trench and
+    line reached it. The clean arm had a vacuum riser in its column and no power at all. **Every line is now drawn
+    from where the site hands it over to the tool** (the paths are in "The service lines", below): the charge arm's
+    from the cabinet's floor, down through the pad, along a covered trench and
     the bed's channel, into the chain, up through the cover's slot and across the carriage to the riser; the wash
     machine's from a service panel on the bay's north wall, through ducts cast in the slab, a pit and a tray, into the
     drag chain and up the leg; the clean arm's from the canopy's cable tray and plant mains to a supply enclosure and a
@@ -495,9 +500,8 @@ The poses found more, which the stowed pose could not show:
     buried runs in section. **Choices made, and why:**
     - *4 cores of 50 mm2 a pole, not 1 of 400.* A cable in a chain bends no tighter than 7.5 x its diameter, and the
       chain cable family used has no single core larger than 185 mm2 (27.5 mm, so R 206, too big for the bed's
-      channel). 1 x 50 mm2 is
-      15 mm (R 112.5, inside the chain's 125) and carries 228 A at 30 C on its sheet; 4 in parallel carry 125 A each at
-      500 A, 55 % of that (igus chainflex CF310.UL data sheet, read 2026-11-14; source in `charge_arm.py`). The arm's
+      channel). 1 x 50 mm2 is 15 mm (R 112.5, inside the chain's 125) and carries 228 A at 30 C on its sheet; 4 in
+      parallel carry 125 A each at 500 A, 55 % of that (igus chainflex CF310.UL data sheet, read 2026-11-14; source in `charge_arm.py`). The arm's
       bars stay 400 mm2: they are shut in the links.
     - *A covered trench and channel, not a chain on the floor.* People walk round the car beside the bed. A flush
       checker plate and a brush-closed slot leave nothing to trip on, and keep grit and water out of the chain.
@@ -518,6 +522,15 @@ The poses found more, which the stowed pose could not show:
     one chain (about 0.65 at 45 C) is from memory of IEC 60364-5-52, not re-read: the cable maker confirms it before a
     cable is bought. The lines inside a chain or a duct are not drawn one by one. The clean arm's disconnect a person
     reaches from the ground is on the canopy's board, site work, and is not drawn.
+    **Still open, found in the same audit:** the wash bay's 2 detail arms get their supply to the carriage (above), and
+    their joints' cable runs inside the arm as the charge arm's does. Not yet drawn: how the mist nozzle's water and the
+    polishing head's and camera's signals cross the wrist. The joints' through-bores are 18.8 mm at J1 and J3, 23.5 at
+    J2, 11.7 at J4 and J5 and 9.4 at J6 (the cup hub's bore, `std.swg_dims`), so a 6 mm water tube can ride beside the
+    10 mm joints' cable through J1 to J3 but not through J4 and J5: the water must cross the wrist outside the arm, as
+    the charge arm's last booted link does, to a feed block at the nozzle (the nozzle is drawn screwed into the end of
+    an 8 mm plate, which cannot take its G 1/4 thread). The camera's and the force sensor's signals could instead ride
+    the joints' own network to a connector at J6, but no such connector is drawn. The camera, the J6 socket and the car
+    stand within a few centimetres of that path, so it needs its own design pass and clash check.
 
 The audit also found the wash machine's tools fed by rigid pipes that could not follow them. They now have flexible
 lines that do (below). (The wands' vacuum units and the side brushes' chains it added went with finding 17.)
@@ -567,7 +580,8 @@ person reaches from the ground is on the canopy's board: site work, not drawn. T
 vacuum main through a gate valve, in through the column wall and down to J1; a rotary union at J1, J2 and J3 (findings
 5 and 10), a duct in each link, the mast stages, a passage through the wrist fork, the swivel on the fork, the hub and
 the wand's tubes to the nozzle. The air: a drop from the canopy's air main to a service unit on the column (a lockable
-shut-off valve and a filter regulator), then a 6 mm line to J1. The air and the signals: through the same unions; down the mast from a spring reel on
+shut-off valve and a filter regulator), then a 6 mm line to J1. Past J1, the air and the signals: through the same
+unions; down the mast from a spring reel on
 its outer stage (the line runs 0.65 to 1.95 m over the cycle); across J4 in a clock spring and a passage in the swivel
 (finding 12); along the wand on a reel in its drive (0.06 to 0.94 m); and a loop of air line across the nozzle joint
 (tightest bend 32 mm against 30, 22 mm clear, searched over the cycle).
@@ -610,8 +624,20 @@ and 0.33 MB; 23,760, 15,156 and 9,618 triangles in their meshes.
   through `catalog.cleanAngles`, the wash machine's pose through `catalog.washJoints`. The light rings, the mast strip,
   the beacon and the stop lamps show the robot's state per instance; the brushes turn on their shafts.
 - **What the site draws itself stays with the site.** The clean arm's header beam, drop column and clamps are the
-  canopy's steel (`SolarCanopy`). The charge arm's riser and cable trunk and the wash machine's rails are the robots'
-  own, so `ChargingField` and `WashBays` stop drawing their simple ones once the CAD has loaded.
+  canopy's steel (`SolarCanopy`). The charge arm's riser and supply and the wash machine's rails are the robots' own,
+  so `ChargingField` and `WashBays` stop drawing their simple ones once the CAD has loaded. One kind of site works is
+  the robot's in the yard, because nothing else draws it: the charge arm bed's 12 grout blocks (`glb.DEPOT_SITE_KEEP`;
+  without them its plates stood 77 mm over the deck).
+- **Parts set flush in the deck draw over it** (2026-11-15, finding 19). The charge arm's channel and feed covers, and
+  the wash machine's trench and pit covers and rail anchor plates, have their top face at the deck's own height, and
+  drawn plainly they lost the depth test to the asphalt: the channel vanished from the yard, with z-fighting speckle
+  along it. Their draws now take a polygon offset (`DepotCadOptions.deckY`), as the deck paint does, and cast no
+  shadow. That is 1 more draw for the charge arms and 2 for the wash machines. **Still drawn over the supply, and not
+  changed here:** `ChargingField`'s concrete pad from the fixed-mount design (2026-09-30) runs from behind the cabinet
+  to past the arm's J1 line, about 1 m along the car, with its top 77 mm over the deck. It hides the feed cover and
+  that metre of the channel covers. The CAD's own pad stops at the bed's back edge, so the yard's pad should too; it
+  is the one footprint the car solids and the 2D plan share (`depotPlacement.chargerPad`), so it is a change of its
+  own.
 - **The CAD carries its own cables and hoses,** so the charge arm's drawn cable catenary and the clean arm's drawn hose
   go with the procedural robots.
 - **Until the CAD has loaded, or if it cannot** (it is fetched once, on first view), the yard draws the procedural

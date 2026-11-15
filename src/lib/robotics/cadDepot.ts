@@ -95,7 +95,17 @@ export interface DepotCadOptions {
   shadowMinM?: number;
   /** CAD material names drawn as lights, by channel: `led` is channel 0 (the status light) unless named here */
   lights?: Readonly<Record<string, number>>;
+  /**
+   * The CAD y, metres, of the deck the robot stands on, when its CAD has parts set flush into it (the charge arm's
+   * channel covers, the wash machine's trench and pit covers). Such a part's top face is the deck's own height, and
+   * drawn plainly it fights the yard's asphalt for the same pixels and loses: the channel vanishes. Its material
+   * draws over the ground instead (polygonOffset), as the yard's deck paint does (ChargingField's marks).
+   */
+  deckY?: number;
 }
+
+/** A part is flush with the deck when its top is within this of the deck and it reaches below it, metres. */
+export const FLUSH_TOL_M = 0.0015;
 
 const jointOf = (o: THREE.Object3D): CadJointInfo | null => {
   const j = (o.userData as { joint?: CadJointInfo }).joint;
@@ -126,6 +136,20 @@ export function buildDepotCad(robot: RobotKey, scene: THREE.Object3D, opts: Depo
   // smaller ones only cost the shadow pass
   const shadowMin = opts.shadowMinM ?? 0.5;
   const lights: Readonly<Record<string, number>> = opts.lights ?? { led: 0 };
+  // one deck-paint copy of each material a flush part uses (see DepotCadOptions.deckY)
+  const flushMats = new Map<string, THREE.Material>();
+  const flushMaterial = (m: THREE.Material): THREE.Material => {
+    let f = flushMats.get(m.uuid);
+    if (!f) {
+      f = m.clone();
+      f.name = m.name;
+      f.polygonOffset = true;
+      f.polygonOffsetFactor = -2;
+      f.polygonOffsetUnits = -2;
+      flushMats.set(m.uuid, f);
+    }
+    return f;
+  };
   scene.updateMatrixWorld(true);
 
   // segment nodes: the root, every joint node, every part node that moves on its own
@@ -159,9 +183,11 @@ export function buildDepotCad(robot: RobotKey, scene: THREE.Object3D, opts: Depo
     if (id && exclude(id)) return;
     if (id) partIds.add(id);
     const segment = segmentOfMesh(mesh);
-    const material = mesh.material as THREE.Material;
     box.setFromObject(mesh);
-    const cast = box.min.distanceTo(box.max) >= shadowMin;
+    const flush = opts.deckY !== undefined && Math.abs(box.max.y - opts.deckY) <= FLUSH_TOL_M && box.min.y < opts.deckY - FLUSH_TOL_M;
+    const material = flush ? flushMaterial(mesh.material as THREE.Material) : (mesh.material as THREE.Material);
+    // a part that lies in the deck has nothing under it to shade
+    const cast = !flush && box.min.distanceTo(box.max) >= shadowMin;
     const key = `${segment}|${material.uuid}|${cast}`;
     rel.copy(inv.copy(segNodes[segment].matrixWorld).invert()).multiply(mesh.matrixWorld);
     let g = mesh.geometry.clone();

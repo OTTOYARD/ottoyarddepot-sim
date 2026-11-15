@@ -21,7 +21,7 @@
     "glb": 8494900,
     "stepZip": 7419912,
     "step": 38941662,
-    "depot": 972160
+    "depot": 975120
    },
    "mesh": {
     "vertices": 353526,
@@ -30,12 +30,12 @@
     "nodes": 1028
    },
    "depotMesh": {
-    "vertices": 38347,
-    "triangles": 41970,
-    "meshes": 113,
-    "nodes": 174
+    "vertices": 38371,
+    "triangles": 41982,
+    "meshes": 114,
+    "nodes": 186
    },
-   "depotSha256": "cad6c558cf1ba13c",
+   "depotSha256": "2caa19f6cfab3f72",
    "totals": {
     "parts": 1052,
     "uniqueParts": 248,
