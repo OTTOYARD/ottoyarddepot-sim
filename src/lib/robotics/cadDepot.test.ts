@@ -116,8 +116,32 @@ describe.each([...ROBOT_KEYS])('%s: the depot model', (k) => {
     for (const [a, b] of [[drawn.min, direct.min], [drawn.max, direct.max]] as const) {
       expect(a.x).toBeCloseTo(b.x, 5); expect(a.y).toBeCloseTo(b.y, 5); expect(a.z).toBeCloseTo(b.z, 5);
     }
-    // a whole robot kind is one set of draws, whatever the number of robots (instancedFleet.ts)
-    expect(cad.stats.draws).toBeLessThanOrEqual(k === 'wash_gantry' ? 120 : 90);
+    // a whole robot kind is one set of draws, whatever the number of robots (instancedFleet.ts). The wash machine's
+    // went from 119 to 121 on 2026-11-15 when its flush trench and pit covers and rail anchor plates got their own
+    // deck-paint draws (DepotCadOptions.deckY), so its bound moved from 120 to 124
+    expect(cad.stats.draws).toBeLessThanOrEqual(k === 'wash_gantry' ? 124 : 90);
+  });
+});
+
+describe('parts set flush in the deck draw over the yard\'s asphalt', () => {
+  // A cover plate's top is the deck's own height: drawn plainly it fights the asphalt for the same pixels and the
+  // channel vanishes from the yard (seen on 2026-11-15 under canopy A). Its draw takes a polygon offset instead.
+  it.each([
+    ['charge_arm', ['CHG-BCC', 'CHG-BFC']],
+    ['wash_gantry', ['WSH-CTC', 'WSH-CTQ', 'WSH-RPL']],
+  ] as const)('%s: its flush covers and plates draw with a polygon offset, and nothing above the deck does', (k, covers) => {
+    const cad = cads.get(k)!;
+    for (const id of covers) {
+      const draws = cad.parts.filter((p) => p.partIds.includes(id));
+      expect(draws.length, id).toBeGreaterThan(0);
+      for (const p of draws) expect(p.material.polygonOffset, id).toBe(true);
+    }
+    // the offset is for what lies in the deck: a part that stands on it (a bed beam, a rail) keeps its plain material
+    const raised = cad.parts.filter((p) => p.material.polygonOffset && p.partIds.some((id) => !covers.includes(id as never)));
+    expect(raised.map((p) => p.partIds)).toEqual([]);
+  });
+  it('the clean arm, which hangs from the canopy, has no flush part', () => {
+    expect(cads.get('clean_arm')!.parts.filter((p) => p.material.polygonOffset)).toEqual([]);
   });
 });
 

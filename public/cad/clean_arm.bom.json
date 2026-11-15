@@ -7,13 +7,13 @@
   "glb": "m"
  },
  "totals": {
-  "parts": 238,
-  "uniqueParts": 102,
-  "fasteners": 141,
-  "massKg": 324.4,
-  "boughtLines": 63,
-  "madeLines": 39,
-  "referenceLines": 1
+  "parts": 258,
+  "uniqueParts": 117,
+  "fasteners": 147,
+  "massKg": 374.86,
+  "boughtLines": 72,
+  "madeLines": 45,
+  "referenceLines": 4
  },
  "subsystems": [
   {
@@ -23,7 +23,8 @@
    "how": [
     "4 angle clips bolt the header to the purlins.",
     "The drop column bolts to the header and carries the J1 base.",
-    "The vacuum riser runs down inside the column to the J1 union."
+    "The vacuum riser, the air line and the arm's cable run inside the column to the J1 union.",
+    "The supply enclosure and the air service unit hang on the column, 4.25 m up and higher."
    ],
    "specs": {
     "J1 height": "3.48 m above grade",
@@ -33,7 +34,7 @@
    "order": 0,
    "partCount": 50,
    "fastenerCount": 44,
-   "massKg": 190.945,
+   "massKg": 190.772,
    "uniqueParts": 9
   },
   {
@@ -218,24 +219,53 @@
    "function": "Brings vacuum and compressed air from the canopy plant to the nozzle.",
    "how": [
     "A central vacuum producer on each canopy (about 3 kW per working arm, 30 kPa class) serves its arms.",
-    "A riser pipe brings the flow down the column.",
-    "A rotary union at each yaw joint and a duct in each link take it to the mast.",
+    "A vacuum main and an air main run under the canopy roof, over the header. They belong to the canopy plant.",
+    "A branch drops from the vacuum main through a gate valve, in through the column wall, and down to the J1 union.",
+    "A drop from the air main feeds a service unit on the column: a lockable shut-off valve and a filter regulator.",
+    "A 6 mm line runs from the unit in through the column wall and down to the J1 union.",
+    "A rotary union at each yaw joint and a duct in each link take the vacuum to the mast.",
     "The mast stages are the duct down to the wrist. The fork, the swivel, the hub and the wand take it to the nozzle.",
-    "A 6 mm line carries the air through the same unions.",
+    "The air goes through the same unions.",
     "A spring reel on the mast pays the cable and the air line down to the wrist.",
     "At the wrist, the cable crosses in a clock spring and the air in the swivel.",
     "A reel in the wand feeds both along it. A loop takes the air across the nozzle joint."
    ],
    "specs": {
     "duct": "DN 50 throughout",
-    "airflow": "about 400 m3/h per producer (class)"
+    "airflow": "about 400 m3/h per producer (class)",
+    "vacuum main": "110 mm (ASSUMPTION: the canopy plant is not sized here)",
+    "isolation": "gate valve DN 50 on the vacuum branch, lockable valve on the air drop"
    },
    "group": "Supply",
    "order": 10,
-   "partCount": 16,
+   "partCount": 24,
+   "fastenerCount": 6,
+   "massKg": 41.14,
+   "uniqueParts": 20
+  },
+  {
+   "id": "POWER",
+   "name": "Power, control and network",
+   "function": "Brings electric power and the site network to the arm, and holds its controller.",
+   "how": [
+    "A supply enclosure on the drop column holds the controller, the power supplies, the J1 drive and the safety relay.",
+    "A lockable isolator on its door cuts the supply for work on the arm.",
+    "The supply cable and the network cable come down from the canopy cable tray, each in its own conduit.",
+    "A motor cable runs from the enclosure down to the J1 gearmotor.",
+    "A second cable goes in through the column wall and down to the J1 union. Its slip ring feeds the rest of the arm.",
+    "The disconnect that a person reaches from the ground is on the canopy's board. It is site work and is not drawn."
+   ],
+   "specs": {
+    "enclosure": "600 x 400 x 200 mm, stainless, IP66 (class)",
+    "height": "4.25 m above grade, on the column",
+    "conduit fill": "one cable in each conduit, under 53 % (NEC chapter 9, table 1)"
+   },
+   "group": "Supply",
+   "order": 11,
+   "partCount": 12,
    "fastenerCount": 4,
-   "massKg": 28.576,
-   "uniqueParts": 13
+   "massKg": 38.067,
+   "uniqueParts": 8
   },
   {
    "id": "STATUS",
@@ -246,7 +276,7 @@
    ],
    "specs": {},
    "group": "Safety",
-   "order": 11,
+   "order": 12,
    "partCount": 3,
    "fastenerCount": 0,
    "massKg": 0.359,
@@ -289,8 +319,8 @@
    "material": "Structural steel S355, hot-dip galvanised",
    "materialKey": "steel_s355",
    "qty": 1,
-   "massKg": 99.6788,
-   "totalMassKg": 99.6788,
+   "massKg": 99.5066,
+   "totalMassKg": 99.5066,
    "torqueNm": null,
    "reference": false,
    "function": "Hangs from the header and carries the J1 base. Hot-dip galvanised.",
@@ -2457,6 +2487,30 @@
    ]
   },
   {
+   "id": "CLN-AFB",
+   "name": "Air service unit bracket, stainless channel",
+   "category": "structure",
+   "make": "make",
+   "standard": "folded sheet 4 mm",
+   "size": "110 x 140 x 30",
+   "grade": "",
+   "material": "Stainless steel 1.4301 (304)",
+   "materialKey": "ss304",
+   "qty": 1,
+   "massKg": 1.1724,
+   "totalMassKg": 1.1724,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Holds the air service unit off the column's face.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "VAC",
+     "qty": 1
+    }
+   ]
+  },
+  {
    "id": "CLN-MCK",
    "name": "Line clamp bracket on the fork",
    "category": "structure",
@@ -2586,6 +2640,108 @@
    ]
   },
   {
+   "id": "CLN-ADR",
+   "name": "Air drop tube, 12 x 1.5, stainless",
+   "category": "fluid",
+   "make": "make",
+   "standard": "EN 10216-5",
+   "size": "12 x 1.5, 805",
+   "grade": "",
+   "material": "Stainless steel 1.4301 (304)",
+   "materialKey": "ss304",
+   "qty": 1,
+   "massKg": 0.3159,
+   "totalMassKg": 0.3159,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Brings the air from the canopy main's drop down to the service unit.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "VAC",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CLN-AFR",
+   "name": "Air service unit: lockable shut-off valve and filter regulator, G 1/4",
+   "category": "fluid",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "90 x 140 x 70",
+   "grade": "",
+   "material": "Aluminium A356-T6 casting, charcoal powder coat",
+   "materialKey": "a356_dark",
+   "qty": 1,
+   "massKg": 0.9,
+   "totalMassKg": 0.9,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Shuts the arm's air off and locks it off for service. It filters the air and sets it to 6 bar.",
+   "spec": {
+    "set pressure": "6 bar",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "VAC",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CLN-AIL",
+   "name": "Air line 6 x 1, service unit to the J1 union",
+   "category": "fluid",
+   "make": "buy",
+   "standard": "ISO 14743",
+   "size": "PU 6 x 4",
+   "grade": "",
+   "material": "Hose, PVC with steel helix",
+   "materialKey": "hose",
+   "qty": 1,
+   "massKg": 0.0173,
+   "totalMassKg": 0.0173,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Brings the air from the service unit in through the column's wall and down to the J1 union.",
+   "spec": {
+    "bends": "R 30 (5 x D)",
+    "through the column": "a 10 mm hole in its -Z face, with a grommet"
+   },
+   "uses": [
+    {
+     "sub": "VAC",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CLN-AMN",
+   "name": "Canopy compressed-air main with a drop (part of the canopy plant)",
+   "category": "fluid",
+   "make": "buy",
+   "standard": "canopy plant",
+   "size": "D 22, drop D 12",
+   "grade": "",
+   "material": "Aluminium 6063-T6 extrusion, anodised",
+   "materialKey": "al_extr",
+   "qty": 1,
+   "massKg": 0.0,
+   "totalMassKg": 0.0,
+   "torqueNm": null,
+   "reference": true,
+   "function": "Brings compressed air from the canopy's compressor to its arms. Shown for context.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "VAC",
+     "qty": 1
+    }
+   ]
+  },
+  {
    "id": "CLN-L1D",
    "name": "Vacuum duct in link 1, 54 x 2",
    "category": "fluid",
@@ -2696,22 +2852,100 @@
    ]
   },
   {
-   "id": "CLN-VRS",
-   "name": "Vacuum riser pipe, 50 mm",
+   "id": "CLN-VBR",
+   "name": "Vacuum branch stub, 50 x 3",
    "category": "fluid",
    "make": "make",
    "standard": "EN 10217-7",
-   "size": "50 x 3, 1449",
+   "size": "50 x 3, 247",
    "grade": "",
    "material": "Stainless steel 1.4301 (304)",
    "materialKey": "ss304",
    "qty": 1,
-   "massKg": 5.0899,
-   "totalMassKg": 5.0899,
+   "massKg": 0.8676,
+   "totalMassKg": 0.8676,
    "torqueNm": null,
    "reference": false,
-   "function": "Brings the vacuum from the canopy duct down the column to the J1 union.",
+   "function": "Joins the gate valve to the canopy vacuum main's branch.",
    "spec": {},
+   "uses": [
+    {
+     "sub": "VAC",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CLN-VGV",
+   "name": "Vacuum gate valve DN 50, flanged, handwheel",
+   "category": "fluid",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "DN 50, PN 10 flanges",
+   "grade": "",
+   "material": "Structural steel S355, painted RAL 9005",
+   "materialKey": "steel_paint",
+   "qty": 1,
+   "massKg": 9.0,
+   "totalMassKg": 9.0,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Shuts this arm off from the canopy's vacuum main, so the arm can be opened while the other arms work.",
+   "spec": {
+    "flanges": "EN 1092-1, OD 165",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "VAC",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CLN-VMN",
+   "name": "Canopy vacuum main with a branch (part of the canopy plant)",
+   "category": "fluid",
+   "make": "buy",
+   "standard": "canopy plant",
+   "size": "D 110, branch D 50",
+   "grade": "",
+   "material": "Stainless steel 1.4301 (304)",
+   "materialKey": "ss304",
+   "qty": 1,
+   "massKg": 0.0,
+   "totalMassKg": 0.0,
+   "torqueNm": null,
+   "reference": true,
+   "function": "Brings the vacuum from the canopy's producer to its arms. Shown for context.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "VAC",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CLN-VRS",
+   "name": "Vacuum riser pipe, 50 x 3, with 2 bends",
+   "category": "fluid",
+   "make": "make",
+   "standard": "EN 10217-7",
+   "size": "50 x 3, 1594 developed",
+   "grade": "",
+   "material": "Stainless steel 1.4301 (304)",
+   "materialKey": "ss304",
+   "qty": 1,
+   "massKg": 5.3731,
+   "totalMassKg": 5.3731,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Brings the vacuum from the gate valve in through the column's wall and down the column to the J1 union.",
+   "spec": {
+    "bends": "centreline R 75 (1.5 x D)",
+    "through the column": "a 56 mm hole in its -Z face, with a grommet"
+   },
    "uses": [
     {
      "sub": "VAC",
@@ -2792,6 +3026,264 @@
    "uses": [
     {
      "sub": "VAC",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "ISO7380-M6x12-A2-70",
+   "name": "Button head screw M6 x 12",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 7380-1",
+   "size": "M6 x 12",
+   "grade": "A2-70",
+   "material": "Stainless steel A2-70",
+   "materialKey": "fast_a2",
+   "qty": 2,
+   "massKg": 0.0037,
+   "totalMassKg": 0.0074,
+   "torqueNm": 6.0,
+   "reference": false,
+   "function": "Holds the air unit's bracket to the column, into a rivet nut.",
+   "spec": {
+    "drive": "hex socket 4 mm"
+   },
+   "uses": [
+    {
+     "sub": "VAC",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CLN-ENR",
+   "name": "Enclosure rail, flat 50 x 10, welded to the column",
+   "category": "structure",
+   "make": "make",
+   "standard": "flat bar",
+   "size": "50 x 10 x 494",
+   "grade": "S355J2",
+   "material": "Structural steel S355, hot-dip galvanised",
+   "materialKey": "steel_s355",
+   "qty": 2,
+   "massKg": 1.9389,
+   "totalMassKg": 3.8779,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the supply enclosure across the column's face. Welded on before galvanising.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "POWER",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CLN-CTY",
+   "name": "Canopy cable tray 150 x 60 (part of the canopy)",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "canopy steel",
+   "size": "150 x 60",
+   "grade": "",
+   "material": "Structural steel S355, hot-dip galvanised",
+   "materialKey": "steel_s355",
+   "qty": 1,
+   "massKg": 0.0,
+   "totalMassKg": 0.0,
+   "torqueNm": null,
+   "reference": true,
+   "function": "Carries the arms' supply and network cables along the canopy from its board. Shown for context.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "POWER",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CLN-ECDN",
+   "name": "Conduit, trade size 1/2, network drop",
+   "category": "electrical",
+   "make": "make",
+   "standard": "rigid conduit",
+   "size": "1/2 x 675",
+   "grade": "",
+   "material": "Structural steel S355, hot-dip galvanised",
+   "materialKey": "steel_s355",
+   "qty": 1,
+   "massKg": 0.9139,
+   "totalMassKg": 0.9139,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Brings the network cable from the canopy cable tray down to the supply enclosure.",
+   "spec": {
+    "cable": "8 mm",
+    "fill": "27 % of the bore (limit 53 %)"
+   },
+   "uses": [
+    {
+     "sub": "POWER",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CLN-ECDP",
+   "name": "Conduit, trade size 1/2, power drop",
+   "category": "electrical",
+   "make": "make",
+   "standard": "rigid conduit",
+   "size": "1/2 x 675",
+   "grade": "",
+   "material": "Structural steel S355, hot-dip galvanised",
+   "materialKey": "steel_s355",
+   "qty": 1,
+   "massKg": 0.9139,
+   "totalMassKg": 0.9139,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Brings the power cable from the canopy cable tray down to the supply enclosure.",
+   "spec": {
+    "cable": "10.5 mm",
+    "fill": "47 % of the bore (limit 53 %)"
+   },
+   "uses": [
+    {
+     "sub": "POWER",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CLN-EMC",
+   "name": "J1 motor cable, power and feedback, 12 mm",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "EN 50525",
+   "size": "OD 12 x 330",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 1,
+   "massKg": 0.056,
+   "totalMassKg": 0.056,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Joins the J1 gearmotor to its drive in the supply enclosure. It does not move.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "POWER",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CLN-ENC",
+   "name": "Supply enclosure, stainless, IP66: controller, power supplies, J1 drive",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "EN 62208",
+   "size": "600 x 400 x 200",
+   "grade": "IP66",
+   "material": "Stainless steel 1.4301 (304)",
+   "materialKey": "ss304",
+   "qty": 1,
+   "massKg": 32.0,
+   "totalMassKg": 32.0,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Holds the arm's controller, its power supplies, the J1 drive and the safety relay. It takes the supply and the site network from the canopy, and feeds the J1 gearmotor and the J1 union's slip ring.",
+   "spec": {
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "POWER",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CLN-ESC",
+   "name": "Arm cable, enclosure to the J1 union: power and network, 10 mm",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "EN 50525",
+   "size": "OD 10",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 1,
+   "massKg": 0.0958,
+   "totalMassKg": 0.0958,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Brings power and the network from the supply enclosure in through the column's wall and down to the J1 union's slip ring. It does not move.",
+   "spec": {
+    "bend": "R 40 (4 x D)",
+    "through the column": "a 16 mm hole in its +X face, with a gland"
+   },
+   "uses": [
+    {
+     "sub": "POWER",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CLN-ISO",
+   "name": "Supply isolator handle, lockable, door-coupled",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "IEC 60947-3",
+   "size": "D 72",
+   "grade": "IP66",
+   "material": "Aluminium, OTTOYARD red powder coat",
+   "materialKey": "accent",
+   "qty": 1,
+   "massKg": 0.1598,
+   "totalMassKg": 0.1598,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Switches the arm's supply off at the enclosure and takes a padlock, for work on the arm.",
+   "spec": {
+    "ASSUMPTION": "the disconnect a person reaches from the ground is on the canopy board (site works, not drawn)"
+   },
+   "uses": [
+    {
+     "sub": "POWER",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "ISO4017-M8x16-A4-70",
+   "name": "Hex head screw M8 x 16",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4017",
+   "size": "M8 x 16",
+   "grade": "A4-70",
+   "material": "Stainless steel A4-80",
+   "materialKey": "fast_a4",
+   "qty": 4,
+   "massKg": 0.0125,
+   "totalMassKg": 0.05,
+   "torqueNm": 17.6,
+   "reference": false,
+   "function": "Holds an enclosure lug to its rail, into a tapped hole.",
+   "spec": {
+    "preload": "13.1 kN",
+    "drive": "hex 13 mm"
+   },
+   "uses": [
+    {
+     "sub": "POWER",
      "qty": 4
     }
    ]

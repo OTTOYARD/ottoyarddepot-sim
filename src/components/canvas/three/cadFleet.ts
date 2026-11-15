@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { buildDepotCad, depotFile, parseGlb, type DepotCad, type DepotCadOptions } from '@/lib/robotics/cadDepot';
 import { cadUrl, type RobotKey } from '@/lib/robotics/catalog';
+import { MOUNT_HEIGHT_M } from '@/lib/ottoChargeArm/cobotSpec';
 
 /**
  * THE YARD'S ROBOTS ARE THE ENGINEERING CAD. Each robot kind's depot model (public/cad/<robot>.depot.glb, from
@@ -11,8 +12,9 @@ import { cadUrl, type RobotKey } from '@/lib/robotics/catalog';
  * What the site draws itself is left out of the CAD here, so nothing is drawn twice:
  *   - OTTO-CLEAN ARM: its header beam, drop column and clamps are the canopy's steel, drawn by SolarCanopy with the
  *     canopy (from the same cleanArmSpec numbers);
- *   - OTTO-CHARGE ARM: nothing. Its riser, cable trunk and mount plate are the arm's own, so ChargingField stops
- *     drawing its simple riser and trunk once the CAD arm is in (useDepotCad there);
+ *   - OTTO-CHARGE ARM: nothing. Its riser, mount plate and supply from the cabinet (through the floor, finding 19 in
+ *     docs/OTTO-ROBOTICS-CAD.md) are the arm's own, so ChargingField stops drawing its simple riser and trunk once the
+ *     CAD arm is in (useDepotCad there);
  *   - OTTO-WASH: nothing. Its rails, anchor plates and drag chain are the machine's, so WashBays stops drawing its
  *     simple rails once the CAD machine is in.
  */
@@ -20,10 +22,12 @@ import { cadUrl, type RobotKey } from '@/lib/robotics/catalog';
 /** The OTTO-CLEAN ARM's canopy steel in the CAD: the canopy draws it. */
 export const CLEAN_CANOPY_STEEL: readonly string[] = ['CLN-HDR', 'CLN-COL', 'CLN-CLP'];
 export const DEPOT_CAD_OPTIONS: Readonly<Record<RobotKey, DepotCadOptions>> = {
-  charge_arm: {},
+  // the deck is MOUNT_HEIGHT_M under J1 (the CAD's origin): the channel's cover plates lie flush in it
+  charge_arm: { deckY: -MOUNT_HEIGHT_M },
   clean_arm: { exclude: (id) => CLEAN_CANOPY_STEEL.includes(id) },
-  // the beacon is the status light; the stop lamps are lights of their own (red, green)
-  wash_gantry: { lights: { led: 0, led_red: 1, led_green: 2 } },
+  // the beacon is the status light; the stop lamps are lights of their own (red, green). The bay's floor is the CAD's
+  // y = 0: the drag chain's trench cover and the supply pit's cover lie flush in it
+  wash_gantry: { lights: { led: 0, led_red: 1, led_green: 2 }, deckY: 0 },
 };
 
 const loads = new Map<RobotKey, Promise<DepotCad>>();

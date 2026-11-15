@@ -51,10 +51,13 @@ DEPOT_DROP_CATEGORIES = {'fastener', 'bearing', 'seal'}
 DEPOT_DROP_PREFIX = ('SWG', 'MOT-', 'BRK-', 'ENC', 'DRV-', 'XRB', 'BRG-', 'GLAND-')
 DEPOT_DROP_SUFFIX = ('-SHF', '-FSC', '-STR')
 DEPOT_MIN_MM = 30.0
+# site works the yard draws with the robot, because nothing else in the yard draws them: the charge arm's bed stands on
+# 12 grout blocks, and without them its plates float 77 mm over the deck (seen 2026-11-15)
+DEPOT_SITE_KEEP = {'CHG-BGB'}
 
 
 def depot_keep(pd) -> bool:
-    if pd.reference or pd.category in DEPOT_DROP_CATEGORIES:
+    if (pd.reference and pd.id not in DEPOT_SITE_KEEP) or pd.category in DEPOT_DROP_CATEGORIES:
         return False
     if pd.id.startswith(DEPOT_DROP_PREFIX) or pd.id.endswith(DEPOT_DROP_SUFFIX):
         return False

@@ -18,37 +18,37 @@
     "depot": "charge_arm.depot.glb"
    },
    "bytes": {
-    "glb": 7736176,
-    "stepZip": 7225380,
-    "step": 37701196,
-    "depot": 718656
+    "glb": 8494900,
+    "stepZip": 7419912,
+    "step": 38941662,
+    "depot": 975120
    },
    "mesh": {
-    "vertices": 323966,
-    "triangles": 364353,
-    "meshes": 216,
-    "nodes": 940
+    "vertices": 353526,
+    "triangles": 405711,
+    "meshes": 249,
+    "nodes": 1028
    },
    "depotMesh": {
-    "vertices": 28467,
-    "triangles": 30198,
-    "meshes": 85,
-    "nodes": 130
+    "vertices": 38371,
+    "triangles": 41982,
+    "meshes": 114,
+    "nodes": 186
    },
-   "depotSha256": "e02e5c2123eab65a",
+   "depotSha256": "2caa19f6cfab3f72",
    "totals": {
-    "parts": 966,
-    "uniqueParts": 217,
-    "fasteners": 661,
-    "massKg": 832.67,
-    "boughtLines": 147,
-    "madeLines": 70,
-    "referenceLines": 5
+    "parts": 1052,
+    "uniqueParts": 248,
+    "fasteners": 702,
+    "massKg": 990.04,
+    "boughtLines": 168,
+    "madeLines": 80,
+    "referenceLines": 6
    },
-   "glbSha256": "8fdd0c3aa0897834",
+   "glbSha256": "5369386b43533542",
    "stepCheck": {
-    "namedParts": 982,
-    "solids": 1672,
+    "namedParts": 1069,
+    "solids": 1759,
     "invalid": 0
    },
    "subsystems": [
@@ -59,6 +59,10 @@
     {
      "id": "BASE",
      "name": "Rail, carriage and cross-slide"
+    },
+    {
+     "id": "SUPPLY",
+     "name": "Supply from the cabinet"
     },
     {
      "id": "J1",
@@ -110,37 +114,37 @@
     "depot": "clean_arm.depot.glb"
    },
    "bytes": {
-    "glb": 1980108,
-    "stepZip": 1253137,
-    "step": 6925670,
-    "depot": 472000
+    "glb": 2257600,
+    "stepZip": 1383804,
+    "step": 7637660,
+    "depot": 566488
    },
    "mesh": {
-    "vertices": 80663,
-    "triangles": 94228,
-    "meshes": 100,
-    "nodes": 249
+    "vertices": 91775,
+    "triangles": 108154,
+    "meshes": 118,
+    "nodes": 272
    },
    "depotMesh": {
-    "vertices": 18068,
-    "triangles": 19552,
-    "meshes": 72,
-    "nodes": 96
+    "vertices": 21782,
+    "triangles": 23636,
+    "meshes": 85,
+    "nodes": 110
    },
-   "depotSha256": "d25c91b243f16f67",
+   "depotSha256": "1b8764d260cc1c85",
    "totals": {
-    "parts": 238,
-    "uniqueParts": 102,
-    "fasteners": 141,
-    "massKg": 324.4,
-    "boughtLines": 63,
-    "madeLines": 39,
-    "referenceLines": 1
+    "parts": 258,
+    "uniqueParts": 117,
+    "fasteners": 147,
+    "massKg": 374.86,
+    "boughtLines": 72,
+    "madeLines": 45,
+    "referenceLines": 4
    },
-   "glbSha256": "9d107ec7c0fe14d5",
+   "glbSha256": "ca7c4f5b96584670",
    "stepCheck": {
-    "namedParts": 240,
-    "solids": 372,
+    "namedParts": 263,
+    "solids": 395,
     "invalid": 0
    },
    "subsystems": [
@@ -189,6 +193,10 @@
      "name": "Vacuum and air supply"
     },
     {
+     "id": "POWER",
+     "name": "Power, control and network"
+    },
+    {
      "id": "STATUS",
      "name": "Status lights"
     }
@@ -206,37 +214,37 @@
     "depot": "wash_gantry.depot.glb"
    },
    "bytes": {
-    "glb": 7807488,
-    "stepZip": 6728865,
-    "step": 36906073,
-    "depot": 734784
+    "glb": 9117708,
+    "stepZip": 7020795,
+    "step": 38737439,
+    "depot": 948580
    },
    "mesh": {
-    "vertices": 312918,
-    "triangles": 352917,
-    "meshes": 245,
-    "nodes": 2268
+    "vertices": 363824,
+    "triangles": 426203,
+    "meshes": 301,
+    "nodes": 2346
    },
    "depotMesh": {
-    "vertices": 26993,
-    "triangles": 28632,
-    "meshes": 110,
-    "nodes": 337
+    "vertices": 34903,
+    "triangles": 37118,
+    "meshes": 152,
+    "nodes": 398
    },
-   "depotSha256": "48e6781fa9ae01ae",
+   "depotSha256": "5a5a8a482feec0c5",
    "totals": {
-    "parts": 2639,
-    "uniqueParts": 250,
+    "parts": 2777,
+    "uniqueParts": 292,
     "fasteners": 1636,
-    "massKg": 5631.01,
-    "boughtLines": 151,
-    "madeLines": 99,
-    "referenceLines": 0
+    "massKg": 5949.54,
+    "boughtLines": 170,
+    "madeLines": 122,
+    "referenceLines": 14
    },
-   "glbSha256": "0c1aa3e1026acfb0",
+   "glbSha256": "555748446c3ebd3e",
    "stepCheck": {
-    "namedParts": 2639,
-    "solids": 4081,
+    "namedParts": 2794,
+    "solids": 4236,
     "invalid": 0
    },
    "subsystems": [
@@ -303,6 +311,10 @@
     {
      "id": "CONTROL",
      "name": "Control, supply and signals"
+    },
+    {
+     "id": "SUPPLY",
+     "name": "Bay supply"
     }
    ]
   }

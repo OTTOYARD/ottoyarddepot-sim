@@ -36,15 +36,15 @@
   "cycle:retract:mid",
   "cycle:retract:end"
  ],
- "pairsChecked": 31024,
- "pairsMeasured": 15249,
- "contactPairs": 2024,
+ "pairsChecked": 39561,
+ "pairsMeasured": 16728,
+ "contactPairs": 2320,
  "counts": {
-  "thread": 816,
+  "thread": 829,
   "seal": 13,
   "ring": 9,
   "mesh": 3,
-  "context": 61,
+  "context": 134,
   "clash": 0,
   "error": 0
  },
@@ -726,6 +726,198 @@
   {
    "kind": "context",
    "a": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#1",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 241.1,
+   "at": [
+    -2640.3,
+    -567.4,
+    256.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BCH#1",
+    "part": "CHG-BCH",
+    "name": "Cable channel liner in the slab (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#1",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 251.3,
+   "at": [
+    -2640.3,
+    -562.5,
+    256.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#6",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 241.1,
+   "at": [
+    -2640.3,
+    -567.4,
+    -16.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BCH#1",
+    "part": "CHG-BCH",
+    "name": "Cable channel liner in the slab (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#6",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 251.3,
+   "at": [
+    -2640.3,
+    -562.5,
+    -16.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#2",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 241.1,
+   "at": [
+    -2253.6,
+    -567.4,
+    256.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BCH#1",
+    "part": "CHG-BCH",
+    "name": "Cable channel liner in the slab (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#2",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 251.3,
+   "at": [
+    -2253.6,
+    -562.5,
+    256.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#5",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 241.1,
+   "at": [
+    -2253.6,
+    -567.4,
+    -16.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BCH#1",
+    "part": "CHG-BCH",
+    "name": "Cable channel liner in the slab (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#5",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 251.3,
+   "at": [
+    -2253.6,
+    -562.5,
+    -16.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
     "item": "CHG-ANC-M16#3",
     "part": "CHG-ANC-M16",
     "name": "Anchor rod M16 x 190, injection mortar",
@@ -766,6 +958,102 @@
     -2072.0,
     -570.6,
     508.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#3",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 241.1,
+   "at": [
+    -1866.8,
+    -567.4,
+    256.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BCH#1",
+    "part": "CHG-BCH",
+    "name": "Cable channel liner in the slab (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#3",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 251.3,
+   "at": [
+    -1866.8,
+    -562.5,
+    256.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#4",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 241.1,
+   "at": [
+    -1866.8,
+    -567.4,
+    -16.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BCH#1",
+    "part": "CHG-BCH",
+    "name": "Cable channel liner in the slab (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#4",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 251.3,
+   "at": [
+    -1866.8,
+    -562.5,
+    -16.5
    ],
    "poses": [
     "stowed"
@@ -822,6 +1110,102 @@
   {
    "kind": "context",
    "a": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#7",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 241.1,
+   "at": [
+    -1480.1,
+    -567.4,
+    256.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BCH#1",
+    "part": "CHG-BCH",
+    "name": "Cable channel liner in the slab (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#7",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 251.3,
+   "at": [
+    -1480.1,
+    -562.5,
+    256.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#12",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 241.1,
+   "at": [
+    -1480.1,
+    -567.4,
+    -16.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BCH#1",
+    "part": "CHG-BCH",
+    "name": "Cable channel liner in the slab (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#12",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 251.3,
+   "at": [
+    -1480.1,
+    -562.5,
+    -16.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
     "item": "CHG-ANC-M16#5",
     "part": "CHG-ANC-M16",
     "name": "Anchor rod M16 x 190, injection mortar",
@@ -870,6 +1254,102 @@
   {
    "kind": "context",
    "a": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#8",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 241.1,
+   "at": [
+    -1093.4,
+    -567.4,
+    256.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BCH#1",
+    "part": "CHG-BCH",
+    "name": "Cable channel liner in the slab (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#8",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 251.3,
+   "at": [
+    -1093.4,
+    -562.5,
+    256.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#11",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 241.1,
+   "at": [
+    -1093.4,
+    -567.4,
+    -16.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BCH#1",
+    "part": "CHG-BCH",
+    "name": "Cable channel liner in the slab (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#11",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 251.3,
+   "at": [
+    -1093.4,
+    -562.5,
+    -16.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
     "item": "CHG-ANC-M16#6",
     "part": "CHG-ANC-M16",
     "name": "Anchor rod M16 x 190, injection mortar",
@@ -910,6 +1390,1110 @@
     -944.0,
     -570.6,
     508.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#9",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 241.1,
+   "at": [
+    -706.7,
+    -567.4,
+    256.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BCH#1",
+    "part": "CHG-BCH",
+    "name": "Cable channel liner in the slab (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#9",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 251.3,
+   "at": [
+    -706.7,
+    -562.5,
+    256.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#10",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 241.1,
+   "at": [
+    -706.7,
+    -567.4,
+    -16.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BCH#1",
+    "part": "CHG-BCH",
+    "name": "Cable channel liner in the slab (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#10",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 251.3,
+   "at": [
+    -706.7,
+    -562.5,
+    -16.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-CAB#1",
+    "part": "CHG-CAB",
+    "name": "DC power cabinet (envelope)",
+    "sub": "MOUNT"
+   },
+   "b": {
+    "item": "CHG-LDP1#1",
+    "part": "CHG-LDP1",
+    "name": "DC+ cable, core 1 of 4, 1 x 50 mm2",
+    "sub": "SUPPLY"
+   },
+   "volumeMm3": 10602.9,
+   "at": [
+    128.8,
+    -443.4,
+    -646.0
+   ],
+   "poses": [
+    "stowed",
+    "pose:stowed",
+    "pose:connected",
+    "pose:connected_axis",
+    "pose:mate_waymo_ojai",
+    "pose:base_waymo_ojai",
+    "pose:mate_waymo_ipace",
+    "pose:base_waymo_ipace",
+    "pose:mate_zoox_robotaxi",
+    "pose:base_zoox_robotaxi",
+    "pose:mate_tesla_cybercab",
+    "pose:base_tesla_cybercab",
+    "pose:mate_tesla_model_y",
+    "pose:base_tesla_model_y",
+    "pose:mate_lucid_gravity_nuro",
+    "pose:base_lucid_gravity_nuro",
+    "cycle:unstow:mid",
+    "cycle:unstow:end",
+    "cycle:approach:mid",
+    "cycle:approach:end",
+    "cycle:align:mid",
+    "cycle:align:end",
+    "cycle:insert:mid",
+    "cycle:insert:end",
+    "cycle:latch:mid",
+    "cycle:latch:end",
+    "cycle:charging:mid",
+    "cycle:charging:end",
+    "cycle:unlatch:mid",
+    "cycle:unlatch:end",
+    "cycle:extract:mid",
+    "cycle:extract:end",
+    "cycle:retract:mid",
+    "cycle:retract:end"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-CAB#1",
+    "part": "CHG-CAB",
+    "name": "DC power cabinet (envelope)",
+    "sub": "MOUNT"
+   },
+   "b": {
+    "item": "CHG-LDP2#1",
+    "part": "CHG-LDP2",
+    "name": "DC+ cable, core 2 of 4, 1 x 50 mm2",
+    "sub": "SUPPLY"
+   },
+   "volumeMm3": 10602.9,
+   "at": [
+    145.2,
+    -443.4,
+    -646.0
+   ],
+   "poses": [
+    "stowed",
+    "pose:stowed",
+    "pose:connected",
+    "pose:connected_axis",
+    "pose:mate_waymo_ojai",
+    "pose:base_waymo_ojai",
+    "pose:mate_waymo_ipace",
+    "pose:base_waymo_ipace",
+    "pose:mate_zoox_robotaxi",
+    "pose:base_zoox_robotaxi",
+    "pose:mate_tesla_cybercab",
+    "pose:base_tesla_cybercab",
+    "pose:mate_tesla_model_y",
+    "pose:base_tesla_model_y",
+    "pose:mate_lucid_gravity_nuro",
+    "pose:base_lucid_gravity_nuro",
+    "cycle:unstow:mid",
+    "cycle:unstow:end",
+    "cycle:approach:mid",
+    "cycle:approach:end",
+    "cycle:align:mid",
+    "cycle:align:end",
+    "cycle:insert:mid",
+    "cycle:insert:end",
+    "cycle:latch:mid",
+    "cycle:latch:end",
+    "cycle:charging:mid",
+    "cycle:charging:end",
+    "cycle:unlatch:mid",
+    "cycle:unlatch:end",
+    "cycle:extract:mid",
+    "cycle:extract:end",
+    "cycle:retract:mid",
+    "cycle:retract:end"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-CAB#1",
+    "part": "CHG-CAB",
+    "name": "DC power cabinet (envelope)",
+    "sub": "MOUNT"
+   },
+   "b": {
+    "item": "CHG-LDP3#1",
+    "part": "CHG-LDP3",
+    "name": "DC+ cable, core 3 of 4, 1 x 50 mm2",
+    "sub": "SUPPLY"
+   },
+   "volumeMm3": 10602.9,
+   "at": [
+    161.8,
+    -443.4,
+    -646.0
+   ],
+   "poses": [
+    "stowed",
+    "pose:stowed",
+    "pose:connected",
+    "pose:connected_axis",
+    "pose:mate_waymo_ojai",
+    "pose:base_waymo_ojai",
+    "pose:mate_waymo_ipace",
+    "pose:base_waymo_ipace",
+    "pose:mate_zoox_robotaxi",
+    "pose:base_zoox_robotaxi",
+    "pose:mate_tesla_cybercab",
+    "pose:base_tesla_cybercab",
+    "pose:mate_tesla_model_y",
+    "pose:base_tesla_model_y",
+    "pose:mate_lucid_gravity_nuro",
+    "pose:base_lucid_gravity_nuro",
+    "cycle:unstow:mid",
+    "cycle:unstow:end",
+    "cycle:approach:mid",
+    "cycle:approach:end",
+    "cycle:align:mid",
+    "cycle:align:end",
+    "cycle:insert:mid",
+    "cycle:insert:end",
+    "cycle:latch:mid",
+    "cycle:latch:end",
+    "cycle:charging:mid",
+    "cycle:charging:end",
+    "cycle:unlatch:mid",
+    "cycle:unlatch:end",
+    "cycle:extract:mid",
+    "cycle:extract:end",
+    "cycle:retract:mid",
+    "cycle:retract:end"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-CAB#1",
+    "part": "CHG-CAB",
+    "name": "DC power cabinet (envelope)",
+    "sub": "MOUNT"
+   },
+   "b": {
+    "item": "CHG-LDP4#1",
+    "part": "CHG-LDP4",
+    "name": "DC+ cable, core 4 of 4, 1 x 50 mm2",
+    "sub": "SUPPLY"
+   },
+   "volumeMm3": 10602.9,
+   "at": [
+    178.2,
+    -443.4,
+    -646.0
+   ],
+   "poses": [
+    "stowed",
+    "pose:stowed",
+    "pose:connected",
+    "pose:connected_axis",
+    "pose:mate_waymo_ojai",
+    "pose:base_waymo_ojai",
+    "pose:mate_waymo_ipace",
+    "pose:base_waymo_ipace",
+    "pose:mate_zoox_robotaxi",
+    "pose:base_zoox_robotaxi",
+    "pose:mate_tesla_cybercab",
+    "pose:base_tesla_cybercab",
+    "pose:mate_tesla_model_y",
+    "pose:base_tesla_model_y",
+    "pose:mate_lucid_gravity_nuro",
+    "pose:base_lucid_gravity_nuro",
+    "cycle:unstow:mid",
+    "cycle:unstow:end",
+    "cycle:approach:mid",
+    "cycle:approach:end",
+    "cycle:align:mid",
+    "cycle:align:end",
+    "cycle:insert:mid",
+    "cycle:insert:end",
+    "cycle:latch:mid",
+    "cycle:latch:end",
+    "cycle:charging:mid",
+    "cycle:charging:end",
+    "cycle:unlatch:mid",
+    "cycle:unlatch:end",
+    "cycle:extract:mid",
+    "cycle:extract:end",
+    "cycle:retract:mid",
+    "cycle:retract:end"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-CAB#1",
+    "part": "CHG-CAB",
+    "name": "DC power cabinet (envelope)",
+    "sub": "MOUNT"
+   },
+   "b": {
+    "item": "CHG-LDN1#1",
+    "part": "CHG-LDN1",
+    "name": "DC- cable, core 1 of 4, 1 x 50 mm2",
+    "sub": "SUPPLY"
+   },
+   "volumeMm3": 10602.9,
+   "at": [
+    194.8,
+    -443.4,
+    -646.0
+   ],
+   "poses": [
+    "stowed",
+    "pose:stowed",
+    "pose:connected",
+    "pose:connected_axis",
+    "pose:mate_waymo_ojai",
+    "pose:base_waymo_ojai",
+    "pose:mate_waymo_ipace",
+    "pose:base_waymo_ipace",
+    "pose:mate_zoox_robotaxi",
+    "pose:base_zoox_robotaxi",
+    "pose:mate_tesla_cybercab",
+    "pose:base_tesla_cybercab",
+    "pose:mate_tesla_model_y",
+    "pose:base_tesla_model_y",
+    "pose:mate_lucid_gravity_nuro",
+    "pose:base_lucid_gravity_nuro",
+    "cycle:unstow:mid",
+    "cycle:unstow:end",
+    "cycle:approach:mid",
+    "cycle:approach:end",
+    "cycle:align:mid",
+    "cycle:align:end",
+    "cycle:insert:mid",
+    "cycle:insert:end",
+    "cycle:latch:mid",
+    "cycle:latch:end",
+    "cycle:charging:mid",
+    "cycle:charging:end",
+    "cycle:unlatch:mid",
+    "cycle:unlatch:end",
+    "cycle:extract:mid",
+    "cycle:extract:end",
+    "cycle:retract:mid",
+    "cycle:retract:end"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-CAB#1",
+    "part": "CHG-CAB",
+    "name": "DC power cabinet (envelope)",
+    "sub": "MOUNT"
+   },
+   "b": {
+    "item": "CHG-LDN2#1",
+    "part": "CHG-LDN2",
+    "name": "DC- cable, core 2 of 4, 1 x 50 mm2",
+    "sub": "SUPPLY"
+   },
+   "volumeMm3": 10602.9,
+   "at": [
+    211.2,
+    -443.4,
+    -646.0
+   ],
+   "poses": [
+    "stowed",
+    "pose:stowed",
+    "pose:connected",
+    "pose:connected_axis",
+    "pose:mate_waymo_ojai",
+    "pose:base_waymo_ojai",
+    "pose:mate_waymo_ipace",
+    "pose:base_waymo_ipace",
+    "pose:mate_zoox_robotaxi",
+    "pose:base_zoox_robotaxi",
+    "pose:mate_tesla_cybercab",
+    "pose:base_tesla_cybercab",
+    "pose:mate_tesla_model_y",
+    "pose:base_tesla_model_y",
+    "pose:mate_lucid_gravity_nuro",
+    "pose:base_lucid_gravity_nuro",
+    "cycle:unstow:mid",
+    "cycle:unstow:end",
+    "cycle:approach:mid",
+    "cycle:approach:end",
+    "cycle:align:mid",
+    "cycle:align:end",
+    "cycle:insert:mid",
+    "cycle:insert:end",
+    "cycle:latch:mid",
+    "cycle:latch:end",
+    "cycle:charging:mid",
+    "cycle:charging:end",
+    "cycle:unlatch:mid",
+    "cycle:unlatch:end",
+    "cycle:extract:mid",
+    "cycle:extract:end",
+    "cycle:retract:mid",
+    "cycle:retract:end"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-CAB#1",
+    "part": "CHG-CAB",
+    "name": "DC power cabinet (envelope)",
+    "sub": "MOUNT"
+   },
+   "b": {
+    "item": "CHG-LDN3#1",
+    "part": "CHG-LDN3",
+    "name": "DC- cable, core 3 of 4, 1 x 50 mm2",
+    "sub": "SUPPLY"
+   },
+   "volumeMm3": 10602.9,
+   "at": [
+    227.8,
+    -443.4,
+    -646.0
+   ],
+   "poses": [
+    "stowed",
+    "pose:stowed",
+    "pose:connected",
+    "pose:connected_axis",
+    "pose:mate_waymo_ojai",
+    "pose:base_waymo_ojai",
+    "pose:mate_waymo_ipace",
+    "pose:base_waymo_ipace",
+    "pose:mate_zoox_robotaxi",
+    "pose:base_zoox_robotaxi",
+    "pose:mate_tesla_cybercab",
+    "pose:base_tesla_cybercab",
+    "pose:mate_tesla_model_y",
+    "pose:base_tesla_model_y",
+    "pose:mate_lucid_gravity_nuro",
+    "pose:base_lucid_gravity_nuro",
+    "cycle:unstow:mid",
+    "cycle:unstow:end",
+    "cycle:approach:mid",
+    "cycle:approach:end",
+    "cycle:align:mid",
+    "cycle:align:end",
+    "cycle:insert:mid",
+    "cycle:insert:end",
+    "cycle:latch:mid",
+    "cycle:latch:end",
+    "cycle:charging:mid",
+    "cycle:charging:end",
+    "cycle:unlatch:mid",
+    "cycle:unlatch:end",
+    "cycle:extract:mid",
+    "cycle:extract:end",
+    "cycle:retract:mid",
+    "cycle:retract:end"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-CAB#1",
+    "part": "CHG-CAB",
+    "name": "DC power cabinet (envelope)",
+    "sub": "MOUNT"
+   },
+   "b": {
+    "item": "CHG-LDN4#1",
+    "part": "CHG-LDN4",
+    "name": "DC- cable, core 4 of 4, 1 x 50 mm2",
+    "sub": "SUPPLY"
+   },
+   "volumeMm3": 10602.9,
+   "at": [
+    244.2,
+    -443.4,
+    -646.0
+   ],
+   "poses": [
+    "stowed",
+    "pose:stowed",
+    "pose:connected",
+    "pose:connected_axis",
+    "pose:mate_waymo_ojai",
+    "pose:base_waymo_ojai",
+    "pose:mate_waymo_ipace",
+    "pose:base_waymo_ipace",
+    "pose:mate_zoox_robotaxi",
+    "pose:base_zoox_robotaxi",
+    "pose:mate_tesla_cybercab",
+    "pose:base_tesla_cybercab",
+    "pose:mate_tesla_model_y",
+    "pose:base_tesla_model_y",
+    "pose:mate_lucid_gravity_nuro",
+    "pose:base_lucid_gravity_nuro",
+    "cycle:unstow:mid",
+    "cycle:unstow:end",
+    "cycle:approach:mid",
+    "cycle:approach:end",
+    "cycle:align:mid",
+    "cycle:align:end",
+    "cycle:insert:mid",
+    "cycle:insert:end",
+    "cycle:latch:mid",
+    "cycle:latch:end",
+    "cycle:charging:mid",
+    "cycle:charging:end",
+    "cycle:unlatch:mid",
+    "cycle:unlatch:end",
+    "cycle:extract:mid",
+    "cycle:extract:end",
+    "cycle:retract:mid",
+    "cycle:retract:end"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-CAB#1",
+    "part": "CHG-CAB",
+    "name": "DC power cabinet (envelope)",
+    "sub": "MOUNT"
+   },
+   "b": {
+    "item": "CHG-LCS#1",
+    "part": "CHG-LCS",
+    "name": "Coolant supply hose 12 x 8",
+    "sub": "SUPPLY"
+   },
+   "volumeMm3": 6785.8,
+   "at": [
+    147.7,
+    -443.4,
+    -628.0
+   ],
+   "poses": [
+    "stowed",
+    "pose:stowed",
+    "pose:connected",
+    "pose:connected_axis",
+    "pose:mate_waymo_ojai",
+    "pose:base_waymo_ojai",
+    "pose:mate_waymo_ipace",
+    "pose:base_waymo_ipace",
+    "pose:mate_zoox_robotaxi",
+    "pose:base_zoox_robotaxi",
+    "pose:mate_tesla_cybercab",
+    "pose:base_tesla_cybercab",
+    "pose:mate_tesla_model_y",
+    "pose:base_tesla_model_y",
+    "pose:mate_lucid_gravity_nuro",
+    "pose:base_lucid_gravity_nuro",
+    "cycle:unstow:mid",
+    "cycle:unstow:end",
+    "cycle:approach:mid",
+    "cycle:approach:end",
+    "cycle:align:mid",
+    "cycle:align:end",
+    "cycle:insert:mid",
+    "cycle:insert:end",
+    "cycle:latch:mid",
+    "cycle:latch:end",
+    "cycle:charging:mid",
+    "cycle:charging:end",
+    "cycle:unlatch:mid",
+    "cycle:unlatch:end",
+    "cycle:extract:mid",
+    "cycle:extract:end",
+    "cycle:retract:mid",
+    "cycle:retract:end"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-CAB#1",
+    "part": "CHG-CAB",
+    "name": "DC power cabinet (envelope)",
+    "sub": "MOUNT"
+   },
+   "b": {
+    "item": "CHG-LCR#1",
+    "part": "CHG-LCR",
+    "name": "Coolant return hose 12 x 8",
+    "sub": "SUPPLY"
+   },
+   "volumeMm3": 6785.8,
+   "at": [
+    160.9,
+    -443.4,
+    -628.0
+   ],
+   "poses": [
+    "stowed",
+    "pose:stowed",
+    "pose:connected",
+    "pose:connected_axis",
+    "pose:mate_waymo_ojai",
+    "pose:base_waymo_ojai",
+    "pose:mate_waymo_ipace",
+    "pose:base_waymo_ipace",
+    "pose:mate_zoox_robotaxi",
+    "pose:base_zoox_robotaxi",
+    "pose:mate_tesla_cybercab",
+    "pose:base_tesla_cybercab",
+    "pose:mate_tesla_model_y",
+    "pose:base_tesla_model_y",
+    "pose:mate_lucid_gravity_nuro",
+    "pose:base_lucid_gravity_nuro",
+    "cycle:unstow:mid",
+    "cycle:unstow:end",
+    "cycle:approach:mid",
+    "cycle:approach:end",
+    "cycle:align:mid",
+    "cycle:align:end",
+    "cycle:insert:mid",
+    "cycle:insert:end",
+    "cycle:latch:mid",
+    "cycle:latch:end",
+    "cycle:charging:mid",
+    "cycle:charging:end",
+    "cycle:unlatch:mid",
+    "cycle:unlatch:end",
+    "cycle:extract:mid",
+    "cycle:extract:end",
+    "cycle:retract:mid",
+    "cycle:retract:end"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-CAB#1",
+    "part": "CHG-CAB",
+    "name": "DC power cabinet (envelope)",
+    "sub": "MOUNT"
+   },
+   "b": {
+    "item": "CHG-LAR#1",
+    "part": "CHG-LAR",
+    "name": "Air tube 8 x 6",
+    "sub": "SUPPLY"
+   },
+   "volumeMm3": 3015.9,
+   "at": [
+    171.9,
+    -443.4,
+    -630.0
+   ],
+   "poses": [
+    "stowed",
+    "pose:stowed",
+    "pose:connected",
+    "pose:connected_axis",
+    "pose:mate_waymo_ojai",
+    "pose:base_waymo_ojai",
+    "pose:mate_waymo_ipace",
+    "pose:base_waymo_ipace",
+    "pose:mate_zoox_robotaxi",
+    "pose:base_zoox_robotaxi",
+    "pose:mate_tesla_cybercab",
+    "pose:base_tesla_cybercab",
+    "pose:mate_tesla_model_y",
+    "pose:base_tesla_model_y",
+    "pose:mate_lucid_gravity_nuro",
+    "pose:base_lucid_gravity_nuro",
+    "cycle:unstow:mid",
+    "cycle:unstow:end",
+    "cycle:approach:mid",
+    "cycle:approach:end",
+    "cycle:align:mid",
+    "cycle:align:end",
+    "cycle:insert:mid",
+    "cycle:insert:end",
+    "cycle:latch:mid",
+    "cycle:latch:end",
+    "cycle:charging:mid",
+    "cycle:charging:end",
+    "cycle:unlatch:mid",
+    "cycle:unlatch:end",
+    "cycle:extract:mid",
+    "cycle:extract:end",
+    "cycle:retract:mid",
+    "cycle:retract:end"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-CAB#1",
+    "part": "CHG-CAB",
+    "name": "DC power cabinet (envelope)",
+    "sub": "MOUNT"
+   },
+   "b": {
+    "item": "CHG-LJS#1",
+    "part": "CHG-LJS",
+    "name": "Joint supply cable (motor power, 24 V, EtherCAT)",
+    "sub": "SUPPLY"
+   },
+   "volumeMm3": 4712.4,
+   "at": [
+    181.8,
+    -443.4,
+    -629.0
+   ],
+   "poses": [
+    "stowed",
+    "pose:stowed",
+    "pose:connected",
+    "pose:connected_axis",
+    "pose:mate_waymo_ojai",
+    "pose:base_waymo_ojai",
+    "pose:mate_waymo_ipace",
+    "pose:base_waymo_ipace",
+    "pose:mate_zoox_robotaxi",
+    "pose:base_zoox_robotaxi",
+    "pose:mate_tesla_cybercab",
+    "pose:base_tesla_cybercab",
+    "pose:mate_tesla_model_y",
+    "pose:base_tesla_model_y",
+    "pose:mate_lucid_gravity_nuro",
+    "pose:base_lucid_gravity_nuro",
+    "cycle:unstow:mid",
+    "cycle:unstow:end",
+    "cycle:approach:mid",
+    "cycle:approach:end",
+    "cycle:align:mid",
+    "cycle:align:end",
+    "cycle:insert:mid",
+    "cycle:insert:end",
+    "cycle:latch:mid",
+    "cycle:latch:end",
+    "cycle:charging:mid",
+    "cycle:charging:end",
+    "cycle:unlatch:mid",
+    "cycle:unlatch:end",
+    "cycle:extract:mid",
+    "cycle:extract:end",
+    "cycle:retract:mid",
+    "cycle:retract:end"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-CAB#1",
+    "part": "CHG-CAB",
+    "name": "DC power cabinet (envelope)",
+    "sub": "MOUNT"
+   },
+   "b": {
+    "item": "CHG-LTL#1",
+    "part": "CHG-LTL",
+    "name": "Tool cable (EtherCAT, 24 V)",
+    "sub": "SUPPLY"
+   },
+   "volumeMm3": 3015.9,
+   "at": [
+    191.7,
+    -443.4,
+    -630.0
+   ],
+   "poses": [
+    "stowed",
+    "pose:stowed",
+    "pose:connected",
+    "pose:connected_axis",
+    "pose:mate_waymo_ojai",
+    "pose:base_waymo_ojai",
+    "pose:mate_waymo_ipace",
+    "pose:base_waymo_ipace",
+    "pose:mate_zoox_robotaxi",
+    "pose:base_zoox_robotaxi",
+    "pose:mate_tesla_cybercab",
+    "pose:base_tesla_cybercab",
+    "pose:mate_tesla_model_y",
+    "pose:base_tesla_model_y",
+    "pose:mate_lucid_gravity_nuro",
+    "pose:base_lucid_gravity_nuro",
+    "cycle:unstow:mid",
+    "cycle:unstow:end",
+    "cycle:approach:mid",
+    "cycle:approach:end",
+    "cycle:align:mid",
+    "cycle:align:end",
+    "cycle:insert:mid",
+    "cycle:insert:end",
+    "cycle:latch:mid",
+    "cycle:latch:end",
+    "cycle:charging:mid",
+    "cycle:charging:end",
+    "cycle:unlatch:mid",
+    "cycle:unlatch:end",
+    "cycle:extract:mid",
+    "cycle:extract:end",
+    "cycle:retract:mid",
+    "cycle:retract:end"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-CAB#1",
+    "part": "CHG-CAB",
+    "name": "DC power cabinet (envelope)",
+    "sub": "MOUNT"
+   },
+   "b": {
+    "item": "CHG-LSF#1",
+    "part": "CHG-LSF",
+    "name": "Safety cable (scanner, emergency stop, status lights)",
+    "sub": "SUPPLY"
+   },
+   "volumeMm3": 3817.0,
+   "at": [
+    201.1,
+    -443.4,
+    -629.5
+   ],
+   "poses": [
+    "stowed",
+    "pose:stowed",
+    "pose:connected",
+    "pose:connected_axis",
+    "pose:mate_waymo_ojai",
+    "pose:base_waymo_ojai",
+    "pose:mate_waymo_ipace",
+    "pose:base_waymo_ipace",
+    "pose:mate_zoox_robotaxi",
+    "pose:base_zoox_robotaxi",
+    "pose:mate_tesla_cybercab",
+    "pose:base_tesla_cybercab",
+    "pose:mate_tesla_model_y",
+    "pose:base_tesla_model_y",
+    "pose:mate_lucid_gravity_nuro",
+    "pose:base_lucid_gravity_nuro",
+    "cycle:unstow:mid",
+    "cycle:unstow:end",
+    "cycle:approach:mid",
+    "cycle:approach:end",
+    "cycle:align:mid",
+    "cycle:align:end",
+    "cycle:insert:mid",
+    "cycle:insert:end",
+    "cycle:latch:mid",
+    "cycle:latch:end",
+    "cycle:charging:mid",
+    "cycle:charging:end",
+    "cycle:unlatch:mid",
+    "cycle:unlatch:end",
+    "cycle:extract:mid",
+    "cycle:extract:end",
+    "cycle:retract:mid",
+    "cycle:retract:end"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-CAB#1",
+    "part": "CHG-CAB",
+    "name": "DC power cabinet (envelope)",
+    "sub": "MOUNT"
+   },
+   "b": {
+    "item": "CHG-LMX#1",
+    "part": "CHG-LMX",
+    "name": "Rail servo cable (motor, brake, encoder)",
+    "sub": "SUPPLY"
+   },
+   "volumeMm3": 7363.1,
+   "at": [
+    212.9,
+    -443.4,
+    -627.8
+   ],
+   "poses": [
+    "stowed",
+    "pose:stowed",
+    "pose:connected",
+    "pose:connected_axis",
+    "pose:mate_waymo_ojai",
+    "pose:base_waymo_ojai",
+    "pose:mate_waymo_ipace",
+    "pose:base_waymo_ipace",
+    "pose:mate_zoox_robotaxi",
+    "pose:base_zoox_robotaxi",
+    "pose:mate_tesla_cybercab",
+    "pose:base_tesla_cybercab",
+    "pose:mate_tesla_model_y",
+    "pose:base_tesla_model_y",
+    "pose:mate_lucid_gravity_nuro",
+    "pose:base_lucid_gravity_nuro",
+    "cycle:unstow:mid",
+    "cycle:unstow:end",
+    "cycle:approach:mid",
+    "cycle:approach:end",
+    "cycle:align:mid",
+    "cycle:align:end",
+    "cycle:insert:mid",
+    "cycle:insert:end",
+    "cycle:latch:mid",
+    "cycle:latch:end",
+    "cycle:charging:mid",
+    "cycle:charging:end",
+    "cycle:unlatch:mid",
+    "cycle:unlatch:end",
+    "cycle:extract:mid",
+    "cycle:extract:end",
+    "cycle:retract:mid",
+    "cycle:retract:end"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-CAB#1",
+    "part": "CHG-CAB",
+    "name": "DC power cabinet (envelope)",
+    "sub": "MOUNT"
+   },
+   "b": {
+    "item": "CHG-LMZ#1",
+    "part": "CHG-LMZ",
+    "name": "Cross-slide servo cable (motor, brake, encoder)",
+    "sub": "SUPPLY"
+   },
+   "volumeMm3": 5702.0,
+   "at": [
+    225.8,
+    -443.4,
+    -628.5
+   ],
+   "poses": [
+    "stowed",
+    "pose:stowed",
+    "pose:connected",
+    "pose:connected_axis",
+    "pose:mate_waymo_ojai",
+    "pose:base_waymo_ojai",
+    "pose:mate_waymo_ipace",
+    "pose:base_waymo_ipace",
+    "pose:mate_zoox_robotaxi",
+    "pose:base_zoox_robotaxi",
+    "pose:mate_tesla_cybercab",
+    "pose:base_tesla_cybercab",
+    "pose:mate_tesla_model_y",
+    "pose:base_tesla_model_y",
+    "pose:mate_lucid_gravity_nuro",
+    "pose:base_lucid_gravity_nuro",
+    "cycle:unstow:mid",
+    "cycle:unstow:end",
+    "cycle:approach:mid",
+    "cycle:approach:end",
+    "cycle:align:mid",
+    "cycle:align:end",
+    "cycle:insert:mid",
+    "cycle:insert:end",
+    "cycle:latch:mid",
+    "cycle:latch:end",
+    "cycle:charging:mid",
+    "cycle:charging:end",
+    "cycle:unlatch:mid",
+    "cycle:unlatch:end",
+    "cycle:extract:mid",
+    "cycle:extract:end",
+    "cycle:retract:mid",
+    "cycle:retract:end"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#13",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 241.1,
+   "at": [
+    -320.0,
+    -567.4,
+    256.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BCH#1",
+    "part": "CHG-BCH",
+    "name": "Cable channel liner in the slab (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#13",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 251.3,
+   "at": [
+    -320.0,
+    -562.5,
+    256.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#18",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 241.1,
+   "at": [
+    -320.0,
+    -567.4,
+    -16.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BCH#1",
+    "part": "CHG-BCH",
+    "name": "Cable channel liner in the slab (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#18",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 251.3,
+   "at": [
+    -320.0,
+    -562.5,
+    -16.5
    ],
    "poses": [
     "stowed"
@@ -1368,6 +2952,447 @@
   {
    "kind": "context",
    "a": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#14",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 241.1,
+   "at": [
+    66.8,
+    -567.4,
+    256.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BCH#1",
+    "part": "CHG-BCH",
+    "name": "Cable channel liner in the slab (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#14",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 251.3,
+   "at": [
+    66.8,
+    -562.5,
+    256.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#17",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 241.1,
+   "at": [
+    66.8,
+    -567.4,
+    -16.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BCH#1",
+    "part": "CHG-BCH",
+    "name": "Cable channel liner in the slab (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#17",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 251.3,
+   "at": [
+    66.8,
+    -562.5,
+    -16.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#25",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 241.1,
+   "at": [
+    81.2,
+    -567.4,
+    -378.6
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BFL#1",
+    "part": "CHG-BFL",
+    "name": "Feed trench liner, cabinet to channel (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#25",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 251.3,
+   "at": [
+    81.2,
+    -562.5,
+    -378.6
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#26",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 241.1,
+   "at": [
+    81.2,
+    -567.4,
+    -86.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BFL#1",
+    "part": "CHG-BFL",
+    "name": "Feed trench liner, cabinet to channel (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#26",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 251.3,
+   "at": [
+    81.2,
+    -562.5,
+    -86.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-CAB#1",
+    "part": "CHG-CAB",
+    "name": "DC power cabinet (envelope)",
+    "sub": "MOUNT"
+   },
+   "b": {
+    "item": "CHG-BGP#1",
+    "part": "CHG-BGP",
+    "name": "Cabinet gland plate, 16 entries",
+    "sub": "SUPPLY"
+   },
+   "volumeMm3": 112366.8,
+   "at": [
+    186.5,
+    -471.4,
+    -638.4
+   ],
+   "poses": [
+    "stowed",
+    "pose:stowed",
+    "pose:connected",
+    "pose:connected_axis",
+    "pose:mate_waymo_ojai",
+    "pose:base_waymo_ojai",
+    "pose:mate_waymo_ipace",
+    "pose:base_waymo_ipace",
+    "pose:mate_zoox_robotaxi",
+    "pose:base_zoox_robotaxi",
+    "pose:mate_tesla_cybercab",
+    "pose:base_tesla_cybercab",
+    "pose:mate_tesla_model_y",
+    "pose:base_tesla_model_y",
+    "pose:mate_lucid_gravity_nuro",
+    "pose:base_lucid_gravity_nuro",
+    "cycle:unstow:mid",
+    "cycle:unstow:end",
+    "cycle:approach:mid",
+    "cycle:approach:end",
+    "cycle:align:mid",
+    "cycle:align:end",
+    "cycle:insert:mid",
+    "cycle:insert:end",
+    "cycle:latch:mid",
+    "cycle:latch:end",
+    "cycle:charging:mid",
+    "cycle:charging:end",
+    "cycle:unlatch:mid",
+    "cycle:unlatch:end",
+    "cycle:extract:mid",
+    "cycle:extract:end",
+    "cycle:retract:mid",
+    "cycle:retract:end"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#27",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 241.1,
+   "at": [
+    291.8,
+    -567.4,
+    -378.6
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BFL#1",
+    "part": "CHG-BFL",
+    "name": "Feed trench liner, cabinet to channel (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#27",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 251.3,
+   "at": [
+    291.8,
+    -562.5,
+    -378.6
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#28",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 241.1,
+   "at": [
+    291.8,
+    -567.4,
+    -86.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BFL#1",
+    "part": "CHG-BFL",
+    "name": "Feed trench liner, cabinet to channel (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#28",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 251.3,
+   "at": [
+    291.8,
+    -562.5,
+    -86.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#15",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 241.1,
+   "at": [
+    453.5,
+    -567.4,
+    256.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BCH#1",
+    "part": "CHG-BCH",
+    "name": "Cable channel liner in the slab (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#15",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 251.3,
+   "at": [
+    453.5,
+    -562.5,
+    256.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#16",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 241.1,
+   "at": [
+    453.5,
+    -567.4,
+    -16.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BCH#1",
+    "part": "CHG-BCH",
+    "name": "Cable channel liner in the slab (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#16",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 251.3,
+   "at": [
+    453.5,
+    -562.5,
+    -16.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
     "item": "CHG-ANC-M16#9",
     "part": "CHG-ANC-M16",
     "name": "Anchor rod M16 x 190, injection mortar",
@@ -1408,6 +3433,102 @@
     652.0,
     -570.6,
     508.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#19",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 241.1,
+   "at": [
+    840.2,
+    -567.4,
+    256.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BCH#1",
+    "part": "CHG-BCH",
+    "name": "Cable channel liner in the slab (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#19",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 251.3,
+   "at": [
+    840.2,
+    -562.5,
+    256.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#24",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 241.1,
+   "at": [
+    840.2,
+    -567.4,
+    -16.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BCH#1",
+    "part": "CHG-BCH",
+    "name": "Cable channel liner in the slab (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#24",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 251.3,
+   "at": [
+    840.2,
+    -562.5,
+    -16.5
    ],
    "poses": [
     "stowed"
@@ -1464,6 +3585,102 @@
   {
    "kind": "context",
    "a": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#20",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 241.1,
+   "at": [
+    1226.9,
+    -567.4,
+    256.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BCH#1",
+    "part": "CHG-BCH",
+    "name": "Cable channel liner in the slab (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#20",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 251.3,
+   "at": [
+    1226.9,
+    -562.5,
+    256.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#23",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 241.1,
+   "at": [
+    1226.9,
+    -567.4,
+    -16.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BCH#1",
+    "part": "CHG-BCH",
+    "name": "Cable channel liner in the slab (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#23",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 251.3,
+   "at": [
+    1226.9,
+    -562.5,
+    -16.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
     "item": "CHG-ANC-M16#11",
     "part": "CHG-ANC-M16",
     "name": "Anchor rod M16 x 190, injection mortar",
@@ -1504,6 +3721,102 @@
     1560.0,
     -570.6,
     508.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#21",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 241.1,
+   "at": [
+    1613.6,
+    -567.4,
+    256.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BCH#1",
+    "part": "CHG-BCH",
+    "name": "Cable channel liner in the slab (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#21",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 251.3,
+   "at": [
+    1613.6,
+    -562.5,
+    256.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#22",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 241.1,
+   "at": [
+    1613.6,
+    -567.4,
+    -16.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BCH#1",
+    "part": "CHG-BCH",
+    "name": "Cable channel liner in the slab (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#22",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 251.3,
+   "at": [
+    1613.6,
+    -562.5,
+    -16.5
    ],
    "poses": [
     "stowed"
@@ -1558,6 +3871,6 @@
    ]
   }
  ],
- "seconds": 1253.5,
- "glbSha256": "8fdd0c3aa0897834"
+ "seconds": 1942.3,
+ "glbSha256": "5369386b43533542"
 }

@@ -90,6 +90,8 @@ const stepsOf = (k: RobotKey): MachineStep[] => cycleSteps(k).map((s) => ({ ...s
 
 function chargeArm(bom: Bom, connect: number, release: number): MachineFacts {
   const k: RobotKey = 'charge_arm';
+  rests(bom, 'SUPPLY', /leave the cabinet through its floor and drop through the pad into a lined trench/);
+  rests(bom, 'SUPPLY', /bend into a second chain, on a tray at the carriage plate/);
   return {
     key: k, name: ROBOT_INFO[k].name, short: ROBOT_INFO[k].short, stallType: 'dcfc',
     where: 'One at each fast charger.',
@@ -110,6 +112,7 @@ function chargeArm(bom: Bom, connect: number, release: number): MachineFacts {
       { label: 'Finds the port', value: how(bom, 'TOOL', /cameras/) },
       { label: 'Force control', value: `${how(bom, 'TOOL', /force and torque sensor/)} ${how(bom, 'TOOL', /compliance unit/)}` },
       { label: 'Latch', value: how(bom, 'TOOL', /latch locks/) },
+      { label: 'Supply', value: 'Every line comes from the cabinet, down through its floor into a covered trench in the slab. Two cable chains, one in the trench and one on the carriage, follow the arm as it moves.' },
       { label: 'Power path', value: `The charge current runs inside the arm. ${how(bom, 'DRESS', /Nothing live is in the open\.$/)} ${how(bom, 'DRESS', /booted link of braided copper joins/)}` },
       { label: 'Status lights', value: 'Light rings on the arm show its state: teal ready, amber moving, green charging, red fault.' },
     ],
@@ -130,6 +133,8 @@ function cleanArm(bom: Bom): MachineFacts {
   rests(bom, 'STATUS', /ring on the J1 base, a strip on the mast and a ring at the nozzle/);
   rests(bom, 'MAST', /brake holds it when power is off/);
   rests(bom, 'MOUNT', /Nothing stands where a car drives/);
+  rests(bom, 'POWER', /supply enclosure on the drop column holds the controller/);
+  rests(bom, 'POWER', /come down from the canopy cable tray/);
   return {
     key: k, name: ROBOT_INFO[k].name, short: ROBOT_INFO[k].short, stallType: 'dcfc',
     where: 'One over each fast charger.',
@@ -153,6 +158,7 @@ function cleanArm(bom: Bom): MachineFacts {
       { label: 'Mast', value: sub(bom, 'MAST').function },
       { label: 'Clearance', value: `${CLEAN_ARM_CLEARANCE_M.toFixed(2)} m off the car and the open doors, at every point of the cycle.` },
       { label: 'Vacuum supply', value: how(bom, 'VAC', /central vacuum producer/) },
+      { label: 'Power', value: 'A supply enclosure on the column holds the arm\'s controller. Its power and network come from the canopy cable tray.' },
       { label: 'Crew', value: 'The arm needs no technician.' },
       { label: 'Status lights', value: 'Lights on the base, the mast and the nozzle show the arm state.' },
     ],

@@ -338,7 +338,7 @@ export function TwinRoboticsTab() {
 
   const toolbar = (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-white/[0.06] px-2 py-2 text-[11px]" data-testid="cad-toolbar">
-      <div className="flex items-center gap-1">
+      <div className="flex min-w-0 max-w-full flex-wrap items-center gap-1">
         <span className="text-ink-dim">Pose</span>
         {presets.map((p) => <Chip key={p.id} active={!playing && !following && !stepShown && p.id === poseId} onClick={() => { followed.follow(null); setPlaying(false); setManual({}); setStepShown(null); setPoseId(p.id); set({ frameCar: false }); }} testId={`pose-${p.id}`}>{p.label}</Chip>)}
       </div>

@@ -94,8 +94,9 @@ describe('the Robotics tab', () => {
     await open(true);
     expect(screen.getByTestId('robotics-tab').dataset.layout).toBe('wide');
     const bom = JSON.parse(readFileSync(`${PUB}/charge_arm.bom.json`, 'utf8'));
-    expect(screen.getByTestId('robot-totals')).toHaveTextContent(String(bom.totals.parts));
-    expect(screen.getByTestId('robot-totals')).toHaveTextContent(String(bom.totals.fasteners));
+    // the tab writes the counts as en-US numbers (1,052): the charge arm passed 1,000 parts when its supply was drawn
+    expect(screen.getByTestId('robot-totals')).toHaveTextContent(bom.totals.parts.toLocaleString('en-US'));
+    expect(screen.getByTestId('robot-totals')).toHaveTextContent(bom.totals.fasteners.toLocaleString('en-US'));
     expect(screen.getAllByTestId('subsystem').map((s) => s.dataset.sub)).toEqual(bom.subsystems.map((s: { id: string }) => s.id));
     expect(screen.getByTestId('load-check')).toHaveTextContent(/J2 shoulder: gravity .* N·m at full reach/);
     expect(within(screen.getByTestId('cycle-steps')).getAllByRole('listitem')[0]).toHaveTextContent('Lift clear of the stow');

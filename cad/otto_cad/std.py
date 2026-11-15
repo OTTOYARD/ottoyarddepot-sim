@@ -734,10 +734,51 @@ def _chain_link_shape(w: float, h: float, pitch: float) -> cq.Shape:
     return link.union(bars).val()
 
 
-def chain_link(w: float, h: float, pitch: float) -> PartDef:
-    return PartDef(f'ECHAIN-{w:g}x{h:g}', f'Cable carrier link {w:g} x {h:g}', _chain_link_shape(w, h, pitch), 'pa66',
-                   'electrical', 'catalogue part', f'inner {w:g} x {h:g}, pitch {pitch:g}', '', None,
-                   'Guides the cables and hoses through the moving joint. It keeps the bend radius safe.', {}, 'buy', depot='box')
+# A cable carrier is chosen by its INSIDE (what it holds) and drawn to its OUTSIDE (what it takes): its side bands and
+# crossbars take room. Two classes, from the maker's product pages (igus, read 2026-11-15; each page's product data
+# lists inner height Hi, outer height Ha, inner width Bi, outer width Ba and pitch, and the widths and radii it sells):
+#   heavy: E4.42, https://www.igus.com/product/series-E4-42 : Hi 42, Ha 64, pitch 67; E4.42.11.160.0 is Bi 108, Ba 134.
+#   light: E2.26, https://www.igus.com/product/series-E2-26 : Hi 26, Ha 35, pitch 46; E2.26.025.200.0 is Bi 25, Ba 42.
+# So Ba = Bi + 26 and Bi + 17. Distributors' listings give the same at other widths (E4.42 Bi 150 and 200 at 176 and
+# 226 wide, RS Components; E2.26 Bi 38 and 77 at 55 and 94, TME; both read through a web search on 2026-11-15, their
+# pages refuse automated reads). The bill of materials names the class, not the maker.
+CHAIN_CLASSES = {
+    'heavy': {'hi': 42.0, 'ha': 64.0, 'wall': 26.0, 'pitch': 67.0,
+              'widths': (50, 68, 75, 87, 97, 100, 108, 112, 125, 137, 150, 162, 168, 175, 187, 200, 212, 225, 237, 250,
+                         262, 275, 287, 300, 312, 325, 337, 350, 362, 375, 387, 400),
+              'radii': (75, 100, 115, 125, 150, 160, 175, 200, 250, 300, 350)},
+    'light': {'hi': 26.0, 'ha': 35.0, 'wall': 17.0, 'pitch': 46.0, 'widths': (25, 38, 57, 77, 89, 103, 125),
+              'radii': (48, 55, 75, 100, 125, 150, 175, 200, 225, 250)},
+}
+
+
+def chain_fill(cables: list, hoses: list) -> float:
+    """The width lines take side by side in a chain, with the chain maker's clearances: 10 % a cable, 20 % a hose, 1 mm
+    at least (ASSUMPTION: the usual filling rule, not re-read from a sheet)."""
+    return sum(d + max(0.1 * d, 1.0) for d in cables) + sum(d + max(0.2 * d, 1.0) for d in hoses)
+
+
+def chain_size(cls: str, need_w: float, need_h: float, bend_r: float) -> dict:
+    """The narrowest chain of a class whose inside holds lines that need need_w x need_h, on a radius it is sold with."""
+    c = CHAIN_CLASSES[cls]
+    if need_h > c['hi']:
+        raise ValueError(f'a {cls} chain is {c["hi"]:g} mm high inside, and its lines need {need_h:.1f} mm')
+    if bend_r not in c['radii']:
+        raise ValueError(f'no {cls} chain is sold with a {bend_r:g} mm bend radius')
+    bi = next((float(w) for w in c['widths'] if w >= need_w), None)
+    if bi is None:
+        raise ValueError(f'no {cls} chain is {need_w:.1f} mm wide inside')
+    return {'cls': cls, 'bi': bi, 'hi': c['hi'], 'ba': bi + c['wall'], 'ha': c['ha'], 'pitch': c['pitch'], 'r': bend_r}
+
+
+def chain_link(w: float, h: float, pitch: float, inside: tuple | None = None, spec: dict | None = None) -> PartDef:
+    """One link, drawn to the chain's OUTSIDE w x h (`inside`: what it holds, from chain_size)."""
+    name = f'Cable carrier link, inside {inside[0]:g} x {inside[1]:g}' if inside else f'Cable carrier link, outside {w:g} x {h:g}'
+    size = f'outside {w:g} x {h:g}' + (f', inside {inside[0]:g} x {inside[1]:g}' if inside else '') + f', pitch {pitch:g}'
+    return PartDef(f'ECHAIN-{w:g}x{h:g}', name, _chain_link_shape(w, h, pitch), 'pa66',
+                   'electrical', 'catalogue part', size, '', None,
+                   'Guides the cables and hoses through the moving joint. It keeps the bend radius safe.', dict(spec or {}), 'buy',
+                   depot='box')
 
 
 def _bent_path(points: tuple, R: float) -> cq.Wire:

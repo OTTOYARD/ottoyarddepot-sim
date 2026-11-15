@@ -7,13 +7,13 @@
   "glb": "m"
  },
  "totals": {
-  "parts": 966,
-  "uniqueParts": 217,
-  "fasteners": 661,
-  "massKg": 832.67,
-  "boughtLines": 147,
-  "madeLines": 70,
-  "referenceLines": 5
+  "parts": 1052,
+  "uniqueParts": 248,
+  "fasteners": 702,
+  "massKg": 990.04,
+  "boughtLines": 168,
+  "madeLines": 80,
+  "referenceLines": 6
  },
  "subsystems": [
   {
@@ -23,7 +23,8 @@
    "how": [
     "4 screws M16 hold the riser to the cross-slide saddle.",
     "8 screws M12 hold the mount plate to the riser.",
-    "The arm's power and network cables come up through the riser and J1's hollow shaft."
+    "The supply lines enter the riser from the saddle duct, through the cable window in its back.",
+    "The joint supply cable goes up through J1's hollow shaft. The DC cores go through the wall to the terminal box."
    ],
    "specs": {
     "J1 height": "550 mm above the deck",
@@ -33,7 +34,7 @@
    "order": 0,
    "partCount": 19,
    "fastenerCount": 16,
-   "massKg": 71.135,
+   "massKg": 70.946,
    "uniqueParts": 6
   },
   {
@@ -46,7 +47,7 @@
     "On the carriage 2 rails and a ball screw carry the saddle toward the car and back.",
     "For an inlet on the car's side the base stops beside it, at the same distance from every car.",
     "For an inlet in the rear bumper the base goes past the tail and in behind the car's corner.",
-    "The power and coolant lines run in a cable chain in a covered channel in the slab, under the carriage.",
+    "Cover plates close the cable channel between the beams, flush with the deck. 2 brush strips close the slot between them.",
     "The bed is set toward the tail end of the stall. A stall that faces the other way has the same bed, set the other way."
    ],
    "specs": {
@@ -57,10 +58,40 @@
    },
    "group": "Motion",
    "order": 1,
-   "partCount": 301,
-   "fastenerCount": 208,
-   "massKg": 485.85,
+   "partCount": 286,
+   "fastenerCount": 236,
+   "massKg": 588.308,
    "uniqueParts": 27
+  },
+  {
+   "id": "SUPPLY",
+   "name": "Supply from the cabinet",
+   "function": "Brings every line from the DC cabinet to the riser: the charge current, the coolant, the air, power and the network. It follows the base along the rail and across.",
+   "how": [
+    "Every supply line comes from the cabinet: 8 DC cores, 2 coolant hoses, 1 air tube and 5 cables.",
+    "They leave the cabinet through its floor and drop through the pad into a lined trench in the slab.",
+    "The trench runs under a flush cover plate to the cable channel between the bed's beams.",
+    "In the channel each line turns onto its own lane and enters the cable chain at its fixed end.",
+    "The chain's bend rolls along the channel as the carriage moves. Cover plates close the channel, flush with the deck.",
+    "A driver on the carriage runs in the slot between the cover plates. 2 brush strips close the slot.",
+    "The lines rise inside the driver and bend into a second chain, on a tray at the carriage plate's edge.",
+    "That chain follows the saddle. A duct on the saddle takes the lines to the riser.",
+    "The 2 servo cables leave the driver in conduits, one to the rail gearmotor and one to the cross-slide motor."
+   ],
+   "specs": {
+    "above the deck": "the driver, the cross chain and the ducts, all on the carriage",
+    "DC cable": "4 cores of 50 mm2 a pole, 15 mm each, 125 A a core at 500 A",
+    "cable chains": "2, of one link, 137 x 42 mm inside, bend radius 125 mm",
+    "bend rule": "7.5 x the diameter in a chain (112.5 mm for the DC core), 4 x where fixed (60 mm)",
+    "channel": "213 mm wide, 354 mm deep, 4.64 m long, cover plates 10 mm, slot 60 mm",
+    "feed trench": "180 mm wide, from the cabinet to the channel, 704 mm"
+   },
+   "group": "Cables",
+   "order": 2,
+   "partCount": 101,
+   "fastenerCount": 13,
+   "massKg": 55.096,
+   "uniqueParts": 32
   },
   {
    "id": "J1",
@@ -74,7 +105,7 @@
     "gear": "strain-wave, size 40, 100:1"
    },
    "group": "Joints",
-   "order": 2,
+   "order": 3,
    "partCount": 102,
    "fastenerCount": 76,
    "massKg": 52.921,
@@ -92,7 +123,7 @@
     "gear": "strain-wave, size 50, 100:1"
    },
    "group": "Joints",
-   "order": 3,
+   "order": 4,
    "partCount": 102,
    "fastenerCount": 72,
    "massKg": 54.354,
@@ -108,7 +139,7 @@
    ],
    "specs": {},
    "group": "Links",
-   "order": 4,
+   "order": 5,
    "partCount": 19,
    "fastenerCount": 18,
    "massKg": 27.228,
@@ -125,7 +156,7 @@
     "gear": "strain-wave, size 40, 100:1"
    },
    "group": "Joints",
-   "order": 5,
+   "order": 6,
    "partCount": 84,
    "fastenerCount": 60,
    "massKg": 22.446,
@@ -140,7 +171,7 @@
    ],
    "specs": {},
    "group": "Links",
-   "order": 6,
+   "order": 7,
    "partCount": 17,
    "fastenerCount": 16,
    "massKg": 15.183,
@@ -159,7 +190,7 @@
     "gears": "size 25, 25, 20, 100:1"
    },
    "group": "Joints",
-   "order": 7,
+   "order": 8,
    "partCount": 250,
    "fastenerCount": 176,
    "massKg": 23.88,
@@ -183,7 +214,7 @@
     "stroke": "90 mm"
    },
    "group": "Tool",
-   "order": 8,
+   "order": 9,
    "partCount": 55,
    "fastenerCount": 17,
    "massKg": 9.548,
@@ -194,11 +225,13 @@
    "name": "Power path in the arm",
    "function": "Carries the charge current, the coolant and the tool's lines to the connector inside the arm, and power and network to the joints.",
    "how": [
-    "The charge current comes from the cabinet under the pad to the cable chain, and up the riser in 2 cables.",
+    "The charge current reaches the riser in 8 cable cores, 4 a pole, from the cabinet by the 2 cable chains.",
+    "A terminal box on the riser joins the 4 cores of each pole to one flex link.",
     "In each hollow link 2 copper bars carry it, one a pole. Nothing live is in the open.",
     "At the base, the shoulder and the elbow a booted link of braided copper joins 2 terminal boxes. It bends as the joint turns.",
     "From the forearm one last booted link, 1.2 m long, runs to the connector across the wrist.",
     "The coolant for the connector's contacts, the tool's cable and its air line run with the bars and through each boot.",
+    "The coolant comes from a cooling unit in the cabinet and goes back to it. The air comes through the cabinet from the site.",
     "The joints' 10 mm power and network cable runs inside the arm, through the hollow shafts of J1 to J5."
    ],
    "specs": {
@@ -206,10 +239,11 @@
     "bars": "2 x 40 x 10 mm copper in each link, insulated",
     "flex links": "4, braided copper 400 mm2 a pole, in a silicone boot OD 60 mm, 0.9 to 1.2 m",
     "bend radius": "80 mm moved (the tightest in the twin's 20 poses is 100 mm)",
-    "cooling": "liquid at the connector's contacts, 2 tubes 8 mm"
+    "cooling": "liquid at the connector's contacts, 2 tubes 8 mm, cooling unit in the cabinet",
+    "not drawn": "the lines inside the ducts, the chains and the riser, one by one"
    },
    "group": "Cables",
-   "order": 9,
+   "order": 10,
    "partCount": 10,
    "fastenerCount": 0,
    "massKg": 68.85,
@@ -226,7 +260,7 @@
    ],
    "specs": {},
    "group": "Safety",
-   "order": 10,
+   "order": 11,
    "partCount": 7,
    "fastenerCount": 2,
    "massKg": 1.28,
@@ -249,7 +283,7 @@
    "totalMassKg": 0.0,
    "torqueNm": null,
    "reference": true,
-   "function": "The charger: rectifiers, contactors, metering. Shown as its envelope only.",
+   "function": "The charger: rectifiers, contactors, metering, the connector's cooling unit, the arm's controller and 2 servo drives. Shown as its envelope only.",
    "spec": {
     "output": "about 350 kW DC (the twin site: 10,500 kW over 30 posts)"
    },
@@ -325,8 +359,10 @@
    "totalMassKg": 0.0,
    "torqueNm": null,
    "reference": true,
-   "function": "Carries the cabinet. Cast by the site works.",
-   "spec": {},
+   "function": "Carries the cabinet. Cast by the site works, with a shaft under the cabinet for the supply lines.",
+   "spec": {
+    "shaft": "170 x 105 mm, under the cabinet's floor"
+   },
    "uses": [
     {
      "sub": "MOUNT",
@@ -345,8 +381,8 @@
    "material": "Structural steel S355, hot-dip galvanised",
    "materialKey": "steel_s355",
    "qty": 1,
-   "massKg": 53.0849,
-   "totalMassKg": 53.0849,
+   "massKg": 52.8965,
+   "totalMassKg": 52.8965,
    "torqueNm": null,
    "reference": false,
    "function": "Lifts the arm from the saddle to its J1 height. Welded, then hot-dip galvanised.",
@@ -470,26 +506,30 @@
    ]
   },
   {
-   "id": "CHG-BCA",
-   "name": "Cable chain hanger, stainless",
+   "id": "CHG-BCC",
+   "name": "Channel cover plate, slot side, galvanised checker plate",
    "category": "structure",
    "make": "make",
-   "standard": "cut plate 10 mm",
-   "size": "80 x 270",
-   "grade": "316L",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 1,
-   "massKg": 1.7211,
-   "totalMassKg": 1.7211,
+   "standard": "checker plate 10 mm",
+   "size": "1160 x 136 x 10",
+   "grade": "S235, galvanised, R11 slip",
+   "material": "Structural steel S355, hot-dip galvanised",
+   "materialKey": "steel_s355",
+   "qty": 8,
+   "massKg": 12.4077,
+   "totalMassKg": 99.2618,
    "torqueNm": null,
    "reference": false,
-   "function": "Joins the chain's moving end to the carriage, down in the channel.",
-   "spec": {},
+   "function": "Covers half the cable channel, flush with the deck. The driver runs in the slot between the 2 rows.",
+   "spec": {
+    "overhang": "72 mm past the wall",
+    "load": "foot traffic (the bed's beams keep cars off it)",
+    "slot": "60 mm, closed by 2 brush strips"
+   },
    "uses": [
     {
      "sub": "BASE",
-     "qty": 1
+     "qty": 8
     }
    ]
   },
@@ -499,7 +539,7 @@
    "category": "structure",
    "make": "make",
    "standard": "site works, galvanised sheet 5 mm",
-   "size": "4750 x 160 x 330 deep",
+   "size": "4641 x 213 x 354 deep",
    "grade": "",
    "material": "Steel 42CrMo4, quenched and tempered",
    "materialKey": "steel",
@@ -510,7 +550,8 @@
    "reference": true,
    "function": "A covered trench under the carriage. The cable chain runs in it, below the deck, clear of doors and feet.",
    "spec": {
-    "cover": "brush strip, the carriage's hanger passes through it"
+    "seat": "a 65 mm flange each side carries the cover plates",
+    "opening": "170 mm in the rear wall, for the feed trench"
    },
    "uses": [
     {
@@ -536,6 +577,59 @@
    "reference": false,
    "function": "Rides the 4 bed blocks. It carries the cross rails, the ball screw and the rail drive.",
    "spec": {},
+   "uses": [
+    {
+     "sub": "BASE",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-BFC",
+   "name": "Feed trench cover plate, galvanised checker plate",
+   "category": "structure",
+   "make": "make",
+   "standard": "checker plate 10 mm",
+   "size": "240 x 372 x 10",
+   "grade": "S235, galvanised, R11 slip",
+   "material": "Structural steel S355, hot-dip galvanised",
+   "materialKey": "steel_s355",
+   "qty": 1,
+   "massKg": 6.9924,
+   "totalMassKg": 6.9924,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Covers the feed trench from the cabinet's pad to the channel's cover, flush with the deck. The rear beam passes over it.",
+   "spec": {
+    "span": "180 mm",
+    "load": "foot traffic"
+   },
+   "uses": [
+    {
+     "sub": "BASE",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-BFL",
+   "name": "Feed trench liner, cabinet to channel (site works)",
+   "category": "structure",
+   "make": "make",
+   "standard": "site works, galvanised sheet 5 mm",
+   "size": "170 x 704 x 354 deep",
+   "grade": "",
+   "material": "Steel 42CrMo4, quenched and tempered",
+   "materialKey": "steel",
+   "qty": 1,
+   "massKg": 0.0,
+   "totalMassKg": 0.0,
+   "torqueNm": null,
+   "reference": true,
+   "function": "A trench from under the cabinet to the cable channel. The supply lines lie in it, under a flush cover.",
+   "spec": {
+    "under the pad": "it runs on as a tunnel, and a shaft rises through the pad into the cabinet"
+   },
    "uses": [
     {
      "sub": "BASE",
@@ -664,30 +758,6 @@
    ]
   },
   {
-   "id": "CHG-BZB",
-   "name": "Saddle chain bracket, stainless",
-   "category": "structure",
-   "make": "make",
-   "standard": "machined",
-   "size": "35 x 73 x 50",
-   "grade": "316L",
-   "material": "Stainless steel 1.4401 (316)",
-   "materialKey": "ss316",
-   "qty": 1,
-   "massKg": 1.0194,
-   "totalMassKg": 1.0194,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Joins the small chain's moving end to the saddle.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "BASE",
-     "qty": 1
-    }
-   ]
-  },
-  {
    "id": "CHG-SLB",
    "name": "Floor slab under the bed (site works)",
    "category": "structure",
@@ -702,9 +772,10 @@
    "totalMassKg": 0.0,
    "torqueNm": null,
    "reference": true,
-   "function": "The depot floor here. It carries the bed's grout blocks, the cable channel and the cabinet's pad.",
+   "function": "The depot floor here. It carries the bed's grout blocks, the cable channel, the feed trench and the cabinet's pad.",
    "spec": {
-    "flatness": "5 mm under a 3 m straightedge"
+    "flatness": "5 mm under a 3 m straightedge",
+    "round the trenches": "474 mm deep"
    },
    "uses": [
     {
@@ -961,50 +1032,26 @@
    ]
   },
   {
-   "id": "ECHAIN-100x50",
-   "name": "Cable carrier link 100 x 50",
-   "category": "electrical",
+   "id": "CHG-BCB",
+   "name": "Slot brush strip, nylon on aluminium back",
+   "category": "seal",
    "make": "buy",
    "standard": "catalogue part",
-   "size": "inner 100 x 50, pitch 67",
+   "size": "12 x 4641",
    "grade": "",
    "material": "PA66-GF30",
    "materialKey": "pa66",
-   "qty": 38,
-   "massKg": 0.0434,
-   "totalMassKg": 1.6502,
+   "qty": 2,
+   "massKg": 0.2255,
+   "totalMassKg": 0.4511,
    "torqueNm": null,
    "reference": false,
-   "function": "Guides the cables and hoses through the moving joint. It keeps the bend radius safe.",
+   "function": "Closes the cover's slot round the driver against grit and rain.",
    "spec": {},
    "uses": [
     {
      "sub": "BASE",
-     "qty": 38
-    }
-   ]
-  },
-  {
-   "id": "ECHAIN-40x25",
-   "name": "Cable carrier link 40 x 25",
-   "category": "electrical",
-   "make": "buy",
-   "standard": "catalogue part",
-   "size": "inner 40 x 25, pitch 40",
-   "grade": "",
-   "material": "PA66-GF30",
-   "materialKey": "pa66",
-   "qty": 14,
-   "massKg": 0.0116,
-   "totalMassKg": 0.1619,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Guides the cables and hoses through the moving joint. It keeps the bend radius safe.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "BASE",
-     "qty": 14
+     "qty": 2
     }
    ]
   },
@@ -1032,6 +1079,36 @@
     {
      "sub": "BASE",
      "qty": 24
+    }
+   ]
+  },
+  {
+   "id": "ISO10642-M8x20-A4-80",
+   "name": "Countersunk screw M8 x 20",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 10642",
+   "size": "M8 x 20",
+   "grade": "A4-80",
+   "material": "Stainless steel A4-80",
+   "materialKey": "fast_a4",
+   "qty": 31,
+   "massKg": 0.0109,
+   "totalMassKg": 0.3383,
+   "torqueNm": 21.1,
+   "reference": false,
+   "function": "Holds a cover plate down on its seat flange.",
+   "spec": {
+    "drive": "hex socket 5 mm"
+   },
+   "uses": [
+    {
+     "sub": "BASE",
+     "qty": 28
+    },
+    {
+     "sub": "SUPPLY",
+     "qty": 3
     }
    ]
   },
@@ -1188,6 +1265,859 @@
     {
      "sub": "J3",
      "qty": 20
+    }
+   ]
+  },
+  {
+   "id": "CHG-BCA",
+   "name": "Cable chain driver, stainless",
+   "category": "structure",
+   "make": "make",
+   "standard": "welded sheet 3 mm",
+   "size": "head 477 x 163 x 150, neck 147 x 50",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 9.2296,
+   "totalMassKg": 9.2296,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Joins the chain's moving end to the carriage. The lines rise inside it, through the cover's slot.",
+   "spec": {
+    "in the slot": "50 mm in a 60 mm slot, a brush strip each side",
+    "inside": "the lines turn on 60 mm or more (4 x d, fixed); not drawn one by one"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-BCF",
+   "name": "Cable chain fixed-end bracket, stainless",
+   "category": "structure",
+   "make": "make",
+   "standard": "bent plate",
+   "size": "67 x 176 x 55",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 1.2284,
+   "totalMassKg": 1.2284,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Holds the chain's first link to the channel floor. The lines enter the chain here.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-BZB",
+   "name": "Saddle duct bracket, stainless",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined",
+   "size": "80 x 60 x 60",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 2.2839,
+   "totalMassKg": 2.2839,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the saddle duct, and with it the cross chain's moving end, on the saddle's edge.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-BZD",
+   "name": "Saddle duct, chain to riser, stainless",
+   "category": "structure",
+   "make": "make",
+   "standard": "welded sheet 3 mm",
+   "size": "536 x 327 x 240",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 10.5772,
+   "totalMassKg": 10.5772,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes the lines from the cross chain's moving end down and round to the riser's cable window.",
+   "spec": {
+    "inside": "the lines turn on 60 mm or more (4 x d, fixed); not drawn one by one",
+    "into the riser": "a spigot in the cable window, on its sill"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-BZE",
+   "name": "Carriage elbow duct, stainless",
+   "category": "structure",
+   "make": "make",
+   "standard": "welded sheet 3 mm",
+   "size": "147 x 190 x 130",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 2.2496,
+   "totalMassKg": 2.2496,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Stands on the driver's neck against the carriage plate's edge. In it the lines bend from upright into the cross chain.",
+   "spec": {
+    "inside": "bend radius 98 mm or more; the lines are not drawn one by one"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-BZT",
+   "name": "Cross chain tray, stainless",
+   "category": "structure",
+   "make": "make",
+   "standard": "welded plate 10 mm and sheet 3 mm",
+   "size": "242 x 594",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 13.1238,
+   "totalMassKg": 13.1238,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the cross chain beside the saddle. It is screwed to the carriage plate and reaches past its edge.",
+   "spec": {
+    "on the plate": "80 mm",
+    "past its edge": "162 mm"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-BGP",
+   "name": "Cabinet gland plate, 16 entries",
+   "category": "electrical",
+   "make": "make",
+   "standard": "cut plate 4 mm",
+   "size": "210 x 145 x 4",
+   "grade": "IP54 with its glands",
+   "material": "Structural steel S355, hot-dip galvanised",
+   "materialKey": "steel_s355",
+   "qty": 1,
+   "massKg": 0.8821,
+   "totalMassKg": 0.8821,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Closes the cabinet's floor over the shaft. Each supply line enters the cabinet through it.",
+   "spec": {
+    "glands": "one a line, not drawn"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-BK1",
+   "name": "Line clamp, base bar",
+   "category": "electrical",
+   "make": "make",
+   "standard": "machined",
+   "size": "170 x 30 x 21",
+   "grade": "",
+   "material": "PA66-GF30",
+   "materialKey": "pa66",
+   "qty": 4,
+   "massKg": 0.145,
+   "totalMassKg": 0.58,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Lifts the 8 DC cores off the trench floor, at the height they have in the chain.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "CHG-BK2",
+   "name": "Line clamp, shelf bar",
+   "category": "electrical",
+   "make": "make",
+   "standard": "machined",
+   "size": "170 x 30 x 4.5",
+   "grade": "",
+   "material": "PA66-GF30",
+   "materialKey": "pa66",
+   "qty": 4,
+   "massKg": 0.0307,
+   "totalMassKg": 0.1226,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Lies on the DC cores and carries the hoses and the small cables.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "CHG-BK3",
+   "name": "Line clamp, top bar",
+   "category": "electrical",
+   "make": "make",
+   "standard": "machined",
+   "size": "170 x 30 x 8",
+   "grade": "",
+   "material": "PA66-GF30",
+   "materialKey": "pa66",
+   "qty": 4,
+   "massKg": 0.0545,
+   "totalMassKg": 0.218,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Clamps the stack. 2 screws go through it into the base bar.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "CHG-BMXC",
+   "name": "Rail servo cable in conduit, 20 mm",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "EN 61386",
+   "size": "D 20",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 1,
+   "massKg": 0.1277,
+   "totalMassKg": 0.1277,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Runs from the driver's neck, under the carriage plate, to the rail gearmotor.",
+   "spec": {
+    "bend": "R 50 (4 x d)",
+    "carries": "motor, brake and encoder, one cable"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-BMZC",
+   "name": "Cross-slide servo cable in conduit, 20 mm",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "EN 61386",
+   "size": "D 20",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 1,
+   "massKg": 0.3551,
+   "totalMassKg": 0.3551,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Runs from the elbow duct along the carriage plate's edge to the cross-slide motor.",
+   "spec": {
+    "bend": "R 50 (4 x d)",
+    "carries": "motor, brake and encoder, one cable"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-LDN1",
+   "name": "DC- cable, core 1 of 4, 1 x 50 mm2",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "chain-rated single core, shielded, 600/1000 V",
+   "size": "D 15 x 1925",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 1,
+   "massKg": 1.1302,
+   "totalMassKg": 1.1302,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries a quarter of the charge current of the negative pole from the cabinet to the chain.",
+   "spec": {
+    "conductor": "50 mm2 copper, fine stranded",
+    "load": "125 A at 500 A (55 % of 228 A, the sheet's figure at 30 C)",
+    "drawn": "from the cabinet's floor to the chain's fixed end; it runs on in the chain",
+    "bends here": "R 100 and R 135 mm (it may bend on 60 mm fixed, 112 mm in a chain)",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-LDN2",
+   "name": "DC- cable, core 2 of 4, 1 x 50 mm2",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "chain-rated single core, shielded, 600/1000 V",
+   "size": "D 15 x 1951",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 1,
+   "massKg": 1.1454,
+   "totalMassKg": 1.1454,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries a quarter of the charge current of the negative pole from the cabinet to the chain.",
+   "spec": {
+    "conductor": "50 mm2 copper, fine stranded",
+    "load": "125 A at 500 A (55 % of 228 A, the sheet's figure at 30 C)",
+    "drawn": "from the cabinet's floor to the chain's fixed end; it runs on in the chain",
+    "bends here": "R 100 and R 151 mm (it may bend on 60 mm fixed, 112 mm in a chain)",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-LDN3",
+   "name": "DC- cable, core 3 of 4, 1 x 50 mm2",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "chain-rated single core, shielded, 600/1000 V",
+   "size": "D 15 x 1977",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 1,
+   "massKg": 1.1606,
+   "totalMassKg": 1.1606,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries a quarter of the charge current of the negative pole from the cabinet to the chain.",
+   "spec": {
+    "conductor": "50 mm2 copper, fine stranded",
+    "load": "125 A at 500 A (55 % of 228 A, the sheet's figure at 30 C)",
+    "drawn": "from the cabinet's floor to the chain's fixed end; it runs on in the chain",
+    "bends here": "R 100 and R 168 mm (it may bend on 60 mm fixed, 112 mm in a chain)",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-LDN4",
+   "name": "DC- cable, core 4 of 4, 1 x 50 mm2",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "chain-rated single core, shielded, 600/1000 V",
+   "size": "D 15 x 2003",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 1,
+   "massKg": 1.1758,
+   "totalMassKg": 1.1758,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries a quarter of the charge current of the negative pole from the cabinet to the chain.",
+   "spec": {
+    "conductor": "50 mm2 copper, fine stranded",
+    "load": "125 A at 500 A (55 % of 228 A, the sheet's figure at 30 C)",
+    "drawn": "from the cabinet's floor to the chain's fixed end; it runs on in the chain",
+    "bends here": "R 100 and R 184 mm (it may bend on 60 mm fixed, 112 mm in a chain)",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-LDP1",
+   "name": "DC+ cable, core 1 of 4, 1 x 50 mm2",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "chain-rated single core, shielded, 600/1000 V",
+   "size": "D 15 x 1822",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 1,
+   "massKg": 1.0693,
+   "totalMassKg": 1.0693,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries a quarter of the charge current of the positive pole from the cabinet to the chain.",
+   "spec": {
+    "conductor": "50 mm2 copper, fine stranded",
+    "load": "125 A at 500 A (55 % of 228 A, the sheet's figure at 30 C)",
+    "drawn": "from the cabinet's floor to the chain's fixed end; it runs on in the chain",
+    "bends here": "R 100 and R 69 mm (it may bend on 60 mm fixed, 112 mm in a chain)",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-LDP2",
+   "name": "DC+ cable, core 2 of 4, 1 x 50 mm2",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "chain-rated single core, shielded, 600/1000 V",
+   "size": "D 15 x 1848",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 1,
+   "massKg": 1.0845,
+   "totalMassKg": 1.0845,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries a quarter of the charge current of the positive pole from the cabinet to the chain.",
+   "spec": {
+    "conductor": "50 mm2 copper, fine stranded",
+    "load": "125 A at 500 A (55 % of 228 A, the sheet's figure at 30 C)",
+    "drawn": "from the cabinet's floor to the chain's fixed end; it runs on in the chain",
+    "bends here": "R 100 and R 85 mm (it may bend on 60 mm fixed, 112 mm in a chain)",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-LDP3",
+   "name": "DC+ cable, core 3 of 4, 1 x 50 mm2",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "chain-rated single core, shielded, 600/1000 V",
+   "size": "D 15 x 1874",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 1,
+   "massKg": 1.0997,
+   "totalMassKg": 1.0997,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries a quarter of the charge current of the positive pole from the cabinet to the chain.",
+   "spec": {
+    "conductor": "50 mm2 copper, fine stranded",
+    "load": "125 A at 500 A (55 % of 228 A, the sheet's figure at 30 C)",
+    "drawn": "from the cabinet's floor to the chain's fixed end; it runs on in the chain",
+    "bends here": "R 100 and R 102 mm (it may bend on 60 mm fixed, 112 mm in a chain)",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-LDP4",
+   "name": "DC+ cable, core 4 of 4, 1 x 50 mm2",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "chain-rated single core, shielded, 600/1000 V",
+   "size": "D 15 x 1899",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 1,
+   "massKg": 1.115,
+   "totalMassKg": 1.115,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries a quarter of the charge current of the positive pole from the cabinet to the chain.",
+   "spec": {
+    "conductor": "50 mm2 copper, fine stranded",
+    "load": "125 A at 500 A (55 % of 228 A, the sheet's figure at 30 C)",
+    "drawn": "from the cabinet's floor to the chain's fixed end; it runs on in the chain",
+    "bends here": "R 100 and R 118 mm (it may bend on 60 mm fixed, 112 mm in a chain)",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-LJS",
+   "name": "Joint supply cable (motor power, 24 V, EtherCAT)",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "chain-rated",
+   "size": "D 10 x 1878",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 1,
+   "massKg": 0.2213,
+   "totalMassKg": 0.2213,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Feeds the 6 joints. It goes up the riser and through the hollow shafts of J1 to J5.",
+   "spec": {
+    "diameter": "typical of its kind (assumed)",
+    "drawn": "from the cabinet's floor to the chain's fixed end; it runs on in the chain",
+    "bends here": "R 83 and R 122 mm (it may bend on 40 mm fixed, 75 mm in a chain)"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-LMX",
+   "name": "Rail servo cable (motor, brake, encoder)",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "chain-rated",
+   "size": "D 12.5 x 1925",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 1,
+   "massKg": 0.3544,
+   "totalMassKg": 0.3544,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Joins the rail gearmotor to its drive in the cabinet.",
+   "spec": {
+    "diameter": "typical of its kind (assumed)",
+    "drawn": "from the cabinet's floor to the chain's fixed end; it runs on in the chain",
+    "bends here": "R 82 and R 153 mm (it may bend on 50 mm fixed, 94 mm in a chain)"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-LMZ",
+   "name": "Cross-slide servo cable (motor, brake, encoder)",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "chain-rated",
+   "size": "D 11 x 1947",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 1,
+   "massKg": 0.2775,
+   "totalMassKg": 0.2775,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Joins the cross-slide motor to its drive in the cabinet.",
+   "spec": {
+    "diameter": "typical of its kind (assumed)",
+    "drawn": "from the cabinet's floor to the chain's fixed end; it runs on in the chain",
+    "bends here": "R 82 and R 166 mm (it may bend on 44 mm fixed, 82 mm in a chain)"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-LSF",
+   "name": "Safety cable (scanner, emergency stop, status lights)",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "chain-rated",
+   "size": "D 9 x 1909",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 1,
+   "massKg": 0.1822,
+   "totalMassKg": 0.1822,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Joins the scanner, the emergency stop and the light rings to the safety controller in the cabinet.",
+   "spec": {
+    "diameter": "typical of its kind (assumed)",
+    "drawn": "from the cabinet's floor to the chain's fixed end; it runs on in the chain",
+    "bends here": "R 84 and R 141 mm (it may bend on 36 mm fixed, 68 mm in a chain)"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-LTL",
+   "name": "Tool cable (EtherCAT, 24 V)",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "chain-rated",
+   "size": "D 8 x 1895",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 1,
+   "massKg": 0.1429,
+   "totalMassKg": 0.1429,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Serves the force sensor, the cameras, the light ring and the latches. It runs in the boots with the DC links.",
+   "spec": {
+    "diameter": "typical of its kind (assumed)",
+    "drawn": "from the cabinet's floor to the chain's fixed end; it runs on in the chain",
+    "bends here": "R 84 and R 132 mm (it may bend on 32 mm fixed, 60 mm in a chain)"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "ECHAIN-163x64",
+   "name": "Cable carrier link, inside 137 x 42",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "outside 163 x 64, inside 137 x 42, pitch 67",
+   "grade": "",
+   "material": "PA66-GF30",
+   "materialKey": "pa66",
+   "qty": 51,
+   "massKg": 0.062,
+   "totalMassKg": 3.1615,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Guides the cables and hoses through the moving joint. It keeps the bend radius safe.",
+   "spec": {
+    "inside": "137 x 42 mm, one shelf",
+    "bend radius": "125 mm",
+    "tightest line allows": "112.5 mm (7.5 x 15 mm, the DC core)"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 51
+    }
+   ]
+  },
+  {
+   "id": "CHG-LAR",
+   "name": "Air tube 8 x 6",
+   "category": "fluid",
+   "make": "buy",
+   "standard": "polyurethane tube",
+   "size": "D 8 x 1864",
+   "grade": "",
+   "material": "Polyurethane, 90 Shore A",
+   "materialKey": "pu",
+   "qty": 1,
+   "massKg": 0.1125,
+   "totalMassKg": 0.1125,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes air at 6 bar to the head: the compliance lock and the 2 plunge cylinders.",
+   "spec": {
+    "diameter": "typical of its kind (assumed)",
+    "drawn": "from the cabinet's floor to the chain's fixed end; it runs on in the chain",
+    "bends here": "R 84 and R 112 mm (it may bend on 32 mm fixed, 60 mm in a chain)"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-LCR",
+   "name": "Coolant return hose 12 x 8",
+   "category": "fluid",
+   "make": "buy",
+   "standard": "polyurethane tube",
+   "size": "D 12 x 1844",
+   "grade": "",
+   "material": "Polyurethane, 90 Shore A",
+   "materialKey": "pu",
+   "qty": 1,
+   "massKg": 0.2503,
+   "totalMassKg": 0.2503,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Brings the warm liquid back to the cooling unit in the cabinet.",
+   "spec": {
+    "diameter": "typical of its kind (assumed)",
+    "drawn": "from the cabinet's floor to the chain's fixed end; it runs on in the chain",
+    "bends here": "R 82 and R 101 mm (it may bend on 48 mm fixed, 90 mm in a chain)"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-LCS",
+   "name": "Coolant supply hose 12 x 8",
+   "category": "fluid",
+   "make": "buy",
+   "standard": "polyurethane tube",
+   "size": "D 12 x 1823",
+   "grade": "",
+   "material": "Polyurethane, 90 Shore A",
+   "materialKey": "pu",
+   "qty": 1,
+   "massKg": 0.2474,
+   "totalMassKg": 0.2474,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes cooled liquid from the cabinet's cooling unit to the connector's contacts.",
+   "spec": {
+    "diameter": "typical of its kind (assumed)",
+    "drawn": "from the cabinet's floor to the chain's fixed end; it runs on in the chain",
+    "bends here": "R 82 and R 88 mm (it may bend on 48 mm fixed, 90 mm in a chain)"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M6x55-A4-80",
+   "name": "Socket head cap screw M6 x 55",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M6 x 55",
+   "grade": "A4-80",
+   "material": "Stainless steel A4-80",
+   "materialKey": "fast_a4",
+   "qty": 8,
+   "massKg": 0.0155,
+   "totalMassKg": 0.1241,
+   "torqueNm": 9.8,
+   "reference": false,
+   "function": "Clamps the 3 bars of a line clamp together, into the base bar.",
+   "spec": {
+    "preload": "9.5 kN",
+    "drive": "hex socket 5 mm"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 8
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M8x20-A4-80",
+   "name": "Socket head cap screw M8 x 20",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M8 x 20",
+   "grade": "A4-80",
+   "material": "Stainless steel A4-80",
+   "materialKey": "fast_a4",
+   "qty": 2,
+   "massKg": 0.0152,
+   "totalMassKg": 0.0304,
+   "torqueNm": 23.8,
+   "reference": false,
+   "function": "Holds the elbow duct to the carriage plate's edge, from inside the duct.",
+   "spec": {
+    "preload": "17.5 kN",
+    "drive": "hex socket 6 mm"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 2
     }
    ]
   },
@@ -5831,7 +6761,7 @@
    "totalMassKg": 3.0,
    "torqueNm": null,
    "reference": false,
-   "function": "Takes the 2 DC cables up the riser from the cable chain and hands the current to the J1 flex link.",
+   "function": "Takes the 8 DC cores from the saddle duct, through a port in the riser's wall, and hands the current to the J1 flex link.",
    "spec": {
     "terminals": "2 x 500 A DC, bolted M12, touch-safe covers",
     "bars in the link": "2 x 40 x 10 mm copper, insulated",
