@@ -682,8 +682,10 @@ The poses found more, which the stowed pose could not show:
     - **The wash arms' lines were short by their run across the floor box.** From each duct's mouth in the box's floor to
       the box's gland, 60 to 211 mm a line, was in no piece. It is now a 'duct' piece on each line.
     - **Found and not changed:** both clean arm link covers hold their screws over the opening in the link's top skin,
-      not over its rim, so those screws grip only the cover. The clash and contact checks pass them because they touch
-      the cover.
+      not over its rim, so those screws grip only the cover. Link 1's opening reaches z ±71 mm and its screws stand at
+      ±62; link 2's reaches ±57 and its screws stand at ±52. Each cover laps the rim by 3 to 4 mm (link 1's rim is 14 mm
+      wide, link 2's 13). The clash and contact checks pass the screws because they touch the cover. The fix is to widen
+      the covers and put the screws on the rim, or to make the openings narrower.
 
 The audit also found the wash machine's tools fed by rigid pipes that could not follow them. They now have flexible
 lines that do (below). (The wands' vacuum units and the side brushes' chains it added went with finding 17.)
