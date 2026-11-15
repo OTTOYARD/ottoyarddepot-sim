@@ -526,7 +526,15 @@ def build(spec: dict) -> Model:
                      'On the carriage 2 rails and a ball screw carry the saddle toward the car and back.',
                      'For an inlet on the car\'s side the base stops beside it, at the same distance from every car.',
                      'For an inlet in the rear bumper the base goes past the tail and in behind the car\'s corner.',
-                     'Every supply line comes from the cabinet: 8 DC cores, 2 coolant hoses, 1 air tube and 5 cables.',
+                     'Cover plates close the cable channel between the beams, flush with the deck. 2 brush strips close the slot between them.',
+                     'The bed is set toward the tail end of the stall. A stall that faces the other way has the same bed, set the other way.'],
+                specs={'along the car': f"{S['baseStage']['railNose']:.1f} m toward the nose, {S['baseStage']['railTail']:.1f} m toward the tail",
+                       'toward the car': f"{S['baseStage']['crossIn']:.2f} m in, {S['baseStage']['crossOut']:.2f} m out",
+                       'rails': 'size 25 along the car, size 20 across', 'drive': 'rack and pinion module 3 along, ball screw 20 x 5 across'},
+                group='Motion')
+    m.subsystem('SUPPLY', 'Supply from the cabinet', 'Brings every line from the DC cabinet to the riser: the charge current, the coolant, '
+                'the air, power and the network. It follows the base along the rail and across.',
+                how=['Every supply line comes from the cabinet: 8 DC cores, 2 coolant hoses, 1 air tube and 5 cables.',
                      'They leave the cabinet through its floor and drop through the pad into a lined trench in the slab.',
                      'The trench runs under a flush cover plate to the cable channel between the bed\'s beams.',
                      'In the channel each line turns onto its own lane and enters the cable chain at its fixed end.',
@@ -534,13 +542,9 @@ def build(spec: dict) -> Model:
                      'A driver on the carriage runs in the slot between the cover plates. 2 brush strips close the slot.',
                      'The lines rise inside the driver and bend into a second chain, on a tray at the carriage plate\'s edge.',
                      'That chain follows the saddle. A duct on the saddle takes the lines to the riser.',
-                     'The 2 servo cables leave the driver in conduits, one to the rail gearmotor and one to the cross-slide motor.',
-                     'The bed is set toward the tail end of the stall. A stall that faces the other way has the same bed, set the other way.'],
-                specs={'along the car': f"{S['baseStage']['railNose']:.1f} m toward the nose, {S['baseStage']['railTail']:.1f} m toward the tail",
-                       'toward the car': f"{S['baseStage']['crossIn']:.2f} m in, {S['baseStage']['crossOut']:.2f} m out",
-                       'rails': 'size 25 along the car, size 20 across', 'drive': 'rack and pinion module 3 along, ball screw 20 x 5 across',
-                       'above the deck': 'the driver, the cross chain and the ducts, all on the carriage'},   # the supply's sizes are added where they are worked out
-                group='Motion')
+                     'The 2 servo cables leave the driver in conduits, one to the rail gearmotor and one to the cross-slide motor.'],
+                specs={'above the deck': 'the driver, the cross chain and the ducts, all on the carriage'},   # the sizes are added where they are worked out
+                group='Cables')
     m.subsystem('J1', 'J1 base yaw', 'Turns the whole arm about the vertical axis to face the charge port.',
                 how=['A size 40 actuator in the riser top turns the turret.', 'Range is +/- 180 degrees. Cables pass through the hollow shaft.'],
                 specs={'gear': 'strain-wave, size 40, 100:1'}, group='Joints')
@@ -715,16 +719,20 @@ def build(spec: dict) -> Model:
              ('SF', 'Safety cable (scanner, emergency stop, status lights)', 9.0, 'cable', 'electrical', True, 'Joins the scanner, the emergency stop and the light rings to the safety controller in the cabinet.'),
              ('MX', 'Rail servo cable (motor, brake, encoder)', 12.5, 'cable', 'electrical', False, 'Joins the rail gearmotor to its drive in the cabinet.'),
              ('MZ', 'Cross-slide servo cable (motor, brake, encoder)', 11.0, 'cable', 'electrical', False, 'Joins the cross-slide motor to its drive in the cabinet.')]
-    CN_IH = 40.0                                          # the chain inside: the DC cores below a shelf, the small lines on it
-    CN_IW = math.ceil(max(2 * DC_N * DC_D, sum(u[2] for u in UPPER)) * FILL / 5) * 5
-    CN_W, CN_H, CN_P = CN_IW + 25.0, CN_IH + 16.0, 67.0   # a link outside, and its pitch
+    # The chain: the narrowest heavy chain (std.CHAIN_CLASSES, from the maker's sheet) whose inside holds the DC cores
+    # side by side under a shelf and the small lines side by side on it, on a radius the DC core may bend on. It is drawn
+    # to its outside: 137 x 42 inside is 163 x 64 outside. (This file first drew a link 160 x 56 outside and called it
+    # 135 x 40 inside, with walls taken from no sheet.)
     R_CH = 125.0
     D_MAX = max(DC_D, max(u[2] for u in UPPER))
-    if R_CH < K_CHAIN * D_MAX or CN_IH < FILL * DC_D + 3 + FILL * max(u[2] for u in UPPER):
-        raise ValueError('the chain is too tight or too low for its lines')
-    ch_link = std.chain_link(CN_W, CN_H, CN_P)
+    if R_CH < K_CHAIN * D_MAX:
+        raise ValueError('the chain bends tighter than its lines may')
+    CN = std.chain_size('heavy', max(2 * DC_N * DC_D, sum(u[2] for u in UPPER)) * FILL,
+                        FILL * DC_D + 3 + FILL * max(u[2] for u in UPPER), R_CH)
+    CN_IW, CN_IH, CN_W, CN_H, CN_P = CN['bi'], CN['hi'], CN['ba'], CN['ha'], CN['pitch']
     CHAIN_SPEC = {'inside': f'{CN_IW:.0f} x {CN_IH:.0f} mm, one shelf', 'bend radius': f'{R_CH:.0f} mm',
                   'tightest line allows': f'{K_CHAIN * DC_D:.1f} mm (7.5 x {DC_D:g} mm, the DC core)'}
+    ch_link = std.chain_link(CN_W, CN_H, CN_P, inside=(CN_IW, CN_IH), spec=CHAIN_SPEC)
     # the covered channel in the slab, between the beams. From the deck down: the cover, 15 mm of air, the chain's upper
     # run, its bend, its lower run 10 mm over the floor, the liner
     SLOT, SW_T = 60.0, 50.0                               # the cover's slot, and the driver that runs in it
@@ -896,7 +904,7 @@ def build(spec: dict) -> Model:
                                     {**ln['spec'], 'drawn': 'from the cabinet\'s floor to the chain\'s fixed end; it runs on in the chain',
                                      'bends here': f"R {ln['rv']:.0f} and R {ln['r']:.0f} mm (it may bend on {K_FIXED * ln['d']:.0f} mm fixed, {K_CHAIN * ln['d']:.0f} mm in a chain)"},
                                     'buy', mass_override=None if ln['kg_m'] is None else ln['kg_m'] * L_ln / 1000.0)),
-                Location(), (0, -200, -60), 'BASE')
+                Location(), (0, -200, -60), 'SUPPLY')
     # clamp bars hold the lines on their lanes: one under the DC cores, one between them and the small lines, one on top
     CL_L, CL_W, CL_X = ft_x1 - ft_x0, 30.0, (ft_x1 - ft_x0) / 2 - 8.0
     y_top = y_sf + max(u[2] for u in UPPER)
@@ -917,9 +925,9 @@ def build(spec: dict) -> Model:
     for T in (loc(X_C + CH_WI / 2 + E_T, y_fl, Z_V0 + R_V0 + 60.0), loc(X_C + CH_WI / 2 + E_T, y_fl, z_wo - 150.0),
               loc(X_C - 120.0, y_fl, ZC, ry=90), loc(X_F + 40.0, y_fl, ZC, ry=90)):
         for pd_ in cl_pds:
-            m.place(bed, pd_, T, (0, -120, 0), 'BASE')
+            m.place(bed, pd_, T, (0, -120, 0), 'SUPPLY')
         for sx_ in (-1, 1):
-            m.place(bed, cl_s, T * std.orient((sx_ * CL_X, y_top + 8.0 - y_fl, 0), (0, -1, 0)), (0, -60, 0), 'BASE')
+            m.place(bed, cl_s, T * std.orient((sx_ * CL_X, y_top + 8.0 - y_fl, 0), (0, -1, 0)), (0, -60, 0), 'SUPPLY')
     # the cabinet's floor plate over the shaft: every line passes it in its own gland
     gl = _bx(ft_x0 - 20, ft_x1 + 20, pad_top, pad_top + 4.0, ft_z0 - 20, sh_z1 + 20)
     for ln in LANES:
@@ -929,7 +937,7 @@ def build(spec: dict) -> Model:
                                 f'{ft_x1 - ft_x0 + 40:.0f} x {sh_z1 - ft_z0 + 40:.0f} x 4', 'IP54 with its glands', None,
                                 'Closes the cabinet\'s floor over the shaft. Each supply line enters the cabinet through it.',
                                 {'glands': 'one a line, not drawn'}, 'make')),
-            Location(), (0, 80, -260), 'BASE')
+            Location(), (0, 80, -260), 'SUPPLY')
     # the chain's fixed end: a bracket on the channel floor carries and holds the first link
     fbr = (_bx(X_F - CN_P, X_F, y_fl, y_fl + BOT_C, ZC - CN_W / 2 - 6.5, ZC + CN_W / 2 + 6.5)
            .union(_bx(X_F - CN_P, X_F, y_fl + BOT_C, y_fl + BOT_C + CN_H * 0.7, ZC + CN_W / 2 + 0.5, ZC + CN_W / 2 + 6.5))
@@ -937,7 +945,7 @@ def build(spec: dict) -> Model:
     m.place(bed, m.part(PartDef('CHG-BCF', 'Cable chain fixed-end bracket, stainless', fbr.val(), 'ss316', 'structure', 'bent plate',
                                 f'{CN_P:.0f} x {CN_W + 13:.0f} x {BOT_C + CN_H * 0.7:.0f}', '316L', None,
                                 'Holds the chain\'s first link to the channel floor. The lines enter the chain here.', {}, 'make')),
-            Location(), (0, -160, 0), 'BASE')
+            Location(), (0, -160, 0), 'SUPPLY')
 
     carx = root.child('Carriage', Location(), sub='BASE',
                       joint={'name': 'CR_X', 'axis': [1, 0, 0], 'limits': [-TAIL / 1000, TAIL / 1000], 'kind': 'prismatic', 'stowed': 0})
@@ -1003,7 +1011,7 @@ def build(spec: dict) -> Model:
                                  'catalogue part', '0.75 kW', 'IP65', None,
                                  'Turns the ball screw. Its brake holds the saddle when power is off.', {}, 'buy', mass_override=3.4)),
             loc(0, y_xr, 0), (0, 120, -140), 'BASE')
-    m.subsystems['BASE']['specs'].update({
+    m.subsystems['SUPPLY']['specs'].update({
         'DC cable': f'{DC_N} cores of 50 mm2 a pole, {DC_D:g} mm each, {500 / DC_N:.0f} A a core at 500 A',
         'cable chains': f'2, of one link, {CN_IW:.0f} x {CN_IH:.0f} mm inside, bend radius {R_CH:.0f} mm',
         'bend rule': f'{K_CHAIN:g} x the diameter in a chain ({K_CHAIN * DC_D:g} mm for the DC core), {K_FIXED:g} x where fixed ({K_FIXED * DC_D:g} mm)',
@@ -1025,10 +1033,10 @@ def build(spec: dict) -> Model:
                                  'Joins the chain\'s moving end to the carriage. The lines rise inside it, through the cover\'s slot.',
                                  {'in the slot': f'{SW_T:.0f} mm in a {SLOT:.0f} mm slot, a brush strip each side',
                                   'inside': f'the lines turn on {K_FIXED * DC_D:.0f} mm or more (4 x d, fixed); not drawn one by one'}, 'make')),
-            Location(), (0, -80, 80), 'BASE')
+            Location(), (0, -80, 80), 'SUPPLY')
     m.flex(FlexDef('CHG-BCN', f'Cable chain, inside {CN_IW:.0f} x {CN_IH:.0f}, R {R_CH:.0f}', 'chain',
                    Anchor(bed, (X_F, y_cb, ZC), (-1, 0, 0)), Anchor(carx, (0.0, y_ct, ZC), (-1, 0, 0)),
-                   CN_H / 2, 'BASE', 'Carries the charge current, the coolant, the air, power and network to the moving carriage. Its bend rolls along in the channel.',
+                   CN_H / 2, 'SUPPLY', 'Carries the charge current, the coolant, the air, power and network to the moving carriage. Its bend rolls along in the channel.',
                    mat='pa66', category='electrical', pitch=CN_P, bend_r=R_CH, links=n_ch, up=(0, 1, 0), w=CN_W, h=CN_H,
                    link_part=ch_link, kg_per_m=3.2,
                    spec={**CHAIN_SPEC, 'carries': f'{2 * DC_N} DC cores 1 x 50 mm2 ({DC_N} a pole), 2 coolant hoses, air, the joint supply, tool and safety cables, 2 servo cables'}))
@@ -1083,9 +1091,9 @@ def build(spec: dict) -> Model:
                                  f'{TX1 - TX0:.0f} x {TZ1 - Z_F:.0f}', '316L', None,
                                  'Carries the cross chain beside the saddle. It is screwed to the carriage plate and reaches past its edge.',
                                  {'on the plate': f'{CPX / 2 - TX0:.0f} mm', 'past its edge': f'{TX1 - CPX / 2:.0f} mm'}, 'make')),
-            Location(), (140, 60, 0), 'BASE')
+            Location(), (140, 60, 0), 'SUPPLY')
     for p in ty_pts:
-        m.place(carx, std.cshcs(8, 20, 'A4-80', 'Holds the cross chain\'s tray down on the carriage plate.'), std.orient(p, (0, -1, 0)), (140, 120, 0), 'BASE')
+        m.place(carx, std.cshcs(8, 20, 'A4-80', 'Holds the cross chain\'s tray down on the carriage plate.'), std.orient(p, (0, -1, 0)), (140, 120, 0), 'SUPPLY')
     eb_y = y_cp + CPT / 2
     eb_pts = [(SW_X0, eb_y, ZC + SW_T / 2 + 20.0), (SW_X0, eb_y, Z_F - 30.0)]
     elb = (_bx(SW_X0, SW_X1, y_e0, y_zb + CN_H / 2, ZC - SW_T / 2, Z_F)
@@ -1096,26 +1104,26 @@ def build(spec: dict) -> Model:
                                  f'{SW_X1 - SW_X0:.0f} x {Z_F - ZC + SW_T / 2:.0f} x {y_zb + CN_H / 2 - y_e0:.0f}', '316L', None,
                                  'Stands on the driver\'s neck against the carriage plate\'s edge. In it the lines bend from upright into the cross chain.',
                                  {'inside': f'bend radius {Z_F - ZC - SW_T / 2 - CN_IH:.0f} mm or more; the lines are not drawn one by one'}, 'make')),
-            Location(), (160, 0, 0), 'BASE')
+            Location(), (160, 0, 0), 'SUPPLY')
     for p in eb_pts:
         m.place(carx, std.shcs(8, 20, 'A4-80', 'Holds the elbow duct to the carriage plate\'s edge, from inside the duct.'),
-                std.orient((p[0] + 3, p[1], p[2]), (-1, 0, 0)), (220, 0, 0), 'BASE')
+                std.orient((p[0] + 3, p[1], p[2]), (-1, 0, 0)), (220, 0, 0), 'SUPPLY')
     y_gm, z_gm = y_cp - 68.0, ZR + 106.0                  # the rail gearmotor's axis (above): its motor ends at x = 220
     R_SV = math.ceil(K_FIXED * 12.5 / 10) * 10            # the servo cables' bend, fixed
     mxc = std.swept('CHG-BMXC', 'Rail servo cable in conduit, 20 mm',
                     [(SW_X0, y_gm, ZC), (SW_X0 - R_SV - 5, y_gm, ZC), (SW_X0 - R_SV - 5, y_gm, z_gm), (220.0, y_gm, z_gm)],
                     10, 'cable', 'electrical', 0, 'Runs from the driver\'s neck, under the carriage plate, to the rail gearmotor.',
                     {'bend': f'R {R_SV:.0f} (4 x d)', 'carries': 'motor, brake and encoder, one cable'}, 'EN 61386', 'D 20', 'buy', bend=float(R_SV))
-    m.place(carx, mxc, Location(), (0, -120, 0), 'BASE')
+    m.place(carx, mxc, Location(), (0, -120, 0), 'SUPPLY')
     y_q, z_q = y_xr + 30.0, CP_Z0 - 55.0                  # beside the plate's edge, above the bed's end stops; into the motor's side
     mzc = std.swept('CHG-BMZC', 'Cross-slide servo cable in conduit, 20 mm',
                     [(SW_X0 + 15, y_q, ZC - SW_T / 2), (SW_X0 + 15, y_q, z_q), (30.0, y_q, z_q)],
                     10, 'cable', 'electrical', 0, 'Runs from the elbow duct along the carriage plate\'s edge to the cross-slide motor.',
                     {'bend': f'R {R_SV:.0f} (4 x d)', 'carries': 'motor, brake and encoder, one cable'}, 'EN 61386', 'D 20', 'buy', bend=float(R_SV))
-    m.place(carx, mzc, Location(), (120, 60, -60), 'BASE')
+    m.place(carx, mzc, Location(), (120, 60, -60), 'SUPPLY')
     m.flex(FlexDef('CHG-BZN', f'Cross cable chain, inside {CN_IW:.0f} x {CN_IH:.0f}, R {R_CH:.0f}', 'chain',
                    Anchor(carx, (XC2, y_zb, Z_F), (0, 0, 1)), Anchor(base, (XC2, y_zt, Z_A), (0, 0, 1)),
-                   CN_H / 2, 'BASE', 'Carries the lines from the carriage to the saddle as it moves toward the car.',
+                   CN_H / 2, 'SUPPLY', 'Carries the lines from the carriage to the saddle as it moves toward the car.',
                    mat='pa66', category='electrical', pitch=CN_P, bend_r=R_CH, links=n_zc, up=(0, 1, 0), w=CN_W, h=CN_H,
                    link_part=ch_link, kg_per_m=3.2,
                    spec={**CHAIN_SPEC, 'carries': f'{2 * DC_N} DC cores 1 x 50 mm2, 2 coolant hoses, air, the joint supply, tool and safety cables'}))
@@ -1189,12 +1197,12 @@ def build(spec: dict) -> Model:
                                  'Takes the lines from the cross chain\'s moving end down and round to the riser\'s cable window.',
                                  {'inside': f'the lines turn on {K_FIXED * DC_D:.0f} mm or more (4 x d, fixed); not drawn one by one',
                                   'into the riser': 'a spigot in the cable window, on its sill'}, 'make')),
-            Location(), (160, 40, -120), 'DRESS')
+            Location(), (160, 40, -120), 'SUPPLY')
     zbr = _bx(SD_W / 2, XC2 - CN_W / 2 - 12.5, y_sd, win_y0, db_z1 - 68.0, db_z1 - 8.0)
     m.place(base, m.part(PartDef('CHG-BZB', 'Saddle duct bracket, stainless', zbr.val(), 'ss316', 'structure', 'machined',
                                  f'{XC2 - CN_W / 2 - 12.5 - SD_W / 2:.0f} x {win_y0 - y_sd:.0f} x 60', '316L', None,
                                  'Carries the saddle duct, and with it the cross chain\'s moving end, on the saddle\'s edge.', {}, 'make')),
-            Location(), (80, -40, -120), 'DRESS')
+            Location(), (80, -40, -120), 'SUPPLY')
 
     # mount plate + collar (the twin's plinth: plate 300 sq x 26 from y -81, collar 135/155 x 55)
     from ..actuator import stack as _stack

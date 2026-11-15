@@ -100,7 +100,8 @@ up: 2 bed beams (RHS 120 x 80 x 6) on plates, grout blocks and M16 injection anc
 rail, the rear one with a module 3 rack; a carriage plate on 4 blocks with a rack-and-pinion drive (`CR_X`, 1.3 m
 toward the car's nose and 2.5 m toward its tail); on it 2 size 20 cross rails, a 20 x 5 ball screw and a saddle
 (`CR_Z`, 0.65 m toward the car, 0.06 m away); the riser, shortened, on the saddle. The power and coolant lines run in
-a cable chain in a steel-lined channel in the slab, with a second small chain across the carriage. `CR_BED` is the
+a cable chain in a steel-lined channel in the slab, with a second chain of the same size across the carriage (finding
+19 draws them from the cabinet). `CR_BED` is the
 bed's set position, not a drive. The tool is a holder with 2 connectors side by side, CCS1 and NACS, 100 mm each side
 of the tool axis, each on a 90 mm plunge cylinder (`HD_CCS`, `HD_NACS`) with its own contacts, seal, bumper, latch and
 solenoid. The mass went from 313 kg to 833 kg: the bed, its anchors and the carriage are steel. The six-axis arm's links and joints are unchanged.
@@ -138,8 +139,8 @@ on a carriage, with a servo gearmotor and pinion, on a floor track of 2 profile 
 anchor plates and end stops. Each carries a polishing head (force sensor, floating joint, backing plate, microfibre
 pad), a wrist camera and a pure-water mist nozzle, and has a cable chain beside its track and a dock at the exit end
 (post, rinse cup, signal). The stop light, beacon,
-the control cabinet on the inner side of the west leg, and the supply drag chain in a trough inboard of the west rail,
-clear of the travel drive. Nothing stands outboard of the trolleys (design finding 8).
+the control cabinet on the inner side of the west leg, and the supply drag chain in a covered trench inboard of the west
+rail, clear of the travel drive. Nothing stands outboard of the trolleys (design finding 8).
 
 ## Every part against every other: the clash check
 
@@ -475,8 +476,51 @@ The poses found more, which the stowed pose could not show:
     sensor map, and the wrist camera corrects each point. No public source gives a measured time for a robot arm that
     polishes a car's sensors.
 
+19. **The supply was drawn only where it moves.** Chase, 2026-11-14: *"how does that arm get electricity to it while
+    it's sliding on the rail? I even see the charging cabinet behind the robotic charging arm, but it doesn't look like
+    it's plugged into the arm itself or even the rail ... this needs to be studied and analyzed on all robotics."* He
+    was right on all three. The charge arm's 2 chains were drawn, but no line reached their fixed end and the cabinet
+    had no way out: this file said the arm was "fed by the cable trunk from the cabinet", and a trunk cannot follow
+    3.8 m of rail. The wash machine's drag chain began at a point in its trench: no bracket held its first link and no
+    line reached it. The clean arm had a vacuum riser in its column and no power at all. **Every line is now drawn from where the site hands it over to the tool** (the paths are in "The
+    service lines", below): the charge arm's from the cabinet's floor, down through the pad, along a covered trench and
+    the bed's channel, into the chain, up through the cover's slot and across the carriage to the riser; the wash
+    machine's from a service panel on the bay's north wall, through ducts cast in the slab, a pit and a tray, into the
+    drag chain and up the leg; the clean arm's from the canopy's cable tray and plant mains to a supply enclosure and a
+    service unit on its column. **In the Robotics tab each path is one subsystem:** the charge arm's "Supply from the
+    cabinet" (new: its lines, chains, driver, trays and ducts left the base and the power path, while the slab, the
+    liners and the cover plates stay with the base, so isolating the supply ghosts them and shows every line from the
+    cabinet's floor to the riser), the wash machine's "Bay supply" with "Control, supply and signals" for the drag chain,
+    and the clean arm's "Power, control and network" with "Vacuum and air supply". The tab's Cut X and Cut Z show the
+    buried runs in section. **Choices made, and why:**
+    - *4 cores of 50 mm2 a pole, not 1 of 400.* A cable in a chain bends no tighter than 7.5 x its diameter, and the
+      chain cable family used has no single core larger than 185 mm2 (27.5 mm, so R 206, too big for the bed's
+      channel). 1 x 50 mm2 is
+      15 mm (R 112.5, inside the chain's 125) and carries 228 A at 30 C on its sheet; 4 in parallel carry 125 A each at
+      500 A, 55 % of that (igus chainflex CF310.UL data sheet, read 2026-11-14; source in `charge_arm.py`). The arm's
+      bars stay 400 mm2: they are shut in the links.
+    - *A covered trench and channel, not a chain on the floor.* People walk round the car beside the bed. A flush
+      checker plate and a brush-closed slot leave nothing to trip on, and keep grit and water out of the chain.
+    - *Each chain chosen by what it holds, from the maker's sheet.* While the lines were drawn, 3 chains were found too
+      small for them. The CAD library drew a link to the size it was given and labelled that size "inner", and the wash
+      machine's 2 chains were filled to their drawn width as if it were their inside. The charge arm's walls were a
+      guess (12.5 and 8 mm). A chain's walls take 26 mm of width and 22 of height in the heavy class
+      and 17 and 9 in the light one (igus product data for E4.42 and E2.26, read 2026-11-15:
+      https://www.igus.com/product/series-E4-42, https://www.igus.com/product/series-E2-26; `std.CHAIN_CLASSES`).
+      Now each chain is the narrowest of its class that holds its lines side by side, with the maker's clearances
+      (10 % a cable, 20 % a hose): the charge arm's 2 chains 137 x 42 inside (163 x 64 outside, was drawn 160 x 56),
+      the wash machine's drag chain 125 x 42 (151 x 64, was 120 x 50, with 117 mm of lines in it; its trench went from
+      140 to 171 mm wide, its tray onto runners so its lines run straight into the chain), and each detail arm's chain
+      57 x 26 (74 x 35, was 57 x 35 with 51 mm of lines in it).
+    **Assumptions, stated:** what the charge arm's cabinet holds besides its rectifiers (the connector's cooling unit,
+    the arm's controller and the base's 2 servo drives) is a layout decision, not a bought cabinet's contents. The
+    hoses' and small cables' diameters are typical of their kind, not from a sheet. The derating of 4 loaded cores in
+    one chain (about 0.65 at 45 C) is from memory of IEC 60364-5-52, not re-read: the cable maker confirms it before a
+    cable is bought. The lines inside a chain or a duct are not drawn one by one. The clean arm's disconnect a person
+    reaches from the ground is on the canopy's board, site work, and is not drawn.
+
 The audit also found the wash machine's tools fed by rigid pipes that could not follow them. They now have flexible
-lines that do (below), and each wand has its own vacuum unit and each side brush its own cable chain.
+lines that do (below). (The wands' vacuum units and the side brushes' chains it added went with finding 17.)
 
 None of these changes the twin's kinematics, timings or the engine. The depot now draws the CAD, so each is in the
 yard as designed.
@@ -501,25 +545,48 @@ few poses (`extras.flexCheck`). `src/lib/robotics/flexLines.ts` solves the lines
 every robot's lines, one merged draw per material per robot kind, re-solved only when that robot moves.
 `cadFlex.test.ts` holds the 2 solvers to the same points (within 0.5 mm) and sweeps each robot's whole duty cycle.
 
-**OTTO-CHARGE ARM.** The charge cable: from the cabinet roof into the take-up wheel's hub union, round the rim, and
-free to the connector (finding 11). Over the whole duty cycle, at every inlet and every corner of the window, it keeps
-at least 0.172 m off the car (at its outlet, fully inserted); it never lies on the paint. The joints' power and network: inside the arm, through J1 to J5's hollow shafts
-from the riser, fed by the cable trunk from the cabinet. The tool's cable (force sensor, cameras, light ring, latch)
-and its air line (the compliance lock): in the charge cable's sleeve.
+**OTTO-CHARGE ARM.** Every line comes from the DC cabinet beside the bed (finding 19): 8 DC cores of 50 mm2, 4 a
+pole; 2 coolant hoses; an air tube; and 5 cables, for the joints, the tool, the safety circuit and the 2 servo motors
+of the base. They leave the cabinet through a gland plate in its floor, drop through a shaft in the pad, and run in a
+lined trench in the slab, under a flush checker plate, to the cable channel between the bed's beams. There each turns
+onto its own lane and enters the cable chain at its fixed end, under the bed's middle. The chain's bend rolls along the
+channel as the carriage moves. Cover plates close the channel flush with the deck, and a driver on the carriage runs
+in the 60 mm slot between them, closed by 2 brush strips. The lines rise inside the driver into a second chain, on a
+tray at the carriage plate's edge, which follows the cross-slide, and a duct on the saddle takes them into the riser.
+The 2 servo cables leave the driver in conduits, one to each motor of the base. Both chains are the same: 137 x 42 mm
+inside, 163 x 64 outside, bend radius 125 mm (the DC core may bend on 112.5). In the riser a terminal box joins each
+pole's 4 cores to the arm's copper bars, and the bars and the booted links carry the current to the connector (finding
+16). The joints' cable goes up through J1 to J5's hollow shafts. The tool's cable, the 2 coolant tubes and the air
+line run with the bars and through each boot.
 
-**OTTO-CLEAN ARM.** The vacuum: the canopy plant's riser down the column, a rotary union at J1, J2 and J3 (findings
+**OTTO-CLEAN ARM.** The power and the network: down from the canopy's cable tray, each in its own conduit, to a supply
+enclosure on the drop column, 4.25 m up, which holds the controller, the power supplies, the J1 drive and the safety
+relay, with a lockable isolator on its door (finding 19). A motor cable runs from it to the J1 gearmotor, and a second
+cable goes in through the column wall to the J1 union, whose slip ring feeds the rest of the arm. The disconnect a
+person reaches from the ground is on the canopy's board: site work, not drawn. The vacuum: a branch from the canopy's
+vacuum main through a gate valve, in through the column wall and down to J1; a rotary union at J1, J2 and J3 (findings
 5 and 10), a duct in each link, the mast stages, a passage through the wrist fork, the swivel on the fork, the hub and
-the wand's tubes to the nozzle. The air and the signals: through the same unions; down the mast from a spring reel on
+the wand's tubes to the nozzle. The air: a drop from the canopy's air main to a service unit on the column (a lockable
+shut-off valve and a filter regulator), then a 6 mm line to J1. The air and the signals: through the same unions; down the mast from a spring reel on
 its outer stage (the line runs 0.65 to 1.95 m over the cycle); across J4 in a clock spring and a passage in the swivel
 (finding 12); along the wand on a reel in its drive (0.06 to 0.94 m); and a loop of air line across the nozzle joint
 (tightest bend 32 mm against 30, 22 mm clear, searched over the cycle).
 
-**OTTO-WASH.** Power, network, water, 2 chemicals and air: from the bay in the drag chain in its trench to the
-moving machine (finding 13; its bend travels 3.68 m either way, the full 7.37 m of the machine's travel), up the leg
-to the cabinet. On the machine: a concertina duct from the top knife's blower (0.26 to 2.26 m as the knife moves), a
-flexible duct loop to each side knife (tightest bend 337 mm against 280), a reel cable to the top brush's motor (0.05
-to 1.86 m), a cable chain to each side brush's carriage (0.20 to 0.96 m of travel), and a reel cable down each wand
-column (0.04 to 2.42 m, finding 14), with a vacuum unit for each wand on the deck.
+**OTTO-WASH.** The building hands every line over at a service panel on the north wall, beside the exit door: a
+lockable isolator, the detail arms' drive cabinet, and a shut-off valve for each of the 5 media (finding 19). Every
+line drops to a pull box at the wall's foot and runs in a duct cast into the slab. 3 ducts (power, network, media)
+end in a pit at the north end of the drag chain's trench, and a closed tray on the trench floor takes the 6 lines to
+the chain's fixed end at mid travel, through a strain relief block. Power, network, water, 2 chemicals and air then
+ride the drag chain in its covered trench to the moving machine (finding 13; its bend travels 3.68 m either way, the
+full 7.37 m of the machine's travel). The chain is 125 x 42 mm inside and 151 x 64 outside, bend radius 200 mm. A
+driver duct through the cover's slot joins its moving end to an arm on the west trolley. The supply cable and the
+network cable go up a conduit on the leg to the control cabinet, and the water, the chemicals and the air go up a
+closed duct, through the beam, to the valve manifold. From the cabinet a cable trunk runs through the beam and along
+its top, with a conduit to each motor, the valves, the beacon and the stop light. Each detail arm's carriage has its
+own cable chain beside its track (57 x 26 mm inside, 74 x 35 outside, bend radius 100 mm), fed from a floor box at the
+chain's fixed end by 3 more ducts in the slab: power, data and pure water. On the machine: a concertina duct from the
+top knife's blower (0.26 to 2.26 m as the knife moves) and a flexible duct loop to each side knife (tightest bend 337 mm
+against 280). The brushes, the vacuum wands and their reels and chains went with finding 17.
 
 Each line's minimum bend radius, mass and standard are in the bill of materials and `cad/SOURCES.md`.
 

@@ -90,8 +90,8 @@ const stepsOf = (k: RobotKey): MachineStep[] => cycleSteps(k).map((s) => ({ ...s
 
 function chargeArm(bom: Bom, connect: number, release: number): MachineFacts {
   const k: RobotKey = 'charge_arm';
-  rests(bom, 'BASE', /leave the cabinet through its floor and drop through the pad into a lined trench/);
-  rests(bom, 'BASE', /bend into a second chain, on a tray at the carriage plate/);
+  rests(bom, 'SUPPLY', /leave the cabinet through its floor and drop through the pad into a lined trench/);
+  rests(bom, 'SUPPLY', /bend into a second chain, on a tray at the carriage plate/);
   return {
     key: k, name: ROBOT_INFO[k].name, short: ROBOT_INFO[k].short, stallType: 'dcfc',
     where: 'One at each fast charger.',

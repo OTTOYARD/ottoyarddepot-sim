@@ -18,10 +18,10 @@
     "depot": "charge_arm.depot.glb"
    },
    "bytes": {
-    "glb": 8494764,
-    "stepZip": 7419588,
-    "step": 38940876,
-    "depot": 972076
+    "glb": 8494900,
+    "stepZip": 7419912,
+    "step": 38941662,
+    "depot": 972160
    },
    "mesh": {
     "vertices": 353526,
@@ -35,17 +35,17 @@
     "meshes": 113,
     "nodes": 174
    },
-   "depotSha256": "b14a657cdf35b091",
+   "depotSha256": "cad6c558cf1ba13c",
    "totals": {
     "parts": 1052,
     "uniqueParts": 248,
     "fasteners": 702,
-    "massKg": 987.7,
+    "massKg": 990.04,
     "boughtLines": 168,
     "madeLines": 80,
     "referenceLines": 6
    },
-   "glbSha256": "0d61b2d688425962",
+   "glbSha256": "5369386b43533542",
    "stepCheck": {
     "namedParts": 1069,
     "solids": 1759,
@@ -59,6 +59,10 @@
     {
      "id": "BASE",
      "name": "Rail, carriage and cross-slide"
+    },
+    {
+     "id": "SUPPLY",
+     "name": "Supply from the cabinet"
     },
     {
      "id": "J1",
@@ -210,37 +214,37 @@
     "depot": "wash_gantry.depot.glb"
    },
    "bytes": {
-    "glb": 9109056,
-    "stepZip": 7008287,
-    "step": 38655502,
-    "depot": 947540
+    "glb": 9117672,
+    "stepZip": 7020741,
+    "step": 38738498,
+    "depot": 948580
    },
    "mesh": {
-    "vertices": 363776,
-    "triangles": 426171,
+    "vertices": 363824,
+    "triangles": 426203,
     "meshes": 301,
     "nodes": 2346
    },
    "depotMesh": {
-    "vertices": 34855,
-    "triangles": 37086,
+    "vertices": 34903,
+    "triangles": 37118,
     "meshes": 152,
     "nodes": 398
    },
-   "depotSha256": "bbca54f9ad0bac59",
+   "depotSha256": "c419af647f7c6132",
    "totals": {
-    "parts": 2700,
+    "parts": 2777,
     "uniqueParts": 292,
     "fasteners": 1636,
-    "massKg": 5894.6,
+    "massKg": 5949.54,
     "boughtLines": 170,
     "madeLines": 122,
     "referenceLines": 14
    },
-   "glbSha256": "2eb40ecfc3325cae",
+   "glbSha256": "5dc0df929dcb6147",
    "stepCheck": {
-    "namedParts": 2717,
-    "solids": 4159,
+    "namedParts": 2794,
+    "solids": 4236,
     "invalid": 0
    },
    "subsystems": [
