@@ -485,7 +485,15 @@ not draw the seven units yet; where they stand is a site-plan decision.
   `public/cad/<robot>.cables.csv`, and stops on a piece in a part the model lacks or a bend tighter than its line
   allows. **A new line, conduit or duct gets its line in the schedule in the same change** (`cadCables.test.ts` holds
   that every line a chain carries is listed and every drawn piece names its line). Never quote a line's length from
-  its parts-list piece: a DC core's trench piece is about a quarter of it.
+  its parts-list piece: a DC core's drawn piece, from its output block in the cabinet to the chain, is about a third of it.
+- **The charge arm's cabinet is drawn as the charger's post (2026-11-15, `cad/otto_cad/robots/charge_cabinet.py`).** It
+  fuses, switches, meters and watches the DC from a power unit, cools the connector and runs the arm, inside the twin's
+  own outline. No 350 kW converter fits that outline, so the power unit stands elsewhere and is not drawn: where is a site
+  decision, and the cabinet's DC feed is open in the cable schedule until it is made. Its parts are `yard_hidden`:
+  `ChargingField` still draws the yard's cabinet box. **A reference part hides every overlap with it:** while the cabinet
+  was a reference envelope, the J2 boot hung 180 mm into it at stow and the clash check called that context. A solid a
+  moving part can reach is a real part, and `cadFlex.test.ts` holds the flex links off the cabinet. `docs/OTTO-ROBOTICS-CAD.md`,
+  finding 22.
 - **The two cockpits read the robots from here (2026-11-09).** Chase: *"Pulse should have depot/operator level info on
   the functionality of the machines ... Orchestra needs just user/asset/vehicle owner detail from a stall or stage
   perspective. ... I think just the twin needs the CAD level detail."* What a machine IS has one home:

@@ -115,8 +115,10 @@ with the one-connector tool. J3's size 40 gear has x1.28 on its 738 N·m repeate
 search now picks a gas spring of 11.85 kN extended (was 10.0 kN), and the J2 gear sees at most 365 N·m (x3.49, was
 x4.12). The figures in the paragraph below are the one-connector tool's. J3's margin is the one to watch if the head
 gains mass: dynamics are not in these figures.
-The slab under the bed, the grout blocks, the channel liner, the pad and the cabinet are reference parts: drawn in the
-tab, left out of the totals and out of the yard's model. Why these additions, and what each vehicle's mate uses of
+The slab under the bed, the grout blocks, the channel liner and the pad are reference parts: drawn in the tab, left out
+of the totals and out of the yard's model. The cabinet beside the arm was a reference envelope too, until finding 22 drew
+it as the charger's post with its inside, its wiring and its site feeds (`charge_cabinet.py`). Its parts count in the
+totals, and the yard leaves them out (`yard_hidden`) because it draws its own cabinet box (`ChargingField`). Why these additions, and what each vehicle's mate uses of
 them: `docs/CHARGE-ARM-REACH.md`.
 
 ### OTTO-CLEAN ARM
@@ -181,9 +183,9 @@ As run on the committed CAD (`public/cad/<robot>.clash.json`):
 
 | robot | poses | pairs measured | clashes | loose groups | expected overlaps (screws in tapped holes, seals, retaining rings, gear meshes) |
 |---|---:|---:|---:|---:|---|
-| OTTO-CHARGE ARM (2026-11-15, finding 21) | 34 | 41,380 (17,979 measured) | 0 | 0 | 841, 13, 9, 3 |
-| OTTO-CLEAN ARM (2026-11-15) | 42 | 7,546 (2,822 measured) | 0 | 0 | 192, 0, 1, 4 |
-| OTTO-WASH (touchless, with 2 detail arms, 2026-11-15, finding 21) | 37 | 68,830 (15,208 measured) | 0 | 0 | 1,999, 24, 18, 6 |
+| OTTO-CHARGE ARM (2026-11-15, finding 22: with its cabinet drawn) | 34 | 106,258 (35,062 measured) | 0 | 0 | 845, 13, 9, 3 |
+| OTTO-CLEAN ARM (2026-11-15, finding 22) | 42 | 8,477 (3,275 measured) | 0 | 0 | 194, 0, 1, 4 |
+| OTTO-WASH (touchless, with 2 detail arms, 2026-11-15, finding 22) | 37 | 68,860 (15,237 measured) | 0 | 0 | 1,997, 24, 18, 6 |
 
 No clash and no loose part is left in any robot, at any of the twin's poses, and `cad.test.ts` holds all three at
 zero. Design findings 6 and 7 were fixed in the CAD without a change to the twin, and so were 8 and 9, which the yard's
@@ -518,7 +520,8 @@ The poses found more, which the stowed pose could not show:
       140 to 171 mm wide, its tray onto runners so its lines run straight into the chain), and each detail arm's chain
       57 x 26 (74 x 35, was 57 x 35 with 51 mm of lines in it).
     **Assumptions, stated:** what the charge arm's cabinet holds besides its rectifiers (the connector's cooling unit,
-    the arm's controller and the base's 2 servo drives) is a layout decision, not a bought cabinet's contents. The
+    the arm's controller and the base's 2 servo drives) is a layout decision, not a bought cabinet's contents (finding 22
+    drew the cabinet: it is a split charger's post, and the rectifiers stand in a power unit away from it). The
     hoses' and small cables' diameters are typical of their kind, not from a sheet. The derating of 4 loaded cores in
     one chain (about 0.65 at 45 C) is from memory of IEC 60364-5-52, not re-read: the cable maker confirms it before a
     cable is bought. The lines inside a chain or a duct are not drawn one by one. The clean arm's disconnect a person
@@ -613,6 +616,74 @@ The poses found more, which the stowed pose could not show:
       bracket in a stainless tube (WSH-PST) to a new holder that carries the nozzle and feeds it (WSH-PNH). The nozzle had
       stood screwed into the bracket's 8 mm edge with no water reaching it.
 
+22. **The charger cabinet drawn, wired and fed, and the schedule's last machine-side items routed (2026-11-15).** Chase:
+    *"Yes, keep going. Also figure out the connection and wiring and CAD of the charging cabinets."*
+    - **What the cabinet can be.** The twin draws one cabinet a post, 718 x 335 x 1,723 mm, and the depot is 30 posts of
+      350 kW. No 350 kW converter fits in that box. ABB's Terra HP, the charger otto-q-core 0810 takes its efficiency
+      from, makes 350 kW from one charge post of 2,458 x 590 x 425 mm and 2 power cabinets of 2,030 x 1,170 x 770 mm each
+      (https://new.abb.com/ev-charging/products/car-charging/high-power-charging and the InCharge spec sheet 0810 cites,
+      read through a web search on 2026-11-15). Its 2 power cabinets alone are about 20 times the twin's box. So the
+      cabinet is drawn as the POST of a split charger (`cad/otto_cad/robots/charge_cabinet.py`): it fuses, switches,
+      meters and watches the DC a power unit sends it, cools the connector and runs the arm. **The power unit, which turns
+      the post's 480 V from its charger transformer into DC, is not drawn, and the twin's site plan has no place for 30 of
+      them.** Where they stand is a site decision. Until it is made, the DC feed's length is not known, and the schedule
+      lists that run open.
+    - **The cabinet, as drawn.** A 100 mm plinth on 4 M12 anchors; a 2 mm sheet steel body with 2 doors on the car's side
+      and a rain hood; a galvanised mounting plate on standoffs off the back wall; 2 gland plates in the floor. At the
+      right, at the back, the DC column: the power unit's 4 cores (2 a pole, 1 x 185 mm2, ASSUMPTION) land on 2 input bars,
+      and each pole runs through a 1,000 V DC fuse and a 500 A contactor, joined by copper links that lie flat on the
+      terminals they join, with a barrier between the poles. At the front, 2 output blocks: the arm's 8 DC cores rise
+      straight from the gland plate into them (4 a pole, at the 16.5 mm spacing they have in the chain), and each
+      contactor's link comes forward into its block. At the left, 3 rows of rail devices (the auxiliary isolator, its
+      breakers, a residual-current device and a surge arrester; 2 x 24 V and a 48 V supply, the insulation monitor and
+      the DC meter; the charge controller, the safety controller and the network switch) and the earth bar. The cooling
+      unit stands on the back wall across the middle: it draws air in through louvres in the doors and blows it out
+      through slots in the back wall. The arm controller and the 2 servo drives for the rail and the cross-slide are at the
+      top. Wiring ducts run up each side, across the top and over each row. The service-air block (filter, regulator and a
+      lockable 3/2 valve) is on the right wall.
+    - **Sizes.** The cooling unit is the size of Phoenix Contact's EV-HPC-PCU-01 for its liquid-cooled HPC cables: 534 x
+      403 x 198 mm and 17.44 kg (RS Components' and Proax's listings, read 2026-11-15; the 3 figures are not labelled, so
+      this file reads them as width, height and depth). It gives 2 L/min at 1 bar. This arm needs about 2 bar (finding 21),
+      so the unit bought must have the larger pump. Every other device is drawn at a class size marked ASSUMPTION on its
+      part, to be set from the maker's sheet when it is chosen.
+    - **Every supply line now ends where it is bought by its drawn length.** The 1.5 m tail each line had in the envelope
+      (ASSUMPTION) is gone. The 8 DC cores are drawn up into their output blocks (30 mm of conductor goes on into the
+      clamp). The 2 coolant tubes are drawn round the DC column, 12 mm into push-in sockets on the cooling unit's side, and
+      the air tube 12 mm into the air block's outlet. The arm's 5 small cables (the joint supply, the tool cable, the safety
+      cable and the 2 servo cables) end at the gland plate. Their runs in the wiring ducts to their devices are planned
+      (the schedule's 'duct'), not drawn one by one.
+    - **What it takes from the site,** each drawn from the pad's underside up through a site shaft and its gland plate:
+      the 4 DC feed cores to their lugs, the site's air to the air block, the auxiliary supply (5 x 6 mm2, ASSUMPTION:
+      from the power unit's auxiliary output, as a split charger's post takes it) up into the isolator, the network into
+      the left duct, and a 50 mm2 earth to the earth bar. Their runs from the power unit, the air main, the depot's switch
+      and the site's earth are the site's: open on their lines until the site plan shows them.
+    - **Drawing the cabinet found the arm's J2 boot in it.** The J2 flex link ran from the turret box's back to the upper
+      arm box's back, 1,200 mm long and bulged backward, and at stow, unstow, approach and retract it hung up to 180 mm into
+      the cabinet behind the arm. The cabinet was a reference envelope, so the clash check filed those overlaps as context
+      and counted none (main's report holds 17 of them). No test compared the flex links with the cabinet: the yard's
+      tests sample the depot model, and the boots are not in it. The link is now a side loop: both ends sit on the 2 boxes'
+      +X faces, square to J2's axis, so J2 rolls the loop and never turns its ends. 900 mm bulged along +X, it bends no
+      tighter than 222 mm over the CAD's poses (80 allowed) and keeps 182 mm off the cabinet. The turret box is 20 mm deeper
+      so both boots' fittings sit square on its sides. Ends on the boxes' tops and backs, searched the same way, bent to 80
+      mm or less at stow. `cadFlex.test.ts` now holds every flex link 20 mm off the cabinet's solid at every cycle pose and
+      each fleet car's mate.
+    - **The wash docks' feeds** run inside the dock posts now. The feed conduit comes up off the slab and into each post's
+      outboard wall through a conduit gland (WSH-DKG), above the base plate. Inside, the rinse tube climbs the post's axis
+      to a push-in socket under the top plate (WSH-DRS), and the nozzle screws down into it through the cup's floor. The
+      signal cable climbs beside the tube and passes through the car-side wall straight into the signal's rear entry, which
+      the signal covers. The lines never enter the track beam. The west post is the east one turned a half turn.
+    - **The clean arm's link lines** are drawn. Each union brings its turning side out at its rotor's foot through an
+      outlet collar (CLN-SOC): an M16 connector for the arm cable and a push-in port for the air tube. Each line runs along
+      its link to the next union's body. In link 2 the lines leave through 2 glands in the cover, beside the duct, to 2 bosses
+      on the J3 union. Only 9 mm of the J1 union's rotor stood inside link 1, so the rotor now reaches 22 mm deeper, and link
+      1's duct runs 22 mm lower (6 mm over the link's bottom skin). Link 1's top cover also stopped 58 mm short of the
+      opening in the link's top, which left a slot open over the J2 motor. It now closes the opening.
+    - **The wash arms' lines were short by their run across the floor box.** From each duct's mouth in the box's floor to
+      the box's gland, 60 to 211 mm a line, was in no piece. It is now a 'duct' piece on each line.
+    - **Found and not changed:** both clean arm link covers hold their screws over the opening in the link's top skin,
+      not over its rim, so those screws grip only the cover. The clash and contact checks pass them because they touch
+      the cover.
+
 The audit also found the wash machine's tools fed by rigid pipes that could not follow them. They now have flexible
 lines that do (below). (The wands' vacuum units and the side brushes' chains it added went with finding 17.)
 
@@ -690,7 +761,7 @@ Each line's minimum bend radius, mass and standard are in the bill of materials 
 Chase, 2026-11-15: *"I know the exact pieces and length of certain cables and exact routing of electrical wire and
 distances of machinery and parts that I will need."* The parts list counts a line only in the pieces the CAD draws. A
 DC core read `D 15 x 1822` there, its piece in the feed trench. From the cabinet to the riser's terminal box the 8
-cores run 7.29 to 7.53 m, by their lanes. Bought from the parts list, they would have been cut short. **The cable schedule lists each cable, hose and tube
+cores run 7.29 to 7.53 m, by their lanes (7.94 to 8.31 m since finding 22 drew them up into their output blocks). Bought from the parts list, they would have been cut short. **The cable schedule lists each cable, hose and tube
 once, from the device it leaves to the one it reaches, with each piece of its route** (`cad/otto_cad/cables.py`: each
 robot's builder declares its lines, and `cables.finish` completes and checks them). The build writes it into each parts
 list (`cables`) and as `public/cad/<robot>.cables.csv`. The Robotics tab lists it in the robot's overview, and each part
@@ -716,21 +787,27 @@ not have, or a bend tighter than its line allows.
 
 | robot | lines | route | to order |
 |---|---|---|---|
-| OTTO-CHARGE ARM | 35 | 161.5 m | 198.2 m |
-| OTTO-CLEAN ARM | 16 | 13.2 m | 17.6 m |
-| OTTO-WASH | 54 | 376.6 m | 408.5 m |
+| OTTO-CHARGE ARM | 43 (35, and since finding 22 the cabinet's 8 site feeds) | 185.3 m | 199.9 m |
+| OTTO-CLEAN ARM | 16 | 12.5 m | 16.0 m |
+| OTTO-WASH | 54 | 379.5 m | 411.3 m |
 
-**What it found** (each listed as an open item on its line, and each routed since: finding 21): the charge arm's
+The charge arm's route grew because each supply line's run inside the cabinet is now in its route, where it used to be
+a 1.5 m tail. A DC core's order went from 9.4 to 8.5 m; the joint supply cable's from 9.3 to 10.5 m, because its planned
+run in the cabinet's ducts to the arm controller is 2.4 m, more than the guess.
+
+**What it found** (each listed as an open item on its line, and each routed since: findings 21 and 22): the charge arm's
 status rings had no supply; its coolant and air changed size at the riser; its 4 copper bars were not drawn; the wash
-machine's side-knife gearmotors had no conduit; the wash arms' pure water stopped in the pedestal.
+machine's side-knife gearmotors had no conduit; the wash arms' pure water stopped in the pedestal; the wash docks' feeds
+stopped at the posts; the clean arm's link lines were not drawn; the charge arm's cabinet was an envelope with a 1.5 m
+guess in it for every line.
 
-**What it still lists as open,** each on its line:
-- The wash docks' feeds: each dock's signal cable and rinse tube run inside its post to the signal and the cup, and
-  that run is not drawn (600 mm, +/- 300).
-- The clean arm's link lines: in 2 of its links the CAD draws the duct, not the 2 cables and the tube beside it.
-- The charge arm's DC cabinet is drawn as its envelope. The length of each line inside it (1.5 m, ASSUMPTION) is for
-  the cabinet maker to confirm. The clean arm's supply and network cables also run along the canopy's tray from its
-  board, and that length is the site's.
+**What it still lists as open,** each on its line, and all of it the site's:
+- The charge arm's cabinet takes 8 lines from the site: the power unit's 4 DC cores, its auxiliary supply, the air, the
+  network and the earth. Each is drawn from the pad up. Their runs to the cabinet wait on the site plan: the DC feed's
+  and the auxiliary supply's on where the power units stand, which it does not show yet, and the others on its layout.
+- The clean arm's supply and network cables run along the canopy's tray from its board, and that length is the site's.
+
+No machine-side line is open on any of the 3 robots.
 
 ## The CAD in the yard
 
@@ -881,6 +958,10 @@ design data and PULSE shows what each machine is doing now.
   much the dressing can change them. Its joint cables are straight between 2 points of the model, plus up to a quarter
   for their dressing in the casting, and so is the wash arms' pure-water tube through J1 to J3. Its tails are
   assumptions, each one stated.
+- The charger cabinet's devices are drawn at class sizes, each marked ASSUMPTION, except the cooling unit, which is a
+  bought unit's size. The power unit that feeds the cabinet's DC is not drawn: the site plan has no place for it yet, so
+  the DC feed's and the auxiliary supply's runs to the cabinet are open on their lines. The cabinet's panel wiring
+  between its devices is not drawn either: it is the cabinet maker's wiring diagram.
 - Inside an actuator nothing is drawn but its parts: the status rings' receptacles are wired to their drive boards by
   the actuator's maker, and the wash arms' pure-water tube passes J1 to J3's glands and bores as the joint cable does,
   unseen. The copper inside the charge arm's castings is bonded and strapped as drawn; the passages the arm's terminal

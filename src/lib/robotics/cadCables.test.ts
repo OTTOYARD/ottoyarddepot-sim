@@ -96,7 +96,8 @@ describe('OTTO-CHARGE ARM: the charge current\'s whole path', () => {
       const trench = c.runs.find((r) => r.kind === 'drawn')!;
       expect(trench.via).toBe(c.id);
       expect(c.runs.map((r) => r.via)).toEqual(expect.arrayContaining(['CHG-BCN', 'CHG-BCA', 'CHG-BZN', 'CHG-BZD', 'CHG-RSR', 'CHG-PB0']));
-      expect(trench.mm / c.routeMm, `${c.id}: the parts list's piece of it`).toBeLessThan(1 / 3);
+      // since 2026-11-15 the drawn piece starts at its output block in the cabinet (finding 22): about a third of the route
+      expect(trench.mm / c.routeMm, `${c.id}: the parts list's piece of it`).toBeLessThan(0.4);
       expect(c.to).toMatch(/CHG-PB0/);
     }
   });
@@ -156,8 +157,59 @@ describe('OTTO-CHARGE ARM: the charge current\'s whole path', () => {
     for (let k = 1; k <= 5; k++) expect(cables.find((c) => c.id === `CHG-JC${k}`), `CHG-JC${k}`).toBeTruthy();
   });
 
-  it('has no open item: every line is routed from end to end', () => {
-    expect(cables.filter((c) => c.open.length > 0).map((c) => `${c.id}: ${c.open.join(' ')}`)).toEqual([]);
+  it('has no open item on the machine: only the site\'s runs to the cabinet are open', () => {
+    // 2026-11-15: the cabinet is drawn with what it takes from the site. Each site feed is drawn from the pad up, and its
+    // run from the power unit, the air main, the network or the earth is the site's: open until the site plan shows them
+    const open = cables.filter((c) => c.open.length > 0);
+    for (const c of open) {
+      expect(c.id, `${c.id}: ${c.open.join(' ')}`).toMatch(/^CHG-S(D[PN][12]|AR|AX|NW|PE)$/);
+      expect(c.open.join(' '), c.id).toMatch(/site/);
+    }
+    expect(open.length).toBe(8);
+  });
+});
+
+describe('OTTO-CHARGE ARM: the cabinet drawn, wired and fed (2026-11-15)', () => {
+  const bom = bomOf('charge_arm');
+  const cables = bom.cables ?? [];
+  const has = (id: string) => bom.lines.some((l) => l.id === id);
+
+  it('draws the cabinet as the post it is, where it was an envelope', () => {
+    expect(has('CHG-CAB'), 'the envelope is gone').toBe(false);
+    for (const id of ['CHG-CPL', 'CHG-CBD', 'CHG-CRF', 'CHG-CDL', 'CHG-CDR', 'CHG-CMT', 'CHG-BGP', 'CHG-BGL', 'CHG-CBI', 'CHG-CLG',
+      'CHG-CFU', 'CHG-CKM', 'CHG-CBL1', 'CHG-CBL2', 'CHG-CBL3P', 'CHG-CBL3N', 'CHG-CBA', 'CHG-COB', 'CHG-CCU', 'CHG-CCS', 'CHG-CAV',
+      'CHG-CPE', 'CHG-CIM', 'CHG-CDM', 'CHG-CAC', 'CHG-CSD', 'CHG-CSF', 'CHG-CWR']) expect(has(id), id).toBe(true);
+    expect(bom.subsystems.some((s) => s.id === 'CABINET')).toBe(true);
+  });
+
+  it('ends each supply line at what it serves in the cabinet: no 1.5 m tail left', () => {
+    const sup = cables.filter((c) => /^CHG-L/.test(c.id) && c.sub === 'SUPPLY');
+    expect(sup.length).toBe(16);
+    for (const c of sup) {
+      expect(c.tails.a, `${c.id}: its tail in the cabinet`).toBeLessThanOrEqual(100);
+      expect(c.tails.basis, c.id).not.toMatch(/envelope/);
+    }
+    for (const c of sup.filter((x) => /^CHG-LD[PN]\d$/.test(x.id))) expect(c.from, c.id).toMatch(/CHG-COB/);
+    expect(cables.find((c) => c.id === 'CHG-LCS')!.from).toMatch(/CHG-CCS/);
+    expect(cables.find((c) => c.id === 'CHG-LCR')!.from).toMatch(/CHG-CCS/);
+    expect(cables.find((c) => c.id === 'CHG-LAR')!.from).toMatch(/CHG-CAV/);
+    for (const id of ['CHG-LJS', 'CHG-LTL', 'CHG-LSF', 'CHG-LMX', 'CHG-LMZ']) {
+      const c = cables.find((x) => x.id === id)!;
+      expect(c.runs[0].kind, `${id}: its run in the cabinet's ducts comes first`).toBe('duct');
+      expect(c.runs[0].via, id).toBe('CHG-CWR');
+    }
+  });
+
+  it('takes the site\'s DC feed, air, auxiliary supply, network and earth up through its 2 gland plates', () => {
+    for (const id of ['CHG-SDP1', 'CHG-SDP2', 'CHG-SDN1', 'CHG-SDN2', 'CHG-SAR', 'CHG-SAX', 'CHG-SNW', 'CHG-SPE']) {
+      const c = cables.find((x) => x.id === id)!;
+      expect(c, id).toBeTruthy();
+      expect(c.runs.some((r) => r.kind === 'drawn' && r.via === id), `${id} is drawn`).toBe(true);
+      expect(c.runs.some((r) => r.kind === 'site'), `${id}: its run to the cabinet is the site's`).toBe(true);
+      expect(c.sub, id).toBe('CABINET');
+    }
+    expect(cables.find((c) => c.id === 'CHG-SDP1')!.to).toMatch(/CHG-CBI/);
+    expect(cables.find((c) => c.id === 'CHG-SAR')!.to).toMatch(/CHG-CAV/);
   });
 });
 
