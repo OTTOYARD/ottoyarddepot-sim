@@ -126,6 +126,7 @@ def build(spec: dict) -> Model:
     m = Model('clean_arm', 'OTTO-CLEAN ARM',
               'Parked car frame: origin at the car centre on grade, +Y up, +X toward the nose, +Z toward the right '
               'flank. Zero pose: links along +X, mast retracted, wand level.')
+    m.yard_deck_y = 0.0                               # grade under the car: nothing of the arm is under it
     m.subsystem('MOUNT', 'Canopy mount', 'A header beam under 2 canopy purlins and a drop column carry the arm over the stall. Nothing stands where a car drives.',
                 how=['4 angle clips bolt the header to the purlins.', 'The drop column bolts to the header and carries the J1 base.',
                      'The vacuum riser, the air line and the arm\'s cable run inside the column to the J1 union.',
@@ -923,6 +924,9 @@ def build(spec: dict) -> Model:
     knuckle = (cq.Workplane('XY').circle(36).extrude(60).translate((0, 0, -30))
                .union(cq.Workplane('YZ', origin=(-30, 0, 0)).circle(wr3 + 4).extrude(30))
                .cut(cq.Workplane('YZ', origin=(-37, 0, 0)).circle(wr3).extrude(37)))           # tube 4's socket
+    # the air fitting's boss (2026-11-15): the fitting stands 36 mm over the wand's axis, 18.4 mm past the pivot, where the
+    # knuckle's round top is only 30.9 mm up, so it stood 3 to 7 mm in the air, held by its own hose. A cast boss carries it.
+    knuckle = knuckle.union(cq.Workplane('XZ', origin=(18.4, 36.0, 0)).circle(5.0).extrude(36.0 - 24.0))
     m.place(tip, m.part(PartDef('CLN-KNK', 'Nozzle knuckle housing', knuckle.val(), 'a356_dark', 'structure', 'casting, machined',
                                   'OD 72 x 60', 'A356-T6', None, 'Carries the nozzle pivot and its worm drive on the wand tip.', {}, 'make')),
             loc(wb, 0, 0), (300, 0, 0), 'NOZZLE')
@@ -966,7 +970,17 @@ def build(spec: dict) -> Model:
     # reel's line keeps inside the wrist's outline. Design finding 12.)
     x_ml, y_rl = -92.0, -300.0                           # the line: 12 mm off the outer stage's -X face; the reel's axle
     x_dr = x_ml - 96                                     # the drum's axle: its rim tangent to the line
-    feed = std.swept('CLN-MFR', 'Hybrid cable and air line, J3 union to the mast reel', [(x_ml, oA - 36, 0), (x_ml, -130, 0), (x_dr, -130, 0),
+    # The union's turning-side leads leave the mast top through an outlet on the collar's -X wall (the collar's socket
+    # wraps the mast's top 30 mm; its flange stands on it), and the line starts at the outlet's underside, level with the
+    # collar's foot (2026-11-15: the line began 6 mm under the collar's foot with nothing at its end, 28 mm from any part,
+    # and a scan of every drawn line's ends found it)
+    s_col = (s0 + 16) / 2                                # the collar's outer face
+    mob = cq.Workplane('XY').box(12.0, 20.0, 32.0).edges('|Y').fillet(2.0).translate((-s_col - 6.0, oA - 20.0, 0))
+    m.place(j3, m.part(PartDef('CLN-MOB', 'Collar cable outlet, glass-filled PA66, with a grommet', mob.val(), 'pa66', 'electrical',
+                               'moulded', '12 x 20 x 32', 'IP65', None,
+                               'Takes the hybrid cable and the air line out of the mast top, from the J3 union\'s turning side, down the outer stage.',
+                               {}, 'make')), Location(), (-80, 0, 0), 'VAC')
+    feed = std.swept('CLN-MFR', 'Hybrid cable and air line, J3 union to the mast reel', [(x_ml, oA - 30, 0), (x_ml, -130, 0), (x_dr, -130, 0),
                      (x_dr, y_rl + 90, 0)], 6, 'cable', 'electrical', 0,
                      'Brings the signals, power and air from the J3 union down the outer mast stage to the reel.', {}, 'EN 50525', 'OD 12',
                      'buy', bend=25.0)
@@ -1013,9 +1027,21 @@ def build(spec: dict) -> Model:
     m.place(mast3, wfc, Location(), (0, 0, 100), 'WRIST')
     wat = std.swept('CLN-WAT', 'Wrist fixed air line, union to the coil clamp', [
         (-40, yp, z0s + 11.5), (-48, yp + 4, z0s + 11), (-57, yp + 20, 74), (-57, -1000, 73), (-64, -988, 64), (-72, -980, 46),
-        (-76, -978, 26), (-78, -974, 10)], 3.0, 'hose', 'fluid', 2.0,
+        (-76, -978, 26), (-78, -973, 10)], 3.0, 'hose', 'fluid', 2.0,
         'Joins the union\'s air passage to the coil\'s air line. It does not move.', {}, 'ISO 14743', 'PU 6 x 4')
     m.place(mast3, wat, Location(), (0, 0, 110), 'WRIST')
+    # the wand cable's end (2026-11-15): it ran along the wand at 41 mm over its axis and stopped 4.6 mm short of the
+    # knuckle, over its top, holding nothing. An entry block on the knuckle now takes it: the cable's end butts on the
+    # block's back face, and inside the block the cable turns down into the knuckle to the nozzle drive.
+    xe0, xe1 = wb - 20.0, wb - 4.0
+    entry = (cq.Workplane('XY').box(xe1 - xe0, 47.0 - 20.0, 14.0, centered=(False, False, True)).translate((xe0, 20.0, 0))
+             .edges('|Z and >Y').fillet(2.5)
+             .cut(cq.Workplane('XY').add(knuckle.val().moved(Location(Vector(wb, 0, 0))))))
+    entry_sol = max(entry.val().Solids(), key=lambda q: q.Volume()) if len(entry.val().Solids()) > 1 else entry.val()
+    m.place(tip, m.part(PartDef('CLN-WCE', 'Wand cable entry block, glass-filled PA66', entry_sol, 'pa66', 'electrical', 'moulded',
+                                f'{xe1 - xe0:.0f} x 27 x 14', 'IP67', None,
+                                'Takes the wand cable\'s end on the knuckle. Inside it the cable turns down into the knuckle to the nozzle drive.',
+                                {'seal': 'a grommet on the cable'}, 'make')), Location(), (300, 60, 0), 'NOZZLE')
     m.flex(FlexDef('CLN-WCB', 'Wand cable with air line, on a reel in the drive', 'stretch',
                    Anchor(pitch, (hub_od / 2 + 10 + (wb - k_cl - hub_od / 2 - 40), wr + 16, 0), (1, 0, 0)),
                    Anchor(tip, (wb - 20, 37 + 4, 0), (1, 0, 0)), 4.0, 'WAND',
@@ -1036,4 +1062,90 @@ def build(spec: dict) -> Model:
                    kg_per_m=0.02, size='OD 6',
                    spec={'bend radius': 'about 5 x 6 mm (PU tube)'}))
 
+    # ════════════════════════════════════════════════════════════ CABLE SCHEDULE ═══
+    _cable_schedule(m, dict(L1=L1, L2=L2, emc_mm=ENC_Y0 - 20 - y_gm, adr_mm=y_sp - (y_u0 + AU_H),
+                            ecd_mm=y_tray - (ENC_Y0 + ENC_H + 15), CAB_BEND=CAB_BEND))
     return m
+
+
+TAIL_ENC = 300.0     # inside the supply enclosure, from its gland to the terminal (ASSUMPTION)
+TAIL_DEV = 100.0     # to make a line off at a device's connector or fitting (ASSUMPTION)
+
+
+def _cable_schedule(m: Model, g: dict) -> None:
+    """The clean arm's cable schedule (cables.py). Its lines are cut at every slip ring, reel and clock spring, so each
+    piece between them is its own line: the supply and network drops, the J1 motor cable, the arm cable to the J1 union,
+    the cables inside the 2 links, the hybrid cable and air line down the mast and along the wand, and the air line's
+    pieces from the canopy main to the nozzle."""
+    import numpy as np
+    from ..flex import loc_matrix, node_frames
+    W0 = node_frames(m.root, {})
+
+    def at(pid):      # a placed part's centre of mass, robot frame, stowed (a union's solid is drawn in its parent's frame)
+        for node in m.root.walk():
+            for it in node.items:
+                if it.part.id == pid:
+                    return (W0[id(node)] @ loc_matrix(it.loc) @ np.array([*it.part.com, 1.0]))[:3]
+        raise ValueError(f'no {pid} in the model')
+    P, fx = m.parts, {f.id: f for f in m.flexes}
+    enc_tail = f'{TAIL_ENC:.0f} mm inside the supply enclosure to its terminal (ASSUMPTION)'
+    dev_tail = f'{TAIL_DEV:.0f} mm to make it off at its connector (ASSUMPTION)'
+    for (lid, name, kind, od, cid, to) in (
+            ('CLN-SPW', 'Supply cable 4 x 2.5 mm2, canopy board to the supply enclosure', 'power', SUPPLY_CABLE_OD, 'CLN-ECDP', 'its isolator'),
+            ('CLN-SNW', 'Network cable, industrial Cat 6A, canopy switch to the supply enclosure', 'network', NET_CABLE_OD, 'CLN-ECDN', 'its controller')):
+        L = m.cable(lid, name, kind, od, 'ASSUMPTION: a cable of its kind (cad clean_arm, SUPPLY_CABLE_OD and NET_CABLE_OD)',
+                    'the canopy\'s board (site works)', f'the supply enclosure (CLN-ENC): {to}', 'POWER', bend_fixed=4 * od,
+                    tail_b=TAIL_ENC, tails=enc_tail)
+        L.run('site', 'CLN-CTY', 'along the canopy\'s cable tray from its board: the site\'s length, not in the model', 0.0)
+        L.run('conduit', cid, 'down its rigid conduit from the tray to the enclosure\'s top', g['ecd_mm'])
+        L.open.append('Its run from the canopy\'s board along the cable tray is the site\'s: add it from the site\'s layout.')
+    L = m.cable('CLN-EMC', 'J1 motor cable, power and feedback, 12 mm', 'power', 12.0, 'EN 50525', 'the J1 drive in the supply enclosure',
+                'the J1 gearmotor', 'POWER', bend_fixed=48.0, tail_a=TAIL_ENC, tail_b=TAIL_DEV, tails=f'{enc_tail}; {dev_tail}')
+    L.run('drawn', 'CLN-EMC', 'straight down from the enclosure\'s gland to the gearmotor', g['emc_mm'])
+    L = m.cable('CLN-ESC', 'Arm cable, enclosure to the J1 union: power and network, 10 mm', 'power', 10.0, 'EN 50525',
+                'the supply enclosure (CLN-ENC)', 'the J1 union\'s slip ring, its fixed side (CLN-SWV1)', 'POWER',
+                bend_fixed=g['CAB_BEND'], tail_a=TAIL_ENC, tail_b=TAIL_DEV, tails=f'{enc_tail}; {dev_tail}')
+    L.run('drawn', 'CLN-ESC', 'in through the column\'s wall and down to the J1 union', P['CLN-ESC'].path_mm, bend=g['CAB_BEND'])
+    for (lid, name, kind, od, a, b, link, sub, circuits) in (
+            ('CLN-AC1', 'Arm cable in link 1: power and network, 10 mm', 'power', 10.0, 'CLN-SWV1', 'CLN-SWV2', 'CLN-L1', 'LINK1', '24 circuits and the EtherCAT pair'),
+            ('CLN-AC2', 'Arm cable in link 2: power and network, 10 mm', 'power', 10.0, 'CLN-SWV2', 'CLN-SWV', 'CLN-L2', 'LINK2', '12 circuits and the EtherCAT pair'),
+            ('CLN-AT1', 'Air tube 6 x 4 in link 1', 'air', AIR_OD, 'CLN-SWV1', 'CLN-SWV2', 'CLN-L1', 'VAC', 'its air passage'),
+            ('CLN-AT2', 'Air tube 6 x 4 in link 2', 'air', AIR_OD, 'CLN-SWV2', 'CLN-SWV', 'CLN-L2', 'VAC', 'its air passage')):
+        straight = float(np.linalg.norm(at(b) - at(a)))
+        L = m.cable(lid, name, kind, od, 'EN 50525' if kind == 'power' else 'ISO 14743, PU 6 x 4', f'the {a} union\'s turning side',
+                    f'the {b} union\'s fixed side ({circuits})', sub, bend_fixed=4 * od if kind == 'power' else AIR_BEND_R,
+                    tail_a=TAIL_DEV, tail_b=TAIL_DEV, tails=f'{dev_tail}, at each union')
+        L.run('arm', link, f'inside the link from union to union: straight {straight:.0f} mm, and up to a quarter more for its '
+              'dressing in the box section', straight * 1.125, tol=straight * 0.125)
+        L.open.append('Not drawn: the CAD draws the link\'s duct, not the cables and tube beside it.')
+    L = m.cable('CLN-MFR', 'Hybrid cable and air line, J3 union to the mast reel', 'hybrid', 12.0, 'EN 50525: a 10 mm hybrid cable and a 6 mm air line in one jacket',
+                'the J3 union\'s turning side (CLN-SWV)', 'the mast reel\'s hub: its slip ring and air swivel (CLN-MCR)', 'VAC',
+                bend_fixed=25.0, tail_a=TAIL_DEV, tail_b=TAIL_DEV, tails=f'{dev_tail}, at each end')
+    L.run('duct', 'CLN-MCL', 'inside the mast top collar, from the union\'s turning side out to the collar\'s cable outlet (CLN-MOB)',
+          100.0, tol=25.0)
+    L.run('drawn', 'CLN-MFR', 'from the outlet down the outer mast stage, clipped to it, to the reel', P['CLN-MFR'].path_mm, bend=25.0)
+    L = m.cable('CLN-MCB', 'Hybrid cable and air line on the mast reel, PUR', 'hybrid', 12.0, 'EN 50525: the reel\'s cable, hybrid 10 mm and air 6 mm in a flat jacket',
+                'the mast reel\'s drum (CLN-MCR)', 'its clamp on the wrist fork (CLN-MCK)', 'VAC', tail_b=TAIL_DEV, tails=dev_tail)
+    L.run('reel', 'CLN-MCB', 'on the reel: what it holds; it pays out straight down as the mast goes down', fx['CLN-MCB'].lmax,
+          moving=True, flex=fx['CLN-MCB'])
+    L = m.cable('CLN-WFC', 'Wrist fixed cable, coil clamp to the clock spring', 'power', 8.0, 'EN 50525', 'the reel cable\'s clamp on the wrist fork',
+                'the clock spring\'s lead connector, M8 (CLN-WCN)', 'WRIST', bend_fixed=32.0, tail_a=TAIL_DEV, tails=dev_tail)
+    L.run('drawn', 'CLN-WFC', 'up the cheek\'s face and over the fork\'s top block', P['CLN-WFC'].path_mm)
+    L = m.cable('CLN-WCB', 'Wand cable with air line, on a reel in the drive', 'hybrid', 8.0, 'a cable and an air line on one reel',
+                'the wand drive\'s reel', 'the nozzle drive in the knuckle, through the entry block (CLN-WCE)', 'WAND',
+                tail_b=TAIL_DEV, tails=f'{dev_tail}, inside the knuckle')
+    L.run('reel', 'CLN-WCB', 'on the reel: what it holds; it runs along the wand to the knuckle', fx['CLN-WCB'].lmax, moving=True,
+          flex=fx['CLN-WCB'])
+    for (lid, name, kind, od, spec, a, b, sub, run) in (
+            ('CLN-ADR', 'Air drop tube, 12 x 1.5, stainless', 'air', 12.0, 'EN 10216-5', 'the canopy main\'s drop', 'the air service unit (CLN-AFR)', 'VAC',
+             ('drawn', 'CLN-ADR', 'straight down from the main\'s drop to the service unit', g['adr_mm'], None)),
+            ('CLN-AIL', 'Air line 6 x 1, service unit to the J1 union', 'air', AIR_OD, 'ISO 14743, PU 6 x 4', 'the air service unit (CLN-AFR)',
+             'the J1 union\'s air passage (CLN-SWV1)', 'VAC', ('drawn', 'CLN-AIL', 'in through the column\'s wall and down to the union', P['CLN-AIL'].path_mm, AIR_BEND_R)),
+            ('CLN-WAT', 'Wrist fixed air line, coil clamp to the wrist union', 'air', AIR_OD, 'ISO 14743, PU 6 x 4', 'the reel line\'s clamp on the wrist fork',
+             'the wrist union\'s air passage (CLN-WSW)', 'WRIST', ('drawn', 'CLN-WAT', 'along the fork to the union', P['CLN-WAT'].path_mm, None)),
+            ('CLN-NAL', 'Air line 6 mm, nozzle loop', 'air', AIR_OD, 'ISO 14743, PU tube', 'its push-in fitting on the wand\'s tip (CLN-NAF)',
+             'its push-in fitting on the air knife (CLN-NAF)', 'NOZZLE', ('loop', 'CLN-NAL', 'a free loop across the nozzle joint', fx['CLN-NAL'].length, None))):
+        L = m.cable(lid, name, kind, od, spec, a, b, sub, bend_fixed=AIR_BEND_R if od <= 6 else 0.0,
+                    bend_moving=AIR_BEND_R if run[0] == 'loop' else 0.0, tail_a=TAIL_DEV if run[0] != 'loop' else 0.0,
+                    tail_b=TAIL_DEV if run[0] != 'loop' else 0.0, tails='' if run[0] == 'loop' else f'{dev_tail}, at each fitting')
+        L.run(run[0], run[1], run[2], run[3], bend=run[4], moving=run[0] == 'loop', flex=fx.get(run[1]) if run[0] == 'loop' else None)

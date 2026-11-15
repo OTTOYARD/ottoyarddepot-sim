@@ -26,7 +26,7 @@ import { PHASES, portVariants, target, windowVariants } from '@/lib/ottoChargeAr
 import { carSolidInArmFrame, clearanceToCar } from '@/lib/ottoChargeArm/vehicleEnvelope';
 import { cleanJointsAt, sidesFor } from '@/lib/ottoCleanArm/cleanArmPose';
 import type { CleanPhase } from '@/lib/ottoCleanArm/cleanArmSpec';
-import { cleanAngles, cycleSteps, washAngles, ROBOT_KEYS, type RobotKey } from './catalog';
+import { cleanAngles, cycleSteps, posePresets, washAngles, ROBOT_KEYS, type RobotKey } from './catalog';
 import type { WashPhase } from '@/lib/ottoWash/washSpec';
 
 interface FlexSample { id: string; angles: Record<string, number>; lines: Record<string, number[][]> }
@@ -162,9 +162,13 @@ describe('OTTO-CHARGE ARM: the power path\'s flex links through the duty cycle',
     for (const f of cad.flex.filter((x) => LINKS.includes(x.id))) expect(f.length, f.id).toBeLessThanOrEqual(1.25);
   });
 
-  it('bends no flex link tighter than its boot allows, at every inlet and every corner of the window', () => {
+  it('bends no flex link tighter than its boot allows, at every inlet, every corner of the window and each fleet car\'s mate', () => {
     const cad = cads.get('charge_arm')!;
-    const { n, worst } = sweepLines(cad, cyclePoses([...portVariants(), ...windowVariants()]));
+    // the duty cycle at the port variants and the window's corners, and the pose the mate solver gives each fleet car (the
+    // Robotics tab's presets): the cycle sweep never visited the Cybercab's, where the J2 link once bent to 65 mm
+    const mates = posePresets('charge_arm').map((p) => ({ label: `preset ${p.id}`, angles: p.angles }));
+    expect(mates.filter((p) => p.label.startsWith('preset mate_')).length).toBeGreaterThan(3);
+    const { n, worst } = sweepLines(cad, [...cyclePoses([...portVariants(), ...windowVariants()]), ...mates]);
     expect(n).toBeGreaterThan(5000);
     for (const id of LINKS) {
       const c = worst.get(id);

@@ -726,12 +726,24 @@ def gland(m: int, fn: str = '') -> PartDef:
 
 
 @lru_cache(maxsize=None)
-def _chain_link_shape(w: float, h: float, pitch: float) -> cq.Shape:
-    side = cq.Workplane('XY').box(pitch, h, 3.0).edges('|Z').fillet(h * 0.3)      # links meet end to end at the pitch
-    link = side.translate((0, 0, w / 2 - 1.5)).union(side.translate((0, 0, -w / 2 + 1.5)))
-    bars = cq.Workplane('XY').box(pitch * 0.35, 3.0, w).translate((0, h / 2 - 1.5, 0)).union(
-        cq.Workplane('XY').box(pitch * 0.35, 3.0, w).translate((0, -h / 2 + 1.5, 0)))
-    return link.union(bars).val()
+def _chain_link_shape(w: float, h: float, pitch: float, wi: float | None = None, hi: float | None = None,
+                      shelf: tuple | None = None) -> cq.Shape:
+    """One link in its own frame: X along the chain (links meet end to end at the pitch), Y across its height (the bend's
+    side), Z across its width. Drawn to the maker's numbers: each side band is (outside - inside) / 2 thick across the
+    width, and each crossbar (outside - inside) / 2 thick across the height, so the clear space inside the link is the
+    inside the chain is sold by and the lines lying in it rest on the lower crossbar. `shelf` (y0, y1): a separator shelf
+    across the inside at that height, on which a second row of lines lies (flex.FlexDef.contents)."""
+    tw = (w - wi) / 2 if wi else 3.0
+    tb = (h - hi) / 2 if hi else 3.0
+    side = cq.Workplane('XY').box(pitch, h, tw).edges('|Z').fillet(min(h * 0.3, pitch * 0.45))
+    link = side.translate((0, 0, w / 2 - tw / 2)).union(side.translate((0, 0, -w / 2 + tw / 2)))
+    span = w - tw                                        # a crossbar reaches into each band to its middle
+    for y in (h / 2 - tb / 2, -h / 2 + tb / 2):
+        link = link.union(cq.Workplane('XY').box(pitch * 0.35, tb, span).translate((0, y, 0)))
+    if shelf is not None:
+        y0, y1 = shelf
+        link = link.union(cq.Workplane('XY').box(pitch * 0.5, y1 - y0, span).translate((0, (y0 + y1) / 2, 0)))
+    return link.val()
 
 
 # A cable carrier is chosen by its INSIDE (what it holds) and drawn to its OUTSIDE (what it takes): its side bands and
@@ -771,11 +783,17 @@ def chain_size(cls: str, need_w: float, need_h: float, bend_r: float) -> dict:
     return {'cls': cls, 'bi': bi, 'hi': c['hi'], 'ba': bi + c['wall'], 'ha': c['ha'], 'pitch': c['pitch'], 'r': bend_r}
 
 
-def chain_link(w: float, h: float, pitch: float, inside: tuple | None = None, spec: dict | None = None) -> PartDef:
-    """One link, drawn to the chain's OUTSIDE w x h (`inside`: what it holds, from chain_size)."""
+def chain_link(w: float, h: float, pitch: float, inside: tuple | None = None, spec: dict | None = None,
+               shelf: tuple | None = None) -> PartDef:
+    """One link, drawn to the chain's OUTSIDE w x h, its bands and crossbars to its INSIDE (`inside`: what it holds, from
+    chain_size). `shelf` (y0, y1 in the link's frame): a separator shelf, for a chain that carries 2 rows of lines."""
     name = f'Cable carrier link, inside {inside[0]:g} x {inside[1]:g}' if inside else f'Cable carrier link, outside {w:g} x {h:g}'
+    if shelf is not None:
+        name += ', with a separator shelf'
     size = f'outside {w:g} x {h:g}' + (f', inside {inside[0]:g} x {inside[1]:g}' if inside else '') + f', pitch {pitch:g}'
-    return PartDef(f'ECHAIN-{w:g}x{h:g}', name, _chain_link_shape(w, h, pitch), 'pa66',
+    shape = _chain_link_shape(w, h, pitch, inside[0] if inside else None, inside[1] if inside else None,
+                              None if shelf is None else (round(shelf[0], 3), round(shelf[1], 3)))
+    return PartDef(f'ECHAIN-{w:g}x{h:g}' + ('-S' if shelf is not None else ''), name, shape, 'pa66',
                    'electrical', 'catalogue part', size, '', None,
                    'Guides the cables and hoses through the moving joint. It keeps the bend radius safe.', dict(spec or {}), 'buy',
                    depot='box')
@@ -838,7 +856,21 @@ def swept(pid: str, name: str, points: list[tuple[float, float, float]], r: floa
     """A tube along a spline through `points`, or, with `bend`, along straight runs between them bent on that radius."""
     pts = tuple(tuple(p) for p in points)
     shape = _bent_tube_shape(pts, r, ri, bend) if bend is not None else _tube_path_shape(pts, r, ri)
-    return PartDef(pid, name, shape, mat, category, standard, size, '', None, fn, spec or {}, make)
+    pd = PartDef(pid, name, shape, mat, category, standard, size, '', None, fn, spec or {}, make)
+    pd.path_mm = _path_length(pts, bend)
+    pd.path_ends = (pts[0], pts[1], pts[-1], pts[-2], float(r))      # each end and the point before it, and the radius (line_ends.py)
+    return pd
+
+
+@lru_cache(maxsize=None)
+def _path_length(points: tuple, bend: float | None) -> float:
+    """The centreline length of std.swept's path through `points` (mm)."""
+    if bend is not None:
+        return _bent_path(points, bend).Length()
+    pts = [Vector(*p) for p in points]
+    if len(pts) == 2:
+        return (pts[1] - pts[0]).Length
+    return cq.Workplane('XY').spline(pts, includeCurrent=False).val().Length()
 
 
 @lru_cache(maxsize=None)

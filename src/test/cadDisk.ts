@@ -4,7 +4,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type * as THREE from 'three';
-import { depotFile, parseGlb } from '@/lib/robotics/cadDepot';
+import { depotFile, nearFile, parseGlb } from '@/lib/robotics/cadDepot';
 import type { RobotKey } from '@/lib/robotics/catalog';
 
 export const PUBLIC_CAD = resolve(__dirname, '../../public/cad');
@@ -17,4 +17,9 @@ export function depotSceneFromDisk(robot: RobotKey): Promise<THREE.Group> {
 /** A robot's full engineering model (what the Robotics tab draws), parsed into a three.js scene at rest. */
 export function fullSceneFromDisk(robot: RobotKey): Promise<THREE.Group> {
   return parseGlb(readFileSync(`${PUBLIC_CAD}/${robot}.glb`));
+}
+
+/** A robot's detail model (what the yard draws near the camera, robotics/cadDetail.ts), parsed at rest. */
+export function nearSceneFromDisk(robot: RobotKey): Promise<THREE.Group> {
+  return parseGlb(readFileSync(`${PUBLIC_CAD}/${nearFile(robot)}`));
 }

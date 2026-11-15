@@ -48,7 +48,9 @@ def _tolerance(pd) -> tuple[float, float]:
 # Every outside part, coarsely meshed; no fastener, bearing or seal, nothing sealed inside a joint actuator
 # (its gear set, motor, brake, encoders, drive board, shaft), no reference context, nothing under 12 mm.
 DEPOT_DROP_CATEGORIES = {'fastener', 'bearing', 'seal'}
-DEPOT_DROP_PREFIX = ('SWG', 'MOT-', 'BRK-', 'ENC', 'DRV-', 'XRB', 'BRG-', 'GLAND-')
+# a cable gland is where a line enters its part: it stays in every model a line is drawn in (it was dropped here until
+# 2026-11-15, and the wrist boot ended 69 mm from the connector in the yard)
+DEPOT_DROP_PREFIX = ('SWG', 'MOT-', 'BRK-', 'ENC', 'DRV-', 'XRB', 'BRG-')
 DEPOT_DROP_SUFFIX = ('-SHF', '-FSC', '-STR')
 DEPOT_MIN_MM = 30.0
 # site works the yard draws with the robot, because nothing else in the yard draws them: the charge arm's bed stands on
@@ -56,13 +58,57 @@ DEPOT_MIN_MM = 30.0
 DEPOT_SITE_KEEP = {'CHG-BGB'}
 
 
-def depot_keep(pd) -> bool:
-    if (pd.reference and pd.id not in DEPOT_SITE_KEEP) or pd.category in DEPOT_DROP_CATEGORIES:
+def depot_keep(pd, holders: frozenset = frozenset(), hidden: bool = False) -> bool:
+    """The far model: no fastener, bearing or seal, nothing sealed in an actuator, nothing under 30 mm, nothing the yard
+    cannot see (`hidden`: under its deck or inside the site it draws itself), except a part that holds a line's end
+    (`holders`: the fitting a cable plugs into stays, however small)."""
+    if pd.reference and pd.id not in DEPOT_SITE_KEEP:
+        return False
+    if hidden:
+        return False
+    if pd.id in holders:
+        return True
+    if pd.category in DEPOT_DROP_CATEGORIES:
         return False
     if pd.id.startswith(DEPOT_DROP_PREFIX) or pd.id.endswith(DEPOT_DROP_SUFFIX):
         return False
     bb = pd.shape.BoundingBox()
     return math.sqrt(bb.xlen ** 2 + bb.ylen ** 2 + bb.zlen ** 2) >= DEPOT_MIN_MM
+
+
+# ── the detail model: what the yard draws near the camera, as the Robotics tab draws it ───────────────────────────────────
+# Every part you can see on the assembled robot, to the last screw, washer and nut, meshed fine enough for a 4K close-up:
+# all but the placements sealed inside a joint actuator (core.Item.sealed: no line of sight reaches them, which
+# src/lib/robotics/cadDetail.test.ts proves at every twin pose), the reference context, and what lies wholly under the
+# yard's deck (the yard's ground is opaque). Curved faces within 0.26 rad (about 24 facets a circle) on parts over 60 mm,
+# and a linear deflection of 0.25 % of the part's size between 0.06 and 0.6 mm.
+def near_keep(it, hidden: bool) -> bool:
+    pd = it.part
+    if pd.reference and pd.id not in DEPOT_SITE_KEEP:
+        return False
+    if getattr(it, 'sealed', False):
+        return False
+    return not hidden
+
+
+def yard_hidden(it, Lw, deck: float | None) -> bool:
+    """A placement the yard cannot see: wholly under its deck at rest (a trench, a channel and what lies in them; a part on
+    a joint that ever rises above the deck is above it at rest too, in these robots), or marked as inside the site the yard
+    draws itself (core.Item.yard_hidden: the supply lines rising into the charger cabinet, under the yard's pad)."""
+    if getattr(it, 'yard_hidden', False):
+        return True
+    return deck is not None and _item_box(it.part, Lw * it.loc)[4] < deck - 1.0
+
+
+def _near_tolerance(pd) -> tuple[float, float]:
+    """A part over 60 mm: 0.26 rad (about 24 facets a circle) and 0.25 % of its size, 0.6 mm at most. A small part (a
+    screw, a washer, a nut): 0.55 rad (about 12 facets) and 0.12 mm or more, round at the yard's closest camera (a 10 mm
+    head is about 13 pixels across from 2.4 m on a 4K screen)."""
+    bb = pd.shape.BoundingBox()
+    diag = math.sqrt(bb.xlen ** 2 + bb.ylen ** 2 + bb.zlen ** 2)
+    if diag > 60:
+        return min(0.6, max(0.06, diag * 0.0025)), 0.26
+    return max(0.12, diag * 0.004), 0.55
 
 
 def _depot_tolerance(pd) -> tuple[float, float]:
@@ -71,8 +117,8 @@ def _depot_tolerance(pd) -> tuple[float, float]:
     return min(10.0, max(0.8, diag * 0.009)), 0.75
 
 
-def tessellate(pd, coarse: bool = False) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    lin, ang = _depot_tolerance(pd) if coarse else _tolerance(pd)
+def tessellate(pd, coarse: bool = False, near: bool = False) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    lin, ang = _depot_tolerance(pd) if coarse else _near_tolerance(pd) if near else _tolerance(pd)
     shape = pd.shape.wrapped
     if coarse and pd.depot is not None:        # the part's outline for the depot model: no holes, fins or bores
         bb = pd.shape.BoundingBox()
@@ -84,7 +130,7 @@ def tessellate(pd, coarse: bool = False) -> tuple[np.ndarray, np.ndarray, np.nda
                                           cq.Vector(0, 1, 0)).wrapped
         else:
             shape = (pd.depot.val() if hasattr(pd.depot, 'val') else pd.depot).wrapped
-    if coarse:
+    if coarse or near:
         # a copy without its mesh: the mesher keeps a finer mesh it already has, and the shapes of standard parts
         # are cached and shared by every robot built in this process (re-meshing them in place changed the next
         # robot's full model)
@@ -151,8 +197,48 @@ class _Buf:
         return len(self.views) - 1
 
 
-def write_glb(model: Model, path: str, extras: dict | None = None, depot: bool = False) -> dict:
-    """The full model, or with depot=True the yard's model: depot_keep's parts, coarsely meshed, same nodes."""
+def _item_box(pd, L) -> tuple[float, ...]:
+    """A placed part's axis-aligned box in its node's frame or the world (mm): its own box's 8 corners moved by L."""
+    from OCP.gp import gp_Pnt
+    bb = pd.shape.BoundingBox()
+    T = L.wrapped.Transformation()
+    xs, ys, zs = [], [], []
+    for x in (bb.xmin, bb.xmax):
+        for y in (bb.ymin, bb.ymax):
+            for z in (bb.zmin, bb.zmax):
+                q = gp_Pnt(x, y, z).Transformed(T)
+                xs.append(q.X()); ys.append(q.Y()); zs.append(q.Z())
+    return min(xs), min(ys), min(zs), max(xs), max(ys), max(zs)
+
+
+def line_holders(model: Model, reach: float = 3.0) -> frozenset:
+    """The parts that hold the lines' ends: every part placed on an anchor's node whose box comes within the line's radius
+    and `reach` mm of the anchor (a gland, a fitting, a collar, a box face, a duct's mouth)."""
+    out = set()
+    for fd in getattr(model, 'flexes', []):
+        for an in (fd.a, fd.b):
+            p = an.p
+            for it in an.node.items:
+                x0, y0, z0, x1, y1, z1 = _item_box(it.part, it.loc)
+                dx = max(x0 - p[0], 0.0, p[0] - x1)
+                dy = max(y0 - p[1], 0.0, p[1] - y1)
+                dz = max(z0 - p[2], 0.0, p[2] - z1)
+                if math.sqrt(dx * dx + dy * dy + dz * dz) <= fd.r + reach:
+                    out.add(it.part.id)
+    return frozenset(out)
+
+
+def write_glb(model: Model, path: str, extras: dict | None = None, depot: bool = False, lod: str | None = None) -> dict:
+    """The full model (the Robotics tab's), or one of the yard's: lod='depot' (depot=True), the far model, depot_keep's
+    parts coarsely meshed; lod='near', the detail model the yard draws near the camera, near_keep's parts finely meshed.
+    All three have the same nodes and joints, carry the lines (the root's extras.flex), and carry each energy chain's
+    link as a mesh of its own (a node `flexlink:<line id>` under the root, extras.flexLink), which the viewer instances
+    along the chain in place of a box."""
+    lod = lod or ('depot' if depot else 'full')
+    depot = lod == 'depot'
+    near = lod == 'near'
+    holders = line_holders(model) if depot else frozenset()
+    deck = getattr(model, 'yard_deck_y', None)
     buf = _Buf()
     accessors: list[dict] = []
     meshes: list[dict] = []
@@ -179,7 +265,7 @@ def write_glb(model: Model, path: str, extras: dict | None = None, depot: bool =
     def mesh_for(pd) -> int:
         if pd.id in mesh_index:
             return mesh_index[pd.id]
-        P, N, T = tessellate(pd, coarse=depot)
+        P, N, T = tessellate(pd, coarse=depot, near=near)
         P = (P * MM).astype(np.float32)
         nl = np.linalg.norm(N, axis=1, keepdims=True)
         nl[nl == 0] = 1
@@ -212,8 +298,17 @@ def write_glb(model: Model, path: str, extras: dict | None = None, depot: bool =
         return mesh_index[pd.id]
 
     nodes: list[dict] = []
+    from cadquery import Location as _Loc
 
-    def emit(node: Node) -> int:
+    def keep(it, Lw) -> bool:
+        if depot:
+            return depot_keep(it.part, holders, yard_hidden(it, Lw, deck))
+        if near:
+            return near_keep(it, yard_hidden(it, Lw, deck))
+        return True
+
+    def emit(node: Node, parent_w=None) -> int:
+        Lw = (parent_w or _Loc()) * node.loc          # the node's place at rest (every joint at zero), as the GLB stores it
         t, r = _quat(node.loc)
         nd: dict = {'name': node.name}
         if any(abs(c) > 1e-12 for c in t):
@@ -233,7 +328,7 @@ def write_glb(model: Model, path: str, extras: dict | None = None, depot: bool =
         me = len(nodes) - 1
         kids = []
         for it in node.items:
-            if depot and not depot_keep(it.part):
+            if not keep(it, Lw):
                 continue
             ti, ri = _quat(it.loc)
             ni: dict = {'name': it.name, 'mesh': mesh_for(it.part)}
@@ -244,16 +339,30 @@ def write_glb(model: Model, path: str, extras: dict | None = None, depot: bool =
             e = {'part': it.part.id, 'sub': it.sub}
             if any(it.explode):
                 e['explode'] = [round(c * MM, 6) for c in it.explode]
+            # what the yard's detail model leaves out, and why: sealed in an actuator, or out of the yard's sight
+            # (src/lib/robotics/cadDetail.test.ts proves the first unseen at the twin's poses and checks both against near)
+            if getattr(it, 'sealed', False):
+                e['sealed'] = True
+            if not depot and not near and yard_hidden(it, Lw, deck):
+                e['yardHidden'] = True
             ni['extras'] = e
             nodes.append(ni)
             kids.append(len(nodes) - 1)
         for ch in node.children:
-            kids.append(emit(ch))
+            kids.append(emit(ch, Lw))
         if kids:
             nodes[me]['children'] = kids
         return me
 
     root = emit(model.root)
+    # each energy chain's link, as a mesh the viewer instances along the chain (not a placed part: no `part` key)
+    link_nodes = []
+    for fd in getattr(model, 'flexes', []):
+        if fd.kind == 'chain' and fd.link_part is not None:
+            nodes.append({'name': f'flexlink:{fd.id}', 'mesh': mesh_for(fd.link_part), 'extras': {'flexLink': fd.id}})
+            link_nodes.append(len(nodes) - 1)
+    if link_nodes:
+        nodes[root].setdefault('children', []).extend(link_nodes)
     nodes[root].setdefault('extras', {}).update(
         {'robot': model.key, 'title': model.title, 'frame': model.frame, **(extras or {})})
     if getattr(model, 'flexes', None):

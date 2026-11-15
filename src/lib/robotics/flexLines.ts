@@ -70,6 +70,28 @@ export interface FlexDefJson {
   up?: V3;
   /** the bill of materials' part id of one link (a chain is counted there as `links` of it) */
   linkPart?: string;
+  /** chain: the lines it carries, each in its own lane (cad/otto_cad/flex.py FlexDef.contents) */
+  contents?: FlexContentJson[];
+  /** chain: how far its lines run on past its fixed and moving ends into what holds them, metres. Loop: how far it runs
+   *  straight out of each end before it may bend (a boot in its fitting's collar), metres; part of its length */
+  leadA?: number;
+  leadB?: number;
+}
+
+/**
+ * One line a chain carries: its centre at (v, w) in the link's frame (v across the link's height, along the bend's
+ * in-plane normal; w across its width), its diameter d, metres. It bends on bendR - v, so its length through the chain,
+ * `length`, is the same at every pose. `part` is the bill of materials' part of the fixed run that feeds it.
+ */
+export interface FlexContentJson {
+  id: string;
+  part: string;
+  name: string;
+  d: number;
+  v: number;
+  w: number;
+  length: number;
+  material: FlexMaterialJson;
 }
 
 export const N_SEG = 32;
@@ -235,6 +257,63 @@ export function chainPath(def: Pick<FlexDefJson, 'links' | 'pitch' | 'bendR'>, p
   return { links, ok, travel: s };
 }
 
+/**
+ * The chain's centreline frame at arc length a from its fixed end (0 .. links x pitch), as chainPath places its links:
+ * the point, the tangent and the in-plane normal. A line the chain carries at (v, w) lies at c + n v + (t x n) w.
+ */
+export function chainFrameAt(def: Pick<FlexDefJson, 'links' | 'pitch' | 'bendR'>, pA: V3, dA: V3, upA: V3, s: number, a: number): ChainLink {
+  const R = def.bendR ?? 0, p = def.pitch ?? 0, n = def.links ?? 0;
+  const C = n * p;
+  const xb = (C - Math.PI * R + s) / 2;
+  let x: number, y: number, tx: number, ty: number;
+  if (a <= xb) { x = a; y = 0; tx = 1; ty = 0; } else if (a <= xb + Math.PI * R) {
+    const th = (a - xb) / R;
+    x = xb + R * Math.sin(th); y = R - R * Math.cos(th); tx = Math.cos(th); ty = Math.sin(th);
+  } else { x = xb - (a - xb - Math.PI * R); y = 2 * R; tx = -1; ty = 0; }
+  return {
+    c: add(add(pA, mul(dA, x)), mul(upA, y)),
+    t: add(mul(dA, tx), mul(upA, ty)),
+    n: add(mul(dA, -ty), mul(upA, tx)),
+  };
+}
+
+/** A chain's fixed-end frame at a pose: its anchor point, its run direction and its bend side (as solveFlex uses). */
+export function chainBase(def: FlexDefJson, MA: THREE.Matrix4, MB: THREE.Matrix4): { pA: V3; dA: V3; up: V3; s: number } {
+  const A = anchorWorld(def.a, MA), B = anchorWorld(def.b, MB);
+  const up = unit(dirWorld(def.up ?? [0, 1, 0], MA));
+  const dA = unit(sub(A.d, mul(up, dot(A.d, up))));
+  return { pA: A.p, dA, up, s: dot(sub(B.p, A.p), dA) };
+}
+
+/**
+ * The centreline of one line a chain carries, at a pose: `samples` points evenly along the chain from its fixed end to
+ * its moving end, each in the line's lane, plus a lead past each end into what holds it (the chain's leadA, leadB).
+ * Written into `out` (3 x (samples + 2) numbers: the first and last points are the leads' ends; with no lead they
+ * repeat the chain's end point).
+ */
+export function contentPolyline(def: FlexDefJson, c: FlexContentJson, MA: THREE.Matrix4, MB: THREE.Matrix4, samples: number, out: Polyline): Polyline {
+  const { pA, dA, up, s } = chainBase(def, MA, MB);
+  const C = (def.links ?? 0) * (def.pitch ?? 0);
+  const put = (k: number, f: ChainLink, along: number) => {
+    const w = cross(f.t, f.n);
+    out[3 * k] = f.c[0] + f.n[0] * c.v + w[0] * c.w + f.t[0] * along;
+    out[3 * k + 1] = f.c[1] + f.n[1] * c.v + w[1] * c.w + f.t[1] * along;
+    out[3 * k + 2] = f.c[2] + f.n[2] * c.v + w[2] * c.w + f.t[2] * along;
+  };
+  put(0, chainFrameAt(def, pA, dA, up, s, 0), -(def.leadA ?? 0));
+  for (let i = 0; i < samples; i++) put(i + 1, chainFrameAt(def, pA, dA, up, s, (C * i) / (samples - 1)), 0);
+  put(samples + 1, chainFrameAt(def, pA, dA, up, s, C), def.leadB ?? 0);
+  return out;
+}
+
+/** How many points a chain's lines are drawn with between its ends: a point every half link, and 16 or more round the bend. */
+export function contentSamples(def: FlexDefJson): number {
+  const C = (def.links ?? 0) * (def.pitch ?? 0);
+  const R = def.bendR ?? 0;
+  const step = Math.min((def.pitch ?? 0.05) / 2, (Math.PI * R) / 16 || 0.05);
+  return Math.max(2, Math.ceil(C / step) + 1);
+}
+
 export interface FlexSolution {
   points: Polyline;
   ok: boolean;
@@ -284,9 +363,23 @@ export function solveFlex(def: FlexDefJson, MA: THREE.Matrix4, MB: THREE.Matrix4
     const tA = (def.swivelA ?? 0) > 0 ? turnToward(A.d, shared(ch, pairWorld(def.pairA), A.p, true), def.swivelA ?? 0) : A.d;
     const tB = (def.swivelB ?? 0) > 0 ? turnToward(B.d, shared(ch, pairWorld(def.pairB), B.p, false), def.swivelB ?? 0) : B.d;
     const L = loopLength(def, cn);
-    const r = def.shape === 'cubic' ? solveCubic(A.p, tA, B.p, tB, L, def.sag ?? 0) : solveLoop(A.p, tA, B.p, tB, v, L, def.hk ?? 0.5);
-    const mr = r.tight ? 0 : minRadius(r.points);
-    return { points: r.points, tight: r.tight, chord: r.chord, length: L, minRadius: mr, ok: !r.tight && mr >= (def.minBend ?? 0) };
+    // a lead: the line runs straight out of what holds it that far (a boot in its fitting's collar) and bends only past
+    // it, so the loop is solved between the leads' ends with what is left of its length (flex.solve)
+    const la = def.leadA ?? 0, lb = def.leadB ?? 0;
+    const qA = la > 0 ? add(A.p, mul(tA, la)) : A.p, qB = lb > 0 ? sub(B.p, mul(tB, lb)) : B.p;
+    const r = def.shape === 'cubic' ? solveCubic(qA, tA, qB, tB, L - la - lb, def.sag ?? 0) : solveLoop(qA, tA, qB, tB, v, L - la - lb, def.hk ?? 0.5);
+    let points = r.points, chord = r.chord;
+    if (la > 0 || lb > 0) {
+      const n = r.points.length + (la > 0 ? 3 : 0) + (lb > 0 ? 3 : 0);
+      points = new Float64Array(n);
+      let o = 0;
+      if (la > 0) { points.set(A.p, 0); o = 3; }
+      points.set(r.points, o);
+      if (lb > 0) points.set(B.p, n - 3);
+      chord = norm(sub(qB, qA)) + la + lb;
+    }
+    const mr = r.tight ? 0 : minRadius(points);
+    return { points, tight: r.tight, chord, length: L, minRadius: mr, ok: !r.tight && mr >= (def.minBend ?? 0) };
   }
   if (def.kind === 'stretch') {
     const L = norm(sub(B.p, A.p));

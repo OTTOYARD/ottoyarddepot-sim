@@ -9,7 +9,9 @@ import { cleanSessionJoints, cleanStatusColor, IDLE_CLEAN } from '@/lib/ottoClea
 import { placeCleanArm } from '@/lib/ottoCleanArm/cleanArmPlacement';
 import { CLEAN_ARM, isCleanWork } from '@/lib/ottoCleanArm/cleanArmSpec';
 import { DECK_Y } from './coordUtils';
-import { cleanSkeleton, writeCleanArm, clearCleanArm, type CleanArmFleet } from './cleanArmInstances';
+import { cleanSkeleton, clearCleanArm, type CleanArmFleet } from './cleanArmInstances';
+import { drawRobot, type DetailFleets } from './detailDraw';
+import type { DetailDirector } from '@/lib/robotics/cadDetail';
 import { poseSkeleton, type DepotCad, type DepotSkeleton } from '@/lib/robotics/cadDepot';
 import type { FlexFleet } from '@/lib/robotics/flexMesh';
 import { cleanAngles } from '@/lib/robotics/catalog';
@@ -64,7 +66,14 @@ interface CleanArmProps {
   cad: DepotCad | null;
   /** The CAD's flexible lines for every arm (mast coil, wand reel cable, nozzle air loop); null without the CAD. */
   flex?: FlexFleet | null;
+  /** The detail fleets the arms nearest the camera draw in (robotics/cadDetail.ts); null until the detail CAD loads. */
+  detail?: DetailFleets | null;
+  /** Who chooses the arms drawn in detail: the arm tells it where it stands. */
+  director?: DetailDirector | null;
 }
+
+/** The cleaning arm's bounding sphere for the detail choice: 2.6 m over grade at its column, 2.6 m round. */
+const CLEAN_SPHERE = { up: 2.6 * PLAN_UNITS_PER_METRE, r: 2.6 * PLAN_UNITS_PER_METRE };
 
 /** One arm's nodes to pose: the CAD's skeleton, or the procedural one. */
 interface CleanRig {
@@ -94,7 +103,7 @@ function cleanRig(cad: DepotCad | null): CleanRig {
   };
 }
 
-export function CleanArm({ stallId, fleet, slot, cad, flex }: CleanArmProps) {
+export function CleanArm({ stallId, fleet, slot, cad, flex, detail, director }: CleanArmProps) {
   const groupRef = useRef<THREE.Group>(null);
   const frameRef = useRef<THREE.Group>(null);
   const hoseRef = useRef<THREE.Mesh>(null);
@@ -109,6 +118,12 @@ export function CleanArm({ stallId, fleet, slot, cad, flex }: CleanArmProps) {
   const rig = useMemo(() => cleanRig(cad), [cad]);
   useEffect(() => () => clearCleanArm(fleet, slot), [fleet, slot]);
   useEffect(() => () => flex?.clear(slot), [flex, slot]);
+  useEffect(() => {
+    if (!director || !place || !cad) return;
+    director.place('clean_arm', slot, place.world.x, DECK_Y + CLEAN_SPHERE.up, place.world.z, CLEAN_SPHERE.r);
+    return () => director.remove('clean_arm', slot);
+  }, [director, place, slot, cad]);
+  const seen = useRef({ detail: false });
 
   const hoseMat = useMemo(() => new THREE.MeshStandardMaterial({ color: 0x15181d, roughness: 0.82, metalness: 0.05 }), []);
   useEffect(() => () => { hoseMat.dispose(); hoseRef.current?.geometry.dispose(); }, [hoseMat]);
@@ -126,8 +141,7 @@ export function CleanArm({ stallId, fleet, slot, cad, flex }: CleanArmProps) {
     groupRef.current?.updateWorldMatrix(true, true);
     const working = isCleanWork(s.phase);
     const glow = working ? 1.0 + Math.sin(clock.elapsedTime * 3.1) * 0.4 : 1.3;
-    writeCleanArm(fleet, slot, rig.segments, cleanStatusColor(s), glow);
-    if (flex && rig.skel) flex.write(slot, rig.skel);
+    drawRobot({ fleet, flex, slot }, rig.skel ? detail : null, rig.segments, rig.skel, cleanStatusColor(s), glow, [], seen.current);
     if (cleanDebug) {
       const v = new THREE.Vector3();
       const at = (o: THREE.Object3D) => o.getWorldPosition(v).toArray().map((x) => Math.round(x * 1000) / 1000);

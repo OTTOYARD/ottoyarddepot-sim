@@ -7,12 +7,12 @@
   "glb": "m"
  },
  "totals": {
-  "parts": 1052,
-  "uniqueParts": 248,
+  "parts": 1060,
+  "uniqueParts": 253,
   "fasteners": 702,
-  "massKg": 990.04,
+  "massKg": 1003.73,
   "boughtLines": 168,
-  "madeLines": 80,
+  "madeLines": 85,
   "referenceLines": 6
  },
  "subsystems": [
@@ -90,7 +90,7 @@
    "order": 2,
    "partCount": 101,
    "fastenerCount": 13,
-   "massKg": 55.096,
+   "massKg": 65.332,
    "uniqueParts": 32
   },
   {
@@ -217,7 +217,7 @@
    "order": 9,
    "partCount": 55,
    "fastenerCount": 17,
-   "massKg": 9.548,
+   "massKg": 9.852,
    "uniqueParts": 29
   },
   {
@@ -244,10 +244,10 @@
    },
    "group": "Cables",
    "order": 10,
-   "partCount": 10,
+   "partCount": 17,
    "fastenerCount": 0,
-   "massKg": 68.85,
-   "uniqueParts": 10
+   "massKg": 71.946,
+   "uniqueParts": 14
   },
   {
    "id": "SAFETY",
@@ -261,10 +261,10 @@
    "specs": {},
    "group": "Safety",
    "order": 11,
-   "partCount": 7,
+   "partCount": 8,
    "fastenerCount": 2,
-   "massKg": 1.28,
-   "uniqueParts": 6
+   "massKg": 1.333,
+   "uniqueParts": 7
   }
  ],
  "lines": [
@@ -388,7 +388,8 @@
    "function": "Lifts the arm from the saddle to its J1 height. Welded, then hot-dip galvanised.",
    "spec": {
     "tube": "344 x 344 x 10",
-    "welds": "fillet a5, all round"
+    "welds": "fillet a5, all round",
+    "in the cable schedule": "CHG-LDP1, 7.29 m from end to end; CHG-LDP2, 7.31 m from end to end; CHG-LDP3, 7.33 m from end to end; CHG-LDP4, 7.35 m from end to end; CHG-LDN1, 7.38 m from end to end; CHG-LDN2, 7.40 m from end to end; CHG-LDN3, 7.43 m from end to end; CHG-LDN4, 7.53 m from end to end; CHG-LCS, 7.20 m from end to end; CHG-LCR, 7.22 m from end to end; CHG-LAR, 7.29 m from end to end; CHG-LJS, 7.23 m from end to end; CHG-LTL, 14.23 m from end to end; CHG-LSF, 7.38 m from end to end"
    },
    "uses": [
     {
@@ -1286,7 +1287,8 @@
    "function": "Joins the chain's moving end to the carriage. The lines rise inside it, through the cover's slot.",
    "spec": {
     "in the slot": "50 mm in a 60 mm slot, a brush strip each side",
-    "inside": "the lines turn on 60 mm or more (4 x d, fixed); not drawn one by one"
+    "inside": "the lines turn on 60 mm or more (4 x d, fixed); not drawn one by one",
+    "in the cable schedule": "CHG-LDP1, 7.29 m from end to end; CHG-LDP2, 7.31 m from end to end; CHG-LDP3, 7.33 m from end to end; CHG-LDP4, 7.35 m from end to end; CHG-LDN1, 7.38 m from end to end; CHG-LDN2, 7.40 m from end to end; CHG-LDN3, 7.43 m from end to end; CHG-LDN4, 7.53 m from end to end; CHG-LCS, 7.20 m from end to end; CHG-LCR, 7.22 m from end to end; CHG-LAR, 7.29 m from end to end; CHG-LJS, 7.23 m from end to end; CHG-LTL, 14.23 m from end to end; CHG-LSF, 7.38 m from end to end; CHG-LMX, 5.31 m from end to end; CHG-LMZ, 5.91 m from end to end"
    },
    "uses": [
     {
@@ -1361,7 +1363,8 @@
    "function": "Takes the lines from the cross chain's moving end down and round to the riser's cable window.",
    "spec": {
     "inside": "the lines turn on 60 mm or more (4 x d, fixed); not drawn one by one",
-    "into the riser": "a spigot in the cable window, on its sill"
+    "into the riser": "a spigot in the cable window, on its sill",
+    "in the cable schedule": "CHG-LDP1, 7.29 m from end to end; CHG-LDP2, 7.31 m from end to end; CHG-LDP3, 7.33 m from end to end; CHG-LDP4, 7.35 m from end to end; CHG-LDN1, 7.38 m from end to end; CHG-LDN2, 7.40 m from end to end; CHG-LDN3, 7.43 m from end to end; CHG-LDN4, 7.53 m from end to end; CHG-LCS, 7.20 m from end to end; CHG-LCR, 7.22 m from end to end; CHG-LAR, 7.29 m from end to end; CHG-LJS, 7.23 m from end to end; CHG-LTL, 14.23 m from end to end; CHG-LSF, 7.38 m from end to end"
    },
    "uses": [
     {
@@ -1539,7 +1542,8 @@
    "function": "Runs from the driver's neck, under the carriage plate, to the rail gearmotor.",
    "spec": {
     "bend": "R 50 (4 x d)",
-    "carries": "motor, brake and encoder, one cable"
+    "carries": "motor, brake and encoder, one cable",
+    "in the cable schedule": "CHG-LMX, 5.31 m from end to end"
    },
    "uses": [
     {
@@ -1566,7 +1570,8 @@
    "function": "Runs from the elbow duct along the carriage plate's edge to the cross-slide motor.",
    "spec": {
     "bend": "R 50 (4 x d)",
-    "carries": "motor, brake and encoder, one cable"
+    "carries": "motor, brake and encoder, one cable",
+    "in the cable schedule": "CHG-LMZ, 5.91 m from end to end"
    },
    "uses": [
     {
@@ -1596,7 +1601,8 @@
     "load": "125 A at 500 A (55 % of 228 A, the sheet's figure at 30 C)",
     "drawn": "from the cabinet's floor to the chain's fixed end; it runs on in the chain",
     "bends here": "R 100 and R 135 mm (it may bend on 60 mm fixed, 112 mm in a chain)",
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+    "mass basis": "catalogue class mass (the CAD draws its envelope)",
+    "in the cable schedule": "CHG-LDN1, 7.38 m from end to end"
    },
    "uses": [
     {
@@ -1626,7 +1632,8 @@
     "load": "125 A at 500 A (55 % of 228 A, the sheet's figure at 30 C)",
     "drawn": "from the cabinet's floor to the chain's fixed end; it runs on in the chain",
     "bends here": "R 100 and R 151 mm (it may bend on 60 mm fixed, 112 mm in a chain)",
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+    "mass basis": "catalogue class mass (the CAD draws its envelope)",
+    "in the cable schedule": "CHG-LDN2, 7.40 m from end to end"
    },
    "uses": [
     {
@@ -1656,7 +1663,8 @@
     "load": "125 A at 500 A (55 % of 228 A, the sheet's figure at 30 C)",
     "drawn": "from the cabinet's floor to the chain's fixed end; it runs on in the chain",
     "bends here": "R 100 and R 168 mm (it may bend on 60 mm fixed, 112 mm in a chain)",
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+    "mass basis": "catalogue class mass (the CAD draws its envelope)",
+    "in the cable schedule": "CHG-LDN3, 7.43 m from end to end"
    },
    "uses": [
     {
@@ -1686,7 +1694,8 @@
     "load": "125 A at 500 A (55 % of 228 A, the sheet's figure at 30 C)",
     "drawn": "from the cabinet's floor to the chain's fixed end; it runs on in the chain",
     "bends here": "R 100 and R 184 mm (it may bend on 60 mm fixed, 112 mm in a chain)",
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+    "mass basis": "catalogue class mass (the CAD draws its envelope)",
+    "in the cable schedule": "CHG-LDN4, 7.53 m from end to end"
    },
    "uses": [
     {
@@ -1716,7 +1725,8 @@
     "load": "125 A at 500 A (55 % of 228 A, the sheet's figure at 30 C)",
     "drawn": "from the cabinet's floor to the chain's fixed end; it runs on in the chain",
     "bends here": "R 100 and R 69 mm (it may bend on 60 mm fixed, 112 mm in a chain)",
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+    "mass basis": "catalogue class mass (the CAD draws its envelope)",
+    "in the cable schedule": "CHG-LDP1, 7.29 m from end to end"
    },
    "uses": [
     {
@@ -1746,7 +1756,8 @@
     "load": "125 A at 500 A (55 % of 228 A, the sheet's figure at 30 C)",
     "drawn": "from the cabinet's floor to the chain's fixed end; it runs on in the chain",
     "bends here": "R 100 and R 85 mm (it may bend on 60 mm fixed, 112 mm in a chain)",
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+    "mass basis": "catalogue class mass (the CAD draws its envelope)",
+    "in the cable schedule": "CHG-LDP2, 7.31 m from end to end"
    },
    "uses": [
     {
@@ -1776,7 +1787,8 @@
     "load": "125 A at 500 A (55 % of 228 A, the sheet's figure at 30 C)",
     "drawn": "from the cabinet's floor to the chain's fixed end; it runs on in the chain",
     "bends here": "R 100 and R 102 mm (it may bend on 60 mm fixed, 112 mm in a chain)",
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+    "mass basis": "catalogue class mass (the CAD draws its envelope)",
+    "in the cable schedule": "CHG-LDP3, 7.33 m from end to end"
    },
    "uses": [
     {
@@ -1806,7 +1818,8 @@
     "load": "125 A at 500 A (55 % of 228 A, the sheet's figure at 30 C)",
     "drawn": "from the cabinet's floor to the chain's fixed end; it runs on in the chain",
     "bends here": "R 100 and R 118 mm (it may bend on 60 mm fixed, 112 mm in a chain)",
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+    "mass basis": "catalogue class mass (the CAD draws its envelope)",
+    "in the cable schedule": "CHG-LDP4, 7.35 m from end to end"
    },
    "uses": [
     {
@@ -1834,7 +1847,8 @@
    "spec": {
     "diameter": "typical of its kind (assumed)",
     "drawn": "from the cabinet's floor to the chain's fixed end; it runs on in the chain",
-    "bends here": "R 83 and R 122 mm (it may bend on 40 mm fixed, 75 mm in a chain)"
+    "bends here": "R 83 and R 122 mm (it may bend on 40 mm fixed, 75 mm in a chain)",
+    "in the cable schedule": "CHG-LJS, 7.23 m from end to end"
    },
    "uses": [
     {
@@ -1862,7 +1876,8 @@
    "spec": {
     "diameter": "typical of its kind (assumed)",
     "drawn": "from the cabinet's floor to the chain's fixed end; it runs on in the chain",
-    "bends here": "R 82 and R 153 mm (it may bend on 50 mm fixed, 94 mm in a chain)"
+    "bends here": "R 82 and R 153 mm (it may bend on 50 mm fixed, 94 mm in a chain)",
+    "in the cable schedule": "CHG-LMX, 5.31 m from end to end"
    },
    "uses": [
     {
@@ -1890,7 +1905,8 @@
    "spec": {
     "diameter": "typical of its kind (assumed)",
     "drawn": "from the cabinet's floor to the chain's fixed end; it runs on in the chain",
-    "bends here": "R 82 and R 166 mm (it may bend on 44 mm fixed, 82 mm in a chain)"
+    "bends here": "R 82 and R 166 mm (it may bend on 44 mm fixed, 82 mm in a chain)",
+    "in the cable schedule": "CHG-LMZ, 5.91 m from end to end"
    },
    "uses": [
     {
@@ -1918,7 +1934,8 @@
    "spec": {
     "diameter": "typical of its kind (assumed)",
     "drawn": "from the cabinet's floor to the chain's fixed end; it runs on in the chain",
-    "bends here": "R 84 and R 141 mm (it may bend on 36 mm fixed, 68 mm in a chain)"
+    "bends here": "R 84 and R 141 mm (it may bend on 36 mm fixed, 68 mm in a chain)",
+    "in the cable schedule": "CHG-LSF, 7.38 m from end to end"
    },
    "uses": [
     {
@@ -1946,7 +1963,8 @@
    "spec": {
     "diameter": "typical of its kind (assumed)",
     "drawn": "from the cabinet's floor to the chain's fixed end; it runs on in the chain",
-    "bends here": "R 84 and R 132 mm (it may bend on 32 mm fixed, 60 mm in a chain)"
+    "bends here": "R 84 and R 132 mm (it may bend on 32 mm fixed, 60 mm in a chain)",
+    "in the cable schedule": "CHG-LTL, 14.23 m from end to end"
    },
    "uses": [
     {
@@ -1956,8 +1974,8 @@
    ]
   },
   {
-   "id": "ECHAIN-163x64",
-   "name": "Cable carrier link, inside 137 x 42",
+   "id": "ECHAIN-163x64-S",
+   "name": "Cable carrier link, inside 137 x 42, with a separator shelf",
    "category": "electrical",
    "make": "buy",
    "standard": "catalogue part",
@@ -1966,15 +1984,16 @@
    "material": "PA66-GF30",
    "materialKey": "pa66",
    "qty": 51,
-   "massKg": 0.062,
-   "totalMassKg": 3.1615,
+   "massKg": 0.2627,
+   "totalMassKg": 13.3976,
    "torqueNm": null,
    "reference": false,
    "function": "Guides the cables and hoses through the moving joint. It keeps the bend radius safe.",
    "spec": {
     "inside": "137 x 42 mm, one shelf",
     "bend radius": "125 mm",
-    "tightest line allows": "112.5 mm (7.5 x 15 mm, the DC core)"
+    "tightest line allows": "112.5 mm (7.5 x 15 mm, the DC core)",
+    "shelf": "4.5 mm, on the DC cores"
    },
    "uses": [
     {
@@ -2002,7 +2021,8 @@
    "spec": {
     "diameter": "typical of its kind (assumed)",
     "drawn": "from the cabinet's floor to the chain's fixed end; it runs on in the chain",
-    "bends here": "R 84 and R 112 mm (it may bend on 32 mm fixed, 60 mm in a chain)"
+    "bends here": "R 84 and R 112 mm (it may bend on 32 mm fixed, 60 mm in a chain)",
+    "in the cable schedule": "CHG-LAR, 7.29 m from end to end"
    },
    "uses": [
     {
@@ -2030,7 +2050,8 @@
    "spec": {
     "diameter": "typical of its kind (assumed)",
     "drawn": "from the cabinet's floor to the chain's fixed end; it runs on in the chain",
-    "bends here": "R 82 and R 101 mm (it may bend on 48 mm fixed, 90 mm in a chain)"
+    "bends here": "R 82 and R 101 mm (it may bend on 48 mm fixed, 90 mm in a chain)",
+    "in the cable schedule": "CHG-LCR, 7.22 m from end to end"
    },
    "uses": [
     {
@@ -2058,7 +2079,8 @@
    "spec": {
     "diameter": "typical of its kind (assumed)",
     "drawn": "from the cabinet's floor to the chain's fixed end; it runs on in the chain",
-    "bends here": "R 82 and R 88 mm (it may bend on 48 mm fixed, 90 mm in a chain)"
+    "bends here": "R 82 and R 88 mm (it may bend on 48 mm fixed, 90 mm in a chain)",
+    "in the cable schedule": "CHG-LCS, 7.20 m from end to end"
    },
    "uses": [
     {
@@ -2187,7 +2209,8 @@
    "function": "Holds the gear ring, the motor and both shaft bearings in line. Fins carry the motor heat out.",
    "spec": {
     "IP rating": "IP65",
-    "machining": "bores to H7, faces flat to 0.02"
+    "machining": "bores to H7, faces flat to 0.02",
+    "in the cable schedule": "CHG-JC1, 0.77 m from end to end"
    },
    "uses": [
     {
@@ -2285,7 +2308,8 @@
    "reference": false,
    "function": "Turns on J1 and carries the shoulder. Its boss clamps the J2 actuator.",
    "spec": {
-    "wall": "8 mm"
+    "wall": "8 mm",
+    "in the cable schedule": "CHG-JC1, 0.77 m from end to end"
    },
    "uses": [
     {
@@ -3195,7 +3219,8 @@
    "function": "Holds the gear ring, the motor and both shaft bearings in line. Fins carry the motor heat out.",
    "spec": {
     "IP rating": "IP65",
-    "machining": "bores to H7, faces flat to 0.02"
+    "machining": "bores to H7, faces flat to 0.02",
+    "in the cable schedule": "CHG-JC2, 1.82 m from end to end"
    },
    "uses": [
     {
@@ -4066,7 +4091,8 @@
    "function": "Carries the elbow 1.344 m from the shoulder. Hollow for stiffness per kilogram.",
    "spec": {
     "wall": "7 mm",
-    "axis distance": "1344.0 mm, bored in one set-up"
+    "axis distance": "1344.0 mm, bored in one set-up",
+    "in the cable schedule": "CHG-LTL, 14.23 m from end to end; CHG-LCSA, 6.91 m from end to end; CHG-LCRA, 6.91 m from end to end; CHG-LARA, 6.93 m from end to end; CHG-BBUP, 0.79 m from end to end; CHG-BBUN, 0.79 m from end to end; CHG-JC2, 1.82 m from end to end"
    },
    "uses": [
     {
@@ -4141,7 +4167,8 @@
    "function": "Holds the gear ring, the motor and both shaft bearings in line. Fins carry the motor heat out.",
    "spec": {
     "IP rating": "IP65",
-    "machining": "bores to H7, faces flat to 0.02"
+    "machining": "bores to H7, faces flat to 0.02",
+    "in the cable schedule": "CHG-JC3, 1.21 m from end to end"
    },
    "uses": [
     {
@@ -4287,7 +4314,8 @@
    "reference": false,
    "function": "Carries the wrist 1.142 m from the elbow. Its top socket holds J4.",
    "spec": {
-    "wall": "6 mm"
+    "wall": "6 mm",
+    "in the cable schedule": "CHG-LTL, 14.23 m from end to end; CHG-LCSA, 6.91 m from end to end; CHG-LCRA, 6.91 m from end to end; CHG-LARA, 6.93 m from end to end; CHG-BBFP, 0.49 m from end to end; CHG-BBFN, 0.49 m from end to end; CHG-JC3, 1.21 m from end to end"
    },
    "uses": [
     {
@@ -4365,7 +4393,8 @@
    "function": "Holds the gear ring, the motor and both shaft bearings in line. Fins carry the motor heat out.",
    "spec": {
     "IP rating": "IP65",
-    "machining": "bores to H7, faces flat to 0.02"
+    "machining": "bores to H7, faces flat to 0.02",
+    "in the cable schedule": "CHG-JC4, 0.41 m from end to end"
    },
    "uses": [
     {
@@ -4488,7 +4517,8 @@
    "function": "Holds the gear ring, the motor and both shaft bearings in line. Fins carry the motor heat out.",
    "spec": {
     "IP rating": "IP65",
-    "machining": "bores to H7, faces flat to 0.02"
+    "machining": "bores to H7, faces flat to 0.02",
+    "in the cable schedule": "CHG-JC4, 0.41 m from end to end; CHG-JC5, 0.30 m from end to end"
    },
    "uses": [
     {
@@ -4611,7 +4641,8 @@
    "function": "Holds the gear ring, the motor and both shaft bearings in line. Fins carry the motor heat out.",
    "spec": {
     "IP rating": "IP65",
-    "machining": "bores to H7, faces flat to 0.02"
+    "machining": "bores to H7, faces flat to 0.02",
+    "in the cable schedule": "CHG-JC5, 0.30 m from end to end"
    },
    "uses": [
     {
@@ -6063,22 +6094,25 @@
    ]
   },
   {
-   "id": "GLAND-M50S",
-   "name": "Swivel cable gland M50 x 1.5, ball joint 35 degrees, IP67",
+   "id": "CHG-BTO",
+   "name": "Boot outlet adapter M50 x 1.5 for the 60 mm boot",
    "category": "electrical",
-   "make": "buy",
-   "standard": "IEC 62444",
-   "size": "M50 x 1.5, cable 30 to 38",
-   "grade": "IP67",
-   "material": "PA66-GF30",
-   "materialKey": "pa66",
+   "make": "make",
+   "standard": "made to order",
+   "size": "M50 x 1.5, hex 64, collar OD 72, 82.5 long",
+   "grade": "6061-T6, black anodised",
+   "material": "Aluminium 6061-T6, machined, black anodised",
+   "materialKey": "al6061_blk",
    "qty": 1,
-   "massKg": 0.1303,
-   "totalMassKg": 0.1303,
+   "massKg": 0.4349,
+   "totalMassKg": 0.4349,
    "torqueNm": null,
    "reference": false,
-   "function": "Seals the cable into the outlet and lets it leave at up to 35 degrees off the axis without a kink.",
-   "spec": {},
+   "function": "Holds the wrist boot's end on the connector head's outlet. The boot slides into its collar.",
+   "spec": {
+    "bore": "61 mm collar, 40 mm through",
+    "seal": "IP67, an O-ring on the thread"
+   },
    "uses": [
     {
      "sub": "TOOL",
@@ -6201,7 +6235,9 @@
    "torqueNm": null,
    "reference": false,
    "function": "Leads the charge cable out of the head to the side, so the span leaves along J5's axis. Inside the head 2 short braids a pole reach each connector.",
-   "spec": {},
+   "spec": {
+    "in the cable schedule": "CHG-LTL, 14.23 m from end to end; CHG-LCSA, 6.91 m from end to end; CHG-LCRA, 6.91 m from end to end; CHG-LARA, 6.93 m from end to end; CHG-FL4P, 1.55 m from end to end; CHG-FL4N, 1.55 m from end to end"
+   },
    "uses": [
     {
      "sub": "TOOL",
@@ -6615,6 +6651,118 @@
    ]
   },
   {
+   "id": "CHG-BF1B",
+   "name": "Boot fitting for the 60 mm boot, on the turret's box, its foot cut to the turret",
+   "category": "electrical",
+   "make": "make",
+   "standard": "made to order",
+   "size": "bore 61, collar OD 72 x 18",
+   "grade": "6061-T6, black anodised",
+   "material": "Aluminium 6061-T6, machined, black anodised",
+   "materialKey": "al6061_blk",
+   "qty": 1,
+   "massKg": 0.0593,
+   "totalMassKg": 0.0593,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Holds a boot's end where it meets a casting. The boot slides into its collar.",
+   "spec": {
+    "bore": "61 mm: the 60 mm boot slides 18 mm in",
+    "seal": "IP67, a clamp ring on the boot",
+    "through it": "the 2 braids, the coolant tubes, the tool cable and the air line"
+   },
+   "uses": [
+    {
+     "sub": "DRESS",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-BF3B",
+   "name": "Boot fitting for the 60 mm boot, on the forearm, a boss down to the casting (its box is inside)",
+   "category": "electrical",
+   "make": "make",
+   "standard": "made to order",
+   "size": "bore 61, collar OD 72 x 18",
+   "grade": "6061-T6, black anodised",
+   "material": "Aluminium 6061-T6, machined, black anodised",
+   "materialKey": "al6061_blk",
+   "qty": 1,
+   "massKg": 0.3435,
+   "totalMassKg": 0.3435,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Holds a boot's end where it meets a casting. The boot slides into its collar.",
+   "spec": {
+    "bore": "61 mm: the 60 mm boot slides 18 mm in",
+    "seal": "IP67, a clamp ring on the boot",
+    "through it": "the 2 braids, the coolant tubes, the tool cable and the air line"
+   },
+   "uses": [
+    {
+     "sub": "DRESS",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-BF4A",
+   "name": "Boot fitting for the 60 mm boot, on the forearm's wrist-end box, its foot cut to the casting",
+   "category": "electrical",
+   "make": "make",
+   "standard": "made to order",
+   "size": "bore 61, collar OD 72 x 18",
+   "grade": "6061-T6, black anodised",
+   "material": "Aluminium 6061-T6, machined, black anodised",
+   "materialKey": "al6061_blk",
+   "qty": 1,
+   "massKg": 0.0636,
+   "totalMassKg": 0.0636,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Holds a boot's end where it meets a casting. The boot slides into its collar.",
+   "spec": {
+    "bore": "61 mm: the 60 mm boot slides 18 mm in",
+    "seal": "IP67, a clamp ring on the boot",
+    "through it": "the 2 braids, the coolant tubes, the tool cable and the air line"
+   },
+   "uses": [
+    {
+     "sub": "DRESS",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-BFT",
+   "name": "Boot fitting for the 60 mm boot, on a terminal box face",
+   "category": "electrical",
+   "make": "make",
+   "standard": "made to order",
+   "size": "bore 61, collar OD 72 x 18, flange OD 80",
+   "grade": "6061-T6, black anodised",
+   "material": "Aluminium 6061-T6, machined, black anodised",
+   "materialKey": "al6061_blk",
+   "qty": 4,
+   "massKg": 0.0636,
+   "totalMassKg": 0.2543,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Holds a boot's end on its terminal box. The boot slides into its collar, and the braid goes through to the terminals.",
+   "spec": {
+    "bore": "61 mm: the 60 mm boot slides 18 mm in",
+    "seal": "IP67, a clamp ring on the boot",
+    "through it": "the 2 braids, the coolant tubes, the tool cable and the air line"
+   },
+   "uses": [
+    {
+     "sub": "DRESS",
+     "qty": 4
+    }
+   ]
+  },
+  {
    "id": "CHG-FL1",
    "name": "J1 flex link, 500 A braided copper in a boot",
    "category": "electrical",
@@ -6636,9 +6784,11 @@
     "also inside": "2 coolant tubes 8 mm, tool cable (EtherCAT + 24 V), air 6 mm",
     "bend radius": "80 mm moved",
     "length": "900 mm",
-    "tightest bend over the twin's poses": "115 mm with the base turned 50 degrees either way",
+    "in its fittings": "18 mm straight at each end",
+    "tightest bend over the twin's poses": "102 mm",
     "min bend radius": "80 mm",
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+    "mass basis": "catalogue class mass (the CAD draws its envelope)",
+    "in the cable schedule": "CHG-LTL, 14.23 m from end to end; CHG-LCSA, 6.91 m from end to end; CHG-LCRA, 6.91 m from end to end; CHG-LARA, 6.93 m from end to end; CHG-FL1P, 1.08 m from end to end; CHG-FL1N, 1.08 m from end to end"
    },
    "uses": [
     {
@@ -6653,13 +6803,13 @@
    "category": "electrical",
    "make": "buy",
    "standard": "IEC 61238-1 (lugs)",
-   "size": "OD 60 x 1000",
+   "size": "OD 60 x 1200",
    "grade": "",
    "material": "Cable, TPE jacket",
    "materialKey": "cable",
    "qty": 1,
-   "massKg": 9.5,
-   "totalMassKg": 9.5,
+   "massKg": 11.4,
+   "totalMassKg": 11.4,
    "torqueNm": null,
    "reference": false,
    "function": "Carries the charge current across J2, behind the shoulder.",
@@ -6668,10 +6818,12 @@
     "boot": "silicone bellows, OD 60 mm, IP67",
     "also inside": "2 coolant tubes 8 mm, tool cable (EtherCAT + 24 V), air 6 mm",
     "bend radius": "80 mm moved",
-    "length": "1000 mm",
-    "tightest bend over the twin's poses": "124 mm",
+    "length": "1200 mm",
+    "in its fittings": "18 mm straight at each end",
+    "tightest bend over the twin's poses": "141 mm",
     "min bend radius": "80 mm",
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+    "mass basis": "catalogue class mass (the CAD draws its envelope)",
+    "in the cable schedule": "CHG-LTL, 14.23 m from end to end; CHG-LCSA, 6.91 m from end to end; CHG-LCRA, 6.91 m from end to end; CHG-LARA, 6.93 m from end to end; CHG-FL2P, 1.40 m from end to end; CHG-FL2N, 1.40 m from end to end"
    },
    "uses": [
     {
@@ -6702,9 +6854,11 @@
     "also inside": "2 coolant tubes 8 mm, tool cable (EtherCAT + 24 V), air 6 mm",
     "bend radius": "80 mm moved",
     "length": "1200 mm",
-    "tightest bend over the twin's poses": "100 mm",
+    "in its fittings": "18 mm straight at each end",
+    "tightest bend over the twin's poses": "84 mm",
     "min bend radius": "80 mm",
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+    "mass basis": "catalogue class mass (the CAD draws its envelope)",
+    "in the cable schedule": "CHG-LTL, 14.23 m from end to end; CHG-LCSA, 6.91 m from end to end; CHG-LCRA, 6.91 m from end to end; CHG-LARA, 6.93 m from end to end; CHG-FL3P, 1.37 m from end to end; CHG-FL3N, 1.37 m from end to end"
    },
    "uses": [
     {
@@ -6719,13 +6873,13 @@
    "category": "electrical",
    "make": "buy",
    "standard": "IEC 61238-1 (lugs)",
-   "size": "OD 60 x 1200",
+   "size": "OD 60 x 1250",
    "grade": "",
    "material": "Cable, TPE jacket",
    "materialKey": "cable",
    "qty": 1,
-   "massKg": 11.4,
-   "totalMassKg": 11.4,
+   "massKg": 11.875,
+   "totalMassKg": 11.875,
    "torqueNm": null,
    "reference": false,
    "function": "Carries the charge current, the coolant and the tool's signals and air from the forearm to the connector, across J4, J5 and J6.",
@@ -6734,10 +6888,12 @@
     "boot": "silicone bellows, OD 60 mm, IP67",
     "also inside": "2 coolant tubes 8 mm, tool cable (EtherCAT + 24 V), air 6 mm",
     "bend radius": "80 mm moved",
-    "length": "1200 mm",
-    "tightest bend over the twin's poses": "150 mm",
+    "length": "1250 mm",
+    "in its fittings": "18 mm straight at each end",
+    "tightest bend over the twin's poses": "88 mm",
     "min bend radius": "80 mm",
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+    "mass basis": "catalogue class mass (the CAD draws its envelope)",
+    "in the cable schedule": "CHG-LTL, 14.23 m from end to end; CHG-LCSA, 6.91 m from end to end; CHG-LCRA, 6.91 m from end to end; CHG-LARA, 6.93 m from end to end; CHG-FL4P, 1.55 m from end to end; CHG-FL4N, 1.55 m from end to end"
    },
    "uses": [
     {
@@ -6766,7 +6922,8 @@
     "terminals": "2 x 500 A DC, bolted M12, touch-safe covers",
     "bars in the link": "2 x 40 x 10 mm copper, insulated",
     "rating basis": "about 1.4 to 1.8 A/mm2, rule of thumb",
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+    "mass basis": "catalogue class mass (the CAD draws its envelope)",
+    "in the cable schedule": "CHG-LDP1, 7.29 m from end to end; CHG-LDP2, 7.31 m from end to end; CHG-LDP3, 7.33 m from end to end; CHG-LDP4, 7.35 m from end to end; CHG-LDN1, 7.38 m from end to end; CHG-LDN2, 7.40 m from end to end; CHG-LDN3, 7.43 m from end to end; CHG-LDN4, 7.53 m from end to end; CHG-LCS, 7.20 m from end to end; CHG-LCR, 7.22 m from end to end; CHG-LAR, 7.29 m from end to end; CHG-LTL, 14.23 m from end to end; CHG-LCSA, 6.91 m from end to end; CHG-LCRA, 6.91 m from end to end; CHG-LARA, 6.93 m from end to end; CHG-FL1P, 1.08 m from end to end; CHG-FL1N, 1.08 m from end to end"
    },
    "uses": [
     {
@@ -6795,7 +6952,8 @@
     "terminals": "2 x 500 A DC, bolted M12, touch-safe covers",
     "bars in the link": "2 x 40 x 10 mm copper, insulated",
     "rating basis": "about 1.4 to 1.8 A/mm2, rule of thumb",
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+    "mass basis": "catalogue class mass (the CAD draws its envelope)",
+    "in the cable schedule": "CHG-LTL, 14.23 m from end to end; CHG-LCSA, 6.91 m from end to end; CHG-LCRA, 6.91 m from end to end; CHG-LARA, 6.93 m from end to end; CHG-FL1P, 1.08 m from end to end; CHG-FL1N, 1.08 m from end to end; CHG-FL2P, 1.40 m from end to end; CHG-FL2N, 1.40 m from end to end"
    },
    "uses": [
     {
@@ -6824,7 +6982,8 @@
     "terminals": "2 x 500 A DC, bolted M12, touch-safe covers",
     "bars in the link": "2 x 40 x 10 mm copper, insulated",
     "rating basis": "about 1.4 to 1.8 A/mm2, rule of thumb",
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+    "mass basis": "catalogue class mass (the CAD draws its envelope)",
+    "in the cable schedule": "CHG-FL2P, 1.40 m from end to end; CHG-FL2N, 1.40 m from end to end"
    },
    "uses": [
     {
@@ -6853,7 +7012,8 @@
     "terminals": "2 x 500 A DC, bolted M12, touch-safe covers",
     "bars in the link": "2 x 40 x 10 mm copper, insulated",
     "rating basis": "about 1.4 to 1.8 A/mm2, rule of thumb",
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+    "mass basis": "catalogue class mass (the CAD draws its envelope)",
+    "in the cable schedule": "CHG-FL3P, 1.37 m from end to end; CHG-FL3N, 1.37 m from end to end"
    },
    "uses": [
     {
@@ -6882,7 +7042,8 @@
     "terminals": "2 x 500 A DC, bolted M12, touch-safe covers",
     "bars in the link": "2 x 40 x 10 mm copper, insulated",
     "rating basis": "about 1.4 to 1.8 A/mm2, rule of thumb",
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+    "mass basis": "catalogue class mass (the CAD draws its envelope)",
+    "in the cable schedule": "CHG-FL3P, 1.37 m from end to end; CHG-FL3N, 1.37 m from end to end"
    },
    "uses": [
     {
@@ -6911,7 +7072,8 @@
     "terminals": "2 x 500 A DC, bolted M12, touch-safe covers",
     "bars in the link": "2 x 40 x 10 mm copper, insulated",
     "rating basis": "about 1.4 to 1.8 A/mm2, rule of thumb",
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+    "mass basis": "catalogue class mass (the CAD draws its envelope)",
+    "in the cable schedule": "CHG-FL4P, 1.55 m from end to end; CHG-FL4N, 1.55 m from end to end"
    },
    "uses": [
     {
@@ -6945,21 +7107,45 @@
    ]
   },
   {
-   "id": "CHG-EST",
-   "name": "Emergency stop, 40 mm mushroom",
+   "id": "CHG-ESM",
+   "name": "Emergency stop mushroom, 56 mm, red, twist to release",
    "category": "electrical",
    "make": "buy",
    "standard": "IEC 60947-5-5",
-   "size": "twist to release",
+   "size": "D 56, twist to release",
    "grade": "",
-   "material": "LED module, red",
-   "materialKey": "led_red",
+   "material": "PA66, signal red",
+   "materialKey": "pa66_red",
    "qty": 1,
-   "massKg": 0.4289,
-   "totalMassKg": 0.4289,
+   "massKg": 0.0448,
+   "totalMassKg": 0.0448,
    "torqueNm": null,
    "reference": false,
    "function": "Cuts motor power to every joint (safe torque off). The brakes hold the arm.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "SAFETY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-EST",
+   "name": "Emergency stop housing, IP69K",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "IEC 60947-5-5",
+   "size": "72 x 72 x 72",
+   "grade": "",
+   "material": "PA66-GF30, safety yellow",
+   "materialKey": "pa66_yellow",
+   "qty": 1,
+   "massKg": 0.4378,
+   "totalMassKg": 0.4378,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Holds the emergency stop switch and its 2 contacts on the riser, where a person by the car can reach it.",
    "spec": {},
    "uses": [
     {
@@ -7072,26 +7258,26 @@
   "torque_budget": {
    "method": "Gravity torque with the arm stretched horizontal, masses from the CAD solids, plus 4 kg for the wrist flex link at the tool (ASSUMPTION). Dynamics are not included.",
    "J3": {
-    "distalMassKg": 62.8,
-    "torqueNm": 575,
+    "distalMassKg": 63.5,
+    "torqueNm": 581,
     "gear": "size 40",
     "repeatedPeakNm": 738,
-    "margin": 1.28
+    "margin": 1.27
    },
    "J2": {
-    "distalMassKg": 131.1,
-    "torqueNm": 1902,
+    "distalMassKg": 131.9,
+    "torqueNm": 1918,
     "gear": "size 50",
     "repeatedPeakNm": 1274,
-    "gearWorstNm": 365,
-    "margin": 3.49,
+    "gearWorstNm": 368,
+    "margin": 3.46,
     "balancer": {
      "type": "nitrogen gas spring",
      "anchorBelowAxisMm": 320.0,
      "crankAboveAxisMm": 160.0,
-     "forceExtendedN": 11850,
+     "forceExtendedN": 11950,
      "progression": 0.15,
-     "forceAt90N": 13091,
+     "forceAt90N": 13201,
      "strokeMm": 175,
      "travelDeg": 110
     },
@@ -7104,69 +7290,69 @@
      },
      {
       "deg": 10,
-      "gravityNm": 330,
-      "balancerNm": 221,
-      "gearNm": 110
+      "gravityNm": 333,
+      "balancerNm": 222,
+      "gearNm": 111
      },
      {
       "deg": 20,
-      "gravityNm": 650,
-      "balancerNm": 441,
-      "gearNm": 210
+      "gravityNm": 656,
+      "balancerNm": 444,
+      "gearNm": 212
      },
      {
       "deg": 30,
-      "gravityNm": 951,
-      "balancerNm": 660,
-      "gearNm": 291
+      "gravityNm": 959,
+      "balancerNm": 665,
+      "gearNm": 294
      },
      {
       "deg": 40,
-      "gravityNm": 1222,
-      "balancerNm": 877,
-      "gearNm": 345
+      "gravityNm": 1233,
+      "balancerNm": 885,
+      "gearNm": 348
      },
      {
       "deg": 50,
-      "gravityNm": 1457,
-      "balancerNm": 1092,
-      "gearNm": 365
+      "gravityNm": 1469,
+      "balancerNm": 1101,
+      "gearNm": 368
      },
      {
       "deg": 60,
-      "gravityNm": 1647,
-      "balancerNm": 1301,
-      "gearNm": 345
+      "gravityNm": 1661,
+      "balancerNm": 1312,
+      "gearNm": 349
      },
      {
       "deg": 70,
-      "gravityNm": 1787,
-      "balancerNm": 1504,
-      "gearNm": 283
+      "gravityNm": 1802,
+      "balancerNm": 1517,
+      "gearNm": 285
      },
      {
       "deg": 80,
-      "gravityNm": 1873,
-      "balancerNm": 1697,
-      "gearNm": 176
+      "gravityNm": 1889,
+      "balancerNm": 1711,
+      "gearNm": 178
      },
      {
       "deg": 90,
-      "gravityNm": 1902,
-      "balancerNm": 1873,
-      "gearNm": 28
+      "gravityNm": 1918,
+      "balancerNm": 1889,
+      "gearNm": 29
      },
      {
       "deg": 100,
-      "gravityNm": 1873,
-      "balancerNm": 2028,
-      "gearNm": -155
+      "gravityNm": 1889,
+      "balancerNm": 2045,
+      "gearNm": -156
      },
      {
       "deg": 110,
-      "gravityNm": 1787,
-      "balancerNm": 2150,
-      "gearNm": -363
+      "gravityNm": 1802,
+      "balancerNm": 2168,
+      "gearNm": -366
      }
     ]
    },
@@ -7175,5 +7361,2974 @@
     "max": 64.7
    }
   }
- }
+ },
+ "cables": [
+  {
+   "id": "CHG-LDP1",
+   "name": "DC+ cable, core 1 of 4, 1 x 50 mm2",
+   "kind": "dc",
+   "od": 15.0,
+   "spec": "chain-rated single core, shielded, 600/1000 V",
+   "from": "the charger's DC+ output, in the DC cabinet",
+   "to": "the DC+ terminal in the riser's terminal box (CHG-PB0)",
+   "sub": "SUPPLY",
+   "runs": [
+    {
+     "kind": "drawn",
+     "via": "CHG-LDP1",
+     "where": "from the cabinet's gland plate down the shaft through the pad, along the feed trench and into the cable channel, to the bed chain's fixed end",
+     "mm": 1821.7,
+     "tol": 0.0,
+     "bend": 68.8,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "CHG-BCN",
+     "where": "in the bed's cable chain, in its own lane",
+     "mm": 2588.4,
+     "tol": 0.0,
+     "bend": 138.5,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-BCA",
+     "where": "through the chain driver's head, up its neck and round the elbow duct (CHG-BZE) into the cross chain",
+     "mm": 757.6,
+     "tol": 92.5,
+     "bend": 60.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "CHG-BZN",
+     "where": "in the cross chain, in its own lane",
+     "mm": 913.4,
+     "tol": 0.0,
+     "bend": 138.5,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-BZD",
+     "where": "down the saddle duct, along its flat run behind the riser and through the spigot into the riser's cable window",
+     "mm": 986.5,
+     "tol": 169.5,
+     "bend": 60.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-RSR",
+     "where": "across the riser to the port in its wall behind the terminal box",
+     "mm": 184.8,
+     "tol": 162.2,
+     "bend": 60.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-PB0",
+     "where": "into the terminal box, to its DC terminal",
+     "mm": 35.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 7287.4,
+   "tolMm": 424.2,
+   "tails": {
+    "a": 1500.0,
+    "b": 100.0,
+    "basis": "1500 mm inside the DC cabinet, from its gland plate to the terminal (ASSUMPTION: the cabinet is drawn as its envelope; confirm on its layout); 100 mm to dress it in the terminal box and make it off on its M12 lug (ASSUMPTION)"
+   },
+   "orderMm": 9400.0,
+   "bendMm": {
+    "fixed": 60.0,
+    "moving": 112.5,
+    "tightestFixed": 60.0,
+    "tightestMoving": 138.5
+   },
+   "pieces": [
+    "CHG-BCN",
+    "CHG-BZN",
+    "CHG-LDP1"
+   ],
+   "notes": [
+    "One of 4 cores a pole: 4 in parallel carry the 500 A."
+   ],
+   "open": []
+  },
+  {
+   "id": "CHG-LDP2",
+   "name": "DC+ cable, core 2 of 4, 1 x 50 mm2",
+   "kind": "dc",
+   "od": 15.0,
+   "spec": "chain-rated single core, shielded, 600/1000 V",
+   "from": "the charger's DC+ output, in the DC cabinet",
+   "to": "the DC+ terminal in the riser's terminal box (CHG-PB0)",
+   "sub": "SUPPLY",
+   "runs": [
+    {
+     "kind": "drawn",
+     "via": "CHG-LDP2",
+     "where": "from the cabinet's gland plate down the shaft through the pad, along the feed trench and into the cable channel, to the bed chain's fixed end",
+     "mm": 1847.6,
+     "tol": 0.0,
+     "bend": 85.2,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "CHG-BCN",
+     "where": "in the bed's cable chain, in its own lane",
+     "mm": 2588.4,
+     "tol": 0.0,
+     "bend": 138.5,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-BCA",
+     "where": "through the chain driver's head, up its neck and round the elbow duct (CHG-BZE) into the cross chain",
+     "mm": 771.1,
+     "tol": 92.5,
+     "bend": 60.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "CHG-BZN",
+     "where": "in the cross chain, in its own lane",
+     "mm": 913.4,
+     "tol": 0.0,
+     "bend": 138.5,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-BZD",
+     "where": "down the saddle duct, along its flat run behind the riser and through the spigot into the riser's cable window",
+     "mm": 953.5,
+     "tol": 169.5,
+     "bend": 60.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-RSR",
+     "where": "across the riser to the port in its wall behind the terminal box",
+     "mm": 199.3,
+     "tol": 162.2,
+     "bend": 60.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-PB0",
+     "where": "into the terminal box, to its DC terminal",
+     "mm": 35.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 7308.3,
+   "tolMm": 424.2,
+   "tails": {
+    "a": 1500.0,
+    "b": 100.0,
+    "basis": "1500 mm inside the DC cabinet, from its gland plate to the terminal (ASSUMPTION: the cabinet is drawn as its envelope; confirm on its layout); 100 mm to dress it in the terminal box and make it off on its M12 lug (ASSUMPTION)"
+   },
+   "orderMm": 9400.0,
+   "bendMm": {
+    "fixed": 60.0,
+    "moving": 112.5,
+    "tightestFixed": 60.0,
+    "tightestMoving": 138.5
+   },
+   "pieces": [
+    "CHG-BCN",
+    "CHG-BZN",
+    "CHG-LDP2"
+   ],
+   "notes": [
+    "One of 4 cores a pole: 4 in parallel carry the 500 A."
+   ],
+   "open": []
+  },
+  {
+   "id": "CHG-LDP3",
+   "name": "DC+ cable, core 3 of 4, 1 x 50 mm2",
+   "kind": "dc",
+   "od": 15.0,
+   "spec": "chain-rated single core, shielded, 600/1000 V",
+   "from": "the charger's DC+ output, in the DC cabinet",
+   "to": "the DC+ terminal in the riser's terminal box (CHG-PB0)",
+   "sub": "SUPPLY",
+   "runs": [
+    {
+     "kind": "drawn",
+     "via": "CHG-LDP3",
+     "where": "from the cabinet's gland plate down the shaft through the pad, along the feed trench and into the cable channel, to the bed chain's fixed end",
+     "mm": 1873.5,
+     "tol": 0.0,
+     "bend": 100.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "CHG-BCN",
+     "where": "in the bed's cable chain, in its own lane",
+     "mm": 2588.4,
+     "tol": 0.0,
+     "bend": 138.5,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-BCA",
+     "where": "through the chain driver's head, up its neck and round the elbow duct (CHG-BZE) into the cross chain",
+     "mm": 785.5,
+     "tol": 92.5,
+     "bend": 60.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "CHG-BZN",
+     "where": "in the cross chain, in its own lane",
+     "mm": 913.4,
+     "tol": 0.0,
+     "bend": 138.5,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-BZD",
+     "where": "down the saddle duct, along its flat run behind the riser and through the spigot into the riser's cable window",
+     "mm": 920.5,
+     "tol": 169.5,
+     "bend": 60.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-RSR",
+     "where": "across the riser to the port in its wall behind the terminal box",
+     "mm": 214.1,
+     "tol": 162.2,
+     "bend": 60.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-PB0",
+     "where": "into the terminal box, to its DC terminal",
+     "mm": 35.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 7330.4,
+   "tolMm": 424.2,
+   "tails": {
+    "a": 1500.0,
+    "b": 100.0,
+    "basis": "1500 mm inside the DC cabinet, from its gland plate to the terminal (ASSUMPTION: the cabinet is drawn as its envelope; confirm on its layout); 100 mm to dress it in the terminal box and make it off on its M12 lug (ASSUMPTION)"
+   },
+   "orderMm": 9400.0,
+   "bendMm": {
+    "fixed": 60.0,
+    "moving": 112.5,
+    "tightestFixed": 60.0,
+    "tightestMoving": 138.5
+   },
+   "pieces": [
+    "CHG-BCN",
+    "CHG-BZN",
+    "CHG-LDP3"
+   ],
+   "notes": [
+    "One of 4 cores a pole: 4 in parallel carry the 500 A."
+   ],
+   "open": []
+  },
+  {
+   "id": "CHG-LDP4",
+   "name": "DC+ cable, core 4 of 4, 1 x 50 mm2",
+   "kind": "dc",
+   "od": 15.0,
+   "spec": "chain-rated single core, shielded, 600/1000 V",
+   "from": "the charger's DC+ output, in the DC cabinet",
+   "to": "the DC+ terminal in the riser's terminal box (CHG-PB0)",
+   "sub": "SUPPLY",
+   "runs": [
+    {
+     "kind": "drawn",
+     "via": "CHG-LDP4",
+     "where": "from the cabinet's gland plate down the shaft through the pad, along the feed trench and into the cable channel, to the bed chain's fixed end",
+     "mm": 1899.4,
+     "tol": 0.0,
+     "bend": 100.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "CHG-BCN",
+     "where": "in the bed's cable chain, in its own lane",
+     "mm": 2588.4,
+     "tol": 0.0,
+     "bend": 138.5,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-BCA",
+     "where": "through the chain driver's head, up its neck and round the elbow duct (CHG-BZE) into the cross chain",
+     "mm": 800.8,
+     "tol": 92.5,
+     "bend": 60.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "CHG-BZN",
+     "where": "in the cross chain, in its own lane",
+     "mm": 913.4,
+     "tol": 0.0,
+     "bend": 138.5,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-BZD",
+     "where": "down the saddle duct, along its flat run behind the riser and through the spigot into the riser's cable window",
+     "mm": 887.5,
+     "tol": 169.5,
+     "bend": 60.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-RSR",
+     "where": "across the riser to the port in its wall behind the terminal box",
+     "mm": 229.2,
+     "tol": 162.2,
+     "bend": 60.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-PB0",
+     "where": "into the terminal box, to its DC terminal",
+     "mm": 35.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 7353.7,
+   "tolMm": 424.2,
+   "tails": {
+    "a": 1500.0,
+    "b": 100.0,
+    "basis": "1500 mm inside the DC cabinet, from its gland plate to the terminal (ASSUMPTION: the cabinet is drawn as its envelope; confirm on its layout); 100 mm to dress it in the terminal box and make it off on its M12 lug (ASSUMPTION)"
+   },
+   "orderMm": 9400.0,
+   "bendMm": {
+    "fixed": 60.0,
+    "moving": 112.5,
+    "tightestFixed": 60.0,
+    "tightestMoving": 138.5
+   },
+   "pieces": [
+    "CHG-BCN",
+    "CHG-BZN",
+    "CHG-LDP4"
+   ],
+   "notes": [
+    "One of 4 cores a pole: 4 in parallel carry the 500 A."
+   ],
+   "open": []
+  },
+  {
+   "id": "CHG-LDN1",
+   "name": "DC- cable, core 1 of 4, 1 x 50 mm2",
+   "kind": "dc",
+   "od": 15.0,
+   "spec": "chain-rated single core, shielded, 600/1000 V",
+   "from": "the charger's DC- output, in the DC cabinet",
+   "to": "the DC- terminal in the riser's terminal box (CHG-PB0)",
+   "sub": "SUPPLY",
+   "runs": [
+    {
+     "kind": "drawn",
+     "via": "CHG-LDN1",
+     "where": "from the cabinet's gland plate down the shaft through the pad, along the feed trench and into the cable channel, to the bed chain's fixed end",
+     "mm": 1925.3,
+     "tol": 0.0,
+     "bend": 100.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "CHG-BCN",
+     "where": "in the bed's cable chain, in its own lane",
+     "mm": 2588.4,
+     "tol": 0.0,
+     "bend": 138.5,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-BCA",
+     "where": "through the chain driver's head, up its neck and round the elbow duct (CHG-BZE) into the cross chain",
+     "mm": 816.9,
+     "tol": 92.5,
+     "bend": 60.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "CHG-BZN",
+     "where": "in the cross chain, in its own lane",
+     "mm": 913.4,
+     "tol": 0.0,
+     "bend": 138.5,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-BZD",
+     "where": "down the saddle duct, along its flat run behind the riser and through the spigot into the riser's cable window",
+     "mm": 854.5,
+     "tol": 169.5,
+     "bend": 60.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-RSR",
+     "where": "across the riser to the port in its wall behind the terminal box",
+     "mm": 244.5,
+     "tol": 162.2,
+     "bend": 60.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-PB0",
+     "where": "into the terminal box, to its DC terminal",
+     "mm": 35.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 7378.0,
+   "tolMm": 424.2,
+   "tails": {
+    "a": 1500.0,
+    "b": 100.0,
+    "basis": "1500 mm inside the DC cabinet, from its gland plate to the terminal (ASSUMPTION: the cabinet is drawn as its envelope; confirm on its layout); 100 mm to dress it in the terminal box and make it off on its M12 lug (ASSUMPTION)"
+   },
+   "orderMm": 9500.0,
+   "bendMm": {
+    "fixed": 60.0,
+    "moving": 112.5,
+    "tightestFixed": 60.0,
+    "tightestMoving": 138.5
+   },
+   "pieces": [
+    "CHG-BCN",
+    "CHG-BZN",
+    "CHG-LDN1"
+   ],
+   "notes": [
+    "One of 4 cores a pole: 4 in parallel carry the 500 A."
+   ],
+   "open": []
+  },
+  {
+   "id": "CHG-LDN2",
+   "name": "DC- cable, core 2 of 4, 1 x 50 mm2",
+   "kind": "dc",
+   "od": 15.0,
+   "spec": "chain-rated single core, shielded, 600/1000 V",
+   "from": "the charger's DC- output, in the DC cabinet",
+   "to": "the DC- terminal in the riser's terminal box (CHG-PB0)",
+   "sub": "SUPPLY",
+   "runs": [
+    {
+     "kind": "drawn",
+     "via": "CHG-LDN2",
+     "where": "from the cabinet's gland plate down the shaft through the pad, along the feed trench and into the cable channel, to the bed chain's fixed end",
+     "mm": 1951.3,
+     "tol": 0.0,
+     "bend": 100.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "CHG-BCN",
+     "where": "in the bed's cable chain, in its own lane",
+     "mm": 2588.4,
+     "tol": 0.0,
+     "bend": 138.5,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-BCA",
+     "where": "through the chain driver's head, up its neck and round the elbow duct (CHG-BZE) into the cross chain",
+     "mm": 833.6,
+     "tol": 92.5,
+     "bend": 60.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "CHG-BZN",
+     "where": "in the cross chain, in its own lane",
+     "mm": 913.4,
+     "tol": 0.0,
+     "bend": 138.5,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-BZD",
+     "where": "down the saddle duct, along its flat run behind the riser and through the spigot into the riser's cable window",
+     "mm": 821.5,
+     "tol": 169.5,
+     "bend": 60.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-RSR",
+     "where": "across the riser to the port in its wall behind the terminal box",
+     "mm": 259.9,
+     "tol": 162.2,
+     "bend": 60.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-PB0",
+     "where": "into the terminal box, to its DC terminal",
+     "mm": 35.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 7403.1,
+   "tolMm": 424.2,
+   "tails": {
+    "a": 1500.0,
+    "b": 100.0,
+    "basis": "1500 mm inside the DC cabinet, from its gland plate to the terminal (ASSUMPTION: the cabinet is drawn as its envelope; confirm on its layout); 100 mm to dress it in the terminal box and make it off on its M12 lug (ASSUMPTION)"
+   },
+   "orderMm": 9500.0,
+   "bendMm": {
+    "fixed": 60.0,
+    "moving": 112.5,
+    "tightestFixed": 60.0,
+    "tightestMoving": 138.5
+   },
+   "pieces": [
+    "CHG-BCN",
+    "CHG-BZN",
+    "CHG-LDN2"
+   ],
+   "notes": [
+    "One of 4 cores a pole: 4 in parallel carry the 500 A."
+   ],
+   "open": []
+  },
+  {
+   "id": "CHG-LDN3",
+   "name": "DC- cable, core 3 of 4, 1 x 50 mm2",
+   "kind": "dc",
+   "od": 15.0,
+   "spec": "chain-rated single core, shielded, 600/1000 V",
+   "from": "the charger's DC- output, in the DC cabinet",
+   "to": "the DC- terminal in the riser's terminal box (CHG-PB0)",
+   "sub": "SUPPLY",
+   "runs": [
+    {
+     "kind": "drawn",
+     "via": "CHG-LDN3",
+     "where": "from the cabinet's gland plate down the shaft through the pad, along the feed trench and into the cable channel, to the bed chain's fixed end",
+     "mm": 1977.2,
+     "tol": 0.0,
+     "bend": 100.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "CHG-BCN",
+     "where": "in the bed's cable chain, in its own lane",
+     "mm": 2588.4,
+     "tol": 0.0,
+     "bend": 138.5,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-BCA",
+     "where": "through the chain driver's head, up its neck and round the elbow duct (CHG-BZE) into the cross chain",
+     "mm": 850.9,
+     "tol": 92.5,
+     "bend": 60.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "CHG-BZN",
+     "where": "in the cross chain, in its own lane",
+     "mm": 913.4,
+     "tol": 0.0,
+     "bend": 138.5,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-BZD",
+     "where": "down the saddle duct, along its flat run behind the riser and through the spigot into the riser's cable window",
+     "mm": 788.5,
+     "tol": 169.5,
+     "bend": 60.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-RSR",
+     "where": "across the riser to the port in its wall behind the terminal box",
+     "mm": 275.5,
+     "tol": 162.2,
+     "bend": 60.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-PB0",
+     "where": "into the terminal box, to its DC terminal",
+     "mm": 35.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 7428.9,
+   "tolMm": 424.2,
+   "tails": {
+    "a": 1500.0,
+    "b": 100.0,
+    "basis": "1500 mm inside the DC cabinet, from its gland plate to the terminal (ASSUMPTION: the cabinet is drawn as its envelope; confirm on its layout); 100 mm to dress it in the terminal box and make it off on its M12 lug (ASSUMPTION)"
+   },
+   "orderMm": 9500.0,
+   "bendMm": {
+    "fixed": 60.0,
+    "moving": 112.5,
+    "tightestFixed": 60.0,
+    "tightestMoving": 138.5
+   },
+   "pieces": [
+    "CHG-BCN",
+    "CHG-BZN",
+    "CHG-LDN3"
+   ],
+   "notes": [
+    "One of 4 cores a pole: 4 in parallel carry the 500 A."
+   ],
+   "open": []
+  },
+  {
+   "id": "CHG-LDN4",
+   "name": "DC- cable, core 4 of 4, 1 x 50 mm2",
+   "kind": "dc",
+   "od": 15.0,
+   "spec": "chain-rated single core, shielded, 600/1000 V",
+   "from": "the charger's DC- output, in the DC cabinet",
+   "to": "the DC- terminal in the riser's terminal box (CHG-PB0)",
+   "sub": "SUPPLY",
+   "runs": [
+    {
+     "kind": "drawn",
+     "via": "CHG-LDN4",
+     "where": "from the cabinet's gland plate down the shaft through the pad, along the feed trench and into the cable channel, to the bed chain's fixed end",
+     "mm": 2003.1,
+     "tol": 0.0,
+     "bend": 100.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "CHG-BCN",
+     "where": "in the bed's cable chain, in its own lane",
+     "mm": 2588.4,
+     "tol": 0.0,
+     "bend": 138.5,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-BCA",
+     "where": "through the chain driver's head, up its neck and round the elbow duct (CHG-BZE) into the cross chain",
+     "mm": 868.7,
+     "tol": 92.5,
+     "bend": 60.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "CHG-BZN",
+     "where": "in the cross chain, in its own lane",
+     "mm": 913.4,
+     "tol": 0.0,
+     "bend": 138.5,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-BZD",
+     "where": "down the saddle duct, along its flat run behind the riser and through the spigot into the riser's cable window",
+     "mm": 832.8,
+     "tol": 169.5,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-RSR",
+     "where": "across the riser to the port in its wall behind the terminal box",
+     "mm": 291.3,
+     "tol": 162.2,
+     "bend": 60.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-PB0",
+     "where": "into the terminal box, to its DC terminal",
+     "mm": 35.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 7532.6,
+   "tolMm": 424.2,
+   "tails": {
+    "a": 1500.0,
+    "b": 100.0,
+    "basis": "1500 mm inside the DC cabinet, from its gland plate to the terminal (ASSUMPTION: the cabinet is drawn as its envelope; confirm on its layout); 100 mm to dress it in the terminal box and make it off on its M12 lug (ASSUMPTION)"
+   },
+   "orderMm": 9600.0,
+   "bendMm": {
+    "fixed": 60.0,
+    "moving": 112.5,
+    "tightestFixed": 60.0,
+    "tightestMoving": 138.5
+   },
+   "pieces": [
+    "CHG-BCN",
+    "CHG-BZN",
+    "CHG-LDN4"
+   ],
+   "notes": [
+    "One of 4 cores a pole: 4 in parallel carry the 500 A."
+   ],
+   "open": []
+  },
+  {
+   "id": "CHG-LCS",
+   "name": "Coolant supply hose 12 x 8",
+   "kind": "coolant",
+   "od": 12.0,
+   "spec": "polyurethane tube",
+   "from": "the DC cabinet: the cooling unit's supply port",
+   "to": "its reducing coupling in the riser's terminal box (CHG-PB0)",
+   "sub": "SUPPLY",
+   "runs": [
+    {
+     "kind": "drawn",
+     "via": "CHG-LCS",
+     "where": "from the cabinet's gland plate down the shaft through the pad, along the feed trench and into the cable channel, to the bed chain's fixed end",
+     "mm": 1823.2,
+     "tol": 0.0,
+     "bend": 82.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "CHG-BCN",
+     "where": "in the bed's cable chain, in its own lane",
+     "mm": 2531.9,
+     "tol": 0.0,
+     "bend": 120.5,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-BCA",
+     "where": "through the chain driver's head, up its neck and round the elbow duct (CHG-BZE) into the cross chain",
+     "mm": 839.2,
+     "tol": 92.5,
+     "bend": 48.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "CHG-BZN",
+     "where": "in the cross chain, in its own lane",
+     "mm": 856.9,
+     "tol": 0.0,
+     "bend": 120.5,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-BZD",
+     "where": "down the saddle duct, along its flat run behind the riser and through the spigot into the riser's cable window",
+     "mm": 917.5,
+     "tol": 169.5,
+     "bend": 48.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-RSR",
+     "where": "across the riser to the port in its wall behind the terminal box",
+     "mm": 195.8,
+     "tol": 162.2,
+     "bend": 48.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-PB0",
+     "where": "into the terminal box, to its reducing coupling",
+     "mm": 35.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 7199.4,
+   "tolMm": 424.2,
+   "tails": {
+    "a": 1500.0,
+    "b": 0.0,
+    "basis": "1500 mm inside the DC cabinet, from its gland plate to the terminal (ASSUMPTION: the cabinet is drawn as its envelope; confirm on its layout)"
+   },
+   "orderMm": 9200.0,
+   "bendMm": {
+    "fixed": 48.0,
+    "moving": 90.0,
+    "tightestFixed": 48.0,
+    "tightestMoving": 120.5
+   },
+   "pieces": [
+    "CHG-BCN",
+    "CHG-BZN",
+    "CHG-LCS"
+   ],
+   "notes": [
+    "The boots carry a smaller line on from the coupling (below): the model names 8 mm coolant tubes and a 6 mm air line in them."
+   ],
+   "open": [
+    "This schedule joins the 2 sizes with a reducing coupling in the box (ASSUMPTION). If one line is meant to run through, a 12 mm hose needs 90 mm of bend where it moves (7.5 x d), and the J3 and wrist boots bend to 84 and 88 mm."
+   ]
+  },
+  {
+   "id": "CHG-LCR",
+   "name": "Coolant return hose 12 x 8",
+   "kind": "coolant",
+   "od": 12.0,
+   "spec": "polyurethane tube",
+   "from": "the DC cabinet: the cooling unit's return port",
+   "to": "its reducing coupling in the riser's terminal box (CHG-PB0)",
+   "sub": "SUPPLY",
+   "runs": [
+    {
+     "kind": "drawn",
+     "via": "CHG-LCR",
+     "where": "from the cabinet's gland plate down the shaft through the pad, along the feed trench and into the cable channel, to the bed chain's fixed end",
+     "mm": 1843.9,
+     "tol": 0.0,
+     "bend": 82.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "CHG-BCN",
+     "where": "in the bed's cable chain, in its own lane",
+     "mm": 2531.9,
+     "tol": 0.0,
+     "bend": 120.5,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-BCA",
+     "where": "through the chain driver's head, up its neck and round the elbow duct (CHG-BZE) into the cross chain",
+     "mm": 851.6,
+     "tol": 92.5,
+     "bend": 48.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "CHG-BZN",
+     "where": "in the cross chain, in its own lane",
+     "mm": 856.9,
+     "tol": 0.0,
+     "bend": 120.5,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-BZD",
+     "where": "down the saddle duct, along its flat run behind the riser and through the spigot into the riser's cable window",
+     "mm": 891.1,
+     "tol": 169.5,
+     "bend": 48.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-RSR",
+     "where": "across the riser to the port in its wall behind the terminal box",
+     "mm": 208.4,
+     "tol": 162.2,
+     "bend": 48.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-PB0",
+     "where": "into the terminal box, to its reducing coupling",
+     "mm": 35.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 7218.8,
+   "tolMm": 424.2,
+   "tails": {
+    "a": 1500.0,
+    "b": 0.0,
+    "basis": "1500 mm inside the DC cabinet, from its gland plate to the terminal (ASSUMPTION: the cabinet is drawn as its envelope; confirm on its layout)"
+   },
+   "orderMm": 9200.0,
+   "bendMm": {
+    "fixed": 48.0,
+    "moving": 90.0,
+    "tightestFixed": 48.0,
+    "tightestMoving": 120.5
+   },
+   "pieces": [
+    "CHG-BCN",
+    "CHG-BZN",
+    "CHG-LCR"
+   ],
+   "notes": [
+    "The boots carry a smaller line on from the coupling (below): the model names 8 mm coolant tubes and a 6 mm air line in them."
+   ],
+   "open": [
+    "This schedule joins the 2 sizes with a reducing coupling in the box (ASSUMPTION). If one line is meant to run through, a 12 mm hose needs 90 mm of bend where it moves (7.5 x d), and the J3 and wrist boots bend to 84 and 88 mm."
+   ]
+  },
+  {
+   "id": "CHG-LAR",
+   "name": "Air tube 8 x 6",
+   "kind": "air",
+   "od": 8.0,
+   "spec": "polyurethane tube",
+   "from": "the DC cabinet: the air supply (6 bar)",
+   "to": "its reducing coupling in the riser's terminal box (CHG-PB0)",
+   "sub": "SUPPLY",
+   "runs": [
+    {
+     "kind": "drawn",
+     "via": "CHG-LAR",
+     "where": "from the cabinet's gland plate down the shaft through the pad, along the feed trench and into the cable channel, to the bed chain's fixed end",
+     "mm": 1864.4,
+     "tol": 0.0,
+     "bend": 84.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "CHG-BCN",
+     "where": "in the bed's cable chain, in its own lane",
+     "mm": 2538.1,
+     "tol": 0.0,
+     "bend": 122.5,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-BCA",
+     "where": "through the chain driver's head, up its neck and round the elbow duct (CHG-BZE) into the cross chain",
+     "mm": 872.1,
+     "tol": 92.5,
+     "bend": 32.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "CHG-BZN",
+     "where": "in the cross chain, in its own lane",
+     "mm": 863.1,
+     "tol": 0.0,
+     "bend": 122.5,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-BZD",
+     "where": "down the saddle duct, along its flat run behind the riser and through the spigot into the riser's cable window",
+     "mm": 889.7,
+     "tol": 169.5,
+     "bend": 32.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-RSR",
+     "where": "across the riser to the port in its wall behind the terminal box",
+     "mm": 225.4,
+     "tol": 162.2,
+     "bend": 32.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-PB0",
+     "where": "into the terminal box, to its reducing coupling",
+     "mm": 35.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 7287.8,
+   "tolMm": 424.2,
+   "tails": {
+    "a": 1500.0,
+    "b": 0.0,
+    "basis": "1500 mm inside the DC cabinet, from its gland plate to the terminal (ASSUMPTION: the cabinet is drawn as its envelope; confirm on its layout)"
+   },
+   "orderMm": 9300.0,
+   "bendMm": {
+    "fixed": 32.0,
+    "moving": 60.0,
+    "tightestFixed": 32.0,
+    "tightestMoving": 122.5
+   },
+   "pieces": [
+    "CHG-BCN",
+    "CHG-BZN",
+    "CHG-LAR"
+   ],
+   "notes": [
+    "The boots carry a smaller line on from the coupling (below): the model names 8 mm coolant tubes and a 6 mm air line in them."
+   ],
+   "open": [
+    "This schedule joins the 2 sizes with a reducing coupling in the box (ASSUMPTION). If one line is meant to run through, a 12 mm hose needs 90 mm of bend where it moves (7.5 x d), and the J3 and wrist boots bend to 84 and 88 mm."
+   ]
+  },
+  {
+   "id": "CHG-LJS",
+   "name": "Joint supply cable (motor power, 24 V, EtherCAT)",
+   "kind": "control",
+   "od": 10.0,
+   "spec": "chain-rated",
+   "from": "the arm's controller in the DC cabinet: motor power, 24 V, safe torque off, EtherCAT",
+   "to": "J1's actuator, its gland (its drive board inside)",
+   "sub": "SUPPLY",
+   "runs": [
+    {
+     "kind": "drawn",
+     "via": "CHG-LJS",
+     "where": "from the cabinet's gland plate down the shaft through the pad, along the feed trench and into the cable channel, to the bed chain's fixed end",
+     "mm": 1878.3,
+     "tol": 0.0,
+     "bend": 83.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "CHG-BCN",
+     "where": "in the bed's cable chain, in its own lane",
+     "mm": 2535.0,
+     "tol": 0.0,
+     "bend": 121.5,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-BCA",
+     "where": "through the chain driver's head, up its neck and round the elbow duct (CHG-BZE) into the cross chain",
+     "mm": 877.1,
+     "tol": 92.5,
+     "bend": 40.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "CHG-BZN",
+     "where": "in the cross chain, in its own lane",
+     "mm": 860.0,
+     "tol": 0.0,
+     "bend": 121.5,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-BZD",
+     "where": "down the saddle duct, along its flat run behind the riser and through the spigot into the riser's cable window",
+     "mm": 859.6,
+     "tol": 169.5,
+     "bend": 40.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-RSR",
+     "where": "in the riser, down under J1 and up into its rear cover's gland",
+     "mm": 219.6,
+     "tol": 162.2,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 7229.7,
+   "tolMm": 424.2,
+   "tails": {
+    "a": 1500.0,
+    "b": 100.0,
+    "basis": "1500 mm inside the DC cabinet, from its gland plate to the terminal (ASSUMPTION: the cabinet is drawn as its envelope; confirm on its layout); 100 mm inside the actuator to its drive board's connector (ASSUMPTION)"
+   },
+   "orderMm": 9300.0,
+   "bendMm": {
+    "fixed": 40.0,
+    "moving": 75.0,
+    "tightestFixed": 40.0,
+    "tightestMoving": 121.5
+   },
+   "pieces": [
+    "CHG-BCN",
+    "CHG-BZN",
+    "CHG-LJS"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "CHG-LTL",
+   "name": "Tool cable (EtherCAT, 24 V)",
+   "kind": "control",
+   "od": 8.0,
+   "spec": "chain-rated",
+   "from": "the arm's controller in the DC cabinet",
+   "to": "the head: the force sensor, the cameras, the light ring and the latches",
+   "sub": "SUPPLY",
+   "runs": [
+    {
+     "kind": "drawn",
+     "via": "CHG-LTL",
+     "where": "from the cabinet's gland plate down the shaft through the pad, along the feed trench and into the cable channel, to the bed chain's fixed end",
+     "mm": 1895.5,
+     "tol": 0.0,
+     "bend": 84.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "CHG-BCN",
+     "where": "in the bed's cable chain, in its own lane",
+     "mm": 2538.1,
+     "tol": 0.0,
+     "bend": 122.5,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-BCA",
+     "where": "through the chain driver's head, up its neck and round the elbow duct (CHG-BZE) into the cross chain",
+     "mm": 892.2,
+     "tol": 92.5,
+     "bend": 32.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "CHG-BZN",
+     "where": "in the cross chain, in its own lane",
+     "mm": 863.1,
+     "tol": 0.0,
+     "bend": 122.5,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-BZD",
+     "where": "down the saddle duct, along its flat run behind the riser and through the spigot into the riser's cable window",
+     "mm": 850.1,
+     "tol": 169.5,
+     "bend": 32.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-RSR",
+     "where": "across the riser to the port in its wall behind the terminal box",
+     "mm": 244.6,
+     "tol": 162.2,
+     "bend": 32.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-PB0",
+     "where": "through the terminal box to the J1 link's fitting",
+     "mm": 60.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "boot",
+     "via": "CHG-FL1",
+     "where": "in the J1 link's boot, from the riser to the turret; 900 mm and 92 mm of slack (at its worst pose the boot turns 203 degrees, and the line lies up to 26 mm off its axis)",
+     "mm": 992.1,
+     "tol": 0.0,
+     "bend": 102.0,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-PB1",
+     "where": "through the turret's junction box",
+     "mm": 235.0,
+     "tol": 40.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "boot",
+     "via": "CHG-FL2",
+     "where": "in the J2 link's boot, behind the shoulder; 1200 mm and 120 mm of slack (at its worst pose the boot turns 264 degrees, and the line lies up to 26 mm off its axis)",
+     "mm": 1320.0,
+     "tol": 0.0,
+     "bend": 141.0,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "arm",
+     "via": "CHG-UPR",
+     "where": "through the upper arm's 2 terminal boxes (CHG-PB2, CHG-PB3) and inside the arm between them, with the copper bars",
+     "mm": 874.1,
+     "tol": 80.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "boot",
+     "via": "CHG-FL3",
+     "where": "in the J3 link's boot, over the elbow; 1200 mm and 141 mm of slack (at its worst pose the boot turns 312 degrees, and the line lies up to 26 mm off its axis)",
+     "mm": 1341.4,
+     "tol": 0.0,
+     "bend": 84.0,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "arm",
+     "via": "CHG-FOR",
+     "where": "through the forearm's 2 terminal boxes (CHG-PB4, CHG-PB5) and inside the arm between them, with the copper bars",
+     "mm": 582.2,
+     "tol": 80.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "boot",
+     "via": "CHG-FL4",
+     "where": "in the wrist link's boot, across J4, J5 and J6 to the head; 1250 mm and 135 mm of slack (at its worst pose the boot turns 298 degrees, and the line lies up to 26 mm off its axis)",
+     "mm": 1385.3,
+     "tol": 0.0,
+     "bend": 88.0,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-COH",
+     "where": "into the head through the boot's outlet adapter (CHG-BTO) and the outlet housing's elbow",
+     "mm": 158.9,
+     "tol": 32.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 14232.8,
+   "tolMm": 656.2,
+   "tails": {
+    "a": 1500.0,
+    "b": 241,
+    "basis": "1500 mm inside the DC cabinet, from its gland plate to the terminal (ASSUMPTION: the cabinet is drawn as its envelope; confirm on its layout); 241 mm inside the head from the outlet housing to the farther connector, measured straight (its route among the head's parts is not drawn)"
+   },
+   "orderMm": 16700.0,
+   "bendMm": {
+    "fixed": 32.0,
+    "moving": 60.0,
+    "tightestFixed": 32.0,
+    "tightestMoving": 84.0
+   },
+   "pieces": [
+    "CHG-BCN",
+    "CHG-BZN",
+    "CHG-FL1",
+    "CHG-FL2",
+    "CHG-FL3",
+    "CHG-FL4",
+    "CHG-LTL"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "CHG-LSF",
+   "name": "Safety cable (scanner, emergency stop, status lights)",
+   "kind": "safety",
+   "od": 9.0,
+   "spec": "chain-rated",
+   "from": "the safety controller in the DC cabinet",
+   "to": "the emergency stop (CHG-EST) and the safety scanner (CHG-SCN), on the riser",
+   "sub": "SUPPLY",
+   "runs": [
+    {
+     "kind": "drawn",
+     "via": "CHG-LSF",
+     "where": "from the cabinet's gland plate down the shaft through the pad, along the feed trench and into the cable channel, to the bed chain's fixed end",
+     "mm": 1909.4,
+     "tol": 0.0,
+     "bend": 83.5,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "CHG-BCN",
+     "where": "in the bed's cable chain, in its own lane",
+     "mm": 2536.6,
+     "tol": 0.0,
+     "bend": 122.0,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-BCA",
+     "where": "through the chain driver's head, up its neck and round the elbow duct (CHG-BZE) into the cross chain",
+     "mm": 899.6,
+     "tol": 92.5,
+     "bend": 36.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "CHG-BZN",
+     "where": "in the cross chain, in its own lane",
+     "mm": 861.6,
+     "tol": 0.0,
+     "bend": 122.0,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-BZD",
+     "where": "down the saddle duct, along its flat run behind the riser and through the spigot into the riser's cable window",
+     "mm": 826.2,
+     "tol": 169.5,
+     "bend": 36.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-RSR",
+     "where": "across the riser to its car-side face, behind the emergency stop and the scanner",
+     "mm": 346.0,
+     "tol": 162.2,
+     "bend": 36.0,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 7379.3,
+   "tolMm": 424.2,
+   "tails": {
+    "a": 1500.0,
+    "b": 100.0,
+    "basis": "1500 mm inside the DC cabinet, from its gland plate to the terminal (ASSUMPTION: the cabinet is drawn as its envelope; confirm on its layout); 100 mm to make off at the 2 devices (ASSUMPTION)"
+   },
+   "orderMm": 9500.0,
+   "bendMm": {
+    "fixed": 36.0,
+    "moving": 67.5,
+    "tightestFixed": 36.0,
+    "tightestMoving": 122.0
+   },
+   "pieces": [
+    "CHG-BCN",
+    "CHG-BZN",
+    "CHG-LSF"
+   ],
+   "notes": [],
+   "open": [
+    "The model says this cable also serves the status light rings on J2 and the wrist (CHG-J2-RINGL, CHG-J2-RINGR, CHG-WRING), but the boots' contents do not include it and no route reaches them. Their supply is not yet routed."
+   ]
+  },
+  {
+   "id": "CHG-LMX",
+   "name": "Rail servo cable (motor, brake, encoder)",
+   "kind": "control",
+   "od": 12.5,
+   "spec": "chain-rated",
+   "from": "its servo drive in the DC cabinet",
+   "to": "the rail gearmotor (CHG-BGX): its connector",
+   "sub": "SUPPLY",
+   "runs": [
+    {
+     "kind": "drawn",
+     "via": "CHG-LMX",
+     "where": "from the cabinet's gland plate down the shaft through the pad, along the feed trench and into the cable channel, to the bed chain's fixed end",
+     "mm": 1925.2,
+     "tol": 0.0,
+     "bend": 81.8,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "CHG-BCN",
+     "where": "in the bed's cable chain, in its own lane",
+     "mm": 2531.1,
+     "tol": 0.0,
+     "bend": 120.2,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-BCA",
+     "where": "through the chain driver's head and up its neck to its conduit's entry",
+     "mm": 586.3,
+     "tol": 92.5,
+     "bend": 50.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "CHG-BMXC",
+     "where": "in its 20 mm conduit to the rail gearmotor (CHG-BGX)",
+     "mm": 271.1,
+     "tol": 0.0,
+     "bend": 50.0,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 5313.7,
+   "tolMm": 92.5,
+   "tails": {
+    "a": 1500.0,
+    "b": 0.0,
+    "basis": "1500 mm inside the DC cabinet, from its gland plate to the terminal (ASSUMPTION: the cabinet is drawn as its envelope; confirm on its layout)"
+   },
+   "orderMm": 7000.0,
+   "bendMm": {
+    "fixed": 50.0,
+    "moving": 93.75,
+    "tightestFixed": 50.0,
+    "tightestMoving": 120.2
+   },
+   "pieces": [
+    "CHG-BCN",
+    "CHG-BMXC",
+    "CHG-LMX"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "CHG-LMZ",
+   "name": "Cross-slide servo cable (motor, brake, encoder)",
+   "kind": "control",
+   "od": 11.0,
+   "spec": "chain-rated",
+   "from": "its servo drive in the DC cabinet",
+   "to": "the cross-slide motor (CHG-BMZ): its connector",
+   "sub": "SUPPLY",
+   "runs": [
+    {
+     "kind": "drawn",
+     "via": "CHG-LMZ",
+     "where": "from the cabinet's gland plate down the shaft through the pad, along the feed trench and into the cable channel, to the bed chain's fixed end",
+     "mm": 1946.7,
+     "tol": 0.0,
+     "bend": 82.5,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "CHG-BCN",
+     "where": "in the bed's cable chain, in its own lane",
+     "mm": 2533.4,
+     "tol": 0.0,
+     "bend": 121.0,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-BCA",
+     "where": "through the chain driver's head and up its neck to its conduit's entry",
+     "mm": 673.1,
+     "tol": 92.5,
+     "bend": 44.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "CHG-BMZC",
+     "where": "in its 20 mm conduit to the cross-slide motor (CHG-BMZ)",
+     "mm": 753.5,
+     "tol": 0.0,
+     "bend": 50.0,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 5906.8,
+   "tolMm": 92.5,
+   "tails": {
+    "a": 1500.0,
+    "b": 0.0,
+    "basis": "1500 mm inside the DC cabinet, from its gland plate to the terminal (ASSUMPTION: the cabinet is drawn as its envelope; confirm on its layout)"
+   },
+   "orderMm": 7500.0,
+   "bendMm": {
+    "fixed": 44.0,
+    "moving": 82.5,
+    "tightestFixed": 44.0,
+    "tightestMoving": 121.0
+   },
+   "pieces": [
+    "CHG-BCN",
+    "CHG-BMZC",
+    "CHG-LMZ"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "CHG-LCSA",
+   "name": "Coolant supply tube 8 mm, riser to the head",
+   "kind": "coolant",
+   "od": 8.0,
+   "spec": "polyurethane tube, 8 mm (the model's boot contents)",
+   "from": "the reducing coupling on the coolant supply hose in CHG-PB0",
+   "to": "the 2 connectors' contacts, through a manifold in the head",
+   "sub": "DRESS",
+   "runs": [
+    {
+     "kind": "duct",
+     "via": "CHG-PB0",
+     "where": "from the coupling, through the terminal box to the J1 link's fitting",
+     "mm": 25.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "boot",
+     "via": "CHG-FL1",
+     "where": "in the J1 link's boot, from the riser to the turret; 900 mm and 92 mm of slack (at its worst pose the boot turns 203 degrees, and the line lies up to 26 mm off its axis)",
+     "mm": 992.1,
+     "tol": 0.0,
+     "bend": 102.0,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-PB1",
+     "where": "through the turret's junction box",
+     "mm": 235.0,
+     "tol": 40.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "boot",
+     "via": "CHG-FL2",
+     "where": "in the J2 link's boot, behind the shoulder; 1200 mm and 120 mm of slack (at its worst pose the boot turns 264 degrees, and the line lies up to 26 mm off its axis)",
+     "mm": 1320.0,
+     "tol": 0.0,
+     "bend": 141.0,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "arm",
+     "via": "CHG-UPR",
+     "where": "through the upper arm's 2 terminal boxes (CHG-PB2, CHG-PB3) and inside the arm between them, with the copper bars",
+     "mm": 874.1,
+     "tol": 80.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "boot",
+     "via": "CHG-FL3",
+     "where": "in the J3 link's boot, over the elbow; 1200 mm and 141 mm of slack (at its worst pose the boot turns 312 degrees, and the line lies up to 26 mm off its axis)",
+     "mm": 1341.4,
+     "tol": 0.0,
+     "bend": 84.0,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "arm",
+     "via": "CHG-FOR",
+     "where": "through the forearm's 2 terminal boxes (CHG-PB4, CHG-PB5) and inside the arm between them, with the copper bars",
+     "mm": 582.2,
+     "tol": 80.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "boot",
+     "via": "CHG-FL4",
+     "where": "in the wrist link's boot, across J4, J5 and J6 to the head; 1250 mm and 135 mm of slack (at its worst pose the boot turns 298 degrees, and the line lies up to 26 mm off its axis)",
+     "mm": 1385.3,
+     "tol": 0.0,
+     "bend": 88.0,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-COH",
+     "where": "into the head through the boot's outlet adapter (CHG-BTO) and the outlet housing's elbow",
+     "mm": 158.9,
+     "tol": 32.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 6914.2,
+   "tolMm": 232.0,
+   "tails": {
+    "a": 0.0,
+    "b": 241,
+    "basis": "241 mm inside the head from the outlet housing to the farther connector, measured straight (its route among the head's parts is not drawn)"
+   },
+   "orderMm": 7400.0,
+   "bendMm": {
+    "fixed": 32.0,
+    "moving": 60.0,
+    "tightestFixed": null,
+    "tightestMoving": 84.0
+   },
+   "pieces": [
+    "CHG-FL1",
+    "CHG-FL2",
+    "CHG-FL3",
+    "CHG-FL4"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "CHG-LCRA",
+   "name": "Coolant return tube 8 mm, head to the riser",
+   "kind": "coolant",
+   "od": 8.0,
+   "spec": "polyurethane tube, 8 mm (the model's boot contents)",
+   "from": "the 2 connectors' contacts, through a manifold in the head",
+   "to": "the reducing coupling on the coolant return hose in CHG-PB0",
+   "sub": "DRESS",
+   "runs": [
+    {
+     "kind": "duct",
+     "via": "CHG-PB0",
+     "where": "from the coupling, through the terminal box to the J1 link's fitting",
+     "mm": 25.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "boot",
+     "via": "CHG-FL1",
+     "where": "in the J1 link's boot, from the riser to the turret; 900 mm and 92 mm of slack (at its worst pose the boot turns 203 degrees, and the line lies up to 26 mm off its axis)",
+     "mm": 992.1,
+     "tol": 0.0,
+     "bend": 102.0,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-PB1",
+     "where": "through the turret's junction box",
+     "mm": 235.0,
+     "tol": 40.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "boot",
+     "via": "CHG-FL2",
+     "where": "in the J2 link's boot, behind the shoulder; 1200 mm and 120 mm of slack (at its worst pose the boot turns 264 degrees, and the line lies up to 26 mm off its axis)",
+     "mm": 1320.0,
+     "tol": 0.0,
+     "bend": 141.0,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "arm",
+     "via": "CHG-UPR",
+     "where": "through the upper arm's 2 terminal boxes (CHG-PB2, CHG-PB3) and inside the arm between them, with the copper bars",
+     "mm": 874.1,
+     "tol": 80.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "boot",
+     "via": "CHG-FL3",
+     "where": "in the J3 link's boot, over the elbow; 1200 mm and 141 mm of slack (at its worst pose the boot turns 312 degrees, and the line lies up to 26 mm off its axis)",
+     "mm": 1341.4,
+     "tol": 0.0,
+     "bend": 84.0,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "arm",
+     "via": "CHG-FOR",
+     "where": "through the forearm's 2 terminal boxes (CHG-PB4, CHG-PB5) and inside the arm between them, with the copper bars",
+     "mm": 582.2,
+     "tol": 80.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "boot",
+     "via": "CHG-FL4",
+     "where": "in the wrist link's boot, across J4, J5 and J6 to the head; 1250 mm and 135 mm of slack (at its worst pose the boot turns 298 degrees, and the line lies up to 26 mm off its axis)",
+     "mm": 1385.3,
+     "tol": 0.0,
+     "bend": 88.0,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-COH",
+     "where": "into the head through the boot's outlet adapter (CHG-BTO) and the outlet housing's elbow",
+     "mm": 158.9,
+     "tol": 32.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 6914.2,
+   "tolMm": 232.0,
+   "tails": {
+    "a": 0.0,
+    "b": 241,
+    "basis": "241 mm inside the head from the outlet housing to the farther connector, measured straight (its route among the head's parts is not drawn)"
+   },
+   "orderMm": 7400.0,
+   "bendMm": {
+    "fixed": 32.0,
+    "moving": 60.0,
+    "tightestFixed": null,
+    "tightestMoving": 84.0
+   },
+   "pieces": [
+    "CHG-FL1",
+    "CHG-FL2",
+    "CHG-FL3",
+    "CHG-FL4"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "CHG-LARA",
+   "name": "Air line 6 mm, riser to the head",
+   "kind": "air",
+   "od": 6.0,
+   "spec": "polyurethane tube, 6 mm (the model's boot contents)",
+   "from": "the reducing coupling on the air tube in CHG-PB0",
+   "to": "the head's valves: the compliance lock and the 2 plunge cylinders",
+   "sub": "DRESS",
+   "runs": [
+    {
+     "kind": "duct",
+     "via": "CHG-PB0",
+     "where": "from the coupling, through the terminal box to the J1 link's fitting",
+     "mm": 25.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "boot",
+     "via": "CHG-FL1",
+     "where": "in the J1 link's boot, from the riser to the turret; 900 mm and 96 mm of slack (at its worst pose the boot turns 203 degrees, and the line lies up to 27 mm off its axis)",
+     "mm": 995.7,
+     "tol": 0.0,
+     "bend": 102.0,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-PB1",
+     "where": "through the turret's junction box",
+     "mm": 235.0,
+     "tol": 40.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "boot",
+     "via": "CHG-FL2",
+     "where": "in the J2 link's boot, behind the shoulder; 1200 mm and 125 mm of slack (at its worst pose the boot turns 264 degrees, and the line lies up to 27 mm off its axis)",
+     "mm": 1324.6,
+     "tol": 0.0,
+     "bend": 141.0,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "arm",
+     "via": "CHG-UPR",
+     "where": "through the upper arm's 2 terminal boxes (CHG-PB2, CHG-PB3) and inside the arm between them, with the copper bars",
+     "mm": 874.1,
+     "tol": 80.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "boot",
+     "via": "CHG-FL3",
+     "where": "in the J3 link's boot, over the elbow; 1200 mm and 147 mm of slack (at its worst pose the boot turns 312 degrees, and the line lies up to 27 mm off its axis)",
+     "mm": 1346.9,
+     "tol": 0.0,
+     "bend": 84.0,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "arm",
+     "via": "CHG-FOR",
+     "where": "through the forearm's 2 terminal boxes (CHG-PB4, CHG-PB5) and inside the arm between them, with the copper bars",
+     "mm": 582.2,
+     "tol": 80.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "boot",
+     "via": "CHG-FL4",
+     "where": "in the wrist link's boot, across J4, J5 and J6 to the head; 1250 mm and 140 mm of slack (at its worst pose the boot turns 298 degrees, and the line lies up to 27 mm off its axis)",
+     "mm": 1390.5,
+     "tol": 0.0,
+     "bend": 88.0,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-COH",
+     "where": "into the head through the boot's outlet adapter (CHG-BTO) and the outlet housing's elbow",
+     "mm": 158.9,
+     "tol": 32.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 6933.0,
+   "tolMm": 232.0,
+   "tails": {
+    "a": 0.0,
+    "b": 241,
+    "basis": "241 mm inside the head from the outlet housing to the farther connector, measured straight (its route among the head's parts is not drawn)"
+   },
+   "orderMm": 7500.0,
+   "bendMm": {
+    "fixed": 24.0,
+    "moving": 45.0,
+    "tightestFixed": null,
+    "tightestMoving": 84.0
+   },
+   "pieces": [
+    "CHG-FL1",
+    "CHG-FL2",
+    "CHG-FL3",
+    "CHG-FL4"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "CHG-FL1P",
+   "name": "J1 flex link: DC+ braid, 400 mm2",
+   "kind": "dc",
+   "od": 26.0,
+   "spec": "400 mm2 braided copper, tinned, insulated for 1000 V DC; IEC 61238-1 lugs",
+   "from": "the DC+ terminal in CHG-PB0",
+   "to": "the DC+ terminal in CHG-PB1",
+   "sub": "DRESS",
+   "runs": [
+    {
+     "kind": "duct",
+     "via": "CHG-PB0",
+     "where": "in CHG-PB0, from its DC terminal to the boot's fitting",
+     "mm": 25.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "boot",
+     "via": "CHG-FL1",
+     "where": "in the boot: the link's own length; 900 mm and 60 mm of slack (at its worst pose the boot turns 203 degrees, and the line lies up to 17 mm off its axis)",
+     "mm": 960.2,
+     "tol": 0.0,
+     "bend": 102.0,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-PB1",
+     "where": "in CHG-PB1, from the boot's fitting to its DC terminal",
+     "mm": 92.5,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 1077.7,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 0.0,
+    "b": 0.0,
+    "basis": "the braid's length in each box: from the boot's fitting to the terminal at the box's centre (ASSUMPTION: the terminals stand at the centre)"
+   },
+   "orderMm": 1100.0,
+   "bendMm": {
+    "fixed": 0.0,
+    "moving": 80.0,
+    "tightestFixed": null,
+    "tightestMoving": 102.0
+   },
+   "pieces": [
+    "CHG-FL1"
+   ],
+   "notes": [
+    "2 braids a link, DC+ and DC-, in one boot (the boot's spec)."
+   ],
+   "open": []
+  },
+  {
+   "id": "CHG-FL1N",
+   "name": "J1 flex link: DC- braid, 400 mm2",
+   "kind": "dc",
+   "od": 26.0,
+   "spec": "400 mm2 braided copper, tinned, insulated for 1000 V DC; IEC 61238-1 lugs",
+   "from": "the DC- terminal in CHG-PB0",
+   "to": "the DC- terminal in CHG-PB1",
+   "sub": "DRESS",
+   "runs": [
+    {
+     "kind": "duct",
+     "via": "CHG-PB0",
+     "where": "in CHG-PB0, from its DC terminal to the boot's fitting",
+     "mm": 25.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "boot",
+     "via": "CHG-FL1",
+     "where": "in the boot: the link's own length; 900 mm and 60 mm of slack (at its worst pose the boot turns 203 degrees, and the line lies up to 17 mm off its axis)",
+     "mm": 960.2,
+     "tol": 0.0,
+     "bend": 102.0,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-PB1",
+     "where": "in CHG-PB1, from the boot's fitting to its DC terminal",
+     "mm": 92.5,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 1077.7,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 0.0,
+    "b": 0.0,
+    "basis": "the braid's length in each box: from the boot's fitting to the terminal at the box's centre (ASSUMPTION: the terminals stand at the centre)"
+   },
+   "orderMm": 1100.0,
+   "bendMm": {
+    "fixed": 0.0,
+    "moving": 80.0,
+    "tightestFixed": null,
+    "tightestMoving": 102.0
+   },
+   "pieces": [
+    "CHG-FL1"
+   ],
+   "notes": [
+    "2 braids a link, DC+ and DC-, in one boot (the boot's spec)."
+   ],
+   "open": []
+  },
+  {
+   "id": "CHG-FL2P",
+   "name": "J2 flex link: DC+ braid, 400 mm2",
+   "kind": "dc",
+   "od": 26.0,
+   "spec": "400 mm2 braided copper, tinned, insulated for 1000 V DC; IEC 61238-1 lugs",
+   "from": "the DC+ terminal in CHG-PB1",
+   "to": "the DC+ terminal in CHG-PB2",
+   "sub": "DRESS",
+   "runs": [
+    {
+     "kind": "duct",
+     "via": "CHG-PB1",
+     "where": "in CHG-PB1, from its DC terminal to the boot's fitting",
+     "mm": 85.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "boot",
+     "via": "CHG-FL2",
+     "where": "in the boot: the link's own length; 1200 mm and 78 mm of slack (at its worst pose the boot turns 264 degrees, and the line lies up to 17 mm off its axis)",
+     "mm": 1278.5,
+     "tol": 0.0,
+     "bend": 141.0,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-PB2",
+     "where": "in CHG-PB2, from the boot's fitting to its DC terminal",
+     "mm": 40.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 1403.5,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 0.0,
+    "b": 0.0,
+    "basis": "the braid's length in each box: from the boot's fitting to the terminal at the box's centre (ASSUMPTION: the terminals stand at the centre)"
+   },
+   "orderMm": 1500.0,
+   "bendMm": {
+    "fixed": 0.0,
+    "moving": 80.0,
+    "tightestFixed": null,
+    "tightestMoving": 141.0
+   },
+   "pieces": [
+    "CHG-FL2"
+   ],
+   "notes": [
+    "2 braids a link, DC+ and DC-, in one boot (the boot's spec)."
+   ],
+   "open": []
+  },
+  {
+   "id": "CHG-FL2N",
+   "name": "J2 flex link: DC- braid, 400 mm2",
+   "kind": "dc",
+   "od": 26.0,
+   "spec": "400 mm2 braided copper, tinned, insulated for 1000 V DC; IEC 61238-1 lugs",
+   "from": "the DC- terminal in CHG-PB1",
+   "to": "the DC- terminal in CHG-PB2",
+   "sub": "DRESS",
+   "runs": [
+    {
+     "kind": "duct",
+     "via": "CHG-PB1",
+     "where": "in CHG-PB1, from its DC terminal to the boot's fitting",
+     "mm": 85.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "boot",
+     "via": "CHG-FL2",
+     "where": "in the boot: the link's own length; 1200 mm and 78 mm of slack (at its worst pose the boot turns 264 degrees, and the line lies up to 17 mm off its axis)",
+     "mm": 1278.5,
+     "tol": 0.0,
+     "bend": 141.0,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-PB2",
+     "where": "in CHG-PB2, from the boot's fitting to its DC terminal",
+     "mm": 40.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 1403.5,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 0.0,
+    "b": 0.0,
+    "basis": "the braid's length in each box: from the boot's fitting to the terminal at the box's centre (ASSUMPTION: the terminals stand at the centre)"
+   },
+   "orderMm": 1500.0,
+   "bendMm": {
+    "fixed": 0.0,
+    "moving": 80.0,
+    "tightestFixed": null,
+    "tightestMoving": 141.0
+   },
+   "pieces": [
+    "CHG-FL2"
+   ],
+   "notes": [
+    "2 braids a link, DC+ and DC-, in one boot (the boot's spec)."
+   ],
+   "open": []
+  },
+  {
+   "id": "CHG-FL3P",
+   "name": "J3 flex link: DC+ braid, 400 mm2",
+   "kind": "dc",
+   "od": 26.0,
+   "spec": "400 mm2 braided copper, tinned, insulated for 1000 V DC; IEC 61238-1 lugs",
+   "from": "the DC+ terminal in CHG-PB3",
+   "to": "the DC+ terminal in CHG-PB4",
+   "sub": "DRESS",
+   "runs": [
+    {
+     "kind": "duct",
+     "via": "CHG-PB3",
+     "where": "in CHG-PB3, from its DC terminal to the boot's fitting",
+     "mm": 40.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "boot",
+     "via": "CHG-FL3",
+     "where": "in the boot: the link's own length; 1200 mm and 92 mm of slack (at its worst pose the boot turns 312 degrees, and the line lies up to 17 mm off its axis)",
+     "mm": 1292.5,
+     "tol": 0.0,
+     "bend": 84.0,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-PB4",
+     "where": "in CHG-PB4, from the boot's fitting to its DC terminal",
+     "mm": 40.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 1372.5,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 0.0,
+    "b": 0.0,
+    "basis": "the braid's length in each box: from the boot's fitting to the terminal at the box's centre (ASSUMPTION: the terminals stand at the centre)"
+   },
+   "orderMm": 1400.0,
+   "bendMm": {
+    "fixed": 0.0,
+    "moving": 80.0,
+    "tightestFixed": null,
+    "tightestMoving": 84.0
+   },
+   "pieces": [
+    "CHG-FL3"
+   ],
+   "notes": [
+    "2 braids a link, DC+ and DC-, in one boot (the boot's spec)."
+   ],
+   "open": []
+  },
+  {
+   "id": "CHG-FL3N",
+   "name": "J3 flex link: DC- braid, 400 mm2",
+   "kind": "dc",
+   "od": 26.0,
+   "spec": "400 mm2 braided copper, tinned, insulated for 1000 V DC; IEC 61238-1 lugs",
+   "from": "the DC- terminal in CHG-PB3",
+   "to": "the DC- terminal in CHG-PB4",
+   "sub": "DRESS",
+   "runs": [
+    {
+     "kind": "duct",
+     "via": "CHG-PB3",
+     "where": "in CHG-PB3, from its DC terminal to the boot's fitting",
+     "mm": 40.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "boot",
+     "via": "CHG-FL3",
+     "where": "in the boot: the link's own length; 1200 mm and 92 mm of slack (at its worst pose the boot turns 312 degrees, and the line lies up to 17 mm off its axis)",
+     "mm": 1292.5,
+     "tol": 0.0,
+     "bend": 84.0,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-PB4",
+     "where": "in CHG-PB4, from the boot's fitting to its DC terminal",
+     "mm": 40.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 1372.5,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 0.0,
+    "b": 0.0,
+    "basis": "the braid's length in each box: from the boot's fitting to the terminal at the box's centre (ASSUMPTION: the terminals stand at the centre)"
+   },
+   "orderMm": 1400.0,
+   "bendMm": {
+    "fixed": 0.0,
+    "moving": 80.0,
+    "tightestFixed": null,
+    "tightestMoving": 84.0
+   },
+   "pieces": [
+    "CHG-FL3"
+   ],
+   "notes": [
+    "2 braids a link, DC+ and DC-, in one boot (the boot's spec)."
+   ],
+   "open": []
+  },
+  {
+   "id": "CHG-FL4P",
+   "name": "Wrist flex link to the connector: DC+ braid, 400 mm2",
+   "kind": "dc",
+   "od": 26.0,
+   "spec": "400 mm2 braided copper, tinned, insulated for 1000 V DC; IEC 61238-1 lugs",
+   "from": "the DC+ terminal in CHG-PB5",
+   "to": "the DC+ contacts of both connectors, in the head",
+   "sub": "DRESS",
+   "runs": [
+    {
+     "kind": "duct",
+     "via": "CHG-PB5",
+     "where": "in CHG-PB5, from its DC terminal to the boot's fitting",
+     "mm": 50.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "boot",
+     "via": "CHG-FL4",
+     "where": "in the boot: the link's own length; 1250 mm and 88 mm of slack (at its worst pose the boot turns 298 degrees, and the line lies up to 17 mm off its axis)",
+     "mm": 1338.4,
+     "tol": 0.0,
+     "bend": 88.0,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-COH",
+     "where": "into the head through the outlet adapter and the outlet housing's elbow",
+     "mm": 158.9,
+     "tol": 32.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 1547.4,
+   "tolMm": 32.0,
+   "tails": {
+    "a": 0.0,
+    "b": 241,
+    "basis": "the braid's length in each box: from the boot's fitting to the terminal at the box's centre (ASSUMPTION: the terminals stand at the centre); 241 mm on inside the head to the farther connector, measured straight: there it parts into 2 short braids, one to each connector"
+   },
+   "orderMm": 1900.0,
+   "bendMm": {
+    "fixed": 0.0,
+    "moving": 80.0,
+    "tightestFixed": null,
+    "tightestMoving": 88.0
+   },
+   "pieces": [
+    "CHG-FL4"
+   ],
+   "notes": [
+    "2 braids a link, DC+ and DC-, in one boot (the boot's spec)."
+   ],
+   "open": []
+  },
+  {
+   "id": "CHG-FL4N",
+   "name": "Wrist flex link to the connector: DC- braid, 400 mm2",
+   "kind": "dc",
+   "od": 26.0,
+   "spec": "400 mm2 braided copper, tinned, insulated for 1000 V DC; IEC 61238-1 lugs",
+   "from": "the DC- terminal in CHG-PB5",
+   "to": "the DC- contacts of both connectors, in the head",
+   "sub": "DRESS",
+   "runs": [
+    {
+     "kind": "duct",
+     "via": "CHG-PB5",
+     "where": "in CHG-PB5, from its DC terminal to the boot's fitting",
+     "mm": 50.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "boot",
+     "via": "CHG-FL4",
+     "where": "in the boot: the link's own length; 1250 mm and 88 mm of slack (at its worst pose the boot turns 298 degrees, and the line lies up to 17 mm off its axis)",
+     "mm": 1338.4,
+     "tol": 0.0,
+     "bend": 88.0,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-COH",
+     "where": "into the head through the outlet adapter and the outlet housing's elbow",
+     "mm": 158.9,
+     "tol": 32.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 1547.4,
+   "tolMm": 32.0,
+   "tails": {
+    "a": 0.0,
+    "b": 241,
+    "basis": "the braid's length in each box: from the boot's fitting to the terminal at the box's centre (ASSUMPTION: the terminals stand at the centre); 241 mm on inside the head to the farther connector, measured straight: there it parts into 2 short braids, one to each connector"
+   },
+   "orderMm": 1900.0,
+   "bendMm": {
+    "fixed": 0.0,
+    "moving": 80.0,
+    "tightestFixed": null,
+    "tightestMoving": 88.0
+   },
+   "pieces": [
+    "CHG-FL4"
+   ],
+   "notes": [
+    "2 braids a link, DC+ and DC-, in one boot (the boot's spec)."
+   ],
+   "open": []
+  },
+  {
+   "id": "CHG-BBUP",
+   "name": "Copper bar DC+, 40 x 10 mm, insulated, inside the upper arm",
+   "kind": "dc",
+   "od": 10.0,
+   "spec": "40 x 10 mm copper bar (400 mm2), insulated; rated by rule of thumb, check against the Copper Development Association's tables before purchase (the boxes' spec)",
+   "from": "the DC+ terminal in CHG-PB2",
+   "to": "the DC+ terminal in CHG-PB3",
+   "sub": "DRESS",
+   "runs": [
+    {
+     "kind": "arm",
+     "via": "CHG-UPR",
+     "where": "inside the upper arm, terminal to terminal (straight)",
+     "mm": 794.1,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 794.1,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 0.0,
+    "b": 0.0,
+    "basis": ""
+   },
+   "orderMm": 800.0,
+   "bendMm": {
+    "fixed": 0.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [],
+   "notes": [],
+   "open": [
+    "Not drawn and not in the bill of materials: the 2 bars in each link are described by the terminal boxes only."
+   ]
+  },
+  {
+   "id": "CHG-BBUN",
+   "name": "Copper bar DC-, 40 x 10 mm, insulated, inside the upper arm",
+   "kind": "dc",
+   "od": 10.0,
+   "spec": "40 x 10 mm copper bar (400 mm2), insulated; rated by rule of thumb, check against the Copper Development Association's tables before purchase (the boxes' spec)",
+   "from": "the DC- terminal in CHG-PB2",
+   "to": "the DC- terminal in CHG-PB3",
+   "sub": "DRESS",
+   "runs": [
+    {
+     "kind": "arm",
+     "via": "CHG-UPR",
+     "where": "inside the upper arm, terminal to terminal (straight)",
+     "mm": 794.1,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 794.1,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 0.0,
+    "b": 0.0,
+    "basis": ""
+   },
+   "orderMm": 800.0,
+   "bendMm": {
+    "fixed": 0.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [],
+   "notes": [],
+   "open": [
+    "Not drawn and not in the bill of materials: the 2 bars in each link are described by the terminal boxes only."
+   ]
+  },
+  {
+   "id": "CHG-BBFP",
+   "name": "Copper bar DC+, 40 x 10 mm, insulated, inside the forearm",
+   "kind": "dc",
+   "od": 10.0,
+   "spec": "40 x 10 mm copper bar (400 mm2), insulated; rated by rule of thumb, check against the Copper Development Association's tables before purchase (the boxes' spec)",
+   "from": "the DC+ terminal in CHG-PB4",
+   "to": "the DC+ terminal in CHG-PB5",
+   "sub": "DRESS",
+   "runs": [
+    {
+     "kind": "arm",
+     "via": "CHG-FOR",
+     "where": "inside the forearm, terminal to terminal (straight)",
+     "mm": 492.2,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 492.2,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 0.0,
+    "b": 0.0,
+    "basis": ""
+   },
+   "orderMm": 500.0,
+   "bendMm": {
+    "fixed": 0.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [],
+   "notes": [],
+   "open": [
+    "Not drawn and not in the bill of materials: the 2 bars in each link are described by the terminal boxes only."
+   ]
+  },
+  {
+   "id": "CHG-BBFN",
+   "name": "Copper bar DC-, 40 x 10 mm, insulated, inside the forearm",
+   "kind": "dc",
+   "od": 10.0,
+   "spec": "40 x 10 mm copper bar (400 mm2), insulated; rated by rule of thumb, check against the Copper Development Association's tables before purchase (the boxes' spec)",
+   "from": "the DC- terminal in CHG-PB4",
+   "to": "the DC- terminal in CHG-PB5",
+   "sub": "DRESS",
+   "runs": [
+    {
+     "kind": "arm",
+     "via": "CHG-FOR",
+     "where": "inside the forearm, terminal to terminal (straight)",
+     "mm": 492.2,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 492.2,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 0.0,
+    "b": 0.0,
+    "basis": ""
+   },
+   "orderMm": 500.0,
+   "bendMm": {
+    "fixed": 0.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [],
+   "notes": [],
+   "open": [
+    "Not drawn and not in the bill of materials: the 2 bars in each link are described by the terminal boxes only."
+   ]
+  },
+  {
+   "id": "CHG-JC1",
+   "name": "Joint cable, J1 to J2",
+   "kind": "power",
+   "od": 10.0,
+   "spec": "the joint supply cable's type, 10 mm",
+   "from": "J1's drive board",
+   "to": "J2's actuator, its gland (J2's drive board inside)",
+   "sub": "J1",
+   "runs": [
+    {
+     "kind": "arm",
+     "via": "CHG-J1-HSG",
+     "where": "through J1's hollow shaft, from its drive board at the back to its output face",
+     "mm": 275.5,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "arm",
+     "via": "CHG-TUR",
+     "where": "inside the link from J1's output to J2's gland: straight 442 mm, and up to a quarter more for its dressing in the casting",
+     "mm": 497.8,
+     "tol": 55.3,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 773.3,
+   "tolMm": 55.3,
+   "tails": {
+    "a": 100.0,
+    "b": 100.0,
+    "basis": "100 mm in each actuator to its drive board's connector (ASSUMPTION)"
+   },
+   "orderMm": 1100.0,
+   "bendMm": {
+    "fixed": 40.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "CHG-JC2",
+   "name": "Joint cable, J2 to J3",
+   "kind": "power",
+   "od": 10.0,
+   "spec": "the joint supply cable's type, 10 mm",
+   "from": "J2's drive board",
+   "to": "J3's actuator, its gland (J3's drive board inside)",
+   "sub": "J2",
+   "runs": [
+    {
+     "kind": "arm",
+     "via": "CHG-J2-HSG",
+     "where": "through J2's hollow shaft, from its drive board at the back to its output face",
+     "mm": 317.3,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "arm",
+     "via": "CHG-UPR",
+     "where": "inside the link from J2's output to J3's gland: straight 1338 mm, and up to a quarter more for its dressing in the casting",
+     "mm": 1505.5,
+     "tol": 167.3,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 1822.7,
+   "tolMm": 167.3,
+   "tails": {
+    "a": 100.0,
+    "b": 100.0,
+    "basis": "100 mm in each actuator to its drive board's connector (ASSUMPTION)"
+   },
+   "orderMm": 2200.0,
+   "bendMm": {
+    "fixed": 40.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "CHG-JC3",
+   "name": "Joint cable, J3 to J4",
+   "kind": "power",
+   "od": 10.0,
+   "spec": "the joint supply cable's type, 10 mm",
+   "from": "J3's drive board",
+   "to": "J4's actuator, its gland (J4's drive board inside)",
+   "sub": "J3",
+   "runs": [
+    {
+     "kind": "arm",
+     "via": "CHG-J3-HSG",
+     "where": "through J3's hollow shaft, from its drive board at the back to its output face",
+     "mm": 275.5,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "arm",
+     "via": "CHG-FOR",
+     "where": "inside the link from J3's output to J4's gland: straight 834 mm, and up to a quarter more for its dressing in the casting",
+     "mm": 938.2,
+     "tol": 104.2,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 1213.7,
+   "tolMm": 104.2,
+   "tails": {
+    "a": 100.0,
+    "b": 100.0,
+    "basis": "100 mm in each actuator to its drive board's connector (ASSUMPTION)"
+   },
+   "orderMm": 1600.0,
+   "bendMm": {
+    "fixed": 40.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "CHG-JC4",
+   "name": "Joint cable, J4 to J5",
+   "kind": "power",
+   "od": 10.0,
+   "spec": "the joint supply cable's type, 10 mm",
+   "from": "J4's drive board",
+   "to": "J5's actuator, its gland (J5's drive board inside)",
+   "sub": "WRIST",
+   "runs": [
+    {
+     "kind": "arm",
+     "via": "CHG-J4-HSG",
+     "where": "through J4's hollow shaft, from its drive board at the back to its output face",
+     "mm": 205.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "arm",
+     "via": "CHG-J5-HSG",
+     "where": "inside the link from J4's output to J5's gland: straight 182 mm, and up to a quarter more for its dressing in the casting",
+     "mm": 204.4,
+     "tol": 22.7,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 409.4,
+   "tolMm": 22.7,
+   "tails": {
+    "a": 100.0,
+    "b": 100.0,
+    "basis": "100 mm in each actuator to its drive board's connector (ASSUMPTION)"
+   },
+   "orderMm": 700.0,
+   "bendMm": {
+    "fixed": 40.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "CHG-JC5",
+   "name": "Joint cable, J5 to J6",
+   "kind": "power",
+   "od": 10.0,
+   "spec": "the joint supply cable's type, 10 mm",
+   "from": "J5's drive board",
+   "to": "J6's actuator, its gland (J6's drive board inside)",
+   "sub": "WRIST",
+   "runs": [
+    {
+     "kind": "arm",
+     "via": "CHG-J5-HSG",
+     "where": "through J5's hollow shaft, from its drive board at the back to its output face",
+     "mm": 205.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "arm",
+     "via": "CHG-J6-HSG",
+     "where": "inside the link from J5's output to J6's gland: straight 88 mm, and up to a quarter more for its dressing in the casting",
+     "mm": 98.6,
+     "tol": 11.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 303.6,
+   "tolMm": 11.0,
+   "tails": {
+    "a": 100.0,
+    "b": 100.0,
+    "basis": "100 mm in each actuator to its drive board's connector (ASSUMPTION)"
+   },
+   "orderMm": 600.0,
+   "bendMm": {
+    "fixed": 40.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [],
+   "notes": [],
+   "open": []
+  }
+ ]
 }

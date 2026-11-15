@@ -7,12 +7,12 @@
   "glb": "m"
  },
  "totals": {
-  "parts": 2777,
-  "uniqueParts": 292,
-  "fasteners": 1636,
-  "massKg": 5949.54,
-  "boughtLines": 170,
-  "madeLines": 122,
+  "parts": 2799,
+  "uniqueParts": 300,
+  "fasteners": 1648,
+  "massKg": 6045.23,
+  "boughtLines": 175,
+  "madeLines": 125,
   "referenceLines": 14
  },
  "subsystems": [
@@ -107,10 +107,10 @@
    },
    "group": "Tools",
    "order": 4,
-   "partCount": 119,
-   "fastenerCount": 64,
-   "massKg": 467.052,
-   "uniqueParts": 20
+   "partCount": 131,
+   "fastenerCount": 68,
+   "massKg": 533.448,
+   "uniqueParts": 26
   },
   {
    "id": "TRACK",
@@ -130,10 +130,10 @@
    },
    "group": "Motion",
    "order": 5,
-   "partCount": 898,
-   "fastenerCount": 436,
-   "massKg": 1179.912,
-   "uniqueParts": 18
+   "partCount": 908,
+   "fastenerCount": 444,
+   "massKg": 1195.7,
+   "uniqueParts": 21
   },
   {
    "id": "DOCK",
@@ -311,7 +311,7 @@
    "order": 15,
    "partCount": 130,
    "fastenerCount": 8,
-   "massKg": 822.577,
+   "massKg": 836.083,
    "uniqueParts": 28
   },
   {
@@ -986,12 +986,12 @@
    "grade": "A4-80",
    "material": "Stainless steel A4-80",
    "materialKey": "fast_a4",
-   "qty": 32,
+   "qty": 40,
    "massKg": 0.0046,
-   "totalMassKg": 0.1487,
+   "totalMassKg": 0.1859,
    "torqueNm": 8.0,
    "reference": false,
-   "function": "Holds the cladding panel to the leg post.",
+   "function": "Holds the elbow duct's flange to the pedestal wall, into a rivet nut.",
    "spec": {
     "drive": "hex socket 4 mm"
    },
@@ -999,6 +999,10 @@
     {
      "sub": "PORTAL",
      "qty": 32
+    },
+    {
+     "sub": "TRACK",
+     "qty": 8
     }
    ]
   },
@@ -1373,6 +1377,30 @@
    ]
   },
   {
+   "id": "WSH-SAH",
+   "name": "Side knife hanger, SHS 60 x 60 x 4, stainless",
+   "category": "structure",
+   "make": "make",
+   "standard": "EN 10219",
+   "size": "60 x 60 x 4, 2031 long",
+   "grade": "1.4404",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 14.5232,
+   "totalMassKg": 29.0465,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Hangs the side knife from its carriage. Its foot is bolted to the knife's north face.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "DRYER",
+     "qty": 2
+    }
+   ]
+  },
+  {
    "id": "WSH-BLW",
    "name": "Centrifugal blower 4 kW, wash-down",
    "category": "drive",
@@ -1422,6 +1450,112 @@
     {
      "sub": "DRYER",
      "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-SAC",
+   "name": "Side knife axis carriage",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "160 x 70 x 25",
+   "grade": "",
+   "material": "Aluminium 6061-T6, machined, clear anodised",
+   "materialKey": "al6061",
+   "qty": 2,
+   "massKg": 0.7539,
+   "totalMassKg": 1.5078,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Runs on the belt axis and carries the knife's hanger.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "DRYER",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-SAM",
+   "name": "Side knife axis servo gearmotor 0.4 kW, brake, absolute encoder",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "0.4 kW",
+   "grade": "IP66, wash-down",
+   "material": "Structural steel S355, painted RAL 9005",
+   "materialKey": "steel_paint",
+   "qty": 2,
+   "massKg": 6.0,
+   "totalMassKg": 12.0,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Drives the side knife's belt axis. Its brake holds the knife where it stops.",
+   "spec": {
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "DRYER",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-SAXL",
+   "name": "Side knife belt axis, 60 x 60 profile, toothed belt",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "60 x 60, 1917 long, stroke 1480",
+   "grade": "IP54",
+   "material": "Aluminium 6063-T6 extrusion, anodised",
+   "materialKey": "al_extr",
+   "qty": 1,
+   "massKg": 11.9,
+   "totalMassKg": 11.9,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Guides the side knife across the bay and drives it by a toothed belt.",
+   "spec": {
+    "stroke": "1480 mm",
+    "guide": "profile rail inside, recirculating balls",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "DRYER",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-SAXR",
+   "name": "Side knife belt axis, 60 x 60 profile, toothed belt",
+   "category": "drive",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "60 x 60, 1917 long, stroke 1480",
+   "grade": "IP54",
+   "material": "Aluminium 6063-T6 extrusion, anodised",
+   "materialKey": "al_extr",
+   "qty": 1,
+   "massKg": 11.9,
+   "totalMassKg": 11.9,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Guides the side knife across the bay and drives it by a toothed belt.",
+   "spec": {
+    "stroke": "1480 mm",
+    "guide": "profile rail inside, recirculating balls",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "DRYER",
+     "qty": 1
     }
    ]
   },
@@ -1688,6 +1822,32 @@
    ]
   },
   {
+   "id": "ISO7380-M8x20-A4-80",
+   "name": "Button head screw M8 x 20",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 7380-1",
+   "size": "M8 x 20",
+   "grade": "A4-80",
+   "material": "Stainless steel A4-80",
+   "materialKey": "fast_a4",
+   "qty": 4,
+   "massKg": 0.0106,
+   "totalMassKg": 0.0422,
+   "torqueNm": 19.4,
+   "reference": false,
+   "function": "Holds the hanger's foot to the side knife, into a rivet nut.",
+   "spec": {
+    "drive": "hex socket 5 mm"
+   },
+   "uses": [
+    {
+     "sub": "DRYER",
+     "qty": 4
+    }
+   ]
+  },
+  {
    "id": "WSH-DCAL",
    "name": "Cable chain carrier arm, stainless",
    "category": "structure",
@@ -1760,6 +1920,62 @@
    ]
   },
   {
+   "id": "WSH-DCXL",
+   "name": "Arm chain elbow duct, stainless, into the pedestal",
+   "category": "structure",
+   "make": "make",
+   "standard": "welded sheet 3 mm",
+   "size": "63 x 32, 108 along, 130 across",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 3.2304,
+   "totalMassKg": 3.2304,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes the arm chain's 5 lines from its last link round into the pedestal's window.",
+   "spec": {
+    "inside": "the lines turn on 48 mm or more (4 x d, fixed); not drawn one by one",
+    "into the pedestal": "12 mm through the window in the wall toward the chain",
+    "in the cable schedule": "WSH-DAL-SUP, 17.16 m from end to end; WSH-DAL-MOT, 17.16 m from end to end; WSH-DAL-24V, 17.17 m from end to end; WSH-DAL-ECT, 17.29 m from end to end; WSH-DAL-H2O, 16.70 m from end to end"
+   },
+   "uses": [
+    {
+     "sub": "TRACK",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-DCXR",
+   "name": "Arm chain elbow duct, stainless, into the pedestal",
+   "category": "structure",
+   "make": "make",
+   "standard": "welded sheet 3 mm",
+   "size": "63 x 32, 108 along, 130 across",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 3.2304,
+   "totalMassKg": 3.2304,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes the arm chain's 5 lines from its last link round into the pedestal's window.",
+   "spec": {
+    "inside": "the lines turn on 48 mm or more (4 x d, fixed); not drawn one by one",
+    "into the pedestal": "12 mm through the window in the wall toward the chain",
+    "in the cable schedule": "WSH-DAR-SUP, 12.11 m from end to end; WSH-DAR-MOT, 12.11 m from end to end; WSH-DAR-24V, 12.12 m from end to end; WSH-DAR-ECT, 12.24 m from end to end; WSH-DAR-H2O, 11.71 m from end to end"
+   },
+   "uses": [
+    {
+     "sub": "TRACK",
+     "qty": 1
+    }
+   ]
+  },
+  {
    "id": "WSH-DPD",
    "name": "Arm pedestal weldment",
    "category": "structure",
@@ -1770,13 +1986,13 @@
    "material": "Structural steel S355, hot-dip galvanised",
    "materialKey": "steel_s355",
    "qty": 2,
-   "massKg": 42.356,
-   "totalMassKg": 84.712,
+   "massKg": 42.1676,
+   "totalMassKg": 84.3352,
    "torqueNm": null,
    "reference": false,
    "function": "Lifts the arm to the charge arm's own mount height on the carriage. The J1 actuator hangs inside it.",
    "spec": {
-    "window": "for the cables, toward the cable chain"
+    "window": "for the supply lines, in the wall toward the cable chain: the elbow duct enters it"
    },
    "uses": [
     {
@@ -2016,8 +2232,8 @@
    "material": "PA66-GF30",
    "materialKey": "pa66",
    "qty": 390,
-   "massKg": 0.0211,
-   "totalMassKg": 8.2455,
+   "massKg": 0.0459,
+   "totalMassKg": 17.9118,
    "torqueNm": null,
    "reference": false,
    "function": "Guides the cables and hoses through the moving joint. It keeps the bend radius safe.",
@@ -2357,7 +2573,8 @@
    "function": "Holds the gear ring, the motor and both shaft bearings in line. Fins carry the motor heat out.",
    "spec": {
     "IP rating": "IP65",
-    "machining": "bores to H7, faces flat to 0.02"
+    "machining": "bores to H7, faces flat to 0.02",
+    "in the cable schedule": "WSH-JCL1, 0.77 m from end to end; WSH-JCR1, 0.77 m from end to end"
    },
    "uses": [
     {
@@ -2455,7 +2672,8 @@
    "reference": false,
    "function": "Turns on J1 and carries the shoulder. Its boss clamps the J2 actuator.",
    "spec": {
-    "wall": "8 mm"
+    "wall": "8 mm",
+    "in the cable schedule": "WSH-JCL1, 0.77 m from end to end; WSH-JCR1, 0.77 m from end to end"
    },
    "uses": [
     {
@@ -3484,7 +3702,8 @@
    "function": "Holds the gear ring, the motor and both shaft bearings in line. Fins carry the motor heat out.",
    "spec": {
     "IP rating": "IP65",
-    "machining": "bores to H7, faces flat to 0.02"
+    "machining": "bores to H7, faces flat to 0.02",
+    "in the cable schedule": "WSH-JCL2, 1.82 m from end to end; WSH-JCR2, 1.82 m from end to end"
    },
    "uses": [
     {
@@ -4355,7 +4574,8 @@
    "function": "Carries the elbow 1.344 m from the shoulder. Hollow for stiffness per kilogram.",
    "spec": {
     "wall": "7 mm",
-    "axis distance": "1344.0 mm, bored in one set-up"
+    "axis distance": "1344.0 mm, bored in one set-up",
+    "in the cable schedule": "WSH-JCL2, 1.82 m from end to end; WSH-JCR2, 1.82 m from end to end"
    },
    "uses": [
     {
@@ -4430,7 +4650,8 @@
    "function": "Holds the gear ring, the motor and both shaft bearings in line. Fins carry the motor heat out.",
    "spec": {
     "IP rating": "IP65",
-    "machining": "bores to H7, faces flat to 0.02"
+    "machining": "bores to H7, faces flat to 0.02",
+    "in the cable schedule": "WSH-JCL3, 1.21 m from end to end; WSH-JCR3, 1.21 m from end to end"
    },
    "uses": [
     {
@@ -4576,7 +4797,8 @@
    "reference": false,
    "function": "Carries the wrist 1.142 m from the elbow. Its top socket holds J4.",
    "spec": {
-    "wall": "6 mm"
+    "wall": "6 mm",
+    "in the cable schedule": "WSH-JCL3, 1.21 m from end to end; WSH-JCR3, 1.21 m from end to end"
    },
    "uses": [
     {
@@ -4654,7 +4876,8 @@
    "function": "Holds the gear ring, the motor and both shaft bearings in line. Fins carry the motor heat out.",
    "spec": {
     "IP rating": "IP65",
-    "machining": "bores to H7, faces flat to 0.02"
+    "machining": "bores to H7, faces flat to 0.02",
+    "in the cable schedule": "WSH-JCL4, 0.41 m from end to end; WSH-JCR4, 0.41 m from end to end"
    },
    "uses": [
     {
@@ -4777,7 +5000,8 @@
    "function": "Holds the gear ring, the motor and both shaft bearings in line. Fins carry the motor heat out.",
    "spec": {
     "IP rating": "IP65",
-    "machining": "bores to H7, faces flat to 0.02"
+    "machining": "bores to H7, faces flat to 0.02",
+    "in the cable schedule": "WSH-JCL4, 0.41 m from end to end; WSH-JCL5, 0.30 m from end to end; WSH-JCR4, 0.41 m from end to end; WSH-JCR5, 0.30 m from end to end"
    },
    "uses": [
     {
@@ -4900,7 +5124,8 @@
    "function": "Holds the gear ring, the motor and both shaft bearings in line. Fins carry the motor heat out.",
    "spec": {
     "IP rating": "IP65",
-    "machining": "bores to H7, faces flat to 0.02"
+    "machining": "bores to H7, faces flat to 0.02",
+    "in the cable schedule": "WSH-JCL5, 0.30 m from end to end; WSH-JCR5, 0.30 m from end to end"
    },
    "uses": [
     {
@@ -6668,7 +6893,9 @@
    "torqueNm": null,
    "reference": false,
    "function": "Pushes and pulls the chain's moving end through the cover's slot. The lines rise inside it.",
-   "spec": {},
+   "spec": {
+    "in the cable schedule": "WSH-MLN, 16.62 m from end to end; WSH-MLW, 14.69 m from end to end; WSH-MLA, 14.68 m from end to end; WSH-MLB, 14.67 m from end to end; WSH-MLR, 14.66 m from end to end; WSH-MLP, 16.63 m from end to end"
+   },
    "uses": [
     {
      "sub": "CONTROL",
@@ -6735,8 +6962,8 @@
    "material": "PA66-GF30",
    "materialKey": "pa66",
    "qty": 81,
-   "massKg": 0.0597,
-   "totalMassKg": 4.8366,
+   "massKg": 0.2265,
+   "totalMassKg": 18.3432,
    "torqueNm": null,
    "reference": false,
    "function": "Guides the cables and hoses through the moving joint. It keeps the bend radius safe.",
@@ -6816,7 +7043,8 @@
    "function": "Carries the supply cable and the network cable from the arm up the leg to the control cabinet.",
    "spec": {
     "bend": "R 300 (5 x D)",
-    "fill": "19 % of its 52 mm bore (2 cables: limit 31 %)"
+    "fill": "19 % of its 52 mm bore (2 cables: limit 31 %)",
+    "in the cable schedule": "WSH-MLN, 16.62 m from end to end; WSH-MLP, 16.63 m from end to end"
    },
    "uses": [
     {
@@ -6842,7 +7070,8 @@
    "reference": false,
    "function": "Brings a blower motor's cable from the trunk.",
    "spec": {
-    "bend": "R 40"
+    "bend": "R 40",
+    "in the cable schedule": "WSH-ECBC1, 6.39 m from end to end; WSH-ECBC2, 7.94 m from end to end; WSH-ECBC3, 3.03 m from end to end"
    },
    "uses": [
     {
@@ -6868,7 +7097,8 @@
    "reference": false,
    "function": "Brings a lift motor's cable from the trunk.",
    "spec": {
-    "bend": "R 40"
+    "bend": "R 40",
+    "in the cable schedule": "WSH-ECKC1, 6.08 m from end to end; WSH-ECKC2, 5.76 m from end to end"
    },
    "uses": [
     {
@@ -6894,7 +7124,8 @@
    "reference": false,
    "function": "Brings the east travel motor's cable from the trunk, through the beam and down the east leg.",
    "spec": {
-    "bend": "R 40"
+    "bend": "R 40",
+    "in the cable schedule": "WSH-ECLC, 13.24 m from end to end"
    },
    "uses": [
     {
@@ -6919,7 +7150,9 @@
    "torqueNm": null,
    "reference": false,
    "function": "Brings the beacon's cable from the trunk.",
-   "spec": {},
+   "spec": {
+    "in the cable schedule": "WSH-ECNC, 7.46 m from end to end"
+   },
    "uses": [
     {
      "sub": "CONTROL",
@@ -6943,7 +7176,9 @@
    "torqueNm": null,
    "reference": false,
    "function": "Brings the west travel motor's cable down from the cabinet's floor.",
-   "spec": {},
+   "spec": {
+    "in the cable schedule": "WSH-ECRC, 0.96 m from end to end"
+   },
    "uses": [
     {
      "sub": "CONTROL",
@@ -6968,7 +7203,8 @@
    "reference": false,
    "function": "Brings the stop light's cable from the trunk, over the beam and down its south face.",
    "spec": {
-    "bend": "R 40"
+    "bend": "R 40",
+    "in the cable schedule": "WSH-ECSC, 6.62 m from end to end"
    },
    "uses": [
     {
@@ -6993,7 +7229,9 @@
    "torqueNm": null,
    "reference": false,
    "function": "Brings the valves' cable (one cable, 8 cores, for the 4 valves) from the trunk to the manifold.",
-   "spec": {},
+   "spec": {
+    "in the cable schedule": "WSH-ECVC, 7.35 m from end to end"
+   },
    "uses": [
     {
      "sub": "CONTROL",
@@ -7017,7 +7255,9 @@
    "torqueNm": null,
    "reference": false,
    "function": "Carries the motor, valve and signal cables from the control cabinet up through the beam and along its top. Each cable leaves it in its own conduit.",
-   "spec": {},
+   "spec": {
+    "in the cable schedule": "WSH-ECLC, 13.24 m from end to end; WSH-ECVC, 7.35 m from end to end; WSH-ECNC, 7.46 m from end to end; WSH-ECSC, 6.62 m from end to end; WSH-ECBC1, 6.39 m from end to end; WSH-ECBC2, 7.94 m from end to end; WSH-ECBC3, 3.03 m from end to end; WSH-ECKC1, 6.08 m from end to end; WSH-ECKC2, 5.76 m from end to end; WSH-SAMCL, 9.18 m from end to end; WSH-SAMCR, 3.33 m from end to end"
+   },
    "uses": [
     {
      "sub": "CONTROL",
@@ -7091,7 +7331,8 @@
    "function": "Carries the water tube, the 2 chemical tubes and the air tube from the chain's carrier arm up the leg, through the beam and along its top to the valve manifold.",
    "spec": {
     "carries": "water 22 x 1, 2 chemicals 12 x 1, air 12 x 1 (stainless tube)",
-    "through the beam": "a sleeve in each deck, between the chords"
+    "through the beam": "a sleeve in each deck, between the chords",
+    "in the cable schedule": "WSH-MTW, 6.51 m from end to end; WSH-MTA, 6.51 m from end to end; WSH-MTB, 6.51 m from end to end; WSH-MTR, 6.63 m from end to end"
    },
    "uses": [
     {
@@ -7393,7 +7634,8 @@
    "reference": false,
    "function": "Takes the exit signal's cable and the pad rinse nozzle's tube from the floor box into the track beam under the dock post. They rise inside the post.",
    "spec": {
-    "bend": "R 60"
+    "bend": "R 60",
+    "in the cable schedule": "WSH-DKSL, 9.16 m from end to end; WSH-DKRL, 1.12 m from end to end"
    },
    "uses": [
     {
@@ -7419,7 +7661,8 @@
    "reference": false,
    "function": "Takes the exit signal's cable and the pad rinse nozzle's tube from the floor box into the track beam under the dock post. They rise inside the post.",
    "spec": {
-    "bend": "R 60"
+    "bend": "R 60",
+    "in the cable schedule": "WSH-DKSR, 4.10 m from end to end; WSH-DKRR, 1.12 m from end to end"
    },
    "uses": [
     {
@@ -7444,7 +7687,9 @@
    "torqueNm": null,
    "reference": false,
    "function": "Runs from the cabinet on the wall in its duct to the floor box, and from the box into the chain. Drawn from the box to the chain's fixed end.",
-   "spec": {},
+   "spec": {
+    "in the cable schedule": "WSH-DAL-SUP, 17.16 m from end to end; WSH-DAL-MOT, 17.16 m from end to end; WSH-DAR-SUP, 12.11 m from end to end; WSH-DAR-MOT, 12.11 m from end to end"
+   },
    "uses": [
     {
      "sub": "SUPPLY",
@@ -7468,7 +7713,9 @@
    "torqueNm": null,
    "reference": false,
    "function": "Runs from the cabinet on the wall in its duct to the floor box, and from the box into the chain. Drawn from the box to the chain's fixed end.",
-   "spec": {},
+   "spec": {
+    "in the cable schedule": "WSH-DAL-ECT, 17.29 m from end to end; WSH-DAR-ECT, 12.24 m from end to end"
+   },
    "uses": [
     {
      "sub": "SUPPLY",
@@ -7492,7 +7739,9 @@
    "torqueNm": null,
    "reference": false,
    "function": "Runs from the cabinet on the wall in its duct to the floor box, and from the box into the chain. Drawn from the box to the chain's fixed end.",
-   "spec": {},
+   "spec": {
+    "in the cable schedule": "WSH-DAL-24V, 17.17 m from end to end; WSH-DAR-24V, 12.12 m from end to end"
+   },
    "uses": [
     {
      "sub": "SUPPLY",
@@ -7517,7 +7766,8 @@
    "reference": false,
    "function": "Runs from the panel in its duct to the pit, along the tray, through the strain relief and into the chain. Drawn from the duct's mouth to the chain's fixed end.",
    "spec": {
-    "bend": "R 32 or more"
+    "bend": "R 32 or more",
+    "in the cable schedule": "WSH-MLN, 16.62 m from end to end"
    },
    "uses": [
     {
@@ -7543,7 +7793,8 @@
    "reference": false,
    "function": "Runs from the panel in its duct to the pit, along the tray, through the strain relief and into the chain. Drawn from the duct's mouth to the chain's fixed end.",
    "spec": {
-    "bend": "R 84 or more"
+    "bend": "R 84 or more",
+    "in the cable schedule": "WSH-MLP, 16.63 m from end to end"
    },
    "uses": [
     {
@@ -7568,7 +7819,9 @@
    "torqueNm": null,
    "reference": false,
    "function": "Takes cables from the panel down the wall to the pull box.",
-   "spec": {},
+   "spec": {
+    "in the cable schedule": "WSH-DAL-SUP, 17.16 m from end to end; WSH-DAL-MOT, 17.16 m from end to end; WSH-DAL-24V, 17.17 m from end to end; WSH-DAR-SUP, 12.11 m from end to end; WSH-DAR-MOT, 12.11 m from end to end; WSH-DAR-24V, 12.12 m from end to end"
+   },
    "uses": [
     {
      "sub": "SUPPLY",
@@ -7592,7 +7845,9 @@
    "torqueNm": null,
    "reference": false,
    "function": "Takes cables from the panel down the wall to the pull box.",
-   "spec": {},
+   "spec": {
+    "in the cable schedule": "WSH-MLP, 16.63 m from end to end"
+   },
    "uses": [
     {
      "sub": "SUPPLY",
@@ -7616,7 +7871,9 @@
    "torqueNm": null,
    "reference": false,
    "function": "Takes cables from the panel down the wall to the pull box.",
-   "spec": {},
+   "spec": {
+    "in the cable schedule": "WSH-MLN, 16.62 m from end to end"
+   },
    "uses": [
     {
      "sub": "SUPPLY",
@@ -7640,7 +7897,9 @@
    "torqueNm": null,
    "reference": false,
    "function": "Takes cables from the panel down the wall to the pull box.",
-   "spec": {},
+   "spec": {
+    "in the cable schedule": "WSH-DAL-ECT, 17.29 m from end to end; WSH-DKSL, 9.16 m from end to end; WSH-DAR-ECT, 12.24 m from end to end; WSH-DKSR, 4.10 m from end to end"
+   },
    "uses": [
     {
      "sub": "SUPPLY",
@@ -7667,7 +7926,8 @@
    "spec": {
     "lines": "7 mm, 7 mm",
     "fill": "24 % of the bore (limit 31 %)",
-    "bends": "R 114, 360 degrees or less in all"
+    "bends": "R 114, 360 degrees or less in all",
+    "in the cable schedule": "WSH-DAL-ECT, 17.29 m from end to end; WSH-DKSL, 9.16 m from end to end"
    },
    "uses": [
     {
@@ -7695,7 +7955,8 @@
    "spec": {
     "lines": "12 mm, 12 mm, 8 mm",
     "fill": "30 % of the bore (limit 40 %)",
-    "bends": "R 184, 360 degrees or less in all"
+    "bends": "R 184, 360 degrees or less in all",
+    "in the cable schedule": "WSH-DAL-SUP, 17.16 m from end to end; WSH-DAL-MOT, 17.16 m from end to end; WSH-DAL-24V, 17.17 m from end to end"
    },
    "uses": [
     {
@@ -7723,7 +7984,8 @@
    "spec": {
     "lines": "6 mm",
     "fill": "15 % of the bore (limit 53 %)",
-    "bends": "R 102, 360 degrees or less in all"
+    "bends": "R 102, 360 degrees or less in all",
+    "in the cable schedule": "WSH-DAL-H2O, 16.70 m from end to end"
    },
    "uses": [
     {
@@ -7751,7 +8013,8 @@
    "spec": {
     "lines": "27 mm, 16 mm, 16 mm, 12 mm",
     "fill": "23 % of the bore (limit 40 %)",
-    "bends": "R 330, 360 degrees or less in all"
+    "bends": "R 330, 360 degrees or less in all",
+    "in the cable schedule": "WSH-MLW, 14.69 m from end to end; WSH-MLA, 14.68 m from end to end; WSH-MLB, 14.67 m from end to end; WSH-MLR, 14.66 m from end to end"
    },
    "uses": [
     {
@@ -7779,7 +8042,8 @@
    "spec": {
     "lines": "8 mm",
     "fill": "27 % of the bore (limit 53 %)",
-    "bends": "R 102, 360 degrees or less in all"
+    "bends": "R 102, 360 degrees or less in all",
+    "in the cable schedule": "WSH-MLN, 16.62 m from end to end"
    },
    "uses": [
     {
@@ -7807,7 +8071,8 @@
    "spec": {
     "lines": "21 mm",
     "fill": "37 % of the bore (limit 53 %)",
-    "bends": "R 184, 360 degrees or less in all"
+    "bends": "R 184, 360 degrees or less in all",
+    "in the cable schedule": "WSH-MLP, 16.63 m from end to end"
    },
    "uses": [
     {
@@ -7835,7 +8100,8 @@
    "spec": {
     "lines": "7 mm, 7 mm",
     "fill": "24 % of the bore (limit 31 %)",
-    "bends": "R 114, 360 degrees or less in all"
+    "bends": "R 114, 360 degrees or less in all",
+    "in the cable schedule": "WSH-DAR-ECT, 12.24 m from end to end; WSH-DKSR, 4.10 m from end to end"
    },
    "uses": [
     {
@@ -7863,7 +8129,8 @@
    "spec": {
     "lines": "12 mm, 12 mm, 8 mm",
     "fill": "30 % of the bore (limit 40 %)",
-    "bends": "R 184, 360 degrees or less in all"
+    "bends": "R 184, 360 degrees or less in all",
+    "in the cable schedule": "WSH-DAR-SUP, 12.11 m from end to end; WSH-DAR-MOT, 12.11 m from end to end; WSH-DAR-24V, 12.12 m from end to end"
    },
    "uses": [
     {
@@ -7891,7 +8158,8 @@
    "spec": {
     "lines": "6 mm",
     "fill": "15 % of the bore (limit 53 %)",
-    "bends": "R 102, 360 degrees or less in all"
+    "bends": "R 102, 360 degrees or less in all",
+    "in the cable schedule": "WSH-DAR-H2O, 11.71 m from end to end"
    },
    "uses": [
     {
@@ -7992,7 +8260,8 @@
    "reference": false,
    "function": "Every drop from the panel ends in it and every duct in the slab starts under it. Its compartments keep power, network and media apart.",
    "spec": {
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+    "mass basis": "catalogue class mass (the CAD draws its envelope)",
+    "in the cable schedule": "WSH-MLN, 16.62 m from end to end; WSH-MLW, 14.69 m from end to end; WSH-MLA, 14.68 m from end to end; WSH-MLB, 14.67 m from end to end; WSH-MLR, 14.66 m from end to end; WSH-MLP, 16.63 m from end to end; WSH-DAL-SUP, 17.16 m from end to end; WSH-DAL-MOT, 17.16 m from end to end; WSH-DAL-24V, 17.17 m from end to end; WSH-DAL-ECT, 17.29 m from end to end; WSH-DAL-H2O, 16.70 m from end to end; WSH-DKSL, 9.16 m from end to end; WSH-DAR-SUP, 12.11 m from end to end; WSH-DAR-MOT, 12.11 m from end to end; WSH-DAR-24V, 12.12 m from end to end; WSH-DAR-ECT, 12.24 m from end to end; WSH-DAR-H2O, 11.71 m from end to end; WSH-DKSR, 4.10 m from end to end"
    },
    "uses": [
     {
@@ -8065,7 +8334,9 @@
    "torqueNm": null,
    "reference": false,
    "function": "Runs from the cabinet on the wall in its duct to the floor box, and from the box into the chain. Drawn from the box to the chain's fixed end.",
-   "spec": {},
+   "spec": {
+    "in the cable schedule": "WSH-DAL-H2O, 16.70 m from end to end; WSH-DAR-H2O, 11.71 m from end to end"
+   },
    "uses": [
     {
      "sub": "SUPPLY",
@@ -8090,7 +8361,8 @@
    "reference": false,
    "function": "Runs from the panel in its duct to the pit, along the tray, through the strain relief and into the chain. Drawn from the duct's mouth to the chain's fixed end.",
    "spec": {
-    "bend": "R 80 or more"
+    "bend": "R 80 or more",
+    "in the cable schedule": "WSH-MLA, 14.68 m from end to end"
    },
    "uses": [
     {
@@ -8116,7 +8388,8 @@
    "reference": false,
    "function": "Runs from the panel in its duct to the pit, along the tray, through the strain relief and into the chain. Drawn from the duct's mouth to the chain's fixed end.",
    "spec": {
-    "bend": "R 80 or more"
+    "bend": "R 80 or more",
+    "in the cable schedule": "WSH-MLB, 14.67 m from end to end"
    },
    "uses": [
     {
@@ -8142,7 +8415,8 @@
    "reference": false,
    "function": "Runs from the panel in its duct to the pit, along the tray, through the strain relief and into the chain. Drawn from the duct's mouth to the chain's fixed end.",
    "spec": {
-    "bend": "R 60 or more"
+    "bend": "R 60 or more",
+    "in the cable schedule": "WSH-MLR, 14.66 m from end to end"
    },
    "uses": [
     {
@@ -8168,7 +8442,8 @@
    "reference": false,
    "function": "Runs from the panel in its duct to the pit, along the tray, through the strain relief and into the chain. Drawn from the duct's mouth to the chain's fixed end.",
    "spec": {
-    "bend": "R 135 or more"
+    "bend": "R 135 or more",
+    "in the cable schedule": "WSH-MLW, 14.69 m from end to end"
    },
    "uses": [
     {
@@ -8241,7 +8516,9 @@
    "torqueNm": null,
    "reference": false,
    "function": "Takes one medium from its valve down to the pull box.",
-   "spec": {},
+   "spec": {
+    "in the cable schedule": "WSH-MLA, 14.68 m from end to end; WSH-MLB, 14.67 m from end to end; WSH-MLR, 14.66 m from end to end; WSH-DAL-H2O, 16.70 m from end to end; WSH-DAR-H2O, 11.71 m from end to end"
+   },
    "uses": [
     {
      "sub": "SUPPLY",
@@ -8265,7 +8542,9 @@
    "torqueNm": null,
    "reference": false,
    "function": "Takes one medium from its valve down to the pull box.",
-   "spec": {},
+   "spec": {
+    "in the cable schedule": "WSH-MLW, 14.69 m from end to end"
+   },
    "uses": [
     {
      "sub": "SUPPLY",
@@ -8322,5 +8601,3079 @@
    ]
   }
  ],
- "notes": {}
+ "notes": {},
+ "cables": [
+  {
+   "id": "WSH-MLN",
+   "name": "Machine network cable, wall to the machine",
+   "kind": "network",
+   "od": 8.0,
+   "spec": "the chain's own line (cad wash_gantry, lanes)",
+   "from": "the bay's network switch in the detail arm drive cabinet (WSH-DAC)",
+   "to": "the control cabinet (WSH-CAB)",
+   "sub": "CONTROL",
+   "runs": [
+    {
+     "kind": "conduit",
+     "via": "WSH-SDC12",
+     "where": "down the wall from the cabinet in its conduit to the pull box",
+     "mm": 950.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "site",
+     "via": "WSH-SPB",
+     "where": "across the pull box to its duct",
+     "mm": 150.0,
+     "tol": 75.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "WSH-SDN",
+     "where": "in its duct cast into the slab, from the pull box to the supply pit",
+     "mm": 2887.3,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "drawn",
+     "via": "WSH-MLN",
+     "where": "from the duct's mouth across the pit, along the tray and through the strain relief into the chain",
+     "mm": 5357.4,
+     "tol": 0.0,
+     "bend": 32.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "WSH-DCH",
+     "where": "in the drag chain, in its own lane",
+     "mm": 5478.8,
+     "tol": 0.0,
+     "bend": 216.5,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "WSH-DCD",
+     "where": "up the chain's driver duct and along the carrier arm (WSH-DCB) to its conduit",
+     "mm": 551.0,
+     "tol": 104.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "WSH-DCC",
+     "where": "in the 60 mm conduit up the leg to the cabinet's floor",
+     "mm": 1249.4,
+     "tol": 0.0,
+     "bend": 300.0,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 16623.9,
+   "tolMm": 179.0,
+   "tails": {
+    "a": 500.0,
+    "b": 500.0,
+    "basis": "500 mm inside the cabinet or box, from its gland to the terminal (ASSUMPTION)"
+   },
+   "orderMm": 17900.0,
+   "bendMm": {
+    "fixed": 32.0,
+    "moving": 32.0,
+    "tightestFixed": 32.0,
+    "tightestMoving": 216.5
+   },
+   "pieces": [
+    "WSH-DCC",
+    "WSH-DCH",
+    "WSH-MLN",
+    "WSH-SDC12",
+    "WSH-SDN"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-MLW",
+   "name": "Machine water hose 19 x 27, wall to the machine",
+   "kind": "water",
+   "od": 27.0,
+   "spec": "the chain's own line (cad wash_gantry, lanes)",
+   "from": "its shut-off valve at the wall (WSH-SBV22)",
+   "to": "its coupling to the stainless water tube at the media duct's foot",
+   "sub": "CONTROL",
+   "runs": [
+    {
+     "kind": "conduit",
+     "via": "WSH-SD22",
+     "where": "down the wall from its valve, in its stainless drop tube, to the pull box",
+     "mm": 630.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "site",
+     "via": "WSH-SPB",
+     "where": "across the pull box to its duct",
+     "mm": 150.0,
+     "tol": 75.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "WSH-SDM",
+     "where": "in its duct cast into the slab, from the pull box to the supply pit",
+     "mm": 2626.5,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "drawn",
+     "via": "WSH-MLW",
+     "where": "from the duct's mouth across the pit, along the tray and through the strain relief into the chain",
+     "mm": 5368.6,
+     "tol": 0.0,
+     "bend": 135.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "WSH-DCH",
+     "where": "in the drag chain, in its own lane",
+     "mm": 5449.0,
+     "tol": 0.0,
+     "bend": 207.0,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "WSH-DCD",
+     "where": "up the chain's driver duct and along the carrier arm (WSH-DCB) to the media duct's foot",
+     "mm": 466.8,
+     "tol": 104.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 14690.9,
+   "tolMm": 179.0,
+   "tails": {
+    "a": 0.0,
+    "b": 0.0,
+    "basis": "the valve's and the coupling's fittings take its ends"
+   },
+   "orderMm": 14900.0,
+   "bendMm": {
+    "fixed": 135.0,
+    "moving": 135.0,
+    "tightestFixed": 135.0,
+    "tightestMoving": 207.0
+   },
+   "pieces": [
+    "WSH-DCH",
+    "WSH-MLW",
+    "WSH-SD22",
+    "WSH-SDM"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-MLA",
+   "name": "Machine chemical hose A 10 x 16, wall to the machine",
+   "kind": "chemical",
+   "od": 16.0,
+   "spec": "the chain's own line (cad wash_gantry, lanes)",
+   "from": "its shut-off valve at the wall (WSH-SBV12)",
+   "to": "its coupling to the stainless chemical tube at the media duct's foot",
+   "sub": "CONTROL",
+   "runs": [
+    {
+     "kind": "conduit",
+     "via": "WSH-SD12",
+     "where": "down the wall from its valve, in its stainless drop tube, to the pull box",
+     "mm": 630.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "site",
+     "via": "WSH-SPB",
+     "where": "across the pull box to its duct",
+     "mm": 150.0,
+     "tol": 75.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "WSH-SDM",
+     "where": "in its duct cast into the slab, from the pull box to the supply pit",
+     "mm": 2626.5,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "drawn",
+     "via": "WSH-MLA",
+     "where": "from the duct's mouth across the pit, along the tray and through the strain relief into the chain",
+     "mm": 5370.4,
+     "tol": 0.0,
+     "bend": 80.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "WSH-DCH",
+     "where": "in the drag chain, in its own lane",
+     "mm": 5466.3,
+     "tol": 0.0,
+     "bend": 212.5,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "WSH-DCD",
+     "where": "up the chain's driver duct and along the carrier arm (WSH-DCB) to the media duct's foot",
+     "mm": 439.9,
+     "tol": 104.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 14683.1,
+   "tolMm": 179.0,
+   "tails": {
+    "a": 0.0,
+    "b": 0.0,
+    "basis": "the valve's and the coupling's fittings take its ends"
+   },
+   "orderMm": 14900.0,
+   "bendMm": {
+    "fixed": 80.0,
+    "moving": 80.0,
+    "tightestFixed": 80.0,
+    "tightestMoving": 212.5
+   },
+   "pieces": [
+    "WSH-DCH",
+    "WSH-MLA",
+    "WSH-SD12",
+    "WSH-SDM"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-MLB",
+   "name": "Machine chemical hose B 10 x 16, wall to the machine",
+   "kind": "chemical",
+   "od": 16.0,
+   "spec": "the chain's own line (cad wash_gantry, lanes)",
+   "from": "its shut-off valve at the wall (WSH-SBV12)",
+   "to": "its coupling to the stainless chemical tube at the media duct's foot",
+   "sub": "CONTROL",
+   "runs": [
+    {
+     "kind": "conduit",
+     "via": "WSH-SD12",
+     "where": "down the wall from its valve, in its stainless drop tube, to the pull box",
+     "mm": 630.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "site",
+     "via": "WSH-SPB",
+     "where": "across the pull box to its duct",
+     "mm": 150.0,
+     "tol": 75.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "WSH-SDM",
+     "where": "in its duct cast into the slab, from the pull box to the supply pit",
+     "mm": 2626.5,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "drawn",
+     "via": "WSH-MLB",
+     "where": "from the duct's mouth across the pit, along the tray and through the strain relief into the chain",
+     "mm": 5370.4,
+     "tol": 0.0,
+     "bend": 80.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "WSH-DCH",
+     "where": "in the drag chain, in its own lane",
+     "mm": 5466.3,
+     "tol": 0.0,
+     "bend": 212.5,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "WSH-DCD",
+     "where": "up the chain's driver duct and along the carrier arm (WSH-DCB) to the media duct's foot",
+     "mm": 424.1,
+     "tol": 104.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 14667.2,
+   "tolMm": 179.0,
+   "tails": {
+    "a": 0.0,
+    "b": 0.0,
+    "basis": "the valve's and the coupling's fittings take its ends"
+   },
+   "orderMm": 14900.0,
+   "bendMm": {
+    "fixed": 80.0,
+    "moving": 80.0,
+    "tightestFixed": 80.0,
+    "tightestMoving": 212.5
+   },
+   "pieces": [
+    "WSH-DCH",
+    "WSH-MLB",
+    "WSH-SD12",
+    "WSH-SDM"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-MLR",
+   "name": "Machine air tube 12 x 9, wall to the machine",
+   "kind": "air",
+   "od": 12.0,
+   "spec": "the chain's own line (cad wash_gantry, lanes)",
+   "from": "its shut-off valve at the wall (WSH-SBV12)",
+   "to": "its coupling to the stainless air tube at the media duct's foot",
+   "sub": "CONTROL",
+   "runs": [
+    {
+     "kind": "conduit",
+     "via": "WSH-SD12",
+     "where": "down the wall from its valve, in its stainless drop tube, to the pull box",
+     "mm": 630.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "site",
+     "via": "WSH-SPB",
+     "where": "across the pull box to its duct",
+     "mm": 150.0,
+     "tol": 75.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "WSH-SDM",
+     "where": "in its duct cast into the slab, from the pull box to the supply pit",
+     "mm": 2626.5,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "drawn",
+     "via": "WSH-MLR",
+     "where": "from the duct's mouth across the pit, along the tray and through the strain relief into the chain",
+     "mm": 5371.1,
+     "tol": 0.0,
+     "bend": 60.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "WSH-DCH",
+     "where": "in the drag chain, in its own lane",
+     "mm": 5472.6,
+     "tol": 0.0,
+     "bend": 214.5,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "WSH-DCD",
+     "where": "up the chain's driver duct and along the carrier arm (WSH-DCB) to the media duct's foot",
+     "mm": 408.7,
+     "tol": 104.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 14658.8,
+   "tolMm": 179.0,
+   "tails": {
+    "a": 0.0,
+    "b": 0.0,
+    "basis": "the valve's and the coupling's fittings take its ends"
+   },
+   "orderMm": 14900.0,
+   "bendMm": {
+    "fixed": 60.0,
+    "moving": 60.0,
+    "tightestFixed": 60.0,
+    "tightestMoving": 214.5
+   },
+   "pieces": [
+    "WSH-DCH",
+    "WSH-MLR",
+    "WSH-SD12",
+    "WSH-SDM"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-MLP",
+   "name": "Machine supply cable 5G10, wall to the machine",
+   "kind": "power",
+   "od": 21.0,
+   "spec": "the chain's own line (cad wash_gantry, lanes)",
+   "from": "the bay isolator (WSH-SIS)",
+   "to": "the control cabinet (WSH-CAB)",
+   "sub": "CONTROL",
+   "runs": [
+    {
+     "kind": "conduit",
+     "via": "WSH-SDC114I",
+     "where": "down the wall from the isolator in its conduit to the pull box",
+     "mm": 1150.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "site",
+     "via": "WSH-SPB",
+     "where": "across the pull box to its duct",
+     "mm": 150.0,
+     "tol": 75.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "WSH-SDP",
+     "where": "in its duct cast into the slab, from the pull box to the supply pit",
+     "mm": 2788.9,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "drawn",
+     "via": "WSH-MLP",
+     "where": "from the duct's mouth across the pit, along the tray and through the strain relief into the chain",
+     "mm": 5370.3,
+     "tol": 0.0,
+     "bend": 84.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "WSH-DCH",
+     "where": "in the drag chain, in its own lane",
+     "mm": 5458.4,
+     "tol": 0.0,
+     "bend": 210.0,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "WSH-DCD",
+     "where": "up the chain's driver duct and along the carrier arm (WSH-DCB) to its conduit",
+     "mm": 462.0,
+     "tol": 104.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "WSH-DCC",
+     "where": "in the 60 mm conduit up the leg to the cabinet's floor",
+     "mm": 1249.4,
+     "tol": 0.0,
+     "bend": 300.0,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 16629.1,
+   "tolMm": 179.0,
+   "tails": {
+    "a": 500.0,
+    "b": 500.0,
+    "basis": "500 mm inside the cabinet or box, from its gland to the terminal (ASSUMPTION)"
+   },
+   "orderMm": 17900.0,
+   "bendMm": {
+    "fixed": 84.0,
+    "moving": 84.0,
+    "tightestFixed": 84.0,
+    "tightestMoving": 210.0
+   },
+   "pieces": [
+    "WSH-DCC",
+    "WSH-DCH",
+    "WSH-MLP",
+    "WSH-SDC114I",
+    "WSH-SDP"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-MTW",
+   "name": "Water tube 22 x 1, stainless",
+   "kind": "water",
+   "od": 22.0,
+   "spec": "EN 10216-5 (the media duct's spec)",
+   "from": "its coupling to the chain's hose at the media duct's foot",
+   "to": "the valve manifold's water inlet (WSH-MAN)",
+   "sub": "CONTROL",
+   "runs": [
+    {
+     "kind": "duct",
+     "via": "WSH-MRD",
+     "where": "in the closed media duct: up the leg, through the beam and along its top",
+     "mm": 6511.8,
+     "tol": 36.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 6511.8,
+   "tolMm": 36.0,
+   "tails": {
+    "a": 0.0,
+    "b": 0.0,
+    "basis": ""
+   },
+   "orderMm": 6600.0,
+   "bendMm": {
+    "fixed": 0.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [],
+   "notes": [
+    "Bent on site in the duct: its bends are the duct's corners."
+   ],
+   "open": []
+  },
+  {
+   "id": "WSH-MTA",
+   "name": "Chemical A tube 12 x 1, stainless",
+   "kind": "chemical",
+   "od": 12.0,
+   "spec": "EN 10216-5 (the media duct's spec)",
+   "from": "its coupling to the chain's hose at the media duct's foot",
+   "to": "the valve manifold's chemical A inlet (WSH-MAN)",
+   "sub": "CONTROL",
+   "runs": [
+    {
+     "kind": "duct",
+     "via": "WSH-MRD",
+     "where": "in the closed media duct: up the leg, through the beam and along its top",
+     "mm": 6511.8,
+     "tol": 36.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 6511.8,
+   "tolMm": 36.0,
+   "tails": {
+    "a": 0.0,
+    "b": 0.0,
+    "basis": ""
+   },
+   "orderMm": 6600.0,
+   "bendMm": {
+    "fixed": 0.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [],
+   "notes": [
+    "Bent on site in the duct: its bends are the duct's corners."
+   ],
+   "open": []
+  },
+  {
+   "id": "WSH-MTB",
+   "name": "Chemical B tube 12 x 1, stainless",
+   "kind": "chemical",
+   "od": 12.0,
+   "spec": "EN 10216-5 (the media duct's spec)",
+   "from": "its coupling to the chain's hose at the media duct's foot",
+   "to": "the valve manifold's chemical B inlet (WSH-MAN)",
+   "sub": "CONTROL",
+   "runs": [
+    {
+     "kind": "duct",
+     "via": "WSH-MRD",
+     "where": "in the closed media duct: up the leg, through the beam and along its top",
+     "mm": 6511.8,
+     "tol": 36.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 6511.8,
+   "tolMm": 36.0,
+   "tails": {
+    "a": 0.0,
+    "b": 0.0,
+    "basis": ""
+   },
+   "orderMm": 6600.0,
+   "bendMm": {
+    "fixed": 0.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [],
+   "notes": [
+    "Bent on site in the duct: its bends are the duct's corners."
+   ],
+   "open": []
+  },
+  {
+   "id": "WSH-MTR",
+   "name": "Air tube 12 x 1, stainless",
+   "kind": "air",
+   "od": 12.0,
+   "spec": "EN 10216-5 (the media duct's spec)",
+   "from": "its coupling to the chain's hose at the media duct's foot",
+   "to": "the air service coupling on the beam (WSH-APT)",
+   "sub": "CONTROL",
+   "runs": [
+    {
+     "kind": "duct",
+     "via": "WSH-MRD",
+     "where": "in the closed media duct: up the leg, through the beam and along its top",
+     "mm": 6511.8,
+     "tol": 36.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "WSH-MRD",
+     "where": "on along the beam to the coupling",
+     "mm": 120.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 6631.8,
+   "tolMm": 36.0,
+   "tails": {
+    "a": 0.0,
+    "b": 0.0,
+    "basis": ""
+   },
+   "orderMm": 6700.0,
+   "bendMm": {
+    "fixed": 0.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [],
+   "notes": [
+    "Bent on site in the duct: its bends are the duct's corners."
+   ],
+   "open": []
+  },
+  {
+   "id": "WSH-ECLC",
+   "name": "Cable to the east travel motor, 10 mm",
+   "kind": "power",
+   "od": 10.0,
+   "spec": "one cable of 10 mm or less a conduit (the conduits' fill rule)",
+   "from": "the control cabinet (WSH-CAB)",
+   "to": "the east travel motor",
+   "sub": "TRAVEL",
+   "runs": [
+    {
+     "kind": "duct",
+     "via": "WSH-ETK",
+     "where": "up the cable trunk from the cabinet's top, through the beam and along its top",
+     "mm": 8579.0,
+     "tol": 56.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "WSH-ECL",
+     "where": "in its 16 mm conduit to the east travel motor",
+     "mm": 4657.6,
+     "tol": 0.0,
+     "bend": 40.0,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 13236.6,
+   "tolMm": 56.0,
+   "tails": {
+    "a": 500.0,
+    "b": 300.0,
+    "basis": "500 mm inside the cabinet or box, from its gland to the terminal (ASSUMPTION); 300 mm into the device's terminal box (ASSUMPTION)"
+   },
+   "orderMm": 14100.0,
+   "bendMm": {
+    "fixed": 40.0,
+    "moving": 0.0,
+    "tightestFixed": 40.0,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "WSH-ECL"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-ECVC",
+   "name": "Cable to the valve manifold's 4 valves (one 8-core cable), 10 mm",
+   "kind": "power",
+   "od": 10.0,
+   "spec": "one cable of 10 mm or less a conduit (the conduits' fill rule)",
+   "from": "the control cabinet (WSH-CAB)",
+   "to": "the valve manifold's 4 valves (one 8-core cable)",
+   "sub": "ARCH",
+   "runs": [
+    {
+     "kind": "duct",
+     "via": "WSH-ETK",
+     "where": "up the cable trunk from the cabinet's top, through the beam and along its top",
+     "mm": 5936.4,
+     "tol": 56.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "WSH-ECV",
+     "where": "in its 16 mm conduit to the valve manifold's 4 valves (one 8-core cable)",
+     "mm": 1415.7,
+     "tol": 0.0,
+     "bend": 40.0,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 7352.1,
+   "tolMm": 56.0,
+   "tails": {
+    "a": 500.0,
+    "b": 300.0,
+    "basis": "500 mm inside the cabinet or box, from its gland to the terminal (ASSUMPTION); 300 mm into the device's terminal box (ASSUMPTION)"
+   },
+   "orderMm": 8300.0,
+   "bendMm": {
+    "fixed": 40.0,
+    "moving": 0.0,
+    "tightestFixed": 40.0,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "WSH-ECV"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-ECNC",
+   "name": "Cable to the status beacon, 10 mm",
+   "kind": "power",
+   "od": 10.0,
+   "spec": "one cable of 10 mm or less a conduit (the conduits' fill rule)",
+   "from": "the control cabinet (WSH-CAB)",
+   "to": "the status beacon",
+   "sub": "CONTROL",
+   "runs": [
+    {
+     "kind": "duct",
+     "via": "WSH-ETK",
+     "where": "up the cable trunk from the cabinet's top, through the beam and along its top",
+     "mm": 7358.4,
+     "tol": 56.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "WSH-ECN",
+     "where": "in its 16 mm conduit to the status beacon",
+     "mm": 104.6,
+     "tol": 0.0,
+     "bend": 40.0,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 7463.1,
+   "tolMm": 56.0,
+   "tails": {
+    "a": 500.0,
+    "b": 300.0,
+    "basis": "500 mm inside the cabinet or box, from its gland to the terminal (ASSUMPTION); 300 mm into the device's terminal box (ASSUMPTION)"
+   },
+   "orderMm": 8400.0,
+   "bendMm": {
+    "fixed": 40.0,
+    "moving": 0.0,
+    "tightestFixed": 40.0,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "WSH-ECN"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-ECSC",
+   "name": "Cable to the stop light, 10 mm",
+   "kind": "power",
+   "od": 10.0,
+   "spec": "one cable of 10 mm or less a conduit (the conduits' fill rule)",
+   "from": "the control cabinet (WSH-CAB)",
+   "to": "the stop light",
+   "sub": "CONTROL",
+   "runs": [
+    {
+     "kind": "duct",
+     "via": "WSH-ETK",
+     "where": "up the cable trunk from the cabinet's top, through the beam and along its top",
+     "mm": 5636.4,
+     "tol": 56.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "WSH-ECS",
+     "where": "in its 16 mm conduit to the stop light",
+     "mm": 981.5,
+     "tol": 0.0,
+     "bend": 40.0,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 6618.0,
+   "tolMm": 56.0,
+   "tails": {
+    "a": 500.0,
+    "b": 300.0,
+    "basis": "500 mm inside the cabinet or box, from its gland to the terminal (ASSUMPTION); 300 mm into the device's terminal box (ASSUMPTION)"
+   },
+   "orderMm": 7500.0,
+   "bendMm": {
+    "fixed": 40.0,
+    "moving": 0.0,
+    "tightestFixed": 40.0,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "WSH-ECS"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-ECBC1",
+   "name": "Cable to a blower motor, 10 mm (at x = -520 mm)",
+   "kind": "power",
+   "od": 10.0,
+   "spec": "one cable of 10 mm or less a conduit (the conduits' fill rule)",
+   "from": "the control cabinet (WSH-CAB)",
+   "to": "a blower motor",
+   "sub": "DRYER",
+   "runs": [
+    {
+     "kind": "duct",
+     "via": "WSH-ETK",
+     "where": "up the cable trunk from the cabinet's top, through the beam and along its top",
+     "mm": 6156.4,
+     "tol": 56.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "WSH-ECB",
+     "where": "in its 16 mm conduit to a blower motor",
+     "mm": 231.8,
+     "tol": 0.0,
+     "bend": 40.0,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 6388.3,
+   "tolMm": 56.0,
+   "tails": {
+    "a": 500.0,
+    "b": 300.0,
+    "basis": "500 mm inside the cabinet or box, from its gland to the terminal (ASSUMPTION); 300 mm into the device's terminal box (ASSUMPTION)"
+   },
+   "orderMm": 7300.0,
+   "bendMm": {
+    "fixed": 40.0,
+    "moving": 0.0,
+    "tightestFixed": 40.0,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "WSH-ECB"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-ECBC2",
+   "name": "Cable to a blower motor, 10 mm (at x = -2074 mm)",
+   "kind": "power",
+   "od": 10.0,
+   "spec": "one cable of 10 mm or less a conduit (the conduits' fill rule)",
+   "from": "the control cabinet (WSH-CAB)",
+   "to": "a blower motor",
+   "sub": "DRYER",
+   "runs": [
+    {
+     "kind": "duct",
+     "via": "WSH-ETK",
+     "where": "up the cable trunk from the cabinet's top, through the beam and along its top",
+     "mm": 7710.2,
+     "tol": 56.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "WSH-ECB",
+     "where": "in its 16 mm conduit to a blower motor",
+     "mm": 231.8,
+     "tol": 0.0,
+     "bend": 40.0,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 7942.1,
+   "tolMm": 56.0,
+   "tails": {
+    "a": 500.0,
+    "b": 300.0,
+    "basis": "500 mm inside the cabinet or box, from its gland to the terminal (ASSUMPTION); 300 mm into the device's terminal box (ASSUMPTION)"
+   },
+   "orderMm": 8800.0,
+   "bendMm": {
+    "fixed": 40.0,
+    "moving": 0.0,
+    "tightestFixed": 40.0,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "WSH-ECB"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-ECBC3",
+   "name": "Cable to a blower motor, 10 mm (at x = 2834 mm)",
+   "kind": "power",
+   "od": 10.0,
+   "spec": "one cable of 10 mm or less a conduit (the conduits' fill rule)",
+   "from": "the control cabinet (WSH-CAB)",
+   "to": "a blower motor",
+   "sub": "DRYER",
+   "runs": [
+    {
+     "kind": "duct",
+     "via": "WSH-ETK",
+     "where": "up the cable trunk from the cabinet's top, through the beam and along its top",
+     "mm": 2802.6,
+     "tol": 56.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "WSH-ECB",
+     "where": "in its 16 mm conduit to a blower motor",
+     "mm": 231.8,
+     "tol": 0.0,
+     "bend": 40.0,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 3034.5,
+   "tolMm": 56.0,
+   "tails": {
+    "a": 500.0,
+    "b": 300.0,
+    "basis": "500 mm inside the cabinet or box, from its gland to the terminal (ASSUMPTION); 300 mm into the device's terminal box (ASSUMPTION)"
+   },
+   "orderMm": 3900.0,
+   "bendMm": {
+    "fixed": 40.0,
+    "moving": 0.0,
+    "tightestFixed": 40.0,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "WSH-ECB"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-ECKC1",
+   "name": "Cable to a top knife lift motor, 10 mm (at x = -160 mm)",
+   "kind": "power",
+   "od": 10.0,
+   "spec": "one cable of 10 mm or less a conduit (the conduits' fill rule)",
+   "from": "the control cabinet (WSH-CAB)",
+   "to": "a top knife lift motor",
+   "sub": "DRYER",
+   "runs": [
+    {
+     "kind": "duct",
+     "via": "WSH-ETK",
+     "where": "up the cable trunk from the cabinet's top, through the beam and along its top",
+     "mm": 5796.4,
+     "tol": 56.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "WSH-ECK",
+     "where": "in its 16 mm conduit to a top knife lift motor",
+     "mm": 282.7,
+     "tol": 0.0,
+     "bend": 40.0,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 6079.1,
+   "tolMm": 56.0,
+   "tails": {
+    "a": 500.0,
+    "b": 300.0,
+    "basis": "500 mm inside the cabinet or box, from its gland to the terminal (ASSUMPTION); 300 mm into the device's terminal box (ASSUMPTION)"
+   },
+   "orderMm": 7000.0,
+   "bendMm": {
+    "fixed": 40.0,
+    "moving": 0.0,
+    "tightestFixed": 40.0,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "WSH-ECK"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-ECKC2",
+   "name": "Cable to a top knife lift motor, 10 mm (at x = 160 mm)",
+   "kind": "power",
+   "od": 10.0,
+   "spec": "one cable of 10 mm or less a conduit (the conduits' fill rule)",
+   "from": "the control cabinet (WSH-CAB)",
+   "to": "a top knife lift motor",
+   "sub": "DRYER",
+   "runs": [
+    {
+     "kind": "duct",
+     "via": "WSH-ETK",
+     "where": "up the cable trunk from the cabinet's top, through the beam and along its top",
+     "mm": 5476.4,
+     "tol": 56.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "WSH-ECK",
+     "where": "in its 16 mm conduit to a top knife lift motor",
+     "mm": 282.7,
+     "tol": 0.0,
+     "bend": 40.0,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 5759.1,
+   "tolMm": 56.0,
+   "tails": {
+    "a": 500.0,
+    "b": 300.0,
+    "basis": "500 mm inside the cabinet or box, from its gland to the terminal (ASSUMPTION); 300 mm into the device's terminal box (ASSUMPTION)"
+   },
+   "orderMm": 6700.0,
+   "bendMm": {
+    "fixed": 40.0,
+    "moving": 0.0,
+    "tightestFixed": 40.0,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "WSH-ECK"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-ECRC",
+   "name": "Cable to the west travel motor, 10 mm",
+   "kind": "power",
+   "od": 10.0,
+   "spec": "one cable of 10 mm or less a conduit (the conduits' fill rule)",
+   "from": "the control cabinet (WSH-CAB)",
+   "to": "the west travel motor",
+   "sub": "TRAVEL",
+   "runs": [
+    {
+     "kind": "conduit",
+     "via": "WSH-ECR",
+     "where": "down from the cabinet's floor in its 16 mm conduit to the motor",
+     "mm": 957.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 957.0,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 500.0,
+    "b": 300.0,
+    "basis": "500 mm inside the cabinet or box, from its gland to the terminal (ASSUMPTION); 300 mm into the device's terminal box (ASSUMPTION)"
+   },
+   "orderMm": 1800.0,
+   "bendMm": {
+    "fixed": 40.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "WSH-ECR"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-SAMCL",
+   "name": "Cable to the east side knife's axis gearmotor, 10 mm",
+   "kind": "power",
+   "od": 10.0,
+   "spec": "servo cable: motor, brake and encoder (ASSUMPTION: one cable of 10 mm)",
+   "from": "the control cabinet (WSH-CAB)",
+   "to": "the side knife axis gearmotor (WSH-SAM), east",
+   "sub": "DRYER",
+   "runs": [
+    {
+     "kind": "duct",
+     "via": "WSH-ETK",
+     "where": "up the cable trunk from the cabinet's top and along the beam's top",
+     "mm": 8558.5,
+     "tol": 56.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "site",
+     "via": "",
+     "where": "from the trunk down through the beam to the gearmotor: straight, not drawn",
+     "mm": 618.2,
+     "tol": 154.6,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 9176.8,
+   "tolMm": 210.6,
+   "tails": {
+    "a": 500.0,
+    "b": 300.0,
+    "basis": "500 mm inside the cabinet or box, from its gland to the terminal (ASSUMPTION); 300 mm into the device's terminal box (ASSUMPTION)"
+   },
+   "orderMm": 10200.0,
+   "bendMm": {
+    "fixed": 0.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [],
+   "notes": [],
+   "open": [
+    "Not designed yet: the conduit from the trunk to this gearmotor. The motor hangs under the belt axis at its outer end, so its cable needs a sleeve through the beam's decks and an entry in its side."
+   ]
+  },
+  {
+   "id": "WSH-SAMCR",
+   "name": "Cable to the west side knife's axis gearmotor, 10 mm",
+   "kind": "power",
+   "od": 10.0,
+   "spec": "servo cable: motor, brake and encoder (ASSUMPTION: one cable of 10 mm)",
+   "from": "the control cabinet (WSH-CAB)",
+   "to": "the side knife axis gearmotor (WSH-SAM), west",
+   "sub": "DRYER",
+   "runs": [
+    {
+     "kind": "duct",
+     "via": "WSH-ETK",
+     "where": "up the cable trunk from the cabinet's top and along the beam's top",
+     "mm": 2714.3,
+     "tol": 56.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "site",
+     "via": "",
+     "where": "from the trunk down through the beam to the gearmotor: straight, not drawn",
+     "mm": 618.2,
+     "tol": 154.6,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 3332.5,
+   "tolMm": 210.6,
+   "tails": {
+    "a": 500.0,
+    "b": 300.0,
+    "basis": "500 mm inside the cabinet or box, from its gland to the terminal (ASSUMPTION); 300 mm into the device's terminal box (ASSUMPTION)"
+   },
+   "orderMm": 4400.0,
+   "bendMm": {
+    "fixed": 0.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [],
+   "notes": [],
+   "open": [
+    "Not designed yet: the conduit from the trunk to this gearmotor. The motor hangs under the belt axis at its outer end, so its cable needs a sleeve through the beam's decks and an entry in its side."
+   ]
+  },
+  {
+   "id": "WSH-DAL-SUP",
+   "name": "East arm supply cable 12 mm",
+   "kind": "power",
+   "od": 12.0,
+   "spec": "the arm chain's own line (cad wash_gantry, a_lanes)",
+   "from": "the detail arm drive cabinet (WSH-DAC)",
+   "to": "the east arm's J1 actuator, its gland in the pedestal's top",
+   "sub": "SUPPLY",
+   "runs": [
+    {
+     "kind": "conduit",
+     "via": "WSH-SDC114",
+     "where": "down the wall from the cabinet in its conduit",
+     "mm": 950.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "site",
+     "via": "WSH-SPB",
+     "where": "across the pull box to its duct",
+     "mm": 150.0,
+     "tol": 75.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "WSH-SDLP",
+     "where": "in the east arm's power duct cast into the slab, to the floor box",
+     "mm": 6815.3,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "drawn",
+     "via": "WSH-DL12",
+     "where": "from the floor box (WSH-DJB) through its gland into the chain",
+     "mm": 95.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "WSH-DCHL",
+     "where": "in the arm's cable chain, in its own lane",
+     "mm": 8990.4,
+     "tol": 0.0,
+     "bend": 106.5,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "WSH-DCXL",
+     "where": "through the elbow duct into the pedestal",
+     "mm": 160.0,
+     "tol": 50.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 17160.7,
+   "tolMm": 125.0,
+   "tails": {
+    "a": 500.0,
+    "b": 550.0,
+    "basis": "500 mm inside the cabinet or box, from its gland to the terminal (ASSUMPTION); 550 mm up the pedestal to J1's gland: at most the mount's height above the floor (ASSUMPTION)"
+   },
+   "orderMm": 18400.0,
+   "bendMm": {
+    "fixed": 48.0,
+    "moving": 90.0,
+    "tightestFixed": null,
+    "tightestMoving": 106.5
+   },
+   "pieces": [
+    "WSH-DCHL",
+    "WSH-DL12",
+    "WSH-SDC114",
+    "WSH-SDLP"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-DAL-MOT",
+   "name": "East arm track motor cable 12 mm",
+   "kind": "power",
+   "od": 12.0,
+   "spec": "the arm chain's own line (cad wash_gantry, a_lanes)",
+   "from": "the detail arm drive cabinet (WSH-DAC)",
+   "to": "the east arm's track gearmotor on its carriage",
+   "sub": "SUPPLY",
+   "runs": [
+    {
+     "kind": "conduit",
+     "via": "WSH-SDC114",
+     "where": "down the wall from the cabinet in its conduit",
+     "mm": 950.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "site",
+     "via": "WSH-SPB",
+     "where": "across the pull box to its duct",
+     "mm": 150.0,
+     "tol": 75.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "WSH-SDLP",
+     "where": "in the east arm's power duct cast into the slab, to the floor box",
+     "mm": 6815.3,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "drawn",
+     "via": "WSH-DL12",
+     "where": "from the floor box (WSH-DJB) through its gland into the chain",
+     "mm": 95.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "WSH-DCHL",
+     "where": "in the arm's cable chain, in its own lane",
+     "mm": 8990.4,
+     "tol": 0.0,
+     "bend": 106.5,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "WSH-DCXL",
+     "where": "through the elbow duct into the pedestal",
+     "mm": 160.0,
+     "tol": 50.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 17160.7,
+   "tolMm": 125.0,
+   "tails": {
+    "a": 500.0,
+    "b": 300.0,
+    "basis": "500 mm inside the cabinet or box, from its gland to the terminal (ASSUMPTION); 300 mm into the device's terminal box (ASSUMPTION)"
+   },
+   "orderMm": 18100.0,
+   "bendMm": {
+    "fixed": 48.0,
+    "moving": 90.0,
+    "tightestFixed": null,
+    "tightestMoving": 106.5
+   },
+   "pieces": [
+    "WSH-DCHL",
+    "WSH-DL12",
+    "WSH-SDC114",
+    "WSH-SDLP"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-DAL-24V",
+   "name": "East arm 24 V cable 8 mm",
+   "kind": "control",
+   "od": 8.0,
+   "spec": "the arm chain's own line (cad wash_gantry, a_lanes)",
+   "from": "the detail arm drive cabinet (WSH-DAC)",
+   "to": "the east arm's J1 actuator, beside the supply cable",
+   "sub": "SUPPLY",
+   "runs": [
+    {
+     "kind": "conduit",
+     "via": "WSH-SDC114",
+     "where": "down the wall from the cabinet in its conduit",
+     "mm": 950.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "site",
+     "via": "WSH-SPB",
+     "where": "across the pull box to its duct",
+     "mm": 150.0,
+     "tol": 75.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "WSH-SDLP",
+     "where": "in the east arm's power duct cast into the slab, to the floor box",
+     "mm": 6815.3,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "drawn",
+     "via": "WSH-DL8",
+     "where": "from the floor box (WSH-DJB) through its gland into the chain",
+     "mm": 95.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "WSH-DCHL",
+     "where": "in the arm's cable chain, in its own lane",
+     "mm": 8996.7,
+     "tol": 0.0,
+     "bend": 108.5,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "WSH-DCXL",
+     "where": "through the elbow duct into the pedestal",
+     "mm": 160.0,
+     "tol": 50.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 17167.0,
+   "tolMm": 125.0,
+   "tails": {
+    "a": 500.0,
+    "b": 550.0,
+    "basis": "500 mm inside the cabinet or box, from its gland to the terminal (ASSUMPTION); 550 mm up the pedestal to J1: at most the mount's height above the floor (ASSUMPTION)"
+   },
+   "orderMm": 18400.0,
+   "bendMm": {
+    "fixed": 32.0,
+    "moving": 60.0,
+    "tightestFixed": null,
+    "tightestMoving": 108.5
+   },
+   "pieces": [
+    "WSH-DCHL",
+    "WSH-DL8",
+    "WSH-SDC114",
+    "WSH-SDLP"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-DAL-ECT",
+   "name": "East arm network cable 7 mm",
+   "kind": "network",
+   "od": 7.0,
+   "spec": "the arm chain's own line (cad wash_gantry, a_lanes)",
+   "from": "the detail arm drive cabinet (WSH-DAC)",
+   "to": "the east arm's J1 actuator, beside the supply cable",
+   "sub": "SUPPLY",
+   "runs": [
+    {
+     "kind": "conduit",
+     "via": "WSH-SDC34",
+     "where": "down the wall from the cabinet in its conduit",
+     "mm": 950.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "site",
+     "via": "WSH-SPB",
+     "where": "across the pull box to its duct",
+     "mm": 150.0,
+     "tol": 75.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "WSH-SDLD",
+     "where": "in the east arm's data duct cast into the slab, to the floor box",
+     "mm": 6940.3,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "drawn",
+     "via": "WSH-DL7",
+     "where": "from the floor box (WSH-DJB) through its gland into the chain",
+     "mm": 95.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "WSH-DCHL",
+     "where": "in the arm's cable chain, in its own lane",
+     "mm": 8998.3,
+     "tol": 0.0,
+     "bend": 109.0,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "WSH-DCXL",
+     "where": "through the elbow duct into the pedestal",
+     "mm": 160.0,
+     "tol": 50.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 17293.6,
+   "tolMm": 125.0,
+   "tails": {
+    "a": 500.0,
+    "b": 550.0,
+    "basis": "500 mm inside the cabinet or box, from its gland to the terminal (ASSUMPTION); 550 mm up the pedestal to J1: at most the mount's height above the floor (ASSUMPTION)"
+   },
+   "orderMm": 18500.0,
+   "bendMm": {
+    "fixed": 28.0,
+    "moving": 52.5,
+    "tightestFixed": null,
+    "tightestMoving": 109.0
+   },
+   "pieces": [
+    "WSH-DCHL",
+    "WSH-DL7",
+    "WSH-SDC34",
+    "WSH-SDLD"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-DAL-H2O",
+   "name": "East arm pure-water tube 6 mm",
+   "kind": "water",
+   "od": 6.0,
+   "spec": "the arm chain's own line (cad wash_gantry, a_lanes)",
+   "from": "the pure water's shut-off valve at the wall (WSH-SBV12)",
+   "to": "the east arm's carriage, in its pedestal",
+   "sub": "SUPPLY",
+   "runs": [
+    {
+     "kind": "conduit",
+     "via": "WSH-SD12",
+     "where": "down the wall from its valve in its drop tube",
+     "mm": 630.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "site",
+     "via": "WSH-SPB",
+     "where": "across the pull box to its duct",
+     "mm": 150.0,
+     "tol": 75.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "WSH-SDLW",
+     "where": "in the east arm's pure water duct cast into the slab, to the floor box",
+     "mm": 6670.1,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "drawn",
+     "via": "WSH-DL6",
+     "where": "from the floor box (WSH-DJB) through its gland into the chain",
+     "mm": 95.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "WSH-DCHL",
+     "where": "in the arm's cable chain, in its own lane",
+     "mm": 8999.8,
+     "tol": 0.0,
+     "bend": 109.5,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "WSH-DCXL",
+     "where": "through the elbow duct into the pedestal",
+     "mm": 160.0,
+     "tol": 50.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 16705.0,
+   "tolMm": 125.0,
+   "tails": {
+    "a": 0.0,
+    "b": 0.0,
+    "basis": "its fittings take its ends"
+   },
+   "orderMm": 16900.0,
+   "bendMm": {
+    "fixed": 24.0,
+    "moving": 45.0,
+    "tightestFixed": null,
+    "tightestMoving": 109.5
+   },
+   "pieces": [
+    "WSH-DCHL",
+    "WSH-DL6",
+    "WSH-SD12",
+    "WSH-SDLW"
+   ],
+   "notes": [],
+   "open": [
+    "It feeds the mist nozzle beside the pad on the polishing head (a flat-fan nozzle, NOZ-fan) and the dock's rinse tube, but no route up the arm to the nozzle is drawn: the schedule ends it in the pedestal."
+   ]
+  },
+  {
+   "id": "WSH-JCL1",
+   "name": "Joint cable (east arm), J1 to J2",
+   "kind": "power",
+   "od": 10.0,
+   "spec": "the joint supply cable's type, 10 mm",
+   "from": "J1's drive board",
+   "to": "J2's actuator, its gland (J2's drive board inside)",
+   "sub": "J1",
+   "runs": [
+    {
+     "kind": "arm",
+     "via": "CHG-J1-HSG",
+     "where": "through J1's hollow shaft, from its drive board at the back to its output face",
+     "mm": 275.5,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "arm",
+     "via": "CHG-TUR",
+     "where": "inside the link from J1's output to J2's gland: straight 442 mm, and up to a quarter more for its dressing in the casting",
+     "mm": 497.8,
+     "tol": 55.3,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 773.3,
+   "tolMm": 55.3,
+   "tails": {
+    "a": 100.0,
+    "b": 100.0,
+    "basis": "100 mm in each actuator to its drive board's connector (ASSUMPTION)"
+   },
+   "orderMm": 1100.0,
+   "bendMm": {
+    "fixed": 40.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-JCL2",
+   "name": "Joint cable (east arm), J2 to J3",
+   "kind": "power",
+   "od": 10.0,
+   "spec": "the joint supply cable's type, 10 mm",
+   "from": "J2's drive board",
+   "to": "J3's actuator, its gland (J3's drive board inside)",
+   "sub": "J2",
+   "runs": [
+    {
+     "kind": "arm",
+     "via": "CHG-J2-HSG",
+     "where": "through J2's hollow shaft, from its drive board at the back to its output face",
+     "mm": 317.3,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "arm",
+     "via": "CHG-UPR",
+     "where": "inside the link from J2's output to J3's gland: straight 1338 mm, and up to a quarter more for its dressing in the casting",
+     "mm": 1505.5,
+     "tol": 167.3,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 1822.7,
+   "tolMm": 167.3,
+   "tails": {
+    "a": 100.0,
+    "b": 100.0,
+    "basis": "100 mm in each actuator to its drive board's connector (ASSUMPTION)"
+   },
+   "orderMm": 2200.0,
+   "bendMm": {
+    "fixed": 40.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-JCL3",
+   "name": "Joint cable (east arm), J3 to J4",
+   "kind": "power",
+   "od": 10.0,
+   "spec": "the joint supply cable's type, 10 mm",
+   "from": "J3's drive board",
+   "to": "J4's actuator, its gland (J4's drive board inside)",
+   "sub": "J3",
+   "runs": [
+    {
+     "kind": "arm",
+     "via": "CHG-J3-HSG",
+     "where": "through J3's hollow shaft, from its drive board at the back to its output face",
+     "mm": 275.5,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "arm",
+     "via": "CHG-FOR",
+     "where": "inside the link from J3's output to J4's gland: straight 834 mm, and up to a quarter more for its dressing in the casting",
+     "mm": 938.2,
+     "tol": 104.2,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 1213.7,
+   "tolMm": 104.2,
+   "tails": {
+    "a": 100.0,
+    "b": 100.0,
+    "basis": "100 mm in each actuator to its drive board's connector (ASSUMPTION)"
+   },
+   "orderMm": 1600.0,
+   "bendMm": {
+    "fixed": 40.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-JCL4",
+   "name": "Joint cable (east arm), J4 to J5",
+   "kind": "power",
+   "od": 10.0,
+   "spec": "the joint supply cable's type, 10 mm",
+   "from": "J4's drive board",
+   "to": "J5's actuator, its gland (J5's drive board inside)",
+   "sub": "WRIST",
+   "runs": [
+    {
+     "kind": "arm",
+     "via": "CHG-J4-HSG",
+     "where": "through J4's hollow shaft, from its drive board at the back to its output face",
+     "mm": 205.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "arm",
+     "via": "CHG-J5-HSG",
+     "where": "inside the link from J4's output to J5's gland: straight 182 mm, and up to a quarter more for its dressing in the casting",
+     "mm": 204.4,
+     "tol": 22.7,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 409.4,
+   "tolMm": 22.7,
+   "tails": {
+    "a": 100.0,
+    "b": 100.0,
+    "basis": "100 mm in each actuator to its drive board's connector (ASSUMPTION)"
+   },
+   "orderMm": 700.0,
+   "bendMm": {
+    "fixed": 40.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-JCL5",
+   "name": "Joint cable (east arm), J5 to J6",
+   "kind": "power",
+   "od": 10.0,
+   "spec": "the joint supply cable's type, 10 mm",
+   "from": "J5's drive board",
+   "to": "J6's actuator, its gland (J6's drive board inside)",
+   "sub": "WRIST",
+   "runs": [
+    {
+     "kind": "arm",
+     "via": "CHG-J5-HSG",
+     "where": "through J5's hollow shaft, from its drive board at the back to its output face",
+     "mm": 205.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "arm",
+     "via": "CHG-J6-HSG",
+     "where": "inside the link from J5's output to J6's gland: straight 88 mm, and up to a quarter more for its dressing in the casting",
+     "mm": 98.6,
+     "tol": 11.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 303.6,
+   "tolMm": 11.0,
+   "tails": {
+    "a": 100.0,
+    "b": 100.0,
+    "basis": "100 mm in each actuator to its drive board's connector (ASSUMPTION)"
+   },
+   "orderMm": 600.0,
+   "bendMm": {
+    "fixed": 40.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-DKSL",
+   "name": "East dock exit signal cable 7 mm",
+   "kind": "control",
+   "od": 7.0,
+   "spec": "ASSUMPTION: of its kind",
+   "from": "the detail arm drive cabinet (WSH-DAC)",
+   "to": "the east dock's exit signal (WSH-DCKS)",
+   "sub": "DOCK",
+   "runs": [
+    {
+     "kind": "conduit",
+     "via": "WSH-SDC34",
+     "where": "down the wall from the cabinet in its conduit",
+     "mm": 950.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "site",
+     "via": "WSH-SPB",
+     "where": "across the pull box to its duct",
+     "mm": 150.0,
+     "tol": 75.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "WSH-SDLD",
+     "where": "in the east arm's data duct to the floor box",
+     "mm": 6940.3,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "WSH-DKFL",
+     "where": "in the dock feed conduit from the floor box into the track beam under the dock post",
+     "mm": 515.3,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "site",
+     "via": "",
+     "where": "up inside the dock post to its device: not drawn",
+     "mm": 600.0,
+     "tol": 300.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 9155.7,
+   "tolMm": 375.0,
+   "tails": {
+    "a": 0.0,
+    "b": 300.0,
+    "basis": "300 mm into the device's terminal box (ASSUMPTION)"
+   },
+   "orderMm": 9900.0,
+   "bendMm": {
+    "fixed": 0.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "WSH-DKFL",
+    "WSH-SDC34",
+    "WSH-SDLD"
+   ],
+   "notes": [],
+   "open": [
+    "Its run up inside the dock post is not drawn."
+   ]
+  },
+  {
+   "id": "WSH-DKRL",
+   "name": "East dock pad rinse tube 6 mm",
+   "kind": "water",
+   "od": 6.0,
+   "spec": "ASSUMPTION: of its kind",
+   "from": "a tee on the arm's pure-water tube in the floor box (ASSUMPTION)",
+   "to": "the east dock's rinse nozzle in its cup (WSH-DCKC)",
+   "sub": "DOCK",
+   "runs": [
+    {
+     "kind": "conduit",
+     "via": "WSH-DKFL",
+     "where": "in the dock feed conduit from the floor box into the track beam under the dock post",
+     "mm": 515.3,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "site",
+     "via": "",
+     "where": "up inside the dock post to its device: not drawn",
+     "mm": 600.0,
+     "tol": 300.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 1115.3,
+   "tolMm": 300.0,
+   "tails": {
+    "a": 0.0,
+    "b": 300.0,
+    "basis": "300 mm into the device's terminal box (ASSUMPTION)"
+   },
+   "orderMm": 1800.0,
+   "bendMm": {
+    "fixed": 0.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "WSH-DKFL"
+   ],
+   "notes": [],
+   "open": [
+    "Its run up inside the dock post is not drawn."
+   ]
+  },
+  {
+   "id": "WSH-DAR-SUP",
+   "name": "West arm supply cable 12 mm",
+   "kind": "power",
+   "od": 12.0,
+   "spec": "the arm chain's own line (cad wash_gantry, a_lanes)",
+   "from": "the detail arm drive cabinet (WSH-DAC)",
+   "to": "the west arm's J1 actuator, its gland in the pedestal's top",
+   "sub": "SUPPLY",
+   "runs": [
+    {
+     "kind": "conduit",
+     "via": "WSH-SDC114",
+     "where": "down the wall from the cabinet in its conduit",
+     "mm": 950.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "site",
+     "via": "WSH-SPB",
+     "where": "across the pull box to its duct",
+     "mm": 150.0,
+     "tol": 75.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "WSH-SDRP",
+     "where": "in the west arm's power duct cast into the slab, to the floor box",
+     "mm": 1765.3,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "drawn",
+     "via": "WSH-DL12",
+     "where": "from the floor box (WSH-DJB) through its gland into the chain",
+     "mm": 95.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "WSH-DCHR",
+     "where": "in the arm's cable chain, in its own lane",
+     "mm": 8990.4,
+     "tol": 0.0,
+     "bend": 106.5,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "WSH-DCXR",
+     "where": "through the elbow duct into the pedestal",
+     "mm": 160.0,
+     "tol": 50.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 12110.7,
+   "tolMm": 125.0,
+   "tails": {
+    "a": 500.0,
+    "b": 550.0,
+    "basis": "500 mm inside the cabinet or box, from its gland to the terminal (ASSUMPTION); 550 mm up the pedestal to J1's gland: at most the mount's height above the floor (ASSUMPTION)"
+   },
+   "orderMm": 13300.0,
+   "bendMm": {
+    "fixed": 48.0,
+    "moving": 90.0,
+    "tightestFixed": null,
+    "tightestMoving": 106.5
+   },
+   "pieces": [
+    "WSH-DCHR",
+    "WSH-DL12",
+    "WSH-SDC114",
+    "WSH-SDRP"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-DAR-MOT",
+   "name": "West arm track motor cable 12 mm",
+   "kind": "power",
+   "od": 12.0,
+   "spec": "the arm chain's own line (cad wash_gantry, a_lanes)",
+   "from": "the detail arm drive cabinet (WSH-DAC)",
+   "to": "the west arm's track gearmotor on its carriage",
+   "sub": "SUPPLY",
+   "runs": [
+    {
+     "kind": "conduit",
+     "via": "WSH-SDC114",
+     "where": "down the wall from the cabinet in its conduit",
+     "mm": 950.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "site",
+     "via": "WSH-SPB",
+     "where": "across the pull box to its duct",
+     "mm": 150.0,
+     "tol": 75.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "WSH-SDRP",
+     "where": "in the west arm's power duct cast into the slab, to the floor box",
+     "mm": 1765.3,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "drawn",
+     "via": "WSH-DL12",
+     "where": "from the floor box (WSH-DJB) through its gland into the chain",
+     "mm": 95.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "WSH-DCHR",
+     "where": "in the arm's cable chain, in its own lane",
+     "mm": 8990.4,
+     "tol": 0.0,
+     "bend": 106.5,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "WSH-DCXR",
+     "where": "through the elbow duct into the pedestal",
+     "mm": 160.0,
+     "tol": 50.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 12110.7,
+   "tolMm": 125.0,
+   "tails": {
+    "a": 500.0,
+    "b": 300.0,
+    "basis": "500 mm inside the cabinet or box, from its gland to the terminal (ASSUMPTION); 300 mm into the device's terminal box (ASSUMPTION)"
+   },
+   "orderMm": 13100.0,
+   "bendMm": {
+    "fixed": 48.0,
+    "moving": 90.0,
+    "tightestFixed": null,
+    "tightestMoving": 106.5
+   },
+   "pieces": [
+    "WSH-DCHR",
+    "WSH-DL12",
+    "WSH-SDC114",
+    "WSH-SDRP"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-DAR-24V",
+   "name": "West arm 24 V cable 8 mm",
+   "kind": "control",
+   "od": 8.0,
+   "spec": "the arm chain's own line (cad wash_gantry, a_lanes)",
+   "from": "the detail arm drive cabinet (WSH-DAC)",
+   "to": "the west arm's J1 actuator, beside the supply cable",
+   "sub": "SUPPLY",
+   "runs": [
+    {
+     "kind": "conduit",
+     "via": "WSH-SDC114",
+     "where": "down the wall from the cabinet in its conduit",
+     "mm": 950.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "site",
+     "via": "WSH-SPB",
+     "where": "across the pull box to its duct",
+     "mm": 150.0,
+     "tol": 75.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "WSH-SDRP",
+     "where": "in the west arm's power duct cast into the slab, to the floor box",
+     "mm": 1765.3,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "drawn",
+     "via": "WSH-DL8",
+     "where": "from the floor box (WSH-DJB) through its gland into the chain",
+     "mm": 95.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "WSH-DCHR",
+     "where": "in the arm's cable chain, in its own lane",
+     "mm": 8996.7,
+     "tol": 0.0,
+     "bend": 108.5,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "WSH-DCXR",
+     "where": "through the elbow duct into the pedestal",
+     "mm": 160.0,
+     "tol": 50.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 12117.0,
+   "tolMm": 125.0,
+   "tails": {
+    "a": 500.0,
+    "b": 550.0,
+    "basis": "500 mm inside the cabinet or box, from its gland to the terminal (ASSUMPTION); 550 mm up the pedestal to J1: at most the mount's height above the floor (ASSUMPTION)"
+   },
+   "orderMm": 13300.0,
+   "bendMm": {
+    "fixed": 32.0,
+    "moving": 60.0,
+    "tightestFixed": null,
+    "tightestMoving": 108.5
+   },
+   "pieces": [
+    "WSH-DCHR",
+    "WSH-DL8",
+    "WSH-SDC114",
+    "WSH-SDRP"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-DAR-ECT",
+   "name": "West arm network cable 7 mm",
+   "kind": "network",
+   "od": 7.0,
+   "spec": "the arm chain's own line (cad wash_gantry, a_lanes)",
+   "from": "the detail arm drive cabinet (WSH-DAC)",
+   "to": "the west arm's J1 actuator, beside the supply cable",
+   "sub": "SUPPLY",
+   "runs": [
+    {
+     "kind": "conduit",
+     "via": "WSH-SDC34",
+     "where": "down the wall from the cabinet in its conduit",
+     "mm": 950.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "site",
+     "via": "WSH-SPB",
+     "where": "across the pull box to its duct",
+     "mm": 150.0,
+     "tol": 75.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "WSH-SDRD",
+     "where": "in the west arm's data duct cast into the slab, to the floor box",
+     "mm": 1885.3,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "drawn",
+     "via": "WSH-DL7",
+     "where": "from the floor box (WSH-DJB) through its gland into the chain",
+     "mm": 95.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "WSH-DCHR",
+     "where": "in the arm's cable chain, in its own lane",
+     "mm": 8998.3,
+     "tol": 0.0,
+     "bend": 109.0,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "WSH-DCXR",
+     "where": "through the elbow duct into the pedestal",
+     "mm": 160.0,
+     "tol": 50.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 12238.6,
+   "tolMm": 125.0,
+   "tails": {
+    "a": 500.0,
+    "b": 550.0,
+    "basis": "500 mm inside the cabinet or box, from its gland to the terminal (ASSUMPTION); 550 mm up the pedestal to J1: at most the mount's height above the floor (ASSUMPTION)"
+   },
+   "orderMm": 13500.0,
+   "bendMm": {
+    "fixed": 28.0,
+    "moving": 52.5,
+    "tightestFixed": null,
+    "tightestMoving": 109.0
+   },
+   "pieces": [
+    "WSH-DCHR",
+    "WSH-DL7",
+    "WSH-SDC34",
+    "WSH-SDRD"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-DAR-H2O",
+   "name": "West arm pure-water tube 6 mm",
+   "kind": "water",
+   "od": 6.0,
+   "spec": "the arm chain's own line (cad wash_gantry, a_lanes)",
+   "from": "the pure water's shut-off valve at the wall (WSH-SBV12)",
+   "to": "the west arm's carriage, in its pedestal",
+   "sub": "SUPPLY",
+   "runs": [
+    {
+     "kind": "conduit",
+     "via": "WSH-SD12",
+     "where": "down the wall from its valve in its drop tube",
+     "mm": 630.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "site",
+     "via": "WSH-SPB",
+     "where": "across the pull box to its duct",
+     "mm": 150.0,
+     "tol": 75.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "WSH-SDRW",
+     "where": "in the west arm's pure water duct cast into the slab, to the floor box",
+     "mm": 1680.1,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "drawn",
+     "via": "WSH-DL6",
+     "where": "from the floor box (WSH-DJB) through its gland into the chain",
+     "mm": 95.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "chain",
+     "via": "WSH-DCHR",
+     "where": "in the arm's cable chain, in its own lane",
+     "mm": 8999.8,
+     "tol": 0.0,
+     "bend": 109.5,
+     "moving": true,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "WSH-DCXR",
+     "where": "through the elbow duct into the pedestal",
+     "mm": 160.0,
+     "tol": 50.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 11715.0,
+   "tolMm": 125.0,
+   "tails": {
+    "a": 0.0,
+    "b": 0.0,
+    "basis": "its fittings take its ends"
+   },
+   "orderMm": 11900.0,
+   "bendMm": {
+    "fixed": 24.0,
+    "moving": 45.0,
+    "tightestFixed": null,
+    "tightestMoving": 109.5
+   },
+   "pieces": [
+    "WSH-DCHR",
+    "WSH-DL6",
+    "WSH-SD12",
+    "WSH-SDRW"
+   ],
+   "notes": [],
+   "open": [
+    "It feeds the mist nozzle beside the pad on the polishing head (a flat-fan nozzle, NOZ-fan) and the dock's rinse tube, but no route up the arm to the nozzle is drawn: the schedule ends it in the pedestal."
+   ]
+  },
+  {
+   "id": "WSH-JCR1",
+   "name": "Joint cable (west arm), J1 to J2",
+   "kind": "power",
+   "od": 10.0,
+   "spec": "the joint supply cable's type, 10 mm",
+   "from": "J1's drive board",
+   "to": "J2's actuator, its gland (J2's drive board inside)",
+   "sub": "J1",
+   "runs": [
+    {
+     "kind": "arm",
+     "via": "CHG-J1-HSG",
+     "where": "through J1's hollow shaft, from its drive board at the back to its output face",
+     "mm": 275.5,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "arm",
+     "via": "CHG-TUR",
+     "where": "inside the link from J1's output to J2's gland: straight 442 mm, and up to a quarter more for its dressing in the casting",
+     "mm": 497.8,
+     "tol": 55.3,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 773.3,
+   "tolMm": 55.3,
+   "tails": {
+    "a": 100.0,
+    "b": 100.0,
+    "basis": "100 mm in each actuator to its drive board's connector (ASSUMPTION)"
+   },
+   "orderMm": 1100.0,
+   "bendMm": {
+    "fixed": 40.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-JCR2",
+   "name": "Joint cable (west arm), J2 to J3",
+   "kind": "power",
+   "od": 10.0,
+   "spec": "the joint supply cable's type, 10 mm",
+   "from": "J2's drive board",
+   "to": "J3's actuator, its gland (J3's drive board inside)",
+   "sub": "J2",
+   "runs": [
+    {
+     "kind": "arm",
+     "via": "CHG-J2-HSG",
+     "where": "through J2's hollow shaft, from its drive board at the back to its output face",
+     "mm": 317.3,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "arm",
+     "via": "CHG-UPR",
+     "where": "inside the link from J2's output to J3's gland: straight 1338 mm, and up to a quarter more for its dressing in the casting",
+     "mm": 1505.5,
+     "tol": 167.3,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 1822.7,
+   "tolMm": 167.3,
+   "tails": {
+    "a": 100.0,
+    "b": 100.0,
+    "basis": "100 mm in each actuator to its drive board's connector (ASSUMPTION)"
+   },
+   "orderMm": 2200.0,
+   "bendMm": {
+    "fixed": 40.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-JCR3",
+   "name": "Joint cable (west arm), J3 to J4",
+   "kind": "power",
+   "od": 10.0,
+   "spec": "the joint supply cable's type, 10 mm",
+   "from": "J3's drive board",
+   "to": "J4's actuator, its gland (J4's drive board inside)",
+   "sub": "J3",
+   "runs": [
+    {
+     "kind": "arm",
+     "via": "CHG-J3-HSG",
+     "where": "through J3's hollow shaft, from its drive board at the back to its output face",
+     "mm": 275.5,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "arm",
+     "via": "CHG-FOR",
+     "where": "inside the link from J3's output to J4's gland: straight 834 mm, and up to a quarter more for its dressing in the casting",
+     "mm": 938.2,
+     "tol": 104.2,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 1213.7,
+   "tolMm": 104.2,
+   "tails": {
+    "a": 100.0,
+    "b": 100.0,
+    "basis": "100 mm in each actuator to its drive board's connector (ASSUMPTION)"
+   },
+   "orderMm": 1600.0,
+   "bendMm": {
+    "fixed": 40.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-JCR4",
+   "name": "Joint cable (west arm), J4 to J5",
+   "kind": "power",
+   "od": 10.0,
+   "spec": "the joint supply cable's type, 10 mm",
+   "from": "J4's drive board",
+   "to": "J5's actuator, its gland (J5's drive board inside)",
+   "sub": "WRIST",
+   "runs": [
+    {
+     "kind": "arm",
+     "via": "CHG-J4-HSG",
+     "where": "through J4's hollow shaft, from its drive board at the back to its output face",
+     "mm": 205.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "arm",
+     "via": "CHG-J5-HSG",
+     "where": "inside the link from J4's output to J5's gland: straight 182 mm, and up to a quarter more for its dressing in the casting",
+     "mm": 204.4,
+     "tol": 22.7,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 409.4,
+   "tolMm": 22.7,
+   "tails": {
+    "a": 100.0,
+    "b": 100.0,
+    "basis": "100 mm in each actuator to its drive board's connector (ASSUMPTION)"
+   },
+   "orderMm": 700.0,
+   "bendMm": {
+    "fixed": 40.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-JCR5",
+   "name": "Joint cable (west arm), J5 to J6",
+   "kind": "power",
+   "od": 10.0,
+   "spec": "the joint supply cable's type, 10 mm",
+   "from": "J5's drive board",
+   "to": "J6's actuator, its gland (J6's drive board inside)",
+   "sub": "WRIST",
+   "runs": [
+    {
+     "kind": "arm",
+     "via": "CHG-J5-HSG",
+     "where": "through J5's hollow shaft, from its drive board at the back to its output face",
+     "mm": 205.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "arm",
+     "via": "CHG-J6-HSG",
+     "where": "inside the link from J5's output to J6's gland: straight 88 mm, and up to a quarter more for its dressing in the casting",
+     "mm": 98.6,
+     "tol": 11.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 303.6,
+   "tolMm": 11.0,
+   "tails": {
+    "a": 100.0,
+    "b": 100.0,
+    "basis": "100 mm in each actuator to its drive board's connector (ASSUMPTION)"
+   },
+   "orderMm": 600.0,
+   "bendMm": {
+    "fixed": 40.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-DKSR",
+   "name": "West dock exit signal cable 7 mm",
+   "kind": "control",
+   "od": 7.0,
+   "spec": "ASSUMPTION: of its kind",
+   "from": "the detail arm drive cabinet (WSH-DAC)",
+   "to": "the west dock's exit signal (WSH-DCKS)",
+   "sub": "DOCK",
+   "runs": [
+    {
+     "kind": "conduit",
+     "via": "WSH-SDC34",
+     "where": "down the wall from the cabinet in its conduit",
+     "mm": 950.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "site",
+     "via": "WSH-SPB",
+     "where": "across the pull box to its duct",
+     "mm": 150.0,
+     "tol": 75.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "WSH-SDRD",
+     "where": "in the west arm's data duct to the floor box",
+     "mm": 1885.3,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "WSH-DKFR",
+     "where": "in the dock feed conduit from the floor box into the track beam under the dock post",
+     "mm": 515.3,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "site",
+     "via": "",
+     "where": "up inside the dock post to its device: not drawn",
+     "mm": 600.0,
+     "tol": 300.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 4100.7,
+   "tolMm": 375.0,
+   "tails": {
+    "a": 0.0,
+    "b": 300.0,
+    "basis": "300 mm into the device's terminal box (ASSUMPTION)"
+   },
+   "orderMm": 4800.0,
+   "bendMm": {
+    "fixed": 0.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "WSH-DKFR",
+    "WSH-SDC34",
+    "WSH-SDRD"
+   ],
+   "notes": [],
+   "open": [
+    "Its run up inside the dock post is not drawn."
+   ]
+  },
+  {
+   "id": "WSH-DKRR",
+   "name": "West dock pad rinse tube 6 mm",
+   "kind": "water",
+   "od": 6.0,
+   "spec": "ASSUMPTION: of its kind",
+   "from": "a tee on the arm's pure-water tube in the floor box (ASSUMPTION)",
+   "to": "the west dock's rinse nozzle in its cup (WSH-DCKC)",
+   "sub": "DOCK",
+   "runs": [
+    {
+     "kind": "conduit",
+     "via": "WSH-DKFR",
+     "where": "in the dock feed conduit from the floor box into the track beam under the dock post",
+     "mm": 515.3,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "site",
+     "via": "",
+     "where": "up inside the dock post to its device: not drawn",
+     "mm": 600.0,
+     "tol": 300.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 1115.3,
+   "tolMm": 300.0,
+   "tails": {
+    "a": 0.0,
+    "b": 300.0,
+    "basis": "300 mm into the device's terminal box (ASSUMPTION)"
+   },
+   "orderMm": 1800.0,
+   "bendMm": {
+    "fixed": 0.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "WSH-DKFR"
+   ],
+   "notes": [],
+   "open": [
+    "Its run up inside the dock post is not drawn."
+   ]
+  }
+ ]
 }

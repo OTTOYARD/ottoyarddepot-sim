@@ -431,7 +431,7 @@ def build_chain(m: Model, base: Node, S: dict, H: float, LU: float, LF: float, L
     j4 = j3.child(jp + 'J4_ForearmRoll', loc(0, y4_out, 0), sub='WRIST',
                   joint={'name': jp + 'J4', 'axis': [0, 1, 0], 'limits': S['limits']['j4'], 'kind': 'revolute',
                          'stowed': S['stowed']['j4']})
-    build_actuator(m, j3, j4, 25, loc(0, y4_out, 0), Location(), 'CHG-J4', 'WRIST', gland_m=16)
+    a4 = build_actuator(m, j3, j4, 25, loc(0, y4_out, 0), Location(), 'CHG-J4', 'WRIST', gland_m=16)
     s4b = std.shcs(6, 25, '12.9', 'Clamps the J4 actuator in the forearm socket.')
     for p in std.circle_points(8, s4.od / 2 + 6, 'y', offset=y4_out - s4.of_t - s4.xrb[2] + 0.0, start=22.5):
         m.place(j3, s4b, std.orient(p, (0, -1, 0)), (0, 120, 0), 'WRIST')
@@ -479,7 +479,7 @@ def build_chain(m: Model, base: Node, S: dict, H: float, LU: float, LF: float, L
     j6 = j5.child(jp + 'J6_ToolRoll', loc(0, LW, 0), sub='WRIST',
                   joint={'name': jp + 'J6', 'axis': [0, 1, 0], 'limits': S['limits']['j6'], 'kind': 'revolute',
                          'stowed': S['stowed']['j6']})
-    build_actuator(m, j5, j6, 20, loc(0, LW, 0), Location(), 'CHG-J6', 'WRIST', gland_m=16, gland_ang=J6_GLAND_ANG,
+    a6 = build_actuator(m, j5, j6, 20, loc(0, LW, 0), Location(), 'CHG-J6', 'WRIST', gland_m=16, gland_ang=J6_GLAND_ANG,
                    gland_r=J6_GLAND_R)
     for p in std.circle_points(6, r6 + 5, 'y', offset=tube_top, start=30):
         m.place(j5, std.shcs(5, 20, '12.9', 'Clamps the J6 actuator in the wrist tube.'), std.orient(p, (0, -1, 0)),
@@ -493,8 +493,42 @@ def build_chain(m: Model, base: Node, S: dict, H: float, LU: float, LF: float, L
                                'Shows the arm state at the connector, where the camera and a person look.', {}, 'buy')),
             Location(), (0, 30, 0), 'SAFETY')
 
-    return {'j1': j1, 'j2': j2, 'j3': j3, 'j4': j4, 'j5': j5, 'j6': j6, 'tur': tur, 'upper': upper, 'fore': fore}
+    return {'j1': j1, 'j2': j2, 'j3': j3, 'j4': j4, 'j5': j5, 'j6': j6, 'tur': tur, 'upper': upper, 'fore': fore,
+            'acts': [a1, a2, a3, a4, a5, a6]}
 
+
+
+def _boot_fitting(P: tuple, o: tuple, holder=None, boss: float = 0.0, socket_r: float = 36.0, socket_l: float = 18.0,
+                  base_r: float = 40.0, base_t: float = 3.0) -> cq.Shape:
+    """Where a booted flex link ends, the fitting it plugs into, in its node's frame: P is the boot's end (the line's
+    anchor), o the way out of the holder (unit). A collar (bore 61, so the 60 mm boot slides in) rises socket_l from P
+    along o on a seal flange base_t thick; with boss > 0, a solid port boss of radius base_r reaches back from P into the
+    holder that far, and the holder's own solid is cut from it, so the fitting stands on the holder's surface however it
+    curves. The piece that holds the collar is kept, never the largest piece (a boss through a hollow casting leaves one
+    inside it)."""
+    Pv, ov = Vector(*P), Vector(*o).normalized()
+    sock = cq.Solid.makeCylinder(socket_r, socket_l, Pv, ov).cut(cq.Solid.makeCylinder(R_BOOT_BORE, socket_l + 1, Pv - ov * 0.5, ov))
+    base = cq.Solid.makeCylinder(base_r, base_t, Pv, ov).cut(cq.Solid.makeCylinder(R_BOOT_BORE, base_t + 1, Pv - ov * 0.5, ov))
+    sh = sock.fuse(base)
+    if boss > 0:
+        bs = cq.Solid.makeCylinder(base_r, boss, Pv - ov * boss, ov).cut(
+            cq.Solid.makeCylinder(R_BOOT_BORE - 10.0, boss + 1, Pv - ov * (boss + 0.5), ov))
+        sh = sh.fuse(bs)
+    if holder is not None:
+        sh = sh.cut(holder)
+    sols = sh.Solids()
+    if len(sols) > 1:
+        probe = Pv + ov * (socket_l / 2) + _perp_v(ov) * ((socket_r + R_BOOT_BORE) / 2)
+        sh = min(sols, key=lambda q: cq.Vertex.makeVertex(probe.x, probe.y, probe.z).distance(q))
+    return sh.clean()
+
+
+def _perp_v(d: Vector) -> Vector:
+    a = Vector(1, 0, 0) if abs(d.x) < 0.9 else Vector(0, 1, 0)
+    return d.cross(a).normalized()
+
+
+R_BOOT_BORE = 30.5      # a boot fitting's bore: the 60 mm boot slides in with 0.5 mm all round
 
 
 def build(spec: dict) -> Model:
@@ -512,6 +546,7 @@ def build(spec: dict) -> Model:
     m = Model('charge_arm', 'OTTO-CHARGE ARM',
               'Arm base frame: origin on J1 axis at the mount collar top, +Y up, +Z toward the car, X along the car. '
               'Zero pose (all joints 0).')
+    m.yard_deck_y = deck                              # the yard's asphalt: the trench, the channel and what lies in them are under it
 
     # ── subsystems (the tab's breakout) ───────────────────────────────────────────
     m.subsystem('MOUNT', 'Riser and mount', 'A short steel riser on the cross-slide carries the arm. Its J1 axis is 550 mm above the deck.',
@@ -732,7 +767,6 @@ def build(spec: dict) -> Model:
     CN_IW, CN_IH, CN_W, CN_H, CN_P = CN['bi'], CN['hi'], CN['ba'], CN['ha'], CN['pitch']
     CHAIN_SPEC = {'inside': f'{CN_IW:.0f} x {CN_IH:.0f} mm, one shelf', 'bend radius': f'{R_CH:.0f} mm',
                   'tightest line allows': f'{K_CHAIN * DC_D:.1f} mm (7.5 x {DC_D:g} mm, the DC core)'}
-    ch_link = std.chain_link(CN_W, CN_H, CN_P, inside=(CN_IW, CN_IH), spec=CHAIN_SPEC)
     # the covered channel in the slab, between the beams. From the deck down: the cover, 15 mm of air, the chain's upper
     # run, its bend, its lower run 10 mm over the floor, the liner
     SLOT, SW_T = 60.0, 50.0                               # the cover's slot, and the driver that runs in it
@@ -745,6 +779,11 @@ def build(spec: dict) -> Model:
     y_ct = y_cb + 2 * R_CH                                # and its upper run
     y_l0 = y_fl + BOT_C + (CN_H - CN_IH) / 2 + DC_D / 2   # the DC cores' centre, as they lie in the chain
     y_sf = y_l0 + DC_D / 2 + 4.5                          # the shelf's top: the small lines lie on it
+    # the link carries that shelf: a separator plate across its inside, lying on the DC cores, the small lines on it.
+    # In the link's own frame (flex: x along the chain, y across its height, the lower run's up), from y_cb.
+    SHELF = (y_l0 + DC_D / 2 - y_cb, y_sf - y_cb)
+    ch_link = std.chain_link(CN_W, CN_H, CN_P, inside=(CN_IW, CN_IH), spec={**CHAIN_SPEC, 'shelf': f'{SHELF[1] - SHELF[0]:g} mm, on the DC cores'},
+                             shelf=SHELF)
     # The chain's fixed end is under the bed's middle (X_F), and its lower run leaves it toward the car's TAIL, so the
     # lines reach it from the nose side, where the cabinet stands. The moving end hangs under the carriage's middle.
     X_F = 0.0
@@ -900,11 +939,14 @@ def build(spec: dict) -> Model:
         pts = [(X_C + ln['r'], y_ltop, zv), (X_C + ln['r'], ln['y'], zv), (X_C + ln['r'], ln['y'], z_c + ln['r']), (X_F, ln['y'], z_c + ln['r'])]
         shp, L_ln = _bent_tube(pts, [ln['rv'], ln['r']], ln['d'] / 2)
         ln['len'] = L_ln
-        m.place(bed, m.part(PartDef(ln['id'], ln['name'], shp, ln['mat'], ln['cat'], ln['std'], f"D {ln['d']:g} x {L_ln:.0f}", '', None, ln['fn'],
-                                    {**ln['spec'], 'drawn': 'from the cabinet\'s floor to the chain\'s fixed end; it runs on in the chain',
-                                     'bends here': f"R {ln['rv']:.0f} and R {ln['r']:.0f} mm (it may bend on {K_FIXED * ln['d']:.0f} mm fixed, {K_CHAIN * ln['d']:.0f} mm in a chain)"},
-                                    'buy', mass_override=None if ln['kg_m'] is None else ln['kg_m'] * L_ln / 1000.0)),
-                Location(), (0, -200, -60), 'SUPPLY')
+        it_ = m.place(bed, m.part(PartDef(ln['id'], ln['name'], shp, ln['mat'], ln['cat'], ln['std'], f"D {ln['d']:g} x {L_ln:.0f}", '', None, ln['fn'],
+                                          {**ln['spec'], 'drawn': 'from the cabinet\'s floor to the chain\'s fixed end; it runs on in the chain',
+                                           'bends here': f"R {ln['rv']:.0f} and R {ln['r']:.0f} mm (it may bend on {K_FIXED * ln['d']:.0f} mm fixed, {K_CHAIN * ln['d']:.0f} mm in a chain)"},
+                                          'buy', mass_override=None if ln['kg_m'] is None else ln['kg_m'] * L_ln / 1000.0)),
+                      Location(), (0, -200, -60), 'SUPPLY')
+        it_.yard_hidden = True        # under the deck and inside the cabinet's pad: the yard draws the pad over it
+        it_.part.path_ends = (pts[0], pts[1], pts[-1], pts[-2], ln['d'] / 2)      # line_ends.py: its top end is in the cabinet,
+        it_.part.end_in = {'start': 'CHG-CAB'}                                     # its other runs on in the chain
     # clamp bars hold the lines on their lanes: one under the DC cores, one between them and the small lines, one on top
     CL_L, CL_W, CL_X = ft_x1 - ft_x0, 30.0, (ft_x1 - ft_x0) / 2 - 8.0
     y_top = y_sf + max(u[2] for u in UPPER)
@@ -937,7 +979,7 @@ def build(spec: dict) -> Model:
                                 f'{ft_x1 - ft_x0 + 40:.0f} x {sh_z1 - ft_z0 + 40:.0f} x 4', 'IP54 with its glands', None,
                                 'Closes the cabinet\'s floor over the shaft. Each supply line enters the cabinet through it.',
                                 {'glands': 'one a line, not drawn'}, 'make')),
-            Location(), (0, 80, -260), 'SUPPLY')
+            Location(), (0, 80, -260), 'SUPPLY').yard_hidden = True     # under the cabinet, on its pad
     # the chain's fixed end: a bracket on the channel floor carries and holds the first link
     fbr = (_bx(X_F - CN_P, X_F, y_fl, y_fl + BOT_C, ZC - CN_W / 2 - 6.5, ZC + CN_W / 2 + 6.5)
            .union(_bx(X_F - CN_P, X_F, y_fl + BOT_C, y_fl + BOT_C + CN_H * 0.7, ZC + CN_W / 2 + 0.5, ZC + CN_W / 2 + 6.5))
@@ -1034,12 +1076,19 @@ def build(spec: dict) -> Model:
                                  {'in the slot': f'{SW_T:.0f} mm in a {SLOT:.0f} mm slot, a brush strip each side',
                                   'inside': f'the lines turn on {K_FIXED * DC_D:.0f} mm or more (4 x d, fixed); not drawn one by one'}, 'make')),
             Location(), (0, -80, 80), 'SUPPLY')
+    # what each chain carries, lane by lane, in its link's frame. At the fixed end the link's x runs along -X (the lower
+    # run leaves toward the tail), its y up, so its z (x cross y) runs along -Z: a line u toward the car lies at w = -u.
+    # A line is the same cable from the cabinet's floor to the riser; its id is its trench part's.
+    def _contents(lanes):
+        return [{'id': ln['id'], 'part': ln['id'], 'name': ln['name'], 'd': ln['d'], 'v': ln['y'] - y_cb, 'w': -ln['u'],
+                 'mat': ln['mat'], 'category': ln['cat']} for ln in lanes]
     m.flex(FlexDef('CHG-BCN', f'Cable chain, inside {CN_IW:.0f} x {CN_IH:.0f}, R {R_CH:.0f}', 'chain',
                    Anchor(bed, (X_F, y_cb, ZC), (-1, 0, 0)), Anchor(carx, (0.0, y_ct, ZC), (-1, 0, 0)),
                    CN_H / 2, 'SUPPLY', 'Carries the charge current, the coolant, the air, power and network to the moving carriage. Its bend rolls along in the channel.',
                    mat='pa66', category='electrical', pitch=CN_P, bend_r=R_CH, links=n_ch, up=(0, 1, 0), w=CN_W, h=CN_H,
-                   link_part=ch_link, kg_per_m=3.2,
-                   spec={**CHAIN_SPEC, 'carries': f'{2 * DC_N} DC cores 1 x 50 mm2 ({DC_N} a pole), 2 coolant hoses, air, the joint supply, tool and safety cables, 2 servo cables'}))
+                   link_part=ch_link, kg_per_m=3.2, contents=_contents(LANES), wi=CN_IW, hi=CN_IH, lead_a=0.0, lead_b=40.0,
+                   spec={**CHAIN_SPEC, 'carries': f'{2 * DC_N} DC cores 1 x 50 mm2 ({DC_N} a pole), 2 coolant hoses, air, the joint supply, tool and safety cables, 2 servo cables',
+                         'ends': 'its lines run on from the trench at the fixed end, and 40 mm into the driver\'s head at the moving end'}))
 
     base = carx.child('Saddle', Location(), sub='MOUNT',
                       joint={'name': 'CR_Z', 'axis': [0, 0, 1], 'limits': [-Z_OUT / 1000, Z_IN / 1000], 'kind': 'prismatic', 'stowed': 0})
@@ -1125,8 +1174,10 @@ def build(spec: dict) -> Model:
                    Anchor(carx, (XC2, y_zb, Z_F), (0, 0, 1)), Anchor(base, (XC2, y_zt, Z_A), (0, 0, 1)),
                    CN_H / 2, 'SUPPLY', 'Carries the lines from the carriage to the saddle as it moves toward the car.',
                    mat='pa66', category='electrical', pitch=CN_P, bend_r=R_CH, links=n_zc, up=(0, 1, 0), w=CN_W, h=CN_H,
-                   link_part=ch_link, kg_per_m=3.2,
-                   spec={**CHAIN_SPEC, 'carries': f'{2 * DC_N} DC cores 1 x 50 mm2, 2 coolant hoses, air, the joint supply, tool and safety cables'}))
+                   link_part=ch_link, kg_per_m=3.2, contents=_contents([ln for ln in LANES if ln['saddle']]), wi=CN_IW, hi=CN_IH,
+                   lead_a=40.0, lead_b=40.0,
+                   spec={**CHAIN_SPEC, 'carries': f'{2 * DC_N} DC cores 1 x 50 mm2, 2 coolant hoses, air, the joint supply, tool and safety cables',
+                         'ends': 'its lines come 40 mm out of the elbow duct into its first link, and go 40 mm into the saddle duct from its last'}))
 
     # ════════════════════════════════════════════════════════════ MOUNT ═══
     # riser weldment, on the saddle
@@ -1294,27 +1345,67 @@ def build(spec: dict) -> Model:
     # no box on the wrist yoke: J4's bearing, J5's cheek and their screws fill both of its sides (the clash check found a
     # box there in all of them), so one link crosses J4, J5 and J6 from the forearm's box to the connector
 
-    def boot(pid, name, a, b, L, bulge, fn, radius_note, hk=0.5):
-        m.flex(FlexDef(pid, name, 'loop', a, b, R_BOOT, 'DRESS', fn, mat='cable', category='electrical', length=L,
-                       min_bend=MB_BOOT, bulge=bulge, hk=hk, kg_per_m=9.5, size=f'OD 60 x {L:.0f}', standard='IEC 61238-1 (lugs)',
-                       spec={**BOOT_SPEC, 'length': f'{L:.0f} mm', 'tightest bend over the twin\'s poses': radius_note}))
+    # Each end of each boot sits BOOT_LEAD deep in its fitting's collar (below): the boot is straight there and bends
+    # only past the collar's mouth. (Solved bending from its very end, a boot cut its collar's wall at the car's ports:
+    # the clash check found it, 2026-11-15.)
+    BOOT_LEAD = 18.0
+
+    def boot(pid, name, a, b, L, bulge, fn, tightest, hk=0.5):
+        fd = m.flex(FlexDef(pid, name, 'loop', a, b, R_BOOT, 'DRESS', fn, mat='cable', category='electrical', length=L,
+                            min_bend=MB_BOOT, bulge=bulge, hk=hk, kg_per_m=9.5, size=f'OD 60 x {L:.0f}', standard='IEC 61238-1 (lugs)',
+                            lead_a=BOOT_LEAD, lead_b=BOOT_LEAD,
+                            spec={**BOOT_SPEC, 'length': f'{L:.0f} mm', 'in its fittings': f'{BOOT_LEAD:g} mm straight at each end',
+                                  'tightest bend over the twin\'s poses': f'{tightest:.0f} mm'}))
+        fd.tightest = tightest          # mm: the cable schedule's bend for what the boot carries (cables.finish also measures it)
 
     # every link leaves and arrives square to its box's face, so its end sits flush on the box and never inside it
     NX, PX, NZ, PZ = (-1, 0, 0), (1, 0, 0), (0, 0, -1), (0, 0, 1)
+    # The tightest bends below are measured, with the boots' leads, over the twin's duty cycle at every inlet and every
+    # corner of the window, and at each fleet car's own mate pose (cadFlex.test.ts holds them all to the boot's 80 mm).
+    # 2026-11-15: at the Tesla Cybercab's mate pose the J2 link bent to 65 mm (53 mm once its ends sat straight in their
+    # collars). The duty-cycle sweep never visited that pose, so no test saw it. A 1,200 mm link bulged toward the
+    # turret only bends no tighter than 141 mm there; the wrist link, 1,250 mm with half its bulge from its own weight,
+    # keeps 88 mm.
     boot('CHG-FL1', 'J1 flex link, 500 A braided copper in a boot', Anchor(base, (-riser_w / 2 - 50.0, -150.0, -100.0), NX),
          Anchor(j1, (-65.0, 200.0, -190.0), PX), 900.0, (0.0, NX, NX),
          'Carries the charge current across J1, from the riser to the turret, as the base turns.',
-         '115 mm with the base turned 50 degrees either way', hk=0.4)
+         102.0, hk=0.4)
     boot('CHG-FL2', 'J2 flex link, 500 A braided copper in a boot', Anchor(j1, (0.0, 340.0, -220.0), NZ),
-         Anchor(j2, (0.0, 300.0, -180.0), PZ), 1000.0, (0.0, NZ, NZ),
-         'Carries the charge current across J2, behind the shoulder.', '124 mm', hk=0.4)
+         Anchor(j2, (0.0, 300.0, -180.0), PZ), 1200.0, (0.0, NZ, (0.0, 0.0, 0.0)),
+         'Carries the charge current across J2, behind the shoulder.', 141.0, hk=0.4)
     boot('CHG-FL3', 'J3 flex link, 500 A braided copper in a boot', Anchor(j2, (0.0, LU - 250.0, -165.0), NZ),
          Anchor(j3, (FORE_JOG[0], 250.0, -130.0), PZ), 1200.0, (0.0, (0, 0.5, -1), (0, -0.5, -1)),
-         'Carries the charge current over the outside of the elbow.', '100 mm')
+         'Carries the charge current over the outside of the elbow.', 84.0)
     boot('CHG-FL4', 'Wrist flex link to the connector, 500 A braided copper in a boot',
-         Anchor(j3, (125.0, LF - 420.0, -30.0), PX), Anchor(tool, TOOL_OUTLET, TOOL_OUTLET_IN), 1200.0, (0.0, PX, PX),
+         Anchor(j3, (125.0, LF - 420.0, -30.0), PX), Anchor(tool, TOOL_OUTLET, TOOL_OUTLET_IN), 1250.0, (0.5, PX, PX),
          'Carries the charge current, the coolant and the tool\'s signals and air from the forearm to the connector, '
-         'across J4, J5 and J6.', '150 mm', hk=0.4)
+         'across J4, J5 and J6.', 88.0, hk=0.4)
+
+    # every boot ends in a fitting it plugs into (2026-11-15, Chase: "There cannot be gaps between cables randomly plugging
+    # into charging system"). Until then each boot's end sat bare on its box's face, the forearm's sat 20 mm off the
+    # casting (CHG-PB4 is inside the hollow forearm), and the connector's sat 12 mm past an M50 gland too small for it.
+    # A boot slides 18 mm into the fitting's collar; a seal flange stands on the face; where the face is a casting, a
+    # boss reaches it, cut to the casting's own surface.
+    bft = cq.Workplane('XY').add(_boot_fitting((0.0, 0.0, 0.0), (0.0, 1.0, 0.0)))
+    BFT_SPEC = {'bore': f'{2 * R_BOOT_BORE:g} mm: the 60 mm boot slides 18 mm in', 'seal': 'IP67, a clamp ring on the boot',
+                'through it': 'the 2 braids, the coolant tubes, the tool cable and the air line'}
+    bft_pd = m.part(PartDef('CHG-BFT', 'Boot fitting for the 60 mm boot, on a terminal box face', bft.val(), 'al6061_blk', 'electrical',
+                            'made to order', 'bore 61, collar OD 72 x 18, flange OD 80', '6061-T6, black anodised', None,
+                            'Holds a boot\'s end on its terminal box. The boot slides into its collar, and the braid goes through to the terminals.',
+                            BFT_SPEC, 'make'))
+    for (node, P, o) in ((base, (-riser_w / 2 - 50.0, -150.0, -100.0), NX), (j1, (0.0, 340.0, -220.0), NZ),
+                         (j2, (0.0, 300.0, -180.0), NZ), (j2, (0.0, LU - 250.0, -165.0), NZ)):
+        m.place(node, bft_pd, std.orient(P, tuple(-c for c in o)), tuple(80 * c for c in o), 'DRESS')
+    # the 3 that meet a casting: cut to it, each its own part
+    for (pid, node, P, o, cast, boss, where) in (
+            ('CHG-BF1B', j1, (-65.0, 200.0, -190.0), NX, tur, 0.0, 'the turret\'s box, its foot cut to the turret'),
+            ('CHG-BF3B', j3, (FORE_JOG[0], 250.0, -130.0), NZ, fore, 45.0, 'the forearm, a boss down to the casting (its box is inside)'),
+            ('CHG-BF4A', j3, (125.0, LF - 420.0, -30.0), PX, fore, 0.0, 'the forearm\'s wrist-end box, its foot cut to the casting')):
+        sh = _boot_fitting(P, o, cast.val(), boss=boss)
+        m.place(node, m.part(PartDef(pid, f'Boot fitting for the 60 mm boot, on {where}', sh, 'al6061_blk', 'electrical', 'made to order',
+                                     'bore 61, collar OD 72 x 18', '6061-T6, black anodised', None,
+                                     'Holds a boot\'s end where it meets a casting. The boot slides into its collar.', BFT_SPEC, 'make')),
+                Location(), tuple(80 * c for c in o), 'DRESS')
 
     # ═════════════════════════════════════════════════════════════ SAFETY ═══
     y_scn = rb + bp_t + g_h + 54      # above the riser's foot and its gussets
@@ -1330,15 +1421,301 @@ def build(spec: dict) -> Model:
     for x in (-38, 38):
         m.place(base, std.shcs(6, 16, 'A2-70', 'Holds the scanner bracket.'), std.orient((x, y_scn + 10, riser_w / 2 + 4), (0, 0, -1)),
                 (0, 0, 160), 'SAFETY')
-    es = (cq.Workplane('XY').box(72, 72, 60, centered=(True, True, False)).edges('|Z').fillet(6)
-          .union(cq.Workplane('XY', origin=(0, 0, 60)).circle(20).extrude(12))
-          .union(cq.Workplane('XY', origin=(0, 0, 72)).circle(28).extrude(14).faces('>Z').edges().fillet(6)))
-    m.place(base, m.part(PartDef('CHG-EST', 'Emergency stop, 40 mm mushroom', es.val(), 'led_red', 'electrical',
-                                 'IEC 60947-5-5', 'twist to release', '', None,
+    # the emergency stop as it is bought: a yellow housing with its collar, and the red mushroom on it (until 2026-11-15 it was
+    # one red solid, which read as a red cube from the yard)
+    es_h = (cq.Workplane('XY').box(72, 72, 60, centered=(True, True, False)).edges('|Z').fillet(6)
+            .union(cq.Workplane('XY', origin=(0, 0, 60)).circle(20).extrude(12)))
+    es_m = cq.Workplane('XY', origin=(0, 0, 72)).circle(28).extrude(14).faces('>Z').edges().fillet(6)
+    m.place(base, m.part(PartDef('CHG-EST', 'Emergency stop housing, IP69K', es_h.val(), 'pa66_yellow', 'electrical',
+                                 'IEC 60947-5-5', '72 x 72 x 72', '', None,
+                                 'Holds the emergency stop switch and its 2 contacts on the riser, where a person by the car can reach it.', {}, 'buy')),
+            loc(115.0, y_est, riser_w / 2), (0, 0, 120), 'SAFETY')
+    m.place(base, m.part(PartDef('CHG-ESM', 'Emergency stop mushroom, 56 mm, red, twist to release', es_m.val(), 'pa66_red', 'electrical',
+                                 'IEC 60947-5-5', 'D 56, twist to release', '', None,
                                  'Cuts motor power to every joint (safe torque off). The brakes hold the arm.', {}, 'buy')),
-            loc(115.0, y_est, riser_w / 2), (0, 0, 120), 'SAFETY')   # on the car-side face beside the scanner: the cross chain runs along the nose-side face
+            loc(115.0, y_est, riser_w / 2), (0, 0, 140), 'SAFETY')   # on the car-side face beside the scanner: the cross chain runs along the nose-side face
     m.notes['torque_budget'] = torque_budget(m, j1, j2, j3, j4, H, LU, LF, S)
+
+    # ════════════════════════════════════════════════════════════ CABLE SCHEDULE ═══
+    # Every line once, from the device it leaves to the one it reaches, each piece of its route with its length
+    # (cables.py; the bill of materials draws a line only in pieces). Where the CAD draws a duct or a box but not the lines
+    # in it one by one (the chain driver, the elbow duct, the saddle duct, the riser, the terminal boxes, the hollow links),
+    # each line's route is planned here through the duct's middle at the line's own lane, its corners bent on the line's
+    # fixed radius where they fit (else sharp: an upper bound), +/- half the duct's inside width at each turn.
+    _cable_schedule(m, dict(
+        LANES=LANES, y_cb=y_cb, y_ct=y_ct, y_zb=y_zb, y_zt=y_zt, ZC=ZC, XC2=XC2, Z_F=Z_F, Z_A=Z_A, SW_X0=SW_X0, SW_X1=SW_X1,
+        SW_T=SW_T, K_FIXED=K_FIXED, K_CHAIN=K_CHAIN, R_CH=R_CH, db_z0=db_z0, db_z1=db_z1, win_y0=win_y0, DU_H=DU_H,
+        sp_x0=sp_x0, sp_x1=sp_x1, da_x0=da_x0, da_x1=da_x1, riser_w=riser_w, tw=tw, y_gm=y_gm, z_gm=z_gm, R_SV=R_SV,
+        y_q=y_q, z_q=z_q, acts=_c['acts'], base=base, j1=j1, j2=j2, j3=j3, tool=tool, LU=LU, LF=LF, R_BOOT=R_BOOT,
+        MB_BOOT=MB_BOOT))
     return m
+
+
+# the DC cabinet is drawn as its envelope: a line's length inside it, from the gland plate to its terminal, is the
+# cabinet maker's. ASSUMPTION, to be confirmed on the cabinet's layout: up to the cabinet's height less its plinth.
+CAB_TAIL = 1500.0
+BOX_TAIL = 100.0        # to dress a line in a terminal box and make it off (ASSUMPTION)
+
+
+def _cable_schedule(m: Model, g: dict) -> None:
+    """The charge arm's cable schedule (cables.py): the 16 supply lines from the cabinet, the charge current's path up
+    the arm (the 8 DC cores, the 4 braided links and the 2 pairs of copper bars), the lines the boots carry to the head,
+    and the joint cables from J1 to J6."""
+    import numpy as np
+    from ..cables import bent_length, chain_mm
+    from ..flex import loc_matrix, node_frames
+    fx = {f.id: f for f in m.flexes}
+    BCN, BZN = fx['CHG-BCN'], fx['CHG-BZN']
+    W0 = node_frames(m.root, {})
+
+    def wpt(node, p):
+        return (W0[id(node)] @ np.array([*p, 1.0]))[:3]
+
+    def route(points, R):
+        try:
+            L, r = bent_length(points, R)
+            return L, (None if r == math.inf else r)
+        except ValueError:
+            return bent_length(points, 0.0)[0], None
+
+    LANES, ZC, XC2, KF, KC = g['LANES'], g['ZC'], g['XC2'], g['K_FIXED'], g['K_CHAIN']
+    # the ducts' inside widths at their turns: the tolerance a line's place in them gives its length
+    tol_drv = (g['SW_X1'] - g['SW_X0'] - 6.0) / 2 + (g['SW_T'] - 6.0) / 2          # up the neck, then into the cross chain
+    tol_sdu = (g['da_x1'] - g['da_x0'] - 6.0) / 2 + (g['DU_H'] - 6.0) / 2 + (g['db_z1'] - g['db_z0'] - 6.0) / 2
+    rw2 = g['riser_w'] / 2 - g['tw']                       # the riser's inside half width
+    sp_xc = (g['sp_x0'] + g['sp_x1']) / 2
+    zc_flat = (g['db_z0'] + g['db_z1']) / 2
+    PB0 = (-g['riser_w'] / 2 - 25.0, -150.0, -100.0)       # the riser's terminal box, its centre (base frame)
+    FL1_A = (-g['riser_w'] / 2 - 50.0, -150.0, -100.0)     # where the J1 link leaves it
+    a1 = g['acts'][0]
+    gl_J1 = (loc_matrix(a1['gland'].loc) @ np.array([0, 0, 0, 1.0]))[:3]       # J1's cable gland, base frame
+
+    def supply(ln):
+        """A supply line from the cabinet to the riser: its trench, the bed's chain, the driver and elbow (to the cross
+        chain, or for a servo cable to its conduit), the cross chain, the saddle duct and the riser's window."""
+        d, u, v = ln['d'], ln['u'], ln['y'] - g['y_cb']
+        dc = ln['id'].startswith('CHG-LD')
+        R = KF * d
+        L = m.cable(ln['id'], ln['name'], 'dc' if dc else ('coolant' if ln['id'] in ('CHG-LCS', 'CHG-LCR') else
+                    'air' if ln['id'] == 'CHG-LAR' else 'safety' if ln['id'] == 'CHG-LSF' else 'control'),
+                    d, ln['std'], '', '', 'SUPPLY', bend_fixed=R, bend_moving=KC * d,
+                    tail_a=CAB_TAIL, tails=f'{CAB_TAIL:.0f} mm inside the DC cabinet, from its gland plate to the terminal '
+                                         '(ASSUMPTION: the cabinet is drawn as its envelope; confirm on its layout)')
+        L.run('drawn', ln['id'], 'from the cabinet\'s gland plate down the shaft through the pad, along the feed trench and '
+              'into the cable channel, to the bed chain\'s fixed end', ln['len'], bend=min(ln['rv'], ln['r']))
+        mm, rb = chain_mm(BCN, ln['id'])
+        L.run('chain', 'CHG-BCN', 'in the bed\'s cable chain, in its own lane', mm, bend=rb, moving=True)
+        P0 = (0.0, g['y_ct'] - v, ZC + u)                  # the chain's last link, in the carriage's frame
+        if ln['saddle']:
+            z_n = ZC + 11.0 if dc else ZC - 11.0           # 2 layers up the neck: the DC cores on the car's side
+            pts = [P0, (XC2 + u, P0[1], z_n), (XC2 + u, g['y_zb'] + v, z_n), (XC2 + u, g['y_zb'] + v, g['Z_F'])]
+            mm, rb = route(pts, R)
+            L.run('duct', 'CHG-BCA', 'through the chain driver\'s head, up its neck and round the elbow duct (CHG-BZE) into '
+                  'the cross chain', mm, tol=tol_drv, bend=rb)
+            mm, rb = chain_mm(BZN, ln['id'])
+            L.run('chain', 'CHG-BZN', 'in the cross chain, in its own lane', mm, bend=rb, moving=True)
+            y_f = g['win_y0'] + 3 + d / 2 if dc else g['win_y0'] + g['DU_H'] - 3 - d / 2
+            P4 = (sp_xc + u, y_f, -rw2)
+            pts = [(XC2 + u, g['y_zt'] - v, g['Z_A']), (XC2 + u, g['y_zt'] - v, zc_flat + u), (XC2 + u, y_f, zc_flat + u),
+                   (sp_xc + u, y_f, zc_flat + u), P4]
+            mm, rb = route(pts, R)
+            L.run('duct', 'CHG-BZD', 'down the saddle duct, along its flat run behind the riser and through the spigot into '
+                  'the riser\'s cable window', mm, tol=tol_sdu, bend=rb)
+            return L, P4
+        # a servo cable leaves the driver's neck in its conduit
+        if ln['id'] == 'CHG-LMX':
+            R_ = g['R_SV']
+            pts = [P0, (g['SW_X0'] + R_, P0[1], ZC), (g['SW_X0'] + R_, g['y_gm'], ZC), (g['SW_X0'], g['y_gm'], ZC)]
+            cpts = [(g['SW_X0'], g['y_gm'], ZC), (g['SW_X0'] - R_ - 5, g['y_gm'], ZC), (g['SW_X0'] - R_ - 5, g['y_gm'], g['z_gm']),
+                    (220.0, g['y_gm'], g['z_gm'])]
+            cid, motor = 'CHG-BMXC', 'the rail gearmotor (CHG-BGX)'
+        else:
+            R_ = g['R_SV']
+            z_v = ZC - g['SW_T'] / 2 + R_
+            pts = [P0, (g['SW_X0'] + 15, P0[1], z_v), (g['SW_X0'] + 15, g['y_q'], z_v), (g['SW_X0'] + 15, g['y_q'], ZC - g['SW_T'] / 2)]
+            cpts = [(g['SW_X0'] + 15, g['y_q'], ZC - g['SW_T'] / 2), (g['SW_X0'] + 15, g['y_q'], g['z_q']), (30.0, g['y_q'], g['z_q'])]
+            cid, motor = 'CHG-BMZC', 'the cross-slide motor (CHG-BMZ)'
+        mm, rb = route(pts, R)
+        L.run('duct', 'CHG-BCA', 'through the chain driver\'s head and up its neck to its conduit\'s entry', mm, tol=tol_drv, bend=rb)
+        mm, rb = bent_length(cpts, g['R_SV'])
+        L.run('conduit', cid, f'in its 20 mm conduit to {motor}', mm, bend=rb)
+        L.a, L.b = f'its servo drive in the DC cabinet', f'{motor}: its connector'
+        L.tail_b = 0.0
+        return L, None
+
+    def riser_to(P4, d, target, R):
+        """From the riser's window to a point inside the riser (base frame): planned, sharp where a bend does not fit."""
+        pts = [P4, (P4[0], P4[1], target[2]), target] if abs(target[2] - P4[2]) > 1 else [P4, target]
+        return route(pts, R)
+
+    port = (-rw2, PB0[1], PB0[2])                          # the port in the riser's wall behind the terminal box
+    lines = {}
+    for ln in LANES:
+        L, P4 = supply(ln)
+        lines[ln['id']] = (L, P4)
+        d, R = ln['d'], KF * ln['d']
+        if ln['id'].startswith('CHG-LD'):
+            mm, rb = riser_to(P4, d, port, R)
+            L.run('duct', 'CHG-RSR', 'across the riser to the port in its wall behind the terminal box', mm, tol=rw2, bend=rb)
+            L.run('duct', 'CHG-PB0', 'into the terminal box, to its DC terminal', abs(PB0[0] - port[0]), tol=0.0)
+            pole = 'DC+' if ln['id'].startswith('CHG-LDP') else 'DC-'
+            L.a, L.b = f'the charger\'s {pole} output, in the DC cabinet', f'the {pole} terminal in the riser\'s terminal box (CHG-PB0)'
+            L.tail_b = BOX_TAIL
+            L.tails += f'; {BOX_TAIL:.0f} mm to dress it in the terminal box and make it off on its M12 lug (ASSUMPTION)'
+            L.notes.append(f'One of {sum(1 for x in LANES if x["id"].startswith("CHG-LD")) // 2} cores a pole: 4 in parallel carry the 500 A.')
+        elif ln['id'] == 'CHG-LJS':
+            # up to J1's gland: it comes from below, so it drops in the riser and rises into the gland
+            low = (gl_J1[0], g['win_y0'] - 10.0, gl_J1[2])
+            mm, rb = route([P4, (P4[0], P4[1], low[2]), low, (gl_J1[0], gl_J1[1], gl_J1[2])], R)
+            L.run('duct', 'CHG-RSR', 'in the riser, down under J1 and up into its rear cover\'s gland', mm, tol=rw2, bend=rb)
+            L.a, L.b = 'the arm\'s controller in the DC cabinet: motor power, 24 V, safe torque off, EtherCAT', 'J1\'s actuator, its gland (its drive board inside)'
+            L.tail_b = BOX_TAIL
+            L.tails += f'; {BOX_TAIL:.0f} mm inside the actuator to its drive board\'s connector (ASSUMPTION)'
+        elif ln['id'] == 'CHG-LSF':
+            mm, rb = route([P4, (P4[0], P4[1], rw2 - 40.0), (115.0, P4[1], rw2 - 40.0)], R)
+            L.run('duct', 'CHG-RSR', 'across the riser to its car-side face, behind the emergency stop and the scanner', mm, tol=rw2, bend=rb)
+            L.a, L.b = 'the safety controller in the DC cabinet', 'the emergency stop (CHG-EST) and the safety scanner (CHG-SCN), on the riser'
+            L.tail_b = BOX_TAIL
+            L.tails += f'; {BOX_TAIL:.0f} mm to make off at the 2 devices (ASSUMPTION)'
+            L.open.append('The model says this cable also serves the status light rings on J2 and the wrist (CHG-J2-RINGL, '
+                          'CHG-J2-RINGR, CHG-WRING), but the boots\' contents do not include it and no route reaches them. '
+                          'Their supply is not yet routed.')
+        elif ln['id'] in ('CHG-LCS', 'CHG-LCR', 'CHG-LAR', 'CHG-LTL'):
+            mm, rb = riser_to(P4, d, port, R)
+            L.run('duct', 'CHG-RSR', 'across the riser to the port in its wall behind the terminal box', mm, tol=rw2, bend=rb)
+            if ln['id'] == 'CHG-LTL':
+                L.run('duct', 'CHG-PB0', 'through the terminal box to the J1 link\'s fitting', abs(FL1_A[0] - port[0]))
+            else:
+                what = {'CHG-LCS': 'the cooling unit\'s supply port', 'CHG-LCR': 'the cooling unit\'s return port', 'CHG-LAR': 'the air supply (6 bar)'}[ln['id']]
+                L.run('duct', 'CHG-PB0', 'into the terminal box, to its reducing coupling', abs(PB0[0] - port[0]))
+                L.a, L.b = f'the DC cabinet: {what}', 'its reducing coupling in the riser\'s terminal box (CHG-PB0)'
+                L.tail_b = 0.0
+                L.notes.append('The boots carry a smaller line on from the coupling (below): the model names 8 mm coolant '
+                               'tubes and a 6 mm air line in them.')
+                L.open.append('This schedule joins the 2 sizes with a reducing coupling in the box (ASSUMPTION). If one '
+                              'line is meant to run through, a 12 mm hose needs 90 mm of bend where it moves (7.5 x d), and '
+                              'the J3 and wrist boots bend to 84 and 88 mm.')
+    # what the boots carry up the arm: the tool cable runs on from the cabinet; the coolant and the air go on in smaller lines
+    j1, j2, j3, tool = g['j1'], g['j2'], g['j3'], g['tool']
+    LU, LF = g['LU'], g['LF']
+    # the route through the arm, boot by boot (each piece in its own node's frame; the boxes' corners sharp)
+    PB1_IN, PB1_OUT = (-65.0, 200.0, -190.0), (0.0, 340.0, -220.0)
+    arm_runs = [
+        ('boot', 'CHG-FL1', 'in the J1 link\'s boot, from the riser to the turret', fx['CHG-FL1']),
+        ('duct', 'CHG-PB1', 'through the turret\'s junction box', [PB1_IN, (0.0, 200.0, -190.0), (0.0, 340.0, -190.0), PB1_OUT], 40.0),
+        ('boot', 'CHG-FL2', 'in the J2 link\'s boot, behind the shoulder', fx['CHG-FL2']),
+        ('arm', 'CHG-UPR', 'through the upper arm\'s 2 terminal boxes (CHG-PB2, CHG-PB3) and inside the arm between them, with the copper bars',
+         [(0.0, 300.0, -180.0), (0.0, 300.0, -140.0), (0.0, LU - 250.0, -125.0), (0.0, LU - 250.0, -165.0)], 80.0),
+        ('boot', 'CHG-FL3', 'in the J3 link\'s boot, over the elbow', fx['CHG-FL3']),
+        ('arm', 'CHG-FOR', 'through the forearm\'s 2 terminal boxes (CHG-PB4, CHG-PB5) and inside the arm between them, with the copper bars',
+         [(FORE_JOG[0], 250.0, -130.0), (FORE_JOG[0], 250.0, -90.0), (85.0, LF - 420.0, 0.0), (125.0, LF - 420.0, -30.0)], 80.0),
+        ('boot', 'CHG-FL4', 'in the wrist link\'s boot, across J4, J5 and J6 to the head', fx['CHG-FL4']),
+    ]
+    # inside the head: from the boot's outlet through the outlet housing's elbow to its inner end on the holder's spine
+    o = tuple(-c for c in TOOL_OUTLET_IN)
+    L_g = std.gland_length(50) + 12.0
+    F = tuple(TOOL_OUTLET[k] - L_g * o[k] for k in range(3))
+    s_c = (F[0] + 92) / o[0]
+    C = tuple(F[k] - s_c * o[k] for k in range(3))
+    head_mm = bent_length([TOOL_OUTLET, F, C, (-92.0, 172.0, -60.0)], 0.0)[0]
+    heads = [ch for ch in tool.children if ch.name.startswith('Head_')]
+    far = max(float(np.linalg.norm(np.array(loc_matrix(h.loc)[:3, 3]) + np.array([0.0, 54.0, 0.0]) - np.array([-92.0, 172.0, -60.0])))
+              for h in heads)
+
+    def up_the_arm(L, od):
+        for r in arm_runs:
+            if r[0] == 'boot':
+                L.run('boot', r[1], r[2], r[3].length, bend=r[3].tightest, moving=True, flex=r[3])
+            else:
+                mm = bent_length(r[3], 0.0)[0]
+                L.run(r[0], r[1], r[2], mm, tol=r[4])
+        L.run('duct', 'CHG-COH', 'into the head through the boot\'s outlet adapter (CHG-BTO) and the outlet housing\'s elbow', head_mm, tol=32.0)
+
+    TL = lines['CHG-LTL'][0]
+    up_the_arm(TL, TL.od)
+    TL.a, TL.b = 'the arm\'s controller in the DC cabinet', 'the head: the force sensor, the cameras, the light ring and the latches'
+    TL.tail_b = round(far)
+    TL.tails += (f'; {far:.0f} mm inside the head from the outlet housing to the farther connector, measured straight '
+                 '(its route among the head\'s parts is not drawn)')
+    for (lid, name, kind, od, spec, frm, to) in (
+            ('CHG-LCSA', 'Coolant supply tube 8 mm, riser to the head', 'coolant', 8.0, 'polyurethane tube, 8 mm (the model\'s boot contents)',
+             'the reducing coupling on the coolant supply hose in CHG-PB0', 'the 2 connectors\' contacts, through a manifold in the head'),
+            ('CHG-LCRA', 'Coolant return tube 8 mm, head to the riser', 'coolant', 8.0, 'polyurethane tube, 8 mm (the model\'s boot contents)',
+             'the 2 connectors\' contacts, through a manifold in the head', 'the reducing coupling on the coolant return hose in CHG-PB0'),
+            ('CHG-LARA', 'Air line 6 mm, riser to the head', 'air', 6.0, 'polyurethane tube, 6 mm (the model\'s boot contents)',
+             'the reducing coupling on the air tube in CHG-PB0', 'the head\'s valves: the compliance lock and the 2 plunge cylinders')):
+        L = m.cable(lid, name, kind, od, spec, frm, to, 'DRESS', bend_fixed=KF * od, bend_moving=KC * od,
+                    tail_b=round(far), tails=f'{far:.0f} mm inside the head from the outlet housing to the farther connector, '
+                                             'measured straight (its route among the head\'s parts is not drawn)')
+        L.run('duct', 'CHG-PB0', 'from the coupling, through the terminal box to the J1 link\'s fitting', abs(FL1_A[0] - PB0[0]))
+        up_the_arm(L, od)
+    # THE CHARGE CURRENT up the arm: 4 braided links in boots and 2 pairs of copper bars, box to box
+    boxes = {'CHG-PB0': (g['base'], PB0), 'CHG-PB1': (j1, (0.0, 265.0, -180.0)), 'CHG-PB2': (j2, (0.0, 300.0, -140.0)),
+             'CHG-PB3': (j2, (0.0, LU - 250.0, -125.0)), 'CHG-PB4': (j3, (FORE_JOG[0], 250.0, -90.0)), 'CHG-PB5': (j3, (85.0, LF - 420.0, 0.0))}
+    for (fid, b0, b1) in (('CHG-FL1', 'CHG-PB0', 'CHG-PB1'), ('CHG-FL2', 'CHG-PB1', 'CHG-PB2'), ('CHG-FL3', 'CHG-PB3', 'CHG-PB4'),
+                          ('CHG-FL4', 'CHG-PB5', None)):
+        fd = fx[fid]
+        for pole in ('+', '-'):
+            L = m.cable(f'{fid}{"P" if pole == "+" else "N"}', f'{fd.name.split(",")[0]}: DC{pole} braid, 400 mm2', 'dc', 26.0,
+                        '400 mm2 braided copper, tinned, insulated for 1000 V DC; IEC 61238-1 lugs',
+                        f'the DC{pole} terminal in {b0}', f'the DC{pole} terminal in {b1}' if b1 else f'the DC{pole} contacts of both connectors, in the head',
+                        'DRESS', bend_moving=g['MB_BOOT'],
+                        tails='the braid\'s length in each box: from the boot\'s fitting to the terminal at the box\'s centre (ASSUMPTION: the terminals stand at the centre)')
+            n0, c0 = boxes[b0]
+            L.run('duct', b0, f'in {b0}, from its DC terminal to the boot\'s fitting',
+                  float(np.linalg.norm(np.array(c0) - np.array(fd.a.p))) if fd.a.node is n0 else 0.0)
+            L.run('boot', fid, f'in the boot: the link\'s own length', fd.length, bend=fd.tightest, moving=True, flex=fd)
+            if b1:
+                n1, c1 = boxes[b1]
+                L.run('duct', b1, f'in {b1}, from the boot\'s fitting to its DC terminal', float(np.linalg.norm(np.array(c1) - np.array(fd.b.p))))
+            else:
+                L.run('duct', 'CHG-COH', 'into the head through the outlet adapter and the outlet housing\'s elbow', head_mm, tol=32.0)
+                L.tail_b = round(far)
+                L.tails += (f'; {far:.0f} mm on inside the head to the farther connector, measured straight: there it parts into '
+                            '2 short braids, one to each connector')
+            L.notes.append('2 braids a link, DC+ and DC-, in one boot (the boot\'s spec).')
+    for (bid, b0, b1, where) in (('CHG-BBU', 'CHG-PB2', 'CHG-PB3', 'inside the upper arm'), ('CHG-BBF', 'CHG-PB4', 'CHG-PB5', 'inside the forearm')):
+        (n0, c0), (n1, c1) = boxes[b0], boxes[b1]
+        for pole in ('+', '-'):
+            L = m.cable(f'{bid}{"P" if pole == "+" else "N"}', f'Copper bar DC{pole}, 40 x 10 mm, insulated, {where}', 'dc', 10.0,
+                        '40 x 10 mm copper bar (400 mm2), insulated; rated by rule of thumb, check against the Copper Development '
+                        'Association\'s tables before purchase (the boxes\' spec)', f'the DC{pole} terminal in {b0}', f'the DC{pole} terminal in {b1}',
+                        'DRESS')
+            L.run('arm', 'CHG-UPR' if b0 == 'CHG-PB2' else 'CHG-FOR', f'{where}, terminal to terminal (straight)',
+                  float(np.linalg.norm(np.array(c1) - np.array(c0))))
+            L.open.append('Not drawn and not in the bill of materials: the 2 bars in each link are described by the terminal '
+                          'boxes only.')
+    joint_cables(m, g['acts'], 'CHG-JC', KF)
+
+
+def link_casting(m: Model, node: Node) -> str:
+    """The largest structural part placed in a node: the link casting a joint cable runs inside."""
+    best = max((it for it in node.items if it.part.category == 'structure'), key=lambda it: it.part.volume, default=None)
+    return best.part.id if best is not None else ''
+
+
+def joint_cables(m: Model, acts: list, prefix: str, KF: float, sub: str | None = None, what: str = '') -> None:
+    """THE JOINT CABLES of one arm: from each actuator's drive a cable goes out through the joint's hollow shaft and on
+    through the link to the next actuator's gland (motor power, 24 V, safe torque off and EtherCAT, as the gland's own text
+    says). Each is planned from the 2 points the model fixes: straight, and up to a quarter more for its dressing."""
+    import numpy as np
+    from ..flex import loc_matrix, node_frames
+    W0 = node_frames(m.root, {})
+
+    def wpt(node, p):
+        return (W0[id(node)] @ np.array([*p, 1.0]))[:3]
+    for k in range(len(acts) - 1):
+        a, b = acts[k], acts[k + 1]
+        out_c = wpt(a['fixed'], loc_matrix(a['Tf'])[:3, 3])                       # its output face's centre: where it leaves the shaft
+        gl = wpt(b['fixed'], (loc_matrix(b['gland'].loc) @ np.array([0, 0, 0, 1.0]))[:3])
+        straight = float(np.linalg.norm(gl - out_c))
+        L = m.cable(f'{prefix}{k + 1}', f'Joint cable{what}, {a["joint"]} to {b["joint"]}', 'power', 10.0, 'the joint supply cable\'s type, 10 mm',
+                    f'{a["joint"]}\'s drive board', f'{b["joint"]}\'s actuator, its gland ({b["joint"]}\'s drive board inside)', sub or a['sub'],
+                    bend_fixed=KF * 10.0, tail_a=BOX_TAIL, tail_b=BOX_TAIL,
+                    tails=f'{BOX_TAIL:.0f} mm in each actuator to its drive board\'s connector (ASSUMPTION)')
+        L.run('arm', f'{a["prefix"]}-HSG', f'through {a["joint"]}\'s hollow shaft, from its drive board at the back to its output face', a['L'])
+        L.run('arm', link_casting(m, a['moving']), f'inside the link from {a["joint"]}\'s output to {b["joint"]}\'s gland: straight '
+              f'{straight:.0f} mm, and up to a quarter more for its dressing in the casting', straight * 1.125, tol=straight * 0.125)
 
 
 def build_ft_sensor(m: Model, tool: Node, sub: str | None = None) -> float:
@@ -1513,10 +1890,18 @@ def build_tool(m: Model, tool: Node, LT: float) -> None:
     for (xs, ys) in ((-20, 150), (20, 150), (-20, 195), (20, 195)):
         m.place(tool, std.shcs(6, 40, 'A2-70', 'Holds the cable outlet housing to the holder\'s spine.'),
                 std.orient((xs, ys, -80), (0, 0, 1)), (-60, 200, -90))
-    swg = PartDef('GLAND-M50S', 'Swivel cable gland M50 x 1.5, ball joint 35 degrees, IP67', std._gland_shape(50), 'pa66',
-                  'electrical', 'IEC 62444', 'M50 x 1.5, cable 30 to 38', 'IP67', None,
-                  'Seals the cable into the outlet and lets it leave at up to 35 degrees off the axis without a kink.', {}, 'buy')
-    m.place(tool, swg, std.orient(F, TOOL_OUTLET_IN), (-80, 200, -80))
+    # the boot's end: an adapter screwed into the outlet's M50 port, a hex to turn it by, a neck out to the boot's end, and
+    # the collar the 60 mm boot slides into (it was an M50 gland for a 30 to 38 mm cable, 12 mm short of the boot's end)
+    thr = cq.Workplane('XZ').circle(25.0).extrude(22.5)                 # local -Y: into the port (orient puts -Y along d)
+    hx = std._hex(64.0, 20.5)
+    neck = cq.Workplane('XZ', origin=(0, 20.5, 0)).circle(31.0).extrude(-(L_g - 20.5))
+    col = cq.Workplane('XZ', origin=(0, L_g, 0)).circle(36.0).circle(R_BOOT_BORE).extrude(-18.0)
+    bto = thr.union(hx).union(neck).union(col).cut(cq.Workplane('XZ', origin=(0, L_g + 1, 0)).circle(20.0).extrude(L_g + 24))
+    m.place(tool, m.part(PartDef('CHG-BTO', 'Boot outlet adapter M50 x 1.5 for the 60 mm boot', bto.val(), 'al6061_blk', 'electrical',
+                                 'made to order', f'M50 x 1.5, hex 64, collar OD 72, {L_g + 18:.1f} long', '6061-T6, black anodised', None,
+                                 'Holds the wrist boot\'s end on the connector head\'s outlet. The boot slides into its collar.',
+                                 {'bore': f'{2 * R_BOOT_BORE:g} mm collar, 40 mm through', 'seal': 'IP67, an O-ring on the thread'}, 'make')),
+            std.orient(F, TOOL_OUTLET_IN), (-80, 200, -80))
 
 
 def _ik_q2(along: float, height: float, S: dict) -> float:

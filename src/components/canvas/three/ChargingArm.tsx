@@ -4,8 +4,10 @@ import * as THREE from 'three';
 import { useVehicleStore } from '@/store/vehicleStore';
 import { useDepotStore } from '@/store/depotStore';
 import { useSimulationStore } from '@/store/simulationStore';
-import { OTTO_CHARGE_ARM, METRES_PER_PLAN_UNIT } from '@/lib/ottoChargeArm/cobotSpec';
-import { armSkeleton, segmentNodes, writeArm, clearArm, type ArmFleet } from './armInstances';
+import { OTTO_CHARGE_ARM, METRES_PER_PLAN_UNIT, PLAN_UNITS_PER_METRE } from '@/lib/ottoChargeArm/cobotSpec';
+import { armSkeleton, segmentNodes, clearArm, type ArmFleet } from './armInstances';
+import { drawRobot, type DetailFleets } from './detailDraw';
+import type { DetailDirector } from '@/lib/robotics/cadDetail';
 import type { DepotCad, DepotSkeleton } from '@/lib/robotics/cadDepot';
 import type { FlexFleet } from '@/lib/robotics/flexMesh';
 import { CAR_WIDTH } from '@/engine/motion/traffic';
@@ -100,7 +102,17 @@ interface ChargingArmProps {
   cad: DepotCad | null;
   /** The CAD's flexible lines for every arm (its charge cable), drawn into the same slot; null without the CAD. */
   flex?: FlexFleet | null;
+  /** The detail fleets the arms nearest the camera draw in (robotics/cadDetail.ts); null until the detail CAD loads. */
+  detail?: DetailFleets | null;
+  /** Who chooses the arms drawn in detail: the arm tells it where it stands (that is what asks for the detail CAD). */
+  director?: DetailDirector | null;
 }
+
+/**
+ * The arm's bounding sphere for the detail choice: centred 0.8 m over J1, 3.2 m round (its reach is 2.49 m, and its bed
+ * runs 2.5 m along the car).
+ */
+const ARM_SPHERE = { up: 0.8 * PLAN_UNITS_PER_METRE, r: 3.2 * PLAN_UNITS_PER_METRE };
 
 /** One arm's joints to drive: the CAD's skeleton, or the procedural one. */
 interface ArmRig {
@@ -138,7 +150,7 @@ function armRig(cad: DepotCad | null): ArmRig {
 }
 
 
-export function ChargingArm({ stallId, stallType, fleet, slot, cad, flex }: ChargingArmProps) {
+export function ChargingArm({ stallId, stallType, fleet, slot, cad, flex, detail, director }: ChargingArmProps) {
   const groupRef = useRef<THREE.Group>(null);
   const cableRef = useRef<THREE.Mesh>(null);
 
@@ -156,6 +168,14 @@ export function ChargingArm({ stallId, stallType, fleet, slot, cad, flex }: Char
   // an unmounted arm leaves its slot empty
   useEffect(() => () => clearArm(fleet, slot), [fleet, slot]);
   useEffect(() => () => flex?.clear(slot), [flex, slot]);
+  // where it stands, for the detail choice (the director gives the nearest arms the detail model)
+  useEffect(() => {
+    if (!director || !placement || !cad || !stallHasArm(stallType)) return;
+    const [x, y, z] = placement.world;
+    director.place('charge_arm', slot, x, y + ARM_SPHERE.up, z, ARM_SPHERE.r);
+    return () => director.remove('charge_arm', slot);
+  }, [director, placement, slot, cad, stallType]);
+  const seen = useRef({ detail: false });
 
   const cableMat = useMemo(
     () => new THREE.MeshStandardMaterial({ color: 0x101216, roughness: 0.85, metalness: 0.05 }),
@@ -343,9 +363,9 @@ export function ChargingArm({ stallId, stallType, fleet, slot, cad, flex }: Char
     // The joints are set; bring the skeleton's world matrices up to date and
     // hand its segments to the instanced meshes.
     groupRef.current?.updateWorldMatrix(true, true);
-    writeArm(fleet, slot, rig.nodes, col, glow);
-    // the CAD's flex links: the booted copper links that carry the charge current across the joints, solved at this pose
-    if (flex && rig.skel) flex.write(slot, rig.skel);
+    // the arm's segments and its lines (the booted copper links across the joints, the base's cable chains and every
+    // line in them), in its depot slot or, near the camera, in a detail slot (detailDraw.ts)
+    drawRobot({ fleet, flex, slot }, rig.skel ? detail : null, rig.nodes, rig.skel, col, glow, [], seen.current);
 
     // Charge cable, drawn whenever the arm is out of its cradle. It used to be
     // drawn only while LATCHED, which popped the cable out of existence the

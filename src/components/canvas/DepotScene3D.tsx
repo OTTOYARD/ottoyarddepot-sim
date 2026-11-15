@@ -22,7 +22,8 @@ import { makeArmFleet } from './three/armInstances';
 import { CleanArm } from './three/CleanArm';
 import { makeCleanArmFleet } from './three/cleanArmInstances';
 import { makeFlexFleet } from '@/lib/robotics/flexMesh';
-import { useDepotCad } from './three/cadFleet';
+import { useDepotCad, FAR_FLEX_OPTIONS } from './three/cadFleet';
+import { DetailFrame, DetailMeshes, useDetailDirector, useDetailFleets } from './three/RobotDetail';
 import { Lanes3D } from './three/Lanes3D';
 import { UtilityEquipment } from './three/UtilityEquipment';
 import { VehicleFleet } from './three/Vehicle3D';
@@ -207,11 +208,17 @@ export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0, viewe
   const cleanFleet = useMemo(() => makeCleanArmFleet(armCapacity, cleanCad?.parts), [armCapacity, cleanCad]);
   useEffect(() => () => cleanFleet.dispose(), [cleanFleet]);
   useEffect(() => { for (const m of cleanFleet.meshes) m.count = roboticStalls.length; }, [cleanFleet, roboticStalls.length]);
-  // their flexible lines (the charge cable; the clean arm's coil, reel cable and nozzle air), one merged draw per material
-  const armFlex = useMemo(() => (chargeCad?.flex.length ? makeFlexFleet(chargeCad.flex, armCapacity) : null), [chargeCad, armCapacity]);
+  // their flexible lines (the charge arm's booted links and cable chains; the clean arm's reel cables and nozzle air), one
+  // merged draw per material, each end seated in its fitting (cadFleet.FAR_FLEX_OPTIONS)
+  const armFlex = useMemo(() => (chargeCad?.flex.length ? makeFlexFleet(chargeCad.flex, armCapacity, FAR_FLEX_OPTIONS.charge_arm) : null), [chargeCad, armCapacity]);
   useEffect(() => () => armFlex?.dispose(), [armFlex]);
-  const cleanFlex = useMemo(() => (cleanCad?.flex.length ? makeFlexFleet(cleanCad.flex, armCapacity) : null), [cleanCad, armCapacity]);
+  const cleanFlex = useMemo(() => (cleanCad?.flex.length ? makeFlexFleet(cleanCad.flex, armCapacity, FAR_FLEX_OPTIONS.clean_arm) : null), [cleanCad, armCapacity]);
   useEffect(() => () => cleanFlex?.dispose(), [cleanFlex]);
+  // near the camera, the robots are drawn as the engineering CAD to the last screw (robotics/cadDetail.ts, RobotDetail.tsx)
+  const { director, wanted } = useDetailDirector();
+  const chargeDetail = useDetailFleets('charge_arm', chargeCad, wanted.charge_arm, director);
+  const cleanDetail = useDetailFleets('clean_arm', cleanCad, wanted.clean_arm, director);
+  const washDetail = useDetailFleets('wash_gantry', washCad, wanted.wash_gantry, director);
   const armStalls = useMemo(() => roboticStalls.map((s) => s.position), [roboticStalls]);
   const armKey = armStallsKey(armStalls);
   const controlsRef = useRef<OrbitControlsImpl>(null);
@@ -300,22 +307,29 @@ export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0, viewe
             <WashBays count={config.washBayCount} cadMachine={washCad !== null} />
           </StaticMerge>
           {/* the wash bays' rollover machines move, so they stand outside the static merge */}
-          <WashGantries count={config.washBayCount} cad={washCad} />
+          <WashGantries count={config.washBayCount} cad={washCad} detail={washDetail} director={director} />
+          <DetailMeshes fleets={washDetail} />
           <StaticMerge name="staging" version={config.stagingStalls}><StagingZone count={config.stagingStalls} /></StaticMerge>
           <group name="lanes"><Lanes3D /></group>
           <StaticMerge name="utility" version={`${config.bessCapacity}/${config.bessPower}`}><UtilityEquipment bessCapacity={config.bessCapacity} bessPower={config.bessPower} /></StaticMerge>
           <group name="arms">
             {armFleet.meshes.map((m, i) => <primitive key={`armpart-${i}`} object={m} />)}
             {roboticStalls.map((s, i) => (
-              <ChargingArm key={`arm-${s.id}`} stallId={s.id} stallType={s.type as 'dcfc' | 'l2'} fleet={armFleet} slot={i} cad={chargeCad} flex={armFlex} />
+              <ChargingArm key={`arm-${s.id}`} stallId={s.id} stallType={s.type as 'dcfc' | 'l2'} fleet={armFleet} slot={i} cad={chargeCad} flex={armFlex}
+                detail={chargeDetail} director={director} />
             ))}
             {armFlex && <primitive object={armFlex.group} />}
             {cleanFleet.meshes.map((m, i) => <primitive key={`cleanpart-${i}`} object={m} />)}
             {cleanFlex && <primitive object={cleanFlex.group} />}
             {roboticStalls.map((s, i) => (
-              <CleanArm key={`clean-${s.id}`} stallId={s.id} fleet={cleanFleet} slot={i} cad={cleanCad} flex={cleanFlex} />
+              <CleanArm key={`clean-${s.id}`} stallId={s.id} fleet={cleanFleet} slot={i} cad={cleanCad} flex={cleanFlex}
+                detail={cleanDetail} director={director} />
             ))}
+            <DetailMeshes fleets={chargeDetail} />
+            <DetailMeshes fleets={cleanDetail} />
           </group>
+          {/* before the robots draw: which robots the camera calls for in detail (useFrame priority -1) */}
+          <DetailFrame director={director} fleets={[chargeDetail, cleanDetail, washDetail]} />
           <StaticMerge name="landscaping"><Landscaping /></StaticMerge>
           <UrbanSurround />
           <group name="siteDetails"><SiteDetails /></group>

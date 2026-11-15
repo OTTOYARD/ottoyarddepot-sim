@@ -445,7 +445,9 @@ not draw the seven units yet; where they stand is a site-plan decision.
   **A step of the cycle can be picked (2026-11-11):** in "How it runs", or by a cockpit's link `?step=<id>`
   (`cockpitLinks.stepFromSearch`); the model takes the pose that step ends in, from `cycleScript`. PULSE links here
   from its status feed. PULSE draws no model and has no live follow, on Chase's call.
-  **Every CAD change ends with the clash check:** `cad/build.py`, then `cad/clash.py --baseline` with the same code.
+  **Every CAD change ends with the clash check:** `cad/build.py`, then `cad/clash.py --baseline` with the same code,
+  then `cad/line_ends.py` (every rigid line's both ends held: `public/cad/<robot>.ends.json`, held by `cadEnds.test.ts`;
+  the contact test alone passes a cable held at one end with its other end in the air).
   It places every part at the stowed pose and at every twin pose in `cad/spec/poses.json` (written by `cadPoses.ts`;
   rewrite it with `CAD_SPEC_WRITE=1 npx vitest run src/lib/robotics/cadPoses.test.ts` when a pose or a joint name
   changes) and writes `public/cad/<robot>.clash.json` with the GLB digest it checked. `cad.test.ts` fails on a stale
@@ -466,6 +468,23 @@ not draw the seven units yet; where they stand is a site-plan decision.
   arm's header beam and drop column stay with `SolarCanopy` (`CLEAN_CANOPY_STEEL`); `ChargingField` and `WashBays`
   drop their simple riser, trunk and rails once the CAD has loaded, because the CAD draws its own: never draw them
   twice. A robot's working point in the CAD must stay where the twin's is (`cadDepot.test.ts`).
+- **Up close the yard draws the full CAD, and no line or part may stand off what holds it (2026-11-15).** Chase:
+  *"There cannot be gaps between cables randomly plugging into charging system or just floating off of robotic arms
+  with gaps ... I need super high-level 4K detail when it comes to some of these integrations."* The robots nearest the
+  camera draw from `public/cad/<robot>.near.glb` (every visible part; `robotics/cadDetail.ts` picks them by distance and
+  view, never by frame rate), the rest from the depot model. **A CAD change must pass `src/lib/robotics/cadDetail.test.ts`:**
+  no floating part (1 mm on the full and detail models, 10 mm on the depot model), every line's end seated in what
+  holds it at every twin pose, every chain's lines inside its links at their constant length, and no left-out part
+  visible. Mark a part sealed inside an actuator `sealed=True` and a part under the deck or in a pad `yard_hidden=True`;
+  never leave one out by name alone. A boot that ends in a fitting's collar takes `lead_a`/`lead_b` (straight that far):
+  a loop solved bending from its very end cuts its collar (design finding 20).
+- **Every line is in the cable schedule (2026-11-15).** Chase: *"I know the exact pieces and length of certain cables and
+  exact routing of electrical wire."* Each robot's builder declares its cables, hoses and tubes once, end to end
+  (`m.cable(...).run(...)`, `cad/otto_cad/cables.py`); the build writes them into the parts list (`cables`) and as
+  `public/cad/<robot>.cables.csv`, and stops on a piece in a part the model lacks or a bend tighter than its line
+  allows. **A new line, conduit or duct gets its line in the schedule in the same change** (`cadCables.test.ts` holds
+  that every line a chain carries is listed and every drawn piece names its line). Never quote a line's length from
+  its parts-list piece: a DC core's trench piece is about a quarter of it.
 - **The two cockpits read the robots from here (2026-11-09).** Chase: *"Pulse should have depot/operator level info on
   the functionality of the machines ... Orchestra needs just user/asset/vehicle owner detail from a stall or stage
   perspective. ... I think just the twin needs the CAD level detail."* What a machine IS has one home:
