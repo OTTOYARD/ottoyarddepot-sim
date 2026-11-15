@@ -118,8 +118,10 @@ describe.each([...ROBOT_KEYS])('%s: the depot model', (k) => {
     }
     // a whole robot kind is one set of draws, whatever the number of robots (instancedFleet.ts). The wash machine's
     // went from 119 to 121 on 2026-11-15 when its flush trench and pit covers and rail anchor plates got their own
-    // deck-paint draws (DepotCadOptions.deckY), so its bound moved from 120 to 124
-    expect(cad.stats.draws).toBeLessThanOrEqual(k === 'wash_gantry' ? 124 : 90);
+    // deck-paint draws (DepotCadOptions.deckY), so its bound moved from 120 to 124; and from 121 to 129 the same day
+    // when each side air knife got the belt axis, carriage, hanger and gearmotor it hangs from, and each arm chain the
+    // elbow duct into its pedestal (design finding 20): parts of their own materials on their own segments, so 132
+    expect(cad.stats.draws).toBeLessThanOrEqual(k === 'wash_gantry' ? 132 : 90);
   });
 });
 

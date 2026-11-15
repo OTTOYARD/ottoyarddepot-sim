@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { buildDepotCad, depotFile, parseGlb, type DepotCad, type DepotCadOptions } from '@/lib/robotics/cadDepot';
+import { buildDepotCad, depotFile, nearFile, parseGlb, type DepotCad, type DepotCadOptions } from '@/lib/robotics/cadDepot';
 import { cadUrl, type RobotKey } from '@/lib/robotics/catalog';
 import { MOUNT_HEIGHT_M } from '@/lib/ottoChargeArm/cobotSpec';
+import type { FlexFleetOptions } from '@/lib/robotics/flexMesh';
 
 /**
  * THE YARD'S ROBOTS ARE THE ENGINEERING CAD. Each robot kind's depot model (public/cad/<robot>.depot.glb, from
@@ -30,9 +31,29 @@ export const DEPOT_CAD_OPTIONS: Readonly<Record<RobotKey, DepotCadOptions>> = {
   wash_gantry: { lights: { led: 0, led_red: 1, led_green: 2 }, deckY: 0 },
 };
 
+/**
+ * How each kind's lines are drawn in the yard. Far (the depot model): round tubes of 8 sides, each end seated 3 mm into
+ * its fitting, chains as boxes, and a chain wholly under the deck left out (the yard's ground hides it). Near (the detail
+ * model, cadDetail.ts): 16 sides, seated 4 mm, each chain's links as the CAD draws them, and every line each chain carries,
+ * in its lane. `under` is the deck's height in the robot's own frame (metres): MOUNT_HEIGHT_M under the charge arm's J1,
+ * the floor of a wash bay. The cleaning arm has no chain.
+ */
+export const FAR_FLEX_OPTIONS: Readonly<Record<RobotKey, FlexFleetOptions>> = {
+  charge_arm: { radial: 8, seat: 0.003, under: -MOUNT_HEIGHT_M },
+  clean_arm: { radial: 8, seat: 0.003 },
+  wash_gantry: { radial: 8, seat: 0.003, under: 0 },
+};
+export const NEAR_FLEX_OPTIONS: Readonly<Record<RobotKey, FlexFleetOptions>> = {
+  charge_arm: { radial: 16, coilPerTurn: 16, seat: 0.004, contents: true, under: -MOUNT_HEIGHT_M },
+  clean_arm: { radial: 16, coilPerTurn: 16, seat: 0.004, contents: true },
+  wash_gantry: { radial: 16, coilPerTurn: 16, seat: 0.004, contents: true, under: 0 },
+};
+
 const loads = new Map<RobotKey, Promise<DepotCad>>();
 const loaded = new Map<RobotKey, DepotCad>();
 const warned = new Set<RobotKey>();
+const detailLoads = new Map<RobotKey, Promise<DepotCad>>();
+const detailLoaded = new Map<RobotKey, DepotCad>();
 
 /** Fetch, parse and cut one robot's depot model, once per page. */
 export function loadDepotCad(robot: RobotKey, fetcher: typeof fetch = fetch): Promise<DepotCad> {
@@ -75,3 +96,52 @@ export function useDepotCad(robot: RobotKey): DepotCad | null {
   }, [robot, cad]);
   return cad;
 }
+
+/**
+ * A robot kind's DETAIL model (public/cad/<robot>.near.glb): every visible part to the last screw, fine curves, real chain
+ * links with their cables (robotics/cadDetail.ts says which robots it draws). Fetched the first time a robot of the kind
+ * comes into detail range, once per page, and cut into instanced parts as the depot model is, with indexed buffers. Its
+ * nodes and joints are the depot model's, so a robot's one skeleton poses both (cadDetail.test.ts holds them equal).
+ */
+export function loadDetailCad(robot: RobotKey, fetcher: typeof fetch = fetch): Promise<DepotCad> {
+  let p = detailLoads.get(robot);
+  if (!p) {
+    p = fetcher(cadUrl(nearFile(robot)))
+      .then((r) => {
+        if (!r.ok) throw new Error(`${nearFile(robot)}: HTTP ${r.status}`);
+        return r.arrayBuffer();
+      })
+      .then((b) => parseGlb(b))
+      .then((scene) => {
+        const cad = buildDepotCad(robot, scene, { ...DEPOT_CAD_OPTIONS[robot], indexed: true });
+        detailLoaded.set(robot, cad);
+        return cad;
+      });
+    detailLoads.set(robot, p);
+  }
+  return p;
+}
+
+/**
+ * A robot kind's detail model once `wanted` and loaded: null until then, and null for good if it cannot load (the depot
+ * model then draws every robot of the kind, as before, and the console says so once).
+ */
+export function useDetailCad(robot: RobotKey, wanted: boolean): DepotCad | null {
+  const [cad, setCad] = useState<DepotCad | null>(() => detailLoaded.get(robot) ?? null);
+  useEffect(() => {
+    if (cad || !wanted) return;
+    let live = true;
+    loadDetailCad(robot).then(
+      (c) => { if (live) setCad(c); },
+      (err: unknown) => {
+        const key = `${robot}:detail` as RobotKey;
+        if (warned.has(key)) return;
+        warned.add(key);
+        console.warn(`[depot] the ${robot} detail CAD did not load, so the yard draws its depot model up close too:`, err);
+      },
+    );
+    return () => { live = false; };
+  }, [robot, cad, wanted]);
+  return cad;
+}
+

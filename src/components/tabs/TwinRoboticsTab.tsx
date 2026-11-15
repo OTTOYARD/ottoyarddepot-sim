@@ -25,6 +25,7 @@ import { isLiveRunStatus, pulseRobotsUrl, robotFromSearch, stepFromSearch } from
 import { useLiveFollow } from '@/components/robotics/useLiveFollow';
 import { followLine, type LiveUnit } from '@/lib/robotics/liveFollow';
 import { CadViewer, type CadJointSummary, type CadViewState, type SectionAxis, type ViewDir } from '@/components/robotics/CadViewer';
+import { CableSchedule } from '@/components/robotics/CableSchedule';
 import {
   CATEGORY_LABEL, FUNCTIONS, JOINT_LABEL, ROBOT_INFO, ROBOT_KEYS, cadUrl, cycleScript, cycleSteps, fastenerIds, fetchBom, fetchClash, fetchManifest, filterLines,
   fmtKg, fmtMB, fmtNm, posePresets, qtyIn, type Bom, type BomLine, type BomSubsystem, type ClashReport, type Manifest, type RobotKey,
@@ -517,6 +518,10 @@ export function TwinRoboticsTab() {
           )}
         </div>
       )}
+      {bom.cables && bom.cables.length > 0 && (
+        <CableSchedule cables={bom.cables} csvUrl={entry.files.cables ? cadUrl(entry.files.cables) : undefined}
+          onPick={(id) => set({ selected: id })} known={(id) => bom.lines.some((l) => l.id === id)} />
+      )}
       <div className="space-y-1" data-testid="cycle-steps">
         <SectionTitle>How it runs (the twin's steps)</SectionTitle>
         <p className="text-[10.5px] leading-4 text-ink-dim">Pick a step. The model takes the pose that step ends in.</p>
@@ -540,6 +545,10 @@ export function TwinRoboticsTab() {
             <Download size={11} aria-hidden /> CAD (STEP, {fmtMB(entry.bytes.stepZip)})</a>
           <a href={cadUrl(entry.files.csv)} download className="inline-flex items-center gap-1 rounded border border-white/[0.08] bg-white/[0.03] px-2 py-1 text-[11px] text-ink hover:bg-white/[0.06]">
             <Download size={11} aria-hidden /> Parts list (CSV)</a>
+          {entry.files.cables && (
+            <a href={cadUrl(entry.files.cables)} download className="inline-flex items-center gap-1 rounded border border-white/[0.08] bg-white/[0.03] px-2 py-1 text-[11px] text-ink hover:bg-white/[0.06]">
+              <Download size={11} aria-hidden /> Cable schedule (CSV)</a>
+          )}
           <a href={cadUrl(entry.files.glb)} download className="inline-flex items-center gap-1 rounded border border-white/[0.08] bg-white/[0.03] px-2 py-1 text-[11px] text-ink hover:bg-white/[0.06]">
             <Box size={11} aria-hidden /> 3D model (GLB, {fmtMB(entry.bytes.glb)})</a>
         </div>

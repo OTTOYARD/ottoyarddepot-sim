@@ -14,8 +14,11 @@ import { MOUNT_HEIGHT_M, OTTO_CHARGE_ARM, PLAN_UNITS_PER_METRE } from '@/lib/ott
 import { TRACK_X_M } from '@/lib/ottoWash/detailArm';
 import { poseSkeleton, type DepotCad } from '@/lib/robotics/cadDepot';
 import { washJoints } from '@/lib/robotics/catalog';
-import { makeInstancedFleet, writeFleetSlot, writeFleetLight, clearFleetSlot, type InstancedFleet } from './instancedFleet';
+import { makeInstancedFleet, clearFleetSlot, type InstancedFleet } from './instancedFleet';
+import { drawRobot, type DetailFleets } from './detailDraw';
+import type { DetailDirector } from '@/lib/robotics/cadDetail';
 import { makeFlexFleet, type FlexFleet } from '@/lib/robotics/flexMesh';
+import { FAR_FLEX_OPTIONS } from './cadFleet';
 
 /**
  * OTTO-WASH — the touchless wash machine in each wash bay (docs/OTTO-WASH.md).
@@ -322,7 +325,7 @@ function WashGantryBay({ bayId, planX, shared, frame }: {
 }
 
 /** One bay's machine as the engineering CAD: a skeleton posed from the twin, drawn into its slot of the shared meshes. */
-function CadWashBay({ bayId, planX, cad, fleet, flex, slot, shared }: {
+function CadWashBay({ bayId, planX, cad, fleet, flex, slot, shared, detail, director }: {
   bayId: string;
   planX: number;
   cad: DepotCad;
@@ -330,6 +333,8 @@ function CadWashBay({ bayId, planX, cad, fleet, flex, slot, shared }: {
   flex: FlexFleet | null;
   slot: number;
   shared: ReturnType<typeof useMats>;
+  detail: DetailFleets | null;
+  director: DetailDirector | null;
 }) {
   const machineRef = useRef<THREE.Group>(null);
   const mats = useBayMats(shared);
@@ -341,6 +346,13 @@ function CadWashBay({ bayId, planX, cad, fleet, flex, slot, shared }: {
   }, [cad, mats]);
   useEffect(() => () => clearFleetSlot(fleet, slot), [fleet, slot]);
   useEffect(() => () => flex?.clear(slot), [flex, slot]);
+  // where it stands, for the detail choice: the bay's centre, 2 m up, 6 m round (rails, gantry and the arms' tracks)
+  useEffect(() => {
+    if (!director) return;
+    director.place('wash_gantry', slot, 150 - planX, DECK_Y + 2 * PLAN_UNITS_PER_METRE, 110 - BAY_STALL_Y, 6 * PLAN_UNITS_PER_METRE);
+    return () => director.remove('wash_gantry', slot);
+  }, [director, planX, slot]);
+  const seen = useRef({ detail: false });
   useEffect(() => () => {
     rig.fx.curtain.geometry.dispose();
     rig.fx.air[0].geometry.dispose();
@@ -351,12 +363,13 @@ function CadWashBay({ bayId, planX, cad, fleet, flex, slot, shared }: {
     const p = washPoseAt(s);
     poseSkeleton(rig.skel, washJoints(p));
     machineRef.current?.updateWorldMatrix(true, true);
-    // the beacon shows the program's state; the stop lamps face the arriving car (red while it runs)
-    writeFleetSlot(fleet, slot, rig.skel.segments, STATUS_COLOR[p.status], 2.2);
-    writeFleetLight(fleet, slot, 1, p.stop ? 0xff2a2a : 0x2a1214, p.stop ? 2.4 : 0);
-    writeFleetLight(fleet, slot, 2, p.stop ? 0x122a16 : 0x2aff6a, p.stop ? 0 : 2.4);
-    // its lines: the drag chain in its trench, the knives' ducts, and each detail arm's cable chain beside its track
-    flex?.write(slot, rig.skel);
+    // the beacon shows the program's state; the stop lamps face the arriving car (red while it runs). Its lines: the drag
+    // chain in its trench, the knives' ducts, and each detail arm's cable chain beside its track (and, in detail, every line
+    // in them). Near the camera, all of it in a detail slot (detailDraw.ts).
+    drawRobot({ fleet, flex, slot }, detail, rig.skel.segments, rig.skel, STATUS_COLOR[p.status], 2.2, [
+      [1, p.stop ? 0xff2a2a : 0x2a1214, p.stop ? 2.4 : 0],
+      [2, p.stop ? 0x122a16 : 0x2aff6a, p.stop ? 0 : 2.4],
+    ], seen.current);
     rig.effects.position.z = -p.dy;
     poseWashEffects(rig.fx, p, delta, mats);
     if (washDebug) {
@@ -379,21 +392,24 @@ function CadWashBay({ bayId, planX, cad, fleet, flex, slot, shared }: {
 }
 
 /** Every bay's machine as one instance of the CAD's meshes. */
-function CadWashGantries({ cad, bays, shared }: {
+function CadWashGantries({ cad, bays, shared, detail, director }: {
   cad: DepotCad;
   bays: readonly { id: string; x: number }[];
   shared: ReturnType<typeof useMats>;
+  detail: DetailFleets | null;
+  director: DetailDirector | null;
 }) {
   const fleet = useMemo(() => makeInstancedFleet(cad.parts, WASH_SHELL.bays.length, { receiveShadow: true }), [cad]);
   useEffect(() => () => fleet.dispose(), [fleet]);
-  const flex = useMemo(() => (cad.flex.length ? makeFlexFleet(cad.flex, WASH_SHELL.bays.length) : null), [cad]);
+  // the depot model's lines: round tubes seated in their fittings; the chains as boxes, the trench's left out (under the floor)
+  const flex = useMemo(() => (cad.flex.length ? makeFlexFleet(cad.flex, WASH_SHELL.bays.length, FAR_FLEX_OPTIONS.wash_gantry) : null), [cad]);
   useEffect(() => () => flex?.dispose(), [flex]);
   useEffect(() => { for (const m of fleet.meshes) m.count = bays.length; }, [fleet, bays.length]);
   return (
     <group name="washGantries">
       {fleet.meshes.map((m, i) => <primitive key={`washpart-${i}`} object={m} />)}
       {flex && <primitive object={flex.group} />}
-      {bays.map((b, i) => <CadWashBay key={b.id} bayId={b.id} planX={b.x} cad={cad} fleet={fleet} flex={flex} slot={i} shared={shared} />)}
+      {bays.map((b, i) => <CadWashBay key={b.id} bayId={b.id} planX={b.x} cad={cad} fleet={fleet} flex={flex} slot={i} shared={shared} detail={detail} director={director} />)}
     </group>
   );
 }
@@ -429,7 +445,9 @@ function useMats() {
 }
 
 /** The wash hall's machines: one gantry in each open bay; the engineering CAD once it has loaded (cadFleet.ts). */
-export function WashGantries({ count, cad }: { count: number; cad: DepotCad | null }) {
+export function WashGantries({ count, cad, detail = null, director = null }: {
+  count: number; cad: DepotCad | null; detail?: DetailFleets | null; director?: DetailDirector | null;
+}) {
   const all = useMats();
   const frame = useMemo(() => buildFrame(), []);
   useEffect(() => () => {
@@ -439,7 +457,7 @@ export function WashGantries({ count, cad }: { count: number; cad: DepotCad | nu
   }, [frame, all]);
   // a bay's machine is named by the bay's own id, which is the renderer stall the car parks on (WASH-01 ..)
   const bays = WASH_SHELL.bays.slice(0, count);
-  if (cad) return <CadWashGantries cad={cad} bays={bays} shared={all} />;
+  if (cad) return <CadWashGantries cad={cad} bays={bays} shared={all} detail={detail} director={director} />;
   return (
     <group name="washGantries">
       {bays.map((b) => <WashGantryBay key={b.id} bayId={b.id} planX={b.x} shared={all} frame={frame} />)}

@@ -20,9 +20,17 @@ from cadquery import Location, Vector
 
 from .. import std
 from ..core import Model, Node, PartDef, loc
-from ..flex import Anchor, FlexDef
+from ..flex import Anchor, FlexDef, check_contents
 from ..actuator import SIZES, module_length, rear_od
 from .charge_arm import _pitch_layout, build_chain, build_ft_sensor
+
+ELB_LEAD = 10.0      # an arm chain's lines run this far straight out of its last link into the elbow duct, mm
+
+
+def _bx2(x0, x1, y0, y1, z0, z1):
+    """A box between two corners, mm."""
+    return cq.Workplane('XY').box(x1 - x0, y1 - y0, z1 - z0, centered=False).translate((x0, y0, z0))
+
 
 DARM_MOUNT = 550.0   # each detail arm's J1 mount above grade: the charge arm's own height, so its shoulder stands at 0.99 m
 TOP_LOW_MM = 850.0   # the lowest the top knife goes: the twin takes it over the hood, 2.00 m below its stowed height. Fixed rails cannot guide that far without standing below the car's
@@ -53,6 +61,7 @@ def build(spec: dict) -> Model:
     m = Model('wash_gantry', 'OTTO-WASH',
               'Wash bay frame: origin at the parked car centre on grade, +Y up, X across the bay, +Z north (toward the exit). '
               'Machine at dy = 0, tools retracted.')
+    m.yard_deck_y = 0.0                               # the bay floor: the trench, the pit and the ducts are under it
     m.subsystem('RAILS', 'Floor rails', 'Two steel rails, 3.25 m each side of the car, carry the machine over the parked car.',
                 how=['Anchor plates every metre hold each rail to the slab with concrete screws.', 'The rails stand outside the door opening.',
                      'A stop at each rail end holds a wheel if the machine runs past its travel.'],
@@ -491,13 +500,13 @@ def build(spec: dict) -> Model:
                   .cut(cq.Workplane('XY').box(PED_W - 16, ped_h, PED_W - 16, centered=(True, False, True))))
            .union(cq.Workplane('XY').box(PED_W, 16, PED_W, centered=(True, False, True)).translate((0, ped_h - 16, 0)))
            .cut(cq.Workplane('XZ', origin=(0, ped_h + 1, 0)).circle(118).extrude(18))
-           .cut(cq.Workplane('XY').box(PED_W - 80, 150, 30, centered=(True, False, True)).translate((0, 40, PED_W / 2)))
+           .cut(cq.Workplane('XY').box(30, 150, PED_W - 60, centered=(True, False, True)).translate((-PED_W / 2, 40, 0)))
            .cut(cq.Workplane('XZ', origin=(0, 15, 0)).pushPoints([(sxx * 170, szz * 170) for sxx in (-1, 1) for szz in (-1, 1)])
                 .circle(6.75).extrude(16)))
     ped_pd = m.part(PartDef('WSH-DPD', 'Arm pedestal weldment', ped.val(), 'steel_s355', 'structure', 'EN 1090-2 EXC2',
                             f'{PED_W:.0f} sq x {ped_h:.0f}', 'S355J2, hot-dip galvanised', None,
                             'Lifts the arm to the charge arm\'s own mount height on the carriage. The J1 actuator hangs inside it.',
-                            {'window': 'for the cables, toward the cable chain'}, 'make'))
+                            {'window': 'for the supply lines, in the wall toward the cable chain: the elbow duct enters it'}, 'make'))
     from ..actuator import stack as _stack
     y_sh = 26 + _stack(SIZES[40])['y_drum']               # J1's drum shoulder, base frame
     mpl = (cq.Workplane('XY').box(300, 26, 300, centered=(True, False, True)).translate((0, a_plate_under, 0))
@@ -606,6 +615,8 @@ def build(spec: dict) -> Model:
     dk_link = std.chain_link(DK['ba'], DK['ha'], DK['pitch'], inside=(DK['bi'], DK['hi']))
     n_dk = math.ceil((d_trav + 250 + math.pi * R_dk + 120) / DK['pitch'])
     S_ARM = {'L': None, 'R': None}
+    ARM_CHAIN: dict = {}
+    ARM_ACTS: dict = {}                                  # each arm's 6 actuators (the cable schedule's joint cables)
     for sx, name in ((-1, 'L'), (1, 'R')):
         x0 = sx * XT
         # ── the track, on the slab ──
@@ -671,6 +682,7 @@ def build(spec: dict) -> Model:
         S_side = dict(CA)
         S_side['stowed'] = {'j1': sx * math.pi / 2, 'j2': st_q2, 'j3': st_q3, 'j4': 0.0, 'j5': st_q5, 'j6': 0.0}
         ch = build_chain(m, base_, S_side, A_H, A_LU, A_LF, A_LW, a_radii, a_plate_under, jp=f'DARM_{name}_')
+        ARM_ACTS[name] = ch['acts']
         # ── the polishing head on J6 ──
         tool_ = ch['j6'].child(f'DArmTool{name}', loc(0, 0, 0), sub='POLISH')
         build_ft_sensor(m, tool_, 'POLISH')
@@ -703,7 +715,7 @@ def build(spec: dict) -> Model:
         m.place(bay, m.part(lamp_g2), loc(xs_, y_bt + post_h - 10 - 190, z_cup - 30), (-sx * 120, 0, 100), 'DOCK')
         # ── the carriage's supply: a cable chain on the floor, outboard of the track ──
         x_ch = x0 + sx * 300
-        m.flex(FlexDef(f'WSH-DCH{name}', f'Cable chain, inside {DK["bi"]:g} x {DK["hi"]:g}, R {R_dk:g}', 'chain',
+        ARM_CHAIN[name] = m.flex(FlexDef(f'WSH-DCH{name}', f'Cable chain, inside {DK["bi"]:g} x {DK["hi"]:g}, R {R_dk:g}', 'chain',
                        Anchor(bay, (x_ch, 30.0, z_dock + 250), (0, 0, -1)), Anchor(car_, (x_ch, 30.0 + 2 * R_dk, z_dock), (0, 0, -1)),
                        DK['ha'] / 2, 'TRACK', 'Carries power, network and pure water to the moving carriage. Its bend rolls along with it.',
                        mat='pa66', category='electrical', pitch=DK['pitch'], bend_r=R_dk, links=n_dk, up=(0, 1, 0), w=DK['ba'], h=DK['ha'],
@@ -722,6 +734,35 @@ def build(spec: dict) -> Model:
         m.place(car_, m.part(PartDef(f'WSH-DCA{name}', 'Cable chain carrier arm, stainless', dka.val(), 'ss316', 'structure', 'bent plate',
                                      f'{x_up + 10 - x_f0:.0f} x 80', '316L', None, 'Joins the chain\'s moving end to the carriage.', {}, 'make')),
                 loc(x0, y_cp + CP_T, z_dock), (sx * 80, 60, 0), 'TRACK')
+        # THE CHAIN'S MOVING END, INTO THE PEDESTAL (2026-11-15). Its lines ended at the last link, in the air: nothing took
+        # them on to the arm. A closed stainless elbow duct now does. It fits into the last link, runs on 10 mm, turns the
+        # lines a quarter circle toward the pedestal (the innermost on 4 x 12 mm, fixed; the 5 lines concentric), and
+        # enters the pedestal's window in the wall that faces the chain. In the pedestal the lines rise to J1 (not drawn
+        # one by one, as in the charge arm's riser).
+        y_ue = 30.0 + 2 * R_dk                           # the upper run's centre: the chain's moving end
+        hw_, hh_ = DK['bi'] / 2 + 3.0, DK['hi'] / 2 + 3.0
+        r_in = 4 * max(A_SUP, A_MOT)
+        zb0, zb1 = z_dock + ELB_LEAD + r_in - 6.0 - 3.0, z_dock + ELB_LEAD + r_in + 41.0 + 6.0 + 3.0
+        xi = x0 + sx * (PED_W / 2 - 12.0)                # 12 mm through the pedestal's wall, into its window
+        xa_in = x_ch - sx * hw_                          # box A's inboard wall
+        # its flange: a plate on the pedestal's wall that closes the window round the duct and is bolted to the wall
+        xw0 = x0 + sx * (PED_W / 2)                      # the wall's outer face
+        y_pb = y_cp + CP_T                               # the pedestal's foot
+        elb = (_bx2(x_ch - hw_, x_ch + hw_, y_ue - hh_, y_ue + hh_, z_dock, zb1)
+               .union(_bx2(min(xi, xa_in), max(xi, xa_in), y_ue - hh_, y_ue + hh_, zb0, zb1))
+               .union(_bx2(min(xw0, xw0 + sx * 6.0), max(xw0, xw0 + sx * 6.0), y_pb + 40.0 - 15.0, y_pb + 190.0 + 15.0,
+                           z_dock - (PED_W - 60) / 2 - 15.0, z_dock + (PED_W - 60) / 2 + 15.0))
+               .cut(_bx2(x_ch - hw_ + 3, x_ch + hw_ - 3, y_ue - hh_ + 3, y_ue + hh_ - 3, z_dock - 1, zb1 - 3))
+               .cut(_bx2(min(xi - sx * 1, x_ch), max(xi - sx * 1, x_ch), y_ue - hh_ + 3, y_ue + hh_ - 3, zb0 + 3, zb1 - 3)))
+        for (yy, zz) in ((y_pb + 32.0, z_dock - 125.0), (y_pb + 32.0, z_dock + 125.0), (y_pb + 198.0, z_dock - 125.0), (y_pb + 198.0, z_dock + 125.0)):
+            m.place(car_, std.bhcs(6, 16, 'A4-80', 'Holds the elbow duct\'s flange to the pedestal wall, into a rivet nut.'),
+                    std.orient((xw0 + sx * 6.0, yy, zz), (-sx, 0, 0)), (sx * 140, 80, 60), 'TRACK')
+        m.place(car_, m.part(PartDef(f'WSH-DCX{name}', 'Arm chain elbow duct, stainless, into the pedestal', elb.val(), 'ss316', 'structure',
+                                     'welded sheet 3 mm', f'{2 * hw_:.0f} x {2 * hh_:.0f}, {zb1 - z_dock:.0f} along, {abs(xi - xa_in):.0f} across', '316L', None,
+                                     'Takes the arm chain\'s 5 lines from its last link round into the pedestal\'s window.',
+                                     {'inside': f'the lines turn on {r_in:.0f} mm or more (4 x d, fixed); not drawn one by one',
+                                      'into the pedestal': '12 mm through the window in the wall toward the chain'}, 'make')),
+                Location(), (sx * 120, 80, 60), 'TRACK')
 
     # ═══════════════════════════════════════════════════════════════ DRYERS ═══
     zd = zf(dry_dy)
@@ -771,6 +812,46 @@ def build(spec: dict) -> Model:
         m.place(ds, m.part(PartDef('WSH-DKS', 'Side air knife, stainless', k2.val(), 'ss316', 'tool', 'made to order',
                                    f'{dside["y1"] - dside["y0"]:.0f} tall', '', None, 'Blows the water off one flank.', {}, 'make')),
                 loc(*kc2), (sx * 260, 0, 0), 'DRYER')
+        # THE SIDE KNIFE'S CARRIAGE (2026-11-15). The knife slid on a joint with nothing to slide on: it hung in the air,
+        # held by its own duct (a viewer's contact check found it; the B-rep one counted the duct as its holder). A toothed
+        # belt axis under the beam's bottom deck now carries it: a 60 x 60 profile along the bay, its carriage over the
+        # knife, a hanger tube down the knife's north face, and the axis's servo gearmotor hanging at its outer end. The
+        # axis stands beside the knife's north face, clear of the duct's collar on the beam (south of it).
+        zb = zd + dside['d'] / 2 + 30.0
+        x_o = sx * (abs(x) + dside['w'] / 2 + 120.0)
+        x_i = sx * (abs(x) - (dside['retractX'] - 1200) - dside['w'] / 2 - 150.0)
+        ax_l = abs(x_o - x_i)
+        sax = (cq.Workplane('XY').box(ax_l, 60.0, 60.0).edges('|X').fillet(4.0)
+               .cut(cq.Workplane('XY').box(ax_l + 2, 8.0, 8.0).translate((0, 0, 30.0 - 3.0)))
+               .cut(cq.Workplane('XY').box(ax_l + 2, 8.0, 8.0).translate((0, 0, -30.0 + 3.0))))
+        m.place(gan, m.part(PartDef(f'WSH-SAX{name}', 'Side knife belt axis, 60 x 60 profile, toothed belt', sax.val(), 'al_extr', 'drive',
+                                    'catalogue part', f'60 x 60, {ax_l:.0f} long, stroke {dside["retractX"] - 1200:.0f}', 'IP54', None,
+                                    'Guides the side knife across the bay and drives it by a toothed belt.',
+                                    {'stroke': f'{dside["retractX"] - 1200:.0f} mm', 'guide': 'profile rail inside, recirculating balls'},
+                                    'buy', mass_override=round(0.0062 * ax_l, 1))),
+                loc((x_o + x_i) / 2, beam['y0'] - 30.0, zb), (sx * 120, 160, 0), 'DRYER')
+        sac = cq.Workplane('XY').box(160.0, 25.0, 70.0).edges('|Y').fillet(6.0)
+        m.place(ds, m.part(PartDef('WSH-SAC', 'Side knife axis carriage', sac.val(), 'al6061', 'drive', 'catalogue part', '160 x 70 x 25',
+                                   '', None, 'Runs on the belt axis and carries the knife\'s hanger.', {}, 'buy')),
+                loc(x, beam['y0'] - 60.0 - 12.5, zb), (sx * 120, 120, 0), 'DRYER')
+        y_h0, y_h1 = dside['y1'] - 250.0, beam['y0'] - 85.0
+        sah = (cq.Workplane('XY').box(60.0, y_h1 - y_h0, 60.0).cut(cq.Workplane('XY').box(52.0, y_h1 - y_h0 + 2, 52.0))
+               .translate((0, (y_h0 + y_h1) / 2, 0)))
+        m.place(ds, m.part(PartDef('WSH-SAH', 'Side knife hanger, SHS 60 x 60 x 4, stainless', sah.val(), 'ss316', 'structure', 'EN 10219',
+                                   f'60 x 60 x 4, {y_h1 - y_h0:.0f} long', '1.4404', None,
+                                   'Hangs the side knife from its carriage. Its foot is bolted to the knife\'s north face.', {}, 'make')),
+                loc(x, 0, zb), (sx * 120, 60, 0), 'DRYER')
+        for yy in (y_h0 + 60.0, y_h0 + 190.0):
+            # from inside the tube, through its south wall into a rivet nut in the knife (an access hole opposite, not drawn)
+            m.place(ds, std.bhcs(8, 20, 'A4-80', 'Holds the hanger\'s foot to the side knife, into a rivet nut.'),
+                    std.orient((x, yy, zb - 26.0), (0, 0, -1)), (sx * 120, 60, 40), 'DRYER')
+        sam = (cq.Workplane('XY').box(90.0, 120.0, 90.0).edges('|Y').fillet(8.0)
+               .union(cq.Workplane('XZ', origin=(0, -60.0, 0)).circle(38.0).extrude(110.0)))
+        m.place(gan, m.part(PartDef('WSH-SAM', 'Side knife axis servo gearmotor 0.4 kW, brake, absolute encoder', sam.val(), 'steel_paint',
+                                    'drive', 'catalogue part', '0.4 kW', 'IP66, wash-down', None,
+                                    'Drives the side knife\'s belt axis. Its brake holds the knife where it stops.', {}, 'buy',
+                                    mass_override=6.0)),
+                loc(x_o - sx * 45.0, beam['y0'] - 60.0 - 60.0, zb), (sx * 160, 100, 0), 'DRYER')
         m.place(gan, blow_pd, loc(sx * (legX - 800), beam['y1'] + 14 + 260, zd, ry=0), (sx * 200, 400, 0), 'DRYER')
 
     # ═══════════════════════════════════════════════ fastener sets, by station ═══
@@ -943,7 +1024,7 @@ def build(spec: dict) -> Model:
         z_p = zf(rail['from']) - i * (rl / (n_plates - 1))
         if tz0 + 40 < z_p < tz1 - 40:
             m.place(bay, strap_pd, loc(0, 0, z_p), (-300, 20, 0), 'CONTROL')
-    m.flex(FlexDef('WSH-DCH', f'Drag chain, inside {DC["bi"]:g} x {DC["hi"]:g}, R {R_dc:g}', 'chain',
+    DCH = m.flex(FlexDef('WSH-DCH', f'Drag chain, inside {DC["bi"]:g} x {DC["hi"]:g}, R {R_dc:g}', 'chain',
                    Anchor(bay, (xch, y_lo, z_fix), (0, 0, -1)), Anchor(gan, (xch, y_up, 0), (0, 0, -1)),
                    DC['ha'] / 2, 'CONTROL', 'Brings power, water, chemicals, air and the network to the moving machine. Its bend rolls along '
                    'at half the machine\'s speed.', mat='pa66', category='electrical', pitch=DC['pitch'], bend_r=R_dc, links=n_dc, up=(0, 1, 0),
@@ -1036,7 +1117,9 @@ def build(spec: dict) -> Model:
             L = math.dist(a, b)
             sh = cq.Solid.makeCylinder(CD_R, L, Vector(*a), Vector(b[0] - a[0], b[1] - a[1], b[2] - a[2])).cut(
                 cq.Solid.makeCylinder(CD_R - 1, L, Vector(*a), Vector(b[0] - a[0], b[1] - a[1], b[2] - a[2])))
-            return PartDef(pid, f'Conduit 16 x 1, stainless: {to}', sh, 'ss316', 'electrical', 'EN 61386', 'D 16', '316L', None, fn, {}, 'make')
+            pd = PartDef(pid, f'Conduit 16 x 1, stainless: {to}', sh, 'ss316', 'electrical', 'EN 61386', 'D 16', '316L', None, fn, {}, 'make')
+            pd.path_mm = L
+            return pd
         return std.swept(pid, f'Conduit 16 x 1, stainless: {to}', pts, CD_R, 'ss316', 'electrical', CD_R - 1, fn,
                          {'bend': f'R {CD_BEND:.0f}'}, 'EN 61386', 'D 16', 'make', bend=CD_BEND)
 
@@ -1160,6 +1243,7 @@ def build(spec: dict) -> Model:
         d_pd[tag] = m.part(PartDef(f'WSH-SD{tag}', f'Valve drop tube, {tag} x 1, stainless', cq.Solid.makeCylinder(r, VALVE_Y - 40 - 150, Vector(0, 150, -50), Vector(0, 1, 0))
                                    .cut(cq.Solid.makeCylinder(r - 1, VALVE_Y - 40 - 150, Vector(0, 150, -50), Vector(0, 1, 0))), 'ss316', 'fluid',
                                    'EN 10216-5', f'{tag} x 1, {VALVE_Y - 190:.0f}', '', None, 'Takes one medium from its valve down to the pull box.', {}, 'make'))
+        d_pd[tag].path_mm = VALVE_Y - 190
     for k, x in enumerate(vx):
         tag = '22' if k == 4 else '12'
         m.place(bay, v_pd[tag], loc(x, VALVE_Y, z_w), (0, 0, -200), 'SUPPLY')
@@ -1182,6 +1266,7 @@ def build(spec: dict) -> Model:
                                           f'Conduit drop, trade size {size}, panel to the pull box', sh, 'steel_s355', 'electrical',
                                           'rigid conduit', f'{size} x {y1_ - 150:.0f}', '', None,
                                           'Takes cables from the panel down the wall to the pull box.', {}, 'make'))
+            drop_pd[key].path_mm = y1_ - 150
         m.place(bay, drop_pd[key], loc(x, 0, zdw), (0, 0, -260), 'SUPPLY')
 
     def cast_duct(pid: str, what: str, size: str, pts: list, ods: list) -> None:
@@ -1266,6 +1351,12 @@ def build(spec: dict) -> Model:
                                 'Clamps each line in front of the chain\'s fixed end, so no pull reaches the chain or the duct.',
                                 {'rule': 'strain relief at the fixed end (chain maker\'s filling rule)'}, 'buy')),
             Location(), (-300, -200, 0), 'SUPPLY')
+    # what the drag chain carries, lane by lane, in its link's frame: at the fixed end the link's x runs along -Z (the lower
+    # run leaves south), its y up, so its z runs along +X: a lane lx east of the chain's line lies at w = lx
+    DCH.contents = [{'id': f'WSH-ML{tag}', 'part': f'WSH-ML{tag}', 'name': f'Machine {nm}', 'd': od, 'v': y_ln + od / 2 - y_lo, 'w': lx,
+                     'mat': mat, 'category': cat} for (tag, nm, od, lx, _, mat, cat) in lanes]
+    DCH.wi, DCH.hi, DCH.lead_a, DCH.lead_b = DC['bi'], DC['hi'], 0.0, 8.0
+    check_contents(DCH)
     src = {'W': (xpM - 23.5, y_md), 'A': (xpM - 1, y_md), 'B': (xpM + 16, y_md), 'R': (xpM + 31, y_md),
            'N': (xpN, y_nd), 'P': (xpP, y_md)}           # each line's place in its duct's mouth (the 4 hoses lie side by side in theirs)
     for (tag, nm, od, lx, bend, mat, cat) in lanes:
@@ -1274,6 +1365,7 @@ def build(spec: dict) -> Model:
                        (xch + lx, y_ln + od / 2, tz1 + 150), (xch + lx, y_ln + od / 2, z_fix)], od / 2, mat, cat, 0.0,
                        'Runs from the panel in its duct to the pit, along the tray, through the strain relief and into the chain. '
                        'Drawn from the duct\'s mouth to the chain\'s fixed end.', {'bend': f'R {bend:.0f} or more'}, '', f'OD {od:g}', 'buy', bend=bend)
+        ln.end_in = {'start': {'N': 'WSH-SDN', 'P': 'WSH-SDP'}.get(tag, 'WSH-SDM')}     # it starts in its duct's mouth (line_ends.py)
         m.place(bay, ln, Location(), (-300, -240, 0), 'SUPPLY')
     # ── each detail arm: 3 ducts to a floor box at its chain's fixed end, the end bracket, and the lines into the chain ──
     z_fx = z_dock + 250                                  # the arm chains' fixed end
@@ -1293,6 +1385,14 @@ def build(spec: dict) -> Model:
                             f'{FE_W + 12:.0f} x 52 x 115', '316L', None, 'Holds the arm chain\'s first link on the floor, in front of the floor box.', {}, 'make'))
     a_lanes = (('12', A_SUP, -19.0, 'cable', 'electrical'), ('12', A_MOT, -5.75, 'cable', 'electrical'), ('8', A_24V, 5.5, 'cable', 'electrical'),
                ('7', A_ECT, 14.25, 'cable', 'electrical'), ('6', A_H2O, 22.0, 'hose', 'fluid'))
+    for name, fd_ in ARM_CHAIN.items():
+        fd_.contents = [{'id': f'WSH-DA{name}-{role}', 'part': f'WSH-DL{tag}', 'name': f'{"West" if name == "R" else "East"} arm {what}',
+                         'd': od, 'v': -DK['hi'] / 2 + 0.5 + od / 2, 'w': lx, 'mat': mat, 'category': cat}
+                        for (tag, od, lx, mat, cat), (role, what) in zip(a_lanes, (('SUP', 'supply cable 12 mm'), ('MOT', 'track motor cable 12 mm'),
+                                                                                   ('24V', '24 V cable 8 mm'), ('ECT', 'network cable 7 mm'),
+                                                                                   ('H2O', 'pure-water tube 6 mm')))]
+        fd_.wi, fd_.hi, fd_.lead_a, fd_.lead_b = DK['bi'], DK['hi'], 0.0, ELB_LEAD
+        check_contents(fd_)
     al_pd = {}
     for (tag, od, _, mat, cat) in a_lanes:
         if tag not in al_pd:
@@ -1300,6 +1400,7 @@ def build(spec: dict) -> Model:
                                         mat, cat, '', f'OD {od:g}', '', None,
                                         'Runs from the cabinet on the wall in its duct to the floor box, and from the box into the chain. '
                                         'Drawn from the box to the chain\'s fixed end.', {}, 'buy'))
+            al_pd[tag].path_mm = z_b0 - z_fx
     for sx, name in ((-1, 'L'), (1, 'R')):
         x_c = sx * (XT + 300)                            # the arm chain's line
         m.place(bay, jb_pd, loc(x_c, 0, z_b0), (sx * 200, 0, 200), 'SUPPLY')
@@ -1325,4 +1426,165 @@ def build(spec: dict) -> Model:
             x_1 = x_c + dxx
             cast_duct(f'WSH-SD{name}{dict(power="P", data="D").get(what, "W")}', f'{"west" if sx > 0 else "east"} arm {what}', size,
                       [(x_w, 0, zdw), (x_w, y_d, zdw), (x_w, y_d, z_l), (x_1, y_d, z_l), (x_1, y_d, z_up), (x_1, 0, z_up)], ods)
+    # ════════════════════════════════════════════════════════════ CABLE SCHEDULE ═══
+    _cable_schedule(m, locals())
     return m
+
+
+TAIL_CAB = 500.0     # inside a cabinet or the pull box, from its gland to the terminal (ASSUMPTION)
+TAIL_DEV = 300.0     # into a motor's or a device's terminal box (ASSUMPTION)
+
+
+def _cable_schedule(m: Model, g: dict) -> None:
+    """The wash machine's cable schedule (cables.py): the machine's 6 supply lines from the wall to the cabinet and the
+    media duct, the stainless tubes on to the valves, each consumer's cable from the cabinet along the trunk, the 2 detail
+    arms' lines from their drive cabinet and their joint cables, and the docks' feeds."""
+    from .charge_arm import joint_cables
+    from ..cables import bent_length, chain_mm
+    P, fx = m.parts, {f.id: f for f in m.flexes}
+    cab_tail = f'{TAIL_CAB:.0f} mm inside the cabinet or box, from its gland to the terminal (ASSUMPTION)'
+    dev_tail = f'{TAIL_DEV:.0f} mm into the device\'s terminal box (ASSUMPTION)'
+
+    def route(points, R):
+        try:
+            L, r = bent_length(points, R)
+            return L, (None if r == math.inf else r)
+        except ValueError:
+            return bent_length(points, 0.0)[0], None
+    # ── the machine's supply: wall -> pull box -> slab duct -> pit -> tray -> drag chain -> carrier arm -> conduit / media duct
+    DCH, yT, x_tw = fx['WSH-DCH'], g['yT'], g['x_tw']
+    xch, y_up, y_arm, x_cd = g['xch'], g['y_up'], g['y_arm'], g['x_tw'] - 45
+    def drop_id(size: str, iso: bool = False) -> str:          # a conduit drop from the panel to the pull box
+        return f'WSH-SDC{size.replace("/", "").replace("-", "")}{"I" if iso else ""}'
+    src = {'N': ('the bay\'s network switch in the detail arm drive cabinet (WSH-DAC)', 'WSH-SDN', drop_id(g['sz_n'])),
+           'P': ('the bay isolator (WSH-SIS)', 'WSH-SDP', drop_id(g['sz_p'], True)),
+           'W': ('its shut-off valve at the wall (WSH-SBV22)', 'WSH-SDM', 'WSH-SD22'),
+           'A': ('its shut-off valve at the wall (WSH-SBV12)', 'WSH-SDM', 'WSH-SD12'),
+           'B': ('its shut-off valve at the wall (WSH-SBV12)', 'WSH-SDM', 'WSH-SD12'),
+           'R': ('its shut-off valve at the wall (WSH-SBV12)', 'WSH-SDM', 'WSH-SD12')}
+    for (tag, nm, od, lx, bend, mat, cat) in g['lanes']:
+        lid = f'WSH-ML{tag}'
+        fluid = cat == 'fluid'
+        frm, duct, drop = src[tag]
+        kind = {'N': 'network', 'P': 'power', 'R': 'air'}.get(tag, 'water' if tag == 'W' else 'chemical')
+        to = ('the control cabinet (WSH-CAB)' if tag in 'NP' else f'its coupling to the stainless {nm.split()[0]} tube at the media duct\'s foot')
+        L = m.cable(lid, f'Machine {nm}, wall to the machine', kind, od, 'the chain\'s own line (cad wash_gantry, lanes)', frm, to, 'CONTROL',
+                    bend_fixed=bend, bend_moving=bend, tail_a=TAIL_CAB if not fluid else 0.0, tail_b=TAIL_CAB if tag in 'NP' else 0.0,
+                    tails=cab_tail if not fluid else 'the valve\'s and the coupling\'s fittings take its ends')
+        if tag in 'NP':
+            L.run('conduit', drop, f'down the wall from {"the isolator" if tag == "P" else "the cabinet"} in its conduit to the pull box', P[drop].path_mm)
+        else:
+            L.run('conduit', drop, 'down the wall from its valve, in its stainless drop tube, to the pull box', P[drop].path_mm)
+        L.run('site', 'WSH-SPB', 'across the pull box to its duct', 150.0, tol=75.0)
+        L.run('conduit', duct, 'in its duct cast into the slab, from the pull box to the supply pit', P[duct].path_mm)
+        L.run('drawn', lid, 'from the duct\'s mouth across the pit, along the tray and through the strain relief into the chain', P[lid].path_mm, bend=bend)
+        mm, rb = chain_mm(DCH, lid)
+        L.run('chain', 'WSH-DCH', 'in the drag chain, in its own lane', mm, bend=rb, moving=True)
+        v = next(c['v'] for c in DCH.contents if c['id'] == lid)
+        x_dest, z_dest = (x_cd, 90.0) if tag in 'NP' else (g['MR_X'], g['MR_Z'])
+        pts = [(xch + lx, y_up - v, 0.0), (xch + lx, y_up - v, 90.0), (xch + lx, y_arm + 30, 90.0), (x_dest, y_arm + 30, z_dest), (x_dest, y_arm + 60, z_dest)]
+        mm, rb = route(pts, bend)
+        L.run('duct', 'WSH-DCD', 'up the chain\'s driver duct and along the carrier arm (WSH-DCB) to its conduit' if tag in 'NP'
+              else 'up the chain\'s driver duct and along the carrier arm (WSH-DCB) to the media duct\'s foot', mm, tol=27.0 + 77.0, bend=rb)
+        if tag in 'NP':
+            L.run('conduit', 'WSH-DCC', 'in the 60 mm conduit up the leg to the cabinet\'s floor', P['WSH-DCC'].path_mm, bend=300.0)
+    # the stainless tubes in the media duct: from the couplings at its foot to the valve manifold (the air to its coupling)
+    MR_X, MR_Z, MD_H, z_ml, x_me = g['MR_X'], g['MR_Z'], g['MD_H'], g['z_ml'], g['x_me']
+    md_pts = [(MR_X, y_arm + 60, MR_Z), (MR_X, yT + MD_H / 2, MR_Z), (MR_X, yT + MD_H / 2, z_ml), (x_me, yT + MD_H / 2, z_ml)]
+    md_mm = bent_length(md_pts, 0.0)[0]
+    for (tid, nm, od, to) in (('WSH-MTW', 'Water tube 22 x 1, stainless', 22.0, 'the valve manifold\'s water inlet (WSH-MAN)'),
+                              ('WSH-MTA', 'Chemical A tube 12 x 1, stainless', 12.0, 'the valve manifold\'s chemical A inlet (WSH-MAN)'),
+                              ('WSH-MTB', 'Chemical B tube 12 x 1, stainless', 12.0, 'the valve manifold\'s chemical B inlet (WSH-MAN)'),
+                              ('WSH-MTR', 'Air tube 12 x 1, stainless', 12.0, 'the air service coupling on the beam (WSH-APT)')):
+        L = m.cable(tid, nm, 'air' if 'Air' in nm else 'water' if 'Water' in nm else 'chemical', od, 'EN 10216-5 (the media duct\'s spec)',
+                    'its coupling to the chain\'s hose at the media duct\'s foot', to, 'CONTROL')
+        L.run('duct', 'WSH-MRD', 'in the closed media duct: up the leg, through the beam and along its top', md_mm, tol=2 * (MD_H - 4) / 2)
+        if tid == 'WSH-MTR':
+            L.run('duct', 'WSH-MRD', 'on along the beam to the coupling', 120.0)
+        L.notes.append('Bent on site in the duct: its bends are the duct\'s corners.')
+    # ── each consumer's cable: from the cabinet up the trunk and along the beam, then in its own conduit ──
+    TK_X, TK_Z, TK, zL = g['TK_X'], g['TK_Z'], g['TK'], g['zL']
+    trunk0 = bent_length([(TK_X, 2100.0, TK_Z), (TK_X, yT + TK / 2, TK_Z), (TK_X, yT + TK / 2, zL)], 0.0)[0]
+    cons = [('WSH-ECL', None, 'the east travel motor', -g['GM_PX'], 'TRAVEL'), ('WSH-ECV', None, 'the valve manifold\'s 4 valves (one 8-core cable)', -300.0, 'ARCH'),
+            ('WSH-ECN', None, 'the status beacon', -1722.0, 'CONTROL'), ('WSH-ECS', None, 'the stop light', g['light']['x'], 'CONTROL')]
+    for bx in (-900, -(g['legX'] - 800), g['legX'] - 800):
+        cons.append(('WSH-ECB', f'{bx + 380:.0f}', 'a blower motor', bx + 380, 'DRYER'))
+    for sx in (-1, 1):
+        cons.append(('WSH-ECK', f'{sx * (KH_X - 130):.0f}', 'a top knife lift motor', sx * (KH_X - 130), 'DRYER'))
+    n_by = {}
+    for (cid, key, what, x_c, sub) in cons:
+        n_by[cid] = n_by.get(cid, 0) + 1
+        lid = f'{cid}C{n_by[cid]}' if key is not None else f'{cid}C'
+        L = m.cable(lid, f'Cable to {what}, 10 mm' + (f' (at x = {key} mm)' if key else ''), 'power', 10.0,
+                    'one cable of 10 mm or less a conduit (the conduits\' fill rule)', 'the control cabinet (WSH-CAB)', what, sub,
+                    bend_fixed=g['CD_BEND'], tail_a=TAIL_CAB, tail_b=TAIL_DEV, tails=f'{cab_tail}; {dev_tail}')
+        L.run('duct', 'WSH-ETK', 'up the cable trunk from the cabinet\'s top, through the beam and along its top', trunk0 + abs(TK_X - x_c),
+              tol=2 * (TK - 4) / 2)
+        L.run('conduit', cid, f'in its 16 mm conduit to {what}', P[cid].path_mm, bend=g['CD_BEND'])
+    L = m.cable('WSH-ECRC', 'Cable to the west travel motor, 10 mm', 'power', 10.0, 'one cable of 10 mm or less a conduit (the conduits\' fill rule)',
+                'the control cabinet (WSH-CAB)', 'the west travel motor', 'TRAVEL', bend_fixed=g['CD_BEND'], tail_a=TAIL_CAB, tail_b=TAIL_DEV,
+                tails=f'{cab_tail}; {dev_tail}')
+    L.run('conduit', 'WSH-ECR', 'down from the cabinet\'s floor in its 16 mm conduit to the motor', P['WSH-ECR'].path_mm)
+    # the side knives' axis gearmotors (added 2026-11-15): their cables' last piece is not yet designed
+    for sx, name in ((-1, 'L'), (1, 'R')):
+        x_m = sx * (g['dside']['retractX'] + g['dside']['w'] / 2 + g['dside']['w'] / 2 + 120.0) - sx * 45.0
+        L = m.cable(f'WSH-SAMC{name}', f'Cable to the {"east" if sx < 0 else "west"} side knife\'s axis gearmotor, 10 mm', 'power', 10.0,
+                    'servo cable: motor, brake and encoder (ASSUMPTION: one cable of 10 mm)', 'the control cabinet (WSH-CAB)',
+                    f'the side knife axis gearmotor (WSH-SAM), {"east" if sx < 0 else "west"}', 'DRYER', tail_a=TAIL_CAB, tail_b=TAIL_DEV,
+                    tails=f'{cab_tail}; {dev_tail}')
+        L.run('duct', 'WSH-ETK', 'up the cable trunk from the cabinet\'s top and along the beam\'s top', trunk0 + abs(TK_X - x_m), tol=2 * (TK - 4) / 2)
+        drop = abs((yT + TK / 2) - (g['beam']['y0'] - 120.0)) + abs(zL - g['zb'])
+        L.run('site', '', 'from the trunk down through the beam to the gearmotor: straight, not drawn', drop, tol=0.25 * drop)
+        L.open.append('Not designed yet: the conduit from the trunk to this gearmotor. The motor hangs under the belt axis at its '
+                      'outer end, so its cable needs a sleeve through the beam\'s decks and an entry in its side.')
+    # ── each detail arm: its lines from the drive cabinet on the wall to the arm, and its joint cables ──
+    a_role = {'SUP': ('supply cable 12 mm', 'power', 'P', 0), 'MOT': ('track motor cable 12 mm', 'power', 'P', 1), '24V': ('24 V cable 8 mm', 'control', 'P', 2),
+              'ECT': ('network cable 7 mm', 'network', 'D', 3), 'H2O': ('pure-water tube 6 mm', 'water', 'W', 4)}
+    for sx, name in ((-1, 'L'), (1, 'R')):
+        fdk = fx[f'WSH-DCH{name}']
+        side = 'west' if sx > 0 else 'east'
+        for c in fdk.contents:
+            role = c['id'].rsplit('-', 1)[1]
+            what, kind, dch, _ = a_role[role]
+            od = c['d']
+            duct = f'WSH-SD{name}{dch}'
+            to, tail_b, basis = {
+                'SUP': (f'the {side} arm\'s J1 actuator, its gland in the pedestal\'s top', DARM_MOUNT,
+                        f'{DARM_MOUNT:.0f} mm up the pedestal to J1\'s gland: at most the mount\'s height above the floor (ASSUMPTION)'),
+                'MOT': (f'the {side} arm\'s track gearmotor on its carriage', TAIL_DEV, dev_tail),
+                '24V': (f'the {side} arm\'s J1 actuator, beside the supply cable', DARM_MOUNT,
+                        f'{DARM_MOUNT:.0f} mm up the pedestal to J1: at most the mount\'s height above the floor (ASSUMPTION)'),
+                'ECT': (f'the {side} arm\'s J1 actuator, beside the supply cable', DARM_MOUNT,
+                        f'{DARM_MOUNT:.0f} mm up the pedestal to J1: at most the mount\'s height above the floor (ASSUMPTION)'),
+                'H2O': (f'the {side} arm\'s carriage, in its pedestal', 0.0, '')}[role]
+            L = m.cable(c['id'], f'{side.capitalize()} arm {what}', kind, od, 'the arm chain\'s own line (cad wash_gantry, a_lanes)',
+                        'the detail arm drive cabinet (WSH-DAC)' if role != 'H2O' else 'the pure water\'s shut-off valve at the wall (WSH-SBV12)',
+                        to, 'SUPPLY', bend_fixed=4 * od, bend_moving=7.5 * od,
+                        tail_a=TAIL_CAB if role != 'H2O' else 0.0, tail_b=tail_b,
+                        tails=f'{cab_tail}; {basis}' if role != 'H2O' else 'its fittings take its ends')
+            if role == 'H2O':
+                L.open.append('It feeds the mist nozzle beside the pad on the polishing head (a flat-fan nozzle, NOZ-fan) and the dock\'s rinse tube, but no route '
+                              'up the arm to the nozzle is drawn: the schedule ends it in the pedestal.')
+            drop = 'WSH-SD12' if role == 'H2O' else drop_id(g['sz_ap'] if dch == 'P' else g['sz_ad'])
+            L.run('conduit', drop, 'down the wall from its valve in its drop tube' if role == 'H2O' else 'down the wall from the cabinet in its conduit', P[drop].path_mm)
+            L.run('site', 'WSH-SPB', 'across the pull box to its duct', 150.0, tol=75.0)
+            L.run('conduit', duct, f'in the {side} arm\'s {dict(P="power", D="data", W="pure water")[dch]} duct cast into the slab, to the floor box',
+                  P[duct].path_mm)
+            L.run('drawn', c['part'], 'from the floor box (WSH-DJB) through its gland into the chain', P[c['part']].path_mm)
+            mm, rb = chain_mm(fdk, c['id'])
+            L.run('chain', fdk.id, 'in the arm\'s cable chain, in its own lane', mm, bend=rb, moving=True)
+            L.run('duct', f'WSH-DCX{name}', 'through the elbow duct into the pedestal', ELB_LEAD + 150.0, tol=50.0)
+        joint_cables(m, g['ARM_ACTS'][name], f'WSH-JC{name}', 4.0, None, f' ({side} arm)')
+        # the dock's feed: the exit signal's cable and the pad rinse tube, from the floor box up the dock post
+        for (lid, nm, kind, od, to) in ((f'WSH-DKS{name}', 'exit signal cable 7 mm', 'control', 7.0, f'the {side} dock\'s exit signal (WSH-DCKS)'),
+                                        (f'WSH-DKR{name}', 'pad rinse tube 6 mm', 'water', 6.0, f'the {side} dock\'s rinse nozzle in its cup (WSH-DCKC)')):
+            L = m.cable(lid, f'{side.capitalize()} dock {nm}', kind, od, 'ASSUMPTION: of its kind',
+                        'the detail arm drive cabinet (WSH-DAC)' if kind == 'control' else 'a tee on the arm\'s pure-water tube in the floor box (ASSUMPTION)',
+                        to, 'DOCK', tail_b=TAIL_DEV, tails=dev_tail)
+            if kind == 'control':
+                L.run('conduit', drop_id(g['sz_ad']), 'down the wall from the cabinet in its conduit', P[drop_id(g['sz_ad'])].path_mm)
+                L.run('site', 'WSH-SPB', 'across the pull box to its duct', 150.0, tol=75.0)
+                L.run('conduit', f'WSH-SD{name}D', f'in the {side} arm\'s data duct to the floor box', P[f'WSH-SD{name}D'].path_mm)
+            L.run('conduit', f'WSH-DKF{name}', 'in the dock feed conduit from the floor box into the track beam under the dock post', P[f'WSH-DKF{name}'].path_mm)
+            L.run('site', '', 'up inside the dock post to its device: not drawn', 600.0, tol=300.0)
+            L.open.append('Its run up inside the dock post is not drawn.')

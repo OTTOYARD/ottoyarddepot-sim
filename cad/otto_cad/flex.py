@@ -96,6 +96,16 @@ class FlexDef:
     links: int = 0                               # chain: number of links
     up: tuple[float, float, float] = (0.0, 1.0, 0.0)   # chain: the bend's side, in A's node frame
     link_part: object = None                     # chain: the link's PartDef
+    # chain: the lines it carries, each in its own lane, as dicts {'id', 'part', 'name', 'd', 'v', 'w', 'mat', 'category'}:
+    # 'd' the line's diameter, 'v' and 'w' its centre in the link's frame (mm: v across the link's height, along the
+    # bend's in-plane normal; w across its width), 'part' the bill-of-materials part of the fixed run that feeds it, if
+    # any. A line at v bends on bend_r - v, so its length through the chain is links x pitch - pi x v at every pose.
+    contents: list = field(default_factory=list)
+    wi: float = 0.0                              # chain: its inside width and height (the clear space its lines lie in), mm
+    hi: float = 0.0
+    lead_a: float = 0.0                          # chain: how far its lines run on past each end into what holds it, mm.
+    lead_b: float = 0.0                          # loop: how far it runs straight from each end before it may bend (a boot
+                                                 # in a fitting's collar), mm; part of its length
     kg_per_m: float = 0.0
     standard: str = ''
     size: str = ''
@@ -342,10 +352,17 @@ def solve(fd: FlexDef, frames: dict[int, np.ndarray]) -> dict:
         if fd.swivel_b > 0:
             tB = turn_toward(tB, _shared(ch, fd.pair_b, pB, frames, before=False), fd.swivel_b)
         L = loop_length(fd, cn)
+        # a lead: the line runs straight out of what holds it that far (a boot in its fitting's collar), and bends only
+        # past it. The loop is solved between the 2 leads' ends with what is left of its length.
+        la, lb = fd.lead_a, fd.lead_b
+        qA, qB = pA + tA * la, pB - tB * lb
         if fd.shape == 'cubic':
-            r = solve_cubic(pA, tA, pB, tB, L, fd.sag)
+            r = solve_cubic(qA, tA, qB, tB, L - la - lb, fd.sag)
         else:
-            r = solve_loop(pA, tA, pB, tB, bulge_dir(fd, frames), L, fd.hk)
+            r = solve_loop(qA, tA, qB, tB, bulge_dir(fd, frames), L - la - lb, fd.hk)
+        if la > 0 or lb > 0:
+            r['points'] = np.vstack([p for p in ([pA] if la > 0 else []) + [r['points']] + ([pB] if lb > 0 else [])])
+            r['chord'] = float(np.linalg.norm(qB - qA)) + la + lb     # so length - chord is the slack the bent part has
         r['length'] = L
         r['tA'], r['tB'] = tA, tB
         r['minRadius'] = min_radius(r['points']) if not r['tight'] else 0.0
@@ -498,6 +515,8 @@ def to_extras(fd: FlexDef, mm: float = 1e-3) -> dict:
                 e[key] = {'node': pr.node.name, 'p': [round(c * mm, 6) for c in pr.p], 'd': [round(c, 6) for c in pr.d]}
         if fd.shape == 'cubic':
             e.update({'shape': 'cubic', 'sag': fd.sag})
+        if fd.lead_a > 0 or fd.lead_b > 0:
+            e.update({'leadA': round(fd.lead_a * mm, 6), 'leadB': round(fd.lead_b * mm, 6)})
         e.update({'length': round(fd.length * mm, 6), 'minBend': round(fd.min_bend * mm, 6), 'hk': fd.hk,
                   'bulge': {'g': wg, 'a': [round(c, 6) for c in ua], 'b': [round(c, 6) for c in ub]}})
     elif fd.kind == 'stretch':
@@ -510,7 +529,39 @@ def to_extras(fd: FlexDef, mm: float = 1e-3) -> dict:
         e.update({'pitch': round(fd.pitch * mm, 6), 'bendR': round(fd.bend_r * mm, 6), 'links': fd.links,
                   'w': round(fd.w * mm, 6), 'h': round(fd.h * mm, 6), 'up': [round(c, 6) for c in fd.up],
                   'linkPart': fd.link_part.id})
+        if fd.contents:
+            out = []
+            for c in fd.contents:
+                cm = material(c['mat'])
+                out.append({'id': c['id'], 'part': c.get('part', ''), 'name': c['name'], 'd': round(c['d'] * mm, 6),
+                            'v': round(c['v'] * mm, 6), 'w': round(c['w'] * mm, 6),
+                            'length': round(content_length(fd, c) * mm, 6),
+                            'material': {'key': cm.key, 'color': cm.color, 'metal': cm.metal, 'rough': cm.rough}})
+            e.update({'contents': out, 'leadA': round(fd.lead_a * mm, 6), 'leadB': round(fd.lead_b * mm, 6)})
     return e
+
+
+def content_length(fd: FlexDef, c: dict) -> float:
+    """A chain's line, its length through the chain (mm), the same at every pose: the straight runs are the chain's own,
+    and its bend has the radius bend_r - v."""
+    return fd.links * fd.pitch - math.pi * c['v']
+
+
+def check_contents(fd: FlexDef) -> None:
+    """A chain's lines must lie inside its links' clear space (wi x hi), each in its own lane."""
+    if not fd.contents:
+        return
+    if fd.wi <= 0 or fd.hi <= 0:
+        raise ValueError(f'{fd.id}: a chain with lines in it needs its inside (wi, hi)')
+    for i, c in enumerate(fd.contents):
+        if c['d'] <= 0:
+            raise ValueError(f"{fd.id}: line {c['id']} has no diameter")
+        if abs(c['w']) + c['d'] / 2 > fd.wi / 2 + 0.5 or abs(c['v']) + c['d'] / 2 > fd.hi / 2 + 0.5:
+            raise ValueError(f"{fd.id}: line {c['id']} lies outside the chain's {fd.wi:g} x {fd.hi:g} mm inside")
+        for c2 in fd.contents[i + 1:]:
+            gap = math.hypot(c['v'] - c2['v'], c['w'] - c2['w']) - (c['d'] + c2['d']) / 2
+            if gap < -1e-6:
+                raise ValueError(f"{fd.id}: lines {c['id']} and {c2['id']} overlap by {-gap:.1f} mm in the chain")
 
 
 def check(flexes: list[FlexDef], root, poses: list[dict]) -> dict:

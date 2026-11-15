@@ -13,6 +13,7 @@
  */
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { takeFlexLinks } from './cadDepot';
 
 export interface CadJointInfo {
   name: string;
@@ -84,6 +85,7 @@ export function indexCad(root: THREE.Object3D): CadModel {
 
 export async function loadCad(url: string): Promise<CadModel> {
   const gltf = await new GLTFLoader().loadAsync(url);
+  takeFlexLinks(gltf.scene);
   return indexCad(gltf.scene);
 }
 

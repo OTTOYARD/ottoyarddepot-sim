@@ -52,6 +52,10 @@ def build_one(key: str, spec: dict) -> dict:
     t0 = time.time()
     model = mod.build(spec)
     t_model = time.time() - t0
+    pp_path = os.path.join(HERE, 'spec', 'poses.json')
+    poses = [{'id': 'stowed', 'angles': {}}] + (json.load(open(pp_path))['robots'].get(key, []) if os.path.exists(pp_path) else [])
+    from otto_cad.cables import finish as finish_cables, to_csv as cables_csv
+    cable_rows = finish_cables(model, poses)          # before the bill of materials: its parts name the lines they are in
     bom = model.bom()
     os.makedirs(OUT, exist_ok=True)
     glb_path = os.path.join(OUT, f'{key}.glb')
@@ -75,15 +79,22 @@ def build_one(key: str, spec: dict) -> dict:
     os.remove(step_tmp)
     # the depot model: what the yard draws (last: it re-meshes the shapes coarsely)
     depot_path = os.path.join(OUT, f'{key}.depot.glb')
-    dstats = write_glb(model, depot_path, {'specVersion': spec['version'], 'lod': 'depot'}, depot=True)   # carries the lines too
+    dstats = write_glb(model, depot_path, {'specVersion': spec['version'], 'lod': 'depot'}, lod='depot')   # carries the lines too
     with open(depot_path, 'rb') as f:
         depot_digest = hashlib.sha256(f.read()).hexdigest()[:16]
+    # the detail model: what the yard draws near the camera, every visible part as the Robotics tab draws it
+    near_path = os.path.join(OUT, f'{key}.near.glb')
+    nstats = write_glb(model, near_path, {'specVersion': spec['version'], 'lod': 'near'}, lod='near')
+    with open(near_path, 'rb') as f:
+        near_digest = hashlib.sha256(f.read()).hexdigest()[:16]
     placed = sum(l['qty'] for l in bom['lines'])
     if chk['invalid'] or chk['namedParts'] != placed:
         raise SystemExit(f'{key}: STEP check failed: {chk} against {placed} placed parts')
     write_json(os.path.join(OUT, f'{key}.bom.json'), bom)
     with open(os.path.join(OUT, f'{key}.bom.csv'), 'w', newline='') as f:
         f.write(model.bom_csv())
+    with open(os.path.join(OUT, f'{key}.cables.csv'), 'w', newline='') as f:
+        f.write(cables_csv(cable_rows))
     with open(glb_path, 'rb') as f:
         digest = hashlib.sha256(f.read()).hexdigest()[:16]
     print(f'{key}: {bom["totals"]["parts"]} parts ({bom["totals"]["uniqueParts"]} unique, '
@@ -91,14 +102,19 @@ def build_one(key: str, spec: dict) -> dict:
           f'GLB {stats["bytes"] / 1e6:.2f} MB, {stats["triangles"]} tris; STEP {step_bytes / 1e6:.1f} MB '
           f'({os.path.getsize(zpath) / 1e6:.2f} MB zipped, re-imported: {chk["namedParts"]} parts, {chk["solids"]} solids, '
           f'{chk["invalid"]} invalid); depot GLB {dstats["bytes"] / 1e6:.2f} MB, {dstats["triangles"]} tris; '
+          f'near GLB {nstats["bytes"] / 1e6:.2f} MB, {nstats["triangles"]} tris; '
           f'{time.time() - t0:.0f} s (model {t_model:.0f} s)')
     return {
         'key': key, 'title': model.title, 'frame': model.frame,
         'files': {'glb': f'{key}.glb', 'step': f'{key}.step.zip', 'bom': f'{key}.bom.json', 'csv': f'{key}.bom.csv',
-                  'depot': f'{key}.depot.glb'},
-        'bytes': {'glb': stats['bytes'], 'stepZip': os.path.getsize(zpath), 'step': step_bytes, 'depot': dstats['bytes']},
+                  'depot': f'{key}.depot.glb', 'near': f'{key}.near.glb', 'cables': f'{key}.cables.csv'},
+        'cables': {'lines': len(cable_rows), 'routeM': round(sum(r['routeMm'] for r in cable_rows) / 1000, 1),
+                   'orderM': round(sum(r['orderMm'] for r in cable_rows) / 1000, 1)},
+        'bytes': {'glb': stats['bytes'], 'stepZip': os.path.getsize(zpath), 'step': step_bytes, 'depot': dstats['bytes'],
+                  'near': nstats['bytes']},
         'mesh': {k: stats[k] for k in ('vertices', 'triangles', 'meshes', 'nodes')},
         'depotMesh': {k: dstats[k] for k in ('vertices', 'triangles', 'meshes', 'nodes')}, 'depotSha256': depot_digest,
+        'nearMesh': {k: nstats[k] for k in ('vertices', 'triangles', 'meshes', 'nodes')}, 'nearSha256': near_digest,
         'totals': bom['totals'], 'glbSha256': digest, 'stepCheck': chk,
         'subsystems': [{'id': s['id'], 'name': s['name']} for s in bom['subsystems']],
     }

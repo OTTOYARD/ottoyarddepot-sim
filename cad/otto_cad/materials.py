@@ -49,6 +49,8 @@ _M = [
     Material('cable', 'Cable, TPE jacket', 1500, '#14161a', 0.05, 0.75),
     Material('hose', 'Hose, PVC with steel helix', 1300, '#2b3036', 0.05, 0.6),
     Material('accent', 'Aluminium, OTTOYARD red powder coat', 2700, '#c8102e', 0.35, 0.45),
+    Material('pa66_yellow', 'PA66-GF30, safety yellow', 1350, '#f2c200', 0.05, 0.5),
+    Material('pa66_red', 'PA66, signal red', 1350, '#d4141e', 0.05, 0.4),
     Material('led', 'LED module, PC diffuser', 1200, '#00e5ff', 0.1, 0.35, '#00e5ff'),
     Material('led_red', 'LED module, red', 1200, '#ff2d2d', 0.1, 0.35, '#ff2020'),
     Material('led_green', 'LED module, green', 1200, '#2dff6a', 0.1, 0.35, '#20ff60'),

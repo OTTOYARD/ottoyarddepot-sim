@@ -253,11 +253,15 @@ def build_actuator(m: Model, fixed: Node, moving: Node, size: int, T_joint: Loca
     jl = prefix.split('-')[-1]          # 'CHG-J2' -> 'J2': the id keeps the robot, the name says the joint
     E = explode_out
 
-    def put(node, T, pd, at, ex):
-        m.place(node, pd, T * at, _rot(T, tuple(c * E for c in ex)), sub)
+    def put(node, T, pd, at, ex, sealed=False):
+        it = m.place(node, pd, T * at, _rot(T, tuple(c * E for c in ex)), sub)
+        it.sealed = sealed
+        return it
 
-    fix = lambda pd, at=Location(), ex=(0, 0, 0): put(fixed, Tf, pd, at, ex)   # noqa: E731
-    mov = lambda pd, at=Location(), ex=(0, 0, 0): put(moving, T_mod, pd, at, ex)  # noqa: E731
+    # sealed=True: inside the housing, behind the clamp ring, the output flange and the rear cover, so no line of sight
+    # reaches it on the assembled arm (core.Item.sealed; the yard's detail model leaves it out, cadDetail.test.ts proves it)
+    fix = lambda pd, at=Location(), ex=(0, 0, 0), sealed=False: put(fixed, Tf, pd, at, ex, sealed)   # noqa: E731
+    mov = lambda pd, at=Location(), ex=(0, 0, 0), sealed=False: put(moving, T_mod, pd, at, ex, sealed)  # noqa: E731
 
     # ── housing (fixed) ─────────────────────────────────────────────────────────
     hsg = m.part(PartDef(f'{prefix}-HSG', f'{jl} actuator housing', _housing(s, st), 'a356_dark',
@@ -267,7 +271,7 @@ def build_actuator(m: Model, fixed: Node, moving: Node, size: int, T_joint: Loca
                          depot=_ring(st['y_front'], st['y_g'] - 4, s.od / 2).union(_ring(st['y_g'] - 4, st['y_back'], st['r_bell']))))
     fix(hsg)
     # ── cross-roller bearing (outer ring fixed) and the ring that clamps it ────
-    fix(std.cross_roller(xd, xD, xB), loc(0, -s.of_t - xB / 2, 0), (0, 70, 0))
+    fix(std.cross_roller(xd, xD, xB), loc(0, -s.of_t - xB / 2, 0), (0, 70, 0), sealed=True)
     cr = m.part(PartDef(f'{prefix}-XCR', f'{jl} bearing clamp ring', _clamp_ring(s), 'al6061', 'structure', 'machined',
                         f'OD {s.od:g}', '6061-T6', None, 'Clamps the bearing outer ring to the housing. The output seal sits in its bore.',
                         {}, 'make', depot=_ring(-s.of_t + 4, -s.of_t - xB, s.od / 2, xD / 2 - 6)))
@@ -282,26 +286,26 @@ def build_actuator(m: Model, fixed: Node, moving: Node, size: int, T_joint: Loca
         loc(0, -s.of_t, 0), (0, 50, 0))
     cs_or = 2.5 if size >= 32 else 2.0
     fix(std.oring(round(xD - 8 - cs_or), cs_or, 'Seals the bearing outer ring to the housing face.'),
-        loc(0, st['y_front'] - 1.9 + cs_or / 2, 0), (0, 40, 0))
+        loc(0, st['y_front'] - 1.9 + cs_or / 2, 0), (0, 40, 0), sealed=True)
     # ── circular spline (fixed) + screws ─────────────────────────────────────────
     cs, fs, wg = std.strain_wave(size, bore=sd)
-    fix(cs, loc(0, st['teeth'], 0), (0, -40, 0))
+    fix(cs, loc(0, st['teeth'], 0), (0, -40, 0), sealed=True)
     csb = std.shcs(g['cs_bolt'], _std_len(g['cs_w'] + 1.2 * g['cs_bolt'], g['cs_w'] + sB + 3), '12.9',
                    'Fixes the ring gear in the housing.')
     for p in std.circle_points(g['cs_n'], g['cs_bc'] / 2, 'y', offset=st['cs_top'], start=180 / g['cs_n']):
-        fix(csb, std.orient(p, (0, -1, 0)), (0, -20, 0))
+        fix(csb, std.orient(p, (0, -1, 0)), (0, -20, 0), sealed=True)
     # ── output side (moving): flange, flexspline, its clamp ring and screws ─────
     of = m.part(PartDef(f'{prefix}-OUT', f'{jl} output flange', _output_flange(s), 'al6061', 'structure',
                         'machined', f'OD {xd + (xD - xd) * 0.55:.0f} x {s.of_t:g}', '', None,
                         'Carries the next link. It turns on the bearing inner ring.', {}, 'make',
                         depot=_ring(0, -s.of_t, (xd + (xD - xd) * 0.55) / 2).union(_ring(-s.of_t, -s.of_t - xB, xd / 2))))
     mov(of, Location(), (0, 160, 0))
-    mov(fs, loc(0, st['fs_top'], 0, rx=180), (0, 120, 0))
+    mov(fs, loc(0, st['fs_top'], 0, rx=180), (0, 120, 0), sealed=True)
     clamp = m.part(PartDef(f'{prefix}-FSC', f'{jl} flexspline clamp ring', _fs_clamp(s), 'steel', 'drive',
                            'machined', f'size {size}', '', None,
                            'Spreads the screw load over the thin flexspline diaphragm.', {}, 'make'))
     y_hub = st['fs_top'] - g['fs_wall'] * 4
-    mov(clamp, loc(0, y_hub - 6, 0), (0, 60, 0))
+    mov(clamp, loc(0, y_hub - 6, 0), (0, 60, 0), sealed=True)
     n_fs, d_fs, r_fs = std.fs_screws(size)
     k_fs = std.ISO4762[d_fs][1]
     grip = s.of_t - k_fs - 0.2 + 2 + g['fs_wall'] * 4
@@ -310,65 +314,69 @@ def build_actuator(m: Model, fixed: Node, moving: Node, size: int, T_joint: Loca
     for p in std.circle_points(n_fs, r_fs, 'y', offset=-k_fs - 0.2):
         mov(fsb, std.orient(p, (0, -1, 0)), (0, 200, 0))
     # ── wave generator, motor shaft and its bearings (they turn 100x, not the joint: fixed frame here) ──
-    fix(wg, loc(0, st['teeth'], 0), (0, -70, 0))
+    fix(wg, loc(0, st['teeth'], 0), (0, -70, 0), sealed=True)
     shaft = m.part(PartDef(f'{prefix}-SHF', f'{jl} hollow motor shaft', _shaft(s, st), 'steel', 'drive', 'machined',
                            f'{sd} x {st["teeth"] - st["shaft_bot"]:.0f}', '', None,
                            'Carries the wave generator, the rotor, the brake disc and the encoder discs. Cables pass through its bore.',
                            {}, 'make'))
-    fix(shaft, Location(), (0, -110, 0))
+    fix(shaft, Location(), (0, -110, 0), sealed=True)
     brg = std.ball_bearing(s.shaft, 'Supports the motor shaft.')
-    fix(brg, loc(0, st['b1'], 0), (0, -95, 0))
-    fix(brg, loc(0, st['b2'], 0), (0, -150, 0))
+    fix(brg, loc(0, st['b1'], 0), (0, -95, 0), sealed=True)
+    fix(brg, loc(0, st['b2'], 0), (0, -150, 0), sealed=True)
     ring = std.circlip(sd, False)
     s_ring = 1.2 if sd < 30 else 1.75 if sd < 60 else 2.5 if sd < 120 else 3.0
-    fix(ring, loc(0, st['b2'] - sB / 2 - s_ring, 0), (0, -160, 0))
+    fix(ring, loc(0, st['b2'] - sB / 2 - s_ring, 0), (0, -160, 0), sealed=True)
     # ── motor ────────────────────────────────────────────────────────────────────
     st_pd, wd, ro_pd = std.frameless_motor(st['od_m'], s.mot_l, s.mot_kw, s.mot_t, bore=sd)
-    fix(st_pd, loc(0, st['yc'], 0), (0, -130, 0))
-    fix(wd, loc(0, st['yc'], 0), (0, -130, 0))
-    fix(ro_pd, loc(0, st['yc'], 0), (0, -185, 0))
+    fix(st_pd, loc(0, st['yc'], 0), (0, -130, 0), sealed=True)
+    fix(wd, loc(0, st['yc'], 0), (0, -130, 0), sealed=True)
+    fix(ro_pd, loc(0, st['yc'], 0), (0, -185, 0), sealed=True)
     sr = m.part(PartDef(f'{prefix}-STR', f'{jl} stator retaining ring', _stator_ring(s, st), 'al6061', 'structure',
                         'machined', f'OD {st["od_m"]:g}', '', None,
                         'Pressed into the bore behind the stator. It holds the stator against its shoulder.', {}, 'make'))
-    fix(sr, Location(), (0, -200, 0))
+    fix(sr, Location(), (0, -200, 0), sealed=True)
     # ── brake: 3 screws up through its end plate and body into web 2 ────────────
     bk = std.brake(s.brk_od, s.brk_l, s.brk_t, bore=sd, plate_r=st['plate_r'])
-    fix(bk, loc(0, st['brk_top'], 0), (0, -240, 0))
+    fix(bk, loc(0, st['brk_top'], 0), (0, -240, 0), sealed=True)
     d_bk = 4 if size <= 25 else 5
     bkb = std.shcs(d_bk, _std_len(s.brk_l + 1.2 * d_bk, s.brk_l + sB + 3), '8.8', 'Fastens the brake to the rear bearing web.')
     for p in std.circle_points(3, s.brk_od / 2 * 0.9, 'y', offset=st['brk_bot'], start=30):
-        fix(bkb, std.orient(p, (0, 1, 0)), (0, -255, 0))
+        fix(bkb, std.orient(p, (0, 1, 0)), (0, -255, 0), sealed=True)
     # ── encoders: discs on the shaft, read heads screwed up to the brake end plate ──
     enc1, enc2 = st['enc']
-    fix(std.encoder(enc1, 'motor', bore=sd), loc(0, st['e1'], 0), (0, -280, 0))
-    fix(std.encoder(enc2, 'multiturn', bore=sd), loc(0, st['e2'], 0, ry=180), (0, -300, 0))
+    fix(std.encoder(enc1, 'motor', bore=sd), loc(0, st['e1'], 0), (0, -280, 0), sealed=True)
+    fix(std.encoder(enc2, 'multiturn', bore=sd), loc(0, st['e2'], 0, ry=180), (0, -300, 0), sealed=True)
     plate_t = s.brk_l * 0.18
     for (od, y0, side, lo) in ((enc1, st['e1'], 1, 9 + 1.5), (enc2, st['e2'], -1, 19 + 1.5)):
         eb = std.shcs(3, _std_len(lo, lo + plate_t - 0.5), '8.8', 'Fastens the encoder read head to the brake end plate.')
         xh = side * (od / 2 - 4 + od * 0.18 + 10 - 7)
         for dz in (-4.5, 4.5):
-            fix(eb, std.orient((xh, y0, dz), (0, 1, 0)), (0, -290 - 10 * (side < 0), 0))
+            fix(eb, std.orient((xh, y0, dz), (0, 1, 0)), (0, -290 - 10 * (side < 0), 0), sealed=True)
     # ── drive board on its ledge, then the rear cover ───────────────────────────
     drv = std.servo_drive(round(2 * st['r_drv']), s.amps)
-    fix(drv, loc(0, st['drv_top'], 0, rx=180), (0, -330, 0))
+    fix(drv, loc(0, st['drv_top'], 0, rx=180), (0, -330, 0), sealed=True)
     pb = std.shcs(3, 6, '8.8', 'Fastens the drive board to its ledge in the housing.')
     for p in std.circle_points(4, st['r_bay_b'] - 2.95, 'y', offset=st['drv_top'] - 1.6, start=45):
-        fix(pb, std.orient(p, (0, 1, 0)), (0, -335, 0))
+        fix(pb, std.orient(p, (0, 1, 0)), (0, -335, 0), sealed=True)
     cov = m.part(PartDef(f'{prefix}-COV', f'{jl} rear cover', _cover(s, st, gland_m, gland_ang, gland_r), 'al6061_blk', 'structure', 'machined',
                          f'OD {2 * st["r_bell"]:.0f} x 8', '', None, 'Closes the rear of the actuator. The O-ring seals it.', {}, 'make',
                          depot=_ring(st['y_back'], st['y_back'] - 8, st['r_bell'])))
     fix(cov, Location(), (0, -380, 0))
     r_or = st['r_bay_b'] + 2.2
-    fix(std.oring(round(2 * r_or - 2.0), 2.0, 'Seals the rear cover to the housing.'), loc(0, st['y_back'] - 0.6, 0), (0, -360, 0))
+    fix(std.oring(round(2 * r_or - 2.0), 2.0, 'Seals the rear cover to the housing.'), loc(0, st['y_back'] - 0.6, 0), (0, -360, 0),
+        sealed=True)
     cb = std.bhcs(5, _std_len(8 + 6, 8 + 11), 'A2-70', 'Fastens the rear cover.')
     for p in std.circle_points(8, st['r_bay_b'] + 6, 'y', offset=st['y_back'] - 8, start=22.5):
         fix(cb, std.orient(p, (0, 1, 0)), (0, -400, 0))
     gl = std.gland(gland_m, 'Seals the motor power, the safety signal and the EtherCAT cable into the actuator.')
     ga = math.radians(gland_ang)
-    fix(gl, std.orient((st['r_bell'] * gland_r * math.cos(ga), st['y_back'] - 8, st['r_bell'] * gland_r * math.sin(ga)), (0, 1, 0)),
-        (0, -420, 0))
+    gl_it = fix(gl, std.orient((st['r_bell'] * gland_r * math.cos(ga), st['y_back'] - 8, st['r_bell'] * gland_r * math.sin(ga)), (0, 1, 0)),
+                (0, -420, 0))
+    # 'gland' and 'Tf' place the actuator's cable entry and its output face's centre (where a cable leaves its hollow
+    # shaft) in `fixed`'s frame: the cable schedule measures the joint cables from them (cables.py)
     return {'L': L, 'od': s.od, 'rear_od': 2 * st['r_bell'], 'y_front': st['y_front'], 'y_back': -L,
-            'of_od': xd + (xD - xd) * 0.55, 'size': s}
+            'of_od': xd + (xD - xd) * 0.55, 'size': s, 'gland': gl_it, 'fixed': fixed, 'moving': moving, 'Tf': Tf,
+            'gland_m': gland_m, 'joint': jl, 'prefix': prefix, 'sub': sub}
 
 
 def out_flange_points(size: int) -> list[tuple[float, float, float]]:

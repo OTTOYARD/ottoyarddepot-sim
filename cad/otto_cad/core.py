@@ -60,6 +60,9 @@ class PartDef:
     mass: float = 0.0                  # kg
     com: tuple[float, float, float] = (0.0, 0.0, 0.0)  # mm, part frame
     depot: object = None               # the depot model's outline: a simpler cq.Shape, or 'box' (its bounding box)
+    path_mm: float | None = None       # a line, conduit or tube drawn along a path: its centreline length (cables.py)
+    path_ends: tuple | None = None     # and its ends: (start, next point, end, point before it, radius), part frame (line_ends.py)
+    end_in: dict | None = None         # an end that lies inside another part's bore by design: {'start' or 'end': that part's id}
 
     def finish(self) -> 'PartDef':
         props = GProp_GProps()
@@ -84,6 +87,12 @@ class Item:
     explode: tuple[float, float, float]
     sub: str
     name: str
+    # sealed inside an assembly's housing (a joint actuator's gear set, motor, brake, encoders, drive board, bearings and
+    # the seals and screws behind its covers): no line of sight reaches it on the assembled robot. The yard's detail
+    # model leaves it out (glb.py near_keep); cadDetail.test.ts proves no such placement is visible at any twin pose.
+    sealed: bool = False
+    # inside the site the yard draws itself (the charger cabinet, its pad): the yard's models leave it out (glb.yard_hidden)
+    yard_hidden: bool = False
 
 
 class Node:
@@ -135,6 +144,17 @@ class Model:
         self._counts: dict[str, int] = {}
         self.notes: dict = {}
         self.flexes: list = []                         # flex.FlexDef: the lines that cross the joints, solved per pose
+        # the yard's deck in this model's frame (mm), when the yard draws the robot standing on it: a part wholly under it
+        # (a trench, a channel and what lies in them) cannot be seen in the yard, whose ground is opaque (glb.py near_keep)
+        self.yard_deck_y: float | None = None
+        self.cables: list = []                         # cables.Line: the cable schedule, each line once from end to end
+
+    def cable(self, *args, **kwargs):
+        """Add a line to the cable schedule (cables.Line): add its route pieces with .run(...)."""
+        from .cables import Line
+        ln = Line(*args, **kwargs)
+        self.cables.append(ln)
+        return ln
 
     # ── definitions ────────────────────────────────────────────────────────────
     def part(self, pd: PartDef) -> PartDef:
@@ -191,6 +211,8 @@ class Model:
             raise ValueError(f'{fd.id}: a line with this id is already in the model')
         if fd.sub not in self.subsystems:
             raise ValueError(f'{fd.id}: no subsystem {fd.sub}')
+        from .flex import check_contents
+        check_contents(fd)
         self.flexes.append(fd)
         return fd
 
@@ -262,10 +284,16 @@ class Model:
             uses.setdefault(pid, {})
             uses[pid][fd.sub] = uses[pid].get(fd.sub, 0) + (fd.links if fd.kind == 'chain' else 1)
         lines = []
+        refs = getattr(self, 'cable_refs', {})           # cables.finish: the schedule's lines each part is a piece of
+        rows = {r['id']: r for r in getattr(self, 'cable_rows', [])}
         for pid, by_sub in uses.items():
             p = self.parts.get(pid) or flex_parts[pid]
             mat = material(p.mat)
             qty = sum(by_sub.values())
+            spec = p.spec
+            if pid in refs:
+                spec = {**spec, 'in the cable schedule': '; '.join(
+                    f"{lid}, {rows[lid]['routeMm'] / 1000:.2f} m from end to end" for lid in refs[pid])}
             lines.append({
                 'id': p.id, 'name': p.name, 'category': p.category, 'make': p.make,
                 'standard': p.standard, 'size': p.size, 'grade': p.grade,
@@ -273,7 +301,7 @@ class Model:
                 'qty': qty, 'massKg': round(p.mass, 4), 'totalMassKg': round(p.mass * qty, 4),
                 'torqueNm': None if p.torque is None else round(p.torque, 1),
                 'reference': p.reference,
-                'function': p.function, 'spec': p.spec,
+                'function': p.function, 'spec': spec,
                 'uses': [{'sub': s, 'qty': q} for s, q in by_sub.items()],
             })
         order = {s: v['order'] for s, v in self.subsystems.items()}
@@ -300,6 +328,7 @@ class Model:
                 'referenceLines': len(lines) - len(real),
             },
             'subsystems': subs, 'lines': lines, 'notes': self.notes,
+            **({'cables': getattr(self, 'cable_rows')} if getattr(self, 'cable_rows', None) else {}),
         }
 
     def bom_csv(self) -> str:

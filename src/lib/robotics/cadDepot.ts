@@ -25,6 +25,8 @@ import { flexDefs, type FlexDefJson } from './flexLines';
 
 /** The depot model's file in public/cad (the manifest names it too, as `files.depot`). */
 export const depotFile = (robot: RobotKey): string => `${robot}.depot.glb`;
+/** The detail model's file in public/cad (`files.near`): what the yard draws near the camera (cadDetail.ts). */
+export const nearFile = (robot: RobotKey): string => `${robot}.near.glb`;
 
 /** Parse a GLB held in memory into a three.js scene (metres, Y up, node extras as userData). */
 export async function parseGlb(data: ArrayBuffer | Uint8Array): Promise<THREE.Group> {
@@ -36,7 +38,29 @@ export async function parseGlb(data: ArrayBuffer | Uint8Array): Promise<THREE.Gr
     new Uint8Array(ab).set(data);
   }
   const gltf = await new GLTFLoader().parseAsync(ab, '');
+  takeFlexLinks(gltf.scene);
   return gltf.scene;
+}
+
+/**
+ * Each energy chain's link, as the CAD draws it: the GLB carries it as a node `flexlink:<line id>` under the root (glb.py),
+ * not as a placed part. This lifts those nodes out of the scene, so nothing draws a stray link at the robot's origin,
+ * and keeps their geometry on the scene's userData (`flexLinks`, by the chain's id) for the line fleet to instance along
+ * each chain (flexMesh.ts). Idempotent: a scene already taken keeps what it has.
+ */
+export function takeFlexLinks(scene: THREE.Object3D): Map<string, THREE.BufferGeometry> {
+  const have = (scene.userData as { flexLinks?: Map<string, THREE.BufferGeometry> }).flexLinks;
+  const out = have ?? new Map<string, THREE.BufferGeometry>();
+  const found: THREE.Object3D[] = [];
+  scene.traverse((o) => { if (typeof (o.userData as { flexLink?: unknown }).flexLink === 'string') found.push(o); });
+  for (const o of found) {
+    const id = (o.userData as { flexLink: string }).flexLink;
+    const mesh = (o as THREE.Mesh).isMesh ? (o as THREE.Mesh) : (o.children.find((c) => (c as THREE.Mesh).isMesh) as THREE.Mesh | undefined);
+    if (mesh) out.set(id, mesh.geometry);
+    o.removeFromParent();
+  }
+  (scene.userData as { flexLinks?: Map<string, THREE.BufferGeometry> }).flexLinks = out;
+  return out;
 }
 
 export interface DepotPart {
@@ -82,6 +106,8 @@ export interface DepotCad {
   skeleton(): DepotSkeleton;
   /** the robot's flexible lines (the GLB root's extras.flex): cables, hoses, ducts, energy chains */
   flex: FlexDefJson[];
+  /** each energy chain's link as the CAD draws it, by the chain's id (takeFlexLinks) */
+  links: Map<string, THREE.BufferGeometry>;
   /** what the depot model holds, for the dev check and the tests */
   stats: { parts: number; draws: number; shadowDraws: number; triangles: number; partIds: Set<string> };
 }
@@ -102,6 +128,11 @@ export interface DepotCadOptions {
    * draws over the ground instead (polygonOffset), as the yard's deck paint does (ChargingField's marks).
    */
   deckY?: number;
+  /**
+   * Keep the meshes indexed when they are merged (the detail model: a million triangles a robot, where an unindexed
+   * buffer would take 3 vertices a triangle). The depot model stays unindexed, as its tests count it.
+   */
+  indexed?: boolean;
 }
 
 /** A part is flush with the deck when its top is within this of the deck and it reaches below it, metres. */
@@ -130,6 +161,7 @@ function partIdOf(m: THREE.Object3D): string | null {
  * joint at zero, as the GLB stores it.
  */
 export function buildDepotCad(robot: RobotKey, scene: THREE.Object3D, opts: DepotCadOptions = {}): DepotCad {
+  const links = takeFlexLinks(scene);
   const exclude = opts.exclude ?? (() => false);
   const own = opts.ownSegment ?? (() => false);
   // a part's shadow reads at the yard's distances when the part is half a metre or more (a link, a casting, a column);
@@ -191,7 +223,7 @@ export function buildDepotCad(robot: RobotKey, scene: THREE.Object3D, opts: Depo
     const key = `${segment}|${material.uuid}|${cast}`;
     rel.copy(inv.copy(segNodes[segment].matrixWorld).invert()).multiply(mesh.matrixWorld);
     let g = mesh.geometry.clone();
-    g = g.index ? g.toNonIndexed() : g;
+    if (!opts.indexed) g = g.index ? g.toNonIndexed() : g;
     for (const name of Object.keys(g.attributes)) if (name !== 'position' && name !== 'normal') g.deleteAttribute(name);
     // float normals: the GLB's are int8, and a merged, transformed buffer is simplest kept in one type
     const n = g.getAttribute('normal');
@@ -201,7 +233,7 @@ export function buildDepotCad(robot: RobotKey, scene: THREE.Object3D, opts: Depo
       g.setAttribute('normal', new THREE.BufferAttribute(f, 3));
     }
     g.applyMatrix4(rel);
-    triangles += g.getAttribute('position').count / 3;
+    triangles += (g.index ? g.index.count : g.getAttribute('position').count) / 3;
     const e = groups.get(key) ?? { segment, material, cast, geos: [], ids: new Set<string>() };
     e.geos.push(g);
     if (id) e.ids.add(id);
@@ -275,6 +307,7 @@ export function buildDepotCad(robot: RobotKey, scene: THREE.Object3D, opts: Depo
     parts,
     skeleton,
     flex,
+    links,
     stats: {
       parts: partIds.size,
       draws: parts.length,

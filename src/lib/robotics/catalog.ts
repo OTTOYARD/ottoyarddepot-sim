@@ -30,15 +30,20 @@ export interface ManifestRobot {
   key: RobotKey;
   title: string;
   frame: string;
-  files: { glb: string; step: string; bom: string; csv: string; depot: string };
+  files: { glb: string; step: string; bom: string; csv: string; depot: string; near?: string; cables?: string };
   bytes: { glb: number; stepZip: number; step: number; depot: number };
   mesh: { vertices: number; triangles: number; meshes: number; nodes: number };
   /** the depot model the yard draws (the parts you can see from the yard, coarse): cadDepot.ts */
   depotMesh: { vertices: number; triangles: number; meshes: number; nodes: number };
   depotSha256: string;
+  /** the detail model the yard draws near the camera (every visible part): cadDetail.ts */
+  nearMesh?: { vertices: number; triangles: number; meshes: number; nodes: number };
+  nearSha256?: string;
   totals: BomTotals;
   glbSha256: string;
   subsystems: { id: string; name: string }[];
+  /** the cable schedule's size (cad/otto_cad/cables.py): its lines, their route and their order lengths, metres */
+  cables?: { lines: number; routeM: number; orderM: number };
 }
 export interface Manifest { generator: string; specVersion: number; units: { cad: string; glb: string }; robots: ManifestRobot[] }
 
@@ -67,9 +72,40 @@ export interface TorqueBudget {
   };
   serviceWindowJ2Deg: { min: number; max: number } | null;
 }
+/** One piece of a line's route (cad/otto_cad/cables.py, Run): how its length is known, what carries it, how long. */
+export interface CableRun {
+  kind: 'drawn' | 'conduit' | 'chain' | 'boot' | 'reel' | 'loop' | 'duct' | 'arm' | 'site';
+  /** the bill of materials' id it is drawn as or runs in ('' for none) */
+  via: string;
+  where: string;
+  mm: number;
+  /** +/- mm: what its place in a duct can change */
+  tol: number;
+  /** its tightest centreline bend here, mm */
+  bend: number | null;
+  moving: boolean;
+  /** a reel's or a stretch line's length out over the twin's poses, mm */
+  range: [number, number] | null;
+}
+/** One line of the cable schedule: a cable, hose or tube, once, from the device it leaves to the one it reaches. */
+export interface CableLine {
+  id: string; name: string; kind: string; od: number; spec: string; from: string; to: string; sub: string;
+  runs: CableRun[];
+  routeMm: number; tolMm: number;
+  /** the length to make off at each end, and why */
+  tails: { a: number; b: number; basis: string };
+  /** route + tolerance + tails, rounded up to 100 mm */
+  orderMm: number;
+  bendMm: { fixed: number; moving: number; tightestFixed: number | null; tightestMoving: number | null };
+  pieces: string[]; notes: string[];
+  /** what the model does not yet route or decide */
+  open: string[];
+}
 export interface Bom {
   robot: RobotKey; title: string; frame: string; units: { cad: string; glb: string };
   totals: BomTotals; subsystems: BomSubsystem[]; lines: BomLine[]; notes: { torque_budget?: TorqueBudget };
+  /** the cable schedule (cad/otto_cad/cables.py) */
+  cables?: CableLine[];
 }
 
 export const CAD_BASE = '/cad/';
