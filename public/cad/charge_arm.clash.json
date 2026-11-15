@@ -36,11 +36,11 @@
   "cycle:retract:mid",
   "cycle:retract:end"
  ],
- "pairsChecked": 40692,
- "pairsMeasured": 17464,
- "contactPairs": 2345,
+ "pairsChecked": 41380,
+ "pairsMeasured": 17979,
+ "contactPairs": 2396,
  "counts": {
-  "thread": 829,
+  "thread": 841,
   "seal": 13,
   "ring": 9,
   "mesh": 3,
@@ -1958,14 +1958,14 @@
    "b": {
     "item": "CHG-LCS#1",
     "part": "CHG-LCS",
-    "name": "Coolant supply hose 12 x 8",
+    "name": "Coolant supply tube 8 x 6",
     "sub": "SUPPLY"
    },
-   "volumeMm3": 6785.8,
+   "volumeMm3": 3015.9,
    "at": [
-    147.7,
+    151.0,
     -443.4,
-    -628.0
+    -630.0
    ],
    "poses": [
     "stowed",
@@ -2015,14 +2015,14 @@
    "b": {
     "item": "CHG-LCR#1",
     "part": "CHG-LCR",
-    "name": "Coolant return hose 12 x 8",
+    "name": "Coolant return tube 8 x 6",
     "sub": "SUPPLY"
    },
-   "volumeMm3": 6785.8,
+   "volumeMm3": 3015.9,
    "at": [
-    160.9,
+    159.8,
     -443.4,
-    -628.0
+    -630.0
    ],
    "poses": [
     "stowed",
@@ -2072,14 +2072,14 @@
    "b": {
     "item": "CHG-LAR#1",
     "part": "CHG-LAR",
-    "name": "Air tube 8 x 6",
+    "name": "Air tube 6 x 4",
     "sub": "SUPPLY"
    },
-   "volumeMm3": 3015.9,
+   "volumeMm3": 1696.5,
    "at": [
-    171.9,
+    167.5,
     -443.4,
-    -630.0
+    -631.0
    ],
    "poses": [
     "stowed",
@@ -2134,7 +2134,7 @@
    },
    "volumeMm3": 4712.4,
    "at": [
-    181.8,
+    176.3,
     -443.4,
     -629.0
    ],
@@ -2191,7 +2191,7 @@
    },
    "volumeMm3": 3015.9,
    "at": [
-    191.7,
+    186.2,
     -443.4,
     -630.0
    ],
@@ -2243,12 +2243,12 @@
    "b": {
     "item": "CHG-LSF#1",
     "part": "CHG-LSF",
-    "name": "Safety cable (scanner, emergency stop, status lights)",
+    "name": "Safety cable (scanner, emergency stop)",
     "sub": "SUPPLY"
    },
    "volumeMm3": 3817.0,
    "at": [
-    201.1,
+    195.6,
     -443.4,
     -629.5
    ],
@@ -2305,7 +2305,7 @@
    },
    "volumeMm3": 7363.1,
    "at": [
-    212.9,
+    207.4,
     -443.4,
     -627.8
    ],
@@ -2362,7 +2362,7 @@
    },
    "volumeMm3": 5702.0,
    "at": [
-    225.8,
+    220.3,
     -443.4,
     -628.5
    ],
@@ -3290,11 +3290,11 @@
     "name": "Cabinet gland plate, 16 entries",
     "sub": "SUPPLY"
    },
-   "volumeMm3": 112366.8,
+   "volumeMm3": 113022.4,
    "at": [
-    186.5,
+    186.4,
     -471.4,
-    -638.4
+    -638.3
    ],
    "poses": [
     "stowed",
@@ -4006,6 +4006,6 @@
    ]
   }
  ],
- "seconds": 2188.0,
- "glbSha256": "35eda3b2dec3529f"
+ "seconds": 2156.5,
+ "glbSha256": "131c313b8f3ee0df"
 }
