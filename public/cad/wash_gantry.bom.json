@@ -7,11 +7,11 @@
   "glb": "m"
  },
  "totals": {
-  "parts": 2827,
-  "uniqueParts": 316,
+  "parts": 2835,
+  "uniqueParts": 320,
   "fasteners": 1648,
-  "massKg": 6045.58,
-  "boughtLines": 184,
+  "massKg": 6046.0,
+  "boughtLines": 188,
   "madeLines": 132,
   "referenceLines": 14
  },
@@ -149,10 +149,10 @@
    },
    "group": "Tools",
    "order": 6,
-   "partCount": 20,
+   "partCount": 28,
    "fastenerCount": 8,
-   "massKg": 62.957,
-   "uniqueParts": 7
+   "massKg": 63.298,
+   "uniqueParts": 11
   },
   {
    "id": "J1",
@@ -338,7 +338,7 @@
    "order": 16,
    "partCount": 48,
    "fastenerCount": 0,
-   "massKg": 219.37,
+   "massKg": 219.453,
    "uniqueParts": 32
   }
  ],
@@ -1938,7 +1938,7 @@
    "spec": {
     "inside": "the lines turn on 48 mm or more (4 x d, fixed); not drawn one by one",
     "into the pedestal": "12 mm through the window in the wall toward the chain",
-    "in the cable schedule": "WSH-DAL-SUP, 17.16 m from end to end; WSH-DAL-MOT, 17.16 m from end to end; WSH-DAL-24V, 17.17 m from end to end; WSH-DAL-ECT, 17.29 m from end to end; WSH-DAL-H2O, 20.94 m from end to end"
+    "in the cable schedule": "WSH-DAL-SUP, 17.37 m from end to end; WSH-DAL-MOT, 17.36 m from end to end; WSH-DAL-24V, 17.37 m from end to end; WSH-DAL-ECT, 17.50 m from end to end; WSH-DAL-H2O, 21.15 m from end to end"
    },
    "uses": [
     {
@@ -1966,7 +1966,7 @@
    "spec": {
     "inside": "the lines turn on 48 mm or more (4 x d, fixed); not drawn one by one",
     "into the pedestal": "12 mm through the window in the wall toward the chain",
-    "in the cable schedule": "WSH-DAR-SUP, 12.11 m from end to end; WSH-DAR-MOT, 12.11 m from end to end; WSH-DAR-24V, 12.12 m from end to end; WSH-DAR-ECT, 12.24 m from end to end; WSH-DAR-H2O, 15.95 m from end to end"
+    "in the cable schedule": "WSH-DAR-SUP, 12.32 m from end to end; WSH-DAR-MOT, 12.31 m from end to end; WSH-DAR-24V, 12.32 m from end to end; WSH-DAR-ECT, 12.44 m from end to end; WSH-DAR-H2O, 16.16 m from end to end"
    },
    "uses": [
     {
@@ -2337,12 +2337,15 @@
    "material": "Structural steel S355, hot-dip galvanised",
    "materialKey": "steel_s355",
    "qty": 2,
-   "massKg": 16.1431,
-   "totalMassKg": 32.2862,
+   "massKg": 16.1106,
+   "totalMassKg": 32.2213,
    "torqueNm": null,
    "reference": false,
-   "function": "Carries the rinse cup and the exit signal. It is bolted to the track beam's north end.",
-   "spec": {},
+   "function": "Carries the rinse cup and the exit signal. It is bolted to the track beam's north end. The dock's feed rises inside it.",
+   "spec": {
+    "holes": "M20 x 1.5 tapped in the outboard wall for the feed's conduit gland; 14 mm in the car-side wall for the signal's cable, under the signal; 13 mm in the top plate for the rinse socket's neck",
+    "closed": "the base plate, the top plate and the signal close it: water stays out of the lines"
+   },
    "uses": [
     {
      "sub": "DOCK",
@@ -2366,7 +2369,62 @@
    "torqueNm": null,
    "reference": false,
    "function": "Faces the car in the bay: red while the bay works, green when the car may go.",
-   "spec": {},
+   "spec": {
+    "cable entry": "at its back, from inside the post through the post's wall; its own gasket seals it (ASSUMPTION)"
+   },
+   "uses": [
+    {
+     "sub": "DOCK",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-DKC",
+   "name": "Exit signal cable 7 mm in the dock post",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "",
+   "size": "D 7",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 2,
+   "massKg": 0.032,
+   "totalMassKg": 0.0641,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the signal's 2 lamp circuits from the feed conduit up the post and into the signal's rear entry.",
+   "spec": {
+    "bend": "R 30",
+    "in the cable schedule": "WSH-DKSL, 9.29 m from end to end; WSH-DKSR, 4.28 m from end to end"
+   },
+   "uses": [
+    {
+     "sub": "DOCK",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-DKG",
+   "name": "Conduit gland M20 for 20 mm conduit, stainless",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "EN 61386",
+   "size": "M20 x 1.5, 30 AF",
+   "grade": "IP68",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 0.1064,
+   "totalMassKg": 0.2128,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Holds the dock feed conduit in the post's outboard wall and seals it. The signal's cable and the rinse tube pass its 15 mm bore into the post.",
+   "spec": {
+    "conduit": "20 mm, pushed to its stop 22 mm in"
+   },
    "uses": [
     {
      "sub": "DOCK",
@@ -2481,6 +2539,60 @@
    ]
   },
   {
+   "id": "WSH-DRS",
+   "name": "Rinse nozzle socket, G 1/4 to 6 mm push-in, bulkhead, stainless",
+   "category": "fluid",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "G 1/4, 6 mm",
+   "grade": "316",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 0.0507,
+   "totalMassKg": 0.1013,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Holds the rinse nozzle on the post's top plate and feeds it. Its lock nut clamps the top plate; the nozzle screws down into its neck through the cup's floor.",
+   "spec": {
+    "tube": "6 mm, pushed 12 mm in"
+   },
+   "uses": [
+    {
+     "sub": "DOCK",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-DRT",
+   "name": "Pad rinse tube 6 x 4 in the dock post, polyurethane",
+   "category": "fluid",
+   "make": "buy",
+   "standard": "",
+   "size": "D 6",
+   "grade": "",
+   "material": "Polyurethane, 90 Shore A",
+   "materialKey": "pu",
+   "qty": 2,
+   "massKg": 0.0141,
+   "totalMassKg": 0.0281,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the pure water from the feed conduit up the post's axis to the rinse nozzle's socket.",
+   "spec": {
+    "tube": "6 x 4 polyurethane, pure-water grade",
+    "bend": "R 30",
+    "in the cable schedule": "WSH-DKRL, 1.45 m from end to end; WSH-DKRR, 1.41 m from end to end"
+   },
+   "uses": [
+    {
+     "sub": "DOCK",
+     "qty": 2
+    }
+   ]
+  },
+  {
    "id": "ISO4017-M10x25-A4-70",
    "name": "Hex head screw M10 x 25",
    "category": "fastener",
@@ -2574,7 +2686,7 @@
    "spec": {
     "IP rating": "IP65",
     "machining": "bores to H7, faces flat to 0.02",
-    "in the cable schedule": "WSH-DAL-H2O, 20.94 m from end to end; WSH-JCL1, 0.77 m from end to end; WSH-DAR-H2O, 15.95 m from end to end; WSH-JCR1, 0.77 m from end to end"
+    "in the cable schedule": "WSH-DAL-H2O, 21.15 m from end to end; WSH-JCL1, 0.77 m from end to end; WSH-DAR-H2O, 16.16 m from end to end; WSH-JCR1, 0.77 m from end to end"
    },
    "uses": [
     {
@@ -2673,7 +2785,7 @@
    "function": "Turns on J1 and carries the shoulder. Its boss clamps the J2 actuator.",
    "spec": {
     "wall": "8 mm",
-    "in the cable schedule": "WSH-DAL-H2O, 20.94 m from end to end; WSH-JCL1, 0.77 m from end to end; WSH-DAR-H2O, 15.95 m from end to end; WSH-JCR1, 0.77 m from end to end"
+    "in the cable schedule": "WSH-DAL-H2O, 21.15 m from end to end; WSH-JCL1, 0.77 m from end to end; WSH-DAR-H2O, 16.16 m from end to end; WSH-JCR1, 0.77 m from end to end"
    },
    "uses": [
     {
@@ -3703,7 +3815,7 @@
    "spec": {
     "IP rating": "IP65",
     "machining": "bores to H7, faces flat to 0.02",
-    "in the cable schedule": "WSH-DAL-H2O, 20.94 m from end to end; WSH-JCL2, 1.82 m from end to end; WSH-DAR-H2O, 15.95 m from end to end; WSH-JCR2, 1.82 m from end to end"
+    "in the cable schedule": "WSH-DAL-H2O, 21.15 m from end to end; WSH-JCL2, 1.82 m from end to end; WSH-DAR-H2O, 16.16 m from end to end; WSH-JCR2, 1.82 m from end to end"
    },
    "uses": [
     {
@@ -4576,7 +4688,7 @@
     "wall": "7 mm",
     "axis distance": "1344.0 mm, bored in one set-up",
     "ports": "2 on the back, 80 x 100: the charge arm's terminal boxes close them, the wash arms' plugs",
-    "in the cable schedule": "WSH-DAL-H2O, 20.94 m from end to end; WSH-JCL2, 1.82 m from end to end; WSH-DAR-H2O, 15.95 m from end to end; WSH-JCR2, 1.82 m from end to end"
+    "in the cable schedule": "WSH-DAL-H2O, 21.15 m from end to end; WSH-JCL2, 1.82 m from end to end; WSH-DAR-H2O, 16.16 m from end to end; WSH-JCR2, 1.82 m from end to end"
    },
    "uses": [
     {
@@ -4704,7 +4816,7 @@
    "spec": {
     "IP rating": "IP65",
     "machining": "bores to H7, faces flat to 0.02",
-    "in the cable schedule": "WSH-DAL-H2O, 20.94 m from end to end; WSH-JCL3, 1.21 m from end to end; WSH-DAR-H2O, 15.95 m from end to end; WSH-JCR3, 1.21 m from end to end"
+    "in the cable schedule": "WSH-DAL-H2O, 21.15 m from end to end; WSH-JCL3, 1.21 m from end to end; WSH-DAR-H2O, 16.16 m from end to end; WSH-JCR3, 1.21 m from end to end"
    },
    "uses": [
     {
@@ -4852,7 +4964,7 @@
    "spec": {
     "wall": "6 mm",
     "ports": "2 slots 66 x 34: the charge arm's terminal boxes close them, the wash arms' plugs",
-    "in the cable schedule": "WSH-DAL-H2O, 20.94 m from end to end; WSH-JCL3, 1.21 m from end to end; WSH-DAR-H2O, 15.95 m from end to end; WSH-JCR3, 1.21 m from end to end"
+    "in the cable schedule": "WSH-DAL-H2O, 21.15 m from end to end; WSH-JCL3, 1.21 m from end to end; WSH-DAR-H2O, 16.16 m from end to end; WSH-JCR3, 1.21 m from end to end"
    },
    "uses": [
     {
@@ -8047,7 +8159,8 @@
    "reference": false,
    "function": "The 3 ducts from the wall come up into it. The arm's lines leave it through glands into the chain, and the dock's feed leaves its other end.",
    "spec": {
-    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+    "mass basis": "catalogue class mass (the CAD draws its envelope)",
+    "in the cable schedule": "WSH-DAL-SUP, 17.37 m from end to end; WSH-DAL-MOT, 17.36 m from end to end; WSH-DAL-24V, 17.37 m from end to end; WSH-DAL-ECT, 17.50 m from end to end; WSH-DAL-H2O, 21.15 m from end to end; WSH-DKSL, 9.29 m from end to end; WSH-DKRL, 1.45 m from end to end; WSH-DAR-SUP, 12.32 m from end to end; WSH-DAR-MOT, 12.31 m from end to end; WSH-DAR-24V, 12.32 m from end to end; WSH-DAR-ECT, 12.44 m from end to end; WSH-DAR-H2O, 16.16 m from end to end; WSH-DKSR, 4.28 m from end to end; WSH-DKRR, 1.41 m from end to end"
    },
    "uses": [
     {
@@ -8067,14 +8180,14 @@
    "material": "Stainless steel 1.4401 (316)",
    "materialKey": "ss316",
    "qty": 1,
-   "massKg": 0.2455,
-   "totalMassKg": 0.2455,
+   "massKg": 0.2872,
+   "totalMassKg": 0.2872,
    "torqueNm": null,
    "reference": false,
-   "function": "Takes the exit signal's cable and the pad rinse nozzle's tube from the floor box into the track beam under the dock post. They rise inside the post.",
+   "function": "Takes the exit signal's cable and the pad rinse nozzle's tube from the floor box into the dock post, through a gland in the post's outboard wall. They rise inside the post.",
    "spec": {
     "bend": "R 60",
-    "in the cable schedule": "WSH-DKSL, 9.16 m from end to end; WSH-DKRL, 1.12 m from end to end"
+    "in the cable schedule": "WSH-DKSL, 9.29 m from end to end; WSH-DKRL, 1.45 m from end to end"
    },
    "uses": [
     {
@@ -8094,14 +8207,14 @@
    "material": "Stainless steel 1.4401 (316)",
    "materialKey": "ss316",
    "qty": 1,
-   "massKg": 0.2455,
-   "totalMassKg": 0.2455,
+   "massKg": 0.2872,
+   "totalMassKg": 0.2872,
    "torqueNm": null,
    "reference": false,
-   "function": "Takes the exit signal's cable and the pad rinse nozzle's tube from the floor box into the track beam under the dock post. They rise inside the post.",
+   "function": "Takes the exit signal's cable and the pad rinse nozzle's tube from the floor box into the dock post, through a gland in the post's outboard wall. They rise inside the post.",
    "spec": {
     "bend": "R 60",
-    "in the cable schedule": "WSH-DKSR, 4.10 m from end to end; WSH-DKRR, 1.12 m from end to end"
+    "in the cable schedule": "WSH-DKSR, 4.28 m from end to end; WSH-DKRR, 1.41 m from end to end"
    },
    "uses": [
     {
@@ -8127,7 +8240,7 @@
    "reference": false,
    "function": "Runs from the cabinet on the wall in its duct to the floor box, and from the box into the chain. Drawn from the box to the chain's fixed end.",
    "spec": {
-    "in the cable schedule": "WSH-DAL-SUP, 17.16 m from end to end; WSH-DAL-MOT, 17.16 m from end to end; WSH-DAR-SUP, 12.11 m from end to end; WSH-DAR-MOT, 12.11 m from end to end"
+    "in the cable schedule": "WSH-DAL-SUP, 17.37 m from end to end; WSH-DAL-MOT, 17.36 m from end to end; WSH-DAR-SUP, 12.32 m from end to end; WSH-DAR-MOT, 12.31 m from end to end"
    },
    "uses": [
     {
@@ -8153,7 +8266,7 @@
    "reference": false,
    "function": "Runs from the cabinet on the wall in its duct to the floor box, and from the box into the chain. Drawn from the box to the chain's fixed end.",
    "spec": {
-    "in the cable schedule": "WSH-DAL-ECT, 17.29 m from end to end; WSH-DAR-ECT, 12.24 m from end to end"
+    "in the cable schedule": "WSH-DAL-ECT, 17.50 m from end to end; WSH-DAR-ECT, 12.44 m from end to end"
    },
    "uses": [
     {
@@ -8179,7 +8292,7 @@
    "reference": false,
    "function": "Runs from the cabinet on the wall in its duct to the floor box, and from the box into the chain. Drawn from the box to the chain's fixed end.",
    "spec": {
-    "in the cable schedule": "WSH-DAL-24V, 17.17 m from end to end; WSH-DAR-24V, 12.12 m from end to end"
+    "in the cable schedule": "WSH-DAL-24V, 17.37 m from end to end; WSH-DAR-24V, 12.32 m from end to end"
    },
    "uses": [
     {
@@ -8259,7 +8372,7 @@
    "reference": false,
    "function": "Takes cables from the panel down the wall to the pull box.",
    "spec": {
-    "in the cable schedule": "WSH-DAL-SUP, 17.16 m from end to end; WSH-DAL-MOT, 17.16 m from end to end; WSH-DAL-24V, 17.17 m from end to end; WSH-DAR-SUP, 12.11 m from end to end; WSH-DAR-MOT, 12.11 m from end to end; WSH-DAR-24V, 12.12 m from end to end"
+    "in the cable schedule": "WSH-DAL-SUP, 17.37 m from end to end; WSH-DAL-MOT, 17.36 m from end to end; WSH-DAL-24V, 17.37 m from end to end; WSH-DAR-SUP, 12.32 m from end to end; WSH-DAR-MOT, 12.31 m from end to end; WSH-DAR-24V, 12.32 m from end to end"
    },
    "uses": [
     {
@@ -8337,7 +8450,7 @@
    "reference": false,
    "function": "Takes cables from the panel down the wall to the pull box.",
    "spec": {
-    "in the cable schedule": "WSH-DAL-ECT, 17.29 m from end to end; WSH-DKSL, 9.16 m from end to end; WSH-DAR-ECT, 12.24 m from end to end; WSH-DKSR, 4.10 m from end to end"
+    "in the cable schedule": "WSH-DAL-ECT, 17.50 m from end to end; WSH-DKSL, 9.29 m from end to end; WSH-DAR-ECT, 12.44 m from end to end; WSH-DKSR, 4.28 m from end to end"
    },
    "uses": [
     {
@@ -8366,7 +8479,7 @@
     "lines": "7 mm, 7 mm",
     "fill": "24 % of the bore (limit 31 %)",
     "bends": "R 114, 360 degrees or less in all",
-    "in the cable schedule": "WSH-DAL-ECT, 17.29 m from end to end; WSH-DKSL, 9.16 m from end to end"
+    "in the cable schedule": "WSH-DAL-ECT, 17.50 m from end to end; WSH-DKSL, 9.29 m from end to end"
    },
    "uses": [
     {
@@ -8395,7 +8508,7 @@
     "lines": "12 mm, 12 mm, 8 mm",
     "fill": "30 % of the bore (limit 40 %)",
     "bends": "R 184, 360 degrees or less in all",
-    "in the cable schedule": "WSH-DAL-SUP, 17.16 m from end to end; WSH-DAL-MOT, 17.16 m from end to end; WSH-DAL-24V, 17.17 m from end to end"
+    "in the cable schedule": "WSH-DAL-SUP, 17.37 m from end to end; WSH-DAL-MOT, 17.36 m from end to end; WSH-DAL-24V, 17.37 m from end to end"
    },
    "uses": [
     {
@@ -8424,7 +8537,7 @@
     "lines": "6 mm",
     "fill": "15 % of the bore (limit 53 %)",
     "bends": "R 102, 360 degrees or less in all",
-    "in the cable schedule": "WSH-DAL-H2O, 20.94 m from end to end"
+    "in the cable schedule": "WSH-DAL-H2O, 21.15 m from end to end"
    },
    "uses": [
     {
@@ -8540,7 +8653,7 @@
     "lines": "7 mm, 7 mm",
     "fill": "24 % of the bore (limit 31 %)",
     "bends": "R 114, 360 degrees or less in all",
-    "in the cable schedule": "WSH-DAR-ECT, 12.24 m from end to end; WSH-DKSR, 4.10 m from end to end"
+    "in the cable schedule": "WSH-DAR-ECT, 12.44 m from end to end; WSH-DKSR, 4.28 m from end to end"
    },
    "uses": [
     {
@@ -8569,7 +8682,7 @@
     "lines": "12 mm, 12 mm, 8 mm",
     "fill": "30 % of the bore (limit 40 %)",
     "bends": "R 184, 360 degrees or less in all",
-    "in the cable schedule": "WSH-DAR-SUP, 12.11 m from end to end; WSH-DAR-MOT, 12.11 m from end to end; WSH-DAR-24V, 12.12 m from end to end"
+    "in the cable schedule": "WSH-DAR-SUP, 12.32 m from end to end; WSH-DAR-MOT, 12.31 m from end to end; WSH-DAR-24V, 12.32 m from end to end"
    },
    "uses": [
     {
@@ -8598,7 +8711,7 @@
     "lines": "6 mm",
     "fill": "15 % of the bore (limit 53 %)",
     "bends": "R 102, 360 degrees or less in all",
-    "in the cable schedule": "WSH-DAR-H2O, 15.95 m from end to end"
+    "in the cable schedule": "WSH-DAR-H2O, 16.16 m from end to end"
    },
    "uses": [
     {
@@ -8700,7 +8813,7 @@
    "function": "Every drop from the panel ends in it and every duct in the slab starts under it. Its compartments keep power, network and media apart.",
    "spec": {
     "mass basis": "catalogue class mass (the CAD draws its envelope)",
-    "in the cable schedule": "WSH-MLN, 16.62 m from end to end; WSH-MLW, 14.69 m from end to end; WSH-MLA, 14.68 m from end to end; WSH-MLB, 14.67 m from end to end; WSH-MLR, 14.66 m from end to end; WSH-MLP, 16.63 m from end to end; WSH-DAL-SUP, 17.16 m from end to end; WSH-DAL-MOT, 17.16 m from end to end; WSH-DAL-24V, 17.17 m from end to end; WSH-DAL-ECT, 17.29 m from end to end; WSH-DAL-H2O, 20.94 m from end to end; WSH-DKSL, 9.16 m from end to end; WSH-DAR-SUP, 12.11 m from end to end; WSH-DAR-MOT, 12.11 m from end to end; WSH-DAR-24V, 12.12 m from end to end; WSH-DAR-ECT, 12.24 m from end to end; WSH-DAR-H2O, 15.95 m from end to end; WSH-DKSR, 4.10 m from end to end"
+    "in the cable schedule": "WSH-MLN, 16.62 m from end to end; WSH-MLW, 14.69 m from end to end; WSH-MLA, 14.68 m from end to end; WSH-MLB, 14.67 m from end to end; WSH-MLR, 14.66 m from end to end; WSH-MLP, 16.63 m from end to end; WSH-DAL-SUP, 17.37 m from end to end; WSH-DAL-MOT, 17.36 m from end to end; WSH-DAL-24V, 17.37 m from end to end; WSH-DAL-ECT, 17.50 m from end to end; WSH-DAL-H2O, 21.15 m from end to end; WSH-DKSL, 9.29 m from end to end; WSH-DAR-SUP, 12.32 m from end to end; WSH-DAR-MOT, 12.31 m from end to end; WSH-DAR-24V, 12.32 m from end to end; WSH-DAR-ECT, 12.44 m from end to end; WSH-DAR-H2O, 16.16 m from end to end; WSH-DKSR, 4.28 m from end to end"
    },
    "uses": [
     {
@@ -8774,7 +8887,7 @@
    "reference": false,
    "function": "Runs from the cabinet on the wall in its duct to the floor box, and from the box into the chain. Drawn from the box to the chain's fixed end.",
    "spec": {
-    "in the cable schedule": "WSH-DAL-H2O, 20.94 m from end to end; WSH-DAR-H2O, 15.95 m from end to end"
+    "in the cable schedule": "WSH-DAL-H2O, 21.15 m from end to end; WSH-DAR-H2O, 16.16 m from end to end"
    },
    "uses": [
     {
@@ -8956,7 +9069,7 @@
    "reference": false,
    "function": "Takes one medium from its valve down to the pull box.",
    "spec": {
-    "in the cable schedule": "WSH-MLA, 14.68 m from end to end; WSH-MLB, 14.67 m from end to end; WSH-MLR, 14.66 m from end to end; WSH-DAL-H2O, 20.94 m from end to end; WSH-DAR-H2O, 15.95 m from end to end"
+    "in the cable schedule": "WSH-MLA, 14.68 m from end to end; WSH-MLB, 14.67 m from end to end; WSH-MLR, 14.66 m from end to end; WSH-DAL-H2O, 21.15 m from end to end; WSH-DAR-H2O, 16.16 m from end to end"
    },
    "uses": [
     {
@@ -10445,6 +10558,16 @@
      "range": null
     },
     {
+     "kind": "duct",
+     "via": "WSH-DJB",
+     "where": "across the floor box (WSH-DJB) from its duct's mouth to its gland",
+     "mm": 204.5,
+     "tol": 50.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
      "kind": "drawn",
      "via": "WSH-DL12",
      "where": "from the floor box (WSH-DJB) through its gland into the chain",
@@ -10475,14 +10598,14 @@
      "range": null
     }
    ],
-   "routeMm": 17160.7,
-   "tolMm": 125.0,
+   "routeMm": 17365.2,
+   "tolMm": 175.0,
    "tails": {
     "a": 500.0,
     "b": 550.0,
     "basis": "500 mm inside the cabinet or box, from its gland to the terminal (ASSUMPTION); 550 mm up the pedestal to J1's gland: at most the mount's height above the floor (ASSUMPTION)"
    },
-   "orderMm": 18400.0,
+   "orderMm": 18600.0,
    "bendMm": {
     "fixed": 48.0,
     "moving": 90.0,
@@ -10539,6 +10662,16 @@
      "range": null
     },
     {
+     "kind": "duct",
+     "via": "WSH-DJB",
+     "where": "across the floor box (WSH-DJB) from its duct's mouth to its gland",
+     "mm": 203.6,
+     "tol": 50.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
      "kind": "drawn",
      "via": "WSH-DL12",
      "where": "from the floor box (WSH-DJB) through its gland into the chain",
@@ -10569,14 +10702,14 @@
      "range": null
     }
    ],
-   "routeMm": 17160.7,
-   "tolMm": 125.0,
+   "routeMm": 17364.3,
+   "tolMm": 175.0,
    "tails": {
     "a": 500.0,
     "b": 300.0,
     "basis": "500 mm inside the cabinet or box, from its gland to the terminal (ASSUMPTION); 300 mm into the device's terminal box (ASSUMPTION)"
    },
-   "orderMm": 18100.0,
+   "orderMm": 18400.0,
    "bendMm": {
     "fixed": 48.0,
     "moving": 90.0,
@@ -10633,6 +10766,16 @@
      "range": null
     },
     {
+     "kind": "duct",
+     "via": "WSH-DJB",
+     "where": "across the floor box (WSH-DJB) from its duct's mouth to its gland",
+     "mm": 201.6,
+     "tol": 50.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
      "kind": "drawn",
      "via": "WSH-DL8",
      "where": "from the floor box (WSH-DJB) through its gland into the chain",
@@ -10663,14 +10806,14 @@
      "range": null
     }
    ],
-   "routeMm": 17167.0,
-   "tolMm": 125.0,
+   "routeMm": 17368.6,
+   "tolMm": 175.0,
    "tails": {
     "a": 500.0,
     "b": 550.0,
     "basis": "500 mm inside the cabinet or box, from its gland to the terminal (ASSUMPTION); 550 mm up the pedestal to J1: at most the mount's height above the floor (ASSUMPTION)"
    },
-   "orderMm": 18400.0,
+   "orderMm": 18600.0,
    "bendMm": {
     "fixed": 32.0,
     "moving": 60.0,
@@ -10727,6 +10870,16 @@
      "range": null
     },
     {
+     "kind": "duct",
+     "via": "WSH-DJB",
+     "where": "across the floor box (WSH-DJB) from its duct's mouth to its gland",
+     "mm": 202.8,
+     "tol": 50.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
      "kind": "drawn",
      "via": "WSH-DL7",
      "where": "from the floor box (WSH-DJB) through its gland into the chain",
@@ -10757,14 +10910,14 @@
      "range": null
     }
    ],
-   "routeMm": 17293.6,
-   "tolMm": 125.0,
+   "routeMm": 17496.4,
+   "tolMm": 175.0,
    "tails": {
     "a": 500.0,
     "b": 550.0,
     "basis": "500 mm inside the cabinet or box, from its gland to the terminal (ASSUMPTION); 550 mm up the pedestal to J1: at most the mount's height above the floor (ASSUMPTION)"
    },
-   "orderMm": 18500.0,
+   "orderMm": 18800.0,
    "bendMm": {
     "fixed": 28.0,
     "moving": 52.5,
@@ -10816,6 +10969,16 @@
      "where": "in the east arm's pure water duct cast into the slab, to the floor box",
      "mm": 6670.1,
      "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "WSH-DJB",
+     "where": "across the floor box (WSH-DJB) from its duct's mouth to its gland",
+     "mm": 212.6,
+     "tol": 50.0,
      "bend": null,
      "moving": false,
      "range": null
@@ -10921,14 +11084,14 @@
      "range": null
     }
    ],
-   "routeMm": 20939.8,
-   "tolMm": 575.5,
+   "routeMm": 21152.4,
+   "tolMm": 625.5,
    "tails": {
     "a": 0.0,
     "b": 0.0,
     "basis": "its fittings take its ends"
    },
-   "orderMm": 21600.0,
+   "orderMm": 21800.0,
    "bendMm": {
     "fixed": 24.0,
     "moving": 45.0,
@@ -11364,7 +11527,7 @@
    "od": 7.0,
    "spec": "ASSUMPTION: of its kind",
    "from": "the detail arm drive cabinet (WSH-DAC)",
-   "to": "the east dock's exit signal (WSH-DCKS)",
+   "to": "the east dock's exit signal (WSH-DCKS), its rear entry",
    "sub": "DOCK",
    "runs": [
     {
@@ -11398,102 +11561,120 @@
      "range": null
     },
     {
-     "kind": "conduit",
-     "via": "WSH-DKFL",
-     "where": "in the dock feed conduit from the floor box into the track beam under the dock post",
-     "mm": 515.3,
-     "tol": 0.0,
-     "bend": null,
+     "kind": "duct",
+     "via": "WSH-DJB",
+     "where": "across the floor box (WSH-DJB) from its duct's mouth to the dock feed conduit",
+     "mm": 90.0,
+     "tol": 50.0,
+     "bend": 28.0,
      "moving": false,
      "range": null
     },
     {
-     "kind": "site",
-     "via": "",
-     "where": "up inside the dock post to its device: not drawn",
-     "mm": 600.0,
-     "tol": 300.0,
-     "bend": null,
+     "kind": "conduit",
+     "via": "WSH-DKFL",
+     "where": "in the dock feed conduit, up off the slab and into the dock post through its gland (WSH-DKG)",
+     "mm": 603.0,
+     "tol": 0.0,
+     "bend": 60.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "drawn",
+     "via": "WSH-DKC",
+     "where": "up inside the dock post to the signal's rear entry, through the post's car-side wall",
+     "mm": 555.2,
+     "tol": 0.0,
+     "bend": 30.0,
      "moving": false,
      "range": null
     }
    ],
-   "routeMm": 9155.7,
-   "tolMm": 375.0,
+   "routeMm": 9288.5,
+   "tolMm": 125.0,
    "tails": {
-    "a": 0.0,
+    "a": 500.0,
     "b": 300.0,
-    "basis": "300 mm into the device's terminal box (ASSUMPTION)"
+    "basis": "500 mm inside the cabinet or box, from its gland to the terminal (ASSUMPTION); 300 mm into the device's terminal box (ASSUMPTION)"
    },
-   "orderMm": 9900.0,
+   "orderMm": 10300.0,
    "bendMm": {
-    "fixed": 0.0,
+    "fixed": 28.0,
     "moving": 0.0,
-    "tightestFixed": null,
+    "tightestFixed": 28.0,
     "tightestMoving": null
    },
    "pieces": [
+    "WSH-DKC",
     "WSH-DKFL",
     "WSH-SDC34",
     "WSH-SDLD"
    ],
    "notes": [],
-   "open": [
-    "Its run up inside the dock post is not drawn."
-   ]
+   "open": []
   },
   {
    "id": "WSH-DKRL",
-   "name": "East dock pad rinse tube 6 mm",
+   "name": "East dock pad rinse tube 6 x 4",
    "kind": "water",
    "od": 6.0,
-   "spec": "ASSUMPTION: of its kind",
+   "spec": "6 x 4 polyurethane, pure-water grade",
    "from": "a tee on the arm's pure-water tube in the floor box (ASSUMPTION)",
-   "to": "the east dock's rinse nozzle in its cup (WSH-DCKC)",
+   "to": "the east dock's rinse nozzle socket under the cup (WSH-DRS)",
    "sub": "DOCK",
    "runs": [
     {
-     "kind": "conduit",
-     "via": "WSH-DKFL",
-     "where": "in the dock feed conduit from the floor box into the track beam under the dock post",
-     "mm": 515.3,
-     "tol": 0.0,
+     "kind": "duct",
+     "via": "WSH-DJB",
+     "where": "across the floor box (WSH-DJB) from the tee by the pure-water duct's mouth to the dock feed conduit",
+     "mm": 104.0,
+     "tol": 50.0,
      "bend": null,
      "moving": false,
      "range": null
     },
     {
-     "kind": "site",
-     "via": "",
-     "where": "up inside the dock post to its device: not drawn",
-     "mm": 600.0,
-     "tol": 300.0,
-     "bend": null,
+     "kind": "conduit",
+     "via": "WSH-DKFL",
+     "where": "in the dock feed conduit, up off the slab and into the dock post through its gland (WSH-DKG)",
+     "mm": 603.0,
+     "tol": 0.0,
+     "bend": 60.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "drawn",
+     "via": "WSH-DRT",
+     "where": "up the dock post's axis into the rinse nozzle's socket",
+     "mm": 745.5,
+     "tol": 0.0,
+     "bend": 30.0,
      "moving": false,
      "range": null
     }
    ],
-   "routeMm": 1115.3,
-   "tolMm": 300.0,
+   "routeMm": 1452.6,
+   "tolMm": 50.0,
    "tails": {
-    "a": 0.0,
-    "b": 300.0,
-    "basis": "300 mm into the device's terminal box (ASSUMPTION)"
+    "a": 15.0,
+    "b": 0.0,
+    "basis": "the tee's push-in takes 15 mm (ASSUMPTION); the socket's 12 mm is drawn"
    },
-   "orderMm": 1800.0,
+   "orderMm": 1600.0,
    "bendMm": {
-    "fixed": 0.0,
+    "fixed": 24.0,
     "moving": 0.0,
-    "tightestFixed": null,
+    "tightestFixed": 30.0,
     "tightestMoving": null
    },
    "pieces": [
-    "WSH-DKFL"
+    "WSH-DKFL",
+    "WSH-DRT"
    ],
    "notes": [],
-   "open": [
-    "Its run up inside the dock post is not drawn."
-   ]
+   "open": []
   },
   {
    "id": "WSH-DAR-SUP",
@@ -11536,6 +11717,16 @@
      "range": null
     },
     {
+     "kind": "duct",
+     "via": "WSH-DJB",
+     "where": "across the floor box (WSH-DJB) from its duct's mouth to its gland",
+     "mm": 204.5,
+     "tol": 50.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
      "kind": "drawn",
      "via": "WSH-DL12",
      "where": "from the floor box (WSH-DJB) through its gland into the chain",
@@ -11566,14 +11757,14 @@
      "range": null
     }
    ],
-   "routeMm": 12110.7,
-   "tolMm": 125.0,
+   "routeMm": 12315.2,
+   "tolMm": 175.0,
    "tails": {
     "a": 500.0,
     "b": 550.0,
     "basis": "500 mm inside the cabinet or box, from its gland to the terminal (ASSUMPTION); 550 mm up the pedestal to J1's gland: at most the mount's height above the floor (ASSUMPTION)"
    },
-   "orderMm": 13300.0,
+   "orderMm": 13600.0,
    "bendMm": {
     "fixed": 48.0,
     "moving": 90.0,
@@ -11630,6 +11821,16 @@
      "range": null
     },
     {
+     "kind": "duct",
+     "via": "WSH-DJB",
+     "where": "across the floor box (WSH-DJB) from its duct's mouth to its gland",
+     "mm": 203.6,
+     "tol": 50.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
      "kind": "drawn",
      "via": "WSH-DL12",
      "where": "from the floor box (WSH-DJB) through its gland into the chain",
@@ -11660,14 +11861,14 @@
      "range": null
     }
    ],
-   "routeMm": 12110.7,
-   "tolMm": 125.0,
+   "routeMm": 12314.3,
+   "tolMm": 175.0,
    "tails": {
     "a": 500.0,
     "b": 300.0,
     "basis": "500 mm inside the cabinet or box, from its gland to the terminal (ASSUMPTION); 300 mm into the device's terminal box (ASSUMPTION)"
    },
-   "orderMm": 13100.0,
+   "orderMm": 13300.0,
    "bendMm": {
     "fixed": 48.0,
     "moving": 90.0,
@@ -11724,6 +11925,16 @@
      "range": null
     },
     {
+     "kind": "duct",
+     "via": "WSH-DJB",
+     "where": "across the floor box (WSH-DJB) from its duct's mouth to its gland",
+     "mm": 201.6,
+     "tol": 50.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
      "kind": "drawn",
      "via": "WSH-DL8",
      "where": "from the floor box (WSH-DJB) through its gland into the chain",
@@ -11754,14 +11965,14 @@
      "range": null
     }
    ],
-   "routeMm": 12117.0,
-   "tolMm": 125.0,
+   "routeMm": 12318.6,
+   "tolMm": 175.0,
    "tails": {
     "a": 500.0,
     "b": 550.0,
     "basis": "500 mm inside the cabinet or box, from its gland to the terminal (ASSUMPTION); 550 mm up the pedestal to J1: at most the mount's height above the floor (ASSUMPTION)"
    },
-   "orderMm": 13300.0,
+   "orderMm": 13600.0,
    "bendMm": {
     "fixed": 32.0,
     "moving": 60.0,
@@ -11818,6 +12029,16 @@
      "range": null
     },
     {
+     "kind": "duct",
+     "via": "WSH-DJB",
+     "where": "across the floor box (WSH-DJB) from its duct's mouth to its gland",
+     "mm": 203.6,
+     "tol": 50.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
      "kind": "drawn",
      "via": "WSH-DL7",
      "where": "from the floor box (WSH-DJB) through its gland into the chain",
@@ -11848,14 +12069,14 @@
      "range": null
     }
    ],
-   "routeMm": 12238.6,
-   "tolMm": 125.0,
+   "routeMm": 12442.2,
+   "tolMm": 175.0,
    "tails": {
     "a": 500.0,
     "b": 550.0,
     "basis": "500 mm inside the cabinet or box, from its gland to the terminal (ASSUMPTION); 550 mm up the pedestal to J1: at most the mount's height above the floor (ASSUMPTION)"
    },
-   "orderMm": 13500.0,
+   "orderMm": 13700.0,
    "bendMm": {
     "fixed": 28.0,
     "moving": 52.5,
@@ -11907,6 +12128,16 @@
      "where": "in the west arm's pure water duct cast into the slab, to the floor box",
      "mm": 1680.1,
      "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "WSH-DJB",
+     "where": "across the floor box (WSH-DJB) from its duct's mouth to its gland",
+     "mm": 210.9,
+     "tol": 50.0,
      "bend": null,
      "moving": false,
      "range": null
@@ -12012,14 +12243,14 @@
      "range": null
     }
    ],
-   "routeMm": 15949.8,
-   "tolMm": 575.5,
+   "routeMm": 16160.7,
+   "tolMm": 625.5,
    "tails": {
     "a": 0.0,
     "b": 0.0,
     "basis": "its fittings take its ends"
    },
-   "orderMm": 16600.0,
+   "orderMm": 16800.0,
    "bendMm": {
     "fixed": 24.0,
     "moving": 45.0,
@@ -12455,7 +12686,7 @@
    "od": 7.0,
    "spec": "ASSUMPTION: of its kind",
    "from": "the detail arm drive cabinet (WSH-DAC)",
-   "to": "the west dock's exit signal (WSH-DCKS)",
+   "to": "the west dock's exit signal (WSH-DCKS), its rear entry",
    "sub": "DOCK",
    "runs": [
     {
@@ -12489,102 +12720,120 @@
      "range": null
     },
     {
-     "kind": "conduit",
-     "via": "WSH-DKFR",
-     "where": "in the dock feed conduit from the floor box into the track beam under the dock post",
-     "mm": 515.3,
-     "tol": 0.0,
-     "bend": null,
+     "kind": "duct",
+     "via": "WSH-DJB",
+     "where": "across the floor box (WSH-DJB) from its duct's mouth to the dock feed conduit",
+     "mm": 134.0,
+     "tol": 50.0,
+     "bend": 28.0,
      "moving": false,
      "range": null
     },
     {
-     "kind": "site",
-     "via": "",
-     "where": "up inside the dock post to its device: not drawn",
-     "mm": 600.0,
-     "tol": 300.0,
-     "bend": null,
+     "kind": "conduit",
+     "via": "WSH-DKFR",
+     "where": "in the dock feed conduit, up off the slab and into the dock post through its gland (WSH-DKG)",
+     "mm": 603.0,
+     "tol": 0.0,
+     "bend": 60.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "drawn",
+     "via": "WSH-DKC",
+     "where": "up inside the dock post to the signal's rear entry, through the post's car-side wall",
+     "mm": 555.2,
+     "tol": 0.0,
+     "bend": 30.0,
      "moving": false,
      "range": null
     }
    ],
-   "routeMm": 4100.7,
-   "tolMm": 375.0,
+   "routeMm": 4277.5,
+   "tolMm": 125.0,
    "tails": {
-    "a": 0.0,
+    "a": 500.0,
     "b": 300.0,
-    "basis": "300 mm into the device's terminal box (ASSUMPTION)"
+    "basis": "500 mm inside the cabinet or box, from its gland to the terminal (ASSUMPTION); 300 mm into the device's terminal box (ASSUMPTION)"
    },
-   "orderMm": 4800.0,
+   "orderMm": 5300.0,
    "bendMm": {
-    "fixed": 0.0,
+    "fixed": 28.0,
     "moving": 0.0,
-    "tightestFixed": null,
+    "tightestFixed": 28.0,
     "tightestMoving": null
    },
    "pieces": [
+    "WSH-DKC",
     "WSH-DKFR",
     "WSH-SDC34",
     "WSH-SDRD"
    ],
    "notes": [],
-   "open": [
-    "Its run up inside the dock post is not drawn."
-   ]
+   "open": []
   },
   {
    "id": "WSH-DKRR",
-   "name": "West dock pad rinse tube 6 mm",
+   "name": "West dock pad rinse tube 6 x 4",
    "kind": "water",
    "od": 6.0,
-   "spec": "ASSUMPTION: of its kind",
+   "spec": "6 x 4 polyurethane, pure-water grade",
    "from": "a tee on the arm's pure-water tube in the floor box (ASSUMPTION)",
-   "to": "the west dock's rinse nozzle in its cup (WSH-DCKC)",
+   "to": "the west dock's rinse nozzle socket under the cup (WSH-DRS)",
    "sub": "DOCK",
    "runs": [
     {
-     "kind": "conduit",
-     "via": "WSH-DKFR",
-     "where": "in the dock feed conduit from the floor box into the track beam under the dock post",
-     "mm": 515.3,
-     "tol": 0.0,
+     "kind": "duct",
+     "via": "WSH-DJB",
+     "where": "across the floor box (WSH-DJB) from the tee by the pure-water duct's mouth to the dock feed conduit",
+     "mm": 60.0,
+     "tol": 50.0,
      "bend": null,
      "moving": false,
      "range": null
     },
     {
-     "kind": "site",
-     "via": "",
-     "where": "up inside the dock post to its device: not drawn",
-     "mm": 600.0,
-     "tol": 300.0,
-     "bend": null,
+     "kind": "conduit",
+     "via": "WSH-DKFR",
+     "where": "in the dock feed conduit, up off the slab and into the dock post through its gland (WSH-DKG)",
+     "mm": 603.0,
+     "tol": 0.0,
+     "bend": 60.0,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "drawn",
+     "via": "WSH-DRT",
+     "where": "up the dock post's axis into the rinse nozzle's socket",
+     "mm": 745.5,
+     "tol": 0.0,
+     "bend": 30.0,
      "moving": false,
      "range": null
     }
    ],
-   "routeMm": 1115.3,
-   "tolMm": 300.0,
+   "routeMm": 1408.5,
+   "tolMm": 50.0,
    "tails": {
-    "a": 0.0,
-    "b": 300.0,
-    "basis": "300 mm into the device's terminal box (ASSUMPTION)"
+    "a": 15.0,
+    "b": 0.0,
+    "basis": "the tee's push-in takes 15 mm (ASSUMPTION); the socket's 12 mm is drawn"
    },
-   "orderMm": 1800.0,
+   "orderMm": 1500.0,
    "bendMm": {
-    "fixed": 0.0,
+    "fixed": 24.0,
     "moving": 0.0,
-    "tightestFixed": null,
+    "tightestFixed": 30.0,
     "tightestMoving": null
    },
    "pieces": [
-    "WSH-DKFR"
+    "WSH-DKFR",
+    "WSH-DRT"
    ],
    "notes": [],
-   "open": [
-    "Its run up inside the dock post is not drawn."
-   ]
+   "open": []
   }
  ]
 }

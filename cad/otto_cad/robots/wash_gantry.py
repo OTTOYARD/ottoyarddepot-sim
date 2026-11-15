@@ -617,19 +617,67 @@ def build(spec: dict) -> Model:
                             f'D {2 * (cup_r + 3):.0f} x 73', '316L', None,
                             'The parked pad hangs in it. A nozzle rinses the pad, and the pad turns to throw the water off.', {}, 'make'))
     post_h = pad_y - 43 - y_bt                           # the post stands on the track beam's north end
+    # THE DOCK'S FEED (2026-11-15: the schedule had the signal's cable and the rinse tube "up inside the dock post: not
+    # drawn", 600 mm +/- 300). The feed conduit comes up off the slab and into the post's outboard wall through a conduit
+    # gland, just above the base plate. Inside the post the rinse tube climbs its axis to a push-in socket under the top
+    # plate, and the rinse nozzle screws into the socket through the cup's floor. The signal's cable climbs beside the
+    # tube and leaves through the car-side wall straight into the signal's rear entry, which the signal covers. The
+    # lines never enter the track beam, so the beam stays closed. The post's frame below: +X is toward the car, so the
+    # west post (sx = +1) is placed turned a half turn about Y.
+    DK_V = 32.0                                          # the gland's axis above the beam top: its hex clears the base plate by 2 mm
+    DK_SV = post_h - 10 - 140 - 90                       # the cable's way into the signal: 30 mm above the signal's foot
+    DK_CZ = -12.0                                        # the cable's line beside the tube, which keeps the post's axis
+    v_tp = post_h - 10                                   # the top plate's underside
     post = (cq.Workplane('XY').box(200, 12, 200, centered=(True, False, True))
             .union(cq.Workplane('XY').box(80, post_h - 12, 80, centered=(True, False, True)).translate((0, 12, 0))
                    .cut(cq.Workplane('XY').box(68, post_h, 68, centered=(True, False, True)).translate((0, 12, 0))))
             .union(cq.Workplane('XY').box(160, 10, 160, centered=(True, False, True)).translate((0, post_h - 10, 0)))
             .cut(cq.Workplane('XZ', origin=(0, 13, 0)).pushPoints([(sxx * 75, szz * 75) for sxx in (-1, 1) for szz in (-1, 1)])
-                 .circle(5.5).extrude(14)))
+                 .circle(5.5).extrude(14))
+            .cut(cq.Workplane('YZ', origin=(-40.5, DK_V, 0)).circle(10.0).extrude(7.0))            # the gland's tapped hole, M20 x 1.5
+            .cut(cq.Workplane('YZ', origin=(33.5, DK_SV, DK_CZ)).circle(7.0).extrude(7.0))         # the cable's hole, behind the signal
+            .cut(cq.Workplane('XZ', origin=(0, post_h + 0.5, 0)).circle(6.5).extrude(11.0)))       # the rinse socket's neck, in the top plate
     post_pd = m.part(PartDef('WSH-DCKP', 'Dock post weldment', post.val(), 'steel_s355', 'structure', 'EN 1090-2 EXC2',
                              f'80 sq x {post_h:.0f}', 'S355J2, hot-dip galvanised', None,
-                             'Carries the rinse cup and the exit signal. It is bolted to the track beam\'s north end.', {}, 'make'))
+                             'Carries the rinse cup and the exit signal. It is bolted to the track beam\'s north end. The dock\'s '
+                             'feed rises inside it.',
+                             {'holes': 'M20 x 1.5 tapped in the outboard wall for the feed\'s conduit gland; 14 mm in the car-side wall '
+                                       'for the signal\'s cable, under the signal; 13 mm in the top plate for the rinse socket\'s neck',
+                              'closed': 'the base plate, the top plate and the signal close it: water stays out of the lines'}, 'make'))
+    # the conduit gland: a hex body outside the wall that takes the conduit to its stop, and its thread in the wall
+    dkg = (cq.Workplane('YZ').polygon(6, 30.0 / math.cos(math.pi / 6)).extrude(26.0).rotate((0, 0, 0), (1, 0, 0), 30)
+           .translate((-66.0, DK_V, 0))
+           .union(cq.Workplane('YZ', origin=(-40.0, DK_V, 0)).circle(10.0).extrude(6.0))
+           .cut(cq.Workplane('YZ', origin=(-67.0, DK_V, 0)).circle(10.1).extrude(23.0))               # the conduit's socket, to its stop
+           .cut(cq.Workplane('YZ', origin=(-45.0, DK_V, 0)).circle(7.5).extrude(12.0)))               # the lines' bore
+    dkg_pd = m.part(PartDef('WSH-DKG', 'Conduit gland M20 for 20 mm conduit, stainless', dkg.val(), 'ss316', 'electrical', 'EN 61386',
+                            'M20 x 1.5, 30 AF', 'IP68', None,
+                            'Holds the dock feed conduit in the post\'s outboard wall and seals it. The signal\'s cable and the rinse '
+                            'tube pass its 15 mm bore into the post.', {'conduit': '20 mm, pushed to its stop 22 mm in'}, 'buy'))
+    # the rinse socket: a bulkhead push-in socket under the top plate; the nozzle's G 1/4 thread comes down into its neck
+    drs = (cq.Workplane('XZ', origin=(0, v_tp + 7.0, 0)).circle(6.0).extrude(7.0)                    # the neck, to the nozzle's thread
+           .union(cq.Workplane('XZ', origin=(0, v_tp, 0)).polygon(6, 19.0 / math.cos(math.pi / 6)).extrude(5.0))   # its lock nut
+           .union(cq.Workplane('XZ', origin=(0, v_tp - 5.0, 0)).polygon(6, 17.0 / math.cos(math.pi / 6)).extrude(16.0))   # the body
+           .union(cq.Workplane('XZ', origin=(0, v_tp - 21.0, 0)).circle(6.0).extrude(3.0))             # the push-in's release collar
+           .cut(cq.Workplane('XZ', origin=(0, v_tp - 25.0, 0)).circle(3.05).extrude(-13.0)))           # the tube's socket
+    drs_pd = m.part(PartDef('WSH-DRS', 'Rinse nozzle socket, G 1/4 to 6 mm push-in, bulkhead, stainless', drs.val(), 'ss316', 'fluid',
+                            'catalogue part', 'G 1/4, 6 mm', '316', None,
+                            'Holds the rinse nozzle on the post\'s top plate and feeds it. Its lock nut clamps the top plate; the '
+                            'nozzle screws down into its neck through the cup\'s floor.', {'tube': '6 mm, pushed 12 mm in'}, 'buy'))
+    drt = std.swept('WSH-DRT', 'Pad rinse tube 6 x 4 in the dock post, polyurethane',
+                    [(-44.0, DK_V, 4.5), (-34.0, DK_V, 4.5), (0.0, DK_V, 0.0), (0.0, v_tp - 12.0, 0.0)], 3.0, 'pu', 'fluid', 2.0,
+                    'Carries the pure water from the feed conduit up the post\'s axis to the rinse nozzle\'s socket.',
+                    {'tube': '6 x 4 polyurethane, pure-water grade', 'bend': 'R 30'}, '', 'D 6', bend=30.0)
+    dkc = std.swept('WSH-DKC', 'Exit signal cable 7 mm in the dock post',
+                    [(-44.0, DK_V, -4.0), (-34.0, DK_V, -4.0), (2.0, DK_V, DK_CZ), (2.0, DK_SV, DK_CZ), (40.0, DK_SV, DK_CZ)],
+                    3.5, 'cable', 'electrical', 0.0,
+                    'Carries the signal\'s 2 lamp circuits from the feed conduit up the post and into the signal\'s rear entry.',
+                    {'bend': 'R 30'}, '', 'D 7', bend=30.0)
     sig = cq.Workplane('XY').box(120, 240, 60)
     sig_pd = m.part(PartDef('WSH-DCKS', 'Exit signal housing', sig.val(), 'steel_paint', 'electrical', 'catalogue part',
                             '120 x 240 x 60', 'IP66', None, 'Faces the car in the bay: red while the bay works, green when the car may go.',
-                            {}, 'buy'))
+                            {'cable entry': 'at its back, from inside the post through the post\'s wall; its own gasket seals it (ASSUMPTION)'},
+                            'buy'))
     lamp_r2 = PartDef('WSH-LMR', 'Signal lamp, red, 100 mm', cq.Workplane('XY').circle(40).extrude(-12).val(), 'led_red', 'electrical',
                       'catalogue part', 'D 100', 'IP66', None, 'Red: the car must stay.', {}, 'buy')
     lamp_g2 = PartDef('WSH-LMG', 'Signal lamp, green, 100 mm', cq.Workplane('XY').circle(40).extrude(-12).val(), 'led_green', 'electrical',
@@ -774,7 +822,11 @@ def build(spec: dict) -> Model:
         m.place(ch['j5'], m.part(pst), Location(), (160, 20, -40), 'POLISH')
         m.place(ch['j5'], pcu_pd, Location(), (160, 0, -40), 'POLISH')
         # ── the dock, north of the track ──
-        m.place(bay, post_pd, loc(x0, y_bt, z_cup), (sx * 260, 0, 200), 'DOCK')
+        at_post = loc(x0, y_bt, z_cup, ry=0 if sx < 0 else 180)        # the post's frame: +X toward the car
+        m.place(bay, post_pd, at_post, (sx * 260, 0, 200), 'DOCK')
+        m.place(bay, dkg_pd, at_post, (sx * 320, 0, 200), 'DOCK')
+        for pd_ in (drs_pd, m.part(drt), m.part(dkc)):                 # closed inside the post: the Robotics tab draws them
+            m.place(bay, pd_, at_post, (sx * 260, 0, 200), 'DOCK').yard_hidden = True
         m.place(bay, cup_pd, loc(x0, 0, z_cup), (sx * 260, 80, 200), 'DOCK')
         m.place(bay, std.nozzle('jet', 'Rinses the parked pad with pure water.'), std.orient((x0, pad_y - 40, z_cup), (0, 1, 0)),
                 (sx * 260, 40, 200), 'DOCK')
@@ -1478,6 +1530,7 @@ def build(spec: dict) -> Model:
         fd_.wi, fd_.hi, fd_.lead_a, fd_.lead_b = DK['bi'], DK['hi'], 0.0, ELB_LEAD
         check_contents(fd_)
     al_pd = {}
+    DUCT_UP: dict = {}                                   # each arm's chain line and its 3 duct mouths in its floor box, x (the schedule)
     for (tag, od, _, mat, cat) in a_lanes:
         if tag not in al_pd:
             al_pd[tag] = m.part(PartDef(f'WSH-DL{tag}', f'Arm line, {od:g} mm, floor box to the chain', cq.Solid.makeCylinder(od / 2, z_b0 - z_fx, Vector(0, 0, 0), Vector(0, 0, 1)),
@@ -1487,16 +1540,20 @@ def build(spec: dict) -> Model:
             al_pd[tag].path_mm = z_b0 - z_fx
     for sx, name in ((-1, 'L'), (1, 'R')):
         x_c = sx * (XT + 300)                            # the arm chain's line
+        DUCT_UP[name] = {'chain': x_c}
         m.place(bay, jb_pd, loc(x_c, 0, z_b0), (sx * 200, 0, 200), 'SUPPLY')
         m.place(bay, dfe_pd, loc(x_c, 0, z_fx), (sx * 200, -60, 100), 'SUPPLY')
         for (tag, od, lx, _, _) in a_lanes:
             m.place(bay, al_pd[tag], loc(x_c + lx, 30.0 - DK['hi'] / 2 + 0.5 + od / 2, z_fx), (sx * 200, 60, 150), 'SUPPLY')
-        # the dock's feed: the signal's cable and the rinse nozzle's tube, from the box to the track beam, and up inside the post
+        # the dock's feed: the signal's cable and the rinse nozzle's tube, from the box up off the slab and into the dock
+        # post through its gland (WSH-DKG), 22 mm into the gland to its stop; they rise inside the post
         xk = x_c - sx * 40
         dk = std.swept(f'WSH-DKF{name}', 'Dock feed conduit 20 x 1, stainless: signal cable and rinse tube',
-                       [(xk, 42.0, z_b1), (xk, 42.0, z_cup), (sx * (XT + 120), 42.0, z_cup)], 10.0, 'ss316', 'electrical', 9.0,
-                       'Takes the exit signal\'s cable and the pad rinse nozzle\'s tube from the floor box into the track beam under the dock post. '
-                       'They rise inside the post.', {'bend': 'R 60'}, 'EN 61386', 'D 20', 'make', bend=60.0)
+                       [(xk, 42.0, z_b1), (xk, 42.0, z_b1 + 100), (xk, y_bt + DK_V, z_b1 + 250), (xk, y_bt + DK_V, z_cup),
+                        (sx * (XT + 44), y_bt + DK_V, z_cup)], 10.0, 'ss316', 'electrical', 9.0,
+                       'Takes the exit signal\'s cable and the pad rinse nozzle\'s tube from the floor box into the dock post, through '
+                       'a gland in the post\'s outboard wall. They rise inside the post.', {'bend': 'R 60'}, 'EN 61386', 'D 20', 'make',
+                       bend=60.0)
         m.place(bay, dk, Location(), (sx * 200, 0, 260), 'SUPPLY')
         # the 3 ducts: down from the pull box, south, across to the chain's line, south, and up into the floor box. Each
         # side has its own depth, so the east arm's ducts pass under the west arm's.
@@ -1508,6 +1565,7 @@ def build(spec: dict) -> Model:
                  ((-45.0, sz_aw, [A_H2O], 'pure water'), (0.0, sz_ap, [A_SUP, A_MOT, A_24V], 'power'), (40.0, sz_ad, [A_ECT, A_SIG], 'data')))
         for (dxx, size, ods, what), x_w, z_l in zip(ducts, xw, zl_):
             x_1 = x_c + dxx
+            DUCT_UP.setdefault(name, {})[dict(power='P', data='D').get(what, 'W')] = x_1     # its mouth in the floor box (the schedule)
             cast_duct(f'WSH-SD{name}{dict(power="P", data="D").get(what, "W")}', f'{"west" if sx > 0 else "east"} arm {what}', size,
                       [(x_w, 0, zdw), (x_w, y_d, zdw), (x_w, y_d, z_l), (x_1, y_d, z_l), (x_1, y_d, z_up), (x_1, 0, z_up)], ods)
     # ════════════════════════════════════════════════════════════ CABLE SCHEDULE ═══
@@ -1682,6 +1740,11 @@ def _cable_schedule(m: Model, g: dict) -> None:
             L.run('site', 'WSH-SPB', 'across the pull box to its duct', 150.0, tol=75.0)
             L.run('conduit', duct, f'in the {side} arm\'s {dict(P="power", D="data", W="pure water")[dch]} duct cast into the slab, to the floor box',
                   P[duct].path_mm)
+            # across the box, from the duct's mouth in its floor to the gland in its south face where the drawn piece starts
+            # (2026-11-15: this piece was missing, so each arm line was 200 to 260 mm short of its route)
+            x1, y_l = g['DUCT_UP'][name][dch], 30.0 - g['DK']['hi'] / 2 + 0.5 + od / 2
+            mm, rb = route([(x1, 0.0, g['z_up']), (x1, y_l, g['z_up']), (g['DUCT_UP'][name]['chain'] + c['w'], y_l, g['z_b0'])], 4 * od)
+            L.run('duct', 'WSH-DJB', 'across the floor box (WSH-DJB) from its duct\'s mouth to its gland', mm, tol=50.0, bend=rb)
             L.run('drawn', c['part'], 'from the floor box (WSH-DJB) through its gland into the chain', P[c['part']].path_mm)
             mm, rb = chain_mm(fdk, c['id'])
             L.run('chain', fdk.id, 'in the arm\'s cable chain, in its own lane', mm, bend=rb, moving=True)
@@ -1702,15 +1765,32 @@ def _cable_schedule(m: Model, g: dict) -> None:
                     'POLISH', tails='the union and the holder take its ends')
         L.run('drawn', 'WSH-PST', 'up the bracket\'s east face', P['WSH-PST'].path_mm)
         # the dock's feed: the exit signal's cable and the pad rinse tube, from the floor box up the dock post
-        for (lid, nm, kind, od, to) in ((f'WSH-DKS{name}', 'exit signal cable 7 mm', 'control', 7.0, f'the {side} dock\'s exit signal (WSH-DCKS)'),
-                                        (f'WSH-DKR{name}', 'pad rinse tube 6 mm', 'water', 6.0, f'the {side} dock\'s rinse nozzle in its cup (WSH-DCKC)')):
-            L = m.cable(lid, f'{side.capitalize()} dock {nm}', kind, od, 'ASSUMPTION: of its kind',
-                        'the detail arm drive cabinet (WSH-DAC)' if kind == 'control' else 'a tee on the arm\'s pure-water tube in the floor box (ASSUMPTION)',
-                        to, 'DOCK', tail_b=TAIL_DEV, tails=dev_tail)
-            if kind == 'control':
+        k0 = P[f'WSH-DKF{name}'].path_ends[0]           # the dock feed conduit's start, on the floor box's north face
+        for (lid, nm, kind, od, spec, to, drawn) in (
+                (f'WSH-DKS{name}', 'exit signal cable 7 mm', 'control', 7.0, 'ASSUMPTION: of its kind',
+                 f'the {side} dock\'s exit signal (WSH-DCKS), its rear entry', 'WSH-DKC'),
+                (f'WSH-DKR{name}', 'pad rinse tube 6 x 4', 'water', 6.0, '6 x 4 polyurethane, pure-water grade',
+                 f'the {side} dock\'s rinse nozzle socket under the cup (WSH-DRS)', 'WSH-DRT')):
+            control = kind == 'control'
+            L = m.cable(lid, f'{side.capitalize()} dock {nm}', kind, od, spec,
+                        'the detail arm drive cabinet (WSH-DAC)' if control else 'a tee on the arm\'s pure-water tube in the floor box (ASSUMPTION)',
+                        to, 'DOCK', bend_fixed=4 * od, tail_a=TAIL_CAB if control else 15.0, tail_b=TAIL_DEV if control else 0.0,
+                        tails=f'{cab_tail}; {dev_tail}' if control else
+                        'the tee\'s push-in takes 15 mm (ASSUMPTION); the socket\'s 12 mm is drawn')
+            if control:
                 L.run('conduit', drop_id(g['sz_ad']), 'down the wall from the cabinet in its conduit', P[drop_id(g['sz_ad'])].path_mm)
                 L.run('site', 'WSH-SPB', 'across the pull box to its duct', 150.0, tol=75.0)
                 L.run('conduit', f'WSH-SD{name}D', f'in the {side} arm\'s data duct to the floor box', P[f'WSH-SD{name}D'].path_mm)
-            L.run('conduit', f'WSH-DKF{name}', 'in the dock feed conduit from the floor box into the track beam under the dock post', P[f'WSH-DKF{name}'].path_mm)
-            L.run('site', '', 'up inside the dock post to its device: not drawn', 600.0, tol=300.0)
-            L.open.append('Its run up inside the dock post is not drawn.')
+                x1 = g['DUCT_UP'][name]['D']
+                pts = [(x1, 0.0, g['z_up']), (x1, k0[1], g['z_up']), (k0[0], k0[1], k0[2])]
+                where = 'across the floor box (WSH-DJB) from its duct\'s mouth to the dock feed conduit'
+            else:
+                x1 = g['DUCT_UP'][name]['W']
+                pts = [(x1, k0[1], g['z_up']), (k0[0], k0[1], k0[2])]
+                where = 'across the floor box (WSH-DJB) from the tee by the pure-water duct\'s mouth to the dock feed conduit'
+            mm, rb = route(pts, 4 * od)
+            L.run('duct', 'WSH-DJB', where, mm, tol=50.0, bend=rb)
+            L.run('conduit', f'WSH-DKF{name}', 'in the dock feed conduit, up off the slab and into the dock post through its gland (WSH-DKG)',
+                  P[f'WSH-DKF{name}'].path_mm, bend=60.0)
+            L.run('drawn', drawn, 'up inside the dock post to the signal\'s rear entry, through the post\'s car-side wall' if control
+                  else 'up the dock post\'s axis into the rinse nozzle\'s socket', P[drawn].path_mm, bend=30.0)

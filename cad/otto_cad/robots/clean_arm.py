@@ -337,11 +337,13 @@ def build(spec: dict) -> Model:
                                  'Turns J1 through the pinion. Its brake holds the arm\'s heading with power off.',
                                  {'power': '750 W', 'gearhead': '25:1 planetary', 'overall': 'about 230:1 to J1'}, 'buy', mass_override=6.5)),
             loc(mx + XP1, col_bot + 20, 0), (260, 160, 0), 'J1')
-    # the J1 union: its body in the column's foot, the riser into its top, its rotor down the hub into link 1
+    # the J1 union: its body in the column's foot, the riser into its top, its rotor down the hub into link 1. Its foot is
+    # Y_R1 above link 1's middle: 31 mm inside the link, room for its outlet collar (THE LINES BESIDE THE DUCTS, below)
     u_y0 = col_bot + 30
+    Y_R1 = 38.0
     swv1 = (cq.Workplane('XZ', origin=(0, u_y0 + 120, 0)).circle(60).extrude(120)
             .union(cq.Workplane('XZ', origin=(0, u_y0 + 140, 0)).circle(27).extrude(20))
-            .union(cq.Workplane('XZ', origin=(0, u_y0, 0)).circle(25).extrude(u_y0 - (y1 + 60))))
+            .union(cq.Workplane('XZ', origin=(0, u_y0, 0)).circle(25).extrude(u_y0 - (y1 + Y_R1))))
     m.place(base, m.part(PartDef('CLN-SWV1', 'Rotary union with slip ring, J1: DN 50 vacuum, air, 24 circuits', swv1.val(), 'steel_paint',
                                  'fluid', 'catalogue part', 'DN 50, G 1/4 air, 24 x 2 A', 'IP65', None,
                                  'Passes the vacuum, the air and the signals across J1. Its body stands in the column; its rotor turns '
@@ -517,7 +519,8 @@ def build(spec: dict) -> Model:
                                'Carries J2 at 0.95 m from J1. A box section: stiff in bending and twist. The duct and cables run inside.',
                                {'wall': '6 mm'}, 'make')),
             Location(), (0, 0, 0), 'LINK1')
-    c1a, c1b = 80 + 5, L1 - A['j2']['r'] * M - 5
+    c1a = 80 + 5
+    c1b = L1 - 0.9 * A['link1']['w'] * M / 2 + 4      # 4 mm past the top skin's opening (it stopped 58 mm short, over the J2 motor)
     cover1 = cq.Workplane('XY').box(c1b - c1a, 3, A['link1']['w'] * M - 20).translate(((c1a + c1b) / 2, h1 / 2 + 1.5, 0))
     m.place(j1, m.part(PartDef('CLN-L1C', 'Link 1 top cover', cover1.val(), 'al6061_blk', 'structure', 'sheet 3 mm',
                                f'{c1b - c1a:.0f} x 150', '', None, 'Closes the link. Off for service.', {}, 'make')), Location(), (0, 90, 0), 'LINK1')
@@ -525,14 +528,46 @@ def build(spec: dict) -> Model:
         for zz in (-62, 62):
             m.place(j1, std.bhcs(5, 10, 'A2-70', 'Holds the link cover.'),
                     std.orient((c1a + 10 + i * (c1b - c1a - 20) / 5, h1 / 2 + 3, zz), (0, -1, 0)), (0, 110, 0), 'LINK1')
-    # the duct in link 1: from the J1 rotor's outlet (y 60) down a 90 degree mandrel bend to y -14, across to z = +40 (the J2
+    # the duct in link 1: from the J1 rotor's outlet (y 38) down a 90 degree mandrel bend to y -36, across to z = +40 (the J2
     # gearmotor lies at z = -40), along the link and up to the J2 union's side port. Every bend R 74 on the centreline (1.4 D).
+    # It runs 6 mm over the link's bottom skin.
     d_r = 74.0
     d1 = std.swept('CLN-L1D', 'Vacuum duct in link 1, 54 x 2',
-                   [(0, 60, 0), (0, 60 - d_r, 0), (150, 60 - d_r, 0), (230, 60 - d_r, 40), (L1 - 200, 60 - d_r, 40), (L1 - 150, 0, 40),
-                    (L1 - 75, 0, 40)], 27, 'al6061', 'fluid', 25, 'Carries the vacuum along link 1 from J1 to J2.',
+                   [(0, Y_R1, 0), (0, Y_R1 - d_r, 0), (150, Y_R1 - d_r, 0), (230, Y_R1 - d_r, 40), (L1 - 200, Y_R1 - d_r, 40),
+                    (L1 - 150, 0, 40), (L1 - 75, 0, 40)], 27, 'al6061', 'fluid', 25, 'Carries the vacuum along link 1 from J1 to J2.',
                    {'bends': 'mandrel, centreline R 74'}, 'EN 754-2', 'D 54 x 2', 'make', bend=d_r)
     m.place(j1, d1, Location(), (0, 60, 0), 'VAC')
+    # ══════════════════════════════════════════ THE LINES BESIDE THE DUCTS ═══
+    # (2026-11-15: the schedule listed the arm cable and the air tube in each link as "not drawn", straight from union to
+    # union and a quarter more.) Each union brings its turning side out at its rotor's foot through an outlet collar: a
+    # connector for the arm cable and a push-in port for the air tube. Each line runs along its link to the next union's
+    # body, whose fixed side takes it the same 2 ways. In link 1 they lie under the top cover, over the duct and the J2
+    # gearmotor. In link 2 they leave the link through 2 glands in its cover, either side of the duct, and rise beside it
+    # to 2 bosses on the J3 union. ASSUMPTION: the union maker brings the turning side out at the rotor's foot (the collar
+    # is drawn here; its leads and its air passage are the union's).
+    SOC_H, SOC_X = 24.0, 50.0                            # the collar's height, and its outlet face off the axis
+    soc = (cq.Workplane('XZ', origin=(0, SOC_H / 2, 0)).circle(34.0).extrude(SOC_H)
+           .union(cq.Workplane('XY').box(SOC_X - 20.0, SOC_H, 44.0).translate(((SOC_X + 20.0) / 2, 0, 0)))
+           .cut(cq.Workplane('XZ', origin=(0, SOC_H / 2 + 1, 0)).circle(25.05).extrude(SOC_H + 2)))
+    soc_pd = m.part(PartDef('CLN-SOC', 'Union outlet collar, turning side', soc.val(), 'steel_paint', 'electrical', 'catalogue part',
+                            'bore 50, 24 high', 'IP65', None,
+                            'Clamps a union\'s rotor at its foot and brings out its turning side: a connector for the arm cable and a '
+                            'port for the air tube.',
+                            {'ASSUMPTION': 'the union maker brings its slip ring\'s leads and its air passage out at the rotor\'s foot'}, 'buy'))
+    scn = cq.Workplane('YZ').circle(9.5).extrude(8.0).union(cq.Workplane('YZ', origin=(8.0, 0, 0)).circle(8.5).extrude(22.0))
+    scn_pd = m.part(PartDef('CLN-SCN', 'Circular connector M16, receptacle and plug, IP67', scn.val(), 'pa66', 'electrical',
+                            'catalogue part', 'M16, 30 long mated', 'IP67', None,
+                            'Joins the arm cable to a union\'s slip ring. The receptacle is the union\'s; the plug is on the cable.',
+                            {'mated': 'receptacle 8 mm, plug and its cable clamp 22 mm'}, 'buy'))
+    spf = (cq.Workplane('YZ').polygon(6, 13.0 / math.cos(math.pi / 6)).extrude(6.0)
+           .union(cq.Workplane('YZ', origin=(6.0, 0, 0)).circle(5.5).extrude(10.0))
+           .cut(cq.Workplane('YZ', origin=(4.0, 0, 0)).circle(3.05).extrude(13.0)))
+    spf_pd = m.part(PartDef('CLN-SPF', 'Push-in fitting 6 mm, G 1/8, straight', spf.val(), 'ss316', 'fluid', 'ISO 14743', 'G 1/8, 6 mm',
+                            '', None, 'Takes the air tube at a union\'s air port.', {'tube': '6 mm, pushed 12 mm in'}, 'buy'))
+    y_c1 = Y_R1 + 2 + SOC_H / 2                          # the J1 collar's middle: 2 mm over the rotor's foot
+    m.place(j1, soc_pd, loc(0, y_c1, 0), (0, 40, 0), 'LINK1').yard_hidden = True
+    m.place(j1, scn_pd, loc(SOC_X, y_c1, -10), (0, 40, 0), 'LINK1').yard_hidden = True
+    m.place(j1, spf_pd, loc(SOC_X, y_c1, 12), (0, 40, 0), 'VAC').yard_hidden = True
 
     # ═══════════════════════════════════════════════════════ J2 + link 2 ═══
     j2 = j1.child('CA_J2', loc(L1, 0, 0), sub='J2',
@@ -579,6 +614,23 @@ def build(spec: dict) -> Model:
                                'with link 2.', {'vacuum': 'DN 50, -30 kPa', 'air': '6 bar', 'circuits': '24 x 2 A, EtherCAT pair'}, 'buy',
                                mass_override=6.0)),
             loc(L1, 0, 0), (0, 300, 0), 'VAC')
+    # the J2 union's fixed side takes link 1's lines on its body's -X face, beside the duct's port: a fitting's face where
+    # it first meets the round body
+    def body_face(xc: float, R: float, zc: float, half: float) -> float:
+        return xc - math.sqrt(R * R - max(0.0, abs(zc) - half) ** 2)
+    x_c2, x_a2 = body_face(L1, 54.0, -10.0, 9.5), body_face(L1, 54.0, 12.0, 6.5)
+    m.place(j1, scn_pd, loc(x_c2, 30.0, -10, ry=180), (0, 40, 0), 'LINK1').yard_hidden = True
+    m.place(j1, spf_pd, loc(x_a2, 30.0, 12, ry=180), (0, 40, 0), 'VAC').yard_hidden = True
+    ac1 = std.swept('CLN-AC1', 'Arm cable in link 1: power and network, 10 mm',
+                    [(SOC_X + 30, y_c1, -10), (780.0, y_c1, -10), (840.0, 30.0, -10), (x_c2 - 30, 30.0, -10)], 5.0, 'cable', 'electrical',
+                    0.0, 'Carries power and the network along link 1, from the J1 union\'s turning side to the J2 union\'s fixed side. '
+                    'It lies under the top cover, over the duct and the J2 gearmotor, and does not move.',
+                    {'bend': f'R {CAB_BEND:.0f} (4 x D)'}, 'EN 50525', 'OD 10', 'buy', bend=CAB_BEND)
+    at1 = std.swept('CLN-AT1', 'Air tube 6 x 4 in link 1', [(SOC_X + 4, y_c1, 12), (790.0, y_c1, 12), (850.0, 30.0, 12), (x_a2 - 4, 30.0, 12)],
+                    3.0, 'pu', 'fluid', 2.0, 'Carries the air along link 1, from the J1 union\'s turning side to the J2 union\'s fixed side.',
+                    {'tube': '6 x 4 polyurethane', 'bend': f'R {AIR_BEND_R:.0f}'}, 'ISO 14743', 'D 6', 'buy', bend=AIR_BEND_R)
+    m.place(j1, ac1, Location(), (0, 60, 0), 'LINK1').yard_hidden = True
+    m.place(j1, at1, Location(), (0, 60, 0), 'VAC').yard_hidden = True
     link2 = _box_link(L2, A['link2']['w'] * M, h2, 5, 56, 270, bosses=(False, True))
     m.place(j2, m.part(PartDef('CLN-L2', 'Link 2 weldment', link2, 'al6061', 'structure', 'EN 1090-3, machined after welding',
                                f'{L2:.0f} between axes, 140 x 130', '6061-T6', None,
@@ -590,10 +642,14 @@ def build(spec: dict) -> Model:
                                {}, 'make')), Location(), (0, -90, 0), 'J2')
     c2a, c2b = jr + 5, L2 - 145
     x_d2 = L2 - 180                                      # where the duct leaves link 2, up to the J3 union
+    x_g, z_g = x_d2 - 20, 42.0                           # the arm cable's and the air tube's glands, either side of the duct
     cover2 = (cq.Workplane('XY').box(c2b - c2a, 3, A['link2']['w'] * M - 20).translate(((c2a + c2b) / 2, -drop + h2 / 2 + 1.5, 0))
-              .cut(cq.Workplane('XZ', origin=(x_d2, -drop + h2 / 2 + 5, 0)).circle(29).extrude(10)))
+              .cut(cq.Workplane('XZ', origin=(x_d2, -drop + h2 / 2 + 5, 0)).circle(29).extrude(10))
+              .cut(cq.Workplane('XZ', origin=(x_g, -drop + h2 / 2 + 5, -z_g)).circle(10.2).extrude(10))     # M20 gland, the cable
+              .cut(cq.Workplane('XZ', origin=(x_g, -drop + h2 / 2 + 5, z_g)).circle(8.2).extrude(10)))       # M16 gland, the tube
     m.place(j2, m.part(PartDef('CLN-L2C', 'Link 2 top cover', cover2.val(), 'al6061_blk', 'structure', 'sheet 3 mm', f'{c2b - c2a:.0f} x 120',
-                               '', None, 'Closes link 2. Off for service. The duct leaves through it to the J3 union.', {}, 'make')),
+                               '', None, 'Closes link 2. Off for service. The duct leaves through it to the J3 union, and the arm cable and the air '
+                               'tube through 2 glands beside it.', {}, 'make')),
             Location(), (0, 70, 0), 'LINK2')
     for i in range(5):
         for zz in (-52, 52):
@@ -659,8 +715,11 @@ def build(spec: dict) -> Model:
         m.place(j2, std.shcs(6, 25, '12.9', 'Clamps the slewing bearing outer ring under the lid.'),
                 std.orient((L2 + p[0], p[1], p[2]), (0, -1, 0)), (0, 200, 0), 'J3')
     # the vacuum swivel with the slip ring: its rotor stem goes down the axis into the collar; its body stands on the lid
+    B3_X, y_b3 = 58.0, y_xb + 8 + 33                     # its 2 bosses: their faces 58 mm off the axis, 33 mm over its foot
     swv = (cq.Workplane('XZ', origin=(0, y_xb + 8 + 120, 0)).circle(60).extrude(120)
            .union(cq.Workplane('YZ', origin=(-60, y_xb + 8 + 60, 0)).circle(27).extrude(-70))
+           .union(cq.Workplane('XY').box(36.0, 24.0, 24.0).translate((-B3_X + 18.0, y_b3, z_g)))
+           .union(cq.Workplane('XY').box(36.0, 24.0, 24.0).translate((-B3_X + 18.0, y_b3, -z_g)))
            .union(cq.Workplane('XZ', origin=(0, y_xb + 8, 0)).circle(25).extrude(y_xb + 8 - (yl2 + oA + 12))))
     m.place(j2, m.part(PartDef('CLN-SWV', 'Rotary union with slip ring, J3: DN 50 vacuum, air, 12 circuits', swv.val(), 'steel_paint', 'fluid',
                                'catalogue part', 'DN 50, G 1/4 air, 12 x 2 A', 'IP65', None,
@@ -675,6 +734,41 @@ def build(spec: dict) -> Model:
                    'Carries the vacuum along link 2 from J2 and up into the J3 union.', {'bends': 'mandrel, centreline R 36'},
                    'EN 754-2', 'D 54 x 2', 'make', bend=36.0)
     m.place(j2, d2, Location(), (0, 60, 0), 'VAC')
+    # the J2 union's outlet collar in link 2 (its rotor's foot is 30 mm inside the link), and link 2's lines: out through
+    # the cover's 2 glands and up beside the duct to the J3 union's bosses
+    y_c2 = -drop + 30 + 2 + SOC_H / 2                    # 2 mm over the rotor's foot
+    m.place(j2, soc_pd, loc(0, y_c2, 0), (0, 40, 0), 'LINK2').yard_hidden = True
+    m.place(j2, scn_pd, loc(SOC_X, y_c2, -10), (0, 40, 0), 'LINK2').yard_hidden = True
+    m.place(j2, spf_pd, loc(SOC_X, y_c2, 12), (0, 40, 0), 'VAC').yard_hidden = True
+    y_cv = -drop + h2 / 2 + 3                            # the cover's top face
+    m.place(j2, std.gland(20, 'Holds the arm cable where it leaves link 2, and seals the cover.'),
+            std.orient((x_g, y_cv, -z_g), (0, -1, 0)), (0, 90, 0), 'LINK2')
+    m.place(j2, std.gland(16, 'Holds the air tube where it leaves link 2, and seals the cover.'),
+            std.orient((x_g, y_cv, z_g), (0, -1, 0)), (0, 90, 0), 'VAC')
+    # on the J3 union's bosses, in the open: their own ids, as the yard draws them and not the ones closed in the links
+    m.place(j2, m.part(PartDef('CLN-SCN3', 'Circular connector M16, receptacle and plug, IP67, on the J3 union', scn.val(), 'pa66', 'electrical',
+                               'catalogue part', 'M16, 30 long mated', 'IP67', None,
+                               'Joins the arm cable to the J3 union\'s slip ring, on its boss. The receptacle is the union\'s; the plug is on the cable.',
+                               {'mated': 'receptacle 8 mm, plug and its cable clamp 22 mm'}, 'buy')),
+            loc(L2 - B3_X, y_b3, -z_g, ry=180), (0, 400, 0), 'LINK2')
+    m.place(j2, m.part(PartDef('CLN-SPF3', 'Push-in fitting 6 mm, G 1/8, straight, on the J3 union', spf.val(), 'ss316', 'fluid', 'ISO 14743',
+                               'G 1/8, 6 mm', '', None, 'Takes the air tube at the J3 union\'s air port, on its boss.', {'tube': '6 mm, pushed 12 mm in'}, 'buy')),
+            loc(L2 - B3_X, y_b3, z_g, ry=180), (0, 400, 0), 'VAC')
+    y_l2r = -drop + 15                                   # their run along link 2: beside the duct, 15 mm over its middle
+    ac2 = std.swept('CLN-AC2', 'Arm cable in link 2: power and network, 10 mm',
+                    [(SOC_X + 30, y_c2, -10), (140.0, y_c2, -10), (260.0, y_l2r, -z_g), (x_g, y_l2r, -z_g), (x_g, y_b3, -z_g),
+                     (L2 - B3_X - 30, y_b3, -z_g)], 5.0, 'cable', 'electrical', 0.0,
+                    'Carries power and the network along link 2, from the J2 union\'s turning side out through its gland and up '
+                    'beside the duct to the J3 union\'s fixed side. It does not move.',
+                    {'bend': f'R {CAB_BEND:.0f} (4 x D)'}, 'EN 50525', 'OD 10', 'buy', bend=CAB_BEND)
+    at2 = std.swept('CLN-AT2', 'Air tube 6 x 4 in link 2',
+                    [(SOC_X + 4, y_c2, 12), (120.0, y_c2, 12), (250.0, y_l2r, z_g), (x_g, y_l2r, z_g), (x_g, y_b3, z_g),
+                     (L2 - B3_X - 4, y_b3, z_g)], 3.0, 'pu', 'fluid', 2.0,
+                    'Carries the air along link 2, from the J2 union\'s turning side out through its gland and up beside the duct to '
+                    'the J3 union\'s fixed side.', {'tube': '6 x 4 polyurethane', 'bend': f'R {AIR_BEND_R:.0f}'}, 'ISO 14743', 'D 6', 'buy',
+                    bend=AIR_BEND_R)
+    m.place(j2, ac2, Location(), (0, 60, 0), 'LINK2')
+    m.place(j2, at2, Location(), (0, 60, 0), 'VAC')
 
     # ═══════════════════════════════════════════════════════════════ MAST ═══
     outer = cq.Workplane('XY').add(_sq_tube(s0, 4, oA + oB)).translate((0, oA, 0))
@@ -1077,16 +1171,6 @@ def _cable_schedule(m: Model, g: dict) -> None:
     piece between them is its own line: the supply and network drops, the J1 motor cable, the arm cable to the J1 union,
     the cables inside the 2 links, the hybrid cable and air line down the mast and along the wand, and the air line's
     pieces from the canopy main to the nozzle."""
-    import numpy as np
-    from ..flex import loc_matrix, node_frames
-    W0 = node_frames(m.root, {})
-
-    def at(pid):      # a placed part's centre of mass, robot frame, stowed (a union's solid is drawn in its parent's frame)
-        for node in m.root.walk():
-            for it in node.items:
-                if it.part.id == pid:
-                    return (W0[id(node)] @ loc_matrix(it.loc) @ np.array([*it.part.com, 1.0]))[:3]
-        raise ValueError(f'no {pid} in the model')
     P, fx = m.parts, {f.id: f for f in m.flexes}
     enc_tail = f'{TAIL_ENC:.0f} mm inside the supply enclosure to its terminal (ASSUMPTION)'
     dev_tail = f'{TAIL_DEV:.0f} mm to make it off at its connector (ASSUMPTION)'
@@ -1106,18 +1190,23 @@ def _cable_schedule(m: Model, g: dict) -> None:
                 'the supply enclosure (CLN-ENC)', 'the J1 union\'s slip ring, its fixed side (CLN-SWV1)', 'POWER',
                 bend_fixed=g['CAB_BEND'], tail_a=TAIL_ENC, tail_b=TAIL_DEV, tails=f'{enc_tail}; {dev_tail}')
     L.run('drawn', 'CLN-ESC', 'in through the column\'s wall and down to the J1 union', P['CLN-ESC'].path_mm, bend=g['CAB_BEND'])
-    for (lid, name, kind, od, a, b, link, sub, circuits) in (
-            ('CLN-AC1', 'Arm cable in link 1: power and network, 10 mm', 'power', 10.0, 'CLN-SWV1', 'CLN-SWV2', 'CLN-L1', 'LINK1', '24 circuits and the EtherCAT pair'),
-            ('CLN-AC2', 'Arm cable in link 2: power and network, 10 mm', 'power', 10.0, 'CLN-SWV2', 'CLN-SWV', 'CLN-L2', 'LINK2', '12 circuits and the EtherCAT pair'),
-            ('CLN-AT1', 'Air tube 6 x 4 in link 1', 'air', AIR_OD, 'CLN-SWV1', 'CLN-SWV2', 'CLN-L1', 'VAC', 'its air passage'),
-            ('CLN-AT2', 'Air tube 6 x 4 in link 2', 'air', AIR_OD, 'CLN-SWV2', 'CLN-SWV', 'CLN-L2', 'VAC', 'its air passage')):
-        straight = float(np.linalg.norm(at(b) - at(a)))
-        L = m.cable(lid, name, kind, od, 'EN 50525' if kind == 'power' else 'ISO 14743, PU 6 x 4', f'the {a} union\'s turning side',
-                    f'the {b} union\'s fixed side ({circuits})', sub, bend_fixed=4 * od if kind == 'power' else AIR_BEND_R,
-                    tail_a=TAIL_DEV, tail_b=TAIL_DEV, tails=f'{dev_tail}, at each union')
-        L.run('arm', link, f'inside the link from union to union: straight {straight:.0f} mm, and up to a quarter more for its '
-              'dressing in the box section', straight * 1.125, tol=straight * 0.125)
-        L.open.append('Not drawn: the CAD draws the link\'s duct, not the cables and tube beside it.')
+    for (lid, name, kind, od, a, b, sub, circuits, where) in (
+            ('CLN-AC1', 'Arm cable in link 1: power and network, 10 mm', 'power', 10.0, 'CLN-SWV1', 'CLN-SWV2', 'LINK1',
+             '24 circuits and the EtherCAT pair', 'along link 1 under its top cover, over the duct and the J2 gearmotor'),
+            ('CLN-AC2', 'Arm cable in link 2: power and network, 10 mm', 'power', 10.0, 'CLN-SWV2', 'CLN-SWV', 'LINK2',
+             '12 circuits and the EtherCAT pair', 'along link 2 beside the duct, out through its M20 gland in the cover and up beside '
+             'the duct to the J3 union\'s boss'),
+            ('CLN-AT1', 'Air tube 6 x 4 in link 1', 'air', AIR_OD, 'CLN-SWV1', 'CLN-SWV2', 'VAC', 'its air passage',
+             'along link 1 under its top cover, beside the arm cable'),
+            ('CLN-AT2', 'Air tube 6 x 4 in link 2', 'air', AIR_OD, 'CLN-SWV2', 'CLN-SWV', 'VAC', 'its air passage',
+             'along link 2 beside the duct, out through its M16 gland in the cover and up beside the duct to the J3 union\'s boss')):
+        power = kind == 'power'
+        end = 'connector (CLN-SCN)' if power else 'air port\'s push-in fitting (CLN-SPF)'
+        L = m.cable(lid, name, kind, od, 'EN 50525' if power else 'ISO 14743, PU 6 x 4',
+                    f'the {a} union\'s turning side: its outlet collar\'s {end} (CLN-SOC)', f'the {b} union\'s fixed side ({circuits}): its {end}',
+                    sub, bend_fixed=4 * od if power else AIR_BEND_R, tail_a=TAIL_DEV if power else 0.0, tail_b=TAIL_DEV if power else 0.0,
+                    tails=f'{dev_tail}, at each plug' if power else 'its 2 push-in fittings take its ends: drawn 12 mm into each')
+        L.run('drawn', lid, where, P[lid].path_mm, bend=g['CAB_BEND'] if power else AIR_BEND_R)
     L = m.cable('CLN-MFR', 'Hybrid cable and air line, J3 union to the mast reel', 'hybrid', 12.0, 'EN 50525: a 10 mm hybrid cable and a 6 mm air line in one jacket',
                 'the J3 union\'s turning side (CLN-SWV)', 'the mast reel\'s hub: its slip ring and air swivel (CLN-MCR)', 'VAC',
                 bend_fixed=25.0, tail_a=TAIL_DEV, tail_b=TAIL_DEV, tails=f'{dev_tail}, at each end')

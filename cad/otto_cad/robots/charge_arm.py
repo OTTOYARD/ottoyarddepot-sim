@@ -883,10 +883,11 @@ def build(spec: dict) -> Model:
     # side was a sentence. This block draws every line from the cabinet's floor to the carriage, and sizes the chains
     # from what is in them.
     #
-    # WHAT RUNS TO THE ARM. Everything comes from the cabinet (CHG-CAB, an envelope). ASSUMPTION, a layout decision of
-    # this file and not a fact about a bought cabinet: besides the rectifiers it houses the connector's cooling unit,
-    # the arm's controller with the rail's and the cross-slide's 2 servo drives, and the service-air valve (the air
-    # itself is the site's). The joints carry their own drives (actuator.py, DRV-), so the arm takes one supply cable.
+    # WHAT RUNS TO THE ARM. Everything comes from the cabinet (charge_cabinet.py): the post of a split charger, which
+    # takes its DC from a power unit elsewhere on the site, and houses the DC's fuses, contactors and output blocks, the
+    # connector's cooling unit, the arm's controller with the rail's and the cross-slide's 2 servo drives, and the
+    # service-air block (the air itself is the site's). The joints carry their own drives (actuator.py, DRV-), so the arm
+    # takes one supply cable.
     #
     # THE DC CABLE, AND WHY IT IS 4 SMALL CORES A POLE. A cable in a chain may bend no tighter than 7.5 x its diameter,
     # 4 x where it is fixed (igus chainflex CF310.UL data sheet, 03/2023: "e-chain linear minimum 7.5 x d, flexible
@@ -1004,7 +1005,12 @@ def build(spec: dict) -> Model:
     sh_z1 = Z_V0 + 60.0                                   # the shaft through the pad, toward the car
     z_wo = ZC - CH_W / 2                                  # the channel's rear wall, outside
     y_wt = deck - COV_T - LIN_T                           # the liners' walls end here; a seat flange lies on them, the covers on it
-    y_ltop = pad_top + 60.0                               # the lines end 60 mm inside the cabinet
+    # THE CABINET (charge_cabinet.py, 2026-11-15): drawn with its inside, its wiring and its site feeds, where it was an
+    # envelope. Each supply line's path inside it is drawn as part of the line below (to its output block, its socket on
+    # the cooling unit or the air block, or for a small cable to the gland plate), and the pad takes its 2 site shafts.
+    from .charge_cabinet import build_cabinet
+    cabg = build_cabinet(m, site, cab, pad_top, deck,
+                         {ln['id']: (X_C + ln['r'] + BED_X, Z_V0 + (ln['y'] - y_l0), ln['d']) for ln in LANES})
 
     chan = (_bx(ch_x0, ch_x1, deck - CH_D, y_wt, ZC - CH_W / 2, ZC + CH_W / 2)
             .cut(_bx(ch_x0 + LIN_T, ch_x1 - LIN_T, y_fl, y_wt + 1, ZC - CH_WI / 2, ZC + CH_WI / 2))
@@ -1055,10 +1061,15 @@ def build(spec: dict) -> Model:
              .translate((0, deck - 150, pad_back)).edges('|X and >Y').chamfer(15)
              .cut(_bx(ft_x0 - LIN_T + BED_X, ft_x1 + LIN_T + BED_X, deck - 151, deck, ft_z0 - LIN_T, pad_front + 1))
              .cut(_bx(ft_x0 + BED_X, ft_x1 + BED_X, deck - 1, pad_top + 1, ft_z0, sh_z1)))
+    for (sx0, sx1, sz0, sz1) in cabg['shafts']:          # the site's feeds come up through these, into the cabinet
+        pad_s = pad_s.cut(_bx(sx0, sx1, deck - 151, pad_top + 1, sz0, sz1))
     m.place(site, m.part(PartDef('CHG-PAD', 'Charger pad (site concrete)', pad_s.val(), 'concrete', 'structure', 'site works',
                                  f"{pad_w:.0f} x {pad_front - pad_back:.0f}", '', None,
-                                 'Carries the cabinet. Cast by the site works, with a shaft under the cabinet for the supply lines.',
-                                 {'shaft': f'{ft_x1 - ft_x0:.0f} x {sh_z1 - ft_z0:.0f} mm, under the cabinet\'s floor'}, 'make', reference=True)),
+                                 'Carries the cabinet. Cast by the site works, with a shaft under the cabinet for the supply lines and 2 '
+                                 'for the site\'s feeds.',
+                                 {'shaft': f'{ft_x1 - ft_x0:.0f} x {sh_z1 - ft_z0:.0f} mm, under the cabinet\'s floor',
+                                  'site shafts': 'behind it for the DC feed and the air; at the left for the auxiliary supply, the network and the earth'},
+                                 'make', reference=True)),
             Location(), (0, -250, 0))
 
     # the covers, flush with the deck. The channel's: 2 rows of plates, each bolted to its seat and reaching 70 mm over
@@ -1099,21 +1110,24 @@ def build(spec: dict) -> Model:
     for p in fc_pts:
         m.place(bed, cov_s, std.orient(p, (0, -1, 0)), (0, 200, -160), 'BASE')
 
-    # the lines themselves, from the cabinet's floor to the chain's fixed end: down the shaft, a bend onto the trench
-    # floor, along it, the quarter turn through the channel's wall, and along the channel to the chain
+    # the lines themselves, from their ends in the cabinet to the chain's fixed end: the path in the cabinet, down through
+    # the gland plate and the shaft, a bend onto the trench floor, along it, the quarter turn through the channel's wall,
+    # and along the channel to the chain
     for ln in LANES:
         zv = Z_V0 + (ln['y'] - y_l0)
-        pts = [(X_C + ln['r'], y_ltop, zv), (X_C + ln['r'], ln['y'], zv), (X_C + ln['r'], ln['y'], z_c + ln['r']), (X_F, ln['y'], z_c + ln['r'])]
-        shp, L_ln = _bent_tube(pts, [ln['rv'], ln['r']], ln['d'] / 2)
+        top_pts, top_r = cabg['top'][ln['id']]          # in the site's frame, from its end to where it turns down
+        pts = ([(x - BED_X, y, z) for (x, y, z) in top_pts]
+               + [(X_C + ln['r'], ln['y'], zv), (X_C + ln['r'], ln['y'], z_c + ln['r']), (X_F, ln['y'], z_c + ln['r'])])
+        shp, L_ln = _bent_tube(pts, list(top_r) + [ln['rv'], ln['r']], ln['d'] / 2)
         ln['len'] = L_ln
+        in_cab = f", R {min(top_r):.0f} in the cabinet" if top_r else ''
         it_ = m.place(bed, m.part(PartDef(ln['id'], ln['name'], shp, ln['mat'], ln['cat'], ln['std'], f"D {ln['d']:g} x {L_ln:.0f}", '', None, ln['fn'],
-                                          {**ln['spec'], 'drawn': 'from the cabinet\'s floor to the chain\'s fixed end; it runs on in the chain',
-                                           'bends here': f"R {ln['rv']:.0f} and R {ln['r']:.0f} mm (it may bend on {K_FIXED * ln['d']:.0f} mm fixed, {K_CHAIN * ln['d']:.0f} mm in a chain)"},
+                                          {**ln['spec'], 'drawn': 'from its end in the cabinet to the chain\'s fixed end; it runs on in the chain',
+                                           'bends here': f"R {ln['rv']:.0f} and R {ln['r']:.0f} mm{in_cab} (it may bend on {K_FIXED * ln['d']:.0f} mm fixed, {K_CHAIN * ln['d']:.0f} mm in a chain)"},
                                           'buy', mass_override=None if ln['kg_m'] is None else ln['kg_m'] * L_ln / 1000.0)),
                       Location(), (0, -200, -60), 'SUPPLY')
-        it_.yard_hidden = True        # under the deck and inside the cabinet's pad: the yard draws the pad over it
-        it_.part.path_ends = (pts[0], pts[1], pts[-1], pts[-2], ln['d'] / 2)      # line_ends.py: its top end is in the cabinet,
-        it_.part.end_in = {'start': 'CHG-CAB'}                                     # its other runs on in the chain
+        it_.yard_hidden = True        # under the deck and in the cabinet: the yard draws its pad and its own cabinet over it
+        it_.part.path_ends = (pts[0], pts[1], pts[-1], pts[-2], ln['d'] / 2)      # line_ends.py: its other end runs on in the chain
     # clamp bars hold the lines on their lanes: one under the DC cores, one between them and the small lines, one on top
     CL_L, CL_W, CL_X = ft_x1 - ft_x0, 30.0, (ft_x1 - ft_x0) / 2 - 8.0
     y_top = y_sf + max(u[2] for u in UPPER)
@@ -1137,16 +1151,6 @@ def build(spec: dict) -> Model:
             m.place(bed, pd_, T, (0, -120, 0), 'SUPPLY')
         for sx_ in (-1, 1):
             m.place(bed, cl_s, T * std.orient((sx_ * CL_X, y_top + 8.0 - y_fl, 0), (0, -1, 0)), (0, -60, 0), 'SUPPLY')
-    # the cabinet's floor plate over the shaft: every line passes it in its own gland
-    gl = _bx(ft_x0 - 20, ft_x1 + 20, pad_top, pad_top + 4.0, ft_z0 - 20, sh_z1 + 20)
-    for ln in LANES:
-        gl = gl.cut(cq.Workplane('XY').add(cq.Solid.makeCylinder(ln['d'] / 2 + 0.5, 10, Vector(X_C + ln['r'], pad_top - 3, Z_V0 + (ln['y'] - y_l0)),
-                                                                 Vector(0, 1, 0))))
-    m.place(bed, m.part(PartDef('CHG-BGP', f'Cabinet gland plate, {len(LANES)} entries', gl.val(), 'steel_s355', 'electrical', 'cut plate 4 mm',
-                                f'{ft_x1 - ft_x0 + 40:.0f} x {sh_z1 - ft_z0 + 40:.0f} x 4', 'IP54 with its glands', None,
-                                'Closes the cabinet\'s floor over the shaft. Each supply line enters the cabinet through it.',
-                                {'glands': 'one a line, not drawn'}, 'make')),
-            Location(), (0, 80, -260), 'SUPPLY').yard_hidden = True     # under the cabinet, on its pad
     # the chain's fixed end: a bracket on the channel floor carries and holds the first link
     fbr = (_bx(X_F - CN_P, X_F, y_fl, y_fl + BOT_C, ZC - CN_W / 2 - 6.5, ZC + CN_W / 2 + 6.5)
            .union(_bx(X_F - CN_P, X_F, y_fl + BOT_C, y_fl + BOT_C + CN_H * 0.7, ZC + CN_W / 2 + 0.5, ZC + CN_W / 2 + 6.5))
@@ -1440,16 +1444,6 @@ def build(spec: dict) -> Model:
     m.place(base, m.part(PartDef('CHG-COL', 'J1 collar', collar.val(), 'a356', 'structure', 'casting',
                                  'OD 310 x 55', '', None, 'Covers the J1 actuator drum and sheds water off the mount.', {}, 'make')),
             Location(), (0, 90, 0))
-    cab_box = (cq.Workplane('XY').box(cab['width'] * M, cab['height'] * M, cab['depth'] * M, centered=(True, False, True))
-               .translate((0, pad_top, cab_cz)).edges('|Z').fillet(18))
-    cab_box = cab_box.cut(cq.Workplane('XY').box(cab['width'] * M - 80, cab['height'] * M - 160, 4, centered=(True, False, True))
-                          .translate((0, pad_top + 80, cab_front)))     # door seam
-    m.place(site, m.part(PartDef('CHG-CAB', 'DC power cabinet (envelope)', cab_box.val(), 'steel_paint', 'structure',
-                                 'reference envelope', f"{cab['width'] * M:.0f} x {cab['height'] * M:.0f} x {cab['depth'] * M:.0f}",
-                                 '', None, 'The charger: rectifiers, contactors, metering, the connector\'s cooling unit, the arm\'s controller and 2 servo drives. Shown as its envelope only.',
-                                 {'output': 'about 350 kW DC (the twin site: 10,500 kW over 30 posts)'}, 'buy',
-                                 reference=True)),
-            Location(), (0, 0, -260))
 
     # ═══════════════════════════════════════════════════════ THE ARM (build_chain, above) ═══
     _c = build_chain(m, base, S, H, LU, LF, LW, radii, plate_under)
@@ -1508,9 +1502,9 @@ def build(spec: dict) -> Model:
     # the riser's back takes the lines from the saddle duct (its cable window), so the riser's box and the J1 link are on its side
     tbox(base, None, (-riser_w / 2 - 25.0, -150.0, -100.0), (50.0, 110.0, 130.0), 'CHG-PB0', 'DC terminal box, riser',
          'Takes the 8 DC cores from the saddle duct, through a port in the riser\'s wall, and hands the current to the J1 flex link.', 3.0, (-160, 0, 0))
-    tbox(j1, tur, (0.0, 265.0, -180.0), (130.0, 240.0, 80.0), 'CHG-PB1', 'DC junction box, turret',
-         'Joins the J1 flex link to the J2 flex link on the turret\'s back.', 6.0, (0, 0, -180))
-    pb2 = tbox(j2, upper, (0.0, 300.0, -140.0), (110.0, 130.0, 80.0), 'CHG-PB2', 'DC terminal box, upper arm, shoulder end',
+    tbox(j1, tur, (0.0, 265.0, -190.0), (130.0, 240.0, 100.0), 'CHG-PB1', 'DC junction box, turret',
+         'Joins the J1 flex link, on its -X side, to the J2 flex link, on its +X side, on the turret\'s back.', 6.0, (0, 0, -180))
+    pb2 = tbox(j2, upper, (0.0, 300.0, -155.0), (110.0, 130.0, 110.0), 'CHG-PB2', 'DC terminal box, upper arm, shoulder end',
                'Takes the J2 flex link into the 2 copper bars that run inside the upper arm. It closes the arm\'s port under it.', 5.0, (0, 0, -180))
     pb3 = tbox(j2, upper, (0.0, LU - 250.0, -125.0), (104.0, 130.0, 80.0), 'CHG-PB3', 'DC terminal box, upper arm, elbow end',
                'Brings the upper arm\'s bars out to the J3 flex link. It closes the arm\'s port under it.', 5.0, (0, 0, -180))
@@ -1541,16 +1535,21 @@ def build(spec: dict) -> Model:
     # The tightest bends below are measured, with the boots' leads, over the twin's duty cycle at every inlet and every
     # corner of the window, and at each fleet car's own mate pose (cadFlex.test.ts holds them all to the boot's 80 mm).
     # 2026-11-15: at the Tesla Cybercab's mate pose the J2 link bent to 65 mm (53 mm once its ends sat straight in their
-    # collars). The duty-cycle sweep never visited that pose, so no test saw it. A 1,200 mm link bulged toward the
-    # turret only bends no tighter than 141 mm there; the wrist link, 1,250 mm with half its bulge from its own weight,
-    # keeps 88 mm.
+    # collars). The duty-cycle sweep never visited that pose, so no test saw it. The wrist link, 1,250 mm with half its
+    # bulge from its own weight, keeps 88 mm.
+    # THE J2 LINK, A SIDE LOOP (2026-11-15). It ran from the turret box's back to the upper arm box's back, 1,200 mm bulged
+    # backward, and at stow, unstow, approach and retract it hung up to 180 mm into the cabinet behind the arm: the
+    # cabinet's envelope was a reference body, so the clash check filed that as context. Drawing the real cabinet showed
+    # it. Now both ends are on the 2 boxes' +X faces, square to J2's axis, so J2 rolls the loop and never turns its ends.
+    # 900 mm bulged along +X bends no tighter than 223 mm over the CAD's poses (each fleet car's mate among them), and
+    # keeps 182 mm off the cabinet. (Ends on the boxes' tops and backs, searched the same way, bent to 80 mm or less.)
     boot('CHG-FL1', 'J1 flex link, 500 A braided copper in a boot', Anchor(base, (-riser_w / 2 - 50.0, -150.0, -100.0), NX),
          Anchor(j1, (-65.0, 200.0, -190.0), PX), 900.0, (0.0, NX, NX),
          'Carries the charge current across J1, from the riser to the turret, as the base turns.',
          102.0, hk=0.4)
-    boot('CHG-FL2', 'J2 flex link, 500 A braided copper in a boot', Anchor(j1, (0.0, 340.0, -220.0), NZ),
-         Anchor(j2, (0.0, 300.0, -180.0), PZ), 1200.0, (0.0, NZ, (0.0, 0.0, 0.0)),
-         'Carries the charge current across J2, behind the shoulder.', 141.0, hk=0.4)
+    boot('CHG-FL2', 'J2 flex link, 500 A braided copper in a boot', Anchor(j1, (65.0, 265.0, -190.0), PX),
+         Anchor(j2, (55.0, 300.0, -165.0), NX), 900.0, (0.0, PX, (0.0, 0.0, 0.0)),
+         'Carries the charge current across J2, in a loop beside the shoulder.', 222.0, hk=0.4)
     boot('CHG-FL3', 'J3 flex link, 500 A braided copper in a boot', Anchor(j2, (0.0, LU - 250.0, -165.0), NZ),
          Anchor(j3, (FORE_JOG[0], 250.0, -130.0), PZ), 1200.0, (0.0, (0, 0.5, -1), (0, -0.5, -1)),
          'Carries the charge current over the outside of the elbow.', 84.0)
@@ -1573,8 +1572,8 @@ def build(spec: dict) -> Model:
                             BFT_SPEC, 'make'))
     # (the forearm's elbow box, CHG-PB4, now stands outside the casting, so its fitting is this one too: until 2026-11-15
     # the box was the piece inside the hollow forearm and its fitting reached 45 mm down to the casting on a boss)
-    for (node, P, o) in ((base, (-riser_w / 2 - 50.0, -150.0, -100.0), NX), (j1, (0.0, 340.0, -220.0), NZ),
-                         (j2, (0.0, 300.0, -180.0), NZ), (j2, (0.0, LU - 250.0, -165.0), NZ), (j3, (FORE_JOG[0], 250.0, -130.0), NZ)):
+    for (node, P, o) in ((base, (-riser_w / 2 - 50.0, -150.0, -100.0), NX), (j1, (65.0, 265.0, -190.0), PX),
+                         (j2, (55.0, 300.0, -165.0), PX), (j2, (0.0, LU - 250.0, -165.0), NZ), (j3, (FORE_JOG[0], 250.0, -130.0), NZ)):
         m.place(node, bft_pd, std.orient(P, tuple(-c for c in o)), tuple(80 * c for c in o), 'DRESS')
     # the 2 that meet a casting: cut to it, each its own part
     for (pid, node, P, o, cast, boss, where) in (
@@ -1711,7 +1710,7 @@ def build(spec: dict) -> Model:
                 Location(), (0, 0, -40), 'DRESS').yard_hidden = True
     # the TOOL's lines (its cable, the coolant and the air) run through the links beside the copper, tied to it
     arm_lines = {
-        'upper': [(0.0, 300.0, -180.0), (0.0, 300.0, -140.0), (0.0, y_a1, zr1 + bt + 12.0), (0.0, y_a2, zr2 + bt + 12.0),
+        'upper': [(55.0, 300.0, -165.0), (0.0, 300.0, -155.0), (0.0, y_a1, zr1 + bt + 12.0), (0.0, y_a2, zr2 + bt + 12.0),
                   (0.0, LU - 250.0, -125.0), (0.0, LU - 250.0, -165.0)],
         'fore': [(xf, PORT_F1_Y, -130.0), (xf, PORT_F1_Y, -118.0)] + [tuple(q) for q in c_[1:5]] + [(100.0, yf2, zf), (125.0, yf2, -30.0)]}
     copper = {'bars': {k: v[1] for k, v in bars.items()}, 'fcs': {k: v[1] for k, v in fcs.items()},
@@ -1757,13 +1756,13 @@ def build(spec: dict) -> Model:
         SW_T=SW_T, K_FIXED=K_FIXED, K_CHAIN=K_CHAIN, R_CH=R_CH, db_z0=db_z0, db_z1=db_z1, win_y0=win_y0, DU_H=DU_H,
         sp_x0=sp_x0, sp_x1=sp_x1, da_x0=da_x0, da_x1=da_x1, riser_w=riser_w, tw=tw, y_gm=y_gm, z_gm=z_gm, R_SV=R_SV,
         y_q=y_q, z_q=z_q, acts=_c['acts'], ring=_c['ring'], base=base, j1=j1, j2=j2, j3=j3, tool=tool, LU=LU, LF=LF, R_BOOT=R_BOOT,
-        MB_BOOT=MB_BOOT, arm_lines=arm_lines, copper=copper))
+        MB_BOOT=MB_BOOT, arm_lines=arm_lines, copper=copper, cabg=cabg))
     return m
 
 
-# the DC cabinet is drawn as its envelope: a line's length inside it, from the gland plate to its terminal, is the
-# cabinet maker's. ASSUMPTION, to be confirmed on the cabinet's layout: up to the cabinet's height less its plinth.
-CAB_TAIL = 1500.0
+# a DC core's conductor goes on into its output block's clamp past where the drawn core ends (ASSUMPTION: the block maker's
+# strip length). Until 2026-11-15 the cabinet was an envelope and every line had a 1,500 mm tail in it, marked ASSUMPTION.
+CAB_STRIP = 30.0
 BOX_TAIL = 100.0        # to dress a line in a terminal box and make it off (ASSUMPTION)
 
 
@@ -1806,13 +1805,26 @@ def _cable_schedule(m: Model, g: dict) -> None:
         d, u, v = ln['d'], ln['u'], ln['y'] - g['y_cb']
         dc = ln['id'].startswith('CHG-LD')
         R = KF * d
+        cabp = g['cabg']['planned'].get(ln['id'])        # a small cable: its run in the cabinet's wiring ducts is planned
+        top_r = g['cabg']['top'][ln['id']][1]
+        if dc:
+            tail_a, basis = CAB_STRIP, f'{CAB_STRIP:.0f} mm of conductor on into its output block\'s clamp (ASSUMPTION: the block maker\'s strip length)'
+        elif cabp is None:
+            tail_a, basis = 0.0, 'it is drawn 12 mm into its socket in the cabinet'
+        else:
+            tail_a, basis = BOX_TAIL, f'{BOX_TAIL:.0f} mm to make it off at its device in the cabinet (ASSUMPTION)'
         L = m.cable(ln['id'], ln['name'], 'dc' if dc else ('coolant' if ln['id'] in ('CHG-LCS', 'CHG-LCR') else
                     'air' if ln['id'] == 'CHG-LAR' else 'safety' if ln['id'] == 'CHG-LSF' else 'control'),
-                    d, ln['std'], '', '', 'SUPPLY', bend_fixed=R, bend_moving=KC * d,
-                    tail_a=CAB_TAIL, tails=f'{CAB_TAIL:.0f} mm inside the DC cabinet, from its gland plate to the terminal '
-                                         '(ASSUMPTION: the cabinet is drawn as its envelope; confirm on its layout)')
-        L.run('drawn', ln['id'], 'from the cabinet\'s gland plate down the shaft through the pad, along the feed trench and '
-              'into the cable channel, to the bed chain\'s fixed end', ln['len'], bend=min(ln['rv'], ln['r']))
+                    d, ln['std'], '', '', 'SUPPLY', bend_fixed=R, bend_moving=KC * d, tail_a=tail_a, tails=basis)
+        if cabp is not None:
+            mm_c = bent_length(cabp[0], 0.0)[0]
+            L.run('duct', 'CHG-CWR', f'inside the cabinet, planned: from its device, {cabp[1]}, through the wiring ducts (the top one '
+                  'and the right one) and down to the gland plate', mm_c, tol=100.0)
+        where = ('from its output block in the cabinet straight down through the gland plate' if dc else
+                 'from the cabinet\'s gland plate' if cabp is not None else
+                 'from its socket in the cabinet, round the DC column and down through the gland plate')
+        L.run('drawn', ln['id'], f'{where}, down the shaft through the pad, along the feed trench and into the cable channel, to '
+              'the bed chain\'s fixed end', ln['len'], bend=min([ln['rv'], ln['r'], *top_r]))
         mm, rb = chain_mm(BCN, ln['id'])
         L.run('chain', 'CHG-BCN', 'in the bed\'s cable chain, in its own lane', mm, bend=rb, moving=True)
         P0 = (0.0, g['y_ct'] - v, ZC + u)                  # the chain's last link, in the carriage's frame
@@ -1849,7 +1861,7 @@ def _cable_schedule(m: Model, g: dict) -> None:
         L.run('duct', 'CHG-BCA', 'through the chain driver\'s head and up its neck to its conduit\'s entry', mm, tol=tol_drv, bend=rb)
         mm, rb = bent_length(cpts, g['R_SV'])
         L.run('conduit', cid, f'in its 20 mm conduit to {motor}', mm, bend=rb)
-        L.a, L.b = f'its servo drive in the DC cabinet', f'{motor}: its connector'
+        L.a, L.b = 'its servo drive in the cabinet (CHG-CSD)', f'{motor}: its connector'
         L.tail_b = 0.0
         return L, None
 
@@ -1869,7 +1881,7 @@ def _cable_schedule(m: Model, g: dict) -> None:
             L.run('duct', 'CHG-RSR', 'across the riser to the port in its wall behind the terminal box', mm, tol=rw2, bend=rb)
             L.run('duct', 'CHG-PB0', 'into the terminal box, to its DC terminal', abs(PB0[0] - port[0]), tol=0.0)
             pole = 'DC+' if ln['id'].startswith('CHG-LDP') else 'DC-'
-            L.a, L.b = f'the charger\'s {pole} output, in the DC cabinet', f'the {pole} terminal in the riser\'s terminal box (CHG-PB0)'
+            L.a, L.b = f'the {pole} output block in the cabinet (CHG-COB)', f'the {pole} terminal in the riser\'s terminal box (CHG-PB0)'
             L.tail_b = BOX_TAIL
             L.tails += f'; {BOX_TAIL:.0f} mm to dress it in the terminal box and make it off on its M12 lug (ASSUMPTION)'
             L.notes.append(f'One of {sum(1 for x in LANES if x["id"].startswith("CHG-LD")) // 2} cores a pole: 4 in parallel carry the 500 A.')
@@ -1878,13 +1890,14 @@ def _cable_schedule(m: Model, g: dict) -> None:
             low = (gl_J1[0], g['win_y0'] - 10.0, gl_J1[2])
             mm, rb = route([P4, (P4[0], P4[1], low[2]), low, (gl_J1[0], gl_J1[1], gl_J1[2])], R)
             L.run('duct', 'CHG-RSR', 'in the riser, down under J1 and up into its rear cover\'s gland', mm, tol=rw2, bend=rb)
-            L.a, L.b = 'the arm\'s controller in the DC cabinet: motor power, 24 V, safe torque off, EtherCAT', 'J1\'s actuator, its gland (its drive board inside)'
+            L.a, L.b = ('the arm controller in the cabinet (CHG-CAC): motor power from the 48 V supply, 24 V, safe torque off, EtherCAT',
+                        'J1\'s actuator, its gland (its drive board inside)')
             L.tail_b = BOX_TAIL
             L.tails += f'; {BOX_TAIL:.0f} mm inside the actuator to its drive board\'s connector (ASSUMPTION)'
         elif ln['id'] == 'CHG-LSF':
             mm, rb = route([P4, (P4[0], P4[1], rw2 - 40.0), (115.0, P4[1], rw2 - 40.0)], R)
             L.run('duct', 'CHG-RSR', 'across the riser to its car-side face, behind the emergency stop and the scanner', mm, tol=rw2, bend=rb)
-            L.a, L.b = 'the safety controller in the DC cabinet', 'the emergency stop (CHG-EST) and the safety scanner (CHG-SCN), on the riser'
+            L.a, L.b = 'the safety controller in the cabinet (CHG-CSF)', 'the emergency stop (CHG-EST) and the safety scanner (CHG-SCN), on the riser'
             L.tail_b = BOX_TAIL
             L.tails += f'; {BOX_TAIL:.0f} mm to make off at the 2 devices (ASSUMPTION)'
             L.notes.append('It serves the 2 safety devices only. The status light rings are lit by the joints\' drives (CHG-RL2 '
@@ -1897,10 +1910,10 @@ def _cable_schedule(m: Model, g: dict) -> None:
     j1, j2, j3, tool = g['j1'], g['j2'], g['j3'], g['tool']
     LU, LF = g['LU'], g['LF']
     # the route through the arm, boot by boot (each piece in its own node's frame; the boxes' corners sharp)
-    PB1_IN, PB1_OUT = (-65.0, 200.0, -190.0), (0.0, 340.0, -220.0)
+    PB1_IN, PB1_OUT = (-65.0, 200.0, -190.0), (65.0, 265.0, -190.0)
     arm_runs = [
         ('boot', 'CHG-FL1', 'in the J1 link\'s boot, from the riser to the turret', fx['CHG-FL1']),
-        ('duct', 'CHG-PB1', 'through the turret\'s junction box', [PB1_IN, (0.0, 200.0, -190.0), (0.0, 340.0, -190.0), PB1_OUT], 40.0),
+        ('duct', 'CHG-PB1', 'through the turret\'s junction box', [PB1_IN, (0.0, 200.0, -190.0), (0.0, 265.0, -190.0), PB1_OUT], 40.0),
         ('boot', 'CHG-FL2', 'in the J2 link\'s boot, behind the shoulder', fx['CHG-FL2']),
         ('arm', 'CHG-UPR', 'through the upper arm\'s 2 terminal boxes (CHG-PB2, CHG-PB3) and their ports, and inside the arm between '
          'them, tied along the top of the copper bars', g['arm_lines']['upper'], 40.0),
@@ -1932,11 +1945,11 @@ def _cable_schedule(m: Model, g: dict) -> None:
     head_tail = (f'; {far:.0f} mm inside the head from the outlet housing to the farther connector, measured straight '
                  '(its route among the head\'s parts is not drawn)')
     for (lid, frm, to) in (
-            ('CHG-LTL', 'the arm\'s controller in the DC cabinet', 'the head: the force sensor, the cameras, the light ring and the latches'),
-            ('CHG-LCS', 'the DC cabinet: the cooling unit\'s supply port', 'the 2 connectors\' contacts, through a manifold in the head'),
-            ('CHG-LCR', 'the DC cabinet: the cooling unit\'s return port (the liquid flows this way, from the head)',
+            ('CHG-LTL', 'the arm controller in the cabinet (CHG-CAC)', 'the head: the force sensor, the cameras, the light ring and the latches'),
+            ('CHG-LCS', 'the cooling unit\'s supply socket in the cabinet (CHG-CCU, CHG-CCS)', 'the 2 connectors\' contacts, through a manifold in the head'),
+            ('CHG-LCR', 'the cooling unit\'s return socket in the cabinet (CHG-CCU, CHG-CCS; the liquid flows this way, from the head)',
              'the 2 connectors\' contacts, through a manifold in the head'),
-            ('CHG-LAR', 'the DC cabinet: the air supply (6 bar)', 'the head\'s valves: the compliance lock and the 2 plunge cylinders')):
+            ('CHG-LAR', 'the service air block\'s outlet in the cabinet (CHG-CAV, 6 bar)', 'the head\'s valves: the compliance lock and the 2 plunge cylinders')):
         L = lines[lid][0]
         up_the_arm(L, L.od)
         L.a, L.b = frm, to
@@ -1963,7 +1976,7 @@ def _cable_schedule(m: Model, g: dict) -> None:
                        '2 L/min against about 2 bar (ASSUMPTION: the connector\'s loss; the flow and the coolant are those of '
                        'Phoenix Contact\'s liquid-cooled CCS cables, 2 L/min of 50 % glycol, read 2026-11-15).')
     # THE CHARGE CURRENT up the arm: 4 braided links in boots and 2 pairs of copper bars, box to box
-    boxes = {'CHG-PB0': (g['base'], PB0), 'CHG-PB1': (j1, (0.0, 265.0, -180.0)), 'CHG-PB2': (j2, (0.0, 300.0, -140.0)),
+    boxes = {'CHG-PB0': (g['base'], PB0), 'CHG-PB1': (j1, (0.0, 265.0, -190.0)), 'CHG-PB2': (j2, (0.0, 300.0, -155.0)),
              'CHG-PB3': (j2, (0.0, LU - 250.0, -125.0)), 'CHG-PB4': (j3, (FORE_JOG[0], 250.0, -120.0)), 'CHG-PB5': (j3, (100.0, LF - 420.0, 0.0))}
     for (fid, b0, b1) in (('CHG-FL1', 'CHG-PB0', 'CHG-PB1'), ('CHG-FL2', 'CHG-PB1', 'CHG-PB2'), ('CHG-FL3', 'CHG-PB3', 'CHG-PB4'),
                           ('CHG-FL4', 'CHG-PB5', None)):
@@ -2013,6 +2026,39 @@ def _cable_schedule(m: Model, g: dict) -> None:
         L.notes.append('Drawn and in the bill of materials since 2026-11-15 (until then the terminal boxes alone described it).')
     joint_cables(m, g['acts'], 'CHG-JC', KF)
     ring_leads(m, g['ring'], 'CHG-')
+    # ── what the cabinet takes from the site (charge_cabinet.py): each drawn from the pad's underside, where the site's duct
+    # brings it, up to what it serves. The site's run to it is not in the model: the DC feed's and the auxiliary supply's
+    # wait on where the power unit stands, which the site plan does not show yet.
+    P = m.parts
+    unit = 'Its run from the power unit is the site\'s: the power unit has no place on the site plan yet, so its length is not known.'
+    site_end = 'its end at the site is the site\'s (not counted)'
+    feeds = []
+    for k, pole in ((1, '+'), (2, '+'), (1, '-'), (2, '-')):
+        feeds.append((f'CHG-SD{"P" if pole == "+" else "N"}{k}', 'dc', 26.0,
+                      '1 x 185 mm2 copper, class 5, 1 kV (ASSUMPTION: 2 cores a pole carry 500 A; the site\'s cable calculation sets them)',
+                      f'the power unit\'s DC{pole} output (site: the power unit is not drawn)', f'its lug on the DC{pole} input bar (CHG-CLG, CHG-CBI)',
+                      'up through the pad\'s site shaft and the right gland plate to its lug\'s barrel', 0.0, 'its lug\'s barrel is crimped on its end', unit))
+    feeds += [
+        ('CHG-SAR', 'air', 12.0, '12 x 9 polyurethane', 'the canopy\'s air main (site)', 'the service air block\'s inlet (CHG-CAV, CHG-CAS12)',
+         'up through the pad\'s site shaft and the right gland plate, 12 mm into the inlet', 0.0, 'it is drawn 12 mm into the inlet',
+         'Its run from the canopy\'s air main is the site\'s: add it from the site\'s layout.'),
+        ('CHG-SAX', 'power', 15.0, '5 x 6 mm2 (ASSUMPTION)', 'the power unit\'s auxiliary output (ASSUMPTION: a split charger\'s post takes it '
+         'there; else the canopy\'s board)', 'the auxiliary isolator (CHG-CQS)', 'up through the pad\'s left site shaft and the left gland plate '
+         'into the isolator from below', BOX_TAIL, f'{BOX_TAIL:.0f} mm to make it off on the isolator\'s terminals (ASSUMPTION)', unit),
+        ('CHG-SNW', 'network', 8.0, 'industrial Cat 6A', 'the depot\'s network switch (site)', 'the network switch (CHG-CNS)',
+         'up through the pad\'s left site shaft and the left gland plate into the left wiring duct', BOX_TAIL,
+         f'{BOX_TAIL:.0f} mm to make it off at the switch (ASSUMPTION)', 'Its run from the depot\'s network switch is the site\'s: add it from the site\'s layout.'),
+        ('CHG-SPE', 'power', 12.0, '50 mm2 copper, green-yellow (ASSUMPTION)', 'the site\'s earth (the power unit\'s earth bar and the depot\'s earth grid)',
+         'the cabinet\'s earth bar (CHG-CPE)', 'up through the pad\'s left site shaft and the left gland plate to the earth bar\'s clamp', 50.0,
+         '50 mm into the earth bar\'s clamp (ASSUMPTION)', 'Its run from the site\'s earth is the site\'s: add it from the site\'s layout.')]
+    for (lid, kind, od, spec, frm, to, where, tail_b, basis, open_) in feeds:
+        L = m.cable(lid, P[lid].name, kind, od, spec, frm, to, 'CABINET', bend_fixed=4 * od, tail_b=tail_b, tails=f'{site_end}; {basis}')
+        L.run('site', '', 'from the site\'s end in its ducts to under the cabinet\'s pad: the site\'s length, not in the model', 0.0)
+        L.run('drawn', lid, where, P[lid].path_mm)
+        if lid == 'CHG-SNW':
+            L.run('duct', 'CHG-CWL', 'inside the cabinet, planned: up the left wiring duct and along the third row\'s duct to the switch',
+                  bent_length(g['cabg']['planned']['CHG-SNW'][0], 0.0)[0], tol=60.0)
+        L.open.append(open_)
 
 
 RING_TAIL = 40.0        # into a ring's diffuser through its grommet, to the strip's pads (ASSUMPTION)
