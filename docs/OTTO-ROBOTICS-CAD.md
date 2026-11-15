@@ -181,9 +181,9 @@ As run on the committed CAD (`public/cad/<robot>.clash.json`):
 
 | robot | poses | pairs measured | clashes | loose groups | expected overlaps (screws in tapped holes, seals, retaining rings, gear meshes) |
 |---|---:|---:|---:|---:|---|
-| OTTO-CHARGE ARM | 22 | 32,311 | 0 | 0 | 672, 12, 9, 3 |
-| OTTO-CLEAN ARM | 42 | 15,880 | 0 | 0 | 320, 4, 4, 4 |
-| OTTO-WASH (touchless, with 2 detail arms, 2026-11-12) | 37 | 66,264 (14,467 measured) | 0 | 0 | 1,975, 24, 18, 6 |
+| OTTO-CHARGE ARM (2026-11-15, finding 21) | 34 | 41,380 (17,979 measured) | 0 | 0 | 841, 13, 9, 3 |
+| OTTO-CLEAN ARM (2026-11-15) | 42 | 7,546 (2,822 measured) | 0 | 0 | 192, 0, 1, 4 |
+| OTTO-WASH (touchless, with 2 detail arms, 2026-11-15, finding 21) | 37 | 68,830 (15,208 measured) | 0 | 0 | 1,999, 24, 18, 6 |
 
 No clash and no loose part is left in any robot, at any of the twin's poses, and `cad.test.ts` holds all three at
 zero. Design findings 6 and 7 were fixed in the CAD without a change to the twin, and so were 8 and 9, which the yard's
@@ -388,7 +388,8 @@ The poses found more, which the stowed pose could not show:
     1.8 A/mm2, so 560 to 720 A for 400 mm2; https://payapress.com/busbar-sizing/, read 2026-11-11), not a rating:
     check it against the Copper Development Association's ampacity tables before a bar is bought. The connector's
     contacts stay liquid-cooled: two 8 mm coolant tubes, the tool's cable and its air line run with the bars and
-    through each boot. **What you still see:** four black boots, at the base, the shoulder, the elbow and the wrist. They are the arm's own, they move with it, and nothing is pulled from anywhere.
+    through each boot. (Finding 21: the forearm, which swings past the elbow, now takes 2 flexible conductors of 400 mm2
+    in place of bars, and the coolant and air tubes, 8 x 6 and 6 x 4, run unbroken from the cabinet.) **What you still see:** four black boots, at the base, the shoulder, the elbow and the wrist. They are the arm's own, they move with it, and nothing is pulled from anywhere.
 
 17. **The wash machine whipped the car with brushes and opened its doors in the wet.** Chase, 2026-11-11: *"I don't
     think it makes sense to have giant brushes that will be whipping the vehicle since a lot of AV's have extended
@@ -540,7 +541,8 @@ The poses found more, which the stowed pose could not show:
     - **Lines that stopped short of what they plug into.** Each boot of the charge arm's power path ended bare on its
       box's face; the forearm's sat 20 mm off the casting (its box is inside the hollow forearm), and the wrist boot sat
       12 mm past an M50 gland too small for a 60 mm boot. Each boot now ends in a fitting it slides 18 mm into: CHG-BFT
-      on a box's face, and CHG-BF1B, CHG-BF3B and CHG-BF4A cut to the casting they stand on. The head's outlet takes the
+      on a box's face, and CHG-BF1B, CHG-BF3B and CHG-BF4A cut to the casting they stand on (CHG-BF3B went with finding
+      21, when its box moved outside the forearm). The head's outlet takes the
       wrist boot in a boot outlet adapter (CHG-BTO) where the gland was. The clean arm's wand cable stopped 4.6 mm short
       of the knuckle: an entry block (CLN-WCE) now takes its end, and a boss on the knuckle now carries the nozzle air
       loop's fitting, which stood off it.
@@ -567,6 +569,49 @@ The poses found more, which the stowed pose could not show:
     and detail models and 10 mm on the coarse depot model). Each line's end sits in what holds it, at each twin pose.
     Each line that a chain carries stays inside the links and keeps its length. No part that the detail model leaves out
     can be seen. **The cable schedule** (below) gives the rest of what was asked: each line's full route and length.
+
+21. **What the cable schedule left open, routed (2026-11-15).** Chase, on the open items the new schedule listed: *"Yeah,
+    go find a solution to all of those."* Each one now has a drawn route, its parts in the parts list and its line in the
+    schedule:
+    - **The charge arm's status rings had no supply.** The model said the safety cable fed them, and no route reached
+      them (and a safety controller has no business lighting a status ring). Each ring is now lit by the drive of the
+      joint it sits on, as a robot joint's own light is. J2: an M8 receptacle on the front of J2's rear bell (CHG-RRC2),
+      wired inside the actuator to its drive board, and a 4.5 mm lead from its plug over into the left ring (CHG-RL2);
+      the left ring passes the supply to the right one by a jumper in a 6.5 mm channel cored along the turret boss's top,
+      under the rings (CHG-RJ2). The lead stands where nothing passes it: the upper arm's bridge goes by 156 mm out at the
+      arm's own angle, the balancer stays on the +Z side, and the J2 boot runs within 30 mm of the arm's plane. The wrist
+      ring wraps the socket that holds J6's rear bell, so a receptacle on the bell, through a hole in the socket, mates
+      the ring's own plug (CHG-RRC6): no cable is in the open there. (J6's rear cover faces the wrist yoke 5 mm away, so
+      a lead from a gland there had nowhere to go.) ASSUMPTION: each drive gives a 24 V output and a data line for its
+      ring; the drive's maker confirms them. The safety cable now serves the scanner and the emergency stop only.
+    - **The coolant and the air changed size at the riser.** The chains carried a 12 x 8 hose and an 8 x 6 tube, the
+      boots an 8 mm and a 6 mm tube, and the schedule joined them with reducing couplings the model did not have. One 8 x
+      6 tube each way and one 6 x 4 air tube now run from the cabinet to the head, through both chains and all 4 boots:
+      the size the boot has room for beside its 2 braids. The chain keeps its size (the DC cores set it). The cost is
+      the pump: at the connector's 2 L/min of 50 % glycol (the flow Phoenix Contact states for its liquid-cooled CCS
+      cables, https://www.phoenixcontact.com/en-fr/products/dc-charging-cable-ev-t2hpcc-dc400a-80m50ecbk11r-1333722, read
+      2026-11-15), a 6 mm bore loses about 0.6 bar each way over its length (laminar, at 3.7 mPa s), so the cooling unit
+      must give 2 L/min against about 2 bar, where a cable-mounted unit gives 1.
+    - **The 4 copper bars were not drawn and were not in the parts list.** They are drawn now, each where it runs. In
+      the upper arm, 2 bars of 40 x 10 in their sleeves lie stacked on the back wall on 3 bonded insulators under
+      screwed straps, each bent flatwise at its ends through a port to its box (CHG-BBUP, CHG-BBUN). The forearm swings
+      past the elbow, so it takes 2 flexible conductors of 400 mm2 (OD 26, no bend under 80 mm) in 2 cleats, from a slot
+      under its elbow box round the swing to a slot under its wrist-end box (CHG-FCFP, CHG-FCFN). Each box closes its
+      port; the upper arm's are the openings its bar pack goes in by. The castings are the wash arms' too, so they have
+      the same ports there, each closed by a plug moulded to it. Drawing them found the forearm's elbow box (CHG-PB4)
+      INSIDE the casting, where no hand could reach it: its block was cut by the casting and the larger piece was kept.
+      It now saddles the forearm's back, and its boot fitting is the standard one (CHG-BF3B is gone). The copper adds 11.4
+      kg: J3's load margin is 1.22 (it was 1.27) and J2's 3.22 (3.46).
+    - **The wash machine's side-knife gearmotors had no conduit.** Each one's 16 mm conduit (WSH-ECAL, WSH-ECAR) leaves
+      the cable trunk's floor, drops through a sleeve in both decks over the motor, and turns into the motor's north face:
+      the trunk lies on the top deck along the beam's middle line, and each motor hangs under the bottom deck 88 mm south
+      of it, at the knife axis's end.
+    - **The wash arms' pure water stopped in the pedestal.** It now runs up the arm through J1, J2 and J3 beside the joint
+      cables (their bores, 18.8 and 23.5 mm, take the 10 mm cable and the 6 mm tube; J4's and J5's 11.7 mm take the
+      cable alone), leaves the forearm by a bulkhead fitting in a plate in the side port the charge arm's wrist-end box
+      uses (WSH-PPF, WSH-BHF), crosses J4 and J5 in a loop of 6 x 4 tube (WSH-PWLL, WSH-PWLR), and goes up the sensor
+      bracket in a stainless tube (WSH-PST) to a new holder that carries the nozzle and feeds it (WSH-PNH). The nozzle had
+      stood screwed into the bracket's 8 mm edge with no water reaching it.
 
 The audit also found the wash machine's tools fed by rigid pipes that could not follow them. They now have flexible
 lines that do (below). (The wands' vacuum units and the side brushes' chains it added went with finding 17.)
@@ -595,7 +640,7 @@ every robot's lines, one merged draw per material per robot kind, re-solved only
 `cadFlex.test.ts` holds the 2 solvers to the same points (within 0.5 mm) and sweeps each robot's whole duty cycle.
 
 **OTTO-CHARGE ARM.** Every line comes from the DC cabinet beside the bed (finding 19): 8 DC cores of 50 mm2, 4 a
-pole; 2 coolant hoses; an air tube; and 5 cables, for the joints, the tool, the safety circuit and the 2 servo motors
+pole; 2 coolant tubes; an air tube; and 5 cables, for the joints, the tool, the safety circuit and the 2 servo motors
 of the base. They leave the cabinet through a gland plate in its floor, drop through a shaft in the pad, and run in a
 lined trench in the slab, under a flush checker plate, to the cable channel between the bed's beams. There each turns
 onto its own lane and enters the cable chain at its fixed end, under the bed's middle. The chain's bend rolls along the
@@ -671,24 +716,18 @@ not have, or a bend tighter than its line allows.
 
 | robot | lines | route | to order |
 |---|---|---|---|
-| OTTO-CHARGE ARM | 36 | 159.4 m | 196.3 m |
+| OTTO-CHARGE ARM | 35 | 161.5 m | 198.2 m |
 | OTTO-CLEAN ARM | 16 | 13.2 m | 17.6 m |
-| OTTO-WASH | 46 | 365.8 m | 396.4 m |
+| OTTO-WASH | 54 | 376.6 m | 408.5 m |
 
-**What it found,** each an open item on its line in the schedule:
-- The charge arm's safety cable serves the scanner and the emergency stop on the riser. By the model's own words it also
-  serves the status light rings on J2 and on the wrist, but the boots' contents do not include it, and no route reaches
-  the rings.
-- The charge arm's supply chains carry 12 x 8 coolant hoses and an 8 x 6 air tube. Its boots carry 8 mm coolant tubes
-  and a 6 mm air line. The schedule joins them with reducing couplings in the riser's terminal box (ASSUMPTION). If
-  one line were to run through, a 12 mm hose would need 90 mm of bend where it moves (7.5 x d), and the J3 and wrist
-  boots bend to 84 and 88 mm.
-- The charge arm's 4 copper bars (2 in the upper arm, 2 in the forearm) are not drawn and are not in the parts list:
-  only the terminal boxes describe them. The schedule gives their length from box to box.
-- The wash machine's side-knife gearmotors (added on 2026-11-15, finding 20) have no conduit yet. Each motor hangs
-  under its belt axis, so its cable needs a sleeve through the beam's decks and an entry in its side. The schedule
-  gives the trunk's piece and a straight estimate of the rest.
-- The wash arms' pure-water tube ends in the pedestal. No route up the arm to the mist nozzle is drawn (finding 19).
+**What it found** (each listed as an open item on its line, and each routed since: finding 21): the charge arm's
+status rings had no supply; its coolant and air changed size at the riser; its 4 copper bars were not drawn; the wash
+machine's side-knife gearmotors had no conduit; the wash arms' pure water stopped in the pedestal.
+
+**What it still lists as open,** each on its line:
+- The wash docks' feeds: each dock's signal cable and rinse tube run inside its post to the signal and the cup, and
+  that run is not drawn (600 mm, +/- 300).
+- The clean arm's link lines: in 2 of its links the CAD draws the duct, not the 2 cables and the tube beside it.
 - The charge arm's DC cabinet is drawn as its envelope. The length of each line inside it (1.5 m, ASSUMPTION) is for
   the cabinet maker to confirm. The clean arm's supply and network cables also run along the canopy's tray from its
   board, and that length is the site's.
@@ -840,7 +879,12 @@ design data and PULSE shows what each machine is doing now.
   plan still draws each robot's outline from the twin's kinematic points (`robotPlan.ts`).
 - The cable schedule's duct and arm pieces are planned routes, not lines drawn one by one: their tolerance says how
   much the dressing can change them. Its joint cables are straight between 2 points of the model, plus up to a quarter
-  for their dressing in the casting. Its tails are assumptions, each one stated.
+  for their dressing in the casting, and so is the wash arms' pure-water tube through J1 to J3. Its tails are
+  assumptions, each one stated.
+- Inside an actuator nothing is drawn but its parts: the status rings' receptacles are wired to their drive boards by
+  the actuator's maker, and the wash arms' pure-water tube passes J1 to J3's glands and bores as the joint cable does,
+  unseen. The copper inside the charge arm's castings is bonded and strapped as drawn; the passages the arm's terminal
+  boxes seal round it are drawn as plain ports, not as glands.
 - The yard's clearance tests sample the depot model's vertices, as the procedural tests sample the procedural robots'.
   The two-arm test covers the pairs the twin's interlock lets happen (the clean arm goes out over the car only while
   the charge arm is stowed or latched; the charge arm moves only while the clean arm is home), not every combination.

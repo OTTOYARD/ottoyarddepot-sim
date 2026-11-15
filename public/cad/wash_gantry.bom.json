@@ -7,12 +7,12 @@
   "glb": "m"
  },
  "totals": {
-  "parts": 2799,
-  "uniqueParts": 300,
+  "parts": 2827,
+  "uniqueParts": 316,
   "fasteners": 1648,
-  "massKg": 6045.23,
-  "boughtLines": 175,
-  "madeLines": 125,
+  "massKg": 6045.58,
+  "boughtLines": 184,
+  "madeLines": 132,
   "referenceLines": 14
  },
  "subsystems": [
@@ -71,7 +71,7 @@
    "order": 2,
    "partCount": 167,
    "fastenerCount": 160,
-   "massKg": 1684.125,
+   "massKg": 1684.107,
    "uniqueParts": 9
   },
   {
@@ -169,7 +169,7 @@
    "order": 7,
    "partCount": 222,
    "fastenerCount": 168,
-   "massKg": 132.501,
+   "massKg": 132.491,
    "uniqueParts": 37
   },
   {
@@ -200,10 +200,10 @@
    "specs": {},
    "group": "Detail arm",
    "order": 9,
-   "partCount": 38,
+   "partCount": 42,
    "fastenerCount": 36,
-   "massKg": 54.456,
-   "uniqueParts": 3
+   "massKg": 54.108,
+   "uniqueParts": 5
   },
   {
    "id": "J3",
@@ -232,10 +232,10 @@
    "specs": {},
    "group": "Detail arm",
    "order": 11,
-   "partCount": 34,
+   "partCount": 40,
    "fastenerCount": 32,
-   "massKg": 30.365,
-   "uniqueParts": 2
+   "massKg": 30.513,
+   "uniqueParts": 5
   },
   {
    "id": "WRIST",
@@ -252,7 +252,7 @@
    "order": 12,
    "partCount": 500,
    "fastenerCount": 352,
-   "massKg": 47.76,
+   "massKg": 47.756,
    "uniqueParts": 66
   },
   {
@@ -265,10 +265,10 @@
    "specs": {},
    "group": "Detail arm",
    "order": 13,
-   "partCount": 6,
+   "partCount": 14,
    "fastenerCount": 0,
-   "massKg": 0.249,
-   "uniqueParts": 3
+   "massKg": 0.291,
+   "uniqueParts": 7
   },
   {
    "id": "POLISH",
@@ -287,10 +287,10 @@
    },
    "group": "Tools",
    "order": 14,
-   "partCount": 34,
+   "partCount": 42,
    "fastenerCount": 20,
-   "massKg": 5.817,
-   "uniqueParts": 11
+   "massKg": 5.955,
+   "uniqueParts": 16
   },
   {
    "id": "CONTROL",
@@ -309,10 +309,10 @@
    "specs": {},
    "group": "Control",
    "order": 15,
-   "partCount": 130,
+   "partCount": 132,
    "fastenerCount": 8,
-   "massKg": 836.083,
-   "uniqueParts": 28
+   "massKg": 836.479,
+   "uniqueParts": 30
   },
   {
    "id": "SUPPLY",
@@ -813,8 +813,8 @@
    "material": "Aluminium 6063-T6 extrusion, anodised",
    "materialKey": "al_extr",
    "qty": 1,
-   "massKg": 121.4356,
-   "totalMassKg": 121.4356,
+   "massKg": 121.427,
+   "totalMassKg": 121.427,
    "torqueNm": null,
    "reference": false,
    "function": "Closes the beam between its chords and carries the tools hung below it and the drives on it.",
@@ -837,8 +837,8 @@
    "material": "Aluminium 6063-T6 extrusion, anodised",
    "materialKey": "al_extr",
    "qty": 1,
-   "massKg": 121.4356,
-   "totalMassKg": 121.4356,
+   "massKg": 121.427,
+   "totalMassKg": 121.427,
    "torqueNm": null,
    "reference": false,
    "function": "Closes the beam between its chords and carries the tools hung below it and the drives on it.",
@@ -1938,7 +1938,7 @@
    "spec": {
     "inside": "the lines turn on 48 mm or more (4 x d, fixed); not drawn one by one",
     "into the pedestal": "12 mm through the window in the wall toward the chain",
-    "in the cable schedule": "WSH-DAL-SUP, 17.16 m from end to end; WSH-DAL-MOT, 17.16 m from end to end; WSH-DAL-24V, 17.17 m from end to end; WSH-DAL-ECT, 17.29 m from end to end; WSH-DAL-H2O, 16.70 m from end to end"
+    "in the cable schedule": "WSH-DAL-SUP, 17.16 m from end to end; WSH-DAL-MOT, 17.16 m from end to end; WSH-DAL-24V, 17.17 m from end to end; WSH-DAL-ECT, 17.29 m from end to end; WSH-DAL-H2O, 20.94 m from end to end"
    },
    "uses": [
     {
@@ -1966,7 +1966,7 @@
    "spec": {
     "inside": "the lines turn on 48 mm or more (4 x d, fixed); not drawn one by one",
     "into the pedestal": "12 mm through the window in the wall toward the chain",
-    "in the cable schedule": "WSH-DAR-SUP, 12.11 m from end to end; WSH-DAR-MOT, 12.11 m from end to end; WSH-DAR-24V, 12.12 m from end to end; WSH-DAR-ECT, 12.24 m from end to end; WSH-DAR-H2O, 11.71 m from end to end"
+    "in the cable schedule": "WSH-DAR-SUP, 12.11 m from end to end; WSH-DAR-MOT, 12.11 m from end to end; WSH-DAR-24V, 12.12 m from end to end; WSH-DAR-ECT, 12.24 m from end to end; WSH-DAR-H2O, 15.95 m from end to end"
    },
    "uses": [
     {
@@ -2574,7 +2574,7 @@
    "spec": {
     "IP rating": "IP65",
     "machining": "bores to H7, faces flat to 0.02",
-    "in the cable schedule": "WSH-JCL1, 0.77 m from end to end; WSH-JCR1, 0.77 m from end to end"
+    "in the cable schedule": "WSH-DAL-H2O, 20.94 m from end to end; WSH-JCL1, 0.77 m from end to end; WSH-DAR-H2O, 15.95 m from end to end; WSH-JCR1, 0.77 m from end to end"
    },
    "uses": [
     {
@@ -2666,14 +2666,14 @@
    "material": "Aluminium A356-T6 casting, powder-coated",
    "materialKey": "a356",
    "qty": 2,
-   "massKg": 30.0048,
-   "totalMassKg": 60.0095,
+   "massKg": 29.9999,
+   "totalMassKg": 59.9998,
    "torqueNm": null,
    "reference": false,
    "function": "Turns on J1 and carries the shoulder. Its boss clamps the J2 actuator.",
    "spec": {
     "wall": "8 mm",
-    "in the cable schedule": "WSH-JCL1, 0.77 m from end to end; WSH-JCR1, 0.77 m from end to end"
+    "in the cable schedule": "WSH-DAL-H2O, 20.94 m from end to end; WSH-JCL1, 0.77 m from end to end; WSH-DAR-H2O, 15.95 m from end to end; WSH-JCR1, 0.77 m from end to end"
    },
    "uses": [
     {
@@ -3703,7 +3703,7 @@
    "spec": {
     "IP rating": "IP65",
     "machining": "bores to H7, faces flat to 0.02",
-    "in the cable schedule": "WSH-JCL2, 1.82 m from end to end; WSH-JCR2, 1.82 m from end to end"
+    "in the cable schedule": "WSH-DAL-H2O, 20.94 m from end to end; WSH-JCL2, 1.82 m from end to end; WSH-DAR-H2O, 15.95 m from end to end; WSH-JCR2, 1.82 m from end to end"
    },
    "uses": [
     {
@@ -4567,15 +4567,68 @@
    "material": "Aluminium A356-T6 casting, powder-coated",
    "materialKey": "a356",
    "qty": 2,
-   "massKg": 26.5386,
-   "totalMassKg": 53.0772,
+   "massKg": 26.2323,
+   "totalMassKg": 52.4645,
    "torqueNm": null,
    "reference": false,
    "function": "Carries the elbow 1.344 m from the shoulder. Hollow for stiffness per kilogram.",
    "spec": {
     "wall": "7 mm",
     "axis distance": "1344.0 mm, bored in one set-up",
-    "in the cable schedule": "WSH-JCL2, 1.82 m from end to end; WSH-JCR2, 1.82 m from end to end"
+    "ports": "2 on the back, 80 x 100: the charge arm's terminal boxes close them, the wash arms' plugs",
+    "in the cable schedule": "WSH-DAL-H2O, 20.94 m from end to end; WSH-JCL2, 1.82 m from end to end; WSH-DAR-H2O, 15.95 m from end to end; WSH-JCR2, 1.82 m from end to end"
+   },
+   "uses": [
+    {
+     "sub": "UPPER",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-PPLU1",
+   "name": "Port plug, upper arm, the shoulder end, on the back",
+   "category": "seal",
+   "make": "make",
+   "standard": "moulded to the port",
+   "size": "U1",
+   "grade": "EPDM 70 Shore A",
+   "material": "EPDM rubber",
+   "materialKey": "rubber",
+   "qty": 2,
+   "massKg": 0.0648,
+   "totalMassKg": 0.1295,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Closes the casting's port that the charge arm's terminal box uses: no water gets into the link.",
+   "spec": {
+    "fits": "pressed in, flush with the wall inside and out"
+   },
+   "uses": [
+    {
+     "sub": "UPPER",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-PPLU2",
+   "name": "Port plug, upper arm, the elbow end, on the back",
+   "category": "seal",
+   "make": "make",
+   "standard": "moulded to the port",
+   "size": "U2",
+   "grade": "EPDM 70 Shore A",
+   "material": "EPDM rubber",
+   "materialKey": "rubber",
+   "qty": 2,
+   "massKg": 0.0672,
+   "totalMassKg": 0.1343,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Closes the casting's port that the charge arm's terminal box uses: no water gets into the link.",
+   "spec": {
+    "fits": "pressed in, flush with the wall inside and out"
    },
    "uses": [
     {
@@ -4651,7 +4704,7 @@
    "spec": {
     "IP rating": "IP65",
     "machining": "bores to H7, faces flat to 0.02",
-    "in the cable schedule": "WSH-JCL3, 1.21 m from end to end; WSH-JCR3, 1.21 m from end to end"
+    "in the cable schedule": "WSH-DAL-H2O, 20.94 m from end to end; WSH-JCL3, 1.21 m from end to end; WSH-DAR-H2O, 15.95 m from end to end; WSH-JCR3, 1.21 m from end to end"
    },
    "uses": [
     {
@@ -4791,14 +4844,89 @@
    "material": "Aluminium A356-T6 casting, powder-coated",
    "materialKey": "a356",
    "qty": 2,
-   "massKg": 14.8166,
-   "totalMassKg": 29.6333,
+   "massKg": 14.7462,
+   "totalMassKg": 29.4924,
    "torqueNm": null,
    "reference": false,
    "function": "Carries the wrist 1.142 m from the elbow. Its top socket holds J4.",
    "spec": {
     "wall": "6 mm",
-    "in the cable schedule": "WSH-JCL3, 1.21 m from end to end; WSH-JCR3, 1.21 m from end to end"
+    "ports": "2 slots 66 x 34: the charge arm's terminal boxes close them, the wash arms' plugs",
+    "in the cable schedule": "WSH-DAL-H2O, 20.94 m from end to end; WSH-JCL3, 1.21 m from end to end; WSH-DAR-H2O, 15.95 m from end to end; WSH-JCR3, 1.21 m from end to end"
+   },
+   "uses": [
+    {
+     "sub": "FORE",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-BHF",
+   "name": "Bulkhead push-in fitting 6 mm, stainless",
+   "category": "fluid",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "6 mm, M12",
+   "grade": "",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 0.0353,
+   "totalMassKg": 0.0707,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes the pure-water tube through the port plate, from inside the forearm to the loop across the wrist.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "FORE",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-PPF",
+   "name": "Port plate, forearm, wrist end, with the pure water's bulkhead",
+   "category": "fluid",
+   "make": "make",
+   "standard": "cut to the port",
+   "size": "F2",
+   "grade": "316L, sealed in on its edge",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 0.0933,
+   "totalMassKg": 0.1866,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Closes the casting's side port and carries the bulkhead fitting the pure-water tube leaves the forearm by.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "FORE",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-PPLF1",
+   "name": "Port plug, forearm, the elbow end, on the back",
+   "category": "seal",
+   "make": "make",
+   "standard": "moulded to the port",
+   "size": "F1",
+   "grade": "EPDM 70 Shore A",
+   "material": "EPDM rubber",
+   "materialKey": "rubber",
+   "qty": 2,
+   "massKg": 0.016,
+   "totalMassKg": 0.032,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Closes the casting's port that the charge arm's terminal box uses: no water gets into the link.",
+   "spec": {
+    "fits": "pressed in, flush with the wall inside and out"
    },
    "uses": [
     {
@@ -5217,8 +5345,8 @@
    "material": "Aluminium 6061-T6, machined, clear anodised",
    "materialKey": "al6061",
    "qty": 2,
-   "massKg": 0.8618,
-   "totalMassKg": 1.7237,
+   "massKg": 0.86,
+   "totalMassKg": 1.7201,
    "torqueNm": null,
    "reference": false,
    "function": "Turns on J5 and holds the J6 actuator on the tool axis.",
@@ -6436,7 +6564,10 @@
    "torqueNm": null,
    "reference": false,
    "function": "Shows the arm state: teal ready, amber moving, green charging, red fault.",
-   "spec": {},
+   "spec": {
+    "fed by": "J2's drive, by the ring lead (CHG-RL2) from its receptacle on J2's rear bell",
+    "lead entry": "a grommet in the diffuser's back"
+   },
    "uses": [
     {
      "sub": "SAFETY",
@@ -6460,7 +6591,120 @@
    "torqueNm": null,
    "reference": false,
    "function": "Shows the arm state: teal ready, amber moving, green charging, red fault.",
-   "spec": {},
+   "spec": {
+    "fed by": "J2's drive, through the left ring and the jumper (CHG-RJ2) in the channel along the boss's top",
+    "lead entry": "a grommet in the diffuser's back"
+   },
+   "uses": [
+    {
+     "sub": "SAFETY",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-RJ2",
+   "name": "Ring jumper cable, J2: left ring to right ring, 4 x 0.25 mm2",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "",
+   "size": "D 4.5 x 55",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 2,
+   "massKg": 0.0013,
+   "totalMassKg": 0.0026,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Passes the ring supply from the left J2 ring to the right one, in the channel cored along the turret boss's top.",
+   "spec": {
+    "cable": "4 x 0.25 mm2, PUR, OD 4.5 mm",
+    "channel": "D 6.5, cored in the turret",
+    "in the cable schedule": "WSH-RJ2L, 0.05 m from end to end; WSH-RJ2R, 0.05 m from end to end"
+   },
+   "uses": [
+    {
+     "sub": "SAFETY",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-RL2",
+   "name": "Ring lead, J2: receptacle to the left ring, 4 x 0.25 mm2",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "IEC 61076-2-104 (plug)",
+   "size": "D 4.5",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 2,
+   "massKg": 0.0008,
+   "totalMassKg": 0.0017,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries 24 V, 0 V and the data line from J2's drive to the 2 J2 rings.",
+   "spec": {
+    "cable": "4 x 0.25 mm2, PUR, OD 4.5 mm",
+    "ends": "a molded M8 plug; the ring's grommet",
+    "in the cable schedule": "WSH-RL2L, 0.04 m from end to end; WSH-RL2R, 0.04 m from end to end"
+   },
+   "uses": [
+    {
+     "sub": "SAFETY",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-RRC2",
+   "name": "M8 receptacle, 4-pin, with its plug: the J2 rings' lead",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "IEC 61076-2-104",
+   "size": "M8, 4-pin, A-coded",
+   "grade": "IP67 mated",
+   "material": "Stainless steel 1.4301 (304)",
+   "materialKey": "ss304",
+   "qty": 2,
+   "massKg": 0.015,
+   "totalMassKg": 0.0301,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Brings the J2 drive's ring output out of the actuator. The ring lead's plug screws onto it.",
+   "spec": {
+    "inside": "wired to J2's drive board by the actuator's maker (ASSUMPTION)",
+    "rating": "4 A a pin, 30 V"
+   },
+   "uses": [
+    {
+     "sub": "SAFETY",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-RRC6",
+   "name": "M8 receptacle, 4-pin, rear mount: the wrist ring's supply",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "IEC 61076-2-104",
+   "size": "M8, 4-pin, A-coded",
+   "grade": "IP67 mated",
+   "material": "Stainless steel 1.4301 (304)",
+   "materialKey": "ss304",
+   "qty": 2,
+   "massKg": 0.004,
+   "totalMassKg": 0.008,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Brings the J6 drive's ring output out of the actuator, through the wrist tube's socket, to the ring's plug.",
+   "spec": {
+    "inside": "wired to J6's drive board by the actuator's maker (ASSUMPTION)",
+    "rating": "4 A a pin, 30 V"
+   },
    "uses": [
     {
      "sub": "SAFETY",
@@ -6484,7 +6728,9 @@
    "torqueNm": null,
    "reference": false,
    "function": "Shows the arm state at the connector, where the camera and a person look.",
-   "spec": {},
+   "spec": {
+    "fed by": "J6's drive: a 4-pin plug in the ring's back mates J6's ring receptacle (CHG-RRC6) through the wrist tube's socket"
+   },
    "uses": [
     {
      "sub": "SAFETY",
@@ -6498,13 +6744,13 @@
    "category": "structure",
    "make": "make",
    "standard": "bent and welded plate",
-   "size": "273 long",
+   "size": "259 long",
    "grade": "316L",
    "material": "Stainless steel 1.4401 (316)",
    "materialKey": "ss316",
    "qty": 2,
-   "massKg": 1.1228,
-   "totalMassKg": 2.2455,
+   "massKg": 1.0834,
+   "totalMassKg": 2.1669,
    "torqueNm": null,
    "reference": false,
    "function": "Carries the camera and the mist nozzle beside the pad, on the wrist and not on the turning head. Its foot bolts to the wrist tube's flat cheek.",
@@ -6566,6 +6812,145 @@
     {
      "sub": "POLISH",
      "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-PCE",
+   "name": "Push-in elbow 6 mm, stainless",
+   "category": "fluid",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "6 mm, 90 deg",
+   "grade": "",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 0.02,
+   "totalMassKg": 0.0399,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Joins the tube from the forearm to the bracket's supply tube, turned to meet it along the wrist's axis.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "POLISH",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-PNH",
+   "name": "Mist nozzle holder, stainless",
+   "category": "fluid",
+   "make": "make",
+   "standard": "machined from bar",
+   "size": "42 x 14 x 8",
+   "grade": "316L",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 0.0375,
+   "totalMassKg": 0.0751,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Holds the mist nozzle on the bracket's top and feeds it: a drilled passage from the supply tube to the nozzle's G 1/4 thread.",
+   "spec": {
+    "passage": "drilled 4 mm, plugged at its ends (not drawn)"
+   },
+   "uses": [
+    {
+     "sub": "POLISH",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-PST",
+   "name": "Mist supply tube 6 x 1, stainless",
+   "category": "fluid",
+   "make": "buy",
+   "standard": "EN 10216-5",
+   "size": "D 6",
+   "grade": "",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 0.0324,
+   "totalMassKg": 0.0649,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Brings the pure water up the bracket from the elbow to the nozzle holder.",
+   "spec": {
+    "tube": "6 x 1, 316L",
+    "in the cable schedule": "WSH-PSL, 0.26 m from end to end; WSH-PSR, 0.26 m from end to end"
+   },
+   "uses": [
+    {
+     "sub": "POLISH",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-PWLL",
+   "name": "Pure-water tube 6 x 4 across the wrist, polyurethane",
+   "category": "fluid",
+   "make": "buy",
+   "standard": "ISO 7628 (tube)",
+   "size": "6 x 4 x 900",
+   "grade": "",
+   "material": "Polyurethane, 90 Shore A",
+   "materialKey": "pu",
+   "qty": 1,
+   "massKg": 0.018,
+   "totalMassKg": 0.018,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes the pure water from the forearm across J4 and J5 to the mist nozzle's supply on the bracket.",
+   "spec": {
+    "tube": "6 x 4 polyurethane, pure-water grade",
+    "length": "900 mm",
+    "bend radius": "45 mm moving (7.5 x d)",
+    "min bend radius": "45 mm",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)",
+    "in the cable schedule": "WSH-PWL, 0.90 m from end to end"
+   },
+   "uses": [
+    {
+     "sub": "POLISH",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-PWLR",
+   "name": "Pure-water tube 6 x 4 across the wrist, polyurethane",
+   "category": "fluid",
+   "make": "buy",
+   "standard": "ISO 7628 (tube)",
+   "size": "6 x 4 x 900",
+   "grade": "",
+   "material": "Polyurethane, 90 Shore A",
+   "materialKey": "pu",
+   "qty": 1,
+   "massKg": 0.018,
+   "totalMassKg": 0.018,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes the pure water from the forearm across J4 and J5 to the mist nozzle's supply on the bracket.",
+   "spec": {
+    "tube": "6 x 4 polyurethane, pure-water grade",
+    "length": "900 mm",
+    "bend radius": "45 mm moving (7.5 x d)",
+    "min bend radius": "45 mm",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)",
+    "in the cable schedule": "WSH-PWR, 0.90 m from end to end"
+   },
+   "uses": [
+    {
+     "sub": "POLISH",
+     "qty": 1
     }
    ]
   },
@@ -7054,6 +7439,60 @@
    ]
   },
   {
+   "id": "WSH-ECAL",
+   "name": "Conduit 16 x 1, stainless: east side knife axis gearmotor",
+   "category": "electrical",
+   "make": "make",
+   "standard": "EN 61386",
+   "size": "D 16",
+   "grade": "",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 0.1978,
+   "totalMassKg": 0.1978,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Brings a side knife axis gearmotor's cable from the trunk, down through the beam to the motor's side.",
+   "spec": {
+    "bend": "R 40",
+    "in the cable schedule": "WSH-SAMCL, 9.08 m from end to end"
+   },
+   "uses": [
+    {
+     "sub": "CONTROL",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-ECAR",
+   "name": "Conduit 16 x 1, stainless: west side knife axis gearmotor",
+   "category": "electrical",
+   "make": "make",
+   "standard": "EN 61386",
+   "size": "D 16",
+   "grade": "",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 0.1978,
+   "totalMassKg": 0.1978,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Brings a side knife axis gearmotor's cable from the trunk, down through the beam to the motor's side.",
+   "spec": {
+    "bend": "R 40",
+    "in the cable schedule": "WSH-SAMCR, 3.24 m from end to end"
+   },
+   "uses": [
+    {
+     "sub": "CONTROL",
+     "qty": 1
+    }
+   ]
+  },
+  {
    "id": "WSH-ECB",
    "name": "Conduit 16 x 1, stainless: blower motor",
    "category": "electrical",
@@ -7256,7 +7695,7 @@
    "reference": false,
    "function": "Carries the motor, valve and signal cables from the control cabinet up through the beam and along its top. Each cable leaves it in its own conduit.",
    "spec": {
-    "in the cable schedule": "WSH-ECLC, 13.24 m from end to end; WSH-ECVC, 7.35 m from end to end; WSH-ECNC, 7.46 m from end to end; WSH-ECSC, 6.62 m from end to end; WSH-ECBC1, 6.39 m from end to end; WSH-ECBC2, 7.94 m from end to end; WSH-ECBC3, 3.03 m from end to end; WSH-ECKC1, 6.08 m from end to end; WSH-ECKC2, 5.76 m from end to end; WSH-SAMCL, 9.18 m from end to end; WSH-SAMCR, 3.33 m from end to end"
+    "in the cable schedule": "WSH-ECLC, 13.24 m from end to end; WSH-ECVC, 7.35 m from end to end; WSH-ECNC, 7.46 m from end to end; WSH-ECSC, 6.62 m from end to end; WSH-ECBC1, 6.39 m from end to end; WSH-ECBC2, 7.94 m from end to end; WSH-ECBC3, 3.03 m from end to end; WSH-ECKC1, 6.08 m from end to end; WSH-ECKC2, 5.76 m from end to end; WSH-SAMCL, 9.08 m from end to end; WSH-SAMCR, 3.24 m from end to end"
    },
    "uses": [
     {
@@ -7985,7 +8424,7 @@
     "lines": "6 mm",
     "fill": "15 % of the bore (limit 53 %)",
     "bends": "R 102, 360 degrees or less in all",
-    "in the cable schedule": "WSH-DAL-H2O, 16.70 m from end to end"
+    "in the cable schedule": "WSH-DAL-H2O, 20.94 m from end to end"
    },
    "uses": [
     {
@@ -8159,7 +8598,7 @@
     "lines": "6 mm",
     "fill": "15 % of the bore (limit 53 %)",
     "bends": "R 102, 360 degrees or less in all",
-    "in the cable schedule": "WSH-DAR-H2O, 11.71 m from end to end"
+    "in the cable schedule": "WSH-DAR-H2O, 15.95 m from end to end"
    },
    "uses": [
     {
@@ -8261,7 +8700,7 @@
    "function": "Every drop from the panel ends in it and every duct in the slab starts under it. Its compartments keep power, network and media apart.",
    "spec": {
     "mass basis": "catalogue class mass (the CAD draws its envelope)",
-    "in the cable schedule": "WSH-MLN, 16.62 m from end to end; WSH-MLW, 14.69 m from end to end; WSH-MLA, 14.68 m from end to end; WSH-MLB, 14.67 m from end to end; WSH-MLR, 14.66 m from end to end; WSH-MLP, 16.63 m from end to end; WSH-DAL-SUP, 17.16 m from end to end; WSH-DAL-MOT, 17.16 m from end to end; WSH-DAL-24V, 17.17 m from end to end; WSH-DAL-ECT, 17.29 m from end to end; WSH-DAL-H2O, 16.70 m from end to end; WSH-DKSL, 9.16 m from end to end; WSH-DAR-SUP, 12.11 m from end to end; WSH-DAR-MOT, 12.11 m from end to end; WSH-DAR-24V, 12.12 m from end to end; WSH-DAR-ECT, 12.24 m from end to end; WSH-DAR-H2O, 11.71 m from end to end; WSH-DKSR, 4.10 m from end to end"
+    "in the cable schedule": "WSH-MLN, 16.62 m from end to end; WSH-MLW, 14.69 m from end to end; WSH-MLA, 14.68 m from end to end; WSH-MLB, 14.67 m from end to end; WSH-MLR, 14.66 m from end to end; WSH-MLP, 16.63 m from end to end; WSH-DAL-SUP, 17.16 m from end to end; WSH-DAL-MOT, 17.16 m from end to end; WSH-DAL-24V, 17.17 m from end to end; WSH-DAL-ECT, 17.29 m from end to end; WSH-DAL-H2O, 20.94 m from end to end; WSH-DKSL, 9.16 m from end to end; WSH-DAR-SUP, 12.11 m from end to end; WSH-DAR-MOT, 12.11 m from end to end; WSH-DAR-24V, 12.12 m from end to end; WSH-DAR-ECT, 12.24 m from end to end; WSH-DAR-H2O, 15.95 m from end to end; WSH-DKSR, 4.10 m from end to end"
    },
    "uses": [
     {
@@ -8335,7 +8774,7 @@
    "reference": false,
    "function": "Runs from the cabinet on the wall in its duct to the floor box, and from the box into the chain. Drawn from the box to the chain's fixed end.",
    "spec": {
-    "in the cable schedule": "WSH-DAL-H2O, 16.70 m from end to end; WSH-DAR-H2O, 11.71 m from end to end"
+    "in the cable schedule": "WSH-DAL-H2O, 20.94 m from end to end; WSH-DAR-H2O, 15.95 m from end to end"
    },
    "uses": [
     {
@@ -8517,7 +8956,7 @@
    "reference": false,
    "function": "Takes one medium from its valve down to the pull box.",
    "spec": {
-    "in the cable schedule": "WSH-MLA, 14.68 m from end to end; WSH-MLB, 14.67 m from end to end; WSH-MLR, 14.66 m from end to end; WSH-DAL-H2O, 16.70 m from end to end; WSH-DAR-H2O, 11.71 m from end to end"
+    "in the cable schedule": "WSH-MLA, 14.68 m from end to end; WSH-MLB, 14.67 m from end to end; WSH-MLR, 14.66 m from end to end; WSH-DAL-H2O, 20.94 m from end to end; WSH-DAR-H2O, 15.95 m from end to end"
    },
    "uses": [
     {
@@ -9884,35 +10323,35 @@
      "range": null
     },
     {
-     "kind": "site",
-     "via": "",
-     "where": "from the trunk down through the beam to the gearmotor: straight, not drawn",
-     "mm": 618.2,
-     "tol": 154.6,
-     "bend": null,
+     "kind": "conduit",
+     "via": "WSH-ECAL",
+     "where": "in its 16 mm conduit from the trunk's floor, down through its sleeves in both decks and into the gearmotor's north face",
+     "mm": 526.0,
+     "tol": 0.0,
+     "bend": 40.0,
      "moving": false,
      "range": null
     }
    ],
-   "routeMm": 9176.8,
-   "tolMm": 210.6,
+   "routeMm": 9084.6,
+   "tolMm": 56.0,
    "tails": {
     "a": 500.0,
     "b": 300.0,
     "basis": "500 mm inside the cabinet or box, from its gland to the terminal (ASSUMPTION); 300 mm into the device's terminal box (ASSUMPTION)"
    },
-   "orderMm": 10200.0,
+   "orderMm": 10000.0,
    "bendMm": {
-    "fixed": 0.0,
+    "fixed": 40.0,
     "moving": 0.0,
-    "tightestFixed": null,
+    "tightestFixed": 40.0,
     "tightestMoving": null
    },
-   "pieces": [],
+   "pieces": [
+    "WSH-ECAL"
+   ],
    "notes": [],
-   "open": [
-    "Not designed yet: the conduit from the trunk to this gearmotor. The motor hangs under the belt axis at its outer end, so its cable needs a sleeve through the beam's decks and an entry in its side."
-   ]
+   "open": []
   },
   {
    "id": "WSH-SAMCR",
@@ -9935,35 +10374,35 @@
      "range": null
     },
     {
-     "kind": "site",
-     "via": "",
-     "where": "from the trunk down through the beam to the gearmotor: straight, not drawn",
-     "mm": 618.2,
-     "tol": 154.6,
-     "bend": null,
+     "kind": "conduit",
+     "via": "WSH-ECAR",
+     "where": "in its 16 mm conduit from the trunk's floor, down through its sleeves in both decks and into the gearmotor's north face",
+     "mm": 526.0,
+     "tol": 0.0,
+     "bend": 40.0,
      "moving": false,
      "range": null
     }
    ],
-   "routeMm": 3332.5,
-   "tolMm": 210.6,
+   "routeMm": 3240.4,
+   "tolMm": 56.0,
    "tails": {
     "a": 500.0,
     "b": 300.0,
     "basis": "500 mm inside the cabinet or box, from its gland to the terminal (ASSUMPTION); 300 mm into the device's terminal box (ASSUMPTION)"
    },
-   "orderMm": 4400.0,
+   "orderMm": 4100.0,
    "bendMm": {
-    "fixed": 0.0,
+    "fixed": 40.0,
     "moving": 0.0,
-    "tightestFixed": null,
+    "tightestFixed": 40.0,
     "tightestMoving": null
    },
-   "pieces": [],
+   "pieces": [
+    "WSH-ECAR"
+   ],
    "notes": [],
-   "open": [
-    "Not designed yet: the conduit from the trunk to this gearmotor. The motor hangs under the belt axis at its outer end, so its cable needs a sleeve through the beam's decks and an entry in its side."
-   ]
+   "open": []
   },
   {
    "id": "WSH-DAL-SUP",
@@ -10348,7 +10787,7 @@
    "od": 6.0,
    "spec": "the arm chain's own line (cad wash_gantry, a_lanes)",
    "from": "the pure water's shut-off valve at the wall (WSH-SBV12)",
-   "to": "the east arm's carriage, in its pedestal",
+   "to": "the east arm's bulkhead fitting in its forearm's port plate (WSH-BHF), inside",
    "sub": "SUPPLY",
    "runs": [
     {
@@ -10410,16 +10849,86 @@
      "bend": null,
      "moving": false,
      "range": null
+    },
+    {
+     "kind": "arm",
+     "via": "",
+     "where": "up the pedestal to J1's gland, beside the supply cable (at most the mount's height, ASSUMPTION)",
+     "mm": 550.0,
+     "tol": 137.5,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "arm",
+     "via": "CHG-J1-HSG",
+     "where": "through J1's gland and its hollow shaft, beside its joint cable",
+     "mm": 275.5,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "arm",
+     "via": "CHG-TUR",
+     "where": "inside the link from J1's output to J2's gland: straight 442 mm, and up to a quarter more for its dressing beside the joint cable",
+     "mm": 497.8,
+     "tol": 55.3,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "arm",
+     "via": "CHG-J2-HSG",
+     "where": "through J2's gland and its hollow shaft, beside its joint cable",
+     "mm": 317.3,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "arm",
+     "via": "CHG-UPR",
+     "where": "inside the link from J2's output to J3's gland: straight 1338 mm, and up to a quarter more for its dressing beside the joint cable",
+     "mm": 1505.5,
+     "tol": 167.3,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "arm",
+     "via": "CHG-J3-HSG",
+     "where": "through J3's gland and its hollow shaft, beside its joint cable",
+     "mm": 275.5,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "arm",
+     "via": "CHG-FOR",
+     "where": "inside the link from J3's output to the bulkhead in the side port: straight 723 mm, and up to a quarter more for its dressing beside the joint cable",
+     "mm": 813.3,
+     "tol": 90.4,
+     "bend": null,
+     "moving": false,
+     "range": null
     }
    ],
-   "routeMm": 16705.0,
-   "tolMm": 125.0,
+   "routeMm": 20939.8,
+   "tolMm": 575.5,
    "tails": {
     "a": 0.0,
     "b": 0.0,
     "basis": "its fittings take its ends"
    },
-   "orderMm": 16900.0,
+   "orderMm": 21600.0,
    "bendMm": {
     "fixed": 24.0,
     "moving": 45.0,
@@ -10432,10 +10941,10 @@
     "WSH-SD12",
     "WSH-SDLW"
    ],
-   "notes": [],
-   "open": [
-    "It feeds the mist nozzle beside the pad on the polishing head (a flat-fan nozzle, NOZ-fan) and the dock's rinse tube, but no route up the arm to the nozzle is drawn: the schedule ends it in the pedestal."
-   ]
+   "notes": [
+    "It leaves the forearm by the bulkhead fitting and goes on in the loop across the wrist (its own line, below): J4's and J5's 11.7 mm bores take the joint cable alone."
+   ],
+   "open": []
   },
   {
    "id": "WSH-JCL1",
@@ -10679,6 +11188,172 @@
     "tightestMoving": null
    },
    "pieces": [],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-RL2L",
+   "name": "Ring lead, J2 (east arm): 4 x 0.25 mm2",
+   "kind": "control",
+   "od": 4.5,
+   "spec": "4 x 0.25 mm2, PUR, OD 4.5 mm, a molded M8 plug at one end",
+   "from": "J2's drive board, through its ring receptacle (CHG-RRC2) on the front of J2's rear bell",
+   "to": "the left J2 status ring (CHG-J2-RINGL)",
+   "sub": "SAFETY",
+   "runs": [
+    {
+     "kind": "drawn",
+     "via": "CHG-RL2",
+     "where": "from the receptacle's plug out from the bell and over into the left ring's back",
+     "mm": 35.3,
+     "tol": 0.0,
+     "bend": 18.0,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 35.3,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 0.0,
+    "b": 40.0,
+    "basis": "its plug screws onto the receptacle; 40 mm into the ring through its grommet to the strip's pads (ASSUMPTION)"
+   },
+   "orderMm": 100.0,
+   "bendMm": {
+    "fixed": 18.0,
+    "moving": 0.0,
+    "tightestFixed": 18.0,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "CHG-RL2"
+   ],
+   "notes": [
+    "Inside J2 the receptacle is wired to the drive board (ASSUMPTION: the drive gives a 24 V auxiliary output and a data line for its ring; the drive's maker confirms them). About 8 W for the 2 rings."
+   ],
+   "open": []
+  },
+  {
+   "id": "WSH-RJ2L",
+   "name": "Ring jumper, J2 (east arm): left ring to right ring, 4 x 0.25 mm2",
+   "kind": "control",
+   "od": 4.5,
+   "spec": "4 x 0.25 mm2, PUR, OD 4.5 mm",
+   "from": "the left J2 status ring (CHG-J2-RINGL)",
+   "to": "the right J2 status ring (CHG-J2-RINGR)",
+   "sub": "SAFETY",
+   "runs": [
+    {
+     "kind": "drawn",
+     "via": "CHG-RJ2",
+     "where": "through the channel cored along the turret boss's top (CHG-TUR), under the 2 rings",
+     "mm": 54.7,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 54.7,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 40.0,
+    "b": 40.0,
+    "basis": "40 mm into the ring through its grommet to the strip's pads (ASSUMPTION), at each end"
+   },
+   "orderMm": 200.0,
+   "bendMm": {
+    "fixed": 0.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "CHG-RJ2"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-PWL",
+   "name": "East arm pure-water tube across the wrist, 6 x 4",
+   "kind": "water",
+   "od": 6.0,
+   "spec": "6 x 4 polyurethane, pure-water grade",
+   "from": "the bulkhead fitting in the forearm's port plate (WSH-BHF), outside",
+   "to": "the push-in elbow under the sensor bracket (WSH-PCE)",
+   "sub": "POLISH",
+   "runs": [
+    {
+     "kind": "loop",
+     "via": "WSH-PWLL",
+     "where": "in its loop across J4 and J5, from the forearm's side to the elbow under the sensor bracket",
+     "mm": 900.0,
+     "tol": 0.0,
+     "bend": 132.9,
+     "moving": true,
+     "range": null
+    }
+   ],
+   "routeMm": 900.0,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 15.0,
+    "b": 15.0,
+    "basis": "its 2 push-in fittings take its ends (ASSUMPTION: 15 mm into each)"
+   },
+   "orderMm": 1000.0,
+   "bendMm": {
+    "fixed": 0.0,
+    "moving": 45.0,
+    "tightestFixed": null,
+    "tightestMoving": 132.9
+   },
+   "pieces": [
+    "WSH-PWLL"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-PSL",
+   "name": "East arm mist supply tube 6 x 1, stainless",
+   "kind": "water",
+   "od": 6.0,
+   "spec": "EN 10216-5, 316L, 6 x 1",
+   "from": "the push-in elbow under the sensor bracket (WSH-PCE)",
+   "to": "the mist nozzle holder (WSH-PNH), its drilled passage to the nozzle",
+   "sub": "POLISH",
+   "runs": [
+    {
+     "kind": "drawn",
+     "via": "WSH-PST",
+     "where": "up the bracket's east face",
+     "mm": 258.8,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 258.8,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 0.0,
+    "b": 0.0,
+    "basis": "the union and the holder take its ends"
+   },
+   "orderMm": 300.0,
+   "bendMm": {
+    "fixed": 0.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "WSH-PST"
+   ],
    "notes": [],
    "open": []
   },
@@ -11203,7 +11878,7 @@
    "od": 6.0,
    "spec": "the arm chain's own line (cad wash_gantry, a_lanes)",
    "from": "the pure water's shut-off valve at the wall (WSH-SBV12)",
-   "to": "the west arm's carriage, in its pedestal",
+   "to": "the west arm's bulkhead fitting in its forearm's port plate (WSH-BHF), inside",
    "sub": "SUPPLY",
    "runs": [
     {
@@ -11265,16 +11940,86 @@
      "bend": null,
      "moving": false,
      "range": null
+    },
+    {
+     "kind": "arm",
+     "via": "",
+     "where": "up the pedestal to J1's gland, beside the supply cable (at most the mount's height, ASSUMPTION)",
+     "mm": 550.0,
+     "tol": 137.5,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "arm",
+     "via": "CHG-J1-HSG",
+     "where": "through J1's gland and its hollow shaft, beside its joint cable",
+     "mm": 275.5,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "arm",
+     "via": "CHG-TUR",
+     "where": "inside the link from J1's output to J2's gland: straight 442 mm, and up to a quarter more for its dressing beside the joint cable",
+     "mm": 497.8,
+     "tol": 55.3,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "arm",
+     "via": "CHG-J2-HSG",
+     "where": "through J2's gland and its hollow shaft, beside its joint cable",
+     "mm": 317.3,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "arm",
+     "via": "CHG-UPR",
+     "where": "inside the link from J2's output to J3's gland: straight 1338 mm, and up to a quarter more for its dressing beside the joint cable",
+     "mm": 1505.5,
+     "tol": 167.3,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "arm",
+     "via": "CHG-J3-HSG",
+     "where": "through J3's gland and its hollow shaft, beside its joint cable",
+     "mm": 275.5,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "arm",
+     "via": "CHG-FOR",
+     "where": "inside the link from J3's output to the bulkhead in the side port: straight 723 mm, and up to a quarter more for its dressing beside the joint cable",
+     "mm": 813.3,
+     "tol": 90.4,
+     "bend": null,
+     "moving": false,
+     "range": null
     }
    ],
-   "routeMm": 11715.0,
-   "tolMm": 125.0,
+   "routeMm": 15949.8,
+   "tolMm": 575.5,
    "tails": {
     "a": 0.0,
     "b": 0.0,
     "basis": "its fittings take its ends"
    },
-   "orderMm": 11900.0,
+   "orderMm": 16600.0,
    "bendMm": {
     "fixed": 24.0,
     "moving": 45.0,
@@ -11287,10 +12032,10 @@
     "WSH-SD12",
     "WSH-SDRW"
    ],
-   "notes": [],
-   "open": [
-    "It feeds the mist nozzle beside the pad on the polishing head (a flat-fan nozzle, NOZ-fan) and the dock's rinse tube, but no route up the arm to the nozzle is drawn: the schedule ends it in the pedestal."
-   ]
+   "notes": [
+    "It leaves the forearm by the bulkhead fitting and goes on in the loop across the wrist (its own line, below): J4's and J5's 11.7 mm bores take the joint cable alone."
+   ],
+   "open": []
   },
   {
    "id": "WSH-JCR1",
@@ -11534,6 +12279,172 @@
     "tightestMoving": null
    },
    "pieces": [],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-RL2R",
+   "name": "Ring lead, J2 (west arm): 4 x 0.25 mm2",
+   "kind": "control",
+   "od": 4.5,
+   "spec": "4 x 0.25 mm2, PUR, OD 4.5 mm, a molded M8 plug at one end",
+   "from": "J2's drive board, through its ring receptacle (CHG-RRC2) on the front of J2's rear bell",
+   "to": "the left J2 status ring (CHG-J2-RINGL)",
+   "sub": "SAFETY",
+   "runs": [
+    {
+     "kind": "drawn",
+     "via": "CHG-RL2",
+     "where": "from the receptacle's plug out from the bell and over into the left ring's back",
+     "mm": 35.3,
+     "tol": 0.0,
+     "bend": 18.0,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 35.3,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 0.0,
+    "b": 40.0,
+    "basis": "its plug screws onto the receptacle; 40 mm into the ring through its grommet to the strip's pads (ASSUMPTION)"
+   },
+   "orderMm": 100.0,
+   "bendMm": {
+    "fixed": 18.0,
+    "moving": 0.0,
+    "tightestFixed": 18.0,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "CHG-RL2"
+   ],
+   "notes": [
+    "Inside J2 the receptacle is wired to the drive board (ASSUMPTION: the drive gives a 24 V auxiliary output and a data line for its ring; the drive's maker confirms them). About 8 W for the 2 rings."
+   ],
+   "open": []
+  },
+  {
+   "id": "WSH-RJ2R",
+   "name": "Ring jumper, J2 (west arm): left ring to right ring, 4 x 0.25 mm2",
+   "kind": "control",
+   "od": 4.5,
+   "spec": "4 x 0.25 mm2, PUR, OD 4.5 mm",
+   "from": "the left J2 status ring (CHG-J2-RINGL)",
+   "to": "the right J2 status ring (CHG-J2-RINGR)",
+   "sub": "SAFETY",
+   "runs": [
+    {
+     "kind": "drawn",
+     "via": "CHG-RJ2",
+     "where": "through the channel cored along the turret boss's top (CHG-TUR), under the 2 rings",
+     "mm": 54.7,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 54.7,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 40.0,
+    "b": 40.0,
+    "basis": "40 mm into the ring through its grommet to the strip's pads (ASSUMPTION), at each end"
+   },
+   "orderMm": 200.0,
+   "bendMm": {
+    "fixed": 0.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "CHG-RJ2"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-PWR",
+   "name": "West arm pure-water tube across the wrist, 6 x 4",
+   "kind": "water",
+   "od": 6.0,
+   "spec": "6 x 4 polyurethane, pure-water grade",
+   "from": "the bulkhead fitting in the forearm's port plate (WSH-BHF), outside",
+   "to": "the push-in elbow under the sensor bracket (WSH-PCE)",
+   "sub": "POLISH",
+   "runs": [
+    {
+     "kind": "loop",
+     "via": "WSH-PWLR",
+     "where": "in its loop across J4 and J5, from the forearm's side to the elbow under the sensor bracket",
+     "mm": 900.0,
+     "tol": 0.0,
+     "bend": 145.4,
+     "moving": true,
+     "range": null
+    }
+   ],
+   "routeMm": 900.0,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 15.0,
+    "b": 15.0,
+    "basis": "its 2 push-in fittings take its ends (ASSUMPTION: 15 mm into each)"
+   },
+   "orderMm": 1000.0,
+   "bendMm": {
+    "fixed": 0.0,
+    "moving": 45.0,
+    "tightestFixed": null,
+    "tightestMoving": 145.4
+   },
+   "pieces": [
+    "WSH-PWLR"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-PSR",
+   "name": "West arm mist supply tube 6 x 1, stainless",
+   "kind": "water",
+   "od": 6.0,
+   "spec": "EN 10216-5, 316L, 6 x 1",
+   "from": "the push-in elbow under the sensor bracket (WSH-PCE)",
+   "to": "the mist nozzle holder (WSH-PNH), its drilled passage to the nozzle",
+   "sub": "POLISH",
+   "runs": [
+    {
+     "kind": "drawn",
+     "via": "WSH-PST",
+     "where": "up the bracket's east face",
+     "mm": 258.8,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 258.8,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 0.0,
+    "b": 0.0,
+    "basis": "the union and the holder take its ends"
+   },
+   "orderMm": 300.0,
+   "bendMm": {
+    "fixed": 0.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "WSH-PST"
+   ],
    "notes": [],
    "open": []
   },

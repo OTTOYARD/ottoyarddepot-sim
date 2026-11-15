@@ -39,9 +39,9 @@
   "cycle:done:mid",
   "cycle:done:end"
  ],
- "pairsChecked": 67920,
- "pairsMeasured": 14830,
- "contactPairs": 4999,
+ "pairsChecked": 68830,
+ "pairsMeasured": 15208,
+ "contactPairs": 5111,
  "counts": {
   "thread": 1999,
   "seal": 24,
@@ -54,6 +54,6 @@
  "clashes": [],
  "floating": [],
  "context": [],
- "seconds": 1544.9,
- "glbSha256": "cf07d33bee4d746d"
+ "seconds": 1230.1,
+ "glbSha256": "f41fc8b626b06685"
 }

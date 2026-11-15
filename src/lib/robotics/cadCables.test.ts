@@ -11,6 +11,8 @@
 //   3. Every part that is a piece of a line says so in the parts list, and every line a chain carries is in the schedule.
 //   4. No line bends tighter than it may, where it lies still or where it moves.
 //   5. The charge arm's DC cores run their whole way: the trench piece the parts list showed is under a third of it.
+//   6. What the schedule left open on 2026-11-15 is routed: the charge arm's copper in its links (drawn), its coolant and
+//      air (one line each, cabinet to head), its status rings' supply; the wash knives' conduits; the wash arms' pure water.
 // No network: the files are read from disk.
 // ============================================================================
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -99,7 +101,7 @@ describe('OTTO-CHARGE ARM: the charge current\'s whole path', () => {
     }
   });
 
-  it('carries the current up the arm in 4 booted links of 2 braids and 2 pairs of bars, box to box', () => {
+  it('carries the current up the arm in 4 booted links of 2 braids, and in each link a drawn pair, box to box', () => {
     for (const f of ['CHG-FL1', 'CHG-FL2', 'CHG-FL3', 'CHG-FL4']) {
       for (const p of ['P', 'N']) {
         const b = cables.find((c) => c.id === `${f}${p}`);
@@ -109,7 +111,43 @@ describe('OTTO-CHARGE ARM: the charge current\'s whole path', () => {
         expect(boot.bend!, `${f}: its tightest bend`).toBeGreaterThanOrEqual(80);
       }
     }
-    expect(cables.filter((c) => /^CHG-BB[UF][PN]$/.test(c.id)).length).toBe(4);
+    // 2026-11-15: the upper arm's 2 bars and the forearm's 2 flexible conductors are drawn and in the parts list (they
+    // were named by the terminal boxes only), each run 'drawn' in its own part, from one box through the casting to the next
+    for (const [id, from, to] of [['CHG-BBUP', 'CHG-PB2', 'CHG-PB3'], ['CHG-BBUN', 'CHG-PB2', 'CHG-PB3'],
+      ['CHG-FCFP', 'CHG-PB4', 'CHG-PB5'], ['CHG-FCFN', 'CHG-PB4', 'CHG-PB5']]) {
+      const c = cables.find((x) => x.id === id)!;
+      expect(c, id).toBeTruthy();
+      const drawn = c.runs.find((r) => r.kind === 'drawn')!;
+      expect(drawn.via, id).toBe(id);
+      expect(bom.lines.some((l) => l.id === id), `${id} in the parts list`).toBe(true);
+      expect(c.from).toContain(from);
+      expect(c.to).toContain(to);
+      expect(c.open, id).toEqual([]);
+    }
+  });
+
+  it('runs the coolant, the air and the tool cable each as one line from the cabinet to the head', () => {
+    // 2026-11-15: the chains carried a 12 x 8 hose and the boots an 8 mm tube, joined by a reducing coupling the model
+    // did not have; now each runs through both chains and all 4 boots, unbroken
+    for (const id of ['CHG-LCS', 'CHG-LCR', 'CHG-LAR', 'CHG-LTL']) {
+      const c = cables.find((x) => x.id === id)!;
+      const via = c.runs.map((r) => r.via);
+      expect(via, id).toEqual(expect.arrayContaining(['CHG-BCN', 'CHG-BZN', 'CHG-FL1', 'CHG-FL2', 'CHG-FL3', 'CHG-FL4', 'CHG-COH']));
+      expect(c.to, id).toMatch(/head/);
+    }
+    expect(cables.find((c) => c.id === 'CHG-LCS')!.od).toBe(8);
+    expect(cables.find((c) => c.id === 'CHG-LAR')!.od).toBe(6);
+    expect(cables.some((c) => /^CHG-L(CS|CR|AR)A$/.test(c.id)), 'no separate line from a coupling').toBe(false);
+  });
+
+  it('lights the status rings from the joints\' drives: a lead and a jumper for J2, a receptacle for the wrist', () => {
+    const rl = cables.find((c) => c.id === 'CHG-RL2')!, rj = cables.find((c) => c.id === 'CHG-RJ2')!;
+    expect(rl.runs.find((r) => r.kind === 'drawn')!.via).toBe('CHG-RL2');
+    expect(rl.to).toMatch(/CHG-J2-RINGL/);
+    expect(rj.from).toMatch(/CHG-J2-RINGL/);
+    expect(rj.to).toMatch(/CHG-J2-RINGR/);
+    expect(bom.lines.some((l) => l.id === 'CHG-RRC6'), 'the wrist ring\'s receptacle').toBe(true);
+    expect(cables.find((c) => c.id === 'CHG-LSF')!.to).not.toMatch(/ring/i);
   });
 
   it('feeds the 6 joints: the joint supply cable to J1, and a joint cable from each drive to the next', () => {
@@ -118,9 +156,35 @@ describe('OTTO-CHARGE ARM: the charge current\'s whole path', () => {
     for (let k = 1; k <= 5; k++) expect(cables.find((c) => c.id === `CHG-JC${k}`), `CHG-JC${k}`).toBeTruthy();
   });
 
-  it('says what it does not yet route', () => {
-    const open = cables.filter((c) => c.open.length > 0).map((c) => c.id);
-    // the status light rings' supply, the coolant and air couplings in CHG-PB0, the bars that are not drawn
-    expect(open).toEqual(expect.arrayContaining(['CHG-LSF', 'CHG-LCS', 'CHG-BBUP']));
+  it('has no open item: every line is routed from end to end', () => {
+    expect(cables.filter((c) => c.open.length > 0).map((c) => `${c.id}: ${c.open.join(' ')}`)).toEqual([]);
+  });
+});
+
+describe('OTTO-WASH: the lines the schedule left open on 2026-11-15', () => {
+  const bom = bomOf('wash_gantry');
+  const cables = bom.cables ?? [];
+  it('runs each side knife gearmotor\'s cable in its own conduit, down through the beam', () => {
+    for (const s of ['L', 'R']) {
+      const c = cables.find((x) => x.id === `WSH-SAMC${s}`)!;
+      expect(c.runs.find((r) => r.kind === 'conduit')?.via, c.id).toBe(`WSH-ECA${s}`);
+      expect(c.runs.some((r) => r.kind === 'site'), `${c.id}: no estimate left`).toBe(false);
+      expect(c.open).toEqual([]);
+    }
+  });
+
+  it('takes each detail arm\'s pure water up the arm, across the wrist and up the bracket to the mist nozzle', () => {
+    for (const s of ['L', 'R']) {
+      const up = cables.find((x) => x.id === `WSH-DA${s}-H2O`)!;
+      expect(up.runs.filter((r) => r.kind === 'arm').length, `${up.id}: J1 to J3 and the links`).toBeGreaterThanOrEqual(6);
+      expect(up.to).toMatch(/WSH-BHF/);
+      expect(up.open).toEqual([]);
+      const loop = cables.find((x) => x.id === `WSH-PW${s}`)!;
+      expect(loop.runs.find((r) => r.kind === 'loop')?.via).toBe(`WSH-PWL${s}`);
+      expect(loop.bendMm.tightestMoving!, `${loop.id}: its tightest bend over the poses`).toBeGreaterThanOrEqual(loop.bendMm.moving);
+      const sup = cables.find((x) => x.id === `WSH-PS${s}`)!;
+      expect(sup.runs.find((r) => r.kind === 'drawn')?.via).toBe('WSH-PST');
+      expect(sup.to).toMatch(/nozzle/);
+    }
   });
 });

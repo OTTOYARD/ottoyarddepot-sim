@@ -44,6 +44,28 @@ TOOL_OUTLET_IN = (-0.9159, -0.1997, 0.3482)
 J6_GLAND_ANG, J6_GLAND_R = 0.0, 0.52   # J6's gland (axial, on its rear cover) clear of the wrist yoke's flank: at 0.44 of the
                                        # cover's radius it met the yoke, pointing any way round
 BAL_R = 160.0     # balancer crank pin above the J2 axis, mm
+# THE STATUS RINGS' SUPPLY (2026-11-15). Each ring is lit by the drive of the joint it sits on, as a robot joint's own
+# light is: the J2 drive lights the 2 J2 rings and the J6 drive the wrist ring. The model had said the safety cable fed
+# them, and no route reached them (the boots never carried it, and the safety controller has no business lighting a
+# status ring). ASSUMPTION: each drive gives a 24 V auxiliary output and a data line for its ring (the drive's maker
+# confirms them); the rings take about 8 W.
+RING_LEAD_D = 4.5     # the ring lead: 4 x 0.25 mm2, PUR, chain-rated
+RING_LEAD_R = 18.0    # its fixed bend, 4 x d
+RING_CH_R = 3.25      # the channel cored through the turret's boss for the jumper between the 2 J2 rings
+RC2_X = -60.0         # the J2 ring receptacle on J2's rear bell: its x (J1 frame), clear of the drum's step at -35
+RC2_PHI = -45.0       # and its angle about the J2 axis from +Y toward +Z: up and to the back, where neither the upper
+                      # arm's bridge (at the arm's angle +/- 37 deg, 156 mm out) nor the balancer (+Z side) ever passes
+RC2_H = 22.0          # the receptacle and its mated plug stand 22 mm off the bell (a straight M8 pair)
+# THE CASTINGS' PORTS (2026-11-15): where the charge arm's DC path passes a casting's wall between a terminal box and
+# the copper inside the link. U1 and U2 are in the upper arm's back wall under CHG-PB2 and CHG-PB3, each the size of the
+# opening the bar pack goes in by; F1 is in the forearm's back wall under CHG-PB4 and F2 in its +X wall under CHG-PB5,
+# each a slot the 2 flexible conductors pass. Each box closes its port. The castings are the wash bay's detail arms' too
+# (build_chain), so they carry the same ports there, each closed by a plug moulded to it (wash_gantry).
+PORT_U = (80.0, 100.0)        # an upper arm port: across the arm (x) by along it (y)
+PORT_U_Y = (300.0, 250.0)     # U1 at y = 300 (under CHG-PB2), U2 at LU - 250 (under CHG-PB3)
+FC_D, FC_GAP = 26.0, 6.0      # the forearm's 2 flexible conductors: their diameter and the gap between them
+PORT_F1_Y = 250.0             # F1 under CHG-PB4, at FORE_JOG[0]
+PORT_F2 = (420.0, -20.0)      # F2 under CHG-PB5: at LF - 420, and z = -20 (the conductors' height in the forearm)
 GAS_PROGRESSION = 0.15   # a nitrogen gas spring's force rise over its stroke (ASSUMPTION, typical of the type)
 
 
@@ -171,6 +193,69 @@ def _bx(x0: float, x1: float, y0: float, y1: float, z0: float, z1: float) -> cq.
     return cq.Workplane('XY').box(x1 - x0, y1 - y0, z1 - z0, centered=False).translate((x0, y0, z0))
 
 
+def _hits(shape, p: tuple, d: tuple) -> list[float]:
+    """Every crossing of a solid's faces on the line through p along the unit d, as signed distances from p, sorted."""
+    ray = IntCurvesFace_ShapeIntersector()
+    ray.Load(shape.wrapped, 1e-6)
+    ray.Perform(gp_Lin(gp_Pnt(*p), gp_Dir(*d)), -1.0e4, 1.0e4)
+    return sorted(ray.WParameter(i) for i in range(1, ray.NbPnt() + 1))
+
+
+def _bent_wire(points: list, radii: list) -> tuple[cq.Wire, float]:
+    """Straight runs between `points`, corner i bent on its own centreline radius radii[i - 1]: the wire and its length."""
+    P = [Vector(*p) for p in points]
+    edges, cur, length = [], P[0], 0.0
+    for i in range(1, len(P) - 1):
+        u1, u2 = (P[i] - P[i - 1]).normalized(), (P[i + 1] - P[i]).normalized()
+        ang = math.acos(max(-1.0, min(1.0, u1.dot(u2))))
+        R = radii[i - 1]
+        t = R * math.tan(ang / 2)
+        if t > (P[i] - cur).Length + 1e-6 or t > (P[i + 1] - P[i]).Length + 1e-6:
+            raise ValueError(f'a bend of R {R:g} does not fit at corner {i} of {points}')
+        p_in, p_out = P[i] - u1 * t, P[i] + u2 * t
+        centre = P[i] + (u2 - u1).normalized() * (R / math.cos(ang / 2))
+        mid = centre + (P[i] - centre).normalized() * R
+        if (p_in - cur).Length > 1e-6:
+            edges.append(cq.Edge.makeLine(cur, p_in))
+        edges.append(cq.Edge.makeThreePointArc(p_in, mid, p_out))
+        length += (p_in - cur).Length + R * ang
+        cur = p_out
+    edges.append(cq.Edge.makeLine(cur, P[-1]))
+    length += (P[-1] - cur).Length
+    return cq.Wire.assembleEdges(edges), length
+
+
+def _bent_bar(points: list, radii: list, w: float, t: float, wdir: tuple = (1.0, 0.0, 0.0)) -> tuple[cq.Shape, float]:
+    """A bar of section w (along wdir) by t, along straight runs between `points` that all lie in one plane normal to wdir,
+    corner i bent flatwise on its centreline radius radii[i - 1]. Returns the solid and its centreline length."""
+    wire, length = _bent_wire(points, radii)
+    P0, P1 = Vector(*points[0]), Vector(*points[1])
+    prof = cq.Workplane(cq.Plane(origin=P0, xDir=Vector(*wdir), normal=(P1 - P0).normalized())).rect(w, t)
+    return prof.sweep(cq.Workplane().add(wire), transition='right').val(), length
+
+
+def _offset_path(points: list, side: list, d: float) -> list:
+    """The polyline beside `points` at d along each segment's own side vector (unit, normal to the segment): its ends
+    move straight, each corner to where the 2 neighbouring offset lines meet (nearest points, for lines that miss)."""
+    import numpy as np
+    P = [np.array(p, dtype=float) for p in points]
+    S = [np.array(v, dtype=float) for v in side]
+    out = [P[0] + d * S[0]]
+    for i in range(1, len(P) - 1):
+        a0, u = P[i - 1] + d * S[i - 1], P[i] - P[i - 1]
+        b0, v = P[i] + d * S[i], P[i + 1] - P[i]
+        w0 = a0 - b0
+        A, B, C, D, E = u @ u, u @ v, v @ v, u @ w0, v @ w0
+        den = A * C - B * B
+        if abs(den) < 1e-9:                 # parallel: the corner just moves
+            out.append(P[i] + d * S[i])
+            continue
+        sa, sb = (B * E - C * D) / den, (A * E - B * D) / den
+        out.append(((a0 + sa * u) + (b0 + sb * v)) / 2)
+    out.append(P[-1] + d * S[-1])
+    return [tuple(float(c) for c in q) for q in out]
+
+
 def _bent_tube(points: list, radii: list, r: float) -> tuple[cq.Shape, float]:
     """A round line of radius r along straight runs between `points`, corner i bent on its own centreline radius
     radii[i - 1] (std.swept bends every corner on one radius). Returns the solid and its length."""
@@ -254,6 +339,10 @@ def build_chain(m: Model, base: Node, S: dict, H: float, LU: float, LF: float, L
         j2_clamps.append(u)
         c0 = boss2_od / 2 - 10
         tur = tur.cut(cq.Workplane('XY').add(cq.Solid.makeCylinder(8.5, 16, Vector(0, H + u[1] * c0, u[2] * c0), Vector(*u))))
+    # the jumper between the 2 J2 status rings (below) runs in a channel cored along the boss's top, under the rings: at the
+    # rings' radius it leaves 6 mm of wall to the bore and 6 to the outside, and no drum clamp screw stands at the top
+    R_RING = boss2_od / 2 * 0.94
+    tur = tur.cut(cq.Workplane('YZ', origin=(-L2['boss_w'], H + R_RING, 0)).circle(RING_CH_R).extrude(L2['boss_w'] * 2))
     m.place(j1, m.part(PartDef('CHG-TUR', 'Turret casting', tur.val(), 'a356', 'structure', 'casting, machined',
                                f'OD {rb * 2.24:.0f} x {H + boss2_od / 2:.0f}', 'A356-T6', None,
                                'Turns on J1 and carries the shoulder. Its boss clamps the J2 actuator.',
@@ -282,13 +371,47 @@ def build_chain(m: Model, base: Node, S: dict, H: float, LU: float, LF: float, L
         m.place(j1, clamp_s, std.orient(pos, dirv), tuple(-c * 90 for c in dirv), 'J2')
     # status ring on the J2 boss faces (both sides): the twin draws two
     for sx in (-1, 1):
-        ring = (cq.Workplane('XY').add(cq.Solid.makeTorus(boss2_od / 2 * 0.94, 5,
+        ring = (cq.Workplane('XY').add(cq.Solid.makeTorus(R_RING, 5,
                                                           pnt=Vector(sx * (L2['boss_w'] / 2 + 5), H, 0), dir=Vector(1, 0, 0)))
                 .cut(cq.Workplane('XY').box(60, 400, 600).translate((sx * (L2['boss_w'] / 2 + 5), H - 60 - 200, 0))))
+        fed = ('J2\'s drive, by the ring lead (CHG-RL2) from its receptacle on J2\'s rear bell' if sx < 0 else
+               'J2\'s drive, through the left ring and the jumper (CHG-RJ2) in the channel along the boss\'s top')
         m.place(j1, m.part(PartDef(f'CHG-J2-RING{"R" if sx > 0 else "L"}', 'Status light ring, J2', ring.val(), 'led',
                                    'electrical', 'LED strip in PC diffuser', f'OD {boss2_od * 0.94:.0f}', '', None,
-                                   'Shows the arm state: teal ready, amber moving, green charging, red fault.', {}, 'buy')),
+                                   'Shows the arm state: teal ready, amber moving, green charging, red fault.',
+                                   {'fed by': fed, 'lead entry': 'a grommet in the diffuser\'s back'}, 'buy')),
                 Location(), (sx * 60, 0, 0), 'SAFETY')
+    # ...and their supply: J2's drive lights them (RC2_* above). A straight M8 receptacle on the front of J2's rear bell,
+    # wired inside the actuator to its drive board; a 4.5 mm lead from its plug, out and over into the left ring's back;
+    # and a jumper from the left ring to the right one in the channel cored under them. Nothing else stands there: the
+    # upper arm's bridge passes 156 mm out at the arm's own angle, the balancer stays on the +Z side, the J2 boot runs
+    # within 30 mm of the arm's plane.
+    r_bell2 = a2['rear_od'] / 2
+    e2 = (0.0, math.cos(math.radians(RC2_PHI)), math.sin(math.radians(RC2_PHI)))
+    def on_j2(x, r):
+        return (x, H + r * e2[1], r * e2[2])
+    rc2 = (cq.Workplane('XZ').circle(6.5).extrude(-2.0)
+           .union(cq.Workplane('XZ', origin=(0, 2.0, 0)).polygon(6, 12.0).extrude(-4.0))
+           .union(cq.Workplane('XZ', origin=(0, 6.0, 0)).circle(5.0).extrude(-(RC2_H - 6.0))))
+    m.place(j1, m.part(PartDef('CHG-RRC2', 'M8 receptacle, 4-pin, with its plug: the J2 rings\' lead', rc2.val(), 'ss304', 'electrical',
+                               'IEC 61076-2-104', 'M8, 4-pin, A-coded', 'IP67 mated', None,
+                               'Brings the J2 drive\'s ring output out of the actuator. The ring lead\'s plug screws onto it.',
+                               {'inside': 'wired to J2\'s drive board by the actuator\'s maker (ASSUMPTION)', 'rating': '4 A a pin, 30 V'}, 'buy')),
+            std.orient(on_j2(RC2_X, r_bell2), tuple(-c for c in e2)), tuple(60 * c for c in e2), 'SAFETY')
+    x_back = -(L2['boss_w'] / 2 + 10.0)                  # the left ring's back, at its tube's middle
+    rl2 = std.swept('CHG-RL2', 'Ring lead, J2: receptacle to the left ring, 4 x 0.25 mm2', [on_j2(RC2_X, r_bell2 + RC2_H),
+                    on_j2(RC2_X, R_RING), on_j2(x_back, R_RING)], RING_LEAD_D / 2, 'cable', 'electrical',
+                    fn='Carries 24 V, 0 V and the data line from J2\'s drive to the 2 J2 rings.',
+                    spec={'cable': '4 x 0.25 mm2, PUR, OD 4.5 mm', 'ends': 'a molded M8 plug; the ring\'s grommet'},
+                    standard='IEC 61076-2-104 (plug)', size=f'D {RING_LEAD_D:g}', bend=RING_LEAD_R)
+    m.place(j1, m.part(rl2), Location(), (-40, 40, 0), 'SAFETY')
+    rj2 = cq.Workplane('YZ', origin=(-L2['boss_w'] / 2, H + R_RING, 0)).circle(RING_LEAD_D / 2).extrude(L2['boss_w'])
+    m.place(j1, m.part(PartDef('CHG-RJ2', 'Ring jumper cable, J2: left ring to right ring, 4 x 0.25 mm2', rj2.val(), 'cable', 'electrical',
+                               '', f'D {RING_LEAD_D:g} x {L2["boss_w"]:.0f}', '', None,
+                               'Passes the ring supply from the left J2 ring to the right one, in the channel cored along the turret boss\'s top.',
+                               {'cable': '4 x 0.25 mm2, PUR, OD 4.5 mm', 'channel': f'D {2 * RING_CH_R:g}, cored in the turret'}, 'buy')),
+            Location(), (0, 60, 0), 'SAFETY').yard_hidden = True      # in the boss's channel, under the rings: unseen
+    ring_info = {'rl2_mm': rl2.path_mm, 'rj2_mm': L2['boss_w']}
     upper = _link_casting(LU, radii['upper'] * 1.18, radii['elbow'] * 0.86,
                           cheek_x=L2['out_x'] + 20, cheek_r=a2['of_od'] / 2 + 14, cheek_t=20,
                           boss_od=_pitch_layout(40)['od'] + 36, boss_w=_pitch_layout(40)['boss_w'],
@@ -304,10 +427,21 @@ def build_chain(m: Model, base: Node, S: dict, H: float, LU: float, LF: float, L
         u = (0.0, p[0] / r, p[2] / r)
         upper = upper.cut(cq.Workplane('XY').add(cq.Solid.makeCylinder(7.0, 16, Vector(0, LU + u[1] * (b3_r - 8), u[2] * (b3_r - 8)),
                                                                        Vector(*u))))
-    m.place(j2, m.part(PartDef('CHG-UPR', 'Upper arm casting', upper.val(), 'a356', 'structure', 'casting, machined',
+    # its 2 ports (PORT_U above): the place where each box closes it is the box's own business (charge_arm.build), so the
+    # ported casting is the one placed and the whole one is kept for the boxes to be cut to
+    ports = []
+    upper_p = upper
+    for k, (y_p, z_p) in enumerate(((PORT_U_Y[0], -135.0), (LU - PORT_U_Y[1], -118.0))):
+        cut = cq.Workplane('XY').box(PORT_U[0], PORT_U[1], 40.0).edges('|Z').fillet(8.0).translate((0.0, y_p, z_p))
+        ports.append({'id': f'U{k + 1}', 'node': j2, 'slug': upper.intersect(cut).val(), 'link': 'upper arm',
+                      'where': ('the shoulder end, on the back', 'the elbow end, on the back')[k]})
+        upper_p = upper_p.cut(cut)
+    m.place(j2, m.part(PartDef('CHG-UPR', 'Upper arm casting', upper_p.val(), 'a356', 'structure', 'casting, machined',
                                f'{LU:.1f} between axes', 'A356-T6', None,
                                'Carries the elbow 1.344 m from the shoulder. Hollow for stiffness per kilogram.',
-                               {'wall': '7 mm', 'axis distance': f'{LU:.1f} mm, bored in one set-up'}, 'make')),
+                               {'wall': '7 mm', 'axis distance': f'{LU:.1f} mm, bored in one set-up',
+                                'ports': f'2 on the back, {PORT_U[0]:.0f} x {PORT_U[1]:.0f}: the charge arm\'s terminal boxes close them, '
+                                         'the wash arms\' plugs'}, 'make')),
             Location(), (0, 0, 220), 'UPPER')
     us = std.shcs(10, 45, '12.9', 'Holds the upper arm cheek to the J2 output flange.')
     for p in out_flange_points(50):
@@ -418,10 +552,20 @@ def build_chain(m: Model, base: Node, S: dict, H: float, LU: float, LF: float, L
                          socket_r=s4.od / 2 + 12, socket_bore=s4.od, socket_len=(s4.od - rear_od(s4)) * 0.4 + 48,
                          act_r=SIZES[40].od / 2, jog=FORE_JOG)
     fore = cq.Workplane('XY').add(fore)
-    m.place(j3, m.part(PartDef('CHG-FOR', 'Forearm casting', fore.val(), 'a356', 'structure', 'casting, machined',
+    # its 2 slots (PORT_F* above): the 2 conductors side by side across the forearm at F1, along it at F2
+    fw, fh = 2 * FC_D + FC_GAP + 8.0, FC_D + 8.0
+    fore_p = fore
+    for k, cut in enumerate((
+            cq.Workplane('XY').box(fw, fh, 40.0).edges('|Z').fillet(fh / 2 - 0.1).translate((FORE_JOG[0], PORT_F1_Y, -100.0)),
+            cq.Workplane('XY').box(36.0, fw, fh).edges('|X').fillet(fh / 2 - 0.1).translate((88.0, LF - PORT_F2[0], PORT_F2[1])))):
+        ports.append({'id': f'F{k + 1}', 'node': j3, 'slug': fore.intersect(cut).val(), 'link': 'forearm',
+                      'where': ('the elbow end, on the back', 'the wrist end, on the side')[k]})
+        fore_p = fore_p.cut(cut)
+    m.place(j3, m.part(PartDef('CHG-FOR', 'Forearm casting', fore_p.val(), 'a356', 'structure', 'casting, machined',
                                f'{LF:.1f} elbow to wrist centre', 'A356-T6', None,
                                'Carries the wrist 1.142 m from the elbow. Its top socket holds J4.',
-                               {'wall': '6 mm'}, 'make')), Location(), (0, 0, 180), 'FORE')
+                               {'wall': '6 mm', 'ports': f'2 slots {fw:.0f} x {fh:.0f}: the charge arm\'s terminal boxes close them, '
+                                                         'the wash arms\' plugs'}, 'make')), Location(), (0, 0, 180), 'FORE')
     fs_ = std.shcs(8, 40, '12.9', 'Holds the forearm cheek to the J3 output flange.')
     for p in out_flange_points(40):
         m.place(j3, fs_, std.orient((L3['out_x'] + 18, p[0], p[2]), (-1, 0, 0)), (140, 0, 0), 'FORE')
@@ -468,7 +612,9 @@ def build_chain(m: Model, base: Node, S: dict, H: float, LU: float, LF: float, L
           .union(cq.Workplane('XY').box(14, tube_top, 2 * rc5).translate((cheek5_x - 7, tube_top / 2, 0)))
           .union(cq.Workplane('XZ', origin=(0, tube_top, 0)).circle(r6 + 10).extrude(30))
           .union(cq.Workplane('XY').box(cheek5_x, 30, 90).translate((cheek5_x / 2, tube_top - 15, 0)))
-          .cut(cq.Workplane('XZ', origin=(0, tube_top + 1, 0)).circle(r6).extrude(41)))
+          .cut(cq.Workplane('XZ', origin=(0, tube_top + 1, 0)).circle(r6).extrude(41))
+          # the wrist ring's receptacle passes through the socket's wall on the side away from the cheek arm (below)
+          .cut(cq.Workplane('YZ', origin=(-(r6 + 14), tube_top - 15, 0)).circle(4.6).extrude(18)))
     m.place(j5, m.part(PartDef('CHG-WTB', 'Wrist tube', wt.val(), 'al6061', 'structure', 'machined from billet',
                                f'J5 cheek to J6, {tube_top:.0f}', '6061-T6', None,
                                'Turns on J5 and holds the J6 actuator on the tool axis.', {}, 'make')),
@@ -490,11 +636,23 @@ def build_chain(m: Model, base: Node, S: dict, H: float, LU: float, LF: float, L
              .cut(cq.Workplane('XY').box(200, 20, 2 * rc5 + 16).translate((130, tube_top - 15, 0))))   # past the side plate
     m.place(j5, m.part(PartDef('CHG-WRING', 'Status light ring, wrist', wring.val(), 'led', 'electrical',
                                'LED strip in PC diffuser', f'OD {2 * (r6 + 18):.0f}', '', None,
-                               'Shows the arm state at the connector, where the camera and a person look.', {}, 'buy')),
+                               'Shows the arm state at the connector, where the camera and a person look.',
+                               {'fed by': 'J6\'s drive: a 4-pin plug in the ring\'s back mates J6\'s ring receptacle (CHG-RRC6) '
+                                          'through the wrist tube\'s socket'}, 'buy')),
             Location(), (0, 30, 0), 'SAFETY')
+    # ...and its supply: J6's drive lights it. J6's rear bell sits in the wrist tube's socket and the ring wraps the
+    # socket's outside, so the receptacle stands on the bell, wired inside to J6's drive board (which lies right behind
+    # it), through a hole in the socket's wall, and the ring's own plug mates it: no cable in the open. (J6's rear cover
+    # faces the wrist yoke 5 mm away, so a lead from a gland there has nowhere to go.)
+    rc6 = cq.Workplane('XZ').circle(4.0).extrude(-10.0)
+    m.place(j5, m.part(PartDef('CHG-RRC6', 'M8 receptacle, 4-pin, rear mount: the wrist ring\'s supply', rc6.val(), 'ss304', 'electrical',
+                               'IEC 61076-2-104', 'M8, 4-pin, A-coded', 'IP67 mated', None,
+                               'Brings the J6 drive\'s ring output out of the actuator, through the wrist tube\'s socket, to the ring\'s plug.',
+                               {'inside': 'wired to J6\'s drive board by the actuator\'s maker (ASSUMPTION)', 'rating': '4 A a pin, 30 V'}, 'buy')),
+            std.orient((-r6, tube_top - 15, 0.0), (1.0, 0.0, 0.0)), (-60, 0, 0), 'SAFETY').yard_hidden = True   # under the ring: unseen
 
     return {'j1': j1, 'j2': j2, 'j3': j3, 'j4': j4, 'j5': j5, 'j6': j6, 'tur': tur, 'upper': upper, 'fore': fore,
-            'acts': [a1, a2, a3, a4, a5, a6]}
+            'acts': [a1, a2, a3, a4, a5, a6], 'ring': ring_info, 'ports': ports}
 
 
 
@@ -569,7 +727,7 @@ def build(spec: dict) -> Model:
                 group='Motion')
     m.subsystem('SUPPLY', 'Supply from the cabinet', 'Brings every line from the DC cabinet to the riser: the charge current, the coolant, '
                 'the air, power and the network. It follows the base along the rail and across.',
-                how=['Every supply line comes from the cabinet: 8 DC cores, 2 coolant hoses, 1 air tube and 5 cables.',
+                how=['Every supply line comes from the cabinet: 8 DC cores, 2 coolant tubes, 1 air tube and 5 cables.',
                      'They leave the cabinet through its floor and drop through the pad into a lined trench in the slab.',
                      'The trench runs under a flush cover plate to the cable channel between the bed\'s beams.',
                      'In the channel each line turns onto its own lane and enters the cable chain at its fixed end.',
@@ -610,21 +768,24 @@ def build(spec: dict) -> Model:
                 'inside the arm, and power and network to the joints.',
                 how=['The charge current reaches the riser in 8 cable cores, 4 a pole, from the cabinet by the 2 cable chains.',
                      'A terminal box on the riser joins the 4 cores of each pole to one flex link.',
-                     'In each hollow link 2 copper bars carry it, one a pole. Nothing live is in the open.',
+                     'In the upper arm 2 copper bars carry it, one a pole. In the forearm 2 flexible copper cables carry it. Nothing live is in the open.',
                      'At the base, the shoulder and the elbow a booted link of braided copper joins 2 terminal boxes. It bends as the joint turns.',
-                     'From the forearm one last booted link, 1.2 m long, runs to the connector across the wrist.',
+                     'From the forearm one last booted link, 1.25 m long, runs to the connector across the wrist.',
                      'The coolant for the connector\'s contacts, the tool\'s cable and its air line run with the bars and through each boot.',
+                     'Each of them is one tube or one cable from the cabinet to the head, with no joint on the way.',
                      'The coolant comes from a cooling unit in the cabinet and goes back to it. The air comes through the cabinet from the site.',
                      'The joints\' 10 mm power and network cable runs inside the arm, through the hollow shafts of J1 to J5.'],
-                specs={'current': '500 A DC, 1000 V', 'bars': '2 x 40 x 10 mm copper in each link, insulated',
-                       'flex links': '4, braided copper 400 mm2 a pole, in a silicone boot OD 60 mm, 0.9 to 1.2 m',
-                       'bend radius': '80 mm moved (the tightest in the twin\'s 20 poses is 100 mm)',
-                       'cooling': 'liquid at the connector\'s contacts, 2 tubes 8 mm, cooling unit in the cabinet',
+                specs={'current': '500 A DC, 1000 V', 'in the links': '2 bars 40 x 10 mm copper in the upper arm, 2 flexible conductors 400 mm2 '
+                       'in the forearm, insulated',
+                       'flex links': '4, braided copper 400 mm2 a pole, in a silicone boot OD 60 mm, 0.9 to 1.25 m',
+                       'bend radius': '80 mm moved (the tightest over the twin\'s poses and each fleet car\'s mate pose is 84 mm, the J3 link)',
+                       'cooling': 'liquid at the connector\'s contacts, 2 tubes 8 x 6 unbroken from a cooling unit in the cabinet, 2 L/min against about 2 bar',
                        'not drawn': 'the lines inside the ducts, the chains and the riser, one by one'}, group='Cables')
     m.subsystem('SAFETY', 'Safety and status', 'Stops the arm when a person comes near and shows its state to the site.',
                 how=['A safety laser scanner on the riser watches the stall at knee height.',
                      'An emergency stop on the riser cuts motor power (safe torque off).',
-                     'Light rings on J2 and the wrist show the state: teal ready, amber moving, green charging, red fault.'],
+                     'Light rings on J2 and the wrist show the state: teal ready, amber moving, green charging, red fault.',
+                     'J2\'s drive lights the 2 rings on J2. J6\'s drive lights the ring on the wrist.'],
                 group='Safety')
 
     root = m.root
@@ -745,13 +906,19 @@ def build(spec: dict) -> Model:
     DC_KG_M, DC_A = 0.587, 228.0                          # the sheet's weight and current for 1 x 50 mm2
     K_CHAIN, K_FIXED, FILL = 7.5, 4.0, 1.1                # bend rules; a line's lane is 1.1 x its diameter (ASSUMPTION, usual chain filling practice)
     # the lines on the chain's shelf, above the DC cores: (id, name, diameter, material, category, on to the saddle?, what it does)
-    UPPER = [('CS', 'Coolant supply hose 12 x 8', 12.0, 'pu', 'fluid', True, 'Takes cooled liquid from the cabinet\'s cooling unit to the connector\'s contacts.'),
-             ('CR', 'Coolant return hose 12 x 8', 12.0, 'pu', 'fluid', True, 'Brings the warm liquid back to the cooling unit in the cabinet.'),
-             ('AR', 'Air tube 8 x 6', 8.0, 'pu', 'fluid', True, 'Takes air at 6 bar to the head: the compliance lock and the 2 plunge cylinders.'),
+    # The coolant and the air run in ONE tube each from the cabinet to the head (2026-11-15: until then the chains carried
+    # a 12 x 8 hose and an 8 x 6 tube and the boots an 8 mm and a 6 mm tube, joined by a reducing coupling the model did not
+    # have). The boots' size is the one that fits: in the 60 mm boot beside the 2 braids there is room for 2 tubes of 8,
+    # the tool cable and a tube of 6. One 8 x 6 tube loses about 0.6 bar each way over 15 m at the connector's 2 L/min of
+    # 50 % glycol (laminar, Re about 2,000: the cable schedule's coolant lines give the arithmetic and its sources), so
+    # the cooling unit's pump must deliver 2 L/min against about 2 bar, not the 1 bar a cable-mounted unit gives.
+    UPPER = [('CS', 'Coolant supply tube 8 x 6', 8.0, 'pu', 'fluid', True, 'Takes cooled liquid from the cabinet\'s cooling unit to the connector\'s contacts, in one tube all the way.'),
+             ('CR', 'Coolant return tube 8 x 6', 8.0, 'pu', 'fluid', True, 'Brings the warm liquid back to the cooling unit in the cabinet, in one tube all the way.'),
+             ('AR', 'Air tube 6 x 4', 6.0, 'pu', 'fluid', True, 'Takes air at 6 bar to the head: the compliance lock and the 2 plunge cylinders.'),
              ('JS', 'Joint supply cable (motor power, 24 V, EtherCAT)', 10.0, 'cable', 'electrical', True,
               'Feeds the 6 joints. It goes up the riser and through the hollow shafts of J1 to J5.'),
              ('TL', 'Tool cable (EtherCAT, 24 V)', 8.0, 'cable', 'electrical', True, 'Serves the force sensor, the cameras, the light ring and the latches. It runs in the boots with the DC links.'),
-             ('SF', 'Safety cable (scanner, emergency stop, status lights)', 9.0, 'cable', 'electrical', True, 'Joins the scanner, the emergency stop and the light rings to the safety controller in the cabinet.'),
+             ('SF', 'Safety cable (scanner, emergency stop)', 9.0, 'cable', 'electrical', True, 'Joins the scanner and the emergency stop to the safety controller in the cabinet.'),
              ('MX', 'Rail servo cable (motor, brake, encoder)', 12.5, 'cable', 'electrical', False, 'Joins the rail gearmotor to its drive in the cabinet.'),
              ('MZ', 'Cross-slide servo cable (motor, brake, encoder)', 11.0, 'cable', 'electrical', False, 'Joins the cross-slide motor to its drive in the cabinet.')]
     # The chain: the narrowest heavy chain (std.CHAIN_CLASSES, from the maker's sheet) whose inside holds the DC cores
@@ -1087,7 +1254,7 @@ def build(spec: dict) -> Model:
                    CN_H / 2, 'SUPPLY', 'Carries the charge current, the coolant, the air, power and network to the moving carriage. Its bend rolls along in the channel.',
                    mat='pa66', category='electrical', pitch=CN_P, bend_r=R_CH, links=n_ch, up=(0, 1, 0), w=CN_W, h=CN_H,
                    link_part=ch_link, kg_per_m=3.2, contents=_contents(LANES), wi=CN_IW, hi=CN_IH, lead_a=0.0, lead_b=40.0,
-                   spec={**CHAIN_SPEC, 'carries': f'{2 * DC_N} DC cores 1 x 50 mm2 ({DC_N} a pole), 2 coolant hoses, air, the joint supply, tool and safety cables, 2 servo cables',
+                   spec={**CHAIN_SPEC, 'carries': f'{2 * DC_N} DC cores 1 x 50 mm2 ({DC_N} a pole), 2 coolant tubes, air, the joint supply, tool and safety cables, 2 servo cables',
                          'ends': 'its lines run on from the trench at the fixed end, and 40 mm into the driver\'s head at the moving end'}))
 
     base = carx.child('Saddle', Location(), sub='MOUNT',
@@ -1176,7 +1343,7 @@ def build(spec: dict) -> Model:
                    mat='pa66', category='electrical', pitch=CN_P, bend_r=R_CH, links=n_zc, up=(0, 1, 0), w=CN_W, h=CN_H,
                    link_part=ch_link, kg_per_m=3.2, contents=_contents([ln for ln in LANES if ln['saddle']]), wi=CN_IW, hi=CN_IH,
                    lead_a=40.0, lead_b=40.0,
-                   spec={**CHAIN_SPEC, 'carries': f'{2 * DC_N} DC cores 1 x 50 mm2, 2 coolant hoses, air, the joint supply, tool and safety cables',
+                   spec={**CHAIN_SPEC, 'carries': f'{2 * DC_N} DC cores 1 x 50 mm2, 2 coolant tubes, air, the joint supply, tool and safety cables',
                          'ends': 'its lines come 40 mm out of the elbow duct into its first link, and go 40 mm into the saddle duct from its last'}))
 
     # ════════════════════════════════════════════════════════════ MOUNT ═══
@@ -1309,39 +1476,50 @@ def build(spec: dict) -> Model:
     # Bar size: 400 mm2 a pole. A copper bar carries about 1.4 to 1.8 A/mm2 continuous as a rule of thumb, so 560 to 720 A
     # for 500 A of charge (https://payapress.com/busbar-sizing/, read 2026-11-11; a rule of thumb, not a rating: check
     # the bar against the Copper Development Association's ampacity tables before it is bought). The connector's contacts
-    # are still liquid-cooled: 2 coolant tubes of 8 mm, the tool's cable and its 6 mm air line run with the bars and
-    # through every boot.
+    # are still liquid-cooled: 2 coolant tubes 8 x 6, the tool's cable and its 6 x 4 air tube run with the bars and
+    # through every boot, each one tube from the cabinet to the head.
     # Each link's length and ends were searched over the twin's 20 poses (flex.solve): the tightest bend is given beside
     # each one, against the boot's 80 mm.
     R_BOOT, MB_BOOT = 30.0, 80.0
     BOOT_SPEC = {'conductors': '2 x 400 mm2 braided copper, tinned, insulated for 1000 V DC', 'boot': 'silicone bellows, OD 60 mm, IP67',
-                 'also inside': '2 coolant tubes 8 mm, tool cable (EtherCAT + 24 V), air 6 mm', 'bend radius': '80 mm moved'}
+                 'also inside': '2 coolant tubes 8 x 6, tool cable (EtherCAT + 24 V), air tube 6 x 4, each unbroken from the cabinet to the head',
+                 'bend radius': '80 mm moved'}
 
-    def tbox(node, casting, centre, size, pid, name, fn, kg, explode):
-        """A terminal box that sits on a casting: a block cut to the casting's own surface, so it touches and never overlaps."""
+    def tbox(node, casting, centre, size, pid, name, fn, kg, explode, keep=None, inside='2 x 40 x 10 mm copper bars, insulated'):
+        """A terminal box that sits on a casting: a block cut to the casting's own surface, so it touches and never overlaps.
+        Where the block passes the casting's wall, the piece outside it is kept (`keep`: a point in it), never the largest
+        piece: until 2026-11-15 CHG-PB4 kept the piece inside the hollow forearm, a box no hand could reach."""
         b = cq.Workplane('XY').box(*size).translate(centre).edges().fillet(8)
         if casting is not None:
             b = b.cut(cq.Workplane('XY').add(casting.val()))
-        sol = max(b.val().Solids(), key=lambda q: q.Volume()) if len(b.val().Solids()) > 1 else b.val()
+        sols = b.val().Solids()
+        if len(sols) > 1 and keep is not None:
+            kp = cq.Vertex.makeVertex(*keep)
+            sol = min(sols, key=lambda q: kp.distance(q))
+        else:
+            sol = max(sols, key=lambda q: q.Volume()) if len(sols) > 1 else b.val()
         m.place(node, m.part(PartDef(pid, name, sol, 'al6061_blk', 'electrical', 'made to order', ' x '.join(f'{v:.0f}' for v in size),
                                      'IP67', None, fn,
-                                     {'terminals': '2 x 500 A DC, bolted M12, touch-safe covers', 'bars in the link': '2 x 40 x 10 mm copper, insulated',
+                                     {'terminals': '2 x 500 A DC, bolted M12, touch-safe covers', 'in the link': inside,
                                       'rating basis': 'about 1.4 to 1.8 A/mm2, rule of thumb'}, 'buy', mass_override=kg)),
                 Location(), explode, 'DRESS')
+        return sol
 
     # the riser's back takes the lines from the saddle duct (its cable window), so the riser's box and the J1 link are on its side
     tbox(base, None, (-riser_w / 2 - 25.0, -150.0, -100.0), (50.0, 110.0, 130.0), 'CHG-PB0', 'DC terminal box, riser',
          'Takes the 8 DC cores from the saddle duct, through a port in the riser\'s wall, and hands the current to the J1 flex link.', 3.0, (-160, 0, 0))
     tbox(j1, tur, (0.0, 265.0, -180.0), (130.0, 240.0, 80.0), 'CHG-PB1', 'DC junction box, turret',
          'Joins the J1 flex link to the J2 flex link on the turret\'s back.', 6.0, (0, 0, -180))
-    tbox(j2, upper, (0.0, 300.0, -140.0), (110.0, 130.0, 80.0), 'CHG-PB2', 'DC terminal box, upper arm, shoulder end',
-         'Takes the J2 flex link into the 2 copper bars that run inside the upper arm.', 5.0, (0, 0, -180))
-    tbox(j2, upper, (0.0, LU - 250.0, -125.0), (104.0, 130.0, 80.0), 'CHG-PB3', 'DC terminal box, upper arm, elbow end',
-         'Brings the upper arm\'s bars out to the J3 flex link.', 5.0, (0, 0, -180))
-    tbox(j3, fore, (FORE_JOG[0], 250.0, -90.0), (104.0, 130.0, 80.0), 'CHG-PB4', 'DC terminal box, forearm, elbow end',
-         'Takes the J3 flex link into the 2 copper bars that run inside the forearm.', 4.5, (0, 0, -180))
-    tbox(j3, fore, (85.0, LF - 420.0, 0.0), (80.0, 130.0, 104.0), 'CHG-PB5', 'DC terminal box, forearm, wrist end',
-         'Brings the forearm\'s bars out to the wrist flex link.', 4.5, (180, 0, 0))
+    pb2 = tbox(j2, upper, (0.0, 300.0, -140.0), (110.0, 130.0, 80.0), 'CHG-PB2', 'DC terminal box, upper arm, shoulder end',
+               'Takes the J2 flex link into the 2 copper bars that run inside the upper arm. It closes the arm\'s port under it.', 5.0, (0, 0, -180))
+    pb3 = tbox(j2, upper, (0.0, LU - 250.0, -125.0), (104.0, 130.0, 80.0), 'CHG-PB3', 'DC terminal box, upper arm, elbow end',
+               'Brings the upper arm\'s bars out to the J3 flex link. It closes the arm\'s port under it.', 5.0, (0, 0, -180))
+    fc_in = '2 flexible copper conductors 400 mm2, insulated'
+    pb4 = tbox(j3, fore, (FORE_JOG[0], 250.0, -90.0), (104.0, 130.0, 80.0), 'CHG-PB4', 'DC terminal box, forearm, elbow end',
+               'Takes the J3 flex link into the 2 flexible copper conductors that run inside the forearm. It saddles the forearm\'s back '
+               'and closes the slot under it.', 4.5, (0, 0, -180), keep=(FORE_JOG[0], 250.0, -125.0), inside=fc_in)
+    pb5 = tbox(j3, fore, (85.0, LF - 420.0, 0.0), (80.0, 130.0, 104.0), 'CHG-PB5', 'DC terminal box, forearm, wrist end',
+               'Brings the forearm\'s conductors out to the wrist flex link. It closes the slot under it.', 4.5, (180, 0, 0), inside=fc_in)
     # no box on the wrist yoke: J4's bearing, J5's cheek and their screws fill both of its sides (the clash check found a
     # box there in all of them), so one link crosses J4, J5 and J6 from the forearm's box to the connector
 
@@ -1383,7 +1561,7 @@ def build(spec: dict) -> Model:
 
     # every boot ends in a fitting it plugs into (2026-11-15, Chase: "There cannot be gaps between cables randomly plugging
     # into charging system"). Until then each boot's end sat bare on its box's face, the forearm's sat 20 mm off the
-    # casting (CHG-PB4 is inside the hollow forearm), and the connector's sat 12 mm past an M50 gland too small for it.
+    # casting (CHG-PB4 was then inside the hollow forearm), and the connector's sat 12 mm past an M50 gland too small for it.
     # A boot slides 18 mm into the fitting's collar; a seal flange stands on the face; where the face is a casting, a
     # boss reaches it, cut to the casting's own surface.
     bft = cq.Workplane('XY').add(_boot_fitting((0.0, 0.0, 0.0), (0.0, 1.0, 0.0)))
@@ -1393,19 +1571,151 @@ def build(spec: dict) -> Model:
                             'made to order', 'bore 61, collar OD 72 x 18, flange OD 80', '6061-T6, black anodised', None,
                             'Holds a boot\'s end on its terminal box. The boot slides into its collar, and the braid goes through to the terminals.',
                             BFT_SPEC, 'make'))
+    # (the forearm's elbow box, CHG-PB4, now stands outside the casting, so its fitting is this one too: until 2026-11-15
+    # the box was the piece inside the hollow forearm and its fitting reached 45 mm down to the casting on a boss)
     for (node, P, o) in ((base, (-riser_w / 2 - 50.0, -150.0, -100.0), NX), (j1, (0.0, 340.0, -220.0), NZ),
-                         (j2, (0.0, 300.0, -180.0), NZ), (j2, (0.0, LU - 250.0, -165.0), NZ)):
+                         (j2, (0.0, 300.0, -180.0), NZ), (j2, (0.0, LU - 250.0, -165.0), NZ), (j3, (FORE_JOG[0], 250.0, -130.0), NZ)):
         m.place(node, bft_pd, std.orient(P, tuple(-c for c in o)), tuple(80 * c for c in o), 'DRESS')
-    # the 3 that meet a casting: cut to it, each its own part
+    # the 2 that meet a casting: cut to it, each its own part
     for (pid, node, P, o, cast, boss, where) in (
             ('CHG-BF1B', j1, (-65.0, 200.0, -190.0), NX, tur, 0.0, 'the turret\'s box, its foot cut to the turret'),
-            ('CHG-BF3B', j3, (FORE_JOG[0], 250.0, -130.0), NZ, fore, 45.0, 'the forearm, a boss down to the casting (its box is inside)'),
             ('CHG-BF4A', j3, (125.0, LF - 420.0, -30.0), PX, fore, 0.0, 'the forearm\'s wrist-end box, its foot cut to the casting')):
         sh = _boot_fitting(P, o, cast.val(), boss=boss)
         m.place(node, m.part(PartDef(pid, f'Boot fitting for the 60 mm boot, on {where}', sh, 'al6061_blk', 'electrical', 'made to order',
                                      'bore 61, collar OD 72 x 18', '6061-T6, black anodised', None,
                                      'Holds a boot\'s end where it meets a casting. The boot slides into its collar.', BFT_SPEC, 'make')),
                 Location(), tuple(80 * c for c in o), 'DRESS')
+
+    # ═════════════════════════════════════════════════ THE COPPER IN THE LINKS ═══
+    # 2026-11-15: the 4 bars were named by the terminal boxes and the cable schedule, and drawn nowhere. They are drawn
+    # now, each where it runs, between the boxes, through the casting ports the boxes close (build_chain, PORT_*).
+    # THE UPPER ARM: 2 bars, 40 x 10 copper in a 1.5 mm sleeve, stacked flat against the arm's back wall, the DC+ bar
+    # next to the wall. Each bends flatwise at each end (2.5 x its thickness on the inner bar, concentric on the outer)
+    # and passes the port to its box. 3 insulators, bonded to the wall, carry the pack; a strap screwed to each holds it.
+    # THE FOREARM: it swings past the elbow (FORE_JOG), so the link takes 2 flexible conductors of 400 mm2 (braided
+    # copper, insulated, OD 26, the boots' braid with a jacket), side by side, bent no tighter than 80 mm: from the elbow
+    # box's slot they rise into the casting, follow its swing and turn out through the side slot to the wrist-end box.
+    BAR_W, BAR_T, BAR_INS = 40.0, 10.0, 1.5
+    bw, bt = BAR_W + 2 * BAR_INS, BAR_T + 2 * BAR_INS
+    R_BAR, SO_GAP = 25.0, 20.0
+    up_s = upper.val()
+
+    def back_wall(y):                                    # the upper arm's back wall at x = 0: (outer z, inner z)
+        h = _hits(up_s, (0.0, y, 0.0), (0.0, 0.0, 1.0))
+        return h[0], h[1]
+    y_a1, y_a2 = PORT_U_Y[0] + bt / 2, LU - PORT_U_Y[1] - bt / 2
+    zr1, zr2 = back_wall(y_a1)[1] + SO_GAP + bt / 2, back_wall(y_a2)[1] + SO_GAP + bt / 2
+    pa = [(0.0, y_a1, back_wall(y_a1)[0] - 4.0), (0.0, y_a1, zr1), (0.0, y_a2, zr2), (0.0, y_a2, back_wall(y_a2)[0] - 4.0)]
+    run_u = Vector(0.0, y_a2 - y_a1, zr2 - zr1).normalized()
+    sides = [(0.0, -1.0, 0.0), (0.0, -run_u.z, run_u.y), (0.0, 1.0, 0.0)]      # each segment's side toward the outer bar
+    pb_ = _offset_path(pa, sides, bt)
+    bars = {}
+    for (pid, pole, pts, R, mat) in (('CHG-BBUP', '+', pa, R_BAR, 'cu_bar_red'), ('CHG-BBUN', '-', pb_, R_BAR + bt, 'cu_bar_blk')):
+        sh, L_ = _bent_bar(pts, [R, R], bw, bt)
+        sh = sh.cut(pb2).cut(pb3)
+        sh = max(sh.Solids(), key=lambda q: q.Volume())
+        L_ = L_ - 8.0                                    # its 2 ends, 4 mm into each box, cut off
+        kg = (BAR_W * BAR_T * 8960 + (bw * bt - BAR_W * BAR_T) * 1300) * L_ * 1e-9
+        bars[pid] = (sh, L_)
+        m.place(j2, m.part(PartDef(pid, f'Copper bar DC{pole}, 40 x 10 mm, insulated, inside the upper arm', sh, mat, 'electrical',
+                                   'EN 13601 (copper bar)', f'40 x 10 x {L_:.0f}', 'Cu-ETP, tinned', None,
+                                   f'Carries the {"positive" if pole == "+" else "negative"} pole\'s 500 A along the upper arm, '
+                                   'from its shoulder box to its elbow box.',
+                                   {'section': '40 x 10 mm copper (400 mm2), tinned', 'sleeve': '1.5 mm heat-shrink, for 1000 V DC '
+                                    '(ASSUMPTION: the sleeve\'s maker confirms its rating)', 'bends': f'flatwise, {R:.0f} mm at its centreline',
+                                    'rating basis': 'about 1.4 to 1.8 A/mm2, rule of thumb'}, 'make', mass_override=kg)),
+                Location(), (0, 0, -60), 'DRESS').yard_hidden = True    # inside the casting: the yard cannot see it (the tab can)
+    bar_a, bar_b = bars['CHG-BBUP'][0], bars['CHG-BBUN'][0]
+
+    def z_a(y):                                          # the DC+ bar's centre on its run
+        return zr1 + (zr2 - zr1) * (y - y_a1) / (y_a2 - y_a1)
+    so_pd, sc_pd = None, None
+    for k, y_s in enumerate((y_a1 + 130.0, (y_a1 + y_a2) / 2, y_a2 - 130.0)):
+        top = z_a(y_s) - bt / 2 + 3.0
+        so = (cq.Workplane('XY').box(60.0, 30.0, top - (back_wall(y_s)[1] - 2.5), centered=(True, True, False))
+              .translate((0.0, y_s, back_wall(y_s)[1] - 2.5)))
+        so = so.cut(cq.Workplane('XY').add(up_s)).cut(cq.Workplane('XY').add(bar_a))
+        so_s = max(so.val().Solids(), key=lambda q: q.Volume())
+        m.place(j2, m.part(PartDef(f'CHG-BSO{k + 1}', 'Bar insulator, upper arm, bonded to its back wall', so_s, 'pa66', 'electrical',
+                                   'made to order', f'60 x 30 x {top - back_wall(y_s)[1]:.0f}', 'PA66-GF30, structural epoxy bond', None,
+                                   'Carries the 2 bars clear of the casting and takes the strap\'s 2 screws.',
+                                   {'creepage': f'{SO_GAP:.0f} mm from the bars to the casting'}, 'make')),
+                Location(), (0, 0, -40), 'DRESS').yard_hidden = True
+        b_top = z_a(y_s) + bt / 2 + bt
+        legs = [cq.Workplane('XY').box(30.0 - bw / 2, 20.0, b_top - top + 1.0, centered=(True, True, False))
+                .translate((sx * (bw / 2 + (30.0 - bw / 2) / 2), y_s, top)) for sx in (-1, 1)]
+        strap = (cq.Workplane('XY').box(60.0, 20.0, 6.0, centered=(True, True, False)).translate((0.0, y_s, b_top - 0.5))
+                 .union(legs[0]).union(legs[1]).cut(cq.Workplane('XY').add(bar_a)).cut(cq.Workplane('XY').add(bar_b)))
+        m.place(j2, m.part(PartDef(f'CHG-BST{k + 1}', 'Bar strap, upper arm', strap.val(), 'pa66', 'electrical', 'made to order',
+                                   '60 x 20', 'PA66-GF30', None, 'Holds the 2 bars down on their insulator.', {}, 'make')),
+                Location(), (0, 0, -20), 'DRESS').yard_hidden = True
+        for sx in (-1, 1):
+            m.place(j2, std.shcs(6, 45, 'A2-70', 'Holds a bar strap to its insulator.'),
+                    std.orient((sx * (bw / 2 + (30.0 - bw / 2) / 2), y_s, b_top + 5.5), (0.0, 0.0, -1.0)), (0, 0, -10), 'DRESS').yard_hidden = True
+    # the forearm's 2 conductors: their middle line, and each one beside it (P on the right of the way they run)
+    fo_s = fore.val()
+    zf = PORT_F2[1]
+    yf2 = LF - PORT_F2[0]
+    xf = FORE_JOG[0]
+    z_f1 = _hits(fo_s, (xf, PORT_F1_Y, 0.0), (0.0, 0.0, 1.0))[0]      # the forearm's back, outside, under CHG-PB4
+    c_ = [(xf, PORT_F1_Y, z_f1 - 4.0), (xf, PORT_F1_Y, zf), (xf, 400.0, zf), (-12.0, 560.0, zf), (-12.0, yf2, zf), (100.0, yf2, zf)]
+    dg = Vector(c_[3][0] - c_[2][0], c_[3][1] - c_[2][1], 0.0).normalized()
+    f_side = [(1.0, 0.0, 0.0), (1.0, 0.0, 0.0), (dg.y, -dg.x, 0.0), (1.0, 0.0, 0.0), (0.0, -1.0, 0.0)]
+    half = (FC_D + FC_GAP) / 2
+    fcs = {}
+    for (pid, pole, sgn, radii, mat) in (('CHG-FCFP', '+', 1.0, [80.0, 128.0, 96.0, 80.0], 'cable_red'),
+                                         ('CHG-FCFN', '-', -1.0, [80.0, 96.0, 128.0, 112.0], 'cable')):
+        pts = _offset_path(c_, f_side, sgn * half)
+        sh, L_ = _bent_tube(pts, radii, FC_D / 2)
+        sh = cq.Workplane('XY').add(sh).cut(cq.Workplane('XY').add(pb4)).cut(cq.Workplane('XY').add(pb5)).val()
+        sh = max(sh.Solids(), key=lambda q: q.Volume())
+        # its ends where the 2 boxes cut it: the path's own end points, pulled back to the boxes' faces
+        e0 = _hits(pb4, pts[0], (0.0, 0.0, 1.0))
+        e1 = _hits(pb5, pts[-1], (-1.0, 0.0, 0.0))
+        a_ = (pts[0][0], pts[0][1], pts[0][2] + max(e0))
+        b_ = (pts[-1][0] - max(e1), pts[-1][1], pts[-1][2])
+        L_ = L_ - max(e0) - max(e1)
+        kg = (400.0 * 8960 + (math.pi * FC_D ** 2 / 4 - 400.0) * 1250) * L_ * 1e-9
+        pd = PartDef(pid, f'Forearm DC{pole} cable, 400 mm2 flexible copper, insulated', sh, mat, 'electrical',
+                     'IEC 60228 class 6 (flexible copper)', f'D {FC_D:g} x {L_:.0f}', 'tinned copper braid, silicone jacket', None,
+                     f'Carries the {"positive" if pole == "+" else "negative"} pole\'s 500 A along the forearm, from its elbow box to its '
+                     'wrist-end box, round the forearm\'s swing.',
+                     {'conductor': '400 mm2 braided copper, tinned', 'jacket': 'silicone, for 1000 V DC (ASSUMPTION: the maker confirms it)',
+                      'bends': 'no tighter than 80 mm at its centreline', 'rating basis': 'about 1.4 to 1.8 A/mm2, rule of thumb'}, 'buy',
+                     mass_override=kg)
+        pd.path_mm = L_
+        pd.path_ends = (a_, pts[1], b_, pts[-2], FC_D / 2)
+        fcs[pid] = (sh, L_, pts)
+        m.place(j3, m.part(pd), Location(), (0, 0, -60), 'DRESS').yard_hidden = True
+    # 2 cleats hold them on the swing's straight, each on a foot bonded to the back wall
+    for k, (t_, seg) in enumerate(((0.3, 2), (0.7, 2))):
+        p0, p1 = Vector(*c_[seg]), Vector(*c_[seg + 1])
+        cpt = p0 + (p1 - p0) * t_
+        u = (p1 - p0).normalized()
+        v = Vector(u.y, -u.x, 0.0)
+        z_w = _hits(fo_s, (cpt.x, cpt.y, 0.0), (0.0, 0.0, 1.0))[1]            # the back wall inside, under the cleat
+        blk = cq.Workplane('XY').box(2 * (half + FC_D / 2 + 6.0), 24.0, FC_D + 12.0).translate((0.0, 0.0, 0.0))
+        foot = (cq.Workplane('XY').box(40.0, 24.0, (zf - FC_D / 2 - 6.0) - (z_w - 3.0), centered=(True, True, False))
+                .translate((0.0, 0.0, (z_w - 3.0) - zf)))
+        clt = blk.union(foot)
+        ang = math.degrees(math.atan2(v.y, v.x))
+        clt = clt.rotate((0, 0, 0), (0, 0, 1), ang).translate((cpt.x, cpt.y, zf))
+        clt = clt.cut(cq.Workplane('XY').add(fo_s))
+        for (sh, _, _) in fcs.values():
+            clt = clt.cut(cq.Workplane('XY').add(sh))
+        clt_s = max(clt.val().Solids(), key=lambda q: q.Volume())
+        m.place(j3, m.part(PartDef(f'CHG-FCC{k + 1}', 'Cable cleat, 2-way, for the forearm\'s 2 conductors', clt_s, 'pa66', 'electrical',
+                                   'IEC 61914 (cable cleats)', f'2 x D {FC_D:g}', 'PA66-GF30, its foot bonded to the casting', None,
+                                   'Holds the 2 conductors apart and to the casting, and takes a short circuit\'s pull between them.',
+                                   {}, 'make')),
+                Location(), (0, 0, -40), 'DRESS').yard_hidden = True
+    # the TOOL's lines (its cable, the coolant and the air) run through the links beside the copper, tied to it
+    arm_lines = {
+        'upper': [(0.0, 300.0, -180.0), (0.0, 300.0, -140.0), (0.0, y_a1, zr1 + bt + 12.0), (0.0, y_a2, zr2 + bt + 12.0),
+                  (0.0, LU - 250.0, -125.0), (0.0, LU - 250.0, -165.0)],
+        'fore': [(xf, PORT_F1_Y, -130.0), (xf, PORT_F1_Y, -118.0)] + [tuple(q) for q in c_[1:5]] + [(100.0, yf2, zf), (125.0, yf2, -30.0)]}
+    copper = {'bars': {k: v[1] for k, v in bars.items()}, 'fcs': {k: v[1] for k, v in fcs.items()},
+              'bar_ends': (pa[0], pa[-1]), 'fc_ends': {k: (v[2][0], v[2][-1]) for k, v in fcs.items()}}
 
     # ═════════════════════════════════════════════════════════════ SAFETY ═══
     y_scn = rb + bp_t + g_h + 54      # above the riser's foot and its gussets
@@ -1446,8 +1756,8 @@ def build(spec: dict) -> Model:
         LANES=LANES, y_cb=y_cb, y_ct=y_ct, y_zb=y_zb, y_zt=y_zt, ZC=ZC, XC2=XC2, Z_F=Z_F, Z_A=Z_A, SW_X0=SW_X0, SW_X1=SW_X1,
         SW_T=SW_T, K_FIXED=K_FIXED, K_CHAIN=K_CHAIN, R_CH=R_CH, db_z0=db_z0, db_z1=db_z1, win_y0=win_y0, DU_H=DU_H,
         sp_x0=sp_x0, sp_x1=sp_x1, da_x0=da_x0, da_x1=da_x1, riser_w=riser_w, tw=tw, y_gm=y_gm, z_gm=z_gm, R_SV=R_SV,
-        y_q=y_q, z_q=z_q, acts=_c['acts'], base=base, j1=j1, j2=j2, j3=j3, tool=tool, LU=LU, LF=LF, R_BOOT=R_BOOT,
-        MB_BOOT=MB_BOOT))
+        y_q=y_q, z_q=z_q, acts=_c['acts'], ring=_c['ring'], base=base, j1=j1, j2=j2, j3=j3, tool=tool, LU=LU, LF=LF, R_BOOT=R_BOOT,
+        MB_BOOT=MB_BOOT, arm_lines=arm_lines, copper=copper))
     return m
 
 
@@ -1577,25 +1887,13 @@ def _cable_schedule(m: Model, g: dict) -> None:
             L.a, L.b = 'the safety controller in the DC cabinet', 'the emergency stop (CHG-EST) and the safety scanner (CHG-SCN), on the riser'
             L.tail_b = BOX_TAIL
             L.tails += f'; {BOX_TAIL:.0f} mm to make off at the 2 devices (ASSUMPTION)'
-            L.open.append('The model says this cable also serves the status light rings on J2 and the wrist (CHG-J2-RINGL, '
-                          'CHG-J2-RINGR, CHG-WRING), but the boots\' contents do not include it and no route reaches them. '
-                          'Their supply is not yet routed.')
+            L.notes.append('It serves the 2 safety devices only. The status light rings are lit by the joints\' drives (CHG-RL2 '
+                           'and the wrist ring\'s receptacle): until 2026-11-15 the model said this cable served them, and no route reached them.')
         elif ln['id'] in ('CHG-LCS', 'CHG-LCR', 'CHG-LAR', 'CHG-LTL'):
             mm, rb = riser_to(P4, d, port, R)
             L.run('duct', 'CHG-RSR', 'across the riser to the port in its wall behind the terminal box', mm, tol=rw2, bend=rb)
-            if ln['id'] == 'CHG-LTL':
-                L.run('duct', 'CHG-PB0', 'through the terminal box to the J1 link\'s fitting', abs(FL1_A[0] - port[0]))
-            else:
-                what = {'CHG-LCS': 'the cooling unit\'s supply port', 'CHG-LCR': 'the cooling unit\'s return port', 'CHG-LAR': 'the air supply (6 bar)'}[ln['id']]
-                L.run('duct', 'CHG-PB0', 'into the terminal box, to its reducing coupling', abs(PB0[0] - port[0]))
-                L.a, L.b = f'the DC cabinet: {what}', 'its reducing coupling in the riser\'s terminal box (CHG-PB0)'
-                L.tail_b = 0.0
-                L.notes.append('The boots carry a smaller line on from the coupling (below): the model names 8 mm coolant '
-                               'tubes and a 6 mm air line in them.')
-                L.open.append('This schedule joins the 2 sizes with a reducing coupling in the box (ASSUMPTION). If one '
-                              'line is meant to run through, a 12 mm hose needs 90 mm of bend where it moves (7.5 x d), and '
-                              'the J3 and wrist boots bend to 84 and 88 mm.')
-    # what the boots carry up the arm: the tool cable runs on from the cabinet; the coolant and the air go on in smaller lines
+            L.run('duct', 'CHG-PB0', 'through the terminal box to the J1 link\'s fitting', abs(FL1_A[0] - port[0]))
+    # what the boots carry up the arm: the tool cable, the 2 coolant tubes and the air tube, each one line from the cabinet
     j1, j2, j3, tool = g['j1'], g['j2'], g['j3'], g['tool']
     LU, LF = g['LU'], g['LF']
     # the route through the arm, boot by boot (each piece in its own node's frame; the boxes' corners sharp)
@@ -1604,11 +1902,11 @@ def _cable_schedule(m: Model, g: dict) -> None:
         ('boot', 'CHG-FL1', 'in the J1 link\'s boot, from the riser to the turret', fx['CHG-FL1']),
         ('duct', 'CHG-PB1', 'through the turret\'s junction box', [PB1_IN, (0.0, 200.0, -190.0), (0.0, 340.0, -190.0), PB1_OUT], 40.0),
         ('boot', 'CHG-FL2', 'in the J2 link\'s boot, behind the shoulder', fx['CHG-FL2']),
-        ('arm', 'CHG-UPR', 'through the upper arm\'s 2 terminal boxes (CHG-PB2, CHG-PB3) and inside the arm between them, with the copper bars',
-         [(0.0, 300.0, -180.0), (0.0, 300.0, -140.0), (0.0, LU - 250.0, -125.0), (0.0, LU - 250.0, -165.0)], 80.0),
+        ('arm', 'CHG-UPR', 'through the upper arm\'s 2 terminal boxes (CHG-PB2, CHG-PB3) and their ports, and inside the arm between '
+         'them, tied along the top of the copper bars', g['arm_lines']['upper'], 40.0),
         ('boot', 'CHG-FL3', 'in the J3 link\'s boot, over the elbow', fx['CHG-FL3']),
-        ('arm', 'CHG-FOR', 'through the forearm\'s 2 terminal boxes (CHG-PB4, CHG-PB5) and inside the arm between them, with the copper bars',
-         [(FORE_JOG[0], 250.0, -130.0), (FORE_JOG[0], 250.0, -90.0), (85.0, LF - 420.0, 0.0), (125.0, LF - 420.0, -30.0)], 80.0),
+        ('arm', 'CHG-FOR', 'through the forearm\'s 2 terminal boxes (CHG-PB4, CHG-PB5) and their slots, and inside the arm between '
+         'them, tied along the 2 flexible conductors', g['arm_lines']['fore'], 40.0),
         ('boot', 'CHG-FL4', 'in the wrist link\'s boot, across J4, J5 and J6 to the head', fx['CHG-FL4']),
     ]
     # inside the head: from the boot's outlet through the outlet housing's elbow to its inner end on the holder's spine
@@ -1631,27 +1929,42 @@ def _cable_schedule(m: Model, g: dict) -> None:
                 L.run(r[0], r[1], r[2], mm, tol=r[4])
         L.run('duct', 'CHG-COH', 'into the head through the boot\'s outlet adapter (CHG-BTO) and the outlet housing\'s elbow', head_mm, tol=32.0)
 
-    TL = lines['CHG-LTL'][0]
-    up_the_arm(TL, TL.od)
-    TL.a, TL.b = 'the arm\'s controller in the DC cabinet', 'the head: the force sensor, the cameras, the light ring and the latches'
-    TL.tail_b = round(far)
-    TL.tails += (f'; {far:.0f} mm inside the head from the outlet housing to the farther connector, measured straight '
+    head_tail = (f'; {far:.0f} mm inside the head from the outlet housing to the farther connector, measured straight '
                  '(its route among the head\'s parts is not drawn)')
-    for (lid, name, kind, od, spec, frm, to) in (
-            ('CHG-LCSA', 'Coolant supply tube 8 mm, riser to the head', 'coolant', 8.0, 'polyurethane tube, 8 mm (the model\'s boot contents)',
-             'the reducing coupling on the coolant supply hose in CHG-PB0', 'the 2 connectors\' contacts, through a manifold in the head'),
-            ('CHG-LCRA', 'Coolant return tube 8 mm, head to the riser', 'coolant', 8.0, 'polyurethane tube, 8 mm (the model\'s boot contents)',
-             'the 2 connectors\' contacts, through a manifold in the head', 'the reducing coupling on the coolant return hose in CHG-PB0'),
-            ('CHG-LARA', 'Air line 6 mm, riser to the head', 'air', 6.0, 'polyurethane tube, 6 mm (the model\'s boot contents)',
-             'the reducing coupling on the air tube in CHG-PB0', 'the head\'s valves: the compliance lock and the 2 plunge cylinders')):
-        L = m.cable(lid, name, kind, od, spec, frm, to, 'DRESS', bend_fixed=KF * od, bend_moving=KC * od,
-                    tail_b=round(far), tails=f'{far:.0f} mm inside the head from the outlet housing to the farther connector, '
-                                             'measured straight (its route among the head\'s parts is not drawn)')
-        L.run('duct', 'CHG-PB0', 'from the coupling, through the terminal box to the J1 link\'s fitting', abs(FL1_A[0] - PB0[0]))
-        up_the_arm(L, od)
+    for (lid, frm, to) in (
+            ('CHG-LTL', 'the arm\'s controller in the DC cabinet', 'the head: the force sensor, the cameras, the light ring and the latches'),
+            ('CHG-LCS', 'the DC cabinet: the cooling unit\'s supply port', 'the 2 connectors\' contacts, through a manifold in the head'),
+            ('CHG-LCR', 'the DC cabinet: the cooling unit\'s return port (the liquid flows this way, from the head)',
+             'the 2 connectors\' contacts, through a manifold in the head'),
+            ('CHG-LAR', 'the DC cabinet: the air supply (6 bar)', 'the head\'s valves: the compliance lock and the 2 plunge cylinders')):
+        L = lines[lid][0]
+        up_the_arm(L, L.od)
+        L.a, L.b = frm, to
+        L.tail_b = round(far)
+        L.tails += head_tail
+        if lid != 'CHG-LTL':
+            L.notes.append('One tube from the cabinet to the head, through both chains and all 4 boots, with no coupling on the way '
+                           '(2026-11-15: the schedule had joined a 12 x 8 hose in the chains to an 8 mm tube in the boots with a '
+                           'reducing coupling in CHG-PB0 that the model did not have).')
+    # COOLANT: the 8 x 6 tube's pressure loss, laminar (Hagen-Poiseuille, dp = 128 mu L Q / (pi D^4)), at the flow a
+    # liquid-cooled connector takes. Phoenix Contact's liquid-cooled CCS cables state 2 L/min of 50/50 water-glycol at 1 to
+    # 2 bar (https://www.phoenixcontact.com/en-fr/products/dc-charging-cable-ev-t2hpcc-dc400a-80m50ecbk11r-1333722, read
+    # 2026-11-15); 50 % ethylene glycol is about 3.7 mPa s and 1065 kg/m3 at 20 C (a computed value,
+    # https://processconvert.pages.dev/substances/ethylene-glycol, read 2026-11-15; MEGlobal's glycol guide, its figure 7,
+    # is the reference to confirm it). ASSUMPTION: the connector's own channels lose about as much as the 2 tubes together.
+    Q, MU, RHO, D_IN = 2.0 / 60000.0, 3.7e-3, 1065.0, 0.006
+    re_ = RHO * (Q / (math.pi * D_IN ** 2 / 4)) * D_IN / MU
+    for lid in ('CHG-LCS', 'CHG-LCR'):
+        L = lines[lid][0]
+        run_m = (sum(r.mm for r in L.runs) + L.tail_a + L.tail_b) / 1000.0
+        dp = 128 * MU * run_m * Q / (math.pi * D_IN ** 4) / 1e5
+        L.notes.append(f'Its loss at 2 L/min: about {dp:.1f} bar over its {run_m:.1f} m (laminar, Re {re_:.0f}); supply and return '
+                       f'together about {2 * dp:.1f} bar before the connector\'s own channels, so the cooling unit\'s pump must give '
+                       '2 L/min against about 2 bar (ASSUMPTION: the connector\'s loss; the flow and the coolant are those of '
+                       'Phoenix Contact\'s liquid-cooled CCS cables, 2 L/min of 50 % glycol, read 2026-11-15).')
     # THE CHARGE CURRENT up the arm: 4 braided links in boots and 2 pairs of copper bars, box to box
     boxes = {'CHG-PB0': (g['base'], PB0), 'CHG-PB1': (j1, (0.0, 265.0, -180.0)), 'CHG-PB2': (j2, (0.0, 300.0, -140.0)),
-             'CHG-PB3': (j2, (0.0, LU - 250.0, -125.0)), 'CHG-PB4': (j3, (FORE_JOG[0], 250.0, -90.0)), 'CHG-PB5': (j3, (85.0, LF - 420.0, 0.0))}
+             'CHG-PB3': (j2, (0.0, LU - 250.0, -125.0)), 'CHG-PB4': (j3, (FORE_JOG[0], 250.0, -120.0)), 'CHG-PB5': (j3, (100.0, LF - 420.0, 0.0))}
     for (fid, b0, b1) in (('CHG-FL1', 'CHG-PB0', 'CHG-PB1'), ('CHG-FL2', 'CHG-PB1', 'CHG-PB2'), ('CHG-FL3', 'CHG-PB3', 'CHG-PB4'),
                           ('CHG-FL4', 'CHG-PB5', None)):
         fd = fx[fid]
@@ -1674,18 +1987,54 @@ def _cable_schedule(m: Model, g: dict) -> None:
                 L.tails += (f'; {far:.0f} mm on inside the head to the farther connector, measured straight: there it parts into '
                             '2 short braids, one to each connector')
             L.notes.append('2 braids a link, DC+ and DC-, in one boot (the boot\'s spec).')
-    for (bid, b0, b1, where) in (('CHG-BBU', 'CHG-PB2', 'CHG-PB3', 'inside the upper arm'), ('CHG-BBF', 'CHG-PB4', 'CHG-PB5', 'inside the forearm')):
+    # the copper in the links, as drawn (build: THE COPPER IN THE LINKS), box to box through the casting's ports
+    cu = g['copper']
+    for (pid, pole, b0, b1, od, R, spec) in (
+            ('CHG-BBUP', '+', 'CHG-PB2', 'CHG-PB3', 10.0, 25.0, '40 x 10 mm copper bar (400 mm2), tinned, in a 1.5 mm heat-shrink sleeve'),
+            ('CHG-BBUN', '-', 'CHG-PB2', 'CHG-PB3', 10.0, 38.0, '40 x 10 mm copper bar (400 mm2), tinned, in a 1.5 mm heat-shrink sleeve'),
+            ('CHG-FCFP', '+', 'CHG-PB4', 'CHG-PB5', 26.0, 80.0, '400 mm2 flexible copper (braided, tinned), silicone jacket, OD 26'),
+            ('CHG-FCFN', '-', 'CHG-PB4', 'CHG-PB5', 26.0, 80.0, '400 mm2 flexible copper (braided, tinned), silicone jacket, OD 26')):
         (n0, c0), (n1, c1) = boxes[b0], boxes[b1]
-        for pole in ('+', '-'):
-            L = m.cable(f'{bid}{"P" if pole == "+" else "N"}', f'Copper bar DC{pole}, 40 x 10 mm, insulated, {where}', 'dc', 10.0,
-                        '40 x 10 mm copper bar (400 mm2), insulated; rated by rule of thumb, check against the Copper Development '
-                        'Association\'s tables before purchase (the boxes\' spec)', f'the DC{pole} terminal in {b0}', f'the DC{pole} terminal in {b1}',
-                        'DRESS')
-            L.run('arm', 'CHG-UPR' if b0 == 'CHG-PB2' else 'CHG-FOR', f'{where}, terminal to terminal (straight)',
-                  float(np.linalg.norm(np.array(c1) - np.array(c0))))
-            L.open.append('Not drawn and not in the bill of materials: the 2 bars in each link are described by the terminal '
-                          'boxes only.')
+        bar = pid.startswith('CHG-BB')
+        e0, e1 = cu['bar_ends'] if bar else cu['fc_ends'][pid]
+        mm = cu['bars'][pid] if bar else cu['fcs'][pid]
+        L = m.cable(pid, m.parts[pid].name, 'dc', od, spec + '; rated by rule of thumb, check against the Copper Development '
+                    'Association\'s tables before purchase (the boxes\' spec)', f'the DC{pole} terminal in {b0}',
+                    f'the DC{pole} terminal in {b1}', 'DRESS', bend_fixed=R,
+                    tails='none: its lugs bolt to the 2 boxes\' terminals, and its piece in each box runs to the terminal at the box\'s '
+                          'centre, measured straight (ASSUMPTION: the terminals stand at the centre)')
+        L.run('duct', b0, f'in {b0}, from its DC terminal to the casting\'s port under the box',
+              float(np.linalg.norm(np.array(c0) - np.array(e0))))
+        L.run('drawn', pid, ('through the port into the upper arm, along its back wall on 3 insulators (CHG-BSO1-3) under their straps, '
+                             'and out through the elbow end\'s port' if bar else
+                             'through the slot into the forearm, round its swing in 2 cleats (CHG-FCC1-2), and out through the side slot'),
+              mm, bend=R)
+        L.run('duct', b1, f'in {b1}, from the casting\'s port to its DC terminal', float(np.linalg.norm(np.array(c1) - np.array(e1))))
+        L.notes.append('Drawn and in the bill of materials since 2026-11-15 (until then the terminal boxes alone described it).')
     joint_cables(m, g['acts'], 'CHG-JC', KF)
+    ring_leads(m, g['ring'], 'CHG-')
+
+
+RING_TAIL = 40.0        # into a ring's diffuser through its grommet, to the strip's pads (ASSUMPTION)
+
+
+def ring_leads(m: Model, ring: dict, prefix: str, suffix: str = '', what: str = '') -> None:
+    """THE STATUS RINGS' LEADS of one arm (build_chain): the J2 rings' lead from J2's receptacle into the left ring, and
+    the jumper from the left ring to the right one in the turret's cored channel. (The wrist ring has no cable: its plug
+    mates J6's receptacle through the wrist tube's socket.)"""
+    tails = f'{RING_TAIL:.0f} mm into the ring through its grommet to the strip\'s pads (ASSUMPTION)'
+    L = m.cable(f'{prefix}RL2{suffix}', f'Ring lead, J2{what}: 4 x 0.25 mm2', 'control', RING_LEAD_D,
+                '4 x 0.25 mm2, PUR, OD 4.5 mm, a molded M8 plug at one end',
+                'J2\'s drive board, through its ring receptacle (CHG-RRC2) on the front of J2\'s rear bell',
+                'the left J2 status ring (CHG-J2-RINGL)', 'SAFETY', bend_fixed=RING_LEAD_R, tail_b=RING_TAIL,
+                tails=f'its plug screws onto the receptacle; {tails}')
+    L.run('drawn', 'CHG-RL2', 'from the receptacle\'s plug out from the bell and over into the left ring\'s back', ring['rl2_mm'], bend=RING_LEAD_R)
+    L.notes.append('Inside J2 the receptacle is wired to the drive board (ASSUMPTION: the drive gives a 24 V auxiliary output and '
+                   'a data line for its ring; the drive\'s maker confirms them). About 8 W for the 2 rings.')
+    L = m.cable(f'{prefix}RJ2{suffix}', f'Ring jumper, J2{what}: left ring to right ring, 4 x 0.25 mm2', 'control',
+                RING_LEAD_D, '4 x 0.25 mm2, PUR, OD 4.5 mm', 'the left J2 status ring (CHG-J2-RINGL)',
+                'the right J2 status ring (CHG-J2-RINGR)', 'SAFETY', tail_a=RING_TAIL, tail_b=RING_TAIL, tails=f'{tails}, at each end')
+    L.run('drawn', 'CHG-RJ2', 'through the channel cored along the turret boss\'s top (CHG-TUR), under the 2 rings', ring['rj2_mm'])
 
 
 def link_casting(m: Model, node: Node) -> str:
