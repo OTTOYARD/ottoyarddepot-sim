@@ -44,11 +44,11 @@
   "cycle:doors_close:mid",
   "cycle:doors_close:end"
  ],
- "pairsChecked": 8477,
- "pairsMeasured": 3275,
- "contactPairs": 468,
+ "pairsChecked": 8468,
+ "pairsMeasured": 3269,
+ "contactPairs": 488,
  "counts": {
-  "thread": 194,
+  "thread": 214,
   "seal": 0,
   "ring": 1,
   "mesh": 4,
@@ -59,6 +59,6 @@
  "clashes": [],
  "floating": [],
  "context": [],
- "seconds": 69.1,
- "glbSha256": "456ab7aa85aea359"
+ "seconds": 70.5,
+ "glbSha256": "c0212a42d65e5838"
 }

@@ -132,9 +132,10 @@ describe("the cabinet is a solid the arm can be measured against", () => {
     // box is now behind the base plane.
     expect(CABINET.zMax).toBeLessThan(0);
     expect(CABINET.zMin).toBeLessThan(CABINET.zMax);
-    // ...and it still towers over the mount, as a 1.72 m cabinet should.
+    // ...and it still towers over the mount, as a 2.21 m charger should (an all-in-one 350 kW charger since
+    // 2026-11-15; it was 1.72 m, the post of a split charger, with its top 1.2494 m above the arm base).
     const top = CABINET.profile[2][1] + CABINET.gradeY;
-    expect(top).toBeCloseTo(1.2494, 3);
+    expect(top).toBeCloseTo(1.742, 3);
   });
 
   it("no longer reaches toward the car past the arm base", () => {

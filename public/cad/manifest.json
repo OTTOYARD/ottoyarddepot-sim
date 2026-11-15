@@ -20,22 +20,22 @@
     "cables": "charge_arm.cables.csv"
    },
    "cables": {
-    "lines": 43,
-    "routeM": 185.3,
-    "orderM": 199.9
+    "lines": 45,
+    "routeM": 189.1,
+    "orderM": 203.5
    },
    "bytes": {
-    "glb": 9201768,
-    "stepZip": 9023457,
-    "step": 46743871,
+    "glb": 9289692,
+    "stepZip": 9308924,
+    "step": 48740650,
     "depot": 867656,
     "near": 6411460
    },
    "mesh": {
-    "vertices": 380533,
-    "triangles": 436743,
-    "meshes": 329,
-    "nodes": 1160
+    "vertices": 383815,
+    "triangles": 439413,
+    "meshes": 346,
+    "nodes": 1214
    },
    "depotMesh": {
     "vertices": 34067,
@@ -43,27 +43,27 @@
     "meshes": 103,
     "nodes": 174
    },
-   "depotSha256": "5bcbab5b487263f2",
+   "depotSha256": "7e277617bc8807cd",
    "nearMesh": {
     "vertices": 269877,
     "triangles": 307079,
     "meshes": 143,
     "nodes": 745
    },
-   "nearSha256": "8fb29b0fd51f8c35",
+   "nearSha256": "f0d17de7f427990d",
    "totals": {
-    "parts": 1183,
-    "uniqueParts": 328,
+    "parts": 1237,
+    "uniqueParts": 345,
     "fasteners": 720,
-    "massKg": 1158.75,
-    "boughtLines": 219,
-    "madeLines": 109,
+    "massKg": 1616.39,
+    "boughtLines": 225,
+    "madeLines": 120,
     "referenceLines": 5
    },
-   "glbSha256": "79abc9f633c73bee",
+   "glbSha256": "188dc53fa512f705",
    "stepCheck": {
-    "namedParts": 1199,
-    "solids": 1889,
+    "namedParts": 1253,
+    "solids": 1943,
     "invalid": 0
    },
    "subsystems": [
@@ -117,7 +117,7 @@
     },
     {
      "id": "CABINET",
-     "name": "Charger cabinet (the post)"
+     "name": "Charger (an all-in-one 350 kW charger)"
     }
    ]
   },
@@ -140,11 +140,11 @@
     "orderM": 16.0
    },
    "bytes": {
-    "glb": 2512412,
-    "stepZip": 1467552,
-    "step": 8108190,
+    "glb": 2512272,
+    "stepZip": 1467597,
+    "step": 8108636,
     "depot": 640144,
-    "near": 3302104
+    "near": 3301964
    },
    "mesh": {
     "vertices": 102012,
@@ -158,24 +158,24 @@
     "meshes": 93,
     "nodes": 119
    },
-   "depotSha256": "216ce98254639fc4",
+   "depotSha256": "a564fcb12a43ee31",
    "nearMesh": {
     "vertices": 134938,
     "triangles": 167588,
     "meshes": 122,
     "nodes": 275
    },
-   "nearSha256": "da71baa2e816bc47",
+   "nearSha256": "d58823d6218ed3c7",
    "totals": {
     "parts": 276,
     "uniqueParts": 130,
     "fasteners": 147,
-    "massKg": 376.21,
+    "massKg": 376.38,
     "boughtLines": 83,
     "madeLines": 47,
     "referenceLines": 4
    },
-   "glbSha256": "456ab7aa85aea359",
+   "glbSha256": "c0212a42d65e5838",
    "stepCheck": {
     "namedParts": 281,
     "solids": 413,

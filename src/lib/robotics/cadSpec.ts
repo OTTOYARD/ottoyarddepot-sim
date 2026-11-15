@@ -40,6 +40,7 @@ import {
 } from '@/lib/ottoChargeArm/vehicleEnvelope';
 import { ARM_REACH, BASE_JOINT_NAMES, HEAD_JOINT_NAMES } from '@/lib/ottoChargeArm/mateSolver';
 import { MODEL_TOWARD } from '@/lib/robotics/liveFollow';
+import { postFeeders } from '@/lib/siteFeeders';
 import {
   CLEAN_ARM, CLEAN_PHASE_S, MAST_FOOT_MAX, MAST_FOOT_MIN, PIVOT_Y_MAX, PIVOT_Y_MIN, WAND_RETRACTED,
 } from '@/lib/ottoCleanArm/cleanArmSpec';
@@ -97,6 +98,14 @@ export function cadSpec() {
       armMount: {
         riser: mm(ARM_MOUNT_PU.riser), bridge: mm(ARM_MOUNT_PU.bridge), padFront: mm(ARM_MOUNT_PU.padFront),
         top: mm(ARM_MOUNT_PU.top),
+      },
+      // Each post's 480 V feed and network run in the site's duct bank (siteFeeders.ts), for the cable schedule's notes:
+      // the charger is a whole charger since 2026-11-15, fed straight from its transformer.
+      siteFeeders: {
+        posts: postFeeders().map((f) => ({
+          post: f.post, transformer: f.transformer, acM: Math.round(f.acM * 10) / 10, netM: Math.round(f.netM * 10) / 10,
+          dropPct: Math.round(f.dropPct * 100) / 100,
+        })),
       },
       // The moving base (mateSolver.ARM_REACH): the rail along the car, the cross-slide toward it, the two-connector head.
       baseStage: {

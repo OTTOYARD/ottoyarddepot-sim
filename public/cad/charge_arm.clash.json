@@ -36,15 +36,15 @@
   "cycle:retract:mid",
   "cycle:retract:end"
  ],
- "pairsChecked": 106258,
- "pairsMeasured": 35062,
- "contactPairs": 2511,
+ "pairsChecked": 108415,
+ "pairsMeasured": 36047,
+ "contactPairs": 2616,
  "counts": {
   "thread": 845,
   "seal": 13,
   "ring": 9,
   "mesh": 3,
-  "context": 106,
+  "context": 108,
   "clash": 0,
   "error": 0
  },
@@ -1494,6 +1494,30 @@
   {
    "kind": "context",
    "a": {
+    "item": "CHG-ANC-M12#1",
+    "part": "CHG-ANC-M12",
+    "name": "Anchor rod M12 x 120, injection mortar",
+    "sub": "CABINET"
+   },
+   "b": {
+    "item": "CHG-PAD#1",
+    "part": "CHG-PAD",
+    "name": "Charger pad (site concrete)",
+    "sub": "MOUNT"
+   },
+   "volumeMm3": 9482.4,
+   "at": [
+    -572.3,
+    -515.3,
+    -1211.1
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
     "item": "CHG-ANC-M12#2",
     "part": "CHG-ANC-M12",
     "name": "Anchor rod M12 x 120, injection mortar",
@@ -1507,7 +1531,7 @@
    },
    "volumeMm3": 9482.4,
    "at": [
-    -325.9,
+    -572.3,
     -515.3,
     -511.5
    ],
@@ -1819,9 +1843,9 @@
    },
    "volumeMm3": 241.1,
    "at": [
-    81.2,
+    81.3,
     -567.4,
-    -378.6
+    -378.5
    ],
    "poses": [
     "stowed"
@@ -1845,7 +1869,7 @@
    "at": [
     81.2,
     -562.5,
-    -378.6
+    -378.5
    ],
    "poses": [
     "stowed"
@@ -1917,7 +1941,7 @@
    "at": [
     291.8,
     -567.4,
-    -378.6
+    -378.5
    ],
    "poses": [
     "stowed"
@@ -1941,7 +1965,7 @@
    "at": [
     291.8,
     -562.5,
-    -378.6
+    -378.5
    ],
    "poses": [
     "stowed"
@@ -1990,6 +2014,126 @@
     291.8,
     -562.5,
     -86.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#15",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 241.1,
+   "at": [
+    453.5,
+    -567.4,
+    256.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BCH#1",
+    "part": "CHG-BCH",
+    "name": "Cable channel liner in the slab (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#15",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 251.3,
+   "at": [
+    453.5,
+    -562.5,
+    256.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-SLB#1",
+    "part": "CHG-SLB",
+    "name": "Floor slab under the bed (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#16",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 241.1,
+   "at": [
+    453.5,
+    -567.4,
+    -16.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-BCH#1",
+    "part": "CHG-BCH",
+    "name": "Cable channel liner in the slab (site works)",
+    "sub": "BASE"
+   },
+   "b": {
+    "item": "ISO10642-M8x20-A4-80#16",
+    "part": "ISO10642-M8x20-A4-80",
+    "name": "Countersunk screw M8 x 20",
+    "sub": "BASE"
+   },
+   "volumeMm3": 251.3,
+   "at": [
+    453.5,
+    -562.5,
+    -16.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "CHG-ANC-M12#3",
+    "part": "CHG-ANC-M12",
+    "name": "Anchor rod M12 x 120, injection mortar",
+    "sub": "CABINET"
+   },
+   "b": {
+    "item": "CHG-PAD#1",
+    "part": "CHG-PAD",
+    "name": "Charger pad (site concrete)",
+    "sub": "MOUNT"
+   },
+   "volumeMm3": 9482.4,
+   "at": [
+    572.3,
+    -515.3,
+    -1211.1
    ],
    "poses": [
     "stowed"
@@ -2011,105 +2155,9 @@
    },
    "volumeMm3": 9482.4,
    "at": [
-    325.9,
+    572.3,
     -515.3,
     -511.5
-   ],
-   "poses": [
-    "stowed"
-   ]
-  },
-  {
-   "kind": "context",
-   "a": {
-    "item": "CHG-SLB#1",
-    "part": "CHG-SLB",
-    "name": "Floor slab under the bed (site works)",
-    "sub": "BASE"
-   },
-   "b": {
-    "item": "ISO10642-M8x20-A4-80#15",
-    "part": "ISO10642-M8x20-A4-80",
-    "name": "Countersunk screw M8 x 20",
-    "sub": "BASE"
-   },
-   "volumeMm3": 241.1,
-   "at": [
-    453.5,
-    -567.4,
-    256.5
-   ],
-   "poses": [
-    "stowed"
-   ]
-  },
-  {
-   "kind": "context",
-   "a": {
-    "item": "CHG-BCH#1",
-    "part": "CHG-BCH",
-    "name": "Cable channel liner in the slab (site works)",
-    "sub": "BASE"
-   },
-   "b": {
-    "item": "ISO10642-M8x20-A4-80#15",
-    "part": "ISO10642-M8x20-A4-80",
-    "name": "Countersunk screw M8 x 20",
-    "sub": "BASE"
-   },
-   "volumeMm3": 251.3,
-   "at": [
-    453.5,
-    -562.5,
-    256.5
-   ],
-   "poses": [
-    "stowed"
-   ]
-  },
-  {
-   "kind": "context",
-   "a": {
-    "item": "CHG-SLB#1",
-    "part": "CHG-SLB",
-    "name": "Floor slab under the bed (site works)",
-    "sub": "BASE"
-   },
-   "b": {
-    "item": "ISO10642-M8x20-A4-80#16",
-    "part": "ISO10642-M8x20-A4-80",
-    "name": "Countersunk screw M8 x 20",
-    "sub": "BASE"
-   },
-   "volumeMm3": 241.1,
-   "at": [
-    453.5,
-    -567.4,
-    -16.5
-   ],
-   "poses": [
-    "stowed"
-   ]
-  },
-  {
-   "kind": "context",
-   "a": {
-    "item": "CHG-BCH#1",
-    "part": "CHG-BCH",
-    "name": "Cable channel liner in the slab (site works)",
-    "sub": "BASE"
-   },
-   "b": {
-    "item": "ISO10642-M8x20-A4-80#16",
-    "part": "ISO10642-M8x20-A4-80",
-    "name": "Countersunk screw M8 x 20",
-    "sub": "BASE"
-   },
-   "volumeMm3": 251.3,
-   "at": [
-    453.5,
-    -562.5,
-    -16.5
    ],
    "poses": [
     "stowed"
@@ -2596,6 +2644,6 @@
    ]
   }
  ],
- "seconds": 2022.7,
- "glbSha256": "79abc9f633c73bee"
+ "seconds": 1827.1,
+ "glbSha256": "188dc53fa512f705"
 }

@@ -157,28 +157,36 @@ describe('OTTO-CHARGE ARM: the charge current\'s whole path', () => {
     for (let k = 1; k <= 5; k++) expect(cables.find((c) => c.id === `CHG-JC${k}`), `CHG-JC${k}`).toBeTruthy();
   });
 
-  it('has no open item on the machine: only the site\'s runs to the cabinet are open', () => {
-    // 2026-11-15: the cabinet is drawn with what it takes from the site. Each site feed is drawn from the pad up, and its
-    // run from the power unit, the air main, the network or the earth is the site's: open until the site plan shows them
+  it('has no open item on the machine: only the site\'s air is open', () => {
+    // 2026-11-15: the charger is a whole charger, fed from its transformer, so each site feed's run in the duct bank is
+    // measured on the site plan (siteFeeders.ts) and quoted per post. Only the air main is not on the site plan.
     const open = cables.filter((c) => c.open.length > 0);
-    for (const c of open) {
-      expect(c.id, `${c.id}: ${c.open.join(' ')}`).toMatch(/^CHG-S(D[PN][12]|AR|AX|NW|PE)$/);
-      expect(c.open.join(' '), c.id).toMatch(/site/);
-    }
-    expect(open.length).toBe(8);
+    expect(open.map((c) => c.id)).toEqual(['CHG-SAR']);
+    expect(open[0].open.join(' ')).toMatch(/site plan/);
   });
 });
 
-describe('OTTO-CHARGE ARM: the cabinet drawn, wired and fed (2026-11-15)', () => {
+describe('OTTO-CHARGE ARM: the charger drawn, wired and fed (2026-11-15)', () => {
   const bom = bomOf('charge_arm');
   const cables = bom.cables ?? [];
   const has = (id: string) => bom.lines.some((l) => l.id === id);
 
-  it('draws the cabinet as the post it is, where it was an envelope', () => {
+  it('draws the charger as the whole 350 kW charger it is (Chase, 2026-11-15: "All-in-one posts")', () => {
     expect(has('CHG-CAB'), 'the envelope is gone').toBe(false);
-    for (const id of ['CHG-CPL', 'CHG-CBD', 'CHG-CRF', 'CHG-CDL', 'CHG-CDR', 'CHG-CMT', 'CHG-BGP', 'CHG-BGL', 'CHG-CBI', 'CHG-CLG',
-      'CHG-CFU', 'CHG-CKM', 'CHG-CBL1', 'CHG-CBL2', 'CHG-CBL3P', 'CHG-CBL3N', 'CHG-CBA', 'CHG-COB', 'CHG-CCU', 'CHG-CCS', 'CHG-CAV',
-      'CHG-CPE', 'CHG-CIM', 'CHG-CDM', 'CHG-CAC', 'CHG-CSD', 'CHG-CSF', 'CHG-CWR']) expect(has(id), id).toBe(true);
+    for (const id of ['CHG-CPL', 'CHG-CBD', 'CHG-CRF', 'CHG-CDL', 'CHG-CDR', 'CHG-CMT', 'CHG-BGP', 'CHG-BGL',
+      // the AC input: phase bars, lugs, links, the main breaker, risers, the distribution block
+      'CHG-CAT', 'CHG-CLA', 'CHG-CAL', 'CHG-CMC', 'CHG-CAR', 'CHG-CAD',
+      // the power: the rack and its modules, and the DC from the rack to the column
+      'CHG-RKS', 'CHG-RKP', 'CHG-RKH', 'CHG-CPM', 'CHG-CRT', 'CHG-CDLP', 'CHG-CDLN',
+      // the DC column and the output
+      'CHG-CBI', 'CHG-CFU', 'CHG-CKM', 'CHG-CBL1', 'CHG-CBL2', 'CHG-CBL3P', 'CHG-CBL3N', 'CHG-CBA', 'CHG-COB', 'CHG-COS1', 'CHG-COS2',
+      // the rest
+      'CHG-CAX', 'CHG-CCU', 'CHG-CCS', 'CHG-CST', 'CHG-CAV', 'CHG-CPE', 'CHG-CIM', 'CHG-CDM', 'CHG-CAC', 'CHG-CSD', 'CHG-CSF', 'CHG-CWR']) {
+      expect(has(id), id).toBe(true);
+    }
+    // the split charger's post had a DC input from a power unit and an auxiliary supply; a whole charger has neither
+    for (const id of ['CHG-CLG', 'CHG-SDP1', 'CHG-SAX']) expect(has(id), `${id} is gone`).toBe(false);
+    expect(bom.lines.find((l) => l.id === 'CHG-CPM')!.qty, '12 power modules of 30 kW').toBe(12);
     expect(bom.subsystems.some((s) => s.id === 'CABINET')).toBe(true);
   });
 
@@ -200,15 +208,22 @@ describe('OTTO-CHARGE ARM: the cabinet drawn, wired and fed (2026-11-15)', () =>
     }
   });
 
-  it('takes the site\'s DC feed, air, auxiliary supply, network and earth up through its 2 gland plates', () => {
-    for (const id of ['CHG-SDP1', 'CHG-SDP2', 'CHG-SDN1', 'CHG-SDN2', 'CHG-SAR', 'CHG-SAX', 'CHG-SNW', 'CHG-SPE']) {
+  it('takes the site\'s 480 V feed, its earths, the air and the network fibre up through its 2 gland plates', () => {
+    const ac = ['CHG-SL1A', 'CHG-SL1B', 'CHG-SL2A', 'CHG-SL2B', 'CHG-SL3A', 'CHG-SL3B'];
+    for (const id of [...ac, 'CHG-SEG', 'CHG-SPE', 'CHG-SAR', 'CHG-SNW']) {
       const c = cables.find((x) => x.id === id)!;
       expect(c, id).toBeTruthy();
       expect(c.runs.some((r) => r.kind === 'drawn' && r.via === id), `${id} is drawn`).toBe(true);
-      expect(c.runs.some((r) => r.kind === 'site'), `${id}: its run to the cabinet is the site's`).toBe(true);
+      expect(c.runs.some((r) => r.kind === 'site'), `${id}: its run to the charger is the site's`).toBe(true);
       expect(c.sub, id).toBe('CABINET');
     }
-    expect(cables.find((c) => c.id === 'CHG-SDP1')!.to).toMatch(/CHG-CBI/);
+    for (const id of ac) {
+      const c = cables.find((x) => x.id === id)!;
+      expect(c.to, id).toMatch(/CHG-CAT/);
+      expect(c.from, id).toMatch(/transformer/);
+      expect(c.notes.join(' '), `${id}: its run quoted by post`).toMatch(/m by post/);
+    }
+    expect(cables.find((c) => c.id === 'CHG-SNW')!.spec).toMatch(/fibre/);
     expect(cables.find((c) => c.id === 'CHG-SAR')!.to).toMatch(/CHG-CAV/);
   });
 });

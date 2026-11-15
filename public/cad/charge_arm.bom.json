@@ -7,12 +7,12 @@
   "glb": "m"
  },
  "totals": {
-  "parts": 1183,
-  "uniqueParts": 328,
+  "parts": 1237,
+  "uniqueParts": 345,
   "fasteners": 720,
-  "massKg": 1158.75,
-  "boughtLines": 219,
-  "madeLines": 109,
+  "massKg": 1616.39,
+  "boughtLines": 225,
+  "madeLines": 120,
   "referenceLines": 5
  },
  "subsystems": [
@@ -60,7 +60,7 @@
    "order": 1,
    "partCount": 286,
    "fastenerCount": 236,
-   "massKg": 588.308,
+   "massKg": 588.307,
    "uniqueParts": 27
   },
   {
@@ -84,13 +84,13 @@
     "cable chains": "2, of one link, 137 x 42 mm inside, bend radius 125 mm",
     "bend rule": "7.5 x the diameter in a chain (112.5 mm for the DC core), 4 x where fixed (60 mm)",
     "channel": "213 mm wide, 354 mm deep, 4.64 m long, cover plates 10 mm, slot 60 mm",
-    "feed trench": "180 mm wide, from the cabinet to the channel, 704 mm"
+    "feed trench": "180 mm wide, from the cabinet to the channel, 920 mm"
    },
    "group": "Cables",
    "order": 2,
    "partCount": 100,
    "fastenerCount": 13,
-   "massKg": 67.652,
+   "massKg": 68.934,
    "uniqueParts": 31
   },
   {
@@ -270,29 +270,34 @@
   },
   {
    "id": "CABINET",
-   "name": "Charger cabinet (the post)",
-   "function": "Fuses, switches, meters and watches the DC from the power unit, cools the connector, and runs the arm.",
+   "name": "Charger (an all-in-one 350 kW charger)",
+   "function": "Makes the DC from the post's 480 V AC feed, switches and meters it to the arm, cools the connector, and runs the arm.",
    "how": [
-    "The power unit makes the DC from the post's transformer. It stands away from the post. Its place is not yet decided.",
-    "The DC comes up through the floor onto 2 bars. Each pole has a fuse and a contactor.",
+    "The 480 V AC feed from the post's transformer comes up through the floor onto 3 bars, one a phase.",
+    "The main breaker switches and protects the feed. It locks open for work.",
+    "Copper risers take the AC up to 12 power modules in a rack. Each module makes up to 30 kW of DC.",
+    "The modules take air in through the left door and blow it out through the back wall.",
+    "The DC comes from the rack onto 2 bars. Each pole has a fuse and a contactor.",
     "The arm's 8 DC cores rise straight from the floor into 2 output blocks. Copper links join each block to its contactor.",
     "An insulation monitor watches the DC to earth. A DC meter measures each charge for the bill.",
-    "The cooling unit pumps the liquid for the connector. Its air comes in through the doors and goes out at the back.",
-    "The arm's controller, the safety controller and the 2 servo drives for the rail and the cross-slide are at the top.",
+    "An auxiliary transformer feeds the controls, the drives and the cooling unit from the AC feed.",
+    "The cooling unit pumps the liquid for the connector.",
+    "The arm's controller, the safety controller and the 2 servo drives for the rail and the cross-slide are on the right.",
     "The service air goes through a filter, a regulator and a valve that locks shut."
    ],
    "specs": {
-    "outline": "718 x 1723 x 335 mm (the twin's cabinet)",
+    "outline": "1211 x 2216 x 766 mm (an all-in-one 350 kW charger)",
     "enclosure": "sheet steel 2 mm, IP54, 2 doors on the car's side",
-    "DC": "500 A, 1,000 V: 2 fuses and 2 contactors, one a pole",
-    "power unit": "350 kW, not drawn: a site decision"
+    "AC in": "480 V, 3 phase, about 450 A at 350 kW out (ASSUMPTION: 95 % efficient, power factor 0.99)",
+    "DC out": "500 A, 1,000 V: 2 fuses and 2 contactors, one a pole",
+    "power": "12 power modules of 30 kW (ASSUMPTION: a class of module)"
    },
    "group": "Cables",
    "order": 12,
-   "partCount": 102,
+   "partCount": 156,
    "fastenerCount": 12,
-   "massKg": 144.254,
-   "uniqueParts": 60
+   "massKg": 600.611,
+   "uniqueParts": 77
   }
  ],
  "lines": [
@@ -352,7 +357,7 @@
    "category": "structure",
    "make": "make",
    "standard": "site works",
-   "size": "918 x 586",
+   "size": "1411 x 1017",
    "grade": "",
    "material": "Concrete C30/37",
    "materialKey": "concrete",
@@ -364,7 +369,7 @@
    "function": "Carries the cabinet. Cast by the site works, with a shaft under the cabinet for the supply lines and 2 for the site's feeds.",
    "spec": {
     "shaft": "170 x 105 mm, under the cabinet's floor",
-    "site shafts": "behind it for the DC feed and the air; at the left for the auxiliary supply, the network and the earth"
+    "site shafts": "at the left for the AC feed and the 2 earths; behind the arm's shaft for the network and the air"
    },
    "uses": [
     {
@@ -392,7 +397,7 @@
    "spec": {
     "tube": "344 x 344 x 10",
     "welds": "fillet a5, all round",
-    "in the cable schedule": "CHG-LDP1, 7.94 m from end to end; CHG-LDP2, 7.96 m from end to end; CHG-LDP3, 7.99 m from end to end; CHG-LDP4, 8.01 m from end to end; CHG-LDN1, 8.15 m from end to end; CHG-LDN2, 8.18 m from end to end; CHG-LDN3, 8.20 m from end to end; CHG-LDN4, 8.31 m from end to end; CHG-LCS, 15.21 m from end to end; CHG-LCR, 15.27 m from end to end; CHG-LAR, 14.80 m from end to end; CHG-LJS, 9.72 m from end to end; CHG-LTL, 16.65 m from end to end; CHG-LSF, 10.88 m from end to end"
+    "in the cable schedule": "CHG-LDP1, 8.16 m from end to end; CHG-LDP2, 8.18 m from end to end; CHG-LDP3, 8.20 m from end to end; CHG-LDP4, 8.22 m from end to end; CHG-LDN1, 8.37 m from end to end; CHG-LDN2, 8.39 m from end to end; CHG-LDN3, 8.42 m from end to end; CHG-LDN4, 8.52 m from end to end; CHG-LCS, 16.31 m from end to end; CHG-LCR, 16.34 m from end to end; CHG-LAR, 15.02 m from end to end; CHG-LJS, 9.59 m from end to end; CHG-LTL, 16.64 m from end to end; CHG-LSF, 9.47 m from end to end"
    },
    "uses": [
     {
@@ -599,8 +604,8 @@
    "material": "Structural steel S355, hot-dip galvanised",
    "materialKey": "steel_s355",
    "qty": 1,
-   "massKg": 6.9924,
-   "totalMassKg": 6.9924,
+   "massKg": 6.9915,
+   "totalMassKg": 6.9915,
    "torqueNm": null,
    "reference": false,
    "function": "Covers the feed trench from the cabinet's pad to the channel's cover, flush with the deck. The rear beam passes over it.",
@@ -621,7 +626,7 @@
    "category": "structure",
    "make": "make",
    "standard": "site works, galvanised sheet 5 mm",
-   "size": "170 x 704 x 354 deep",
+   "size": "170 x 920 x 354 deep",
    "grade": "",
    "material": "Steel 42CrMo4, quenched and tempered",
    "materialKey": "steel",
@@ -767,7 +772,7 @@
    "category": "structure",
    "make": "make",
    "standard": "site works",
-   "size": "5340 x 1915 x 200",
+   "size": "5340 x 2346 x 200",
    "grade": "",
    "material": "Concrete C30/37",
    "materialKey": "concrete",
@@ -1291,7 +1296,7 @@
    "spec": {
     "in the slot": "50 mm in a 60 mm slot, a brush strip each side",
     "inside": "the lines turn on 60 mm or more (4 x d, fixed); not drawn one by one",
-    "in the cable schedule": "CHG-LDP1, 7.94 m from end to end; CHG-LDP2, 7.96 m from end to end; CHG-LDP3, 7.99 m from end to end; CHG-LDP4, 8.01 m from end to end; CHG-LDN1, 8.15 m from end to end; CHG-LDN2, 8.18 m from end to end; CHG-LDN3, 8.20 m from end to end; CHG-LDN4, 8.31 m from end to end; CHG-LCS, 15.21 m from end to end; CHG-LCR, 15.27 m from end to end; CHG-LAR, 14.80 m from end to end; CHG-LJS, 9.72 m from end to end; CHG-LTL, 16.65 m from end to end; CHG-LSF, 10.88 m from end to end; CHG-LMX, 7.63 m from end to end; CHG-LMZ, 8.15 m from end to end"
+    "in the cable schedule": "CHG-LDP1, 8.16 m from end to end; CHG-LDP2, 8.18 m from end to end; CHG-LDP3, 8.20 m from end to end; CHG-LDP4, 8.22 m from end to end; CHG-LDN1, 8.37 m from end to end; CHG-LDN2, 8.39 m from end to end; CHG-LDN3, 8.42 m from end to end; CHG-LDN4, 8.52 m from end to end; CHG-LCS, 16.31 m from end to end; CHG-LCR, 16.34 m from end to end; CHG-LAR, 15.02 m from end to end; CHG-LJS, 9.59 m from end to end; CHG-LTL, 16.64 m from end to end; CHG-LSF, 9.47 m from end to end; CHG-LMX, 7.20 m from end to end; CHG-LMZ, 8.35 m from end to end"
    },
    "uses": [
     {
@@ -1367,7 +1372,7 @@
    "spec": {
     "inside": "the lines turn on 60 mm or more (4 x d, fixed); not drawn one by one",
     "into the riser": "a spigot in the cable window, on its sill",
-    "in the cable schedule": "CHG-LDP1, 7.94 m from end to end; CHG-LDP2, 7.96 m from end to end; CHG-LDP3, 7.99 m from end to end; CHG-LDP4, 8.01 m from end to end; CHG-LDN1, 8.15 m from end to end; CHG-LDN2, 8.18 m from end to end; CHG-LDN3, 8.20 m from end to end; CHG-LDN4, 8.31 m from end to end; CHG-LCS, 15.21 m from end to end; CHG-LCR, 15.27 m from end to end; CHG-LAR, 14.80 m from end to end; CHG-LJS, 9.72 m from end to end; CHG-LTL, 16.65 m from end to end; CHG-LSF, 10.88 m from end to end"
+    "in the cable schedule": "CHG-LDP1, 8.16 m from end to end; CHG-LDP2, 8.18 m from end to end; CHG-LDP3, 8.20 m from end to end; CHG-LDP4, 8.22 m from end to end; CHG-LDN1, 8.37 m from end to end; CHG-LDN2, 8.39 m from end to end; CHG-LDN3, 8.42 m from end to end; CHG-LDN4, 8.52 m from end to end; CHG-LCS, 16.31 m from end to end; CHG-LCR, 16.34 m from end to end; CHG-LAR, 15.02 m from end to end; CHG-LJS, 9.59 m from end to end; CHG-LTL, 16.64 m from end to end; CHG-LSF, 9.47 m from end to end"
    },
    "uses": [
     {
@@ -1520,7 +1525,7 @@
    "spec": {
     "bend": "R 50 (4 x d)",
     "carries": "motor, brake and encoder, one cable",
-    "in the cable schedule": "CHG-LMX, 7.63 m from end to end"
+    "in the cable schedule": "CHG-LMX, 7.20 m from end to end"
    },
    "uses": [
     {
@@ -1548,7 +1553,7 @@
    "spec": {
     "bend": "R 50 (4 x d)",
     "carries": "motor, brake and encoder, one cable",
-    "in the cable schedule": "CHG-LMZ, 8.15 m from end to end"
+    "in the cable schedule": "CHG-LMZ, 8.35 m from end to end"
    },
    "uses": [
     {
@@ -1563,13 +1568,13 @@
    "category": "electrical",
    "make": "buy",
    "standard": "chain-rated single core, shielded, 600/1000 V",
-   "size": "D 15 x 2700",
+   "size": "D 15 x 2916",
    "grade": "",
    "material": "Cable, TPE jacket",
    "materialKey": "cable",
    "qty": 1,
-   "massKg": 1.5851,
-   "totalMassKg": 1.5851,
+   "massKg": 1.7115,
+   "totalMassKg": 1.7115,
    "torqueNm": null,
    "reference": false,
    "function": "Carries a quarter of the charge current of the negative pole from the cabinet to the chain.",
@@ -1579,7 +1584,7 @@
     "drawn": "from its end in the cabinet to the chain's fixed end; it runs on in the chain",
     "bends here": "R 100 and R 135 mm (it may bend on 60 mm fixed, 112 mm in a chain)",
     "mass basis": "catalogue class mass (the CAD draws its envelope)",
-    "in the cable schedule": "CHG-LDN1, 8.15 m from end to end"
+    "in the cable schedule": "CHG-LDN1, 8.37 m from end to end"
    },
    "uses": [
     {
@@ -1594,13 +1599,13 @@
    "category": "electrical",
    "make": "buy",
    "standard": "chain-rated single core, shielded, 600/1000 V",
-   "size": "D 15 x 2726",
+   "size": "D 15 x 2942",
    "grade": "",
    "material": "Cable, TPE jacket",
    "materialKey": "cable",
    "qty": 1,
-   "massKg": 1.6003,
-   "totalMassKg": 1.6003,
+   "massKg": 1.7267,
+   "totalMassKg": 1.7267,
    "torqueNm": null,
    "reference": false,
    "function": "Carries a quarter of the charge current of the negative pole from the cabinet to the chain.",
@@ -1610,7 +1615,7 @@
     "drawn": "from its end in the cabinet to the chain's fixed end; it runs on in the chain",
     "bends here": "R 100 and R 151 mm (it may bend on 60 mm fixed, 112 mm in a chain)",
     "mass basis": "catalogue class mass (the CAD draws its envelope)",
-    "in the cable schedule": "CHG-LDN2, 8.18 m from end to end"
+    "in the cable schedule": "CHG-LDN2, 8.39 m from end to end"
    },
    "uses": [
     {
@@ -1625,13 +1630,13 @@
    "category": "electrical",
    "make": "buy",
    "standard": "chain-rated single core, shielded, 600/1000 V",
-   "size": "D 15 x 2752",
+   "size": "D 15 x 2967",
    "grade": "",
    "material": "Cable, TPE jacket",
    "materialKey": "cable",
    "qty": 1,
-   "massKg": 1.6155,
-   "totalMassKg": 1.6155,
+   "massKg": 1.7419,
+   "totalMassKg": 1.7419,
    "torqueNm": null,
    "reference": false,
    "function": "Carries a quarter of the charge current of the negative pole from the cabinet to the chain.",
@@ -1641,7 +1646,7 @@
     "drawn": "from its end in the cabinet to the chain's fixed end; it runs on in the chain",
     "bends here": "R 100 and R 168 mm (it may bend on 60 mm fixed, 112 mm in a chain)",
     "mass basis": "catalogue class mass (the CAD draws its envelope)",
-    "in the cable schedule": "CHG-LDN3, 8.20 m from end to end"
+    "in the cable schedule": "CHG-LDN3, 8.42 m from end to end"
    },
    "uses": [
     {
@@ -1656,13 +1661,13 @@
    "category": "electrical",
    "make": "buy",
    "standard": "chain-rated single core, shielded, 600/1000 V",
-   "size": "D 15 x 2778",
+   "size": "D 15 x 2993",
    "grade": "",
    "material": "Cable, TPE jacket",
    "materialKey": "cable",
    "qty": 1,
-   "massKg": 1.6307,
-   "totalMassKg": 1.6307,
+   "massKg": 1.7571,
+   "totalMassKg": 1.7571,
    "torqueNm": null,
    "reference": false,
    "function": "Carries a quarter of the charge current of the negative pole from the cabinet to the chain.",
@@ -1672,7 +1677,7 @@
     "drawn": "from its end in the cabinet to the chain's fixed end; it runs on in the chain",
     "bends here": "R 100 and R 184 mm (it may bend on 60 mm fixed, 112 mm in a chain)",
     "mass basis": "catalogue class mass (the CAD draws its envelope)",
-    "in the cable schedule": "CHG-LDN4, 8.31 m from end to end"
+    "in the cable schedule": "CHG-LDN4, 8.52 m from end to end"
    },
    "uses": [
     {
@@ -1687,13 +1692,13 @@
    "category": "electrical",
    "make": "buy",
    "standard": "chain-rated single core, shielded, 600/1000 V",
-   "size": "D 15 x 2477",
+   "size": "D 15 x 2692",
    "grade": "",
    "material": "Cable, TPE jacket",
    "materialKey": "cable",
    "qty": 1,
-   "massKg": 1.4538,
-   "totalMassKg": 1.4538,
+   "massKg": 1.5802,
+   "totalMassKg": 1.5802,
    "torqueNm": null,
    "reference": false,
    "function": "Carries a quarter of the charge current of the positive pole from the cabinet to the chain.",
@@ -1703,7 +1708,7 @@
     "drawn": "from its end in the cabinet to the chain's fixed end; it runs on in the chain",
     "bends here": "R 100 and R 69 mm (it may bend on 60 mm fixed, 112 mm in a chain)",
     "mass basis": "catalogue class mass (the CAD draws its envelope)",
-    "in the cable schedule": "CHG-LDP1, 7.94 m from end to end"
+    "in the cable schedule": "CHG-LDP1, 8.16 m from end to end"
    },
    "uses": [
     {
@@ -1718,13 +1723,13 @@
    "category": "electrical",
    "make": "buy",
    "standard": "chain-rated single core, shielded, 600/1000 V",
-   "size": "D 15 x 2503",
+   "size": "D 15 x 2718",
    "grade": "",
    "material": "Cable, TPE jacket",
    "materialKey": "cable",
    "qty": 1,
-   "massKg": 1.469,
-   "totalMassKg": 1.469,
+   "massKg": 1.5954,
+   "totalMassKg": 1.5954,
    "torqueNm": null,
    "reference": false,
    "function": "Carries a quarter of the charge current of the positive pole from the cabinet to the chain.",
@@ -1734,7 +1739,7 @@
     "drawn": "from its end in the cabinet to the chain's fixed end; it runs on in the chain",
     "bends here": "R 100 and R 85 mm (it may bend on 60 mm fixed, 112 mm in a chain)",
     "mass basis": "catalogue class mass (the CAD draws its envelope)",
-    "in the cable schedule": "CHG-LDP2, 7.96 m from end to end"
+    "in the cable schedule": "CHG-LDP2, 8.18 m from end to end"
    },
    "uses": [
     {
@@ -1749,13 +1754,13 @@
    "category": "electrical",
    "make": "buy",
    "standard": "chain-rated single core, shielded, 600/1000 V",
-   "size": "D 15 x 2529",
+   "size": "D 15 x 2744",
    "grade": "",
    "material": "Cable, TPE jacket",
    "materialKey": "cable",
    "qty": 1,
-   "massKg": 1.4842,
-   "totalMassKg": 1.4842,
+   "massKg": 1.6106,
+   "totalMassKg": 1.6106,
    "torqueNm": null,
    "reference": false,
    "function": "Carries a quarter of the charge current of the positive pole from the cabinet to the chain.",
@@ -1765,7 +1770,7 @@
     "drawn": "from its end in the cabinet to the chain's fixed end; it runs on in the chain",
     "bends here": "R 100 and R 102 mm (it may bend on 60 mm fixed, 112 mm in a chain)",
     "mass basis": "catalogue class mass (the CAD draws its envelope)",
-    "in the cable schedule": "CHG-LDP3, 7.99 m from end to end"
+    "in the cable schedule": "CHG-LDP3, 8.20 m from end to end"
    },
    "uses": [
     {
@@ -1780,13 +1785,13 @@
    "category": "electrical",
    "make": "buy",
    "standard": "chain-rated single core, shielded, 600/1000 V",
-   "size": "D 15 x 2554",
+   "size": "D 15 x 2770",
    "grade": "",
    "material": "Cable, TPE jacket",
    "materialKey": "cable",
    "qty": 1,
-   "massKg": 1.4994,
-   "totalMassKg": 1.4994,
+   "massKg": 1.6258,
+   "totalMassKg": 1.6258,
    "torqueNm": null,
    "reference": false,
    "function": "Carries a quarter of the charge current of the positive pole from the cabinet to the chain.",
@@ -1796,7 +1801,7 @@
     "drawn": "from its end in the cabinet to the chain's fixed end; it runs on in the chain",
     "bends here": "R 100 and R 118 mm (it may bend on 60 mm fixed, 112 mm in a chain)",
     "mass basis": "catalogue class mass (the CAD draws its envelope)",
-    "in the cable schedule": "CHG-LDP4, 8.01 m from end to end"
+    "in the cable schedule": "CHG-LDP4, 8.22 m from end to end"
    },
    "uses": [
     {
@@ -1811,13 +1816,13 @@
    "category": "electrical",
    "make": "buy",
    "standard": "chain-rated",
-   "size": "D 10 x 1916",
+   "size": "D 10 x 2131",
    "grade": "",
    "material": "Cable, TPE jacket",
    "materialKey": "cable",
    "qty": 1,
-   "massKg": 0.2257,
-   "totalMassKg": 0.2257,
+   "massKg": 0.2511,
+   "totalMassKg": 0.2511,
    "torqueNm": null,
    "reference": false,
    "function": "Feeds the 6 joints. It goes up the riser and through the hollow shafts of J1 to J5.",
@@ -1825,7 +1830,7 @@
     "diameter": "typical of its kind (assumed)",
     "drawn": "from its end in the cabinet to the chain's fixed end; it runs on in the chain",
     "bends here": "R 83 and R 116 mm (it may bend on 40 mm fixed, 75 mm in a chain)",
-    "in the cable schedule": "CHG-LJS, 9.72 m from end to end"
+    "in the cable schedule": "CHG-LJS, 9.59 m from end to end"
    },
    "uses": [
     {
@@ -1840,13 +1845,13 @@
    "category": "electrical",
    "make": "buy",
    "standard": "chain-rated",
-   "size": "D 12.5 x 1963",
+   "size": "D 12.5 x 2178",
    "grade": "",
    "material": "Cable, TPE jacket",
    "materialKey": "cable",
    "qty": 1,
-   "massKg": 0.3614,
-   "totalMassKg": 0.3614,
+   "massKg": 0.401,
+   "totalMassKg": 0.401,
    "torqueNm": null,
    "reference": false,
    "function": "Joins the rail gearmotor to its drive in the cabinet.",
@@ -1854,7 +1859,7 @@
     "diameter": "typical of its kind (assumed)",
     "drawn": "from its end in the cabinet to the chain's fixed end; it runs on in the chain",
     "bends here": "R 82 and R 147 mm (it may bend on 50 mm fixed, 94 mm in a chain)",
-    "in the cable schedule": "CHG-LMX, 7.63 m from end to end"
+    "in the cable schedule": "CHG-LMX, 7.20 m from end to end"
    },
    "uses": [
     {
@@ -1869,13 +1874,13 @@
    "category": "electrical",
    "make": "buy",
    "standard": "chain-rated",
-   "size": "D 11 x 1985",
+   "size": "D 11 x 2200",
    "grade": "",
    "material": "Cable, TPE jacket",
    "materialKey": "cable",
    "qty": 1,
-   "massKg": 0.2829,
-   "totalMassKg": 0.2829,
+   "massKg": 0.3136,
+   "totalMassKg": 0.3136,
    "torqueNm": null,
    "reference": false,
    "function": "Joins the cross-slide motor to its drive in the cabinet.",
@@ -1883,7 +1888,7 @@
     "diameter": "typical of its kind (assumed)",
     "drawn": "from its end in the cabinet to the chain's fixed end; it runs on in the chain",
     "bends here": "R 82 and R 160 mm (it may bend on 44 mm fixed, 82 mm in a chain)",
-    "in the cable schedule": "CHG-LMZ, 8.15 m from end to end"
+    "in the cable schedule": "CHG-LMZ, 8.35 m from end to end"
    },
    "uses": [
     {
@@ -1898,13 +1903,13 @@
    "category": "electrical",
    "make": "buy",
    "standard": "chain-rated",
-   "size": "D 9 x 1947",
+   "size": "D 9 x 2163",
    "grade": "",
    "material": "Cable, TPE jacket",
    "materialKey": "cable",
    "qty": 1,
-   "massKg": 0.1858,
-   "totalMassKg": 0.1858,
+   "massKg": 0.2064,
+   "totalMassKg": 0.2064,
    "torqueNm": null,
    "reference": false,
    "function": "Joins the scanner and the emergency stop to the safety controller in the cabinet.",
@@ -1912,7 +1917,7 @@
     "diameter": "typical of its kind (assumed)",
     "drawn": "from its end in the cabinet to the chain's fixed end; it runs on in the chain",
     "bends here": "R 84 and R 136 mm (it may bend on 36 mm fixed, 68 mm in a chain)",
-    "in the cable schedule": "CHG-LSF, 10.88 m from end to end"
+    "in the cable schedule": "CHG-LSF, 9.47 m from end to end"
    },
    "uses": [
     {
@@ -1927,13 +1932,13 @@
    "category": "electrical",
    "make": "buy",
    "standard": "chain-rated",
-   "size": "D 8 x 1933",
+   "size": "D 8 x 2149",
    "grade": "",
    "material": "Cable, TPE jacket",
    "materialKey": "cable",
    "qty": 1,
-   "massKg": 0.1458,
-   "totalMassKg": 0.1458,
+   "massKg": 0.162,
+   "totalMassKg": 0.162,
    "torqueNm": null,
    "reference": false,
    "function": "Serves the force sensor, the cameras, the light ring and the latches. It runs in the boots with the DC links.",
@@ -1941,7 +1946,7 @@
     "diameter": "typical of its kind (assumed)",
     "drawn": "from its end in the cabinet to the chain's fixed end; it runs on in the chain",
     "bends here": "R 84 and R 126 mm (it may bend on 32 mm fixed, 60 mm in a chain)",
-    "in the cable schedule": "CHG-LTL, 16.65 m from end to end"
+    "in the cable schedule": "CHG-LTL, 16.64 m from end to end"
    },
    "uses": [
     {
@@ -1985,13 +1990,13 @@
    "category": "fluid",
    "make": "buy",
    "standard": "polyurethane tube",
-   "size": "D 6 x 2419",
+   "size": "D 6 x 2634",
    "grade": "",
    "material": "Polyurethane, 90 Shore A",
    "materialKey": "pu",
    "qty": 1,
-   "massKg": 0.0821,
-   "totalMassKg": 0.0821,
+   "massKg": 0.0894,
+   "totalMassKg": 0.0894,
    "torqueNm": null,
    "reference": false,
    "function": "Takes air at 6 bar to the head: the compliance lock and the 2 plunge cylinders.",
@@ -1999,7 +2004,7 @@
     "diameter": "typical of its kind (assumed)",
     "drawn": "from its end in the cabinet to the chain's fixed end; it runs on in the chain",
     "bends here": "R 85 and R 108 mm, R 24 in the cabinet (it may bend on 24 mm fixed, 45 mm in a chain)",
-    "in the cable schedule": "CHG-LAR, 14.80 m from end to end"
+    "in the cable schedule": "CHG-LAR, 15.02 m from end to end"
    },
    "uses": [
     {
@@ -2014,13 +2019,13 @@
    "category": "fluid",
    "make": "buy",
    "standard": "polyurethane tube",
-   "size": "D 8 x 2925",
+   "size": "D 8 x 3994",
    "grade": "",
    "material": "Polyurethane, 90 Shore A",
    "materialKey": "pu",
    "qty": 1,
-   "massKg": 0.1765,
-   "totalMassKg": 0.1765,
+   "massKg": 0.2409,
+   "totalMassKg": 0.2409,
    "torqueNm": null,
    "reference": false,
    "function": "Brings the warm liquid back to the cooling unit in the cabinet, in one tube all the way.",
@@ -2028,7 +2033,7 @@
     "diameter": "typical of its kind (assumed)",
     "drawn": "from its end in the cabinet to the chain's fixed end; it runs on in the chain",
     "bends here": "R 84 and R 100 mm, R 32 in the cabinet (it may bend on 32 mm fixed, 60 mm in a chain)",
-    "in the cable schedule": "CHG-LCR, 15.27 m from end to end"
+    "in the cable schedule": "CHG-LCR, 16.34 m from end to end"
    },
    "uses": [
     {
@@ -2043,13 +2048,13 @@
    "category": "fluid",
    "make": "buy",
    "standard": "polyurethane tube",
-   "size": "D 8 x 2862",
+   "size": "D 8 x 3968",
    "grade": "",
    "material": "Polyurethane, 90 Shore A",
    "materialKey": "pu",
    "qty": 1,
-   "massKg": 0.1726,
-   "totalMassKg": 0.1726,
+   "massKg": 0.2394,
+   "totalMassKg": 0.2394,
    "torqueNm": null,
    "reference": false,
    "function": "Takes cooled liquid from the cabinet's cooling unit to the connector's contacts, in one tube all the way.",
@@ -2057,7 +2062,7 @@
     "diameter": "typical of its kind (assumed)",
     "drawn": "from its end in the cabinet to the chain's fixed end; it runs on in the chain",
     "bends here": "R 84 and R 91 mm, R 32 in the cabinet (it may bend on 32 mm fixed, 60 mm in a chain)",
-    "in the cable schedule": "CHG-LCS, 15.21 m from end to end"
+    "in the cable schedule": "CHG-LCS, 16.31 m from end to end"
    },
    "uses": [
     {
@@ -4070,7 +4075,7 @@
     "wall": "7 mm",
     "axis distance": "1344.0 mm, bored in one set-up",
     "ports": "2 on the back, 80 x 100: the charge arm's terminal boxes close them, the wash arms' plugs",
-    "in the cable schedule": "CHG-LCS, 15.21 m from end to end; CHG-LCR, 15.27 m from end to end; CHG-LAR, 14.80 m from end to end; CHG-LTL, 16.65 m from end to end; CHG-JC2, 1.82 m from end to end"
+    "in the cable schedule": "CHG-LCS, 16.31 m from end to end; CHG-LCR, 16.34 m from end to end; CHG-LAR, 15.02 m from end to end; CHG-LTL, 16.64 m from end to end; CHG-JC2, 1.82 m from end to end"
    },
    "uses": [
     {
@@ -4294,7 +4299,7 @@
    "spec": {
     "wall": "6 mm",
     "ports": "2 slots 66 x 34: the charge arm's terminal boxes close them, the wash arms' plugs",
-    "in the cable schedule": "CHG-LCS, 15.21 m from end to end; CHG-LCR, 15.27 m from end to end; CHG-LAR, 14.80 m from end to end; CHG-LTL, 16.65 m from end to end; CHG-JC3, 1.21 m from end to end"
+    "in the cable schedule": "CHG-LCS, 16.31 m from end to end; CHG-LCR, 16.34 m from end to end; CHG-LAR, 15.02 m from end to end; CHG-LTL, 16.64 m from end to end; CHG-JC3, 1.21 m from end to end"
    },
    "uses": [
     {
@@ -6215,7 +6220,7 @@
    "reference": false,
    "function": "Leads the charge cable out of the head to the side, so the span leaves along J5's axis. Inside the head 2 short braids a pole reach each connector.",
    "spec": {
-    "in the cable schedule": "CHG-LCS, 15.21 m from end to end; CHG-LCR, 15.27 m from end to end; CHG-LAR, 14.80 m from end to end; CHG-LTL, 16.65 m from end to end; CHG-FL4P, 1.54 m from end to end; CHG-FL4N, 1.54 m from end to end"
+    "in the cable schedule": "CHG-LCS, 16.31 m from end to end; CHG-LCR, 16.34 m from end to end; CHG-LAR, 15.02 m from end to end; CHG-LTL, 16.64 m from end to end; CHG-FL4P, 1.54 m from end to end; CHG-FL4N, 1.54 m from end to end"
    },
    "uses": [
     {
@@ -7061,7 +7066,7 @@
     "tightest bend over the twin's poses": "102 mm",
     "min bend radius": "80 mm",
     "mass basis": "catalogue class mass (the CAD draws its envelope)",
-    "in the cable schedule": "CHG-LCS, 15.21 m from end to end; CHG-LCR, 15.27 m from end to end; CHG-LAR, 14.80 m from end to end; CHG-LTL, 16.65 m from end to end; CHG-FL1P, 1.08 m from end to end; CHG-FL1N, 1.08 m from end to end"
+    "in the cable schedule": "CHG-LCS, 16.31 m from end to end; CHG-LCR, 16.34 m from end to end; CHG-LAR, 15.02 m from end to end; CHG-LTL, 16.64 m from end to end; CHG-FL1P, 1.08 m from end to end; CHG-FL1N, 1.08 m from end to end"
    },
    "uses": [
     {
@@ -7096,7 +7101,7 @@
     "tightest bend over the twin's poses": "209 mm",
     "min bend radius": "80 mm",
     "mass basis": "catalogue class mass (the CAD draws its envelope)",
-    "in the cable schedule": "CHG-LCS, 15.21 m from end to end; CHG-LCR, 15.27 m from end to end; CHG-LAR, 14.80 m from end to end; CHG-LTL, 16.65 m from end to end; CHG-FL2P, 1.07 m from end to end; CHG-FL2N, 1.07 m from end to end"
+    "in the cable schedule": "CHG-LCS, 16.31 m from end to end; CHG-LCR, 16.34 m from end to end; CHG-LAR, 15.02 m from end to end; CHG-LTL, 16.64 m from end to end; CHG-FL2P, 1.07 m from end to end; CHG-FL2N, 1.07 m from end to end"
    },
    "uses": [
     {
@@ -7131,7 +7136,7 @@
     "tightest bend over the twin's poses": "84 mm",
     "min bend radius": "80 mm",
     "mass basis": "catalogue class mass (the CAD draws its envelope)",
-    "in the cable schedule": "CHG-LCS, 15.21 m from end to end; CHG-LCR, 15.27 m from end to end; CHG-LAR, 14.80 m from end to end; CHG-LTL, 16.65 m from end to end; CHG-FL3P, 1.34 m from end to end; CHG-FL3N, 1.34 m from end to end"
+    "in the cable schedule": "CHG-LCS, 16.31 m from end to end; CHG-LCR, 16.34 m from end to end; CHG-LAR, 15.02 m from end to end; CHG-LTL, 16.64 m from end to end; CHG-FL3P, 1.34 m from end to end; CHG-FL3N, 1.34 m from end to end"
    },
    "uses": [
     {
@@ -7166,7 +7171,7 @@
     "tightest bend over the twin's poses": "88 mm",
     "min bend radius": "80 mm",
     "mass basis": "catalogue class mass (the CAD draws its envelope)",
-    "in the cable schedule": "CHG-LCS, 15.21 m from end to end; CHG-LCR, 15.27 m from end to end; CHG-LAR, 14.80 m from end to end; CHG-LTL, 16.65 m from end to end; CHG-FL4P, 1.54 m from end to end; CHG-FL4N, 1.54 m from end to end"
+    "in the cable schedule": "CHG-LCS, 16.31 m from end to end; CHG-LCR, 16.34 m from end to end; CHG-LAR, 15.02 m from end to end; CHG-LTL, 16.64 m from end to end; CHG-FL4P, 1.54 m from end to end; CHG-FL4N, 1.54 m from end to end"
    },
    "uses": [
     {
@@ -7196,7 +7201,7 @@
     "in the link": "2 x 40 x 10 mm copper bars, insulated",
     "rating basis": "about 1.4 to 1.8 A/mm2, rule of thumb",
     "mass basis": "catalogue class mass (the CAD draws its envelope)",
-    "in the cable schedule": "CHG-LDP1, 7.94 m from end to end; CHG-LDP2, 7.96 m from end to end; CHG-LDP3, 7.99 m from end to end; CHG-LDP4, 8.01 m from end to end; CHG-LDN1, 8.15 m from end to end; CHG-LDN2, 8.18 m from end to end; CHG-LDN3, 8.20 m from end to end; CHG-LDN4, 8.31 m from end to end; CHG-LCS, 15.21 m from end to end; CHG-LCR, 15.27 m from end to end; CHG-LAR, 14.80 m from end to end; CHG-LTL, 16.65 m from end to end; CHG-FL1P, 1.08 m from end to end; CHG-FL1N, 1.08 m from end to end"
+    "in the cable schedule": "CHG-LDP1, 8.16 m from end to end; CHG-LDP2, 8.18 m from end to end; CHG-LDP3, 8.20 m from end to end; CHG-LDP4, 8.22 m from end to end; CHG-LDN1, 8.37 m from end to end; CHG-LDN2, 8.39 m from end to end; CHG-LDN3, 8.42 m from end to end; CHG-LDN4, 8.52 m from end to end; CHG-LCS, 16.31 m from end to end; CHG-LCR, 16.34 m from end to end; CHG-LAR, 15.02 m from end to end; CHG-LTL, 16.64 m from end to end; CHG-FL1P, 1.08 m from end to end; CHG-FL1N, 1.08 m from end to end"
    },
    "uses": [
     {
@@ -7226,7 +7231,7 @@
     "in the link": "2 x 40 x 10 mm copper bars, insulated",
     "rating basis": "about 1.4 to 1.8 A/mm2, rule of thumb",
     "mass basis": "catalogue class mass (the CAD draws its envelope)",
-    "in the cable schedule": "CHG-LCS, 15.21 m from end to end; CHG-LCR, 15.27 m from end to end; CHG-LAR, 14.80 m from end to end; CHG-LTL, 16.65 m from end to end; CHG-FL1P, 1.08 m from end to end; CHG-FL1N, 1.08 m from end to end; CHG-FL2P, 1.07 m from end to end; CHG-FL2N, 1.07 m from end to end"
+    "in the cable schedule": "CHG-LCS, 16.31 m from end to end; CHG-LCR, 16.34 m from end to end; CHG-LAR, 15.02 m from end to end; CHG-LTL, 16.64 m from end to end; CHG-FL1P, 1.08 m from end to end; CHG-FL1N, 1.08 m from end to end; CHG-FL2P, 1.07 m from end to end; CHG-FL2N, 1.07 m from end to end"
    },
    "uses": [
     {
@@ -7673,20 +7678,20 @@
   },
   {
    "id": "CHG-CBD",
-   "name": "Cabinet body, sheet steel 2 mm",
+   "name": "Charger body, sheet steel 2 mm",
    "category": "structure",
    "make": "make",
    "standard": "folded and welded sheet",
-   "size": "718 x 1593 x 335",
+   "size": "1211 x 2086 x 766",
    "grade": "S235, painted RAL 7016",
    "material": "Structural steel S355, painted RAL 9005",
    "materialKey": "steel_paint",
    "qty": 1,
-   "massKg": 39.7295,
-   "totalMassKg": 39.7295,
+   "massKg": 113.096,
+   "totalMassKg": 113.096,
    "torqueNm": null,
    "reference": false,
-   "function": "Closes the post. The doors are on the car's side. The cooling unit's warm air leaves through the slots in the back.",
+   "function": "Closes the charger. The doors are on the car's side. The warm air of the modules and the cooling unit leaves through the slots in the back.",
    "spec": {
     "protection": "IP54 with the doors shut (ASSUMPTION: the filter mats behind the louvres)"
    },
@@ -7699,22 +7704,22 @@
   },
   {
    "id": "CHG-CDL",
-   "name": "Cabinet door, left, sheet steel 2 mm",
+   "name": "Charger door, left, sheet steel 2 mm",
    "category": "structure",
    "make": "make",
    "standard": "folded sheet",
-   "size": "354 x 1583 x 22",
+   "size": "600 x 2076 x 22",
    "grade": "S235, painted RAL 7016",
    "material": "Structural steel S355, painted RAL 9005",
    "materialKey": "steel_paint",
    "qty": 1,
-   "massKg": 9.3538,
-   "totalMassKg": 9.3538,
+   "massKg": 19.5646,
+   "totalMassKg": 19.5646,
    "torqueNm": null,
    "reference": false,
-   "function": "Opens to the car's side. Louvres in front of the cooling unit let its air in.",
+   "function": "Opens to the car's side. Louvres in front of the module rack let its air in.",
    "spec": {
-    "opening": "the arm parks at the end of its rail before a door opens (ASSUMPTION: the door sweeps 354 mm, and the riser stands 479 mm off the face)"
+    "opening": "the arm parks clear of a door before it opens (ASSUMPTION: each door sweeps 600 mm, and the arm's base axis stands 478 mm off the face)"
    },
    "uses": [
     {
@@ -7725,22 +7730,22 @@
   },
   {
    "id": "CHG-CDR",
-   "name": "Cabinet door, right, sheet steel 2 mm",
+   "name": "Charger door, right, sheet steel 2 mm",
    "category": "structure",
    "make": "make",
    "standard": "folded sheet",
-   "size": "354 x 1583 x 22",
+   "size": "600 x 2076 x 22",
    "grade": "S235, painted RAL 7016",
    "material": "Structural steel S355, painted RAL 9005",
    "materialKey": "steel_paint",
    "qty": 1,
-   "massKg": 9.2973,
-   "totalMassKg": 9.2973,
+   "massKg": 20.0607,
+   "totalMassKg": 20.0607,
    "torqueNm": null,
    "reference": false,
    "function": "Opens to the car's side. Louvres in front of the cooling unit let its air in. It carries the lockable handle.",
    "spec": {
-    "opening": "the arm parks at the end of its rail before a door opens (ASSUMPTION: the door sweeps 354 mm, and the riser stands 479 mm off the face)"
+    "opening": "the arm parks clear of a door before it opens (ASSUMPTION: each door sweeps 600 mm, and the arm's base axis stands 478 mm off the face)"
    },
    "uses": [
     {
@@ -7750,18 +7755,18 @@
    ]
   },
   {
-   "id": "CHG-CDR1",
-   "name": "Mounting rail 35 x 7.5, 390 mm",
+   "id": "CHG-CDR3",
+   "name": "Mounting rail 35 x 7.5, 215 mm",
    "category": "structure",
    "make": "buy",
    "standard": "EN 60715",
-   "size": "35 x 7.5 x 390",
+   "size": "35 x 7.5 x 215",
    "grade": "galvanised",
    "material": "Steel 42CrMo4, quenched and tempered",
    "materialKey": "steel",
-   "qty": 3,
-   "massKg": 0.8036,
-   "totalMassKg": 2.4109,
+   "qty": 5,
+   "massKg": 0.443,
+   "totalMassKg": 2.2152,
    "torqueNm": null,
    "reference": false,
    "function": "Carries a row of devices.",
@@ -7769,26 +7774,26 @@
    "uses": [
     {
      "sub": "CABINET",
-     "qty": 3
+     "qty": 5
     }
    ]
   },
   {
-   "id": "CHG-CDR2",
-   "name": "Mounting rail 35 x 7.5, 300 mm",
+   "id": "CHG-CDR4",
+   "name": "Mounting rail 35 x 7.5, 185 mm",
    "category": "structure",
    "make": "buy",
    "standard": "EN 60715",
-   "size": "35 x 7.5 x 300",
+   "size": "35 x 7.5 x 185",
    "grade": "galvanised",
    "material": "Steel 42CrMo4, quenched and tempered",
    "materialKey": "steel",
    "qty": 1,
-   "massKg": 0.6182,
-   "totalMassKg": 0.6182,
+   "massKg": 0.3812,
+   "totalMassKg": 0.3812,
    "torqueNm": null,
    "reference": false,
-   "function": "Carries the top row of devices.",
+   "function": "Carries the auxiliary fuses and the surge arrester.",
    "spec": {},
    "uses": [
     {
@@ -7859,9 +7864,9 @@
    "grade": "",
    "material": "Steel, zinc flake coated",
    "materialKey": "fast_zn",
-   "qty": 6,
+   "qty": 7,
    "massKg": 0.0237,
-   "totalMassKg": 0.1421,
+   "totalMassKg": 0.1657,
    "torqueNm": null,
    "reference": false,
    "function": "Holds the mounting plate 15 mm off the back wall.",
@@ -7869,7 +7874,7 @@
    "uses": [
     {
      "sub": "CABINET",
-     "qty": 6
+     "qty": 7
     }
    ]
   },
@@ -7879,16 +7884,16 @@
    "category": "structure",
    "make": "make",
    "standard": "cut plate",
-   "size": "680 x 1540 x 3",
+   "size": "1170 x 1520 x 3",
    "grade": "DX51D Z275",
    "material": "Steel 42CrMo4, quenched and tempered",
    "materialKey": "steel",
    "qty": 1,
-   "massKg": 19.2671,
-   "totalMassKg": 19.2671,
+   "massKg": 39.4828,
+   "totalMassKg": 39.4828,
    "torqueNm": null,
    "reference": false,
-   "function": "Carries every device and duct. It is cut away where the cooling unit stands on the back wall.",
+   "function": "Carries the AC input, the DC column and every device and duct. The rack and the cooling unit stand on the back wall above it.",
    "spec": {},
    "uses": [
     {
@@ -7899,20 +7904,20 @@
   },
   {
    "id": "CHG-CPL",
-   "name": "Cabinet plinth, sheet steel 3 mm",
+   "name": "Charger plinth, sheet steel 3 mm",
    "category": "structure",
    "make": "make",
    "standard": "folded sheet",
-   "size": "718 x 335 x 100",
+   "size": "1211 x 766 x 100",
    "grade": "S235, painted",
    "material": "Structural steel S355, painted RAL 9005",
    "materialKey": "steel_paint",
    "qty": 1,
-   "massKg": 5.5792,
-   "totalMassKg": 5.5792,
+   "massKg": 9.9289,
+   "totalMassKg": 9.9289,
    "torqueNm": null,
    "reference": false,
-   "function": "Lifts the cabinet 100 mm off the pad. The supply lines come up through it. Its front and back plates come off.",
+   "function": "Lifts the charger 100 mm off the pad. The feed and the arm's lines come up through it. Its front and back plates come off.",
    "spec": {
     "anchors": "4 x M12, one in each corner gusset"
    },
@@ -7925,17 +7930,17 @@
   },
   {
    "id": "CHG-CRF",
-   "name": "Cabinet rain hood",
+   "name": "Charger rain hood",
    "category": "structure",
    "make": "make",
    "standard": "folded sheet 3 mm",
-   "size": "718 x 335",
+   "size": "1211 x 766",
    "grade": "",
    "material": "Structural steel S355, painted RAL 9005",
    "materialKey": "steel_paint",
    "qty": 1,
-   "massKg": 6.4993,
-   "totalMassKg": 6.4993,
+   "massKg": 23.4045,
+   "totalMassKg": 23.4045,
    "torqueNm": null,
    "reference": false,
    "function": "Keeps rain off the top. The 10 mm gap under its lip lets the warm air out.",
@@ -7972,21 +7977,117 @@
    ]
   },
   {
+   "id": "CHG-CST",
+   "name": "Strut 90 x 21, galvanised steel",
+   "category": "structure",
+   "make": "make",
+   "standard": "cold-formed channel",
+   "size": "90 x 21 x 1538",
+   "grade": "",
+   "material": "Structural steel S355, hot-dip galvanised",
+   "materialKey": "steel_s355",
+   "qty": 1,
+   "massKg": 22.8185,
+   "totalMassKg": 22.8185,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Stands on the floor beside the right duct and carries the service air block.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "CABINET",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-RKH",
+   "name": "Module rack shelf, steel 2 mm",
+   "category": "structure",
+   "make": "make",
+   "standard": "folded sheet 2 mm",
+   "size": "468 x 461 x 2",
+   "grade": "",
+   "material": "Structural steel S355, hot-dip galvanised",
+   "materialKey": "steel_s355",
+   "qty": 5,
+   "massKg": 3.3858,
+   "totalMassKg": 16.9289,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries a row of 2 modules.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "CABINET",
+     "qty": 5
+    }
+   ]
+  },
+  {
+   "id": "CHG-RKP",
+   "name": "Module rack bottom and top plate, steel 6 mm",
+   "category": "structure",
+   "make": "make",
+   "standard": "cut plate 6 mm",
+   "size": "468 x 461 x 6",
+   "grade": "",
+   "material": "Structural steel S355, hot-dip galvanised",
+   "materialKey": "steel_s355",
+   "qty": 2,
+   "massKg": 10.1573,
+   "totalMassKg": 20.3146,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Closes the rack at the bottom and the top.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "CABINET",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CHG-RKS",
+   "name": "Module rack side plate, steel 6 mm",
+   "category": "structure",
+   "make": "make",
+   "standard": "cut plate 6 mm",
+   "size": "596 x 461 x 6",
+   "grade": "",
+   "material": "Structural steel S355, hot-dip galvanised",
+   "materialKey": "steel_s355",
+   "qty": 2,
+   "massKg": 12.9354,
+   "totalMassKg": 25.8708,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the shelves and the modules. It is bolted to the back wall.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "CABINET",
+     "qty": 2
+    }
+   ]
+  },
+  {
    "id": "CHG-BGL",
-   "name": "Cabinet gland plate, left, 3 entries",
+   "name": "Charger gland plate, left, 8 entries",
    "category": "electrical",
    "make": "make",
    "standard": "cut plate 4 mm",
-   "size": "140 x 76 x 4",
+   "size": "390 x 72 x 4",
    "grade": "IP54 with its glands",
    "material": "Structural steel S355, hot-dip galvanised",
    "materialKey": "steel_s355",
    "qty": 1,
-   "massKg": 0.3216,
-   "totalMassKg": 0.3216,
+   "massKg": 0.8004,
+   "totalMassKg": 0.8004,
    "torqueNm": null,
    "reference": false,
-   "function": "Closes the floor over the left site shaft: the auxiliary supply, the network and the earth.",
+   "function": "Closes the floor over the AC feed's shaft: its 6 conductors and the 2 earths.",
    "spec": {},
    "uses": [
     {
@@ -7997,20 +8098,20 @@
   },
   {
    "id": "CHG-BGP",
-   "name": "Cabinet gland plate, right, 21 entries",
+   "name": "Charger gland plate, right, 18 entries",
    "category": "electrical",
    "make": "make",
    "standard": "cut plate 4 mm",
-   "size": "275 x 233 x 4",
+   "size": "282 x 435 x 4",
    "grade": "IP54 with its glands",
    "material": "Structural steel S355, hot-dip galvanised",
    "materialKey": "steel_s355",
    "qty": 1,
-   "massKg": 1.8647,
-   "totalMassKg": 1.8647,
+   "massKg": 3.7745,
+   "totalMassKg": 3.7745,
    "torqueNm": null,
    "reference": false,
-   "function": "Closes the floor over the arm's supply shaft and the site shaft behind it. Each line enters through it.",
+   "function": "Closes the floor over the arm's supply shaft and the small site shaft behind it. Each line enters through it.",
    "spec": {
     "glands": "one a line, under the plate (not drawn)"
    },
@@ -8049,18 +8150,172 @@
    ]
   },
   {
+   "id": "CHG-CAD",
+   "name": "AC distribution block, 3 bars in a GPO-3 housing",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "250 x 60 x 62",
+   "grade": "",
+   "material": "PA66-GF30",
+   "materialKey": "pa66",
+   "qty": 1,
+   "massKg": 3.0,
+   "totalMassKg": 3.0,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes the 3 risers and feeds each power module's AC input through the rack's back (not drawn).",
+   "spec": {
+    "size": "a class size (ASSUMPTION)",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "CABINET",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-CAF",
+   "name": "Auxiliary transformer fuses, 3 pole, 10 A",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "54 x 90 x 70",
+   "grade": "",
+   "material": "PA66-GF30",
+   "materialKey": "pa66",
+   "qty": 1,
+   "massKg": 0.4,
+   "totalMassKg": 0.4,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Protect the auxiliary transformer's 480 V side.",
+   "spec": {
+    "size": "a class size (ASSUMPTION): set it from the maker's sheet",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "CABINET",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-CAL",
+   "name": "Copper link 40 x 5, phase bar to main breaker",
+   "category": "electrical",
+   "make": "make",
+   "standard": "EN 13601",
+   "size": "40 x 5 x 150",
+   "grade": "Cu-ETP, tinned",
+   "material": "Copper winding, enamelled",
+   "materialKey": "copper",
+   "qty": 3,
+   "massKg": 0.2688,
+   "totalMassKg": 0.8064,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Joins a phase bar to its pole of the main breaker.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "CABINET",
+     "qty": 3
+    }
+   ]
+  },
+  {
+   "id": "CHG-CAR",
+   "name": "AC riser, copper 40 x 5, main breaker to the distribution block",
+   "category": "electrical",
+   "make": "make",
+   "standard": "EN 13601",
+   "size": "40 x 5 x 435",
+   "grade": "Cu-ETP, tinned, in a heat-shrink sleeve",
+   "material": "Copper winding, enamelled",
+   "materialKey": "copper",
+   "qty": 3,
+   "massKg": 0.7795,
+   "totalMassKg": 2.3386,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes one phase from the main breaker up to the distribution block under the module rack.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "CABINET",
+     "qty": 3
+    }
+   ]
+  },
+  {
+   "id": "CHG-CAT",
+   "name": "AC phase bar, copper 70 x 120 x 10",
+   "category": "electrical",
+   "make": "make",
+   "standard": "EN 13601",
+   "size": "70 x 120 x 10",
+   "grade": "Cu-ETP, tinned",
+   "material": "Copper winding, enamelled",
+   "materialKey": "copper",
+   "qty": 3,
+   "massKg": 0.7526,
+   "totalMassKg": 2.2579,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes the 2 conductors of one phase from the transformer and the link to the main breaker.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "CABINET",
+     "qty": 3
+    }
+   ]
+  },
+  {
+   "id": "CHG-CAX",
+   "name": "Auxiliary transformer, 480 V to 400/230 V, 3 kVA",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "180 x 170 x 140",
+   "grade": "",
+   "material": "Structural steel S355, painted RAL 9005",
+   "materialKey": "steel_paint",
+   "qty": 1,
+   "massKg": 25.0,
+   "totalMassKg": 25.0,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Feeds the controls, the drives and the cooling unit from the AC feed, through the auxiliary breaker.",
+   "spec": {
+    "rating": "3 kVA (ASSUMPTION)",
+    "size": "a class size (ASSUMPTION): set it from the maker's sheet",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "CABINET",
+     "qty": 1
+    }
+   ]
+  },
+  {
    "id": "CHG-CBA",
    "name": "Pole barrier, GPO-3 4 mm",
    "category": "electrical",
    "make": "make",
    "standard": "cut sheet",
-   "size": "475 x 102 x 4",
+   "size": "520 x 95 x 4",
    "grade": "GPO-3",
    "material": "PA66, signal red",
    "materialKey": "pa66_red",
    "qty": 1,
-   "massKg": 0.2628,
-   "totalMassKg": 0.2628,
+   "massKg": 0.2668,
+   "totalMassKg": 0.2668,
    "torqueNm": null,
    "reference": false,
    "function": "Stands between the 2 poles of the DC column.",
@@ -8087,7 +8342,7 @@
    "totalMassKg": 1.2902,
    "torqueNm": null,
    "reference": false,
-   "function": "Takes the 2 cores of one pole from the power unit and the link to its fuse.",
+   "function": "Takes one pole of the DC from the module rack and the link to its fuse.",
    "spec": {},
    "uses": [
     {
@@ -8126,13 +8381,13 @@
    "category": "electrical",
    "make": "make",
    "standard": "EN 13601",
-   "size": "30 x 5 x 40",
+   "size": "30 x 5 x 50",
    "grade": "Cu-ETP, tinned",
    "material": "Copper winding, enamelled",
    "materialKey": "copper",
    "qty": 2,
-   "massKg": 0.0538,
-   "totalMassKg": 0.1075,
+   "massKg": 0.0672,
+   "totalMassKg": 0.1344,
    "torqueNm": null,
    "reference": false,
    "function": "Joins a fuse to its contactor.",
@@ -8150,16 +8405,16 @@
    "category": "electrical",
    "make": "make",
    "standard": "EN 13601",
-   "size": "30 x 5 x 251",
+   "size": "30 x 5 x 496",
    "grade": "Cu-ETP, tinned",
    "material": "Copper winding, enamelled",
    "materialKey": "copper",
    "qty": 1,
-   "massKg": 0.3369,
-   "totalMassKg": 0.3369,
+   "massKg": 0.6666,
+   "totalMassKg": 0.6666,
    "torqueNm": null,
    "reference": false,
-   "function": "Brings the DC- pole forward from its contactor into its output block. The DC meter's shunt sits in it (not drawn).",
+   "function": "Brings the DC- pole down from its contactor and forward into its output block. The DC meter's shunt sits in it (not drawn).",
    "spec": {},
    "uses": [
     {
@@ -8174,16 +8429,64 @@
    "category": "electrical",
    "make": "make",
    "standard": "EN 13601",
-   "size": "30 x 5 x 131",
+   "size": "30 x 5 x 616",
    "grade": "Cu-ETP, tinned",
    "material": "Copper winding, enamelled",
    "materialKey": "copper",
    "qty": 1,
-   "massKg": 0.1756,
-   "totalMassKg": 0.1756,
+   "massKg": 0.8279,
+   "totalMassKg": 0.8279,
    "torqueNm": null,
    "reference": false,
-   "function": "Brings the DC+ pole forward from its contactor into its output block.",
+   "function": "Brings the DC+ pole down from its contactor and forward into its output block.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "CABINET",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-CDLN",
+   "name": "Copper link 30 x 5, rack DC- to its input bar, cut L",
+   "category": "electrical",
+   "make": "make",
+   "standard": "EN 13601",
+   "size": "30 x 5, 340 + 115",
+   "grade": "Cu-ETP, tinned, in a black heat-shrink sleeve",
+   "material": "Copper winding, enamelled",
+   "materialKey": "copper",
+   "qty": 1,
+   "massKg": 0.5712,
+   "totalMassKg": 0.5712,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Brings the DC- from the rack's terminal over the DC+ bar to its own input bar.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "CABINET",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-CDLP",
+   "name": "Copper link 30 x 5, rack DC+ to its input bar",
+   "category": "electrical",
+   "make": "make",
+   "standard": "EN 13601",
+   "size": "30 x 5 x 210",
+   "grade": "Cu-ETP, tinned, in a red heat-shrink sleeve",
+   "material": "Copper winding, enamelled",
+   "materialKey": "copper",
+   "qty": 1,
+   "massKg": 0.2822,
+   "totalMassKg": 0.2822,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Brings the DC+ from the rack's terminal to its input bar.",
    "spec": {},
    "uses": [
     {
@@ -8310,17 +8613,17 @@
    "grade": "GPO-3",
    "material": "PA66, signal red",
    "materialKey": "pa66_red",
-   "qty": 4,
+   "qty": 10,
    "massKg": 0.0239,
-   "totalMassKg": 0.0954,
+   "totalMassKg": 0.2386,
    "torqueNm": null,
    "reference": false,
-   "function": "Holds a DC bar off the mounting plate.",
+   "function": "Holds a bar off the mounting plate.",
    "spec": {},
    "uses": [
     {
      "sub": "CABINET",
-     "qty": 4
+     "qty": 10
     }
    ]
   },
@@ -8341,7 +8644,7 @@
    "reference": false,
    "function": "Connects its pole to the arm only while a car charges. It opens on every stop.",
    "spec": {
-    "size": "a class size (ASSUMPTION). A 1,000 V DC contactor of this class is about 95 x 44 x 90 mm (TDK HVC27, https://www.mouser.se/epcos-tdk-hvc27-500c-24p-contactor, read 2026-11-15)",
+    "size": "a class size (ASSUMPTION). A 1,000 V DC contactor of this class is about 95 x 44 x 90 mm (source in charge_cabinet.py)",
     "mass basis": "catalogue class mass (the CAD draws its envelope)"
    },
    "uses": [
@@ -8352,28 +8655,28 @@
    ]
   },
   {
-   "id": "CHG-CLG",
-   "name": "Cable lug 185 mm2, M12, tinned copper",
+   "id": "CHG-CLA",
+   "name": "Compression lug 350 kcmil, 1 hole M12, tinned copper",
    "category": "electrical",
    "make": "buy",
-   "standard": "DIN 46235",
-   "size": "185 mm2, M12",
+   "standard": "UL 486A-486B",
+   "size": "350 kcmil, M12",
    "grade": "",
    "material": "Copper winding, enamelled",
    "materialKey": "copper",
-   "qty": 4,
-   "massKg": 0.12,
-   "totalMassKg": 0.48,
+   "qty": 6,
+   "massKg": 0.15,
+   "totalMassKg": 0.9,
    "torqueNm": null,
    "reference": false,
-   "function": "Ends a DC feed core on its input bar.",
+   "function": "Ends an AC feed conductor on its phase bar.",
    "spec": {
     "mass basis": "catalogue class mass (the CAD draws its envelope)"
    },
    "uses": [
     {
      "sub": "CABINET",
-     "qty": 4
+     "qty": 6
     }
    ]
   },
@@ -8405,8 +8708,36 @@
    ]
   },
   {
+   "id": "CHG-CMC",
+   "name": "Main breaker, 3 pole, 800 A frame, 480 V AC",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "UL 489",
+   "size": "270 x 400 x 150",
+   "grade": "",
+   "material": "PA66-GF30",
+   "materialKey": "pa66",
+   "qty": 1,
+   "massKg": 15.0,
+   "totalMassKg": 15.0,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Switches and protects the charger's 480 V feed. It is the charger's disconnect, and it locks open for work.",
+   "spec": {
+    "rating": "800 A frame, 600 A trip, 65 kA (ASSUMPTION: the site's short-circuit study sets it)",
+    "size": "a class size (ASSUMPTION): set it from the maker's sheet",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "CABINET",
+     "qty": 1
+    }
+   ]
+  },
+  {
    "id": "CHG-CNS",
-   "name": "Network switch, managed, 8 ports",
+   "name": "Network switch, managed, 8 ports and 2 fibre ports",
    "category": "electrical",
    "make": "buy",
    "standard": "catalogue part",
@@ -8419,7 +8750,7 @@
    "totalMassKg": 0.6,
    "torqueNm": null,
    "reference": false,
-   "function": "Joins the controllers to the depot's network.",
+   "function": "Joins the controllers to the depot's network, on its fibre.",
    "spec": {
     "size": "a class size (ASSUMPTION): set it from the maker's sheet",
     "mass basis": "catalogue class mass (the CAD draws its envelope)"
@@ -8460,26 +8791,102 @@
    ]
   },
   {
-   "id": "CHG-CPE",
-   "name": "Earth bar, copper 100 x 30 x 10",
+   "id": "CHG-COS1",
+   "name": "Output block support, GPO-3",
    "category": "electrical",
    "make": "make",
-   "standard": "EN 13601",
-   "size": "100 x 30 x 10",
-   "grade": "Cu-ETP, tinned",
-   "material": "Copper winding, enamelled",
-   "materialKey": "copper",
+   "standard": "cut and bonded GPO-3",
+   "size": "28 x 60 x 333",
+   "grade": "GPO-3",
+   "material": "PA66, signal red",
+   "materialKey": "pa66_red",
    "qty": 1,
-   "massKg": 0.2688,
-   "totalMassKg": 0.2688,
+   "massKg": 0.7548,
+   "totalMassKg": 0.7548,
    "torqueNm": null,
    "reference": false,
-   "function": "Takes the site's earth and every earth wire in the cabinet. The plate and the doors are bonded to it.",
+   "function": "Holds an output block off the mounting plate, beside its link.",
    "spec": {},
    "uses": [
     {
      "sub": "CABINET",
      "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-COS2",
+   "name": "Output block support, GPO-3",
+   "category": "electrical",
+   "make": "make",
+   "standard": "cut and bonded GPO-3",
+   "size": "26 x 60 x 333",
+   "grade": "GPO-3",
+   "material": "PA66, signal red",
+   "materialKey": "pa66_red",
+   "qty": 1,
+   "massKg": 0.7009,
+   "totalMassKg": 0.7009,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Holds an output block off the mounting plate, beside its link.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "CABINET",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-CPE",
+   "name": "Earth bar, copper 120 x 30 x 10",
+   "category": "electrical",
+   "make": "make",
+   "standard": "EN 13601",
+   "size": "120 x 30 x 10",
+   "grade": "Cu-ETP, tinned",
+   "material": "Copper winding, enamelled",
+   "materialKey": "copper",
+   "qty": 1,
+   "massKg": 0.3226,
+   "totalMassKg": 0.3226,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes the feed's equipment ground, the pad's earth and every earth wire in the charger. The plate, the rack and the doors are bonded to it.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "CABINET",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-CPM",
+   "name": "Power module, 30 kW, 480 V AC in, 150 to 1,000 V DC out",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "226 x 84 x 437",
+   "grade": "",
+   "material": "Structural steel S355, painted RAL 9005",
+   "materialKey": "steel_paint",
+   "qty": 12,
+   "massKg": 15.0,
+   "totalMassKg": 180.0,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Turns its share of the AC feed into DC. 12 of them, in parallel, make up to 360 kW. Its fans draw air in at the front and out at the back.",
+   "spec": {
+    "rating": "30 kW, 1,000 V DC (ASSUMPTION: a class of module; the charger's maker sets the module and their number)",
+    "size and mass": "a class size and mass (ASSUMPTION)",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "CABINET",
+     "qty": 12
     }
    ]
   },
@@ -8563,20 +8970,20 @@
   },
   {
    "id": "CHG-CQS",
-   "name": "Auxiliary isolator, 4 pole, 40 A",
+   "name": "Auxiliary breaker, 3 pole, 16 A",
    "category": "electrical",
    "make": "buy",
    "standard": "catalogue part",
-   "size": "72 x 90 x 70",
+   "size": "54 x 90 x 70",
    "grade": "",
    "material": "PA66-GF30",
    "materialKey": "pa66",
    "qty": 1,
-   "massKg": 0.5,
-   "totalMassKg": 0.5,
+   "massKg": 0.4,
+   "totalMassKg": 0.4,
    "torqueNm": null,
    "reference": false,
-   "function": "Switches the cabinet's auxiliary supply off for work.",
+   "function": "Switches the auxiliary transformer's 400 V side off for work.",
    "spec": {
     "size": "a class size (ASSUMPTION): set it from the maker's sheet",
     "mass basis": "catalogue class mass (the CAD draws its envelope)"
@@ -8612,6 +9019,33 @@
     {
      "sub": "CABINET",
      "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-CRT",
+   "name": "Rack DC output terminal, insulated",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "20 x 30 x 20",
+   "grade": "",
+   "material": "PA66, signal red",
+   "materialKey": "pa66_red",
+   "qty": 2,
+   "massKg": 0.2,
+   "totalMassKg": 0.4,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Brings one pole of the modules' DC out of the rack to its copper link.",
+   "spec": {
+    "size": "a class size (ASSUMPTION)",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "CABINET",
+     "qty": 2
     }
    ]
   },
@@ -8671,20 +9105,20 @@
   },
   {
    "id": "CHG-CSP",
-   "name": "Surge arrester, auxiliary supply",
+   "name": "Surge arrester, 480 V AC, type 1+2",
    "category": "electrical",
    "make": "buy",
    "standard": "catalogue part",
-   "size": "54 x 90 x 70",
+   "size": "108 x 90 x 70",
    "grade": "",
    "material": "PA66-GF30",
    "materialKey": "pa66",
    "qty": 1,
-   "massKg": 0.4,
-   "totalMassKg": 0.4,
+   "massKg": 0.9,
+   "totalMassKg": 0.9,
    "torqueNm": null,
    "reference": false,
-   "function": "Takes a surge on the auxiliary supply to earth.",
+   "function": "Takes a surge on the AC feed to earth.",
    "spec": {
     "size": "a class size (ASSUMPTION): set it from the maker's sheet",
     "mass basis": "catalogue class mass (the CAD draws its envelope)"
@@ -8702,47 +9136,21 @@
    "category": "electrical",
    "make": "buy",
    "standard": "EN 50085-2-3",
-   "size": "60 x 60 x 390",
+   "size": "60 x 60 x 245",
    "grade": "PVC, slotted",
    "material": "PA66-GF30",
    "materialKey": "pa66",
-   "qty": 3,
-   "massKg": 0.2443,
-   "totalMassKg": 0.7329,
+   "qty": 5,
+   "massKg": 0.1537,
+   "totalMassKg": 0.7683,
    "torqueNm": null,
    "reference": false,
-   "function": "Carries the cabinet's wiring and the arm's small cables between the devices.",
+   "function": "Carries the charger's wiring and the arm's small cables between the devices.",
    "spec": {},
    "uses": [
     {
      "sub": "CABINET",
-     "qty": 3
-    }
-   ]
-  },
-  {
-   "id": "CHG-CWL",
-   "name": "Wiring duct 60 x 40, left",
-   "category": "electrical",
-   "make": "buy",
-   "standard": "EN 50085-2-3",
-   "size": "60 x 60 x 1280",
-   "grade": "PVC, slotted",
-   "material": "PA66-GF30",
-   "materialKey": "pa66",
-   "qty": 1,
-   "massKg": 0.6636,
-   "totalMassKg": 0.6636,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Carries the cabinet's wiring and the arm's small cables between the devices.",
-   "spec": {
-    "in the cable schedule": "CHG-SNW, 1.33 m from end to end"
-   },
-   "uses": [
-    {
-     "sub": "CABINET",
-     "qty": 1
+     "qty": 5
     }
    ]
   },
@@ -8752,18 +9160,18 @@
    "category": "electrical",
    "make": "buy",
    "standard": "EN 50085-2-3",
-   "size": "60 x 60 x 1300",
+   "size": "60 x 60 x 1400",
    "grade": "PVC, slotted",
    "material": "PA66-GF30",
    "materialKey": "pa66",
    "qty": 1,
-   "massKg": 0.7792,
-   "totalMassKg": 0.7792,
+   "massKg": 0.8392,
+   "totalMassKg": 0.8392,
    "torqueNm": null,
    "reference": false,
-   "function": "Carries the cabinet's wiring and the arm's small cables between the devices.",
+   "function": "Carries the charger's wiring and the arm's small cables between the devices.",
    "spec": {
-    "in the cable schedule": "CHG-LJS, 9.72 m from end to end; CHG-LTL, 16.65 m from end to end; CHG-LSF, 10.88 m from end to end; CHG-LMX, 7.63 m from end to end; CHG-LMZ, 8.15 m from end to end"
+    "in the cable schedule": "CHG-LJS, 9.59 m from end to end; CHG-LTL, 16.64 m from end to end; CHG-LSF, 9.47 m from end to end; CHG-LMX, 7.20 m from end to end; CHG-LMZ, 8.35 m from end to end; CHG-SNW, 1.71 m from end to end"
    },
    "uses": [
     {
@@ -8773,48 +9181,24 @@
    ]
   },
   {
-   "id": "CHG-CWT",
-   "name": "Wiring duct 60 x 60, top",
-   "category": "electrical",
-   "make": "buy",
-   "standard": "EN 50085-2-3",
-   "size": "60 x 60 x 705",
-   "grade": "PVC, slotted",
-   "material": "PA66-GF30",
-   "materialKey": "pa66",
-   "qty": 1,
-   "massKg": 0.4416,
-   "totalMassKg": 0.4416,
-   "torqueNm": null,
-   "reference": false,
-   "function": "Carries the cabinet's wiring and the arm's small cables between the devices.",
-   "spec": {},
-   "uses": [
-    {
-     "sub": "CABINET",
-     "qty": 1
-    }
-   ]
-  },
-  {
-   "id": "CHG-SAX",
-   "name": "Auxiliary supply cable 5 x 6 mm2",
+   "id": "CHG-SEG",
+   "name": "Equipment ground, 1/0 AWG copper, green",
    "category": "electrical",
    "make": "buy",
    "standard": "",
-   "size": "D 15",
+   "size": "D 12.5",
    "grade": "",
    "material": "Cable, TPE jacket",
    "materialKey": "cable",
    "qty": 1,
-   "massKg": 0.1144,
-   "totalMassKg": 0.1144,
+   "massKg": 0.0656,
+   "totalMassKg": 0.0656,
    "torqueNm": null,
    "reference": false,
-   "function": "Brings 400 V auxiliary power up into the cabinet, to the auxiliary isolator.",
+   "function": "Brings the feed's equipment ground from the transformer up to the earth bar.",
    "spec": {
-    "conductor": "5 x 6 mm2 (ASSUMPTION)",
-    "in the cable schedule": "CHG-SAX, 0.43 m from end to end"
+    "conductor": "1/0 AWG copper (ASSUMPTION: NEC 250.122 for an 800 A frame breaker)",
+    "in the cable schedule": "CHG-SEG, 0.36 m from end to end"
    },
    "uses": [
     {
@@ -8824,24 +9208,24 @@
    ]
   },
   {
-   "id": "CHG-SDN1",
-   "name": "DC feed cable, DC-, core 1 of 2, 1 x 185 mm2",
+   "id": "CHG-SL1A",
+   "name": "AC feed conductor, L1, 1 of 2, 350 kcmil",
    "category": "electrical",
    "make": "buy",
    "standard": "",
-   "size": "D 26",
+   "size": "D 21",
    "grade": "",
    "material": "Cable, TPE jacket",
    "materialKey": "cable",
    "qty": 1,
-   "massKg": 0.3318,
-   "totalMassKg": 0.3318,
+   "massKg": 0.2502,
+   "totalMassKg": 0.2502,
    "torqueNm": null,
    "reference": false,
-   "function": "Brings half the DC- current from the power unit up into the cabinet, to its lug on the input bar.",
+   "function": "Brings half of phase L1 from the post's transformer up into the charger, to its lug on the L1 bar.",
    "spec": {
-    "conductor": "185 mm2 copper, class 5, 1 kV (ASSUMPTION: 2 a pole carry 500 A; the site's cable calculation sets it)",
-    "in the cable schedule": "CHG-SDN1, 0.42 m from end to end"
+    "conductor": "350 kcmil copper, XHHW-2, 600 V (ASSUMPTION: 2 a phase for about 450 A at 480 V, at 125 % for a continuous load; the site's cable calculation sets them. The longest feed drops 1.5 % at full load: src/lib/siteFeeders.ts)",
+    "in the cable schedule": "CHG-SL1A, 0.48 m from end to end"
    },
    "uses": [
     {
@@ -8851,24 +9235,24 @@
    ]
   },
   {
-   "id": "CHG-SDN2",
-   "name": "DC feed cable, DC-, core 2 of 2, 1 x 185 mm2",
+   "id": "CHG-SL1B",
+   "name": "AC feed conductor, L1, 2 of 2, 350 kcmil",
    "category": "electrical",
    "make": "buy",
    "standard": "",
-   "size": "D 26",
+   "size": "D 21",
    "grade": "",
    "material": "Cable, TPE jacket",
    "materialKey": "cable",
    "qty": 1,
-   "massKg": 0.3318,
-   "totalMassKg": 0.3318,
+   "massKg": 0.2502,
+   "totalMassKg": 0.2502,
    "torqueNm": null,
    "reference": false,
-   "function": "Brings half the DC- current from the power unit up into the cabinet, to its lug on the input bar.",
+   "function": "Brings half of phase L1 from the post's transformer up into the charger, to its lug on the L1 bar.",
    "spec": {
-    "conductor": "185 mm2 copper, class 5, 1 kV (ASSUMPTION: 2 a pole carry 500 A; the site's cable calculation sets it)",
-    "in the cable schedule": "CHG-SDN2, 0.42 m from end to end"
+    "conductor": "350 kcmil copper, XHHW-2, 600 V (ASSUMPTION: 2 a phase for about 450 A at 480 V, at 125 % for a continuous load; the site's cable calculation sets them. The longest feed drops 1.5 % at full load: src/lib/siteFeeders.ts)",
+    "in the cable schedule": "CHG-SL1B, 0.48 m from end to end"
    },
    "uses": [
     {
@@ -8878,24 +9262,24 @@
    ]
   },
   {
-   "id": "CHG-SDP1",
-   "name": "DC feed cable, DC+, core 1 of 2, 1 x 185 mm2",
+   "id": "CHG-SL2A",
+   "name": "AC feed conductor, L2, 1 of 2, 350 kcmil",
    "category": "electrical",
    "make": "buy",
    "standard": "",
-   "size": "D 26",
+   "size": "D 21",
    "grade": "",
-   "material": "Cable, red jacket (DC+)",
-   "materialKey": "cable_red",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
    "qty": 1,
-   "massKg": 0.3318,
-   "totalMassKg": 0.3318,
+   "massKg": 0.2502,
+   "totalMassKg": 0.2502,
    "torqueNm": null,
    "reference": false,
-   "function": "Brings half the DC+ current from the power unit up into the cabinet, to its lug on the input bar.",
+   "function": "Brings half of phase L2 from the post's transformer up into the charger, to its lug on the L2 bar.",
    "spec": {
-    "conductor": "185 mm2 copper, class 5, 1 kV (ASSUMPTION: 2 a pole carry 500 A; the site's cable calculation sets it)",
-    "in the cable schedule": "CHG-SDP1, 0.42 m from end to end"
+    "conductor": "350 kcmil copper, XHHW-2, 600 V (ASSUMPTION: 2 a phase for about 450 A at 480 V, at 125 % for a continuous load; the site's cable calculation sets them. The longest feed drops 1.5 % at full load: src/lib/siteFeeders.ts)",
+    "in the cable schedule": "CHG-SL2A, 0.48 m from end to end"
    },
    "uses": [
     {
@@ -8905,24 +9289,78 @@
    ]
   },
   {
-   "id": "CHG-SDP2",
-   "name": "DC feed cable, DC+, core 2 of 2, 1 x 185 mm2",
+   "id": "CHG-SL2B",
+   "name": "AC feed conductor, L2, 2 of 2, 350 kcmil",
    "category": "electrical",
    "make": "buy",
    "standard": "",
-   "size": "D 26",
+   "size": "D 21",
    "grade": "",
-   "material": "Cable, red jacket (DC+)",
-   "materialKey": "cable_red",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
    "qty": 1,
-   "massKg": 0.3318,
-   "totalMassKg": 0.3318,
+   "massKg": 0.2502,
+   "totalMassKg": 0.2502,
    "torqueNm": null,
    "reference": false,
-   "function": "Brings half the DC+ current from the power unit up into the cabinet, to its lug on the input bar.",
+   "function": "Brings half of phase L2 from the post's transformer up into the charger, to its lug on the L2 bar.",
    "spec": {
-    "conductor": "185 mm2 copper, class 5, 1 kV (ASSUMPTION: 2 a pole carry 500 A; the site's cable calculation sets it)",
-    "in the cable schedule": "CHG-SDP2, 0.42 m from end to end"
+    "conductor": "350 kcmil copper, XHHW-2, 600 V (ASSUMPTION: 2 a phase for about 450 A at 480 V, at 125 % for a continuous load; the site's cable calculation sets them. The longest feed drops 1.5 % at full load: src/lib/siteFeeders.ts)",
+    "in the cable schedule": "CHG-SL2B, 0.48 m from end to end"
+   },
+   "uses": [
+    {
+     "sub": "CABINET",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-SL3A",
+   "name": "AC feed conductor, L3, 1 of 2, 350 kcmil",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "",
+   "size": "D 21",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 1,
+   "massKg": 0.2502,
+   "totalMassKg": 0.2502,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Brings half of phase L3 from the post's transformer up into the charger, to its lug on the L3 bar.",
+   "spec": {
+    "conductor": "350 kcmil copper, XHHW-2, 600 V (ASSUMPTION: 2 a phase for about 450 A at 480 V, at 125 % for a continuous load; the site's cable calculation sets them. The longest feed drops 1.5 % at full load: src/lib/siteFeeders.ts)",
+    "in the cable schedule": "CHG-SL3A, 0.48 m from end to end"
+   },
+   "uses": [
+    {
+     "sub": "CABINET",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CHG-SL3B",
+   "name": "AC feed conductor, L3, 2 of 2, 350 kcmil",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "",
+   "size": "D 21",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 1,
+   "massKg": 0.2502,
+   "totalMassKg": 0.2502,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Brings half of phase L3 from the post's transformer up into the charger, to its lug on the L3 bar.",
+   "spec": {
+    "conductor": "350 kcmil copper, XHHW-2, 600 V (ASSUMPTION: 2 a phase for about 450 A at 480 V, at 125 % for a continuous load; the site's cable calculation sets them. The longest feed drops 1.5 % at full load: src/lib/siteFeeders.ts)",
+    "in the cable schedule": "CHG-SL3B, 0.48 m from end to end"
    },
    "uses": [
     {
@@ -8933,22 +9371,23 @@
   },
   {
    "id": "CHG-SNW",
-   "name": "Network cable, industrial Cat 6A, site to cabinet",
+   "name": "Network fibre, 2 x single-mode, armoured, site to charger",
    "category": "electrical",
    "make": "buy",
    "standard": "",
-   "size": "D 8",
+   "size": "D 6",
    "grade": "",
    "material": "Cable, TPE jacket",
    "materialKey": "cable",
    "qty": 1,
-   "massKg": 0.042,
-   "totalMassKg": 0.042,
+   "massKg": 0.0185,
+   "totalMassKg": 0.0185,
    "torqueNm": null,
    "reference": false,
-   "function": "Brings the depot's network up into the cabinet's left duct.",
+   "function": "Brings the depot's network up into the charger's right duct, to the switch's fibre port.",
    "spec": {
-    "in the cable schedule": "CHG-SNW, 1.33 m from end to end"
+    "why fibre": "the farthest posts are 102 to 123 m of cable from the office, past a copper Ethernet channel's 100 m (src/lib/siteFeeders.ts)",
+    "in the cable schedule": "CHG-SNW, 1.71 m from end to end"
    },
    "uses": [
     {
@@ -8959,7 +9398,7 @@
   },
   {
    "id": "CHG-SPE",
-   "name": "Earth conductor 50 mm2, green-yellow",
+   "name": "Earth conductor 1/0 AWG, to the pad's earth electrode",
    "category": "electrical",
    "make": "buy",
    "standard": "",
@@ -8972,9 +9411,9 @@
    "totalMassKg": 0.0605,
    "torqueNm": null,
    "reference": false,
-   "function": "Joins the cabinet's earth bar to the site's earth.",
+   "function": "Joins the earth bar to the earth electrode cast in the pad.",
    "spec": {
-    "conductor": "50 mm2 copper (ASSUMPTION)",
+    "conductor": "1/0 AWG copper (ASSUMPTION)",
     "in the cable schedule": "CHG-SPE, 0.36 m from end to end"
    },
    "uses": [
@@ -9070,8 +9509,8 @@
    "material": "Stainless steel 1.4401 (316)",
    "materialKey": "ss316",
    "qty": 2,
-   "massKg": 0.0147,
-   "totalMassKg": 0.0294,
+   "massKg": 0.0143,
+   "totalMassKg": 0.0286,
    "torqueNm": null,
    "reference": false,
    "function": "Takes a coolant tube from the arm at the cooling unit. The tube goes 12 mm in.",
@@ -9098,10 +9537,10 @@
    "totalMassKg": 17.44,
    "torqueNm": null,
    "reference": false,
-   "function": "Pumps 50 % glycol through the connector's contacts and cools it in air. Its fan draws air in through the doors and out at the back.",
+   "function": "Pumps 50 % glycol through the connector's contacts and cools it in air. Its fan draws air in through the right door and out at the back.",
    "spec": {
     "flow": "2 L/min against about 2 bar (the arm's 8 x 6 tubes, both ways): a larger pump than the unit of this size gives (1 bar)",
-    "size and mass": "Phoenix Contact EV-HPC-PCU-01: 534 x 403 x 198 mm, 17.44 kg (sources in charge_cabinet.py)",
+    "size and mass": "the size of a cooling unit made for liquid-cooled HPC cables: 534 x 403 x 198 mm, 17.44 kg (sources in charge_cabinet.py)",
     "mass basis": "catalogue class mass (the CAD draws its envelope)"
    },
    "uses": [
@@ -9126,7 +9565,7 @@
    "totalMassKg": 0.0845,
    "torqueNm": null,
    "reference": false,
-   "function": "Brings the site's compressed air up into the cabinet, to the air block.",
+   "function": "Brings the site's compressed air up into the charger, to the air block.",
    "spec": {
     "in the cable schedule": "CHG-SAR, 0.62 m from end to end"
    },
@@ -9152,7 +9591,7 @@
    "totalMassKg": 0.4256,
    "torqueNm": 40.0,
    "reference": false,
-   "function": "Holds the cabinet's plinth to the pad.",
+   "function": "Holds the charger's plinth to the pad.",
    "spec": {
     "embedment": "90 mm",
     "torque": "ASSUMPTION: a typical setting torque for an M12 injection anchor"
@@ -9336,7 +9775,7 @@
      "kind": "drawn",
      "via": "CHG-LDP1",
      "where": "from its output block in the cabinet straight down through the gland plate, down the shaft through the pad, along the feed trench and into the cable channel, to the bed chain's fixed end",
-     "mm": 2476.7,
+     "mm": 2692.0,
      "tol": 0.0,
      "bend": 68.8,
      "moving": false,
@@ -9403,14 +9842,14 @@
      "range": null
     }
    ],
-   "routeMm": 7942.4,
+   "routeMm": 8157.7,
    "tolMm": 424.2,
    "tails": {
     "a": 30.0,
     "b": 100.0,
     "basis": "30 mm of conductor on into its output block's clamp (ASSUMPTION: the block maker's strip length); 100 mm to dress it in the terminal box and make it off on its M12 lug (ASSUMPTION)"
    },
-   "orderMm": 8500.0,
+   "orderMm": 8800.0,
    "bendMm": {
     "fixed": 60.0,
     "moving": 112.5,
@@ -9441,7 +9880,7 @@
      "kind": "drawn",
      "via": "CHG-LDP2",
      "where": "from its output block in the cabinet straight down through the gland plate, down the shaft through the pad, along the feed trench and into the cable channel, to the bed chain's fixed end",
-     "mm": 2502.6,
+     "mm": 2717.9,
      "tol": 0.0,
      "bend": 85.2,
      "moving": false,
@@ -9508,14 +9947,14 @@
      "range": null
     }
    ],
-   "routeMm": 7963.3,
+   "routeMm": 8178.6,
    "tolMm": 424.2,
    "tails": {
     "a": 30.0,
     "b": 100.0,
     "basis": "30 mm of conductor on into its output block's clamp (ASSUMPTION: the block maker's strip length); 100 mm to dress it in the terminal box and make it off on its M12 lug (ASSUMPTION)"
    },
-   "orderMm": 8600.0,
+   "orderMm": 8800.0,
    "bendMm": {
     "fixed": 60.0,
     "moving": 112.5,
@@ -9546,7 +9985,7 @@
      "kind": "drawn",
      "via": "CHG-LDP3",
      "where": "from its output block in the cabinet straight down through the gland plate, down the shaft through the pad, along the feed trench and into the cable channel, to the bed chain's fixed end",
-     "mm": 2528.5,
+     "mm": 2743.8,
      "tol": 0.0,
      "bend": 100.0,
      "moving": false,
@@ -9613,14 +10052,14 @@
      "range": null
     }
    ],
-   "routeMm": 7985.4,
+   "routeMm": 8200.7,
    "tolMm": 424.2,
    "tails": {
     "a": 30.0,
     "b": 100.0,
     "basis": "30 mm of conductor on into its output block's clamp (ASSUMPTION: the block maker's strip length); 100 mm to dress it in the terminal box and make it off on its M12 lug (ASSUMPTION)"
    },
-   "orderMm": 8600.0,
+   "orderMm": 8800.0,
    "bendMm": {
     "fixed": 60.0,
     "moving": 112.5,
@@ -9651,7 +10090,7 @@
      "kind": "drawn",
      "via": "CHG-LDP4",
      "where": "from its output block in the cabinet straight down through the gland plate, down the shaft through the pad, along the feed trench and into the cable channel, to the bed chain's fixed end",
-     "mm": 2554.4,
+     "mm": 2769.7,
      "tol": 0.0,
      "bend": 100.0,
      "moving": false,
@@ -9718,14 +10157,14 @@
      "range": null
     }
    ],
-   "routeMm": 8008.7,
+   "routeMm": 8224.0,
    "tolMm": 424.2,
    "tails": {
     "a": 30.0,
     "b": 100.0,
     "basis": "30 mm of conductor on into its output block's clamp (ASSUMPTION: the block maker's strip length); 100 mm to dress it in the terminal box and make it off on its M12 lug (ASSUMPTION)"
    },
-   "orderMm": 8600.0,
+   "orderMm": 8800.0,
    "bendMm": {
     "fixed": 60.0,
     "moving": 112.5,
@@ -9756,7 +10195,7 @@
      "kind": "drawn",
      "via": "CHG-LDN1",
      "where": "from its output block in the cabinet straight down through the gland plate, down the shaft through the pad, along the feed trench and into the cable channel, to the bed chain's fixed end",
-     "mm": 2700.3,
+     "mm": 2915.6,
      "tol": 0.0,
      "bend": 100.0,
      "moving": false,
@@ -9823,14 +10262,14 @@
      "range": null
     }
    ],
-   "routeMm": 8153.0,
+   "routeMm": 8368.3,
    "tolMm": 424.2,
    "tails": {
     "a": 30.0,
     "b": 100.0,
     "basis": "30 mm of conductor on into its output block's clamp (ASSUMPTION: the block maker's strip length); 100 mm to dress it in the terminal box and make it off on its M12 lug (ASSUMPTION)"
    },
-   "orderMm": 8800.0,
+   "orderMm": 9000.0,
    "bendMm": {
     "fixed": 60.0,
     "moving": 112.5,
@@ -9861,7 +10300,7 @@
      "kind": "drawn",
      "via": "CHG-LDN2",
      "where": "from its output block in the cabinet straight down through the gland plate, down the shaft through the pad, along the feed trench and into the cable channel, to the bed chain's fixed end",
-     "mm": 2726.3,
+     "mm": 2941.6,
      "tol": 0.0,
      "bend": 100.0,
      "moving": false,
@@ -9928,14 +10367,14 @@
      "range": null
     }
    ],
-   "routeMm": 8178.1,
+   "routeMm": 8393.4,
    "tolMm": 424.2,
    "tails": {
     "a": 30.0,
     "b": 100.0,
     "basis": "30 mm of conductor on into its output block's clamp (ASSUMPTION: the block maker's strip length); 100 mm to dress it in the terminal box and make it off on its M12 lug (ASSUMPTION)"
    },
-   "orderMm": 8800.0,
+   "orderMm": 9000.0,
    "bendMm": {
     "fixed": 60.0,
     "moving": 112.5,
@@ -9966,7 +10405,7 @@
      "kind": "drawn",
      "via": "CHG-LDN3",
      "where": "from its output block in the cabinet straight down through the gland plate, down the shaft through the pad, along the feed trench and into the cable channel, to the bed chain's fixed end",
-     "mm": 2752.2,
+     "mm": 2967.5,
      "tol": 0.0,
      "bend": 100.0,
      "moving": false,
@@ -10033,14 +10472,14 @@
      "range": null
     }
    ],
-   "routeMm": 8203.9,
+   "routeMm": 8419.2,
    "tolMm": 424.2,
    "tails": {
     "a": 30.0,
     "b": 100.0,
     "basis": "30 mm of conductor on into its output block's clamp (ASSUMPTION: the block maker's strip length); 100 mm to dress it in the terminal box and make it off on its M12 lug (ASSUMPTION)"
    },
-   "orderMm": 8800.0,
+   "orderMm": 9000.0,
    "bendMm": {
     "fixed": 60.0,
     "moving": 112.5,
@@ -10071,7 +10510,7 @@
      "kind": "drawn",
      "via": "CHG-LDN4",
      "where": "from its output block in the cabinet straight down through the gland plate, down the shaft through the pad, along the feed trench and into the cable channel, to the bed chain's fixed end",
-     "mm": 2778.1,
+     "mm": 2993.4,
      "tol": 0.0,
      "bend": 100.0,
      "moving": false,
@@ -10138,14 +10577,14 @@
      "range": null
     }
    ],
-   "routeMm": 8307.6,
+   "routeMm": 8522.9,
    "tolMm": 424.2,
    "tails": {
     "a": 30.0,
     "b": 100.0,
     "basis": "30 mm of conductor on into its output block's clamp (ASSUMPTION: the block maker's strip length); 100 mm to dress it in the terminal box and make it off on its M12 lug (ASSUMPTION)"
    },
-   "orderMm": 8900.0,
+   "orderMm": 9100.0,
    "bendMm": {
     "fixed": 60.0,
     "moving": 112.5,
@@ -10176,7 +10615,7 @@
      "kind": "drawn",
      "via": "CHG-LCS",
      "where": "from its socket in the cabinet, round the DC column and down through the gland plate, down the shaft through the pad, along the feed trench and into the cable channel, to the bed chain's fixed end",
-     "mm": 2862.3,
+     "mm": 3968.4,
      "tol": 0.0,
      "bend": 32.0,
      "moving": false,
@@ -10323,14 +10762,14 @@
      "range": null
     }
    ],
-   "routeMm": 15206.0,
+   "routeMm": 16312.1,
    "tolMm": 576.2,
    "tails": {
     "a": 0.0,
     "b": 241,
     "basis": "it is drawn 12 mm into its socket in the cabinet; 241 mm inside the head from the outlet housing to the farther connector, measured straight (its route among the head's parts is not drawn)"
    },
-   "orderMm": 16100.0,
+   "orderMm": 17200.0,
    "bendMm": {
     "fixed": 32.0,
     "moving": 60.0,
@@ -10348,7 +10787,7 @@
    ],
    "notes": [
     "One tube from the cabinet to the head, through both chains and all 4 boots, with no coupling on the way (2026-11-15: the schedule had joined a 12 x 8 hose in the chains to an 8 mm tube in the boots with a reducing coupling in CHG-PB0 that the model did not have).",
-    "Its loss at 2 L/min: about 0.6 bar over its 15.0 m (laminar, Re 2036); supply and return together about 1.2 bar before the connector's own channels, so the cooling unit's pump must give 2 L/min against about 2 bar (ASSUMPTION: the connector's loss; the flow and the coolant are those of Phoenix Contact's liquid-cooled CCS cables, 2 L/min of 50 % glycol, read 2026-11-15)."
+    "Its loss at 2 L/min: about 0.6 bar over its 16.1 m (laminar, Re 2036); supply and return together about 1.2 bar before the connector's own channels, so the cooling unit's pump must give 2 L/min against about 2 bar (ASSUMPTION: the connector's loss; the flow and the coolant are those a maker states for its liquid-cooled CCS cables, 2 L/min of 50 % glycol: source in charge_arm.py)."
    ],
    "open": []
   },
@@ -10366,7 +10805,7 @@
      "kind": "drawn",
      "via": "CHG-LCR",
      "where": "from its socket in the cabinet, round the DC column and down through the gland plate, down the shaft through the pad, along the feed trench and into the cable channel, to the bed chain's fixed end",
-     "mm": 2925.3,
+     "mm": 3994.4,
      "tol": 0.0,
      "bend": 32.0,
      "moving": false,
@@ -10513,14 +10952,14 @@
      "range": null
     }
    ],
-   "routeMm": 15268.2,
+   "routeMm": 16337.3,
    "tolMm": 576.2,
    "tails": {
     "a": 0.0,
     "b": 241,
     "basis": "it is drawn 12 mm into its socket in the cabinet; 241 mm inside the head from the outlet housing to the farther connector, measured straight (its route among the head's parts is not drawn)"
    },
-   "orderMm": 16100.0,
+   "orderMm": 17200.0,
    "bendMm": {
     "fixed": 32.0,
     "moving": 60.0,
@@ -10538,7 +10977,7 @@
    ],
    "notes": [
     "One tube from the cabinet to the head, through both chains and all 4 boots, with no coupling on the way (2026-11-15: the schedule had joined a 12 x 8 hose in the chains to an 8 mm tube in the boots with a reducing coupling in CHG-PB0 that the model did not have).",
-    "Its loss at 2 L/min: about 0.6 bar over its 15.1 m (laminar, Re 2036); supply and return together about 1.2 bar before the connector's own channels, so the cooling unit's pump must give 2 L/min against about 2 bar (ASSUMPTION: the connector's loss; the flow and the coolant are those of Phoenix Contact's liquid-cooled CCS cables, 2 L/min of 50 % glycol, read 2026-11-15)."
+    "Its loss at 2 L/min: about 0.6 bar over its 16.1 m (laminar, Re 2036); supply and return together about 1.3 bar before the connector's own channels, so the cooling unit's pump must give 2 L/min against about 2 bar (ASSUMPTION: the connector's loss; the flow and the coolant are those a maker states for its liquid-cooled CCS cables, 2 L/min of 50 % glycol: source in charge_arm.py)."
    ],
    "open": []
   },
@@ -10556,7 +10995,7 @@
      "kind": "drawn",
      "via": "CHG-LAR",
      "where": "from its socket in the cabinet, round the DC column and down through the gland plate, down the shaft through the pad, along the feed trench and into the cable channel, to the bed chain's fixed end",
-     "mm": 2419.0,
+     "mm": 2634.3,
      "tol": 0.0,
      "bend": 24.0,
      "moving": false,
@@ -10703,14 +11142,14 @@
      "range": null
     }
    ],
-   "routeMm": 14803.4,
+   "routeMm": 15018.7,
    "tolMm": 576.2,
    "tails": {
     "a": 0.0,
     "b": 241,
     "basis": "it is drawn 12 mm into its socket in the cabinet; 241 mm inside the head from the outlet housing to the farther connector, measured straight (its route among the head's parts is not drawn)"
    },
-   "orderMm": 15700.0,
+   "orderMm": 15900.0,
    "bendMm": {
     "fixed": 24.0,
     "moving": 45.0,
@@ -10745,7 +11184,7 @@
      "kind": "duct",
      "via": "CHG-CWR",
      "where": "inside the cabinet, planned: from its device, the arm controller (CHG-CAC) and the 48 V supply (CHG-CPS48), through it, through the wiring ducts (the top one and the right one) and down to the gland plate",
-     "mm": 2445.7,
+     "mm": 2097.5,
      "tol": 100.0,
      "bend": null,
      "moving": false,
@@ -10755,7 +11194,7 @@
      "kind": "drawn",
      "via": "CHG-LJS",
      "where": "from the cabinet's gland plate, down the shaft through the pad, along the feed trench and into the cable channel, to the bed chain's fixed end",
-     "mm": 1916.2,
+     "mm": 2131.5,
      "tol": 0.0,
      "bend": 83.0,
      "moving": false,
@@ -10812,14 +11251,14 @@
      "range": null
     }
    ],
-   "routeMm": 9720.8,
+   "routeMm": 9587.9,
    "tolMm": 524.2,
    "tails": {
     "a": 100.0,
     "b": 100.0,
     "basis": "100 mm to make it off at its device in the cabinet (ASSUMPTION); 100 mm inside the actuator to its drive board's connector (ASSUMPTION)"
    },
-   "orderMm": 10500.0,
+   "orderMm": 10400.0,
    "bendMm": {
     "fixed": 40.0,
     "moving": 75.0,
@@ -10848,7 +11287,7 @@
      "kind": "duct",
      "via": "CHG-CWR",
      "where": "inside the cabinet, planned: from its device, the arm controller (CHG-CAC), through the wiring ducts (the top one and the right one) and down to the gland plate",
-     "mm": 2374.8,
+     "mm": 2146.6,
      "tol": 100.0,
      "bend": null,
      "moving": false,
@@ -10858,7 +11297,7 @@
      "kind": "drawn",
      "via": "CHG-LTL",
      "where": "from the cabinet's gland plate, down the shaft through the pad, along the feed trench and into the cable channel, to the bed chain's fixed end",
-     "mm": 1933.3,
+     "mm": 2148.6,
      "tol": 0.0,
      "bend": 84.0,
      "moving": false,
@@ -11005,7 +11444,7 @@
      "range": null
     }
    ],
-   "routeMm": 16649.9,
+   "routeMm": 16637.0,
    "tolMm": 676.2,
    "tails": {
     "a": 100.0,
@@ -11045,7 +11484,7 @@
      "kind": "duct",
      "via": "CHG-CWR",
      "where": "inside the cabinet, planned: from its device, the safety controller (CHG-CSF), through the wiring ducts (the top one and the right one) and down to the gland plate",
-     "mm": 3447.4,
+     "mm": 1828.2,
      "tol": 100.0,
      "bend": null,
      "moving": false,
@@ -11055,7 +11494,7 @@
      "kind": "drawn",
      "via": "CHG-LSF",
      "where": "from the cabinet's gland plate, down the shaft through the pad, along the feed trench and into the cable channel, to the bed chain's fixed end",
-     "mm": 1947.2,
+     "mm": 2162.5,
      "tol": 0.0,
      "bend": 83.5,
      "moving": false,
@@ -11112,14 +11551,14 @@
      "range": null
     }
    ],
-   "routeMm": 10875.3,
+   "routeMm": 9471.4,
    "tolMm": 524.2,
    "tails": {
     "a": 100.0,
     "b": 100.0,
     "basis": "100 mm to make it off at its device in the cabinet (ASSUMPTION); 100 mm to make off at the 2 devices (ASSUMPTION)"
    },
-   "orderMm": 11600.0,
+   "orderMm": 10200.0,
    "bendMm": {
     "fixed": 36.0,
     "moving": 67.5,
@@ -11149,8 +11588,8 @@
     {
      "kind": "duct",
      "via": "CHG-CWR",
-     "where": "inside the cabinet, planned: from its device, its servo drive (CHG-CSD, the left one), through the wiring ducts (the top one and the right one) and down to the gland plate",
-     "mm": 2278.3,
+     "where": "inside the cabinet, planned: from its device, its servo drive (CHG-CSD, in the third row), through the wiring ducts (the top one and the right one) and down to the gland plate",
+     "mm": 1630.2,
      "tol": 100.0,
      "bend": null,
      "moving": false,
@@ -11160,7 +11599,7 @@
      "kind": "drawn",
      "via": "CHG-LMX",
      "where": "from the cabinet's gland plate, down the shaft through the pad, along the feed trench and into the cable channel, to the bed chain's fixed end",
-     "mm": 1963.0,
+     "mm": 2178.3,
      "tol": 0.0,
      "bend": 81.8,
      "moving": false,
@@ -11197,14 +11636,14 @@
      "range": null
     }
    ],
-   "routeMm": 7629.6,
+   "routeMm": 7196.7,
    "tolMm": 192.5,
    "tails": {
     "a": 100.0,
     "b": 0.0,
     "basis": "100 mm to make it off at its device in the cabinet (ASSUMPTION)"
    },
-   "orderMm": 8000.0,
+   "orderMm": 7500.0,
    "bendMm": {
     "fixed": 50.0,
     "moving": 93.75,
@@ -11232,8 +11671,8 @@
     {
      "kind": "duct",
      "via": "CHG-CWR",
-     "where": "inside the cabinet, planned: from its device, its servo drive (CHG-CSD, the right one), through the wiring ducts (the top one and the right one) and down to the gland plate",
-     "mm": 2204.7,
+     "where": "inside the cabinet, planned: from its device, its servo drive (CHG-CSD, in the top row), through the wiring ducts (the top one and the right one) and down to the gland plate",
+     "mm": 2191.5,
      "tol": 100.0,
      "bend": null,
      "moving": false,
@@ -11243,7 +11682,7 @@
      "kind": "drawn",
      "via": "CHG-LMZ",
      "where": "from the cabinet's gland plate, down the shaft through the pad, along the feed trench and into the cable channel, to the bed chain's fixed end",
-     "mm": 1984.5,
+     "mm": 2199.8,
      "tol": 0.0,
      "bend": 82.5,
      "moving": false,
@@ -11280,14 +11719,14 @@
      "range": null
     }
    ],
-   "routeMm": 8149.1,
+   "routeMm": 8351.2,
    "tolMm": 192.5,
    "tails": {
     "a": 100.0,
     "b": 0.0,
     "basis": "100 mm to make it off at its device in the cabinet (ASSUMPTION)"
    },
-   "orderMm": 8500.0,
+   "orderMm": 8700.0,
    "bendMm": {
     "fixed": 44.0,
     "moving": 82.5,
@@ -12388,284 +12827,19 @@
    "open": []
   },
   {
-   "id": "CHG-SDP1",
-   "name": "DC feed cable, DC+, core 1 of 2, 1 x 185 mm2",
-   "kind": "dc",
-   "od": 26.0,
-   "spec": "1 x 185 mm2 copper, class 5, 1 kV (ASSUMPTION: 2 cores a pole carry 500 A; the site's cable calculation sets them)",
-   "from": "the power unit's DC+ output (site: the power unit is not drawn)",
-   "to": "its lug on the DC+ input bar (CHG-CLG, CHG-CBI)",
-   "sub": "CABINET",
-   "runs": [
-    {
-     "kind": "site",
-     "via": "",
-     "where": "from the site's end in its ducts to under the cabinet's pad: the site's length, not in the model",
-     "mm": 0.0,
-     "tol": 0.0,
-     "bend": null,
-     "moving": false,
-     "range": null
-    },
-    {
-     "kind": "drawn",
-     "via": "CHG-SDP1",
-     "where": "up through the pad's site shaft and the right gland plate to its lug's barrel",
-     "mm": 416.6,
-     "tol": 0.0,
-     "bend": null,
-     "moving": false,
-     "range": null
-    }
-   ],
-   "routeMm": 416.6,
-   "tolMm": 0.0,
-   "tails": {
-    "a": 0.0,
-    "b": 0.0,
-    "basis": "its end at the site is the site's (not counted); its lug's barrel is crimped on its end"
-   },
-   "orderMm": 500.0,
-   "bendMm": {
-    "fixed": 104.0,
-    "moving": 0.0,
-    "tightestFixed": null,
-    "tightestMoving": null
-   },
-   "pieces": [
-    "CHG-SDP1"
-   ],
-   "notes": [],
-   "open": [
-    "Its run from the power unit is the site's: the power unit has no place on the site plan yet, so its length is not known."
-   ]
-  },
-  {
-   "id": "CHG-SDP2",
-   "name": "DC feed cable, DC+, core 2 of 2, 1 x 185 mm2",
-   "kind": "dc",
-   "od": 26.0,
-   "spec": "1 x 185 mm2 copper, class 5, 1 kV (ASSUMPTION: 2 cores a pole carry 500 A; the site's cable calculation sets them)",
-   "from": "the power unit's DC+ output (site: the power unit is not drawn)",
-   "to": "its lug on the DC+ input bar (CHG-CLG, CHG-CBI)",
-   "sub": "CABINET",
-   "runs": [
-    {
-     "kind": "site",
-     "via": "",
-     "where": "from the site's end in its ducts to under the cabinet's pad: the site's length, not in the model",
-     "mm": 0.0,
-     "tol": 0.0,
-     "bend": null,
-     "moving": false,
-     "range": null
-    },
-    {
-     "kind": "drawn",
-     "via": "CHG-SDP2",
-     "where": "up through the pad's site shaft and the right gland plate to its lug's barrel",
-     "mm": 416.6,
-     "tol": 0.0,
-     "bend": null,
-     "moving": false,
-     "range": null
-    }
-   ],
-   "routeMm": 416.6,
-   "tolMm": 0.0,
-   "tails": {
-    "a": 0.0,
-    "b": 0.0,
-    "basis": "its end at the site is the site's (not counted); its lug's barrel is crimped on its end"
-   },
-   "orderMm": 500.0,
-   "bendMm": {
-    "fixed": 104.0,
-    "moving": 0.0,
-    "tightestFixed": null,
-    "tightestMoving": null
-   },
-   "pieces": [
-    "CHG-SDP2"
-   ],
-   "notes": [],
-   "open": [
-    "Its run from the power unit is the site's: the power unit has no place on the site plan yet, so its length is not known."
-   ]
-  },
-  {
-   "id": "CHG-SDN1",
-   "name": "DC feed cable, DC-, core 1 of 2, 1 x 185 mm2",
-   "kind": "dc",
-   "od": 26.0,
-   "spec": "1 x 185 mm2 copper, class 5, 1 kV (ASSUMPTION: 2 cores a pole carry 500 A; the site's cable calculation sets them)",
-   "from": "the power unit's DC- output (site: the power unit is not drawn)",
-   "to": "its lug on the DC- input bar (CHG-CLG, CHG-CBI)",
-   "sub": "CABINET",
-   "runs": [
-    {
-     "kind": "site",
-     "via": "",
-     "where": "from the site's end in its ducts to under the cabinet's pad: the site's length, not in the model",
-     "mm": 0.0,
-     "tol": 0.0,
-     "bend": null,
-     "moving": false,
-     "range": null
-    },
-    {
-     "kind": "drawn",
-     "via": "CHG-SDN1",
-     "where": "up through the pad's site shaft and the right gland plate to its lug's barrel",
-     "mm": 416.6,
-     "tol": 0.0,
-     "bend": null,
-     "moving": false,
-     "range": null
-    }
-   ],
-   "routeMm": 416.6,
-   "tolMm": 0.0,
-   "tails": {
-    "a": 0.0,
-    "b": 0.0,
-    "basis": "its end at the site is the site's (not counted); its lug's barrel is crimped on its end"
-   },
-   "orderMm": 500.0,
-   "bendMm": {
-    "fixed": 104.0,
-    "moving": 0.0,
-    "tightestFixed": null,
-    "tightestMoving": null
-   },
-   "pieces": [
-    "CHG-SDN1"
-   ],
-   "notes": [],
-   "open": [
-    "Its run from the power unit is the site's: the power unit has no place on the site plan yet, so its length is not known."
-   ]
-  },
-  {
-   "id": "CHG-SDN2",
-   "name": "DC feed cable, DC-, core 2 of 2, 1 x 185 mm2",
-   "kind": "dc",
-   "od": 26.0,
-   "spec": "1 x 185 mm2 copper, class 5, 1 kV (ASSUMPTION: 2 cores a pole carry 500 A; the site's cable calculation sets them)",
-   "from": "the power unit's DC- output (site: the power unit is not drawn)",
-   "to": "its lug on the DC- input bar (CHG-CLG, CHG-CBI)",
-   "sub": "CABINET",
-   "runs": [
-    {
-     "kind": "site",
-     "via": "",
-     "where": "from the site's end in its ducts to under the cabinet's pad: the site's length, not in the model",
-     "mm": 0.0,
-     "tol": 0.0,
-     "bend": null,
-     "moving": false,
-     "range": null
-    },
-    {
-     "kind": "drawn",
-     "via": "CHG-SDN2",
-     "where": "up through the pad's site shaft and the right gland plate to its lug's barrel",
-     "mm": 416.6,
-     "tol": 0.0,
-     "bend": null,
-     "moving": false,
-     "range": null
-    }
-   ],
-   "routeMm": 416.6,
-   "tolMm": 0.0,
-   "tails": {
-    "a": 0.0,
-    "b": 0.0,
-    "basis": "its end at the site is the site's (not counted); its lug's barrel is crimped on its end"
-   },
-   "orderMm": 500.0,
-   "bendMm": {
-    "fixed": 104.0,
-    "moving": 0.0,
-    "tightestFixed": null,
-    "tightestMoving": null
-   },
-   "pieces": [
-    "CHG-SDN2"
-   ],
-   "notes": [],
-   "open": [
-    "Its run from the power unit is the site's: the power unit has no place on the site plan yet, so its length is not known."
-   ]
-  },
-  {
-   "id": "CHG-SAR",
-   "name": "Site air tube 12 x 9, polyurethane",
-   "kind": "air",
-   "od": 12.0,
-   "spec": "12 x 9 polyurethane",
-   "from": "the canopy's air main (site)",
-   "to": "the service air block's inlet (CHG-CAV, CHG-CAS12)",
-   "sub": "CABINET",
-   "runs": [
-    {
-     "kind": "site",
-     "via": "",
-     "where": "from the site's end in its ducts to under the cabinet's pad: the site's length, not in the model",
-     "mm": 0.0,
-     "tol": 0.0,
-     "bend": null,
-     "moving": false,
-     "range": null
-    },
-    {
-     "kind": "drawn",
-     "via": "CHG-SAR",
-     "where": "up through the pad's site shaft and the right gland plate, 12 mm into the inlet",
-     "mm": 622.6,
-     "tol": 0.0,
-     "bend": null,
-     "moving": false,
-     "range": null
-    }
-   ],
-   "routeMm": 622.6,
-   "tolMm": 0.0,
-   "tails": {
-    "a": 0.0,
-    "b": 0.0,
-    "basis": "its end at the site is the site's (not counted); it is drawn 12 mm into the inlet"
-   },
-   "orderMm": 700.0,
-   "bendMm": {
-    "fixed": 48.0,
-    "moving": 0.0,
-    "tightestFixed": null,
-    "tightestMoving": null
-   },
-   "pieces": [
-    "CHG-SAR"
-   ],
-   "notes": [],
-   "open": [
-    "Its run from the canopy's air main is the site's: add it from the site's layout."
-   ]
-  },
-  {
-   "id": "CHG-SAX",
-   "name": "Auxiliary supply cable 5 x 6 mm2",
+   "id": "CHG-SL1A",
+   "name": "AC feed conductor, L1, 1 of 2, 350 kcmil",
    "kind": "power",
-   "od": 15.0,
-   "spec": "5 x 6 mm2 (ASSUMPTION)",
-   "from": "the power unit's auxiliary output (ASSUMPTION: a split charger's post takes it there; else the canopy's board)",
-   "to": "the auxiliary isolator (CHG-CQS)",
+   "od": 21.0,
+   "spec": "350 kcmil copper, XHHW-2, 600 V (ASSUMPTION: 2 a phase for about 450 A at 480 V; the site's cable calculation sets them)",
+   "from": "its charger transformer's 480 V terminal L1 (TX-A1 to TX-C2, in the transformer yard)",
+   "to": "its lug on the L1 phase bar (CHG-CLA, CHG-CAT)",
    "sub": "CABINET",
    "runs": [
     {
      "kind": "site",
      "via": "",
-     "where": "from the site's end in its ducts to under the cabinet's pad: the site's length, not in the model",
+     "where": "from the site's end in its duct to under the charger's pad: the site's length, not in this schedule",
      "mm": 0.0,
      "tol": 0.0,
      "bend": null,
@@ -12674,51 +12848,51 @@
     },
     {
      "kind": "drawn",
-     "via": "CHG-SAX",
-     "where": "up through the pad's left site shaft and the left gland plate into the isolator from below",
-     "mm": 431.6,
+     "via": "CHG-SL1A",
+     "where": "up through the pad's left site shaft and the left gland plate to its lug's barrel",
+     "mm": 481.6,
      "tol": 0.0,
      "bend": null,
      "moving": false,
      "range": null
     }
    ],
-   "routeMm": 431.6,
+   "routeMm": 481.6,
    "tolMm": 0.0,
    "tails": {
     "a": 0.0,
-    "b": 100.0,
-    "basis": "its end at the site is the site's (not counted); 100 mm to make it off on the isolator's terminals (ASSUMPTION)"
+    "b": 0.0,
+    "basis": "its end at the site is the site's (not counted); its lug's barrel is crimped on its end"
    },
-   "orderMm": 600.0,
+   "orderMm": 500.0,
    "bendMm": {
-    "fixed": 60.0,
+    "fixed": 84.0,
     "moving": 0.0,
     "tightestFixed": null,
     "tightestMoving": null
    },
    "pieces": [
-    "CHG-SAX"
+    "CHG-SL1A"
    ],
-   "notes": [],
-   "open": [
-    "Its run from the power unit is the site's: the power unit has no place on the site plan yet, so its length is not known."
-   ]
+   "notes": [
+    "Its run in the duct bank from its transformer: 60.3 to 153.6 m by post, 107.0 m on average over the 30 posts, the site's and not in this schedule (measured on the site plan: src/lib/siteFeeders.ts; each post in cad/spec/robots.json, siteFeeders)."
+   ],
+   "open": []
   },
   {
-   "id": "CHG-SNW",
-   "name": "Network cable, industrial Cat 6A, site to cabinet",
-   "kind": "network",
-   "od": 8.0,
-   "spec": "industrial Cat 6A",
-   "from": "the depot's network switch (site)",
-   "to": "the network switch (CHG-CNS)",
+   "id": "CHG-SL1B",
+   "name": "AC feed conductor, L1, 2 of 2, 350 kcmil",
+   "kind": "power",
+   "od": 21.0,
+   "spec": "350 kcmil copper, XHHW-2, 600 V (ASSUMPTION: 2 a phase for about 450 A at 480 V; the site's cable calculation sets them)",
+   "from": "its charger transformer's 480 V terminal L1 (TX-A1 to TX-C2, in the transformer yard)",
+   "to": "its lug on the L1 phase bar (CHG-CLA, CHG-CAT)",
    "sub": "CABINET",
    "runs": [
     {
      "kind": "site",
      "via": "",
-     "where": "from the site's end in its ducts to under the cabinet's pad: the site's length, not in the model",
+     "where": "from the site's end in its duct to under the charger's pad: the site's length, not in this schedule",
      "mm": 0.0,
      "tol": 0.0,
      "bend": null,
@@ -12727,61 +12901,316 @@
     },
     {
      "kind": "drawn",
-     "via": "CHG-SNW",
-     "where": "up through the pad's left site shaft and the left gland plate into the left wiring duct",
-     "mm": 556.6,
+     "via": "CHG-SL1B",
+     "where": "up through the pad's left site shaft and the left gland plate to its lug's barrel",
+     "mm": 481.6,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 481.6,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 0.0,
+    "b": 0.0,
+    "basis": "its end at the site is the site's (not counted); its lug's barrel is crimped on its end"
+   },
+   "orderMm": 500.0,
+   "bendMm": {
+    "fixed": 84.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "CHG-SL1B"
+   ],
+   "notes": [
+    "Its run in the duct bank from its transformer: 60.3 to 153.6 m by post, 107.0 m on average over the 30 posts, the site's and not in this schedule (measured on the site plan: src/lib/siteFeeders.ts; each post in cad/spec/robots.json, siteFeeders)."
+   ],
+   "open": []
+  },
+  {
+   "id": "CHG-SL2A",
+   "name": "AC feed conductor, L2, 1 of 2, 350 kcmil",
+   "kind": "power",
+   "od": 21.0,
+   "spec": "350 kcmil copper, XHHW-2, 600 V (ASSUMPTION: 2 a phase for about 450 A at 480 V; the site's cable calculation sets them)",
+   "from": "its charger transformer's 480 V terminal L2 (TX-A1 to TX-C2, in the transformer yard)",
+   "to": "its lug on the L2 phase bar (CHG-CLA, CHG-CAT)",
+   "sub": "CABINET",
+   "runs": [
+    {
+     "kind": "site",
+     "via": "",
+     "where": "from the site's end in its duct to under the charger's pad: the site's length, not in this schedule",
+     "mm": 0.0,
      "tol": 0.0,
      "bend": null,
      "moving": false,
      "range": null
     },
     {
-     "kind": "duct",
-     "via": "CHG-CWL",
-     "where": "inside the cabinet, planned: up the left wiring duct and along the third row's duct to the switch",
-     "mm": 773.4,
-     "tol": 60.0,
+     "kind": "drawn",
+     "via": "CHG-SL2A",
+     "where": "up through the pad's left site shaft and the left gland plate to its lug's barrel",
+     "mm": 481.6,
+     "tol": 0.0,
      "bend": null,
      "moving": false,
      "range": null
     }
    ],
-   "routeMm": 1330.0,
-   "tolMm": 60.0,
+   "routeMm": 481.6,
+   "tolMm": 0.0,
    "tails": {
     "a": 0.0,
-    "b": 100.0,
-    "basis": "its end at the site is the site's (not counted); 100 mm to make it off at the switch (ASSUMPTION)"
+    "b": 0.0,
+    "basis": "its end at the site is the site's (not counted); its lug's barrel is crimped on its end"
    },
-   "orderMm": 1500.0,
+   "orderMm": 500.0,
    "bendMm": {
-    "fixed": 32.0,
+    "fixed": 84.0,
     "moving": 0.0,
     "tightestFixed": null,
     "tightestMoving": null
    },
    "pieces": [
-    "CHG-SNW"
+    "CHG-SL2A"
    ],
-   "notes": [],
-   "open": [
-    "Its run from the depot's network switch is the site's: add it from the site's layout."
-   ]
+   "notes": [
+    "Its run in the duct bank from its transformer: 60.3 to 153.6 m by post, 107.0 m on average over the 30 posts, the site's and not in this schedule (measured on the site plan: src/lib/siteFeeders.ts; each post in cad/spec/robots.json, siteFeeders)."
+   ],
+   "open": []
+  },
+  {
+   "id": "CHG-SL2B",
+   "name": "AC feed conductor, L2, 2 of 2, 350 kcmil",
+   "kind": "power",
+   "od": 21.0,
+   "spec": "350 kcmil copper, XHHW-2, 600 V (ASSUMPTION: 2 a phase for about 450 A at 480 V; the site's cable calculation sets them)",
+   "from": "its charger transformer's 480 V terminal L2 (TX-A1 to TX-C2, in the transformer yard)",
+   "to": "its lug on the L2 phase bar (CHG-CLA, CHG-CAT)",
+   "sub": "CABINET",
+   "runs": [
+    {
+     "kind": "site",
+     "via": "",
+     "where": "from the site's end in its duct to under the charger's pad: the site's length, not in this schedule",
+     "mm": 0.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "drawn",
+     "via": "CHG-SL2B",
+     "where": "up through the pad's left site shaft and the left gland plate to its lug's barrel",
+     "mm": 481.6,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 481.6,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 0.0,
+    "b": 0.0,
+    "basis": "its end at the site is the site's (not counted); its lug's barrel is crimped on its end"
+   },
+   "orderMm": 500.0,
+   "bendMm": {
+    "fixed": 84.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "CHG-SL2B"
+   ],
+   "notes": [
+    "Its run in the duct bank from its transformer: 60.3 to 153.6 m by post, 107.0 m on average over the 30 posts, the site's and not in this schedule (measured on the site plan: src/lib/siteFeeders.ts; each post in cad/spec/robots.json, siteFeeders)."
+   ],
+   "open": []
+  },
+  {
+   "id": "CHG-SL3A",
+   "name": "AC feed conductor, L3, 1 of 2, 350 kcmil",
+   "kind": "power",
+   "od": 21.0,
+   "spec": "350 kcmil copper, XHHW-2, 600 V (ASSUMPTION: 2 a phase for about 450 A at 480 V; the site's cable calculation sets them)",
+   "from": "its charger transformer's 480 V terminal L3 (TX-A1 to TX-C2, in the transformer yard)",
+   "to": "its lug on the L3 phase bar (CHG-CLA, CHG-CAT)",
+   "sub": "CABINET",
+   "runs": [
+    {
+     "kind": "site",
+     "via": "",
+     "where": "from the site's end in its duct to under the charger's pad: the site's length, not in this schedule",
+     "mm": 0.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "drawn",
+     "via": "CHG-SL3A",
+     "where": "up through the pad's left site shaft and the left gland plate to its lug's barrel",
+     "mm": 481.6,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 481.6,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 0.0,
+    "b": 0.0,
+    "basis": "its end at the site is the site's (not counted); its lug's barrel is crimped on its end"
+   },
+   "orderMm": 500.0,
+   "bendMm": {
+    "fixed": 84.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "CHG-SL3A"
+   ],
+   "notes": [
+    "Its run in the duct bank from its transformer: 60.3 to 153.6 m by post, 107.0 m on average over the 30 posts, the site's and not in this schedule (measured on the site plan: src/lib/siteFeeders.ts; each post in cad/spec/robots.json, siteFeeders)."
+   ],
+   "open": []
+  },
+  {
+   "id": "CHG-SL3B",
+   "name": "AC feed conductor, L3, 2 of 2, 350 kcmil",
+   "kind": "power",
+   "od": 21.0,
+   "spec": "350 kcmil copper, XHHW-2, 600 V (ASSUMPTION: 2 a phase for about 450 A at 480 V; the site's cable calculation sets them)",
+   "from": "its charger transformer's 480 V terminal L3 (TX-A1 to TX-C2, in the transformer yard)",
+   "to": "its lug on the L3 phase bar (CHG-CLA, CHG-CAT)",
+   "sub": "CABINET",
+   "runs": [
+    {
+     "kind": "site",
+     "via": "",
+     "where": "from the site's end in its duct to under the charger's pad: the site's length, not in this schedule",
+     "mm": 0.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "drawn",
+     "via": "CHG-SL3B",
+     "where": "up through the pad's left site shaft and the left gland plate to its lug's barrel",
+     "mm": 481.6,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 481.6,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 0.0,
+    "b": 0.0,
+    "basis": "its end at the site is the site's (not counted); its lug's barrel is crimped on its end"
+   },
+   "orderMm": 500.0,
+   "bendMm": {
+    "fixed": 84.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "CHG-SL3B"
+   ],
+   "notes": [
+    "Its run in the duct bank from its transformer: 60.3 to 153.6 m by post, 107.0 m on average over the 30 posts, the site's and not in this schedule (measured on the site plan: src/lib/siteFeeders.ts; each post in cad/spec/robots.json, siteFeeders)."
+   ],
+   "open": []
+  },
+  {
+   "id": "CHG-SEG",
+   "name": "Equipment ground, 1/0 AWG copper, green",
+   "kind": "power",
+   "od": 12.5,
+   "spec": "1/0 AWG copper, green (ASSUMPTION)",
+   "from": "its charger transformer's earth terminal (in the transformer yard)",
+   "to": "the charger's earth bar (CHG-CPE)",
+   "sub": "CABINET",
+   "runs": [
+    {
+     "kind": "site",
+     "via": "",
+     "where": "from the site's end in its duct to under the charger's pad: the site's length, not in this schedule",
+     "mm": 0.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "drawn",
+     "via": "CHG-SEG",
+     "where": "up through the pad's left site shaft and the left gland plate to the earth bar's clamp",
+     "mm": 356.6,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 356.6,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 0.0,
+    "b": 50.0,
+    "basis": "its end at the site is the site's (not counted); 50 mm into the earth bar's clamp (ASSUMPTION)"
+   },
+   "orderMm": 500.0,
+   "bendMm": {
+    "fixed": 50.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "CHG-SEG"
+   ],
+   "notes": [
+    "Its run in the duct bank from its transformer: 60.3 to 153.6 m by post, 107.0 m on average over the 30 posts, the site's and not in this schedule (measured on the site plan: src/lib/siteFeeders.ts; each post in cad/spec/robots.json, siteFeeders)."
+   ],
+   "open": []
   },
   {
    "id": "CHG-SPE",
-   "name": "Earth conductor 50 mm2, green-yellow",
+   "name": "Earth conductor 1/0 AWG, to the pad's earth electrode",
    "kind": "power",
    "od": 12.0,
-   "spec": "50 mm2 copper, green-yellow (ASSUMPTION)",
-   "from": "the site's earth (the power unit's earth bar and the depot's earth grid)",
-   "to": "the cabinet's earth bar (CHG-CPE)",
+   "spec": "1/0 AWG copper (ASSUMPTION)",
+   "from": "the earth electrode cast in the pad",
+   "to": "the charger's earth bar (CHG-CPE)",
    "sub": "CABINET",
    "runs": [
     {
      "kind": "site",
      "via": "",
-     "where": "from the site's end in its ducts to under the cabinet's pad: the site's length, not in the model",
+     "where": "from the site's end in its duct to under the charger's pad: the site's length, not in this schedule",
      "mm": 0.0,
      "tol": 0.0,
      "bend": null,
@@ -12816,10 +13245,126 @@
    "pieces": [
     "CHG-SPE"
    ],
+   "notes": [
+    "Its run down to the pad's earth electrode is about 1 m (ASSUMPTION), the site's."
+   ],
+   "open": []
+  },
+  {
+   "id": "CHG-SAR",
+   "name": "Site air tube 12 x 9, polyurethane",
+   "kind": "air",
+   "od": 12.0,
+   "spec": "12 x 9 polyurethane",
+   "from": "the canopy's air main (site)",
+   "to": "the service air block's inlet (CHG-CAV, CHG-CAS12)",
+   "sub": "CABINET",
+   "runs": [
+    {
+     "kind": "site",
+     "via": "",
+     "where": "from the site's end in its duct to under the charger's pad: the site's length, not in this schedule",
+     "mm": 0.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "drawn",
+     "via": "CHG-SAR",
+     "where": "up through the pad's small site shaft and the right gland plate, 12 mm into the inlet",
+     "mm": 622.6,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 622.6,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 0.0,
+    "b": 0.0,
+    "basis": "its end at the site is the site's (not counted); it is drawn 12 mm into the inlet"
+   },
+   "orderMm": 700.0,
+   "bendMm": {
+    "fixed": 48.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "CHG-SAR"
+   ],
    "notes": [],
    "open": [
-    "Its run from the site's earth is the site's: add it from the site's layout."
+    "Its run from the canopy's air main is the site's: the depot's compressed-air plant is not on the site plan yet."
    ]
+  },
+  {
+   "id": "CHG-SNW",
+   "name": "Network fibre, 2 x single-mode, armoured, site to charger",
+   "kind": "network",
+   "od": 6.0,
+   "spec": "single-mode fibre, 2 cores, armoured: the farthest posts are past a copper Ethernet channel's 100 m (src/lib/siteFeeders.ts)",
+   "from": "the depot's network switch (in the office: ASSUMPTION)",
+   "to": "the network switch's fibre port (CHG-CNS)",
+   "sub": "CABINET",
+   "runs": [
+    {
+     "kind": "site",
+     "via": "",
+     "where": "from the site's end in its duct to under the charger's pad: the site's length, not in this schedule",
+     "mm": 0.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "drawn",
+     "via": "CHG-SNW",
+     "where": "up through the pad's small site shaft and the right gland plate into the right wiring duct",
+     "mm": 436.6,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "CHG-CWR",
+     "where": "inside the charger, planned: up the right wiring duct and along the fourth row's duct to the switch",
+     "mm": 1273.5,
+     "tol": 60.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 1710.1,
+   "tolMm": 60.0,
+   "tails": {
+    "a": 0.0,
+    "b": 100.0,
+    "basis": "its end at the site is the site's (not counted); 100 mm to make it off at the switch's fibre port (ASSUMPTION)"
+   },
+   "orderMm": 1900.0,
+   "bendMm": {
+    "fixed": 24.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "CHG-SNW"
+   ],
+   "notes": [
+    "Its run in the duct bank from the office: 46.6 to 123.1 m by post, 84.8 m on average over the 30 posts, the site's and not in this schedule (measured on the site plan: src/lib/siteFeeders.ts; each post in cad/spec/robots.json, siteFeeders)."
+   ],
+   "open": []
   }
  ]
 }

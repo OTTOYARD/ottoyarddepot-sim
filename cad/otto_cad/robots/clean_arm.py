@@ -521,11 +521,17 @@ def build(spec: dict) -> Model:
             Location(), (0, 0, 0), 'LINK1')
     c1a = 80 + 5
     c1b = L1 - 0.9 * A['link1']['w'] * M / 2 + 4      # 4 mm past the top skin's opening (it stopped 58 mm short, over the J2 motor)
-    cover1 = cq.Workplane('XY').box(c1b - c1a, 3, A['link1']['w'] * M - 20).translate(((c1a + c1b) / 2, h1 / 2 + 1.5, 0))
+    # THE COVERS' SCREWS GRIP THE RIM (2026-11-15). Each cover was 20 mm narrower than its link and held by screws over the
+    # opening in the link's top skin (link 1's opening reaches z +/-71, its screws stood at +/-62), so they gripped only the
+    # cover. Now each cover is 4 mm narrower than its link and its screws stand on the rim, the top skin's flange between the
+    # opening and the side wall, where the skin takes the thread (6 mm in link 1, 5 mm in link 2).
+    cw1 = A['link1']['w'] * M - 4
+    cover1 = cq.Workplane('XY').box(c1b - c1a, 3, cw1).translate(((c1a + c1b) / 2, h1 / 2 + 1.5, 0))
     m.place(j1, m.part(PartDef('CLN-L1C', 'Link 1 top cover', cover1.val(), 'al6061_blk', 'structure', 'sheet 3 mm',
-                               f'{c1b - c1a:.0f} x 150', '', None, 'Closes the link. Off for service.', {}, 'make')), Location(), (0, 90, 0), 'LINK1')
+                               f'{c1b - c1a:.0f} x {cw1:.0f}', '', None, 'Closes the link. Off for service. Its screws grip the rim of the link\'s top.',
+                               {}, 'make')), Location(), (0, 90, 0), 'LINK1')
     for i in range(6):
-        for zz in (-62, 62):
+        for zz in (-77, 77):
             m.place(j1, std.bhcs(5, 10, 'A2-70', 'Holds the link cover.'),
                     std.orient((c1a + 10 + i * (c1b - c1a - 20) / 5, h1 / 2 + 3, zz), (0, -1, 0)), (0, 110, 0), 'LINK1')
     # the duct in link 1: from the J1 rotor's outlet (y 38) down a 90 degree mandrel bend to y -36, across to z = +40 (the J2
@@ -643,16 +649,17 @@ def build(spec: dict) -> Model:
     c2a, c2b = jr + 5, L2 - 145
     x_d2 = L2 - 180                                      # where the duct leaves link 2, up to the J3 union
     x_g, z_g = x_d2 - 20, 42.0                           # the arm cable's and the air tube's glands, either side of the duct
-    cover2 = (cq.Workplane('XY').box(c2b - c2a, 3, A['link2']['w'] * M - 20).translate(((c2a + c2b) / 2, -drop + h2 / 2 + 1.5, 0))
+    cw2 = A['link2']['w'] * M - 4                        # 4 mm narrower than the link: its screws grip the rim (see link 1's cover)
+    cover2 = (cq.Workplane('XY').box(c2b - c2a, 3, cw2).translate(((c2a + c2b) / 2, -drop + h2 / 2 + 1.5, 0))
               .cut(cq.Workplane('XZ', origin=(x_d2, -drop + h2 / 2 + 5, 0)).circle(29).extrude(10))
               .cut(cq.Workplane('XZ', origin=(x_g, -drop + h2 / 2 + 5, -z_g)).circle(10.2).extrude(10))     # M20 gland, the cable
               .cut(cq.Workplane('XZ', origin=(x_g, -drop + h2 / 2 + 5, z_g)).circle(8.2).extrude(10)))       # M16 gland, the tube
-    m.place(j2, m.part(PartDef('CLN-L2C', 'Link 2 top cover', cover2.val(), 'al6061_blk', 'structure', 'sheet 3 mm', f'{c2b - c2a:.0f} x 120',
+    m.place(j2, m.part(PartDef('CLN-L2C', 'Link 2 top cover', cover2.val(), 'al6061_blk', 'structure', 'sheet 3 mm', f'{c2b - c2a:.0f} x {cw2:.0f}',
                                '', None, 'Closes link 2. Off for service. The duct leaves through it to the J3 union, and the arm cable and the air '
                                'tube through 2 glands beside it.', {}, 'make')),
             Location(), (0, 70, 0), 'LINK2')
     for i in range(5):
-        for zz in (-52, 52):
+        for zz in (-61.5, 61.5):
             m.place(j2, std.bhcs(5, 10, 'A2-70', 'Holds the link cover.'), std.orient((c2a + 10 + i * (c2b - c2a - 20) / 4, -drop + h2 / 2 + 3, zz), (0, -1, 0)),
                     (0, 90, 0), 'LINK2')
 

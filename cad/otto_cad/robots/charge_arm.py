@@ -883,8 +883,8 @@ def build(spec: dict) -> Model:
     # side was a sentence. This block draws every line from the cabinet's floor to the carriage, and sizes the chains
     # from what is in them.
     #
-    # WHAT RUNS TO THE ARM. Everything comes from the cabinet (charge_cabinet.py): the post of a split charger, which
-    # takes its DC from a power unit elsewhere on the site, and houses the DC's fuses, contactors and output blocks, the
+    # WHAT RUNS TO THE ARM. Everything comes from the cabinet (charge_cabinet.py): an all-in-one 350 kW charger, fed with
+    # 480 V AC from its transformer, which makes the DC and houses the DC's fuses, contactors and output blocks, the
     # connector's cooling unit, the arm's controller with the rail's and the cross-slide's 2 servo drives, and the
     # service-air block (the air itself is the site's). The joints carry their own drives (actuator.py, DRV-), so the arm
     # takes one supply cable.
@@ -1005,9 +1005,10 @@ def build(spec: dict) -> Model:
     sh_z1 = Z_V0 + 60.0                                   # the shaft through the pad, toward the car
     z_wo = ZC - CH_W / 2                                  # the channel's rear wall, outside
     y_wt = deck - COV_T - LIN_T                           # the liners' walls end here; a seat flange lies on them, the covers on it
-    # THE CABINET (charge_cabinet.py, 2026-11-15): drawn with its inside, its wiring and its site feeds, where it was an
-    # envelope. Each supply line's path inside it is drawn as part of the line below (to its output block, its socket on
-    # the cooling unit or the air block, or for a small cable to the gland plate), and the pad takes its 2 site shafts.
+    # THE CHARGER (charge_cabinet.py, 2026-11-15): an all-in-one 350 kW charger, drawn with its inside, its wiring and its
+    # site feeds, where it was an envelope. Each supply line's path inside it is drawn as part of the line below (to its
+    # output block, its socket on the cooling unit or the air block, or for a small cable to the gland plate), and the pad
+    # takes its 2 site shafts.
     from .charge_cabinet import build_cabinet
     cabg = build_cabinet(m, site, cab, pad_top, deck,
                          {ln['id']: (X_C + ln['r'] + BED_X, Z_V0 + (ln['y'] - y_l0), ln['d']) for ln in LANES})
@@ -1068,7 +1069,7 @@ def build(spec: dict) -> Model:
                                  'Carries the cabinet. Cast by the site works, with a shaft under the cabinet for the supply lines and 2 '
                                  'for the site\'s feeds.',
                                  {'shaft': f'{ft_x1 - ft_x0:.0f} x {sh_z1 - ft_z0:.0f} mm, under the cabinet\'s floor',
-                                  'site shafts': 'behind it for the DC feed and the air; at the left for the auxiliary supply, the network and the earth'},
+                                  'site shafts': 'at the left for the AC feed and the 2 earths; behind the arm\'s shaft for the network and the air'},
                                  'make', reference=True)),
             Location(), (0, -250, 0))
 
@@ -1756,7 +1757,7 @@ def build(spec: dict) -> Model:
         SW_T=SW_T, K_FIXED=K_FIXED, K_CHAIN=K_CHAIN, R_CH=R_CH, db_z0=db_z0, db_z1=db_z1, win_y0=win_y0, DU_H=DU_H,
         sp_x0=sp_x0, sp_x1=sp_x1, da_x0=da_x0, da_x1=da_x1, riser_w=riser_w, tw=tw, y_gm=y_gm, z_gm=z_gm, R_SV=R_SV,
         y_q=y_q, z_q=z_q, acts=_c['acts'], ring=_c['ring'], base=base, j1=j1, j2=j2, j3=j3, tool=tool, LU=LU, LF=LF, R_BOOT=R_BOOT,
-        MB_BOOT=MB_BOOT, arm_lines=arm_lines, copper=copper, cabg=cabg))
+        MB_BOOT=MB_BOOT, arm_lines=arm_lines, copper=copper, cabg=cabg, site_feeders=S.get('siteFeeders') or {}))
     return m
 
 
@@ -1973,8 +1974,8 @@ def _cable_schedule(m: Model, g: dict) -> None:
         dp = 128 * MU * run_m * Q / (math.pi * D_IN ** 4) / 1e5
         L.notes.append(f'Its loss at 2 L/min: about {dp:.1f} bar over its {run_m:.1f} m (laminar, Re {re_:.0f}); supply and return '
                        f'together about {2 * dp:.1f} bar before the connector\'s own channels, so the cooling unit\'s pump must give '
-                       '2 L/min against about 2 bar (ASSUMPTION: the connector\'s loss; the flow and the coolant are those of '
-                       'Phoenix Contact\'s liquid-cooled CCS cables, 2 L/min of 50 % glycol, read 2026-11-15).')
+                       '2 L/min against about 2 bar (ASSUMPTION: the connector\'s loss; the flow and the coolant are those a '
+                       'maker states for its liquid-cooled CCS cables, 2 L/min of 50 % glycol: source in charge_arm.py).')
     # THE CHARGE CURRENT up the arm: 4 braided links in boots and 2 pairs of copper bars, box to box
     boxes = {'CHG-PB0': (g['base'], PB0), 'CHG-PB1': (j1, (0.0, 265.0, -190.0)), 'CHG-PB2': (j2, (0.0, 300.0, -155.0)),
              'CHG-PB3': (j2, (0.0, LU - 250.0, -125.0)), 'CHG-PB4': (j3, (FORE_JOG[0], 250.0, -120.0)), 'CHG-PB5': (j3, (100.0, LF - 420.0, 0.0))}
@@ -2026,39 +2027,57 @@ def _cable_schedule(m: Model, g: dict) -> None:
         L.notes.append('Drawn and in the bill of materials since 2026-11-15 (until then the terminal boxes alone described it).')
     joint_cables(m, g['acts'], 'CHG-JC', KF)
     ring_leads(m, g['ring'], 'CHG-')
-    # ── what the cabinet takes from the site (charge_cabinet.py): each drawn from the pad's underside, where the site's duct
-    # brings it, up to what it serves. The site's run to it is not in the model: the DC feed's and the auxiliary supply's
-    # wait on where the power unit stands, which the site plan does not show yet.
+    # ── what the charger takes from the site (charge_cabinet.py): each drawn from the pad's underside, where the site's duct
+    # bank brings it, up to what it serves. Its run in the duct bank is the site's, not this robot's: each post's length is
+    # measured on the site plan (src/lib/siteFeeders.ts, written into cad/spec/robots.json as siteFeeders by cadSpec.ts),
+    # and the notes quote it. Only the air is open: the depot's compressed-air plant is not on the site plan.
     P = m.parts
-    unit = 'Its run from the power unit is the site\'s: the power unit has no place on the site plan yet, so its length is not known.'
     site_end = 'its end at the site is the site\'s (not counted)'
+    posts = g['site_feeders'].get('posts', [])
+
+    def by_post(key: str, what: str) -> str:
+        vals = [p[key] for p in posts if p.get(key) is not None]
+        if not vals:
+            return ''
+        return (f'{what}: {min(vals):.1f} to {max(vals):.1f} m by post, {sum(vals) / len(vals):.1f} m on average over the {len(vals)} '
+                'posts, the site\'s and not in this schedule (measured on the site plan: src/lib/siteFeeders.ts; each post in '
+                'cad/spec/robots.json, siteFeeders).')
     feeds = []
-    for k, pole in ((1, '+'), (2, '+'), (1, '-'), (2, '-')):
-        feeds.append((f'CHG-SD{"P" if pole == "+" else "N"}{k}', 'dc', 26.0,
-                      '1 x 185 mm2 copper, class 5, 1 kV (ASSUMPTION: 2 cores a pole carry 500 A; the site\'s cable calculation sets them)',
-                      f'the power unit\'s DC{pole} output (site: the power unit is not drawn)', f'its lug on the DC{pole} input bar (CHG-CLG, CHG-CBI)',
-                      'up through the pad\'s site shaft and the right gland plate to its lug\'s barrel', 0.0, 'its lug\'s barrel is crimped on its end', unit))
+    for i in range(6):
+        ph, k = i // 2 + 1, i % 2 + 1
+        feeds.append((f'CHG-SL{ph}{"AB"[k - 1]}', 'power', 21.0,
+                      '350 kcmil copper, XHHW-2, 600 V (ASSUMPTION: 2 a phase for about 450 A at 480 V; the site\'s cable calculation sets them)',
+                      f'its charger transformer\'s 480 V terminal L{ph} (TX-A1 to TX-C2, in the transformer yard)',
+                      f'its lug on the L{ph} phase bar (CHG-CLA, CHG-CAT)',
+                      'up through the pad\'s left site shaft and the left gland plate to its lug\'s barrel', 0.0, 'its lug\'s barrel is crimped on its end', 'ac'))
     feeds += [
+        ('CHG-SEG', 'power', 12.5, '1/0 AWG copper, green (ASSUMPTION)', 'its charger transformer\'s earth terminal (in the transformer yard)',
+         'the charger\'s earth bar (CHG-CPE)', 'up through the pad\'s left site shaft and the left gland plate to the earth bar\'s clamp', 50.0,
+         '50 mm into the earth bar\'s clamp (ASSUMPTION)', 'ac'),
+        ('CHG-SPE', 'power', 12.0, '1/0 AWG copper (ASSUMPTION)', 'the earth electrode cast in the pad', 'the charger\'s earth bar (CHG-CPE)',
+         'up through the pad\'s left site shaft and the left gland plate to the earth bar\'s clamp', 50.0, '50 mm into the earth bar\'s clamp (ASSUMPTION)', 'pad'),
         ('CHG-SAR', 'air', 12.0, '12 x 9 polyurethane', 'the canopy\'s air main (site)', 'the service air block\'s inlet (CHG-CAV, CHG-CAS12)',
-         'up through the pad\'s site shaft and the right gland plate, 12 mm into the inlet', 0.0, 'it is drawn 12 mm into the inlet',
-         'Its run from the canopy\'s air main is the site\'s: add it from the site\'s layout.'),
-        ('CHG-SAX', 'power', 15.0, '5 x 6 mm2 (ASSUMPTION)', 'the power unit\'s auxiliary output (ASSUMPTION: a split charger\'s post takes it '
-         'there; else the canopy\'s board)', 'the auxiliary isolator (CHG-CQS)', 'up through the pad\'s left site shaft and the left gland plate '
-         'into the isolator from below', BOX_TAIL, f'{BOX_TAIL:.0f} mm to make it off on the isolator\'s terminals (ASSUMPTION)', unit),
-        ('CHG-SNW', 'network', 8.0, 'industrial Cat 6A', 'the depot\'s network switch (site)', 'the network switch (CHG-CNS)',
-         'up through the pad\'s left site shaft and the left gland plate into the left wiring duct', BOX_TAIL,
-         f'{BOX_TAIL:.0f} mm to make it off at the switch (ASSUMPTION)', 'Its run from the depot\'s network switch is the site\'s: add it from the site\'s layout.'),
-        ('CHG-SPE', 'power', 12.0, '50 mm2 copper, green-yellow (ASSUMPTION)', 'the site\'s earth (the power unit\'s earth bar and the depot\'s earth grid)',
-         'the cabinet\'s earth bar (CHG-CPE)', 'up through the pad\'s left site shaft and the left gland plate to the earth bar\'s clamp', 50.0,
-         '50 mm into the earth bar\'s clamp (ASSUMPTION)', 'Its run from the site\'s earth is the site\'s: add it from the site\'s layout.')]
-    for (lid, kind, od, spec, frm, to, where, tail_b, basis, open_) in feeds:
+         'up through the pad\'s small site shaft and the right gland plate, 12 mm into the inlet', 0.0, 'it is drawn 12 mm into the inlet', 'air'),
+        ('CHG-SNW', 'network', 6.0, 'single-mode fibre, 2 cores, armoured: the farthest posts are past a copper Ethernet channel\'s 100 m '
+         '(src/lib/siteFeeders.ts)', 'the depot\'s network switch (in the office: ASSUMPTION)', 'the network switch\'s fibre port (CHG-CNS)',
+         'up through the pad\'s small site shaft and the right gland plate into the right wiring duct', BOX_TAIL,
+         f'{BOX_TAIL:.0f} mm to make it off at the switch\'s fibre port (ASSUMPTION)', 'net')]
+    for (lid, kind, od, spec, frm, to, where, tail_b, basis, src) in feeds:
         L = m.cable(lid, P[lid].name, kind, od, spec, frm, to, 'CABINET', bend_fixed=4 * od, tail_b=tail_b, tails=f'{site_end}; {basis}')
-        L.run('site', '', 'from the site\'s end in its ducts to under the cabinet\'s pad: the site\'s length, not in the model', 0.0)
+        L.run('site', '', 'from the site\'s end in its duct to under the charger\'s pad: the site\'s length, not in this schedule', 0.0)
         L.run('drawn', lid, where, P[lid].path_mm)
         if lid == 'CHG-SNW':
-            L.run('duct', 'CHG-CWL', 'inside the cabinet, planned: up the left wiring duct and along the third row\'s duct to the switch',
+            L.run('duct', 'CHG-CWR', 'inside the charger, planned: up the right wiring duct and along the fourth row\'s duct to the switch',
                   bent_length(g['cabg']['planned']['CHG-SNW'][0], 0.0)[0], tol=60.0)
-        L.open.append(open_)
+        note = {'ac': by_post('acM', 'Its run in the duct bank from its transformer'),
+                'net': by_post('netM', 'Its run in the duct bank from the office'),
+                'pad': 'Its run down to the pad\'s earth electrode is about 1 m (ASSUMPTION), the site\'s.'}.get(src, '')
+        if note:
+            L.notes.append(note)
+        elif src == 'air':
+            L.open.append('Its run from the canopy\'s air main is the site\'s: the depot\'s compressed-air plant is not on the site plan yet.')
+        else:
+            L.open.append('Its run in the site\'s duct bank is not measured: cad/spec/robots.json has no siteFeeders (run cadSpec).')
 
 
 RING_TAIL = 40.0        # into a ring's diffuser through its grommet, to the strip's pads (ASSUMPTION)
