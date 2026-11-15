@@ -51,7 +51,13 @@ must be valid (`build.py step_check`), or the build stops. A part id defined twi
 CAD_SPEC_WRITE=1 npx vitest run src/lib/robotics/cadPoses.test.ts   # only if the twin's poses changed
 cad/.venv/bin/python cad/clash.py --baseline                          # after build.py; all three, about 30 min
 cad/.venv/bin/python cad/clash.py wash_gantry --stowed                # one robot, stowed pose, prints only
+cad/.venv/bin/python cad/line_ends.py                                 # after build.py: every rigid line's both ends, a few minutes
 ```
+
+`line_ends.py` checks what the contact test cannot: a cable, hose, tube or conduit held at one end passes the contact
+test with its other end in the air. Each rigid line's 2 ends must come within 1 mm of another part (an end drawn inside
+a duct's bore by design is declared on its part, `PartDef.end_in`; a line that feeds a cable chain runs on in it). It
+writes `public/cad/<robot>.ends.json` with the GLB's digest, and `cadEnds.test.ts` holds every report to no open end.
 
 It places every part at the stowed pose and at each of the twin's poses (`cad/spec/poses.json`), measures the volume
 every overlapping pair shares, and checks that every part touches another, in one connected piece

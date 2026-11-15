@@ -15,7 +15,7 @@ designed part by part to the last screw, and a tab that shows them.
 
 | | |
 |---|---|
-| `cad/` | the CAD program (Python, CadQuery 2.8 on OpenCascade 7.9): `otto_cad/std.py` standard parts, `actuator.py` the robot joint, `robots/*.py` the three machines, `build.py` the build, `clash.py` and `otto_cad/check.py` the clash check. `cad/README.md` says how to run it; `cad/SOURCES.md` lists every external fact and assumption. |
+| `cad/` | the CAD program (Python, CadQuery 2.8 on OpenCascade 7.9): `otto_cad/std.py` standard parts, `actuator.py` the robot joint, `robots/*.py` the three machines, `build.py` the build, `clash.py` and `otto_cad/check.py` the clash check, `line_ends.py` the line-ends check, `otto_cad/cables.py` the cable schedule. `cad/README.md` says how to run it; `cad/SOURCES.md` lists every external fact and assumption. |
 | `cad/spec/robots.json`, `cad/spec/poses.json` | the robots' interface dimensions and the twin's poses for the clash check, written by `src/lib/robotics/cadSpec.ts` and `cadPoses.ts` from the twin's own code |
 | `public/cad/` | the outputs: `<robot>.step.zip` (the CAD), `<robot>.glb` (the same assembly for the web), `<robot>.bom.json/.csv` (the bill of materials), `<robot>.clash.json` (the clash report), `manifest.json` |
 | `src/lib/robotics/` | `cadSpec.ts` (the spec bridge), `cadModel.ts` (load, pose, explode, isolate, pick), `catalog.ts` (data, words, pose presets and run steps from the twin's code) |
@@ -531,6 +531,42 @@ The poses found more, which the stowed pose could not show:
     an 8 mm plate, which cannot take its G 1/4 thread). The camera's and the force sensor's signals could instead ride
     the joints' own network to a connector at J6, but no such connector is drawn. The camera, the J6 socket and the car
     stand within a few centimetres of that path, so it needs its own design pass and clash check.
+20. **Up close, the yard drew the robots coarsely, and close inspection found gaps.** Chase, 2026-11-15: *"If you are close enough
+    there's discrepancies between some of the robotics and floating items or just square opaque systems ... There cannot
+    be gaps between cables randomly plugging into charging system or just floating off of robotic arms with gaps ... I
+    need super high-level 4K detail when it comes to some of these integrations from a robotic standpoint."* He was
+    right. Up close the yard drew each robot from its depot model (no fasteners, coarse, some parts as boxes), and
+    measured against the CAD the models had real defects:
+    - **Lines that stopped short of what they plug into.** Each boot of the charge arm's power path ended bare on its
+      box's face; the forearm's sat 20 mm off the casting (its box is inside the hollow forearm), and the wrist boot sat
+      12 mm past an M50 gland too small for a 60 mm boot. Each boot now ends in a fitting it slides 18 mm into: CHG-BFT
+      on a box's face, and CHG-BF1B, CHG-BF3B and CHG-BF4A cut to the casting they stand on. The head's outlet takes the
+      wrist boot in a boot outlet adapter (CHG-BTO) where the gland was. The clean arm's wand cable stopped 4.6 mm short
+      of the knuckle: an entry block (CLN-WCE) now takes its end, and a boss on the knuckle now carries the nozzle air
+      loop's fitting, which stood off it.
+    - **Parts that hung in the air.** The wash machine's side air knives slid on a joint with nothing to slide on. A
+      toothed belt axis under the beam now carries each one, with its carriage, its hanger and its gearmotor (WSH-SAX,
+      WSH-SAC, WSH-SAH, WSH-SAM). The arm chains ran to the pedestals with no duct between: an elbow duct bolted to each
+      pedestal now takes their lines (WSH-DCXL, WSH-DCXR).
+    - **Boxes where the parts are.** The yard drew each cable chain as a box. It now draws each chain link by link, with
+      each line in its own lane inside. The emergency stop was one red solid. It is now its yellow housing and its red mushroom.
+    - **Tubes drawn inside out.** The viewer's tube mesh wound its faces the wrong way, in the yard and in the tab, so a
+      line showed its far wall. Fixed, with end caps.
+    - **A rigid line's far end, which the contact test cannot see.** The contact test passes a part that touches
+      anything, so a cable held at one end passes with its other end in the air. A new check, `cad/line_ends.py`, holds
+      both ends of each rigid line (`cadEnds.test.ts`), and it found 2 such ends on the clean arm. The hybrid cable to the mast reel
+      began 6 mm under the mast collar's foot, 28 mm from any part. It now leaves the mast top through an outlet on the
+      collar (CLN-MOB). The wrist's fixed air line stopped 1 mm short of its clamp, and now reaches it.
+    - **A boot that bent past its limit, and no test found it.** At the Tesla Cybercab's mate pose the J2 link bent to 65
+      mm, and its boot allows 80. The duty-cycle sweep never visited that pose. With its ends straight in their collars it
+      bent to 53 mm and cut its collar, and the clash check found it. The link is now 1,200 mm and bulges toward the
+      turret only: 141 mm at that pose. The wrist link is now 1,250 mm, with half its bulge from its own weight: 88 mm.
+      `cadFlex.test.ts` now also sweeps each fleet car's mate pose.
+    **Up close, the yard now draws the CAD itself** (see "Up close: the detail model", below). `cadDetail.test.ts` measures
+    what this finding fixed, on all 3 models: no part floats (each part touches what holds it, within 1 mm on the full
+    and detail models and 10 mm on the coarse depot model). Each line's end sits in what holds it, at each twin pose.
+    Each line that a chain carries stays inside the links and keeps its length. No part that the detail model leaves out
+    can be seen. **The cable schedule** (below) gives the rest of what was asked: each line's full route and length.
 
 The audit also found the wash machine's tools fed by rigid pipes that could not follow them. They now have flexible
 lines that do (below). (The wands' vacuum units and the side brushes' chains it added went with finding 17.)
@@ -604,6 +640,59 @@ against 280). The brushes, the vacuum wands and their reels and chains went with
 
 Each line's minimum bend radius, mass and standard are in the bill of materials and `cad/SOURCES.md`.
 
+## The cable schedule
+
+Chase, 2026-11-15: *"I know the exact pieces and length of certain cables and exact routing of electrical wire and
+distances of machinery and parts that I will need."* The parts list counts a line only in the pieces the CAD draws. A
+DC core read `D 15 x 1822` there, its piece in the feed trench. From the cabinet to the riser's terminal box the 8
+cores run 7.29 to 7.53 m, by their lanes. Bought from the parts list, they would have been cut short. **The cable schedule lists each cable, hose and tube
+once, from the device it leaves to the one it reaches, with each piece of its route** (`cad/otto_cad/cables.py`: each
+robot's builder declares its lines, and `cables.finish` completes and checks them). The build writes it into each parts
+list (`cables`) and as `public/cad/<robot>.cables.csv`. The Robotics tab lists it in the robot's overview, and each part
+that is a piece of a line names that line in its card ("in the cable schedule").
+
+How the length of each piece is known:
+
+| piece | its length |
+|---|---|
+| drawn | the line is drawn there as its own solid: its drawn centreline |
+| conduit | in a drawn conduit, tube or pipe: the conduit's centreline |
+| chain | in a cable chain, in its own lane: links x pitch - pi x v, the same at every pose |
+| boot | in a moving boot: the boot's length, and the slack that its worst bend over the twin's poses asks of a line at its wall |
+| reel | on a spring reel: what the reel holds (its range in use over the twin's poses is given) |
+| loop | a free loop of fixed length |
+| duct | through a duct, a box or a hollow link that the CAD draws without the lines in it: a planned route through it, its corners on the line's own bend radius, +/- what its place in the duct can change (half the inside width at each turn) |
+| arm | inside the arm where no duct is drawn: a planned route between 2 points of the model, +/- its dressing |
+| site | outside the machine: what the model shows, and the rest is the site's |
+
+A line's **order length** is its route, its tolerance and its 2 tails (the length to make it off inside the box or the
+cabinet at each end, with the basis given), rounded up to 0.1 m. The build stops on a piece in a part the model does
+not have, or a bend tighter than its line allows.
+
+| robot | lines | route | to order |
+|---|---|---|---|
+| OTTO-CHARGE ARM | 36 | 159.4 m | 196.3 m |
+| OTTO-CLEAN ARM | 16 | 13.2 m | 17.6 m |
+| OTTO-WASH | 46 | 365.8 m | 396.4 m |
+
+**What it found,** each an open item on its line in the schedule:
+- The charge arm's safety cable serves the scanner and the emergency stop on the riser. By the model's own words it also
+  serves the status light rings on J2 and on the wrist, but the boots' contents do not include it, and no route reaches
+  the rings.
+- The charge arm's supply chains carry 12 x 8 coolant hoses and an 8 x 6 air tube. Its boots carry 8 mm coolant tubes
+  and a 6 mm air line. The schedule joins them with reducing couplings in the riser's terminal box (ASSUMPTION). If
+  one line were to run through, a 12 mm hose would need 90 mm of bend where it moves (7.5 x d), and the J3 and wrist
+  boots bend to 84 and 88 mm.
+- The charge arm's 4 copper bars (2 in the upper arm, 2 in the forearm) are not drawn and are not in the parts list:
+  only the terminal boxes describe them. The schedule gives their length from box to box.
+- The wash machine's side-knife gearmotors (added on 2026-11-15, finding 20) have no conduit yet. Each motor hangs
+  under its belt axis, so its cable needs a sleeve through the beam's decks and an entry in its side. The schedule
+  gives the trunk's piece and a straight estimate of the rest.
+- The wash arms' pure-water tube ends in the pedestal. No route up the arm to the mist nozzle is drawn (finding 19).
+- The charge arm's DC cabinet is drawn as its envelope. The length of each line inside it (1.5 m, ASSUMPTION) is for
+  the cabinet maker to confirm. The clean arm's supply and network cables also run along the canopy's tray from its
+  board, and that length is the site's.
+
 ## The CAD in the yard
 
 The depot's 3D view draws every OTTO-CHARGE ARM, OTTO-CLEAN ARM and OTTO-WASH from its CAD, in place of the simple
@@ -642,6 +731,21 @@ and 0.33 MB; 23,760, 15,156 and 9,618 triangles in their meshes.
   go with the procedural robots.
 - **Until the CAD has loaded, or if it cannot** (it is fetched once, on first view), the yard draws the procedural
   robots as before, and says so once in the console.
+
+**Up close: the detail model** (2026-11-15, finding 20). The build writes a third model of each robot, the **detail
+model** (`public/cad/<robot>.near.glb`, `glb.py` `lod='near'`): every part of the full CAD that can be seen, as finely
+as the Robotics tab draws it, fasteners, fittings and chain links included. It leaves out only the parts sealed inside
+each joint actuator (its gear set, motor, brake, encoders, drive board, bearings and seals: `Item.sealed`) and the lines
+under the yard's deck or in the cabinet's pad (`Item.yard_hidden`). 6.36, 3.07 and 6.61 MB; 304,631, 154,028 and
+310,389 triangles in their meshes (the depot models: 35,160, 23,932 and 35,654).
+- **Which robots draw it.** Each frame, the director in `robotics/cadDetail.ts` picks the robots of each kind nearest
+  the camera and in its view: up to 4 charge arms and 4 clean arms within 16 m, and 2 wash machines within 22 m. It
+  releases them past 19 m and 26 m, so a robot at the edge does not flicker. It fetches a kind's detail model the first
+  time one of its robots comes near. A robot it picks draws in its kind's detail fleet and its depot slot stays empty.
+  The two models have the same joints, so one skeleton poses both (`RobotDetail.tsx`, `detailDraw.ts`).
+- **One render quality.** The choice is by distance and view only. A slow frame never lowers the picture.
+- **Its lines too.** Up close, each tube has 16 sides and each chain is drawn link by link, with the lines that the
+  chain carries in their lanes (`flexMesh.ts`, `NEAR_FLEX_OPTIONS`).
 
 **Held to everything the procedural robots were held to** (`cadYard.test.ts`, on the depot model's own geometry, against
 the twin's car, doors, cabin, seats, cabinet and buildings, at the twin's poses):
@@ -730,9 +834,13 @@ design data and PULSE shows what each machine is doing now.
 - The contact test proves that each part touches another within 0.3 mm, not that it is fastened: a part that only
   rests against its neighbour passes. Screws are checked against the threads the CAD does not draw only by volume
   (the overlap must lie inside the screw's own hole cylinder, below its head).
-- The depot's 3D view draws the CAD's depot model, not the full CAD: fasteners and parts inside the actuators are
-  left out and curved faces are coarser (a curved face is within about 1% of its part's size). The 2D plan still draws
-  each robot's outline from the twin's kinematic points (`robotPlan.ts`).
+- Far from the camera, the depot's 3D view draws the CAD's depot model, not the full CAD: fasteners and parts inside
+  the actuators are left out, and curved faces are coarser (a curved face is within about 1% of its part's size). Up
+  close it draws the detail model: every part that can be seen, the parts sealed inside the actuators left out. The 2D
+  plan still draws each robot's outline from the twin's kinematic points (`robotPlan.ts`).
+- The cable schedule's duct and arm pieces are planned routes, not lines drawn one by one: their tolerance says how
+  much the dressing can change them. Its joint cables are straight between 2 points of the model, plus up to a quarter
+  for their dressing in the casting. Its tails are assumptions, each one stated.
 - The yard's clearance tests sample the depot model's vertices, as the procedural tests sample the procedural robots'.
   The two-arm test covers the pairs the twin's interlock lets happen (the clean arm goes out over the car only while
   the charge arm is stowed or latched; the charge arm moves only while the clean arm is home), not every combination.
@@ -744,7 +852,9 @@ full width on a desktop (Esc returns it). Pick a robot, or a function (charging,
 wash bay); turn, frame, explode and cut the model; hide the fasteners; show the twin's car; pose it from the twin's
 code; isolate a major function (what it does, how, specs, parts, screws, mass) and the parts list narrows to it; pick a
 part in the list or the view and the rest x-rays while the camera zooms to it; its card gives the standard, size,
-grade, material, mass, tightening torque and where it is used. Downloads: STEP, GLB, CSV.
+grade, material, mass, tightening torque and where it is used. The overview lists the cable schedule: each line with
+its route and order lengths; open a line for each piece of its route, and pick a piece to select it in the model.
+Downloads: STEP, GLB, the parts list and the cable schedule (CSV).
 
 **Pick a step** (2026-11-11). Each step in "How it runs" is a button: the model takes the pose that step ends in (the
 connector in, the wand in the cabin). A cockpit can ask for a step with `?tab=robotics&robot=<machine>&step=<id>`.
