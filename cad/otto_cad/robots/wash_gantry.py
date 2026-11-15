@@ -946,7 +946,7 @@ def build(spec: dict) -> Model:
     m.flex(FlexDef('WSH-DCH', f'Drag chain, inside {DC["bi"]:g} x {DC["hi"]:g}, R {R_dc:g}', 'chain',
                    Anchor(bay, (xch, y_lo, z_fix), (0, 0, -1)), Anchor(gan, (xch, y_up, 0), (0, 0, -1)),
                    DC['ha'] / 2, 'CONTROL', 'Brings power, water, chemicals, air and the network to the moving machine. Its bend rolls along '
-                   'at half the machine\'s speed.', mat='pa66', category='electrical', pitch=75, bend_r=R_dc, links=n_dc, up=(0, 1, 0),
+                   'at half the machine\'s speed.', mat='pa66', category='electrical', pitch=DC['pitch'], bend_r=R_dc, links=n_dc, up=(0, 1, 0),
                    w=DC['ba'], h=DC['ha'], link_part=chain, kg_per_m=6.5,
                    spec={'carries': 'supply cable 5G10 (21 mm), network (8), water hose 19 x 27, 2 chemical hoses 10 x 16, air tube 12 x 9',
                          'fill': f'{DC_FILL:.0f} of its {DC["bi"]:g} mm inside width with the chain maker\'s clearances (10 % a cable, 20 % a hose, 1 mm at least)',

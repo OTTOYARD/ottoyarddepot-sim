@@ -214,9 +214,9 @@
     "depot": "wash_gantry.depot.glb"
    },
    "bytes": {
-    "glb": 9117672,
-    "stepZip": 7020741,
-    "step": 38738498,
+    "glb": 9117708,
+    "stepZip": 7020795,
+    "step": 38737439,
     "depot": 948580
    },
    "mesh": {
@@ -231,7 +231,7 @@
     "meshes": 152,
     "nodes": 398
    },
-   "depotSha256": "c419af647f7c6132",
+   "depotSha256": "5a5a8a482feec0c5",
    "totals": {
     "parts": 2777,
     "uniqueParts": 292,
@@ -241,7 +241,7 @@
     "madeLines": 122,
     "referenceLines": 14
    },
-   "glbSha256": "5dc0df929dcb6147",
+   "glbSha256": "555748446c3ebd3e",
    "stepCheck": {
     "namedParts": 2794,
     "solids": 4236,
