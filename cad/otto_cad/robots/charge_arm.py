@@ -1541,7 +1541,7 @@ def build(spec: dict) -> Model:
     # backward, and at stow, unstow, approach and retract it hung up to 180 mm into the cabinet behind the arm: the
     # cabinet's envelope was a reference body, so the clash check filed that as context. Drawing the real cabinet showed
     # it. Now both ends are on the 2 boxes' +X faces, square to J2's axis, so J2 rolls the loop and never turns its ends.
-    # 900 mm bulged along +X bends no tighter than 223 mm over the CAD's poses (each fleet car's mate among them), and
+    # 900 mm bulged along +X bends no tighter than 209 mm over the CAD's poses (each fleet car's mate among them), and
     # keeps 182 mm off the cabinet. (Ends on the boxes' tops and backs, searched the same way, bent to 80 mm or less.)
     boot('CHG-FL1', 'J1 flex link, 500 A braided copper in a boot', Anchor(base, (-riser_w / 2 - 50.0, -150.0, -100.0), NX),
          Anchor(j1, (-65.0, 200.0, -190.0), PX), 900.0, (0.0, NX, NX),
@@ -1549,7 +1549,7 @@ def build(spec: dict) -> Model:
          102.0, hk=0.4)
     boot('CHG-FL2', 'J2 flex link, 500 A braided copper in a boot', Anchor(j1, (65.0, 265.0, -190.0), PX),
          Anchor(j2, (55.0, 300.0, -165.0), NX), 900.0, (0.0, PX, (0.0, 0.0, 0.0)),
-         'Carries the charge current across J2, in a loop beside the shoulder.', 222.0, hk=0.4)
+         'Carries the charge current across J2, in a loop beside the shoulder.', 209.0, hk=0.4)
     boot('CHG-FL3', 'J3 flex link, 500 A braided copper in a boot', Anchor(j2, (0.0, LU - 250.0, -165.0), NZ),
          Anchor(j3, (FORE_JOG[0], 250.0, -130.0), PZ), 1200.0, (0.0, (0, 0.5, -1), (0, -0.5, -1)),
          'Carries the charge current over the outside of the elbow.', 84.0)

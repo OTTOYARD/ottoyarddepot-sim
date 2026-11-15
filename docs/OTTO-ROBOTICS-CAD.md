@@ -663,8 +663,9 @@ The poses found more, which the stowed pose could not show:
       and counted none (main's report holds 17 of them). No test compared the flex links with the cabinet: the yard's
       tests sample the depot model, and the boots are not in it. The link is now a side loop: both ends sit on the 2 boxes'
       +X faces, square to J2's axis, so J2 rolls the loop and never turns its ends. 900 mm bulged along +X, it bends no
-      tighter than 222 mm over the CAD's poses (80 allowed) and keeps 182 mm off the cabinet. The turret box is 20 mm deeper
-      so both boots' fittings sit square on its sides. Ends on the boxes' tops and backs, searched the same way, bent to 80
+      tighter than 209 mm over the CAD's poses (80 allowed) and keeps 182 mm off the cabinet. The turret box is 20 mm deeper
+      so both boots' fittings sit square on its sides, and the upper arm box is 30 mm deeper so the J2 boot's fitting sits
+      square on its side and clear of the arm's casting. Ends on the boxes' tops and backs, searched the same way, bent to 80
       mm or less at stow. `cadFlex.test.ts` now holds every flex link 20 mm off the cabinet's solid at every cycle pose and
       each fleet car's mate.
     - **The wash docks' feeds** run inside the dock posts now. The feed conduit comes up off the slab and into each post's
