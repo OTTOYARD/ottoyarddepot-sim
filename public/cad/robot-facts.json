@@ -110,6 +110,10 @@
      "value": "A solenoid latch locks the connector in the inlet for the charge."
     },
     {
+     "label": "Supply",
+     "value": "Every line comes from the cabinet, down through its floor into a covered trench in the slab. Two cable chains, one in the trench and one on the carriage, follow the arm as it moves."
+    },
+    {
      "label": "Power path",
      "value": "The charge current runs inside the arm. In each hollow link 2 copper bars carry it, one a pole. Nothing live is in the open. At the base, the shoulder and the elbow a booted link of braided copper joins 2 terminal boxes. It bends as the joint turns."
     },
@@ -274,6 +278,10 @@
     {
      "label": "Vacuum supply",
      "value": "A central vacuum producer on each canopy (about 3 kW per working arm, 30 kPa class) serves its arms."
+    },
+    {
+     "label": "Power",
+     "value": "A supply enclosure on the column holds the arm's controller. Its power and network come from the canopy cable tray."
     },
     {
      "label": "Crew",
@@ -455,7 +463,7 @@
     },
     {
      "label": "Supply",
-     "value": "A drag chain brings power, water, chemicals and air. It lies in a covered trench in the floor, inboard of the west rail."
+     "value": "A drag chain brings power, the network, water, 2 chemicals and air. It lies in a covered trench in the floor, inboard of the west rail."
     },
     {
      "label": "Clear height",
