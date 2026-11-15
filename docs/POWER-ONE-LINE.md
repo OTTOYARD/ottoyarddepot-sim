@@ -36,6 +36,16 @@ nothing else.
 deployed. This repo's copy under `supabase/functions/` had fallen two versions behind it (1.9.1 against 1.10.0); it is
 now the same file. Deploy from otto-q-core.
 
+**Where the power electronics are (2026-11-15).** Each post is an all-in-one 350 kW charger. Chase chose it ("All-in-one
+posts") when the split charger's power cabinets had nowhere to stand: its maker allows at most 60 m of cable from a power
+cabinet to its post, and the transformer yard is 56 to 146 m of duct-bank route from the posts. So a post in the one-line is the whole
+charger, its 480 V feed comes straight from its transformer, and nothing stands between them. Each feed runs in one duct
+bank from the transformer yard, round the office, under the forecourt and down its canopy's spine
+(`src/lib/siteFeeders.ts`, a route assumed for the civil design to set). A conductor runs 60 to 154 m by post. At full
+load (about 450 A at 350 kW out) the longest feed drops 1.5 % of 480 V on 2 conductors of 350 kcmil a phase. The site's
+network reaches each charger on fibre: the farthest 7 posts are more than 100 m of cable from the office, past a
+copper Ethernet channel.
+
 **Where the gear stands (built 2026-11-11).** The founder gave the fenced northwest corner and the strip behind the office to electrical gear; no car drives there. `sitePlan.ts` holds it: `BESS_YARD` (the battery, the 13.8 kV switchgear `MV-SWGR` and `TX-AUX`) and `TX_YARD` behind the office (the six charger transformers, `TX-A1` to `TX-C2`, in a row). The plan, the 3D scene, the layout seed and `structurePlan` all read those constants, and `electricalYard.test.ts` holds them to the engine's node codes. The old west-link lane constant is retired: no route used it. The battery yard's south fence is at plan y 44, not further south, because a recorded car's body corner reaches y 45.7 on the west aisle turn (the clearance replays caught it).
 
 **The fourth solar array is on the carports.** The engine has generated from four 180 kW DC arrays since before `CANOPY-04` was retired, and the scene has always drawn panels on the five perimeter carports. The layout seed now records `canopy_4`'s 288 panels across those five roofs by roof area, so the picture and the solar table agree and no energy number changes.

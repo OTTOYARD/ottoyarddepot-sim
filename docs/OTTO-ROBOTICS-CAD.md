@@ -117,7 +117,7 @@ x4.12). The figures in the paragraph below are the one-connector tool's. J3's ma
 gains mass: dynamics are not in these figures.
 The slab under the bed, the grout blocks, the channel liner and the pad are reference parts: drawn in the tab, left out
 of the totals and out of the yard's model. The cabinet beside the arm was a reference envelope too, until finding 22 drew
-it as the charger's post with its inside, its wiring and its site feeds (`charge_cabinet.py`). Its parts count in the
+it with its inside, its wiring and its site feeds (`charge_cabinet.py`), and finding 23 made it a whole 350 kW charger. Its parts count in the
 totals, and the yard leaves them out (`yard_hidden`) because it draws its own cabinet box (`ChargingField`). Why these additions, and what each vehicle's mate uses of
 them: `docs/CHARGE-ARM-REACH.md`.
 
@@ -183,8 +183,8 @@ As run on the committed CAD (`public/cad/<robot>.clash.json`):
 
 | robot | poses | pairs measured | clashes | loose groups | expected overlaps (screws in tapped holes, seals, retaining rings, gear meshes) |
 |---|---:|---:|---:|---:|---|
-| OTTO-CHARGE ARM (2026-11-15, finding 22: with its cabinet drawn) | 34 | 106,258 (35,062 measured) | 0 | 0 | 845, 13, 9, 3 |
-| OTTO-CLEAN ARM (2026-11-15, finding 22) | 42 | 8,477 (3,275 measured) | 0 | 0 | 194, 0, 1, 4 |
+| OTTO-CHARGE ARM (2026-11-15, finding 23: with the whole charger drawn) | 34 | 108,415 (36,047 measured) | 0 | 0 | 845, 13, 9, 3 |
+| OTTO-CLEAN ARM (2026-11-15, finding 23: the covers' screws on the rim) | 42 | 8,468 (3,269 measured) | 0 | 0 | 214, 0, 1, 4 |
 | OTTO-WASH (touchless, with 2 detail arms, 2026-11-15, finding 22) | 37 | 68,860 (15,237 measured) | 0 | 0 | 1,997, 24, 18, 6 |
 
 No clash and no loose part is left in any robot, at any of the twin's poses, and `cad.test.ts` holds all three at
@@ -521,7 +521,7 @@ The poses found more, which the stowed pose could not show:
       57 x 26 (74 x 35, was 57 x 35 with 51 mm of lines in it).
     **Assumptions, stated:** what the charge arm's cabinet holds besides its rectifiers (the connector's cooling unit,
     the arm's controller and the base's 2 servo drives) is a layout decision, not a bought cabinet's contents (finding 22
-    drew the cabinet: it is a split charger's post, and the rectifiers stand in a power unit away from it). The
+    drew the cabinet, and finding 23 made it a whole 350 kW charger: its power modules are in it). The
     hoses' and small cables' diameters are typical of their kind, not from a sheet. The derating of 4 loaded cores in
     one chain (about 0.65 at 45 C) is from memory of IEC 60364-5-52, not re-read: the cable maker confirms it before a
     cable is bought. The lines inside a chain or a duct are not drawn one by one. The clean arm's disconnect a person
@@ -627,7 +627,7 @@ The poses found more, which the stowed pose could not show:
       meters and watches the DC a power unit sends it, cools the connector and runs the arm. **The power unit, which turns
       the post's 480 V from its charger transformer into DC, is not drawn, and the twin's site plan has no place for 30 of
       them.** Where they stand is a site decision. Until it is made, the DC feed's length is not known, and the schedule
-      lists that run open.
+      lists that run open. (The same day finding 23 made each post a whole charger: the power unit had nowhere to stand.)
     - **The cabinet, as drawn.** A 100 mm plinth on 4 M12 anchors; a 2 mm sheet steel body with 2 doors on the car's side
       and a rain hood; a galvanised mounting plate on standoffs off the back wall; 2 gland plates in the floor. At the
       right, at the back, the DC column: the power unit's 4 cores (2 a pole, 1 x 185 mm2, ASSUMPTION) land on 2 input bars,
@@ -685,7 +685,78 @@ The poses found more, which the stowed pose could not show:
       not over its rim, so those screws grip only the cover. Link 1's opening reaches z ±71 mm and its screws stand at
       ±62; link 2's reaches ±57 and its screws stand at ±52. Each cover laps the rim by 3 to 4 mm (link 1's rim is 14 mm
       wide, link 2's 13). The clash and contact checks pass the screws because they touch the cover. The fix is to widen
-      the covers and put the screws on the rim, or to make the openings narrower.
+      the covers and put the screws on the rim, or to make the openings narrower. (Fixed in finding 23.)
+
+23. **Each post is an all-in-one 350 kW charger, each feed is measured on the site plan, and the clean arm's cover screws
+    grip the rim (2026-11-15).** Finding 22 drew the charger as a split charger's post and left its power unit's place to
+    the site. Asked what was needed from him, Chase was put the one question: where should 30 posts' power electronics
+    stand? He chose **"All-in-one posts"**.
+    - **Why the power unit could not stand anywhere.** ABB's installation manual for the Terra HP 350 kW (Generation 3 UL,
+      9AKK107992A6491-EN rev 005, read 2026-11-15) allows at most 60 m of cable from a power cabinet to its post (section
+      12.16.4), and a post takes 2 power cabinets of 1,170 x 770 x 2,030 mm, 1,340 kg each, with 1,050 mm in front to open
+      a door (sections 12.15 and 12.16.1). The transformer yard is 56 to 146 m of duct-bank route from the posts (measured below) and full, so from there every
+      post but the nearest would be past the limit. The
+      canopies have no free ground, and over the spine the cabinets would meet the OTTO-CLEAN ARM, whose shoulder hangs at
+      3.42 m. So each post became a whole charger, fed with 480 V AC straight from its transformer: the one-line's own
+      topology (otto-q-core 0810, posts at 480 V), with nothing between them.
+    - **The outline is a bought all-in-one charger's.** ABB's UL Terra 360 is 2,215 x 1,210 x 764 mm and 848 kg (its UL
+      data sheet, read through a web search on 2026-11-15). The twin's cabinet (`cabinetEnvelope.DCFC_CABINET_PU`) went from
+      1.5 x 3.6 x 0.7u to 2.53 x 4.63 x 1.6u, and `CABINET_BACKSET_PU` from 1.35 to 1.8u, so its face toward the arm stands
+      where it was measured: the arm's working space, its mount bridge and the pad's car-side edge did not move. The pad grew
+      from 1.0 x 1.32 m to 1.5 x 1.75 m. Every test that drives a car, an arm or a column against it passed at the new size:
+      the moving links and the fault beacon (`cabinetClearance.test.ts`, its one pinned number moved from 1.2494 to
+      1.742 m), every recorded car (`structureClearance.replay.test.ts`), docking D and E, the 30- and 20-post motion tests,
+      the canopy columns, no structure in any stall (`chargerBuild.test.ts`) and the flex links (`cadFlex.test.ts`).
+      `npm run layout:verify` passed with the seed unchanged.
+    - **The charger, as drawn** (`charge_cabinet.py`, rewritten). The arm's region did not move: its 16 lines rise where
+      they did, into the same output blocks, the air block and the floor plate. Around it:
+      - lower left, the AC input: the feed's 6 conductors on 3 phase bars, the main breaker over them (800 A frame, 600 A
+        trip, ASSUMPTION; it is the charger's disconnect and locks open for work), and 3 copper risers up to a distribution
+        block under the rack;
+      - upper left, 12 power modules of 30 kW in a rack, 2 columns of 6 (226 x 84 x 437 mm and 15 kg each: a class size,
+        ASSUMPTION). They take air in through the left door and blow it out through the back wall. Their DC leaves the
+        rack's side on 2 terminals;
+      - centre, the DC column, top down: 2 input bars, a fuse and a contactor a pole, the links, the barrier, and the 2
+        output blocks, each now on its own insulating support (they hung on their links before);
+      - centre left, the earth bar, a 3 kVA auxiliary transformer, its fuses and the AC surge arrester. The auxiliary
+        supply that came from the power unit is gone: the charger feeds itself from its AC;
+      - right, 5 rows of rail devices beside the right duct, a duct over each row, the service-air block on a strut; upper
+        right, the connector's cooling unit on the back wall, its 2 sockets on its front. The coolant tubes now climb to
+        1,700 mm to reach them.
+    - **What it takes from the site:** the feed's 6 conductors (350 kcmil copper, 2 a phase, ASSUMPTION), its equipment
+      ground (1/0 AWG), the pad's earth, the air, and the network on single-mode fibre, each drawn from the pad up. The 4 DC
+      feed cores and the auxiliary supply are gone.
+    - **Each post's feed is measured** (`src/lib/siteFeeders.ts`, held by `siteFeeders.test.ts`). One duct bank (a route
+      ASSUMED for the civil design to set): from the transformer south under the yard's working room, west along its south
+      fence, down the strip between the battery yard and the office, east under the forecourt, and down its canopy's spine
+      to the post's pad. A conductor is bought by the route x 1.03 + 2.75 m (ASSUMPTION: its lie in the duct, the drops and
+      the make-off). By post, from the transformer the engine's one-line names: **60.3 to 153.6 m a conductor**, 3,208 m
+      over the 30 posts, so the depot's feeds take 22,457 m of conductor (6 a post and the ground). At full load, about
+      448 A at 350 kW out (ASSUMPTION: 95 % efficient, power factor 0.99), the longest feed drops **1.50 %** of 480 V
+      (copper at 75 °C from the annealed-copper standard, 0.1206 ohm/km a conductor with 2 % for the stranding; sources in
+      `siteFeeders.ts`). The cadSpec writes every post's lengths into `cad/spec/robots.json`, and the schedule's lines quote
+      them. **The network is fibre** because the farthest 7 posts are 102 to 123 m of cable from the office (where the depot's
+      switch is assumed to stand), past a copper Ethernet channel's 100 m (ANSI/TIA-568).
+    - **The schedule.** The charge arm's goes from 43 to 45 lines (the feed's 6 conductors and its ground replace the 4 DC
+      feed cores and the auxiliary supply), from 185.3 to 189.1 m of route, from 199.9 to 203.5 m to order, and from 8
+      open lines to 1, the air. Every supply line is 0.2 m longer (a DC core's order 8.5 to 8.8 m): the charger's middle,
+      where its 16 lines rise, stands 215 mm further from the arm, so the feed trench under the pad is longer. The coolant
+      tubes are 1.1 m longer (16.1 to 17.2 m to order), up to their sockets 1,700 mm up the charger. The charger itself is
+      600.6 kg in 156 parts, class masses (a bought charger of this outline is 848 kg), and the charge arm as built goes
+      from 1,158.75 to 1,616.39 kg.
+    - **The clean arm's cover screws grip the rim.** Each cover was 20 mm narrower than its link, and its screws stood over
+      the opening in the link's top skin (finding 22, found and not changed). Each cover is now 4 mm narrower than its link
+      (166 and 136 mm, were 150 and 120), and its screws stand on the rim, the top skin's flange: z ±77 on link 1 (its
+      opening reaches ±71), ±61.5 on link 2 (±57). Each of the 22 screws now goes into its link's skin as well as its cover
+      (12 on link 1, 10 on link 2, measured at the stowed pose), and the clean arm's clash report counts 214 screws in
+      tapped holes, against 194 on main.
+    - **No product on screen.** The parts list is drawn in the Robotics tab, and last round's text named a contactor and a
+      cooling unit by product, and a cable maker in a coolant note. Each now says "source in charge_cabinet.py" (or
+      charge_arm.py), where the names and their links stay, beside the claim.
+    - **Not verified:** the charger's inside is a layout at a bought charger's outline, not that charger's inside: the
+      modules, the breaker and the devices are class sizes, and the panel wiring is the maker's. The duct bank's route, the
+      office as the network switch's place, the allowances and the feed's conductor size are assumptions, each stated. The
+      air main is still not on the site plan, so the air is the one open line.
 
 The audit also found the wash machine's tools fed by rigid pipes that could not follow them. They now have flexible
 lines that do (below). (The wands' vacuum units and the side brushes' chains it added went with finding 17.)
@@ -790,13 +861,15 @@ not have, or a bend tighter than its line allows.
 
 | robot | lines | route | to order |
 |---|---|---|---|
-| OTTO-CHARGE ARM | 43 (35, and since finding 22 the cabinet's 8 site feeds) | 185.3 m | 199.9 m |
+| OTTO-CHARGE ARM | 45 (35, and the charger's 10 site feeds: finding 23) | 189.1 m | 203.5 m |
 | OTTO-CLEAN ARM | 16 | 12.5 m | 16.0 m |
 | OTTO-WASH | 54 | 379.5 m | 411.3 m |
 
 The charge arm's route grew because each supply line's run inside the cabinet is now in its route, where it used to be
-a 1.5 m tail. A DC core's order went from 9.4 to 8.5 m; the joint supply cable's from 9.3 to 10.5 m, because its planned
-run in the cabinet's ducts to the arm controller is 2.4 m, more than the guess.
+a 1.5 m tail (finding 22), and because the charger grew deeper and taller (finding 23). A DC core's order went from 9.4
+to 8.5 m and then 8.8 m; the coolant tubes' to 17.2 m, up to their sockets 1,700 mm up the charger. Each site feed's run
+in the depot's duct bank is the site's and is not in a robot's total: its notes quote it by post (60.3 to 153.6 m a
+conductor of the 480 V feed, measured on the site plan in `src/lib/siteFeeders.ts`).
 
 **What it found** (each listed as an open item on its line, and each routed since: findings 21 and 22): the charge arm's
 status rings had no supply; its coolant and air changed size at the riser; its 4 copper bars were not drawn; the wash
@@ -805,9 +878,9 @@ stopped at the posts; the clean arm's link lines were not drawn; the charge arm'
 guess in it for every line.
 
 **What it still lists as open,** each on its line, and all of it the site's:
-- The charge arm's cabinet takes 8 lines from the site: the power unit's 4 DC cores, its auxiliary supply, the air, the
-  network and the earth. Each is drawn from the pad up. Their runs to the cabinet wait on the site plan: the DC feed's
-  and the auxiliary supply's on where the power units stand, which it does not show yet, and the others on its layout.
+- The charger's air: the depot's compressed-air plant is not on the site plan. Its other 9 site feeds (the 480 V feed's
+  6 conductors, its ground, the pad's earth and the network fibre) are drawn from the pad up, and their runs in the duct
+  bank are measured by post (finding 23).
 - The clean arm's supply and network cables run along the canopy's tray from its board, and that length is the site's.
 
 No machine-side line is open on any of the 3 robots.
@@ -961,10 +1034,11 @@ design data and PULSE shows what each machine is doing now.
   much the dressing can change them. Its joint cables are straight between 2 points of the model, plus up to a quarter
   for their dressing in the casting, and so is the wash arms' pure-water tube through J1 to J3. Its tails are
   assumptions, each one stated.
-- The charger cabinet's devices are drawn at class sizes, each marked ASSUMPTION, except the cooling unit, which is a
-  bought unit's size. The power unit that feeds the cabinet's DC is not drawn: the site plan has no place for it yet, so
-  the DC feed's and the auxiliary supply's runs to the cabinet are open on their lines. The cabinet's panel wiring
-  between its devices is not drawn either: it is the cabinet maker's wiring diagram.
+- The charger is drawn at a bought all-in-one charger's outline, but its inside is a layout, not that charger's: the
+  power modules, the main breaker and the devices are class sizes, each marked ASSUMPTION, except the cooling unit,
+  which is a bought unit's size. Its panel wiring between its devices is not drawn: it is the charger maker's wiring
+  diagram. Each post's feed is measured on a duct bank route the civil design has not drawn (`siteFeeders.ts`, an
+  ASSUMPTION), and the office as the network switch's place is one too.
 - Inside an actuator nothing is drawn but its parts: the status rings' receptacles are wired to their drive boards by
   the actuator's maker, and the wash arms' pure-water tube passes J1 to J3's glands and bores as the joint cable does,
   unseen. The copper inside the charge arm's castings is bonded and strapped as drawn; the passages the arm's terminal
