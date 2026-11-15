@@ -24,7 +24,10 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # 30, not 15 (2026-11-15): since the robots' CAD tests landed, the suite runs about 14 to 16 minutes on the hosted
+    # runner, and main's own run on 4dfabd6 (run 372) was cancelled at the old 15-minute limit. The limit is there to
+    # stop a hung job, not a slow one; a test that grows slow is made cheaper in its own file (cadDetail.test.ts, 2026-11-15).
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v4
