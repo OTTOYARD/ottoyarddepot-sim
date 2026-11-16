@@ -1,8 +1,8 @@
 {
  "robot": "charge_arm",
- "glbSha256": "131c313b8f3ee0df",
+ "glbSha256": "188dc53fa512f705",
  "heldWithinMm": 1.0,
- "lines": 22,
+ "lines": 32,
  "openEnds": [],
- "seconds": 252.2
+ "seconds": 132.8
 }

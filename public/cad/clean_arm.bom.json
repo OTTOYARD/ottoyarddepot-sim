@@ -7,11 +7,11 @@
   "glb": "m"
  },
  "totals": {
-  "parts": 260,
-  "uniqueParts": 119,
+  "parts": 276,
+  "uniqueParts": 130,
   "fasteners": 147,
-  "massKg": 374.87,
-  "boughtLines": 72,
+  "massKg": 376.38,
+  "boughtLines": 83,
   "madeLines": 47,
   "referenceLines": 4
  },
@@ -68,10 +68,10 @@
    "specs": {},
    "group": "Links",
    "order": 2,
-   "partCount": 14,
+   "partCount": 18,
    "fastenerCount": 12,
-   "massKg": 9.889,
-   "uniqueParts": 3
+   "massKg": 10.647,
+   "uniqueParts": 6
   },
   {
    "id": "J2",
@@ -102,10 +102,10 @@
    "specs": {},
    "group": "Links",
    "order": 4,
-   "partCount": 12,
+   "partCount": 17,
    "fastenerCount": 10,
-   "massKg": 4.694,
-   "uniqueParts": 3
+   "massKg": 5.347,
+   "uniqueParts": 8
   },
   {
    "id": "J3",
@@ -238,10 +238,10 @@
    },
    "group": "Supply",
    "order": 10,
-   "partCount": 25,
+   "partCount": 32,
    "fastenerCount": 6,
-   "massKg": 41.151,
-   "uniqueParts": 21
+   "massKg": 41.242,
+   "uniqueParts": 26
   },
   {
    "id": "POWER",
@@ -778,8 +778,7 @@
    "reference": false,
    "function": "Carries J2 at 0.95 m from J1. A box section: stiff in bending and twist. The duct and cables run inside.",
    "spec": {
-    "wall": "6 mm",
-    "in the cable schedule": "CLN-AC1, 1.10 m from end to end; CLN-AT1, 1.10 m from end to end"
+    "wall": "6 mm"
    },
    "uses": [
     {
@@ -794,20 +793,107 @@
    "category": "structure",
    "make": "make",
    "standard": "sheet 3 mm",
-   "size": "730 x 150",
+   "size": "792 x 166",
    "grade": "",
    "material": "Aluminium 6061-T6, machined, black anodised",
    "materialKey": "al6061_blk",
    "qty": 1,
-   "massKg": 0.887,
-   "totalMassKg": 0.887,
+   "massKg": 1.0656,
+   "totalMassKg": 1.0656,
    "torqueNm": null,
    "reference": false,
-   "function": "Closes the link. Off for service.",
+   "function": "Closes the link. Off for service. Its screws grip the rim of the link's top.",
    "spec": {},
    "uses": [
     {
      "sub": "LINK1",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CLN-AC1",
+   "name": "Arm cable in link 1: power and network, 10 mm",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "EN 50525",
+   "size": "OD 10",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 1,
+   "massKg": 0.093,
+   "totalMassKg": 0.093,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries power and the network along link 1, from the J1 union's turning side to the J2 union's fixed side. It lies under the top cover, over the duct and the J2 gearmotor, and does not move.",
+   "spec": {
+    "bend": "R 40 (4 x D)",
+    "in the cable schedule": "CLN-AC1, 0.79 m from end to end"
+   },
+   "uses": [
+    {
+     "sub": "LINK1",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CLN-SCN",
+   "name": "Circular connector M16, receptacle and plug, IP67",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "M16, 30 long mated",
+   "grade": "IP67",
+   "material": "PA66-GF30",
+   "materialKey": "pa66",
+   "qty": 3,
+   "massKg": 0.0098,
+   "totalMassKg": 0.0294,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Joins the arm cable to a union's slip ring. The receptacle is the union's; the plug is on the cable.",
+   "spec": {
+    "mated": "receptacle 8 mm, plug and its cable clamp 22 mm"
+   },
+   "uses": [
+    {
+     "sub": "LINK1",
+     "qty": 2
+    },
+    {
+     "sub": "LINK2",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CLN-SOC",
+   "name": "Union outlet collar, turning side",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "bore 50, 24 high",
+   "grade": "IP65",
+   "material": "Structural steel S355, painted RAL 9005",
+   "materialKey": "steel_paint",
+   "qty": 2,
+   "massKg": 0.4666,
+   "totalMassKg": 0.9332,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Clamps a union's rotor at its foot and brings out its turning side: a connector for the arm cable and a port for the air tube.",
+   "spec": {
+    "ASSUMPTION": "the union maker brings its slip ring's leads and its air passage out at the rotor's foot"
+   },
+   "uses": [
+    {
+     "sub": "LINK1",
+     "qty": 1
+    },
+    {
+     "sub": "LINK2",
      "qty": 1
     }
    ]
@@ -1061,8 +1147,7 @@
    "reference": false,
    "function": "Carries the mast 0.80 m from J2. The duct and cables run inside.",
    "spec": {
-    "wall": "5 mm",
-    "in the cable schedule": "CLN-AC2, 0.89 m from end to end; CLN-AT2, 0.89 m from end to end"
+    "wall": "5 mm"
    },
    "uses": [
     {
@@ -1077,16 +1162,93 @@
    "category": "structure",
    "make": "make",
    "standard": "sheet 3 mm",
-   "size": "520 x 120",
+   "size": "520 x 136",
    "grade": "",
    "material": "Aluminium 6061-T6, machined, black anodised",
    "materialKey": "al6061_blk",
    "qty": 1,
-   "massKg": 0.484,
-   "totalMassKg": 0.484,
+   "massKg": 0.5471,
+   "totalMassKg": 0.5471,
    "torqueNm": null,
    "reference": false,
-   "function": "Closes link 2. Off for service. The duct leaves through it to the J3 union.",
+   "function": "Closes link 2. Off for service. The duct leaves through it to the J3 union, and the arm cable and the air tube through 2 glands beside it.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "LINK2",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CLN-AC2",
+   "name": "Arm cable in link 2: power and network, 10 mm",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "EN 50525",
+   "size": "OD 10",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 1,
+   "massKg": 0.0942,
+   "totalMassKg": 0.0942,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries power and the network along link 2, from the J2 union's turning side out through its gland and up beside the duct to the J3 union's fixed side. It does not move.",
+   "spec": {
+    "bend": "R 40 (4 x D)",
+    "in the cable schedule": "CLN-AC2, 0.80 m from end to end"
+   },
+   "uses": [
+    {
+     "sub": "LINK2",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CLN-SCN3",
+   "name": "Circular connector M16, receptacle and plug, IP67, on the J3 union",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "M16, 30 long mated",
+   "grade": "IP67",
+   "material": "PA66-GF30",
+   "materialKey": "pa66",
+   "qty": 1,
+   "massKg": 0.0098,
+   "totalMassKg": 0.0098,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Joins the arm cable to the J3 union's slip ring, on its boss. The receptacle is the union's; the plug is on the cable.",
+   "spec": {
+    "mated": "receptacle 8 mm, plug and its cable clamp 22 mm"
+   },
+   "uses": [
+    {
+     "sub": "LINK2",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "GLAND-M20",
+   "name": "Cable gland M20 x 1.5, IP68",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "IEC 62444",
+   "size": "M20 x 1.5",
+   "grade": "IP68",
+   "material": "PA66-GF30",
+   "materialKey": "pa66",
+   "qty": 1,
+   "massKg": 0.0095,
+   "totalMassKg": 0.0095,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Holds the arm cable where it leaves link 2, and seals the cover.",
    "spec": {},
    "uses": [
     {
@@ -2703,6 +2865,30 @@
    ]
   },
   {
+   "id": "GLAND-M16",
+   "name": "Cable gland M16 x 1.5, IP68",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "IEC 62444",
+   "size": "M16 x 1.5",
+   "grade": "IP68",
+   "material": "PA66-GF30",
+   "materialKey": "pa66",
+   "qty": 1,
+   "massKg": 0.0054,
+   "totalMassKg": 0.0054,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Holds the air tube where it leaves link 2, and seals the cover.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "VAC",
+     "qty": 1
+    }
+   ]
+  },
+  {
    "id": "CLN-ADR",
    "name": "Air drop tube, 12 x 1.5, stainless",
    "category": "fluid",
@@ -2808,6 +2994,62 @@
    ]
   },
   {
+   "id": "CLN-AT1",
+   "name": "Air tube 6 x 4 in link 1",
+   "category": "fluid",
+   "make": "buy",
+   "standard": "ISO 14743",
+   "size": "D 6",
+   "grade": "",
+   "material": "Polyurethane, 90 Shore A",
+   "materialKey": "pu",
+   "qty": 1,
+   "massKg": 0.0159,
+   "totalMassKg": 0.0159,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the air along link 1, from the J1 union's turning side to the J2 union's fixed side.",
+   "spec": {
+    "tube": "6 x 4 polyurethane",
+    "bend": "R 30",
+    "in the cable schedule": "CLN-AT1, 0.84 m from end to end"
+   },
+   "uses": [
+    {
+     "sub": "VAC",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CLN-AT2",
+   "name": "Air tube 6 x 4 in link 2",
+   "category": "fluid",
+   "make": "buy",
+   "standard": "ISO 14743",
+   "size": "D 6",
+   "grade": "",
+   "material": "Polyurethane, 90 Shore A",
+   "materialKey": "pu",
+   "qty": 1,
+   "massKg": 0.0162,
+   "totalMassKg": 0.0162,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the air along link 2, from the J2 union's turning side out through its gland and up beside the duct to the J3 union's fixed side.",
+   "spec": {
+    "tube": "6 x 4 polyurethane",
+    "bend": "R 30",
+    "in the cable schedule": "CLN-AT2, 0.86 m from end to end"
+   },
+   "uses": [
+    {
+     "sub": "VAC",
+     "qty": 1
+    }
+   ]
+  },
+  {
    "id": "CLN-L1D",
    "name": "Vacuum duct in link 1, 54 x 2",
    "category": "fluid",
@@ -2818,8 +3060,8 @@
    "material": "Aluminium 6061-T6, machined, clear anodised",
    "materialKey": "al6061",
    "qty": 1,
-   "massKg": 0.8178,
-   "totalMassKg": 0.8178,
+   "massKg": 0.8239,
+   "totalMassKg": 0.8239,
    "torqueNm": null,
    "reference": false,
    "function": "Carries the vacuum along link 1 from J1 to J2.",
@@ -2851,6 +3093,58 @@
    "function": "Carries the vacuum along link 2 from J2 and up into the J3 union.",
    "spec": {
     "bends": "mandrel, centreline R 36"
+   },
+   "uses": [
+    {
+     "sub": "VAC",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CLN-SPF",
+   "name": "Push-in fitting 6 mm, G 1/8, straight",
+   "category": "fluid",
+   "make": "buy",
+   "standard": "ISO 14743",
+   "size": "G 1/8, 6 mm",
+   "grade": "",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 3,
+   "massKg": 0.0118,
+   "totalMassKg": 0.0354,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes the air tube at a union's air port.",
+   "spec": {
+    "tube": "6 mm, pushed 12 mm in"
+   },
+   "uses": [
+    {
+     "sub": "VAC",
+     "qty": 3
+    }
+   ]
+  },
+  {
+   "id": "CLN-SPF3",
+   "name": "Push-in fitting 6 mm, G 1/8, straight, on the J3 union",
+   "category": "fluid",
+   "make": "buy",
+   "standard": "ISO 14743",
+   "size": "G 1/8, 6 mm",
+   "grade": "",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 0.0118,
+   "totalMassKg": 0.0118,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes the air tube at the J3 union's air port, on its boss.",
+   "spec": {
+    "tube": "6 mm, pushed 12 mm in"
    },
    "uses": [
     {
@@ -3630,40 +3924,40 @@
    "kind": "power",
    "od": 10.0,
    "spec": "EN 50525",
-   "from": "the CLN-SWV1 union's turning side",
-   "to": "the CLN-SWV2 union's fixed side (24 circuits and the EtherCAT pair)",
+   "from": "the CLN-SWV1 union's turning side: its outlet collar's connector (CLN-SCN) (CLN-SOC)",
+   "to": "the CLN-SWV2 union's fixed side (24 circuits and the EtherCAT pair): its connector (CLN-SCN)",
    "sub": "LINK1",
    "runs": [
     {
-     "kind": "arm",
-     "via": "CLN-L1",
-     "where": "inside the link from union to union: straight 981 mm, and up to a quarter more for its dressing in the box section",
-     "mm": 1104.0,
-     "tol": 122.7,
-     "bend": null,
+     "kind": "drawn",
+     "via": "CLN-AC1",
+     "where": "along link 1 under its top cover, over the duct and the J2 gearmotor",
+     "mm": 789.6,
+     "tol": 0.0,
+     "bend": 40.0,
      "moving": false,
      "range": null
     }
    ],
-   "routeMm": 1104.0,
-   "tolMm": 122.7,
+   "routeMm": 789.6,
+   "tolMm": 0.0,
    "tails": {
     "a": 100.0,
     "b": 100.0,
-    "basis": "100 mm to make it off at its connector (ASSUMPTION), at each union"
+    "basis": "100 mm to make it off at its connector (ASSUMPTION), at each plug"
    },
-   "orderMm": 1500.0,
+   "orderMm": 1000.0,
    "bendMm": {
     "fixed": 40.0,
     "moving": 0.0,
-    "tightestFixed": null,
+    "tightestFixed": 40.0,
     "tightestMoving": null
    },
-   "pieces": [],
+   "pieces": [
+    "CLN-AC1"
+   ],
    "notes": [],
-   "open": [
-    "Not drawn: the CAD draws the link's duct, not the cables and tube beside it."
-   ]
+   "open": []
   },
   {
    "id": "CLN-AC2",
@@ -3671,40 +3965,40 @@
    "kind": "power",
    "od": 10.0,
    "spec": "EN 50525",
-   "from": "the CLN-SWV2 union's turning side",
-   "to": "the CLN-SWV union's fixed side (12 circuits and the EtherCAT pair)",
+   "from": "the CLN-SWV2 union's turning side: its outlet collar's connector (CLN-SCN) (CLN-SOC)",
+   "to": "the CLN-SWV union's fixed side (12 circuits and the EtherCAT pair): its connector (CLN-SCN)",
    "sub": "LINK2",
    "runs": [
     {
-     "kind": "arm",
-     "via": "CLN-L2",
-     "where": "inside the link from union to union: straight 789 mm, and up to a quarter more for its dressing in the box section",
-     "mm": 887.1,
-     "tol": 98.6,
-     "bend": null,
+     "kind": "drawn",
+     "via": "CLN-AC2",
+     "where": "along link 2 beside the duct, out through its M20 gland in the cover and up beside the duct to the J3 union's boss",
+     "mm": 799.9,
+     "tol": 0.0,
+     "bend": 40.0,
      "moving": false,
      "range": null
     }
    ],
-   "routeMm": 887.1,
-   "tolMm": 98.6,
+   "routeMm": 799.9,
+   "tolMm": 0.0,
    "tails": {
     "a": 100.0,
     "b": 100.0,
-    "basis": "100 mm to make it off at its connector (ASSUMPTION), at each union"
+    "basis": "100 mm to make it off at its connector (ASSUMPTION), at each plug"
    },
-   "orderMm": 1200.0,
+   "orderMm": 1000.0,
    "bendMm": {
     "fixed": 40.0,
     "moving": 0.0,
-    "tightestFixed": null,
+    "tightestFixed": 40.0,
     "tightestMoving": null
    },
-   "pieces": [],
+   "pieces": [
+    "CLN-AC2"
+   ],
    "notes": [],
-   "open": [
-    "Not drawn: the CAD draws the link's duct, not the cables and tube beside it."
-   ]
+   "open": []
   },
   {
    "id": "CLN-AT1",
@@ -3712,40 +4006,40 @@
    "kind": "air",
    "od": 6.0,
    "spec": "ISO 14743, PU 6 x 4",
-   "from": "the CLN-SWV1 union's turning side",
-   "to": "the CLN-SWV2 union's fixed side (its air passage)",
+   "from": "the CLN-SWV1 union's turning side: its outlet collar's air port's push-in fitting (CLN-SPF) (CLN-SOC)",
+   "to": "the CLN-SWV2 union's fixed side (its air passage): its air port's push-in fitting (CLN-SPF)",
    "sub": "VAC",
    "runs": [
     {
-     "kind": "arm",
-     "via": "CLN-L1",
-     "where": "inside the link from union to union: straight 981 mm, and up to a quarter more for its dressing in the box section",
-     "mm": 1104.0,
-     "tol": 122.7,
-     "bend": null,
+     "kind": "drawn",
+     "via": "CLN-AT1",
+     "where": "along link 1 under its top cover, beside the arm cable",
+     "mm": 842.0,
+     "tol": 0.0,
+     "bend": 30.0,
      "moving": false,
      "range": null
     }
    ],
-   "routeMm": 1104.0,
-   "tolMm": 122.7,
+   "routeMm": 842.0,
+   "tolMm": 0.0,
    "tails": {
-    "a": 100.0,
-    "b": 100.0,
-    "basis": "100 mm to make it off at its connector (ASSUMPTION), at each union"
+    "a": 0.0,
+    "b": 0.0,
+    "basis": "its 2 push-in fittings take its ends: drawn 12 mm into each"
    },
-   "orderMm": 1500.0,
+   "orderMm": 900.0,
    "bendMm": {
     "fixed": 30.0,
     "moving": 0.0,
-    "tightestFixed": null,
+    "tightestFixed": 30.0,
     "tightestMoving": null
    },
-   "pieces": [],
+   "pieces": [
+    "CLN-AT1"
+   ],
    "notes": [],
-   "open": [
-    "Not drawn: the CAD draws the link's duct, not the cables and tube beside it."
-   ]
+   "open": []
   },
   {
    "id": "CLN-AT2",
@@ -3753,40 +4047,40 @@
    "kind": "air",
    "od": 6.0,
    "spec": "ISO 14743, PU 6 x 4",
-   "from": "the CLN-SWV2 union's turning side",
-   "to": "the CLN-SWV union's fixed side (its air passage)",
+   "from": "the CLN-SWV2 union's turning side: its outlet collar's air port's push-in fitting (CLN-SPF) (CLN-SOC)",
+   "to": "the CLN-SWV union's fixed side (its air passage): its air port's push-in fitting (CLN-SPF)",
    "sub": "VAC",
    "runs": [
     {
-     "kind": "arm",
-     "via": "CLN-L2",
-     "where": "inside the link from union to union: straight 789 mm, and up to a quarter more for its dressing in the box section",
-     "mm": 887.1,
-     "tol": 98.6,
-     "bend": null,
+     "kind": "drawn",
+     "via": "CLN-AT2",
+     "where": "along link 2 beside the duct, out through its M16 gland in the cover and up beside the duct to the J3 union's boss",
+     "mm": 859.6,
+     "tol": 0.0,
+     "bend": 30.0,
      "moving": false,
      "range": null
     }
    ],
-   "routeMm": 887.1,
-   "tolMm": 98.6,
+   "routeMm": 859.6,
+   "tolMm": 0.0,
    "tails": {
-    "a": 100.0,
-    "b": 100.0,
-    "basis": "100 mm to make it off at its connector (ASSUMPTION), at each union"
+    "a": 0.0,
+    "b": 0.0,
+    "basis": "its 2 push-in fittings take its ends: drawn 12 mm into each"
    },
-   "orderMm": 1200.0,
+   "orderMm": 900.0,
    "bendMm": {
     "fixed": 30.0,
     "moving": 0.0,
-    "tightestFixed": null,
+    "tightestFixed": 30.0,
     "tightestMoving": null
    },
-   "pieces": [],
+   "pieces": [
+    "CLN-AT2"
+   ],
    "notes": [],
-   "open": [
-    "Not drawn: the CAD draws the link's duct, not the cables and tube beside it."
-   ]
+   "open": []
   },
   {
    "id": "CLN-MFR",

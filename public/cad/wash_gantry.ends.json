@@ -1,8 +1,8 @@
 {
  "robot": "wash_gantry",
- "glbSha256": "f41fc8b626b06685",
+ "glbSha256": "2268bf442c2a5286",
  "heldWithinMm": 1.0,
- "lines": 54,
+ "lines": 58,
  "openEnds": [],
- "seconds": 379.6
+ "seconds": 231.2
 }

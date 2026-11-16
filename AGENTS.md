@@ -27,8 +27,9 @@ The cockpit's Power tab draws the depot's electrical one-line from otto-q-core 0
 13.8 kV service, seven transformers with their load and winding temperature, thirty posts, and a control that trips a
 whole transformer through `otto-twin-control` (`inject_fault`, kind `power_zone`). Read `docs/POWER-ONE-LINE.md` first.
 Two lines never leave the page: every size is what is installed and limits no car (otto-q-core rule 13), and the
-right-size sentence is one run's reading, never a change. The browser computes sums and words only. The 3D yard does
-not draw the seven units yet; where they stand is a site-plan decision.
+right-size sentence is one run's reading, never a change. The browser computes sums and words only. The 3D yard draws
+the seven units in the electrical yard (`sitePlan.TX_YARD`, `BESS_YARD`, since 2026-11-11). Each post is a whole charger
+fed straight from its transformer, and each feed's length is measured in `src/lib/siteFeeders.ts`.
 
 ## Landmines specific to this repo
 
@@ -485,7 +486,20 @@ not draw the seven units yet; where they stand is a site-plan decision.
   `public/cad/<robot>.cables.csv`, and stops on a piece in a part the model lacks or a bend tighter than its line
   allows. **A new line, conduit or duct gets its line in the schedule in the same change** (`cadCables.test.ts` holds
   that every line a chain carries is listed and every drawn piece names its line). Never quote a line's length from
-  its parts-list piece: a DC core's trench piece is about a quarter of it.
+  its parts-list piece: a DC core's drawn piece, from its output block in the cabinet to the chain, is about a third of it.
+- **Each fast-charger post is an all-in-one 350 kW charger (Chase, 2026-11-15: "All-in-one posts";
+  `cad/otto_cad/robots/charge_cabinet.py`).** It takes 480 V AC straight from its charger transformer and holds the power
+  modules, the DC switching, the connector's cooling and the arm's controls, at the outline of a bought all-in-one charger
+  (`cabinetEnvelope.DCFC_CABINET_PU`, 1,210 x 2,215 x 764 mm). It was drawn as a split charger's post first, and the split
+  charger's power cabinets had nowhere to stand: the maker allows 60 m of cable from a power cabinet to its post, and no
+  free ground lies that close. Its face toward the arm did not move when it grew (`CABINET_BACKSET_PU`), so the arm's
+  working space is the same. **Each post's feed is measured on the site plan** (`src/lib/siteFeeders.ts`: one duct bank,
+  from the transformer yard round the office to each canopy's spine), written into `cad/spec/robots.json` and quoted on
+  the schedule's lines: change the site plan, a transformer or a post and `siteFeeders.test.ts` and `cadSpec.test.ts` say
+  so. Its parts are `yard_hidden`: `ChargingField` draws the yard's cabinet box from the same numbers. **A reference part
+  hides every overlap with it:** while the cabinet was a reference envelope, the J2 boot hung 180 mm into it at stow and
+  the clash check called that context. A solid a moving part can reach is a real part, and `cadFlex.test.ts` holds the
+  flex links off the cabinet. `docs/OTTO-ROBOTICS-CAD.md`, findings 22 and 23.
 - **The two cockpits read the robots from here (2026-11-09).** Chase: *"Pulse should have depot/operator level info on
   the functionality of the machines ... Orchestra needs just user/asset/vehicle owner detail from a stall or stage
   perspective. ... I think just the twin needs the CAD level detail."* What a machine IS has one home:

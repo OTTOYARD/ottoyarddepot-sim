@@ -51,14 +51,23 @@ import type { CarSolid } from './vehicleEnvelope';
  */
 export const DCFC_CABINET_PU = {
   /** the WIDE face, which runs fore/aft along the car */
-  width: 1.5,
+  width: 2.53,
   /** world-Y extent of the pedestal body */
-  height: 3.6,
+  height: 4.63,
   /** the SHALLOW dimension, which faces the car */
-  depth: 0.7,
+  depth: 1.6,
   /** the concrete pad the body sits on; the body starts at its top */
   padHeight: 0.16,
 } as const;
+// THE CABINET IS A WHOLE 350 kW CHARGER (Chase, 2026-11-15, choosing "all-in-one posts"): 1,210 x 2,215 x 764 mm, the
+// outline of ABB's UL Terra 360 (H x W x D 2215 x 1210 x 764 mm, 848 kg: https://library.e.abb.com/public/
+// e7c2402c24c049198ea653c93aea21f0/ABB_Emobility_Terra-360_UL_Data-Sheet_A.pdf, read through a web search on
+// 2026-11-15). It was 1.5 x 3.6 x 0.7u (718 x 1,723 x 335 mm), the post of a split charger, and the split charger's
+// power cabinets had nowhere to stand: ABB's Terra HP manual allows at most 60 m of cable from a power cabinet to its
+// post (9AKK107992A6491-EN rev 005, section 12.16.4: https://inchargeus.com/wp-content/uploads/2023/10/
+// Terra-HP-350-Edited.pdf, read 2026-11-15), the transformer yard is 56 to 146 m of duct-bank route from the posts
+// (siteFeeders.ts) and full, and no free ground lies nearer. Fed with 480 V AC from its transformer, the post needs no
+// power unit at all.
 
 /**
  * How far the cabinet's CENTRE sits behind the arm's base axis, plan units.
@@ -81,7 +90,10 @@ export const DCFC_CABINET_PU = {
  * .test.ts sweeps it and fails if the worst moving-link clearance goes negative.
  * It must grow with ARM_SCALE, because a longer upper arm folds further back.
  */
-export const CABINET_BACKSET_PU = 1.35;
+export const CABINET_BACKSET_PU = 1.8;
+// 1.35 until 2026-11-15. The cabinet grew 0.9u deeper when it became a whole charger (DCFC_CABINET_PU), and all of it
+// went AWAY from the car: its car-facing face stays 1.0u (0.48 m) behind the arm's base axis, where it was measured,
+// so the arm's mount bridge, the pad's car-side edge and every moving link's clearance to the face are unchanged.
 
 /**
  * THE ARM'S MOUNT — what makes the OTTO-CHARGE ARM and its DCFC cabinet ONE unit.

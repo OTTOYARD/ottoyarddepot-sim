@@ -24,6 +24,7 @@ import { poseFor } from '@/lib/ottoChargeArm/armMotion';
 import { OTTO_CHARGE_ARM } from '@/lib/ottoChargeArm/cobotSpec';
 import { PHASES, portVariants, target, windowVariants } from '@/lib/ottoChargeArm/armSweeps';
 import { carSolidInArmFrame, clearanceToCar } from '@/lib/ottoChargeArm/vehicleEnvelope';
+import { cabinetSolidInArmFrame } from '@/lib/ottoChargeArm/cabinetEnvelope';
 import { cleanJointsAt, sidesFor } from '@/lib/ottoCleanArm/cleanArmPose';
 import type { CleanPhase } from '@/lib/ottoCleanArm/cleanArmSpec';
 import { cleanAngles, cycleSteps, posePresets, washAngles, ROBOT_KEYS, type RobotKey } from './catalog';
@@ -198,6 +199,31 @@ describe('OTTO-CHARGE ARM: the power path\'s flex links through the duty cycle',
     }
     expect(worst, `a flex link comes ${worst.toFixed(4)} m from the car at ${at}`).toBeGreaterThanOrEqual(0.1);
   }, 120_000);   // 11,070 poses: past vitest's 5 s default on a slow CI runner
+
+  it('never lays a flex link in the cabinet behind the arm: 0.02 m off it, all cycle and each fleet car\'s mate', () => {
+    // 2026-11-15: drawn as its real enclosure, the cabinet showed the J2 link hanging up to 0.18 m into it at stow, unstow,
+    // approach and retract. The envelope it replaced was a reference body, so the clash check had filed that as context.
+    // The cabinet's solid is the twin's own (cabinetEnvelope.ts), in the arm's base frame: the GLB's root frame
+    const cad = cads.get('charge_arm')!;
+    const skel = cad.skeleton();
+    const cab = cabinetSolidInArmFrame();
+    const v = new THREE.Vector3();
+    const mates = posePresets('charge_arm').map((p) => ({ label: `preset ${p.id}`, angles: p.angles }));
+    let worst = Infinity, at = '';
+    for (const p of [...cyclePoses([...portVariants(), ...windowVariants()]), ...mates]) {
+      poseSkeleton(skel, p.angles);
+      skel.root.updateMatrixWorld(true);
+      const m = (n: string) => skel.node(n).matrixWorld;
+      for (const d of cad.flex.filter((x) => LINKS.includes(x.id))) {
+        const s = solveFlex(d, m(d.a.node), m(d.b.node), m);
+        for (let k = 0; k < s.points.length / 3; k++) {
+          const c = clearanceToCar(v.set(s.points[3 * k], s.points[3 * k + 1], s.points[3 * k + 2]), cab) - d.r;
+          if (c < worst) { worst = c; at = `${d.id} ${p.label}`; }
+        }
+      }
+    }
+    expect(worst, `a flex link comes ${worst.toFixed(4)} m from the cabinet at ${at}`).toBeGreaterThanOrEqual(0.02);
+  }, 120_000);
 });
 
 describe('OTTO-CLEAN ARM: its lines through both sides of the cleaning cycle', () => {
