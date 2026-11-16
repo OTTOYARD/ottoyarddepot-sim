@@ -2,9 +2,9 @@
 // powerOneLine — the depot's electrical one-line, read and put into words.
 //
 // Data contract: otto-q-core 0810, public.ottoq_power_one_line(p_depot_id, p_sim_run_id). The engine keeps the depot's
-// electrical tree as data (a utility service, a switchgear, seven transformers, thirty posts, the battery, the building
-// and the canopy solar), measures every node on every tick, and steps each transformer's temperature by the loading
-// guide's model. This file parses that answer and formats it. It decides nothing and invents no number: a reading the
+// electrical tree as data (a utility service, a switchgear, seven transformers, thirty posts, the battery, the building,
+// the canopy solar and, since 0840, each fast-charger canopy's board for its clean arms and their vacuum producer),
+// measures every node on every tick, and steps each transformer's temperature by the loading guide's model. This file parses that answer and formats it. It decides nothing and invents no number: a reading the
 // engine did not send is drawn as a dash.
 //
 // Two things the page must always say, because they are the point (otto-q-core CLAUDE.md rule 13):
@@ -14,7 +14,7 @@
 
 export const DASH = '—';
 
-export type NodeKind = 'utility_service' | 'mv_switchgear' | 'transformer' | 'post' | 'bess' | 'solar' | 'building';
+export type NodeKind = 'utility_service' | 'mv_switchgear' | 'transformer' | 'post' | 'bess' | 'solar' | 'building' | 'canopy_board';
 
 export interface NodeNow {
   kw_dc: number | null;
@@ -110,7 +110,7 @@ export interface OneLine {
 }
 
 // ── parsing ──────────────────────────────────────────────────────────────────
-const KINDS: readonly NodeKind[] = ['utility_service', 'mv_switchgear', 'transformer', 'post', 'bess', 'solar', 'building'];
+const KINDS: readonly NodeKind[] = ['utility_service', 'mv_switchgear', 'transformer', 'post', 'bess', 'solar', 'building', 'canopy_board'];
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 /** PostgREST sends numeric as a number or, at high precision, a string. Anything else is no reading. */
 export function num(v: unknown): number | null {
@@ -206,6 +206,41 @@ export function transformers(o: OneLine): PowerNode[] {
 }
 export const childrenOf = (o: OneLine, code: string): PowerNode[] =>
   o.nodes.filter((n) => n.parent === code).sort((a, b) => a.code.localeCompare(b.code));
+
+/** One box under a transformer in the diagram: a load that is not a post, or the canopy boards drawn as one. */
+export interface Leaf {
+  /** The node's code, or 'BOARDS' for the canopy boards together. */
+  code: string;
+  tag: string;
+  title: string;
+  /** AC kW now; below zero is supply. The boards' sum only when every board has a reading, else null. */
+  kw: number | null;
+  nodes: PowerNode[];
+}
+
+const LEAF_TAG: Partial<Record<NodeKind, string>> = { bess: 'BATT', building: 'BLDG', solar: 'SOLAR' };
+
+/**
+ * A transformer's loads other than its posts, as the diagram draws them: in code order, as it always has, then the
+ * canopy boards (0840) as one box, so TX-AUX keeps four rows. Each board stays a node of its own in the card.
+ */
+export function leavesOf(o: OneLine, code: string): Leaf[] {
+  const kids = childrenOf(o, code).filter((n) => n.kind !== 'post');
+  const boards = kids.filter((n) => n.kind === 'canopy_board');
+  const leaves: Leaf[] = kids.filter((n) => n.kind !== 'canopy_board')
+    .map((n) => ({ code: n.code, tag: LEAF_TAG[n.kind] ?? n.kind.toUpperCase(), title: n.title, kw: n.now?.kw_ac ?? null, nodes: [n] }));
+  if (boards.length) {
+    const read = boards.every((b) => b.now?.kw_ac !== null && b.now?.kw_ac !== undefined);
+    leaves.push({
+      code: 'BOARDS',
+      tag: 'BOARDS',
+      title: `${boards.length} canopy ${boards.length === 1 ? 'board' : 'boards'} (clean arms and their vacuum producers)`,
+      kw: read ? boards.reduce((s, b) => s + (b.now!.kw_ac as number), 0) : null,
+      nodes: boards,
+    });
+  }
+  return leaves;
+}
 
 // ── states ───────────────────────────────────────────────────────────────────
 export type PostState = 'charging' | 'idle' | 'down';

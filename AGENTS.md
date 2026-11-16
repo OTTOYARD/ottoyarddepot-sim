@@ -29,7 +29,9 @@ whole transformer through `otto-twin-control` (`inject_fault`, kind `power_zone`
 Two lines never leave the page: every size is what is installed and limits no car (otto-q-core rule 13), and the
 right-size sentence is one run's reading, never a change. The browser computes sums and words only. The 3D yard draws
 the seven units in the electrical yard (`sitePlan.TX_YARD`, `BESS_YARD`, since 2026-11-11). Each post is a whole charger
-fed straight from its transformer, and each feed's length is measured in `src/lib/siteFeeders.ts`.
+fed straight from its transformer, and each feed's length is measured in `src/lib/siteFeeders.ts`. Since otto-q-core 0840
+(2026-11-16), TX-AUX also feeds each canopy's board (kind `canopy_board`): the diagram draws the three as one box
+(`leavesOf` in `powerOneLine.ts`, so TX-AUX keeps four rows), and TX-AUX's card lists each load.
 
 ## Landmines specific to this repo
 
