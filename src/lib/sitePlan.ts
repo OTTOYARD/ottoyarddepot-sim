@@ -172,6 +172,37 @@ export const CANOPIES: CanopyDef[] = [
   { id: 'C', cx: 197, x: 182, w: 30, y: 80, h: 84, kind: 'l2' },
 ];
 
+/** THE CANOPY PLANT (2026-11-16): what a fast-charger canopy's 10 OTTO-CLEAN ARMs take from the site that is not the
+ *  depot's compressed air (siteAir.ts). It stands at grade under the canopy's south end, either side of its last spine
+ *  column, past every car, charger and rail bed (siteCanopy.test.ts holds it clear of them, and the structure set drives
+ *  the recorded cars against it):
+ *    - the canopy's board, west of the column, its front to the north: the arms' supplies, the vacuum producer's and the
+ *      canopy's network switch (ASSUMPTION: a free-standing board, 1.2 x 0.5 x 2.0 m);
+ *    - the vacuum producer, east of the column, with its separator, filter and dirt bin in one acoustic enclosure
+ *      (ASSUMPTION: 2.2 x 1.3 x 1.9 m, a class size for about 3 kW per working arm in the 30 kPa class: clean_arm.py).
+ *  Offsets from the canopy's spine (x) and from its south end (y, so negative), and heights, in plan units. The board's
+ *  feed, its network and the runs to each arm are measured in siteCanopy.ts. */
+export const CANOPY_PLANT = {
+  board: { x0: -3.9, x1: -1.4, y0: -3.9, y1: -2.85, h: 4.2 },
+  vacuum: { x0: 1.4, x1: 6.0, y0: -5.5, y1: -2.85, h: 4.0 },
+} as const;
+
+export interface PlantBox { x0: number; x1: number; y0: number; y1: number; h: number }
+export interface CanopyPlant { canopy: CanopyDef['id']; cx: number; board: PlantBox; vacuum: PlantBox }
+
+/** One canopy's plant, where CANOPY_PLANT stands it. Plan units. */
+export function plantOf(c: CanopyDef): CanopyPlant {
+  const south = c.y + c.h;
+  const at = (b: PlantBox): PlantBox => ({ x0: c.cx + b.x0, x1: c.cx + b.x1, y0: south + b.y0, y1: south + b.y1, h: b.h });
+  return { canopy: c.id, cx: c.cx, board: at(CANOPY_PLANT.board), vacuum: at(CANOPY_PLANT.vacuum) };
+}
+
+/** The plant of each canopy that has fast chargers in the build: the first `dcfcCanopies` canopies (an OTTO-CLEAN ARM
+ *  hangs only over a fast charger). Plan units. */
+export function canopyPlants(dcfcCanopies = chargerBuildSpec().dcfcCanopies): CanopyPlant[] {
+  return CANOPIES.slice(0, dcfcCanopies).map(plantOf);
+}
+
 // Perimeter parking runs (solar carports above each; temp/overflow runs are open-air)
 export interface ParkRun {
   id: string;

@@ -584,6 +584,229 @@
         "lengthM": 32.2
       }
     ],
-    "peakFreeAirM3Min": 4.5
+    "peakFreeAirM3Min": 4.5,
+    "canopyPlant": "under each fast-charger canopy's south end: its board west of the last spine column, its vacuum producer east of it",
+    "cleanArmRuns": [
+      {
+        "stall": "DCFC-01",
+        "canopy": "A",
+        "supplyM": 46.2,
+        "networkM": 46.7
+      },
+      {
+        "stall": "DCFC-02",
+        "canopy": "A",
+        "supplyM": 39.3,
+        "networkM": 39.8
+      },
+      {
+        "stall": "DCFC-03",
+        "canopy": "A",
+        "supplyM": 32.4,
+        "networkM": 32.9
+      },
+      {
+        "stall": "DCFC-04",
+        "canopy": "A",
+        "supplyM": 25.5,
+        "networkM": 26
+      },
+      {
+        "stall": "DCFC-05",
+        "canopy": "A",
+        "supplyM": 18.6,
+        "networkM": 19.1
+      },
+      {
+        "stall": "DCFC-06",
+        "canopy": "A",
+        "supplyM": 46.9,
+        "networkM": 47.4
+      },
+      {
+        "stall": "DCFC-07",
+        "canopy": "A",
+        "supplyM": 40,
+        "networkM": 40.5
+      },
+      {
+        "stall": "DCFC-08",
+        "canopy": "A",
+        "supplyM": 33.1,
+        "networkM": 33.6
+      },
+      {
+        "stall": "DCFC-09",
+        "canopy": "A",
+        "supplyM": 26.2,
+        "networkM": 26.7
+      },
+      {
+        "stall": "DCFC-10",
+        "canopy": "A",
+        "supplyM": 19.3,
+        "networkM": 19.8
+      },
+      {
+        "stall": "DCFC-11",
+        "canopy": "B",
+        "supplyM": 46.2,
+        "networkM": 46.7
+      },
+      {
+        "stall": "DCFC-12",
+        "canopy": "B",
+        "supplyM": 39.3,
+        "networkM": 39.8
+      },
+      {
+        "stall": "DCFC-13",
+        "canopy": "B",
+        "supplyM": 32.4,
+        "networkM": 32.9
+      },
+      {
+        "stall": "DCFC-14",
+        "canopy": "B",
+        "supplyM": 25.5,
+        "networkM": 26
+      },
+      {
+        "stall": "DCFC-15",
+        "canopy": "B",
+        "supplyM": 18.6,
+        "networkM": 19.1
+      },
+      {
+        "stall": "DCFC-16",
+        "canopy": "B",
+        "supplyM": 46.9,
+        "networkM": 47.4
+      },
+      {
+        "stall": "DCFC-17",
+        "canopy": "B",
+        "supplyM": 40,
+        "networkM": 40.5
+      },
+      {
+        "stall": "DCFC-18",
+        "canopy": "B",
+        "supplyM": 33.1,
+        "networkM": 33.6
+      },
+      {
+        "stall": "DCFC-19",
+        "canopy": "B",
+        "supplyM": 26.2,
+        "networkM": 26.7
+      },
+      {
+        "stall": "DCFC-20",
+        "canopy": "B",
+        "supplyM": 19.3,
+        "networkM": 19.8
+      },
+      {
+        "stall": "DCFC-21",
+        "canopy": "C",
+        "supplyM": 46.2,
+        "networkM": 46.7
+      },
+      {
+        "stall": "DCFC-22",
+        "canopy": "C",
+        "supplyM": 39.3,
+        "networkM": 39.8
+      },
+      {
+        "stall": "DCFC-23",
+        "canopy": "C",
+        "supplyM": 32.4,
+        "networkM": 32.9
+      },
+      {
+        "stall": "DCFC-24",
+        "canopy": "C",
+        "supplyM": 25.5,
+        "networkM": 26
+      },
+      {
+        "stall": "DCFC-25",
+        "canopy": "C",
+        "supplyM": 18.6,
+        "networkM": 19.1
+      },
+      {
+        "stall": "DCFC-26",
+        "canopy": "C",
+        "supplyM": 46.9,
+        "networkM": 47.4
+      },
+      {
+        "stall": "DCFC-27",
+        "canopy": "C",
+        "supplyM": 40,
+        "networkM": 40.5
+      },
+      {
+        "stall": "DCFC-28",
+        "canopy": "C",
+        "supplyM": 33.1,
+        "networkM": 33.6
+      },
+      {
+        "stall": "DCFC-29",
+        "canopy": "C",
+        "supplyM": 26.2,
+        "networkM": 26.7
+      },
+      {
+        "stall": "DCFC-30",
+        "canopy": "C",
+        "supplyM": 19.3,
+        "networkM": 19.8
+      }
+    ],
+    "canopyBoards": [
+      {
+        "canopy": "A",
+        "loadKw": 54,
+        "feedM": 117,
+        "conductor": "2 AWG copper",
+        "dropPct": 1.94,
+        "fibreM": 81.5
+      },
+      {
+        "canopy": "B",
+        "loadKw": 54,
+        "feedM": 140.2,
+        "conductor": "2 AWG copper",
+        "dropPct": 2.32,
+        "fibreM": 104.7
+      },
+      {
+        "canopy": "C",
+        "loadKw": 54,
+        "feedM": 163.3,
+        "conductor": "2 AWG copper",
+        "dropPct": 2.7,
+        "fibreM": 127.8
+      }
+    ],
+    "vacuumMains": [
+      {
+        "canopy": "A",
+        "routeM": 84
+      },
+      {
+        "canopy": "B",
+        "routeM": 84
+      },
+      {
+        "canopy": "C",
+        "routeM": 84
+      }
+    ]
   }
 }

@@ -42,6 +42,7 @@ import { ARM_REACH, BASE_JOINT_NAMES, HEAD_JOINT_NAMES } from '@/lib/ottoChargeA
 import { MODEL_TOWARD } from '@/lib/robotics/liveFollow';
 import { postFeeders } from '@/lib/siteFeeders';
 import { PEAK_FREE_AIR_M3_MIN, airMains } from '@/lib/siteAir';
+import { armRuns, canopyBoards, vacuumMains } from '@/lib/siteCanopy';
 import {
   CLEAN_ARM, CLEAN_PHASE_S, MAST_FOOT_MAX, MAST_FOOT_MIN, PIVOT_Y_MAX, PIVOT_Y_MIN, WAND_RETRACTED,
 } from '@/lib/ottoCleanArm/cleanArmSpec';
@@ -203,6 +204,17 @@ export function cadSpec() {
       airPlant: 'the ops building\'s office block, its south-east corner beside service bay 1',
       airMains: airMains().map((m) => ({ to: m.to, lengthM: Math.round(m.lengthM * 10) / 10 })),
       peakFreeAirM3Min: PEAK_FREE_AIR_M3_MIN,
+      // Each fast-charger canopy's plant and what its OTTO-CLEAN ARMs take from it (siteCanopy.ts, 2026-11-16), for the
+      // clean arm's supply, network and vacuum notes. The 30-post build: 3 canopies of 10 arms.
+      canopyPlant: 'under each fast-charger canopy\'s south end: its board west of the last spine column, its vacuum producer east of it',
+      cleanArmRuns: armRuns().map((r) => ({
+        stall: r.stall, canopy: r.canopy, supplyM: Math.round(r.supplyM * 10) / 10, networkM: Math.round(r.networkM * 10) / 10,
+      })),
+      canopyBoards: canopyBoards().map((b) => ({
+        canopy: b.canopy, loadKw: b.loadKw, feedM: Math.round(b.feedM * 10) / 10, conductor: b.conductor,
+        dropPct: Math.round(b.dropPct * 100) / 100, fibreM: Math.round(b.netM * 10) / 10,
+      })),
+      vacuumMains: vacuumMains().map((v) => ({ canopy: v.canopy, routeM: Math.round(v.routeM * 10) / 10 })),
     },
   };
 }

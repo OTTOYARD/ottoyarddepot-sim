@@ -177,10 +177,13 @@ def build(spec: dict) -> Model:
                 how=['A gearmotor with a worm stage pitches the head.', 'The air knife blows dust out of seams into the vacuum flow.',
                      'A light ring shows that it works, and lights the cabin for the camera.'],
                 specs={'mouth': f'{N["w"]:.0f} x {N["h"]:.0f} mm', 'air knife': '6 bar'}, group='Tool')
+    vac_mains = [v['routeM'] for v in (spec.get('site') or {}).get('vacuumMains', [])]
     m.subsystem('VAC', 'Vacuum and air supply', 'Brings vacuum from the canopy plant and compressed air from the depot\'s compressor to the nozzle.',
                 how=['A central vacuum producer on each canopy (about 3 kW per working arm, 30 kPa class) serves its arms.',
+                     'The producer stands at grade under the canopy\'s south end, with its separator, filter and dirt bin.',
                      'One compressor in the service building feeds the air of all 3 canopies. The air knives are the depot\'s only tool that uses air.',
                      'A vacuum main and an air main run under the canopy roof, over the header. They belong to the canopy plant.',
+                     'The vacuum main comes up the canopy\'s last spine column from the producer.',
                      'A branch drops from the vacuum main through a gate valve, in through the column wall, and down to the J1 union.',
                      'A drop from the air main feeds a service unit on the column: a lockable shut-off valve and a filter regulator.',
                      'A 6 mm line runs from the unit in through the column wall and down to the J1 union.',
@@ -191,15 +194,19 @@ def build(spec: dict) -> Model:
                      'At the wrist, the cable crosses in a clock spring and the air in the swivel.',
                      'A reel in the wand feeds both along it. A loop takes the air across the nozzle joint.'],
                 specs={'duct': 'DN 50 throughout', 'airflow': 'about 400 m3/h per producer (class)',
-                       'vacuum main': f'{VAC_MAIN_OD:.0f} mm (ASSUMPTION: the canopy plant is not sized here)',
+                       'vacuum main': (f'{VAC_MAIN_OD:.0f} mm, {max(vac_mains):.0f} m from the producer to the 10 arms of a canopy (measured on '
+                                       'the site plan; ASSUMPTION: the canopy plant is not sized here)' if vac_mains else
+                                       f'{VAC_MAIN_OD:.0f} mm (ASSUMPTION: the canopy plant is not sized here)'),
                        'isolation': 'gate valve DN 50 on the vacuum branch, lockable valve on the air drop'}, group='Supply')
     m.subsystem('POWER', 'Power, control and network', 'Brings electric power and the site network to the arm, and holds its controller.',
                 how=['A supply enclosure on the drop column holds the controller, the power supplies, the J1 drive and the safety relay.',
                      'A lockable isolator on its door cuts the supply for work on the arm.',
                      'The supply cable and the network cable come down from the canopy cable tray, each in its own conduit.',
+                     'They come along the tray from the canopy\'s board, up its last spine column.',
                      'A motor cable runs from the enclosure down to the J1 gearmotor.',
                      'A second cable goes in through the column wall and down to the J1 union. Its slip ring feeds the rest of the arm.',
-                     'The disconnect that a person reaches from the ground is on the canopy\'s board. It is site work and is not drawn.'],
+                     'The disconnect that a person reaches from the ground is the arm\'s breaker in the canopy\'s board.',
+                     'The board stands at grade under the canopy\'s south end. It is site work: the yard draws it, and this model does not.'],
                 specs={'enclosure': f'{ENC_H:.0f} x {ENC_W:.0f} x {ENC_D:.0f} mm, stainless, IP66 (class)',
                        'height': f'{ENC_Y0 / 1000:.2f} m above grade, on the column',
                        'conduit fill': 'one cable in each conduit, under 53 % (NEC chapter 9, table 1)'}, group='Supply')
@@ -400,7 +407,8 @@ def build(spec: dict) -> Model:
              .union(cq.Workplane('XZ', origin=(u_v, y_main - VAC_MAIN_OD / 2 + 3, v_v)).circle(25).circle(22).extrude(63)))
     m.place(base, m.part(PartDef('CLN-VMN', 'Canopy vacuum main with a branch (part of the canopy plant)', vmain.val(), 'ss304', 'fluid',
                                  'canopy plant', f'D {VAC_MAIN_OD:.0f}, branch D 50', '', None,
-                                 'Brings the vacuum from the canopy\'s producer to its arms. Shown for context.', {}, 'buy',
+                                 'Brings the vacuum to the arms on its canopy from the canopy\'s producer, at grade under its south end. '
+                                 'Shown for context.', {}, 'buy',
                                  reference=True)), Th, (0, 420, 0), 'VAC')
     # air: the drop from the main, the service unit on a channel bracket on the column's -Z face, the line into the column
     AU_Z = -165.0                                  # the unit's ports: its drop passes 9 mm outside the column's top plate
@@ -475,7 +483,8 @@ def build(spec: dict) -> Model:
     m.place(base, m.part(PartDef('CLN-ISO', 'Supply isolator handle, lockable, door-coupled', iso.val(), 'accent', 'electrical',
                                  'IEC 60947-3', 'D 72', 'IP66', None,
                                  'Switches the arm\'s supply off at the enclosure and takes a padlock, for work on the arm.',
-                                 {'ASSUMPTION': 'the disconnect a person reaches from the ground is on the canopy board (site works, not drawn)'},
+                                 {'ASSUMPTION': 'the disconnect a person reaches from the ground is the arm\'s breaker in the canopy\'s board, at '
+                                                'grade under the canopy\'s south end (site works: src/lib/siteCanopy.ts)'},
                                  'buy')),
             loc(mx + ex0 + ENC_D, ENC_Y0 + ENC_H - 150, zc_e + 100), (420, 0, 0), 'POWER')
     y_tray = y_main - VAC_MAIN_OD / 2 - 5.0        # the tray's underside: 50 mm over the header's top
@@ -485,7 +494,8 @@ def build(spec: dict) -> Model:
             .translate((u_t, y_tray + 30, 0)))
     m.place(base, m.part(PartDef('CLN-CTY', 'Canopy cable tray 150 x 60 (part of the canopy)', tray.val(), 'steel_s355', 'electrical',
                                  'canopy steel', '150 x 60', '', None,
-                                 'Carries the arms\' supply and network cables along the canopy from its board. Shown for context.', {},
+                                 'Carries the arms\' supply and network cables along the canopy from its board, at grade under its south end. '
+                                 'Shown for context.', {},
                                  'buy', reference=True)), Th, (0, 420, 0), 'POWER')
     for (ex, ez, what), cod in zip(ent, (SUPPLY_CABLE_OD, NET_CABLE_OD)):
         size = _conduit_for(cod)
@@ -1168,7 +1178,7 @@ def build(spec: dict) -> Model:
     # ════════════════════════════════════════════════════════════ CABLE SCHEDULE ═══
     _cable_schedule(m, dict(L1=L1, L2=L2, emc_mm=ENC_Y0 - 20 - y_gm, adr_mm=y_sp - (y_u0 + AU_H),
                             ecd_mm=y_tray - (ENC_Y0 + ENC_H + 15), CAB_BEND=CAB_BEND,
-                            air_mains=(spec.get('site') or {}).get('airMains', [])))
+                            air_mains=(spec.get('site') or {}).get('airMains', []), site=spec.get('site') or {}))
     return m
 
 
@@ -1184,15 +1194,34 @@ def _cable_schedule(m: Model, g: dict) -> None:
     P, fx = m.parts, {f.id: f for f in m.flexes}
     enc_tail = f'{TAIL_ENC:.0f} mm inside the supply enclosure to its terminal (ASSUMPTION)'
     dev_tail = f'{TAIL_DEV:.0f} mm to make it off at its connector (ASSUMPTION)'
-    for (lid, name, kind, od, cid, to) in (
-            ('CLN-SPW', 'Supply cable 4 x 2.5 mm2, canopy board to the supply enclosure', 'power', SUPPLY_CABLE_OD, 'CLN-ECDP', 'its isolator'),
-            ('CLN-SNW', 'Network cable, industrial Cat 6A, canopy switch to the supply enclosure', 'network', NET_CABLE_OD, 'CLN-ECDN', 'its controller')):
+    # Their run from the canopy's board is the site's: each arm's is measured on the site plan (src/lib/siteCanopy.ts, written
+    # into cad/spec/robots.json as site.cleanArmRuns by cadSpec.ts), and the notes quote it (2026-11-16: until then each
+    # ended "add it from the site's layout").
+    runs = g['site'].get('cleanArmRuns', [])
+
+    def by_arm(key: str, what: str) -> str:
+        vals = [r[key] for r in runs if r.get(key) is not None]
+        if not vals:
+            return ''
+        return (f'{what}: {min(vals):.1f} to {max(vals):.1f} m by arm, {sum(vals) / len(vals):.1f} m on average over the {len(vals)} '
+                'arms, the site\'s and not in this schedule (measured on the site plan: src/lib/siteCanopy.ts; each arm in '
+                'cad/spec/robots.json, site.cleanArmRuns).')
+    for (lid, name, kind, od, cid, frm, to, key) in (
+            ('CLN-SPW', 'Supply cable 4 x 2.5 mm2, canopy board to the supply enclosure', 'power', SUPPLY_CABLE_OD, 'CLN-ECDP',
+             'its breaker in the canopy\'s board (at grade under the canopy\'s south end)', 'its isolator', 'supplyM'),
+            ('CLN-SNW', 'Network cable, industrial Cat 6A, canopy switch to the supply enclosure', 'network', NET_CABLE_OD, 'CLN-ECDN',
+             'the canopy\'s network switch, in its board (at grade under the canopy\'s south end)', 'its controller', 'networkM')):
         L = m.cable(lid, name, kind, od, 'ASSUMPTION: a cable of its kind (cad clean_arm, SUPPLY_CABLE_OD and NET_CABLE_OD)',
-                    'the canopy\'s board (site works)', f'the supply enclosure (CLN-ENC): {to}', 'POWER', bend_fixed=4 * od,
+                    frm, f'the supply enclosure (CLN-ENC): {to}', 'POWER', bend_fixed=4 * od,
                     tail_b=TAIL_ENC, tails=enc_tail)
-        L.run('site', 'CLN-CTY', 'along the canopy\'s cable tray from its board: the site\'s length, not in the model', 0.0)
+        L.run('site', 'CLN-CTY', 'from the board, up the canopy\'s last spine column and along its cable tray to this arm: the site\'s '
+              'length, not in this schedule', 0.0)
         L.run('conduit', cid, 'down its rigid conduit from the tray to the enclosure\'s top', g['ecd_mm'])
-        L.open.append('Its run from the canopy\'s board along the cable tray is the site\'s: add it from the site\'s layout.')
+        note = by_arm(key, 'Its run from the canopy\'s board, up the last column and along the cable tray, with the board\'s tail')
+        if note:
+            L.notes.append(note)
+        else:
+            L.open.append('Its run from the canopy\'s board is not measured: cad/spec/robots.json has no site.cleanArmRuns (run cadSpec).')
     L = m.cable('CLN-EMC', 'J1 motor cable, power and feedback, 12 mm', 'power', 12.0, 'EN 50525', 'the J1 drive in the supply enclosure',
                 'the J1 gearmotor', 'POWER', bend_fixed=48.0, tail_a=TAIL_ENC, tail_b=TAIL_DEV, tails=f'{enc_tail}; {dev_tail}')
     L.run('drawn', 'CLN-EMC', 'straight down from the enclosure\'s gland to the gearmotor', g['emc_mm'])
