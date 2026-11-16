@@ -43,16 +43,17 @@ over side A and in the cabin (`cleanJointsAt`, through `buildCleanArm.poseCleanA
 at home, mid wash pass, dry pass and on the roof and front sensors (`programPoseAt`). Its run steps are the twin's phase tables
 (`NOMINAL_SEQUENCE` and `ARM_TIMING_DEFAULTS`, `CLEAN_CHAIN` and `CLEAN_PHASE_S`, `washChain` and `PASS_NOMINAL_S`).
 
-## The three machines (as built 2026-11-15, with their supplies drawn: finding 19)
+## The three machines (as built 2026-11-16, finding 24)
 
 | robot | parts | different parts | screws, nuts, washers, pins | mass | STEP (zip) | GLB |
 |---|---:|---:|---:|---:|---:|---:|
-| OTTO-CHARGE ARM (rail bed, two-connector head, supply from the cabinet) | 1,052 | 248 | 702 | 990 kg (with its bed, carriage, cross-slide, riser and supply) | 38.9 MB (7.4) | 8.5 MB |
-| OTTO-CLEAN ARM (with its power and its vacuum and air drops) | 258 | 117 | 147 | 375 kg (with its canopy steel) | 7.6 MB (1.4) | 2.3 MB |
-| OTTO-WASH (touchless, 2 detail arms, bay supply) | 2,777 | 292 | 1,636 | 5,950 kg | 38.7 MB (7.0) | 9.1 MB |
+| OTTO-CHARGE ARM (rail bed, two-connector electric head, its whole charger, supply from the site) | 1,231 | 339 | 720 | 1,593 kg (with its bed, carriage, cross-slide, riser, charger and supply) | 48.6 MB (9.3) | 9.2 MB |
+| OTTO-CLEAN ARM (with its power and its vacuum and air drops) | 276 | 130 | 147 | 376 kg (with its canopy steel) | 8.1 MB (1.5) | 2.5 MB |
+| OTTO-WASH (touchless, 2 detail arms, bay supply) | 2,835 | 320 | 1,648 | 6,046 kg | 44.0 MB (8.3) | 9.6 MB |
 
-(The table read 966, 408 and 2,639 parts until 2026-11-15. The clean arm's row was already stale: it had 238. The
-supplies added 86, 20 and 138 parts.)
+(The table read 1,052, 258 and 2,777 parts after finding 19 drew the supplies, and findings 20 to 23 did not bring it
+up to date: the rows above are from finding 24's build. Before finding 19 it read 966, 408 and 2,639; the clean arm's
+408 was already stale, at 238.)
 
 (Fewer fasteners than the first pass: where the clash check found a screw standing in another part, or holding a part
 the new layout leaves out (the wash beam's cover, the clean arm's mast cap and first hose), it went. The masses went
@@ -107,8 +108,9 @@ toward the car's nose and 2.5 m toward its tail); on it 2 size 20 cross rails, a
 a cable chain in a steel-lined channel in the slab, with a second chain of the same size across the carriage (finding
 19 draws them from the cabinet). `CR_BED` is the
 bed's set position, not a drive. The tool is a holder with 2 connectors side by side, CCS1 and NACS, 100 mm each side
-of the tool axis, each on a 90 mm plunge cylinder (`HD_CCS`, `HD_NACS`) with its own contacts, seal, bumper, latch and
-solenoid. The mass went from 313 kg to 833 kg: the bed, its anchors and the carriage are steel. The six-axis arm's links and joints are unchanged.
+of the tool axis, each on a 90 mm plunge actuator (`HD_CCS`, `HD_NACS`) with its own contacts, seal, bumper, latch and
+solenoid (the actuators are electric since finding 24; they were pneumatic cylinders). The mass went from 313 kg to
+833 kg: the bed, its anchors and the carriage are steel. The six-axis arm's links and joints are unchanged.
 **The head is heavier, and the load check moved with it** (`charge_arm.torque_budget`, rebuilt 2026-11-13): at full
 horizontal reach J2 now carries 1,902 N·m of gravity (131.1 kg distal) and J3 575 N·m (62.8 kg), against 1,602 and 476
 with the one-connector tool. J3's size 40 gear has x1.28 on its 738 N·m repeated peak, down from x1.55. The balancer
@@ -183,7 +185,7 @@ As run on the committed CAD (`public/cad/<robot>.clash.json`):
 
 | robot | poses | pairs measured | clashes | loose groups | expected overlaps (screws in tapped holes, seals, retaining rings, gear meshes) |
 |---|---:|---:|---:|---:|---|
-| OTTO-CHARGE ARM (2026-11-15, finding 23: with the whole charger drawn) | 34 | 108,415 (36,047 measured) | 0 | 0 | 845, 13, 9, 3 |
+| OTTO-CHARGE ARM (2026-11-16, finding 24: the electric head, no air) | 34 | 104,306 (35,609 measured) | 0 | 0 | 845, 13, 9, 3 |
 | OTTO-CLEAN ARM (2026-11-15, finding 23: the covers' screws on the rim) | 42 | 8,468 (3,269 measured) | 0 | 0 | 214, 0, 1, 4 |
 | OTTO-WASH (touchless, with 2 detail arms, 2026-11-15, finding 22) | 37 | 68,860 (15,237 measured) | 0 | 0 | 1,997, 24, 18, 6 |
 
@@ -756,7 +758,57 @@ The poses found more, which the stowed pose could not show:
     - **Not verified:** the charger's inside is a layout at a bought charger's outline, not that charger's inside: the
       modules, the breaker and the devices are class sizes, and the panel wiring is the maker's. The duct bank's route, the
       office as the network switch's place, the allowances and the feed's conductor size are assumptions, each stated. The
-      air main is still not on the site plan, so the air is the one open line.
+      air main is still not on the site plan, so the air is the one open line. (The next day finding 24 made the head
+      electric: the air went, and nothing is open.)
+
+24. **The charge arm's head is electric, and one compressor feeds the depot (2026-11-16).** Finding 23 left one line open,
+    the charger's air, because no compressor stood on the site plan. Asked what the air was for, the answer was 3 things: the
+    charge arm's head (its 2 plunge cylinders and the pin that locks the connector's float), the clean arms' air knives, and a
+    service coupling on each wash machine's beam that no tool uses. Recommended: make the charge arm's head electric and keep
+    the air knives, with one compressor in the service building. Chase: *"Okay I like your recommendation. Go build. And
+    test it."*
+    - **The head.** Each plunge actuator is a 24 V linear actuator with a holding brake (`CHG-HPC`), drawn 32 mm across where
+      the 20 mm cylinder stood and 1.1 kg where it was 0.6 (a class size, ASSUMPTION). The float lock is a 24 V pin that a
+      spring holds locked with the power off. The tool cable (`CHG-LTL`) powers them. The load check moved a little: J3's
+      margin 1.22 to 1.19 (618 N·m against its gear's 738), J2's 3.22 to 3.18.
+    - **The actuator's force, from the connector maker's sheet.** Each plunge actuator holds its connector forward while
+      the arm pushes the connector in, so it must hold the insertion force. A liquid-cooled high-power CCS1 connector takes
+      less than 100 N to insert or withdraw (Amphenol, EXCEL|MATE HPC CCS1 technical characteristics: "Insertion /
+      withdrawal force < 100N", https://www.amphenol.co.jp/military/catalog/CCS1.pdf, read 2026-11-16; the normative
+      limits are SAE J1772's and IEC 62196-3's, not read). So the parts list asks for an actuator that holds at least
+      100 N (`CHG-HPC`, its `force`). NACS is assumed the same.
+    - **What the clash check found in it.** Each connector body slides over its actuator in a bore, and the bore was still
+      the old cylinder's (radius 10.4 mm). The first check of the wider actuator found each actuator through its own
+      connector body, 52,762 mm3 each, at all 34 poses: exactly π x (16² - 10.4²) x the actuator's 113.6 mm. The bore is
+      now 16.4 mm, the same 0.4 mm clear as before.
+    - **What went:** the 6 x 4 air tube from the cabinet to the head, through both chains and all 4 boots; the charger's
+      service-air block, its 2 fittings and its strut; and the site's air tube with its gland plate entry. The charge arm's
+      schedule goes from 45 to 43 lines, from 189.1 to 173.5 m of route and 203.5 to 187.0 m to order, and has **no open
+      line**. The arm as built goes from 1,616.39 to 1,592.65 kg (the strut was drawn as a solid steel bar, 22.8 kg).
+    - **The plant** (`sitePlan.AIR_PLANT`): a 3.5 x 4.0 m room in the ops building's office block, at its south-east corner
+      against service bay 1's wall, for a compressor, a dryer and a receiver (ASSUMPTION: the room's size and the machines).
+      The service bays take shop air through the wall they share. It is inside the building, so the yard does not draw it.
+    - **The main** (`src/lib/siteAir.ts`, held by `siteAir.test.ts`): out through the building's south wall and under the
+      forecourt, to each canopy's north end and up its first column to the canopy's own air main (5.6 m above the deck),
+      and to the wash hall's corner. By the route x 1.03 and a 6.4 m rise at a canopy (ASSUMPTION): **20.1, 39.6 and 62.7 m**
+      to canopies A, B and C, and **32.2 m** to the wash hall. If all 30 air knives blew at once (150 L/min each, the clean
+      arm's own ASSUMPTION) they would take 4.5 m3/min of free air, so the plant is of the 5 m3/min class at 7 bar: a class,
+      not a sized machine. The cadSpec writes the mains into `cad/spec/robots.json` (`site`), and the clean arm's air drop
+      and the wash machine's air line quote them; the canopy main's text and the wash coupling's now name the compressor.
+    - **What still said air.** Reading the arm's texts again after the build found 2 parts that still named it: the wrist
+      link (`CHG-FL4`) said it carried "the tool's signals and air", and the pad's site shaft "the network and the air".
+      Both now say what they carry, and `cadCables.test.ts` holds every part the air passed through to no mention of it
+      (the charger's own cooling air is not this). The chains' texts, which the parts list does not show, are fixed too,
+      and so is the head's row in `CHARGE-ARM-REACH.md`.
+    - **Checked** (only the charge arm's model changed; the clean arm's and the wash machine's digests did not, so their
+      reports still describe them): after the bores were opened, the clash check at all 34 poses measured 104,306 pairs
+      with 0 clashes and 0 loose groups, and the line-end check found 30 rigid lines (2 fewer, the 2 air tubes) with 0
+      open ends. `armFleetClearance` holds the wider actuators clear of every vehicle's body at its mate, and the yard and
+      detail tests pass on the rebuilt files.
+    - **Not verified:** the plant room's size and place, the main's route and its allowances are assumptions, each stated.
+      The actuator's size and mass are a class, not a chosen part, and NACS's insertion force is assumed to be CCS1's. The
+      clean arms' vacuum still comes from a producer on each canopy (their CAD's canopy plant), which the site plan does
+      not place either.
 
 The audit also found the wash machine's tools fed by rigid pipes that could not follow them. They now have flexible
 lines that do (below). (The wands' vacuum units and the side brushes' chains it added went with finding 17.)
@@ -785,7 +837,7 @@ every robot's lines, one merged draw per material per robot kind, re-solved only
 `cadFlex.test.ts` holds the 2 solvers to the same points (within 0.5 mm) and sweeps each robot's whole duty cycle.
 
 **OTTO-CHARGE ARM.** Every line comes from the DC cabinet beside the bed (finding 19): 8 DC cores of 50 mm2, 4 a
-pole; 2 coolant tubes; an air tube; and 5 cables, for the joints, the tool, the safety circuit and the 2 servo motors
+pole; 2 coolant tubes; and 5 cables, for the joints, the tool, the safety circuit and the 2 servo motors
 of the base. They leave the cabinet through a gland plate in its floor, drop through a shaft in the pad, and run in a
 lined trench in the slab, under a flush checker plate, to the cable channel between the bed's beams. There each turns
 onto its own lane and enters the cable chain at its fixed end, under the bed's middle. The chain's bend rolls along the
@@ -795,8 +847,8 @@ tray at the carriage plate's edge, which follows the cross-slide, and a duct on 
 The 2 servo cables leave the driver in conduits, one to each motor of the base. Both chains are the same: 137 x 42 mm
 inside, 163 x 64 outside, bend radius 125 mm (the DC core may bend on 112.5). In the riser a terminal box joins each
 pole's 4 cores to the arm's copper bars, and the bars and the booted links carry the current to the connector (finding
-16). The joints' cable goes up through J1 to J5's hollow shafts. The tool's cable, the 2 coolant tubes and the air
-line run with the bars and through each boot.
+16). The joints' cable goes up through J1 to J5's hollow shafts. The tool's cable and the 2 coolant tubes run with the
+bars and through each boot. No air reaches the arm: its head is electric (finding 24).
 
 **OTTO-CLEAN ARM.** The power and the network: down from the canopy's cable tray, each in its own conduit, to a supply
 enclosure on the drop column, 4.25 m up, which holds the controller, the power supplies, the J1 drive and the safety
@@ -806,7 +858,8 @@ person reaches from the ground is on the canopy's board: site work, not drawn. T
 vacuum main through a gate valve, in through the column wall and down to J1; a rotary union at J1, J2 and J3 (findings
 5 and 10), a duct in each link, the mast stages, a passage through the wrist fork, the swivel on the fork, the hub and
 the wand's tubes to the nozzle. The air: a drop from the canopy's air main to a service unit on the column (a lockable
-shut-off valve and a filter regulator), then a 6 mm line to J1. Past J1, the air and the signals: through the same
+shut-off valve and a filter regulator), then a 6 mm line to J1. The canopy's main is fed from the depot's one compressor,
+in the service building (finding 24). Past J1, the air and the signals: through the same
 unions; down the mast from a spring reel on
 its outer stage (the line runs 0.65 to 1.95 m over the cycle); across J4 in a clock spring and a passage in the swivel
 (finding 12); along the wand on a reel in its drive (0.06 to 0.94 m); and a loop of air line across the nozzle joint
@@ -821,7 +874,8 @@ ride the drag chain in its covered trench to the moving machine (finding 13; its
 full 7.37 m of the machine's travel). The chain is 125 x 42 mm inside and 151 x 64 outside, bend radius 200 mm. A
 driver duct through the cover's slot joins its moving end to an arm on the west trolley. The supply cable and the
 network cable go up a conduit on the leg to the control cabinet, and the water, the chemicals and the air go up a
-closed duct, through the beam, to the valve manifold. From the cabinet a cable trunk runs through the beam and along
+closed duct, through the beam, to the valve manifold. The air is for service only, at a coupling on the beam, and comes
+from the depot's one compressor (finding 24). From the cabinet a cable trunk runs through the beam and along
 its top, with a conduit to each motor, the valves, the beacon and the stop light. Each detail arm's carriage has its
 own cable chain beside its track (57 x 26 mm inside, 74 x 35 outside, bend radius 100 mm), fed from a floor box at the
 chain's fixed end by 3 more ducts in the slab: power, data and pure water. On the machine: a concertina duct from the
@@ -861,7 +915,7 @@ not have, or a bend tighter than its line allows.
 
 | robot | lines | route | to order |
 |---|---|---|---|
-| OTTO-CHARGE ARM | 45 (35, and the charger's 10 site feeds: finding 23) | 189.1 m | 203.5 m |
+| OTTO-CHARGE ARM | 43 (34, and the charger's 9 site feeds: findings 23 and 24) | 173.5 m | 187.0 m |
 | OTTO-CLEAN ARM | 16 | 12.5 m | 16.0 m |
 | OTTO-WASH | 54 | 379.5 m | 411.3 m |
 
@@ -878,10 +932,11 @@ stopped at the posts; the clean arm's link lines were not drawn; the charge arm'
 guess in it for every line.
 
 **What it still lists as open,** each on its line, and all of it the site's:
-- The charger's air: the depot's compressed-air plant is not on the site plan. Its other 9 site feeds (the 480 V feed's
-  6 conductors, its ground, the pad's earth and the network fibre) are drawn from the pad up, and their runs in the duct
-  bank are measured by post (finding 23).
 - The clean arm's supply and network cables run along the canopy's tray from its board, and that length is the site's.
+
+The charge arm has none: its 9 site feeds (the 480 V feed's 6 conductors, its ground, the pad's earth and the network
+fibre) are drawn from the pad up, their runs in the duct bank are measured by post (finding 23), and since finding 24 it
+takes no air.
 
 No machine-side line is open on any of the 3 robots.
 
