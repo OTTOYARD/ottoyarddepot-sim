@@ -41,6 +41,7 @@ import {
 import { ARM_REACH, BASE_JOINT_NAMES, HEAD_JOINT_NAMES } from '@/lib/ottoChargeArm/mateSolver';
 import { MODEL_TOWARD } from '@/lib/robotics/liveFollow';
 import { postFeeders } from '@/lib/siteFeeders';
+import { PEAK_FREE_AIR_M3_MIN, airMains } from '@/lib/siteAir';
 import {
   CLEAN_ARM, CLEAN_PHASE_S, MAST_FOOT_MAX, MAST_FOOT_MIN, PIVOT_Y_MAX, PIVOT_Y_MIN, WAND_RETRACTED,
 } from '@/lib/ottoCleanArm/cleanArmSpec';
@@ -195,6 +196,13 @@ export function cadSpec() {
       wheelRadius: WHEEL_RADIUS_M,
       door: { ...DOOR },
       cabin: { ...CABIN },
+    },
+    // The depot's one compressed-air plant and its mains (siteAir.ts, 2026-11-16), for the clean arm's and the wash
+    // machine's notes: the charge arm takes no air since its head is electric.
+    site: {
+      airPlant: 'the ops building\'s office block, its south-east corner beside service bay 1',
+      airMains: airMains().map((m) => ({ to: m.to, lengthM: Math.round(m.lengthM * 10) / 10 })),
+      peakFreeAirM3Min: PEAK_FREE_AIR_M3_MIN,
     },
   };
 }

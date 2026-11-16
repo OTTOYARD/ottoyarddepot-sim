@@ -34,7 +34,7 @@ The six-axis arm is unchanged (reach 3.125 m). Three things were added (`mateSol
 |---|---|---|
 | A floor rail under the base, along the car (`CR_X`) | 1.3 m toward the nose, 2.5 m toward the tail, from the stall's middle | A side inlet is met square-on, abeam the base. The fleet needs 1.29 m and 2.35 m; a rear mate unfolds 0.15 m further out, at 2.50 m. |
 | A cross-slide on the carriage (`CR_Z`) | 0.65 m toward the car, 0.06 m away | It puts the base at one standoff from every vehicle's flank whatever the vehicle's width, and carries the arm in behind a Cybercab's tail. |
-| A two-connector head (`HD_CCS`, `HD_NACS`) | CCS1 and NACS side by side, 100 mm each side of the tool axis, each on a 90 mm plunge cylinder | The connector the car takes comes forward. The other stays back, clear of the car. |
+| A two-connector head (`HD_CCS`, `HD_NACS`) | CCS1 and NACS side by side, 100 mm each side of the tool axis, each on a 90 mm electric plunge actuator (design finding 24 in `OTTO-ROBOTICS-CAD.md`) | The connector the car takes comes forward. The other stays back, clear of the car. |
 
 Two earlier ideas were dropped. A telescoping forearm: the cross-slide does the same work and leaves the arm as it
 was. A turret head that turns a connector to the front: it did not clear the car's body at the inlet.

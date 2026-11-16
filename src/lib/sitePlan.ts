@@ -138,6 +138,12 @@ export const CHARGER_TRANSFORMERS = (['TX-A1', 'TX-A2', 'TX-B1', 'TX-B2', 'TX-C1
 export const AUX_TRANSFORMER = { code: 'TX-AUX', x: BESS_YARD.x + 6.5, y: BESS_YARD.y + BESS_YARD.h / 2 - 7 };
 export const MV_SWITCHGEAR = { code: 'MV-SWGR', x: BESS_YARD.x + BESS_YARD.w / 2 + 4, y: BESS_YARD.y + 4.2, w: 16, d: 3.2, h: 4.6 };
 export const BUILDING = { x: 70, y: 26, w: 80, h: 30 };   // office (west) + 2 service bays (east)
+/** THE DEPOT'S ONE COMPRESSED-AIR PLANT (Chase, 2026-11-16): a room in the ops building's office block, at its south-east
+ *  corner against service bay 1's wall, holding a rotary screw compressor, a dryer and a receiver (ASSUMPTION: the room's
+ *  size). Its main feeds the clean arms' air knives on the 3 canopies, the wash machines' service couplings and the service
+ *  bays' outlets (siteAir.ts). The charge arms take no air: their heads are electric. Inside the building, so the yard does
+ *  not draw it. Plan units, a rectangle. */
+export const AIR_PLANT = { x: 103, y: 47, w: 7.4, h: 8.4 } as const;
 export const WASH = { x: 160, y: 26, w: 52, h: 30 };      // 3 pull-through bays
 export const GATE_W = 14;
 

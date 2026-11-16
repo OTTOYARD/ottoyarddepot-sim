@@ -726,8 +726,8 @@ def build(spec: dict) -> Model:
                        'rails': 'size 25 along the car, size 20 across', 'drive': 'rack and pinion module 3 along, ball screw 20 x 5 across'},
                 group='Motion')
     m.subsystem('SUPPLY', 'Supply from the cabinet', 'Brings every line from the DC cabinet to the riser: the charge current, the coolant, '
-                'the air, power and the network. It follows the base along the rail and across.',
-                how=['Every supply line comes from the cabinet: 8 DC cores, 2 coolant tubes, 1 air tube and 5 cables.',
+                'power and the network. It follows the base along the rail and across.',
+                how=['Every supply line comes from the cabinet: 8 DC cores, 2 coolant tubes and 5 cables.',
                      'They leave the cabinet through its floor and drop through the pad into a lined trench in the slab.',
                      'The trench runs under a flush cover plate to the cable channel between the bed\'s beams.',
                      'In the channel each line turns onto its own lane and enters the cable chain at its fixed end.',
@@ -760,7 +760,8 @@ def build(spec: dict) -> Model:
                 how=['A 6-axis force and torque sensor reads the insertion force.',
                      'A compliance unit lets the head float up to 6 mm and 3 degrees. A small error cannot jam it.',
                      'Stereo cameras and a time-of-flight sensor find the inlet. A light ring helps at night.',
-                     'Each connector rides a plunge cylinder. The one the car takes comes forward 90 mm. The other stays back, clear of the car.',
+                     'Each connector rides an electric plunge actuator. The one the car takes comes forward 90 mm. The other stays back, clear of the car.',
+                     'The head works on electric power only: no air reaches it.',
                      'A solenoid latch locks the connector in the inlet for the charge.'],
                 specs={'connectors': 'CCS1 (SAE J1772 combo) and NACS (SAE J3400), liquid-cooled', 'TCP': '369.6 mm from the tool flange',
                        'spacing': '100 mm each side of the tool axis', 'stroke': '90 mm'}, group='Tool')
@@ -771,9 +772,9 @@ def build(spec: dict) -> Model:
                      'In the upper arm 2 copper bars carry it, one a pole. In the forearm 2 flexible copper cables carry it. Nothing live is in the open.',
                      'At the base, the shoulder and the elbow a booted link of braided copper joins 2 terminal boxes. It bends as the joint turns.',
                      'From the forearm one last booted link, 1.25 m long, runs to the connector across the wrist.',
-                     'The coolant for the connector\'s contacts, the tool\'s cable and its air line run with the bars and through each boot.',
+                     'The coolant for the connector\'s contacts and the tool\'s cable run with the bars and through each boot.',
                      'Each of them is one tube or one cable from the cabinet to the head, with no joint on the way.',
-                     'The coolant comes from a cooling unit in the cabinet and goes back to it. The air comes through the cabinet from the site.',
+                     'The coolant comes from a cooling unit in the cabinet and goes back to it.',
                      'The joints\' 10 mm power and network cable runs inside the arm, through the hollow shafts of J1 to J5.'],
                 specs={'current': '500 A DC, 1000 V', 'in the links': '2 bars 40 x 10 mm copper in the upper arm, 2 flexible conductors 400 mm2 '
                        'in the forearm, insulated',
@@ -885,9 +886,9 @@ def build(spec: dict) -> Model:
     #
     # WHAT RUNS TO THE ARM. Everything comes from the cabinet (charge_cabinet.py): an all-in-one 350 kW charger, fed with
     # 480 V AC from its transformer, which makes the DC and houses the DC's fuses, contactors and output blocks, the
-    # connector's cooling unit, the arm's controller with the rail's and the cross-slide's 2 servo drives, and the
-    # service-air block (the air itself is the site's). The joints carry their own drives (actuator.py, DRV-), so the arm
-    # takes one supply cable.
+    # connector's cooling unit, and the arm's controller with the rail's and the cross-slide's 2 servo drives. (It also
+    # held a service-air block for the head until 2026-11-16, when the head became electric.) The joints carry their own
+    # drives (actuator.py, DRV-), so the arm takes one supply cable.
     #
     # THE DC CABLE, AND WHY IT IS 4 SMALL CORES A POLE. A cable in a chain may bend no tighter than 7.5 x its diameter,
     # 4 x where it is fixed (igus chainflex CF310.UL data sheet, 03/2023: "e-chain linear minimum 7.5 x d, flexible
@@ -907,18 +908,19 @@ def build(spec: dict) -> Model:
     DC_KG_M, DC_A = 0.587, 228.0                          # the sheet's weight and current for 1 x 50 mm2
     K_CHAIN, K_FIXED, FILL = 7.5, 4.0, 1.1                # bend rules; a line's lane is 1.1 x its diameter (ASSUMPTION, usual chain filling practice)
     # the lines on the chain's shelf, above the DC cores: (id, name, diameter, material, category, on to the saddle?, what it does)
-    # The coolant and the air run in ONE tube each from the cabinet to the head (2026-11-15: until then the chains carried
-    # a 12 x 8 hose and an 8 x 6 tube and the boots an 8 mm and a 6 mm tube, joined by a reducing coupling the model did not
-    # have). The boots' size is the one that fits: in the 60 mm boot beside the 2 braids there is room for 2 tubes of 8,
-    # the tool cable and a tube of 6. One 8 x 6 tube loses about 0.6 bar each way over 15 m at the connector's 2 L/min of
-    # 50 % glycol (laminar, Re about 2,000: the cable schedule's coolant lines give the arithmetic and its sources), so
+    # The coolant runs in ONE tube each way from the cabinet to the head (2026-11-15: until then the chains carried a 12 x 8
+    # hose and the boots an 8 mm tube, joined by a reducing coupling the model did not have). The boots' size is the one that
+    # fits: in the 60 mm boot beside the 2 braids there is room for 2 tubes of 8 and the tool cable. (A 6 x 4 air tube for
+    # the head's plunge cylinders and float lock ran with them until 2026-11-16, when Chase chose an electric head: the tool
+    # cable now powers the head's actuators, and no air reaches the arm.) One 8 x 6 tube loses about 0.6 bar each way over
+    # 15 m at the connector's 2 L/min of 50 % glycol (laminar, Re about 2,000: the cable schedule's coolant lines give the arithmetic and its sources), so
     # the cooling unit's pump must deliver 2 L/min against about 2 bar, not the 1 bar a cable-mounted unit gives.
     UPPER = [('CS', 'Coolant supply tube 8 x 6', 8.0, 'pu', 'fluid', True, 'Takes cooled liquid from the cabinet\'s cooling unit to the connector\'s contacts, in one tube all the way.'),
              ('CR', 'Coolant return tube 8 x 6', 8.0, 'pu', 'fluid', True, 'Brings the warm liquid back to the cooling unit in the cabinet, in one tube all the way.'),
-             ('AR', 'Air tube 6 x 4', 6.0, 'pu', 'fluid', True, 'Takes air at 6 bar to the head: the compliance lock and the 2 plunge cylinders.'),
              ('JS', 'Joint supply cable (motor power, 24 V, EtherCAT)', 10.0, 'cable', 'electrical', True,
               'Feeds the 6 joints. It goes up the riser and through the hollow shafts of J1 to J5.'),
-             ('TL', 'Tool cable (EtherCAT, 24 V)', 8.0, 'cable', 'electrical', True, 'Serves the force sensor, the cameras, the light ring and the latches. It runs in the boots with the DC links.'),
+             ('TL', 'Tool cable (EtherCAT, 24 V, the head\'s actuators)', 8.0, 'cable', 'electrical', True,
+              'Serves the force sensor, the cameras, the light ring, the latches, the 2 plunge actuators and the float lock. It runs in the boots with the DC links.'),
              ('SF', 'Safety cable (scanner, emergency stop)', 9.0, 'cable', 'electrical', True, 'Joins the scanner and the emergency stop to the safety controller in the cabinet.'),
              ('MX', 'Rail servo cable (motor, brake, encoder)', 12.5, 'cable', 'electrical', False, 'Joins the rail gearmotor to its drive in the cabinet.'),
              ('MZ', 'Cross-slide servo cable (motor, brake, encoder)', 11.0, 'cable', 'electrical', False, 'Joins the cross-slide motor to its drive in the cabinet.')]
@@ -1007,7 +1009,7 @@ def build(spec: dict) -> Model:
     y_wt = deck - COV_T - LIN_T                           # the liners' walls end here; a seat flange lies on them, the covers on it
     # THE CHARGER (charge_cabinet.py, 2026-11-15): an all-in-one 350 kW charger, drawn with its inside, its wiring and its
     # site feeds, where it was an envelope. Each supply line's path inside it is drawn as part of the line below (to its
-    # output block, its socket on the cooling unit or the air block, or for a small cable to the gland plate), and the pad
+    # output block, its socket on the cooling unit, or for a small cable to the gland plate), and the pad
     # takes its 2 site shafts.
     from .charge_cabinet import build_cabinet
     cabg = build_cabinet(m, site, cab, pad_top, deck,
@@ -1069,7 +1071,7 @@ def build(spec: dict) -> Model:
                                  'Carries the cabinet. Cast by the site works, with a shaft under the cabinet for the supply lines and 2 '
                                  'for the site\'s feeds.',
                                  {'shaft': f'{ft_x1 - ft_x0:.0f} x {sh_z1 - ft_z0:.0f} mm, under the cabinet\'s floor',
-                                  'site shafts': 'at the left for the AC feed and the 2 earths; behind the arm\'s shaft for the network and the air'},
+                                  'site shafts': 'at the left for the AC feed and the 2 earths; behind the arm\'s shaft for the network'},
                                  'make', reference=True)),
             Location(), (0, -250, 0))
 
@@ -1256,10 +1258,10 @@ def build(spec: dict) -> Model:
                  'mat': ln['mat'], 'category': ln['cat']} for ln in lanes]
     m.flex(FlexDef('CHG-BCN', f'Cable chain, inside {CN_IW:.0f} x {CN_IH:.0f}, R {R_CH:.0f}', 'chain',
                    Anchor(bed, (X_F, y_cb, ZC), (-1, 0, 0)), Anchor(carx, (0.0, y_ct, ZC), (-1, 0, 0)),
-                   CN_H / 2, 'SUPPLY', 'Carries the charge current, the coolant, the air, power and network to the moving carriage. Its bend rolls along in the channel.',
+                   CN_H / 2, 'SUPPLY', 'Carries the charge current, the coolant, power and the network to the moving carriage. Its bend rolls along in the channel.',
                    mat='pa66', category='electrical', pitch=CN_P, bend_r=R_CH, links=n_ch, up=(0, 1, 0), w=CN_W, h=CN_H,
                    link_part=ch_link, kg_per_m=3.2, contents=_contents(LANES), wi=CN_IW, hi=CN_IH, lead_a=0.0, lead_b=40.0,
-                   spec={**CHAIN_SPEC, 'carries': f'{2 * DC_N} DC cores 1 x 50 mm2 ({DC_N} a pole), 2 coolant tubes, air, the joint supply, tool and safety cables, 2 servo cables',
+                   spec={**CHAIN_SPEC, 'carries': f'{2 * DC_N} DC cores 1 x 50 mm2 ({DC_N} a pole), 2 coolant tubes, the joint supply, tool and safety cables, 2 servo cables',
                          'ends': 'its lines run on from the trench at the fixed end, and 40 mm into the driver\'s head at the moving end'}))
 
     base = carx.child('Saddle', Location(), sub='MOUNT',
@@ -1348,7 +1350,7 @@ def build(spec: dict) -> Model:
                    mat='pa66', category='electrical', pitch=CN_P, bend_r=R_CH, links=n_zc, up=(0, 1, 0), w=CN_W, h=CN_H,
                    link_part=ch_link, kg_per_m=3.2, contents=_contents([ln for ln in LANES if ln['saddle']]), wi=CN_IW, hi=CN_IH,
                    lead_a=40.0, lead_b=40.0,
-                   spec={**CHAIN_SPEC, 'carries': f'{2 * DC_N} DC cores 1 x 50 mm2, 2 coolant tubes, air, the joint supply, tool and safety cables',
+                   spec={**CHAIN_SPEC, 'carries': f'{2 * DC_N} DC cores 1 x 50 mm2, 2 coolant tubes, the joint supply, tool and safety cables',
                          'ends': 'its lines come 40 mm out of the elbow duct into its first link, and go 40 mm into the saddle duct from its last'}))
 
     # ════════════════════════════════════════════════════════════ MOUNT ═══
@@ -1395,7 +1397,7 @@ def build(spec: dict) -> Model:
     # a tall box takes the chain's last link, and in it the lines drop to the window's height and turn toward the riser;
     # a flat run passes behind the riser, under the J1 flex link (lowest at y = -180 over the twin's poses), and a spigot
     # enters the window. Inside the riser the DC cores go to the terminal box CHG-PB0 through a port in the wall behind
-    # it; the joint supply cable goes up into J1; the coolant, the air, the tool cable and the safety cable go on
+    # it; the joint supply cable goes up into J1; the coolant, the tool cable and the safety cable go on
     # through that box into the first boot (CHG-FL1). 78 mm stands free between the J1 motor's bell and the wall.
     win_y0 = tube_y0 + 20.0
     win_y1 = win_y0 + min(160.0, tube_y1 - tube_y0 - 60)
@@ -1471,13 +1473,13 @@ def build(spec: dict) -> Model:
     # Bar size: 400 mm2 a pole. A copper bar carries about 1.4 to 1.8 A/mm2 continuous as a rule of thumb, so 560 to 720 A
     # for 500 A of charge (https://payapress.com/busbar-sizing/, read 2026-11-11; a rule of thumb, not a rating: check
     # the bar against the Copper Development Association's ampacity tables before it is bought). The connector's contacts
-    # are still liquid-cooled: 2 coolant tubes 8 x 6, the tool's cable and its 6 x 4 air tube run with the bars and
-    # through every boot, each one tube from the cabinet to the head.
+    # are still liquid-cooled: 2 coolant tubes 8 x 6 and the tool's cable run with the bars and through every boot, each
+    # one tube or cable from the cabinet to the head.
     # Each link's length and ends were searched over the twin's 20 poses (flex.solve): the tightest bend is given beside
     # each one, against the boot's 80 mm.
     R_BOOT, MB_BOOT = 30.0, 80.0
     BOOT_SPEC = {'conductors': '2 x 400 mm2 braided copper, tinned, insulated for 1000 V DC', 'boot': 'silicone bellows, OD 60 mm, IP67',
-                 'also inside': '2 coolant tubes 8 x 6, tool cable (EtherCAT + 24 V), air tube 6 x 4, each unbroken from the cabinet to the head',
+                 'also inside': '2 coolant tubes 8 x 6 and the tool cable (EtherCAT + 24 V), each unbroken from the cabinet to the head',
                  'bend radius': '80 mm moved'}
 
     def tbox(node, casting, centre, size, pid, name, fn, kg, explode, keep=None, inside='2 x 40 x 10 mm copper bars, insulated'):
@@ -1556,7 +1558,7 @@ def build(spec: dict) -> Model:
          'Carries the charge current over the outside of the elbow.', 84.0)
     boot('CHG-FL4', 'Wrist flex link to the connector, 500 A braided copper in a boot',
          Anchor(j3, (125.0, LF - 420.0, -30.0), PX), Anchor(tool, TOOL_OUTLET, TOOL_OUTLET_IN), 1250.0, (0.5, PX, PX),
-         'Carries the charge current, the coolant and the tool\'s signals and air from the forearm to the connector, '
+         'Carries the charge current, the coolant and the tool\'s signals and power from the forearm to the connector, '
          'across J4, J5 and J6.', 88.0, hk=0.4)
 
     # every boot ends in a fitting it plugs into (2026-11-15, Chase: "There cannot be gaps between cables randomly plugging
@@ -1566,7 +1568,7 @@ def build(spec: dict) -> Model:
     # boss reaches it, cut to the casting's own surface.
     bft = cq.Workplane('XY').add(_boot_fitting((0.0, 0.0, 0.0), (0.0, 1.0, 0.0)))
     BFT_SPEC = {'bore': f'{2 * R_BOOT_BORE:g} mm: the 60 mm boot slides 18 mm in', 'seal': 'IP67, a clamp ring on the boot',
-                'through it': 'the 2 braids, the coolant tubes, the tool cable and the air line'}
+                'through it': 'the 2 braids, the coolant tubes and the tool cable'}
     bft_pd = m.part(PartDef('CHG-BFT', 'Boot fitting for the 60 mm boot, on a terminal box face', bft.val(), 'al6061_blk', 'electrical',
                             'made to order', 'bore 61, collar OD 72 x 18, flange OD 80', '6061-T6, black anodised', None,
                             'Holds a boot\'s end on its terminal box. The boot slides into its collar, and the braid goes through to the terminals.',
@@ -1709,7 +1711,7 @@ def build(spec: dict) -> Model:
                                    'Holds the 2 conductors apart and to the casting, and takes a short circuit\'s pull between them.',
                                    {}, 'make')),
                 Location(), (0, 0, -40), 'DRESS').yard_hidden = True
-    # the TOOL's lines (its cable, the coolant and the air) run through the links beside the copper, tied to it
+    # the TOOL's lines (its cable and the coolant) run through the links beside the copper, tied to it
     arm_lines = {
         'upper': [(55.0, 300.0, -165.0), (0.0, 300.0, -155.0), (0.0, y_a1, zr1 + bt + 12.0), (0.0, y_a2, zr2 + bt + 12.0),
                   (0.0, LU - 250.0, -125.0), (0.0, LU - 250.0, -165.0)],
@@ -1815,7 +1817,7 @@ def _cable_schedule(m: Model, g: dict) -> None:
         else:
             tail_a, basis = BOX_TAIL, f'{BOX_TAIL:.0f} mm to make it off at its device in the cabinet (ASSUMPTION)'
         L = m.cable(ln['id'], ln['name'], 'dc' if dc else ('coolant' if ln['id'] in ('CHG-LCS', 'CHG-LCR') else
-                    'air' if ln['id'] == 'CHG-LAR' else 'safety' if ln['id'] == 'CHG-LSF' else 'control'),
+                    'safety' if ln['id'] == 'CHG-LSF' else 'control'),
                     d, ln['std'], '', '', 'SUPPLY', bend_fixed=R, bend_moving=KC * d, tail_a=tail_a, tails=basis)
         if cabp is not None:
             mm_c = bent_length(cabp[0], 0.0)[0]
@@ -1903,11 +1905,11 @@ def _cable_schedule(m: Model, g: dict) -> None:
             L.tails += f'; {BOX_TAIL:.0f} mm to make off at the 2 devices (ASSUMPTION)'
             L.notes.append('It serves the 2 safety devices only. The status light rings are lit by the joints\' drives (CHG-RL2 '
                            'and the wrist ring\'s receptacle): until 2026-11-15 the model said this cable served them, and no route reached them.')
-        elif ln['id'] in ('CHG-LCS', 'CHG-LCR', 'CHG-LAR', 'CHG-LTL'):
+        elif ln['id'] in ('CHG-LCS', 'CHG-LCR', 'CHG-LTL'):
             mm, rb = riser_to(P4, d, port, R)
             L.run('duct', 'CHG-RSR', 'across the riser to the port in its wall behind the terminal box', mm, tol=rw2, bend=rb)
             L.run('duct', 'CHG-PB0', 'through the terminal box to the J1 link\'s fitting', abs(FL1_A[0] - port[0]))
-    # what the boots carry up the arm: the tool cable, the 2 coolant tubes and the air tube, each one line from the cabinet
+    # what the boots carry up the arm: the tool cable and the 2 coolant tubes, each one line from the cabinet
     j1, j2, j3, tool = g['j1'], g['j2'], g['j3'], g['tool']
     LU, LF = g['LU'], g['LF']
     # the route through the arm, boot by boot (each piece in its own node's frame; the boxes' corners sharp)
@@ -1946,11 +1948,11 @@ def _cable_schedule(m: Model, g: dict) -> None:
     head_tail = (f'; {far:.0f} mm inside the head from the outlet housing to the farther connector, measured straight '
                  '(its route among the head\'s parts is not drawn)')
     for (lid, frm, to) in (
-            ('CHG-LTL', 'the arm controller in the cabinet (CHG-CAC)', 'the head: the force sensor, the cameras, the light ring and the latches'),
+            ('CHG-LTL', 'the arm controller in the cabinet (CHG-CAC)',
+             'the head: the force sensor, the cameras, the light ring, the latches, the 2 plunge actuators and the float lock'),
             ('CHG-LCS', 'the cooling unit\'s supply socket in the cabinet (CHG-CCU, CHG-CCS)', 'the 2 connectors\' contacts, through a manifold in the head'),
             ('CHG-LCR', 'the cooling unit\'s return socket in the cabinet (CHG-CCU, CHG-CCS; the liquid flows this way, from the head)',
-             'the 2 connectors\' contacts, through a manifold in the head'),
-            ('CHG-LAR', 'the service air block\'s outlet in the cabinet (CHG-CAV, 6 bar)', 'the head\'s valves: the compliance lock and the 2 plunge cylinders')):
+             'the 2 connectors\' contacts, through a manifold in the head')):
         L = lines[lid][0]
         up_the_arm(L, L.od)
         L.a, L.b = frm, to
@@ -2030,7 +2032,7 @@ def _cable_schedule(m: Model, g: dict) -> None:
     # ── what the charger takes from the site (charge_cabinet.py): each drawn from the pad's underside, where the site's duct
     # bank brings it, up to what it serves. Its run in the duct bank is the site's, not this robot's: each post's length is
     # measured on the site plan (src/lib/siteFeeders.ts, written into cad/spec/robots.json as siteFeeders by cadSpec.ts),
-    # and the notes quote it. Only the air is open: the depot's compressed-air plant is not on the site plan.
+    # and the notes quote it. Nothing is open: the head is electric since 2026-11-16, so no air comes from the site.
     P = m.parts
     site_end = 'its end at the site is the site\'s (not counted)'
     posts = g['site_feeders'].get('posts', [])
@@ -2056,8 +2058,6 @@ def _cable_schedule(m: Model, g: dict) -> None:
          '50 mm into the earth bar\'s clamp (ASSUMPTION)', 'ac'),
         ('CHG-SPE', 'power', 12.0, '1/0 AWG copper (ASSUMPTION)', 'the earth electrode cast in the pad', 'the charger\'s earth bar (CHG-CPE)',
          'up through the pad\'s left site shaft and the left gland plate to the earth bar\'s clamp', 50.0, '50 mm into the earth bar\'s clamp (ASSUMPTION)', 'pad'),
-        ('CHG-SAR', 'air', 12.0, '12 x 9 polyurethane', 'the canopy\'s air main (site)', 'the service air block\'s inlet (CHG-CAV, CHG-CAS12)',
-         'up through the pad\'s small site shaft and the right gland plate, 12 mm into the inlet', 0.0, 'it is drawn 12 mm into the inlet', 'air'),
         ('CHG-SNW', 'network', 6.0, 'single-mode fibre, 2 cores, armoured: the farthest posts are past a copper Ethernet channel\'s 100 m '
          '(src/lib/siteFeeders.ts)', 'the depot\'s network switch (in the office: ASSUMPTION)', 'the network switch\'s fibre port (CHG-CNS)',
          'up through the pad\'s small site shaft and the right gland plate into the right wiring duct', BOX_TAIL,
@@ -2074,8 +2074,6 @@ def _cable_schedule(m: Model, g: dict) -> None:
                 'pad': 'Its run down to the pad\'s earth electrode is about 1 m (ASSUMPTION), the site\'s.'}.get(src, '')
         if note:
             L.notes.append(note)
-        elif src == 'air':
-            L.open.append('Its run from the canopy\'s air main is the site\'s: the depot\'s compressed-air plant is not on the site plan yet.')
         else:
             L.open.append('Its run in the site\'s duct bank is not measured: cad/spec/robots.json has no siteFeeders (run cadSpec).')
 
@@ -2169,13 +2167,14 @@ def build_tool(m: Model, tool: Node, LT: float) -> None:
         springs.append(cq.Solid.makeCylinder(9, 36, Vector(42 * math.cos(a), y + 12, 42 * math.sin(a)), Vector(0, 1, 0)))
     cu_pd = m.part(PartDef('CHG-CMP', 'Compliance unit (passive float, lockable)', cq.Compound.makeCompound(cu.vals() + springs),
                            'al6061_blk', 'tool', 'made to order', 'OD 112 x 60', '', None,
-                           'Lets the connector float 6 mm and 3 degrees on 3 springs. A pneumatic pin locks it rigid for moves.',
-                           {'float': '+/- 6 mm, +/- 3 deg', 'lock': 'pneumatic, 6 bar'}, 'make'))
+                           'Lets the connector float 6 mm and 3 degrees on 3 springs. An electric pin locks it rigid for moves, and a spring '
+                           'holds it locked with the power off.',
+                           {'float': '+/- 6 mm, +/- 3 deg', 'lock': '24 V pin, spring-locked (ASSUMPTION: a class of pin)'}, 'make'))
     m.place(tool, cu_pd, Location(), (0, 120, 0))
     for p in std.circle_points(6, 46, 'y', offset=y + 12, start=0):
         m.place(tool, std.shcs(5, 14, '12.9', 'Holds the compliance unit plates.'), std.orient(p, (0, -1, 0)), (0, 140, 0))
     y = 100.0
-    # THE HEAD: two connectors side by side on one holder, CCS1 and NACS (SAE J3400). Each rides its own plunge cylinder
+    # THE HEAD: two connectors side by side on one holder, CCS1 and NACS (SAE J3400). Each rides its own plunge actuator
     # and rests 90 mm back; the one the car takes comes forward to the TCP plane, so the other stands clear of the car's
     # body beside the inlet. (A turret that turns one connector to the front was drawn first: wherever its axis went, the
     # idle connector swept the wrist, the camera pod or the cable outlet, or pointed at the car.)
@@ -2187,16 +2186,27 @@ def build_tool(m: Model, tool: Node, LT: float) -> None:
               .union(cq.Workplane('XY').box(90, 60, 30, centered=(True, False, True)).translate((0, y + 14, 50 + 15)))
               .union(cq.Workplane('XY').box(56, 96, 10, centered=(True, False, False)).translate((0, y + 14, -50))))
     m.place(tool, m.part(PartDef('CHG-CHL', 'Head holder', holder.val(), 'al6061', 'tool', 'machined', f'{2 * SP + 116:.0f} x 116',
-                                 '6061-T6', None, 'Holds the 2 connectors\' plunge cylinders, the camera pod and the cable outlet on the tool flange.',
+                                 '6061-T6', None, 'Holds the 2 connectors\' plunge actuators, the camera pod and the cable outlet on the tool flange.',
                                  {}, 'make')),
             Location(), (0, 160, 0))
     rest_face = face_y - STROKE
     body_len = rest_face - (y + 14) - 46
-    cyl = cq.Workplane('XZ', origin=(0, y + 14, 0)).circle(10).extrude(-(body_len - 6))
-    cyl_pd = m.part(PartDef('CHG-HPC', 'Connector plunge cylinder, 90 mm stroke, with lock', cyl.val(), 'ss304', 'tool', 'catalogue part',
-                            f'D 20 x {body_len - 6:.0f}', '', None,
-                            'Brings its connector forward 90 mm to the inlet and locks there. It draws back when the other connector works.',
-                            {'stroke': '90 mm', 'drive': 'pneumatic, 6 bar, rod lock'}, 'buy', mass_override=0.6))
+    # ELECTRIC since 2026-11-16 (Chase chose it, with the clean arms' air knives as the depot's only use of compressed air):
+    # a 24 V linear actuator with a holding brake, where a 20 mm pneumatic cylinder with a rod lock stood. A class size: a
+    # small electric cylinder of this stroke is wider than a pneumatic one, so it is drawn 32 mm across (ASSUMPTION).
+    # ITS FORCE: it holds its connector forward while the arm pushes the connector into the inlet, so it must hold the
+    # insertion force. A liquid-cooled high-power CCS1 connector takes less than 100 N to insert or withdraw, as its maker
+    # gives it (Amphenol, EXCEL|MATE HPC CCS1 technical characteristics: "Insertion / withdrawal force < 100N",
+    # https://www.amphenol.co.jp/military/catalog/CCS1.pdf, read 2026-11-16; the normative limits are SAE J1772's and
+    # IEC 62196-3's, not read). NACS (SAE J3400) is assumed the same.
+    cyl = cq.Workplane('XZ', origin=(0, y + 14, 0)).circle(16).extrude(-(body_len - 6))
+    cyl_pd = m.part(PartDef('CHG-HPC', 'Connector plunge actuator, electric, 90 mm stroke, with brake', cyl.val(), 'al6061_blk', 'tool',
+                            'catalogue part', f'D 32 x {body_len - 6:.0f}', '', None,
+                            'Brings its connector forward 90 mm to the inlet and holds it there on its brake. It draws back when the other '
+                            'connector works.',
+                            {'stroke': '90 mm', 'drive': '24 V linear actuator with a holding brake (ASSUMPTION: a class size)',
+                             'force': 'holds at least 100 N: a CCS1 connector takes less than 100 N to insert (the maker\'s data; NACS: '
+                             'ASSUMPTION, the same)'}, 'buy', mass_override=1.1))
     dc = (cq.Workplane('XZ').circle(7.5).circle(4.2).extrude(-26))
     dc_pd = m.part(PartDef('CHG-DCC', 'DC contact socket, 8 mm', dc.val(), 'silver', 'tool', 'IEC 62196-3', '8 mm pin',
                            'silver plated', None, 'Carries the DC current. Spring bands give low resistance.', {}, 'buy'))
@@ -2219,9 +2229,12 @@ def build_tool(m: Model, tool: Node, LT: float) -> None:
         m.place(tool, cyl_pd, loc(hx, 0, HZ), (0, 150, 0))
         hd = tool.child(f'Head_{hn}', loc(hx, 0, HZ), sub='TOOL',
                         joint={'name': f'HD_{hn}', 'axis': [0, 1, 0], 'limits': [0, STROKE / 1000], 'kind': 'prismatic', 'stowed': 0})
+        # the body slides over its plunge actuator in a bore 0.4 mm larger (radius 16.4 for the 32 mm electric actuator since
+        # 2026-11-16: it was 10.4 for the 20 mm pneumatic cylinder, and the first clash check of the wider actuator found it
+        # through both bodies, 52,762 mm3 each, at every pose)
         body = (cq.Workplane('XZ', origin=(0, y + 14, 0)).circle(50).workplane(offset=-body_len * 0.6).circle(46).loft()
                 .union(cq.Workplane('XZ', origin=(0, y + 14 + body_len * 0.6, 0)).circle(46).extrude(-body_len * 0.4))
-                .cut(cq.Workplane('XZ', origin=(0, y + 13, 0)).circle(10.4).extrude(-(body_len - 4))))      # the cylinder's bore
+                .cut(cq.Workplane('XZ', origin=(0, y + 13, 0)).circle(16.4).extrude(-(body_len - 4))))      # the actuator's bore
         m.place(hd, m.part(PartDef(f'CHG-CON-{hn}', f'DC connector body, robotic, {hstd}', body.val(), 'pa66', 'tool',
                                    hstd, 'body OD 100', '', None,
                                    'Carries the DC and signal contacts to the inlet. The coolant flows to the contacts inside.',

@@ -499,7 +499,11 @@ fed straight from its transformer, and each feed's length is measured in `src/li
   so. Its parts are `yard_hidden`: `ChargingField` draws the yard's cabinet box from the same numbers. **A reference part
   hides every overlap with it:** while the cabinet was a reference envelope, the J2 boot hung 180 mm into it at stow and
   the clash check called that context. A solid a moving part can reach is a real part, and `cadFlex.test.ts` holds the
-  flex links off the cabinet. `docs/OTTO-ROBOTICS-CAD.md`, findings 22 and 23.
+  flex links off the cabinet. **No air reaches the charge arm (Chase, 2026-11-16):** its head's plunge actuators and float
+  lock are electric, powered through the tool cable. The depot's one compressed-air plant stands in the ops building's
+  office block (`sitePlan.AIR_PLANT`), and its mains to the 3 canopies and the wash hall are measured in
+  `src/lib/siteAir.ts`: the clean arms' air knives are the only tool at the depot that uses air. `docs/OTTO-ROBOTICS-CAD.md`,
+  findings 22 to 24.
 - **The two cockpits read the robots from here (2026-11-09).** Chase: *"Pulse should have depot/operator level info on
   the functionality of the machines ... Orchestra needs just user/asset/vehicle owner detail from a stall or stage
   perspective. ... I think just the twin needs the CAD level detail."* What a machine IS has one home:

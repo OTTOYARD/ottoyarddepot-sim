@@ -177,8 +177,9 @@ def build(spec: dict) -> Model:
                 how=['A gearmotor with a worm stage pitches the head.', 'The air knife blows dust out of seams into the vacuum flow.',
                      'A light ring shows that it works, and lights the cabin for the camera.'],
                 specs={'mouth': f'{N["w"]:.0f} x {N["h"]:.0f} mm', 'air knife': '6 bar'}, group='Tool')
-    m.subsystem('VAC', 'Vacuum and air supply', 'Brings vacuum and compressed air from the canopy plant to the nozzle.',
+    m.subsystem('VAC', 'Vacuum and air supply', 'Brings vacuum from the canopy plant and compressed air from the depot\'s compressor to the nozzle.',
                 how=['A central vacuum producer on each canopy (about 3 kW per working arm, 30 kPa class) serves its arms.',
+                     'One compressor in the service building feeds the air of all 3 canopies. The air knives are the depot\'s only tool that uses air.',
                      'A vacuum main and an air main run under the canopy roof, over the header. They belong to the canopy plant.',
                      'A branch drops from the vacuum main through a gate valve, in through the column wall, and down to the J1 union.',
                      'A drop from the air main feeds a service unit on the column: a lockable shut-off valve and a filter regulator.',
@@ -411,7 +412,8 @@ def build(spec: dict) -> Model:
              .union(cq.Workplane('XZ', origin=(u_a, y_main - 9, v_a)).circle(DROP_R).extrude(y_main - 9 - y_sp)))
     m.place(base, m.part(PartDef('CLN-AMN', 'Canopy compressed-air main with a drop (part of the canopy plant)', amain.val(), 'al_extr',
                                  'fluid', 'canopy plant', 'D 22, drop D 12', '', None,
-                                 'Brings compressed air from the canopy\'s compressor to its arms. Shown for context.', {}, 'buy',
+                                 'Brings compressed air to the arms on its canopy from the depot\'s one compressor, in the service building. '
+                                 'Shown for context.', {}, 'buy',
                                  reference=True)), Th, (0, 420, 0), 'VAC')
     adrop = cq.Workplane('XZ', origin=(0, y_sp, 0)).circle(DROP_R).circle(DROP_R - 1.5).extrude(y_sp - (y_u0 + AU_H))
     m.place(base, m.part(PartDef('CLN-ADR', 'Air drop tube, 12 x 1.5, stainless', adrop.val(), 'ss304', 'fluid', 'EN 10216-5',
@@ -1165,7 +1167,8 @@ def build(spec: dict) -> Model:
 
     # ════════════════════════════════════════════════════════════ CABLE SCHEDULE ═══
     _cable_schedule(m, dict(L1=L1, L2=L2, emc_mm=ENC_Y0 - 20 - y_gm, adr_mm=y_sp - (y_u0 + AU_H),
-                            ecd_mm=y_tray - (ENC_Y0 + ENC_H + 15), CAB_BEND=CAB_BEND))
+                            ecd_mm=y_tray - (ENC_Y0 + ENC_H + 15), CAB_BEND=CAB_BEND,
+                            air_mains=(spec.get('site') or {}).get('airMains', [])))
     return m
 
 
@@ -1245,3 +1248,8 @@ def _cable_schedule(m: Model, g: dict) -> None:
                     bend_moving=AIR_BEND_R if run[0] == 'loop' else 0.0, tail_a=TAIL_DEV if run[0] != 'loop' else 0.0,
                     tail_b=TAIL_DEV if run[0] != 'loop' else 0.0, tails='' if run[0] == 'loop' else f'{dev_tail}, at each fitting')
         L.run(run[0], run[1], run[2], run[3], bend=run[4], moving=run[0] == 'loop', flex=fx.get(run[1]) if run[0] == 'loop' else None)
+        canopy = [a['lengthM'] for a in g['air_mains'] if a['to'].startswith('canopy')]
+        if lid == 'CLN-ADR' and canopy:
+            L.notes.append(f'The canopy\'s air main is fed from the depot\'s one compressor, in the service building: {min(canopy):.1f} to '
+                           f'{max(canopy):.1f} m of main from the plant to the {len(canopy)} canopies, the site\'s and not in this schedule '
+                           '(measured on the site plan: src/lib/siteAir.ts).')
