@@ -11,8 +11,9 @@
 //   3. Every part that is a piece of a line says so in the parts list, and every line a chain carries is in the schedule.
 //   4. No line bends tighter than it may, where it lies still or where it moves.
 //   5. The charge arm's DC cores run their whole way: the trench piece the parts list showed is under a third of it.
-//   6. What the schedule left open on 2026-11-15 is routed: the charge arm's copper in its links (drawn), its coolant and
-//      air (one line each, cabinet to head), its status rings' supply; the wash knives' conduits; the wash arms' pure water.
+//   6. What the schedule left open on 2026-11-15 is routed: the charge arm's copper in its links (drawn), its coolant (one
+//      line each way, cabinet to head), its status rings' supply; the wash knives' conduits; the wash arms' pure water.
+//   7. The charge arm takes no air (2026-11-16): its head's plunge actuators and float lock are electric.
 // No network: the files are read from disk.
 // ============================================================================
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -127,18 +128,41 @@ describe('OTTO-CHARGE ARM: the charge current\'s whole path', () => {
     }
   });
 
-  it('runs the coolant, the air and the tool cable each as one line from the cabinet to the head', () => {
+  it('runs the coolant and the tool cable each as one line from the cabinet to the head', () => {
     // 2026-11-15: the chains carried a 12 x 8 hose and the boots an 8 mm tube, joined by a reducing coupling the model
     // did not have; now each runs through both chains and all 4 boots, unbroken
-    for (const id of ['CHG-LCS', 'CHG-LCR', 'CHG-LAR', 'CHG-LTL']) {
+    for (const id of ['CHG-LCS', 'CHG-LCR', 'CHG-LTL']) {
       const c = cables.find((x) => x.id === id)!;
       const via = c.runs.map((r) => r.via);
       expect(via, id).toEqual(expect.arrayContaining(['CHG-BCN', 'CHG-BZN', 'CHG-FL1', 'CHG-FL2', 'CHG-FL3', 'CHG-FL4', 'CHG-COH']));
       expect(c.to, id).toMatch(/head/);
     }
     expect(cables.find((c) => c.id === 'CHG-LCS')!.od).toBe(8);
-    expect(cables.find((c) => c.id === 'CHG-LAR')!.od).toBe(6);
-    expect(cables.some((c) => /^CHG-L(CS|CR|AR)A$/.test(c.id)), 'no separate line from a coupling').toBe(false);
+    expect(cables.some((c) => /^CHG-L(CS|CR)A$/.test(c.id)), 'no separate line from a coupling').toBe(false);
+  });
+
+  it('takes no air: the head is electric (Chase, 2026-11-16)', () => {
+    // the head's 2 plunge cylinders and its float lock ran on 6 bar from the cabinet through a 6 x 4 tube; now the 2
+    // plunge actuators and the lock are electric and the tool cable powers them, so no air line reaches the arm
+    expect(cables.filter((c) => c.kind === 'air').map((c) => c.id)).toEqual([]);
+    for (const id of ['CHG-LAR', 'CHG-SAR', 'CHG-CAV', 'CHG-CAS6', 'CHG-CAS12', 'CHG-CST']) {
+      expect(cables.some((c) => c.id === id) || bom.lines.some((l) => l.id === id), `${id} is gone`).toBe(false);
+    }
+    const plunge = bom.lines.find((l) => l.id === 'CHG-HPC')!;
+    expect(plunge.qty, 'one actuator a connector').toBe(2);
+    expect(String(plunge.spec.drive)).toMatch(/24 V/);
+    // it holds its connector against the insertion force, which a CCS1 connector's maker gives as under 100 N
+    expect(String(plunge.spec.force)).toMatch(/at least 100 N/);
+    expect(String(bom.lines.find((l) => l.id === 'CHG-CMP')!.spec.lock)).toMatch(/24 V/);
+    for (const l of bom.lines) expect(`${l.name} ${l.function} ${JSON.stringify(l.spec)}`, l.id).not.toMatch(/pneumatic/i);
+    expect(cables.find((c) => c.id === 'CHG-LTL')!.to).toMatch(/plunge actuators/);
+    // what still said it carried air after the line went (the wrist link: "the tool's signals and air"; the pad's site
+    // shaft: "the network and the air"), and every part the air passed through. The charger's own cooling air is not this.
+    for (const id of ['CHG-FL1', 'CHG-FL2', 'CHG-FL3', 'CHG-FL4', 'CHG-BFT', 'CHG-PAD', 'CHG-CMP', 'CHG-CHL']) {
+      const l = bom.lines.find((x) => x.id === id);
+      expect(l, id).toBeTruthy();
+      expect(`${l!.name} ${l!.function} ${JSON.stringify(l!.spec)}`, id).not.toMatch(/\bair\b/i);
+    }
   });
 
   it('lights the status rings from the joints\' drives: a lead and a jumper for J2, a receptacle for the wrist', () => {
@@ -157,12 +181,11 @@ describe('OTTO-CHARGE ARM: the charge current\'s whole path', () => {
     for (let k = 1; k <= 5; k++) expect(cables.find((c) => c.id === `CHG-JC${k}`), `CHG-JC${k}`).toBeTruthy();
   });
 
-  it('has no open item on the machine: only the site\'s air is open', () => {
+  it('has no open item at all', () => {
     // 2026-11-15: the charger is a whole charger, fed from its transformer, so each site feed's run in the duct bank is
-    // measured on the site plan (siteFeeders.ts) and quoted per post. Only the air main is not on the site plan.
-    const open = cables.filter((c) => c.open.length > 0);
-    expect(open.map((c) => c.id)).toEqual(['CHG-SAR']);
-    expect(open[0].open.join(' ')).toMatch(/site plan/);
+    // measured on the site plan (siteFeeders.ts) and quoted per post. 2026-11-16: the head is electric, so the one open
+    // line, the site's air, is gone.
+    expect(cables.filter((c) => c.open.length > 0).map((c) => c.id)).toEqual([]);
   });
 });
 
@@ -181,7 +204,7 @@ describe('OTTO-CHARGE ARM: the charger drawn, wired and fed (2026-11-15)', () =>
       // the DC column and the output
       'CHG-CBI', 'CHG-CFU', 'CHG-CKM', 'CHG-CBL1', 'CHG-CBL2', 'CHG-CBL3P', 'CHG-CBL3N', 'CHG-CBA', 'CHG-COB', 'CHG-COS1', 'CHG-COS2',
       // the rest
-      'CHG-CAX', 'CHG-CCU', 'CHG-CCS', 'CHG-CST', 'CHG-CAV', 'CHG-CPE', 'CHG-CIM', 'CHG-CDM', 'CHG-CAC', 'CHG-CSD', 'CHG-CSF', 'CHG-CWR']) {
+      'CHG-CAX', 'CHG-CCU', 'CHG-CCS', 'CHG-CPE', 'CHG-CIM', 'CHG-CDM', 'CHG-CAC', 'CHG-CSD', 'CHG-CSF', 'CHG-CWR']) {
       expect(has(id), id).toBe(true);
     }
     // the split charger's post had a DC input from a power unit and an auxiliary supply; a whole charger has neither
@@ -192,7 +215,7 @@ describe('OTTO-CHARGE ARM: the charger drawn, wired and fed (2026-11-15)', () =>
 
   it('ends each supply line at what it serves in the cabinet: no 1.5 m tail left', () => {
     const sup = cables.filter((c) => /^CHG-L/.test(c.id) && c.sub === 'SUPPLY');
-    expect(sup.length).toBe(16);
+    expect(sup.length).toBe(15);
     for (const c of sup) {
       expect(c.tails.a, `${c.id}: its tail in the cabinet`).toBeLessThanOrEqual(100);
       expect(c.tails.basis, c.id).not.toMatch(/envelope/);
@@ -200,7 +223,6 @@ describe('OTTO-CHARGE ARM: the charger drawn, wired and fed (2026-11-15)', () =>
     for (const c of sup.filter((x) => /^CHG-LD[PN]\d$/.test(x.id))) expect(c.from, c.id).toMatch(/CHG-COB/);
     expect(cables.find((c) => c.id === 'CHG-LCS')!.from).toMatch(/CHG-CCS/);
     expect(cables.find((c) => c.id === 'CHG-LCR')!.from).toMatch(/CHG-CCS/);
-    expect(cables.find((c) => c.id === 'CHG-LAR')!.from).toMatch(/CHG-CAV/);
     for (const id of ['CHG-LJS', 'CHG-LTL', 'CHG-LSF', 'CHG-LMX', 'CHG-LMZ']) {
       const c = cables.find((x) => x.id === id)!;
       expect(c.runs[0].kind, `${id}: its run in the cabinet's ducts comes first`).toBe('duct');
@@ -208,9 +230,9 @@ describe('OTTO-CHARGE ARM: the charger drawn, wired and fed (2026-11-15)', () =>
     }
   });
 
-  it('takes the site\'s 480 V feed, its earths, the air and the network fibre up through its 2 gland plates', () => {
+  it('takes the site\'s 480 V feed, its earths and the network fibre up through its 2 gland plates', () => {
     const ac = ['CHG-SL1A', 'CHG-SL1B', 'CHG-SL2A', 'CHG-SL2B', 'CHG-SL3A', 'CHG-SL3B'];
-    for (const id of [...ac, 'CHG-SEG', 'CHG-SPE', 'CHG-SAR', 'CHG-SNW']) {
+    for (const id of [...ac, 'CHG-SEG', 'CHG-SPE', 'CHG-SNW']) {
       const c = cables.find((x) => x.id === id)!;
       expect(c, id).toBeTruthy();
       expect(c.runs.some((r) => r.kind === 'drawn' && r.via === id), `${id} is drawn`).toBe(true);
@@ -224,7 +246,6 @@ describe('OTTO-CHARGE ARM: the charger drawn, wired and fed (2026-11-15)', () =>
       expect(c.notes.join(' '), `${id}: its run quoted by post`).toMatch(/m by post/);
     }
     expect(cables.find((c) => c.id === 'CHG-SNW')!.spec).toMatch(/fibre/);
-    expect(cables.find((c) => c.id === 'CHG-SAR')!.to).toMatch(/CHG-CAV/);
   });
 });
 

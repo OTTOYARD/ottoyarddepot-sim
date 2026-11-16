@@ -7855,7 +7855,7 @@
    "totalMassKg": 0.173,
    "torqueNm": null,
    "reference": false,
-   "function": "Ends the air tube on the beam. It gives compressed air for service on the machine. No tool on this machine uses air.",
+   "function": "Ends the air tube on the beam. It gives compressed air for service on the machine. No tool on this machine uses air. The air comes from the depot's one compressor, in the service building.",
    "spec": {},
    "uses": [
     {
@@ -9633,7 +9633,9 @@
     "WSH-SD12",
     "WSH-SDM"
    ],
-   "notes": [],
+   "notes": [
+    "Its air reaches the wall from the depot's one compressor, in the service building: 32.2 m of main to the hall's corner, the site's and not in this schedule (src/lib/siteAir.ts). Its run inside the hall to this bay's wall is the hall's."
+   ],
    "open": []
   },
   {

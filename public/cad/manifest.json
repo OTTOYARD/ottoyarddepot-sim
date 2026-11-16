@@ -20,22 +20,22 @@
     "cables": "charge_arm.cables.csv"
    },
    "cables": {
-    "lines": 45,
-    "routeM": 189.1,
-    "orderM": 203.5
+    "lines": 43,
+    "routeM": 173.5,
+    "orderM": 187.0
    },
    "bytes": {
-    "glb": 9289692,
-    "stepZip": 9308924,
-    "step": 48740650,
-    "depot": 867656,
-    "near": 6411460
+    "glb": 9193924,
+    "stepZip": 9290978,
+    "step": 48632433,
+    "depot": 867340,
+    "near": 6411148
    },
    "mesh": {
-    "vertices": 383815,
-    "triangles": 439413,
-    "meshes": 346,
-    "nodes": 1214
+    "vertices": 380123,
+    "triangles": 434167,
+    "meshes": 340,
+    "nodes": 1208
    },
    "depotMesh": {
     "vertices": 34067,
@@ -43,27 +43,27 @@
     "meshes": 103,
     "nodes": 174
    },
-   "depotSha256": "7e277617bc8807cd",
+   "depotSha256": "ed624f33fb1f4786",
    "nearMesh": {
     "vertices": 269877,
     "triangles": 307079,
     "meshes": 143,
     "nodes": 745
    },
-   "nearSha256": "f0d17de7f427990d",
+   "nearSha256": "9a0fe384dcc3ec42",
    "totals": {
-    "parts": 1237,
-    "uniqueParts": 345,
+    "parts": 1231,
+    "uniqueParts": 339,
     "fasteners": 720,
-    "massKg": 1616.39,
-    "boughtLines": 225,
-    "madeLines": 120,
+    "massKg": 1592.65,
+    "boughtLines": 220,
+    "madeLines": 119,
     "referenceLines": 5
    },
-   "glbSha256": "188dc53fa512f705",
+   "glbSha256": "fe8f81e7df6f3752",
    "stepCheck": {
-    "namedParts": 1253,
-    "solids": 1943,
+    "namedParts": 1247,
+    "solids": 1937,
     "invalid": 0
    },
    "subsystems": [
@@ -141,7 +141,7 @@
    },
    "bytes": {
     "glb": 2512272,
-    "stepZip": 1467597,
+    "stepZip": 1467555,
     "step": 8108636,
     "depot": 640144,
     "near": 3301964
@@ -256,8 +256,8 @@
    },
    "bytes": {
     "glb": 9578384,
-    "stepZip": 8270160,
-    "step": 44013379,
+    "stepZip": 8270348,
+    "step": 44014486,
     "depot": 1026212,
     "near": 6951576
    },

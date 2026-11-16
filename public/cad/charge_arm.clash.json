@@ -36,9 +36,9 @@
   "cycle:retract:mid",
   "cycle:retract:end"
  ],
- "pairsChecked": 108415,
- "pairsMeasured": 36047,
- "contactPairs": 2616,
+ "pairsChecked": 104306,
+ "pairsMeasured": 35609,
+ "contactPairs": 2603,
  "counts": {
   "thread": 845,
   "seal": 13,
@@ -2644,6 +2644,6 @@
    ]
   }
  ],
- "seconds": 1827.1,
- "glbSha256": "188dc53fa512f705"
+ "seconds": 1920.2,
+ "glbSha256": "fe8f81e7df6f3752"
 }

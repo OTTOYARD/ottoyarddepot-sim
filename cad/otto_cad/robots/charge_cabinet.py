@@ -29,12 +29,15 @@ own frame below: X the site's x, Y above the pad, Z from the cabinet's middle):
     DC cores rise straight into them from the gland plate;
   - CENTRE LEFT, low: the earth bar, the auxiliary transformer (it feeds the controls, the drives and the cooling unit
     from the AC feed), its primary fuses and the AC surge arrester;
-  - RIGHT, 5 rows of rail-mounted devices beside the right wiring duct, a duct over each row, and the service-air block on
-    its strut; UPPER RIGHT, the connector's cooling unit on the back wall, its 2 coolant sockets on its front.
-Every line in the cabinet is drawn where it can be bought by its drawn length: the 8 DC cores, the 2 coolant tubes and
-the air tube from the arm, and the 6 AC conductors, the equipment ground, the pad's earth, the air and the network fibre
-from the site (each post's feed in the site's duct bank is measured in src/lib/siteFeeders.ts). The arm's 5 small cables run in the wiring ducts, and their routes there are planned (the cable schedule's
-'duct'). The panel wiring between the devices is the charger maker's wiring diagram and is not drawn.
+  - RIGHT, 5 rows of rail-mounted devices beside the right wiring duct, and a duct over each row; UPPER RIGHT, the
+    connector's cooling unit on the back wall, its 2 coolant sockets on its front.
+Every line in the cabinet is drawn where it can be bought by its drawn length: the 8 DC cores and the 2 coolant tubes from
+the arm, and the 6 AC conductors, the equipment ground, the pad's earth and the network fibre from the site (each post's
+feed in the site's duct bank is measured in src/lib/siteFeeders.ts). No air reaches the charger: the arm's head is
+electric since 2026-11-16 (Chase chose it, with the clean arms' air knives as the depot's only use of compressed air), so
+the service-air block, its strut and the site's air tube are gone. The arm's 5 small cables run in the wiring ducts, and
+their routes there are planned (the cable schedule's 'duct'). The panel wiring between the devices is the charger maker's
+wiring diagram and is not drawn.
 
 SIZES. The cooling unit is the size of Phoenix Contact's unit for its liquid-cooled HPC cables, EV-HPC-PCU-01: 534 x 403
 x 198 mm (RS Components' listing, https://au.rs-online.com/web/p/cooling-units/2671592, read 2026-11-15; its 3 figures
@@ -81,9 +84,6 @@ PM_W, PM_H, PM_D, PM_PITCH, PM_ROWS = 226.0, 84.0, 437.0, 100.0, 6
 CU_W, CU_H, CU_D = 534.0, 403.0, 198.0
 CU_X0, CU_Y0 = 50.0, 1650.0
 X_CS, X_CR, Y_CSK = 279.0, 300.0, 1700.0            # the supply's and the return's sockets
-# the service-air block, on its strut beside the right duct (where it stood on the old right wall)
-AV = (301.9, 356.9, 400.0, 580.0, -87.45, -27.45)
-X_ST = (357.0, 378.0)                                # the strut, along the car
 # THE RIGHT COLUMN: rows of rail devices from X_RC0, the right duct beside them, a duct over each row
 X_RC0 = 385.0
 RC_ROWS = (300.0, 560.0, 840.0, 1110.0, 1420.0)      # the rows' middles
@@ -151,7 +151,7 @@ def build_cabinet(m, site, cab: dict, pad_top: float, deck: float, entries: dict
                      'An auxiliary transformer feeds the controls, the drives and the cooling unit from the AC feed.',
                      'The cooling unit pumps the liquid for the connector.',
                      'The arm\'s controller, the safety controller and the 2 servo drives for the rail and the cross-slide are on the right.',
-                     'The service air goes through a filter, a regulator and a valve that locks shut.'],
+                     'No air reaches the charger: the arm\'s head is electric.'],
                 specs={'outline': f'{W:.0f} x {H:.0f} x {D:.0f} mm (an all-in-one 350 kW charger)',
                        'enclosure': 'sheet steel 2 mm, IP54, 2 doors on the car\'s side',
                        'AC in': '480 V, 3 phase, about 450 A at 350 kW out (ASSUMPTION: 95 % efficient, power factor 0.99)',
@@ -248,16 +248,15 @@ def build_cabinet(m, site, cab: dict, pad_top: float, deck: float, entries: dict
         put(sto, at(xs, ys, ZBI), (0, 0, -360))
 
     # ═══════════════════════════════════════════════════════════ the gland plates ═══
-    AIR_IN = (330.0, -75.0)                          # the site's air, up into the air block
     NET_IN = (327.0, ZD)                             # the site's network, up into the right duct
-    gp = B(75, X_ST[0], Y_FL, Y_GP, -360, 75)
+    gp = B(75, 360, Y_FL, Y_GP, -360, 75)
     holes = [(x, z - cz, d / 2 + 0.5) for (x, z, d) in entries.values()]
-    holes += [(AIR_IN[0], AIR_IN[1], 6.5), (NET_IN[0], NET_IN[1], 4.5)]
+    holes += [(NET_IN[0], NET_IN[1], 4.5)]
     for (x, z, r) in holes:
         gp = gp.cut(cq.Workplane('XY').add(cq.Solid.makeCylinder(r, 20, cq.Vector(*P(x, Y_FL - 5, z)), cq.Vector(0, 1, 0))))
     put(m.part(PartDef('CHG-BGP', f'Charger gland plate, right, {len(holes)} entries', gp.val(), 'steel_s355', 'electrical', 'cut plate 4 mm',
-                       f'{X_ST[0] - 75:.0f} x 435 x 4', 'IP54 with its glands', None,
-                       'Closes the floor over the arm\'s supply shaft and the small site shaft behind it. Each line enters through it.',
+                       '285 x 435 x 4', 'IP54 with its glands', None,
+                       'Closes the floor over the arm\'s supply shaft and the network\'s shaft behind it. Each line enters through it.',
                        {'glands': 'one a line, under the plate (not drawn)'}, 'make')), ex=(0, 80, -260))
     AC_X = [x + s * AC_DX for x in X_PH for s in (-1, 1)]
     gl = B(-515, -125, Y_FL, Y_GP, -367, -295)
@@ -427,7 +426,7 @@ def build_cabinet(m, site, cab: dict, pad_top: float, deck: float, entries: dict
         put(dev(pid, name, w, h, d, 'pa66', kg, fn, {}), at(x0 + w / 2, Y_CLROW - h / 2, Z_DV), (0, 0, 60))
         devs.setdefault(pid, []).append((x0 + w / 2, Y_CLROW - h / 2, Y_CLROW + h / 2))
 
-    # ═════════════════════════════════════════════ the cooling unit and the service air ═══
+    # ═══════════════════════════════════════════════════════════════════ the cooling unit ═══
     cu = cq.Workplane('XY').box(CU_W, CU_H, CU_D, centered=False)
     cu = cu.cut(cq.Workplane('XY').add([cq.Solid.makeBox(CU_W - 80, 4, 3, cq.Vector(40, ys, CU_D - 2)) for ys in range(90, int(CU_H) - 30, 12)]))
     put(m.part(PartDef('CHG-CCU', 'Connector cooling unit, liquid to air, 24 V DC', cu.val(), 'steel_paint', 'fluid', 'catalogue part',
@@ -442,21 +441,6 @@ def build_cabinet(m, site, cab: dict, pad_top: float, deck: float, entries: dict
     Z_SK = ZBI + CU_D                                 # the sockets stand on the cooling unit's front face
     for xs in (X_CS, X_CR):
         put(sock_pd, at(xs, Y_CSK, Z_SK), (0, 0, 150))
-    put(m.part(PartDef('CHG-CST', 'Strut 90 x 21, galvanised steel', B(X_ST[0], X_ST[1], Y_FL, 1640.0, -110.0, -20.0).val(), 'steel_s355',
-                       'structure', 'cold-formed channel', f'90 x 21 x {1640.0 - Y_FL:.0f}', '', None,
-                       'Stands on the floor beside the right duct and carries the service air block.', {}, 'make')), ex=(80, 0, -60))
-    av = B(*AV[0:2], *AV[2:4], *AV[4:6])
-    put(m.part(PartDef('CHG-CAV', 'Service air block: filter, regulator, lockable 3/2 valve', av.val(), 'al6061_blk', 'fluid', 'catalogue part',
-                       '55 x 180 x 60', '', None, 'Cleans the site\'s air, sets it to 6 bar and sends it to the arm. Its valve locks shut for work on the arm.',
-                       {'size': 'a class size (ASSUMPTION)'}, 'buy', mass_override=1.6)), ex=(80, 0, -60))
-    s6 = (cq.Workplane('XY').add(cq.Solid.makeCylinder(6.0, 16, cq.Vector(0, 0, 0), cq.Vector(0, 0, 1)))
-          .cut(cq.Workplane('XY').add(cq.Solid.makeCylinder(3.05, 13, cq.Vector(0, 0, 4), cq.Vector(0, 0, 1)))))
-    put(m.part(PartDef('CHG-CAS6', 'Push-in fitting 6 mm, air block outlet', s6.val(), 'ss316', 'fluid', 'ISO 14743', 'G 1/8, 6 mm', '', None,
-                       'Takes the arm\'s air tube. The tube goes 12 mm in.', {}, 'buy')), at(330.0, 450.0, AV[5]), (80, 0, -40))
-    s12 = (cq.Workplane('XY').add(cq.Solid.makeCylinder(9.0, 16, cq.Vector(0, -16, 0), cq.Vector(0, 1, 0)))
-           .cut(cq.Workplane('XY').add(cq.Solid.makeCylinder(6.05, 13, cq.Vector(0, -17, 0), cq.Vector(0, 1, 0)))))
-    put(m.part(PartDef('CHG-CAS12', 'Push-in fitting 12 mm, air block inlet', s12.val(), 'ss316', 'fluid', 'ISO 14743', 'G 1/4, 12 mm', '', None,
-                       'Takes the site\'s air tube. The tube goes 12 mm in.', {}, 'buy')), at(AIR_IN[0], AV[2], AIR_IN[1]), (80, -40, -40))
 
     # ════════════════════════════════════════════════════════ the right column and its ducts ═══
     rail_r = m.part(PartDef('CHG-CDR3', 'Mounting rail 35 x 7.5, 215 mm', cq.Workplane('XY').box(215, 35, 7.5, centered=(False, True, False)).val(),
@@ -521,8 +505,6 @@ def build_cabinet(m, site, cab: dict, pad_top: float, deck: float, entries: dict
          {'conductor': '1/0 AWG copper (ASSUMPTION: NEC 250.122 for an 800 A frame breaker)'}, 'D 12.5')
     feed('CHG-SPE', 'Earth conductor 1/0 AWG, to the pad\'s earth electrode', PE_X[1], PE_Z, 130.0, 6.0, 'cable', 'electrical',
          'Joins the earth bar to the earth electrode cast in the pad.', {'conductor': '1/0 AWG copper (ASSUMPTION)'}, 'D 12')
-    feed('CHG-SAR', 'Site air tube 12 x 9, polyurethane', AIR_IN[0], AIR_IN[1], AV[2] - 4.0, 6.0, 'pu', 'fluid',
-         'Brings the site\'s compressed air up into the charger, to the air block.', {}, 'D 12')
     feed('CHG-SNW', 'Network fibre, 2 x single-mode, armoured, site to charger', NET_IN[0], NET_IN[1], DU_R[2] + 10.0, 3.0, 'cable', 'electrical',
          'Brings the depot\'s network up into the charger\'s right duct, to the switch\'s fibre port.',
          {'why fibre': 'the farthest posts are 102 to 123 m of cable from the office, past a copper Ethernet channel\'s 100 m (src/lib/siteFeeders.ts)'}, 'D 6')
@@ -539,8 +521,6 @@ def build_cabinet(m, site, cab: dict, pad_top: float, deck: float, entries: dict
             top[lid] = ([P(X_CS, Y_CSK, Z_SK + 4.0), P(X_CS, Y_CSK, Z), P(X_CS, 640.0, Z), P(x, 640.0, Z)], [4 * d] * 3)
         elif lid == 'CHG-LCR':
             top[lid] = ([P(X_CR, Y_CSK, Z_SK + 4.0), P(X_CR, Y_CSK, Z), P(X_CR, 580.0, Z), P(x, 580.0, Z)], [4 * d] * 3)
-        elif lid == 'CHG-LAR':                       # to the air block's outlet
-            top[lid] = ([P(330.0, 450.0, AV[5] + 4.0), P(330.0, 450.0, Z), P(330.0, 360.0, Z), P(x, 360.0, Z)], [4 * d] * 3)
         else:                                        # a small cable: it ends at the gland plate; its run in the ducts is planned
             top[lid] = ([P(x, Y_GP + 0.5, Z)], [])
 
@@ -566,5 +546,5 @@ def build_cabinet(m, site, cab: dict, pad_top: float, deck: float, entries: dict
     planned['CHG-SNW'] = ([(NET_IN[0], DU_R[2] + 10.0, NET_IN[1]), (X_DU, row_mid[3], ZD), (ns_x, row_mid[3], ZD), (ns_x, ns_top, ZD)],
                           'the network switch (CHG-CNS)')
     return {'top': top, 'planned': planned, 'site': site_lines, 'Y_GP': pad_top + Y_GP,
-            'shafts': [(-510.0, -130.0, cz - 362.0, cz - 300.0), (305.0, 355.0, cz - 350.0, cz - 60.0)],
+            'shafts': [(-510.0, -130.0, cz - 362.0, cz - 300.0), (305.0, 355.0, cz - 350.0, cz - 315.0)],
             'devices': devs}

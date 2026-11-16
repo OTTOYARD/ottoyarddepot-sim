@@ -1217,7 +1217,8 @@ def build(spec: dict) -> Model:
     apt = cq.Workplane('XZ', origin=(0, 45, 0)).circle(12).extrude(45)
     m.place(gan, m.part(PartDef('WSH-APT', 'Air service coupling G 1/2, self-sealing', apt.val(), 'brass', 'fluid', 'catalogue part', 'G 1/2',
                                 '', None, 'Ends the air tube on the beam. It gives compressed air for service on the machine. '
-                                'No tool on this machine uses air.', {}, 'buy')),
+                                'No tool on this machine uses air. The air comes from the depot\'s one compressor, in the service building.',
+                                {}, 'buy')),
             loc(x_me + 120, yT + MD_H, z_ml), (0, 320, 200), 'CONTROL')
     # the cable trunk: up from the cabinet's top through the beam, south along the beam's top, then the length of the beam
     TK = 60.0
@@ -1622,6 +1623,11 @@ def _cable_schedule(m: Model, g: dict) -> None:
         L.run('drawn', lid, 'from the duct\'s mouth across the pit, along the tray and through the strain relief into the chain', P[lid].path_mm, bend=bend)
         mm, rb = chain_mm(DCH, lid)
         L.run('chain', 'WSH-DCH', 'in the drag chain, in its own lane', mm, bend=rb, moving=True)
+        hall = [a['lengthM'] for a in (g['spec'].get('site') or {}).get('airMains', []) if a['to'] == 'wash hall']
+        if tag == 'R' and hall:
+            L.notes.append(f'Its air reaches the wall from the depot\'s one compressor, in the service building: {hall[0]:.1f} m of main to '
+                           'the hall\'s corner, the site\'s and not in this schedule (src/lib/siteAir.ts). Its run inside the hall to this '
+                           'bay\'s wall is the hall\'s.')
         v = next(c['v'] for c in DCH.contents if c['id'] == lid)
         x_dest, z_dest = (x_cd, 90.0) if tag in 'NP' else (g['MR_X'], g['MR_Z'])
         pts = [(xch + lx, y_up - v, 0.0), (xch + lx, y_up - v, 90.0), (xch + lx, y_arm + 30, 90.0), (x_dest, y_arm + 30, z_dest), (x_dest, y_arm + 60, z_dest)]

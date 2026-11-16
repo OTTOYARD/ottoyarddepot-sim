@@ -216,9 +216,10 @@
   {
    "id": "VAC",
    "name": "Vacuum and air supply",
-   "function": "Brings vacuum and compressed air from the canopy plant to the nozzle.",
+   "function": "Brings vacuum from the canopy plant and compressed air from the depot's compressor to the nozzle.",
    "how": [
     "A central vacuum producer on each canopy (about 3 kW per working arm, 30 kPa class) serves its arms.",
+    "One compressor in the service building feeds the air of all 3 canopies. The air knives are the depot's only tool that uses air.",
     "A vacuum main and an air main run under the canopy roof, over the header. They belong to the canopy plant.",
     "A branch drops from the vacuum main through a gate valve, in through the column wall, and down to the J1 union.",
     "A drop from the air main feeds a service unit on the column: a lockable shut-off valve and a filter regulator.",
@@ -2984,7 +2985,7 @@
    "totalMassKg": 0.0,
    "torqueNm": null,
    "reference": true,
-   "function": "Brings compressed air from the canopy's compressor to its arms. Shown for context.",
+   "function": "Brings compressed air to the arms on its canopy from the depot's one compressor, in the service building. Shown for context.",
    "spec": {},
    "uses": [
     {
@@ -4300,7 +4301,9 @@
    "pieces": [
     "CLN-ADR"
    ],
-   "notes": [],
+   "notes": [
+    "The canopy's air main is fed from the depot's one compressor, in the service building: 20.1 to 62.7 m of main from the plant to the 3 canopies, the site's and not in this schedule (measured on the site plan: src/lib/siteAir.ts)."
+   ],
    "open": []
   },
   {

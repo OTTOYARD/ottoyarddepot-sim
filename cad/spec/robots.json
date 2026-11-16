@@ -563,5 +563,27 @@
       "yMax": 1.32,
       "cornerR": 0.08
     }
+  },
+  "site": {
+    "airPlant": "the ops building's office block, its south-east corner beside service bay 1",
+    "airMains": [
+      {
+        "to": "canopy A",
+        "lengthM": 20.1
+      },
+      {
+        "to": "canopy B",
+        "lengthM": 39.6
+      },
+      {
+        "to": "canopy C",
+        "lengthM": 62.7
+      },
+      {
+        "to": "wash hall",
+        "lengthM": 32.2
+      }
+    ],
+    "peakFreeAirM3Min": 4.5
   }
 }
