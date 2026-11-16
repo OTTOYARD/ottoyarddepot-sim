@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import * as THREE from 'three';
-import { CANOPIES, generateStallsV2 } from '@/lib/sitePlan';
+import { CANOPIES, generateStallsV2, plantOf } from '@/lib/sitePlan';
 import { canopyColumnYs, cabinetFootprints, CANOPY_COLUMN } from '@/lib/structurePlan';
+import { RISER_OFF_U, VACUUM_MAIN_OD_MM, VACUUM_RISER_OFF_U } from '@/lib/siteCanopy';
 import { StaticBatch } from './staticBatch';
 import { MATERIALS } from './materials';
 import { galvanizedSteel, darkSteel, hazardBand, ledPanel, aluminiumTrim } from './buildingSkin';
@@ -157,8 +158,39 @@ function build(armStalls: readonly ArmStallPose[]): Map<string, THREE.BufferGeom
       const top = k.dc ? 3.76 : 2.96;
       b.cylinder('dark', 150 - kx, top, 110 - ky, 0.14, R - 1.75 - top, 8);
     }
+
+    // ── the canopy's plant, under the canopy that has OTTO-CLEAN ARMs (sitePlan.CANOPY_PLANT, 2026-11-16): the board and
+    //    the vacuum producer on their pads under the south end, the arms' cable ladder up the last column's west face into
+    //    the spine tray, and the vacuum riser up its east face. Their runs along the canopy are measured in siteCanopy.ts. ──
+    if (mounts.some((m) => Math.abs(m.cx - c.cx) <= 0.5) && ys.length) plantGeometry(b, c.cx, plantOf(c), ys[ys.length - 1]);
   }
   return b.build();
+}
+
+/** One canopy's plant (sitePlan.CANOPY_PLANT) and its 2 risers on the last spine column at plan y `yCol`. */
+function plantGeometry(b: StaticBatch, cx: number, p: ReturnType<typeof plantOf>, yCol: number): void {
+  const { board: bd, vacuum: vc } = p;
+  for (const k of [bd, vc]) b.planBox('pier', { x0: k.x0 - 0.2, x1: k.x1 + 0.2, y0: k.y0 - 0.2, y1: k.y1 + 0.2 }, 0, 0.2);   // pads
+  // the board: a plinth, the cabinet, its 2 doors' seam and handles on its front (north) face
+  b.planBox('dark', { x0: bd.x0, x1: bd.x1, y0: bd.y0, y1: bd.y1 }, 0.2, 0.45);
+  b.planBox('trim', { x0: bd.x0, x1: bd.x1, y0: bd.y0, y1: bd.y1 }, 0.45, bd.h);
+  const bm = (bd.x0 + bd.x1) / 2;
+  b.planBox('dark', { x0: bm - 0.03, x1: bm + 0.03, y0: bd.y0 - 0.02, y1: bd.y0 }, 0.7, bd.h - 0.25);
+  for (const s of [-1, 1]) b.planBox('dark', { x0: bm + s * 0.12 - 0.04, x1: bm + s * 0.12 + 0.04, y0: bd.y0 - 0.08, y1: bd.y0 }, 2.0, 2.5);
+  // the vacuum producer's acoustic enclosure: a hood on top, louvres on its east face
+  b.planBox('steel', { x0: vc.x0, x1: vc.x1, y0: vc.y0, y1: vc.y1 }, 0.2, vc.h);
+  b.planBox('dark', { x0: vc.x0 + 0.3, x1: vc.x1 - 0.3, y0: vc.y0 + 0.3, y1: vc.y1 - 0.3 }, vc.h, vc.h + 0.3);
+  for (let k = 0; k < 4; k++) b.planBox('dark', { x0: vc.x1, x1: vc.x1 + 0.05, y0: vc.y0 + 0.3, y1: vc.y1 - 0.3 }, 0.9 + k * 0.6, 1.15 + k * 0.6);
+  // the arms' cables: a tray from the board's top to the column's west face, and a ladder up it into the spine tray
+  const lx = cx - RISER_OFF_U, ly0 = yCol - 0.3, ly1 = yCol + 0.3;
+  b.planBox('dark', { x0: bm, x1: lx + 0.08, y0: bd.y1 - 0.45, y1: bd.y1 - 0.15 }, bd.h, bd.h + 0.12);
+  b.planBox('dark', { x0: lx - 0.08, x1: lx + 0.08, y0: bd.y1 - 0.45, y1: ly1 }, bd.h, bd.h + 0.12);
+  b.planBox('dark', { x0: lx - 0.08, x1: lx + 0.08, y0: ly0, y1: ly1 }, bd.h + 0.12, R - 1.75);
+  // the vacuum riser: a duct from the enclosure's hood to the column's east face, and the DN 100 pipe up it to the roof
+  const vx = cx + VACUUM_RISER_OFF_U, r = VACUUM_MAIN_OD_MM / 1000 / 0.4785 / 2;
+  b.planBox('dark', { x0: vx - r, x1: vc.x0 + 0.5, y0: vc.y1 - 0.5 - r, y1: vc.y1 - 0.5 + r }, vc.h + 0.3, vc.h + 0.3 + 2 * r);
+  b.planBox('dark', { x0: vx - r, x1: vx + r, y0: vc.y1 - 0.5 - r, y1: yCol + r }, vc.h + 0.3, vc.h + 0.3 + 2 * r);
+  b.cylinder('dark', 150 - vx, vc.h + 0.3, 110 - yCol, r, R - 1.15 - (vc.h + 0.3), 10);
 }
 
 /**

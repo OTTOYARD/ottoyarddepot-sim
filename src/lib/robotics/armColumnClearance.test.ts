@@ -14,7 +14,7 @@ import { METRES_PER_PLAN_UNIT, MOUNT_HEIGHT_M } from '@/lib/ottoChargeArm/cobotS
 import { placeArm } from '@/lib/ottoChargeArm/depotPlacement';
 import { ARM_REACH, BASE_JOINT_NAMES, HEAD_JOINT_NAMES, bedCentreX, solveMate } from '@/lib/ottoChargeArm/mateSolver';
 import { AT_INLET } from '@/lib/ottoChargeArm/mateSequence';
-import { generateStallsV2 } from '@/lib/sitePlan';
+import { canopyPlants, generateStallsV2 } from '@/lib/sitePlan';
 import { canopyColumnSolids } from '@/lib/structurePlan';
 import { partOfMesh } from './cadClearance';
 import { indexCad, poseCad, type CadModel } from './cadModel';
@@ -26,6 +26,9 @@ const COLUMN_CLEAR_M = 0.05;
 const columnHalf = (h: number) => (h < 0.5 * U ? 1.0 : h < 1.7 * U ? 0.8 : 0.6) * U;
 
 interface Column { cx: number; cz: number; cos: number; sin: number; stall: string }
+/** A canopy plant's board or vacuum producer (sitePlan.CANOPY_PLANT, 2026-11-16) in a stall's arm frame: its centre, its
+ *  half-sizes along the site's x and y, and its top, metres. */
+interface Plant { cx: number; cz: number; cos: number; sin: number; hx: number; hz: number; top: number; what: string }
 
 describe('OTTO-CHARGE ARM and its rail bed against the canopy columns', () => {
   let model: CadModel;
@@ -41,9 +44,10 @@ describe('OTTO-CHARGE ARM and its rail bed against the canopy columns', () => {
     });
   });
 
-  it.each([1, -1] as const)('stalls facing %i: every part stays 0.05 m off every column, at every vehicle\'s mate', (toward) => {
+  it.each([1, -1] as const)('stalls facing %i: every part stays 0.05 m off every column and every canopy plant, at every vehicle\'s mate', (toward) => {
     // each column near a stall of this facing, in that stall's arm frame (metres; the inverse of robotPlan.armToPlan)
     const cols: Column[] = [];
+    const plants: Plant[] = [];
     for (const s of generateStallsV2()) {
       if (s.type !== 'dcfc') continue;
       const p = placeArm(s.id, s.position.x, s.position.y, s.position.angle);
@@ -55,12 +59,24 @@ describe('OTTO-CHARGE ARM and its rail bed against the canopy columns', () => {
         const cx = dx * c - dz * n, cz = dx * n + dz * c;
         if (Math.hypot(cx, cz) < 7) cols.push({ cx, cz, cos: c, sin: n, stall: s.id });
       }
+      // the plant under the canopy's south end: its board and its vacuum producer, each a box on grade
+      for (const pl of canopyPlants()) {
+        for (const [what, b] of [['board', pl.board], ['vacuum producer', pl.vacuum]] as const) {
+          const dx = (150 - (b.x0 + b.x1) / 2 - p.world[0]) / p.scale;
+          const dz = (110 - (b.y0 + b.y1) / 2 - p.world[2]) / p.scale;
+          const cx = dx * c - dz * n, cz = dx * n + dz * c;
+          if (Math.hypot(cx, cz) < 10) {
+            plants.push({ cx, cz, cos: c, sin: n, hx: ((b.x1 - b.x0) / 2) * U, hz: ((b.y1 - b.y0) / 2) * U, top: b.h * U, what: `canopy ${pl.canopy}'s ${what}, by ${s.id}` });
+          }
+        }
+      }
     }
     // every charger stands on its car's left since 2026-11-13: no stall has the other sign, and there is nothing to measure
     if (!cols.length) { expect(toward).toBe(1); return; }
     const v = new THREE.Vector3();
     let worst = Infinity, where = '';
     let fixed = Infinity, fixedWhere = '';
+    let plantWorst = Infinity, plantWhere = '';
     const look = (tag: string) => {
       model.root.updateMatrixWorld(true);
       for (const { m, a, part, moves } of meshes) {
@@ -74,6 +90,14 @@ describe('OTTO-CHARGE ARM and its rail bed against the canopy columns', () => {
             const d = sx > 0 || sz > 0 ? Math.hypot(Math.max(sx, 0), Math.max(sz, 0)) : Math.max(sx, sz);
             if (moves) { if (d < worst) { worst = d; where = `${tag}, ${part}, the column by ${k.stall}`; } }
             else if (d < fixed) { fixed = d; fixedWhere = `${part}, the column by ${k.stall}`; }
+          }
+          for (const k of plants) {
+            // the same axes; a box from grade to its top, so a point over it is measured to its top
+            const rx = v.x - k.cx, rz = v.z - k.cz;
+            const sx = Math.abs(rx * k.cos + rz * k.sin) - k.hx, sz = Math.abs(-rx * k.sin + rz * k.cos) - k.hz;
+            const up = Math.max(v.y + MOUNT_HEIGHT_M - k.top, 0);
+            const d = sx > 0 || sz > 0 || up > 0 ? Math.hypot(Math.max(sx, 0), Math.max(sz, 0), up) : Math.max(sx, sz);
+            if (d < plantWorst) { plantWorst = d; plantWhere = `${tag}, ${part}, ${k.what}`; }
           }
         }
       }
@@ -100,7 +124,10 @@ describe('OTTO-CHARGE ARM and its rail bed against the canopy columns', () => {
       }
     }
     console.log(`COL toward ${toward}: moving ${worst.toFixed(3)} m at ${where}; fixed bed ${fixed.toFixed(3)} m at ${fixedWhere}`);
+    console.log(`PLANT toward ${toward}: ${plantWorst.toFixed(3)} m at ${plantWhere}`);
     expect(fixed, `the rail bed: ${fixed.toFixed(3)} m at ${fixedWhere}`).toBeGreaterThan(COLUMN_CLEAR_M);
     expect(worst, `${worst.toFixed(3)} m at ${where}`).toBeGreaterThan(COLUMN_CLEAR_M);
+    expect(plants.length, 'the canopy plant is near a stall of this facing').toBeGreaterThan(0);
+    expect(plantWorst, `the canopy plant: ${plantWorst.toFixed(3)} m at ${plantWhere}`).toBeGreaterThan(COLUMN_CLEAR_M);
   }, 600_000);
 });

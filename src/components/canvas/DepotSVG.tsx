@@ -13,7 +13,7 @@ import { WashGantries2D } from './WashGantry2D';
 import { Doors2D, FastChargerRobots2D } from './Robots2D';
 import {
   LOT, BESS_YARD, TX_YARD, TX_PAD, CHARGER_TRANSFORMERS, AUX_TRANSFORMER, MV_SWITCHGEAR, BUILDING, WASH, CANOPIES, PARK_RUNS, GATE_W, canopyKind,
-  INGRESS, EGRESS,
+  canopyPlants, INGRESS, EGRESS,
   WEST_AISLE_X, EAST_AISLE_X, TEMP_LANE_X, GAP_LANES,
   TEMP_AISLE, EAST_AVENUE, N1_LANE_Y, NORTH_LANE_Y, SOUTH_LANE_Y,
 } from '@/lib/sitePlan';
@@ -231,6 +231,17 @@ export const DepotSVG = forwardRef<SVGSVGElement>((_, ref) => {
           <rect x={c.x} y={c.y} width={c.w} height={c.h} fill={canopyKind(c) === 'dcfc' ? '#C0000014' : '#00B4A614'}
             stroke={canopyKind(c) === 'dcfc' ? '#C00000' : '#00B4A6'} strokeWidth={0.4} strokeDasharray="3,2" opacity={0.9} rx={1} />
           <line x1={c.cx} y1={c.y + 2} x2={c.cx} y2={c.y + c.h - 2} stroke="#ffffff" strokeWidth={0.3} opacity={0.15} />
+        </g>
+      ))}
+      {/* each fast-charger canopy's plant, under its south end (sitePlan.CANOPY_PLANT): its board and its vacuum producer */}
+      {canopyPlants().map((p) => (
+        <g key={`plant-${p.canopy}`} data-testid={`plan-plant-${p.canopy}`}>
+          <rect x={p.board.x0} y={p.board.y0} width={p.board.x1 - p.board.x0} height={p.board.y1 - p.board.y0} fill="#8d959e" stroke="#cfd4dc" strokeWidth={0.2}>
+            <title>{`Canopy ${p.canopy}: its board. It feeds the clean arms and the vacuum producer, and holds the network switch.`}</title>
+          </rect>
+          <rect x={p.vacuum.x0} y={p.vacuum.y0} width={p.vacuum.x1 - p.vacuum.x0} height={p.vacuum.y1 - p.vacuum.y0} fill="#56606e" stroke="#cfd4dc" strokeWidth={0.2}>
+            <title>{`Canopy ${p.canopy}: its vacuum producer. It gives the vacuum for the clean arms.`}</title>
+          </rect>
         </g>
       ))}
       {/* one label over each run of canopies of a kind: the charger build decides which (chargerBuild.ts) */}

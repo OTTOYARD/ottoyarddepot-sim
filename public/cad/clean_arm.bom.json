@@ -219,8 +219,10 @@
    "function": "Brings vacuum from the canopy plant and compressed air from the depot's compressor to the nozzle.",
    "how": [
     "A central vacuum producer on each canopy (about 3 kW per working arm, 30 kPa class) serves its arms.",
+    "The producer stands at grade under the canopy's south end, with its separator, filter and dirt bin.",
     "One compressor in the service building feeds the air of all 3 canopies. The air knives are the depot's only tool that uses air.",
     "A vacuum main and an air main run under the canopy roof, over the header. They belong to the canopy plant.",
+    "The vacuum main comes up the canopy's last spine column from the producer.",
     "A branch drops from the vacuum main through a gate valve, in through the column wall, and down to the J1 union.",
     "A drop from the air main feeds a service unit on the column: a lockable shut-off valve and a filter regulator.",
     "A 6 mm line runs from the unit in through the column wall and down to the J1 union.",
@@ -234,7 +236,7 @@
    "specs": {
     "duct": "DN 50 throughout",
     "airflow": "about 400 m3/h per producer (class)",
-    "vacuum main": "110 mm (ASSUMPTION: the canopy plant is not sized here)",
+    "vacuum main": "110 mm, 84 m from the producer to the 10 arms of a canopy (measured on the site plan; ASSUMPTION: the canopy plant is not sized here)",
     "isolation": "gate valve DN 50 on the vacuum branch, lockable valve on the air drop"
    },
    "group": "Supply",
@@ -252,9 +254,11 @@
     "A supply enclosure on the drop column holds the controller, the power supplies, the J1 drive and the safety relay.",
     "A lockable isolator on its door cuts the supply for work on the arm.",
     "The supply cable and the network cable come down from the canopy cable tray, each in its own conduit.",
+    "They come along the tray from the canopy's board, up its last spine column.",
     "A motor cable runs from the enclosure down to the J1 gearmotor.",
     "A second cable goes in through the column wall and down to the J1 union. Its slip ring feeds the rest of the arm.",
-    "The disconnect that a person reaches from the ground is on the canopy's board. It is site work and is not drawn."
+    "The disconnect that a person reaches from the ground is the arm's breaker in the canopy's board.",
+    "The board stands at grade under the canopy's south end. It is site work: the yard draws it, and this model does not."
    ],
    "specs": {
     "enclosure": "600 x 400 x 200 mm, stainless, IP66 (class)",
@@ -3278,7 +3282,7 @@
    "totalMassKg": 0.0,
    "torqueNm": null,
    "reference": true,
-   "function": "Brings the vacuum from the canopy's producer to its arms. Shown for context.",
+   "function": "Brings the vacuum to the arms on its canopy from the canopy's producer, at grade under its south end. Shown for context.",
    "spec": {},
    "uses": [
     {
@@ -3456,7 +3460,7 @@
    "totalMassKg": 0.0,
    "torqueNm": null,
    "reference": true,
-   "function": "Carries the arms' supply and network cables along the canopy from its board. Shown for context.",
+   "function": "Carries the arms' supply and network cables along the canopy from its board, at grade under its south end. Shown for context.",
    "spec": {
     "in the cable schedule": "CLN-SPW, 0.68 m from end to end; CLN-SNW, 0.68 m from end to end"
    },
@@ -3620,7 +3624,7 @@
    "reference": false,
    "function": "Switches the arm's supply off at the enclosure and takes a padlock, for work on the arm.",
    "spec": {
-    "ASSUMPTION": "the disconnect a person reaches from the ground is on the canopy board (site works, not drawn)"
+    "ASSUMPTION": "the disconnect a person reaches from the ground is the arm's breaker in the canopy's board, at grade under the canopy's south end (site works: src/lib/siteCanopy.ts)"
    },
    "uses": [
     {
@@ -3737,14 +3741,14 @@
    "kind": "power",
    "od": 10.5,
    "spec": "ASSUMPTION: a cable of its kind (cad clean_arm, SUPPLY_CABLE_OD and NET_CABLE_OD)",
-   "from": "the canopy's board (site works)",
+   "from": "its breaker in the canopy's board (at grade under the canopy's south end)",
    "to": "the supply enclosure (CLN-ENC): its isolator",
    "sub": "POWER",
    "runs": [
     {
      "kind": "site",
      "via": "CLN-CTY",
-     "where": "along the canopy's cable tray from its board: the site's length, not in the model",
+     "where": "from the board, up the canopy's last spine column and along its cable tray to this arm: the site's length, not in this schedule",
      "mm": 0.0,
      "tol": 0.0,
      "bend": null,
@@ -3779,10 +3783,10 @@
    "pieces": [
     "CLN-ECDP"
    ],
-   "notes": [],
-   "open": [
-    "Its run from the canopy's board along the cable tray is the site's: add it from the site's layout."
-   ]
+   "notes": [
+    "Its run from the canopy's board, up the last column and along the cable tray, with the board's tail: 18.6 to 46.9 m by arm, 32.8 m on average over the 30 arms, the site's and not in this schedule (measured on the site plan: src/lib/siteCanopy.ts; each arm in cad/spec/robots.json, site.cleanArmRuns)."
+   ],
+   "open": []
   },
   {
    "id": "CLN-SNW",
@@ -3790,14 +3794,14 @@
    "kind": "network",
    "od": 8.0,
    "spec": "ASSUMPTION: a cable of its kind (cad clean_arm, SUPPLY_CABLE_OD and NET_CABLE_OD)",
-   "from": "the canopy's board (site works)",
+   "from": "the canopy's network switch, in its board (at grade under the canopy's south end)",
    "to": "the supply enclosure (CLN-ENC): its controller",
    "sub": "POWER",
    "runs": [
     {
      "kind": "site",
      "via": "CLN-CTY",
-     "where": "along the canopy's cable tray from its board: the site's length, not in the model",
+     "where": "from the board, up the canopy's last spine column and along its cable tray to this arm: the site's length, not in this schedule",
      "mm": 0.0,
      "tol": 0.0,
      "bend": null,
@@ -3832,10 +3836,10 @@
    "pieces": [
     "CLN-ECDN"
    ],
-   "notes": [],
-   "open": [
-    "Its run from the canopy's board along the cable tray is the site's: add it from the site's layout."
-   ]
+   "notes": [
+    "Its run from the canopy's board, up the last column and along the cable tray, with the board's tail: 19.1 to 47.4 m by arm, 33.2 m on average over the 30 arms, the site's and not in this schedule (measured on the site plan: src/lib/siteCanopy.ts; each arm in cad/spec/robots.json, site.cleanArmRuns)."
+   ],
+   "open": []
   },
   {
    "id": "CLN-EMC",

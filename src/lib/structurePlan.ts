@@ -25,7 +25,7 @@
  */
 import {
   BUILDING, WASH, CANOPIES, LOT, PARK_RUNS, SERVICE_BAY_XS, WASH_BAY_XS, BAY_STALL_Y, BESS_YARD, TX_YARD,
-  generateStallsV2, type CanopyDef, type ParkRun,
+  canopyPlants, generateStallsV2, type CanopyDef, type ParkRun,
 } from './sitePlan';
 import { CAR_LENGTH, CAR_WIDTH } from '@/engine/motion/traffic';
 import { chargerBed, chargerPad } from '@/lib/ottoChargeArm/depotPlacement';
@@ -513,6 +513,14 @@ export function electricalYardSolids(): { kind: string; r: Rect }[] {
   ];
 }
 
+/** Each fast-charger canopy's plant at grade (sitePlan.CANOPY_PLANT): its board and its vacuum producer. */
+export function canopyPlantSolids(): { kind: string; r: Rect }[] {
+  return canopyPlants().flatMap((p) => [
+    { kind: `canopy-${p.canopy}-board`, r: { x0: p.board.x0, x1: p.board.x1, y0: p.board.y0, y1: p.board.y1 } },
+    { kind: `canopy-${p.canopy}-vacuum`, r: { x0: p.vacuum.x0, x1: p.vacuum.x1, y0: p.vacuum.y0, y1: p.vacuum.y1 } },
+  ]);
+}
+
 export interface Solid { kind: string; r: Rect; box: OBox }
 
 const solid = (kind: string, r: Rect): Solid => ({ kind, r, box: boxOf(r) });
@@ -539,6 +547,8 @@ export function allStructureSolids(): Solid[] {
     // The electrical ground, fence to fence (founder, 2026-11-11: no vehicle travels there). Whole yards, not each
     // unit: a car inside the fence is already wrong, whatever it has or has not touched.
     ...electricalYardSolids().map((k) => solid(k.kind, k.r)),
+    // Each fast-charger canopy's board and vacuum producer, under its south end (2026-11-16).
+    ...canopyPlantSolids().map((k) => solid(k.kind, k.r)),
   ];
 }
 

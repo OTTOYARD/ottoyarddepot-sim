@@ -14,6 +14,8 @@
 //   6. What the schedule left open on 2026-11-15 is routed: the charge arm's copper in its links (drawn), its coolant (one
 //      line each way, cabinet to head), its status rings' supply; the wash knives' conduits; the wash arms' pure water.
 //   7. The charge arm takes no air (2026-11-16): its head's plunge actuators and float lock are electric.
+//   8. The clean arm's supply and network come from its canopy's board (2026-11-16), their runs measured by arm on the
+//      site plan (siteCanopy.ts), so no robot's schedule has an open line.
 // No network: the files are read from disk.
 // ============================================================================
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -246,6 +248,28 @@ describe('OTTO-CHARGE ARM: the charger drawn, wired and fed (2026-11-15)', () =>
       expect(c.notes.join(' '), `${id}: its run quoted by post`).toMatch(/m by post/);
     }
     expect(cables.find((c) => c.id === 'CHG-SNW')!.spec).toMatch(/fibre/);
+  });
+});
+
+describe('OTTO-CLEAN ARM: its supply and network from the canopy\'s board (2026-11-16)', () => {
+  const bom = bomOf('clean_arm');
+  const cables = bom.cables ?? [];
+  it('runs each from the board under the canopy\'s south end, its run there measured by arm, and leaves nothing open', () => {
+    for (const id of ['CLN-SPW', 'CLN-SNW']) {
+      const c = cables.find((x) => x.id === id)!;
+      expect(c.open, id).toEqual([]);
+      expect(c.from, id).toMatch(/canopy's (board|network switch).*south end/);
+      expect(c.runs.find((r) => r.kind === 'site')?.via, `${id}: along the canopy's tray`).toBe('CLN-CTY');
+      expect(c.runs.find((r) => r.kind === 'conduit')?.via, id).toMatch(/^CLN-ECD/);
+      expect(c.notes.join(' '), `${id}: its run quoted by arm`).toMatch(/m by arm, .* over the 30 arms/);
+    }
+    expect(cables.filter((c) => c.open.length > 0).map((c) => c.id)).toEqual([]);
+  });
+});
+
+describe('every robot\'s cable schedule (2026-11-16)', () => {
+  it.each(ROBOT_KEYS)('%s has no open line', (k) => {
+    expect((bomOf(k).cables ?? []).filter((c) => c.open.length > 0).map((c) => c.id)).toEqual([]);
   });
 });
 
