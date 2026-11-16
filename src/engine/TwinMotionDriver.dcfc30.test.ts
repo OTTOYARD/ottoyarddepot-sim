@@ -20,6 +20,12 @@ import { CANOPIES, planFromDbFeet } from "@/lib/sitePlan";
 import { dockCanopyInWaves, twinLayout } from "./__fixtures__/buildout";
 import served from "./__fixtures__/twinLayout.served1102.json";
 
+// A docking run drives every car to its stall against every structure in the depot, so it is a heavy test.
+// On CI the full depot took 2.7 s before the canopy plant joined the structure set (ottoyarddepot-sim
+// PR #177), 4.3 s after it, and over vitest's default 5 s on a slower runner. Like the repo's other heavy
+// motion tests it carries its own limit; the assertions are unchanged.
+const DOCKING_TIMEOUT_MS = 60_000;
+
 afterAll(() => {
   setChargerBuild("as_built");
   useDepotStore.getState().regenerateStalls(10, 30, 3, 115, 2);
@@ -91,7 +97,7 @@ describe("the 30-post build, drawn because the twin's layout has it", () => {
       }
       expect(r.touches).toEqual([]);
       expect(r.hits).toEqual([]);
-    });
+    }, DOCKING_TIMEOUT_MS);
   }
 
   it("docks a full depot: thirty cars on thirty posts, every canopy's second wave driving in at once", () => {
@@ -104,7 +110,7 @@ describe("the 30-post build, drawn because the twin's layout has it", () => {
     for (const v of r.secondWave) expect(v.moved, v.id).toBe(true);
     expect(r.touches).toEqual([]);
     expect(r.hits).toEqual([]);
-  });
+  }, DOCKING_TIMEOUT_MS);
 
   it("goes from the 20-post build to this one and back to as built, on the layout alone", () => {
     twinMotionDriver.clear();
