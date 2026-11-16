@@ -6,7 +6,9 @@
 // at 2 PM depot time). A lab day, not a production run.
 //
 // What is asserted, and why:
-//   1. The tree is drawn whole: seven transformers, thirty posts, the battery, the building and the solar.
+//   1. The tree is drawn whole: seven transformers, thirty posts, the battery, the building and the solar; and
+//      otto-q-core 0840's canopy boards as one box under TX-AUX, listed one by one in its card (added to the lab day
+//      as production's answer gives them, with readings set by hand).
 //   2. The rule-13 line is always on the page, and the right-size reading never reads as a change.
 //   3. No number is invented: before 0810 answers the tab says so and draws no diagram.
 //   4. A tripped transformer reads open, its five posts read down, and the card says the cars were re-queued.
@@ -82,6 +84,32 @@ describe('the one-line', () => {
     expect(screen.getByTestId('power-tx-card').dataset.node).toBe('TX-A1');
     expect(screen.getByTestId('power-trip-why-not')).toHaveTextContent('while a run is live');
     expect(screen.getByTestId('power-resilience')).toHaveTextContent(/Had it tripped at/);
+  });
+
+  it('draws 0840\'s canopy boards under TX-AUX as one box and lists each in its card', async () => {
+    const d = clone();
+    // the three boards as production's ottoq_power_one_line gives them (read 2026-11-16), with readings set by hand
+    d.nodes.push(...['A', 'B', 'C'].map((l, i) => ({
+      code: `BOARD-${l}`, kind: 'canopy_board', parent: 'TX-AUX', title: `Canopy ${l} board (10 clean arms and their vacuum producer)`,
+      canopy: `CANOPY-0${i + 1}`, rated_kw: 54, rated_kva: null, voltage_v: 480, charger_state: null, power_node_fault: null,
+      now: { kw_dc: null, kw_ac: [11.6, 1, 1][i], kva: null, load_pu: null, loss_kw: null, ambient_c: null, top_oil_c: null, hot_spot_c: null, aging_factor: null },
+      study: { hours: 9.07, peak_kw_ac: [43.4, 48.7, 43.4][i], load_seconds: Array(11).fill(0) },
+    })));
+    answer(d);
+    render(<TwinPowerTab />);
+    await settle();
+    const diagram = screen.getByTestId('power-diagram');
+    expect(diagram.querySelectorAll('[data-testid^="power-leaf-"]')).toHaveLength(4);
+    const boards = screen.getByTestId('power-leaf-BOARDS');
+    expect(boards).toHaveTextContent('BOARDS');
+    expect(boards).toHaveTextContent('14');          // 11.6 + 1 + 1, rounded as every box is
+    fireEvent.click(screen.getByTestId('power-tx-TX-AUX'));
+    expect(within(screen.getByTestId('power-loads')).getAllByRole('listitem')).toHaveLength(6);
+    expect(screen.getByTestId('power-load-BOARD-A')).toHaveTextContent('drawing 12 kW · peak 43 kW of 54 kW');
+    expect(screen.getByTestId('power-load-BOARD-B')).toHaveTextContent('peak 49 kW of 54 kW');
+    // a charger transformer feeds posts only
+    fireEvent.click(screen.getByTestId('power-tx-TX-A1'));
+    expect(screen.queryByTestId('power-loads')).toBeNull();
   });
 
   it('invents nothing before the engine answers', async () => {

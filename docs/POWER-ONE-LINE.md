@@ -2,12 +2,18 @@
 
 **What it is.** A tab in the twin cockpit (the last one in the bar) that shows how power reaches a post: the utility's 13.8 kV
 service, the primary switchgear, seven transformers and the thirty posts. Six transformers feed five posts each, one
-per canopy column. The seventh feeds the battery, the building and the canopy solar. Each transformer shows its load
-and its own winding temperature. Each post shows charging, idle or down.
+per canopy column. The seventh, TX-AUX, feeds the battery, the building, the canopy solar and, since otto-q-core 0840,
+each fast-charger canopy's board (its 10 clean arms and their vacuum producer). Each transformer shows its load and its
+own winding temperature. Each post shows charging, idle or down. The diagram draws the three canopy boards as one box
+under TX-AUX, with their summed kW only when every board has a reading; TX-AUX's card lists each load on its own line.
 
 **Where the numbers come from.** otto-q-core migration 0810. The engine keeps the tree as data
 (`ottoq_power_nodes`), measures every node on every tick at the instant it reads the site meter, and steps each
 transformer's temperature by the loading guide's thermal model, using the twin's own weather for the air temperature.
+Migration 0840 adds the canopy boards: each is read from the clean arms at work on its canopy at that instant (each
+arm's routine on its car's visit, counted once an arm), at 2.4 kW an arm and 3 kW for the producer per working arm, and
+0.1 kW for an idle arm. Those figures are ASSUMPTIONS from the clean arm's CAD and typical values. A run measured
+before 0840 shows the boards with no reading.
 The tab reads one function, `ottoq_power_one_line`, every 5 seconds while a run is live. Nothing is computed in the
 browser but sums and words (`src/lib/powerOneLine.ts`).
 

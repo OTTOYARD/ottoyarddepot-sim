@@ -25,7 +25,7 @@ import { clockCT } from '@/lib/plainWords';
 import { twin } from '@/lib/ottoTwin';
 import { usePowerOneLine } from '@/hooks/usePowerOneLine';
 import {
-  DASH, activeTrip, childrenOf, fmtC, fmtKv, fmtKva, fmtKw, fmtMwh, fmtPct, heatOf, lifeWords, loadShares,
+  DASH, activeTrip, childrenOf, fmtC, fmtKv, fmtKva, fmtKw, fmtMwh, fmtPct, heatOf, leavesOf, lifeWords, loadShares,
   notMeasuredText, postState, postsAskedWords, resilienceWords, rightsizeWords, service, siteNow, transformers,
   type Heat, type OneLine, type PowerNode,
 } from '@/lib/powerOneLine';
@@ -98,7 +98,7 @@ function OneLineDiagram({ o, selected, onSelect }: { o: OneLine; selected: strin
         const stroke = trip ? CRIT : HEAT_STROKE[heat];
         const kids = childrenOf(o, t.code);
         const posts = kids.filter((k) => k.kind === 'post');
-        const others = kids.filter((k) => k.kind !== 'post');
+        const others = leavesOf(o, t.code);
         const isSel = selected === t.code;
         const pu = t.now?.load_pu ?? null;
         return (
@@ -124,11 +124,11 @@ function OneLineDiagram({ o, selected, onSelect }: { o: OneLine; selected: strin
               {fmtC(t.now?.hot_spot_c)}
             </text>
             <line x1={x} y1={99} x2={x} y2={103} stroke={LINE} strokeWidth={1.2} />
-            <line x1={x} y1={128} x2={x} y2={posts.length ? 222 : 208} stroke="rgba(255,255,255,0.18)" strokeWidth={1} />
+            <line x1={x} y1={128} x2={x} y2={posts.length ? 222 : 130 + others.length * 26} stroke="rgba(255,255,255,0.18)" strokeWidth={1} />
             {posts.map((p, k) => <PostDot key={p.code} x={x} y={142 + k * 19} node={p} />)}
             {others.map((n, k) => {
-              const kw = n.now?.kw_ac ?? null;
-              const tag = n.kind === 'bess' ? 'BATT' : n.kind === 'solar' ? 'SOLAR' : 'BLDG';
+              const kw = n.kw;
+              const tag = n.tag;
               const flowing = kw !== null && Math.abs(kw) > 0.5;
               return (
                 <g key={n.code} data-testid={`power-leaf-${n.code}`}>
@@ -195,6 +195,8 @@ function TransformerCard({ o, node, live }: { o: OneLine; node: PowerNode; live:
   const trip = activeTrip(o, node.code);
   const s = node.study;
   const posts = childrenOf(o, node.code).filter((k) => k.kind === 'post');
+  // its loads other than posts, one row each (the diagram draws the canopy boards as one box)
+  const loads = leavesOf(o, node.code).flatMap((l) => l.nodes);
   const size = rightsizeWords(node);
   const ride = resilienceWords(node, clockCT);
   const canTrip = live && !!o.sim_run_id && posts.length > 0 && !trip;
@@ -241,6 +243,24 @@ function TransformerCard({ o, node, live }: { o: OneLine; node: PowerNode; live:
         <Stat label="Lost in the unit" value={fmtMwh(s?.loss_kwh)} sub="core and windings" />
         <Stat label="Life used" value={lifeWords(s ?? null)} sub="at 110 °C: hour for hour" />
       </div>
+      {loads.length > 0 && (
+        <div data-testid="power-loads">
+          <div className={HEAD}>What it feeds</div>
+          <ul className="mt-1 flex flex-col gap-0.5">
+            {loads.map((n) => {
+              const kw = n.now?.kw_ac ?? null;
+              return (
+                <li key={n.code} data-testid={`power-load-${n.code}`} className="flex items-baseline justify-between gap-2 text-[11px] leading-4">
+                  <span className="text-ink">{n.title}</span>
+                  <span className="whitespace-nowrap font-mono text-[10px] text-ink-dim">
+                    {kw === null ? 'no reading' : kw < -0.5 ? `supplying ${fmtKw(-kw)}` : kw > 0.5 ? `drawing ${fmtKw(kw)}` : 'idle'} · peak {fmtKw(n.study?.peak_kw_ac)} of {fmtKw(n.rated_kw)}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
       <LoadBars node={node} />
       {size && (
         <p className="text-[11px] leading-4 text-ink" data-testid="power-rightsize">

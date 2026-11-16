@@ -11,11 +11,14 @@
 //   3. Nothing is invented: a missing reading is a dash, an unknown kind is dropped, an error body is null.
 //   4. Heat reads against 110 C, the loading guide's reference, and a trip is active only inside its window.
 //   5. The right-size sentence never reads as a change, and says "installed" when the day needed what is there.
+//   6. 0840's canopy boards are read as their own kind, drawn under TX-AUX as one box (their sum only when each board
+//      has a reading), and listed one by one. The boards are added to the lab day exactly as production's answer gives
+//      them (read 2026-11-16); their readings are set by hand where a case needs one.
 // ============================================================================
 import { describe, expect, it } from 'vitest';
 import labDay from '@/components/tabs/__fixtures__/powerOneLine.labDay.json';
 import {
-  DASH, activeTrip, childrenOf, fmtC, fmtKv, fmtKva, fmtKw, fmtMwh, fmtPct, heatOf, lifeWords, loadShares, notMeasuredText,
+  DASH, activeTrip, childrenOf, fmtC, fmtKv, fmtKva, fmtKw, fmtMwh, fmtPct, heatOf, leavesOf, lifeWords, loadShares, notMeasuredText,
   num, postState, postsAskedWords, readOneLine, resilienceWords, rightsizeWords, service, siteNow, transformers, type OneLine, type PowerNode,
 } from './powerOneLine';
 
@@ -174,5 +177,64 @@ describe('totals and words', () => {
   it('says what is missing in plain words', () => {
     expect(notMeasuredText(null)).toMatch(/has not returned the depot’s one-line/);
     expect(notMeasuredText(day())).toMatch(/Start a run/);
+  });
+});
+
+// ── 0840: each fast-charger canopy's board, under TX-AUX ─────────────────────
+type RawNode = Record<string, unknown>;
+/** A board as production's ottoq_power_one_line returns it (read 2026-11-16), with a reading when one is given. */
+const board = (letter: string, kw: number | null): RawNode => ({
+  code: `BOARD-${letter}`, kind: 'canopy_board', parent: 'TX-AUX', title: `Canopy ${letter} board (10 clean arms and their vacuum producer)`,
+  canopy: `CANOPY-0${'ABC'.indexOf(letter) + 1}`, rated_kw: 54, rated_kva: null, voltage_v: 480, charger_state: null, power_node_fault: null,
+  now: kw === null ? null : { kw_dc: null, kw_ac: kw, kva: kw / 0.9, load_pu: kw / 54, loss_kw: null, ambient_c: 9.6, top_oil_c: null, hot_spot_c: null, aging_factor: null },
+  study: kw === null ? null : { hours: 9.07, peak_kw_ac: 43.4, energy_kwh_ac: 72.4, load_seconds: Array(11).fill(0) },
+});
+const withBoards = (kws: Array<number | null>, extra: RawNode[] = []): OneLine => {
+  const raw = JSON.parse(JSON.stringify(labDay)) as { nodes: RawNode[] };
+  raw.nodes.push(...['A', 'B', 'C'].map((l, i) => board(l, kws[i])), ...extra);
+  return readOneLine(raw)!;
+};
+
+describe('the canopy boards (otto-q-core 0840)', () => {
+  it('reads each board as its own kind, under TX-AUX', () => {
+    const o = withBoards([11.6, 1, 1]);
+    const boards = o.nodes.filter((n) => n.kind === 'canopy_board');
+    expect(boards.map((b) => b.code)).toEqual(['BOARD-A', 'BOARD-B', 'BOARD-C']);
+    expect(boards.every((b) => b.parent === 'TX-AUX' && b.rated_kw === 54)).toBe(true);
+    expect(childrenOf(o, 'TX-AUX').map((n) => n.kind).sort())
+      .toEqual(['bess', 'building', 'canopy_board', 'canopy_board', 'canopy_board', 'solar']);
+    // the tree is otherwise the lab day's: the boards are not transformers and feed no post
+    expect(transformers(o).map((t) => t.code)).toEqual(['TX-A1', 'TX-A2', 'TX-B1', 'TX-B2', 'TX-C1', 'TX-C2', 'TX-AUX']);
+    expect(siteNow(o).posts).toBe(30);
+  });
+
+  it('draws the boards under TX-AUX as one box, after the building, the battery and the solar', () => {
+    const leaves = leavesOf(withBoards([11.6, 1, 1]), 'TX-AUX');
+    expect(leaves.map((l) => l.tag)).toEqual(['BLDG', 'BATT', 'SOLAR', 'BOARDS']);
+    const boards = leaves[3];
+    expect(boards.code).toBe('BOARDS');
+    expect(boards.nodes.map((n) => n.code)).toEqual(['BOARD-A', 'BOARD-B', 'BOARD-C']);
+    expect(boards.kw).toBeCloseTo(13.6, 6);
+    expect(boards.title).toBe('3 canopy boards (clean arms and their vacuum producers)');
+    // a charger transformer has only posts: no box
+    expect(leavesOf(withBoards([11.6, 1, 1]), 'TX-A1')).toEqual([]);
+  });
+
+  it('sums the boards only when every board has a reading, and never guesses the missing one', () => {
+    expect(leavesOf(withBoards([11.6, null, 1]), 'TX-AUX')[3].kw).toBeNull();
+    // production's answer on a run measured before 0840: the boards are there, with no reading
+    const before = leavesOf(withBoards([null, null, null]), 'TX-AUX');
+    expect(before.map((l) => l.tag)).toEqual(['BLDG', 'BATT', 'SOLAR', 'BOARDS']);
+    expect(before[3].kw).toBeNull();
+  });
+
+  it('without boards, TX-AUX draws its three boxes as before, in code order', () => {
+    expect(leavesOf(day(), 'TX-AUX').map((l) => [l.code, l.tag])).toEqual([['BUILDING', 'BLDG'], ['NASH-BESS-01', 'BATT'], ['PV-CANOPIES', 'SOLAR']]);
+  });
+
+  it('still drops a kind it does not know', () => {
+    const o = withBoards([1, 1, 1], [{ code: 'X-1', kind: 'nonsense', parent: 'TX-AUX', title: 'x' }]);
+    expect(o.nodes.some((n) => n.code === 'X-1')).toBe(false);
+    expect(leavesOf(o, 'TX-AUX')).toHaveLength(4);
   });
 });
