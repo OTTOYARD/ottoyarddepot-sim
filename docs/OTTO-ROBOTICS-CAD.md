@@ -808,7 +808,55 @@ The poses found more, which the stowed pose could not show:
     - **Not verified:** the plant room's size and place, the main's route and its allowances are assumptions, each stated.
       The actuator's size and mass are a class, not a chosen part, and NACS's insertion force is assumed to be CCS1's. The
       clean arms' vacuum still comes from a producer on each canopy (their CAD's canopy plant), which the site plan does
-      not place either.
+      not place either. (The same day finding 25 placed it.)
+
+25. **Each fast-charger canopy's plant is placed, and the clean arm's last 2 open lines are measured (2026-11-16).** After
+    finding 24 the only open items in the 3 robots' schedules were the clean arm's supply cable (`CLN-SPW`) and network
+    cable (`CLN-SNW`). Their run from the canopy's board ended "add it from the site's layout", and the board was on no
+    plan, as the clean arms' vacuum producer was not. Chase: *"Sounds great. Yeah just keep going."*
+    - **The plant** (`sitePlan.CANOPY_PLANT`, `canopyPlants()`): under each fast-charger canopy's south end, either side of
+      its last spine column, where nothing else stands: every car, charger and rail bed ends by plan y 153.1, and the
+      column is at 162.25. West of the column is the board, its doors to the north: the 10 arms' breakers, the vacuum
+      producer's supply and the canopy's network switch (ASSUMPTION: 1.2 x 0.5 x 2.0 m). East of it is the vacuum producer,
+      with its separator, filter and dirt bin in one acoustic enclosure (ASSUMPTION: 2.2 x 1.3 x 1.9 m, a class size for
+      about 3 kW per working arm). It follows the charger build: canopy A as built, A and B in the 20-post build, all 3 in
+      the 30-post build.
+    - **Held clear** (`siteCanopy.test.ts`): under its own roof and off the column's plinth; at least 0.24 m from every
+      parked car, charger and rail bed in all 3 builds; 1 m clear in front of the board (ASSUMPTION: the site's
+      electrical design sets the working space); 2.1 m from the light pole past each canopy's end; and out of every clean
+      arm's reach. It is in the structure set, so the replay drives every recorded car against it
+      (`structureClearance.replay.test.ts`). `armColumnClearance.test.ts` holds every part of the OTTO-CHARGE ARM, at every
+      pose, 0.05 m off it, and the least it measured was 3.05 m.
+    - **Each arm's cables** (`src/lib/siteCanopy.ts`): out of the board's top and up a cable ladder on the last column's
+      west face to the canopy's cable tray (5.69 m up, 50 mm over the arm headers). Then across the column's rafter to the
+      tray on the arm's side, and north along it to the arm's drop, where the CAD's conduit takes over. By the route x 1.03,
+      the 3.68 m rise and a tail in the board (ASSUMPTION): **18.6 to 46.9 m** a supply cable and **19.1 to 47.4 m** a
+      network cable, 327.5 and 332.5 m for a canopy's 10 arms. The longest network run is well inside a twisted-pair
+      channel's 90 m of fixed cable, and the longest supply drops 0.46 % of 480 V at the arm's 2.4 kW. The clean arm's
+      schedule quotes them by arm, and **no robot has an open line**: `cadCables.test.ts` holds all 3 at none.
+    - **The board's feed** comes from TX-AUX, the one-line's unit for the battery, the building and the solar. The arms and
+      their producers are the depot's own plant, not charging, so they stay off the charger transformers. The feed runs
+      south in the battery yard and east along its south fence to the strip, then on in the charger feeds' duct bank to the
+      canopy's spine and the board (ASSUMPTION: the civil design sets the route). Each board carries 54 kW: 10 arms of 2.4 kW
+      and their producer at 3 kW an arm, all at once, at 480 V and power factor 0.9 (ASSUMPTION). A conductor is **117.0,
+      140.2 and 163.3 m** to boards A, B and C. 2 AWG copper keeps the farthest drop at 2.70 % (1.94 % and 2.32 % for the
+      others), worked with the copper resistance `siteFeeders.ts` sources; the site's cable calculation sets the size and
+      checks its ampacity.
+    - **Its network:** single-mode fibre from the office's switch in the same duct bank, as each post's is: 81.5, 104.7 and
+      127.8 m, the last 2 past a copper channel's 100 m.
+    - **The vacuum main:** from the producer's top up the column's east face (3.84 m), across the rafter to both sides, and
+      north over the headers to the farthest arms: **84.0 m** for each canopy, DN 100 (the clean arm CAD's ASSUMPTION; the
+      plant is not sized here).
+    - **In the yard:** each canopy with clean arms draws its plant (`SolarCanopy.tsx`): the board and the producer on
+      their pads, the cable ladder up the column into the spine tray, and the vacuum riser. The 2D plan draws both units.
+    - **Checked:** the clean arm's model did not change, because only its texts did: its digest is still
+      `c0212a42d65e5838`, so its clash and line-end reports still hold. The charge arm and the wash machine were not
+      rebuilt.
+    - **Not verified:** the plant's sizes and places, every route and allowance, the loads and the power factor are
+      assumptions, each stated. The engine's one-line (otto-q-core 0810) lists the battery, the building and the solar
+      under TX-AUX, and not the canopy boards: that is for the engine to add. The trays and mains along each side of a
+      canopy are measured, not drawn: the yard draws none of the canopy's overhead lines, and the clean arm CAD draws them
+      only as reference parts, for context.
 
 The audit also found the wash machine's tools fed by rigid pipes that could not follow them. They now have flexible
 lines that do (below). (The wands' vacuum units and the side brushes' chains it added went with finding 17.)
@@ -850,11 +898,13 @@ pole's 4 cores to the arm's copper bars, and the bars and the booted links carry
 16). The joints' cable goes up through J1 to J5's hollow shafts. The tool's cable and the 2 coolant tubes run with the
 bars and through each boot. No air reaches the arm: its head is electric (finding 24).
 
-**OTTO-CLEAN ARM.** The power and the network: down from the canopy's cable tray, each in its own conduit, to a supply
+**OTTO-CLEAN ARM.** The power and the network: from the canopy's board, up its last spine column and along the canopy's
+cable tray (finding 25), then down from the tray, each in its own conduit, to a supply
 enclosure on the drop column, 4.25 m up, which holds the controller, the power supplies, the J1 drive and the safety
 relay, with a lockable isolator on its door (finding 19). A motor cable runs from it to the J1 gearmotor, and a second
 cable goes in through the column wall to the J1 union, whose slip ring feeds the rest of the arm. The disconnect a
-person reaches from the ground is on the canopy's board: site work, not drawn. The vacuum: a branch from the canopy's
+person reaches from the ground is the arm's breaker in the canopy's board, which stands at grade under the canopy's south
+end with the canopy's vacuum producer (finding 25). The vacuum: a branch from the canopy's
 vacuum main through a gate valve, in through the column wall and down to J1; a rotary union at J1, J2 and J3 (findings
 5 and 10), a duct in each link, the mast stages, a passage through the wrist fork, the swivel on the fork, the hub and
 the wand's tubes to the nozzle. The air: a drop from the canopy's air main to a service unit on the column (a lockable
@@ -923,7 +973,9 @@ The charge arm's route grew because each supply line's run inside the cabinet is
 a 1.5 m tail (finding 22), and because the charger grew deeper and taller (finding 23). A DC core's order went from 9.4
 to 8.5 m and then 8.8 m; the coolant tubes' to 17.2 m, up to their sockets 1,700 mm up the charger. Each site feed's run
 in the depot's duct bank is the site's and is not in a robot's total: its notes quote it by post (60.3 to 153.6 m a
-conductor of the 480 V feed, measured on the site plan in `src/lib/siteFeeders.ts`).
+conductor of the 480 V feed, measured on the site plan in `src/lib/siteFeeders.ts`). So is each clean arm's supply and
+network run from its canopy's board: its notes quote it by arm (18.6 to 46.9 m and 19.1 to 47.4 m, measured in
+`src/lib/siteCanopy.ts`: finding 25).
 
 **What it found** (each listed as an open item on its line, and each routed since: findings 21 and 22): the charge arm's
 status rings had no supply; its coolant and air changed size at the riser; its 4 copper bars were not drawn; the wash
@@ -931,14 +983,11 @@ machine's side-knife gearmotors had no conduit; the wash arms' pure water stoppe
 stopped at the posts; the clean arm's link lines were not drawn; the charge arm's cabinet was an envelope with a 1.5 m
 guess in it for every line.
 
-**What it still lists as open,** each on its line, and all of it the site's:
-- The clean arm's supply and network cables run along the canopy's tray from its board, and that length is the site's.
-
-The charge arm has none: its 9 site feeds (the 480 V feed's 6 conductors, its ground, the pad's earth and the network
-fibre) are drawn from the pad up, their runs in the duct bank are measured by post (finding 23), and since finding 24 it
-takes no air.
-
-No machine-side line is open on any of the 3 robots.
+**It lists nothing as open** since finding 25, on any of the 3 robots, and `cadCables.test.ts` holds each at none. The
+charge arm's 9 site feeds (the 480 V feed's 6 conductors, its ground, the pad's earth and the network fibre) are drawn
+from the pad up, their runs in the duct bank are measured by post (finding 23), and since finding 24 it takes no air. The
+clean arm's supply and network cables run from its canopy's board, now on the site plan, and their runs are measured by
+arm (finding 25).
 
 ## The CAD in the yard
 
