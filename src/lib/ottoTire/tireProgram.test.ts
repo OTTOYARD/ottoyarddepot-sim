@@ -12,9 +12,10 @@
 import { describe, expect, it } from 'vitest';
 import { FLEET_SPECS } from '@/lib/fleetModels';
 import {
-  COVER_NEST, FACE_AHEAD_OF_MAST, HEAD, HEAD_Y_MAX, HEAD_Y_MIN, LIFT, PORTAL, RACK, SLEW, SLEW_SWEEP, SOCKET_RACK, TIRE_BAY, TROLLEY,
+  COVER_NEST, FACE_AHEAD_OF_MAST, HEAD, HEAD_Y_MAX, HEAD_Y_MIN, LIFT, PORTAL, RACK, SLEW, SLEW_SWEEP, SOCKET_RACK, TROLLEY,
   ramBar,
 } from './tireSpec';
+import { TIRE_BAY } from './tireBayFit';
 import {
   CUPS_AHEAD_OF_MAST, CYCLE_MODEL, HUB_ANGLE, SOCKETS_AHEAD_OF_MAST, TIRE_VEHICLES, TRAVEL_FACE_X, TURN_TROL, WHEEL_FACTS, clampContactAngle,
   clampFor, coverNestY, homeState, needsSocketSwap, serviceLift, tireAngles, tireCycle,

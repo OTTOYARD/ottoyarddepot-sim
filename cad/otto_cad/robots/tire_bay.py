@@ -180,7 +180,9 @@ def build(spec: dict) -> Model:
         build_robot(m, por, side, T)
     build_racks(m, bay, T)
     build_nests(m, por, T)
+    holes += build_control(m, bay, por, T)
     _slab(m, bay, T, holes)
+    build_cables(m, T, spec['site'])
     return m
 
 
@@ -202,7 +204,7 @@ def _subsystems(m: Model, T: dict) -> None:
     L = T['lift']
     m.subsystem('LIFT', 'Lift: rams and casings', 'Lifts the car by its sills: 0.50 m for the robots, 1.85 m for a person under it.',
                 how=['2 hydraulic rams in steel casings in the floor, on the drive line, one under the front lift points and one under the rear.',
-                     'A ram lifts its half of the car straight up. No linkage, about 20 bar at the rated load.',
+                     'A ram lifts its half of the car straight up. No linkage, about 7 bar at the rated load.',
                      '2 toothed lock bars hang from each saddle. A pawl drops into a tooth every 75 mm as the car goes up.',
                      'The robots start only with all 4 pawls in and the oil let off: the car stands on steel.'],
                 specs={'rated load': f'{L["ratedKg"]:,} kg', 'rise': f'{L["serviceRise"]:.2f} m for the robots, {L["fullRise"]:.2f} m full',
@@ -286,6 +288,25 @@ def _subsystems(m: Model, T: dict) -> None:
     m.subsystem('NEST', 'Cover nests', 'Holds an aero cover on the portal\'s leg while its wheel is changed.',
                 how=['2 hooks take the cover\'s rim and 2 rubber pads take its back.',
                      'A sensor sees a cover in the nest.'], group='Racks')
+    m.subsystem('CONTROL', 'Control and power', 'Feeds the bay\'s machine from the depot\'s 480 V and controls it.',
+                how=['The bay cabinet on the north wall takes the feed from TX-AUX. It holds the main switch, the safety controller, '
+                     'the motion controller and the vision computer.',
+                     'Conduits cast under the slab go from a cable pit in front of it to the lift, the racks and the safety scanners.',
+                     'A cable chain on its side, outboard of the west rail, feeds the portal. The portal cabinet on the west leg feeds '
+                     'the travel motors and each trolley.'],
+                specs={'supply': '480 V, 3 phase, 60 Hz', 'safety': 'PL d, category 3 (ISO 13849-1)'}, group='Control')
+    m.subsystem('HYD', 'Lift power unit', 'Pumps the oil that lifts the 2 rams, and lets it back to lower them.',
+                how=['A 150 L tank with a 5 hp motor on its lid and the gear pump in the oil.',
+                     'A valve block feeds and lowers each ram on its own and reads each line\'s pressure.',
+                     'A steel pipe runs to each ram\'s barrel under the slab.'],
+                specs={'flow': '139 L/min (1.85 m in 50 s)', 'pressure': '7 bar at the rated load, relief valve at 10 bar',
+                       'motor': '5 hp (3.7 kW): the pump takes 2.7 kW at the relief pressure (pump efficiency 0.85, ASSUMPTION)'}, group='Lift')
+    m.subsystem('SAFETY', 'Safety', 'Stops the machine when a person is in the bay, and on any emergency stop.',
+                how=['2 safety laser scanners at opposite corners watch the bay\'s floor.',
+                     'Emergency stops at the south door, on each portal leg and on the cabinet stop every motion.',
+                     'The safety controller in the cabinet cuts each drive\'s torque (safe torque off) and locks the lift.',
+                     'A beacon on the beam shows the bay\'s state.'],
+                specs={'level': 'PL d, category 3 (ISO 13849-1), as ISO 10218-2 asks of a robot cell'}, group='Control')
     m.subsystem('PADS', 'Lift: pads', 'Puts a rubber pad under each lift point and checks it.',
                 how=['Each ram rises on its own until both its pads touch. Then both rams lift the car together.',
                      'A load cell under each pad reads its share of the car. The lift stops if the 4 shares do not agree with the car\'s weight.',
@@ -317,6 +338,10 @@ ARM_TAIL = 60.0          # each arm's box reaches this far behind its pivot (its
 ARM_BOX_END = 470.0      # and this far out
 SLIDE_IN = 100.0         # the slide's inner end at the shortest reach
 CUP_R = 85.0
+PIPE_Y = -380.0          # the oil pipe comes in through the casing's wall to the barrel's top, under the lock plate
+SLEEVE_Y = -290.0        # the casing cable's sleeve from the reel pocket
+REEL_CD_Y = -280.0       # the reel pocket's supply conduit, through its outer wall
+REEL_OUT = (275.0, -195.0, 0.0)   # where the reel's cable leaves its guide (post frame): straight under the saddle's junction box
 
 
 def PAN_ANCHORS(az1: float) -> list:
@@ -350,6 +375,9 @@ def _post(m: Model, post: Node, tag: str, turn: int, L: dict) -> None:
            .cut(cyl_y(25, LOCK_PL[0] - 1, LOCK_PL[1] + 1, z=BAR_Z)).cut(cyl_y(25, LOCK_PL[0] - 1, LOCK_PL[1] + 1, z=-BAR_Z)))
     for zz in (BAR_Z, -BAR_Z):                        # the lock bars' slots through the lock plate
         cas = cas.cut(bx(-25, 25, LOCK_PL[0] - 1, LOCK_PL[1] + 1, zz - 20, zz + 20))
+    for sx in (1, -1):                                # the oil pipe's way in (from the bay's west: each post's own side) and the
+        cas = cas.cut(cyl_x(24, sx * (cas_r - 15), sx * (cas_r + 25), y=PIPE_Y))     # casing cable's sleeve from the reel pocket
+        cas = cas.cut(cyl_x(14, sx * (cas_r - 15), sx * (cas_r + 25), y=SLEEVE_Y))
     it = m.place(post, mk(m, 'TB-CAS', 'Lift casing, welded steel, in the floor', cas, 'steel_paint', 'structure', 'welded tube',
                           f'OD {2 * cas_r:.0f} x {cas_d:.0f}', 'S355, epoxy coated, oil-tight', 'Holds the ram\'s barrel upright in '
                           'the floor and keeps oil out of the ground. Its lock plate carries the 2 pawls.',
@@ -360,9 +388,25 @@ def _post(m: Model, post: Node, tag: str, turn: int, L: dict) -> None:
     barrel = (cyl_y(130, -cas_d, -350, ri=105).union(cyl_y(150, -350, -310, ri=101)))
     it = m.place(post, mk(m, 'TB-BRL', 'Lift ram barrel with gland', barrel, 'steel', 'structure', 'hydraulic cylinder barrel',
                           f'OD 260 x {cas_d - 350:.0f}', 'honed bore, chrome-free', 'Holds the oil under the ram. The gland at its '
-                          'top seals the ram and guides it.', {'working pressure': 'about 20 bar at the rated load',
+                          'top seals the ram and guides it.', {'working pressure': '7 bar at the rated load, 10 bar at the relief valve',
                                                                'port': 'G 3/4 at the base, fed by the pipe from the power unit'}),
                  Location(), (0, -350, 0), 'LIFT')
+    it.yard_hidden = True
+    sx = 1 if turn == 0 else -1                       # the side the oil pipe and the cables come from (the bay's west)
+    boss = cyl_x(22, 130, 160, y=PIPE_Y).cut(cyl_x(9, 129, 161, y=PIPE_Y))
+    it = m.place(post, mk(m, 'TB-BPB', 'Lift barrel oil port boss, G 3/4', boss, 'steel', 'fluid', 'welded boss', 'D 44 x 30', 'S355',
+                          'Takes the oil pipe at the barrel\'s top.', {}), loc(0, 0, 0, ry=0 if sx > 0 else 180), (60, -350, 0), 'HYD')
+    it.yard_hidden = True
+    slv = cyl_x(14, cas_r, REEL_X[0] - 6, y=SLEEVE_Y, ri=11)
+    it = m.place(post, mk(m, 'TB-CSV', 'Cable sleeve, reel pocket to casing, steel tube 28 x 3', slv, 'steel', 'electrical', 'EN 10305-1',
+                          f'28 x 3 x {REEL_X[0] - 6 - cas_r:.0f}', 'E235, galvanised', 'Brings the casing cable from the reel pocket into the '
+                          'casing, to the 2 pawls and the ram\'s position sensor.', {'inside': 'D 22'}), Location(), (60, -300, 0), 'CONTROL')
+    it.yard_hidden = True
+    dws = bx(-205, -165, LOCK_PL[0] - 60, LOCK_PL[0], 90, 140)
+    it = m.place(post, mk(m, 'TB-DWS', 'Ram position sensor, draw wire, 2 m, absolute', dws, 'al6061', 'sensor', 'catalogue part',
+                          '40 x 60 x 50', 'IP67', 'Measures its ram\'s rise: the controller keeps the 2 rams level while they lift the car '
+                          'together. Its wire runs up through the lock plate to the saddle.', {'range': '2,000 mm', 'class size': 'ASSUMPTION'},
+                          'buy', mass_override=0.6), Location(), (-60, -300, 0), 'LIFT')
     it.yard_hidden = True
     gl = cyl_y(103, -312, -296, ri=100.2)
     it = m.place(post, mk(m, 'TB-RWP', 'Ram wiper and rod seal, PU', gl, 'pu', 'seal', 'ISO 6195 type A', 'D 200', '93 Shore A',
@@ -390,6 +434,8 @@ def _post(m: Model, post: Node, tag: str, turn: int, L: dict) -> None:
            .union(bx(-ARM_REC_X - 46, ARM_REC_X + 46, -6, 0, az1 - 46, -REC_Z)))
     pan = pan.union(lip.cut(bx(-REC_X - 6, REC_X + 6, -7, 1, -REC_Z - 6, REC_Z + 6))
                     .cut(bx(-ARM_REC_X - 6, ARM_REC_X + 6, -7, 1, az1 - 6, -REC_Z))).cut(cav)
+    pan = pan.cut(cyl_x(14, REEL_X[0] - 7, REEL_X[0] + 1, y=SLEEVE_Y))          # the casing cable's sleeve
+    pan = pan.cut(cyl_x(25, REEL_X[1] - 1, REEL_X[1] + 7, y=REEL_CD_Y))           # the reel's supply conduit
     for (xx, zz) in PAN_ANCHORS(az1):
         pan = pan.cut(cyl_y(std.HOLE[12] / 2, -7, 1, x=xx, z=zz))
     m.place(post, mk(m, 'TB-PAN', 'Lift recess pan, galvanised steel', pan, 'steel_s355', 'structure', 'welded sheet 6 mm',
@@ -475,6 +521,16 @@ def _post(m: Model, post: Node, tag: str, turn: int, L: dict) -> None:
                      'IP65', 'Pays the saddle\'s cable up as the ram rises and winds it back as it lowers.',
                      {'cable': '2.5 m of hybrid cable (power and EtherCAT)', 'class size': 'ASSUMPTION'}, 'buy', mass_override=4.5),
             Location(), (120, 0, 0), 'PADS')
+    gd = bx(REEL_OUT[0] - 15, REEL_X[0], REC_FLOOR, REEL_OUT[1], -12, 12)
+    m.place(post, mk(m, 'TB-RLG', 'Reel cable guide, with its roller', gd, 'pa66_yellow', 'electrical', 'catalogue part', '85 x 10 x 24', '',
+                     'Turns the reel\'s cable up under the saddle\'s junction box, so it pays out straight up as the ram rises.', {}, 'buy'),
+            Location(), (120, 0, 0), 'PADS')
+    rl = FlexDef(f'TB-RLC{tag}', 'Reel cable, hybrid 48 V and Ethernet, 12 mm', 'stretch', Anchor(post, REEL_OUT, (0, 1, 0)),
+                 Anchor(ram_n, (REEL_OUT[0], SAD_Y[0] + 12, 0), (0, 1, 0)), 6.0, 'PADS',
+                 'Paid out by the spring reel as the ram rises, it feeds the saddle\'s junction box.', mat='cable', category='electrical',
+                 lmin=10.0, lmax=2500.0, kg_per_m=0.22, spec={'cable': '2 x 2.5 mm2 (48 V DC) + Cat 5e, PUR, for spring reels'})
+    rl.yard_hidden = True          # under the floor at rest, between 2 parts the yard's models leave out (glb.py)
+    m.flex(rl)
     return outer.union(cyl_y(cas_r + 20, -2000, CAS_FL[1]))
 
 
@@ -612,10 +668,19 @@ BEAM_Y1 = BEAM_Y0 + 460.0
 BEAM_HZ = 170.0                                   # the beam's half width (Z)
 BEAM_HX = 3770.0
 LEG_W, LEG_D = 240.0, 300.0
+CBM_X = -216.0                   # the conduit up into the beam (TB-CBM, 63 mm): inboard of the leg's head flange (x -178)
 LEG_BOLTS = [(x, z) for x in (-148.0, 148.0) for z in (-100.0, 0.0, 100.0)]
 TROL_RAIL_Z = 110.0
 TRACK_Y = (3260.0, 3300.0)                        # the trolleys' rack band on the beam's south face
 CHAIN_FIX_X = 1750.0                              # each trolley chain's fixed end, over the beam (|X|)
+
+
+def BEAM_HOLES(xr: float) -> list:
+    """(x, z, radius, on the top flange) of each hole the lines pass through in the beam's flanges: the conduit up from the
+    portal cabinet (inboard of the west leg, between the trolley rails), the conduit down the east leg (outboard of it),
+    each trolley chain's fixed end on the top, and the beacon on the top at the west end."""
+    return [(xr + CBM_X, 0.0, 31.8, False), (-(xr + 196.0), -100.0, 16.5, False),
+            (TC_XF - 40.0, 77.0, 22.0, True), (-(TC_XF - 40.0), -77.0, 22.0, True), (BEACON_X, 0.0, 12.0, True)]
 
 
 def build_portal(m: Model, bay: Node, T: dict) -> Node:
@@ -684,6 +749,9 @@ def build_portal(m: Model, bay: Node, T: dict) -> Node:
     for xc in (xr, -xr):
         for (fx, fz) in LEG_BOLTS:
             bm = bm.cut(cyl_y(std.HOLE[20] / 2, BEAM_Y0 - 1, BEAM_Y0 + 13, x=xc + fx, z=fz))
+    for (x, z, r, top) in BEAM_HOLES(xr):          # the lines' ways in and out of the beam, which is their duct along the bay
+        y0 = BEAM_Y1 - 13 if top else BEAM_Y0 - 1
+        bm = bm.cut(cyl_y(r, y0, y0 + 14, x=x, z=z))
     m.place(por, mk(m, 'TB-BEM', 'Portal beam, box girder 340 x 460', bm, 'steel_yellow', 'structure', 'welded box, webs 10, flanges 12',
                     f'340 x 460 x {2 * BEAM_HX:.0f}', 'S355', 'Spans the bay over the car. The 2 wheel robots run under it.', {}),
             Location(), (0, 600, 0), 'PORTAL')
@@ -766,6 +834,7 @@ def build_robot(m: Model, por: Node, side: str, T: dict) -> Node:
                  joint={'name': f'TB_TROL_{side}', 'axis': [1, 0, 0], 'limits': [TR_['from'], TR_['to']], 'kind': 'prismatic',
                         'stowed': TR_['park']})
     _trolley(m, tr, side)
+    _trolley_chain(m, S, tr, side, T)
     sl = tr.child(f'Slew{side}', Location(), sub='SLEW',
                   joint={'name': f'TB_SLEW_{side}', 'axis': [0, 1, 0], 'limits': [T['slew']['from'], T['slew']['to']],
                          'kind': 'revolute', 'stowed': 0.0})
@@ -828,8 +897,10 @@ def _trolley(m: Model, tr: Node, side: str) -> None:
     st = st.cut(cyl_y(51.5, TP_Y[0] - 0.5, TP_Y[1] + 0.01).cut(cyl_y(50, TP_Y[0] - 1, TP_Y[1] + 1)))
     m.place(tr, mk(m, 'TB-SRS', 'Slip ring with fibre rotary joint, stator', st, 'al6061_blk', 'electrical', 'catalogue part',
                    'D 120 x 119', 'IP65', 'Brings power, EtherCAT and the vision fibre across the slew. The slew may turn any way and '
-                   'no cable twists.', {'circuits': '4 x 16 A (400 V and earth), 4 for EtherCAT, 2 spare',
-                                        'fibre': '1 channel, single-mode', 'class size': 'ASSUMPTION'}, 'buy', mass_override=3.5),
+                   'no cable twists.', {'circuits': '3 x 20 A, 600 V class (the robot\'s 480 V supply, 15 A feeder), a PE ring, 4 for EtherCAT, 2 spare',
+                                        'fibre': '1 channel, multimode OM3 as the robot\'s fibre: its link runs both ways on one '
+                                                 'fibre (bidirectional transceivers), the cable\'s second core is a spare',
+                                        'class size': 'ASSUMPTION'}, 'buy', mass_override=3.5),
             Location(), (0, 100, 0), 'SLEW')
     ss = std.shcs(5, 12, '10.9', 'Fastens the slip ring\'s stator flange to the trolley plate.')
     for p in std.circle_points(4, 55, 'y', start=45):
@@ -965,6 +1036,7 @@ def _zbeam(m: Model, sl: Node, zn: Node, side: str, T: dict) -> None:
     w25, h25, bw25, bh25, bl25, p25, sc25 = std.RAIL[25]
     beam = bx(-ZB_W, ZB_W, 0, ZB_L, -ZB_W, ZB_W).cut(bx(-ZB_W + 15, ZB_W - 15, -1, ZB_L + 1, -ZB_W + 8, ZB_W - 8))
     beam = beam.cut(bx(-30, 30, ZB_L - 140, ZB_L - 60, -ZB_W - 1, -ZB_W + 9))      # the chain's lines go in here
+    beam = beam.cut(bx(-30, 30, 40, 100, -ZB_W - 1, -ZB_W + 9))                   # and out to the foot junction box here
     m.place(zn, mk(m, 'TB-ZBM', 'Z-beam, steel box 160 x 160', beam, 'steel_yellow', 'structure',
                    'welded box: 2 machined flats 15 mm, 2 sides 8 mm', f'160 x 160 x {ZB_L:.0f}', 'S355, rail faces ground',
                    'Slides down out of the guide frame and carries the tilt and the head at its foot. The head\'s lines run '
@@ -993,14 +1065,14 @@ def _zbeam(m: Model, sl: Node, zn: Node, side: str, T: dict) -> None:
     foot = bx(-100, 100, -20, 0, -175, 200)
     for (x, z) in ((72.5, 50), (72.5, -50), (-72.5, 50), (-72.5, -50)):
         foot = foot.cut(cyl_y(std.HOLE[10] / 2, -21, 1, x=x, z=z)).cut(cyl_y(8.5, -21, -10, x=x, z=z))
-    foot = foot.cut(bx(-30, 30, -21, 1, -170, -110))         # the lines go down through it to the head
+    foot = foot.cut(bx(-25, 25, -21, 1, -176, -146))         # the head's cable loop goes down past its edge here
     m.place(zn, mk(m, 'TB-ZFT', 'Z-beam foot plate', foot, 'steel_yellow', 'structure', 'machined plate', '200 x 375 x 20', 'S355',
                    'Closes the Z-beam\'s foot. The tilt actuator\'s hanger is welded under it.', {}), Location(), (0, -40, 0), 'ZAXIS')
     for (x, z) in ((72.5, 50), (72.5, -50), (-72.5, 50), (-72.5, -50)):
         m.place(zn, std.shcs(10, 35, '10.9', 'Fastens the foot plate up to the Z-beam\'s walls.'), std.orient((x, -10, z), (0, 1, 0)),
                 (0, -60, 0), 'ZAXIS')
     # ── the vertical chain: fixed end on a hanger from the slew plate's arm, the moving end on the beam's -z face ───────
-    LZ = ZCHAIN_LINES
+    LZ = zchain_lines(side)
     fill = std.chain_fill([d for (_, _, d) in LZ], [])
     ZC = std.chain_size('light', fill, max(d for (_, _, d) in LZ), ZC_R)
     link = std.chain_link(ZC['ba'], ZC['ha'], ZC['pitch'], inside=(ZC['bi'], ZC['hi']))
@@ -1047,7 +1119,7 @@ def _zbeam(m: Model, sl: Node, zn: Node, side: str, T: dict) -> None:
     m.place(sl, mk(m, 'TB-HDB', 'Head drive box, steel, IP54', box, 'steel_paint', 'electrical', 'EN 62208',
                    f'{x1 - x0:.0f} x {y1 - y0:.0f} x {z1 - z0:.0f}', 'IP54, filtered fan',
                    'Holds the 5 nutrunner drives, the DC supply for the head\'s and the Z drive\'s servo motors, and the head\'s safety '
-                   'and EtherCAT modules. It turns with the slew, so only 4 lines cross the slip ring.',
+                   'and EtherCAT modules. It turns with the slew, so only 3 lines cross the slip ring: the supply, EtherCAT and the fibre.',
                    {'contents': '5 nutrunner drive modules, a 600 V DC bus supply, a safety I/O module (FSoE), an EtherCAT coupler, '
                                 'a 5-port vision switch with a fibre port', 'class size': 'ASSUMPTION'}, 'buy', mass_override=38.0),
             Location(), (200, 0, 0), 'HEADDRV')
@@ -1058,7 +1130,7 @@ def _zbeam(m: Model, sl: Node, zn: Node, side: str, T: dict) -> None:
     d1 = (bx(-25, 25, y1, SLW_Y[0], -25, 25).union(bx(-25, 25, y1, y1 + 25, -130, 25)).union(bx(-25, 300, y1, y1 + 25, -130, -70)))
     d1 = d1.cut(bx(-21, 21, y1 + 4, SLW_Y[0] + 1, -21, 21)).cut(bx(-21, 21, y1 + 4, y1 + 21, -126, 21)).cut(bx(-21, 296, y1 + 4, y1 + 21, -126, -74))
     m.place(sl, mk(m, 'TB-HD1', 'Cable duct, slip ring to the head drive box, 50 x 25', d1, 'steel_paint', 'electrical', 'folded sheet 2 mm',
-                   '50 x 25', 'S235, painted', 'Carries the 4 lines from the slip ring\'s rotor to the head drive box.', {}),
+                   '50 x 25', 'S235, painted', 'Carries the 3 lines from the slip ring\'s rotor to the head drive box.', {}),
             Location(), (100, 120, 0), 'HEADDRV')
     # duct 2: from the box's -z face, out to the chain's fixed run and down into its end bracket
     zf = zc_fixed
@@ -1074,8 +1146,10 @@ def _zbeam(m: Model, sl: Node, zn: Node, side: str, T: dict) -> None:
 # The head's lines, from the head drive box down the vertical chain and the Z-beam to the head (id, name, outside mm).
 # ASSUMPTION (class sizes, set from the makers' sheets when the parts are chosen): a nutrunner's tool cable 12 mm, the
 # hybrid servo bus (DC power, EtherCAT and safety) 16 mm, a chain-rated Cat 6A camera cable 8.5 mm.
-ZCHAIN_LINES = [(f'NR{k}', f'Nutrunner {k} tool cable', 12.0) for k in range(1, 6)] + \
-    [('HBUS', 'Head servo bus, hybrid', 16.0), ('CAM3', '3D camera cable, Cat 6A', 8.5), ('CAMA', 'Axis camera cable, Cat 6A', 8.5)]
+def zchain_lines(side: str) -> list:
+    return [(f'TB-{side}NR{k}', f'{side} nutrunner {k} tool cable', 12.0) for k in range(1, 6)] + \
+        [(f'TB-{side}HBUS', f'{side} head servo bus, hybrid', 16.0), (f'TB-{side}CAM3', f'{side} 3D camera cable, Cat 6A', 8.5),
+         (f'TB-{side}CAMA', f'{side} axis camera cable, Cat 6A', 8.5)]
 
 
 # ══════════════════════════════════════════════════════════════════════════════ TILT + HEAD ═══
@@ -1131,13 +1205,26 @@ def build_head(m: Model, zn: Node, side: str, T: dict) -> None:
     yh = std.shcs(10, 35, '10.9', 'Fastens the yoke\'s foot to the head\'s top.')
     for (x, z) in YOKE_SCREWS:      # tilt frame (x, z) -> head frame (-200 - x, -z)
         m.place(ti, yh, std.orient((x, -115, z), (0, -1, 0)), (0, 60, 80), 'TILT')
+    fjb = bx(-50, 50, 20, 120, FJB_Z, -ZB_W).edges('|Z').fillet(5)
+    m.place(zn, mk(m, 'TB-FJB', 'Foot junction box, IP67', fjb, 'al6061', 'electrical', 'EN 62208', '100 x 100 x 110', 'IP67',
+                   'On the Z-beam\'s foot: splits the head\'s servo bus to the tilt actuator and the head, and passes the nutrunner and '
+                   'camera cables through to the head\'s loop.', {}, 'buy', mass_override=0.9), Location(), (0, 0, -80), 'HEAD')
+    for (dx, dy) in ((-35, 35), (35, 35), (-35, 105), (35, 105)):
+        m.place(zn, std.shcs(5, 16, 'A2-70', 'Fastens the foot junction box to the Z-beam.'), std.orient((dx, dy, FJB_Z), (0, 0, 1)), (0, 0, -100), 'HEAD')
     _head_body(m, hd, side, H)
+    m.flex(FlexDef(f'TB-HLP{side}', 'Head cable loop, 8 cables in a spiral sleeve, 40 mm', 'loop', Anchor(zn, (0, 70, FJB_Z), (0, 0, -1)),
+                   Anchor(hd, (-355, 110, HS + 60), (0, 0, -1)), 20.0, 'HEAD',
+                   'Carries the 5 nutrunner cables, the head\'s bus and the 2 camera cables across the tilt, from the foot junction box '
+                   'to the head\'s junction box. It leaves the one\'s side and comes back into the other\'s in a U, so it bends on '
+                   '137 mm or more at every twin pose.', mat='cable', category='electrical', length=760.0, min_bend=90.0,
+                   bulge=(0.0, (0, 0, -1), (0, 0, 0)), kg_per_m=2.1, spec={'sleeve': 'PA spiral wrap, 40 mm'}))
     _cluster(m, hd, side, H)
     _cover(m, hd, side, H)
     _grip(m, hd, side, H)
 
 
 YOKE_SCREWS = [(x, 133.0) for x in (-70, -25, 25, 70)]
+FJB_Z = -190.0                   # the foot junction box's outer face (Z frame z): clear of the tilt actuator's gland
 
 
 def _head_body(m: Model, hd: Node, side: str, H: dict) -> None:
@@ -1202,10 +1289,8 @@ def _cluster(m: Model, hd: Node, side: str, H: dict) -> None:
     it = m.place(cl, mk(m, 'TB-GR-CLU', 'Spindle cluster, rear gear m2 x 62 with its shaft', back, 'steel', 'drive', 'machined, hobbed',
                         'm2, 62 teeth, D 132', 'case hardened', 'Takes the cluster drive\'s pinion. Its shaft runs in the rear bearing.', {}),
                  Location(), (-40, 0, 0), 'NUTS')
-    it.sealed = True
     it = m.place(hd, mk(m, 'TB-CRB', 'Cluster rear bearing 6004', cyl_x(21, HB + 1, HB + 13, ri=20), 'bearing', 'drive', 'ISO 15', '20 x 42 x 12',
                         'C3', 'Carries the cluster\'s rear shaft in the housing\'s back wall.', {}, 'buy'), Location(), (-60, 0, 0), 'NUTS')
-    it.sealed = True
     # the cluster drive: a motor on the housing's back, its pinion through the wall in mesh with the rear gear
     py, pz = A_MOT
     it = m.place(hd, pinion(m, 'TB-PIN-CLU', 2, 20, 15, 10, 'x', 'Turns the spindle cluster to the nut pattern.'), loc(-352.5, py, pz),
@@ -1216,7 +1301,6 @@ def _cluster(m: Model, hd: Node, side: str, H: dict) -> None:
     it.sealed = True
     it = m.place(hd, mk(m, 'TB-CSB', 'Cluster drive bearing 6200', cyl_x(21, HB + 4, HB + 15, y=py, z=pz, ri=5), 'bearing', 'drive', 'ISO 15',
                         '10 x 42 x 12 (class)', 'C3', 'Carries the drive shaft in the housing\'s back wall.', {}, 'buy'), Location(), (-60, 0, 0), 'NUTS')
-    it.sealed = True
     m.place(hd, servo_motor(m, 'TB-CLM', 40, 70, 0.1, 'Turns the spindle cluster, through a 50:1 gear in its body, to the nuts\' angle '
                             'that the cameras find.', conn=False), loc(HB, py, pz, rz=-90), (-80, 0, 0), 'NUTS')
     # the pitch-circle scroll: a ring behind the front disc whose groove moves the 5 spindles in and out together
@@ -1224,7 +1308,6 @@ def _cluster(m: Model, hd: Node, side: str, H: dict) -> None:
     it = m.place(cl, mk(m, 'TB-PCS', 'Pitch circle scroll ring', scr, 'steel', 'drive', 'machined', 'D 170 x 18', '42CrMo4, nitrided',
                         'Turned by a small gearmotor on the disc, its spiral groove moves the 5 spindles\' follower pins out or in '
                         'together: the head sets the car\'s pitch circle, 100 to 130 mm.', {}), Location(), (40, 0, 0), 'NUTS')
-    it.sealed = True
     sm = cyl_x(15, -105, -25, y=120 * math.cos(math.radians(108)), z=120 * math.sin(math.radians(108)))   # in the gap between spindles 2 and 3
     it = m.place(cl, mk(m, 'TB-SCM', 'Scroll gearmotor, 24 V, with encoder', sm, 'al6061_blk', 'drive', 'catalogue part', 'D 30 x 80', 'IP54',
                         'Turns the scroll ring to set the pitch circle.', {'class size': 'ASSUMPTION'}, 'buy', mass_override=0.4),
@@ -1277,7 +1360,6 @@ def _spindle(m: Model, pk: Node, a_deg: float, H: dict) -> None:
             T, (90, 0, 0), 'NUTS')
     it = m.place(pk, mk(m, 'TB-SMG', 'Socket magnet ring', cyl_x(12, sx - 30, sx - 25, y=SP_RO, ri=9.5), 'magnet', 'drive', 'catalogue part',
                         'D 24 x 5', 'NdFeB, nickel plated', 'Holds the nut in the socket.', {}, 'buy'), T, (90, 0, 0), 'NUTS')
-    it.sealed = True
 
 
 def _cover(m: Model, hd: Node, side: str, H: dict) -> None:
@@ -1297,7 +1379,6 @@ def _cover(m: Model, hd: Node, side: str, H: dict) -> None:
             it = m.place(hd, mk(m, 'TB-CYL', 'Electric cylinder, 300 mm stroke, 24 V', cyl, 'al6061', 'drive', 'catalogue part',
                                 f'D 34 x {-HF - 6 - HB - 15:.0f}', 'IP54', 'Drives its cup rod out and in. The 4 run together.',
                                 {'class size': 'ASSUMPTION'}, 'buy', mass_override=1.3), loc(0, y, z), (-40, 0, 0), 'COVER')
-            it.sealed = True
 
 
 def _grip(m: Model, hd: Node, side: str, H: dict) -> None:
@@ -1383,7 +1464,6 @@ def _grip(m: Model, hd: Node, side: str, H: dict) -> None:
         it = m.place(cn, mk(m, 'TB-CSN', 'Clamp ball nut with flange', nut, 'steel', 'drive', 'ISO 3408', '16 x 5', 'C7',
                             'Joins the post to the clamp screw (left hand in one post, right hand in the other).', {}, 'buy'),
                      Location(), (0, -60, 0), 'GRIP')
-        it.sealed = True
         rx0 = H['socketTip'] * M + H['faceAhead'] * M - H['rollerBack'] * M          # the roller's back end: the face, less 20
         rol = cyl_x(H['rollerR'] * M, rx0, rx0 + H['rollerL'] * M, y=H['rollerY'] * M).union(cyl_x(15, CLAMP_X[1], rx0, y=H['rollerY'] * M))
         m.place(cn, mk(m, 'TB-ROL', 'Clamp roller, polyurethane on steel, powered', rol, 'pu', 'structure', 'catalogue part',
@@ -1468,16 +1548,20 @@ def _socket_rack(m: Model, node: Node, S: dict, H: dict) -> None:
     holder at a spindle's angle. Ring A's holders stand empty and take the head's 21 mm set; ring B's hold the 17 mm set."""
     fx = S['faceX'] * M
     r = S['pcd'] * M / 2
-    base = bx(fx + 20, fx + 320, 0, 20, -150, 150)
-    anc = [(fx + 50, 120), (fx + 50, -120), (fx + 290, 120), (fx + 290, -120)]
+    base = bx(fx + 20, fx + 240, 0, 20, -150, 150)
+    anc = [(fx + 50, 120), (fx + 50, -120), (fx + 210, 120), (fx + 210, -120)]
     for (x, z) in anc:
         base = base.cut(cyl_y(std.HOLE[12] / 2, -1, 21, x=x, z=z))
     post = bx(fx + 80, fx + 180, 20, 950, -50, 50).cut(bx(fx + 84, fx + 176, 20, 946, -46, 46))
     m.place(node, mk(m, 'TB-SRK', 'Socket rack stand, welded steel', base.union(post), 'steel_yellow', 'structure', 'welded plate and tube 100 x 100 x 4',
-                     '300 x 300 x 950', 'S235, painted', 'Holds the 2 rings of socket holders where the head reaches them.', {}),
+                     '220 x 300 x 950', 'S235, painted', 'Holds the 2 rings of socket holders where the head reaches them.', {}),
             Location(), (60, 0, 0), 'SOCKETS')
     for (x, z) in anc:
         m.place(node, anchor_bolt(m, 12, 100), std.orient((x, 20, z), (0, -1, 0)), (60, 60, 0), 'SOCKETS')
+    iol = bx(fx + 180, fx + 220, 200, 360, -40, 40).edges('|X').fillet(4)
+    m.place(node, mk(m, 'TB-IOM', 'IO-Link master, 8 ports, IP67, EtherCAT', iol, 'pa66', 'electrical', 'IEC 61131-9', '40 x 160 x 80', 'IP67',
+                     'Reads the 4 wheel sensors on its side of the bay and talks to the bay cabinet on EtherCAT.', {}, 'buy', mass_override=0.4),
+            Location(), (60, 0, 0), 'RACKS')
     ring_r = {0: 15.0, 1: 13.0}                                   # each ring's holder bore: the 21 mm sockets, the 17 mm ones
     for ri, yr in enumerate(S['ringY']):
         y = yr * M
@@ -1533,3 +1617,726 @@ def build_nests(m: Model, por: Node, T: dict) -> None:
         m.place(tf, mk(m, 'TB-NSS', 'Cover sensor, inductive, IO-Link, IP67', sen, 'pa66', 'sensor', 'IEC 60947-5-2', '30 x 40 x 40', 'IP67',
                        'Sees a cover in the nest, so the head never leaves one behind or puts a second on top of it.', {}, 'buy',
                        mass_override=0.1), Location(), (-60, 0, 0), 'NEST')
+
+
+# ═══════════════════════════════════════════════════════════════════════════ CONTROL AND POWER ═══
+# THE BAY'S ELECTRICAL DESIGN (docs/OTTO-TIRE.md, "Electrical design"): 480 V, 3 phase, 60 Hz from TX-AUX (the depot's
+# one-line, otto-q-core 0810) to the bay's control cabinet on the north wall. From the cabinet: the lift's power unit
+# beside it, the lift's 2 posts and the racks' and safety devices' cables in conduits cast under the slab from a cable pit
+# in front of the cabinet, and the portal through a cable chain lying on its side in a low trough outboard of the west
+# rail. The portal's drive cabinet on the west leg feeds the 2 travel motors and, through a cable chain on the beam's top,
+# each trolley; each robot's own drives ride on its guide frame (the head drive box) behind the slip ring.
+CAB = (3300.0, 4100.0)           # the bay cabinet across the bay (x); it stands against the north wall, 500 deep
+CAB_Y = (100.0, 2100.0)          # on a 100 mm plinth
+HPU = (2730.0, 3190.0)           # the lift's power unit (x), 440 deep
+HPU_TANK = 750.0                 # its tank's height (150 L)
+PIT_Z = 6000.0                   # the cable pit's south wall; it runs north under the cabinet's and the unit's front edge
+PIT_X = (2760.0, 4060.0)
+PIT_D = -450.0
+CD_Y = -330.0                    # the conduits under the slab, from the pit's south wall
+FC = {'zA': -300.0, 'zB': -300.0, 'xFix': 4070.0, 'R': 150.0}   # the floor chain: its fixed end (z), its moving end on the west truck
+TC_XF = 1868.0                   # each trolley chain's fixed end on the beam's top (side frame x), mid travel
+BEACON_X = 3500.0                # the status beacon on the beam's top, at the west end
+SCANNERS = [(3950.0, -6600.0, 0), (-3950.0, 6600.0, 180)]   # the 2 floor scanners: south-west and north-east corners
+ESTOP_POST = (3600.0, -6500.0)   # the emergency stop post beside the south door, west of it
+RCC_ANCHORS = (-3800.0, -2000.0, 0.0, 2000.0, 3800.0)
+
+
+def conduit(m: Model, pid: str, name: str, pts: list, r: float, bend: float, fn: str, spec: dict | None = None) -> PartDef:
+    """A conduit (or a sleeve) along straight runs between pts, its corners bent on `bend`: line_ends holds both its ends."""
+    pd = std.swept(pid, name, pts, r, 'pa66', 'electrical', r - 3, fn, {'bend': f'R {bend:.0f}', 'inside': f'D {2 * (r - 3):.0f}', **(spec or {})},
+                   'EN 61386 (rigid, cast in)', f'D {2 * r:.0f}', 'buy', bend=bend)
+    return m.part(pd)
+
+
+def pipe(m: Model, pid: str, name: str, pts: list, fn: str) -> PartDef:
+    """A hydraulic pipe, 35 x 2.5 steel, bent on 105 mm (3 x its diameter)."""
+    pd = std.swept(pid, name, pts, 17.5, 'steel', 'fluid', 15.0, fn,
+                   {'pressure': '7 bar at the rated load, relief valve at 10 bar', 'bend': 'R 105'},
+                   'EN 10305-4 (hydraulic precision tube)', '35 x 2.5', 'buy', bend=105.0)
+    return m.part(pd)
+
+
+def build_control(m: Model, bay: Node, por: Node, T: dict) -> list:
+    """The bay cabinet, the power unit, the pit, every conduit and pipe under the slab, the floor chain and its trough, the
+    portal's drive cabinet and the conduits on the west leg. Returns the slab's holes for the pit and the risers."""
+    B = T['bay']
+    north = B['north'] * M
+    C = T['cabinets']
+    holes = []
+    # ── the bay cabinet: a floor-standing enclosure on a plinth, its gland plate over the pit's slot ─────────────────────
+    cz0 = north - C['bay']['d'] * M
+    plinth = bx(CAB[0], CAB[1], 0, CAB_Y[0], cz0, north).cut(bx(CAB[0] + 10, CAB[1] - 10, -1, CAB_Y[0] - 10, cz0 + 10, north - 10))
+    m.place(bay, mk(m, 'TB-CPL', 'Bay cabinet plinth, steel 100 mm', plinth, 'steel_paint', 'structure', 'catalogue part', '800 x 500 x 100',
+                    'RAL 7022', 'Lifts the cabinet off the floor. The cables go down through it to the cable pit.', {}, 'buy'),
+            Location(), (0, 0, 300), 'CONTROL')
+    cab = bx(CAB[0], CAB[1], CAB_Y[0], CAB_Y[1], cz0, north).edges('|Y').fillet(6)
+    m.place(bay, mk(m, 'TB-BCB', 'Bay control cabinet, steel, IP54, 800 x 2000 x 500', cab, 'steel_paint', 'electrical', 'UL 508A, EN 62208',
+                    '800 x 2000 x 500', 'IP54 (NEMA 12), RAL 7035',
+                    'Holds the bay\'s main switch, the motor starter for the lift\'s pump, the feeder to the portal, the 24 V and 48 V '
+                    'supplies, the safety controller, the motion controller and the vision computer.',
+                    {'main switch': '60 A, lockable (NEC 670.4(B) disconnect)', 'short-circuit rating': 'marked SCCR >= the fault '
+                     'current at its terminals (NEC 670.3(A)): see docs/OTTO-TIRE.md', 'contents': 'main switch, the pump\'s motor '
+                     'circuit protector and contactor, the portal feeder (40 A), 24 V 20 A and 48 V 10 A supplies, safety controller '
+                     '(FSoE master), motion controller (EtherCAT master), vision computer, network switch with fibre ports, 1 kVA UPS',
+                     'cooling': 'filter fans, 2 x 55 W losses budget (class)'}, 'buy', mass_override=160.0),
+            Location(), (0, 0, 400), 'CONTROL')
+    # ── the lift's power unit: a 150 L tank, a 5 hp motor on its lid with the pump in the oil, the valve block ───────────
+    hz0 = north - C['hpu']['d'] * M
+    assert abs((HPU[0] + HPU[1]) / 2 - C['hpu']['x'] * M) < 1e-6 and abs(HPU[1] - HPU[0] - C['hpu']['w'] * M) < 1e-6, 'HPU vs tireSpec CABINETS.hpu'
+    assert HPU_TANK + 390 <= C['hpu']['h'] * M, 'the pump motor stands above tireSpec CABINETS.hpu.h'
+    tank = bx(HPU[0], HPU[1], 0, HPU_TANK, hz0, north).cut(bx(HPU[0] + 4, HPU[1] - 4, 4, HPU_TANK - 4, hz0 + 4, north - 4))
+    m.place(bay, mk(m, 'TB-HPT', 'Lift power unit tank, 150 L, with its lid', tank, 'steel_paint', 'fluid', 'welded sheet 4 mm',
+                    '460 x 750 x 440', 'RAL 5015, oil tight', 'Holds the oil for both rams (116 L) and a reserve.',
+                    {'oil': 'HM 32 (ISO VG 32)', 'fittings': 'level and temperature switch, breather filter, return filter'}),
+            Location(), (0, 0, 300), 'HYD')
+    mx, mz = HPU[0] + 140, (hz0 + north) / 2
+    mot = cyl_y(70, HPU_TANK, HPU_TANK + 40, x=mx, z=mz).union(cyl_y(115, HPU_TANK + 40, HPU_TANK + 390, x=mx, z=mz))
+    m.place(bay, mk(m, 'TB-HPM', 'Lift pump motor, 5 hp (3.7 kW), 480 V, with its bell housing', mot, 'steel_paint', 'drive',
+                    'NEMA MG 1, 184TC frame', 'D 230 x 390', 'TEFC, IP55', 'Drives the lift\'s gear pump in the tank: 139 L/min at the '
+                    'rated load\'s 7 bar lifts both rams 1.85 m in 50 s.', {'full-load current': '7.6 A at 460 V (NEC Table 430.250)',
+                                                                               'class size': 'ASSUMPTION'}, 'buy', mass_override=38.0),
+            Location(), (0, 300, 300), 'HYD')
+    mf = bx(HPU[1] - 170, HPU[1] - 20, HPU_TANK, HPU_TANK + 110, hz0 + 70, hz0 + 210)
+    m.place(bay, mk(m, 'TB-HPV', 'Lift valve block, 2 circuits, with pressure sensors', mf, 'al6061', 'fluid', 'catalogue part', '150 x 110 x 140',
+                    'IP65, 24 V coils', 'Feeds and lowers each ram on its own: a proportional flow valve, a check valve and a lowering '
+                    'valve each, a pressure sensor on each line and a relief valve.', {'class size': 'ASSUMPTION'}, 'buy', mass_override=11.0),
+            Location(), (0, 200, 300), 'HYD')
+    # ── the pit: a galvanised liner under the slab, a checker-plate cover, the slot along its north edge open to the lines ─
+    pz1 = cz0 + 50                                                  # the pit runs 50 mm under the cabinet's plinth
+    holes.append(bx(PIT_X[0], PIT_X[1], PIT_D - 1, 1, PIT_Z, pz1))
+    cov = bx(PIT_X[0] + 5, PIT_X[1] - 5, -10, 0, PIT_Z + 5, cz0 - 10)
+    m.place(bay, mk(m, 'TB-PTC', 'Cable pit cover, galvanised checker plate', cov, 'steel', 'structure', 'checker plate 10 mm',
+                    f'{PIT_X[1] - PIT_X[0] - 10:.0f} x {cz0 - 10 - PIT_Z - 5:.0f}', 'S235, galvanised, R11 slip',
+                    'Covers the pit flush with the floor, in front of the cabinet. A person stands on it to open the cabinet. The lines '
+                    'drop into the pit through the open slot along its north edge, under the cabinet\'s front.', {}),
+            Location(), (0, 80, -200), 'CONTROL')
+    through = []                                                    # every line through the pit's south wall: (x, y, r)
+    # ── the 2 oil pipes: from the valve block down into the pit, south under the slab, west into each casing ───────────
+    vz = hz0 + 70                                                   # the valve block's front face
+    PIPES = {}
+    for tag, xl, zp in (('F', 3060.0, T['lift']['postZ'][0] * M), ('R', 3130.0, T['lift']['postZ'][1] * M)):
+        pts = [(xl, 805.0, vz), (xl, 805.0, 6410.0), (xl, PIPE_Y, 6410.0), (xl, PIPE_Y, zp), (160.0, PIPE_Y, zp)]
+        pd = pipe(m, f'TB-HP{tag}', f'Hydraulic pipe to the {"front" if tag == "F" else "rear"} ram, 35 x 2.5 steel', pts,
+                  'Carries the oil from its valve to its ram\'s barrel, under the slab in a sand bed, wrapped.')
+        it = m.place(bay, pd, Location(), (0, -200, 0), 'HYD')
+        it.yard_hidden = True
+        PIPES[tag] = pd
+        through.append((xl, PIPE_Y, 17.5))
+    # the valve block's front face takes the 2 pipes' fittings: it stands 70 mm back from the tank's front
+    # ── the conduits under the slab ────────────────────────────────────────────────────────────────────────────────
+    zf, zr = T['lift']['postZ'][0] * M, T['lift']['postZ'][1] * M
+    R_ = T['rack']
+    S_ = T['socketRack']
+    CDS = {
+        'TB-CRF': ('Conduit to the front post\'s reel pocket, 50 mm', 25.0, 250.0,
+                   [(3350.0, REEL_CD_Y, PIT_Z + 5), (3350.0, REEL_CD_Y, zf), (REEL_X[1], REEL_CD_Y, zf)],
+                   'Carries the front post\'s reel supply and its casing cable from the pit.'),
+        'TB-CRR': ('Conduit to the rear post\'s reel pocket, 50 mm', 25.0, 200.0,
+                   [(3450.0, REEL_CD_Y, PIT_Z + 5), (3450.0, REEL_CD_Y, -1250.0), (-700.0, REEL_CD_Y, -1250.0), (-700.0, REEL_CD_Y, zr),
+                    (-REEL_X[1], REEL_CD_Y, zr)], 'Carries the rear post\'s reel supply and its casing cable round the rear casing.'),
+        'TB-CFC': ('Conduit to the floor chain\'s fixed end, 50 mm', 25.0, 250.0,
+                   [(4000.0, CD_Y, PIT_Z + 5), (4000.0, CD_Y, FC['zA'] - 150), (4000.0, 4.0, FC['zA'] - 150)],
+                   'Carries the portal\'s supply, its EtherCAT and its fibre from the pit up into the floor chain\'s trough.'),
+        'TB-CKW': ('Conduit to the west racks\' cable channel, 50 mm', 25.0, 200.0,
+                   [(3250.0, 0.0, 4650.0), (3250.0, REEL_CD_Y, 4650.0), (3250.0, REEL_CD_Y, PIT_Z + 5)],
+                   'Carries the west racks\' sensor bus from their channel to the pit.'),
+        'TB-CKE': ('Conduit to the east racks\' cable channel, 50 mm', 25.0, 200.0,
+                   [(-3250.0, 0.0, 4650.0), (-3250.0, CD_Y, 4650.0), (-3250.0, CD_Y, 5800.0), (2900.0, CD_Y, 5800.0), (2900.0, CD_Y, PIT_Z + 5)],
+                   'Carries the east racks\' sensor bus under the floor to the pit.'),
+        'TB-CS1': ('Conduit to the south-west safety scanner, 32 mm', 16.0, 150.0,
+                   [(3900.0, 0.0, -6600.0), (3900.0, REEL_CD_Y, -6600.0), (3900.0, REEL_CD_Y, PIT_Z + 5)],
+                   'Carries the south-west scanner\'s cable to the pit.'),
+        'TB-CS2': ('Conduit to the north-east safety scanner, 32 mm', 16.0, 100.0,
+                   [(-3900.0, 0.0, 6600.0), (-3900.0, REEL_CD_Y, 6600.0), (-3900.0, REEL_CD_Y, 5900.0), (2800.0, REEL_CD_Y, 5900.0),
+                    (2800.0, REEL_CD_Y, PIT_Z + 5)], 'Carries the north-east scanner\'s cable to the pit.'),
+        'TB-CES': ('Conduit to the south emergency stop post, 32 mm', 16.0, 90.0,
+                   [(3600.0, 0.0, -6500.0), (3600.0, REEL_CD_Y, -6500.0), (3800.0, REEL_CD_Y, -6500.0), (3800.0, REEL_CD_Y, PIT_Z + 5)],
+                   'Carries the south emergency stop\'s cable to the pit.'),
+    }
+    CD = {}
+    for pid, (name, r, bend, pts, fn) in CDS.items():
+        pd = conduit(m, pid, name, pts, r, bend, fn)
+        it = m.place(bay, pd, Location(), (0, -150, 0), 'CONTROL')
+        it.yard_hidden = True
+        CD[pid] = pd
+        for q in (pts[0], pts[-1]):
+            if abs(q[2] - (PIT_Z + 5)) < 1e-6:
+                through.append((q[0], q[1], r))
+        for q in pts:                                           # a riser through the slab
+            if abs(q[1]) < 5 and r:
+                holes.append(cyl_y(r + 1, -251, 1, x=q[0], z=q[2]))
+    holes.append(cyl_y(26, -251, 1, x=4000.0, z=FC['zA'] - 150))
+    liner = bx(PIT_X[0], PIT_X[1], PIT_D, 0, PIT_Z, pz1).cut(bx(PIT_X[0] + 5, PIT_X[1] - 5, PIT_D + 5, 1, PIT_Z + 5, pz1 - 5))
+    for (x, y, r) in through:
+        liner = liner.cut(cyl_z(r + 0.5, PIT_Z - 1, PIT_Z + 6, x=x, y=y))
+    m.place(bay, mk(m, 'TB-PTL', 'Cable pit liner, galvanised steel', liner, 'steel', 'structure', 'welded sheet 5 mm',
+                    f'{PIT_X[1] - PIT_X[0]:.0f} x {pz1 - PIT_Z:.0f} x {-PIT_D:.0f}', 'S235, hot-dip galvanised',
+                    'Lines the pit in front of the cabinet. Every conduit and both oil pipes leave it through its south wall.', {}),
+            Location(), (0, -300, -200), 'CONTROL')
+    # ── the floor chain: on its side in a low trough outboard of the west rail, its moving end on the west end truck ───
+    LF = FLOOR_LINES
+    fill = std.chain_fill([d for (_, _, d) in LF], [])
+    FCH = std.chain_size('heavy', fill, max(d for (_, _, d) in LF), FC['R'])
+    link = std.chain_link(FCH['ba'], FCH['ha'], FCH['pitch'], inside=(FCH['bi'], FCH['hi']))
+    P = T['portal']
+    stroke = (P['travelTo'] - P['travelFrom']) * M / 2
+    n_fc = math.ceil((stroke + math.pi * FC['R'] + 100) / FCH['pitch'])
+    yc = 4 + FCH['ba'] / 2                                       # the links' middle: the chain stands on its side band
+    x_fix, x_mov = FC['xFix'], FC['xFix'] - 2 * FC['R']
+    z0 = FC['zA'] - stroke - 50
+    z1 = FC['zA'] + (n_fc * FCH['pitch'] - math.pi * FC['R']) + FC['R'] + 50
+    xi = x_mov - FCH['ha'] / 2 - 13
+    xo = x_fix + FCH['ha'] / 2 + 13
+    tr = (bx(xi, xo, 0, 4, z0, z1).union(bx(xi, xi + 4, 0, 110, z0, z1)).union(bx(xo - 4, xo, 0, 110, z0, z1))
+          .cut(cyl_y(25.5, -1, 5, x=4000.0, z=FC['zA'] - 150)))
+    for zz in range(int(z0 + 250), int(z1 - 100), 1000):
+        tr = tr.cut(cyl_y(std.HOLE[12] / 2, -1, 5, x=(xi + xo) / 2, z=zz))
+    m.place(bay, mk(m, 'TB-FCT', 'Floor chain trough, stainless', tr, 'ss304', 'structure', 'folded sheet 4 mm',
+                    f'{xo - xi:.0f} x 110 x {z1 - z0:.0f}', '1.4301', 'Carries the floor chain on its side between the west rail and '
+                    'the partition: both its runs lie on the trough\'s floor, so neither sags over the 8.5 m of travel.', {}),
+            Location(), (300, 0, 0), 'CONTROL')
+    for zz in range(int(z0 + 250), int(z1 - 100), 1000):
+        m.place(bay, anchor_bolt(m, 12, 100), std.orient(((xi + xo) / 2, 4, zz), (0, -1, 0)), (300, 60, 0), 'CONTROL')
+    w0 = -FCH['bi'] / 2 + (FCH['bi'] - fill) / 2
+    contents = []
+    for (lid, name, d) in LF:
+        slot = d + max(0.1 * d, 1.0)
+        contents.append({'id': lid, 'name': name, 'd': d, 'v': 0.0, 'w': w0 + slot / 2, 'mat': 'cable', 'category': 'electrical'})
+        w0 += slot
+    eb = bx(x_fix - FCH['ha'] / 2, x_fix + FCH['ha'] / 2, 4, 4 + FCH['ba'], FC['zA'] - 12, FC['zA'])
+    m.place(bay, mk(m, 'TB-FCE', 'Floor chain end bracket, fixed', eb, 'ss304', 'structure', 'bent plate', f'{FCH["ha"]:g} x {FCH["ba"]:g}',
+                    '1.4301', 'Holds the floor chain\'s fixed end to the trough.', {}), Location(), (300, 40, 0), 'CONTROL')
+    tw = next(n for n in por.children if n.name == 'TruckW')
+    xl = x_mov - P['railX'] * M                                 # the moving run in the west truck's frame
+    m.flex(FlexDef('TB-FCN', f'Floor cable chain, inside {FCH["bi"]:g} x {FCH["hi"]:g}, R {FC["R"]:g}, on its side', 'chain',
+                   Anchor(bay, (x_fix, yc, FC['zA']), (0, 0, 1)), Anchor(tw, (xl, yc, FC['zB']), (0, 0, 1)),
+                   FCH['ha'] / 2, 'CONTROL', 'Brings the portal\'s supply, EtherCAT and fibre to the moving portal. It lies on its side in '
+                   'its trough, and its bend rolls along at half the portal\'s speed.', mat='pa66', category='electrical',
+                   pitch=FCH['pitch'], bend_r=FC['R'], links=n_fc, up=(-1, 0, 0), w=FCH['ba'], h=FCH['ha'], link_part=link, kg_per_m=3.2,
+                   contents=contents, wi=FCH['bi'], hi=FCH['hi'], lead_a=12.0, lead_b=12.0,
+                   spec={'carries': ', '.join(f'{n} ({d:g} mm)' for (_, n, d) in LF), 'fill': f'{fill:.1f} of its {FCH["bi"]:g} mm inside width',
+                         'mounting': 'on its side, on glide strips (the chain maker\'s side-mounted long-travel design: to confirm)'}))
+    em = bx(xl - FCH['ha'] / 2, xl + FCH['ha'] / 2, 6, 4 + FCH['ba'], FC['zB'] - 12, FC['zB'])
+    m.place(tw, mk(m, 'TB-FCM', 'Floor chain end bracket, moving', em, 'ss304', 'structure', 'bent plate', f'{FCH["ha"]:g} x {FCH["ba"]:g}',
+                   '1.4301', 'Joins the floor chain\'s moving end to its driver.', {}), Location(), (200, 0, 0), 'CONTROL')
+    drv = bx(xl - FCH['ha'] / 2, xl + FCH['ha'] / 2, 4 + FCH['ba'], TRUCK_Y0, FC['zB'] - 22, FC['zB'] - 2).union(
+        bx(100, xl + FCH['ha'] / 2, TRUCK_Y0 - 10, TRUCK_Y0, FC['zB'] - 22, FC['zB'] + 40))
+    m.place(tw, mk(m, 'TB-FCD', 'Floor chain driver, stainless', drv, 'ss304', 'structure', 'welded plate 10 mm', '64 x 123',
+                   '1.4301', 'Hangs from the west end truck and pulls the chain\'s moving end along. The lines rise beside it.', {}),
+            Location(), (200, 0, 0), 'CONTROL')
+    # ── the portal's drive cabinet on the west leg's north face, its conduits up and down the leg ─────────────────────
+    PC = C['portal']
+    pc = bx(-PC['w'] * M / 2, PC['w'] * M / 2, PC['y0'] * M, (PC['y0'] + PC['h']) * M, LEG_D / 2, LEG_D / 2 + PC['d'] * M).edges('|Y').fillet(6)
+    m.place(tw, mk(m, 'TB-PCB', 'Portal drive cabinet, steel, IP54, 600 x 1100 x 300', pc, 'steel_paint', 'electrical', 'UL 508A, EN 62208',
+                   '600 x 1100 x 300', 'IP54 (NEMA 12), RAL 7035',
+                   'Rides on the west leg. It holds the 2 travel drives and each robot\'s trolley and slew drives, the feeds to the 2 '
+                   'robots, the portal\'s safety I/O and its network switch.',
+                   {'contents': '6 servo drives (2 x 2.0 kW, 2 x 0.4 kW, 2 x 0.4 kW), 2 robot feeders (15 A), safety I/O (FSoE), '
+                                'EtherCAT junction, 5-port switch with 2 fibre ports', 'class size': 'ASSUMPTION'}, 'buy', mass_override=55.0),
+            Location(), (0, 0, 300), 'CONTROL')
+    up = conduit(m, 'TB-CLW', 'Conduit, floor chain to the portal cabinet, 50 mm', [(225.0, TRUCK_Y0, FC['zB'] - 12), (225.0, 470.0, FC['zB'] - 12),
+                 (225.0, 470.0, 300.0), (225.0, PC['y0'] * M, 300.0)], 25.0, 120.0,
+                 'Carries the floor chain\'s lines up the west end truck and the leg to the portal cabinet.')
+    m.place(tw, up, Location(), (250, 0, 0), 'CONTROL')
+    bm = conduit(m, 'TB-CBM', 'Conduit, portal cabinet to the beam, 63 mm', [(CBM_X, (PC['y0'] + PC['h']) * M, 300.0), (CBM_X, 2980.0, 300.0),
+                 (CBM_X, 2980.0, 0.0), (CBM_X, BEAM_Y0 + 12, 0.0)], 31.5, 95.0,
+                 'Carries the lines from the portal cabinet up into the beam: the beam is the duct along the bay.')
+    m.place(tw, bm, Location(), (-250, 0, 0), 'CONTROL')
+    mw = conduit(m, 'TB-CMW', 'Conduit, portal cabinet to the west travel motor, 32 mm', [(196.0, PC['y0'] * M, 380.0),
+                 (196.0, TRUCK_Y0 + TRUCK_H, 380.0)], 16.0, 60.0, 'Carries the west travel motor\'s cable down to its end truck.')
+    m.place(tw, mw, Location(), (250, 0, 0), 'CONTROL')
+    te = next(n for n in por.children if n.name == 'TruckE')
+    me = conduit(m, 'TB-CME', 'Conduit, beam to the east travel motor, 32 mm', [(196.0, BEAM_Y0, 100.0), (196.0, TRUCK_Y0 + TRUCK_H, 100.0)],
+                 16.0, 60.0, 'Carries the east travel motor\'s, the east emergency stop\'s and the east cover sensor\'s cables down the east leg.')
+    m.place(te, me, Location(), (250, 0, 0), 'CONTROL')
+    # ── safety: 2 floor scanners at opposite corners, an emergency stop post at the south door, one on each leg ────────
+    ped = (bx(-80, 80, 0, 12, -80, 80).union(bx(-40, 40, 12, 180, -40, 40)).cut(cyl_y(13, -1, 13, x=-50)))
+    for (dx, dz) in ((-60, -60), (-60, 60), (60, -60), (60, 60)):
+        ped = ped.cut(cyl_y(std.HOLE[12] / 2, -1, 13, x=dx, z=dz))
+    ped_pd = mk(m, 'TB-SCP', 'Safety scanner pedestal, steel', ped, 'steel_yellow', 'structure', 'welded plate and tube', '160 x 160 x 180',
+                'S235, painted', 'Holds a safety scanner 0.25 m over the floor, out of the cars\' and the portal\'s way. Its cable comes up '
+                'through its base plate.', {})
+    scn = mk(m, 'TB-SCN', 'Safety laser scanner, 275 degrees, PL d, IP65', cyl_y(55, 180, 330), 'pa66_yellow', 'sensor',
+             'IEC 61496-3, ISO 13849-1 PL d', 'D 110 x 150', 'IP65', 'Watches the bay\'s floor. If a person is in the bay while the machine '
+             'runs, it stops the machine. The lift lowers only with the floor clear.', {'protective field': 'up to 9 m radius (class)',
+                                                                                         'class size': 'ASSUMPTION'}, 'buy', mass_override=1.3)
+    for (xs, zs, turn) in SCANNERS:
+        m.place(bay, ped_pd, loc(xs, 0, zs, ry=turn), (0, 0, 0), 'SAFETY')
+        for (dx, dz) in ((-60, -60), (-60, 60), (60, -60), (60, 60)):
+            m.place(bay, anchor_bolt(m, 12, 100), std.orient((xs + dx, 12, zs + dz), (0, -1, 0)), (0, 40, 0), 'SAFETY')
+        m.place(bay, scn, loc(xs, 0, zs), (0, 100, 0), 'SAFETY')
+    ex, ez = ESTOP_POST
+    est = (bx(ex - 60, ex + 60, 0, 12, ez - 60, ez + 60).union(bx(ex - 30, ex + 30, 12, 1050, ez - 30, ez + 30))
+           .union(bx(ex - 50, ex + 50, 1050, 1150, ez - 50, ez + 50)).cut(cyl_y(13, -1, 13, x=ex, z=ez)))
+    for (dx, dz) in ((-45, -45), (-45, 45), (45, -45), (45, 45)):
+        est = est.cut(cyl_y(std.HOLE[12] / 2, -1, 13, x=ex + dx, z=ez + dz))
+    m.place(bay, mk(m, 'TB-ESP', 'Emergency stop post with its box, steel', est, 'steel_yellow', 'structure', 'welded tube 60 x 60', '120 x 120 x 1150',
+                    'S235, painted yellow', 'Stands beside the south door, where a person comes into the bay.', {}), Location(), (0, 0, 0), 'SAFETY')
+    for (dx, dz) in ((-45, -45), (-45, 45), (45, -45), (45, 45)):
+        m.place(bay, anchor_bolt(m, 12, 100), std.orient((ex + dx, 12, ez + dz), (0, -1, 0)), (0, 40, 0), 'SAFETY')
+    btn = cyl_z(20, ez + 50, ez + 70, x=ex, y=1100).union(cyl_z(30, ez + 70, ez + 90, x=ex, y=1100))
+    m.place(bay, mk(m, 'TB-ESB', 'Emergency stop button, red mushroom, 2 NC contacts', btn, 'pa66_red', 'electrical', 'IEC 60947-5-5, ISO 13850',
+                    'D 60', 'IP66', 'Stops every motion in the bay and holds it stopped until it is reset at the cabinet.', {}, 'buy'),
+            Location(), (0, 0, 100), 'SAFETY')
+    for side in ('W', 'E'):
+        tf = next(n for n in por.children if n.name == f'Truck{side}')
+        lb = bx(-LEG_W / 2 - 60, -LEG_W / 2, 1250, 1350, -150, -50)
+        m.place(tf, mk(m, 'TB-ESL', 'Emergency stop box on the leg, steel', lb, 'steel_yellow', 'electrical', 'EN 62208', '60 x 100 x 100', 'IP66',
+                       'Holds an emergency stop on the leg\'s inner face, in reach of a person at the racks.', {}, 'buy'),
+                Location(), (-60, 0, 0), 'SAFETY')
+        bt = cyl_x(20, -LEG_W / 2 - 80, -LEG_W / 2 - 60, y=1300, z=-100).union(cyl_x(30, -LEG_W / 2 - 100, -LEG_W / 2 - 80, y=1300, z=-100))
+        m.place(tf, mk(m, 'TB-ESC', 'Emergency stop button on the leg, red mushroom, 2 NC contacts', bt, 'pa66_red', 'electrical',
+                       'IEC 60947-5-5, ISO 13850', 'D 60', 'IP66', 'Stops every motion in the bay.', {}, 'buy'), Location(), (-100, 0, 0), 'SAFETY')
+    bcn = cyl_y(50, BEAM_Y1, BEAM_Y1 + 20).union(cyl_y(45, BEAM_Y1 + 20, BEAM_Y1 + 220))
+    m.place(por, mk(m, 'TB-BCN', 'Status beacon, 4 colours, IP65', bcn, 'led', 'electrical', 'catalogue part', 'D 100 x 220', 'IP65',
+                    'Green: home, the car may move. Amber: the lift or the portal moves. Red: stopped. Blue: a person is needed.', {}, 'buy',
+                    mass_override=0.8), loc(BEACON_X, 0, 0), (0, 200, 0), 'SAFETY')
+    # ── the racks' cable channels on the floor, outboard of the racks (the east one the west one's mirror image) ────────
+    ch = bx(-50, 50, 0, 30, -4700, 4700).cut(bx(-38, 38, 3, 27, -4699, 4699)).cut(cyl_y(25.5, -1, 4, z=4650))
+    for zz in RCC_ANCHORS:
+        ch = ch.cut(cyl_y(std.HOLE[12] / 2, -1, 4, z=zz))
+    rcc = mk(m, 'TB-RCC', 'Racks\' floor cable channel, aluminium, with lid', ch, 'al6061', 'electrical', 'catalogue part (floor duct)',
+             '100 x 30 x 9400', '6063-T6, ramped edges', 'Carries the 4 wheel sensors\' cables along the racks to the IO-Link master, and its '
+             'bus cable to the conduit.', {}, 'buy')
+    for sx in (1, -1):
+        m.place(bay, rcc, loc(sx * 3250, 0, 0), (sx * 60, 0, 0), 'RACKS')
+        for zz in RCC_ANCHORS:
+            m.place(bay, anchor_bolt(m, 12, 100), std.orient((sx * 3250, 3, zz), (0, -1, 0)), (sx * 80, 0, 0), 'RACKS')
+    # ── the feed and the site network: 2 conduits up the north wall from the cabinet's top to the building's cable tray ──
+    tray = bx(2700, 4200, 4400, 4500, north - 300, north).cut(bx(2710, 4190, 4410, 4500, north - 290, north - 10))
+    it = m.place(bay, mk(m, 'TB-BTR', 'Building cable tray (the building\'s, for context)', tray, 'steel', 'structure', 'cable ladder 300 x 100',
+                         '1500 x 300 x 100', 'galvanised', 'The ops building\'s cable tray along the bay\'s north wall: the bay\'s feed and its '
+                         'site network arrive on it from TX-AUX and the office.', {}, reference=True), Location(), (0, 200, 0), 'CONTROL')
+    fd = conduit(m, 'TB-CFD', 'Conduit, the bay\'s feed, building tray to the cabinet, 50 mm', [(3900.0, CAB_Y[1], north - 40), (3900.0, 4400.0, north - 40)],
+                 25.0, 200.0, 'Carries the bay\'s 480 V feed down the north wall from the building\'s tray to the cabinet\'s top.')
+    m.place(bay, fd, Location(), (0, 100, 0), 'CONTROL')
+    nw = conduit(m, 'TB-CNW', 'Conduit, the site network, building tray to the cabinet, 25 mm', [(3800.0, CAB_Y[1], north - 40), (3800.0, 4400.0, north - 40)],
+                 12.5, 100.0, 'Carries the site network\'s fibre down the north wall to the cabinet\'s top.')
+    m.place(bay, nw, Location(), (0, 100, 0), 'CONTROL')
+    return holes
+
+
+# The floor chain's lines (id, name, outside mm). ASSUMPTION (class sizes): a chain-rated 4G10 power cable 18.5 mm (on the
+# portal's 40 A feeder: 10 mm2 is more copper than 8 AWG, which NEC Table 310.16 gives 50 A at 75 °C; 6 mm2 is less than
+# 8 AWG, and 10 AWG may not be protected above 30 A by NEC 240.4(D)), a chain-rated EtherCAT cable 7 mm, a chain-rated
+# 4-fibre cable 6 mm. The portal's load by NEC 670.4(A) is about 30 A: both robots (7.8 kW each behind the slip ring and
+# 0.8 kW of trolley and slew), the 2 travel drives (4.0 kW), at siteService's drive input. NEC 240.4(D) read through a web
+# search on 2026-11-17: https://www.ecmweb.com/national-electrical-code/code-basics/article/20885916/article-240-overcurrent-protection
+FLOOR_LINES = [('TB-PSUP', 'Portal supply 480 V, 4G10', 18.5), ('TB-PECT', 'Portal EtherCAT', 7.0), ('TB-PFIB', 'Portal fibre, 4 cores', 6.0)]
+
+
+# ═════════════════════════════════════════════════════════════════════ ON THE BEAM AND THE TROLLEY ═══
+TC_R = 125.0                     # each trolley chain's bend radius
+TC_LANE_Z = 77.0                 # its lane on the beam's top (side frame z): the west robot's on the north half
+TC_B = (-132.0, 3839.5)          # its moving end on the trolley: x (trolley frame) and the upper run's height
+POST = (-200.0, -140.0, 180.0, 220.0)   # the chain's driver post on the trolley plate: x0, x1, z0, z1
+DUCT_Z = (202.0, 238.0)          # the plate duct's run along x, from the post's foot (clear of the slewing ring's screws)
+
+
+def _trolley_chain(m: Model, S: Node, tr: Node, side: str, T: dict) -> None:
+    """The trolley's cable chain on the beam's top (fixed end at mid travel), its tray, the driver post on the trolley,
+    and the flat duct on the trolley plate from the post's foot to the slip ring and the trolley motor."""
+    LT = TROLLEY_LINES(side)
+    fill = std.chain_fill([d for (_, _, d) in LT], [])
+    TCH = std.chain_size('light', fill, max(d for (_, _, d) in LT), TC_R)
+    link = std.chain_link(TCH['ba'], TCH['ha'], TCH['pitch'], inside=(TCH['bi'], TCH['hi']))
+    TR_ = T['trolley']
+    stroke = (TR_['to'] - TR_['from']) * M / 2
+    n_tc = math.ceil((stroke + math.pi * TC_R + 40) / TCH['pitch'])
+    y_lo = BEAM_Y1 + 3 + 9 + TCH['ha'] / 2                 # 9 mm over the tray: the links tip in the bend
+    zl0, zl1 = TC_LANE_Z - TCH['ba'] / 2, TC_LANE_Z + TCH['ba'] / 2
+    x0 = TC_XF - stroke - 30
+    x1 = TC_XF + (n_tc * TCH['pitch'] - math.pi * TC_R) + TC_R + 30
+    tray = bx(x0, x1, BEAM_Y1, BEAM_Y1 + 3, zl0 - 4, zl1 + 4).cut(cyl_y(22, BEAM_Y1 - 1, BEAM_Y1 + 4, x=TC_XF - 40, z=TC_LANE_Z))
+    m.place(S, mk(m, 'TB-TCT', 'Trolley chain tray, stainless', tray, 'ss304', 'structure', 'sheet 3 mm', f'{zl1 - zl0 + 8:.0f} x {x1 - x0:.0f}',
+                  '1.4301', 'The trolley chain\'s lower run lies on it, on the beam\'s top.', {}), Location(), (0, 60, 0), 'TROLLEY')
+    eb = bx(TC_XF - 12, TC_XF, BEAM_Y1 + 3, y_lo + TCH['ha'] / 2, zl0, zl1)
+    m.place(S, mk(m, 'TB-TCE', 'Trolley chain end bracket, fixed', eb, 'ss304', 'structure', 'bent plate', f'{TCH["ba"]:g} x {TCH["ha"]:g}',
+                  '1.4301', 'Holds the trolley chain\'s fixed end over its hole in the beam\'s top.', {}), Location(), (0, 80, 0), 'TROLLEY')
+    w0 = -TCH['bi'] / 2 + (TCH['bi'] - fill) / 2
+    contents = []
+    for (lid, name, d) in LT:
+        slot = d + max(0.1 * d, 1.0)
+        contents.append({'id': lid, 'name': name, 'd': d, 'v': 0.0, 'w': w0 + slot / 2, 'mat': 'cable', 'category': 'electrical'})
+        w0 += slot
+    m.flex(FlexDef(f'TB-TCN{side}', f'Cable chain, inside {TCH["bi"]:g} x {TCH["hi"]:g}, R {TC_R:g}', 'chain',
+                   Anchor(S, (TC_XF, y_lo, TC_LANE_Z), (1, 0, 0)), Anchor(tr, (TC_B[0], TC_B[1], TC_LANE_Z), (1, 0, 0)),
+                   TCH['ha'] / 2, 'TROLLEY', 'Carries the robot\'s supply, network and fibre and its trolley and slew motors\' cables from '
+                   'the beam to the trolley. Its bend rolls along the beam\'s top at half the trolley\'s speed.',
+                   mat='pa66', category='electrical', pitch=TCH['pitch'], bend_r=TC_R, links=n_tc, up=(0, 1, 0), w=TCH['ba'], h=TCH['ha'],
+                   link_part=link, kg_per_m=1.1, contents=contents, wi=TCH['bi'], hi=TCH['hi'], lead_a=12.0, lead_b=12.0,
+                   spec={'carries': ', '.join(f'{n} ({d:g} mm)' for (_, n, d) in LT), 'fill': f'{fill:.1f} of its {TCH["bi"]:g} mm inside width'}))
+    assert abs(TC_B[1] - (y_lo + 2 * TC_R)) < 1e-6, 'the trolley chain\'s moving end must stand 2 R over its lower run'
+    px0, px1, pz0, pz1 = POST
+    yt = TC_B[1] + TCH['ha'] / 2 + 20
+    post = (bx(px0, px1, TP_Y[1], yt, pz0, pz1).cut(bx(px0 + 3, px1 - 3, TP_Y[1] - 1, yt - 3, pz0 + 3, pz1 - 3))
+            .union(bx(px0 - 15, px1 + 15, TP_Y[1], TP_Y[1] + 8, pz0 - 15, pz1 + 15).cut(bx(px0 + 3, px1 - 3, TP_Y[1] - 1, TP_Y[1] + 9, pz0 + 3, pz1 - 3)))
+            .union(bx(px0, px1, TC_B[1] - TCH['ha'] / 2 - 25, yt, zl0, pz1)))
+    post = post.cut(bx(px1 - 4, px1 + 16, TP_Y[1] - 1, TP_Y[1] + 17, DUCT_Z[0], DUCT_Z[1]))     # the plate duct's way out of it
+    m.place(tr, mk(m, 'TB-TCP', 'Trolley chain driver post, steel', post, 'steel_yellow', 'structure', 'welded tube 60 x 40 x 3',
+                   f'60 x 40 x {yt - TP_Y[1]:.0f}', 'S355', 'Rises beside the beam\'s north face from the trolley plate and reaches over the '
+                   'beam to the chain\'s moving end. The lines run down inside it.', {}), Location(), (0, 100, 60), 'TROLLEY')
+    for (dx, dz) in ((px0 - 8, pz0 - 8), (px0 - 8, pz1 + 8), (px1 + 8, pz0 - 8), (px1 + 8, pz1 + 8)):
+        m.place(tr, std.shcs(6, 20, '10.9', 'Fastens the chain post\'s foot to the trolley plate.'), std.orient((dx, TP_Y[1] + 8, dz), (0, -1, 0)),
+                (0, 120, 60), 'TROLLEY')
+    emv = bx(px1, TC_B[0], TC_B[1] - TCH['ha'] / 2, TC_B[1] + TCH['ha'] / 2, zl0, zl1)
+    m.place(tr, mk(m, 'TB-TCM', 'Trolley chain end bracket, moving', emv, 'ss304', 'structure', 'bent plate', f'{TCH["ba"]:g} x {TCH["ha"]:g}',
+                   '1.4301', 'Joins the chain\'s moving end to its driver post.', {}), Location(), (0, 120, 0), 'TROLLEY')
+    # the flat duct on the trolley plate: out of the post's foot along x, then down the gap between 2 of the slewing ring's
+    # screws and under the north rail to the slip ring's stator. The trolley and slew motors' cables leave it at the post.
+    z0d, z1d = DUCT_Z
+    duct = bx(px1 - 3, 18, TP_Y[1], TP_Y[1] + 16, z0d, z1d).union(bx(-18, 18, TP_Y[1], TP_Y[1] + 16, 60, z1d))
+    duct = duct.cut(bx(px1 - 4, 16, TP_Y[1] + 2, TP_Y[1] + 14, z0d + 2, z1d - 2)).cut(bx(-16, 16, TP_Y[1] + 2, TP_Y[1] + 14, 59, z1d - 2))
+    m.place(tr, mk(m, 'TB-TPD', 'Trolley plate cable duct, 36 x 16, aluminium', duct, 'al6061', 'electrical', 'folded sheet 2 mm', '36 x 16',
+                   '6061', 'Carries the robot\'s supply, EtherCAT and fibre from the chain post\'s foot under the north rail to the slip '
+                   'ring\'s stator.', {}), Location(), (0, 60, 0), 'TROLLEY')
+
+
+def TROLLEY_LINES(side: str) -> list:
+    """The trolley chain's lines (id, name, outside mm). ASSUMPTION (class sizes): a chain-rated 4G2.5 power cable 10.5 mm,
+    an EtherCAT cable 7 mm, a 2-fibre cable 6 mm, a servo motor's hybrid cable 11 mm. The robot's supply feeds what turns
+    behind the slip ring: Z 1.0, tilt 1.0, the head's small drives 0.8 and 5 nutrunners 5.0 kW, 11.1 A by NEC 670.4(A) at
+    siteService's drive input. Its feeder is 15 A: 2.5 mm2 is more copper than 14 AWG, which NEC 240.4(D) protects at 15 A."""
+    return [(f'TB-{side}SUP', f'{side} robot supply 480 V, 4G2.5', 10.5), (f'TB-{side}ECT', f'{side} robot EtherCAT', 7.0),
+            (f'TB-{side}FIB', f'{side} robot fibre, 2 cores', 6.0), (f'TB-{side}TRM', f'{side} trolley motor cable', 11.0),
+            (f'TB-{side}SLM', f'{side} slew motor cable', 11.0)]
+
+
+# ═════════════════════════════════════════════════════════════════════════════ THE CABLE SCHEDULE ═══
+# Every line from the depot's electrical yard to each motor, sensor and camera, and both oil pipes. Lengths are the
+# model's where it draws the line or its conduit, chain, loop or reel, and planned routes (rectilinear, sharp corners: an
+# upper bound, with a tolerance) through the ducts, boxes and cabinets it draws as envelopes. The site runs (TX-AUX to the
+# building's tray, the office to it) are siteService.ts's, measured on the site plan and read from cad/spec/robots.json.
+# Each line's class size and its bend radii are ASSUMPTIONS: a line's maker's sheet sets them when it is chosen.
+GLAND = (3700.0, CAB_Y[0], 6415.0)       # the bay cabinet's gland plate, over the pit's slot
+
+
+def _rect(*pts) -> float:
+    """A planned route through a box or a duct the model draws as an envelope: rectilinear between the points (mm)."""
+    return sum(abs(b[0] - a[0]) + abs(b[1] - a[1]) + abs(b[2] - a[2]) for a, b in zip(pts, pts[1:]))
+
+
+def _pit(x_m: float, y_m: float) -> float:
+    """From the cabinet's gland plate down into the pit, along it and out of its south wall at (x_m, y_m)."""
+    return _rect(GLAND, (GLAND[0], y_m, GLAND[2]), (x_m, y_m, GLAND[2]), (x_m, y_m, PIT_Z + 5))
+
+
+def build_cables(m: Model, T: dict, site: dict) -> None:
+    from ..cables import chain_mm
+    P = m.parts
+    F = {f.id: f for f in m.flexes}
+    cd = lambda pid: P[pid].path_mm                     # noqa: E731
+
+    def cb(pid):
+        b = P[pid].spec.get('bend', '')
+        return float(b.split()[1]) if b.startswith('R ') else None
+    sb = max(site['serviceBays'], key=lambda b: b['feedM'])
+    sb_txt = '; '.join(f"bay {b['bay']}: {b['feedM']:.1f} m" for b in site['serviceBays'])
+    nb_txt = '; '.join(f"bay {b['bay']}: {b['fibreM']:.1f} m" for b in site['serviceBays'])
+    CAB_TAIL = 'about 1 m inside the bay cabinet to its terminal (ASSUMPTION)'
+    PCB_TAIL = 'about 1 m inside the portal cabinet to its drive or terminal (ASSUMPTION)'
+    DEV_TAIL = 'about 0.3 m at the device to its connector or gland (ASSUMPTION)'
+
+    def L(lid, name, kind, od, spec, a, b, sub, bf, bm, ta=1000.0, tb=300.0, tails='', notes=None):
+        return m.cable(lid, name, kind, od, spec, a, b, sub, bend_fixed=bf, bend_moving=bm, tail_a=ta, tail_b=tb,
+                       tails=tails or f'{CAB_TAIL}; {DEV_TAIL}', notes=list(notes or []))
+
+    # ── 1. the site: the bay's feed from TX-AUX and its network from the office ─────────────────────────────────────
+    ln = L('TB-FEED', 'Bay feed 480 V, 3 phase', 'power', 22.0, f"{sb['conductor']}, THHN/THWN-2 in conduit and duct bank (siteService.ts)",
+           'TX-AUX\'s low-voltage board, a 50 A 3-pole breaker', 'the bay cabinet\'s main switch (TB-BCB)', 'CONTROL', 135.0, 135.0, 2000.0, 1000.0,
+           'TX-AUX\'s cable compartment and the make-off there (siteService.SERVICE_FEED_ALLOWANCE); about 1 m inside the cabinet to the '
+           'main switch (ASSUMPTION)',
+           [f"design current {sb['designAmps']:.1f} A by NEC 670.4(A), drop {sb['dropPct']:.2f} % to the farther bay, fault current at the "
+            f"cabinet {sb['faultKa']:.2f} kA or less: the cabinet's short-circuit rating is 10 kA (siteService.ts)", f'site length {sb_txt}'])
+    ln.run('site', '', 'from TX-AUX out of the battery yard, up the strip west of the office, in through the building\'s west wall and along '
+           'its cable tray on the north wall (siteService.ts: the longer bay\'s)', sb['feedM'] * M)
+    ln.run('conduit', 'TB-CFD', 'down the bay\'s north wall from the tray to the cabinet\'s top', cd('TB-CFD'), bend=cb('TB-CFD'))
+    ln = L('TB-SNET', 'Site network fibre, single-mode, 4 cores', 'network', 6.0, 'OS2, 4 cores, indoor/outdoor tight buffer',
+           'the depot\'s network switch in the office (siteFeeders.NETWORK_SWITCH)', 'the bay cabinet\'s network switch', 'CONTROL', 60.0, 60.0,
+           3000.0, 1000.0, 'a service loop at the office\'s switch (siteFeeders.NETWORK_ALLOWANCE); about 1 m inside the cabinet', [f'site length {nb_txt}'])
+    ln.run('site', '', 'from the office\'s switch along the building\'s cable tray (siteService.ts: the longer bay\'s)',
+           max(b['fibreM'] for b in site['serviceBays']) * M)
+    ln.run('conduit', 'TB-CNW', 'down the bay\'s north wall from the tray to the cabinet\'s top', cd('TB-CNW'), bend=cb('TB-CNW'))
+    for tag, where, metres in (('N', 'the north door\'s operator, beside the cabinet', 4000.0), ('S', 'the south door\'s operator, along '
+                                                                                                      'the bay\'s west wall', 18000.0)):
+        ln = L(f'TB-DR{tag}C', f'{"North" if tag == "N" else "South"} door interlock cable, 4 x 18 AWG', 'safety', 7.0,
+               'PVC, 600 V, shielded', 'the safety controller in the bay cabinet', where, 'SAFETY', 30.0, 30.0)
+        ln.run('site', 'TB-BCB', 'inside the bay cabinet from the safety controller to its top', 1500.0, tol=300.0)
+        ln.run('conduit', 'TB-CNW', 'up the north wall to the building\'s tray, beside the fibre', cd('TB-CNW'), bend=cb('TB-CNW'))
+        ln.run('site', '', f'along the building\'s tray to {where} (ASSUMPTION: the doors are the building\'s; their closed contacts '
+               'keep the machine from running with a door open)', metres, tol=1000.0)
+    # ── 2. the lift: its power unit, its 2 oil pipes, each post's reel, casing and arm cables ────────────────────────
+    hm = _rect(GLAND, (GLAND[0], -100, GLAND[2]), (HPU[0] + 255, -100, GLAND[2]), (HPU[0] + 255, HPU_TANK + 200, GLAND[2]),
+               (HPU[0] + 255, HPU_TANK + 200, 6670.0))
+    ln = L('TB-HPUC', 'Lift pump motor cable, 4 x 14 AWG', 'power', 11.0, 'TC-ER, 600 V, 90 °C', 'the pump\'s motor circuit protector in the bay cabinet',
+           'the pump motor\'s terminal box (TB-HPM)', 'HYD', 45.0, 45.0)
+    ln.run('site', 'TB-BCB', 'inside the bay cabinet from the motor circuit protector to its gland plate', 1200.0, tol=300.0)
+    ln.run('duct', 'TB-PTL', 'down into the pit, west under the power unit and up its front to the motor\'s terminal box', hm, tol=200.0)
+    vm = _rect(GLAND, (GLAND[0], -100, GLAND[2]), (HPU[1] - 95, -100, GLAND[2]), (HPU[1] - 95, HPU_TANK + 110, GLAND[2]),
+               (HPU[1] - 95, HPU_TANK + 110, 6590.0))
+    ln = L('TB-HPVC', 'Lift valve block cable, 12 x 18 AWG', 'control', 12.0, 'TC-ER, 600 V, oil resistant', 'the lift\'s I/O in the bay cabinet',
+           'the valve block\'s connector (TB-HPV): 6 coils, 2 pressure sensors, the level and temperature switch', 'HYD', 50.0, 50.0)
+    ln.run('site', 'TB-BCB', 'inside the bay cabinet from the lift\'s I/O to its gland plate', 1200.0, tol=300.0)
+    ln.run('duct', 'TB-PTL', 'down into the pit, west under the power unit and up its front to the valve block', vm, tol=200.0)
+    for tag, word in (('F', 'front'), ('R', 'rear')):
+        ln = m.cable(f'TB-HP{tag}', f'Oil pipe to the {word} ram, 35 x 2.5 steel', 'hydraulic', 35.0, 'EN 10305-4, 35 x 2.5, wrapped for burial',
+                     'its valve on the valve block (TB-HPV)', f'the {word} ram\'s barrel port (TB-BPB)', 'HYD', bend_fixed=105.0, bend_moving=105.0,
+                     tails='the valve block\'s and the port\'s fittings take its ends')
+        ln.run('drawn', f'TB-HP{tag}', 'from its valve down the power unit\'s front into the pit, south under the slab and west into the '
+               'casing to the barrel\'s top', cd(f'TB-HP{tag}'), bend=105.0)
+        cdid = f'TB-CR{tag}'
+        x_m = 3350.0 if tag == 'F' else 3450.0
+        ln = L(f'TB-LRS{tag}', f'{word.capitalize()} post reel supply, hybrid 48 V and Ethernet', 'hybrid', 12.0,
+               '2 x 2.5 mm2 + Cat 5e, PUR, 600 V', 'the lift\'s 48 V supply and switch in the bay cabinet', f'the {word} post\'s spring reel (TB-SCR)',
+               'PADS', 60.0, 60.0)
+        ln.run('site', 'TB-BCB', 'inside the bay cabinet to its gland plate', 1200.0, tol=300.0)
+        ln.run('duct', 'TB-PTL', 'down into the pit and out of its south wall', _pit(x_m, REEL_CD_Y), tol=150.0)
+        ln.run('conduit', cdid, 'in its conduit under the slab to the reel pocket', cd(cdid), bend=cb(cdid))
+        ln.run('duct', 'TB-PAN', 'across the reel pocket from the conduit\'s mouth to the reel\'s terminal', 250.0, tol=50.0)
+        ln = m.cable(f'TB-RLC{tag}', f'{word.capitalize()} post reel cable, hybrid, 2.5 m on the reel', 'hybrid', 12.0,
+                     '2 x 2.5 mm2 + Cat 5e, PUR, for spring reels (bought with the reel)', f'the {word} post\'s spring reel (TB-SCR)',
+                     f'the {word} saddle\'s junction box (TB-SJB)', 'PADS', bend_fixed=60.0, bend_moving=90.0, tail_a=0.0, tail_b=300.0,
+                     tails=f'the reel holds the line; {DEV_TAIL}')
+        ln.run('reel', f'TB-RLC{tag}', 'on its spring reel, paid out straight up to the saddle as the ram rises', F[f'TB-RLC{tag}'].lmax,
+               moving=True, flex=F[f'TB-RLC{tag}'])
+        ln = L(f'TB-LCC{tag}', f'{word.capitalize()} casing cable, 7 x 18 AWG', 'control', 9.0, 'PUR, oil resistant, 600 V',
+               'the lift\'s I/O in the bay cabinet', f'the {word} casing\'s 2 pawls and its ram position sensor (TB-PWL, TB-DWS)', 'LIFT', 36.0, 36.0)
+        ln.run('site', 'TB-BCB', 'inside the bay cabinet to its gland plate', 1200.0, tol=300.0)
+        ln.run('duct', 'TB-PTL', 'down into the pit and out of its south wall', _pit(x_m, REEL_CD_Y), tol=150.0)
+        ln.run('conduit', cdid, 'in the reel\'s conduit under the slab to the reel pocket', cd(cdid), bend=cb(cdid))
+        ln.run('duct', 'TB-PAN', 'across the reel pocket to its sleeve into the casing', 200.0, tol=50.0)
+        ln.run('conduit', 'TB-CSV', 'in its sleeve from the pocket into the casing', REEL_X[0] - 6 - T['lift']['casingD'] * M / 2)
+        ln.run('arm', 'TB-CAS', 'inside the casing, clipped to its wall, to the 2 pawls and the position sensor', 1300.0, tol=200.0)
+        for side in ('W', 'E'):
+            ln = m.cable(f'TB-ARM{tag}{side}', f'{word.capitalize()} {"west" if side == "W" else "east"} lift arm cable, hybrid', 'hybrid', 8.0,
+                         'PUR, 48 V power + EtherCAT, high flex', f'the {word} saddle\'s junction box (TB-SJB)',
+                         'the arm\'s swing drive, its slide\'s motor, the pad\'s load cell and camera', 'ARMS', bend_fixed=32.0, bend_moving=60.0,
+                         tail_a=300.0, tail_b=300.0, tails=f'{DEV_TAIL}, at each end')
+            ln.run('arm', 'TB-SAD', 'inside the saddle, up through the swing drive\'s hollow centre with a loop for the swing, along the '
+                   'arm to its slide motor and on, with a coil for the slide, to the pad', 1600.0, tol=250.0)
+    # ── 3. the portal: the floor chain's 3 lines, and from the portal cabinet each travel motor, the beacon, the stops ──
+    fcn = F['TB-FCN']
+    for (lid, name, od) in FLOOR_LINES:
+        kind = 'power' if 'supply' in name else 'network'
+        bend = {'TB-PSUP': (74.0, 138.75), 'TB-PECT': (35.0, 52.5), 'TB-PFIB': (60.0, 60.0)}[lid]
+        ln = L(lid, name, kind, od, {'TB-PSUP': '4G10 mm2 (more copper than 8 AWG, 50 A at 75 °C: NEC Table 310.16), chain rated, UL TC-ER, 1000 V', 'TB-PECT': 'EtherCAT, chain rated, PUR',
+                                      'TB-PFIB': 'OM3, 4 cores, chain rated'}[lid],
+               {'TB-PSUP': 'the portal feeder (40 A) in the bay cabinet', 'TB-PECT': 'the motion controller in the bay cabinet',
+                'TB-PFIB': 'the bay cabinet\'s network switch'}[lid], 'the portal cabinet (TB-PCB)', 'CONTROL', bend[0], bend[1], 1000.0, 1000.0,
+               f'{CAB_TAIL}; {PCB_TAIL}')
+        ln.run('site', 'TB-BCB', 'inside the bay cabinet to its gland plate', 1200.0, tol=300.0)
+        ln.run('duct', 'TB-PTL', 'down into the pit and out of its south wall', _pit(4000.0, CD_Y), tol=150.0)
+        ln.run('conduit', 'TB-CFC', 'in its conduit under the slab, up into the floor chain\'s trough', cd('TB-CFC'), bend=cb('TB-CFC'))
+        ln.run('duct', 'TB-FCT', 'along the trough\'s floor into the chain\'s fixed end', _rect((4000, 4, FC['zA'] - 150), (FC['xFix'], 42, FC['zA'])) + 12,
+               tol=50.0)
+        mm, rb = chain_mm(fcn, lid)
+        ln.run('chain', 'TB-FCN', 'in the floor chain on its side, in its own lane', mm, bend=rb, moving=True)
+        ln.run('duct', 'TB-FCD', 'out of the chain\'s moving end and up its driver to the end truck', 200.0, tol=40.0)
+        ln.run('conduit', 'TB-CLW', 'in its conduit up the west end truck and the leg to the portal cabinet', cd('TB-CLW'), bend=cb('TB-CLW'))
+    beam_in = (T['portal']['railX'] * M + CBM_X, BEAM_Y0 + 12, 0.0)    # where TB-CBM enters the beam (BEAM_HOLES)
+    for tag, side in (('W', 1), ('E', -1)):
+        ln = L(f'TB-TM{tag}C', f'{"West" if tag == "W" else "East"} travel motor cable, hybrid', 'hybrid', 11.0, 'servo hybrid, chain rated, 600 V',
+               f'its travel drive in the portal cabinet', f'the {"west" if tag == "W" else "east"} travel motor (TB-TMT)', 'TRAVEL', 55.0, 110.0,
+               1000.0, 300.0, f'{PCB_TAIL}; {DEV_TAIL}')
+        ln.run('site', 'TB-PCB', 'inside the portal cabinet from its drive', 800.0, tol=200.0)
+        if tag == 'W':
+            ln.run('conduit', 'TB-CMW', 'down the west leg in its conduit to the end truck\'s top', cd('TB-CMW'), bend=cb('TB-CMW'))
+        else:
+            ln.run('conduit', 'TB-CBM', 'up from the portal cabinet into the beam', cd('TB-CBM'), bend=cb('TB-CBM'))
+            ln.run('duct', 'TB-BEM', 'along inside the beam to the east leg', _rect(beam_in, (-(3550 + 196), BEAM_Y0 + 12, -100.0)), tol=200.0)
+            ln.run('conduit', 'TB-CME', 'down the east leg in its conduit to the end truck\'s top', cd('TB-CME'), bend=cb('TB-CME'))
+        ln.run('arm', 'TB-TRK', 'inside the end truck to the motor\'s connector', 700.0, tol=150.0)
+    ln = L('TB-BCNC', 'Beacon cable, 5 x 20 AWG', 'control', 7.0, 'PUR, 300 V', 'the portal cabinet\'s I/O', 'the status beacon (TB-BCN)', 'SAFETY', 28.0, 28.0,
+           1000.0, 300.0, f'{PCB_TAIL}; {DEV_TAIL}')
+    ln.run('site', 'TB-PCB', 'inside the portal cabinet', 800.0, tol=200.0)
+    ln.run('conduit', 'TB-CBM', 'up from the portal cabinet into the beam', cd('TB-CBM'), bend=cb('TB-CBM'))
+    ln.run('duct', 'TB-BEM', 'along inside the beam and up through its top to the beacon', _rect(beam_in, (BEACON_X, BEAM_Y1, 0.0)), tol=100.0)
+    for tag in ('W', 'E'):
+        far = tag == 'E'
+        for lid, name, to, sub, dev in ((f'TB-ES{tag}C', 'emergency stop cable, 4 x 20 AWG', 'its leg\'s emergency stop (TB-ESC)', 'SAFETY', 'safety'),
+                                        (f'TB-NS{tag}C', 'cover nest sensor cable, M12 4 pin', 'its cover nest\'s sensor (TB-NSS)', 'NEST', 'control')):
+            ln = L(lid, f'{"West" if tag == "W" else "East"} {name}', dev, 6.0, 'PUR, shielded', 'the portal cabinet\'s safety I/O' if dev == 'safety'
+                   else 'the portal cabinet\'s I/O', to, sub, 30.0, 30.0, 1000.0, 300.0, f'{PCB_TAIL}; {DEV_TAIL}')
+            ln.run('site', 'TB-PCB', 'inside the portal cabinet', 800.0, tol=200.0)
+            if far:
+                ln.run('conduit', 'TB-CBM', 'up into the beam', cd('TB-CBM'), bend=cb('TB-CBM'))
+                ln.run('duct', 'TB-BEM', 'along inside the beam to the east leg', _rect(beam_in, (-(3550 + 196), BEAM_Y0 + 12, -100.0)), tol=200.0)
+                ln.run('conduit', 'TB-CME', 'down the east leg in its conduit, out at a conduit body at the device\'s height',
+                       BEAM_Y0 - (1300.0 if 'stop' in name else 1060.0))
+                ln.run('arm', 'TB-LEG', 'round the leg, clipped, to the device', 700.0, tol=150.0)
+            else:
+                ln.run('arm', 'TB-LEG', 'out of the cabinet\'s bottom and down the leg, clipped, to the device', 900.0, tol=200.0)
+    # ── 4. each robot: the trolley chain's 5 lines, behind the slip ring, and the head's lines ───────────────────────
+    for tag, sx in (('W', 1), ('E', -1)):
+        word = 'west' if tag == 'W' else 'east'
+        tcn = F[f'TB-TCN{tag}']
+        hole = (sx * (TC_XF - 40.0), BEAM_Y1, sx * TC_LANE_Z)
+        for (lid, name, od) in TROLLEY_LINES(tag):
+            what = lid[len(f'TB-{tag}'):]
+            kind = {'SUP': 'power', 'ECT': 'network', 'FIB': 'network', 'TRM': 'hybrid', 'SLM': 'hybrid'}[what]
+            bend = {'SUP': (42.0, 79.0), 'ECT': (35.0, 52.5), 'FIB': (60.0, 60.0), 'TRM': (55.0, 110.0), 'SLM': (55.0, 110.0)}[what]
+            to = {'SUP': 'the slip ring\'s stator (TB-SRS)', 'ECT': 'the slip ring\'s stator (TB-SRS)', 'FIB': 'the fibre rotary joint in the slip ring (TB-SRS)',
+                  'TRM': 'the trolley motor (TB-TRM)', 'SLM': 'the slew motor (TB-SLM)'}[what]
+            frm = {'SUP': 'its robot feeder (15 A) in the portal cabinet', 'ECT': 'the portal cabinet\'s EtherCAT junction',
+                   'FIB': 'the portal cabinet\'s network switch', 'TRM': 'its drive in the portal cabinet', 'SLM': 'its drive in the portal cabinet'}[what]
+            ln = L(lid, name, kind, od, {'SUP': '4G2.5 mm2, chain rated, 1000 V', 'ECT': 'EtherCAT, chain rated', 'FIB': 'OM3, 2 cores, chain rated',
+                                         'TRM': 'servo hybrid, chain rated', 'SLM': 'servo hybrid, chain rated'}[what],
+                   frm, to, 'TROLLEY', bend[0], bend[1], 1000.0, 300.0, f'{PCB_TAIL}; {DEV_TAIL}')
+            ln.run('site', 'TB-PCB', 'inside the portal cabinet', 800.0, tol=200.0)
+            ln.run('conduit', 'TB-CBM', 'up from the portal cabinet into the beam', cd('TB-CBM'), bend=cb('TB-CBM'))
+            ln.run('duct', 'TB-BEM', 'along inside the beam and up through its top under the chain\'s fixed end', _rect(beam_in, (hole[0], BEAM_Y0 + 12, hole[2]),
+                   hole), tol=150.0)
+            ln.run('duct', 'TB-TCE', 'through the fixed end bracket into the chain', 120.0, tol=30.0)
+            mm, rb = chain_mm(tcn, lid)
+            ln.run('chain', f'TB-TCN{tag}', 'in the trolley chain on the beam\'s top, in its own lane', mm, bend=rb, moving=True)
+            ln.run('duct', 'TB-TCP', 'out of the chain\'s moving end, across the post\'s arm and down inside the post',
+                   _rect((TC_B[0], TC_B[1], TC_LANE_Z), (POST[0] + 30, TC_B[1], POST[2] + 20), (POST[0] + 30, TP_Y[1] + 8, POST[2] + 20)), tol=60.0)
+            if what in ('SUP', 'ECT', 'FIB'):
+                ln.run('duct', 'TB-TPD', 'along the plate duct under the north rail to the slip ring\'s stator',
+                       _rect((POST[1], TP_Y[1] + 8, sum(DUCT_Z) / 2), (0, TP_Y[1] + 8, sum(DUCT_Z) / 2), (0, TP_Y[1] + 8, 60.0)), tol=40.0)
+            elif what == 'TRM':
+                ln.run('arm', 'TB-TPL', 'across the trolley plate under the beam, clipped, to the trolley motor', 700.0, tol=120.0)
+            else:
+                ln.run('arm', 'TB-TPL', 'along the trolley plate, clipped, and up the slew motor to its connector', 600.0, tol=120.0)
+        for what, name, od, kind, spec, bend in (('SR', 'robot supply behind the slip ring, 4G2.5', 10.5, 'power', '4G2.5 mm2, 1000 V', (42.0, 42.0)),
+                                                 ('ER', 'robot EtherCAT behind the slip ring', 7.0, 'network', 'EtherCAT, PUR', (35.0, 35.0)),
+                                                 ('FR', 'robot fibre behind the rotary joint, 2 cores', 6.0, 'network', 'OM3, 2 cores', (60.0, 60.0))):
+            ln = m.cable(f'TB-{tag}{what}', f'{tag} {name}', kind, od, spec, 'the slip ring\'s rotor (TB-SRR)', 'the head drive box (TB-HDB)', 'HEADDRV',
+                         bend_fixed=bend[0], bend_moving=bend[1], tail_a=300.0, tail_b=600.0,
+                         tails=f'{DEV_TAIL}; about 0.6 m inside the head drive box (ASSUMPTION)')
+            ln.run('duct', 'TB-HD1', 'down out of the rotor through the slew plate and along its duct to the drive box\'s top',
+                   _rect((0, SLW_Y[1], 0), (0, BOX[3] + 12, 0), (0, BOX[3] + 12, -100), (230, BOX[3] + 12, -100), (230, BOX[3], -100)), tol=40.0)
+        ln = m.cable(f'TB-{tag}ZMC', f'{tag} Z motor cable, hybrid', 'hybrid', 11.0, 'servo hybrid, PUR', 'its drive in the head drive box',
+                     'the Z motor (TB-ZMT)', 'ZAXIS', bend_fixed=55.0, bend_moving=55.0, tail_a=600.0, tail_b=300.0,
+                     tails=f'about 0.6 m inside the head drive box (ASSUMPTION); {DEV_TAIL}')
+        ln.run('arm', 'TB-GDF', 'out of the drive box through the guide frame\'s back plate to the Z motor\'s top', 600.0, tol=120.0)
+        zcn = F[f'TB-ZCN{tag}']
+        hd2 = _rect((200, BOX[3] - 25, BOX[4]), (200, BOX[3] - 25, ZC_ZM - 2 * ZC_R), (0, BOX[3] - 25, ZC_ZM - 2 * ZC_R), (0, ZC_A + 12, ZC_ZM - 2 * ZC_R))
+        inbeam = _rect((0, ZB_L - 100, -ZB_W), (0, ZB_L - 100, -40), (0, 70, -40), (0, 70, -ZB_W))
+        for (lid, name, od) in zchain_lines(tag):
+            what = lid[len(f'TB-{tag}'):]
+            kind = 'network' if what.startswith('CAM') else 'hybrid'
+            bm = {'HBUS': 120.0}.get(what, 90.0 if what.startswith('NR') else 85.0)
+            k = int(what[2]) if what.startswith('NR') else 0
+            to = (f'nutrunner spindle {k} (TB-SPM)' if k else {'HBUS': 'the foot junction box (TB-FJB)', 'CAM3': 'the 3D camera (TB-C3D)',
+                                                               'CAMA': 'the axis camera (TB-CAX)'}[what])
+            frm = (f'nutrunner drive {k} in the head drive box' if k else {'HBUS': 'the DC bus supply in the head drive box',
+                                                                          'CAM3': 'the vision switch in the head drive box',
+                                                                          'CAMA': 'the vision switch in the head drive box'}[what])
+            ln = m.cable(lid, name, kind, od, {'HBUS': 'servo bus hybrid: DC power, EtherCAT and safety, chain rated',
+                                              'CAM3': 'Cat 6A, chain rated', 'CAMA': 'Cat 6A, chain rated'}.get(what, 'nutrunner tool cable, high flex'),
+                         frm, to, 'NUTS' if k else ('VISION' if what.startswith('CAM') else 'HEAD'), bend_fixed=4 * od, bend_moving=bm,
+                         tail_a=600.0, tail_b=300.0, tails=f'about 0.6 m inside the head drive box (ASSUMPTION); {DEV_TAIL}')
+            ln.run('duct', 'TB-HD2', 'out of the drive box\'s side, along its duct and down into the vertical chain\'s fixed end', hd2, tol=50.0)
+            mm, rb = chain_mm(zcn, lid)
+            ln.run('chain', f'TB-ZCN{tag}', 'in the vertical chain, in its own lane', mm, bend=rb, moving=True)
+            ln.run('duct', 'TB-ZBM', 'into the Z-beam beside the chain\'s moving end and down inside it to its foot', inbeam, tol=60.0)
+            if what == 'HBUS':
+                continue
+            ln.run('duct', 'TB-FJB', 'through the foot junction box', 150.0, tol=30.0)
+            ln.run('loop', f'TB-HLP{tag}', 'in the head\'s cable loop across the tilt, to the head\'s junction box', F[f'TB-HLP{tag}'].length,
+                   moving=True, flex=F[f'TB-HLP{tag}'])
+            if k:
+                ln.run('arm', 'TB-HSG', f'inside the head to spindle {k}\'s motor, with a loop for the cluster\'s turn and the spindle\'s slide',
+                       900.0, tol=150.0)
+            elif what == 'CAM3':
+                ln.run('arm', 'TB-HSG', 'along the housing\'s top to the 3D camera', 550.0, tol=100.0)
+            else:
+                ln.run('arm', 'TB-HSG', 'inside the head, through the cluster\'s centre tube with a loop for its turn, to the axis camera',
+                       1000.0, tol=150.0)
+        ln = m.cable(f'TB-{tag}TLT', f'{tag} tilt actuator cable, hybrid', 'hybrid', 10.0, 'servo bus hybrid, PUR', 'the foot junction box (TB-FJB)',
+                     'the tilt actuator\'s gland', 'TILT', bend_fixed=40.0, bend_moving=75.0, tail_a=200.0, tail_b=300.0,
+                     tails=f'about 0.2 m in the junction box; {DEV_TAIL}')
+        ln.run('arm', 'TB-TLH', 'down from the junction box round the hanger to the actuator\'s rear cover', 450.0, tol=100.0)
+        ln = m.cable(f'TB-{tag}HBH', f'{tag} head bus, hybrid', 'hybrid', 10.0, 'servo bus hybrid, PUR', 'the foot junction box (TB-FJB)',
+                     'the head\'s junction box (TB-HJB)', 'HEAD', bend_fixed=40.0, bend_moving=75.0, tail_a=200.0, tail_b=200.0,
+                     tails='about 0.2 m in each junction box')
+        ln.run('loop', f'TB-HLP{tag}', 'in the head\'s cable loop across the tilt', F[f'TB-HLP{tag}'].length, moving=True, flex=F[f'TB-HLP{tag}'])
+        for what, name, to, mm in (('HCL', 'cluster drive cable', 'the cluster motor (TB-CLM)', 500.0),
+                                   ('HSC', 'scroll drive cable', 'the scroll gearmotor (TB-SCM), with a loop for the cluster\'s turn', 900.0),
+                                   ('HGR', 'grip drive cable', 'the grip slide\'s motor (TB-GSM)', 500.0),
+                                   ('HCM', 'clamp drive cable', 'the clamp motor (TB-CMT), with a loop for the grip slide', 1100.0),
+                                   ('HR1', 'left roller drive cable', 'the left roller\'s gearmotor (TB-RGM), with loops for the slide and the clamp', 1300.0),
+                                   ('HR2', 'right roller drive cable', 'the right roller\'s gearmotor (TB-RGM), with loops for the slide and the clamp', 1300.0),
+                                   ('HCY', 'cover cylinders\' bus cable', 'the 4 cup cylinders (TB-CYL), in a chain from one to the next', 1700.0),
+                                   ('HLR', 'light ring cable', 'the light ring (TB-LED)', 700.0)):
+            ln = m.cable(f'TB-{tag}{what}', f'{tag} {name}, hybrid', 'hybrid', 6.0, 'servo or 24 V hybrid, high flex, PUR', 'the head\'s junction box (TB-HJB)',
+                         to, 'HEAD', bend_fixed=24.0, bend_moving=45.0, tail_a=200.0, tail_b=200.0, tails='about 0.2 m at each end')
+            ln.run('arm', 'TB-HSG', f'inside the head to {to.split(",")[0]}', mm, tol=0.15 * mm)
+        for k in range(1, 5):
+            ln = m.cable(f'TB-{tag}HV{k}', f'{tag} vacuum tube to cup {k}, 6 x 4 PU', 'air', 6.0, 'PU tube 6 x 4, vacuum rated',
+                         'its valve in the head\'s junction box', f'cup {k} (TB-CUP), through its hollow rod', 'COVER', bend_fixed=25.0, bend_moving=25.0,
+                         tail_a=100.0, tail_b=100.0, tails='the push-in fittings take its ends')
+            ln.run('arm', 'TB-HSG', 'inside the head to the cup rod\'s rear end, with a coil for the rod\'s 300 mm stroke, and through the rod', 1200.0,
+                   tol=150.0)
+    # ── 5. the racks and the safety devices under the floor ────────────────────────────────────────────────────────
+    R_ = T['rack']
+    S_ = T['socketRack']
+    for tag, sx, cdid in (('W', 1, 'TB-CKW'), ('E', -1, 'TB-CKE')):
+        x_m = 3250.0 if tag == 'W' else 2900.0
+        ln = L(f'TB-RKB{tag}', f'{"West" if tag == "W" else "East"} racks\' bus cable, EtherCAT and 24 V', 'hybrid', 8.0, 'EtherCAT + 2 x 1.5 mm2, PUR',
+               'the bay cabinet\'s EtherCAT junction', f'the {"west" if tag == "W" else "east"} IO-Link master (TB-IOM)', 'RACKS', 32.0, 32.0)
+        ln.run('site', 'TB-BCB', 'inside the bay cabinet to its gland plate', 1200.0, tol=300.0)
+        ln.run('duct', 'TB-PTL', 'down into the pit and out of its south wall', _pit(x_m, REEL_CD_Y if tag == 'W' else CD_Y), tol=150.0)
+        ln.run('conduit', cdid, 'in its conduit under the floor up into the racks\' cable channel', cd(cdid), bend=cb(cdid))
+        ln.run('duct', 'TB-RCC', 'along the cable channel to the socket rack and up its post to the master',
+               abs(4650.0 - S_['z'] * M) + 400.0, tol=100.0)
+        for k, zc in enumerate(list(R_['newZ']) + list(R_['oldZ'])):
+            ln = m.cable(f'TB-RS{tag}{k + 1}', f'{"West" if tag == "W" else "East"} wheel sensor {k + 1} cable, M12 4 pin', 'control', 5.0,
+                         'PUR, M12 A-coded at both ends', f'the {"west" if tag == "W" else "east"} IO-Link master (TB-IOM)',
+                         f'the wheel sensor (TB-RKS) of the cradle at {zc:+.2f} m', 'RACKS', bend_fixed=25.0, bend_moving=25.0, tail_a=0.0, tail_b=0.0,
+                         tails='moulded M12 connectors at both ends')
+            ln.run('duct', 'TB-RCC', 'down the post into the cable channel and along it to the cradle', abs(zc - S_['z']) * M + 400.0, tol=100.0)
+            ln.run('arm', 'TB-RKP', 'out of the channel to the back stop, up inside its post to the sensor', 600.0, tol=100.0)
+    for tag, cdid, x_m, y_m in (('1', 'TB-CS1', 3900.0, REEL_CD_Y), ('2', 'TB-CS2', 2800.0, REEL_CD_Y)):
+        ln = L(f'TB-SC{tag}C', f'Safety scanner {tag} cable, 8 pin and Ethernet', 'safety', 8.0, 'PUR, M12 8 pin + M12 D-coded Ethernet',
+               'the safety controller in the bay cabinet', f'safety scanner {tag} (TB-SCN)', 'SAFETY', 32.0, 32.0)
+        ln.run('site', 'TB-BCB', 'inside the bay cabinet to its gland plate', 1500.0, tol=300.0)
+        ln.run('duct', 'TB-PTL', 'down into the pit and out of its south wall', _pit(x_m, y_m), tol=150.0)
+        ln.run('conduit', cdid, 'in its conduit under the slab, up into the scanner\'s pedestal', cd(cdid), bend=cb(cdid))
+        ln.run('duct', 'TB-SCP', 'up inside the pedestal to the scanner', 300.0, tol=50.0)
+    ln = L('TB-ESSC', 'South emergency stop cable, 4 x 18 AWG', 'safety', 7.0, 'PUR, 600 V', 'the safety controller in the bay cabinet',
+           'the south emergency stop (TB-ESB)', 'SAFETY', 28.0, 28.0)
+    ln.run('site', 'TB-BCB', 'inside the bay cabinet to its gland plate', 1500.0, tol=300.0)
+    ln.run('duct', 'TB-PTL', 'down into the pit and out of its south wall', _pit(3800.0, REEL_CD_Y), tol=150.0)
+    ln.run('conduit', 'TB-CES', 'in its conduit under the slab, up into the emergency stop post', cd('TB-CES'), bend=cb('TB-CES'))
+    ln.run('duct', 'TB-ESP', 'up inside the post to the button', 1150.0, tol=50.0)
+    _conduit_fill(m)
+
+
+def _conduit_fill(m: Model) -> None:
+    """Each conduit's fill by NEC Chapter 9, Table 1 (a cable counts as one conductor, Note 9): 53 % of its bore for 1
+    cable, 31 % for 2, 40 % for 3 or more. A conduit placed more than once (a sleeve in each post) carries one line in each.
+    Raises on an overfilled conduit, and writes each one's fill into its bill-of-materials line. Read through a web search
+    on 2026-11-17 (check the edition the site adopts): the 3 limits,
+    https://www.ecmweb.com/national-electrical-code/code-basics/article/20892946/fill-er-up; Note 9,
+    https://www.ecmweb.com/content/article/20891686/size-raceways-for-a-successful-installation. It found the conduit into
+    the beam (TB-CBM) at 58 % with 14 lines in 50 mm: it is 63 mm now (34 %)."""
+    use: dict[str, list] = {}
+    for ln in m.cables:
+        for r in ln.runs:
+            if r.kind == 'conduit' and r.via and ln not in use.setdefault(r.via, []):
+                use[r.via].append(ln)
+    placed: dict[str, int] = {}
+    for node in m.root.walk():
+        for it in node.items:
+            placed[it.part.id] = placed.get(it.part.id, 0) + 1
+    for pid, lns in use.items():
+        pd = m.parts[pid]
+        di = float(pd.spec['inside'].split()[1])
+        k = placed.get(pid, 0)
+        if k > 1:                                       # one line in each placed copy
+            if len(lns) > k:
+                raise ValueError(f'{pid}: {len(lns)} lines in {k} copies')
+            per = [[ln] for ln in lns]
+        else:
+            per = [lns]
+        worst = max(per, key=lambda g: sum(x.od ** 2 for x in g) / {1: 53.0, 2: 31.0}.get(len(g), 40.0))
+        n = len(worst)
+        lim = {1: 53.0, 2: 31.0}.get(n, 40.0)
+        pct = 100.0 * sum(x.od ** 2 for x in worst) / di ** 2
+        if pct > lim:
+            raise ValueError(f'{pid}: {n} lines fill {pct:.1f} % of its {di:.0f} mm bore; NEC Chapter 9 Table 1 allows {lim:.0f} %')
+        pd.spec = {**pd.spec, 'fill': f'{n} line{"s" if n > 1 else ""}{" in each" if k > 1 else ""}, {pct:.1f} % of its '
+                   f'{di:.0f} mm bore (NEC Chapter 9 Table 1: {lim:.0f} %)'}

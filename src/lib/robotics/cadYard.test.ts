@@ -17,7 +17,9 @@
 //     from the charge arm working the same car;
 //   - the wash machine: inside every bay of the wash hall; the frame 1.0 u off the car; a brush pressed in no
 //     deeper than its bristles give, every other moving part 0.2 u off the car; 0.25 u off an open door; the
-//     wands into the car only through an open door; a car driving under the retracted machine clears it.
+//     wands into the car only through an open door; a car driving under the retracted machine clears it;
+//   - the tire bay's machine: inside both service bays at every step of every fleet car's wheel change; a car driving
+//     through clears it at home; and everything it stands up to a car's height lies inside the site plan's solids.
 // Vertices are sampled (the depot model's own), as armClearance samples the procedural arm's. No network: the
 // models are read from disk.
 // ============================================================================
@@ -47,7 +49,10 @@ import { advanceWashSession, IDLE_WASH, type WashSession } from '@/lib/ottoWash/
 import { washPoseAt, type WashPose } from '@/lib/ottoWash/washPose';
 import { WASH_GANTRY as G, WASH_TRAVEL } from '@/lib/ottoWash/washSpec';
 import { CAR_HALF_WIDTH_U, CAR_TOP_U } from '@/lib/ottoWash/carShape';
-import { WASH_SHELL, PARTITION_T } from '@/lib/structurePlan';
+import { WASH_SHELL, PARTITION_T, OPS_SHELL, tireBaySolids } from '@/lib/structurePlan';
+import { BAY_STALL_Y } from '@/lib/sitePlan';
+import { TIRE_BAY } from '@/lib/ottoTire/tireBayFit';
+import { TIRE_VEHICLES, homeState, tireAngles, tireCycle } from '@/lib/ottoTire/tireProgram';
 import { cadArmRigSource, partOfMesh, subOf } from './cadClearance';
 import { ARM_REACH, headIK } from '@/lib/ottoChargeArm/mateSolver';
 import { indexCad, poseCad, type CadModel } from './cadModel';
@@ -566,6 +571,85 @@ describe('OTTO-WASH, as the yard draws it (its CAD): the bay and the car', () =>
       }
     }
     expect(worst, `${at} stands ${worst.toFixed(3)} u from the car's swept box`).toBeGreaterThan(1.0);
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════ OTTO-TIRE ═══
+describe('OTTO-TIRE, as the yard draws it (its CAD): the service bay and a car driving through', () => {
+  let model: CadModel;
+  let parts: Sampled[];
+  beforeAll(async () => {
+    const scene = await depotSceneFromDisk('tire_bay');
+    model = indexCad(scene);
+    parts = sampled(scene);
+  });
+  const poseAt = (a: Record<string, number>) => { poseCad(model, a); model.root.updateMatrixWorld(true); };
+  // every step's end, for every fleet car (a step moves each joint straight from one end to the other)
+  const ALL = TIRE_VEHICLES.flatMap((v) => {
+    const c = tireCycle(v);
+    return [homeState(), ...c.steps.map((st) => st.end)].map((st) => tireAngles(st));
+  });
+  const home = tireAngles(homeState());
+
+  it('stands inside both service bays at every step: off the partitions and the end walls (its cabinets on the north wall), under the deck', () => {
+    let wide = 0, wAt = '', north = -Infinity, nAt = '', south = Infinity, sAt = '', top = 0, tAt = '';
+    for (const a of ALL) {
+      poseAt(a);
+      for (const s of parts) {
+        const r = sphere(s, vs);
+        if (Math.abs(vs.x) + r <= wide && vs.z + r <= north && vs.z - r >= south && vs.y + r <= top) continue;
+        eachVertex(s, (q) => {
+          if (Math.abs(q.x) > wide) { wide = Math.abs(q.x); wAt = s.part; }
+          if (q.z > north) { north = q.z; nAt = s.part; }
+          if (q.z < south) { south = q.z; sAt = s.part; }
+          if (q.y > top) { top = q.y; tAt = s.part; }
+        });
+      }
+    }
+    if (process.env.CAD_REPORT) console.log('tire bay extents, m', { wide, wAt, north, nAt, south, sAt, top, tAt });
+    // the narrower half of either bay: from the drive line to the partition's face
+    expect(TIRE_BAY.halfWidth - wide, `${wAt} stands ${(TIRE_BAY.halfWidth - wide).toFixed(4)} m from a partition`).toBeGreaterThanOrEqual(0.03);
+    // the bay cabinet, the power unit and the conduits down from the building's tray stand on the north wall, and nothing
+    // passes into it; the south-west safety scanner and the south emergency stop stand by the south wall, off it (a car
+    // driving in clears all of it: the next test)
+    expect(north - TIRE_BAY.north, `${nAt} passes the north wall's face`).toBeLessThanOrEqual(1e-4);
+    expect(TIRE_BAY.south + south, `${sAt} stands ${(TIRE_BAY.south + south).toFixed(3)} m from the south wall`).toBeGreaterThanOrEqual(0.03);
+    expect(top, `${tAt} reaches ${top.toFixed(3)} m`).toBeLessThan(TIRE_BAY.roofDeck - 0.3);
+  }, 300_000);
+
+  it('clears a car driving through at home: under the parked portal, between the parked heads, over the flush lift', () => {
+    poseAt(home);
+    let worst = Infinity, at = '';
+    for (const s of parts) {
+      eachVertex(s, (q) => {
+        if (q.y <= 0.002) return;                                   // in or under the floor: the car rolls over it
+        const out = Math.max(Math.abs(q.x) / M - CAR_HALF_WIDTH_U, q.y / M - CAR_TOP_U);
+        if (out < worst) { worst = out; at = s.part; }
+      });
+    }
+    expect(worst, `${at} stands ${worst.toFixed(3)} u from the car's swept box`).toBeGreaterThan(1.0);
+  });
+
+  it('puts every part that stands up to a car\'s height, at home, inside the site plan\'s solids (structurePlan.tireBaySolids)', () => {
+    poseAt(home);
+    const bayX = OPS_SHELL.bays.find((b) => b.kind === 'service')!.x;
+    // the plan's rectangles in the bay frame: X = (bay.x - plan x) x M (west), Z = (BAY_STALL_Y - plan y) x M (north)
+    const boxes = tireBaySolids(OPS_SHELL, bayX).map((k) => ({
+      kind: k.kind,
+      x0: (bayX - k.r.x1) * M, x1: (bayX - k.r.x0) * M, z0: (BAY_STALL_Y - k.r.y1) * M, z1: (BAY_STALL_Y - k.r.y0) * M,
+    }));
+    const carTop = CAR_TOP_U * M;
+    // each part with a point outside every rectangle, and the extent of its points outside (x, z: bay frame, metres)
+    const outside = new Map<string, number[]>();
+    for (const s of parts) {
+      eachVertex(s, (q) => {
+        if (q.y <= 0.002 || q.y >= carTop) return;
+        if (boxes.some((b) => q.x >= b.x0 - 0.01 && q.x <= b.x1 + 0.01 && q.z >= b.z0 - 0.01 && q.z <= b.z1 + 0.01)) return;
+        const e = outside.get(s.part) ?? [Infinity, -Infinity, Infinity, -Infinity];
+        outside.set(s.part, [Math.min(e[0], q.x), Math.max(e[1], q.x), Math.min(e[2], q.z), Math.max(e[3], q.z)]);
+      });
+    }
+    expect([...outside].map(([p, e]) => `${p}: x ${e[0].toFixed(3)}..${e[1].toFixed(3)}, z ${e[2].toFixed(3)}..${e[3].toFixed(3)}`)).toEqual([]);
   });
 });
 

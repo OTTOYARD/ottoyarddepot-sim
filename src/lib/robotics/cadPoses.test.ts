@@ -18,7 +18,7 @@ describe('cad/spec/poses.json', () => {
 
   it('covers every robot with its presets and both ends of every cycle step', () => {
     const p = cadPoses().robots;
-    for (const k of ['charge_arm', 'clean_arm', 'wash_gantry'] as const) {
+    for (const k of ['charge_arm', 'clean_arm', 'wash_gantry', 'tire_bay'] as const) {
       expect(p[k].some((x) => x.id.startsWith('pose:'))).toBe(true);
       expect(p[k].filter((x) => x.id.startsWith('cycle:')).length % 2).toBe(0);
     }

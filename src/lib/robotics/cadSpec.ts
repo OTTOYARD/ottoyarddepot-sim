@@ -43,6 +43,7 @@ import { MODEL_TOWARD } from '@/lib/robotics/liveFollow';
 import { postFeeders } from '@/lib/siteFeeders';
 import { PEAK_FREE_AIR_M3_MIN, airMains } from '@/lib/siteAir';
 import { armRuns, canopyBoards, vacuumMains } from '@/lib/siteCanopy';
+import { serviceBayFeeds } from '@/lib/siteService';
 import {
   CLEAN_ARM, CLEAN_PHASE_S, MAST_FOOT_MAX, MAST_FOOT_MIN, PIVOT_Y_MAX, PIVOT_Y_MIN, WAND_RETRACTED,
 } from '@/lib/ottoCleanArm/cleanArmSpec';
@@ -57,8 +58,9 @@ import {
 } from '@/lib/ottoWash/washSpec';
 import {
   CABINETS as TB_CABINETS, COVER_NEST as TB_COVER_NEST, COVER_RIM as TB_COVER_RIM, SOCKET_RACK as TB_SOCKET_RACK, HEAD as TB_HEAD, LIFT as TB_LIFT, PORTAL as TB_PORTAL,
-  RACK as TB_RACK, SLEW as TB_SLEW, TIRE_BAY, TROLLEY as TB_TROLLEY, ZAXIS as TB_ZAXIS,
+  RACK as TB_RACK, SLEW as TB_SLEW, TROLLEY as TB_TROLLEY, ZAXIS as TB_ZAXIS,
 } from '@/lib/ottoTire/tireSpec';
+import { TIRE_BAY } from '@/lib/ottoTire/tireBayFit';
 import { homeState as tbHome, tireAngles as tbAngles } from '@/lib/ottoTire/tireProgram';
 
 const M = METRES_PER_PLAN_UNIT;
@@ -236,6 +238,12 @@ export function cadSpec() {
         dropPct: Math.round(b.dropPct * 100) / 100, fibreM: Math.round(b.netM * 10) / 10,
       })),
       vacuumMains: vacuumMains().map((v) => ({ canopy: v.canopy, routeM: Math.round(v.routeM * 10) / 10 })),
+      // Each service bay's OTTO-TIRE feed from TX-AUX and its fibre from the office (siteService.ts, 2026-11-17), for the
+      // tire bay's cable schedule: its site runs and its cabinet's short-circuit rating.
+      serviceBays: serviceBayFeeds().map((f) => ({
+        bay: f.bay, feedM: Math.round(f.feedM * 10) / 10, fibreM: Math.round(f.netM * 10) / 10, conductor: f.conductor,
+        designAmps: Math.round(f.designAmps * 10) / 10, dropPct: Math.round(f.dropPct * 100) / 100, faultKa: Math.round(f.faultKa * 100) / 100,
+      })),
     },
   };
 }

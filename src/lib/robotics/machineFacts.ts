@@ -29,7 +29,7 @@ export interface MachineFacts {
   /** Charge arm */
   short: string;
   /** the twin layout's stall type that has one of these */
-  stallType: 'dcfc' | 'wash_bay';
+  stallType: 'dcfc' | 'wash_bay' | 'service_bay';
   /** One at each fast charger. */
   where: string;
   /** what it is and what it does, for the depot's crew */
@@ -217,7 +217,54 @@ function washMachine(bom: Bom): MachineFacts {
   };
 }
 
-/** The facts file, from the three parts lists and the twin's own tables. Pure: the same inputs give the same file. */
+function tireMachine(bom: Bom): MachineFacts {
+  const k: RobotKey = 'tire_bay';
+  const steps = stepsOf(k);
+  const total = steps.reduce((a, x) => a + (x.seconds ?? 0), 0);
+  rests(bom, 'PORTAL', /waits at the exit end/);
+  rests(bom, 'NUTS', /magnet in each socket holds its nut/);
+  return {
+    key: k, name: ROBOT_INFO[k].name, short: ROBOT_INFO[k].short, stallType: 'service_bay',
+    where: 'One in each service bay.',
+    summary: [...ROBOT_INFO[k].summary],
+    owner: [
+      'A machine changes the wheels of your car in the service bay. No person lifts a wheel.',
+      'Your car stands on steel locks while the robots work, never on the oil.',
+      'Each nut stays in its own socket until it is back on. Each one is tightened to your car\'s torque.',
+      'The torque and the angle of every nut are recorded.',
+      'Your car leaves only when every wheel is back on and checked.',
+    ],
+    functions: functionsOf(k),
+    // OTTO-Q has no wheel service of its own yet (service_cadence_policy, read 2026-11-17): a flat tyre is a fault repair,
+    // worn tyres are changed at scheduled maintenance. Both are service-bay work.
+    services: ['fault_repair', 'mechanical_pm'],
+    steps,
+    facts: [
+      { label: 'Time', value: `About ${minutes(total)} for all 4 wheels. The 2 robots change a front pair, then a rear pair.` },
+      { label: 'Lift', value: `${sub(bom, 'LIFT').function} ${how(bom, 'LIFT', /pawl drops into a tooth/)}` },
+      { label: 'Rated load', value: spec(bom, 'LIFT', 'rated load') },
+      { label: 'Lift points', value: `${how(bom, 'PADS', /load cell under each pad/)} ${how(bom, 'PADS', /lift stops if the 4 shares/)}` },
+      { label: 'Nuts', value: `${sub(bom, 'NUTS').function} ${how(bom, 'NUTS', /magnet in each socket/)}` },
+      { label: 'Torque', value: `${how(bom, 'NUTS', /transducer records torque/)} Pitch circle: ${spec(bom, 'NUTS', 'pitch circle')}.` },
+      { label: 'Grip', value: how(bom, 'GRIP', /powered rollers close on the tread/) },
+      { label: 'Cameras', value: `${how(bom, 'VISION', /3D camera on the housing/)} ${how(bom, 'VISION', /camera on the spindles' axis/)}` },
+      { label: 'Wheel covers', value: sub(bom, 'COVER').function },
+      { label: 'Racks', value: `${how(bom, 'RACKS', /2 cradles for NEW wheels/)} ${how(bom, 'RACKS', /person rolls wheels/)}` },
+      { label: 'Wheel bolts', value: `${sub(bom, 'SOCKETS').function} ${how(bom, 'SOCKETS', /takes the 17 mm set/)}` },
+      { label: 'Clear height', value: how(bom, 'PORTAL', /underside is 3.10 m up/) },
+      { label: 'Supply', value: `${spec(bom, 'CONTROL', 'supply')}, from the depot's auxiliary transformer.` },
+    ],
+    safety: [
+      `${how(bom, 'SAFETY', /laser scanners/)} A person in the bay stops every motion.`,
+      how(bom, 'SAFETY', /Emergency stops/),
+      how(bom, 'LIFT', /robots start only with all 4 pawls in/),
+      how(bom, 'SAFETY', /safe torque off/),
+      'The portal waits at the exit end. A car drives in and out under nothing.',
+    ],
+  };
+}
+
+/** The facts file, from the four parts lists and the twin's own tables. Pure: the same inputs give the same file. */
 export function buildRobotFacts(boms: Record<RobotKey, Bom>): RobotFacts {
   const t = ARM_TIMING_DEFAULTS;
   const connect = t.unstow + t.approach + t.align + t.insert + t.latch;
@@ -227,7 +274,7 @@ export function buildRobotFacts(boms: Record<RobotKey, Bom>): RobotFacts {
     version: 1,
     source: { repo: 'OTTOYARD/ottoyarddepot-sim', file: 'public/cad/robot-facts.json', builtBy: 'src/lib/robotics/machineFacts.ts' },
     chargeArm: { connectSeconds: connect, releaseSeconds: release },
-    machines: [chargeArm(boms.charge_arm, connect, release), cleanArm(boms.clean_arm), washMachine(boms.wash_gantry)],
+    machines: [chargeArm(boms.charge_arm, connect, release), cleanArm(boms.clean_arm), washMachine(boms.wash_gantry), tireMachine(boms.tire_bay)],
   };
 }
 

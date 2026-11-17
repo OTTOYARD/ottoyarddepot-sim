@@ -42,35 +42,12 @@
  *
  * UNITS: metres, radians, seconds (sim).
  */
-import { METRES_PER_PLAN_UNIT } from '@/lib/ottoChargeArm/cobotSpec';
-import { DOOR_WIDTH, OPS_SHELL, PARTITION_T, SERVICE_DOOR_HEIGHT, WALL_T } from '@/lib/structurePlan';
-import { BAY_STALL_Y } from '@/lib/sitePlan';
-
-const U = METRES_PER_PLAN_UNIT;
 const r4 = (v: number): number => Math.round(v * 1e4) / 1e4;
 
 // ═════════════════════════════════════════════════════════════════════════════ THE BAY ═══
-/**
- * The service bays as the site plan builds them (structurePlan.OPS_SHELL). The machine is designed for the NARROWER half
- * of either bay, from its drive line to the partition beside it: 8.8 u = 4.211 m in both bays (bay 2's east wall is
- * 11.4 u off its drive line). The bay is 30 u deep between its end walls' inner faces less the walls.
- */
-function bayFit() {
-  const halves = OPS_SHELL.bays.filter((b) => b.kind === 'service').flatMap((b) => [
-    b.x - (b.x0 + PARTITION_T / 2 * (b.x0 === OPS_SHELL.footprint.x0 + WALL_T ? 0 : 1)),
-    (b.x1 - (b.x1 === OPS_SHELL.footprint.x1 - WALL_T ? 0 : PARTITION_T / 2)) - b.x,
-  ]);
-  const f = OPS_SHELL.footprint;
-  return {
-    halfWidth: r4(Math.min(...halves) * U),
-    north: r4((BAY_STALL_Y - (f.y0 + WALL_T)) * U),
-    south: r4(((f.y1 - WALL_T) - BAY_STALL_Y) * U),
-    doorHalfWidth: r4(DOOR_WIDTH / 2 * U),
-    doorHeight: r4(SERVICE_DOOR_HEIGHT * U),
-    roofDeck: r4((OPS_SHELL.height - OPS_SHELL.parapet) * U),
-  };
-}
-export const TIRE_BAY = bayFit();
+// The service bays as the site plan builds them, and the half of either bay the machine is designed for, are TIRE_BAY in
+// tireBayFit.ts: this file reads nothing from the site plan, so the site plan can read the machine's footprint from it
+// (structurePlan.tireBaySolids) with no import cycle.
 
 // ═══════════════════════════════════════════════════════════════════════════ THE PORTAL ═══
 export const PORTAL = {
@@ -220,7 +197,7 @@ export const COVER_INSET = 0.03;
  * Why in-ground posts (docs/OTTO-TIRE.md, "Choices"): the robots work at the car's sides, so nothing may stand there; a
  * two-post lift's columns did. A flush double scissor (2 platforms in 0.30 m pits) was drawn first: closed, its crossing
  * beams stand 65 mm apart against 80 mm beams and 30 mm pins, so it cannot be packed in a flush pit. A ram lifts its car
- * directly, with no linkage, at about 20 bar, and reaches 1.85 m for a person to work under the car.
+ * directly, with no linkage, at about 7 bar at its rated load (ramBar), and reaches 1.85 m for a person to work under the car.
  *
  * Lift points: ASSUMPTION, a sill point LIFT_POINT_FROM_AXLE (0.60 m) inboard of each axle (tireProgram.ts); each car's
  * own points come from its maker's service data before the bay serves it, and each pad's camera checks its point.
@@ -242,7 +219,8 @@ export const LIFT = {
   ratedKg: 4500,
   /** the locks' tooth pitch on each ram (it stands on the nearest tooth at or below its height) */
   lockPitch: 0.075,
-  /** lifting time to full rise (class: 40 to 60 s for an in-ground two-post lift, docs/OTTO-TIRE.md) */
+  /** lifting time to full rise. Class: a 10,000 lb in-ground electric-hydraulic two-post lift lists 53 s to full rise and
+   *  24 s down (read through a web search on 2026-11-17: https://standardus.com/rotary-two-post-auto-lift-10-000lbs-capacity-inground-electric-hydraulic-r-sl210-fa.html) */
   riseS: 50,
 } as const;
 
@@ -263,11 +241,39 @@ export function armFor(postZ: number, padX: number, padZ: number): { swing: numb
  * The bay's control cabinet and the lift's power unit stand against the NORTH wall, west of the exit door, between the
  * door's jamb (2.63) and the partition (4.21): out of the car's path, north of the portal's travel, and reached from the
  * bay floor past the north end of the west rail. `x` is each one's middle, `w` across the bay, `d` out from the wall. The
- * power unit's tank holds the 2 rams' 116 L and a reserve (150 L). The portal's drive cabinet rides on its west leg's
- * north face, `y0` its underside.
+ * power unit's tank holds the 2 rams' 116 L and a reserve (150 L), its motor on the lid (1.15 m to the motor's top). The
+ * portal's drive cabinet rides on its west leg's north face, `y0` its underside.
  */
 export const CABINETS = {
   bay: { x: 3.70, w: 0.80, d: 0.50, h: 2.00 },
-  hpu: { x: 2.96, w: 0.46, d: 0.44, h: 0.95 },
+  hpu: { x: 2.96, w: 0.46, d: 0.44, h: 1.15 },
   portal: { w: 0.60, d: 0.30, h: 1.10, y0: 1.40 },
+} as const;
+
+/**
+ * What the machine stands in the bay up to a car's height, for the site plan's solids (structurePlan.tireBaySolids: the
+ * rectangles a car driving through the bay must never meet) beyond the numbers above. |X| from x0 to x1 (or a centre and a
+ * half-size), Z half-lengths or ends, metres. ASSUMPTION: the CAD's outlines rounded out (cad/otto_cad/robots/tire_bay.py:
+ * RB_W and the rail's anchor plates, RCC, the floor chain's trough, SCANNERS, ESTOP_POST, the portal cabinet);
+ * robotics/cadYard.test.ts holds every part of the drawn machine at home, up to a car's height, inside them.
+ */
+export const FLOOR = {
+  /** each rail's width on the floor: its anchor plates, 260 wide under the 160 rail beam */
+  railFootW: 0.26,
+  /** a racked wheel's half-length along the bay (the largest fleet tyre's radius, with room) */
+  rackHalfZ: 0.45,
+  /** the socket rack (its 17 mm sockets stand out of their holders to 2.88) and the cover nest on the portal's leg */
+  socketRack: { x0: 2.85, x1: 3.25, halfZ: 0.25 },
+  coverNest: { x0: 3.28, x1: 3.45, halfZ: 0.40 },
+  /** room kept round a parked head's outline */
+  headMargin: 0.05,
+  /** the portal at its park, each side: the leg, its end truck, and on the west leg the drive cabinet, its conduits and a stop */
+  portalLeg: { halfX: 0.31, zBack: 0.44, zFront: 0.47 },
+  /** each side's floor cable channel along the racks (100 x 30, ramped), and the floor chain's trough beside the west rail */
+  cableChannel: { x0: 3.19, x1: 3.31, halfZ: 4.71 },
+  floorChain: { x0: 3.71, x1: 4.12, z0: -4.61, z1: 4.26 },
+  /** the 2 safety scanners' pedestals (south-west, north-east) and the south emergency stop's post: centres and half-sizes */
+  scanners: [{ x: 3.95, z: -6.60 }, { x: -3.95, z: 6.60 }],
+  scannerHalf: 0.09,
+  estopPost: { x: 3.60, z: -6.48, half: 0.10 },
 } as const;

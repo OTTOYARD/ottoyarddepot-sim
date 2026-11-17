@@ -24,7 +24,7 @@ describe('public/cad/robot-facts.json', () => {
     expect(readFileSync(FILE, 'utf8')).toBe(robotFactsText(fresh));
   });
 
-  it('covers the three machines, each with its steps as the Robotics tab plays them', () => {
+  it('covers the four machines, each with its steps as the Robotics tab plays them', () => {
     expect(fresh.machines.map((m) => m.key)).toEqual([...ROBOT_KEYS]);
     for (const m of fresh.machines) {
       expect(m.steps).toEqual(cycleSteps(m.key));

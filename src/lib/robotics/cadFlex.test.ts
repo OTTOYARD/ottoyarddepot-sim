@@ -29,6 +29,7 @@ import { cleanJointsAt, sidesFor } from '@/lib/ottoCleanArm/cleanArmPose';
 import type { CleanPhase } from '@/lib/ottoCleanArm/cleanArmSpec';
 import { cleanAngles, cycleSteps, posePresets, washAngles, ROBOT_KEYS, type RobotKey } from './catalog';
 import type { WashPhase } from '@/lib/ottoWash/washSpec';
+import { TIRE_VEHICLES, tireAngles, tireCycle } from '@/lib/ottoTire/tireProgram';
 
 interface FlexSample { id: string; angles: Record<string, number>; lines: Record<string, number[][]> }
 
@@ -253,6 +254,23 @@ describe('OTTO-WASH: its lines through every program', () => {
     }
     const { n, worst } = sweepLines(cad, poses());
     expect(n).toBeGreaterThan(200);
+    for (const w of worst.values()) expect(w.fails, `${w.def.id} fails at ${w.fails.join('; ')}`).toEqual([]);
+  });
+});
+
+describe('OTTO-TIRE: its lines through every fleet car\'s wheel change', () => {
+  it('keeps every line inside its bend radius, its length limits and its chain travel', () => {
+    const cad = cads.get('tire_bay')!;
+    function* poses() {
+      for (const v of TIRE_VEHICLES) {
+        const c = tireCycle(v);
+        for (let i = 0; i < c.steps.length; i++) for (let k = 0; k <= 8; k++) {
+          yield { label: `${v.key} ${c.steps[i].id}@${(k / 8).toFixed(3)}`, angles: tireAngles(c.stateAt(i, k / 8)) };
+        }
+      }
+    }
+    const { n, worst } = sweepLines(cad, poses());
+    expect(n).toBeGreaterThan(1000);
     for (const w of worst.values()) expect(w.fails, `${w.def.id} fails at ${w.fails.join('; ')}`).toEqual([]);
   });
 });

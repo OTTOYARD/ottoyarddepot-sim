@@ -47,7 +47,7 @@ from otto_cad.core import write_json  # noqa: E402
 from otto_cad.flex import items_at, loc_matrix, matrix_location, node_frames  # noqa: E402
 
 OUT = os.path.join(HERE, '..', 'public', 'cad')
-ROBOTS = ['charge_arm', 'clean_arm', 'wash_gantry']
+ROBOTS = ['charge_arm', 'clean_arm', 'wash_gantry', 'tire_bay']
 HELD_MM = 1.0
 LINE = re.compile(r'cable|hose|tube|line|conduit|duct|pipe|drop', re.I)
 

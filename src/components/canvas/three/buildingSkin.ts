@@ -192,14 +192,6 @@ export function galvanizedSteel() {
   return mat('galvanizedSteel', () => galvanised(new THREE.MeshStandardMaterial({ color: '#8e969f', roughness: 0.42, metalness: 0.8, envMapIntensity: 0.9 })));
 }
 
-export function liftBlue() {
-  return mat('liftBlue', () => new THREE.MeshStandardMaterial({ color: '#1f5fa8', roughness: 0.45, metalness: 0.3 }));
-}
-
-export function toolRed() {
-  return mat('toolRed', () => new THREE.MeshStandardMaterial({ color: '#b01e2d', roughness: 0.35, metalness: 0.35 }));
-}
-
 export function brushFoam(color: string) {
   return mat(`brush${color}`, () => new THREE.MeshStandardMaterial({ color, roughness: 0.95, metalness: 0 }));
 }

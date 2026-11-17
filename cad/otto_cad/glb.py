@@ -128,6 +128,14 @@ def tessellate(pd, coarse: bool = False, near: bool = False) -> tuple[np.ndarray
             r = max(bb.xlen, bb.zlen) / 2
             shape = cq.Solid.makeCylinder(r, bb.ylen, cq.Vector((bb.xmin + bb.xmax) / 2, bb.ymin, (bb.zmin + bb.zmax) / 2),
                                           cq.Vector(0, 1, 0)).wrapped
+        elif pd.depot == 'cyl_x':                # the same on the part's X axis
+            r = max(bb.ylen, bb.zlen) / 2
+            shape = cq.Solid.makeCylinder(r, bb.xlen, cq.Vector(bb.xmin, (bb.ymin + bb.ymax) / 2, (bb.zmin + bb.zmax) / 2),
+                                          cq.Vector(1, 0, 0)).wrapped
+        elif pd.depot == 'cyl_z':                # and on its Z axis
+            r = max(bb.xlen, bb.ylen) / 2
+            shape = cq.Solid.makeCylinder(r, bb.zlen, cq.Vector((bb.xmin + bb.xmax) / 2, (bb.ymin + bb.ymax) / 2, bb.zmin),
+                                          cq.Vector(0, 0, 1)).wrapped
         else:
             shape = (pd.depot.val() if hasattr(pd.depot, 'val') else pd.depot).wrapped
     if coarse or near:
@@ -355,9 +363,12 @@ def write_glb(model: Model, path: str, extras: dict | None = None, depot: bool =
         return me
 
     root = emit(model.root)
+    # the yard's models leave out a line it cannot see (flex.FlexDef with yard_hidden set: wholly under the deck at rest,
+    # with both its ends on parts the yard leaves out, as the tire bay's lift reel cables are), as they leave out its parts
+    flexes = [fd for fd in getattr(model, 'flexes', []) if not ((depot or near) and getattr(fd, 'yard_hidden', False))]
     # each energy chain's link, as a mesh the viewer instances along the chain (not a placed part: no `part` key)
     link_nodes = []
-    for fd in getattr(model, 'flexes', []):
+    for fd in flexes:
         if fd.kind == 'chain' and fd.link_part is not None:
             nodes.append({'name': f'flexlink:{fd.id}', 'mesh': mesh_for(fd.link_part), 'extras': {'flexLink': fd.id}})
             link_nodes.append(len(nodes) - 1)
@@ -365,9 +376,9 @@ def write_glb(model: Model, path: str, extras: dict | None = None, depot: bool =
         nodes[root].setdefault('children', []).extend(link_nodes)
     nodes[root].setdefault('extras', {}).update(
         {'robot': model.key, 'title': model.title, 'frame': model.frame, **(extras or {})})
-    if getattr(model, 'flexes', None):
+    if flexes:
         from .flex import to_extras
-        nodes[root]['extras']['flex'] = [to_extras(fd) for fd in model.flexes]
+        nodes[root]['extras']['flex'] = [to_extras(fd) for fd in flexes]
     stats['nodes'] = len(nodes)
 
     while len(buf.data) % 4:

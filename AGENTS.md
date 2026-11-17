@@ -326,6 +326,21 @@ fed straight from its transformer, and each feed's length is measured in `src/li
   `CLEAN_PROGRAM_WRITE=1 npx vitest run src/lib/ottoCleanArm/cleanProgramFleet.test.ts` rewrites the file; then
   `cleanArmFleet.test.ts` must hold (every pose of every vehicle's cycle against its own body, leaves, openings,
   cabin, seats, and the charge arm at its own mate). `docs/CLEAN-ARM-PER-VEHICLE.md`.
+- **OTTO-TIRE changes wheels in each service bay (2026-11-17).** Chase: *"robotic arms for service bays ... places old
+  tires on one rack, grabs new tires from separate rack ... a tool/head that accounts for screws/nuts ... camera input
+  ... The lift can be automated ... include electrical design for the machine and into the yard itself."* An in-ground
+  lift, a portal on 2 floor rails and 2 wheel robots whose heads keep each nut in its own socket
+  (`src/lib/ottoTire`, `cad/otto_cad/robots/tire_bay.py`, `docs/OTTO-TIRE.md`). The program is made BY RULE for each
+  fleet car (`tireProgram.tireCycle`) from its facts and its `WHEEL_FACTS` (pattern, fastener, hex, torque, cover, each
+  with its source): a model with no `WHEEL_FACTS` entry throws. `TIRE_BAY` lives in `tireBayFit.ts`, not in
+  `tireSpec.ts`, because `structurePlan.tireBaySolids` reads `tireSpec` (an import each way is a cycle): keep
+  `tireSpec.ts` free of site imports. The bay's feed from TX-AUX and the machine's feeders are `siteService.ts`
+  (`SERVICE_ONE_LINE`), and the CAD's cable schedule must name the same ratings (`cadCables.test.ts`). The build checks
+  every conduit's fill (NEC Chapter 9, Table 1) and raises on an overfilled one. OTTO-Q has no wheel service yet, so the
+  yard draws each machine at home and the cockpits carry its facts but show no live state. ⚠️ A changed `tireSpec`, a
+  new fleet car or new wheel facts needs `CAD_SPEC_WRITE=1` for `cadSpec` and `cadPoses`, then `cad/build.py tire_bay`,
+  `cad/clash.py tire_bay --baseline` and `cad/line_ends.py tire_bay`, then `ROBOT_FACTS_WRITE=1` for the facts file
+  and its copy to both cockpits.
 - **A car's doors are per flank, and on the charger's flank per OPENING (2026-11-13, per opening 2026-11-14).**
   Every charger stands on the car's left (the cleaning arm's PORT flank), and an open left door leaf is where the
   charge arm stands or passes. Chase: charge and clean together where the design allows, one after the other only
@@ -518,7 +533,7 @@ fed straight from its transformer, and each feed's length is measured in `src/li
   `src/lib/twin/robotFacts.json`: when the file changes, copy it to both**, with the wire types
   (`src/lib/ottoTwin.ts` to their `src/lib/twin/types.ts`) if those moved. What a machine is DOING they read from the
   snapshot and the depot cards, never from that file. A cockpit opens this tab on one machine with
-  `/?tab=robotics&robot=<charge_arm|clean_arm|wash_gantry>` (`cockpitLinks.ts`): keep those three keys. The tab's
+  `/?tab=robotics&robot=<charge_arm|clean_arm|wash_gantry|tire_bay>` (`cockpitLinks.ts`): keep those keys. The tab's
   banner links back to PULSE's Robots tab (`pulseRobotsUrl`, `/?tab=robots`).
   `docs/OTTO-ROBOTICS-CAD.md`, "What the two cockpits show".
 - **From above, the roofs fade (2026-10-20):** the solar modules and roof membranes go to 16% when the camera looks

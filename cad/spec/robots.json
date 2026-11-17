@@ -673,7 +673,7 @@
         "x": 2.96,
         "w": 0.46,
         "d": 0.44,
-        "h": 0.95
+        "h": 1.15
       },
       "portal": {
         "w": 0.6,
@@ -995,6 +995,26 @@
       {
         "canopy": "C",
         "routeM": 84
+      }
+    ],
+    "serviceBays": [
+      {
+        "bay": 1,
+        "feedM": 73,
+        "fibreM": 33.5,
+        "conductor": "3 x 6 AWG copper and an equipment ground",
+        "designAmps": 41.2,
+        "dropPct": 1.74,
+        "faultKa": 2.87
+      },
+      {
+        "bay": 2,
+        "feedM": 81.8,
+        "fibreM": 42.4,
+        "conductor": "3 x 6 AWG copper and an equipment ground",
+        "designAmps": 41.2,
+        "dropPct": 1.96,
+        "faultKa": 2.56
       }
     ]
   }

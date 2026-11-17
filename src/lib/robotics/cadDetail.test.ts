@@ -134,13 +134,14 @@ describe.each([...ROBOT_KEYS])('%s: the detail model the yard draws near the cam
     // a sealed part is inside its own actuator: the housing, the rear cover and the output flange close round it, and the
     // seam between them turns about the joint's own axis, so no pose opens a line of sight to it. At rest and mid-cycle.
     const some = somePoses(k);
+    const seen: string[] = [];
     for (const p of [some[0], some[Math.floor(some.length / 2)]]) {
       pose(full, p.angles);
       const vis = measureVisibility(full, { deckY: DECK[k], samples: 24, directions: 48, only: (_id, name) => sealed.has(name) });
-      const seen = [...vis.values()].filter((e) => e.visible > 0).map((e) => e.part);
-      expect(seen, `${p.id}: ${seen.join(', ')}`).toEqual([]);
+      seen.push(...[...vis.values()].filter((e) => e.visible > 0).map((e) => `${p.id}: ${e.part}`));
     }
     pose(full, {});
+    expect(seen).toEqual([]);
   }, 300_000);
 
   it('holds together: every part touches another within 1 mm as drawn, in the detail model', () => {
@@ -236,9 +237,10 @@ describe('every line a chain carries lies inside its links, the same length at e
   beforeAll(async () => {
     for (const k of ROBOT_KEYS) for (const d of flexDefs(await load(k, 'full'))) if (d.kind === 'chain' && d.contents?.length) chains.push([k, d]);
   });
-  it('the charge arm\'s 2 chains and the wash machine\'s 3 carry their lines', () => {
+  it('the charge arm\'s 2 chains, the wash machine\'s 3 and the tire bay\'s 5 carry their lines', () => {
     expect(chains.map(([k, d]) => `${k}:${d.id}`).sort()).toEqual(
-      ['charge_arm:CHG-BCN', 'charge_arm:CHG-BZN', 'wash_gantry:WSH-DCH', 'wash_gantry:WSH-DCHL', 'wash_gantry:WSH-DCHR']);
+      ['charge_arm:CHG-BCN', 'charge_arm:CHG-BZN', 'tire_bay:TB-FCN', 'tire_bay:TB-TCNE', 'tire_bay:TB-TCNW', 'tire_bay:TB-ZCNE',
+        'tire_bay:TB-ZCNW', 'wash_gantry:WSH-DCH', 'wash_gantry:WSH-DCHL', 'wash_gantry:WSH-DCHR']);
   });
   it('each line keeps clear of its links (resting on a crossbar at most) and keeps its length', async () => {
     const bad: string[] = [];

@@ -1,0 +1,3610 @@
+{
+ "robot": "tire_bay",
+ "poses": [
+  "stowed",
+  "pose:home",
+  "pose:arms_out",
+  "pose:lift_up",
+  "pose:cover_off",
+  "pose:cover_nest",
+  "pose:nuts_on",
+  "pose:wheel_off",
+  "pose:rack_old",
+  "pose:rack_new",
+  "pose:grip_waymo_ojai_front",
+  "pose:grip_waymo_ojai_rear",
+  "pose:sock_out_put_line_waymo_ojai",
+  "pose:sock_out_put_waymo_ojai",
+  "pose:sock_out_put_back_waymo_ojai",
+  "pose:sock_out_take_line_waymo_ojai",
+  "pose:sock_out_take_back_waymo_ojai",
+  "pose:grip_waymo_ipace_front",
+  "pose:grip_waymo_ipace_rear",
+  "pose:grip_zoox_robotaxi_front",
+  "pose:grip_zoox_robotaxi_rear",
+  "pose:grip_tesla_cybercab_front",
+  "pose:grip_tesla_cybercab_rear",
+  "pose:grip_tesla_model_y_front",
+  "pose:grip_tesla_model_y_rear",
+  "pose:grip_lucid_gravity_nuro_front",
+  "pose:grip_lucid_gravity_nuro_rear",
+  "cycle:home:mid",
+  "cycle:home:end",
+  "cycle:arms_up:mid",
+  "cycle:arms_up:end",
+  "cycle:arms_out:mid",
+  "cycle:arms_out:end",
+  "cycle:pads_touch:mid",
+  "cycle:pads_touch:end",
+  "cycle:lift_up:mid",
+  "cycle:lift_up:end",
+  "cycle:f_portal:mid",
+  "cycle:f_portal:end",
+  "cycle:f_lower:mid",
+  "cycle:f_lower:end",
+  "cycle:f_approach:mid",
+  "cycle:f_approach:end",
+  "cycle:f_cups_out:mid",
+  "cycle:f_cups_out:end",
+  "cycle:f_cups_on:mid",
+  "cycle:f_cups_on:end",
+  "cycle:f_cover_off:mid",
+  "cycle:f_cover_off:end",
+  "cycle:f_cover_turn_line:mid",
+  "cycle:f_cover_turn_line:end",
+  "cycle:f_cover_turn:mid",
+  "cycle:f_cover_turn:end",
+  "cycle:f_cover_nest:mid",
+  "cycle:f_cover_nest:end",
+  "cycle:f_cover_leave:mid",
+  "cycle:f_cover_leave:end",
+  "cycle:f_cover_back:mid",
+  "cycle:f_cover_back:end",
+  "cycle:f_regain:mid",
+  "cycle:f_regain:end",
+  "cycle:f_grip:mid",
+  "cycle:f_grip:end",
+  "cycle:f_nuts_on:mid",
+  "cycle:f_nuts_on:end",
+  "cycle:f_unbolt:mid",
+  "cycle:f_unbolt:end",
+  "cycle:f_nuts_back:mid",
+  "cycle:f_nuts_back:end",
+  "cycle:f_pull:mid",
+  "cycle:f_pull:end",
+  "cycle:f_out:mid",
+  "cycle:f_out:end",
+  "cycle:f_turn_old_line:mid",
+  "cycle:f_turn_old_line:end",
+  "cycle:f_turn_old:mid",
+  "cycle:f_turn_old:end",
+  "cycle:f_to_old:mid",
+  "cycle:f_to_old:end",
+  "cycle:f_rack_near:mid",
+  "cycle:f_rack_near:end",
+  "cycle:f_rack_in:mid",
+  "cycle:f_rack_in:end",
+  "cycle:f_rack_down:mid",
+  "cycle:f_rack_down:end",
+  "cycle:f_release:mid",
+  "cycle:f_release:end",
+  "cycle:f_rack_out:mid",
+  "cycle:f_rack_out:end",
+  "cycle:f_to_new:mid",
+  "cycle:f_to_new:end",
+  "cycle:f_new_in:mid",
+  "cycle:f_new_in:end",
+  "cycle:f_new_grip:mid",
+  "cycle:f_new_grip:end",
+  "cycle:f_new_up:mid",
+  "cycle:f_new_up:end",
+  "cycle:f_new_out:mid",
+  "cycle:f_new_out:end",
+  "cycle:f_to_axle:mid",
+  "cycle:f_to_axle:end",
+  "cycle:f_turn_car:mid",
+  "cycle:f_turn_car:end",
+  "cycle:f_back_in:mid",
+  "cycle:f_back_in:end",
+  "cycle:f_lower_hub:mid",
+  "cycle:f_lower_hub:end",
+  "cycle:f_align:mid",
+  "cycle:f_align:end",
+  "cycle:f_mount:mid",
+  "cycle:f_mount:end",
+  "cycle:f_nuts_in:mid",
+  "cycle:f_nuts_in:end",
+  "cycle:f_torque:mid",
+  "cycle:f_torque:end",
+  "cycle:f_nuts_out:mid",
+  "cycle:f_nuts_out:end",
+  "cycle:f_open:mid",
+  "cycle:f_open:end",
+  "cycle:f_away:mid",
+  "cycle:f_away:end",
+  "cycle:f_cover_fetch_line:mid",
+  "cycle:f_cover_fetch_line:end",
+  "cycle:f_cover_fetch:mid",
+  "cycle:f_cover_fetch:end",
+  "cycle:f_cups_reach:mid",
+  "cycle:f_cups_reach:end",
+  "cycle:f_cover_lift:mid",
+  "cycle:f_cover_lift:end",
+  "cycle:f_cover_return:mid",
+  "cycle:f_cover_return:end",
+  "cycle:f_cover_in:mid",
+  "cycle:f_cover_in:end",
+  "cycle:f_cover_press:mid",
+  "cycle:f_cover_press:end",
+  "cycle:f_cups_in:mid",
+  "cycle:f_cups_in:end",
+  "cycle:f_up:mid",
+  "cycle:f_up:end",
+  "cycle:r_portal:mid",
+  "cycle:r_portal:end",
+  "cycle:r_lower:mid",
+  "cycle:r_lower:end",
+  "cycle:r_approach:mid",
+  "cycle:r_approach:end",
+  "cycle:r_cups_out:mid",
+  "cycle:r_cups_out:end",
+  "cycle:r_cups_on:mid",
+  "cycle:r_cups_on:end",
+  "cycle:r_cover_off:mid",
+  "cycle:r_cover_off:end",
+  "cycle:r_cover_turn_line:mid",
+  "cycle:r_cover_turn_line:end",
+  "cycle:r_cover_turn:mid",
+  "cycle:r_cover_turn:end",
+  "cycle:r_cover_nest:mid",
+  "cycle:r_cover_nest:end",
+  "cycle:r_cover_leave:mid",
+  "cycle:r_cover_leave:end",
+  "cycle:r_cover_back:mid",
+  "cycle:r_cover_back:end",
+  "cycle:r_regain:mid",
+  "cycle:r_regain:end",
+  "cycle:r_grip:mid",
+  "cycle:r_grip:end",
+  "cycle:r_nuts_on:mid",
+  "cycle:r_nuts_on:end",
+  "cycle:r_unbolt:mid",
+  "cycle:r_unbolt:end",
+  "cycle:r_nuts_back:mid",
+  "cycle:r_nuts_back:end",
+  "cycle:r_pull:mid",
+  "cycle:r_pull:end",
+  "cycle:r_out:mid",
+  "cycle:r_out:end",
+  "cycle:r_turn_old_line:mid",
+  "cycle:r_turn_old_line:end",
+  "cycle:r_turn_old:mid",
+  "cycle:r_turn_old:end",
+  "cycle:r_to_old:mid",
+  "cycle:r_to_old:end",
+  "cycle:r_rack_near:mid",
+  "cycle:r_rack_near:end",
+  "cycle:r_rack_in:mid",
+  "cycle:r_rack_in:end",
+  "cycle:r_rack_down:mid",
+  "cycle:r_rack_down:end",
+  "cycle:r_release:mid",
+  "cycle:r_release:end",
+  "cycle:r_rack_out:mid",
+  "cycle:r_rack_out:end",
+  "cycle:r_to_new:mid",
+  "cycle:r_to_new:end",
+  "cycle:r_new_in:mid",
+  "cycle:r_new_in:end",
+  "cycle:r_new_grip:mid",
+  "cycle:r_new_grip:end",
+  "cycle:r_new_up:mid",
+  "cycle:r_new_up:end",
+  "cycle:r_new_out:mid",
+  "cycle:r_new_out:end",
+  "cycle:r_to_axle:mid",
+  "cycle:r_to_axle:end",
+  "cycle:r_turn_car:mid",
+  "cycle:r_turn_car:end",
+  "cycle:r_back_in:mid",
+  "cycle:r_back_in:end",
+  "cycle:r_lower_hub:mid",
+  "cycle:r_lower_hub:end",
+  "cycle:r_align:mid",
+  "cycle:r_align:end",
+  "cycle:r_mount:mid",
+  "cycle:r_mount:end",
+  "cycle:r_nuts_in:mid",
+  "cycle:r_nuts_in:end",
+  "cycle:r_torque:mid",
+  "cycle:r_torque:end",
+  "cycle:r_nuts_out:mid",
+  "cycle:r_nuts_out:end",
+  "cycle:r_open:mid",
+  "cycle:r_open:end",
+  "cycle:r_away:mid",
+  "cycle:r_away:end",
+  "cycle:r_cover_fetch_line:mid",
+  "cycle:r_cover_fetch_line:end",
+  "cycle:r_cover_fetch:mid",
+  "cycle:r_cover_fetch:end",
+  "cycle:r_cups_reach:mid",
+  "cycle:r_cups_reach:end",
+  "cycle:r_cover_lift:mid",
+  "cycle:r_cover_lift:end",
+  "cycle:r_cover_return:mid",
+  "cycle:r_cover_return:end",
+  "cycle:r_cover_in:mid",
+  "cycle:r_cover_in:end",
+  "cycle:r_cover_press:mid",
+  "cycle:r_cover_press:end",
+  "cycle:r_cups_in:mid",
+  "cycle:r_cups_in:end",
+  "cycle:r_up:mid",
+  "cycle:r_up:end",
+  "cycle:park:mid",
+  "cycle:park:end",
+  "cycle:lift_down:mid",
+  "cycle:lift_down:end",
+  "cycle:pads_off:mid",
+  "cycle:pads_off:end",
+  "cycle:arms_in:mid",
+  "cycle:arms_in:end",
+  "cycle:arms_down:mid",
+  "cycle:arms_down:end"
+ ],
+ "pairsChecked": 268983,
+ "pairsMeasured": 34141,
+ "contactPairs": 4180,
+ "counts": {
+  "thread": 1612,
+  "seal": 6,
+  "ring": 4,
+  "mesh": 30,
+  "context": 139,
+  "clash": 0,
+  "error": 0
+ },
+ "clashes": [],
+ "floating": [],
+ "context": [
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC12#70",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "SAFETY"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 9952.6,
+   "at": [
+    -4010.0,
+    -44.0,
+    6540.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC12#71",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "SAFETY"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 9952.6,
+   "at": [
+    -4010.0,
+    -44.0,
+    6660.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-CS2#1",
+    "part": "TB-CS2",
+    "name": "Conduit to the north-east safety scanner, 32 mm",
+    "sub": "CONTROL"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 8648.1,
+   "at": [
+    -3900.0,
+    -230.6,
+    6575.4
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC12#72",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "SAFETY"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 9952.6,
+   "at": [
+    -3890.0,
+    -44.0,
+    6540.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC12#73",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "SAFETY"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 9952.6,
+   "at": [
+    -3890.0,
+    -44.0,
+    6660.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#23",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    -3655.0,
+    -55.0,
+    -4700.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#25",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    -3655.0,
+    -55.0,
+    -3760.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#27",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    -3655.0,
+    -55.0,
+    -2820.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#29",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    -3655.0,
+    -55.0,
+    -1880.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#31",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    -3655.0,
+    -55.0,
+    -940.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#33",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    -3655.0,
+    -55.0,
+    -0.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#35",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    -3655.0,
+    -55.0,
+    940.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#37",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    -3655.0,
+    -55.0,
+    1880.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#39",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    -3655.0,
+    -55.0,
+    2820.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#41",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    -3655.0,
+    -55.0,
+    3760.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#43",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    -3655.0,
+    -55.0,
+    4700.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#24",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    -3445.0,
+    -55.0,
+    -4700.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#26",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    -3445.0,
+    -55.0,
+    -3760.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#28",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    -3445.0,
+    -55.0,
+    -2820.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#30",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    -3445.0,
+    -55.0,
+    -1880.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#32",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    -3445.0,
+    -55.0,
+    -940.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#34",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    -3445.0,
+    -55.0,
+    -0.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#36",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    -3445.0,
+    -55.0,
+    940.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#38",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    -3445.0,
+    -55.0,
+    1880.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#40",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    -3445.0,
+    -55.0,
+    2820.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#42",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    -3445.0,
+    -55.0,
+    3760.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#44",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    -3445.0,
+    -55.0,
+    4700.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-CKE#1",
+    "part": "TB-CKE",
+    "name": "Conduit to the east racks' cable channel, 50 mm",
+    "sub": "CONTROL"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 23687.7,
+   "at": [
+    -3250.0,
+    -213.1,
+    4684.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC12#83",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 10970.4,
+   "at": [
+    -3250.0,
+    -48.5,
+    -3800.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC12#84",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 10970.4,
+   "at": [
+    -3250.0,
+    -48.5,
+    -2000.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC12#85",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 10970.4,
+   "at": [
+    -3250.0,
+    -48.5,
+    -0.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC12#86",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 10970.4,
+   "at": [
+    -3250.0,
+    -48.5,
+    2000.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC12#87",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 10970.4,
+   "at": [
+    -3250.0,
+    -48.5,
+    3800.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#23",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "volumeMm3": 9047.8,
+   "at": [
+    -3160.0,
+    -40.0,
+    -3550.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#24",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "volumeMm3": 9047.8,
+   "at": [
+    -3160.0,
+    -40.0,
+    -3250.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#31",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "volumeMm3": 9047.8,
+   "at": [
+    -3160.0,
+    -40.0,
+    -4400.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#32",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "volumeMm3": 9047.8,
+   "at": [
+    -3160.0,
+    -40.0,
+    -4100.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#39",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "volumeMm3": 9047.8,
+   "at": [
+    -3160.0,
+    -40.0,
+    3250.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#40",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "volumeMm3": 9047.8,
+   "at": [
+    -3160.0,
+    -40.0,
+    3550.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#47",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "volumeMm3": 9047.8,
+   "at": [
+    -3160.0,
+    -40.0,
+    4100.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#48",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "volumeMm3": 9047.8,
+   "at": [
+    -3160.0,
+    -40.0,
+    4400.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#55",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "SOCKETS"
+   },
+   "volumeMm3": 9047.8,
+   "at": [
+    -3150.0,
+    -40.0,
+    2430.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#56",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "SOCKETS"
+   },
+   "volumeMm3": 9047.8,
+   "at": [
+    -3150.0,
+    -40.0,
+    2670.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#53",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "SOCKETS"
+   },
+   "volumeMm3": 9047.8,
+   "at": [
+    -2990.0,
+    -40.0,
+    2430.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#54",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "SOCKETS"
+   },
+   "volumeMm3": 9047.8,
+   "at": [
+    -2990.0,
+    -40.0,
+    2670.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#21",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "volumeMm3": 9047.8,
+   "at": [
+    -2680.0,
+    -40.0,
+    -3550.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#22",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "volumeMm3": 9047.8,
+   "at": [
+    -2680.0,
+    -40.0,
+    -3250.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#29",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "volumeMm3": 9047.8,
+   "at": [
+    -2680.0,
+    -40.0,
+    -4400.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#30",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "volumeMm3": 9047.8,
+   "at": [
+    -2680.0,
+    -40.0,
+    -4100.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#37",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "volumeMm3": 9047.8,
+   "at": [
+    -2680.0,
+    -40.0,
+    3250.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#38",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "volumeMm3": 9047.8,
+   "at": [
+    -2680.0,
+    -40.0,
+    3550.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#45",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "volumeMm3": 9047.8,
+   "at": [
+    -2680.0,
+    -40.0,
+    4100.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#46",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "volumeMm3": 9047.8,
+   "at": [
+    -2680.0,
+    -40.0,
+    4400.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-PAN#2",
+    "part": "TB-PAN",
+    "name": "Lift recess pan, galvanised steel",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 938729.3,
+   "at": [
+    -0.0,
+    -3.0,
+    -660.3
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-PAN#1",
+    "part": "TB-PAN",
+    "name": "Lift recess pan, galvanised steel",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 938729.3,
+   "at": [
+    -0.0,
+    -3.0,
+    660.3
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#10",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 11309.7,
+   "at": [
+    -496.0,
+    -50.0,
+    -609.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#3",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 11309.7,
+   "at": [
+    -496.0,
+    -50.0,
+    1091.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#4",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 11309.7,
+   "at": [
+    -496.0,
+    -50.0,
+    609.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#9",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 11309.7,
+   "at": [
+    -496.0,
+    -50.0,
+    -1091.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#13",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 11309.7,
+   "at": [
+    -266.0,
+    -50.0,
+    -199.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#15",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 11309.7,
+   "at": [
+    -266.0,
+    -50.0,
+    -515.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#6",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 11309.7,
+   "at": [
+    -266.0,
+    -50.0,
+    199.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#8",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 11309.7,
+   "at": [
+    -266.0,
+    -50.0,
+    515.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#14",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 11309.7,
+   "at": [
+    266.0,
+    -50.0,
+    -199.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#16",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 11309.7,
+   "at": [
+    266.0,
+    -50.0,
+    -515.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#5",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 11309.7,
+   "at": [
+    266.0,
+    -50.0,
+    199.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#7",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 11309.7,
+   "at": [
+    266.0,
+    -50.0,
+    515.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#12",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 11309.7,
+   "at": [
+    496.0,
+    -50.0,
+    -609.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#1",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 11309.7,
+   "at": [
+    496.0,
+    -50.0,
+    1091.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#2",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 11309.7,
+   "at": [
+    496.0,
+    -50.0,
+    609.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#11",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 11309.7,
+   "at": [
+    496.0,
+    -50.0,
+    -1091.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#17",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "volumeMm3": 9047.8,
+   "at": [
+    2680.0,
+    -40.0,
+    -3250.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#18",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "volumeMm3": 9047.8,
+   "at": [
+    2680.0,
+    -40.0,
+    -3550.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#25",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "volumeMm3": 9047.8,
+   "at": [
+    2680.0,
+    -40.0,
+    -4100.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#26",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "volumeMm3": 9047.8,
+   "at": [
+    2680.0,
+    -40.0,
+    -4400.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#33",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "volumeMm3": 9047.8,
+   "at": [
+    2680.0,
+    -40.0,
+    3550.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#34",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "volumeMm3": 9047.8,
+   "at": [
+    2680.0,
+    -40.0,
+    3250.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#41",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "volumeMm3": 9047.8,
+   "at": [
+    2680.0,
+    -40.0,
+    4400.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#42",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "volumeMm3": 9047.8,
+   "at": [
+    2680.0,
+    -40.0,
+    4100.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#49",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "SOCKETS"
+   },
+   "volumeMm3": 9047.8,
+   "at": [
+    2990.0,
+    -40.0,
+    2670.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#50",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "SOCKETS"
+   },
+   "volumeMm3": 9047.8,
+   "at": [
+    2990.0,
+    -40.0,
+    2430.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#51",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "SOCKETS"
+   },
+   "volumeMm3": 9047.8,
+   "at": [
+    3150.0,
+    -40.0,
+    2670.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#52",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "SOCKETS"
+   },
+   "volumeMm3": 9047.8,
+   "at": [
+    3150.0,
+    -40.0,
+    2430.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#19",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "volumeMm3": 9047.8,
+   "at": [
+    3160.0,
+    -40.0,
+    -3250.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#20",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "volumeMm3": 9047.8,
+   "at": [
+    3160.0,
+    -40.0,
+    -3550.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#27",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "volumeMm3": 9047.8,
+   "at": [
+    3160.0,
+    -40.0,
+    -4100.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#28",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "volumeMm3": 9047.8,
+   "at": [
+    3160.0,
+    -40.0,
+    -4400.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#35",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "volumeMm3": 9047.8,
+   "at": [
+    3160.0,
+    -40.0,
+    3550.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#36",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "volumeMm3": 9047.8,
+   "at": [
+    3160.0,
+    -40.0,
+    3250.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#43",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "volumeMm3": 9047.8,
+   "at": [
+    3160.0,
+    -40.0,
+    4400.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "b": {
+    "item": "TB-ANC12#44",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "volumeMm3": 9047.8,
+   "at": [
+    3160.0,
+    -40.0,
+    4100.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-CKW#1",
+    "part": "TB-CKW",
+    "name": "Conduit to the west racks' cable channel, 50 mm",
+    "sub": "CONTROL"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 55300.5,
+   "at": [
+    3250.0,
+    -201.5,
+    4708.5
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC12#78",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 10970.4,
+   "at": [
+    3250.0,
+    -48.5,
+    -3800.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC12#79",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 10970.4,
+   "at": [
+    3250.0,
+    -48.5,
+    -2000.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC12#80",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 10970.4,
+   "at": [
+    3250.0,
+    -48.5,
+    -0.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC12#81",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 10970.4,
+   "at": [
+    3250.0,
+    -48.5,
+    2000.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC12#82",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "RACKS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 10970.4,
+   "at": [
+    3250.0,
+    -48.5,
+    3800.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#1",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    3445.0,
+    -55.0,
+    -4700.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#3",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    3445.0,
+    -55.0,
+    -3760.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#5",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    3445.0,
+    -55.0,
+    -2820.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#7",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    3445.0,
+    -55.0,
+    -1880.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#9",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    3445.0,
+    -55.0,
+    -940.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#11",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    3445.0,
+    -55.0,
+    -0.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#13",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    3445.0,
+    -55.0,
+    940.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#15",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    3445.0,
+    -55.0,
+    1880.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#17",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    3445.0,
+    -55.0,
+    2820.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#19",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    3445.0,
+    -55.0,
+    3760.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#21",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    3445.0,
+    -55.0,
+    4700.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC12#74",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "SAFETY"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 9952.6,
+   "at": [
+    3555.0,
+    -44.0,
+    -6545.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC12#75",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "SAFETY"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 9952.6,
+   "at": [
+    3555.0,
+    -44.0,
+    -6455.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-CES#1",
+    "part": "TB-CES",
+    "name": "Conduit to the south emergency stop post, 32 mm",
+    "sub": "CONTROL"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 6592.5,
+   "at": [
+    3622.6,
+    -233.7,
+    -6500.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC12#76",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "SAFETY"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 9952.6,
+   "at": [
+    3645.0,
+    -44.0,
+    -6545.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC12#77",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "SAFETY"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 9952.6,
+   "at": [
+    3645.0,
+    -44.0,
+    -6455.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#2",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    3655.0,
+    -55.0,
+    -4700.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#4",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    3655.0,
+    -55.0,
+    -3760.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#6",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    3655.0,
+    -55.0,
+    -2820.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#8",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    3655.0,
+    -55.0,
+    -1880.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#10",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    3655.0,
+    -55.0,
+    -940.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#12",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    3655.0,
+    -55.0,
+    -0.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#14",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    3655.0,
+    -55.0,
+    940.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#16",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    3655.0,
+    -55.0,
+    1880.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#18",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    3655.0,
+    -55.0,
+    2820.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#20",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    3655.0,
+    -55.0,
+    3760.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC16#22",
+    "part": "TB-ANC16",
+    "name": "Concrete screw anchor M16 x 125",
+    "sub": "RAILS"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 22116.8,
+   "at": [
+    3655.0,
+    -55.0,
+    4700.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC12#66",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "SAFETY"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 9952.6,
+   "at": [
+    3890.0,
+    -44.0,
+    -6660.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC12#67",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "SAFETY"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 9952.6,
+   "at": [
+    3890.0,
+    -44.0,
+    -6540.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-CS1#1",
+    "part": "TB-CS1",
+    "name": "Conduit to the south-west safety scanner, 32 mm",
+    "sub": "CONTROL"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 21946.7,
+   "at": [
+    3900.0,
+    -216.3,
+    -6563.6
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC12#57",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "CONTROL"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 10857.3,
+   "at": [
+    3920.0,
+    -48.0,
+    -4350.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC12#58",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "CONTROL"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 10857.3,
+   "at": [
+    3920.0,
+    -48.0,
+    -3350.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC12#59",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "CONTROL"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 10857.3,
+   "at": [
+    3920.0,
+    -48.0,
+    -2350.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC12#60",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "CONTROL"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 10857.3,
+   "at": [
+    3920.0,
+    -48.0,
+    -1350.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC12#61",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "CONTROL"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 10857.3,
+   "at": [
+    3920.0,
+    -48.0,
+    -350.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC12#62",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "CONTROL"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 10857.3,
+   "at": [
+    3920.0,
+    -48.0,
+    650.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC12#63",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "CONTROL"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 10857.3,
+   "at": [
+    3920.0,
+    -48.0,
+    1650.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC12#64",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "CONTROL"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 10857.3,
+   "at": [
+    3920.0,
+    -48.0,
+    2650.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC12#65",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "CONTROL"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 10857.3,
+   "at": [
+    3920.0,
+    -48.0,
+    3650.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-CFC#1",
+    "part": "TB-CFC",
+    "name": "Conduit to the floor chain's fixed end, 50 mm",
+    "sub": "CONTROL"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 43770.9,
+   "at": [
+    4000.0,
+    -197.9,
+    -406.4
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC12#68",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "SAFETY"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 9952.6,
+   "at": [
+    4010.0,
+    -44.0,
+    -6660.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "TB-ANC12#69",
+    "part": "TB-ANC12",
+    "name": "Concrete screw anchor M12 x 100",
+    "sub": "SAFETY"
+   },
+   "b": {
+    "item": "TB-SLB#1",
+    "part": "TB-SLB",
+    "name": "Bay floor slab (the building's, for context)",
+    "sub": "LIFT"
+   },
+   "volumeMm3": 9952.6,
+   "at": [
+    4010.0,
+    -44.0,
+    -6540.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  }
+ ],
+ "seconds": 292.2,
+ "glbSha256": "6c5dac20e47c1bbe"
+}

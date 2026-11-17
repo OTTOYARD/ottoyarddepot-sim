@@ -29,7 +29,12 @@ import {
 } from './sitePlan';
 import { CAR_LENGTH, CAR_WIDTH } from '@/engine/motion/traffic';
 import { chargerBed, chargerPad } from '@/lib/ottoChargeArm/depotPlacement';
+import { METRES_PER_PLAN_UNIT } from '@/lib/ottoChargeArm/cobotSpec';
 import { WASH_GANTRY, WASH_HOME_DY } from '@/lib/ottoWash/washSpec';
+import {
+  CABINETS as TIRE_CABINETS, FACE_AHEAD_OF_MAST as TIRE_FACE, FLOOR as TIRE_FLOOR, HEAD as TIRE_HEAD, PORTAL as TIRE_PORTAL, RACK as TIRE_RACK,
+  SOCKET_RACK as TIRE_SOCKETS, TROLLEY as TIRE_TROLLEY,
+} from '@/lib/ottoTire/tireSpec';
 
 /** Axis-aligned rectangle in plan units. */
 export interface Rect { x0: number; y0: number; x1: number; y1: number }
@@ -226,47 +231,86 @@ export function shellSolids(s: ShellDef): { kind: string; r: Rect }[] {
 
 // ─── bay equipment, placed off the drive line so the car passes between it ───
 
-/** Two-post lift columns: either side of the car, level with where it parks. */
-export const LIFT_POST_OFFSET = 5.6; // from the bay centreline (car half-width 2.1)
-export const LIFT_POST_SIZE = 0.8;
+// Service bays: OTTO-TIRE (lib/ottoTire/tireSpec.ts, Chase 2026-11-17) replaced the two-post lift and the casework against
+// the west partition. Its lift is in the floor, flush, and everything that stands up is outboard of the door opening.
+
+/**
+ * One service bay's OTTO-TIRE, as plan rectangles: each floor rail, each leg of the portal at its park (where it waits for
+ * a car) with its end truck and, on the west leg, its drive cabinet; each robot's head hanging there at its park (raised,
+ * turned to the drive line: a car leaving north passes between the 2 heads); each side's NEW and OLD wheel racks, cable
+ * channel, socket rack and cover nest (on the portal's leg); the floor chain's trough, the 2 safety scanners and the south
+ * emergency stop; and the bay cabinet and the lift's power unit against the north wall. The portal's beam is not one: it
+ * stands 3.10 m up, over every car. The machine's bay frame (metres, +X west, +Z north, origin at
+ * the bay's lift mark) maps to the plan as x = bay.x - X / U, y = BAY_STALL_Y - Z / U. The yard draws the machine from
+ * its CAD (TireBay.tsx); robotics/cadYard.test.ts holds it inside these.
+ */
+export function tireBaySolids(s: ShellDef, bayX: number): { kind: string; r: Rect }[] {
+  const U = METRES_PER_PLAN_UNIT;
+  const rect = (side: 1 | -1, x0: number, x1: number, z0: number, z1: number): Rect => {
+    const xa = bayX - side * x0 / U, xb = bayX - side * x1 / U, ya = BAY_STALL_Y - z0 / U, yb = BAY_STALL_Y - z1 / U;
+    return { x0: Math.min(xa, xb), x1: Math.max(xa, xb), y0: Math.min(ya, yb), y1: Math.max(ya, yb) };
+  };
+  const P = TIRE_PORTAL, R = TIRE_RACK, F = TIRE_FLOOR;
+  const out: { kind: string; r: Rect }[] = [];
+  for (const side of [1, -1] as const) {
+    const w = side > 0 ? 'west' : 'east';
+    out.push({ kind: `tire-rail-${w}`, r: rect(side, P.railX - F.railFootW / 2, P.railX + F.railFootW / 2, P.railFrom, P.railTo) });
+    out.push({ kind: `tire-portal-leg-${w}`, r: rect(side, P.railX - F.portalLeg.halfX, P.railX + F.portalLeg.halfX, P.park - F.portalLeg.zBack, P.park + F.portalLeg.zFront) });
+    out.push({ kind: `tire-cable-channel-${w}`, r: rect(side, F.cableChannel.x0, F.cableChannel.x1, -F.cableChannel.halfZ, F.cableChannel.halfZ) });
+    // the head at its park: its rollers' tips toward the drive line, its drive box behind the mast, its width along the bay
+    out.push({ kind: `tire-robot-parked-${w}`, r: rect(side, TIRE_TROLLEY.park - (TIRE_FACE + TIRE_HEAD.rollerL - TIRE_HEAD.rollerBack) - F.headMargin,
+      TIRE_TROLLEY.park + TIRE_HEAD.backFromMast + F.headMargin, P.park - TIRE_HEAD.halfWidth - F.headMargin, P.park + TIRE_HEAD.halfWidth + F.headMargin) });
+    for (const [name, zs] of [['new', R.newZ], ['old', R.oldZ]] as const) {
+      out.push({ kind: `tire-rack-${name}-${w}`, r: rect(side, R.frameX0, R.frameX1, Math.min(...zs) - F.rackHalfZ, Math.max(...zs) + F.rackHalfZ) });
+    }
+    out.push({ kind: `tire-socket-rack-${w}`, r: rect(side, F.socketRack.x0, F.socketRack.x1, TIRE_SOCKETS.z - F.socketRack.halfZ, TIRE_SOCKETS.z + F.socketRack.halfZ) });
+    out.push({ kind: `tire-cover-nest-${w}`, r: rect(side, F.coverNest.x0, F.coverNest.x1, P.park - F.coverNest.halfZ, P.park + F.coverNest.halfZ) });
+  }
+  // the floor chain's trough beside the west rail, the 2 safety scanners and the south emergency stop's post
+  out.push({ kind: 'tire-floor-chain', r: rect(1, F.floorChain.x0, F.floorChain.x1, F.floorChain.z0, F.floorChain.z1) });
+  F.scanners.forEach((c, i) => out.push({ kind: `tire-scanner-${i + 1}`, r: rect(c.x > 0 ? 1 : -1, Math.abs(c.x) - F.scannerHalf,
+    Math.abs(c.x) + F.scannerHalf, c.z - F.scannerHalf, c.z + F.scannerHalf) }));
+  out.push({ kind: 'tire-estop-post', r: rect(1, F.estopPost.x - F.estopPost.half, F.estopPost.x + F.estopPost.half,
+    F.estopPost.z - F.estopPost.half, F.estopPost.z + F.estopPost.half) });
+  // the bay cabinet and the lift's power unit stand on the north wall's inner face, on the west half
+  const north = (BAY_STALL_Y - (s.footprint.y0 + s.wallT)) * U;
+  for (const [kind, c] of [['tire-bay-cabinet', TIRE_CABINETS.bay], ['tire-power-unit', TIRE_CABINETS.hpu]] as const) {
+    out.push({ kind, r: rect(1, c.x - c.w / 2, c.x + c.w / 2, north - c.d, north) });
+  }
+  return out;
+}
+
 // Wash bays: ONE rollover gantry per bay on two floor rails (lib/ottoWash/washSpec.ts, Chase
 // 2026-10-20: "the machine moves back and forth over it several times"). It moves only while a
 // car stands parked under it, and a car may not move until it is home (engine/motion/washGate.ts),
 // so the solids a moving car can meet are the machine AT HOME, retracted, plus its rails.
-/** Service-bay casework against the bay's west partition: tool chest (south), tyre rack (north). */
-export const SERVICE_CASEWORK_DEPTH = 1.6;
-
 export function bayEquipmentSolids(s: ShellDef): { kind: string; r: Rect }[] {
   const out: { kind: string; r: Rect }[] = [];
   const sq = (kind: string, x: number, y: number, size: number) =>
     out.push({ kind, r: { x0: x - size / 2, x1: x + size / 2, y0: y - size / 2, y1: y + size / 2 } });
-  const f = s.footprint;
   for (const b of s.bays) {
     if (b.kind === 'service') {
-      for (const side of [-1, 1]) sq('lift-post', b.x + side * LIFT_POST_OFFSET, BAY_STALL_Y, LIFT_POST_SIZE);
-      const cx0 = b.x0 + PARTITION_T / 2 + 0.2, cx1 = cx0 + SERVICE_CASEWORK_DEPTH;
-      out.push({ kind: 'tool-chest', r: { x0: cx0, x1: cx1, y0: f.y1 - s.wallT - 6.5, y1: f.y1 - s.wallT - 3.0 } });
-      out.push({ kind: 'tyre-rack', r: { x0: cx0, x1: cx1, y0: f.y0 + s.wallT + 2.5, y1: f.y0 + s.wallT + 8.5 } });
-    } else {
-      const G = WASH_GANTRY;
-      const home = BAY_STALL_Y + WASH_HOME_DY;
-      for (const side of [-1, 1]) {
-        // the trolley and leg, the air knife and the arch's upright at home; the docked detail arm
-        out.push({ kind: 'wash-gantry-leg', r: {
-          x0: b.x + side * G.legX - G.trolley.w / 2, x1: b.x + side * G.legX + G.trolley.w / 2,
-          y0: home + G.leg.dy - G.trolley.d / 2, y1: home + G.leg.dy + G.trolley.d / 2 } });
-        // the detail arm docked at the exit end of its track: its carriage, and the arm folded north of it
-        sq('wash-detail-arm', b.x + side * G.detail.trackX, BAY_STALL_Y + G.detail.dockDy - 0.6, 1.9);
-        const kx = b.x + side * (G.dryer.side.retractX + G.dryer.side.w / 2);
-        out.push({ kind: 'wash-air-knife', r: {
-          x0: kx - G.dryer.side.w / 2, x1: kx + G.dryer.side.w / 2,
-          y0: home + G.dryer.dy - G.dryer.side.d / 2, y1: home + G.dryer.dy + G.dryer.side.d / 2 } });
-        sq('wash-arch', b.x + side * G.arch.x, home + G.arch.dy, 2 * G.arch.r + 0.14);
-        // the rail and its plinth, the length of the bay's travel
-        out.push({ kind: 'wash-rail', r: {
-          x0: b.x + side * G.legX - 0.7, x1: b.x + side * G.legX + 0.7,
-          y0: BAY_STALL_Y + G.rail.from, y1: BAY_STALL_Y + G.rail.to } });
-      }
+      out.push(...tireBaySolids(s, b.x));
+      continue;
+    }
+    const G = WASH_GANTRY;
+    const home = BAY_STALL_Y + WASH_HOME_DY;
+    for (const side of [-1, 1]) {
+      // the trolley and leg, the air knife and the arch's upright at home; the docked detail arm
+      out.push({ kind: 'wash-gantry-leg', r: {
+        x0: b.x + side * G.legX - G.trolley.w / 2, x1: b.x + side * G.legX + G.trolley.w / 2,
+        y0: home + G.leg.dy - G.trolley.d / 2, y1: home + G.leg.dy + G.trolley.d / 2 } });
+      // the detail arm docked at the exit end of its track: its carriage, and the arm folded north of it
+      sq('wash-detail-arm', b.x + side * G.detail.trackX, BAY_STALL_Y + G.detail.dockDy - 0.6, 1.9);
+      const kx = b.x + side * (G.dryer.side.retractX + G.dryer.side.w / 2);
+      out.push({ kind: 'wash-air-knife', r: {
+        x0: kx - G.dryer.side.w / 2, x1: kx + G.dryer.side.w / 2,
+        y0: home + G.dryer.dy - G.dryer.side.d / 2, y1: home + G.dryer.dy + G.dryer.side.d / 2 } });
+      sq('wash-arch', b.x + side * G.arch.x, home + G.arch.dy, 2 * G.arch.r + 0.14);
+      // the rail and its plinth, the length of the bay's travel
+      out.push({ kind: 'wash-rail', r: {
+        x0: b.x + side * G.legX - 0.7, x1: b.x + side * G.legX + 0.7,
+        y0: BAY_STALL_Y + G.rail.from, y1: BAY_STALL_Y + G.rail.to } });
     }
   }
   return out;
