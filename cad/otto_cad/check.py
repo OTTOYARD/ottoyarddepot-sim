@@ -50,7 +50,7 @@ THREAD_CLEAR_MM = 0.6        # a hole cylinder's radius past the nominal diamete
 SEAL_SHARE = 1 / 3
 RING_SHARE = 0.5
 MESH_SHARE = 0.1
-MESH_PAIRS = (('SWG', 'SWG'), ('PUL-', 'BELT-'), ('WSH-PIN', 'WSH-SRK'), ('WSH-DPN', 'WSH-DRK'), ('CLN-PIN', 'CLN-RCK'))
+MESH_PAIRS = (('SWG', 'SWG'), ('PUL-', 'BELT-'), ('WSH-PIN', 'WSH-SRK'), ('WSH-DPN', 'WSH-DRK'), ('CLN-PIN', 'CLN-RCK'), ('TB-PIN', 'TB-GR'))
 
 _SCREW = re.compile(r'^ISO(4762|7380|10642|4017|4026)-M(\d+)x([\d.]+)')
 _DOWEL = re.compile(r'^ISO8734-([\d.]+)x([\d.]+)')

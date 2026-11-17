@@ -20,11 +20,12 @@ import { DOCK_DY_M } from '@/lib/ottoWash/detailArm';
 import {
   CABIN_HOLD_NOMINAL_S, PASS_NOMINAL_S, WASH_GANTRY as WG, WASH_PHASE_S, washChain, isPass, type WashPhase,
 } from '@/lib/ottoWash/washSpec';
+import { CYCLE_MODEL, TIRE_VEHICLES, gripState, homeState, needsSocketSwap, tireAngles, tireCycle } from '@/lib/ottoTire/tireProgram';
 
 // ── files ──────────────────────────────────────────────────────────────────
 
-export type RobotKey = 'charge_arm' | 'clean_arm' | 'wash_gantry';
-export const ROBOT_KEYS: readonly RobotKey[] = ['charge_arm', 'clean_arm', 'wash_gantry'];
+export type RobotKey = 'charge_arm' | 'clean_arm' | 'wash_gantry' | 'tire_bay';
+export const ROBOT_KEYS: readonly RobotKey[] = ['charge_arm', 'clean_arm', 'wash_gantry', 'tire_bay'];
 
 export interface ManifestRobot {
   key: RobotKey;
@@ -173,6 +174,16 @@ export const ROBOT_INFO: Record<RobotKey, { name: string; short: string; summary
       'No brush touches the car. The doors stay shut.',
     ],
   },
+  tire_bay: {
+    name: 'OTTO-TIRE',
+    short: 'Wheel service bay',
+    summary: [
+      'A wheel change line in each service bay. The lift rises out of the floor and lifts the car 0.5 m.',
+      'A portal on 2 floor rails carries 2 wheel robots, one each side of the car.',
+      'Each head takes off the 5 nuts and keeps each one in its socket. It sets the old wheel in a rack and puts on a new one.',
+      'It tightens each nut to the car\'s torque. Its cameras check each step.',
+    ],
+  },
 };
 
 /** The five robotic functions Chase named, each found in the machine and subsystems that do it. */
@@ -185,6 +196,8 @@ export const FUNCTIONS: readonly RoboticFunction[] = [
   { id: 'wash', label: 'Wash bay', robot: 'wash_gantry', subs: ['ARCH', 'DRYER', 'POLISH'] },
   { id: 'wash_wipe', label: 'Wash bay sensor polish', robot: 'wash_gantry', subs: ['POLISH', 'WRIST', 'TRACK', 'DOCK'] },
   { id: 'wash_overhead', label: 'Wash bay overhead', robot: 'wash_gantry', subs: ['DRYER', 'ARCH'] },
+  { id: 'tire', label: 'Wheel change', robot: 'tire_bay', subs: ['NUTS', 'GRIP', 'HEAD'] },
+  { id: 'tire_lift', label: 'Service bay lift', robot: 'tire_bay', subs: ['LIFT', 'ARMS', 'PADS'] },
 ];
 
 export const CATEGORY_LABEL: Record<string, string> = {
@@ -324,8 +337,39 @@ function washPoses(): PosePreset[] {
   ];
 }
 
+/** The service bay's machine, from its own program (ottoTire/tireProgram): the steps' end states, and each fleet model's
+ *  grip on its front and rear wheels. */
+function tirePoses(): PosePreset[] {
+  const cyc = tireCycle(TIRE_VEHICLES.find((v) => v.key === CYCLE_MODEL)!);
+  const end = (id: string) => cyc.steps.find((s) => s.id === id)!.end;
+  const out: PosePreset[] = [
+    { id: 'home', label: 'Home', angles: tireAngles(homeState()) },
+    { id: 'arms_out', label: 'Lift arms under the car', angles: tireAngles(end('arms_out')) },
+    { id: 'lift_up', label: 'Car lifted 0.5 m', angles: tireAngles(end('lift_up')) },
+    { id: 'cover_off', label: 'Cover off', angles: tireAngles(end('f_cover_off')) },
+    { id: 'cover_nest', label: 'Cover in its nest', angles: tireAngles(end('f_cover_nest')) },
+    { id: 'nuts_on', label: 'Sockets on the nuts', angles: tireAngles(end('f_nuts_on')) },
+    { id: 'wheel_off', label: 'Wheel off', angles: tireAngles(end('f_pull')) },
+    { id: 'rack_old', label: 'Old wheel in its rack', angles: tireAngles(end('f_rack_down')) },
+    { id: 'rack_new', label: 'New wheel out of its rack', angles: tireAngles(end('f_new_up')) },
+  ];
+  for (const v of TIRE_VEHICLES) {
+    out.push({ id: `grip_${v.key}_front`, label: `Front wheel held: ${v.name}`, angles: tireAngles(gripState(v, 'front')) });
+    out.push({ id: `grip_${v.key}_rear`, label: `Rear wheel held: ${v.name}`, angles: tireAngles(gripState(v, 'rear')) });
+    if (needsSocketSwap(v.facts)) {
+      const c = tireCycle(v);
+      // not 'sock_out_take': the CAD's head always carries its 21 mm set, and there it would stand in the 17 mm sockets
+      for (const id of ['sock_out_put_line', 'sock_out_put', 'sock_out_put_back', 'sock_out_take_line', 'sock_out_take_back']) {
+        out.push({ id: `${id}_${v.key}`, label: `Socket change (${id.replace(/_/g, ' ')}): ${v.name}`,
+          angles: tireAngles(c.steps.find((s) => s.id === id)!.end) });
+      }
+    }
+  }
+  return out;
+}
+
 export function posePresets(robot: RobotKey): PosePreset[] {
-  return robot === 'charge_arm' ? chargePoses() : robot === 'clean_arm' ? cleanPoses() : washPoses();
+  return robot === 'charge_arm' ? chargePoses() : robot === 'clean_arm' ? cleanPoses() : robot === 'tire_bay' ? tirePoses() : washPoses();
 }
 
 // ── how each machine runs: its steps, read from the twin's phase tables ───
@@ -354,6 +398,9 @@ const WASH_LABEL: Partial<Record<WashPhase, string>> = {
 };
 
 export function cycleSteps(robot: RobotKey): CycleStep[] {
+  if (robot === 'tire_bay') {
+    return tireCycle(TIRE_VEHICLES.find((v) => v.key === CYCLE_MODEL)!).steps.map((s) => ({ id: s.id, label: s.label, seconds: s.seconds }));
+  }
   if (robot === 'charge_arm') {
     return NOMINAL_SEQUENCE.filter((p) => p !== 'stowed' && p !== 'clear').map((p) => ({
       id: p, label: CHARGE_LABEL[p] ?? p,
@@ -423,6 +470,12 @@ export function chargeModelAngles(phase: ArmPhaseId, u: number, port: { x: numbe
 }
 
 export function cycleScript(robot: RobotKey): CycleScript {
+  if (robot === 'tire_bay') {
+    const cyc = tireCycle(TIRE_VEHICLES.find((v) => v.key === CYCLE_MODEL)!);
+    const index = new Map(cyc.steps.map((s, i) => [s.id, i]));
+    const steps = cyc.steps.map((s) => ({ id: s.id, label: s.label, seconds: s.seconds }));
+    return script(steps, (id, u) => tireAngles(cyc.stateAt(index.get(id)!, u)));
+  }
   if (robot === 'charge_arm') {
     const target = { port: { x: SAMPLE_PORT.along, y: SAMPLE_PORT.height - MOUNT_HEIGHT_M, z: FLANK_STANDOFF_M }, normal: { x: 0, y: 0, z: -1 } };
     const steps = cycleSteps('charge_arm').map((s) => ({ id: s.id, label: s.label, seconds: s.seconds ?? SHORT_STEP_S, short: s.seconds == null }));
@@ -455,4 +508,16 @@ export const JOINT_LABEL: Record<string, string> = {
   WAND_L_REACH1: 'Left wand reach tube 1', WAND_L_REACH2: 'Left wand reach tube 2',
   WAND_R_DROP1: 'Right wand stage 2', WAND_R_DROP2: 'Right wand stage 3', WAND_R_DROP3: 'Right wand stage 4',
   WAND_R_REACH1: 'Right wand reach tube 1', WAND_R_REACH2: 'Right wand reach tube 2',
+  TB_PORTAL: 'Portal travel', TB_RAM_F: 'Front ram', TB_RAM_R: 'Rear ram',
+  ...Object.fromEntries((['W', 'E'] as const).flatMap((s) => {
+    const side = s === 'W' ? 'West' : 'East';
+    return [
+      [`TB_TROL_${s}`, `${side} trolley`], [`TB_SLEW_${s}`, `${side} slew`], [`TB_Z_${s}`, `${side} Z-beam`],
+      [`TB_TILT_${s}`, `${side} head tilt`], [`TB_GRIP_${s}`, `${side} grip slide`], [`TB_CLAMPL_${s}`, `${side} left clamp`],
+      [`TB_CLAMPR_${s}`, `${side} right clamp`], [`TB_ACLU_${s}`, `${side} spindle cluster`], [`TB_COVER_${s}`, `${side} cover cups`],
+      ...[1, 2, 3, 4, 5].map((k) => [`TB_PCD${k}_${s}`, `${side} spindle ${k} radius`]),
+      [`TB_SWF_${s}`, `Front ${side.toLowerCase()} lift arm swing`], [`TB_RCHF_${s}`, `Front ${side.toLowerCase()} lift arm reach`],
+      [`TB_SWR_${s}`, `Rear ${side.toLowerCase()} lift arm swing`], [`TB_RCHR_${s}`, `Rear ${side.toLowerCase()} lift arm reach`],
+    ];
+  })),
 };

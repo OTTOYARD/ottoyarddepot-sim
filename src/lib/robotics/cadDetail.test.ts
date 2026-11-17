@@ -35,9 +35,9 @@ const manifest = JSON.parse(readFileSync(`${PUBLIC_CAD}/manifest.json`, 'utf8'))
 };
 const poses = JSON.parse(readFileSync('cad/spec/poses.json', 'utf8')).robots as Record<string, { id: string; angles: Record<string, number> }[]>;
 /** the yard's deck in each robot's own frame, metres (the charge arm's J1 is MOUNT_HEIGHT_M over it) */
-const DECK: Record<RobotKey, number> = { charge_arm: -MOUNT_HEIGHT_M, clean_arm: 0, wash_gantry: 0 };
+const DECK: Record<RobotKey, number> = { charge_arm: -MOUNT_HEIGHT_M, clean_arm: 0, wash_gantry: 0, tire_bay: 0 };
 /** what a robot hangs from in the yard, drawn by the site: the clean arm's canopy steel */
-const SITE: Record<RobotKey, readonly string[]> = { charge_arm: [], clean_arm: ['CLN-HDR', 'CLN-COL', 'CLN-CLP'], wash_gantry: [] };
+const SITE: Record<RobotKey, readonly string[]> = { charge_arm: [], clean_arm: ['CLN-HDR', 'CLN-COL', 'CLN-CLP'], wash_gantry: [], tire_bay: [] };
 /** site works the yard models draw with the robot (glb.py DEPOT_SITE_KEEP) */
 const SITE_KEEP = new Set(['CHG-BGB']);
 /** a few of each robot's twin poses, spread over its cycle: the stowed pose, its first tab poses, its cycle */

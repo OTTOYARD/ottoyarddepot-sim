@@ -14,7 +14,7 @@ const clean = (a: Record<string, number>) => Object.fromEntries(Object.entries(a
 
 export function cadPoses(): { version: 1; robots: Record<RobotKey, CadPose[]> } {
   const robots = {} as Record<RobotKey, CadPose[]>;
-  for (const k of ['charge_arm', 'clean_arm', 'wash_gantry'] as RobotKey[]) {
+  for (const k of ['charge_arm', 'clean_arm', 'wash_gantry', 'tire_bay'] as RobotKey[]) {
     const out: CadPose[] = posePresets(k).map((p) => ({ id: `pose:${p.id}`, angles: clean(p.angles) }));
     const s = cycleScript(k);
     let t0 = 0;

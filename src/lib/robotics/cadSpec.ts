@@ -55,6 +55,11 @@ import { DECK_Y } from '@/components/canvas/three/coordUtils';
 import {
   DETAIL_ARM, PASS_NOMINAL_S, WASH_GANTRY, WASH_HOME_DY, WASH_PHASE_S, WASH_TRAVEL,
 } from '@/lib/ottoWash/washSpec';
+import {
+  CABINETS as TB_CABINETS, COVER_NEST as TB_COVER_NEST, COVER_RIM as TB_COVER_RIM, SOCKET_RACK as TB_SOCKET_RACK, HEAD as TB_HEAD, LIFT as TB_LIFT, PORTAL as TB_PORTAL,
+  RACK as TB_RACK, SLEW as TB_SLEW, TIRE_BAY, TROLLEY as TB_TROLLEY, ZAXIS as TB_ZAXIS,
+} from '@/lib/ottoTire/tireSpec';
+import { homeState as tbHome, tireAngles as tbAngles } from '@/lib/ottoTire/tireProgram';
 
 const M = METRES_PER_PLAN_UNIT;
 /** Round to 0.1 mm, so the snapshot is stable across float noise and readable. */
@@ -188,6 +193,22 @@ export function cadSpec() {
       },
       passSeconds: { ...PASS_NOMINAL_S },
       phaseSeconds: { ...WASH_PHASE_S },
+    },
+    // OTTO-TIRE, the service bays' wheel robots and lift (ottoTire/tireSpec.ts), in the bay's frame, metres. `stowed` is the
+    // machine at rest (homeState): every joint's value there, as tireAngles names them.
+    tire: {
+      bay: { ...TIRE_BAY },
+      portal: { ...TB_PORTAL },
+      trolley: { ...TB_TROLLEY },
+      slew: { ...TB_SLEW, from: r4(TB_SLEW.from), to: r4(TB_SLEW.to) },
+      zaxis: { ...TB_ZAXIS, guideY: [...TB_ZAXIS.guideY] },
+      head: { ...TB_HEAD },
+      rack: { ...TB_RACK, newZ: [...TB_RACK.newZ], oldZ: [...TB_RACK.oldZ] },
+      coverNest: { ...TB_COVER_NEST, coverRim: TB_COVER_RIM },
+      socketRack: { ...TB_SOCKET_RACK, ringY: [...TB_SOCKET_RACK.ringY] },
+      lift: { ...TB_LIFT, postZ: [...TB_LIFT.postZ], reach: [...TB_LIFT.reach] },
+      cabinets: { bay: { ...TB_CABINETS.bay }, hpu: { ...TB_CABINETS.hpu }, portal: { ...TB_CABINETS.portal } },
+      stowed: Object.fromEntries(Object.entries(tbAngles(tbHome())).map(([k, v]) => [k, r4(v)])),
     },
     car: {
       length: r4(CAR_LENGTH_M),

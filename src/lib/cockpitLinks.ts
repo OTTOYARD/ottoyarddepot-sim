@@ -9,7 +9,7 @@
 // A cockpit without these parameters behaves exactly as before. Pure: no fetch, no store.
 //
 // The other way, a cockpit opens the twin at  /?run=<sim_run_id>  ("Back to the twin") or at
-// /?tab=robotics&robot=<charge_arm|clean_arm|wash_gantry>  (a machine's engineering model).
+// /?tab=robotics&robot=<charge_arm|clean_arm|wash_gantry|tire_bay>  (a machine's engineering model).
 // The Robotics tab links back to PULSE's Robots tab (&tab=robots) for what each machine is doing now.
 // ============================================================================
 
@@ -77,7 +77,7 @@ export function runFromSearch(search: string): string | null {
 /** The twin's tabs a link may open (simulationStore's CockpitTab). */
 const LINK_TABS = ['background', 'controls', 'ottoq', 'agent', 'kpis', 'history', 'world', 'copilot', 'value', 'research', 'robotics', 'power'] as const;
 export type LinkTab = (typeof LINK_TABS)[number];
-const LINK_ROBOTS = ['charge_arm', 'clean_arm', 'wash_gantry'] as const;
+const LINK_ROBOTS = ['charge_arm', 'clean_arm', 'wash_gantry', 'tire_bay'] as const;
 export type LinkRobot = (typeof LINK_ROBOTS)[number];
 
 /**
