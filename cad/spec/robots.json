@@ -535,6 +535,195 @@
       "retract": 9
     }
   },
+  "tire": {
+    "bay": {
+      "halfWidth": 4.2108,
+      "north": 6.8904,
+      "south": 6.8904,
+      "doorHalfWidth": 2.6317,
+      "doorHeight": 4.1151,
+      "roofDeck": 5.7898
+    },
+    "portal": {
+      "railX": 3.55,
+      "railFrom": -4.85,
+      "railTo": 4.85,
+      "travelFrom": -4.25,
+      "travelTo": 4.25,
+      "park": 4.25,
+      "beamUnder": 3.1,
+      "beamDepth": 0.46,
+      "beamWidth": 0.34,
+      "legW": 0.24,
+      "legD": 0.3,
+      "truckL": 0.86,
+      "truckW": 0.4,
+      "truckH": 0.22,
+      "truckTop": 0.423,
+      "mps": 1,
+      "mps2": 1
+    },
+    "trolley": {
+      "from": 1.1,
+      "to": 2.9,
+      "park": 2.4,
+      "mps": 0.8
+    },
+    "slew": {
+      "from": -0.17,
+      "to": 3.3116,
+      "maxHeadY": 0.9
+    },
+    "zaxis": {
+      "topY": 2.93,
+      "from": 0.4,
+      "to": 1.05,
+      "guideY": [
+        1.58,
+        2.08
+      ],
+      "mps": 0.3
+    },
+    "head": {
+      "tiltX": -0.2,
+      "tiltY": 0.32,
+      "axisBelowFoot": 0.46,
+      "tilt": 0.105,
+      "socketTip": 0.15,
+      "faceAhead": 0.03,
+      "grip": 0.22,
+      "rollerY": -0.34,
+      "rollerR": 0.045,
+      "rollerL": 0.33,
+      "rollerBack": 0.02,
+      "clampMin": 0.2,
+      "clampMax": 0.37,
+      "pcdMin": 0.1,
+      "pcdMax": 0.13,
+      "aRange": 0.7,
+      "cover": 0.3,
+      "backFromMast": 0.6,
+      "halfWidth": 0.47,
+      "massKg": 110
+    },
+    "rack": {
+      "faceX": 2.72,
+      "newZ": [
+        -3.4,
+        -4.25
+      ],
+      "oldZ": [
+        3.4,
+        4.25
+      ],
+      "tyreBottom": 0.08,
+      "backX": 3.02,
+      "backTop": 0.75,
+      "frameX0": 2.66,
+      "frameX1": 3.18
+    },
+    "coverNest": {
+      "x": 3.34,
+      "seatY": 0.62,
+      "coverRim": 0.02
+    },
+    "socketRack": {
+      "z": 2.55,
+      "faceX": 2.94,
+      "ringY": [
+        0.45,
+        0.82
+      ],
+      "pcd": 0.1143,
+      "engage": 0.03,
+      "hexOnHead": 21
+    },
+    "lift": {
+      "postZ": [
+        0.85,
+        -0.85
+      ],
+      "armClearRise": 0.095,
+      "serviceRise": 0.5,
+      "fullRise": 1.85,
+      "ramD": 0.2,
+      "casingD": 0.56,
+      "casingDepth": 2.6,
+      "pivotX": 0.1,
+      "saddleTop": -0.01,
+      "reach": [
+        0.56,
+        0.78
+      ],
+      "armW": 0.1,
+      "armH": 0.09,
+      "padD": 0.15,
+      "ratedKg": 4500,
+      "lockPitch": 0.075,
+      "riseS": 50
+    },
+    "cabinets": {
+      "bay": {
+        "x": 3.7,
+        "w": 0.8,
+        "d": 0.5,
+        "h": 2
+      },
+      "hpu": {
+        "x": 2.96,
+        "w": 0.46,
+        "d": 0.44,
+        "h": 1.15
+      },
+      "portal": {
+        "w": 0.6,
+        "d": 0.3,
+        "h": 1.1,
+        "y0": 1.4
+      }
+    },
+    "stowed": {
+      "TB_PORTAL": 4.25,
+      "TB_TROL_W": 2.4,
+      "TB_SLEW_W": 0,
+      "TB_Z_W": 0.65,
+      "TB_TILT_W": 0,
+      "TB_GRIP_W": 0,
+      "TB_CLAMPL_W": 0.37,
+      "TB_CLAMPR_W": 0.37,
+      "TB_ACLU_W": 0,
+      "TB_PCD1_W": 0.0071,
+      "TB_PCD2_W": 0.0071,
+      "TB_PCD3_W": 0.0071,
+      "TB_PCD4_W": 0.0071,
+      "TB_PCD5_W": 0.0071,
+      "TB_COVER_W": 0,
+      "TB_TROL_E": 2.4,
+      "TB_SLEW_E": 0,
+      "TB_Z_E": 0.65,
+      "TB_TILT_E": 0,
+      "TB_GRIP_E": 0,
+      "TB_CLAMPL_E": 0.37,
+      "TB_CLAMPR_E": 0.37,
+      "TB_ACLU_E": 0,
+      "TB_PCD1_E": 0.0071,
+      "TB_PCD2_E": 0.0071,
+      "TB_PCD3_E": 0.0071,
+      "TB_PCD4_E": 0.0071,
+      "TB_PCD5_E": 0.0071,
+      "TB_COVER_E": 0,
+      "TB_RAM_F": 0,
+      "TB_RAM_R": 0,
+      "TB_SWF_W": 0,
+      "TB_RCHF_W": 0,
+      "TB_SWF_E": 0,
+      "TB_RCHF_E": 0,
+      "TB_SWR_W": 0,
+      "TB_RCHR_W": 0,
+      "TB_SWR_E": 0,
+      "TB_RCHR_E": 0
+    }
+  },
   "car": {
     "length": 4.6893,
     "width": 1.914,
@@ -806,6 +995,26 @@
       {
         "canopy": "C",
         "routeM": 84
+      }
+    ],
+    "serviceBays": [
+      {
+        "bay": 1,
+        "feedM": 73,
+        "fibreM": 33.5,
+        "conductor": "3 x 6 AWG copper and an equipment ground",
+        "designAmps": 41.2,
+        "dropPct": 1.74,
+        "faultKa": 2.87
+      },
+      {
+        "bay": 2,
+        "feedM": 81.8,
+        "fibreM": 42.4,
+        "conductor": "3 x 6 AWG copper and an equipment ground",
+        "designAmps": 41.2,
+        "dropPct": 1.96,
+        "faultKa": 2.56
       }
     ]
   }

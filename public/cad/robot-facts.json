@@ -480,6 +480,657 @@
     "A stop at each rail end holds a wheel if the machine runs past its travel.",
     "The car leaves only when the light is green."
    ]
+  },
+  {
+   "key": "tire_bay",
+   "name": "OTTO-TIRE",
+   "short": "Wheel service bay",
+   "stallType": "service_bay",
+   "where": "One in each service bay.",
+   "summary": [
+    "A wheel change line in each service bay. The lift rises out of the floor and lifts the car 0.5 m.",
+    "A portal on 2 floor rails carries 2 wheel robots, one each side of the car.",
+    "Each head takes off the 5 nuts and keeps each one in its socket. It sets the old wheel in a rack and puts on a new one.",
+    "It tightens each nut to the car's torque. Its cameras check each step."
+   ],
+   "owner": [
+    "A machine changes the wheels of your car in the service bay. No person lifts a wheel.",
+    "Your car stands on steel locks while the robots work, never on the oil.",
+    "Each nut stays in its own socket until it is back on. Each one is tightened to your car's torque.",
+    "The torque and the angle of every nut are recorded.",
+    "Your car leaves only when every wheel is back on and checked."
+   ],
+   "functions": [
+    "Wheel change",
+    "Service bay lift"
+   ],
+   "services": [
+    "fault_repair",
+    "mechanical_pm"
+   ],
+   "steps": [
+    {
+     "id": "home",
+     "label": "Ready. The portal and both robots wait at the exit end",
+     "seconds": 2
+    },
+    {
+     "id": "arms_up",
+     "label": "The lift's 2 rams lift their arms out of the floor",
+     "seconds": 4
+    },
+    {
+     "id": "arms_out",
+     "label": "The arms swing out and slide to the car's lift points. Each pad's camera checks its point",
+     "seconds": 10
+    },
+    {
+     "id": "pads_touch",
+     "label": "Each ram rises on its own until both its pads touch",
+     "seconds": 4
+    },
+    {
+     "id": "lift_up",
+     "label": "Both rams lift the car 0.50 m together. The locks hold it",
+     "seconds": 12
+    },
+    {
+     "id": "f_portal",
+     "label": "The portal moves to the front wheels",
+     "seconds": 6
+    },
+    {
+     "id": "f_lower",
+     "label": "The heads go down to the wheels' height",
+     "seconds": 4
+    },
+    {
+     "id": "f_approach",
+     "label": "The heads come in, 0.10 m off the tyres. The cameras find each wheel and its nuts",
+     "seconds": 6
+    },
+    {
+     "id": "f_cups_out",
+     "label": "The suction cups come out past the sockets",
+     "seconds": 3
+    },
+    {
+     "id": "f_cups_on",
+     "label": "The cups take hold of the cover",
+     "seconds": 3
+    },
+    {
+     "id": "f_cover_off",
+     "label": "The cups pull the cover off",
+     "seconds": 3
+    },
+    {
+     "id": "f_cover_turn_line",
+     "label": "The heads move out to where they may turn",
+     "seconds": 3
+    },
+    {
+     "id": "f_cover_turn",
+     "label": "Each robot turns to its portal leg with the cover",
+     "seconds": 4
+    },
+    {
+     "id": "f_cover_nest",
+     "label": "Each cover goes into its nest on the portal leg",
+     "seconds": 5
+    },
+    {
+     "id": "f_cover_leave",
+     "label": "The cups let go and come back in",
+     "seconds": 3
+    },
+    {
+     "id": "f_cover_back",
+     "label": "Each robot turns back to the car",
+     "seconds": 4
+    },
+    {
+     "id": "f_regain",
+     "label": "The heads go back to the wheels",
+     "seconds": 6
+    },
+    {
+     "id": "f_grip",
+     "label": "The rollers close on each tyre below its centre. The cluster turns to the nuts",
+     "seconds": 5
+    },
+    {
+     "id": "f_nuts_on",
+     "label": "The sockets go onto the nuts. The grip holds the wheel still",
+     "seconds": 3
+    },
+    {
+     "id": "f_unbolt",
+     "label": "Each nut breaks free in turn. Then all 5 spin off into their sockets",
+     "seconds": 16
+    },
+    {
+     "id": "f_nuts_back",
+     "label": "The sockets come back with the nuts in them",
+     "seconds": 3
+    },
+    {
+     "id": "f_pull",
+     "label": "Each wheel comes straight off its studs",
+     "seconds": 4
+    },
+    {
+     "id": "f_out",
+     "label": "The heads move out, clear of the car",
+     "seconds": 3
+    },
+    {
+     "id": "f_turn_old_line",
+     "label": "The heads move out to where they may turn",
+     "seconds": 3
+    },
+    {
+     "id": "f_turn_old",
+     "label": "Each robot turns its old wheel to the wall side",
+     "seconds": 4
+    },
+    {
+     "id": "f_to_old",
+     "label": "The portal carries the old wheels to the OLD racks",
+     "seconds": 6
+    },
+    {
+     "id": "f_rack_near",
+     "label": "The heads move each wheel up to its cradle",
+     "seconds": 3
+    },
+    {
+     "id": "f_rack_in",
+     "label": "The heads move each wheel over its cradle",
+     "seconds": 3
+    },
+    {
+     "id": "f_rack_down",
+     "label": "The heads set each old wheel down in its cradle",
+     "seconds": 4
+    },
+    {
+     "id": "f_release",
+     "label": "The rollers open",
+     "seconds": 2
+    },
+    {
+     "id": "f_rack_out",
+     "label": "The heads back away from the old wheels",
+     "seconds": 3
+    },
+    {
+     "id": "f_to_new",
+     "label": "The portal goes to the NEW racks",
+     "seconds": 9
+    },
+    {
+     "id": "f_new_in",
+     "label": "The heads move over the new wheels",
+     "seconds": 3
+    },
+    {
+     "id": "f_new_grip",
+     "label": "The rollers close on each new tyre",
+     "seconds": 3
+    },
+    {
+     "id": "f_new_up",
+     "label": "The heads lift the new wheels out of their cradles",
+     "seconds": 4
+    },
+    {
+     "id": "f_new_out",
+     "label": "The heads back away from the racks",
+     "seconds": 3
+    },
+    {
+     "id": "f_to_axle",
+     "label": "The portal carries the new wheels to the front hubs",
+     "seconds": 7
+    },
+    {
+     "id": "f_turn_car",
+     "label": "Each robot turns the new wheel to the car",
+     "seconds": 4
+    },
+    {
+     "id": "f_back_in",
+     "label": "The heads come back toward the car",
+     "seconds": 3
+    },
+    {
+     "id": "f_lower_hub",
+     "label": "The heads go down to the hubs' height",
+     "seconds": 4
+    },
+    {
+     "id": "f_align",
+     "label": "The cameras find the studs. The rollers turn each wheel to them",
+     "seconds": 6
+    },
+    {
+     "id": "f_mount",
+     "label": "Each wheel goes onto its hub, on the studs and the centre bore",
+     "seconds": 5
+    },
+    {
+     "id": "f_nuts_in",
+     "label": "The sockets put the nuts to the studs",
+     "seconds": 3
+    },
+    {
+     "id": "f_torque",
+     "label": "All 5 run down. Then each is tightened to 175 N m in a star order",
+     "seconds": 23
+    },
+    {
+     "id": "f_nuts_out",
+     "label": "The sockets come back, empty",
+     "seconds": 3
+    },
+    {
+     "id": "f_open",
+     "label": "The rollers open",
+     "seconds": 2
+    },
+    {
+     "id": "f_away",
+     "label": "The heads move out, clear of the car",
+     "seconds": 3
+    },
+    {
+     "id": "f_cover_fetch_line",
+     "label": "The heads move out to where they may turn",
+     "seconds": 3
+    },
+    {
+     "id": "f_cover_fetch",
+     "label": "Each robot turns to its portal leg",
+     "seconds": 4
+    },
+    {
+     "id": "f_cups_reach",
+     "label": "The cups come out to the cover in the nest",
+     "seconds": 5
+    },
+    {
+     "id": "f_cover_lift",
+     "label": "The cups take the cover out of the nest",
+     "seconds": 3
+    },
+    {
+     "id": "f_cover_return",
+     "label": "Each robot turns back to the car with the cover",
+     "seconds": 4
+    },
+    {
+     "id": "f_cover_in",
+     "label": "The heads bring the covers to the wheels",
+     "seconds": 6
+    },
+    {
+     "id": "f_cover_press",
+     "label": "The cups press each cover back on",
+     "seconds": 4
+    },
+    {
+     "id": "f_cups_in",
+     "label": "The cups let go and come back in",
+     "seconds": 3
+    },
+    {
+     "id": "f_up",
+     "label": "The heads go up to the travel height",
+     "seconds": 3
+    },
+    {
+     "id": "r_portal",
+     "label": "The portal moves to the rear wheels",
+     "seconds": 6
+    },
+    {
+     "id": "r_lower",
+     "label": "The heads go down to the wheels' height",
+     "seconds": 4
+    },
+    {
+     "id": "r_approach",
+     "label": "The heads come in, 0.10 m off the tyres. The cameras find each wheel and its nuts",
+     "seconds": 6
+    },
+    {
+     "id": "r_cups_out",
+     "label": "The suction cups come out past the sockets",
+     "seconds": 3
+    },
+    {
+     "id": "r_cups_on",
+     "label": "The cups take hold of the cover",
+     "seconds": 3
+    },
+    {
+     "id": "r_cover_off",
+     "label": "The cups pull the cover off",
+     "seconds": 3
+    },
+    {
+     "id": "r_cover_turn_line",
+     "label": "The heads move out to where they may turn",
+     "seconds": 3
+    },
+    {
+     "id": "r_cover_turn",
+     "label": "Each robot turns to its portal leg with the cover",
+     "seconds": 4
+    },
+    {
+     "id": "r_cover_nest",
+     "label": "Each cover goes into its nest on the portal leg",
+     "seconds": 5
+    },
+    {
+     "id": "r_cover_leave",
+     "label": "The cups let go and come back in",
+     "seconds": 3
+    },
+    {
+     "id": "r_cover_back",
+     "label": "Each robot turns back to the car",
+     "seconds": 4
+    },
+    {
+     "id": "r_regain",
+     "label": "The heads go back to the wheels",
+     "seconds": 6
+    },
+    {
+     "id": "r_grip",
+     "label": "The rollers close on each tyre below its centre. The cluster turns to the nuts",
+     "seconds": 5
+    },
+    {
+     "id": "r_nuts_on",
+     "label": "The sockets go onto the nuts. The grip holds the wheel still",
+     "seconds": 3
+    },
+    {
+     "id": "r_unbolt",
+     "label": "Each nut breaks free in turn. Then all 5 spin off into their sockets",
+     "seconds": 16
+    },
+    {
+     "id": "r_nuts_back",
+     "label": "The sockets come back with the nuts in them",
+     "seconds": 3
+    },
+    {
+     "id": "r_pull",
+     "label": "Each wheel comes straight off its studs",
+     "seconds": 4
+    },
+    {
+     "id": "r_out",
+     "label": "The heads move out, clear of the car",
+     "seconds": 3
+    },
+    {
+     "id": "r_turn_old_line",
+     "label": "The heads move out to where they may turn",
+     "seconds": 3
+    },
+    {
+     "id": "r_turn_old",
+     "label": "Each robot turns its old wheel to the wall side",
+     "seconds": 4
+    },
+    {
+     "id": "r_to_old",
+     "label": "The portal carries the old wheels to the OLD racks",
+     "seconds": 6
+    },
+    {
+     "id": "r_rack_near",
+     "label": "The heads move each wheel up to its cradle",
+     "seconds": 3
+    },
+    {
+     "id": "r_rack_in",
+     "label": "The heads move each wheel over its cradle",
+     "seconds": 3
+    },
+    {
+     "id": "r_rack_down",
+     "label": "The heads set each old wheel down in its cradle",
+     "seconds": 4
+    },
+    {
+     "id": "r_release",
+     "label": "The rollers open",
+     "seconds": 2
+    },
+    {
+     "id": "r_rack_out",
+     "label": "The heads back away from the old wheels",
+     "seconds": 3
+    },
+    {
+     "id": "r_to_new",
+     "label": "The portal goes to the NEW racks",
+     "seconds": 9
+    },
+    {
+     "id": "r_new_in",
+     "label": "The heads move over the new wheels",
+     "seconds": 3
+    },
+    {
+     "id": "r_new_grip",
+     "label": "The rollers close on each new tyre",
+     "seconds": 3
+    },
+    {
+     "id": "r_new_up",
+     "label": "The heads lift the new wheels out of their cradles",
+     "seconds": 4
+    },
+    {
+     "id": "r_new_out",
+     "label": "The heads back away from the racks",
+     "seconds": 3
+    },
+    {
+     "id": "r_to_axle",
+     "label": "The portal carries the new wheels to the rear hubs",
+     "seconds": 7
+    },
+    {
+     "id": "r_turn_car",
+     "label": "Each robot turns the new wheel to the car",
+     "seconds": 4
+    },
+    {
+     "id": "r_back_in",
+     "label": "The heads come back toward the car",
+     "seconds": 3
+    },
+    {
+     "id": "r_lower_hub",
+     "label": "The heads go down to the hubs' height",
+     "seconds": 4
+    },
+    {
+     "id": "r_align",
+     "label": "The cameras find the studs. The rollers turn each wheel to them",
+     "seconds": 6
+    },
+    {
+     "id": "r_mount",
+     "label": "Each wheel goes onto its hub, on the studs and the centre bore",
+     "seconds": 5
+    },
+    {
+     "id": "r_nuts_in",
+     "label": "The sockets put the nuts to the studs",
+     "seconds": 3
+    },
+    {
+     "id": "r_torque",
+     "label": "All 5 run down. Then each is tightened to 175 N m in a star order",
+     "seconds": 23
+    },
+    {
+     "id": "r_nuts_out",
+     "label": "The sockets come back, empty",
+     "seconds": 3
+    },
+    {
+     "id": "r_open",
+     "label": "The rollers open",
+     "seconds": 2
+    },
+    {
+     "id": "r_away",
+     "label": "The heads move out, clear of the car",
+     "seconds": 3
+    },
+    {
+     "id": "r_cover_fetch_line",
+     "label": "The heads move out to where they may turn",
+     "seconds": 3
+    },
+    {
+     "id": "r_cover_fetch",
+     "label": "Each robot turns to its portal leg",
+     "seconds": 4
+    },
+    {
+     "id": "r_cups_reach",
+     "label": "The cups come out to the cover in the nest",
+     "seconds": 5
+    },
+    {
+     "id": "r_cover_lift",
+     "label": "The cups take the cover out of the nest",
+     "seconds": 3
+    },
+    {
+     "id": "r_cover_return",
+     "label": "Each robot turns back to the car with the cover",
+     "seconds": 4
+    },
+    {
+     "id": "r_cover_in",
+     "label": "The heads bring the covers to the wheels",
+     "seconds": 6
+    },
+    {
+     "id": "r_cover_press",
+     "label": "The cups press each cover back on",
+     "seconds": 4
+    },
+    {
+     "id": "r_cups_in",
+     "label": "The cups let go and come back in",
+     "seconds": 3
+    },
+    {
+     "id": "r_up",
+     "label": "The heads go up to the travel height",
+     "seconds": 3
+    },
+    {
+     "id": "park",
+     "label": "The portal and both robots go back to the exit end",
+     "seconds": 8
+    },
+    {
+     "id": "lift_down",
+     "label": "The locks open. The lift lowers the car onto its wheels",
+     "seconds": 12
+    },
+    {
+     "id": "pads_off",
+     "label": "The rams lower the pads off the sills",
+     "seconds": 4
+    },
+    {
+     "id": "arms_in",
+     "label": "The arms slide in and swing back along the drive line",
+     "seconds": 10
+    },
+    {
+     "id": "arms_down",
+     "label": "The rams lower the arms into the floor. The car may go",
+     "seconds": 4
+    }
+   ],
+   "facts": [
+    {
+     "label": "Time",
+     "value": "About 8.9 min for all 4 wheels. The 2 robots change a front pair, then a rear pair."
+    },
+    {
+     "label": "Lift",
+     "value": "Lifts the car by its sills: 0.50 m for the robots, 1.85 m for a person under it. 2 toothed lock bars hang from each saddle. A pawl drops into a tooth every 75 mm as the car goes up."
+    },
+    {
+     "label": "Rated load",
+     "value": "4,500 kg"
+    },
+    {
+     "label": "Lift points",
+     "value": "A load cell under each pad reads its share of the car. The lift stops if the 4 shares do not agree with the car's weight. A load cell under each pad reads its share of the car. The lift stops if the 4 shares do not agree with the car's weight."
+    },
+    {
+     "label": "Nuts",
+     "value": "Takes the 5 nuts off, keeps each in its socket, and puts them back to torque. A magnet in each socket holds its nut or bolt until it is back on and tight."
+    },
+    {
+     "label": "Torque",
+     "value": "Each spindle's transducer records torque and angle for every nut. Pitch circle: 100 to 130 mm."
+    },
+    {
+     "label": "Grip",
+     "value": "2 powered rollers close on the tread below the wheel's centre and hold it by its shape."
+    },
+    {
+     "label": "Cameras",
+     "value": "A 3D camera on the housing finds the wheel, its centre, the nuts and how deep they sit. A camera on the spindles' axis centres the head on the hub and checks a nut is in each socket."
+    },
+    {
+     "label": "Wheel covers",
+     "value": "Takes an aero cover off the wheel before the nuts, and presses it back on after."
+    },
+    {
+     "label": "Racks",
+     "value": "Each side has 2 cradles for NEW wheels and 2 for OLD wheels, on the floor outside the door opening. A sensor in each cradle sees a wheel. A person rolls wheels in and out and never lifts one."
+    },
+    {
+     "label": "Wheel bolts",
+     "value": "Holds the head's second socket set, for a car with 17 mm wheel bolts. The head puts its 21 mm sockets into the empty ring and takes the 17 mm set from the other."
+    },
+    {
+     "label": "Clear height",
+     "value": "The beam's underside is 3.10 m up: 0.66 m over the tallest fleet car on the lift."
+    },
+    {
+     "label": "Supply",
+     "value": "480 V, 3 phase, 60 Hz, from the depot's auxiliary transformer."
+    }
+   ],
+   "safety": [
+    "2 safety laser scanners at opposite corners watch the bay's floor. A person in the bay stops every motion.",
+    "Emergency stops at the south door, on each portal leg and on the cabinet stop every motion.",
+    "The robots start only with all 4 pawls in and the oil let off: the car stands on steel.",
+    "The safety controller in the cabinet cuts each drive's torque (safe torque off) and locks the lift.",
+    "The portal waits at the exit end. A car drives in and out under nothing."
+   ]
   }
  ]
 }

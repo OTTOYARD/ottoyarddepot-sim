@@ -122,8 +122,10 @@ describe.each([...ROBOT_KEYS])('%s: the depot model', (k) => {
     // when each side air knife got the belt axis, carriage, hanger and gearmotor it hangs from, and each arm chain the
     // elbow duct into its pedestal (design finding 20): parts of their own materials on their own segments, so 132; and
     // from 129 to 133 the same day when each detail arm got its J2 status rings' lead (cable, on J1) and the plate and
-    // bulkhead its pure water leaves the forearm by (stainless, on J3; design finding 21), so 136
-    expect(cad.stats.draws).toBeLessThanOrEqual(k === 'wash_gantry' ? 136 : 90);
+    // bulkhead its pure water leaves the forearm by (stainless, on J3; design finding 21), so 136. The tire bay's machine
+    // (2026-11-17) has 40 segments, the most of any robot (each wheel robot carries 15 joints, 5 of them its spindles'
+    // pitch circle), and draws in 190: one set for both service bays, standing still at its program's home
+    expect(cad.stats.draws).toBeLessThanOrEqual(k === 'wash_gantry' ? 136 : k === 'tire_bay' ? 190 : 90);
   });
 });
 

@@ -8,7 +8,8 @@
 //      bill names, and the manifest's totals are the bills' totals.
 //   2. The joints are the twin's joints: the charge arm's J1..J6 stand where cobotSpec puts them, its tool's face is the
 //      TCP, and each joint carries the twin's STOWED angle; the clean arm's nodes are buildCleanArm's, at cleanArmSpec's
-//      offsets, with the twin's home pose; the wash machine stands on washSpec's rails and stows at the twin's home.
+//      offsets, with the twin's home pose; the wash machine stands on washSpec's rails and stows at the twin's home; the
+//      tire bay's machine has exactly the joints tireProgram drives, each with tireSpec's travel, and stows at its home.
 //   3. Every screw has a tightening torque, and the GLB is in metres with the quantised normals it declares.
 //   4. Every joint's limits are in the viewer's units (radians, metres), and every pose the tab offers and every frame
 //      of every cycle it plays lies inside them: the twin never asks the CAD machine for a move it cannot make.
@@ -29,6 +30,8 @@ import { CLEAN_ARM_NODES } from '@/lib/ottoCleanArm/buildCleanArm';
 import { cleanJointsAt, sidesFor } from '@/lib/ottoCleanArm/cleanArmPose';
 import { WASH_GANTRY, WASH_HOME_DY } from '@/lib/ottoWash/washSpec';
 import { WASH_SHELL } from '@/lib/structurePlan';
+import { HEAD as TIRE_HEAD, LIFT as TIRE_LIFT, PORTAL as TIRE_PORTAL, SLEW, TROLLEY, ZAXIS } from '@/lib/ottoTire/tireSpec';
+import { homeState, tireAngles } from '@/lib/ottoTire/tireProgram';
 import { cleanAngles, cycleScript, posePresets, type Bom, type Manifest, type RobotKey } from './catalog';
 
 const PUB = resolve(__dirname, '../../../public/cad');
@@ -50,7 +53,7 @@ const byName = (g: Gltf, name: string) => g.nodes.find((n) => n.name === name ||
 const t = (n: GNode | undefined) => n?.translation ?? [0, 0, 0];
 const jointOf = (n: GNode | undefined) => n?.extras?.joint as { name: string; axis: number[]; stowed: number; kind: string; limits: number[] } | undefined;
 
-describe.each(['charge_arm', 'clean_arm', 'wash_gantry'] as RobotKey[])('%s: files', (k) => {
+describe.each(['charge_arm', 'clean_arm', 'wash_gantry', 'tire_bay'] as RobotKey[])('%s: files', (k) => {
   const bom = bomOf(k);
   const g = glbOf(k);
   const entry = manifest.robots.find((r) => r.key === k)!;
@@ -89,10 +92,11 @@ describe.each(['charge_arm', 'clean_arm', 'wash_gantry'] as RobotKey[])('%s: fil
       if (/^ISO (4762|7380-1|10642|4017)$/.test(l.standard)) expect(l.torqueNm, l.id).toBeGreaterThan(0);
     }
     expect(g.extensionsUsed).toContain('KHR_mesh_quantization');
-    // a robot is metres tall, not millimetres: every mesh's extent is under 12 (m)
+    // a robot is metres tall, not millimetres: every mesh's extent is under 15 (m). The longest is the tire bay's conduit
+    // under the slab from its cable pit to the far corner's safety scanner, 12.6 m: the service bay is 13.8 m long
     for (const m of g.meshes) {
       const a = g.accessors[m.primitives[0].attributes.POSITION];
-      for (let i = 0; i < 3; i++) expect(Math.abs((a.max![i] - a.min![i]))).toBeLessThan(12);
+      for (let i = 0; i < 3; i++) expect(Math.abs((a.max![i] - a.min![i]))).toBeLessThan(15);
     }
   });
 });
@@ -190,7 +194,39 @@ describe('wash machine: the twin\'s machine', () => {
   });
 });
 
-describe.each(['charge_arm', 'clean_arm', 'wash_gantry'] as RobotKey[])('%s: the twin\'s moves fit the CAD\'s joints', (k) => {
+describe('tire bay: the twin\'s machine', () => {
+  const g = glbOf('tire_bay');
+  const joints = new Map(g.nodes.map(jointOf).filter((j): j is NonNullable<typeof j> => !!j).map((j) => [j.name, j]));
+  const home = tireAngles(homeState());
+  const lim = (name: string) => joints.get(name)!.limits;
+  it('has exactly the joints the twin\'s program drives, and stows at the program\'s home', () => {
+    expect([...joints.keys()].sort()).toEqual(Object.keys(home).sort());
+    for (const [name, v] of Object.entries(home)) expect(joints.get(name)!.stowed, name).toBeCloseTo(v, 4);
+  });
+  it('gives each joint the travel tireSpec gives it (the GLB writes a limit to 4 decimals)', () => {
+    expect(lim('TB_PORTAL')).toEqual([expect.closeTo(TIRE_PORTAL.travelFrom, 4), expect.closeTo(TIRE_PORTAL.travelTo, 4)]);
+    expect(lim('TB_RAM_F')).toEqual([0, expect.closeTo(TIRE_LIFT.fullRise, 4)]);
+    expect(lim('TB_RAM_R')).toEqual([0, expect.closeTo(TIRE_LIFT.fullRise, 4)]);
+    for (const s of ['W', 'E']) {
+      expect(lim(`TB_TROL_${s}`)).toEqual([expect.closeTo(TROLLEY.from, 4), expect.closeTo(TROLLEY.to, 4)]);
+      expect(lim(`TB_SLEW_${s}`)).toEqual([expect.closeTo(SLEW.from, 4), expect.closeTo(SLEW.to, 4)]);
+      expect(lim(`TB_Z_${s}`)).toEqual([0, expect.closeTo(ZAXIS.to - ZAXIS.from, 4)]);
+      expect(lim(`TB_TILT_${s}`)).toEqual([expect.closeTo(-TIRE_HEAD.tilt, 4), expect.closeTo(TIRE_HEAD.tilt, 4)]);
+      expect(lim(`TB_ACLU_${s}`)).toEqual([expect.closeTo(-TIRE_HEAD.aRange, 4), expect.closeTo(TIRE_HEAD.aRange, 4)]);
+      expect(lim(`TB_GRIP_${s}`)).toEqual([0, expect.closeTo(TIRE_HEAD.grip, 4)]);
+      expect(lim(`TB_COVER_${s}`)).toEqual([0, expect.closeTo(TIRE_HEAD.cover, 4)]);
+      for (const c of ['L', 'R']) expect(lim(`TB_CLAMP${c}_${s}`)).toEqual([expect.closeTo(TIRE_HEAD.clampMin, 4), expect.closeTo(TIRE_HEAD.clampMax, 4)]);
+      for (let i = 1; i <= 5; i++) expect(lim(`TB_PCD${i}_${s}`)).toEqual([0, expect.closeTo((TIRE_HEAD.pcdMax - TIRE_HEAD.pcdMin) / 2, 4)]);
+      for (const f of ['F', 'R']) expect(lim(`TB_RCH${f}_${s}`)).toEqual([0, expect.closeTo(TIRE_LIFT.reach[1] - TIRE_LIFT.reach[0], 4)]);
+    }
+  });
+  it('stands the portal\'s 2 rail beams where tireSpec does, along its whole rail', () => {
+    const rails = g.nodes.filter((n) => n.extras?.part === 'TB-RLB').map((n) => t(n)[0]).sort((a, b) => a - b);
+    expect(rails).toEqual([expect.closeTo(-TIRE_PORTAL.railX, 4), expect.closeTo(TIRE_PORTAL.railX, 4)]);
+  });
+});
+
+describe.each(['charge_arm', 'clean_arm', 'wash_gantry', 'tire_bay'] as RobotKey[])('%s: the twin\'s moves fit the CAD\'s joints', (k) => {
   const g = glbOf(k);
   const joints = new Map(g.nodes.map(jointOf).filter((j): j is NonNullable<typeof j> => !!j).map((j) => [j.name, j as typeof j & { limits: [number, number] }]));
   const inside = (where: string, angles: Record<string, number>) => {
@@ -233,7 +269,7 @@ const baseline = JSON.parse(readFileSync(resolve(__dirname, '../../../cad/clash_
 const posesFile = JSON.parse(readFileSync(resolve(__dirname, '../../../cad/spec/poses.json'), 'utf8')) as
   { robots: Record<RobotKey, { id: string }[]> };
 
-describe.each(['charge_arm', 'clean_arm', 'wash_gantry'] as RobotKey[])('%s: clash check', (k) => {
+describe.each(['charge_arm', 'clean_arm', 'wash_gantry', 'tire_bay'] as RobotKey[])('%s: clash check', (k) => {
   const rep = JSON.parse(readFileSync(`${PUB}/${k}.clash.json`, 'utf8')) as {
     glbSha256: string; poses: string[]; clashes: unknown[]; floating: unknown[]; counts: Record<string, number>;
   };
@@ -251,6 +287,6 @@ describe.each(['charge_arm', 'clean_arm', 'wash_gantry'] as RobotKey[])('%s: cla
   });
 });
 
-it.each(['wash_gantry', 'clean_arm', 'charge_arm'] as RobotKey[])('%s: no clash and no floating part at any pose', (k) => {
+it.each(['wash_gantry', 'clean_arm', 'charge_arm', 'tire_bay'] as RobotKey[])('%s: no clash and no floating part at any pose', (k) => {
   expect(baseline[k]).toEqual({ clashes: 0, floatingGroups: 0 });
 });

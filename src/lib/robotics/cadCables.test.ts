@@ -23,6 +23,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { PUBLIC_CAD, depotSceneFromDisk } from '@/test/cadDisk';
 import { flexDefs } from './flexLines';
 import { ROBOT_KEYS, type Bom, type Manifest, type RobotKey } from './catalog';
+import { SERVICE_ONE_LINE, serviceBayFeeds } from '@/lib/siteService';
 
 const manifest = JSON.parse(readFileSync(`${PUBLIC_CAD}/manifest.json`, 'utf8')) as Manifest;
 const bomOf = (k: RobotKey) => JSON.parse(readFileSync(`${PUBLIC_CAD}/${k}.bom.json`, 'utf8')) as Bom;
@@ -300,3 +301,38 @@ describe('OTTO-WASH: the lines the schedule left open on 2026-11-15', () => {
     }
   });
 });
+
+describe('OTTO-TIRE: the bay\'s electrical design, as the cable schedule and the cabinets carry it (2026-11-17)', () => {
+  const bom = bomOf('tire_bay');
+  const cables = bom.cables ?? [];
+  const line = (id: string) => cables.find((c) => c.id === id)!;
+  const L = SERVICE_ONE_LINE;
+  it('takes the bay\'s feed from TX-AUX on the breaker, conductor and run siteService sizes', () => {
+    const feed = line('TB-FEED');
+    const far = serviceBayFeeds().reduce((a, b) => (b.feedM > a.feedM ? b : a));
+    expect(feed.from).toContain(`${L.feedBreakerA} A`);
+    expect(feed.spec).toContain(far.conductor);
+    // the spec carries the run to 0.1 m (cadSpec.ts)
+    expect(feed.runs.find((r) => r.kind === 'site')!.mm / 1000).toBeCloseTo(far.feedM, 1);
+    const cab = bom.lines.find((l) => l.id === 'TB-BCB')!;
+    expect(cab.spec['main switch']).toContain(`${L.mainSwitchA} A`);
+  });
+  it('feeds the portal and each robot on the feeders siteService holds to their loads', () => {
+    expect(line('TB-PSUP').from).toContain(`(${L.portalFeederA} A)`);
+    expect(line('TB-PSUP').spec).toContain(`4G${L.portalFeederMm2} mm2`);
+    for (const s of ['W', 'E']) {
+      expect(line(`TB-${s}SUP`).from).toContain(`(${L.robotFeederA} A)`);
+      expect(line(`TB-${s}SUP`).spec).toContain(`4G${L.robotFeederMm2} mm2`);
+    }
+  });
+  it('fills no conduit past NEC Chapter 9 Table 1 (each conduit\'s line in the parts list says its fill)', () => {
+    const conduits = bom.lines.filter((l) => /^Conduit|sleeve/i.test(l.name) && l.spec.fill);
+    expect(conduits.length).toBeGreaterThanOrEqual(15);
+    for (const c of conduits) {
+      const m = c.spec.fill.match(/([\d.]+) % of its \d+ mm bore \(NEC Chapter 9 Table 1: (\d+) %\)/);
+      expect(m, `${c.id}: ${c.spec.fill}`).toBeTruthy();
+      expect(Number(m![1]), c.id).toBeLessThanOrEqual(Number(m![2]));
+    }
+  });
+});
+

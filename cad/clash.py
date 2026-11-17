@@ -23,7 +23,7 @@ from otto_cad.check import check      # noqa: E402
 from otto_cad.core import write_json  # noqa: E402
 
 OUT = os.path.join(HERE, '..', 'public', 'cad')
-ROBOTS = ['charge_arm', 'clean_arm', 'wash_gantry']
+ROBOTS = ['charge_arm', 'clean_arm', 'wash_gantry', 'tire_bay']
 
 
 def poses_for(key: str) -> list[dict]:

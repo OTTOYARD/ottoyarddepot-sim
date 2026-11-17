@@ -43,6 +43,7 @@ import { MODEL_TOWARD } from '@/lib/robotics/liveFollow';
 import { postFeeders } from '@/lib/siteFeeders';
 import { PEAK_FREE_AIR_M3_MIN, airMains } from '@/lib/siteAir';
 import { armRuns, canopyBoards, vacuumMains } from '@/lib/siteCanopy';
+import { serviceBayFeeds } from '@/lib/siteService';
 import {
   CLEAN_ARM, CLEAN_PHASE_S, MAST_FOOT_MAX, MAST_FOOT_MIN, PIVOT_Y_MAX, PIVOT_Y_MIN, WAND_RETRACTED,
 } from '@/lib/ottoCleanArm/cleanArmSpec';
@@ -55,6 +56,12 @@ import { DECK_Y } from '@/components/canvas/three/coordUtils';
 import {
   DETAIL_ARM, PASS_NOMINAL_S, WASH_GANTRY, WASH_HOME_DY, WASH_PHASE_S, WASH_TRAVEL,
 } from '@/lib/ottoWash/washSpec';
+import {
+  CABINETS as TB_CABINETS, COVER_NEST as TB_COVER_NEST, COVER_RIM as TB_COVER_RIM, SOCKET_RACK as TB_SOCKET_RACK, HEAD as TB_HEAD, LIFT as TB_LIFT, PORTAL as TB_PORTAL,
+  RACK as TB_RACK, SLEW as TB_SLEW, TROLLEY as TB_TROLLEY, ZAXIS as TB_ZAXIS,
+} from '@/lib/ottoTire/tireSpec';
+import { TIRE_BAY } from '@/lib/ottoTire/tireBayFit';
+import { homeState as tbHome, tireAngles as tbAngles } from '@/lib/ottoTire/tireProgram';
 
 const M = METRES_PER_PLAN_UNIT;
 /** Round to 0.1 mm, so the snapshot is stable across float noise and readable. */
@@ -189,6 +196,22 @@ export function cadSpec() {
       passSeconds: { ...PASS_NOMINAL_S },
       phaseSeconds: { ...WASH_PHASE_S },
     },
+    // OTTO-TIRE, the service bays' wheel robots and lift (ottoTire/tireSpec.ts), in the bay's frame, metres. `stowed` is the
+    // machine at rest (homeState): every joint's value there, as tireAngles names them.
+    tire: {
+      bay: { ...TIRE_BAY },
+      portal: { ...TB_PORTAL },
+      trolley: { ...TB_TROLLEY },
+      slew: { ...TB_SLEW, from: r4(TB_SLEW.from), to: r4(TB_SLEW.to) },
+      zaxis: { ...TB_ZAXIS, guideY: [...TB_ZAXIS.guideY] },
+      head: { ...TB_HEAD },
+      rack: { ...TB_RACK, newZ: [...TB_RACK.newZ], oldZ: [...TB_RACK.oldZ] },
+      coverNest: { ...TB_COVER_NEST, coverRim: TB_COVER_RIM },
+      socketRack: { ...TB_SOCKET_RACK, ringY: [...TB_SOCKET_RACK.ringY] },
+      lift: { ...TB_LIFT, postZ: [...TB_LIFT.postZ], reach: [...TB_LIFT.reach] },
+      cabinets: { bay: { ...TB_CABINETS.bay }, hpu: { ...TB_CABINETS.hpu }, portal: { ...TB_CABINETS.portal } },
+      stowed: Object.fromEntries(Object.entries(tbAngles(tbHome())).map(([k, v]) => [k, r4(v)])),
+    },
     car: {
       length: r4(CAR_LENGTH_M),
       width: r4(CAR_WIDTH_M),
@@ -215,6 +238,12 @@ export function cadSpec() {
         dropPct: Math.round(b.dropPct * 100) / 100, fibreM: Math.round(b.netM * 10) / 10,
       })),
       vacuumMains: vacuumMains().map((v) => ({ canopy: v.canopy, routeM: Math.round(v.routeM * 10) / 10 })),
+      // Each service bay's OTTO-TIRE feed from TX-AUX and its fibre from the office (siteService.ts, 2026-11-17), for the
+      // tire bay's cable schedule: its site runs and its cabinet's short-circuit rating.
+      serviceBays: serviceBayFeeds().map((f) => ({
+        bay: f.bay, feedM: Math.round(f.feedM * 10) / 10, fibreM: Math.round(f.netM * 10) / 10, conductor: f.conductor,
+        designAmps: Math.round(f.designAmps * 10) / 10, dropPct: Math.round(f.dropPct * 100) / 100, faultKa: Math.round(f.faultKa * 100) / 100,
+      })),
     },
   };
 }

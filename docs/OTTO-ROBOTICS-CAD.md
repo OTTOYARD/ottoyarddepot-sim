@@ -43,13 +43,14 @@ over side A and in the cabin (`cleanJointsAt`, through `buildCleanArm.poseCleanA
 at home, mid wash pass, dry pass and on the roof and front sensors (`programPoseAt`). Its run steps are the twin's phase tables
 (`NOMINAL_SEQUENCE` and `ARM_TIMING_DEFAULTS`, `CLEAN_CHAIN` and `CLEAN_PHASE_S`, `washChain` and `PASS_NOMINAL_S`).
 
-## The three machines (as built 2026-11-16, finding 24)
+## The machines (as built 2026-11-16, finding 24; OTTO-TIRE 2026-11-17)
 
 | robot | parts | different parts | screws, nuts, washers, pins | mass | STEP (zip) | GLB |
 |---|---:|---:|---:|---:|---:|---:|
 | OTTO-CHARGE ARM (rail bed, two-connector electric head, its whole charger, supply from the site) | 1,231 | 339 | 720 | 1,593 kg (with its bed, carriage, cross-slide, riser, charger and supply) | 48.6 MB (9.3) | 9.2 MB |
 | OTTO-CLEAN ARM (with its power and its vacuum and air drops) | 276 | 130 | 147 | 376 kg (with its canopy steel) | 8.1 MB (1.5) | 2.5 MB |
 | OTTO-WASH (touchless, 2 detail arms, bay supply) | 2,835 | 320 | 1,648 | 6,046 kg | 44.0 MB (8.3) | 9.6 MB |
+| OTTO-TIRE (2026-11-17: in-ground lift, portal, 2 wheel robots, racks, cabinets, its feed) | 2,399 | 249 | 1,541 | 8,059 kg | 28.6 MB (4.5) | 6.9 MB |
 
 (The table read 1,052, 258 and 2,777 parts after finding 19 drew the supplies, and findings 20 to 23 did not bring it
 up to date: the rows above are from finding 24's build. Before finding 19 it read 966, 408 and 2,639; the clean arm's
@@ -149,6 +150,21 @@ pad), a wrist camera and a pure-water mist nozzle, and has a cable chain beside 
 (post, rinse cup, signal). The stop light, beacon,
 the control cabinet on the inner side of the west leg, and the supply drag chain in a covered trench inboard of the west
 rail, clear of the travel drive. Nothing stands outboard of the trolleys (design finding 8).
+
+### OTTO-TIRE
+
+The service bay's wheel change (2026-11-17, docs/OTTO-TIRE.md, `robots/tire_bay.py`). An in-ground twin-post lift: 2
+rams in casings under the floor, 4 arms on worm slewing drives that swing and slide to the lift points, a pad with a
+load cell and a camera on each, lock bars and pawls, a power unit on the north wall and its 2 oil pipes under the slab.
+A portal on 2 floor rails, driven by a pinion on a rack in each end truck, its beam 3.10 m up. Under the beam, 2 wheel
+robots: a trolley, a slewing ring with a slip ring and a fibre rotary joint on its axis, a guide frame and a Z-beam, a
+tilt actuator (the robot joint of `actuator.py`), and the head: 5 nutrunner spindles on a turning cluster with a scroll
+ring for the pitch circle, a magnet in each socket so no nut is ever loose, 2 powered rollers that hold the wheel by its
+tread, 4 suction cups for an aero cover, a 3D camera and an axis camera. 8 floor cradles for NEW and OLD wheels, a socket
+rack each side for the 17 mm set, a cover nest on each leg. The bay cabinet, the portal cabinet, the head drive box on
+each robot, 4 cable chains, the floor scanners and the emergency stops, every conduit under the slab, and the bay's feed
+from TX-AUX. The electrical design (the feed, the load, the conductors, the fault current, the feeders and the conduit
+fill) is in docs/OTTO-TIRE.md and `src/lib/siteService.ts`.
 
 ## Every part against every other: the clash check
 

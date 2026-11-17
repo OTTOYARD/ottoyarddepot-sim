@@ -14,15 +14,17 @@ import { IDLE_SESSION } from '@/lib/ottoChargeArm/roboticService';
 import { placeCleanArm } from '@/lib/ottoCleanArm/cleanArmPlacement';
 import { IDLE_CLEAN } from '@/lib/ottoCleanArm/cleanSession';
 import { IDLE_WASH } from '@/lib/ottoWash/washSession';
-import { WASH_SHELL } from '@/lib/structurePlan';
+import { OPS_SHELL, WASH_SHELL } from '@/lib/structurePlan';
 import { DECK_Y } from '@/components/canvas/three/coordUtils';
 import type { RobotKey } from '@/lib/robotics/catalog';
 import {
   MODEL_TOWARD, chargeLiveAngles, cleanLiveAngles, liveUnit, sortUnits, washLiveAngles, type LiveSession, type LiveUnit, type PortAt,
 } from '@/lib/robotics/liveFollow';
 
+// The service bays' wheel machine has no session in the motion driver yet: the yard draws it at home, so it is never live.
 const sessionAt = (robot: RobotKey, id: string): LiveSession | null =>
-  robot === 'charge_arm' ? twinMotionDriver.armSessionAt(id)
+  robot === 'tire_bay' ? null
+    : robot === 'charge_arm' ? twinMotionDriver.armSessionAt(id)
     : robot === 'clean_arm' ? twinMotionDriver.cleanSessionAt(id) : twinMotionDriver.washSessionAt(id);
 
 const carName = (vehicleId: string): string | null => {
@@ -52,7 +54,8 @@ export function useLiveFollow(robot: RobotKey): LiveFollow {
   const ids = useMemo(
     () => (robot === 'wash_gantry'
       ? WASH_SHELL.bays.slice(0, Math.max(0, washBayCount)).map((b) => b.id)
-      : stalls.filter((s) => s.type === 'dcfc').map((s) => s.id)),
+      : robot === 'tire_bay' ? OPS_SHELL.bays.filter((b) => b.kind === 'service').map((b) => b.id)
+        : stalls.filter((s) => s.type === 'dcfc').map((s) => s.id)),
     [robot, stalls, washBayCount],
   );
   const [id, setId] = useState<string | null>(null);
@@ -63,7 +66,7 @@ export function useLiveFollow(robot: RobotKey): LiveFollow {
   const port = useRef<{ for: string | null; at: PortAt | null }>({ for: null, at: null });
   useEffect(() => { port.current = { for: null, at: null }; }, [robot, id]);
   const anglesNow = useCallback((): Record<string, number> | null => {
-    if (!id) return null;
+    if (!id || robot === 'tire_bay') return null;
     if (robot === 'clean_arm') return cleanLiveAngles(twinMotionDriver.cleanSessionAt(id) ?? IDLE_CLEAN);
     if (robot === 'wash_gantry') return washLiveAngles(twinMotionDriver.washSessionAt(id) ?? IDLE_WASH);
     const s = twinMotionDriver.armSessionAt(id) ?? IDLE_SESSION;
@@ -91,7 +94,7 @@ export function useLiveFollow(robot: RobotKey): LiveFollow {
   }, [robot, ids, anglesNow]);
 
   const mirrored = useMemo(() => {
-    const stall = id && robot !== 'wash_gantry' ? stalls.find((s) => s.id === id) : null;
+    const stall = id && robot !== 'wash_gantry' && robot !== 'tire_bay' ? stalls.find((s) => s.id === id) : null;
     if (!stall) return false;
     const { x, y, angle } = stall.position;
     return robot === 'charge_arm'

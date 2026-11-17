@@ -129,3 +129,42 @@ nitrogen gas spring. Gas springs: ISO 11901-1. Progression 15 % over the stroke 
   wrist clock spring's 8 circuits at 2 A with an EtherCAT pair, 1.5 turns either way, in 8 mm; the wrist swivel's air
   passage (a groove between 2 lip seals and a 3 mm channel along the stub's wall); the wash trench (0.52 m deep,
   slotted checker-plate cover, brush strips).
+
+## OTTO-TIRE: the service bay's wheel change (read 2026-11-17)
+
+Read through a web search on 2026-11-17. The code carries each beside the value it sets (`src/lib/ottoTire/tireSpec.ts`,
+`tireProgram.ts`, `src/lib/siteService.ts`, `robots/tire_bay.py`); docs/OTTO-TIRE.md explains the design.
+
+- The fleet's wheel fastenings (pattern, thread, hex, torque, cover; **used** by the head's pitch circle, its sockets and
+  its torque): Tesla Model Y 175 N m, 21 mm,
+  https://service.tesla.com/docs/ModelY/ServiceManual/en-us/GUID-6B20CACF-C224-4B28-9592-7BEB02E9AEB6.html ; 5 x 114.3,
+  M14 x 1.5, https://wheel-sizes.com/lugnuts/tesla/model-y/ · Jaguar I-PACE 5 x 108, 133 N m,
+  https://limitlesstire.com/vehicles/jaguar/i-pace/2024/ (120 N m in
+  https://spurverbreiterung.de/en/category-4/category-42/jaguar-7194/i-pace-x590-2018-19991) · Zeekr 001 (the Ojai's
+  platform) 5 x 108, wheel bolts, https://koleso.ee/en/valuveljed/zeekr/001/4941/2023-now/10193 ,
+  https://tirewheelguide.com/sizes/zeekr/mix/2025/ · Lucid Gravity 5 x 120,
+  https://lucidowners.com/threads/aftermarket-wheels-for-gravity.13979/post-308716 , 140 N m,
+  https://openlaborproject.com/torque-specs/lucid/gravity/2024-2024/gt-awd/cv-boot-inner/ · Tesla Cybercab's wheel
+  cover, https://notateslaapp.com/news/4362/tesla-cybercab-patent-reveals-unique-wheel-design . Every fact marked
+  `assumed` in `WHEEL_FACTS` is an ASSUMPTION until the maker's service data confirms it.
+- In-ground two-post lift, full rise 53 s and down 24 s at 10,000 lb (*checked*: the power unit's 139 L/min gives 50 s):
+  https://standardus.com/rotary-two-post-auto-lift-10-000lbs-capacity-inground-electric-hydraulic-r-sl210-fa.html
+- NEC 670.4(A), industrial machinery supply: 125 % of the largest motor plus the rest (**used**, the bay's design current):
+  https://solar365.com/green-homes/national-electric-code-2008/industrial-machinery/page/0/1 ·
+  https://codebookcity.com/codearticles/nec/necarticle670-675.htm
+- NEC Table 430.250, 5 hp at 460 V: 7.6 A (**used**, the lift pump):
+  https://static.elliottelectric.com/StaticPages/ElectricalReferences/ElectricalTables/FullLoad_Current.aspx
+- NEC Table 310.16, 75 °C copper: 10 AWG 35 A, 8 AWG 50 A, 6 AWG 65 A, 4 AWG 85 A (**used**, the feed's conductor):
+  https://elliottelectric.com/StaticPages/ElectricalReferences/ElectricalTables/Allowable_Ampacities.aspx
+- NEC 240.4(D), 14 AWG copper protected at 15 A at most, 10 AWG at 30 A (**used**, the robot and portal feeders):
+  https://www.ecmweb.com/national-electrical-code/code-basics/article/20885916/article-240-overcurrent-protection
+- NEC Chapter 9 Table 1, conduit fill 53 / 31 / 40 %, and Note 9, a cable counts as one conductor (**used**, every
+  conduit's fill, checked in the build): https://www.ecmweb.com/national-electrical-code/code-basics/article/20892946/fill-er-up ·
+  https://www.ecmweb.com/content/article/20891686/size-raceways-for-a-successful-installation
+- Distribution transformer impedance, 5.75 % nominal for 750 to 3,750 kVA with a -7.5 % tolerance (**used**, the fault
+  current at the bay cabinet): https://esr.snopud.com/Content/Material/B-Transformers/636318.1.htm
+- ASSUMPTION, class sizes without a product source: every servo motor and gearmotor (trolley and slew 0.4 kW, Z 1.0 kW,
+  travel 2.0 kW), the nutrunner spindles (1.0 kW, 250 N m peak), the slip ring (3 x 20 A at 600 V, 4 EtherCAT circuits,
+  a one-channel multimode fibre joint), the lift's rams (200 mm, 7 bar at the 4,500 kg rated load), the power unit's relief
+  (10 bar) and pump efficiency (0.85), the drives' input power factor (0.95) and efficiency (0.92), every cable's outside
+  diameter and bend radius, and the safety design to PL d, category 3 (ISO 13849-1), as ISO 10218-2 asks of a robot cell.

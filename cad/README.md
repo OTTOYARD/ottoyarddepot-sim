@@ -1,6 +1,6 @@
 # OTTOYARD robot CAD
 
-Parametric engineering CAD of the depot's three robots, built in Python with CadQuery 2.8 (OpenCascade 7.9),
+Parametric engineering CAD of the depot's four robots, built in Python with CadQuery 2.8 (OpenCascade 7.9),
 from the SAME numbers the twin draws them with.
 
 | robot | what it does | file |
@@ -8,6 +8,7 @@ from the SAME numbers the twin draws them with.
 | OTTO-CHARGE ARM | 6-axis arm that plugs the DC connector into the car at each fast charger | `otto_cad/robots/charge_arm.py` |
 | OTTO-CLEAN ARM | overhead SCARA with a telescoping mast and vacuum wand that cleans the cabin while the car charges | `otto_cad/robots/clean_arm.py` |
 | OTTO-WASH | rollover gantry in each wash bay: spray arch, top and side brushes, air knives, detail vacuum wands | `otto_cad/robots/wash_gantry.py` |
+| OTTO-TIRE | wheel change in each service bay: in-ground lift, portal on floor rails, 2 wheel robots with nutrunner heads, wheel racks, its cabinets and feed (docs/OTTO-TIRE.md) | `otto_cad/robots/tire_bay.py` |
 
 ## Build
 

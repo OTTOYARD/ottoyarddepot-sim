@@ -610,7 +610,7 @@ def servo_drive(od: float, amps: float) -> PartDef:
 # ═════════════════════════════════════════════════════════════ linear motion ═══
 # profile rail guide: size -> (rail w, rail h, block w, block h(total), block L, hole pitch, screw)
 RAIL = {15: (15, 13, 34, 24, 61, 60, 4), 20: (20, 16.5, 44, 30, 77, 60, 5), 25: (23, 20, 48, 36, 84, 60, 6),
-        30: (28, 23, 60, 42, 98, 80, 8)}
+        30: (28, 23, 60, 42, 98, 80, 8), 35: (34, 29, 70, 48, 113, 80, 8)}
 
 
 @lru_cache(maxsize=None)

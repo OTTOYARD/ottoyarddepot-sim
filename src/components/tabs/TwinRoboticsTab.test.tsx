@@ -57,7 +57,7 @@ async function open(wide: boolean) {
 }
 
 describe('the Robotics tab', () => {
-  it('says it is design data, not live, and offers the three robots', async () => {
+  it('says it is design data, not live, and offers the four robots', async () => {
     await open(false);
     expect(screen.getByTestId('robotics-banner')).toHaveTextContent(
       'Engineering CAD. Design data, not live. Every robot is modelled part for part, down to the last screw and washer. The twin uses the same dimensions.');
@@ -67,7 +67,7 @@ describe('the Robotics tab', () => {
     expect(live.getAttribute('href')).toBe('https://ottoyard-otto-pulse.lovable.app/?tab=robots');
     expect(screen.getByTestId('robotics-tab').dataset.layout).toBe('narrow');
     expect(within(screen.getByTestId('robot-picker')).getAllByRole('button').map((b) => b.textContent)).toEqual([
-      'OTTO-CHARGE ARMCharge arm', 'OTTO-CLEAN ARMCabin clean arm', 'OTTO-WASHWash bay machine']);
+      'OTTO-CHARGE ARMCharge arm', 'OTTO-CLEAN ARMCabin clean arm', 'OTTO-WASHWash bay machine', 'OTTO-TIREWheel service bay']);
     usePhoneSheet.setState({ fullscreen: false });
     fireEvent.click(screen.getByTestId('open-full'));
     expect(useSimulationStore.getState().isPanelExpanded).toBe(true);      // the desktop's panel

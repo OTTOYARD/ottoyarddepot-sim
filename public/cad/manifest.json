@@ -366,6 +366,157 @@
      "name": "Bay supply"
     }
    ]
+  },
+  {
+   "key": "tire_bay",
+   "title": "OTTO-TIRE",
+   "frame": "Service bay frame: origin at the bay's lift mark on the floor (where each car's axle midpoint stops), +Y up, +X west, +Z north (toward the exit). The machine at rest: portal parked at the exit end, rams down, arms stowed.",
+   "files": {
+    "glb": "tire_bay.glb",
+    "step": "tire_bay.step.zip",
+    "bom": "tire_bay.bom.json",
+    "csv": "tire_bay.bom.csv",
+    "depot": "tire_bay.depot.glb",
+    "near": "tire_bay.near.glb",
+    "cables": "tire_bay.cables.csv"
+   },
+   "cables": {
+    "lines": 103,
+    "routeM": 628.8,
+    "orderM": 749.3
+   },
+   "bytes": {
+    "glb": 6946968,
+    "stepZip": 4503803,
+    "step": 28615537,
+    "depot": 1126572,
+    "near": 6087164
+   },
+   "mesh": {
+    "vertices": 281212,
+    "triangles": 301778,
+    "meshes": 247,
+    "nodes": 2277
+   },
+   "depotMesh": {
+    "vertices": 42794,
+    "triangles": 40314,
+    "meshes": 155,
+    "nodes": 618
+   },
+   "depotSha256": "ebe1a185f24548b7",
+   "nearMesh": {
+    "vertices": 254044,
+    "triangles": 252924,
+    "meshes": 180,
+    "nodes": 2021
+   },
+   "nearSha256": "d5e8a57d1b3a20bc",
+   "totals": {
+    "parts": 2399,
+    "uniqueParts": 249,
+    "fasteners": 1541,
+    "massKg": 8059.38,
+    "boughtLines": 168,
+    "madeLines": 81,
+    "referenceLines": 2
+   },
+   "glbSha256": "6c5dac20e47c1bbe",
+   "stepCheck": {
+    "namedParts": 2401,
+    "solids": 2627,
+    "invalid": 0
+   },
+   "subsystems": [
+    {
+     "id": "LIFT",
+     "name": "Lift: rams and casings"
+    },
+    {
+     "id": "ARMS",
+     "name": "Lift: saddles and arms"
+    },
+    {
+     "id": "RAILS",
+     "name": "Portal rails"
+    },
+    {
+     "id": "TRAVEL",
+     "name": "Portal travel drives"
+    },
+    {
+     "id": "PORTAL",
+     "name": "Portal frame"
+    },
+    {
+     "id": "TROLLEY",
+     "name": "Robot trolleys"
+    },
+    {
+     "id": "SLEW",
+     "name": "Robot slew"
+    },
+    {
+     "id": "ZAXIS",
+     "name": "Robot vertical axis"
+    },
+    {
+     "id": "HEADDRV",
+     "name": "Head drive box"
+    },
+    {
+     "id": "TILT",
+     "name": "Head tilt"
+    },
+    {
+     "id": "HEAD",
+     "name": "Wheel head"
+    },
+    {
+     "id": "NUTS",
+     "name": "Nutrunners and their cluster"
+    },
+    {
+     "id": "COVER",
+     "name": "Cover tool"
+    },
+    {
+     "id": "GRIP",
+     "name": "Grip"
+    },
+    {
+     "id": "VISION",
+     "name": "Cameras"
+    },
+    {
+     "id": "RACKS",
+     "name": "Wheel racks"
+    },
+    {
+     "id": "SOCKETS",
+     "name": "Socket racks"
+    },
+    {
+     "id": "NEST",
+     "name": "Cover nests"
+    },
+    {
+     "id": "CONTROL",
+     "name": "Control and power"
+    },
+    {
+     "id": "HYD",
+     "name": "Lift power unit"
+    },
+    {
+     "id": "SAFETY",
+     "name": "Safety"
+    },
+    {
+     "id": "PADS",
+     "name": "Lift: pads"
+    }
+   ]
   }
  ]
 }

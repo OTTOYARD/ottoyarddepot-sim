@@ -16,6 +16,7 @@ import { WashBays } from './three/WashBays';
 import { WashGantries } from './three/WashGantry';
 import { RoofXray } from './three/RoofXray';
 import { ServiceBays } from './three/ServiceBays';
+import { TireBays } from './three/TireBay';
 import { StagingZone } from './three/StagingZone';
 import { ChargingArm } from './three/ChargingArm';
 import { makeArmFleet } from './three/armInstances';
@@ -199,6 +200,7 @@ export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0, viewe
   const chargeCad = useDepotCad('charge_arm');
   const cleanCad = useDepotCad('clean_arm');
   const washCad = useDepotCad('wash_gantry');
+  const tireCad = useDepotCad('tire_bay');
   const armFleet = useMemo(() => makeArmFleet(armCapacity, chargeCad?.parts), [armCapacity, chargeCad]);
   useEffect(() => () => armFleet.dispose(), [armFleet]);
   // draw only the slots in use (the rest of the capacity costs no vertices)
@@ -219,6 +221,7 @@ export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0, viewe
   const chargeDetail = useDetailFleets('charge_arm', chargeCad, wanted.charge_arm, director);
   const cleanDetail = useDetailFleets('clean_arm', cleanCad, wanted.clean_arm, director);
   const washDetail = useDetailFleets('wash_gantry', washCad, wanted.wash_gantry, director);
+  const tireDetail = useDetailFleets('tire_bay', tireCad, wanted.tire_bay, director);
   const armStalls = useMemo(() => roboticStalls.map((s) => s.position), [roboticStalls]);
   const armKey = armStallsKey(armStalls);
   const controlsRef = useRef<OrbitControlsImpl>(null);
@@ -300,6 +303,9 @@ export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0, viewe
           <StaticMerge name="ground"><DepotGround /></StaticMerge>
           <StaticMerge name="building"><DepotBuilding /></StaticMerge>
           <StaticMerge name="serviceBays"><ServiceBays /></StaticMerge>
+          {/* each service bay's OTTO-TIRE, from its CAD (at its program's home: the twin runs no wheel change yet) */}
+          <TireBays cad={tireCad} detail={tireDetail} director={director} />
+          <DetailMeshes fleets={tireDetail} />
           <StaticMerge name="solarCanopy" version={`${config.solarCanopy}/${armKey}`}><SolarCanopy solarKWdc={config.solarCanopy} armStalls={armStalls} /></StaticMerge>
           <group name="chargersDcfc"><ChargingField type="dcfc" count={config.dcfcCount} /></group>
           <group name="chargersL2"><ChargingField type="l2" count={config.l2Count} /></group>
@@ -329,7 +335,7 @@ export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0, viewe
             <DetailMeshes fleets={cleanDetail} />
           </group>
           {/* before the robots draw: which robots the camera calls for in detail (useFrame priority -1) */}
-          <DetailFrame director={director} fleets={[chargeDetail, cleanDetail, washDetail]} />
+          <DetailFrame director={director} fleets={[chargeDetail, cleanDetail, washDetail, tireDetail]} />
           <StaticMerge name="landscaping"><Landscaping /></StaticMerge>
           <UrbanSurround />
           <group name="siteDetails"><SiteDetails /></group>

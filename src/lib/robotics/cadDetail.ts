@@ -38,6 +38,7 @@ export const DETAIL_RULES: Readonly<Record<RobotKey, DetailRule>> = {
   charge_arm: { capacity: 4, enterM: 16, leaveM: 19 },
   clean_arm: { capacity: 4, enterM: 16, leaveM: 19 },
   wash_gantry: { capacity: 2, enterM: 22, leaveM: 26 },
+  tire_bay: { capacity: 2, enterM: 22, leaveM: 26 },
 };
 
 interface Placed { x: number; y: number; z: number; r: number }

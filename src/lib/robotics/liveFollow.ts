@@ -43,7 +43,7 @@ export function isAtRest(robot: RobotKey, phase: string): boolean {
   return robot === 'charge_arm' ? isArmHome(phase as ArmSession['phase']) : phase === 'home';
 }
 
-const REST_WORD: Record<RobotKey, string> = { charge_arm: 'Stowed', clean_arm: 'Home', wash_gantry: 'Home' };
+const REST_WORD: Record<RobotKey, string> = { charge_arm: 'Stowed', clean_arm: 'Home', wash_gantry: 'Home', tire_bay: 'Home' };
 
 /** A phase in the words the tab's step list uses (catalog.cycleSteps), so the live line and the list agree. */
 export function phaseLabel(robot: RobotKey, phase: string): string {
@@ -61,7 +61,7 @@ export function phaseLabel(robot: RobotKey, phase: string): string {
 /** "Fast charger 07", "Wash bay 02": the renderer's stall id, in words. */
 export function unitLabel(robot: RobotKey, id: string): string {
   const n = id.match(/(\d+)\s*$/)?.[1];
-  const what = robot === 'wash_gantry' ? 'Wash bay' : 'Fast charger';
+  const what = robot === 'wash_gantry' ? 'Wash bay' : robot === 'tire_bay' ? 'Service bay' : 'Fast charger';
   return n ? `${what} ${n.padStart(2, '0')}` : `${what} ${id}`;
 }
 

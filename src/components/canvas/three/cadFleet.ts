@@ -29,6 +29,8 @@ export const DEPOT_CAD_OPTIONS: Readonly<Record<RobotKey, DepotCadOptions>> = {
   // the beacon is the status light; the stop lamps are lights of their own (red, green). The bay's floor is the CAD's
   // y = 0: the drag chain's trench cover and the supply pit's cover lie flush in it
   wash_gantry: { lights: { led: 0, led_red: 1, led_green: 2 }, deckY: 0 },
+  // the bay's floor is the CAD's y = 0: the lift's casings, its recess pans' undersides and the floor ducts lie under it
+  tire_bay: { deckY: 0 },
 };
 
 /**
@@ -42,11 +44,13 @@ export const FAR_FLEX_OPTIONS: Readonly<Record<RobotKey, FlexFleetOptions>> = {
   charge_arm: { radial: 8, seat: 0.003, under: -MOUNT_HEIGHT_M },
   clean_arm: { radial: 8, seat: 0.003 },
   wash_gantry: { radial: 8, seat: 0.003, under: 0 },
+  tire_bay: { radial: 8, seat: 0.003, under: 0 },
 };
 export const NEAR_FLEX_OPTIONS: Readonly<Record<RobotKey, FlexFleetOptions>> = {
   charge_arm: { radial: 16, coilPerTurn: 16, seat: 0.004, contents: true, under: -MOUNT_HEIGHT_M },
   clean_arm: { radial: 16, coilPerTurn: 16, seat: 0.004, contents: true },
   wash_gantry: { radial: 16, coilPerTurn: 16, seat: 0.004, contents: true, under: 0 },
+  tire_bay: { radial: 16, coilPerTurn: 16, seat: 0.004, contents: true, under: 0 },
 };
 
 const loads = new Map<RobotKey, Promise<DepotCad>>();

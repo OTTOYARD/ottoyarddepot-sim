@@ -10,5 +10,9 @@
  "charge_arm": {
   "clashes": 0,
   "floatingGroups": 0
+ },
+ "tire_bay": {
+  "clashes": 0,
+  "floatingGroups": 0
  }
 }

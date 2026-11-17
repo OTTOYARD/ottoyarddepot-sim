@@ -24,7 +24,7 @@ from otto_cad.core import write_json  # noqa: E402
 from otto_cad.glb import write_glb    # noqa: E402
 
 OUT = os.path.join(HERE, '..', 'public', 'cad')
-ROBOTS = ['charge_arm', 'clean_arm', 'wash_gantry']
+ROBOTS = ['charge_arm', 'clean_arm', 'wash_gantry', 'tire_bay']
 
 
 def step_check(path: str) -> dict:

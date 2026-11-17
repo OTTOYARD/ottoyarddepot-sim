@@ -23,7 +23,7 @@ export function sameSegments(a: DepotCad, b: DepotCad): boolean {
 /** The scene's director, and which kinds have asked for their detail model yet. */
 export function useDetailDirector(): { director: DetailDirector; wanted: Record<RobotKey, boolean> } {
   const director = useMemo(() => new DetailDirector(PLAN_UNITS_PER_METRE), []);
-  const [wanted, setWanted] = useState<Record<RobotKey, boolean>>({ charge_arm: false, clean_arm: false, wash_gantry: false });
+  const [wanted, setWanted] = useState<Record<RobotKey, boolean>>({ charge_arm: false, clean_arm: false, wash_gantry: false, tire_bay: false });
   useEffect(() => {
     director.onFirstWant = (k) => setWanted((w) => (w[k] ? w : { ...w, [k]: true }));
     return () => { director.onFirstWant = null; };

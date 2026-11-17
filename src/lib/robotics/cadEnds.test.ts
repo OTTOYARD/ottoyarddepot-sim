@@ -16,7 +16,7 @@ interface EndsReport { robot: string; glbSha256: string | null; heldWithinMm: nu
 
 const manifest = JSON.parse(readFileSync(`${PUBLIC_CAD}/manifest.json`, 'utf8')) as Manifest;
 /** the rigid lines each robot has at least (its drawn cables, hoses, tubes and conduits), so a report that checks none fails */
-const MIN_LINES: Record<string, number> = { charge_arm: 18, clean_arm: 14, wash_gantry: 40 };
+const MIN_LINES: Record<string, number> = { charge_arm: 18, clean_arm: 14, wash_gantry: 40, tire_bay: 18 };
 
 describe.each(ROBOT_KEYS)('%s: every rigid line\'s ends are held', (k) => {
   it('has a line-ends report for the GLB it ships, and the report names no open end', () => {
