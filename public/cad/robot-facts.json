@@ -495,6 +495,8 @@
    ],
    "owner": [
     "A machine changes the wheels of your car in the service bay. No person lifts a wheel.",
+    "It fits a new set when the tread is worn. It rotates your tyres once a quarter.",
+    "A flat tyre is not changed here. The car comes in on a tow truck and is changed where it is parked.",
     "Your car stands on steel locks while the robots work, never on the oil.",
     "Each nut stays in its own socket until it is back on. Each one is tightened to your car's torque.",
     "The torque and the angle of every nut are recorded.",
@@ -505,8 +507,8 @@
     "Service bay lift"
    ],
    "services": [
-    "fault_repair",
-    "mechanical_pm"
+    "tire_replacement",
+    "tire_rotation"
    ],
    "steps": [
     {
@@ -1074,6 +1076,10 @@
     {
      "label": "Time",
      "value": "About 8.9 min for all 4 wheels. The 2 robots change a front pair, then a rear pair."
+    },
+    {
+     "label": "Rotation",
+     "value": "About 9 min. Each front wheel waits in a rack. The rear wheel goes onto the front hub. Then the front wheel goes onto the rear hub. Each wheel keeps its own cover."
     },
     {
      "label": "Lift",

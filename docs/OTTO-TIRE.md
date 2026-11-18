@@ -14,6 +14,12 @@ sets the old wheel in an OLD rack at the exit end, takes a new wheel from a NEW 
 runs the same nuts back and tightens each to the car's torque, and presses the cover back on. Cameras find each wheel,
 its nuts and its studs, and check each step. The 2 robots change a front pair, then a rear pair.
 
+Its two jobs, Chase, the same day: "Let's not do a flat, because that would require rolling the vehicle in on its rim
+(not safe/advised). Flats will be brought in via tow truck (OTTOW workflow) and then jacked up in place at a parking spot
+for it to receive a new tire. The tire robot stall needs to be for worn out tires and rotations (scheduled quarterly, and
+only occurs a few times per simulation run)." So the machine fits a new set when a car's tread is worn, and rotates a
+car's tyres once a quarter. A flat is not its work.
+
 This file is the design. The numbers live in code, and the tests measure them:
 
 | What | Where |
@@ -24,24 +30,42 @@ This file is the design. The numbers live in code, and the tests measure them:
 | The bay's feed from the depot's electrical yard, and the machine's one-line | `src/lib/siteService.ts` |
 | Its footprint in the site plan's solids | `structurePlan.tireBaySolids` |
 | The yard's drawing | `src/components/canvas/three/TireBay.tsx` |
+| What the machine does in the yard, inside OTTO-Q's seat | `src/lib/ottoTire/tireSession.ts`, `src/engine/motion/tireGate.ts` |
+| The car's height on the lift | `src/engine/motion/liftStore.ts`, read by `Vehicle3D.tsx` |
 
-## What the twin owns, and what it draws
+## What OTTO-Q decides, and what the twin draws
 
-OTTO-Q has no wheel service of its own yet. Measured on otto-q-core on 2026-11-17: `service_cadence_policy` holds 17
-services, and the 4 in the `service_bay` lane are `cosmetic_repair`, `fault_repair`, `mechanical_pm` and
-`sensor_calibration`. `service_definitions`, the older fallback catalogue, holds `tire_rotation` (3 rows), but the live
-catalogue has no wheel service. So a flat tyre reaches a service bay as a fault repair, and worn tyres as scheduled
-maintenance, and nothing in the engine says which car needs a wheel changed.
+OTTO-Q decides which car's tyres the machine works on, and when. otto-q-core 0842 (applied 2026-11-17, 5:36 PM CT) gives
+the engine two services of its own, in the `service_bay` lane, each required on the car's visit and finished before the
+car leaves (CLAUDE.md rule 9):
 
-So nothing here invents that state. The Robotics tab plays the machine's program on any fleet car. The yard draws each
-bay's machine at its program's home: the portal parked at the exit end, the robots raised, the lift flush in the floor. A
-car drives in and out under nothing. The cockpits (OTTO-PULSE, OrchestrAV) carry the machine's facts
-(`public/cad/robot-facts.json`). They show each service bay's occupancy from the snapshot. They do not show wheel work.
+- **`tire_replacement`**: the tread is worn, under 3.0 mm (the needs card's own 'due' line; critical under 2.7 mm). The
+  bay exit fits a new set: the car's tread reads 8.0 mm and its rotation quarter starts again.
+- **`tire_rotation`**: a quarter (2,190 h) since the last rotation. The bay exit starts the next quarter. A rotation due
+  within 14 days rides along when the car is in the service bay for other required work, so the car does not come back
+  for it. A car whose tyres are due for replacement is not also rotated.
 
-**Open, for Chase:** a wheel service in OTTO-Q (a `tire_service` atom, raised by a fault or a tyre's wear, done in the
-service bay). That is an engine migration, and rule 15 frames it: a service bay visit is rare, and a day that sends more
-than 2 or 3 cars there is a defect to find. A wheel change fits that. A flat tyre is the example rule 15 gives of a real
-fault.
+A seat for either is 12 minutes, the longest program (10.1 min, the Waymo Ojai with its socket change) plus the drive on
+and off. A seat that also has other service-bay work keeps that work's own length, and the machine works inside it. The
+seeding draws worn tyres for about 1 car in 100 and rotations about 1.3 a day at the twin depot's 116 cars: "a few times
+per simulation run". Before 0842 the needs card folded tyre wear into preventive maintenance, so a worn car was seated for
+maintenance, and the exit reset the maintenance clock and never the tread (two cars in Chase's run 89ac9e74).
+
+The twin draws what OTTO-Q decided. The snapshot's `bay_seat` says when the twin seated a car in a bay and when its timer
+ends (0762), and since 0843 what the seat is for (`work`, the bay exit's own credit set, e.g. `["tire_rotation"]`). In
+each service bay the motion driver plays the machine's program for the car's own model inside that window
+(`tireGate.ts`, `tireSession.ts`): a replacement or a rotation, paced to end 20 s before the seat does, joining part way
+through when the page opens mid-seat. A seat for other work (a fault repair, preventive maintenance) leaves the machine at
+home. The car rises with the lift's pads (`liftStore`), and it may not move until the machine is home and the lift is
+down. The beacon is cyan at home, green while it works and amber on its way home.
+
+0844 closed a defect the first check run found: both of the decide tick's doors to the service bay admitted the same car
+in one tick, and the second took back the first one's booking, so a rotation was seated for one minute. A tire job is
+must-do on the needs card and required on the visit, so both doors saw it. Now the second door passes over a car the first
+has already sent to a bay.
+
+The cockpits (OTTO-PULSE, OrchestrAV) carry the machine's facts (`public/cad/robot-facts.json`), including its two
+services.
 
 ## The bay
 
@@ -137,6 +161,14 @@ the 17 mm set from the other ring, and swaps back before the car leaves.
 tyre, the sill). On the Tesla Model Y (with aero covers) it is 112 steps and 534 s, about 8.9 min, for all 4 wheels. Every
 step's time is nominal (ASSUMPTION). Each step moves one group of axes in a straight line in the machine's own state, so
 the middle of a step is a pose the machine really passes through. The clash check tests both.
+
+**The rotation** (`tireCycle(v, 'rotation')`) moves each side's front wheel to the rear hub and its rear wheel to the
+front hub, on the same side. One wheel must wait while the other moves, so the front wheel waits in an OLD rack's cradle.
+Each wheel keeps its own aero cover. A side has one cover nest, so the front wheel's cover goes back onto it in the cradle
+before the rear cover comes off, and comes off again before that wheel goes onto the rear hub. A racked tyre faces the
+bay's centre, so its cover sits 0.03 m beyond its face, and the head reaches it turned to the wall. The rotation takes as
+long as the replacement: 9.0 min on the Model Y, 5.9 min on a car without covers, 10.2 min on the Waymo Ojai. It never
+goes to the NEW racks.
 
 In order: the lift's arms come out of the floor and swing under the lift points, the pads touch, the car rises 0.50 m on
 the locks. Then for the front pair, and again for the rear pair: the portal comes to the axle; the cups take the covers
@@ -272,17 +304,19 @@ Every CAD change ends with `cad/build.py`, `cad/clash.py --baseline` and `cad/li
 
 - **Parts:** 2,399 placed parts, 249 kinds, 1,541 fasteners, 8,059 kg. The STEP re-imports with every part named and every
   solid valid (2,627 solids).
-- **Clash and contact:** at the stowed pose and every twin pose in `cad/spec/poses.json` (251: every preset, every fleet
-  car's grip and socket change, both ends of every cycle step), 268,983 pairs measured, **0 clashes and 0 floating
-  parts**. Every thread, mesh and seal overlap is an expected class.
+- **Clash and contact:** at the stowed pose and every twin pose in `cad/spec/poses.json` (382: every preset, every fleet
+  car's grip and socket change, the middle and end of every replacement step, and the middle and end of every rotation
+  step the replacement does not already make), 415,790 pairs measured, **0 clashes and 0 floating parts** (2026-11-17,
+  with the rotation). Every thread, mesh and seal overlap is an expected class.
 - **Line ends:** 18 rigid lines, **0 open ends**. The flexible lines' ends are held at every pose by `cadDetail.test.ts`.
 - **Conduit fill:** every conduit inside NEC Chapter 9, Table 1 (above).
 - **The twin's tests:** the CAD's joints are tireSpec's travel and stow at the program's home (`cad.test.ts`); every
   pose and every frame of the cycle lies inside the joints' limits; every flexible line holds its bend radius and length
   through every fleet car's wheel change (`cadFlex.test.ts`); the machine stands inside both service bays at every step,
   clears a car driving through at home, and lies inside the site plan's solids up to a car's height (`cadYard.test.ts`);
-  a car drives straight through both bays touching nothing (`structurePlan.test.ts`); the program's own 59 tests
-  (`tireProgram.test.ts`); the feed and the feeders (`siteService.test.ts`); the cable schedule names the same breakers,
+  a car drives straight through both bays touching nothing (`structurePlan.test.ts`); the program's own 104 tests, every
+  check on both jobs and every model (`tireProgram.test.ts`); the session and the gate in the yard (`tireSession.test.ts`,
+  `tireGate.test.ts`); the feed and the feeders (`siteService.test.ts`); the cable schedule names the same breakers,
   feeders and conductors (`cadCables.test.ts`).
 
 ## Assumptions and open items
@@ -291,7 +325,12 @@ Every CAD change ends with `cad/build.py`, `cad/clash.py --baseline` and `cad/li
 - The lift points and the fastening facts marked assumed (above).
 - The power unit's relief setting (10 bar) and pump efficiency (0.85); each step's nominal time.
 - The feed's route through the site, and the drives' input power factor and efficiency.
-- OTTO-Q's wheel service (above): the engine does not yet say which car needs a wheel changed.
+- The engine's numbers (0842): the 3.0 mm line is the needs card's own; 8.0 mm for a new set (a new car tyre starts at
+  10/32 to 11/32 in, 7.9 to 8.7 mm); the quarter (Chase's word) and the 12-minute seat; the seeding's rates.
+- The yard draws the car's own wheels on the car while the robots carry wheels: no wheel is drawn on a head or in a rack
+  yet. The Robotics tab plays the replacement; the rotation plays in the yard and is held to the clash check.
+- Every fleet car is rotated front to rear on its own side. A car with a staggered fitment (different front and rear
+  tyres) could not be: none in the twin depot's fleet is drawn as one.
 
 ## Sources
 
@@ -304,4 +343,5 @@ Read through a web search on 2026-11-17 (check the code edition the site adopts)
 - NEC Chapter 9, Table 1 and Note 9, conduit fill: [EC&M, Fill 'Er Up](https://www.ecmweb.com/national-electrical-code/code-basics/article/20892946/fill-er-up), [EC&M, Size Raceways](https://www.ecmweb.com/content/article/20891686/size-raceways-for-a-successful-installation)
 - Transformer impedance, 5.75 % nominal with -7.5 % tolerance: [Snohomish PUD specification](https://esr.snopud.com/Content/Material/B-Transformers/636318.1.htm)
 - In-ground two-post lift rise time, 53 s up and 24 s down: [a 10,000 lb in-ground electric-hydraulic lift's listing](https://standardus.com/rotary-two-post-auto-lift-10-000lbs-capacity-inground-electric-hydraulic-r-sl210-fa.html)
+- A new car tyre's tread, 10/32 to 11/32 in (7.9 to 8.7 mm), for the 8.0 mm a replacement fits: [Tire Rack](https://www.tirerack.com/tires/tiretech/techpage.jsp?techid=197); 8 to 9 mm: [Continental](https://www.continental-tires.com/be/nl/tire-knowledge/tread-depth/)
 - The fleet's wheel fastenings: the sources beside each entry in `tireProgram.ts` (`WHEEL_FACTS`), among them [Tesla's Model Y service manual](https://service.tesla.com/docs/ModelY/ServiceManual/en-us/GUID-6B20CACF-C224-4B28-9592-7BEB02E9AEB6.html) and [wheel-sizes.com](https://wheel-sizes.com/lugnuts/tesla/model-y/)

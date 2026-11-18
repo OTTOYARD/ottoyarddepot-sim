@@ -5,6 +5,7 @@ import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { toWorld, yawFromHeading2D, DECK_Y } from './coordUtils';
+import { liftStore } from '@/engine/motion/liftStore';
 import { VEHICLE_GEO as GEO, PORT_GEO, CAR_W_PU, DOOR_GEO, DOOR_HINGE_PU } from './vehicleBody';
 import { poseStore } from '@/engine/motion/poseStore';
 import { doorStore } from '@/engine/motion/doorStore';
@@ -435,34 +436,38 @@ export function VehicleFleet({ vehicles }: { vehicles: Vehicle[] }) {
         d = { x: tx, z: tz, yaw: 0 };
         drawn.current.set(r.id, d);
       }
+      // On a service bay's lift the whole car rises with the pads (liftStore, written from the OTTO-TIRE machine's
+      // session, otto-q-core 0842); every other car stands on the deck.
+      const yl = DECK_Y + liftStore.get(r.id) * PLAN_UNITS_PER_METRE;
       // Doors: shut unless the stall's cleaning arm has them open (doorStore).
       const open = doorStore.get(r.id);
       const mf = r.model ? modelFleets.get(r.model) : undefined;
       if (mf) {
         // This car's own vehicle model, at the generic car's pose; its doors open by the same door store value.
-        writeModelCar(mf, r.slot, d.x, DECK_Y, d.z, d.yaw, open ? open.right : 0, open ? open.left : 0, r.status !== null, open?.rightEach, open?.leftEach);
+        writeModelCar(mf, r.slot, d.x, yl, d.z, d.yaw, open ? open.right : 0, open ? open.left : 0, r.status !== null, open?.rightEach, open?.leftEach);
       } else {
         // Tyres rest ON the deck, the same grade the OTTO-CHARGE ARM mounts off.
-        writeYaw(car, i, d.x, DECK_Y, d.z, d.yaw);
-        if (r.status) writeYaw(st, i, d.x, DECK_Y, d.z, d.yaw); else writeZero(st, i);
+        writeYaw(car, i, d.x, yl, d.z, d.yaw);
+        if (r.status) writeYaw(st, i, d.x, yl, d.z, d.yaw); else writeZero(st, i);
         for (let k = 0; k < 2; k++) {
           const side = k === 0 ? 1 : -1;
           const dm = k === 0 ? fleet.doors.right : fleet.doors.left;
           const h = k === 0 ? DOOR_HINGE_PU.right : DOOR_HINGE_PU.left;
           const phi = open ? doorSwing(side, k === 0 ? open.right : open.left) : 0;
           const dw = doorWorld(d.x, d.z, d.yaw, h.x, h.z, phi, doorScratch);
-          writeYaw(dm.m.array as Float32Array, i, dw.x, DECK_Y, dw.z, dw.yaw);
+          writeYaw(dm.m.array as Float32Array, i, dw.x, yl, dw.z, dw.yaw);
           const sa = dm.strip.instanceMatrix.array as Float32Array;
-          if (r.status) writeYaw(sa, i, dw.x, DECK_Y, dw.z, dw.yaw); else writeZero(sa, i);
+          if (r.status) writeYaw(sa, i, dw.x, yl, dw.z, dw.yaw); else writeZero(sa, i);
         }
       }
       // Charge port — the inlet the OTTO-CHARGE ARM actually mates with, positioned
       // from portFor() through the same resolver the arm solves against, so what
       // the robot plugs into is what you can see.
       const pw = portWorld(d.x, d.z, d.yaw, r.port.pos, r.port.yaw, portScratch);
-      writeYaw(so, i, pw.x, pw.y, pw.z, pw.yaw);
-      if (r.live) { writeYaw(rl, i, pw.x, pw.y, pw.z, pw.yaw); writeZero(ri, i); }
-      else { writeYaw(ri, i, pw.x, pw.y, pw.z, pw.yaw); writeZero(rl, i); }
+      const py = pw.y + (yl - DECK_Y);
+      writeYaw(so, i, pw.x, py, pw.z, pw.yaw);
+      if (r.live) { writeYaw(rl, i, pw.x, py, pw.z, pw.yaw); writeZero(ri, i); }
+      else { writeYaw(ri, i, pw.x, py, pw.z, pw.yaw); writeZero(rl, i); }
     }
     fleet.carM.needsUpdate = true;
     fleet.status.instanceMatrix.needsUpdate = true;

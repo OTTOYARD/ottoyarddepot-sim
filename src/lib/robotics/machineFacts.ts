@@ -17,6 +17,7 @@ import { ARM_TIMING_DEFAULTS } from '@/lib/ottoChargeArm/armStateMachine';
 import { CLEAN_MOTION_S, CLEAN_SIDE_NOMINAL_S } from '@/lib/ottoCleanArm/cleanArmSpec';
 import { PASSES_NOMINAL_S, WIPE_FIXED_S } from '@/lib/ottoWash/washSpec';
 import { SENSORS } from '@/lib/ottoWash/detailArm';
+import { CYCLE_MODEL, TIRE_VEHICLES, tireCycle } from '@/lib/ottoTire/tireProgram';
 import { FUNCTIONS, ROBOT_INFO, ROBOT_KEYS, cycleSteps, type Bom, type BomSubsystem, type RobotKey } from './catalog';
 
 export interface MachineStep { id: string; label: string; seconds: number | null; note?: string }
@@ -221,6 +222,8 @@ function tireMachine(bom: Bom): MachineFacts {
   const k: RobotKey = 'tire_bay';
   const steps = stepsOf(k);
   const total = steps.reduce((a, x) => a + (x.seconds ?? 0), 0);
+  // the quarterly rotation (otto-q-core 0842), on the model the tab plays
+  const rotationTotal = tireCycle(TIRE_VEHICLES.find((v) => v.key === CYCLE_MODEL)!, 'rotation').total;
   rests(bom, 'PORTAL', /waits at the exit end/);
   rests(bom, 'NUTS', /magnet in each socket holds its nut/);
   return {
@@ -229,18 +232,21 @@ function tireMachine(bom: Bom): MachineFacts {
     summary: [...ROBOT_INFO[k].summary],
     owner: [
       'A machine changes the wheels of your car in the service bay. No person lifts a wheel.',
+      'It fits a new set when the tread is worn. It rotates your tyres once a quarter.',
+      'A flat tyre is not changed here. The car comes in on a tow truck and is changed where it is parked.',
       'Your car stands on steel locks while the robots work, never on the oil.',
       'Each nut stays in its own socket until it is back on. Each one is tightened to your car\'s torque.',
       'The torque and the angle of every nut are recorded.',
       'Your car leaves only when every wheel is back on and checked.',
     ],
     functions: functionsOf(k),
-    // OTTO-Q has no wheel service of its own yet (service_cadence_policy, read 2026-11-17): a flat tyre is a fault repair,
-    // worn tyres are changed at scheduled maintenance. Both are service-bay work.
-    services: ['fault_repair', 'mechanical_pm'],
+    // OTTO-Q's two tire services (otto-q-core 0842): a worn set replaced, and the quarterly rotation. A flat is neither:
+    // it comes in on a tow truck and is changed where it is parked (Chase, 2026-11-17).
+    services: ['tire_replacement', 'tire_rotation'],
     steps,
     facts: [
       { label: 'Time', value: `About ${minutes(total)} for all 4 wheels. The 2 robots change a front pair, then a rear pair.` },
+      { label: 'Rotation', value: `About ${minutes(rotationTotal)}. Each front wheel waits in a rack. The rear wheel goes onto the front hub. Then the front wheel goes onto the rear hub. Each wheel keeps its own cover.` },
       { label: 'Lift', value: `${sub(bom, 'LIFT').function} ${how(bom, 'LIFT', /pawl drops into a tooth/)}` },
       { label: 'Rated load', value: spec(bom, 'LIFT', 'rated load') },
       { label: 'Lift points', value: `${how(bom, 'PADS', /load cell under each pad/)} ${how(bom, 'PADS', /lift stops if the 4 shares/)}` },

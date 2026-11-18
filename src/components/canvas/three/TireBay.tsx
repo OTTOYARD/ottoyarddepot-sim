@@ -5,6 +5,8 @@ import { OPS_SHELL } from '@/lib/structurePlan';
 import { BAY_STALL_Y } from '@/lib/sitePlan';
 import { PLAN_UNITS_PER_METRE } from '@/lib/ottoChargeArm/cobotSpec';
 import { homeState, tireAngles } from '@/lib/ottoTire/tireProgram';
+import { IDLE_TIRE, tireSessionAngles, type TireSession } from '@/lib/ottoTire/tireSession';
+import { twinMotionDriver } from '@/engine/TwinMotionDriver';
 import { poseSkeleton, type DepotCad } from '@/lib/robotics/cadDepot';
 import type { DetailDirector } from '@/lib/robotics/cadDetail';
 import { makeFlexFleet, type FlexFleet } from '@/lib/robotics/flexMesh';
@@ -19,12 +21,14 @@ import { FAR_FLEX_OPTIONS } from './cadFleet';
  * and arms flush in the floor, the wheel racks, socket racks and cover nests, the bay cabinet and the lift's power unit on
  * the north wall, and their lines.
  *
- * This component DRAWS; it decides nothing. The twin does not yet run a wheel change in a bay (the engine sends no wheel
- * work: the Robotics tab plays the machine's program, ottoTire/tireProgram.ts), so the yard draws each bay's machine at
- * its program's home: the portal parked over the OLD racks at the exit end, the robots raised and turned to the car, the
- * lift down. A car drives in under nothing. Every bay's machine is one instance of one set of meshes (instancedFleet.ts),
- * and near the camera the detail model (cadDetail.ts). robotics/cadYard.test.ts holds it inside the bay and clear of a
- * car driving through; structurePlan.tireBaySolids carries its footprint into the site plan's solids.
+ * This component DRAWS; it decides nothing. OTTO-Q seats a car in a service bay for its tire work (otto-q-core 0842: a
+ * worn set replaced, or the quarterly rotation), and the motion driver plays the bay's machine inside the seat
+ * (engine/motion/tireGate.ts, the one evaluation): this draws exactly that session's pose each frame, and the lift's
+ * rise under the car is drawn on the car (liftStore, Vehicle3D). At home, as for a seat for other work, the portal is
+ * parked over the OLD racks at the exit end, the robots raised and turned to the car, the lift down, and a car drives in
+ * under nothing. Every bay's machine is one instance of one set of meshes (instancedFleet.ts), and near the camera the
+ * detail model (cadDetail.ts). robotics/cadYard.test.ts holds it inside the bay and clear of a car driving through;
+ * structurePlan.tireBaySolids carries its footprint into the site plan's solids.
  *
  * FRAME: each bay's group stands on the bay's drive line at its lift mark (plan y BAY_STALL_Y), on the deck. The CAD's
  * bay frame (metres, +X west, +Z north) is the yard's own axes there (world x = 150 - plan x, world z = 110 - plan y),
@@ -32,11 +36,15 @@ import { FAR_FLEX_OPTIONS } from './cadFleet';
  */
 
 const HOME = tireAngles(homeState());
-/** The status beacon at home: ready for a car (OTTO-WASH's home colour). */
+/** The status beacon: ready for a car at home, working, and on its way home (OTTO-WASH's colours). */
 const READY = 0x00e5ff;
+const WORKING = 0x35d07f;
+const FINISHING = 0xffb020;
+const beaconFor = (s: TireSession): number => (s.phase === 'working' ? WORKING : s.phase === 'finishing' ? FINISHING : READY);
 
 /** One bay's machine: its skeleton at home, drawn into its slot of the shared meshes. */
-function CadTireBay({ planX, cad, fleet, flex, slot, detail, director }: {
+function CadTireBay({ bayId, planX, cad, fleet, flex, slot, detail, director }: {
+  bayId: string;
   planX: number;
   cad: DepotCad;
   fleet: InstancedFleet;
@@ -60,10 +68,17 @@ function CadTireBay({ planX, cad, fleet, flex, slot, detail, director }: {
     return () => director.remove('tire_bay', slot);
   }, [director, planX, slot]);
   const seen = useRef({ detail: false });
+  const posed = useRef<TireSession>(IDLE_TIRE);
 
   useFrame(() => {
+    // the session the motion driver stepped this frame; re-pose only when it moved
+    const s = twinMotionDriver.tireSessionAt(bayId) ?? IDLE_TIRE;
+    if (s !== posed.current) {
+      poseSkeleton(skel, s.phase === 'home' ? HOME : tireSessionAngles(s));
+      posed.current = s;
+    }
     machineRef.current?.updateWorldMatrix(true, true);
-    drawRobot({ fleet, flex, slot }, detail, skel.segments, skel, READY, 2.2, [], seen.current);
+    drawRobot({ fleet, flex, slot }, detail, skel.segments, skel, beaconFor(s), 2.2, [], seen.current);
   });
 
   return (
@@ -93,7 +108,7 @@ function CadTireBays({ cad, bays, detail, director }: {
     <group name="tireBays">
       {fleet.meshes.map((m, i) => <primitive key={`tirepart-${i}`} object={m} />)}
       {flex && <primitive object={flex.group} />}
-      {bays.map((b, i) => <CadTireBay key={b.id} planX={b.x} cad={cad} fleet={fleet} flex={flex} slot={i} detail={detail} director={director} />)}
+      {bays.map((b, i) => <CadTireBay key={b.id} bayId={b.id} planX={b.x} cad={cad} fleet={fleet} flex={flex} slot={i} detail={detail} director={director} />)}
     </group>
   );
 }
