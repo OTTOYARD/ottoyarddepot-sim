@@ -4,7 +4,8 @@ import { QCardBody } from "./VehicleQCard";
 import { VehicleDot } from "./VehicleDot";
 import { useQCard } from "@/store/qCardStore";
 import { useOwnerBoardStore } from "@/store/ownerBoardStore";
-import { buildQCard, type QDepotCard } from "@/lib/vehicleQCard";
+import { buildQCard, clock, type QDepotCard } from "@/lib/vehicleQCard";
+import type { TwinSnapshot } from "@/lib/ottoTwin";
 import { agentLabel, carOwnerView, type DepotOwnerBoard } from "@/lib/ownerBoard";
 import board from "@/components/tabs/__fixtures__/depotOwnerBoard.0608.json";
 import type { Vehicle } from "@/engine/types";
@@ -51,6 +52,39 @@ describe("QCardBody", () => {
     render(<QCardBody card={buildQCard({ vehicleId: "v1", card })} onClose={onClose} cardsStatus="ok" />);
     fireEvent.click(screen.getByLabelText("Close Q card"));
     expect(onClose).toHaveBeenCalledOnce();
+  });
+});
+
+// ── a car seated in a service bay (otto-q-core 0842, 0843): run 52dfc2d3's Tesla-AV-046 at 8:16 AM sim ─────────────
+describe("the Q card's service bay row", () => {
+  const T0 = "2026-11-17T14:03:50+00:00", T1 = "2026-11-17T14:43:21+00:00";
+  const seated = (work: string[], why?: Record<string, string>) => ({
+    run: { sim_run_id: "r", status: "paused", sim_clock: "2026-11-17T14:16:19+00:00" },
+    legs: [], fleet: { counts: {}, total: 1, vehicles: [{ id: "v1", av_id: "twin-sim-046", make: "Tesla", platform: "tesla",
+      state: "in_service_bay", soc: 91, stall_id: "svc-1", bay_seat: { since: T0, ends_at: T1, work, ...(why ? { why } : {}) } }] },
+    stalls_status: [], energy: null, bess: null, weather: null, grid: null, counters: {}, recent_events: [], variability: {},
+  }) as unknown as TwinSnapshot;
+  const boot: QDepotCard = { vehicle_id: "v1", display_name: "Tesla-AV-046", state: "in_service_bay", soc: 91, target_soc: 100,
+    stall: { code: "NASH-SVC-01", kind: "service" }, reservations: [], card: { needs: [], steps: [] } };
+
+  it("says what the car is in the bay for, who does it, until when, and why", () => {
+    render(<QCardBody card={buildQCard({ vehicleId: "v1", card: boot, snapshot: seated(["fault_repair"]) })} onClose={() => {}} cardsStatus="ok" />);
+    const row = screen.getByTestId("qcard-service");
+    expect(row.getAttribute("data-state")).toBe("in_progress");
+    expect(row.textContent).toContain("Fault repair");
+    expect(row.textContent).toContain("by a technician");
+    expect(row.textContent).toContain(`ends ${clock(T1)}`);
+    expect(screen.getByTestId("qcard-service-words").textContent).toBe("A technician repairs the fault.");
+    expect(screen.getByTestId("qcard-service-why").textContent).toBe(`Why: OTTO-Q seated it here at ${clock(T0)} for its fault repair.`);
+    expect(screen.getByTestId("qcard-now").textContent).toContain("Fault repair");
+    expect(screen.getByTestId("qcard-leave").textContent).toBe("Not ready to leave. Battery 91% of 100%. 1 service open: fault repair.");
+  });
+
+  it("draws the engine's reason when the seat carries one", () => {
+    const q = buildQCard({ vehicleId: "v1", card: boot,
+      snapshot: seated(["sensor_calibration"], { sensor_calibration: "11 days since the last calibration, due every 10" }) });
+    render(<QCardBody card={q} onClose={() => {}} cardsStatus="ok" />);
+    expect(screen.getByTestId("qcard-service-why").textContent).toBe("Why: Sensor calibration: 11 days since the last calibration, due every 10.");
   });
 });
 

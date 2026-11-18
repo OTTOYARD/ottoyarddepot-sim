@@ -24,7 +24,7 @@ import { useTwinStore } from '@/store/twinStore';
 import { useOwnerBoardStore } from '@/store/ownerBoardStore';
 import { useVehicleQCard } from '@/hooks/useVehicleQCard';
 import { CarTrail } from '@/components/tabs/ottoq/CarTrail';
-import { DASH, clock, pctText, type QBayWash, type QCabinClean, type QCard, type QStep } from '@/lib/vehicleQCard';
+import { DASH, clock, pctText, type QBayService, type QBayWash, type QCabinClean, type QCard, type QStep } from '@/lib/vehicleQCard';
 import { carOwnerView, type OwnerCarView } from '@/lib/ownerBoard';
 
 const OK = '#34D399';
@@ -165,6 +165,41 @@ function BayWashRow({ w }: { w: QBayWash }) {
   );
 }
 
+/**
+ * The car's seat in a service bay (otto-q-core 0762, 0843): what OTTO-Q seated it for, who does it (the bay's tire
+ * machine for a tire job, a technician for anything else), a meter to the twin's end time, what is happening, and why.
+ */
+function BayServiceRow({ w }: { w: QBayService }) {
+  const done = w.state === 'done';
+  const starting = w.state === 'starting';
+  return (
+    <div className="mt-1.5 rounded border border-white/[0.06] bg-white/[0.03] px-2 py-1.5" data-testid="qcard-service" data-state={w.state}>
+      <div className="flex items-center gap-1.5">
+        <span aria-hidden className="inline-flex h-3 w-3 shrink-0 items-center justify-center rounded-[3px] border text-[8px] font-bold"
+          style={done ? { background: OK, borderColor: OK, color: '#06070A' } : { borderColor: TEAL }}>
+          {done ? '✓' : starting ? '' : <span className="h-1.5 w-1.5 rounded-full" style={{ background: TEAL }} />}
+        </span>
+        <span className="text-[11px] font-medium">{w.title}</span>
+        <span className="min-w-0 truncate text-[10px] text-ink-faint">· {w.by}</span>
+        <span className="flex-1" />
+        <span className="shrink-0 text-[9px] uppercase tracking-[0.06em]" style={{ color: done ? OK : TEAL }} data-testid="qcard-service-state">
+          {done ? 'Done' : starting ? 'Starting' : 'In progress'}
+        </span>
+      </div>
+      {!done && (
+        <div className="mt-1 flex items-center gap-1.5">
+          <Meter value={w.progress} label={`${w.title} progress`} />
+          <span className="shrink-0 font-mono text-[9px] text-ink-dim">
+            {w.progress !== null ? `${Math.round(w.progress)}%` : DASH} · ends {clock(w.endsAt)}
+          </span>
+        </div>
+      )}
+      <div className="mt-0.5 text-[9px] text-ink-faint" data-testid="qcard-service-words">{w.words}</div>
+      <div className="mt-0.5 text-[9px] text-ink-dim" data-testid="qcard-service-why">Why: {w.why}</div>
+    </div>
+  );
+}
+
 /** An owner's agent's colour, as OrchestrAV draws it: the same on the chips, the Agent tab's lines and the car's marker. */
 const AGENT_TONE = 'border-violet-500/40 bg-violet-500/10 text-violet-200';
 
@@ -275,6 +310,7 @@ export function QCardBody({ card, oem, onClose, cardsStatus, owner }: {
 
       {card.cabinClean && <CabinCleanRow c={card.cabinClean} />}
       {card.bayWash && <BayWashRow w={card.bayWash} />}
+      {card.bayService && <BayServiceRow w={card.bayService} />}
 
       {card.hold && (
         <div className="mt-1.5 rounded border px-2 py-1 text-[10px]" style={{ borderColor: 'rgba(251,191,36,0.35)', color: WARN, background: 'rgba(251,191,36,0.06)' }} data-testid="qcard-hold">

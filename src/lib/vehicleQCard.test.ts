@@ -4,7 +4,7 @@ import live from "@/engine/__fixtures__/twinRun.live0922rec.json";
 import type { ActivityFeedRow } from "@/store/activityFeedStore";
 import type { TwinSnapshot, TwinVisitCard } from "@/lib/ottoTwin";
 import {
-  DASH, buildQCard, currentVisitRows, needState, releaseWords, stallCodeMap, stepLabel, type QDepotCard,
+  DASH, buildQCard, clock, currentVisitRows, needState, releaseWords, stallCodeMap, stepLabel, type QDepotCard,
 } from "@/lib/vehicleQCard";
 
 // ── fixtures ────────────────────────────────────────────────────────────────
@@ -516,5 +516,89 @@ describe("the robotic wash by the bay's machine (otto-q-core 0746, 0762)", () =>
     expect(buildQCard({ vehicleId: VID, snapshot: inBay("in_wash_bay", MID, { since: T0, ends_at: null }) }).bayWash?.progress).toBeNull();
     expect(buildQCard({ vehicleId: VID, snapshot: inBay("in_service_bay", MID) }).bayWash).toBeNull();
     expect(buildQCard({ vehicleId: VID, snapshot: inBay("charging_dcfc", MID, null) }).bayWash).toBeNull();
+  });
+});
+
+describe("the service bay seat: what OTTO-Q seated the car for, who does it, and why (otto-q-core 0842, 0843)", () => {
+  // Run 52dfc2d3 at 8:16 AM sim (2026-11-17): Tesla-AV-046 seated in NASH-SVC-01 for a fault repair, 8:03 to 8:43 AM.
+  // A car on the depot when its run began: no visit, no plan steps, and the cards list no needs for it, so the card
+  // read only "In service bay".
+  const T0 = "2026-11-17T14:03:50+00:00", T1 = "2026-11-17T14:43:21+00:00", MID = "2026-11-17T14:16:19+00:00";
+  const inBay = (
+    work: string[] | null, clockAt = MID, soc = 91,
+    seat: { why?: Record<string, string> | null; since?: string | null; ends_at?: string | null } = {}, state = "in_service_bay",
+  ) => snap({
+    run: { sim_run_id: "r", status: "running", sim_clock: clockAt } as never,
+    fleet: { counts: {}, total: 1, vehicles: [{
+      id: VID, av_id: "twin-sim-046", make: "Tesla", platform: "tesla", state, soc, stall_id: "svc-1-id",
+      bay_seat: { since: T0, ends_at: T1, work, ...seat },
+    }] },
+  });
+  const DC_BOOT: QDepotCard = {
+    vehicle_id: VID, display_name: "Tesla-AV-046", state: "in_service_bay", soc: 91, target_soc: 100,
+    stall: { id: "svc-1-id", code: "NASH-SVC-01", kind: "service" },
+    reservations: [{ booking_id: "fe95", purpose: "service", state: "active", stall_code: "NASH-SVC-01", stall_kind: "service",
+      starts_at: T0, ends_at: T1, need_atom: null, booked_by: "otto_q_enacted" }],
+    card: { urgency: null, needs: [], steps: [], current_step: null },
+  };
+
+  it("names a fault repair by a technician, with a meter to the seat's end, and says why the car is there", () => {
+    const q = buildQCard({ vehicleId: VID, card: DC_BOOT, snapshot: inBay(["fault_repair"]) });
+    expect(q.bayService).toMatchObject({
+      state: "in_progress", title: "Fault repair", by: "by a technician", words: "A technician repairs the fault.",
+      startedAt: T0, endsAt: T1, work: ["fault_repair"],
+    });
+    expect(q.bayService!.progress).toBeCloseTo((749 / 2371) * 100, 6);
+    expect(q.bayService!.why).toBe(`OTTO-Q seated it here at ${clock(T0)} for its fault repair.`);
+    // the Now line says what, not "In service bay"
+    expect(q.now).toMatchObject({ what: "Fault repair", eta: T1 });
+    expect(q.now.progress).toBeCloseTo((749 / 2371) * 100, 6);
+  });
+
+  it("lists the seat's work as an open service, so the car is not ready to leave even at a full battery (rule 9)", () => {
+    const q = buildQCard({ vehicleId: VID, card: { ...DC_BOOT, soc: 100 }, snapshot: inBay(["sensor_calibration"], MID, 100) });
+    expect(q.needs.items).toEqual([expect.objectContaining({ svc: "sensor_calibration", label: "Sensor calibration", state: "active", mustDo: true })]);
+    expect(q.leave).toEqual({ cleared: false, words: "Not ready to leave. 1 service open: sensor calibration." });
+    // and with no cards at all, the seat alone still holds it
+    expect(buildQCard({ vehicleId: VID, snapshot: inBay(["sensor_calibration"], MID, 100) }).leave.cleared).toBe(false);
+  });
+
+  it("says the engine's reason per service when the seat carries one", () => {
+    const q = buildQCard({ vehicleId: VID, card: DC_BOOT,
+      snapshot: inBay(["fault_repair"], MID, 91, { why: { fault_repair: "open faults P0AA6 and U0100, the worst at severity 1" } }) });
+    expect(q.bayService!.why).toBe("Fault repair: open faults P0AA6 and U0100, the worst at severity 1.");
+  });
+
+  it("is the tire machine's work for a tire job, in the program step's own words", () => {
+    const q = buildQCard({ vehicleId: VID, snapshot: inBay(["tire_rotation"]),
+      bayTire: { phase: "working", job: "rotation", step: "The portal moves to the rear wheels" } });
+    expect(q.bayService).toMatchObject({
+      state: "in_progress", title: "Tire rotation", by: "by the bay's tire machine", words: "The portal moves to the rear wheels.",
+    });
+  });
+
+  it("is starting before the tire machine starts, and done once it is home with the lift down", () => {
+    expect(buildQCard({ vehicleId: VID, snapshot: inBay(["tire_replacement"], T0), bayTire: { phase: "home", job: "replacement", step: null } }).bayService)
+      .toMatchObject({ state: "starting", words: "The tire machine starts when the car stands on the lift." });
+    const done = buildQCard({ vehicleId: VID, snapshot: inBay(["tire_replacement"]), bayTire: { phase: "home", job: "replacement", step: null, done: true } });
+    expect(done.bayService).toMatchObject({ state: "done", words: "Done. The machine is home and the lift is down." });
+    // a done seat's work is no longer listed as open
+    expect(done.needs.items.some((n) => n.svc === "tire_replacement")).toBe(false);
+  });
+
+  it("names both when a tire job rides along with a technician's work", () => {
+    const q = buildQCard({ vehicleId: VID, snapshot: inBay(["mechanical_pm", "tire_rotation"]),
+      bayTire: { phase: "working", job: "rotation", step: "The heads go down to the wheels' height" } });
+    expect(q.bayService).toMatchObject({
+      title: "Scheduled maintenance and tire rotation", by: "by a technician and the bay's tire machine",
+      words: "The heads go down to the wheels' height. A technician does the scheduled maintenance.",
+    });
+  });
+
+  it("shows no row for a car in no service bay, and no meter it cannot compute", () => {
+    expect(buildQCard({ vehicleId: VID, snapshot: inBay(["fault_repair"], MID, 91, {}, "in_wash_bay") }).bayService).toBeNull();
+    expect(buildQCard({ vehicleId: VID, snapshot: inBay(["fault_repair"], MID, 91, { ends_at: null }) }).bayService?.progress).toBeNull();
+    // a seat that names no work still says it is service work, and who does it
+    expect(buildQCard({ vehicleId: VID, snapshot: inBay(null) }).bayService).toMatchObject({ title: "Service", by: "by a technician" });
   });
 });

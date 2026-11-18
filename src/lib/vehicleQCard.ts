@@ -33,7 +33,7 @@
 import type { ActivityFeedRow } from "@/store/activityFeedStore";
 import type { TwinLeg, TwinSnapshot, TwinVehicle } from "@/lib/ottoTwin";
 import { stateWord } from "@/lib/ottoqFunnel";
-import { clockCT, placeName, serviceWord } from "@/lib/plainWords";
+import { clockCT, listWords, placeName, serviceWord } from "@/lib/plainWords";
 
 /** What a gap in a number or a time looks like on the card. */
 export const DASH = "—";
@@ -150,6 +150,13 @@ export interface QCardInputs {
    * cleaned first); `done` is true once the program has run to its end, before the twin moves the car on.
    */
   bayWash?: { phase: string; interior: boolean; done?: boolean } | null;
+  /**
+   * What the car's service bay's OTTO-TIRE machine is doing now, as the motion driver plays it
+   * (TwinMotionDriver.tireBayFor), or null when it is not working for this car. `phase` is the session's (home,
+   * working, finishing); `step` is the program step's sentence while it works; `done` is true once it has finished
+   * this car's program, before the twin moves the car on.
+   */
+  bayTire?: { phase: string; job: "replacement" | "rotation" | null; step: string | null; done?: boolean } | null;
 }
 
 // ── output ────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -222,6 +229,29 @@ export interface QBayWash {
   endsAt: string | null;
 }
 
+/**
+ * The car's seat in a service bay (otto-q-core 0762 `bay_seat`, 0843 `work`). A tire job (a worn set, or the quarterly
+ * rotation) is the bay's OTTO-TIRE machine's work; any other service-bay work (a fault repair, a sensor calibration,
+ * scheduled maintenance, a body repair) is a technician's, and the machine stays at home.
+ */
+export interface QBayService {
+  state: "starting" | "in_progress" | "done";
+  /** what the seat is for, in words: 'Fault repair', 'Tire rotation', 'Fault repair and tire rotation' */
+  title: string;
+  /** who does it: 'by a technician', 'by the bay's tire machine', or both */
+  by: string;
+  /** what is happening, in short sentences: the tire machine's step, or what the technician does */
+  words: string;
+  /** why OTTO-Q seated the car here: the engine's reason when the seat carries one, else the seat itself */
+  why: string;
+  /** 0..100 through the twin's seat at the snapshot's clock; null when a time is missing */
+  progress: number | null;
+  startedAt: string | null;
+  endsAt: string | null;
+  /** the seat's work, as service codes */
+  work: string[];
+}
+
 export interface QCard {
   vehicleId: string;
   name: string;
@@ -253,6 +283,8 @@ export interface QCard {
   /** the stall's cleaning arm's work on this car, or null when its visit has none */
   cabinClean: QCabinClean | null;
   bayWash: QBayWash | null;
+  /** the car's seat in a service bay: what it is for, who does it, and why, or null when it is in no service bay */
+  bayService: QBayService | null;
   hold: { words: string; place: string | null; until: string | null } | null;
   /** plan changes the car's own decisions record, newest first */
   changes: { at: string | null; words: string }[];
@@ -408,6 +440,33 @@ export function bayWashWords(phase: string, done = false): { starting: boolean; 
     case "retract": case "return": return { starting: false, words: "The seat ended. The machine moves back to its start position." };
     default: return { starting: false, words: "The machine washes the car." };
   }
+}
+
+/** The service bay's tire jobs (otto-q-core 0842): the bay's OTTO-TIRE machine does these, a technician the rest. */
+export const TIRE_SERVICES: ReadonlySet<string> = new Set(["tire_replacement", "tire_rotation"]);
+
+/** What a technician does for each kind of service-bay work, in one short sentence (ASD-STE100). */
+const TECH_WORDS: Record<string, string> = {
+  fault_repair: "A technician repairs the fault.",
+  sensor_calibration: "A technician calibrates the sensors.",
+  mechanical_pm: "A technician does the scheduled maintenance.",
+  cosmetic_repair: "A technician repairs the body.",
+};
+export function technicianWords(work: readonly string[]): string {
+  const tech = work.filter((w) => !TIRE_SERVICES.has(w));
+  if (!tech.length) return "";
+  return [...new Set(tech.map((w) => TECH_WORDS[w] ?? "A technician does the work."))].join(" ");
+}
+
+/**
+ * The tire machine's session in words (ASD-STE100), and whether it is still starting: its program step's own sentence
+ * while it works, and the plain facts before it starts and after it ends.
+ */
+export function bayTireWords(phase: string, step: string | null, done = false): { starting: boolean; words: string } {
+  if (done) return { starting: false, words: "Done. The machine is home and the lift is down." };
+  if (phase === "working") return { starting: false, words: step ? `${step.replace(/\.$/, "")}.` : "The tire machine works on the wheels." };
+  if (phase === "finishing") return { starting: false, words: "The seat ended. The machine goes home and lowers the car." };
+  return { starting: true, words: "The tire machine starts when the car stands on the lift." };
 }
 
 /** Why a booking was replaced or let go (ottoq_stall_bookings.release_reason), in words. Unknown reasons read as given. */
@@ -606,6 +665,43 @@ export function buildQCard(inp: QCardInputs): QCard {
     };
   }
 
+  // ── the service bay: the twin's seat (0762), for the work OTTO-Q seated it for (0843). A tire job is the bay's
+  //    OTTO-TIRE machine's (0842); any other work is a technician's, and the machine stays at home. ──
+  let bayService: QBayService | null = null;
+  if (stateCode === "in_service_bay" && (tv?.bay_seat || inp.bayTire)) {
+    const seat = tv?.bay_seat ?? null;
+    const work = Array.isArray(seat?.work) ? seat!.work!.filter((w): w is string => typeof w === "string" && w !== "") : [];
+    const startedAt = seat?.since ?? null;
+    const endsAt = seat?.ends_at ?? null;
+    const t0 = Date.parse(startedAt ?? ""), t1 = Date.parse(endsAt ?? ""), at = Date.parse(snap?.run?.sim_clock ?? "");
+    const progress = Number.isFinite(t0) && Number.isFinite(t1) && Number.isFinite(at) && t1 > t0
+      ? Math.max(0, Math.min(100, ((at - t0) / (t1 - t0)) * 100)) : null;
+    const tireWork = work.some((w) => TIRE_SERVICES.has(w)) || !!inp.bayTire?.job;
+    const techWork = work.some((w) => !TIRE_SERVICES.has(w));
+    const tire = tireWork && inp.bayTire ? bayTireWords(inp.bayTire.phase, inp.bayTire.step, inp.bayTire.done) : null;
+    const tech = technicianWords(work);
+    const words = [tire?.words ?? (tireWork ? "The tire machine works on the wheels." : null), tech || null]
+      .filter(Boolean).join(" ") || "A technician does the work.";
+    const state: QBayService["state"] = inp.bayTire?.done && !techWork ? "done"
+      : progress !== null && progress >= 100 ? "done"
+      : tire && !tire.starting ? "in_progress"
+      : progress !== null && progress > 0 ? "in_progress" : "starting";
+    const workWords = listWords(work.map(serviceWord));
+    // the engine's reason per service when the seat carries one, else what the seat itself says
+    const reasons = seat?.why && typeof seat.why === "object"
+      ? work.map((w) => (typeof seat.why![w] === "string" && seat.why![w] ? `${cap(serviceWord(w))}: ${seat.why![w]}` : null)).filter(Boolean)
+      : [];
+    const why = reasons.length
+      ? `${reasons.join(". ")}.`
+      : `OTTO-Q seated it here${startedAt ? ` at ${clock(startedAt)}` : ""} for its ${workWords || "service"}.`;
+    bayService = {
+      state,
+      title: workWords ? cap(workWords) : "Service",
+      by: tireWork && techWork ? "by a technician and the bay's tire machine" : tireWork ? "by the bay's tire machine" : "by a technician",
+      words, why, progress, startedAt, endsAt, work,
+    };
+  }
+
   // ── now ──
   const cur = items.find((s) => s.state === "current") ?? null;
   const nextStep = items.find((s) => s.state === "upcoming") ?? null;
@@ -618,7 +714,23 @@ export function buildQCard(inp: QCardInputs): QCard {
         etaSource: currentRec?.eta_source === "plan" ? "plan" : null, overPlanMin: num(currentRec?.over_plan_min), arm }
     : cur
       ? { what: cur.label, place: cur.place ?? herePlace, progress: cur.progress, eta: cur.eta, etaSource: cur.etaSource, overPlanMin: cur.overPlanMin, arm }
-      : { what: cap(stateWord(stateCode)), place: herePlace, progress: null, eta: null, etaSource: null, overPlanMin: null, arm };
+      // a car seated in a service bay with no step on a plan (one on the depot when its run began) is there for its
+      // seat's work: say what, until when
+      : bayService
+        ? { what: bayService.title, place: herePlace, progress: bayService.progress, eta: bayService.endsAt, etaSource: null, overPlanMin: null, arm }
+        : { what: cap(stateWord(stateCode)), place: herePlace, progress: null, eta: null, etaSource: null, overPlanMin: null, arm };
+
+  // the seat's work is open until the seat is done, whether or not a record lists it (a car on the depot when its run
+  // began has no visit, and the cards list no needs for it)
+  if (bayService && bayService.state !== "done") {
+    for (const w of bayService.work) {
+      if (needs.some((n) => n.svc === w)) continue;
+      needs.push({
+        svc: w, label: cap(serviceWord(w)), state: "active", doneAt: null, estMin: null, mustDo: true,
+        note: TIRE_SERVICES.has(w) ? "by the bay's tire machine" : "by a technician, in the service bay",
+      });
+    }
+  }
 
   // ── hold: a temporary-hold booking, a standing wait, or parked in staging with no step under way ──
   let hold: QCard["hold"] = null;
@@ -663,14 +775,15 @@ export function buildQCard(inp: QCardInputs): QCard {
   const needsKnown = needRecs !== null;
   const batteryOk = now !== null && target !== null ? now >= target : null;
   let leave: QCard["leave"];
-  if (batteryOk === null || !needsKnown) {
+  // a service known to be open holds the car whatever else is unpublished (a seat's work, rule 9)
+  if ((batteryOk === null || !needsKnown) && open.length === 0) {
     const parts = [batteryOk === null ? "battery or target" : null, !needsKnown ? "services" : null].filter(Boolean);
     leave = { cleared: null, words: `Leave check: ${DASH}. Not published: ${parts.join(", ")}.` };
   } else if (batteryOk && open.length === 0) {
     leave = { cleared: true, words: "Ready to leave. Battery at target. All services done." };
   } else {
     const parts = [
-      batteryOk ? null : `Battery ${pctText(now)} of ${pctText(target)}`,
+      batteryOk === false ? `Battery ${pctText(now)} of ${pctText(target)}` : null,
       open.length ? `${open.length} ${open.length === 1 ? "service" : "services"} open: ${open.map((n) => n.label.toLowerCase()).join(", ")}` : null,
     ].filter(Boolean);
     leave = { cleared: false, words: `Not ready to leave. ${parts.join(". ")}.` };
@@ -688,6 +801,7 @@ export function buildQCard(inp: QCardInputs): QCard {
     needs: { published: needsKnown, items: needs },
     cabinClean,
     bayWash,
+    bayService,
     hold,
     changes,
     leave,
