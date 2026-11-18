@@ -180,8 +180,24 @@ export function tireAngles(s: BayState): Record<string, number> {
 
 // ═══════════════════════════════════════════════════════════════════ THE STEPS ═══
 export interface TireStep { id: string; label: string; seconds: number; end: BayState }
+/** The tire robot's two jobs (otto-q-core 0842): a worn set replaced with new wheels, or the quarterly rotation. */
+export type TireJob = 'replacement' | 'rotation';
+export const TIRE_JOBS: readonly TireJob[] = ['replacement', 'rotation'];
+/**
+ * The job a service-bay seat is doing, from its work (the twin snapshot's `bay_seat.work`, otto-q-core 0843): a
+ * replacement when the tires are being replaced (a new set restarts the quarter, so OTTO-Q never asks for both), else
+ * a rotation, else none (the seat is for other work and the robot stays home).
+ */
+export function tireJobFor(work: readonly string[] | null | undefined): TireJob | null {
+  if (!work) return null;
+  if (work.includes('tire_replacement')) return 'replacement';
+  if (work.includes('tire_rotation')) return 'rotation';
+  return null;
+}
 export interface TireCycle {
   vehicle: TireVehicle;
+  /** which job this cycle is */
+  job: TireJob;
   steps: TireStep[];
   total: number;
   /** the machine's state `u` (0..1) through step `i` */
@@ -257,7 +273,7 @@ export const RACK_CLEAR = 0.25;
  * The cover steps run only for a wheel with a cover. Every turn starts with the head raised to SLEW_Y and the trolley at
  * TURN_TROL. Times are nominal sim seconds (ASSUMPTION, docs/OTTO-TIRE.md).
  */
-export function tireCycle(v: TireVehicle): TireCycle {
+export function tireCycle(v: TireVehicle, job: TireJob = 'replacement'): TireCycle {
   const steps: TireStep[] = [];
   let cur = homeState();
   const both = (f: (q: SideState) => Partial<SideState>): Partial<BayState> => ({
@@ -308,7 +324,132 @@ export function tireCycle(v: TireVehicle): TireCycle {
   step('lift_up', 'Both rams lift the car 0.50 m together. The locks hold it', 12,
     { liftF: serviceLift(v.sillFront), liftR: serviceLift(v.sillRear) });
 
-  for (const axle of ['front', 'rear'] as const) {
+  // ── THE ROTATION (otto-q-core 0842: once a quarter) ──
+  // Each side's front wheel goes to the rear hub and its rear wheel to the front hub. One wheel must wait while the
+  // other moves, so the front wheel waits in an OLD rack's cradle. Each wheel keeps its own aero cover: a side has one
+  // cover nest, so the front wheel's cover goes back onto it in the cradle before the rear cover comes off, and comes
+  // off again before that wheel goes onto the rear hub. A racked tyre faces the bay's centre, so its cover sits
+  // COVER_INSET beyond its face, and the head reaches it turned to the wall.
+  const rotate = () => {
+    const parkZ = RACK.oldZ[0];
+    const rackY = rackCentreY(v.tyreR);
+    const parkCover = RACK.faceX + COVER_INSET - CUPS_AHEAD_OF_MAST;
+    const nut = v.facts.fastener;
+    const coverOff = (a: string, word: string) => {
+      if (!v.facts.cover) return;
+      step(`${a}_cups_out`, 'The suction cups come out past the sockets', 3, both(() => ({ cover: HEAD.cover })));
+      step(`${a}_cups_on`, `The cups take hold of the ${word} cover`, 3, both(() => ({ trol: coverFace + CUPS_AHEAD_OF_MAST })));
+      step(`${a}_cover_off`, 'The cups pull the cover off', 3, both(() => ({ trol: trolForFace(TRAVEL_FACE_X) + COVER_PULL })));
+      turn(`${a}_cover_turn`, 'Each robot turns to its portal leg with the cover', Math.PI);
+      step(`${a}_cover_nest`, 'Each cover goes into its nest on the portal leg', 5,
+        both(() => ({ trol: COVER_NEST.x - CUPS_AHEAD_OF_MAST, headY: nestY })));
+      step(`${a}_cover_leave`, 'The cups let go and come back in', 3, both(() => ({ cover: 0, trol: TURN_TROL })));
+      step(`${a}_cover_back`, 'Each robot turns back to the car', 4, both(() => ({ slew: 0 })));
+      step(`${a}_regain`, 'The heads go back to the wheels', 6, both(() => ({ trol: trolForFace(TRAVEL_FACE_X), headY: v.centreY })));
+    };
+    const unbolt = (a: string, word: string, hub: number) => {
+      step(`${a}_grip`, `The rollers close on each ${word} tyre below its centre. The cluster turns to the ${nut}s`, 5,
+        both(() => ({ trol: trolForFace(faceGrip), clamp: clampOn, a: hub })));
+      step(`${a}_nuts_on`, `The sockets go onto the ${nut}s. The grip holds the wheel still`, 3,
+        both(() => ({ trol: trolForFace(faceGrip) - GRIP_ON_NUTS, grip: GRIP_ON_NUTS })));
+      step(`${a}_unbolt`, nut === 'nut' ? 'Each nut breaks free in turn. Then all 5 spin off into their sockets'
+        : 'Each bolt breaks free in turn. Then all 5 spin out into their sockets', 16, {});
+      step(`${a}_nuts_back`, `The sockets come back with the ${nut}s in them`, 3, both(() => ({ trol: trolForFace(faceGrip), grip: 0 })));
+      step(`${a}_pull`, `Each ${word} wheel comes straight off its studs`, 4, both(() => ({ trol: trolForFace(faceGrip + PULL_OFF) })));
+      step(`${a}_out`, 'The heads move out, clear of the car', 3, both(() => ({ trol: trolForFace(TRAVEL_FACE_X) })));
+    };
+    // onto a hub: the head holds the wheel facing the car at its centre's height, clear of the car
+    const mount = (a: string, word: string) => {
+      step(`${a}_align`, nut === 'nut' ? `The cameras find the ${word} studs. The rollers turn each wheel to them`
+        : `The cameras find the ${word} hub's holes. The rollers turn each wheel to them`, 6,
+        both(() => ({ trol: trolForFace(faceGrip + PULL_OFF) })));
+      step(`${a}_mount`, nut === 'nut' ? `Each wheel goes onto its ${word} hub, on the studs and the centre bore`
+        : `Each wheel goes onto its ${word} hub's centre spigot. The rollers hold it there`, 5, both(() => ({ trol: trolForFace(faceGrip) })));
+      step(`${a}_nuts_in`, nut === 'nut' ? 'The sockets put the nuts to the studs' : 'The sockets put the bolts to the hub\'s holes', 3,
+        both(() => ({ trol: trolForFace(faceGrip) - GRIP_ON_NUTS, grip: GRIP_ON_NUTS })));
+      step(`${a}_torque`, `All 5 run down. Then each is tightened to ${v.facts.torqueNm} N m in a star order`, 23, {});
+      step(`${a}_nuts_out`, 'The sockets come back, empty', 3, both(() => ({ trol: trolForFace(faceGrip), grip: 0, a: 0 })));
+      step(`${a}_open`, 'The rollers open', 2, both(() => ({ clamp: HEAD.clampMax })));
+      step(`${a}_away`, 'The heads move out, clear of the car', 3, both(() => ({ trol: trolForFace(TRAVEL_FACE_X) })));
+    };
+    // the cover that waits in the nest goes back onto the wheel now on this hub
+    const coverOn = (a: string) => {
+      if (!v.facts.cover) return;
+      turn(`${a}_cover_fetch`, 'Each robot turns to its portal leg', Math.PI);
+      step(`${a}_cups_reach`, 'The cups come out to the cover in the nest', 5,
+        both(() => ({ cover: HEAD.cover, trol: COVER_NEST.x - CUPS_AHEAD_OF_MAST, headY: nestY })));
+      step(`${a}_cover_lift`, 'The cups take the cover out of the nest', 3, both(() => ({ trol: TURN_TROL })));
+      step(`${a}_cover_return`, 'Each robot turns back to the car with the cover', 4, both(() => ({ slew: 0 })));
+      step(`${a}_cover_in`, 'The heads bring the covers to the wheels', 6,
+        both(() => ({ trol: trolForFace(TRAVEL_FACE_X) + COVER_PULL, headY: v.centreY })));
+      step(`${a}_cover_press`, 'The cups press each cover back on', 4, both(() => ({ trol: coverFace + CUPS_AHEAD_OF_MAST })));
+      step(`${a}_cups_in`, 'The cups let go and come back in', 3, both(() => ({ cover: 0, trol: trolForFace(TRAVEL_FACE_X) })));
+    };
+
+    // THE FRONT WHEELS: off, and into the OLD racks to wait
+    step('f_portal', 'The portal moves to the front wheels', 6, { portal: v.frontZ, ...both(() => ({ pcd, trol: trolForFace(TRAVEL_FACE_X) })) });
+    step('f_lower', 'The heads go down to the wheels\' height', 4, both(() => ({ headY: v.centreY })));
+    step('f_approach', 'The heads come in, 0.10 m off the tyres. The cameras find each wheel and its nuts', 6,
+      both(() => ({ trol: trolForFace(v.faceX + APPROACH) })));
+    coverOff('f', 'front');
+    unbolt('f', 'front', HUB_ANGLE[0]);
+    turn('f_turn_wait', 'Each robot turns its front wheel to the wall side', Math.PI);
+    step('f_to_wait', 'The portal carries the front wheels to the OLD racks, to wait there', 6, { portal: parkZ });
+    step('f_wait_near', 'The heads move each wheel up to a cradle', 3, both(() => ({ trol: trolForWallFace(RACK.faceX - RACK_CLEAR) })));
+    step('f_wait_in', 'The heads move each wheel over its cradle', 3, both(() => ({ trol: trolForWallFace(RACK.faceX) })));
+    step('f_wait_down', 'The heads set each front wheel down in its cradle', 4, both(() => ({ headY: rackY })));
+    step('f_wait_release', 'The rollers open', 2, both(() => ({ clamp: HEAD.clampMax })));
+    step('f_wait_out', 'The heads back away from the wheels', 3, both(() => ({ trol: TURN_TROL })));
+    if (v.facts.cover) {
+      step('f_wc_go', 'The portal moves clear of the racks', 6, { portal: v.frontZ });
+      step('f_wc_reach', 'The cups come out to the front cover in its nest', 5,
+        both(() => ({ cover: HEAD.cover, trol: COVER_NEST.x - CUPS_AHEAD_OF_MAST, headY: nestY })));
+      step('f_wc_lift', 'The cups take the cover out of the nest', 3, both(() => ({ trol: TURN_TROL })));
+      step('f_wc_carry', 'The portal carries the covers to the waiting front wheels', 6, { portal: parkZ, ...both(() => ({ headY: rackY })) });
+      step('f_wc_press', 'The cups press each cover onto its own wheel in the cradle', 4, both(() => ({ trol: parkCover })));
+      step('f_wc_leave', 'The cups let go and come back in', 3, both(() => ({ cover: 0, trol: TURN_TROL })));
+    }
+
+    // THE REAR WHEELS: off, and onto the front hubs
+    turn('r_face_car', 'Each robot turns back to the car', 0);
+    step('r_portal', 'The portal moves to the rear wheels', 6, { portal: v.rearZ, ...both(() => ({ pcd, trol: trolForFace(TRAVEL_FACE_X) })) });
+    step('r_lower', 'The heads go down to the wheels\' height', 4, both(() => ({ headY: v.centreY })));
+    step('r_approach', 'The heads come in, 0.10 m off the tyres. The cameras find each wheel and its nuts', 6,
+      both(() => ({ trol: trolForFace(v.faceX + APPROACH) })));
+    coverOff('r', 'rear');
+    unbolt('r', 'rear', HUB_ANGLE[1]);
+    step('rf_carry', 'The portal carries the rear wheels along the car to the front hubs', 7, { portal: v.frontZ });
+    mount('rf', 'front');
+    coverOn('rf');
+    step('rf_up', 'The heads go up to the travel height', 3, both(() => ({ headY: TRAVEL_Y, trol: trolForFace(TRAVEL_FACE_X) })));
+
+    // THE WAITING FRONT WHEELS: out of the cradles, and onto the rear hubs
+    turn('w_turn', 'Each robot turns to the wall side', Math.PI);
+    step('w_to_racks', 'The portal goes to the waiting front wheels', 7, { portal: parkZ, ...both(() => ({ headY: rackY })) });
+    if (v.facts.cover) {
+      step('w_cups_on', 'The cups come out to each waiting wheel\'s cover', 4, both(() => ({ cover: HEAD.cover, trol: parkCover })));
+      step('w_cover_off', 'The cups pull the cover off', 3, both(() => ({ trol: TURN_TROL })));
+      step('w_cover_go', 'The portal moves clear of the racks with the covers', 6, { portal: v.frontZ });
+      step('w_cover_nest', 'Each cover goes into its nest on the portal leg', 5,
+        both(() => ({ trol: COVER_NEST.x - CUPS_AHEAD_OF_MAST, headY: nestY })));
+      step('w_cover_leave', 'The cups let go and come back in', 3, both(() => ({ cover: 0, trol: TURN_TROL })));
+      step('w_back', 'The portal goes back to the waiting wheels', 6, { portal: parkZ, ...both(() => ({ headY: rackY })) });
+    }
+    step('w_in', 'The heads move over the waiting wheels', 3, both(() => ({ trol: trolForWallFace(RACK.faceX) })));
+    step('w_grip', 'The rollers close on each tyre', 3, both(() => ({ clamp: clampOn })));
+    step('w_up', 'The heads lift the wheels out of their cradles', 4, both(() => ({ headY: TRAVEL_Y })));
+    step('w_out', 'The heads back away from the racks', 3, both(() => ({ trol: TURN_TROL })));
+    step('w_to_axle', 'The portal carries the front wheels to the rear hubs', 7, { portal: v.rearZ });
+    step('w_turn_car', 'Each robot turns the wheel to the car', 4, both(() => ({ slew: 0 })));
+    step('w_back_in', 'The heads come back toward the car', 3, both(() => ({ trol: trolForFace(TRAVEL_FACE_X) })));
+    step('w_lower_hub', 'The heads go down to the hubs\' height', 4, both(() => ({ headY: v.centreY })));
+    mount('w', 'rear');
+    coverOn('w');
+    step('w_travel', 'The heads go up to the travel height', 3, both(() => ({ headY: TRAVEL_Y, trol: trolForFace(TRAVEL_FACE_X) })));
+  };
+
+  if (job === 'rotation') rotate();
+  else for (const axle of ['front', 'rear'] as const) {
     const a = axle === 'front' ? 'f' : 'r';
     const z = axle === 'front' ? v.frontZ : v.rearZ;
     const oldZ = axle === 'front' ? RACK.oldZ[0] : RACK.oldZ[1];
@@ -391,7 +532,7 @@ export function tireCycle(v: TireVehicle): TireCycle {
   const starts = steps.map((_, i) => steps.slice(0, i).reduce((t, s) => t + s.seconds, 0));
   const stateAt = (i: number, u: number) => lerpState(i === 0 ? steps[0].end : steps[i - 1].end, steps[i].end, Math.min(1, Math.max(0, u)));
   return {
-    vehicle: v, steps, total, stateAt,
+    vehicle: v, job, steps, total, stateAt,
     at(t: number) {
       const tt = ((t % total) + total) % total;
       let i = steps.length - 1;

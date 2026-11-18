@@ -33,6 +33,10 @@ import { buildDepotLanes, U_TURN_COST, LaneGraph } from "./motion/LaneGraph";
 import { ArmGate, type ArmStallInput } from "./motion/armGate";
 import { CleanGate, cabinCleanOf, cabinStopOf, chargeArmFacts, type CabinClean, type CleanStallInput } from "./motion/cleanGate";
 import { WashGate, type WashBayInput } from "./motion/washGate";
+import { TireGate, type TireBayInput } from "./motion/tireGate";
+import { liftStore } from "./motion/liftStore";
+import { tireJobFor } from "@/lib/ottoTire/tireProgram";
+import type { TireSession } from "@/lib/ottoTire/tireSession";
 import type { WashSession } from "@/lib/ottoWash/washSession";
 import { poseStore } from "./motion/poseStore";
 import { doorStore } from "./motion/doorStore";
@@ -781,9 +785,11 @@ class TwinMotionDriver {
    *  The ONE evaluation of that machine: WashGantry.tsx draws it, a detail seat's doors are
    *  written from it, and armReleases() reads it. See motion/washGate.ts. */
   private washGate = new WashGate();
+  /** The OTTO-TIRE machine in each service bay (otto-q-core 0842), the wash gate's shape. See motion/tireGate.ts. */
+  private tireGate = new TireGate();
   /** vehicle id -> its seat in a bay as the twin publishes it (0762 `bay_seat`), epoch ms on the
    *  backend's sim clock, and the renderer stall the twin places it on. Rebuilt every snapshot. */
-  private baySeats = new Map<string, { sinceMs: number | null; endsMs: number | null; stall: string | null }>();
+  private baySeats = new Map<string, { sinceMs: number | null; endsMs: number | null; stall: string | null; work: string[] | null }>();
   /** sim-clock instant (ms) at which the arm sessions were last stepped. The arms
    *  are paced by the SIM clock, not by the motion dt — same choice ChargingArm
    *  makes, and the reason the view multiplier never runs the robot by itself. */
@@ -1055,6 +1061,12 @@ class TwinMotionDriver {
       this.armRefusals++;
       return false;
     }
+    // THE TIRE MACHINE: a car in a service bay stays put until its bay's machine is home and the lift is down.
+    if (e.lane === "service" && e.stallId) {
+      if (this.tireGate.mayMove(e.stallId)) return true;
+      this.armRefusals++;
+      return false;
+    }
     if (e.lane !== "dcfc" || !e.stallId) return true;
     // BOTH ROBOTS: the charge arm's connector out, and the cleaning arm home with the
     // car's doors shut. Either one holding is a hold.
@@ -1084,6 +1096,19 @@ class TwinMotionDriver {
    */
   washSessionAt(rendererBayId: string): WashSession | null {
     return this.washGate.session(rendererBayId);
+  }
+
+  /**
+   * What the OTTO-TIRE machine in this service bay is doing, or null when no session covers it.
+   * The ONE evaluation: TireBay.tsx draws exactly this.
+   */
+  tireSessionAt(rendererBayId: string): TireSession | null {
+    return this.tireGate.session(rendererBayId);
+  }
+
+  /** Service bays whose tire machine is holding its car — for the operator trace. */
+  get tireHolds(): string[] {
+    return this.tireGate.holding();
   }
 
   /**
@@ -1330,6 +1355,27 @@ class TwinMotionDriver {
       });
     }
     this.washGate.step(simDt, washes);
+
+    // THE TIRE MACHINES (otto-q-core 0842). A service-bay seat is ACTIVE as a wash seat is: the twin has the car in its
+    // service bay, still places it in this bay, and the car stands on the bay's pose. The seat's work (0843) says whether
+    // it is a tire job and which; a seat for other work leaves the machine at home.
+    const tires: TireBayInput[] = [];
+    for (const [id, e] of this.entries) {
+      if (!e.stallId || e.lane !== "service") continue;
+      const seat = this.baySeats.get(id);
+      const here = !seat?.stall || seat.stall === e.stallId;
+      tires.push({
+        bayId: e.stallId,
+        vehicleId: id,
+        active: e.vstatus === "maintenance" && here && this.onStallPose(e),
+        job: tireJobFor(seat?.work ?? null),
+        model: vehicleModelKey(id),
+        endsInS: seat?.endsMs != null && nowMs ? (seat.endsMs - nowMs) / 1000 : null,
+        sinceS: seat?.sinceMs != null && nowMs ? (nowMs - seat.sinceMs) / 1000 : null,
+      });
+    }
+    this.tireGate.step(simDt, tires);
+    liftStore.sync(this.tireGate.lifts());
     doorStore.syncFlanks([
       ...this.cleanGate.doorsByDoor(),
       ...this.washGate.doors().map(([id, f]) => [id, f, f] as [string, number, number]),
@@ -1691,6 +1737,8 @@ class TwinMotionDriver {
     this.vehicleModels.clear();
     this.foundItems = [];
     this.washGate.clear();
+    this.tireGate.clear();
+    liftStore.clear();
     this.baySeats.clear();
     doorStore.clear();
     this.armSimMs = null;
@@ -1747,6 +1795,8 @@ class TwinMotionDriver {
     this.vehicleModels.clear();
     this.foundItems = [];
     this.washGate.clear();
+    this.tireGate.clear();
+    liftStore.clear();
     this.baySeats.clear();
     doorStore.clear();
     this.armSimMs = null;
@@ -2983,7 +3033,7 @@ class TwinMotionDriver {
     this.vehicleModels = models;
     // THE BAY SEATS (otto-q-core 0762): when the twin seated each car in a bay and when its
     // timer ends the work, on the backend's sim clock. Rebuilt wholesale like the cleans.
-    const seats = new Map<string, { sinceMs: number | null; endsMs: number | null; stall: string | null }>();
+    const seats = new Map<string, { sinceMs: number | null; endsMs: number | null; stall: string | null; work: string[] | null }>();
     for (const bv of snap.fleet?.vehicles ?? []) {
       const seat = bv.bay_seat;
       if (!seat || typeof seat !== "object") continue;
@@ -2991,6 +3041,8 @@ class TwinMotionDriver {
       seats.set(bv.id, {
         sinceMs: at(seat.since), endsMs: at(seat.ends_at),
         stall: typeof bv.stall_id === "string" ? this.twinStall.get(bv.stall_id) ?? null : null,
+        // what the seat is for (otto-q-core 0843), so a service bay's tire machine plays only for a tire job
+        work: Array.isArray(seat.work) ? seat.work.filter((w): w is string => typeof w === "string") : null,
       });
     }
     this.baySeats = seats;

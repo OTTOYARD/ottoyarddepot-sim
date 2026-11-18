@@ -9,15 +9,17 @@
 //      the rams lift the rated load at a low pressure.
 //   5. The socket change: a car with 17 mm wheel bolts gets the head's second socket set, and the head has its 21 mm set
 //      back when the car leaves.
+//   6. Both jobs (otto-q-core 0842): every check above runs on the rotation as on the replacement, the rotation puts
+//      each side's wheels on the other axle's hubs, and each wheel keeps its own aero cover through the one nest.
 import { describe, expect, it } from 'vitest';
 import { FLEET_SPECS } from '@/lib/fleetModels';
 import {
-  COVER_NEST, FACE_AHEAD_OF_MAST, HEAD, HEAD_Y_MAX, HEAD_Y_MIN, LIFT, PORTAL, RACK, SLEW, SLEW_SWEEP, SOCKET_RACK, TROLLEY,
+  COVER_INSET, COVER_NEST, FACE_AHEAD_OF_MAST, HEAD, HEAD_Y_MAX, HEAD_Y_MIN, LIFT, PORTAL, RACK, SLEW, SLEW_SWEEP, SOCKET_RACK, TROLLEY,
   ramBar,
 } from './tireSpec';
 import { TIRE_BAY } from './tireBayFit';
 import {
-  CUPS_AHEAD_OF_MAST, CYCLE_MODEL, HUB_ANGLE, SOCKETS_AHEAD_OF_MAST, TIRE_VEHICLES, TRAVEL_FACE_X, TURN_TROL, WHEEL_FACTS, clampContactAngle,
+  CUPS_AHEAD_OF_MAST, CYCLE_MODEL, HUB_ANGLE, SOCKETS_AHEAD_OF_MAST, TIRE_JOBS, TIRE_VEHICLES, TRAVEL_FACE_X, TURN_TROL, WHEEL_FACTS, clampContactAngle,
   clampFor, coverNestY, homeState, needsSocketSwap, serviceLift, tireAngles, tireCycle,
 } from './tireProgram';
 
@@ -89,9 +91,9 @@ describe('OTTO-TIRE: the head and the mast', () => {
 });
 
 describe('OTTO-TIRE: every fleet model\'s cycle', () => {
-  for (const v of TIRE_VEHICLES) {
-    describe(v.name, () => {
-      const cyc = tireCycle(v);
+  for (const v of TIRE_VEHICLES) for (const job of TIRE_JOBS) {
+    describe(`${v.name}: ${job}`, () => {
+      const cyc = tireCycle(v, job);
       const frames = (() => {
         const out: { id: string; s: ReturnType<typeof cyc.stateAt> }[] = [];
         cyc.steps.forEach((st, i) => { for (const u of [0, 0.25, 0.5, 0.75, 1]) out.push({ id: st.id, s: cyc.stateAt(i, u) }); });
@@ -172,7 +174,7 @@ describe('OTTO-TIRE: every fleet model\'s cycle', () => {
         const grip = cyc.steps.find((s) => s.id === 'f_grip')!.end;
         expect(grip.W.trol - FACE_AHEAD_OF_MAST).toBeCloseTo(v.faceX + 0.01, 6);
         expect(grip.W.headY).toBeCloseTo(v.centreY, 6);
-        const down = cyc.steps.find((s) => s.id === 'f_rack_down')!.end;
+        const down = cyc.steps.find((s) => s.id === (job === 'rotation' ? 'f_wait_down' : 'f_rack_down'))!.end;
         expect(down.W.trol + FACE_AHEAD_OF_MAST).toBeCloseTo(RACK.faceX, 6);
         expect(down.W.headY).toBeCloseTo(RACK.tyreBottom + v.tyreR, 6);
       });
@@ -198,6 +200,59 @@ describe('OTTO-TIRE: every fleet model\'s cycle', () => {
       });
     });
   }
+
+  it('rotates every model inside the 12-minute seat OTTO-Q books for it, with the drive on and off (otto-q-core 0842)', () => {
+    for (const v of TIRE_VEHICLES) {
+      expect(tireCycle(v, 'rotation').total, v.key).toBeLessThanOrEqual(10.5 * 60);
+      expect(tireCycle(v, 'replacement').total, v.key).toBeLessThanOrEqual(10.5 * 60);
+    }
+  });
+
+  it('rotates front to rear on each side: the rear wheel onto the front hub, the waiting front wheel onto the rear hub', () => {
+    for (const v of TIRE_VEHICLES) {
+      const c = tireCycle(v, 'rotation');
+      const at = (id: string) => c.steps.find((s) => s.id === id)!.end;
+      expect(at('f_pull').portal, v.key).toBeCloseTo(v.frontZ, 9);
+      expect(at('f_wait_down').portal, v.key).toBeCloseTo(RACK.oldZ[0], 9);
+      expect(at('r_pull').portal, v.key).toBeCloseTo(v.rearZ, 9);
+      expect(at('rf_mount').portal, v.key).toBeCloseTo(v.frontZ, 9);
+      expect(at('w_grip').portal, v.key).toBeCloseTo(RACK.oldZ[0], 9);
+      expect(at('w_mount').portal, v.key).toBeCloseTo(v.rearZ, 9);
+      for (const id of ['rf_mount', 'w_mount']) {
+        expect(at(id).W.trol - FACE_AHEAD_OF_MAST, `${v.key} ${id}`).toBeCloseTo(v.faceX + 0.01, 6);
+        expect(at(id).W.headY, `${v.key} ${id}`).toBeCloseTo(v.centreY, 6);
+        expect(at(id).W.slew, `${v.key} ${id}`).toBeCloseTo(0, 9);
+      }
+      // nothing in a new wheel's cradle: the rotation never goes to the NEW racks
+      for (const s of c.steps) expect(RACK.newZ.some((z) => Math.abs(s.end.portal - z) < 1e-9), `${v.key} ${s.id}`).toBe(false);
+    }
+  });
+
+  it('keeps each wheel\'s cover with its wheel: back on in the cradle while the wheel waits, off again before it moves', () => {
+    for (const v of TIRE_VEHICLES) {
+      const c = tireCycle(v, 'rotation');
+      const ids = c.steps.map((s) => s.id);
+      expect(ids.includes('f_wc_press'), v.key).toBe(v.facts.cover);
+      expect(ids.includes('w_cover_off'), v.key).toBe(v.facts.cover);
+      if (!v.facts.cover) continue;
+      const at = (id: string) => c.steps.find((s) => s.id === id)!.end;
+      for (const id of ['f_wc_press', 'w_cups_on']) {
+        const q = at(id).W;
+        // a racked tyre faces the bay's centre, so its cover sits COVER_INSET beyond its face
+        expect(q.trol + CUPS_AHEAD_OF_MAST, `${v.key} ${id}`).toBeCloseTo(RACK.faceX + COVER_INSET, 6);
+        expect(q.slew, `${v.key} ${id}`).toBeCloseTo(Math.PI, 9);
+        expect(q.headY, `${v.key} ${id}`).toBeCloseTo(RACK.tyreBottom + v.tyreR, 6);
+        expect(q.cover, `${v.key} ${id}`).toBeCloseTo(HEAD.cover, 9);
+      }
+      // the nest holds one cover at a time: each cover goes in only after the last came out
+      let inNest = 0;
+      for (const s of c.steps) {
+        if (/_cover_nest$/.test(s.id)) { inNest++; expect(inNest, `${v.key} ${s.id}`).toBe(1); }
+        if (/_cups_reach$|_wc_reach$/.test(s.id)) inNest--;
+      }
+      expect(inNest, v.key).toBe(0);
+    }
+  });
 
   it('plays the Model Y (an aero cover on each wheel) in the tab, in about 10 minutes for all 4 wheels', () => {
     const v = TIRE_VEHICLES.find((t) => t.key === CYCLE_MODEL)!;
