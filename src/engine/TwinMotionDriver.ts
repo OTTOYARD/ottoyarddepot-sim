@@ -35,8 +35,8 @@ import { CleanGate, cabinCleanOf, cabinStopOf, chargeArmFacts, type CabinClean, 
 import { WashGate, type WashBayInput } from "./motion/washGate";
 import { TireGate, type TireBayInput } from "./motion/tireGate";
 import { liftStore } from "./motion/liftStore";
-import { tireJobFor } from "@/lib/ottoTire/tireProgram";
-import type { TireSession } from "@/lib/ottoTire/tireSession";
+import { tireJobFor, type TireJob } from "@/lib/ottoTire/tireProgram";
+import { tireStepOf, type TireSession } from "@/lib/ottoTire/tireSession";
 import type { WashSession } from "@/lib/ottoWash/washSession";
 import { poseStore } from "./motion/poseStore";
 import { doorStore } from "./motion/doorStore";
@@ -1121,6 +1121,19 @@ class TwinMotionDriver {
     const s = this.washGate.session(e.stallId);
     if (!s || (s.vehicleId !== vehicleId && s.completedFor !== vehicleId)) return null;
     return { phase: s.phase, interior: s.interior, done: s.phase === "home" && s.completedFor === vehicleId, t: s.t };
+  }
+
+  /**
+   * What the OTTO-TIRE machine in this car's service bay is doing for it (otto-q-core 0842), or null when it works
+   * for no car here: the session's phase, the tire job, the program step's sentence while it works, and whether it
+   * has finished this car's program. The Q card reads it as it reads washBayFor.
+   */
+  tireBayFor(vehicleId: string): { phase: string; job: TireJob | null; step: string | null; done: boolean } | null {
+    const e = this.entries.get(vehicleId);
+    if (!e?.stallId || e.lane !== "service") return null;
+    const s = this.tireGate.session(e.stallId);
+    if (!s || (s.vehicleId !== vehicleId && s.completedFor !== vehicleId)) return null;
+    return { phase: s.phase, job: s.job, step: tireStepOf(s)?.label ?? null, done: s.phase === "home" && s.completedFor === vehicleId };
   }
 
   /** The twin's seat for this car in a bay, as of the last snapshot (epoch ms, sim clock), or null. */

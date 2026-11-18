@@ -128,7 +128,11 @@ export interface TwinVehicle {
    * in no bay; absent from an older backend. `ends_at` is null when the twin's timer is unset. `work` (otto-q-core 0843)
    * is what the seat is doing, as the bay exit will credit it (e.g. ["tire_rotation"]); absent from an older backend.
    */
-  bay_seat?: { since: string | null; ends_at: string | null; work?: string[] | null } | null;
+  /**
+   * the car's seat in a bay (otto-q-core 0762): when it began and ends, the work it is for (0843), and, when the engine
+   * says, why OTTO-Q seated the car, per service in plain words (absent on an older backend)
+   */
+  bay_seat?: { since: string | null; ends_at: string | null; work?: string[] | null; why?: Record<string, string> | null } | null;
 }
 /**
  * One timed leg of a vehicle's itinerary — the twin's T3 RENDER CONTRACT.
