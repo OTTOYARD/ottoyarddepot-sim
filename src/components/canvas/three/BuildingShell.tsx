@@ -75,16 +75,27 @@ export function BuildingShell({ shell, skin, openDoors = Infinity, southGlazing 
   );
 }
 
-function buildShell(s: ShellDef, openDoors: number, southGlazing?: Rect): Map<string, THREE.BufferGeometry> {
+export function buildShell(s: ShellDef, openDoors: number, southGlazing?: Rect): Map<string, THREE.BufferGeometry> {
   const b = new StaticBatch();
   const f = s.footprint;
   const deck = s.height - s.parapet;
   const t = s.wallT;
   const outer = t - LINER;
 
+  // NO TWO FACES ON ONE SURFACE (buildingFaces.test.ts). Two faces on one plane, facing one way, flash as the camera
+  // moves: the depth test picks one or the other, pixel by pixel (z-fighting). Every box below stops where its
+  // neighbour's face is, or inside its neighbour, never flush with a face of its own.
+
   // ── floor + roof ────────────────────────────────────────────────────────────
   b.planBox('floor', { x0: f.x0 + t, x1: f.x1 - t, y0: f.y0 + t, y1: f.y1 - t }, 0, FLOOR_TOP);
-  b.planBox('roof', f, deck - ROOF_T, deck);
+  // The roof slab's edge stands INSIDE the walls, half a wall's thickness in (inside the skin, which is t - LINER
+  // thick). Run out to the footprint, its edge was the walls' own outer face in a 0.6u band under the parapet all the
+  // way round, and the white membrane and the wall skin fought for that band: Chase's "flashing fluorescent strip
+  // along the top of the commercial building and the bays" (2026-11-18). Every door's lintel reaches down past it
+  // (doors are at most 8.6u high, the slab starts at 11.5u in the ops building and 8.5u in the wash hall), so the
+  // edge is buried in wall the whole way round.
+  const roofIn = t / 2;
+  b.planBox('roof', { x0: f.x0 + roofIn, x1: f.x1 - roofIn, y0: f.y0 + roofIn, y1: f.y1 - roofIn }, deck - ROOF_T, deck);
 
   // ── south + north walls: solid runs full height, lintels over each opening ──
   for (const side of ['south', 'north'] as const) {
@@ -96,17 +107,20 @@ function buildShell(s: ShellDef, openDoors: number, southGlazing?: Rect): Map<st
     };
     const skinBand = band(0, outer);
     const linerBand = band(outer, t);
+    // this wall's liner stops at the side walls' skin: run to the corner, its end was a 0.14u strip of light liner on
+    // the side wall's outer face, full height
+    const liner = { x0: f.x0 + outer, x1: f.x1 - outer };
     for (const [x0, x1] of solidWallRuns(s)) {
       if (side === 'south' && southGlazing) {
         // leave the glazed office bay open; the office component fills it
         const gx0 = Math.max(x0, southGlazing.x0), gx1 = Math.min(x1, southGlazing.x1);
         if (gx1 > gx0) {
-          if (gx0 > x0) wallRun(b, x0, gx0, skinBand, linerBand, deck);
-          if (x1 > gx1) wallRun(b, gx1, x1, skinBand, linerBand, deck);
+          if (gx0 > x0) wallRun(b, x0, gx0, skinBand, linerBand, deck, liner);
+          if (x1 > gx1) wallRun(b, gx1, x1, skinBand, linerBand, deck, liner);
           continue;
         }
       }
-      wallRun(b, x0, x1, skinBand, linerBand, deck);
+      wallRun(b, x0, x1, skinBand, linerBand, deck, liner);
     }
     s.doors.forEach((d, i) => {
       const [x0, x1] = doorSpan(d);
@@ -117,27 +131,33 @@ function buildShell(s: ShellDef, openDoors: number, southGlazing?: Rect): Map<st
   }
 
   // ── west + east walls (full height, no openings) ───────────────────────────
-  b.planBox('skin', { x0: f.x0, x1: f.x0 + outer, y0: f.y0, y1: f.y1 }, 0, deck);
+  // Their skin stops at the south and north walls' skin, which turns the corners: both ran into each corner, and two
+  // ribbed panels with their ribs at different places fought on each building corner, full height.
+  b.planBox('skin', { x0: f.x0, x1: f.x0 + outer, y0: f.y0 + outer, y1: f.y1 - outer }, 0, deck);
   b.planBox('liner', { x0: f.x0 + outer, x1: f.x0 + t, y0: f.y0 + t, y1: f.y1 - t }, 0, deck);
-  b.planBox('skin', { x0: f.x1 - outer, x1: f.x1, y0: f.y0, y1: f.y1 }, 0, deck);
+  b.planBox('skin', { x0: f.x1 - outer, x1: f.x1, y0: f.y0 + outer, y1: f.y1 - outer }, 0, deck);
   b.planBox('liner', { x0: f.x1 - t, x1: f.x1 - outer, y0: f.y0 + t, y1: f.y1 - t }, 0, deck);
 
-  // ── partitions ─────────────────────────────────────────────────────────────
+  // ── partitions (stand on the floor slab) ───────────────────────────────────
   for (const px of s.partitions) {
-    b.planBox('block', { x0: px - PARTITION_T / 2, x1: px + PARTITION_T / 2, y0: f.y0 + t, y1: f.y1 - t }, 0, deck - ROOF_T);
+    b.planBox('block', { x0: px - PARTITION_T / 2, x1: px + PARTITION_T / 2, y0: f.y0 + t, y1: f.y1 - t }, FLOOR_TOP, deck - ROOF_T);
   }
 
   // ── parapet + aluminium coping ──────────────────────────────────────────────
+  // The south and north runs turn the corners; the west and east runs stop at them, so no corner is two boxes.
   const par = [
     { x0: f.x0, x1: f.x1, y0: f.y0, y1: f.y0 + t },
     { x0: f.x0, x1: f.x1, y0: f.y1 - t, y1: f.y1 },
-    { x0: f.x0, x1: f.x0 + t, y0: f.y0, y1: f.y1 },
-    { x0: f.x1 - t, x1: f.x1, y0: f.y0, y1: f.y1 },
+    { x0: f.x0, x1: f.x0 + t, y0: f.y0 + t, y1: f.y1 - t },
+    { x0: f.x1 - t, x1: f.x1, y0: f.y0 + t, y1: f.y1 - t },
   ];
-  for (const r of par) {
+  const CAP = 0.12; // the coping's overhang past the parapet's faces
+  par.forEach((r, i) => {
     b.planBox('skin', r, deck, s.height);
-    b.planBox('trim', { x0: r.x0 - 0.12, x1: r.x1 + 0.12, y0: r.y0 - 0.12, y1: r.y1 + 0.12 }, s.height, s.height + 0.16);
-  }
+    // the coping runs over the parapet's run, its west and east runs between the south and north runs' copings
+    const along = i < 2 ? { y0: r.y0 - CAP, y1: r.y1 + CAP } : { y0: r.y0 + CAP, y1: r.y1 - CAP };
+    b.planBox('trim', { x0: r.x0 - CAP, x1: r.x1 + CAP, ...along }, s.height, s.height + 0.16);
+  });
 
   // ── downspouts at the four corners ─────────────────────────────────────────
   for (const [x, y] of [[f.x0 + 0.8, f.y0 - 0.25], [f.x1 - 0.8, f.y0 - 0.25], [f.x0 + 0.8, f.y1 + 0.25], [f.x1 - 0.8, f.y1 + 0.25]]) {
@@ -159,11 +179,14 @@ function buildShell(s: ShellDef, openDoors: number, southGlazing?: Rect): Map<st
   return b.build();
 }
 
-/** One solid run of wall: outer skin + interior liner, floor to roof deck. */
+/** One solid run of wall: outer skin + interior liner, floor to roof deck. The liner keeps within `liner` (it stops
+ *  at the side walls' skin). */
 function wallRun(b: StaticBatch, x0: number, x1: number,
-  skinBand: { y0: number; y1: number }, linerBand: { y0: number; y1: number }, deck: number) {
+  skinBand: { y0: number; y1: number }, linerBand: { y0: number; y1: number }, deck: number,
+  liner: { x0: number; x1: number }) {
   b.planBox('skin', { x0, x1, ...skinBand }, 0, deck);
-  b.planBox('liner', { x0, x1, ...linerBand }, 0.28, deck);
+  const lx0 = Math.max(x0, liner.x0), lx1 = Math.min(x1, liner.x1);
+  if (lx1 > lx0) b.planBox('liner', { x0: lx0, x1: lx1, ...linerBand }, 0.28, deck);
 }
 
 /**

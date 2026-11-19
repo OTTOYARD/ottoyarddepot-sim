@@ -17,7 +17,7 @@ import {
  */
 
 const GLAZING = { x0: OPS_SHELL.footprint.x0 + 2, x1: (OPS_SHELL.office?.x1 ?? 111) - 2 };
-const SOUTH_GLAZING = { ...GLAZING, y0: OPS_SHELL.footprint.y1 - OPS_SHELL.wallT, y1: OPS_SHELL.footprint.y1 };
+export const SOUTH_GLAZING = { ...GLAZING, y0: OPS_SHELL.footprint.y1 - OPS_SHELL.wallT, y1: OPS_SHELL.footprint.y1 };
 const DECK = OPS_SHELL.height - OPS_SHELL.parapet;
 const SILL = 0.9;          // glazing starts above a 0.43 m base curb
 const HEAD = DECK - 0.9;   // and stops under a 0.43 m fascia band
@@ -61,7 +61,7 @@ export function DepotBuilding() {
   );
 }
 
-function buildOffice(): Map<string, THREE.BufferGeometry> {
+export function buildOffice(): Map<string, THREE.BufferGeometry> {
   const b = new StaticBatch();
   const f = OPS_SHELL.footprint;
   const yFace = f.y1;              // south exterior face (plan)
@@ -82,8 +82,9 @@ function buildOffice(): Map<string, THREE.BufferGeometry> {
   // second-floor spandrel + sill/head rails
   b.planBox('skin', { ...GLAZING, ...band(-0.05, 0.3) }, FLOOR2 - 0.35, FLOOR2 + 0.35);
   for (const y of [SILL, HEAD]) b.planBox('trim', { ...GLAZING, ...band(-0.12, 0.3) }, y - 0.12, y + 0.12);
-  // brand accent: a red reveal under the fascia
-  b.planBox('red', { ...GLAZING, ...band(-0.08, 0.1) }, HEAD + 0.05, HEAD + 0.25);
+  // brand accent: a red reveal under the fascia, standing on the head rail (it overlapped the rail's top 0.07u, and the
+  // two met end to end at each side of the glazing: two materials on one face, buildingFaces.test.ts)
+  b.planBox('red', { ...GLAZING, ...band(-0.08, 0.1) }, HEAD + 0.12, HEAD + 0.32);
 
   // ── entrance: glass doors + a canopy HUNG from the wall on two tie rods ─────
   b.planBox('steel', { ...ENTRY, ...band(0.2, 0.42) }, SILL, 3.9);         // door frame backing
@@ -101,10 +102,11 @@ function buildOffice(): Map<string, THREE.BufferGeometry> {
   // ── west + north windows on the office block (two storeys) ─────────────────
   const office = OPS_SHELL.office!;
   for (const [z0, z1] of [[2.0, 4.8], [7.3, 10.2]]) {
-    // west face (plan x0 exterior), proud 0.06
+    // west face (plan x0 exterior), proud 0.06; the sill and head trims run 0.1u past the glass at each end (flush with
+    // it, their ends and the glass's shared a face)
     b.planBox('glass', { x0: f.x0 - 0.06, x1: f.x0 + 0.1, y0: f.y0 + 3, y1: f.y1 - 3 }, z0, z1);
-    b.planBox('trim', { x0: f.x0 - 0.14, x1: f.x0 + 0.02, y0: f.y0 + 3, y1: f.y1 - 3 }, z0 - 0.1, z0 + 0.05);
-    b.planBox('trim', { x0: f.x0 - 0.14, x1: f.x0 + 0.02, y0: f.y0 + 3, y1: f.y1 - 3 }, z1 - 0.05, z1 + 0.1);
+    b.planBox('trim', { x0: f.x0 - 0.14, x1: f.x0 + 0.02, y0: f.y0 + 2.9, y1: f.y1 - 2.9 }, z0 - 0.1, z0 + 0.05);
+    b.planBox('trim', { x0: f.x0 - 0.14, x1: f.x0 + 0.02, y0: f.y0 + 2.9, y1: f.y1 - 2.9 }, z1 - 0.05, z1 + 0.1);
     // north face over the office (plan y0 exterior)
     b.planBox('glass', { x0: office.x0 + 4, x1: office.x1 - 6, y0: f.y0 - 0.1, y1: f.y0 + 0.06 }, z0, z1);
   }
