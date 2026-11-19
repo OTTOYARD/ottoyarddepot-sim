@@ -177,6 +177,24 @@ def build(spec: dict) -> Model:
                 how=['A gearmotor with a worm stage pitches the head.', 'The air knife blows dust out of seams into the vacuum flow.',
                      'A light ring shows that it works, and lights the cabin for the camera.'],
                 specs={'mouth': f'{N["w"]:.0f} x {N["h"]:.0f} mm', 'air knife': '6 bar'}, group='Tool')
+    m.subsystem('VISION', 'Cabin vision pod', 'Looks into the cabin along the wand. It checks that no one is inside before the wand '
+                'goes in, finds the seats, the floor and items left behind, and takes a picture of each surface before and after.',
+                how=['A sealed pod rides under the wand\'s base tube, by the wrist. It turns with the wand and looks where the wand points.',
+                     'It holds 2 cameras 55 mm apart, a time-of-flight depth module and a 60 GHz radar.',
+                     'The light ring on the wand\'s tip lights the cabin for the cameras. The depth module has its own IR light.',
+                     'The radar sees breathing through a blanket or a seat. The cameras alone cannot.',
+                     'The wand goes in only when the radar and the cameras both find the cabin empty.',
+                     'A vision board in the pod runs the models. Only verdicts and still pictures leave the pod, on the arm\'s '
+                     'EtherCAT line.',
+                     'The radar looks out through a black polycarbonate window 3.0 mm thick: 2 half wavelengths at 60 GHz, so '
+                     'the window passes the radar.',
+                     'The pod is the first node on the wand. The clock spring\'s lead goes in, and the wand drive\'s cable comes out.',
+                     'It stays outside the car. It keeps more than the wand\'s 0.03 m off the car and the open doors.'],
+                specs={'cameras': '2 x 2.3 MP global shutter, 1/2.6 in, 3.0 um pixels, M12 2.8 mm lens: about 92 x 66 degrees',
+                       'depth': 'time-of-flight, 0.1 to 2 m (class)', 'radar': '60 GHz, presence and breathing (class)',
+                       'processor': 'AI vision processor, 7 TOPS class, about 2 W (class)',
+                       'link': 'EtherCAT, 100 Mbit/s: a verdict at once, the pictures after the clean (ASSUMPTION)',
+                       'rating': 'IP67 (class)'}, group='Tool')
     vac_mains = [v['routeM'] for v in (spec.get('site') or {}).get('vacuumMains', [])]
     m.subsystem('VAC', 'Vacuum and air supply', 'Brings vacuum from the canopy plant and compressed air from the depot\'s compressor to the nozzle.',
                 how=['A central vacuum producer on each canopy (about 3 kW per working arm, 30 kPa class) serves its arms.',
@@ -1175,6 +1193,188 @@ def build(spec: dict) -> Model:
                    kg_per_m=0.02, size='OD 6',
                    spec={'bend radius': 'about 5 x 6 mm (PU tube)'}))
 
+    # ═══════════════════════════════════════════════════════════════ VISION ═══
+    # The cabin vision pod (docs/ROBOT-VISION.md; design finding 26): a sealed box under the wand's base tube, by the wrist.
+    # It turns with the wand, so it looks where the wand points: through the door from the ready point (the check that no
+    # one is in the cabin), and at each surface before and after the nozzle cleans it. Its place is the twin's
+    # (cleanArmSpec.visionPod): the wrist fork itself has no room (the arm keeps 0.10 m off a car only within about 90 mm of
+    # the mast's axis, and the fork reaches 81 mm), and under the base tube, up to 150 mm from the pivot, everything stays
+    # outside the car with 0.04 m or more over the wand's 0.03 m. Its depth is set by the arm at rest, wand level: its floor
+    # stays 0.10 m over the tallest fleet vehicle's roof (the Ojai's lidar, 2.04 m; fleetEnvelope.test.ts). A first draft
+    # 21.5 mm deeper, with an IR light board over the cameras, stood 0.085 m over it, so the pod holds one row: 2 cameras
+    # and the depth module over the radar. The light ring at the wand's tip lights the cabin for the cameras (CLN-NRG), and
+    # the depth module has its own IR light. Frame: the pitch node's (+X along the wand, +Y up at pitch 0, +Z the pitch
+    # axis), mm from the pivot. The wand drive (CLN-WLA) is on the tube's top, so the pod hangs below.
+    VP = {k: v * M for k, v in A['visionPod'].items() if not isinstance(v, dict)}
+    VL = {k: v * M for k, v in A['visionPod']['line'].items()}   # the drive line up the pod's -Z side
+    WIN_T, GSK_T, VT = 3.0, 1.5, 2.5                     # window and radome, gasket, housing wall
+    vx0, vx2 = VP['from'], VP['to']                      # the housing's back, the window's face
+    vx1 = vx2 - WIN_T - GSK_T                            # the housing's front rim
+    vy1 = -VP['below']                                   # the housing's top, on the saddle
+    vy0 = vy1 - VP['depth']                              # its floor
+    vz = VP['halfWidth']
+    yd0 = vy0 + VT + 19.0                                # the divider: the radar's bay under it, the cameras' bay over it
+    yd1 = yd0 + 2.0
+
+    def vbx(x0: float, x1: float, y0: float, y1: float, z0: float, z1: float) -> cq.Workplane:
+        return cq.Workplane('XY').box(x1 - x0, y1 - y0, z1 - z0, centered=False).translate((x0, y0, z0))
+
+    def xcyl(r: float, x0: float, x1: float, y: float, z: float) -> cq.Workplane:
+        return cq.Workplane('XY').add(cq.Solid.makeCylinder(r, x1 - x0, Vector(x0, y, z), Vector(1, 0, 0)))
+
+    def ycyl(r: float, y0: float, y1: float, x: float, z: float) -> cq.Workplane:
+        return cq.Workplane('XY').add(cq.Solid.makeCylinder(r, y1 - y0, Vector(x, y0, z), Vector(0, 1, 0)))
+
+    SAD_X = (vx0 - 4.0, vx1 - 2.0)                       # the saddle, along the tube
+    BOSS_X = (84.0, 120.0)                               # the saddle screws' bosses: clear of the boards
+    YB = (vy1 + vy0) / 2                                 # the boards' middle height
+    hsg = (vbx(vx0, vx1, vy0, vy1, -vz, vz).edges('|X').fillet(5.0)
+           .cut(vbx(vx0 + VT, vx1 + 1.0, vy0 + VT, vy1 - VT, -vz + VT, vz - VT).edges('|X').fillet(2.5))
+           .union(vbx(vx1 - 23.0, vx1, yd0, yd1, -vz + VT, vz - VT)))                 # the divider, at the front
+    for bx_ in BOSS_X:
+        for sz in (-1, 1):
+            hsg = hsg.union(ycyl(5.0, vy1 - VT - 6.5, vy1 - VT, bx_, sz * 40.0))
+    for (y_, z_) in ((YB + 16.0, -28.0), (YB + 16.0, 28.0), (YB - 16.0, -28.0), (YB - 16.0, 28.0)):   # the vision board's bosses
+        hsg = hsg.union(xcyl(3.0, vx0 + VT, vx0 + VT + 2.5, y_, z_))
+    m.place(pitch, m.part(PartDef('CLN-VPH', 'Vision pod housing, IP67', hsg.val(), 'a356_dark', 'sensor', 'die casting, machined',
+                                  f'{vx1 - vx0:.0f} x {vy1 - vy0:.0f} x {2 * vz:.0f}', 'IP67', None,
+                                  'Holds the cameras, the depth module, the radar and the vision board, sealed. '
+                                  'The housing carries the vision processor\'s heat away.', {}, 'make')),
+            Location(), (0, -120, 0), 'VISION')
+    sad = (vbx(SAD_X[0], SAD_X[1], vy1, -20.0, -vz, vz)
+           .cut(cq.Workplane('YZ', origin=(SAD_X[0] - 1.0, 0, 0)).circle(wr).extrude(SAD_X[1] - SAD_X[0] + 2.0)))
+    m.place(pitch, m.part(PartDef('CLN-VSD', 'Vision pod saddle, bonded to the base tube', sad.val(), 'al6061', 'structure',
+                                  'machined', f'{SAD_X[1] - SAD_X[0]:.0f} x 28 x {2 * vz:.0f}', '6061-T6', None,
+                                  'Carries the pod under the wand\'s base tube. Bonded to the tube with structural epoxy, as the '
+                                  'tube is bonded into the hub.', {'bond': 'two-part structural epoxy (class)'}, 'make')),
+            Location(), (0, -70, 0), 'VISION')
+    for bx_ in BOSS_X:
+        for sz in (-1, 1):
+            m.place(pitch, std.shcs(4, 28, 'A2-70', 'Holds the vision pod to its saddle, into a boss in the housing.'),
+                    std.orient((bx_, -20.0, sz * 40.0), (0, -1, 0)), (0, -40, sz * 30), 'VISION')
+    # inside: the vision board on 4 bosses of the back wall, its processor against the wall through a thermal pad, and the
+    # EtherCAT and power board in front of it
+    it = m.place(pitch, m.part(PartDef('CLN-VTP', 'Thermal pad 16 x 16 x 1', vbx(0, 1.0, -8, 8, -8, 8).val(), 'rubber', 'sensor',
+                                       'catalogue part', '16 x 16 x 1', '6 W/m K (class)', None,
+                                       'Carries the vision processor\'s heat into the housing\'s back wall.', {}, 'buy')),
+                 loc(vx0 + VT, YB, 0), (-30, -120, 0), 'VISION')
+    it.sealed = True
+    it = m.place(pitch, m.part(PartDef('CLN-VSC', 'AI vision processor, 13 x 13 mm package', vbx(0, 1.5, -6.5, 6.5, -6.5, 6.5).val(),
+                                       'pcb', 'sensor', 'catalogue part', '13 x 13 x 1.5', '-40 to 85 degrees C', None,
+                                       'Runs the models in the pod: the cabin check, the seats, the floor, items left behind.',
+                                       {'class': '7 TOPS, 4 CPU cores, image signal processor, secure boot'}, 'buy')),
+                 loc(vx0 + VT + 1.0, YB, 0), (-20, -120, 0), 'VISION')
+    it.sealed = True
+    it = m.place(pitch, m.part(PartDef('CLN-VPB', 'Vision board', vbx(0, 1.6, -20, 20, -32, 32).val(), 'pcb', 'sensor', 'made to order',
+                                       '64 x 40', '', None, 'Carries the vision processor, its memory and the 2 camera inputs.',
+                                       {'memory': '4 GB (class)', 'storage': '32 GB, keeps the pictures until they are sent'}, 'make')),
+                 loc(vx0 + VT + 2.5, YB, 0), (-10, -120, 0), 'VISION')
+    it.sealed = True
+    it = m.place(pitch, m.part(PartDef('CLN-VBC', 'Board-to-board connector', vbx(0, 5.4, -4, 4, -15, 15).val(), 'pa66', 'sensor',
+                                       'catalogue part', '30 x 8 x 5.4', '', None, 'Joins the vision board to the EtherCAT board.',
+                                       {}, 'buy')),
+                 loc(vx0 + VT + 4.1, YB + 12.0, 0), (0, -120, 0), 'VISION')
+    it.sealed = True
+    spc = m.part(PartDef('CLN-VSP', 'Board spacer M2.5 x 5.4, brass', xcyl(2.5, 0, 5.4, 0, 0).val(), 'brass', 'fastener', 'catalogue part',
+                         'M2.5 x 5.4', '', None, 'Holds the EtherCAT board off the vision board.', {}, 'buy'))
+    for sz in (-1, 1):
+        it = m.place(pitch, spc, loc(vx0 + VT + 4.1, YB - 12.0, sz * 26.0), (0, -120, 0), 'VISION')
+        it.sealed = True
+    it = m.place(pitch, m.part(PartDef('CLN-VEB', 'EtherCAT and power board', vbx(0, 1.6, -16, 16, -30, 30).val(), 'pcb', 'sensor',
+                                       'made to order', '60 x 32', '', None,
+                                       'Joins the pod to the arm\'s EtherCAT line, in and out, and makes the pod\'s supplies from 48 V.',
+                                       {'EtherCAT': '2-port slave controller with 2 built-in 100 Mbit/s PHYs (class)',
+                                        'supply': '48 V DC in, about 8 W at most (ASSUMPTION)'}, 'make')),
+                 loc(vx0 + VT + 9.5, YB, 0), (10, -120, 0), 'VISION')
+    it.sealed = True
+    # the cameras' bay: 2 cameras and the depth module stand on the divider
+    cam = vbx(0, 4.0, -13, 13, -15, 15).union(xcyl(7.0, 4.0, 18.0, 0, 0))
+    cam_pd = m.part(PartDef('CLN-VCM', 'Camera module, global shutter, 2.3 MP, M12 lens 2.8 mm', cam.val(), 'pcb', 'sensor',
+                            'catalogue part', '30 x 26, M12 lens', '', None,
+                            'One eye of the pair. 2 views give the depth of the seats and the floor.',
+                            {'sensor': '1/2.6 in, 1920 x 1200, 3.0 um pixels, global shutter',
+                             'lens': 'M12, 2.8 mm: about 92 x 66 degrees', 'output': 'MIPI CSI-2'}, 'buy'))
+    for sz in (-1, 1):
+        m.place(pitch, cam_pd, loc(vx1 - 20.0, yd1 + 13.0, sz * 27.5), (0, -110, sz * 40), 'VISION')
+    tof = vbx(0, 4.0, -8, 8, -10, 10).union(xcyl(2.5, 4.0, 10.0, 0, -4)).union(xcyl(2.5, 4.0, 10.0, 0, 4))
+    m.place(pitch, m.part(PartDef('CLN-VTF', 'Time-of-flight depth module', tof.val(), 'pcb', 'sensor', 'catalogue part', '20 x 16',
+                                  '', None, 'Measures the distance to each surface. It checks the pair\'s depth and sees in the dark.',
+                                  {'range': '0.1 to 2 m (class)'}, 'buy')),
+            loc(vx1 - 20.0, yd1 + 8.0, 0), (0, -110, 0), 'VISION')
+    # the radar's bay: the board on the floor, its antenna 3 half wavelengths in air (7.4 mm) behind the radome
+    rad = vbx(0, 1.6, -9, 9, -27.5, 27.5).union(vbx(1.6, 2.8, -7.5, 7.5, -7.5, 7.5))
+    ant_gap = 3 * 299.792 / 60.5 / 2                     # 3 half wavelengths in air at 60.5 GHz, mm (ASSUMPTION: a rule of thumb)
+    m.place(pitch, m.part(PartDef('CLN-VRD', 'Radar module, 60 GHz, antenna on package', rad.val(), 'pcb', 'sensor', 'catalogue part',
+                                  '55 x 18', '', None,
+                                  'Sees a person or an animal in the cabin by breathing and small motion, through soft material.',
+                                  {'band': '60 to 64 GHz', 'field of view': 'about 120 x 120 degrees (class)'}, 'buy')),
+            loc(vx1 + GSK_T - ant_gap - 2.8, vy0 + VT + 9.0, 0), (0, -130, 0), 'VISION')
+    # the front: a gasket on the rim and the divider, the camera window over the cameras' bay, the radome over the radar's
+    gk = (vbx(vx1, vx1 + GSK_T, vy0, vy1, -vz, vz)
+          .cut(vbx(vx1 - 1.0, vx1 + GSK_T + 1.0, yd1, vy1 - VT, -vz + VT, vz - VT))
+          .cut(vbx(vx1 - 1.0, vx1 + GSK_T + 1.0, vy0 + VT, yd0, -vz + VT, vz - VT)))
+    m.place(pitch, m.part(PartDef('CLN-VGK', 'Vision pod window gasket', gk.val(), 'nbr', 'seal', 'cut gasket',
+                                  f'{vy1 - vy0:.0f} x {2 * vz:.0f} x {GSK_T:g}', 'EPDM', None,
+                                  'Seals the window and the radome to the housing (IP67). Both are bonded to it.', {}, 'buy')),
+            Location(), (0, -120, 20), 'VISION')
+    y_seam = (yd0 + yd1) / 2
+    win = vbx(vx1 + GSK_T, vx2, y_seam, vy1 - 0.5, -vz + 0.5, vz - 0.5)
+    m.place(pitch, m.part(PartDef('CLN-VWN', 'Vision pod window, coated glass', win.val(), 'lens', 'sensor', 'catalogue part',
+                                  f'{2 * vz - 1:.0f} x {vy1 - 0.5 - y_seam:.0f} x {WIN_T:g}', 'anti-reflective, hydrophobic', None,
+                                  'Seals the cameras\' bay. Its coating sheds dust and condensation.', {}, 'buy')),
+            Location(), (0, -110, 40), 'VISION')
+    rdm = vbx(vx1 + GSK_T, vx2, vy0 + 0.5, y_seam, -vz + 0.5, vz - 0.5)
+    m.place(pitch, m.part(PartDef('CLN-VRW', 'Vision pod radome, black polycarbonate 3.0 mm', rdm.val(), 'pc_black', 'sensor', 'moulded',
+                                  f'{2 * vz - 1:.0f} x {y_seam - vy0 - 0.5:.0f} x {WIN_T:g}', 'radar-transparent at 60 GHz', None,
+                                  'Seals the radar\'s bay and passes its signal: 3.0 mm is 2 half wavelengths in polycarbonate at '
+                                  '60 GHz, where the wall reflects least.',
+                                  {'thickness rule': 'n x half the wavelength in the material (TI SWRA705)',
+                                   'permittivity': 'polycarbonate, about 2.75 at 60 GHz'}, 'make')),
+            Location(), (0, -130, 40), 'VISION')
+    # the back: the 2 cable connectors and a vent; the clock spring's lead comes out of the hub through a gland
+    rcp = m.part(PartDef('CLN-VCN', 'Panel connector, M8, 8 pole, A-coded', xcyl(5.0, 0, 10.0, 0, 0).val(), 'brass', 'electrical',
+                         'IEC 61076-2-104', 'M8, 8 pole', 'IP67', None,
+                         'Takes a cable into the pod: 48 V and the EtherCAT pair, in from the clock spring or out to the wand drive.',
+                         {}, 'buy'))
+    m.place(pitch, rcp, loc(vx0 - 10.0, VL['y'], 30.0), (-40, -120, 30), 'VISION')                 # IN, on the back
+    m.place(pitch, rcp, loc(VL['x'], VL['y'], -vz - 10.0, ry=-90), (0, -120, -40), 'VISION')       # OUT, on the -Z side
+    # the drive cable's plug on OUT turns the cable up, so it climbs the pod's side close in (a straight plug sent it 0.087 m
+    # out across the pitch axis before it could bend up)
+    if abs(VL['side'] - (vz + 16.0)) > 1e-6:
+        raise ValueError('cleanArmSpec.visionPod.line.side must be the right-angle plug\'s axis: halfWidth + 16 mm')
+    rap = vbx(-6.0, 6.0, -6.0, 10.0, -6.0, 6.0)          # its body; the cable leaves its top (+Y)
+    m.place(pitch, m.part(PartDef('CLN-VRA', 'Cable plug M8, right angle, moulded', rap.val(), 'pa66', 'electrical', 'IEC 61076-2-104',
+                                  'M8, 8 pole, right angle', 'IP67', None,
+                                  'Plugs the drive cable into the pod and turns it up the pod\'s side.', {}, 'buy')),
+            loc(VL['x'], VL['y'], -VL['side']), (0, -120, -60), 'VISION')
+    m.place(pitch, m.part(PartDef('CLN-VVT', 'Pressure-equalising vent, M12, membrane', xcyl(6.0, 0, 8.0, 0, 0).val(), 'pa66',
+                                  'sensor', 'catalogue part', 'M12', 'IP68 (class)', None,
+                                  'Lets the pod breathe as it warms and cools, so its seals hold and no water condenses in it.',
+                                  {}, 'buy')),
+            loc(vx0 - 8.0, YB + 12.0, 0), (-40, -120, 0), 'VISION')
+    G_ANG = math.radians(-60.0)                          # the gland on the hub's rim: 60 degrees down from the wand, forward
+    m.place(pitch, m.part(PartDef('CLN-WCG', 'Cable gland M12 on the hub, for the clock spring\'s turning lead', xcyl(7.5, 0, 12.0, 0, 0).val(),
+                                  'pa66', 'electrical', 'EN 62444', 'M12', 'IP68', None,
+                                  'Takes the clock spring\'s turning lead out of the hub to the pod.', {}, 'buy')),
+            loc(hub_od / 2 * math.cos(G_ANG), hub_od / 2 * math.sin(G_ANG), 30.0, rz=math.degrees(G_ANG)), (0, -80, 30), 'VISION')
+    VC_OD, VC_BEND = 6.5, 26.0                           # ASSUMPTION: a PUR hybrid cable; its fixed bend 4 x D
+    g_end = (hub_od / 2 + 12.0) * math.cos(G_ANG), (hub_od / 2 + 12.0) * math.sin(G_ANG)          # the gland's end
+    g_t = (g_end[1] - VL['y']) / -math.sin(G_ANG)       # down the gland's axis to the height of IN, then along the wand
+    vpl = std.swept('CLN-VPL', 'Pod cable, clock spring to the vision pod: 48 V and EtherCAT, 6.5 mm',
+                    [(g_end[0], g_end[1], 30.0), (g_end[0] + g_t * math.cos(G_ANG), VL['y'], 30.0), (vx0 - 10.0, VL['y'], 30.0)],
+                    VC_OD / 2, 'cable', 'electrical',
+                    0.0, 'Brings 48 V and the EtherCAT line from the clock spring\'s turning side to the pod. It does not move.',
+                    {'bend': f'R {VC_BEND:.0f} (4 x D)'}, 'EN 50525', f'OD {VC_OD:g}', 'buy', bend=VC_BEND)
+    m.place(pitch, vpl, Location(), (-30, -140, 30), 'VISION')
+    if abs(VL['r'] - VC_OD / 2) > 1e-6:
+        raise ValueError('cleanArmSpec.visionPod.line.r must be the drive cable\'s radius')
+    vpd = std.swept('CLN-VPD', 'Drive cable, vision pod to the wand drive: 48 V and EtherCAT, 6.5 mm',
+                    [(VL['x'], VL['y'] + 10.0, -VL['side']), (VL['x'], wr + 16.0, -VL['side']), (VL['x'], wr + 16.0, -16.0)],
+                    VC_OD / 2, 'cable', 'electrical', 0.0,
+                    'Takes 48 V and the EtherCAT line on from the pod to the wand drive, round the base tube\'s side. It does not move.',
+                    {'bend': f'R {VC_BEND:.0f} (4 x D)'}, 'EN 50525', f'OD {VC_OD:g}', 'buy', bend=VC_BEND)
+    m.place(pitch, vpd, Location(), (0, -60, -60), 'VISION')
+
     # ════════════════════════════════════════════════════════════ CABLE SCHEDULE ═══
     _cable_schedule(m, dict(L1=L1, L2=L2, emc_mm=ENC_Y0 - 20 - y_gm, adr_mm=y_sp - (y_u0 + AU_H),
                             ecd_mm=y_tray - (ENC_Y0 + ENC_H + 15), CAB_BEND=CAB_BEND,
@@ -1264,6 +1464,22 @@ def _cable_schedule(m: Model, g: dict) -> None:
                 tail_b=TAIL_DEV, tails=f'{dev_tail}, inside the knuckle')
     L.run('reel', 'CLN-WCB', 'on the reel: what it holds; it runs along the wand to the knuckle', fx['CLN-WCB'].lmax, moving=True,
           flex=fx['CLN-WCB'])
+    # the cabin vision pod's 2 lines (design finding 26): the clock spring's turning side feeds the pod, and the pod passes
+    # 48 V and the EtherCAT line on to the wand drive (until 2026-11-19 no line in this schedule reached the wand drive)
+    hyb = 'ASSUMPTION: a PUR hybrid cable, 2 power cores and the EtherCAT pair (class)'
+    L = m.cable('CLN-VPL', 'Pod cable, clock spring to the vision pod: 48 V and EtherCAT, 6.5 mm', 'hybrid', 6.5, hyb,
+                'the clock spring\'s turning side (CLN-WCS), out of the hub through its gland (CLN-WCG)',
+                'the vision pod\'s IN connector, M8 (CLN-VCN)', 'VISION', bend_fixed=26.0, tail_a=TAIL_DEV,
+                tails=f'{dev_tail}, at the clock spring\'s terminal; a moulded M8 plug at the pod')
+    L.run('arm', '', 'inside the hub: from the clock spring\'s turning terminal along a groove in the hub\'s +Z face and down a '
+          'drilled passage to the gland (planned)', 45.0, tol=10.0)
+    L.run('drawn', 'CLN-VPL', 'from the gland under the hub, down and forward to the pod\'s back', P['CLN-VPL'].path_mm, bend=26.0)
+    L = m.cable('CLN-VPD', 'Drive cable, vision pod to the wand drive: 48 V and EtherCAT, 6.5 mm', 'hybrid', 6.5, hyb,
+                'the vision pod\'s OUT connector, M8 (CLN-VCN), through its right-angle plug (CLN-VRA)',
+                'the wand drive\'s connector, on its side (CLN-WLA)', 'VISION',
+                bend_fixed=26.0, tails='a moulded M8 plug at each end')
+    L.run('drawn', 'CLN-VPD', 'from the plug on the pod\'s side, up beside the base tube and in to the wand drive', P['CLN-VPD'].path_mm,
+          bend=26.0)
     for (lid, name, kind, od, spec, a, b, sub, run) in (
             ('CLN-ADR', 'Air drop tube, 12 x 1.5, stainless', 'air', 12.0, 'EN 10216-5', 'the canopy main\'s drop', 'the air service unit (CLN-AFR)', 'VAC',
              ('drawn', 'CLN-ADR', 'straight down from the main\'s drop to the service unit', g['adr_mm'], None)),

@@ -54,6 +54,22 @@ export const CLEAN_ARM = {
   /** A three-stage wand: the base and two extension stages of half maxExt each. */
   wand: { base: 0.45, maxExt: 0.92, r: 0.034, rMid: 0.028, rInner: 0.022 },
   nozzle: { len: 0.16, w: 0.15, h: 0.05 },
+  /** The cabin vision pod (docs/ROBOT-VISION.md): a sealed box under the wand's base tube, by the wrist, that turns with
+   *  the wand and looks where it points. Metres, in the wand's own frame from the wrist pivot: from `from` (its back) to
+   *  `to` (its window's face) along the wand, its top `below` under the wand's axis and `depth` deep under that,
+   *  `halfWidth` each side across the pitch axis. Where it can stand was measured on 2026-11-19 over every pose of the
+   *  generic cycle and of each fleet vehicle's program: at the wrist the arm keeps 0.10 m off a car only within about
+   *  0.09 m of the mast's axis, and the wrist fork already reaches 0.081 m; under the base tube, up to 0.15 m from the
+   *  pivot, everything stays outside the car and keeps 0.04 m or more off it and its open doors, against the 0.03 m the
+   *  wand is held to (cleanArmFleet.test.ts holds the pod to that on every fleet vehicle). How deep it may be is set by
+   *  the arm at rest, wand level: its floor must stay 0.10 m over the tallest fleet vehicle's roof equipment, the Ojai's
+   *  lidar at 2.04 m (fleetEnvelope.test.ts). A first draft 21.5 mm deeper stood 0.085 m over it. Its drive line leaves
+   *  its -Z side through a right-angle plug at height `line.y` and climbs to the wand drive on the tube's top:
+   *  `line.x` along the wand, `line.side` off the wand's axis across it, `line.r` its radius. */
+  visionPod: {
+    from: 0.072, to: 0.1525, below: 0.04, depth: 0.0535, halfWidth: 0.046,
+    line: { x: 0.084, y: -0.08, side: 0.062, r: 0.00325 },
+  },
   /** The wrist pivot's distance from the car's centreline in every working pose: 0.20 m
    *  out from the car's widest point, so the mast's 0.16 m sleeve keeps 0.12 m off it. */
   pivotZ: CAR_WIDTH_M / 2 + 0.2,

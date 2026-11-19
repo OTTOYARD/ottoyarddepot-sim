@@ -515,7 +515,10 @@ fed straight from its transformer, and each feed's length is measured in `src/li
   charge arm's IK angles, `catalog.cleanAngles`, `catalog.washJoints`. Until it loads, or if it cannot, the procedural
   robots draw. **A CAD change must pass `src/lib/robotics/cadYard.test.ts`** as well as the clash check: the CAD as
   the yard draws it against the car, the doors, the cabin, the cabinet, the riser, the beacon, the other arm and the
-  wash hall's walls, with the procedural robots' margins (design findings 8 and 9 were found this way). The clean
+  wash hall's walls, with the procedural robots' margins (design findings 8 and 9 were found this way). The clean arm's
+  cabin vision pod (subsystem `VISION`, `cleanArmSpec.visionPod`) rides the wand and is held to the wand's 0.03 m, not the
+  0.10 m: the wrist has no room for it (finding 26). `cleanArmFleet.test.ts` holds it to each vehicle, because the program
+  generator's capsules do not carry it. The clean
   arm's header beam and drop column stay with `SolarCanopy` (`CLEAN_CANOPY_STEEL`); `ChargingField` and `WashBays`
   drop their simple riser, trunk and rails once the CAD has loaded, because the CAD draws its own: never draw them
   twice. A robot's working point in the CAD must stay where the twin's is (`cadDepot.test.ts`).

@@ -135,7 +135,8 @@ cheek and a duct up through the fork into the mast, a 4-tube
 carbon wand that is itself the vacuum duct (3 tubes slide, a third of the reach each, on lip seals; a ball-screw drive and
 cables), and the nozzle (worm-driven pitch, vacuum duct, air knife, brush lip, light ring). Vacuum riser, hoses and
 clips, J2's two drum covers, link covers and the carriage lid. The mast stages are the vacuum duct from J3 to the wrist.
-Nothing on the wrist stands more than 95 mm from the pivot along its axis.
+Nothing on the wrist stands more than 95 mm from the pivot along its axis. Under the wand's base tube, by the wrist, rides
+the cabin vision pod: 2 cameras, a depth module and a 60 GHz radar, with its own vision board (finding 26).
 
 ### OTTO-WASH
 
@@ -874,6 +875,45 @@ The poses found more, which the stowed pose could not show:
       canopy are measured, not drawn: the yard draws none of the canopy's overhead lines, and the clean arm CAD draws them
       only as reference parts, for context.
 
+26. **The clean arm gets its eyes: a cabin vision pod on the wand (2026-11-19).** Chase: *"the ultimate goal is to have
+    actual cameras attached to the robotic arms in a real depot with real autonomous vehicles ... each visual part and
+    electrical or sub component detail that we could theoretically begin sourcing in building from day one."* The clean
+    arm reaches into cabins and had no sensor at all (`docs/ROBOT-VISION.md` has the design and the reasons).
+    - **Where it fits was measured before it was drawn.** The first plan put it on the wrist fork. Over every pose of the
+      generic cycle and of each fleet vehicle's program, both flanks, the arm keeps 0.10 m off a car at the wrist only
+      within about 90 mm of the mast's axis, whatever the heading, and the fork reaches 81 mm: no room. Under the base
+      tube, up to 150 mm from the pivot, everything stays outside the car with 0.04 m or more, against the 0.03 m the
+      wand is held to. The wand drive is on the tube's top, so the pod hangs below it.
+    - **What it is:** a die-cast housing (`CLN-VPH`, IP67) on a saddle bonded to the tube (`CLN-VSD`, 4 screws into
+      bosses in the housing); in it 2 global-shutter cameras 55 mm apart (`CLN-VCM`), a time-of-flight module with its
+      own IR light (`CLN-VTF`), a 60 GHz radar with its antenna 7.4 mm behind a 3.0 mm black
+      polycarbonate radome (`CLN-VRD`, `CLN-VRW`), a vision board whose processor gives its heat to the back wall
+      through a thermal pad (`CLN-VPB`, `CLN-VSC`, `CLN-VTP`), an EtherCAT and power board (`CLN-VEB`), a coated glass
+      window on a gasket (`CLN-VWN`, `CLN-VGK`), 2 M8 connectors and a vent. Its place is the twin's
+      (`cleanArmSpec.visionPod`), so the CAD and the fleet test read one set of numbers.
+    - **How deep it may be is set by the arm at rest.** Parked, the wand is level and the pod hangs lowest. A first draft
+      with an 850 nm light board over the cameras was 21.5 mm deeper and stood 0.085 m over the Ojai's roof lidar (2.04 m),
+      under the 0.10 m `fleetEnvelope.test.ts` holds. The light board went: the light ring at the wand's tip lights the
+      cabin for the cameras (`CLN-NRG` said so before there was a camera), and the depth module has its own IR light. The
+      pod is now one row deep (2 cameras and the depth module over the radar) and stands 0.106 m over it.
+    - **Its 2 lines are in the schedule, and one closes a gap.** The clock spring's turning lead leaves the hub through
+      a gland (`CLN-WCG`) to the pod (`CLN-VPL`), and the pod passes 48 V and the EtherCAT line on to the wand drive
+      through a right-angle plug that keeps the cable close to its side (`CLN-VPD`, `CLN-VRA`). Before this no line in
+      the schedule reached the wand drive.
+    - **Held by:** `cadYard.test.ts` (the pod as drawn, against the generic car and its doors: 0.041 m and 0.217 m at
+      the closest, held to 0.03 m, the wand's margin; `WAND_SUBS` carries `VISION`), `cleanArmFleet.test.ts` (the
+      pod's box and its drive line against each vehicle's own body, doors and sensors: 0.169 m or more from the body,
+      0.116 m or more from a door leaf, 0.170 m or more from a sensor, never inside) and `fleetEnvelope.test.ts` (the
+      arm at rest 0.106 m over the Ojai's lidar). The capsule model the program
+      generator uses does not carry the pod, so a future vehicle's program could break it: that test is what would say so.
+    - **Checked:** the build, 276 placements to 303 (130 unique parts to 151), 376.38 kg to 376.95 kg; the clash check,
+      42 poses, 0 clashes, 0 floating groups; 21 rigid lines, 0 open ends; model digest `c74855aee828c33e`. The pod adds
+      about 1 N m at J4, under 1 % of its continuous torque.
+    - **Not verified:** every part is a class part with its source or marked ASSUMPTION (`cad/SOURCES.md`); the views the
+      cameras and the radar get through a door are not rendered in the twin; the pictures' throughput on the EtherCAT
+      line is assumed. The guards around it are a design for Chase to approve, not drawn: a safety controller per canopy
+      (the stall's scanner cannot see the car's far side) and interlocked doors with a safety radar in the wash bays.
+
 The audit also found the wash machine's tools fed by rigid pipes that could not follow them. They now have flexible
 lines that do (below). (The wands' vacuum units and the side brushes' chains it added went with finding 17.)
 
@@ -1069,6 +1109,7 @@ the twin's car, doors, cabin, seats, cabinet and buildings, at the twin's poses)
 | | everything J1 turns off the cabinet (≥ 0.15 m), the riser and trunk (≥ 0.05 m), the fault beacon (≥ 0.20 m), duty cycle and transits | 0.182, 0.411, 0.492 m |
 | OTTO-CLEAN ARM | every part but the wand off the car and the open doors, whole cycle, both columns (≥ 0.10 m) | 0.104, 0.109 m |
 | | the wand only through the door (≥ 0.03 m from its edges), in the cabin's free space, off the seats (≥ 0.01 m) | 0.107, 0.031, 0.014 m |
+| | the cabin vision pod outside the car, off it and the open doors (≥ 0.03 m, the wand's margin) | 0.041, 0.217 m |
 | | at home and swinging, nothing under 2 m over the car | 2.12 m |
 | both arms | 0.10 m apart in every pose the twin's interlock lets them share | 0.249 m (the wand in the cabin, the connector latched outside the same flank) |
 | OTTO-WASH | inside every bay's walls and partitions, every pose (≥ 30 mm) | 48 mm |

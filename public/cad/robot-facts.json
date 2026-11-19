@@ -143,6 +143,7 @@
    "owner": [
     "An overhead arm vacuums the cabin of your car while it charges.",
     "Only the wand goes into the car, and only through an open door.",
+    "A radar and 2 cameras check that no one is in the car before the wand goes in.",
     "Every part of the arm keeps 0.10 m off the bodywork and the open doors.",
     "Your car stays at its charger until the arm is home."
    ],
@@ -272,6 +273,14 @@
      "value": "Lowers the wrist from 2.18 m to 0.58 m above grade, beside the car, never over it."
     },
     {
+     "label": "Cabin check",
+     "value": "It holds 2 cameras 55 mm apart, a time-of-flight depth module and a 60 GHz radar. The radar sees breathing through a blanket or a seat. The cameras alone cannot."
+    },
+    {
+     "label": "Proof",
+     "value": "A vision board in the pod runs the models. Only verdicts and still pictures leave the pod, on the arm's EtherCAT line."
+    },
+    {
      "label": "Clearance",
      "value": "0.10 m off the car and the open doors, at every point of the cycle."
     },
@@ -294,6 +303,7 @@
    ],
    "safety": [
     "The arm swings above the roof. Nothing stands where a car drives.",
+    "The wand goes in only when the radar and the cameras both find the cabin empty.",
     "The car stays on its stall until the arm is home.",
     "A brake holds the mast when power is off.",
     "A charger fault lets the car go at once. The arm at the next charger does the clean."

@@ -245,8 +245,10 @@ function* cleanCycle(): Generator<{ phase: CleanPhase; t: number; sides: CleanSi
 /**
  * The wand and what it carries may enter the car (through the door): its tubes and the nozzle (WAND, NOZZLE), and
  * what rides its last tube, the knuckle, the nozzle's gearmotor and the light ring at its tip. Nothing else may.
+ * The cabin vision pod (VISION) rides the base tube by the wrist and is held to the wand's margins too: it never goes
+ * in (the test below measures it outside the car like the rest of the wand), and keeps 0.03 m off the car and the doors.
  */
-const WAND_SUBS = new Set(['WAND', 'NOZZLE']);
+const WAND_SUBS = new Set(['WAND', 'NOZZLE', 'VISION']);
 const mayEnter = (s: Sampled): boolean => WAND_SUBS.has(s.sub) || onJoint(s.mesh, /^CA_(Wand\d|Nozzle)$/);
 
 describe('OTTO-CLEAN ARM, as the yard draws it (its CAD), and the car it cleans', () => {
@@ -320,6 +322,28 @@ describe('OTTO-CLEAN ARM, as the yard draws it (its CAD), and the car it cleans'
     expect(seat, `the wand comes ${seat.toFixed(4)} m from a seat`).toBeGreaterThanOrEqual(0.01);
     expect(outCar, `outside the door the wand comes ${outCar.toFixed(4)} m from the car`).toBeGreaterThanOrEqual(m);
     expect(door, `the wand comes ${door.toFixed(4)} m from an open door`).toBeGreaterThanOrEqual(m);
+  }, 120_000);
+
+  it('keeps the cabin vision pod outside the car, 0.03 m off it and off both open doors, all cycle, both columns', () => {
+    // the pod rides the wand by the wrist (cleanArmSpec.visionPod): it looks into the cabin, it never goes in
+    let car = Infinity, door = Infinity, at = '', n = 0;
+    for (const { phase, t, sides } of cleanCycle()) {
+      poseAt(phase, t, sides);
+      const open = doorsAt(phase, t);
+      for (const s of parts) {
+        if (s.sub !== 'VISION') continue;
+        n++;
+        eachVertex(s, (q) => {
+          const c = carClearance(q);
+          if (c < car) { car = c; at = `${s.part} ${phase}@${t.toFixed(2)}`; }
+          if (open > 0) door = Math.min(door, clearanceToDoor(q, 1, open), clearanceToDoor(q, -1, open));
+        });
+      }
+    }
+    console.log(`CAD-YARD vision pod: ${car.toFixed(4)} m from the car (${at}), ${door.toFixed(4)} m from an open door`);
+    expect(n, 'the pod is in the depot model').toBeGreaterThan(0);
+    expect(car, `the pod comes ${car.toFixed(4)} m from the car (${at})`).toBeGreaterThanOrEqual(0.03);
+    expect(door, `the pod comes ${door.toFixed(4)} m from an open door`).toBeGreaterThanOrEqual(0.03);
   }, 120_000);
 
   it('parks above every car: at home and swinging, nothing comes below 2 m over the car', () => {

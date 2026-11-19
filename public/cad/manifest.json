@@ -135,50 +135,50 @@
     "cables": "clean_arm.cables.csv"
    },
    "cables": {
-    "lines": 16,
-    "routeM": 12.5,
-    "orderM": 16.0
+    "lines": 18,
+    "routeM": 12.7,
+    "orderM": 16.4
    },
    "bytes": {
-    "glb": 2512272,
-    "stepZip": 1467481,
-    "step": 8108200,
-    "depot": 640144,
-    "near": 3301964
+    "glb": 2637280,
+    "stepZip": 1570732,
+    "step": 8723491,
+    "depot": 683176,
+    "near": 3423892
    },
    "mesh": {
-    "vertices": 102012,
-    "triangles": 121356,
-    "meshes": 131,
-    "nodes": 290
+    "vertices": 106730,
+    "triangles": 126514,
+    "meshes": 152,
+    "nodes": 317
    },
    "depotMesh": {
-    "vertices": 24697,
-    "triangles": 26988,
-    "meshes": 93,
-    "nodes": 119
+    "vertices": 26255,
+    "triangles": 28440,
+    "meshes": 104,
+    "nodes": 131
    },
-   "depotSha256": "a564fcb12a43ee31",
+   "depotSha256": "04f5da4812d3c202",
    "nearMesh": {
-    "vertices": 134938,
-    "triangles": 167588,
-    "meshes": 122,
-    "nodes": 275
+    "vertices": 139722,
+    "triangles": 172912,
+    "meshes": 137,
+    "nodes": 295
    },
-   "nearSha256": "d58823d6218ed3c7",
+   "nearSha256": "dba0a41c971f81d8",
    "totals": {
-    "parts": 276,
-    "uniqueParts": 130,
-    "fasteners": 147,
-    "massKg": 376.38,
-    "boughtLines": 83,
-    "madeLines": 47,
+    "parts": 303,
+    "uniqueParts": 151,
+    "fasteners": 153,
+    "massKg": 376.95,
+    "boughtLines": 99,
+    "madeLines": 52,
     "referenceLines": 4
    },
-   "glbSha256": "c0212a42d65e5838",
+   "glbSha256": "c74855aee828c33e",
    "stepCheck": {
-    "namedParts": 281,
-    "solids": 413,
+    "namedParts": 308,
+    "solids": 440,
     "invalid": 0
    },
    "subsystems": [
@@ -221,6 +221,10 @@
     {
      "id": "NOZZLE",
      "name": "Nozzle head (J5)"
+    },
+    {
+     "id": "VISION",
+     "name": "Cabin vision pod"
     },
     {
      "id": "VAC",
