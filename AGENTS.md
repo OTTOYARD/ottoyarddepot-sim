@@ -263,6 +263,39 @@ fed straight from its transformer, and each feed's length is measured in `src/li
     (88, 173) is not serialised: neither place is a junction. The arrival probe's one N1 "overshoot"
     (45.8u on chase1006, unchanged since base) is the instrument counting a car passing BEHIND the row
     on the one-way rear apron.
+- **The two collectors are centred (founder's call, 2026-11-18) — read before touching `NORTH_LANE_Y`,
+  `SOUTH_LANE_Y`, stand-ins, junction waits or corner clearance.** Chase: *"The driving lanes between the end of the
+  charging stall column and the service and wash bays, and the driving lanes between the ingress/egress side of the
+  site and that sides end of the charging stall columns are not centered, and are rather very close to the ends of the
+  charging stall columns. That needs to be centered and equidistant."* `NORTH_LANE_Y` 74 → 68.8 and `SOUTH_LANE_Y`
+  172 → 176.7: each collector's paint (`sitePlan.COLLECTOR_PAINT`, 6.4u toward the canopies and 8.0u away) stands 4.8u
+  from the bays' doors and from the canopies' north end, and 6.3u from the canopies' south end and from the south
+  rows' carports (`sitePlan.collectors.test.ts`). Do not move them back toward the canopies. What the move uncovered,
+  each fixed and measured on the seven captures:
+  - **A car outside the fence enters through the gate.** From the gate queue's spots east of x ~235, Ts became nearer
+    than the ingress stub, and `originNode` routed queued arrivals north through the fence and the S3 row into a parked
+    car (busyday: 334 stuck samples). Off the lot, a car now starts from the source spur nearest it, if that spur is
+    the nearest spur end (`LaneGraph.originNode`).
+  - **Stand-ins can deadlock; a stopped car passes one whose car is waiting on it.** A south-row back-out now ends in
+    the median and stands in both streams, so two neighbours facing opposite ways each stood in the other's lane, for
+    good (live0922: 4,365 stuck samples). Stand-ins carry `RailBody.standIn`; a car stopped `STAND_IN_WAIT_S` passes
+    the stand-in of a car whose wait chain comes back to it, latched for its rail (`Rail.passStandIns`), and a junction
+    does not wait for such a stand-in past its exit (`stoppedBodyPast`). Each car's `waitsOn` is refreshed as soon as it
+    has stepped, so two cars that start waiting on each other in one step see it in that step (a one-step lock cycle
+    on fresh0922 otherwise).
+  - **A creeping car does not turn** (`SPIN_FLOOR_U`: under 0.001u in a step, the heading holds): 2.5 rad/u let a car
+    easing off a stop bar at 0.02 u/s turn faster than its travel, the spin step `turnRadius.replay.test` forbids.
+  - **A corner's clearance leaves out the stall the route ends in** (`arcClear`), as an opening already did: the turn off
+    the eastbound lane into an S1/S3 stall was refused R 5.8 for 0.1u of its own stall and took R 4.8, a p45 pivot on
+    every arrival. With it, p45 fell below the pre-move figures on every ratchet window.
+  - **The front pad ends at the collector's paint** (`sitePlan.BAY_PADS`); `FORECOURT_Y` (62, the bay approach line and
+    the feeders' duct bank) did not move, so no feeder, cable schedule or CAD length changed.
+  - **Costs, stated:** each gap lane is 9.9u longer end to end (a charger is 4.7u further from the south collector,
+    and 5.2u further from the north one, where the car leaves); the S rows' drive line now stands 9.8u
+    (15.3 ft) from their stall faces, against 14.5u, so south-row cars pull in from and back out into the collector
+    itself; the recorded stream's stopped share went 0.8% → 1.04%, most of it one 11 s queue at a fast-charger
+    column's mouth (its budget moved 1.0% → 1.1%, the one budget raised). The before/after table for all seven
+    captures is in the PR (`claude/depot-simulation-fixes-vi86iy`).
 - **Keep Yuka's `SeparationBehavior.weight` low (0.35).** At 2.2 it was *stronger* than
   path-following and shoved cars sideways off the lanes.
 - **One car, one size: 9.8 x 4.0u (4.69 x 1.91 m)** — `traffic.CAR_BODY_*` is the traffic model's

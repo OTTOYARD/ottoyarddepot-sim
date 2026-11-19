@@ -70,12 +70,41 @@ export const WEST_AISLE_X = 30;   // west avenue (two-way divided; drains to wes
 export const EAST_AISLE_X = 274;  // east avenue (two-way divided; feeds from east INGRESS)
 // North block, top to bottom: REAR APRON (full-width 30ft+ maneuvering zone
 // behind the pull-through bays — no parking abuts it) → bay row → concrete
-// FORECOURT (approach throat into the bay fronts) → NORTH COLLECTOR (two-way
-// main artery). Collectors are two-way boulevards; aisles are one-way.
+// FORECOURT pad in front of the doors (BAY_PADS.front) → NORTH COLLECTOR (two-way
+// main artery) → the canopies. Collectors are two-way boulevards; aisles are one-way.
 export const REAR_LANE_Y = 16;    // centerline of the rear apron (y 6..26)
-export const FORECOURT_Y = 62;    // bay approach throat (y 56..68)
-export const NORTH_LANE_Y = 74;   // main collector (y 68..80)
-export const SOUTH_LANE_Y = 172;  // south collector (y 166..178, two-way)
+// The line a bay-bound car stands on, facing north on its bay's own drive line, before it drives through the door
+// (TwinMotionDriver.routeToStall's bay branch), and the line the power feeders' duct bank runs under (siteFeeders).
+// Since the north collector was centred (2026-11-18) this line is 2u north of the collector's westbound drive line,
+// under its paint; the concrete in front of the doors is BAY_PADS.front (y 56..60.8). It did not move, so no feeder,
+// cable schedule or CAD length changed with the collector.
+export const FORECOURT_Y = 62;
+/**
+ * How far a collector's PAINT runs from its centreline (plan units). Its two 6.4u lanes have their drive lines
+ * LaneGraph.DIVIDED_SPAN = 8u apart, and the stream beside the canopies drives LaneGraph.rightOffset = 3.2u off the
+ * centreline while the other drives 8 - 3.2 = 4.8u off it (buildDepotLanes); each lane's paint runs half a lane
+ * (3.2u) past its drive line. So the paint reaches 6.4u toward the canopies and 8.0u away from them, 14.4u in all
+ * with the 1.6u median. sitePlan.collectors.test.ts holds these to LaneGraph's own lanes.
+ */
+export const COLLECTOR_PAINT = { canopySide: 6.4, farSide: 8.0 } as const;
+/**
+ * THE TWO COLLECTORS ARE CENTRED (Chase, 2026-11-18): "The driving lanes between the end of the charging stall
+ * column and the service and wash bays, and the driving lanes between the ingress/egress side of the site and that
+ * sides end of the charging stall columns are not centered, and are rather very close to the ends of the charging
+ * stall columns. That needs to be centered and equidistant."
+ *
+ * Each collector's paint (COLLECTOR_PAINT) now stands as far from one side of its gap as from the other:
+ *   - NORTH, between the bays' front doors (y 56) and the canopies' north end (y 80): paint y 60.8..75.2, 4.8u
+ *     (2.3 m) from each. At 74 it was y 66.0..80.4: 10u from the doors and 0.4u INTO the canopies' end.
+ *   - SOUTH, between the canopies' south end (y 164) and the south rows' carports (y 191): paint y 170.3..184.7, 6.3u
+ *     (3.0 m) from each. At 172 it was y 165.6..180.0: 1.6u from the canopies and 11u from the carports.
+ * The paint is not centred on the centreline (6.4u one way, 8.0u the other), so neither centreline is the middle of
+ * its gap: the north one is 0.8u south of it, the south one 0.8u north. sitePlan.collectors.test.ts holds both to
+ * their gaps; moving a canopy, a building or a south row moves the gap. Moving a collector moves every route: re-measure
+ * every replay and the motion audit (AGENTS.md, "Verify before you PR").
+ */
+export const NORTH_LANE_Y = 68.8; // main collector
+export const SOUTH_LANE_Y = 176.7; // south collector (two-way)
 // N1 APPROACH — the east-west lane serving the open NE overflow row.
 //
 // It had no lane of its own. routeToStall()'s `inTemp` predicate swallowed the N1
@@ -145,6 +174,26 @@ export const BUILDING = { x: 70, y: 26, w: 80, h: 30 };   // office (west) + 2 s
  *  not draw it. Plan units, a rectangle. */
 export const AIR_PLANT = { x: 103, y: 47, w: 7.4, h: 8.4 } as const;
 export const WASH = { x: 160, y: 26, w: 52, h: 30 };      // 3 pull-through bays
+/**
+ * THE CONCRETE PADS AT THE BAYS (Chase, 2026-11-18: "Concrete colored pads in front and behind bays on the ground
+ * isn't even compared to the building lengths."). One pad runs along the bay row's front (south) doors and one along
+ * its rear (north) doors, and each is exactly as long as the row of buildings: from the operations building's west
+ * wall to the wash hall's east wall. Both renderers drew them from typed numbers: the front pad over plan x 80..236,
+ * so it began 10u inside the office's west wall and ran 24u past the wash hall, and the rear pad over x 6..264, from
+ * the west fence to 52u past the hall.
+ *   - FRONT: from the doors' face to the north collector's paint, so the concrete meets the road and no lane is
+ *     painted on it.
+ *   - REAR: the rear apron, from the lot's north edge to the doors' face.
+ * Plan units, axis-aligned. The 3D ground (SiteDetails) and the 2D plan (DepotSVG) both draw these.
+ */
+export const BAY_PADS = (() => {
+  const x0 = Math.min(BUILDING.x, WASH.x), x1 = Math.max(BUILDING.x + BUILDING.w, WASH.x + WASH.w);
+  const front = BUILDING.y + BUILDING.h, rear = BUILDING.y; // both buildings share their front and rear faces
+  return {
+    front: { x0, x1, y0: front, y1: NORTH_LANE_Y - COLLECTOR_PAINT.farSide },
+    rear: { x0, x1, y0: LOT.y, y1: rear },
+  };
+})();
 export const GATE_W = 14;
 
 /** The south fence line, as plan-x spans: the lot's frontage with BOTH gate openings

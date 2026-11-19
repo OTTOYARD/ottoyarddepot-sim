@@ -8,8 +8,9 @@
 // each other, never head-on / through each other.
 //
 // Topology (one-way-loop, deadlock-resistant per the research):
-//   • A two-way divided RING: south & north boulevards (y=172 / y=74) and west &
-//     east avenues (x=30 / x=275). Both travel directions exist as directed
+//   • A two-way divided RING: south & north boulevards (sitePlan.SOUTH_LANE_Y /
+//     NORTH_LANE_Y, each centred in its gap since 2026-11-18) and west & east
+//     avenues (x=30 / x=274). Both travel directions exist as directed
 //     edges on the same centerline; the right-offset puts them on opposite sides.
 //   • One-way NORTHBOUND gap lanes through the canopy band at the sitePlan gap-x
 //     (80 / 126.5 / 173.5 / 220). Cars enter from the south boulevard, drive
@@ -23,7 +24,7 @@
 import type { Pt } from "./PathTracker";
 import {
   GAP_LANES, NORTH_LANE_Y, SOUTH_LANE_Y, WEST_AISLE_X, EAST_AISLE_X, INGRESS, EGRESS,
-  REAR_LANE_Y, TEMP_LANE_X, N1_LANE_Y, PARK_RUNS,
+  REAR_LANE_Y, TEMP_LANE_X, N1_LANE_Y, PARK_RUNS, LOT,
 } from "@/lib/sitePlan";
 
 interface Lane {
@@ -106,7 +107,15 @@ function splitState(s: string): [string, string | null] {
  * So the canopy-side streams keep rightOffset, and the other stream of each collector
  * moves out by the whole 1.6u, to DIVIDED_SPAN - rightOffset = 4.8u: the north
  * collector's westbound toward the bays' concrete forecourt, the south collector's
- * eastbound toward the S rows, whose stall faces stay 12.5u from its bodies.
+ * eastbound toward the S rows, whose stall faces stood 12.5u from its bodies.
+ *
+ * THE MARGINS ABOVE WERE MEASURED WITH THE COLLECTORS AT y 74 AND y 172. On 2026-11-18
+ * both were centred in their gaps (Chase: "not centered, and are rather very close to the
+ * ends of the charging stall columns"; sitePlan.NORTH_LANE_Y): the north collector moved
+ * 5.2u away from the canopies and the south one 4.7u, so the canopy-side margins grew by
+ * those amounts, and the S-row faces now stand 7.8u from the eastbound bodies (6.6u from
+ * its paint). The 3.2 /
+ * 4.8 split was kept as it was measured, not re-derived for the new positions.
  */
 export const DIVIDED_SPAN = 8;
 
@@ -753,6 +762,19 @@ export class LaneGraph {
     };
     const originOk = (n: Node) =>
       n.out.length > 0 && (this.inDegree(n.id) > 0 || outwardOf(n, from));
+    // A CAR OUTSIDE THE FENCE COMES IN THROUGH THE GATE. The gate queue lines up on the public road south of the lot,
+    // and the nearest legal node can stand on the far side of the fence. Since the south collector was centred
+    // (2026-11-18, sitePlan.SOUTH_LANE_Y) the temp aisle's south end, Ts, is 37.2u from the queue's spot at x 239 and
+    // the ingress stub 39.1u (it was 41.8u against 39.1u), so a queued arrival was routed straight north through the
+    // fence and the S3 row into a parked car, and re-railed the same way by the watchdog every 45 s for the rest of the
+    // run (busyday: 334 stuck samples). Off the lot, a car starts from the source spur nearest it, if it is outward of
+    // that spur and that spur is the nearest spur end of any kind (so a car out at the EGRESS, nearest a sink, keeps
+    // the rule above).
+    if (from.y > LOT.y + LOT.h) {
+      const spur = (n: Node) => this.inDegree(n.id) === 0 || n.out.length === 0;
+      const end = this.nodes.get(this.nearestNode(from, spur));
+      if (end && end.out.length > 0 && this.inDegree(end.id) === 0 && outwardOf(end, from)) return end.id;
+    }
     return this.nearestNode(from, originOk);
   }
 
