@@ -375,6 +375,13 @@ export const EAST_AVENUE = clearAisleBetween('TE', 'E');
 //
 // The count stays 11 and the ORDER is unchanged, because buildLayoutSeed names these
 // by index (LIGHT-01..11). Re-ordering would silently re-point every DB row.
+//
+// The clearances quoted against a collector below were measured with the collectors at
+// y 74 and y 172. No pole moved when both were centred (2026-11-18, NORTH_LANE_Y): the
+// south collector moved away from every pole beside it, and the north one away from the
+// poles south of it and toward LIGHT-01 (38, 60), the one pole beside it on its north
+// side. Check 9 measures the current figures (tightest then: LIGHT-01 vs lane Ng0>NW,
+// 2.98 ft).
 export const LIGHT_POLES: { x: number; y: number }[] = [
   // West edge: 36 -> 38 clears the west avenue's northbound body (max 46.00 ft) by
   // 4.24 ft instead of 1.10 ft. The third pole also drops off the south collector,

@@ -509,8 +509,8 @@ const CHARGER_BACKOUT_NEAR = 12;
  *  a body standing there reaches another half-length further (15.7u; 20 keeps the
  *  margin the perpendicular stalls this replaced had). */
 const CHARGER_BACKOUT_SWEEP_AHEAD = 20;
-/** Half the south collector's paved width (y 166..178): a body this close to
- *  SOUTH_LANE_Y is ON the collector. */
+/** Half the south collector's paved width, measured from its centreline
+ *  (SOUTH_LANE_Y ± 6): a body this close to SOUTH_LANE_Y is ON the collector. */
 const COLLECTOR_HALF_WIDTH = 6;
 /** A back-out whose tail ends within this of a collector stream's car envelope counts
  *  as reaching into it. */

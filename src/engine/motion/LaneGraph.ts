@@ -941,7 +941,7 @@ export function buildDepotLanes(): LaneGraph {
   g.addNode("N1e", EAST_AISLE_X, N1_LANE_Y);                    // meets the east avenue
   g.addRoad("N1w", "N1c");
   g.addRoad("N1c", "N1e");
-  g.addRoad("Tn", "N1c");   // temp aisle continues north to the row (empty ground, y 50..74)
+  g.addRoad("Tn", "N1c");   // temp aisle continues north to the row (empty ground, NORTH_LANE_Y up to N1_LANE_Y)
 
   // The rear apron drains into the avenue AT the N1 junction, not past it: the avenue
   // stub is spliced R6 -> N1e -> NE so a car leaving a bay can turn straight into the
