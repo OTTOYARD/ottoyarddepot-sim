@@ -7,12 +7,12 @@
   "glb": "m"
  },
  "totals": {
-  "parts": 276,
-  "uniqueParts": 130,
-  "fasteners": 147,
-  "massKg": 376.38,
-  "boughtLines": 83,
-  "madeLines": 47,
+  "parts": 303,
+  "uniqueParts": 151,
+  "fasteners": 153,
+  "massKg": 376.95,
+  "boughtLines": 99,
+  "madeLines": 52,
   "referenceLines": 4
  },
  "subsystems": [
@@ -214,6 +214,36 @@
    "uniqueParts": 9
   },
   {
+   "id": "VISION",
+   "name": "Cabin vision pod",
+   "function": "Looks into the cabin along the wand. It checks that no one is inside before the wand goes in, finds the seats, the floor and items left behind, and takes a picture of each surface before and after.",
+   "how": [
+    "A sealed pod rides under the wand's base tube, by the wrist. It turns with the wand and looks where the wand points.",
+    "It holds 2 cameras 55 mm apart, a time-of-flight depth module and a 60 GHz radar.",
+    "The light ring on the wand's tip lights the cabin for the cameras. The depth module has its own IR light.",
+    "The radar sees breathing through a blanket or a seat. The cameras alone cannot.",
+    "The wand goes in only when the radar and the cameras both find the cabin empty.",
+    "A vision board in the pod runs the models. Only verdicts and still pictures leave the pod, on the arm's EtherCAT line.",
+    "The radar looks out through a black polycarbonate window 3.0 mm thick: 2 half wavelengths at 60 GHz, so the window passes the radar.",
+    "The pod is the first node on the wand. The clock spring's lead goes in, and the wand drive's cable comes out.",
+    "It stays outside the car. It keeps more than the wand's 0.03 m off the car and the open doors."
+   ],
+   "specs": {
+    "cameras": "2 x 2.3 MP global shutter, 1/2.6 in, 3.0 um pixels, M12 2.8 mm lens: about 92 x 66 degrees",
+    "depth": "time-of-flight, 0.1 to 2 m (class)",
+    "radar": "60 GHz, presence and breathing (class)",
+    "processor": "AI vision processor, 7 TOPS class, about 2 W (class)",
+    "link": "EtherCAT, 100 Mbit/s: a verdict at once, the pictures after the clean (ASSUMPTION)",
+    "rating": "IP67 (class)"
+   },
+   "group": "Tool",
+   "order": 10,
+   "partCount": 27,
+   "fastenerCount": 6,
+   "massKg": 0.576,
+   "uniqueParts": 21
+  },
+  {
    "id": "VAC",
    "name": "Vacuum and air supply",
    "function": "Brings vacuum from the canopy plant and compressed air from the depot's compressor to the nozzle.",
@@ -240,7 +270,7 @@
     "isolation": "gate valve DN 50 on the vacuum branch, lockable valve on the air drop"
    },
    "group": "Supply",
-   "order": 10,
+   "order": 11,
    "partCount": 32,
    "fastenerCount": 6,
    "massKg": 41.242,
@@ -266,7 +296,7 @@
     "conduit fill": "one cable in each conduit, under 53 % (NEC chapter 9, table 1)"
    },
    "group": "Supply",
-   "order": 11,
+   "order": 12,
    "partCount": 12,
    "fastenerCount": 4,
    "massKg": 38.067,
@@ -281,7 +311,7 @@
    ],
    "specs": {},
    "group": "Safety",
-   "order": 12,
+   "order": 13,
    "partCount": 3,
    "fastenerCount": 0,
    "massKg": 0.359,
@@ -2690,6 +2720,541 @@
    ]
   },
   {
+   "id": "CLN-VSD",
+   "name": "Vision pod saddle, bonded to the base tube",
+   "category": "structure",
+   "make": "make",
+   "standard": "machined",
+   "size": "78 x 28 x 92",
+   "grade": "6061-T6",
+   "material": "Aluminium 6061-T6, machined, clear anodised",
+   "materialKey": "al6061",
+   "qty": 1,
+   "massKg": 0.274,
+   "totalMassKg": 0.274,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the pod under the wand's base tube. Bonded to the tube with structural epoxy, as the tube is bonded into the hub.",
+   "spec": {
+    "bond": "two-part structural epoxy (class)"
+   },
+   "uses": [
+    {
+     "sub": "VISION",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CLN-VBC",
+   "name": "Board-to-board connector",
+   "category": "sensor",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "30 x 8 x 5.4",
+   "grade": "",
+   "material": "PA66-GF30",
+   "materialKey": "pa66",
+   "qty": 1,
+   "massKg": 0.0017,
+   "totalMassKg": 0.0017,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Joins the vision board to the EtherCAT board.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "VISION",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CLN-VCM",
+   "name": "Camera module, global shutter, 2.3 MP, M12 lens 2.8 mm",
+   "category": "sensor",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "30 x 26, M12 lens",
+   "grade": "",
+   "material": "FR-4 circuit board",
+   "materialKey": "pcb",
+   "qty": 2,
+   "massKg": 0.0098,
+   "totalMassKg": 0.0195,
+   "torqueNm": null,
+   "reference": false,
+   "function": "One eye of the pair. 2 views give the depth of the seats and the floor.",
+   "spec": {
+    "sensor": "1/2.6 in, 1920 x 1200, 3.0 um pixels, global shutter",
+    "lens": "M12, 2.8 mm: about 92 x 66 degrees",
+    "output": "MIPI CSI-2"
+   },
+   "uses": [
+    {
+     "sub": "VISION",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CLN-VEB",
+   "name": "EtherCAT and power board",
+   "category": "sensor",
+   "make": "make",
+   "standard": "made to order",
+   "size": "60 x 32",
+   "grade": "",
+   "material": "FR-4 circuit board",
+   "materialKey": "pcb",
+   "qty": 1,
+   "massKg": 0.0057,
+   "totalMassKg": 0.0057,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Joins the pod to the arm's EtherCAT line, in and out, and makes the pod's supplies from 48 V.",
+   "spec": {
+    "EtherCAT": "2-port slave controller with 2 built-in 100 Mbit/s PHYs (class)",
+    "supply": "48 V DC in, about 8 W at most (ASSUMPTION)"
+   },
+   "uses": [
+    {
+     "sub": "VISION",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CLN-VPB",
+   "name": "Vision board",
+   "category": "sensor",
+   "make": "make",
+   "standard": "made to order",
+   "size": "64 x 40",
+   "grade": "",
+   "material": "FR-4 circuit board",
+   "materialKey": "pcb",
+   "qty": 1,
+   "massKg": 0.0076,
+   "totalMassKg": 0.0076,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the vision processor, its memory and the 2 camera inputs.",
+   "spec": {
+    "memory": "4 GB (class)",
+    "storage": "32 GB, keeps the pictures until they are sent"
+   },
+   "uses": [
+    {
+     "sub": "VISION",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CLN-VPH",
+   "name": "Vision pod housing, IP67",
+   "category": "sensor",
+   "make": "make",
+   "standard": "die casting, machined",
+   "size": "76 x 54 x 92",
+   "grade": "IP67",
+   "material": "Aluminium A356-T6 casting, charcoal powder coat",
+   "materialKey": "a356_dark",
+   "qty": 1,
+   "massKg": 0.1844,
+   "totalMassKg": 0.1844,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Holds the cameras, the depth module, the radar and the vision board, sealed. The housing carries the vision processor's heat away.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "VISION",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CLN-VRD",
+   "name": "Radar module, 60 GHz, antenna on package",
+   "category": "sensor",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "55 x 18",
+   "grade": "",
+   "material": "FR-4 circuit board",
+   "materialKey": "pcb",
+   "qty": 1,
+   "massKg": 0.0034,
+   "totalMassKg": 0.0034,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Sees a person or an animal in the cabin by breathing and small motion, through soft material.",
+   "spec": {
+    "band": "60 to 64 GHz",
+    "field of view": "about 120 x 120 degrees (class)"
+   },
+   "uses": [
+    {
+     "sub": "VISION",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CLN-VRW",
+   "name": "Vision pod radome, black polycarbonate 3.0 mm",
+   "category": "sensor",
+   "make": "make",
+   "standard": "moulded",
+   "size": "91 x 22 x 3",
+   "grade": "radar-transparent at 60 GHz",
+   "material": "Polycarbonate, black, radar-transparent",
+   "materialKey": "pc_black",
+   "qty": 1,
+   "massKg": 0.0072,
+   "totalMassKg": 0.0072,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Seals the radar's bay and passes its signal: 3.0 mm is 2 half wavelengths in polycarbonate at 60 GHz, where the wall reflects least.",
+   "spec": {
+    "thickness rule": "n x half the wavelength in the material (TI SWRA705)",
+    "permittivity": "polycarbonate, about 2.75 at 60 GHz"
+   },
+   "uses": [
+    {
+     "sub": "VISION",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CLN-VSC",
+   "name": "AI vision processor, 13 x 13 mm package",
+   "category": "sensor",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "13 x 13 x 1.5",
+   "grade": "-40 to 85 degrees C",
+   "material": "FR-4 circuit board",
+   "materialKey": "pcb",
+   "qty": 1,
+   "massKg": 0.0005,
+   "totalMassKg": 0.0005,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Runs the models in the pod: the cabin check, the seats, the floor, items left behind.",
+   "spec": {
+    "class": "7 TOPS, 4 CPU cores, image signal processor, secure boot"
+   },
+   "uses": [
+    {
+     "sub": "VISION",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CLN-VTF",
+   "name": "Time-of-flight depth module",
+   "category": "sensor",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "20 x 16",
+   "grade": "",
+   "material": "FR-4 circuit board",
+   "materialKey": "pcb",
+   "qty": 1,
+   "massKg": 0.0028,
+   "totalMassKg": 0.0028,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Measures the distance to each surface. It checks the pair's depth and sees in the dark.",
+   "spec": {
+    "range": "0.1 to 2 m (class)"
+   },
+   "uses": [
+    {
+     "sub": "VISION",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CLN-VTP",
+   "name": "Thermal pad 16 x 16 x 1",
+   "category": "sensor",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "16 x 16 x 1",
+   "grade": "6 W/m K (class)",
+   "material": "EPDM rubber",
+   "materialKey": "rubber",
+   "qty": 1,
+   "massKg": 0.0003,
+   "totalMassKg": 0.0003,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Carries the vision processor's heat into the housing's back wall.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "VISION",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CLN-VVT",
+   "name": "Pressure-equalising vent, M12, membrane",
+   "category": "sensor",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "M12",
+   "grade": "IP68 (class)",
+   "material": "PA66-GF30",
+   "materialKey": "pa66",
+   "qty": 1,
+   "massKg": 0.0012,
+   "totalMassKg": 0.0012,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Lets the pod breathe as it warms and cools, so its seals hold and no water condenses in it.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "VISION",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CLN-VWN",
+   "name": "Vision pod window, coated glass",
+   "category": "sensor",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "91 x 30 x 3",
+   "grade": "anti-reflective, hydrophobic",
+   "material": "Optical glass, coated",
+   "materialKey": "lens",
+   "qty": 1,
+   "massKg": 0.0208,
+   "totalMassKg": 0.0208,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Seals the cameras' bay. Its coating sheds dust and condensation.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "VISION",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CLN-VCN",
+   "name": "Panel connector, M8, 8 pole, A-coded",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "IEC 61076-2-104",
+   "size": "M8, 8 pole",
+   "grade": "IP67",
+   "material": "Brass CW614N",
+   "materialKey": "brass",
+   "qty": 2,
+   "massKg": 0.0067,
+   "totalMassKg": 0.0134,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes a cable into the pod: 48 V and the EtherCAT pair, in from the clock spring or out to the wand drive.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "VISION",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "CLN-VPD",
+   "name": "Drive cable, vision pod to the wand drive: 48 V and EtherCAT, 6.5 mm",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "EN 50525",
+   "size": "OD 6.5",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 1,
+   "massKg": 0.0077,
+   "totalMassKg": 0.0077,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes 48 V and the EtherCAT line on from the pod to the wand drive, round the base tube's side. It does not move.",
+   "spec": {
+    "bend": "R 26 (4 x D)",
+    "in the cable schedule": "CLN-VPD, 0.15 m from end to end"
+   },
+   "uses": [
+    {
+     "sub": "VISION",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CLN-VPL",
+   "name": "Pod cable, clock spring to the vision pod: 48 V and EtherCAT, 6.5 mm",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "EN 50525",
+   "size": "OD 6.5",
+   "grade": "",
+   "material": "Cable, TPE jacket",
+   "materialKey": "cable",
+   "qty": 1,
+   "massKg": 0.0014,
+   "totalMassKg": 0.0014,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Brings 48 V and the EtherCAT line from the clock spring's turning side to the pod. It does not move.",
+   "spec": {
+    "bend": "R 26 (4 x D)",
+    "in the cable schedule": "CLN-VPL, 0.07 m from end to end"
+   },
+   "uses": [
+    {
+     "sub": "VISION",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CLN-VRA",
+   "name": "Cable plug M8, right angle, moulded",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "IEC 61076-2-104",
+   "size": "M8, 8 pole, right angle",
+   "grade": "IP67",
+   "material": "PA66-GF30",
+   "materialKey": "pa66",
+   "qty": 1,
+   "massKg": 0.0031,
+   "totalMassKg": 0.0031,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Plugs the drive cable into the pod and turns it up the pod's side.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "VISION",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CLN-WCG",
+   "name": "Cable gland M12 on the hub, for the clock spring's turning lead",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "EN 62444",
+   "size": "M12",
+   "grade": "IP68",
+   "material": "PA66-GF30",
+   "materialKey": "pa66",
+   "qty": 1,
+   "massKg": 0.0029,
+   "totalMassKg": 0.0029,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes the clock spring's turning lead out of the hub to the pod.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "VISION",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CLN-VGK",
+   "name": "Vision pod window gasket",
+   "category": "seal",
+   "make": "buy",
+   "standard": "cut gasket",
+   "size": "54 x 92 x 1.5",
+   "grade": "EPDM",
+   "material": "NBR seal elastomer",
+   "materialKey": "nbr",
+   "qty": 1,
+   "massKg": 0.0016,
+   "totalMassKg": 0.0016,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Seals the window and the radome to the housing (IP67). Both are bonded to it.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "VISION",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "CLN-VSP",
+   "name": "Board spacer M2.5 x 5.4, brass",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "M2.5 x 5.4",
+   "grade": "",
+   "material": "Brass CW614N",
+   "materialKey": "brass",
+   "qty": 2,
+   "massKg": 0.0009,
+   "totalMassKg": 0.0018,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Holds the EtherCAT board off the vision board.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "VISION",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M4x28-A2-70",
+   "name": "Socket head cap screw M4 x 28",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M4 x 28",
+   "grade": "A2-70",
+   "material": "Stainless steel A2-70",
+   "materialKey": "fast_a2",
+   "qty": 4,
+   "massKg": 0.0038,
+   "totalMassKg": 0.0154,
+   "torqueNm": 2.2,
+   "reference": false,
+   "function": "Holds the vision pod to its saddle, into a boss in the housing.",
+   "spec": {
+    "preload": "3.1 kN",
+    "drive": "hex socket 3 mm"
+   },
+   "uses": [
+    {
+     "sub": "VISION",
+     "qty": 4
+    }
+   ]
+  },
+  {
    "id": "CLN-AFB",
    "name": "Air service unit bracket, stainless channel",
    "category": "structure",
@@ -4263,6 +4828,98 @@
    },
    "pieces": [
     "CLN-WCB"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "CLN-VPL",
+   "name": "Pod cable, clock spring to the vision pod: 48 V and EtherCAT, 6.5 mm",
+   "kind": "hybrid",
+   "od": 6.5,
+   "spec": "ASSUMPTION: a PUR hybrid cable, 2 power cores and the EtherCAT pair (class)",
+   "from": "the clock spring's turning side (CLN-WCS), out of the hub through its gland (CLN-WCG)",
+   "to": "the vision pod's IN connector, M8 (CLN-VCN)",
+   "sub": "VISION",
+   "runs": [
+    {
+     "kind": "arm",
+     "via": "",
+     "where": "inside the hub: from the clock spring's turning terminal along a groove in the hub's +Z face and down a drilled passage to the gland (planned)",
+     "mm": 45.0,
+     "tol": 10.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "drawn",
+     "via": "CLN-VPL",
+     "where": "from the gland under the hub, down and forward to the pod's back",
+     "mm": 28.4,
+     "tol": 0.0,
+     "bend": 26.0,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 73.4,
+   "tolMm": 10.0,
+   "tails": {
+    "a": 100.0,
+    "b": 0.0,
+    "basis": "100 mm to make it off at its connector (ASSUMPTION), at the clock spring's terminal; a moulded M8 plug at the pod"
+   },
+   "orderMm": 200.0,
+   "bendMm": {
+    "fixed": 26.0,
+    "moving": 0.0,
+    "tightestFixed": 26.0,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "CLN-VPL"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "CLN-VPD",
+   "name": "Drive cable, vision pod to the wand drive: 48 V and EtherCAT, 6.5 mm",
+   "kind": "hybrid",
+   "od": 6.5,
+   "spec": "ASSUMPTION: a PUR hybrid cable, 2 power cores and the EtherCAT pair (class)",
+   "from": "the vision pod's OUT connector, M8 (CLN-VCN), through its right-angle plug (CLN-VRA)",
+   "to": "the wand drive's connector, on its side (CLN-WLA)",
+   "sub": "VISION",
+   "runs": [
+    {
+     "kind": "drawn",
+     "via": "CLN-VPD",
+     "where": "from the plug on the pod's side, up beside the base tube and in to the wand drive",
+     "mm": 154.8,
+     "tol": 0.0,
+     "bend": 26.0,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 154.8,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 0.0,
+    "b": 0.0,
+    "basis": "a moulded M8 plug at each end"
+   },
+   "orderMm": 200.0,
+   "bendMm": {
+    "fixed": 26.0,
+    "moving": 0.0,
+    "tightestFixed": 26.0,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "CLN-VPD"
    ],
    "notes": [],
    "open": []

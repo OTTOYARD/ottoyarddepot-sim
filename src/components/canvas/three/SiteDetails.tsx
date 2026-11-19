@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { MATERIALS } from './materials';
 import { oilStainTexture, tyreMarkTexture } from './textures';
 import { useDepotStore } from '@/store/depotStore';
-import { BESS_YARD, INGRESS, EGRESS, LOT } from '@/lib/sitePlan';
+import { BESS_YARD, INGRESS, EGRESS, LOT, BAY_PADS } from '@/lib/sitePlan';
 import { bayBollards, BOLLARD_RADIUS } from '@/lib/structurePlan';
 import { toWorld, DECK_Y } from './coordUtils';
 import { hasWheelStop, wheelStopPose, WHEEL_STOP_SIZE } from './wheelStops';
@@ -170,14 +170,16 @@ export function SiteDetails() {
           <planeGeometry args={[16, 14]} />
         </mesh>
       ))}
-      {/* concrete forecourt strip — the full bay approach throat (y 56..68) */}
-      <mesh rotation-x={-Math.PI / 2} position={[-8, DECK_Y + 0.006, 48]} material={mats.concrete} receiveShadow>
-        <planeGeometry args={[156, 12]} />
-      </mesh>
-      {/* concrete rear apron — 30ft clear maneuvering zone behind the bays */}
-      <mesh rotation-x={-Math.PI / 2} position={[15, DECK_Y + 0.006, 94]} material={mats.concrete} receiveShadow>
-        <planeGeometry args={[258, 20]} />
-      </mesh>
+      {/* the concrete pads along the bay row's front doors (to the north collector's paint) and rear doors (the rear
+          apron), each exactly as long as the row of buildings (sitePlan.BAY_PADS) */}
+      {[BAY_PADS.front, BAY_PADS.rear].map((r, i) => {
+        const [wx, , wz] = toWorld({ x: (r.x0 + r.x1) / 2, y: (r.y0 + r.y1) / 2 }, 0);
+        return (
+          <mesh key={`baypad${i}`} rotation-x={-Math.PI / 2} position={[wx, DECK_Y + 0.006, wz]} material={mats.concrete} receiveShadow>
+            <planeGeometry args={[r.x1 - r.x0, r.y1 - r.y0]} />
+          </mesh>
+        );
+      })}
 
       {/* planted islands */}
       {islands.map((r) => (

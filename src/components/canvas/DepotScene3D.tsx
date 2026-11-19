@@ -40,6 +40,7 @@ import { MATERIALS, leafed, barked } from './three/materials';
 import { skyTexture } from './three/textures';
 import { PerfProbe } from './three/perf/PerfProbe';
 import { CameraRig } from './three/CameraRig';
+import { MAX_POLAR } from './three/cameraGround';
 import { carName } from './three/carName';
 import { StaticMerge } from './three/StaticMerge';
 import { useCameraFollow } from './three/cameraFollow';
@@ -350,7 +351,9 @@ export default function DepotScene3D({ chrome = 'desktop', overlayTop = 0, viewe
             ref={controlsRef}
             enableDamping
             dampingFactor={0.08}
-            maxPolarAngle={Math.PI / 2.05}
+            // the lowest view is level with the target, never under it; CameraRig keeps the target and the lens
+            // above the ground (cameraGround.ts)
+            maxPolarAngle={MAX_POLAR}
             // from the pole the camera turns about a point just in front of the lens: it looks around the depot
             // from the mast instead of circling the mast, so it neither zooms nor pans there
             minDistance={pole ? 0.5 : 5}

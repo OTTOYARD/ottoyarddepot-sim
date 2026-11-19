@@ -282,7 +282,13 @@ function arrivesAligned(r: Rail, dock: number): boolean {
   const a = r.pts[n - 2], b = r.pts[n - 1];
   return Math.abs(wrapAngle(Math.atan2(b.y - a.y, b.x - a.x) - dock)) < DOCK_ALIGNED;
 }
+/** Below this much travel in one step a car does not turn: the spin-step floor above (and turnRadius.replay.test's).
+ *  2.5 rad/u still lets a CREEPING car turn faster than its own travel (a car easing off its stop bar at 0.02 u/s turned
+ *  0.12° in 0.0008u on fresh0922 once the south collector was centred and an S1 cusp stood at the SW stop bar), which is
+ *  the same body-swinging-on-the-spot the per-unit budget exists to stop. */
+const SPIN_FLOOR_U = 0.001;
 function easeHeading(current: number, target: number, dt: number, speed: number): number {
+  if (Math.abs(speed) * dt < SPIN_FLOOR_U) return current;
   const d = wrapAngle(target - current);
   const maxStep = Math.min(MAX_TURN_RATE, Math.abs(speed) * YAW_PER_UNIT) * dt;
   if (d > maxStep) return wrapAngle(current + maxStep);
@@ -503,8 +509,8 @@ const CHARGER_BACKOUT_NEAR = 12;
  *  a body standing there reaches another half-length further (15.7u; 20 keeps the
  *  margin the perpendicular stalls this replaced had). */
 const CHARGER_BACKOUT_SWEEP_AHEAD = 20;
-/** Half the south collector's paved width (y 166..178): a body this close to
- *  SOUTH_LANE_Y is ON the collector. */
+/** Half the south collector's paved width, measured from its centreline
+ *  (SOUTH_LANE_Y ± 6): a body this close to SOUTH_LANE_Y is ON the collector. */
 const COLLECTOR_HALF_WIDTH = 6;
 /** A back-out whose tail ends within this of a collector stream's car envelope counts
  *  as reaching into it. */
@@ -2504,10 +2510,10 @@ class TwinMotionDriver {
    *  Same id, so a waitsOn chain still resolves to the real car. The replays measure
    *  real positions, never these. */
   private backOutClaims(id: string, end: { x: number; y: number }): RailBody[] {
-    const claims: RailBody[] = [{ id, x: end.x, y: end.y, heading: NORTH, moving: false, speed: 0, reversing: true }];
+    const claims: RailBody[] = [{ id, x: end.x, y: end.y, heading: NORTH, moving: false, speed: 0, reversing: true, standIn: true }];
     for (const laneY of this.backOutCollectorLanes(end)) {
       // westbound runs north of the centreline (drive on the right, y down), eastbound south
-      claims.push({ id, x: end.x, y: laneY, heading: laneY < SOUTH_LANE_Y ? Math.PI : 0, moving: false, speed: 0, reversing: true });
+      claims.push({ id, x: end.x, y: laneY, heading: laneY < SOUTH_LANE_Y ? Math.PI : 0, moving: false, speed: 0, reversing: true, standIn: true });
     }
     return claims;
   }
@@ -2601,7 +2607,7 @@ class TwinMotionDriver {
       const reach = (CAR_BODY_LENGTH / 2) * sin + (CAR_BODY_WIDTH / 2) * Math.abs(cos) + CAR_BODY_WIDTH / 2 + CLAIM_MARGIN;
       if (lat >= reach) continue;
       const tc = Math.max(0, Math.min(L, t));
-      out.push({ id, x: a.x + ux * tc, y: a.y + uy * tc, heading: Math.atan2(uy, ux), moving: false, speed: 0, reversing: true });
+      out.push({ id, x: a.x + ux * tc, y: a.y + uy * tc, heading: Math.atan2(uy, ux), moving: false, speed: 0, reversing: true, standIn: true });
     }
     return out;
   }
@@ -3683,15 +3689,19 @@ class TwinMotionDriver {
     // reverse maneuver's rear-clearance check.
     const bodies: RailBody[] = [];
     const moving: MovingCar[] = [];
+    // each car's own body (not its stand-ins), so its waitsOn can be brought up to date as soon as it has stepped
+    const ownBody = new Map<string, RailBody>();
     for (const [id, e] of this.entries) {
       // heading + moving flag let a rail car ignore ONCOMING/crossing traffic as
       // a leader (real crossings are serialized by the junctions) — kills the
       // pass-freeze + ingress pileup. A tracker means the car is taxiing.
-      bodies.push({
+      const own: RailBody = {
         id, x: e.car.x, y: e.car.y, heading: e.car.heading, moving: !!e.tracker,
         speed: e.tracker ? e.tracker.v : 0, reversing: !!e.reverse,
         waitsOn: e.tracker && e.tracker.v < 0.3 ? e.tracker.limiterId ?? null : null,
-      });
+      };
+      bodies.push(own);
+      ownBody.set(id, own);
       // A committed charger back-out also STANDS WHERE IT WILL FINISH. Its swing
       // reaches the gap lane only near the end, so a car driving up the lane saw
       // nothing in its path until the tail was already beside it (busy_day replay,
@@ -3831,7 +3841,14 @@ class TwinMotionDriver {
         // T4: pace this car so it ARRIVES when OTTO-Q's leg says it should. A
         // ceiling only — traffic, junctions and the mouth lock still clamp below.
         e.tracker.vCap = this.contractPace(id, e.tracker);
-        const pose = stepRail(id, e.tracker, dt, bodies, this.locks);
+        const rail = e.tracker;
+        const pose = stepRail(id, rail, dt, bodies, this.locks);
+        // WHO WAITS ON WHOM, AS OF NOW. waitsOn was published before any car moved this step, so two cars that began
+        // waiting on each other in the same step each read the other as not waiting, and both waited a step: a
+        // one-step junction cycle (fresh0922 @8x, two south-row cusps once the south collector was centred,
+        // 2026-11-18). A car stepped later in the step reads this car's wait as it now stands.
+        const own = ownBody.get(id);
+        if (own) own.waitsOn = rail.v < 0.3 ? rail.limiterId ?? null : null;
         changed = true;
         if (pose) {
           e.car.x = pose.x;

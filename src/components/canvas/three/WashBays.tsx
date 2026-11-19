@@ -17,7 +17,7 @@ import { galvanizedSteel, darkSteel, litInterior, safetyYellowPaint } from './bu
  * its rails, anchor plates and end stops are part of it, so the simple rails here give way.
  */
 export function WashBays({ count, cadMachine = false }: { count: number; cadMachine?: boolean }) {
-  const geos = useMemo(() => build(count, cadMachine), [count, cadMachine]);
+  const geos = useMemo(() => buildWashFittings(count, cadMachine), [count, cadMachine]);
   const mats = useMemo<Record<string, THREE.Material>>(() => ({
     galv: galvanizedSteel(),
     steel: darkSteel(),
@@ -35,7 +35,7 @@ export function WashBays({ count, cadMachine = false }: { count: number; cadMach
   );
 }
 
-function build(count: number, cadMachine: boolean): Map<string, THREE.BufferGeometry> {
+export function buildWashFittings(count: number, cadMachine: boolean): Map<string, THREE.BufferGeometry> {
   const b = new StaticBatch();
   const f = WASH_SHELL.footprint;
   const deck = WASH_SHELL.height - WASH_SHELL.parapet;

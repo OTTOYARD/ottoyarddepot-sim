@@ -168,3 +168,36 @@ Read through a web search on 2026-11-17. The code carries each beside the value 
   a one-channel multimode fibre joint), the lift's rams (200 mm, 7 bar at the 4,500 kg rated load), the power unit's relief
   (10 bar) and pump efficiency (0.85), the drives' input power factor (0.95) and efficiency (0.92), every cable's outside
   diameter and bend radius, and the safety design to PL d, category 3 (ISO 13849-1), as ISO 10218-2 asks of a robot cell.
+
+## OTTO-CLEAN ARM: the cabin vision pod (design finding 26, read 2026-11-19)
+
+Read through a web search on 2026-11-19. Where the pod stands was measured, not read (docs/OTTO-ROBOTICS-CAD.md,
+finding 26). docs/ROBOT-VISION.md explains the design.
+
+- Camera sensor class: 1/2.6-inch, 1920 x 1200 (2.3 MP), 3.0 um global-shutter pixels, up to 120 frames a second, MIPI
+  CSI-2 out (**used**: the 2.8 mm lens's field of view, about 92 x 66 degrees, is computed from its 5.76 x 3.60 mm active
+  area as a pinhole, with no distortion): https://www.onsemi.com/ar0234cs ·
+  https://www.arrow.com/en/products/ar0234cssm28suka0-cr/on-semiconductor
+- Vision processor class: a camera vision SoC family of 7, 11 and 20 TOPS, 4 CPU cores, an image signal processor up to
+  12 MP, secure boot, a 13 x 13 mm package rated -40 to 85 degrees C (**used**: the package's size and the "7 TOPS class");
+  power below about 2 W on customers' loads, a vendor statement: https://hailo.ai/files/hailo-15l-product-brief-en/ ·
+  https://hailo.ai/files/hailo-15-product-brief-en · https://www.eetasia.com/hailo-adds-vision-processor-socs-for-smart-cameras/
+- EtherCAT slave controller class: 2 or 3 ports, 2 built-in 100BASE-TX PHYs, a 9 x 9 mm QFN-64 (**used**: the pod passes
+  the line on, in and out): https://www.mouser.in/en/new/microchip/microchip-lan9252-controller/ ·
+  https://lcsc.com/product-detail/Ethernet-ICs_Microchip-Tech-LAN9252I-ML_C2758355.html
+- Radome: a wall passes a radar best at n half wavelengths in the material, t = n x c / (2 f sqrt(er)) (**used**: 2 half
+  wavelengths at 60.5 GHz in polycarbonate, er 2.75, is 2.99 mm, so 3.0 mm): https://ti.com/lit/swra705 ; polycarbonate's
+  er 2.75 at 60 GHz: https://docs.acconeer.com/en/latest/integration/radome_and_mechanical_design.html . ASSUMPTION: the
+  antenna stands 3 half wavelengths in air (7.4 mm) behind it, a rule of thumb not read from either source.
+- 60 GHz in-cabin radar class: child presence through soft material, a 120 x 120 degree field on one chip, and a low-power
+  board 18 x 55 mm (**used**: the board's outline): https://m.ti.com/tool/TIDEP-01023 · https://www.ti.com/tool/TIDEP-01037
+- M8 connectors, IEC 61076-2-104 (**used**: the pod's 2 panel connectors and the drive cable's right-angle plug).
+- Collaborative robots, power and force limiting: ISO/TS 15066 (2016) set body-region limits for contact, and ISO 10218-2
+  (2025) makes power and force limiting a normative requirement (*checked*, for the recommendation in docs/ROBOT-VISION.md
+  that the wand works inside the cabin at those limits): https://arxiv.org/pdf/2602.17822 ·
+  https://www.frontiersin.org/articles/10.3389/frobt.2021.667818/full
+- ASSUMPTION, class sizes without a product source: the camera module's 30 x 26 mm board and M12 lens (the charge arm's
+  class), the time-of-flight module (20 x 16 mm, 0.1 to 2 m, with its own IR light), the pod's IP67 rating, the vision
+  board (64 x 40 mm, 4 GB, 32 GB), the EtherCAT and power board (60 x 32 mm, about 8 W at most from 48 V), the hybrid
+  cable's 6.5 mm outside diameter and its fixed bend at 4 x D, the thermal pad (6 W/m K), the vent, and the throughput the
+  pictures get on the EtherCAT line.

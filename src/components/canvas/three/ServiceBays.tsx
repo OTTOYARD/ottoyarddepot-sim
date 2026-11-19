@@ -13,7 +13,7 @@ import { darkSteel, galvanizedSteel } from './buildingSkin';
  * machine lifts or moves (its highest moving part is under 4 m).
  */
 export function ServiceBays() {
-  const geos = useMemo(() => build(), []);
+  const geos = useMemo(() => buildServiceFittings(), []);
   const mats = useMemo<Record<string, THREE.Material>>(() => ({ steel: darkSteel(), galv: galvanizedSteel() }), []);
   return (
     <group>
@@ -24,7 +24,7 @@ export function ServiceBays() {
   );
 }
 
-function build(): Map<string, THREE.BufferGeometry> {
+export function buildServiceFittings(): Map<string, THREE.BufferGeometry> {
   const b = new StaticBatch();
   const deck = OPS_SHELL.height - OPS_SHELL.parapet;
   const y = BAY_STALL_Y;

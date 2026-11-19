@@ -1,8 +1,8 @@
 {
  "robot": "clean_arm",
- "glbSha256": "c0212a42d65e5838",
+ "glbSha256": "c74855aee828c33e",
  "heldWithinMm": 1.0,
- "lines": 18,
+ "lines": 21,
  "openEnds": [],
- "seconds": 10.6
+ "seconds": 10.9
 }

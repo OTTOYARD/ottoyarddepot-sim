@@ -86,18 +86,22 @@ describe("cars drive round corners instead of pivoting through them (replayed mo
 describe("gapEntry — a charger-bound car turns into its gap lane once", () => {
   const gx = 126.5;
 
+  // the south boulevard's two drive lines: westbound beside the canopies, 3.2u north of the centreline, and eastbound
+  // 4.8u south of it (LaneGraph.DIVIDED_SPAN)
+  const WB = SOUTH_LANE_Y - 3.2, EB = SOUTH_LANE_Y + 4.8;
+
   it("moves the junction vertex onto the gap line at the car's own lane, and drops the point behind it", () => {
-    // westbound on the south boulevard (lane line y = 168.8), routed to (gx, SOUTH_LANE_Y - 2)
-    const route = [{ x: 180, y: 168.8 }, { x: 126.63, y: 168.8 }, { x: gx, y: SOUTH_LANE_Y - 2 }];
+    // westbound on the south boulevard, routed to (gx, SOUTH_LANE_Y - 2)
+    const route = [{ x: 180, y: WB }, { x: 126.63, y: WB }, { x: gx, y: SOUTH_LANE_Y - 2 }];
     const out = gapEntry(route, gx);
-    expect(out).toEqual([{ x: 180, y: 168.8 }, { x: gx, y: 168.8 }]);
+    expect(out).toEqual([{ x: 180, y: WB }, { x: gx, y: WB }]);
     // nothing SOUTH of the lane line: the old entry point sat 1.2u behind the car
-    expect(Math.max(...out.map((p) => p.y))).toBeLessThanOrEqual(168.8);
+    expect(Math.max(...out.map((p) => p.y))).toBeLessThanOrEqual(WB);
   });
 
   it("drives on along the lane to the corner when the last vertex is far from the gap", () => {
-    const route = [{ x: 60, y: 175.2 }, { x: 70, y: 175.2 }, { x: gx, y: SOUTH_LANE_Y - 2 }];
-    expect(gapEntry(route, gx)).toEqual([{ x: 60, y: 175.2 }, { x: 70, y: 175.2 }, { x: gx, y: 175.2 }]);
+    const route = [{ x: 60, y: EB }, { x: 70, y: EB }, { x: gx, y: SOUTH_LANE_Y - 2 }];
+    expect(gapEntry(route, gx)).toEqual([{ x: 60, y: EB }, { x: 70, y: EB }, { x: gx, y: EB }]);
   });
 
   it("leaves a route that does not arrive along the south boulevard alone", () => {

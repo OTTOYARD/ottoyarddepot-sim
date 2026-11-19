@@ -35,6 +35,10 @@ export interface RailBody {
   /** what a STOPPED rail car is waiting on (RailFlow's limiterId), if anything —
    *  lets a junction see that its holder is waiting on the very car it refuses */
   waitsOn?: string | null;
+  /** a STAND-IN, not the car's own body: where a car standing across a lane (a back-out's
+   *  finish, a car at its cusp) is published on that lane so its traffic queues behind it
+   *  (TwinMotionDriver.backOutClaims, streamClaims). Same id as the car. */
+  standIn?: boolean;
 }
 
 export interface Rail {
@@ -47,6 +51,8 @@ export interface Rail {
   s: number;              // arc position
   v: number;              // speed (u/s)
   mouthKey: string | null; // charger-column mouth this route ends in (if any)
+  /** cars whose stand-ins this rail drives past after a stand-in deadlock (STAND_IN_WAIT_S) */
+  passStandIns?: Set<string>;
   stationaryFor: number;  // watchdog: seconds since the car last made real
                           // ARC PROGRESS (not just "since v≈0") — a car creeping
                           // at ~1 u/s behind a stale lock never fully stops, so
@@ -290,12 +296,18 @@ function filletAt(V: Pt, u: Pt, w: Pt, ul: number, wl: number, phi: number, cut:
   return { A, B, C, R, a0, sweep };
 }
 
-/** Does a car body driven along this arc keep CORNER_CLEAR from every obstacle? */
-function arcClear(f: Fillet): boolean {
+/** Does a car body driven along this arc keep CORNER_CLEAR from every obstacle? Not the one the route ENDS in (`end`):
+ *  a car turning into its own stall swings its nose into that stall's footprint, which is where it is going, as an
+ *  opening may (startOnHeading leaves it out the same way). Counted, it refused a south-row arrival every cut but the
+ *  narrowest once the south collector was centred (2026-11-18): the turn off the eastbound lane ended with the nose
+ *  0.1u into the car's own stall at R 5.8, so it took R 4.8, a sharp turn by motionAudit's rule, on every S1 and S3
+ *  arrival (fresh0922 @8x, p45 63 -> 74). The neighbours' footprints, the posts and the walls still count. */
+function arcClear(f: Fillet, end?: Pt): boolean {
   const n = Math.max(2, Math.ceil((Math.abs(f.sweep) * f.R) / ARC_PROBE));
   const reach = f.R + CAR_BODY_LENGTH;
   const near = OBSTACLES.filter((b) =>
-    Math.hypot(b.cx - f.C.x, b.cy - f.C.y) < reach + b.hl + b.hw);
+    Math.hypot(b.cx - f.C.x, b.cy - f.C.y) < reach + b.hl + b.hw
+    && !(end && boxGap({ cx: end.x, cy: end.y, hl: 0.01, hw: 0.01, th: 0 }, b) < 0));
   if (!near.length) return true;
   for (let k = 0; k <= n; k++) {
     const ang = f.a0 + (f.sweep * k) / n;
@@ -328,7 +340,7 @@ export function roundCorners(raw: Pt[]): Pt[] {
       for (const cut of WIDE_CUTS) {
         if (cut <= CORNER_MAX_CUT) break;
         const g = filletAt(V, u, w, ul, wl, phi, cut);
-        if (g && arcClear(g)) { f = g; break; }
+        if (g && arcClear(g, pts[pts.length - 1])) { f = g; break; }
       }
     }
     f ??= filletAt(V, u, w, ul, wl, phi, CORNER_MAX_CUT);
@@ -660,6 +672,23 @@ const CREEP_SPEED = 1.5;
  * wedge rather than creating one — but the comment should not be trusted as an invariant.
  */
 const DEADLOCK_START_ZONE = 5;
+/**
+ * TWO CARS EACH STANDING ACROSS THE OTHER'S LANE. A car at a staging back-out's cusp is
+ * published as a stand-in on every lane its body reaches (TwinMotionDriver.streamClaims),
+ * and a stand-in always blocks: it is a stopped body. When two neighbours in a south row
+ * finish their back-outs facing opposite ways, each one's tail stands in the lane the
+ * other is about to take, so each waits for the other's stand-in, for good. Before the
+ * south collector was centred (2026-11-18) a cusp reached only the near stream and this
+ * was a 1.6 s brush; centred, a cusp lies in the median and reaches both streams, and on
+ * the live 0922 burst four cars and then every westbound car behind Sg2 stopped for the
+ * rest of the replay. So a car that has stood still for STAND_IN_WAIT_S does not wait for a
+ * stand-in whose car is itself waiting on it (the chain comes back round, waitsOnMe): it
+ * goes, and as it goes its own tail leaves the other's lane. The other car's REAL body
+ * still blocks it wherever it truly stands in the path. Only stand-ins, only between
+ * stopped cars, so a lane car still stops for a car pulling out (it is moving when it
+ * meets the stand-in, and once it waits, the car pulling out sees that and goes).
+ */
+const STAND_IN_WAIT_S = 3;
 
 export function pointAt(pts: Pt[], cum: number[], s: number): Pt & { heading: number } {
   if (pts.length < 2) return { x: pts[0]?.x ?? 0, y: pts[0]?.y ?? 0, heading: 0 };
@@ -848,6 +877,8 @@ function stoppedBodyPast(id: string, r: Rail, nodeS: number, bodies: RailBody[])
       if (b.id === id) continue;
       const dx = b.x - p.x, dy = b.y - p.y;
       if (dx * dx + dy * dy > LANE_HALF * LANE_HALF) continue;
+      // a stand-in of a car that is waiting on me will not clear the box's exit until I move (STAND_IN_WAIT_S)
+      if (b.standIn && waitsOnMe(b.id, id, bodies)) continue;
       if (b.moving) {
         if (b.heading !== undefined && Math.cos(b.heading - p.heading) < ONCOMING_DOT) continue;
         if ((b.speed ?? 0) >= 0.5) continue;
@@ -877,12 +908,27 @@ export function stepRail(
   const wedged = r.stationaryFor > DEADLOCK_S && r.s < DEADLOCK_START_ZONE;
   let creeping = false; // set only by the deadlock breaker; clamps v to a crawl
   const maxAhead = Math.min(LOOK, r.total - r.s);
+  const stalled = r.v < 0.3 && r.stationaryFor > STAND_IN_WAIT_S;
   for (let d = SAMPLE; d <= maxAhead; d += SAMPLE) {
     const p = pointAt(r.pts, r.cum, r.s + d);
     for (const b of bodies) {
       if (b.id === id) continue;
       const dx = b.x - p.x, dy = b.y - p.y;
       if (dx * dx + dy * dy > LANE_HALF * LANE_HALF) continue;
+      // a stand-in of a car that is waiting on me, while I am stopped too: a deadlock, not a queue (STAND_IN_WAIT_S).
+      // Once passed, it stays passed for this rail while its car still waits on me or is driving off: the two cars
+      // move together, so neither's wait chain names the other for long, and a breaker that re-armed on that stopped
+      // both again within a unit (measured on the live burst: 14-25 s of stop-start instead of one move).
+      if (b.standIn) {
+        const latched = !!r.passStandIns?.has(b.id);
+        if (latched || stalled) {
+          const owner = bodies.find((o) => o.id === b.id && !o.standIn);
+          if (waitsOnMe(b.id, id, bodies) || (latched && (owner?.speed ?? 0) >= 0.3)) {
+            (r.passStandIns ??= new Set()).add(b.id);
+            continue;
+          }
+        }
+      }
       // a MOVING body heading AGAINST my path here is oncoming (a pass on the
       // divided road) or crossing at a node — real crossings are serialized by
       // the junction control (below), so braking for it here was the pass-freeze
