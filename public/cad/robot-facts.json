@@ -478,9 +478,20 @@
     {
      "label": "Clear height",
      "value": "3.30 m under the beam"
+    },
+    {
+     "label": "Bay guard",
+     "value": "A safety radar stands beside each mouth of the bay. Its field is the opening and the first metres inside. Radar is used here because spray and mist give a camera or a laser false stops."
+    },
+    {
+     "label": "Overview camera",
+     "value": "An overview camera high on the exit wall checks that the bay is empty before a program starts. It records each stop."
     }
    ],
    "safety": [
+    "A person in a field stops the gantry and both detail arms.",
+    "Emergency stops stand at each mouth, inside and outside the wall.",
+    "The bay doors stay open. No door closes on a car.",
     "Retracted, everything clears a car by more than 0.48 m.",
     "The machine never moves over the car with a tool still on it.",
     "The gantry and the arms never work at the same time. Each waits at its own end of the bay.",

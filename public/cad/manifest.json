@@ -254,50 +254,50 @@
     "cables": "wash_gantry.cables.csv"
    },
    "cables": {
-    "lines": 54,
-    "routeM": 379.5,
-    "orderM": 411.3
+    "lines": 61,
+    "routeM": 418.4,
+    "orderM": 454.3
    },
    "bytes": {
-    "glb": 9578384,
-    "stepZip": 8270348,
-    "step": 44014486,
-    "depot": 1026212,
-    "near": 6951576
+    "glb": 9831016,
+    "stepZip": 8347076,
+    "step": 44471699,
+    "depot": 1074972,
+    "near": 7091668
    },
    "mesh": {
-    "vertices": 381373,
-    "triangles": 447805,
-    "meshes": 329,
-    "nodes": 2405
+    "vertices": 391034,
+    "triangles": 460929,
+    "meshes": 345,
+    "nodes": 2447
    },
    "depotMesh": {
-    "vertices": 37857,
-    "triangles": 39970,
-    "meshes": 160,
-    "nodes": 417
+    "vertices": 39559,
+    "triangles": 41640,
+    "meshes": 171,
+    "nodes": 439
    },
-   "depotSha256": "2b66499b0494d9e7",
+   "depotSha256": "866b5a9f2e3eeafc",
    "nearMesh": {
-    "vertices": 279289,
-    "triangles": 328583,
-    "meshes": 211,
-    "nodes": 1852
+    "vertices": 284759,
+    "triangles": 334577,
+    "meshes": 224,
+    "nodes": 1890
    },
-   "nearSha256": "a379890f828e909d",
+   "nearSha256": "863831b6dc79719a",
    "totals": {
-    "parts": 2835,
-    "uniqueParts": 320,
-    "fasteners": 1648,
-    "massKg": 6046.0,
-    "boughtLines": 188,
-    "madeLines": 132,
-    "referenceLines": 14
+    "parts": 2873,
+    "uniqueParts": 333,
+    "fasteners": 1664,
+    "massKg": 6075.59,
+    "boughtLines": 195,
+    "madeLines": 138,
+    "referenceLines": 17
    },
-   "glbSha256": "2268bf442c2a5286",
+   "glbSha256": "609b0a7105e08809",
    "stepCheck": {
-    "namedParts": 2852,
-    "solids": 4294,
+    "namedParts": 2894,
+    "solids": 4336,
     "invalid": 0
    },
    "subsystems": [
@@ -364,6 +364,10 @@
     {
      "id": "CONTROL",
      "name": "Control, supply and signals"
+    },
+    {
+     "id": "GUARD",
+     "name": "Bay guard"
     },
     {
      "id": "SUPPLY",

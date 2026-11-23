@@ -208,8 +208,13 @@ function washMachine(bom: Bom): MachineFacts {
       { label: 'Stop light', value: how(bom, 'CONTROL', /stop light/) },
       { label: 'Supply', value: how(bom, 'CONTROL', /drag chain brings/).split('. ').slice(0, 2).join('. ').replace(/\.?$/, '.') },
       { label: 'Clear height', value: spec(bom, 'PORTAL', 'clear height') },
+      { label: 'Bay guard', value: `${how(bom, 'GUARD', /^A safety radar stands beside each mouth/)} ${how(bom, 'GUARD', /^Radar is used here/)}` },
+      { label: 'Overview camera', value: how(bom, 'GUARD', /^An overview camera/) },
     ],
     safety: [
+      `${how(bom, 'GUARD', /^A person in a field stops/).split('. ')[0]}.`,
+      how(bom, 'GUARD', /^Emergency stops stand/),
+      'The bay doors stay open. No door closes on a car.',
       sub(bom, 'PORTAL').function.split('. ').slice(-1)[0],
       'The machine never moves over the car with a tool still on it.',
       'The gantry and the arms never work at the same time. Each waits at its own end of the bay.',

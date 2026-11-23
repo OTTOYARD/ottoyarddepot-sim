@@ -39,21 +39,478 @@
   "cycle:done:mid",
   "cycle:done:end"
  ],
- "pairsChecked": 68860,
- "pairsMeasured": 15237,
- "contactPairs": 5123,
+ "pairsChecked": 68935,
+ "pairsMeasured": 15308,
+ "contactPairs": 5190,
  "counts": {
-  "thread": 1997,
+  "thread": 2013,
   "seal": 24,
   "ring": 18,
   "mesh": 6,
-  "context": 0,
+  "context": 19,
   "clash": 0,
   "error": 0
  },
  "clashes": [],
  "floating": [],
- "context": [],
- "seconds": 1254.5,
- "glbSha256": "2268bf442c2a5286"
+ "context": [
+  {
+   "kind": "context",
+   "a": {
+    "item": "WSH-GWL#1",
+    "part": "WSH-GWL",
+    "name": "Wash hall wall, the pier east of a door (part of the building)",
+    "sub": "GUARD"
+   },
+   "b": {
+    "item": "ISO4762-M6x25-A4-70#1",
+    "part": "ISO4762-M6x25-A4-70",
+    "name": "Socket head cap screw M6 x 25",
+    "sub": "GUARD"
+   },
+   "volumeMm3": 615.2,
+   "at": [
+    -3451.1,
+    1030.0,
+    6901.3
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "WSH-GWL#1",
+    "part": "WSH-GWL",
+    "name": "Wash hall wall, the pier east of a door (part of the building)",
+    "sub": "GUARD"
+   },
+   "b": {
+    "item": "ISO4762-M6x25-A4-70#3",
+    "part": "ISO4762-M6x25-A4-70",
+    "name": "Socket head cap screw M6 x 25",
+    "sub": "GUARD"
+   },
+   "volumeMm3": 615.2,
+   "at": [
+    -3451.1,
+    1270.0,
+    6901.3
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "WSH-GWL#2",
+    "part": "WSH-GWL",
+    "name": "Wash hall wall, the pier east of a door (part of the building)",
+    "sub": "GUARD"
+   },
+   "b": {
+    "item": "ISO4762-M6x25-A4-70#5",
+    "part": "ISO4762-M6x25-A4-70",
+    "name": "Socket head cap screw M6 x 25",
+    "sub": "GUARD"
+   },
+   "volumeMm3": 615.2,
+   "at": [
+    -3451.1,
+    1030.0,
+    -6901.3
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "WSH-GWL#2",
+    "part": "WSH-GWL",
+    "name": "Wash hall wall, the pier east of a door (part of the building)",
+    "sub": "GUARD"
+   },
+   "b": {
+    "item": "ISO4762-M6x25-A4-70#7",
+    "part": "ISO4762-M6x25-A4-70",
+    "name": "Socket head cap screw M6 x 25",
+    "sub": "GUARD"
+   },
+   "volumeMm3": 615.2,
+   "at": [
+    -3451.1,
+    1270.0,
+    -6901.3
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "WSH-GWL#1",
+    "part": "WSH-GWL",
+    "name": "Wash hall wall, the pier east of a door (part of the building)",
+    "sub": "GUARD"
+   },
+   "b": {
+    "item": "WSH-GNP#1",
+    "part": "WSH-GNP",
+    "name": "Guard conduit, trade size 1/2, through the wall, 287 long",
+    "sub": "GUARD"
+   },
+   "volumeMm3": 49517.1,
+   "at": [
+    -3271.1,
+    1210.0,
+    7034.0
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "WSH-GWL#2",
+    "part": "WSH-GWL",
+    "name": "Wash hall wall, the pier east of a door (part of the building)",
+    "sub": "GUARD"
+   },
+   "b": {
+    "item": "WSH-GNP#2",
+    "part": "WSH-GNP",
+    "name": "Guard conduit, trade size 1/2, through the wall, 287 long",
+    "sub": "GUARD"
+   },
+   "volumeMm3": 49517.1,
+   "at": [
+    -3271.1,
+    1210.0,
+    -7033.9
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "WSH-GWL#1",
+    "part": "WSH-GWL",
+    "name": "Wash hall wall, the pier east of a door (part of the building)",
+    "sub": "GUARD"
+   },
+   "b": {
+    "item": "ISO4762-M6x25-A4-70#2",
+    "part": "ISO4762-M6x25-A4-70",
+    "name": "Socket head cap screw M6 x 25",
+    "sub": "GUARD"
+   },
+   "volumeMm3": 615.2,
+   "at": [
+    -3211.1,
+    1030.0,
+    6901.3
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "WSH-GWL#1",
+    "part": "WSH-GWL",
+    "name": "Wash hall wall, the pier east of a door (part of the building)",
+    "sub": "GUARD"
+   },
+   "b": {
+    "item": "ISO4762-M6x25-A4-70#4",
+    "part": "ISO4762-M6x25-A4-70",
+    "name": "Socket head cap screw M6 x 25",
+    "sub": "GUARD"
+   },
+   "volumeMm3": 615.2,
+   "at": [
+    -3211.1,
+    1270.0,
+    6901.3
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "WSH-GWL#2",
+    "part": "WSH-GWL",
+    "name": "Wash hall wall, the pier east of a door (part of the building)",
+    "sub": "GUARD"
+   },
+   "b": {
+    "item": "ISO4762-M6x25-A4-70#6",
+    "part": "ISO4762-M6x25-A4-70",
+    "name": "Socket head cap screw M6 x 25",
+    "sub": "GUARD"
+   },
+   "volumeMm3": 615.2,
+   "at": [
+    -3211.1,
+    1030.0,
+    -6901.3
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "WSH-GWL#2",
+    "part": "WSH-GWL",
+    "name": "Wash hall wall, the pier east of a door (part of the building)",
+    "sub": "GUARD"
+   },
+   "b": {
+    "item": "ISO4762-M6x25-A4-70#8",
+    "part": "ISO4762-M6x25-A4-70",
+    "name": "Socket head cap screw M6 x 25",
+    "sub": "GUARD"
+   },
+   "volumeMm3": 615.2,
+   "at": [
+    -3211.1,
+    1270.0,
+    -6901.3
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "WSH-GWL#1",
+    "part": "WSH-GWL",
+    "name": "Wash hall wall, the pier east of a door (part of the building)",
+    "sub": "GUARD"
+   },
+   "b": {
+    "item": "ISO4762-M5x30-A4-70#1",
+    "part": "ISO4762-M5x30-A4-70",
+    "name": "Socket head cap screw M5 x 30",
+    "sub": "GUARD"
+   },
+   "volumeMm3": 466.7,
+   "at": [
+    -2859.7,
+    1092.0,
+    6902.3
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "WSH-GWL#1",
+    "part": "WSH-GWL",
+    "name": "Wash hall wall, the pier east of a door (part of the building)",
+    "sub": "GUARD"
+   },
+   "b": {
+    "item": "ISO4762-M5x30-A4-70#3",
+    "part": "ISO4762-M5x30-A4-70",
+    "name": "Socket head cap screw M5 x 30",
+    "sub": "GUARD"
+   },
+   "volumeMm3": 466.7,
+   "at": [
+    -2859.7,
+    1208.0,
+    6902.3
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "WSH-GWL#2",
+    "part": "WSH-GWL",
+    "name": "Wash hall wall, the pier east of a door (part of the building)",
+    "sub": "GUARD"
+   },
+   "b": {
+    "item": "ISO4762-M5x30-A4-70#5",
+    "part": "ISO4762-M5x30-A4-70",
+    "name": "Socket head cap screw M5 x 30",
+    "sub": "GUARD"
+   },
+   "volumeMm3": 466.7,
+   "at": [
+    -2859.7,
+    1092.0,
+    -6902.3
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "WSH-GWL#2",
+    "part": "WSH-GWL",
+    "name": "Wash hall wall, the pier east of a door (part of the building)",
+    "sub": "GUARD"
+   },
+   "b": {
+    "item": "ISO4762-M5x30-A4-70#7",
+    "part": "ISO4762-M5x30-A4-70",
+    "name": "Socket head cap screw M5 x 30",
+    "sub": "GUARD"
+   },
+   "volumeMm3": 466.7,
+   "at": [
+    -2859.7,
+    1208.0,
+    -6902.3
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "WSH-GWL#1",
+    "part": "WSH-GWL",
+    "name": "Wash hall wall, the pier east of a door (part of the building)",
+    "sub": "GUARD"
+   },
+   "b": {
+    "item": "ISO4762-M5x30-A4-70#2",
+    "part": "ISO4762-M5x30-A4-70",
+    "name": "Socket head cap screw M5 x 30",
+    "sub": "GUARD"
+   },
+   "volumeMm3": 466.7,
+   "at": [
+    -2743.8,
+    1092.0,
+    6902.3
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "WSH-GWL#1",
+    "part": "WSH-GWL",
+    "name": "Wash hall wall, the pier east of a door (part of the building)",
+    "sub": "GUARD"
+   },
+   "b": {
+    "item": "ISO4762-M5x30-A4-70#4",
+    "part": "ISO4762-M5x30-A4-70",
+    "name": "Socket head cap screw M5 x 30",
+    "sub": "GUARD"
+   },
+   "volumeMm3": 466.7,
+   "at": [
+    -2743.8,
+    1208.0,
+    6902.3
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "WSH-GWL#2",
+    "part": "WSH-GWL",
+    "name": "Wash hall wall, the pier east of a door (part of the building)",
+    "sub": "GUARD"
+   },
+   "b": {
+    "item": "ISO4762-M5x30-A4-70#6",
+    "part": "ISO4762-M5x30-A4-70",
+    "name": "Socket head cap screw M5 x 30",
+    "sub": "GUARD"
+   },
+   "volumeMm3": 466.7,
+   "at": [
+    -2743.8,
+    1092.0,
+    -6902.3
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "WSH-GWL#2",
+    "part": "WSH-GWL",
+    "name": "Wash hall wall, the pier east of a door (part of the building)",
+    "sub": "GUARD"
+   },
+   "b": {
+    "item": "ISO4762-M5x30-A4-70#8",
+    "part": "ISO4762-M5x30-A4-70",
+    "name": "Socket head cap screw M5 x 30",
+    "sub": "GUARD"
+   },
+   "volumeMm3": 466.7,
+   "at": [
+    -2743.8,
+    1208.0,
+    -6902.3
+   ],
+   "poses": [
+    "stowed"
+   ]
+  },
+  {
+   "kind": "context",
+   "a": {
+    "item": "WSH-SDLP#1",
+    "part": "WSH-SDLP",
+    "name": "Duct in the slab, PVC, trade size 1-1/4: east arm power (part of the building)",
+    "sub": "SUPPLY"
+   },
+   "b": {
+    "item": "WSH-GDN#1",
+    "part": "WSH-GDN",
+    "name": "Duct in the slab, PVC, trade size 1: guard and camera, arm cabinet to the north station (part of the building)",
+    "sub": "SUPPLY"
+   },
+   "volumeMm3": 5282.2,
+   "at": [
+    3044.3,
+    -252.6,
+    6761.3
+   ],
+   "poses": [
+    "stowed"
+   ]
+  }
+ ],
+ "seconds": 1325.3,
+ "glbSha256": "609b0a7105e08809"
 }

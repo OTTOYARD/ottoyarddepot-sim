@@ -138,6 +138,16 @@ def build(spec: dict) -> Model:
                      'each lift motor, the east travel motor, the valves, the beacon and the stop light.',
                      'Nothing stands outboard of the trolleys: the end bays\' outer walls are 48 mm from them.'],
                 group='Control')
+    m.subsystem('GUARD', 'Bay guard', 'Stops the machine and the 2 detail arms when a person comes into the bay. The doors stay open.',
+                how=['A safety radar stands beside each mouth of the bay. Its field is the opening and the first metres inside.',
+                     'A person in a field stops the gantry and both detail arms. The fields are muted while the machine is home and the signal is green, so a car can pass.',
+                     'Radar is used here because spray and mist give a camera or a laser false stops.',
+                     'Emergency stops stand at each mouth, inside and outside the wall.',
+                     'An overview camera high on the exit wall checks that the bay is empty before a program starts. It records each stop.',
+                     'The guard\'s cables run in ducts under the slab from the detail arm cabinet, which holds the radar controller.'],
+                specs={'radar': '60 GHz safety radar, 2 a bay, PL d / SIL 2 (class)', 'range': '9 m (class)',
+                       'emergency stops': '4 a bay', 'camera': '1 a bay, IP69K (class), power over the network cable',
+                       'approval': 'the radar needs its maker\'s approval for this spray (not confirmed)'}, group='Control')
     m.subsystem('SUPPLY', 'Bay supply', 'Brings power, the network, water, chemicals and air from the building to the machine and to the 2 detail arms.',
                 how=['A service panel on the north wall, beside the exit door, is where the building hands over every line.',
                      'On it: a lockable isolator, the detail arms\' drive cabinet, and a shut-off valve for each of the 5 media.',
@@ -1569,6 +1579,150 @@ def build(spec: dict) -> Model:
             DUCT_UP.setdefault(name, {})[dict(power='P', data='D').get(what, 'W')] = x_1     # its mouth in the floor box (the schedule)
             cast_duct(f'WSH-SD{name}{dict(power="P", data="D").get(what, "W")}', f'{"west" if sx > 0 else "east"} arm {what}', size,
                       [(x_w, 0, zdw), (x_w, y_d, zdw), (x_w, y_d, z_l), (x_1, y_d, z_l), (x_1, y_d, z_up), (x_1, 0, z_up)], ods)
+    # ═══════════════════════════════════════════════════════════════ GUARD ═══
+    # The bay's doors stay open (Chase, 2026-11-22: "Definitely do not want doors to close in a wash bay"), so a person can
+    # walk in while the machine works. A guard station stands on the wall beside each mouth, on the east side (the service
+    # panel fills the west pier at the exit): a safety radar toward the opening, an emergency stop inside and one outside
+    # the wall. An overview camera stands high over the exit station (docs/ROBOT-VISION.md, design finding 27). Nothing may
+    # stand on a side wall (an end bay's wall is 48 mm from the trolleys) or on the floor, so the cables run in 2 ducts
+    # under the slab: from the detail arm cabinet, which holds the radar controller, under the exit's threshold to the
+    # north station, and from there along the bay's east edge to the south station.
+    # ASSUMPTION: the radar's housing (100 x 100 x 45 mm; the maker's sheet gives 355 g and no size was found), its height
+    # (1.15 m) and the camera's size are class figures.
+    WT = 0.6 * U_                                         # the wall (structurePlan.WALL_T)
+    G_CX = -(legX + trol['w'] / 2 - 162)                  # a station's box, its middle: 12 mm inside the trolleys' outer wall
+    G_Y = 1150.0                                          # and its height
+    G_D = 130.0                                           # the risers stand this far off the wall, inside the box's depth
+    X_IN, X_OUT = G_CX + 70.0, G_CX - 110.0               # the risers: in from the cabinet, out to the south station
+    X_RAD = -(x_door + 170.0)                             # the radar's middle, beside the opening
+    G_CAB = (dx0 + 380.0, z_w - G_D)                      # the guard's drop under the arm cabinet, behind its row of drops
+    sz_g2, sz_g1 = duct_size([9.0, L_NET]), duct_size([9.0])   # 2 cables (guard, camera network); 1 cable
+    east_wall = cq.Workplane('XY').box(x_wall - x_door, 4300, WT, centered=(False, False, False))
+    gwl_pd = m.part(PartDef('WSH-GWL', 'Wash hall wall, the pier east of a door (part of the building)', east_wall.val(), 'concrete',
+                            'structure', 'building', f'{x_wall - x_door:.0f} x 4300 x {WT:.0f}', '', None,
+                            'Carries a guard station. Shown for context.', {}, 'buy', reference=True))
+    gbox = (cq.Workplane('XY').box(300, 300, 160).edges('|Z').fillet(8)
+            .cut(cq.Workplane('XY').box(294, 294, 154)))
+    gbx_pd = m.part(PartDef('WSH-GBX', 'Guard station box, stainless, IP69K', gbox.val(), 'ss316', 'electrical', 'EN 62208',
+                            '300 x 300 x 160', 'IP69K', None,
+                            'Joins the radar, the 2 emergency stops and the cables from the slab at one mouth of the bay.', {}, 'buy',
+                            mass_override=6.0))
+    es_h = (cq.Workplane('XY').box(72, 72, 60, centered=(True, True, False)).edges('|Z').fillet(6)
+            .union(cq.Workplane('XY', origin=(0, 0, 60)).circle(20).extrude(12)))
+    es_m = cq.Workplane('XY', origin=(0, 0, 72)).circle(28).extrude(14).faces('>Z').edges().fillet(6)
+    geh_pd = m.part(PartDef('WSH-GEH', 'Emergency stop housing, IP69K', es_h.val(), 'pa66_yellow', 'electrical', 'IEC 60947-5-5',
+                            '72 x 72 x 72', 'IP69K', None, 'Holds an emergency stop switch and its 2 contacts at a mouth of the bay.', {}, 'buy'))
+    gem_pd = m.part(PartDef('WSH-GEM', 'Emergency stop mushroom, 56 mm, red, twist to release', es_m.val(), 'pa66_red', 'electrical',
+                            'IEC 60947-5-5', 'D 56, twist to release', '', None,
+                            'Stops the gantry and both detail arms (safe torque off). The brakes hold them.', {}, 'buy'))
+    rad = (cq.Workplane('XY').box(140, 140, 6, centered=(True, True, False))
+           .union(cq.Workplane('XY').box(100, 100, 45, centered=(True, True, False)).translate((0, 0, 6)).edges('|Z').fillet(10)))
+    grd_pd = m.part(PartDef('WSH-GRD', 'Safety radar sensor, 60 GHz, on its wall plate', rad.val(), 'a356_dark', 'sensor',
+                            'IEC 61496-1 and IEC TS 61496-5 (class)', '100 x 100 x 45 on a 140 x 140 plate', 'PL d / SIL 2, IP67 (class)', None,
+                            'Sees a person at the mouth of the bay through spray and mist. A person in its field stops the machine.',
+                            {'field': 'up to 100 x 20 degrees, 9 m (class)', 'needs': 'the maker\'s approval for wash spray'}, 'buy',
+                            mass_override=0.5))
+    cam_b = (cq.Workplane('XY').box(110, 110, 60, centered=(True, True, False)).edges('|Z').fillet(8)
+             .union(cq.Workplane('XY', origin=(0, 0, 60)).circle(32).extrude(40)))
+    gcm_pd = m.part(PartDef('WSH-GCM', 'Bay overview camera, stainless housing, IP69K', cam_b.val(), 'ss316', 'sensor', 'catalogue part',
+                            '110 x 110 x 100', 'IP69K (class)', None,
+                            'Looks along the bay from over the exit. It checks that the bay is empty before a program, and records each stop.',
+                            {'power': 'over its network cable'}, 'buy', mass_override=1.2))
+
+    def g_riser(size: str, y0: float, y1: float, what: str) -> PartDef:
+        od, bore, _ = PVC40[size]
+        sh = cq.Solid.makeCylinder(od / 2, y1 - y0, Vector(0, y0, 0), Vector(0, 1, 0)).cut(
+            cq.Solid.makeCylinder(bore / 2, y1 - y0, Vector(0, y0, 0), Vector(0, 1, 0)))
+        pd = m.part(PartDef(f'WSH-GR{size.replace("/", "").replace("-", "")}{y1 - y0:.0f}', f'Guard conduit, trade size {size}, {y1 - y0:.0f} long',
+                            sh, 'ss316', 'electrical', 'rigid conduit, stainless', f'{size} x {y1 - y0:.0f}', '', None,
+                            f'Takes the guard\'s cables {what}.', {}, 'make'))
+        pd.path_mm = y1 - y0
+        return pd
+
+    gdd_pd = g_riser(sz_g2, 150.0, 1100.0, 'from the arm cabinet down to the pull box')
+    gri_pd = g_riser(sz_g2, 0.0, G_Y - 150, 'up from the slab into a station box')
+    gro_pd = g_riser(sz_g1, 0.0, G_Y - 150, 'between a station box and the slab')
+    gcc_pd = g_riser(sz_g1, G_Y + 150, 3895.0, 'from the north station box up to the camera')
+    stub_l = (X_RAD - 50.0) - (G_CX + 150.0)              # from the box's side to the radar's side
+    stub = cq.Solid.makeCylinder(PVC40['1/2'][0] / 2, stub_l, Vector(0, 0, 0), Vector(1, 0, 0)).cut(
+        cq.Solid.makeCylinder(PVC40['1/2'][1] / 2, stub_l, Vector(0, 0, 0), Vector(1, 0, 0)))
+    gst_pd = m.part(PartDef('WSH-GST', f'Guard conduit, trade size 1/2, station box to the radar, {stub_l:.0f} long', stub, 'ss316', 'electrical',
+                            'rigid conduit, stainless', f'1/2 x {stub_l:.0f}', '', None, 'Takes the radar\'s lead from the station box.', {}, 'make'))
+    gst_pd.path_mm = stub_l
+    nip_g = cq.Solid.makeCylinder(PVC40['1/2'][0] / 2, WT, Vector(0, 0, 0), Vector(0, 0, 1)).cut(
+        cq.Solid.makeCylinder(PVC40['1/2'][1] / 2, WT, Vector(0, 0, 0), Vector(0, 0, 1)))
+    gnp_pd = m.part(PartDef('WSH-GNP', f'Guard conduit, trade size 1/2, through the wall, {WT:.0f} long', nip_g, 'ss316', 'electrical',
+                            'rigid conduit, stainless', f'1/2 x {WT:.0f}', '', None,
+                            'Takes the outside emergency stop\'s lead through the wall from the station box.', {}, 'make'))
+    gnp_pd.path_mm = WT
+    for sgn, nm in ((1, 'north'), (-1, 'south')):
+        ex_ = (0, 0, sgn * -300)                           # exploded into the bay
+        zin = lambda d: sgn * (z_w - d)                    # noqa: E731  d into the bay from the wall's inner face (negative: into the wall)
+        face = 180 if sgn > 0 else 0                       # a part built facing +Z, turned to face into the bay
+        m.place(bay, gwl_pd, loc(-x_wall, 0, z_w if sgn > 0 else -z_w - WT), (0, 0, sgn * 300), 'GUARD')
+        m.place(bay, gbx_pd, loc(G_CX, G_Y, zin(80)), ex_, 'GUARD')
+        for (dx_, dy_) in ((-120, -120), (120, -120), (-120, 120), (120, 120)):
+            m.place(bay, std.shcs(6, 25, 'A4-70', 'Holds the guard station box to the wall, into an anchor.'),
+                    std.orient((G_CX + dx_, G_Y + dy_, zin(3)), (0, 0, sgn)), ex_, 'GUARD')
+        # the emergency stops: one on the box's front, one on the wall's outer face, joined through the wall
+        m.place(bay, geh_pd, loc(G_CX + 60, G_Y + 60, zin(160), ry=face), ex_, 'GUARD')
+        m.place(bay, gem_pd, loc(G_CX + 60, G_Y + 60, zin(160), ry=face), ex_, 'GUARD')
+        m.place(bay, geh_pd, loc(G_CX + 60, G_Y + 60, zin(-WT), ry=180 - face), (0, 0, sgn * 500), 'GUARD')
+        m.place(bay, gem_pd, loc(G_CX + 60, G_Y + 60, zin(-WT), ry=180 - face), (0, 0, sgn * 500), 'GUARD')
+        m.place(bay, gnp_pd, loc(G_CX + 60, G_Y + 60, z_w if sgn > 0 else -z_w - WT), (0, 0, sgn * 400), 'GUARD')
+        # the radar, beside the opening, and its conduit from the box
+        m.place(bay, grd_pd, loc(X_RAD, G_Y, zin(0), ry=face), ex_, 'GUARD')
+        for (dx_, dy_) in ((-58, -58), (58, -58), (-58, 58), (58, 58)):
+            m.place(bay, std.shcs(5, 30, 'A4-70', 'Holds the radar\'s plate to the wall, into an anchor.'),
+                    std.orient((X_RAD + dx_, G_Y + dy_, zin(6)), (0, 0, sgn)), ex_, 'GUARD')
+        m.place(bay, gst_pd, loc(G_CX + 150, G_Y, zin(28)), ex_, 'GUARD')
+        # the risers from the slab
+        m.place(bay, gri_pd if sgn > 0 else gro_pd, loc(X_IN if sgn > 0 else X_OUT, 0, zin(G_D)), ex_, 'GUARD')
+        if sgn > 0:
+            m.place(bay, gro_pd, loc(X_OUT, 0, zin(G_D)), ex_, 'GUARD')
+            m.place(bay, gcc_pd, loc(G_CX, 0, zin(30)), ex_, 'GUARD')
+            m.place(bay, gcm_pd, loc(G_CX, 3950, zin(0), ry=face), ex_, 'GUARD')
+    m.place(bay, gdd_pd, loc(G_CAB[0], 0, G_CAB[1]), (0, 0, -260), 'GUARD')
+    cast_duct('WSH-GDN', 'guard and camera, arm cabinet to the north station', sz_g2,
+              [(G_CAB[0], 0, G_CAB[1]), (G_CAB[0], -560, G_CAB[1]), (X_IN, -560, G_CAB[1]), (X_IN, 0, G_CAB[1])], [9.0, L_NET])
+    cast_duct('WSH-GDS', 'guard, north station to the south station', sz_g1,
+              [(X_OUT, 0, z_w - G_D), (X_OUT, -400, z_w - G_D), (X_OUT, -400, -(z_w - G_D)), (X_OUT, 0, -(z_w - G_D))], [9.0])
+    # the guard's lines (cables.py)
+    P_ = m.parts
+    g_tail = f'{TAIL_CAB:.0f} mm inside the cabinet to its terminal, {TAIL_DEV:.0f} mm into the device (ASSUMPTION)'
+    L = m.cable('WSH-GLN', 'Guard cable, arm cabinet to the north guard station', 'safety', 9.0,
+                'ASSUMPTION: a shielded cable for 24 V, the radars\' bus and the 2 emergency-stop channels (class)',
+                'the radar controller in the detail arm cabinet (WSH-DAC)', 'the north guard station box (WSH-GBX)', 'GUARD',
+                bend_fixed=PVC40[sz_g2][2], tail_a=TAIL_CAB, tail_b=TAIL_DEV, tails=g_tail)
+    L.run('conduit', gdd_pd.id, 'down its conduit from the cabinet to the pull box', gdd_pd.path_mm)
+    L.run('conduit', 'WSH-GDN', 'in its duct under the slab, under the exit\'s threshold', P_['WSH-GDN'].path_mm, bend=PVC40[sz_g2][2])
+    L.run('conduit', gri_pd.id, 'up its conduit into the station box', gri_pd.path_mm)
+    L = m.cable('WSH-GLS', 'Guard cable, north guard station to the south guard station', 'safety', 9.0,
+                'ASSUMPTION: a shielded cable for 24 V, the radars\' bus and the 2 emergency-stop channels (class)',
+                'the north guard station box (WSH-GBX)', 'the south guard station box (WSH-GBX)', 'GUARD',
+                bend_fixed=PVC40[sz_g1][2], tail_a=TAIL_DEV, tail_b=TAIL_DEV, tails=f'{TAIL_DEV:.0f} mm into each box (ASSUMPTION)')
+    L.run('conduit', gro_pd.id, 'down its conduit from the north box to the slab', gro_pd.path_mm)
+    L.run('conduit', 'WSH-GDS', 'in its duct under the slab, along the bay\'s east edge', P_['WSH-GDS'].path_mm, bend=PVC40[sz_g1][2])
+    L.run('conduit', gro_pd.id, 'up its conduit into the south box', gro_pd.path_mm)
+    L = m.cable('WSH-GLC', 'Camera network cable, arm cabinet to the overview camera', 'network', L_NET,
+                'industrial Cat 6A, power over the cable (ASSUMPTION: the class of the machine\'s network cable)',
+                'the bay\'s network switch in the detail arm cabinet (WSH-DAC)', 'the overview camera (WSH-GCM)', 'GUARD',
+                bend_fixed=PVC40[sz_g2][2], tail_a=TAIL_CAB, tail_b=TAIL_DEV, tails=g_tail)
+    L.run('conduit', gdd_pd.id, 'down the guard\'s conduit from the cabinet to the pull box', gdd_pd.path_mm)
+    L.run('conduit', 'WSH-GDN', 'in the guard\'s duct under the slab', P_['WSH-GDN'].path_mm, bend=PVC40[sz_g2][2])
+    L.run('conduit', gri_pd.id, 'up into the north station box', gri_pd.path_mm)
+    L.run('duct', 'WSH-GBX', 'through the station box, bottom to top (planned)', 300.0, tol=50.0)
+    L.run('conduit', gcc_pd.id, 'up its conduit to the camera', gcc_pd.path_mm)
+    for nm in ('north', 'south'):
+        L = m.cable(f'WSH-GLR{nm[0].upper()}', f'Radar lead, {nm} guard station', 'safety', 6.0, 'ASSUMPTION: the radar\'s own bus lead, M12 (class)',
+                    f'the {nm} guard station box (WSH-GBX)', f'the {nm} safety radar (WSH-GRD)', 'GUARD', tail_a=TAIL_DEV, tail_b=100.0,
+                    tails=f'{TAIL_DEV:.0f} mm into the box, 100 mm to the radar\'s plug (ASSUMPTION)')
+        L.run('conduit', 'WSH-GST', 'in its conduit along the wall', gst_pd.path_mm)
+        L = m.cable(f'WSH-GLE{nm[0].upper()}', f'Outside emergency stop lead, {nm} guard station', 'safety', 7.0,
+                    'ASSUMPTION: a 4-core control cable, 2 channels (class)', f'the {nm} guard station box (WSH-GBX)',
+                    f'the emergency stop on the wall\'s outer face at the {nm} mouth (WSH-GEH)', 'GUARD', tail_a=TAIL_DEV, tail_b=100.0,
+                    tails=f'{TAIL_DEV:.0f} mm into the box, 100 mm into the housing (ASSUMPTION)')
+        L.run('conduit', 'WSH-GNP', 'through the wall in its conduit', gnp_pd.path_mm)
     # ════════════════════════════════════════════════════════════ CABLE SCHEDULE ═══
     _cable_schedule(m, locals())
     return m

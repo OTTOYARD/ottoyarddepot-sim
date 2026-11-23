@@ -176,7 +176,9 @@ already counted on a camera that was not there: its wand-tip light ring *"lights
   - IP69K for everything in the bay: the road-vehicle rating for close-range, hot, high-pressure spray, 80 degrees C
     water at 80 to 100 bar ([fabrico summary of ISO 20653](https://www.fabrico.io/fr/blog/ip69k-rating-washdown-equipment/),
     read 2026-11-19; sources differ on the exact distance and time, so test to the standard's text).
-  - The CAD has not drawn it yet.
+  - **Built 2026-11-23** (`docs/OTTO-ROBOTICS-CAD.md` finding 27): a guard station on the wall east of each mouth (the
+    radar, an emergency stop inside and one outside), the overview camera over the exit station, and their cables in 2
+    ducts under the slab from the detail arm cabinet. Clash check 0, line ends 0 open.
 - **Add: the check after the pad.** The same sensor camera looks at each cover again after it is polished: clean, one
   more pass, or a need for a sensor calibration. The twin already models that escalation (a failed clean raising a
   calibration); a real camera makes it a measurement. No new hardware.
@@ -280,8 +282,10 @@ card (a re-clean, a re-mate, a fault), and rule 9 holds the car until it is done
    (section 2), with its 2 cables in the cable schedule and the whole CAD chain: build, clash (0), line ends (0 open),
    the twin's CAD tests, the yard and fleet clearance tests, and the robot facts and their copies to the two cockpits.
    The stall's guard for the clean arm is not built: it waits on the canopy safety controller (section 2).
-2. **The guards, as Chase decided on 2026-11-22:** the canopy safety controller with a scanner at each row's open end
-   (6), and in each wash bay a safety radar at each mouth, emergency stops and the overview camera. No door closes.
+2. **The guards, as Chase decided on 2026-11-22.** Built 2026-11-23: in each wash bay a safety radar at each mouth, 4
+   emergency stops and the overview camera; no door closes. Not built yet: the canopy safety controller with a scanner
+   at each row's open end (6). Those stand in the yard, beside lanes cars drive, so they need a place on the site plan
+   and the motion checks first.
 3. **The arrival inspection arch:** its place on the site plan (the inbound lane, before the gate queue), its model in
    the yard and the twin's needs from its readings.
 4. **The canopy overhead cameras**, and a stall-occupancy check in OTTO-Q against them.

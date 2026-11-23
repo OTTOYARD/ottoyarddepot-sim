@@ -201,3 +201,15 @@ finding 26). docs/ROBOT-VISION.md explains the design.
   board (64 x 40 mm, 4 GB, 32 GB), the EtherCAT and power board (60 x 32 mm, about 8 W at most from 48 V), the hybrid
   cable's 6.5 mm outside diameter and its fixed bend at 4 x D, the thermal pad (6 W/m K), the vent, and the throughput the
   pictures get on the EtherCAT line.
+
+## OTTO-WASH: the bay guard (design finding 27, read 2026-11-19)
+
+- Safety radar class: a 60 GHz sensor family rated PL d / SIL 2, category 3, with a 5 m or 9 m range and a beam of 10 to
+  100 degrees by 20, IP67, -30 to 60 degrees C, 355 g (**used**: the rating, the range and the beam on the part):
+  https://www.leuze.com/en-dk/products/safety/safety-products/safety-radar-system ·
+  https://www.sparepartsnow.de/produkte/leuze-electronic-leuze-electronic-lbk-sbv-01-sicherheits-radarsensor-pn-50147249-cjktwt .
+  Its maker calls it insensitive to dust, smoke and "moderate amounts of water" (a vendor statement; no source covers
+  wash spray): https://tipteh.com/machine-safety/optoelectronic-machine-safety-equipment/inxpect-safety-radar-system/
+- ASSUMPTION, class sizes without a product source: the radar's housing (100 x 100 x 45 mm on a 140 mm plate; no size was
+  found), its height (1.15 m), the station box (300 x 300 x 160 mm, IP69K), the overview camera (110 x 110 x 100 mm, IP69K,
+  3.95 m up), the guard cable (9 mm) and its leads, and the 300 mm and 500 mm tails.
