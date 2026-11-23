@@ -45,6 +45,7 @@ _M = [
     Material('pa66', 'PA66-GF30', 1350, '#202226', 0.1, 0.6),
     Material('pom', 'POM-C (acetal)', 1410, '#e9e8e2', 0.05, 0.45),
     Material('pc', 'Polycarbonate, clear', 1200, '#9fb4c2', 0.1, 0.08, None, 0.55),
+    Material('pc_black', 'Polycarbonate, black, radar-transparent', 1200, '#15171a', 0.05, 0.3),
     Material('lens', 'Optical glass, coated', 2500, '#0b1418', 0.2, 0.06),
     Material('cable', 'Cable, TPE jacket', 1500, '#14161a', 0.05, 0.75),
     Material('cable_red', 'Cable, red jacket (DC+)', 1500, '#9e1c24', 0.05, 0.7),

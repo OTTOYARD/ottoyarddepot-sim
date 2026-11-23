@@ -7,6 +7,7 @@ import { useVehicleStore } from '@/store/vehicleStore';
 import { toWorld, DECK_Y } from './coordUtils';
 import { useCameraFollow } from './cameraFollow';
 import { aimFromMast } from './followMath';
+import { keepAboveGround } from './cameraGround';
 import { useQCard } from '@/store/qCardStore';
 
 /**
@@ -33,6 +34,10 @@ import { useQCard } from '@/store/qCardStore';
  * (followMath.ts). A drag, or a second finger, takes the camera back: it stops
  * following, because the pole's only gesture is turning and following is
  * turning too.
+ *
+ * NEVER UNDER THE GROUND: after the orbit controls move the camera and before
+ * the frame is drawn, the target is kept at or above the ground and the lens
+ * at or above eye level over the deck (cameraGround.ts).
  */
 
 const TAP_MAX_MS = 350;
@@ -180,6 +185,13 @@ export function CameraRig({ controls, pole = false }: {
       else camera.position.copy(c.target).add(off.setLength(len + (want - len) * (1 - Math.exp(-Math.min(dt, 0.1) * 4))));
     }
   }, -2);
+
+  // ── the ground: after OrbitControls' update (-1), before anything reads the camera (0) or draws (1) ──
+  useFrame(() => {
+    const c = controls.current;
+    if (!c) return;
+    if (keepAboveGround(camera.position, c.target)) camera.lookAt(c.target);
+  }, -0.5);
 
   return null;
 }

@@ -37,8 +37,18 @@ describe("lane paint: the divided ring's median", () => {
       const lane = [...g.lanes.values()].find((l) => dist(l.pts[0], s.pts[0]) < 1e-9 && dist(l.pts[1], s.pts[1]) < 1e-9)!;
       expect(g.isDivided(lane.id), lane.id).toBe(false);
     }
-    // 15 of the 17 stretches: Sg0-S_eg and S_in-Sg3 are 20u, all junction gap
-    expect(paint.medians.length).toBe(15);
+    // 14 of the 17 stretches. A median stops 8u short of a junction cars turn across and needs 6u of its own, so three
+    // stretches are all junction gap: Sg0-S_eg and S_in-Sg3 (20u), and the east avenue's stub between the N1 lane and
+    // the north collector, N1e-NE (18.8u since the north collector was centred, 2026-11-18; it was 24u and had one).
+    expect(paint.medians.length).toBe(14);
+    const [n1e, ne] = [g.nodes.get("N1e")!, g.nodes.get("NE")!];
+    expect(dist(n1e, ne)).toBeLessThan(2 * 8 + 6);
+    for (const m of paint.medians) {
+      for (const q of [...m.edges[0], ...m.edges[1]]) {
+        const onStub = Math.abs(q.x - ne.x) < DIVIDED_SPAN && q.y > n1e.y && q.y < ne.y;
+        expect(onStub, `a median on the N1e-NE stub at (${q.x}, ${q.y})`).toBe(false);
+      }
+    }
     for (const m of paint.medians) expect(m.width).toBeCloseTo(DIVIDED_SPAN - LANE_PAINT_WIDTH, 9);
   });
 

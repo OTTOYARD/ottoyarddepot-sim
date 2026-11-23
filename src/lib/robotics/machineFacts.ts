@@ -146,6 +146,7 @@ function cleanArm(bom: Bom): MachineFacts {
     owner: [
       'An overhead arm vacuums the cabin of your car while it charges.',
       'Only the wand goes into the car, and only through an open door.',
+      'A radar and 2 cameras check that no one is in the car before the wand goes in.',
       `Every part of the arm keeps ${CLEAN_ARM_CLEARANCE_M.toFixed(2)} m off the bodywork and the open doors.`,
       'Your car stays at its charger until the arm is home.',
     ],
@@ -157,6 +158,8 @@ function cleanArm(bom: Bom): MachineFacts {
       { label: 'Time for a clean', value: `About ${Math.round(cycle / 60)} min: ${minutes(CLEAN_SIDE_NOMINAL_S)} on each side, and the moves between. The twin sets the time.` },
       { label: 'Reach', value: `The wand reaches ${(reach[0] + reach[1]).toFixed(2)} m into the cabin.` },
       { label: 'Mast', value: sub(bom, 'MAST').function },
+      { label: 'Cabin check', value: `${how(bom, 'VISION', /^It holds 2 cameras/)} ${how(bom, 'VISION', /^The radar sees breathing/)}` },
+      { label: 'Proof', value: `${how(bom, 'VISION', /^A vision board in the pod/)}` },
       { label: 'Clearance', value: `${CLEAN_ARM_CLEARANCE_M.toFixed(2)} m off the car and the open doors, at every point of the cycle.` },
       { label: 'Vacuum supply', value: how(bom, 'VAC', /central vacuum producer/) },
       { label: 'Power', value: 'A supply enclosure on the column holds the arm\'s controller. Its power and network come from the canopy cable tray.' },
@@ -165,6 +168,7 @@ function cleanArm(bom: Bom): MachineFacts {
     ],
     safety: [
       'The arm swings above the roof. Nothing stands where a car drives.',
+      how(bom, 'VISION', /^The wand goes in only when/),
       'The car stays on its stall until the arm is home.',
       'A brake holds the mast when power is off.',
       'A charger fault lets the car go at once. The arm at the next charger does the clean.',

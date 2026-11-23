@@ -15,7 +15,7 @@ import {
   LOT, BESS_YARD, TX_YARD, TX_PAD, CHARGER_TRANSFORMERS, AUX_TRANSFORMER, MV_SWITCHGEAR, BUILDING, WASH, CANOPIES, PARK_RUNS, GATE_W, canopyKind,
   canopyPlants, INGRESS, EGRESS,
   WEST_AISLE_X, EAST_AISLE_X, TEMP_LANE_X, GAP_LANES,
-  TEMP_AISLE, EAST_AVENUE, N1_LANE_Y, NORTH_LANE_Y, SOUTH_LANE_Y,
+  TEMP_AISLE, EAST_AVENUE, N1_LANE_Y, NORTH_LANE_Y, SOUTH_LANE_Y, BAY_PADS,
 } from '@/lib/sitePlan';
 import { buildDepotLanes } from '@/engine/motion/LaneGraph';
 
@@ -135,10 +135,11 @@ export const DepotSVG = forwardRef<SVGSVGElement>((_, ref) => {
       <line x1={0} y1={215} x2={300} y2={215} stroke="#F59E0B" strokeWidth={0.3} strokeDasharray="6,4" />
 
       {/* ---- circulation (tinted lanes from the plan) ---- */}
-      {/* rear apron */}
-      <rect x={64} y={LOT.y} width={LOT.x + LOT.w - 64 - 6} height={20} fill="#23232f" />
-      {/* forecourt (concrete) */}
-      <rect x={64} y={56} width={156} height={12} fill="#3a3d42" opacity={0.8} />
+      {/* the concrete pads along the bay row's rear doors (the rear apron) and front doors (to the north collector),
+          each exactly as long as the row of buildings: sitePlan.BAY_PADS, which the 3D ground draws too */}
+      {[BAY_PADS.rear, BAY_PADS.front].map((r, i) => (
+        <rect key={`baypad${i}`} x={r.x0} y={r.y0} width={r.x1 - r.x0} height={r.y1 - r.y0} fill="#3a3d42" opacity={0.8} />
+      ))}
       {/* north + south collectors */}
       <rect x={LOT.x} y={NORTH_BAND[0]} width={LOT.w} height={NORTH_BAND[1] - NORTH_BAND[0]} fill="#262635" />
       <rect x={LOT.x} y={SOUTH_BAND[0]} width={LOT.w} height={SOUTH_BAND[1] - SOUTH_BAND[0]} fill="#262635" />

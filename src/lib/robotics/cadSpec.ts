@@ -142,6 +142,7 @@ export function cadSpec() {
       wrist: { ...CLEAN_ARM.wrist },
       wand: { ...CLEAN_ARM.wand },
       nozzle: { ...CLEAN_ARM.nozzle },
+      visionPod: { ...CLEAN_ARM.visionPod, line: { ...CLEAN_ARM.visionPod.line } },
       pivotZ: r4(CLEAN_ARM.pivotZ),
       limits: {
         j2: CLEAN_ARM.limits.j2.map(r4), pitch: CLEAN_ARM.limits.pitch.map(r4), nozzle: CLEAN_ARM.limits.nozzle.map(r4),

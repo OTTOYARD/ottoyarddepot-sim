@@ -32,7 +32,7 @@ import { CHARGER_STALL_ANGLE, DCFC_ROW_PITCH } from '@/lib/sitePlan';
 import { CLEAN_ARM, isCleanWork, phaseMove, phaseVisit, wandMayBeInside, cleanPhaseOf, type CleanPhase } from './cleanArmSpec';
 import {
   cleanArmPoints, cleanJointsAt, doorsAt, exitEnd, phaseSide, sidesFor, visitGeom, visitSide,
-  type CleanJoints, type CleanProgram, type CleanSides,
+  type CleanJoints, type CleanProgram, type CleanSides, type Vec3,
 } from './cleanArmPose';
 import { cleanArmCapsules, type Capsule } from './cleanArmClearance';
 import { FLEET_COLUMN_TOP, FLEET_MARGIN, jointLimitBreach, measureFleetPose, type FleetPoseMeasure } from './cleanArmFleetClearance';
@@ -72,6 +72,39 @@ function take(w: Worst, m: FleetPoseMeasure, label: string): void {
   set('wandOut', Math.min(m.wandSkin, m.wandLeaf, m.wandEquipment)); set('room', m.room); set('seat', m.seat);
 }
 const f3 = (v: number) => (Number.isFinite(v) ? v.toFixed(3) : 'n/a');
+
+/**
+ * THE CABIN VISION POD, as points to measure (cleanArmSpec.visionPod): its box under the base tube, sampled on its faces,
+ * and its drive line up its -Z side to the wand drive, sampled along its centreline with its radius, with the line's
+ * right-angle plug. Each point is in the wand's frame from the wrist pivot (x along the wand, y up at pitch 0, z the
+ * pitch axis), metres. The capsule model (cleanArmClearance.ts) does not carry the pod, so the program generator does not
+ * see it: this test is what holds it to each vehicle.
+ */
+function visionPodPoints(): { p: Vec3; r: number }[] {
+  const V = CLEAN_ARM.visionPod, L = V.line;
+  const out: { p: Vec3; r: number }[] = [];
+  const lin = (a: number, b: number, n: number) => Array.from({ length: n }, (_, i) => a + ((b - a) * i) / (n - 1));
+  const xs = lin(V.from, V.to, 5), ys = lin(-V.below - V.depth, -V.below, 4), zs = lin(-V.halfWidth, V.halfWidth, 5);
+  for (const [i, x] of xs.entries()) for (const [j, y] of ys.entries()) for (const [k, z] of zs.entries()) {
+    if (i === 0 || i === xs.length - 1 || j === 0 || j === ys.length - 1 || k === 0 || k === zs.length - 1) out.push({ p: { x, y, z }, r: 0 });
+  }
+  // the plug (12 x 16 x 12 mm on the pod's -Z side), and the line: up from the plug's top to the drive's axis (on the
+  // tube's top: the tube's radius and the drive's 16 mm, cad clean_arm CLN-WLA), then in to the drive's side
+  for (const dx of [-0.006, 0.006]) for (const y of [L.y - 0.006, L.y + 0.01]) for (const dz of [-0.006, 0.006]) out.push({ p: { x: L.x + dx, y, z: -L.side + dz }, r: 0 });
+  const yTop = CLEAN_ARM.wand.r + 0.016;
+  for (const y of lin(L.y + 0.01, yTop, 9)) out.push({ p: { x: L.x, y, z: -L.side }, r: L.r });
+  for (const z of lin(-L.side, -0.016, 5)) out.push({ p: { x: L.x, y: yTop, z }, r: L.r });
+  return out;
+}
+
+/** A point of the wand's frame (from the wrist pivot) in the car's frame, at a pose: pitch about the pitch axis, then yaw. */
+function wandFrameToCar(q: CleanJoints, p: Vec3): Vec3 {
+  const pv = cleanArmPoints(q).pivot;
+  const cp = Math.cos(q.pitch), sp = Math.sin(q.pitch);
+  const mx = p.x * cp - p.y * sp, my = p.x * sp + p.y * cp;
+  const c = Math.cos(q.yaw), s = Math.sin(q.yaw);
+  return { x: pv.x + mx * c - p.z * s, y: pv.y + my, z: pv.z + mx * s + p.z * c };
+}
 
 describe.each(CASES)('$key: the cleaning arm and the vehicle it cleans', ({ spec }) => {
   const cabin = cabinProfile(spec);
@@ -160,6 +193,34 @@ describe.each(CASES)('$key: the cleaning arm and the vehicle it cleans', ({ spec
     expect(w.wandOut, `wand outside the door, ${w.at.wandOut}`).toBeGreaterThanOrEqual(FLEET_MARGIN.wandOutside);
     expect(w.room, `cabin room, ${w.at.room}`).toBeGreaterThanOrEqual(FLEET_MARGIN.room);
     expect(w.seat, `seats, ${w.at.seat}`).toBeGreaterThanOrEqual(FLEET_MARGIN.seat);
+  });
+
+  it('keeps the cabin vision pod outside the vehicle, 0.03 m off its body, door leaves and sensors, all cycle, both flanks', { timeout: 600_000 }, () => {
+    const pts = visionPodPoints();
+    let skin = Infinity, leaf = Infinity, equip = Infinity, inside = 0, at = '';
+    for (const sides of BOTH) {
+      for (const { phase, t, q } of cycle(program, sides)) {
+        const vi = phaseVisit(phase);
+        const cab = vi >= 0 ? cabinForVisit(spec, program.visits[vi]) : cabin;
+        const open = doorsAt(phase, t);
+        for (const { p, r } of pts) {
+          const w = wandFrameToCar(q, p);
+          if (cab.skin(w).sd < r) inside++;
+          const sk = cab.outsideSkin(w) - r;
+          if (sk < skin) { skin = sk; at = `${phase}@${t.toFixed(3)}`; }
+          leaf = Math.min(leaf, cab.leafClearance(w, open) - r);
+          for (const e of cab.equipment) {
+            const dx = Math.max(e.x0 - w.x, w.x - e.x1, 0), dy = Math.max(e.y0 - w.y, w.y - e.y1, 0), dz = Math.max(e.z0 - w.z, w.z - e.z1, 0);
+            equip = Math.min(equip, Math.hypot(dx, dy, dz) - r);
+          }
+        }
+      }
+    }
+    console.log(`FLEET-CLEAN ${spec.key}: vision pod ${f3(skin)} m from the body (${at}), ${f3(leaf)} m from a door leaf, ${f3(equip)} m from a sensor`);
+    expect(inside, 'the pod never goes into the body').toBe(0);
+    expect(skin, `the pod to the body, ${at}`).toBeGreaterThanOrEqual(FLEET_MARGIN.wandOutside);
+    expect(leaf, 'the pod to a door leaf').toBeGreaterThanOrEqual(FLEET_MARGIN.wandOutside);
+    expect(equip, 'the pod to a sensor').toBeGreaterThanOrEqual(FLEET_MARGIN.wandOutside);
   });
 
   it('cleans what it says: the nozzle mouth 2-8 cm off a cushion or the floor, 2-15 cm off a seat back, under the headliner', () => {
