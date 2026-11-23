@@ -7,13 +7,13 @@
   "glb": "m"
  },
  "totals": {
-  "parts": 2835,
-  "uniqueParts": 320,
-  "fasteners": 1648,
-  "massKg": 6046.0,
-  "boughtLines": 188,
-  "madeLines": 132,
-  "referenceLines": 14
+  "parts": 2873,
+  "uniqueParts": 333,
+  "fasteners": 1664,
+  "massKg": 6075.59,
+  "boughtLines": 195,
+  "madeLines": 138,
+  "referenceLines": 17
  },
  "subsystems": [
   {
@@ -315,6 +315,32 @@
    "uniqueParts": 30
   },
   {
+   "id": "GUARD",
+   "name": "Bay guard",
+   "function": "Stops the machine and the 2 detail arms when a person comes into the bay. The doors stay open.",
+   "how": [
+    "A safety radar stands beside each mouth of the bay. Its field is the opening and the first metres inside.",
+    "A person in a field stops the gantry and both detail arms. The fields are muted while the machine is home and the signal is green, so a car can pass.",
+    "Radar is used here because spray and mist give a camera or a laser false stops.",
+    "Emergency stops stand at each mouth, inside and outside the wall.",
+    "An overview camera high on the exit wall checks that the bay is empty before a program starts. It records each stop.",
+    "The guard's cables run in ducts under the slab from the detail arm cabinet, which holds the radar controller."
+   ],
+   "specs": {
+    "radar": "60 GHz safety radar, 2 a bay, PL d / SIL 2 (class)",
+    "range": "9 m (class)",
+    "emergency stops": "4 a bay",
+    "camera": "1 a bay, IP69K (class), power over the network cable",
+    "approval": "the radar needs its maker's approval for this spray (not confirmed)"
+   },
+   "group": "Control",
+   "order": 16,
+   "partCount": 38,
+   "fastenerCount": 16,
+   "massKg": 29.582,
+   "uniqueParts": 13
+  },
+  {
    "id": "SUPPLY",
    "name": "Bay supply",
    "function": "Brings power, the network, water, chemicals and air from the building to the machine and to the 2 detail arms.",
@@ -335,7 +361,7 @@
     "each arm's lines": "supply, track motor, 24 V, network, 6 mm pure water"
    },
    "group": "Control",
-   "order": 16,
+   "order": 17,
    "partCount": 48,
    "fastenerCount": 0,
    "massKg": 219.453,
@@ -7944,6 +7970,370 @@
    ]
   },
   {
+   "id": "WSH-GWL",
+   "name": "Wash hall wall, the pier east of a door (part of the building)",
+   "category": "structure",
+   "make": "buy",
+   "standard": "building",
+   "size": "909 x 4300 x 287",
+   "grade": "",
+   "material": "Concrete C30/37",
+   "materialKey": "concrete",
+   "qty": 2,
+   "massKg": 0.0,
+   "totalMassKg": 0.0,
+   "torqueNm": null,
+   "reference": true,
+   "function": "Carries a guard station. Shown for context.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "GUARD",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-GCM",
+   "name": "Bay overview camera, stainless housing, IP69K",
+   "category": "sensor",
+   "make": "buy",
+   "standard": "catalogue part",
+   "size": "110 x 110 x 100",
+   "grade": "IP69K (class)",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 1.2,
+   "totalMassKg": 1.2,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Looks along the bay from over the exit. It checks that the bay is empty before a program, and records each stop.",
+   "spec": {
+    "power": "over its network cable",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "GUARD",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-GRD",
+   "name": "Safety radar sensor, 60 GHz, on its wall plate",
+   "category": "sensor",
+   "make": "buy",
+   "standard": "IEC 61496-1 and IEC TS 61496-5 (class)",
+   "size": "100 x 100 x 45 on a 140 x 140 plate",
+   "grade": "PL d / SIL 2, IP67 (class)",
+   "material": "Aluminium A356-T6 casting, charcoal powder coat",
+   "materialKey": "a356_dark",
+   "qty": 2,
+   "massKg": 0.5,
+   "totalMassKg": 1.0,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Sees a person at the mouth of the bay through spray and mist. A person in its field stops the machine.",
+   "spec": {
+    "field": "up to 100 x 20 degrees, 9 m (class)",
+    "needs": "the maker's approval for wash spray",
+    "mass basis": "catalogue class mass (the CAD draws its envelope)"
+   },
+   "uses": [
+    {
+     "sub": "GUARD",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-GBX",
+   "name": "Guard station box, stainless, IP69K",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "EN 62208",
+   "size": "300 x 300 x 160",
+   "grade": "IP69K",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 6.0,
+   "totalMassKg": 12.0,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Joins the radar, the 2 emergency stops and the cables from the slab at one mouth of the bay.",
+   "spec": {
+    "mass basis": "catalogue class mass (the CAD draws its envelope)",
+    "in the cable schedule": "WSH-GLC, 12.14 m from end to end"
+   },
+   "uses": [
+    {
+     "sub": "GUARD",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-GEH",
+   "name": "Emergency stop housing, IP69K",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "IEC 60947-5-5",
+   "size": "72 x 72 x 72",
+   "grade": "IP69K",
+   "material": "PA66-GF30, safety yellow",
+   "materialKey": "pa66_yellow",
+   "qty": 4,
+   "massKg": 0.4378,
+   "totalMassKg": 1.751,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Holds an emergency stop switch and its 2 contacts at a mouth of the bay.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "GUARD",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "WSH-GEM",
+   "name": "Emergency stop mushroom, 56 mm, red, twist to release",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "IEC 60947-5-5",
+   "size": "D 56, twist to release",
+   "grade": "",
+   "material": "PA66, signal red",
+   "materialKey": "pa66_red",
+   "qty": 4,
+   "massKg": 0.0448,
+   "totalMassKg": 0.1792,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Stops the gantry and both detail arms (safe torque off). The brakes hold them.",
+   "spec": {},
+   "uses": [
+    {
+     "sub": "GUARD",
+     "qty": 4
+    }
+   ]
+  },
+  {
+   "id": "WSH-GNP",
+   "name": "Guard conduit, trade size 1/2, through the wall, 287 long",
+   "category": "electrical",
+   "make": "make",
+   "standard": "rigid conduit, stainless",
+   "size": "1/2 x 287",
+   "grade": "",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 0.3951,
+   "totalMassKg": 0.7903,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes the outside emergency stop's lead through the wall from the station box.",
+   "spec": {
+    "in the cable schedule": "WSH-GLEN, 0.29 m from end to end; WSH-GLES, 0.29 m from end to end"
+   },
+   "uses": [
+    {
+     "sub": "GUARD",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-GR11000",
+   "name": "Guard conduit, trade size 1, 1000 long",
+   "category": "electrical",
+   "make": "make",
+   "standard": "rigid conduit, stainless",
+   "size": "1 x 1000",
+   "grade": "",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 2.7223,
+   "totalMassKg": 2.7223,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes the guard's cables up from the slab into a station box.",
+   "spec": {
+    "in the cable schedule": "WSH-GLN, 9.25 m from end to end; WSH-GLC, 12.14 m from end to end"
+   },
+   "uses": [
+    {
+     "sub": "GUARD",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-GR121000",
+   "name": "Guard conduit, trade size 1/2, 1000 long",
+   "category": "electrical",
+   "make": "make",
+   "standard": "rigid conduit, stainless",
+   "size": "1/2 x 1000",
+   "grade": "",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 1.3763,
+   "totalMassKg": 2.7527,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes the guard's cables between a station box and the slab.",
+   "spec": {
+    "in the cable schedule": "WSH-GLS, 16.23 m from end to end"
+   },
+   "uses": [
+    {
+     "sub": "GUARD",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-GR122595",
+   "name": "Guard conduit, trade size 1/2, 2595 long",
+   "category": "electrical",
+   "make": "make",
+   "standard": "rigid conduit, stainless",
+   "size": "1/2 x 2595",
+   "grade": "",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 3.5716,
+   "totalMassKg": 3.5716,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes the guard's cables from the north station box up to the camera.",
+   "spec": {
+    "in the cable schedule": "WSH-GLC, 12.14 m from end to end"
+   },
+   "uses": [
+    {
+     "sub": "GUARD",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-GR1950",
+   "name": "Guard conduit, trade size 1, 950 long",
+   "category": "electrical",
+   "make": "make",
+   "standard": "rigid conduit, stainless",
+   "size": "1 x 950",
+   "grade": "",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 1,
+   "massKg": 2.5862,
+   "totalMassKg": 2.5862,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes the guard's cables from the arm cabinet down to the pull box.",
+   "spec": {
+    "in the cable schedule": "WSH-GLN, 9.25 m from end to end; WSH-GLC, 12.14 m from end to end"
+   },
+   "uses": [
+    {
+     "sub": "GUARD",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-GST",
+   "name": "Guard conduit, trade size 1/2, station box to the radar, 329 long",
+   "category": "electrical",
+   "make": "make",
+   "standard": "rigid conduit, stainless",
+   "size": "1/2 x 329",
+   "grade": "",
+   "material": "Stainless steel 1.4401 (316)",
+   "materialKey": "ss316",
+   "qty": 2,
+   "massKg": 0.4532,
+   "totalMassKg": 0.9065,
+   "torqueNm": null,
+   "reference": false,
+   "function": "Takes the radar's lead from the station box.",
+   "spec": {
+    "in the cable schedule": "WSH-GLRN, 0.33 m from end to end; WSH-GLRS, 0.33 m from end to end"
+   },
+   "uses": [
+    {
+     "sub": "GUARD",
+     "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M5x30-A4-70",
+   "name": "Socket head cap screw M5 x 30",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M5 x 30",
+   "grade": "A4-70",
+   "material": "Stainless steel A4-80",
+   "materialKey": "fast_a4",
+   "qty": 8,
+   "massKg": 0.0066,
+   "totalMassKg": 0.0528,
+   "torqueNm": 4.4,
+   "reference": false,
+   "function": "Holds the radar's plate to the wall, into an anchor.",
+   "spec": {
+    "preload": "5.1 kN",
+    "drive": "hex socket 4 mm"
+   },
+   "uses": [
+    {
+     "sub": "GUARD",
+     "qty": 8
+    }
+   ]
+  },
+  {
+   "id": "ISO4762-M6x25-A4-70",
+   "name": "Socket head cap screw M6 x 25",
+   "category": "fastener",
+   "make": "buy",
+   "standard": "ISO 4762",
+   "size": "M6 x 25",
+   "grade": "A4-70",
+   "material": "Stainless steel A4-80",
+   "materialKey": "fast_a4",
+   "qty": 8,
+   "massKg": 0.0087,
+   "totalMassKg": 0.0699,
+   "torqueNm": 7.4,
+   "reference": false,
+   "function": "Holds the guard station box to the wall, into an anchor.",
+   "spec": {
+    "preload": "7.2 kN",
+    "drive": "hex socket 5 mm"
+   },
+   "uses": [
+    {
+     "sub": "GUARD",
+     "qty": 8
+    }
+   ]
+  },
+  {
    "id": "WSH-CTP",
    "name": "Supply pit liner, galvanised",
    "category": "structure",
@@ -8298,6 +8688,64 @@
     {
      "sub": "SUPPLY",
      "qty": 2
+    }
+   ]
+  },
+  {
+   "id": "WSH-GDN",
+   "name": "Duct in the slab, PVC, trade size 1: guard and camera, arm cabinet to the north station (part of the building)",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "UL 651",
+   "size": "1",
+   "grade": "",
+   "material": "Hose, PVC with steel helix",
+   "materialKey": "hose",
+   "qty": 1,
+   "massKg": 0.0,
+   "totalMassKg": 0.0,
+   "torqueNm": null,
+   "reference": true,
+   "function": "Takes the guard and camera, arm cabinet to the north station lines under the floor. Cast into the slab before the machine comes.",
+   "spec": {
+    "lines": "9 mm, 8 mm",
+    "fill": "21 % of the bore (limit 31 %)",
+    "bends": "R 146, 360 degrees or less in all",
+    "in the cable schedule": "WSH-GLN, 9.25 m from end to end; WSH-GLC, 12.14 m from end to end"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "WSH-GDS",
+   "name": "Duct in the slab, PVC, trade size 1/2: guard, north station to the south station (part of the building)",
+   "category": "electrical",
+   "make": "buy",
+   "standard": "UL 651",
+   "size": "1/2",
+   "grade": "",
+   "material": "Hose, PVC with steel helix",
+   "materialKey": "hose",
+   "qty": 1,
+   "massKg": 0.0,
+   "totalMassKg": 0.0,
+   "torqueNm": null,
+   "reference": true,
+   "function": "Takes the guard, north station to the south station lines under the floor. Cast into the slab before the machine comes.",
+   "spec": {
+    "lines": "9 mm",
+    "fill": "35 % of the bore (limit 53 %)",
+    "bends": "R 102, 360 degrees or less in all",
+    "in the cable schedule": "WSH-GLS, 16.23 m from end to end"
+   },
+   "uses": [
+    {
+     "sub": "SUPPLY",
+     "qty": 1
     }
    ]
   },
@@ -9155,6 +9603,379 @@
  ],
  "notes": {},
  "cables": [
+  {
+   "id": "WSH-GLN",
+   "name": "Guard cable, arm cabinet to the north guard station",
+   "kind": "safety",
+   "od": 9.0,
+   "spec": "ASSUMPTION: a shielded cable for 24 V, the radars' bus and the 2 emergency-stop channels (class)",
+   "from": "the radar controller in the detail arm cabinet (WSH-DAC)",
+   "to": "the north guard station box (WSH-GBX)",
+   "sub": "GUARD",
+   "runs": [
+    {
+     "kind": "conduit",
+     "via": "WSH-GR1950",
+     "where": "down its conduit from the cabinet to the pull box",
+     "mm": 950.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "WSH-GDN",
+     "where": "in its duct under the slab, under the exit's threshold",
+     "mm": 7297.4,
+     "tol": 0.0,
+     "bend": 146.1,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "WSH-GR11000",
+     "where": "up its conduit into the station box",
+     "mm": 1000.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 9247.4,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 500.0,
+    "b": 300.0,
+    "basis": "500 mm inside the cabinet to its terminal, 300 mm into the device (ASSUMPTION)"
+   },
+   "orderMm": 10100.0,
+   "bendMm": {
+    "fixed": 146.1,
+    "moving": 0.0,
+    "tightestFixed": 146.1,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "WSH-GDN",
+    "WSH-GR11000",
+    "WSH-GR1950"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-GLS",
+   "name": "Guard cable, north guard station to the south guard station",
+   "kind": "safety",
+   "od": 9.0,
+   "spec": "ASSUMPTION: a shielded cable for 24 V, the radars' bus and the 2 emergency-stop channels (class)",
+   "from": "the north guard station box (WSH-GBX)",
+   "to": "the south guard station box (WSH-GBX)",
+   "sub": "GUARD",
+   "runs": [
+    {
+     "kind": "conduit",
+     "via": "WSH-GR121000",
+     "where": "down its conduit from the north box to the slab",
+     "mm": 1000.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "WSH-GDS",
+     "where": "in its duct under the slab, along the bay's east edge",
+     "mm": 14233.6,
+     "tol": 0.0,
+     "bend": 101.6,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "WSH-GR121000",
+     "where": "up its conduit into the south box",
+     "mm": 1000.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 16233.6,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 300.0,
+    "b": 300.0,
+    "basis": "300 mm into each box (ASSUMPTION)"
+   },
+   "orderMm": 16900.0,
+   "bendMm": {
+    "fixed": 101.6,
+    "moving": 0.0,
+    "tightestFixed": 101.6,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "WSH-GDS",
+    "WSH-GR121000"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-GLC",
+   "name": "Camera network cable, arm cabinet to the overview camera",
+   "kind": "network",
+   "od": 8.0,
+   "spec": "industrial Cat 6A, power over the cable (ASSUMPTION: the class of the machine's network cable)",
+   "from": "the bay's network switch in the detail arm cabinet (WSH-DAC)",
+   "to": "the overview camera (WSH-GCM)",
+   "sub": "GUARD",
+   "runs": [
+    {
+     "kind": "conduit",
+     "via": "WSH-GR1950",
+     "where": "down the guard's conduit from the cabinet to the pull box",
+     "mm": 950.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "WSH-GDN",
+     "where": "in the guard's duct under the slab",
+     "mm": 7297.4,
+     "tol": 0.0,
+     "bend": 146.1,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "WSH-GR11000",
+     "where": "up into the north station box",
+     "mm": 1000.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "duct",
+     "via": "WSH-GBX",
+     "where": "through the station box, bottom to top (planned)",
+     "mm": 300.0,
+     "tol": 50.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    },
+    {
+     "kind": "conduit",
+     "via": "WSH-GR122595",
+     "where": "up its conduit to the camera",
+     "mm": 2595.0,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 12142.4,
+   "tolMm": 50.0,
+   "tails": {
+    "a": 500.0,
+    "b": 300.0,
+    "basis": "500 mm inside the cabinet to its terminal, 300 mm into the device (ASSUMPTION)"
+   },
+   "orderMm": 13000.0,
+   "bendMm": {
+    "fixed": 146.1,
+    "moving": 0.0,
+    "tightestFixed": 146.1,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "WSH-GDN",
+    "WSH-GR11000",
+    "WSH-GR122595",
+    "WSH-GR1950"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-GLRN",
+   "name": "Radar lead, north guard station",
+   "kind": "safety",
+   "od": 6.0,
+   "spec": "ASSUMPTION: the radar's own bus lead, M12 (class)",
+   "from": "the north guard station box (WSH-GBX)",
+   "to": "the north safety radar (WSH-GRD)",
+   "sub": "GUARD",
+   "runs": [
+    {
+     "kind": "conduit",
+     "via": "WSH-GST",
+     "where": "in its conduit along the wall",
+     "mm": 329.3,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 329.3,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 300.0,
+    "b": 100.0,
+    "basis": "300 mm into the box, 100 mm to the radar's plug (ASSUMPTION)"
+   },
+   "orderMm": 800.0,
+   "bendMm": {
+    "fixed": 0.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "WSH-GST"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-GLEN",
+   "name": "Outside emergency stop lead, north guard station",
+   "kind": "safety",
+   "od": 7.0,
+   "spec": "ASSUMPTION: a 4-core control cable, 2 channels (class)",
+   "from": "the north guard station box (WSH-GBX)",
+   "to": "the emergency stop on the wall's outer face at the north mouth (WSH-GEH)",
+   "sub": "GUARD",
+   "runs": [
+    {
+     "kind": "conduit",
+     "via": "WSH-GNP",
+     "where": "through the wall in its conduit",
+     "mm": 287.1,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 287.1,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 300.0,
+    "b": 100.0,
+    "basis": "300 mm into the box, 100 mm into the housing (ASSUMPTION)"
+   },
+   "orderMm": 700.0,
+   "bendMm": {
+    "fixed": 0.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "WSH-GNP"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-GLRS",
+   "name": "Radar lead, south guard station",
+   "kind": "safety",
+   "od": 6.0,
+   "spec": "ASSUMPTION: the radar's own bus lead, M12 (class)",
+   "from": "the south guard station box (WSH-GBX)",
+   "to": "the south safety radar (WSH-GRD)",
+   "sub": "GUARD",
+   "runs": [
+    {
+     "kind": "conduit",
+     "via": "WSH-GST",
+     "where": "in its conduit along the wall",
+     "mm": 329.3,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 329.3,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 300.0,
+    "b": 100.0,
+    "basis": "300 mm into the box, 100 mm to the radar's plug (ASSUMPTION)"
+   },
+   "orderMm": 800.0,
+   "bendMm": {
+    "fixed": 0.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "WSH-GST"
+   ],
+   "notes": [],
+   "open": []
+  },
+  {
+   "id": "WSH-GLES",
+   "name": "Outside emergency stop lead, south guard station",
+   "kind": "safety",
+   "od": 7.0,
+   "spec": "ASSUMPTION: a 4-core control cable, 2 channels (class)",
+   "from": "the south guard station box (WSH-GBX)",
+   "to": "the emergency stop on the wall's outer face at the south mouth (WSH-GEH)",
+   "sub": "GUARD",
+   "runs": [
+    {
+     "kind": "conduit",
+     "via": "WSH-GNP",
+     "where": "through the wall in its conduit",
+     "mm": 287.1,
+     "tol": 0.0,
+     "bend": null,
+     "moving": false,
+     "range": null
+    }
+   ],
+   "routeMm": 287.1,
+   "tolMm": 0.0,
+   "tails": {
+    "a": 300.0,
+    "b": 100.0,
+    "basis": "300 mm into the box, 100 mm into the housing (ASSUMPTION)"
+   },
+   "orderMm": 700.0,
+   "bendMm": {
+    "fixed": 0.0,
+    "moving": 0.0,
+    "tightestFixed": null,
+    "tightestMoving": null
+   },
+   "pieces": [
+    "WSH-GNP"
+   ],
+   "notes": [],
+   "open": []
+  },
   {
    "id": "WSH-MLN",
    "name": "Machine network cable, wall to the machine",

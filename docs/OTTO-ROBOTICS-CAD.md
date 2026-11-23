@@ -914,6 +914,28 @@ The poses found more, which the stowed pose could not show:
       line is assumed. The guards around it are a design for Chase to approve, not drawn: a safety controller per canopy
       (the stall's scanner cannot see the car's far side) and interlocked doors with a safety radar in the wash bays.
 
+27. **The wash bays get their guard, with the doors open (2026-11-23).** Chase, 2026-11-22: *"Definitely do not want doors
+    to close in a wash bay ... I dont really want too much lidar or radar ... if radar or something like that is absolutley
+    necessary, then that's fine."* The wash machine had a safety relay and no sensor feeding it.
+    - **What it is (subsystem `GUARD`):** on the wall east of each mouth, a guard station: a stainless box (`WSH-GBX`), a
+      60 GHz safety radar beside the opening (`WSH-GRD`), an emergency stop on the box and one on the wall's outer face
+      (`WSH-GEH`, `WSH-GEM`, joined through the wall by `WSH-GNP`). Over the exit station, the bay's overview camera
+      (`WSH-GCM`) at 3.95 m. Per bay: 2 radars, 4 emergency stops, 1 camera.
+    - **Why radar here and nowhere else as a guard:** spray and mist give a camera or a laser false stops, and with the
+      doors open something certified must stop the gantry and the arms when a person walks in. The radar's fields are
+      muted while the machine is home and the signal is green. It needs its maker's approval for this spray: not confirmed.
+    - **Where the cables go:** nothing may stand on a side wall (an end bay's wall is 48 mm from the trolleys) or on the
+      floor. So 2 ducts are cast in the slab: from the detail arm cabinet, which holds the radar controller, under the
+      exit's threshold to the north station (`WSH-GDN`, 2 cables), and from there along the bay's east edge to the south
+      station (`WSH-GDS`). The west pier at the exit is full (the service panel), so both stations stand on the east side.
+    - **In the schedule:** 7 lines (`WSH-GLN`, `WSH-GLS`, `WSH-GLC`, the 2 radar leads, the 2 outside emergency stop leads),
+      each in a drawn conduit or duct. 38.9 m of route in all, 43.0 m to order.
+    - **Checked:** the build, 2,835 placements to 2,873 (320 unique parts to 333), 6,046.0 kg to 6,075.6 kg; the clash
+      check, 37 poses, 0 clashes, 0 floating groups; 67 rigid lines, 0 open ends; model digest `609b0a7105e08809`;
+      `cadYard.test.ts` (inside every bay's walls, a car driving through clears every part).
+    - **Not verified:** the radar's size, height and field are class figures (`cad/SOURCES.md`); its coverage of the mouth
+      is not computed; the twin does not yet stop a machine for a person, because it has no people.
+
 The audit also found the wash machine's tools fed by rigid pipes that could not follow them. They now have flexible
 lines that do (below). (The wands' vacuum units and the side brushes' chains it added went with finding 17.)
 
