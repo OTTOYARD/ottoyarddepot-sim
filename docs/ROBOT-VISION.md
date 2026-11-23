@@ -4,6 +4,10 @@
 OTTO-CLEAN ARM's cabin vision pod, in the CAD with its cables (section 2, `docs/OTTO-ROBOTICS-CAD.md` finding 26).
 Measuring where it could go moved it from the wrist fork to the wand, and found two things this note first got wrong:
 the stall's scanner cannot see the car's far side, and laser scanners are the wrong guard in a wet wash bay (section 2).
+**Decided by Chase, 2026-11-22:** *"Definitely do not want doors to close in a wash bay. Everything else is fine. I dont
+really want too much lidar or radar. Moreso just vision and bluetooth etc. if radar or something like that is absolutley
+necessary, then that's fine. But ideally, its just visions and confirmation of clean or connection and then
+completions."* Section 1a states what follows from it.
 **Asked by Chase, 2026-11-19:**
 *"the ultimate goal is to have actual cameras attached to the robotic arms in a real depot with real autonomous
 vehicles ... I don't want to build something cheap or not detailed enough that just looks like a cheap visual rendering
@@ -44,6 +48,29 @@ same date). Both are vendor statements. A radar sees about 300 mm, coarser than 
 ([Leuze comparison, via a distributor](https://www.breemes.be/breemes/en/EUR/content/resources/news/LeuzeRadarofOptisch),
 same date). No source found covers high-pressure spray, so that needs the maker's approval in writing.
 
+## 1a. Vision first: the few sensors that are not cameras, and why each stays (Chase, 2026-11-22)
+
+Cameras do the work at this depot: they find, they confirm the connection or the clean, and they record the completion.
+A sensor that is not a camera stays only where a camera cannot do the job. That leaves 4 kinds, and no others are added:
+
+| Sensor | Where | Count at the 30-post depot | Why a camera cannot do it |
+|---|---|---|---|
+| Safety laser scanner | each charger's riser (in the CAD today), and the open end of each charger row | 30 today, 6 to add | It stops the arms when a person steps in. That function must be certified (PL d), and no camera found is. |
+| Safety radar | each wash bay mouth, since the doors stay open | 6 to add | The same function, in spray, where a camera or a laser gives false stops. It needs the maker's approval for spray. |
+| Cabin presence radar | inside each clean arm's vision pod (built) | 30, one small board each | A child or a pet under a blanket. A camera sees the blanket. |
+| Safety laser scanner | each service bay's tire machine (in the CAD today) | 2 today | As the first row. |
+
+Everything else is a camera, a force sensor the machine already has, or a radio link:
+
+- **Confirmation by vision:** the connector seated (charge arm), each surface clean (clean arm), each sensor cover clean
+  (wash arms), each nut in its socket (tire machine). Each is a picture on the operation's record (section 5).
+- **Bluetooth for the car and the stall to talk at short range.** A Bluetooth Low Energy link at each stall lets the car
+  and the stall confirm, with no cloud between them: this is the car the plan sent here, its charge port is open, its
+  doors are open or shut, its cabin reports empty. It is a second path beside the owner's API, never the only one, and
+  never a safety function. ASSUMPTION: which fleets expose such a link is not known; R-request to file before it is
+  built.
+- **No wash bay door closes.** The bays stay open pull-through bays.
+
 ## 2. Each machine: what it has, what it gets
 
 Read from `cad/otto_cad/robots/` on 2026-11-19. Part ids are the CAD's.
@@ -66,8 +93,8 @@ Read from `cad/otto_cad/robots/` on 2026-11-19. Part ids are the CAD's.
     and the next car's far side. The OSSD pairs run to the board, not stall to stall.
   - **The last stall of each column has no neighbour on its far side.** It gets a scanner of its own there: 6 at the
     30-post build (3 canopies, each with 2 columns of 5 at that pitch, `sitePlan.chargingStalls`).
-  - This is a change for Chase to approve (it adds a safety controller per canopy and a scanner per column's end). The
-    CAD has not drawn it yet.
+  - **Approved by Chase, 2026-11-22** ("Everything else is fine"). These 6 scanners are the only laser scanners this
+    design adds. The CAD has not drawn them yet.
 - **Add: the proof record.** At every latch: the pod's picture of the seated connector, the force trace of the mate and
   the latch confirmation, hashed into the charge's service record. No new hardware.
 
@@ -134,20 +161,22 @@ already counted on a camera that was not there: its wand-tip light ring *"lights
 - **Has.** Find: a sensor-finding camera with a ring light on each detail arm (`WSH-PCM`), which finds each camera,
   lidar and radar cover so the polishing pad goes to the sensor and not the paint. Guard: none; there is a safety relay
   in the cabinet and no sensor feeding it.
-- **Add: a guard for each bay. Not laser scanners: the first version of this note put 2 per bay in IP69K covers, and
-  that is the wrong sensor here.** A wash bay is full of spray and mist while the machine runs, which makes an optical
-  guard stop the machine for nothing, and a cover over a scanner's window is one more window to wet (section 1). The
-  bays already have what a robot cell uses as its main guard: a roll-up door at each end. So:
-  - **The doors close during a program and are interlocked.** A door that opens stops the gantry and the detail arms.
-    That keeps people out while the water flies, which no presence sensor in spray can promise.
-  - **A 60 GHz safety radar at each end checks the bay is empty before the doors close and the program starts**, and
-    watches each door's opening while the bay is open. Spray is not running at those moments.
-  - **Emergency stops** at each door, inside and out.
+- **Add: a guard for each bay, with the doors open (Chase, 2026-11-22: *"Definitely do not want doors to close in a
+  wash bay"*).** An earlier version of this note closed and interlocked the doors. That is withdrawn. A wash bay is full
+  of spray and mist while the machine runs, which makes a camera or a laser guard stop the machine for nothing
+  (section 1). With the doors open, something certified must still stop the gantry and the 2 arms when a person walks
+  in. So:
+  - **One 60 GHz safety radar at each mouth, 2 a bay, 6 in all.** Its field is the door opening and the first metres
+    inside. A person in it stops the gantry and the detail arms. The car's own passage is expected: the field is muted
+    while the machine is home and the signal is green. This is the one place this design uses a radar as a guard, and
+    it is here because nothing else certified works in spray (section 1a). If the maker does not approve it for this
+    spray, the fallback is a safety light curtain across each mouth, set back from the spray.
+  - **The bay's overview camera checks that the bay is empty** before a program starts, and records any stop.
+  - **Emergency stops** at each mouth, inside and out.
   - IP69K for everything in the bay: the road-vehicle rating for close-range, hot, high-pressure spray, 80 degrees C
     water at 80 to 100 bar ([fabrico summary of ISO 20653](https://www.fabrico.io/fr/blog/ip69k-rating-washdown-equipment/),
     read 2026-11-19; sources differ on the exact distance and time, so test to the standard's text).
-  - **This is Chase's call before it is built:** closing the doors adds their open and close time to every wash, and
-    the twin draws the doors open today. The CAD has not drawn it yet.
+  - The CAD has not drawn it yet.
 - **Add: the check after the pad.** The same sensor camera looks at each cover again after it is polished: clean, one
   more pass, or a need for a sensor calibration. The twin already models that escalation (a failed clean raising a
   calibration); a real camera makes it a measurement. No new hardware.
@@ -251,8 +280,8 @@ card (a re-clean, a re-mate, a fault), and rule 9 holds the car until it is done
    (section 2), with its 2 cables in the cable schedule and the whole CAD chain: build, clash (0), line ends (0 open),
    the twin's CAD tests, the yard and fleet clearance tests, and the robot facts and their copies to the two cockpits.
    The stall's guard for the clean arm is not built: it waits on the canopy safety controller (section 2).
-2. **The guards Chase approves:** the canopy safety controller with a scanner at each column's end, and the wash bays'
-   interlocked doors with a safety radar at each end (section 2). Then the wash bay's overview camera.
+2. **The guards, as Chase decided on 2026-11-22:** the canopy safety controller with a scanner at each row's open end
+   (6), and in each wash bay a safety radar at each mouth, emergency stops and the overview camera. No door closes.
 3. **The arrival inspection arch:** its place on the site plan (the inbound lane, before the gate queue), its model in
    the yard and the twin's needs from its readings.
 4. **The canopy overhead cameras**, and a stall-occupancy check in OTTO-Q against them.
@@ -270,8 +299,8 @@ card (a re-clean, a re-mate, a fault), and rule 9 holds the car until it is done
   wrist turned out to be full. A sensor that sits in a robot's swept space is part of the robot's clearance, and every
   clearance at this depot is measured against every vehicle.
 - **A sensor in the wrong medium is a false alarm machine.** Optical guards in spray, and any guard that stops the
-  depot for nothing, get switched off by the people who work there. Pick the guard for the place: doors and radar in
-  the wash bays, scanners in the dry canopies.
+  depot for nothing, get switched off by the people who work there. Pick the guard for the place: a radar at each open
+  wash bay mouth, scanners in the dry canopies, cameras for everything else.
 - **Send stills, not video.** It keeps the network small, keeps the arms' existing slip rings, and keeps the privacy
   surface small.
 - **The cars have cabin cameras of their own.** Read them through the contract as a second opinion. Never make them
